@@ -92,8 +92,6 @@ type userInterfaceImpl struct {
 	initWindowHeightInDIP    int
 	initWindowFloating       bool
 	initWindowMaximized      bool
-	initScreenTransparent    bool
-	initFocused              bool
 
 	origWindowPosX        int
 	origWindowPosY        int
@@ -135,7 +133,6 @@ func init() {
 		initWindowPositionYInDIP: invalidPos,
 		initWindowWidthInDIP:     640,
 		initWindowHeightInDIP:    480,
-		initFocused:              true,
 		fpsMode:                  FPSModeVsyncOn,
 		origWindowPosX:           invalidPos,
 		origWindowPosY:           invalidPos,
@@ -362,19 +359,6 @@ func (u *userInterfaceImpl) setRunnableOnUnfocused(runnableOnUnfocused bool) {
 	u.m.Unlock()
 }
 
-func (u *userInterfaceImpl) isInitScreenTransparent() bool {
-	u.m.RLock()
-	v := u.initScreenTransparent
-	u.m.RUnlock()
-	return v
-}
-
-func (u *userInterfaceImpl) setInitScreenTransparent(transparent bool) {
-	u.m.Lock()
-	u.initScreenTransparent = transparent
-	u.m.Unlock()
-}
-
 func (u *userInterfaceImpl) getIconImages() []image.Image {
 	u.m.RLock()
 	i := u.iconImages
@@ -488,27 +472,6 @@ func (u *userInterfaceImpl) isWindowBeingClosed() bool {
 	v := u.windowBeingClosed
 	u.m.RUnlock()
 	return v
-}
-
-func (u *userInterfaceImpl) isInitFocused() bool {
-	if microsoftgdk.IsXbox() {
-		return true
-	}
-
-	u.m.RLock()
-	v := u.initFocused
-	u.m.RUnlock()
-	return v
-}
-
-func (u *userInterfaceImpl) setInitFocused(focused bool) {
-	if microsoftgdk.IsXbox() {
-		return
-	}
-
-	u.m.Lock()
-	u.initFocused = focused
-	u.m.Unlock()
 }
 
 func (u *userInterfaceImpl) ScreenSizeInFullscreen() (int, int) {
@@ -888,7 +851,7 @@ event:
 	u.framebufferSizeCallbackCh = nil
 }
 
-func (u *userInterfaceImpl) init() error {
+func (u *userInterfaceImpl) init(options *RunOptions) error {
 	glfw.WindowHint(glfw.AutoIconify, glfw.False)
 
 	decorated := glfw.False
@@ -897,21 +860,20 @@ func (u *userInterfaceImpl) init() error {
 	}
 	glfw.WindowHint(glfw.Decorated, decorated)
 
-	transparent := u.isInitScreenTransparent()
 	glfwTransparent := glfw.False
-	if transparent {
+	if options.ScreenTransparent {
 		glfwTransparent = glfw.True
 	}
 	glfw.WindowHint(glfw.TransparentFramebuffer, glfwTransparent)
 
 	g, err := newGraphicsDriver(&graphicsDriverCreatorImpl{
-		transparent: transparent,
-	})
+		transparent: options.ScreenTransparent,
+	}, options.GraphicsLibrary)
 	if err != nil {
 		return err
 	}
 	u.graphicsDriver = g
-	u.graphicsDriver.SetTransparent(u.isInitScreenTransparent())
+	u.graphicsDriver.SetTransparent(options.ScreenTransparent)
 
 	if u.graphicsDriver.IsGL() {
 		u.graphicsDriver.(interface{ SetGLFWClientAPI() }).SetGLFWClientAPI()
@@ -933,9 +895,9 @@ func (u *userInterfaceImpl) init() error {
 	}
 	glfw.WindowHint(glfw.Floating, floating)
 
-	focused := glfw.False
-	if u.isInitFocused() {
-		focused = glfw.True
+	focused := glfw.True
+	if options.InitUnfocused {
+		focused = glfw.False
 	}
 	glfw.WindowHint(glfw.FocusOnShow, focused)
 
@@ -977,6 +939,11 @@ func (u *userInterfaceImpl) init() error {
 	}
 
 	u.setWindowResizingModeForOS(u.windowResizingMode)
+
+	if options.SkipTaskbar {
+		// Ignore the error.
+		_ = u.skipTaskbar()
+	}
 
 	u.window.Show()
 
@@ -1440,38 +1407,12 @@ func monitorFromWindow(window *glfw.Window) *glfw.Monitor {
 	return nil
 }
 
-func (u *userInterfaceImpl) SetScreenTransparent(transparent bool) {
-	if !u.isRunning() {
-		u.setInitScreenTransparent(transparent)
-		return
-	}
-	panic("ui: SetScreenTransparent can't be called after the main loop starts")
-}
-
-func (u *userInterfaceImpl) IsScreenTransparent() bool {
-	if !u.isRunning() {
-		return u.isInitScreenTransparent()
-	}
-	val := false
-	u.t.Call(func() {
-		val = u.window.GetAttrib(glfw.TransparentFramebuffer) == glfw.True
-	})
-	return val
-}
-
 func (u *userInterfaceImpl) resetForTick() {
 	u.input.resetForTick()
 
 	u.m.Lock()
 	u.windowBeingClosed = false
 	u.m.Unlock()
-}
-
-func (u *userInterfaceImpl) SetInitFocused(focused bool) {
-	if u.isRunning() {
-		panic("ui: SetInitFocused must be called before the main loop")
-	}
-	u.setInitFocused(focused)
 }
 
 func (u *userInterfaceImpl) Input() *Input {
@@ -1646,4 +1587,8 @@ func (u *userInterfaceImpl) origWindowPos() (int, int) {
 func (u *userInterfaceImpl) setOrigWindowPos(x, y int) {
 	u.origWindowPosX = x
 	u.origWindowPosY = y
+}
+
+func IsScreenTransparentAvailable() bool {
+	return true
 }

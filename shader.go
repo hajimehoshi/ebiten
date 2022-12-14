@@ -52,12 +52,8 @@ func (s *Shader) Dispose() {
 	s.shader = nil
 }
 
-func (s *Shader) uniformUint32Count() int {
-	return s.shader.UniformUint32Count()
-}
-
-func (s *Shader) convertUniforms(dst []uint32, uniforms map[string]any) {
-	s.shader.ConvertUniforms(dst, uniforms)
+func (s *Shader) appendUniforms(dst []uint32, uniforms map[string]any) []uint32 {
+	return s.shader.AppendUniforms(dst, uniforms)
 }
 
 type builtinShaderKey struct {

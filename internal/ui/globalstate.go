@@ -21,6 +21,7 @@ import (
 
 var theGlobalState = globalState{
 	isScreenClearedEveryFrame_: 1,
+	graphicsLibrary_:           int32(GraphicsLibraryUnknown),
 }
 
 // globalState represents a global state in this package.

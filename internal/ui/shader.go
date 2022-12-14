@@ -27,8 +27,9 @@ import (
 type Shader struct {
 	shader *mipmap.Shader
 
-	uniformNames []string
-	uniformTypes []shaderir.Type
+	uniformNames       []string
+	uniformTypes       []shaderir.Type
+	uniformUint32Count int
 }
 
 func NewShader(ir *shaderir.Program) *Shader {
@@ -44,16 +45,21 @@ func (s *Shader) MarkDisposed() {
 	s.shader = nil
 }
 
-func (s *Shader) UniformUint32Count() int {
-	var n int
-	for _, typ := range s.uniformTypes {
-		n += typ.Uint32Count()
+func (s *Shader) AppendUniforms(dst []uint32, uniforms map[string]any) []uint32 {
+	if s.uniformUint32Count == 0 {
+		for _, typ := range s.uniformTypes {
+			s.uniformUint32Count += typ.Uint32Count()
+		}
 	}
-	return n
-}
 
-func (s *Shader) ConvertUniforms(dst []uint32, uniforms map[string]any) {
-	var idx int
+	origLen := len(dst)
+	if cap(dst)-len(dst) >= s.uniformUint32Count {
+		dst = dst[:len(dst)+s.uniformUint32Count]
+	} else {
+		dst = append(dst, make([]uint32, s.uniformUint32Count)...)
+	}
+
+	idx := origLen
 	for i, name := range s.uniformNames {
 		typ := s.uniformTypes[i]
 
@@ -93,4 +99,6 @@ func (s *Shader) ConvertUniforms(dst []uint32, uniforms map[string]any) {
 
 		idx += typ.Uint32Count()
 	}
+
+	return dst
 }

@@ -21,7 +21,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/thread"
 )
 
-func (u *userInterfaceImpl) Run(game Game) error {
+func (u *userInterfaceImpl) Run(game Game, options *RunOptions) error {
 	u.context = newContext(game)
 
 	// Initialize the main thread first so the thread is available at u.run (#809).
@@ -36,7 +36,7 @@ func (u *userInterfaceImpl) Run(game Game) error {
 
 		var err error
 		if u.t.Call(func() {
-			err = u.init()
+			err = u.init(options)
 		}); err != nil {
 			ch <- err
 			return

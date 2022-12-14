@@ -139,11 +139,14 @@ func (m *mascot) Draw(screen *ebiten.Image) {
 }
 
 func main() {
-	ebiten.SetScreenTransparent(true)
 	ebiten.SetWindowDecorated(false)
 	ebiten.SetWindowFloating(true)
 	ebiten.SetWindowSize(width, height)
-	if err := ebiten.RunGame(&mascot{}); err != nil {
+
+	op := &ebiten.RunGameOptions{}
+	op.ScreenTransparent = true
+	op.SkipTaskbar = true
+	if err := ebiten.RunGameWithOptions(&mascot{}, op); err != nil {
 		log.Fatal(err)
 	}
 }

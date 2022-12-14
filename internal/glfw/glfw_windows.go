@@ -34,12 +34,8 @@ func CreateStandardCursor(shape StandardCursor) *Cursor {
 
 type Monitor glfwwin.Monitor
 
-func (m *Monitor) GetContentScale() (float32, float32) {
-	sx, sy, err := (*glfwwin.Monitor)(m).GetContentScale()
-	if err != nil {
-		panic(err)
-	}
-	return sx, sy
+func (m *Monitor) GetContentScale() (float32, float32, error) {
+	return (*glfwwin.Monitor)(m).GetContentScale()
 }
 
 func (m *Monitor) GetPos() (int, int) {

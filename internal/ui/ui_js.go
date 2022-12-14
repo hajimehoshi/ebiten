@@ -77,7 +77,6 @@ type userInterfaceImpl struct {
 	fpsMode             FPSModeType
 	renderingScheduled  bool
 	running             bool
-	initFocused         bool
 	cursorMode          CursorMode
 	cursorPrevMode      CursorMode
 	cursorShape         CursorShape
@@ -96,7 +95,6 @@ type userInterfaceImpl struct {
 func init() {
 	theUI.userInterfaceImpl = userInterfaceImpl{
 		runnableOnUnfocused: true,
-		initFocused:         true,
 	}
 	theUI.input.ui = &theUI.userInterfaceImpl
 }
@@ -637,8 +635,8 @@ func (u *userInterfaceImpl) forceUpdateOnMinimumFPSMode() {
 	}()
 }
 
-func (u *userInterfaceImpl) Run(game Game) error {
-	if u.initFocused && window.Truthy() {
+func (u *userInterfaceImpl) Run(game Game, options *RunOptions) error {
+	if !options.InitUnfocused && window.Truthy() {
 		// Do not focus the canvas when the current document is in an iframe.
 		// Otherwise, the parent page tries to focus the iframe on every loading, which is annoying (#1373).
 		isInIframe := !window.Get("location").Equal(window.Get("parent").Get("location"))
@@ -649,11 +647,18 @@ func (u *userInterfaceImpl) Run(game Game) error {
 	u.running = true
 	g, err := newGraphicsDriver(&graphicsDriverCreatorImpl{
 		canvas: canvas,
-	})
+	}, options.GraphicsLibrary)
 	if err != nil {
 		return err
 	}
 	u.graphicsDriver = g
+
+	if bodyStyle := document.Get("body").Get("style"); options.ScreenTransparent {
+		bodyStyle.Set("backgroundColor", "transparent")
+	} else {
+		bodyStyle.Set("backgroundColor", "#000")
+	}
+
 	return <-u.loop(game)
 }
 
@@ -672,28 +677,10 @@ func (u *userInterfaceImpl) SetScreenTransparent(transparent bool) {
 		panic("ui: SetScreenTransparent can't be called after the main loop starts")
 	}
 
-	bodyStyle := document.Get("body").Get("style")
-	if transparent {
-		bodyStyle.Set("backgroundColor", "transparent")
-	} else {
-		bodyStyle.Set("backgroundColor", "#000")
-	}
-}
-
-func (u *userInterfaceImpl) IsScreenTransparent() bool {
-	bodyStyle := document.Get("body").Get("style")
-	return bodyStyle.Get("backgroundColor").Equal(stringTransparent)
 }
 
 func (u *userInterfaceImpl) resetForTick() {
 	u.input.resetForTick()
-}
-
-func (u *userInterfaceImpl) SetInitFocused(focused bool) {
-	if u.running {
-		panic("ui: SetInitFocused must be called before the main loop")
-	}
-	u.initFocused = focused
 }
 
 func (u *userInterfaceImpl) Input() *Input {
@@ -708,4 +695,8 @@ func (u *userInterfaceImpl) beginFrame() {
 }
 
 func (u *userInterfaceImpl) endFrame() {
+}
+
+func IsScreenTransparentAvailable() bool {
+	return true
 }
