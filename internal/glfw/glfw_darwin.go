@@ -81,11 +81,10 @@ type Monitor struct {
 	m uintptr
 }
 
-func (m *Monitor) GetContentScale() (float32, float32) {
+func (m *Monitor) GetContentScale() (float32, float32, error) {
 	var sx, sy float32
 	libglfw.call("glfwGetMonitorContentScale", m.m, uintptr(unsafe.Pointer(&sx)), uintptr(unsafe.Pointer(&sy)))
-	panicError()
-	return sx, sy
+	return sx, sy, fetchError()
 }
 
 func (m *Monitor) GetPos() (int, int) {
