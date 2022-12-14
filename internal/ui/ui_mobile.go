@@ -235,10 +235,10 @@ func (u *userInterfaceImpl) SetForeground(foreground bool) error {
 	}
 }
 
-func (u *userInterfaceImpl) Run(game Game) error {
+func (u *userInterfaceImpl) Run(game Game, options *RunOptions) error {
 	u.setGBuildSizeCh = make(chan struct{})
 	go func() {
-		if err := u.run(game, true); err != nil {
+		if err := u.run(game, true, options); err != nil {
 			// As mobile apps never ends, Loop can't return. Just panic here.
 			panic(err)
 		}
@@ -247,19 +247,19 @@ func (u *userInterfaceImpl) Run(game Game) error {
 	return nil
 }
 
-func RunWithoutMainLoop(game Game) {
-	theUI.runWithoutMainLoop(game)
+func RunWithoutMainLoop(game Game, options *RunOptions) {
+	theUI.runWithoutMainLoop(game, options)
 }
 
-func (u *userInterfaceImpl) runWithoutMainLoop(game Game) {
+func (u *userInterfaceImpl) runWithoutMainLoop(game Game, options *RunOptions) {
 	go func() {
-		if err := u.run(game, false); err != nil {
+		if err := u.run(game, false, options); err != nil {
 			u.errCh <- err
 		}
 	}()
 }
 
-func (u *userInterfaceImpl) run(game Game, mainloop bool) (err error) {
+func (u *userInterfaceImpl) run(game Game, mainloop bool, options *RunOptions) (err error) {
 	// Convert the panic to a regular error so that Java/Objective-C layer can treat this easily e.g., for
 	// Crashlytics. A panic is treated as SIGABRT, and there is no way to handle this on Java/Objective-C layer
 	// unfortunately.
@@ -284,7 +284,7 @@ func (u *userInterfaceImpl) run(game Game, mainloop bool) (err error) {
 
 	g, err := newGraphicsDriver(&graphicsDriverCreatorImpl{
 		gomobileContext: mgl,
-	})
+	}, options.GraphicsLibrary)
 	if err != nil {
 		return err
 	}
@@ -421,20 +421,8 @@ func (u *userInterfaceImpl) DeviceScaleFactor() float64 {
 	return deviceScale()
 }
 
-func (u *userInterfaceImpl) SetScreenTransparent(transparent bool) {
-	// Do nothing
-}
-
-func (u *userInterfaceImpl) IsScreenTransparent() bool {
-	return false
-}
-
 func (u *userInterfaceImpl) resetForTick() {
 	u.input.resetForTick()
-}
-
-func (u *userInterfaceImpl) SetInitFocused(focused bool) {
-	// Do nothing
 }
 
 func (u *userInterfaceImpl) Input() *Input {
@@ -478,4 +466,8 @@ func (u *userInterfaceImpl) beginFrame() {
 }
 
 func (u *userInterfaceImpl) endFrame() {
+}
+
+func IsScreenTransparentAvailable() bool {
+	return false
 }

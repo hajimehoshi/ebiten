@@ -224,13 +224,85 @@ var Termination = ui.RegularTermination
 //
 // The size unit is device-independent pixel.
 //
-// Don't call RunGame twice or more in one process.
+// Don't call RunGame or RunGameWithOptions twice or more in one process.
 func RunGame(game Game) error {
+	return RunGameWithOptions(game, nil)
+}
+
+// RungameOptions represents options for RunGameWithOptions.
+type RunGameOptions struct {
+	// GraphicsLibrary is a graphics library Ebitengine will use.
+	//
+	// The default (zero) value is GraphicsLibraryAuto, which lets Ebitengine choose the graphics library.
+	GraphicsLibrary GraphicsLibrary
+
+	// InitUnfocused indicates whether the window is unfocused or not on launching.
+	// InitUnfocused is valid on desktops and browsers.
+	//
+	// The default (zero) value is false, which means that the window is focused.
+	InitUnfocused bool
+
+	// ScreenTransparent indicates whether the window is transparent or not.
+	// ScreenTransparent is valid on desktops and browsers.
+	//
+	// The default (zero) value is false, which means that the window is not transparent.
+	ScreenTransparent bool
+
+	// SkipTaskbar indicates whether an application icon is shown on a taskbar or not.
+	// SkipTaskbar is valid only on Windows.
+	//
+	// The default (zero) value is false, which means that an icon is shown on a taskbar.
+	SkipTaskbar bool
+}
+
+// RunGameWithOptions starts the main loop and runs the game with the specified options.
+// game's Update function is called every tick to update the game logic.
+// game's Draw function is called every frame to draw the screen.
+// game's Layout function is called when necessary, and you can specify the logical screen size by the function.
+//
+// options can be nil. In this case, the default options are used.
+//
+// If game implements FinalScreenDrawer, its DrawFinalScreen is called after Draw.
+// The argument screen represents the final screen. The argument offscreen is an offscreen modified at Draw.
+// If game does not implement FinalScreenDrawer, the dafault rendering for the final screen is used.
+//
+// game's functions are called on the same goroutine.
+//
+// On browsers, it is strongly recommended to use iframe if you embed an Ebitengine application in your website.
+//
+// RunGameWithOptions must be called on the main thread.
+// Note that Ebitengine bounds the main goroutine to the main OS thread by runtime.LockOSThread.
+//
+// Ebitengine tries to call game's Update function 60 times a second by default. In other words,
+// TPS (ticks per second) is 60 by default.
+// This is not related to framerate (display's refresh rate).
+//
+// RunGameWithOptions returns error when 1) an error happens in the underlying graphics driver, 2) an audio error happens
+// or 3) Update returns an error. In the case of 3), RunGameWithOptions returns the same error so far, but it is recommended to
+// use errors.Is when you check the returned error is the error you want, rather than comparing the values
+// with == or != directly.
+//
+// If you want to terminate a game on desktops, it is recommended to return Termination at Update, which will halt
+// execution without returning an error value from RunGameWithOptions.
+//
+// The size unit is device-independent pixel.
+//
+// Don't call RunGame or RunGameWithOptions twice or more in one process.
+func RunGameWithOptions(game Game, options *RunGameOptions) error {
 	defer atomic.StoreInt32(&isRunGameEnded_, 1)
 
 	initializeWindowPositionIfNeeded(WindowSize())
-	g := newGameForUI(game)
-	if err := ui.Get().Run(g); err != nil {
+
+	op := toUIRunOptions(options)
+	// This is necessary to change the result of IsScreenTransparent.
+	if op.ScreenTransparent {
+		atomic.StoreInt32(&screenTransparent, 1)
+	} else {
+		atomic.StoreInt32(&screenTransparent, 0)
+	}
+	g := newGameForUI(game, op.ScreenTransparent)
+
+	if err := ui.Get().Run(g, op); err != nil {
 		if errors.Is(err, Termination) {
 			return nil
 		}
@@ -531,8 +603,13 @@ func SetMaxTPS(tps int) {
 // IsScreenTransparent reports whether the window is transparent.
 //
 // IsScreenTransparent is concurrent-safe.
+//
+// Deprecated: as of v2.5.
 func IsScreenTransparent() bool {
-	return ui.Get().IsScreenTransparent()
+	if !ui.IsScreenTransparentAvailable() {
+		return false
+	}
+	return atomic.LoadInt32(&screenTransparent) != 0
 }
 
 // SetScreenTransparent sets the state if the window is transparent.
@@ -542,20 +619,49 @@ func IsScreenTransparent() bool {
 // SetScreenTransparent does nothing on mobiles.
 //
 // SetScreenTransparent is concurrent-safe.
+//
+// Deprecated: as of v2.5. Use RunGameWithOptions instead.
 func SetScreenTransparent(transparent bool) {
-	ui.Get().SetScreenTransparent(transparent)
+	if transparent {
+		atomic.StoreInt32(&screenTransparent, 1)
+	} else {
+		atomic.StoreInt32(&screenTransparent, 0)
+	}
 }
+
+var screenTransparent int32 = 0
 
 // SetInitFocused sets whether the application is focused on show.
 // The default value is true, i.e., the application is focused.
-// Note that the application does not proceed if this is not focused by default.
-// This behavior can be changed by SetRunnableOnUnfocused.
 //
 // SetInitFocused does nothing on mobile.
 //
 // SetInitFocused panics if this is called after the main loop.
 //
 // SetInitFocused is cuncurrent-safe.
+//
+// Deprecated: as of v2.5. Use RunGameWithOptions instead.
 func SetInitFocused(focused bool) {
-	ui.Get().SetInitFocused(focused)
+	if focused {
+		atomic.StoreInt32(&initUnfocused, 0)
+	} else {
+		atomic.StoreInt32(&initUnfocused, 1)
+	}
+}
+
+var initUnfocused int32 = 0
+
+func toUIRunOptions(options *RunGameOptions) *ui.RunOptions {
+	if options == nil {
+		return &ui.RunOptions{
+			InitUnfocused:     atomic.LoadInt32(&initUnfocused) != 0,
+			ScreenTransparent: atomic.LoadInt32(&screenTransparent) != 0,
+		}
+	}
+	return &ui.RunOptions{
+		GraphicsLibrary:   ui.GraphicsLibrary(options.GraphicsLibrary),
+		InitUnfocused:     options.InitUnfocused,
+		ScreenTransparent: options.ScreenTransparent,
+		SkipTaskbar:       options.SkipTaskbar,
+	}
 }

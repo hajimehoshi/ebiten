@@ -149,9 +149,11 @@ func (i *Input) Wheel() (xoff, yoff float64) {
 }
 
 var glfwMouseButtonToMouseButton = map[glfw.MouseButton]MouseButton{
-	glfw.MouseButtonLeft:   MouseButtonLeft,
-	glfw.MouseButtonRight:  MouseButtonRight,
-	glfw.MouseButtonMiddle: MouseButtonMiddle,
+	glfw.MouseButtonLeft:   MouseButton0,
+	glfw.MouseButtonMiddle: MouseButton1,
+	glfw.MouseButtonRight:  MouseButton2,
+	glfw.MouseButton3:      MouseButton3,
+	glfw.MouseButton4:      MouseButton4,
 }
 
 // update must be called from the main thread.
@@ -174,8 +176,8 @@ func (i *Input) update(window *glfw.Window, context *context) error {
 			// As this function is called from GLFW callbacks, the current thread is main.
 			i.ui.m.Lock()
 			defer i.ui.m.Unlock()
-			i.scrollX = xoff
-			i.scrollY = yoff
+			i.scrollX += xoff
+			i.scrollY += yoff
 		}))
 	})
 	if i.keyPressed == nil {

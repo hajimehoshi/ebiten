@@ -70,8 +70,9 @@ type Monitor struct {
 	m *glfw.Monitor
 }
 
-func (m *Monitor) GetContentScale() (float32, float32) {
-	return m.m.GetContentScale()
+func (m *Monitor) GetContentScale() (float32, float32, error) {
+	x, y := m.m.GetContentScale()
+	return x, y, nil
 }
 
 func (m *Monitor) GetPos() (x, y int) {

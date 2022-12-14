@@ -203,7 +203,9 @@ func (c *compileContext) varInit(p *shaderir.Program, t *shaderir.Type) string {
 		return "false"
 	case shaderir.Int:
 		return "0"
-	case shaderir.Float, shaderir.Vec2, shaderir.Vec3, shaderir.Vec4, shaderir.Mat2, shaderir.Mat3, shaderir.Mat4:
+	case shaderir.Float, shaderir.Vec2, shaderir.Vec3, shaderir.Vec4,
+		shaderir.IVec2, shaderir.IVec3, shaderir.IVec4,
+		shaderir.Mat2, shaderir.Mat3, shaderir.Mat4:
 		return fmt.Sprintf("%s(0)", basicTypeString(t.Main))
 	default:
 		t := c.typ(p, t)

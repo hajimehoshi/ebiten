@@ -31,7 +31,7 @@ func datetimeForFilename() string {
 	return now.Format(datetimeFormat)
 }
 
-func takeScreenshot(screen *Image) error {
+func takeScreenshot(screen *Image, transparent bool) error {
 	name := "screenshot_" + datetimeForFilename() + ".png"
 	// Use the home directory for mobiles as a provisional implementation.
 	if runtime.GOOS == "android" || runtime.GOOS == "ios" {
@@ -41,8 +41,7 @@ func takeScreenshot(screen *Image) error {
 		}
 		name = filepath.Join(home, name)
 	}
-	blackbg := !IsScreenTransparent()
-	dumpedName, err := screen.image.DumpScreenshot(name, blackbg)
+	dumpedName, err := screen.image.DumpScreenshot(name, !transparent)
 	if err != nil {
 		return err
 	}
@@ -155,10 +154,10 @@ func (i *imageDumper) update() error {
 	return nil
 }
 
-func (i *imageDumper) dump(screen *Image) error {
+func (i *imageDumper) dump(screen *Image, transparent bool) error {
 	if i.toTakeScreenshot {
 		i.toTakeScreenshot = false
-		if err := takeScreenshot(screen); err != nil {
+		if err := takeScreenshot(screen, transparent); err != nil {
 			return err
 		}
 	}

@@ -18,8 +18,8 @@ import (
 	"fmt"
 	"math"
 	"reflect"
-	"strings"
 
+	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/mipmap"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
@@ -29,15 +29,14 @@ type Shader struct {
 
 	uniformNames       []string
 	uniformTypes       []shaderir.Type
-	uniformNameToIndex map[string]int
-	uniformNameToType  map[string]shaderir.Type
+	uniformUint32Count int
 }
 
 func NewShader(ir *shaderir.Program) *Shader {
 	return &Shader{
 		shader:       mipmap.NewShader(ir),
-		uniformNames: ir.UniformNames,
-		uniformTypes: ir.Uniforms,
+		uniformNames: ir.UniformNames[graphics.PreservedUniformVariablesCount:],
+		uniformTypes: ir.Uniforms[graphics.PreservedUniformVariablesCount:],
 	}
 }
 
@@ -46,68 +45,60 @@ func (s *Shader) MarkDisposed() {
 	s.shader = nil
 }
 
-func (s *Shader) ConvertUniforms(uniforms map[string]any) [][]uint32 {
-	nameToU32s := map[string][]uint32{}
-	for name, v := range uniforms {
-		v := reflect.ValueOf(v)
-		t := v.Type()
-		switch t.Kind() {
-		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-			nameToU32s[name] = []uint32{uint32(v.Int())}
-		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-			nameToU32s[name] = []uint32{uint32(v.Uint())}
-		case reflect.Float32, reflect.Float64:
-			nameToU32s[name] = []uint32{math.Float32bits(float32(v.Float()))}
-		case reflect.Slice, reflect.Array:
-			u32s := make([]uint32, v.Len())
-			switch t.Elem().Kind() {
+func (s *Shader) AppendUniforms(dst []uint32, uniforms map[string]any) []uint32 {
+	if s.uniformUint32Count == 0 {
+		for _, typ := range s.uniformTypes {
+			s.uniformUint32Count += typ.Uint32Count()
+		}
+	}
+
+	origLen := len(dst)
+	if cap(dst)-len(dst) >= s.uniformUint32Count {
+		dst = dst[:len(dst)+s.uniformUint32Count]
+	} else {
+		dst = append(dst, make([]uint32, s.uniformUint32Count)...)
+	}
+
+	idx := origLen
+	for i, name := range s.uniformNames {
+		typ := s.uniformTypes[i]
+
+		if uv, ok := uniforms[name]; ok {
+			// TODO: Panic if uniforms include an invalid name
+			v := reflect.ValueOf(uv)
+			t := v.Type()
+			switch t.Kind() {
 			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-				for i := range u32s {
-					u32s[i] = uint32(v.Index(i).Int())
-				}
+				dst[idx] = uint32(v.Int())
 			case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-				for i := range u32s {
-					u32s[i] = uint32(v.Index(i).Uint())
-				}
+				dst[idx] = uint32(v.Uint())
 			case reflect.Float32, reflect.Float64:
-				for i := range u32s {
-					u32s[i] = math.Float32bits(float32(v.Index(i).Float()))
+				dst[idx] = math.Float32bits(float32(v.Float()))
+			case reflect.Slice, reflect.Array:
+				l := v.Len()
+				switch t.Elem().Kind() {
+				case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+					for i := 0; i < l; i++ {
+						dst[idx+i] = uint32(v.Index(i).Int())
+					}
+				case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+					for i := 0; i < l; i++ {
+						dst[idx+i] = uint32(v.Index(i).Uint())
+					}
+				case reflect.Float32, reflect.Float64:
+					for i := 0; i < l; i++ {
+						dst[idx+i] = math.Float32bits(float32(v.Index(i).Float()))
+					}
+				default:
+					panic(fmt.Sprintf("ui: unexpected uniform value type: %s (%s)", name, v.Kind().String()))
 				}
 			default:
-				panic(fmt.Sprintf("ebiten: unexpected uniform value type: %s (%s)", name, v.Kind().String()))
+				panic(fmt.Sprintf("ui: unexpected uniform value type: %s (%s)", name, v.Kind().String()))
 			}
-			nameToU32s[name] = u32s
-		default:
-			panic(fmt.Sprintf("ebiten: unexpected uniform value type: %s (%s)", name, v.Kind().String()))
 		}
+
+		idx += typ.Uint32Count()
 	}
 
-	if s.uniformNameToIndex == nil {
-		s.uniformNameToIndex = map[string]int{}
-		s.uniformNameToType = map[string]shaderir.Type{}
-
-		var idx int
-		for i, n := range s.uniformNames {
-			if strings.HasPrefix(n, "__") {
-				continue
-			}
-			s.uniformNameToIndex[n] = idx
-			s.uniformNameToType[n] = s.uniformTypes[i]
-			idx++
-		}
-	}
-
-	us := make([][]uint32, len(s.uniformNameToIndex))
-	for name, idx := range s.uniformNameToIndex {
-		if v, ok := nameToU32s[name]; ok {
-			us[idx] = v
-			continue
-		}
-		t := s.uniformNameToType[name]
-		us[idx] = make([]uint32, t.Uint32Count())
-	}
-
-	// TODO: Panic if uniforms include an invalid name
-
-	return us
+	return dst
 }

@@ -26,6 +26,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -35,18 +36,19 @@ import (
 )
 
 var (
-	flagFullscreen     = flag.Bool("fullscreen", false, "fullscreen")
-	flagResizable      = flag.Bool("resizable", false, "make the window resizable")
-	flagWindowPosition = flag.String("windowposition", "", "window position (e.g., 100,200)")
-	flagTransparent    = flag.Bool("transparent", false, "screen transparent")
-	flagAutoAdjusting  = flag.Bool("autoadjusting", false, "make the game screen auto-adjusting")
-	flagFloating       = flag.Bool("floating", false, "make the window floating")
-	flagMaximize       = flag.Bool("maximize", false, "maximize the window")
-	flagVsync          = flag.Bool("vsync", true, "enable vsync")
-	flagAutoRestore    = flag.Bool("autorestore", false, "restore the window automatically")
-	flagInitFocused    = flag.Bool("initfocused", true, "whether the window is focused on start")
-	flagMinWindowSize  = flag.String("minwindowsize", "", "minimum window size (e.g., 100x200)")
-	flagMaxWindowSize  = flag.String("maxwindowsize", "", "maximium window size (e.g., 1920x1080)")
+	flagFullscreen      = flag.Bool("fullscreen", false, "fullscreen")
+	flagResizable       = flag.Bool("resizable", false, "make the window resizable")
+	flagWindowPosition  = flag.String("windowposition", "", "window position (e.g., 100,200)")
+	flagTransparent     = flag.Bool("transparent", false, "screen transparent")
+	flagAutoAdjusting   = flag.Bool("autoadjusting", false, "make the game screen auto-adjusting")
+	flagFloating        = flag.Bool("floating", false, "make the window floating")
+	flagMaximize        = flag.Bool("maximize", false, "maximize the window")
+	flagVsync           = flag.Bool("vsync", true, "enable vsync")
+	flagAutoRestore     = flag.Bool("autorestore", false, "restore the window automatically")
+	flagInitFocused     = flag.Bool("initfocused", true, "whether the window is focused on start")
+	flagMinWindowSize   = flag.String("minwindowsize", "", "minimum window size (e.g., 100x200)")
+	flagMaxWindowSize   = flag.String("maxwindowsize", "", "maximium window size (e.g., 1920x1080)")
+	flagGraphicsLibrary = flag.String("graphicslibrary", "", "graphics library (e.g. opengl)")
 )
 
 func init() {
@@ -93,6 +95,8 @@ type game struct {
 	width       float64
 	height      float64
 	transparent bool
+
+	logOnce sync.Once
 }
 
 func (g *game) Layout(outsideWidth, outsideHeight int) (int, int) {
@@ -111,6 +115,12 @@ func (g *game) LayoutF(outsideWidth, outsideHeight float64) (float64, float64) {
 }
 
 func (g *game) Update() error {
+	g.logOnce.Do(func() {
+		var debug ebiten.DebugInfo
+		ebiten.ReadDebugInfo(&debug)
+		fmt.Printf("Graphics library: %s\n", debug.GraphicsLibrary)
+	})
+
 	var (
 		screenWidth  float64
 		screenHeight float64
@@ -394,7 +404,6 @@ func main() {
 	if x, y, ok := parseWindowPosition(); ok {
 		ebiten.SetWindowPosition(x, y)
 	}
-	ebiten.SetScreenTransparent(*flagTransparent)
 
 	g := &game{
 		width:  initScreenWidth,
@@ -421,7 +430,6 @@ func main() {
 		ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
 	}
 
-	ebiten.SetInitFocused(*flagInitFocused)
 	if !*flagInitFocused {
 		ebiten.SetRunnableOnUnfocused(true)
 	}
@@ -441,12 +449,28 @@ func main() {
 		ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
 	}
 
+	op := &ebiten.RunGameOptions{}
+	switch *flagGraphicsLibrary {
+	case "":
+		op.GraphicsLibrary = ebiten.GraphicsLibraryAuto
+	case "opengl":
+		op.GraphicsLibrary = ebiten.GraphicsLibraryOpenGL
+	case "directx":
+		op.GraphicsLibrary = ebiten.GraphicsLibraryDirectX
+	case "metal":
+		op.GraphicsLibrary = ebiten.GraphicsLibraryMetal
+	default:
+		log.Fatalf("unexpected graphics library: %s", *flagGraphicsLibrary)
+	}
+	op.InitUnfocused = !*flagInitFocused
+	op.ScreenTransparent = *flagTransparent
+
 	const title = "Window Size (Ebitengine Demo)"
 	ww := int(float64(g.width) * initScreenScale)
 	wh := int(float64(g.height) * initScreenScale)
 	ebiten.SetWindowSize(ww, wh)
 	ebiten.SetWindowTitle(title)
-	if err := ebiten.RunGame(g); err != nil {
+	if err := ebiten.RunGameWithOptions(g, op); err != nil {
 		log.Fatal(err)
 	}
 }

@@ -483,7 +483,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	}
 
 	// Increment statement treats a variable 'used'.
-	// https://play.golang.org/p/2RuYMrSLjt3
+	// https://go.dev/play/p/2RuYMrSLjt3
 	if _, err := compileToIR([]byte(`package main
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
@@ -974,6 +974,14 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 }`)); err != nil {
 		t.Error(err)
 	}
+	if _, err := compileToIR([]byte(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	a := ivec2(1) + 2
+	return vec4(a.xxyy)
+}`)); err != nil {
+		t.Error(err)
+	}
 
 	if _, err := compileToIR([]byte(`package main
 
@@ -982,6 +990,14 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	return a.xxyy
 }`)); err != nil {
 		t.Error(err)
+	}
+	if _, err := compileToIR([]byte(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	a := ivec2(1) + 2.1
+	return vec4(a.xxyy)
+}`)); err == nil {
+		t.Errorf("error must be non-nil but was nil")
 	}
 
 	if _, err := compileToIR([]byte(`package main
@@ -992,12 +1008,28 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 }`)); err == nil {
 		t.Errorf("error must be non-nil but was nil")
 	}
+	if _, err := compileToIR([]byte(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	a := ivec2(1) % 2
+	return vec4(a.xxyy)
+}`)); err != nil {
+		t.Error(err)
+	}
 
 	if _, err := compileToIR([]byte(`package main
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	a := vec2(1) % 2.1
 	return a.xxyy
+}`)); err == nil {
+		t.Errorf("error must be non-nil but was nil")
+	}
+	if _, err := compileToIR([]byte(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	a := ivec2(1) % 2.1
+	return vec4(a.xxyy)
 }`)); err == nil {
 		t.Errorf("error must be non-nil but was nil")
 	}
@@ -1011,6 +1043,15 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 }`)); err != nil {
 		t.Error(err)
 	}
+	if _, err := compileToIR([]byte(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	a := ivec2(1)
+	a += 2
+	return vec4(a.xxyy)
+}`)); err != nil {
+		t.Error(err)
+	}
 
 	if _, err := compileToIR([]byte(`package main
 
@@ -1020,6 +1061,15 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	return a.xxyy
 }`)); err != nil {
 		t.Error(err)
+	}
+	if _, err := compileToIR([]byte(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	a := ivec2(1)
+	a += 2.1
+	return vec4(a.xxyy)
+}`)); err == nil {
+		t.Errorf("error must be non-nil but was nil")
 	}
 
 	if _, err := compileToIR([]byte(`package main
@@ -1031,6 +1081,15 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 }`)); err == nil {
 		t.Errorf("error must be non-nil but was nil")
 	}
+	if _, err := compileToIR([]byte(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	a := ivec2(1)
+	a %= 2
+	return vec4(a.xxyy)
+}`)); err != nil {
+		t.Error(err)
+	}
 
 	if _, err := compileToIR([]byte(`package main
 
@@ -1038,6 +1097,15 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	a := vec2(1)
 	a %= 2.1
 	return a.xxyy
+}`)); err == nil {
+		t.Errorf("error must be non-nil but was nil")
+	}
+	if _, err := compileToIR([]byte(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	a := ivec2(1)
+	a %= 2.1
+	return vec4(a.xxyy)
 }`)); err == nil {
 		t.Errorf("error must be non-nil but was nil")
 	}
@@ -1054,14 +1122,37 @@ func TestSyntaxOperatorMultiply(t *testing.T) {
 		{stmt: "a := 1 * vec2(2); _ = a", err: false},
 		{stmt: "a := int(1) * vec2(2); _ = a", err: true},
 		{stmt: "a := 1.0 * vec2(2); _ = a", err: false},
+		{stmt: "a := 1.1 * vec2(2); _ = a", err: false},
 		{stmt: "a := 1 + vec2(2); _ = a", err: false},
 		{stmt: "a := int(1) + vec2(2); _ = a", err: true},
 		{stmt: "a := 1.0 / vec2(2); _ = a", err: false},
+		{stmt: "a := 1.1 / vec2(2); _ = a", err: false},
 		{stmt: "a := 1.0 + vec2(2); _ = a", err: false},
+		{stmt: "a := 1.1 + vec2(2); _ = a", err: false},
 		{stmt: "a := 1 * vec3(2); _ = a", err: false},
 		{stmt: "a := 1.0 * vec3(2); _ = a", err: false},
+		{stmt: "a := 1.1 * vec3(2); _ = a", err: false},
 		{stmt: "a := 1 * vec4(2); _ = a", err: false},
 		{stmt: "a := 1.0 * vec4(2); _ = a", err: false},
+		{stmt: "a := 1.1 * vec4(2); _ = a", err: false},
+
+		{stmt: "a := 1 * ivec2(2); _ = a", err: false},
+		{stmt: "a := int(1) * ivec2(2); _ = a", err: false},
+		{stmt: "a := 1.0 * ivec2(2); _ = a", err: false},
+		{stmt: "a := 1.1 * ivec2(2); _ = a", err: true},
+		{stmt: "a := 1 + ivec2(2); _ = a", err: false},
+		{stmt: "a := int(1) + ivec2(2); _ = a", err: false},
+		{stmt: "a := 1.0 / ivec2(2); _ = a", err: false},
+		{stmt: "a := 1.1 / ivec2(2); _ = a", err: true},
+		{stmt: "a := 1.0 + ivec2(2); _ = a", err: false},
+		{stmt: "a := 1.1 + ivec2(2); _ = a", err: true},
+		{stmt: "a := 1 * ivec3(2); _ = a", err: false},
+		{stmt: "a := 1.0 * ivec3(2); _ = a", err: false},
+		{stmt: "a := 1.1 * ivec3(2); _ = a", err: true},
+		{stmt: "a := 1 * ivec4(2); _ = a", err: false},
+		{stmt: "a := 1.0 * ivec4(2); _ = a", err: false},
+		{stmt: "a := 1.1 * ivec4(2); _ = a", err: true},
+
 		{stmt: "a := 1 * mat2(2); _ = a", err: false},
 		{stmt: "a := 1.0 * mat2(2); _ = a", err: false},
 		{stmt: "a := float(1.0) / mat2(2); _ = a", err: true},
@@ -1072,30 +1163,67 @@ func TestSyntaxOperatorMultiply(t *testing.T) {
 		{stmt: "a := 1.0 * mat3(2); _ = a", err: false},
 		{stmt: "a := 1 * mat4(2); _ = a", err: false},
 		{stmt: "a := 1.0 * mat4(2); _ = a", err: false},
+
 		{stmt: "a := vec2(1) * 2; _ = a", err: false},
 		{stmt: "a := vec2(1) * 2.0; _ = a", err: false},
+		{stmt: "a := vec2(1) * 2.1; _ = a", err: false},
 		{stmt: "a := vec2(1) / 2.0; _ = a", err: false},
+		{stmt: "a := vec2(1) / 2.1; _ = a", err: false},
 		{stmt: "a := vec2(1) + 2.0; _ = a", err: false},
+		{stmt: "a := vec2(1) + 2.1; _ = a", err: false},
 		{stmt: "a := vec2(1) * int(2); _ = a", err: true},
 		{stmt: "a := vec2(1) * vec2(2); _ = a", err: false},
 		{stmt: "a := vec2(1) + vec2(2); _ = a", err: false},
 		{stmt: "a := vec2(1) * vec3(2); _ = a", err: true},
 		{stmt: "a := vec2(1) * vec4(2); _ = a", err: true},
+		{stmt: "a := vec2(1) * ivec2(2); _ = a", err: true},
+		{stmt: "a := vec2(1) + ivec2(2); _ = a", err: true},
+		{stmt: "a := vec2(1) * ivec3(2); _ = a", err: true},
+		{stmt: "a := vec2(1) * ivec4(2); _ = a", err: true},
 		{stmt: "a := vec2(1) * mat2(2); _ = a", err: false},
 		{stmt: "a := vec2(1) + mat2(2); _ = a", err: true},
 		{stmt: "a := vec2(1) * mat3(2); _ = a", err: true},
 		{stmt: "a := vec2(1) * mat4(2); _ = a", err: true},
+
+		{stmt: "a := ivec2(1) * 2; _ = a", err: false},
+		{stmt: "a := ivec2(1) * 2.0; _ = a", err: false},
+		{stmt: "a := ivec2(1) * 2.1; _ = a", err: true},
+		{stmt: "a := ivec2(1) / 2.0; _ = a", err: false},
+		{stmt: "a := ivec2(1) / 2.1; _ = a", err: true},
+		{stmt: "a := ivec2(1) + 2.0; _ = a", err: false},
+		{stmt: "a := ivec2(1) + 2.1; _ = a", err: true},
+		{stmt: "a := ivec2(1) * int(2); _ = a", err: false},
+		{stmt: "a := ivec2(1) * vec2(2); _ = a", err: true},
+		{stmt: "a := ivec2(1) + vec2(2); _ = a", err: true},
+		{stmt: "a := ivec2(1) * vec3(2); _ = a", err: true},
+		{stmt: "a := ivec2(1) * vec4(2); _ = a", err: true},
+		{stmt: "a := ivec2(1) * ivec2(2); _ = a", err: false},
+		{stmt: "a := ivec2(1) + ivec2(2); _ = a", err: false},
+		{stmt: "a := ivec2(1) * ivec3(2); _ = a", err: true},
+		{stmt: "a := ivec2(1) * ivec4(2); _ = a", err: true},
+		{stmt: "a := ivec2(1) * mat2(2); _ = a", err: true},
+		{stmt: "a := ivec2(1) + mat2(2); _ = a", err: true},
+		{stmt: "a := ivec2(1) * mat3(2); _ = a", err: true},
+		{stmt: "a := ivec2(1) * mat4(2); _ = a", err: true},
+
 		{stmt: "a := mat2(1) * 2; _ = a", err: false},
 		{stmt: "a := mat2(1) * 2.0; _ = a", err: false},
+		{stmt: "a := mat2(1) * 2.1; _ = a", err: false},
 		{stmt: "a := mat2(1) / 2.0; _ = a", err: false},
+		{stmt: "a := mat2(1) / 2.1; _ = a", err: false},
 		{stmt: "a := mat2(1) / float(2); _ = a", err: false},
 		{stmt: "a := mat2(1) * int(2); _ = a", err: true},
 		{stmt: "a := mat2(1) + 2.0; _ = a", err: true},
+		{stmt: "a := mat2(1) + 2.1; _ = a", err: true},
 		{stmt: "a := mat2(1) + float(2); _ = a", err: true},
 		{stmt: "a := mat2(1) * vec2(2); _ = a", err: false},
 		{stmt: "a := mat2(1) + vec2(2); _ = a", err: true},
 		{stmt: "a := mat2(1) * vec3(2); _ = a", err: true},
 		{stmt: "a := mat2(1) * vec4(2); _ = a", err: true},
+		{stmt: "a := mat2(1) * ivec2(2); _ = a", err: true},
+		{stmt: "a := mat2(1) + ivec2(2); _ = a", err: true},
+		{stmt: "a := mat2(1) * ivec3(2); _ = a", err: true},
+		{stmt: "a := mat2(1) * ivec4(2); _ = a", err: true},
 		{stmt: "a := mat2(1) * mat2(2); _ = a", err: false},
 		{stmt: "a := mat2(1) / mat2(2); _ = a", err: true},
 		{stmt: "a := mat2(1) * mat3(2); _ = a", err: true},
@@ -1117,6 +1245,8 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	}
 }
 
+// TODO
+
 // Issue #1971
 func TestSyntaxOperatorMultiplyAssign(t *testing.T) {
 	cases := []struct {
@@ -1135,6 +1265,9 @@ func TestSyntaxOperatorMultiplyAssign(t *testing.T) {
 		{stmt: "a := 1.0; a *= vec2(2)", err: true},
 		{stmt: "a := 1.0; a *= vec3(2)", err: true},
 		{stmt: "a := 1.0; a *= vec4(2)", err: true},
+		{stmt: "a := 1.0; a *= ivec2(2)", err: true},
+		{stmt: "a := 1.0; a *= ivec3(2)", err: true},
+		{stmt: "a := 1.0; a *= ivec4(2)", err: true},
 		{stmt: "a := 1.0; a *= mat2(2)", err: true},
 		{stmt: "a := 1.0; a *= mat3(2)", err: true},
 		{stmt: "a := 1.0; a *= mat4(2)", err: true},
@@ -1156,11 +1289,42 @@ func TestSyntaxOperatorMultiplyAssign(t *testing.T) {
 		{stmt: "a := vec2(1); a += vec2(2)", err: false},
 		{stmt: "a := vec2(1); a *= vec3(2)", err: true},
 		{stmt: "a := vec2(1); a *= vec4(2)", err: true},
+		{stmt: "a := vec2(1); a *= ivec2(2)", err: true},
+		{stmt: "a := vec2(1); a += ivec2(2)", err: true},
+		{stmt: "a := vec2(1); a *= ivec3(2)", err: true},
+		{stmt: "a := vec2(1); a *= ivec4(2)", err: true},
 		{stmt: "a := vec2(1); a *= mat2(2)", err: false},
 		{stmt: "a := vec2(1); a += mat2(2)", err: true},
 		{stmt: "a := vec2(1); a /= mat2(2)", err: true},
 		{stmt: "a := vec2(1); a *= mat3(2)", err: true},
 		{stmt: "a := vec2(1); a *= mat4(2)", err: true},
+
+		{stmt: "a := ivec2(1); a *= 2", err: false},
+		{stmt: "a := ivec2(1); a *= 2.0", err: false},
+		{stmt: "const c = 2; a := ivec2(1); a *= c", err: false},
+		{stmt: "const c = 2.0; a := ivec2(1); a *= c", err: false},
+		{stmt: "const c int = 2; a := ivec2(1); a *= c", err: false},
+		{stmt: "const c int = 2.0; a := ivec2(1); a *= c", err: false},
+		{stmt: "const c float = 2; a := ivec2(1); a *= c", err: true},
+		{stmt: "const c float = 2.0; a := ivec2(1); a *= c", err: true},
+		{stmt: "a := ivec2(1); a /= 2.0", err: false},
+		{stmt: "a := ivec2(1); a += 2.0", err: false},
+		{stmt: "a := ivec2(1); a *= int(2)", err: false},
+		{stmt: "a := ivec2(1); a *= float(2)", err: true},
+		{stmt: "a := ivec2(1); a /= float(2)", err: true},
+		{stmt: "a := ivec2(1); a *= vec2(2)", err: true},
+		{stmt: "a := ivec2(1); a += vec2(2)", err: true},
+		{stmt: "a := ivec2(1); a *= vec3(2)", err: true},
+		{stmt: "a := ivec2(1); a *= vec4(2)", err: true},
+		{stmt: "a := ivec2(1); a *= ivec2(2)", err: false},
+		{stmt: "a := ivec2(1); a += ivec2(2)", err: false},
+		{stmt: "a := ivec2(1); a *= ivec3(2)", err: true},
+		{stmt: "a := ivec2(1); a *= ivec4(2)", err: true},
+		{stmt: "a := ivec2(1); a *= mat2(2)", err: true},
+		{stmt: "a := ivec2(1); a += mat2(2)", err: true},
+		{stmt: "a := ivec2(1); a /= mat2(2)", err: true},
+		{stmt: "a := ivec2(1); a *= mat3(2)", err: true},
+		{stmt: "a := ivec2(1); a *= mat4(2)", err: true},
 
 		{stmt: "a := mat2(1); a *= 2", err: false},
 		{stmt: "a := mat2(1); a *= 2.0", err: false},
@@ -1179,6 +1343,10 @@ func TestSyntaxOperatorMultiplyAssign(t *testing.T) {
 		{stmt: "a := mat2(1); a += vec2(2)", err: true},
 		{stmt: "a := mat2(1); a *= vec3(2)", err: true},
 		{stmt: "a := mat2(1); a *= vec4(2)", err: true},
+		{stmt: "a := mat2(1); a *= ivec2(2)", err: true},
+		{stmt: "a := mat2(1); a += ivec2(2)", err: true},
+		{stmt: "a := mat2(1); a *= ivec3(2)", err: true},
+		{stmt: "a := mat2(1); a *= ivec4(2)", err: true},
 		{stmt: "a := mat2(1); a *= mat2(2)", err: false},
 		{stmt: "a := mat2(1); a += mat2(2)", err: false},
 		{stmt: "a := mat2(1); a /= mat2(2)", err: true},
@@ -1437,9 +1605,12 @@ func TestSyntaxConstructorFuncType(t *testing.T) {
 		{stmt: "i := 1.0; a := vec2(i); _ = a", err: false},
 		{stmt: "a := vec2(vec2(1)); _ = a", err: false},
 		{stmt: "a := vec2(vec3(1)); _ = a", err: true},
+		{stmt: "a := vec2(ivec2(1)); _ = a", err: false},
+		{stmt: "a := vec2(ivec3(1)); _ = a", err: true},
 
 		{stmt: "a := vec2(1, 1); _ = a", err: false},
 		{stmt: "a := vec2(1.0, 1.0); _ = a", err: false},
+		{stmt: "a := vec2(1.1, 1.1); _ = a", err: false},
 		{stmt: "i := 1; a := vec2(i, i); _ = a", err: false},
 		{stmt: "i := 1.0; a := vec2(i, i); _ = a", err: false},
 		{stmt: "a := vec2(vec2(1), 1); _ = a", err: true},
@@ -1449,18 +1620,25 @@ func TestSyntaxConstructorFuncType(t *testing.T) {
 
 		{stmt: "a := vec3(1); _ = a", err: false},
 		{stmt: "a := vec3(1.0); _ = a", err: false},
+		{stmt: "a := vec3(1.1); _ = a", err: false},
 		{stmt: "i := 1; a := vec3(i); _ = a", err: false},
 		{stmt: "i := 1.0; a := vec3(i); _ = a", err: false},
 		{stmt: "a := vec3(vec3(1)); _ = a", err: false},
 		{stmt: "a := vec3(vec2(1)); _ = a", err: true},
 		{stmt: "a := vec3(vec4(1)); _ = a", err: true},
+		{stmt: "a := vec3(ivec3(1)); _ = a", err: false},
+		{stmt: "a := vec3(ivec2(1)); _ = a", err: true},
+		{stmt: "a := vec3(ivec4(1)); _ = a", err: true},
 
 		{stmt: "a := vec3(1, 1, 1); _ = a", err: false},
 		{stmt: "a := vec3(1.0, 1.0, 1.0); _ = a", err: false},
+		{stmt: "a := vec3(1.1, 1.1, 1.1); _ = a", err: false},
 		{stmt: "i := 1; a := vec3(i, i, i); _ = a", err: false},
 		{stmt: "i := 1.0; a := vec3(i, i, i); _ = a", err: false},
 		{stmt: "a := vec3(vec2(1), 1); _ = a", err: false},
 		{stmt: "a := vec3(1, vec2(1)); _ = a", err: false},
+		{stmt: "a := vec3(ivec2(1), 1); _ = a", err: false},
+		{stmt: "a := vec3(1, ivec2(1)); _ = a", err: false},
 		{stmt: "a := vec3(vec3(1), 1); _ = a", err: true},
 		{stmt: "a := vec3(1, vec3(1)); _ = a", err: true},
 		{stmt: "a := vec3(vec3(1), vec3(1), vec3(1)); _ = a", err: true},
@@ -1473,21 +1651,109 @@ func TestSyntaxConstructorFuncType(t *testing.T) {
 		{stmt: "a := vec4(vec4(1)); _ = a", err: false},
 		{stmt: "a := vec4(vec2(1)); _ = a", err: true},
 		{stmt: "a := vec4(vec3(1)); _ = a", err: true},
+		{stmt: "a := vec4(ivec4(1)); _ = a", err: false},
+		{stmt: "a := vec4(ivec2(1)); _ = a", err: true},
+		{stmt: "a := vec4(ivec3(1)); _ = a", err: true},
 
 		{stmt: "a := vec4(1, 1, 1, 1); _ = a", err: false},
 		{stmt: "a := vec4(1.0, 1.0, 1.0, 1.0); _ = a", err: false},
+		{stmt: "a := vec4(1.1, 1.1, 1.1, 1.1); _ = a", err: false},
 		{stmt: "i := 1; a := vec4(i, i, i, i); _ = a", err: false},
 		{stmt: "i := 1.0; a := vec4(i, i, i, i); _ = a", err: false},
 		{stmt: "a := vec4(vec2(1), 1, 1); _ = a", err: false},
 		{stmt: "a := vec4(1, vec2(1), 1); _ = a", err: false},
+		{stmt: "a := vec4(ivec2(1), 1, 1); _ = a", err: false},
+		{stmt: "a := vec4(1, ivec2(1), 1); _ = a", err: false},
 		{stmt: "a := vec4(1, 1, vec2(1)); _ = a", err: false},
 		{stmt: "a := vec4(vec2(1), vec2(1)); _ = a", err: false},
+		{stmt: "a := vec4(ivec2(1), ivec2(1)); _ = a", err: false},
 		{stmt: "a := vec4(vec3(1), 1); _ = a", err: false},
 		{stmt: "a := vec4(1, vec3(1)); _ = a", err: false},
+		{stmt: "a := vec4(ivec3(1), 1); _ = a", err: false},
+		{stmt: "a := vec4(1, ivec3(1)); _ = a", err: false},
 		{stmt: "a := vec4(vec4(1), 1); _ = a", err: true},
 		{stmt: "a := vec4(1, vec4(1)); _ = a", err: true},
 		{stmt: "a := vec4(vec4(1), vec4(1), vec4(1), vec4(1)); _ = a", err: true},
 		{stmt: "a := vec4(1, 1, 1, 1, 1); _ = a", err: true},
+
+		{stmt: "a := ivec2(1); _ = a", err: false},
+		{stmt: "a := ivec2(1.0); _ = a", err: false},
+		{stmt: "i := 1; a := ivec2(i); _ = a", err: false},
+		{stmt: "i := 1.0; a := ivec2(i); _ = a", err: false},
+		{stmt: "a := ivec2(vec2(1)); _ = a", err: false},
+		{stmt: "a := ivec2(vec3(1)); _ = a", err: true},
+		{stmt: "a := ivec2(ivec2(1)); _ = a", err: false},
+		{stmt: "a := ivec2(ivec3(1)); _ = a", err: true},
+
+		{stmt: "a := ivec2(1, 1); _ = a", err: false},
+		{stmt: "a := ivec2(1.0, 1.0); _ = a", err: false},
+		{stmt: "i := 1; a := ivec2(i, i); _ = a", err: false},
+		{stmt: "i := 1.0; a := ivec2(i, i); _ = a", err: false},
+		{stmt: "a := ivec2(vec2(1), 1); _ = a", err: true},
+		{stmt: "a := ivec2(1, vec2(1)); _ = a", err: true},
+		{stmt: "a := ivec2(ivec2(1), 1); _ = a", err: true},
+		{stmt: "a := ivec2(1, ivec2(1)); _ = a", err: true},
+		{stmt: "a := ivec2(ivec2(1), ivec2(1)); _ = a", err: true},
+		{stmt: "a := ivec2(1, 1, 1); _ = a", err: true},
+
+		{stmt: "a := ivec3(1); _ = a", err: false},
+		{stmt: "a := ivec3(1.0); _ = a", err: false},
+		{stmt: "a := ivec3(1.1); _ = a", err: false},
+		{stmt: "i := 1; a := ivec3(i); _ = a", err: false},
+		{stmt: "i := 1.0; a := ivec3(i); _ = a", err: false},
+		{stmt: "a := ivec3(vec3(1)); _ = a", err: false},
+		{stmt: "a := ivec3(vec2(1)); _ = a", err: true},
+		{stmt: "a := ivec3(vec4(1)); _ = a", err: true},
+		{stmt: "a := ivec3(ivec3(1)); _ = a", err: false},
+		{stmt: "a := ivec3(ivec2(1)); _ = a", err: true},
+		{stmt: "a := ivec3(ivec4(1)); _ = a", err: true},
+
+		{stmt: "a := ivec3(1, 1, 1); _ = a", err: false},
+		{stmt: "a := ivec3(1.0, 1.0, 1.0); _ = a", err: false},
+		{stmt: "a := ivec3(1.1, 1.1, 1.1); _ = a", err: false},
+		{stmt: "i := 1; a := ivec3(i, i, i); _ = a", err: false},
+		{stmt: "i := 1.0; a := ivec3(i, i, i); _ = a", err: false},
+		{stmt: "a := ivec3(vec2(1), 1); _ = a", err: false},
+		{stmt: "a := ivec3(1, vec2(1)); _ = a", err: false},
+		{stmt: "a := ivec3(ivec2(1), 1); _ = a", err: false},
+		{stmt: "a := ivec3(1, ivec2(1)); _ = a", err: false},
+		{stmt: "a := ivec3(vec3(1), 1); _ = a", err: true},
+		{stmt: "a := ivec3(1, vec3(1)); _ = a", err: true},
+		{stmt: "a := ivec3(vec3(1), vec3(1), vec3(1)); _ = a", err: true},
+		{stmt: "a := ivec3(1, 1, 1, 1); _ = a", err: true},
+
+		{stmt: "a := ivec4(1); _ = a", err: false},
+		{stmt: "a := ivec4(1.0); _ = a", err: false},
+		{stmt: "i := 1; a := ivec4(i); _ = a", err: false},
+		{stmt: "i := 1.0; a := ivec4(i); _ = a", err: false},
+		{stmt: "a := ivec4(vec4(1)); _ = a", err: false},
+		{stmt: "a := ivec4(vec2(1)); _ = a", err: true},
+		{stmt: "a := ivec4(vec3(1)); _ = a", err: true},
+		{stmt: "a := ivec4(ivec4(1)); _ = a", err: false},
+		{stmt: "a := ivec4(ivec2(1)); _ = a", err: true},
+		{stmt: "a := ivec4(ivec3(1)); _ = a", err: true},
+
+		{stmt: "a := ivec4(1, 1, 1, 1); _ = a", err: false},
+		{stmt: "a := ivec4(1.0, 1.0, 1.0, 1.0); _ = a", err: false},
+		{stmt: "a := ivec4(1.1, 1.1, 1.1, 1.1); _ = a", err: false},
+		{stmt: "i := 1; a := ivec4(i, i, i, i); _ = a", err: false},
+		{stmt: "i := 1.0; a := ivec4(i, i, i, i); _ = a", err: false},
+		{stmt: "a := ivec4(vec2(1), 1, 1); _ = a", err: false},
+		{stmt: "a := ivec4(1, vec2(1), 1); _ = a", err: false},
+		{stmt: "a := ivec4(1, 1, vec2(1)); _ = a", err: false},
+		{stmt: "a := ivec4(ivec2(1), 1, 1); _ = a", err: false},
+		{stmt: "a := ivec4(1, ivec2(1), 1); _ = a", err: false},
+		{stmt: "a := ivec4(1, 1, ivec2(1)); _ = a", err: false},
+		{stmt: "a := ivec4(vec2(1), vec2(1)); _ = a", err: false},
+		{stmt: "a := ivec4(ivec2(1), ivec2(1)); _ = a", err: false},
+		{stmt: "a := ivec4(vec3(1), 1); _ = a", err: false},
+		{stmt: "a := ivec4(1, vec3(1)); _ = a", err: false},
+		{stmt: "a := ivec4(ivec3(1), 1); _ = a", err: false},
+		{stmt: "a := ivec4(1, ivec3(1)); _ = a", err: false},
+		{stmt: "a := ivec4(vec4(1), 1); _ = a", err: true},
+		{stmt: "a := ivec4(1, vec4(1)); _ = a", err: true},
+		{stmt: "a := ivec4(vec4(1), vec4(1), vec4(1), vec4(1)); _ = a", err: true},
+		{stmt: "a := ivec4(1, 1, 1, 1, 1); _ = a", err: true},
 
 		{stmt: "a := mat2(1); _ = a", err: false},
 		{stmt: "a := mat2(1.0); _ = a", err: false},
@@ -1495,10 +1761,12 @@ func TestSyntaxConstructorFuncType(t *testing.T) {
 		{stmt: "i := 1.0; a := mat2(i); _ = a", err: false},
 		{stmt: "a := mat2(mat2(1)); _ = a", err: false},
 		{stmt: "a := mat2(vec2(1)); _ = a", err: true},
+		{stmt: "a := mat2(ivec2(1)); _ = a", err: true},
 		{stmt: "a := mat2(mat3(1)); _ = a", err: true},
 		{stmt: "a := mat2(mat4(1)); _ = a", err: true},
 
 		{stmt: "a := mat2(vec2(1), vec2(1)); _ = a", err: false},
+		{stmt: "a := mat2(ivec2(1), ivec2(1)); _ = a", err: false},
 		{stmt: "a := mat2(1, 1); _ = a", err: true},
 		{stmt: "a := mat2(1, vec2(1)); _ = a", err: true},
 		{stmt: "a := mat2(vec2(1), vec3(1)); _ = a", err: true},
@@ -1521,10 +1789,12 @@ func TestSyntaxConstructorFuncType(t *testing.T) {
 		{stmt: "i := 1.0; a := mat3(i); _ = a", err: false},
 		{stmt: "a := mat3(mat3(1)); _ = a", err: false},
 		{stmt: "a := mat3(vec2(1)); _ = a", err: true},
+		{stmt: "a := mat3(ivec2(1)); _ = a", err: true},
 		{stmt: "a := mat3(mat2(1)); _ = a", err: true},
 		{stmt: "a := mat3(mat4(1)); _ = a", err: true},
 
 		{stmt: "a := mat3(vec3(1), vec3(1), vec3(1)); _ = a", err: false},
+		{stmt: "a := mat3(ivec3(1), ivec3(1), ivec3(1)); _ = a", err: false},
 		{stmt: "a := mat3(1, 1, 1); _ = a", err: true},
 		{stmt: "a := mat3(1, 1, vec3(1)); _ = a", err: true},
 		{stmt: "a := mat3(vec3(1), vec3(1), vec4(1)); _ = a", err: true},
@@ -1547,10 +1817,12 @@ func TestSyntaxConstructorFuncType(t *testing.T) {
 		{stmt: "i := 1.0; a := mat4(i); _ = a", err: false},
 		{stmt: "a := mat4(mat4(1)); _ = a", err: false},
 		{stmt: "a := mat4(vec2(1)); _ = a", err: true},
+		{stmt: "a := mat4(ivec2(1)); _ = a", err: true},
 		{stmt: "a := mat4(mat2(1)); _ = a", err: true},
 		{stmt: "a := mat4(mat3(1)); _ = a", err: true},
 
 		{stmt: "a := mat4(vec4(1), vec4(1), vec4(1), vec4(1)); _ = a", err: false},
+		{stmt: "a := mat4(ivec4(1), ivec4(1), ivec4(1), ivec4(1)); _ = a", err: false},
 		{stmt: "a := mat4(1, 1, 1, 1); _ = a", err: true},
 		{stmt: "a := mat4(1, 1, 1, vec4(1)); _ = a", err: true},
 		{stmt: "a := mat4(vec4(1), vec4(1), vec4(1), vec2(1)); _ = a", err: true},
@@ -1636,6 +1908,9 @@ func TestSyntaxBuiltinFuncSingleArgType(t *testing.T) {
 		{stmt: "a := {{.Func}}(vec2(1)); _ = a", err: false},
 		{stmt: "a := {{.Func}}(vec3(1)); _ = a", err: false},
 		{stmt: "a := {{.Func}}(vec4(1)); _ = a", err: false},
+		{stmt: "a := {{.Func}}(ivec2(1)); _ = a", err: true},
+		{stmt: "a := {{.Func}}(ivec3(1)); _ = a", err: true},
+		{stmt: "a := {{.Func}}(ivec4(1)); _ = a", err: true},
 		{stmt: "a := {{.Func}}(mat2(1)); _ = a", err: true},
 		{stmt: "a := {{.Func}}(mat3(1)); _ = a", err: true},
 		{stmt: "a := {{.Func}}(mat4(1)); _ = a", err: true},
@@ -1714,6 +1989,8 @@ func TestSyntaxBuiltinFuncDoubleArgsType(t *testing.T) {
 		{stmt: "a := {{.Func}}(vec4(1), vec3(1)); _ = a", err: true},
 		{stmt: "a := {{.Func}}(vec4(1), vec4(1)); _ = a", err: false},
 		{stmt: "a := {{.Func}}(mat2(1), mat2(1)); _ = a", err: true},
+		{stmt: "a := {{.Func}}(ivec2(1), 1); _ = a", err: true},
+		{stmt: "a := {{.Func}}(ivec2(1), ivec2(1)); _ = a", err: true},
 		{stmt: "a := {{.Func}}(1, 1, 1); _ = a", err: true},
 	}
 
@@ -1759,6 +2036,9 @@ func TestSyntaxBuiltinFuncDoubleArgsType2(t *testing.T) {
 		{stmt: "a := {{.Func}}(1, vec2(1)); _ = a", err: true},
 		{stmt: "a := {{.Func}}(1, vec3(1)); _ = a", err: true},
 		{stmt: "a := {{.Func}}(1, vec4(1)); _ = a", err: true},
+		{stmt: "a := {{.Func}}(1, ivec2(1)); _ = a", err: true},
+		{stmt: "a := {{.Func}}(1, ivec3(1)); _ = a", err: true},
+		{stmt: "a := {{.Func}}(1, ivec4(1)); _ = a", err: true},
 		{stmt: "a := {{.Func}}(vec2(1), 1); _ = a", err: false}, // The second argument can be a scalar.
 		{stmt: "a := {{.Func}}(vec2(1), vec2(1)); _ = a", err: false},
 		{stmt: "a := {{.Func}}(vec2(1), vec3(1)); _ = a", err: true},
@@ -1772,6 +2052,8 @@ func TestSyntaxBuiltinFuncDoubleArgsType2(t *testing.T) {
 		{stmt: "a := {{.Func}}(vec4(1), vec3(1)); _ = a", err: true},
 		{stmt: "a := {{.Func}}(vec4(1), vec4(1)); _ = a", err: false},
 		{stmt: "a := {{.Func}}(mat2(1), mat2(1)); _ = a", err: true},
+		{stmt: "a := {{.Func}}(ivec2(1), 1); _ = a", err: true},
+		{stmt: "a := {{.Func}}(ivec2(1), ivec2(1)); _ = a", err: true},
 		{stmt: "a := {{.Func}}(1, 1, 1); _ = a", err: true},
 	}
 
@@ -1815,6 +2097,9 @@ func TestSyntaxBuiltinFuncStepType(t *testing.T) {
 		{stmt: "a := step(1, vec2(1)); _ = a", err: false}, // The first argument can be a scalar.
 		{stmt: "a := step(1, vec3(1)); _ = a", err: false}, // The first argument can be a scalar.
 		{stmt: "a := step(1, vec4(1)); _ = a", err: false}, // The first argument can be a scalar.
+		{stmt: "a := step(1, ivec2(1)); _ = a", err: true},
+		{stmt: "a := step(1, ivec3(1)); _ = a", err: true},
+		{stmt: "a := step(1, ivec4(1)); _ = a", err: true},
 		{stmt: "a := step(vec2(1), 1); _ = a", err: true},
 		{stmt: "a := step(vec2(1), vec2(1)); _ = a", err: false},
 		{stmt: "a := step(vec2(1), vec3(1)); _ = a", err: true},
@@ -1828,6 +2113,7 @@ func TestSyntaxBuiltinFuncStepType(t *testing.T) {
 		{stmt: "a := step(vec4(1), vec3(1)); _ = a", err: true},
 		{stmt: "a := step(vec4(1), vec4(1)); _ = a", err: false},
 		{stmt: "a := step(mat2(1), mat2(1)); _ = a", err: true},
+		{stmt: "a := step(ivec2(1), ivec2(1)); _ = a", err: true},
 		{stmt: "a := step(1, 1, 1); _ = a", err: true},
 	}
 
@@ -1879,7 +2165,7 @@ func TestSyntaxBuiltinFuncTripleArgsType(t *testing.T) {
 		{stmt: "a := {{.Func}}(vec4(1), 1, vec4(1)); _ = a", err: true},
 		{stmt: "a := {{.Func}}(vec4(1), vec4(1), 1); _ = a", err: true},
 		{stmt: "a := {{.Func}}(vec4(1), vec4(1), vec4(1)); _ = a", err: false},
-		{stmt: "a := {{.Func}}(1, 1, 1, 1); _ = a", err: true},
+		{stmt: "a := {{.Func}}(ivec2(1), ivec2(1), ivec2(1)); _ = a", err: true},
 	}
 
 	funcs := []string{
@@ -1935,6 +2221,7 @@ func TestSyntaxBuiltinFuncClampType(t *testing.T) {
 		{stmt: "a := clamp(vec4(1), 1, vec4(1)); _ = a", err: true},
 		{stmt: "a := clamp(vec4(1), vec4(1), 1); _ = a", err: true},
 		{stmt: "a := clamp(vec4(1), vec4(1), vec4(1)); _ = a", err: false},
+		{stmt: "a := clamp(ivec2(1), 1, 1); _ = a", err: true},
 		{stmt: "a := clamp(1, 1, 1, 1); _ = a", err: true},
 	}
 
@@ -1986,6 +2273,8 @@ func TestSyntaxBuiltinFuncMixType(t *testing.T) {
 		{stmt: "a := mix(vec4(1), 1, vec4(1)); _ = a", err: true},
 		{stmt: "a := mix(vec4(1), vec4(1), 1); _ = a", err: false}, // The thrid argument can be a float.
 		{stmt: "a := mix(vec4(1), vec4(1), vec4(1)); _ = a", err: false},
+		{stmt: "a := mix(ivec2(1), ivec2(1), 1); _ = a", err: true},
+		{stmt: "a := mix(ivec2(1), ivec2(1), ivec2(1)); _ = a", err: true},
 		{stmt: "a := mix(1, 1, 1, 1); _ = a", err: true},
 	}
 
@@ -2039,6 +2328,9 @@ func TestSyntaxBuiltinFuncSmoothstepType(t *testing.T) {
 		{stmt: "a := smoothstep(vec4(1), 1, vec4(1)); _ = a", err: true},
 		{stmt: "a := smoothstep(vec4(1), vec4(1), 1); _ = a", err: true},
 		{stmt: "a := smoothstep(vec4(1), vec4(1), vec4(1)); _ = a", err: false},
+		{stmt: "a := smoothstep(ivec2(1), 1, 1); _ = a", err: true},
+		{stmt: "a := smoothstep(1, ivec2(1), 1); _ = a", err: true},
+		{stmt: "a := smoothstep(1, 1, ivec2(1)); _ = a", err: true},
 		{stmt: "a := smoothstep(1, 1, 1, 1); _ = a", err: true},
 	}
 
@@ -2090,6 +2382,7 @@ func TestSyntaxBuiltinFuncRefractType(t *testing.T) {
 		{stmt: "a := refract(vec4(1), 1, vec4(1)); _ = a", err: true},
 		{stmt: "a := refract(vec4(1), vec4(1), 1); _ = a", err: false}, // The third argument must be a float.
 		{stmt: "a := refract(vec4(1), vec4(1), vec4(1)); _ = a", err: true},
+		{stmt: "a := refract(ivec2(1), ivec2(1), 1); _ = a", err: true},
 		{stmt: "a := refract(1, 1, 1, 1); _ = a", err: true},
 	}
 
@@ -2139,6 +2432,7 @@ func TestSyntaxBuiltinFuncCrossType(t *testing.T) {
 		{stmt: "a := cross(vec4(1), vec3(1)); _ = a", err: true},
 		{stmt: "a := cross(vec4(1), vec4(1)); _ = a", err: true},
 		{stmt: "a := cross(mat2(1), mat2(1)); _ = a", err: true},
+		{stmt: "a := cross(ivec3(1), ivec3(1)); _ = a", err: true},
 		{stmt: "a := cross(1, 1, 1); _ = a", err: true},
 	}
 
@@ -2173,6 +2467,9 @@ func TestSyntaxBuiltinFuncTransposeType(t *testing.T) {
 		{stmt: "a := transpose(vec2(1)); _ = a", err: true},
 		{stmt: "a := transpose(vec3(1)); _ = a", err: true},
 		{stmt: "a := transpose(vec4(1)); _ = a", err: true},
+		{stmt: "a := transpose(ivec2(1)); _ = a", err: true},
+		{stmt: "a := transpose(ivec3(1)); _ = a", err: true},
+		{stmt: "a := transpose(ivec4(1)); _ = a", err: true},
 		{stmt: "a := transpose(mat2(1)); _ = a", err: false},
 		{stmt: "a := transpose(mat3(1)); _ = a", err: false},
 		{stmt: "a := transpose(mat4(1)); _ = a", err: false},
@@ -2220,6 +2517,8 @@ func TestSyntaxEqual(t *testing.T) {
 		{stmt: "a, b := false, 1.1; _ = a != b", err: true},
 		{stmt: "a, b := false, vec2(1); _ = a == b", err: true},
 		{stmt: "a, b := false, vec2(1); _ = a != b", err: true},
+		{stmt: "a, b := false, ivec2(1); _ = a == b", err: true},
+		{stmt: "a, b := false, ivec2(1); _ = a != b", err: true},
 		{stmt: "a, b := false, mat2(1); _ = a == b", err: true},
 		{stmt: "a, b := false, mat2(1); _ = a != b", err: true},
 
@@ -2241,6 +2540,8 @@ func TestSyntaxEqual(t *testing.T) {
 		{stmt: "a, b := 1, 1.1; _ = a != b", err: true},
 		{stmt: "a, b := 1, vec2(1); _ = a == b", err: true},
 		{stmt: "a, b := 1, vec2(1); _ = a != b", err: true},
+		{stmt: "a, b := 1, ivec2(1); _ = a == b", err: true},
+		{stmt: "a, b := 1, ivec2(1); _ = a != b", err: true},
 		{stmt: "a, b := 1, mat2(1); _ = a == b", err: true},
 		{stmt: "a, b := 1, mat2(1); _ = a != b", err: true},
 
@@ -2262,6 +2563,8 @@ func TestSyntaxEqual(t *testing.T) {
 		{stmt: "a, b := 1.0, 1.1; _ = a != b", err: false},
 		{stmt: "a, b := 1.0, vec2(1); _ = a == b", err: true},
 		{stmt: "a, b := 1.0, vec2(1); _ = a != b", err: true},
+		{stmt: "a, b := 1.0, ivec2(1); _ = a == b", err: true},
+		{stmt: "a, b := 1.0, ivec2(1); _ = a != b", err: true},
 		{stmt: "a, b := 1.0, mat2(1); _ = a == b", err: true},
 		{stmt: "a, b := 1.0, mat2(1); _ = a != b", err: true},
 
@@ -2283,6 +2586,8 @@ func TestSyntaxEqual(t *testing.T) {
 		{stmt: "a, b := 1.1, 1.1; _ = a != b", err: false},
 		{stmt: "a, b := 1.1, vec2(1); _ = a == b", err: true},
 		{stmt: "a, b := 1.1, vec2(1); _ = a != b", err: true},
+		{stmt: "a, b := 1.1, ivec2(1); _ = a == b", err: true},
+		{stmt: "a, b := 1.1, ivec2(1); _ = a != b", err: true},
 		{stmt: "a, b := 1.1, mat2(1); _ = a == b", err: true},
 		{stmt: "a, b := 1.1, mat2(1); _ = a != b", err: true},
 
@@ -2304,8 +2609,33 @@ func TestSyntaxEqual(t *testing.T) {
 		{stmt: "a, b := vec2(1), 1.1; _ = a != b", err: true},
 		{stmt: "a, b := vec2(1), vec2(1); _ = a == b", err: false},
 		{stmt: "a, b := vec2(1), vec2(1); _ = a != b", err: false},
+		{stmt: "a, b := vec2(1), ivec2(1); _ = a == b", err: true},
+		{stmt: "a, b := vec2(1), ivec2(1); _ = a != b", err: true},
 		{stmt: "a, b := vec2(1), mat2(1); _ = a == b", err: true},
 		{stmt: "a, b := vec2(1), mat2(1); _ = a != b", err: true},
+
+		{stmt: "_ = ivec2(1) == true", err: true},
+		{stmt: "_ = ivec2(1) != true", err: true},
+		{stmt: "_ = ivec2(1) == 1", err: true},
+		{stmt: "_ = ivec2(1) != 1", err: true},
+		{stmt: "_ = ivec2(1) == 1.0", err: true},
+		{stmt: "_ = ivec2(1) != 1.0", err: true},
+		{stmt: "_ = ivec2(1) == 1.1", err: true},
+		{stmt: "_ = ivec2(1) != 1.1", err: true},
+		{stmt: "a, b := ivec2(1), true; _ = a == b", err: true},
+		{stmt: "a, b := ivec2(1), true; _ = a != b", err: true},
+		{stmt: "a, b := ivec2(1), 1; _ = a == b", err: true},
+		{stmt: "a, b := ivec2(1), 1; _ = a != b", err: true},
+		{stmt: "a, b := ivec2(1), 1.0; _ = a == b", err: true},
+		{stmt: "a, b := ivec2(1), 1.0; _ = a != b", err: true},
+		{stmt: "a, b := ivec2(1), 1.1; _ = a == b", err: true},
+		{stmt: "a, b := ivec2(1), 1.1; _ = a != b", err: true},
+		{stmt: "a, b := ivec2(1), vec2(1); _ = a == b", err: true},
+		{stmt: "a, b := ivec2(1), vec2(1); _ = a != b", err: true},
+		{stmt: "a, b := ivec2(1), ivec2(1); _ = a == b", err: false},
+		{stmt: "a, b := ivec2(1), ivec2(1); _ = a != b", err: false},
+		{stmt: "a, b := ivec2(1), mat2(1); _ = a == b", err: true},
+		{stmt: "a, b := ivec2(1), mat2(1); _ = a != b", err: true},
 
 		{stmt: "_ = mat2(1) == true", err: true},
 		{stmt: "_ = mat2(1) != true", err: true},
@@ -2325,6 +2655,8 @@ func TestSyntaxEqual(t *testing.T) {
 		{stmt: "a, b := mat2(1), 1.1; _ = a != b", err: true},
 		{stmt: "a, b := mat2(1), vec2(1); _ = a == b", err: true},
 		{stmt: "a, b := mat2(1), vec2(1); _ = a != b", err: true},
+		{stmt: "a, b := mat2(1), ivec2(1); _ = a == b", err: true},
+		{stmt: "a, b := mat2(1), ivec2(1); _ = a != b", err: true},
 		{stmt: "a, b := mat2(1), mat2(1); _ = a == b", err: true}, // Comparing matrices are not allowed.
 		{stmt: "a, b := mat2(1), mat2(1); _ = a != b", err: true}, // Comparing matrices are not allowed.
 
@@ -2346,6 +2678,8 @@ func TestSyntaxEqual(t *testing.T) {
 		{stmt: "a, b := false, 1.1; _ = a || b", err: true},
 		{stmt: "a, b := false, vec2(1); _ = a && b", err: true},
 		{stmt: "a, b := false, vec2(1); _ = a || b", err: true},
+		{stmt: "a, b := false, ivec2(1); _ = a && b", err: true},
+		{stmt: "a, b := false, ivec2(1); _ = a || b", err: true},
 		{stmt: "a, b := false, mat2(1); _ = a && b", err: true},
 		{stmt: "a, b := false, mat2(1); _ = a || b", err: true},
 
@@ -2367,6 +2701,8 @@ func TestSyntaxEqual(t *testing.T) {
 		{stmt: "a, b := 1.0, 1.1; _ = a || b", err: true},
 		{stmt: "a, b := 1.0, vec2(1); _ = a && b", err: true},
 		{stmt: "a, b := 1.0, vec2(1); _ = a || b", err: true},
+		{stmt: "a, b := 1.0, ivec2(1); _ = a && b", err: true},
+		{stmt: "a, b := 1.0, ivec2(1); _ = a || b", err: true},
 		{stmt: "a, b := 1.0, mat2(1); _ = a && b", err: true},
 		{stmt: "a, b := 1.0, mat2(1); _ = a || b", err: true},
 	}
@@ -2453,6 +2789,39 @@ func TestSwizzling(t *testing.T) {
 		{stmt: "var a vec4; var b vec3 = a.xyy; _ = b", err: false},
 		{stmt: "var a vec4; var b vec3 = a.xyz; _ = b", err: false},
 		{stmt: "var a vec4; var b vec4 = a.xyzw; _ = b", err: false},
+
+		{stmt: "var a ivec2; var b int = a.x; _ = b", err: false},
+		{stmt: "var a ivec2; var b int = a.y; _ = b", err: false},
+		{stmt: "var a ivec2; var b int = a.z; _ = b", err: true},
+		{stmt: "var a ivec2; var b int = a.w; _ = b", err: true},
+		{stmt: "var a ivec2; var b ivec2 = a.xy; _ = b", err: false},
+		{stmt: "var a ivec2; var b ivec3 = a.xyz; _ = b", err: true},
+		{stmt: "var a ivec2; var b ivec3 = a.xyw; _ = b", err: true},
+		{stmt: "var a ivec2; var b ivec3 = a.xyy; _ = b", err: false},
+		{stmt: "var a ivec2; var b ivec3 = a.xyz; _ = b", err: true},
+		{stmt: "var a ivec2; var b ivec4 = a.xyzw; _ = b", err: true},
+
+		{stmt: "var a ivec3; var b int = a.x; _ = b", err: false},
+		{stmt: "var a ivec3; var b int = a.y; _ = b", err: false},
+		{stmt: "var a ivec3; var b int = a.z; _ = b", err: false},
+		{stmt: "var a ivec3; var b int = a.w; _ = b", err: true},
+		{stmt: "var a ivec3; var b ivec2 = a.xy; _ = b", err: false},
+		{stmt: "var a ivec3; var b ivec3 = a.xyz; _ = b", err: false},
+		{stmt: "var a ivec3; var b ivec3 = a.xyw; _ = b", err: true},
+		{stmt: "var a ivec3; var b ivec3 = a.xyy; _ = b", err: false},
+		{stmt: "var a ivec3; var b ivec3 = a.xyz; _ = b", err: false},
+		{stmt: "var a ivec3; var b ivec4 = a.xyzw; _ = b", err: true},
+
+		{stmt: "var a ivec4; var b int = a.x; _ = b", err: false},
+		{stmt: "var a ivec4; var b int = a.y; _ = b", err: false},
+		{stmt: "var a ivec4; var b int = a.z; _ = b", err: false},
+		{stmt: "var a ivec4; var b int = a.w; _ = b", err: false},
+		{stmt: "var a ivec4; var b ivec2 = a.xy; _ = b", err: false},
+		{stmt: "var a ivec4; var b ivec3 = a.xyz; _ = b", err: false},
+		{stmt: "var a ivec4; var b ivec3 = a.xyw; _ = b", err: false},
+		{stmt: "var a ivec4; var b ivec3 = a.xyy; _ = b", err: false},
+		{stmt: "var a ivec4; var b ivec3 = a.xyz; _ = b", err: false},
+		{stmt: "var a ivec4; var b ivec4 = a.xyzw; _ = b", err: false},
 	}
 
 	for _, c := range cases {
@@ -2482,84 +2851,105 @@ func TestConstType(t *testing.T) {
 		{stmt: "const a int = false", err: true},
 		{stmt: "const a float = false", err: true},
 		{stmt: "const a vec2 = false", err: true},
+		{stmt: "const a ivec2 = false", err: true},
 
 		{stmt: "const a = bool(false)", err: false},
 		{stmt: "const a bool = bool(false)", err: false},
 		{stmt: "const a int = bool(false)", err: true},
 		{stmt: "const a float = bool(false)", err: true},
 		{stmt: "const a vec2 = bool(false)", err: true},
+		{stmt: "const a ivec2 = bool(false)", err: true},
 
 		{stmt: "const a = int(false)", err: true},
 		{stmt: "const a bool = int(false)", err: true},
 		{stmt: "const a int = int(false)", err: true},
 		{stmt: "const a float = int(false)", err: true},
 		{stmt: "const a vec2 = int(false)", err: true},
+		{stmt: "const a ivec2 = int(false)", err: true},
 
 		{stmt: "const a = float(false)", err: true},
 		{stmt: "const a bool = float(false)", err: true},
 		{stmt: "const a int = float(false)", err: true},
 		{stmt: "const a float = float(false)", err: true},
 		{stmt: "const a vec2 = float(false)", err: true},
+		{stmt: "const a ivec2 = float(false)", err: true},
 
 		{stmt: "const a = 1", err: false},
 		{stmt: "const a bool = 1", err: true},
 		{stmt: "const a int = 1", err: false},
 		{stmt: "const a float = 1", err: false},
 		{stmt: "const a vec2 = 1", err: true},
+		{stmt: "const a ivec2 = 1", err: true},
 
 		{stmt: "const a = int(1)", err: false},
 		{stmt: "const a bool = int(1)", err: true},
 		{stmt: "const a int = int(1)", err: false},
 		{stmt: "const a float = int(1)", err: true},
 		{stmt: "const a vec2 = int(1)", err: true},
+		{stmt: "const a ivec2 = int(1)", err: true},
 
 		{stmt: "const a = float(1)", err: false},
 		{stmt: "const a bool = float(1)", err: true},
 		{stmt: "const a int = float(1)", err: true},
 		{stmt: "const a float = float(1)", err: false},
 		{stmt: "const a vec2 = float(1)", err: true},
+		{stmt: "const a ivec2 = float(1)", err: true},
 
 		{stmt: "const a = 1.0", err: false},
 		{stmt: "const a bool = 1.0", err: true},
 		{stmt: "const a int = 1.0", err: false},
 		{stmt: "const a float = 1.0", err: false},
 		{stmt: "const a vec2 = 1.0", err: true},
+		{stmt: "const a ivec2 = 1.0", err: true},
 
 		{stmt: "const a = int(1.0)", err: false},
 		{stmt: "const a bool = int(1.0)", err: true},
 		{stmt: "const a int = int(1.0)", err: false},
 		{stmt: "const a float = int(1.0)", err: true},
 		{stmt: "const a vec2 = int(1.0)", err: true},
+		{stmt: "const a ivec2 = int(1.0)", err: true},
 
 		{stmt: "const a = float(1.0)", err: false},
 		{stmt: "const a bool = float(1.0)", err: true},
 		{stmt: "const a int = float(1.0)", err: true},
 		{stmt: "const a float = float(1.0)", err: false},
 		{stmt: "const a vec2 = float(1.0)", err: true},
+		{stmt: "const a ivec2 = float(1.0)", err: true},
 
 		{stmt: "const a = 1.1", err: false},
 		{stmt: "const a bool = 1.1", err: true},
 		{stmt: "const a int = 1.1", err: true},
 		{stmt: "const a float = 1.1", err: false},
 		{stmt: "const a vec2 = 1.1", err: true},
+		{stmt: "const a ivec2 = 1.1", err: true},
 
 		{stmt: "const a = int(1.1)", err: true},
 		{stmt: "const a bool = int(1.1)", err: true},
 		{stmt: "const a int = int(1.1)", err: true},
 		{stmt: "const a float = int(1.1)", err: true},
 		{stmt: "const a vec2 = int(1.1)", err: true},
+		{stmt: "const a ivec2 = int(1.1)", err: true},
 
 		{stmt: "const a = float(1.1)", err: false},
 		{stmt: "const a bool = float(1.1)", err: true},
 		{stmt: "const a int = float(1.1)", err: true},
 		{stmt: "const a float = float(1.1)", err: false},
 		{stmt: "const a vec2 = float(1.1)", err: true},
+		{stmt: "const a ivec2 = float(1.1)", err: true},
 
 		{stmt: "const a = vec2(0)", err: true},
 		{stmt: "const a bool = vec2(0)", err: true},
 		{stmt: "const a int = vec2(0)", err: true},
 		{stmt: "const a float = vec2(0)", err: true},
 		{stmt: "const a vec2 = vec2(0)", err: true},
+		{stmt: "const a ivec2 = vec2(0)", err: true},
+
+		{stmt: "const a = ivec2(0)", err: true},
+		{stmt: "const a bool = ivec2(0)", err: true},
+		{stmt: "const a int = ivec2(0)", err: true},
+		{stmt: "const a float = ivec2(0)", err: true},
+		{stmt: "const a vec2 = ivec2(0)", err: true},
+		{stmt: "const a ivec2 = ivec2(0)", err: true},
 	}
 
 	for _, c := range cases {

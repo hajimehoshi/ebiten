@@ -99,8 +99,11 @@ package gl
 // typedef void  (APIENTRYP GPUNIFORM1I)(GLint  location, GLint  v0);
 // typedef void  (APIENTRYP GPUNIFORM1IV)(GLint  location, GLsizei  count, const GLint * value);
 // typedef void  (APIENTRYP GPUNIFORM2FV)(GLint  location, GLsizei  count, const GLfloat * value);
+// typedef void  (APIENTRYP GPUNIFORM2IV)(GLint  location, GLsizei  count, const GLint * value);
 // typedef void  (APIENTRYP GPUNIFORM3FV)(GLint  location, GLsizei  count, const GLfloat * value);
+// typedef void  (APIENTRYP GPUNIFORM3IV)(GLint  location, GLsizei  count, const GLint * value);
 // typedef void  (APIENTRYP GPUNIFORM4FV)(GLint  location, GLsizei  count, const GLfloat * value);
+// typedef void  (APIENTRYP GPUNIFORM4IV)(GLint  location, GLsizei  count, const GLint * value);
 // typedef void  (APIENTRYP GPUNIFORMMATRIX2FV)(GLint  location, GLsizei  count, GLboolean  transpose, const GLfloat * value);
 // typedef void  (APIENTRYP GPUNIFORMMATRIX3FV)(GLint  location, GLsizei  count, GLboolean  transpose, const GLfloat * value);
 // typedef void  (APIENTRYP GPUNIFORMMATRIX4FV)(GLint  location, GLsizei  count, GLboolean  transpose, const GLfloat * value);
@@ -291,10 +294,19 @@ package gl
 // static void  glowUniform2fv(GPUNIFORM2FV fnptr, GLint  location, GLsizei  count, const GLfloat * value) {
 //   (*fnptr)(location, count, value);
 // }
+// static void  glowUniform2iv(GPUNIFORM2IV fnptr, GLint  location, GLsizei  count, const GLint * value) {
+//   (*fnptr)(location, count, value);
+// }
 // static void  glowUniform3fv(GPUNIFORM3FV fnptr, GLint  location, GLsizei  count, const GLfloat * value) {
 //   (*fnptr)(location, count, value);
 // }
+// static void  glowUniform3iv(GPUNIFORM3IV fnptr, GLint  location, GLsizei  count, const GLint * value) {
+//   (*fnptr)(location, count, value);
+// }
 // static void  glowUniform4fv(GPUNIFORM4FV fnptr, GLint  location, GLsizei  count, const GLfloat * value) {
+//   (*fnptr)(location, count, value);
+// }
+// static void  glowUniform4iv(GPUNIFORM4IV fnptr, GLint  location, GLsizei  count, const GLint * value) {
 //   (*fnptr)(location, count, value);
 // }
 // static void  glowUniformMatrix2fv(GPUNIFORMMATRIX2FV fnptr, GLint  location, GLsizei  count, GLboolean  transpose, const GLfloat * value) {
@@ -385,8 +397,11 @@ type defaultContext struct {
 	gpUniform1i                  C.GPUNIFORM1I
 	gpUniform1iv                 C.GPUNIFORM1IV
 	gpUniform2fv                 C.GPUNIFORM2FV
+	gpUniform2iv                 C.GPUNIFORM2IV
 	gpUniform3fv                 C.GPUNIFORM3FV
+	gpUniform3iv                 C.GPUNIFORM3IV
 	gpUniform4fv                 C.GPUNIFORM4FV
+	gpUniform4iv                 C.GPUNIFORM4IV
 	gpUniformMatrix2fv           C.GPUNIFORMMATRIX2FV
 	gpUniformMatrix3fv           C.GPUNIFORMMATRIX3FV
 	gpUniformMatrix4fv           C.GPUNIFORMMATRIX4FV
@@ -705,13 +720,28 @@ func (c *defaultContext) Uniform2fv(location int32, value []float32) {
 	runtime.KeepAlive(value)
 }
 
+func (c *defaultContext) Uniform2iv(location int32, value []int32) {
+	C.glowUniform2iv(c.gpUniform2iv, (C.GLint)(location), (C.GLsizei)(len(value)/2), (*C.GLint)(unsafe.Pointer(&value[0])))
+	runtime.KeepAlive(value)
+}
+
 func (c *defaultContext) Uniform3fv(location int32, value []float32) {
 	C.glowUniform3fv(c.gpUniform3fv, (C.GLint)(location), (C.GLsizei)(len(value)/3), (*C.GLfloat)(unsafe.Pointer(&value[0])))
 	runtime.KeepAlive(value)
 }
 
+func (c *defaultContext) Uniform3iv(location int32, value []int32) {
+	C.glowUniform3iv(c.gpUniform3iv, (C.GLint)(location), (C.GLsizei)(len(value)/3), (*C.GLint)(unsafe.Pointer(&value[0])))
+	runtime.KeepAlive(value)
+}
+
 func (c *defaultContext) Uniform4fv(location int32, value []float32) {
 	C.glowUniform4fv(c.gpUniform4fv, (C.GLint)(location), (C.GLsizei)(len(value)/4), (*C.GLfloat)(unsafe.Pointer(&value[0])))
+	runtime.KeepAlive(value)
+}
+
+func (c *defaultContext) Uniform4iv(location int32, value []int32) {
+	C.glowUniform4iv(c.gpUniform4iv, (C.GLint)(location), (C.GLsizei)(len(value)/4), (*C.GLint)(unsafe.Pointer(&value[0])))
 	runtime.KeepAlive(value)
 }
 
@@ -951,13 +981,25 @@ func (c *defaultContext) LoadFunctions() error {
 	if c.gpUniform2fv == nil {
 		return errors.New("gl: glUniform2fv is missing")
 	}
+	c.gpUniform2iv = (C.GPUNIFORM2IV)(c.getProcAddress("glUniform2iv"))
+	if c.gpUniform2iv == nil {
+		return errors.New("gl: glUniform2iv is missing")
+	}
 	c.gpUniform3fv = (C.GPUNIFORM3FV)(c.getProcAddress("glUniform3fv"))
 	if c.gpUniform3fv == nil {
 		return errors.New("gl: glUniform3fv is missing")
 	}
+	c.gpUniform3iv = (C.GPUNIFORM3IV)(c.getProcAddress("glUniform3iv"))
+	if c.gpUniform3iv == nil {
+		return errors.New("gl: glUniform3iv is missing")
+	}
 	c.gpUniform4fv = (C.GPUNIFORM4FV)(c.getProcAddress("glUniform4fv"))
 	if c.gpUniform4fv == nil {
 		return errors.New("gl: glUniform4fv is missing")
+	}
+	c.gpUniform4iv = (C.GPUNIFORM4IV)(c.getProcAddress("glUniform4iv"))
+	if c.gpUniform4iv == nil {
+		return errors.New("gl: glUniform4iv is missing")
 	}
 	c.gpUniformMatrix2fv = (C.GPUNIFORMMATRIX2FV)(c.getProcAddress("glUniformMatrix2fv"))
 	if c.gpUniformMatrix2fv == nil {

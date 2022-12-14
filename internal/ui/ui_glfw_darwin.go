@@ -385,3 +385,7 @@ func initializeWindowAfterCreation(w *glfw.Window) {
 	delegate := objc.ID(class_EbitengineWindowDelegate).Send(objc.RegisterName("alloc")).Send(objc.RegisterName("initWithOrigDelegate:"), nswindow.Send(sel_delegate))
 	nswindow.Send(objc.RegisterName("setDelegate:"), delegate)
 }
+
+func (u *userInterfaceImpl) skipTaskbar() error {
+	return nil
+}

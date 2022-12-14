@@ -32,7 +32,8 @@ type Program struct {
 	VertexFunc   VertexFunc
 	FragmentFunc FragmentFunc
 
-	reachableUniforms map[int]struct{}
+	reachableUniforms   []bool
+	uniformUint32Counts []int
 }
 
 type Func struct {
@@ -224,6 +225,9 @@ const (
 	Vec2F       BuiltinFunc = "vec2"
 	Vec3F       BuiltinFunc = "vec3"
 	Vec4F       BuiltinFunc = "vec4"
+	IVec2F      BuiltinFunc = "ivec2"
+	IVec3F      BuiltinFunc = "ivec3"
+	IVec4F      BuiltinFunc = "ivec4"
 	Mat2F       BuiltinFunc = "mat2"
 	Mat3F       BuiltinFunc = "mat3"
 	Mat4F       BuiltinFunc = "mat4"
@@ -281,6 +285,9 @@ func ParseBuiltinFunc(str string) (BuiltinFunc, bool) {
 		Vec2F,
 		Vec3F,
 		Vec4F,
+		IVec2F,
+		IVec3F,
+		IVec4F,
 		Mat2F,
 		Mat3F,
 		Mat4F,
@@ -454,19 +461,33 @@ func (p *Program) reachableUniformVariablesFromBlock(block *Block) []int {
 	return is
 }
 
-func (p *Program) FilterUniformVariables(uniforms [][]uint32) {
+// FilterUniformVariables replaces uniform variables with nil when they are not used.
+// By minimizing uniform variables, more commands can be merged in the graphicscommand package.
+func (p *Program) FilterUniformVariables(uniforms []uint32) {
 	if p.reachableUniforms == nil {
-		p.reachableUniforms = map[int]struct{}{}
+		p.reachableUniforms = make([]bool, len(p.Uniforms))
 		for _, i := range p.reachableUniformVariablesFromBlock(p.VertexFunc.Block) {
-			p.reachableUniforms[i] = struct{}{}
+			p.reachableUniforms[i] = true
 		}
 		for _, i := range p.reachableUniformVariablesFromBlock(p.FragmentFunc.Block) {
-			p.reachableUniforms[i] = struct{}{}
+			p.reachableUniforms[i] = true
 		}
 	}
-	for i := range uniforms {
-		if _, ok := p.reachableUniforms[i]; !ok {
-			uniforms[i] = nil
+
+	if p.uniformUint32Counts == nil {
+		p.uniformUint32Counts = make([]int, len(p.Uniforms))
+		for i, typ := range p.Uniforms {
+			p.uniformUint32Counts[i] = typ.Uint32Count()
 		}
+	}
+
+	var idx int
+	for i, n := range p.uniformUint32Counts {
+		if !p.reachableUniforms[i] {
+			for j := 0; j < n; j++ {
+				uniforms[idx+j] = 0
+			}
+		}
+		idx += n
 	}
 }

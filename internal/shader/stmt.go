@@ -104,9 +104,15 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 				}
 			} else {
 				switch lts[0].Main {
-				case shaderir.Int:
-					if !cs.forceToInt(stmt, &rhs[0]) {
-						return nil, false
+				case shaderir.Int, shaderir.IVec2, shaderir.IVec3, shaderir.IVec4:
+					if rts[0].Main != shaderir.Int {
+						if !rts[0].Equal(&shaderir.Type{}) {
+							cs.addError(stmt.Pos(), fmt.Sprintf("invalid operation: mismatched types %s and %s", lts[0].String(), rts[0].String()))
+							return nil, false
+						}
+						if !cs.forceToInt(stmt, &rhs[0]) {
+							return nil, false
+						}
 					}
 				case shaderir.Float:
 					if rhs[0].Const != nil &&
@@ -151,7 +157,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 				}
 			}
 
-			if op == shaderir.ModOp && lts[0].Main != shaderir.Int {
+			if op == shaderir.ModOp && lts[0].Main != shaderir.Int && lts[0].Main != shaderir.IVec2 && lts[0].Main != shaderir.IVec3 && lts[0].Main != shaderir.IVec4 {
 				cs.addError(stmt.Pos(), fmt.Sprintf("invalid operation: operator %% not defined on %s", lts[0].String()))
 				return nil, false
 			}
@@ -444,7 +450,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 		if len(stmt.Results) != len(outParams) && len(stmt.Results) != 1 {
 			if !(len(stmt.Results) == 0 && len(outParams) > 0 && outParams[0].name != "") {
 				// TODO: Check variable shadowings.
-				// https://golang.org/ref/spec#Return_statements
+				// https://go.dev/ref/spec#Return_statements
 				cs.addError(stmt.Pos(), fmt.Sprintf("the number of returning variables must be %d but %d", len(outParams), len(stmt.Results)))
 				return nil, false
 			}

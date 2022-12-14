@@ -80,11 +80,13 @@ type gameForUI struct {
 	screen       *Image
 	screenShader *Shader
 	imageDumper  imageDumper
+	transparent  bool
 }
 
-func newGameForUI(game Game) *gameForUI {
+func newGameForUI(game Game, transparent bool) *gameForUI {
 	g := &gameForUI{
-		game: game,
+		game:        game,
+		transparent: transparent,
 	}
 
 	s, err := NewShader([]byte(screenShaderSrc))
@@ -157,7 +159,7 @@ func (g *gameForUI) Update() error {
 
 func (g *gameForUI) DrawOffscreen() error {
 	g.game.Draw(g.offscreen)
-	if err := g.imageDumper.dump(g.offscreen); err != nil {
+	if err := g.imageDumper.dump(g.offscreen, g.transparent); err != nil {
 		return err
 	}
 	return nil

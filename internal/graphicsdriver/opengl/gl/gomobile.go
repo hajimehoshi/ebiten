@@ -287,12 +287,24 @@ func (g *gomobileContext) Uniform2fv(location int32, value []float32) {
 	g.ctx.Uniform2fv(gl.Uniform{Value: location}, value)
 }
 
+func (g *gomobileContext) Uniform2iv(location int32, value []int32) {
+	g.ctx.Uniform2iv(gl.Uniform{Value: location}, value)
+}
+
 func (g *gomobileContext) Uniform3fv(location int32, value []float32) {
 	g.ctx.Uniform3fv(gl.Uniform{Value: location}, value)
 }
 
+func (g *gomobileContext) Uniform3iv(location int32, value []int32) {
+	g.ctx.Uniform3iv(gl.Uniform{Value: location}, value)
+}
+
 func (g *gomobileContext) Uniform4fv(location int32, value []float32) {
 	g.ctx.Uniform4fv(gl.Uniform{Value: location}, value)
+}
+
+func (g *gomobileContext) Uniform4iv(location int32, value []int32) {
+	g.ctx.Uniform4iv(gl.Uniform{Value: location}, value)
 }
 
 func (g *gomobileContext) UniformMatrix2fv(location int32, value []float32) {

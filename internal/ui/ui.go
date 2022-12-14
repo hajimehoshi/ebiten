@@ -24,9 +24,11 @@ import (
 type MouseButton int
 
 const (
-	MouseButtonLeft MouseButton = iota
-	MouseButtonRight
-	MouseButtonMiddle
+	MouseButton0 MouseButton = iota // The 'left' button
+	MouseButton1                    // The 'right' button
+	MouseButton2                    // The 'middle' button
+	MouseButton3                    // The additional button (usually browser-back)
+	MouseButton4                    // The additional button (usually browser-forward)
 )
 
 type TouchID int
@@ -71,15 +73,6 @@ const (
 	WindowResizingModeEnabled
 )
 
-type GraphicsLibrary int
-
-const (
-	GraphicsLibraryUnknown GraphicsLibrary = iota
-	GraphicsLibraryOpenGL
-	GraphicsLibraryDirectX
-	GraphicsLibraryMetal
-)
-
 type UserInterface struct {
 	userInterfaceImpl
 }
@@ -101,4 +94,11 @@ func (u *UserInterface) dumpScreenshot(mipmap *mipmap.Mipmap, name string, black
 
 func (u *UserInterface) dumpImages(dir string) (string, error) {
 	return atlas.DumpImages(u.graphicsDriver, dir)
+}
+
+type RunOptions struct {
+	GraphicsLibrary   GraphicsLibrary
+	InitUnfocused     bool
+	ScreenTransparent bool
+	SkipTaskbar       bool
 }

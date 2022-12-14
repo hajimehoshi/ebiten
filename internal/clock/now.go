@@ -22,6 +22,6 @@ var initTime = time.Now()
 
 func now() int64 {
 	// time.Since() returns monotonic timer difference (#875):
-	// https://golang.org/pkg/time/#hdr-Monotonic_Clocks
+	// https://pkg.go.dev/time#hdr-Monotonic_Clocks
 	return int64(time.Since(initTime))
 }

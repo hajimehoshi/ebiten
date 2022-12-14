@@ -38,6 +38,12 @@ type Image struct {
 	original *Image
 	bounds   image.Rectangle
 
+	// tmpVertices must not be reused until the vertices are sent to the graphics command queue.
+	tmpVertices []float32
+
+	// tmpUniforms must not be reused until the vertices are sent to the graphics command queue.
+	tmpUniforms []uint32
+
 	// Do not add a 'buffering' member that are resolved lazily.
 	// This tends to forget resolving the buffer easily (#2362).
 }
@@ -103,8 +109,11 @@ type DrawImageOptions struct {
 	GeoM GeoM
 
 	// ColorScale is a scale of color.
-	// ColorScale is slightly different from ColorM's Scale in terms of alphas:
-	// ColorScale is applied to premultiplied-alpha colors, while ColorM is applied to straight-alpha colors.
+	//
+	// ColorScale is slightly different from colorm.ColorM's Scale in terms of alphas.
+	// ColorScale is applied to premultiplied-alpha colors, while colorm.ColorM is applied to straight-alpha colors.
+	// Thus, colorm.ColorM.Scale(r, g, b, a) equals to ColorScale.Scale(r*a, g*a, b*a, a).
+	//
 	// The default (zero) value is identity, which is (1, 1, 1, 1).
 	ColorScale ColorScale
 
@@ -188,14 +197,12 @@ func (i *Image) adjustedRegion() graphicsdriver.Region {
 // DrawImage works more efficiently as batches
 // when the successive calls of DrawImages satisfy the below conditions:
 //
-//   - All render targets are same (A in A.DrawImage(B, op))
-//   - Either all ColorM element values are same or all the ColorM have only
-//     diagonal ('scale') elements
-//   - If only (*ColorM).Scale is applied to a ColorM, the ColorM has only
-//     diagonal elements. The other ColorM functions might modify the other
-//     elements.
-//   - All CompositeMode/Blend values are same
-//   - All Filter values are same
+//   - All render targets are the same (A in A.DrawImage(B, op))
+//   - All Blend values are the same
+//   - All Filter values are the same
+//
+// A whole image and its sub-image are considered to be the same, but some
+// environments like browsers might not work efficiently (#2471).
 //
 // Even when all the above conditions are satisfied, multiple draw commands can
 // be used in really rare cases. Ebitengine images usually share an internal
@@ -240,25 +247,26 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) {
 	sx1, sy1 := img.adjustPosition(bounds.Max.X, bounds.Max.Y)
 	colorm, cr, cg, cb, ca := colorMToScale(options.ColorM.affineColorM())
 	cr, cg, cb, ca = options.ColorScale.apply(cr, cg, cb, ca)
-	vs := graphics.QuadVertices(float32(sx0), float32(sy0), float32(sx1), float32(sy1), a, b, c, d, tx, ty, cr, cg, cb, ca)
+	vs := i.ensureTmpVertices(4 * graphics.VertexFloatCount)
+	graphics.QuadVertices(vs, float32(sx0), float32(sy0), float32(sx1), float32(sy1), a, b, c, d, tx, ty, cr, cg, cb, ca)
 	is := graphics.QuadIndices()
 
 	srcs := [graphics.ShaderImageCount]*ui.Image{img.image}
 
 	useColorM := !colorm.IsIdentity()
 	shader := builtinShader(filter, builtinshader.AddressUnsafe, useColorM)
-	var uniforms [][]uint32
+	i.tmpUniforms = i.tmpUniforms[:0]
 	if useColorM {
 		var body [16]float32
 		var translation [4]float32
 		colorm.Elements(body[:], translation[:])
-		uniforms = shader.convertUniforms(map[string]any{
+		i.tmpUniforms = shader.appendUniforms(i.tmpUniforms, map[string]any{
 			builtinshader.UniformColorMBody:        body[:],
 			builtinshader.UniformColorMTranslation: translation[:],
 		})
 	}
 
-	i.image.DrawTriangles(srcs, vs, is, blend, i.adjustedRegion(), img.adjustedRegion(), [graphics.ShaderImageCount - 1][2]float32{}, shader.shader, uniforms, false, canSkipMipmap(options.GeoM, filter), false)
+	i.image.DrawTriangles(srcs, vs, is, blend, i.adjustedRegion(), img.adjustedRegion(), [graphics.ShaderImageCount - 1][2]float32{}, shader.shader, i.tmpUniforms, false, canSkipMipmap(options.GeoM, filter), false)
 }
 
 // Vertex represents a vertex passed to DrawTriangles.
@@ -440,7 +448,7 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 
 	colorm, cr, cg, cb, ca := colorMToScale(options.ColorM.affineColorM())
 
-	vs := graphics.Vertices(len(vertices))
+	vs := i.ensureTmpVertices(len(vertices) * graphics.VertexFloatCount)
 	dst := i
 	if options.ColorScaleMode == ColorScaleModeStraightAlpha {
 		for i, v := range vertices {
@@ -476,18 +484,18 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 
 	useColorM := !colorm.IsIdentity()
 	shader := builtinShader(filter, address, useColorM)
-	var uniforms [][]uint32
+	i.tmpUniforms = i.tmpUniforms[:0]
 	if useColorM {
 		var body [16]float32
 		var translation [4]float32
 		colorm.Elements(body[:], translation[:])
-		uniforms = shader.convertUniforms(map[string]any{
+		i.tmpUniforms = shader.appendUniforms(i.tmpUniforms, map[string]any{
 			builtinshader.UniformColorMBody:        body[:],
 			builtinshader.UniformColorMTranslation: translation[:],
 		})
 	}
 
-	i.image.DrawTriangles(srcs, vs, is, blend, i.adjustedRegion(), img.adjustedRegion(), [graphics.ShaderImageCount - 1][2]float32{}, shader.shader, uniforms, options.FillRule == EvenOdd, filter != builtinshader.FilterLinear, options.AntiAlias)
+	i.image.DrawTriangles(srcs, vs, is, blend, i.adjustedRegion(), img.adjustedRegion(), [graphics.ShaderImageCount - 1][2]float32{}, shader.shader, i.tmpUniforms, options.FillRule == EvenOdd, filter != builtinshader.FilterLinear, options.AntiAlias)
 }
 
 // DrawTrianglesShaderOptions represents options for DrawTrianglesShader.
@@ -535,7 +543,7 @@ type DrawTrianglesShaderOptions struct {
 }
 
 // Check the number of images.
-var _ [len(DrawTrianglesShaderOptions{}.Images)]struct{} = [graphics.ShaderImageCount]struct{}{}
+var _ [len(DrawTrianglesShaderOptions{}.Images) - graphics.ShaderImageCount]struct{} = [0]struct{}{}
 
 // DrawTrianglesShader draws triangles with the specified vertices and their indices with the specified shader.
 //
@@ -576,7 +584,7 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 		blend = options.CompositeMode.blend().internalBlend()
 	}
 
-	vs := graphics.Vertices(len(vertices))
+	vs := i.ensureTmpVertices(len(vertices) * graphics.VertexFloatCount)
 	dst := i
 	src := options.Images[0]
 	for i, v := range vertices {
@@ -638,7 +646,10 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 		offsets[i][1] = float32(y - sy)
 	}
 
-	i.image.DrawTriangles(imgs, vs, is, blend, i.adjustedRegion(), sr, offsets, shader.shader, shader.convertUniforms(options.Uniforms), options.FillRule == EvenOdd, true, options.AntiAlias)
+	i.tmpUniforms = i.tmpUniforms[:0]
+	i.tmpUniforms = shader.appendUniforms(i.tmpUniforms, options.Uniforms)
+
+	i.image.DrawTriangles(imgs, vs, is, blend, i.adjustedRegion(), sr, offsets, shader.shader, i.tmpUniforms, options.FillRule == EvenOdd, true, options.AntiAlias)
 }
 
 // DrawRectShaderOptions represents options for DrawRectShader.
@@ -731,7 +742,8 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 	}
 	a, b, c, d, tx, ty := options.GeoM.elements32()
 	cr, cg, cb, ca := options.ColorScale.elements()
-	vs := graphics.QuadVertices(float32(sx), float32(sy), float32(sx+width), float32(sy+height), a, b, c, d, tx, ty, cr, cg, cb, ca)
+	vs := i.ensureTmpVertices(4 * graphics.VertexFloatCount)
+	graphics.QuadVertices(vs, float32(sx), float32(sy), float32(sx+width), float32(sy+height), a, b, c, d, tx, ty, cr, cg, cb, ca)
 	is := graphics.QuadIndices()
 
 	var offsets [graphics.ShaderImageCount - 1][2]float32
@@ -747,7 +759,10 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 		offsets[i][1] = float32(y - sy)
 	}
 
-	i.image.DrawTriangles(imgs, vs, is, blend, i.adjustedRegion(), sr, offsets, shader.shader, shader.convertUniforms(options.Uniforms), false, true, false)
+	i.tmpUniforms = i.tmpUniforms[:0]
+	i.tmpUniforms = shader.appendUniforms(i.tmpUniforms, options.Uniforms)
+
+	i.image.DrawTriangles(imgs, vs, is, blend, i.adjustedRegion(), sr, offsets, shader.shader, i.tmpUniforms, false, true, false)
 }
 
 // SubImage returns an image representing the portion of the image p visible through r.
@@ -1140,6 +1155,13 @@ func colorMToScale(colorm affine.ColorM) (newColorM affine.ColorM, r, g, b, a fl
 	}
 
 	return affine.ColorMIdentity{}, r * a, g * a, b * a, a
+}
+
+func (i *Image) ensureTmpVertices(n int) []float32 {
+	if cap(i.tmpVertices) < n {
+		i.tmpVertices = make([]float32, n)
+	}
+	return i.tmpVertices[:n]
 }
 
 // private implements FinalScreen.

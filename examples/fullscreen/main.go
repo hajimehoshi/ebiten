@@ -58,7 +58,7 @@ func initFont() {
 	mplusFont, err = opentype.NewFace(tt, &opentype.FaceOptions{
 		Size:    12 * ebiten.DeviceScaleFactor(),
 		DPI:     dpi,
-		Hinting: font.HintingFull,
+		Hinting: font.HintingVertical,
 	})
 	if err != nil {
 		log.Fatal(err)
