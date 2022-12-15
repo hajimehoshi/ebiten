@@ -169,15 +169,6 @@ package ui
 //     return;
 //   }
 //
-//   // Apparently, adjusting the view size is not needed as of macOS 12 (#1745).
-//   static int majorVersion = 0;
-//   if (majorVersion == 0) {
-//     majorVersion = [[NSProcessInfo processInfo] operatingSystemVersion].majorVersion;
-//   }
-//   if (majorVersion >= 12) {
-//     return;
-//   }
-//
 //   // Reduce the view height (#1745).
 //   // https://stackoverflow.com/questions/27758027/sprite-kit-serious-fps-issue-in-full-screen-mode-on-os-x
 //   CGSize windowSize = [window frame].size;
