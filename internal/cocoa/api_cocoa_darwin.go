@@ -49,7 +49,6 @@ var (
 	sel_UTF8String                         = objc.RegisterName("UTF8String")
 	sel_length                             = objc.RegisterName("length")
 	sel_processInfo                        = objc.RegisterName("processInfo")
-	sel_isOperatingSystemAtLeastVersion    = objc.RegisterName("isOperatingSystemAtLeastVersion:")
 	sel_frame                              = objc.RegisterName("frame")
 	sel_contentView                        = objc.RegisterName("contentView")
 	sel_setBackgroundColor                 = objc.RegisterName("setBackgroundColor:")
@@ -121,18 +120,6 @@ type NSProcessInfo struct {
 
 func NSProcessInfo_processInfo() NSProcessInfo {
 	return NSProcessInfo{objc.ID(class_NSProcessInfo).Send(sel_processInfo)}
-}
-
-func (p NSProcessInfo) IsOperatingSystemAtLeastVersion(version NSOperatingSystemVersion) bool {
-	sig := NSMethodSignature_instanceMethodSignatureForSelector(objc.ID(class_NSProcessInfo), sel_isOperatingSystemAtLeastVersion)
-	inv := NSInvocation_invocationWithMethodSignature(sig)
-	inv.SetTarget(p.ID)
-	inv.SetSelector(sel_isOperatingSystemAtLeastVersion)
-	inv.SetArgumentAtIndex(unsafe.Pointer(&version), 2)
-	inv.Invoke()
-	var ret int
-	inv.GetReturnValue(unsafe.Pointer(&ret))
-	return ret != 0
 }
 
 type NSWindow struct {

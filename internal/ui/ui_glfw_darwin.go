@@ -341,13 +341,6 @@ func (u *userInterfaceImpl) adjustViewSizeAfterFullscreen() {
 		return
 	}
 
-	// Apparently, adjusting the view size is not needed as of macOS 12 (#1745).
-	if cocoa.NSProcessInfo_processInfo().IsOperatingSystemAtLeastVersion(cocoa.NSOperatingSystemVersion{
-		Major: 12,
-	}) {
-		return
-	}
-
 	// Reduce the view height (#1745).
 	// https://stackoverflow.com/questions/27758027/sprite-kit-serious-fps-issue-in-full-screen-mode-on-os-x
 	windowSize := window.Frame().Size
