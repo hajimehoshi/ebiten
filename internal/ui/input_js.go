@@ -57,7 +57,6 @@ type pos struct {
 
 type Input struct {
 	keyPressed         map[int]bool
-	keyPressedEdge     map[int]bool
 	mouseButtonPressed map[int]bool
 	cursorX            int
 	cursorY            int
@@ -112,16 +111,6 @@ func (i *Input) IsKeyPressed(key Key) bool {
 			return true
 		}
 	}
-	if i.keyPressedEdge != nil {
-		for c, k := range edgeKeyCodeToUIKey {
-			if k != key {
-				continue
-			}
-			if i.keyPressedEdge[c] {
-				return true
-			}
-		}
-	}
 	return false
 }
 
@@ -166,20 +155,6 @@ func (i *Input) keyUp(code js.Value) {
 	i.keyPressed[jsKeyToID(code)] = false
 }
 
-func (i *Input) keyDownEdge(code int) {
-	if i.keyPressedEdge == nil {
-		i.keyPressedEdge = map[int]bool{}
-	}
-	i.keyPressedEdge[code] = true
-}
-
-func (i *Input) keyUpEdge(code int) {
-	if i.keyPressedEdge == nil {
-		i.keyPressedEdge = map[int]bool{}
-	}
-	i.keyPressedEdge[code] = false
-}
-
 func (i *Input) mouseDown(code int) {
 	if i.mouseButtonPressed == nil {
 		i.mouseButtonPressed = map[int]bool{}
@@ -206,21 +181,9 @@ func (i *Input) updateFromEvent(e js.Value) error {
 				}
 			}
 		}
-
-		c := e.Get("code")
-		if c.Type() != js.TypeString {
-			i.keyDownEdge(e.Get("keyCode").Int())
-			return nil
-		}
-		i.keyDown(c)
+		i.keyDown(e.Get("code"))
 	case t.Equal(stringKeyup):
-		c := e.Get("code")
-		if c.Type() != js.TypeString {
-			// Assume that UA is Edge.
-			i.keyUpEdge(e.Get("keyCode").Int())
-			return nil
-		}
-		i.keyUp(c)
+		i.keyUp(e.Get("code"))
 	case t.Equal(stringMousedown):
 		button := e.Get("button").Int()
 		i.mouseDown(button)
