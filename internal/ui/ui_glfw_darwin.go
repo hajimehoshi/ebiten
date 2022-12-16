@@ -209,17 +209,6 @@ func (u *userInterfaceImpl) adjustWindowPosition(x, y int, monitor *glfw.Monitor
 	return x, y
 }
 
-func flipY(y int) int {
-	for _, m := range ensureMonitors() {
-		if m.x == 0 && m.y == 0 {
-			y = -y
-			y += m.vm.Height
-			break
-		}
-	}
-	return y
-}
-
 var class_NSEvent = objc.GetClass("NSEvent")
 var sel_mouseLocation = objc.RegisterName("mouseLocation")
 
