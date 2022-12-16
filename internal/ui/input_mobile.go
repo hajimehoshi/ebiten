@@ -16,82 +16,38 @@
 
 package ui
 
-type Input struct {
-	keys    map[Key]struct{}
-	runes   []rune
-	touches []Touch
-	ui      *userInterfaceImpl
+type TouchForInput struct {
+	ID TouchID
+
+	// X is in device-independent pixels.
+	X float64
+
+	// Y is in device-independent pixels.
+	Y float64
 }
 
-func (i *Input) CursorPosition() (x, y int) {
-	return 0, 0
-}
+func (u *userInterfaceImpl) updateInputState(keys map[Key]struct{}, runes []rune, touches []TouchForInput) {
+	u.m.Lock()
+	defer u.m.Unlock()
 
-func (i *Input) AppendTouchIDs(touchIDs []TouchID) []TouchID {
-	i.ui.m.RLock()
-	defer i.ui.m.RUnlock()
-
-	for _, t := range i.touches {
-		touchIDs = append(touchIDs, t.ID)
+	for k := range u.inputState.KeyPressed {
+		_, ok := keys[Key(k)]
+		u.inputState.KeyPressed[k] = ok
 	}
-	return touchIDs
-}
 
-func (i *Input) TouchPosition(id TouchID) (x, y int) {
-	i.ui.m.RLock()
-	defer i.ui.m.RUnlock()
+	copy(u.inputState.Runes[:], runes)
+	u.inputState.RunesCount = len(runes)
 
-	for _, t := range i.touches {
-		if t.ID == id {
-			return i.ui.adjustPosition(t.X, t.Y)
+	for i := range u.inputState.Touches {
+		u.inputState.Touches[i].Valid = false
+	}
+	for i, t := range touches {
+		x, y := u.context.adjustPosition(t.X, t.Y, u.DeviceScaleFactor())
+		u.inputState.Touches[i] = Touch{
+			Valid: true,
+			ID:    t.ID,
+			X:     int(x),
+			Y:     int(y),
 		}
 	}
-	return 0, 0
-}
-
-func (i *Input) AppendInputChars(runes []rune) []rune {
-	i.ui.m.Lock()
-	defer i.ui.m.Unlock()
-	return append(runes, i.runes...)
-}
-
-func (i *Input) IsKeyPressed(key Key) bool {
-	i.ui.m.RLock()
-	defer i.ui.m.RUnlock()
-
-	_, ok := i.keys[key]
-	return ok
-}
-
-func (i *Input) Wheel() (xoff, yoff float64) {
-	return 0, 0
-}
-
-func (i *Input) IsMouseButtonPressed(key MouseButton) bool {
-	return false
-}
-
-func (i *Input) update(keys map[Key]struct{}, runes []rune, touches []Touch) {
-	i.ui.m.Lock()
-	defer i.ui.m.Unlock()
-
-	if i.keys == nil {
-		i.keys = map[Key]struct{}{}
-	}
-	for k := range i.keys {
-		delete(i.keys, k)
-	}
-	for k := range keys {
-		i.keys[k] = struct{}{}
-	}
-
-	i.runes = i.runes[:0]
-	i.runes = append(i.runes, runes...)
-
-	i.touches = i.touches[:0]
-	i.touches = append(i.touches, touches...)
-}
-
-func (i *Input) resetForTick() {
-	i.runes = nil
 }

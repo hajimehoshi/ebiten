@@ -15,6 +15,8 @@
 package ebiten
 
 import (
+	"sync"
+
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepaddb"
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
@@ -35,7 +37,7 @@ import (
 //
 // Keyboards don't work on iOS yet (#1090).
 func AppendInputChars(runes []rune) []rune {
-	return ui.Get().Input().AppendInputChars(runes)
+	return theInputState.appendInputChars(runes)
 }
 
 // InputChars return "printable" runes read from the keyboard at the time update is called.
@@ -64,29 +66,7 @@ func InputChars() []rune {
 //
 // Keyboards don't work on iOS yet (#1090).
 func IsKeyPressed(key Key) bool {
-	if !key.isValid() {
-		return false
-	}
-
-	var keys []ui.Key
-	switch key {
-	case KeyAlt:
-		keys = []ui.Key{ui.KeyAltLeft, ui.KeyAltRight}
-	case KeyControl:
-		keys = []ui.Key{ui.KeyControlLeft, ui.KeyControlRight}
-	case KeyShift:
-		keys = []ui.Key{ui.KeyShiftLeft, ui.KeyShiftRight}
-	case KeyMeta:
-		keys = []ui.Key{ui.KeyMetaLeft, ui.KeyMetaRight}
-	default:
-		keys = []ui.Key{ui.Key(key)}
-	}
-	for _, k := range keys {
-		if ui.Get().Input().IsKeyPressed(k) {
-			return true
-		}
-	}
-	return false
+	return theInputState.isKeyPressed(key)
 }
 
 // CursorPosition returns a position of a mouse cursor relative to the game screen (window). The cursor position is
@@ -98,7 +78,7 @@ func IsKeyPressed(key Key) bool {
 //
 // CursorPosition is concurrent-safe.
 func CursorPosition() (x, y int) {
-	return ui.Get().Input().CursorPosition()
+	return theInputState.cursorPosition()
 }
 
 // Wheel returns x and y offsets of the mouse wheel or touchpad scroll.
@@ -106,7 +86,7 @@ func CursorPosition() (x, y int) {
 //
 // Wheel is concurrent-safe.
 func Wheel() (xoff, yoff float64) {
-	return ui.Get().Input().Wheel()
+	return theInputState.wheel()
 }
 
 // IsMouseButtonPressed returns a boolean indicating whether mouseButton is pressed.
@@ -116,7 +96,7 @@ func Wheel() (xoff, yoff float64) {
 //
 // IsMouseButtonPressed is concurrent-safe.
 func IsMouseButtonPressed(mouseButton MouseButton) bool {
-	return ui.Get().Input().IsMouseButtonPressed(mouseButton)
+	return theInputState.isMouseButtonPressed(mouseButton)
 }
 
 // GamepadID represents a gamepad's identifier.
@@ -377,7 +357,7 @@ type TouchID = ui.TouchID
 //
 // AppendTouchIDs is concurrent-safe.
 func AppendTouchIDs(touches []TouchID) []TouchID {
-	return ui.Get().Input().AppendTouchIDs(touches)
+	return theInputState.appendTouchIDs(touches)
 }
 
 // TouchIDs returns the current touch states.
@@ -393,5 +373,93 @@ func TouchIDs() []TouchID {
 //
 // TouchPosition is cuncurrent-safe.
 func TouchPosition(id TouchID) (int, int) {
-	return ui.Get().Input().TouchPosition(id)
+	return theInputState.touchPosition(id)
+}
+
+var theInputState inputState
+
+type inputState struct {
+	state ui.InputState
+	m     sync.Mutex
+}
+
+func (i *inputState) set(inputState ui.InputState) {
+	i.m.Lock()
+	defer i.m.Unlock()
+	i.state = inputState
+}
+
+func (i *inputState) appendInputChars(runes []rune) []rune {
+	i.m.Lock()
+	defer i.m.Unlock()
+	return append(runes, i.state.Runes[:i.state.RunesCount]...)
+}
+
+func (i *inputState) isKeyPressed(key Key) bool {
+	if !key.isValid() {
+		return false
+	}
+
+	i.m.Lock()
+	defer i.m.Unlock()
+
+	switch key {
+	case KeyAlt:
+		return i.state.KeyPressed[ui.KeyAltLeft] && i.state.KeyPressed[ui.KeyAltRight]
+	case KeyControl:
+		return i.state.KeyPressed[ui.KeyControlLeft] && i.state.KeyPressed[ui.KeyControlRight]
+	case KeyShift:
+		return i.state.KeyPressed[ui.KeyShiftLeft] && i.state.KeyPressed[ui.KeyShiftRight]
+	case KeyMeta:
+		return i.state.KeyPressed[ui.KeyMetaLeft] && i.state.KeyPressed[ui.KeyMetaRight]
+	default:
+		return i.state.KeyPressed[ui.Key(key)]
+	}
+}
+
+func (i *inputState) cursorPosition() (int, int) {
+	i.m.Lock()
+	defer i.m.Unlock()
+	return i.state.CursorX, i.state.CursorY
+}
+
+func (i *inputState) wheel() (float64, float64) {
+	i.m.Lock()
+	defer i.m.Unlock()
+	return i.state.WheelX, i.state.WheelY
+}
+
+func (i *inputState) isMouseButtonPressed(mouseButton MouseButton) bool {
+	i.m.Lock()
+	defer i.m.Unlock()
+	return i.state.MouseButtonPressed[mouseButton]
+}
+
+func (i *inputState) appendTouchIDs(touches []TouchID) []TouchID {
+	i.m.Lock()
+	defer i.m.Unlock()
+
+	for _, t := range i.state.Touches {
+		if !t.Valid {
+			continue
+		}
+		touches = append(touches, t.ID)
+	}
+	return touches
+}
+
+func (i *inputState) touchPosition(id TouchID) (int, int) {
+	i.m.Lock()
+	defer i.m.Unlock()
+
+	for _, t := range i.state.Touches {
+		if !t.Valid {
+			continue
+		}
+		if id != t.ID {
+			continue
+		}
+		return t.X, t.Y
+	}
+	return 0, 0
 }

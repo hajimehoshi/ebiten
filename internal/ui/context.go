@@ -35,7 +35,7 @@ type Game interface {
 	NewOffscreenImage(width, height int) *Image
 	NewScreenImage(width, height int) *Image
 	Layout(outsideWidth, outsideHeight float64) (screenWidth, screenHeight float64)
-	Update() error
+	Update(InputState) error
 	DrawOffscreen() error
 	DrawFinalScreen(scale, offsetX, offsetY float64)
 }
@@ -89,7 +89,9 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 		return err
 	}
 
-	ui.beginFrame()
+	// Read the input state and use it for one frame to give a consistent result for one frame (#2496).
+	var inputState InputState
+	ui.beginFrame(&inputState)
 	defer ui.endFrame()
 
 	// The given outside size can be 0 e.g. just after restoring from the fullscreen mode on Windows (#1589)
@@ -126,7 +128,7 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 		if err := hooks.RunBeforeUpdateHooks(); err != nil {
 			return err
 		}
-		if err := c.game.Update(); err != nil {
+		if err := c.game.Update(inputState); err != nil {
 			return err
 		}
 		// Catch the error that happened at (*Image).At.

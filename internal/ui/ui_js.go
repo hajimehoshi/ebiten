@@ -86,8 +86,10 @@ type userInterfaceImpl struct {
 
 	err error
 
-	context *context
-	input   Input
+	context     *context
+	inputState  InputState
+	origCursorX int
+	origCursorY int
 
 	m sync.Mutex
 }
@@ -96,7 +98,6 @@ func init() {
 	theUI.userInterfaceImpl = userInterfaceImpl{
 		runnableOnUnfocused: true,
 	}
-	theUI.input.ui = &theUI.userInterfaceImpl
 }
 
 var (
@@ -475,7 +476,7 @@ func init() {
 		if theUI.cursorMode == CursorModeCaptured {
 			theUI.recoverCursorMode()
 		}
-		theUI.input.recoverCursorPosition()
+		theUI.recoverCursorPosition()
 		return nil
 	}))
 	document.Call("addEventListener", "pointerlockerror", js.FuncOf(func(this js.Value, args []js.Value) any {
@@ -516,7 +517,7 @@ func setCanvasEventHandlers(v js.Value) {
 
 		e := args[0]
 		e.Call("preventDefault")
-		if err := theUI.input.updateFromEvent(e); err != nil && theUI.err != nil {
+		if err := theUI.updateInputFromEvent(e); err != nil && theUI.err != nil {
 			theUI.err = err
 			return nil
 		}
@@ -525,7 +526,7 @@ func setCanvasEventHandlers(v js.Value) {
 	v.Call("addEventListener", "keyup", js.FuncOf(func(this js.Value, args []js.Value) any {
 		e := args[0]
 		e.Call("preventDefault")
-		if err := theUI.input.updateFromEvent(e); err != nil && theUI.err != nil {
+		if err := theUI.updateInputFromEvent(e); err != nil && theUI.err != nil {
 			theUI.err = err
 			return nil
 		}
@@ -539,7 +540,7 @@ func setCanvasEventHandlers(v js.Value) {
 
 		e := args[0]
 		e.Call("preventDefault")
-		if err := theUI.input.updateFromEvent(e); err != nil && theUI.err != nil {
+		if err := theUI.updateInputFromEvent(e); err != nil && theUI.err != nil {
 			theUI.err = err
 			return nil
 		}
@@ -548,7 +549,7 @@ func setCanvasEventHandlers(v js.Value) {
 	v.Call("addEventListener", "mouseup", js.FuncOf(func(this js.Value, args []js.Value) any {
 		e := args[0]
 		e.Call("preventDefault")
-		if err := theUI.input.updateFromEvent(e); err != nil && theUI.err != nil {
+		if err := theUI.updateInputFromEvent(e); err != nil && theUI.err != nil {
 			theUI.err = err
 			return nil
 		}
@@ -557,7 +558,7 @@ func setCanvasEventHandlers(v js.Value) {
 	v.Call("addEventListener", "mousemove", js.FuncOf(func(this js.Value, args []js.Value) any {
 		e := args[0]
 		e.Call("preventDefault")
-		if err := theUI.input.updateFromEvent(e); err != nil && theUI.err != nil {
+		if err := theUI.updateInputFromEvent(e); err != nil && theUI.err != nil {
 			theUI.err = err
 			return nil
 		}
@@ -566,7 +567,7 @@ func setCanvasEventHandlers(v js.Value) {
 	v.Call("addEventListener", "wheel", js.FuncOf(func(this js.Value, args []js.Value) any {
 		e := args[0]
 		e.Call("preventDefault")
-		if err := theUI.input.updateFromEvent(e); err != nil && theUI.err != nil {
+		if err := theUI.updateInputFromEvent(e); err != nil && theUI.err != nil {
 			theUI.err = err
 			return nil
 		}
@@ -580,7 +581,7 @@ func setCanvasEventHandlers(v js.Value) {
 
 		e := args[0]
 		e.Call("preventDefault")
-		if err := theUI.input.updateFromEvent(e); err != nil && theUI.err != nil {
+		if err := theUI.updateInputFromEvent(e); err != nil && theUI.err != nil {
 			theUI.err = err
 			return nil
 		}
@@ -589,7 +590,7 @@ func setCanvasEventHandlers(v js.Value) {
 	v.Call("addEventListener", "touchend", js.FuncOf(func(this js.Value, args []js.Value) any {
 		e := args[0]
 		e.Call("preventDefault")
-		if err := theUI.input.updateFromEvent(e); err != nil && theUI.err != nil {
+		if err := theUI.updateInputFromEvent(e); err != nil && theUI.err != nil {
 			theUI.err = err
 			return nil
 		}
@@ -598,7 +599,7 @@ func setCanvasEventHandlers(v js.Value) {
 	v.Call("addEventListener", "touchmove", js.FuncOf(func(this js.Value, args []js.Value) any {
 		e := args[0]
 		e.Call("preventDefault")
-		if err := theUI.input.updateFromEvent(e); err != nil && theUI.err != nil {
+		if err := theUI.updateInputFromEvent(e); err != nil && theUI.err != nil {
 			theUI.err = err
 			return nil
 		}
@@ -680,18 +681,15 @@ func (u *userInterfaceImpl) SetScreenTransparent(transparent bool) {
 }
 
 func (u *userInterfaceImpl) resetForTick() {
-	u.input.resetForTick()
-}
-
-func (u *userInterfaceImpl) Input() *Input {
-	return &u.input
 }
 
 func (u *userInterfaceImpl) Window() Window {
 	return &nullWindow{}
 }
 
-func (u *userInterfaceImpl) beginFrame() {
+func (u *userInterfaceImpl) beginFrame(inputState *InputState) {
+	*inputState = u.inputState
+	u.inputState.resetForFrame()
 }
 
 func (u *userInterfaceImpl) endFrame() {
