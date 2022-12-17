@@ -23,5 +23,3 @@ require (
 	golang.org/x/mod v0.7.0 // indirect
 	golang.org/x/text v0.5.0 // indirect
 )
-
-replace github.com/ebitengine/purego => /Users/jarrettkuklis/Documents/GolandProjects/purego
