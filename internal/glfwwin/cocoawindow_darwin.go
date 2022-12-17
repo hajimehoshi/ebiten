@@ -754,7 +754,10 @@ func (w *Window) platformCreateWindow(wndconfig *wndconfig, ctxconfig *ctxconfig
 		switch ctxconfig.source {
 		case NativeContextAPI:
 			if err := initNSGL(); err != nil {
-				panic(err)
+				return err
+			}
+			if err := createContextNSGL(w, ctxconfig, fbconfig); err != nil {
+				return err
 			}
 		default:
 			panic("cocoa: implement context")
