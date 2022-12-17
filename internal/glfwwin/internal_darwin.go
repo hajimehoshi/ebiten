@@ -66,7 +66,7 @@ type platformLibraryState struct {
 	//    // Where to place the cursor when re-enabled
 	//    double              restoreCursorPosX, restoreCursorPosY;
 	//    // The window whose disabled cursor mode is active
-	//    _GLFWwindow*        disabledCursorWindow;
+	disableCursorWindow *Window
 	//
 	//    struct {
 	//        CFBundleRef     bundle;

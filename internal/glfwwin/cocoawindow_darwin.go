@@ -34,14 +34,12 @@ func (d *windowDelegate) InitWithGlfwWindow(cmd objc.SEL, w *Window) objc.ID {
 	return self
 }
 
+func (d *windowDelegate) WindowShouldClose(cmd objc.SEL, sender objc.ID) bool {
+	d.window.inputWindowCloseRequest()
+	return false
+}
+
 /*
-- (BOOL)windowShouldClose:(id)sender
-
-	{
-	    _glfwInputWindowCloseRequest(window);
-	    return NO;
-	}
-
 - (void)windowDidResize:(NSNotification *)notification
 
 	{
@@ -108,23 +106,23 @@ func (d *windowDelegate) WindowDidMove(cmd objc.SEL, _ objc.ID /* *NSNotificatio
 }*/
 
 func (d *windowDelegate) WindowDidBecomeKey(cmd objc.SEL, _ objc.ID) {
-	fmt.Println("WindowDidBecomeKey: TODO")
-	/*if (_glfw.ns.disabledCursorWindow == window)
-		_glfwCenterCursorInContentArea(window);
-
-	_glfwInputWindowFocus(window, GLFW_TRUE);
-	updateCursorMode(window);*/
+	if _glfw.state.disableCursorWindow == d.window {
+		err := d.window.centerCursorInContentArea()
+		if err != nil {
+			panic(err)
+		}
+	}
+	d.window.inputWindowFocus(true)
+	fmt.Println("WindowDidBecomeKey: FIXME")
+	/*	updateCursorMode(window);*/
 }
 
-/*- (void)windowDidResignKey:(NSNotification *)notification
-{
-    if (window->monitor && window->autoIconify)
-        _glfwIconifyWindowCocoa(window);
-
-    _glfwInputWindowFocus(window, GLFW_FALSE);
+func (d *windowDelegate) WindowDidResignKey(cmd objc.SEL, _ objc.ID) {
+	if d.window.monitor != nil && d.window.autoIconify {
+		d.window.platformIconifyWindow()
+	}
+	d.window.inputWindowFocus(false)
 }
-
-*/
 
 func (d *windowDelegate) WindowDidChangeOcclusionState(cmd objc.SEL, _ objc.ID) {
 	fmt.Println("WindowDidChangeOcclusionState: TODO")
@@ -144,6 +142,10 @@ func (d *windowDelegate) Selector(s string) objc.SEL {
 		return sel_initWithGlfwWindow
 	case "WindowDidChangeOcclusionState":
 		return objc.RegisterName("windowDidChangeOcclusionState:")
+	case "WindowDidResignKey":
+		return objc.RegisterName("windowDidResignKey:")
+	case "WindowShouldClose":
+		return objc.RegisterName("windowShouldClose:")
 	default:
 		return 0
 	}
