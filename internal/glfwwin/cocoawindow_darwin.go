@@ -751,7 +751,15 @@ func (w *Window) platformCreateWindow(wndconfig *wndconfig, ctxconfig *ctxconfig
 		return err
 	}
 	if ctxconfig.client != NoAPI {
-		panic("cocoa: implement context")
+		switch ctxconfig.source {
+		case NativeContextAPI:
+			if err := initNSGL(); err != nil {
+				panic(err)
+			}
+		default:
+			panic("cocoa: implement context")
+		}
+
 		//        if (ctxconfig->source == GLFW_NATIVE_CONTEXT_API)
 		//        {
 		//            if (!_glfwInitNSGL())

@@ -1,6 +1,7 @@
 package gamepad
 
 import (
+	"github.com/hajimehoshi/ebiten/v2/internal/corefoundation"
 	"unsafe"
 
 	"github.com/ebitengine/purego"
@@ -91,21 +92,21 @@ func init() {
 	purego.RegisterLibFunc(&_IOHIDDeviceCopyMatchingElements, iokit, "IOHIDDeviceCopyMatchingElements")
 }
 
-var _IOHIDElementGetTypeID func() _CFTypeID
+var _IOHIDElementGetTypeID func() corefoundation.CFTypeID
 
-var _IOHIDManagerCreate func(allocator _CFAllocatorRef, options _IOOptionBits) _IOHIDManagerRef
+var _IOHIDManagerCreate func(allocator corefoundation.CFAllocatorRef, options _IOOptionBits) _IOHIDManagerRef
 
-var _IOHIDDeviceGetProperty func(device _IOHIDDeviceRef, key _CFStringRef) _CFTypeRef
+var _IOHIDDeviceGetProperty func(device _IOHIDDeviceRef, key corefoundation.CFStringRef) corefoundation.CFTypeRef
 
 var _IOHIDManagerOpen func(manager _IOHIDManagerRef, options _IOOptionBits) _IOReturn
 
-var _IOHIDManagerSetDeviceMatchingMultiple func(manager _IOHIDManagerRef, multiple _CFArrayRef)
+var _IOHIDManagerSetDeviceMatchingMultiple func(manager _IOHIDManagerRef, multiple corefoundation.CFArrayRef)
 
 var _IOHIDManagerRegisterDeviceMatchingCallback func(manager _IOHIDManagerRef, callback _IOHIDDeviceCallback, context unsafe.Pointer)
 
 var _IOHIDManagerRegisterDeviceRemovalCallback func(manager _IOHIDManagerRef, callback _IOHIDDeviceCallback, context unsafe.Pointer)
 
-var _IOHIDManagerScheduleWithRunLoop func(manager _IOHIDManagerRef, runLoop _CFRunLoopRef, runLoopMode _CFStringRef)
+var _IOHIDManagerScheduleWithRunLoop func(manager _IOHIDManagerRef, runLoop corefoundation.CFRunLoopRef, runLoopMode corefoundation.CFStringRef)
 
 var _IOHIDElementGetType func(element _IOHIDElementRef) _IOHIDElementType
 
@@ -113,12 +114,12 @@ var _IOHIDElementGetUsage func(element _IOHIDElementRef) uint32
 
 var _IOHIDElementGetUsagePage func(element _IOHIDElementRef) uint32
 
-var _IOHIDElementGetLogicalMin func(element _IOHIDElementRef) _CFIndex
+var _IOHIDElementGetLogicalMin func(element _IOHIDElementRef) corefoundation.CFIndex
 
-var _IOHIDElementGetLogicalMax func(element _IOHIDElementRef) _CFIndex
+var _IOHIDElementGetLogicalMax func(element _IOHIDElementRef) corefoundation.CFIndex
 
 var _IOHIDDeviceGetValue func(device _IOHIDDeviceRef, element _IOHIDElementRef, pValue *_IOHIDValueRef) _IOReturn
 
-var _IOHIDValueGetIntegerValue func(value _IOHIDValueRef) _CFIndex
+var _IOHIDValueGetIntegerValue func(value _IOHIDValueRef) corefoundation.CFIndex
 
-var _IOHIDDeviceCopyMatchingElements func(device _IOHIDDeviceRef, matching _CFDictionaryRef, options _IOOptionBits) _CFArrayRef
+var _IOHIDDeviceCopyMatchingElements func(device _IOHIDDeviceRef, matching corefoundation.CFDictionaryRef, options _IOOptionBits) corefoundation.CFArrayRef
