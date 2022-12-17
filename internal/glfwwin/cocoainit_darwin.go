@@ -1,3 +1,8 @@
+// SPDX-License-Identifier: Zlib
+// SPDX-FileCopyrightText: 2002-2006 Marcus Geelnard
+// SPDX-FileCopyrightText: 2006-2019 Camilla Löwy
+// SPDX-FileCopyrightText: 2022 The Ebitengine Authors
+
 package glfwwin
 
 import (
