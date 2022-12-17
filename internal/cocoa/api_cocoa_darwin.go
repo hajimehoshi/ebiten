@@ -40,6 +40,7 @@ var (
 	class_NSDate               = objc.GetClass("NSDate")
 	class_NSRunningApplication = objc.GetClass("NSRunningApplication")
 	class_NSEvent              = objc.GetClass("NSEvent")
+	class_NSArray              = objc.GetClass("NSArray")
 )
 
 var (
@@ -108,6 +109,7 @@ var (
 	sel_stop                                                        = objc.RegisterName("stop:")
 	sel_otherEventTy_loc_mFlags_timestamp_winNum_ctxt_subtype_d1_d2 = objc.RegisterName("otherEventWithType:location:modifierFlags:timestamp:windowNumber:context:subtype:data1:data2:")
 	sel_postEvent_atStart                                           = objc.RegisterName("postEvent:atStart:")
+	sel_array                                                       = objc.RegisterName("array")
 )
 
 var NSDefaultRunLoopMode = *(*NSRunLoopMode)(unsafe.Pointer(purego.Dlsym(Cocoa, "NSDefaultRunLoopMode")))
@@ -482,6 +484,10 @@ func (s NSScreen) ConvertRectToBacking(rect NSRect) NSRect {
 
 type NSArray struct {
 	objc.ID
+}
+
+func NSArray_array() NSArray {
+	return NSArray{objc.ID(class_NSArray).Send(sel_array)}
 }
 
 func (a NSArray) Count() NSUInteger {

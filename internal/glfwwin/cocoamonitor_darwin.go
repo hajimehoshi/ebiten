@@ -1,5 +1,8 @@
 package glfwwin
 
+// #cgo LDFLAGS: -framework CoreGraphics
+// #include <CoreGraphics/CoreGraphics.h>
+import "C"
 import (
 	"errors"
 	"github.com/hajimehoshi/ebiten/v2/internal/cocoa"
@@ -18,9 +21,8 @@ func (m *Monitor) GetCocoaMonitor() (uintptr, error) {
 func (m *Monitor) platformGetMonitorPos() (xpos, ypos int, ok bool) {
 	pool := cocoa.NSAutoreleasePool_new()
 	defer pool.Release()
-	panic("FIX ME")
-	bounds := _CGDisplayBounds(m.state.displayID)
-	return int(bounds.Origin.X), int(bounds.Origin.Y), true
+	bounds := C.CGDisplayBounds(C.uint(m.state.displayID))
+	return int(bounds.origin.x), int(bounds.origin.y), true
 }
 
 func (m *Monitor) platformGetMonitorWorkarea() (xpos, ypos, width, height int) {

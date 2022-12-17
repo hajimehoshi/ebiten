@@ -1,5 +1,9 @@
 package glfwwin
 
+// #cgo LDFLAGS: -framework CoreGraphics
+// #include <CoreGraphics/CoreGraphics.h>
+import "C"
+import "C"
 import (
 	"fmt"
 	"log"
@@ -17,537 +21,599 @@ var (
 	sel_initWithGlfwWindow = objc.RegisterName("initWithGlfwWindow:")
 )
 
+type windowDelegate struct {
+	isa    objc.Class `objc:"GLFWWindowDelegate : NSObject"`
+	window *Window
+}
+
+func (d *windowDelegate) InitWithGlfwWindow(cmd objc.SEL, w *Window) objc.ID {
+	self := (*objc.ID)(unsafe.Pointer(&d)).SendSuper(sel_init)
+	if self != 0 {
+		(*(**windowDelegate)(unsafe.Pointer(&self))).window = w
+	}
+	return self
+}
+
+/*
+- (BOOL)windowShouldClose:(id)sender
+
+	{
+	    _glfwInputWindowCloseRequest(window);
+	    return NO;
+	}
+
+- (void)windowDidResize:(NSNotification *)notification
+
+	{
+	    if (window->context.source == GLFW_NATIVE_CONTEXT_API)
+	        [window->context.nsgl.object update];
+
+	    if (_glfw.ns.disabledCursorWindow == window)
+	        _glfwCenterCursorInContentArea(window);
+
+	    const int maximized = [window->ns.object isZoomed];
+	    if (window->ns.maximized != maximized)
+	    {
+	        window->ns.maximized = maximized;
+	        _glfwInputWindowMaximize(window, maximized);
+	    }
+
+	    const NSRect contentRect = [window->ns.view frame];
+	    const NSRect fbRect = [window->ns.view convertRectToBacking:contentRect];
+
+	    if (fbRect.size.width != window->ns.fbWidth ||
+	        fbRect.size.height != window->ns.fbHeight)
+	    {
+	        window->ns.fbWidth  = fbRect.size.width;
+	        window->ns.fbHeight = fbRect.size.height;
+	        _glfwInputFramebufferSize(window, fbRect.size.width, fbRect.size.height);
+	    }
+
+	    if (contentRect.size.width != window->ns.width ||
+	        contentRect.size.height != window->ns.height)
+	    {
+	        window->ns.width  = contentRect.size.width;
+	        window->ns.height = contentRect.size.height;
+	        _glfwInputWindowSize(window, contentRect.size.width, contentRect.size.height);
+	    }
+	}
+*/
+
+func (d *windowDelegate) WindowDidMove(cmd objc.SEL, _ objc.ID /* *NSNotification */) {
+	if d.window.context.source == NativeContextAPI {
+		//[window->context.nsgl.object update];
+		panic("TODO")
+	}
+	//    if (_glfw.ns.disabledCursorWindow == window)
+	//        _glfwCenterCursorInContentArea(window);
+	//
+	var x, y, _ = d.window.GetPos()
+	d.window.inputCursorPos(float64(x), float64(y))
+}
+
+/*- (void)windowDidMiniaturize:(NSNotification *)notification
+{
+    if (window->monitor)
+        releaseMonitor(window);
+
+    _glfwInputWindowIconify(window, GLFW_TRUE);
+}
+
+- (void)windowDidDeminiaturize:(NSNotification *)notification
+{
+    if (window->monitor)
+        acquireMonitor(window);
+
+    _glfwInputWindowIconify(window, GLFW_FALSE);
+}*/
+
+func (d *windowDelegate) WindowDidBecomeKey(cmd objc.SEL, _ objc.ID) {
+	fmt.Println("WindowDidBecomeKey: TODO")
+	/*if (_glfw.ns.disabledCursorWindow == window)
+		_glfwCenterCursorInContentArea(window);
+
+	_glfwInputWindowFocus(window, GLFW_TRUE);
+	updateCursorMode(window);*/
+}
+
+/*- (void)windowDidResignKey:(NSNotification *)notification
+{
+    if (window->monitor && window->autoIconify)
+        _glfwIconifyWindowCocoa(window);
+
+    _glfwInputWindowFocus(window, GLFW_FALSE);
+}
+
+- (void)windowDidChangeOcclusionState:(NSNotification* )notification
+{
+    if ([window->ns.object occlusionState] & NSWindowOcclusionStateVisible)
+        window->ns.occluded = GLFW_FALSE;
+    else
+        window->ns.occluded = GLFW_TRUE;
+}
+
+@end
+*/
+
+func (d *windowDelegate) Selector(s string) objc.SEL {
+	switch s {
+	case "WindowDidBecomeKey":
+		return objc.RegisterName("windowDidBecomeKey:")
+	case "WindowDidMove":
+		return objc.RegisterName("windowDidMove:")
+	case "InitWithGlfwWindow":
+		return sel_initWithGlfwWindow
+	default:
+		return 0
+	}
+}
+
+type window struct {
+	isa objc.Class `objc:"GLFWWindow : NSWindow"`
+	_   [416]byte
+}
+
+func (w *window) CanBecomeKeyWindow(cmd objc.SEL) bool {
+	// Required for NSWindowStyleMaskBorderless windows
+	return true
+}
+
+func (w *window) CanBecomeMainWindow(cmd objc.SEL) bool {
+	// Required for NSWindowStyleMaskBorderless windows
+	return true
+}
+
+func (w *window) Selector(s string) objc.SEL {
+	switch s {
+	case "CanBecomeKeyWindow":
+		return objc.RegisterName("canBecomeKeyWindow")
+	case "CanBecomeMainWindow":
+		return objc.RegisterName("canBecomeMainWindow")
+	default:
+		return 0
+	}
+}
+
+type contentView struct {
+	isa    objc.Class `objc:"GLFWContentView : NSView <NSTextInputClient>"`
+	_      [552]byte
+	window *Window
+	//    NSTrackingArea* trackingArea;
+	//    NSMutableAttributedString* markedText;
+}
+
+func (v *contentView) InitWithGlfwWindow(cmd objc.SEL, w *Window) objc.ID {
+	self := (*objc.ID)(unsafe.Pointer(&v)).SendSuper(sel_init)
+	if self != 0 {
+		(*(**contentView)(unsafe.Pointer(&self))).window = w
+		fmt.Printf("Init %p %p\n", *(**contentView)(unsafe.Pointer(&self)), (*(**contentView)(unsafe.Pointer(&self))).window)
+		//        trackingArea = nil;
+		//        markedText = [[NSMutableAttributedString alloc] init];
+		//
+		//        [self updateTrackingAreas];
+		//        [self registerForDraggedTypes:@[NSPasteboardTypeURL]];
+	}
+	return self
+}
+
+//- (void)dealloc
+//{
+//    [trackingArea release];
+//    [markedText release];
+//    [super dealloc];
+//}
+//
+//- (BOOL)isOpaque
+//{
+//    return [window->ns.object isOpaque];
+//}
+//
+
+func (v *contentView) CanBecomeKeyView(cmd objc.SEL) bool {
+	return true
+}
+
+func (v *contentView) AcceptsFirstResponder(self objc.ID, cmd objc.SEL) bool {
+	return true
+}
+
+func (v *contentView) WantsUpdateLayer(cmd objc.SEL) bool {
+	fmt.Printf("WantsUpdateLayer %p %p\n", v, v.window)
+	return true
+}
+
+//- (void)updateLayer
+//{
+//    if (window->context.source == GLFW_NATIVE_CONTEXT_API)
+//        [window->context.nsgl.object update];
+//
+//    _glfwInputWindowDamage(window);
+//}
+//
+//- (void)cursorUpdate:(NSEvent *)event
+//{
+//    updateCursorImage(window);
+//}
+//
+//- (BOOL)acceptsFirstMouse:(NSEvent *)event
+//{
+//    return YES;
+//}
+//
+//- (void)mouseDown:(NSEvent *)event
+//{
+//    _glfwInputMouseClick(window,
+//                         GLFW_MOUSE_BUTTON_LEFT,
+//                         GLFW_PRESS,
+//                         translateFlags([event modifierFlags]));
+//}
+//
+//- (void)mouseDragged:(NSEvent *)event
+//{
+//    [self mouseMoved:event];
+//}
+//
+//- (void)mouseUp:(NSEvent *)event
+//{
+//    _glfwInputMouseClick(window,
+//                         GLFW_MOUSE_BUTTON_LEFT,
+//                         GLFW_RELEASE,
+//                         translateFlags([event modifierFlags]));
+//}
+//
+//- (void)mouseMoved:(NSEvent *)event
+//{
+//    if (window->cursorMode == GLFW_CURSOR_DISABLED)
+//    {
+//        const double dx = [event deltaX] - window->ns.cursorWarpDeltaX;
+//        const double dy = [event deltaY] - window->ns.cursorWarpDeltaY;
+//
+//        _glfwInputCursorPos(window,
+//                            window->virtualCursorPosX + dx,
+//                            window->virtualCursorPosY + dy);
+//    }
+//    else
+//    {
+//        const NSRect contentRect = [window->ns.view frame];
+//        // NOTE: The returned location uses base 0,1 not 0,0
+//        const NSPoint pos = [event locationInWindow];
+//
+//        _glfwInputCursorPos(window, pos.x, contentRect.size.height - pos.y);
+//    }
+//
+//    window->ns.cursorWarpDeltaX = 0;
+//    window->ns.cursorWarpDeltaY = 0;
+//}
+//
+//- (void)rightMouseDown:(NSEvent *)event
+//{
+//    _glfwInputMouseClick(window,
+//                         GLFW_MOUSE_BUTTON_RIGHT,
+//                         GLFW_PRESS,
+//                         translateFlags([event modifierFlags]));
+//}
+//
+//- (void)rightMouseDragged:(NSEvent *)event
+//{
+//    [self mouseMoved:event];
+//}
+//
+//- (void)rightMouseUp:(NSEvent *)event
+//{
+//    _glfwInputMouseClick(window,
+//                         GLFW_MOUSE_BUTTON_RIGHT,
+//                         GLFW_RELEASE,
+//                         translateFlags([event modifierFlags]));
+//}
+//
+//- (void)otherMouseDown:(NSEvent *)event
+//{
+//    _glfwInputMouseClick(window,
+//                         (int) [event buttonNumber],
+//                         GLFW_PRESS,
+//                         translateFlags([event modifierFlags]));
+//}
+//
+//- (void)otherMouseDragged:(NSEvent *)event
+//{
+//    [self mouseMoved:event];
+//}
+//
+//- (void)otherMouseUp:(NSEvent *)event
+//{
+//    _glfwInputMouseClick(window,
+//                         (int) [event buttonNumber],
+//                         GLFW_RELEASE,
+//                         translateFlags([event modifierFlags]));
+//}
+//
+//- (void)mouseExited:(NSEvent *)event
+//{
+//    if (window->cursorMode == GLFW_CURSOR_HIDDEN)
+//        showCursor(window);
+//
+//    _glfwInputCursorEnter(window, GLFW_FALSE);
+//}
+//
+//- (void)mouseEntered:(NSEvent *)event
+//{
+//    if (window->cursorMode == GLFW_CURSOR_HIDDEN)
+//        hideCursor(window);
+//
+//    _glfwInputCursorEnter(window, GLFW_TRUE);
+//}
+//
+//- (void)viewDidChangeBackingProperties
+//{
+//    const NSRect contentRect = [window->ns.view frame];
+//    const NSRect fbRect = [window->ns.view convertRectToBacking:contentRect];
+//    const float xscale = fbRect.size.width / contentRect.size.width;
+//    const float yscale = fbRect.size.height / contentRect.size.height;
+//
+//    if (xscale != window->ns.xscale || yscale != window->ns.yscale)
+//    {
+//        if (window->ns.retina && window->ns.layer)
+//            [window->ns.layer setContentsScale:[window->ns.object backingScaleFactor]];
+//
+//        window->ns.xscale = xscale;
+//        window->ns.yscale = yscale;
+//        _glfwInputWindowContentScale(window, xscale, yscale);
+//    }
+//
+//    if (fbRect.size.width != window->ns.fbWidth ||
+//        fbRect.size.height != window->ns.fbHeight)
+//    {
+//        window->ns.fbWidth  = fbRect.size.width;
+//        window->ns.fbHeight = fbRect.size.height;
+//        _glfwInputFramebufferSize(window, fbRect.size.width, fbRect.size.height);
+//    }
+//}
+//
+//- (void)drawRect:(NSRect)rect
+//{
+//    _glfwInputWindowDamage(window);
+//}
+//
+//- (void)updateTrackingAreas
+//{
+//    if (trackingArea != nil)
+//    {
+//        [self removeTrackingArea:trackingArea];
+//        [trackingArea release];
+//    }
+//
+//    const NSTrackingAreaOptions options = NSTrackingMouseEnteredAndExited |
+//                                          NSTrackingActiveInKeyWindow |
+//                                          NSTrackingEnabledDuringMouseDrag |
+//                                          NSTrackingCursorUpdate |
+//                                          NSTrackingInVisibleRect |
+//                                          NSTrackingAssumeInside;
+//
+//    trackingArea = [[NSTrackingArea alloc] initWithRect:[self bounds]
+//                                                options:options
+//                                                  owner:self
+//                                               userInfo:nil];
+//
+//    [self addTrackingArea:trackingArea];
+//    [super updateTrackingAreas];
+//}
+//
+//- (void)keyDown:(NSEvent *)event
+//{
+//    const int key = translateKey([event keyCode]);
+//    const int mods = translateFlags([event modifierFlags]);
+//
+//    _glfwInputKey(window, key, [event keyCode], GLFW_PRESS, mods);
+//
+//    [self interpretKeyEvents:@[event]];
+//}
+//
+//- (void)flagsChanged:(NSEvent *)event
+//{
+//    int action;
+//    const unsigned int modifierFlags =
+//        [event modifierFlags] & NSEventModifierFlagDeviceIndependentFlagsMask;
+//    const int key = translateKey([event keyCode]);
+//    const int mods = translateFlags(modifierFlags);
+//    const NSUInteger keyFlag = translateKeyToModifierFlag(key);
+//
+//    if (keyFlag & modifierFlags)
+//    {
+//        if (window->keys[key] == GLFW_PRESS)
+//            action = GLFW_RELEASE;
+//        else
+//            action = GLFW_PRESS;
+//    }
+//    else
+//        action = GLFW_RELEASE;
+//
+//    _glfwInputKey(window, key, [event keyCode], action, mods);
+//}
+//
+//- (void)keyUp:(NSEvent *)event
+//{
+//    const int key = translateKey([event keyCode]);
+//    const int mods = translateFlags([event modifierFlags]);
+//    _glfwInputKey(window, key, [event keyCode], GLFW_RELEASE, mods);
+//}
+//
+//- (void)scrollWheel:(NSEvent *)event
+//{
+//    double deltaX = [event scrollingDeltaX];
+//    double deltaY = [event scrollingDeltaY];
+//
+//    if ([event hasPreciseScrollingDeltas])
+//    {
+//        deltaX *= 0.1;
+//        deltaY *= 0.1;
+//    }
+//
+//    if (fabs(deltaX) > 0.0 || fabs(deltaY) > 0.0)
+//        _glfwInputScroll(window, deltaX, deltaY);
+//}
+//
+//- (NSDragOperation)draggingEntered:(id <NSDraggingInfo>)sender
+//{
+//    // HACK: We don't know what to say here because we don't know what the
+//    //       application wants to do with the paths
+//    return NSDragOperationGeneric;
+//}
+//
+//- (BOOL)performDragOperation:(id <NSDraggingInfo>)sender
+//{
+//    const NSRect contentRect = [window->ns.view frame];
+//    // NOTE: The returned location uses base 0,1 not 0,0
+//    const NSPoint pos = [sender draggingLocation];
+//    _glfwInputCursorPos(window, pos.x, contentRect.size.height - pos.y);
+//
+//    NSPasteboard* pasteboard = [sender draggingPasteboard];
+//    NSDictionary* options = @{NSPasteboardURLReadingFileURLsOnlyKey:@YES};
+//    NSArray* urls = [pasteboard readObjectsForClasses:@[[NSURL class]]
+//                                              options:options];
+//    const NSUInteger count = [urls count];
+//    if (count)
+//    {
+//        char** paths = _glfw_calloc(count, sizeof(char*));
+//
+//        for (NSUInteger i = 0;  i < count;  i++)
+//            paths[i] = _glfw_strdup([urls[i] fileSystemRepresentation]);
+//
+//        _glfwInputDrop(window, (int) count, (const char**) paths);
+//
+//        for (NSUInteger i = 0;  i < count;  i++)
+//            _glfw_free(paths[i]);
+//        _glfw_free(paths);
+//    }
+//
+//    return YES;
+//}
+//
+//- (BOOL)hasMarkedText
+//{
+//    return [markedText length] > 0;
+//}
+//
+//- (NSRange)markedRange
+//{
+//    if ([markedText length] > 0)
+//        return NSMakeRange(0, [markedText length] - 1);
+//    else
+//        return kEmptyRange;
+//}
+//
+//- (NSRange)selectedRange
+//{
+//    return kEmptyRange;
+//}
+//
+//- (void)setMarkedText:(id)string
+//        selectedRange:(NSRange)selectedRange
+//     replacementRange:(NSRange)replacementRange
+//{
+//    [markedText release];
+//    if ([string isKindOfClass:[NSAttributedString class]])
+//        markedText = [[NSMutableAttributedString alloc] initWithAttributedString:string];
+//    else
+//        markedText = [[NSMutableAttributedString alloc] initWithString:string];
+//}
+//
+//- (void)unmarkText
+//{
+//    [[markedText mutableString] setString:@""];
+//}
+//
+
+func (v *contentView) ValidAttributesForMarkedText(cmd objc.SEL) objc.ID {
+	return cocoa.NSArray_array().ID
+}
+
+//- (NSAttributedString*)attributedSubstringForProposedRange:(NSRange)range
+//                                               actualRange:(NSRangePointer)actualRange
+//{
+//    return nil;
+//}
+//
+//- (NSUInteger)characterIndexForPoint:(NSPoint)point
+//{
+//    return 0;
+//}
+//
+//- (NSRect)firstRectForCharacterRange:(NSRange)range
+//                         actualRange:(NSRangePointer)actualRange
+//{
+//    const NSRect frame = [window->ns.view frame];
+//    return NSMakeRect(frame.origin.x, frame.origin.y, 0.0, 0.0);
+//}
+//
+//- (void)insertText:(id)string replacementRange:(NSRange)replacementRange
+//{
+//    NSString* characters;
+//    NSEvent* event = [NSApp currentEvent];
+//    const int mods = translateFlags([event modifierFlags]);
+//    const int plain = !(mods & GLFW_MOD_SUPER);
+//
+//    if ([string isKindOfClass:[NSAttributedString class]])
+//        characters = [string string];
+//    else
+//        characters = (NSString*) string;
+//
+//    NSRange range = NSMakeRange(0, [characters length]);
+//    while (range.length)
+//    {
+//        uint32_t codepoint = 0;
+//
+//        if ([characters getBytes:&codepoint
+//                       maxLength:sizeof(codepoint)
+//                      usedLength:NULL
+//                        encoding:NSUTF32StringEncoding
+//                         options:0
+//                           range:range
+//                  remainingRange:&range])
+//        {
+//            if (codepoint >= 0xf700 && codepoint <= 0xf7ff)
+//                continue;
+//
+//            _glfwInputChar(window, codepoint, mods, plain);
+//        }
+//    }
+//}
+//
+//- (void)doCommandBySelector:(SEL)selector
+//{
+//}
+//
+//@end
+
+func (v *contentView) Selector(s string) objc.SEL {
+	switch s {
+	case "InitWithGlfwWindow":
+		return sel_initWithGlfwWindow
+	case "CanBecomeKeyView":
+		return objc.RegisterName("canBecomeKeyView")
+	case "AcceptsFirstResponder":
+		return objc.RegisterName("acceptsFirstResponder")
+	case "WantsUpdateLayer":
+		return objc.RegisterName("wantsUpdateLayer")
+	case "ValidAttributesForMarkedText":
+		return objc.RegisterName("validAttributesForMarkedText")
+	default:
+		return 0
+	}
+}
+
 func init() {
-	{
-		class_GLFWWindowDelegate = objc.AllocateClassPair(objc.GetClass("NSObject"), "GLFWWindowDelegate", 0)
-		class_GLFWWindowDelegate.AddIvar("window", objc.ID(0), "@")
-		offset := class_GLFWWindowDelegate.InstanceVariable("window").Offset()
-		class_GLFWWindowDelegate.AddMethod(sel_initWithGlfwWindow, objc.NewIMP(func(self objc.ID, cmd objc.SEL, w *Window) objc.ID {
-			self = self.SendSuper(sel_init)
-			if self != 0 {
-				*(**Window)(unsafe.Pointer(uintptr(unsafe.Pointer(self)) + offset)) = w
-			}
-			return self
-		}), "@@:^Window")
-		/*
-
-			- (BOOL)windowShouldClose:(id)sender
-			{
-			    _glfwInputWindowCloseRequest(window);
-			    return NO;
-			}
-
-			- (void)windowDidResize:(NSNotification *)notification
-			{
-			    if (window->context.source == GLFW_NATIVE_CONTEXT_API)
-			        [window->context.nsgl.object update];
-
-			    if (_glfw.ns.disabledCursorWindow == window)
-			        _glfwCenterCursorInContentArea(window);
-
-			    const int maximized = [window->ns.object isZoomed];
-			    if (window->ns.maximized != maximized)
-			    {
-			        window->ns.maximized = maximized;
-			        _glfwInputWindowMaximize(window, maximized);
-			    }
-
-			    const NSRect contentRect = [window->ns.view frame];
-			    const NSRect fbRect = [window->ns.view convertRectToBacking:contentRect];
-
-			    if (fbRect.size.width != window->ns.fbWidth ||
-			        fbRect.size.height != window->ns.fbHeight)
-			    {
-			        window->ns.fbWidth  = fbRect.size.width;
-			        window->ns.fbHeight = fbRect.size.height;
-			        _glfwInputFramebufferSize(window, fbRect.size.width, fbRect.size.height);
-			    }
-
-			    if (contentRect.size.width != window->ns.width ||
-			        contentRect.size.height != window->ns.height)
-			    {
-			        window->ns.width  = contentRect.size.width;
-			        window->ns.height = contentRect.size.height;
-			        _glfwInputWindowSize(window, contentRect.size.width, contentRect.size.height);
-			    }
-			}
-
-			- (void)windowDidMove:(NSNotification *)notification
-			{
-			    if (window->context.source == GLFW_NATIVE_CONTEXT_API)
-			        [window->context.nsgl.object update];
-
-			    if (_glfw.ns.disabledCursorWindow == window)
-			        _glfwCenterCursorInContentArea(window);
-
-			    int x, y;
-			    _glfwGetWindowPosCocoa(window, &x, &y);
-			    _glfwInputWindowPos(window, x, y);
-			}
-
-			- (void)windowDidMiniaturize:(NSNotification *)notification
-			{
-			    if (window->monitor)
-			        releaseMonitor(window);
-
-			    _glfwInputWindowIconify(window, GLFW_TRUE);
-			}
-
-			- (void)windowDidDeminiaturize:(NSNotification *)notification
-			{
-			    if (window->monitor)
-			        acquireMonitor(window);
-
-			    _glfwInputWindowIconify(window, GLFW_FALSE);
-			}*/
-
-		class_GLFWWindowDelegate.AddMethod(objc.RegisterName("windowDidBecomeKey:"), objc.NewIMP(func(self objc.ID, cmd objc.SEL, _ objc.ID) {
-			/*if (_glfw.ns.disabledCursorWindow == window)
-				_glfwCenterCursorInContentArea(window);
-
-			_glfwInputWindowFocus(window, GLFW_TRUE);
-			updateCursorMode(window);*/
-		}), "v@:@")
-
-		/*- (void)windowDidResignKey:(NSNotification *)notification
-		{
-		    if (window->monitor && window->autoIconify)
-		        _glfwIconifyWindowCocoa(window);
-
-		    _glfwInputWindowFocus(window, GLFW_FALSE);
-		}
-
-		- (void)windowDidChangeOcclusionState:(NSNotification* )notification
-		{
-		    if ([window->ns.object occlusionState] & NSWindowOcclusionStateVisible)
-		        window->ns.occluded = GLFW_FALSE;
-		    else
-		        window->ns.occluded = GLFW_TRUE;
-		}
-
-		@end
-		*/
-		class_GLFWWindowDelegate.Register()
+	var err error
+	class_GLFWWindowDelegate, err = objc.RegisterClass(&windowDelegate{})
+	if err != nil {
+		panic(err)
 	}
-	{
-		class_GLFWWindow = objc.AllocateClassPair(objc.GetClass("NSWindow"), "GLFWWindow", 0)
-		class_GLFWWindow.AddMethod(objc.RegisterName("canBecomeKeyWindow"), objc.NewIMP(func(self objc.ID, cmd objc.SEL) int {
-			// Required for NSWindowStyleMaskBorderless windows
-			return 1 // TODO: support bool callbacks
-		}), "B@:")
-		class_GLFWWindow.AddMethod(objc.RegisterName("canBecomeMainWindow"), objc.NewIMP(func(self objc.ID, cmd objc.SEL) int {
-			// Required for NSWindowStyleMaskBorderless windows
-			return 1 // TODO: support bool callbacks
-		}), "B@:")
-		class_GLFWWindow.Register()
+	class_GLFWWindow, err = objc.RegisterClass(&window{})
+	if err != nil {
+		panic(err)
 	}
-	{
-		class_GLFWContentView = objc.AllocateClassPair(objc.GetClass("NSView"), "GLFWContentView", 0)
-		class_GLFWContentView.AddProtocol(objc.GetProtocol("NSTextInputClient"))
-		class_GLFWContentView.AddIvar("window", objc.ID(0), "@")
-		windowOffset := class_GLFWContentView.InstanceVariable("window").Offset()
-		//@interface GLFWContentView : NSView <NSTextInputClient>
-		//{
-		//    NSTrackingArea* trackingArea;
-		//    NSMutableAttributedString* markedText;
-		//}
-		//
-		class_GLFWContentView.AddMethod(sel_initWithGlfwWindow, objc.NewIMP(func(self objc.ID, cmd objc.SEL, w *Window) objc.ID {
-			self = self.SendSuper(sel_init)
-			if self != 0 {
-				*(**Window)(unsafe.Pointer(uintptr(unsafe.Pointer(self)) + windowOffset)) = w
-				//        trackingArea = nil;
-				//        markedText = [[NSMutableAttributedString alloc] init];
-				//
-				//        [self updateTrackingAreas];
-				//        [self registerForDraggedTypes:@[NSPasteboardTypeURL]];
-			}
-			return self
-		}), "@@:^Window")
-		//- (void)dealloc
-		//{
-		//    [trackingArea release];
-		//    [markedText release];
-		//    [super dealloc];
-		//}
-		//
-		//- (BOOL)isOpaque
-		//{
-		//    return [window->ns.object isOpaque];
-		//}
-		//
-		class_GLFWContentView.AddMethod(objc.RegisterName("canBecomeKeyView"), objc.NewIMP(func(self objc.ID, cmd objc.SEL) bool {
-			return true
-		}), "B@:")
-		class_GLFWContentView.AddMethod(objc.RegisterName("acceptsFirstResponder"), objc.NewIMP(func(self objc.ID, cmd objc.SEL) bool {
-			return true
-		}), "B@:")
-		// uncomment once updateLayer is implemented
-		//class_GLFWContentView.AddMethod(objc.RegisterName("wantsUpdateLayer"), objc.NewIMP(func(self objc.ID, cmd objc.SEL) bool {
-		//	return true
-		//}), "B@:")
-		//- (void)updateLayer
-		//{
-		//    if (window->context.source == GLFW_NATIVE_CONTEXT_API)
-		//        [window->context.nsgl.object update];
-		//
-		//    _glfwInputWindowDamage(window);
-		//}
-		//
-		//- (void)cursorUpdate:(NSEvent *)event
-		//{
-		//    updateCursorImage(window);
-		//}
-		//
-		//- (BOOL)acceptsFirstMouse:(NSEvent *)event
-		//{
-		//    return YES;
-		//}
-		//
-		//- (void)mouseDown:(NSEvent *)event
-		//{
-		//    _glfwInputMouseClick(window,
-		//                         GLFW_MOUSE_BUTTON_LEFT,
-		//                         GLFW_PRESS,
-		//                         translateFlags([event modifierFlags]));
-		//}
-		//
-		//- (void)mouseDragged:(NSEvent *)event
-		//{
-		//    [self mouseMoved:event];
-		//}
-		//
-		//- (void)mouseUp:(NSEvent *)event
-		//{
-		//    _glfwInputMouseClick(window,
-		//                         GLFW_MOUSE_BUTTON_LEFT,
-		//                         GLFW_RELEASE,
-		//                         translateFlags([event modifierFlags]));
-		//}
-		//
-		//- (void)mouseMoved:(NSEvent *)event
-		//{
-		//    if (window->cursorMode == GLFW_CURSOR_DISABLED)
-		//    {
-		//        const double dx = [event deltaX] - window->ns.cursorWarpDeltaX;
-		//        const double dy = [event deltaY] - window->ns.cursorWarpDeltaY;
-		//
-		//        _glfwInputCursorPos(window,
-		//                            window->virtualCursorPosX + dx,
-		//                            window->virtualCursorPosY + dy);
-		//    }
-		//    else
-		//    {
-		//        const NSRect contentRect = [window->ns.view frame];
-		//        // NOTE: The returned location uses base 0,1 not 0,0
-		//        const NSPoint pos = [event locationInWindow];
-		//
-		//        _glfwInputCursorPos(window, pos.x, contentRect.size.height - pos.y);
-		//    }
-		//
-		//    window->ns.cursorWarpDeltaX = 0;
-		//    window->ns.cursorWarpDeltaY = 0;
-		//}
-		//
-		//- (void)rightMouseDown:(NSEvent *)event
-		//{
-		//    _glfwInputMouseClick(window,
-		//                         GLFW_MOUSE_BUTTON_RIGHT,
-		//                         GLFW_PRESS,
-		//                         translateFlags([event modifierFlags]));
-		//}
-		//
-		//- (void)rightMouseDragged:(NSEvent *)event
-		//{
-		//    [self mouseMoved:event];
-		//}
-		//
-		//- (void)rightMouseUp:(NSEvent *)event
-		//{
-		//    _glfwInputMouseClick(window,
-		//                         GLFW_MOUSE_BUTTON_RIGHT,
-		//                         GLFW_RELEASE,
-		//                         translateFlags([event modifierFlags]));
-		//}
-		//
-		//- (void)otherMouseDown:(NSEvent *)event
-		//{
-		//    _glfwInputMouseClick(window,
-		//                         (int) [event buttonNumber],
-		//                         GLFW_PRESS,
-		//                         translateFlags([event modifierFlags]));
-		//}
-		//
-		//- (void)otherMouseDragged:(NSEvent *)event
-		//{
-		//    [self mouseMoved:event];
-		//}
-		//
-		//- (void)otherMouseUp:(NSEvent *)event
-		//{
-		//    _glfwInputMouseClick(window,
-		//                         (int) [event buttonNumber],
-		//                         GLFW_RELEASE,
-		//                         translateFlags([event modifierFlags]));
-		//}
-		//
-		//- (void)mouseExited:(NSEvent *)event
-		//{
-		//    if (window->cursorMode == GLFW_CURSOR_HIDDEN)
-		//        showCursor(window);
-		//
-		//    _glfwInputCursorEnter(window, GLFW_FALSE);
-		//}
-		//
-		//- (void)mouseEntered:(NSEvent *)event
-		//{
-		//    if (window->cursorMode == GLFW_CURSOR_HIDDEN)
-		//        hideCursor(window);
-		//
-		//    _glfwInputCursorEnter(window, GLFW_TRUE);
-		//}
-		//
-		//- (void)viewDidChangeBackingProperties
-		//{
-		//    const NSRect contentRect = [window->ns.view frame];
-		//    const NSRect fbRect = [window->ns.view convertRectToBacking:contentRect];
-		//    const float xscale = fbRect.size.width / contentRect.size.width;
-		//    const float yscale = fbRect.size.height / contentRect.size.height;
-		//
-		//    if (xscale != window->ns.xscale || yscale != window->ns.yscale)
-		//    {
-		//        if (window->ns.retina && window->ns.layer)
-		//            [window->ns.layer setContentsScale:[window->ns.object backingScaleFactor]];
-		//
-		//        window->ns.xscale = xscale;
-		//        window->ns.yscale = yscale;
-		//        _glfwInputWindowContentScale(window, xscale, yscale);
-		//    }
-		//
-		//    if (fbRect.size.width != window->ns.fbWidth ||
-		//        fbRect.size.height != window->ns.fbHeight)
-		//    {
-		//        window->ns.fbWidth  = fbRect.size.width;
-		//        window->ns.fbHeight = fbRect.size.height;
-		//        _glfwInputFramebufferSize(window, fbRect.size.width, fbRect.size.height);
-		//    }
-		//}
-		//
-		//- (void)drawRect:(NSRect)rect
-		//{
-		//    _glfwInputWindowDamage(window);
-		//}
-		//
-		//- (void)updateTrackingAreas
-		//{
-		//    if (trackingArea != nil)
-		//    {
-		//        [self removeTrackingArea:trackingArea];
-		//        [trackingArea release];
-		//    }
-		//
-		//    const NSTrackingAreaOptions options = NSTrackingMouseEnteredAndExited |
-		//                                          NSTrackingActiveInKeyWindow |
-		//                                          NSTrackingEnabledDuringMouseDrag |
-		//                                          NSTrackingCursorUpdate |
-		//                                          NSTrackingInVisibleRect |
-		//                                          NSTrackingAssumeInside;
-		//
-		//    trackingArea = [[NSTrackingArea alloc] initWithRect:[self bounds]
-		//                                                options:options
-		//                                                  owner:self
-		//                                               userInfo:nil];
-		//
-		//    [self addTrackingArea:trackingArea];
-		//    [super updateTrackingAreas];
-		//}
-		//
-		//- (void)keyDown:(NSEvent *)event
-		//{
-		//    const int key = translateKey([event keyCode]);
-		//    const int mods = translateFlags([event modifierFlags]);
-		//
-		//    _glfwInputKey(window, key, [event keyCode], GLFW_PRESS, mods);
-		//
-		//    [self interpretKeyEvents:@[event]];
-		//}
-		//
-		//- (void)flagsChanged:(NSEvent *)event
-		//{
-		//    int action;
-		//    const unsigned int modifierFlags =
-		//        [event modifierFlags] & NSEventModifierFlagDeviceIndependentFlagsMask;
-		//    const int key = translateKey([event keyCode]);
-		//    const int mods = translateFlags(modifierFlags);
-		//    const NSUInteger keyFlag = translateKeyToModifierFlag(key);
-		//
-		//    if (keyFlag & modifierFlags)
-		//    {
-		//        if (window->keys[key] == GLFW_PRESS)
-		//            action = GLFW_RELEASE;
-		//        else
-		//            action = GLFW_PRESS;
-		//    }
-		//    else
-		//        action = GLFW_RELEASE;
-		//
-		//    _glfwInputKey(window, key, [event keyCode], action, mods);
-		//}
-		//
-		//- (void)keyUp:(NSEvent *)event
-		//{
-		//    const int key = translateKey([event keyCode]);
-		//    const int mods = translateFlags([event modifierFlags]);
-		//    _glfwInputKey(window, key, [event keyCode], GLFW_RELEASE, mods);
-		//}
-		//
-		//- (void)scrollWheel:(NSEvent *)event
-		//{
-		//    double deltaX = [event scrollingDeltaX];
-		//    double deltaY = [event scrollingDeltaY];
-		//
-		//    if ([event hasPreciseScrollingDeltas])
-		//    {
-		//        deltaX *= 0.1;
-		//        deltaY *= 0.1;
-		//    }
-		//
-		//    if (fabs(deltaX) > 0.0 || fabs(deltaY) > 0.0)
-		//        _glfwInputScroll(window, deltaX, deltaY);
-		//}
-		//
-		//- (NSDragOperation)draggingEntered:(id <NSDraggingInfo>)sender
-		//{
-		//    // HACK: We don't know what to say here because we don't know what the
-		//    //       application wants to do with the paths
-		//    return NSDragOperationGeneric;
-		//}
-		//
-		//- (BOOL)performDragOperation:(id <NSDraggingInfo>)sender
-		//{
-		//    const NSRect contentRect = [window->ns.view frame];
-		//    // NOTE: The returned location uses base 0,1 not 0,0
-		//    const NSPoint pos = [sender draggingLocation];
-		//    _glfwInputCursorPos(window, pos.x, contentRect.size.height - pos.y);
-		//
-		//    NSPasteboard* pasteboard = [sender draggingPasteboard];
-		//    NSDictionary* options = @{NSPasteboardURLReadingFileURLsOnlyKey:@YES};
-		//    NSArray* urls = [pasteboard readObjectsForClasses:@[[NSURL class]]
-		//                                              options:options];
-		//    const NSUInteger count = [urls count];
-		//    if (count)
-		//    {
-		//        char** paths = _glfw_calloc(count, sizeof(char*));
-		//
-		//        for (NSUInteger i = 0;  i < count;  i++)
-		//            paths[i] = _glfw_strdup([urls[i] fileSystemRepresentation]);
-		//
-		//        _glfwInputDrop(window, (int) count, (const char**) paths);
-		//
-		//        for (NSUInteger i = 0;  i < count;  i++)
-		//            _glfw_free(paths[i]);
-		//        _glfw_free(paths);
-		//    }
-		//
-		//    return YES;
-		//}
-		//
-		//- (BOOL)hasMarkedText
-		//{
-		//    return [markedText length] > 0;
-		//}
-		//
-		//- (NSRange)markedRange
-		//{
-		//    if ([markedText length] > 0)
-		//        return NSMakeRange(0, [markedText length] - 1);
-		//    else
-		//        return kEmptyRange;
-		//}
-		//
-		//- (NSRange)selectedRange
-		//{
-		//    return kEmptyRange;
-		//}
-		//
-		//- (void)setMarkedText:(id)string
-		//        selectedRange:(NSRange)selectedRange
-		//     replacementRange:(NSRange)replacementRange
-		//{
-		//    [markedText release];
-		//    if ([string isKindOfClass:[NSAttributedString class]])
-		//        markedText = [[NSMutableAttributedString alloc] initWithAttributedString:string];
-		//    else
-		//        markedText = [[NSMutableAttributedString alloc] initWithString:string];
-		//}
-		//
-		//- (void)unmarkText
-		//{
-		//    [[markedText mutableString] setString:@""];
-		//}
-		//
-		//- (NSArray*)validAttributesForMarkedText
-		//{
-		//    return [NSArray array];
-		//}
-		//
-		//- (NSAttributedString*)attributedSubstringForProposedRange:(NSRange)range
-		//                                               actualRange:(NSRangePointer)actualRange
-		//{
-		//    return nil;
-		//}
-		//
-		//- (NSUInteger)characterIndexForPoint:(NSPoint)point
-		//{
-		//    return 0;
-		//}
-		//
-		//- (NSRect)firstRectForCharacterRange:(NSRange)range
-		//                         actualRange:(NSRangePointer)actualRange
-		//{
-		//    const NSRect frame = [window->ns.view frame];
-		//    return NSMakeRect(frame.origin.x, frame.origin.y, 0.0, 0.0);
-		//}
-		//
-		//- (void)insertText:(id)string replacementRange:(NSRange)replacementRange
-		//{
-		//    NSString* characters;
-		//    NSEvent* event = [NSApp currentEvent];
-		//    const int mods = translateFlags([event modifierFlags]);
-		//    const int plain = !(mods & GLFW_MOD_SUPER);
-		//
-		//    if ([string isKindOfClass:[NSAttributedString class]])
-		//        characters = [string string];
-		//    else
-		//        characters = (NSString*) string;
-		//
-		//    NSRange range = NSMakeRange(0, [characters length]);
-		//    while (range.length)
-		//    {
-		//        uint32_t codepoint = 0;
-		//
-		//        if ([characters getBytes:&codepoint
-		//                       maxLength:sizeof(codepoint)
-		//                      usedLength:NULL
-		//                        encoding:NSUTF32StringEncoding
-		//                         options:0
-		//                           range:range
-		//                  remainingRange:&range])
-		//        {
-		//            if (codepoint >= 0xf700 && codepoint <= 0xf7ff)
-		//                continue;
-		//
-		//            _glfwInputChar(window, codepoint, mods, plain);
-		//        }
-		//    }
-		//}
-		//
-		//- (void)doCommandBySelector:(SEL)selector
-		//{
-		//}
-		//
-		//@end
-		class_GLFWContentView.Register()
+	class_GLFWContentView, err = objc.RegisterClass(&contentView{})
+	if err != nil {
+		panic(err)
 	}
 }
 
@@ -915,7 +981,20 @@ func (w *Window) platformSetWindowIcon(images []*Image) error {
 }
 
 func (w *Window) platformGetWindowPos() (xpos, ypos int, err error) {
-	panic("NOT IMPLEMENTED")
+	pool := cocoa.NSAutoreleasePool_new()
+	defer pool.Release()
+
+	sel_contentRectForFrameRect := objc.RegisterName("contentRectForFrameRect:")
+	sig := cocoa.NSMethodSignature_signatureWithObjCTypes("{NSRect=dddd}@:{NSRect=dddd}")
+	inv := cocoa.NSInvocation_invocationWithMethodSignature(sig)
+	inv.SetSelector(sel_contentRectForFrameRect)
+	frame := cocoa.NSWindow{w.state.object}.Frame()
+	inv.SetArgumentAtIndex(unsafe.Pointer(&frame), 2)
+	inv.InvokeWithTarget(w.state.object)
+	var contentRect cocoa.NSRect
+	inv.GetReturnValue(unsafe.Pointer(&contentRect))
+	return int(contentRect.Origin.X), int(transformYCocoa(float32(contentRect.Origin.Y + contentRect.Size.Height - 1))), nil
+
 }
 
 func (w *Window) platformGetWindowSize() (width, height int, err error) {
@@ -1062,4 +1141,9 @@ func (w *Window) GetCocoaWindow() (uintptr, error) {
 		return 0, NotInitialized
 	}
 	return uintptr(w.state.object), nil
+}
+
+// Transforms a y-coordinate between the CG display and NS screen spaces
+func transformYCocoa(y float32) float32 {
+	return float32(C.CGDisplayBounds(C.CGMainDisplayID()).size.height - C.double(y) - 1)
 }
