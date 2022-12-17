@@ -224,69 +224,63 @@ func (v *contentView) WantsUpdateLayer(cmd objc.SEL) bool {
 	return true
 }
 
-//- (void)updateLayer
-//{
-//    if (window->context.source == GLFW_NATIVE_CONTEXT_API)
-//        [window->context.nsgl.object update];
+// - (void)updateLayer
 //
-//    _glfwInputWindowDamage(window);
-//}
+//	{
+//	   if (window->context.source == GLFW_NATIVE_CONTEXT_API)
+//	       [window->context.nsgl.object update];
 //
-//- (void)cursorUpdate:(NSEvent *)event
-//{
-//    updateCursorImage(window);
-//}
+//	   _glfwInputWindowDamage(window);
+//	}
 //
-//- (BOOL)acceptsFirstMouse:(NSEvent *)event
-//{
-//    return YES;
-//}
+// - (void)cursorUpdate:(NSEvent *)event
 //
-//- (void)mouseDown:(NSEvent *)event
-//{
-//    _glfwInputMouseClick(window,
-//                         GLFW_MOUSE_BUTTON_LEFT,
-//                         GLFW_PRESS,
-//                         translateFlags([event modifierFlags]));
-//}
+//	{
+//	   updateCursorImage(window);
+//	}
 //
-//- (void)mouseDragged:(NSEvent *)event
-//{
-//    [self mouseMoved:event];
-//}
+// - (BOOL)acceptsFirstMouse:(NSEvent *)event
 //
-//- (void)mouseUp:(NSEvent *)event
-//{
-//    _glfwInputMouseClick(window,
-//                         GLFW_MOUSE_BUTTON_LEFT,
-//                         GLFW_RELEASE,
-//                         translateFlags([event modifierFlags]));
-//}
-//
-//- (void)mouseMoved:(NSEvent *)event
-//{
-//    if (window->cursorMode == GLFW_CURSOR_DISABLED)
-//    {
-//        const double dx = [event deltaX] - window->ns.cursorWarpDeltaX;
-//        const double dy = [event deltaY] - window->ns.cursorWarpDeltaY;
-//
-//        _glfwInputCursorPos(window,
-//                            window->virtualCursorPosX + dx,
-//                            window->virtualCursorPosY + dy);
-//    }
-//    else
-//    {
-//        const NSRect contentRect = [window->ns.view frame];
-//        // NOTE: The returned location uses base 0,1 not 0,0
-//        const NSPoint pos = [event locationInWindow];
-//
-//        _glfwInputCursorPos(window, pos.x, contentRect.size.height - pos.y);
-//    }
-//
-//    window->ns.cursorWarpDeltaX = 0;
-//    window->ns.cursorWarpDeltaY = 0;
-//}
-//
+//	{
+//	   return YES;
+//	}
+
+func (v *contentView) MouseDown(_ objc.SEL, event objc.ID) {
+	v.window.inputMouseClick(MouseButtonLeft, Press, translateFlags(cocoa.NSEventModifierFlags(cocoa.NSEvent{ID: event}.ModifierFlags())))
+}
+
+func (v *contentView) MouseDragged(_ objc.SEL, event objc.ID) {
+	objc.ID(unsafe.Pointer(v)).Send(objc.RegisterName("mouseMoved:"), event)
+}
+
+func (v *contentView) MouseUp(_ objc.SEL, event objc.ID) {
+	v.window.inputMouseClick(MouseButtonLeft, Release, translateFlags(cocoa.NSEventModifierFlags(cocoa.NSEvent{ID: event}.ModifierFlags())))
+}
+
+func (v *contentView) MouseMoved(_ objc.SEL, event objc.ID) {
+	fmt.Println("FIXME: MouseMoved")
+	//    if (window->cursorMode == GLFW_CURSOR_DISABLED)
+	//    {
+	//        const double dx = [event deltaX] - window->ns.cursorWarpDeltaX;
+	//        const double dy = [event deltaY] - window->ns.cursorWarpDeltaY;
+	//
+	//        _glfwInputCursorPos(window,
+	//                            window->virtualCursorPosX + dx,
+	//                            window->virtualCursorPosY + dy);
+	//    }
+	//    else
+	//    {
+	//        const NSRect contentRect = [window->ns.view frame];
+	//        // NOTE: The returned location uses base 0,1 not 0,0
+	//        const NSPoint pos = [event locationInWindow];
+	//
+	//        _glfwInputCursorPos(window, pos.x, contentRect.size.height - pos.y);
+	//    }
+	//
+	//    window->ns.cursorWarpDeltaX = 0;
+	//    window->ns.cursorWarpDeltaY = 0;
+}
+
 //- (void)rightMouseDown:(NSEvent *)event
 //{
 //    _glfwInputMouseClick(window,
@@ -604,6 +598,14 @@ func (v *contentView) Selector(s string) objc.SEL {
 		return objc.RegisterName("keyDown:")
 	case "KeyUp":
 		return objc.RegisterName("keyUp:")
+	case "MouseDown":
+		return objc.RegisterName("mouseDown:")
+	case "MouseUp":
+		return objc.RegisterName("mouseUp:")
+	case "MouseDragged":
+		return objc.RegisterName("mouseDragged:")
+	case "MouseMoved":
+		return objc.RegisterName("mouseMoved:")
 	default:
 		return 0
 	}

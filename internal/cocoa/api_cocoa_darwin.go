@@ -604,7 +604,7 @@ func (e NSEvent) KeyCode() uint16 {
 }
 
 func (e NSEvent) ModifierFlags() NSUInteger {
-	return NSUInteger(e.Send(sel_keyCode))
+	return NSUInteger(e.Send(sel_modifierFlags))
 }
 
 type NSNotification struct {
