@@ -186,10 +186,10 @@ type contentView struct {
 }
 
 func (v *contentView) InitWithGlfwWindow(cmd objc.SEL, w *Window) objc.ID {
+	fmt.Println("FIXME: InitWithGlfwWindow")
 	self := (*objc.ID)(unsafe.Pointer(&v)).SendSuper(sel_init)
 	if self != 0 {
 		(*(**contentView)(unsafe.Pointer(&self))).window = w
-		fmt.Printf("Init %p %p\n", *(**contentView)(unsafe.Pointer(&self)), (*(**contentView)(unsafe.Pointer(&self))).window)
 		//        trackingArea = nil;
 		//        markedText = [[NSMutableAttributedString alloc] init];
 		//
@@ -221,7 +221,6 @@ func (v *contentView) AcceptsFirstResponder(self objc.ID, cmd objc.SEL) bool {
 }
 
 func (v *contentView) WantsUpdateLayer(cmd objc.SEL) bool {
-	fmt.Printf("WantsUpdateLayer %p %p\n", v, v.window)
 	return true
 }
 
@@ -400,45 +399,47 @@ func (v *contentView) WantsUpdateLayer(cmd objc.SEL) bool {
 //    [self addTrackingArea:trackingArea];
 //    [super updateTrackingAreas];
 //}
+
+func (v *contentView) KeyDown(cmd objc.SEL, event objc.ID) {
+	e := cocoa.NSEvent{event}
+	key := translateKey(e.KeyCode())
+	mods := translateFlags(cocoa.NSEventModifierFlags(e.ModifierFlags()))
+
+	v.window.inputKey(key, int(e.KeyCode()), Press, mods)
+	fmt.Println("FIXME: KeyDown")
+	//(objc.ID)(unsafe.Pointer(v)).Send(objc.RegisterName("interpretKeyEvents:"), event)
+}
+
+// - (void)flagsChanged:(NSEvent *)event
 //
-//- (void)keyDown:(NSEvent *)event
-//{
-//    const int key = translateKey([event keyCode]);
-//    const int mods = translateFlags([event modifierFlags]);
+//	{
+//	   int action;
+//	   const unsigned int modifierFlags =
+//	       [event modifierFlags] & NSEventModifierFlagDeviceIndependentFlagsMask;
+//	   const int key = translateKey([event keyCode]);
+//	   const int mods = translateFlags(modifierFlags);
+//	   const NSUInteger keyFlag = translateKeyToModifierFlag(key);
 //
-//    _glfwInputKey(window, key, [event keyCode], GLFW_PRESS, mods);
+//	   if (keyFlag & modifierFlags)
+//	   {
+//	       if (window->keys[key] == GLFW_PRESS)
+//	           action = GLFW_RELEASE;
+//	       else
+//	           action = GLFW_PRESS;
+//	   }
+//	   else
+//	       action = GLFW_RELEASE;
 //
-//    [self interpretKeyEvents:@[event]];
-//}
-//
-//- (void)flagsChanged:(NSEvent *)event
-//{
-//    int action;
-//    const unsigned int modifierFlags =
-//        [event modifierFlags] & NSEventModifierFlagDeviceIndependentFlagsMask;
-//    const int key = translateKey([event keyCode]);
-//    const int mods = translateFlags(modifierFlags);
-//    const NSUInteger keyFlag = translateKeyToModifierFlag(key);
-//
-//    if (keyFlag & modifierFlags)
-//    {
-//        if (window->keys[key] == GLFW_PRESS)
-//            action = GLFW_RELEASE;
-//        else
-//            action = GLFW_PRESS;
-//    }
-//    else
-//        action = GLFW_RELEASE;
-//
-//    _glfwInputKey(window, key, [event keyCode], action, mods);
-//}
-//
-//- (void)keyUp:(NSEvent *)event
-//{
-//    const int key = translateKey([event keyCode]);
-//    const int mods = translateFlags([event modifierFlags]);
-//    _glfwInputKey(window, key, [event keyCode], GLFW_RELEASE, mods);
-//}
+//	   _glfwInputKey(window, key, [event keyCode], action, mods);
+//	}
+
+func (v *contentView) KeyUp(cmd objc.SEL, event objc.ID) {
+	e := cocoa.NSEvent{event}
+	key := translateKey(e.KeyCode())
+	mods := translateFlags(cocoa.NSEventModifierFlags(e.ModifierFlags()))
+	v.window.inputKey(key, int(e.KeyCode()), Release, mods)
+}
+
 //
 //- (void)scrollWheel:(NSEvent *)event
 //{
@@ -599,6 +600,10 @@ func (v *contentView) Selector(s string) objc.SEL {
 		return objc.RegisterName("wantsUpdateLayer")
 	case "ValidAttributesForMarkedText":
 		return objc.RegisterName("validAttributesForMarkedText")
+	case "KeyDown":
+		return objc.RegisterName("keyDown:")
+	case "KeyUp":
+		return objc.RegisterName("keyUp:")
 	default:
 		return 0
 	}
@@ -1149,4 +1154,34 @@ func (w *Window) GetCocoaWindow() (uintptr, error) {
 // Transforms a y-coordinate between the CG display and NS screen spaces
 func transformYCocoa(y float32) float32 {
 	return float32(C.CGDisplayBounds(C.CGMainDisplayID()).size.height - C.double(y) - 1)
+}
+
+// Translates macOS key modifiers into GLFW ones
+func translateFlags(flags cocoa.NSEventModifierFlags) ModifierKey {
+	var mods ModifierKey = 0
+
+	if flags&cocoa.NSEventModifierFlagShift != 0 {
+		mods |= ModShift
+	}
+	if flags&cocoa.NSEventModifierFlagControl != 0 {
+		mods |= ModControl
+	}
+	if flags&cocoa.NSEventModifierFlagOption != 0 {
+		mods |= ModAlt
+	}
+	if flags&cocoa.NSEventModifierFlagCommand != 0 {
+		mods |= ModSuper
+	}
+	if flags&cocoa.NSEventModifierFlagCapsLock != 0 {
+		mods |= ModCapsLock
+	}
+	return mods
+}
+
+// Translates a macOS keycode to a GLFW keycode
+func translateKey(key uint16) Key {
+	if key >= uint16(len(_glfw.state.keycodes)) {
+		return KeyUnknown
+	}
+	return _glfw.state.keycodes[key]
 }

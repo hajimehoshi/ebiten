@@ -110,6 +110,8 @@ var (
 	sel_otherEventTy_loc_mFlags_timestamp_winNum_ctxt_subtype_d1_d2 = objc.RegisterName("otherEventWithType:location:modifierFlags:timestamp:windowNumber:context:subtype:data1:data2:")
 	sel_postEvent_atStart                                           = objc.RegisterName("postEvent:atStart:")
 	sel_array                                                       = objc.RegisterName("array")
+	sel_keyCode                                                     = objc.RegisterName("keyCode")
+	sel_modifierFlags                                               = objc.RegisterName("modifierFlags")
 )
 
 var NSDefaultRunLoopMode = *(*NSRunLoopMode)(unsafe.Pointer(purego.Dlsym(Cocoa, "NSDefaultRunLoopMode")))
@@ -168,6 +170,14 @@ type NSEventType NSUInteger
 
 const (
 	NSEventTypeApplicationDefined NSEventType = 15
+)
+
+const (
+	NSEventModifierFlagCapsLock NSEventModifierFlags = 1 << 16
+	NSEventModifierFlagShift    NSEventModifierFlags = 1 << 17
+	NSEventModifierFlagControl  NSEventModifierFlags = 1 << 18
+	NSEventModifierFlagOption   NSEventModifierFlags = 1 << 19
+	NSEventModifierFlagCommand  NSEventModifierFlags = 1 << 20
 )
 
 const NSUIntegerMax = math.MaxUint
@@ -587,6 +597,14 @@ func NSEvent_otherEventWithTypeLocationModifierFlagsTimestampWindowNumberContext
 	event := NSEvent{}
 	inv.GetReturnValue(unsafe.Pointer(&event))
 	return event
+}
+
+func (e NSEvent) KeyCode() uint16 {
+	return uint16(e.Send(sel_keyCode))
+}
+
+func (e NSEvent) ModifierFlags() NSUInteger {
+	return NSUInteger(e.Send(sel_keyCode))
 }
 
 type NSNotification struct {
