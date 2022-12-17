@@ -124,16 +124,15 @@ func (d *windowDelegate) WindowDidBecomeKey(cmd objc.SEL, _ objc.ID) {
     _glfwInputWindowFocus(window, GLFW_FALSE);
 }
 
-- (void)windowDidChangeOcclusionState:(NSNotification* )notification
-{
-    if ([window->ns.object occlusionState] & NSWindowOcclusionStateVisible)
-        window->ns.occluded = GLFW_FALSE;
-    else
-        window->ns.occluded = GLFW_TRUE;
-}
-
-@end
 */
+
+func (d *windowDelegate) WindowDidChangeOcclusionState(cmd objc.SEL, _ objc.ID) {
+	fmt.Println("WindowDidChangeOcclusionState: TODO")
+	//    if ([window->ns.object occlusionState] & NSWindowOcclusionStateVisible)
+	//        window->ns.occluded = GLFW_FALSE;
+	//    else
+	//        window->ns.occluded = GLFW_TRUE;
+}
 
 func (d *windowDelegate) Selector(s string) objc.SEL {
 	switch s {
@@ -143,6 +142,8 @@ func (d *windowDelegate) Selector(s string) objc.SEL {
 		return objc.RegisterName("windowDidMove:")
 	case "InitWithGlfwWindow":
 		return sel_initWithGlfwWindow
+	case "WindowDidChangeOcclusionState":
+		return objc.RegisterName("windowDidChangeOcclusionState:")
 	default:
 		return 0
 	}
