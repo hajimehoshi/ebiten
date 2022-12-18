@@ -112,6 +112,8 @@ var (
 	sel_array                                                       = objc.RegisterName("array")
 	sel_keyCode                                                     = objc.RegisterName("keyCode")
 	sel_modifierFlags                                               = objc.RegisterName("modifierFlags")
+	sel_setWantsBestResolutionOpenGLSurface                         = objc.RegisterName("setWantsBestResolutionOpenGLSurface:")
+	sel_setView                                                     = objc.RegisterName("setView:")
 )
 
 var NSDefaultRunLoopMode = *(*NSRunLoopMode)(unsafe.Pointer(purego.Dlsym(Cocoa, "NSDefaultRunLoopMode")))
@@ -296,8 +298,13 @@ func (w NSWindow) SetTitle(t NSString) {
 func (w NSWindow) SetDelegate(id objc.ID) {
 	w.Send(sel_setDelegate, id)
 }
+
 func (w NSWindow) SetContentView(id objc.ID) {
 	w.Send(sel_setContentView, id)
+}
+
+func (w NSWindow) SetView(id objc.ID) {
+	w.Send(sel_setView, id)
 }
 
 func (w NSWindow) SetMiniwindowTitle(t NSString) {
@@ -393,6 +400,10 @@ func (v NSView) Frame() NSRect {
 	rect := NSRect{}
 	inv.GetReturnValue(unsafe.Pointer(&rect))
 	return rect
+}
+
+func (v NSView) SetWantsBestResolutionOpenGLSurface(wants bool) {
+	v.Send(sel_setWantsBestResolutionOpenGLSurface, wants)
 }
 
 // NSInvocation is being used to call functions that can't be called directly with purego.SyscallN.

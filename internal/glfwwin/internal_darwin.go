@@ -12,6 +12,8 @@ import (
 )
 
 type platformContextState struct {
+	pixelFormat objc.ID
+	object      objc.ID
 }
 
 type platformWindowState struct {

@@ -73,6 +73,7 @@ func init() {
 	purego.RegisterLibFunc(&CFStringGetCString, corefoundation, "CFStringGetCString")
 	purego.RegisterLibFunc(&CFStringCreateWithCString, corefoundation, "CFStringCreateWithCString")
 	purego.RegisterLibFunc(&CFBundleGetBundleWithIdentifier, corefoundation, "CFBundleGetBundleWithIdentifier")
+	purego.RegisterLibFunc(&CFBundleGetFunctionPointerForName, corefoundation, "CFBundleGetFunctionPointerForName")
 }
 
 var CFNumberCreate func(allocator CFAllocatorRef, theType CFNumberType, valuePtr unsafe.Pointer) CFNumberRef
@@ -100,3 +101,5 @@ var CFStringGetCString func(theString CFStringRef, buffer []byte, encoding CFStr
 var CFStringCreateWithCString func(alloc CFAllocatorRef, cstr []byte, encoding CFStringEncoding) CFStringRef
 
 var CFBundleGetBundleWithIdentifier func(bundleID CFStringRef) CFBundleRef
+
+var CFBundleGetFunctionPointerForName func(bundle CFBundleRef, functionName CFStringRef) uintptr

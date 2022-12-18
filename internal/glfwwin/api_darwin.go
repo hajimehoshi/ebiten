@@ -16,6 +16,7 @@ package glfwwin
 
 import (
 	"reflect"
+	"strings"
 	"unsafe"
 
 	"github.com/ebitengine/purego"
@@ -23,7 +24,87 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/cocoa"
 )
 
+type NSOpenGLPixelFormatAttribute uint32
+type NSOpenGLContextParameter cocoa.NSInteger
+
+const (
+	NSOpenGLPFADoubleBuffer       NSOpenGLPixelFormatAttribute = 5
+	NSOpenGLPFAAuxBuffers         NSOpenGLPixelFormatAttribute = 7
+	NSOpenGLPFAColorSize          NSOpenGLPixelFormatAttribute = 8
+	NSOpenGLPFAAlphaSize          NSOpenGLPixelFormatAttribute = 11
+	NSOpenGLPFADepthSize          NSOpenGLPixelFormatAttribute = 12
+	NSOpenGLPFAStencilSize        NSOpenGLPixelFormatAttribute = 13
+	NSOpenGLPFAAccumSize          NSOpenGLPixelFormatAttribute = 14
+	NSOpenGLPFASampleBuffers      NSOpenGLPixelFormatAttribute = 55
+	NSOpenGLPFAAccelerated        NSOpenGLPixelFormatAttribute = 73
+	NSOpenGLPFAClosestPolicy      NSOpenGLPixelFormatAttribute = 74
+	NSOpenGLPFAOpenGLProfile      NSOpenGLPixelFormatAttribute = 99
+	NSOpenGLProfileVersion4_1Core NSOpenGLPixelFormatAttribute = 0x4100
+	NSOpenGLProfileVersion3_2Core NSOpenGLPixelFormatAttribute = 0x3200
+)
+
+const (
+	NSOpenGLContextParameterSwapInterval NSOpenGLContextParameter = 222
+)
+
+var (
+	class_NSOpenGLPixelFormat = objc.GetClass("NSOpenGLPixelFormat")
+	class_NSOpenGLContext     = objc.GetClass("NSOpenGLContext")
+)
+
+type NSOpenGLPixelFormat struct {
+	objc.ID
+}
+
+func NSOpenGLPixelFormat_alloc() NSOpenGLPixelFormat {
+	return NSOpenGLPixelFormat{objc.ID(class_NSOpenGLPixelFormat).Send(objc.RegisterName("alloc"))}
+}
+
+func (f NSOpenGLPixelFormat) initWithAttributes(attribs []NSOpenGLPixelFormatAttribute) NSOpenGLPixelFormat {
+	if attribs[len(attribs)-1] != 0 {
+		panic("glfwwin: attribs must end with null terminator")
+	}
+	return NSOpenGLPixelFormat{f.Send(objc.RegisterName("initWithAttributes:"), &attribs[0])}
+}
+
+type NSOpenGLContext struct {
+	objc.ID
+}
+
+func NSOpenGLContext_alloc() NSOpenGLContext {
+	return NSOpenGLContext{objc.ID(class_NSOpenGLContext).Send(objc.RegisterName("alloc"))}
+}
+
+func NSOpenGLContext_clearCurrentContext() {
+	objc.ID(class_NSOpenGLContext).Send(objc.RegisterName("clearCurrentContext"))
+}
+
+func (c NSOpenGLContext) initWithFormat_shareContext(format NSOpenGLPixelFormat, share NSOpenGLContext) NSOpenGLContext {
+	return NSOpenGLContext{c.Send(objc.RegisterName("initWithFormat:shareContext:"), format.ID, share.ID)}
+}
+func (c NSOpenGLContext) makeCurrentContext() {
+	c.Send(objc.RegisterName("makeCurrentContext"))
+}
+
+func (c NSOpenGLContext) setValues_forParameter(vals *int, param NSOpenGLContextParameter) {
+	c.Send(objc.RegisterName("setValues:forParameter:"), vals, param)
+}
+
+func (c NSOpenGLContext) flushBuffer() {
+	c.Send(objc.RegisterName("flushBuffer"))
+}
+
 var sel_init = objc.RegisterName("init")
+
+// CString converts a go string to *byte that can be passed to C code.
+func CString(name string) []byte {
+	if strings.HasSuffix(name, "\x00") {
+		return *(*[]byte)(unsafe.Pointer(&name))
+	}
+	var b = make([]byte, len(name)+1)
+	copy(b, name)
+	return b
+}
 
 func GoString(p uintptr) string {
 	if p == 0 {
