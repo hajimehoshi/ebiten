@@ -43,6 +43,7 @@ jobs:
           sudo apt-get install libasound2-dev libgl1-mesa-dev libxcursor-dev libxi-dev libxinerama-dev libxrandr-dev libxxf86vm-dev
 
       - name: Install wasmbrowsertest
+        if: ${{ !startsWith(matrix.go, '1.15.') }}
         run: |
           # TODO: Use go install github.com/agnivade/wasmbrowsertest@... on Go 1.16 or later.
           mkdir /tmp/wasmbrowsertest
