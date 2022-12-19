@@ -166,7 +166,8 @@ func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics, forceDraw boo
 		return err
 	}
 
-	const maxSkipCount = 3
+	// 180 might be too big but this is a enough value to consider exiting from fullscreen on macOS (#2500).
+	const maxSkipCount = 180
 
 	if !forceDraw && !theGlobalState.isScreenClearedEveryFrame() && !c.isOffscreenDirty {
 		if c.skipCount < maxSkipCount {
