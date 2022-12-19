@@ -506,7 +506,7 @@ const (
 	// 1) new inputting except for gamepads is detected, or 2) ScheduleFrame is called.
 	// In FPSModeVsyncOffMinimum, TPS is SyncWithFPS no matter what TPS is specified at SetTPS.
 	//
-	// Deprecated: as of v2.5. Use SetVsyncEnabled(false) and SetScreenClearedEveryFrame(false) instead.
+	// Deprecated: as of v2.5. Use SetScreenClearedEveryFrame(false) instead.
 	// See examples/skipdraw for GPU optimization with SetScreenClearedEveryFrame(false).
 	FPSModeVsyncOffMinimum FPSModeType = ui.FPSModeVsyncOffMinimum
 )
