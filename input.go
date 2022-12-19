@@ -405,13 +405,13 @@ func (i *inputState) isKeyPressed(key Key) bool {
 
 	switch key {
 	case KeyAlt:
-		return i.state.KeyPressed[ui.KeyAltLeft] && i.state.KeyPressed[ui.KeyAltRight]
+		return i.state.KeyPressed[ui.KeyAltLeft] || i.state.KeyPressed[ui.KeyAltRight]
 	case KeyControl:
-		return i.state.KeyPressed[ui.KeyControlLeft] && i.state.KeyPressed[ui.KeyControlRight]
+		return i.state.KeyPressed[ui.KeyControlLeft] || i.state.KeyPressed[ui.KeyControlRight]
 	case KeyShift:
-		return i.state.KeyPressed[ui.KeyShiftLeft] && i.state.KeyPressed[ui.KeyShiftRight]
+		return i.state.KeyPressed[ui.KeyShiftLeft] || i.state.KeyPressed[ui.KeyShiftRight]
 	case KeyMeta:
-		return i.state.KeyPressed[ui.KeyMetaLeft] && i.state.KeyPressed[ui.KeyMetaRight]
+		return i.state.KeyPressed[ui.KeyMetaLeft] || i.state.KeyPressed[ui.KeyMetaRight]
 	default:
 		return i.state.KeyPressed[ui.Key(key)]
 	}
