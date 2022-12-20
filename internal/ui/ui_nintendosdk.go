@@ -94,10 +94,10 @@ func (*userInterfaceImpl) ScreenSizeInFullscreen() (int, int) {
 
 func (u *userInterfaceImpl) readInputState(inputState *InputState) {
 	*inputState = u.inputState
+	u.inputState.resetForTick()
 }
 
 func (u *userInterfaceImpl) resetForTick() {
-	u.inputState.resetForTick()
 }
 
 func (*userInterfaceImpl) CursorMode() CursorMode {

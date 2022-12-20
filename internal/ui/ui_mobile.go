@@ -422,12 +422,10 @@ func (u *userInterfaceImpl) readInputState(inputState *InputState) {
 	u.m.Lock()
 	defer u.m.Unlock()
 	*inputState = u.inputState
+	u.inputState.resetForTick()
 }
 
 func (u *userInterfaceImpl) resetForTick() {
-	u.m.Lock()
-	defer u.m.Unlock()
-	u.inputState.resetForTick()
 }
 
 func (u *userInterfaceImpl) Window() Window {
