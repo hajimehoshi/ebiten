@@ -50,7 +50,7 @@ type InputState struct {
 	RunesCount         int
 }
 
-func (i *InputState) resetForFrame() {
+func (i *InputState) resetForTick() {
 	i.WheelX = 0
 	i.WheelY = 0
 	i.RunesCount = 0

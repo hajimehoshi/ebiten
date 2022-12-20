@@ -680,16 +680,19 @@ func (u *userInterfaceImpl) SetScreenTransparent(transparent bool) {
 
 }
 
+func (u *userInterfaceImpl) readInputState(inputState *InputState) {
+	*inputState = u.inputState
+}
+
 func (u *userInterfaceImpl) resetForTick() {
+	u.inputState.resetForTick()
 }
 
 func (u *userInterfaceImpl) Window() Window {
 	return &nullWindow{}
 }
 
-func (u *userInterfaceImpl) beginFrame(inputState *InputState) {
-	*inputState = u.inputState
-	u.inputState.resetForFrame()
+func (u *userInterfaceImpl) beginFrame() {
 }
 
 func (u *userInterfaceImpl) endFrame() {

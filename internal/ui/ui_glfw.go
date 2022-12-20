@@ -696,13 +696,8 @@ func (u *userInterfaceImpl) createWindow(width, height int) error {
 	return nil
 }
 
-func (u *userInterfaceImpl) beginFrame(inputState *InputState) {
+func (u *userInterfaceImpl) beginFrame() {
 	atomic.StoreUint32(&u.inFrame, 1)
-
-	u.m.Lock()
-	defer u.m.Unlock()
-	*inputState = u.inputState
-	u.inputState.resetForFrame()
 }
 
 func (u *userInterfaceImpl) endFrame() {
@@ -1416,6 +1411,7 @@ func (u *userInterfaceImpl) resetForTick() {
 	u.m.Lock()
 	defer u.m.Unlock()
 	u.windowBeingClosed = false
+	u.inputState.resetForTick()
 }
 
 func (u *userInterfaceImpl) readInputState(inputState *InputState) {

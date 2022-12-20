@@ -49,7 +49,7 @@ func InputChars() []rune {
 
 // IsKeyPressed returns a boolean indicating whether key is pressed.
 //
-// If you want to know whether the key started being pressed in the current frame,
+// If you want to know whether the key started being pressed in the current tick,
 // use inpututil.IsKeyJustPressed
 //
 // Note that a Key represents a pysical key of US keyboard layout.
@@ -91,7 +91,7 @@ func Wheel() (xoff, yoff float64) {
 
 // IsMouseButtonPressed returns a boolean indicating whether mouseButton is pressed.
 //
-// If you want to know whether the mouseButton started being pressed in the current frame,
+// If you want to know whether the mouseButton started being pressed in the current tick,
 // use inpututil.IsMouseButtonJustPressed
 //
 // IsMouseButtonPressed is concurrent-safe.
@@ -206,7 +206,7 @@ func GamepadButtonNum(id GamepadID) int {
 
 // IsGamepadButtonPressed reports whether the given button of the gamepad (id) is pressed or not.
 //
-// If you want to know whether the given button of gamepad (id) started being pressed in the current frame,
+// If you want to know whether the given button of gamepad (id) started being pressed in the current tick,
 // use inpututil.IsGamepadButtonJustPressed
 //
 // IsGamepadButtonPressed is concurrent-safe.
@@ -349,7 +349,7 @@ type TouchID = ui.TouchID
 // AppendTouchIDs appends the current touch states to touches, and returns the extended buffer.
 // Giving a slice that already has enough capacity works efficiently.
 //
-// If you want to know whether a touch started being pressed in the current frame,
+// If you want to know whether a touch started being pressed in the current tick,
 // use inpututil.JustPressedTouchIDs
 //
 // AppendTouchIDs doesn't append anything when there are no touches.

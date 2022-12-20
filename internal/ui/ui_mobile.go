@@ -418,7 +418,16 @@ func (u *userInterfaceImpl) DeviceScaleFactor() float64 {
 	return deviceScale()
 }
 
+func (u *userInterfaceImpl) readInputState(inputState *InputState) {
+	u.m.Lock()
+	defer u.m.Unlock()
+	*inputState = u.inputState
+}
+
 func (u *userInterfaceImpl) resetForTick() {
+	u.m.Lock()
+	defer u.m.Unlock()
+	u.inputState.resetForTick()
 }
 
 func (u *userInterfaceImpl) Window() Window {
@@ -448,12 +457,7 @@ func (u *userInterfaceImpl) ScheduleFrame() {
 	}
 }
 
-func (u *userInterfaceImpl) beginFrame(inputState *InputState) {
-	u.m.Lock()
-	defer u.m.Unlock()
-
-	*inputState = u.inputState
-	u.inputState.resetForFrame()
+func (u *userInterfaceImpl) beginFrame() {
 }
 
 func (u *userInterfaceImpl) endFrame() {

@@ -92,7 +92,12 @@ func (*userInterfaceImpl) ScreenSizeInFullscreen() (int, int) {
 	return 0, 0
 }
 
-func (*userInterfaceImpl) resetForTick() {
+func (u *userInterfaceImpl) readInputState(inputState *InputState) {
+	*inputState = u.inputState
+}
+
+func (u *userInterfaceImpl) resetForTick() {
+	u.inputState.resetForTick()
 }
 
 func (*userInterfaceImpl) CursorMode() CursorMode {
@@ -133,9 +138,7 @@ func (*userInterfaceImpl) Window() Window {
 	return &nullWindow{}
 }
 
-func (u *userInterfaceImpl) beginFrame(inputState *InputState) {
-	*inputState = u.inputState
-	u.inputState.resetForFrame()
+func (u *userInterfaceImpl) beginFrame() {
 }
 
 func (u *userInterfaceImpl) endFrame() {

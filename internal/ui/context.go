@@ -89,9 +89,7 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 		return err
 	}
 
-	// Read the input state and use it for one frame to give a consistent result for one frame (#2496).
-	var inputState InputState
-	ui.beginFrame(&inputState)
+	ui.beginFrame()
 	defer ui.endFrame()
 
 	// The given outside size can be 0 e.g. just after restoring from the fullscreen mode on Windows (#1589)
@@ -128,13 +126,19 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 		if err := hooks.RunBeforeUpdateHooks(); err != nil {
 			return err
 		}
+
+		// Read the input state and use it for one tick to give a consistent result for one tick (#2496, #2501).
+		var inputState InputState
+		ui.readInputState(&inputState)
 		if err := c.game.Update(inputState); err != nil {
 			return err
 		}
+
 		// Catch the error that happened at (*Image).At.
 		if err := theGlobalState.error(); err != nil {
 			return err
 		}
+
 		ui.resetForTick()
 	}
 
