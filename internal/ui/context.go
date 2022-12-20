@@ -53,7 +53,7 @@ type context struct {
 	offscreenWidth  float64
 	offscreenHeight float64
 
-	isOffscreenDirty bool
+	isOffscreenModified bool
 
 	skipCount int
 }
@@ -157,6 +157,9 @@ func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics, forceDraw boo
 		c.offscreen = c.game.NewOffscreenImage(w, h)
 	}
 
+	// isOffscreenModified is updated when an offscreen's modifyCallback.
+	c.isOffscreenModified = false
+
 	// Even though updateCount == 0, the offscreen is cleared and Draw is called.
 	// Draw should not update the game state and then the screen should not be updated without Update, but
 	// users might want to process something at Draw with the time intervals of FPS.
@@ -164,8 +167,6 @@ func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics, forceDraw boo
 		c.offscreen.clear()
 	}
 
-	// isOffscreenDirty is updated when an offscreen's drawCallback.
-	c.isOffscreenDirty = false
 	if err := c.game.DrawOffscreen(); err != nil {
 		return err
 	}
@@ -173,7 +174,7 @@ func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics, forceDraw boo
 	// 180 might be too big but this is a enough value to consider exiting from fullscreen on macOS (#2500).
 	const maxSkipCount = 180
 
-	if !forceDraw && !theGlobalState.isScreenClearedEveryFrame() && !c.isOffscreenDirty {
+	if !forceDraw && !c.isOffscreenModified {
 		if c.skipCount < maxSkipCount {
 			c.skipCount++
 		}
@@ -232,8 +233,8 @@ func (c *context) layoutGame(outsideWidth, outsideHeight float64, deviceScaleFac
 	}
 	if c.offscreen == nil {
 		c.offscreen = c.game.NewOffscreenImage(ow, oh)
-		c.offscreen.drawCallback = func() {
-			c.isOffscreenDirty = true
+		c.offscreen.modifyCallback = func() {
+			c.isOffscreenModified = true
 		}
 	}
 
