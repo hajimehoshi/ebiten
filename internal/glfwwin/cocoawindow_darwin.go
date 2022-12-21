@@ -652,17 +652,13 @@ func (w *Window) createNativeWindow(wndconfig *wndconfig, fbconfig *fbconfig) er
 		// contentRect = cocoa.NSRect{xpos, ypos, mode.width, mode.height},
 		panic("todo")
 	} else {
-		//        if (wndconfig->xpos == GLFW_ANY_POSITION ||
-		//            wndconfig->ypos == GLFW_ANY_POSITION)
-		{
+		if wndconfig.xpos == AnyPosition || wndconfig.ypos == AnyPosition {
 			contentRect = cocoa.NSRect{Origin: cocoa.CGPoint{}, Size: cocoa.NSSize{Width: cocoa.CGFloat(wndconfig.width), Height: cocoa.CGFloat(wndconfig.height)}}
+		} else {
+			xpos := wndconfig.xpos
+			ypos := transformYCocoa(float32(wndconfig.ypos + wndconfig.height - 1))
+			contentRect = cocoa.NSMakeRect(cocoa.CGFloat(xpos), cocoa.CGFloat(ypos), cocoa.CGFloat(wndconfig.width), cocoa.CGFloat(wndconfig.height))
 		}
-		//        else
-		//        {
-		//            const int xpos = wndconfig->xpos;
-		//            const int ypos = _glfwTransformYCocoa(wndconfig->ypos + wndconfig->height - 1);
-		//            contentRect = NSMakeRect(xpos, ypos, wndconfig->width, wndconfig->height);
-		//        }
 	}
 
 	styleMask := cocoa.NSWindowStyleMaskMiniaturizable
@@ -682,58 +678,58 @@ func (w *Window) createNativeWindow(wndconfig *wndconfig, fbconfig *fbconfig) er
 	if w.state.object == 0 {
 		return fmt.Errorf("cocoa: failed to create window")
 	}
-	window := cocoa.NSWindow{w.state.object}
+	nsWindow := cocoa.NSWindow{ID: w.state.object}
 
-	//    if (window->monitor)
-	//        [window->ns.object setLevel:NSMainMenuWindowLevel + 1];
-	//    else
-	//    {
-	//        if (wndconfig->xpos == GLFW_ANY_POSITION ||
-	//            wndconfig->ypos == GLFW_ANY_POSITION)
-	//        {
-	//            [(NSWindow*) window->ns.object center];
-	//            _glfw.ns.cascadePoint =
-	//                NSPointToCGPoint([window->ns.object cascadeTopLeftFromPoint:
-	//                                NSPointFromCGPoint(_glfw.ns.cascadePoint)]);
-	//        }
-	//
-	//        if (wndconfig->resizable)
-	//        {
-	//            const NSWindowCollectionBehavior behavior =
-	//                NSWindowCollectionBehaviorFullScreenPrimary |
-	//                NSWindowCollectionBehaviorManaged;
-	//            [window->ns.object setCollectionBehavior:behavior];
-	//        }
-	//        else
-	//        {
-	//            const NSWindowCollectionBehavior behavior =
-	//                NSWindowCollectionBehaviorFullScreenNone;
-	//            [window->ns.object setCollectionBehavior:behavior];
-	//        }
-	//
-	//        if (wndconfig->floating)
-	//            [window->ns.object setLevel:NSFloatingWindowLevel];
-	//
-	//        if (wndconfig->maximized)
-	//            [window->ns.object zoom:nil];
-	//    }
+	if w.monitor != nil {
+		//        [window->ns.object setLevel:NSMainMenuWindowLevel + 1];
+		panic("TODO:")
+	} else {
+		fmt.Println("FIXME:")
+		//        if (wndconfig->xpos == GLFW_ANY_POSITION ||
+		//            wndconfig->ypos == GLFW_ANY_POSITION)
+		//        {
+		//            [(NSWindow*) window->ns.object center];
+		//            _glfw.ns.cascadePoint =
+		//                NSPointToCGPoint([window->ns.object cascadeTopLeftFromPoint:
+		//                                NSPointFromCGPoint(_glfw.ns.cascadePoint)]);
+		//        }
+		//
+		//        if (wndconfig->resizable)
+		//        {
+		//            const NSWindowCollectionBehavior behavior =
+		//                NSWindowCollectionBehaviorFullScreenPrimary |
+		//                NSWindowCollectionBehaviorManaged;
+		//            [window->ns.object setCollectionBehavior:behavior];
+		//        }
+		//        else
+		//        {
+		//            const NSWindowCollectionBehavior behavior =
+		//                NSWindowCollectionBehaviorFullScreenNone;
+		//            [window->ns.object setCollectionBehavior:behavior];
+		//        }
+		//
+		//        if (wndconfig->floating)
+		//            [window->ns.object setLevel:NSFloatingWindowLevel];
+		//
+		//        if (wndconfig->maximized)
+		//            [window->ns.object zoom:nil];
+	}
 	//
 	//    if (strlen(wndconfig->ns.frameName))
 	//        [window->ns.object setFrameAutosaveName:@(wndconfig->ns.frameName)];
 	//
 	w.state.view = cocoa.NSObject_alloc(class_GLFWContentView).Send(sel_initWithGlfwWindow, w)
 	//    window->ns.retina = wndconfig->ns.retina;
-	//
-	//    if (fbconfig->transparent)
-	//    {
-	//        [window->ns.object setOpaque:NO];
-	//        [window->ns.object setHasShadow:NO];
-	//        [window->ns.object setBackgroundColor:[NSColor clearColor]];
-	//    }
-	//
-	window.SetContentView(w.state.view)
-	window.SetDelegate(w.state.delegate)
-	window.SetTitle(cocoa.NSString_alloc().InitWithUTF8String(wndconfig.title))
+
+	if fbconfig.transparent {
+		//        [window->ns.object setOpaque:NO];
+		//        [window->ns.object setHasShadow:NO];
+		//        [window->ns.object setBackgroundColor:[NSColor clearColor]];
+		panic("TODO:")
+	}
+	nsWindow.SetContentView(w.state.view)
+	nsWindow.SetDelegate(w.state.delegate)
+	nsWindow.SetTitle(cocoa.NSString_alloc().InitWithUTF8String(wndconfig.title))
 	//    [window->ns.object makeFirstResponder:window->ns.view];
 	//    [window->ns.object setAcceptsMouseMovedEvents:YES];
 	//    [window->ns.object setRestorable:NO];

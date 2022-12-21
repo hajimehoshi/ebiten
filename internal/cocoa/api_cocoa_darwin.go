@@ -200,6 +200,10 @@ func NSMakePoint(x, y CGFloat) NSPoint {
 	return NSPoint{x, y}
 }
 
+func NSMakeRect(x, y, w, h CGFloat) NSRect {
+	return NSRect{Origin: CGPoint{X: x, Y: y}, Size: CGSize{Width: w, Height: h}}
+}
+
 func NSObject_retain(obj objc.ID) {
 	obj.Send(sel_retain)
 }

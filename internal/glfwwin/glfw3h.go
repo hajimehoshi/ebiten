@@ -34,6 +34,8 @@ const (
 	OSMesaContextAPI = 0x00036003
 
 	DontCare = -1
+
+	AnyPosition = 0x80000000
 )
 
 type Action int
