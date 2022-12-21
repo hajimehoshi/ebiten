@@ -35,7 +35,8 @@ type Game interface {
 	NewOffscreenImage(width, height int) *Image
 	NewScreenImage(width, height int) *Image
 	Layout(outsideWidth, outsideHeight float64) (screenWidth, screenHeight float64)
-	Update(InputState) error
+	UpdateInputState(InputState)
+	Update() error
 	DrawOffscreen() error
 	DrawFinalScreen(scale, offsetX, offsetY float64)
 }
@@ -123,14 +124,15 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 
 	// Update the game.
 	for i := 0; i < updateCount; i++ {
-		if err := hooks.RunBeforeUpdateHooks(); err != nil {
-			return err
-		}
-
 		// Read the input state and use it for one tick to give a consistent result for one tick (#2496, #2501).
 		var inputState InputState
 		ui.readInputState(&inputState)
-		if err := c.game.Update(inputState); err != nil {
+		c.game.UpdateInputState(inputState)
+
+		if err := hooks.RunBeforeUpdateHooks(); err != nil {
+			return err
+		}
+		if err := c.game.Update(); err != nil {
 			return err
 		}
 
