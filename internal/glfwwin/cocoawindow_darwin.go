@@ -739,9 +739,8 @@ func (w *Window) createNativeWindow(wndconfig *wndconfig, fbconfig *fbconfig) er
 	//        [window->ns.object setTabbingMode:NSWindowTabbingModeDisallowed];
 	//#endif
 	//
-	//    _glfwGetWindowSizeCocoa(window, &window->ns.width, &window->ns.height);
-	//    _glfwGetFramebufferSizeCocoa(window, &window->ns.fbWidth, &window->ns.fbHeight);
-	//
+	// w.state.width, w.state.height, _ = w.platformGetWindowSize()
+	// w.state.fbWidth, w.state.fbHeight, _ = w.platformGetFramebufferSize()
 	return nil
 }
 
