@@ -57,12 +57,13 @@ var (
 
 func init() {
 	var wg errgroup.Group
+	var nearestIR, linearIR *shaderir.Program
 	wg.Go(func() error {
 		ir, err := graphics.CompileShader([]byte(builtinshader.Shader(builtinshader.FilterNearest, builtinshader.AddressUnsafe, false)))
 		if err != nil {
 			return fmt.Errorf("restorable: compiling the nearest shader failed: %w", err)
 		}
-		NearestFilterShader = NewShader(ir)
+		nearestIR = ir
 		return nil
 	})
 	wg.Go(func() error {
@@ -70,10 +71,12 @@ func init() {
 		if err != nil {
 			return fmt.Errorf("restorable: compiling the linear shader failed: %w", err)
 		}
-		LinearFilterShader = NewShader(ir)
+		linearIR = ir
 		return nil
 	})
 	if err := wg.Wait(); err != nil {
 		panic(err)
 	}
+	NearestFilterShader = NewShader(nearestIR)
+	LinearFilterShader = NewShader(linearIR)
 }
