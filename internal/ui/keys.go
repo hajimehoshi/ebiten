@@ -348,5 +348,5 @@ func (k Key) String() string {
 	case KeyTab:
 		return "KeyTab"
 	}
-	panic(fmt.Sprintf("ui: invalid key: %d", k))
+	return fmt.Sprintf("Key(%d)", k)
 }
