@@ -403,6 +403,9 @@ func newShader(vs, ps string) (vsh, psh *_ID3DBlob, ferr error) {
 		v.AddRef()
 		vsh = v
 	} else {
+		defer func() {
+			vertexShaderCache[vs] = vsh
+		}()
 		wg.Go(func() error {
 			v, err := _D3DCompile([]byte(vs), "shader", nil, nil, "VSMain", "vs_5_0", flag, 0)
 			if err != nil {
@@ -424,8 +427,6 @@ func newShader(vs, ps string) (vsh, psh *_ID3DBlob, ferr error) {
 	if err := wg.Wait(); err != nil {
 		return nil, nil, err
 	}
-
-	vertexShaderCache[vs] = vsh
 
 	return
 }
