@@ -14,8 +14,12 @@
 
 package graphics
 
+import (
+	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
+)
+
 const (
-	ShaderImageCount = 4
+	ShaderImageCount = shaderir.TextureCount
 
 	// PreservedUniformVariablesCount represents the number of preserved uniform variables.
 	// Any shaders in Ebitengine must have these uniform variables.
