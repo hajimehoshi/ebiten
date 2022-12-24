@@ -111,9 +111,9 @@ func Compile(p *shaderir.Program) (string, []int) {
 		}
 		lines = append(lines, "}")
 	}
-	if p.TextureNum > 0 {
+	if p.TextureCount > 0 {
 		lines = append(lines, "")
-		for i := 0; i < p.TextureNum; i++ {
+		for i := 0; i < p.TextureCount; i++ {
 			lines = append(lines, fmt.Sprintf("Texture2D T%[1]d : register(t%[1]d);", i))
 		}
 		lines = append(lines, "SamplerState samp : register(s0);")
