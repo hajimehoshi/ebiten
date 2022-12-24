@@ -124,7 +124,7 @@ func CompileShader(src []byte) (*shaderir.Program, error) {
 		vert = "__vertex"
 		frag = "Fragment"
 	)
-	ir, err := shader.Compile(fs, f, vert, frag)
+	ir, err := shader.Compile(fs, f, vert, frag, ShaderImageCount)
 	if err != nil {
 		return nil, err
 	}

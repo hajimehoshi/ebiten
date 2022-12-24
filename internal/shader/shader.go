@@ -180,7 +180,7 @@ func (p *ParseError) Error() string {
 	return strings.Join(p.errs, "\n")
 }
 
-func Compile(fs *token.FileSet, f *ast.File, vertexEntry, fragmentEntry string) (*shaderir.Program, error) {
+func Compile(fs *token.FileSet, f *ast.File, vertexEntry, fragmentEntry string, textureNum int) (*shaderir.Program, error) {
 	s := &compileState{
 		fs:            fs,
 		vertexEntry:   vertexEntry,
@@ -198,6 +198,7 @@ func Compile(fs *token.FileSet, f *ast.File, vertexEntry, fragmentEntry string) 
 
 	// TODO: Make a call graph and reorder the elements.
 
+	s.ir.TextureNum = textureNum
 	return &s.ir, nil
 }
 

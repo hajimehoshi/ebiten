@@ -128,12 +128,12 @@ func Compile(p *shaderir.Program, version GLSLVersion) (vertexShader, fragmentSh
 	{
 		vslines = append(vslines, strings.Split(VertexPrelude(version), "\n")...)
 		vslines = append(vslines, "", "{{.Structs}}")
-		if len(p.Uniforms) > 0 || len(p.Attributes) > 0 || len(p.Varyings) > 0 {
+		if len(p.Uniforms) > 0 || p.TextureNum > 0 || len(p.Attributes) > 0 || len(p.Varyings) > 0 {
 			vslines = append(vslines, "")
 			for i, t := range p.Uniforms {
 				vslines = append(vslines, fmt.Sprintf("uniform %s;", c.varDecl(p, &t, fmt.Sprintf("U%d", i))))
 			}
-			for i := 0; i < shaderir.TextureCount; i++ {
+			for i := 0; i < p.TextureNum; i++ {
 				vslines = append(vslines, fmt.Sprintf("uniform sampler2D T%d;", i))
 			}
 			for i, t := range p.Attributes {
@@ -225,12 +225,12 @@ func Compile(p *shaderir.Program, version GLSLVersion) (vertexShader, fragmentSh
 	{
 		fslines = append(fslines, strings.Split(FragmentPrelude(version), "\n")...)
 		fslines = append(fslines, "", "{{.Structs}}")
-		if len(p.Uniforms) > 0 || len(p.Varyings) > 0 {
+		if len(p.Uniforms) > 0 || p.TextureNum > 0 || len(p.Varyings) > 0 {
 			fslines = append(fslines, "")
 			for i, t := range p.Uniforms {
 				fslines = append(fslines, fmt.Sprintf("uniform %s;", c.varDecl(p, &t, fmt.Sprintf("U%d", i))))
 			}
-			for i := 0; i < shaderir.TextureCount; i++ {
+			for i := 0; i < p.TextureNum; i++ {
 				fslines = append(fslines, fmt.Sprintf("uniform sampler2D T%d;", i))
 			}
 			for i, t := range p.Varyings {

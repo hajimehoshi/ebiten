@@ -22,11 +22,10 @@ import (
 	"strings"
 )
 
-const TextureCount = 4
-
 type Program struct {
 	UniformNames []string
 	Uniforms     []Type
+	TextureNum   int
 	Attributes   []Type
 	Varyings     []Type
 	Funcs        []Func

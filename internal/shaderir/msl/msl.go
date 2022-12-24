@@ -109,7 +109,7 @@ func Compile(p *shaderir.Program, vertex, fragment string) (shader string) {
 			lines[len(lines)-1] += ","
 			lines = append(lines, fmt.Sprintf("\tconstant %s [[buffer(%d)]]", c.varDecl(p, &u, fmt.Sprintf("U%d", i), true), i+1))
 		}
-		for i := 0; i < shaderir.TextureCount; i++ {
+		for i := 0; i < p.TextureNum; i++ {
 			lines[len(lines)-1] += ","
 			lines = append(lines, fmt.Sprintf("\ttexture2d<float> T%[1]d [[texture(%[1]d)]]", i))
 		}
@@ -131,7 +131,7 @@ func Compile(p *shaderir.Program, vertex, fragment string) (shader string) {
 			lines[len(lines)-1] += ","
 			lines = append(lines, fmt.Sprintf("\tconstant %s [[buffer(%d)]]", c.varDecl(p, &u, fmt.Sprintf("U%d", i), true), i+1))
 		}
-		for i := 0; i < shaderir.TextureCount; i++ {
+		for i := 0; i < p.TextureNum; i++ {
 			lines[len(lines)-1] += ","
 			lines = append(lines, fmt.Sprintf("\ttexture2d<float> T%[1]d [[texture(%[1]d)]]", i))
 		}
@@ -220,7 +220,7 @@ func (c *compileContext) function(p *shaderir.Program, f *shaderir.Func, prototy
 	for i, u := range p.Uniforms {
 		args = append(args, "constant "+c.varDecl(p, &u, fmt.Sprintf("U%d", i), true))
 	}
-	for i := 0; i < shaderir.TextureCount; i++ {
+	for i := 0; i < p.TextureNum; i++ {
 		args = append(args, fmt.Sprintf("texture2d<float> T%d", i))
 	}
 
@@ -388,7 +388,7 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 				for i := range p.Uniforms {
 					args = append(args, fmt.Sprintf("U%d", i))
 				}
-				for i := 0; i < shaderir.TextureCount; i++ {
+				for i := 0; i < p.TextureNum; i++ {
 					args = append(args, fmt.Sprintf("T%d", i))
 				}
 			}
