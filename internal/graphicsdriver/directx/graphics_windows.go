@@ -1214,8 +1214,8 @@ func (g *Graphics) MaxImageSize() int {
 }
 
 func (g *Graphics) NewShader(program *shaderir.Program) (graphicsdriver.Shader, error) {
-	src, offsets := hlsl.Compile(program)
-	vsh, psh, err := newShader([]byte(src), nil)
+	vs, ps, offsets := hlsl.Compile(program)
+	vsh, psh, err := newShader(vs, ps)
 	if err != nil {
 		return nil, err
 	}
@@ -1742,7 +1742,14 @@ func (s *Shader) disposeImpl() {
 		s.pixelShader = nil
 	}
 	if s.vertexShader != nil {
-		s.vertexShader.Release()
+		count := s.vertexShader.Release()
+		if count == 0 {
+			for k, v := range vertexShaderCache {
+				if v == s.vertexShader {
+					delete(vertexShaderCache, k)
+				}
+			}
+		}
 		s.vertexShader = nil
 	}
 }

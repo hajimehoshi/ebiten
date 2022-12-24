@@ -376,7 +376,9 @@ func (p *pipelineStates) ensureRootSignature(device *_ID3D12Device) (rootSignatu
 	return p.rootSignature, nil
 }
 
-func newShader(source []byte, defs []_D3D_SHADER_MACRO) (vsh, psh *_ID3DBlob, ferr error) {
+var vertexShaderCache = map[string]*_ID3DBlob{}
+
+func newShader(vs, ps string) (vsh, psh *_ID3DBlob, ferr error) {
 	var flag uint32 = uint32(_D3DCOMPILE_OPTIMIZATION_LEVEL3)
 
 	defer func() {
@@ -392,18 +394,28 @@ func newShader(source []byte, defs []_D3D_SHADER_MACRO) (vsh, psh *_ID3DBlob, fe
 	}()
 
 	var wg errgroup.Group
-	wg.Go(func() error {
-		v, err := _D3DCompile(source, "shader", defs, nil, "VSMain", "vs_5_0", flag, 0)
-		if err != nil {
-			return fmt.Errorf("directx: D3DCompile for VSMain failed, original source: %s, %w", string(source), err)
-		}
+
+	// Vertex shaders are likely the same. If so, reuse the same _ID3DBlob.
+	if v, ok := vertexShaderCache[vs]; ok {
+		// Increment the reference count not to release this object unexpectedly.
+		// The value will be removed when the count reached 0.
+		// See (*Shader).disposeImpl.
+		v.AddRef()
 		vsh = v
-		return nil
-	})
+	} else {
+		wg.Go(func() error {
+			v, err := _D3DCompile([]byte(vs), "shader", nil, nil, "VSMain", "vs_5_0", flag, 0)
+			if err != nil {
+				return fmt.Errorf("directx: D3DCompile for VSMain failed, original source: %s, %w", vs, err)
+			}
+			vsh = v
+			return nil
+		})
+	}
 	wg.Go(func() error {
-		p, err := _D3DCompile(source, "shader", defs, nil, "PSMain", "ps_5_0", flag, 0)
+		p, err := _D3DCompile([]byte(ps), "shader", nil, nil, "PSMain", "ps_5_0", flag, 0)
 		if err != nil {
-			return fmt.Errorf("directx: D3DCompile for PSMain failed, original source: %s, %w", string(source), err)
+			return fmt.Errorf("directx: D3DCompile for PSMain failed, original source: %s, %w", ps, err)
 		}
 		psh = p
 		return nil
@@ -412,6 +424,8 @@ func newShader(source []byte, defs []_D3D_SHADER_MACRO) (vsh, psh *_ID3DBlob, fe
 	if err := wg.Wait(); err != nil {
 		return nil, nil, err
 	}
+
+	vertexShaderCache[vs] = vsh
 
 	return
 }

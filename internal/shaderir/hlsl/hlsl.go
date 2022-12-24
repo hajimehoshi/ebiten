@@ -84,16 +84,16 @@ float4x4 float4x4FromScalar(float x) {
 	return float4x4(x, 0, 0, 0, 0, x, 0, 0, 0, 0, x, 0, 0, 0, 0, x);
 }`
 
-func Compile(p *shaderir.Program) (string, []int) {
+func Compile(p *shaderir.Program) (vertexShader, pixelShader string, offsets []int) {
+	offsets = calculateMemoryOffsets(p.Uniforms)
+
 	c := &compileContext{}
 
 	var lines []string
 	lines = append(lines, strings.Split(Prelude, "\n")...)
 	lines = append(lines, "", "{{.Structs}}")
 
-	var offsets []int
 	if len(p.Uniforms) > 0 {
-		offsets = calculateMemoryOffsets(p.Uniforms)
 		lines = append(lines, "")
 		lines = append(lines, "cbuffer Uniforms : register(b0) {")
 		for i, t := range p.Uniforms {
@@ -111,6 +111,7 @@ func Compile(p *shaderir.Program) (string, []int) {
 		}
 		lines = append(lines, "}")
 	}
+
 	if p.TextureCount > 0 {
 		lines = append(lines, "")
 		for i := 0; i < p.TextureCount; i++ {
@@ -119,61 +120,108 @@ func Compile(p *shaderir.Program) (string, []int) {
 		lines = append(lines, "SamplerState samp : register(s0);")
 	}
 
-	if len(p.Funcs) > 0 {
-		lines = append(lines, "")
+	vslines := make([]string, len(lines))
+	copy(vslines, lines)
+	pslines := make([]string, len(lines))
+	copy(pslines, lines)
+
+	var vsfuncs []*shaderir.Func
+	if p.VertexFunc.Block != nil {
+		vsfuncs = p.ReachableFuncsFromBlock(p.VertexFunc.Block)
+	} else {
+		// Use all the functions for testing.
+		vsfuncs = make([]*shaderir.Func, 0, len(p.Funcs))
 		for _, f := range p.Funcs {
-			lines = append(lines, c.function(p, &f, true)...)
+			f := f
+			vsfuncs = append(vsfuncs, &f)
 		}
-		for _, f := range p.Funcs {
-			if len(lines) > 0 && lines[len(lines)-1] != "" {
-				lines = append(lines, "")
+	}
+	if len(vsfuncs) > 0 {
+		vslines = append(vslines, "")
+		for _, f := range vsfuncs {
+			vslines = append(vslines, c.function(p, f, true)...)
+		}
+		for _, f := range vsfuncs {
+			if len(vslines) > 0 && vslines[len(vslines)-1] != "" {
+				vslines = append(vslines, "")
 			}
-			lines = append(lines, c.function(p, &f, false)...)
+			vslines = append(vslines, c.function(p, f, false)...)
 		}
 	}
-
 	if p.VertexFunc.Block != nil && len(p.VertexFunc.Block.Stmts) > 0 {
-		lines = append(lines, "")
-		lines = append(lines, "Varyings VSMain(float2 A0 : POSITION, float2 A1 : TEXCOORD, float4 A2 : COLOR) {")
-		lines = append(lines, fmt.Sprintf("\tVaryings %s;", vsOut))
-		lines = append(lines, c.block(p, p.VertexFunc.Block, p.VertexFunc.Block, 0)...)
-		if last := fmt.Sprintf("\treturn %s;", vsOut); lines[len(lines)-1] != last {
-			lines = append(lines, last)
+		vslines = append(vslines, "")
+		vslines = append(vslines, "Varyings VSMain(float2 A0 : POSITION, float2 A1 : TEXCOORD, float4 A2 : COLOR) {")
+		vslines = append(vslines, fmt.Sprintf("\tVaryings %s;", vsOut))
+		vslines = append(vslines, c.block(p, p.VertexFunc.Block, p.VertexFunc.Block, 0)...)
+		if last := fmt.Sprintf("\treturn %s;", vsOut); vslines[len(vslines)-1] != last {
+			vslines = append(vslines, last)
 		}
-		lines = append(lines, "}")
+		vslines = append(vslines, "}")
 	}
 
+	var psfuncs []*shaderir.Func
+	if p.FragmentFunc.Block != nil {
+		psfuncs = p.ReachableFuncsFromBlock(p.FragmentFunc.Block)
+	} else {
+		// Use all the functions for testing.
+		psfuncs = make([]*shaderir.Func, 0, len(p.Funcs))
+		for _, f := range p.Funcs {
+			f := f
+			psfuncs = append(psfuncs, &f)
+		}
+	}
+	if len(psfuncs) > 0 {
+		pslines = append(pslines, "")
+		for _, f := range psfuncs {
+			pslines = append(pslines, c.function(p, f, true)...)
+		}
+		for _, f := range psfuncs {
+			if len(pslines) > 0 && pslines[len(pslines)-1] != "" {
+				pslines = append(pslines, "")
+			}
+			pslines = append(pslines, c.function(p, f, false)...)
+		}
+	}
 	if p.FragmentFunc.Block != nil && len(p.FragmentFunc.Block.Stmts) > 0 {
-		lines = append(lines, "")
-		lines = append(lines, fmt.Sprintf("float4 PSMain(Varyings %s) : SV_TARGET {", vsOut))
-		lines = append(lines, c.block(p, p.FragmentFunc.Block, p.FragmentFunc.Block, 0)...)
-		lines = append(lines, "}")
+		pslines = append(pslines, "")
+		pslines = append(pslines, fmt.Sprintf("float4 PSMain(Varyings %s) : SV_TARGET {", vsOut))
+		pslines = append(pslines, c.block(p, p.FragmentFunc.Block, p.FragmentFunc.Block, 0)...)
+		pslines = append(pslines, "}")
 	}
 
-	ls := strings.Join(lines, "\n")
+	vertexShader = strings.Join(vslines, "\n")
+	pixelShader = strings.Join(pslines, "\n")
 
 	// Struct types are determined after converting the program.
-	if len(c.structTypes) > 0 {
-		var stlines []string
-		for i, t := range c.structTypes {
-			stlines = append(stlines, fmt.Sprintf("struct S%d {", i))
-			for j, st := range t.Sub {
-				stlines = append(stlines, fmt.Sprintf("\t%s;", c.varDecl(p, &st, fmt.Sprintf("M%d", j))))
+	shaders := []string{vertexShader, pixelShader}
+	for i, shader := range shaders {
+		if len(c.structTypes) > 0 {
+			var stlines []string
+			for i, t := range c.structTypes {
+				stlines = append(stlines, fmt.Sprintf("struct S%d {", i))
+				for j, st := range t.Sub {
+					stlines = append(stlines, fmt.Sprintf("\t%s;", c.varDecl(p, &st, fmt.Sprintf("M%d", j))))
+				}
+				stlines = append(stlines, "};")
 			}
-			stlines = append(stlines, "};")
+			st := strings.Join(stlines, "\n")
+			shader = strings.ReplaceAll(shader, "{{.Structs}}", st)
+		} else {
+			shader = strings.ReplaceAll(shader, "{{.Structs}}", "")
 		}
-		st := strings.Join(stlines, "\n")
-		ls = strings.ReplaceAll(ls, "{{.Structs}}", st)
-	} else {
-		ls = strings.ReplaceAll(ls, "{{.Structs}}", "")
+
+		nls := regexp.MustCompile(`\n\n+`)
+		shader = nls.ReplaceAllString(shader, "\n\n")
+
+		shader = strings.TrimSpace(shader) + "\n"
+
+		shaders[i] = shader
 	}
 
-	nls := regexp.MustCompile(`\n\n+`)
-	ls = nls.ReplaceAllString(ls, "\n\n")
+	vertexShader = shaders[0]
+	pixelShader = shaders[1]
 
-	ls = strings.TrimSpace(ls) + "\n"
-
-	return ls, offsets
+	return
 }
 
 func (c *compileContext) typ(p *shaderir.Program, t *shaderir.Type) (string, string) {

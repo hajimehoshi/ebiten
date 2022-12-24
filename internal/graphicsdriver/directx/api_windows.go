@@ -2309,6 +2309,11 @@ type _ID3DBlob_Vtbl struct {
 	GetBufferSize    uintptr
 }
 
+func (i *_ID3DBlob) AddRef() uint32 {
+	r, _, _ := syscall.Syscall(i.vtbl.AddRef, 1, uintptr(unsafe.Pointer(i)), 0, 0)
+	return uint32(r)
+}
+
 func (i *_ID3DBlob) GetBufferPointer() uintptr {
 	r, _, _ := syscall.Syscall(i.vtbl.GetBufferPointer, 1, uintptr(unsafe.Pointer(i)),
 		0, 0)
