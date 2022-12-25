@@ -263,6 +263,11 @@ func (c *context) clientPositionToLogicalPosition(x, y float64, deviceScaleFacto
 	return (x*deviceScaleFactor - ox) / s, (y*deviceScaleFactor - oy) / s
 }
 
+func (c *context) logicalPositionToClientPosition(x, y float64, deviceScaleFactor float64) (float64, float64) {
+	s, ox, oy := c.screenScaleAndOffsets()
+	return (x*s + ox) / deviceScaleFactor, (y*s + oy) / deviceScaleFactor
+}
+
 func (c *context) screenScaleAndOffsets() (scale, offsetX, offsetY float64) {
 	scaleX := c.screenWidth / c.offscreenWidth
 	scaleY := c.screenHeight / c.offscreenHeight
@@ -272,4 +277,8 @@ func (c *context) screenScaleAndOffsets() (scale, offsetX, offsetY float64) {
 	offsetX = (c.screenWidth - width) / 2
 	offsetY = (c.screenHeight - height) / 2
 	return
+}
+
+func LogicalPositionToClientPosition(x, y float64) (float64, float64) {
+	return theUI.context.logicalPositionToClientPosition(x, y, theUI.DeviceScaleFactor())
 }
