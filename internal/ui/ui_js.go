@@ -675,13 +675,6 @@ func (u *userInterfaceImpl) updateScreenSize() {
 	}
 }
 
-func (u *userInterfaceImpl) SetScreenTransparent(transparent bool) {
-	if u.running {
-		panic("ui: SetScreenTransparent can't be called after the main loop starts")
-	}
-
-}
-
 func (u *userInterfaceImpl) readInputState(inputState *InputState) {
 	*inputState = u.inputState
 	u.inputState.resetForTick()
