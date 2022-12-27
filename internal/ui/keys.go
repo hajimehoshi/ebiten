@@ -132,6 +132,7 @@ const (
 	KeyReserved1
 	KeyReserved2
 	KeyReserved3
+	KeyMax = KeyReserved3
 )
 
 func (k Key) String() string {
@@ -347,5 +348,5 @@ func (k Key) String() string {
 	case KeyTab:
 		return "KeyTab"
 	}
-	panic(fmt.Sprintf("ui: invalid key: %d", k))
+	return fmt.Sprintf("Key(%d)", k)
 }

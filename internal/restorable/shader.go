@@ -17,6 +17,8 @@ package restorable
 import (
 	"fmt"
 
+	"golang.org/x/sync/errgroup"
+
 	"github.com/hajimehoshi/ebiten/v2/internal/builtinshader"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
@@ -54,18 +56,27 @@ var (
 )
 
 func init() {
-	{
+	var wg errgroup.Group
+	var nearestIR, linearIR *shaderir.Program
+	wg.Go(func() error {
 		ir, err := graphics.CompileShader([]byte(builtinshader.Shader(builtinshader.FilterNearest, builtinshader.AddressUnsafe, false)))
 		if err != nil {
-			panic(fmt.Sprintf("restorable: compiling the nearest shader failed: %v", err))
+			return fmt.Errorf("restorable: compiling the nearest shader failed: %w", err)
 		}
-		NearestFilterShader = NewShader(ir)
-	}
-	{
+		nearestIR = ir
+		return nil
+	})
+	wg.Go(func() error {
 		ir, err := graphics.CompileShader([]byte(builtinshader.Shader(builtinshader.FilterLinear, builtinshader.AddressUnsafe, false)))
 		if err != nil {
-			panic(fmt.Sprintf("restorable: compiling the linear shader failed: %v", err))
+			return fmt.Errorf("restorable: compiling the linear shader failed: %w", err)
 		}
-		LinearFilterShader = NewShader(ir)
+		linearIR = ir
+		return nil
+	})
+	if err := wg.Wait(); err != nil {
+		panic(err)
 	}
+	NearestFilterShader = NewShader(nearestIR)
+	LinearFilterShader = NewShader(linearIR)
 }

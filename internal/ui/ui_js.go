@@ -86,8 +86,12 @@ type userInterfaceImpl struct {
 
 	err error
 
-	context *context
-	input   Input
+	context     *context
+	inputState  InputState
+	origCursorX int
+	origCursorY int
+
+	keyboardLayoutMap js.Value
 
 	m sync.Mutex
 }
@@ -96,7 +100,6 @@ func init() {
 	theUI.userInterfaceImpl = userInterfaceImpl{
 		runnableOnUnfocused: true,
 	}
-	theUI.input.ui = &theUI.userInterfaceImpl
 }
 
 var (
@@ -475,7 +478,7 @@ func init() {
 		if theUI.cursorMode == CursorModeCaptured {
 			theUI.recoverCursorMode()
 		}
-		theUI.input.recoverCursorPosition()
+		theUI.recoverCursorPosition()
 		return nil
 	}))
 	document.Call("addEventListener", "pointerlockerror", js.FuncOf(func(this js.Value, args []js.Value) any {
@@ -516,7 +519,7 @@ func setCanvasEventHandlers(v js.Value) {
 
 		e := args[0]
 		e.Call("preventDefault")
-		if err := theUI.input.updateFromEvent(e); err != nil && theUI.err != nil {
+		if err := theUI.updateInputFromEvent(e); err != nil && theUI.err != nil {
 			theUI.err = err
 			return nil
 		}
@@ -525,7 +528,7 @@ func setCanvasEventHandlers(v js.Value) {
 	v.Call("addEventListener", "keyup", js.FuncOf(func(this js.Value, args []js.Value) any {
 		e := args[0]
 		e.Call("preventDefault")
-		if err := theUI.input.updateFromEvent(e); err != nil && theUI.err != nil {
+		if err := theUI.updateInputFromEvent(e); err != nil && theUI.err != nil {
 			theUI.err = err
 			return nil
 		}
@@ -539,7 +542,7 @@ func setCanvasEventHandlers(v js.Value) {
 
 		e := args[0]
 		e.Call("preventDefault")
-		if err := theUI.input.updateFromEvent(e); err != nil && theUI.err != nil {
+		if err := theUI.updateInputFromEvent(e); err != nil && theUI.err != nil {
 			theUI.err = err
 			return nil
 		}
@@ -548,7 +551,7 @@ func setCanvasEventHandlers(v js.Value) {
 	v.Call("addEventListener", "mouseup", js.FuncOf(func(this js.Value, args []js.Value) any {
 		e := args[0]
 		e.Call("preventDefault")
-		if err := theUI.input.updateFromEvent(e); err != nil && theUI.err != nil {
+		if err := theUI.updateInputFromEvent(e); err != nil && theUI.err != nil {
 			theUI.err = err
 			return nil
 		}
@@ -557,7 +560,7 @@ func setCanvasEventHandlers(v js.Value) {
 	v.Call("addEventListener", "mousemove", js.FuncOf(func(this js.Value, args []js.Value) any {
 		e := args[0]
 		e.Call("preventDefault")
-		if err := theUI.input.updateFromEvent(e); err != nil && theUI.err != nil {
+		if err := theUI.updateInputFromEvent(e); err != nil && theUI.err != nil {
 			theUI.err = err
 			return nil
 		}
@@ -566,7 +569,7 @@ func setCanvasEventHandlers(v js.Value) {
 	v.Call("addEventListener", "wheel", js.FuncOf(func(this js.Value, args []js.Value) any {
 		e := args[0]
 		e.Call("preventDefault")
-		if err := theUI.input.updateFromEvent(e); err != nil && theUI.err != nil {
+		if err := theUI.updateInputFromEvent(e); err != nil && theUI.err != nil {
 			theUI.err = err
 			return nil
 		}
@@ -580,7 +583,7 @@ func setCanvasEventHandlers(v js.Value) {
 
 		e := args[0]
 		e.Call("preventDefault")
-		if err := theUI.input.updateFromEvent(e); err != nil && theUI.err != nil {
+		if err := theUI.updateInputFromEvent(e); err != nil && theUI.err != nil {
 			theUI.err = err
 			return nil
 		}
@@ -589,7 +592,7 @@ func setCanvasEventHandlers(v js.Value) {
 	v.Call("addEventListener", "touchend", js.FuncOf(func(this js.Value, args []js.Value) any {
 		e := args[0]
 		e.Call("preventDefault")
-		if err := theUI.input.updateFromEvent(e); err != nil && theUI.err != nil {
+		if err := theUI.updateInputFromEvent(e); err != nil && theUI.err != nil {
 			theUI.err = err
 			return nil
 		}
@@ -598,7 +601,7 @@ func setCanvasEventHandlers(v js.Value) {
 	v.Call("addEventListener", "touchmove", js.FuncOf(func(this js.Value, args []js.Value) any {
 		e := args[0]
 		e.Call("preventDefault")
-		if err := theUI.input.updateFromEvent(e); err != nil && theUI.err != nil {
+		if err := theUI.updateInputFromEvent(e); err != nil && theUI.err != nil {
 			theUI.err = err
 			return nil
 		}
@@ -672,19 +675,13 @@ func (u *userInterfaceImpl) updateScreenSize() {
 	}
 }
 
-func (u *userInterfaceImpl) SetScreenTransparent(transparent bool) {
-	if u.running {
-		panic("ui: SetScreenTransparent can't be called after the main loop starts")
-	}
-
+func (u *userInterfaceImpl) readInputState(inputState *InputState) {
+	*inputState = u.inputState
+	u.inputState.resetForTick()
 }
 
 func (u *userInterfaceImpl) resetForTick() {
-	u.input.resetForTick()
-}
-
-func (u *userInterfaceImpl) Input() *Input {
-	return &u.input
+	u.keyboardLayoutMap = js.Value{}
 }
 
 func (u *userInterfaceImpl) Window() Window {

@@ -60,7 +60,6 @@ func init() {
 		outsideWidth:  640,
 		outsideHeight: 480,
 	}
-	theUI.input.ui = &theUI.userInterfaceImpl
 }
 
 // Update is called from mobile/ebitenmobileview.
@@ -108,7 +107,7 @@ type userInterfaceImpl struct {
 
 	context *context
 
-	input Input
+	inputState InputState
 
 	fpsMode         FPSModeType
 	renderRequester RenderRequester
@@ -127,7 +126,7 @@ func (u *userInterfaceImpl) appMain(a app.App) {
 	var glctx gl.Context
 	var sizeInited bool
 
-	touches := map[touch.Sequence]Touch{}
+	touches := map[touch.Sequence]TouchForInput{}
 	keys := map[Key]struct{}{}
 
 	for e := range a.Events() {
@@ -180,12 +179,10 @@ func (u *userInterfaceImpl) appMain(a app.App) {
 			switch e.Type {
 			case touch.TypeBegin, touch.TypeMove:
 				s := deviceScale()
-				x, y := float64(e.X)/s, float64(e.Y)/s
-				// TODO: Is it ok to cast from int64 to int here?
-				touches[e.Sequence] = Touch{
+				touches[e.Sequence] = TouchForInput{
 					ID: TouchID(e.Sequence),
-					X:  int(x),
-					Y:  int(y),
+					X:  float64(e.X) / s,
+					Y:  float64(e.Y) / s,
 				}
 			case touch.TypeEnd:
 				delete(touches, e.Sequence)
@@ -212,11 +209,11 @@ func (u *userInterfaceImpl) appMain(a app.App) {
 		}
 
 		if updateInput {
-			var ts []Touch
+			var ts []TouchForInput
 			for _, t := range touches {
 				ts = append(ts, t)
 			}
-			u.input.update(keys, runes, ts)
+			u.updateInputState(keys, runes, ts)
 		}
 	}
 }
@@ -364,11 +361,6 @@ func (u *userInterfaceImpl) setGBuildSize(widthPx, heightPx int) {
 	})
 }
 
-func (u *userInterfaceImpl) adjustPosition(x, y int) (int, int) {
-	xf, yf := u.context.adjustPosition(float64(x), float64(y), deviceScale())
-	return int(xf), int(yf)
-}
-
 func (u *userInterfaceImpl) CursorMode() CursorMode {
 	return CursorModeHidden
 }
@@ -421,26 +413,22 @@ func (u *userInterfaceImpl) DeviceScaleFactor() float64 {
 	return deviceScale()
 }
 
-func (u *userInterfaceImpl) resetForTick() {
-	u.input.resetForTick()
+func (u *userInterfaceImpl) readInputState(inputState *InputState) {
+	u.m.Lock()
+	defer u.m.Unlock()
+	*inputState = u.inputState
+	u.inputState.resetForTick()
 }
 
-func (u *userInterfaceImpl) Input() *Input {
-	return &u.input
+func (u *userInterfaceImpl) resetForTick() {
 }
 
 func (u *userInterfaceImpl) Window() Window {
 	return &nullWindow{}
 }
 
-type Touch struct {
-	ID TouchID
-	X  int
-	Y  int
-}
-
-func (u *userInterfaceImpl) UpdateInput(keys map[Key]struct{}, runes []rune, touches []Touch) {
-	u.input.update(keys, runes, touches)
+func (u *userInterfaceImpl) UpdateInput(keys map[Key]struct{}, runes []rune, touches []TouchForInput) {
+	u.updateInputState(keys, runes, touches)
 	if u.fpsMode == FPSModeVsyncOffMinimum {
 		u.renderRequester.RequestRenderIfNeeded()
 	}

@@ -18,135 +18,10 @@ package ui
 
 import (
 	"math"
-	"sync"
-	"unicode"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
 	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
 )
-
-type Input struct {
-	keyPressed         map[glfw.Key]bool
-	mouseButtonPressed map[glfw.MouseButton]bool
-	onceCallback       sync.Once
-	scrollX            float64
-	scrollY            float64
-	cursorX            int
-	cursorY            int
-	touches            map[TouchID]pos // TODO: Implement this (#417)
-	runeBuffer         []rune
-	ui                 *userInterfaceImpl
-}
-
-type pos struct {
-	X int
-	Y int
-}
-
-func (i *Input) CursorPosition() (x, y int) {
-	if !i.ui.isRunning() {
-		return 0, 0
-	}
-
-	i.ui.m.RLock()
-	defer i.ui.m.RUnlock()
-	return i.cursorX, i.cursorY
-}
-
-func (i *Input) AppendTouchIDs(touchIDs []TouchID) []TouchID {
-	if !i.ui.isRunning() {
-		return nil
-	}
-
-	i.ui.m.RLock()
-	defer i.ui.m.RUnlock()
-	for id := range i.touches {
-		touchIDs = append(touchIDs, id)
-	}
-	return touchIDs
-}
-
-func (i *Input) TouchPosition(id TouchID) (x, y int) {
-	if !i.ui.isRunning() {
-		return 0, 0
-	}
-
-	i.ui.m.RLock()
-	defer i.ui.m.RUnlock()
-	for tid, pos := range i.touches {
-		if id == tid {
-			return pos.X, pos.Y
-		}
-	}
-	return 0, 0
-}
-
-func (i *Input) IsKeyPressed(key Key) bool {
-	if !i.ui.isRunning() {
-		return false
-	}
-
-	i.ui.m.Lock()
-	defer i.ui.m.Unlock()
-
-	gk, ok := uiKeyToGLFWKey[key]
-	if !ok {
-		return false
-	}
-	return i.keyPressed[gk]
-}
-
-func (i *Input) AppendInputChars(runes []rune) []rune {
-	if !i.ui.isRunning() {
-		return nil
-	}
-
-	i.ui.m.RLock()
-	defer i.ui.m.RUnlock()
-	return append(runes, i.runeBuffer...)
-}
-
-func (i *Input) resetForTick() {
-	if !i.ui.isRunning() {
-		return
-	}
-
-	i.ui.m.Lock()
-	defer i.ui.m.Unlock()
-	i.runeBuffer = i.runeBuffer[:0]
-	i.scrollX, i.scrollY = 0, 0
-}
-
-func (i *Input) IsMouseButtonPressed(button MouseButton) bool {
-	if !i.ui.isRunning() {
-		return false
-	}
-
-	i.ui.m.Lock()
-	defer i.ui.m.Unlock()
-	if i.mouseButtonPressed == nil {
-		i.mouseButtonPressed = map[glfw.MouseButton]bool{}
-	}
-	for gb, b := range glfwMouseButtonToMouseButton {
-		if b != button {
-			continue
-		}
-		if i.mouseButtonPressed[gb] {
-			return true
-		}
-	}
-	return false
-}
-
-func (i *Input) Wheel() (xoff, yoff float64) {
-	if !i.ui.isRunning() {
-		return 0, 0
-	}
-
-	i.ui.m.RLock()
-	defer i.ui.m.RUnlock()
-	return i.scrollX, i.scrollY
-}
 
 var glfwMouseButtonToMouseButton = map[glfw.MouseButton]MouseButton{
 	glfw.MouseButtonLeft:   MouseButton0,
@@ -156,57 +31,69 @@ var glfwMouseButtonToMouseButton = map[glfw.MouseButton]MouseButton{
 	glfw.MouseButton4:      MouseButton4,
 }
 
-// update must be called from the main thread.
-func (i *Input) update(window *glfw.Window, context *context) error {
-	i.ui.m.Lock()
-	defer i.ui.m.Unlock()
+func (u *userInterfaceImpl) registerInputCallbacks() {
+	u.window.SetCharModsCallback(glfw.ToCharModsCallback(func(w *glfw.Window, char rune, mods glfw.ModifierKey) {
+		// As this function is called from GLFW callbacks, the current thread is main.
+		u.m.Lock()
+		defer u.m.Unlock()
+		u.inputState.appendRune(char)
+	}))
+	u.window.SetScrollCallback(glfw.ToScrollCallback(func(w *glfw.Window, xoff float64, yoff float64) {
+		// As this function is called from GLFW callbacks, the current thread is main.
+		u.m.Lock()
+		defer u.m.Unlock()
+		u.inputState.WheelX += xoff
+		u.inputState.WheelY += yoff
+	}))
+}
 
-	i.onceCallback.Do(func() {
-		window.SetCharModsCallback(glfw.ToCharModsCallback(func(w *glfw.Window, char rune, mods glfw.ModifierKey) {
-			// As this function is called from GLFW callbacks, the current thread is main.
-			if !unicode.IsPrint(char) {
-				return
-			}
+// updateInput must be called from the main thread.
+func (u *userInterfaceImpl) updateInputState() error {
+	u.m.Lock()
+	defer u.m.Unlock()
 
-			i.ui.m.Lock()
-			defer i.ui.m.Unlock()
-			i.runeBuffer = append(i.runeBuffer, char)
-		}))
-		window.SetScrollCallback(glfw.ToScrollCallback(func(w *glfw.Window, xoff float64, yoff float64) {
-			// As this function is called from GLFW callbacks, the current thread is main.
-			i.ui.m.Lock()
-			defer i.ui.m.Unlock()
-			i.scrollX += xoff
-			i.scrollY += yoff
-		}))
-	})
-	if i.keyPressed == nil {
-		i.keyPressed = map[glfw.Key]bool{}
+	for uk, gk := range uiKeyToGLFWKey {
+		u.inputState.KeyPressed[uk] = u.window.GetKey(gk) == glfw.Press
 	}
-	for _, gk := range uiKeyToGLFWKey {
-		i.keyPressed[gk] = window.GetKey(gk) == glfw.Press
+	for gb, ub := range glfwMouseButtonToMouseButton {
+		u.inputState.MouseButtonPressed[ub] = u.window.GetMouseButton(gb) == glfw.Press
 	}
-	if i.mouseButtonPressed == nil {
-		i.mouseButtonPressed = map[glfw.MouseButton]bool{}
-	}
-	for gb := range glfwMouseButtonToMouseButton {
-		i.mouseButtonPressed[gb] = window.GetMouseButton(gb) == glfw.Press
-	}
-	cx, cy := window.GetCursorPos()
+	cx, cy := u.window.GetCursorPos()
 	// TODO: This is tricky. Rename the function?
-	m := i.ui.currentMonitor()
-	s := i.ui.deviceScaleFactor(m)
-	cx = i.ui.dipFromGLFWPixel(cx, m)
-	cy = i.ui.dipFromGLFWPixel(cy, m)
-	cx, cy = context.adjustPosition(cx, cy, s)
+	m := u.currentMonitor()
+	s := u.deviceScaleFactor(m)
+	cx = u.dipFromGLFWPixel(cx, m)
+	cy = u.dipFromGLFWPixel(cy, m)
+	cx, cy = u.context.clientPositionToLogicalPosition(cx, cy, s)
 
 	// AdjustPosition can return NaN at the initialization.
 	if !math.IsNaN(cx) && !math.IsNaN(cy) {
-		i.cursorX, i.cursorY = int(cx), int(cy)
+		u.inputState.CursorX, u.inputState.CursorY = int(cx), int(cy)
 	}
 
 	if err := gamepad.Update(); err != nil {
 		return err
 	}
 	return nil
+}
+
+func KeyName(key Key) string {
+	return theUI.keyName(key)
+}
+
+func (u *userInterfaceImpl) keyName(key Key) string {
+	if !u.isRunning() {
+		return ""
+	}
+
+	gk, ok := uiKeyToGLFWKey[key]
+	if !ok {
+		return ""
+	}
+
+	var name string
+	u.t.Call(func() {
+		name = glfw.GetKeyName(gk, 0)
+	})
+	return name
 }

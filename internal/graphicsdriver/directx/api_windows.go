@@ -1011,11 +1011,17 @@ type _D3D12XBOX_WAIT_FRAME_OBJECT_LIST struct {
 	pSignaledObjectIndex *uint32
 }
 
+type _PAPPSTATE_CHANGE_ROUTINE func(quiesced bool, context unsafe.Pointer) uintptr
+
 var (
+	// https://github.com/MicrosoftDocs/sdk-api/blob/docs/sdk-api-src/content/appnotify/nf-appnotify-registerappstatechangenotification.md
+	appnotify   = windows.NewLazySystemDLL("API-MS-Win-Core-psm-appnotify-l1-1-0.dll")
 	d3d12       = windows.NewLazySystemDLL("d3d12.dll")
 	d3d12x      = windows.NewLazySystemDLL(microsoftgdk.D3D12DLLName())
 	d3dcompiler = windows.NewLazySystemDLL("d3dcompiler_47.dll")
 	dxgi        = windows.NewLazySystemDLL("dxgi.dll")
+
+	procRegisterAppStateChangeNotification = appnotify.NewProc("RegisterAppStateChangeNotification")
 
 	procD3D12CreateDevice           = d3d12.NewProc("D3D12CreateDevice")
 	procD3D12GetDebugInterface      = d3d12.NewProc("D3D12GetDebugInterface")
@@ -1113,6 +1119,16 @@ func _D3DCompile(srcData []byte, sourceName string, pDefines []_D3D_SHADER_MACRO
 		return nil, fmt.Errorf("directx: D3DCompile failed: %w", handleError(windows.Handle(uint32(r))))
 	}
 	return code, nil
+}
+
+func _RegisterAppStateChangeNotification(routine _PAPPSTATE_CHANGE_ROUTINE, context unsafe.Pointer) (unsafe.Pointer, error) {
+	cb := windows.NewCallback(routine)
+	var registration unsafe.Pointer
+	r, _, _ := procRegisterAppStateChangeNotification.Call(cb, uintptr(context), uintptr(unsafe.Pointer(&registration)))
+	if windows.Errno(r) != windows.ERROR_SUCCESS {
+		return nil, fmt.Errorf("directx: RegisterAppStateChangeNotification failed: %w", windows.Errno(r))
+	}
+	return registration, nil
 }
 
 func _CreateDXGIFactory2(flags uint32) (*_IDXGIFactory4, error) {
@@ -1296,8 +1312,8 @@ type _ID3D12CommandQueue_Vtbl struct {
 	// These members are for Xbox.
 	_        uintptr
 	_        uintptr
-	_        uintptr
-	_        uintptr
+	SuspendX uintptr
+	ResumeX  uintptr
 	_        uintptr
 	_        uintptr
 	_        uintptr
@@ -1326,6 +1342,18 @@ func (i *_ID3D12CommandQueue) PresentX(planeCount uint32, pPlaneParameters *_D3D
 	return nil
 }
 
+func (i *_ID3D12CommandQueue) Release() uint32 {
+	r, _, _ := syscall.Syscall(i.vtbl.Release, 1, uintptr(unsafe.Pointer(i)), 0, 0)
+	return uint32(r)
+}
+
+func (i *_ID3D12CommandQueue) ResumeX() error {
+	if r, _, _ := syscall.Syscall(i.vtbl.ResumeX, 1, uintptr(unsafe.Pointer(i)), 0, 0); uint32(r) != uint32(windows.S_OK) {
+		return fmt.Errorf("directx: ID3D12CommandQueue::ResumeX failed: %w", handleError(windows.Handle(uint32(r))))
+	}
+	return nil
+}
+
 func (i *_ID3D12CommandQueue) Signal(signal *_ID3D12Fence, value uint64) error {
 	var r uintptr
 	if is64bit {
@@ -1342,9 +1370,11 @@ func (i *_ID3D12CommandQueue) Signal(signal *_ID3D12Fence, value uint64) error {
 	return nil
 }
 
-func (i *_ID3D12CommandQueue) Release() uint32 {
-	r, _, _ := syscall.Syscall(i.vtbl.Release, 1, uintptr(unsafe.Pointer(i)), 0, 0)
-	return uint32(r)
+func (i *_ID3D12CommandQueue) SuspendX(flags uint32) error {
+	if r, _, _ := syscall.Syscall(i.vtbl.SuspendX, 2, uintptr(unsafe.Pointer(i)), uintptr(flags), 0); uint32(r) != uint32(windows.S_OK) {
+		return fmt.Errorf("directx: ID3D12CommandQueue::SuspendX failed: %w", handleError(windows.Handle(uint32(r))))
+	}
+	return nil
 }
 
 type _ID3D12Debug struct {
@@ -2277,6 +2307,11 @@ type _ID3DBlob_Vtbl struct {
 
 	GetBufferPointer uintptr
 	GetBufferSize    uintptr
+}
+
+func (i *_ID3DBlob) AddRef() uint32 {
+	r, _, _ := syscall.Syscall(i.vtbl.AddRef, 1, uintptr(unsafe.Pointer(i)), 0, 0)
+	return uint32(r)
 }
 
 func (i *_ID3DBlob) GetBufferPointer() uintptr {

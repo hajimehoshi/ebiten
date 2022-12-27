@@ -25,7 +25,7 @@ import (
 type Program struct {
 	UniformNames []string
 	Uniforms     []Type
-	TextureNum   int
+	TextureCount int
 	Attributes   []Type
 	Varyings     []Type
 	Funcs        []Func

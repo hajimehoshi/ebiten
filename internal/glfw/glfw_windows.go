@@ -306,6 +306,14 @@ func CreateWindow(width, height int, title string, monitor *Monitor, share *Wind
 	return (*Window)(w), err
 }
 
+func GetKeyName(key Key, scancode int) string {
+	name, err := glfwwin.GetKeyName(glfwwin.Key(key), scancode)
+	if err != nil {
+		panic(err)
+	}
+	return name
+}
+
 func GetMonitors() []*Monitor {
 	ms, err := glfwwin.GetMonitors()
 	if err != nil {

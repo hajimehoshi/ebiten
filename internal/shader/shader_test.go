@@ -194,8 +194,8 @@ func TestCompile(t *testing.T) {
 			}
 
 			if tc.HLSL != nil {
-				h, _ := hlsl.Compile(s)
-				if got, want := hlslNormalize(h), hlslNormalize(string(tc.HLSL)); got != want {
+				vs, _, _ := hlsl.Compile(s)
+				if got, want := hlslNormalize(vs), hlslNormalize(string(tc.HLSL)); got != want {
 					compare(t, "HLSL", got, want)
 				}
 			}

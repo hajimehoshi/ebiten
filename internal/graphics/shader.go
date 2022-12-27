@@ -130,10 +130,10 @@ func CompileShader(src []byte) (*shaderir.Program, error) {
 	}
 
 	if ir.VertexFunc.Block == nil {
-		return nil, fmt.Errorf("graphicscommand: vertex shader entry point '%s' is missing", vert)
+		return nil, fmt.Errorf("graphics: vertex shader entry point '%s' is missing", vert)
 	}
 	if ir.FragmentFunc.Block == nil {
-		return nil, fmt.Errorf("graphicscommand: fragment shader entry point '%s' is missing", frag)
+		return nil, fmt.Errorf("graphics: fragment shader entry point '%s' is missing", frag)
 	}
 
 	return ir, nil

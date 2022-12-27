@@ -100,8 +100,8 @@ type userInterfaceImpl struct {
 
 	fpsModeInited bool
 
-	input   Input
-	iwindow glfwWindow
+	inputState InputState
+	iwindow    glfwWindow
 
 	sizeCallback                   glfw.SizeCallback
 	closeCallback                  glfw.CloseCallback
@@ -137,7 +137,6 @@ func init() {
 		origWindowPosX:           invalidPos,
 		origWindowPosY:           invalidPos,
 	}
-	theUI.input.ui = &theUI.userInterfaceImpl
 	theUI.iwindow.ui = &theUI.userInterfaceImpl
 }
 
@@ -958,6 +957,7 @@ func (u *userInterfaceImpl) init(options *RunOptions) error {
 	u.registerWindowSetSizeCallback()
 	u.registerWindowCloseCallback()
 	u.registerWindowFramebufferSizeCallback()
+	u.registerInputCallbacks()
 
 	return nil
 }
@@ -1046,7 +1046,7 @@ func (u *userInterfaceImpl) update() (float64, float64, error) {
 	} else {
 		glfw.WaitEvents()
 	}
-	if err := u.input.update(u.window, u.context); err != nil {
+	if err := u.updateInputState(); err != nil {
 		return 0, 0, err
 	}
 
@@ -1266,7 +1266,6 @@ func (u *userInterfaceImpl) setFullscreen(fullscreen bool) {
 	if u.isFullscreen() == fullscreen {
 		return
 	}
-	u.graphicsDriver.SetFullscreen(fullscreen)
 
 	// Enter the fullscreen.
 	if fullscreen {
@@ -1408,15 +1407,16 @@ func monitorFromWindow(window *glfw.Window) *glfw.Monitor {
 }
 
 func (u *userInterfaceImpl) resetForTick() {
-	u.input.resetForTick()
-
 	u.m.Lock()
+	defer u.m.Unlock()
 	u.windowBeingClosed = false
-	u.m.Unlock()
 }
 
-func (u *userInterfaceImpl) Input() *Input {
-	return &u.input
+func (u *userInterfaceImpl) readInputState(inputState *InputState) {
+	u.m.Lock()
+	defer u.m.Unlock()
+	*inputState = u.inputState
+	u.inputState.resetForTick()
 }
 
 func (u *userInterfaceImpl) Window() Window {

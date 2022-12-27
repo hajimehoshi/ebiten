@@ -208,14 +208,10 @@ func (g *Graphics) flushIfNeeded(present bool) {
 		g.screenDrawable = g.view.nextDrawable()
 	}
 
-	if !g.view.presentsWithTransaction() && present && g.screenDrawable != (ca.MetalDrawable{}) {
+	if present && g.screenDrawable != (ca.MetalDrawable{}) {
 		g.cb.PresentDrawable(g.screenDrawable)
 	}
 	g.cb.Commit()
-	if g.view.presentsWithTransaction() && present && g.screenDrawable != (ca.MetalDrawable{}) {
-		g.cb.WaitUntilScheduled()
-		g.screenDrawable.Present()
-	}
 
 	for _, t := range g.tmpTextures {
 		t.Release()
@@ -629,10 +625,6 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 
 func (g *Graphics) SetVsyncEnabled(enabled bool) {
 	g.view.setDisplaySyncEnabled(enabled)
-}
-
-func (g *Graphics) SetFullscreen(fullscreen bool) {
-	g.view.setFullscreen(fullscreen)
 }
 
 func (g *Graphics) NeedsRestoring() bool {

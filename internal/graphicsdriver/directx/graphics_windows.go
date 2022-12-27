@@ -150,6 +150,10 @@ type Graphics struct {
 	newScreenWidth  int
 	newScreenHeight int
 
+	suspendingCh chan struct{}
+	suspendedCh  chan struct{}
+	resumeCh     chan struct{}
+
 	pipelineStates
 }
 
@@ -341,11 +345,35 @@ func (g *Graphics) initializeXbox(useWARP bool, useDebugLayer bool) (ferr error)
 		return err
 	}
 
-	dd, err := g.device.QueryInterface(&_IID_IDXGIDevice)
+	if err := g.registerFrameEventForXbox(); err != nil {
+		return err
+	}
+
+	g.suspendingCh = make(chan struct{})
+	g.suspendedCh = make(chan struct{})
+	g.resumeCh = make(chan struct{})
+	if _, err := _RegisterAppStateChangeNotification(func(quiesced bool, context unsafe.Pointer) uintptr {
+		if quiesced {
+			g.suspendingCh <- struct{}{}
+			// Confirm the suspension completed before the callback ends.
+			<-g.suspendedCh
+		} else {
+			g.resumeCh <- struct{}{}
+		}
+		return 0
+	}, nil); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (g *Graphics) registerFrameEventForXbox() error {
+	d, err := g.device.QueryInterface(&_IID_IDXGIDevice)
 	if err != nil {
 		return err
 	}
-	dxgiDevice := (*_IDXGIDevice)(dd)
+	dxgiDevice := (*_IDXGIDevice)(d)
 	defer dxgiDevice.Release()
 
 	dxgiAdapter, err := dxgiDevice.GetAdapter()
@@ -727,6 +755,22 @@ func (g *Graphics) SetWindow(window uintptr) {
 
 func (g *Graphics) Begin() error {
 	if microsoftgdk.IsXbox() && !g.frameStarted {
+		select {
+		case <-g.suspendingCh:
+			if err := g.commandQueue.SuspendX(0); err != nil {
+				return err
+			}
+			g.suspendedCh <- struct{}{}
+			<-g.resumeCh
+			if err := g.commandQueue.ResumeX(); err != nil {
+				return err
+			}
+			if err := g.registerFrameEventForXbox(); err != nil {
+				return err
+			}
+		default:
+		}
+
 		g.framePipelineToken = _D3D12XBOX_FRAME_PIPELINE_TOKEN_NULL
 		if err := g.device.WaitFrameEventX(_D3D12XBOX_FRAME_EVENT_ORIGIN, windows.INFINITE, nil, _D3D12XBOX_WAIT_FRAME_EVENT_FLAG_NONE, &g.framePipelineToken); err != nil {
 			return err
@@ -1145,9 +1189,6 @@ func (g *Graphics) SetVsyncEnabled(enabled bool) {
 	g.vsyncEnabled = enabled
 }
 
-func (g *Graphics) SetFullscreen(fullscreen bool) {
-}
-
 func (g *Graphics) NeedsRestoring() bool {
 	return false
 }
@@ -1170,8 +1211,8 @@ func (g *Graphics) MaxImageSize() int {
 }
 
 func (g *Graphics) NewShader(program *shaderir.Program) (graphicsdriver.Shader, error) {
-	src, offsets := hlsl.Compile(program)
-	vsh, psh, err := newShader([]byte(src), nil)
+	vs, ps, offsets := hlsl.Compile(program)
+	vsh, psh, err := newShader(vs, ps)
 	if err != nil {
 		return nil, err
 	}
@@ -1698,7 +1739,14 @@ func (s *Shader) disposeImpl() {
 		s.pixelShader = nil
 	}
 	if s.vertexShader != nil {
-		s.vertexShader.Release()
+		count := s.vertexShader.Release()
+		if count == 0 {
+			for k, v := range vertexShaderCache {
+				if v == s.vertexShader {
+					delete(vertexShaderCache, k)
+				}
+			}
+		}
 		s.vertexShader = nil
 	}
 }

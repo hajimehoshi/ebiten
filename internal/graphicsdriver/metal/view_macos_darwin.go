@@ -42,23 +42,6 @@ func (v *view) update() {
 	v.windowChanged = false
 }
 
-func (v *view) usePresentsWithTransaction() bool {
-	// Disable presentsWithTransaction on the fullscreen mode (#1745, #1974).
-	if v.fullscreen {
-		return false
-	}
-	return !v.vsyncDisabled
-}
-
-func (v *view) maximumDrawableCount() int {
-	// When presentsWithTransaction is YES and triple buffering is enabled, nextDrawing returns immediately once every two times.
-	// This makes FPS doubled. To avoid this, disable the triple buffering.
-	if v.usePresentsWithTransaction() {
-		return 2
-	}
-	return 3
-}
-
 const (
 	storageMode         = mtl.StorageModeManaged
 	resourceStorageMode = mtl.ResourceStorageModeManaged

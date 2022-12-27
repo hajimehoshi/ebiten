@@ -19,6 +19,7 @@ package ui
 import (
 	"runtime"
 
+	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl"
 	"github.com/hajimehoshi/ebiten/v2/internal/nintendosdk"
@@ -52,8 +53,9 @@ func init() {
 type userInterfaceImpl struct {
 	graphicsDriver graphicsdriver.Graphics
 
-	context *context
-	input   Input
+	context       *context
+	inputState    InputState
+	nativeTouches []nintendosdk.Touch
 }
 
 func (u *userInterfaceImpl) Run(game Game, options *RunOptions) error {
@@ -66,7 +68,8 @@ func (u *userInterfaceImpl) Run(game Game, options *RunOptions) error {
 	nintendosdk.InitializeGame()
 	for {
 		nintendosdk.BeginFrame()
-		u.input.update(u.context)
+		gamepad.Update()
+		u.updateInputState()
 
 		w, h := nintendosdk.ScreenSize()
 		if err := u.context.updateFrame(u.graphicsDriver, float64(w), float64(h), deviceScaleFactor, u); err != nil {
@@ -89,7 +92,12 @@ func (*userInterfaceImpl) ScreenSizeInFullscreen() (int, int) {
 	return 0, 0
 }
 
-func (*userInterfaceImpl) resetForTick() {
+func (u *userInterfaceImpl) readInputState(inputState *InputState) {
+	*inputState = u.inputState
+	u.inputState.resetForTick()
+}
+
+func (u *userInterfaceImpl) resetForTick() {
 }
 
 func (*userInterfaceImpl) CursorMode() CursorMode {
@@ -124,10 +132,6 @@ func (*userInterfaceImpl) SetFPSMode(mode FPSModeType) {
 }
 
 func (*userInterfaceImpl) ScheduleFrame() {
-}
-
-func (*userInterfaceImpl) Input() *Input {
-	return &theUI.input
 }
 
 func (*userInterfaceImpl) Window() Window {

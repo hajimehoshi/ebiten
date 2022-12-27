@@ -485,6 +485,7 @@ const (
 	KeyReserved1
 	KeyReserved2
 	KeyReserved3
+	KeyMax = KeyReserved3
 )
 
 func (k Key) String() string {
@@ -492,7 +493,7 @@ func (k Key) String() string {
 	{{range $index, $name := .UIKeyNames}}case Key{{$name}}:
 		return {{$name | printf "Key%s" | printf "%q"}}
 	{{end}}}
-	panic(fmt.Sprintf("ui: invalid key: %d", k))
+	return fmt.Sprintf("Key(%d)", k)
 }
 `
 

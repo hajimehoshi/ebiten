@@ -35,6 +35,7 @@ type Game interface {
 	NewOffscreenImage(width, height int) *Image
 	NewScreenImage(width, height int) *Image
 	Layout(outsideWidth, outsideHeight float64) (screenWidth, screenHeight float64)
+	UpdateInputState(InputState)
 	Update() error
 	DrawOffscreen() error
 	DrawFinalScreen(scale, offsetX, offsetY float64)
@@ -53,7 +54,7 @@ type context struct {
 	offscreenWidth  float64
 	offscreenHeight float64
 
-	isOffscreenDirty bool
+	isOffscreenModified bool
 
 	skipCount int
 }
@@ -123,16 +124,23 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 
 	// Update the game.
 	for i := 0; i < updateCount; i++ {
+		// Read the input state and use it for one tick to give a consistent result for one tick (#2496, #2501).
+		var inputState InputState
+		ui.readInputState(&inputState)
+		c.game.UpdateInputState(inputState)
+
 		if err := hooks.RunBeforeUpdateHooks(); err != nil {
 			return err
 		}
 		if err := c.game.Update(); err != nil {
 			return err
 		}
+
 		// Catch the error that happened at (*Image).At.
 		if err := theGlobalState.error(); err != nil {
 			return err
 		}
+
 		ui.resetForTick()
 	}
 
@@ -151,6 +159,9 @@ func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics, forceDraw boo
 		c.offscreen = c.game.NewOffscreenImage(w, h)
 	}
 
+	// isOffscreenModified is updated when an offscreen's modifyCallback.
+	c.isOffscreenModified = false
+
 	// Even though updateCount == 0, the offscreen is cleared and Draw is called.
 	// Draw should not update the game state and then the screen should not be updated without Update, but
 	// users might want to process something at Draw with the time intervals of FPS.
@@ -158,15 +169,14 @@ func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics, forceDraw boo
 		c.offscreen.clear()
 	}
 
-	// isOffscreenDirty is updated when an offscreen's drawCallback.
-	c.isOffscreenDirty = false
 	if err := c.game.DrawOffscreen(); err != nil {
 		return err
 	}
 
-	const maxSkipCount = 3
+	// 180 might be too big but this is a enough value to consider exiting from fullscreen on macOS (#2500).
+	const maxSkipCount = 180
 
-	if !forceDraw && !theGlobalState.isScreenClearedEveryFrame() && !c.isOffscreenDirty {
+	if !forceDraw && !c.isOffscreenModified {
 		if c.skipCount < maxSkipCount {
 			c.skipCount++
 		}
@@ -225,15 +235,15 @@ func (c *context) layoutGame(outsideWidth, outsideHeight float64, deviceScaleFac
 	}
 	if c.offscreen == nil {
 		c.offscreen = c.game.NewOffscreenImage(ow, oh)
-		c.offscreen.drawCallback = func() {
-			c.isOffscreenDirty = true
+		c.offscreen.modifyCallback = func() {
+			c.isOffscreenModified = true
 		}
 	}
 
 	return ow, oh
 }
 
-func (c *context) adjustPosition(x, y float64, deviceScaleFactor float64) (float64, float64) {
+func (c *context) clientPositionToLogicalPosition(x, y float64, deviceScaleFactor float64) (float64, float64) {
 	s, ox, oy := c.screenScaleAndOffsets()
 	// The scale 0 indicates that the screen is not initialized yet.
 	// As any cursor values don't make sense, just return NaN.
