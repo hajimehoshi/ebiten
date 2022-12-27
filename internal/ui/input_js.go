@@ -107,13 +107,13 @@ func (u *userInterfaceImpl) setMouseCursorFromEvent(e js.Value) {
 	if u.cursorMode == CursorModeCaptured {
 		x, y := e.Get("clientX").Int(), e.Get("clientY").Int()
 		u.origCursorX, u.origCursorY = x, y
-		dx, dy := u.context.adjustPosition(e.Get("movementX").Float(), e.Get("movementY").Float(), u.DeviceScaleFactor())
+		dx, dy := u.context.clientPositionToLogicalPosition(e.Get("movementX").Float(), e.Get("movementY").Float(), u.DeviceScaleFactor())
 		u.inputState.CursorX += int(dx)
 		u.inputState.CursorY += int(dy)
 		return
 	}
 
-	x, y := u.context.adjustPosition(e.Get("clientX").Float(), e.Get("clientY").Float(), u.DeviceScaleFactor())
+	x, y := u.context.clientPositionToLogicalPosition(e.Get("clientX").Float(), e.Get("clientY").Float(), u.DeviceScaleFactor())
 	u.inputState.CursorX, u.inputState.CursorY = int(x), int(y)
 	u.origCursorX, u.origCursorY = int(x), int(y)
 }
@@ -130,7 +130,7 @@ func (u *userInterfaceImpl) updateTouchesFromEvent(e js.Value) {
 	touches := e.Get("targetTouches")
 	for i := 0; i < touches.Length(); i++ {
 		t := touches.Call("item", i)
-		x, y := u.context.adjustPosition(t.Get("clientX").Float(), t.Get("clientY").Float(), u.DeviceScaleFactor())
+		x, y := u.context.clientPositionToLogicalPosition(t.Get("clientX").Float(), t.Get("clientY").Float(), u.DeviceScaleFactor())
 		u.inputState.Touches[i] = Touch{
 			Valid: true,
 			ID:    TouchID(t.Get("identifier").Int()),

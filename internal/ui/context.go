@@ -243,7 +243,7 @@ func (c *context) layoutGame(outsideWidth, outsideHeight float64, deviceScaleFac
 	return ow, oh
 }
 
-func (c *context) adjustPosition(x, y float64, deviceScaleFactor float64) (float64, float64) {
+func (c *context) clientPositionToLogicalPosition(x, y float64, deviceScaleFactor float64) (float64, float64) {
 	s, ox, oy := c.screenScaleAndOffsets()
 	// The scale 0 indicates that the screen is not initialized yet.
 	// As any cursor values don't make sense, just return NaN.

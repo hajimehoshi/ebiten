@@ -42,7 +42,7 @@ func (u *userInterfaceImpl) updateInputState(keys map[Key]struct{}, runes []rune
 		u.inputState.Touches[i].Valid = false
 	}
 	for i, t := range touches {
-		x, y := u.context.adjustPosition(t.X, t.Y, u.DeviceScaleFactor())
+		x, y := u.context.clientPositionToLogicalPosition(t.X, t.Y, u.DeviceScaleFactor())
 		u.inputState.Touches[i] = Touch{
 			Valid: true,
 			ID:    t.ID,

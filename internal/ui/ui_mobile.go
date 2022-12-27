@@ -361,11 +361,6 @@ func (u *userInterfaceImpl) setGBuildSize(widthPx, heightPx int) {
 	})
 }
 
-func (u *userInterfaceImpl) adjustPosition(x, y int) (int, int) {
-	xf, yf := u.context.adjustPosition(float64(x), float64(y), deviceScale())
-	return int(xf), int(yf)
-}
-
 func (u *userInterfaceImpl) CursorMode() CursorMode {
 	return CursorModeHidden
 }

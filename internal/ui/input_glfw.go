@@ -64,7 +64,7 @@ func (u *userInterfaceImpl) updateInputState() error {
 	s := u.deviceScaleFactor(m)
 	cx = u.dipFromGLFWPixel(cx, m)
 	cy = u.dipFromGLFWPixel(cy, m)
-	cx, cy = u.context.adjustPosition(cx, cy, s)
+	cx, cy = u.context.clientPositionToLogicalPosition(cx, cy, s)
 
 	// AdjustPosition can return NaN at the initialization.
 	if !math.IsNaN(cx) && !math.IsNaN(cy) {

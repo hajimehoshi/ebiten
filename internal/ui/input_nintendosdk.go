@@ -28,7 +28,7 @@ func (u *userInterfaceImpl) updateInputState() {
 		u.inputState.Touches[i].Valid = false
 	}
 	for i, t := range u.nativeTouches {
-		x, y := u.context.adjustPosition(float64(t.X), float64(t.Y), deviceScaleFactor)
+		x, y := u.context.clientPositionToLogicalPosition(float64(t.X), float64(t.Y), deviceScaleFactor)
 		u.inputState.Touches[i] = Touch{
 			Valid: true,
 			ID:    TouchID(t.ID),
