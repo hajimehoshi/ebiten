@@ -359,6 +359,7 @@ func CreateWindow(width, height int, title string, monitor *Monitor, share *Wind
 
 func GetKeyName(key Key, scancode int) string {
 	n := libglfw.call("glfwGetKeyName", uintptr(key), uintptr(scancode))
+	panicError()
 	return goString(n)
 }
 
