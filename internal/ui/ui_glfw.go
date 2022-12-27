@@ -1266,7 +1266,6 @@ func (u *userInterfaceImpl) setFullscreen(fullscreen bool) {
 	if u.isFullscreen() == fullscreen {
 		return
 	}
-	u.graphicsDriver.SetFullscreen(fullscreen)
 
 	// Enter the fullscreen.
 	if fullscreen {

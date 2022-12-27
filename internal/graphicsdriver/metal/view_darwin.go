@@ -28,7 +28,6 @@ type view struct {
 
 	windowChanged bool
 	vsyncDisabled bool
-	fullscreen    bool
 
 	device mtl.Device
 	ml     ca.MetalLayer
@@ -54,22 +53,6 @@ func (v *view) setDisplaySyncEnabled(enabled bool) {
 func (v *view) forceSetDisplaySyncEnabled(enabled bool) {
 	v.ml.SetDisplaySyncEnabled(enabled)
 	v.vsyncDisabled = !enabled
-
-	// setting presentsWithTransaction true makes the FPS stable (#1196). We're not sure why...
-	v.updatePresentsWithTransaction()
-}
-
-func (v *view) setFullscreen(fullscreen bool) {
-	if v.fullscreen == fullscreen {
-		return
-	}
-	v.fullscreen = fullscreen
-	v.updatePresentsWithTransaction()
-}
-
-func (v *view) updatePresentsWithTransaction() {
-	v.ml.SetPresentsWithTransaction(v.usePresentsWithTransaction())
-	v.ml.SetMaximumDrawableCount(v.maximumDrawableCount())
 }
 
 func (v *view) colorPixelFormat() mtl.PixelFormat {
@@ -96,6 +79,12 @@ func (v *view) initialize() error {
 	v.forceSetDisplaySyncEnabled(!v.vsyncDisabled)
 	v.ml.SetFramebufferOnly(true)
 
+	// presentsWithTransaction doesn't work in the fullscreen mode (#1745, #1974).
+	// presentsWithTransaction doesn't work with vsync off (#1196).
+	// nextDrawable took more than one second if the window has other controls like NSTextView (#1029).
+	v.ml.SetPresentsWithTransaction(false)
+	v.ml.SetMaximumDrawableCount(3)
+
 	return nil
 }
 
@@ -106,8 +95,4 @@ func (v *view) nextDrawable() ca.MetalDrawable {
 		return ca.MetalDrawable{}
 	}
 	return d
-}
-
-func (v *view) presentsWithTransaction() bool {
-	return v.ml.PresentsWithTransaction()
 }

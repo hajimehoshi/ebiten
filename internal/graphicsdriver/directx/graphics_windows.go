@@ -1189,9 +1189,6 @@ func (g *Graphics) SetVsyncEnabled(enabled bool) {
 	g.vsyncEnabled = enabled
 }
 
-func (g *Graphics) SetFullscreen(fullscreen bool) {
-}
-
 func (g *Graphics) NeedsRestoring() bool {
 	return false
 }

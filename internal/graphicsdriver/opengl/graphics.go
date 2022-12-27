@@ -272,10 +272,6 @@ func (g *Graphics) SetVsyncEnabled(enabled bool) {
 	// Do nothing
 }
 
-func (g *Graphics) SetFullscreen(fullscreen bool) {
-	// Do nothing
-}
-
 func (g *Graphics) NeedsRestoring() bool {
 	// Though it is possible to have a logic to restore the graphics data for GPU, do not use it for performance (#1603).
 	if runtime.GOOS == "js" {
