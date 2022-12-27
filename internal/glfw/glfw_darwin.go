@@ -357,6 +357,28 @@ func CreateWindow(width, height int, title string, monitor *Monitor, share *Wind
 	return theGLFWWindows.add(w), nil
 }
 
+func GetKeyName(key Key, scancode int) string {
+	n := libglfw.call("glfwGetKeyName", uintptr(key), uintptr(scancode))
+	return goString(n)
+}
+
+// goString copies a char* to a Go string.
+func goString(c uintptr) string {
+	// We take the address and then dereference it to trick go vet from creating a possible misuse of unsafe.Pointer
+	ptr := *(*unsafe.Pointer)(unsafe.Pointer(&c))
+	if ptr == nil {
+		return ""
+	}
+	var length int
+	for {
+		if *(*byte)(unsafe.Add(ptr, uintptr(length))) == '\x00' {
+			break
+		}
+		length++
+	}
+	return string(unsafe.Slice((*byte)(ptr), length))
+}
+
 func GetMonitors() []*Monitor {
 	var l int32
 	ptr := libglfw.call("glfwGetMonitors", uintptr(unsafe.Pointer(&l)))
