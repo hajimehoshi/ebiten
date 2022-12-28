@@ -29,16 +29,16 @@ func (u *userInterfaceImpl) Run(game Game, options *RunOptions) error {
 	graphicscommand.SetRenderingThread(u.mainThread)
 
 	u.setRunning(true)
+	defer u.setRunning(false)
 
 	if err := u.init(options); err != nil {
 		return err
 	}
 
-	if err := u.loop(); err != nil {
+	if err := u.loopGame(); err != nil {
 		return err
 	}
 
-	u.setRunning(false)
 	return nil
 }
 

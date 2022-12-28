@@ -849,6 +849,7 @@ event:
 	u.framebufferSizeCallbackCh = nil
 }
 
+// init must be called from the main thread.
 func (u *userInterfaceImpl) init(options *RunOptions) error {
 	glfw.WindowHint(glfw.AutoIconify, glfw.False)
 
@@ -1065,7 +1066,7 @@ func (u *userInterfaceImpl) update() (float64, float64, error) {
 	return outsideWidth, outsideHeight, nil
 }
 
-func (u *userInterfaceImpl) loop() error {
+func (u *userInterfaceImpl) loopGame() error {
 	defer u.mainThread.Call(func() {
 		u.window.Destroy()
 		glfw.Terminate()

@@ -26,31 +26,29 @@ func (u *userInterfaceImpl) Run(game Game, options *RunOptions) error {
 
 	// Initialize the main thread first so the thread is available at u.run (#809).
 	u.mainThread = thread.NewOSThread()
+
 	graphicscommand.SetRenderingThread(u.mainThread)
+
+	u.setRunning(true)
+	defer u.setRunning(false)
+
+	if err := u.init(options); err != nil {
+		return err
+	}
 
 	ch := make(chan error, 1)
 	go func() {
-		defer u.mainThread.Stop()
-
 		defer close(ch)
 
-		var err error
-		if u.mainThread.Call(func() {
-			err = u.init(options)
-		}); err != nil {
-			ch <- err
-			return
-		}
-
-		if err := u.loop(); err != nil {
+		if err := u.loopGame(); err != nil {
 			ch <- err
 			return
 		}
 	}()
 
-	u.setRunning(true)
+	defer u.mainThread.Stop()
 	u.mainThread.Loop()
-	u.setRunning(false)
+
 	return <-ch
 }
 
