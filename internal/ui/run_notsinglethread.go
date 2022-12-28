@@ -25,17 +25,17 @@ func (u *userInterfaceImpl) Run(game Game, options *RunOptions) error {
 	u.context = newContext(game)
 
 	// Initialize the main thread first so the thread is available at u.run (#809).
-	u.t = thread.NewOSThread()
-	graphicscommand.SetRenderingThread(u.t)
+	u.mainThread = thread.NewOSThread()
+	graphicscommand.SetRenderingThread(u.mainThread)
 
 	ch := make(chan error, 1)
 	go func() {
-		defer u.t.Stop()
+		defer u.mainThread.Stop()
 
 		defer close(ch)
 
 		var err error
-		if u.t.Call(func() {
+		if u.mainThread.Call(func() {
 			err = u.init(options)
 		}); err != nil {
 			ch <- err
@@ -49,30 +49,30 @@ func (u *userInterfaceImpl) Run(game Game, options *RunOptions) error {
 	}()
 
 	u.setRunning(true)
-	u.t.Loop()
+	u.mainThread.Loop()
 	u.setRunning(false)
 	return <-ch
 }
 
 // runOnAnotherThreadFromMainThread is called from the main thread, and calls f on a new goroutine (thread).
 // runOnAnotherThreadFromMainThread creates a new nested main thread and runs the run loop.
-// u.t is updated to the new thread until runOnAnotherThreadFromMainThread is called.
+// u.mainThread is updated to the new thread until runOnAnotherThreadFromMainThread is called.
 //
 // Inside f, another functions that must be called from the main thread can be called safely.
 func (u *userInterfaceImpl) runOnAnotherThreadFromMainThread(f func()) {
-	// As this function is called from the main thread, u.t should never be accessed and can be updated here.
-	t := u.t
+	// As this function is called from the main thread, u.mainThread should never be accessed and can be updated here.
+	t := u.mainThread
 	defer func() {
-		u.t = t
+		u.mainThread = t
 		graphicscommand.SetRenderingThread(t)
 	}()
 
-	u.t = thread.NewOSThread()
-	graphicscommand.SetRenderingThread(u.t)
+	u.mainThread = thread.NewOSThread()
+	graphicscommand.SetRenderingThread(u.mainThread)
 
 	go func() {
-		defer u.t.Stop()
+		defer u.mainThread.Stop()
 		f()
 	}()
-	u.t.Loop()
+	u.mainThread.Loop()
 }

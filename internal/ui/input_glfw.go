@@ -92,7 +92,7 @@ func (u *userInterfaceImpl) keyName(key Key) string {
 	}
 
 	var name string
-	u.t.Call(func() {
+	u.mainThread.Call(func() {
 		name = glfw.GetKeyName(gk, 0)
 	})
 	return name

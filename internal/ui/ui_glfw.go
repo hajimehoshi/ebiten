@@ -109,9 +109,8 @@ type userInterfaceImpl struct {
 	defaultFramebufferSizeCallback glfw.FramebufferSizeCallback
 	framebufferSizeCallbackCh      chan struct{}
 
-	// t is the main thread == the rendering thread.
-	t thread.Thread
-	m sync.RWMutex
+	mainThread thread.Thread
+	m          sync.RWMutex
 }
 
 const (
@@ -479,7 +478,7 @@ func (u *userInterfaceImpl) ScreenSizeInFullscreen() (int, int) {
 	}
 
 	var w, h int
-	u.t.Call(func() {
+	u.mainThread.Call(func() {
 		m := u.currentMonitor()
 		if m == nil {
 			return
@@ -508,7 +507,7 @@ func (u *userInterfaceImpl) IsFullscreen() bool {
 		return u.isInitFullscreen()
 	}
 	b := false
-	u.t.Call(func() {
+	u.mainThread.Call(func() {
 		b = u.isFullscreen()
 	})
 	return b
@@ -524,7 +523,7 @@ func (u *userInterfaceImpl) SetFullscreen(fullscreen bool) {
 		return
 	}
 
-	u.t.Call(func() {
+	u.mainThread.Call(func() {
 		if u.isFullscreen() == fullscreen {
 			return
 		}
@@ -538,7 +537,7 @@ func (u *userInterfaceImpl) IsFocused() bool {
 	}
 
 	var focused bool
-	u.t.Call(func() {
+	u.mainThread.Call(func() {
 		focused = u.window.GetAttrib(glfw.Focused) == glfw.True
 	})
 	return focused
@@ -559,7 +558,7 @@ func (u *userInterfaceImpl) SetFPSMode(mode FPSModeType) {
 		u.m.Unlock()
 		return
 	}
-	u.t.Call(func() {
+	u.mainThread.Call(func() {
 		if !u.fpsModeInited {
 			u.fpsMode = mode
 			return
@@ -584,7 +583,7 @@ func (u *userInterfaceImpl) CursorMode() CursorMode {
 	}
 
 	var mode int
-	u.t.Call(func() {
+	u.mainThread.Call(func() {
 		mode = u.window.GetInputMode(glfw.CursorMode)
 	})
 
@@ -607,7 +606,7 @@ func (u *userInterfaceImpl) SetCursorMode(mode CursorMode) {
 		u.setInitCursorMode(mode)
 		return
 	}
-	u.t.Call(func() {
+	u.mainThread.Call(func() {
 		u.window.SetInputMode(glfw.CursorMode, driverCursorModeToGLFWCursorMode(mode))
 	})
 }
@@ -624,7 +623,7 @@ func (u *userInterfaceImpl) SetCursorShape(shape CursorShape) {
 	if !u.isRunning() {
 		return
 	}
-	u.t.Call(func() {
+	u.mainThread.Call(func() {
 		u.setNativeCursor(shape)
 	})
 }
@@ -635,7 +634,7 @@ func (u *userInterfaceImpl) DeviceScaleFactor() float64 {
 	}
 
 	f := 0.0
-	u.t.Call(func() {
+	u.mainThread.Call(func() {
 		f = u.deviceScaleFactor(u.currentMonitor())
 	})
 	return f
@@ -731,7 +730,7 @@ func (u *userInterfaceImpl) registerWindowSetSizeCallback() {
 			outsideWidth, outsideHeight := u.outsideSize()
 			deviceScaleFactor := u.deviceScaleFactor(u.currentMonitor())
 
-			// In the game's update, u.t.Call might be called.
+			// In the game's update, u.mainThread.Call might be called.
 			// In order to call it safely, use runOnAnotherThreadFromMainThread.
 			var err error
 			u.runOnAnotherThreadFromMainThread(func() {
@@ -1067,7 +1066,7 @@ func (u *userInterfaceImpl) update() (float64, float64, error) {
 }
 
 func (u *userInterfaceImpl) loop() error {
-	defer u.t.Call(func() {
+	defer u.mainThread.Call(func() {
 		u.window.Destroy()
 		glfw.Terminate()
 	})
@@ -1091,7 +1090,7 @@ func (u *userInterfaceImpl) loop() error {
 		var outsideWidth, outsideHeight float64
 		var deviceScaleFactor float64
 		var err error
-		if u.t.Call(func() {
+		if u.mainThread.Call(func() {
 			outsideWidth, outsideHeight, err = u.update()
 			deviceScaleFactor = u.deviceScaleFactor(u.currentMonitor())
 		}); err != nil {
@@ -1126,7 +1125,7 @@ func (u *userInterfaceImpl) loop() error {
 					newImgs[i] = rgba
 				}
 
-				u.t.Call(func() {
+				u.mainThread.Call(func() {
 					// In the fullscreen mode, reset the icon images and try again later.
 					if u.isFullscreen() {
 						u.setIconImages(imgs)
@@ -1141,7 +1140,7 @@ func (u *userInterfaceImpl) loop() error {
 		// However, (*thread).Call is not good for performance due to channels.
 		// Let's avoid this whenever possible (#1367).
 		if u.graphicsDriver.IsGL() {
-			u.t.Call(u.swapBuffers)
+			u.mainThread.Call(u.swapBuffers)
 		}
 
 		if unfocused {

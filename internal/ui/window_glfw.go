@@ -32,7 +32,7 @@ func (w *glfwWindow) IsDecorated() bool {
 		return w.ui.isInitWindowDecorated()
 	}
 	v := false
-	w.ui.t.Call(func() {
+	w.ui.mainThread.Call(func() {
 		v = w.ui.window.GetAttrib(glfw.Decorated) == glfw.True
 	})
 	return v
@@ -44,7 +44,7 @@ func (w *glfwWindow) SetDecorated(decorated bool) {
 		return
 	}
 
-	w.ui.t.Call(func() {
+	w.ui.mainThread.Call(func() {
 		w.ui.setWindowDecorated(decorated)
 	})
 }
@@ -57,7 +57,7 @@ func (w *glfwWindow) ResizingMode() WindowResizingMode {
 		return mode
 	}
 	var mode WindowResizingMode
-	w.ui.t.Call(func() {
+	w.ui.mainThread.Call(func() {
 		mode = w.ui.windowResizingMode
 	})
 	return mode
@@ -70,7 +70,7 @@ func (w *glfwWindow) SetResizingMode(mode WindowResizingMode) {
 		w.ui.m.Unlock()
 		return
 	}
-	w.ui.t.Call(func() {
+	w.ui.mainThread.Call(func() {
 		w.ui.setWindowResizingMode(mode)
 	})
 }
@@ -80,7 +80,7 @@ func (w *glfwWindow) IsFloating() bool {
 		return w.ui.isInitWindowFloating()
 	}
 	var v bool
-	w.ui.t.Call(func() {
+	w.ui.mainThread.Call(func() {
 		v = w.ui.window.GetAttrib(glfw.Floating) == glfw.True
 	})
 	return v
@@ -91,7 +91,7 @@ func (w *glfwWindow) SetFloating(floating bool) {
 		w.ui.setInitWindowFloating(floating)
 		return
 	}
-	w.ui.t.Call(func() {
+	w.ui.mainThread.Call(func() {
 		w.ui.setWindowFloating(floating)
 	})
 }
@@ -104,7 +104,7 @@ func (w *glfwWindow) IsMaximized() bool {
 		return false
 	}
 	var v bool
-	w.ui.t.Call(func() {
+	w.ui.mainThread.Call(func() {
 		v = w.ui.isWindowMaximized()
 	})
 	return v
@@ -126,7 +126,7 @@ func (w *glfwWindow) Maximize() {
 		w.ui.setInitWindowMaximized(true)
 		return
 	}
-	w.ui.t.Call(w.ui.maximizeWindow)
+	w.ui.mainThread.Call(w.ui.maximizeWindow)
 }
 
 func (w *glfwWindow) IsMinimized() bool {
@@ -134,7 +134,7 @@ func (w *glfwWindow) IsMinimized() bool {
 		return false
 	}
 	var v bool
-	w.ui.t.Call(func() {
+	w.ui.mainThread.Call(func() {
 		v = w.ui.window.GetAttrib(glfw.Iconified) == glfw.True
 	})
 	return v
@@ -145,7 +145,7 @@ func (w *glfwWindow) Minimize() {
 		// Do nothing
 		return
 	}
-	w.ui.t.Call(w.ui.iconifyWindow)
+	w.ui.mainThread.Call(w.ui.iconifyWindow)
 }
 
 func (w *glfwWindow) Restore() {
@@ -156,7 +156,7 @@ func (w *glfwWindow) Restore() {
 		// Do nothing
 		return
 	}
-	w.ui.t.Call(w.ui.restoreWindow)
+	w.ui.mainThread.Call(w.ui.restoreWindow)
 }
 
 func (w *glfwWindow) Position() (int, int) {
@@ -164,7 +164,7 @@ func (w *glfwWindow) Position() (int, int) {
 		panic("ui: WindowPosition can't be called before the main loop starts")
 	}
 	x, y := 0, 0
-	w.ui.t.Call(func() {
+	w.ui.mainThread.Call(func() {
 		var wx, wy int
 		if w.ui.isFullscreen() {
 			wx, wy = w.ui.origWindowPos()
@@ -187,7 +187,7 @@ func (w *glfwWindow) SetPosition(x, y int) {
 		w.ui.setInitWindowPositionInDIP(x, y)
 		return
 	}
-	w.ui.t.Call(func() {
+	w.ui.mainThread.Call(func() {
 		w.ui.setWindowPositionInDIP(x, y, w.ui.currentMonitor())
 	})
 }
@@ -198,7 +198,7 @@ func (w *glfwWindow) Size() (int, int) {
 		return w.ui.adjustWindowSizeBasedOnSizeLimitsInDIP(ww, wh)
 	}
 	var ww, wh int
-	w.ui.t.Call(func() {
+	w.ui.mainThread.Call(func() {
 		// Unlike origWindowPos, origWindow{Width,Height}InDPI are always updated via the callback.
 		ww = w.ui.origWindowWidthInDIP
 		wh = w.ui.origWindowHeightInDIP
@@ -212,7 +212,7 @@ func (w *glfwWindow) SetSize(width, height int) {
 		w.ui.setInitWindowSizeInDIP(width, height)
 		return
 	}
-	w.ui.t.Call(func() {
+	w.ui.mainThread.Call(func() {
 		if w.ui.isWindowMaximized() && runtime.GOOS != "darwin" {
 			return
 		}
@@ -232,7 +232,7 @@ func (w *glfwWindow) SetSizeLimits(minw, minh, maxw, maxh int) {
 		return
 	}
 
-	w.ui.t.Call(w.ui.updateWindowSizeLimits)
+	w.ui.mainThread.Call(w.ui.updateWindowSizeLimits)
 }
 
 func (w *glfwWindow) SetIcon(iconImages []image.Image) {
@@ -248,7 +248,7 @@ func (w *glfwWindow) SetTitle(title string) {
 		return
 	}
 	w.ui.title = title
-	w.ui.t.Call(func() {
+	w.ui.mainThread.Call(func() {
 		w.ui.setWindowTitle(title)
 	})
 }
