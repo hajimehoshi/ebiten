@@ -17,6 +17,9 @@
 package ui
 
 import (
+	stdcontext "context"
+	"errors"
+
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/v2/internal/thread"
 )
@@ -36,20 +39,25 @@ func (u *userInterfaceImpl) Run(game Game, options *RunOptions) error {
 		return err
 	}
 
+	ctx, cancel := stdcontext.WithCancel(stdcontext.Background())
+	defer cancel()
+
 	ch := make(chan error, 1)
 	go func() {
 		defer close(ch)
 
 		if err := u.loopGame(); err != nil {
 			ch <- err
+			cancel()
 			return
 		}
 	}()
 
-	defer u.mainThread.Stop()
-	u.mainThread.Loop()
-
-	return <-ch
+	err := u.mainThread.Loop(ctx)
+	if errors.Is(err, stdcontext.Canceled) {
+		return <-ch
+	}
+	return err
 }
 
 // runOnAnotherThreadFromMainThread is called from the main thread, and calls f on a new goroutine (thread).
@@ -68,9 +76,11 @@ func (u *userInterfaceImpl) runOnAnotherThreadFromMainThread(f func()) {
 	u.mainThread = thread.NewOSThread()
 	graphicscommand.SetRenderingThread(u.mainThread)
 
+	ctx, cancel := stdcontext.WithCancel(stdcontext.Background())
+	defer cancel()
 	go func() {
-		defer u.mainThread.Stop()
+		defer cancel()
 		f()
 	}()
-	u.mainThread.Loop()
+	_ = u.mainThread.Loop(ctx)
 }

@@ -14,26 +14,27 @@
 
 package thread
 
+import (
+	"context"
+)
+
 // Thread defines threading behavior in Ebitengine.
 type Thread interface {
 	Call(func())
-	Loop()
-	Stop()
+	Loop(context.Context) error
 }
 
 // OSThread represents an OS thread.
 type OSThread struct {
-	funcs     chan func()
-	done      chan struct{}
-	terminate chan struct{}
+	funcs chan func()
+	done  chan struct{}
 }
 
 // NewOSThread creates a new thread.
 func NewOSThread() *OSThread {
 	return &OSThread{
-		funcs:     make(chan func()),
-		done:      make(chan struct{}),
-		terminate: make(chan struct{}),
+		funcs: make(chan func()),
+		done:  make(chan struct{}),
 	}
 }
 
@@ -42,7 +43,7 @@ func NewOSThread() *OSThread {
 // It is assumed that an OS thread is fixed by runtime.LockOSThread when Loop is called.
 //
 // Loop must be called on the thread.
-func (t *OSThread) Loop() {
+func (t *OSThread) Loop(ctx context.Context) error {
 	for {
 		select {
 		case fn := <-t.funcs:
@@ -53,15 +54,10 @@ func (t *OSThread) Loop() {
 
 				fn()
 			}()
-		case <-t.terminate:
-			return
+		case <-ctx.Done():
+			return ctx.Err()
 		}
 	}
-}
-
-// Stop stops the thread loop.
-func (t *OSThread) Stop() {
-	t.terminate <- struct{}{}
 }
 
 // Call calls f on the thread.
@@ -83,10 +79,9 @@ func NewNoopThread() *NoopThread {
 }
 
 // Loop does nothing
-func (t *NoopThread) Loop() {}
+func (t *NoopThread) Loop(ctx context.Context) error {
+	return nil
+}
 
 // Call executes the func immediately
 func (t *NoopThread) Call(f func()) { f() }
-
-// Stop does nothing
-func (t *NoopThread) Stop() {}

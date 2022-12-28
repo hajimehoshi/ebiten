@@ -17,6 +17,7 @@
 package ui
 
 import (
+	stdcontext "context"
 	"fmt"
 	"runtime/debug"
 	"sync"
@@ -80,12 +81,16 @@ func (u *userInterfaceImpl) Update() error {
 		return err
 	}
 
+	ctx, cancel := stdcontext.WithCancel(stdcontext.Background())
+	defer cancel()
+
 	renderCh <- struct{}{}
 	go func() {
 		<-renderEndCh
-		u.t.Stop()
+		cancel()
 	}()
-	u.t.Loop()
+
+	_ = u.t.Loop(ctx)
 	return nil
 }
 
