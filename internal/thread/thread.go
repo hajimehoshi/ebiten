@@ -29,8 +29,6 @@ type OSThread struct {
 }
 
 // NewOSThread creates a new thread.
-//
-// It is assumed that the OS thread is fixed by runtime.LockOSThread when NewOSThread is called.
 func NewOSThread() *OSThread {
 	return &OSThread{
 		funcs:     make(chan func()),
@@ -40,6 +38,8 @@ func NewOSThread() *OSThread {
 }
 
 // Loop starts the thread loop until Stop is called.
+//
+// It is assumed that an OS thread is fixed by runtime.LockOSThread when Loop is called.
 //
 // Loop must be called on the thread.
 func (t *OSThread) Loop() {
