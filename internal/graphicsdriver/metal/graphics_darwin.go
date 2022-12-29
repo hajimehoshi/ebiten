@@ -204,14 +204,16 @@ func (g *Graphics) flushIfNeeded(present bool) {
 	}
 	g.flushRenderCommandEncoderIfNeeded()
 
-	// This logic is necessary when skipping clearing the framebuffer.
-	if present && g.screenDrawable == (ca.MetalDrawable{}) {
-		g.screenDrawable = g.view.nextDrawable()
+	if present {
+		// This check is necessary when skipping to render the screen (SetScreenClearedEveryFrame(false)).
+		if g.screenDrawable == (ca.MetalDrawable{}) {
+			g.screenDrawable = g.view.nextDrawable()
+		}
+		if g.screenDrawable != (ca.MetalDrawable{}) {
+			g.cb.PresentDrawable(g.screenDrawable)
+		}
 	}
 
-	if present && g.screenDrawable != (ca.MetalDrawable{}) {
-		g.cb.PresentDrawable(g.screenDrawable)
-	}
 	g.cb.Commit()
 
 	for _, t := range g.tmpTextures {
