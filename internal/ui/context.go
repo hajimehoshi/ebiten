@@ -144,6 +144,10 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 		ui.resetForTick()
 	}
 
+	// Update window icons during a frame, since an icon might be *ebiten.Image and
+	// getting pixels from it needs to be in a frame (#1468).
+	ui.updateIconIfNeeded()
+
 	// Draw the game.
 	if err := c.drawGame(graphicsDriver, forceDraw); err != nil {
 		return err

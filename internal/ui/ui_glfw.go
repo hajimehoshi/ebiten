@@ -1046,41 +1046,6 @@ func (u *userInterfaceImpl) updateGame() error {
 		return err
 	}
 
-	// Create icon images in a different goroutine (#1478).
-	// In the fullscreen mode, SetIcon fails (#1578).
-	if imgs := u.getIconImages(); len(imgs) > 0 && !u.isFullscreen() {
-		u.setIconImages(nil)
-
-		// Convert the icons in the different goroutine, as (*ebiten.Image).At cannot be invoked
-		// from this goroutine. At works only in between BeginFrame and EndFrame.
-		go func() {
-			newImgs := make([]image.Image, len(imgs))
-			for i, img := range imgs {
-				// TODO: If img is not *ebiten.Image, this converting is not necessary.
-				// However, this package cannot refer *ebiten.Image due to the package
-				// dependencies.
-
-				b := img.Bounds()
-				rgba := image.NewRGBA(b)
-				for j := b.Min.Y; j < b.Max.Y; j++ {
-					for i := b.Min.X; i < b.Max.X; i++ {
-						rgba.Set(i, j, img.At(i, j))
-					}
-				}
-				newImgs[i] = rgba
-			}
-
-			u.mainThread.Call(func() {
-				// In the fullscreen mode, reset the icon images and try again later.
-				if u.isFullscreen() {
-					u.setIconImages(imgs)
-					return
-				}
-				u.window.SetIcon(newImgs)
-			})
-		}()
-	}
-
 	// swapBuffers also checks IsGL, so this condition is redundant.
 	// However, (*thread).Call is not good for performance due to channels.
 	// Let's avoid this whenever possible (#1367).
@@ -1103,6 +1068,40 @@ func (u *userInterfaceImpl) updateGame() error {
 	}
 
 	return nil
+}
+
+func (u *userInterfaceImpl) updateIconIfNeeded() {
+	// In the fullscreen mode, SetIcon fails (#1578).
+	if u.isFullscreen() {
+		return
+	}
+
+	imgs := u.getIconImages()
+	if len(imgs) == 0 {
+		return
+	}
+
+	u.setIconImages(nil)
+
+	newImgs := make([]image.Image, len(imgs))
+	for i, img := range imgs {
+		// TODO: If img is not *ebiten.Image, this converting is not necessary.
+		// However, this package cannot refer *ebiten.Image due to the package
+		// dependencies.
+
+		b := img.Bounds()
+		rgba := image.NewRGBA(b)
+		for j := b.Min.Y; j < b.Max.Y; j++ {
+			for i := b.Min.X; i < b.Max.X; i++ {
+				rgba.Set(i, j, img.At(i, j))
+			}
+		}
+		newImgs[i] = rgba
+	}
+
+	u.mainThread.Call(func() {
+		u.window.SetIcon(newImgs)
+	})
 }
 
 // swapBuffers must be called from the main thread.
