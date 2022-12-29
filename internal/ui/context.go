@@ -152,11 +152,19 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 	return nil
 }
 
+func (c *context) newOffscreenImage(w, h int) *Image {
+	img := c.game.NewOffscreenImage(w, h)
+	img.modifyCallback = func() {
+		c.isOffscreenModified = true
+	}
+	return img
+}
+
 func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics, forceDraw bool) error {
 	if (c.offscreen.imageType == atlas.ImageTypeVolatile) != theGlobalState.isScreenClearedEveryFrame() {
 		w, h := c.offscreen.width, c.offscreen.height
 		c.offscreen.MarkDisposed()
-		c.offscreen = c.game.NewOffscreenImage(w, h)
+		c.offscreen = c.newOffscreenImage(w, h)
 	}
 
 	// isOffscreenModified is updated when an offscreen's modifyCallback.
@@ -173,8 +181,7 @@ func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics, forceDraw boo
 		return err
 	}
 
-	// 180 might be too big but this is a enough value to consider exiting from fullscreen on macOS (#2500).
-	const maxSkipCount = 180
+	const maxSkipCount = 3
 
 	if !forceDraw && !c.isOffscreenModified {
 		if c.skipCount < maxSkipCount {
@@ -234,10 +241,7 @@ func (c *context) layoutGame(outsideWidth, outsideHeight float64, deviceScaleFac
 		}
 	}
 	if c.offscreen == nil {
-		c.offscreen = c.game.NewOffscreenImage(ow, oh)
-		c.offscreen.modifyCallback = func() {
-			c.isOffscreenModified = true
-		}
+		c.offscreen = c.newOffscreenImage(ow, oh)
 	}
 
 	return ow, oh
