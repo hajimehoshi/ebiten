@@ -1184,10 +1184,6 @@ func (u *userInterfaceImpl) setWindowSizeInDIP(width, height int, callSetSize bo
 	u.origWindowWidthInDIP = width
 	u.origWindowHeightInDIP = height
 
-	// To make sure the current existing framebuffers are rendered,
-	// swap buffers here before SetSize is called.
-	u.swapBuffers()
-
 	if !u.isFullscreen() && callSetSize {
 		// Set the window size after the position. The order matters.
 		// In the opposite order, the window size might not be correct when going back from fullscreen with multi monitors.
