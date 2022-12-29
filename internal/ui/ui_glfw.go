@@ -68,7 +68,6 @@ type userInterfaceImpl struct {
 	windowClosingHandled bool
 	windowBeingClosed    bool
 	windowResizingMode   WindowResizingMode
-	justAfterResized     bool
 	inFrame              uint32
 
 	// err must be accessed from the main thread.
@@ -703,60 +702,6 @@ func (u *userInterfaceImpl) endFrame() {
 	atomic.StoreUint32(&u.inFrame, 0)
 }
 
-// registerWindowSetSizeCallback must be called from the main thread.
-func (u *userInterfaceImpl) registerWindowSetSizeCallback() {
-	if u.sizeCallback == nil {
-		u.sizeCallback = glfw.ToSizeCallback(func(_ *glfw.Window, width, height int) {
-			u.adjustViewSizeAfterFullscreen()
-
-			if u.window.GetAttrib(glfw.Resizable) == glfw.False {
-				return
-			}
-			if u.isFullscreen() {
-				return
-			}
-
-			if width != 0 || height != 0 {
-				w := int(u.dipFromGLFWPixel(float64(width), u.currentMonitor()))
-				h := int(u.dipFromGLFWPixel(float64(height), u.currentMonitor()))
-				u.setWindowSizeInDIP(w, h, false)
-			}
-
-			// Now the state is in a frame. (force)UpdateFrame cannot be called recursively.
-			if atomic.LoadUint32(&u.inFrame) != 0 {
-				return
-			}
-
-			outsideWidth, outsideHeight := u.outsideSize()
-			deviceScaleFactor := u.deviceScaleFactor(u.currentMonitor())
-
-			// In the game's update, u.mainThread.Call might be called.
-			// In order to call it safely, use runOnAnotherThreadFromMainThread.
-			var err error
-			u.runOnAnotherThreadFromMainThread(func() {
-				err = u.context.forceUpdateFrame(u.graphicsDriver, outsideWidth, outsideHeight, deviceScaleFactor, u)
-			})
-			if err != nil {
-				u.err = err
-			}
-
-			if u.graphicsDriver.IsGL() {
-				glfw.SwapInterval(0)
-				u.swapBuffers()
-				if u.fpsMode == FPSModeVsyncOn {
-					glfw.SwapInterval(1)
-				} else {
-					glfw.SwapInterval(0)
-				}
-			}
-
-			u.forceToRefreshIfNeeded()
-			u.justAfterResized = true
-		})
-	}
-	u.window.SetSizeCallback(u.sizeCallback)
-}
-
 // registerWindowCloseCallback must be called from the main thread.
 func (u *userInterfaceImpl) registerWindowCloseCallback() {
 	if u.closeCallback == nil {
@@ -954,7 +899,6 @@ func (u *userInterfaceImpl) init(options *RunOptions) error {
 
 	// Register callbacks after the window initialization done.
 	// The callback might cause swapping frames, that assumes the window is already set (#2137).
-	u.registerWindowSetSizeCallback()
 	u.registerWindowCloseCallback()
 	u.registerWindowFramebufferSizeCallback()
 	u.registerInputCallbacks()
@@ -1030,14 +974,8 @@ func (u *userInterfaceImpl) update() (float64, float64, error) {
 		u.setFPSMode(u.fpsMode)
 	}
 
-	if u.justAfterResized {
-		u.forceToRefreshIfNeeded()
-	}
-	u.justAfterResized = false
-
 	// Call updateVsync even though fpsMode is not updated.
-	// The vsync state might be changed in other places (e.g., the SetSizeCallback).
-	// Also, when toggling to fullscreen, vsync state might be reset unexpectedly (#1787).
+	// When toggling to fullscreen, vsync state might be reset unexpectedly (#1787).
 	u.updateVsync()
 
 	if u.fpsMode != FPSModeVsyncOffMinimum {
