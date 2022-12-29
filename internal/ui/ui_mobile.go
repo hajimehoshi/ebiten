@@ -90,7 +90,7 @@ func (u *userInterfaceImpl) Update() error {
 		cancel()
 	}()
 
-	_ = u.t.Loop(ctx)
+	_ = u.renderThread.Loop(ctx)
 	return nil
 }
 
@@ -117,7 +117,7 @@ type userInterfaceImpl struct {
 	fpsMode         FPSModeType
 	renderRequester RenderRequester
 
-	t *thread.OSThread
+	renderThread *thread.OSThread
 
 	m sync.RWMutex
 }
@@ -280,8 +280,8 @@ func (u *userInterfaceImpl) run(game Game, mainloop bool, options *RunOptions) (
 		// gl.Context so that they are called on the appropriate thread.
 		mgl = <-glContextCh
 	} else {
-		u.t = thread.NewOSThread()
-		graphicscommand.SetRenderingThread(u.t)
+		u.renderThread = thread.NewOSThread()
+		graphicscommand.SetRenderingThread(u.renderThread)
 	}
 
 	g, err := newGraphicsDriver(&graphicsDriverCreatorImpl{
