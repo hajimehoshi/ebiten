@@ -27,20 +27,23 @@ import (
 func (u *userInterfaceImpl) Run(game Game, options *RunOptions) error {
 	u.context = newContext(game)
 
-	// Initialize the main thread first so the thread is available at u.run (#809).
-	u.mainThread = thread.NewOSThread()
-
-	graphicscommand.SetRenderThread(u.mainThread)
-
 	u.setRunning(true)
 	defer u.setRunning(false)
 
-	if err := u.init(options); err != nil {
+	if err := u.initOnMainThread(options); err != nil {
 		return err
 	}
 
+	u.mainThread = thread.NewOSThread()
+	u.renderThread = thread.NewOSThread()
+	graphicscommand.SetRenderThread(u.renderThread)
+
 	ctx, cancel := stdcontext.WithCancel(stdcontext.Background())
 	defer cancel()
+
+	go func() {
+		_ = u.renderThread.Loop(ctx)
+	}()
 
 	ch := make(chan error, 1)
 	go func() {

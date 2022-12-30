@@ -17,6 +17,7 @@ package metal
 import (
 	"fmt"
 	"math"
+	"runtime"
 	"sort"
 	"unsafe"
 
@@ -86,7 +87,15 @@ func NewGraphics() (graphicsdriver.Graphics, error) {
 		return nil, fmt.Errorf("metal: mtl.CreateSystemDefaultDevice failed")
 	}
 
-	return &Graphics{}, nil
+	g := &Graphics{}
+
+	if runtime.GOOS != "ios" {
+		// Initializing a Metal device and a layer must be done in the main thread on macOS.
+		if err := g.view.initialize(); err != nil {
+			return nil, err
+		}
+	}
+	return g, nil
 }
 
 func (g *Graphics) Begin() error {
@@ -356,8 +365,11 @@ func (g *Graphics) Initialize() error {
 		g.dsss = map[stencilMode]mtl.DepthStencilState{}
 	}
 
-	if err := g.view.initialize(); err != nil {
-		return err
+	if runtime.GOOS == "ios" {
+		// Initializing a Metal device and a layer must be done in the render thread on iOS.
+		if err := g.view.initialize(); err != nil {
+			return err
+		}
 	}
 	if g.transparent {
 		g.view.ml.SetOpaque(false)

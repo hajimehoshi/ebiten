@@ -16,6 +16,7 @@ package thread
 
 import (
 	"context"
+	"runtime"
 )
 
 // OSThread represents an OS thread.
@@ -32,12 +33,13 @@ func NewOSThread() *OSThread {
 	}
 }
 
-// Loop starts the thread loop until Stop is called.
-//
-// It is assumed that an OS thread is fixed by runtime.LockOSThread when Loop is called.
+// Loop starts the thread loop until Stop is called on the current OS thread.
 //
 // Loop must be called on the thread.
 func (t *OSThread) Loop(ctx context.Context) error {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	for {
 		select {
 		case fn := <-t.funcs:

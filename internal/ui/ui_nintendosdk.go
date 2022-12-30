@@ -67,6 +67,7 @@ func (u *userInterfaceImpl) Run(game Game, options *RunOptions) error {
 	u.graphicsDriver = g
 	nintendosdk.InitializeGame()
 	for {
+		// TODO: Make a separate thread for rendering (#2512).
 		nintendosdk.BeginFrame()
 		gamepad.Update()
 		u.updateInputState()

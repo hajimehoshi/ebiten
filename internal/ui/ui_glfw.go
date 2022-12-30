@@ -110,8 +110,9 @@ type userInterfaceImpl struct {
 
 	glContextSetOnce sync.Once
 
-	mainThread threadInterface
-	m          sync.RWMutex
+	mainThread   threadInterface
+	renderThread threadInterface
+	m            sync.RWMutex
 }
 
 type threadInterface interface {
@@ -796,8 +797,7 @@ event:
 	u.framebufferSizeCallbackCh = nil
 }
 
-// init must be called from the main thread.
-func (u *userInterfaceImpl) init(options *RunOptions) error {
+func (u *userInterfaceImpl) initOnMainThread(options *RunOptions) error {
 	glfw.WindowHint(glfw.AutoIconify, glfw.False)
 
 	decorated := glfw.False
@@ -1004,7 +1004,8 @@ func (u *userInterfaceImpl) update() (float64, float64, error) {
 
 func (u *userInterfaceImpl) loopGame() error {
 	defer u.mainThread.Call(func() {
-		u.window.Destroy()
+		// An explicit destorying a window tries to delete a GL context on the main thread on Windows (wglDeleteContext),
+		// but this causes an error unfortunately.
 		glfw.Terminate()
 	})
 	for {
@@ -1026,7 +1027,7 @@ func (u *userInterfaceImpl) updateGame() error {
 	}
 
 	u.glContextSetOnce.Do(func() {
-		u.mainThread.Call(func() {
+		u.renderThread.Call(func() {
 			if u.graphicsDriver.IsGL() {
 				u.window.MakeContextCurrent()
 			}
@@ -1037,13 +1038,13 @@ func (u *userInterfaceImpl) updateGame() error {
 		return err
 	}
 
-	u.mainThread.Call(func() {
+	u.renderThread.Call(func() {
 		// Call updateVsync even though fpsMode is not updated.
 		// When toggling to fullscreen, vsync state might be reset unexpectedly (#1787).
-		u.updateVsync()
+		u.updateVsyncOnRenderThread()
 
 		// This works only for OpenGL.
-		u.swapBuffers()
+		u.swapBuffersOnRenderThread()
 	})
 
 	return nil
@@ -1083,8 +1084,7 @@ func (u *userInterfaceImpl) updateIconIfNeeded() {
 	})
 }
 
-// swapBuffers must be called from the main thread.
-func (u *userInterfaceImpl) swapBuffers() {
+func (u *userInterfaceImpl) swapBuffersOnRenderThread() {
 	if u.graphicsDriver.IsGL() {
 		u.window.SwapBuffers()
 	}
@@ -1260,8 +1260,7 @@ func (u *userInterfaceImpl) minimumWindowWidth() int {
 	return 1
 }
 
-// updateVsync must be called on the main thread.
-func (u *userInterfaceImpl) updateVsync() {
+func (u *userInterfaceImpl) updateVsyncOnRenderThread() {
 	if u.graphicsDriver.IsGL() {
 		// SwapInterval is affected by the current monitor of the window.
 		// This needs to be called at least after SetMonitor.
