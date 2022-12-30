@@ -108,6 +108,8 @@ type userInterfaceImpl struct {
 	defaultFramebufferSizeCallback glfw.FramebufferSizeCallback
 	framebufferSizeCallbackCh      chan struct{}
 
+	glContextSetOnce sync.Once
+
 	mainThread threadInterface
 	m          sync.RWMutex
 }
@@ -568,7 +570,6 @@ func (u *userInterfaceImpl) SetFPSMode(mode FPSModeType) {
 			return
 		}
 		u.setFPSMode(mode)
-		u.updateVsync()
 	})
 }
 
@@ -684,10 +685,6 @@ func (u *userInterfaceImpl) createWindow(width, height int) error {
 	// Even just after a window creation, FramebufferSize callback might be invoked (#1847).
 	// Ensure to consume this callback.
 	u.waitForFramebufferSizeCallback(u.window, nil)
-
-	if u.graphicsDriver.IsGL() {
-		u.window.MakeContextCurrent()
-	}
 
 	u.window.SetInputMode(glfw.CursorMode, driverCursorModeToGLFWCursorMode(u.getInitCursorMode()))
 	u.window.SetCursor(glfwSystemCursors[u.getCursorShape()])
@@ -979,10 +976,6 @@ func (u *userInterfaceImpl) update() (float64, float64, error) {
 		u.setFPSMode(u.fpsMode)
 	}
 
-	// Call updateVsync even though fpsMode is not updated.
-	// When toggling to fullscreen, vsync state might be reset unexpectedly (#1787).
-	u.updateVsync()
-
 	if u.fpsMode != FPSModeVsyncOffMinimum {
 		// TODO: Updating the input can be skipped when clock.Update returns 0 (#1367).
 		glfw.PollEvents()
@@ -1032,16 +1025,26 @@ func (u *userInterfaceImpl) updateGame() error {
 		return err
 	}
 
+	u.glContextSetOnce.Do(func() {
+		u.mainThread.Call(func() {
+			if u.graphicsDriver.IsGL() {
+				u.window.MakeContextCurrent()
+			}
+		})
+	})
+
 	if err := u.context.updateFrame(u.graphicsDriver, outsideWidth, outsideHeight, deviceScaleFactor, u); err != nil {
 		return err
 	}
 
-	// swapBuffers also checks IsGL, so this condition is redundant.
-	// However, (*thread).Call is not good for performance due to channels.
-	// Let's avoid this whenever possible (#1367).
-	if u.graphicsDriver.IsGL() {
-		u.mainThread.Call(u.swapBuffers)
-	}
+	u.mainThread.Call(func() {
+		// Call updateVsync even though fpsMode is not updated.
+		// When toggling to fullscreen, vsync state might be reset unexpectedly (#1787).
+		u.updateVsync()
+
+		// This works only for OpenGL.
+		u.swapBuffers()
+	})
 
 	return nil
 }
