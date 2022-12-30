@@ -1224,8 +1224,10 @@ func (u *userInterfaceImpl) setFullscreen(fullscreen bool) {
 		// Adjust the window size later (after adjusting the position).
 	} else if !u.isNativeFullscreenAvailable() && u.window.GetMonitor() != nil {
 		u.window.SetMonitor(nil, 0, 0, ww, wh, 0)
-		glfw.PollEvents()
-		u.swapBuffers()
+		if u.graphicsDriver.IsGL() {
+			glfw.PollEvents()
+			u.swapBuffers()
+		}
 	}
 
 	// glfw.PollEvents is necessary for macOS to enable (*glfw.Window).SetPos and SetSize (#2296).
