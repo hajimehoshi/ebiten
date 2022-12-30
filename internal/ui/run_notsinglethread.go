@@ -30,7 +30,7 @@ func (u *userInterfaceImpl) Run(game Game, options *RunOptions) error {
 	// Initialize the main thread first so the thread is available at u.run (#809).
 	u.mainThread = thread.NewOSThread()
 
-	graphicscommand.SetRenderingThread(u.mainThread)
+	graphicscommand.SetRenderThread(u.mainThread)
 
 	u.setRunning(true)
 	defer u.setRunning(false)
@@ -70,11 +70,11 @@ func (u *userInterfaceImpl) runOnAnotherThreadFromMainThread(f func()) {
 	t := u.mainThread
 	defer func() {
 		u.mainThread = t
-		graphicscommand.SetRenderingThread(t)
+		graphicscommand.SetRenderThread(t)
 	}()
 
 	u.mainThread = thread.NewOSThread()
-	graphicscommand.SetRenderingThread(u.mainThread)
+	graphicscommand.SetRenderThread(u.mainThread)
 
 	ctx, cancel := stdcontext.WithCancel(stdcontext.Background())
 	defer cancel()

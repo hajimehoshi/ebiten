@@ -26,7 +26,7 @@ func (u *userInterfaceImpl) Run(game Game, options *RunOptions) error {
 
 	// Initialize the main thread first so the thread is available at u.run (#809).
 	u.mainThread = thread.NewNoopThread()
-	graphicscommand.SetRenderingThread(u.mainThread)
+	graphicscommand.SetRenderThread(u.mainThread)
 
 	u.setRunning(true)
 	defer u.setRunning(false)
