@@ -281,7 +281,7 @@ func (u *userInterfaceImpl) run(game Game, mainloop bool, options *RunOptions) (
 		mgl = <-glContextCh
 	} else {
 		u.renderThread = thread.NewOSThread()
-		graphicscommand.SetRenderingThread(u.renderThread)
+		graphicscommand.SetRenderThread(u.renderThread)
 	}
 
 	g, err := newGraphicsDriver(&graphicsDriverCreatorImpl{
