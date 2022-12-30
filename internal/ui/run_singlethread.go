@@ -41,7 +41,3 @@ func (u *userInterfaceImpl) Run(game Game, options *RunOptions) error {
 
 	return nil
 }
-
-func (u *userInterfaceImpl) runOnAnotherThreadFromMainThread(f func()) {
-	f()
-}

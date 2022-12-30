@@ -59,28 +59,3 @@ func (u *userInterfaceImpl) Run(game Game, options *RunOptions) error {
 	}
 	return err
 }
-
-// runOnAnotherThreadFromMainThread is called from the main thread, and calls f on a new goroutine (thread).
-// runOnAnotherThreadFromMainThread creates a new nested main thread and runs the run loop.
-// u.mainThread is updated to the new thread until runOnAnotherThreadFromMainThread is called.
-//
-// Inside f, another functions that must be called from the main thread can be called safely.
-func (u *userInterfaceImpl) runOnAnotherThreadFromMainThread(f func()) {
-	// As this function is called from the main thread, u.mainThread should never be accessed and can be updated here.
-	t := u.mainThread
-	defer func() {
-		u.mainThread = t
-		graphicscommand.SetRenderThread(t)
-	}()
-
-	u.mainThread = thread.NewOSThread()
-	graphicscommand.SetRenderThread(u.mainThread)
-
-	ctx, cancel := stdcontext.WithCancel(stdcontext.Background())
-	defer cancel()
-	go func() {
-		defer cancel()
-		f()
-	}()
-	_ = u.mainThread.Loop(ctx)
-}
