@@ -18,12 +18,6 @@ import (
 	"context"
 )
 
-// Thread defines threading behavior in Ebitengine.
-type Thread interface {
-	Call(func())
-	Loop(context.Context) error
-}
-
 // OSThread represents an OS thread.
 type OSThread struct {
 	funcs chan func()
