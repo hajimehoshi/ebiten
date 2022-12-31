@@ -20,11 +20,6 @@ package gamepad
 // #cgo darwin LDFLAGS: -Wl,-undefined,dynamic_lookup
 //
 // #include "gamepad_nintendosdk.h"
-//
-// void ebitengine_UpdateGamepads();
-// int ebitengine_GetGamepadCount();
-// void ebitengine_GetGamepads(struct Gamepad* gamepads);
-// void ebitengine_VibrateGamepad(int id, double durationInSeconds, double strongMagnitude, double weakMagnitude);
 import "C"
 
 import (

@@ -23,3 +23,17 @@ struct Gamepad {
   float button_values[32];
   float axis_values[16];
 };
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+void ebitengine_UpdateGamepads();
+int ebitengine_GetGamepadCount();
+void ebitengine_GetGamepads(struct Gamepad *gamepads);
+void ebitengine_VibrateGamepad(int id, double durationInSeconds,
+                               double strongMagnitude, double weakMagnitude);
+
+#ifdef __cplusplus
+} // extern "C"
+#endif
