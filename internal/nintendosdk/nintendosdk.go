@@ -21,16 +21,6 @@ package nintendosdk
 //
 // #include <stdint.h>
 //
-// struct Gamepad {
-//   int id;
-//   char standard;
-//   int button_num;
-//   int axis_num;
-//   char button_pressed[32];
-//   float button_values[32];
-//   float axis_values[16];
-// };
-//
 // struct Touch {
 //   int id;
 //   int x;
@@ -44,26 +34,9 @@ package nintendosdk
 // void EbitenEndFrame();
 //
 // // Input
-// int EbitenGetGamepadNum();
-// void EbitenGetGamepads(struct Gamepad* gamepads);
 // int EbitenGetTouchNum();
 // void EbitenGetTouches(struct Touch* touches);
-// void EbitenVibrateGamepad(int id, double durationInSeconds, double strongMagnitude, double weakMagnitude);
 import "C"
-
-import (
-	"time"
-)
-
-type Gamepad struct {
-	ID            int
-	Standard      bool
-	ButtonCount   int
-	AxisCount     int
-	ButtonPressed [32]bool
-	ButtonValues  [32]float64
-	AxisValues    [16]float64
-}
 
 type Touch struct {
 	ID int
@@ -89,39 +62,6 @@ func EndFrame() {
 	C.EbitenEndFrame()
 }
 
-var cGamepads []C.struct_Gamepad
-
-func AppendGamepads(gamepads []Gamepad) []Gamepad {
-	n := int(C.EbitenGetGamepadNum())
-	if cap(cGamepads) < n {
-		cGamepads = append(cGamepads, make([]C.struct_Gamepad, n)...)
-	} else {
-		cGamepads = cGamepads[:n]
-	}
-	if n > 0 {
-		C.EbitenGetGamepads(&cGamepads[0])
-	}
-
-	for _, g := range cGamepads {
-		gamepad := Gamepad{
-			ID:          int(g.id),
-			Standard:    g.standard != 0,
-			ButtonCount: int(g.button_num),
-			AxisCount:   int(g.axis_num),
-		}
-		for i := 0; i < gamepad.ButtonCount; i++ {
-			gamepad.ButtonPressed[i] = g.button_pressed[i] != 0
-			gamepad.ButtonValues[i] = float64(g.button_values[i])
-		}
-		for i := 0; i < gamepad.AxisCount; i++ {
-			gamepad.AxisValues[i] = float64(g.axis_values[i])
-		}
-
-		gamepads = append(gamepads, gamepad)
-	}
-	return gamepads
-}
-
 var cTouches []C.struct_Touch
 
 func AppendTouches(touches []Touch) []Touch {
@@ -144,8 +84,4 @@ func AppendTouches(touches []Touch) []Touch {
 		})
 	}
 	return touches
-}
-
-func VibrateGamepad(id int, duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
-	C.EbitenVibrateGamepad(C.int(id), C.double(float64(duration)/float64(time.Second)), C.double(strongMagnitude), C.double(weakMagnitude))
 }
