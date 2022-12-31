@@ -32,10 +32,6 @@ package nintendosdk
 // void EbitenGetScreenSize(int* width, int* height);
 // void EbitenBeginFrame();
 // void EbitenEndFrame();
-//
-// // Input
-// int EbitenGetTouchNum();
-// void EbitenGetTouches(struct Touch* touches);
 import "C"
 
 type Touch struct {
@@ -60,28 +56,4 @@ func BeginFrame() {
 
 func EndFrame() {
 	C.EbitenEndFrame()
-}
-
-var cTouches []C.struct_Touch
-
-func AppendTouches(touches []Touch) []Touch {
-	n := int(C.EbitenGetTouchNum())
-	cTouches = cTouches[:0]
-	if cap(cTouches) < n {
-		cTouches = append(cTouches, make([]C.struct_Touch, n)...)
-	} else {
-		cTouches = cTouches[:n]
-	}
-	if n > 0 {
-		C.EbitenGetTouches(&cTouches[0])
-	}
-
-	for _, t := range cTouches {
-		touches = append(touches, Touch{
-			ID: int(t.id),
-			X:  int(t.x),
-			Y:  int(t.y),
-		})
-	}
-	return touches
 }

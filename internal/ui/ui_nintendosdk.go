@@ -16,6 +16,9 @@
 
 package ui
 
+// #include "input_nintendosdk.h"
+import "C"
+
 import (
 	"runtime"
 
@@ -55,7 +58,7 @@ type userInterfaceImpl struct {
 
 	context       *context
 	inputState    InputState
-	nativeTouches []nintendosdk.Touch
+	nativeTouches []C.struct_Touch
 }
 
 func (u *userInterfaceImpl) Run(game Game, options *RunOptions) error {

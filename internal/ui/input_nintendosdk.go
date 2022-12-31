@@ -16,22 +16,33 @@
 
 package ui
 
-import (
-	"github.com/hajimehoshi/ebiten/v2/internal/nintendosdk"
-)
+// #cgo !darwin LDFLAGS: -Wl,-unresolved-symbols=ignore-all
+// #cgo darwin LDFLAGS: -Wl,-undefined,dynamic_lookup
+//
+// #include "input_nintendosdk.h"
+import "C"
 
 func (u *userInterfaceImpl) updateInputState() {
+	C.ebitengine_UpdateTouches()
+
 	u.nativeTouches = u.nativeTouches[:0]
-	u.nativeTouches = nintendosdk.AppendTouches(u.nativeTouches)
+	if n := int(C.ebitengine_GetTouchCount()); n > 0 {
+		if cap(u.nativeTouches) < n {
+			u.nativeTouches = make([]C.struct_Touch, n)
+		} else {
+			u.nativeTouches = u.nativeTouches[:n]
+		}
+		C.ebitengine_GetTouches(&u.nativeTouches[0])
+	}
 
 	for i := range u.inputState.Touches {
 		u.inputState.Touches[i].Valid = false
 	}
 	for i, t := range u.nativeTouches {
-		x, y := u.context.clientPositionToLogicalPosition(float64(t.X), float64(t.Y), deviceScaleFactor)
+		x, y := u.context.clientPositionToLogicalPosition(float64(t.x), float64(t.y), deviceScaleFactor)
 		u.inputState.Touches[i] = Touch{
 			Valid: true,
-			ID:    TouchID(t.ID),
+			ID:    TouchID(t.id),
 			X:     int(x),
 			Y:     int(y),
 		}

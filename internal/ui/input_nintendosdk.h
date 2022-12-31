@@ -1,4 +1,4 @@
-// Copyright 2022 The Ebitengine Authors
+// Copyright 2023 The Ebitengine Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,16 +14,20 @@
 
 //go:build nintendosdk
 
-// The actual implementaiton will be provided by -overlay.
+struct Touch {
+  int id;
+  int x;
+  int y;
+};
 
-#include "gamepad_nintendosdk.h"
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-extern "C" void ebitengine_UpdateGamepads() {}
+void ebitengine_UpdateTouches();
+int ebitengine_GetTouchCount();
+void ebitengine_GetTouches(struct Touch* touches);
 
-extern "C" int ebitengine_GetGamepadCount() { return 0; }
-
-extern "C" void ebitengine_GetGamepads(struct Gamepad *gamepads) {}
-
-extern "C" void ebitengine_VibrateGamepad(int id, double durationInSeconds,
-                                          double strongMagnitude,
-                                          double weakMagnitude) {}
+#ifdef __cplusplus
+} // extern "C"
+#endif
