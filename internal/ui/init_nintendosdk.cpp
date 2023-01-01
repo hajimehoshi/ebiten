@@ -1,4 +1,4 @@
-// Copyright 2021 The Ebiten Authors
+// Copyright 2023 The Ebitengine Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,27 +14,12 @@
 
 //go:build nintendosdk
 
-package nintendosdk
+// The actual implementaiton will be provided by -overlay.
 
-// #cgo !darwin LDFLAGS: -Wl,-unresolved-symbols=ignore-all
-// #cgo darwin LDFLAGS: -Wl,-undefined,dynamic_lookup
-//
-// #include <stdint.h>
-//
-// // UI
-// void EbitenInitializeGame();
-// void EbitenBeginFrame();
-// void EbitenEndFrame();
-import "C"
+#include "init_nintendosdk.h"
 
-func InitializeGame() {
-	C.EbitenInitializeGame()
-}
+extern "C" NativeWindowType ebitengine_Init() {}
 
-func BeginFrame() {
-	C.EbitenBeginFrame()
-}
+extern "C" void ebitengine_InitializeProfiler() {}
 
-func EndFrame() {
-	C.EbitenEndFrame()
-}
+extern "C" void ebitengine_RecordProfilerHeartbeat() {}

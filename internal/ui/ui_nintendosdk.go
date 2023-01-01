@@ -16,6 +16,7 @@
 
 package ui
 
+// #include "init_nintendosdk.h"
 // #include "input_nintendosdk.h"
 import "C"
 
@@ -25,7 +26,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl"
-	"github.com/hajimehoshi/ebiten/v2/internal/nintendosdk"
 )
 
 type graphicsDriverCreatorImpl struct{}
@@ -59,6 +59,8 @@ type userInterfaceImpl struct {
 	context       *context
 	inputState    InputState
 	nativeTouches []C.struct_Touch
+
+	egl egl
 }
 
 func (u *userInterfaceImpl) Run(game Game, options *RunOptions) error {
@@ -68,10 +70,18 @@ func (u *userInterfaceImpl) Run(game Game, options *RunOptions) error {
 		return err
 	}
 	u.graphicsDriver = g
-	nintendosdk.InitializeGame()
+
+	n := C.ebitengine_Init()
+	if err := u.egl.init(n); err != nil {
+		return err
+	}
+
+	initializeProfiler()
+
 	for {
+		recordProfilerHeartbeat()
+
 		// TODO: Make a separate thread for rendering (#2512).
-		nintendosdk.BeginFrame()
 		gamepad.Update()
 		u.updateInputState()
 
@@ -79,7 +89,7 @@ func (u *userInterfaceImpl) Run(game Game, options *RunOptions) error {
 			return err
 		}
 
-		nintendosdk.EndFrame()
+		u.egl.swapBuffers()
 	}
 }
 

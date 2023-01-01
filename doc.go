@@ -104,4 +104,6 @@
 // `microsoftgdk` is for Microsoft GDK (e.g. Xbox).
 //
 // `nintendosdk` is for NintendoSDK (e.g. Nintendo Switch).
+//
+// `nintendosdkprofile` enables a profiler for NintendoSDK.
 package ebiten
