@@ -21,24 +21,12 @@ package nintendosdk
 //
 // #include <stdint.h>
 //
-// struct Touch {
-//   int id;
-//   int x;
-//   int y;
-// };
-//
 // // UI
 // void EbitenInitializeGame();
 // void EbitenGetScreenSize(int* width, int* height);
 // void EbitenBeginFrame();
 // void EbitenEndFrame();
 import "C"
-
-type Touch struct {
-	ID int
-	X  int
-	Y  int
-}
 
 func InitializeGame() {
 	C.EbitenInitializeGame()
