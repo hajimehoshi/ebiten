@@ -23,19 +23,12 @@ package nintendosdk
 //
 // // UI
 // void EbitenInitializeGame();
-// void EbitenGetScreenSize(int* width, int* height);
 // void EbitenBeginFrame();
 // void EbitenEndFrame();
 import "C"
 
 func InitializeGame() {
 	C.EbitenInitializeGame()
-}
-
-func ScreenSize() (int, int) {
-	var width, height C.int
-	C.EbitenGetScreenSize(&width, &height)
-	return int(width), int(height)
 }
 
 func BeginFrame() {

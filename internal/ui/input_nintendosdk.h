@@ -20,6 +20,9 @@ struct Touch {
   int y;
 };
 
+const int kScreenWidth = 1920;
+const int kScreenHeight = 1080;
+
 #ifdef __cplusplus
 extern "C" {
 #endif

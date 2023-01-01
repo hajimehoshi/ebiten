@@ -75,8 +75,7 @@ func (u *userInterfaceImpl) Run(game Game, options *RunOptions) error {
 		gamepad.Update()
 		u.updateInputState()
 
-		w, h := nintendosdk.ScreenSize()
-		if err := u.context.updateFrame(u.graphicsDriver, float64(w), float64(h), deviceScaleFactor, u); err != nil {
+		if err := u.context.updateFrame(u.graphicsDriver, float64(C.kScreenWidth), float64(C.kScreenHeight), deviceScaleFactor, u); err != nil {
 			return err
 		}
 
