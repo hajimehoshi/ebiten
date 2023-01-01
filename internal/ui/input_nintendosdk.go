@@ -20,6 +20,9 @@ package ui
 // #cgo darwin LDFLAGS: -Wl,-undefined,dynamic_lookup
 //
 // #include "input_nintendosdk.h"
+//
+// const int kScreenWidth = 1920;
+// const int kScreenHeight = 1080;
 import "C"
 
 func (u *userInterfaceImpl) updateInputState() {
