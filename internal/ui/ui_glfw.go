@@ -1004,8 +1004,7 @@ func (u *userInterfaceImpl) update() (float64, float64, error) {
 
 func (u *userInterfaceImpl) loopGame() error {
 	defer u.mainThread.Call(func() {
-		// An explicit destorying a window tries to delete a GL context on the main thread on Windows (wglDeleteContext),
-		// but this causes an error unfortunately.
+		u.window.Destroy()
 		glfw.Terminate()
 	})
 	for {
