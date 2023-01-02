@@ -198,19 +198,19 @@ func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics, forceDraw boo
 		c.skipCount = 0
 	}
 
-	// If the offscreen is not updated and the framebuffers don't have to be updated, skip rendering to save GPU power.
-	if c.skipCount < maxSkipCount {
-		if graphicsDriver.NeedsClearingScreen() {
-			// This clear is needed for fullscreen mode or some mobile platforms (#622).
-			c.screen.clear()
-		}
-
-		c.game.DrawFinalScreen(c.screenScaleAndOffsets())
-
-		// The final screen is never used as the rendering source.
-		// Flush its buffer here just in case.
-		c.screen.flushBufferIfNeeded()
+	// TODO: If the offscreen is not updated and the framebuffers don't have to be updated, skip rendering to save GPU power
+	// (#2341, #2342). The condition would be `c.skipCount < maxSkipCount`.
+	// However, Metal (and maybe DirectX) cannot vsync without swapping the buffer by rendering the screen framebuffer (#2520).
+	if graphicsDriver.NeedsClearingScreen() {
+		// This clear is needed for fullscreen mode or some mobile platforms (#622).
+		c.screen.clear()
 	}
+
+	c.game.DrawFinalScreen(c.screenScaleAndOffsets())
+
+	// The final screen is never used as the rendering source.
+	// Flush its buffer here just in case.
+	c.screen.flushBufferIfNeeded()
 
 	return nil
 }
