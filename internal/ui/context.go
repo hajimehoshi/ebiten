@@ -198,9 +198,11 @@ func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics, forceDraw boo
 		c.skipCount = 0
 	}
 
+	skippable := c.skipCount >= maxSkipCount
+
 	// TODO: Metal (and maybe DirectX) cannot vsync without swapping the buffer by rendering the screen framebuffer (#2520).
 	// Implement this skipping appropriately for Metal and DirectX.
-	if c.skipCount < maxSkipCount || !graphicsDriver.IsGL() {
+	if !skippable || !graphicsDriver.IsGL() {
 		if graphicsDriver.NeedsClearingScreen() {
 			// This clear is needed for fullscreen mode or some mobile platforms (#622).
 			c.screen.clear()
