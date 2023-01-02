@@ -265,6 +265,11 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 		g.context.ctx.Disable(gl.STENCIL_TEST)
 	}
 
+	// The last uniforms must be reset after swapping the buffer (#2517).
+	if destination.screen {
+		g.state.resetLastUniforms()
+	}
+
 	return nil
 }
 
