@@ -124,7 +124,6 @@ type openGLState struct {
 	elementArrayBuffer buffer
 
 	lastProgram       program
-	lastUniforms      map[string][]uint32
 	lastActiveTexture int
 }
 
@@ -136,9 +135,6 @@ func (s *openGLState) reset(context *context) error {
 
 	s.lastProgram = 0
 	context.ctx.UseProgram(0)
-	for key := range s.lastUniforms {
-		delete(s.lastUniforms, key)
-	}
 
 	// On browsers (at least Chrome), buffers are already detached from the context
 	// and must not be deleted by DeleteBuffer.
@@ -159,19 +155,6 @@ func (s *openGLState) reset(context *context) error {
 	s.elementArrayBuffer = context.newElementArrayBuffer(graphics.IndicesCount * 2)
 
 	return nil
-}
-
-// areSameUint32Array returns a boolean indicating if a and b are deeply equal.
-func areSameUint32Array(a, b []uint32) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i := 0; i < len(a); i++ {
-		if a[i] != b[i] {
-			return false
-		}
-	}
-	return true
 }
 
 type uniformVariable struct {
@@ -208,9 +191,6 @@ func (g *Graphics) useProgram(program program, uniforms []uniformVariable, textu
 		}
 
 		g.state.lastProgram = program
-		for k := range g.state.lastUniforms {
-			delete(g.state.lastUniforms, k)
-		}
 		g.state.lastActiveTexture = 0
 		g.context.ctx.ActiveTexture(gl.TEXTURE0)
 	}
@@ -226,15 +206,8 @@ func (g *Graphics) useProgram(program program, uniforms []uniformVariable, textu
 			return fmt.Errorf("opengl: length of a uniform variables %s (%s) doesn't match: expected %d but %d", u.name, typ.String(), expected, got)
 		}
 
-		cached, ok := g.state.lastUniforms[u.name]
-		if ok && areSameUint32Array(cached, u.value) {
-			continue
-		}
+		// Set the uniform variables, even though they are the same as the last time (#2517).
 		g.context.uniforms(program, u.name, u.value, u.typ)
-		if g.state.lastUniforms == nil {
-			g.state.lastUniforms = map[string][]uint32{}
-		}
-		g.state.lastUniforms[u.name] = u.value
 	}
 
 	var idx int
