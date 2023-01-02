@@ -1015,6 +1015,21 @@ func (u *userInterfaceImpl) loopGame() error {
 }
 
 func (u *userInterfaceImpl) updateGame() error {
+	var unfocused bool
+
+	// On Windows, the focusing state might be always false (#987).
+	// On Windows, even if a window is in another workspace, vsync seems to work.
+	// Then let's assume the window is always 'focused' as a workaround.
+	if runtime.GOOS != "windows" {
+		unfocused = u.window.GetAttrib(glfw.Focused) == glfw.False
+	}
+
+	var t1, t2 time.Time
+
+	if unfocused {
+		t1 = time.Now()
+	}
+
 	var outsideWidth, outsideHeight float64
 	var deviceScaleFactor float64
 	var err error
@@ -1045,6 +1060,20 @@ func (u *userInterfaceImpl) updateGame() error {
 		// This works only for OpenGL.
 		u.swapBuffersOnRenderThread()
 	})
+
+	if unfocused {
+		t2 = time.Now()
+	}
+
+	// When a window is not focused, SwapBuffers might return immediately and CPU might be busy.
+	// Mitigate this by sleeping (#982).
+	if unfocused {
+		d := t2.Sub(t1)
+		const wait = time.Second / 60
+		if d < wait {
+			time.Sleep(wait - d)
+		}
+	}
 
 	return nil
 }
