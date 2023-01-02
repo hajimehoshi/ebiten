@@ -736,4 +736,52 @@ func TestImageWritePixelsModify(t *testing.T) {
 	}
 }
 
+func TestPowerOf2(t *testing.T) {
+	testCases := []struct {
+		In  int
+		Out int
+	}{
+		{
+			In:  1023,
+			Out: 512,
+		},
+		{
+			In:  1024,
+			Out: 1024,
+		},
+		{
+			In:  1025,
+			Out: 1024,
+		},
+		{
+			In:  10000,
+			Out: 8192,
+		},
+		{
+			In:  16384,
+			Out: 16384,
+		},
+		{
+			In:  1,
+			Out: 1,
+		},
+		{
+			In:  0,
+			Out: 0,
+		},
+		{
+			In:  -1,
+			Out: 0,
+		},
+	}
+
+	for _, tc := range testCases {
+		got := atlas.ToPowerOf2(tc.In)
+		want := tc.Out
+		if got != want {
+			t.Errorf("packing.ToPowerOf2(%d): got: %d, want: %d", tc.In, got, want)
+		}
+	}
+}
+
 // TODO: Add tests to extend image on an atlas out of the main loop
