@@ -776,10 +776,10 @@ func TestPowerOf2(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		got := atlas.ToPowerOf2(tc.In)
+		got := atlas.FloorPowerOf2(tc.In)
 		want := tc.Out
 		if got != want {
-			t.Errorf("packing.ToPowerOf2(%d): got: %d, want: %d", tc.In, got, want)
+			t.Errorf("packing.FloorPowerOf2(%d): got: %d, want: %d", tc.In, got, want)
 		}
 	}
 }

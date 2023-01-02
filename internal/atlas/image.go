@@ -728,7 +728,7 @@ func EndFrame(graphicsDriver graphicsdriver.Graphics) error {
 	return nil
 }
 
-func toPowerOf2(x int) int {
+func floorPowerOf2(x int) int {
 	if x <= 0 {
 		return 0
 	}
@@ -757,7 +757,7 @@ func BeginFrame(graphicsDriver graphicsdriver.Graphics) error {
 			minSize = 1024
 		}
 		if maxSize == 0 {
-			maxSize = toPowerOf2(restorable.MaxImageSize(graphicsDriver))
+			maxSize = floorPowerOf2(restorable.MaxImageSize(graphicsDriver))
 		}
 	})
 	if err != nil {
