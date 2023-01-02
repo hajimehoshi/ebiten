@@ -8,8 +8,8 @@ github.com/hajimehoshi/bitmapfont/v2 v2.2.3/go.mod h1:sWM8ejdkGSXaQGlZcegMRx4DyE
 github.com/hajimehoshi/go-mp3 v0.3.4 h1:NUP7pBYH8OguP4diaTZ9wJbUbk3tC0KlfzsEpWmYj68=
 github.com/hajimehoshi/go-mp3 v0.3.4/go.mod h1:fRtZraRFcWb0pu7ok0LqyFhCUrPeMsGRSVop0eemFmo=
 github.com/hajimehoshi/oto/v2 v2.3.1/go.mod h1:seWLbgHH7AyUMYKfKYT9pg7PhUu9/SisyJvNTT+ASQo=
-github.com/hajimehoshi/oto/v2 v2.4.0-alpha.9.0.20221230155005-e8225b9b4e49 h1:1E/y6QeankUPdqLRkub7YBsnRjQmI4OvdFDsMLsrC4c=
-github.com/hajimehoshi/oto/v2 v2.4.0-alpha.9.0.20221230155005-e8225b9b4e49/go.mod h1:XMZ6tRrfJJ6Poxyd481sQdWdHLr5Ccoup0VJxGRnwew=
+github.com/hajimehoshi/oto/v2 v2.4.0-alpha.10 h1:wQLx2w+Bsjh4Z5bkuR1/vtUXpb9e23cnkVKZMHuUOrk=
+github.com/hajimehoshi/oto/v2 v2.4.0-alpha.10/go.mod h1:XMZ6tRrfJJ6Poxyd481sQdWdHLr5Ccoup0VJxGRnwew=
 github.com/jakecoffman/cp v1.2.1 h1:zkhc2Gpo9l4NLUZfeG3j33+3bQD7MkqPa+n5PdX+5mI=
 github.com/jakecoffman/cp v1.2.1/go.mod h1:JjY/Fp6d8E1CHnu74gWNnU0+b9VzEdUVPoJxg2PsTQg=
 github.com/jezek/xgb v1.1.0 h1:wnpxJzP1+rkbGclEkmwpVFQWpuE2PUGNUzP8SbfFobk=
