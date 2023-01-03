@@ -71,7 +71,7 @@ func (u *userInterfaceImpl) Run(game Game, options *RunOptions) error {
 	}
 	u.graphicsDriver = g
 
-	n := C.ebitengine_Init()
+	n := C.ebitengine_Initialize()
 	if err := u.egl.init(n); err != nil {
 		return err
 	}

@@ -20,7 +20,7 @@
 extern "C" {
 #endif
 
-NativeWindowType ebitengine_Init();
+NativeWindowType ebitengine_Initialize();
 void ebitengine_InitializeProfiler();
 void ebitengine_RecordProfilerHeartbeat();
 

@@ -18,7 +18,7 @@
 
 #include "init_nintendosdk.h"
 
-extern "C" NativeWindowType ebitengine_Init() {}
+extern "C" NativeWindowType ebitengine_Initialize() {}
 
 extern "C" void ebitengine_InitializeProfiler() {}
 
