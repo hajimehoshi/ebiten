@@ -32,7 +32,7 @@ type egl struct {
 
 func (e *egl) init(nativeWindowHandle C.NativeWindowType) error {
 	// Initialize EGL
-	e.display = C.eglGetDisplay(C.EGL_DEFAULT_DISPLAY)
+	e.display = C.eglGetDisplay(C.EGLDisplay(C.EGL_DEFAULT_DISPLAY))
 	if e.display == 0 {
 		return fmt.Errorf("ui: eglGetDisplay failed")
 	}
