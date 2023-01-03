@@ -1065,8 +1065,8 @@ func (u *userInterfaceImpl) updateGame() error {
 		t2 = time.Now()
 	}
 
-	// When a window is not focused, SwapBuffers might return immediately and CPU might be busy.
-	// Mitigate this by sleeping (#982).
+	// When a window is not focused or in another space, SwapBuffers might return immediately and CPU might be busy.
+	// Mitigate this by sleeping (#982, #2521).
 	if unfocused {
 		d := t2.Sub(t1)
 		const wait = time.Second / 60
