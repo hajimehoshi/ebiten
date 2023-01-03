@@ -19,6 +19,7 @@ import (
 	"math"
 	"runtime"
 	"sort"
+	"time"
 	"unsafe"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/cocoa"
@@ -57,6 +58,8 @@ type Graphics struct {
 	transparent  bool
 	maxImageSize int
 	tmpTextures  []mtl.Texture
+
+	lastFlush time.Time
 
 	pool cocoa.NSAutoreleasePool
 }
@@ -211,14 +214,26 @@ func (g *Graphics) flushIfNeeded(present bool) {
 	if g.cb == (mtl.CommandBuffer{}) && !present {
 		return
 	}
+
+	now := time.Now()
+	defer func() {
+		g.lastFlush = now
+	}()
+
 	g.flushRenderCommandEncoderIfNeeded()
 
 	if present {
 		// This check is necessary when skipping to render the screen (SetScreenClearedEveryFrame(false)).
 		if g.screenDrawable == (ca.MetalDrawable{}) {
-			// nextDrawable can return immediately when the command buffer is empty.
-			// TODO: Can we wait for a while to get the next drawable? (#2520)
-			g.screenDrawable = g.view.nextDrawable()
+			if g.cb != (mtl.CommandBuffer{}) {
+				g.screenDrawable = g.view.nextDrawable()
+			} else {
+				if delta := time.Second/60 - now.Sub(g.lastFlush); delta > 0 {
+					// nextDrawable can return immediately when the command buffer is empty.
+					// To avoid busy, sleep instead (#2520).
+					time.Sleep(delta)
+				}
+			}
 		}
 		if g.screenDrawable != (ca.MetalDrawable{}) {
 			g.cb.PresentDrawable(g.screenDrawable)
