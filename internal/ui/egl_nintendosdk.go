@@ -59,7 +59,7 @@ func (e *egl) init(nativeWindowHandle C.NativeWindowType) error {
 	}
 
 	e.surface = C.eglCreateWindowSurface(e.display, config, nativeWindowHandle, nil)
-	if e.surface == C.EGL_NO_SURFACE {
+	if e.surface == C.EGLSurface(C.EGL_NO_SURFACE) {
 		return fmt.Errorf("ui: eglCreateWindowSurface failed")
 	}
 
@@ -76,8 +76,8 @@ func (e *egl) init(nativeWindowHandle C.NativeWindowType) error {
 		// For debug callback
 		C.EGL_CONTEXT_FLAGS_KHR, C.EGL_CONTEXT_OPENGL_DEBUG_BIT_KHR,
 		C.EGL_NONE}
-	e.context = C.eglCreateContext(e.display, config, C.EGL_NO_CONTEXT, &contextAttribs[0])
-	if e.context == C.EGL_NO_CONTEXT {
+	e.context = C.eglCreateContext(e.display, config, C.EGLContext(C.EGL_NO_CONTEXT), &contextAttribs[0])
+	if e.context == C.EGLContext(C.EGL_NO_CONTEXT) {
 		return fmt.Errorf("ui: eglCreateContext failed: error: %d", C.eglGetError())
 	}
 
