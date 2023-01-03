@@ -230,7 +230,7 @@ func (g *Graphics) flushIfNeeded(present bool) {
 			} else {
 				if delta := time.Second/60 - now.Sub(g.lastFlush); delta > 0 {
 					// nextDrawable can return immediately when the command buffer is empty.
-					// To avoid busy, sleep instead (#2520).
+					// To avoid high CPU usage, sleep instead (#2520).
 					time.Sleep(delta)
 				}
 			}
