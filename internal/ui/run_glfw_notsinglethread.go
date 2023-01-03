@@ -18,7 +18,8 @@ package ui
 
 import (
 	stdcontext "context"
-	"errors"
+
+	"golang.org/x/sync/errgroup"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/v2/internal/thread"
@@ -41,24 +42,22 @@ func (u *userInterfaceImpl) Run(game Game, options *RunOptions) error {
 	ctx, cancel := stdcontext.WithCancel(stdcontext.Background())
 	defer cancel()
 
-	go func() {
+	var wg errgroup.Group
+
+	// Run the render thread.
+	wg.Go(func() error {
+		defer cancel()
 		_ = u.renderThread.Loop(ctx)
-	}()
+		return nil
+	})
 
-	ch := make(chan error, 1)
-	go func() {
-		defer close(ch)
+	// Run the game thread.
+	wg.Go(func() error {
+		defer cancel()
+		return u.loopGame()
+	})
 
-		if err := u.loopGame(); err != nil {
-			ch <- err
-			cancel()
-			return
-		}
-	}()
-
-	err := u.mainThread.Loop(ctx)
-	if errors.Is(err, stdcontext.Canceled) {
-		return <-ch
-	}
-	return err
+	// Run the main thread.
+	_ = u.mainThread.Loop(ctx)
+	return wg.Wait()
 }
