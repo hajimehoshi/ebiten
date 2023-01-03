@@ -216,6 +216,8 @@ func (g *Graphics) flushIfNeeded(present bool) {
 	if present {
 		// This check is necessary when skipping to render the screen (SetScreenClearedEveryFrame(false)).
 		if g.screenDrawable == (ca.MetalDrawable{}) {
+			// nextDrawable can return immediately when the command buffer is empty.
+			// TODO: Can we wait for a while to get the next drawable? (#2520)
 			g.screenDrawable = g.view.nextDrawable()
 		}
 		if g.screenDrawable != (ca.MetalDrawable{}) {
