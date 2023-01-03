@@ -61,6 +61,11 @@ func (g *Graphics) End(present bool) error {
 	// Call glFlush to prevent black flicking (especially on Android (#226) and iOS).
 	// TODO: examples/sprites worked without this. Is this really needed?
 	g.context.ctx.Flush()
+
+	// The last uniforms must be reset after swapping the buffer (#2517).
+	if present {
+		g.state.resetLastUniforms()
+	}
 	return nil
 }
 
@@ -263,11 +268,6 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 
 	if evenOdd {
 		g.context.ctx.Disable(gl.STENCIL_TEST)
-	}
-
-	// The last uniforms must be reset after swapping the buffer (#2517).
-	if destination.screen {
-		g.state.resetLastUniforms()
 	}
 
 	return nil
