@@ -21,11 +21,16 @@ package ui
 import "C"
 
 import (
+	stdcontext "context"
 	"runtime"
 
+	"golang.org/x/sync/errgroup"
+
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl"
+	"github.com/hajimehoshi/ebiten/v2/internal/thread"
 )
 
 type graphicsDriverCreatorImpl struct{}
@@ -61,6 +66,9 @@ type userInterfaceImpl struct {
 	nativeTouches []C.struct_Touch
 
 	egl egl
+
+	mainThread   *thread.OSThread
+	renderThread *thread.OSThread
 }
 
 func (u *userInterfaceImpl) Run(game Game, options *RunOptions) error {
@@ -78,19 +86,54 @@ func (u *userInterfaceImpl) Run(game Game, options *RunOptions) error {
 
 	initializeProfiler()
 
-	for {
-		recordProfilerHeartbeat()
+	u.mainThread = thread.NewOSThread()
+	u.renderThread = thread.NewOSThread()
+	graphicscommand.SetRenderThread(u.renderThread)
 
-		// TODO: Make a separate thread for rendering (#2512).
-		gamepad.Update()
-		u.updateInputState()
+	ctx, cancel := stdcontext.WithCancel(stdcontext.Background())
+	defer cancel()
 
-		if err := u.context.updateFrame(u.graphicsDriver, float64(C.kScreenWidth), float64(C.kScreenHeight), deviceScaleFactor, u); err != nil {
-			return err
+	var wg errgroup.Group
+
+	// Run the render thread.
+	wg.Go(func() error {
+		defer cancel()
+		_ = u.renderThread.Loop(ctx)
+		return nil
+	})
+
+	// Run the game thread.
+	wg.Go(func() error {
+		defer cancel()
+
+		u.renderThread.Call(func() {
+			u.egl.makeContextCurrent()
+		})
+
+		for {
+			recordProfilerHeartbeat()
+
+			u.mainThread.Call(func() {
+				gamepad.Update()
+				u.updateInputState()
+			})
+
+			if err := u.context.updateFrame(u.graphicsDriver, float64(C.kScreenWidth), float64(C.kScreenHeight), deviceScaleFactor, u); err != nil {
+				return err
+			}
+
+			u.renderThread.Call(func() {
+				u.egl.swapBuffers()
+			})
 		}
+	})
 
-		u.egl.swapBuffers()
+	// Run the main thread.
+	_ = u.mainThread.Loop(ctx)
+	if err := wg.Wait(); err != nil {
+		return err
 	}
+	return nil
 }
 
 func (*userInterfaceImpl) DeviceScaleFactor() float64 {

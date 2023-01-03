@@ -81,10 +81,13 @@ func (e *egl) init(nativeWindowHandle C.NativeWindowType) error {
 		return fmt.Errorf("ui: eglCreateContext failed: error: %d", C.eglGetError())
 	}
 
+	return nil
+}
+
+func (e *egl) makeContextCurrent() error {
 	if r := C.eglMakeCurrent(e.display, e.surface, e.surface, e.context); r == 0 {
 		return fmt.Errorf("ui: eglMakeCurrent failed")
 	}
-
 	return nil
 }
 
