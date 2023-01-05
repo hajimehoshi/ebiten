@@ -45,12 +45,7 @@ func Example_listDevices() {
 	}
 	printJSON("preferred system default Metal device = ", device)
 
-	fmt.Println("device supports the macOS GPU family 1, version 1 feature set:", device.SupportsFeatureSet(mtl.MacOSGPUFamily1V1))
-	fmt.Println("device supports the macOS GPU family 1, version 2 feature set:", device.SupportsFeatureSet(mtl.MacOSGPUFamily1V2))
-	fmt.Println("device supports the macOS read-write texture, tier 2 feature set:", device.SupportsFeatureSet(mtl.MacOSReadWriteTextureTier2))
-	fmt.Println("device supports the macOS GPU family 1, version 3 feature set:", device.SupportsFeatureSet(mtl.MacOSGPUFamily1V3))
-	fmt.Println("device supports the macOS GPU family 1, version 4 feature set:", device.SupportsFeatureSet(mtl.MacOSGPUFamily1V4))
-	fmt.Println("device supports the macOS GPU family 2, version 1 feature set:", device.SupportsFeatureSet(mtl.MacOSGPUFamily2V1))
+	// This test is not executed by `go test` command as this doesn't have an `Output:` comment.
 
 	// Sample output:
 	// all Metal devices in the system = [
@@ -76,12 +71,6 @@ func Example_listDevices() {
 	// 	"RegistryID": 4294968322,
 	// 	"Name": "AMD Radeon R9 M370X"
 	// }
-	// device supports the macOS GPU family 1, version 1 feature set: true
-	// device supports the macOS GPU family 1, version 2 feature set: true
-	// device supports the macOS read-write texture, tier 2 feature set: true
-	// device supports the macOS GPU family 1, version 3 feature set: true
-	// device supports the macOS GPU family 1, version 4 feature set: true
-	// device supports the macOS GPU family 2, version 1 feature set: true
 }
 
 // printJSON prints label, then v as JSON encoded with indent to stdout. It panics on any error.
