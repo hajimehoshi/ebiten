@@ -164,6 +164,7 @@ func (c *defaultContext) init() error {
 		C.free(unsafe.Pointer(cname))
 		if lib != nil {
 			C.setLibGLES(lib)
+			c.isES = true
 			return nil
 		}
 	}
