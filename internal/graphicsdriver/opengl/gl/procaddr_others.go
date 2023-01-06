@@ -21,31 +21,23 @@ package gl
 // #include <dlfcn.h>
 // #include <stdlib.h>
 //
-// static const char* libGLName;
-// static const char* libGLESName;
+// static void* libGLPtr;
+// static void* libGLESPtr;
 //
-// static void setLibGLName(const char* name) {
-//   libGLName = name;
+// static void setLibGL(void* lib) {
+//   libGLPtr = lib;
 // }
 //
-// static void setLibGLESName(const char* name) {
-//   libGLESName = name;
+// static void setLibGLES(void* lib) {
+//   libGLESPtr = lib;
 // }
 //
 // static void* libGL() {
-//   static void* so;
-//   if (!so) {
-//     so = dlopen(libGLName, RTLD_LAZY | RTLD_GLOBAL);
-//   }
-//   return so;
+//   return libGLPtr;
 // }
 //
 // static void* libGLES() {
-//   static void* so;
-//   if (!so) {
-//     so = dlopen(libGLESName, RTLD_LAZY | RTLD_GLOBAL);
-//   }
-//   return so;
+//   return libGLESPtr;
 // }
 //
 // static void* getProcAddressGL(const char* name) {
@@ -74,13 +66,18 @@ import (
 	"unsafe"
 )
 
-func findLib(libraryPaths []string, libName string) (string, error) {
+// listLibs returns an appropriate library file paths based on the given library paths and the library name as a prefix.
+// Note that the found libraries might not be available e.g. due to architecture mismatches.
+func listLibs(libraryPaths []string, libName string) ([]string, error) {
+	// LD_LIBRARY_PATH might be empty. Use the original name as a candidate.
+	libNames := []string{libName}
+
 	// Look for a library file. In some environments like Steam, a library with the exactly same name might not exist (#2523).
 	// For example, libGL.so.1 might exist instead of libGL.so.
 	for _, dir := range libraryPaths {
-		libs, err := listLibs(dir, libName)
+		libs, err := listLibsInDirectory(dir, libName)
 		if err != nil {
-			return "", err
+			return nil, err
 		}
 		if len(libs) == 0 {
 			continue
@@ -88,14 +85,17 @@ func findLib(libraryPaths []string, libName string) (string, error) {
 
 		// The file names are sorted in the alphabetical order. Use the first item.
 		// TODO: What is the best version to use?
-		return filepath.Join(dir, libs[0]), nil
+		sort.Strings(libs)
+
+		libNames = append(libNames, libs...)
 	}
 
-	// LD_LIBRARY_PATH might be empty. Use the original name.
-	return libName, nil
+	return libNames, nil
 }
 
-func listLibs(dir string, prefix string) ([]string, error) {
+// listLibsInDirectory returns library file paths with the given prefix in the directory.
+// Note that the found libraries might not be available e.g. due to architecture mismatches.
+func listLibsInDirectory(dir string, prefix string) ([]string, error) {
 	ents, err := os.ReadDir(dir)
 	if err != nil {
 		return nil, err
@@ -107,16 +107,15 @@ func listLibs(dir string, prefix string) ([]string, error) {
 			continue
 		}
 		if ent.Name() == prefix {
-			files = append(files, ent.Name())
+			files = append(files, filepath.Join(dir, ent.Name()))
 			continue
 		}
 		if strings.HasPrefix(ent.Name(), prefix+".") {
-			files = append(files, ent.Name())
+			files = append(files, filepath.Join(dir, ent.Name()))
 			continue
 		}
 	}
 
-	sort.Strings(files)
 	return files, nil
 }
 
@@ -139,32 +138,37 @@ func (c *defaultContext) init() error {
 
 	// Try OpenGL first. OpenGL is preferrable as this doesn't cause context losts.
 	if !preferES {
-		libGLName, err := findLib(libraryPaths, "libGL.so")
+		names, err := listLibs(libraryPaths, "libGL.so")
 		if err != nil {
 			return err
 		}
-
-		// This string is never released.
-		C.setLibGLName(C.CString(libGLName))
-		if C.libGL() != nil {
-			return nil
+		for _, name := range names {
+			cname := C.CString(name)
+			lib := C.dlopen(cname, C.RTLD_LAZY|C.RTLD_GLOBAL)
+			C.free(unsafe.Pointer(cname))
+			if lib != nil {
+				C.setLibGL(lib)
+				return nil
+			}
 		}
 	}
 
 	// Try OpenGL ES.
-	libGLESName, err := findLib(libraryPaths, "libGLESv2.so")
+	names, err := listLibs(libraryPaths, "libGLESv2.so")
 	if err != nil {
 		return err
 	}
-
-	// This string is never released.
-	C.setLibGLESName(C.CString(libGLESName))
-	if C.libGLES() != nil {
-		c.isES = true
-		return nil
+	for _, name := range names {
+		cname := C.CString(name)
+		lib := C.dlopen(cname, C.RTLD_LAZY|C.RTLD_GLOBAL)
+		C.free(unsafe.Pointer(cname))
+		if lib != nil {
+			C.setLibGLES(lib)
+			return nil
+		}
 	}
 
-	return fmt.Errorf("gl: failed to load libGL.so and libGLESv2.so")
+	return fmt.Errorf("gl: !?!? failed to load libGL.so and libGLESv2.so")
 }
 
 func (c *defaultContext) getProcAddress(name string) unsafe.Pointer {
