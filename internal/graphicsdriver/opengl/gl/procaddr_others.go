@@ -21,10 +21,21 @@ package gl
 // #include <dlfcn.h>
 // #include <stdlib.h>
 //
+// static const char* libGLName;
+// static const char* libGLESName;
+//
+// static void setLibGLName(const char* name) {
+//   libGLName = name;
+// }
+//
+// static void setLibGLESName(const char* name) {
+//   libGLESName = name;
+// }
+//
 // static void* libGL() {
 //   static void* so;
 //   if (!so) {
-//     so = dlopen("libGL.so", RTLD_LAZY | RTLD_GLOBAL);
+//     so = dlopen(libGLName, RTLD_LAZY | RTLD_GLOBAL);
 //   }
 //   return so;
 // }
@@ -32,7 +43,7 @@ package gl
 // static void* libGLES() {
 //   static void* so;
 //   if (!so) {
-//     so = dlopen("libGLESv2.so", RTLD_LAZY | RTLD_GLOBAL);
+//     so = dlopen(libGLESName, RTLD_LAZY | RTLD_GLOBAL);
 //   }
 //   return so;
 // }
@@ -56,10 +67,58 @@ import "C"
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"runtime"
+	"sort"
 	"strings"
 	"unsafe"
 )
+
+func findLib(libraryPaths []string, libName string) (string, error) {
+	// Look for a library file. In some environments like Steam, a library with the exactly same name might not exist (#2523).
+	// For example, libGL.so.1 might exist instead of libGL.so.
+	for _, dir := range libraryPaths {
+		libs, err := listLibs(dir, libName)
+		if err != nil {
+			return "", err
+		}
+		if len(libs) == 0 {
+			continue
+		}
+
+		// The file names are sorted in the alphabetical order. Use the first item.
+		// TODO: What is the best version to use?
+		return filepath.Join(dir, libs[0]), nil
+	}
+
+	// LD_LIBRARY_PATH might be empty. Use the original name.
+	return libName, nil
+}
+
+func listLibs(dir string, prefix string) ([]string, error) {
+	ents, err := os.ReadDir(dir)
+	if err != nil {
+		return nil, err
+	}
+
+	var files []string
+	for _, ent := range ents {
+		if ent.IsDir() {
+			continue
+		}
+		if ent.Name() == prefix {
+			files = append(files, ent.Name())
+			continue
+		}
+		if strings.HasPrefix(ent.Name(), prefix+".") {
+			files = append(files, ent.Name())
+			continue
+		}
+	}
+
+	sort.Strings(files)
+	return files, nil
+}
 
 func (c *defaultContext) init() error {
 	var preferES bool
@@ -76,14 +135,30 @@ func (c *defaultContext) init() error {
 		}
 	}
 
+	libraryPaths := filepath.SplitList(os.Getenv("LD_LIBRARY_PATH"))
+
 	// Try OpenGL first. OpenGL is preferrable as this doesn't cause context losts.
 	if !preferES {
+		libGLName, err := findLib(libraryPaths, "libGL.so")
+		if err != nil {
+			return err
+		}
+
+		// This string is never released.
+		C.setLibGLName(C.CString(libGLName))
 		if C.libGL() != nil {
 			return nil
 		}
 	}
 
 	// Try OpenGL ES.
+	libGLESName, err := findLib(libraryPaths, "libGLESv2.so")
+	if err != nil {
+		return err
+	}
+
+	// This string is never released.
+	C.setLibGLESName(C.CString(libGLESName))
 	if C.libGLES() != nil {
 		c.isES = true
 		return nil
