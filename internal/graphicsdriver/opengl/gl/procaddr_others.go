@@ -83,7 +83,7 @@ func listLibs(libraryPaths []string, libName string) ([]string, error) {
 			continue
 		}
 
-		// The file names are sorted in the alphabetical order. Use the first item.
+		// The file names are sorted in the alphabetical order.
 		// TODO: What is the best version to use?
 		sort.Strings(libs)
 
@@ -168,7 +168,7 @@ func (c *defaultContext) init() error {
 		}
 	}
 
-	return fmt.Errorf("gl: !?!? failed to load libGL.so and libGLESv2.so")
+	return fmt.Errorf("gl: failed to load libGL.so and libGLESv2.so")
 }
 
 func (c *defaultContext) getProcAddress(name string) unsafe.Pointer {
