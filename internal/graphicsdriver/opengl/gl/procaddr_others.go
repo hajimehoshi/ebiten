@@ -21,38 +21,19 @@ package gl
 // #include <dlfcn.h>
 // #include <stdlib.h>
 //
-// static void* libGLPtr;
-// static void* libGLESPtr;
-//
-// static void setLibGL(void* lib) {
-//   libGLPtr = lib;
-// }
-//
-// static void setLibGLES(void* lib) {
-//   libGLESPtr = lib;
-// }
-//
-// static void* libGL() {
-//   return libGLPtr;
-// }
-//
-// static void* libGLES() {
-//   return libGLESPtr;
-// }
-//
-// static void* getProcAddressGL(const char* name) {
+// static void* getProcAddressGL(void* libGL, const char* name) {
 //   static void*(*glXGetProcAddress)(const char*);
 //   if (!glXGetProcAddress) {
-//     glXGetProcAddress = dlsym(libGL(), "glXGetProcAddress");
+//     glXGetProcAddress = dlsym(libGL, "glXGetProcAddress");
 //     if (!glXGetProcAddress) {
-//       glXGetProcAddress = dlsym(libGL(), "glXGetProcAddressARB");
+//       glXGetProcAddress = dlsym(libGL, "glXGetProcAddressARB");
 //     }
 //   }
 //   return glXGetProcAddress(name);
 // }
 //
-// static void* getProcAddressGLES(const char* name) {
-//   return dlsym(libGLES(), name);
+// static void* getProcAddressGLES(void* libGLES, const char* name) {
+//   return dlsym(libGLES, name);
 // }
 import "C"
 
@@ -64,6 +45,11 @@ import (
 	"sort"
 	"strings"
 	"unsafe"
+)
+
+var (
+	libGL   unsafe.Pointer
+	libGLES unsafe.Pointer
 )
 
 // listLibs returns an appropriate library file paths based on the given library paths and the library name as a prefix.
@@ -147,7 +133,7 @@ func (c *defaultContext) init() error {
 			lib := C.dlopen(cname, C.RTLD_LAZY|C.RTLD_GLOBAL)
 			C.free(unsafe.Pointer(cname))
 			if lib != nil {
-				C.setLibGL(lib)
+				libGL = lib
 				return nil
 			}
 		}
@@ -163,7 +149,7 @@ func (c *defaultContext) init() error {
 		lib := C.dlopen(cname, C.RTLD_LAZY|C.RTLD_GLOBAL)
 		C.free(unsafe.Pointer(cname))
 		if lib != nil {
-			C.setLibGLES(lib)
+			libGLES = lib
 			c.isES = true
 			return nil
 		}
@@ -182,12 +168,12 @@ func (c *defaultContext) getProcAddress(name string) unsafe.Pointer {
 func getProcAddressGL(name string) unsafe.Pointer {
 	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))
-	return C.getProcAddressGL(cname)
+	return C.getProcAddressGL(libGL, cname)
 }
 
 func getProcAddressGLES(name string) unsafe.Pointer {
 	name = strings.TrimSuffix(name, "EXT")
 	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))
-	return C.getProcAddressGLES(cname)
+	return C.getProcAddressGLES(libGLES, cname)
 }
