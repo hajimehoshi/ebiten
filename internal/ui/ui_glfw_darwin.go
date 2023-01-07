@@ -285,7 +285,7 @@ func (u *userInterfaceImpl) setNativeCursor(shape CursorShape) {
 	case 5:
 		cursor = NSCursor.Send(sel_performSelector, objc.RegisterName("_windowResizeNorthSouthCursor"))
 	}
-	cursor.Send(objc.RegisterName("push"))
+	cursor.Send(objc.RegisterName("set"))
 }
 
 func (u *userInterfaceImpl) isNativeFullscreenAvailable() bool {
