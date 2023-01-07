@@ -614,6 +614,9 @@ func (u *userInterfaceImpl) SetCursorMode(mode CursorMode) {
 	}
 	u.mainThread.Call(func() {
 		u.window.SetInputMode(glfw.CursorMode, driverCursorModeToGLFWCursorMode(mode))
+		if mode == CursorModeVisible {
+			u.setNativeCursor(u.getCursorShape())
+		}
 	})
 }
 
