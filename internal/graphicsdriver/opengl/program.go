@@ -219,6 +219,7 @@ func (g *Graphics) useProgram(program program, uniforms []uniformVariable, textu
 		}
 		g.state.lastActiveTexture = 0
 		g.context.ctx.ActiveTexture(gl.TEXTURE0)
+		g.context.lastTexture = 0 // Make sure next bindTexture call actually does something.
 	}
 
 	for _, u := range uniforms {
@@ -267,6 +268,7 @@ loop:
 		if g.state.lastActiveTexture != idx {
 			g.context.ctx.ActiveTexture(uint32(gl.TEXTURE0 + idx))
 			g.state.lastActiveTexture = idx
+			g.context.lastTexture = 0 // Make sure next bindTexture call actually does something.
 		}
 
 		// Apparently, a texture must be bound every time. The cache is not used here.
