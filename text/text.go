@@ -275,7 +275,8 @@ func DrawWithOptions(dst *ebiten.Image, text string, face font.Face, options *eb
 	//
 	// Note that at most there are 4 variations for one rune if the font doesn't have hintings (#2469, #2528).
 	// So, if the size is 64px, the size is 4000000 / (64*64) = 976, and 976 / 4 = 244 runes can be cached.
-	// The constants in the algorithm is arbitrary, but this should be enough to cover ASCII glyphs.
+	// The constants in the algorithm are arbitrary, but this should be enough to cover not only ASCII glyphs
+	// but also CJK glyphs.
 	m := face.Metrics()
 	size := (m.Ascent + m.Descent).Ceil()
 	cacheSoftLimit := min(4000000/(size*size), 2048)
