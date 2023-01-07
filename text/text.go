@@ -272,7 +272,13 @@ func DrawWithOptions(dst *ebiten.Image, text string, face font.Face, options *eb
 	// If the number of glyphs exceeds this soft limits, old glyphs are removed.
 	// Even after clearning up the cache, the number of glyphs might still exceeds the soft limit, but
 	// this is fine.
-	const cacheSoftLimit = 512
+	//
+	// Note that at most there are 4 variations for one rune if the font doesn't have hintings (#2469, #2528).
+	// So, if the size is 64px, the size is 4000000 / (64*64) = 976, and 976 / 4 = 244 runes can be cached.
+	// The constants in the algorithm is arbitrary, but this should be enough to cover ASCII glyphs.
+	m := face.Metrics()
+	size := (m.Ascent + m.Descent).Ceil()
+	cacheSoftLimit := min(4000000/(size*size), 2048)
 
 	// Clean up the cache.
 	if len(glyphImageCache[face]) > cacheSoftLimit {
@@ -283,6 +289,13 @@ func DrawWithOptions(dst *ebiten.Image, text string, face font.Face, options *eb
 			}
 		}
 	}
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
 
 // BoundString returns the measured size of a given string using a given font.
