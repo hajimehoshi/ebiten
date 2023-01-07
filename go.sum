@@ -1,6 +1,6 @@
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
-github.com/ebitengine/purego v0.2.0-alpha.0.20221115115134-c9e35fa8a6a1 h1:dJnjKgeHi+bIyxFEdZxdf3AzIjZCpg76+pMZ5XRwIqw=
-github.com/ebitengine/purego v0.2.0-alpha.0.20221115115134-c9e35fa8a6a1/go.mod h1:iIjxzd6CiRiOG0UyXP+V1+jWqUXVjPKLAI0mRfJZTmQ=
+github.com/ebitengine/purego v0.2.0-alpha.0.20230107011038-a7c4d8fb43b1 h1:gXg40rlIcbyIqEHp0gjz9yHRahQ5xq+l00KrlY6w4vo=
+github.com/ebitengine/purego v0.2.0-alpha.0.20230107011038-a7c4d8fb43b1/go.mod h1:iIjxzd6CiRiOG0UyXP+V1+jWqUXVjPKLAI0mRfJZTmQ=
 github.com/go-gl/glfw/v3.3/glfw v0.0.0-20221017161538-93cebf72946b h1:GgabKamyOYguHqHjSkDACcgoPIz3w0Dis/zJ1wyHHHU=
 github.com/go-gl/glfw/v3.3/glfw v0.0.0-20221017161538-93cebf72946b/go.mod h1:tQ2UAYgL5IevRw8kRxooKSPJfGvJ9fJQFa0TUsXzTg8=
 github.com/hajimehoshi/bitmapfont/v2 v2.2.3 h1:jmq/TMNj352V062Tr5e3hAoipkoxCbY1JWTzor0zNps=
@@ -8,8 +8,8 @@ github.com/hajimehoshi/bitmapfont/v2 v2.2.3/go.mod h1:sWM8ejdkGSXaQGlZcegMRx4DyE
 github.com/hajimehoshi/go-mp3 v0.3.4 h1:NUP7pBYH8OguP4diaTZ9wJbUbk3tC0KlfzsEpWmYj68=
 github.com/hajimehoshi/go-mp3 v0.3.4/go.mod h1:fRtZraRFcWb0pu7ok0LqyFhCUrPeMsGRSVop0eemFmo=
 github.com/hajimehoshi/oto/v2 v2.3.1/go.mod h1:seWLbgHH7AyUMYKfKYT9pg7PhUu9/SisyJvNTT+ASQo=
-github.com/hajimehoshi/oto/v2 v2.4.0-alpha.10 h1:wQLx2w+Bsjh4Z5bkuR1/vtUXpb9e23cnkVKZMHuUOrk=
-github.com/hajimehoshi/oto/v2 v2.4.0-alpha.10/go.mod h1:XMZ6tRrfJJ6Poxyd481sQdWdHLr5Ccoup0VJxGRnwew=
+github.com/hajimehoshi/oto/v2 v2.4.0-alpha.10.0.20230107095450-7e07d2d07898 h1:vXa8jrvtwSYYoCg10X0xcpE84Tqw6HfvYkMoNKRnma4=
+github.com/hajimehoshi/oto/v2 v2.4.0-alpha.10.0.20230107095450-7e07d2d07898/go.mod h1:wre+KgbOrKDXpgk6W/JC6KoFqZnVC/VtX5ZFRkJuxO4=
 github.com/jakecoffman/cp v1.2.1 h1:zkhc2Gpo9l4NLUZfeG3j33+3bQD7MkqPa+n5PdX+5mI=
 github.com/jakecoffman/cp v1.2.1/go.mod h1:JjY/Fp6d8E1CHnu74gWNnU0+b9VzEdUVPoJxg2PsTQg=
 github.com/jezek/xgb v1.1.0 h1:wnpxJzP1+rkbGclEkmwpVFQWpuE2PUGNUzP8SbfFobk=
