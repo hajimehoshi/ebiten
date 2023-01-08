@@ -24,3 +24,5 @@ require (
 	golang.org/x/mod v0.7.0 // indirect
 	golang.org/x/text v0.6.0 // indirect
 )
+
+replace github.com/hajimehoshi/oto/v2 => ../oto
