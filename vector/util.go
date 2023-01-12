@@ -94,7 +94,7 @@ func StrokeRect(dst *ebiten.Image, x, y, width, height float32, strokeWidth floa
 // DrawFilledCircle filles a circle with the specified center position (cx, cy), the radius (r), width and color.
 func DrawFilledCircle(dst *ebiten.Image, cx, cy, r float32, clr color.Color) {
 	var path Path
-	path.Arc(float32(cx), float32(cy), float32(r), 0, 2*math.Pi, Clockwise)
+	path.Arc(cx, cy, r, 0, 2*math.Pi, Clockwise)
 	vs, is := path.AppendVerticesAndIndicesForFilling(nil, nil)
 
 	drawVerticesForUtil(dst, vs, is, clr)
@@ -105,7 +105,7 @@ func DrawFilledCircle(dst *ebiten.Image, cx, cy, r float32, clr color.Color) {
 // clr has be to be a solid (non-transparent) color.
 func StrokeCircle(dst *ebiten.Image, cx, cy, r float32, strokeWidth float32, clr color.Color) {
 	var path Path
-	path.Arc(float32(cx), float32(cy), float32(r), 0, 2*math.Pi, Clockwise)
+	path.Arc(cx, cy, r, 0, 2*math.Pi, Clockwise)
 	path.Close()
 
 	strokeOp := &StrokeOptions{}

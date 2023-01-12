@@ -52,7 +52,7 @@ func adjustOffsetGranularity(x fixed.Int26_6) fixed.Int26_6 {
 	return x / (1 << 4) * (1 << 4)
 }
 
-func drawGlyph(dst *ebiten.Image, face font.Face, r rune, img *ebiten.Image, topleft fixed.Point26_6, op *ebiten.DrawImageOptions) {
+func drawGlyph(dst *ebiten.Image, img *ebiten.Image, topleft fixed.Point26_6, op *ebiten.DrawImageOptions) {
 	if img == nil {
 		return
 	}
@@ -259,7 +259,7 @@ func DrawWithOptions(dst *ebiten.Image, text string, face font.Face, options *eb
 			Y: b.Min.Y & ((1 << 6) - 1),
 		}
 		img := getGlyphImage(face, r, offset)
-		drawGlyph(dst, face, r, img, fixed.Point26_6{
+		drawGlyph(dst, img, fixed.Point26_6{
 			X: dx + b.Min.X - offset.X,
 			Y: dy + b.Min.Y - offset.Y,
 		}, options)

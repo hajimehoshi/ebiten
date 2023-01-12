@@ -275,7 +275,7 @@ func (p *Path) ArcTo(x1, y1, x2, y2, radius float32) {
 	theta := math.Acos(float64(d0.x*d1.x + d0.y*d1.y))
 	// TODO: When theta is bigger than π/2, the arc should be split into two.
 
-	// dist is the distance between the control point and the arc's begenning and ending points.
+	// dist is the distance between the control point and the arc's beginning and ending points.
 	dist := radius / float32(math.Tan(theta/2))
 
 	// TODO: What if dist is too big?
