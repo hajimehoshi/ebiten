@@ -2216,15 +2216,6 @@ func platformGetKeyScancode(key Key) int {
 	return _glfw.win32.scancodes[key]
 }
 
-func (c *Cursor) platformCreateCursor(image *Image, xhot, yhot int) error {
-	h, err := createIcon(image, xhot, yhot, false)
-	if err != nil {
-		return err
-	}
-	c.win32.handle = _HCURSOR(h)
-	return nil
-}
-
 func (c *Cursor) platformCreateStandardCursor(shape StandardCursor) error {
 	if microsoftgdk.IsXbox() {
 		return nil
