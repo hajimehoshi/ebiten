@@ -63,4 +63,5 @@ func (c *gameForUI) Draw() {
 	// TODO: This is a dirty hack to fix #2362. Move setVerticesCache to ui.Image if possible.
 	c.offscreen.resolveSetVerticesCacheIfNeeded()
 	c.game.Draw(c.offscreen)
+	c.offscreen.resolveSetVerticesCacheIfNeeded()
 }
