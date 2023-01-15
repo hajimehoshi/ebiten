@@ -67,6 +67,14 @@ func driverCursorShapeToCSSCursor(cursor CursorShape) string {
 		return "ew-resize"
 	case CursorShapeNSResize:
 		return "ns-resize"
+	case CursorShapeNESWResize:
+		return "nesw-resize"
+	case CursorShapeNWSEResize:
+		return "nwse-resize"
+	case CursorShapeMove:
+		return "move"
+	case CursorShapeNotAllowed:
+		return "not-allowed"
 	}
 	return "auto"
 }

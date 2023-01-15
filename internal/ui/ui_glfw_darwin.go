@@ -218,17 +218,13 @@ var (
 
 var (
 	sel_alloc                         = objc.RegisterName("alloc")
-	sel_arrowCursor                   = objc.RegisterName("arrowCursor")
 	sel_class                         = objc.RegisterName("class")
 	sel_collectionBehavior            = objc.RegisterName("collectionBehavior")
-	sel_crosshairCursor               = objc.RegisterName("crosshairCursor")
 	sel_delegate                      = objc.RegisterName("delegate")
-	sel_IBeamCursor                   = objc.RegisterName("IBeamCursor")
 	sel_init                          = objc.RegisterName("init")
 	sel_initWithOrigDelegate          = objc.RegisterName("initWithOrigDelegate:")
 	sel_mouseLocation                 = objc.RegisterName("mouseLocation")
 	sel_performSelector               = objc.RegisterName("performSelector:")
-	sel_pointingHandCursor            = objc.RegisterName("pointingHandCursor")
 	sel_set                           = objc.RegisterName("set")
 	sel_setCollectionBehavior         = objc.RegisterName("setCollectionBehavior:")
 	sel_setDelegate                   = objc.RegisterName("setDelegate:")
@@ -242,8 +238,6 @@ var (
 	sel_windowDidResignKey            = objc.RegisterName("windowDidResignKey:")
 	sel_windowDidResize               = objc.RegisterName("windowDidResize:")
 	sel_windowDidChangeOcclusionState = objc.RegisterName("windowDidChangeOcclusionState:")
-	sel_windowResizeEastWestCursor    = objc.RegisterName("_windowResizeEastWestCursor")
-	sel_windowResizeNorthSouthCursor  = objc.RegisterName("_windowResizeNorthSouthCursor")
 	sel_windowShouldClose             = objc.RegisterName("windowShouldClose:")
 	sel_windowWillEnterFullScreen     = objc.RegisterName("windowWillEnterFullScreen:")
 	sel_windowWillExitFullScreen      = objc.RegisterName("windowWillExitFullScreen:")
@@ -301,26 +295,6 @@ func (u *userInterfaceImpl) nativeWindow() uintptr {
 
 func (u *userInterfaceImpl) isNativeFullscreen() bool {
 	return cocoa.NSWindow{ID: objc.ID(u.window.GetCocoaWindow())}.StyleMask()&cocoa.NSWindowStyleMaskFullScreen != 0
-}
-
-func (u *userInterfaceImpl) setNativeCursor(shape CursorShape) {
-	NSCursor := objc.ID(class_NSCursor).Send(sel_class)
-	cursor := NSCursor.Send(sel_performSelector, sel_arrowCursor)
-	switch shape {
-	case 0:
-		cursor = NSCursor.Send(sel_performSelector, sel_arrowCursor)
-	case 1:
-		cursor = NSCursor.Send(sel_performSelector, sel_IBeamCursor)
-	case 2:
-		cursor = NSCursor.Send(sel_performSelector, sel_crosshairCursor)
-	case 3:
-		cursor = NSCursor.Send(sel_performSelector, sel_pointingHandCursor)
-	case 4:
-		cursor = NSCursor.Send(sel_performSelector, sel_windowResizeEastWestCursor)
-	case 5:
-		cursor = NSCursor.Send(sel_performSelector, sel_windowResizeNorthSouthCursor)
-	}
-	cursor.Send(sel_set)
 }
 
 func (u *userInterfaceImpl) isNativeFullscreenAvailable() bool {

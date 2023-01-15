@@ -33,10 +33,14 @@ type CursorShapeType = ui.CursorShape
 
 // CursorShapeTypes
 const (
-	CursorShapeDefault   CursorShapeType = ui.CursorShapeDefault
-	CursorShapeText      CursorShapeType = ui.CursorShapeText
-	CursorShapeCrosshair CursorShapeType = ui.CursorShapeCrosshair
-	CursorShapePointer   CursorShapeType = ui.CursorShapePointer
-	CursorShapeEWResize  CursorShapeType = ui.CursorShapeEWResize
-	CursorShapeNSResize  CursorShapeType = ui.CursorShapeNSResize
+	CursorShapeDefault    CursorShapeType = CursorShapeType(ui.CursorShapeDefault)
+	CursorShapeText       CursorShapeType = CursorShapeType(ui.CursorShapeText)
+	CursorShapeCrosshair  CursorShapeType = CursorShapeType(ui.CursorShapeCrosshair)
+	CursorShapePointer    CursorShapeType = CursorShapeType(ui.CursorShapePointer)
+	CursorShapeEWResize   CursorShapeType = CursorShapeType(ui.CursorShapeEWResize)
+	CursorShapeNSResize   CursorShapeType = CursorShapeType(ui.CursorShapeNSResize)
+	CursorShapeNESWResize CursorShapeType = CursorShapeType(ui.CursorShapeNESWResize)
+	CursorShapeNWSEResize CursorShapeType = CursorShapeType(ui.CursorShapeNWSEResize)
+	CursorShapeMove       CursorShapeType = CursorShapeType(ui.CursorShapeMove)
+	CursorShapeNotAllowed CursorShapeType = CursorShapeType(ui.CursorShapeNotAllowed)
 )

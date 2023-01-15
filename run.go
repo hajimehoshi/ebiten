@@ -378,6 +378,8 @@ func CursorShape() CursorShapeType {
 
 // SetCursorShape sets the cursor shape.
 //
+// If the platform doesn't implement the given shape, the default cursor shape is used.
+//
 // SetCursorShape is concurrent-safe.
 func SetCursorShape(shape CursorShapeType) {
 	ui.Get().SetCursorShape(shape)

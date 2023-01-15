@@ -201,6 +201,10 @@ func initialize() error {
 	glfwSystemCursors[CursorShapePointer] = glfw.CreateStandardCursor(glfw.HandCursor)
 	glfwSystemCursors[CursorShapeEWResize] = glfw.CreateStandardCursor(glfw.HResizeCursor)
 	glfwSystemCursors[CursorShapeNSResize] = glfw.CreateStandardCursor(glfw.VResizeCursor)
+	glfwSystemCursors[CursorShapeNESWResize] = glfw.CreateStandardCursor(glfw.ResizeNESWCursor)
+	glfwSystemCursors[CursorShapeNWSEResize] = glfw.CreateStandardCursor(glfw.ResizeNWSECursor)
+	glfwSystemCursors[CursorShapeMove] = glfw.CreateStandardCursor(glfw.ResizeAllCursor)
+	glfwSystemCursors[CursorShapeNotAllowed] = glfw.CreateStandardCursor(glfw.NotAllowedCursor)
 
 	return nil
 }
@@ -614,7 +618,7 @@ func (u *userInterfaceImpl) SetCursorMode(mode CursorMode) {
 	u.mainThread.Call(func() {
 		u.window.SetInputMode(glfw.CursorMode, driverCursorModeToGLFWCursorMode(mode))
 		if mode == CursorModeVisible {
-			u.setNativeCursor(u.getCursorShape())
+			u.window.SetCursor(glfwSystemCursors[u.getCursorShape()])
 		}
 	})
 }
@@ -632,7 +636,7 @@ func (u *userInterfaceImpl) SetCursorShape(shape CursorShape) {
 		return
 	}
 	u.mainThread.Call(func() {
-		u.setNativeCursor(shape)
+		u.window.SetCursor(glfwSystemCursors[shape])
 	})
 }
 

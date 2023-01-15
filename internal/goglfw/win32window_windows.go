@@ -2242,6 +2242,14 @@ func (c *Cursor) platformCreateStandardCursor(shape StandardCursor) error {
 		id = _OCR_SIZEWE
 	case VResizeCursor:
 		id = _OCR_SIZENS
+	case ResizeNWSECursor: // v3.4
+		id = _OCR_SIZENWSE
+	case ResizeNESWCursor: // v3.4
+		id = _OCR_SIZENESW
+	case ResizeAllCursor: // v3.4
+		id = _OCR_SIZEALL
+	case NotAllowedCursor: // v3.4
+		id = _OCR_NO
 	default:
 		return fmt.Errorf("goglfw: invalid shape: %d", shape)
 	}

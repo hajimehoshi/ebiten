@@ -351,7 +351,11 @@ func CreateStandardCursor(shape StandardCursor) (*Cursor, error) {
 		shape != CrosshairCursor &&
 		shape != HandCursor &&
 		shape != HResizeCursor &&
-		shape != VResizeCursor {
+		shape != VResizeCursor &&
+		shape != ResizeNWSECursor &&
+		shape != ResizeNESWCursor &&
+		shape != ResizeAllCursor &&
+		shape != NotAllowedCursor {
 		return nil, fmt.Errorf("goglfw: invalid standard cursor 0x%08X: %w", shape, InvalidEnum)
 	}
 

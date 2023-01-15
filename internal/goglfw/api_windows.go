@@ -104,8 +104,12 @@ const (
 	_OCR_CROSS                                                 = 32515
 	_OCR_HAND                                                  = 32649
 	_OCR_IBEAM                                                 = 32513
+	_OCR_NO                                                    = 32648
 	_OCR_NORMAL                                                = 32512
+	_OCR_SIZEALL                                               = 32646
+	_OCR_SIZENESW                                              = 32643
 	_OCR_SIZENS                                                = 32645
+	_OCR_SIZENWSE                                              = 32642
 	_OCR_SIZEWE                                                = 32644
 	_PM_NOREMOVE                                               = 0x0000
 	_PM_REMOVE                                                 = 0x0001

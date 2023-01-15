@@ -289,6 +289,12 @@ const (
 	HandCursor      StandardCursor = 0x00036004
 	HResizeCursor   StandardCursor = 0x00036005
 	VResizeCursor   StandardCursor = 0x00036006
+
+	// v3.4
+	ResizeNWSECursor StandardCursor = 0x00036007
+	ResizeNESWCursor StandardCursor = 0x00036008
+	ResizeAllCursor  StandardCursor = 0x00036009
+	NotAllowedCursor StandardCursor = 0x0003600A
 )
 
 type Error int

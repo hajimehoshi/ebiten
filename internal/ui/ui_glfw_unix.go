@@ -200,11 +200,6 @@ func (u *userInterfaceImpl) isNativeFullscreen() bool {
 	return false
 }
 
-func (u *userInterfaceImpl) setNativeCursor(shape CursorShape) {
-	// TODO: Use native API in the future (#1571)
-	u.window.SetCursor(glfwSystemCursors[shape])
-}
-
 func (u *userInterfaceImpl) isNativeFullscreenAvailable() bool {
 	return false
 }

@@ -52,6 +52,10 @@ const (
 	CursorShapePointer
 	CursorShapeEWResize
 	CursorShapeNSResize
+	CursorShapeNESWResize
+	CursorShapeNWSEResize
+	CursorShapeMove
+	CursorShapeNotAllowed
 )
 
 type WindowResizingMode int
