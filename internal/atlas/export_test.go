@@ -60,3 +60,5 @@ func (i *Image) EnsureIsolatedForTesting() {
 }
 
 var FlushDeferredForTesting = flushDeferred
+
+var FloorPowerOf2 = floorPowerOf2

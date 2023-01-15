@@ -21,6 +21,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
@@ -36,13 +37,24 @@ type Game struct {
 
 func (g *Game) Update() error {
 	pt := image.Pt(ebiten.CursorPosition())
+	cursor := ebiten.CursorShapeDefault
 	for r, c := range g.grids {
 		if pt.In(r) {
-			ebiten.SetCursorShape(c)
-			return nil
+			cursor = c
+			break
 		}
 	}
-	ebiten.SetCursorShape(ebiten.CursorShapeDefault)
+	ebiten.SetCursorShape(cursor)
+
+	if inpututil.IsKeyJustPressed(ebiten.KeyC) {
+		switch ebiten.CursorMode() {
+		case ebiten.CursorModeVisible:
+			ebiten.SetCursorMode(ebiten.CursorModeHidden)
+		case ebiten.CursorModeHidden:
+			ebiten.SetCursorMode(ebiten.CursorModeVisible)
+		}
+	}
+
 	return nil
 }
 

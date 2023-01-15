@@ -21,35 +21,19 @@ package gl
 // #include <dlfcn.h>
 // #include <stdlib.h>
 //
-// static void* libGL() {
-//   static void* so;
-//   if (!so) {
-//     so = dlopen("libGL.so", RTLD_LAZY | RTLD_GLOBAL);
-//   }
-//   return so;
-// }
-//
-// static void* libGLES() {
-//   static void* so;
-//   if (!so) {
-//     so = dlopen("libGLESv2.so", RTLD_LAZY | RTLD_GLOBAL);
-//   }
-//   return so;
-// }
-//
-// static void* getProcAddressGL(const char* name) {
+// static void* getProcAddressGL(void* libGL, const char* name) {
 //   static void*(*glXGetProcAddress)(const char*);
 //   if (!glXGetProcAddress) {
-//     glXGetProcAddress = dlsym(libGL(), "glXGetProcAddress");
+//     glXGetProcAddress = dlsym(libGL, "glXGetProcAddress");
 //     if (!glXGetProcAddress) {
-//       glXGetProcAddress = dlsym(libGL(), "glXGetProcAddressARB");
+//       glXGetProcAddress = dlsym(libGL, "glXGetProcAddressARB");
 //     }
 //   }
 //   return glXGetProcAddress(name);
 // }
 //
-// static void* getProcAddressGLES(const char* name) {
-//   return dlsym(libGLES(), name);
+// static void* getProcAddressGLES(void* libGLES, const char* name) {
+//   return dlsym(libGLES, name);
 // }
 import "C"
 
@@ -59,6 +43,11 @@ import (
 	"runtime"
 	"strings"
 	"unsafe"
+)
+
+var (
+	libGL   unsafe.Pointer
+	libGLES unsafe.Pointer
 )
 
 func (c *defaultContext) init() error {
@@ -78,15 +67,28 @@ func (c *defaultContext) init() error {
 
 	// Try OpenGL first. OpenGL is preferrable as this doesn't cause context losts.
 	if !preferES {
-		if C.libGL() != nil {
-			return nil
+		// Usually libGL.so or libGL.so.1 is used. libGL.so.2 might exist only on NetBSD.
+		for _, name := range []string{"libGL.so", "libGL.so.2", "libGL.so.1", "libGL.so.0"} {
+			cname := C.CString(name)
+			lib := C.dlopen(cname, C.RTLD_LAZY|C.RTLD_GLOBAL)
+			C.free(unsafe.Pointer(cname))
+			if lib != nil {
+				libGL = lib
+				return nil
+			}
 		}
 	}
 
 	// Try OpenGL ES.
-	if C.libGLES() != nil {
-		c.isES = true
-		return nil
+	for _, name := range []string{"libGLESv2.so", "libGLESv2.so.2", "libGLESv2.so.1", "libGLESv2.so.0"} {
+		cname := C.CString(name)
+		lib := C.dlopen(cname, C.RTLD_LAZY|C.RTLD_GLOBAL)
+		C.free(unsafe.Pointer(cname))
+		if lib != nil {
+			libGLES = lib
+			c.isES = true
+			return nil
+		}
 	}
 
 	return fmt.Errorf("gl: failed to load libGL.so and libGLESv2.so")
@@ -102,12 +104,12 @@ func (c *defaultContext) getProcAddress(name string) unsafe.Pointer {
 func getProcAddressGL(name string) unsafe.Pointer {
 	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))
-	return C.getProcAddressGL(cname)
+	return C.getProcAddressGL(libGL, cname)
 }
 
 func getProcAddressGLES(name string) unsafe.Pointer {
 	name = strings.TrimSuffix(name, "EXT")
 	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))
-	return C.getProcAddressGLES(cname)
+	return C.getProcAddressGLES(libGLES, cname)
 }

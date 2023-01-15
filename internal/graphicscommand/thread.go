@@ -14,27 +14,24 @@
 
 package graphicscommand
 
-var theThread Thread
+import (
+	"github.com/hajimehoshi/ebiten/v2/internal/thread"
+)
+
+var theRenderThread Thread = thread.NewNoopThread()
 
 type Thread interface {
 	Call(f func())
 }
 
-// SetRenderingThread must be called from the rendering thread where e.g. OpenGL works.
+// SetRenderThread must be called from the rendering thread where e.g. OpenGL works.
 //
 // TODO: Create thread in this package instead of setting it externally.
-func SetRenderingThread(thread Thread) {
-	theThread = thread
+func SetRenderThread(thread Thread) {
+	theRenderThread = thread
 }
 
-// runOnRenderingThread calls f on the rendering thread, and returns an error if any.
-func runOnRenderingThread(f func()) {
-	// The thread is nil when 1) GOOS=js or 2) using golang.org/x/mobile/gl.
-	// When golang.org/x/mobile/gl is used, all the GL functions are called via Context, which already runs on an
-	// appropriate thread.
-	if theThread == nil {
-		f()
-		return
-	}
-	theThread.Call(f)
+// runOnRenderThread calls f on the rendering thread, and returns an error if any.
+func runOnRenderThread(f func()) {
+	theRenderThread.Call(f)
 }

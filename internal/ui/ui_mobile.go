@@ -17,6 +17,7 @@
 package ui
 
 import (
+	stdcontext "context"
 	"fmt"
 	"runtime/debug"
 	"sync"
@@ -80,12 +81,16 @@ func (u *userInterfaceImpl) Update() error {
 		return err
 	}
 
+	ctx, cancel := stdcontext.WithCancel(stdcontext.Background())
+	defer cancel()
+
 	renderCh <- struct{}{}
 	go func() {
 		<-renderEndCh
-		u.t.Stop()
+		cancel()
 	}()
-	u.t.Loop()
+
+	_ = u.renderThread.Loop(ctx)
 	return nil
 }
 
@@ -112,7 +117,7 @@ type userInterfaceImpl struct {
 	fpsMode         FPSModeType
 	renderRequester RenderRequester
 
-	t *thread.OSThread
+	renderThread *thread.OSThread
 
 	m sync.RWMutex
 }
@@ -275,8 +280,8 @@ func (u *userInterfaceImpl) run(game Game, mainloop bool, options *RunOptions) (
 		// gl.Context so that they are called on the appropriate thread.
 		mgl = <-glContextCh
 	} else {
-		u.t = thread.NewOSThread()
-		graphicscommand.SetRenderingThread(u.t)
+		u.renderThread = thread.NewOSThread()
+		graphicscommand.SetRenderThread(u.renderThread)
 	}
 
 	g, err := newGraphicsDriver(&graphicsDriverCreatorImpl{
@@ -454,6 +459,9 @@ func (u *userInterfaceImpl) beginFrame() {
 }
 
 func (u *userInterfaceImpl) endFrame() {
+}
+
+func (u *userInterfaceImpl) updateIconIfNeeded() {
 }
 
 func IsScreenTransparentAvailable() bool {

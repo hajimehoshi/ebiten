@@ -36,6 +36,7 @@ func (v *view) update() {
 		return
 	}
 
+	// TODO: Should this be called on the main thread?
 	cocoaWindow := ns.NewWindow(v.window)
 	cocoaWindow.ContentView().SetLayer(v.ml)
 	cocoaWindow.ContentView().SetWantsLayer(true)

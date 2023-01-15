@@ -29,26 +29,27 @@ type graphicsDriverCreator interface {
 }
 
 func newGraphicsDriver(creator graphicsDriverCreator, graphicsLibrary GraphicsLibrary) (graphicsdriver.Graphics, error) {
-	envName := "EBITENGINE_GRAPHICS_LIBRARY"
-	env := os.Getenv(envName)
-	if env == "" {
-		// For backward compatibility, read the EBITEN_ version.
-		envName = "EBITEN_GRAPHICS_LIBRARY"
-		env = os.Getenv(envName)
-	}
+	if graphicsLibrary == GraphicsLibraryAuto {
+		envName := "EBITENGINE_GRAPHICS_LIBRARY"
+		env := os.Getenv(envName)
+		if env == "" {
+			// For backward compatibility, read the EBITEN_ version.
+			envName = "EBITEN_GRAPHICS_LIBRARY"
+			env = os.Getenv(envName)
+		}
 
-	switch env {
-	case "", "auto":
-		// Use the specified graphics library.
-		// Otherwise, prefer the environment variable.
-	case "opengl":
-		graphicsLibrary = GraphicsLibraryOpenGL
-	case "directx":
-		graphicsLibrary = GraphicsLibraryDirectX
-	case "metal":
-		graphicsLibrary = GraphicsLibraryMetal
-	default:
-		return nil, fmt.Errorf("ui: an unsupported graphics library is specified by the environment variable: %s", env)
+		switch env {
+		case "", "auto":
+			// Keep the automatic choosing.
+		case "opengl":
+			graphicsLibrary = GraphicsLibraryOpenGL
+		case "directx":
+			graphicsLibrary = GraphicsLibraryDirectX
+		case "metal":
+			graphicsLibrary = GraphicsLibraryMetal
+		default:
+			return nil, fmt.Errorf("ui: an unsupported graphics library is specified by the environment variable: %s", env)
+		}
 	}
 
 	switch graphicsLibrary {

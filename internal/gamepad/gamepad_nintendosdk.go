@@ -16,15 +16,20 @@
 
 package gamepad
 
+// #cgo !darwin LDFLAGS: -Wl,-unresolved-symbols=ignore-all
+// #cgo darwin LDFLAGS: -Wl,-undefined,dynamic_lookup
+//
+// #include "gamepad_nintendosdk.h"
+import "C"
+
 import (
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepaddb"
-	"github.com/hajimehoshi/ebiten/v2/internal/nintendosdk"
 )
 
 type nativeGamepadsImpl struct {
-	gamepads []nintendosdk.Gamepad
+	gamepads []C.struct_Gamepad
 	ids      map[int]struct{}
 }
 
@@ -37,8 +42,17 @@ func (*nativeGamepadsImpl) init(gamepads *gamepads) error {
 }
 
 func (g *nativeGamepadsImpl) update(gamepads *gamepads) error {
+	C.ebitengine_UpdateGamepads()
+
 	g.gamepads = g.gamepads[:0]
-	g.gamepads = nintendosdk.AppendGamepads(g.gamepads)
+	if n := int(C.ebitengine_GetGamepadCount()); n > 0 {
+		if cap(g.gamepads) < n {
+			g.gamepads = make([]C.struct_Gamepad, n)
+		} else {
+			g.gamepads = g.gamepads[:n]
+		}
+		C.ebitengine_GetGamepads(&g.gamepads[0])
+	}
 
 	for id := range g.ids {
 		delete(g.ids, id)
@@ -48,27 +62,33 @@ func (g *nativeGamepadsImpl) update(gamepads *gamepads) error {
 		if g.ids == nil {
 			g.ids = map[int]struct{}{}
 		}
-		g.ids[gp.ID] = struct{}{}
+		g.ids[int(gp.id)] = struct{}{}
 
 		gamepad := gamepads.find(func(gamepad *Gamepad) bool {
-			return gamepad.native.(*nativeGamepadImpl).id == gp.ID
+			return gamepad.native.(*nativeGamepadImpl).id == int(gp.id)
 		})
 		if gamepad == nil {
 			gamepad = gamepads.add("", "")
 			gamepad.native = &nativeGamepadImpl{
-				id:            gp.ID,
-				standard:      gp.Standard,
-				axisValues:    make([]float64, gp.AxisCount),
-				buttonPressed: make([]bool, gp.ButtonCount),
-				buttonValues:  make([]float64, gp.ButtonCount),
+				id:            int(gp.id),
+				standard:      bool(gp.standard != 0),
+				axisValues:    make([]float64, gp.axis_count),
+				buttonPressed: make([]bool, gp.button_count),
+				buttonValues:  make([]float64, gp.button_count),
 			}
 		}
 
 		gamepad.m.Lock()
 		n := gamepad.native.(*nativeGamepadImpl)
-		copy(n.axisValues, gp.AxisValues[:])
-		copy(n.buttonValues, gp.ButtonValues[:])
-		copy(n.buttonPressed, gp.ButtonPressed[:])
+		for i := range n.axisValues {
+			n.axisValues[i] = float64(gp.axis_values[i])
+		}
+		for i := range n.buttonValues {
+			n.buttonValues[i] = float64(gp.button_values[i])
+		}
+		for i := range n.buttonPressed {
+			n.buttonPressed[i] = gp.button_pressed[i] != 0
+		}
 		gamepad.m.Unlock()
 	}
 
@@ -146,5 +166,5 @@ func (*nativeGamepadImpl) hatState(hat int) int {
 }
 
 func (g *nativeGamepadImpl) vibrate(duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
-	nintendosdk.VibrateGamepad(g.id, duration, strongMagnitude, weakMagnitude)
+	C.ebitengine_VibrateGamepad(C.int(g.id), C.double(float64(duration)/float64(time.Second)), C.double(strongMagnitude), C.double(weakMagnitude))
 }

@@ -339,22 +339,6 @@ func (w *Window) SetCursorPos(xpos, ypos float64) error {
 	}
 }
 
-func CreateCursor(image *Image, xhot, yhot int) (*Cursor, error) {
-	if !_glfw.initialized {
-		return nil, NotInitialized
-	}
-
-	cursor := &Cursor{}
-	_glfw.cursors = append(_glfw.cursors, cursor)
-
-	if err := cursor.platformCreateCursor(image, xhot, yhot); err != nil {
-		_ = cursor.Destroy()
-		return nil, err
-	}
-
-	return cursor, nil
-}
-
 func CreateStandardCursor(shape StandardCursor) (*Cursor, error) {
 	if !_glfw.initialized {
 		return nil, NotInitialized

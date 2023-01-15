@@ -34,51 +34,22 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/cocoa"
 )
 
-// FeatureSet defines a specific platform, hardware, and software configuration.
+// GPUFamily represents the functionality for families of GPUs.
 //
-// Reference: https://developer.apple.com/documentation/metal/mtlfeatureset.
-type FeatureSet uint16
-
-// The device feature sets that define specific platform, hardware, and software configurations.
-const (
-	MacOSGPUFamily1V1          FeatureSet = 10000 // The GPU family 1, version 1 feature set for macOS.
-	MacOSGPUFamily1V2          FeatureSet = 10001 // The GPU family 1, version 2 feature set for macOS.
-	MacOSReadWriteTextureTier2 FeatureSet = 10002 // The read-write texture, tier 2 feature set for macOS.
-	MacOSGPUFamily1V3          FeatureSet = 10003 // The GPU family 1, version 3 feature set for macOS.
-	MacOSGPUFamily1V4          FeatureSet = 10004 // The GPU family 1, version 4 feature set for macOS.
-	MacOSGPUFamily2V1          FeatureSet = 10005 // The GPU family 2, version 1 feature set for macOS.
-)
+// Reference: https://developer.apple.com/documentation/metal/mtlgpufamily
+type GPUFamily int
 
 const (
-	FeatureSet_iOS_GPUFamily1_v1           FeatureSet = 0
-	FeatureSet_iOS_GPUFamily1_v2           FeatureSet = 2
-	FeatureSet_iOS_GPUFamily1_v3           FeatureSet = 5
-	FeatureSet_iOS_GPUFamily1_v4           FeatureSet = 8
-	FeatureSet_iOS_GPUFamily1_v5           FeatureSet = 12
-	FeatureSet_iOS_GPUFamily2_v1           FeatureSet = 1
-	FeatureSet_iOS_GPUFamily2_v2           FeatureSet = 3
-	FeatureSet_iOS_GPUFamily2_v3           FeatureSet = 6
-	FeatureSet_iOS_GPUFamily2_v4           FeatureSet = 9
-	FeatureSet_iOS_GPUFamily2_v5           FeatureSet = 13
-	FeatureSet_iOS_GPUFamily3_v1           FeatureSet = 4
-	FeatureSet_iOS_GPUFamily3_v2           FeatureSet = 7
-	FeatureSet_iOS_GPUFamily3_v3           FeatureSet = 10
-	FeatureSet_iOS_GPUFamily3_v4           FeatureSet = 14
-	FeatureSet_iOS_GPUFamily4_v1           FeatureSet = 11
-	FeatureSet_iOS_GPUFamily4_v2           FeatureSet = 15
-	FeatureSet_iOS_GPUFamily5_v1           FeatureSet = 16
-	FeatureSet_tvOS_GPUFamily1_v1          FeatureSet = 30000
-	FeatureSet_tvOS_GPUFamily1_v2          FeatureSet = 30001
-	FeatureSet_tvOS_GPUFamily1_v3          FeatureSet = 30002
-	FeatureSet_tvOS_GPUFamily1_v4          FeatureSet = 30004
-	FeatureSet_tvOS_GPUFamily2_v1          FeatureSet = 30003
-	FeatureSet_tvOS_GPUFamily2_v2          FeatureSet = 30005
-	FeatureSet_macOS_GPUFamily1_v1         FeatureSet = 10000
-	FeatureSet_macOS_GPUFamily1_v2         FeatureSet = 10001
-	FeatureSet_macOS_GPUFamily1_v3         FeatureSet = 10003
-	FeatureSet_macOS_GPUFamily1_v4         FeatureSet = 10004
-	FeatureSet_macOS_GPUFamily2_v1         FeatureSet = 10005
-	FeatureSet_macOS_ReadWriteTextureTier2 FeatureSet = 10002
+	GPUFamilyApple1 GPUFamily = 1001
+	GPUFamilyApple2 GPUFamily = 1002
+	GPUFamilyApple3 GPUFamily = 1003
+	GPUFamilyApple4 GPUFamily = 1004
+	GPUFamilyApple5 GPUFamily = 1005
+	GPUFamilyApple6 GPUFamily = 1006
+	GPUFamilyApple7 GPUFamily = 1007
+	GPUFamilyApple8 GPUFamily = 1008
+
+	GPUFamilyMac2 GPUFamily = 2002
 )
 
 // TextureType defines The dimension of each image, including whether multiple images are arranged into an array or
@@ -486,7 +457,7 @@ var (
 	sel_isHeadless                                                                                                                    = objc.RegisterName("isHeadless")
 	sel_isLowPower                                                                                                                    = objc.RegisterName("isLowPower")
 	sel_name                                                                                                                          = objc.RegisterName("name")
-	sel_supportsFeatureSet                                                                                                            = objc.RegisterName("supportsFeatureSet:")
+	sel_supportsFamily                                                                                                                = objc.RegisterName("supportsFamily:")
 	sel_newCommandQueue                                                                                                               = objc.RegisterName("newCommandQueue")
 	sel_newLibraryWithSource_options_error                                                                                            = objc.RegisterName("newLibraryWithSource:options:error:")
 	sel_release                                                                                                                       = objc.RegisterName("release")
@@ -590,11 +561,11 @@ func CreateSystemDefaultDevice() (Device, bool) {
 // Device returns the underlying id<MTLDevice> pointer.
 func (d Device) Device() unsafe.Pointer { return *(*unsafe.Pointer)(unsafe.Pointer(&d.device)) }
 
-// SupportsFeatureSet reports whether device d supports feature set fs.
+// SupportsFamily returns a Boolean value that indicates whether the GPU device supports the feature set of a specific GPU family.
 //
-// Reference: https://developer.apple.com/documentation/metal/mtldevice/1433418-supportsfeatureset.
-func (d Device) SupportsFeatureSet(fs FeatureSet) bool {
-	return d.device.Send(sel_supportsFeatureSet, uintptr(fs)) != 0
+// Reference: https://developer.apple.com/documentation/metal/mtldevice/3143473-supportsfamily
+func (d Device) SupportsFamily(gpuFamily GPUFamily) bool {
+	return d.device.Send(sel_supportsFamily, uintptr(gpuFamily)) != 0
 }
 
 // MakeCommandQueue creates a serial command submission queue.

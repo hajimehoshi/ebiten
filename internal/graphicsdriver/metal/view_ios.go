@@ -28,7 +28,10 @@ package metal
 // }
 //
 // static void setFrame(void* cametal, void* uiview) {
-//   CGSize size = ((UIView*)uiview).frame.size;
+//   __block CGSize size;
+//   dispatch_sync(dispatch_get_main_queue(), ^{
+//     size = ((UIView*)uiview).frame.size;
+//   });
 //   ((CALayer*)cametal).frame = CGRectMake(0, 0, size.width, size.height);
 // }
 import "C"

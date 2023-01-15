@@ -12,11 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !android && !ios && !js && !nintendosdk && (ebitenginesinglethread || ebitensinglethread)
+//go:build !android && !ios && !js && !nintendosdk && !ebitenginesinglethread && !ebitensinglethread
 
 package ui
 
 import (
+	stdcontext "context"
+
+	"golang.org/x/sync/errgroup"
+
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/v2/internal/thread"
 )
@@ -24,24 +28,36 @@ import (
 func (u *userInterfaceImpl) Run(game Game, options *RunOptions) error {
 	u.context = newContext(game)
 
-	// Initialize the main thread first so the thread is available at u.run (#809).
-	u.t = thread.NewNoopThread()
-	graphicscommand.SetRenderingThread(u.t)
-
 	u.setRunning(true)
+	defer u.setRunning(false)
 
-	if err := u.init(options); err != nil {
+	if err := u.initOnMainThread(options); err != nil {
 		return err
 	}
 
-	if err := u.loop(); err != nil {
-		return err
-	}
+	u.mainThread = thread.NewOSThread()
+	u.renderThread = thread.NewOSThread()
+	graphicscommand.SetRenderThread(u.renderThread)
 
-	u.setRunning(false)
-	return nil
-}
+	ctx, cancel := stdcontext.WithCancel(stdcontext.Background())
+	defer cancel()
 
-func (u *userInterfaceImpl) runOnAnotherThreadFromMainThread(f func()) {
-	f()
+	var wg errgroup.Group
+
+	// Run the render thread.
+	wg.Go(func() error {
+		defer cancel()
+		_ = u.renderThread.Loop(ctx)
+		return nil
+	})
+
+	// Run the game thread.
+	wg.Go(func() error {
+		defer cancel()
+		return u.loopGame()
+	})
+
+	// Run the main thread.
+	_ = u.mainThread.Loop(ctx)
+	return wg.Wait()
 }

@@ -694,6 +694,9 @@ func (u *userInterfaceImpl) beginFrame() {
 func (u *userInterfaceImpl) endFrame() {
 }
 
+func (u *userInterfaceImpl) updateIconIfNeeded() {
+}
+
 func IsScreenTransparentAvailable() bool {
 	return true
 }

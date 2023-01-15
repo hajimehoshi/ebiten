@@ -152,6 +152,11 @@ func createKeyTables() {
 }
 
 func updateKeyNamesWin32() {
+	// MapVirtualKeyW is not implemented in Xbox.
+	if microsoftgdk.IsXbox() {
+		return
+	}
+
 	for i := range _glfw.win32.keynames {
 		_glfw.win32.keynames[i] = ""
 	}
