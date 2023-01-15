@@ -632,6 +632,11 @@ func init() {
 	}
 }
 
+func platformGetScancodeName(scancode int) (string, error) {
+	panic("TODO: platformGetScancodeName")
+	return "", nil
+}
+
 func platformGetKeyScancode(key Key) int {
 	return _glfw.state.scancodes[key]
 }
