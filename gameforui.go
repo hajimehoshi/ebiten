@@ -147,6 +147,10 @@ func (g *gameForUI) Layout(outsideWidth, outsideHeight float64) (float64, float6
 	return float64(sw), float64(sh)
 }
 
+func (g *gameForUI) UpdateInputState(inputState ui.InputState) {
+	theInputState.set(inputState)
+}
+
 func (g *gameForUI) Update() error {
 	if err := g.game.Update(); err != nil {
 		return err

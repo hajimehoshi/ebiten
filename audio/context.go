@@ -20,8 +20,12 @@ import (
 	"github.com/hajimehoshi/oto/v2"
 )
 
-func newContext(sampleRate, channelCount, bitDepthInBytes int) (context, chan struct{}, error) {
-	ctx, ready, err := oto.NewContext(sampleRate, channelCount, bitDepthInBytes)
+func newContext(sampleRate int) (context, chan struct{}, error) {
+	ctx, ready, err := oto.NewContextWithOptions(&oto.NewContextOptions{
+		SampleRate:   sampleRate,
+		ChannelCount: channelCount,
+		Format:       bitDepthInBytes,
+	})
 	err = addErrorInfoForContextCreation(err)
 	return &contextProxy{ctx}, ready, err
 }

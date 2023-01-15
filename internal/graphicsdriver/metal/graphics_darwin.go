@@ -17,7 +17,9 @@ package metal
 import (
 	"fmt"
 	"math"
+	"runtime"
 	"sort"
+	"time"
 	"unsafe"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/cocoa"
@@ -57,6 +59,8 @@ type Graphics struct {
 	maxImageSize int
 	tmpTextures  []mtl.Texture
 
+	lastFlush time.Time
+
 	pool cocoa.NSAutoreleasePool
 }
 
@@ -86,7 +90,15 @@ func NewGraphics() (graphicsdriver.Graphics, error) {
 		return nil, fmt.Errorf("metal: mtl.CreateSystemDefaultDevice failed")
 	}
 
-	return &Graphics{}, nil
+	g := &Graphics{}
+
+	if runtime.GOOS != "ios" {
+		// Initializing a Metal device and a layer must be done in the main thread on macOS.
+		if err := g.view.initialize(); err != nil {
+			return nil, err
+		}
+	}
+	return g, nil
 }
 
 func (g *Graphics) Begin() error {
@@ -202,20 +214,33 @@ func (g *Graphics) flushIfNeeded(present bool) {
 	if g.cb == (mtl.CommandBuffer{}) && !present {
 		return
 	}
+
+	now := time.Now()
+	defer func() {
+		g.lastFlush = now
+	}()
+
 	g.flushRenderCommandEncoderIfNeeded()
 
-	if present && g.screenDrawable == (ca.MetalDrawable{}) {
-		g.screenDrawable = g.view.nextDrawable()
+	if present {
+		// This check is necessary when skipping to render the screen (SetScreenClearedEveryFrame(false)).
+		if g.screenDrawable == (ca.MetalDrawable{}) {
+			if g.cb != (mtl.CommandBuffer{}) {
+				g.screenDrawable = g.view.nextDrawable()
+			} else {
+				if delta := time.Second/60 - now.Sub(g.lastFlush); delta > 0 {
+					// nextDrawable can return immediately when the command buffer is empty.
+					// To avoid high CPU usage, sleep instead (#2520).
+					time.Sleep(delta)
+				}
+			}
+		}
+		if g.screenDrawable != (ca.MetalDrawable{}) {
+			g.cb.PresentDrawable(g.screenDrawable)
+		}
 	}
 
-	if !g.view.presentsWithTransaction() && present && g.screenDrawable != (ca.MetalDrawable{}) {
-		g.cb.PresentDrawable(g.screenDrawable)
-	}
 	g.cb.Commit()
-	if g.view.presentsWithTransaction() && present && g.screenDrawable != (ca.MetalDrawable{}) {
-		g.cb.WaitUntilScheduled()
-		g.screenDrawable.Present()
-	}
 
 	for _, t := range g.tmpTextures {
 		t.Release()
@@ -357,8 +382,11 @@ func (g *Graphics) Initialize() error {
 		g.dsss = map[stencilMode]mtl.DepthStencilState{}
 	}
 
-	if err := g.view.initialize(); err != nil {
-		return err
+	if runtime.GOOS == "ios" {
+		// Initializing a Metal device and a layer must be done in the render thread on iOS.
+		if err := g.view.initialize(); err != nil {
+			return err
+		}
 	}
 	if g.transparent {
 		g.view.ml.SetOpaque(false)
@@ -631,10 +659,6 @@ func (g *Graphics) SetVsyncEnabled(enabled bool) {
 	g.view.setDisplaySyncEnabled(enabled)
 }
 
-func (g *Graphics) SetFullscreen(fullscreen bool) {
-	g.view.setFullscreen(fullscreen)
-}
-
 func (g *Graphics) NeedsRestoring() bool {
 	return false
 }
@@ -656,31 +680,13 @@ func (g *Graphics) MaxImageSize() int {
 		return g.maxImageSize
 	}
 
-	g.maxImageSize = 4096
 	// https://developer.apple.com/metal/Metal-Feature-Set-Tables.pdf
+	g.maxImageSize = 8192
 	switch {
-	case g.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily5_v1):
+	case g.view.getMTLDevice().SupportsFamily(mtl.GPUFamilyApple3):
 		g.maxImageSize = 16384
-	case g.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily4_v1):
+	case g.view.getMTLDevice().SupportsFamily(mtl.GPUFamilyMac2):
 		g.maxImageSize = 16384
-	case g.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily3_v1):
-		g.maxImageSize = 16384
-	case g.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily2_v2):
-		g.maxImageSize = 8192
-	case g.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily2_v1):
-		g.maxImageSize = 4096
-	case g.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily1_v2):
-		g.maxImageSize = 8192
-	case g.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily1_v1):
-		g.maxImageSize = 4096
-	case g.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_tvOS_GPUFamily2_v1):
-		g.maxImageSize = 16384
-	case g.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_tvOS_GPUFamily1_v1):
-		g.maxImageSize = 8192
-	case g.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_macOS_GPUFamily1_v1):
-		g.maxImageSize = 16384
-	default:
-		panic("metal: there is no supported feature set")
 	}
 	return g.maxImageSize
 }

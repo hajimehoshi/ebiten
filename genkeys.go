@@ -37,7 +37,6 @@ var (
 	androidKeyToUIKeyName           map[int]string
 	gbuildKeyToUIKeyName            map[key.Code]string
 	uiKeyNameToJSKey                map[string]string
-	edgeKeyCodeToName               map[int]string
 	oldEbitengineKeyNameToUIKeyName map[string]string
 )
 
@@ -390,77 +389,6 @@ func init() {
 	}
 }
 
-func init() {
-	// https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/keyCode
-	// TODO: How should we treat modifier keys? Now 'left' modifier keys are available.
-	edgeKeyCodeToName = map[int]string{
-		0xbc: "Comma",
-		0xbe: "Period",
-		0x12: "AltLeft",
-		0x14: "CapsLock",
-		0x11: "ControlLeft",
-		0x10: "ShiftLeft",
-		0x0D: "Enter",
-		0x20: "Space",
-		0x09: "Tab",
-		0x2E: "Delete",
-		0x23: "End",
-		0x24: "Home",
-		0x2D: "Insert",
-		0x22: "PageDown",
-		0x21: "PageUp",
-		0x28: "ArrowDown",
-		0x25: "ArrowLeft",
-		0x27: "ArrowRight",
-		0x26: "ArrowUp",
-		0x1B: "Escape",
-		0xde: "Quote",
-		0xbd: "Minus",
-		0xbf: "Slash",
-		0xba: "Semicolon",
-		0xbb: "Equal",
-		0xdb: "BracketLeft",
-		0xdc: "Backslash",
-		0xdd: "BracketRight",
-		0xc0: "Backquote",
-		0x08: "Backspace",
-		0x90: "NumLock",
-		0x6b: "NumpadAdd",
-		0x6e: "NumpadDecimal",
-		0x6f: "NumpadDivide",
-		0x6a: "NumpadMultiply",
-		0x6d: "NumpadSubtract",
-		0x13: "Pause",
-		0x91: "ScrollLock",
-		0x5d: "ContextMenu",
-		0x5b: "MetaLeft",
-		0x5c: "MetaRight",
-
-		// On Edge, this key does not work. PrintScreen works only on keyup event.
-		// 0x2C: "PrintScreen",
-
-		// On Edge, it is impossible to tell NumpadEnter and Enter / NumpadEqual and Equal.
-		// 0x0d: "NumpadEnter",
-		// 0x0c: "NumpadEqual",
-	}
-	// ASCII: 0 - 9
-	for c := '0'; c <= '9'; c++ {
-		edgeKeyCodeToName[int(c)] = "Digit" + string(c)
-	}
-	// ASCII: A - Z
-	for c := 'A'; c <= 'Z'; c++ {
-		edgeKeyCodeToName[int(c)] = string(c)
-	}
-	// Function keys
-	for i := 1; i <= 12; i++ {
-		edgeKeyCodeToName[0x70+i-1] = "F" + strconv.Itoa(i)
-	}
-	// Numpad keys
-	for c := '0'; c <= '9'; c++ {
-		edgeKeyCodeToName[0x60+int(c-'0')] = "Numpad" + string(c)
-	}
-}
-
 const ebitengineKeysTmpl = `{{.License}}
 
 {{.DoNotEdit}}
@@ -557,6 +485,7 @@ const (
 	KeyReserved1
 	KeyReserved2
 	KeyReserved3
+	KeyMax = KeyReserved3
 )
 
 func (k Key) String() string {
@@ -564,7 +493,7 @@ func (k Key) String() string {
 	{{range $index, $name := .UIKeyNames}}case Key{{$name}}:
 		return {{$name | printf "Key%s" | printf "%q"}}
 	{{end}}}
-	panic(fmt.Sprintf("ui: invalid key: %d", k))
+	return fmt.Sprintf("Key(%d)", k)
 }
 `
 
@@ -618,11 +547,6 @@ import (
 
 var uiKeyToJSKey = map[Key]js.Value{
 {{range $name, $code := .UIKeyNameToJSKey}}Key{{$name}}: js.ValueOf({{$code | printf "%q"}}),
-{{end}}
-}
-
-var edgeKeyCodeToUIKey = map[int]Key{
-{{range $code, $name := .EdgeKeyCodeToName}}{{$code}}: Key{{$name}},
 {{end}}
 }
 `
@@ -833,7 +757,6 @@ func main() {
 			DoNotEdit                       string
 			BuildTag                        string
 			UIKeyNameToJSKey                map[string]string
-			EdgeKeyCodeToName               map[int]string
 			EbitengineKeyNames              []string
 			EbitengineKeyNamesWithoutOld    []string
 			EbitengineKeyNamesWithoutMods   []string
@@ -848,7 +771,6 @@ func main() {
 			DoNotEdit:                       doNotEdit,
 			BuildTag:                        buildTag,
 			UIKeyNameToJSKey:                uiKeyNameToJSKey,
-			EdgeKeyCodeToName:               edgeKeyCodeToName,
 			EbitengineKeyNames:              ebitengineKeyNames,
 			EbitengineKeyNamesWithoutOld:    ebitengineKeyNamesWithoutOld,
 			EbitengineKeyNamesWithoutMods:   ebitengineKeyNamesWithoutMods,

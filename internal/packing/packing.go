@@ -31,7 +31,26 @@ type Page struct {
 	maxSize int
 }
 
+func isPositivePowerOf2(x int) bool {
+	if x <= 0 {
+		return false
+	}
+	for x > 1 {
+		if x/2*2 != x {
+			return false
+		}
+		x /= 2
+	}
+	return true
+}
+
 func NewPage(initSize int, maxSize int) *Page {
+	if !isPositivePowerOf2(initSize) {
+		panic(fmt.Sprintf("packing: initSize must be a positive power of 2 but %d", initSize))
+	}
+	if !isPositivePowerOf2(maxSize) {
+		panic(fmt.Sprintf("packing: maxSize must be a positive power of 2 but %d", maxSize))
+	}
 	return &Page{
 		width:   initSize,
 		height:  initSize,
@@ -174,13 +193,6 @@ func (p *Page) Size() (int, int) {
 	return p.width, p.height
 }
 
-func (p *Page) SetMaxSize(size int) {
-	if p.maxSize > size {
-		panic("packing: maxSize cannot be decreased")
-	}
-	p.maxSize = size
-}
-
 func (p *Page) Alloc(width, height int) *Node {
 	if width <= 0 || height <= 0 {
 		panic("packing: width and height must > 0")
@@ -263,7 +275,7 @@ func (p *Page) extendFor(width, height int) bool {
 
 			if newWidth > p.maxSize || newHeight > p.maxSize {
 				if newWidth > p.maxSize && newHeight > p.maxSize {
-					panic(fmt.Sprintf("packing: too big extension: (%d, %d)", newWidth, newHeight))
+					panic(fmt.Sprintf("packing: too big extension: allocating size: (%d, %d), current size: (%d, %d), new size: (%d, %d), (i, j): (%d, %d), max size: %d", width, height, p.width, p.height, newWidth, newHeight, i, j, p.maxSize))
 				}
 				continue
 			}

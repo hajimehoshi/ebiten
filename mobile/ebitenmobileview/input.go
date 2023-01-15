@@ -32,16 +32,16 @@ var (
 )
 
 var (
-	touchSlice []ui.Touch
+	touchSlice []ui.TouchForInput
 )
 
 func updateInput() {
 	touchSlice = touchSlice[:0]
 	for id, position := range touches {
-		touchSlice = append(touchSlice, ui.Touch{
+		touchSlice = append(touchSlice, ui.TouchForInput{
 			ID: id,
-			X:  position.x,
-			Y:  position.y,
+			X:  float64(position.x),
+			Y:  float64(position.y),
 		})
 	}
 

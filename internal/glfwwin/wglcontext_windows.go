@@ -6,9 +6,12 @@
 package glfwwin
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"unsafe"
+
+	"golang.org/x/sys/windows"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/microsoftgdk"
 )
@@ -321,7 +324,10 @@ func getProcAddressWGL(procname string) uintptr {
 
 func destroyContextWGL(window *Window) error {
 	if window.context.state.handle != 0 {
-		if err := wglDeleteContext(window.context.state.handle); err != nil {
+		// Ignore ERROR_BUSY. This happens when the thread is different from the context thread (#2518).
+		// This is a known issue of GLFW (glfw/glfw#2239).
+		// TODO: Delete the context on an appropriate thread.
+		if err := wglDeleteContext(window.context.state.handle); err != nil && !errors.Is(err, windows.ERROR_BUSY) {
 			return err
 		}
 		window.context.state.handle = 0

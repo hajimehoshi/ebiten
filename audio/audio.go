@@ -83,12 +83,9 @@ var (
 
 // NewContext creates a new audio context with the given sample rate.
 //
-// The sample rate is also used for decoding MP3 with audio/mp3 package
-// or other formats as the target sample rate.
-//
-// sampleRate should be 44100 or 48000.
-// Other values might not work.
-// For example, 22050 causes error on Safari when decoding MP3.
+// sampleRate specifies the number of samples that should be played during one second.
+// Usual numbers are 44100 or 48000. One context has only one sample rate. You cannot play multiple audio
+// sources with different sample rates at the same time.
 //
 // NewContext panics when an audio context is already created.
 func NewContext(sampleRate int) *Context {

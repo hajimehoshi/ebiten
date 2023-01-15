@@ -31,6 +31,7 @@
   bool           error_;
   CADisplayLink* displayLink_;
   bool           explicitRendering_;
+  NSThread*      renderThread_;
 }
 
 - (UIView*)metalView {
@@ -73,11 +74,6 @@
   if (isGL) {
     self.glkView.delegate = (id<GLKViewDelegate>)(self);
     [self.view addSubview: self.glkView];
-
-    EAGLContext *context = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES2];
-    [self glkView].context = context;
-
-    [EAGLContext setCurrentContext:context];
   } else {
     [self.view addSubview: self.metalView];
     EbitenmobileviewSetUIView((uintptr_t)(self.metalView), &err);
@@ -90,9 +86,39 @@
     }
   }
 
+  renderThread_ = [[NSThread alloc] initWithTarget:self
+                                          selector:@selector(initRenderer)
+                                            object:nil];
+  [renderThread_ start];
+}
+
+- (void)initRenderer {
+  NSError* err = nil;
+  BOOL isGL = NO;
+  EbitenmobileviewIsGL(&isGL, &err);
+  if (err != nil) {
+    [self performSelectorOnMainThread:@selector(onErrorOnGameUpdate:)
+                           withObject:err
+                        waitUntilDone:NO];
+    @synchronized(self) {
+      error_ = true;
+    }
+    return;
+  }
+
+  if (isGL) {
+    EAGLContext *context = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES2];
+    [self glkView].context = context;
+
+    [EAGLContext setCurrentContext:context];
+  }
+
   displayLink_ = [CADisplayLink displayLinkWithTarget:self selector:@selector(drawFrame)];
   [displayLink_ addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSDefaultRunLoopMode];
   EbitenmobileviewSetRenderRequester(self);
+
+  // Run the loop. This will never return.
+  [[NSRunLoop currentRunLoop] run];
 }
 
 - (void)viewWillLayoutSubviews {
@@ -139,7 +165,9 @@
   BOOL isGL = NO;
   EbitenmobileviewIsGL(&isGL, &err);
   if (err != nil) {
-    [self onErrorOnGameUpdate:err];
+    [self performSelectorOnMainThread:@selector(onErrorOnGameUpdate:)
+                           withObject:err
+                        waitUntilDone:NO];
     @synchronized(self) {
       error_ = true;
     }
@@ -147,7 +175,9 @@
   }
 
   if (isGL) {
-    [[self glkView] setNeedsDisplay];
+    dispatch_async(dispatch_get_main_queue(), ^{
+      [[self glkView] setNeedsDisplay];
+    });
   } else {
     [self updateEbiten];
   }

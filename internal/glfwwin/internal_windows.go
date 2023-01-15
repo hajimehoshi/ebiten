@@ -59,6 +59,7 @@ type platformLibraryState struct {
 	clipboardString          string
 	keycodes                 [512]Key
 	scancodes                [KeyLast + 1]int
+	keynames                 [KeyLast + 1]string
 
 	// Where to place the cursor when re-enabled
 	restoreCursorPosX float64

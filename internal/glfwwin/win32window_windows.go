@@ -690,7 +690,8 @@ func windowProc(hWnd windows.HWND, uMsg uint32, wParam _WPARAM, lParam _LPARAM) 
 		return 0
 
 	case _WM_INPUTLANGCHANGE:
-		// Do nothing
+		updateKeyNamesWin32()
+		return 0
 
 	case _WM_CHAR, _WM_SYSCHAR:
 		if wParam >= 0xd800 && wParam <= 0xdbff {
@@ -2204,17 +2205,15 @@ func (w *Window) platformSetCursorMode(mode int) error {
 	return nil
 }
 
-func platformGetKeyScancode(key Key) int {
-	return _glfw.state.scancodes[key]
+func platformGetScancodeName(scancode int) (string, error) {
+	if scancode < 0 || scancode > (_KF_EXTENDED|0xff) || _glfw.win32.keycodes[scancode] == KeyUnknown {
+		return "", fmt.Errorf("glwfwin: invalid scancode %d: %w", scancode, InvalidValue)
+	}
+	return _glfw.win32.keynames[_glfw.win32.keycodes[scancode]], nil
 }
 
-func (c *Cursor) platformCreateCursor(image *Image, xhot, yhot int) error {
-	h, err := createIcon(image, xhot, yhot, false)
-	if err != nil {
-		return err
-	}
-	c.state.handle = _HCURSOR(h)
-	return nil
+func platformGetKeyScancode(key Key) int {
+	return _glfw.state.scancodes[key]
 }
 
 func (c *Cursor) platformCreateStandardCursor(shape StandardCursor) error {

@@ -46,9 +46,9 @@ type Image struct {
 	bigOffscreenBufferBlend graphicsdriver.Blend
 	bigOffscreenBufferDirty bool
 
-	// drawCallback is a callback called when DrawTriangles or WritePixels is called.
-	// drawCallback is useful to detect whether the image is manipulated or not after a certain time.
-	drawCallback func()
+	// modifyCallback is a callback called when DrawTriangles or WritePixels is called.
+	// modifyCallback is useful to detect whether the image is manipulated or not after a certain time.
+	modifyCallback func()
 
 	// These temporary vertices must not be reused until the vertices are sent to the graphics command queue.
 
@@ -78,12 +78,12 @@ func (i *Image) MarkDisposed() {
 	i.mipmap.MarkDisposed()
 	i.mipmap = nil
 	i.dotsBuffer = nil
-	i.drawCallback = nil
+	i.modifyCallback = nil
 }
 
 func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint16, blend graphicsdriver.Blend, dstRegion, srcRegion graphicsdriver.Region, subimageOffsets [graphics.ShaderImageCount - 1][2]float32, shader *Shader, uniforms []uint32, evenOdd bool, canSkipMipmap bool, antialias bool) {
-	if i.drawCallback != nil {
-		i.drawCallback()
+	if i.modifyCallback != nil {
+		i.modifyCallback()
 	}
 
 	if antialias {
@@ -160,8 +160,8 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 }
 
 func (i *Image) WritePixels(pix []byte, x, y, width, height int) {
-	if i.drawCallback != nil {
-		i.drawCallback()
+	if i.modifyCallback != nil {
+		i.modifyCallback()
 	}
 
 	if width == 1 && height == 1 {

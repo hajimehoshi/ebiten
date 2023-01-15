@@ -87,6 +87,76 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	}
 }
 
+// Issue #2525
+func TestShaderWithDrawImageDoesNotWreckTextureUnits(t *testing.T) {
+	const w, h = 16, 16
+	rect := image.Rectangle{Max: image.Point{X: w, Y: h}}
+
+	dst := ebiten.NewImageWithOptions(rect, &ebiten.NewImageOptions{Unmanaged: true})
+	s, err := ebiten.NewShader([]byte(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	return imageSrc0At(texCoord)
+}
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	src0 := ebiten.NewImageWithOptions(rect, &ebiten.NewImageOptions{Unmanaged: true})
+	src0.Fill(color.RGBA{25, 0xff, 25, 0xff})
+	src1 := ebiten.NewImageWithOptions(rect, &ebiten.NewImageOptions{Unmanaged: true})
+	src1.Fill(color.RGBA{0xff, 0, 0, 0xff})
+	op := &ebiten.DrawRectShaderOptions{}
+	op.CompositeMode = ebiten.CompositeModeCopy
+	op.Images[0] = src0
+	op.Images[1] = src1
+	dst.DrawRectShader(w, h, s, op)
+	op.Images[0] = src1
+	op.Images[1] = nil
+	dst.DrawRectShader(w, h, s, op) // dst should now be identical to src1.
+
+	// With issue #2525, instead, GL_TEXTURE0 is active but with src0 bound
+	// while binding src1 gets skipped!
+	// This means that src0, not src1, got copied to dst.
+
+	// Demonstrate the bug with a write to src1, which will actually end up on src0.
+	// Validated later.
+	var buf []byte
+	for i := 0; i < w*h; i++ {
+		buf = append(buf, 2, 5, 2, 5)
+	}
+	src1.WritePixels(buf)
+
+	// Verify that src1 was copied to dst.
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			got := dst.At(i, j).(color.RGBA)
+			want := color.RGBA{0xff, 0, 0, 0xff}
+			if got != want {
+				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+
+	// Fix up texture unit assignment by binding a different texture.
+	op.Images[0] = src1
+	dst.DrawRectShader(w, h, s, op)
+	op.Images[0] = src0
+	dst.DrawRectShader(w, h, s, op)
+
+	// Verify that src0 was copied to dst and not overwritten above.
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			got := dst.At(i, j).(color.RGBA)
+			want := color.RGBA{25, 0xff, 25, 0xff}
+			if got != want {
+				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+}
+
 func TestShaderFillWithDrawTriangles(t *testing.T) {
 	const w, h = 16, 16
 

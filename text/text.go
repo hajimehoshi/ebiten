@@ -52,7 +52,7 @@ func adjustOffsetGranularity(x fixed.Int26_6) fixed.Int26_6 {
 	return x / (1 << 4) * (1 << 4)
 }
 
-func drawGlyph(dst *ebiten.Image, face font.Face, r rune, img *ebiten.Image, topleft fixed.Point26_6, op *ebiten.DrawImageOptions) {
+func drawGlyph(dst *ebiten.Image, img *ebiten.Image, topleft fixed.Point26_6, op *ebiten.DrawImageOptions) {
 	if img == nil {
 		return
 	}
@@ -259,7 +259,7 @@ func DrawWithOptions(dst *ebiten.Image, text string, face font.Face, options *eb
 			Y: b.Min.Y & ((1 << 6) - 1),
 		}
 		img := getGlyphImage(face, r, offset)
-		drawGlyph(dst, face, r, img, fixed.Point26_6{
+		drawGlyph(dst, img, fixed.Point26_6{
 			X: dx + b.Min.X - offset.X,
 			Y: dy + b.Min.Y - offset.Y,
 		}, options)
@@ -362,6 +362,9 @@ func BoundString(face font.Face, text string) image.Rectangle {
 // merged into one draw call regardless of the size of the text.
 //
 // If a rune's glyph is already cached, CacheGlyphs does nothing for the rune.
+//
+// One rune can have multiple varitations of glyphs due to sub-pixels in X direction.
+// CacheGlyphs creates all such variations for one rune, while Draw creates only necessary glyphs.
 func CacheGlyphs(face font.Face, text string) {
 	textM.Lock()
 	defer textM.Unlock()
@@ -377,11 +380,16 @@ func CacheGlyphs(face font.Face, text string) {
 			continue
 		}
 		b := getGlyphBounds(face, r)
-		offset := fixed.Point26_6{
-			X: (adjustOffsetGranularity(dx) + b.Min.X) & ((1 << 6) - 1),
-			Y: b.Min.Y & ((1 << 6) - 1),
+
+		// Cache all 4 variations for one rune (#2528).
+		for i := 0; i < 4; i++ {
+			offset := fixed.Point26_6{
+				X: (fixed.Int26_6(i*(1<<4)) + b.Min.X) & ((1 << 6) - 1),
+				Y: b.Min.Y & ((1 << 6) - 1),
+			}
+			getGlyphImage(face, r, offset)
 		}
-		getGlyphImage(face, r, offset)
+
 		dx += glyphAdvance(face, r)
 		prevR = r
 	}

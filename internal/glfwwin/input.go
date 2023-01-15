@@ -243,7 +243,20 @@ func RawMouseMotionSupported() (bool, error) {
 	return platformRawMouseMotionSupported(), nil
 }
 
-// GetKeyName is not implemented.
+func GetKeyName(key Key, scancode int) (string, error) {
+	if !_glfw.initialized {
+		return "", NotInitialized
+	}
+
+	if key != KeyUnknown {
+		if key != KeyKPEqual && (key < KeyKP0 || key > KeyKPAdd) && (key < KeyApostrophe || key > KeyWorld2) {
+			return "", nil
+		}
+		scancode = platformGetKeyScancode(key)
+	}
+
+	return platformGetScancodeName(scancode)
+}
 
 func GetKeyScancode(key Key) (int, error) {
 	if !_glfw.initialized {
@@ -327,22 +340,6 @@ func (w *Window) SetCursorPos(xpos, ypos float64) error {
 		// Update system cursor position
 		return w.platformSetCursorPos(xpos, ypos)
 	}
-}
-
-func CreateCursor(image *Image, xhot, yhot int) (*Cursor, error) {
-	if !_glfw.initialized {
-		return nil, NotInitialized
-	}
-
-	cursor := &Cursor{}
-	_glfw.cursors = append(_glfw.cursors, cursor)
-
-	if err := cursor.platformCreateCursor(image, xhot, yhot); err != nil {
-		_ = cursor.Destroy()
-		return nil, err
-	}
-
-	return cursor, nil
 }
 
 func CreateStandardCursor(shape StandardCursor) (*Cursor, error) {

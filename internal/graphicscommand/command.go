@@ -164,7 +164,7 @@ func (q *commandQueue) Enqueue(command command) {
 
 // Flush flushes the command queue.
 func (q *commandQueue) Flush(graphicsDriver graphicsdriver.Graphics, endFrame bool) (err error) {
-	runOnRenderingThread(func() {
+	runOnRenderThread(func() {
 		err = q.flush(graphicsDriver, endFrame)
 	})
 	if endFrame {
@@ -538,7 +538,7 @@ func (c *isInvalidatedCommand) Exec(graphicsDriver graphicsdriver.Graphics, inde
 
 // InitializeGraphicsDriverState initialize the current graphics driver state.
 func InitializeGraphicsDriverState(graphicsDriver graphicsdriver.Graphics) (err error) {
-	runOnRenderingThread(func() {
+	runOnRenderThread(func() {
 		err = graphicsDriver.Initialize()
 	})
 	return
@@ -548,7 +548,7 @@ func InitializeGraphicsDriverState(graphicsDriver graphicsdriver.Graphics) (err 
 // If the graphics driver doesn't have an API to reset, ResetGraphicsDriverState does nothing.
 func ResetGraphicsDriverState(graphicsDriver graphicsdriver.Graphics) (err error) {
 	if r, ok := graphicsDriver.(interface{ Reset() error }); ok {
-		runOnRenderingThread(func() {
+		runOnRenderThread(func() {
 			err = r.Reset()
 		})
 	}
@@ -558,7 +558,7 @@ func ResetGraphicsDriverState(graphicsDriver graphicsdriver.Graphics) (err error
 // MaxImageSize returns the maximum size of an image.
 func MaxImageSize(graphicsDriver graphicsdriver.Graphics) int {
 	var size int
-	runOnRenderingThread(func() {
+	runOnRenderThread(func() {
 		size = graphicsDriver.MaxImageSize()
 	})
 	return size

@@ -29,7 +29,9 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl"
 )
 
-var class_EbitengineWindowDelegate objc.Class
+var (
+	class_EbitengineWindowDelegate objc.Class
+)
 
 type windowDelgate struct {
 	isa           objc.Class `objc:"EbitengineWindowDelegate : NSObject <NSWindowDelegate>"`
@@ -54,7 +56,7 @@ func (w *windowDelgate) popResizableState(win objc.ID) {
 }
 
 func (w *windowDelgate) InitWithOrigDelegate(cmd objc.SEL, origDelegate objc.ID) objc.ID {
-	self := objc.ID(unsafe.Pointer(w)).SendSuper(objc.RegisterName("init"))
+	self := objc.ID(unsafe.Pointer(w)).SendSuper(sel_init)
 	if self != 0 {
 		w = *(**windowDelgate)(unsafe.Pointer(&self))
 		w.origDelegate = origDelegate
@@ -117,31 +119,31 @@ func (w *windowDelgate) WindowDidExitFullScreen(cmd objc.SEL, notification objc.
 func (w *windowDelgate) Selector(cmd string) objc.SEL {
 	switch cmd {
 	case "InitWithOrigDelegate":
-		return objc.RegisterName("initWithOrigDelegate:")
+		return sel_initWithOrigDelegate
 	case "WindowShouldClose":
-		return objc.RegisterName("windowShouldClose:")
+		return sel_windowShouldClose
 	case "WindowDidResize":
-		return objc.RegisterName("windowDidResize:")
+		return sel_windowDidResize
 	case "WindowDidMove":
-		return objc.RegisterName("windowDidMove:")
+		return sel_windowDidMove
 	case "WindowDidMiniaturize":
-		return objc.RegisterName("windowDidMiniaturize:")
+		return sel_windowDidMiniaturize
 	case "WindowDidDeminiaturize":
-		return objc.RegisterName("windowDidDeminiaturize:")
+		return sel_windowDidDeminiaturize
 	case "WindowDidBecomeKey":
-		return objc.RegisterName("windowDidBecomeKey:")
+		return sel_windowDidBecomeKey
 	case "WindowDidResignKey":
-		return objc.RegisterName("windowDidResignKey:")
+		return sel_windowDidResignKey
 	case "WindowDidChangeOcclusionState":
-		return objc.RegisterName("windowDidChangeOcclusionState:")
+		return sel_windowDidChangeOcclusionState
 	case "WindowWillEnterFullScreen":
-		return objc.RegisterName("windowWillEnterFullScreen:")
+		return sel_windowWillEnterFullScreen
 	case "WindowDidEnterFullScreen":
-		return objc.RegisterName("windowDidEnterFullScreen:")
+		return sel_windowDidEnterFullScreen
 	case "WindowWillExitFullScreen":
-		return objc.RegisterName("windowWillExitFullScreen:")
+		return sel_windowWillExitFullScreen
 	case "WindowDidExitFullScreen":
-		return objc.RegisterName("windowDidExitFullScreen:")
+		return sel_windowDidExitFullScreen
 	default:
 		return 0
 	}
@@ -209,19 +211,43 @@ func (u *userInterfaceImpl) adjustWindowPosition(x, y int, monitor *glfw.Monitor
 	return x, y
 }
 
-func flipY(y int) int {
-	for _, m := range ensureMonitors() {
-		if m.x == 0 && m.y == 0 {
-			y = -y
-			y += m.vm.Height
-			break
-		}
-	}
-	return y
-}
+var (
+	class_NSCursor = objc.GetClass("NSCursor")
+	class_NSEvent  = objc.GetClass("NSEvent")
+)
 
-var class_NSEvent = objc.GetClass("NSEvent")
-var sel_mouseLocation = objc.RegisterName("mouseLocation")
+var (
+	sel_alloc                         = objc.RegisterName("alloc")
+	sel_arrowCursor                   = objc.RegisterName("arrowCursor")
+	sel_class                         = objc.RegisterName("class")
+	sel_collectionBehavior            = objc.RegisterName("collectionBehavior")
+	sel_crosshairCursor               = objc.RegisterName("crosshairCursor")
+	sel_delegate                      = objc.RegisterName("delegate")
+	sel_IBeamCursor                   = objc.RegisterName("IBeamCursor")
+	sel_init                          = objc.RegisterName("init")
+	sel_initWithOrigDelegate          = objc.RegisterName("initWithOrigDelegate:")
+	sel_mouseLocation                 = objc.RegisterName("mouseLocation")
+	sel_performSelector               = objc.RegisterName("performSelector:")
+	sel_pointingHandCursor            = objc.RegisterName("pointingHandCursor")
+	sel_set                           = objc.RegisterName("set")
+	sel_setCollectionBehavior         = objc.RegisterName("setCollectionBehavior:")
+	sel_setDelegate                   = objc.RegisterName("setDelegate:")
+	sel_toggleFullScreen              = objc.RegisterName("toggleFullScreen:")
+	sel_windowDidBecomeKey            = objc.RegisterName("windowDidBecomeKey:")
+	sel_windowDidDeminiaturize        = objc.RegisterName("windowDidDeminiaturize:")
+	sel_windowDidEnterFullScreen      = objc.RegisterName("windowDidEnterFullScreen:")
+	sel_windowDidExitFullScreen       = objc.RegisterName("windowDidExitFullScreen:")
+	sel_windowDidMiniaturize          = objc.RegisterName("windowDidMiniaturize:")
+	sel_windowDidMove                 = objc.RegisterName("windowDidMove:")
+	sel_windowDidResignKey            = objc.RegisterName("windowDidResignKey:")
+	sel_windowDidResize               = objc.RegisterName("windowDidResize:")
+	sel_windowDidChangeOcclusionState = objc.RegisterName("windowDidChangeOcclusionState:")
+	sel_windowResizeEastWestCursor    = objc.RegisterName("_windowResizeEastWestCursor")
+	sel_windowResizeNorthSouthCursor  = objc.RegisterName("_windowResizeNorthSouthCursor")
+	sel_windowShouldClose             = objc.RegisterName("windowShouldClose:")
+	sel_windowWillEnterFullScreen     = objc.RegisterName("windowWillEnterFullScreen:")
+	sel_windowWillExitFullScreen      = objc.RegisterName("windowWillExitFullScreen:")
+)
 
 func currentMouseLocation() (x, y int) {
 	sig := cocoa.NSMethodSignature_signatureWithObjCTypes("{NSPoint=dd}@:")
@@ -278,25 +304,23 @@ func (u *userInterfaceImpl) isNativeFullscreen() bool {
 }
 
 func (u *userInterfaceImpl) setNativeCursor(shape CursorShape) {
-	class_NSCursor := objc.GetClass("NSCursor")
-	NSCursor := objc.ID(class_NSCursor).Send(objc.RegisterName("class"))
-	sel_performSelector := objc.RegisterName("performSelector:")
-	cursor := NSCursor.Send(sel_performSelector, objc.RegisterName("arrowCursor"))
+	NSCursor := objc.ID(class_NSCursor).Send(sel_class)
+	cursor := NSCursor.Send(sel_performSelector, sel_arrowCursor)
 	switch shape {
 	case 0:
-		cursor = NSCursor.Send(sel_performSelector, objc.RegisterName("arrowCursor"))
+		cursor = NSCursor.Send(sel_performSelector, sel_arrowCursor)
 	case 1:
-		cursor = NSCursor.Send(sel_performSelector, objc.RegisterName("IBeamCursor"))
+		cursor = NSCursor.Send(sel_performSelector, sel_IBeamCursor)
 	case 2:
-		cursor = NSCursor.Send(sel_performSelector, objc.RegisterName("crosshairCursor"))
+		cursor = NSCursor.Send(sel_performSelector, sel_crosshairCursor)
 	case 3:
-		cursor = NSCursor.Send(sel_performSelector, objc.RegisterName("pointingHandCursor"))
+		cursor = NSCursor.Send(sel_performSelector, sel_pointingHandCursor)
 	case 4:
-		cursor = NSCursor.Send(sel_performSelector, objc.RegisterName("_windowResizeEastWestCursor"))
+		cursor = NSCursor.Send(sel_performSelector, sel_windowResizeEastWestCursor)
 	case 5:
-		cursor = NSCursor.Send(sel_performSelector, objc.RegisterName("_windowResizeNorthSouthCursor"))
+		cursor = NSCursor.Send(sel_performSelector, sel_windowResizeNorthSouthCursor)
 	}
-	cursor.Send(objc.RegisterName("push"))
+	cursor.Send(sel_set)
 }
 
 func (u *userInterfaceImpl) isNativeFullscreenAvailable() bool {
@@ -304,9 +328,6 @@ func (u *userInterfaceImpl) isNativeFullscreenAvailable() bool {
 	// However, if the user clicks the green button, should this window be in native fullscreen mode?
 	return true
 }
-
-var sel_collectionBehavior = objc.RegisterName("collectionBehavior")
-var sel_setCollectionBehavior = objc.RegisterName("setCollectionBehavior:")
 
 func (u *userInterfaceImpl) setNativeFullscreen(fullscreen bool) {
 	// Toggling fullscreen might ignore events like keyUp. Ensure that events are fired.
@@ -325,7 +346,7 @@ func (u *userInterfaceImpl) setNativeFullscreen(fullscreen bool) {
 		collectionBehavior &^= cocoa.NSWindowCollectionBehaviorFullScreenNone
 		window.Send(sel_setCollectionBehavior, cocoa.NSUInteger(collectionBehavior))
 	}
-	window.Send(objc.RegisterName("toggleFullScreen:"), 0)
+	window.Send(sel_toggleFullScreen, 0)
 	if !origFullScreen {
 		window.Send(sel_setCollectionBehavior, cocoa.NSUInteger(cocoa.NSUInteger(origCollectionBehavior)))
 	}
@@ -338,13 +359,6 @@ func (u *userInterfaceImpl) adjustViewSizeAfterFullscreen() {
 
 	window := cocoa.NSWindow{ID: objc.ID(u.window.GetCocoaWindow())}
 	if window.StyleMask()&cocoa.NSUInteger(cocoa.NSWindowStyleMaskFullScreen) == 0 {
-		return
-	}
-
-	// Apparently, adjusting the view size is not needed as of macOS 12 (#1745).
-	if cocoa.NSProcessInfo_processInfo().IsOperatingSystemAtLeastVersion(cocoa.NSOperatingSystemVersion{
-		Major: 12,
-	}) {
 		return
 	}
 
@@ -374,16 +388,15 @@ func (u *userInterfaceImpl) setWindowResizingModeForOS(mode WindowResizingMode) 
 	} else {
 		collectionBehavior |= cocoa.NSWindowCollectionBehaviorFullScreenNone
 	}
-	objc.ID(u.window.GetCocoaWindow()).Send(objc.RegisterName("setCollectionBehavior:"), collectionBehavior)
+	objc.ID(u.window.GetCocoaWindow()).Send(sel_setCollectionBehavior, collectionBehavior)
 }
 
 func initializeWindowAfterCreation(w *glfw.Window) {
 	// TODO: Register NSWindowWillEnterFullScreenNotification and so on.
 	// Enable resizing temporary before making the window fullscreen.
 	nswindow := objc.ID(w.GetCocoaWindow())
-	sel_delegate := objc.RegisterName("delegate")
-	delegate := objc.ID(class_EbitengineWindowDelegate).Send(objc.RegisterName("alloc")).Send(objc.RegisterName("initWithOrigDelegate:"), nswindow.Send(sel_delegate))
-	nswindow.Send(objc.RegisterName("setDelegate:"), delegate)
+	delegate := objc.ID(class_EbitengineWindowDelegate).Send(sel_alloc).Send(sel_initWithOrigDelegate, nswindow.Send(sel_delegate))
+	nswindow.Send(sel_setDelegate, delegate)
 }
 
 func (u *userInterfaceImpl) skipTaskbar() error {

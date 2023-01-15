@@ -67,7 +67,7 @@
 //
 // `EBITENGINE_GRAPHICS_LIBRARY` environment variable specifies the graphics library.
 // If the specified graphics library is not available, RunGame returns an error.
-// This environment variable can also be set programmatically through os.Setenv before RunGame is called.
+// This environment variable works when RunGame is called or RunGameWithOptions is called with GraphicsLibraryAuto.
 // This can take one of the following value:
 //
 //	"auto":    Ebitengine chooses the graphics library automatically. This is the default value.
@@ -99,9 +99,11 @@
 // `ebitenginesinglethread` disables Ebitengine's thread safety to unlock maximum performance. If you use this you will have
 // to manage threads yourself. Functions like IsKeyPressed will no longer be concurrent-safe with this build tag.
 // They must be called from the main thread or the same goroutine as the given game's callback functions like Update
-// to RunGame.
+// to RunGame. `ebitenginesinglethread` works only with desktops.
 //
 // `microsoftgdk` is for Microsoft GDK (e.g. Xbox).
 //
 // `nintendosdk` is for NintendoSDK (e.g. Nintendo Switch).
+//
+// `nintendosdkprofile` enables a profiler for NintendoSDK.
 package ebiten

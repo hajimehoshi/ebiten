@@ -124,7 +124,7 @@ func (f *playerFactory) initContextIfNeeded() (<-chan struct{}, error) {
 		return nil, nil
 	}
 
-	c, ready, err := newContext(f.sampleRate, channelCount, bitDepthInBytes)
+	c, ready, err := newContext(f.sampleRate)
 	if err != nil {
 		return nil, err
 	}

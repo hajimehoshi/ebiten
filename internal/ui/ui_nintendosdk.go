@@ -16,12 +16,21 @@
 
 package ui
 
+// #include "init_nintendosdk.h"
+// #include "input_nintendosdk.h"
+import "C"
+
 import (
+	stdcontext "context"
 	"runtime"
 
+	"golang.org/x/sync/errgroup"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl"
-	"github.com/hajimehoshi/ebiten/v2/internal/nintendosdk"
+	"github.com/hajimehoshi/ebiten/v2/internal/thread"
 )
 
 type graphicsDriverCreatorImpl struct{}
@@ -52,8 +61,14 @@ func init() {
 type userInterfaceImpl struct {
 	graphicsDriver graphicsdriver.Graphics
 
-	context *context
-	input   Input
+	context       *context
+	inputState    InputState
+	nativeTouches []C.struct_Touch
+
+	egl egl
+
+	mainThread   *thread.OSThread
+	renderThread *thread.OSThread
 }
 
 func (u *userInterfaceImpl) Run(game Game, options *RunOptions) error {
@@ -63,18 +78,62 @@ func (u *userInterfaceImpl) Run(game Game, options *RunOptions) error {
 		return err
 	}
 	u.graphicsDriver = g
-	nintendosdk.InitializeGame()
-	for {
-		nintendosdk.BeginFrame()
-		u.input.update(u.context)
 
-		w, h := nintendosdk.ScreenSize()
-		if err := u.context.updateFrame(u.graphicsDriver, float64(w), float64(h), deviceScaleFactor, u); err != nil {
-			return err
-		}
-
-		nintendosdk.EndFrame()
+	n := C.ebitengine_Initialize()
+	if err := u.egl.init(n); err != nil {
+		return err
 	}
+
+	initializeProfiler()
+
+	u.mainThread = thread.NewOSThread()
+	u.renderThread = thread.NewOSThread()
+	graphicscommand.SetRenderThread(u.renderThread)
+
+	ctx, cancel := stdcontext.WithCancel(stdcontext.Background())
+	defer cancel()
+
+	var wg errgroup.Group
+
+	// Run the render thread.
+	wg.Go(func() error {
+		defer cancel()
+		_ = u.renderThread.Loop(ctx)
+		return nil
+	})
+
+	// Run the game thread.
+	wg.Go(func() error {
+		defer cancel()
+
+		u.renderThread.Call(func() {
+			u.egl.makeContextCurrent()
+		})
+
+		for {
+			recordProfilerHeartbeat()
+
+			u.mainThread.Call(func() {
+				gamepad.Update()
+				u.updateInputState()
+			})
+
+			if err := u.context.updateFrame(u.graphicsDriver, float64(C.kScreenWidth), float64(C.kScreenHeight), deviceScaleFactor, u); err != nil {
+				return err
+			}
+
+			u.renderThread.Call(func() {
+				u.egl.swapBuffers()
+			})
+		}
+	})
+
+	// Run the main thread.
+	_ = u.mainThread.Loop(ctx)
+	if err := wg.Wait(); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (*userInterfaceImpl) DeviceScaleFactor() float64 {
@@ -89,7 +148,12 @@ func (*userInterfaceImpl) ScreenSizeInFullscreen() (int, int) {
 	return 0, 0
 }
 
-func (*userInterfaceImpl) resetForTick() {
+func (u *userInterfaceImpl) readInputState(inputState *InputState) {
+	*inputState = u.inputState
+	u.inputState.resetForTick()
+}
+
+func (u *userInterfaceImpl) resetForTick() {
 }
 
 func (*userInterfaceImpl) CursorMode() CursorMode {
@@ -126,10 +190,6 @@ func (*userInterfaceImpl) SetFPSMode(mode FPSModeType) {
 func (*userInterfaceImpl) ScheduleFrame() {
 }
 
-func (*userInterfaceImpl) Input() *Input {
-	return &theUI.input
-}
-
 func (*userInterfaceImpl) Window() Window {
 	return &nullWindow{}
 }
@@ -138,6 +198,9 @@ func (u *userInterfaceImpl) beginFrame() {
 }
 
 func (u *userInterfaceImpl) endFrame() {
+}
+
+func (u *userInterfaceImpl) updateIconIfNeeded() {
 }
 
 func IsScreenTransparentAvailable() bool {

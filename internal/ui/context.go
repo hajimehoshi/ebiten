@@ -16,6 +16,7 @@ package ui
 
 import (
 	"math"
+	"sync"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
 	"github.com/hajimehoshi/ebiten/v2/internal/buffered"
@@ -35,6 +36,7 @@ type Game interface {
 	NewOffscreenImage(width, height int) *Image
 	NewScreenImage(width, height int) *Image
 	Layout(outsideWidth, outsideHeight float64) (screenWidth, screenHeight float64)
+	UpdateInputState(InputState)
 	Update() error
 	DrawOffscreen() error
 	DrawFinalScreen(scale, offsetX, offsetY float64)
@@ -53,9 +55,11 @@ type context struct {
 	offscreenWidth  float64
 	offscreenHeight float64
 
-	isOffscreenDirty bool
+	isOffscreenModified bool
 
 	skipCount int
+
+	setContextOnce sync.Once
 }
 
 func newContext(game Game) *context {
@@ -123,18 +127,29 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 
 	// Update the game.
 	for i := 0; i < updateCount; i++ {
+		// Read the input state and use it for one tick to give a consistent result for one tick (#2496, #2501).
+		var inputState InputState
+		ui.readInputState(&inputState)
+		c.game.UpdateInputState(inputState)
+
 		if err := hooks.RunBeforeUpdateHooks(); err != nil {
 			return err
 		}
 		if err := c.game.Update(); err != nil {
 			return err
 		}
+
 		// Catch the error that happened at (*Image).At.
 		if err := theGlobalState.error(); err != nil {
 			return err
 		}
+
 		ui.resetForTick()
 	}
+
+	// Update window icons during a frame, since an icon might be *ebiten.Image and
+	// getting pixels from it needs to be in a frame (#1468).
+	ui.updateIconIfNeeded()
 
 	// Draw the game.
 	if err := c.drawGame(graphicsDriver, forceDraw); err != nil {
@@ -144,12 +159,23 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 	return nil
 }
 
+func (c *context) newOffscreenImage(w, h int) *Image {
+	img := c.game.NewOffscreenImage(w, h)
+	img.modifyCallback = func() {
+		c.isOffscreenModified = true
+	}
+	return img
+}
+
 func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics, forceDraw bool) error {
 	if (c.offscreen.imageType == atlas.ImageTypeVolatile) != theGlobalState.isScreenClearedEveryFrame() {
 		w, h := c.offscreen.width, c.offscreen.height
 		c.offscreen.MarkDisposed()
-		c.offscreen = c.game.NewOffscreenImage(w, h)
+		c.offscreen = c.newOffscreenImage(w, h)
 	}
+
+	// isOffscreenModified is updated when an offscreen's modifyCallback.
+	c.isOffscreenModified = false
 
 	// Even though updateCount == 0, the offscreen is cleared and Draw is called.
 	// Draw should not update the game state and then the screen should not be updated without Update, but
@@ -158,15 +184,13 @@ func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics, forceDraw boo
 		c.offscreen.clear()
 	}
 
-	// isOffscreenDirty is updated when an offscreen's drawCallback.
-	c.isOffscreenDirty = false
 	if err := c.game.DrawOffscreen(); err != nil {
 		return err
 	}
 
 	const maxSkipCount = 3
 
-	if !forceDraw && !theGlobalState.isScreenClearedEveryFrame() && !c.isOffscreenDirty {
+	if !forceDraw && !c.isOffscreenModified {
 		if c.skipCount < maxSkipCount {
 			c.skipCount++
 		}
@@ -174,7 +198,6 @@ func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics, forceDraw boo
 		c.skipCount = 0
 	}
 
-	// If the offscreen is not updated and the framebuffers don't have to be updated, skip rendering to save GPU power.
 	if c.skipCount < maxSkipCount {
 		if graphicsDriver.NeedsClearingScreen() {
 			// This clear is needed for fullscreen mode or some mobile platforms (#622).
@@ -224,16 +247,13 @@ func (c *context) layoutGame(outsideWidth, outsideHeight float64, deviceScaleFac
 		}
 	}
 	if c.offscreen == nil {
-		c.offscreen = c.game.NewOffscreenImage(ow, oh)
-		c.offscreen.drawCallback = func() {
-			c.isOffscreenDirty = true
-		}
+		c.offscreen = c.newOffscreenImage(ow, oh)
 	}
 
 	return ow, oh
 }
 
-func (c *context) adjustPosition(x, y float64, deviceScaleFactor float64) (float64, float64) {
+func (c *context) clientPositionToLogicalPosition(x, y float64, deviceScaleFactor float64) (float64, float64) {
 	s, ox, oy := c.screenScaleAndOffsets()
 	// The scale 0 indicates that the screen is not initialized yet.
 	// As any cursor values don't make sense, just return NaN.

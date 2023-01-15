@@ -16,74 +16,42 @@
 
 package ui
 
-import (
-	"sync"
+// #cgo !darwin LDFLAGS: -Wl,-unresolved-symbols=ignore-all
+// #cgo darwin LDFLAGS: -Wl,-undefined,dynamic_lookup
+//
+// #include "input_nintendosdk.h"
+//
+// const int kScreenWidth = 1920;
+// const int kScreenHeight = 1080;
+import "C"
 
-	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
-	"github.com/hajimehoshi/ebiten/v2/internal/nintendosdk"
-)
+func (u *userInterfaceImpl) updateInputState() {
+	C.ebitengine_UpdateTouches()
 
-type Input struct {
-	gamepads []nintendosdk.Gamepad
-	touches  []nintendosdk.Touch
-
-	m sync.Mutex
-}
-
-func (i *Input) update(context *context) {
-	i.m.Lock()
-	defer i.m.Unlock()
-
-	gamepad.Update()
-
-	i.touches = i.touches[:0]
-	i.touches = nintendosdk.AppendTouches(i.touches)
-
-	for idx, t := range i.touches {
-		x, y := context.adjustPosition(float64(t.X), float64(t.Y), deviceScaleFactor)
-		i.touches[idx].X = int(x)
-		i.touches[idx].Y = int(y)
+	u.nativeTouches = u.nativeTouches[:0]
+	if n := int(C.ebitengine_GetTouchCount()); n > 0 {
+		if cap(u.nativeTouches) < n {
+			u.nativeTouches = make([]C.struct_Touch, n)
+		} else {
+			u.nativeTouches = u.nativeTouches[:n]
+		}
+		C.ebitengine_GetTouches(&u.nativeTouches[0])
 	}
-}
 
-func (i *Input) AppendInputChars(runes []rune) []rune {
-	return nil
-}
-
-func (i *Input) AppendTouchIDs(touchIDs []TouchID) []TouchID {
-	i.m.Lock()
-	defer i.m.Unlock()
-
-	for _, t := range i.touches {
-		touchIDs = append(touchIDs, TouchID(t.ID))
+	for i := range u.inputState.Touches {
+		u.inputState.Touches[i].Valid = false
 	}
-	return touchIDs
-}
-
-func (i *Input) CursorPosition() (x, y int) {
-	return 0, 0
-}
-
-func (i *Input) IsKeyPressed(key Key) bool {
-	return false
-}
-
-func (i *Input) IsMouseButtonPressed(button MouseButton) bool {
-	return false
-}
-
-func (i *Input) TouchPosition(id TouchID) (x, y int) {
-	i.m.Lock()
-	defer i.m.Unlock()
-
-	for _, t := range i.touches {
-		if TouchID(t.ID) == id {
-			return t.X, t.Y
+	for i, t := range u.nativeTouches {
+		x, y := u.context.clientPositionToLogicalPosition(float64(t.x), float64(t.y), deviceScaleFactor)
+		u.inputState.Touches[i] = Touch{
+			Valid: true,
+			ID:    TouchID(t.id),
+			X:     int(x),
+			Y:     int(y),
 		}
 	}
-	return 0, 0
 }
 
-func (i *Input) Wheel() (xoff, yoff float64) {
-	return 0, 0
+func KeyName(key Key) string {
+	return ""
 }

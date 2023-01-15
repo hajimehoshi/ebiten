@@ -28,7 +28,10 @@ package metal
 // }
 //
 // static void setFrame(void* cametal, void* uiview) {
-//   CGSize size = ((UIView*)uiview).frame.size;
+//   __block CGSize size;
+//   dispatch_sync(dispatch_get_main_queue(), ^{
+//     size = ((UIView*)uiview).frame.size;
+//   });
 //   ((CALayer*)cametal).frame = CGRectMake(0, 0, size.width, size.height);
 // }
 import "C"
@@ -55,15 +58,6 @@ func (v *view) update() {
 		C.addSublayer(unsafe.Pointer(v.uiview), v.ml.Layer())
 	})
 	C.setFrame(v.ml.Layer(), unsafe.Pointer(v.uiview))
-}
-
-func (v *view) usePresentsWithTransaction() bool {
-	// Do not use presentsWithTransaction on iOS (#1799).
-	return false
-}
-
-func (v *view) maximumDrawableCount() int {
-	return 3
 }
 
 const (

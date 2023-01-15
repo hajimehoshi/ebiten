@@ -21,18 +21,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/mipmap"
 )
 
-type MouseButton int
-
-const (
-	MouseButton0 MouseButton = iota // The 'left' button
-	MouseButton1                    // The 'right' button
-	MouseButton2                    // The 'middle' button
-	MouseButton3                    // The additional button (usually browser-back)
-	MouseButton4                    // The additional button (usually browser-forward)
-)
-
-type TouchID int
-
 // RegularTermination represents a regular termination.
 // Run can return this error, and if this error is received,
 // the game loop should be terminated as soon as possible.
