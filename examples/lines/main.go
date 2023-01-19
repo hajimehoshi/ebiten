@@ -87,7 +87,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		vector.LineCapSquare,
 	}
 
-	ow, oh := target.Size()
+	ow, oh := target.Bounds().Dx(), target.Bounds().Dy()
 	size := min(ow/(len(joins)+1), oh/(len(caps)+1))
 	offsetX, offsetY := (ow-size*len(joins))/2, (oh-size*len(caps))/2
 

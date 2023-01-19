@@ -71,9 +71,9 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		return
 	}
 
-	sw, sh := screen.Size()
+	sw, sh := screen.Bounds().Dx(), screen.Bounds().Dy()
 
-	w, h := g.highDPIImage.Size()
+	w, h := g.highDPIImage.Bounds().Dx(), g.highDPIImage.Bounds().Dy()
 	op := &ebiten.DrawImageOptions{}
 
 	// Move the images's center to the upper left corner.

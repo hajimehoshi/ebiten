@@ -54,7 +54,7 @@ func init() {
 		xrepeat = 7
 		yrepeat = 8
 	)
-	w, h := gophersImage.Size()
+	w, h := gophersImage.Bounds().Dx(), gophersImage.Bounds().Dy()
 	repeatedGophersImage = ebiten.NewImage(w*xrepeat, h*yrepeat)
 	for j := 0; j < yrepeat; j++ {
 		for i := 0; i < xrepeat; i++ {
@@ -87,7 +87,7 @@ func round(x float64) float64 {
 
 // MoveForward moves the player p forward.
 func (p *player) MoveForward() {
-	w, h := gophersImage.Size()
+	w, h := gophersImage.Bounds().Dx(), gophersImage.Bounds().Dy()
 	mx := w * 16
 	my := h * 16
 	s, c := math.Sincos(float64(p.angle) * 2 * math.Pi / maxAngle)
@@ -157,8 +157,8 @@ func (g *Game) updateGroundImage(ground *ebiten.Image) {
 
 	x16, y16 := g.player.Position()
 	a := g.player.Angle()
-	rw, rh := repeatedGophersImage.Size()
-	gw, gh := ground.Size()
+	rw, rh := repeatedGophersImage.Bounds().Dx(), repeatedGophersImage.Bounds().Dy()
+	gw, gh := ground.Bounds().Dx(), ground.Bounds().Dy()
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(float64(-x16)/16, float64(-y16)/16)
 	op.GeoM.Translate(float64(-rw)/2, float64(-rh)/2)
@@ -170,8 +170,8 @@ func (g *Game) updateGroundImage(ground *ebiten.Image) {
 // drawGroundImage draws the ground image to the given screen image.
 func (g *Game) drawGroundImage(screen *ebiten.Image, ground *ebiten.Image) {
 	g.perspectiveGroundImage.Clear()
-	gw, _ := ground.Size()
-	pw, ph := g.perspectiveGroundImage.Size()
+	gw := ground.Bounds().Dx()
+	pw, ph := g.perspectiveGroundImage.Bounds().Dx(), g.perspectiveGroundImage.Bounds().Dy()
 	for j := 0; j < ph; j++ {
 		// z is in [2, -1]
 		rate := float64(j) / float64(ph)
@@ -217,7 +217,7 @@ func NewGame() *Game {
 	}
 
 	const fogHeight = 16
-	w, _ := g.perspectiveGroundImage.Size()
+	w := g.perspectiveGroundImage.Bounds().Dx()
 	fogRGBA := image.NewRGBA(image.Rect(0, 0, w, fogHeight))
 	for j := 0; j < fogHeight; j++ {
 		a := uint32(float64(fogHeight-1-j) * 0xff / (fogHeight - 1))

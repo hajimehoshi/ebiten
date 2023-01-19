@@ -16,6 +16,7 @@ package ebitenutil_test
 
 import (
 	"embed"
+	"image"
 	// `NewImageFromFileSystem` works without this importing, but this is not an expected thing (#2336).
 	_ "image/png"
 	"testing"
@@ -31,11 +32,7 @@ func TestNewImageFromFileSystem(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	w, h := img.Size()
-	if got, want := w, 192; got != want {
-		t.Errorf("got: %d, want: %d", got, want)
-	}
-	if got, want := h, 128; got != want {
-		t.Errorf("got: %d, want: %d", got, want)
+	if got, want := img.Bounds().Size(), image.Pt(192, 128); got != want {
+		t.Errorf("got: %v, want: %v", got, want)
 	}
 }

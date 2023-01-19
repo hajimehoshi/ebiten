@@ -308,8 +308,8 @@ func (g *game) Update() error {
 }
 
 func (g *game) Draw(screen *ebiten.Image) {
-	w, h := gophersImage.Size()
-	w2, h2 := screen.Size()
+	w, h := gophersImage.Bounds().Dx(), gophersImage.Bounds().Dy()
+	w2, h2 := screen.Bounds().Dx(), screen.Bounds().Dy()
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(float64(-w+w2)/2, float64(-h+h2)/2)
 	dx := math.Cos(2*math.Pi*float64(g.count)/360) * 20

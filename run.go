@@ -96,7 +96,6 @@ type LayoutFer interface {
 // FinalScreen implements a part of Image functions.
 type FinalScreen interface {
 	Bounds() image.Rectangle
-	Size() (int, int)
 
 	DrawImage(img *Image, options *DrawImageOptions)
 	DrawTriangles(vertices []Vertex, indices []uint16, img *Image, options *DrawTrianglesOptions)

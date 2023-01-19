@@ -70,7 +70,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 }
 
 func main() {
-	w, h := gophersImage.Size()
+	w, h := gophersImage.Bounds().Dx(), gophersImage.Bounds().Dy()
 	g := &Game{
 		gophersRenderTarget: ebiten.NewImage(w/mosaicRatio, h/mosaicRatio),
 	}

@@ -90,7 +90,8 @@ func (g *game) Update() error {
 }
 
 func (g *game) Draw(screen *ebiten.Image) {
-	screen.WritePixels(getDots(screen.Size()))
+	s := screen.Bounds().Size()
+	screen.WritePixels(getDots(s.X, s.Y))
 }
 
 func main() {

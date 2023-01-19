@@ -57,7 +57,7 @@ func (g *Game) Update() error {
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	w, _ := tilesImage.Size()
+	w := tilesImage.Bounds().Dx()
 	tileXCount := w / tileSize
 
 	// Draw each tile with each DrawImage call.

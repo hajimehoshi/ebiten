@@ -37,7 +37,7 @@ func TestTextColor(t *testing.T) {
 	img := ebiten.NewImage(30, 30)
 	text.Draw(img, "Hello", bitmapfont.Face, 12, 12, clr)
 
-	w, h := img.Size()
+	w, h := img.Bounds().Dx(), img.Bounds().Dy()
 	allTransparent := true
 	for j := 0; j < h; j++ {
 		for i := 0; i < w; i++ {

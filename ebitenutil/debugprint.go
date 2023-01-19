@@ -59,7 +59,7 @@ func drawDebugText(rt *ebiten.Image, str string, ox, oy int) {
 	op := &ebiten.DrawImageOptions{}
 	x := 0
 	y := 0
-	w, _ := debugPrintTextImage.Size()
+	w := debugPrintTextImage.Bounds().Dx()
 	for _, c := range str {
 		const (
 			cw = 6

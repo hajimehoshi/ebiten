@@ -170,7 +170,7 @@ func init() {
 func (s *GameScene) drawBackground(r *ebiten.Image) {
 	r.Fill(color.White)
 
-	w, h := imageGameBG.Size()
+	w, h := imageGameBG.Bounds().Dx(), imageGameBG.Bounds().Dy()
 	scaleW := ScreenWidth / float64(w)
 	scaleH := ScreenHeight / float64(h)
 	scale := scaleW

@@ -87,7 +87,7 @@ func (s *sprite) draw(screen *ebiten.Image) {
 
 	op := &ebiten.DrawImageOptions{}
 
-	sx, sy := s.img.Size()
+	sx, sy := s.img.Bounds().Dx(), s.img.Bounds().Dy()
 	op.GeoM.Translate(-float64(sx)/2, -float64(sy)/2)
 	op.GeoM.Rotate(s.angle)
 	op.GeoM.Scale(s.scale, s.scale)

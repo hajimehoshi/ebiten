@@ -103,7 +103,7 @@ func TestImagePixels(t *testing.T) {
 		t.Fatalf("img size: got %d; want %d", got, img.Bounds().Size())
 	}
 
-	w, h := img0.Bounds().Size().X, img0.Bounds().Size().Y
+	w, h := img0.Bounds().Dx(), img0.Bounds().Dy()
 	// Check out of range part
 	w2, h2 := graphics.InternalImageSize(w), graphics.InternalImageSize(h)
 	for j := -100; j < h2+100; j++ {
@@ -141,7 +141,7 @@ func TestImageComposition(t *testing.T) {
 		return
 	}
 
-	w, h := img1.Bounds().Size().X, img1.Bounds().Size().Y
+	w, h := img1.Bounds().Dx(), img1.Bounds().Dy()
 
 	img2 := ebiten.NewImage(w, h)
 	img3 := ebiten.NewImage(w, h)
@@ -199,7 +199,7 @@ func TestImageScale(t *testing.T) {
 			t.Fatal(err)
 			return
 		}
-		w, h := img0.Size()
+		w, h := img0.Bounds().Dx(), img0.Bounds().Dy()
 		img1 := ebiten.NewImage(w*scale, h*scale)
 		op := &ebiten.DrawImageOptions{}
 		op.GeoM.Scale(float64(scale), float64(scale))
@@ -224,7 +224,7 @@ func TestImage90DegreeRotate(t *testing.T) {
 		t.Fatal(err)
 		return
 	}
-	w, h := img0.Size()
+	w, h := img0.Bounds().Dx(), img0.Bounds().Dy()
 	img1 := ebiten.NewImage(h, w)
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Rotate(math.Pi / 2)
@@ -248,7 +248,7 @@ func TestImageDotByDotInversion(t *testing.T) {
 		t.Fatal(err)
 		return
 	}
-	w, h := img0.Size()
+	w, h := img0.Bounds().Dx(), img0.Bounds().Dy()
 	img1 := ebiten.NewImage(w, h)
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Rotate(math.Pi)
@@ -284,8 +284,8 @@ func TestImageWritePixels(t *testing.T) {
 	img0 := ebiten.NewImage(size.X, size.Y)
 
 	img0.WritePixels(img.Pix)
-	for j := 0; j < img0.Bounds().Size().Y; j++ {
-		for i := 0; i < img0.Bounds().Size().X; i++ {
+	for j := 0; j < img0.Bounds().Dy(); j++ {
+		for i := 0; i < img0.Bounds().Dx(); i++ {
 			got := img0.At(i, j)
 			want := img.At(i, j)
 			if got != want {
@@ -303,8 +303,8 @@ func TestImageWritePixels(t *testing.T) {
 	for i := range p {
 		p[i] = 0
 	}
-	for j := 0; j < img0.Bounds().Size().Y; j++ {
-		for i := 0; i < img0.Bounds().Size().X; i++ {
+	for j := 0; j < img0.Bounds().Dy(); j++ {
+		for i := 0; i < img0.Bounds().Dx(); i++ {
 			got := img0.At(i, j)
 			want := color.RGBA{0x80, 0x80, 0x80, 0x80}
 			if got != want {
@@ -354,14 +354,14 @@ func TestImageBlendLighter(t *testing.T) {
 		return
 	}
 
-	w, h := img0.Size()
+	w, h := img0.Bounds().Dx(), img0.Bounds().Dy()
 	img1 := ebiten.NewImage(w, h)
 	img1.Fill(color.RGBA{0x01, 0x02, 0x03, 0x04})
 	op := &ebiten.DrawImageOptions{}
 	op.Blend = ebiten.BlendLighter
 	img1.DrawImage(img0, op)
-	for j := 0; j < img1.Bounds().Size().Y; j++ {
-		for i := 0; i < img1.Bounds().Size().X; i++ {
+	for j := 0; j < img1.Bounds().Dy(); j++ {
+		for i := 0; i < img1.Bounds().Dx(); i++ {
 			got := img1.At(i, j).(color.RGBA)
 			want := img0.At(i, j).(color.RGBA)
 			want.R = uint8(min(0xff, int(want.R)+1))
@@ -394,7 +394,7 @@ func TestNewImageFromSubImage(t *testing.T) {
 	subImg := img.(*image.NRGBA).SubImage(image.Rect(1, 1, w-1, h-1))
 	eimg := ebiten.NewImageFromImage(subImg)
 	sw, sh := subImg.Bounds().Dx(), subImg.Bounds().Dy()
-	w2, h2 := eimg.Size()
+	w2, h2 := eimg.Bounds().Dx(), eimg.Bounds().Dy()
 	if w2 != sw {
 		t.Errorf("eimg Width: got %v; want %v", w2, sw)
 	}
@@ -510,7 +510,7 @@ func TestImageEdge(t *testing.T) {
 			for _, a := range angles {
 				for _, testDrawTriangles := range []bool{false, true} {
 					img1.Clear()
-					w, h := img0.Size()
+					w, h := img0.Bounds().Dx(), img0.Bounds().Dy()
 					b := img0.Bounds()
 					var geo ebiten.GeoM
 					geo.Translate(-float64(w)/2, -float64(h)/2)
@@ -741,7 +741,7 @@ func TestImageSize(t *testing.T) {
 		h = 31
 	)
 	img := ebiten.NewImage(w, h)
-	gotW, gotH := img.Size()
+	gotW, gotH := img.Bounds().Dx(), img.Bounds().Dy()
 	if gotW != w {
 		t.Errorf("got: %d, want: %d", gotW, w)
 	}
@@ -835,7 +835,7 @@ loop:
 		}
 		src.WritePixels(pix)
 
-		_, dh := dst.Size()
+		dh := dst.Bounds().Dy()
 		for i := 0; i < dh; {
 			dst.Clear()
 			op := &ebiten.DrawImageOptions{}
@@ -902,7 +902,7 @@ func Disabled_TestImageMipmap(t *testing.T) {
 		t.Fatal(err)
 		return
 	}
-	w, h := src.Size()
+	w, h := src.Bounds().Dx(), src.Bounds().Dy()
 
 	l1 := ebiten.NewImage(w/2, h/2)
 	op := &ebiten.DrawImageOptions{}
@@ -910,7 +910,7 @@ func Disabled_TestImageMipmap(t *testing.T) {
 	op.Filter = ebiten.FilterLinear
 	l1.DrawImage(src, op)
 
-	l1w, l1h := l1.Size()
+	l1w, l1h := l1.Bounds().Dx(), l1.Bounds().Dy()
 	l2 := ebiten.NewImage(l1w/2, l1h/2)
 	op = &ebiten.DrawImageOptions{}
 	op.GeoM.Scale(1/2.0, 1/2.0)
@@ -947,7 +947,7 @@ func Disabled_TestImageMipmapNegativeDet(t *testing.T) {
 		t.Fatal(err)
 		return
 	}
-	w, h := src.Size()
+	w, h := src.Bounds().Dx(), src.Bounds().Dy()
 
 	l1 := ebiten.NewImage(w/2, h/2)
 	op := &ebiten.DrawImageOptions{}
@@ -955,7 +955,7 @@ func Disabled_TestImageMipmapNegativeDet(t *testing.T) {
 	op.Filter = ebiten.FilterLinear
 	l1.DrawImage(src, op)
 
-	l1w, l1h := l1.Size()
+	l1w, l1h := l1.Bounds().Dx(), l1.Bounds().Dy()
 	l2 := ebiten.NewImage(l1w/2, l1h/2)
 	op = &ebiten.DrawImageOptions{}
 	op.GeoM.Scale(1/2.0, 1/2.0)
@@ -1091,7 +1091,7 @@ func TestImageMiamapAndDrawTriangle(t *testing.T) {
 	op.Filter = ebiten.FilterLinear
 	img0.DrawImage(img1, op)
 
-	w, h := img0.Size()
+	w, h := img0.Bounds().Dx(), img0.Bounds().Dy()
 	for j := 0; j < h; j++ {
 		for i := 0; i < w; i++ {
 			c := img0.At(i, j).(color.RGBA)
@@ -1123,7 +1123,7 @@ func TestImageSubImageSize(t *testing.T) {
 	img := ebiten.NewImage(16, 16)
 	img.Fill(color.RGBA{0xff, 0, 0, 0xff})
 
-	got, _ := img.SubImage(image.Rect(1, 1, 16, 16)).(*ebiten.Image).Size()
+	got := img.SubImage(image.Rect(1, 1, 16, 16)).Bounds().Dx()
 	want := 15
 	if got != want {
 		t.Errorf("got: %v, want: %v", got, want)

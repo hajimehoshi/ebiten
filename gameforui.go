@@ -193,7 +193,7 @@ func (g *gameForUI) DrawFinalScreen(scale, offsetX, offsetY float64) {
 		op := &DrawRectShaderOptions{}
 		op.Images[0] = g.offscreen
 		op.GeoM = geoM
-		w, h := g.offscreen.Size()
+		w, h := g.offscreen.Bounds().Dx(), g.offscreen.Bounds().Dy()
 		g.screen.DrawRectShader(w, h, g.screenShader, op)
 	}
 }

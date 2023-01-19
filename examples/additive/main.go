@@ -56,7 +56,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 	// Draw the image with 'Lighter (a.k.a Additive)' blend mode.
 	op = &ebiten.DrawImageOptions{}
-	w, _ := ebitenImage.Size()
+	w := ebitenImage.Bounds().Dx()
 	op.GeoM.Translate(ox+float64(w), oy)
 	op.Blend = ebiten.BlendLighter
 	screen.DrawImage(ebitenImage, op)

@@ -55,6 +55,8 @@ func (i *Image) copyCheck() {
 }
 
 // Size returns the size of the image.
+//
+// Deprecated: as of v2.5. Use Bounds().Dx() and Bounds().Dy() or Bounds().Size() instead.
 func (i *Image) Size() (width, height int) {
 	s := i.Bounds().Size()
 	return s.X, s.Y
@@ -606,7 +608,7 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 	copy(is, indices)
 
 	var imgs [graphics.ShaderImageCount]*ui.Image
-	var imgw, imgh int
+	var imgSize image.Point
 	for i, img := range options.Images {
 		if img == nil {
 			continue
@@ -615,10 +617,10 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 			panic("ebiten: the given image to DrawTrianglesShader must not be disposed")
 		}
 		if i == 0 {
-			imgw, imgh = img.Size()
+			imgSize = img.Bounds().Size()
 		} else {
 			// TODO: Check imgw > 0 && imgh > 0
-			if w, h := img.Size(); imgw != w || imgh != h {
+			if img.Bounds().Size() != imgSize {
 				panic("ebiten: all the source images must be the same size with the rectangle")
 			}
 		}
@@ -723,7 +725,7 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 		if img.isDisposed() {
 			panic("ebiten: the given image to DrawRectShader must not be disposed")
 		}
-		if w, h := img.Size(); width != w || height != h {
+		if img.Bounds().Size() != image.Pt(width, height) {
 			panic("ebiten: all the source images must be the same size with the rectangle")
 		}
 		imgs[i] = img.image

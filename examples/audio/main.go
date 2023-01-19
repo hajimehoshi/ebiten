@@ -162,7 +162,7 @@ func NewPlayer(game *Game, audioContext *audio.Context, musicType musicType) (*P
 	}
 
 	const buttonPadding = 16
-	w, _ := playButtonImage.Size()
+	w := playButtonImage.Bounds().Dx()
 	player.playButtonPosition.X = (screenWidth - w*2 + buttonPadding*1) / 2
 	player.playButtonPosition.Y = screenHeight - 160
 
@@ -226,7 +226,7 @@ func (p *Player) shouldPlaySE() bool {
 	}
 	r := image.Rectangle{
 		Min: p.alertButtonPosition,
-		Max: p.alertButtonPosition.Add(image.Pt(alertButtonImage.Size())),
+		Max: p.alertButtonPosition.Add(alertButtonImage.Bounds().Size()),
 	}
 	if image.Pt(ebiten.CursorPosition()).In(r) {
 		if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
@@ -271,7 +271,7 @@ func (p *Player) shouldSwitchPlayStateIfNeeded() bool {
 	}
 	r := image.Rectangle{
 		Min: p.playButtonPosition,
-		Max: p.playButtonPosition.Add(image.Pt(playButtonImage.Size())),
+		Max: p.playButtonPosition.Add(playButtonImage.Bounds().Size()),
 	}
 	if image.Pt(ebiten.CursorPosition()).In(r) {
 		if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
