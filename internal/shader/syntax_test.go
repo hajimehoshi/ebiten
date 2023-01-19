@@ -2968,3 +2968,34 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		}
 	}
 }
+
+// Issue #2549
+func TestConstType2(t *testing.T) {
+	cases := []struct {
+		stmt string
+		err  bool
+	}{
+		{stmt: "const x = 1; y := x*x; _ = vec4(1) / y", err: true},
+		{stmt: "const x = 1.0; y := x*x; _ = vec4(1) / y", err: false},
+		{stmt: "const x int = 1; y := x*x; _ = vec4(1) / y", err: true},
+		{stmt: "const x int = 1.0; y := x*x; _ = vec4(1) / y", err: true},
+		{stmt: "const x float = 1; y := x*x; _ = vec4(1) / y", err: false},
+		{stmt: "const x float = 1.0; y := x*x; _ = vec4(1) / y", err: false},
+	}
+
+	for _, c := range cases {
+		stmt := c.stmt
+		src := fmt.Sprintf(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	%s
+	return position
+}`, stmt)
+		_, err := compileToIR([]byte(src))
+		if err == nil && c.err {
+			t.Errorf("%s must return an error but does not", stmt)
+		} else if err != nil && !c.err {
+			t.Errorf("%s must not return nil but returned %v", stmt, err)
+		}
+	}
+}
