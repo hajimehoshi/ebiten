@@ -38,7 +38,7 @@ jobs:
 
       - name: go test (Wasm)
         run: |
-          env
-          ${{ runner.os == 'Windows' && 'unset $(env | awk -F= "{print $1}" | grep -v -x -e "^(PATH|TEMP|TMP)$")' || '' }}
+          # Remove a wrong environment variable
+          echo "PSModulePath=" >> $GITHUB_ENV
           env GOOS=js GOARCH=wasm go test -shuffle=on -v ./...
           env GOOS=js GOARCH=wasm EBITENGINE_OPENGL=webgl1 go test -shuffle=on -v ./...
