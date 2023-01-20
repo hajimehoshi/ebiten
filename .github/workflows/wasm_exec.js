@@ -506,11 +506,8 @@
 
 			const keys = Object.keys(this.env).sort();
 			keys.forEach((key) => {
-				if (key === "PATH") {
-					return;
-				}
 				argvPtrs.push(strPtr(`${key}=${this.env[key]}`));
-				console.log(`${key}=${this.env[key]} (offset: ` + offset + ')');
+				console.log(`${key}=${this.env[key]}, offset(` + offset + `)` );
 			});
 			argvPtrs.push(0);
 
