@@ -18,6 +18,7 @@ import (
 	"errors"
 	"image"
 	"image/color"
+	"io/fs"
 	"sync/atomic"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/clock"
@@ -663,4 +664,15 @@ func toUIRunOptions(options *RunGameOptions) *ui.RunOptions {
 		ScreenTransparent: options.ScreenTransparent,
 		SkipTaskbar:       options.SkipTaskbar,
 	}
+}
+
+// AppendDroppedFiles appends files, dropped at the time Update is called, to the given slice,
+// and returns the extended buffer.
+// Giving a slice that already has enough capacity works efficiently.
+//
+// AppendDroppedFiles works on desktops and browsers.
+//
+// AppendDroppedFiles is concurrent-safe.
+func AppendDroppedFiles(files []fs.File) []fs.File {
+	return theInputState.appendDroppedFiles(files)
 }

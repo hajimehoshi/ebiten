@@ -15,6 +15,9 @@
 package ui
 
 import (
+	"fmt"
+	"io"
+	"io/fs"
 	"sync"
 	"syscall/js"
 	"time"
@@ -622,6 +625,27 @@ func setCanvasEventHandlers(v js.Value) {
 		window.Get("location").Call("reload")
 		return nil
 	}))
+
+	// Drop
+	v.Call("addEventListener", "dragover", js.FuncOf(func(this js.Value, args []js.Value) any {
+		e := args[0]
+		e.Call("preventDefault")
+		return nil
+	}))
+	v.Call("addEventListener", "drop", js.FuncOf(func(this js.Value, args []js.Value) any {
+		e := args[0]
+		e.Call("preventDefault")
+		data := e.Get("dataTransfer")
+		if !data.Truthy() {
+			return nil
+		}
+
+		files := data.Get("files")
+		for i := 0; i < files.Length(); i++ {
+			theUI.inputState.DroppedFiles = append(theUI.inputState.DroppedFiles, &file{v: files.Index(i)})
+		}
+		return nil
+	}))
 }
 
 func (u *userInterfaceImpl) forceUpdateOnMinimumFPSMode() {
@@ -695,4 +719,114 @@ func (u *userInterfaceImpl) updateIconIfNeeded() {
 
 func IsScreenTransparentAvailable() bool {
 	return true
+}
+
+type file struct {
+	v          js.Value
+	cursor     int64
+	uint8Array js.Value
+}
+
+func (f *file) Stat() (fs.FileInfo, error) {
+	return &fileInfo{v: f.v}, nil
+}
+
+func (f *file) Read(buf []byte) (int, error) {
+	if !f.uint8Array.Truthy() {
+		chArrayBuffer := make(chan js.Value, 1)
+		cbThen := js.FuncOf(func(this js.Value, args []js.Value) any {
+			chArrayBuffer <- args[0]
+			return nil
+		})
+		defer cbThen.Release()
+
+		chError := make(chan js.Value, 1)
+		cbCatch := js.FuncOf(func(this js.Value, args []js.Value) any {
+			chError <- args[0]
+			return nil
+		})
+		defer cbCatch.Release()
+
+		f.v.Call("arrayBuffer").Call("then", cbThen).Call("catch", cbCatch)
+		select {
+		case ab := <-chArrayBuffer:
+			f.uint8Array = js.Global().Get("Uint8Array").New(ab)
+		case err := <-chError:
+			return 0, fmt.Errorf("%s", err.Call("toString").String())
+		}
+	}
+
+	size := int64(f.uint8Array.Get("byteLength").Float())
+	if f.cursor >= size {
+		return 0, io.EOF
+	}
+
+	if len(buf) == 0 {
+		return 0, nil
+	}
+
+	slice := f.uint8Array.Call("subarray", f.cursor, f.cursor+int64(len(buf)))
+	n := slice.Get("byteLength").Int()
+	js.CopyBytesToGo(buf[:n], slice)
+	f.cursor += int64(n)
+	if f.cursor >= size {
+		return n, io.EOF
+	}
+	return n, nil
+}
+
+func (f *file) Close() error {
+	return nil
+}
+
+type fileInfo struct {
+	v         js.Value
+	isDir     bool
+	isDirOnce sync.Once
+}
+
+func (f *fileInfo) Name() string {
+	return f.v.Get("name").String()
+}
+
+func (f *fileInfo) Size() int64 {
+	return int64(f.v.Get("size").Float())
+}
+
+func (f *fileInfo) Mode() fs.FileMode {
+	return 0400
+}
+
+func (f *fileInfo) ModTime() time.Time {
+	return time.UnixMilli(int64(f.v.Get("lastModified").Float()))
+}
+
+func (f *fileInfo) IsDir() bool {
+	f.isDirOnce.Do(func() {
+		ch := make(chan struct{})
+
+		cbThen := js.FuncOf(func(this js.Value, args []js.Value) any {
+			close(ch)
+			return nil
+		})
+		defer cbThen.Release()
+
+		cbCatch := js.FuncOf(func(this js.Value, args []js.Value) any {
+			// This is not a reliable way to check whether the file is a directory or not.
+			// https://developer.mozilla.org/en-US/docs/Web/API/File
+			// TODO: Should the file system API be used?
+			f.isDir = true
+			close(ch)
+			return nil
+		})
+		defer cbCatch.Release()
+
+		f.v.Call("arrayBuffer").Call("then", cbThen).Call("catch", cbCatch)
+		<-ch
+	})
+	return f.isDir
+}
+
+func (f *fileInfo) Sys() any {
+	return nil
 }

@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"image"
+	"io/fs"
 	"os"
 	"runtime"
 	"sync"
@@ -105,6 +106,7 @@ type userInterfaceImpl struct {
 	closeCallback                  glfw.CloseCallback
 	framebufferSizeCallback        glfw.FramebufferSizeCallback
 	defaultFramebufferSizeCallback glfw.FramebufferSizeCallback
+	dropCallback                   glfw.DropCallback
 	framebufferSizeCallbackCh      chan struct{}
 
 	glContextSetOnce sync.Once
@@ -746,6 +748,30 @@ func (u *userInterfaceImpl) registerWindowFramebufferSizeCallback() {
 	u.window.SetFramebufferSizeCallback(u.defaultFramebufferSizeCallback)
 }
 
+func (u *userInterfaceImpl) registerDropCallback() {
+	if u.dropCallback == nil {
+		u.dropCallback = glfw.ToDropCallback(func(_ *glfw.Window, names []string) {
+			var files []fs.File
+			for _, name := range names {
+				f, err := os.Open(name)
+				if err != nil {
+					files = append(files, &errorFile{
+						name: name,
+						err:  err,
+					})
+					continue
+				}
+				files = append(files, f)
+			}
+
+			u.m.Lock()
+			defer u.m.Unlock()
+			u.inputState.appendDroppedFiles(files)
+		})
+	}
+	u.window.SetDropCallback(u.dropCallback)
+}
+
 // waitForFramebufferSizeCallback waits for GLFW's FramebufferSize callback.
 // f is a process executed after registering the callback.
 // If the callback is not invoked for a while, waitForFramebufferSizeCallback times out and return.
@@ -899,6 +925,7 @@ func (u *userInterfaceImpl) initOnMainThread(options *RunOptions) error {
 	u.registerWindowCloseCallback()
 	u.registerWindowFramebufferSizeCallback()
 	u.registerInputCallbacks()
+	u.registerDropCallback()
 
 	return nil
 }
@@ -1516,4 +1543,21 @@ func (u *userInterfaceImpl) setOrigWindowPos(x, y int) {
 
 func IsScreenTransparentAvailable() bool {
 	return true
+}
+
+type errorFile struct {
+	name string
+	err  error
+}
+
+func (e *errorFile) Stat() (fs.FileInfo, error) {
+	return nil, fmt.Errorf("ui: failed to open %s: %w", e.name, e.err)
+}
+
+func (e *errorFile) Read(buf []byte) (int, error) {
+	return 0, fmt.Errorf("ui: failed to open %s: %w", e.name, e.err)
+}
+
+func (e *errorFile) Close() error {
+	return nil
 }

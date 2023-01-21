@@ -15,6 +15,7 @@
 package ui
 
 import (
+	"io/fs"
 	"unicode"
 )
 
@@ -47,6 +48,7 @@ type InputState struct {
 	Touches            []Touch
 	Runes              []rune
 	WindowBeingClosed  bool
+	DroppedFiles       []fs.File
 }
 
 func (i *InputState) copyAndReset(dst *InputState) {
@@ -59,14 +61,22 @@ func (i *InputState) copyAndReset(dst *InputState) {
 	dst.Touches = append(dst.Touches[:0], i.Touches...)
 	dst.Runes = append(dst.Runes[:0], i.Runes...)
 	dst.WindowBeingClosed = i.WindowBeingClosed
+	for idx := range dst.DroppedFiles {
+		dst.DroppedFiles[idx] = nil
+	}
+	dst.DroppedFiles = append(dst.DroppedFiles[:0], i.DroppedFiles...)
 
 	// Reset the members that are updated by deltas, rather than absolute values.
 	i.WheelX = 0
 	i.WheelY = 0
 	i.Runes = i.Runes[:0]
 
-	// Reset the member that is never reset until it is explicitly done.
+	// Reset the members that are never reset until they are explicitly done.
 	i.WindowBeingClosed = false
+	for idx := range i.DroppedFiles {
+		i.DroppedFiles[idx] = nil
+	}
+	i.DroppedFiles = i.DroppedFiles[:0]
 }
 
 func (i *InputState) appendRune(r rune) {
@@ -74,4 +84,8 @@ func (i *InputState) appendRune(r rune) {
 		return
 	}
 	i.Runes = append(i.Runes, r)
+}
+
+func (i *InputState) appendDroppedFiles(files []fs.File) {
+	i.DroppedFiles = append(i.DroppedFiles, files...)
 }

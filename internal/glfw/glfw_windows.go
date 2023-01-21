@@ -184,6 +184,14 @@ func (w *Window) SetCloseCallback(cbfun CloseCallback) (previous CloseCallback) 
 	return f
 }
 
+func (w *Window) SetDropCallback(cbfun DropCallback) (previous DropCallback) {
+	f, err := (*goglfw.Window)(w).SetDropCallback(cbfun)
+	if err != nil {
+		panic(err)
+	}
+	return f
+}
+
 func (w *Window) SetCursor(cursor *Cursor) {
 	if err := (*goglfw.Window)(w).SetCursor((*goglfw.Cursor)(cursor)); err != nil {
 		panic(err)

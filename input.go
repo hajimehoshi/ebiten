@@ -15,6 +15,7 @@
 package ebiten
 
 import (
+	"io/fs"
 	"sync"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
@@ -22,7 +23,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
-// AppendInputChars appends "printable" runes, read from the keyboard at the time update is called, to runes,
+// AppendInputChars appends "printable" runes, read from the keyboard at the time Update is called, to runes,
 // and returns the extended buffer.
 // Giving a slice that already has enough capacity works efficiently.
 //
@@ -40,7 +41,7 @@ func AppendInputChars(runes []rune) []rune {
 	return theInputState.appendInputChars(runes)
 }
 
-// InputChars return "printable" runes read from the keyboard at the time update is called.
+// InputChars return "printable" runes read from the keyboard at the time Update is called.
 //
 // Deprecated: as of v2.2. Use AppendInputChars instead.
 func InputChars() []rune {
@@ -474,6 +475,11 @@ func (i *inputState) touchPosition(id TouchID) (int, int) {
 func (i *inputState) windowBeingClosed() bool {
 	i.m.Lock()
 	defer i.m.Unlock()
-
 	return i.state.WindowBeingClosed
+}
+
+func (i *inputState) appendDroppedFiles(files []fs.File) []fs.File {
+	i.m.Lock()
+	defer i.m.Unlock()
+	return append(files, i.state.DroppedFiles...)
 }

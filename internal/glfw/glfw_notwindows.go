@@ -187,6 +187,11 @@ func (w *Window) SetCloseCallback(cbfun CloseCallback) (previous CloseCallback) 
 	return ToCloseCallback(nil) // TODO
 }
 
+func (w *Window) SetDropCallback(cbfun DropCallback) (previous DropCallback) {
+	w.w.SetDropCallback(cbfun)
+	return ToDropCallback(nil) // TODO
+}
+
 func (w *Window) SetFramebufferSizeCallback(cbfun FramebufferSizeCallback) (previous FramebufferSizeCallback) {
 	w.w.SetFramebufferSizeCallback(cbfun)
 	return ToFramebufferSizeCallback(nil) // TODO
