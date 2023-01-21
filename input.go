@@ -396,10 +396,10 @@ type inputState struct {
 	m     sync.Mutex
 }
 
-func (i *inputState) set(inputState ui.InputState) {
+func (i *inputState) update(fn func(*ui.InputState)) {
 	i.m.Lock()
 	defer i.m.Unlock()
-	i.state = inputState
+	fn(&i.state)
 }
 
 func (i *inputState) appendInputChars(runes []rune) []rune {
