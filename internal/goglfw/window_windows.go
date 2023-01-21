@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: 2006-2019 Camilla Löwy
 // SPDX-FileCopyrightText: 2022 The Ebitengine Authors
 
-package glfwwin
+package goglfw
 
 import (
 	"fmt"
@@ -91,7 +91,7 @@ func CreateWindow(width, height int, title string, monitor *Monitor, share *Wind
 	}
 
 	if width <= 0 || height <= 0 {
-		return nil, fmt.Errorf("glfwwin: invalid window size %dx%d: %w", width, height, InvalidValue)
+		return nil, fmt.Errorf("goglfw: invalid window size %dx%d: %w", width, height, InvalidValue)
 	}
 
 	fbconfig := _glfw.hints.framebuffer
@@ -272,7 +272,7 @@ func WindowHint(hint Hint, value int) error {
 	case RefreshRate:
 		_glfw.hints.refreshRate = value
 	default:
-		return fmt.Errorf("glfwwin: invalid window hint 0x%08X: %w", hint, InvalidEnum)
+		return fmt.Errorf("goglfw: invalid window hint 0x%08X: %w", hint, InvalidEnum)
 	}
 	return nil
 }
@@ -401,13 +401,13 @@ func (w *Window) SetSizeLimits(minwidth, minheight, maxwidth, maxheight int) err
 
 	if minwidth != DontCare && minheight != DontCare {
 		if minwidth < 0 || minheight < 0 {
-			return fmt.Errorf("glfwwin: invalid window minimum size %dx%d: %w", minwidth, minheight, InvalidValue)
+			return fmt.Errorf("goglfw: invalid window minimum size %dx%d: %w", minwidth, minheight, InvalidValue)
 		}
 	}
 
 	if maxwidth != DontCare && maxheight != DontCare {
 		if maxwidth < 0 || maxheight < 0 || maxwidth < minwidth || maxheight < minheight {
-			return fmt.Errorf("glfwwin: invalid window maximum size %dx%d: %w", maxwidth, maxheight, InvalidValue)
+			return fmt.Errorf("goglfw: invalid window maximum size %dx%d: %w", maxwidth, maxheight, InvalidValue)
 		}
 	}
 
@@ -438,7 +438,7 @@ func (w *Window) SetAspectRatio(numer, denom int) error {
 
 	if numer != DontCare && denom != DontCare {
 		if numer <= 0 || denom <= 0 {
-			return fmt.Errorf("glfwwin: invalid window aspect ratio %d:%d: %w", numer, denom, InvalidValue)
+			return fmt.Errorf("goglfw: invalid window aspect ratio %d:%d: %w", numer, denom, InvalidValue)
 		}
 	}
 
@@ -489,7 +489,7 @@ func (w *Window) SetOpacity(opacity float32) error {
 	}
 
 	if opacity != opacity || opacity < 0 || opacity > 1 {
-		return fmt.Errorf("glfwwin: invalid window opacity %f: %w", opacity, InvalidValue)
+		return fmt.Errorf("goglfw: invalid window opacity %f: %w", opacity, InvalidValue)
 	}
 
 	if err := w.platformSetWindowOpacity(opacity); err != nil {
@@ -631,7 +631,7 @@ func (w *Window) GetAttrib(attrib Hint) (int, error) {
 	case ContextNoError:
 		return boolToInt(w.context.noerror), nil
 	default:
-		return 0, fmt.Errorf("glfwwin: invalid window attribute 0x%08X: %w", attrib, InvalidEnum)
+		return 0, fmt.Errorf("goglfw: invalid window attribute 0x%08X: %w", attrib, InvalidEnum)
 	}
 }
 
@@ -683,7 +683,7 @@ func (w *Window) SetAttrib(attrib Hint, value int) error {
 		w.focusOnShow = bValue
 		return nil
 	default:
-		return fmt.Errorf("glfwwin: invalid window attribute 0x%08X: %w", attrib, InvalidEnum)
+		return fmt.Errorf("goglfw: invalid window attribute 0x%08X: %w", attrib, InvalidEnum)
 	}
 }
 
@@ -700,11 +700,11 @@ func (w *Window) SetMonitor(monitor *Monitor, xpos, ypos, width, height, refresh
 	}
 
 	if width <= 0 || height <= 0 {
-		return fmt.Errorf("glfwwin: invalid window size %dx%d: %w", width, height, InvalidValue)
+		return fmt.Errorf("goglfw: invalid window size %dx%d: %w", width, height, InvalidValue)
 	}
 
 	if refreshRate < 0 && refreshRate != DontCare {
-		return fmt.Errorf("glfwwin: invalid refresh rate %d: %w", refreshRate, InvalidValue)
+		return fmt.Errorf("goglfw: invalid refresh rate %d: %w", refreshRate, InvalidValue)
 	}
 
 	w.videoMode.Width = width
@@ -838,7 +838,7 @@ func WaitEventsTimeout(timeout float64) error {
 		return NotInitialized
 	}
 	if timeout != timeout || timeout < 0.0 || timeout > math.MaxFloat64 {
-		return fmt.Errorf("glfwwin: invalid time %f: %w", timeout, InvalidValue)
+		return fmt.Errorf("goglfw: invalid time %f: %w", timeout, InvalidValue)
 	}
 	if err := platformWaitEventsTimeout(timeout); err != nil {
 		return err

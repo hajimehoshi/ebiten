@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: 2006-2019 Camilla Löwy
 // SPDX-FileCopyrightText: 2022 The Ebitengine Authors
 
-package glfwwin
+package goglfw
 
 import (
 	"errors"
@@ -197,12 +197,12 @@ func (w *Window) choosePixelFormat(ctxconfig *ctxconfig, fbconfig_ *fbconfig) (i
 	}
 
 	if len(usableConfigs) == 0 {
-		return 0, fmt.Errorf("glfwwin: the driver does not appear to support OpenGL")
+		return 0, fmt.Errorf("goglfw: the driver does not appear to support OpenGL")
 	}
 
 	closest := chooseFBConfig(fbconfig_, usableConfigs)
 	if closest == nil {
-		return 0, fmt.Errorf("glfwwin: failed to find a suitable pixel format")
+		return 0, fmt.Errorf("goglfw: failed to find a suitable pixel format")
 	}
 
 	return int(closest.handle), nil
@@ -337,7 +337,7 @@ func destroyContextWGL(window *Window) error {
 
 func initWGL() error {
 	if microsoftgdk.IsXbox() {
-		return fmt.Errorf("glfwwin: WGL is not available in Xbox")
+		return fmt.Errorf("goglfw: WGL is not available in Xbox")
 	}
 
 	if _glfw.wgl.inited {
@@ -451,15 +451,15 @@ func (w *Window) createContextWGL(ctxconfig *ctxconfig, fbconfig *fbconfig) erro
 
 	if ctxconfig.client == OpenGLAPI {
 		if ctxconfig.forward && !_glfw.wgl.ARB_create_context {
-			return fmt.Errorf("glfwwin: a forward compatible OpenGL context requested but WGL_ARB_create_context is unavailable: %w", VersionUnavailable)
+			return fmt.Errorf("goglfw: a forward compatible OpenGL context requested but WGL_ARB_create_context is unavailable: %w", VersionUnavailable)
 		}
 
 		if ctxconfig.profile != 0 && !_glfw.wgl.ARB_create_context_profile {
-			return fmt.Errorf("glfwwin: OpenGL profile requested but WGL_ARB_create_context_profile is unavailable: %w", VersionUnavailable)
+			return fmt.Errorf("goglfw: OpenGL profile requested but WGL_ARB_create_context_profile is unavailable: %w", VersionUnavailable)
 		}
 	} else {
 		if !_glfw.wgl.ARB_create_context || !_glfw.wgl.ARB_create_context_profile || !_glfw.wgl.EXT_create_context_es2_profile {
-			return fmt.Errorf("glfwwin: OpenGL ES requested but WGL_ARB_create_context_es2_profile is unavailable: %w", ApiUnavailable)
+			return fmt.Errorf("goglfw: OpenGL ES requested but WGL_ARB_create_context_es2_profile is unavailable: %w", ApiUnavailable)
 		}
 	}
 

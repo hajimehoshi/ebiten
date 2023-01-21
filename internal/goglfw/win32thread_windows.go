@@ -3,11 +3,11 @@
 // SPDX-FileCopyrightText: 2006-2019 Camilla Löwy
 // SPDX-FileCopyrightText: 2022 The Ebitengine Authors
 
-package glfwwin
+package goglfw
 
 func (t *tls) create() error {
 	if t.win32.allocated {
-		panic("glfwwin: TLS must not be allocated")
+		panic("goglfw: TLS must not be allocated")
 	}
 
 	i, err := _TlsAlloc()
@@ -32,7 +32,7 @@ func (t *tls) destroy() error {
 
 func (t *tls) get() (uintptr, error) {
 	if !t.win32.allocated {
-		panic("glfwwin: TLS must be allocated")
+		panic("goglfw: TLS must be allocated")
 	}
 
 	return _TlsGetValue(t.win32.index)
@@ -40,7 +40,7 @@ func (t *tls) get() (uintptr, error) {
 
 func (t *tls) set(value uintptr) error {
 	if !t.win32.allocated {
-		panic("glfwwin: TLS must be allocated")
+		panic("goglfw: TLS must be allocated")
 	}
 
 	return _TlsSetValue(t.win32.index, value)
