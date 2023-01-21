@@ -45,7 +45,7 @@ jobs:
 
       - name: Install wasmbrowsertest
         run: |
-          go install github.com/agnivade/wasmbrowsertest@8753b3a64e2d666fd88734888f26e48c68882f5f
+          go install github.com/agnivade/wasmbrowsertest@bba38b6c9041cdd04596575fc25857f69eb2ab77
           mv $(go env GOPATH)/bin/wasmbrowsertest${{ runner.os == 'Windows' && '.exe' || '' }} $(go env GOPATH)/bin/go_js_wasm_exec${{ runner.os == 'Windows' && '.exe' || '' }}
 
       - name: Prepare ebitenmobile test
