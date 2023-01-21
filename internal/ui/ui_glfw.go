@@ -66,7 +66,6 @@ type userInterfaceImpl struct {
 	iconImages           []image.Image
 	cursorShape          CursorShape
 	windowClosingHandled bool
-	windowBeingClosed    bool
 	windowResizingMode   WindowResizingMode
 	inFrame              uint32
 
@@ -472,13 +471,6 @@ func (u *userInterfaceImpl) setWindowClosingHandled(handled bool) {
 	u.m.Unlock()
 }
 
-func (u *userInterfaceImpl) isWindowBeingClosed() bool {
-	u.m.RLock()
-	v := u.windowBeingClosed
-	u.m.RUnlock()
-	return v
-}
-
 func (u *userInterfaceImpl) ScreenSizeInFullscreen() (int, int) {
 	if !u.isRunning() {
 		return u.initFullscreenWidthInDIP, u.initFullscreenHeightInDIP
@@ -713,7 +705,7 @@ func (u *userInterfaceImpl) registerWindowCloseCallback() {
 	if u.closeCallback == nil {
 		u.closeCallback = glfw.ToCloseCallback(func(_ *glfw.Window) {
 			u.m.Lock()
-			u.windowBeingClosed = true
+			u.inputState.WindowBeingClosed = true
 			u.m.Unlock()
 
 			if !u.isWindowClosingHandled() {
@@ -1346,17 +1338,11 @@ func monitorFromWindow(window *glfw.Window) *glfw.Monitor {
 	return nil
 }
 
-func (u *userInterfaceImpl) resetForTick() {
-	u.m.Lock()
-	defer u.m.Unlock()
-	u.windowBeingClosed = false
-}
-
 func (u *userInterfaceImpl) readInputState(inputState *InputState) {
 	u.m.Lock()
 	defer u.m.Unlock()
 	*inputState = u.inputState
-	u.inputState.resetForTick()
+	u.inputState.reset()
 }
 
 func (u *userInterfaceImpl) Window() Window {

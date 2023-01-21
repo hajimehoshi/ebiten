@@ -38,7 +38,6 @@ type Window interface {
 	SetIcon(iconImages []image.Image)
 	SetTitle(title string)
 	Restore()
-	IsBeingClosed() bool
 	SetClosingHandled(handled bool)
 	IsClosingHandled() bool
 }
@@ -108,10 +107,6 @@ func (*nullWindow) SetTitle(title string) {
 }
 
 func (*nullWindow) Restore() {
-}
-
-func (*nullWindow) IsBeingClosed() bool {
-	return false
 }
 
 func (*nullWindow) SetClosingHandled(handled bool) {

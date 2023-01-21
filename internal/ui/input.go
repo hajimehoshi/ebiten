@@ -48,12 +48,14 @@ type InputState struct {
 	Touches            [16]Touch
 	Runes              [16]rune
 	RunesCount         int
+	WindowBeingClosed  bool
 }
 
-func (i *InputState) resetForTick() {
+func (i *InputState) reset() {
 	i.WheelX = 0
 	i.WheelY = 0
 	i.RunesCount = 0
+	i.WindowBeingClosed = false
 }
 
 func (i *InputState) appendRune(r rune) {

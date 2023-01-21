@@ -476,3 +476,10 @@ func (i *inputState) touchPosition(id TouchID) (int, int) {
 	}
 	return 0, 0
 }
+
+func (i *inputState) windowBeingClosed() bool {
+	i.m.Lock()
+	defer i.m.Unlock()
+
+	return i.state.WindowBeingClosed
+}

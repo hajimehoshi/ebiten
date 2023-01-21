@@ -294,7 +294,7 @@ func RestoreWindow() {
 //
 // IsWindowBeingClosed is concurrent-safe.
 func IsWindowBeingClosed() bool {
-	return ui.Get().Window().IsBeingClosed()
+	return theInputState.windowBeingClosed()
 }
 
 // SetWindowClosingHandled sets whether the window closing is handled or not on desktops. The default state is false.
