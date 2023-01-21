@@ -421,8 +421,7 @@ func (u *userInterfaceImpl) DeviceScaleFactor() float64 {
 func (u *userInterfaceImpl) readInputState(inputState *InputState) {
 	u.m.Lock()
 	defer u.m.Unlock()
-	*inputState = u.inputState
-	u.inputState.reset()
+	u.inputState.copyAndReset(inputState)
 }
 
 func (u *userInterfaceImpl) Window() Window {

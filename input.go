@@ -405,7 +405,7 @@ func (i *inputState) set(inputState ui.InputState) {
 func (i *inputState) appendInputChars(runes []rune) []rune {
 	i.m.Lock()
 	defer i.m.Unlock()
-	return append(runes, i.state.Runes[:i.state.RunesCount]...)
+	return append(runes, i.state.Runes...)
 }
 
 func (i *inputState) isKeyPressed(key Key) bool {
@@ -453,9 +453,6 @@ func (i *inputState) appendTouchIDs(touches []TouchID) []TouchID {
 	defer i.m.Unlock()
 
 	for _, t := range i.state.Touches {
-		if !t.Valid {
-			continue
-		}
 		touches = append(touches, t.ID)
 	}
 	return touches
@@ -466,9 +463,6 @@ func (i *inputState) touchPosition(id TouchID) (int, int) {
 	defer i.m.Unlock()
 
 	for _, t := range i.state.Touches {
-		if !t.Valid {
-			continue
-		}
 		if id != t.ID {
 			continue
 		}

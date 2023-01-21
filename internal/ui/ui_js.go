@@ -676,8 +676,7 @@ func (u *userInterfaceImpl) updateScreenSize() {
 }
 
 func (u *userInterfaceImpl) readInputState(inputState *InputState) {
-	*inputState = u.inputState
-	u.inputState.reset()
+	u.inputState.copyAndReset(inputState)
 	u.keyboardLayoutMap = js.Value{}
 }
 

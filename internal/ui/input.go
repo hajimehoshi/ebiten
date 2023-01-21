@@ -32,10 +32,9 @@ const (
 type TouchID int
 
 type Touch struct {
-	Valid bool
-	ID    TouchID
-	X     int
-	Y     int
+	ID TouchID
+	X  int
+	Y  int
 }
 
 type InputState struct {
@@ -45,16 +44,28 @@ type InputState struct {
 	CursorY            int
 	WheelX             float64
 	WheelY             float64
-	Touches            [16]Touch
-	Runes              [16]rune
-	RunesCount         int
+	Touches            []Touch
+	Runes              []rune
 	WindowBeingClosed  bool
 }
 
-func (i *InputState) reset() {
+func (i *InputState) copyAndReset(dst *InputState) {
+	dst.KeyPressed = i.KeyPressed
+	dst.MouseButtonPressed = i.MouseButtonPressed
+	dst.CursorX = i.CursorX
+	dst.CursorY = i.CursorY
+	dst.WheelX = i.WheelX
+	dst.WheelY = i.WheelY
+	dst.Touches = append(dst.Touches[:0], i.Touches...)
+	dst.Runes = append(dst.Runes[:0], i.Runes...)
+	dst.WindowBeingClosed = i.WindowBeingClosed
+
+	// Reset the members that are updated by deltas, rather than absolute values.
 	i.WheelX = 0
 	i.WheelY = 0
-	i.RunesCount = 0
+	i.Runes = i.Runes[:0]
+
+	// Reset the member that is never reset until it is explicitly done.
 	i.WindowBeingClosed = false
 }
 
@@ -62,10 +73,5 @@ func (i *InputState) appendRune(r rune) {
 	if !unicode.IsPrint(r) {
 		return
 	}
-	if i.RunesCount >= len(i.Runes) {
-		return
-	}
-
-	i.Runes[i.RunesCount] = r
-	i.RunesCount++
+	i.Runes = append(i.Runes, r)
 }
