@@ -29,7 +29,9 @@ type Game struct {
 func (g *Game) Update() error {
 	for _, f := range ebiten.AppendDroppedFiles(nil) {
 		// Calling Close is not mandatory, but it is sligtly good to save memory.
-		defer f.Close()
+		defer func() {
+			_ = f.Close()
+		}()
 
 		fi, err := f.Stat()
 		if err != nil {
