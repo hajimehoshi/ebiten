@@ -96,7 +96,8 @@ type userInterfaceImpl struct {
 
 	keyboardLayoutMap js.Value
 
-	m sync.Mutex
+	m         sync.Mutex
+	dropFileM sync.Mutex
 }
 
 func init() {
@@ -640,12 +641,42 @@ func setCanvasEventHandlers(v js.Value) {
 			return nil
 		}
 
-		files := data.Get("files")
-		for i := 0; i < files.Length(); i++ {
-			theUI.inputState.DroppedFiles = append(theUI.inputState.DroppedFiles, &file{v: files.Index(i)})
-		}
+		go theUI.appendDroppedFiles(data)
 		return nil
 	}))
+}
+
+func (u *userInterfaceImpl) appendDroppedFiles(data js.Value) {
+	u.dropFileM.Lock()
+	defer u.dropFileM.Unlock()
+
+	chFile := make(chan js.Value, 1)
+	cbFile := js.FuncOf(func(this js.Value, args []js.Value) any {
+		chFile <- args[0]
+		return nil
+	})
+	defer cbFile.Release()
+
+	items := data.Get("items")
+	for i := 0; i < items.Length(); i++ {
+		entry := items.Index(i).Call("webkitGetAsEntry")
+		var f fs.File
+		switch {
+		case entry.Get("isFile").Bool():
+			entry.Call("file", cbFile)
+			jsFile := <-chFile
+			f = &file{
+				v: jsFile,
+			}
+		case entry.Get("isDirectory").Bool():
+			f = &dir{
+				entry: entry,
+			}
+		default:
+			continue
+		}
+		u.inputState.DroppedFiles = append(u.inputState.DroppedFiles, f)
+	}
 }
 
 func (u *userInterfaceImpl) forceUpdateOnMinimumFPSMode() {
@@ -780,9 +811,7 @@ func (f *file) Close() error {
 }
 
 type fileInfo struct {
-	v         js.Value
-	isDir     bool
-	isDirOnce sync.Once
+	v js.Value
 }
 
 func (f *fileInfo) Name() string {
@@ -802,31 +831,53 @@ func (f *fileInfo) ModTime() time.Time {
 }
 
 func (f *fileInfo) IsDir() bool {
-	f.isDirOnce.Do(func() {
-		ch := make(chan struct{})
-
-		cbThen := js.FuncOf(func(this js.Value, args []js.Value) any {
-			close(ch)
-			return nil
-		})
-		defer cbThen.Release()
-
-		cbCatch := js.FuncOf(func(this js.Value, args []js.Value) any {
-			// This is not a reliable way to check whether the file is a directory or not.
-			// https://developer.mozilla.org/en-US/docs/Web/API/File
-			// TODO: Should the file system API be used?
-			f.isDir = true
-			close(ch)
-			return nil
-		})
-		defer cbCatch.Release()
-
-		f.v.Call("arrayBuffer").Call("then", cbThen).Call("catch", cbCatch)
-		<-ch
-	})
-	return f.isDir
+	return false
 }
 
 func (f *fileInfo) Sys() any {
+	return nil
+}
+
+type dir struct {
+	entry js.Value
+}
+
+func (d *dir) Stat() (fs.FileInfo, error) {
+	return &dirInfo{entry: d.entry}, nil
+}
+
+func (d *dir) Read(buf []byte) (int, error) {
+	return 0, fmt.Errorf("%s is a directory", d.entry.Get("name").String())
+}
+
+func (d *dir) Close() error {
+	return nil
+}
+
+type dirInfo struct {
+	entry js.Value
+}
+
+func (d *dirInfo) Name() string {
+	return d.entry.Get("name").String()
+}
+
+func (d *dirInfo) Size() int64 {
+	return 0
+}
+
+func (d *dirInfo) Mode() fs.FileMode {
+	return 0400 | fs.ModeDir
+}
+
+func (d *dirInfo) ModTime() time.Time {
+	return time.Time{}
+}
+
+func (d *dirInfo) IsDir() bool {
+	return true
+}
+
+func (d *dirInfo) Sys() any {
 	return nil
 }
