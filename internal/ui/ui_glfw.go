@@ -21,7 +21,6 @@ import (
 	"errors"
 	"fmt"
 	"image"
-	"io/fs"
 	"os"
 	"runtime"
 	"sync"
@@ -29,6 +28,7 @@ import (
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/devicescale"
+	"github.com/hajimehoshi/ebiten/v2/internal/file"
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
 	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
@@ -751,22 +751,9 @@ func (u *userInterfaceImpl) registerWindowFramebufferSizeCallback() {
 func (u *userInterfaceImpl) registerDropCallback() {
 	if u.dropCallback == nil {
 		u.dropCallback = glfw.ToDropCallback(func(_ *glfw.Window, names []string) {
-			var files []fs.File
-			for _, name := range names {
-				f, err := os.Open(name)
-				if err != nil {
-					files = append(files, &errorFile{
-						name: name,
-						err:  err,
-					})
-					continue
-				}
-				files = append(files, f)
-			}
-
 			u.m.Lock()
 			defer u.m.Unlock()
-			u.inputState.appendDroppedFiles(files)
+			u.inputState.DroppedFiles = file.NewVirtualFS(names)
 		})
 	}
 	u.window.SetDropCallback(u.dropCallback)
@@ -1543,21 +1530,4 @@ func (u *userInterfaceImpl) setOrigWindowPos(x, y int) {
 
 func IsScreenTransparentAvailable() bool {
 	return true
-}
-
-type errorFile struct {
-	name string
-	err  error
-}
-
-func (e *errorFile) Stat() (fs.FileInfo, error) {
-	return nil, fmt.Errorf("ui: failed to open %s: %w", e.name, e.err)
-}
-
-func (e *errorFile) Read(buf []byte) (int, error) {
-	return 0, fmt.Errorf("ui: failed to open %s: %w", e.name, e.err)
-}
-
-func (e *errorFile) Close() error {
-	return nil
 }

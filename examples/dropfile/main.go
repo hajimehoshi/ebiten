@@ -16,42 +16,58 @@ package main
 
 import (
 	"image/png"
+	"io/fs"
 	"log"
+	"sync"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 )
 
 type Game struct {
-	images []*ebiten.Image
+	imageMutex sync.Mutex
+	images     []*ebiten.Image
 }
 
 func (g *Game) Update() error {
-	for _, f := range ebiten.AppendDroppedFiles(nil) {
-		// Calling Close is not mandatory, but it is sligtly good to save memory.
-		defer func() {
-			_ = f.Close()
-		}()
+	if files := ebiten.DroppedFiles(); files != nil {
+		go fs.WalkDir(files, ".", func(path string, d fs.DirEntry, err error) error {
+			if err != nil {
+				return err
+			}
 
-		fi, err := f.Stat()
-		if err != nil {
-			log.Printf("%v", err)
-			continue
-		}
-		log.Printf("Name: %s, Size: %d, IsDir: %t, ModTime: %v", fi.Name(), fi.Size(), fi.IsDir(), fi.ModTime())
+			fi, err := d.Info()
+			if err != nil {
+				return err
+			}
+			log.Printf("Name: %s, Size: %d, IsDir: %t, ModTime: %v", fi.Name(), fi.Size(), fi.IsDir(), fi.ModTime())
 
-		img, err := png.Decode(f)
-		if err != nil {
-			log.Printf("decoding PNG failed: %v", err)
-			continue
-		}
-		g.images = append(g.images, ebiten.NewImageFromImage(img))
+			f, err := files.Open(path)
+			if err != nil {
+				return err
+			}
+			defer f.Close()
+
+			img, err := png.Decode(f)
+			if err != nil {
+				return nil
+			}
+			eimg := ebiten.NewImageFromImage(img)
+
+			g.imageMutex.Lock()
+			g.images = append(g.images, eimg)
+			g.imageMutex.Unlock()
+
+			return nil
+		})
 	}
-
 	return nil
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
+	g.imageMutex.Lock()
+	defer g.imageMutex.Unlock()
+
 	if len(g.images) == 0 {
 		ebitenutil.DebugPrint(screen, "Drop PNG files onto this window!")
 		return

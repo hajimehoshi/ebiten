@@ -478,8 +478,8 @@ func (i *inputState) windowBeingClosed() bool {
 	return i.state.WindowBeingClosed
 }
 
-func (i *inputState) appendDroppedFiles(files []fs.File) []fs.File {
+func (i *inputState) droppedFiles() fs.FS {
 	i.m.Lock()
 	defer i.m.Unlock()
-	return append(files, i.state.DroppedFiles...)
+	return i.state.DroppedFiles
 }

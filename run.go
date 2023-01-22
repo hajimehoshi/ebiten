@@ -666,13 +666,12 @@ func toUIRunOptions(options *RunGameOptions) *ui.RunOptions {
 	}
 }
 
-// AppendDroppedFiles appends files, dropped at the time Update is called, to the given slice,
-// and returns the extended buffer.
-// Giving a slice that already has enough capacity works efficiently.
+// DroppedFiles returns a virtual file system that includes only dropped files and/or directories
+// at its root directory, at the time Update is called.
 //
-// AppendDroppedFiles works on desktops and browsers.
+// DroppedFiles works on desktops and browsers.
 //
-// AppendDroppedFiles is concurrent-safe.
-func AppendDroppedFiles(files []fs.File) []fs.File {
-	return theInputState.appendDroppedFiles(files)
+// DroppedFiles is concurrent-safe.
+func DroppedFiles() fs.FS {
+	return theInputState.droppedFiles()
 }

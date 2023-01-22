@@ -15,14 +15,12 @@
 package ui
 
 import (
-	"fmt"
-	"io"
-	"io/fs"
 	"sync"
 	"syscall/js"
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/devicescale"
+	"github.com/hajimehoshi/ebiten/v2/internal/file"
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl"
@@ -650,33 +648,13 @@ func (u *userInterfaceImpl) appendDroppedFiles(data js.Value) {
 	u.dropFileM.Lock()
 	defer u.dropFileM.Unlock()
 
-	chFile := make(chan js.Value, 1)
-	cbFile := js.FuncOf(func(this js.Value, args []js.Value) any {
-		chFile <- args[0]
-		return nil
-	})
-	defer cbFile.Release()
-
 	items := data.Get("items")
-	for i := 0; i < items.Length(); i++ {
-		entry := items.Index(i).Call("webkitGetAsEntry")
-		var f fs.File
-		switch {
-		case entry.Get("isFile").Bool():
-			entry.Call("file", cbFile)
-			jsFile := <-chFile
-			f = &file{
-				v: jsFile,
-			}
-		case entry.Get("isDirectory").Bool():
-			f = &dir{
-				entry: entry,
-			}
-		default:
-			continue
-		}
-		u.inputState.DroppedFiles = append(u.inputState.DroppedFiles, f)
+	if items.Length() <= 0 {
+		return
 	}
+
+	fs := items.Index(0).Call("webkitGetAsEntry").Get("filesystem").Get("root")
+	u.inputState.DroppedFiles = file.NewFileEntryFS(fs)
 }
 
 func (u *userInterfaceImpl) forceUpdateOnMinimumFPSMode() {
@@ -750,134 +728,4 @@ func (u *userInterfaceImpl) updateIconIfNeeded() {
 
 func IsScreenTransparentAvailable() bool {
 	return true
-}
-
-type file struct {
-	v          js.Value
-	cursor     int64
-	uint8Array js.Value
-}
-
-func (f *file) Stat() (fs.FileInfo, error) {
-	return &fileInfo{v: f.v}, nil
-}
-
-func (f *file) Read(buf []byte) (int, error) {
-	if !f.uint8Array.Truthy() {
-		chArrayBuffer := make(chan js.Value, 1)
-		cbThen := js.FuncOf(func(this js.Value, args []js.Value) any {
-			chArrayBuffer <- args[0]
-			return nil
-		})
-		defer cbThen.Release()
-
-		chError := make(chan js.Value, 1)
-		cbCatch := js.FuncOf(func(this js.Value, args []js.Value) any {
-			chError <- args[0]
-			return nil
-		})
-		defer cbCatch.Release()
-
-		f.v.Call("arrayBuffer").Call("then", cbThen).Call("catch", cbCatch)
-		select {
-		case ab := <-chArrayBuffer:
-			f.uint8Array = js.Global().Get("Uint8Array").New(ab)
-		case err := <-chError:
-			return 0, fmt.Errorf("%s", err.Call("toString").String())
-		}
-	}
-
-	size := int64(f.uint8Array.Get("byteLength").Float())
-	if f.cursor >= size {
-		return 0, io.EOF
-	}
-
-	if len(buf) == 0 {
-		return 0, nil
-	}
-
-	slice := f.uint8Array.Call("subarray", f.cursor, f.cursor+int64(len(buf)))
-	n := slice.Get("byteLength").Int()
-	js.CopyBytesToGo(buf[:n], slice)
-	f.cursor += int64(n)
-	if f.cursor >= size {
-		return n, io.EOF
-	}
-	return n, nil
-}
-
-func (f *file) Close() error {
-	return nil
-}
-
-type fileInfo struct {
-	v js.Value
-}
-
-func (f *fileInfo) Name() string {
-	return f.v.Get("name").String()
-}
-
-func (f *fileInfo) Size() int64 {
-	return int64(f.v.Get("size").Float())
-}
-
-func (f *fileInfo) Mode() fs.FileMode {
-	return 0400
-}
-
-func (f *fileInfo) ModTime() time.Time {
-	return time.UnixMilli(int64(f.v.Get("lastModified").Float()))
-}
-
-func (f *fileInfo) IsDir() bool {
-	return false
-}
-
-func (f *fileInfo) Sys() any {
-	return nil
-}
-
-type dir struct {
-	entry js.Value
-}
-
-func (d *dir) Stat() (fs.FileInfo, error) {
-	return &dirInfo{entry: d.entry}, nil
-}
-
-func (d *dir) Read(buf []byte) (int, error) {
-	return 0, fmt.Errorf("%s is a directory", d.entry.Get("name").String())
-}
-
-func (d *dir) Close() error {
-	return nil
-}
-
-type dirInfo struct {
-	entry js.Value
-}
-
-func (d *dirInfo) Name() string {
-	return d.entry.Get("name").String()
-}
-
-func (d *dirInfo) Size() int64 {
-	return 0
-}
-
-func (d *dirInfo) Mode() fs.FileMode {
-	return 0400 | fs.ModeDir
-}
-
-func (d *dirInfo) ModTime() time.Time {
-	return time.Time{}
-}
-
-func (d *dirInfo) IsDir() bool {
-	return true
-}
-
-func (d *dirInfo) Sys() any {
-	return nil
 }
