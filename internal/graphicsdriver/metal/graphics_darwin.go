@@ -22,6 +22,8 @@ import (
 	"time"
 	"unsafe"
 
+	"github.com/ebitengine/purego/objc"
+
 	"github.com/hajimehoshi/ebiten/v2/internal/cocoa"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
@@ -680,13 +682,46 @@ func (g *Graphics) MaxImageSize() int {
 		return g.maxImageSize
 	}
 
-	// https://developer.apple.com/metal/Metal-Feature-Set-Tables.pdf
-	g.maxImageSize = 8192
+	d := g.view.getMTLDevice()
+
+	// supportsFamily is available as of macOS 10.15+ and iOS 13.0+.
+	// https://developer.apple.com/documentation/metal/mtldevice/3143473-supportsfamily
+	if d.RespondsToSelector(objc.RegisterName("supportsFamily:")) {
+		// https://developer.apple.com/metal/Metal-Feature-Set-Tables.pdf
+		g.maxImageSize = 8192
+		switch {
+		case d.SupportsFamily(mtl.GPUFamilyApple3):
+			g.maxImageSize = 16384
+		case d.SupportsFamily(mtl.GPUFamilyMac2):
+			g.maxImageSize = 16384
+		}
+		return g.maxImageSize
+	}
+
+	// supportsFeatureSet is deprecated but some old macOS/iOS versions only supports this (#2553).
 	switch {
-	case g.view.getMTLDevice().SupportsFamily(mtl.GPUFamilyApple3):
+	case d.SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily5_v1):
 		g.maxImageSize = 16384
-	case g.view.getMTLDevice().SupportsFamily(mtl.GPUFamilyMac2):
+	case d.SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily4_v1):
 		g.maxImageSize = 16384
+	case d.SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily3_v1):
+		g.maxImageSize = 16384
+	case d.SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily2_v2):
+		g.maxImageSize = 8192
+	case d.SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily2_v1):
+		g.maxImageSize = 4096
+	case d.SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily1_v2):
+		g.maxImageSize = 8192
+	case d.SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily1_v1):
+		g.maxImageSize = 4096
+	case d.SupportsFeatureSet(mtl.FeatureSet_tvOS_GPUFamily2_v1):
+		g.maxImageSize = 16384
+	case d.SupportsFeatureSet(mtl.FeatureSet_tvOS_GPUFamily1_v1):
+		g.maxImageSize = 8192
+	case d.SupportsFeatureSet(mtl.FeatureSet_macOS_GPUFamily1_v1):
+		g.maxImageSize = 16384
+	default:
+		panic("metal: there is no supported feature set")
 	}
 	return g.maxImageSize
 }
