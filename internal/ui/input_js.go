@@ -51,11 +51,19 @@ var codeToMouseButton = map[int]MouseButton{
 }
 
 func (u *userInterfaceImpl) keyDown(code js.Value) {
-	u.inputState.KeyPressed[jsKeyToID(code)] = true
+	id := jsKeyToID(code)
+	if id < 0 {
+		return
+	}
+	u.inputState.KeyPressed[id] = true
 }
 
 func (u *userInterfaceImpl) keyUp(code js.Value) {
-	u.inputState.KeyPressed[jsKeyToID(code)] = false
+	id := jsKeyToID(code)
+	if id < 0 {
+		return
+	}
+	u.inputState.KeyPressed[id] = false
 }
 
 func (u *userInterfaceImpl) mouseDown(code int) {
