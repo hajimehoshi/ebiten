@@ -25,48 +25,68 @@ import (
 )
 
 type Game struct {
-	imageMutex sync.Mutex
-	images     []*ebiten.Image
+	images []*ebiten.Image
+	err    error
+
+	m sync.Mutex
 }
 
 func (g *Game) Update() error {
+	if err := func() error {
+		g.m.Lock()
+		defer g.m.Unlock()
+		return g.err
+	}(); err != nil {
+		return err
+	}
+
 	if files := ebiten.DroppedFiles(); files != nil {
-		go fs.WalkDir(files, ".", func(path string, d fs.DirEntry, err error) error {
-			if err != nil {
-				return err
-			}
+		go func() {
+			if err := fs.WalkDir(files, ".", func(path string, d fs.DirEntry, err error) error {
+				if err != nil {
+					return err
+				}
 
-			fi, err := d.Info()
-			if err != nil {
-				return err
-			}
-			log.Printf("Name: %s, Size: %d, IsDir: %t, ModTime: %v", fi.Name(), fi.Size(), fi.IsDir(), fi.ModTime())
+				fi, err := d.Info()
+				if err != nil {
+					return err
+				}
+				log.Printf("Name: %s, Size: %d, IsDir: %t, ModTime: %v", fi.Name(), fi.Size(), fi.IsDir(), fi.ModTime())
 
-			f, err := files.Open(path)
-			if err != nil {
-				return err
-			}
-			defer f.Close()
+				f, err := files.Open(path)
+				if err != nil {
+					return err
+				}
+				defer func() {
+					_ = f.Close()
+				}()
 
-			img, err := png.Decode(f)
-			if err != nil {
+				img, err := png.Decode(f)
+				if err != nil {
+					return nil
+				}
+				eimg := ebiten.NewImageFromImage(img)
+
+				g.m.Lock()
+				g.images = append(g.images, eimg)
+				g.m.Unlock()
+
 				return nil
+			}); err != nil {
+				g.m.Lock()
+				if g.err == nil {
+					g.err = err
+				}
+				g.m.Unlock()
 			}
-			eimg := ebiten.NewImageFromImage(img)
-
-			g.imageMutex.Lock()
-			g.images = append(g.images, eimg)
-			g.imageMutex.Unlock()
-
-			return nil
-		})
+		}()
 	}
 	return nil
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	g.imageMutex.Lock()
-	defer g.imageMutex.Unlock()
+	g.m.Lock()
+	defer g.m.Unlock()
 
 	if len(g.images) == 0 {
 		ebitenutil.DebugPrint(screen, "Drop PNG files onto this window!")
