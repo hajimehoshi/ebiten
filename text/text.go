@@ -52,7 +52,7 @@ func adjustOffsetGranularity(x fixed.Int26_6) fixed.Int26_6 {
 	return x / (1 << 4) * (1 << 4)
 }
 
-func drawGlyph(dst *ebiten.Image, face font.Face, r rune, img *ebiten.Image, topleft fixed.Point26_6, op *ebiten.DrawImageOptions) {
+func drawGlyph(dst *ebiten.Image, img *ebiten.Image, topleft fixed.Point26_6, op *ebiten.DrawImageOptions) {
 	if img == nil {
 		return
 	}
@@ -259,7 +259,7 @@ func DrawWithOptions(dst *ebiten.Image, text string, face font.Face, options *eb
 			Y: b.Min.Y & ((1 << 6) - 1),
 		}
 		img := getGlyphImage(face, r, offset)
-		drawGlyph(dst, face, r, img, fixed.Point26_6{
+		drawGlyph(dst, img, fixed.Point26_6{
 			X: dx + b.Min.X - offset.X,
 			Y: dy + b.Min.Y - offset.Y,
 		}, options)
@@ -270,7 +270,7 @@ func DrawWithOptions(dst *ebiten.Image, text string, face font.Face, options *eb
 
 	// cacheSoftLimit indicates the soft limit of the number of glyphs in the cache.
 	// If the number of glyphs exceeds this soft limits, old glyphs are removed.
-	// Even after clearning up the cache, the number of glyphs might still exceeds the soft limit, but
+	// Even after cleaning up the cache, the number of glyphs might still exceed the soft limit, but
 	// this is fine.
 	const cacheSoftLimit = 512
 
@@ -363,7 +363,7 @@ func BoundString(face font.Face, text string) image.Rectangle {
 //
 // If a rune's glyph is already cached, CacheGlyphs does nothing for the rune.
 //
-// One rune can have multiple varitations of glyphs due to sub-pixels in X direction.
+// One rune can have multiple variations of glyphs due to sub-pixels in X direction.
 // CacheGlyphs creates all such variations for one rune, while Draw creates only necessary glyphs.
 func CacheGlyphs(face font.Face, text string) {
 	textM.Lock()
@@ -435,7 +435,7 @@ func (f faceWithLineHeight) Metrics() font.Metrics {
 	return m
 }
 
-// Glyphs is information to render one glyph.
+// Glyph is information to render one glyph.
 type Glyph struct {
 	// Rune is a character for this glyph.
 	Rune rune
@@ -484,7 +484,6 @@ func AppendGlyphs(glyphs []Glyph, face font.Face, text string) []Glyph {
 			Y: b.Min.Y & ((1 << 6) - 1),
 		}
 		if img := getGlyphImage(face, r, offset); img != nil {
-			b := getGlyphBounds(face, r)
 			// Adjust the position to the integers.
 			// The current glyph images assume that they are rendered on integer positions so far.
 			glyphs = append(glyphs, Glyph{
