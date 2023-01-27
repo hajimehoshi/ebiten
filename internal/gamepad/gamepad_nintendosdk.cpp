@@ -14,7 +14,7 @@
 
 //go:build nintendosdk
 
-// The actual implementaiton will be provided by -overlay.
+// The actual implementation will be provided by -overlay.
 
 #include "gamepad_nintendosdk.h"
 

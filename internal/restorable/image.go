@@ -97,7 +97,7 @@ const (
 	//
 	// Regular non-volatile images need to record drawing history or read its pixels from GPU if necessary so that all
 	// the images can be restored automatically from the context lost. However, such recording the drawing history or
-	// reading pixels from GPU are expensive operations. Volatile images can skip such oprations, but the image content
+	// reading pixels from GPU are expensive operations. Volatile images can skip such operations, but the image content
 	// is cleared every frame instead.
 	ImageTypeVolatile
 )
@@ -168,7 +168,7 @@ func ensureWhiteImage() *Image {
 	return whiteImage
 }
 
-// NewImage creates an white image with the given size.
+// NewImage creates a white image with the given size.
 //
 // The returned image is cleared.
 //
@@ -302,7 +302,7 @@ func (i *Image) WritePixels(pixels []byte, x, y, width, height int) {
 	}
 
 	// TODO: Avoid making other images stale if possible. (#514)
-	// For this purpuse, images should remember which part of that is used for DrawTriangles.
+	// For this purpose, images should remember which part of that is used for DrawTriangles.
 	theImages.makeStaleIfDependingOn(i)
 
 	if pixels != nil {
@@ -550,7 +550,7 @@ func (i *Image) dependsOnShader(shader *Shader) bool {
 	return false
 }
 
-// dependingImages returns all images that is depended by the image.
+// dependingImages returns all images that is depended on the image.
 func (i *Image) dependingImages() map[*Image]struct{} {
 	r := map[*Image]struct{}{}
 	for _, c := range i.drawTrianglesHistory {

@@ -452,7 +452,7 @@ func (g *Graphics) flushRenderCommandEncoderIfNeeded() {
 }
 
 func (g *Graphics) draw(dst *Image, dstRegions []graphicsdriver.DstRegion, srcs [graphics.ShaderImageCount]*Image, indexOffset int, shader *Shader, uniforms [][]uint32, blend graphicsdriver.Blend, evenOdd bool) error {
-	// When prepareing a stencil buffer, flush the current render command encoder
+	// When preparing a stencil buffer, flush the current render command encoder
 	// to make sure the stencil buffer is cleared when loading.
 	// TODO: What about clearing the stencil buffer by vertices?
 	if g.lastDst != dst || g.lastEvenOdd != evenOdd || evenOdd {
@@ -850,7 +850,7 @@ func (i *Image) WritePixels(args []*graphicsdriver.WritePixelsArgs) error {
 	w := maxX - minX
 	h := maxY - minY
 
-	// Use a temporary texture to send pixels asynchrounsly, whichever the memory is shared (e.g., iOS) or
+	// Use a temporary texture to send pixels asynchronously, whichever the memory is shared (e.g., iOS) or
 	// managed (e.g., macOS). A temporary texture is needed since ReplaceRegion tries to sync the pixel
 	// data between CPU and GPU, and doing it on the existing texture is inefficient (#1418).
 	// The texture cannot be reused until sending the pixels finishes, then create new ones for each call.

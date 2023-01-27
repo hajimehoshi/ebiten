@@ -235,7 +235,7 @@ func (i *images) restore(graphicsDriver graphicsdriver.Graphics) error {
 		}
 	}
 	for len(images) > 0 {
-		// current repesents images that have no incoming edges.
+		// current represents images that have no incoming edges.
 		current := map[*Image]struct{}{}
 		for i := range images {
 			current[i] = struct{}{}

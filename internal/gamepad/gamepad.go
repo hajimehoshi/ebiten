@@ -99,7 +99,7 @@ func (g *gamepads) update() error {
 	}
 
 	// A gamepad can be detected even though there are not. Apparently, some special devices are
-	// recognized as gamepads by OSes. In this case, the number of the 'buttons' can exceeds the
+	// recognized as gamepads by OSes. In this case, the number of the 'buttons' can exceed the
 	// maximum. Skip such devices as a tentative solution (#1173, #2039).
 	g.remove(func(gamepad *Gamepad) bool {
 		return gamepad.ButtonCount() > ButtonCount

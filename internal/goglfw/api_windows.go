@@ -1651,7 +1651,7 @@ func _SetWindowPos(hWnd windows.HWND, hWndInsertAfter windows.HWND, x, y, cx, cy
 }
 
 func _SetWindowTextW(hWnd windows.HWND, str string) error {
-	// An empty string is also a valid value. Always create a uint16 pointer.
+	// An empty string is also a valid value. Always create an uint16 pointer.
 	lpString, err := windows.UTF16PtrFromString(str)
 	if err != nil {
 		panic("goglfw: str must not include a NUL character")

@@ -65,7 +65,7 @@ func (c *defaultContext) init() error {
 		}
 	}
 
-	// Try OpenGL first. OpenGL is preferrable as this doesn't cause context losts.
+	// Try OpenGL first. OpenGL is preferable as this doesn't cause context losses.
 	if !preferES {
 		// Usually libGL.so or libGL.so.1 is used. libGL.so.2 might exist only on NetBSD.
 		for _, name := range []string{"libGL.so", "libGL.so.2", "libGL.so.1", "libGL.so.0"} {

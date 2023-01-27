@@ -35,7 +35,7 @@ func monitorAt(x, y int) *glfw.Monitor {
 
 func impl(x, y int) float64 {
 	// Keep calling GetContentScale until the returned scale is 0 (#2051).
-	// Retry this at most 5 times to avoid an inifinite loop.
+	// Retry this at most 5 times to avoid an infinite loop.
 	for i := 0; i < 5; i++ {
 		// An error can happen e.g. when entering a screensaver on Windows (#2488).
 		sx, _, err := monitorAt(x, y).GetContentScale()

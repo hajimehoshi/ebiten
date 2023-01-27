@@ -159,7 +159,7 @@ func alloc(n *Node, width, height int) *Node {
 				parent: n,
 			}
 		} else {
-			// Split holizontally
+			// Split horizontally
 			n.child0 = &Node{
 				x:      n.x,
 				y:      n.y,

@@ -135,7 +135,7 @@ func monitorFromWindowByOS(w *glfw.Window) *glfw.Monitor {
 
 func monitorFromWin32Window(w windows.HWND) *glfw.Monitor {
 	// Get the current monitor by the window handle instead of the window position. It is because the window
-	// position is not relaiable in some cases e.g. when the window is put across multiple monitors.
+	// position is not reliable in some cases e.g. when the window is put across multiple monitors.
 
 	m := _MonitorFromWindow(w, _MONITOR_DEFAULTTONEAREST)
 	if m == 0 {

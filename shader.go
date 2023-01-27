@@ -30,7 +30,7 @@ type Shader struct {
 	shader *ui.Shader
 }
 
-// NewShader compiles a shader program in the shading language Kage, and retruns the result.
+// NewShader compiles a shader program in the shading language Kage, and returns the result.
 //
 // If the compilation fails, NewShader returns an error.
 //
