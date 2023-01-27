@@ -43,7 +43,7 @@ const (
 	screenWidth  = 640
 	screenHeight = 480
 
-	sampleRate = 32000
+	sampleRate = 48000
 )
 
 var (
