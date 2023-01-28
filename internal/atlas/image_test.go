@@ -134,11 +134,11 @@ func TestEnsureIsolated(t *testing.T) {
 			g := pix[4*(size*j+i)+1]
 			b := pix[4*(size*j+i)+2]
 			a := pix[4*(size*j+i)+3]
-			got := color.RGBA{r, g, b, a}
+			got := color.RGBA{R: r, G: g, B: b, A: a}
 			var want color.RGBA
 			if i < dx0 || dx1 <= i || j < dy0 || dy1 <= j {
 				c := byte(i + j)
-				want = color.RGBA{c, c, c, c}
+				want = color.RGBA{R: c, G: c, B: c, A: c}
 			}
 			if got != want {
 				t.Errorf("at(%d, %d): got: %v, want: %v", i, j, got, want)
@@ -202,7 +202,7 @@ func TestReputOnAtlas(t *testing.T) {
 
 	// Use img1 as a render source.
 	// Use the doubled count since img1 was on a texture atlas and became an isolated image once.
-	// Then, img1 requires longer time to recover to be on a textur atlas again.
+	// Then, img1 requires longer time to recover to be on a texture atlas again.
 	for i := 0; i < atlas.BaseCountToPutOnAtlas*2; i++ {
 		if err := atlas.PutImagesOnAtlasForTesting(ui.GraphicsDriverForTesting()); err != nil {
 			t.Fatal(err)
@@ -222,12 +222,12 @@ func TestReputOnAtlas(t *testing.T) {
 	}
 	for j := 0; j < size; j++ {
 		for i := 0; i < size; i++ {
-			want := color.RGBA{byte(i + j), byte(i + j), byte(i + j), byte(i + j)}
+			want := color.RGBA{R: byte(i + j), G: byte(i + j), B: byte(i + j), A: byte(i + j)}
 			r := pix[4*(size*j+i)]
 			g := pix[4*(size*j+i)+1]
 			b := pix[4*(size*j+i)+2]
 			a := pix[4*(size*j+i)+3]
-			got := color.RGBA{r, g, b, a}
+			got := color.RGBA{R: r, G: g, B: b, A: a}
 			if got != want {
 				t.Errorf("At(%d, %d): got: %v, want: %v", i, j, got, want)
 			}
@@ -246,12 +246,12 @@ func TestReputOnAtlas(t *testing.T) {
 	}
 	for j := 0; j < size; j++ {
 		for i := 0; i < size; i++ {
-			want := color.RGBA{byte(i + j), byte(i + j), byte(i + j), byte(i + j)}
+			want := color.RGBA{R: byte(i + j), G: byte(i + j), B: byte(i + j), A: byte(i + j)}
 			r := pix[4*(size*j+i)]
 			g := pix[4*(size*j+i)+1]
 			b := pix[4*(size*j+i)+2]
 			a := pix[4*(size*j+i)+3]
-			got := color.RGBA{r, g, b, a}
+			got := color.RGBA{R: r, G: g, B: b, A: a}
 			if got != want {
 				t.Errorf("At(%d, %d): got: %v, want: %v", i, j, got, want)
 			}
@@ -338,9 +338,9 @@ func TestExtend(t *testing.T) {
 			g := pix0[4*(w0*j+i)+1]
 			b := pix0[4*(w0*j+i)+2]
 			a := pix0[4*(w0*j+i)+3]
-			got := color.RGBA{r, g, b, a}
+			got := color.RGBA{R: r, G: g, B: b, A: a}
 			c := byte(i + w0*j)
-			want := color.RGBA{c, c, c, c}
+			want := color.RGBA{R: c, G: c, B: c, A: c}
 			if got != want {
 				t.Errorf("at(%d, %d): got: %v, want: %v", i, j, got, want)
 			}
@@ -357,9 +357,9 @@ func TestExtend(t *testing.T) {
 			g := pix1[4*(w1*j+i)+1]
 			b := pix1[4*(w1*j+i)+2]
 			a := pix1[4*(w1*j+i)+3]
-			got := color.RGBA{r, g, b, a}
+			got := color.RGBA{R: r, G: g, B: b, A: a}
 			c := byte(i + w1*j)
-			want := color.RGBA{c, c, c, c}
+			want := color.RGBA{R: c, G: c, B: c, A: c}
 			if got != want {
 				t.Errorf("at(%d, %d): got: %v, want: %v", i, j, got, want)
 			}
@@ -404,9 +404,9 @@ func TestWritePixelsAfterDrawTriangles(t *testing.T) {
 			g := pix[4*(w*j+i)+1]
 			b := pix[4*(w*j+i)+2]
 			a := pix[4*(w*j+i)+3]
-			got := color.RGBA{r, g, b, a}
+			got := color.RGBA{R: r, G: g, B: b, A: a}
 			c := byte(i + w*j)
-			want := color.RGBA{c, c, c, c}
+			want := color.RGBA{R: c, G: c, B: c, A: c}
 			if got != want {
 				t.Errorf("at(%d, %d): got %v, want: %v", i, j, got, want)
 			}
@@ -562,7 +562,7 @@ func Disable_TestMinImageSize(t *testing.T) {
 
 func TestMaxImageSizeJust(t *testing.T) {
 	s := maxImageSizeForTesting
-	// An unmanged image never belongs to an atlas and doesn't have its paddings.
+	// An unmanaged image never belongs to an atlas and doesn't have its paddings.
 	// TODO: Should we allow such this size for ImageTypeRegular?
 	img := atlas.NewImage(s, s, atlas.ImageTypeUnmanaged)
 	defer img.MarkDisposed()
@@ -620,7 +620,7 @@ func TestDisposedAndReputOnAtlas(t *testing.T) {
 		}
 	}
 
-	// Before PutImaegsOnAtlasForTesting, dispose the image.
+	// Before PutImagesOnAtlasForTesting, dispose the image.
 	src.MarkDisposed()
 
 	// Force to dispose the image.
@@ -722,12 +722,12 @@ func TestImageWritePixelsModify(t *testing.T) {
 		}
 		for j := 0; j < size; j++ {
 			for i := 0; i < size; i++ {
-				want := color.RGBA{byte(i + j), byte(i + j), byte(i + j), byte(i + j)}
+				want := color.RGBA{R: byte(i + j), G: byte(i + j), B: byte(i + j), A: byte(i + j)}
 				r := pix[4*(size*j+i)]
 				g := pix[4*(size*j+i)+1]
 				b := pix[4*(size*j+i)+2]
 				a := pix[4*(size*j+i)+3]
-				got := color.RGBA{r, g, b, a}
+				got := color.RGBA{R: r, G: g, B: b, A: a}
 				if got != want {
 					t.Errorf("Type: %d, At(%d, %d): got: %v, want: %v", typ, i, j, got, want)
 				}

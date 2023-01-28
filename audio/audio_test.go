@@ -64,7 +64,7 @@ func TestGC(t *testing.T) {
 			t.Error(err)
 		}
 		// 200[ms] should be enough all the bytes are consumed.
-		// TODO: This is a darty hack. Would it be possible to use virtual time?
+		// TODO: This is a dirty hack. Would it be possible to use virtual time?
 		time.Sleep(200 * time.Millisecond)
 	}
 	t.Errorf("time out")

@@ -195,32 +195,32 @@ func TestColorMApply(t *testing.T) {
 	}{
 		{
 			ColorM: colorm.ColorM{},
-			In:     color.RGBA{1, 2, 3, 4},
-			Out:    color.RGBA{1, 2, 3, 4},
+			In:     color.RGBA{R: 1, G: 2, B: 3, A: 4},
+			Out:    color.RGBA{R: 1, G: 2, B: 3, A: 4},
 			Delta:  0x101,
 		},
 		{
 			ColorM: mono,
-			In:     color.NRGBA{0xff, 0xff, 0xff, 0},
+			In:     color.NRGBA{R: 0xff, G: 0xff, B: 0xff},
 			Out:    color.Transparent,
 			Delta:  0x101,
 		},
 		{
 			ColorM: mono,
-			In:     color.RGBA{0xff, 0, 0, 0xff},
-			Out:    color.RGBA{0x4c, 0x4c, 0x4c, 0xff},
+			In:     color.RGBA{R: 0xff, A: 0xff},
+			Out:    color.RGBA{R: 0x4c, G: 0x4c, B: 0x4c, A: 0xff},
 			Delta:  0x101,
 		},
 		{
 			ColorM: shiny,
-			In:     color.RGBA{0x80, 0x90, 0xa0, 0xb0},
-			Out:    color.RGBA{0xb0, 0xb0, 0xb0, 0xb0},
+			In:     color.RGBA{R: 0x80, G: 0x90, B: 0xa0, A: 0xb0},
+			Out:    color.RGBA{R: 0xb0, G: 0xb0, B: 0xb0, A: 0xb0},
 			Delta:  1,
 		},
 		{
 			ColorM: shift,
-			In:     color.RGBA{0x00, 0x00, 0x00, 0x00},
-			Out:    color.RGBA{0x40, 0x40, 0x40, 0x80},
+			In:     color.RGBA{},
+			Out:    color.RGBA{R: 0x40, G: 0x40, B: 0x40, A: 0x80},
 			Delta:  0x101,
 		},
 	}

@@ -47,7 +47,7 @@ func temporaryBytesSize(size int) int {
 	return l
 }
 
-// alloc allocates the pixels and reutrns it.
+// alloc allocates the pixels and returns it.
 // Be careful that the returned pixels might not be zero-cleared.
 func (t *temporaryBytes) alloc(size int) []byte {
 	if len(t.pixels) < t.pos+size {
@@ -107,7 +107,7 @@ func flushDeferred() {
 }
 
 // baseCountToPutOnAtlas represents the base time duration when the image can be put onto an atlas.
-// Actual time duration is increased in an exponential way for each usages as a rendering target.
+// Actual time duration is increased in an exponential way for each usage as a rendering target.
 const baseCountToPutOnAtlas = 10
 
 func putImagesOnAtlas(graphicsDriver graphicsdriver.Graphics) error {
@@ -141,7 +141,7 @@ type backend struct {
 func (b *backend) tryAlloc(width, height int) (*packing.Node, bool) {
 	n := b.page.Alloc(width, height)
 	if n == nil {
-		// The page can't be extended any more. Return as failure.
+		// The page can't be extended anymore. Return as failure.
 		return nil, false
 	}
 
@@ -163,7 +163,7 @@ var (
 
 	deferred []func()
 
-	// deferredM is a mutext for the slice operations. This must not be used for other usages.
+	// deferredM is a mutex for the slice operations. This must not be used for other usages.
 	deferredM sync.Mutex
 )
 
@@ -218,13 +218,13 @@ type Image struct {
 // moveTo moves its content to the given image dst.
 // After moveTo is called, the image i is no longer available.
 //
-// moveTo is smilar to C++'s move semantics.
+// moveTo is similar to C++'s move semantics.
 func (i *Image) moveTo(dst *Image) {
 	dst.dispose(false)
 	*dst = *i
 
 	// i is no longer available but Dispose must not be called
-	// since i and dst have the same values like node.
+	// since i and dst have the same values as node.
 	runtime.SetFinalizer(i, nil)
 }
 
@@ -421,7 +421,7 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 			vertices[i+2] = (vertices[i+2] + oxf) / swf
 			vertices[i+3] = (vertices[i+3] + oyf) / shf
 		}
-		// srcRegion can be delibarately empty when this is not needed in order to avoid unexpected
+		// srcRegion can be deliberately empty when this is not needed in order to avoid unexpected
 		// performance issue (#1293).
 		if srcRegion.Width != 0 && srcRegion.Height != 0 {
 			srcRegion.X += oxf
@@ -461,7 +461,7 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 			continue
 		}
 		if !src.isOnAtlas() && src.canBePutOnAtlas() {
-			// src might already registered, but assiging it again is not harmful.
+			// src might already registered, but assigning it again is not harmful.
 			imagesToPutOnAtlas[src] = struct{}{}
 		}
 	}

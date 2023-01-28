@@ -74,7 +74,7 @@ func TestClear(t *testing.T) {
 	for j := 0; j < h/2; j++ {
 		for i := 0; i < w/2; i++ {
 			idx := 4 * (i + w*j)
-			got := color.RGBA{pix[idx], pix[idx+1], pix[idx+2], pix[idx+3]}
+			got := color.RGBA{R: pix[idx], G: pix[idx+1], B: pix[idx+2], A: pix[idx+3]}
 			want := color.RGBA{}
 			if got != want {
 				t.Errorf("dst.At(%d, %d) after DrawTriangles: got %v, want: %v", i, j, got, want)
@@ -128,8 +128,8 @@ func TestShader(t *testing.T) {
 	for j := 0; j < h; j++ {
 		for i := 0; i < w; i++ {
 			idx := 4 * (i + w*j)
-			got := color.RGBA{pix[idx], pix[idx+1], pix[idx+2], pix[idx+3]}
-			want := color.RGBA{0xff, 0, 0, 0xff}
+			got := color.RGBA{R: pix[idx], G: pix[idx+1], B: pix[idx+2], A: pix[idx+3]}
+			want := color.RGBA{R: 0xff, A: 0xff}
 			if got != want {
 				t.Errorf("dst.At(%d, %d) after DrawTriangles: got %v, want: %v", i, j, got, want)
 			}

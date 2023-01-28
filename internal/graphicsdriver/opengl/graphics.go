@@ -70,7 +70,7 @@ func (g *Graphics) End(present bool) error {
 }
 
 func (g *Graphics) SetTransparent(transparent bool) {
-	// Do nothings.
+	// Do nothing.
 }
 
 func (g *Graphics) checkSize(width, height int) {

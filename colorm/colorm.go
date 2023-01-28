@@ -66,7 +66,7 @@ func (c *ColorM) Apply(clr color.Color) color.Color {
 }
 
 // Concat multiplies a color matrix with the other color matrix.
-// This is same as muptiplying the matrix other and the matrix c in this order.
+// This is same as multiplying the matrix other and the matrix c in this order.
 func (c *ColorM) Concat(other ColorM) {
 	o := other.impl
 	if o == nil {

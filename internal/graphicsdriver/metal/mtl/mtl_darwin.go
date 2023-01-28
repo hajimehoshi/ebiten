@@ -158,7 +158,7 @@ const (
 	StoreActionCustomSampleDepthStore     StoreAction = 5
 )
 
-// StorageMode defines defines the memory location and access permissions of a resource.
+// StorageMode defines the memory location and access permissions of a resource.
 //
 // Reference: https://developer.apple.com/documentation/metal/mtlstoragemode.
 type StorageMode uint8

@@ -21,7 +21,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
-// Filter represents the type of texture filter to be used when an image is maginified or minified.
+// Filter represents the type of texture filter to be used when an image is magnified or minified.
 type Filter int
 
 const (
@@ -126,7 +126,7 @@ func (c CompositeMode) blend() Blend {
 	}
 }
 
-// GraphicsLibrary represets graphics libraries supported by the engine.
+// GraphicsLibrary represents graphics libraries supported by the engine.
 type GraphicsLibrary int
 
 const (

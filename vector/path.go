@@ -448,7 +448,7 @@ const (
 	LineJoinRound
 )
 
-// StokeOptions is options to render a stroke.
+// StrokeOptions is options to render a stroke.
 type StrokeOptions struct {
 	// Width is the stroke width in pixels.
 	//

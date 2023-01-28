@@ -46,7 +46,7 @@
 //
 // After any of the drawing functions is called, the target image can't be depended on by
 // any other images. For example, if an image A depends on an image B, and B is changed
-// by a Fill call after that, the image A can't depend on the image B any more.
+// by a Fill call after that, the image A can't depend on the image B anymore.
 // In this case, as the image B can no longer be used to restore the image A,
 // the image A becomes 'stale'.
 // As all the stale images are resolved before context lost happens,
