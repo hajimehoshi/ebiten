@@ -74,13 +74,15 @@ var (
 	kIOHIDDeviceUsageKey     = []byte("DeviceUsage\x00")
 )
 
-type _IOOptionBits uint32
-type _IOHIDManagerRef uintptr
-type _IOHIDDeviceRef uintptr
-type _IOHIDElementRef uintptr
-type _IOHIDValueRef uintptr
-type _IOReturn int32
-type _IOHIDElementType uint32
+type (
+	_IOOptionBits     uint32
+	_IOHIDManagerRef  uintptr
+	_IOHIDDeviceRef   uintptr
+	_IOHIDElementRef  uintptr
+	_IOHIDValueRef    uintptr
+	_IOReturn         int32
+	_IOHIDElementType uint32
+)
 
 type _IOHIDDeviceCallback func(context unsafe.Pointer, result _IOReturn, sender unsafe.Pointer, device _IOHIDDeviceRef)
 
@@ -105,34 +107,21 @@ func init() {
 	purego.RegisterLibFunc(&_IOHIDDeviceCopyMatchingElements, iokit, "IOHIDDeviceCopyMatchingElements")
 }
 
-var _IOHIDElementGetTypeID func() _CFTypeID
-
-var _IOHIDManagerCreate func(allocator _CFAllocatorRef, options _IOOptionBits) _IOHIDManagerRef
-
-var _IOHIDDeviceGetProperty func(device _IOHIDDeviceRef, key _CFStringRef) _CFTypeRef
-
-var _IOHIDManagerOpen func(manager _IOHIDManagerRef, options _IOOptionBits) _IOReturn
-
-var _IOHIDManagerSetDeviceMatchingMultiple func(manager _IOHIDManagerRef, multiple _CFArrayRef)
-
-var _IOHIDManagerRegisterDeviceMatchingCallback func(manager _IOHIDManagerRef, callback _IOHIDDeviceCallback, context unsafe.Pointer)
-
-var _IOHIDManagerRegisterDeviceRemovalCallback func(manager _IOHIDManagerRef, callback _IOHIDDeviceCallback, context unsafe.Pointer)
-
-var _IOHIDManagerScheduleWithRunLoop func(manager _IOHIDManagerRef, runLoop _CFRunLoopRef, runLoopMode _CFStringRef)
-
-var _IOHIDElementGetType func(element _IOHIDElementRef) _IOHIDElementType
-
-var _IOHIDElementGetUsage func(element _IOHIDElementRef) uint32
-
-var _IOHIDElementGetUsagePage func(element _IOHIDElementRef) uint32
-
-var _IOHIDElementGetLogicalMin func(element _IOHIDElementRef) _CFIndex
-
-var _IOHIDElementGetLogicalMax func(element _IOHIDElementRef) _CFIndex
-
-var _IOHIDDeviceGetValue func(device _IOHIDDeviceRef, element _IOHIDElementRef, pValue *_IOHIDValueRef) _IOReturn
-
-var _IOHIDValueGetIntegerValue func(value _IOHIDValueRef) _CFIndex
-
-var _IOHIDDeviceCopyMatchingElements func(device _IOHIDDeviceRef, matching _CFDictionaryRef, options _IOOptionBits) _CFArrayRef
+var (
+	_IOHIDElementGetTypeID                      func() _CFTypeID
+	_IOHIDManagerCreate                         func(allocator _CFAllocatorRef, options _IOOptionBits) _IOHIDManagerRef
+	_IOHIDDeviceGetProperty                     func(device _IOHIDDeviceRef, key _CFStringRef) _CFTypeRef
+	_IOHIDManagerOpen                           func(manager _IOHIDManagerRef, options _IOOptionBits) _IOReturn
+	_IOHIDManagerSetDeviceMatchingMultiple      func(manager _IOHIDManagerRef, multiple _CFArrayRef)
+	_IOHIDManagerRegisterDeviceMatchingCallback func(manager _IOHIDManagerRef, callback _IOHIDDeviceCallback, context unsafe.Pointer)
+	_IOHIDManagerRegisterDeviceRemovalCallback  func(manager _IOHIDManagerRef, callback _IOHIDDeviceCallback, context unsafe.Pointer)
+	_IOHIDManagerScheduleWithRunLoop            func(manager _IOHIDManagerRef, runLoop _CFRunLoopRef, runLoopMode _CFStringRef)
+	_IOHIDElementGetType                        func(element _IOHIDElementRef) _IOHIDElementType
+	_IOHIDElementGetUsage                       func(element _IOHIDElementRef) uint32
+	_IOHIDElementGetUsagePage                   func(element _IOHIDElementRef) uint32
+	_IOHIDElementGetLogicalMin                  func(element _IOHIDElementRef) _CFIndex
+	_IOHIDElementGetLogicalMax                  func(element _IOHIDElementRef) _CFIndex
+	_IOHIDDeviceGetValue                        func(device _IOHIDDeviceRef, element _IOHIDElementRef, pValue *_IOHIDValueRef) _IOReturn
+	_IOHIDValueGetIntegerValue                  func(value _IOHIDValueRef) _CFIndex
+	_IOHIDDeviceCopyMatchingElements            func(device _IOHIDDeviceRef, matching _CFDictionaryRef, options _IOOptionBits) _CFArrayRef
+)
