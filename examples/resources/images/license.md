@@ -86,6 +86,22 @@ https://fonts.google.com/icons
 Apache License 2.0
 ```
 
+## blend/dest.png
+
+```
+https://fontlibrary.org/en/font/seshat-regular
+
+CC0 1.0
+```
+
+## blend/source.png
+
+```
+https://github.com/sedyh
+
+CC0 1.0
+```
+
 ## flappy/gopher.png
 
 ```
