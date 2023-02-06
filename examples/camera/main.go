@@ -254,7 +254,7 @@ func main() {
 	g.world = ebiten.NewImage(worldWidth, worldHeight)
 
 	ebiten.SetWindowSize(screenWidth, screenHeight)
-	ebiten.SetWindowTitle("Tiles (Ebitengine Demo)")
+	ebiten.SetWindowTitle("Camera (Ebitengine Demo)")
 	if err := ebiten.RunGame(g); err != nil {
 		log.Fatal(err)
 	}
