@@ -15,138 +15,138 @@ import (
 )
 
 func createKeyTables() {
-	for i := range _glfw.windowState.keycodes {
-		_glfw.windowState.keycodes[i] = -1
+	for i := range _glfw.platformWindow.keycodes {
+		_glfw.platformWindow.keycodes[i] = -1
 	}
-	for i := range _glfw.windowState.scancodes {
-		_glfw.windowState.keycodes[i] = -1
+	for i := range _glfw.platformWindow.scancodes {
+		_glfw.platformWindow.keycodes[i] = -1
 	}
 
-	_glfw.windowState.keycodes[0x00B] = Key0
-	_glfw.windowState.keycodes[0x002] = Key1
-	_glfw.windowState.keycodes[0x003] = Key2
-	_glfw.windowState.keycodes[0x004] = Key3
-	_glfw.windowState.keycodes[0x005] = Key4
-	_glfw.windowState.keycodes[0x006] = Key5
-	_glfw.windowState.keycodes[0x007] = Key6
-	_glfw.windowState.keycodes[0x008] = Key7
-	_glfw.windowState.keycodes[0x009] = Key8
-	_glfw.windowState.keycodes[0x00A] = Key9
-	_glfw.windowState.keycodes[0x01E] = KeyA
-	_glfw.windowState.keycodes[0x030] = KeyB
-	_glfw.windowState.keycodes[0x02E] = KeyC
-	_glfw.windowState.keycodes[0x020] = KeyD
-	_glfw.windowState.keycodes[0x012] = KeyE
-	_glfw.windowState.keycodes[0x021] = KeyF
-	_glfw.windowState.keycodes[0x022] = KeyG
-	_glfw.windowState.keycodes[0x023] = KeyH
-	_glfw.windowState.keycodes[0x017] = KeyI
-	_glfw.windowState.keycodes[0x024] = KeyJ
-	_glfw.windowState.keycodes[0x025] = KeyK
-	_glfw.windowState.keycodes[0x026] = KeyL
-	_glfw.windowState.keycodes[0x032] = KeyM
-	_glfw.windowState.keycodes[0x031] = KeyN
-	_glfw.windowState.keycodes[0x018] = KeyO
-	_glfw.windowState.keycodes[0x019] = KeyP
-	_glfw.windowState.keycodes[0x010] = KeyQ
-	_glfw.windowState.keycodes[0x013] = KeyR
-	_glfw.windowState.keycodes[0x01F] = KeyS
-	_glfw.windowState.keycodes[0x014] = KeyT
-	_glfw.windowState.keycodes[0x016] = KeyU
-	_glfw.windowState.keycodes[0x02F] = KeyV
-	_glfw.windowState.keycodes[0x011] = KeyW
-	_glfw.windowState.keycodes[0x02D] = KeyX
-	_glfw.windowState.keycodes[0x015] = KeyY
-	_glfw.windowState.keycodes[0x02C] = KeyZ
+	_glfw.platformWindow.keycodes[0x00B] = Key0
+	_glfw.platformWindow.keycodes[0x002] = Key1
+	_glfw.platformWindow.keycodes[0x003] = Key2
+	_glfw.platformWindow.keycodes[0x004] = Key3
+	_glfw.platformWindow.keycodes[0x005] = Key4
+	_glfw.platformWindow.keycodes[0x006] = Key5
+	_glfw.platformWindow.keycodes[0x007] = Key6
+	_glfw.platformWindow.keycodes[0x008] = Key7
+	_glfw.platformWindow.keycodes[0x009] = Key8
+	_glfw.platformWindow.keycodes[0x00A] = Key9
+	_glfw.platformWindow.keycodes[0x01E] = KeyA
+	_glfw.platformWindow.keycodes[0x030] = KeyB
+	_glfw.platformWindow.keycodes[0x02E] = KeyC
+	_glfw.platformWindow.keycodes[0x020] = KeyD
+	_glfw.platformWindow.keycodes[0x012] = KeyE
+	_glfw.platformWindow.keycodes[0x021] = KeyF
+	_glfw.platformWindow.keycodes[0x022] = KeyG
+	_glfw.platformWindow.keycodes[0x023] = KeyH
+	_glfw.platformWindow.keycodes[0x017] = KeyI
+	_glfw.platformWindow.keycodes[0x024] = KeyJ
+	_glfw.platformWindow.keycodes[0x025] = KeyK
+	_glfw.platformWindow.keycodes[0x026] = KeyL
+	_glfw.platformWindow.keycodes[0x032] = KeyM
+	_glfw.platformWindow.keycodes[0x031] = KeyN
+	_glfw.platformWindow.keycodes[0x018] = KeyO
+	_glfw.platformWindow.keycodes[0x019] = KeyP
+	_glfw.platformWindow.keycodes[0x010] = KeyQ
+	_glfw.platformWindow.keycodes[0x013] = KeyR
+	_glfw.platformWindow.keycodes[0x01F] = KeyS
+	_glfw.platformWindow.keycodes[0x014] = KeyT
+	_glfw.platformWindow.keycodes[0x016] = KeyU
+	_glfw.platformWindow.keycodes[0x02F] = KeyV
+	_glfw.platformWindow.keycodes[0x011] = KeyW
+	_glfw.platformWindow.keycodes[0x02D] = KeyX
+	_glfw.platformWindow.keycodes[0x015] = KeyY
+	_glfw.platformWindow.keycodes[0x02C] = KeyZ
 
-	_glfw.windowState.keycodes[0x028] = KeyApostrophe
-	_glfw.windowState.keycodes[0x02B] = KeyBackslash
-	_glfw.windowState.keycodes[0x033] = KeyComma
-	_glfw.windowState.keycodes[0x00D] = KeyEqual
-	_glfw.windowState.keycodes[0x029] = KeyGraveAccent
-	_glfw.windowState.keycodes[0x01A] = KeyLeftBracket
-	_glfw.windowState.keycodes[0x00C] = KeyMinus
-	_glfw.windowState.keycodes[0x034] = KeyPeriod
-	_glfw.windowState.keycodes[0x01B] = KeyRightBracket
-	_glfw.windowState.keycodes[0x027] = KeySemicolon
-	_glfw.windowState.keycodes[0x035] = KeySlash
-	_glfw.windowState.keycodes[0x056] = KeyWorld2
+	_glfw.platformWindow.keycodes[0x028] = KeyApostrophe
+	_glfw.platformWindow.keycodes[0x02B] = KeyBackslash
+	_glfw.platformWindow.keycodes[0x033] = KeyComma
+	_glfw.platformWindow.keycodes[0x00D] = KeyEqual
+	_glfw.platformWindow.keycodes[0x029] = KeyGraveAccent
+	_glfw.platformWindow.keycodes[0x01A] = KeyLeftBracket
+	_glfw.platformWindow.keycodes[0x00C] = KeyMinus
+	_glfw.platformWindow.keycodes[0x034] = KeyPeriod
+	_glfw.platformWindow.keycodes[0x01B] = KeyRightBracket
+	_glfw.platformWindow.keycodes[0x027] = KeySemicolon
+	_glfw.platformWindow.keycodes[0x035] = KeySlash
+	_glfw.platformWindow.keycodes[0x056] = KeyWorld2
 
-	_glfw.windowState.keycodes[0x00E] = KeyBackspace
-	_glfw.windowState.keycodes[0x153] = KeyDelete
-	_glfw.windowState.keycodes[0x14F] = KeyEnd
-	_glfw.windowState.keycodes[0x01C] = KeyEnter
-	_glfw.windowState.keycodes[0x001] = KeyEscape
-	_glfw.windowState.keycodes[0x147] = KeyHome
-	_glfw.windowState.keycodes[0x152] = KeyInsert
-	_glfw.windowState.keycodes[0x15D] = KeyMenu
-	_glfw.windowState.keycodes[0x151] = KeyPageDown
-	_glfw.windowState.keycodes[0x149] = KeyPageUp
-	_glfw.windowState.keycodes[0x045] = KeyPause
-	_glfw.windowState.keycodes[0x039] = KeySpace
-	_glfw.windowState.keycodes[0x00F] = KeyTab
-	_glfw.windowState.keycodes[0x03A] = KeyCapsLock
-	_glfw.windowState.keycodes[0x145] = KeyNumLock
-	_glfw.windowState.keycodes[0x046] = KeyScrollLock
-	_glfw.windowState.keycodes[0x03B] = KeyF1
-	_glfw.windowState.keycodes[0x03C] = KeyF2
-	_glfw.windowState.keycodes[0x03D] = KeyF3
-	_glfw.windowState.keycodes[0x03E] = KeyF4
-	_glfw.windowState.keycodes[0x03F] = KeyF5
-	_glfw.windowState.keycodes[0x040] = KeyF6
-	_glfw.windowState.keycodes[0x041] = KeyF7
-	_glfw.windowState.keycodes[0x042] = KeyF8
-	_glfw.windowState.keycodes[0x043] = KeyF9
-	_glfw.windowState.keycodes[0x044] = KeyF10
-	_glfw.windowState.keycodes[0x057] = KeyF11
-	_glfw.windowState.keycodes[0x058] = KeyF12
-	_glfw.windowState.keycodes[0x064] = KeyF13
-	_glfw.windowState.keycodes[0x065] = KeyF14
-	_glfw.windowState.keycodes[0x066] = KeyF15
-	_glfw.windowState.keycodes[0x067] = KeyF16
-	_glfw.windowState.keycodes[0x068] = KeyF17
-	_glfw.windowState.keycodes[0x069] = KeyF18
-	_glfw.windowState.keycodes[0x06A] = KeyF19
-	_glfw.windowState.keycodes[0x06B] = KeyF20
-	_glfw.windowState.keycodes[0x06C] = KeyF21
-	_glfw.windowState.keycodes[0x06D] = KeyF22
-	_glfw.windowState.keycodes[0x06E] = KeyF23
-	_glfw.windowState.keycodes[0x076] = KeyF24
-	_glfw.windowState.keycodes[0x038] = KeyLeftAlt
-	_glfw.windowState.keycodes[0x01D] = KeyLeftControl
-	_glfw.windowState.keycodes[0x02A] = KeyLeftShift
-	_glfw.windowState.keycodes[0x15B] = KeyLeftSuper
-	_glfw.windowState.keycodes[0x137] = KeyPrintScreen
-	_glfw.windowState.keycodes[0x138] = KeyRightAlt
-	_glfw.windowState.keycodes[0x11D] = KeyRightControl
-	_glfw.windowState.keycodes[0x036] = KeyRightShift
-	_glfw.windowState.keycodes[0x15C] = KeyRightSuper
-	_glfw.windowState.keycodes[0x150] = KeyDown
-	_glfw.windowState.keycodes[0x14B] = KeyLeft
-	_glfw.windowState.keycodes[0x14D] = KeyRight
-	_glfw.windowState.keycodes[0x148] = KeyUp
+	_glfw.platformWindow.keycodes[0x00E] = KeyBackspace
+	_glfw.platformWindow.keycodes[0x153] = KeyDelete
+	_glfw.platformWindow.keycodes[0x14F] = KeyEnd
+	_glfw.platformWindow.keycodes[0x01C] = KeyEnter
+	_glfw.platformWindow.keycodes[0x001] = KeyEscape
+	_glfw.platformWindow.keycodes[0x147] = KeyHome
+	_glfw.platformWindow.keycodes[0x152] = KeyInsert
+	_glfw.platformWindow.keycodes[0x15D] = KeyMenu
+	_glfw.platformWindow.keycodes[0x151] = KeyPageDown
+	_glfw.platformWindow.keycodes[0x149] = KeyPageUp
+	_glfw.platformWindow.keycodes[0x045] = KeyPause
+	_glfw.platformWindow.keycodes[0x039] = KeySpace
+	_glfw.platformWindow.keycodes[0x00F] = KeyTab
+	_glfw.platformWindow.keycodes[0x03A] = KeyCapsLock
+	_glfw.platformWindow.keycodes[0x145] = KeyNumLock
+	_glfw.platformWindow.keycodes[0x046] = KeyScrollLock
+	_glfw.platformWindow.keycodes[0x03B] = KeyF1
+	_glfw.platformWindow.keycodes[0x03C] = KeyF2
+	_glfw.platformWindow.keycodes[0x03D] = KeyF3
+	_glfw.platformWindow.keycodes[0x03E] = KeyF4
+	_glfw.platformWindow.keycodes[0x03F] = KeyF5
+	_glfw.platformWindow.keycodes[0x040] = KeyF6
+	_glfw.platformWindow.keycodes[0x041] = KeyF7
+	_glfw.platformWindow.keycodes[0x042] = KeyF8
+	_glfw.platformWindow.keycodes[0x043] = KeyF9
+	_glfw.platformWindow.keycodes[0x044] = KeyF10
+	_glfw.platformWindow.keycodes[0x057] = KeyF11
+	_glfw.platformWindow.keycodes[0x058] = KeyF12
+	_glfw.platformWindow.keycodes[0x064] = KeyF13
+	_glfw.platformWindow.keycodes[0x065] = KeyF14
+	_glfw.platformWindow.keycodes[0x066] = KeyF15
+	_glfw.platformWindow.keycodes[0x067] = KeyF16
+	_glfw.platformWindow.keycodes[0x068] = KeyF17
+	_glfw.platformWindow.keycodes[0x069] = KeyF18
+	_glfw.platformWindow.keycodes[0x06A] = KeyF19
+	_glfw.platformWindow.keycodes[0x06B] = KeyF20
+	_glfw.platformWindow.keycodes[0x06C] = KeyF21
+	_glfw.platformWindow.keycodes[0x06D] = KeyF22
+	_glfw.platformWindow.keycodes[0x06E] = KeyF23
+	_glfw.platformWindow.keycodes[0x076] = KeyF24
+	_glfw.platformWindow.keycodes[0x038] = KeyLeftAlt
+	_glfw.platformWindow.keycodes[0x01D] = KeyLeftControl
+	_glfw.platformWindow.keycodes[0x02A] = KeyLeftShift
+	_glfw.platformWindow.keycodes[0x15B] = KeyLeftSuper
+	_glfw.platformWindow.keycodes[0x137] = KeyPrintScreen
+	_glfw.platformWindow.keycodes[0x138] = KeyRightAlt
+	_glfw.platformWindow.keycodes[0x11D] = KeyRightControl
+	_glfw.platformWindow.keycodes[0x036] = KeyRightShift
+	_glfw.platformWindow.keycodes[0x15C] = KeyRightSuper
+	_glfw.platformWindow.keycodes[0x150] = KeyDown
+	_glfw.platformWindow.keycodes[0x14B] = KeyLeft
+	_glfw.platformWindow.keycodes[0x14D] = KeyRight
+	_glfw.platformWindow.keycodes[0x148] = KeyUp
 
-	_glfw.windowState.keycodes[0x052] = KeyKP0
-	_glfw.windowState.keycodes[0x04F] = KeyKP1
-	_glfw.windowState.keycodes[0x050] = KeyKP2
-	_glfw.windowState.keycodes[0x051] = KeyKP3
-	_glfw.windowState.keycodes[0x04B] = KeyKP4
-	_glfw.windowState.keycodes[0x04C] = KeyKP5
-	_glfw.windowState.keycodes[0x04D] = KeyKP6
-	_glfw.windowState.keycodes[0x047] = KeyKP7
-	_glfw.windowState.keycodes[0x048] = KeyKP8
-	_glfw.windowState.keycodes[0x049] = KeyKP9
-	_glfw.windowState.keycodes[0x04E] = KeyKPAdd
-	_glfw.windowState.keycodes[0x053] = KeyKPDecimal
-	_glfw.windowState.keycodes[0x135] = KeyKPDivide
-	_glfw.windowState.keycodes[0x11C] = KeyKPEnter
-	_glfw.windowState.keycodes[0x059] = KeyKPEqual
-	_glfw.windowState.keycodes[0x037] = KeyKPMultiply
-	_glfw.windowState.keycodes[0x04A] = KeyKPSubtract
+	_glfw.platformWindow.keycodes[0x052] = KeyKP0
+	_glfw.platformWindow.keycodes[0x04F] = KeyKP1
+	_glfw.platformWindow.keycodes[0x050] = KeyKP2
+	_glfw.platformWindow.keycodes[0x051] = KeyKP3
+	_glfw.platformWindow.keycodes[0x04B] = KeyKP4
+	_glfw.platformWindow.keycodes[0x04C] = KeyKP5
+	_glfw.platformWindow.keycodes[0x04D] = KeyKP6
+	_glfw.platformWindow.keycodes[0x047] = KeyKP7
+	_glfw.platformWindow.keycodes[0x048] = KeyKP8
+	_glfw.platformWindow.keycodes[0x049] = KeyKP9
+	_glfw.platformWindow.keycodes[0x04E] = KeyKPAdd
+	_glfw.platformWindow.keycodes[0x053] = KeyKPDecimal
+	_glfw.platformWindow.keycodes[0x135] = KeyKPDivide
+	_glfw.platformWindow.keycodes[0x11C] = KeyKPEnter
+	_glfw.platformWindow.keycodes[0x059] = KeyKPEqual
+	_glfw.platformWindow.keycodes[0x037] = KeyKPMultiply
+	_glfw.platformWindow.keycodes[0x04A] = KeyKPSubtract
 
 	for scancode := 0; scancode < 512; scancode++ {
-		if _glfw.windowState.keycodes[scancode] > 0 {
-			_glfw.windowState.scancodes[_glfw.windowState.keycodes[scancode]] = scancode
+		if _glfw.platformWindow.keycodes[scancode] > 0 {
+			_glfw.platformWindow.scancodes[_glfw.platformWindow.keycodes[scancode]] = scancode
 		}
 	}
 }
@@ -157,14 +157,14 @@ func updateKeyNamesWin32() {
 		return
 	}
 
-	for i := range _glfw.windowState.keynames {
-		_glfw.windowState.keynames[i] = ""
+	for i := range _glfw.platformWindow.keynames {
+		_glfw.platformWindow.keynames[i] = ""
 	}
 
 	var state [256]byte
 
 	for key := KeySpace; key <= KeyLast; key++ {
-		scancode := _glfw.windowState.scancodes[key]
+		scancode := _glfw.platformWindow.scancodes[key]
 		if scancode == -1 {
 			continue
 		}
@@ -193,21 +193,21 @@ func updateKeyNamesWin32() {
 			continue
 		}
 
-		_glfw.windowState.keynames[key] = windows.UTF16ToString(chars[:length])
+		_glfw.platformWindow.keynames[key] = windows.UTF16ToString(chars[:length])
 	}
 }
 
 func createHelperWindow() error {
-	h, err := _CreateWindowExW(_WS_EX_OVERLAPPEDWINDOW, _GLFW_WNDCLASSNAME, "GLFW message window", _WS_CLIPSIBLINGS|_WS_CLIPCHILDREN, 0, 0, 1, 1, 0, 0, _glfw.windowState.instance, nil)
+	h, err := _CreateWindowExW(_WS_EX_OVERLAPPEDWINDOW, _GLFW_WNDCLASSNAME, "GLFW message window", _WS_CLIPSIBLINGS|_WS_CLIPCHILDREN, 0, 0, 1, 1, 0, 0, _glfw.platformWindow.instance, nil)
 	if err != nil {
 		return err
 	}
 
-	_glfw.windowState.helperWindowHandle = h
+	_glfw.platformWindow.helperWindowHandle = h
 
 	// HACK: The command to the first ShowWindow call is ignored if the parent
 	//       process passed along a STARTUPINFO, so clear that with a no-op call
-	_ShowWindow(_glfw.windowState.helperWindowHandle, _SW_HIDE)
+	_ShowWindow(_glfw.platformWindow.helperWindowHandle, _SW_HIDE)
 
 	// Register for HID device notifications
 	if !microsoftgdk.IsXbox() {
@@ -222,15 +222,15 @@ func createHelperWindow() error {
 		dbi.dbcc_size = uint32(unsafe.Sizeof(dbi))
 		dbi.dbcc_devicetype = _DBT_DEVTYP_DEVICEINTERFACE
 		dbi.dbcc_classguid = _GUID_DEVINTERFACE_HID
-		notify, err := _RegisterDeviceNotificationW(windows.Handle(_glfw.windowState.helperWindowHandle), unsafe.Pointer(&dbi), _DEVICE_NOTIFY_WINDOW_HANDLE)
+		notify, err := _RegisterDeviceNotificationW(windows.Handle(_glfw.platformWindow.helperWindowHandle), unsafe.Pointer(&dbi), _DEVICE_NOTIFY_WINDOW_HANDLE)
 		if err != nil {
 			return err
 		}
-		_glfw.windowState.deviceNotificationHandle = notify
+		_glfw.platformWindow.deviceNotificationHandle = notify
 	}
 
 	var msg _MSG
-	for _PeekMessageW(&msg, _glfw.windowState.helperWindowHandle, 0, 0, _PM_REMOVE) {
+	for _PeekMessageW(&msg, _glfw.platformWindow.helperWindowHandle, 0, 0, _PM_REMOVE) {
 		_TranslateMessage(&msg)
 		_DispatchMessageW(&msg)
 	}
@@ -281,7 +281,7 @@ func platformInit() error {
 	if err != nil {
 		return err
 	}
-	_glfw.windowState.instance = _HINSTANCE(m)
+	_glfw.platformWindow.instance = _HINSTANCE(m)
 
 	createKeyTables()
 	updateKeyNamesWin32()
@@ -335,15 +335,15 @@ func platformInit() error {
 }
 
 func platformTerminate() error {
-	if _glfw.windowState.deviceNotificationHandle != 0 {
-		if err := _UnregisterDeviceNotification(_glfw.windowState.deviceNotificationHandle); err != nil {
+	if _glfw.platformWindow.deviceNotificationHandle != 0 {
+		if err := _UnregisterDeviceNotification(_glfw.platformWindow.deviceNotificationHandle); err != nil {
 			return err
 		}
 	}
 
-	if _glfw.windowState.helperWindowHandle != 0 {
+	if _glfw.platformWindow.helperWindowHandle != 0 {
 		if !microsoftgdk.IsXbox() {
-			if err := _DestroyWindow(_glfw.windowState.helperWindowHandle); err != nil {
+			if err := _DestroyWindow(_glfw.platformWindow.helperWindowHandle); err != nil {
 				return err
 			}
 		}

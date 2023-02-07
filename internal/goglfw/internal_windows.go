@@ -91,7 +91,7 @@ type context struct {
 	getProcAddress     func(string) uintptr
 	destroy            func(*Window) error
 
-	state platformContextState
+	platform platformContextState
 }
 
 type (
@@ -168,7 +168,7 @@ type Window struct {
 		drop        DropCallback
 	}
 
-	state platformWindowState
+	platform platformWindowState
 }
 
 type Monitor struct {
@@ -178,15 +178,15 @@ type Monitor struct {
 
 	modes []*VidMode
 
-	state platformMonitorState
+	platform platformMonitorState
 }
 
 type Cursor struct {
-	state platformCursorState
+	platform platformCursorState
 }
 
 type tls struct {
-	state platformTLSState
+	platform platformTLSState
 }
 
 type library struct {
@@ -212,8 +212,8 @@ type library struct {
 		monitor MonitorCallback
 	}
 
-	windowState  platformLibraryWindowState
-	contextState platformLibraryContextState
+	platformWindow  platformLibraryWindowState
+	platformContext platformLibraryContextState
 }
 
 func boolToInt(x bool) int {

@@ -6,7 +6,7 @@
 package goglfw
 
 func (t *tls) create() error {
-	if t.state.allocated {
+	if t.platform.allocated {
 		panic("goglfw: TLS must not be allocated")
 	}
 
@@ -14,34 +14,34 @@ func (t *tls) create() error {
 	if err != nil {
 		return err
 	}
-	t.state.index = i
-	t.state.allocated = true
+	t.platform.index = i
+	t.platform.allocated = true
 	return nil
 }
 
 func (t *tls) destroy() error {
-	if t.state.allocated {
-		if err := _TlsFree(t.state.index); err != nil {
+	if t.platform.allocated {
+		if err := _TlsFree(t.platform.index); err != nil {
 			return err
 		}
 	}
-	t.state.allocated = false
-	t.state.index = 0
+	t.platform.allocated = false
+	t.platform.index = 0
 	return nil
 }
 
 func (t *tls) get() (uintptr, error) {
-	if !t.state.allocated {
+	if !t.platform.allocated {
 		panic("goglfw: TLS must be allocated")
 	}
 
-	return _TlsGetValue(t.state.index)
+	return _TlsGetValue(t.platform.index)
 }
 
 func (t *tls) set(value uintptr) error {
-	if !t.state.allocated {
+	if !t.platform.allocated {
 		panic("goglfw: TLS must be allocated")
 	}
 
-	return _TlsSetValue(t.state.index, value)
+	return _TlsSetValue(t.platform.index, value)
 }
