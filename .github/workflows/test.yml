@@ -45,8 +45,9 @@ jobs:
 
       - name: Install wasmbrowsertest
         run: |
-          go install github.com/agnivade/wasmbrowsertest@bba38b6c9041cdd04596575fc25857f69eb2ab77
+          go install github.com/agnivade/wasmbrowsertest@bb77d443e302d06f0d2462336bc2765942e0e862
           mv $(go env GOPATH)/bin/wasmbrowsertest${{ runner.os == 'Windows' && '.exe' || '' }} $(go env GOPATH)/bin/go_js_wasm_exec${{ runner.os == 'Windows' && '.exe' || '' }}
+          go install github.com/agnivade/wasmbrowsertest/cmd/cleanenv@bb77d443e302d06f0d2462336bc2765942e0e862
 
       - name: Prepare ebitenmobile test
         run: |
@@ -143,8 +144,8 @@ jobs:
 
       - name: go test (Wasm)
         run: |
-          env GOOS=js GOARCH=wasm go test -shuffle=on -v ./...
-          env GOOS=js GOARCH=wasm EBITENGINE_OPENGL=webgl1 go test -shuffle=on -v ./...
+          env GOOS=js GOARCH=wasm cleanenv -remove-prefix GITHUB_ -remove-prefix JAVA_ -- go test -shuffle=on -v ./...
+          env GOOS=js GOARCH=wasm EBITENGINE_OPENGL=webgl1 cleanenv -remove-prefix GITHUB_ -remove-prefix JAVA_ -- go test -shuffle=on -v ./...
 
       - name: Install ebitenmobile
         run: |
