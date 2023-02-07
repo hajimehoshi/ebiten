@@ -39,7 +39,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 }
 
 func (g *Game) Layout(width, height int) (int, int) {
-	// Ebiten's image function should be able to be called even in Layout.
+	// Ebitengine's image function should be able to be called even in Layout.
 	done := make(chan struct{})
 	timeout := time.After(time.Second)
 	go func() {

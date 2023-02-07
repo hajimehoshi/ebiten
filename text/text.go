@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package text offers functions to draw texts on an Ebiten's image.
+// Package text offers functions to draw texts on an Ebitengine's image.
 //
 // For the example using a TTF font, see font package in the examples.
 package text

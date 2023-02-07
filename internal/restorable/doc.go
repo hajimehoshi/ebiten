@@ -24,7 +24,7 @@
 // to make more room on GPU memory.
 // This can happen e.g. when GPU memory usage is high, or just switching applications
 // might cause context lost on mobiles.
-// As Ebiten's image data is on GPU memory, the game can't continue when context lost happens
+// As Ebitengine's image data is on GPU memory, the game can't continue when context lost happens
 // without restoring image information.
 // The package restorable is the package to record information for such restoring.
 //
