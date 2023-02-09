@@ -11,10 +11,9 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"syscall"
 	"unsafe"
 
-	"golang.org/x/sys/windows"
+	"github.com/ebitengine/purego"
 )
 
 func checkValidContextConfig(ctxconfig *ctxconfig) error {
@@ -271,8 +270,8 @@ func (w *Window) refreshContextAttribs(ctxconfig *ctxconfig) (ferr error) {
 		return fmt.Errorf("goglfw: entry point retrieval is broken: %w", PlatformError)
 	}
 
-	r, _, _ := syscall.Syscall(getString, 1, GL_VERSION, 0, 0)
-	version := windows.BytePtrToString((*byte)(unsafe.Pointer(r)))
+	r, _, _ := purego.SyscallN(getString, GL_VERSION)
+	version := bytePtrToString((*byte)(unsafe.Pointer(r)))
 	if version == "" {
 		if ctxconfig.client == OpenGLAPI {
 			return fmt.Errorf("goglfw: OpenGL version string retrieval is broken: %w", PlatformError)
@@ -334,7 +333,7 @@ func (w *Window) refreshContextAttribs(ctxconfig *ctxconfig) (ferr error) {
 		// Read back context flags (OpenGL 3.0 and above)
 		if w.context.major >= 3 {
 			var flags int32
-			_, _, _ = syscall.Syscall(getIntegerv, 2, GL_CONTEXT_FLAGS, uintptr(unsafe.Pointer(&flags)), 0)
+			_, _, _ = purego.SyscallN(getIntegerv, GL_CONTEXT_FLAGS, uintptr(unsafe.Pointer(&flags)))
 
 			if flags&GL_CONTEXT_FLAG_FORWARD_COMPATIBLE_BIT != 0 {
 				w.context.forward = true
@@ -363,7 +362,7 @@ func (w *Window) refreshContextAttribs(ctxconfig *ctxconfig) (ferr error) {
 		// Read back OpenGL context profile (OpenGL 3.2 and above)
 		if w.context.major >= 4 || (w.context.major == 3 && w.context.minor >= 2) {
 			var mask int32
-			_, _, _ = syscall.Syscall(getIntegerv, 2, GL_CONTEXT_PROFILE_MASK, uintptr(unsafe.Pointer(&mask)), 0)
+			_, _, _ = purego.SyscallN(getIntegerv, GL_CONTEXT_PROFILE_MASK, uintptr(unsafe.Pointer(&mask)))
 
 			if mask&GL_CONTEXT_COMPATIBILITY_PROFILE_BIT != 0 {
 				w.context.profile = OpenGLCompatProfile
@@ -394,7 +393,7 @@ func (w *Window) refreshContextAttribs(ctxconfig *ctxconfig) (ferr error) {
 			//       only present from 3.0 while the extension applies from 1.1
 
 			var strategy int32
-			_, _, _ = syscall.Syscall(getIntegerv, 2, GL_RESET_NOTIFICATION_STRATEGY_ARB, uintptr(unsafe.Pointer(&strategy)), 0)
+			_, _, _ = purego.SyscallN(getIntegerv, GL_RESET_NOTIFICATION_STRATEGY_ARB, uintptr(unsafe.Pointer(&strategy)))
 
 			if strategy == GL_LOSE_CONTEXT_ON_RESET_ARB {
 				w.context.robustness = LoseContextOnReset
@@ -413,7 +412,7 @@ func (w *Window) refreshContextAttribs(ctxconfig *ctxconfig) (ferr error) {
 			//       one, so we can reuse them here
 
 			var strategy int32
-			_, _, _ = syscall.Syscall(getIntegerv, 2, GL_RESET_NOTIFICATION_STRATEGY_ARB, uintptr(unsafe.Pointer(&strategy)), 0)
+			_, _, _ = purego.SyscallN(getIntegerv, GL_RESET_NOTIFICATION_STRATEGY_ARB, uintptr(unsafe.Pointer(&strategy)))
 
 			if strategy == GL_LOSE_CONTEXT_ON_RESET_ARB {
 				w.context.robustness = LoseContextOnReset
@@ -429,7 +428,7 @@ func (w *Window) refreshContextAttribs(ctxconfig *ctxconfig) (ferr error) {
 	}
 	if ok {
 		var behavior int32
-		_, _, _ = syscall.Syscall(getIntegerv, 2, GL_CONTEXT_RELEASE_BEHAVIOR, uintptr(unsafe.Pointer(&behavior)), 0)
+		_, _, _ = purego.SyscallN(getIntegerv, GL_CONTEXT_RELEASE_BEHAVIOR, uintptr(unsafe.Pointer(&behavior)))
 
 		if behavior == GL_NONE {
 			w.context.release = ReleaseBehaviorNone
@@ -441,7 +440,7 @@ func (w *Window) refreshContextAttribs(ctxconfig *ctxconfig) (ferr error) {
 	// Clearing the front buffer to black to avoid garbage pixels left over from
 	// previous uses of our bit of VRAM
 	glClear := w.context.getProcAddress("glClear")
-	_, _, _ = syscall.Syscall(glClear, 1, GL_COLOR_BUFFER_BIT, 0, 0)
+	_, _, _ = purego.SyscallN(glClear, GL_COLOR_BUFFER_BIT)
 
 	if w.doublebuffer {
 		if err := w.context.swapBuffers(w); err != nil {
@@ -553,16 +552,16 @@ func ExtensionSupported(extension string) (bool, error) {
 
 		glGetIntegerv := window.context.getProcAddress("glGetIntegerv")
 		var count int32
-		_, _, _ = syscall.Syscall(glGetIntegerv, 2, GL_NUM_EXTENSIONS, uintptr(unsafe.Pointer(&count)), 0)
+		_, _, _ = purego.SyscallN(glGetIntegerv, GL_NUM_EXTENSIONS, uintptr(unsafe.Pointer(&count)))
 
 		glGetStringi := window.context.getProcAddress("glGetStringi")
 		for i := 0; i < int(count); i++ {
-			r, _, _ := syscall.Syscall(glGetStringi, 2, GL_EXTENSIONS, uintptr(i), 0)
+			r, _, _ := purego.SyscallN(glGetStringi, GL_EXTENSIONS, uintptr(i))
 			if r == 0 {
 				return false, fmt.Errorf("goglfw: extension string retrieval is broken: %w", PlatformError)
 			}
 
-			en := windows.BytePtrToString((*byte)(unsafe.Pointer(r)))
+			en := bytePtrToString((*byte)(unsafe.Pointer(r)))
 			if en == extension {
 				return true, nil
 			}
@@ -571,12 +570,12 @@ func ExtensionSupported(extension string) (bool, error) {
 		// Check if extension is in the old style OpenGL extensions string
 
 		glGetString := window.context.getProcAddress("glGetString")
-		r, _, _ := syscall.Syscall(glGetString, 1, GL_EXTENSIONS, 0, 0)
+		r, _, _ := purego.SyscallN(glGetString, GL_EXTENSIONS)
 		if r == 0 {
 			return false, fmt.Errorf("goglfw: extension string retrieval is broken: %w", PlatformError)
 		}
 
-		extensions := windows.BytePtrToString((*byte)(unsafe.Pointer(r)))
+		extensions := bytePtrToString((*byte)(unsafe.Pointer(r)))
 		for _, str := range strings.Split(extensions, " ") {
 			if str == extension {
 				return true, nil
@@ -586,4 +585,25 @@ func ExtensionSupported(extension string) (bool, error) {
 
 	// Check if extension is in the platform-specific string
 	return window.context.extensionSupported(extension), nil
+}
+
+// bytePtrToString takes a pointer to a sequence of text and returns the corresponding string.
+// If the pointer is nil, it returns the empty string. It assumes that the text sequence is
+// terminated at a zero byte; if the zero byte is not present, the program may crash.
+// It is copied from golang.org/x/sys/windows/syscall.go for use on macOS, Linux and Windows
+func bytePtrToString(p *byte) string {
+	if p == nil {
+		return ""
+	}
+	if *p == 0 {
+		return ""
+	}
+
+	// Find NUL terminator.
+	n := 0
+	for ptr := unsafe.Pointer(p); *(*byte)(ptr) != 0; n++ {
+		ptr = unsafe.Pointer(uintptr(ptr) + 1)
+	}
+
+	return string(unsafe.Slice(p, n))
 }
