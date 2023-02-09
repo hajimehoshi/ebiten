@@ -7,12 +7,13 @@ package goglfw
 
 import (
 	"fmt"
-	"github.com/ebitengine/purego"
 	"math"
 	"regexp"
 	"strconv"
 	"strings"
 	"unsafe"
+
+	"github.com/ebitengine/purego"
 )
 
 func checkValidContextConfig(ctxconfig *ctxconfig) error {
