@@ -587,8 +587,10 @@ func ExtensionSupported(extension string) (bool, error) {
 	return window.context.extensionSupported(extension), nil
 }
 
-// copied from golang.org/x/sys/windows/syscall.go
-// for use on macOS, Linux and Windows
+// bytePtrToString takes a pointer to a sequence of text and returns the corresponding string.
+// If the pointer is nil, it returns the empty string. It assumes that the text sequence is
+// terminated at a zero byte; if the zero byte is not present, the program may crash.
+// It is copied from golang.org/x/sys/windows/syscall.go for use on macOS, Linux and Windows
 func bytePtrToString(p *byte) string {
 	if p == nil {
 		return ""
