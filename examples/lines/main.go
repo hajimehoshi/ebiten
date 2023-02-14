@@ -136,6 +136,10 @@ func (g *Game) drawLine(screen *ebiten.Image, region image.Rectangle, cap vector
 	for i := range vs {
 		vs[i].SrcX = 1
 		vs[i].SrcY = 1
+		vs[i].ColorR = 1
+		vs[i].ColorG = 1
+		vs[i].ColorB = 1
+		vs[i].ColorA = 1
 	}
 	screen.DrawTriangles(vs, is, whiteSubImage, &ebiten.DrawTrianglesOptions{
 		AntiAlias: g.aa,
