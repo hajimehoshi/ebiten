@@ -42,7 +42,11 @@ func TestPrograms(t *testing.T) {
 			continue
 		}
 
+		// Run tests not in parallel (#2571)
+		ch := make(chan struct{})
 		t.Run(n, func(t *testing.T) {
+			defer close(ch)
+
 			cmd := exec.Command("go", "run", filepath.Join(dir, n))
 			stderr := &bytes.Buffer{}
 			cmd.Stderr = stderr
@@ -50,5 +54,6 @@ func TestPrograms(t *testing.T) {
 				t.Errorf("%v\n%s", err, stderr)
 			}
 		})
+		<-ch
 	}
 }
