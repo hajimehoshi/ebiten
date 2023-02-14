@@ -135,6 +135,7 @@ func drawEbitenText(screen *ebiten.Image, x, y int, aa bool, line bool) {
 		vs[i].ColorR = 0xdb / float32(0xff)
 		vs[i].ColorG = 0x56 / float32(0xff)
 		vs[i].ColorB = 0x20 / float32(0xff)
+		vs[i].ColorA = 1
 	}
 
 	op := &ebiten.DrawTrianglesOptions{}
@@ -190,6 +191,7 @@ func drawEbitenLogo(screen *ebiten.Image, x, y int, aa bool, line bool) {
 		vs[i].ColorR = 0xdb / float32(0xff)
 		vs[i].ColorG = 0x56 / float32(0xff)
 		vs[i].ColorB = 0x20 / float32(0xff)
+		vs[i].ColorA = 1
 	}
 
 	op := &ebiten.DrawTrianglesOptions{}
@@ -233,6 +235,7 @@ func drawArc(screen *ebiten.Image, count int, aa bool, line bool) {
 		vs[i].ColorR = 0x33 / float32(0xff)
 		vs[i].ColorG = 0xcc / float32(0xff)
 		vs[i].ColorB = 0x66 / float32(0xff)
+		vs[i].ColorA = 1
 	}
 
 	op := &ebiten.DrawTrianglesOptions{}
@@ -289,6 +292,7 @@ func drawWave(screen *ebiten.Image, counter int, aa bool, line bool) {
 		vs[i].ColorR = 0x33 / float32(0xff)
 		vs[i].ColorG = 0x66 / float32(0xff)
 		vs[i].ColorB = 0xff / float32(0xff)
+		vs[i].ColorA = 1
 	}
 
 	op := &ebiten.DrawTrianglesOptions{}
