@@ -43,17 +43,17 @@ func (g *Game) Layout(width, height int) (int, int) {
 	done := make(chan struct{})
 	timeout := time.After(time.Second)
 	go func() {
-		select {
-		case <-done:
-		case <-timeout:
-			panic("timeout")
-		}
+		i := ebiten.NewImage(width, height)
+		i.Fill(color.White)
+		i.Dispose()
+		close(done)
 	}()
-	defer close(done)
 
-	i := ebiten.NewImage(width, height)
-	i.Fill(color.White)
-	i.Dispose()
+	select {
+	case <-done:
+	case <-timeout:
+		panic("timeout")
+	}
 	return width, height
 }
 
