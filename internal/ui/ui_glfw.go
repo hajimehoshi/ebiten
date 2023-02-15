@@ -1013,7 +1013,6 @@ func (u *userInterfaceImpl) update() (float64, float64, error) {
 
 func (u *userInterfaceImpl) loopGame() error {
 	defer u.mainThread.Call(func() {
-		u.window.Destroy()
 		glfw.Terminate()
 	})
 	for {
