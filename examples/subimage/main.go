@@ -58,6 +58,8 @@ func (g *Game) Draw(screen *ebiten.Image) {
 				g.subImages[i][j] = img
 			}
 
+			// Rendering onto a sub image should be efficient,
+			// but this is not efficient some environments like browsers (#2471).
 			clr := color.RGBA{byte(0xff * float64(i) / cx), byte(0xff * float64(j) / cx), 0, 0xff}
 			img.Fill(clr)
 		}
