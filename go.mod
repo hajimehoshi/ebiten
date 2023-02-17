@@ -14,13 +14,13 @@ require (
 	golang.org/x/image v0.5.0
 	golang.org/x/mobile v0.0.0-20221110043201-43a038452099
 	golang.org/x/sync v0.1.0
-	golang.org/x/sys v0.4.0
-	golang.org/x/tools v0.5.0
+	golang.org/x/sys v0.5.0
+	golang.org/x/tools v0.6.0
 )
 
 require (
 	github.com/jfreymuth/vorbis v1.0.2 // indirect
 	golang.org/x/exp v0.0.0-20190731235908-ec7cb31e5a56 // indirect
-	golang.org/x/mod v0.7.0 // indirect
+	golang.org/x/mod v0.8.0 // indirect
 	golang.org/x/text v0.7.0 // indirect
 )
