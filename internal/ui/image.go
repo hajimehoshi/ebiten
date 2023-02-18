@@ -16,6 +16,7 @@ package ui
 
 import (
 	"fmt"
+	"math"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
@@ -308,8 +309,7 @@ type bigOffscreenImage struct {
 	imageType atlas.ImageType
 
 	image  *Image
-	width  int
-	height int
+	region graphicsdriver.Region
 
 	blend graphicsdriver.Blend
 	dirty bool
@@ -334,17 +334,41 @@ func (i *bigOffscreenImage) markDisposed() {
 }
 
 func (i *bigOffscreenImage) drawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint16, blend graphicsdriver.Blend, dstRegion, srcRegion graphicsdriver.Region, subimageOffsets [graphics.ShaderImageCount - 1][2]float32, shader *Shader, uniforms []uint32, evenOdd bool, canSkipMipmap bool, antialias bool) {
-	if i.image == nil {
-		// TODO: Start with a samller size (#2399)
-		i.image = NewImage(i.orig.width*bigOffscreenScale, i.orig.height*bigOffscreenScale, i.imageType)
-		i.width = i.orig.width
-		i.height = i.orig.height
-	}
-
 	if i.blend != blend {
 		i.flush()
 	}
 	i.blend = blend
+
+	// If the new region doesn't match with the current region, extend the buffer image.
+	if r := i.requiredRegion(vertices); i.region != r {
+		if i.image != nil {
+			img := i.image
+			i.image = NewImage(int(r.Width)*bigOffscreenScale, int(r.Height)*bigOffscreenScale, i.imageType)
+
+			srcs := [graphics.ShaderImageCount]*Image{img}
+			// TODO: Should we keep vertices like tmpVerticesForCopying?
+			vertices := make([]float32, 4*graphics.VertexFloatCount)
+			graphics.QuadVertices(
+				vertices,
+				0, 0, i.region.Width*bigOffscreenScale, i.region.Height*bigOffscreenScale,
+				1, 0, 0, 1, (i.region.X-r.X)*bigOffscreenScale, (i.region.Y-r.Y)*bigOffscreenScale,
+				1, 1, 1, 1)
+			is := graphics.QuadIndices()
+			dstRegion := graphicsdriver.Region{
+				X:      0,
+				Y:      0,
+				Width:  r.Width * bigOffscreenScale,
+				Height: r.Height * bigOffscreenScale,
+			}
+			i.image.DrawTriangles(srcs, vertices, is, graphicsdriver.BlendCopy, dstRegion, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, NearestFilterShader, nil, false, true, false)
+			img.MarkDisposed()
+		}
+		i.region = r
+	}
+
+	if i.image == nil {
+		i.image = NewImage(int(i.region.Width)*bigOffscreenScale, int(i.region.Height)*bigOffscreenScale, i.imageType)
+	}
 
 	// Copy the current rendering result to get the correct blending result.
 	if blend != graphicsdriver.BlendSourceOver && !i.dirty {
@@ -368,9 +392,9 @@ func (i *bigOffscreenImage) drawTriangles(srcs [graphics.ShaderImageCount]*Image
 		i.image.DrawTriangles(srcs, i.tmpVerticesForCopying, is, graphicsdriver.BlendCopy, dstRegion, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, NearestFilterShader, nil, false, true, false)
 	}
 
-	for i := 0; i < len(vertices); i += graphics.VertexFloatCount {
-		vertices[i] *= bigOffscreenScale
-		vertices[i+1] *= bigOffscreenScale
+	for idx := 0; idx < len(vertices); idx += graphics.VertexFloatCount {
+		vertices[idx] = (vertices[idx] - i.region.X) * bigOffscreenScale
+		vertices[idx+1] = (vertices[idx+1] - i.region.Y) * bigOffscreenScale
 	}
 
 	dstRegion.X *= bigOffscreenScale
@@ -401,16 +425,11 @@ func (i *bigOffscreenImage) flush() {
 	// i.tmpVerticesForFlushing can be reused as this is sent to DrawTriangles in this function.
 	graphics.QuadVertices(
 		i.tmpVerticesForFlushing,
-		0, 0, float32(i.width*bigOffscreenScale), float32(i.height*bigOffscreenScale),
-		1.0/bigOffscreenScale, 0, 0, 1.0/bigOffscreenScale, 0, 0,
+		0, 0, i.region.Width*bigOffscreenScale, i.region.Height*bigOffscreenScale,
+		1.0/bigOffscreenScale, 0, 0, 1.0/bigOffscreenScale, i.region.X, i.region.Y,
 		1, 1, 1, 1)
 	is := graphics.QuadIndices()
-	dstRegion := graphicsdriver.Region{
-		X:      0,
-		Y:      0,
-		Width:  float32(i.width),
-		Height: float32(i.height),
-	}
+	dstRegion := i.region
 	blend := graphicsdriver.BlendSourceOver
 	if i.blend != graphicsdriver.BlendSourceOver {
 		blend = graphicsdriver.BlendCopy
@@ -419,4 +438,117 @@ func (i *bigOffscreenImage) flush() {
 
 	i.image.clear()
 	i.dirty = false
+}
+
+func (i *bigOffscreenImage) requiredRegion(vertices []float32) graphicsdriver.Region {
+	if i.blend != graphicsdriver.BlendSourceOver {
+		return graphicsdriver.Region{
+			X:      0,
+			Y:      0,
+			Width:  float32(i.orig.width),
+			Height: float32(i.orig.height),
+		}
+	}
+
+	minX := float32(i.orig.width)
+	minY := float32(i.orig.height)
+	maxX := float32(0)
+	maxY := float32(0)
+	for i := 0; i < len(vertices); i += graphics.VertexFloatCount {
+		dstX := vertices[i]
+		dstY := vertices[i+1]
+		if minX > floor(dstX)-1 {
+			minX = floor(dstX) - 1
+		}
+		if minY > floor(dstY)-1 {
+			minY = floor(dstY) - 1
+		}
+		if maxX < ceil(dstX)+1 {
+			maxX = ceil(dstX) + 1
+		}
+		if maxY < ceil(dstY)+1 {
+			maxY = ceil(dstY) + 1
+		}
+	}
+
+	// Adjust the granularity of the rectangle.
+	minX = float32(roundDown16(int(minX)))
+	minY = float32(roundDown16(int(minY)))
+	maxX = float32(roundUp16(int(maxX)))
+	maxY = float32(roundUp16(int(maxY)))
+
+	if minX < 0 {
+		minX = 0
+	}
+	if minY < 0 {
+		minY = 0
+	}
+	if maxX > float32(i.orig.width) {
+		maxX = float32(i.orig.width)
+	}
+	if maxY > float32(i.orig.height) {
+		maxY = float32(i.orig.height)
+	}
+
+	r := graphicsdriver.Region{
+		X:      minX,
+		Y:      minY,
+		Width:  maxX - minX,
+		Height: maxY - minY,
+	}
+	if r.Width < 0 || r.Height < 0 {
+		return i.region
+	}
+
+	return union(r, i.region)
+}
+
+func floor(x float32) float32 {
+	return float32(math.Floor(float64(x)))
+}
+
+func ceil(x float32) float32 {
+	return float32(math.Ceil(float64(x)))
+}
+
+func roundDown16(x int) int {
+	return x & ^(0xf)
+}
+
+func roundUp16(x int) int {
+	return ((x - 1) & ^(0xf)) + 0x10
+}
+
+func min(x, y float32) float32 {
+	if x < y {
+		return x
+	}
+	return y
+}
+
+func max(x, y float32) float32 {
+	if x > y {
+		return x
+	}
+	return y
+}
+
+func union(r0, r1 graphicsdriver.Region) graphicsdriver.Region {
+	if r0.Width == 0 || r0.Height == 0 {
+		return r1
+	}
+	if r1.Width == 0 || r1.Height == 0 {
+		return r0
+	}
+
+	x0 := min(r0.X, r1.X)
+	y0 := min(r0.Y, r1.Y)
+	x1 := max(r0.X+r0.Width, r1.X+r1.Width)
+	y1 := max(r0.Y+r0.Height, r1.Y+r1.Height)
+	return graphicsdriver.Region{
+		X:      x0,
+		Y:      y0,
+		Width:  x1 - x0,
+		Height: y1 - y0,
+	}
 }

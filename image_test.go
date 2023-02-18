@@ -3865,11 +3865,15 @@ func TestImageBlendFactor(t *testing.T) {
 	}
 }
 
-func TestImageAntiAliasAndBlend(t *testing.T) {
-	const w, h = 16, 16
+func TestImageAntiAlias(t *testing.T) {
+	// This value depends on internal/ui.bigOffscreenScale. Sync this.
+	const bigOffscreenScale = 2
+
+	const w, h = 272, 208
 
 	dst0 := ebiten.NewImage(w, h)
 	dst1 := ebiten.NewImage(w, h)
+	tmp := ebiten.NewImage(w*bigOffscreenScale, h*bigOffscreenScale)
 	src := ebiten.NewImage(w, h)
 
 	for _, blend := range []ebiten.Blend{
@@ -3877,19 +3881,23 @@ func TestImageAntiAliasAndBlend(t *testing.T) {
 		ebiten.BlendClear,
 		ebiten.BlendCopy,
 		ebiten.BlendSourceOver,
+		ebiten.BlendDestinationOver,
+		ebiten.BlendXor,
 		ebiten.BlendLighter,
 	} {
 		dst0.Fill(color.RGBA{R: 0x24, G: 0x3f, B: 0x6a, A: 0x88})
 		dst1.Fill(color.RGBA{R: 0x24, G: 0x3f, B: 0x6a, A: 0x88})
+		tmp.Clear()
 		src.Fill(color.RGBA{R: 0x85, G: 0xa3, B: 0x08, A: 0xd3})
 
-		op0 := &ebiten.DrawTrianglesOptions{}
-		op0.Blend = blend
-		op0.AntiAlias = true
-		vs := []ebiten.Vertex{
+		// Create an actual result.
+		op := &ebiten.DrawTrianglesOptions{}
+		op.Blend = blend
+		op.AntiAlias = true
+		vs0 := []ebiten.Vertex{
 			{
-				DstX:   0,
-				DstY:   0,
+				DstX:   w / 4,
+				DstY:   h / 4,
 				SrcX:   0,
 				SrcY:   0,
 				ColorR: 1,
@@ -3898,8 +3906,8 @@ func TestImageAntiAliasAndBlend(t *testing.T) {
 				ColorA: 1,
 			},
 			{
-				DstX:   w,
-				DstY:   0,
+				DstX:   2 * w / 4,
+				DstY:   h / 4,
 				SrcX:   w,
 				SrcY:   0,
 				ColorR: 1,
@@ -3908,8 +3916,23 @@ func TestImageAntiAliasAndBlend(t *testing.T) {
 				ColorA: 1,
 			},
 			{
-				DstX:   0,
-				DstY:   h,
+				DstX:   w / 4,
+				DstY:   2 * h / 4,
+				SrcX:   0,
+				SrcY:   h,
+				ColorR: 1,
+				ColorG: 1,
+				ColorB: 1,
+				ColorA: 1,
+			},
+		}
+		is := []uint16{0, 1, 2}
+		dst0.DrawTriangles(vs0, is, src, op)
+
+		vs1 := []ebiten.Vertex{
+			{
+				DstX:   2 * w / 4,
+				DstY:   3 * h / 4,
 				SrcX:   0,
 				SrcY:   h,
 				ColorR: 1,
@@ -3918,8 +3941,18 @@ func TestImageAntiAliasAndBlend(t *testing.T) {
 				ColorA: 1,
 			},
 			{
-				DstX:   w,
-				DstY:   h,
+				DstX:   3 * w / 4,
+				DstY:   2 * h / 4,
+				SrcX:   w,
+				SrcY:   0,
+				ColorR: 1,
+				ColorG: 1,
+				ColorB: 1,
+				ColorA: 1,
+			},
+			{
+				DstX:   3 * w / 4,
+				DstY:   3 * h / 4,
 				SrcX:   w,
 				SrcY:   h,
 				ColorR: 1,
@@ -3928,17 +3961,44 @@ func TestImageAntiAliasAndBlend(t *testing.T) {
 				ColorA: 1,
 			},
 		}
-		is := []uint16{0, 1, 2, 1, 2, 3}
-		dst0.DrawTriangles(vs, is, src, op0)
-		got := dst0.At(0, 0).(color.RGBA)
+		dst0.DrawTriangles(vs1, is, src, op)
 
-		op1 := &ebiten.DrawImageOptions{}
-		op1.Blend = blend
-		dst1.DrawImage(src, op1)
-		want := dst1.At(0, 0).(color.RGBA)
+		// Create an expected result.
+		// Copy an enlarged destination image to the offscreen.
+		opCopy := &ebiten.DrawImageOptions{}
+		opCopy.GeoM.Scale(bigOffscreenScale, bigOffscreenScale)
+		opCopy.Blend = ebiten.BlendCopy
+		tmp.DrawImage(dst1, opCopy)
 
-		if got != want {
-			t.Errorf("blend: %v, got: %v, want: %v", blend, got, want)
+		// Render the vertices onto the offscreen.
+		for i := range vs0 {
+			vs0[i].DstX *= 2
+			vs0[i].DstY *= 2
+		}
+		for i := range vs1 {
+			vs1[i].DstX *= 2
+			vs1[i].DstY *= 2
+		}
+		op = &ebiten.DrawTrianglesOptions{}
+		op.Blend = blend
+		tmp.DrawTriangles(vs0, is, src, op)
+		tmp.DrawTriangles(vs1, is, src, op)
+
+		// Render a shrunk offscreen image onto the destination.
+		opShrink := &ebiten.DrawImageOptions{}
+		opShrink.GeoM.Scale(1.0/bigOffscreenScale, 1.0/bigOffscreenScale)
+		opShrink.Filter = ebiten.FilterLinear
+		opShrink.Blend = ebiten.BlendCopy
+		dst1.DrawImage(tmp, opShrink)
+
+		for j := 0; j < h; j++ {
+			for i := 0; i < w; i++ {
+				got := dst0.At(i, j).(color.RGBA)
+				want := dst1.At(i, j).(color.RGBA)
+				if !sameColors(got, want, 2) {
+					t.Errorf("At(%d, %d), blend: %v, got: %v, want: %v", i, j, blend, got, want)
+				}
+			}
 		}
 	}
 }
