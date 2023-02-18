@@ -93,7 +93,7 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 			default:
 				panic(fmt.Sprintf("ui: unexpected image type: %d", imageType))
 			}
-			i.bigOffscreenBuffer = newBigOffscreenImage(i, i.width, i.height, imageType)
+			i.bigOffscreenBuffer = newBigOffscreenImage(i, imageType)
 		}
 
 		i.bigOffscreenBuffer.drawTriangles(srcs, vertices, indices, blend, dstRegion, srcRegion, subimageOffsets, shader, uniforms, evenOdd, canSkipMipmap, false)
@@ -304,33 +304,43 @@ func (i *Image) Fill(r, g, b, a float32, x, y, width, height int) {
 }
 
 type bigOffscreenImage struct {
-	orig   *Image
+	orig      *Image
+	imageType atlas.ImageType
+
 	image  *Image
 	width  int
 	height int
-	blend  graphicsdriver.Blend
-	dirty  bool
+
+	blend graphicsdriver.Blend
+	dirty bool
 
 	tmpVerticesForFlushing []float32
 	tmpVerticesForCopying  []float32
 }
 
-func newBigOffscreenImage(orig *Image, width, height int, imageType atlas.ImageType) *bigOffscreenImage {
+func newBigOffscreenImage(orig *Image, imageType atlas.ImageType) *bigOffscreenImage {
 	return &bigOffscreenImage{
-		orig:   orig,
-		image:  NewImage(width*bigOffscreenScale, height*bigOffscreenScale, imageType),
-		width:  width,
-		height: height,
+		orig:      orig,
+		imageType: imageType,
 	}
 }
 
 func (i *bigOffscreenImage) markDisposed() {
-	i.image.MarkDisposed()
-	i.image = nil
+	if i.image != nil {
+		i.image.MarkDisposed()
+		i.image = nil
+	}
 	i.dirty = false
 }
 
 func (i *bigOffscreenImage) drawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint16, blend graphicsdriver.Blend, dstRegion, srcRegion graphicsdriver.Region, subimageOffsets [graphics.ShaderImageCount - 1][2]float32, shader *Shader, uniforms []uint32, evenOdd bool, canSkipMipmap bool, antialias bool) {
+	if i.image == nil {
+		// TODO: Start with a samller size (#2399)
+		i.image = NewImage(i.orig.width*bigOffscreenScale, i.orig.height*bigOffscreenScale, i.imageType)
+		i.width = i.orig.width
+		i.height = i.orig.height
+	}
+
 	if i.blend != blend {
 		i.flush()
 	}
@@ -373,6 +383,10 @@ func (i *bigOffscreenImage) drawTriangles(srcs [graphics.ShaderImageCount]*Image
 }
 
 func (i *bigOffscreenImage) flush() {
+	if i.image == nil {
+		return
+	}
+
 	if !i.dirty {
 		return
 	}
