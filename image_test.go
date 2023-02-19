@@ -3874,7 +3874,8 @@ func TestImageAntiAlias(t *testing.T) {
 	dst0 := ebiten.NewImage(w, h)
 	dst1 := ebiten.NewImage(w, h)
 	tmp := ebiten.NewImage(w*bigOffscreenScale, h*bigOffscreenScale)
-	src := ebiten.NewImage(w, h)
+	src := ebiten.NewImage(3, 3)
+	src.Fill(color.RGBA{R: 0x24, G: 0x3f, B: 0x6a, A: 0x88})
 
 	for _, blend := range []ebiten.Blend{
 		{}, // Default
@@ -3885,10 +3886,31 @@ func TestImageAntiAlias(t *testing.T) {
 		ebiten.BlendXor,
 		ebiten.BlendLighter,
 	} {
-		dst0.Fill(color.RGBA{R: 0x24, G: 0x3f, B: 0x6a, A: 0x88})
-		dst1.Fill(color.RGBA{R: 0x24, G: 0x3f, B: 0x6a, A: 0x88})
+		rnd := rand.New(rand.NewSource(0))
+		max := func(x, y, z byte) byte {
+			if x >= y && x >= z {
+				return x
+			}
+			if y >= x && y >= z {
+				return y
+			}
+			return z
+		}
+
+		dstPix := make([]byte, 4*w*h)
+		for i := 0; i < w*h; i++ {
+			n := rnd.Int()
+			r, g, b := byte(n), byte(n>>8), byte(n>>16)
+			a := max(r, g, b)
+			dstPix[4*i] = r
+			dstPix[4*i+1] = g
+			dstPix[4*i+2] = b
+			dstPix[4*i+3] = a
+		}
+		dst0.WritePixels(dstPix)
+		dst1.WritePixels(dstPix)
+
 		tmp.Clear()
-		src.Fill(color.RGBA{R: 0x85, G: 0xa3, B: 0x08, A: 0xd3})
 
 		// Create an actual result.
 		op := &ebiten.DrawTrianglesOptions{}
@@ -3898,8 +3920,8 @@ func TestImageAntiAlias(t *testing.T) {
 			{
 				DstX:   w / 4,
 				DstY:   h / 4,
-				SrcX:   0,
-				SrcY:   0,
+				SrcX:   1,
+				SrcY:   1,
 				ColorR: 1,
 				ColorG: 1,
 				ColorB: 1,
@@ -3908,8 +3930,8 @@ func TestImageAntiAlias(t *testing.T) {
 			{
 				DstX:   2 * w / 4,
 				DstY:   h / 4,
-				SrcX:   w,
-				SrcY:   0,
+				SrcX:   2,
+				SrcY:   1,
 				ColorR: 1,
 				ColorG: 1,
 				ColorB: 1,
@@ -3918,8 +3940,8 @@ func TestImageAntiAlias(t *testing.T) {
 			{
 				DstX:   w / 4,
 				DstY:   2 * h / 4,
-				SrcX:   0,
-				SrcY:   h,
+				SrcX:   1,
+				SrcY:   2,
 				ColorR: 1,
 				ColorG: 1,
 				ColorB: 1,
@@ -3933,8 +3955,8 @@ func TestImageAntiAlias(t *testing.T) {
 			{
 				DstX:   2 * w / 4,
 				DstY:   3 * h / 4,
-				SrcX:   0,
-				SrcY:   h,
+				SrcX:   1,
+				SrcY:   2,
 				ColorR: 1,
 				ColorG: 1,
 				ColorB: 1,
@@ -3943,8 +3965,8 @@ func TestImageAntiAlias(t *testing.T) {
 			{
 				DstX:   3 * w / 4,
 				DstY:   2 * h / 4,
-				SrcX:   w,
-				SrcY:   0,
+				SrcX:   2,
+				SrcY:   1,
 				ColorR: 1,
 				ColorG: 1,
 				ColorB: 1,
@@ -3953,8 +3975,8 @@ func TestImageAntiAlias(t *testing.T) {
 			{
 				DstX:   3 * w / 4,
 				DstY:   3 * h / 4,
-				SrcX:   w,
-				SrcY:   h,
+				SrcX:   2,
+				SrcY:   2,
 				ColorR: 1,
 				ColorG: 1,
 				ColorB: 1,
