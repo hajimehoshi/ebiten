@@ -3877,6 +3877,7 @@ func TestImageAntiAliasAndBlend(t *testing.T) {
 		ebiten.BlendClear,
 		ebiten.BlendCopy,
 		ebiten.BlendSourceOver,
+		ebiten.BlendLighter,
 	} {
 		dst0.Fill(color.RGBA{R: 0x24, G: 0x3f, B: 0x6a, A: 0x88})
 		dst1.Fill(color.RGBA{R: 0x24, G: 0x3f, B: 0x6a, A: 0x88})
