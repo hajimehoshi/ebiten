@@ -3885,43 +3885,10 @@ func TestImageAntiAlias(t *testing.T) {
 		ebiten.BlendXor,
 		ebiten.BlendLighter,
 	} {
-		rnd := rand.New(rand.NewSource(0))
-		max := func(x, y, z byte) byte {
-			if x >= y && x >= z {
-				return x
-			}
-			if y >= x && y >= z {
-				return y
-			}
-			return z
-		}
-
-		dstPix := make([]byte, 4*w*h)
-		for i := 0; i < w*h; i++ {
-			n := rnd.Int()
-			r, g, b := byte(n), byte(n>>8), byte(n>>16)
-			a := max(r, g, b)
-			dstPix[4*i] = r
-			dstPix[4*i+1] = g
-			dstPix[4*i+2] = b
-			dstPix[4*i+3] = a
-		}
-		dst0.WritePixels(dstPix)
-		dst1.WritePixels(dstPix)
-
+		dst0.Fill(color.RGBA{R: 0x24, G: 0x3f, B: 0x6a, A: 0x88})
+		dst1.Fill(color.RGBA{R: 0x24, G: 0x3f, B: 0x6a, A: 0x88})
 		tmp.Clear()
-
-		srcPix := make([]byte, 4*w*h)
-		for i := 0; i < w*h; i++ {
-			n := rnd.Int()
-			r, g, b := byte(n), byte(n>>8), byte(n>>16)
-			a := max(r, g, b)
-			srcPix[4*i] = r
-			srcPix[4*i+1] = g
-			srcPix[4*i+2] = b
-			srcPix[4*i+3] = a
-		}
-		src.WritePixels(srcPix)
+		src.Fill(color.RGBA{R: 0x85, G: 0xa3, B: 0x08, A: 0xd3})
 
 		// Create an actual result.
 		op := &ebiten.DrawTrianglesOptions{}
