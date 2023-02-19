@@ -339,10 +339,30 @@ func (i *bigOffscreenImage) drawTriangles(srcs [graphics.ShaderImageCount]*Image
 	}
 	i.blend = blend
 
-	// If the new region doesn't match with the current region, remove the buffer image and recreate it later.
+	// If the new region doesn't match with the current region, extend the buffer image.
 	if r := i.requiredRegion(vertices); i.region != r {
-		i.flush()
-		i.image = nil
+		if i.image != nil {
+			img := i.image
+			i.image = NewImage(int(r.Width)*bigOffscreenScale, int(r.Height)*bigOffscreenScale, i.imageType)
+
+			srcs := [graphics.ShaderImageCount]*Image{img}
+			// TODO: Should we keep vertices like tmpVerticesForCopying?
+			vertices := make([]float32, 4*graphics.VertexFloatCount)
+			graphics.QuadVertices(
+				vertices,
+				0, 0, i.region.Width*bigOffscreenScale, i.region.Height*bigOffscreenScale,
+				1, 0, 0, 1, (i.region.X-r.X)*bigOffscreenScale, (i.region.Y-r.Y)*bigOffscreenScale,
+				1, 1, 1, 1)
+			is := graphics.QuadIndices()
+			dstRegion := graphicsdriver.Region{
+				X:      0,
+				Y:      0,
+				Width:  r.Width * bigOffscreenScale,
+				Height: r.Height * bigOffscreenScale,
+			}
+			i.image.DrawTriangles(srcs, vertices, is, graphicsdriver.BlendCopy, dstRegion, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, NearestFilterShader, nil, false, true, false)
+			img.MarkDisposed()
+		}
 		i.region = r
 	}
 
@@ -359,15 +379,15 @@ func (i *bigOffscreenImage) drawTriangles(srcs [graphics.ShaderImageCount]*Image
 		// i.tmpVerticesForCopying can be resused as this is sent to DrawTriangles immediately.
 		graphics.QuadVertices(
 			i.tmpVerticesForCopying,
-			i.region.X, i.region.Y, i.region.X+i.region.Width, i.region.Y+i.region.Height,
+			0, 0, float32(i.orig.width), float32(i.orig.height),
 			bigOffscreenScale, 0, 0, bigOffscreenScale, 0, 0,
 			1, 1, 1, 1)
 		is := graphics.QuadIndices()
 		dstRegion := graphicsdriver.Region{
 			X:      0,
 			Y:      0,
-			Width:  i.region.Width * bigOffscreenScale,
-			Height: i.region.Height * bigOffscreenScale,
+			Width:  float32(i.orig.width * bigOffscreenScale),
+			Height: float32(i.orig.height * bigOffscreenScale),
 		}
 		i.image.DrawTriangles(srcs, i.tmpVerticesForCopying, is, graphicsdriver.BlendCopy, dstRegion, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, NearestFilterShader, nil, false, true, false)
 	}
@@ -421,6 +441,15 @@ func (i *bigOffscreenImage) flush() {
 }
 
 func (i *bigOffscreenImage) requiredRegion(vertices []float32) graphicsdriver.Region {
+	if i.blend != graphicsdriver.BlendSourceOver {
+		return graphicsdriver.Region{
+			X:      0,
+			Y:      0,
+			Width:  float32(i.orig.width),
+			Height: float32(i.orig.height),
+		}
+	}
+
 	minX := float32(i.orig.width)
 	minY := float32(i.orig.height)
 	maxX := float32(0)
