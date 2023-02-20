@@ -22,6 +22,7 @@ import (
 	"runtime/debug"
 	"sync"
 	"sync/atomic"
+	"time"
 	"unicode"
 
 	"golang.org/x/mobile/app"
@@ -54,6 +55,7 @@ var (
 func init() {
 	theUI.userInterfaceImpl = userInterfaceImpl{
 		foreground:           1,
+		runnableOnUnfocused:  0, // This is 0 for backward compatibility during v2 (#2576).
 		graphicsDriverInitCh: make(chan struct{}),
 		errCh:                make(chan error),
 
@@ -73,7 +75,8 @@ func (u *userInterfaceImpl) Update() error {
 	default:
 	}
 
-	if !u.IsFocused() {
+	if !u.IsFocused() && !u.IsRunnableOnUnfocused() {
+		time.Sleep(time.Second / 60)
 		return nil
 	}
 
@@ -101,8 +104,9 @@ type userInterfaceImpl struct {
 	outsideWidth  float64
 	outsideHeight float64
 
-	foreground int32
-	errCh      chan error
+	foreground          int32
+	runnableOnUnfocused int32
+	errCh               chan error
 
 	// Used for gomobile-build
 	gbuildWidthPx   int
@@ -232,9 +236,11 @@ func (u *userInterfaceImpl) SetForeground(foreground bool) error {
 
 	if foreground {
 		return hooks.ResumeAudio()
-	} else {
+	}
+	if !u.IsRunnableOnUnfocused() {
 		return hooks.SuspendAudio()
 	}
+	return nil
 }
 
 func (u *userInterfaceImpl) Run(game Game, options *RunOptions) error {
@@ -395,11 +401,15 @@ func (u *userInterfaceImpl) IsFocused() bool {
 }
 
 func (u *userInterfaceImpl) IsRunnableOnUnfocused() bool {
-	return false
+	return atomic.LoadInt32(&u.runnableOnUnfocused) != 0
 }
 
 func (u *userInterfaceImpl) SetRunnableOnUnfocused(runnableOnUnfocused bool) {
-	// Do nothing
+	var v int32
+	if runnableOnUnfocused {
+		v = 1
+	}
+	atomic.StoreInt32(&u.runnableOnUnfocused, v)
 }
 
 func (u *userInterfaceImpl) SetFPSMode(mode FPSModeType) {

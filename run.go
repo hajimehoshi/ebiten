@@ -428,12 +428,12 @@ func IsRunnableOnUnfocused() bool {
 // SetRunnableOnUnfocused sets the state if the game runs even in background.
 //
 // If the given value is true, the game runs even in background e.g. when losing focus.
-// The initial state is true.
+// The initial state is true on desktops, and false on mobiles.
+// For mobiles, in addition to SetRunnableOnUnfocused, you might require some permission settings
+// not to pause audio when the application goes to background.
 //
 // Known issue: On browsers, even if the state is on, the game doesn't run in background tabs.
 // This is because browsers throttles background tabs not to often update.
-//
-// SetRunnableOnUnfocused does nothing on mobiles so far.
 //
 // SetRunnableOnUnfocused is concurrent-safe.
 func SetRunnableOnUnfocused(runnableOnUnfocused bool) {
