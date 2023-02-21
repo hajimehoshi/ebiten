@@ -377,10 +377,20 @@ func (i *bigOffscreenImage) drawTriangles(srcs [graphics.ShaderImageCount]*Image
 		vertices[idx+1] = (vertices[idx+1] - i.region.Y) * bigOffscreenScale
 	}
 
-	dstRegion.X *= bigOffscreenScale
-	dstRegion.Y *= bigOffscreenScale
-	dstRegion.Width *= bigOffscreenScale
-	dstRegion.Height *= bigOffscreenScale
+	x0 := dstRegion.X
+	y0 := dstRegion.Y
+	x1 := dstRegion.X + dstRegion.Width
+	y1 := dstRegion.Y + dstRegion.Height
+	x0 = max(x0-i.region.X, 0)
+	y0 = max(y0-i.region.Y, 0)
+	x1 = min(x1, i.region.X+i.region.Width)
+	y1 = min(y1, i.region.Y+i.region.Height)
+	dstRegion = graphicsdriver.Region{
+		X:      x0 * bigOffscreenScale,
+		Y:      y0 * bigOffscreenScale,
+		Width:  (x1 - x0) * bigOffscreenScale,
+		Height: (y1 - y0) * bigOffscreenScale,
+	}
 
 	i.image.DrawTriangles(srcs, vertices, indices, blend, dstRegion, srcRegion, subimageOffsets, shader, uniforms, evenOdd, canSkipMipmap, false)
 	i.dirty = true
