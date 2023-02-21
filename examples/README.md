@@ -3,7 +3,7 @@
 ## Desktops
 
 ```sh
-go run github.com/hajimehoshi/ebiten/v2/examples/rotate@latest
+go run -tags=example github.com/hajimehoshi/ebiten/v2/examples/rotate@latest
 ```
 
 ## Android
