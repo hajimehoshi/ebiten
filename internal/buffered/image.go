@@ -56,11 +56,15 @@ func NewImage(width, height int, imageType atlas.ImageType) *Image {
 func (i *Image) initialize(imageType atlas.ImageType) {
 	if maybeCanAddDelayedCommand() {
 		if tryAddDelayedCommand(func() {
-			i.initialize(imageType)
+			i.initializeImpl(imageType)
 		}) {
 			return
 		}
 	}
+	i.initializeImpl(imageType)
+}
+
+func (i *Image) initializeImpl(imageType atlas.ImageType) {
 	i.img = atlas.NewImage(i.width, i.height, imageType)
 }
 
@@ -71,11 +75,15 @@ func (i *Image) invalidatePixels() {
 func (i *Image) MarkDisposed() {
 	if maybeCanAddDelayedCommand() {
 		if tryAddDelayedCommand(func() {
-			i.MarkDisposed()
+			i.markDisposedImpl()
 		}) {
 			return
 		}
 	}
+	i.markDisposedImpl()
+}
+
+func (i *Image) markDisposedImpl() {
 	i.invalidatePixels()
 	i.img.MarkDisposed()
 }
@@ -127,12 +135,15 @@ func (i *Image) WritePixels(pix []byte, x, y, width, height int) {
 		copied := make([]byte, len(pix))
 		copy(copied, pix)
 		if tryAddDelayedCommand(func() {
-			i.WritePixels(copied, x, y, width, height)
+			i.writePixelsImpl(copied, x, y, width, height)
 		}) {
 			return
 		}
 	}
+	i.writePixelsImpl(pix, x, y, width, height)
+}
 
+func (i *Image) writePixelsImpl(pix []byte, x, y, width, height int) {
 	i.invalidatePixels()
 	i.img.WritePixels(pix, x, y, width, height)
 }
@@ -155,12 +166,15 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 		us := make([]uint32, len(uniforms))
 		copy(us, uniforms)
 		if tryAddDelayedCommand(func() {
-			i.DrawTriangles(srcs, vs, is, blend, dstRegion, srcRegion, subimageOffsets, shader, us, evenOdd)
+			i.drawTrianglesImpl(srcs, vs, is, blend, dstRegion, srcRegion, subimageOffsets, shader, us, evenOdd)
 		}) {
 			return
 		}
 	}
+	i.drawTrianglesImpl(srcs, vertices, indices, blend, dstRegion, srcRegion, subimageOffsets, shader, uniforms, evenOdd)
+}
 
+func (i *Image) drawTrianglesImpl(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint16, blend graphicsdriver.Blend, dstRegion, srcRegion graphicsdriver.Region, subimageOffsets [graphics.ShaderImageCount - 1][2]float32, shader *Shader, uniforms []uint32, evenOdd bool) {
 	var imgs [graphics.ShaderImageCount]*atlas.Image
 	for i, img := range srcs {
 		if img == nil {
@@ -186,22 +200,30 @@ func NewShader(ir *shaderir.Program) *Shader {
 func (s *Shader) initialize(ir *shaderir.Program) {
 	if maybeCanAddDelayedCommand() {
 		if tryAddDelayedCommand(func() {
-			s.initialize(ir)
+			s.initializeImpl(ir)
 		}) {
 			return
 		}
 	}
+	s.initializeImpl(ir)
+}
+
+func (s *Shader) initializeImpl(ir *shaderir.Program) {
 	s.shader = atlas.NewShader(ir)
 }
 
 func (s *Shader) MarkDisposed() {
 	if maybeCanAddDelayedCommand() {
 		if tryAddDelayedCommand(func() {
-			s.MarkDisposed()
+			s.markDisposedImpl()
 		}) {
 			return
 		}
 	}
+	s.markDisposedImpl()
+}
+
+func (s *Shader) markDisposedImpl() {
 	s.shader.MarkDisposed()
 	s.shader = nil
 }
