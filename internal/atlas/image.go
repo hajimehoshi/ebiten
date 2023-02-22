@@ -256,47 +256,24 @@ func (i *Image) ensureIsolated() {
 		return
 	}
 
-	ox, oy, w, h := i.regionWithPadding()
-	dx0 := float32(0)
-	dy0 := float32(0)
-	dx1 := float32(w)
-	dy1 := float32(h)
-	sx0 := float32(ox)
-	sy0 := float32(oy)
-	sx1 := float32(ox + w)
-	sy1 := float32(oy + h)
-	sw, sh := i.backend.restorable.InternalSize()
-	sx0 /= float32(sw)
-	sy0 /= float32(sh)
-	sx1 /= float32(sw)
-	sy1 /= float32(sh)
-	typ := restorable.ImageTypeRegular
-	if i.imageType == ImageTypeVolatile {
-		typ = restorable.ImageTypeVolatile
-	}
-	newImg := restorable.NewImage(w, h, typ)
-	vs := []float32{
-		dx0, dy0, sx0, sy0, 1, 1, 1, 1,
-		dx1, dy0, sx1, sy0, 1, 1, 1, 1,
-		dx0, dy1, sx0, sy1, 1, 1, 1, 1,
-		dx1, dy1, sx1, sy1, 1, 1, 1, 1,
-	}
+	newI := NewImage(i.width, i.height, i.imageType)
+
+	// Call allocate explicitly in order to have an isolated backend.
+	newI.allocate(false)
+
+	w, h := float32(i.width), float32(i.height)
+	vs := make([]float32, 4*graphics.VertexFloatCount)
+	graphics.QuadVertices(vs, 0, 0, w, h, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
 	is := graphics.QuadIndices()
-	srcs := [graphics.ShaderImageCount]*restorable.Image{i.backend.restorable}
-	var offsets [graphics.ShaderImageCount - 1][2]float32
-	dstRegion := graphicsdriver.Region{
-		X:      float32(i.paddingSize()),
-		Y:      float32(i.paddingSize()),
-		Width:  float32(w - 2*i.paddingSize()),
-		Height: float32(h - 2*i.paddingSize()),
+	dr := graphicsdriver.Region{
+		X:      0,
+		Y:      0,
+		Width:  w,
+		Height: h,
 	}
-	newImg.DrawTriangles(srcs, offsets, vs, is, graphicsdriver.BlendCopy, dstRegion, graphicsdriver.Region{}, NearestFilterShader.shader, nil, false)
+	newI.drawTriangles([graphics.ShaderImageCount]*Image{i}, vs, is, graphicsdriver.BlendCopy, dr, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, NearestFilterShader, nil, false, true)
 
-	i.dispose(false)
-	i.backend = &backend{
-		restorable: newImg,
-	}
-
+	newI.moveTo(i)
 	i.isolatedCount++
 }
 
