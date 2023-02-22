@@ -684,12 +684,19 @@ func (i *Image) allocate(putOnAtlas bool) {
 			return
 		}
 	}
-	size := minSize
-	for i.width+2*i.paddingSize() > size || i.height+2*i.paddingSize() > size {
-		if size == maxSize {
+
+	width, height := minSize, minSize
+	for i.width+2*i.paddingSize() > width {
+		if width == maxSize {
 			panic(fmt.Sprintf("atlas: the image being put on an atlas is too big: width: %d, height: %d", i.width, i.height))
 		}
-		size *= 2
+		width *= 2
+	}
+	for i.height+2*i.paddingSize() > height {
+		if height == maxSize {
+			panic(fmt.Sprintf("atlas: the image being put on an atlas is too big: width: %d, height: %d", i.width, i.height))
+		}
+		height *= 2
 	}
 
 	typ := restorable.ImageTypeRegular
@@ -697,8 +704,8 @@ func (i *Image) allocate(putOnAtlas bool) {
 		typ = restorable.ImageTypeVolatile
 	}
 	b := &backend{
-		restorable: restorable.NewImage(size, size, typ),
-		page:       packing.NewPage(size, maxSize),
+		restorable: restorable.NewImage(width, height, typ),
+		page:       packing.NewPage(width, height, maxSize),
 	}
 	theBackends = append(theBackends, b)
 
