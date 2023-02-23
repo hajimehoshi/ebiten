@@ -23,7 +23,8 @@ Ebitengine (formerly known as Ebiten) is an open source game engine for the Go p
 * [Android](https://ebitengine.org/en/documents/mobile.html)
 * [iOS](https://ebitengine.org/en/documents/mobile.html)
 * [WebAssembly](https://ebitengine.org/en/documents/webassembly.html)
-* Nintendo Switch™ (Native compiling!)
+* Nintendo Switch
+* Xbox
 
 Note: External (bluetooth) keyboards are not available on iOS yet.
 
