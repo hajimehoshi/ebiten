@@ -27,8 +27,9 @@ import (
 )
 
 var (
-	minSize = 0
-	maxSize = 0
+	minSourceSize      = 0
+	minDestinationSize = 0
+	maxSize            = 0
 )
 
 type temporaryBytes struct {
@@ -106,25 +107,25 @@ func flushDeferred() {
 	}
 }
 
-// baseCountToPutOnAtlas represents the base time duration when the image can be put onto an atlas.
+// baseCountToPutOnSourceBackend represents the base time duration when the image can be put onto an atlas.
 // Actual time duration is increased in an exponential way for each usage as a rendering target.
-const baseCountToPutOnAtlas = 10
+const baseCountToPutOnSourceBackend = 10
 
-func putImagesOnAtlas(graphicsDriver graphicsdriver.Graphics) error {
-	for i := range imagesToPutOnAtlas {
+func putImagesOnSourceBackend(graphicsDriver graphicsdriver.Graphics) error {
+	for i := range imagesToPutOnSourceBackend {
 		i.usedAsSourceCount++
-		if i.usedAsSourceCount >= baseCountToPutOnAtlas*(1<<uint(min(i.isolatedCount, 31))) {
-			if err := i.putOnAtlas(graphicsDriver); err != nil {
+		if i.usedAsSourceCount >= baseCountToPutOnSourceBackend*(1<<uint(min(i.destinationCount, 31))) {
+			if err := i.putOnSourceBackend(graphicsDriver); err != nil {
 				return err
 			}
 			i.usedAsSourceCount = 0
-			delete(imagesToPutOnAtlas, i)
+			delete(imagesToPutOnSourceBackend, i)
 		}
 	}
 
 	// Reset the images. The images will be registered again when it is used as a rendering source.
-	for k := range imagesToPutOnAtlas {
-		delete(imagesToPutOnAtlas, k)
+	for k := range imagesToPutOnSourceBackend {
+		delete(imagesToPutOnSourceBackend, k)
 	}
 	return nil
 }
@@ -136,6 +137,11 @@ type backend struct {
 	// page is an atlas map. Each part is called a node.
 	// If page is nil, the backend's image is isolated and not on an atlas.
 	page *packing.Page
+
+	// source reports whether this backend is mainly used a rendering source, but this is not 100%.
+	// If a non-source (destination) image is used as a source many times,
+	// the image's backend might be turned into a source backend to optimize draw calls.
+	source bool
 }
 
 func (b *backend) tryAlloc(width, height int) (*packing.Node, bool) {
@@ -157,9 +163,13 @@ var (
 	initOnce sync.Once
 
 	// theBackends is a set of atlases.
-	theBackends = []*backend{}
+	theBackends []*backend
 
-	imagesToPutOnAtlas = map[*Image]struct{}{}
+	// theSourceBackendsForOneFrame is a temporary set of backends that are used as sources in one frame.
+	// theSourceBackendsForOneFrame is reset every frame.
+	theSourceBackendsForOneFrame = map[*backend]struct{}{}
+
+	imagesToPutOnSourceBackend = map[*Image]struct{}{}
 
 	deferred []func()
 
@@ -202,7 +212,7 @@ type Image struct {
 	// usedAsSourceCount represents how long the image is used as a rendering source and kept not modified with
 	// DrawTriangles.
 	// In the current implementation, if an image is being modified by DrawTriangles, the image is separated from
-	// a restorable image on an atlas by ensureIsolated.
+	// a restorable image on an atlas by ensureIsolatedFromSource.
 	//
 	// usedAsSourceCount is increased if the image is used as a rendering source, or set to 0 if the image is
 	// modified.
@@ -210,9 +220,12 @@ type Image struct {
 	// WritePixels doesn't affect this value since WritePixels can be done on images on an atlas.
 	usedAsSourceCount int
 
-	// isolatedCount represents how many times the image on a texture atlas is changed into an isolated image.
-	// isolatedCount affects the calculation when to put the image onto a texture atlas again.
-	isolatedCount int
+	// destinationCount represents how many times an image on an atlas is used as a rendering destination at DrawTriangles.
+	// destinationCount affects the calculation when to put the image onto a texture atlas again.
+	//
+	// The current counting way is derived from the old implementation in which a destination image was always isolated
+	// e.g. not on an atlas. This might have to be revisited.
+	destinationCount int
 }
 
 // moveTo moves its content to the given image dst.
@@ -232,9 +245,16 @@ func (i *Image) isOnAtlas() bool {
 	return i.node != nil
 }
 
+func (i *Image) isOnSourceBackend() bool {
+	if i.backend == nil {
+		return false
+	}
+	return i.backend.source
+}
+
 func (i *Image) resetUsedAsSourceCount() {
 	i.usedAsSourceCount = 0
-	delete(imagesToPutOnAtlas, i)
+	delete(imagesToPutOnSourceBackend, i)
 }
 
 func (i *Image) paddingSize() int {
@@ -244,11 +264,16 @@ func (i *Image) paddingSize() int {
 	return 0
 }
 
-func (i *Image) ensureIsolated() {
+func (i *Image) ensureIsolatedFromSource(backends []*backend) {
 	i.resetUsedAsSourceCount()
 
 	if i.backend == nil {
-		i.allocate(false)
+		// `theSourceBackendsForOneFrame` already includes `backends`.
+		bs := make([]*backend, 0, len(theSourceBackendsForOneFrame))
+		for b := range theSourceBackendsForOneFrame {
+			bs = append(bs, b)
+		}
+		i.allocate(bs, false)
 		return
 	}
 
@@ -256,10 +281,30 @@ func (i *Image) ensureIsolated() {
 		return
 	}
 
+	i.destinationCount++
+
+	// Check if i has the same backend as the given backends.
+	var needsIsolation bool
+	for _, b := range backends {
+		if i.backend == b {
+			needsIsolation = true
+			break
+		}
+	}
+	if !needsIsolation {
+		return
+	}
+
 	newI := NewImage(i.width, i.height, i.imageType)
 
-	// Call allocate explicitly in order to have an isolated backend.
-	newI.allocate(false)
+	// Call allocate explicitly in order to have an isolated backend from the specified backends.
+	// `theSourceBackendsForOneFrame` already includes `backends`.
+	bs := make([]*backend, 0, 1+len(theSourceBackendsForOneFrame))
+	bs = append(bs, i.backend)
+	for b := range theSourceBackendsForOneFrame {
+		bs = append(bs, b)
+	}
+	newI.allocate(bs, false)
 
 	w, h := float32(i.width), float32(i.height)
 	vs := make([]float32, 4*graphics.VertexFloatCount)
@@ -271,24 +316,26 @@ func (i *Image) ensureIsolated() {
 		Width:  w,
 		Height: h,
 	}
+
+	origBackend := i.backend
 	newI.drawTriangles([graphics.ShaderImageCount]*Image{i}, vs, is, graphicsdriver.BlendCopy, dr, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, NearestFilterShader, nil, false, true)
+	delete(theSourceBackendsForOneFrame, origBackend)
 
 	newI.moveTo(i)
-	i.isolatedCount++
 }
 
-func (i *Image) putOnAtlas(graphicsDriver graphicsdriver.Graphics) error {
+func (i *Image) putOnSourceBackend(graphicsDriver graphicsdriver.Graphics) error {
 	if i.backend == nil {
-		i.allocate(true)
+		i.allocate(nil, true)
 		return nil
 	}
 
-	if i.isOnAtlas() {
+	if i.isOnSourceBackend() {
 		return nil
 	}
 
 	if !i.canBePutOnAtlas() {
-		panic("atlas: putOnAtlas cannot be called on a image that cannot be on an atlas")
+		panic("atlas: putOnSourceBackend cannot be called on a image that cannot be on an atlas")
 	}
 
 	if i.imageType != ImageTypeRegular {
@@ -296,6 +343,7 @@ func (i *Image) putOnAtlas(graphicsDriver graphicsdriver.Graphics) error {
 	}
 
 	newI := NewImage(i.width, i.height, ImageTypeRegular)
+	newI.allocate(nil, true)
 
 	w, h := float32(i.width), float32(i.height)
 	vs := make([]float32, 4*graphics.VertexFloatCount)
@@ -331,8 +379,13 @@ func (i *Image) processSrc(src *Image) {
 	if src.disposed {
 		panic("atlas: the drawing source image must not be disposed (DrawTriangles)")
 	}
+
 	if src.backend == nil {
-		src.allocate(true)
+		backends := make([]*backend, 0, 1)
+		if i.backend != nil {
+			backends = append(backends, i.backend)
+		}
+		src.allocate(backends, true)
 	}
 
 	// Compare i and source images after ensuring i is not on an atlas, or
@@ -364,13 +417,21 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 	if i.disposed {
 		panic("atlas: the drawing target image must not be disposed (DrawTriangles)")
 	}
-	if keepOnAtlas {
-		if i.backend == nil {
-			i.allocate(true)
+
+	backends := make([]*backend, 0, len(srcs))
+	for _, src := range srcs {
+		if src == nil {
+			continue
 		}
-	} else {
-		i.ensureIsolated()
+		if src.backend == nil {
+			// It is possible to spcify i.backend as a forbidden backend, but this might prevent a good allocation for a source image.
+			// If the backend becomes the same as i's, this will be changed later.
+			src.allocate(nil, true)
+		}
+		backends = append(backends, src.backend)
+		theSourceBackendsForOneFrame[src.backend] = struct{}{}
 	}
+	i.ensureIsolatedFromSource(backends)
 
 	for _, src := range srcs {
 		i.processSrc(src)
@@ -437,9 +498,9 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 		if src == nil {
 			continue
 		}
-		if !src.isOnAtlas() && src.canBePutOnAtlas() {
+		if !src.isOnSourceBackend() && src.canBePutOnAtlas() {
 			// src might already registered, but assigning it again is not harmful.
-			imagesToPutOnAtlas[src] = struct{}{}
+			imagesToPutOnSourceBackend[src] = struct{}{}
 		}
 	}
 }
@@ -466,7 +527,8 @@ func (i *Image) writePixels(pix []byte, x, y, width, height int) {
 		if pix == nil {
 			return
 		}
-		i.allocate(true)
+		// Allocate as a source as this image will likely be used as a source.
+		i.allocate(nil, true)
 	}
 
 	px, py, pw, ph := i.regionWithPadding()
@@ -594,17 +656,17 @@ func (i *Image) dispose(markDisposed bool) {
 	}
 
 	i.backend.restorable.Dispose()
-	index := -1
+
+	delete(theSourceBackendsForOneFrame, i.backend)
+
 	for idx, sh := range theBackends {
 		if sh == i.backend {
-			index = idx
-			break
+			theBackends = append(theBackends[:idx], theBackends[idx+1:]...)
+			return
 		}
 	}
-	if index == -1 {
-		panic("atlas: backend not found at an image being disposed")
-	}
-	theBackends = append(theBackends[:index], theBackends[index+1:]...)
+
+	panic("atlas: backend not found at an image being disposed")
 }
 
 func NewImage(width, height int, imageType ImageType) *Image {
@@ -617,8 +679,8 @@ func NewImage(width, height int, imageType ImageType) *Image {
 }
 
 func (i *Image) canBePutOnAtlas() bool {
-	if minSize == 0 || maxSize == 0 {
-		panic("atlas: minSize or maxSize must be initialized")
+	if minSourceSize == 0 || minDestinationSize == 0 || maxSize == 0 {
+		panic("atlas: min*Size or maxSize must be initialized")
 	}
 	if i.imageType != ImageTypeRegular {
 		return false
@@ -626,7 +688,7 @@ func (i *Image) canBePutOnAtlas() bool {
 	return i.width+2*i.paddingSize() <= maxSize && i.height+2*i.paddingSize() <= maxSize
 }
 
-func (i *Image) allocate(putOnAtlas bool) {
+func (i *Image) allocate(forbiddenBackends []*backend, asSource bool) {
 	if i.backend != nil {
 		panic("atlas: the image is already allocated")
 	}
@@ -634,6 +696,9 @@ func (i *Image) allocate(putOnAtlas bool) {
 	runtime.SetFinalizer(i, (*Image).MarkDisposed)
 
 	if i.imageType == ImageTypeScreen {
+		if asSource {
+			panic("atlas: a screen image cannot be created as a source")
+		}
 		// A screen image doesn't have a padding.
 		i.backend = &backend{
 			restorable: restorable.NewImage(i.width, i.height, restorable.ImageTypeScreen),
@@ -641,7 +706,7 @@ func (i *Image) allocate(putOnAtlas bool) {
 		return
 	}
 
-	if !putOnAtlas || !i.canBePutOnAtlas() {
+	if !i.canBePutOnAtlas() {
 		if i.width+2*i.paddingSize() > maxSize || i.height+2*i.paddingSize() > maxSize {
 			panic(fmt.Sprintf("atlas: the image being put on an atlas is too big: width: %d, height: %d", i.width, i.height))
 		}
@@ -652,11 +717,23 @@ func (i *Image) allocate(putOnAtlas bool) {
 		}
 		i.backend = &backend{
 			restorable: restorable.NewImage(i.width+2*i.paddingSize(), i.height+2*i.paddingSize(), typ),
+			source:     asSource && typ == restorable.ImageTypeRegular,
 		}
 		return
 	}
 
+	// Check if an existing backend is available.
+loop:
 	for _, b := range theBackends {
+		if b.source != asSource {
+			continue
+		}
+		for _, bb := range forbiddenBackends {
+			if b == bb {
+				continue loop
+			}
+		}
+
 		if n, ok := b.tryAlloc(i.width+2*i.paddingSize(), i.height+2*i.paddingSize()); ok {
 			i.backend = b
 			i.node = n
@@ -664,7 +741,12 @@ func (i *Image) allocate(putOnAtlas bool) {
 		}
 	}
 
-	width, height := minSize, minSize
+	var width, height int
+	if asSource {
+		width, height = minSourceSize, minSourceSize
+	} else {
+		width, height = minDestinationSize, minDestinationSize
+	}
 	for i.width+2*i.paddingSize() > width {
 		if width == maxSize {
 			panic(fmt.Sprintf("atlas: the image being put on an atlas is too big: width: %d, height: %d", i.width, i.height))
@@ -685,6 +767,7 @@ func (i *Image) allocate(putOnAtlas bool) {
 	b := &backend{
 		restorable: restorable.NewImage(width, height, typ),
 		page:       packing.NewPage(width, height, maxSize),
+		source:     asSource,
 	}
 	theBackends = append(theBackends, b)
 
@@ -711,6 +794,11 @@ func EndFrame(graphicsDriver graphicsdriver.Graphics) error {
 	}
 
 	theTemporaryBytes.resetAtFrameEnd()
+
+	for b := range theSourceBackendsForOneFrame {
+		delete(theSourceBackendsForOneFrame, b)
+	}
+
 	return nil
 }
 
@@ -738,9 +826,12 @@ func BeginFrame(graphicsDriver graphicsdriver.Graphics) error {
 			panic("atlas: all the images must be not on an atlas before the game starts")
 		}
 
-		// minSize and maxSize can already be set for testings.
-		if minSize == 0 {
-			minSize = 1024
+		// min*Size and maxSize can already be set for testings.
+		if minSourceSize == 0 {
+			minSourceSize = 1024
+		}
+		if minDestinationSize == 0 {
+			minDestinationSize = 16
 		}
 		if maxSize == 0 {
 			maxSize = floorPowerOf2(restorable.MaxImageSize(graphicsDriver))
@@ -756,7 +847,7 @@ func BeginFrame(graphicsDriver graphicsdriver.Graphics) error {
 	}
 
 	flushDeferred()
-	if err := putImagesOnAtlas(graphicsDriver); err != nil {
+	if err := putImagesOnSourceBackend(graphicsDriver); err != nil {
 		return err
 	}
 
