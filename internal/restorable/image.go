@@ -64,11 +64,11 @@ func (p *Pixels) ReadPixels(pixels []byte, x, y, width, height, imageWidth, imag
 	p.pixelsRecords.readPixels(pixels, x, y, width, height, imageWidth, imageHeight)
 }
 
-func (p *Pixels) Region() image.Rectangle {
+func (p *Pixels) AppendRegion(regions []image.Rectangle) []image.Rectangle {
 	if p.pixelsRecords == nil {
-		return image.Rectangle{}
+		return regions
 	}
-	return p.pixelsRecords.region()
+	return p.pixelsRecords.appendRegions(regions)
 }
 
 // drawTrianglesHistoryItem is an item for history of draw-image commands.
@@ -119,9 +119,9 @@ type Image struct {
 	// stale indicates whether the image needs to be synced with GPU as soon as possible.
 	stale bool
 
-	// staleRegion indicates the region to restore.
-	// staleRegion is valid only when stale is true.
-	staleRegion image.Rectangle
+	// staleRegions indicates the regions to restore.
+	// staleRegions is valid only when stale is true.
+	staleRegions []image.Rectangle
 
 	imageType ImageType
 
@@ -208,7 +208,8 @@ func (i *Image) Extend(width, height int) *Image {
 	newImg.clearDrawTrianglesHistory()
 	newImg.basePixels = i.basePixels
 	newImg.stale = i.stale
-	newImg.staleRegion = i.staleRegion
+	newImg.staleRegions = make([]image.Rectangle, len(i.staleRegions))
+	copy(newImg.staleRegions, i.staleRegions)
 
 	i.Dispose()
 
@@ -260,13 +261,11 @@ func (i *Image) BasePixelsForTesting() *Pixels {
 func (i *Image) makeStale(rect image.Rectangle) {
 	i.stale = true
 
-	r := i.staleRegion
-	r = r.Union(i.basePixels.Region())
-	for _, d := range i.drawTrianglesHistory {
-		r = r.Union(regionToRectangle(d.dstRegion))
+	i.staleRegions = i.basePixels.AppendRegion(i.staleRegions)
+	i.staleRegions = i.appendRegionsForDrawTriangles(i.staleRegions)
+	if !rect.Empty() {
+		i.staleRegions = append(i.staleRegions, rect)
 	}
-	r = r.Union(rect)
-	i.staleRegion = r
 
 	i.basePixels = Pixels{}
 	i.clearDrawTrianglesHistory()
@@ -329,7 +328,7 @@ func (i *Image) WritePixels(pixels []byte, x, y, width, height int) {
 		}
 		i.clearDrawTrianglesHistory()
 		i.stale = false
-		i.staleRegion = image.Rectangle{}
+		i.staleRegions = i.staleRegions[:0]
 		return
 	}
 
@@ -483,16 +482,19 @@ func (i *Image) makeStaleIfDependingOnShader(shader *Shader) {
 
 // readPixelsFromGPU reads the pixels from GPU and resolves the image's 'stale' state.
 func (i *Image) readPixelsFromGPU(graphicsDriver graphicsdriver.Graphics) error {
-	var r image.Rectangle
+	var rs []image.Rectangle
 	if i.stale {
 		i.basePixels = Pixels{}
-		r = i.staleRegion
+		rs = append(rs, i.staleRegions...)
 	} else {
-		for _, d := range i.drawTrianglesHistory {
-			r = r.Union(regionToRectangle(d.dstRegion))
-		}
+		rs = i.appendRegionsForDrawTriangles(rs)
 	}
-	if !r.Empty() {
+
+	for _, r := range rs {
+		if r.Empty() {
+			continue
+		}
+
 		pix := make([]byte, 4*r.Dx()*r.Dy())
 		if err := i.image.ReadPixels(graphicsDriver, pix, r.Min.X, r.Min.Y, r.Dx(), r.Dy()); err != nil {
 			return err
@@ -501,7 +503,7 @@ func (i *Image) readPixelsFromGPU(graphicsDriver graphicsdriver.Graphics) error 
 	}
 	i.clearDrawTrianglesHistory()
 	i.stale = false
-	i.staleRegion = image.Rectangle{}
+	i.staleRegions = i.staleRegions[:0]
 	return nil
 }
 
@@ -579,7 +581,7 @@ func (i *Image) restore(graphicsDriver graphicsdriver.Graphics) error {
 		i.basePixels = Pixels{}
 		i.clearDrawTrianglesHistory()
 		i.stale = false
-		i.staleRegion = image.Rectangle{}
+		i.staleRegions = i.staleRegions[:0]
 		return nil
 	case ImageTypeVolatile:
 		i.image = graphicscommand.NewImage(w, h, false)
@@ -617,21 +619,7 @@ func (i *Image) restore(graphicsDriver graphicsdriver.Graphics) error {
 	// In order to clear the draw-triangles history, read pixels from GPU.
 	if len(i.drawTrianglesHistory) > 0 {
 		var rs []image.Rectangle
-		for _, d := range i.drawTrianglesHistory {
-			r := regionToRectangle(d.dstRegion)
-			if r.Empty() {
-				continue
-			}
-			for i, rr := range rs {
-				if rr.Empty() {
-					continue
-				}
-				if rr.In(r) {
-					rs[i] = image.Rectangle{}
-				}
-			}
-			rs = append(rs, r)
-		}
+		rs = i.appendRegionsForDrawTriangles(rs)
 		for _, r := range rs {
 			if r.Empty() {
 				continue
@@ -647,7 +635,7 @@ func (i *Image) restore(graphicsDriver graphicsdriver.Graphics) error {
 	i.image = gimg
 	i.clearDrawTrianglesHistory()
 	i.stale = false
-	i.staleRegion = image.Rectangle{}
+	i.staleRegions = i.staleRegions[:0]
 	return nil
 }
 
@@ -661,7 +649,7 @@ func (i *Image) Dispose() {
 	i.basePixels = Pixels{}
 	i.clearDrawTrianglesHistory()
 	i.stale = false
-	i.staleRegion = image.Rectangle{}
+	i.staleRegions = i.staleRegions[:0]
 }
 
 // isInvalidated returns a boolean value indicating whether the image is invalidated.
@@ -686,6 +674,32 @@ func (i *Image) clearDrawTrianglesHistory() {
 
 func (i *Image) InternalSize() (int, int) {
 	return i.image.InternalSize()
+}
+
+func (i *Image) appendRegionsForDrawTriangles(regions []image.Rectangle) []image.Rectangle {
+	var rs []image.Rectangle
+	for _, d := range i.drawTrianglesHistory {
+		r := regionToRectangle(d.dstRegion)
+		if r.Empty() {
+			continue
+		}
+		for i, rr := range rs {
+			if rr.Empty() {
+				continue
+			}
+			if rr.In(r) {
+				rs[i] = image.Rectangle{}
+			}
+		}
+		rs = append(rs, r)
+	}
+	for _, r := range rs {
+		if r.Empty() {
+			continue
+		}
+		regions = append(regions, r)
+	}
+	return regions
 }
 
 func regionToRectangle(region graphicsdriver.Region) image.Rectangle {
