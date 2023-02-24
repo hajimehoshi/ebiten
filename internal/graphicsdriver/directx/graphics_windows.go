@@ -1438,12 +1438,12 @@ func (i *Image) ReadPixels(buf []byte, x, y, width, height int) error {
 	}
 	i.graphics.needFlushCopyCommandList = true
 	i.graphics.copyCommandList.CopyTextureRegion_PlacedFootPrint_SubresourceIndex(
-		&dst, uint32(x), uint32(y), 0, &src, &_D3D12_BOX{
-			left:   0,
-			top:    0,
+		&dst, 0, 0, 0, &src, &_D3D12_BOX{
+			left:   uint32(x),
+			top:    uint32(y),
 			front:  0,
-			right:  uint32(width),
-			bottom: uint32(height),
+			right:  uint32(x + width),
+			bottom: uint32(y + height),
 			back:   1,
 		})
 
