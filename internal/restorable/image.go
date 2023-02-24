@@ -336,7 +336,7 @@ func (i *Image) WritePixels(pixels []byte, x, y, width, height int) {
 		return
 	}
 
-	// Records for DrawTriangles cannot come after records for WritePixels.
+	// Records for DrawTriangles cannot come before records for WritePixels.
 	if len(i.drawTrianglesHistory) > 0 {
 		i.makeStale(image.Rect(0, 0, i.width, i.height))
 		return
