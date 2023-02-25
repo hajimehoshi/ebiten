@@ -123,17 +123,6 @@ type Image struct {
 	// staleRegion is valid only when stale is true.
 	staleRegion image.Rectangle
 
-	// pixelsForRestore is a cached byte slice for pixels.
-	// pixelsForRestore is just a cache to avoid allocations, and the data might not be reliable.
-	//
-	// pixelsForRestore might be shared by the records of basePixels.
-	// pixelsForRestore should not be modified until basePixels is invalidated.
-	//
-	// pixelsForRestore is an entire pixels of the image or nil.
-	//
-	// pixelsForRestore is for an optimization to reduce slice allocations (#2375).
-	pixelsForRestore []byte
-
 	imageType ImageType
 
 	// priority indicates whether the image is restored in high priority when context-lost happens.
@@ -625,18 +614,34 @@ func (i *Image) restore(graphicsDriver graphicsdriver.Graphics) error {
 		gimg.DrawTriangles(imgs, c.offsets, c.vertices, c.indices, c.blend, c.dstRegion, c.srcRegion, c.shader.shader, c.uniforms, c.evenOdd)
 	}
 
+	// In order to clear the draw-triangles history, read pixels from GPU.
 	if len(i.drawTrianglesHistory) > 0 {
-		i.basePixels = Pixels{}
-		// As basePixels was invalidated, pixelsForRestore can be reused.
-		l := 4 * w * h
-		if len(i.pixelsForRestore) < l {
-			i.pixelsForRestore = make([]byte, l)
+		var rs []image.Rectangle
+		for _, d := range i.drawTrianglesHistory {
+			r := regionToRectangle(d.dstRegion)
+			if r.Empty() {
+				continue
+			}
+			for i, rr := range rs {
+				if rr.Empty() {
+					continue
+				}
+				if rr.In(r) {
+					rs[i] = image.Rectangle{}
+				}
+			}
+			rs = append(rs, r)
 		}
-		pix := i.pixelsForRestore[:l]
-		if err := gimg.ReadPixels(graphicsDriver, pix, 0, 0, w, h); err != nil {
-			return err
+		for _, r := range rs {
+			if r.Empty() {
+				continue
+			}
+			pix := make([]byte, 4*r.Dx()*r.Dy())
+			if err := gimg.ReadPixels(graphicsDriver, pix, r.Min.X, r.Min.Y, r.Dx(), r.Dy()); err != nil {
+				return err
+			}
+			i.basePixels.AddOrReplace(pix, r.Min.X, r.Min.Y, r.Dx(), r.Dy())
 		}
-		i.basePixels.AddOrReplace(pix, 0, 0, w, h)
 	}
 
 	i.image = gimg
@@ -654,7 +659,6 @@ func (i *Image) Dispose() {
 	i.image.Dispose()
 	i.image = nil
 	i.basePixels = Pixels{}
-	i.pixelsForRestore = nil
 	i.clearDrawTrianglesHistory()
 	i.stale = false
 	i.staleRegion = image.Rectangle{}
