@@ -446,6 +446,13 @@ func (i *Image) readPixelsFromGPUIfNeeded(graphicsDriver graphicsdriver.Graphics
 }
 
 func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte, x, y, width, height int) error {
+	if alwaysReadPixelsFromGPU() {
+		if err := i.image.ReadPixels(graphicsDriver, pixels, x, y, width, height); err != nil {
+			return err
+		}
+		return nil
+	}
+
 	if err := i.readPixelsFromGPUIfNeeded(graphicsDriver); err != nil {
 		return err
 	}
