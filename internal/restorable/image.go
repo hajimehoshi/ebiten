@@ -267,12 +267,18 @@ func (i *Image) makeStale(rect image.Rectangle) {
 		return
 	}
 
+	origNum := len(i.staleRegions)
 	i.staleRegions = i.appendRegionsForDrawTriangles(i.staleRegions)
 	if !rect.Empty() {
 		i.staleRegions = append(i.staleRegions, rect)
 	}
 
 	i.clearDrawTrianglesHistory()
+
+	// Clear pixels to save memory.
+	for _, r := range i.staleRegions[origNum:] {
+		i.basePixels.Clear(r.Min.X, r.Min.Y, r.Dx(), r.Dy())
+	}
 
 	// Don't have to call makeStale recursively here.
 	// Restoring is done after topological sorting is done.
