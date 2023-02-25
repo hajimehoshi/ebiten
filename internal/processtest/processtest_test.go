@@ -22,6 +22,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -35,6 +36,9 @@ func TestPrograms(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Run sub-tests one by one, not in parallel (#2571).
+	var m sync.Mutex
+
 	for _, e := range ents {
 		if e.IsDir() {
 			continue
@@ -45,6 +49,9 @@ func TestPrograms(t *testing.T) {
 		}
 
 		t.Run(n, func(t *testing.T) {
+			m.Lock()
+			defer m.Unlock()
+
 			ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 			defer cancel()
 
