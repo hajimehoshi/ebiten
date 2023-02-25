@@ -261,13 +261,11 @@ func (i *Image) BasePixelsForTesting() *Pixels {
 func (i *Image) makeStale(rect image.Rectangle) {
 	i.stale = true
 
-	i.staleRegions = i.basePixels.AppendRegion(i.staleRegions)
 	i.staleRegions = i.appendRegionsForDrawTriangles(i.staleRegions)
 	if !rect.Empty() {
 		i.staleRegions = append(i.staleRegions, rect)
 	}
 
-	i.basePixels = Pixels{}
 	i.clearDrawTrianglesHistory()
 
 	// Don't have to call makeStale recursively here.
@@ -484,7 +482,6 @@ func (i *Image) makeStaleIfDependingOnShader(shader *Shader) {
 func (i *Image) readPixelsFromGPU(graphicsDriver graphicsdriver.Graphics) error {
 	var rs []image.Rectangle
 	if i.stale {
-		i.basePixels = Pixels{}
 		rs = append(rs, i.staleRegions...)
 	} else {
 		rs = i.appendRegionsForDrawTriangles(rs)
