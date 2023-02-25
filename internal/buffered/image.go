@@ -16,7 +16,6 @@ package buffered
 
 import (
 	"fmt"
-	"image"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
@@ -93,14 +92,6 @@ func (i *Image) markDisposedImpl() {
 func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte, x, y, width, height int) error {
 	checkDelayedCommandsFlushed("ReadPixels")
 
-	r := image.Rect(x, y, x+width, y+height).Intersect(image.Rect(0, 0, i.width, i.height))
-	if r.Empty() {
-		for i := range pixels {
-			pixels[i] = 0
-		}
-		return nil
-	}
-
 	// If restorable.AlwaysReadPixelsFromGPU() returns false, the pixel data is cached in the restorable package.
 	if !restorable.AlwaysReadPixelsFromGPU() {
 		if err := i.img.ReadPixels(graphicsDriver, pixels, x, y, width, height); err != nil {
@@ -117,14 +108,10 @@ func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte
 		i.pixels = pix
 	}
 
-	dstBaseX := r.Min.X - x
-	dstBaseY := r.Min.Y - y
-	srcBaseX := r.Min.X
-	srcBaseY := r.Min.Y
-	lineWidth := 4 * r.Dx()
-	for j := 0; j < r.Dy(); j++ {
-		dstX := 4 * ((dstBaseY+j)*width + dstBaseX)
-		srcX := 4 * ((srcBaseY+j)*i.width + srcBaseX)
+	lineWidth := 4 * width
+	for j := 0; j < height; j++ {
+		dstX := 4 * j * width
+		srcX := 4 * ((y+j)*i.width + x)
 		copy(pixels[dstX:dstX+lineWidth], i.pixels[srcX:srcX+lineWidth])
 	}
 	return nil
