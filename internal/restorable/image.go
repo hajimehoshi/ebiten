@@ -121,7 +121,7 @@ type Image struct {
 
 	// staleRegions indicates the regions to restore.
 	// staleRegions is valid only when stale is true.
-	// staleRegions is not used when alwaysReadPixelsFromGPU() returns true.
+	// staleRegions is not used when AlwaysReadPixelsFromGPU() returns true.
 	staleRegions []image.Rectangle
 
 	imageType ImageType
@@ -262,8 +262,8 @@ func (i *Image) BasePixelsForTesting() *Pixels {
 func (i *Image) makeStale(rect image.Rectangle) {
 	i.stale = true
 
-	// If ReadPixels always reads pixels from GPU, staleRegions are never used.
-	if alwaysReadPixelsFromGPU() {
+	// If ReadPixels Always reads pixels from GPU, staleRegions are never used.
+	if AlwaysReadPixelsFromGPU() {
 		return
 	}
 
@@ -414,8 +414,8 @@ func (i *Image) appendDrawTrianglesHistory(srcs [graphics.ShaderImageCount]*Imag
 	if i.stale || !i.needsRestoring() {
 		panic("restorable: an image must not be stale or need restoring at appendDrawTrianglesHistory")
 	}
-	if alwaysReadPixelsFromGPU() {
-		panic("restorable: appendDrawTrianglesHistory must not be called when alwaysReadPixelsFromGPU() returns true")
+	if AlwaysReadPixelsFromGPU() {
+		panic("restorable: appendDrawTrianglesHistory must not be called when AlwaysReadPixelsFromGPU() returns true")
 	}
 
 	// TODO: Would it be possible to merge draw image history items?
@@ -461,7 +461,7 @@ func (i *Image) readPixelsFromGPUIfNeeded(graphicsDriver graphicsdriver.Graphics
 }
 
 func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte, x, y, width, height int) error {
-	if alwaysReadPixelsFromGPU() {
+	if AlwaysReadPixelsFromGPU() {
 		if err := i.image.ReadPixels(graphicsDriver, pixels, x, y, width, height); err != nil {
 			return err
 		}

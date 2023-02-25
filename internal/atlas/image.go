@@ -522,7 +522,7 @@ func (i *Image) writePixels(pix []byte, x, y, width, height int) {
 	i.backend.restorable.WritePixels(pixb, x, y, pw, ph)
 }
 
-func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte) error {
+func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte, x, y, width, height int) error {
 	backendsM.Lock()
 	defer backendsM.Unlock()
 
@@ -538,8 +538,10 @@ func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte
 	}
 
 	ps := i.paddingSize()
-	ox, oy, w, h := i.regionWithPadding()
-	return i.backend.restorable.ReadPixels(graphicsDriver, pixels, ox+ps, oy+ps, w-ps*2, h-ps*2)
+	ox, oy, _, _ := i.regionWithPadding()
+	x += ox + ps
+	y += oy + ps
+	return i.backend.restorable.ReadPixels(graphicsDriver, pixels, x, y, width, height)
 }
 
 // MarkDisposed marks the image as disposed. The actual operation is deferred.

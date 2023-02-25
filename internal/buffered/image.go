@@ -21,6 +21,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
+	"github.com/hajimehoshi/ebiten/v2/internal/restorable"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
 
@@ -29,6 +30,7 @@ type Image struct {
 	width  int
 	height int
 
+	// pixels is valid only when restorable.AlwaysReadPixelsFromGPU() returns true.
 	pixels []byte
 }
 
@@ -99,9 +101,17 @@ func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte
 		return nil
 	}
 
+	// If restorable.AlwaysReadPixelsFromGPU() returns false, the pixel data is cached in the restorable package.
+	if !restorable.AlwaysReadPixelsFromGPU() {
+		if err := i.img.ReadPixels(graphicsDriver, pixels, x, y, width, height); err != nil {
+			return err
+		}
+		return nil
+	}
+
 	if i.pixels == nil {
 		pix := make([]byte, 4*i.width*i.height)
-		if err := i.img.ReadPixels(graphicsDriver, pix); err != nil {
+		if err := i.img.ReadPixels(graphicsDriver, pix, 0, 0, i.width, i.height); err != nil {
 			return err
 		}
 		i.pixels = pix
