@@ -17,6 +17,7 @@ package restorable
 import (
 	"fmt"
 	"image"
+	"math"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
@@ -269,7 +270,14 @@ func (i *Image) BasePixelsForTesting() *Pixels {
 // makeStale makes the image stale.
 func (i *Image) makeStale(rect image.Rectangle) {
 	i.stale = true
-	i.staleRegion = i.staleRegion.Union(i.basePixels.Region()).Union(rect)
+
+	r := i.staleRegion
+	r = r.Union(i.basePixels.Region())
+	for _, d := range i.drawTrianglesHistory {
+		r = r.Union(regionToRectangle(d.dstRegion))
+	}
+	r = r.Union(rect)
+	i.staleRegion = r
 
 	i.basePixels = Pixels{}
 	i.clearDrawTrianglesHistory()
@@ -338,7 +346,7 @@ func (i *Image) WritePixels(pixels []byte, x, y, width, height int) {
 
 	// Records for DrawTriangles cannot come before records for WritePixels.
 	if len(i.drawTrianglesHistory) > 0 {
-		i.makeStale(image.Rect(0, 0, i.width, i.height))
+		i.makeStale(image.Rect(x, y, x+width, y+height))
 		return
 	}
 
@@ -386,8 +394,9 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, offsets [g
 		}
 	}
 
-	if srcstale || !needsRestoring() || !i.needsRestoring() {
-		i.makeStale(image.Rect(0, 0, i.width, i.height))
+	// Even if the image is already stale, call makeStale to extend the stale region.
+	if srcstale || !needsRestoring() || !i.needsRestoring() || i.stale {
+		i.makeStale(regionToRectangle(dstRegion))
 	} else {
 		i.appendDrawTrianglesHistory(srcs, offsets, vertices, indices, blend, dstRegion, srcRegion, shader, uniforms, evenOdd)
 	}
@@ -405,13 +414,13 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, offsets [g
 // appendDrawTrianglesHistory appends a draw-image history item to the image.
 func (i *Image) appendDrawTrianglesHistory(srcs [graphics.ShaderImageCount]*Image, offsets [graphics.ShaderImageCount - 1][2]float32, vertices []float32, indices []uint16, blend graphicsdriver.Blend, dstRegion, srcRegion graphicsdriver.Region, shader *Shader, uniforms []uint32, evenOdd bool) {
 	if i.stale || !i.needsRestoring() {
-		return
+		panic("restorable: an image must not be stale or need restoring at appendDrawTrianglesHistory")
 	}
 
 	// TODO: Would it be possible to merge draw image history items?
 	const maxDrawTrianglesHistoryCount = 1024
 	if len(i.drawTrianglesHistory)+1 > maxDrawTrianglesHistoryCount {
-		i.makeStale(image.Rect(0, 0, i.width, i.height))
+		i.makeStale(regionToRectangle(dstRegion))
 		return
 	}
 	// All images must be resolved and not stale each after frame.
@@ -467,7 +476,8 @@ func (i *Image) makeStaleIfDependingOn(target *Image) {
 		return
 	}
 	if i.dependsOn(target) {
-		i.makeStale(image.Rect(0, 0, i.width, i.height))
+		// There is no new region to make stale.
+		i.makeStale(image.Rectangle{})
 	}
 }
 
@@ -477,29 +487,24 @@ func (i *Image) makeStaleIfDependingOnShader(shader *Shader) {
 		return
 	}
 	if i.dependsOnShader(shader) {
-		i.makeStale(image.Rect(0, 0, i.width, i.height))
+		// There is no new region to make stale.
+		i.makeStale(image.Rectangle{})
 	}
 }
 
 // readPixelsFromGPU reads the pixels from GPU and resolves the image's 'stale' state.
 func (i *Image) readPixelsFromGPU(graphicsDriver graphicsdriver.Graphics) error {
-	i.basePixels = Pixels{}
-	r := i.staleRegion
-	if len(i.drawTrianglesHistory) > 0 {
-		r = image.Rect(0, 0, i.width, i.height)
+	var r image.Rectangle
+	if i.stale {
+		i.basePixels = Pixels{}
+		r = i.staleRegion
+	} else {
+		for _, d := range i.drawTrianglesHistory {
+			r = r.Union(regionToRectangle(d.dstRegion))
+		}
 	}
 	if !r.Empty() {
-		var pix []byte
-		if needsRestoring() && i.needsRestoring() {
-			// pixelsForRestore can be reused as basePixels was invalidated.
-			l := 4 * r.Dx() * r.Dy()
-			if len(i.pixelsForRestore) < l {
-				i.pixelsForRestore = make([]byte, l)
-			}
-			pix = i.pixelsForRestore[:l]
-		} else {
-			pix = make([]byte, 4*r.Dx()*r.Dy())
-		}
+		pix := make([]byte, 4*r.Dx()*r.Dy())
 		if err := i.image.ReadPixels(graphicsDriver, pix, r.Min.X, r.Min.Y, r.Dx(), r.Dy()); err != nil {
 			return err
 		}
@@ -677,4 +682,12 @@ func (i *Image) clearDrawTrianglesHistory() {
 
 func (i *Image) InternalSize() (int, int) {
 	return i.image.InternalSize()
+}
+
+func regionToRectangle(region graphicsdriver.Region) image.Rectangle {
+	return image.Rect(
+		int(math.Floor(float64(region.X))),
+		int(math.Floor(float64(region.Y))),
+		int(math.Ceil(float64(region.X+region.Width))),
+		int(math.Ceil(float64(region.Y+region.Height))))
 }

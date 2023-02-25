@@ -1129,3 +1129,36 @@ func TestDrawTrianglesAndReadPixels(t *testing.T) {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
 }
+
+func TestWritePixelsAndDrawTriangles(t *testing.T) {
+	src := restorable.NewImage(1, 1, restorable.ImageTypeRegular)
+	dst := restorable.NewImage(2, 1, restorable.ImageTypeRegular)
+
+	src.WritePixels([]byte{0x80, 0x80, 0x80, 0x80}, 0, 0, 1, 1)
+
+	// Call WritePixels first.
+	dst.WritePixels([]byte{0x40, 0x40, 0x40, 0x40}, 0, 0, 1, 1)
+
+	// Call DrawTriangles at a different region second.
+	vs := quadVertices(src, 1, 1, 1, 0)
+	is := graphics.QuadIndices()
+	dr := graphicsdriver.Region{
+		X:      1,
+		Y:      0,
+		Width:  1,
+		Height: 1,
+	}
+	dst.DrawTriangles([graphics.ShaderImageCount]*restorable.Image{src}, [graphics.ShaderImageCount - 1][2]float32{}, vs, is, graphicsdriver.BlendSourceOver, dr, graphicsdriver.Region{}, restorable.NearestFilterShader, nil, false)
+
+	// Get the pixels.
+	pix := make([]byte, 4*2*1)
+	if err := dst.ReadPixels(ui.GraphicsDriverForTesting(), pix, 0, 0, 2, 1); err != nil {
+		t.Fatal(err)
+	}
+	if got, want := (color.RGBA{R: pix[0], G: pix[1], B: pix[2], A: pix[3]}), (color.RGBA{R: 0x40, G: 0x40, B: 0x40, A: 0x40}); !sameColors(got, want, 1) {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+	if got, want := (color.RGBA{R: pix[4], G: pix[5], B: pix[6], A: pix[7]}), (color.RGBA{R: 0x80, G: 0x80, B: 0x80, A: 0x80}); !sameColors(got, want, 1) {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+}
