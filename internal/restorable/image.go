@@ -262,7 +262,7 @@ func (i *Image) BasePixelsForTesting() *Pixels {
 func (i *Image) makeStale(rect image.Rectangle) {
 	i.stale = true
 
-	// If ReadPixels Always reads pixels from GPU, staleRegions are never used.
+	// If ReadPixels always reads pixels from GPU, staleRegions are never used.
 	if AlwaysReadPixelsFromGPU() {
 		return
 	}
