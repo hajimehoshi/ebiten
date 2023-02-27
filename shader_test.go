@@ -456,6 +456,8 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 
 // Issue #1404
 func TestShaderDerivatives(t *testing.T) {
+	t.Skip("the results of dfdx, dfdy, and fwidth are indeterministic (#2583)")
+
 	const w, h = 16, 16
 
 	s, err := ebiten.NewShader([]byte(`package main
@@ -509,6 +511,8 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 
 // Issue #1701
 func TestShaderDerivatives2(t *testing.T) {
+	t.Skip("the results of dfdx, dfdy, and fwidth are indeterministic (#2583)")
+
 	const w, h = 16, 16
 
 	s, err := ebiten.NewShader([]byte(`package main
