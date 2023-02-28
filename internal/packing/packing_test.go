@@ -431,3 +431,23 @@ func TestExtend3(t *testing.T) {
 	p.Free(n1)
 	p.Free(n2)
 }
+
+// Issue #2584
+func TestRemoveAtRootsChild(t *testing.T) {
+	p := packing.NewPage(32, 32, 1024)
+	n0 := p.Alloc(18, 18)
+	n1 := p.Alloc(28, 59)
+	n2 := p.Alloc(18, 18)
+	n3 := p.Alloc(18, 18)
+	n4 := p.Alloc(8, 10)
+	n5 := p.Alloc(322, 242)
+	_ = n5
+	p.Free(n0)
+	p.Free(n2)
+	p.Free(n1)
+	p.Free(n3)
+	p.Free(n4)
+
+	n6 := p.Alloc(18, 18)
+	p.Free(n6)
+}

@@ -318,7 +318,8 @@ func (p *Page) extend(newWidth int, newHeight int) func() {
 	var rollback func()
 
 	if aborted {
-		origRoot := *p.root
+		origRoot := p.root
+		origRootCloned := *p.root
 
 		// Extend the page in the vertical direction.
 		if newHeight-p.height > 0 {
@@ -366,7 +367,10 @@ func (p *Page) extend(newWidth int, newHeight int) func() {
 		rollback = func() {
 			p.width = origWidth
 			p.height = origHeight
-			p.root = &origRoot
+			// The node address must not be changed, so use the original root node's pointer (#2584).
+			// As the root node might be modified, recover the content from the cloned content.
+			p.root = origRoot
+			*p.root = origRootCloned
 		}
 	} else {
 		origWidth, origHeight := p.width, p.height
