@@ -888,6 +888,57 @@ func TestExtend(t *testing.T) {
 	}
 }
 
+func TestDrawTrianglesAndExtend(t *testing.T) {
+	pixAt := func(i, j int) byte {
+		return byte(17*i + 13*j + 0x40)
+	}
+
+	const w, h = 16, 16
+
+	src := restorable.NewImage(w, h, restorable.ImageTypeRegular)
+	pix := make([]byte, 4*w*h)
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			idx := j*w + i
+			v := pixAt(i, j)
+			pix[4*idx] = v
+			pix[4*idx+1] = v
+			pix[4*idx+2] = v
+			pix[4*idx+3] = v
+		}
+	}
+	src.WritePixels(pix, 0, 0, w, h)
+
+	orig := restorable.NewImage(w, h, restorable.ImageTypeRegular)
+	vs := quadVertices(src, w, h, 0, 0)
+	is := graphics.QuadIndices()
+	dr := graphicsdriver.Region{
+		X:      0,
+		Y:      0,
+		Width:  w,
+		Height: h,
+	}
+	orig.DrawTriangles([graphics.ShaderImageCount]*restorable.Image{src}, [graphics.ShaderImageCount - 1][2]float32{}, vs, is, graphicsdriver.BlendSourceOver, dr, graphicsdriver.Region{}, restorable.NearestFilterShader, nil, false)
+	extended := orig.Extend(w*2, h*2) // After this, orig is already disposed.
+
+	result := make([]byte, 4*(w*2)*(h*2))
+	if err := extended.ReadPixels(ui.GraphicsDriverForTesting(), result, 0, 0, w*2, h*2); err != nil {
+		t.Fatal(err)
+	}
+	for j := 0; j < h*2; j++ {
+		for i := 0; i < w*2; i++ {
+			got := result[4*(j*(w*2)+i)]
+			want := byte(0)
+			if i < w && j < h {
+				want = pixAt(i, j)
+			}
+			if got != want {
+				t.Errorf("extended.At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+}
+
 func TestClearPixels(t *testing.T) {
 	const w, h = 16, 16
 	img := restorable.NewImage(w, h, restorable.ImageTypeRegular)
