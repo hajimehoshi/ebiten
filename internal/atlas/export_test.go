@@ -32,8 +32,8 @@ var (
 )
 
 func SetImageSizeForTesting(min, max int) {
-	oldMinSize = min
-	oldMaxSize = max
+	oldMinSize = minSize
+	oldMaxSize = maxSize
 	minSize = min
 	maxSize = max
 }
