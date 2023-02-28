@@ -245,7 +245,8 @@ func (p *Page) Extend(count int) bool {
 	}
 
 	if aborted {
-		origRoot := *p.root
+		origRoot := p.root
+		origRootCloned := *p.root
 
 		leftUpper := p.root
 		leftLower := &Node{
@@ -285,7 +286,10 @@ func (p *Page) Extend(count int) bool {
 		origSize := p.size
 		p.rollbackExtension = func() {
 			p.size = origSize
-			p.root = &origRoot
+			// The node address must not be changed, so use the original root node's pointer (#2584).
+			// As the root node might be modified, recover the content from the cloned content.
+			p.root = origRoot
+			*p.root = origRootCloned
 		}
 	} else {
 		origSize := p.size

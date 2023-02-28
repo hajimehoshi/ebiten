@@ -359,3 +359,45 @@ func TestExtendWithoutAllocation(t *testing.T) {
 		t.Errorf("p.Size(): got: %d, want: %d", got, want)
 	}
 }
+
+// Issue #2584
+func TestRemoveAtRootsChild(t *testing.T) {
+	p := packing.NewPage(32, 1024)
+
+	alloc := func(width, height int) *packing.Node {
+		n := p.Alloc(width, height)
+		if n != nil {
+			return n
+		}
+
+		for i := 1; i < 100; i++ {
+			if !p.Extend(i) {
+				t.Fatalf("p.Extend(%d) failed", i)
+			}
+			if n = p.Alloc(width, height); n != nil {
+				p.CommitExtension()
+				return n
+			}
+			p.RollbackExtension()
+		}
+
+		t.Fatalf("never reached")
+		return nil
+	}
+
+	n0 := alloc(18, 18)
+	n1 := alloc(28, 59)
+	n2 := alloc(18, 18)
+	n3 := alloc(18, 18)
+	n4 := alloc(8, 10)
+	n5 := alloc(322, 242)
+	_ = n5
+	p.Free(n0)
+	p.Free(n2)
+	p.Free(n1)
+	p.Free(n3)
+	p.Free(n4)
+
+	n6 := alloc(18, 18)
+	p.Free(n6)
+}
