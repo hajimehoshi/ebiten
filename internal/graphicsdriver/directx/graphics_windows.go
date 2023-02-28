@@ -1335,7 +1335,6 @@ type Image struct {
 	layouts                _D3D12_PLACED_SUBRESOURCE_FOOTPRINT
 	totalBytes             uint64
 	uploadingStagingBuffer *_ID3D12Resource
-	readingStagingBuffer   *_ID3D12Resource
 	rtvDescriptorHeap      *_ID3D12DescriptorHeap
 	dsvDescriptorHeap      *_ID3D12DescriptorHeap
 }
@@ -1361,10 +1360,6 @@ func (i *Image) disposeImpl() {
 	if i.uploadingStagingBuffer != nil {
 		i.uploadingStagingBuffer.Release()
 		i.uploadingStagingBuffer = nil
-	}
-	if i.readingStagingBuffer != nil {
-		i.readingStagingBuffer.Release()
-		i.readingStagingBuffer = nil
 	}
 	if i.stencil != nil {
 		i.stencil.Release()
@@ -1392,18 +1387,6 @@ func (i *Image) ensureUploadingStagingBuffer() error {
 	return nil
 }
 
-func (i *Image) ensureReadingStagingBuffer() error {
-	if i.readingStagingBuffer != nil {
-		return nil
-	}
-	var err error
-	i.readingStagingBuffer, err = createBuffer(i.graphics.device, i.totalBytes, _D3D12_HEAP_TYPE_READBACK)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 func (i *Image) ReadPixels(buf []byte, x, y, width, height int) error {
 	if i.screen {
 		return errors.New("directx: Pixels cannot be called on the screen")
@@ -1413,23 +1396,43 @@ func (i *Image) ReadPixels(buf []byte, x, y, width, height int) error {
 		return err
 	}
 
-	if err := i.ensureReadingStagingBuffer(); err != nil {
+	desc := _D3D12_RESOURCE_DESC{
+		Dimension:        _D3D12_RESOURCE_DIMENSION_TEXTURE2D,
+		Alignment:        0,
+		Width:            uint64(width),
+		Height:           uint32(height),
+		DepthOrArraySize: 1,
+		MipLevels:        0,
+		Format:           _DXGI_FORMAT_R8G8B8A8_UNORM,
+		SampleDesc: _DXGI_SAMPLE_DESC{
+			Count:   1,
+			Quality: 0,
+		},
+		Layout: _D3D12_TEXTURE_LAYOUT_UNKNOWN,
+		Flags:  _D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET,
+	}
+	layouts, _, _, totalBytes := i.graphics.device.GetCopyableFootprints(&desc, 0, 1, 0)
+	readingStagingBuffer, err := createBuffer(i.graphics.device, totalBytes, _D3D12_HEAP_TYPE_READBACK)
+	if err != nil {
 		return err
 	}
+	defer func() {
+		readingStagingBuffer.Release()
+	}()
 
 	if rb, ok := i.transiteState(_D3D12_RESOURCE_STATE_COPY_SOURCE); ok {
 		i.graphics.copyCommandList.ResourceBarrier([]_D3D12_RESOURCE_BARRIER_Transition{rb})
 	}
 
-	m, err := i.readingStagingBuffer.Map(0, &_D3D12_RANGE{0, 0})
+	m, err := readingStagingBuffer.Map(0, &_D3D12_RANGE{0, 0})
 	if err != nil {
 		return err
 	}
 
 	dst := _D3D12_TEXTURE_COPY_LOCATION_PlacedFootPrint{
-		pResource:       i.readingStagingBuffer,
+		pResource:       readingStagingBuffer,
 		Type:            _D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT,
-		PlacedFootprint: i.layouts,
+		PlacedFootprint: layouts,
 	}
 	src := _D3D12_TEXTURE_COPY_LOCATION_SubresourceIndex{
 		pResource:        i.texture,
@@ -1451,12 +1454,12 @@ func (i *Image) ReadPixels(buf []byte, x, y, width, height int) error {
 		return err
 	}
 
-	dstBytes := unsafe.Slice((*byte)(unsafe.Pointer(m)), i.totalBytes)
+	dstBytes := unsafe.Slice((*byte)(unsafe.Pointer(m)), totalBytes)
 	for j := 0; j < height; j++ {
-		copy(buf[j*width*4:(j+1)*width*4], dstBytes[j*int(i.layouts.Footprint.RowPitch):])
+		copy(buf[j*width*4:(j+1)*width*4], dstBytes[j*int(layouts.Footprint.RowPitch):])
 	}
 
-	i.readingStagingBuffer.Unmap(0, nil)
+	readingStagingBuffer.Unmap(0, nil)
 
 	return nil
 }

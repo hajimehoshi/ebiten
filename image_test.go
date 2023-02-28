@@ -26,7 +26,6 @@ import (
 	"runtime"
 	"testing"
 	"time"
-	"unsafe"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/examples/resources/images"
@@ -49,10 +48,6 @@ func skipTooSlowTests(t *testing.T) bool {
 	}
 	if runtime.GOOS == "js" {
 		t.Skip("too slow or fragile on Wasm")
-		return true
-	}
-	if runtime.GOOS == "windows" && unsafe.Sizeof(uintptr(0)) == 4 {
-		t.Skip("out of memory often happens on 32bit Windows (#2332)")
 		return true
 	}
 	return false
