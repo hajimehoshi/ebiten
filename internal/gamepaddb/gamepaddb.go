@@ -519,11 +519,13 @@ func buttonValue(id string, button StandardButton, state GamepadState) float64 {
 	return 0
 }
 
-func IsButtonPressed(id string, button StandardButton, state GamepadState) bool {
-	// Use XInput's trigger dead zone.
-	// See https://source.chromium.org/chromium/chromium/src/+/main:device/gamepad/public/cpp/gamepad.h;l=22-23;drc=6997f8a177359bb99598988ed5e900841984d242
-	const threshold = 30.0 / 255.0
+// ButtonPressedThreshold represents the value up to which a button counts as not yet pressed.
+// This has been set to match XInput's trigger dead zone.
+// See https://source.chromium.org/chromium/chromium/src/+/main:device/gamepad/public/cpp/gamepad.h;l=22-23;drc=6997f8a177359bb99598988ed5e900841984d242
+// Note: should be used with >, not >=, comparisons.
+const ButtonPressedThreshold = 30.0 / 255.0
 
+func IsButtonPressed(id string, button StandardButton, state GamepadState) bool {
 	mappingsM.RLock()
 	defer mappingsM.RUnlock()
 
@@ -540,7 +542,7 @@ func IsButtonPressed(id string, button StandardButton, state GamepadState) bool 
 	switch mapping.Type {
 	case mappingTypeAxis:
 		v := buttonValue(id, button, state)
-		return v > threshold
+		return v > ButtonPressedThreshold
 	case mappingTypeButton:
 		return state.Button(mapping.Index)
 	case mappingTypeHat:
