@@ -204,14 +204,6 @@ func (i *Image) Extend(width, height int) *Image {
 		Height: float32(sh),
 	}
 	newImg.DrawTriangles(srcs, offsets, vs, is, graphicsdriver.BlendCopy, dr, graphicsdriver.Region{}, NearestFilterShader, nil, false)
-
-	// Overwrite the history as if the image newImg is created only by WritePixels.
-	newImg.clearDrawTrianglesHistory()
-	newImg.basePixels = i.basePixels
-	newImg.stale = i.stale
-	newImg.staleRegions = make([]image.Rectangle, len(i.staleRegions))
-	copy(newImg.staleRegions, i.staleRegions)
-
 	i.Dispose()
 
 	return newImg
