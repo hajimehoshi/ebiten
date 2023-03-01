@@ -222,9 +222,7 @@ func (i *images) restore(graphicsDriver graphicsdriver.Graphics) error {
 	}
 	images := map[*Image]struct{}{}
 	for i := range i.images {
-		if !i.priority {
-			images[i] = struct{}{}
-		}
+		images[i] = struct{}{}
 	}
 	edges := map[edge]struct{}{}
 	for t := range images {
@@ -233,12 +231,7 @@ func (i *images) restore(graphicsDriver graphicsdriver.Graphics) error {
 		}
 	}
 
-	sorted := []*Image{}
-	for i := range i.images {
-		if i.priority {
-			sorted = append(sorted, i)
-		}
-	}
+	var sorted []*Image
 	for len(images) > 0 {
 		// current represents images that have no incoming edges.
 		current := map[*Image]struct{}{}

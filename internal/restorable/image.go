@@ -125,38 +125,6 @@ type Image struct {
 	staleRegions []image.Rectangle
 
 	imageType ImageType
-
-	// priority indicates whether the image is restored in high priority when context-lost happens.
-	priority bool
-}
-
-var whiteImage *Image
-
-func ensureWhiteImage() *Image {
-	if whiteImage != nil {
-		return whiteImage
-	}
-
-	// Initialize the white image lazily. Some functions like needsRestoring might not work at the initial phase.
-
-	// w and h are the white image's size. They indicate the 1x1 image with 1px padding around.
-	const w, h = 3, 3
-	whiteImage = &Image{
-		image:    graphicscommand.NewImage(w, h, false),
-		width:    w,
-		height:   h,
-		priority: true,
-	}
-	pix := make([]byte, 4*w*h)
-	for i := range pix {
-		pix[i] = 0xff
-	}
-
-	// As whiteImage is the source at clearImage, initialize this with WritePixels, not clearImage.
-	// This operation is also important when restoring whiteImage.
-	whiteImage.WritePixels(pix, 0, 0, w, h)
-	theImages.add(whiteImage)
-	return whiteImage
 }
 
 // NewImage creates a white image with the given size.
@@ -211,6 +179,14 @@ func (i *Image) Extend(width, height int) *Image {
 
 // quadVertices returns vertices to render a quad. These values are passed to graphicscommand.Image.
 func quadVertices(src *Image, dx0, dy0, dx1, dy1, sx0, sy0, sx1, sy1, cr, cg, cb, ca float32) []float32 {
+	if src == nil {
+		return []float32{
+			dx0, dy0, 0, 0, cr, cg, cb, ca,
+			dx1, dy0, 0, 0, cr, cg, cb, ca,
+			dx0, dy1, 0, 0, cr, cg, cb, ca,
+			dx1, dy1, 0, 0, cr, cg, cb, ca,
+		}
+	}
 	sw, sh := src.InternalSize()
 	swf, shf := float32(sw), float32(sh)
 	return []float32{
@@ -222,19 +198,11 @@ func quadVertices(src *Image, dx0, dy0, dx1, dy1, sx0, sy0, sx1, sy1, cr, cg, cb
 }
 
 func clearImage(i *graphicscommand.Image) {
-	whiteImage := ensureWhiteImage()
-
-	if i == whiteImage.image {
-		panic("restorable: fillImage cannot be called on whiteImage")
-	}
-
 	// This needs to use 'InternalSize' to render the whole region, or edges are unexpectedly cleared on some
 	// devices.
 	dw, dh := i.InternalSize()
-	sw, sh := whiteImage.width, whiteImage.height
-	vs := quadVertices(whiteImage, 0, 0, float32(dw), float32(dh), 1, 1, float32(sw-1), float32(sh-1), 0, 0, 0, 0)
+	vs := quadVertices(nil, 0, 0, float32(dw), float32(dh), 0, 0, 0, 0, 0, 0, 0, 0)
 	is := graphics.QuadIndices()
-	srcs := [graphics.ShaderImageCount]*graphicscommand.Image{whiteImage.image}
 	var offsets [graphics.ShaderImageCount - 1][2]float32
 	dstRegion := graphicsdriver.Region{
 		X:      0,
@@ -242,7 +210,7 @@ func clearImage(i *graphicscommand.Image) {
 		Width:  float32(dw),
 		Height: float32(dh),
 	}
-	i.DrawTriangles(srcs, offsets, vs, is, graphicsdriver.BlendClear, dstRegion, graphicsdriver.Region{}, NearestFilterShader.shader, nil, false)
+	i.DrawTriangles([graphics.ShaderImageCount]*graphicscommand.Image{}, offsets, vs, is, graphicsdriver.BlendClear, dstRegion, graphicsdriver.Region{}, clearShader.shader, nil, false)
 }
 
 // BasePixelsForTesting returns the image's basePixels for testing.
@@ -364,9 +332,6 @@ func (i *Image) WritePixels(pixels []byte, x, y, width, height int) {
 //	6: Color B
 //	7: Color Y
 func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, offsets [graphics.ShaderImageCount - 1][2]float32, vertices []float32, indices []uint16, blend graphicsdriver.Blend, dstRegion, srcRegion graphicsdriver.Region, shader *Shader, uniforms []uint32, evenOdd bool) {
-	if i.priority {
-		panic("restorable: DrawTriangles cannot be called on a priority image")
-	}
 	if len(vertices) == 0 {
 		return
 	}
@@ -606,11 +571,8 @@ func (i *Image) restore(graphicsDriver graphicsdriver.Graphics) error {
 
 	gimg := graphicscommand.NewImage(w, h, false)
 	// Clear the image explicitly.
-	if i != ensureWhiteImage() {
-		// As clearImage uses whiteImage, clearImage cannot be called on whiteImage.
-		// It is OK to skip this since whiteImage has its entire pixel information.
-		clearImage(gimg)
-	}
+	clearImage(gimg)
+
 	i.basePixels.Apply(gimg)
 
 	for _, c := range i.drawTrianglesHistory {
