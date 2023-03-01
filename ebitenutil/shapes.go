@@ -15,21 +15,11 @@
 package ebitenutil
 
 import (
-	"image"
 	"image/color"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
-
-var (
-	whiteImage    = ebiten.NewImage(3, 3)
-	whiteSubImage = whiteImage.SubImage(image.Rect(1, 1, 2, 2)).(*ebiten.Image)
-)
-
-func init() {
-	whiteImage.Fill(color.White)
-}
 
 // DrawLine draws a line segment on the given destination dst.
 //
