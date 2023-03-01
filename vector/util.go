@@ -28,7 +28,13 @@ var (
 )
 
 func init() {
-	whiteImage.Fill(color.White)
+	b := whiteImage.Bounds()
+	pix := make([]byte, 4*b.Dx()*b.Dy())
+	for i := range pix {
+		pix[i] = 0xff
+	}
+	// This is hacky, but WritePixels is better than Fill in term of automatic texture packing.
+	whiteImage.WritePixels(pix)
 }
 
 func drawVerticesForUtil(dst *ebiten.Image, vs []ebiten.Vertex, is []uint16, clr color.Color) {
