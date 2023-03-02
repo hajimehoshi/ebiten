@@ -359,6 +359,11 @@ func (i *Image) putOnSourceBackend(graphicsDriver graphicsdriver.Graphics) error
 
 	newI.moveTo(i)
 	i.usedAsSourceCount = 0
+
+	if !i.isOnSourceBackend() {
+		panic("atlas: i must be on a source backend but not")
+	}
+
 	return nil
 }
 
