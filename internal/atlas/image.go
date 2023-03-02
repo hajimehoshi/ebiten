@@ -220,11 +220,9 @@ type Image struct {
 	// WritePixels doesn't affect this value since WritePixels can be done on images on an atlas.
 	usedAsSourceCount int
 
-	// destinationCount represents how many times an image on an atlas is used as a rendering destination at DrawTriangles.
+	// destinationCount represents how many times an image switches its backend when the image is used
+	// as a rendering destination at DrawTriangles.
 	// destinationCount affects the calculation when to put the image onto a texture atlas again.
-	//
-	// The current counting way is derived from the old implementation in which a destination image was always isolated
-	// e.g. not on an atlas. This might have to be revisited.
 	destinationCount int
 }
 
@@ -281,8 +279,6 @@ func (i *Image) ensureIsolatedFromSource(backends []*backend) {
 		return
 	}
 
-	i.destinationCount++
-
 	// Check if i has the same backend as the given backends.
 	var needsIsolation bool
 	for _, b := range backends {
@@ -322,6 +318,10 @@ func (i *Image) ensureIsolatedFromSource(backends []*backend) {
 	delete(theSourceBackendsForOneFrame, origBackend)
 
 	newI.moveTo(i)
+
+	// Count up only when the backend is switched. (#2586).
+	// This counting up must be done after moveTo.
+	i.destinationCount++
 }
 
 func (i *Image) putOnSourceBackend(graphicsDriver graphicsdriver.Graphics) error {

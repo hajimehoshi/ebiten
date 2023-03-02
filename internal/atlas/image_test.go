@@ -213,6 +213,14 @@ func TestReputOnSourceBackend(t *testing.T) {
 			t.Errorf("got: %v, want: %v", got, want)
 		}
 	}
+	// Finally, img1 is on a source backend.
+	if err := atlas.PutImagesOnSourceBackendForTesting(ui.GraphicsDriverForTesting()); err != nil {
+		t.Fatal(err)
+	}
+	img0.DrawTriangles([graphics.ShaderImageCount]*atlas.Image{img1}, vs, is, graphicsdriver.BlendCopy, dr, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, atlas.NearestFilterShader, nil, false)
+	if got, want := img1.IsOnSourceBackendForTesting(), true; got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
 	if err := atlas.PutImagesOnSourceBackendForTesting(ui.GraphicsDriverForTesting()); err != nil {
 		t.Fatal(err)
 	}
