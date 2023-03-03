@@ -572,12 +572,12 @@ func (*nativeGamepadDesktop) hasOwnStandardLayoutMapping() bool {
 	return false
 }
 
-func (*nativeGamepadDesktop) isStandardAxisAvailableInOwnMapping(axis gamepaddb.StandardAxis) bool {
-	return false
+func (*nativeGamepadDesktop) standardAxisInOwnMapping(axis gamepaddb.StandardAxis) mappingInput {
+	return nil
 }
 
-func (*nativeGamepadDesktop) isStandardButtonAvailableInOwnMapping(button gamepaddb.StandardButton) bool {
-	return false
+func (*nativeGamepadDesktop) standardButtonInOwnMapping(button gamepaddb.StandardButton) mappingInput {
+	return nil
 }
 
 func (g *nativeGamepadDesktop) usesDInput() bool {
@@ -757,7 +757,10 @@ func (g *nativeGamepadDesktop) isButtonPressed(button int) bool {
 }
 
 func (g *nativeGamepadDesktop) buttonValue(button int) float64 {
-	panic("gamepad: buttonValue is not implemented")
+	if g.isButtonPressed(button) {
+		return 1
+	}
+	return 0
 }
 
 func (g *nativeGamepadDesktop) hatState(hat int) int {
