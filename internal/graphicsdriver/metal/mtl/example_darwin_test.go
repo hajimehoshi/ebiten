@@ -39,9 +39,9 @@ func init() {
 }
 
 func Example_listDevices() {
-	device, ok := mtl.CreateSystemDefaultDevice()
-	if !ok {
-		log.Fatalln("Metal is not supported")
+	device, err := mtl.CreateSystemDefaultDevice()
+	if err != nil {
+		log.Fatal(err)
 	}
 	printJSON("preferred system default Metal device = ", device)
 
@@ -86,9 +86,9 @@ func printJSON(label string, v any) {
 }
 
 func Example_renderTriangle() {
-	device, ok := mtl.CreateSystemDefaultDevice()
-	if !ok {
-		log.Fatalln("Metal is not supported")
+	device, err := mtl.CreateSystemDefaultDevice()
+	if err != nil {
+		log.Fatal(err)
 	}
 
 	// Create a render pipeline state.
