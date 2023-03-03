@@ -346,6 +346,10 @@ func (i *bigOffscreenImage) drawTriangles(srcs [graphics.ShaderImageCount]*Image
 		i.region = r
 	}
 
+	if i.region.Width == 0 || i.region.Height == 0 {
+		return
+	}
+
 	if i.image == nil {
 		i.image = NewImage(int(i.region.Width)*bigOffscreenScale, int(i.region.Height)*bigOffscreenScale, i.imageType)
 	}
