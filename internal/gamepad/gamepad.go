@@ -284,14 +284,14 @@ func (g *Gamepad) IsStandardLayoutAvailable() bool {
 }
 
 // IsStandardAxisAvailable is concurrent safe.
-func (g *Gamepad) IsStandardAxisAvailable(button gamepaddb.StandardAxis) bool {
+func (g *Gamepad) IsStandardAxisAvailable(axis gamepaddb.StandardAxis) bool {
 	g.m.Lock()
 	defer g.m.Unlock()
 
 	if gamepaddb.HasStandardLayoutMapping(g.sdlID) {
-		return gamepaddb.HasStandardAxis(g.sdlID, button)
+		return gamepaddb.HasStandardAxis(g.sdlID, axis)
 	}
-	return g.native.isStandardAxisAvailableInOwnMapping(button)
+	return g.native.isStandardAxisAvailableInOwnMapping(axis)
 }
 
 // IsStandardButtonAvailable is concurrent safe.
