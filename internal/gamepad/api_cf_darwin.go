@@ -52,15 +52,35 @@ const (
 )
 
 var (
-	corefoundation = purego.Dlopen("CoreFoundation.framework/CoreFoundation", purego.RTLD_LAZY|purego.RTLD_GLOBAL)
-
-	kCFTypeDictionaryKeyCallBacks   = purego.Dlsym(corefoundation, "kCFTypeDictionaryKeyCallBacks")
-	kCFTypeDictionaryValueCallBacks = purego.Dlsym(corefoundation, "kCFTypeDictionaryValueCallBacks")
-	kCFTypeArrayCallBacks           = purego.Dlsym(corefoundation, "kCFTypeArrayCallBacks")
-	kCFRunLoopDefaultMode           = purego.Dlsym(corefoundation, "kCFRunLoopDefaultMode")
+	kCFTypeDictionaryKeyCallBacks   uintptr
+	kCFTypeDictionaryValueCallBacks uintptr
+	kCFTypeArrayCallBacks           uintptr
+	kCFRunLoopDefaultMode           uintptr
 )
 
-func init() {
+func initializeCF() error {
+	corefoundation, err := purego.Dlopen("CoreFoundation.framework/CoreFoundation", purego.RTLD_LAZY|purego.RTLD_GLOBAL)
+	if err != nil {
+		return err
+	}
+
+	kCFTypeDictionaryKeyCallBacks, err = purego.Dlsym(corefoundation, "kCFTypeDictionaryKeyCallBacks")
+	if err != nil {
+		return err
+	}
+	kCFTypeDictionaryValueCallBacks, err = purego.Dlsym(corefoundation, "kCFTypeDictionaryValueCallBacks")
+	if err != nil {
+		return err
+	}
+	kCFTypeArrayCallBacks, err = purego.Dlsym(corefoundation, "kCFTypeArrayCallBacks")
+	if err != nil {
+		return err
+	}
+	kCFRunLoopDefaultMode, err = purego.Dlsym(corefoundation, "kCFRunLoopDefaultMode")
+	if err != nil {
+		return err
+	}
+
 	purego.RegisterLibFunc(&_CFNumberCreate, corefoundation, "CFNumberCreate")
 	purego.RegisterLibFunc(&_CFNumberGetValue, corefoundation, "CFNumberGetValue")
 	purego.RegisterLibFunc(&_CFArrayCreate, corefoundation, "CFArrayCreate")
@@ -73,6 +93,8 @@ func init() {
 	purego.RegisterLibFunc(&_CFGetTypeID, corefoundation, "CFGetTypeID")
 	purego.RegisterLibFunc(&_CFStringGetCString, corefoundation, "CFStringGetCString")
 	purego.RegisterLibFunc(&_CFStringCreateWithCString, corefoundation, "CFStringCreateWithCString")
+
+	return nil
 }
 
 var (

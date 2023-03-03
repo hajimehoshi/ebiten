@@ -78,8 +78,8 @@ var creatingSystemDefaultDeviceSucceeded bool
 
 func init() {
 	// mtl.CreateSystemDefaultDevice must be called on the main thread (#2147).
-	_, ok := mtl.CreateSystemDefaultDevice()
-	creatingSystemDefaultDeviceSucceeded = ok
+	_, err := mtl.CreateSystemDefaultDevice()
+	creatingSystemDefaultDeviceSucceeded = err == nil
 }
 
 // NewGraphics creates an implementation of graphicsdriver.Graphics for Metal.

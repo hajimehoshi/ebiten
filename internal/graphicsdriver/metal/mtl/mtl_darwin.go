@@ -355,11 +355,6 @@ const (
 	CommandBufferStatusError       CommandBufferStatus = 5 // Execution of the command buffer was aborted due to an error during execution.
 )
 
-var (
-	metal                         = purego.Dlopen("Metal.framework/Metal", purego.RTLD_LAZY|purego.RTLD_GLOBAL)
-	_MTLCreateSystemDefaultDevice = purego.Dlsym(metal, "MTLCreateSystemDefaultDevice")
-)
-
 // Resource represents a memory allocation for storing specialized data
 // that is accessible to the GPU.
 //
@@ -573,10 +568,20 @@ var (
 // CreateSystemDefaultDevice returns the preferred system default Metal device.
 //
 // Reference: https://developer.apple.com/documentation/metal/1433401-mtlcreatesystemdefaultdevice.
-func CreateSystemDefaultDevice() (Device, bool) {
-	d, _, _ := purego.SyscallN(_MTLCreateSystemDefaultDevice)
+func CreateSystemDefaultDevice() (Device, error) {
+	metal, err := purego.Dlopen("Metal.framework/Metal", purego.RTLD_LAZY|purego.RTLD_GLOBAL)
+	if err != nil {
+		return Device{}, err
+	}
+
+	mtlCreateSystemDefaultDevice, err := purego.Dlsym(metal, "MTLCreateSystemDefaultDevice")
+	if err != nil {
+		return Device{}, err
+	}
+
+	d, _, _ := purego.SyscallN(mtlCreateSystemDefaultDevice)
 	if d == 0 {
-		return Device{}, false
+		return Device{}, fmt.Errorf("mtl: MTLCreateSystemDefaultDevice returned 0")
 	}
 	var (
 		headless bool
@@ -594,7 +599,7 @@ func CreateSystemDefaultDevice() (Device, bool) {
 		Headless: headless,
 		LowPower: lowPower,
 		Name:     name,
-	}, true
+	}, nil
 }
 
 // Device returns the underlying id<MTLDevice> pointer.

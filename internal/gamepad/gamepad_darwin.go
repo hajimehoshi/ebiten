@@ -40,6 +40,13 @@ func newNativeGamepadsImpl() nativeGamepads {
 }
 
 func (g *nativeGamepadsImpl) init(gamepads *gamepads) error {
+	if err := initializeCF(); err != nil {
+		return err
+	}
+	if err := initializeIOKit(); err != nil {
+		return err
+	}
+
 	var dicts []_CFDictionaryRef
 
 	page := kHIDPage_GenericDesktop
