@@ -186,7 +186,7 @@ func SetScreenFilterEnabled(enabled bool) {
 //
 // IsScreenFilterEnabled is concurrent-safe.
 //
-// Deprecated: as of v2.5. Use FinalScreenDrawer instead.
+// Deprecated: as of v2.5.
 func IsScreenFilterEnabled() bool {
 	return isScreenFilterEnabled()
 }
