@@ -124,6 +124,13 @@ type Image struct {
 	// staleRegions is not used when AlwaysReadPixelsFromGPU() returns true.
 	staleRegions []image.Rectangle
 
+	// pixelsForRestore is cached byte slices for pixels.
+	// pixelsForRestore is just a cache to avoid allocations (#2375).
+	// pixelsForRestore is used only at restore.
+	//
+	// A key is the region and a value is a byte slice for the region.
+	pixelsForRestore map[image.Rectangle][]byte
+
 	imageType ImageType
 }
 
@@ -593,11 +600,21 @@ func (i *Image) restore(graphicsDriver graphicsdriver.Graphics) error {
 	if len(i.drawTrianglesHistory) > 0 {
 		var rs []image.Rectangle
 		rs = i.appendRegionsForDrawTriangles(rs)
+
 		for _, r := range rs {
 			if r.Empty() {
 				continue
 			}
-			pix := make([]byte, 4*r.Dx()*r.Dy())
+
+			if i.pixelsForRestore == nil {
+				i.pixelsForRestore = map[image.Rectangle][]byte{}
+			}
+
+			pix, ok := i.pixelsForRestore[r]
+			if !ok {
+				pix = make([]byte, 4*r.Dx()*r.Dy())
+				i.pixelsForRestore[r] = pix
+			}
 			if err := gimg.ReadPixels(graphicsDriver, pix, r.Min.X, r.Min.Y, r.Dx(), r.Dy()); err != nil {
 				return err
 			}
@@ -620,6 +637,7 @@ func (i *Image) Dispose() {
 	i.image.Dispose()
 	i.image = nil
 	i.basePixels = Pixels{}
+	i.pixelsForRestore = nil
 	i.clearDrawTrianglesHistory()
 	i.stale = false
 	i.staleRegions = i.staleRegions[:0]
