@@ -690,6 +690,7 @@ func (i *Image) appendRegionsForDrawTriangles(regions []image.Rectangle) []image
 			continue
 		}
 
+		// Replace duplicated regions with empty regions.
 		for i, rr := range regions[origIndex:] {
 			if rr.Empty() {
 				continue
@@ -702,7 +703,17 @@ func (i *Image) appendRegionsForDrawTriangles(regions []image.Rectangle) []image
 		regions = append(regions, r)
 	}
 
-	return regions
+	// Remove empty regions.
+	n := origIndex
+	for _, r := range regions[origIndex:] {
+		if r.Empty() {
+			continue
+		}
+		regions[n] = r
+		n++
+	}
+
+	return regions[:n]
 }
 
 func regionToRectangle(region graphicsdriver.Region) image.Rectangle {
