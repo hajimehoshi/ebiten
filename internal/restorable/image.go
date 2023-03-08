@@ -131,6 +131,10 @@ type Image struct {
 	// A key is the region and a value is a byte slice for the region.
 	pixelsForRestore map[image.Rectangle][]byte
 
+	// regionsForRestore is cached regions.
+	// regionsForRestore is just a cache to avoid allocations (#2375).
+	regionsForRestore []image.Rectangle
+
 	imageType ImageType
 }
 
@@ -598,10 +602,9 @@ func (i *Image) restore(graphicsDriver graphicsdriver.Graphics) error {
 
 	// In order to clear the draw-triangles history, read pixels from GPU.
 	if len(i.drawTrianglesHistory) > 0 {
-		var rs []image.Rectangle
-		rs = i.appendRegionsForDrawTriangles(rs)
+		i.regionsForRestore = i.appendRegionsForDrawTriangles(i.regionsForRestore)
 
-		for _, r := range rs {
+		for _, r := range i.regionsForRestore {
 			if r.Empty() {
 				continue
 			}
@@ -620,6 +623,8 @@ func (i *Image) restore(graphicsDriver graphicsdriver.Graphics) error {
 			}
 			i.basePixels.AddOrReplace(pix, r.Min.X, r.Min.Y, r.Dx(), r.Dy())
 		}
+
+		i.regionsForRestore = i.regionsForRestore[:0]
 	}
 
 	i.image = gimg
@@ -668,28 +673,25 @@ func (i *Image) InternalSize() (int, int) {
 }
 
 func (i *Image) appendRegionsForDrawTriangles(regions []image.Rectangle) []image.Rectangle {
-	var rs []image.Rectangle
+	origIndex := len(regions)
 	for _, d := range i.drawTrianglesHistory {
 		r := regionToRectangle(d.dstRegion)
 		if r.Empty() {
 			continue
 		}
-		for i, rr := range rs {
+
+		for i, rr := range regions[origIndex:] {
 			if rr.Empty() {
 				continue
 			}
 			if rr.In(r) {
-				rs[i] = image.Rectangle{}
+				regions[origIndex+i] = image.Rectangle{}
 			}
 		}
-		rs = append(rs, r)
-	}
-	for _, r := range rs {
-		if r.Empty() {
-			continue
-		}
+
 		regions = append(regions, r)
 	}
+
 	return regions
 }
 
