@@ -128,11 +128,14 @@ type Image struct {
 	// pixelsCache is just a cache to avoid allocations (#2375).
 	//
 	// A key is the region and a value is a byte slice for the region.
+	//
+	// It is fine to reuse the same byte slice for the same region for basePixels,
+	// as old pixels for the same region will be invalidated at basePixel.AddOrReplace.
 	pixelsCache map[image.Rectangle][]byte
 
-	// regionsForRestore is cached regions.
-	// regionsForRestore is just a cache to avoid allocations (#2375).
-	regionsForRestore []image.Rectangle
+	// regionsCache is cached regions.
+	// regionsCache is just a cache to avoid allocations (#2375).
+	regionsCache []image.Rectangle
 
 	imageType ImageType
 }
@@ -474,9 +477,13 @@ func (i *Image) makeStaleIfDependingOnShader(shader *Shader) {
 func (i *Image) readPixelsFromGPU(graphicsDriver graphicsdriver.Graphics) error {
 	var rs []image.Rectangle
 	if i.stale {
-		rs = append(rs, i.staleRegions...)
+		rs = i.staleRegions
 	} else {
-		rs = i.appendRegionsForDrawTriangles(rs)
+		i.regionsCache = i.appendRegionsForDrawTriangles(i.regionsCache)
+		defer func() {
+			i.regionsCache = i.regionsCache[:0]
+		}()
+		rs = i.regionsCache
 	}
 
 	for _, r := range rs {
@@ -498,6 +505,7 @@ func (i *Image) readPixelsFromGPU(graphicsDriver graphicsdriver.Graphics) error 
 		}
 		i.basePixels.AddOrReplace(pix, r.Min.X, r.Min.Y, r.Dx(), r.Dy())
 	}
+
 	i.clearDrawTrianglesHistory()
 	i.stale = false
 	i.staleRegions = i.staleRegions[:0]
@@ -612,9 +620,12 @@ func (i *Image) restore(graphicsDriver graphicsdriver.Graphics) error {
 
 	// In order to clear the draw-triangles history, read pixels from GPU.
 	if len(i.drawTrianglesHistory) > 0 {
-		i.regionsForRestore = i.appendRegionsForDrawTriangles(i.regionsForRestore)
+		i.regionsCache = i.appendRegionsForDrawTriangles(i.regionsCache)
+		defer func() {
+			i.regionsCache = i.regionsCache[:0]
+		}()
 
-		for _, r := range i.regionsForRestore {
+		for _, r := range i.regionsCache {
 			if r.Empty() {
 				continue
 			}
@@ -633,8 +644,6 @@ func (i *Image) restore(graphicsDriver graphicsdriver.Graphics) error {
 			}
 			i.basePixels.AddOrReplace(pix, r.Min.X, r.Min.Y, r.Dx(), r.Dy())
 		}
-
-		i.regionsForRestore = i.regionsForRestore[:0]
 	}
 
 	i.image = gimg
