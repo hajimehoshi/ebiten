@@ -248,6 +248,9 @@ func (i *Image) makeStale(rect image.Rectangle) {
 
 	// Clear pixels to save memory.
 	for _, r := range i.staleRegions[origNum:] {
+		if r.Empty() {
+			continue
+		}
 		i.basePixels.Clear(r.Min.X, r.Min.Y, r.Dx(), r.Dy())
 	}
 
