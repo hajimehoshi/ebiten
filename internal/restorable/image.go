@@ -256,6 +256,9 @@ func (i *Image) makeStale(rect image.Rectangle) {
 		i.basePixels.Clear(r.Min.X, r.Min.Y, r.Dx(), r.Dy())
 	}
 
+	// Remove duplicated regions to avoid unnecessary reading pixels from GPU.
+	i.staleRegions = removeDuplicatedRegions(i.staleRegions)
+
 	// Don't have to call makeStale recursively here.
 	// Restoring is done after topological sorting is done.
 	// If an image depends on another stale image, this means that
@@ -731,4 +734,30 @@ func regionToRectangle(region graphicsdriver.Region) image.Rectangle {
 		int(math.Floor(float64(region.Y))),
 		int(math.Ceil(float64(region.X+region.Width))),
 		int(math.Ceil(float64(region.Y+region.Height))))
+}
+
+// removeDuplicatedRegions removes duplicated regions and returns a shrunk slice.
+// If a region covers preceding regions, the covered regions are removed.
+func removeDuplicatedRegions(regions []image.Rectangle) []image.Rectangle {
+	for i, r := range regions {
+		if r.Empty() {
+			continue
+		}
+		for j, rr := range regions[:i] {
+			if rr.In(r) {
+				regions[j] = image.Rectangle{}
+			}
+		}
+	}
+
+	n := 0
+	for _, r := range regions {
+		if r.Empty() {
+			continue
+		}
+		regions[n] = r
+		n++
+	}
+
+	return regions[:n]
 }
