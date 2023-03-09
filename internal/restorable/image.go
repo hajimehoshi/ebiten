@@ -737,13 +737,19 @@ func regionToRectangle(region graphicsdriver.Region) image.Rectangle {
 }
 
 // removeDuplicatedRegions removes duplicated regions and returns a shrunk slice.
-// If a region covers preceding regions, the covered regions are removed.
+// If a region covers other regions, the covered regions are removed.
 func removeDuplicatedRegions(regions []image.Rectangle) []image.Rectangle {
 	for i, r := range regions {
 		if r.Empty() {
 			continue
 		}
-		for j, rr := range regions[:i] {
+		for j, rr := range regions {
+			if i == j {
+				continue
+			}
+			if rr.Empty() {
+				continue
+			}
 			if rr.In(r) {
 				regions[j] = image.Rectangle{}
 			}

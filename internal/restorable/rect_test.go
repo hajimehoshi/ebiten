@@ -59,7 +59,6 @@ func TestRemoveDuplicatedRegions(t *testing.T) {
 			},
 			Out: []image.Rectangle{
 				image.Rect(0, 0, 2, 2),
-				image.Rect(0, 0, 1, 1),
 			},
 		},
 		{
@@ -104,7 +103,6 @@ func TestRemoveDuplicatedRegions(t *testing.T) {
 			},
 			Out: []image.Rectangle{
 				image.Rect(0, 0, 4, 4),
-				image.Rect(1, 1, 2, 2),
 			},
 		},
 		{
