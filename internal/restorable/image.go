@@ -697,37 +697,18 @@ func (i *Image) InternalSize() (int, int) {
 }
 
 func (i *Image) appendRegionsForDrawTriangles(regions []image.Rectangle) []image.Rectangle {
-	origIndex := len(regions)
+	n := len(regions)
 	for _, d := range i.drawTrianglesHistory {
 		r := regionToRectangle(d.dstRegion)
 		if r.Empty() {
 			continue
 		}
-
-		// Replace duplicated regions with empty regions.
-		for i, rr := range regions[origIndex:] {
-			if rr.Empty() {
-				continue
-			}
-			if rr.In(r) {
-				regions[origIndex+i] = image.Rectangle{}
-			}
-		}
-
 		regions = append(regions, r)
 	}
 
-	// Remove empty regions.
-	n := origIndex
-	for _, r := range regions[origIndex:] {
-		if r.Empty() {
-			continue
-		}
-		regions[n] = r
-		n++
-	}
-
-	return regions[:n]
+	origRegions := regions[:n]
+	newRegions := removeDuplicatedRegions(regions[n:])
+	return append(origRegions, newRegions...)
 }
 
 func regionToRectangle(region graphicsdriver.Region) image.Rectangle {
