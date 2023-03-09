@@ -486,6 +486,7 @@ func (i *Image) readPixelsFromGPU(graphicsDriver graphicsdriver.Graphics) error 
 		defer func() {
 			i.regionsCache = i.regionsCache[:0]
 		}()
+		i.regionsCache = removeDuplicatedRegions(i.regionsCache)
 		rs = i.regionsCache
 	}
 
@@ -627,6 +628,7 @@ func (i *Image) restore(graphicsDriver graphicsdriver.Graphics) error {
 		defer func() {
 			i.regionsCache = i.regionsCache[:0]
 		}()
+		i.regionsCache = removeDuplicatedRegions(i.regionsCache)
 
 		for _, r := range i.regionsCache {
 			if r.Empty() {
