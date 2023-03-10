@@ -257,7 +257,8 @@ func (i *Image) makeStale(rect image.Rectangle) {
 	}
 
 	// Remove duplicated regions to avoid unnecessary reading pixels from GPU.
-	i.staleRegions = removeDuplicatedRegions(i.staleRegions)
+	n := removeDuplicatedRegions(i.staleRegions)
+	i.staleRegions = i.staleRegions[:n]
 
 	// Don't have to call makeStale recursively here.
 	// Restoring is done after topological sorting is done.
@@ -486,8 +487,8 @@ func (i *Image) readPixelsFromGPU(graphicsDriver graphicsdriver.Graphics) error 
 		defer func() {
 			i.regionsCache = i.regionsCache[:0]
 		}()
-		i.regionsCache = removeDuplicatedRegions(i.regionsCache)
-		rs = i.regionsCache
+		n := removeDuplicatedRegions(i.regionsCache)
+		rs = i.regionsCache[:n]
 	}
 
 	for _, r := range rs {
@@ -628,9 +629,10 @@ func (i *Image) restore(graphicsDriver graphicsdriver.Graphics) error {
 		defer func() {
 			i.regionsCache = i.regionsCache[:0]
 		}()
-		i.regionsCache = removeDuplicatedRegions(i.regionsCache)
+		n := removeDuplicatedRegions(i.regionsCache)
+		rs := i.regionsCache[:n]
 
-		for _, r := range i.regionsCache {
+		for _, r := range rs {
 			if r.Empty() {
 				continue
 			}
@@ -706,9 +708,8 @@ func (i *Image) appendRegionsForDrawTriangles(regions []image.Rectangle) []image
 		regions = append(regions, r)
 	}
 
-	origRegions := regions[:n]
-	newRegions := removeDuplicatedRegions(regions[n:])
-	return append(origRegions, newRegions...)
+	nn := removeDuplicatedRegions(regions[n:])
+	return regions[:n+nn]
 }
 
 func regionToRectangle(region graphicsdriver.Region) image.Rectangle {
@@ -719,9 +720,9 @@ func regionToRectangle(region graphicsdriver.Region) image.Rectangle {
 		int(math.Ceil(float64(region.Y+region.Height))))
 }
 
-// removeDuplicatedRegions removes duplicated regions and returns a shrunk slice.
+// removeDuplicatedRegions removes duplicated regions and returns the new size of the slice.
 // If a region covers other regions, the covered regions are removed.
-func removeDuplicatedRegions(regions []image.Rectangle) []image.Rectangle {
+func removeDuplicatedRegions(regions []image.Rectangle) int {
 	for i, r := range regions {
 		if r.Empty() {
 			continue
@@ -748,5 +749,5 @@ func removeDuplicatedRegions(regions []image.Rectangle) []image.Rectangle {
 		n++
 	}
 
-	return regions[:n]
+	return n
 }

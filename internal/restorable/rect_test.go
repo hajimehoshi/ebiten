@@ -120,7 +120,8 @@ func TestRemoveDuplicatedRegions(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		got := restorable.RemoveDuplicatedRegions(c.In)
+		n := restorable.RemoveDuplicatedRegions(c.In)
+		got := c.In[:n]
 		want := c.Out
 		if !areEqualRectangles(got, want) {
 			t.Errorf("restorable.RemoveDuplicatedRegions(%#v): got: %#v, want: %#v", c.In, got, want)
