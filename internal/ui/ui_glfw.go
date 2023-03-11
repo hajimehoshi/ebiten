@@ -85,6 +85,7 @@ type userInterfaceImpl struct {
 	initFullscreen           bool
 	initCursorMode           CursorMode
 	initWindowDecorated      bool
+	initWindowMonitor        string
 	initWindowPositionXInDIP int
 	initWindowPositionYInDIP int
 	initWindowWidthInDIP     int
@@ -181,13 +182,7 @@ func initialize() error {
 		return errors.New("ui: no monitor was found at initialize")
 	}
 
-	theUI.initMonitor = m
-	theUI.initDeviceScaleFactor = theUI.deviceScaleFactor(m)
-	// GetVideoMode must be called from the main thread, then call this here and record
-	// initFullscreen{Width,Height}InDIP.
-	v := m.GetVideoMode()
-	theUI.initFullscreenWidthInDIP = int(theUI.dipFromGLFWMonitorPixel(float64(v.Width), m))
-	theUI.initFullscreenHeightInDIP = int(theUI.dipFromGLFWMonitorPixel(float64(v.Height), m))
+	setInitMonitor(m)
 
 	// Create system cursors. These cursors are destroyed at glfw.Terminate().
 	glfwSystemCursors[CursorShapeDefault] = nil
@@ -198,6 +193,16 @@ func initialize() error {
 	glfwSystemCursors[CursorShapeNSResize] = glfw.CreateStandardCursor(glfw.VResizeCursor)
 
 	return nil
+}
+
+func setInitMonitor(m *glfw.Monitor) {
+	theUI.initMonitor = m
+	theUI.initDeviceScaleFactor = theUI.deviceScaleFactor(m)
+	// GetVideoMode must be called from the main thread, then call this here and record
+	// initFullscreen{Width,Height}InDIP.
+	v := m.GetVideoMode()
+	theUI.initFullscreenWidthInDIP = int(theUI.dipFromGLFWMonitorPixel(float64(v.Width), m))
+	theUI.initFullscreenHeightInDIP = int(theUI.dipFromGLFWMonitorPixel(float64(v.Height), m))
 }
 
 type monitor struct {
@@ -262,6 +267,31 @@ func (u *userInterfaceImpl) setRunning(running bool) {
 		atomic.StoreUint32(&u.running, 1)
 	} else {
 		atomic.StoreUint32(&u.running, 0)
+	}
+}
+
+func (u *userInterfaceImpl) setWindowMonitor(monitor string) {
+	if microsoftgdk.IsXbox() {
+		return
+	}
+
+	u.m.RLock()
+	defer u.m.RUnlock()
+
+	var m *glfw.Monitor
+	for _, mon := range glfw.GetMonitors() {
+		if mon.GetName() == monitor {
+			m = mon
+		}
+	}
+	if m != nil {
+		if m.GetName() == monitor {
+			x, y := m.GetPos()
+			sw := m.GetVideoMode().Width
+			sh := m.GetVideoMode().Height
+			w, h := u.window.GetSize()
+			u.window.SetPos(x+(sw-w)/2, y+(sh-h)/3)
+		}
 	}
 }
 
@@ -378,6 +408,24 @@ func (u *userInterfaceImpl) setIconImages(iconImages []image.Image) {
 	u.m.Unlock()
 }
 
+func (u *userInterfaceImpl) getInitWindowMonitor() string {
+	u.m.RLock()
+	v := u.initWindowMonitor
+	u.m.RUnlock()
+	return v
+}
+
+func (u *userInterfaceImpl) setInitWindowMonitor(monitor string) {
+	if microsoftgdk.IsXbox() {
+		return
+	}
+
+	u.m.Lock()
+	defer u.m.Unlock()
+
+	u.initWindowMonitor = monitor
+}
+
 func (u *userInterfaceImpl) getInitWindowPositionInDIP() (int, int) {
 	if microsoftgdk.IsXbox() {
 		return 0, 0
@@ -474,13 +522,30 @@ func (u *userInterfaceImpl) setWindowClosingHandled(handled bool) {
 }
 
 func (u *userInterfaceImpl) ScreenSizeInFullscreen() (int, int) {
+	return u.ScreenSizeInFullscreenForMonitor("")
+}
+
+func (u *userInterfaceImpl) ScreenSizeInFullscreenForMonitor(monitor string) (int, int) {
 	if !u.isRunning() {
 		return u.initFullscreenWidthInDIP, u.initFullscreenHeightInDIP
 	}
 
 	var w, h int
 	u.mainThread.Call(func() {
-		m := u.currentMonitor()
+		var m *glfw.Monitor
+		if monitor == "" {
+			m = u.currentMonitor()
+		} else {
+			for _, glfwMonitor := range glfw.GetMonitors() {
+				if glfwMonitor.GetName() == monitor {
+					m = glfwMonitor
+					break
+				}
+			}
+			if m == nil {
+				m = u.currentMonitor()
+			}
+		}
 		if m == nil {
 			return
 		}
@@ -667,7 +732,7 @@ func init() {
 // createWindow must be called from the main thread.
 //
 // createWindow does not set the position or size so far.
-func (u *userInterfaceImpl) createWindow(width, height int) error {
+func (u *userInterfaceImpl) createWindow(width, height int, monitor string) error {
 	if u.window != nil {
 		panic("ui: u.window must not exist at createWindow")
 	}
@@ -677,7 +742,21 @@ func (u *userInterfaceImpl) createWindow(width, height int) error {
 	if err != nil {
 		return err
 	}
+
+	// Set our target monitor if provided. This is required to prevent an initial window flash on the default monitor.
+	if monitor != "" {
+		for _, m := range glfw.GetMonitors() {
+			if m.GetName() == monitor {
+				x, y := m.GetPos()
+				sw := m.GetVideoMode().Width
+				sh := m.GetVideoMode().Height
+				window.SetPos(x+(sw-width)/2, y+(sh-height)/3)
+				break
+			}
+		}
+	}
 	initializeWindowAfterCreation(window)
+
 	u.window = window
 
 	// Even just after a window creation, FramebufferSize callback might be invoked (#1847).
@@ -692,6 +771,35 @@ func (u *userInterfaceImpl) createWindow(width, height int) error {
 	u.updateWindowSizeLimits()
 
 	return nil
+}
+
+func (u *userInterfaceImpl) Monitors() (monitors []Monitor) {
+	for i, m := range glfw.GetMonitors() {
+		monitor := u.glfwMonitorToMonitor(m)
+		monitor.index = i
+		monitors = append(monitors, monitor)
+	}
+	return
+}
+
+func (u *userInterfaceImpl) Monitor() Monitor {
+	return u.glfwMonitorToMonitor(glfw.GetPrimaryMonitor())
+}
+
+func (u *userInterfaceImpl) glfwMonitorToMonitor(m *glfw.Monitor) (monitor Monitor) {
+	if m == nil {
+		return
+	}
+	x, y := m.GetPos()
+	mode := m.GetVideoMode()
+	return Monitor{
+		name: m.GetName(),
+		x:    x,
+		y:    y,
+		w:    mode.Width,
+		h:    mode.Height,
+		rate: mode.RefreshRate,
+	}
 }
 
 func (u *userInterfaceImpl) beginFrame() {
@@ -860,10 +968,25 @@ func (u *userInterfaceImpl) initOnMainThread(options *RunOptions) error {
 		glfw.WindowHint(glfw.Visible, glfw.True)
 	}
 
+	// Get our target monitor, prioritizing the RunOptions over the initial state if SetWindowMonitor was called before Run.
+	monitor := options.Monitor
+	if monitor == "" {
+		monitor = u.getInitWindowMonitor()
+	}
+
+	// FIXME: I don't know if it is safe to change the initial monitor here.
+	if monitor != "" {
+		for _, m := range monitors {
+			if m.m.GetName() == monitor {
+				setInitMonitor(m.m)
+			}
+		}
+	}
+
 	ww, wh := u.getInitWindowSizeInDIP()
 	initW := int(u.dipToGLFWPixel(float64(ww), u.initMonitor))
 	initH := int(u.dipToGLFWPixel(float64(wh), u.initMonitor))
-	if err := u.createWindow(initW, initH); err != nil {
+	if err := u.createWindow(initW, initH, monitor); err != nil {
 		return err
 	}
 

@@ -253,6 +253,8 @@ type RunGameOptions struct {
 	//
 	// The default (zero) value is false, which means that an icon is shown on a taskbar.
 	SkipTaskbar bool
+
+	Monitor string
 }
 
 // RunGameWithOptions starts the main loop and runs the game with the specified options.
@@ -291,7 +293,8 @@ type RunGameOptions struct {
 func RunGameWithOptions(game Game, options *RunGameOptions) error {
 	defer atomic.StoreInt32(&isRunGameEnded_, 1)
 
-	initializeWindowPositionIfNeeded(WindowSize())
+	w, h := WindowSize()
+	initializeWindowPositionIfNeeded(w, h, options.Monitor)
 
 	op := toUIRunOptions(options)
 	// This is necessary to change the result of IsScreenTransparent.
@@ -663,6 +666,7 @@ func toUIRunOptions(options *RunGameOptions) *ui.RunOptions {
 		InitUnfocused:     options.InitUnfocused,
 		ScreenTransparent: options.ScreenTransparent,
 		SkipTaskbar:       options.SkipTaskbar,
+		Monitor:           options.Monitor,
 	}
 }
 

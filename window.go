@@ -163,9 +163,9 @@ var (
 	windowPositionSetExplicitly uint32
 )
 
-func initializeWindowPositionIfNeeded(width, height int) {
+func initializeWindowPositionIfNeeded(width, height int, monitor string) {
 	if atomic.LoadUint32(&windowPositionSetExplicitly) == 0 {
-		sw, sh := ui.Get().ScreenSizeInFullscreen()
+		sw, sh := ui.Get().ScreenSizeInFullscreenForMonitor(monitor)
 		x := (sw - width) / 2
 		y := (sh - height) / 3
 		ui.Get().Window().SetPosition(x, y)
@@ -319,4 +319,18 @@ func SetWindowClosingHandled(handled bool) {
 // IsWindowClosingHandled is concurrent-safe.
 func IsWindowClosingHandled() bool {
 	return ui.Get().Window().IsClosingHandled()
+}
+
+// Monitors returns the monitors reported by the system.
+func Monitors() []ui.Monitor {
+	return ui.Get().Monitors()
+}
+
+// Monitor returns the current monitor. If a window has not been created, this will be the default monitor.
+func Monitor() ui.Monitor {
+	return ui.Get().Monitor()
+}
+
+func SetWindowMonitor(monitor string) {
+	ui.Get().Window().SetMonitor(monitor)
 }

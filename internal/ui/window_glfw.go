@@ -159,6 +159,25 @@ func (w *glfwWindow) Restore() {
 	w.ui.mainThread.Call(w.ui.restoreWindow)
 }
 
+func (w *glfwWindow) Monitor() string {
+	monitor := ""
+	w.ui.mainThread.Call(func() {
+		m := w.ui.currentMonitor()
+		monitor = m.GetName()
+	})
+	return monitor
+}
+
+func (w *glfwWindow) SetMonitor(monitor string) {
+	if !w.ui.isRunning() {
+		w.ui.setInitWindowMonitor(monitor)
+		return
+	}
+	w.ui.mainThread.Call(func() {
+		w.ui.setWindowMonitor(monitor)
+	})
+}
+
 func (w *glfwWindow) Position() (int, int) {
 	if !w.ui.isRunning() {
 		panic("ui: WindowPosition can't be called before the main loop starts")
