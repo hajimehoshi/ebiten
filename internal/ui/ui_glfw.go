@@ -137,6 +137,7 @@ func init() {
 		maxWindowHeightInDIP:     glfw.DontCare,
 		initCursorMode:           CursorModeVisible,
 		initWindowDecorated:      true,
+		initWindowMonitor:        glfw.DontCare,
 		initWindowPositionXInDIP: invalidPos,
 		initWindowPositionYInDIP: invalidPos,
 		initWindowWidthInDIP:     640,
@@ -278,14 +279,8 @@ func (u *userInterfaceImpl) setWindowMonitor(monitor int) {
 	u.m.RLock()
 	defer u.m.RUnlock()
 
-	var m *glfw.Monitor
-	for i, mon := range glfw.GetMonitors() {
-		if i+1 == monitor {
-			m = mon
-			break
-		}
-	}
-	if m != nil {
+	if monitor >= 0 && len(monitors) > monitor {
+		m := monitors[monitor].m
 		x, y := m.GetPos()
 		sw := m.GetVideoMode().Width
 		sh := m.GetVideoMode().Height
@@ -521,7 +516,7 @@ func (u *userInterfaceImpl) setWindowClosingHandled(handled bool) {
 }
 
 func (u *userInterfaceImpl) ScreenSizeInFullscreen() (int, int) {
-	return u.ScreenSizeInFullscreenForMonitor(0)
+	return u.ScreenSizeInFullscreenForMonitor(-1)
 }
 
 func (u *userInterfaceImpl) ScreenSizeInFullscreenForMonitor(monitor int) (int, int) {
@@ -532,18 +527,10 @@ func (u *userInterfaceImpl) ScreenSizeInFullscreenForMonitor(monitor int) (int, 
 	var w, h int
 	u.mainThread.Call(func() {
 		var m *glfw.Monitor
-		if monitor == 0 {
-			m = u.currentMonitor()
+		if monitor >= 0 && len(monitors) > monitor {
+			m = monitors[monitor].m
 		} else {
-			for i, glfwMonitor := range glfw.GetMonitors() {
-				if i+1 == monitor {
-					m = glfwMonitor
-					break
-				}
-			}
-			if m == nil {
-				m = u.currentMonitor()
-			}
+			m = u.currentMonitor()
 		}
 		if m == nil {
 			return
@@ -743,16 +730,12 @@ func (u *userInterfaceImpl) createWindow(width, height int, monitor int) error {
 	}
 
 	// Set our target monitor if provided. This is required to prevent an initial window flash on the default monitor.
-	if monitor != 0 {
-		for i, m := range glfw.GetMonitors() {
-			if i+1 == monitor {
-				x, y := m.GetPos()
-				sw := m.GetVideoMode().Width
-				sh := m.GetVideoMode().Height
-				window.SetPos(x+(sw-width)/2, y+(sh-height)/3)
-				break
-			}
-		}
+	if monitor >= 0 && len(monitors) > monitor {
+		m := monitors[monitor]
+		x, y := m.m.GetPos()
+		sw := m.m.GetVideoMode().Width
+		sh := m.m.GetVideoMode().Height
+		window.SetPos(x+(sw-width)/2, y+(sh-height)/3)
 	}
 	initializeWindowAfterCreation(window)
 
@@ -967,20 +950,12 @@ func (u *userInterfaceImpl) initOnMainThread(options *RunOptions) error {
 		glfw.WindowHint(glfw.Visible, glfw.True)
 	}
 
-	// Get our target monitor, prioritizing the RunOptions over the initial state if SetWindowMonitor was called before Run.
-	monitor := options.Monitor
-	if monitor == 0 {
-		monitor = u.getInitWindowMonitor()
-	}
+	// Get our target monitor.
+	monitor := u.getInitWindowMonitor()
 
 	// FIXME: I don't know if it is safe to change the initial monitor here.
-	if monitor != 0 {
-		for i, m := range monitors {
-			if i+1 == monitor {
-				setInitMonitor(m.m)
-				break
-			}
-		}
+	if monitor >= 0 && len(monitors) > monitor {
+		setInitMonitor(monitors[monitor].m)
 	}
 
 	ww, wh := u.getInitWindowSizeInDIP()

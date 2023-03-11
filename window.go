@@ -163,9 +163,9 @@ var (
 	windowPositionSetExplicitly uint32
 )
 
-func initializeWindowPositionIfNeeded(width, height int, monitor int) {
+func initializeWindowPositionIfNeeded(width, height int) {
 	if atomic.LoadUint32(&windowPositionSetExplicitly) == 0 {
-		sw, sh := ui.Get().ScreenSizeInFullscreenForMonitor(monitor)
+		sw, sh := ui.Get().ScreenSizeInFullscreenForMonitor(-1)
 		x := (sw - width) / 2
 		y := (sh - height) / 3
 		ui.Get().Window().SetPosition(x, y)
