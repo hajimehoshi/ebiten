@@ -63,6 +63,14 @@ func (g *Game) Update() error {
 		cx, cy := ebiten.CursorPosition()
 		l := text.BoundString(mplusNormalFont, "|").Dy()
 		y := l
+
+		b := text.BoundString(mplusNormalFont, "toggle fullscreen")
+		if cx >= b.Min.X && cx <= b.Max.X && cy >= b.Min.Y+y && cy <= b.Max.Y+y {
+			ebiten.SetFullscreen(!ebiten.IsFullscreen())
+			return nil
+		}
+		y += l
+
 		for i, m := range g.monitors {
 			b := text.BoundString(mplusNormalFont, m)
 			if cx >= b.Min.X && cx <= b.Max.X && cy >= b.Min.Y+y && cy <= b.Max.Y+y {
@@ -80,6 +88,8 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	const x = 0
 	l := text.BoundString(mplusNormalFont, "|").Dy()
 	y := l
+	text.Draw(screen, "toggle fullscreen", mplusNormalFont, x, y, color.White)
+	y += l
 	for _, m := range g.monitors {
 		text.Draw(screen, m, mplusNormalFont, x, y, color.White)
 		y += l
