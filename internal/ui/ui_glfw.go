@@ -85,7 +85,7 @@ type userInterfaceImpl struct {
 	initFullscreen           bool
 	initCursorMode           CursorMode
 	initWindowDecorated      bool
-	initWindowMonitor        string
+	initWindowMonitor        int
 	initWindowPositionXInDIP int
 	initWindowPositionYInDIP int
 	initWindowWidthInDIP     int
@@ -270,7 +270,7 @@ func (u *userInterfaceImpl) setRunning(running bool) {
 	}
 }
 
-func (u *userInterfaceImpl) setWindowMonitor(monitor string) {
+func (u *userInterfaceImpl) setWindowMonitor(monitor int) {
 	if microsoftgdk.IsXbox() {
 		return
 	}
@@ -279,19 +279,18 @@ func (u *userInterfaceImpl) setWindowMonitor(monitor string) {
 	defer u.m.RUnlock()
 
 	var m *glfw.Monitor
-	for _, mon := range glfw.GetMonitors() {
-		if mon.GetName() == monitor {
+	for i, mon := range glfw.GetMonitors() {
+		if i+1 == monitor {
 			m = mon
+			break
 		}
 	}
 	if m != nil {
-		if m.GetName() == monitor {
-			x, y := m.GetPos()
-			sw := m.GetVideoMode().Width
-			sh := m.GetVideoMode().Height
-			w, h := u.window.GetSize()
-			u.window.SetPos(x+(sw-w)/2, y+(sh-h)/3)
-		}
+		x, y := m.GetPos()
+		sw := m.GetVideoMode().Width
+		sh := m.GetVideoMode().Height
+		w, h := u.window.GetSize()
+		u.window.SetPos(x+(sw-w)/2, y+(sh-h)/3)
 	}
 }
 
@@ -408,14 +407,14 @@ func (u *userInterfaceImpl) setIconImages(iconImages []image.Image) {
 	u.m.Unlock()
 }
 
-func (u *userInterfaceImpl) getInitWindowMonitor() string {
+func (u *userInterfaceImpl) getInitWindowMonitor() int {
 	u.m.RLock()
 	v := u.initWindowMonitor
 	u.m.RUnlock()
 	return v
 }
 
-func (u *userInterfaceImpl) setInitWindowMonitor(monitor string) {
+func (u *userInterfaceImpl) setInitWindowMonitor(monitor int) {
 	if microsoftgdk.IsXbox() {
 		return
 	}
@@ -522,10 +521,10 @@ func (u *userInterfaceImpl) setWindowClosingHandled(handled bool) {
 }
 
 func (u *userInterfaceImpl) ScreenSizeInFullscreen() (int, int) {
-	return u.ScreenSizeInFullscreenForMonitor("")
+	return u.ScreenSizeInFullscreenForMonitor(0)
 }
 
-func (u *userInterfaceImpl) ScreenSizeInFullscreenForMonitor(monitor string) (int, int) {
+func (u *userInterfaceImpl) ScreenSizeInFullscreenForMonitor(monitor int) (int, int) {
 	if !u.isRunning() {
 		return u.initFullscreenWidthInDIP, u.initFullscreenHeightInDIP
 	}
@@ -533,11 +532,11 @@ func (u *userInterfaceImpl) ScreenSizeInFullscreenForMonitor(monitor string) (in
 	var w, h int
 	u.mainThread.Call(func() {
 		var m *glfw.Monitor
-		if monitor == "" {
+		if monitor == 0 {
 			m = u.currentMonitor()
 		} else {
-			for _, glfwMonitor := range glfw.GetMonitors() {
-				if glfwMonitor.GetName() == monitor {
+			for i, glfwMonitor := range glfw.GetMonitors() {
+				if i+1 == monitor {
 					m = glfwMonitor
 					break
 				}
@@ -732,7 +731,7 @@ func init() {
 // createWindow must be called from the main thread.
 //
 // createWindow does not set the position or size so far.
-func (u *userInterfaceImpl) createWindow(width, height int, monitor string) error {
+func (u *userInterfaceImpl) createWindow(width, height int, monitor int) error {
 	if u.window != nil {
 		panic("ui: u.window must not exist at createWindow")
 	}
@@ -744,9 +743,9 @@ func (u *userInterfaceImpl) createWindow(width, height int, monitor string) erro
 	}
 
 	// Set our target monitor if provided. This is required to prevent an initial window flash on the default monitor.
-	if monitor != "" {
-		for _, m := range glfw.GetMonitors() {
-			if m.GetName() == monitor {
+	if monitor != 0 {
+		for i, m := range glfw.GetMonitors() {
+			if i+1 == monitor {
 				x, y := m.GetPos()
 				sw := m.GetVideoMode().Width
 				sh := m.GetVideoMode().Height
@@ -970,15 +969,16 @@ func (u *userInterfaceImpl) initOnMainThread(options *RunOptions) error {
 
 	// Get our target monitor, prioritizing the RunOptions over the initial state if SetWindowMonitor was called before Run.
 	monitor := options.Monitor
-	if monitor == "" {
+	if monitor == 0 {
 		monitor = u.getInitWindowMonitor()
 	}
 
 	// FIXME: I don't know if it is safe to change the initial monitor here.
-	if monitor != "" {
-		for _, m := range monitors {
-			if m.m.GetName() == monitor {
+	if monitor != 0 {
+		for i, m := range monitors {
+			if i+1 == monitor {
 				setInitMonitor(m.m)
+				break
 			}
 		}
 	}

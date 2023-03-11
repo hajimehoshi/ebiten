@@ -89,5 +89,5 @@ type RunOptions struct {
 	InitUnfocused     bool
 	ScreenTransparent bool
 	SkipTaskbar       bool
-	Monitor           string
+	Monitor           int
 }

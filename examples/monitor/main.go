@@ -63,11 +63,11 @@ func (g *Game) Update() error {
 		cx, cy := ebiten.CursorPosition()
 		l := text.BoundString(mplusNormalFont, "|").Dy()
 		y := l
-		for _, m := range g.monitors {
+		for i, m := range g.monitors {
 			b := text.BoundString(mplusNormalFont, m)
 			if cx >= b.Min.X && cx <= b.Max.X && cy >= b.Min.Y+y && cy <= b.Max.Y+y {
 				ebiten.SetWindowTitle(m)
-				ebiten.SetWindowMonitor(m)
+				ebiten.SetWindowMonitor(i + 1)
 				break
 			}
 			y += l
@@ -104,7 +104,7 @@ func main() {
 		fmt.Println("Monitor", m.Index(), m.Name(), x, y, w, h, m.RefreshRate())
 	}
 
-	ebiten.SetWindowMonitor(targetMonitor)
+	ebiten.SetWindowMonitor(1)
 	ebiten.SetWindowSize(screenWidth, screenHeight)
 	ebiten.SetWindowTitle(targetMonitor)
 	if err := ebiten.RunGameWithOptions(g, &ebiten.RunGameOptions{

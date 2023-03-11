@@ -159,16 +159,21 @@ func (w *glfwWindow) Restore() {
 	w.ui.mainThread.Call(w.ui.restoreWindow)
 }
 
-func (w *glfwWindow) Monitor() string {
-	monitor := ""
+func (w *glfwWindow) Monitor() int {
+	monitor := 0
 	w.ui.mainThread.Call(func() {
 		m := w.ui.currentMonitor()
-		monitor = m.GetName()
+		for i, m2 := range monitors {
+			if m2.m == m {
+				monitor = i + 1
+				break
+			}
+		}
 	})
 	return monitor
 }
 
-func (w *glfwWindow) SetMonitor(monitor string) {
+func (w *glfwWindow) SetMonitor(monitor int) {
 	if !w.ui.isRunning() {
 		w.ui.setInitWindowMonitor(monitor)
 		return

@@ -254,7 +254,7 @@ type RunGameOptions struct {
 	// The default (zero) value is false, which means that an icon is shown on a taskbar.
 	SkipTaskbar bool
 
-	Monitor string
+	Monitor int
 }
 
 // RunGameWithOptions starts the main loop and runs the game with the specified options.
