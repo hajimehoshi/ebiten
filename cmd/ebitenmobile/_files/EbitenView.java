@@ -60,10 +60,17 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
             }
 
             // Make sure the AXIS_Z is sorted between AXIS_RY and AXIS_RZ.
+            //
+            // The value ordering on Android otherwise is AXIS_X, AXIS_Y,
+            // all kinds of axes used by touchscreens or touchpads only,
+            // AXIS_Z, AXIS_RX, AXIS_RY, AXIS_RZ, hats, triggers,
+            // flight controls, car controls, misc stuff.
+            //
             // This is because the usual pairing are:
-            // - AXIS_X + AXIS_Y (left stick).
+            // - AXIS_X, AXIS_Y (left stick).
             // - AXIS_RX, AXIS_RY (sometimes the right stick, sometimes triggers).
             // - AXIS_Z, AXIS_RZ (sometimes the right stick, sometimes triggers).
+            //
             // This sorts the axes in the above order, which tends to be correct
             // for Xbox-ish game pads that have the right stick on RX/RY and the
             // triggers on Z/RZ.
@@ -77,12 +84,12 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
             if (arg0Axis == MotionEvent.AXIS_Z) {
                 arg0Axis = MotionEvent.AXIS_RZ - 1;
             } else if (arg0Axis > MotionEvent.AXIS_Z && arg0Axis < MotionEvent.AXIS_RZ) {
-                --arg0Axis;
+                arg0Axis--;
             }
             if (arg1Axis == MotionEvent.AXIS_Z) {
                 arg1Axis = MotionEvent.AXIS_RZ - 1;
             } else if (arg1Axis > MotionEvent.AXIS_Z && arg1Axis < MotionEvent.AXIS_RZ) {
-                --arg1Axis;
+                arg1Axis--;
             }
 
             return arg0Axis - arg1Axis;
