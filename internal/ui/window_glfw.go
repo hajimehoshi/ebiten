@@ -165,7 +165,7 @@ func (w *glfwWindow) Monitor() int {
 		m := w.ui.currentMonitor()
 		for i, m2 := range monitors {
 			if m2.m == m {
-				monitor = i + 1
+				monitor = i
 				break
 			}
 		}
