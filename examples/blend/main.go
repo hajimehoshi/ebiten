@@ -30,8 +30,8 @@ import (
 )
 
 const (
-	screenWidth  = 780
-	screenHeight = 600
+	screenWidth  = 800
+	screenHeight = 800
 )
 
 // mode is a blend mode with description.
@@ -59,13 +59,13 @@ func NewGame() (*Game, error) {
 		return nil, fmt.Errorf("fail to load dest: %w", err)
 	}
 
-	// Setting up a grid for drawing.
+	// Set up a grid for drawing.
 	g := &Game{
 		source: source,
 		dest:   dest,
 	}
 
-	// Adding all known blend modes and their names.
+	// Add all known blend modes and their names.
 	g.modes = []mode{
 		{blend: ebiten.BlendCopy, name: "BlendCopy"},
 		{blend: ebiten.BlendSourceAtop, name: "BlendSourceAtop"},
@@ -82,9 +82,9 @@ func NewGame() (*Game, error) {
 		{blend: ebiten.BlendClear, name: "BlendClear"},
 	}
 
-	// Adjusting the tile size for the available images.
+	// Adjust the tile size for the available images.
 	g.tileSize = maxSide(g.source, g.dest)
-	g.offscreen = ebiten.NewImage(int(g.tileSize), int(g.tileSize))
+	g.offscreen = ebiten.NewImage(g.tileSize, g.tileSize)
 
 	return g, nil
 }
@@ -95,50 +95,42 @@ func (g *Game) Update() error {
 
 func (g *Game) Draw(screen *ebiten.Image) {
 	const (
-		tileSpacing = 64
-		textSpacing = 16
-		gridW       = 4
-		gridH       = 3
+		tileGap = 64
+		textGap = 16
+		gridW   = 4
 	)
 
-	// Clearing the screen.
+	// Clear the screen.
 	screen.Fill(color.White)
 
 	// Get an offset for center alignment.
 	// Where sw, sh is the screen size in pixels.
 	// And gw, gh is the grid size in pixels.
-	totalTileSize := g.tileSize + tileSpacing
-	gw, gh := gridW*totalTileSize-tileSpacing, gridH*totalTileSize
+	totalTileSize := g.tileSize + tileGap
+	gridH := (len(g.modes)-1)/gridW + 1
+	gw, gh := gridW*totalTileSize-tileGap, gridH*totalTileSize
 	sw, sh := screen.Bounds().Dx(), screen.Bounds().Dy()
-	cx, cy := float64(sw-gw)/2, float64(sh-gh)/2
+	ox, oy := float64(sw-gw)/2, float64(sh-gh)/2
 
-	// Drawing a tilemap
-	for y := 0; y < gridH; y++ {
-		for x := 0; x < gridW; x++ {
-			px, py := x*totalTileSize, y*totalTileSize
-			if y > 0 {
-				// Making a place for the text.
-				py += textSpacing * y
-			}
+	// Draw a tilemap.
+	for i, m := range g.modes {
+		x := i % gridW
+		y := i / gridW
 
-			// Getting the right mode for the coords or skipping the rendering.
-			m, ok := getMode(g.modes, x, y, gridW, gridH)
-			if !ok {
-				continue
-			}
+		px, py := x*totalTileSize, y*totalTileSize
 
-			// Drawing the blend mode and it's name.
-			tileSize := float64(g.tileSize)
-			alignedX, alignedY := float64(px)+cx, float64(py)+cy
-			halfTileSize, spacing := tileSize/2, float64(textSpacing)
-			g.drawBlendMode(screen, alignedX, alignedY, m.blend)
-			drawCenteredText(screen, alignedX+halfTileSize, alignedY+tileSize+spacing, m.name)
-		}
+		// Making a place for the text.
+		py += textGap * y
+
+		// Drawing the blend mode and it's name.
+		alignedX, alignedY := float64(px)+ox, float64(py)+oy
+		g.drawBlendMode(screen, alignedX, alignedY, m.blend)
+		drawCenteredText(screen, alignedX+float64(g.tileSize)/2, alignedY+float64(g.tileSize)+textGap, m.name)
 	}
 }
 
 func (g *Game) Layout(w, h int) (int, int) {
-	return w, h
+	return screenWidth, screenHeight
 }
 
 func (g *Game) drawBlendMode(screen *ebiten.Image, x, y float64, mode ebiten.Blend) {
@@ -180,18 +172,6 @@ func maxSide(a, b *ebiten.Image) int {
 		max(a.Bounds().Dx(), b.Bounds().Dx()),
 		max(a.Bounds().Dy(), b.Bounds().Dy()),
 	)
-}
-
-// getMode returns a blend mode by index and found status.
-func getMode(modes []mode, x, y, w, h int) (m mode, ok bool) {
-	idx := y*w + x
-	if idx > len(modes)-1 {
-		return mode{}, false
-	}
-	if x < 0 || x > w || y < 0 || y > h {
-		return mode{}, false
-	}
-	return modes[idx], true
 }
 
 // drawCenteredText is a util function for drawing blend mode description.
