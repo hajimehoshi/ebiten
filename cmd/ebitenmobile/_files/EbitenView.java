@@ -363,8 +363,8 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
         final int SDL_CONTROLLER_AXIS_TRIGGERRIGHT = 5;
 
         int naxes = 0;
-        boolean have_z = false;
-        boolean have_past_z_before_rz = false;
+        boolean haveZ = false;
+        boolean havePastZBeforeRZ = false;
         for (InputDevice.MotionRange range : joystickDevice.getMotionRanges()) {
             if ((range.getSource() & InputDevice.SOURCE_CLASS_JOYSTICK) != 0) {
                 int axis = range.getAxis();
@@ -372,9 +372,9 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
                     naxes++;
                 }
                 if (axis == MotionEvent.AXIS_Z) {
-                  have_z = true;
+                  haveZ = true;
                 } else if (axis > MotionEvent.AXIS_Z && axis < MotionEvent.AXIS_RZ) {
-                  have_past_z_before_rz = true;
+                  havePastZBeforeRZ = true;
                 }
             }
         }
@@ -392,7 +392,7 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
         }
         // Also add an indicator bit for whether the sorting order has changed.
         // This serves to disable outdated gamecontrollerdb.txt mappings.
-        if (have_z && have_past_z_before_rz) {
+        if (haveZ && havePastZBeforeRZ) {
             axisMask |= 0x8000;
         }
         return axisMask;
