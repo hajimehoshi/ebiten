@@ -248,37 +248,43 @@ func (u *userInterfaceImpl) Monitors() (mons []*Monitor) {
 
 // Monitor returns the window's current monitor. Returns nil if there is no current monitor yet.
 func (u *userInterfaceImpl) Monitor() *Monitor {
-	currentMonitor := u.currentMonitor()
-	if currentMonitor == nil {
+	var glfwMonitor *glfw.Monitor
+	if u.isFullscreen() {
+		glfwMonitor = u.window.GetMonitor()
+	} else {
+		glfwMonitor = u.currentMonitor()
+	}
+	if glfwMonitor == nil {
 		return nil
 	}
-	for _, m := range monitors {
-		if m.m == currentMonitor {
-			return m
-		}
-	}
-	return nil
+	monitor := glfwMonitorToMonitor(glfwMonitor)
+	return &monitor
 }
 
 func updateMonitors() {
 	monitors = nil
 	ms := glfw.GetMonitors()
 	for i, m := range ms {
-		x, y := m.GetPos()
-		vm := m.GetVideoMode()
-		monitors = append(monitors, &Monitor{
-			m:      m,
-			vm:     m.GetVideoMode(),
-			x:      x,
-			y:      y,
-			width:  vm.Width,
-			height: vm.Height,
-			name:   m.GetName(),
-			id:     i,
-		})
+		monitor := glfwMonitorToMonitor(m)
+		monitor.id = i
+		monitors = append(monitors, &monitor)
 	}
 	clearVideoModeScaleCache()
 	devicescale.ClearCache()
+}
+
+func glfwMonitorToMonitor(m *glfw.Monitor) Monitor {
+	x, y := m.GetPos()
+	vm := m.GetVideoMode()
+	return Monitor{
+		m:      m,
+		vm:     m.GetVideoMode(),
+		x:      x,
+		y:      y,
+		width:  vm.Width,
+		height: vm.Height,
+		name:   m.GetName(),
+	}
 }
 
 func ensureMonitors() []*Monitor {
