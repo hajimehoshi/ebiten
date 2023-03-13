@@ -71,7 +71,7 @@ func (g *Game) Update() error {
 		y += l
 
 		for _, m := range ebiten.Monitors() {
-			b := text.BoundString(mplusNormalFont, fmt.Sprintf("%s (%d)", m.Name(), m.ID()))
+			b := text.BoundString(mplusNormalFont, fmt.Sprintf("%d: %s %s", m.ID(), m.Name(), m.Bounds().String()))
 			if cx >= b.Min.X && cx <= b.Max.X && cy >= b.Min.Y+y && cy <= b.Max.Y+y {
 				ebiten.SetWindowTitle(m.Name())
 				ebiten.SetWindowMonitor(m)
@@ -90,12 +90,13 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	text.Draw(screen, "toggle fullscreen", mplusNormalFont, x, y, color.White)
 	y += l
 	for _, m := range ebiten.Monitors() {
-		text.Draw(screen, fmt.Sprintf("%s (%d)", m.Name(), m.ID()), mplusNormalFont, x, y, color.White)
+		text.Draw(screen, fmt.Sprintf("%d: %s %s", m.ID(), m.Name(), m.Bounds().String()), mplusNormalFont, x, y, color.White)
 		y += l
 	}
 
-	m := ebiten.WindowMonitor()
-	text.Draw(screen, fmt.Sprintf("active: %s (%d)", m.Name(), m.ID()), mplusNormalFont, x, y, color.White)
+	if m := ebiten.WindowMonitor(); m != nil {
+		text.Draw(screen, fmt.Sprintf("active: %s (%d)", m.Name(), m.ID()), mplusNormalFont, x, y, color.White)
+	}
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {

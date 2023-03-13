@@ -723,14 +723,9 @@ func (u *userInterfaceImpl) Window() Window {
 
 type Monitor struct{}
 
-// Position returns the monitor's position.
-func (m *Monitor) Position() (x, y int) {
-	return 0, 0
-}
-
-// Size returns the browser's innerWidth and innerHeight.
-func (m *Monitor) Size() (width, height int) {
-	return window.Get("innerWidth").Int(), window.Get("innerHeight").Int()
+// Bounds returns the monitor's bounds.
+func (m *Monitor) Bounds() image.Rectangle {
+	return image.Rect(0, 0, window.Get("innerWidth").Int(), window.Get("innerHeight").Int())
 }
 
 // Name returns "".

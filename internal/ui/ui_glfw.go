@@ -219,14 +219,9 @@ type Monitor struct {
 	name   string
 }
 
-// Position returns the monitor's position.
-func (m *Monitor) Position() (x, y int) {
-	return x, y
-}
-
-// Size returns the monitor's size.
-func (m *Monitor) Size() (width, height int) {
-	return m.width, m.height
+// Bounds returns the monitor's bounds.
+func (m *Monitor) Bounds() image.Rectangle {
+	return image.Rect(m.x, m.y, m.x+m.width, m.y+m.height)
 }
 
 // Name returns the monitor's name.

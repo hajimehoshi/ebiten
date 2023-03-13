@@ -197,14 +197,9 @@ func (*userInterfaceImpl) Window() Window {
 
 type Monitor struct{}
 
-// Position returns 0, 0.
-func (m *Monitor) Position() (x, y int) {
-	return 0, 0
-}
-
-// Size returns 0, 0.
-func (m *Monitor) Size() (width, height int) {
-	return 0, 0
+// Bounds returns the monitor's bounds.
+func (m *Monitor) Bounds() image.Rectangle {
+	return image.Rect(0, 0, 0, 0)
 }
 
 // Name returns "".
