@@ -97,6 +97,8 @@ func NewGraphics() (graphicsdriver.Graphics, error) {
 	g := &Graphics{}
 
 	if runtime.GOOS != "ios" {
+		// Initializing a Metal device and a layer must be done in the main thread on macOS.
+		// Note that this assumes NewGraphics is called on the main thread on desktops.
 		if err := g.view.initialize(systemDefaultDevice); err != nil {
 			return nil, err
 		}
