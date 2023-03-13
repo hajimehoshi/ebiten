@@ -74,12 +74,14 @@ const (
 	noStencil
 )
 
-var creatingSystemDefaultDeviceSucceeded bool
+var systemDefaultDevice mtl.Device
 
 func init() {
 	// mtl.CreateSystemDefaultDevice must be called on the main thread (#2147).
-	_, err := mtl.CreateSystemDefaultDevice()
-	creatingSystemDefaultDeviceSucceeded = err == nil
+	d, err := mtl.CreateSystemDefaultDevice()
+	if err == nil {
+		systemDefaultDevice = d
+	}
 }
 
 // NewGraphics creates an implementation of graphicsdriver.Graphics for Metal.
@@ -88,15 +90,14 @@ func NewGraphics() (graphicsdriver.Graphics, error) {
 	// On old mac devices like iMac 2011, Metal is not supported (#779).
 	// TODO: Is there a better way to check whether Metal is available or not?
 	// It seems OK to call MTLCreateSystemDefaultDevice multiple times, so this should be fine.
-	if !creatingSystemDefaultDeviceSucceeded {
+	if systemDefaultDevice == (mtl.Device{}) {
 		return nil, fmt.Errorf("metal: mtl.CreateSystemDefaultDevice failed")
 	}
 
 	g := &Graphics{}
 
 	if runtime.GOOS != "ios" {
-		// Initializing a Metal device and a layer must be done in the main thread on macOS.
-		if err := g.view.initialize(); err != nil {
+		if err := g.view.initialize(systemDefaultDevice); err != nil {
 			return nil, err
 		}
 	}
@@ -386,7 +387,7 @@ func (g *Graphics) Initialize() error {
 
 	if runtime.GOOS == "ios" {
 		// Initializing a Metal device and a layer must be done in the render thread on iOS.
-		if err := g.view.initialize(); err != nil {
+		if err := g.view.initialize(systemDefaultDevice); err != nil {
 			return err
 		}
 	}
