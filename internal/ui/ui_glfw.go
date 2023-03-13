@@ -92,6 +92,8 @@ type userInterfaceImpl struct {
 	initWindowFloating       bool
 	initWindowMaximized      bool
 
+	bufferOnceSwapped bool
+
 	origWindowPosX        int
 	origWindowPosY        int
 	origWindowWidthInDIP  int
@@ -974,7 +976,8 @@ func (u *userInterfaceImpl) update() (float64, float64, error) {
 		return 0, 0, RegularTermination
 	}
 
-	if u.isInitFullscreen() {
+	// On macOS, one swapping buffers seems required before entering fullscreen (#2599).
+	if u.isInitFullscreen() && (u.bufferOnceSwapped || runtime.GOOS != "darwin") {
 		u.setFullscreen(true)
 		u.setInitFullscreen(false)
 	}
@@ -1067,6 +1070,8 @@ func (u *userInterfaceImpl) updateGame() error {
 
 		// This works only for OpenGL.
 		u.swapBuffersOnRenderThread()
+
+		u.bufferOnceSwapped = true
 	})
 
 	if unfocused {
