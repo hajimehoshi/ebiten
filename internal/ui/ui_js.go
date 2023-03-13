@@ -126,6 +126,10 @@ func (u *userInterfaceImpl) ScreenSizeInFullscreen() (int, int) {
 	return window.Get("innerWidth").Int(), window.Get("innerHeight").Int()
 }
 
+func (u *userInterfaceImpl) ScreenSizeInFullscreenForMonitor(int) (int, int) {
+	return window.Get("innerWidth").Int(), window.Get("innerHeight").Int()
+}
+
 func (u *userInterfaceImpl) SetFullscreen(fullscreen bool) {
 	if !canvas.Truthy() {
 		return
@@ -715,6 +719,36 @@ func (u *userInterfaceImpl) readInputState(inputState *InputState) {
 
 func (u *userInterfaceImpl) Window() Window {
 	return &nullWindow{}
+}
+
+type Monitor struct{}
+
+// Position returns the monitor's position.
+func (m *Monitor) Position() (x, y int) {
+	return 0, 0
+}
+
+// Size returns the browser's innerWidth and innerHeight.
+func (m *Monitor) Size() (width, height int) {
+	return window.Get("innerWidth").Int(), window.Get("innerHeight").Int()
+}
+
+// Name returns "".
+func (m *Monitor) Name() string {
+	return ""
+}
+
+// ID returns 0.
+func (m *Monitor) ID() int {
+	return 0
+}
+
+func (u *userInterfaceImpl) Monitors() []*Monitor {
+	return nil
+}
+
+func (u *userInterfaceImpl) Monitor() *Monitor {
+	return nil
 }
 
 func (u *userInterfaceImpl) beginFrame() {

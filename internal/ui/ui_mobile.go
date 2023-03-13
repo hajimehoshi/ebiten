@@ -343,6 +343,10 @@ func (u *userInterfaceImpl) ScreenSizeInFullscreen() (int, int) {
 	return 0, 0
 }
 
+func (u *userInterfaceImpl) ScreenSizeInFullscreenForMonitor(int) (int, int) {
+	return 0, 0
+}
+
 // SetOutsideSize is called from mobile/ebitenmobileview.
 //
 // SetOutsideSize is concurrent safe.
@@ -426,6 +430,36 @@ func (u *userInterfaceImpl) readInputState(inputState *InputState) {
 
 func (u *userInterfaceImpl) Window() Window {
 	return &nullWindow{}
+}
+
+type Monitor struct{}
+
+// Position returns 0, 0.
+func (m *Monitor) Position() (x, y int) {
+	return 0, 0
+}
+
+// Size returns 0, 0.
+func (m *Monitor) Size() (width, height int) {
+	return 0, 0
+}
+
+// Name returns "".
+func (m *Monitor) Name() string {
+	return ""
+}
+
+// ID returns 0.
+func (m *Monitor) ID() int {
+	return 0
+}
+
+func (u *userInterfaceImpl) Monitors() []*Monitor {
+	return nil
+}
+
+func (u *userInterfaceImpl) Monitor() *Monitor {
+	return nil
 }
 
 func (u *userInterfaceImpl) UpdateInput(keys map[Key]struct{}, runes []rune, touches []TouchForInput) {
