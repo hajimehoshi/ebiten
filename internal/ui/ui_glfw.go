@@ -340,7 +340,7 @@ func (u *userInterfaceImpl) setWindowMonitor(monitor int) {
 		// We set w, h so it can be set to the original dimensions if fullscreen.
 		w, h := u.window.GetSize()
 		fullscreen := u.isFullscreen()
-		// FIXME: This is ripped from setFullscreen. They should probably use a shared function.
+		// This is copied from setFullscreen. They should probably use a shared function.
 		if fullscreen {
 			origX, origY := u.origWindowPos()
 
@@ -1025,7 +1025,6 @@ func (u *userInterfaceImpl) initOnMainThread(options *RunOptions) error {
 	// Get our target monitor.
 	monitor := u.getInitWindowMonitor()
 
-	// FIXME: I don't know if it is safe to change the initial monitor here.
 	if monitor >= 0 && len(monitors) > monitor {
 		setInitMonitor(monitors[monitor].m)
 	}
