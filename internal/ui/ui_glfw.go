@@ -246,6 +246,25 @@ func (m *Monitor) ID() int {
 // monitors must be manipulated on the main thread.
 var monitors []*Monitor
 
+// Monitors returns the current monitors.
+func (u *userInterfaceImpl) Monitors() (mons []*Monitor) {
+	return monitors
+}
+
+// Monitor returns the window's current monitor. Returns nil if there is no current monitor yet.
+func (u *userInterfaceImpl) Monitor() *Monitor {
+	currentMonitor := u.currentMonitor()
+	if currentMonitor == nil {
+		return nil
+	}
+	for _, m := range monitors {
+		if m.m == currentMonitor {
+			return m
+		}
+	}
+	return nil
+}
+
 func updateMonitors() {
 	monitors = nil
 	ms := glfw.GetMonitors()
@@ -833,25 +852,6 @@ func (u *userInterfaceImpl) createWindow(width, height int, monitor int) error {
 
 	u.updateWindowSizeLimits()
 
-	return nil
-}
-
-// Monitors returns the current monitors.
-func (u *userInterfaceImpl) Monitors() (mons []*Monitor) {
-	return monitors
-}
-
-// Monitor returns the window's current monitor. Returns nil if there is no current monitor yet.
-func (u *userInterfaceImpl) Monitor() *Monitor {
-	currentMonitor := u.currentMonitor()
-	if currentMonitor == nil {
-		return nil
-	}
-	for _, m := range monitors {
-		if m.m == currentMonitor {
-			return m
-		}
-	}
 	return nil
 }
 
