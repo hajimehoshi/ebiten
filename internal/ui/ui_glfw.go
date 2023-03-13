@@ -112,6 +112,7 @@ type userInterfaceImpl struct {
 	framebufferSizeCallbackCh      chan struct{}
 
 	glContextSetOnce sync.Once
+	darwinInitOnce   sync.Once
 
 	mainThread   threadInterface
 	renderThread threadInterface
@@ -810,11 +811,14 @@ event:
 func (u *userInterfaceImpl) initOnMainThread(options *RunOptions) error {
 	glfw.WindowHint(glfw.AutoIconify, glfw.False)
 
-	decorated := glfw.False
-	if u.isInitWindowDecorated() {
-		decorated = glfw.True
+	// On macOS, window decoration should be initialized once after buffers are swapped (#2600).
+	if runtime.GOOS != "darwin" {
+		decorated := glfw.False
+		if u.isInitWindowDecorated() {
+			decorated = glfw.True
+		}
+		glfw.WindowHint(glfw.Decorated, decorated)
 	}
-	glfw.WindowHint(glfw.Decorated, decorated)
 
 	glfwTransparent := glfw.False
 	if options.ScreenTransparent {
@@ -901,7 +905,10 @@ func (u *userInterfaceImpl) initOnMainThread(options *RunOptions) error {
 		_ = u.skipTaskbar()
 	}
 
-	u.window.Show()
+	// On macOS, the window is shown once after buffers are swapped at update.
+	if runtime.GOOS != "darwin" {
+		u.window.Show()
+	}
 
 	if g, ok := u.graphicsDriver.(interface{ SetWindow(uintptr) }); ok {
 		g.SetWindow(u.nativeWindow())
@@ -980,6 +987,20 @@ func (u *userInterfaceImpl) update() (float64, float64, error) {
 	if u.isInitFullscreen() && (u.bufferOnceSwapped || runtime.GOOS != "darwin") {
 		u.setFullscreen(true)
 		u.setInitFullscreen(false)
+	}
+
+	if runtime.GOOS == "darwin" && u.bufferOnceSwapped {
+		u.darwinInitOnce.Do(func() {
+			// On macOS, window decoration should be initialized once after buffers are swapped (#2600).
+			decorated := glfw.False
+			if u.isInitWindowDecorated() {
+				decorated = glfw.True
+			}
+			u.window.SetAttrib(glfw.Decorated, decorated)
+
+			// The window is not shown at the initialization on macOS. Show the window here.
+			u.window.Show()
+		})
 	}
 
 	// Initialize vsync after SetMonitor is called. See the comment in updateVsync.
