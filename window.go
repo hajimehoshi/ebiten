@@ -320,17 +320,3 @@ func SetWindowClosingHandled(handled bool) {
 func IsWindowClosingHandled() bool {
 	return ui.Get().Window().IsClosingHandled()
 }
-
-// Monitors returns the monitors reported by the system.
-func Monitors() []ui.Monitor {
-	return ui.Get().Monitors()
-}
-
-// Monitor returns the current monitor. If a window has not been created, this will be the default monitor.
-func Monitor() ui.Monitor {
-	return ui.Get().Monitor()
-}
-
-func SetWindowMonitor(monitor int) {
-	ui.Get().Window().SetMonitor(monitor)
-}

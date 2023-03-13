@@ -1,4 +1,4 @@
-// Copyright 2018 The Ebiten Authors
+// Copyright 2023 The Ebitengine Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -55,7 +55,6 @@ const (
 )
 
 type Game struct {
-	monitors []string
 }
 
 func (g *Game) Update() error {
@@ -71,11 +70,11 @@ func (g *Game) Update() error {
 		}
 		y += l
 
-		for i, m := range g.monitors {
-			b := text.BoundString(mplusNormalFont, m)
+		for _, m := range ebiten.Monitors() {
+			b := text.BoundString(mplusNormalFont, fmt.Sprintf("%s (%d)", m.Name(), m.ID()))
 			if cx >= b.Min.X && cx <= b.Max.X && cy >= b.Min.Y+y && cy <= b.Max.Y+y {
-				ebiten.SetWindowTitle(m)
-				ebiten.SetWindowMonitor(i)
+				ebiten.SetWindowTitle(m.Name())
+				ebiten.SetWindowMonitor(m)
 				break
 			}
 			y += l
@@ -90,10 +89,13 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	y := l
 	text.Draw(screen, "toggle fullscreen", mplusNormalFont, x, y, color.White)
 	y += l
-	for _, m := range g.monitors {
-		text.Draw(screen, m, mplusNormalFont, x, y, color.White)
+	for _, m := range ebiten.Monitors() {
+		text.Draw(screen, fmt.Sprintf("%s (%d)", m.Name(), m.ID()), mplusNormalFont, x, y, color.White)
 		y += l
 	}
+
+	m := ebiten.WindowMonitor()
+	text.Draw(screen, fmt.Sprintf("active: %s (%d)", m.Name(), m.ID()), mplusNormalFont, x, y, color.White)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
@@ -103,20 +105,16 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 func main() {
 	g := &Game{}
 
-	fmt.Println("Monitor", ebiten.Monitor())
-
-	targetMonitor := ""
-	for _, m := range ebiten.Monitors() {
-		g.monitors = append(g.monitors, m.Name())
-		x, y := m.Position()
-		w, h := m.Size()
-		targetMonitor = m.Name()
-		fmt.Println("Monitor", m.Index(), m.Name(), x, y, w, h, m.RefreshRate())
+	// Spawn the window on the last monitor reported.
+	var targetMonitor *ebiten.Monitor
+	monitors := ebiten.Monitors()
+	if len(monitors) > 0 {
+		targetMonitor = monitors[len(monitors)-1]
 	}
 
-	ebiten.SetWindowMonitor(len(ebiten.Monitors()) - 1)
+	ebiten.SetWindowMonitor(targetMonitor)
 	ebiten.SetWindowSize(screenWidth, screenHeight)
-	ebiten.SetWindowTitle(targetMonitor)
+	ebiten.SetWindowTitle(targetMonitor.Name())
 	if err := ebiten.RunGame(g); err != nil {
 		log.Fatal(err)
 	}

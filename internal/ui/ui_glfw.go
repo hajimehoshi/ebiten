@@ -206,12 +206,37 @@ func setInitMonitor(m *glfw.Monitor) {
 	theUI.initFullscreenHeightInDIP = int(theUI.dipFromGLFWMonitorPixel(float64(v.Height), m))
 }
 
-type monitor struct {
+// Monitor is a wrapper around glfw.Monitor.
+type Monitor struct {
 	m  *glfw.Monitor
 	vm *glfw.VidMode
 	// Pos of monitor in virtual coords
-	x int
-	y int
+	x      int
+	y      int
+	width  int
+	height int
+	id     int
+	name   string
+}
+
+// Position returns the monitor's position.
+func (m *Monitor) Position() (x, y int) {
+	return x, y
+}
+
+// Size returns the monitor's size.
+func (m *Monitor) Size() (width, height int) {
+	return m.width, m.height
+}
+
+// Name returns the monitor's name.
+func (m *Monitor) Name() string {
+	return m.name
+}
+
+// ID returns the monitor's id.
+func (m *Monitor) ID() int {
+	return m.id
 }
 
 // monitors is the monitor list cache for desktop glfw compile targets.
@@ -219,25 +244,30 @@ type monitor struct {
 // monitor config change event.
 //
 // monitors must be manipulated on the main thread.
-var monitors []*monitor
+var monitors []*Monitor
 
 func updateMonitors() {
 	monitors = nil
 	ms := glfw.GetMonitors()
-	for _, m := range ms {
+	for i, m := range ms {
 		x, y := m.GetPos()
-		monitors = append(monitors, &monitor{
-			m:  m,
-			vm: m.GetVideoMode(),
-			x:  x,
-			y:  y,
+		vm := m.GetVideoMode()
+		monitors = append(monitors, &Monitor{
+			m:      m,
+			vm:     m.GetVideoMode(),
+			x:      x,
+			y:      y,
+			width:  vm.Width,
+			height: vm.Height,
+			name:   m.GetName(),
+			id:     i,
 		})
 	}
 	clearVideoModeScaleCache()
 	devicescale.ClearCache()
 }
 
-func ensureMonitors() []*monitor {
+func ensureMonitors() []*Monitor {
 	if len(monitors) == 0 {
 		updateMonitors()
 	}
@@ -248,7 +278,7 @@ func ensureMonitors() []*monitor {
 // or returns nil if monitor is not found.
 //
 // getMonitorFromPosition must be called on the main thread.
-func getMonitorFromPosition(wx, wy int) *monitor {
+func getMonitorFromPosition(wx, wy int) *Monitor {
 	for _, m := range ensureMonitors() {
 		// TODO: Fix incorrectness in the cases of https://github.com/glfw/glfw/issues/1961.
 		// See also internal/devicescale/impl_desktop.go for a maybe better way of doing this.
@@ -806,33 +836,23 @@ func (u *userInterfaceImpl) createWindow(width, height int, monitor int) error {
 	return nil
 }
 
-func (u *userInterfaceImpl) Monitors() (monitors []Monitor) {
-	for i, m := range glfw.GetMonitors() {
-		monitor := u.glfwMonitorToMonitor(m)
-		monitor.index = i
-		monitors = append(monitors, monitor)
-	}
-	return
+// Monitors returns the current monitors.
+func (u *userInterfaceImpl) Monitors() (mons []*Monitor) {
+	return monitors
 }
 
-func (u *userInterfaceImpl) Monitor() Monitor {
-	return u.glfwMonitorToMonitor(glfw.GetPrimaryMonitor())
-}
-
-func (u *userInterfaceImpl) glfwMonitorToMonitor(m *glfw.Monitor) (monitor Monitor) {
-	if m == nil {
-		return
+// Monitor returns the window's current monitor. Returns nil if there is no current monitor yet.
+func (u *userInterfaceImpl) Monitor() *Monitor {
+	currentMonitor := u.currentMonitor()
+	if currentMonitor == nil {
+		return nil
 	}
-	x, y := m.GetPos()
-	mode := m.GetVideoMode()
-	return Monitor{
-		name: m.GetName(),
-		x:    x,
-		y:    y,
-		w:    mode.Width,
-		h:    mode.Height,
-		rate: mode.RefreshRate,
+	for _, m := range monitors {
+		if m.m == currentMonitor {
+			return m
+		}
 	}
+	return nil
 }
 
 func (u *userInterfaceImpl) beginFrame() {
