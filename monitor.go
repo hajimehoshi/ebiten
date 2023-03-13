@@ -21,7 +21,7 @@ import (
 // Monitor represents a monitor available to the system.
 type Monitor = ui.Monitor
 
-// WindowMonitor returns the current monitor. If a window has not been created, this will be the default monitor.
+// WindowMonitor returns the current monitor. If a window has not been created, this will be nil.
 func WindowMonitor() *Monitor {
 	return ui.Get().Monitor()
 }
