@@ -183,7 +183,6 @@ func drawCenteredText(screen *ebiten.Image, cx, cy float64, s string) {
 
 func main() {
 	ebiten.SetWindowSize(screenWidth, screenHeight)
-	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
 	ebiten.SetWindowTitle("Blend modes (Ebitengine Demo)")
 
 	game, err := NewGame()
