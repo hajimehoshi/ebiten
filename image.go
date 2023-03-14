@@ -38,10 +38,10 @@ type Image struct {
 	original *Image
 	bounds   image.Rectangle
 
-	// tmpVertices must not be reused until the vertices are sent to the graphics command queue.
+	// tmpVertices must not be reused until ui.Image.Draw* is called.
 	tmpVertices []float32
 
-	// tmpUniforms must not be reused until the vertices are sent to the graphics command queue.
+	// tmpUniforms must not be reused until ui.Image.Draw* is called.
 	tmpUniforms []uint32
 
 	// Do not add a 'buffering' member that are resolved lazily.

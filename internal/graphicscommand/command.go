@@ -110,6 +110,9 @@ func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.Sh
 	q.tmpNumVertexFloats += len(vertices)
 	q.tmpNumIndices += len(indices)
 
+	// prependPreservedUniforms not only prepends values to the given slice but also creates a new slice.
+	// Allocating a new slice is necessary to make EnqueueDrawTrianglesCommand safe so far.
+	// TODO: This might cause a performance issue (#2601).
 	uniforms = q.prependPreservedUniforms(uniforms, shader, dst, srcs, offsets, dstRegion, srcRegion)
 
 	// Remove unused uniform variables so that more commands can be merged.
