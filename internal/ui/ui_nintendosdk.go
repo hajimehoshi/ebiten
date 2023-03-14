@@ -22,6 +22,7 @@ import "C"
 
 import (
 	stdcontext "context"
+	"image"
 	"runtime"
 	"sync"
 

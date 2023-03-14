@@ -19,6 +19,7 @@ package ui
 import (
 	stdcontext "context"
 	"fmt"
+	"image"
 	"runtime/debug"
 	"sync"
 	"sync/atomic"

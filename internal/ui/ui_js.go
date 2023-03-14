@@ -15,6 +15,7 @@
 package ui
 
 import (
+	"image"
 	"sync"
 	"syscall/js"
 	"time"
