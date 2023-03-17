@@ -291,8 +291,7 @@ type RunGameOptions struct {
 func RunGameWithOptions(game Game, options *RunGameOptions) error {
 	defer atomic.StoreInt32(&isRunGameEnded_, 1)
 
-	w, h := WindowSize()
-	initializeWindowPositionIfNeeded(w, h)
+	initializeWindowPositionIfNeeded(WindowSize())
 
 	op := toUIRunOptions(options)
 	// This is necessary to change the result of IsScreenTransparent.
