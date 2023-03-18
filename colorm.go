@@ -85,14 +85,14 @@ func (c *ColorM) Concat(other ColorM) {
 
 // Scale scales the matrix by (r, g, b, a).
 //
-// Deprecated: as of v2.5. Use the colorm package instead.
+// Deprecated: as of v2.5. Use ColorScale or the colorm package instead.
 func (c *ColorM) Scale(r, g, b, a float64) {
 	c.impl = c.affineColorM().Scale(float32(r), float32(g), float32(b), float32(a))
 }
 
 // ScaleWithColor scales the matrix by clr.
 //
-// Deprecated: as of v2.5. Use the colorm package instead.
+// Deprecated: as of v2.5. Use ColorScale or the colorm package instead.
 func (c *ColorM) ScaleWithColor(clr color.Color) {
 	cr, cg, cb, ca := clr.RGBA()
 	if ca == 0 {
