@@ -147,7 +147,7 @@ func init() {
 	for i, k := range whiteKeys {
 		x := i*keyWidth + 36
 		height := 112
-		vector.DrawFilledRect(pianoImage, float32(x), float32(y), float32(keyWidth-1), float32(height), color.White)
+		vector.DrawFilledRect(pianoImage, float32(x), float32(y), float32(keyWidth-1), float32(height), color.White, false)
 		text.Draw(pianoImage, k, arcadeFont, x+8, y+height-8, color.Black)
 	}
 
@@ -158,7 +158,7 @@ func init() {
 		}
 		x := i*keyWidth + 24
 		height := 64
-		vector.DrawFilledRect(pianoImage, float32(x), float32(y), float32(keyWidth-1), float32(height), color.Black)
+		vector.DrawFilledRect(pianoImage, float32(x), float32(y), float32(keyWidth-1), float32(height), color.Black, false)
 		text.Draw(pianoImage, k, arcadeFont, x+8, y+height-8, color.White)
 	}
 }
