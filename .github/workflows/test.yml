@@ -145,7 +145,6 @@ jobs:
       - name: go test (Wasm)
         run: |
           env GOOS=js GOARCH=wasm cleanenv -remove-prefix GITHUB_ -remove-prefix JAVA_ -- go test -shuffle=on -v ./...
-          env GOOS=js GOARCH=wasm EBITENGINE_OPENGL=webgl1 cleanenv -remove-prefix GITHUB_ -remove-prefix JAVA_ -- go test -shuffle=on -v ./...
 
       - name: Install ebitenmobile
         run: |
