@@ -42,13 +42,15 @@ func init() {
 //
 // Use vector.StrokeLine instead if you require rendering with higher quality.
 func DrawLine(dst *ebiten.Image, x1, y1, x2, y2 float64, clr color.Color) {
+	// Use ebiten.Image's DrawImage instead of vector.StrokeLine for backward compatibility (#2605)
+
 	length := math.Hypot(x2-x1, y2-y1)
 
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Scale(length, 1)
 	op.GeoM.Rotate(math.Atan2(y2-y1, x2-x1))
 	op.GeoM.Translate(x1, y1)
-	op.ColorM.ScaleWithColor(clr)
+	op.ColorScale.ScaleWithColor(clr)
 	// Filter must be 'nearest' filter (default).
 	// Linear filtering would make edges blurred.
 	dst.DrawImage(whiteSubImage, op)
@@ -60,10 +62,12 @@ func DrawLine(dst *ebiten.Image, x1, y1, x2, y2 float64, clr color.Color) {
 //
 // Use vector.DrawFilledRect instead if you require rendering with higher quality.
 func DrawRect(dst *ebiten.Image, x, y, width, height float64, clr color.Color) {
+	// Use ebiten.Image's DrawImage instead of vector.DrawFilledRect for backward compatibility (#2605)
+
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Scale(width, height)
 	op.GeoM.Translate(x, y)
-	op.ColorM.ScaleWithColor(clr)
+	op.ColorScale.ScaleWithColor(clr)
 	// Filter must be 'nearest' filter (default).
 	// Linear filtering would make edges blurred.
 	dst.DrawImage(whiteImage.SubImage(image.Rect(1, 1, 2, 2)).(*ebiten.Image), op)
@@ -75,6 +79,8 @@ func DrawRect(dst *ebiten.Image, x, y, width, height float64, clr color.Color) {
 //
 // Use vector.DrawFilledCircle instead if you require rendering with higher quality.
 func DrawCircle(dst *ebiten.Image, cx, cy, r float64, clr color.Color) {
+	// Use ebiten.Image's DrawTriangles instead of vector.DrawFilledCircle for backward compatibility (#2605)
+
 	var path vector.Path
 	rd, g, b, a := clr.RGBA()
 
