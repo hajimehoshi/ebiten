@@ -3321,6 +3321,45 @@ func TestImageTooManyDrawImage(t *testing.T) {
 	}
 }
 
+func TestImageTooManyDrawImage2(t *testing.T) {
+	src := ebiten.NewImage(1, 1)
+	src.Fill(color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff})
+
+	const (
+		w = 512
+		h = 512
+	)
+	dst := ebiten.NewImage(w, h)
+
+	posToColor := func(i, j int) color.RGBA {
+		return color.RGBA{
+			R: byte(i),
+			G: byte(j),
+			B: 0xff,
+			A: 0xff,
+		}
+	}
+
+	op := &ebiten.DrawImageOptions{}
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			op.GeoM.Reset()
+			op.GeoM.Translate(float64(i), float64(j))
+			op.ColorScale.Reset()
+			op.ColorScale.ScaleWithColor(posToColor(i, j))
+			dst.DrawImage(src, op)
+		}
+	}
+
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			if got, want := dst.At(i, j).(color.RGBA), posToColor(i, j); !sameColors(got, want, 1) {
+				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+}
+
 // Issue #2178
 func TestImageTooManyDrawTriangles(t *testing.T) {
 	img := ebiten.NewImage(3, 3)
