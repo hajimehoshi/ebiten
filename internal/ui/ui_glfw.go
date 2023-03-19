@@ -242,12 +242,16 @@ func (m *Monitor) ID() int {
 var monitors []*Monitor
 
 // Monitors returns the current monitors.
-func (u *userInterfaceImpl) Monitors() (mons []*Monitor) {
+func (u *userInterfaceImpl) Monitors() []*Monitor {
+	u.m.RLock()
+	defer u.m.RUnlock()
 	return monitors
 }
 
 // Monitor returns the window's current monitor. Returns nil if there is no current monitor yet.
 func (u *userInterfaceImpl) Monitor() *Monitor {
+	u.m.RLock()
+	defer u.m.RUnlock()
 	var glfwMonitor *glfw.Monitor
 	if u.isFullscreen() {
 		glfwMonitor = u.window.GetMonitor()

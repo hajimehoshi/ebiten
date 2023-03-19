@@ -15,28 +15,65 @@
 package ebiten
 
 import (
+	"image"
+
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
-// Monitor represents a monitor available to the system.
-type Monitor = ui.Monitor
+// MonitorID represents a monitor's identifier.
+type MonitorID int
 
-// WindowMonitor returns the current monitor. If a window has not been created, this will be nil.
-func WindowMonitor() *Monitor {
-	return ui.Get().Monitor()
+// Monitor represents a monitor available to the system.
+type Monitor struct {
+	id            MonitorID
+	name          string
+	x, y          int
+	width, height int
+}
+
+// Bounds returns the position and size of the monitor.
+func (m *Monitor) Bounds() image.Rectangle {
+	return image.Rect(m.x, m.y, m.x+m.width, m.y+m.height)
+}
+
+// ID returns the monitor's ID. 0 is always the primary monitor.
+func (m *Monitor) ID() MonitorID {
+	return m.id
+}
+
+// Name returns the monitor's name. On Linux, this reports the monitors in xrandr format. On Windows, this reports "Generic PnP Monitor" for all monitors.
+func (m *Monitor) Name() string {
+	return m.name
+}
+
+func uiMonitorToMonitor(m *ui.Monitor) (monitor Monitor) {
+	monitor.x = m.Bounds().Min.X
+	monitor.y = m.Bounds().Min.Y
+	monitor.width = m.Bounds().Dx()
+	monitor.height = m.Bounds().Dy()
+	monitor.id = MonitorID(m.ID())
+	monitor.name = m.Name()
+	return
+}
+
+// WindowMonitor returns the current monitor.
+func WindowMonitor() Monitor {
+	m := ui.Get().Monitor()
+	if m == nil {
+		return Monitor{}
+	}
+	return uiMonitorToMonitor(m)
 }
 
 // SetWindowMonitor sets the monitor that the window should be on. This can be called before or after Run.
-func SetWindowMonitor(monitor *Monitor) {
-	ui.Get().Window().SetMonitor(monitor.ID())
+func SetWindowMonitor(monitor Monitor) {
+	ui.Get().Window().SetMonitor(int(monitor.id))
 }
 
-// SetWindowMonitorByID sets the monitor by its ID that the window should be on. This can be called before or after run.
-func SetWindowMonitorByID(monitorID int) {
-	ui.Get().Window().SetMonitor(monitorID)
-}
-
-// Monitors returns the monitors reported by the system.
-func Monitors() (monitors []*Monitor) {
-	return ui.Get().Monitors()
+// AppendMonitors returns the monitors reported by the system.
+func AppendMonitors(monitors []Monitor) []Monitor {
+	for _, m := range ui.Get().Monitors() {
+		monitors = append(monitors, uiMonitorToMonitor(m))
+	}
+	return monitors
 }
