@@ -155,9 +155,7 @@ func (g *Graphics) Reset() error {
 }
 
 func (g *Graphics) SetVertices(vertices []float32, indices []uint16) error {
-	// Note that the vertices passed to BufferSubData is not under GC management
-	// in opengl package due to unsafe-way.
-	// See BufferSubData in context_mobile.go.
+	// Note that the vertices and the indices passed to BufferSubData is not under GC management in the gl package.
 	g.context.arrayBufferSubData(vertices)
 	g.context.elementArrayBufferSubData(indices)
 	return nil

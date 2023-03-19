@@ -152,10 +152,6 @@ func (s *openGLState) reset(context *context) error {
 	}
 
 	s.arrayBuffer = theArrayBufferLayout.newArrayBuffer(context)
-
-	// Note that the indices passed to NewElementArrayBuffer is not under GC management
-	// in opengl package due to unsafe-way.
-	// See NewElementArrayBuffer in context_mobile.go.
 	s.elementArrayBuffer = context.newElementArrayBuffer(graphics.IndicesCount * 2)
 
 	return nil
