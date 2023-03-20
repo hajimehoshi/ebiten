@@ -114,7 +114,7 @@ type DrawImageOptions struct {
 	//
 	// ColorScale is slightly different from colorm.ColorM's Scale in terms of alphas.
 	// ColorScale is applied to premultiplied-alpha colors, while colorm.ColorM is applied to straight-alpha colors.
-	// Thus, colorm.ColorM.Scale(r, g, b, a) equals to ColorScale.Scale(r*a, g*a, b*a, a).
+	// Thus, ColorM.Scale(r, g, b, a) equals to ColorScale.Scale(r*a, g*a, b*a, a).
 	//
 	// The default (zero) value is identity, which is (1, 1, 1, 1).
 	ColorScale ColorScale
