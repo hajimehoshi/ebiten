@@ -18,7 +18,6 @@ import (
 	"errors"
 	"fmt"
 	"sync"
-	"unsafe"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl/gl"
@@ -502,14 +501,4 @@ func (c *context) newElementArrayBuffer(size int) buffer {
 	c.ctx.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, b)
 	c.ctx.BufferInit(gl.ELEMENT_ARRAY_BUFFER, size, gl.DYNAMIC_DRAW)
 	return buffer(b)
-}
-
-func (c *context) arrayBufferSubData(data []float32) {
-	s := unsafe.Slice((*byte)(unsafe.Pointer(&data[0])), len(data)*4)
-	c.ctx.BufferSubData(gl.ARRAY_BUFFER, 0, s)
-}
-
-func (c *context) elementArrayBufferSubData(data []uint16) {
-	s := unsafe.Slice((*byte)(unsafe.Pointer(&data[0])), len(data)*2)
-	c.ctx.BufferSubData(gl.ELEMENT_ARRAY_BUFFER, 0, s)
 }

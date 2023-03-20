@@ -63,11 +63,6 @@ func (a *arrayBufferLayout) totalBytes() int {
 	return a.total
 }
 
-// newArrayBuffer creates OpenGL's buffer object for the array buffer.
-func (a *arrayBufferLayout) newArrayBuffer(context *context) buffer {
-	return context.newArrayBuffer(a.totalBytes() * graphics.IndicesCount)
-}
-
 // enable starts using the array buffer.
 func (a *arrayBufferLayout) enable(context *context) {
 	for i := range a.parts {
@@ -115,7 +110,6 @@ func init() {
 	}
 }
 
-// openGLState is a state for
 type openGLState struct {
 	// arrayBuffer is OpenGL's array buffer (vertices data).
 	arrayBuffer buffer
@@ -150,11 +144,27 @@ func (s *openGLState) reset(context *context) error {
 			context.ctx.DeleteBuffer(uint32(s.elementArrayBuffer))
 		}
 	}
-
-	s.arrayBuffer = theArrayBufferLayout.newArrayBuffer(context)
-	s.elementArrayBuffer = context.newElementArrayBuffer(graphics.IndicesCount * 2)
+	s.arrayBuffer = 0
+	s.elementArrayBuffer = 0
 
 	return nil
+}
+
+func (s *openGLState) setVertices(context *context, vertices []float32, indices []uint16) {
+	if s.arrayBuffer == 0 {
+		s.arrayBuffer = context.newArrayBuffer(graphics.IndicesCount * graphics.VertexFloatCount * floatSizeInBytes)
+		context.ctx.BindBuffer(gl.ARRAY_BUFFER, uint32(s.arrayBuffer))
+	}
+	if s.elementArrayBuffer == 0 {
+		s.elementArrayBuffer = context.newElementArrayBuffer(graphics.IndicesCount * 2)
+		context.ctx.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, uint32(s.elementArrayBuffer))
+	}
+
+	// Note that the vertices and the indices passed to BufferSubData is not under GC management in the gl package.
+	vs := unsafe.Slice((*byte)(unsafe.Pointer(&vertices[0])), len(vertices)*4)
+	context.ctx.BufferSubData(gl.ARRAY_BUFFER, 0, vs)
+	is := unsafe.Slice((*byte)(unsafe.Pointer(&indices[0])), len(indices)*2)
+	context.ctx.BufferSubData(gl.ELEMENT_ARRAY_BUFFER, 0, is)
 }
 
 func (s *openGLState) resetLastUniforms() {
@@ -205,8 +215,6 @@ func (g *Graphics) useProgram(program program, uniforms []uniformVariable, textu
 		g.context.ctx.UseProgram(uint32(program))
 		if g.state.lastProgram == 0 {
 			theArrayBufferLayout.enable(&g.context)
-			g.context.ctx.BindBuffer(gl.ARRAY_BUFFER, uint32(g.state.arrayBuffer))
-			g.context.ctx.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, uint32(g.state.elementArrayBuffer))
 		}
 
 		g.state.lastProgram = program
