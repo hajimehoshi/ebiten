@@ -25,15 +25,14 @@ type MonitorID int
 
 // Monitor represents a monitor available to the system.
 type Monitor struct {
-	id            MonitorID
-	name          string
-	x, y          int
-	width, height int
+	id     MonitorID
+	name   string
+	bounds image.Rectangle
 }
 
 // Bounds returns the position and size of the monitor.
 func (m *Monitor) Bounds() image.Rectangle {
-	return image.Rect(m.x, m.y, m.x+m.width, m.y+m.height)
+	return m.bounds
 }
 
 // ID returns the monitor's ID. 0 is always the primary monitor.
@@ -47,10 +46,7 @@ func (m *Monitor) Name() string {
 }
 
 func uiMonitorToMonitor(m *ui.Monitor) (monitor Monitor) {
-	monitor.x = m.Bounds().Min.X
-	monitor.y = m.Bounds().Min.Y
-	monitor.width = m.Bounds().Dx()
-	monitor.height = m.Bounds().Dy()
+	monitor.bounds = m.Bounds()
 	monitor.id = MonitorID(m.ID())
 	monitor.name = m.Name()
 	return
