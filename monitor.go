@@ -68,7 +68,7 @@ func SetWindowMonitor(monitor Monitor) {
 
 // AppendMonitors returns the monitors reported by the system.
 func AppendMonitors(monitors []Monitor) []Monitor {
-	for _, m := range ui.Get().Monitors() {
+	for _, m := range ui.Get().AppendMonitors(nil) {
 		monitors = append(monitors, uiMonitorToMonitor(m))
 	}
 	return monitors

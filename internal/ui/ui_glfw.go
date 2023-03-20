@@ -241,11 +241,11 @@ func (m *Monitor) ID() int {
 // monitors must be manipulated on the main thread.
 var monitors []*Monitor
 
-// Monitors returns the current monitors.
-func (u *userInterfaceImpl) Monitors() []*Monitor {
+// AppendMonitors appends the current monitors to the passed in mons slice and returns it.
+func (u *userInterfaceImpl) AppendMonitors(mons []*Monitor) []*Monitor {
 	u.m.RLock()
 	defer u.m.RUnlock()
-	return monitors
+	return append(mons, monitors...)
 }
 
 // Monitor returns the window's current monitor. Returns nil if there is no current monitor yet.
