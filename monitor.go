@@ -24,52 +24,36 @@ import (
 type MonitorID int
 
 // Monitor represents a monitor available to the system.
-type Monitor struct {
-	id     MonitorID
-	name   string
-	bounds image.Rectangle
-}
+type Monitor ui.Monitor
 
 // Bounds returns the position and size of the monitor.
 func (m *Monitor) Bounds() image.Rectangle {
-	return m.bounds
-}
-
-// ID returns the monitor's ID. 0 is always the primary monitor.
-func (m *Monitor) ID() MonitorID {
-	return m.id
+	return (*ui.Monitor)(m).Bounds()
 }
 
 // Name returns the monitor's name. On Linux, this reports the monitors in xrandr format. On Windows, this reports "Generic PnP Monitor" for all monitors.
 func (m *Monitor) Name() string {
-	return m.name
-}
-
-func uiMonitorToMonitor(m *ui.Monitor) (monitor Monitor) {
-	monitor.bounds = m.Bounds()
-	monitor.id = MonitorID(m.ID())
-	monitor.name = m.Name()
-	return
+	return (*ui.Monitor)(m).Name()
 }
 
 // WindowMonitor returns the current monitor.
-func WindowMonitor() Monitor {
+func WindowMonitor() *Monitor {
 	m := ui.Get().Monitor()
 	if m == nil {
-		return Monitor{}
+		return nil
 	}
-	return uiMonitorToMonitor(m)
+	return (*Monitor)(m)
 }
 
 // SetWindowMonitor sets the monitor that the window should be on. This can be called before or after Run.
-func SetWindowMonitor(monitor Monitor) {
-	ui.Get().Window().SetMonitor(int(monitor.id))
+func SetWindowMonitor(monitor *Monitor) {
+	ui.Get().Window().SetMonitor((*ui.Monitor)(monitor))
 }
 
 // AppendMonitors returns the monitors reported by the system.
-func AppendMonitors(monitors []Monitor) []Monitor {
+func AppendMonitors(monitors []*Monitor) []*Monitor {
 	for _, m := range ui.Get().AppendMonitors(nil) {
-		monitors = append(monitors, uiMonitorToMonitor(m))
+		monitors = append(monitors, (*Monitor)(m))
 	}
 	return monitors
 }

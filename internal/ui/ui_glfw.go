@@ -229,11 +229,6 @@ func (m *Monitor) Name() string {
 	return m.name
 }
 
-// ID returns the monitor's id.
-func (m *Monitor) ID() int {
-	return m.id
-}
-
 // monitors is the monitor list cache for desktop glfw compile targets.
 // populated by 'updateMonitors' which is called on init and every
 // monitor config change event.
@@ -261,8 +256,14 @@ func (u *userInterfaceImpl) Monitor() *Monitor {
 	if glfwMonitor == nil {
 		return nil
 	}
-	monitor := glfwMonitorToMonitor(glfwMonitor)
-	return &monitor
+	for _, m := range monitors {
+		if m.m == glfwMonitor {
+			return m
+		}
+	}
+	return nil
+	/*monitor := glfwMonitorToMonitor(glfwMonitor)
+	return &monitor*/
 }
 
 func updateMonitors() {

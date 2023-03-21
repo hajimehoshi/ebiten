@@ -70,8 +70,8 @@ func (g *Game) Update() error {
 		}
 		y += l
 
-		for _, m := range ebiten.AppendMonitors(nil) {
-			b := text.BoundString(mplusNormalFont, fmt.Sprintf("%d: %s %s", m.ID(), m.Name(), m.Bounds().String()))
+		for i, m := range ebiten.AppendMonitors(nil) {
+			b := text.BoundString(mplusNormalFont, fmt.Sprintf("%d: %s %s", i, m.Name(), m.Bounds().String()))
 			if cx >= b.Min.X && cx <= b.Max.X && cy >= b.Min.Y+y && cy <= b.Max.Y+y {
 				ebiten.SetWindowTitle(m.Name())
 				ebiten.SetWindowMonitor(m)
@@ -89,13 +89,17 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	y := l
 	text.Draw(screen, "toggle fullscreen", mplusNormalFont, x, y, color.White)
 	y += l
-	for _, m := range ebiten.AppendMonitors(nil) {
-		text.Draw(screen, fmt.Sprintf("%d: %s %s", m.ID(), m.Name(), m.Bounds().String()), mplusNormalFont, x, y, color.White)
+	for i, m := range ebiten.AppendMonitors(nil) {
+		text.Draw(screen, fmt.Sprintf("%d: %s %s", i, m.Name(), m.Bounds().String()), mplusNormalFont, x, y, color.White)
 		y += l
 	}
 
-	m := ebiten.WindowMonitor()
-	text.Draw(screen, fmt.Sprintf("active: %s (%d)", m.Name(), m.ID()), mplusNormalFont, x, y, color.White)
+	activeMonitor := ebiten.WindowMonitor()
+	for i, m := range ebiten.AppendMonitors(nil) {
+		if m == activeMonitor {
+			text.Draw(screen, fmt.Sprintf("active: %s (%d)", m.Name(), i), mplusNormalFont, x, y, color.White)
+		}
+	}
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
@@ -106,7 +110,7 @@ func main() {
 	g := &Game{}
 
 	// Spawn the window on the last monitor reported.
-	var targetMonitor ebiten.Monitor
+	var targetMonitor *ebiten.Monitor
 	monitors := ebiten.AppendMonitors(nil)
 	if len(monitors) > 0 {
 		targetMonitor = monitors[len(monitors)-1]

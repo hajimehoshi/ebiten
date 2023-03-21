@@ -734,11 +734,6 @@ func (m *Monitor) Name() string {
 	return ""
 }
 
-// ID returns 0.
-func (m *Monitor) ID() int {
-	return 0
-}
-
 func (u *userInterfaceImpl) Monitors() []*Monitor {
 	return nil
 }

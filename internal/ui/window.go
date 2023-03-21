@@ -23,8 +23,7 @@ type Window interface {
 	SetDecorated(decorated bool)
 	ResizingMode() WindowResizingMode
 	SetResizingMode(mode WindowResizingMode)
-	SetMonitor(int)
-	Monitor() int
+	SetMonitor(*Monitor)
 	Position() (int, int)
 	SetPosition(x, y int)
 	Size() (int, int)
@@ -60,11 +59,7 @@ func (*nullWindow) ResizingMode() WindowResizingMode {
 func (*nullWindow) SetResizingMode(mode WindowResizingMode) {
 }
 
-func (*nullWindow) Monitor() int {
-	return 0
-}
-
-func (*nullWindow) SetMonitor(monitor int) {
+func (*nullWindow) SetMonitor(monitor *Monitor) {
 }
 
 func (*nullWindow) Position() (int, int) {
