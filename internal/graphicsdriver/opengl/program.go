@@ -16,7 +16,6 @@ package opengl
 
 import (
 	"fmt"
-	"runtime"
 	"unsafe"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
@@ -120,34 +119,6 @@ type openGLState struct {
 	lastProgram       program
 	lastUniforms      map[string][]uint32
 	lastActiveTexture int
-}
-
-// reset resets or initializes the OpenGL state.
-func (s *openGLState) reset(context *context) error {
-	if err := context.reset(); err != nil {
-		return err
-	}
-
-	s.lastProgram = 0
-	context.ctx.UseProgram(0)
-	for key := range s.lastUniforms {
-		delete(s.lastUniforms, key)
-	}
-
-	// On browsers (at least Chrome), buffers are already detached from the context
-	// and must not be deleted by DeleteBuffer.
-	if runtime.GOOS != "js" {
-		if s.arrayBuffer != 0 {
-			context.ctx.DeleteBuffer(uint32(s.arrayBuffer))
-		}
-		if s.elementArrayBuffer != 0 {
-			context.ctx.DeleteBuffer(uint32(s.elementArrayBuffer))
-		}
-	}
-	s.arrayBuffer = 0
-	s.elementArrayBuffer = 0
-
-	return nil
 }
 
 func (s *openGLState) setVertices(context *context, vertices []float32, indices []uint16) {
