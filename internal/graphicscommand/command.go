@@ -550,7 +550,7 @@ func InitializeGraphicsDriverState(graphicsDriver graphicsdriver.Graphics) (err 
 // ResetGraphicsDriverState resets the current graphics driver state.
 // If the graphics driver doesn't have an API to reset, ResetGraphicsDriverState does nothing.
 func ResetGraphicsDriverState(graphicsDriver graphicsdriver.Graphics) (err error) {
-	if r, ok := graphicsDriver.(interface{ Reset() error }); ok {
+	if r, ok := graphicsDriver.(graphicsdriver.Resetter); ok {
 		runOnRenderThread(func() {
 			err = r.Reset()
 		})
