@@ -80,6 +80,17 @@ func init() {
 	}
 }
 
+type resourceWithSize struct {
+	value       *_ID3D12Resource
+	sizeInBytes uint32
+}
+
+func (r *resourceWithSize) release() {
+	r.value.Release()
+	r.value = nil
+	r.sizeInBytes = 0
+}
+
 type Graphics struct {
 	debug              *_ID3D12Debug
 	device             *_ID3D12Device
@@ -115,8 +126,8 @@ type Graphics struct {
 
 	// drawCommandList and copyCommandList are exclusive: if one is not empty, the other must be empty.
 
-	vertices [frameCount][]*_ID3D12Resource
-	indices  [frameCount][]*_ID3D12Resource
+	vertices [frameCount][]*resourceWithSize
+	indices  [frameCount][]*resourceWithSize
 
 	factory   *_IDXGIFactory4
 	swapChain *_IDXGISwapChain4
@@ -951,13 +962,13 @@ func (g *Graphics) releaseResources(frameIndex int) {
 
 func (g *Graphics) releaseVerticesAndIndices(frameIndex int) {
 	for i := range g.vertices[frameIndex] {
-		g.vertices[frameIndex][i].Release()
+		g.vertices[frameIndex][i].release()
 		g.vertices[frameIndex][i] = nil
 	}
 	g.vertices[frameIndex] = g.vertices[frameIndex][:0]
 
 	for i := range g.indices[frameIndex] {
-		g.indices[frameIndex][i].Release()
+		g.indices[frameIndex][i].release()
 		g.indices[frameIndex][i] = nil
 	}
 	g.indices[frameIndex] = g.indices[frameIndex][:0]
@@ -1043,14 +1054,18 @@ func (g *Graphics) SetVertices(vertices []float32, indices []uint16) (ferr error
 	}
 	if g.vertices[g.frameIndex][vidx] == nil {
 		// TODO: Use the default heap for efficiently. See the official example HelloTriangle.
-		vs, err := createBuffer(g.device, graphics.IndicesCount*graphics.VertexFloatCount*uint64(unsafe.Sizeof(float32(0))), _D3D12_HEAP_TYPE_UPLOAD)
+		size := graphics.IndicesCount * graphics.VertexFloatCount * uint32(unsafe.Sizeof(float32(0)))
+		vs, err := createBuffer(g.device, uint64(size), _D3D12_HEAP_TYPE_UPLOAD)
 		if err != nil {
 			return err
 		}
-		g.vertices[g.frameIndex][vidx] = vs
+		g.vertices[g.frameIndex][vidx] = &resourceWithSize{
+			value:       vs,
+			sizeInBytes: size,
+		}
 		defer func() {
 			if ferr != nil {
-				g.vertices[g.frameIndex][vidx].Release()
+				g.vertices[g.frameIndex][vidx].release()
 				g.vertices[g.frameIndex][vidx] = nil
 			}
 		}()
@@ -1063,32 +1078,36 @@ func (g *Graphics) SetVertices(vertices []float32, indices []uint16) (ferr error
 		g.indices[g.frameIndex] = append(g.indices[g.frameIndex], nil)
 	}
 	if g.indices[g.frameIndex][iidx] == nil {
-		is, err := createBuffer(g.device, graphics.IndicesCount*uint64(unsafe.Sizeof(uint16(0))), _D3D12_HEAP_TYPE_UPLOAD)
+		size := graphics.IndicesCount * uint32(unsafe.Sizeof(uint16(0)))
+		is, err := createBuffer(g.device, uint64(size), _D3D12_HEAP_TYPE_UPLOAD)
 		if err != nil {
 			return err
 		}
-		g.indices[g.frameIndex][iidx] = is
+		g.indices[g.frameIndex][iidx] = &resourceWithSize{
+			value:       is,
+			sizeInBytes: size,
+		}
 		defer func() {
 			if ferr != nil {
-				g.indices[g.frameIndex][iidx].Release()
+				g.indices[g.frameIndex][iidx].release()
 				g.indices[g.frameIndex][iidx] = nil
 			}
 		}()
 	}
 
-	m, err := g.vertices[g.frameIndex][vidx].Map(0, &_D3D12_RANGE{0, 0})
+	m, err := g.vertices[g.frameIndex][vidx].value.Map(0, &_D3D12_RANGE{0, 0})
 	if err != nil {
 		return err
 	}
 	copy(unsafe.Slice((*float32)(unsafe.Pointer(m)), len(vertices)), vertices)
-	g.vertices[g.frameIndex][vidx].Unmap(0, nil)
+	g.vertices[g.frameIndex][vidx].value.Unmap(0, nil)
 
-	m, err = g.indices[g.frameIndex][iidx].Map(0, &_D3D12_RANGE{0, 0})
+	m, err = g.indices[g.frameIndex][iidx].value.Map(0, &_D3D12_RANGE{0, 0})
 	if err != nil {
 		return err
 	}
 	copy(unsafe.Slice((*uint16)(unsafe.Pointer(m)), len(indices)), indices)
-	g.indices[g.frameIndex][iidx].Unmap(0, nil)
+	g.indices[g.frameIndex][iidx].value.Unmap(0, nil)
 
 	return nil
 }
@@ -1291,14 +1310,14 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.Sh
 	g.drawCommandList.IASetPrimitiveTopology(_D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST)
 	g.drawCommandList.IASetVertexBuffers(0, []_D3D12_VERTEX_BUFFER_VIEW{
 		{
-			BufferLocation: g.vertices[g.frameIndex][len(g.vertices[g.frameIndex])-1].GetGPUVirtualAddress(),
-			SizeInBytes:    graphics.IndicesCount * graphics.VertexFloatCount * uint32(unsafe.Sizeof(float32(0))),
+			BufferLocation: g.vertices[g.frameIndex][len(g.vertices[g.frameIndex])-1].value.GetGPUVirtualAddress(),
+			SizeInBytes:    g.vertices[g.frameIndex][len(g.vertices[g.frameIndex])-1].sizeInBytes,
 			StrideInBytes:  graphics.VertexFloatCount * uint32(unsafe.Sizeof(float32(0))),
 		},
 	})
 	g.drawCommandList.IASetIndexBuffer(&_D3D12_INDEX_BUFFER_VIEW{
-		BufferLocation: g.indices[g.frameIndex][len(g.indices[g.frameIndex])-1].GetGPUVirtualAddress(),
-		SizeInBytes:    graphics.IndicesCount * uint32(unsafe.Sizeof(uint16(0))),
+		BufferLocation: g.indices[g.frameIndex][len(g.indices[g.frameIndex])-1].value.GetGPUVirtualAddress(),
+		SizeInBytes:    g.indices[g.frameIndex][len(g.indices[g.frameIndex])-1].sizeInBytes,
 		Format:         _DXGI_FORMAT_R16_UINT,
 	})
 
