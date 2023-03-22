@@ -16,6 +16,7 @@ package opengl
 
 import (
 	"fmt"
+	"math"
 	"runtime"
 	"unsafe"
 
@@ -157,6 +158,10 @@ func (s *openGLState) reset(context *context) error {
 }
 
 func pow2(x int) int {
+	if x > (math.MaxInt+1)/2 {
+		return math.MaxInt
+	}
+
 	p2 := 1
 	for p2 < x {
 		p2 *= 2

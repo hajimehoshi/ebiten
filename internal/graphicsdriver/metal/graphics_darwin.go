@@ -133,6 +133,10 @@ func (g *Graphics) SetUIView(uiview uintptr) {
 }
 
 func pow2(x uintptr) uintptr {
+	if x > (math.MaxUint+1)/2 {
+		return math.MaxUint
+	}
+
 	var p2 uintptr = 1
 	for p2 < x {
 		p2 *= 2
