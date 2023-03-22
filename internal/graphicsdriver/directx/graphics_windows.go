@@ -17,6 +17,7 @@ package directx
 import (
 	"errors"
 	"fmt"
+	"math"
 	"os"
 	"strings"
 	"time"
@@ -1044,6 +1045,18 @@ func (g *Graphics) SetTransparent(transparent bool) {
 	g.transparent = transparent
 }
 
+func pow2(x uint32) uint32 {
+	if x > (math.MaxUint32+1)/2 {
+		return math.MaxUint32
+	}
+
+	var p2 uint32 = 1
+	for p2 < x {
+		p2 *= 2
+	}
+	return p2
+}
+
 func (g *Graphics) SetVertices(vertices []float32, indices []uint16) (ferr error) {
 	// Create buffers if necessary.
 	vidx := len(g.vertices[g.frameIndex])
@@ -1052,16 +1065,20 @@ func (g *Graphics) SetVertices(vertices []float32, indices []uint16) (ferr error
 	} else {
 		g.vertices[g.frameIndex] = append(g.vertices[g.frameIndex], nil)
 	}
+	vsize := pow2(uint32(len(vertices)) * uint32(unsafe.Sizeof(float32(0))))
+	if g.vertices[g.frameIndex][vidx] != nil && g.vertices[g.frameIndex][vidx].sizeInBytes < vsize {
+		g.vertices[g.frameIndex][vidx].release()
+		g.vertices[g.frameIndex][vidx] = nil
+	}
 	if g.vertices[g.frameIndex][vidx] == nil {
 		// TODO: Use the default heap for efficiently. See the official example HelloTriangle.
-		size := graphics.IndicesCount * graphics.VertexFloatCount * uint32(unsafe.Sizeof(float32(0)))
-		vs, err := createBuffer(g.device, uint64(size), _D3D12_HEAP_TYPE_UPLOAD)
+		vs, err := createBuffer(g.device, uint64(vsize), _D3D12_HEAP_TYPE_UPLOAD)
 		if err != nil {
 			return err
 		}
 		g.vertices[g.frameIndex][vidx] = &resourceWithSize{
 			value:       vs,
-			sizeInBytes: size,
+			sizeInBytes: vsize,
 		}
 		defer func() {
 			if ferr != nil {
@@ -1077,15 +1094,19 @@ func (g *Graphics) SetVertices(vertices []float32, indices []uint16) (ferr error
 	} else {
 		g.indices[g.frameIndex] = append(g.indices[g.frameIndex], nil)
 	}
+	isize := pow2(uint32(len(indices)) * uint32(unsafe.Sizeof(uint16(0))))
+	if g.indices[g.frameIndex][iidx] != nil && g.indices[g.frameIndex][iidx].sizeInBytes < isize {
+		g.indices[g.frameIndex][iidx].release()
+		g.indices[g.frameIndex][iidx] = nil
+	}
 	if g.indices[g.frameIndex][iidx] == nil {
-		size := graphics.IndicesCount * uint32(unsafe.Sizeof(uint16(0)))
-		is, err := createBuffer(g.device, uint64(size), _D3D12_HEAP_TYPE_UPLOAD)
+		is, err := createBuffer(g.device, uint64(isize), _D3D12_HEAP_TYPE_UPLOAD)
 		if err != nil {
 			return err
 		}
 		g.indices[g.frameIndex][iidx] = &resourceWithSize{
 			value:       is,
-			sizeInBytes: size,
+			sizeInBytes: isize,
 		}
 		defer func() {
 			if ferr != nil {
