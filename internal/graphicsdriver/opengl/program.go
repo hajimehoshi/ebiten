@@ -16,6 +16,7 @@ package opengl
 
 import (
 	"fmt"
+	"runtime"
 	"unsafe"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
@@ -113,50 +114,50 @@ type openGLState struct {
 	// arrayBuffer is OpenGL's array buffer (vertices data).
 	arrayBuffer buffer
 
-	arrayBufferSizeInBytes int
-
 	// elementArrayBuffer is OpenGL's element array buffer (indices data).
 	elementArrayBuffer buffer
-
-	elementArrayBufferSizeInBytes int
 
 	lastProgram       program
 	lastUniforms      map[string][]uint32
 	lastActiveTexture int
 }
 
-func pow2(x int) int {
-	p2 := 1
-	for p2 < x {
-		p2 *= 2
+// reset resets or initializes the OpenGL state.
+func (s *openGLState) reset(context *context) error {
+	if err := context.reset(); err != nil {
+		return err
 	}
-	return p2
-}
 
-func (s *openGLState) setVertices(context *context, vertices []float32, indices []uint16) {
-	if size := len(vertices) * 4; s.arrayBufferSizeInBytes < size {
+	s.lastProgram = 0
+	context.ctx.UseProgram(0)
+	for key := range s.lastUniforms {
+		delete(s.lastUniforms, key)
+	}
+
+	// On browsers (at least Chrome), buffers are already detached from the context
+	// and must not be deleted by DeleteBuffer.
+	if runtime.GOOS != "js" {
 		if s.arrayBuffer != 0 {
 			context.ctx.DeleteBuffer(uint32(s.arrayBuffer))
 		}
-
-		newSize := pow2(size)
-		// newArrayBuffer calls BindBuffer.
-		s.arrayBuffer = context.newArrayBuffer(newSize)
-		s.arrayBufferSizeInBytes = newSize
-
-		// Reenable the array buffer layouter explicitly after resetting the array buffer.
-		theArrayBufferLayout.enable(context)
-	}
-
-	if size := len(indices) * 2; s.elementArrayBufferSizeInBytes < size {
 		if s.elementArrayBuffer != 0 {
 			context.ctx.DeleteBuffer(uint32(s.elementArrayBuffer))
 		}
+	}
+	s.arrayBuffer = 0
+	s.elementArrayBuffer = 0
 
-		newSize := pow2(size)
-		// newElementArrayBuffer calls BindBuffer.
-		s.elementArrayBuffer = context.newElementArrayBuffer(newSize)
-		s.elementArrayBufferSizeInBytes = newSize
+	return nil
+}
+
+func (s *openGLState) setVertices(context *context, vertices []float32, indices []uint16) {
+	if s.arrayBuffer == 0 {
+		s.arrayBuffer = context.newArrayBuffer(graphics.IndicesCount * graphics.VertexFloatCount * floatSizeInBytes)
+		context.ctx.BindBuffer(gl.ARRAY_BUFFER, uint32(s.arrayBuffer))
+	}
+	if s.elementArrayBuffer == 0 {
+		s.elementArrayBuffer = context.newElementArrayBuffer(graphics.IndicesCount * 2)
+		context.ctx.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, uint32(s.elementArrayBuffer))
 	}
 
 	// Note that the vertices and the indices passed to BufferSubData is not under GC management in the gl package.
@@ -212,6 +213,9 @@ func (g *Graphics) textureVariableName(idx int) string {
 func (g *Graphics) useProgram(program program, uniforms []uniformVariable, textures [graphics.ShaderImageCount]textureVariable) error {
 	if g.state.lastProgram != program {
 		g.context.ctx.UseProgram(uint32(program))
+		if g.state.lastProgram == 0 {
+			theArrayBufferLayout.enable(&g.context)
+		}
 
 		g.state.lastProgram = program
 		for k := range g.state.lastUniforms {

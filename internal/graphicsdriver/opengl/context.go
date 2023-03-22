@@ -124,6 +124,7 @@ type context struct {
 	maxTextureSizeOnce sync.Once
 	highp              bool
 	highpOnce          sync.Once
+	initOnce           sync.Once
 
 	contextPlatform
 }
@@ -190,14 +191,25 @@ func (c *context) getMaxTextureSize() int {
 	return c.maxTextureSize
 }
 
-func (c *context) init() error {
-	// Load OpenGL functions after WGL is initialized especially for Windows (#2452).
-	if err := c.ctx.LoadFunctions(); err != nil {
-		return err
+func (c *context) reset() error {
+	var err1 error
+	c.initOnce.Do(func() {
+		// Load OpenGL functions after WGL is initialized especially for Windows (#2452).
+		if err := c.ctx.LoadFunctions(); err != nil {
+			err1 = err
+			return
+		}
+	})
+	if err1 != nil {
+		return err1
 	}
 
 	c.locationCache = newLocationCache()
+	c.lastTexture = 0
 	c.lastFramebuffer = invalidFramebuffer
+	c.lastViewportWidth = 0
+	c.lastViewportHeight = 0
+	c.lastBlend = graphicsdriver.Blend{}
 
 	c.ctx.Enable(gl.BLEND)
 	c.ctx.Enable(gl.SCISSOR_TEST)

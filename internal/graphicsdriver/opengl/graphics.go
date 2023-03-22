@@ -146,7 +146,12 @@ func (g *Graphics) removeImage(img *Image) {
 }
 
 func (g *Graphics) Initialize() error {
-	return g.context.init()
+	return g.state.reset(&g.context)
+}
+
+// Reset resets or initializes the current OpenGL state.
+func (g *Graphics) Reset() error {
+	return g.state.reset(&g.context)
 }
 
 func (g *Graphics) SetVertices(vertices []float32, indices []uint16) error {
