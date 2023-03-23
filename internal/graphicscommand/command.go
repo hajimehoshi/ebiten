@@ -86,11 +86,15 @@ func (q *commandQueue) appendIndices(indices []uint16, offset uint16) {
 
 // mustUseDifferentVertexBuffer reports whether a different vertex buffer must be used.
 func mustUseDifferentVertexBuffer(nextNumVertexFloats int) bool {
-	return nextNumVertexFloats > graphics.IndicesCount*graphics.VertexFloatCount
+	return nextNumVertexFloats > graphics.MaxVertexFloatCount
 }
 
 // EnqueueDrawTrianglesCommand enqueues a drawing-image command.
 func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.ShaderImageCount]*Image, offsets [graphics.ShaderImageCount - 1][2]float32, vertices []float32, indices []uint16, blend graphicsdriver.Blend, dstRegion, srcRegion graphicsdriver.Region, shader *Shader, uniforms []uint32, evenOdd bool) {
+	if len(vertices) > graphics.MaxVertexFloatCount {
+		panic(fmt.Sprintf("graphicscommand: len(vertices) must not exceed %d but was %d", graphics.MaxVertexFloatCount, len(vertices)))
+	}
+
 	split := false
 	if mustUseDifferentVertexBuffer(q.tmpNumVertexFloats + len(vertices)) {
 		q.tmpNumVertexFloats = 0

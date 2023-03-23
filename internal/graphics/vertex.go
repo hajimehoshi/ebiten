@@ -14,6 +14,10 @@
 
 package graphics
 
+import (
+	"math"
+)
+
 const (
 	ShaderImageCount = 4
 
@@ -48,8 +52,13 @@ const (
 )
 
 const (
-	IndicesCount     = (1 << 16) / 3 * 3 // Adjust num for triangles. TODO: Remove this (#2460).
-	VertexFloatCount = 8
+	IndicesCount = (1 << 16) / 3 * 3 // Adjust num for triangles. TODO: Remove this (#2460).
+)
+
+const (
+	VertexFloatCount    = 8
+	MaxVertexCount      = math.MaxUint16 + 1
+	MaxVertexFloatCount = MaxVertexCount * VertexFloatCount
 )
 
 var (
