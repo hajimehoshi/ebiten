@@ -405,7 +405,8 @@ const MaxIndicesNum = graphics.IndicesCount
 // and adjust the color elements in the vertices. For an actual implementation,
 // see the example 'vector'.
 //
-// Vertex contains color values, which are interpreted as straight-alpha colors.
+// Vertex contains color values, which are interpreted as straight-alpha colors by default.
+// This depends on the option's ColorScaleMode.
 //
 // If len(indices) is not multiple of 3, DrawTriangles panics.
 //
