@@ -67,7 +67,6 @@ type commandQueue struct {
 	indices  []uint16
 
 	tmpNumVertexFloats int
-	tmpNumIndices      int
 
 	drawTrianglesCommandPool drawTrianglesCommandPool
 
@@ -86,20 +85,15 @@ func (q *commandQueue) appendIndices(indices []uint16, offset uint16) {
 }
 
 // mustUseDifferentVertexBuffer reports whether a different vertex buffer must be used.
-func mustUseDifferentVertexBuffer(nextNumVertexFloats, nextNumIndices int) bool {
-	return nextNumVertexFloats > graphics.IndicesCount*graphics.VertexFloatCount || nextNumIndices > graphics.IndicesCount
+func mustUseDifferentVertexBuffer(nextNumVertexFloats int) bool {
+	return nextNumVertexFloats > graphics.IndicesCount*graphics.VertexFloatCount
 }
 
 // EnqueueDrawTrianglesCommand enqueues a drawing-image command.
 func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.ShaderImageCount]*Image, offsets [graphics.ShaderImageCount - 1][2]float32, vertices []float32, indices []uint16, blend graphicsdriver.Blend, dstRegion, srcRegion graphicsdriver.Region, shader *Shader, uniforms []uint32, evenOdd bool) {
-	if len(indices) > graphics.IndicesCount {
-		panic(fmt.Sprintf("graphicscommand: len(indices) must be <= graphics.IndicesCount but not at EnqueueDrawTrianglesCommand: len(indices): %d, graphics.IndicesCount: %d", len(indices), graphics.IndicesCount))
-	}
-
 	split := false
-	if mustUseDifferentVertexBuffer(q.tmpNumVertexFloats+len(vertices), q.tmpNumIndices+len(indices)) {
+	if mustUseDifferentVertexBuffer(q.tmpNumVertexFloats + len(vertices)) {
 		q.tmpNumVertexFloats = 0
-		q.tmpNumIndices = 0
 		split = true
 	}
 
@@ -108,7 +102,6 @@ func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.Sh
 	q.vertices = append(q.vertices, vertices...)
 	q.appendIndices(indices, uint16(q.tmpNumVertexFloats/graphics.VertexFloatCount))
 	q.tmpNumVertexFloats += len(vertices)
-	q.tmpNumIndices += len(indices)
 
 	// prependPreservedUniforms not only prepends values to the given slice but also creates a new slice.
 	// Allocating a new slice is necessary to make EnqueueDrawTrianglesCommand safe so far.
@@ -210,7 +203,6 @@ func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics, endFrame bo
 		q.vertices = q.vertices[:0]
 		q.indices = q.indices[:0]
 		q.tmpNumVertexFloats = 0
-		q.tmpNumIndices = 0
 	}()
 
 	cs := q.commands
@@ -220,10 +212,7 @@ func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics, endFrame bo
 		nc := 0
 		for _, c := range cs {
 			if dtc, ok := c.(*drawTrianglesCommand); ok {
-				if dtc.numIndices() > graphics.IndicesCount {
-					panic(fmt.Sprintf("graphicscommand: dtc.NumIndices() must be <= graphics.IndicesCount but not at Flush: dtc.NumIndices(): %d, graphics.IndicesCount: %d", dtc.numIndices(), graphics.IndicesCount))
-				}
-				if nc > 0 && mustUseDifferentVertexBuffer(nv+dtc.numVertices(), ne+dtc.numIndices()) {
+				if nc > 0 && mustUseDifferentVertexBuffer(nv+dtc.numVertices()) {
 					break
 				}
 				nv += dtc.numVertices()
