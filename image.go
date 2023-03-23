@@ -413,6 +413,8 @@ const MaxVerticesCount = graphics.MaxVerticesCount
 // Vertex contains color values, which are interpreted as straight-alpha colors by default.
 // This depends on the option's ColorScaleMode.
 //
+// If len(vertices) is more than MaxVerticesCount, the exceeding part is ignored.
+//
 // If len(indices) is not multiple of 3, DrawTriangles panics.
 //
 // If a value in indices is out of range of vertices, or not less than MaxVerticesCount, DrawTriangles panics.
@@ -432,6 +434,10 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 		return
 	}
 
+	if len(vertices) > graphics.MaxVerticesCount {
+		// The last part cannot be specified by indices. Just omit them.
+		vertices = vertices[:graphics.MaxVerticesCount]
+	}
 	if len(indices)%3 != 0 {
 		panic("ebiten: len(indices) % 3 must be 0")
 	}
@@ -563,6 +569,8 @@ var _ [len(DrawTrianglesShaderOptions{}.Images) - graphics.ShaderImageCount]stru
 //
 // For the details about the shader, see https://ebitengine.org/en/documents/shader.html.
 //
+// If len(vertices) is more than MaxVerticesCount, the exceeding part is ignored.
+//
 // If len(indices) is not multiple of 3, DrawTrianglesShader panics.
 //
 // If a value in indices is out of range of vertices, or not less than MaxVerticesCount, DrawTrianglesShader panics.
@@ -577,6 +585,10 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 		return
 	}
 
+	if len(vertices) > graphics.MaxVerticesCount {
+		// The last part cannot be specified by indices. Just omit them.
+		vertices = vertices[:graphics.MaxVerticesCount]
+	}
 	if len(indices)%3 != 0 {
 		panic("ebiten: len(indices) % 3 must be 0")
 	}

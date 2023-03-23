@@ -92,8 +92,7 @@ func mustUseDifferentVertexBuffer(nextNumVertexFloats int) bool {
 // EnqueueDrawTrianglesCommand enqueues a drawing-image command.
 func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.ShaderImageCount]*Image, offsets [graphics.ShaderImageCount - 1][2]float32, vertices []float32, indices []uint16, blend graphicsdriver.Blend, dstRegion, srcRegion graphicsdriver.Region, shader *Shader, uniforms []uint32, evenOdd bool) {
 	if len(vertices) > graphics.MaxVertexFloatsCount {
-		// The last part cannot be specified by indices. Just omit them.
-		vertices = vertices[:graphics.MaxVertexFloatsCount]
+		panic(fmt.Sprintf("graphicscommand: len(vertices) must equal to or less than %d but was %d", graphics.MaxVertexFloatsCount, len(vertices)))
 	}
 
 	split := false
