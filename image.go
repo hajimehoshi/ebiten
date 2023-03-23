@@ -441,12 +441,12 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 	if len(indices)%3 != 0 {
 		panic("ebiten: len(indices) % 3 must be 0")
 	}
-	for _, idx := range indices {
+	for i, idx := range indices {
 		if int(idx) >= len(vertices) {
-			panic(fmt.Sprintf("ebiten: a value in indices must be less than len(vertices) (%d) but was %d", len(vertices), idx))
+			panic(fmt.Sprintf("ebiten: indices[%d] must be less than len(vertices) (%d) but was %d", i, len(vertices), idx))
 		}
 		if idx >= MaxVerticesCount {
-			panic(fmt.Sprintf("ebiten: a value in indices must be less than MaxVerticesCount %d but was %d", MaxVerticesCount, idx))
+			panic(fmt.Sprintf("ebiten: indices[%d] must be less than MaxVerticesCount %d but was %d", i, MaxVerticesCount, idx))
 		}
 	}
 
@@ -592,12 +592,12 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 	if len(indices)%3 != 0 {
 		panic("ebiten: len(indices) % 3 must be 0")
 	}
-	for _, idx := range indices {
+	for i, idx := range indices {
 		if int(idx) >= len(vertices) {
-			panic(fmt.Sprintf("ebiten: a value in indices must be less than len(vertices) (%d) but was %d", len(vertices), idx))
+			panic(fmt.Sprintf("ebiten: indices[%d] must be less than len(vertices) (%d) but was %d", i, len(vertices), idx))
 		}
 		if idx >= MaxVerticesCount {
-			panic(fmt.Sprintf("ebiten: a value in indices must be less than MaxVerticesCount %d but was %d", MaxVerticesCount, idx))
+			panic(fmt.Sprintf("ebiten: indices[%d] must be less than MaxVerticesCount %d but was %d", i, MaxVerticesCount, idx))
 		}
 	}
 
