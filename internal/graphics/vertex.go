@@ -14,6 +14,10 @@
 
 package graphics
 
+import (
+	"math"
+)
+
 const (
 	ShaderImageCount = 4
 
@@ -48,8 +52,18 @@ const (
 )
 
 const (
-	IndicesCount     = (1 << 16) / 3 * 3 // Adjust num for triangles. TODO: Remove this (#2460).
+	IndicesCount = (1 << 16) / 3 * 3 // Adjust num for triangles. TODO: Remove this (#2460).
+)
+
+const (
 	VertexFloatCount = 8
+
+	// MaxVertexCount is the maximum number of vertices for one draw call.
+	// This value is 2^16 - 1 = 65535, as the index type is uint16.
+	// This value cannot be exactly 2^16 == 65536 especially with WebGL 2, as 65536th vertex is not rendered correctly.
+	// See https://registry.khronos.org/webgl/specs/latest/2.0/#5.18 .
+	MaxVertexCount      = math.MaxUint16
+	MaxVertexFloatCount = MaxVertexCount * VertexFloatCount
 )
 
 var (
