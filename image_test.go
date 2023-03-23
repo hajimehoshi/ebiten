@@ -4119,3 +4119,87 @@ func TestImageSetAndSubImage(t *testing.T) {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
 }
+
+// Issue #2611
+func TestImageDrawTrianglesWithGreaterIndexThanVerticesCount(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("DrawTriangles must panic but not")
+		}
+	}()
+
+	const w, h = 16, 16
+	dst := ebiten.NewImage(w, h)
+	src := ebiten.NewImage(w, h)
+
+	vs := make([]ebiten.Vertex, 4)
+	is := []uint16{0, 1, 2, 1, 2, 4}
+	dst.DrawTriangles(vs, is, src, nil)
+}
+
+// Issue #2611
+func TestImageDrawTrianglesShaderWithGreaterIndexThanVerticesCount(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("DrawTrianglesShader must panic but not")
+		}
+	}()
+
+	const w, h = 16, 16
+	dst := ebiten.NewImage(w, h)
+
+	vs := make([]ebiten.Vertex, 4)
+	is := []uint16{0, 1, 2, 1, 2, 4}
+	shader, err := ebiten.NewShader([]byte(`
+		package main
+		func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+			return color
+		}
+	`))
+	if err != nil {
+		t.Fatalf("could not compile shader: %v", err)
+	}
+	dst.DrawTrianglesShader(vs, is, shader, nil)
+}
+
+// Issue #2611
+func TestImageDrawTrianglesWithTooBigIndex(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("DrawTriangles must panic but not")
+		}
+	}()
+
+	const w, h = 16, 16
+	dst := ebiten.NewImage(w, h)
+	src := ebiten.NewImage(w, h)
+
+	vs := make([]ebiten.Vertex, ebiten.MaxVerticesCount+1)
+	is := []uint16{0, 1, 2, 1, 2, ebiten.MaxVerticesCount}
+	dst.DrawTriangles(vs, is, src, nil)
+}
+
+// Issue #2611
+func TestImageDrawTrianglesShaderWithTooBigIndex(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("DrawTrianglesShader must panic but not")
+		}
+	}()
+
+	const w, h = 16, 16
+	dst := ebiten.NewImage(w, h)
+
+	vs := make([]ebiten.Vertex, ebiten.MaxVerticesCount+1)
+	is := []uint16{0, 1, 2, 1, 2, ebiten.MaxVerticesCount}
+	shader, err := ebiten.NewShader([]byte(`
+		package main
+		func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+			return color
+		}
+	`))
+	if err != nil {
+		t.Fatalf("could not compile shader: %v", err)
+	}
+	dst.DrawTrianglesShader(vs, is, shader, nil)
+}

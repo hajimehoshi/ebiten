@@ -400,6 +400,9 @@ const MaxIndicesCount = (1 << 16) / 3 * 3
 // Deprecated: as of v2.4. This constant is no longer used.
 const MaxIndicesNum = MaxIndicesCount
 
+// MaxVerticesCount is the maximum number of vertices for DrawTriangles and DrawTrianglesShader.
+const MaxVerticesCount = graphics.MaxVerticesCount
+
 // DrawTriangles draws triangles with the specified vertices and their indices.
 //
 // img is used as a source image. img cannot be nil.
@@ -411,6 +414,8 @@ const MaxIndicesNum = MaxIndicesCount
 // This depends on the option's ColorScaleMode.
 //
 // If len(indices) is not multiple of 3, DrawTriangles panics.
+//
+// If a value in indices is out of range of vertices, or not less than MaxVerticesCount, DrawTriangles panics.
 //
 // The rule in which DrawTriangles works effectively is same as DrawImage's.
 //
@@ -430,7 +435,14 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 	if len(indices)%3 != 0 {
 		panic("ebiten: len(indices) % 3 must be 0")
 	}
-	// TODO: Check the maximum value of indices and len(vertices)?
+	for _, idx := range indices {
+		if int(idx) >= len(vertices) {
+			panic(fmt.Sprintf("ebiten: a value in indices must be less than len(vertices) (%d) but was %d", len(vertices), idx))
+		}
+		if idx >= MaxVerticesCount {
+			panic(fmt.Sprintf("ebiten: a value in indices must be less than MaxVerticesCount %d but was %d", MaxVerticesCount, idx))
+		}
+	}
 
 	if options == nil {
 		options = &DrawTrianglesOptions{}
@@ -553,6 +565,8 @@ var _ [len(DrawTrianglesShaderOptions{}.Images) - graphics.ShaderImageCount]stru
 //
 // If len(indices) is not multiple of 3, DrawTrianglesShader panics.
 //
+// If a value in indices is out of range of vertices, or not less than MaxVerticesCount, DrawTrianglesShader panics.
+//
 // When a specified image is non-nil and is disposed, DrawTrianglesShader panics.
 //
 // When the image i is disposed, DrawTrianglesShader does nothing.
@@ -566,7 +580,14 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 	if len(indices)%3 != 0 {
 		panic("ebiten: len(indices) % 3 must be 0")
 	}
-	// TODO: Check the maximum value of indices and len(vertices)?
+	for _, idx := range indices {
+		if int(idx) >= len(vertices) {
+			panic(fmt.Sprintf("ebiten: a value in indices must be less than len(vertices) (%d) but was %d", len(vertices), idx))
+		}
+		if idx >= MaxVerticesCount {
+			panic(fmt.Sprintf("ebiten: a value in indices must be less than MaxVerticesCount %d but was %d", MaxVerticesCount, idx))
+		}
+	}
 
 	if options == nil {
 		options = &DrawTrianglesShaderOptions{}
