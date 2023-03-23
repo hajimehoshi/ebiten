@@ -391,12 +391,14 @@ type DrawTrianglesOptions struct {
 }
 
 // MaxIndicesCount is the maximum number of indices for DrawTriangles and DrawTrianglesShader.
-const MaxIndicesCount = graphics.IndicesCount
+//
+// Deprecated: as of v2.6. This constant is no longer used.
+const MaxIndicesCount = (1 << 16) / 3 * 3
 
 // MaxIndicesNum is the maximum number of indices for DrawTriangles and DrawTrianglesShader.
 //
-// Deprecated: as of v2.4. Use MaxIndicesCount instead.
-const MaxIndicesNum = graphics.IndicesCount
+// Deprecated: as of v2.4. This constant is no longer used.
+const MaxIndicesNum = MaxIndicesCount
 
 // DrawTriangles draws triangles with the specified vertices and their indices.
 //
@@ -409,8 +411,6 @@ const MaxIndicesNum = graphics.IndicesCount
 // This depends on the option's ColorScaleMode.
 //
 // If len(indices) is not multiple of 3, DrawTriangles panics.
-//
-// If len(indices) is more than MaxIndicesCount, DrawTriangles panics.
 //
 // The rule in which DrawTriangles works effectively is same as DrawImage's.
 //
@@ -429,9 +429,6 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 
 	if len(indices)%3 != 0 {
 		panic("ebiten: len(indices) % 3 must be 0")
-	}
-	if len(indices) > MaxIndicesCount {
-		panic("ebiten: len(indices) must be <= MaxIndicesCount")
 	}
 	// TODO: Check the maximum value of indices and len(vertices)?
 
@@ -556,8 +553,6 @@ var _ [len(DrawTrianglesShaderOptions{}.Images) - graphics.ShaderImageCount]stru
 //
 // If len(indices) is not multiple of 3, DrawTrianglesShader panics.
 //
-// If len(indices) is more than MaxIndicesCount, DrawTrianglesShader panics.
-//
 // When a specified image is non-nil and is disposed, DrawTrianglesShader panics.
 //
 // When the image i is disposed, DrawTrianglesShader does nothing.
@@ -570,9 +565,6 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 
 	if len(indices)%3 != 0 {
 		panic("ebiten: len(indices) % 3 must be 0")
-	}
-	if len(indices) > MaxIndicesCount {
-		panic("ebiten: len(indices) must be <= MaxIndicesCount")
 	}
 	// TODO: Check the maximum value of indices and len(vertices)?
 

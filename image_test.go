@@ -2742,7 +2742,7 @@ func TestIndicesOverflow(t *testing.T) {
 
 	op := &ebiten.DrawTrianglesOptions{}
 	vs := make([]ebiten.Vertex, 3)
-	is := make([]uint16, graphics.IndicesCount/3*3)
+	is := make([]uint16, graphics.MaxVertexCount/3*3)
 	dst.DrawTriangles(vs, is, src, op)
 
 	// Cause an overflow for indices.
@@ -2813,7 +2813,7 @@ func TestVerticesOverflow(t *testing.T) {
 	src.Fill(color.White)
 
 	op := &ebiten.DrawTrianglesOptions{}
-	vs := make([]ebiten.Vertex, graphics.IndicesCount-1)
+	vs := make([]ebiten.Vertex, graphics.MaxVertexCount-1)
 	is := make([]uint16, 3)
 	dst.DrawTriangles(vs, is, src, op)
 
@@ -2885,7 +2885,7 @@ func TestTooManyVertices(t *testing.T) {
 	src.Fill(color.White)
 
 	op := &ebiten.DrawTrianglesOptions{}
-	vs := make([]ebiten.Vertex, graphics.IndicesCount+1)
+	vs := make([]ebiten.Vertex, graphics.MaxVertexCount+1)
 	is := make([]uint16, 3)
 	dst.DrawTriangles(vs, is, src, op)
 
