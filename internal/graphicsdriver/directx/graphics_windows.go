@@ -840,7 +840,7 @@ func (g *Graphics) End(present bool) error {
 			return err
 		}
 		g.releaseResources(g.frameIndex)
-		g.releaseVerticesAndIndices(g.frameIndex)
+		g.resetVerticesAndIndices(g.frameIndex, true)
 	}
 
 	g.pipelineStates.resetConstantBuffers(g.frameIndex)
@@ -869,7 +869,7 @@ func (g *Graphics) End(present bool) error {
 		}
 
 		g.releaseResources(g.frameIndex)
-		g.releaseVerticesAndIndices(g.frameIndex)
+		g.resetVerticesAndIndices(g.frameIndex, false)
 
 		g.frameStarted = false
 	}
@@ -961,16 +961,20 @@ func (g *Graphics) releaseResources(frameIndex int) {
 	g.disposedShaders[frameIndex] = g.disposedShaders[frameIndex][:0]
 }
 
-func (g *Graphics) releaseVerticesAndIndices(frameIndex int) {
-	for i := range g.vertices[frameIndex] {
-		g.vertices[frameIndex][i].release()
-		g.vertices[frameIndex][i] = nil
+func (g *Graphics) resetVerticesAndIndices(frameIndex int, release bool) {
+	if release {
+		for i := range g.vertices[frameIndex] {
+			g.vertices[frameIndex][i].release()
+			g.vertices[frameIndex][i] = nil
+		}
 	}
 	g.vertices[frameIndex] = g.vertices[frameIndex][:0]
 
-	for i := range g.indices[frameIndex] {
-		g.indices[frameIndex][i].release()
-		g.indices[frameIndex][i] = nil
+	if release {
+		for i := range g.indices[frameIndex] {
+			g.indices[frameIndex][i].release()
+			g.indices[frameIndex][i] = nil
+		}
 	}
 	g.indices[frameIndex] = g.indices[frameIndex][:0]
 }
