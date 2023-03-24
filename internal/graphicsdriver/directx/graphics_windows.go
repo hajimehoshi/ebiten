@@ -44,43 +44,6 @@ func NewGraphics() (graphicsdriver.Graphics, error) {
 	return g, nil
 }
 
-var inputElementDescs []_D3D12_INPUT_ELEMENT_DESC
-
-func init() {
-	position := []byte("POSITION\000")
-	texcoord := []byte("TEXCOORD\000")
-	color := []byte("COLOR\000")
-	inputElementDescs = []_D3D12_INPUT_ELEMENT_DESC{
-		{
-			SemanticName:         &position[0],
-			SemanticIndex:        0,
-			Format:               _DXGI_FORMAT_R32G32_FLOAT,
-			InputSlot:            0,
-			AlignedByteOffset:    _D3D12_APPEND_ALIGNED_ELEMENT,
-			InputSlotClass:       _D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
-			InstanceDataStepRate: 0,
-		},
-		{
-			SemanticName:         &texcoord[0],
-			SemanticIndex:        0,
-			Format:               _DXGI_FORMAT_R32G32_FLOAT,
-			InputSlot:            0,
-			AlignedByteOffset:    _D3D12_APPEND_ALIGNED_ELEMENT,
-			InputSlotClass:       _D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
-			InstanceDataStepRate: 0,
-		},
-		{
-			SemanticName:         &color[0],
-			SemanticIndex:        0,
-			Format:               _DXGI_FORMAT_R32G32B32A32_FLOAT,
-			InputSlot:            0,
-			AlignedByteOffset:    _D3D12_APPEND_ALIGNED_ELEMENT,
-			InputSlotClass:       _D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
-			InstanceDataStepRate: 0,
-		},
-	}
-}
-
 type resourceWithSize struct {
 	value       *_ID3D12Resource
 	sizeInBytes uint32

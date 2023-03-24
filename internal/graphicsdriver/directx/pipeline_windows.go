@@ -25,6 +25,36 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 )
 
+var inputElementDescs = []_D3D12_INPUT_ELEMENT_DESC{
+	{
+		SemanticName:         &([]byte("POSITION\000"))[0],
+		SemanticIndex:        0,
+		Format:               _DXGI_FORMAT_R32G32_FLOAT,
+		InputSlot:            0,
+		AlignedByteOffset:    _D3D12_APPEND_ALIGNED_ELEMENT,
+		InputSlotClass:       _D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
+		InstanceDataStepRate: 0,
+	},
+	{
+		SemanticName:         &([]byte("TEXCOORD\000"))[0],
+		SemanticIndex:        0,
+		Format:               _DXGI_FORMAT_R32G32_FLOAT,
+		InputSlot:            0,
+		AlignedByteOffset:    _D3D12_APPEND_ALIGNED_ELEMENT,
+		InputSlotClass:       _D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
+		InstanceDataStepRate: 0,
+	},
+	{
+		SemanticName:         &([]byte("COLOR\000"))[0],
+		SemanticIndex:        0,
+		Format:               _DXGI_FORMAT_R32G32B32A32_FLOAT,
+		InputSlot:            0,
+		AlignedByteOffset:    _D3D12_APPEND_ALIGNED_ELEMENT,
+		InputSlotClass:       _D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
+		InstanceDataStepRate: 0,
+	},
+}
+
 const numDescriptorsPerFrame = 32
 
 func blendFactorToBlend(f graphicsdriver.BlendFactor, alpha bool) _D3D12_BLEND {
