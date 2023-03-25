@@ -37,7 +37,7 @@ type pipelineStateKey struct {
 }
 
 type Shader struct {
-	graphics       *Graphics
+	graphics       *graphics12
 	id             graphicsdriver.ShaderID
 	uniformTypes   []shaderir.Type
 	uniformOffsets []int

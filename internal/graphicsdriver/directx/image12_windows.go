@@ -23,17 +23,13 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 )
 
-type Image struct {
-	graphics *Graphics
+type image12 struct {
+	graphics *graphics12
 	id       graphicsdriver.ImageID
 	width    int
 	height   int
 	screen   bool
 
-	*image12
-}
-
-type image12 struct {
 	states            [frameCount]_D3D12_RESOURCE_STATES
 	texture           *_ID3D12Resource
 	stencil           *_ID3D12Resource
@@ -43,16 +39,16 @@ type image12 struct {
 	uploadingStagingBuffers []*_ID3D12Resource
 }
 
-func (i *Image) ID() graphicsdriver.ImageID {
+func (i *image12) ID() graphicsdriver.ImageID {
 	return i.id
 }
 
-func (i *Image) Dispose() {
+func (i *image12) Dispose() {
 	// Dipose the images later as this image might still be used.
 	i.graphics.removeImage(i)
 }
 
-func (i *Image) disposeImpl() {
+func (i *image12) disposeImpl() {
 	if i.dsvDescriptorHeap != nil {
 		i.dsvDescriptorHeap.Release()
 		i.dsvDescriptorHeap = nil
@@ -71,11 +67,11 @@ func (i *Image) disposeImpl() {
 	}
 }
 
-func (*Image) IsInvalidated() bool {
+func (*image12) IsInvalidated() bool {
 	return false
 }
 
-func (i *Image) ReadPixels(buf []byte, x, y, width, height int) error {
+func (i *image12) ReadPixels(buf []byte, x, y, width, height int) error {
 	if i.screen {
 		return errors.New("directx: Pixels cannot be called on the screen")
 	}
@@ -152,7 +148,7 @@ func (i *Image) ReadPixels(buf []byte, x, y, width, height int) error {
 	return nil
 }
 
-func (i *Image) WritePixels(args []*graphicsdriver.WritePixelsArgs) error {
+func (i *image12) WritePixels(args []*graphicsdriver.WritePixelsArgs) error {
 	if i.screen {
 		return errors.New("directx: WritePixels cannot be called on the screen")
 	}
@@ -247,21 +243,21 @@ func (i *Image) WritePixels(args []*graphicsdriver.WritePixelsArgs) error {
 	return nil
 }
 
-func (i *Image) resource() *_ID3D12Resource {
+func (i *image12) resource() *_ID3D12Resource {
 	if i.screen {
 		return i.graphics.renderTargets[i.graphics.frameIndex]
 	}
 	return i.texture
 }
 
-func (i *Image) state() _D3D12_RESOURCE_STATES {
+func (i *image12) state() _D3D12_RESOURCE_STATES {
 	if i.screen {
 		return i.states[i.graphics.frameIndex]
 	}
 	return i.states[0]
 }
 
-func (i *Image) setState(newState _D3D12_RESOURCE_STATES) {
+func (i *image12) setState(newState _D3D12_RESOURCE_STATES) {
 	if i.screen {
 		i.states[i.graphics.frameIndex] = newState
 		return
@@ -269,7 +265,7 @@ func (i *Image) setState(newState _D3D12_RESOURCE_STATES) {
 	i.states[0] = newState
 }
 
-func (i *Image) transiteState(newState _D3D12_RESOURCE_STATES) (_D3D12_RESOURCE_BARRIER_Transition, bool) {
+func (i *image12) transiteState(newState _D3D12_RESOURCE_STATES) (_D3D12_RESOURCE_BARRIER_Transition, bool) {
 	if i.state() == newState {
 		return _D3D12_RESOURCE_BARRIER_Transition{}, false
 	}
@@ -288,14 +284,14 @@ func (i *Image) transiteState(newState _D3D12_RESOURCE_STATES) (_D3D12_RESOURCE_
 	}, true
 }
 
-func (i *Image) internalSize() (int, int) {
+func (i *image12) internalSize() (int, int) {
 	if i.screen {
 		return i.width, i.height
 	}
 	return graphics.InternalImageSize(i.width), graphics.InternalImageSize(i.height)
 }
 
-func (i *Image) setAsRenderTarget(drawCommandList *_ID3D12GraphicsCommandList, device *_ID3D12Device, useStencil bool) error {
+func (i *image12) setAsRenderTarget(drawCommandList *_ID3D12GraphicsCommandList, device *_ID3D12Device, useStencil bool) error {
 	if err := i.ensureRenderTargetView(device); err != nil {
 		return err
 	}
@@ -337,7 +333,7 @@ func (i *Image) setAsRenderTarget(drawCommandList *_ID3D12GraphicsCommandList, d
 	return nil
 }
 
-func (i *Image) ensureRenderTargetView(device *_ID3D12Device) error {
+func (i *image12) ensureRenderTargetView(device *_ID3D12Device) error {
 	if i.screen {
 		return nil
 	}
@@ -366,7 +362,7 @@ func (i *Image) ensureRenderTargetView(device *_ID3D12Device) error {
 	return nil
 }
 
-func (i *Image) ensureDepthStencilView(device *_ID3D12Device) error {
+func (i *image12) ensureDepthStencilView(device *_ID3D12Device) error {
 	if i.screen {
 		return fmt.Errorf("directx: stencils are not available on the screen framebuffer")
 	}
@@ -424,7 +420,7 @@ func (i *Image) ensureDepthStencilView(device *_ID3D12Device) error {
 	return nil
 }
 
-func (i *Image) releaseUploadingStagingBuffers() {
+func (i *image12) releaseUploadingStagingBuffers() {
 	for idx, buf := range i.uploadingStagingBuffers {
 		buf.Release()
 		i.uploadingStagingBuffers[idx] = nil
