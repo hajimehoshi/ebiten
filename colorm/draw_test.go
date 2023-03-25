@@ -190,7 +190,7 @@ func TestColorMAndScale(t *testing.T) {
 	const w, h = 16, 16
 	src := ebiten.NewImage(w, h)
 
-	src.Fill(color.RGBA{0x80, 0x80, 0x80, 0x80})
+	src.Fill(color.RGBA{R: 0x80, G: 0x80, B: 0x80, A: 0x80})
 	vs := []ebiten.Vertex{
 		{
 			SrcX:   0,
@@ -255,17 +255,17 @@ func TestColorMAndScale(t *testing.T) {
 			switch format {
 			case ebiten.ColorScaleModeStraightAlpha:
 				want = color.RGBA{
-					byte(math.Floor(0xff * (0.5/alphaBeforeScale + 0.25) * alphaBeforeScale * 0.5 * 0.75)),
-					byte(math.Floor(0xff * (0.5/alphaBeforeScale + 0.25) * alphaBeforeScale * 0.25 * 0.75)),
-					byte(math.Floor(0xff * (0.5/alphaBeforeScale + 0.25) * alphaBeforeScale * 0.5 * 0.75)),
-					byte(math.Floor(0xff * alphaBeforeScale * 0.75)),
+					R: byte(math.Floor(0xff * (0.5/alphaBeforeScale + 0.25) * alphaBeforeScale * 0.5 * 0.75)),
+					G: byte(math.Floor(0xff * (0.5/alphaBeforeScale + 0.25) * alphaBeforeScale * 0.25 * 0.75)),
+					B: byte(math.Floor(0xff * (0.5/alphaBeforeScale + 0.25) * alphaBeforeScale * 0.5 * 0.75)),
+					A: byte(math.Floor(0xff * alphaBeforeScale * 0.75)),
 				}
 			case ebiten.ColorScaleModePremultipliedAlpha:
 				want = color.RGBA{
-					byte(math.Floor(0xff * (0.5/alphaBeforeScale + 0.25) * alphaBeforeScale * 0.5)),
-					byte(math.Floor(0xff * (0.5/alphaBeforeScale + 0.25) * alphaBeforeScale * 0.25)),
-					byte(math.Floor(0xff * (0.5/alphaBeforeScale + 0.25) * alphaBeforeScale * 0.5)),
-					byte(math.Floor(0xff * alphaBeforeScale * 0.75)),
+					R: byte(math.Floor(0xff * (0.5/alphaBeforeScale + 0.25) * alphaBeforeScale * 0.5)),
+					G: byte(math.Floor(0xff * (0.5/alphaBeforeScale + 0.25) * alphaBeforeScale * 0.25)),
+					B: byte(math.Floor(0xff * (0.5/alphaBeforeScale + 0.25) * alphaBeforeScale * 0.5)),
+					A: byte(math.Floor(0xff * alphaBeforeScale * 0.75)),
 				}
 			}
 			if !sameColors(got, want, 2) {
@@ -291,7 +291,7 @@ func TestColorMCopy(t *testing.T) {
 		for j := 0; j < h; j++ {
 			for i := 0; i < w; i++ {
 				got := dst.At(i, j).(color.RGBA)
-				want := color.RGBA{byte(k), byte(k), byte(k), byte(k)}
+				want := color.RGBA{R: byte(k), G: byte(k), B: byte(k), A: byte(k)}
 				if !sameColors(got, want, 1) {
 					t.Fatalf("dst.At(%d, %d), k: %d: got %v, want %v", i, j, k, got, want)
 				}

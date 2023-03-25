@@ -322,7 +322,7 @@ func (w NSWindow) SetBackgroundColor(color NSColor) {
 	w.Send(sel_setBackgroundColor, color.ID)
 }
 
-func (w NSWindow) IsVisibile() bool {
+func (w NSWindow) IsVisible() bool {
 	return w.Send(sel_isVisible) != 0
 }
 

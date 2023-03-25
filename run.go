@@ -18,6 +18,7 @@ import (
 	"errors"
 	"image"
 	"image/color"
+	"io/fs"
 	"sync/atomic"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/clock"
@@ -96,7 +97,6 @@ type LayoutFer interface {
 // FinalScreen implements a part of Image functions.
 type FinalScreen interface {
 	Bounds() image.Rectangle
-	Size() (int, int)
 
 	DrawImage(img *Image, options *DrawImageOptions)
 	DrawTriangles(vertices []Vertex, indices []uint16, img *Image, options *DrawTrianglesOptions)
@@ -120,7 +120,7 @@ type FinalScreenDrawer interface {
 	//
 	// geoM is the default geometry matrix to render the offscreen onto the final screen.
 	// geoM scales the offscreen to fit the final screen without changing the aspect ratio, and
-	// translates the offscreen to put it on the center of the final screen.
+	// translates the offscreen to put it in the center of the final screen.
 	DrawFinalScreen(screen FinalScreen, offscreen *Image, geoM GeoM)
 }
 
@@ -186,7 +186,7 @@ func SetScreenFilterEnabled(enabled bool) {
 //
 // IsScreenFilterEnabled is concurrent-safe.
 //
-// Deprecated: as of v2.5. Use FinalScreenDrawer instead.
+// Deprecated: as of v2.5.
 func IsScreenFilterEnabled() bool {
 	return isScreenFilterEnabled()
 }
@@ -201,7 +201,7 @@ var Termination = ui.RegularTermination
 //
 // If game implements FinalScreenDrawer, its DrawFinalScreen is called after Draw.
 // The argument screen represents the final screen. The argument offscreen is an offscreen modified at Draw.
-// If game does not implement FinalScreenDrawer, the dafault rendering for the final screen is used.
+// If game does not implement FinalScreenDrawer, the default rendering for the final screen is used.
 //
 // game's functions are called on the same goroutine.
 //
@@ -229,7 +229,7 @@ func RunGame(game Game) error {
 	return RunGameWithOptions(game, nil)
 }
 
-// RungameOptions represents options for RunGameWithOptions.
+// RunGameOptions represents options for RunGameWithOptions.
 type RunGameOptions struct {
 	// GraphicsLibrary is a graphics library Ebitengine will use.
 	//
@@ -264,7 +264,7 @@ type RunGameOptions struct {
 //
 // If game implements FinalScreenDrawer, its DrawFinalScreen is called after Draw.
 // The argument screen represents the final screen. The argument offscreen is an offscreen modified at Draw.
-// If game does not implement FinalScreenDrawer, the dafault rendering for the final screen is used.
+// If game does not implement FinalScreenDrawer, the default rendering for the final screen is used.
 //
 // game's functions are called on the same goroutine.
 //
@@ -638,7 +638,7 @@ var screenTransparent int32 = 0
 //
 // SetInitFocused panics if this is called after the main loop.
 //
-// SetInitFocused is cuncurrent-safe.
+// SetInitFocused is concurrent-safe.
 //
 // Deprecated: as of v2.5. Use RunGameWithOptions instead.
 func SetInitFocused(focused bool) {
@@ -664,4 +664,14 @@ func toUIRunOptions(options *RunGameOptions) *ui.RunOptions {
 		ScreenTransparent: options.ScreenTransparent,
 		SkipTaskbar:       options.SkipTaskbar,
 	}
+}
+
+// DroppedFiles returns a virtual file system that includes only dropped files and/or directories
+// at its root directory, at the time Update is called.
+//
+// DroppedFiles works on desktops and browsers.
+//
+// DroppedFiles is concurrent-safe.
+func DroppedFiles() fs.FS {
+	return theInputState.droppedFiles()
 }

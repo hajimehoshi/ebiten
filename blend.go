@@ -164,7 +164,7 @@ func (b BlendFactor) internalBlendFactor(source bool) graphicsdriver.BlendFactor
 	}
 }
 
-// BlendFactor is an operation for source and destination color values.
+// BlendOperation is an operation for source and destination color values.
 type BlendOperation byte
 
 const (
@@ -314,10 +314,10 @@ var (
 	//     c_out = c_dst × (1 - α_src)
 	//     α_out = α_dst × (1 - α_src)
 	BlendDestinationOut = Blend{
-		BlendFactorSourceRGB:        BlendFactorOneMinusDestinationAlpha,
-		BlendFactorSourceAlpha:      BlendFactorOneMinusDestinationAlpha,
-		BlendFactorDestinationRGB:   BlendFactorZero,
-		BlendFactorDestinationAlpha: BlendFactorZero,
+		BlendFactorSourceRGB:        BlendFactorZero,
+		BlendFactorSourceAlpha:      BlendFactorZero,
+		BlendFactorDestinationRGB:   BlendFactorOneMinusSourceAlpha,
+		BlendFactorDestinationAlpha: BlendFactorOneMinusSourceAlpha,
 		BlendOperationRGB:           BlendOperationAdd,
 		BlendOperationAlpha:         BlendOperationAdd,
 	}

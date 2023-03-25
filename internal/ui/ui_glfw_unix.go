@@ -89,8 +89,8 @@ func videoModeScaleUncached(m *glfw.Monitor) float64 {
 
 	// Note: GLFW currently returns physical pixel sizes,
 	// but we need to predict the window system-side size of the fullscreen window
-	// for Ebiten's `ScreenSizeInFullscreen` public API.
-	// Also at the moment we need this prior to switching to fullscreen, but that might be replacable.
+	// for Ebitengine's `ScreenSizeInFullscreen` public API.
+	// Also at the moment we need this prior to switching to fullscreen, but that might be replaceable.
 	// So this function computes the ratio of physical per logical pixels.
 	xconn, err := xgb.NewConn()
 	if err != nil {

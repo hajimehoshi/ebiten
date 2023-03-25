@@ -26,22 +26,31 @@ var (
 )
 
 func (c *defaultContext) init() error {
-	opengl, _ = purego.Dlopen("OpenGLES.framework/OpenGLES", purego.RTLD_LAZY|purego.RTLD_GLOBAL)
-	if opengl != 0 {
+	lib, errGLES := purego.Dlopen("OpenGLES.framework/OpenGLES", purego.RTLD_LAZY|purego.RTLD_GLOBAL)
+	if errGLES == nil {
 		c.isES = true
+		opengl = lib
 		return nil
 	}
-	opengl, _ = purego.Dlopen("OpenGL.framework/OpenGL", purego.RTLD_LAZY|purego.RTLD_GLOBAL)
-	if opengl != 0 {
+
+	lib, errGL := purego.Dlopen("OpenGL.framework/OpenGL", purego.RTLD_LAZY|purego.RTLD_GLOBAL)
+	if errGL == nil {
+		opengl = lib
 		return nil
 	}
-	return fmt.Errorf("gl: failed to load OpenGL.framework and OpenGLES.framework")
+
+	// TODO: Use multiple %w-s as of Go 1.20
+	return fmt.Errorf("gl: failed to load: OpenGL.framework: %v, OpenGLES.framework: %v", errGL, errGLES)
 }
 
 func (c *defaultContext) getProcAddress(name string) uintptr {
 	if c.isES {
 		name = strings.TrimSuffix(name, "EXT")
 	}
-	sym, _ := purego.Dlsym(opengl, name)
-	return sym
+	proc, err := purego.Dlsym(opengl, name)
+	if err != nil {
+		// The proc is not found.
+		return 0
+	}
+	return proc
 }

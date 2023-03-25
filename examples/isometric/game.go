@@ -191,15 +191,14 @@ func (g *Game) renderLevel(screen *ebiten.Image) {
 	// To avoid them, render the result on an offscreen first and then scale it later.
 	if scaleLater {
 		if g.offscreen != nil {
-			w, h := g.offscreen.Size()
-			sw, sh := screen.Size()
-			if w != sw || h != sh {
+			if g.offscreen.Bounds().Size() != screen.Bounds().Size() {
 				g.offscreen.Dispose()
 				g.offscreen = nil
 			}
 		}
 		if g.offscreen == nil {
-			g.offscreen = ebiten.NewImage(screen.Size())
+			s := screen.Bounds().Size()
+			g.offscreen = ebiten.NewImage(s.X, s.Y)
 		}
 		target = g.offscreen
 		target.Clear()

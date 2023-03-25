@@ -17,6 +17,7 @@ package restorable
 import (
 	"fmt"
 	"image"
+	"math"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
@@ -63,11 +64,11 @@ func (p *Pixels) ReadPixels(pixels []byte, x, y, width, height, imageWidth, imag
 	p.pixelsRecords.readPixels(pixels, x, y, width, height, imageWidth, imageHeight)
 }
 
-func (p *Pixels) Region() image.Rectangle {
+func (p *Pixels) AppendRegion(regions []image.Rectangle) []image.Rectangle {
 	if p.pixelsRecords == nil {
-		return image.Rectangle{}
+		return regions
 	}
-	return p.pixelsRecords.region()
+	return p.pixelsRecords.appendRegions(regions)
 }
 
 // drawTrianglesHistoryItem is an item for history of draw-image commands.
@@ -97,7 +98,7 @@ const (
 	//
 	// Regular non-volatile images need to record drawing history or read its pixels from GPU if necessary so that all
 	// the images can be restored automatically from the context lost. However, such recording the drawing history or
-	// reading pixels from GPU are expensive operations. Volatile images can skip such oprations, but the image content
+	// reading pixels from GPU are expensive operations. Volatile images can skip such operations, but the image content
 	// is cleared every frame instead.
 	ImageTypeVolatile
 )
@@ -118,57 +119,28 @@ type Image struct {
 	// stale indicates whether the image needs to be synced with GPU as soon as possible.
 	stale bool
 
-	// staleRegion indicates the region to restore.
-	// staleRegion is valid only when stale is true.
-	staleRegion image.Rectangle
+	// staleRegions indicates the regions to restore.
+	// staleRegions is valid only when stale is true.
+	// staleRegions is not used when AlwaysReadPixelsFromGPU() returns true.
+	staleRegions []image.Rectangle
 
-	// pixelsForRestore is a cached byte slice for pixels.
-	// pixelsForRestore is just a cache to avoid allocations, and the data might not be reliable.
+	// pixelsCache is cached byte slices for pixels.
+	// pixelsCache is just a cache to avoid allocations (#2375).
 	//
-	// pixelsForRestore might be shared by the records of basePixels.
-	// pixelsForRestore should not be modified until basePixels is invalidated.
+	// A key is the region and a value is a byte slice for the region.
 	//
-	// pixelsForRestore is an entire pixels of the image or nil.
-	//
-	// pixelsForRestore is for an optimization to reduce slice allocations (#2375).
-	pixelsForRestore []byte
+	// It is fine to reuse the same byte slice for the same region for basePixels,
+	// as old pixels for the same region will be invalidated at basePixel.AddOrReplace.
+	pixelsCache map[image.Rectangle][]byte
+
+	// regionsCache is cached regions.
+	// regionsCache is just a cache to avoid allocations (#2375).
+	regionsCache []image.Rectangle
 
 	imageType ImageType
-
-	// priority indicates whether the image is restored in high priority when context-lost happens.
-	priority bool
 }
 
-var whiteImage *Image
-
-func ensureWhiteImage() *Image {
-	if whiteImage != nil {
-		return whiteImage
-	}
-
-	// Initialize the white image lazily. Some functions like needsRestoring might not work at the initial phase.
-
-	// w and h are the white image's size. They indicate the 1x1 image with 1px padding around.
-	const w, h = 3, 3
-	whiteImage = &Image{
-		image:    graphicscommand.NewImage(w, h, false),
-		width:    w,
-		height:   h,
-		priority: true,
-	}
-	pix := make([]byte, 4*w*h)
-	for i := range pix {
-		pix[i] = 0xff
-	}
-
-	// As whiteImage is the source at clearImage, initialize this with WritePixels, not clearImage.
-	// This operation is also important when restoring whiteImage.
-	whiteImage.WritePixels(pix, 0, 0, w, h)
-	theImages.add(whiteImage)
-	return whiteImage
-}
-
-// NewImage creates an white image with the given size.
+// NewImage creates a white image with the given size.
 //
 // The returned image is cleared.
 //
@@ -213,13 +185,6 @@ func (i *Image) Extend(width, height int) *Image {
 		Height: float32(sh),
 	}
 	newImg.DrawTriangles(srcs, offsets, vs, is, graphicsdriver.BlendCopy, dr, graphicsdriver.Region{}, NearestFilterShader, nil, false)
-
-	// Overwrite the history as if the image newImg is created only by WritePixels.
-	newImg.clearDrawTrianglesHistory()
-	newImg.basePixels = i.basePixels
-	newImg.stale = i.stale
-	newImg.staleRegion = i.staleRegion
-
 	i.Dispose()
 
 	return newImg
@@ -227,6 +192,14 @@ func (i *Image) Extend(width, height int) *Image {
 
 // quadVertices returns vertices to render a quad. These values are passed to graphicscommand.Image.
 func quadVertices(src *Image, dx0, dy0, dx1, dy1, sx0, sy0, sx1, sy1, cr, cg, cb, ca float32) []float32 {
+	if src == nil {
+		return []float32{
+			dx0, dy0, 0, 0, cr, cg, cb, ca,
+			dx1, dy0, 0, 0, cr, cg, cb, ca,
+			dx0, dy1, 0, 0, cr, cg, cb, ca,
+			dx1, dy1, 0, 0, cr, cg, cb, ca,
+		}
+	}
 	sw, sh := src.InternalSize()
 	swf, shf := float32(sw), float32(sh)
 	return []float32{
@@ -238,19 +211,11 @@ func quadVertices(src *Image, dx0, dy0, dx1, dy1, sx0, sy0, sx1, sy1, cr, cg, cb
 }
 
 func clearImage(i *graphicscommand.Image) {
-	whiteImage := ensureWhiteImage()
-
-	if i == whiteImage.image {
-		panic("restorable: fillImage cannot be called on whiteImage")
-	}
-
 	// This needs to use 'InternalSize' to render the whole region, or edges are unexpectedly cleared on some
 	// devices.
 	dw, dh := i.InternalSize()
-	sw, sh := whiteImage.width, whiteImage.height
-	vs := quadVertices(whiteImage, 0, 0, float32(dw), float32(dh), 1, 1, float32(sw-1), float32(sh-1), 0, 0, 0, 0)
+	vs := quadVertices(nil, 0, 0, float32(dw), float32(dh), 0, 0, 0, 0, 0, 0, 0, 0)
 	is := graphics.QuadIndices()
-	srcs := [graphics.ShaderImageCount]*graphicscommand.Image{whiteImage.image}
 	var offsets [graphics.ShaderImageCount - 1][2]float32
 	dstRegion := graphicsdriver.Region{
 		X:      0,
@@ -258,7 +223,7 @@ func clearImage(i *graphicscommand.Image) {
 		Width:  float32(dw),
 		Height: float32(dh),
 	}
-	i.DrawTriangles(srcs, offsets, vs, is, graphicsdriver.BlendClear, dstRegion, graphicsdriver.Region{}, NearestFilterShader.shader, nil, false)
+	i.DrawTriangles([graphics.ShaderImageCount]*graphicscommand.Image{}, offsets, vs, is, graphicsdriver.BlendClear, dstRegion, graphicsdriver.Region{}, clearShader.shader, nil, false)
 }
 
 // BasePixelsForTesting returns the image's basePixels for testing.
@@ -269,10 +234,31 @@ func (i *Image) BasePixelsForTesting() *Pixels {
 // makeStale makes the image stale.
 func (i *Image) makeStale(rect image.Rectangle) {
 	i.stale = true
-	i.staleRegion = i.staleRegion.Union(i.basePixels.Region()).Union(rect)
 
-	i.basePixels = Pixels{}
+	// If ReadPixels always reads pixels from GPU, staleRegions are never used.
+	if AlwaysReadPixelsFromGPU() {
+		return
+	}
+
+	origNum := len(i.staleRegions)
+	i.staleRegions = i.appendRegionsForDrawTriangles(i.staleRegions)
+	if !rect.Empty() {
+		i.staleRegions = append(i.staleRegions, rect)
+	}
+
 	i.clearDrawTrianglesHistory()
+
+	// Clear pixels to save memory.
+	for _, r := range i.staleRegions[origNum:] {
+		if r.Empty() {
+			continue
+		}
+		i.basePixels.Clear(r.Min.X, r.Min.Y, r.Dx(), r.Dy())
+	}
+
+	// Remove duplicated regions to avoid unnecessary reading pixels from GPU.
+	n := removeDuplicatedRegions(i.staleRegions)
+	i.staleRegions = i.staleRegions[:n]
 
 	// Don't have to call makeStale recursively here.
 	// Restoring is done after topological sorting is done.
@@ -302,7 +288,7 @@ func (i *Image) WritePixels(pixels []byte, x, y, width, height int) {
 	}
 
 	// TODO: Avoid making other images stale if possible. (#514)
-	// For this purpuse, images should remember which part of that is used for DrawTriangles.
+	// For this purpose, images should remember which part of that is used for DrawTriangles.
 	theImages.makeStaleIfDependingOn(i)
 
 	if pixels != nil {
@@ -332,13 +318,13 @@ func (i *Image) WritePixels(pixels []byte, x, y, width, height int) {
 		}
 		i.clearDrawTrianglesHistory()
 		i.stale = false
-		i.staleRegion = image.Rectangle{}
+		i.staleRegions = i.staleRegions[:0]
 		return
 	}
 
-	// Records for DrawTriangles cannot come after records for WritePixels.
+	// Records for DrawTriangles cannot come before records for WritePixels.
 	if len(i.drawTrianglesHistory) > 0 {
-		i.makeStale(image.Rect(0, 0, i.width, i.height))
+		i.makeStale(image.Rect(x, y, x+width, y+height))
 		return
 	}
 
@@ -366,9 +352,6 @@ func (i *Image) WritePixels(pixels []byte, x, y, width, height int) {
 //	6: Color B
 //	7: Color Y
 func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, offsets [graphics.ShaderImageCount - 1][2]float32, vertices []float32, indices []uint16, blend graphicsdriver.Blend, dstRegion, srcRegion graphicsdriver.Region, shader *Shader, uniforms []uint32, evenOdd bool) {
-	if i.priority {
-		panic("restorable: DrawTriangles cannot be called on a priority image")
-	}
 	if len(vertices) == 0 {
 		return
 	}
@@ -386,8 +369,9 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, offsets [g
 		}
 	}
 
-	if srcstale || !needsRestoring() || !i.needsRestoring() {
-		i.makeStale(image.Rect(0, 0, i.width, i.height))
+	// Even if the image is already stale, call makeStale to extend the stale region.
+	if srcstale || !needsRestoring() || !i.needsRestoring() || i.stale {
+		i.makeStale(regionToRectangle(dstRegion))
 	} else {
 		i.appendDrawTrianglesHistory(srcs, offsets, vertices, indices, blend, dstRegion, srcRegion, shader, uniforms, evenOdd)
 	}
@@ -405,13 +389,16 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, offsets [g
 // appendDrawTrianglesHistory appends a draw-image history item to the image.
 func (i *Image) appendDrawTrianglesHistory(srcs [graphics.ShaderImageCount]*Image, offsets [graphics.ShaderImageCount - 1][2]float32, vertices []float32, indices []uint16, blend graphicsdriver.Blend, dstRegion, srcRegion graphicsdriver.Region, shader *Shader, uniforms []uint32, evenOdd bool) {
 	if i.stale || !i.needsRestoring() {
-		return
+		panic("restorable: an image must not be stale or need restoring at appendDrawTrianglesHistory")
+	}
+	if AlwaysReadPixelsFromGPU() {
+		panic("restorable: appendDrawTrianglesHistory must not be called when AlwaysReadPixelsFromGPU() returns true")
 	}
 
 	// TODO: Would it be possible to merge draw image history items?
 	const maxDrawTrianglesHistoryCount = 1024
 	if len(i.drawTrianglesHistory)+1 > maxDrawTrianglesHistoryCount {
-		i.makeStale(image.Rect(0, 0, i.width, i.height))
+		i.makeStale(regionToRectangle(dstRegion))
 		return
 	}
 	// All images must be resolved and not stale each after frame.
@@ -451,6 +438,13 @@ func (i *Image) readPixelsFromGPUIfNeeded(graphicsDriver graphicsdriver.Graphics
 }
 
 func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte, x, y, width, height int) error {
+	if AlwaysReadPixelsFromGPU() {
+		if err := i.image.ReadPixels(graphicsDriver, pixels, x, y, width, height); err != nil {
+			return err
+		}
+		return nil
+	}
+
 	if err := i.readPixelsFromGPUIfNeeded(graphicsDriver); err != nil {
 		return err
 	}
@@ -467,7 +461,8 @@ func (i *Image) makeStaleIfDependingOn(target *Image) {
 		return
 	}
 	if i.dependsOn(target) {
-		i.makeStale(image.Rect(0, 0, i.width, i.height))
+		// There is no new region to make stale.
+		i.makeStale(image.Rectangle{})
 	}
 }
 
@@ -477,37 +472,48 @@ func (i *Image) makeStaleIfDependingOnShader(shader *Shader) {
 		return
 	}
 	if i.dependsOnShader(shader) {
-		i.makeStale(image.Rect(0, 0, i.width, i.height))
+		// There is no new region to make stale.
+		i.makeStale(image.Rectangle{})
 	}
 }
 
 // readPixelsFromGPU reads the pixels from GPU and resolves the image's 'stale' state.
 func (i *Image) readPixelsFromGPU(graphicsDriver graphicsdriver.Graphics) error {
-	i.basePixels = Pixels{}
-	r := i.staleRegion
-	if len(i.drawTrianglesHistory) > 0 {
-		r = image.Rect(0, 0, i.width, i.height)
+	var rs []image.Rectangle
+	if i.stale {
+		rs = i.staleRegions
+	} else {
+		i.regionsCache = i.appendRegionsForDrawTriangles(i.regionsCache)
+		defer func() {
+			i.regionsCache = i.regionsCache[:0]
+		}()
+		n := removeDuplicatedRegions(i.regionsCache)
+		rs = i.regionsCache[:n]
 	}
-	if !r.Empty() {
-		var pix []byte
-		if needsRestoring() && i.needsRestoring() {
-			// pixelsForRestore can be reused as basePixels was invalidated.
-			l := 4 * r.Dx() * r.Dy()
-			if len(i.pixelsForRestore) < l {
-				i.pixelsForRestore = make([]byte, l)
-			}
-			pix = i.pixelsForRestore[:l]
-		} else {
+
+	for _, r := range rs {
+		if r.Empty() {
+			continue
+		}
+
+		if i.pixelsCache == nil {
+			i.pixelsCache = map[image.Rectangle][]byte{}
+		}
+
+		pix, ok := i.pixelsCache[r]
+		if !ok {
 			pix = make([]byte, 4*r.Dx()*r.Dy())
+			i.pixelsCache[r] = pix
 		}
 		if err := i.image.ReadPixels(graphicsDriver, pix, r.Min.X, r.Min.Y, r.Dx(), r.Dy()); err != nil {
 			return err
 		}
 		i.basePixels.AddOrReplace(pix, r.Min.X, r.Min.Y, r.Dx(), r.Dy())
 	}
+
 	i.clearDrawTrianglesHistory()
 	i.stale = false
-	i.staleRegion = image.Rectangle{}
+	i.staleRegions = i.staleRegions[:0]
 	return nil
 }
 
@@ -550,7 +556,7 @@ func (i *Image) dependsOnShader(shader *Shader) bool {
 	return false
 }
 
-// dependingImages returns all images that is depended by the image.
+// dependingImages returns all images that is depended on the image.
 func (i *Image) dependingImages() map[*Image]struct{} {
 	r := map[*Image]struct{}{}
 	for _, c := range i.drawTrianglesHistory {
@@ -585,7 +591,7 @@ func (i *Image) restore(graphicsDriver graphicsdriver.Graphics) error {
 		i.basePixels = Pixels{}
 		i.clearDrawTrianglesHistory()
 		i.stale = false
-		i.staleRegion = image.Rectangle{}
+		i.staleRegions = i.staleRegions[:0]
 		return nil
 	case ImageTypeVolatile:
 		i.image = graphicscommand.NewImage(w, h, false)
@@ -599,11 +605,8 @@ func (i *Image) restore(graphicsDriver graphicsdriver.Graphics) error {
 
 	gimg := graphicscommand.NewImage(w, h, false)
 	// Clear the image explicitly.
-	if i != ensureWhiteImage() {
-		// As clearImage uses whiteImage, clearImage cannot be called on whiteImage.
-		// It is OK to skip this since whiteImage has its entire pixel information.
-		clearImage(gimg)
-	}
+	clearImage(gimg)
+
 	i.basePixels.Apply(gimg)
 
 	for _, c := range i.drawTrianglesHistory {
@@ -620,24 +623,40 @@ func (i *Image) restore(graphicsDriver graphicsdriver.Graphics) error {
 		gimg.DrawTriangles(imgs, c.offsets, c.vertices, c.indices, c.blend, c.dstRegion, c.srcRegion, c.shader.shader, c.uniforms, c.evenOdd)
 	}
 
+	// In order to clear the draw-triangles history, read pixels from GPU.
 	if len(i.drawTrianglesHistory) > 0 {
-		i.basePixels = Pixels{}
-		// As basePixels was invalidated, pixelsForRestore can be reused.
-		l := 4 * w * h
-		if len(i.pixelsForRestore) < l {
-			i.pixelsForRestore = make([]byte, l)
+		i.regionsCache = i.appendRegionsForDrawTriangles(i.regionsCache)
+		defer func() {
+			i.regionsCache = i.regionsCache[:0]
+		}()
+		n := removeDuplicatedRegions(i.regionsCache)
+		rs := i.regionsCache[:n]
+
+		for _, r := range rs {
+			if r.Empty() {
+				continue
+			}
+
+			if i.pixelsCache == nil {
+				i.pixelsCache = map[image.Rectangle][]byte{}
+			}
+
+			pix, ok := i.pixelsCache[r]
+			if !ok {
+				pix = make([]byte, 4*r.Dx()*r.Dy())
+				i.pixelsCache[r] = pix
+			}
+			if err := gimg.ReadPixels(graphicsDriver, pix, r.Min.X, r.Min.Y, r.Dx(), r.Dy()); err != nil {
+				return err
+			}
+			i.basePixels.AddOrReplace(pix, r.Min.X, r.Min.Y, r.Dx(), r.Dy())
 		}
-		pix := i.pixelsForRestore[:l]
-		if err := gimg.ReadPixels(graphicsDriver, pix, 0, 0, w, h); err != nil {
-			return err
-		}
-		i.basePixels.AddOrReplace(pix, 0, 0, w, h)
 	}
 
 	i.image = gimg
 	i.clearDrawTrianglesHistory()
 	i.stale = false
-	i.staleRegion = image.Rectangle{}
+	i.staleRegions = i.staleRegions[:0]
 	return nil
 }
 
@@ -649,10 +668,10 @@ func (i *Image) Dispose() {
 	i.image.Dispose()
 	i.image = nil
 	i.basePixels = Pixels{}
-	i.pixelsForRestore = nil
+	i.pixelsCache = nil
 	i.clearDrawTrianglesHistory()
 	i.stale = false
-	i.staleRegion = image.Rectangle{}
+	i.staleRegions = i.staleRegions[:0]
 }
 
 // isInvalidated returns a boolean value indicating whether the image is invalidated.
@@ -677,4 +696,58 @@ func (i *Image) clearDrawTrianglesHistory() {
 
 func (i *Image) InternalSize() (int, int) {
 	return i.image.InternalSize()
+}
+
+func (i *Image) appendRegionsForDrawTriangles(regions []image.Rectangle) []image.Rectangle {
+	n := len(regions)
+	for _, d := range i.drawTrianglesHistory {
+		r := regionToRectangle(d.dstRegion)
+		if r.Empty() {
+			continue
+		}
+		regions = append(regions, r)
+	}
+
+	nn := removeDuplicatedRegions(regions[n:])
+	return regions[:n+nn]
+}
+
+func regionToRectangle(region graphicsdriver.Region) image.Rectangle {
+	return image.Rect(
+		int(math.Floor(float64(region.X))),
+		int(math.Floor(float64(region.Y))),
+		int(math.Ceil(float64(region.X+region.Width))),
+		int(math.Ceil(float64(region.Y+region.Height))))
+}
+
+// removeDuplicatedRegions removes duplicated regions and returns the new size of the slice.
+// If a region covers other regions, the covered regions are removed.
+func removeDuplicatedRegions(regions []image.Rectangle) int {
+	for i, r := range regions {
+		if r.Empty() {
+			continue
+		}
+		for j, rr := range regions {
+			if i == j {
+				continue
+			}
+			if rr.Empty() {
+				continue
+			}
+			if rr.In(r) {
+				regions[j] = image.Rectangle{}
+			}
+		}
+	}
+
+	n := 0
+	for _, r := range regions {
+		if r.Empty() {
+			continue
+		}
+		regions[n] = r
+		n++
+	}
+
+	return n
 }

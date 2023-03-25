@@ -28,10 +28,16 @@ var (
 )
 
 func init() {
-	whiteImage.Fill(color.White)
+	b := whiteImage.Bounds()
+	pix := make([]byte, 4*b.Dx()*b.Dy())
+	for i := range pix {
+		pix[i] = 0xff
+	}
+	// This is hacky, but WritePixels is better than Fill in term of automatic texture packing.
+	whiteImage.WritePixels(pix)
 }
 
-func drawVerticesForUtil(dst *ebiten.Image, vs []ebiten.Vertex, is []uint16, clr color.Color) {
+func drawVerticesForUtil(dst *ebiten.Image, vs []ebiten.Vertex, is []uint16, clr color.Color, antialias bool) {
 	r, g, b, a := clr.RGBA()
 	for i := range vs {
 		vs[i].SrcX = 1
@@ -44,12 +50,12 @@ func drawVerticesForUtil(dst *ebiten.Image, vs []ebiten.Vertex, is []uint16, clr
 
 	op := &ebiten.DrawTrianglesOptions{}
 	op.ColorScaleMode = ebiten.ColorScaleModePremultipliedAlpha
-	op.AntiAlias = true
+	op.AntiAlias = antialias
 	dst.DrawTriangles(vs, is, whiteSubImage, op)
 }
 
 // StrokeLine strokes a line (x0, y0)-(x1, y1) with the specified width and color.
-func StrokeLine(dst *ebiten.Image, x0, y0, x1, y1 float32, strokeWidth float32, clr color.Color) {
+func StrokeLine(dst *ebiten.Image, x0, y0, x1, y1 float32, strokeWidth float32, clr color.Color, antialias bool) {
 	var path Path
 	path.MoveTo(x0, y0)
 	path.LineTo(x1, y1)
@@ -57,11 +63,11 @@ func StrokeLine(dst *ebiten.Image, x0, y0, x1, y1 float32, strokeWidth float32, 
 	strokeOp.Width = strokeWidth
 	vs, is := path.AppendVerticesAndIndicesForStroke(nil, nil, strokeOp)
 
-	drawVerticesForUtil(dst, vs, is, clr)
+	drawVerticesForUtil(dst, vs, is, clr, antialias)
 }
 
 // DrawFilledRect fills a rectangle with the specified width and color.
-func DrawFilledRect(dst *ebiten.Image, x, y, width, height float32, clr color.Color) {
+func DrawFilledRect(dst *ebiten.Image, x, y, width, height float32, clr color.Color, antialias bool) {
 	var path Path
 	path.MoveTo(x, y)
 	path.LineTo(x, y+height)
@@ -69,13 +75,13 @@ func DrawFilledRect(dst *ebiten.Image, x, y, width, height float32, clr color.Co
 	path.LineTo(x+width, y)
 	vs, is := path.AppendVerticesAndIndicesForFilling(nil, nil)
 
-	drawVerticesForUtil(dst, vs, is, clr)
+	drawVerticesForUtil(dst, vs, is, clr, antialias)
 }
 
 // StrokeRect strokes a rectangle with the specified width and color.
 //
 // clr has be to be a solid (non-transparent) color.
-func StrokeRect(dst *ebiten.Image, x, y, width, height float32, strokeWidth float32, clr color.Color) {
+func StrokeRect(dst *ebiten.Image, x, y, width, height float32, strokeWidth float32, clr color.Color, antialias bool) {
 	var path Path
 	path.MoveTo(x, y)
 	path.LineTo(x, y+height)
@@ -88,22 +94,22 @@ func StrokeRect(dst *ebiten.Image, x, y, width, height float32, strokeWidth floa
 	strokeOp.MiterLimit = 10
 	vs, is := path.AppendVerticesAndIndicesForStroke(nil, nil, strokeOp)
 
-	drawVerticesForUtil(dst, vs, is, clr)
+	drawVerticesForUtil(dst, vs, is, clr, antialias)
 }
 
-// DrawFilledCircle filles a circle with the specified center position (cx, cy), the radius (r), width and color.
-func DrawFilledCircle(dst *ebiten.Image, cx, cy, r float32, clr color.Color) {
+// DrawFilledCircle fills a circle with the specified center position (cx, cy), the radius (r), width and color.
+func DrawFilledCircle(dst *ebiten.Image, cx, cy, r float32, clr color.Color, antialias bool) {
 	var path Path
 	path.Arc(cx, cy, r, 0, 2*math.Pi, Clockwise)
 	vs, is := path.AppendVerticesAndIndicesForFilling(nil, nil)
 
-	drawVerticesForUtil(dst, vs, is, clr)
+	drawVerticesForUtil(dst, vs, is, clr, antialias)
 }
 
 // StrokeCircle strokes a circle with the specified center position (cx, cy), the radius (r), width and color.
 //
 // clr has be to be a solid (non-transparent) color.
-func StrokeCircle(dst *ebiten.Image, cx, cy, r float32, strokeWidth float32, clr color.Color) {
+func StrokeCircle(dst *ebiten.Image, cx, cy, r float32, strokeWidth float32, clr color.Color, antialias bool) {
 	var path Path
 	path.Arc(cx, cy, r, 0, 2*math.Pi, Clockwise)
 	path.Close()
@@ -112,5 +118,5 @@ func StrokeCircle(dst *ebiten.Image, cx, cy, r float32, strokeWidth float32, clr
 	strokeOp.Width = strokeWidth
 	vs, is := path.AppendVerticesAndIndicesForStroke(nil, nil, strokeOp)
 
-	drawVerticesForUtil(dst, vs, is, clr)
+	drawVerticesForUtil(dst, vs, is, clr, antialias)
 }

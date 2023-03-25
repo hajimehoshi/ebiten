@@ -32,6 +32,11 @@ func needsRestoring() bool {
 	return forceRestoring || needsRestoringByGraphicsDriver
 }
 
+// AlwaysReadPixelsFromGPU reports whether ReadPixels always reads pixels from GPU or not.
+func AlwaysReadPixelsFromGPU() bool {
+	return !needsRestoring()
+}
+
 // EnableRestoringForTesting forces to enable restoring for testing.
 func EnableRestoringForTesting() {
 	forceRestoring = true
@@ -217,9 +222,7 @@ func (i *images) restore(graphicsDriver graphicsdriver.Graphics) error {
 	}
 	images := map[*Image]struct{}{}
 	for i := range i.images {
-		if !i.priority {
-			images[i] = struct{}{}
-		}
+		images[i] = struct{}{}
 	}
 	edges := map[edge]struct{}{}
 	for t := range images {
@@ -228,14 +231,9 @@ func (i *images) restore(graphicsDriver graphicsdriver.Graphics) error {
 		}
 	}
 
-	sorted := []*Image{}
-	for i := range i.images {
-		if i.priority {
-			sorted = append(sorted, i)
-		}
-	}
+	var sorted []*Image
 	for len(images) > 0 {
-		// current repesents images that have no incoming edges.
+		// current represents images that have no incoming edges.
 		current := map[*Image]struct{}{}
 		for i := range images {
 			current[i] = struct{}{}

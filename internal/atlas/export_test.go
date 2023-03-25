@@ -19,27 +19,32 @@ import (
 )
 
 const (
-	BaseCountToPutOnAtlas = baseCountToPutOnAtlas
+	BaseCountToPutOnSourceBackend = baseCountToPutOnSourceBackend
 )
 
-func PutImagesOnAtlasForTesting(graphicsDriver graphicsdriver.Graphics) error {
-	return putImagesOnAtlas(graphicsDriver)
+func PutImagesOnSourceBackendForTesting(graphicsDriver graphicsdriver.Graphics) error {
+	return putImagesOnSourceBackend(graphicsDriver)
 }
 
 var (
-	oldMinSize int
-	oldMaxSize int
+	oldMinSourceSize      int
+	oldMinDestinationSize int
+	oldMaxSize            int
 )
 
-func SetImageSizeForTesting(min, max int) {
-	oldMinSize = min
-	oldMaxSize = max
-	minSize = min
+func SetImageSizeForTesting(minSource, minDestination, max int) {
+	oldMinSourceSize = minSourceSize
+	oldMinDestinationSize = minDestinationSize
+	oldMaxSize = maxSize
+
+	minSourceSize = minSource
+	minDestinationSize = minDestination
 	maxSize = max
 }
 
 func ResetImageSizeForTesting() {
-	minSize = oldMinSize
+	minSourceSize = oldMinSourceSize
+	minDestinationSize = oldMinDestinationSize
 	maxSize = oldMaxSize
 }
 
@@ -47,16 +52,16 @@ func (i *Image) PaddingSizeForTesting() int {
 	return i.paddingSize()
 }
 
-func (i *Image) IsOnAtlasForTesting() bool {
+func (i *Image) IsOnSourceBackendForTesting() bool {
 	backendsM.Lock()
 	defer backendsM.Unlock()
-	return i.isOnAtlas()
+	return i.isOnSourceBackend()
 }
 
-func (i *Image) EnsureIsolatedForTesting() {
+func (i *Image) EnsureIsolatedFromSourceForTesting(backends []*backend) {
 	backendsM.Lock()
 	defer backendsM.Unlock()
-	i.ensureIsolated()
+	i.ensureIsolatedFromSource(backends)
 }
 
 var FlushDeferredForTesting = flushDeferred

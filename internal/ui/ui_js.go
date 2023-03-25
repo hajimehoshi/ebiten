@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/devicescale"
+	"github.com/hajimehoshi/ebiten/v2/internal/file"
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl"
@@ -93,7 +94,8 @@ type userInterfaceImpl struct {
 
 	keyboardLayoutMap js.Value
 
-	m sync.Mutex
+	m         sync.Mutex
+	dropFileM sync.Mutex
 }
 
 func init() {
@@ -622,6 +624,37 @@ func setCanvasEventHandlers(v js.Value) {
 		window.Get("location").Call("reload")
 		return nil
 	}))
+
+	// Drop
+	v.Call("addEventListener", "dragover", js.FuncOf(func(this js.Value, args []js.Value) any {
+		e := args[0]
+		e.Call("preventDefault")
+		return nil
+	}))
+	v.Call("addEventListener", "drop", js.FuncOf(func(this js.Value, args []js.Value) any {
+		e := args[0]
+		e.Call("preventDefault")
+		data := e.Get("dataTransfer")
+		if !data.Truthy() {
+			return nil
+		}
+
+		go theUI.appendDroppedFiles(data)
+		return nil
+	}))
+}
+
+func (u *userInterfaceImpl) appendDroppedFiles(data js.Value) {
+	u.dropFileM.Lock()
+	defer u.dropFileM.Unlock()
+
+	items := data.Get("items")
+	if items.Length() <= 0 {
+		return
+	}
+
+	fs := items.Index(0).Call("webkitGetAsEntry").Get("filesystem").Get("root")
+	u.inputState.DroppedFiles = file.NewFileEntryFS(fs)
 }
 
 func (u *userInterfaceImpl) forceUpdateOnMinimumFPSMode() {
@@ -676,11 +709,7 @@ func (u *userInterfaceImpl) updateScreenSize() {
 }
 
 func (u *userInterfaceImpl) readInputState(inputState *InputState) {
-	*inputState = u.inputState
-	u.inputState.resetForTick()
-}
-
-func (u *userInterfaceImpl) resetForTick() {
+	u.inputState.copyAndReset(inputState)
 	u.keyboardLayoutMap = js.Value{}
 }
 

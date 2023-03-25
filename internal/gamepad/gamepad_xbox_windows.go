@@ -157,25 +157,27 @@ func (n *nativeGamepadXbox) hasOwnStandardLayoutMapping() bool {
 	return true
 }
 
-func (n *nativeGamepadXbox) isStandardAxisAvailableInOwnMapping(axis gamepaddb.StandardAxis) bool {
+func (n *nativeGamepadXbox) standardAxisInOwnMapping(axis gamepaddb.StandardAxis) mappingInput {
 	switch axis {
 	case gamepaddb.StandardAxisLeftStickHorizontal,
 		gamepaddb.StandardAxisLeftStickVertical,
 		gamepaddb.StandardAxisRightStickHorizontal,
 		gamepaddb.StandardAxisRightStickVertical:
-		return true
+		return axisMappingInput{g: n, axis: int(axis)}
 	}
-	return false
+	return nil
 }
 
-func (n *nativeGamepadXbox) isStandardButtonAvailableInOwnMapping(button gamepaddb.StandardButton) bool {
+func (n *nativeGamepadXbox) standardButtonInOwnMapping(button gamepaddb.StandardButton) mappingInput {
 	switch button {
 	case gamepaddb.StandardButtonFrontBottomLeft,
 		gamepaddb.StandardButtonFrontBottomRight:
-		return true
+		return buttonMappingInput{g: n, button: int(button)}
 	}
-	_, ok := standardButtonToGamepadInputGamepadButton(button)
-	return ok
+	if _, ok := standardButtonToGamepadInputGamepadButton(button); !ok {
+		return nil
+	}
+	return buttonMappingInput{g: n, button: int(button)}
 }
 
 func (n *nativeGamepadXbox) axisCount() int {
@@ -222,15 +224,11 @@ func (n *nativeGamepadXbox) buttonValue(button int) float64 {
 }
 
 func (n *nativeGamepadXbox) isButtonPressed(button int) bool {
-	// Use XInput's trigger dead zone.
-	// See https://source.chromium.org/chromium/chromium/src/+/main:device/gamepad/public/cpp/gamepad.h;l=22-23;drc=6997f8a177359bb99598988ed5e900841984d242
-	// TODO: Integrate this value with the same one in the package gamepaddb.
-	const threshold = 30.0 / 255.0
 	switch gamepaddb.StandardButton(button) {
 	case gamepaddb.StandardButtonFrontBottomLeft:
-		return n.state.leftTrigger >= threshold
+		return n.state.leftTrigger > gamepaddb.ButtonPressedThreshold
 	case gamepaddb.StandardButtonFrontBottomRight:
-		return n.state.rightTrigger >= threshold
+		return n.state.rightTrigger > gamepaddb.ButtonPressedThreshold
 	}
 
 	b, ok := standardButtonToGamepadInputGamepadButton(gamepaddb.StandardButton(button))

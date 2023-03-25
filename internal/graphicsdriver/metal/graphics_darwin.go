@@ -22,6 +22,8 @@ import (
 	"time"
 	"unsafe"
 
+	"github.com/ebitengine/purego/objc"
+
 	"github.com/hajimehoshi/ebiten/v2/internal/cocoa"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
@@ -72,12 +74,14 @@ const (
 	noStencil
 )
 
-var creatingSystemDefaultDeviceSucceeded bool
+var systemDefaultDevice mtl.Device
 
 func init() {
 	// mtl.CreateSystemDefaultDevice must be called on the main thread (#2147).
-	_, ok := mtl.CreateSystemDefaultDevice()
-	creatingSystemDefaultDeviceSucceeded = ok
+	d, err := mtl.CreateSystemDefaultDevice()
+	if err == nil {
+		systemDefaultDevice = d
+	}
 }
 
 // NewGraphics creates an implementation of graphicsdriver.Graphics for Metal.
@@ -86,7 +90,7 @@ func NewGraphics() (graphicsdriver.Graphics, error) {
 	// On old mac devices like iMac 2011, Metal is not supported (#779).
 	// TODO: Is there a better way to check whether Metal is available or not?
 	// It seems OK to call MTLCreateSystemDefaultDevice multiple times, so this should be fine.
-	if !creatingSystemDefaultDeviceSucceeded {
+	if systemDefaultDevice == (mtl.Device{}) {
 		return nil, fmt.Errorf("metal: mtl.CreateSystemDefaultDevice failed")
 	}
 
@@ -94,7 +98,8 @@ func NewGraphics() (graphicsdriver.Graphics, error) {
 
 	if runtime.GOOS != "ios" {
 		// Initializing a Metal device and a layer must be done in the main thread on macOS.
-		if err := g.view.initialize(); err != nil {
+		// Note that this assumes NewGraphics is called on the main thread on desktops.
+		if err := g.view.initialize(systemDefaultDevice); err != nil {
 			return nil, err
 		}
 	}
@@ -384,7 +389,7 @@ func (g *Graphics) Initialize() error {
 
 	if runtime.GOOS == "ios" {
 		// Initializing a Metal device and a layer must be done in the render thread on iOS.
-		if err := g.view.initialize(); err != nil {
+		if err := g.view.initialize(systemDefaultDevice); err != nil {
 			return err
 		}
 	}
@@ -450,7 +455,7 @@ func (g *Graphics) flushRenderCommandEncoderIfNeeded() {
 }
 
 func (g *Graphics) draw(dst *Image, dstRegions []graphicsdriver.DstRegion, srcs [graphics.ShaderImageCount]*Image, indexOffset int, shader *Shader, uniforms [][]uint32, blend graphicsdriver.Blend, evenOdd bool) error {
-	// When prepareing a stencil buffer, flush the current render command encoder
+	// When preparing a stencil buffer, flush the current render command encoder
 	// to make sure the stencil buffer is cleared when loading.
 	// TODO: What about clearing the stencil buffer by vertices?
 	if g.lastDst != dst || g.lastEvenOdd != evenOdd || evenOdd {
@@ -680,13 +685,46 @@ func (g *Graphics) MaxImageSize() int {
 		return g.maxImageSize
 	}
 
-	// https://developer.apple.com/metal/Metal-Feature-Set-Tables.pdf
-	g.maxImageSize = 8192
+	d := g.view.getMTLDevice()
+
+	// supportsFamily is available as of macOS 10.15+ and iOS 13.0+.
+	// https://developer.apple.com/documentation/metal/mtldevice/3143473-supportsfamily
+	if d.RespondsToSelector(objc.RegisterName("supportsFamily:")) {
+		// https://developer.apple.com/metal/Metal-Feature-Set-Tables.pdf
+		g.maxImageSize = 8192
+		switch {
+		case d.SupportsFamily(mtl.GPUFamilyApple3):
+			g.maxImageSize = 16384
+		case d.SupportsFamily(mtl.GPUFamilyMac2):
+			g.maxImageSize = 16384
+		}
+		return g.maxImageSize
+	}
+
+	// supportsFeatureSet is deprecated but some old macOS/iOS versions supports only this (#2553).
 	switch {
-	case g.view.getMTLDevice().SupportsFamily(mtl.GPUFamilyApple3):
+	case d.SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily5_v1):
 		g.maxImageSize = 16384
-	case g.view.getMTLDevice().SupportsFamily(mtl.GPUFamilyMac2):
+	case d.SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily4_v1):
 		g.maxImageSize = 16384
+	case d.SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily3_v1):
+		g.maxImageSize = 16384
+	case d.SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily2_v2):
+		g.maxImageSize = 8192
+	case d.SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily2_v1):
+		g.maxImageSize = 4096
+	case d.SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily1_v2):
+		g.maxImageSize = 8192
+	case d.SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily1_v1):
+		g.maxImageSize = 4096
+	case d.SupportsFeatureSet(mtl.FeatureSet_tvOS_GPUFamily2_v1):
+		g.maxImageSize = 16384
+	case d.SupportsFeatureSet(mtl.FeatureSet_tvOS_GPUFamily1_v1):
+		g.maxImageSize = 8192
+	case d.SupportsFeatureSet(mtl.FeatureSet_macOS_GPUFamily1_v1):
+		g.maxImageSize = 16384
+	default:
+		panic("metal: there is no supported feature set")
 	}
 	return g.maxImageSize
 }
@@ -815,7 +853,7 @@ func (i *Image) WritePixels(args []*graphicsdriver.WritePixelsArgs) error {
 	w := maxX - minX
 	h := maxY - minY
 
-	// Use a temporary texture to send pixels asynchrounsly, whichever the memory is shared (e.g., iOS) or
+	// Use a temporary texture to send pixels asynchronously, whichever the memory is shared (e.g., iOS) or
 	// managed (e.g., macOS). A temporary texture is needed since ReplaceRegion tries to sync the pixel
 	// data between CPU and GPU, and doing it on the existing texture is inefficient (#1418).
 	// The texture cannot be reused until sending the pixels finishes, then create new ones for each call.

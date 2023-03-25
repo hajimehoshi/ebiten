@@ -147,8 +147,8 @@ func (g *gameForUI) Layout(outsideWidth, outsideHeight float64) (float64, float6
 	return float64(sw), float64(sh)
 }
 
-func (g *gameForUI) UpdateInputState(inputState ui.InputState) {
-	theInputState.set(inputState)
+func (g *gameForUI) UpdateInputState(fn func(*ui.InputState)) {
+	theInputState.update(fn)
 }
 
 func (g *gameForUI) Update() error {
@@ -193,7 +193,7 @@ func (g *gameForUI) DrawFinalScreen(scale, offsetX, offsetY float64) {
 		op := &DrawRectShaderOptions{}
 		op.Images[0] = g.offscreen
 		op.GeoM = geoM
-		w, h := g.offscreen.Size()
+		w, h := g.offscreen.Bounds().Dx(), g.offscreen.Bounds().Dy()
 		g.screen.DrawRectShader(w, h, g.screenShader, op)
 	}
 }

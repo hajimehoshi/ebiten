@@ -35,7 +35,7 @@ import (
 const (
 	screenWidth  = 640
 	screenHeight = 480
-	sampleRate   = 32000
+	sampleRate   = 48000
 )
 
 var ebitenImage *ebiten.Image
@@ -56,7 +56,7 @@ type Game struct {
 	audioContext *audio.Context
 }
 
-func (g *Game) initAudio() {
+func (g *Game) initAudioIfNeeded() {
 	if g.player != nil {
 		return
 	}
@@ -73,7 +73,8 @@ func (g *Game) initAudio() {
 	}
 
 	// Wrap the raw audio with the StereoPanStream
-	g.panstream = NewStereoPanStreamFromReader(audio.NewInfiniteLoop(oggS, oggS.Length()))
+	g.panstream = NewStereoPanStream(audio.NewInfiniteLoop(oggS, oggS.Length()))
+	g.panstream.SetPan(g.panning)
 
 	g.player, err = g.audioContext.NewPlayer(g.panstream)
 	if err != nil {
@@ -90,12 +91,15 @@ func lerp(a, b, t float64) float64 {
 }
 
 func (g *Game) Update() error {
-	g.initAudio()
 	g.count++
 	r := float64(g.count) * ((1.0 / 60.0) * 2 * math.Pi) * 0.1 // full cycle every 10 seconds
 	g.xpos = (float64(screenWidth) / 2) + math.Cos(r)*(float64(screenWidth)/2)
 	g.panning = lerp(-1, 1, g.xpos/float64(screenWidth))
+
+	// Initialize the audio after the panning is determined.
+	g.initAudioIfNeeded()
 	g.panstream.SetPan(g.panning)
+
 	return nil
 }
 
@@ -189,12 +193,12 @@ func (s *StereoPanStream) Pan() float64 {
 	return s.pan
 }
 
-// NewStereoPanStreamFromReader returns a new StereoPanStream with a buffered src.
+// NewStereoPanStream returns a new StereoPanStream with a buffered src.
 //
 // The src's format must be linear PCM (16bits little endian, 2 channel stereo)
 // without a header (e.g. RIFF header). The sample rate must be same as that
 // of the audio context.
-func NewStereoPanStreamFromReader(src io.ReadSeeker) *StereoPanStream {
+func NewStereoPanStream(src io.ReadSeeker) *StereoPanStream {
 	return &StereoPanStream{
 		ReadSeeker: src,
 	}

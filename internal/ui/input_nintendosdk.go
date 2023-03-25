@@ -38,17 +38,17 @@ func (u *userInterfaceImpl) updateInputState() {
 		C.ebitengine_GetTouches(&u.nativeTouches[0])
 	}
 
-	for i := range u.inputState.Touches {
-		u.inputState.Touches[i].Valid = false
-	}
-	for i, t := range u.nativeTouches {
+	u.m.Lock()
+	defer u.m.Unlock()
+
+	u.inputState.Touches = u.inputState.Touches[:0]
+	for _, t := range u.nativeTouches {
 		x, y := u.context.clientPositionToLogicalPosition(float64(t.x), float64(t.y), deviceScaleFactor)
-		u.inputState.Touches[i] = Touch{
-			Valid: true,
-			ID:    TouchID(t.id),
-			X:     int(x),
-			Y:     int(y),
-		}
+		u.inputState.Touches = append(u.inputState.Touches, Touch{
+			ID: TouchID(t.id),
+			X:  int(x),
+			Y:  int(y),
+		})
 	}
 }
 

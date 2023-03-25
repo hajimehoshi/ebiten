@@ -41,6 +41,13 @@ func newNativeGamepadsImpl() nativeGamepads {
 }
 
 func (g *nativeGamepadsImpl) init(gamepads *gamepads) error {
+	if err := corefoundation.InitializeCF(); err != nil {
+		return err
+	}
+	if err := initializeIOKit(); err != nil {
+		return err
+	}
+
 	var dicts []corefoundation.CFDictionaryRef
 
 	page := kHIDPage_GenericDesktop
@@ -373,12 +380,12 @@ func (g *nativeGamepadImpl) hasOwnStandardLayoutMapping() bool {
 	return false
 }
 
-func (g *nativeGamepadImpl) isStandardAxisAvailableInOwnMapping(axis gamepaddb.StandardAxis) bool {
-	return false
+func (*nativeGamepadImpl) standardAxisInOwnMapping(axis gamepaddb.StandardAxis) mappingInput {
+	return nil
 }
 
-func (g *nativeGamepadImpl) isStandardButtonAvailableInOwnMapping(button gamepaddb.StandardButton) bool {
-	return false
+func (*nativeGamepadImpl) standardButtonInOwnMapping(button gamepaddb.StandardButton) mappingInput {
+	return nil
 }
 
 func (g *nativeGamepadImpl) axisCount() int {
@@ -401,7 +408,10 @@ func (g *nativeGamepadImpl) axisValue(axis int) float64 {
 }
 
 func (g *nativeGamepadImpl) buttonValue(button int) float64 {
-	panic("gamepad: buttonValue is not implemented")
+	if g.isButtonPressed(button) {
+		return 1
+	}
+	return 0
 }
 
 func (g *nativeGamepadImpl) isButtonPressed(button int) bool {

@@ -36,7 +36,7 @@ type Game interface {
 	NewOffscreenImage(width, height int) *Image
 	NewScreenImage(width, height int) *Image
 	Layout(outsideWidth, outsideHeight float64) (screenWidth, screenHeight float64)
-	UpdateInputState(InputState)
+	UpdateInputState(fn func(*InputState))
 	Update() error
 	DrawOffscreen() error
 	DrawFinalScreen(scale, offsetX, offsetY float64)
@@ -128,9 +128,9 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 	// Update the game.
 	for i := 0; i < updateCount; i++ {
 		// Read the input state and use it for one tick to give a consistent result for one tick (#2496, #2501).
-		var inputState InputState
-		ui.readInputState(&inputState)
-		c.game.UpdateInputState(inputState)
+		c.game.UpdateInputState(func(inputState *InputState) {
+			ui.readInputState(inputState)
+		})
 
 		if err := hooks.RunBeforeUpdateHooks(); err != nil {
 			return err
@@ -143,8 +143,6 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 		if err := theGlobalState.error(); err != nil {
 			return err
 		}
-
-		ui.resetForTick()
 	}
 
 	// Update window icons during a frame, since an icon might be *ebiten.Image and

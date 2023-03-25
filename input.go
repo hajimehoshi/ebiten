@@ -15,6 +15,7 @@
 package ebiten
 
 import (
+	"io/fs"
 	"sync"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
@@ -22,7 +23,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
-// AppendInputChars appends "printable" runes, read from the keyboard at the time update is called, to runes,
+// AppendInputChars appends "printable" runes, read from the keyboard at the time Update is called, to runes,
 // and returns the extended buffer.
 // Giving a slice that already has enough capacity works efficiently.
 //
@@ -40,7 +41,7 @@ func AppendInputChars(runes []rune) []rune {
 	return theInputState.appendInputChars(runes)
 }
 
-// InputChars return "printable" runes read from the keyboard at the time update is called.
+// InputChars return "printable" runes read from the keyboard at the time Update is called.
 //
 // Deprecated: as of v2.2. Use AppendInputChars instead.
 func InputChars() []rune {
@@ -52,7 +53,7 @@ func InputChars() []rune {
 // If you want to know whether the key started being pressed in the current tick,
 // use inpututil.IsKeyJustPressed
 //
-// Note that a Key represents a pysical key of US keyboard layout.
+// Note that a Key represents a physical key of US keyboard layout.
 // For example, KeyQ represents Q key on US keyboards and ' (quote) key on Dvorak keyboards.
 //
 // Known issue: On Edge browser, some keys don't work well:
@@ -72,7 +73,7 @@ func IsKeyPressed(key Key) bool {
 // KeyName returns a key name for the current keyboard layout.
 // For example, KeyName(KeyQ) returns 'q' for a QWERTY keyboard, and returns 'a' for an AZERTY keyboard.
 //
-// KeyName returns an empty string if 1) the key doesn't have a phisical key name, 2) the platform doesn't support KeyName,
+// KeyName returns an empty string if 1) the key doesn't have a physical key name, 2) the platform doesn't support KeyName,
 // or 3) the main loop doesn't start yet.
 //
 // KeyName is supported by desktops and browsers.
@@ -112,7 +113,7 @@ func IsMouseButtonPressed(mouseButton MouseButton) bool {
 	return theInputState.isMouseButtonPressed(mouseButton)
 }
 
-// GamepadID represents a gamepad's identifier.
+// GamepadID represents a gamepad identifier.
 type GamepadID = gamepad.ID
 
 // GamepadSDLID returns a string with the GUID generated in the same way as SDL.
@@ -131,7 +132,7 @@ func GamepadSDLID(id GamepadID) string {
 
 // GamepadName returns a string with the name.
 // This function may vary in how it returns descriptions for the same device across platforms.
-// for example the following drivers/platforms see a Xbox One controller as the following:
+// for example the following drivers/platforms see an Xbox One controller as the following:
 //
 //   - Windows: "Xbox Controller"
 //   - Chrome: "Xbox 360 Controller (XInput STANDARD GAMEPAD)"
@@ -224,7 +225,7 @@ func GamepadButtonNum(id GamepadID) int {
 //
 // IsGamepadButtonPressed is concurrent-safe.
 //
-// The relationships between physical buttons and buttion IDs depend on environments.
+// The relationships between physical buttons and button IDs depend on environments.
 // There can be differences even between Chrome and Firefox.
 func IsGamepadButtonPressed(id GamepadID, button GamepadButton) bool {
 	g := gamepad.Get(id)
@@ -384,7 +385,7 @@ func TouchIDs() []TouchID {
 //
 // If the touch of the specified ID is not present, TouchPosition returns (0, 0).
 //
-// TouchPosition is cuncurrent-safe.
+// TouchPosition is concurrent-safe.
 func TouchPosition(id TouchID) (int, int) {
 	return theInputState.touchPosition(id)
 }
@@ -396,16 +397,16 @@ type inputState struct {
 	m     sync.Mutex
 }
 
-func (i *inputState) set(inputState ui.InputState) {
+func (i *inputState) update(fn func(*ui.InputState)) {
 	i.m.Lock()
 	defer i.m.Unlock()
-	i.state = inputState
+	fn(&i.state)
 }
 
 func (i *inputState) appendInputChars(runes []rune) []rune {
 	i.m.Lock()
 	defer i.m.Unlock()
-	return append(runes, i.state.Runes[:i.state.RunesCount]...)
+	return append(runes, i.state.Runes...)
 }
 
 func (i *inputState) isKeyPressed(key Key) bool {
@@ -426,7 +427,7 @@ func (i *inputState) isKeyPressed(key Key) bool {
 	case KeyMeta:
 		return i.state.KeyPressed[ui.KeyMetaLeft] || i.state.KeyPressed[ui.KeyMetaRight]
 	default:
-		return i.state.KeyPressed[ui.Key(key)]
+		return i.state.KeyPressed[key]
 	}
 }
 
@@ -453,9 +454,6 @@ func (i *inputState) appendTouchIDs(touches []TouchID) []TouchID {
 	defer i.m.Unlock()
 
 	for _, t := range i.state.Touches {
-		if !t.Valid {
-			continue
-		}
 		touches = append(touches, t.ID)
 	}
 	return touches
@@ -466,13 +464,22 @@ func (i *inputState) touchPosition(id TouchID) (int, int) {
 	defer i.m.Unlock()
 
 	for _, t := range i.state.Touches {
-		if !t.Valid {
-			continue
-		}
 		if id != t.ID {
 			continue
 		}
 		return t.X, t.Y
 	}
 	return 0, 0
+}
+
+func (i *inputState) windowBeingClosed() bool {
+	i.m.Lock()
+	defer i.m.Unlock()
+	return i.state.WindowBeingClosed
+}
+
+func (i *inputState) droppedFiles() fs.FS {
+	i.m.Lock()
+	defer i.m.Unlock()
+	return i.state.DroppedFiles
 }

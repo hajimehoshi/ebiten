@@ -53,11 +53,12 @@ func (s *Shader) restore() {
 var (
 	NearestFilterShader *Shader
 	LinearFilterShader  *Shader
+	clearShader         *Shader
 )
 
 func init() {
 	var wg errgroup.Group
-	var nearestIR, linearIR *shaderir.Program
+	var nearestIR, linearIR, clearIR *shaderir.Program
 	wg.Go(func() error {
 		ir, err := graphics.CompileShader([]byte(builtinshader.Shader(builtinshader.FilterNearest, builtinshader.AddressUnsafe, false)))
 		if err != nil {
@@ -74,9 +75,22 @@ func init() {
 		linearIR = ir
 		return nil
 	})
+	wg.Go(func() error {
+		ir, err := graphics.CompileShader([]byte(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	return vec4(0)
+}`))
+		if err != nil {
+			return fmt.Errorf("restorable: compiling the clear shader failed: %w", err)
+		}
+		clearIR = ir
+		return nil
+	})
 	if err := wg.Wait(); err != nil {
 		panic(err)
 	}
 	NearestFilterShader = NewShader(nearestIR)
 	LinearFilterShader = NewShader(linearIR)
+	clearShader = NewShader(clearIR)
 }

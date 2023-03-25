@@ -38,6 +38,15 @@ func ToCloseCallback(cb func(window *Window)) CloseCallback {
 	}
 }
 
+func ToDropCallback(cb func(window *Window, names []string)) DropCallback {
+	if cb == nil {
+		return nil
+	}
+	return func(window *glfw.Window, names []string) {
+		cb(theWindows.get(window), names)
+	}
+}
+
 func ToFramebufferSizeCallback(cb func(window *Window, width int, height int)) FramebufferSizeCallback {
 	if cb == nil {
 		return nil

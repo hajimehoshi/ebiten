@@ -213,7 +213,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	op.GeoM.Translate(g.x, g.y)
 
 	// Center the image (corrected by the current zoom).
-	w, h := gophersImage.Size()
+	w, h := gophersImage.Bounds().Dx(), gophersImage.Bounds().Dy()
 	op.GeoM.Translate(float64(-w)/2*g.zoom, float64(-h)/2*g.zoom)
 
 	screen.DrawImage(gophersImage, op)

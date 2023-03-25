@@ -51,33 +51,42 @@ const (
 )
 
 var (
-	corefoundation, _ = purego.Dlopen("CoreFoundation.framework/CoreFoundation", purego.RTLD_LAZY|purego.RTLD_GLOBAL)
-
 	KCFTypeDictionaryKeyCallBacks   *CFDictionaryKeyCallBacks
 	KCFTypeDictionaryValueCallBacks *CFDictionaryValueCallBacks
 	KCFTypeArrayCallBacks           *CFArrayCallBacks
 	KCFRunLoopDefaultMode           CFRunLoopMode
 )
 
-func init() {
+func InitializeCF() error {
+	corefoundation, err := purego.Dlopen("CoreFoundation.framework/CoreFoundation", purego.RTLD_LAZY|purego.RTLD_GLOBAL)
+	if err != nil {
+		return err
+	}
 	var ptr uintptr
-	var err error
-	if ptr, err = purego.Dlsym(corefoundation, "kCFTypeDictionaryKeyCallBacks"); err != nil {
-		panic(err)
+	ptr, err = purego.Dlsym(corefoundation, "kCFTypeDictionaryKeyCallBacks")
+	if err != nil {
+		return err
 	}
 	KCFTypeDictionaryKeyCallBacks = (*CFDictionaryKeyCallBacks)(unsafe.Pointer(ptr))
-	if ptr, err = purego.Dlsym(corefoundation, "kCFTypeDictionaryValueCallBacks"); err != nil {
-		panic(err)
+
+	ptr, err = purego.Dlsym(corefoundation, "kCFTypeDictionaryValueCallBacks")
+	if err != nil {
+		return err
 	}
 	KCFTypeDictionaryValueCallBacks = (*CFDictionaryValueCallBacks)(unsafe.Pointer(ptr))
-	if ptr, err = purego.Dlsym(corefoundation, "kCFTypeArrayCallBacks"); err != nil {
-		panic(err)
+
+	ptr, err = purego.Dlsym(corefoundation, "kCFTypeArrayCallBacks")
+	if err != nil {
+		return err
 	}
 	KCFTypeArrayCallBacks = (*CFArrayCallBacks)(unsafe.Pointer(ptr))
-	if ptr, err = purego.Dlsym(corefoundation, "kCFRunLoopDefaultMode"); err != nil {
-		panic(err)
+
+	ptr, err = purego.Dlsym(corefoundation, "kCFRunLoopDefaultMode")
+	if err != nil {
+		return err
 	}
-	KCFRunLoopDefaultMode = *(*CFRunLoopMode)(unsafe.Pointer(ptr))
+	KCFRunLoopDefaultMode = (CFRunLoopMode)(unsafe.Pointer(ptr))
+
 	purego.RegisterLibFunc(&CFNumberCreate, corefoundation, "CFNumberCreate")
 	purego.RegisterLibFunc(&CFNumberGetValue, corefoundation, "CFNumberGetValue")
 	purego.RegisterLibFunc(&CFArrayCreate, corefoundation, "CFArrayCreate")
@@ -90,8 +99,8 @@ func init() {
 	purego.RegisterLibFunc(&CFGetTypeID, corefoundation, "CFGetTypeID")
 	purego.RegisterLibFunc(&CFStringGetCString, corefoundation, "CFStringGetCString")
 	purego.RegisterLibFunc(&CFStringCreateWithCString, corefoundation, "CFStringCreateWithCString")
-	purego.RegisterLibFunc(&CFBundleGetBundleWithIdentifier, corefoundation, "CFBundleGetBundleWithIdentifier")
-	purego.RegisterLibFunc(&CFBundleGetFunctionPointerForName, corefoundation, "CFBundleGetFunctionPointerForName")
+
+	return nil
 }
 
 var CFNumberCreate func(allocator CFAllocatorRef, theType CFNumberType, valuePtr unsafe.Pointer) CFNumberRef

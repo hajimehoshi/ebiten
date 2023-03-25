@@ -93,13 +93,13 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	{
 		const x, y = 20, 40
 		b := text.BoundString(mplusNormalFont, sampleText)
-		vector.DrawFilledRect(screen, float32(b.Min.X+x), float32(b.Min.Y+y), float32(b.Dx()), float32(b.Dy()), gray)
+		vector.DrawFilledRect(screen, float32(b.Min.X+x), float32(b.Min.Y+y), float32(b.Dx()), float32(b.Dy()), gray, false)
 		text.Draw(screen, sampleText, mplusNormalFont, x, y, color.White)
 	}
 	{
 		const x, y = 20, 140
 		b := text.BoundString(mplusBigFont, sampleText)
-		vector.DrawFilledRect(screen, float32(b.Min.X+x), float32(b.Min.Y+y), float32(b.Dx()), float32(b.Dy()), gray)
+		vector.DrawFilledRect(screen, float32(b.Min.X+x), float32(b.Min.Y+y), float32(b.Dx()), float32(b.Dy()), gray, false)
 		text.Draw(screen, sampleText, mplusBigFont, x, y, color.White)
 	}
 	{
@@ -114,7 +114,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		const x, y = 160, 240
 		const lineHeight = 80
 		b := text.BoundString(text.FaceWithLineHeight(mplusBigFont, lineHeight), sampleText)
-		vector.DrawFilledRect(screen, float32(b.Min.X+x), float32(b.Min.Y+y), float32(b.Dx()), float32(b.Dy()), gray)
+		vector.DrawFilledRect(screen, float32(b.Min.X+x), float32(b.Min.Y+y), float32(b.Dx()), float32(b.Dy()), gray, false)
 		text.Draw(screen, sampleText, text.FaceWithLineHeight(mplusBigFont, lineHeight), x, y, color.White)
 	}
 	{

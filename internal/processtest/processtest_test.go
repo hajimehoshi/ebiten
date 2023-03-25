@@ -18,10 +18,13 @@ package processtest_test
 
 import (
 	"bytes"
+	"context"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
+	"time"
 
 	exec "golang.org/x/sys/execabs"
 )
@@ -33,6 +36,9 @@ func TestPrograms(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Run sub-tests one by one, not in parallel (#2571).
+	var m sync.Mutex
+
 	for _, e := range ents {
 		if e.IsDir() {
 			continue
@@ -43,7 +49,13 @@ func TestPrograms(t *testing.T) {
 		}
 
 		t.Run(n, func(t *testing.T) {
-			cmd := exec.Command("go", "run", filepath.Join(dir, n))
+			m.Lock()
+			defer m.Unlock()
+
+			ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+			defer cancel()
+
+			cmd := exec.CommandContext(ctx, "go", "run", filepath.Join(dir, n))
 			stderr := &bytes.Buffer{}
 			cmd.Stderr = stderr
 			if err := cmd.Run(); err != nil {

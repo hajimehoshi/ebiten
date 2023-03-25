@@ -65,7 +65,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	screen.DrawImage(srcInit, nil)
 
 	if g.dst == nil {
-		g.dst = ebiten.NewImage(screen.Size())
+		g.dst = ebiten.NewImage(screen.Bounds().Dx(), screen.Bounds().Dy())
 		return
 	}
 

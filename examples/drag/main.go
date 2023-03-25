@@ -58,7 +58,7 @@ func (s *Sprite) In(x, y int) bool {
 
 // MoveBy moves the sprite by (x, y).
 func (s *Sprite) MoveBy(x, y int) {
-	w, h := s.image.Size()
+	w, h := s.image.Bounds().Dx(), s.image.Bounds().Dy()
 
 	s.x += x
 	s.y += y
@@ -200,7 +200,7 @@ func init() {
 func NewGame() *Game {
 	// Initialize the sprites.
 	sprites := []*Sprite{}
-	w, h := ebitenImage.Size()
+	w, h := ebitenImage.Bounds().Dx(), ebitenImage.Bounds().Dy()
 	for i := 0; i < 50; i++ {
 		s := &Sprite{
 			image: ebitenImage,

@@ -141,7 +141,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		return
 	}
 
-	w, h := screen.Size()
+	w, h := screen.Bounds().Dx(), screen.Bounds().Dy()
 	cx, cy := ebiten.CursorPosition()
 
 	op := &ebiten.DrawRectShaderOptions{}

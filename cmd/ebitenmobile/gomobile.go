@@ -147,7 +147,7 @@ import (
 		return tmp, err
 	}
 
-	// To record gomobile to go.sum for Go 1.16 and later, go-get gomobile instaed of golang.org/x/mobile (#1487).
+	// To record gomobile to go.sum for Go 1.16 and later, go-get gomobile instead of golang.org/x/mobile (#1487).
 	// This also records gobind as gomobile depends on gobind indirectly.
 	// Using `...` doesn't work on Windows since mobile/internal/mobileinit cannot be compiled on Windows w/o Cgo (#1493).
 	if err := runGo("get", "golang.org/x/mobile/cmd/gomobile@"+h); err != nil {

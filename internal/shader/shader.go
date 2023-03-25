@@ -623,21 +623,24 @@ func (s *compileState) parseConstant(block *block, fname string, vs *ast.ValueSp
 			return nil, false
 		}
 
+		c := es[0].Const
 		constType := es[0].ConstType
 		switch t.Main {
 		case shaderir.Bool:
 			constType = shaderir.ConstTypeBool
 		case shaderir.Int:
 			constType = shaderir.ConstTypeInt
+			c = gconstant.ToInt(c)
 		case shaderir.Float:
 			constType = shaderir.ConstTypeFloat
+			c = gconstant.ToFloat(c)
 		}
 
 		cs = append(cs, constant{
 			name:  name,
 			typ:   t,
 			ctyp:  constType,
-			value: es[0].Const,
+			value: c,
 		})
 	}
 	return cs, true

@@ -23,6 +23,7 @@ import "C"
 import (
 	stdcontext "context"
 	"runtime"
+	"sync"
 
 	"golang.org/x/sync/errgroup"
 
@@ -69,6 +70,8 @@ type userInterfaceImpl struct {
 
 	mainThread   *thread.OSThread
 	renderThread *thread.OSThread
+
+	m sync.Mutex
 }
 
 func (u *userInterfaceImpl) Run(game Game, options *RunOptions) error {
@@ -149,11 +152,9 @@ func (*userInterfaceImpl) ScreenSizeInFullscreen() (int, int) {
 }
 
 func (u *userInterfaceImpl) readInputState(inputState *InputState) {
-	*inputState = u.inputState
-	u.inputState.resetForTick()
-}
-
-func (u *userInterfaceImpl) resetForTick() {
+	u.m.Lock()
+	defer u.m.Unlock()
+	u.inputState.copyAndReset(inputState)
 }
 
 func (*userInterfaceImpl) CursorMode() CursorMode {

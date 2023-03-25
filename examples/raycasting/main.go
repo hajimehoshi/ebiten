@@ -247,7 +247,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	if g.showRays {
 		// Draw rays
 		for _, r := range rays {
-			vector.StrokeLine(screen, float32(r.X1), float32(r.Y1), float32(r.X2), float32(r.Y2), 1, color.RGBA{255, 255, 0, 150})
+			vector.StrokeLine(screen, float32(r.X1), float32(r.Y1), float32(r.X2), float32(r.Y2), 1, color.RGBA{255, 255, 0, 150}, true)
 		}
 	}
 
@@ -259,13 +259,13 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	// Draw walls
 	for _, obj := range g.objects {
 		for _, w := range obj.walls {
-			vector.StrokeLine(screen, float32(w.X1), float32(w.Y1), float32(w.X2), float32(w.Y2), 1, color.RGBA{255, 0, 0, 255})
+			vector.StrokeLine(screen, float32(w.X1), float32(w.Y1), float32(w.X2), float32(w.Y2), 1, color.RGBA{255, 0, 0, 255}, true)
 		}
 	}
 
 	// Draw player as a rect
-	vector.DrawFilledRect(screen, float32(g.px)-2, float32(g.py)-2, 4, 4, color.Black)
-	vector.DrawFilledRect(screen, float32(g.px)-1, float32(g.py)-1, 2, 2, color.RGBA{255, 100, 100, 255})
+	vector.DrawFilledRect(screen, float32(g.px)-2, float32(g.py)-2, 4, 4, color.Black, true)
+	vector.DrawFilledRect(screen, float32(g.px)-1, float32(g.py)-1, 2, 2, color.RGBA{255, 100, 100, 255}, true)
 
 	if g.showRays {
 		ebitenutil.DebugPrintAt(screen, "R: hide rays", padding, 0)

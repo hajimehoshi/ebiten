@@ -28,6 +28,7 @@ import (
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/devicescale"
+	"github.com/hajimehoshi/ebiten/v2/internal/file"
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
 	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
@@ -66,7 +67,6 @@ type userInterfaceImpl struct {
 	iconImages           []image.Image
 	cursorShape          CursorShape
 	windowClosingHandled bool
-	windowBeingClosed    bool
 	windowResizingMode   WindowResizingMode
 	inFrame              uint32
 
@@ -92,6 +92,8 @@ type userInterfaceImpl struct {
 	initWindowFloating       bool
 	initWindowMaximized      bool
 
+	bufferOnceSwapped bool
+
 	origWindowPosX        int
 	origWindowPosY        int
 	origWindowWidthInDIP  int
@@ -106,9 +108,11 @@ type userInterfaceImpl struct {
 	closeCallback                  glfw.CloseCallback
 	framebufferSizeCallback        glfw.FramebufferSizeCallback
 	defaultFramebufferSizeCallback glfw.FramebufferSizeCallback
+	dropCallback                   glfw.DropCallback
 	framebufferSizeCallbackCh      chan struct{}
 
 	glContextSetOnce sync.Once
+	darwinInitOnce   sync.Once
 
 	mainThread   threadInterface
 	renderThread threadInterface
@@ -472,13 +476,6 @@ func (u *userInterfaceImpl) setWindowClosingHandled(handled bool) {
 	u.m.Unlock()
 }
 
-func (u *userInterfaceImpl) isWindowBeingClosed() bool {
-	u.m.RLock()
-	v := u.windowBeingClosed
-	u.m.RUnlock()
-	return v
-}
-
 func (u *userInterfaceImpl) ScreenSizeInFullscreen() (int, int) {
 	if !u.isRunning() {
 		return u.initFullscreenWidthInDIP, u.initFullscreenHeightInDIP
@@ -713,7 +710,7 @@ func (u *userInterfaceImpl) registerWindowCloseCallback() {
 	if u.closeCallback == nil {
 		u.closeCallback = glfw.ToCloseCallback(func(_ *glfw.Window) {
 			u.m.Lock()
-			u.windowBeingClosed = true
+			u.inputState.WindowBeingClosed = true
 			u.m.Unlock()
 
 			if !u.isWindowClosingHandled() {
@@ -752,6 +749,17 @@ func (u *userInterfaceImpl) registerWindowFramebufferSizeCallback() {
 		})
 	}
 	u.window.SetFramebufferSizeCallback(u.defaultFramebufferSizeCallback)
+}
+
+func (u *userInterfaceImpl) registerDropCallback() {
+	if u.dropCallback == nil {
+		u.dropCallback = glfw.ToDropCallback(func(_ *glfw.Window, names []string) {
+			u.m.Lock()
+			defer u.m.Unlock()
+			u.inputState.DroppedFiles = file.NewVirtualFS(names)
+		})
+	}
+	u.window.SetDropCallback(u.dropCallback)
 }
 
 // waitForFramebufferSizeCallback waits for GLFW's FramebufferSize callback.
@@ -803,11 +811,14 @@ event:
 func (u *userInterfaceImpl) initOnMainThread(options *RunOptions) error {
 	glfw.WindowHint(glfw.AutoIconify, glfw.False)
 
-	decorated := glfw.False
-	if u.isInitWindowDecorated() {
-		decorated = glfw.True
+	// On macOS, window decoration should be initialized once after buffers are swapped (#2600).
+	if runtime.GOOS != "darwin" {
+		decorated := glfw.False
+		if u.isInitWindowDecorated() {
+			decorated = glfw.True
+		}
+		glfw.WindowHint(glfw.Decorated, decorated)
 	}
-	glfw.WindowHint(glfw.Decorated, decorated)
 
 	glfwTransparent := glfw.False
 	if options.ScreenTransparent {
@@ -894,7 +905,10 @@ func (u *userInterfaceImpl) initOnMainThread(options *RunOptions) error {
 		_ = u.skipTaskbar()
 	}
 
-	u.window.Show()
+	// On macOS, the window is shown once after buffers are swapped at update.
+	if runtime.GOOS != "darwin" {
+		u.window.Show()
+	}
 
 	if g, ok := u.graphicsDriver.(interface{ SetWindow(uintptr) }); ok {
 		g.SetWindow(u.nativeWindow())
@@ -907,6 +921,7 @@ func (u *userInterfaceImpl) initOnMainThread(options *RunOptions) error {
 	u.registerWindowCloseCallback()
 	u.registerWindowFramebufferSizeCallback()
 	u.registerInputCallbacks()
+	u.registerDropCallback()
 
 	return nil
 }
@@ -968,9 +983,24 @@ func (u *userInterfaceImpl) update() (float64, float64, error) {
 		return 0, 0, RegularTermination
 	}
 
-	if u.isInitFullscreen() {
+	// On macOS, one swapping buffers seems required before entering fullscreen (#2599).
+	if u.isInitFullscreen() && (u.bufferOnceSwapped || runtime.GOOS != "darwin") {
 		u.setFullscreen(true)
 		u.setInitFullscreen(false)
+	}
+
+	if runtime.GOOS == "darwin" && u.bufferOnceSwapped {
+		u.darwinInitOnce.Do(func() {
+			// On macOS, window decoration should be initialized once after buffers are swapped (#2600).
+			decorated := glfw.False
+			if u.isInitWindowDecorated() {
+				decorated = glfw.True
+			}
+			u.window.SetAttrib(glfw.Decorated, decorated)
+
+			// The window is not shown at the initialization on macOS. Show the window here.
+			u.window.Show()
+		})
 	}
 
 	// Initialize vsync after SetMonitor is called. See the comment in updateVsync.
@@ -1007,7 +1037,6 @@ func (u *userInterfaceImpl) update() (float64, float64, error) {
 
 func (u *userInterfaceImpl) loopGame() error {
 	defer u.mainThread.Call(func() {
-		u.window.Destroy()
 		glfw.Terminate()
 	})
 	for {
@@ -1062,6 +1091,8 @@ func (u *userInterfaceImpl) updateGame() error {
 
 		// This works only for OpenGL.
 		u.swapBuffersOnRenderThread()
+
+		u.bufferOnceSwapped = true
 	})
 
 	if unfocused {
@@ -1346,17 +1377,10 @@ func monitorFromWindow(window *glfw.Window) *glfw.Monitor {
 	return nil
 }
 
-func (u *userInterfaceImpl) resetForTick() {
-	u.m.Lock()
-	defer u.m.Unlock()
-	u.windowBeingClosed = false
-}
-
 func (u *userInterfaceImpl) readInputState(inputState *InputState) {
 	u.m.Lock()
 	defer u.m.Unlock()
-	*inputState = u.inputState
-	u.inputState.resetForTick()
+	u.inputState.copyAndReset(inputState)
 }
 
 func (u *userInterfaceImpl) Window() Window {

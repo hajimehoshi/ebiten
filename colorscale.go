@@ -29,7 +29,7 @@ type ColorScale struct {
 	r_1, g_1, b_1, a_1 float32
 }
 
-// String returns a string represeting the color scale.
+// String returns a string representing the color scale.
 func (c *ColorScale) String() string {
 	return fmt.Sprintf("(%f,%f,%f,%f)", c.r_1+1, c.g_1+1, c.b_1+1, c.a_1+1)
 }

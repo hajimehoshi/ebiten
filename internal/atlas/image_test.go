@@ -27,12 +27,13 @@ import (
 )
 
 const (
-	minImageSizeForTesting = 1024
-	maxImageSizeForTesting = 4096
+	minSourceImageSizeForTesting      = 1024
+	minDestinationImageSizeForTesting = 256
+	maxImageSizeForTesting            = 4096
 )
 
 func TestMain(m *testing.M) {
-	atlas.SetImageSizeForTesting(minImageSizeForTesting, maxImageSizeForTesting)
+	atlas.SetImageSizeForTesting(minSourceImageSizeForTesting, minDestinationImageSizeForTesting, maxImageSizeForTesting)
 	defer atlas.ResetImageSizeForTesting()
 	t.MainWithRunLoop(m)
 }
@@ -56,7 +57,7 @@ func quadVertices(sw, sh, x, y int, scalex float32) []float32 {
 
 const bigSize = 2049
 
-func TestEnsureIsolated(t *testing.T) {
+func TestEnsureIsolatedFromSourceBackend(t *testing.T) {
 	// Create img1 and img2 with this size so that the next images are allocated
 	// with non-upper-left location.
 	img1 := atlas.NewImage(bigSize, 100, atlas.ImageTypeRegular)
@@ -97,7 +98,7 @@ func TestEnsureIsolated(t *testing.T) {
 		dx1 = size * 3 / 4
 		dy1 = size * 3 / 4
 	)
-	// img4.EnsureIsolated() should be called.
+	// img4.ensureIsolatedFromSource() should be called.
 	vs := quadVertices(size/2, size/2, size/4, size/4, 1)
 	is := graphics.QuadIndices()
 	dr := graphicsdriver.Region{
@@ -107,11 +108,11 @@ func TestEnsureIsolated(t *testing.T) {
 		Height: size,
 	}
 	img4.DrawTriangles([graphics.ShaderImageCount]*atlas.Image{img3}, vs, is, graphicsdriver.BlendCopy, dr, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, atlas.NearestFilterShader, nil, false)
-	if got, want := img4.IsOnAtlasForTesting(), false; got != want {
+	if got, want := img4.IsOnSourceBackendForTesting(), false; got != want {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
 
-	// Make img3 isolated before getting pixels.
+	// img5 is not allocated now, but is allocated at DrawTriangles.
 	vs = quadVertices(0, 0, size/2, size/2, 1)
 	dr = graphicsdriver.Region{
 		X:      0,
@@ -120,12 +121,12 @@ func TestEnsureIsolated(t *testing.T) {
 		Height: size / 2,
 	}
 	img3.DrawTriangles([graphics.ShaderImageCount]*atlas.Image{img5}, vs, is, graphicsdriver.BlendCopy, dr, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, atlas.NearestFilterShader, nil, false)
-	if got, want := img3.IsOnAtlasForTesting(), false; got != want {
+	if got, want := img3.IsOnSourceBackendForTesting(), false; got != want {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
 
 	pix = make([]byte, 4*size*size)
-	if err := img4.ReadPixels(ui.GraphicsDriverForTesting(), pix); err != nil {
+	if err := img4.ReadPixels(ui.GraphicsDriverForTesting(), pix, 0, 0, size, size); err != nil {
 		t.Fatal(err)
 	}
 	for j := 0; j < size; j++ {
@@ -134,11 +135,11 @@ func TestEnsureIsolated(t *testing.T) {
 			g := pix[4*(size*j+i)+1]
 			b := pix[4*(size*j+i)+2]
 			a := pix[4*(size*j+i)+3]
-			got := color.RGBA{r, g, b, a}
+			got := color.RGBA{R: r, G: g, B: b, A: a}
 			var want color.RGBA
 			if i < dx0 || dx1 <= i || j < dy0 || dy1 <= j {
 				c := byte(i + j)
-				want = color.RGBA{c, c, c, c}
+				want = color.RGBA{R: c, G: c, B: c, A: c}
 			}
 			if got != want {
 				t.Errorf("at(%d, %d): got: %v, want: %v", i, j, got, want)
@@ -148,10 +149,11 @@ func TestEnsureIsolated(t *testing.T) {
 
 	// Check further drawing doesn't cause panic.
 	// This bug was fixed by 03dcd948.
+	vs = quadVertices(0, 0, size/2, size/2, 1)
 	img4.DrawTriangles([graphics.ShaderImageCount]*atlas.Image{img3}, vs, is, graphicsdriver.BlendCopy, dr, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, atlas.NearestFilterShader, nil, false)
 }
 
-func TestReputOnAtlas(t *testing.T) {
+func TestReputOnSourceBackend(t *testing.T) {
 	const size = 16
 
 	img0 := atlas.NewImage(size, size, atlas.ImageTypeRegular)
@@ -161,7 +163,7 @@ func TestReputOnAtlas(t *testing.T) {
 	img1 := atlas.NewImage(size, size, atlas.ImageTypeRegular)
 	defer img1.MarkDisposed()
 	img1.WritePixels(make([]byte, 4*size*size), 0, 0, size, size)
-	if got, want := img1.IsOnAtlasForTesting(), true; got != want {
+	if got, want := img1.IsOnSourceBackendForTesting(), true; got != want {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
 
@@ -178,16 +180,15 @@ func TestReputOnAtlas(t *testing.T) {
 	}
 	img2.WritePixels(pix, 0, 0, size, size)
 
-	// Create a volatile image. This should always be isolated.
+	// Create a volatile image. This should always be on a non-source backend.
 	img3 := atlas.NewImage(size, size, atlas.ImageTypeVolatile)
 	defer img3.MarkDisposed()
-	img1.WritePixels(make([]byte, 4*size*size), 0, 0, size, size)
-	if got, want := img3.IsOnAtlasForTesting(), false; got != want {
+	img3.WritePixels(make([]byte, 4*size*size), 0, 0, size, size)
+	if got, want := img3.IsOnSourceBackendForTesting(), false; got != want {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
 
 	// Use img1 as a render target.
-	vs := quadVertices(size, size, 0, 0, 1)
 	is := graphics.QuadIndices()
 	dr := graphicsdriver.Region{
 		X:      0,
@@ -195,104 +196,124 @@ func TestReputOnAtlas(t *testing.T) {
 		Width:  size,
 		Height: size,
 	}
-	img1.DrawTriangles([graphics.ShaderImageCount]*atlas.Image{img2}, vs, is, graphicsdriver.BlendCopy, dr, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, atlas.NearestFilterShader, nil, false)
-	if got, want := img1.IsOnAtlasForTesting(), false; got != want {
-		t.Errorf("got: %v, want: %v", got, want)
+	// Render onto img1. The count should not matter.
+	for i := 0; i < 5; i++ {
+		vs := quadVertices(size, size, 0, 0, 1)
+		img1.DrawTriangles([graphics.ShaderImageCount]*atlas.Image{img2}, vs, is, graphicsdriver.BlendCopy, dr, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, atlas.NearestFilterShader, nil, false)
+		if got, want := img1.IsOnSourceBackendForTesting(), false; got != want {
+			t.Errorf("got: %v, want: %v", got, want)
+		}
 	}
 
 	// Use img1 as a render source.
 	// Use the doubled count since img1 was on a texture atlas and became an isolated image once.
-	// Then, img1 requires longer time to recover to be on a textur atlas again.
-	for i := 0; i < atlas.BaseCountToPutOnAtlas*2; i++ {
-		if err := atlas.PutImagesOnAtlasForTesting(ui.GraphicsDriverForTesting()); err != nil {
+	// Then, img1 requires longer time to recover to be on a texture atlas again.
+	for i := 0; i < atlas.BaseCountToPutOnSourceBackend*2; i++ {
+		if err := atlas.PutImagesOnSourceBackendForTesting(ui.GraphicsDriverForTesting()); err != nil {
 			t.Fatal(err)
 		}
+		vs := quadVertices(size, size, 0, 0, 1)
 		img0.DrawTriangles([graphics.ShaderImageCount]*atlas.Image{img1}, vs, is, graphicsdriver.BlendCopy, dr, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, atlas.NearestFilterShader, nil, false)
-		if got, want := img1.IsOnAtlasForTesting(), false; got != want {
+		if got, want := img1.IsOnSourceBackendForTesting(), false; got != want {
 			t.Errorf("got: %v, want: %v", got, want)
 		}
 	}
-	if err := atlas.PutImagesOnAtlasForTesting(ui.GraphicsDriverForTesting()); err != nil {
+	// Finally, img1 is on a source backend.
+	if err := atlas.PutImagesOnSourceBackendForTesting(ui.GraphicsDriverForTesting()); err != nil {
 		t.Fatal(err)
 	}
-
-	pix = make([]byte, 4*size*size)
-	if err := img1.ReadPixels(ui.GraphicsDriverForTesting(), pix); err != nil {
-		t.Fatal(err)
-	}
-	for j := 0; j < size; j++ {
-		for i := 0; i < size; i++ {
-			want := color.RGBA{byte(i + j), byte(i + j), byte(i + j), byte(i + j)}
-			r := pix[4*(size*j+i)]
-			g := pix[4*(size*j+i)+1]
-			b := pix[4*(size*j+i)+2]
-			a := pix[4*(size*j+i)+3]
-			got := color.RGBA{r, g, b, a}
-			if got != want {
-				t.Errorf("At(%d, %d): got: %v, want: %v", i, j, got, want)
-			}
-		}
-	}
-
-	// img1 is on an atlas again.
+	vs := quadVertices(size, size, 0, 0, 1)
 	img0.DrawTriangles([graphics.ShaderImageCount]*atlas.Image{img1}, vs, is, graphicsdriver.BlendCopy, dr, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, atlas.NearestFilterShader, nil, false)
-	if got, want := img1.IsOnAtlasForTesting(), true; got != want {
+	if got, want := img1.IsOnSourceBackendForTesting(), true; got != want {
 		t.Errorf("got: %v, want: %v", got, want)
+	}
+	if err := atlas.PutImagesOnSourceBackendForTesting(ui.GraphicsDriverForTesting()); err != nil {
+		t.Fatal(err)
 	}
 
 	pix = make([]byte, 4*size*size)
-	if err := img1.ReadPixels(ui.GraphicsDriverForTesting(), pix); err != nil {
+	if err := img1.ReadPixels(ui.GraphicsDriverForTesting(), pix, 0, 0, size, size); err != nil {
 		t.Fatal(err)
 	}
 	for j := 0; j < size; j++ {
 		for i := 0; i < size; i++ {
-			want := color.RGBA{byte(i + j), byte(i + j), byte(i + j), byte(i + j)}
+			want := color.RGBA{R: byte(i + j), G: byte(i + j), B: byte(i + j), A: byte(i + j)}
 			r := pix[4*(size*j+i)]
 			g := pix[4*(size*j+i)+1]
 			b := pix[4*(size*j+i)+2]
 			a := pix[4*(size*j+i)+3]
-			got := color.RGBA{r, g, b, a}
+			got := color.RGBA{R: r, G: g, B: b, A: a}
 			if got != want {
 				t.Errorf("At(%d, %d): got: %v, want: %v", i, j, got, want)
 			}
 		}
 	}
 
-	// Use img1 as a render target again.
-	img1.DrawTriangles([graphics.ShaderImageCount]*atlas.Image{img2}, vs, is, graphicsdriver.BlendCopy, dr, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, atlas.NearestFilterShader, nil, false)
-	if got, want := img1.IsOnAtlasForTesting(), false; got != want {
+	vs = quadVertices(size, size, 0, 0, 1)
+	img0.DrawTriangles([graphics.ShaderImageCount]*atlas.Image{img1}, vs, is, graphicsdriver.BlendCopy, dr, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, atlas.NearestFilterShader, nil, false)
+	if got, want := img1.IsOnSourceBackendForTesting(), true; got != want {
 		t.Errorf("got: %v, want: %v", got, want)
+	}
+
+	pix = make([]byte, 4*size*size)
+	if err := img1.ReadPixels(ui.GraphicsDriverForTesting(), pix, 0, 0, size, size); err != nil {
+		t.Fatal(err)
+	}
+	for j := 0; j < size; j++ {
+		for i := 0; i < size; i++ {
+			want := color.RGBA{R: byte(i + j), G: byte(i + j), B: byte(i + j), A: byte(i + j)}
+			r := pix[4*(size*j+i)]
+			g := pix[4*(size*j+i)+1]
+			b := pix[4*(size*j+i)+2]
+			a := pix[4*(size*j+i)+3]
+			got := color.RGBA{R: r, G: g, B: b, A: a}
+			if got != want {
+				t.Errorf("At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+
+	// Use img1 as a render target again. The count should not matter.
+	for i := 0; i < 5; i++ {
+		vs := quadVertices(size, size, 0, 0, 1)
+		img1.DrawTriangles([graphics.ShaderImageCount]*atlas.Image{img2}, vs, is, graphicsdriver.BlendCopy, dr, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, atlas.NearestFilterShader, nil, false)
+		if got, want := img1.IsOnSourceBackendForTesting(), false; got != want {
+			t.Errorf("got: %v, want: %v", got, want)
+		}
 	}
 
 	// Use img1 as a render source, but call WritePixels.
 	// Now use 4x count as img1 became an isolated image again.
-	for i := 0; i < atlas.BaseCountToPutOnAtlas*4; i++ {
-		if err := atlas.PutImagesOnAtlasForTesting(ui.GraphicsDriverForTesting()); err != nil {
+	for i := 0; i < atlas.BaseCountToPutOnSourceBackend*4; i++ {
+		if err := atlas.PutImagesOnSourceBackendForTesting(ui.GraphicsDriverForTesting()); err != nil {
 			t.Fatal(err)
 		}
 		img1.WritePixels(make([]byte, 4*size*size), 0, 0, size, size)
+		vs := quadVertices(size, size, 0, 0, 1)
 		img0.DrawTriangles([graphics.ShaderImageCount]*atlas.Image{img1}, vs, is, graphicsdriver.BlendCopy, dr, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, atlas.NearestFilterShader, nil, false)
-		if got, want := img1.IsOnAtlasForTesting(), false; got != want {
+		if got, want := img1.IsOnSourceBackendForTesting(), false; got != want {
 			t.Errorf("got: %v, want: %v", got, want)
 		}
 	}
-	if err := atlas.PutImagesOnAtlasForTesting(ui.GraphicsDriverForTesting()); err != nil {
+	if err := atlas.PutImagesOnSourceBackendForTesting(ui.GraphicsDriverForTesting()); err != nil {
 		t.Fatal(err)
 	}
 
 	// img1 is not on an atlas due to WritePixels.
+	vs = quadVertices(size, size, 0, 0, 1)
 	img0.DrawTriangles([graphics.ShaderImageCount]*atlas.Image{img1}, vs, is, graphicsdriver.BlendCopy, dr, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, atlas.NearestFilterShader, nil, false)
-	if got, want := img1.IsOnAtlasForTesting(), false; got != want {
+	if got, want := img1.IsOnSourceBackendForTesting(), false; got != want {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
 
 	// Use img3 as a render source. As img3 is volatile, img3 is never on an atlas.
-	for i := 0; i < atlas.BaseCountToPutOnAtlas*2; i++ {
-		if err := atlas.PutImagesOnAtlasForTesting(ui.GraphicsDriverForTesting()); err != nil {
+	for i := 0; i < atlas.BaseCountToPutOnSourceBackend*2; i++ {
+		if err := atlas.PutImagesOnSourceBackendForTesting(ui.GraphicsDriverForTesting()); err != nil {
 			t.Fatal(err)
 		}
+		vs := quadVertices(size, size, 0, 0, 1)
 		img0.DrawTriangles([graphics.ShaderImageCount]*atlas.Image{img3}, vs, is, graphicsdriver.BlendCopy, dr, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, atlas.NearestFilterShader, nil, false)
-		if got, want := img3.IsOnAtlasForTesting(), false; got != want {
+		if got, want := img3.IsOnSourceBackendForTesting(), false; got != want {
 			t.Errorf("got: %v, want: %v", got, want)
 		}
 	}
@@ -314,7 +335,7 @@ func TestExtend(t *testing.T) {
 	}
 	img0.WritePixels(p0, 0, 0, w0, h0)
 
-	const w1, h1 = minImageSizeForTesting + 1, 100
+	const w1, h1 = minSourceImageSizeForTesting + 1, 100
 	img1 := atlas.NewImage(w1, h1, atlas.ImageTypeRegular)
 	defer img1.MarkDisposed()
 
@@ -329,7 +350,7 @@ func TestExtend(t *testing.T) {
 	img1.WritePixels(p1, 0, 0, w1, h1)
 
 	pix0 := make([]byte, 4*w0*h0)
-	if err := img0.ReadPixels(ui.GraphicsDriverForTesting(), pix0); err != nil {
+	if err := img0.ReadPixels(ui.GraphicsDriverForTesting(), pix0, 0, 0, w0, h0); err != nil {
 		t.Fatal(err)
 	}
 	for j := 0; j < h0; j++ {
@@ -338,9 +359,9 @@ func TestExtend(t *testing.T) {
 			g := pix0[4*(w0*j+i)+1]
 			b := pix0[4*(w0*j+i)+2]
 			a := pix0[4*(w0*j+i)+3]
-			got := color.RGBA{r, g, b, a}
+			got := color.RGBA{R: r, G: g, B: b, A: a}
 			c := byte(i + w0*j)
-			want := color.RGBA{c, c, c, c}
+			want := color.RGBA{R: c, G: c, B: c, A: c}
 			if got != want {
 				t.Errorf("at(%d, %d): got: %v, want: %v", i, j, got, want)
 			}
@@ -348,7 +369,7 @@ func TestExtend(t *testing.T) {
 	}
 
 	pix1 := make([]byte, 4*w1*h1)
-	if err := img1.ReadPixels(ui.GraphicsDriverForTesting(), pix1); err != nil {
+	if err := img1.ReadPixels(ui.GraphicsDriverForTesting(), pix1, 0, 0, w1, h1); err != nil {
 		t.Fatal(err)
 	}
 	for j := 0; j < h1; j++ {
@@ -357,9 +378,9 @@ func TestExtend(t *testing.T) {
 			g := pix1[4*(w1*j+i)+1]
 			b := pix1[4*(w1*j+i)+2]
 			a := pix1[4*(w1*j+i)+3]
-			got := color.RGBA{r, g, b, a}
+			got := color.RGBA{R: r, G: g, B: b, A: a}
 			c := byte(i + w1*j)
-			want := color.RGBA{c, c, c, c}
+			want := color.RGBA{R: c, G: c, B: c, A: c}
 			if got != want {
 				t.Errorf("at(%d, %d): got: %v, want: %v", i, j, got, want)
 			}
@@ -395,7 +416,7 @@ func TestWritePixelsAfterDrawTriangles(t *testing.T) {
 	dst.WritePixels(pix, 0, 0, w, h)
 
 	pix = make([]byte, 4*w*h)
-	if err := dst.ReadPixels(ui.GraphicsDriverForTesting(), pix); err != nil {
+	if err := dst.ReadPixels(ui.GraphicsDriverForTesting(), pix, 0, 0, w, h); err != nil {
 		t.Fatal(err)
 	}
 	for j := 0; j < h; j++ {
@@ -404,9 +425,9 @@ func TestWritePixelsAfterDrawTriangles(t *testing.T) {
 			g := pix[4*(w*j+i)+1]
 			b := pix[4*(w*j+i)+2]
 			a := pix[4*(w*j+i)+3]
-			got := color.RGBA{r, g, b, a}
+			got := color.RGBA{R: r, G: g, B: b, A: a}
 			c := byte(i + w*j)
-			want := color.RGBA{c, c, c, c}
+			want := color.RGBA{R: c, G: c, B: c, A: c}
 			if got != want {
 				t.Errorf("at(%d, %d): got %v, want: %v", i, j, got, want)
 			}
@@ -442,7 +463,7 @@ func TestSmallImages(t *testing.T) {
 	dst.DrawTriangles([graphics.ShaderImageCount]*atlas.Image{src}, vs, is, graphicsdriver.BlendSourceOver, dr, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, atlas.NearestFilterShader, nil, false)
 
 	pix = make([]byte, 4*w*h)
-	if err := dst.ReadPixels(ui.GraphicsDriverForTesting(), pix); err != nil {
+	if err := dst.ReadPixels(ui.GraphicsDriverForTesting(), pix, 0, 0, w, h); err != nil {
 		t.Fatal(err)
 	}
 	for j := 0; j < h; j++ {
@@ -490,7 +511,7 @@ func TestLongImages(t *testing.T) {
 	dst.DrawTriangles([graphics.ShaderImageCount]*atlas.Image{src}, vs, is, graphicsdriver.BlendSourceOver, dr, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, atlas.NearestFilterShader, nil, false)
 
 	pix = make([]byte, 4*dstW*dstH)
-	if err := dst.ReadPixels(ui.GraphicsDriverForTesting(), pix); err != nil {
+	if err := dst.ReadPixels(ui.GraphicsDriverForTesting(), pix, 0, 0, dstW, dstH); err != nil {
 		t.Fatal(err)
 	}
 	for j := 0; j < h; j++ {
@@ -511,11 +532,11 @@ func TestDisposeImmediately(t *testing.T) {
 	// This tests restorable.Image.ClearPixels is called but WritePixels is not called.
 
 	img0 := atlas.NewImage(16, 16, atlas.ImageTypeRegular)
-	img0.EnsureIsolatedForTesting()
+	img0.EnsureIsolatedFromSourceForTesting(nil)
 	defer img0.MarkDisposed()
 
 	img1 := atlas.NewImage(16, 16, atlas.ImageTypeRegular)
-	img1.EnsureIsolatedForTesting()
+	img1.EnsureIsolatedFromSourceForTesting(nil)
 	defer img1.MarkDisposed()
 
 	// img0 and img1 should share the same backend in 99.9999% possibility.
@@ -528,10 +549,10 @@ func TestExtendWithBigImage(t *testing.T) {
 
 	img0.WritePixels(make([]byte, 4*1*1), 0, 0, 1, 1)
 
-	img1 := atlas.NewImage(minImageSizeForTesting+1, minImageSizeForTesting+1, atlas.ImageTypeRegular)
+	img1 := atlas.NewImage(minSourceImageSizeForTesting+1, minSourceImageSizeForTesting+1, atlas.ImageTypeRegular)
 	defer img1.MarkDisposed()
 
-	img1.WritePixels(make([]byte, 4*(minImageSizeForTesting+1)*(minImageSizeForTesting+1)), 0, 0, minImageSizeForTesting+1, minImageSizeForTesting+1)
+	img1.WritePixels(make([]byte, 4*(minSourceImageSizeForTesting+1)*(minSourceImageSizeForTesting+1)), 0, 0, minSourceImageSizeForTesting+1, minSourceImageSizeForTesting+1)
 }
 
 // Issue #1217
@@ -554,7 +575,7 @@ func Disable_TestMinImageSize(t *testing.T) {
 
 	// This tests that extending a backend works correctly.
 	// Though the image size is minimum size of the backend, extending the backend happens due to the paddings.
-	s := minImageSizeForTesting
+	s := minSourceImageSizeForTesting
 	img := atlas.NewImage(s, s, atlas.ImageTypeRegular)
 	defer img.MarkDisposed()
 	img.WritePixels(make([]byte, 4*s*s), 0, 0, s, s)
@@ -562,7 +583,7 @@ func Disable_TestMinImageSize(t *testing.T) {
 
 func TestMaxImageSizeJust(t *testing.T) {
 	s := maxImageSizeForTesting
-	// An unmanged image never belongs to an atlas and doesn't have its paddings.
+	// An unmanaged image never belongs to an atlas and doesn't have its paddings.
 	// TODO: Should we allow such this size for ImageTypeRegular?
 	img := atlas.NewImage(s, s, atlas.ImageTypeUnmanaged)
 	defer img.MarkDisposed()
@@ -585,7 +606,7 @@ func TestMaxImageSizeExceeded(t *testing.T) {
 }
 
 // Issue #1421
-func TestDisposedAndReputOnAtlas(t *testing.T) {
+func TestDisposedAndReputOnSourceBackend(t *testing.T) {
 	const size = 16
 
 	src := atlas.NewImage(size, size, atlas.ImageTypeRegular)
@@ -605,35 +626,36 @@ func TestDisposedAndReputOnAtlas(t *testing.T) {
 		Height: size,
 	}
 	src.DrawTriangles([graphics.ShaderImageCount]*atlas.Image{src2}, vs, is, graphicsdriver.BlendCopy, dr, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, atlas.NearestFilterShader, nil, false)
-	if got, want := src.IsOnAtlasForTesting(), false; got != want {
+	if got, want := src.IsOnSourceBackendForTesting(), false; got != want {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
 
 	// Use src as a render source.
-	for i := 0; i < atlas.BaseCountToPutOnAtlas/2; i++ {
-		if err := atlas.PutImagesOnAtlasForTesting(ui.GraphicsDriverForTesting()); err != nil {
+	for i := 0; i < atlas.BaseCountToPutOnSourceBackend/2; i++ {
+		if err := atlas.PutImagesOnSourceBackendForTesting(ui.GraphicsDriverForTesting()); err != nil {
 			t.Fatal(err)
 		}
+		vs := quadVertices(size, size, 0, 0, 1)
 		dst.DrawTriangles([graphics.ShaderImageCount]*atlas.Image{src}, vs, is, graphicsdriver.BlendCopy, dr, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, atlas.NearestFilterShader, nil, false)
-		if got, want := src.IsOnAtlasForTesting(), false; got != want {
+		if got, want := src.IsOnSourceBackendForTesting(), false; got != want {
 			t.Errorf("got: %v, want: %v", got, want)
 		}
 	}
 
-	// Before PutImaegsOnAtlasForTesting, dispose the image.
+	// Before PutImagesOnSourceBackendForTesting, dispose the image.
 	src.MarkDisposed()
 
 	// Force to dispose the image.
 	atlas.FlushDeferredForTesting()
 
-	// Confirm that PutImagesOnAtlasForTesting doesn't panic.
-	if err := atlas.PutImagesOnAtlasForTesting(ui.GraphicsDriverForTesting()); err != nil {
+	// Confirm that PutImagesOnSourceBackendForTesting doesn't panic.
+	if err := atlas.PutImagesOnSourceBackendForTesting(ui.GraphicsDriverForTesting()); err != nil {
 		t.Fatal(err)
 	}
 }
 
 // Issue #1456
-func TestImageIsNotReputOnAtlasWithoutUsingAsSource(t *testing.T) {
+func TestImageIsNotReputOnSourceBackendWithoutUsingAsSource(t *testing.T) {
 	const size = 16
 
 	src := atlas.NewImage(size, size, atlas.ImageTypeRegular)
@@ -655,36 +677,37 @@ func TestImageIsNotReputOnAtlasWithoutUsingAsSource(t *testing.T) {
 
 	// Use src2 as a rendering target, and make src2 an independent image.
 	src2.DrawTriangles([graphics.ShaderImageCount]*atlas.Image{src}, vs, is, graphicsdriver.BlendCopy, dr, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, atlas.NearestFilterShader, nil, false)
-	if got, want := src2.IsOnAtlasForTesting(), false; got != want {
+	if got, want := src2.IsOnSourceBackendForTesting(), false; got != want {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
 
 	// Update the count without using src2 as a rendering source.
 	// This should not affect whether src2 is on an atlas or not.
-	for i := 0; i < atlas.BaseCountToPutOnAtlas; i++ {
-		if err := atlas.PutImagesOnAtlasForTesting(ui.GraphicsDriverForTesting()); err != nil {
+	for i := 0; i < atlas.BaseCountToPutOnSourceBackend; i++ {
+		if err := atlas.PutImagesOnSourceBackendForTesting(ui.GraphicsDriverForTesting()); err != nil {
 			t.Fatal(err)
 		}
-		if got, want := src2.IsOnAtlasForTesting(), false; got != want {
+		if got, want := src2.IsOnSourceBackendForTesting(), false; got != want {
 			t.Errorf("got: %v, want: %v", got, want)
 		}
 	}
 
 	// Update the count with using src2 as a rendering source.
-	for i := 0; i < atlas.BaseCountToPutOnAtlas; i++ {
-		if err := atlas.PutImagesOnAtlasForTesting(ui.GraphicsDriverForTesting()); err != nil {
+	for i := 0; i < atlas.BaseCountToPutOnSourceBackend; i++ {
+		if err := atlas.PutImagesOnSourceBackendForTesting(ui.GraphicsDriverForTesting()); err != nil {
 			t.Fatal(err)
 		}
+		vs := quadVertices(size, size, 0, 0, 1)
 		dst.DrawTriangles([graphics.ShaderImageCount]*atlas.Image{src2}, vs, is, graphicsdriver.BlendCopy, dr, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, atlas.NearestFilterShader, nil, false)
-		if got, want := src2.IsOnAtlasForTesting(), false; got != want {
+		if got, want := src2.IsOnSourceBackendForTesting(), false; got != want {
 			t.Errorf("got: %v, want: %v", got, want)
 		}
 	}
 
-	if err := atlas.PutImagesOnAtlasForTesting(ui.GraphicsDriverForTesting()); err != nil {
+	if err := atlas.PutImagesOnSourceBackendForTesting(ui.GraphicsDriverForTesting()); err != nil {
 		t.Fatal(err)
 	}
-	if got, want := src2.IsOnAtlasForTesting(), true; got != want {
+	if got, want := src2.IsOnSourceBackendForTesting(), true; got != want {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
 }
@@ -717,17 +740,17 @@ func TestImageWritePixelsModify(t *testing.T) {
 
 		// Check the pixels are the original ones.
 		pix = make([]byte, 4*size*size)
-		if err := img.ReadPixels(ui.GraphicsDriverForTesting(), pix); err != nil {
+		if err := img.ReadPixels(ui.GraphicsDriverForTesting(), pix, 0, 0, size, size); err != nil {
 			t.Fatal(err)
 		}
 		for j := 0; j < size; j++ {
 			for i := 0; i < size; i++ {
-				want := color.RGBA{byte(i + j), byte(i + j), byte(i + j), byte(i + j)}
+				want := color.RGBA{R: byte(i + j), G: byte(i + j), B: byte(i + j), A: byte(i + j)}
 				r := pix[4*(size*j+i)]
 				g := pix[4*(size*j+i)+1]
 				b := pix[4*(size*j+i)+2]
 				a := pix[4*(size*j+i)+3]
-				got := color.RGBA{r, g, b, a}
+				got := color.RGBA{R: r, G: g, B: b, A: a}
 				if got != want {
 					t.Errorf("Type: %d, At(%d, %d): got: %v, want: %v", typ, i, j, got, want)
 				}

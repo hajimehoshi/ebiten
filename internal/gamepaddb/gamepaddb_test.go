@@ -46,7 +46,7 @@ func TestUpdate(t *testing.T) {
 			Err:   true,
 		},
 		{
-			Input: "00000000000000000000000000000000,foo,pltform:Foo",
+			Input: "00000000000000000000000000000000,foo,platform:Foo",
 			Err:   true,
 		},
 		{

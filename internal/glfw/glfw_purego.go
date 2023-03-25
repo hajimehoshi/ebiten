@@ -22,27 +22,27 @@ import (
 	"image"
 	"image/draw"
 
-	"github.com/hajimehoshi/ebiten/v2/internal/glfwwin"
+	"github.com/hajimehoshi/ebiten/v2/internal/goglfw"
 )
 
-type Cursor glfwwin.Cursor
+type Cursor goglfw.Cursor
 
 func CreateStandardCursor(shape StandardCursor) *Cursor {
-	c, err := glfwwin.CreateStandardCursor(glfwwin.StandardCursor(shape))
+	c, err := goglfw.CreateStandardCursor(goglfw.StandardCursor(shape))
 	if err != nil {
 		panic(err)
 	}
 	return (*Cursor)(c)
 }
 
-type Monitor glfwwin.Monitor
+type Monitor goglfw.Monitor
 
 func (m *Monitor) GetContentScale() (float32, float32, error) {
-	return (*glfwwin.Monitor)(m).GetContentScale()
+	return (*goglfw.Monitor)(m).GetContentScale()
 }
 
 func (m *Monitor) GetPos() (int, int) {
-	x, y, err := (*glfwwin.Monitor)(m).GetPos()
+	x, y, err := (*goglfw.Monitor)(m).GetPos()
 	if err != nil {
 		panic(err)
 	}
@@ -50,29 +50,29 @@ func (m *Monitor) GetPos() (int, int) {
 }
 
 func (m *Monitor) GetVideoMode() *VidMode {
-	v, err := (*glfwwin.Monitor)(m).GetVideoMode()
+	v, err := (*goglfw.Monitor)(m).GetVideoMode()
 	if err != nil {
 		panic(err)
 	}
 	return (*VidMode)(v)
 }
 
-type Window glfwwin.Window
+type Window goglfw.Window
 
 func (w *Window) Destroy() {
-	if err := (*glfwwin.Window)(w).Destroy(); err != nil {
+	if err := (*goglfw.Window)(w).Destroy(); err != nil {
 		panic(err)
 	}
 }
 
 func (w *Window) Focus() {
-	if err := (*glfwwin.Window)(w).Focus(); err != nil {
+	if err := (*goglfw.Window)(w).Focus(); err != nil {
 		panic(err)
 	}
 }
 
 func (w *Window) GetAttrib(attrib Hint) int {
-	r, err := (*glfwwin.Window)(w).GetAttrib(glfwwin.Hint(attrib))
+	r, err := (*goglfw.Window)(w).GetAttrib(goglfw.Hint(attrib))
 	if err != nil {
 		panic(err)
 	}
@@ -80,7 +80,7 @@ func (w *Window) GetAttrib(attrib Hint) int {
 }
 
 func (w *Window) GetCursorPos() (x, y float64) {
-	x, y, err := (*glfwwin.Window)(w).GetCursorPos()
+	x, y, err := (*goglfw.Window)(w).GetCursorPos()
 	if err != nil {
 		panic(err)
 	}
@@ -88,7 +88,7 @@ func (w *Window) GetCursorPos() (x, y float64) {
 }
 
 func (w *Window) GetInputMode(mode InputMode) int {
-	r, err := (*glfwwin.Window)(w).GetInputMode(glfwwin.InputMode(mode))
+	r, err := (*goglfw.Window)(w).GetInputMode(goglfw.InputMode(mode))
 	if err != nil {
 		panic(err)
 	}
@@ -96,7 +96,7 @@ func (w *Window) GetInputMode(mode InputMode) int {
 }
 
 func (w *Window) GetKey(key Key) Action {
-	r, err := (*glfwwin.Window)(w).GetKey(glfwwin.Key(key))
+	r, err := (*goglfw.Window)(w).GetKey(goglfw.Key(key))
 	if err != nil {
 		panic(err)
 	}
@@ -104,7 +104,7 @@ func (w *Window) GetKey(key Key) Action {
 }
 
 func (w *Window) GetMonitor() *Monitor {
-	m, err := (*glfwwin.Window)(w).GetMonitor()
+	m, err := (*goglfw.Window)(w).GetMonitor()
 	if err != nil {
 		panic(err)
 	}
@@ -112,7 +112,7 @@ func (w *Window) GetMonitor() *Monitor {
 }
 
 func (w *Window) GetMouseButton(button MouseButton) Action {
-	r, err := (*glfwwin.Window)(w).GetMouseButton(glfwwin.MouseButton(button))
+	r, err := (*goglfw.Window)(w).GetMouseButton(goglfw.MouseButton(button))
 	if err != nil {
 		panic(err)
 	}
@@ -120,7 +120,7 @@ func (w *Window) GetMouseButton(button MouseButton) Action {
 }
 
 func (w *Window) GetPos() (int, int) {
-	x, y, err := (*glfwwin.Window)(w).GetPos()
+	x, y, err := (*goglfw.Window)(w).GetPos()
 	if err != nil {
 		panic(err)
 	}
@@ -128,7 +128,7 @@ func (w *Window) GetPos() (int, int) {
 }
 
 func (w *Window) GetSize() (int, int) {
-	width, height, err := (*glfwwin.Window)(w).GetSize()
+	width, height, err := (*goglfw.Window)(w).GetSize()
 	if err != nil {
 		panic(err)
 	}
@@ -136,43 +136,43 @@ func (w *Window) GetSize() (int, int) {
 }
 
 func (w *Window) Hide() {
-	if err := (*glfwwin.Window)(w).Hide(); err != nil {
+	if err := (*goglfw.Window)(w).Hide(); err != nil {
 		panic(err)
 	}
 }
 
 func (w *Window) Iconify() {
-	if err := (*glfwwin.Window)(w).Iconify(); err != nil {
+	if err := (*goglfw.Window)(w).Iconify(); err != nil {
 		panic(err)
 	}
 }
 
 func (w *Window) MakeContextCurrent() {
-	if err := (*glfwwin.Window)(w).MakeContextCurrent(); err != nil {
+	if err := (*goglfw.Window)(w).MakeContextCurrent(); err != nil {
 		panic(err)
 	}
 }
 
 func (w *Window) Maximize() {
-	if err := (*glfwwin.Window)(w).Maximize(); err != nil {
+	if err := (*goglfw.Window)(w).Maximize(); err != nil {
 		panic(err)
 	}
 }
 
 func (w *Window) Restore() {
-	if err := (*glfwwin.Window)(w).Restore(); err != nil {
+	if err := (*goglfw.Window)(w).Restore(); err != nil {
 		panic(err)
 	}
 }
 
 func (w *Window) SetAttrib(attrib Hint, value int) {
-	if err := (*glfwwin.Window)(w).SetAttrib(glfwwin.Hint(attrib), value); err != nil {
+	if err := (*goglfw.Window)(w).SetAttrib(goglfw.Hint(attrib), value); err != nil {
 		panic(err)
 	}
 }
 
 func (w *Window) SetCharModsCallback(cbfun CharModsCallback) (previous CharModsCallback) {
-	f, err := (*glfwwin.Window)(w).SetCharModsCallback(cbfun)
+	f, err := (*goglfw.Window)(w).SetCharModsCallback(cbfun)
 	if err != nil {
 		panic(err)
 	}
@@ -180,7 +180,15 @@ func (w *Window) SetCharModsCallback(cbfun CharModsCallback) (previous CharModsC
 }
 
 func (w *Window) SetCloseCallback(cbfun CloseCallback) (previous CloseCallback) {
-	f, err := (*glfwwin.Window)(w).SetCloseCallback(cbfun)
+	f, err := (*goglfw.Window)(w).SetCloseCallback(cbfun)
+	if err != nil {
+		panic(err)
+	}
+	return f
+}
+
+func (w *Window) SetDropCallback(cbfun DropCallback) (previous DropCallback) {
+	f, err := (*goglfw.Window)(w).SetDropCallback(cbfun)
 	if err != nil {
 		panic(err)
 	}
@@ -188,13 +196,13 @@ func (w *Window) SetCloseCallback(cbfun CloseCallback) (previous CloseCallback) 
 }
 
 func (w *Window) SetCursor(cursor *Cursor) {
-	if err := (*glfwwin.Window)(w).SetCursor((*glfwwin.Cursor)(cursor)); err != nil {
+	if err := (*goglfw.Window)(w).SetCursor((*goglfw.Cursor)(cursor)); err != nil {
 		panic(err)
 	}
 }
 
 func (w *Window) SetFramebufferSizeCallback(cbfun FramebufferSizeCallback) (previous FramebufferSizeCallback) {
-	f, err := (*glfwwin.Window)(w).SetFramebufferSizeCallback(cbfun)
+	f, err := (*goglfw.Window)(w).SetFramebufferSizeCallback(cbfun)
 	if err != nil {
 		panic(err)
 	}
@@ -202,7 +210,7 @@ func (w *Window) SetFramebufferSizeCallback(cbfun FramebufferSizeCallback) (prev
 }
 
 func (w *Window) SetScrollCallback(cbfun ScrollCallback) (previous ScrollCallback) {
-	f, err := (*glfwwin.Window)(w).SetScrollCallback(cbfun)
+	f, err := (*goglfw.Window)(w).SetScrollCallback(cbfun)
 	if err != nil {
 		panic(err)
 	}
@@ -210,13 +218,13 @@ func (w *Window) SetScrollCallback(cbfun ScrollCallback) (previous ScrollCallbac
 }
 
 func (w *Window) SetShouldClose(value bool) {
-	if err := (*glfwwin.Window)(w).SetShouldClose(value); err != nil {
+	if err := (*goglfw.Window)(w).SetShouldClose(value); err != nil {
 		panic(err)
 	}
 }
 
 func (w *Window) SetSizeCallback(cbfun SizeCallback) (previous SizeCallback) {
-	f, err := (*glfwwin.Window)(w).SetSizeCallback(cbfun)
+	f, err := (*goglfw.Window)(w).SetSizeCallback(cbfun)
 	if err != nil {
 		panic(err)
 	}
@@ -224,67 +232,67 @@ func (w *Window) SetSizeCallback(cbfun SizeCallback) (previous SizeCallback) {
 }
 
 func (w *Window) SetSizeLimits(minw, minh, maxw, maxh int) {
-	if err := (*glfwwin.Window)(w).SetSizeLimits(minw, minh, maxw, maxh); err != nil {
+	if err := (*goglfw.Window)(w).SetSizeLimits(minw, minh, maxw, maxh); err != nil {
 		panic(err)
 	}
 }
 
 func (w *Window) SetAspectRatio(numer, denom int) {
-	if err := (*glfwwin.Window)(w).SetAspectRatio(numer, denom); err != nil {
+	if err := (*goglfw.Window)(w).SetAspectRatio(numer, denom); err != nil {
 		panic(err)
 	}
 }
 
 func (w *Window) SetIcon(images []image.Image) {
-	gimgs := make([]*glfwwin.Image, len(images))
+	gimgs := make([]*goglfw.Image, len(images))
 	for i, img := range images {
 		b := img.Bounds()
 		m := image.NewNRGBA(image.Rect(0, 0, b.Dx(), b.Dy()))
 		draw.Draw(m, m.Bounds(), img, b.Min, draw.Src)
-		gimgs[i] = &glfwwin.Image{
+		gimgs[i] = &goglfw.Image{
 			Width:  b.Dx(),
 			Height: b.Dy(),
 			Pixels: m.Pix,
 		}
 	}
 
-	if err := (*glfwwin.Window)(w).SetIcon(gimgs); err != nil {
+	if err := (*goglfw.Window)(w).SetIcon(gimgs); err != nil {
 		panic(err)
 	}
 }
 
 func (w *Window) SetInputMode(mode InputMode, value int) {
-	if err := (*glfwwin.Window)(w).SetInputMode(glfwwin.InputMode(mode), value); err != nil {
+	if err := (*goglfw.Window)(w).SetInputMode(goglfw.InputMode(mode), value); err != nil {
 		panic(err)
 	}
 }
 
 func (w *Window) SetMonitor(monitor *Monitor, xpos, ypos, width, height, refreshRate int) {
-	if err := (*glfwwin.Window)(w).SetMonitor((*glfwwin.Monitor)(monitor), xpos, ypos, width, height, refreshRate); err != nil {
+	if err := (*goglfw.Window)(w).SetMonitor((*goglfw.Monitor)(monitor), xpos, ypos, width, height, refreshRate); err != nil {
 		panic(err)
 	}
 }
 
 func (w *Window) SetPos(xpos, ypos int) {
-	if err := (*glfwwin.Window)(w).SetPos(xpos, ypos); err != nil {
+	if err := (*goglfw.Window)(w).SetPos(xpos, ypos); err != nil {
 		panic(err)
 	}
 }
 
 func (w *Window) SetSize(width, height int) {
-	if err := (*glfwwin.Window)(w).SetSize(width, height); err != nil {
+	if err := (*goglfw.Window)(w).SetSize(width, height); err != nil {
 		panic(err)
 	}
 }
 
 func (w *Window) SetTitle(title string) {
-	if err := (*glfwwin.Window)(w).SetTitle(title); err != nil {
+	if err := (*goglfw.Window)(w).SetTitle(title); err != nil {
 		panic(err)
 	}
 }
 
 func (w *Window) ShouldClose() bool {
-	r, err := (*glfwwin.Window)(w).ShouldClose()
+	r, err := (*goglfw.Window)(w).ShouldClose()
 	if err != nil {
 		panic(err)
 	}
@@ -292,25 +300,25 @@ func (w *Window) ShouldClose() bool {
 }
 
 func (w *Window) Show() {
-	if err := (*glfwwin.Window)(w).Show(); err != nil {
+	if err := (*goglfw.Window)(w).Show(); err != nil {
 		panic(err)
 	}
 }
 
 func (w *Window) SwapBuffers() {
-	if err := (*glfwwin.Window)(w).SwapBuffers(); err != nil {
+	if err := (*goglfw.Window)(w).SwapBuffers(); err != nil {
 		panic(err)
 	}
 }
 
 func CreateWindow(width, height int, title string, monitor *Monitor, share *Window) (*Window, error) {
-	w, err := glfwwin.CreateWindow(width, height, title, (*glfwwin.Monitor)(monitor), (*glfwwin.Window)(share))
+	w, err := goglfw.CreateWindow(width, height, title, (*goglfw.Monitor)(monitor), (*goglfw.Window)(share))
 	// TODO: acceptError(APIUnavailable, VersionUnavailable)?
 	return (*Window)(w), err
 }
 
 func GetKeyName(key Key, scancode int) string {
-	name, err := glfwwin.GetKeyName(glfwwin.Key(key), scancode)
+	name, err := goglfw.GetKeyName(goglfw.Key(key), scancode)
 	if err != nil {
 		panic(err)
 	}
@@ -318,7 +326,7 @@ func GetKeyName(key Key, scancode int) string {
 }
 
 func GetMonitors() []*Monitor {
-	ms, err := glfwwin.GetMonitors()
+	ms, err := goglfw.GetMonitors()
 	if err != nil {
 		panic(err)
 	}
@@ -330,7 +338,7 @@ func GetMonitors() []*Monitor {
 }
 
 func GetPrimaryMonitor() *Monitor {
-	m, err := glfwwin.GetPrimaryMonitor()
+	m, err := goglfw.GetPrimaryMonitor()
 	if err != nil {
 		panic(err)
 	}
@@ -343,33 +351,33 @@ func Init() error {
 	// See go-gl/glfw#292, go-gl/glfw#324, and glfw/glfw#1763
 	// (#1229).
 	// TODO: acceptError(APIUnavailable, InvalidValue)?
-	err := glfwwin.Init()
-	if err != nil && !errors.Is(err, glfwwin.InvalidValue) {
+	err := goglfw.Init()
+	if err != nil && !errors.Is(err, goglfw.InvalidValue) {
 		return err
 	}
 	return nil
 }
 
 func PollEvents() {
-	if err := glfwwin.PollEvents(); err != nil && !errors.Is(err, glfwwin.InvalidValue) {
+	if err := goglfw.PollEvents(); err != nil && !errors.Is(err, goglfw.InvalidValue) {
 		panic(err)
 	}
 }
 
 func PostEmptyEvent() {
-	if err := glfwwin.PostEmptyEvent(); err != nil {
+	if err := goglfw.PostEmptyEvent(); err != nil {
 		panic(err)
 	}
 }
 
 func WaitEventsTimeout(timeout float64) {
-	if err := glfwwin.WaitEventsTimeout(timeout); err != nil {
+	if err := goglfw.WaitEventsTimeout(timeout); err != nil {
 		panic(err)
 	}
 }
 
 func SetMonitorCallback(cbfun MonitorCallback) MonitorCallback {
-	f, err := glfwwin.SetMonitorCallback(cbfun)
+	f, err := goglfw.SetMonitorCallback(cbfun)
 	if err != nil {
 		panic(err)
 	}
@@ -377,25 +385,25 @@ func SetMonitorCallback(cbfun MonitorCallback) MonitorCallback {
 }
 
 func SwapInterval(interval int) {
-	if err := glfwwin.SwapInterval(interval); err != nil {
+	if err := goglfw.SwapInterval(interval); err != nil {
 		panic(err)
 	}
 }
 
 func Terminate() {
-	if err := glfwwin.Terminate(); err != nil {
+	if err := goglfw.Terminate(); err != nil {
 		panic(err)
 	}
 }
 
 func WaitEvents() {
-	if err := glfwwin.WaitEvents(); err != nil {
+	if err := goglfw.WaitEvents(); err != nil {
 		panic(err)
 	}
 }
 
 func WindowHint(target Hint, hint int) {
-	if err := glfwwin.WindowHint(glfwwin.Hint(target), hint); err != nil {
+	if err := goglfw.WindowHint(goglfw.Hint(target), hint); err != nil {
 		panic(err)
 	}
 }

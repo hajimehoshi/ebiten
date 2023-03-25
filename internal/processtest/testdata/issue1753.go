@@ -58,7 +58,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 
 		// Dispose the shader. When a new shader is created in the next phase, the underlying shader ID might be reused.
 		// This test checks that the new shader works in this situation.
-		// The actual disposal will happen after this frame and before the next frame in the current implmentation.
+		// The actual disposal will happen after this frame and before the next frame in the current implementation.
 		s.Dispose()
 
 		g.phase++

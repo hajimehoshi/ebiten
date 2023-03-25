@@ -100,9 +100,9 @@ func (g *Game) Update() error {
 
 func (g *Game) Draw(screen *ebiten.Image) {
 	// Center the image on the screen.
-	w, h := gophersImage.Size()
+	s := gophersImage.Bounds().Size()
 	op := &colorm.DrawImageOptions{}
-	op.GeoM.Translate(-float64(w)/2, -float64(h)/2)
+	op.GeoM.Translate(-float64(s.X)/2, -float64(s.Y)/2)
 	op.GeoM.Scale(2, 2)
 	op.GeoM.Translate(float64(screenWidth)/2, float64(screenHeight)/2)
 

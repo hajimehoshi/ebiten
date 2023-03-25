@@ -66,7 +66,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 	clippedGophersImage := gophersImage.SubImage(image.Rect(100, 100, 200, 200)).(*ebiten.Image)
 	for i, f := range []ebiten.Filter{ebiten.FilterNearest, ebiten.FilterLinear} {
-		w, h := gophersImage.Size()
+		w, h := gophersImage.Bounds().Dx(), gophersImage.Bounds().Dy()
 
 		op := &ebiten.DrawImageOptions{}
 		if g.rotate {

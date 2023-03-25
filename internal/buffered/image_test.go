@@ -83,7 +83,7 @@ type testResult struct {
 }
 
 var testSetBeforeMainResult = func() testResult {
-	clr := color.RGBA{1, 2, 3, 4}
+	clr := color.RGBA{R: 1, G: 2, B: 3, A: 4}
 	img := ebiten.NewImage(16, 16)
 	img.Set(0, 0, clr)
 
@@ -124,7 +124,7 @@ var testDrawImageBeforeMainResult = func() testResult {
 	}()
 
 	return testResult{
-		want: color.RGBA{0xff, 0xff, 0xff, 0xff},
+		want: color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff},
 		got:  ch,
 	}
 }()
@@ -185,7 +185,7 @@ var testDrawTrianglesBeforeMainResult = func() testResult {
 	}()
 
 	return testResult{
-		want: color.RGBA{0xff, 0xff, 0xff, 0xff},
+		want: color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff},
 		got:  ch,
 	}
 }()
@@ -200,10 +200,10 @@ func TestDrawTrianglesBeforeMain(t *testing.T) {
 }
 
 var testSetAndFillBeforeMainResult = func() testResult {
-	clr := color.RGBA{1, 2, 3, 4}
+	clr := color.RGBA{R: 1, G: 2, B: 3, A: 4}
 	img := ebiten.NewImage(16, 16)
 	img.Set(0, 0, clr)
-	img.Fill(color.RGBA{5, 6, 7, 8})
+	img.Fill(color.RGBA{R: 5, G: 6, B: 7, A: 8})
 	img.Set(1, 0, clr)
 
 	ch := make(chan color.RGBA, 1)
@@ -214,7 +214,7 @@ var testSetAndFillBeforeMainResult = func() testResult {
 	}()
 
 	return testResult{
-		want: color.RGBA{5, 6, 7, 8},
+		want: color.RGBA{R: 5, G: 6, B: 7, A: 8},
 		got:  ch,
 	}
 }()
@@ -229,7 +229,7 @@ func TestSetAndFillBeforeMain(t *testing.T) {
 }
 
 var testSetAndWritePixelsBeforeMainResult = func() testResult {
-	clr := color.RGBA{1, 2, 3, 4}
+	clr := color.RGBA{R: 1, G: 2, B: 3, A: 4}
 	img := ebiten.NewImage(16, 16)
 	img.Set(0, 0, clr)
 	pix := make([]byte, 4*16*16)
@@ -250,7 +250,7 @@ var testSetAndWritePixelsBeforeMainResult = func() testResult {
 	}()
 
 	return testResult{
-		want: color.RGBA{5, 6, 7, 8},
+		want: color.RGBA{R: 5, G: 6, B: 7, A: 8},
 		got:  ch,
 	}
 }()
@@ -290,7 +290,7 @@ var testWritePixelsAndModifyBeforeMainResult = func() testResult {
 	}()
 
 	return testResult{
-		want: color.RGBA{1, 2, 3, 4},
+		want: color.RGBA{R: 1, G: 2, B: 3, A: 4},
 		got:  ch,
 	}
 }()
