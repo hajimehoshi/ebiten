@@ -52,7 +52,6 @@ const (
 )
 
 var (
-	// https://github.com/MicrosoftDocs/sdk-api/blob/docs/sdk-api-src/content/appnotify/nf-appnotify-registerappstatechangenotification.md
 	d3dcompiler = windows.NewLazySystemDLL("d3dcompiler_47.dll")
 
 	procD3DCompile = d3dcompiler.NewProc("D3DCompile")
