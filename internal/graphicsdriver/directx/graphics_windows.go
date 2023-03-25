@@ -328,7 +328,7 @@ func (g *Graphics) initializeXbox(useWARP bool, useDebugLayer bool) (ferr error)
 		return err
 	}
 
-	if err := g.registerFrameEventForXbox(); err != nil {
+	if err := g.graphics12.registerFrameEventForXbox(); err != nil {
 		return err
 	}
 
@@ -351,7 +351,7 @@ func (g *Graphics) initializeXbox(useWARP bool, useDebugLayer bool) (ferr error)
 	return nil
 }
 
-func (g *Graphics) registerFrameEventForXbox() error {
+func (g *graphics12) registerFrameEventForXbox() error {
 	d, err := g.device.QueryInterface(&_IID_IDXGIDevice)
 	if err != nil {
 		return err
