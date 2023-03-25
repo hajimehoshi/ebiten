@@ -63,7 +63,7 @@ func (s *Star) Draw(screen *ebiten.Image) {
 		G: uint8(0xdd * s.brightness / 0xff),
 		B: uint8(0xff * s.brightness / 0xff),
 		A: 0xff}
-	vector.StrokeLine(screen, s.fromx/scale, s.fromy/scale, s.tox/scale, s.toy/scale, 1, c)
+	vector.StrokeLine(screen, s.fromx/scale, s.fromy/scale, s.tox/scale, s.toy/scale, 1, c, true)
 }
 
 type Game struct {

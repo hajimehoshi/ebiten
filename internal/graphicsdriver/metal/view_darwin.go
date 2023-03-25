@@ -15,7 +15,6 @@
 package metal
 
 import (
-	"errors"
 	"sync"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/ca"
@@ -59,14 +58,14 @@ func (v *view) colorPixelFormat() mtl.PixelFormat {
 	return v.ml.PixelFormat()
 }
 
-func (v *view) initialize() error {
-	var ok bool
-	v.device, ok = mtl.CreateSystemDefaultDevice()
-	if !ok {
-		return errors.New("metal: Metal is not supported")
-	}
+func (v *view) initialize(device mtl.Device) error {
+	v.device = device
 
-	v.ml = ca.MakeMetalLayer()
+	ml, err := ca.MakeMetalLayer()
+	if err != nil {
+		return err
+	}
+	v.ml = ml
 	v.ml.SetDevice(v.device)
 	// https://developer.apple.com/documentation/quartzcore/cametallayer/1478155-pixelformat
 	//

@@ -38,10 +38,10 @@ type Image struct {
 	original *Image
 	bounds   image.Rectangle
 
-	// tmpVertices must not be reused until the vertices are sent to the graphics command queue.
+	// tmpVertices must not be reused until ui.Image.Draw* is called.
 	tmpVertices []float32
 
-	// tmpUniforms must not be reused until the vertices are sent to the graphics command queue.
+	// tmpUniforms must not be reused until ui.Image.Draw* is called.
 	tmpUniforms []uint32
 
 	// Do not add a 'buffering' member that are resolved lazily.
@@ -55,6 +55,8 @@ func (i *Image) copyCheck() {
 }
 
 // Size returns the size of the image.
+//
+// Deprecated: as of v2.5. Use Bounds().Dx() and Bounds().Dy() or Bounds().Size() instead.
 func (i *Image) Size() (width, height int) {
 	s := i.Bounds().Size()
 	return s.X, s.Y
@@ -277,7 +279,7 @@ type Vertex struct {
 
 	// SrcX and SrcY represents a point on a source image.
 	// Be careful that SrcX/SrcY coordinates are on the image's bounds.
-	// This means that a upper-left point of a sub-image might not be (0, 0).
+	// This means that an upper-left point of a sub-image might not be (0, 0).
 	SrcX float32
 	SrcY float32
 
@@ -290,7 +292,7 @@ type Vertex struct {
 	//   Vertex colors are converted to premultiplied-alpha internally and
 	//   interpolated linearly respecting alpha.
 	// - DrawTrianglesShader: arbitrary floating point values sent to the shader.
-	//   These are interpolated linearly and independently from each other.
+	//   These are interpolated linearly and independently of each other.
 	ColorR float32
 	ColorG float32
 	ColorB float32
@@ -301,7 +303,7 @@ type Vertex struct {
 type Address int
 
 const (
-	// AddressUnsafe means there is no guarantee when the texture coodinates are out of range.
+	// AddressUnsafe means there is no guarantee when the texture coordinates are out of range.
 	AddressUnsafe Address = Address(builtinshader.AddressUnsafe)
 
 	// AddressClampToZero means that out-of-range texture coordinates return 0 (transparent).
@@ -319,7 +321,7 @@ const (
 	FillAll FillRule = iota
 
 	// EvenOdd means that triangles are rendered based on the even-odd rule.
-	// If and only if the number of overlappings is odd, the region is rendered.
+	// If and only if the number of overlaps is odd, the region is rendered.
 	EvenOdd
 )
 
@@ -331,7 +333,7 @@ const (
 	// straight-alpha encoded color multiplier.
 	ColorScaleModeStraightAlpha ColorScaleMode = iota
 
-	// ColorScaleModeStraightAlpha indicates color scales in vertices are
+	// ColorScaleModePremultipliedAlpha indicates color scales in vertices are
 	// premultiplied-alpha encoded color multiplier.
 	ColorScaleModePremultipliedAlpha
 )
@@ -606,7 +608,7 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 	copy(is, indices)
 
 	var imgs [graphics.ShaderImageCount]*ui.Image
-	var imgw, imgh int
+	var imgSize image.Point
 	for i, img := range options.Images {
 		if img == nil {
 			continue
@@ -615,10 +617,10 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 			panic("ebiten: the given image to DrawTrianglesShader must not be disposed")
 		}
 		if i == 0 {
-			imgw, imgh = img.Size()
+			imgSize = img.Bounds().Size()
 		} else {
 			// TODO: Check imgw > 0 && imgh > 0
-			if w, h := img.Size(); imgw != w || imgh != h {
+			if img.Bounds().Size() != imgSize {
 				panic("ebiten: all the source images must be the same size with the rectangle")
 			}
 		}
@@ -723,7 +725,7 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 		if img.isDisposed() {
 			panic("ebiten: the given image to DrawRectShader must not be disposed")
 		}
-		if w, h := img.Size(); width != w || height != h {
+		if img.Bounds().Size() != image.Pt(width, height) {
 			panic("ebiten: all the source images must be the same size with the rectangle")
 		}
 		imgs[i] = img.image
@@ -870,7 +872,7 @@ func (i *Image) ReadPixels(pixels []byte) {
 // At can't be called outside the main loop (ebiten.Run's updating function) starts.
 func (i *Image) At(x, y int) color.Color {
 	r, g, b, a := i.at(x, y)
-	return color.RGBA{r, g, b, a}
+	return color.RGBA{R: r, G: g, B: b, A: a}
 }
 
 // RGBA64At implements the standard image.RGBA64Image's RGBA64At.
@@ -886,7 +888,7 @@ func (i *Image) At(x, y int) color.Color {
 // RGBA64At can't be called outside the main loop (ebiten.Run's updating function) starts.
 func (i *Image) RGBA64At(x, y int) color.RGBA64 {
 	r, g, b, a := i.at(x, y)
-	return color.RGBA64{uint16(r) * 0x101, uint16(g) * 0x101, uint16(b) * 0x101, uint16(a) * 0x101}
+	return color.RGBA64{R: uint16(r) * 0x101, G: uint16(g) * 0x101, B: uint16(b) * 0x101, A: uint16(a) * 0x101}
 }
 
 func (i *Image) at(x, y int) (r, g, b, a byte) {
@@ -926,14 +928,14 @@ func (i *Image) Set(x, y int, clr color.Color) {
 }
 
 // Dispose disposes the image data.
-// After disposing, most of image functions do nothing and returns meaningless values.
+// After disposing, most of the image functions do nothing and returns meaningless values.
 //
 // Calling Dispose is not mandatory. GC automatically collects internal resources that no objects refer to.
 // However, calling Dispose explicitly is helpful if memory usage matters.
 //
 // If the image is a sub-image, Dispose does nothing.
 //
-// When the image is disposed, Dipose does nothing.
+// When the image is disposed, Dispose does nothing.
 func (i *Image) Dispose() {
 	i.copyCheck()
 
@@ -1009,7 +1011,7 @@ type NewImageOptions struct {
 //
 // The rendering origin position is (0, 0) of the given bounds.
 // If DrawImage is called on a new image created by NewImageOptions,
-// for example, the center of scaling and rotating is (0, 0), that might not be a upper-left position.
+// for example, the center of scaling and rotating is (0, 0), that might not be an upper-left position.
 //
 // If options is nil, the default setting is used.
 //
@@ -1120,7 +1122,7 @@ func NewImageFromImageWithOptions(source image.Image, options *NewImageFromImage
 	return i
 }
 
-// colorMToScale returns a new color matrix and color sclaes that equal to the given matrix in terms of the effect.
+// colorMToScale returns a new color matrix and color scales that equal to the given matrix in terms of the effect.
 //
 // If the given matrix is merely a scaling matrix, colorMToScale returns
 // an identity matrix and its scaling factors in premultiplied-alpha format.

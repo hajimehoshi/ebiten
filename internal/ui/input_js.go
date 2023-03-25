@@ -51,11 +51,19 @@ var codeToMouseButton = map[int]MouseButton{
 }
 
 func (u *userInterfaceImpl) keyDown(code js.Value) {
-	u.inputState.KeyPressed[jsKeyToID(code)] = true
+	id := jsKeyToID(code)
+	if id < 0 {
+		return
+	}
+	u.inputState.KeyPressed[id] = true
 }
 
 func (u *userInterfaceImpl) keyUp(code js.Value) {
-	u.inputState.KeyPressed[jsKeyToID(code)] = false
+	id := jsKeyToID(code)
+	if id < 0 {
+		return
+	}
+	u.inputState.KeyPressed[id] = false
 }
 
 func (u *userInterfaceImpl) mouseDown(code int) {
@@ -123,20 +131,17 @@ func (u *userInterfaceImpl) recoverCursorPosition() {
 }
 
 func (u *userInterfaceImpl) updateTouchesFromEvent(e js.Value) {
-	for i := range u.inputState.Touches {
-		u.inputState.Touches[i].Valid = false
-	}
+	u.inputState.Touches = u.inputState.Touches[:0]
 
 	touches := e.Get("targetTouches")
 	for i := 0; i < touches.Length(); i++ {
 		t := touches.Call("item", i)
 		x, y := u.context.clientPositionToLogicalPosition(t.Get("clientX").Float(), t.Get("clientY").Float(), u.DeviceScaleFactor())
-		u.inputState.Touches[i] = Touch{
-			Valid: true,
-			ID:    TouchID(t.Get("identifier").Int()),
-			X:     int(x),
-			Y:     int(y),
-		}
+		u.inputState.Touches = append(u.inputState.Touches, Touch{
+			ID: TouchID(t.Get("identifier").Int()),
+			X:  int(x),
+			Y:  int(y),
+		})
 	}
 }
 

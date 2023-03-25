@@ -30,39 +30,27 @@ var (
 )
 
 func flushDelayedCommands() {
-	fs := getDelayedFuncsAndClear()
-	for _, f := range fs {
-		f()
-	}
-}
-
-func getDelayedFuncsAndClear() []func() {
 	if atomic.LoadUint32(&delayedCommandsFlushed) == 0 {
 		// Outline the slow-path to expect the fast-path is inlined.
-		return getDelayedFuncsAndClearSlow()
+		flushDelayedCommandsSlow()
 	}
-	return nil
 }
 
-func getDelayedFuncsAndClearSlow() []func() {
+func flushDelayedCommandsSlow() {
 	delayedCommandsM.Lock()
 	defer delayedCommandsM.Unlock()
 
 	if delayedCommandsFlushed == 0 {
-		defer atomic.StoreUint32(&delayedCommandsFlushed, 1)
-
-		fs := make([]func(), len(delayedCommands))
-		copy(fs, delayedCommands)
-		delayedCommands = nil
-		return fs
+		for _, f := range delayedCommands {
+			f()
+		}
+		delayedCommandsFlushed = 1
 	}
-
-	return nil
 }
 
 // maybeCanAddDelayedCommand returns false if the delayed commands cannot be added.
 // Otherwise, maybeCanAddDelayedCommand's returning value is not determined.
-// For example, maybeCanAddDelayedCommand can return true even when flusing is being processed.
+// For example, maybeCanAddDelayedCommand can return true even when flushing is being processed.
 func maybeCanAddDelayedCommand() bool {
 	return atomic.LoadUint32(&delayedCommandsFlushed) == 0
 }
@@ -72,9 +60,7 @@ func tryAddDelayedCommand(f func()) bool {
 	defer delayedCommandsM.Unlock()
 
 	if delayedCommandsFlushed == 0 {
-		delayedCommands = append(delayedCommands, func() {
-			f()
-		})
+		delayedCommands = append(delayedCommands, f)
 		return true
 	}
 

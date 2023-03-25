@@ -52,6 +52,43 @@ const (
 	GPUFamilyMac2 GPUFamily = 2002
 )
 
+// FeatureSet defines a specific platform, hardware, and software configuration.
+//
+// Reference: https://developer.apple.com/documentation/metal/mtlfeatureset.
+type FeatureSet uint16
+
+const (
+	FeatureSet_iOS_GPUFamily1_v1           FeatureSet = 0
+	FeatureSet_iOS_GPUFamily1_v2           FeatureSet = 2
+	FeatureSet_iOS_GPUFamily1_v3           FeatureSet = 5
+	FeatureSet_iOS_GPUFamily1_v4           FeatureSet = 8
+	FeatureSet_iOS_GPUFamily1_v5           FeatureSet = 12
+	FeatureSet_iOS_GPUFamily2_v1           FeatureSet = 1
+	FeatureSet_iOS_GPUFamily2_v2           FeatureSet = 3
+	FeatureSet_iOS_GPUFamily2_v3           FeatureSet = 6
+	FeatureSet_iOS_GPUFamily2_v4           FeatureSet = 9
+	FeatureSet_iOS_GPUFamily2_v5           FeatureSet = 13
+	FeatureSet_iOS_GPUFamily3_v1           FeatureSet = 4
+	FeatureSet_iOS_GPUFamily3_v2           FeatureSet = 7
+	FeatureSet_iOS_GPUFamily3_v3           FeatureSet = 10
+	FeatureSet_iOS_GPUFamily3_v4           FeatureSet = 14
+	FeatureSet_iOS_GPUFamily4_v1           FeatureSet = 11
+	FeatureSet_iOS_GPUFamily4_v2           FeatureSet = 15
+	FeatureSet_iOS_GPUFamily5_v1           FeatureSet = 16
+	FeatureSet_tvOS_GPUFamily1_v1          FeatureSet = 30000
+	FeatureSet_tvOS_GPUFamily1_v2          FeatureSet = 30001
+	FeatureSet_tvOS_GPUFamily1_v3          FeatureSet = 30002
+	FeatureSet_tvOS_GPUFamily1_v4          FeatureSet = 30004
+	FeatureSet_tvOS_GPUFamily2_v1          FeatureSet = 30003
+	FeatureSet_tvOS_GPUFamily2_v2          FeatureSet = 30005
+	FeatureSet_macOS_GPUFamily1_v1         FeatureSet = 10000
+	FeatureSet_macOS_GPUFamily1_v2         FeatureSet = 10001
+	FeatureSet_macOS_GPUFamily1_v3         FeatureSet = 10003
+	FeatureSet_macOS_GPUFamily1_v4         FeatureSet = 10004
+	FeatureSet_macOS_GPUFamily2_v1         FeatureSet = 10005
+	FeatureSet_macOS_ReadWriteTextureTier2 FeatureSet = 10002
+)
+
 // TextureType defines The dimension of each image, including whether multiple images are arranged into an array or
 // a cube.
 //
@@ -121,7 +158,7 @@ const (
 	StoreActionCustomSampleDepthStore     StoreAction = 5
 )
 
-// StorageMode defines defines the memory location and access permissions of a resource.
+// StorageMode defines the memory location and access permissions of a resource.
 //
 // Reference: https://developer.apple.com/documentation/metal/mtlstoragemode.
 type StorageMode uint8
@@ -318,11 +355,6 @@ const (
 	CommandBufferStatusError       CommandBufferStatus = 5 // Execution of the command buffer was aborted due to an error during execution.
 )
 
-var (
-	metal                         = purego.Dlopen("Metal.framework/Metal", purego.RTLD_LAZY|purego.RTLD_GLOBAL)
-	_MTLCreateSystemDefaultDevice = purego.Dlsym(metal, "MTLCreateSystemDefaultDevice")
-)
-
 // Resource represents a memory allocation for storing specialized data
 // that is accessible to the GPU.
 //
@@ -458,6 +490,7 @@ var (
 	sel_isLowPower                                                                                                                    = objc.RegisterName("isLowPower")
 	sel_name                                                                                                                          = objc.RegisterName("name")
 	sel_supportsFamily                                                                                                                = objc.RegisterName("supportsFamily:")
+	sel_supportsFeatureSet                                                                                                            = objc.RegisterName("supportsFeatureSet:")
 	sel_newCommandQueue                                                                                                               = objc.RegisterName("newCommandQueue")
 	sel_newLibraryWithSource_options_error                                                                                            = objc.RegisterName("newLibraryWithSource:options:error:")
 	sel_release                                                                                                                       = objc.RegisterName("release")
@@ -529,15 +562,26 @@ var (
 	sel_newDepthStencilStateWithDescriptor                                                                                            = objc.RegisterName("newDepthStencilStateWithDescriptor:")
 	sel_replaceRegion_mipmapLevel_withBytes_bytesPerRow                                                                               = objc.RegisterName("replaceRegion:mipmapLevel:withBytes:bytesPerRow:")
 	sel_getBytes_bytesPerRow_fromRegion_mipmapLevel                                                                                   = objc.RegisterName("getBytes:bytesPerRow:fromRegion:mipmapLevel:")
+	sel_respondsToSelector                                                                                                            = objc.RegisterName("respondsToSelector:")
 )
 
 // CreateSystemDefaultDevice returns the preferred system default Metal device.
 //
 // Reference: https://developer.apple.com/documentation/metal/1433401-mtlcreatesystemdefaultdevice.
-func CreateSystemDefaultDevice() (Device, bool) {
-	d, _, _ := purego.SyscallN(_MTLCreateSystemDefaultDevice)
+func CreateSystemDefaultDevice() (Device, error) {
+	metal, err := purego.Dlopen("Metal.framework/Metal", purego.RTLD_LAZY|purego.RTLD_GLOBAL)
+	if err != nil {
+		return Device{}, err
+	}
+
+	mtlCreateSystemDefaultDevice, err := purego.Dlsym(metal, "MTLCreateSystemDefaultDevice")
+	if err != nil {
+		return Device{}, err
+	}
+
+	d, _, _ := purego.SyscallN(mtlCreateSystemDefaultDevice)
 	if d == 0 {
-		return Device{}, false
+		return Device{}, fmt.Errorf("mtl: MTLCreateSystemDefaultDevice returned 0")
 	}
 	var (
 		headless bool
@@ -555,17 +599,31 @@ func CreateSystemDefaultDevice() (Device, bool) {
 		Headless: headless,
 		LowPower: lowPower,
 		Name:     name,
-	}, true
+	}, nil
 }
 
 // Device returns the underlying id<MTLDevice> pointer.
 func (d Device) Device() unsafe.Pointer { return *(*unsafe.Pointer)(unsafe.Pointer(&d.device)) }
+
+// RespondsToSelector returns a Boolean value that indicates whether the receiver implements or inherits a method that can respond to a specified message.
+//
+// Reference: https://developer.apple.com/documentation/objectivec/1418956-nsobject/1418583-respondstoselector
+func (d Device) RespondsToSelector(sel objc.SEL) bool {
+	return d.device.Send(sel_respondsToSelector, sel) != 0
+}
 
 // SupportsFamily returns a Boolean value that indicates whether the GPU device supports the feature set of a specific GPU family.
 //
 // Reference: https://developer.apple.com/documentation/metal/mtldevice/3143473-supportsfamily
 func (d Device) SupportsFamily(gpuFamily GPUFamily) bool {
 	return d.device.Send(sel_supportsFamily, uintptr(gpuFamily)) != 0
+}
+
+// SupportsFeatureSet reports whether device d supports feature set fs.
+//
+// Reference: https://developer.apple.com/documentation/metal/mtldevice/1433418-supportsfeatureset.
+func (d Device) SupportsFeatureSet(fs FeatureSet) bool {
+	return d.device.Send(sel_supportsFeatureSet, uintptr(fs)) != 0
 }
 
 // MakeCommandQueue creates a serial command submission queue.

@@ -102,7 +102,7 @@ func (s *stream) Seek(offset int64, whence int) (int64, error) {
 	return n - s.headerSize, nil
 }
 
-// DecodeWithSampleRate decodes WAV (RIFF) data to playable stream.
+// DecodeWithoutResampling decodes WAV (RIFF) data to playable stream.
 //
 // The format must be 1 or 2 channels, 8bit or 16bit little endian PCM.
 // The format is converted into 2 channels and 16bit.

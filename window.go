@@ -30,16 +30,16 @@ type WindowResizingModeType = ui.WindowResizingMode
 // WindowResizingModeTypes
 const (
 	// WindowResizingModeDisabled indicates the mode to disallow resizing the window by a user.
-	WindowResizingModeDisabled WindowResizingModeType = WindowResizingModeType(ui.WindowResizingModeDisabled)
+	WindowResizingModeDisabled WindowResizingModeType = ui.WindowResizingModeDisabled
 
 	// WindowResizingModeOnlyFullscreenEnabled indicates the mode to disallow resizing the window,
 	// but allow to make the window fullscreen by a user.
 	// This works only on macOS so far.
 	// On the other platforms, this is the same as WindowResizingModeDisabled.
-	WindowResizingModeOnlyFullscreenEnabled WindowResizingModeType = WindowResizingModeType(ui.WindowResizingModeOnlyFullscreenEnabled)
+	WindowResizingModeOnlyFullscreenEnabled WindowResizingModeType = ui.WindowResizingModeOnlyFullscreenEnabled
 
 	// WindowResizingModeEnabled indicates the mode to allow resizing the window by a user.
-	WindowResizingModeEnabled WindowResizingModeType = WindowResizingModeType(ui.WindowResizingModeEnabled)
+	WindowResizingModeEnabled WindowResizingModeType = ui.WindowResizingModeEnabled
 )
 
 // IsWindowDecorated reports whether the window is decorated.
@@ -67,14 +67,14 @@ func SetWindowDecorated(decorated bool) {
 //
 // WindowResizingMode is concurrent-safe.
 func WindowResizingMode() WindowResizingModeType {
-	return WindowResizingModeType(ui.Get().Window().ResizingMode())
+	return ui.Get().Window().ResizingMode()
 }
 
 // SetWindowResizingMode sets the mode in which a user resizes the window.
 //
 // SetWindowResizingMode is concurrent-safe.
 func SetWindowResizingMode(mode WindowResizingModeType) {
-	ui.Get().Window().SetResizingMode(ui.WindowResizingMode(mode))
+	ui.Get().Window().SetResizingMode(mode)
 }
 
 // IsWindowResizable reports whether the window is resizable by the user's dragging on desktops.
@@ -294,13 +294,13 @@ func RestoreWindow() {
 //
 // IsWindowBeingClosed is concurrent-safe.
 func IsWindowBeingClosed() bool {
-	return ui.Get().Window().IsBeingClosed()
+	return theInputState.windowBeingClosed()
 }
 
 // SetWindowClosingHandled sets whether the window closing is handled or not on desktops. The default state is false.
 //
 // If the window closing is handled, the window is not closed immediately and
-// the game can know whether the window is begin closed or not by IsWindowBeingClosed.
+// the game can know whether the window is being closed or not by IsWindowBeingClosed.
 // In this case, the window is not closed automatically.
 // To end the game, you have to return an error value at the Game's Update function.
 //

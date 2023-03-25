@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: 2006-2019 Camilla Löwy
 // SPDX-FileCopyrightText: 2022 The Ebitengine Authors
 
-package glfwwin
+package goglfw
 
 import (
 	"errors"
@@ -29,9 +29,9 @@ func (w *Window) choosePixelFormat(ctxconfig *ctxconfig, fbconfig_ *fbconfig) (i
 	var nativeCount int32
 	var attribs []int32
 
-	if _glfw.wgl.ARB_pixel_format {
+	if _glfw.platformContext.ARB_pixel_format {
 		var attrib int32 = _WGL_NUMBER_PIXEL_FORMATS_ARB
-		if err := wglGetPixelFormatAttribivARB(w.context.wgl.dc, 1, 0, 1, &attrib, &nativeCount); err != nil {
+		if err := wglGetPixelFormatAttribivARB(w.context.platform.dc, 1, 0, 1, &attrib, &nativeCount); err != nil {
 			return 0, err
 		}
 
@@ -59,21 +59,21 @@ func (w *Window) choosePixelFormat(ctxconfig *ctxconfig, fbconfig_ *fbconfig) (i
 			_WGL_STEREO_ARB,
 			_WGL_DOUBLE_BUFFER_ARB)
 
-		if _glfw.wgl.ARB_multisample {
+		if _glfw.platformContext.ARB_multisample {
 			attribs = append(attribs, _WGL_SAMPLES_ARB)
 		}
 
 		if ctxconfig.client == OpenGLAPI {
-			if _glfw.wgl.ARB_framebuffer_sRGB || _glfw.wgl.EXT_framebuffer_sRGB {
+			if _glfw.platformContext.ARB_framebuffer_sRGB || _glfw.platformContext.EXT_framebuffer_sRGB {
 				attribs = append(attribs, _WGL_FRAMEBUFFER_SRGB_CAPABLE_ARB)
 			}
 		} else {
-			if _glfw.wgl.EXT_colorspace {
+			if _glfw.platformContext.EXT_colorspace {
 				attribs = append(attribs, _WGL_COLORSPACE_EXT)
 			}
 		}
 	} else {
-		c, err := _DescribePixelFormat(w.context.wgl.dc, 1, uint32(unsafe.Sizeof(_PIXELFORMATDESCRIPTOR{})), nil)
+		c, err := _DescribePixelFormat(w.context.platform.dc, 1, uint32(unsafe.Sizeof(_PIXELFORMATDESCRIPTOR{})), nil)
 		if err != nil {
 			return 0, err
 		}
@@ -85,10 +85,10 @@ func (w *Window) choosePixelFormat(ctxconfig *ctxconfig, fbconfig_ *fbconfig) (i
 		var u fbconfig
 		pixelFormat := uintptr(i) + 1
 
-		if _glfw.wgl.ARB_pixel_format {
+		if _glfw.platformContext.ARB_pixel_format {
 			// Get pixel format attributes through "modern" extension
 			values := make([]int32, len(attribs))
-			if err := wglGetPixelFormatAttribivARB(w.context.wgl.dc, int32(pixelFormat), 0, uint32(len(attribs)), &attribs[0], &values[0]); err != nil {
+			if err := wglGetPixelFormatAttribivARB(w.context.platform.dc, int32(pixelFormat), 0, uint32(len(attribs)), &attribs[0], &values[0]); err != nil {
 				return 0, err
 			}
 
@@ -131,18 +131,18 @@ func (w *Window) choosePixelFormat(ctxconfig *ctxconfig, fbconfig_ *fbconfig) (i
 				u.stereo = true
 			}
 
-			if _glfw.wgl.ARB_multisample {
+			if _glfw.platformContext.ARB_multisample {
 				u.samples = int(findAttribValue(_WGL_SAMPLES_ARB))
 			}
 
 			if ctxconfig.client == OpenGLAPI {
-				if _glfw.wgl.ARB_framebuffer_sRGB || _glfw.wgl.EXT_framebuffer_sRGB {
+				if _glfw.platformContext.ARB_framebuffer_sRGB || _glfw.platformContext.EXT_framebuffer_sRGB {
 					if findAttribValue(_WGL_FRAMEBUFFER_SRGB_CAPABLE_ARB) != 0 {
 						u.sRGB = true
 					}
 				}
 			} else {
-				if _glfw.wgl.EXT_colorspace {
+				if _glfw.platformContext.EXT_colorspace {
 					if findAttribValue(_WGL_COLORSPACE_EXT) == _WGL_COLORSPACE_SRGB_EXT {
 						u.sRGB = true
 					}
@@ -152,7 +152,7 @@ func (w *Window) choosePixelFormat(ctxconfig *ctxconfig, fbconfig_ *fbconfig) (i
 			// Get pixel format attributes through legacy PFDs
 
 			var pfd _PIXELFORMATDESCRIPTOR
-			if _, err := _DescribePixelFormat(w.context.wgl.dc, int32(pixelFormat), uint32(unsafe.Sizeof(pfd)), &pfd); err != nil {
+			if _, err := _DescribePixelFormat(w.context.platform.dc, int32(pixelFormat), uint32(unsafe.Sizeof(pfd)), &pfd); err != nil {
 				return 0, err
 			}
 
@@ -197,12 +197,12 @@ func (w *Window) choosePixelFormat(ctxconfig *ctxconfig, fbconfig_ *fbconfig) (i
 	}
 
 	if len(usableConfigs) == 0 {
-		return 0, fmt.Errorf("glfwwin: the driver does not appear to support OpenGL")
+		return 0, fmt.Errorf("goglfw: the driver does not appear to support OpenGL")
 	}
 
 	closest := chooseFBConfig(fbconfig_, usableConfigs)
 	if closest == nil {
-		return 0, fmt.Errorf("glfwwin: failed to find a suitable pixel format")
+		return 0, fmt.Errorf("goglfw: failed to find a suitable pixel format")
 	}
 
 	return int(closest.handle), nil
@@ -210,7 +210,7 @@ func (w *Window) choosePixelFormat(ctxconfig *ctxconfig, fbconfig_ *fbconfig) (i
 
 func makeContextCurrentWGL(window *Window) error {
 	if window != nil {
-		if err := wglMakeCurrent(window.context.wgl.dc, window.context.wgl.handle); err != nil {
+		if err := wglMakeCurrent(window.context.platform.dc, window.context.platform.handle); err != nil {
 			_ = _glfw.contextSlot.set(0)
 			return err
 		}
@@ -244,14 +244,14 @@ func swapBuffersWGL(window *Window) error {
 
 		// HACK: Use DwmFlush when desktop composition is enabled
 		if enabled {
-			for i := 0; i < window.context.wgl.interval; i++ {
+			for i := 0; i < window.context.platform.interval; i++ {
 				// Ignore an error from DWM functions as they might not be implemented e.g. on Proton (#2113).
 				_ = _DwmFlush()
 			}
 		}
 	}
 
-	if err := _SwapBuffers(window.context.wgl.dc); err != nil {
+	if err := _SwapBuffers(window.context.platform.dc); err != nil {
 		return err
 	}
 	return nil
@@ -264,7 +264,7 @@ func swapIntervalWGL(interval int) error {
 	}
 	window := (*Window)(unsafe.Pointer(ptr))
 
-	window.context.wgl.interval = interval
+	window.context.platform.interval = interval
 
 	if window.monitor == nil && _IsWindowsVistaOrGreater() {
 		// DWM Composition is always enabled on Win8+
@@ -285,7 +285,7 @@ func swapIntervalWGL(interval int) error {
 		}
 	}
 
-	if _glfw.wgl.EXT_swap_control {
+	if _glfw.platformContext.EXT_swap_control {
 		if err := wglSwapIntervalEXT(int32(interval)); err != nil {
 			return err
 		}
@@ -323,24 +323,24 @@ func getProcAddressWGL(procname string) uintptr {
 }
 
 func destroyContextWGL(window *Window) error {
-	if window.context.wgl.handle != 0 {
+	if window.context.platform.handle != 0 {
 		// Ignore ERROR_BUSY. This happens when the thread is different from the context thread (#2518).
 		// This is a known issue of GLFW (glfw/glfw#2239).
 		// TODO: Delete the context on an appropriate thread.
-		if err := wglDeleteContext(window.context.wgl.handle); err != nil && !errors.Is(err, windows.ERROR_BUSY) {
+		if err := wglDeleteContext(window.context.platform.handle); err != nil && !errors.Is(err, windows.ERROR_BUSY) {
 			return err
 		}
-		window.context.wgl.handle = 0
+		window.context.platform.handle = 0
 	}
 	return nil
 }
 
 func initWGL() error {
 	if microsoftgdk.IsXbox() {
-		return fmt.Errorf("glfwwin: WGL is not available in Xbox")
+		return fmt.Errorf("goglfw: WGL is not available in Xbox")
 	}
 
-	if _glfw.wgl.inited {
+	if _glfw.platformContext.inited {
 		return nil
 	}
 
@@ -355,7 +355,7 @@ func initWGL() error {
 	// NOTE: This code will accept the Microsoft GDI ICD; accelerated context
 	//       creation failure occurs during manual pixel format enumeration
 
-	dc, err := _GetDC(_glfw.win32.helperWindowHandle)
+	dc, err := _GetDC(_glfw.platformWindow.helperWindowHandle)
 	if err != nil {
 		return err
 	}
@@ -397,18 +397,18 @@ func initWGL() error {
 
 	// NOTE: WGL_ARB_extensions_string and WGL_EXT_extensions_string are not
 	//       checked below as we are already using them
-	_glfw.wgl.ARB_multisample = extensionSupportedWGL("WGL_ARB_multisample")
-	_glfw.wgl.ARB_framebuffer_sRGB = extensionSupportedWGL("WGL_ARB_framebuffer_sRGB")
-	_glfw.wgl.EXT_framebuffer_sRGB = extensionSupportedWGL("WGL_EXT_framebuffer_sRGB")
-	_glfw.wgl.ARB_create_context = extensionSupportedWGL("WGL_ARB_create_context")
-	_glfw.wgl.ARB_create_context_profile = extensionSupportedWGL("WGL_ARB_create_context_profile")
-	_glfw.wgl.EXT_create_context_es2_profile = extensionSupportedWGL("WGL_EXT_create_context_es2_profile")
-	_glfw.wgl.ARB_create_context_robustness = extensionSupportedWGL("WGL_ARB_create_context_robustness")
-	_glfw.wgl.ARB_create_context_no_error = extensionSupportedWGL("WGL_ARB_create_context_no_error")
-	_glfw.wgl.EXT_swap_control = extensionSupportedWGL("WGL_EXT_swap_control")
-	_glfw.wgl.EXT_colorspace = extensionSupportedWGL("WGL_EXT_colorspace")
-	_glfw.wgl.ARB_pixel_format = extensionSupportedWGL("WGL_ARB_pixel_format")
-	_glfw.wgl.ARB_context_flush_control = extensionSupportedWGL("WGL_ARB_context_flush_control")
+	_glfw.platformContext.ARB_multisample = extensionSupportedWGL("WGL_ARB_multisample")
+	_glfw.platformContext.ARB_framebuffer_sRGB = extensionSupportedWGL("WGL_ARB_framebuffer_sRGB")
+	_glfw.platformContext.EXT_framebuffer_sRGB = extensionSupportedWGL("WGL_EXT_framebuffer_sRGB")
+	_glfw.platformContext.ARB_create_context = extensionSupportedWGL("WGL_ARB_create_context")
+	_glfw.platformContext.ARB_create_context_profile = extensionSupportedWGL("WGL_ARB_create_context_profile")
+	_glfw.platformContext.EXT_create_context_es2_profile = extensionSupportedWGL("WGL_EXT_create_context_es2_profile")
+	_glfw.platformContext.ARB_create_context_robustness = extensionSupportedWGL("WGL_ARB_create_context_robustness")
+	_glfw.platformContext.ARB_create_context_no_error = extensionSupportedWGL("WGL_ARB_create_context_no_error")
+	_glfw.platformContext.EXT_swap_control = extensionSupportedWGL("WGL_EXT_swap_control")
+	_glfw.platformContext.EXT_colorspace = extensionSupportedWGL("WGL_EXT_colorspace")
+	_glfw.platformContext.ARB_pixel_format = extensionSupportedWGL("WGL_ARB_pixel_format")
+	_glfw.platformContext.ARB_context_flush_control = extensionSupportedWGL("WGL_ARB_context_flush_control")
 
 	if err := wglMakeCurrent(pdc, prc); err != nil {
 		return err
@@ -416,7 +416,7 @@ func initWGL() error {
 	if err := wglDeleteContext(rc); err != nil {
 		return err
 	}
-	_glfw.wgl.inited = true
+	_glfw.platformContext.inited = true
 	return nil
 }
 
@@ -426,14 +426,14 @@ func terminateWGL() {
 func (w *Window) createContextWGL(ctxconfig *ctxconfig, fbconfig *fbconfig) error {
 	var share _HGLRC
 	if ctxconfig.share != nil {
-		share = ctxconfig.share.context.wgl.handle
+		share = ctxconfig.share.context.platform.handle
 	}
 
-	dc, err := _GetDC(w.win32.handle)
+	dc, err := _GetDC(w.platform.handle)
 	if err != nil {
 		return err
 	}
-	w.context.wgl.dc = dc
+	w.context.platform.dc = dc
 
 	pixelFormat, err := w.choosePixelFormat(ctxconfig, fbconfig)
 	if err != nil {
@@ -441,29 +441,29 @@ func (w *Window) createContextWGL(ctxconfig *ctxconfig, fbconfig *fbconfig) erro
 	}
 
 	var pfd _PIXELFORMATDESCRIPTOR
-	if _, err := _DescribePixelFormat(w.context.wgl.dc, int32(pixelFormat), uint32(unsafe.Sizeof(pfd)), &pfd); err != nil {
+	if _, err := _DescribePixelFormat(w.context.platform.dc, int32(pixelFormat), uint32(unsafe.Sizeof(pfd)), &pfd); err != nil {
 		return err
 	}
 
-	if err := _SetPixelFormat(w.context.wgl.dc, int32(pixelFormat), &pfd); err != nil {
+	if err := _SetPixelFormat(w.context.platform.dc, int32(pixelFormat), &pfd); err != nil {
 		return err
 	}
 
 	if ctxconfig.client == OpenGLAPI {
-		if ctxconfig.forward && !_glfw.wgl.ARB_create_context {
-			return fmt.Errorf("glfwwin: a forward compatible OpenGL context requested but WGL_ARB_create_context is unavailable: %w", VersionUnavailable)
+		if ctxconfig.forward && !_glfw.platformContext.ARB_create_context {
+			return fmt.Errorf("goglfw: a forward compatible OpenGL context requested but WGL_ARB_create_context is unavailable: %w", VersionUnavailable)
 		}
 
-		if ctxconfig.profile != 0 && !_glfw.wgl.ARB_create_context_profile {
-			return fmt.Errorf("glfwwin: OpenGL profile requested but WGL_ARB_create_context_profile is unavailable: %w", VersionUnavailable)
+		if ctxconfig.profile != 0 && !_glfw.platformContext.ARB_create_context_profile {
+			return fmt.Errorf("goglfw: OpenGL profile requested but WGL_ARB_create_context_profile is unavailable: %w", VersionUnavailable)
 		}
 	} else {
-		if !_glfw.wgl.ARB_create_context || !_glfw.wgl.ARB_create_context_profile || !_glfw.wgl.EXT_create_context_es2_profile {
-			return fmt.Errorf("glfwwin: OpenGL ES requested but WGL_ARB_create_context_es2_profile is unavailable: %w", ApiUnavailable)
+		if !_glfw.platformContext.ARB_create_context || !_glfw.platformContext.ARB_create_context_profile || !_glfw.platformContext.EXT_create_context_es2_profile {
+			return fmt.Errorf("goglfw: OpenGL ES requested but WGL_ARB_create_context_es2_profile is unavailable: %w", ApiUnavailable)
 		}
 	}
 
-	if _glfw.wgl.ARB_create_context {
+	if _glfw.platformContext.ARB_create_context {
 		var flags int32
 		var mask int32
 		if ctxconfig.client == OpenGLAPI {
@@ -486,7 +486,7 @@ func (w *Window) createContextWGL(ctxconfig *ctxconfig, fbconfig *fbconfig) erro
 
 		var attribs []int32
 		if ctxconfig.robustness != 0 {
-			if _glfw.wgl.ARB_create_context_robustness {
+			if _glfw.platformContext.ARB_create_context_robustness {
 				if ctxconfig.robustness == NoResetNotification {
 					attribs = append(attribs, _WGL_CONTEXT_RESET_NOTIFICATION_STRATEGY_ARB, _WGL_NO_RESET_NOTIFICATION_ARB)
 				} else if ctxconfig.robustness == LoseContextOnReset {
@@ -497,7 +497,7 @@ func (w *Window) createContextWGL(ctxconfig *ctxconfig, fbconfig *fbconfig) erro
 		}
 
 		if ctxconfig.release != 0 {
-			if _glfw.wgl.ARB_context_flush_control {
+			if _glfw.platformContext.ARB_context_flush_control {
 				if ctxconfig.release == ReleaseBehaviorNone {
 					attribs = append(attribs, _WGL_CONTEXT_RELEASE_BEHAVIOR_ARB, _WGL_CONTEXT_RELEASE_BEHAVIOR_NONE_ARB)
 				} else if ctxconfig.release == ReleaseBehaviorFlush {
@@ -507,7 +507,7 @@ func (w *Window) createContextWGL(ctxconfig *ctxconfig, fbconfig *fbconfig) erro
 		}
 
 		if ctxconfig.noerror {
-			if _glfw.wgl.ARB_create_context_no_error {
+			if _glfw.platformContext.ARB_create_context_no_error {
 				attribs = append(attribs, _WGL_CONTEXT_OPENGL_NO_ERROR_ARB, 1)
 			}
 		}
@@ -531,19 +531,19 @@ func (w *Window) createContextWGL(ctxconfig *ctxconfig, fbconfig *fbconfig) erro
 		attribs = append(attribs, 0, 0)
 
 		var err error
-		w.context.wgl.handle, err = wglCreateContextAttribsARB(w.context.wgl.dc, share, &attribs[0])
+		w.context.platform.handle, err = wglCreateContextAttribsARB(w.context.platform.dc, share, &attribs[0])
 		if err != nil {
 			return err
 		}
 	} else {
 		var err error
-		w.context.wgl.handle, err = wglCreateContext(w.context.wgl.dc)
+		w.context.platform.handle, err = wglCreateContext(w.context.platform.dc)
 		if err != nil {
 			return err
 		}
 
 		if share != 0 {
-			if err := wglShareLists(share, w.context.wgl.handle); err != nil {
+			if err := wglShareLists(share, w.context.platform.handle); err != nil {
 				return err
 			}
 		}
@@ -568,5 +568,5 @@ func getWGLContext(handle *Window) _HGLRC {
 		// TODO: Should this return an error?
 		return 0
 	}
-	return window.context.wgl.handle
+	return window.context.platform.handle
 }

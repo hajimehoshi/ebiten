@@ -15,16 +15,17 @@
 package glfw
 
 import (
-	"github.com/hajimehoshi/ebiten/v2/internal/glfwwin"
+	"github.com/hajimehoshi/ebiten/v2/internal/goglfw"
 )
 
 type (
-	CharModsCallback        = glfwwin.CharModsCallback
-	CloseCallback           = glfwwin.CloseCallback
-	FramebufferSizeCallback = glfwwin.FramebufferSizeCallback
-	MonitorCallback         = glfwwin.MonitorCallback
-	ScrollCallback          = glfwwin.ScrollCallback
-	SizeCallback            = glfwwin.SizeCallback
+	CharModsCallback        = goglfw.CharModsCallback
+	CloseCallback           = goglfw.CloseCallback
+	DropCallback            = goglfw.DropCallback
+	FramebufferSizeCallback = goglfw.FramebufferSizeCallback
+	MonitorCallback         = goglfw.MonitorCallback
+	ScrollCallback          = goglfw.ScrollCallback
+	SizeCallback            = goglfw.SizeCallback
 )
 
-type VidMode glfwwin.VidMode
+type VidMode goglfw.VidMode

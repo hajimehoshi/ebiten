@@ -40,7 +40,7 @@ func GetAt(x, y int) float64 {
 	return s
 }
 
-// CelarCache clears the cache.
+// ClearCache clears the cache.
 // This should be called when monitors are changed by connecting or disconnecting.
 func ClearCache() {
 	// TODO: This should be called not only when monitors are changed but also a monitor's scales are changed.

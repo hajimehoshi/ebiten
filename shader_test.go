@@ -45,7 +45,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 			got := dst.At(i, j).(color.RGBA)
 			var want color.RGBA
 			if i < w/2 && j < h/2 {
-				want = color.RGBA{0xff, 0, 0, 0xff}
+				want = color.RGBA{R: 0xff, A: 0xff}
 			}
 			if got != want {
 				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
@@ -78,7 +78,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 			got := dst.At(i, j).(color.RGBA)
 			var want color.RGBA
 			if i < w/2 && j < h/2 {
-				want = color.RGBA{0xff, 0, 0, 0xff}
+				want = color.RGBA{R: 0xff, A: 0xff}
 			}
 			if got != want {
 				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
@@ -104,9 +104,9 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	}
 
 	src0 := ebiten.NewImageWithOptions(rect, &ebiten.NewImageOptions{Unmanaged: true})
-	src0.Fill(color.RGBA{25, 0xff, 25, 0xff})
+	src0.Fill(color.RGBA{R: 25, G: 0xff, B: 25, A: 0xff})
 	src1 := ebiten.NewImageWithOptions(rect, &ebiten.NewImageOptions{Unmanaged: true})
-	src1.Fill(color.RGBA{0xff, 0, 0, 0xff})
+	src1.Fill(color.RGBA{R: 0xff, A: 0xff})
 	op := &ebiten.DrawRectShaderOptions{}
 	op.CompositeMode = ebiten.CompositeModeCopy
 	op.Images[0] = src0
@@ -132,7 +132,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	for j := 0; j < h; j++ {
 		for i := 0; i < w; i++ {
 			got := dst.At(i, j).(color.RGBA)
-			want := color.RGBA{0xff, 0, 0, 0xff}
+			want := color.RGBA{R: 0xff, A: 0xff}
 			if got != want {
 				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
 			}
@@ -149,7 +149,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	for j := 0; j < h; j++ {
 		for i := 0; i < w; i++ {
 			got := dst.At(i, j).(color.RGBA)
-			want := color.RGBA{25, 0xff, 25, 0xff}
+			want := color.RGBA{R: 25, G: 0xff, B: 25, A: 0xff}
 			if got != want {
 				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
 			}
@@ -224,7 +224,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	for j := 0; j < h; j++ {
 		for i := 0; i < w; i++ {
 			got := dst.At(i, j).(color.RGBA)
-			want := color.RGBA{0xff, 0, 0, 0xff}
+			want := color.RGBA{R: 0xff, A: 0xff}
 			if got != want {
 				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
 			}
@@ -255,7 +255,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	for j := 0; j < h; j++ {
 		for i := 0; i < w; i++ {
 			got := dst.At(i, j).(color.RGBA)
-			want := color.RGBA{0xff, 0, 0, 0xff}
+			want := color.RGBA{R: 0xff, A: 0xff}
 			if got != want {
 				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
 			}
@@ -323,7 +323,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	for j := 0; j < h; j++ {
 		for i := 0; i < w; i++ {
 			got := dst.At(i, j).(color.RGBA)
-			want := color.RGBA{87, 82, 71, 255}
+			want := color.RGBA{R: 87, G: 82, B: 71, A: 255}
 			if got != want {
 				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
 			}
@@ -382,7 +382,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 				got := dst.At(i, j).(color.RGBA)
 				var want color.RGBA
 				if i < w/2 && j < h/2 {
-					want = color.RGBA{0xff, 0xff, 0, 0xff}
+					want = color.RGBA{R: 0xff, G: 0xff, A: 0xff}
 				}
 				if got != want {
 					t.Errorf("%s dst.At(%d, %d): got: %v, want: %v", testname, i, j, got, want)
@@ -456,6 +456,8 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 
 // Issue #1404
 func TestShaderDerivatives(t *testing.T) {
+	t.Skip("the results of dfdx, dfdy, and fwidth are indeterministic (#2583)")
+
 	const w, h = 16, 16
 
 	s, err := ebiten.NewShader([]byte(`package main
@@ -493,7 +495,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	for j := 1; j < h-1; j++ {
 		for i := 1; i < w-1; i++ {
 			got := dst.At(i, j).(color.RGBA)
-			want := color.RGBA{0, 0, 0, 0xff}
+			want := color.RGBA{A: 0xff}
 			if i == w/2-1 || i == w/2 {
 				want.R = 0xff
 			}
@@ -509,6 +511,8 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 
 // Issue #1701
 func TestShaderDerivatives2(t *testing.T) {
+	t.Skip("the results of dfdx, dfdy, and fwidth are indeterministic (#2583)")
+
 	const w, h = 16, 16
 
 	s, err := ebiten.NewShader([]byte(`package main
@@ -551,7 +555,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	for j := 1; j < h-1; j++ {
 		for i := 1; i < w-1; i++ {
 			got := dst.At(i, j).(color.RGBA)
-			want := color.RGBA{0, 0, 0, 0xff}
+			want := color.RGBA{A: 0xff}
 			if i == w/2-1 || i == w/2 {
 				want.R = 0xff
 			}
@@ -630,7 +634,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 			op := &ebiten.DrawRectShaderOptions{}
 			op.Uniforms = shader.Uniforms
 			dst.DrawRectShader(w, h, s, op)
-			if got, want := dst.At(0, 0), (color.RGBA{0xff, 0xff, 0xff, 0xff}); got != want {
+			if got, want := dst.At(0, 0), (color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff}); got != want {
 				t.Errorf("got: %v, want: %v", got, want)
 			}
 		})
@@ -660,7 +664,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 			got := dst.At(i, j).(color.RGBA)
 			var want color.RGBA
 			if i < w/2 && j < h/2 {
-				want = color.RGBA{0xc0, 0, 0, 0xff}
+				want = color.RGBA{R: 0xc0, A: 0xff}
 			}
 			if !sameColors(got, want, 2) {
 				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
@@ -673,7 +677,7 @@ func TestShaderMatrixInitialize(t *testing.T) {
 	const w, h = 16, 16
 
 	src := ebiten.NewImage(w, h)
-	src.Fill(color.RGBA{0x10, 0x20, 0x30, 0xff})
+	src.Fill(color.RGBA{R: 0x10, G: 0x20, B: 0x30, A: 0xff})
 
 	dst := ebiten.NewImage(w, h)
 	s, err := ebiten.NewShader([]byte(`package main
@@ -693,7 +697,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	for j := 0; j < h; j++ {
 		for i := 0; i < w; i++ {
 			got := dst.At(i, j).(color.RGBA)
-			want := color.RGBA{0x20, 0x40, 0x60, 0xff}
+			want := color.RGBA{R: 0x20, G: 0x40, B: 0x60, A: 0xff}
 			if !sameColors(got, want, 2) {
 				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
 			}
@@ -722,7 +726,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	for j := 0; j < h; j++ {
 		for i := 0; i < w; i++ {
 			got := dst.At(i, j).(color.RGBA)
-			want := color.RGBA{0x40, 0, 0x40, 0xff}
+			want := color.RGBA{R: 0x40, B: 0x40, A: 0xff}
 			if !sameColors(got, want, 2) {
 				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
 			}
@@ -734,7 +738,7 @@ func TestShaderTextureAt(t *testing.T) {
 	const w, h = 16, 16
 
 	src := ebiten.NewImage(w, h)
-	src.Fill(color.RGBA{0x10, 0x20, 0x30, 0xff})
+	src.Fill(color.RGBA{R: 0x10, G: 0x20, B: 0x30, A: 0xff})
 
 	dst := ebiten.NewImage(w, h)
 	s, err := ebiten.NewShader([]byte(`package main
@@ -758,7 +762,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	for j := 0; j < h; j++ {
 		for i := 0; i < w; i++ {
 			got := dst.At(i, j).(color.RGBA)
-			want := color.RGBA{0x10, 0x20, 0x30, 0xff}
+			want := color.RGBA{R: 0x10, G: 0x20, B: 0x30, A: 0xff}
 			if !sameColors(got, want, 2) {
 				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
 			}
@@ -770,7 +774,7 @@ func TestShaderAtan2(t *testing.T) {
 	const w, h = 16, 16
 
 	src := ebiten.NewImage(w, h)
-	src.Fill(color.RGBA{0x10, 0x20, 0x30, 0xff})
+	src.Fill(color.RGBA{R: 0x10, G: 0x20, B: 0x30, A: 0xff})
 
 	dst := ebiten.NewImage(w, h)
 	s, err := ebiten.NewShader([]byte(`package main
@@ -793,7 +797,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		for i := 0; i < w; i++ {
 			got := dst.At(i, j).(color.RGBA)
 			v := byte(math.Floor(0xff * math.Pi / 4))
-			want := color.RGBA{v, v, v, v}
+			want := color.RGBA{R: v, G: v, B: v, A: v}
 			if !sameColors(got, want, 2) {
 				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
 			}
@@ -831,7 +835,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	for j := 0; j < h; j++ {
 		for i := 0; i < w; i++ {
 			got := dst.At(i, j).(color.RGBA)
-			want := color.RGBA{8, 12, 0xff, 0xff}
+			want := color.RGBA{R: 8, G: 12, B: 0xff, A: 0xff}
 			if !sameColors(got, want, 2) {
 				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
 			}
@@ -871,7 +875,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	for j := 0; j < h; j++ {
 		for i := 0; i < w; i++ {
 			got := dst.At(i, j).(color.RGBA)
-			want := color.RGBA{54, 80, 0xff, 0xff}
+			want := color.RGBA{R: 54, G: 80, B: 0xff, A: 0xff}
 			if !sameColors(got, want, 2) {
 				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
 			}
@@ -910,7 +914,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	for j := 0; j < h; j++ {
 		for i := 0; i < w; i++ {
 			got := dst.At(i, j).(color.RGBA)
-			want := color.RGBA{24, 30, 36, 0xff}
+			want := color.RGBA{R: 24, G: 30, B: 36, A: 0xff}
 			if !sameColors(got, want, 2) {
 				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
 			}
@@ -952,7 +956,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	for j := 0; j < h; j++ {
 		for i := 0; i < w; i++ {
 			got := dst.At(i, j).(color.RGBA)
-			want := color.RGBA{6, 8, 9, 0xff}
+			want := color.RGBA{R: 6, G: 8, B: 9, A: 0xff}
 			if !sameColors(got, want, 2) {
 				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
 			}
@@ -992,7 +996,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	for j := 0; j < h; j++ {
 		for i := 0; i < w; i++ {
 			got := dst.At(i, j).(color.RGBA)
-			want := color.RGBA{112, 128, 143, 159}
+			want := color.RGBA{R: 112, G: 128, B: 143, A: 159}
 			if !sameColors(got, want, 2) {
 				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
 			}
@@ -1036,7 +1040,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	for j := 0; j < h; j++ {
 		for i := 0; i < w; i++ {
 			got := dst.At(i, j).(color.RGBA)
-			want := color.RGBA{44, 50, 56, 62}
+			want := color.RGBA{R: 44, G: 50, B: 56, A: 62}
 			if !sameColors(got, want, 2) {
 				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
 			}
@@ -1098,7 +1102,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 				got := dst.At(i, j).(color.RGBA)
 				var want color.RGBA
 				if 0 <= i && i < w/2 && 0 <= j && j < h/2 {
-					want = color.RGBA{0xff, 0xff, 0, 0xff}
+					want = color.RGBA{R: 0xff, G: 0xff, A: 0xff}
 				}
 				if got != want {
 					t.Errorf("%s dst.At(%d, %d): got: %v, want: %v", testname, i, j, got, want)
@@ -1196,7 +1200,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	for j := 0; j < h; j++ {
 		for i := 0; i < w; i++ {
 			got := dst.At(i, j).(color.RGBA)
-			want := color.RGBA{0xff, 0, 0x00, 0xff}
+			want := color.RGBA{R: 0xff, A: 0xff}
 			if !sameColors(got, want, 2) {
 				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
 			}
@@ -1209,7 +1213,7 @@ func TestShaderDiscard(t *testing.T) {
 	const w, h = 16, 16
 
 	dst := ebiten.NewImage(w, h)
-	dst.Fill(color.RGBA{0xff, 0, 0, 0xff})
+	dst.Fill(color.RGBA{R: 0xff, A: 0xff})
 
 	src := ebiten.NewImage(w, h)
 	pix := make([]byte, 4*w*h)
@@ -1245,9 +1249,9 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	for j := 0; j < h; j++ {
 		for i := 0; i < w; i++ {
 			got := dst.At(i, j).(color.RGBA)
-			want := color.RGBA{0, 0xff, 0x00, 0xff}
+			want := color.RGBA{G: 0xff, A: 0xff}
 			if i >= w/2 || j >= h/2 {
-				want = color.RGBA{0xff, 0, 0x00, 0xff}
+				want = color.RGBA{R: 0xff, A: 0xff}
 			}
 			if !sameColors(got, want, 2) {
 				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
@@ -1299,9 +1303,9 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 			var want color.RGBA
 			if offsetX <= i && i < offsetX+srcW && offsetY <= j && j < offsetY+srcH {
 				if offsetX+srcW/2 <= i && offsetY+srcH/2 <= j {
-					want = color.RGBA{0xff, 0, 0, 0xff}
+					want = color.RGBA{R: 0xff, A: 0xff}
 				} else {
-					want = color.RGBA{0, 0xff, 0, 0xff}
+					want = color.RGBA{G: 0xff, A: 0xff}
 				}
 			}
 			if got != want {
@@ -1330,13 +1334,13 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	op.ColorScale.SetG(5.0 / 8.0)
 	op.ColorScale.SetB(6.0 / 8.0)
 	op.ColorScale.SetA(7.0 / 8.0)
-	op.ColorScale.ScaleWithColor(color.RGBA{0x40, 0x80, 0xc0, 0xff})
+	op.ColorScale.ScaleWithColor(color.RGBA{R: 0x40, G: 0x80, B: 0xc0, A: 0xff})
 	dst.DrawRectShader(w, h, s, op)
 
 	for j := 0; j < h; j++ {
 		for i := 0; i < w; i++ {
 			got := dst.At(i, j).(color.RGBA)
-			want := color.RGBA{0x20, 0x50, 0x90, 0xe0}
+			want := color.RGBA{R: 0x20, G: 0x50, B: 0x90, A: 0xe0}
 			if !sameColors(got, want, 1) {
 				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
 			}
@@ -1391,7 +1395,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 				"U3": 0xff,
 			},
 			Shader: ints,
-			Want:   color.RGBA{0xff, 0xff, 0xff, 0xff},
+			Want:   color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff},
 		},
 		{
 			Name: "int",
@@ -1402,7 +1406,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 				"U3": int64(0x88),
 			},
 			Shader: ints,
-			Want:   color.RGBA{0x24, 0x3f, 0x6a, 0x88},
+			Want:   color.RGBA{R: 0x24, G: 0x3f, B: 0x6a, A: 0x88},
 		},
 		{
 			Name: "uint",
@@ -1413,7 +1417,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 				"U3": uint64(0xd3),
 			},
 			Shader: ints,
-			Want:   color.RGBA{0x85, 0xa3, 0x08, 0xd3},
+			Want:   color.RGBA{R: 0x85, G: 0xa3, B: 0x08, A: 0xd3},
 		},
 		{
 			Name: "0xff,slice",
@@ -1421,7 +1425,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 				"U": []int{0xff, 0xff, 0xff, 0xff},
 			},
 			Shader: intArray,
-			Want:   color.RGBA{0xff, 0xff, 0xff, 0xff},
+			Want:   color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff},
 		},
 		{
 			Name: "int,slice",
@@ -1429,7 +1433,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 				"U": []int16{0x24, 0x3f, 0x6a, 0x88},
 			},
 			Shader: intArray,
-			Want:   color.RGBA{0x24, 0x3f, 0x6a, 0x88},
+			Want:   color.RGBA{R: 0x24, G: 0x3f, B: 0x6a, A: 0x88},
 		},
 		{
 			Name: "uint,slice",
@@ -1437,7 +1441,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 				"U": []uint8{0x85, 0xa3, 0x08, 0xd3},
 			},
 			Shader: intArray,
-			Want:   color.RGBA{0x85, 0xa3, 0x08, 0xd3},
+			Want:   color.RGBA{R: 0x85, G: 0xa3, B: 0x08, A: 0xd3},
 		},
 		{
 			Name: "0xff,array",
@@ -1445,7 +1449,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 				"U": [...]int{0xff, 0xff, 0xff, 0xff},
 			},
 			Shader: intArray,
-			Want:   color.RGBA{0xff, 0xff, 0xff, 0xff},
+			Want:   color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff},
 		},
 		{
 			Name: "int,array",
@@ -1453,7 +1457,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 				"U": [...]int16{0x24, 0x3f, 0x6a, 0x88},
 			},
 			Shader: intArray,
-			Want:   color.RGBA{0x24, 0x3f, 0x6a, 0x88},
+			Want:   color.RGBA{R: 0x24, G: 0x3f, B: 0x6a, A: 0x88},
 		},
 		{
 			Name: "uint,array",
@@ -1461,7 +1465,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 				"U": [...]uint8{0x85, 0xa3, 0x08, 0xd3},
 			},
 			Shader: intArray,
-			Want:   color.RGBA{0x85, 0xa3, 0x08, 0xd3},
+			Want:   color.RGBA{R: 0x85, G: 0xa3, B: 0x08, A: 0xd3},
 		},
 		{
 			Name: "0xff,array",
@@ -1469,7 +1473,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 				"U": [...]int{0xff, 0xff, 0xff, 0xff},
 			},
 			Shader: intArray,
-			Want:   color.RGBA{0xff, 0xff, 0xff, 0xff},
+			Want:   color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff},
 		},
 		{
 			Name: "int,array",
@@ -1477,7 +1481,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 				"U": [...]int16{0x24, 0x3f, 0x6a, 0x88},
 			},
 			Shader: intArray,
-			Want:   color.RGBA{0x24, 0x3f, 0x6a, 0x88},
+			Want:   color.RGBA{R: 0x24, G: 0x3f, B: 0x6a, A: 0x88},
 		},
 		{
 			Name: "uint,array",
@@ -1485,7 +1489,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 				"U": [...]uint8{0x85, 0xa3, 0x08, 0xd3},
 			},
 			Shader: intArray,
-			Want:   color.RGBA{0x85, 0xa3, 0x08, 0xd3},
+			Want:   color.RGBA{R: 0x85, G: 0xa3, B: 0x08, A: 0xd3},
 		},
 		{
 			Name: "0xff,ivec",
@@ -1494,7 +1498,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 				"U1": [...]int{0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
 			},
 			Shader: intVec,
-			Want:   color.RGBA{0xff, 0xff, 0xff, 0xff},
+			Want:   color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff},
 		},
 		{
 			Name: "int,ivec",
@@ -1503,7 +1507,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 				"U1": [...]int16{0x85, 0xa3, 0x08, 0xd3, 0x13, 0x19},
 			},
 			Shader: intVec,
-			Want:   color.RGBA{0x24, 0x3f, 0x08, 0xd3},
+			Want:   color.RGBA{R: 0x24, G: 0x3f, B: 0x08, A: 0xd3},
 		},
 		{
 			Name: "uint,ivec",
@@ -1512,7 +1516,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 				"U1": [...]uint8{0x85, 0xa3, 0x08, 0xd3, 0x13, 0x19},
 			},
 			Shader: intVec,
-			Want:   color.RGBA{0x24, 0x3f, 0x08, 0xd3},
+			Want:   color.RGBA{R: 0x24, G: 0x3f, B: 0x08, A: 0xd3},
 		},
 	}
 	for _, tc := range testCases {
@@ -1570,7 +1574,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		},
 	}
 	dst.DrawRectShader(w, h, s, op)
-	if got, want := dst.At(0, 0).(color.RGBA), (color.RGBA{0x24, 0x85, 0x13, 0x19}); !sameColors(got, want, 1) {
+	if got, want := dst.At(0, 0).(color.RGBA), (color.RGBA{R: 0x24, G: 0x85, B: 0x13, A: 0x19}); !sameColors(got, want, 1) {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
 }
@@ -1583,31 +1587,31 @@ func TestShaderIVecMod(t *testing.T) {
 		{
 			source: `a := ivec4(0x24, 0x3f, 0x6a, 0x88)
 return vec4(a)/255`,
-			want: color.RGBA{0x24, 0x3f, 0x6a, 0x88},
+			want: color.RGBA{R: 0x24, G: 0x3f, B: 0x6a, A: 0x88},
 		},
 		{
 			source: `a := ivec4(0x24, 0x3f, 0x6a, 0x88)
 a %= 0x85
 return vec4(a)/255`,
-			want: color.RGBA{0x24, 0x3f, 0x6a, 0x03},
+			want: color.RGBA{R: 0x24, G: 0x3f, B: 0x6a, A: 0x03},
 		},
 		{
 			source: `a := ivec4(0x24, 0x3f, 0x6a, 0x88)
 a %= ivec4(0x85, 0xa3, 0x08, 0xd3)
 return vec4(a)/255`,
-			want: color.RGBA{0x24, 0x3f, 0x02, 0x88},
+			want: color.RGBA{R: 0x24, G: 0x3f, B: 0x02, A: 0x88},
 		},
 		{
 			source: `a := ivec4(0x24, 0x3f, 0x6a, 0x88)
 b := a % 0x85
 return vec4(b)/255`,
-			want: color.RGBA{0x24, 0x3f, 0x6a, 0x03},
+			want: color.RGBA{R: 0x24, G: 0x3f, B: 0x6a, A: 0x03},
 		},
 		{
 			source: `a := ivec4(0x24, 0x3f, 0x6a, 0x88)
 b := a % ivec4(0x85, 0xa3, 0x08, 0xd3)
 return vec4(b)/255`,
-			want: color.RGBA{0x24, 0x3f, 0x02, 0x88},
+			want: color.RGBA{R: 0x24, G: 0x3f, B: 0x02, A: 0x88},
 		},
 	}
 

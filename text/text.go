@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package text offers functions to draw texts on an Ebiten's image.
+// Package text offers functions to draw texts on an Ebitengine's image.
 //
 // For the example using a TTF font, see font package in the examples.
 package text
@@ -270,7 +270,7 @@ func DrawWithOptions(dst *ebiten.Image, text string, face font.Face, options *eb
 
 	// cacheSoftLimit indicates the soft limit of the number of glyphs in the cache.
 	// If the number of glyphs exceeds this soft limits, old glyphs are removed.
-	// Even after clearning up the cache, the number of glyphs might still exceeds the soft limit, but
+	// Even after cleaning up the cache, the number of glyphs might still exceed the soft limit, but
 	// this is fine.
 	const cacheSoftLimit = 512
 
@@ -363,7 +363,7 @@ func BoundString(face font.Face, text string) image.Rectangle {
 //
 // If a rune's glyph is already cached, CacheGlyphs does nothing for the rune.
 //
-// One rune can have multiple varitations of glyphs due to sub-pixels in X direction.
+// One rune can have multiple variations of glyphs due to sub-pixels in X direction.
 // CacheGlyphs creates all such variations for one rune, while Draw creates only necessary glyphs.
 func CacheGlyphs(face font.Face, text string) {
 	textM.Lock()
@@ -435,7 +435,7 @@ func (f faceWithLineHeight) Metrics() font.Metrics {
 	return m
 }
 
-// Glyphs is information to render one glyph.
+// Glyph is information to render one glyph.
 type Glyph struct {
 	// Rune is a character for this glyph.
 	Rune rune
@@ -484,7 +484,6 @@ func AppendGlyphs(glyphs []Glyph, face font.Face, text string) []Glyph {
 			Y: b.Min.Y & ((1 << 6) - 1),
 		}
 		if img := getGlyphImage(face, r, offset); img != nil {
-			b := getGlyphBounds(face, r)
 			// Adjust the position to the integers.
 			// The current glyph images assume that they are rendered on integer positions so far.
 			glyphs = append(glyphs, Glyph{

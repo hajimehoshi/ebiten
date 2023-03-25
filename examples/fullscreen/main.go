@@ -86,13 +86,13 @@ func (g *Game) Update() error {
 func (g *Game) Draw(screen *ebiten.Image) {
 	scale := ebiten.DeviceScaleFactor()
 
-	w, h := gophersImage.Size()
+	w, h := gophersImage.Bounds().Dx(), gophersImage.Bounds().Dy()
 	op := &ebiten.DrawImageOptions{}
 
 	op.GeoM.Translate(-float64(w)/2, -float64(h)/2)
 	op.GeoM.Scale(scale, scale)
 	op.GeoM.Rotate(float64(g.count%360) * 2 * math.Pi / 360)
-	sw, sh := screen.Size()
+	sw, sh := screen.Bounds().Dx(), screen.Bounds().Dy()
 	op.GeoM.Translate(float64(sw)/2, float64(sh)/2)
 	op.Filter = ebiten.FilterLinear
 	screen.DrawImage(gophersImage, op)

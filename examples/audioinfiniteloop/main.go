@@ -30,7 +30,7 @@ import (
 const (
 	screenWidth    = 640
 	screenHeight   = 480
-	sampleRate     = 32000
+	sampleRate     = 48000
 	bytesPerSample = 4 // 2 channels * 2 bytes (16 bit)
 
 	introLengthInSecond = 5

@@ -113,7 +113,7 @@ var (
 			Type:    "float32",
 		},
 		{
-			Comment: "Deltay is the change in Y since last touch event. This value is expressed in device independent pixels.",
+			Comment: "DeltaY is the change in Y since last touch event. This value is expressed in device independent pixels.",
 			Type:    "float32",
 		},
 		{

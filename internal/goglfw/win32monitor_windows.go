@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: 2006-2019 Camilla Löwy
 // SPDX-FileCopyrightText: 2022 The Ebitengine Authors
 
-package glfwwin
+package goglfw
 
 import (
 	"errors"
@@ -16,8 +16,8 @@ import (
 
 func monitorCallback(handle _HMONITOR, dc _HDC, rect *_RECT, monitor *Monitor /* _LPARAM */) uintptr /* _BOOL */ {
 	if mi, ok := _GetMonitorInfoW_Ex(handle); ok {
-		if windows.UTF16ToString(mi.szDevice[:]) == monitor.win32.adapterName {
-			monitor.win32.handle = handle
+		if windows.UTF16ToString(mi.szDevice[:]) == monitor.platform.adapterName {
+			monitor.platform.handle = handle
 		}
 	}
 	return 1
@@ -47,12 +47,12 @@ func createMonitor(adapter *_DISPLAY_DEVICEW, display *_DISPLAY_DEVICEW) (*Monit
 	}
 
 	if adapter.StateFlags&_DISPLAY_DEVICE_MODESPRUNED != 0 {
-		monitor.win32.modesPruned = true
+		monitor.platform.modesPruned = true
 	}
 
-	monitor.win32.adapterName = adapterDeviceName
+	monitor.platform.adapterName = adapterDeviceName
 	if display != nil {
-		monitor.win32.displayName = windows.UTF16ToString(display.DeviceName[:])
+		monitor.platform.displayName = windows.UTF16ToString(display.DeviceName[:])
 	}
 
 	rect := _RECT{
@@ -103,7 +103,7 @@ adapterLoop:
 			}
 
 			for i, monitor := range disconnected {
-				if monitor != nil && monitor.win32.displayName == windows.UTF16ToString(display.DeviceName[:]) {
+				if monitor != nil && monitor.platform.displayName == windows.UTF16ToString(display.DeviceName[:]) {
 					disconnected[i] = nil
 					err := _EnumDisplayMonitors(0, nil, monitorCallbackPtr, _LPARAM(unsafe.Pointer(_glfw.monitors[i])))
 					if err != nil {
@@ -132,7 +132,7 @@ adapterLoop:
 		//       (as sometimes happens), add it directly as a monitor
 		if !found {
 			for i, monitor := range disconnected {
-				if monitor != nil && monitor.win32.displayName == windows.UTF16ToString(adapter.DeviceName[:]) {
+				if monitor != nil && monitor.platform.displayName == windows.UTF16ToString(adapter.DeviceName[:]) {
 					disconnected[i] = nil
 					continue adapterLoop
 				}
@@ -184,33 +184,33 @@ func (m *Monitor) setVideoModeWin32(desired *VidMode) error {
 	if dm.dmBitsPerPel < 15 || dm.dmBitsPerPel >= 24 {
 		dm.dmBitsPerPel = 32
 	}
-	switch _ChangeDisplaySettingsExW(m.win32.adapterName, &dm, 0, _CDS_FULLSCREEN, nil) {
+	switch _ChangeDisplaySettingsExW(m.platform.adapterName, &dm, 0, _CDS_FULLSCREEN, nil) {
 	case _DISP_CHANGE_SUCCESSFUL:
-		m.win32.modeChanged = true
+		m.platform.modeChanged = true
 		return nil
 	case _DISP_CHANGE_BADDUALVIEW:
-		return errors.New("glfwwin: the system uses DualView at Monitor.setVideoModeWin32")
+		return errors.New("goglfw: the system uses DualView at Monitor.setVideoModeWin32")
 	case _DISP_CHANGE_BADFLAGS:
-		return errors.New("glfwwin: invalid flags at Monitor.setVideoModeWin32")
+		return errors.New("goglfw: invalid flags at Monitor.setVideoModeWin32")
 	case _DISP_CHANGE_BADMODE:
-		return errors.New("glfwwin: graphics mode not supported at Monitor.setVideoModeWin32")
+		return errors.New("goglfw: graphics mode not supported at Monitor.setVideoModeWin32")
 	case _DISP_CHANGE_BADPARAM:
-		return errors.New("glfwwin: invalid parameter at Monitor.setVideoModeWin32")
+		return errors.New("goglfw: invalid parameter at Monitor.setVideoModeWin32")
 	case _DISP_CHANGE_FAILED:
-		return errors.New("glfwwin: graphics mode failed at Monitor.setVideoModeWin32")
+		return errors.New("goglfw: graphics mode failed at Monitor.setVideoModeWin32")
 	case _DISP_CHANGE_NOTUPDATED:
-		return errors.New("glfwwin: failed to write to registry at Monitor.setVideoModeWin32")
+		return errors.New("goglfw: failed to write to registry at Monitor.setVideoModeWin32")
 	case _DISP_CHANGE_RESTART:
-		return errors.New("glfwwin: computer restart required at Monitor.setVideoModeWin32")
+		return errors.New("goglfw: computer restart required at Monitor.setVideoModeWin32")
 	default:
-		return errors.New("glfwwin: unknown error at Monitor.setVideoModeWin32")
+		return errors.New("goglfw: unknown error at Monitor.setVideoModeWin32")
 	}
 }
 
 func (m *Monitor) restoreVideoModeWin32() {
-	if m.win32.modeChanged {
-		_ChangeDisplaySettingsExW(m.win32.adapterName, nil, 0, _CDS_FULLSCREEN, nil)
-		m.win32.modeChanged = false
+	if m.platform.modeChanged {
+		_ChangeDisplaySettingsExW(m.platform.adapterName, nil, 0, _CDS_FULLSCREEN, nil)
+		m.platform.modeChanged = false
 	}
 }
 
@@ -244,7 +244,7 @@ func (m *Monitor) platformGetMonitorPos() (xpos, ypos int, ok bool) {
 		return 0, 0, true
 	}
 
-	dm, ok := _EnumDisplaySettingsExW(m.win32.adapterName, _ENUM_CURRENT_SETTINGS, _EDS_ROTATEDMODE)
+	dm, ok := _EnumDisplaySettingsExW(m.platform.adapterName, _ENUM_CURRENT_SETTINGS, _EDS_ROTATEDMODE)
 	if !ok {
 		return 0, 0, false
 	}
@@ -256,7 +256,7 @@ func (m *Monitor) platformGetMonitorContentScale() (xscale, yscale float32, err 
 		return 1, 1, nil
 	}
 
-	return getMonitorContentScaleWin32(m.win32.handle)
+	return getMonitorContentScaleWin32(m.platform.handle)
 }
 
 func (m *Monitor) platformGetMonitorWorkarea() (xpos, ypos, width, height int) {
@@ -265,7 +265,7 @@ func (m *Monitor) platformGetMonitorWorkarea() (xpos, ypos, width, height int) {
 		return 0, 0, w, h
 	}
 
-	mi, ok := _GetMonitorInfoW(m.win32.handle)
+	mi, ok := _GetMonitorInfoW(m.platform.handle)
 	if !ok {
 		return 0, 0, 0, 0
 	}
@@ -280,7 +280,7 @@ func (m *Monitor) platformAppendVideoModes(monitors []*VidMode) ([]*VidMode, err
 	origLen := len(monitors)
 loop:
 	for modeIndex := uint32(0); ; modeIndex++ {
-		dm, ok := _EnumDisplaySettingsW(m.win32.adapterName, modeIndex)
+		dm, ok := _EnumDisplaySettingsW(m.platform.adapterName, modeIndex)
 		if !ok {
 			break
 		}
@@ -307,9 +307,9 @@ loop:
 			}
 		}
 
-		if m.win32.modesPruned {
+		if m.platform.modesPruned {
 			// Skip modes not supported by the connected displays
-			if _ChangeDisplaySettingsExW(m.win32.adapterName, &dm, 0, _CDS_TEST, nil) != _DISP_CHANGE_SUCCESSFUL {
+			if _ChangeDisplaySettingsExW(m.platform.adapterName, &dm, 0, _CDS_TEST, nil) != _DISP_CHANGE_SUCCESSFUL {
 				continue
 			}
 		}
@@ -330,7 +330,7 @@ func (m *Monitor) platformGetVideoMode() *VidMode {
 		return m.modes[0]
 	}
 
-	dm, _ := _EnumDisplaySettingsW(m.win32.adapterName, _ENUM_CURRENT_SETTINGS)
+	dm, _ := _EnumDisplaySettingsW(m.platform.adapterName, _ENUM_CURRENT_SETTINGS)
 	r, g, b := splitBPP(int(dm.dmBitsPerPel))
 	return &VidMode{
 		Width:       int(dm.dmPelsWidth),
@@ -346,12 +346,12 @@ func (m *Monitor) in32Adapter() (string, error) {
 	if !_glfw.initialized {
 		return "", NotInitialized
 	}
-	return m.win32.adapterName, nil
+	return m.platform.adapterName, nil
 }
 
 func (m *Monitor) win32Monitor() (string, error) {
 	if !_glfw.initialized {
 		return "", NotInitialized
 	}
-	return m.win32.displayName, nil
+	return m.platform.displayName, nil
 }

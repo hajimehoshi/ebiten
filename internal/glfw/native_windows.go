@@ -15,11 +15,11 @@
 package glfw
 
 import (
-	"github.com/hajimehoshi/ebiten/v2/internal/glfwwin"
+	"github.com/hajimehoshi/ebiten/v2/internal/goglfw"
 )
 
 func (w *Window) GetWin32Window() uintptr {
-	r, err := (*glfwwin.Window)(w).GetWin32Window()
+	r, err := (*goglfw.Window)(w).GetWin32Window()
 	if err != nil {
 		panic(err)
 	}

@@ -35,20 +35,16 @@ func (u *userInterfaceImpl) updateInputState(keys map[Key]struct{}, runes []rune
 		u.inputState.KeyPressed[k] = ok
 	}
 
-	copy(u.inputState.Runes[:], runes)
-	u.inputState.RunesCount = len(runes)
+	u.inputState.Runes = append(u.inputState.Runes, runes...)
 
-	for i := range u.inputState.Touches {
-		u.inputState.Touches[i].Valid = false
-	}
-	for i, t := range touches {
+	u.inputState.Touches = u.inputState.Touches[:0]
+	for _, t := range touches {
 		x, y := u.context.clientPositionToLogicalPosition(t.X, t.Y, u.DeviceScaleFactor())
-		u.inputState.Touches[i] = Touch{
-			Valid: true,
-			ID:    t.ID,
-			X:     int(x),
-			Y:     int(y),
-		}
+		u.inputState.Touches = append(u.inputState.Touches, Touch{
+			ID: t.ID,
+			X:  int(x),
+			Y:  int(y),
+		})
 	}
 }
 

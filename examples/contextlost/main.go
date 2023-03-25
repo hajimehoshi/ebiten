@@ -64,11 +64,11 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		return
 	}
 
-	w, h := gophersImage.Size()
+	s := gophersImage.Bounds().Size()
 	op := &ebiten.DrawImageOptions{}
 
 	// For the details, see examples/rotate.
-	op.GeoM.Translate(-float64(w)/2, -float64(h)/2)
+	op.GeoM.Translate(-float64(s.X)/2, -float64(s.Y)/2)
 	op.GeoM.Rotate(float64(g.count%360) * 2 * math.Pi / 360)
 	op.GeoM.Translate(screenWidth/2, screenHeight/2)
 	screen.DrawImage(gophersImage, op)

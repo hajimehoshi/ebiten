@@ -16,8 +16,6 @@ package opengl
 
 import (
 	"fmt"
-	"os"
-	"strings"
 	"syscall/js"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
@@ -34,23 +32,10 @@ func NewGraphics(canvas js.Value) (graphicsdriver.Graphics, error) {
 	attr.Set("premultipliedAlpha", true)
 	attr.Set("stencil", true)
 
-	var webGL2 bool
-	if webGL2MightBeAvailable() {
-		glContext = canvas.Call("getContext", "webgl2", attr)
-	}
-
-	if glContext.Truthy() {
-		webGL2 = true
-	} else {
-		// Even though WebGL2RenderingContext exists, getting a webgl2 context might fail (#1738).
-		glContext = canvas.Call("getContext", "webgl", attr)
-		if !glContext.Truthy() {
-			glContext = canvas.Call("getContext", "experimental-webgl", attr)
-		}
-	}
+	glContext = canvas.Call("getContext", "webgl2", attr)
 
 	if !glContext.Truthy() {
-		return nil, fmt.Errorf("opengl: getContext failed")
+		return nil, fmt.Errorf("opengl: getContext for webgl2 failed")
 	}
 
 	ctx, err := gl.NewDefaultContext(glContext)
@@ -61,22 +46,6 @@ func NewGraphics(canvas js.Value) (graphicsdriver.Graphics, error) {
 	g := &Graphics{}
 	g.context.canvas = canvas
 	g.context.ctx = ctx
-	g.context.webGL2 = webGL2
-
-	if !webGL2 {
-		glContext.Call("getExtension", "OES_standard_derivatives")
-	}
 
 	return g, nil
-}
-
-func webGL2MightBeAvailable() bool {
-	env := os.Getenv("EBITENGINE_OPENGL")
-	for _, t := range strings.Split(env, ",") {
-		switch strings.TrimSpace(t) {
-		case "webgl1":
-			return false
-		}
-	}
-	return js.Global().Get("WebGL2RenderingContext").Truthy()
 }

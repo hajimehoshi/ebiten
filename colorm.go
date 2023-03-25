@@ -15,7 +15,6 @@
 package ebiten
 
 import (
-	"fmt"
 	"image/color"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/affine"
@@ -86,14 +85,14 @@ func (c *ColorM) Concat(other ColorM) {
 
 // Scale scales the matrix by (r, g, b, a).
 //
-// Deprecated: as of v2.5. Use the colorm package instead.
+// Deprecated: as of v2.5. Use ColorScale or the colorm package instead.
 func (c *ColorM) Scale(r, g, b, a float64) {
 	c.impl = c.affineColorM().Scale(float32(r), float32(g), float32(b), float32(a))
 }
 
 // ScaleWithColor scales the matrix by clr.
 //
-// Deprecated: as of v2.5. Use the colorm package instead.
+// Deprecated: as of v2.5. Use ColorScale or the colorm package instead.
 func (c *ColorM) ScaleWithColor(clr color.Color) {
 	cr, cg, cb, ca := clr.RGBA()
 	if ca == 0 {
@@ -158,19 +157,4 @@ func (c *ColorM) IsInvertible() bool {
 // Deprecated: as of v2.5. Use the colorm package instead.
 func (c *ColorM) Invert() {
 	c.impl = c.affineColorM().Invert()
-}
-
-// ReadElements reads the body part and the translation part to the given float32 slices.
-//
-// len(body) must be 16 and len(translation) must be 4. Otherwise, ReadElements panics.
-//
-// Deprecated: as of v2.5. Use the colorm package instead.
-func (c *ColorM) ReadElements(body []float32, translation []float32) {
-	if len(body) != 16 {
-		panic(fmt.Sprintf("ebiten: len(body) must be 16 but %d", len(body)))
-	}
-	if len(translation) != 4 {
-		panic(fmt.Sprintf("ebiten: len(translation) must be 4 but %d", len(translation)))
-	}
-	c.affineColorM().Elements(body, translation)
 }

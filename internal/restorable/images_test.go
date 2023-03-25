@@ -34,7 +34,7 @@ func TestMain(m *testing.M) {
 func pixelsToColor(p *restorable.Pixels, i, j, imageWidth, imageHeight int) color.RGBA {
 	var pix [4]byte
 	p.ReadPixels(pix[:], i, j, 1, 1, imageWidth, imageHeight)
-	return color.RGBA{pix[0], pix[1], pix[2], pix[3]}
+	return color.RGBA{R: pix[0], G: pix[1], B: pix[2], A: pix[3]}
 }
 
 func abs(x int) int {
@@ -60,7 +60,7 @@ func TestRestore(t *testing.T) {
 	img0 := restorable.NewImage(1, 1, restorable.ImageTypeRegular)
 	defer img0.Dispose()
 
-	clr0 := color.RGBA{0x00, 0x00, 0x00, 0xff}
+	clr0 := color.RGBA{A: 0xff}
 	img0.WritePixels([]byte{clr0.R, clr0.G, clr0.B, clr0.A}, 0, 0, 1, 1)
 	if err := restorable.ResolveStaleImages(ui.GraphicsDriverForTesting(), false); err != nil {
 		t.Fatal(err)
@@ -90,7 +90,7 @@ func TestRestoreWithoutDraw(t *testing.T) {
 
 	for j := 0; j < 1024; j++ {
 		for i := 0; i < 1024; i++ {
-			want := color.RGBA{0x00, 0x00, 0x00, 0x00}
+			want := color.RGBA{}
 			got := pixelsToColor(img0.BasePixelsForTesting(), i, j, 1024, 1024)
 			if !sameColors(got, want, 0) {
 				t.Errorf("got %v, want %v", got, want)
@@ -134,7 +134,7 @@ func TestRestoreChain(t *testing.T) {
 			img.Dispose()
 		}
 	}()
-	clr := color.RGBA{0x00, 0x00, 0x00, 0xff}
+	clr := color.RGBA{A: 0xff}
 	imgs[0].WritePixels([]byte{clr.R, clr.G, clr.B, clr.A}, 0, 0, 1, 1)
 	for i := 0; i < num-1; i++ {
 		vs := quadVertices(imgs[i], 1, 1, 0, 0)
@@ -179,11 +179,11 @@ func TestRestoreChain2(t *testing.T) {
 		}
 	}()
 
-	clr0 := color.RGBA{0xff, 0x00, 0x00, 0xff}
+	clr0 := color.RGBA{R: 0xff, A: 0xff}
 	imgs[0].WritePixels([]byte{clr0.R, clr0.G, clr0.B, clr0.A}, 0, 0, w, h)
-	clr7 := color.RGBA{0x00, 0xff, 0x00, 0xff}
+	clr7 := color.RGBA{G: 0xff, A: 0xff}
 	imgs[7].WritePixels([]byte{clr7.R, clr7.G, clr7.B, clr7.A}, 0, 0, w, h)
-	clr8 := color.RGBA{0x00, 0x00, 0xff, 0xff}
+	clr8 := color.RGBA{B: 0xff, A: 0xff}
 	imgs[8].WritePixels([]byte{clr8.R, clr8.G, clr8.B, clr8.A}, 0, 0, w, h)
 
 	is := graphics.QuadIndices()
@@ -232,8 +232,8 @@ func TestRestoreOverrideSource(t *testing.T) {
 		img1.Dispose()
 		img0.Dispose()
 	}()
-	clr0 := color.RGBA{0x00, 0x00, 0x00, 0xff}
-	clr1 := color.RGBA{0x00, 0x00, 0x01, 0xff}
+	clr0 := color.RGBA{A: 0xff}
+	clr1 := color.RGBA{B: 0x01, A: 0xff}
 	img1.WritePixels([]byte{clr0.R, clr0.G, clr0.B, clr0.A}, 0, 0, w, h)
 	is := graphics.QuadIndices()
 	dr := graphicsdriver.Region{
@@ -404,7 +404,7 @@ func TestRestoreComplexGraph(t *testing.T) {
 		for i := 0; i < 4; i++ {
 			want := color.RGBA{}
 			if c.out[i] == '*' {
-				want = color.RGBA{0xff, 0xff, 0xff, 0xff}
+				want = color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff}
 			}
 			got := pixelsToColor(c.image.BasePixelsForTesting(), i, 0, w, h)
 			if !sameColors(got, want, 1) {
@@ -473,7 +473,7 @@ func TestRestoreRecursive(t *testing.T) {
 		for i := 0; i < 4; i++ {
 			want := color.RGBA{}
 			if c.out[i] == '*' {
-				want = color.RGBA{0xff, 0xff, 0xff, 0xff}
+				want = color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff}
 			}
 			got := pixelsToColor(c.image.BasePixelsForTesting(), i, 0, w, h)
 			if !sameColors(got, want, 1) {
@@ -492,7 +492,7 @@ func TestWritePixels(t *testing.T) {
 		pix[i] = 0xff
 	}
 	img.WritePixels(pix, 5, 7, 4, 4)
-	// Check the region (5, 7)-(9, 11). Outside state is indeterministic.
+	// Check the region (5, 7)-(9, 11). Outside state is indeterminate.
 	for i := range pix {
 		pix[i] = 0
 	}
@@ -502,8 +502,8 @@ func TestWritePixels(t *testing.T) {
 	for j := 7; j < 11; j++ {
 		for i := 5; i < 9; i++ {
 			idx := 4 * ((j-7)*4 + i - 5)
-			got := color.RGBA{pix[idx], pix[idx+1], pix[idx+2], pix[idx+3]}
-			want := color.RGBA{0xff, 0xff, 0xff, 0xff}
+			got := color.RGBA{R: pix[idx], G: pix[idx+1], B: pix[idx+2], A: pix[idx+3]}
+			want := color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff}
 			if got != want {
 				t.Errorf("(%d, %d): got: %v, want: %v", i, j, got, want)
 			}
@@ -521,8 +521,8 @@ func TestWritePixels(t *testing.T) {
 	for j := 7; j < 11; j++ {
 		for i := 5; i < 9; i++ {
 			idx := 4 * ((j-7)*4 + i - 5)
-			got := color.RGBA{pix[idx], pix[idx+1], pix[idx+2], pix[idx+3]}
-			want := color.RGBA{0xff, 0xff, 0xff, 0xff}
+			got := color.RGBA{R: pix[idx], G: pix[idx+1], B: pix[idx+2], A: pix[idx+3]}
+			want := color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff}
 			if got != want {
 				t.Errorf("(%d, %d): got: %v, want: %v", i, j, got, want)
 			}
@@ -562,8 +562,8 @@ func TestDrawTrianglesAndWritePixels(t *testing.T) {
 	if err := img1.ReadPixels(ui.GraphicsDriverForTesting(), pix[:], 0, 0, 1, 1); err != nil {
 		t.Fatal(err)
 	}
-	got := color.RGBA{pix[0], pix[1], pix[2], pix[3]}
-	want := color.RGBA{0xff, 0xff, 0xff, 0xff}
+	got := color.RGBA{R: pix[0], G: pix[1], B: pix[2], A: pix[3]}
+	want := color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff}
 	if !sameColors(got, want, 1) {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
@@ -606,8 +606,8 @@ func TestDispose(t *testing.T) {
 	if err := img0.ReadPixels(ui.GraphicsDriverForTesting(), pix[:], 0, 0, 1, 1); err != nil {
 		t.Fatal(err)
 	}
-	got := color.RGBA{pix[0], pix[1], pix[2], pix[3]}
-	want := color.RGBA{0xff, 0xff, 0xff, 0xff}
+	got := color.RGBA{R: pix[0], G: pix[1], B: pix[2], A: pix[3]}
+	want := color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff}
 	if !sameColors(got, want, 1) {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
@@ -631,52 +631,52 @@ func TestWritePixelsPart(t *testing.T) {
 		{
 			i:    0,
 			j:    0,
-			want: color.RGBA{0, 0, 0, 0},
+			want: color.RGBA{},
 		},
 		{
 			i:    3,
 			j:    0,
-			want: color.RGBA{0, 0, 0, 0},
+			want: color.RGBA{},
 		},
 		{
 			i:    0,
 			j:    1,
-			want: color.RGBA{0, 0, 0, 0},
+			want: color.RGBA{},
 		},
 		{
 			i:    1,
 			j:    1,
-			want: color.RGBA{0xff, 0xff, 0xff, 0xff},
+			want: color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff},
 		},
 		{
 			i:    3,
 			j:    1,
-			want: color.RGBA{0, 0, 0, 0},
+			want: color.RGBA{},
 		},
 		{
 			i:    0,
 			j:    2,
-			want: color.RGBA{0, 0, 0, 0},
+			want: color.RGBA{},
 		},
 		{
 			i:    2,
 			j:    2,
-			want: color.RGBA{0xff, 0xff, 0xff, 0xff},
+			want: color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff},
 		},
 		{
 			i:    3,
 			j:    2,
-			want: color.RGBA{0, 0, 0, 0},
+			want: color.RGBA{},
 		},
 		{
 			i:    0,
 			j:    3,
-			want: color.RGBA{0, 0, 0, 0},
+			want: color.RGBA{},
 		},
 		{
 			i:    3,
 			j:    3,
-			want: color.RGBA{0, 0, 0, 0},
+			want: color.RGBA{},
 		},
 	}
 	for _, c := range cases {
@@ -717,9 +717,9 @@ func TestWritePixelsOnly(t *testing.T) {
 			var want color.RGBA
 			switch {
 			case idx == 0:
-				want = color.RGBA{5, 6, 7, 8}
+				want = color.RGBA{R: 5, G: 6, B: 7, A: 8}
 			case idx%5 == 0:
-				want = color.RGBA{1, 2, 3, 4}
+				want = color.RGBA{R: 1, G: 2, B: 3, A: 4}
 			}
 			got := pixelsToColor(img0.BasePixelsForTesting(), i, j, w, h)
 			if !sameColors(got, want, 0) {
@@ -734,7 +734,7 @@ func TestWritePixelsOnly(t *testing.T) {
 	if err := restorable.RestoreIfNeeded(ui.GraphicsDriverForTesting()); err != nil {
 		t.Fatal(err)
 	}
-	want := color.RGBA{1, 2, 3, 4}
+	want := color.RGBA{R: 1, G: 2, B: 3, A: 4}
 	got := pixelsToColor(img1.BasePixelsForTesting(), 0, 0, w, h)
 	if !sameColors(got, want, 0) {
 		t.Errorf("got %v, want %v", got, want)
@@ -836,10 +836,10 @@ func TestAllowWritePixelsForPartAfterDrawTriangles(t *testing.T) {
 	}
 	for j := 0; j < h; j++ {
 		for i := 0; i < w; i++ {
-			got := color.RGBA{result[4*(j*w+i)], result[4*(j*w+i)+1], result[4*(j*w+i)+2], result[4*(j*w+i)+3]}
+			got := color.RGBA{R: result[4*(j*w+i)], G: result[4*(j*w+i)+1], B: result[4*(j*w+i)+2], A: result[4*(j*w+i)+3]}
 			var want color.RGBA
 			if i >= 2 || j >= 2 {
-				want = color.RGBA{0xff, 0xff, 0xff, 0xff}
+				want = color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff}
 			}
 			if got != want {
 				t.Errorf("color at (%d, %d): got: %v, want: %v", i, j, got, want)
@@ -868,6 +868,57 @@ func TestExtend(t *testing.T) {
 	}
 
 	orig.WritePixels(pix, 0, 0, w, h)
+	extended := orig.Extend(w*2, h*2) // After this, orig is already disposed.
+
+	result := make([]byte, 4*(w*2)*(h*2))
+	if err := extended.ReadPixels(ui.GraphicsDriverForTesting(), result, 0, 0, w*2, h*2); err != nil {
+		t.Fatal(err)
+	}
+	for j := 0; j < h*2; j++ {
+		for i := 0; i < w*2; i++ {
+			got := result[4*(j*(w*2)+i)]
+			want := byte(0)
+			if i < w && j < h {
+				want = pixAt(i, j)
+			}
+			if got != want {
+				t.Errorf("extended.At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+}
+
+func TestDrawTrianglesAndExtend(t *testing.T) {
+	pixAt := func(i, j int) byte {
+		return byte(17*i + 13*j + 0x40)
+	}
+
+	const w, h = 16, 16
+
+	src := restorable.NewImage(w, h, restorable.ImageTypeRegular)
+	pix := make([]byte, 4*w*h)
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			idx := j*w + i
+			v := pixAt(i, j)
+			pix[4*idx] = v
+			pix[4*idx+1] = v
+			pix[4*idx+2] = v
+			pix[4*idx+3] = v
+		}
+	}
+	src.WritePixels(pix, 0, 0, w, h)
+
+	orig := restorable.NewImage(w, h, restorable.ImageTypeRegular)
+	vs := quadVertices(src, w, h, 0, 0)
+	is := graphics.QuadIndices()
+	dr := graphicsdriver.Region{
+		X:      0,
+		Y:      0,
+		Width:  w,
+		Height: h,
+	}
+	orig.DrawTriangles([graphics.ShaderImageCount]*restorable.Image{src}, [graphics.ShaderImageCount - 1][2]float32{}, vs, is, graphicsdriver.BlendSourceOver, dr, graphicsdriver.Region{}, restorable.NearestFilterShader, nil, false)
 	extended := orig.Extend(w*2, h*2) // After this, orig is already disposed.
 
 	result := make([]byte, 4*(w*2)*(h*2))
@@ -948,8 +999,8 @@ func TestMutateSlices(t *testing.T) {
 	for j := 0; j < h; j++ {
 		for i := 0; i < w; i++ {
 			idx := 4 * (j*w + i)
-			want := color.RGBA{srcPix[idx], srcPix[idx+1], srcPix[idx+2], srcPix[idx+3]}
-			got := color.RGBA{dstPix[idx], dstPix[idx+1], dstPix[idx+2], dstPix[idx+3]}
+			want := color.RGBA{R: srcPix[idx], G: srcPix[idx+1], B: srcPix[idx+2], A: srcPix[idx+3]}
+			got := color.RGBA{R: dstPix[idx], G: dstPix[idx+1], B: dstPix[idx+2], A: dstPix[idx+3]}
 			if !sameColors(got, want, 1) {
 				t.Errorf("(%d, %d): got %v, want %v", i, j, got, want)
 			}
@@ -1005,7 +1056,7 @@ func TestOverlappedPixels(t *testing.T) {
 	for j := 0; j < 3; j++ {
 		for i := 0; i < 3; i++ {
 			idx := 4 * (j*3 + i)
-			got := color.RGBA{result[idx], result[idx+1], result[idx+2], result[idx+3]}
+			got := color.RGBA{R: result[idx], G: result[idx+1], B: result[idx+2], A: result[idx+3]}
 			want := wantColors[3*j+i]
 			if got != want {
 				t.Errorf("color at (%d, %d): got %v, want: %v", i, j, got, want)
@@ -1034,7 +1085,7 @@ func TestOverlappedPixels(t *testing.T) {
 	for j := 0; j < 3; j++ {
 		for i := 0; i < 3; i++ {
 			idx := 4 * (j*3 + i)
-			got := color.RGBA{result[idx], result[idx+1], result[idx+2], result[idx+3]}
+			got := color.RGBA{R: result[idx], G: result[idx+1], B: result[idx+2], A: result[idx+3]}
 			want := wantColors[3*j+i]
 			if got != want {
 				t.Errorf("color at (%d, %d): got %v, want: %v", i, j, got, want)
@@ -1073,7 +1124,7 @@ func TestOverlappedPixels(t *testing.T) {
 	for j := 0; j < 3; j++ {
 		for i := 0; i < 3; i++ {
 			idx := 4 * (j*3 + i)
-			got := color.RGBA{result[idx], result[idx+1], result[idx+2], result[idx+3]}
+			got := color.RGBA{R: result[idx], G: result[idx+1], B: result[idx+2], A: result[idx+3]}
 			want := wantColors[3*j+i]
 			if got != want {
 				t.Errorf("color at (%d, %d): got %v, want: %v", i, j, got, want)
@@ -1094,7 +1145,7 @@ func TestOverlappedPixels(t *testing.T) {
 	for j := 0; j < 3; j++ {
 		for i := 0; i < 3; i++ {
 			idx := 4 * (j*3 + i)
-			got := color.RGBA{result[idx], result[idx+1], result[idx+2], result[idx+3]}
+			got := color.RGBA{R: result[idx], G: result[idx+1], B: result[idx+2], A: result[idx+3]}
 			want := wantColors[3*j+i]
 			if got != want {
 				t.Errorf("color at (%d, %d): got %v, want: %v", i, j, got, want)
@@ -1125,7 +1176,40 @@ func TestDrawTrianglesAndReadPixels(t *testing.T) {
 	if err := dst.ReadPixels(ui.GraphicsDriverForTesting(), pix, 0, 0, w, h); err != nil {
 		t.Fatal(err)
 	}
-	if got, want := (color.RGBA{pix[0], pix[1], pix[2], pix[3]}), (color.RGBA{0x80, 0x80, 0x80, 0x80}); !sameColors(got, want, 1) {
+	if got, want := (color.RGBA{R: pix[0], G: pix[1], B: pix[2], A: pix[3]}), (color.RGBA{R: 0x80, G: 0x80, B: 0x80, A: 0x80}); !sameColors(got, want, 1) {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+}
+
+func TestWritePixelsAndDrawTriangles(t *testing.T) {
+	src := restorable.NewImage(1, 1, restorable.ImageTypeRegular)
+	dst := restorable.NewImage(2, 1, restorable.ImageTypeRegular)
+
+	src.WritePixels([]byte{0x80, 0x80, 0x80, 0x80}, 0, 0, 1, 1)
+
+	// Call WritePixels first.
+	dst.WritePixels([]byte{0x40, 0x40, 0x40, 0x40}, 0, 0, 1, 1)
+
+	// Call DrawTriangles at a different region second.
+	vs := quadVertices(src, 1, 1, 1, 0)
+	is := graphics.QuadIndices()
+	dr := graphicsdriver.Region{
+		X:      1,
+		Y:      0,
+		Width:  1,
+		Height: 1,
+	}
+	dst.DrawTriangles([graphics.ShaderImageCount]*restorable.Image{src}, [graphics.ShaderImageCount - 1][2]float32{}, vs, is, graphicsdriver.BlendSourceOver, dr, graphicsdriver.Region{}, restorable.NearestFilterShader, nil, false)
+
+	// Get the pixels.
+	pix := make([]byte, 4*2*1)
+	if err := dst.ReadPixels(ui.GraphicsDriverForTesting(), pix, 0, 0, 2, 1); err != nil {
+		t.Fatal(err)
+	}
+	if got, want := (color.RGBA{R: pix[0], G: pix[1], B: pix[2], A: pix[3]}), (color.RGBA{R: 0x40, G: 0x40, B: 0x40, A: 0x40}); !sameColors(got, want, 1) {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+	if got, want := (color.RGBA{R: pix[4], G: pix[5], B: pix[6], A: pix[7]}), (color.RGBA{R: 0x80, G: 0x80, B: 0x80, A: 0x80}); !sameColors(got, want, 1) {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
 }

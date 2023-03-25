@@ -42,7 +42,6 @@ func DrawImage(dst, src *ebiten.Image, colorM ColorM, op *DrawImageOptions) {
 		op = &DrawImageOptions{}
 	}
 
-	w, h := src.Size()
 	opShader := &ebiten.DrawRectShaderOptions{}
 	opShader.GeoM = op.GeoM
 	opShader.CompositeMode = ebiten.CompositeModeCustom
@@ -50,7 +49,7 @@ func DrawImage(dst, src *ebiten.Image, colorM ColorM, op *DrawImageOptions) {
 	opShader.Uniforms = uniforms(colorM)
 	opShader.Images[0] = src
 	s := builtinShader(builtinshader.Filter(op.Filter), builtinshader.AddressUnsafe)
-	dst.DrawRectShader(w, h, s, opShader)
+	dst.DrawRectShader(src.Bounds().Dx(), src.Bounds().Dy(), s, opShader)
 }
 
 // DrawTrianglesOptions represents options for DrawTriangles.

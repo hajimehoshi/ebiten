@@ -23,6 +23,7 @@ import (
 type (
 	CharModsCallback        = glfw.CharModsCallback
 	CloseCallback           = glfw.CloseCallback
+	DropCallback            = glfw.DropCallback
 	FramebufferSizeCallback = glfw.FramebufferSizeCallback
 	MonitorCallback         = glfw.MonitorCallback
 	ScrollCallback          = glfw.ScrollCallback

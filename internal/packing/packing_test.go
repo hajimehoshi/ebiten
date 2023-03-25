@@ -211,7 +211,7 @@ func TestPage(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		p := packing.NewPage(1024, 1024)
+		p := packing.NewPage(1024, 1024, 1024)
 		nodes := []*packing.Node{}
 		nnodes := 0
 		for i, in := range c.In {
@@ -254,7 +254,7 @@ func TestPage(t *testing.T) {
 }
 
 func TestAlloc(t *testing.T) {
-	p := packing.NewPage(1024, 2048)
+	p := packing.NewPage(1024, 1024, 2048)
 	w, h := p.Size()
 	p.Alloc(w/2, h/2)
 
@@ -277,7 +277,7 @@ func TestAlloc(t *testing.T) {
 }
 
 func TestAlloc2(t *testing.T) {
-	p := packing.NewPage(1024, 2048)
+	p := packing.NewPage(1024, 1024, 2048)
 	w, h := p.Size()
 	p.Alloc(w/2, h/2)
 	n1 := p.Alloc(w/2, h/2)
@@ -299,7 +299,7 @@ func TestAlloc2(t *testing.T) {
 }
 
 func TestAllocJustSize(t *testing.T) {
-	p := packing.NewPage(1024, 4096)
+	p := packing.NewPage(1024, 1024, 4096)
 	if p.Alloc(4096, 4096) == nil {
 		t.Errorf("got: nil, want: non-nil")
 	}
@@ -307,7 +307,7 @@ func TestAllocJustSize(t *testing.T) {
 
 // Issue #1454
 func TestAllocTooMuch(t *testing.T) {
-	p := packing.NewPage(1024, 4096)
+	p := packing.NewPage(1024, 1024, 4096)
 	p.Alloc(1, 1)
 	if p.Alloc(4096, 4096) != nil {
 		t.Errorf("got: non-nil, want: nil")
@@ -315,7 +315,7 @@ func TestAllocTooMuch(t *testing.T) {
 }
 
 func TestNonSquareAlloc(t *testing.T) {
-	p := packing.NewPage(1024, 16384)
+	p := packing.NewPage(1024, 1024, 16384)
 	n0 := p.Alloc(16384, 1)
 	if _, h := p.Size(); h != 1024 {
 		t.Errorf("got: %d, want: 1024", h)
@@ -329,7 +329,7 @@ func TestNonSquareAlloc(t *testing.T) {
 }
 
 func TestExtend(t *testing.T) {
-	p := packing.NewPage(1024, 2048)
+	p := packing.NewPage(1024, 1024, 2048)
 	n0 := p.Alloc(1024, 1024)
 	if n0 == nil {
 		t.Errorf("p.Alloc(1024, 1024) failed")
@@ -365,7 +365,7 @@ func TestExtend(t *testing.T) {
 }
 
 func TestExtend2(t *testing.T) {
-	p := packing.NewPage(1024, 2048)
+	p := packing.NewPage(1024, 1024, 2048)
 	n0 := p.Alloc(1024, 1024)
 	if n0 == nil {
 		t.Errorf("p.Alloc(1024, 1024) failed")
@@ -397,7 +397,7 @@ func TestExtend2(t *testing.T) {
 }
 
 func TestExtend3(t *testing.T) {
-	p := packing.NewPage(1024, 2048)
+	p := packing.NewPage(1024, 1024, 2048)
 
 	// Allocate a small area that doesn't touch the left edge and the bottom edge.
 	// Allocating (1, 1) would split the entire region into left and right in the current implementation,
@@ -430,4 +430,24 @@ func TestExtend3(t *testing.T) {
 	p.Free(n0)
 	p.Free(n1)
 	p.Free(n2)
+}
+
+// Issue #2584
+func TestRemoveAtRootsChild(t *testing.T) {
+	p := packing.NewPage(32, 32, 1024)
+	n0 := p.Alloc(18, 18)
+	n1 := p.Alloc(28, 59)
+	n2 := p.Alloc(18, 18)
+	n3 := p.Alloc(18, 18)
+	n4 := p.Alloc(8, 10)
+	n5 := p.Alloc(322, 242)
+	_ = n5
+	p.Free(n0)
+	p.Free(n2)
+	p.Free(n1)
+	p.Free(n3)
+	p.Free(n4)
+
+	n6 := p.Alloc(18, 18)
+	p.Free(n6)
 }

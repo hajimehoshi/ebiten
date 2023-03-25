@@ -67,7 +67,7 @@ func QuadVertices(dst []float32, sx0, sy0, sx1, sy1 float32, a, b, c, d, tx, ty 
 	x := sx1 - sx0
 	y := sy1 - sy0
 	ax, by, cx, dy := a*x, b*y, c*x, d*y
-	u0, v0, u1, v1 := float32(sx0), float32(sy0), float32(sx1), float32(sy1)
+	u0, v0, u1, v1 := sx0, sy0, sx1, sy1
 
 	// This function is very performance-sensitive and implement in a very dumb way.
 	_ = dst[:4*VertexFloatCount]

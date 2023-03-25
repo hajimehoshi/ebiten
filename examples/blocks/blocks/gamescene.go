@@ -108,7 +108,7 @@ func init() {
 }
 
 func drawWindow(r *ebiten.Image, x, y, width, height int) {
-	vector.DrawFilledRect(r, float32(x), float32(y), float32(width), float32(height), color.RGBA{0, 0, 0, 0xc0})
+	vector.DrawFilledRect(r, float32(x), float32(y), float32(width), float32(height), color.RGBA{0, 0, 0, 0xc0}, false)
 }
 
 var fontColor = color.NRGBA{0x40, 0x40, 0xff, 0xff}
@@ -170,7 +170,7 @@ func init() {
 func (s *GameScene) drawBackground(r *ebiten.Image) {
 	r.Fill(color.White)
 
-	w, h := imageGameBG.Size()
+	w, h := imageGameBG.Bounds().Dx(), imageGameBG.Bounds().Dy()
 	scaleW := ScreenWidth / float64(w)
 	scaleH := ScreenHeight / float64(h)
 	scale := scaleW

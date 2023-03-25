@@ -308,7 +308,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	}
 }
 
-func TestSyntaxUnspportedSyntax(t *testing.T) {
+func TestSyntaxUnsupportedSyntax(t *testing.T) {
 	if _, err := compileToIR([]byte(`package main
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
@@ -2724,7 +2724,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	}
 }
 
-func TestTypeRedeclaration(t *testing.T) {
+func TestSyntaxTypeRedeclaration(t *testing.T) {
 	cases := []struct {
 		stmt string
 		err  bool
@@ -2752,7 +2752,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	}
 }
 
-func TestSwizzling(t *testing.T) {
+func TestSyntaxSwizzling(t *testing.T) {
 	cases := []struct {
 		stmt string
 		err  bool
@@ -2841,7 +2841,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	}
 }
 
-func TestConstType(t *testing.T) {
+func TestSyntaxConstType(t *testing.T) {
 	cases := []struct {
 		stmt string
 		err  bool
@@ -2950,6 +2950,65 @@ func TestConstType(t *testing.T) {
 		{stmt: "const a float = ivec2(0)", err: true},
 		{stmt: "const a vec2 = ivec2(0)", err: true},
 		{stmt: "const a ivec2 = ivec2(0)", err: true},
+	}
+
+	for _, c := range cases {
+		stmt := c.stmt
+		src := fmt.Sprintf(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	%s
+	return position
+}`, stmt)
+		_, err := compileToIR([]byte(src))
+		if err == nil && c.err {
+			t.Errorf("%s must return an error but does not", stmt)
+		} else if err != nil && !c.err {
+			t.Errorf("%s must not return nil but returned %v", stmt, err)
+		}
+	}
+}
+
+// Issue #2549
+func TestSyntaxConstType2(t *testing.T) {
+	cases := []struct {
+		stmt string
+		err  bool
+	}{
+		{stmt: "const x = 1; y := x*x; _ = vec4(1) / y", err: true},
+		{stmt: "const x = 1.0; y := x*x; _ = vec4(1) / y", err: false},
+		{stmt: "const x int = 1; y := x*x; _ = vec4(1) / y", err: true},
+		{stmt: "const x int = 1.0; y := x*x; _ = vec4(1) / y", err: true},
+		{stmt: "const x float = 1; y := x*x; _ = vec4(1) / y", err: false},
+		{stmt: "const x float = 1.0; y := x*x; _ = vec4(1) / y", err: false},
+	}
+
+	for _, c := range cases {
+		stmt := c.stmt
+		src := fmt.Sprintf(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	%s
+	return position
+}`, stmt)
+		_, err := compileToIR([]byte(src))
+		if err == nil && c.err {
+			t.Errorf("%s must return an error but does not", stmt)
+		} else if err != nil && !c.err {
+			t.Errorf("%s must not return nil but returned %v", stmt, err)
+		}
+	}
+}
+
+// Issue #2348
+func TestSyntaxCompositeLit(t *testing.T) {
+	cases := []struct {
+		stmt string
+		err  bool
+	}{
+		{stmt: "_ = undefined{1, 2, 3, 4}", err: true},
+		{stmt: "_ = int{1, 2, 3, 4}", err: true},
+		{stmt: "_ = vec4{1, 2, 3, 4}", err: true},
 	}
 
 	for _, c := range cases {

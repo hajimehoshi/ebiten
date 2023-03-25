@@ -429,7 +429,8 @@ func supportsXInput(guid windows.GUID) (bool, error) {
 		}
 		size := uint32(unsafe.Sizeof(rdi))
 		if _, err := _GetRawInputDeviceInfoW(ridl[i].hDevice, _RIDI_DEVICEINFO, unsafe.Pointer(&rdi), &size); err != nil {
-			return false, err
+			// GetRawInputDeviceInfoW can return an error (#2603).
+			continue
 		}
 
 		if uint32(rdi.hid.dwVendorId)|(uint32(rdi.hid.dwProductId)<<16) != guid.Data1 {
@@ -572,12 +573,12 @@ func (*nativeGamepadDesktop) hasOwnStandardLayoutMapping() bool {
 	return false
 }
 
-func (*nativeGamepadDesktop) isStandardAxisAvailableInOwnMapping(axis gamepaddb.StandardAxis) bool {
-	return false
+func (*nativeGamepadDesktop) standardAxisInOwnMapping(axis gamepaddb.StandardAxis) mappingInput {
+	return nil
 }
 
-func (*nativeGamepadDesktop) isStandardButtonAvailableInOwnMapping(button gamepaddb.StandardButton) bool {
-	return false
+func (*nativeGamepadDesktop) standardButtonInOwnMapping(button gamepaddb.StandardButton) mappingInput {
+	return nil
 }
 
 func (g *nativeGamepadDesktop) usesDInput() bool {
@@ -757,7 +758,10 @@ func (g *nativeGamepadDesktop) isButtonPressed(button int) bool {
 }
 
 func (g *nativeGamepadDesktop) buttonValue(button int) float64 {
-	panic("gamepad: buttonValue is not implemented")
+	if g.isButtonPressed(button) {
+		return 1
+	}
+	return 0
 }
 
 func (g *nativeGamepadDesktop) hatState(hat int) int {

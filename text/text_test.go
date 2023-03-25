@@ -33,16 +33,16 @@ func TestMain(m *testing.M) {
 }
 
 func TestTextColor(t *testing.T) {
-	clr := color.RGBA{0x80, 0x80, 0x80, 0x80}
+	clr := color.RGBA{R: 0x80, G: 0x80, B: 0x80, A: 0x80}
 	img := ebiten.NewImage(30, 30)
 	text.Draw(img, "Hello", bitmapfont.Face, 12, 12, clr)
 
-	w, h := img.Size()
+	w, h := img.Bounds().Dx(), img.Bounds().Dy()
 	allTransparent := true
 	for j := 0; j < h; j++ {
 		for i := 0; i < w; i++ {
 			got := img.At(i, j)
-			want1 := color.RGBA{0x80, 0x80, 0x80, 0x80}
+			want1 := color.RGBA{R: 0x80, G: 0x80, B: 0x80, A: 0x80}
 			want2 := color.RGBA{}
 			if got != want1 && got != want2 {
 				t.Errorf("img At(%d, %d): got %v; want %v or %v", i, j, got, want1, want2)
@@ -68,13 +68,13 @@ func (f *testFace) Glyph(dot fixed.Point26_6, r rune) (dr image.Rectangle, mask 
 	case 'a':
 		for j := 0; j < testFaceSize; j++ {
 			for i := 0; i < testFaceSize; i++ {
-				a.SetAlpha(i, j, color.Alpha{0x80})
+				a.SetAlpha(i, j, color.Alpha{A: 0x80})
 			}
 		}
 	case 'b':
 		for j := 0; j < testFaceSize; j++ {
 			for i := 0; i < testFaceSize; i++ {
-				a.SetAlpha(i, j, color.Alpha{0xff})
+				a.SetAlpha(i, j, color.Alpha{A: 0xff})
 			}
 		}
 	}
@@ -127,7 +127,7 @@ func TestTextOverlap(t *testing.T) {
 	for j := 0; j < testFaceSize; j++ {
 		for i := 0; i < testFaceSize; i++ {
 			got := dst.At(i, j)
-			want := color.RGBA{0xff, 0xff, 0xff, 0xff}
+			want := color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff}
 			if got != want {
 				t.Errorf("At(%d, %d): got: %v, want: %v", i, j, got, want)
 			}
@@ -139,7 +139,7 @@ func TestTextOverlap(t *testing.T) {
 	for j := 0; j < testFaceSize; j++ {
 		for i := testFaceSize; i < testFaceSize*2; i++ {
 			got := dst.At(i, j)
-			want := color.RGBA{0x80, 0x80, 0x80, 0x80}
+			want := color.RGBA{R: 0x80, G: 0x80, B: 0x80, A: 0x80}
 			if got != want {
 				t.Errorf("At(%d, %d): got: %v, want: %v", i, j, got, want)
 			}

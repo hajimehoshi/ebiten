@@ -50,12 +50,12 @@ type viewport struct {
 }
 
 func (p *viewport) Move() {
-	w, h := bgImage.Size()
-	maxX16 := w * 16
-	maxY16 := h * 16
+	s := bgImage.Bounds().Size()
+	maxX16 := s.X * 16
+	maxY16 := s.Y * 16
 
-	p.x16 += w / 32
-	p.y16 += h / 32
+	p.x16 += s.X / 32
+	p.y16 += s.Y / 32
 	p.x16 %= maxX16
 	p.y16 %= maxY16
 }
@@ -79,7 +79,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 	// Draw bgImage on the screen repeatedly.
 	const repeat = 3
-	w, h := bgImage.Size()
+	w, h := bgImage.Bounds().Dx(), bgImage.Bounds().Dy()
 	for j := 0; j < repeat; j++ {
 		for i := 0; i < repeat; i++ {
 			op := &ebiten.DrawImageOptions{}

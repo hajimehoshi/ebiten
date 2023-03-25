@@ -162,10 +162,10 @@ func (p *pipelineStates) drawTriangles(device *_ID3D12Device, commandList *_ID3D
 		p.constantBufferMaps[frameIndex] = append(p.constantBufferMaps[frameIndex], 0)
 	}
 
-	const bufferSizeAlignement = 256
+	const bufferSizeAlignment = 256
 	bufferSize := uint32(unsafe.Sizeof(uint32(0))) * uint32(len(uniforms))
 	if bufferSize > 0 {
-		bufferSize = ((bufferSize-1)/bufferSizeAlignement + 1) * bufferSizeAlignement
+		bufferSize = ((bufferSize-1)/bufferSizeAlignment + 1) * bufferSizeAlignment
 	}
 
 	cb := p.constantBuffers[frameIndex][idx]

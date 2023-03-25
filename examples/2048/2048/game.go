@@ -68,14 +68,13 @@ func (g *Game) Update() error {
 // Draw draws the current game to the given screen.
 func (g *Game) Draw(screen *ebiten.Image) {
 	if g.boardImage == nil {
-		w, h := g.board.Size()
-		g.boardImage = ebiten.NewImage(w, h)
+		g.boardImage = ebiten.NewImage(g.board.Size())
 	}
 	screen.Fill(backgroundColor)
 	g.board.Draw(g.boardImage)
 	op := &ebiten.DrawImageOptions{}
-	sw, sh := screen.Size()
-	bw, bh := g.boardImage.Size()
+	sw, sh := screen.Bounds().Dx(), screen.Bounds().Dy()
+	bw, bh := g.boardImage.Bounds().Dx(), g.boardImage.Bounds().Dy()
 	x := (sw - bw) / 2
 	y := (sh - bh) / 2
 	op.GeoM.Translate(float64(x), float64(y))

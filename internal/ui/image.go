@@ -16,6 +16,7 @@ package ui
 
 import (
 	"fmt"
+	"math"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
@@ -42,19 +43,13 @@ type Image struct {
 	dotsBuffer map[[2]int][4]byte
 
 	// bigOffscreenBuffer is a double-sized offscreen for anti-alias rendering.
-	bigOffscreenBuffer      *Image
-	bigOffscreenBufferBlend graphicsdriver.Blend
-	bigOffscreenBufferDirty bool
+	bigOffscreenBuffer *bigOffscreenImage
 
 	// modifyCallback is a callback called when DrawTriangles or WritePixels is called.
 	// modifyCallback is useful to detect whether the image is manipulated or not after a certain time.
 	modifyCallback func()
 
-	// These temporary vertices must not be reused until the vertices are sent to the graphics command queue.
-
-	tmpVerticesForFlushing []float32
-	tmpVerticesForCopying  []float32
-	tmpVerticesForFill     []float32
+	tmpVerticesForFill []float32
 }
 
 func NewImage(width, height int, imageType atlas.ImageType) *Image {
@@ -71,9 +66,8 @@ func (i *Image) MarkDisposed() {
 		return
 	}
 	if i.bigOffscreenBuffer != nil {
-		i.bigOffscreenBuffer.MarkDisposed()
+		i.bigOffscreenBuffer.markDisposed()
 		i.bigOffscreenBuffer = nil
-		i.bigOffscreenBufferDirty = false
 	}
 	i.mipmap.MarkDisposed()
 	i.mipmap = nil
@@ -90,10 +84,6 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 		// Flush the other buffer to make the buffers exclusive.
 		i.flushDotsBufferIfNeeded()
 
-		if i.bigOffscreenBufferBlend != blend {
-			i.flushBigOffscreenBufferIfNeeded()
-		}
-
 		if i.bigOffscreenBuffer == nil {
 			var imageType atlas.ImageType
 			switch i.imageType {
@@ -104,44 +94,10 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 			default:
 				panic(fmt.Sprintf("ui: unexpected image type: %d", imageType))
 			}
-			i.bigOffscreenBuffer = NewImage(i.width*bigOffscreenScale, i.height*bigOffscreenScale, imageType)
+			i.bigOffscreenBuffer = newBigOffscreenImage(i, imageType)
 		}
 
-		i.bigOffscreenBufferBlend = blend
-
-		// Copy the current rendering result to get the correct blending result.
-		if blend != graphicsdriver.BlendSourceOver && !i.bigOffscreenBufferDirty {
-			srcs := [graphics.ShaderImageCount]*Image{i}
-			if len(i.tmpVerticesForCopying) < 4*graphics.VertexFloatCount {
-				i.tmpVerticesForCopying = make([]float32, 4*graphics.VertexFloatCount)
-			}
-			graphics.QuadVertices(
-				i.tmpVerticesForCopying,
-				0, 0, float32(i.width), float32(i.height),
-				bigOffscreenScale, 0, 0, bigOffscreenScale, 0, 0,
-				1, 1, 1, 1)
-			is := graphics.QuadIndices()
-			dstRegion := graphicsdriver.Region{
-				X:      0,
-				Y:      0,
-				Width:  float32(i.width * bigOffscreenScale),
-				Height: float32(i.height * bigOffscreenScale),
-			}
-			i.bigOffscreenBuffer.DrawTriangles(srcs, i.tmpVerticesForCopying, is, graphicsdriver.BlendCopy, dstRegion, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, NearestFilterShader, nil, false, true, false)
-		}
-
-		for i := 0; i < len(vertices); i += graphics.VertexFloatCount {
-			vertices[i] *= bigOffscreenScale
-			vertices[i+1] *= bigOffscreenScale
-		}
-
-		dstRegion.X *= bigOffscreenScale
-		dstRegion.Y *= bigOffscreenScale
-		dstRegion.Width *= bigOffscreenScale
-		dstRegion.Height *= bigOffscreenScale
-
-		i.bigOffscreenBuffer.DrawTriangles(srcs, vertices, indices, blend, dstRegion, srcRegion, subimageOffsets, shader, uniforms, evenOdd, canSkipMipmap, false)
-		i.bigOffscreenBufferDirty = true
+		i.bigOffscreenBuffer.drawTriangles(srcs, vertices, indices, blend, dstRegion, srcRegion, subimageOffsets, shader, uniforms, evenOdd, canSkipMipmap, false)
 		return
 	}
 
@@ -298,37 +254,9 @@ func (i *Image) flushDotsBufferIfNeeded() {
 }
 
 func (i *Image) flushBigOffscreenBufferIfNeeded() {
-	if !i.bigOffscreenBufferDirty {
-		return
+	if i.bigOffscreenBuffer != nil {
+		i.bigOffscreenBuffer.flush()
 	}
-
-	// Mark the offscreen clearn earlier to avoid recursive calls.
-	i.bigOffscreenBufferDirty = false
-
-	srcs := [graphics.ShaderImageCount]*Image{i.bigOffscreenBuffer}
-	if len(i.tmpVerticesForFlushing) < 4*graphics.VertexFloatCount {
-		i.tmpVerticesForFlushing = make([]float32, 4*graphics.VertexFloatCount)
-	}
-	graphics.QuadVertices(
-		i.tmpVerticesForFlushing,
-		0, 0, float32(i.width*bigOffscreenScale), float32(i.height*bigOffscreenScale),
-		1.0/bigOffscreenScale, 0, 0, 1.0/bigOffscreenScale, 0, 0,
-		1, 1, 1, 1)
-	is := graphics.QuadIndices()
-	dstRegion := graphicsdriver.Region{
-		X:      0,
-		Y:      0,
-		Width:  float32(i.width),
-		Height: float32(i.height),
-	}
-	blend := graphicsdriver.BlendSourceOver
-	if i.bigOffscreenBufferBlend != graphicsdriver.BlendSourceOver {
-		blend = graphicsdriver.BlendCopy
-	}
-	i.DrawTriangles(srcs, i.tmpVerticesForFlushing, is, blend, dstRegion, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, LinearFilterShader, nil, false, true, false)
-
-	i.bigOffscreenBuffer.clear()
-	i.bigOffscreenBufferDirty = false
 }
 
 func DumpImages(dir string) (string, error) {
@@ -363,6 +291,7 @@ func (i *Image) Fill(r, g, b, a float32, x, y, width, height int) {
 	if len(i.tmpVerticesForFill) < 4*graphics.VertexFloatCount {
 		i.tmpVerticesForFill = make([]float32, 4*graphics.VertexFloatCount)
 	}
+	// i.tmpVerticesForFill can be reused as this is sent to DrawTriangles immediately.
 	graphics.QuadVertices(
 		i.tmpVerticesForFill,
 		1, 1, float32(whiteImage.width-1), float32(whiteImage.height-1),
@@ -373,4 +302,238 @@ func (i *Image) Fill(r, g, b, a float32, x, y, width, height int) {
 	srcs := [graphics.ShaderImageCount]*Image{whiteImage}
 
 	i.DrawTriangles(srcs, i.tmpVerticesForFill, is, graphicsdriver.BlendCopy, dstRegion, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, NearestFilterShader, nil, false, true, false)
+}
+
+type bigOffscreenImage struct {
+	orig      *Image
+	imageType atlas.ImageType
+
+	image  *Image
+	region graphicsdriver.Region
+
+	blend graphicsdriver.Blend
+	dirty bool
+
+	tmpVerticesForFlushing []float32
+	tmpVerticesForCopying  []float32
+}
+
+func newBigOffscreenImage(orig *Image, imageType atlas.ImageType) *bigOffscreenImage {
+	return &bigOffscreenImage{
+		orig:      orig,
+		imageType: imageType,
+	}
+}
+
+func (i *bigOffscreenImage) markDisposed() {
+	if i.image != nil {
+		i.image.MarkDisposed()
+		i.image = nil
+	}
+	i.dirty = false
+}
+
+func (i *bigOffscreenImage) drawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint16, blend graphicsdriver.Blend, dstRegion, srcRegion graphicsdriver.Region, subimageOffsets [graphics.ShaderImageCount - 1][2]float32, shader *Shader, uniforms []uint32, evenOdd bool, canSkipMipmap bool, antialias bool) {
+	if i.blend != blend {
+		i.flush()
+	}
+	i.blend = blend
+
+	// If the new region doesn't match with the current region, remove the buffer image and recreate it later.
+	if r := i.requiredRegion(vertices); i.region != r {
+		i.flush()
+		i.image = nil
+		i.region = r
+	}
+
+	if i.region.Width == 0 || i.region.Height == 0 {
+		return
+	}
+
+	if i.image == nil {
+		i.image = NewImage(int(i.region.Width)*bigOffscreenScale, int(i.region.Height)*bigOffscreenScale, i.imageType)
+	}
+
+	// Copy the current rendering result to get the correct blending result.
+	if blend != graphicsdriver.BlendSourceOver && !i.dirty {
+		srcs := [graphics.ShaderImageCount]*Image{i.orig}
+		if len(i.tmpVerticesForCopying) < 4*graphics.VertexFloatCount {
+			i.tmpVerticesForCopying = make([]float32, 4*graphics.VertexFloatCount)
+		}
+		// i.tmpVerticesForCopying can be resused as this is sent to DrawTriangles immediately.
+		graphics.QuadVertices(
+			i.tmpVerticesForCopying,
+			i.region.X, i.region.Y, i.region.X+i.region.Width, i.region.Y+i.region.Height,
+			bigOffscreenScale, 0, 0, bigOffscreenScale, 0, 0,
+			1, 1, 1, 1)
+		is := graphics.QuadIndices()
+		dstRegion := graphicsdriver.Region{
+			X:      0,
+			Y:      0,
+			Width:  i.region.Width * bigOffscreenScale,
+			Height: i.region.Height * bigOffscreenScale,
+		}
+		i.image.DrawTriangles(srcs, i.tmpVerticesForCopying, is, graphicsdriver.BlendCopy, dstRegion, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, NearestFilterShader, nil, false, true, false)
+	}
+
+	for idx := 0; idx < len(vertices); idx += graphics.VertexFloatCount {
+		vertices[idx] = (vertices[idx] - i.region.X) * bigOffscreenScale
+		vertices[idx+1] = (vertices[idx+1] - i.region.Y) * bigOffscreenScale
+	}
+
+	x0 := dstRegion.X
+	y0 := dstRegion.Y
+	x1 := dstRegion.X + dstRegion.Width
+	y1 := dstRegion.Y + dstRegion.Height
+	x0 = max(x0-i.region.X, 0)
+	y0 = max(y0-i.region.Y, 0)
+	x1 = min(x1, i.region.X+i.region.Width)
+	y1 = min(y1, i.region.Y+i.region.Height)
+	dstRegion = graphicsdriver.Region{
+		X:      x0 * bigOffscreenScale,
+		Y:      y0 * bigOffscreenScale,
+		Width:  (x1 - x0) * bigOffscreenScale,
+		Height: (y1 - y0) * bigOffscreenScale,
+	}
+
+	i.image.DrawTriangles(srcs, vertices, indices, blend, dstRegion, srcRegion, subimageOffsets, shader, uniforms, evenOdd, canSkipMipmap, false)
+	i.dirty = true
+}
+
+func (i *bigOffscreenImage) flush() {
+	if i.image == nil {
+		return
+	}
+
+	if !i.dirty {
+		return
+	}
+
+	// Mark the offscreen clearn earlier to avoid recursive calls.
+	i.dirty = false
+
+	srcs := [graphics.ShaderImageCount]*Image{i.image}
+	if len(i.tmpVerticesForFlushing) < 4*graphics.VertexFloatCount {
+		i.tmpVerticesForFlushing = make([]float32, 4*graphics.VertexFloatCount)
+	}
+	// i.tmpVerticesForFlushing can be reused as this is sent to DrawTriangles in this function.
+	graphics.QuadVertices(
+		i.tmpVerticesForFlushing,
+		0, 0, i.region.Width*bigOffscreenScale, i.region.Height*bigOffscreenScale,
+		1.0/bigOffscreenScale, 0, 0, 1.0/bigOffscreenScale, i.region.X, i.region.Y,
+		1, 1, 1, 1)
+	is := graphics.QuadIndices()
+	dstRegion := i.region
+	blend := graphicsdriver.BlendSourceOver
+	if i.blend != graphicsdriver.BlendSourceOver {
+		blend = graphicsdriver.BlendCopy
+	}
+	i.orig.DrawTriangles(srcs, i.tmpVerticesForFlushing, is, blend, dstRegion, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, LinearFilterShader, nil, false, true, false)
+
+	i.image.clear()
+	i.dirty = false
+}
+
+func (i *bigOffscreenImage) requiredRegion(vertices []float32) graphicsdriver.Region {
+	minX := float32(i.orig.width)
+	minY := float32(i.orig.height)
+	maxX := float32(0)
+	maxY := float32(0)
+	for i := 0; i < len(vertices); i += graphics.VertexFloatCount {
+		dstX := vertices[i]
+		dstY := vertices[i+1]
+		if minX > floor(dstX)-1 {
+			minX = floor(dstX) - 1
+		}
+		if minY > floor(dstY)-1 {
+			minY = floor(dstY) - 1
+		}
+		if maxX < ceil(dstX)+1 {
+			maxX = ceil(dstX) + 1
+		}
+		if maxY < ceil(dstY)+1 {
+			maxY = ceil(dstY) + 1
+		}
+	}
+
+	// Adjust the granularity of the rectangle.
+	minX = float32(roundDown16(int(minX)))
+	minY = float32(roundDown16(int(minY)))
+	maxX = float32(roundUp16(int(maxX)))
+	maxY = float32(roundUp16(int(maxY)))
+
+	if minX < 0 {
+		minX = 0
+	}
+	if minY < 0 {
+		minY = 0
+	}
+	if maxX > float32(i.orig.width) {
+		maxX = float32(i.orig.width)
+	}
+	if maxY > float32(i.orig.height) {
+		maxY = float32(i.orig.height)
+	}
+
+	r := graphicsdriver.Region{
+		X:      minX,
+		Y:      minY,
+		Width:  maxX - minX,
+		Height: maxY - minY,
+	}
+	if r.Width < 0 || r.Height < 0 {
+		return i.region
+	}
+
+	return union(r, i.region)
+}
+
+func floor(x float32) float32 {
+	return float32(math.Floor(float64(x)))
+}
+
+func ceil(x float32) float32 {
+	return float32(math.Ceil(float64(x)))
+}
+
+func roundDown16(x int) int {
+	return x & ^(0xf)
+}
+
+func roundUp16(x int) int {
+	return ((x - 1) & ^(0xf)) + 0x10
+}
+
+func min(x, y float32) float32 {
+	if x < y {
+		return x
+	}
+	return y
+}
+
+func max(x, y float32) float32 {
+	if x > y {
+		return x
+	}
+	return y
+}
+
+func union(r0, r1 graphicsdriver.Region) graphicsdriver.Region {
+	if r0.Width == 0 || r0.Height == 0 {
+		return r1
+	}
+	if r1.Width == 0 || r1.Height == 0 {
+		return r0
+	}
+
+	x0 := min(r0.X, r1.X)
+	y0 := min(r0.Y, r1.Y)
+	x1 := max(r0.X+r0.Width, r1.X+r1.Width)
+	y1 := max(r0.Y+r0.Height, r1.Y+r1.Height)
+	return graphicsdriver.Region{
+		X:      x0,
+		Y:      y0,
+		Width:  x1 - x0,
+		Height: y1 - y0,
+	}
 }

@@ -253,10 +253,6 @@ func (w *glfwWindow) SetTitle(title string) {
 	})
 }
 
-func (w *glfwWindow) IsBeingClosed() bool {
-	return w.ui.isWindowBeingClosed()
-}
-
 func (w *glfwWindow) SetClosingHandled(handled bool) {
 	w.ui.setWindowClosingHandled(handled)
 }

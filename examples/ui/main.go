@@ -340,7 +340,7 @@ func (t *TextBox) Draw(dst *ebiten.Image) {
 
 	if t.contentBuf != nil {
 		vw, vh := t.viewSize()
-		w, h := t.contentBuf.Size()
+		w, h := t.contentBuf.Bounds().Dx(), t.contentBuf.Bounds().Dy()
 		if vw > w || vh > h {
 			t.contentBuf.Dispose()
 			t.contentBuf = nil

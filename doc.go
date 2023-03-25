@@ -88,8 +88,7 @@
 // `EBITENGINE_OPENGL` environment variable specifies various parameters for OpenGL.
 // You can specify multiple values separated by a comma. The default value is empty (i.e. no parameters).
 //
-//	"es":     Use OpenGL ES. Without this, OpenGL and OpenGL ES are automatically chosen.
-//	"webgl1": Use WebGL 1. This is valid only on browsers.
+//	"es": Use OpenGL ES. Without this, OpenGL and OpenGL ES are automatically chosen.
 //
 // # Build tags
 //

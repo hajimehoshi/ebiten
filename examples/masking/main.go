@@ -102,8 +102,8 @@ func (g *Game) Update() error {
 		g.spotLightY = -g.spotLightY
 		g.spotLightVY = -g.spotLightVY
 	}
-	w, h := spotLightImage.Size()
-	maxX, maxY := screenWidth-w, screenHeight-h
+	s := spotLightImage.Bounds().Size()
+	maxX, maxY := screenWidth-s.X, screenHeight-s.Y
 	if maxX < g.spotLightX {
 		g.spotLightX = -g.spotLightX + 2*maxX
 		g.spotLightVX = -g.spotLightVX

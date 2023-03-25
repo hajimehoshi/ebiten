@@ -20,23 +20,25 @@ import (
 	"github.com/ebitengine/purego"
 )
 
-type _CFIndex int64
-type _CFAllocatorRef uintptr
-type _CFArrayRef uintptr
-type _CFDictionaryRef uintptr
-type _CFNumberRef uintptr
-type _CFTypeRef uintptr
-type _CFRunLoopRef uintptr
-type _CFNumberType uintptr
-type _CFStringRef uintptr
-type _CFArrayCallBacks struct{}
-type _CFDictionaryKeyCallBacks struct{}
-type _CFDictionaryValueCallBacks struct{}
-type _CFRunLoopRunResult int32
-type _CFRunLoopMode = _CFStringRef
-type _CFTimeInterval float64
-type _CFTypeID uint64
-type _CFStringEncoding uint32
+type (
+	_CFIndex                    int64
+	_CFAllocatorRef             uintptr
+	_CFArrayRef                 uintptr
+	_CFDictionaryRef            uintptr
+	_CFNumberRef                uintptr
+	_CFTypeRef                  uintptr
+	_CFRunLoopRef               uintptr
+	_CFNumberType               uintptr
+	_CFStringRef                uintptr
+	_CFArrayCallBacks           struct{}
+	_CFDictionaryKeyCallBacks   struct{}
+	_CFDictionaryValueCallBacks struct{}
+	_CFRunLoopRunResult         int32
+	_CFRunLoopMode              = _CFStringRef
+	_CFTimeInterval             float64
+	_CFTypeID                   uint64
+	_CFStringEncoding           uint32
+)
 
 var kCFAllocatorDefault _CFAllocatorRef = 0
 
@@ -50,15 +52,35 @@ const (
 )
 
 var (
-	corefoundation = purego.Dlopen("CoreFoundation.framework/CoreFoundation", purego.RTLD_LAZY|purego.RTLD_GLOBAL)
-
-	kCFTypeDictionaryKeyCallBacks   = purego.Dlsym(corefoundation, "kCFTypeDictionaryKeyCallBacks")
-	kCFTypeDictionaryValueCallBacks = purego.Dlsym(corefoundation, "kCFTypeDictionaryValueCallBacks")
-	kCFTypeArrayCallBacks           = purego.Dlsym(corefoundation, "kCFTypeArrayCallBacks")
-	kCFRunLoopDefaultMode           = purego.Dlsym(corefoundation, "kCFRunLoopDefaultMode")
+	kCFTypeDictionaryKeyCallBacks   uintptr
+	kCFTypeDictionaryValueCallBacks uintptr
+	kCFTypeArrayCallBacks           uintptr
+	kCFRunLoopDefaultMode           uintptr
 )
 
-func init() {
+func initializeCF() error {
+	corefoundation, err := purego.Dlopen("CoreFoundation.framework/CoreFoundation", purego.RTLD_LAZY|purego.RTLD_GLOBAL)
+	if err != nil {
+		return err
+	}
+
+	kCFTypeDictionaryKeyCallBacks, err = purego.Dlsym(corefoundation, "kCFTypeDictionaryKeyCallBacks")
+	if err != nil {
+		return err
+	}
+	kCFTypeDictionaryValueCallBacks, err = purego.Dlsym(corefoundation, "kCFTypeDictionaryValueCallBacks")
+	if err != nil {
+		return err
+	}
+	kCFTypeArrayCallBacks, err = purego.Dlsym(corefoundation, "kCFTypeArrayCallBacks")
+	if err != nil {
+		return err
+	}
+	kCFRunLoopDefaultMode, err = purego.Dlsym(corefoundation, "kCFRunLoopDefaultMode")
+	if err != nil {
+		return err
+	}
+
 	purego.RegisterLibFunc(&_CFNumberCreate, corefoundation, "CFNumberCreate")
 	purego.RegisterLibFunc(&_CFNumberGetValue, corefoundation, "CFNumberGetValue")
 	purego.RegisterLibFunc(&_CFArrayCreate, corefoundation, "CFArrayCreate")
@@ -71,28 +93,21 @@ func init() {
 	purego.RegisterLibFunc(&_CFGetTypeID, corefoundation, "CFGetTypeID")
 	purego.RegisterLibFunc(&_CFStringGetCString, corefoundation, "CFStringGetCString")
 	purego.RegisterLibFunc(&_CFStringCreateWithCString, corefoundation, "CFStringCreateWithCString")
+
+	return nil
 }
 
-var _CFNumberCreate func(allocator _CFAllocatorRef, theType _CFNumberType, valuePtr unsafe.Pointer) _CFNumberRef
-
-var _CFNumberGetValue func(number _CFNumberRef, theType _CFNumberType, valuePtr unsafe.Pointer) bool
-
-var _CFArrayCreate func(allocator _CFAllocatorRef, values *unsafe.Pointer, numValues _CFIndex, callbacks *_CFArrayCallBacks) _CFArrayRef
-
-var _CFArrayGetValueAtIndex func(array _CFArrayRef, index _CFIndex) uintptr
-
-var _CFArrayGetCount func(array _CFArrayRef) _CFIndex
-
-var _CFDictionaryCreate func(allocator _CFAllocatorRef, keys *unsafe.Pointer, values *unsafe.Pointer, numValues _CFIndex, keyCallBacks *_CFDictionaryKeyCallBacks, valueCallBacks *_CFDictionaryValueCallBacks) _CFDictionaryRef
-
-var _CFRelease func(cf _CFTypeRef)
-
-var _CFRunLoopGetMain func() _CFRunLoopRef
-
-var _CFRunLoopRunInMode func(mode _CFRunLoopMode, seconds _CFTimeInterval, returnAfterSourceHandled bool) _CFRunLoopRunResult
-
-var _CFGetTypeID func(cf _CFTypeRef) _CFTypeID
-
-var _CFStringGetCString func(theString _CFStringRef, buffer []byte, encoding _CFStringEncoding) bool
-
-var _CFStringCreateWithCString func(alloc _CFAllocatorRef, cstr []byte, encoding _CFStringEncoding) _CFStringRef
+var (
+	_CFNumberCreate            func(allocator _CFAllocatorRef, theType _CFNumberType, valuePtr unsafe.Pointer) _CFNumberRef
+	_CFNumberGetValue          func(number _CFNumberRef, theType _CFNumberType, valuePtr unsafe.Pointer) bool
+	_CFArrayCreate             func(allocator _CFAllocatorRef, values *unsafe.Pointer, numValues _CFIndex, callbacks *_CFArrayCallBacks) _CFArrayRef
+	_CFArrayGetValueAtIndex    func(array _CFArrayRef, index _CFIndex) uintptr
+	_CFArrayGetCount           func(array _CFArrayRef) _CFIndex
+	_CFDictionaryCreate        func(allocator _CFAllocatorRef, keys *unsafe.Pointer, values *unsafe.Pointer, numValues _CFIndex, keyCallBacks *_CFDictionaryKeyCallBacks, valueCallBacks *_CFDictionaryValueCallBacks) _CFDictionaryRef
+	_CFRelease                 func(cf _CFTypeRef)
+	_CFRunLoopGetMain          func() _CFRunLoopRef
+	_CFRunLoopRunInMode        func(mode _CFRunLoopMode, seconds _CFTimeInterval, returnAfterSourceHandled bool) _CFRunLoopRunResult
+	_CFGetTypeID               func(cf _CFTypeRef) _CFTypeID
+	_CFStringGetCString        func(theString _CFStringRef, buffer []byte, encoding _CFStringEncoding) bool
+	_CFStringCreateWithCString func(alloc _CFAllocatorRef, cstr []byte, encoding _CFStringEncoding) _CFStringRef
+)

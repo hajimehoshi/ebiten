@@ -37,7 +37,7 @@ type Image struct {
 	internalHeight int
 	screen         bool
 
-	// id is an indentifier for the image. This is used only when dummping the information.
+	// id is an identifier for the image. This is used only when dumping the information.
 	//
 	// This is duplicated with graphicsdriver.Image's ID, but this id is still necessary because this image might not
 	// have its graphicsdriver.Image.

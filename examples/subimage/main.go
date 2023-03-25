@@ -40,12 +40,13 @@ func (g *Game) Update() error {
 
 func (g *Game) Draw(screen *ebiten.Image) {
 	if g.offscreen == nil {
-		g.offscreen = ebiten.NewImage(screen.Size())
+		s := screen.Bounds().Size()
+		g.offscreen = ebiten.NewImage(s.X, s.Y)
 	}
 
 	// Use various sub-images as rendering destination.
 	// This is a proof-of-concept of efficient rendering with sub-images (#2232).
-	sw, sh := screen.Size()
+	sw, sh := screen.Bounds().Dx(), screen.Bounds().Dy()
 	cw := sw / cx
 	ch := sh / cy
 	for j := 0; j < cy; j++ {
@@ -57,6 +58,8 @@ func (g *Game) Draw(screen *ebiten.Image) {
 				g.subImages[i][j] = img
 			}
 
+			// Rendering onto a sub image should be efficient,
+			// but this is not efficient some environments like browsers (#2471).
 			clr := color.RGBA{byte(0xff * float64(i) / cx), byte(0xff * float64(j) / cx), 0, 0xff}
 			img.Fill(clr)
 		}

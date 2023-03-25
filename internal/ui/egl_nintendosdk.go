@@ -70,7 +70,7 @@ func (e *egl) init(nativeWindowHandle C.NativeWindowType) error {
 
 	// Create new context and set it as current.
 	contextAttribs := []C.EGLint{
-		// Set target garaphics api version.
+		// Set target graphics api version.
 		C.EGL_CONTEXT_MAJOR_VERSION, 2,
 		C.EGL_CONTEXT_MINOR_VERSION, 1,
 		// For debug callback

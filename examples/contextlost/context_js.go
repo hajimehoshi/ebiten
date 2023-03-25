@@ -20,25 +20,17 @@ import (
 )
 
 func (g *Game) loseAndRestoreContext() {
-	doc := js.Global().Get("document")
-	canvas := doc.Call("getElementsByTagName", "canvas").Index(0)
-	context := canvas.Call("getContext", "webgl2")
-	if !context.Truthy() {
-		context = canvas.Call("getContext", "webgl")
-		if !context.Truthy() {
-			context = canvas.Call("getContext", "experimental-webgl")
-		}
-	}
-
 	if g.lost {
 		return
 	}
 
-	// Edge might not support the extension. See
-	// https://developer.mozilla.org/en-US/docs/Web/API/WEBGL_lose_context
+	doc := js.Global().Get("document")
+	canvas := doc.Call("getElementsByTagName", "canvas").Index(0)
+	context := canvas.Call("getContext", "webgl2")
+
 	ext := context.Call("getExtension", "WEBGL_lose_context")
 	if !ext.Truthy() {
-		fmt.Println("Fail to force context lost. Edge might not support the extension yet.")
+		fmt.Println("Fail to force context lost.")
 		return
 	}
 

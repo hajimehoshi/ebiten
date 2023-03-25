@@ -44,16 +44,19 @@ func isPositivePowerOf2(x int) bool {
 	return true
 }
 
-func NewPage(initSize int, maxSize int) *Page {
-	if !isPositivePowerOf2(initSize) {
-		panic(fmt.Sprintf("packing: initSize must be a positive power of 2 but %d", initSize))
+func NewPage(initWidth, initHeight int, maxSize int) *Page {
+	if !isPositivePowerOf2(initWidth) {
+		panic(fmt.Sprintf("packing: initWidth must be a positive power of 2 but %d", initWidth))
+	}
+	if !isPositivePowerOf2(initHeight) {
+		panic(fmt.Sprintf("packing: initHeight must be a positive power of 2 but %d", initHeight))
 	}
 	if !isPositivePowerOf2(maxSize) {
 		panic(fmt.Sprintf("packing: maxSize must be a positive power of 2 but %d", maxSize))
 	}
 	return &Page{
-		width:   initSize,
-		height:  initSize,
+		width:   initWidth,
+		height:  initHeight,
 		maxSize: maxSize,
 	}
 }
@@ -159,7 +162,7 @@ func alloc(n *Node, width, height int) *Node {
 				parent: n,
 			}
 		} else {
-			// Split holizontally
+			// Split horizontally
 			n.child0 = &Node{
 				x:      n.x,
 				y:      n.y,
@@ -315,7 +318,8 @@ func (p *Page) extend(newWidth int, newHeight int) func() {
 	var rollback func()
 
 	if aborted {
-		origRoot := *p.root
+		origRoot := p.root
+		origRootCloned := *p.root
 
 		// Extend the page in the vertical direction.
 		if newHeight-p.height > 0 {
@@ -363,7 +367,10 @@ func (p *Page) extend(newWidth int, newHeight int) func() {
 		rollback = func() {
 			p.width = origWidth
 			p.height = origHeight
-			p.root = &origRoot
+			// The node address must not be changed, so use the original root node's pointer (#2584).
+			// As the root node might be modified, restore the content by the cloned content.
+			p.root = origRoot
+			*p.root = origRootCloned
 		}
 	} else {
 		origWidth, origHeight := p.width, p.height

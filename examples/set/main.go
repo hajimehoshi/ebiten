@@ -45,9 +45,9 @@ func NewGame() *Game {
 }
 
 func (g *Game) Update() error {
-	w, h := g.offscreen.Size()
-	x := rand.Intn(w)
-	y := rand.Intn(h)
+	s := g.offscreen.Bounds().Size()
+	x := rand.Intn(s.X)
+	y := rand.Intn(s.Y)
 	c := color.RGBA{
 		byte(rand.Intn(256)),
 		byte(rand.Intn(256)),

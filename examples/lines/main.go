@@ -87,7 +87,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		vector.LineCapSquare,
 	}
 
-	ow, oh := target.Size()
+	ow, oh := target.Bounds().Dx(), target.Bounds().Dy()
 	size := min(ow/(len(joins)+1), oh/(len(caps)+1))
 	offsetX, offsetY := (ow-size*len(joins))/2, (oh-size*len(caps))/2
 
@@ -136,6 +136,10 @@ func (g *Game) drawLine(screen *ebiten.Image, region image.Rectangle, cap vector
 	for i := range vs {
 		vs[i].SrcX = 1
 		vs[i].SrcY = 1
+		vs[i].ColorR = 1
+		vs[i].ColorG = 1
+		vs[i].ColorB = 1
+		vs[i].ColorA = 1
 	}
 	screen.DrawTriangles(vs, is, whiteSubImage, &ebiten.DrawTrianglesOptions{
 		AntiAlias: g.aa,
@@ -153,6 +157,7 @@ func (g *Game) drawLine(screen *ebiten.Image, region image.Rectangle, cap vector
 			vs[i].ColorR = 1
 			vs[i].ColorG = 0
 			vs[i].ColorB = 0
+			vs[i].ColorA = 1
 		}
 		screen.DrawTriangles(vs, is, whiteSubImage, &ebiten.DrawTrianglesOptions{
 			AntiAlias: g.aa,

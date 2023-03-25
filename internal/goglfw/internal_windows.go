@@ -3,12 +3,10 @@
 // SPDX-FileCopyrightText: 2006-2019 Camilla Löwy
 // SPDX-FileCopyrightText: 2022 The Ebitengine Authors
 
-package glfwwin
+package goglfw
 
 import (
 	"unsafe"
-
-	"golang.org/x/sys/windows"
 )
 
 const (
@@ -93,11 +91,7 @@ type context struct {
 	getProcAddress     func(string) uintptr
 	destroy            func(*Window) error
 
-	wgl struct {
-		dc       _HDC
-		handle   _HGLRC
-		interval int
-	}
+	platform platformContextState
 }
 
 type (
@@ -174,29 +168,7 @@ type Window struct {
 		drop        DropCallback
 	}
 
-	win32 struct {
-		handle    windows.HWND
-		bigIcon   _HICON
-		smallIcon _HICON
-
-		cursorTracked  bool
-		frameAction    bool
-		iconified      bool
-		maximized      bool
-		transparent    bool // Whether to enable framebuffer transparency on DWM
-		scaleToMonitor bool
-
-		// Cached size used to filter out duplicate events
-		width  int
-		height int
-
-		// The last received cursor position, regardless of source
-		lastCursorPosX int
-		lastCursorPosY int
-
-		// The last recevied high surrogate when decoding pairs of UTF-16 messages
-		highSurrogate uint16
-	}
+	platform platformWindowState
 }
 
 type Monitor struct {
@@ -206,28 +178,15 @@ type Monitor struct {
 
 	modes []*VidMode
 
-	win32 struct {
-		handle _HMONITOR
-
-		// This size matches the static size of DISPLAY_DEVICE.DeviceName
-		adapterName string
-		displayName string
-		modesPruned bool
-		modeChanged bool
-	}
+	platform platformMonitorState
 }
 
 type Cursor struct {
-	win32 struct {
-		handle _HCURSOR
-	}
+	platform platformCursorState
 }
 
 type tls struct {
-	win32 struct {
-		allocated bool
-		index     uint32
-	}
+	platform platformTLSState
 }
 
 type library struct {
@@ -253,42 +212,8 @@ type library struct {
 		monitor MonitorCallback
 	}
 
-	win32 struct {
-		instance                 _HINSTANCE
-		helperWindowHandle       windows.HWND
-		deviceNotificationHandle _HDEVNOTIFY
-		acquiredMonitorCount     int
-		clipboardString          string
-		keycodes                 [512]Key
-		scancodes                [KeyLast + 1]int
-		keynames                 [KeyLast + 1]string
-
-		// Where to place the cursor when re-enabled
-		restoreCursorPosX float64
-		restoreCursorPosY float64
-
-		// The window whose disabled cursor mode is active
-		disabledCursorWindow *Window
-		rawInput             []byte
-		mouseTrailSize       uint32
-	}
-
-	wgl struct {
-		inited bool
-
-		EXT_swap_control               bool
-		EXT_colorspace                 bool
-		ARB_multisample                bool
-		ARB_framebuffer_sRGB           bool
-		EXT_framebuffer_sRGB           bool
-		ARB_pixel_format               bool
-		ARB_create_context             bool
-		ARB_create_context_profile     bool
-		EXT_create_context_es2_profile bool
-		ARB_create_context_robustness  bool
-		ARB_create_context_no_error    bool
-		ARB_context_flush_control      bool
-	}
+	platformWindow  platformLibraryWindowState
+	platformContext platformLibraryContextState
 }
 
 func boolToInt(x bool) int {

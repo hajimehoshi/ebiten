@@ -32,7 +32,7 @@ import (
 	"fmt"
 )
 
-// addErrorInfoForContextCreation adds an additional infomation to the error when creating an audio context.
+// addErrorInfoForContextCreation adds an additional information to the error when creating an audio context.
 // See also hajimehoshi/oto#93.
 func addErrorInfoForContextCreation(err error) error {
 	if err == nil {

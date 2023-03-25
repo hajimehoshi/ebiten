@@ -129,10 +129,12 @@ func (pr *pixelsRecords) apply(img *graphicscommand.Image) {
 	}
 }
 
-func (pr *pixelsRecords) region() image.Rectangle {
-	var rect image.Rectangle
+func (pr *pixelsRecords) appendRegions(regions []image.Rectangle) []image.Rectangle {
 	for _, r := range pr.records {
-		rect = rect.Union(r.rect)
+		if r.rect.Empty() {
+			continue
+		}
+		regions = append(regions, r.rect)
 	}
-	return rect
+	return regions
 }

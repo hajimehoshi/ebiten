@@ -353,7 +353,7 @@ func (g *Game) hit() bool {
 		gopherWidth  = 30
 		gopherHeight = 60
 	)
-	w, h := gopherImage.Size()
+	w, h := gopherImage.Bounds().Dx(), gopherImage.Bounds().Dy()
 	x0 := floorDiv(g.x16, 16) + (w-gopherWidth)/2
 	y0 := floorDiv(g.y16, 16) + (h-gopherHeight)/2
 	x1 := x0 + gopherWidth
@@ -437,7 +437,7 @@ func (g *Game) drawTiles(screen *ebiten.Image) {
 
 func (g *Game) drawGopher(screen *ebiten.Image) {
 	op := &ebiten.DrawImageOptions{}
-	w, h := gopherImage.Size()
+	w, h := gopherImage.Bounds().Dx(), gopherImage.Bounds().Dy()
 	op.GeoM.Translate(-float64(w)/2.0, -float64(h)/2.0)
 	op.GeoM.Rotate(float64(g.vy16) / 96.0 * math.Pi / 6)
 	op.GeoM.Translate(float64(w)/2.0, float64(h)/2.0)
@@ -461,12 +461,12 @@ func (g *GameWithCRTEffect) DrawFinalScreen(screen ebiten.FinalScreen, offscreen
 		g.crtShader = s
 	}
 
-	ow, oh := offscreen.Size()
+	os := offscreen.Bounds().Size()
 
 	op := &ebiten.DrawRectShaderOptions{}
 	op.Images[0] = offscreen
 	op.GeoM = geoM
-	screen.DrawRectShader(ow, oh, g.crtShader, op)
+	screen.DrawRectShader(os.X, os.Y, g.crtShader, op)
 }
 
 func main() {

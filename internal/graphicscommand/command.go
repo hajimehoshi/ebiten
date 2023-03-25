@@ -29,7 +29,7 @@ import (
 //
 // A command for drawing that is created when Image functions are called like DrawTriangles,
 // or Fill.
-// A command is not immediately executed after created. Instaed, it is queued after created,
+// A command is not immediately executed after created. Instead, it is queued after created,
 // and executed only when necessary.
 type command interface {
 	fmt.Stringer
@@ -110,6 +110,9 @@ func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.Sh
 	q.tmpNumVertexFloats += len(vertices)
 	q.tmpNumIndices += len(indices)
 
+	// prependPreservedUniforms not only prepends values to the given slice but also creates a new slice.
+	// Allocating a new slice is necessary to make EnqueueDrawTrianglesCommand safe so far.
+	// TODO: This might cause a performance issue (#2601).
 	uniforms = q.prependPreservedUniforms(uniforms, shader, dst, srcs, offsets, dstRegion, srcRegion)
 
 	// Remove unused uniform variables so that more commands can be merged.
@@ -603,12 +606,12 @@ func (q *commandQueue) prependPreservedUniforms(uniforms []uint32, shader *Shade
 	idx += len(srcs) * 2
 
 	// Set the destination region.
-	uniforms[idx+0] = math.Float32bits(float32(dstRegion.X) / float32(dw))
-	uniforms[idx+1] = math.Float32bits(float32(dstRegion.Y) / float32(dh))
+	uniforms[idx+0] = math.Float32bits(dstRegion.X / float32(dw))
+	uniforms[idx+1] = math.Float32bits(dstRegion.Y / float32(dh))
 	idx += 2
 
-	uniforms[idx+0] = math.Float32bits(float32(dstRegion.Width) / float32(dw))
-	uniforms[idx+1] = math.Float32bits(float32(dstRegion.Height) / float32(dh))
+	uniforms[idx+0] = math.Float32bits(dstRegion.Width / float32(dw))
+	uniforms[idx+1] = math.Float32bits(dstRegion.Height / float32(dh))
 	idx += 2
 
 	if srcs[0] != nil {
@@ -631,12 +634,12 @@ func (q *commandQueue) prependPreservedUniforms(uniforms []uint32, shader *Shade
 	idx += len(offsets) * 2
 
 	// Set the source region of texture0.
-	uniforms[idx+0] = math.Float32bits(float32(srcRegion.X))
-	uniforms[idx+1] = math.Float32bits(float32(srcRegion.Y))
+	uniforms[idx+0] = math.Float32bits(srcRegion.X)
+	uniforms[idx+1] = math.Float32bits(srcRegion.Y)
 	idx += 2
 
-	uniforms[idx+0] = math.Float32bits(float32(srcRegion.Width))
-	uniforms[idx+1] = math.Float32bits(float32(srcRegion.Height))
+	uniforms[idx+0] = math.Float32bits(srcRegion.Width)
+	uniforms[idx+1] = math.Float32bits(srcRegion.Height)
 	idx += 2
 
 	uniforms[idx+0] = math.Float32bits(2 / float32(dw))

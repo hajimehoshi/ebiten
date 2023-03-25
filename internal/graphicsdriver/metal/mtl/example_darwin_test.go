@@ -35,13 +35,13 @@ func init() {
 	//go:cgo_import_dynamic _ _ "Metal.framework/Metal"
 
 	// It is also necessary for CoreGraphics to be linked
-	purego.Dlopen("/System/Library/Frameworks/CoreGraphics.framework/Versions/Current/CoreGraphics", purego.RTLD_LAZY|purego.RTLD_GLOBAL)
+	_, _ = purego.Dlopen("CoreGraphics.framework/CoreGraphics", purego.RTLD_LAZY|purego.RTLD_GLOBAL)
 }
 
 func Example_listDevices() {
-	device, ok := mtl.CreateSystemDefaultDevice()
-	if !ok {
-		log.Fatalln("Metal is not supported")
+	device, err := mtl.CreateSystemDefaultDevice()
+	if err != nil {
+		log.Fatal(err)
 	}
 	printJSON("preferred system default Metal device = ", device)
 
@@ -86,9 +86,9 @@ func printJSON(label string, v any) {
 }
 
 func Example_renderTriangle() {
-	device, ok := mtl.CreateSystemDefaultDevice()
-	if !ok {
-		log.Fatalln("Metal is not supported")
+	device, err := mtl.CreateSystemDefaultDevice()
+	if err != nil {
+		log.Fatal(err)
 	}
 
 	// Create a render pipeline state.
