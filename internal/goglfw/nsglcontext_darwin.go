@@ -19,6 +19,10 @@ func initNSGL() error {
 		return nil
 	}
 
+	if err := cf.InitializeCF(); err != nil {
+		return err
+	}
+
 	_glfw.platformContext.framework = cf.CFBundleGetBundleWithIdentifier(cf.CFStringCreateWithCString(cf.KCFAllocatorDefault, []byte("com.apple.opengl\x00"), cf.KCFStringEncodingUTF8))
 
 	if _glfw.platformContext.framework == 0 {

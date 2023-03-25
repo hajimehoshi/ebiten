@@ -15,29 +15,32 @@
 package corefoundation
 
 import (
+	"sync"
 	"unsafe"
 
 	"github.com/ebitengine/purego"
 )
 
-type CFIndex int64
-type CFAllocatorRef uintptr
-type CFArrayRef uintptr
-type CFDictionaryRef uintptr
-type CFNumberRef uintptr
-type CFTypeRef uintptr
-type CFRunLoopRef uintptr
-type CFNumberType uintptr
-type CFStringRef uintptr
-type CFArrayCallBacks struct{}
-type CFDictionaryKeyCallBacks struct{}
-type CFDictionaryValueCallBacks struct{}
-type CFRunLoopRunResult int32
-type CFRunLoopMode = CFStringRef
-type CFTimeInterval float64
-type CFTypeID uint64
-type CFStringEncoding uint32
-type CFBundleRef uintptr
+type (
+	CFIndex                    int64
+	CFAllocatorRef             uintptr
+	CFArrayRef                 uintptr
+	CFDictionaryRef            uintptr
+	CFNumberRef                uintptr
+	CFTypeRef                  uintptr
+	CFRunLoopRef               uintptr
+	CFNumberType               uintptr
+	CFStringRef                uintptr
+	CFArrayCallBacks           struct{}
+	CFDictionaryKeyCallBacks   struct{}
+	CFDictionaryValueCallBacks struct{}
+	CFRunLoopRunResult         int32
+	CFRunLoopMode              = CFStringRef
+	CFTimeInterval             float64
+	CFTypeID                   uint64
+	CFStringEncoding           uint32
+	CFBundleRef                uintptr
+)
 
 var KCFAllocatorDefault CFAllocatorRef = 0
 
@@ -57,50 +60,56 @@ var (
 	KCFRunLoopDefaultMode           CFRunLoopMode
 )
 
-func InitializeCF() error {
-	corefoundation, err := purego.Dlopen("CoreFoundation.framework/CoreFoundation", purego.RTLD_LAZY|purego.RTLD_GLOBAL)
-	if err != nil {
-		return err
-	}
-	var ptr uintptr
-	ptr, err = purego.Dlsym(corefoundation, "kCFTypeDictionaryKeyCallBacks")
-	if err != nil {
-		return err
-	}
-	KCFTypeDictionaryKeyCallBacks = (*CFDictionaryKeyCallBacks)(unsafe.Pointer(ptr))
+var once sync.Once
 
-	ptr, err = purego.Dlsym(corefoundation, "kCFTypeDictionaryValueCallBacks")
-	if err != nil {
-		return err
-	}
-	KCFTypeDictionaryValueCallBacks = (*CFDictionaryValueCallBacks)(unsafe.Pointer(ptr))
+func InitializeCF() (err error) {
+	once.Do(func() {
+		var corefoundation uintptr
+		corefoundation, err = purego.Dlopen("CoreFoundation.framework/CoreFoundation", purego.RTLD_LAZY|purego.RTLD_GLOBAL)
+		if err != nil {
+			return
+		}
+		var ptr uintptr
+		ptr, err = purego.Dlsym(corefoundation, "kCFTypeDictionaryKeyCallBacks")
+		if err != nil {
+			return
+		}
+		KCFTypeDictionaryKeyCallBacks = (*CFDictionaryKeyCallBacks)(unsafe.Pointer(ptr))
 
-	ptr, err = purego.Dlsym(corefoundation, "kCFTypeArrayCallBacks")
-	if err != nil {
-		return err
-	}
-	KCFTypeArrayCallBacks = (*CFArrayCallBacks)(unsafe.Pointer(ptr))
+		ptr, err = purego.Dlsym(corefoundation, "kCFTypeDictionaryValueCallBacks")
+		if err != nil {
+			return
+		}
+		KCFTypeDictionaryValueCallBacks = (*CFDictionaryValueCallBacks)(unsafe.Pointer(ptr))
 
-	ptr, err = purego.Dlsym(corefoundation, "kCFRunLoopDefaultMode")
-	if err != nil {
-		return err
-	}
-	KCFRunLoopDefaultMode = (CFRunLoopMode)(unsafe.Pointer(ptr))
+		ptr, err = purego.Dlsym(corefoundation, "kCFTypeArrayCallBacks")
+		if err != nil {
+			return
+		}
+		KCFTypeArrayCallBacks = (*CFArrayCallBacks)(unsafe.Pointer(ptr))
 
-	purego.RegisterLibFunc(&CFNumberCreate, corefoundation, "CFNumberCreate")
-	purego.RegisterLibFunc(&CFNumberGetValue, corefoundation, "CFNumberGetValue")
-	purego.RegisterLibFunc(&CFArrayCreate, corefoundation, "CFArrayCreate")
-	purego.RegisterLibFunc(&CFArrayGetValueAtIndex, corefoundation, "CFArrayGetValueAtIndex")
-	purego.RegisterLibFunc(&CFArrayGetCount, corefoundation, "CFArrayGetCount")
-	purego.RegisterLibFunc(&CFDictionaryCreate, corefoundation, "CFDictionaryCreate")
-	purego.RegisterLibFunc(&CFRelease, corefoundation, "CFRelease")
-	purego.RegisterLibFunc(&CFRunLoopGetMain, corefoundation, "CFRunLoopGetMain")
-	purego.RegisterLibFunc(&CFRunLoopRunInMode, corefoundation, "CFRunLoopRunInMode")
-	purego.RegisterLibFunc(&CFGetTypeID, corefoundation, "CFGetTypeID")
-	purego.RegisterLibFunc(&CFStringGetCString, corefoundation, "CFStringGetCString")
-	purego.RegisterLibFunc(&CFStringCreateWithCString, corefoundation, "CFStringCreateWithCString")
+		ptr, err = purego.Dlsym(corefoundation, "kCFRunLoopDefaultMode")
+		if err != nil {
+			return
+		}
+		KCFRunLoopDefaultMode = (CFRunLoopMode)(unsafe.Pointer(ptr))
 
-	return nil
+		purego.RegisterLibFunc(&CFNumberCreate, corefoundation, "CFNumberCreate")
+		purego.RegisterLibFunc(&CFNumberGetValue, corefoundation, "CFNumberGetValue")
+		purego.RegisterLibFunc(&CFArrayCreate, corefoundation, "CFArrayCreate")
+		purego.RegisterLibFunc(&CFArrayGetValueAtIndex, corefoundation, "CFArrayGetValueAtIndex")
+		purego.RegisterLibFunc(&CFArrayGetCount, corefoundation, "CFArrayGetCount")
+		purego.RegisterLibFunc(&CFDictionaryCreate, corefoundation, "CFDictionaryCreate")
+		purego.RegisterLibFunc(&CFRelease, corefoundation, "CFRelease")
+		purego.RegisterLibFunc(&CFRunLoopGetMain, corefoundation, "CFRunLoopGetMain")
+		purego.RegisterLibFunc(&CFRunLoopRunInMode, corefoundation, "CFRunLoopRunInMode")
+		purego.RegisterLibFunc(&CFGetTypeID, corefoundation, "CFGetTypeID")
+		purego.RegisterLibFunc(&CFStringGetCString, corefoundation, "CFStringGetCString")
+		purego.RegisterLibFunc(&CFStringCreateWithCString, corefoundation, "CFStringCreateWithCString")
+		purego.RegisterLibFunc(&CFBundleGetBundleWithIdentifier, corefoundation, "CFBundleGetBundleWithIdentifier")
+		purego.RegisterLibFunc(&CFBundleGetFunctionPointerForName, corefoundation, "CFBundleGetFunctionPointerForName")
+	})
+	return err
 }
 
 var CFNumberCreate func(allocator CFAllocatorRef, theType CFNumberType, valuePtr unsafe.Pointer) CFNumberRef
