@@ -19,7 +19,7 @@ import (
 )
 
 var (
-	libSystem = purego.Dlopen("libSystem.dylib", purego.RTLD_GLOBAL)
+	libSystem, _ = purego.Dlopen("libSystem.dylib", purego.RTLD_GLOBAL)
 )
 
 type pthread_key uint32

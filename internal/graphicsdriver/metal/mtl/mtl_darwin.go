@@ -319,9 +319,16 @@ const (
 )
 
 var (
-	metal                         = purego.Dlopen("Metal.framework/Metal", purego.RTLD_LAZY|purego.RTLD_GLOBAL)
-	_MTLCreateSystemDefaultDevice = purego.Dlsym(metal, "MTLCreateSystemDefaultDevice")
+	metal, _                      = purego.Dlopen("Metal.framework/Metal", purego.RTLD_LAZY|purego.RTLD_GLOBAL)
+	_MTLCreateSystemDefaultDevice uintptr
 )
+
+func init() {
+	var err error
+	if _MTLCreateSystemDefaultDevice, err = purego.Dlsym(metal, "MTLCreateSystemDefaultDevice"); err != nil {
+		panic(err)
+	}
+}
 
 // Resource represents a memory allocation for storing specialized data
 // that is accessible to the GPU.

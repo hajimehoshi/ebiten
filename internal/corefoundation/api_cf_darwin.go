@@ -51,15 +51,33 @@ const (
 )
 
 var (
-	corefoundation = purego.Dlopen("CoreFoundation.framework/CoreFoundation", purego.RTLD_LAZY|purego.RTLD_GLOBAL)
+	corefoundation, _ = purego.Dlopen("CoreFoundation.framework/CoreFoundation", purego.RTLD_LAZY|purego.RTLD_GLOBAL)
 
-	KCFTypeDictionaryKeyCallBacks   = (*CFDictionaryKeyCallBacks)(unsafe.Pointer(purego.Dlsym(corefoundation, "kCFTypeDictionaryKeyCallBacks")))
-	KCFTypeDictionaryValueCallBacks = (*CFDictionaryValueCallBacks)(unsafe.Pointer(purego.Dlsym(corefoundation, "kCFTypeDictionaryValueCallBacks")))
-	KCFTypeArrayCallBacks           = (*CFArrayCallBacks)(unsafe.Pointer(purego.Dlsym(corefoundation, "kCFTypeArrayCallBacks")))
-	KCFRunLoopDefaultMode           = *(*CFRunLoopMode)(unsafe.Pointer(purego.Dlsym(corefoundation, "kCFRunLoopDefaultMode")))
+	KCFTypeDictionaryKeyCallBacks   *CFDictionaryKeyCallBacks
+	KCFTypeDictionaryValueCallBacks *CFDictionaryValueCallBacks
+	KCFTypeArrayCallBacks           *CFArrayCallBacks
+	KCFRunLoopDefaultMode           CFRunLoopMode
 )
 
 func init() {
+	var ptr uintptr
+	var err error
+	if ptr, err = purego.Dlsym(corefoundation, "kCFTypeDictionaryKeyCallBacks"); err != nil {
+		panic(err)
+	}
+	KCFTypeDictionaryKeyCallBacks = (*CFDictionaryKeyCallBacks)(unsafe.Pointer(ptr))
+	if ptr, err = purego.Dlsym(corefoundation, "kCFTypeDictionaryValueCallBacks"); err != nil {
+		panic(err)
+	}
+	KCFTypeDictionaryValueCallBacks = (*CFDictionaryValueCallBacks)(unsafe.Pointer(ptr))
+	if ptr, err = purego.Dlsym(corefoundation, "kCFTypeArrayCallBacks"); err != nil {
+		panic(err)
+	}
+	KCFTypeArrayCallBacks = (*CFArrayCallBacks)(unsafe.Pointer(ptr))
+	if ptr, err = purego.Dlsym(corefoundation, "kCFRunLoopDefaultMode"); err != nil {
+		panic(err)
+	}
+	KCFRunLoopDefaultMode = *(*CFRunLoopMode)(unsafe.Pointer(ptr))
 	purego.RegisterLibFunc(&CFNumberCreate, corefoundation, "CFNumberCreate")
 	purego.RegisterLibFunc(&CFNumberGetValue, corefoundation, "CFNumberGetValue")
 	purego.RegisterLibFunc(&CFArrayCreate, corefoundation, "CFArrayCreate")

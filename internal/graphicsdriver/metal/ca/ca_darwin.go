@@ -49,11 +49,17 @@ type MetalLayer struct {
 }
 
 var (
-	coreGraphics                = purego.Dlopen("/System/Library/Frameworks/CoreGraphics.framework/Versions/Current/CoreGraphics", purego.RTLD_LAZY|purego.RTLD_GLOBAL)
-	_CGColorSpaceCreateWithName = purego.Dlsym(coreGraphics, "CGColorSpaceCreateWithName")
-	_CGColorSpaceRelease        = purego.Dlsym(coreGraphics, "CGColorSpaceRelease")
-	kCGColorSpaceDisplayP3      = purego.Dlsym(coreGraphics, "kCGColorSpaceDisplayP3")
+	coreGraphics, _             = purego.Dlopen("/System/Library/Frameworks/CoreGraphics.framework/Versions/Current/CoreGraphics", purego.RTLD_LAZY|purego.RTLD_GLOBAL)
+	_CGColorSpaceCreateWithName uintptr
+	_CGColorSpaceRelease        uintptr
+	kCGColorSpaceDisplayP3      uintptr
 )
+
+func init() {
+	_CGColorSpaceCreateWithName, _ = purego.Dlsym(coreGraphics, "CGColorSpaceCreateWithName")
+	_CGColorSpaceRelease, _ = purego.Dlsym(coreGraphics, "CGColorSpaceRelease")
+	kCGColorSpaceDisplayP3, _ = purego.Dlsym(coreGraphics, "kCGColorSpaceDisplayP3")
+}
 
 // MakeMetalLayer creates a new Core Animation Metal layer.
 //

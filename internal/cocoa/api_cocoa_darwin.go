@@ -22,7 +22,7 @@ import (
 	"github.com/ebitengine/purego/objc"
 )
 
-var Cocoa = purego.Dlopen("Cocoa.framework/Cocoa", purego.RTLD_GLOBAL)
+var Cocoa, _ = purego.Dlopen("Cocoa.framework/Cocoa", purego.RTLD_GLOBAL)
 
 var (
 	class_NSInvocation         = objc.GetClass("NSInvocation")
@@ -115,8 +115,16 @@ var (
 	sel_setView                                                     = objc.RegisterName("setView:")
 )
 
-var NSDefaultRunLoopMode = *(*NSRunLoopMode)(unsafe.Pointer(purego.Dlsym(Cocoa, "NSDefaultRunLoopMode")))
+var NSDefaultRunLoopMode NSRunLoopMode
 var NSApp = NSApplication_sharedApplication()
+
+func init() {
+	if p, err := purego.Dlsym(Cocoa, "NSDefaultRunLoopMode"); err != nil {
+		panic(err)
+	} else {
+		NSDefaultRunLoopMode = *(*NSRunLoopMode)(unsafe.Pointer(p))
+	}
+}
 
 const (
 	NSWindowCollectionBehaviorManaged           = 1 << 2

@@ -158,7 +158,7 @@ func (d *windowDelegate) Selector(s string) objc.SEL {
 
 type window struct {
 	isa objc.Class `objc:"GLFWWindow : NSWindow"`
-	_   [416]byte
+	_   [420]byte
 }
 
 func (w *window) CanBecomeKeyWindow(cmd objc.SEL) bool {

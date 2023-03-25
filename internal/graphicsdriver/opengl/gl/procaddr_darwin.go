@@ -26,12 +26,12 @@ var (
 )
 
 func (c *defaultContext) init() error {
-	opengl = purego.Dlopen("OpenGLES.framework/OpenGLES", purego.RTLD_LAZY|purego.RTLD_GLOBAL)
+	opengl, _ = purego.Dlopen("OpenGLES.framework/OpenGLES", purego.RTLD_LAZY|purego.RTLD_GLOBAL)
 	if opengl != 0 {
 		c.isES = true
 		return nil
 	}
-	opengl = purego.Dlopen("OpenGL.framework/OpenGL", purego.RTLD_LAZY|purego.RTLD_GLOBAL)
+	opengl, _ = purego.Dlopen("OpenGL.framework/OpenGL", purego.RTLD_LAZY|purego.RTLD_GLOBAL)
 	if opengl != 0 {
 		return nil
 	}
@@ -42,5 +42,6 @@ func (c *defaultContext) getProcAddress(name string) uintptr {
 	if c.isES {
 		name = strings.TrimSuffix(name, "EXT")
 	}
-	return purego.Dlsym(opengl, name)
+	sym, _ := purego.Dlsym(opengl, name)
+	return sym
 }

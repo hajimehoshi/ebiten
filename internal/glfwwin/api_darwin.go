@@ -130,15 +130,25 @@ func GoString(p uintptr) string {
 }
 
 var (
-	_CoreGraphics                = purego.Dlopen("CoreGraphics.framework/CoreGraphics", purego.RTLD_GLOBAL)
-	procCGGetOnlineDisplayList   = purego.Dlsym(_CoreGraphics, "CGGetOnlineDisplayList")
-	procCGDisplayIsAsleep        = purego.Dlsym(_CoreGraphics, "CGDisplayIsAsleep")
-	procCGDisplayUnitNumber      = purego.Dlsym(_CoreGraphics, "CGDisplayUnitNumber")
-	procCGDisplayCopyDisplayMode = purego.Dlsym(_CoreGraphics, "CGDisplayCopyDisplayMode")
-	procCGDisplayModeRelease     = purego.Dlsym(_CoreGraphics, "CGDisplayModeRelease")
-	procCGDisplayModeGetWidth    = purego.Dlsym(_CoreGraphics, "CGDisplayModeGetWidth")
-	procCGDisplayModeGetHeight   = purego.Dlsym(_CoreGraphics, "CGDisplayModeGetHeight")
+	_CoreGraphics, _             = purego.Dlopen("CoreGraphics.framework/CoreGraphics", purego.RTLD_GLOBAL)
+	procCGGetOnlineDisplayList   uintptr
+	procCGDisplayIsAsleep        uintptr
+	procCGDisplayUnitNumber      uintptr
+	procCGDisplayCopyDisplayMode uintptr
+	procCGDisplayModeRelease     uintptr
+	procCGDisplayModeGetWidth    uintptr
+	procCGDisplayModeGetHeight   uintptr
 )
+
+func init() {
+	procCGGetOnlineDisplayList, _ = purego.Dlsym(_CoreGraphics, "CGGetOnlineDisplayList")
+	procCGDisplayIsAsleep, _ = purego.Dlsym(_CoreGraphics, "CGDisplayIsAsleep")
+	procCGDisplayUnitNumber, _ = purego.Dlsym(_CoreGraphics, "CGDisplayUnitNumber")
+	procCGDisplayCopyDisplayMode, _ = purego.Dlsym(_CoreGraphics, "CGDisplayCopyDisplayMode")
+	procCGDisplayModeRelease, _ = purego.Dlsym(_CoreGraphics, "CGDisplayModeRelease")
+	procCGDisplayModeGetWidth, _ = purego.Dlsym(_CoreGraphics, "CGDisplayModeGetWidth")
+	procCGDisplayModeGetHeight, _ = purego.Dlsym(_CoreGraphics, "CGDisplayModeGetHeight")
+}
 
 type _CGDirectDisplayID uint32
 type _CGDisplayModeRef uintptr
