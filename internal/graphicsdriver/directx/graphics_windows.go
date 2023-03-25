@@ -56,42 +56,7 @@ func (r *resourceWithSize) release() {
 }
 
 type Graphics struct {
-	debug              *_ID3D12Debug
-	device             *_ID3D12Device
-	commandQueue       *_ID3D12CommandQueue
-	rtvDescriptorHeap  *_ID3D12DescriptorHeap
-	rtvDescriptorSize  uint32
-	renderTargets      [frameCount]*_ID3D12Resource
-	framePipelineToken _D3D12XBOX_FRAME_PIPELINE_TOKEN
-
-	fence          *_ID3D12Fence
-	fenceValues    [frameCount]uint64
-	fenceWaitEvent windows.Handle
-
 	allowTearing bool
-
-	// drawCommandAllocators are command allocators for a 3D engine (DrawIndexedInstanced).
-	// For the word 'engine', see https://docs.microsoft.com/en-us/windows/win32/direct3d12/user-mode-heap-synchronization.
-	// The term 'draw' is used instead of '3D' in this package.
-	drawCommandAllocators [frameCount]*_ID3D12CommandAllocator
-
-	// copyCommandAllocators are command allocators for a copy engine (CopyTextureRegion).
-	copyCommandAllocators [frameCount]*_ID3D12CommandAllocator
-
-	// drawCommandList is a command list for a 3D engine (DrawIndexedInstanced).
-	drawCommandList *_ID3D12GraphicsCommandList
-
-	needFlushDrawCommandList bool
-
-	// copyCommandList is a command list for a copy engine (CopyTextureRegion).
-	copyCommandList *_ID3D12GraphicsCommandList
-
-	needFlushCopyCommandList bool
-
-	// drawCommandList and copyCommandList are exclusive: if one is not empty, the other must be empty.
-
-	vertices [frameCount][]*resourceWithSize
-	indices  [frameCount][]*resourceWithSize
 
 	factory   *_IDXGIFactory4
 	swapChain *_IDXGISwapChain4
@@ -128,6 +93,45 @@ type Graphics struct {
 	suspendingCh chan struct{}
 	suspendedCh  chan struct{}
 	resumeCh     chan struct{}
+
+	*graphics12
+}
+
+type graphics12 struct {
+	debug              *_ID3D12Debug
+	device             *_ID3D12Device
+	commandQueue       *_ID3D12CommandQueue
+	rtvDescriptorHeap  *_ID3D12DescriptorHeap
+	rtvDescriptorSize  uint32
+	renderTargets      [frameCount]*_ID3D12Resource
+	framePipelineToken _D3D12XBOX_FRAME_PIPELINE_TOKEN
+
+	fence          *_ID3D12Fence
+	fenceValues    [frameCount]uint64
+	fenceWaitEvent windows.Handle
+
+	// drawCommandAllocators are command allocators for a 3D engine (DrawIndexedInstanced).
+	// For the word 'engine', see https://docs.microsoft.com/en-us/windows/win32/direct3d12/user-mode-heap-synchronization.
+	// The term 'draw' is used instead of '3D' in this package.
+	drawCommandAllocators [frameCount]*_ID3D12CommandAllocator
+
+	// copyCommandAllocators are command allocators for a copy engine (CopyTextureRegion).
+	copyCommandAllocators [frameCount]*_ID3D12CommandAllocator
+
+	// drawCommandList is a command list for a 3D engine (DrawIndexedInstanced).
+	drawCommandList *_ID3D12GraphicsCommandList
+
+	needFlushDrawCommandList bool
+
+	// copyCommandList is a command list for a copy engine (CopyTextureRegion).
+	copyCommandList *_ID3D12GraphicsCommandList
+
+	needFlushCopyCommandList bool
+
+	// drawCommandList and copyCommandList are exclusive: if one is not empty, the other must be empty.
+
+	vertices [frameCount][]*resourceWithSize
+	indices  [frameCount][]*resourceWithSize
 
 	pipelineStates
 }
@@ -187,6 +191,8 @@ func (g *Graphics) initialize() (ferr error) {
 }
 
 func (g *Graphics) initializeDesktop(useWARP bool, useDebugLayer bool, featureLevel _D3D_FEATURE_LEVEL) (ferr error) {
+	g.graphics12 = &graphics12{}
+
 	if err := d3d12.Load(); err != nil {
 		return err
 	}
@@ -281,7 +287,7 @@ func (g *Graphics) initializeDesktop(useWARP bool, useDebugLayer bool, featureLe
 		}
 	}
 
-	if err := g.initializeMembers(); err != nil {
+	if err := g.graphics12.initialize(g.frameIndex); err != nil {
 		return err
 	}
 
@@ -297,6 +303,8 @@ func (g *Graphics) initializeDesktop(useWARP bool, useDebugLayer bool, featureLe
 }
 
 func (g *Graphics) initializeXbox(useWARP bool, useDebugLayer bool) (ferr error) {
+	g.graphics12 = &graphics12{}
+
 	if err := d3d12x.Load(); err != nil {
 		return err
 	}
@@ -316,7 +324,7 @@ func (g *Graphics) initializeXbox(useWARP bool, useDebugLayer bool) (ferr error)
 	}
 	g.device = (*_ID3D12Device)(d)
 
-	if err := g.initializeMembers(); err != nil {
+	if err := g.graphics12.initialize(g.frameIndex); err != nil {
 		return err
 	}
 
@@ -373,7 +381,7 @@ func (g *Graphics) registerFrameEventForXbox() error {
 	return nil
 }
 
-func (g *Graphics) initializeMembers() (ferr error) {
+func (g *graphics12) initialize(frameIndex int) (ferr error) {
 	// Create an event for a fence.
 	e, err := windows.CreateEventEx(nil, nil, 0, windows.EVENT_MODIFY_STATE|windows.SYNCHRONIZE)
 	if err != nil {
@@ -437,7 +445,7 @@ func (g *Graphics) initializeMembers() (ferr error) {
 			g.fence = nil
 		}
 	}()
-	g.fenceValues[g.frameIndex]++
+	g.fenceValues[frameIndex]++
 
 	// Create command lists.
 	dcl, err := g.device.CreateCommandList(0, _D3D12_COMMAND_LIST_TYPE_DIRECT, g.drawCommandAllocators[0], nil)
@@ -1134,8 +1142,10 @@ func (g *Graphics) NewImage(width, height int) (graphicsdriver.Image, error) {
 		id:       g.genNextImageID(),
 		width:    width,
 		height:   height,
-		texture:  t,
-		states:   [frameCount]_D3D12_RESOURCE_STATES{state},
+		image12: &image12{
+			texture: t,
+			states:  [frameCount]_D3D12_RESOURCE_STATES{state},
+		},
 	}
 	g.addImage(i)
 	return i, nil
@@ -1152,7 +1162,9 @@ func (g *Graphics) NewScreenFramebufferImage(width, height int) (graphicsdriver.
 		width:    width,
 		height:   height,
 		screen:   true,
-		states:   [frameCount]_D3D12_RESOURCE_STATES{0, 0},
+		image12: &image12{
+			states: [frameCount]_D3D12_RESOURCE_STATES{0, 0},
+		},
 	}
 	g.addImage(i)
 	g.screenImage = i
@@ -1333,6 +1345,10 @@ type Image struct {
 	height   int
 	screen   bool
 
+	*image12
+}
+
+type image12 struct {
 	states            [frameCount]_D3D12_RESOURCE_STATES
 	texture           *_ID3D12Resource
 	stencil           *_ID3D12Resource
