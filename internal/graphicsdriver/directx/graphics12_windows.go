@@ -18,8 +18,6 @@ import (
 	"errors"
 	"fmt"
 	"math"
-	"os"
-	"strings"
 	"time"
 	"unsafe"
 
@@ -122,58 +120,22 @@ type graphics12 struct {
 	pipelineStates
 }
 
-func (g *graphics12) initialize() (ferr error) {
-	var (
-		useWARP       bool
-		useDebugLayer bool
-	)
-	env := os.Getenv("EBITENGINE_DIRECTX")
-	if env == "" {
-		// For backward compatibility, read the EBITEN_ version.
-		env = os.Getenv("EBITEN_DIRECTX")
-	}
-	for _, t := range strings.Split(env, ",") {
-		switch strings.TrimSpace(t) {
-		case "warp":
-			// TODO: Is WARP available on Xbox?
-			useWARP = true
-		case "debug":
-			useDebugLayer = true
-		}
-	}
-
-	// Specify the level 11 by default.
-	// Some old cards don't work well with the default feature level (#2447, #2486).
-	var featureLevel _D3D_FEATURE_LEVEL = _D3D_FEATURE_LEVEL_11_0
-	if env := os.Getenv("EBITENGINE_DIRECTX_FEATURE_LEVEL"); env != "" {
-		switch env {
-		case "11_0":
-			featureLevel = _D3D_FEATURE_LEVEL_11_0
-		case "11_1":
-			featureLevel = _D3D_FEATURE_LEVEL_11_1
-		case "12_0":
-			featureLevel = _D3D_FEATURE_LEVEL_12_0
-		case "12_1":
-			featureLevel = _D3D_FEATURE_LEVEL_12_1
-		case "12_2":
-			featureLevel = _D3D_FEATURE_LEVEL_12_2
-		}
-	}
+func newGraphics12(useWARP bool, useDebugLayer bool, featureLevel _D3D_FEATURE_LEVEL) (*graphics12, error) {
+	g := &graphics12{}
 
 	// Initialize not only a device but also other members like a fence.
 	// Even if initializing a device succeeds, initializing a fence might fail (#2142).
-
 	if microsoftgdk.IsXbox() {
 		if err := g.initializeXbox(useWARP, useDebugLayer); err != nil {
-			return err
+			return nil, err
 		}
 	} else {
 		if err := g.initializeDesktop(useWARP, useDebugLayer, featureLevel); err != nil {
-			return err
+			return nil, err
 		}
 	}
 
-	return nil
+	return g, nil
 }
 
 func (g *graphics12) initializeDesktop(useWARP bool, useDebugLayer bool, featureLevel _D3D_FEATURE_LEVEL) (ferr error) {
