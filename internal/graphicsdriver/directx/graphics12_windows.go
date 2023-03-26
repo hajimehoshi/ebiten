@@ -173,18 +173,26 @@ func (g *graphics12) initializeDesktop(useWARP bool, useDebugLayer bool, feature
 	}()
 
 	var adapter *_IDXGIAdapter1
-	if len(adapters) > 0 {
-		if useWARP {
+	if useWARP {
+		if len(adapters) > 0 {
 			adapter = adapters[0]
-		} else {
-			for _, a := range adapters {
-				// Test D3D12CreateDevice without creating an actual device.
-				if _, err := _D3D12CreateDevice(unsafe.Pointer(a), featureLevel, &_IID_ID3D12Device, false); err != nil {
-					continue
-				}
-				adapter = a
-				break
+		}
+	} else {
+		for _, a := range adapters {
+			desc, err := a.GetDesc1()
+			if err != nil {
+				continue
 			}
+			if desc.Flags&_DXGI_ADAPTER_FLAG_SOFTWARE != 0 {
+				continue
+			}
+
+			// Test D3D12CreateDevice without creating an actual device.
+			if _, err := _D3D12CreateDevice(unsafe.Pointer(a), featureLevel, &_IID_ID3D12Device, false); err != nil {
+				continue
+			}
+			adapter = a
+			break
 		}
 	}
 
