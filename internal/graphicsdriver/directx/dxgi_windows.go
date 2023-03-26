@@ -546,11 +546,12 @@ type _IDXGISwapChain4_Vtbl struct {
 	SetHDRMetaData                uintptr
 }
 
-func (i *_IDXGISwapChain4) GetBuffer(buffer uint32) (*_ID3D12Resource, error) {
-	var resource *_ID3D12Resource
+func (i *_IDXGISwapChain4) GetBuffer(buffer uint32, riid *windows.GUID) (unsafe.Pointer, error) {
+	var resource unsafe.Pointer
 	r, _, _ := syscall.Syscall6(i.vtbl.GetBuffer, 4, uintptr(unsafe.Pointer(i)),
-		uintptr(buffer), uintptr(unsafe.Pointer(&_IID_ID3D12Resource)), uintptr(unsafe.Pointer(&resource)),
+		uintptr(buffer), uintptr(unsafe.Pointer(riid)), uintptr(unsafe.Pointer(&resource)),
 		0, 0)
+	runtime.KeepAlive(riid)
 	if uint32(r) != uint32(windows.S_OK) {
 		return nil, fmt.Errorf("directx: IDXGISwapChain4::GetBuffer failed: %w", handleError(windows.Handle(uint32(r))))
 	}

@@ -18,7 +18,6 @@ import (
 	"errors"
 	"fmt"
 	"math"
-	"time"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
@@ -29,8 +28,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/hlsl"
 )
-
-const frameCount = 2
 
 type resourceWithSize struct {
 	value       *_ID3D12Resource
@@ -79,10 +76,7 @@ type graphics12 struct {
 	vertices [frameCount][]*resourceWithSize
 	indices  [frameCount][]*resourceWithSize
 
-	allowTearing bool
-
-	factory   *_IDXGIFactory4
-	swapChain *_IDXGISwapChain4
+	graphicsInfra *graphicsInfra
 
 	window windows.HWND
 
@@ -103,12 +97,6 @@ type graphics12 struct {
 
 	vsyncEnabled bool
 	transparent  bool
-
-	// occluded reports whether the screen is invisible or not.
-	occluded bool
-
-	// lastTime is the last time for rendering.
-	lastTime time.Time
 
 	newScreenWidth  int
 	newScreenHeight int
@@ -162,55 +150,41 @@ func (g *graphics12) initializeDesktop(useWARP bool, useDebugLayer bool, feature
 		g.debug.EnableDebugLayer()
 	}
 
-	var flag uint32
-	if g.debug != nil {
-		flag = _DXGI_CREATE_FACTORY_DEBUG
-	}
-	f, err := _CreateDXGIFactory2(flag)
+	gi, err := newGraphicsInfra(g.debug != nil)
 	if err != nil {
 		return err
 	}
-	g.factory = f
+	g.graphicsInfra = gi
 	defer func() {
 		if ferr != nil {
-			g.factory.Release()
-			g.factory = nil
+			g.graphicsInfra.release()
+			g.graphicsInfra = nil
+		}
+	}()
+
+	adapters, err := g.graphicsInfra.appendAdapters(nil, useWARP)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		for _, a := range adapters {
+			a.Release()
 		}
 	}()
 
 	var adapter *_IDXGIAdapter1
-	if useWARP {
-		a, err := g.factory.EnumWarpAdapter()
-		if err != nil {
-			return err
-		}
-		defer a.Release()
-		adapter = a
-	} else {
-		for i := 0; ; i++ {
-			a, err := g.factory.EnumAdapters1(uint32(i))
-			if errors.Is(err, _DXGI_ERROR_NOT_FOUND) {
+	if len(adapters) > 0 {
+		if useWARP {
+			adapter = adapters[0]
+		} else {
+			for _, a := range adapters {
+				// Test D3D12CreateDevice without creating an actual device.
+				if _, err := _D3D12CreateDevice(unsafe.Pointer(a), featureLevel, &_IID_ID3D12Device, false); err != nil {
+					continue
+				}
+				adapter = a
 				break
 			}
-			if err != nil {
-				return err
-			}
-			defer a.Release()
-
-			desc, err := a.GetDesc1()
-			if err != nil {
-				return err
-			}
-			if desc.Flags&_DXGI_ADAPTER_FLAG_SOFTWARE != 0 {
-				continue
-			}
-			// Test D3D12CreateDevice without creating an actual device.
-			if _, err := _D3D12CreateDevice(unsafe.Pointer(a), featureLevel, &_IID_ID3D12Device, false); err != nil {
-				continue
-			}
-
-			adapter = a
-			break
 		}
 	}
 
@@ -223,15 +197,6 @@ func (g *graphics12) initializeDesktop(useWARP bool, useDebugLayer bool, feature
 		return err
 	}
 	g.device = (*_ID3D12Device)(d)
-
-	if f, err := g.factory.QueryInterface(&_IID_IDXGIFactory5); err == nil && f != nil {
-		factory := (*_IDXGIFactory5)(f)
-		defer factory.Release()
-		var allowTearing int32
-		if err := factory.CheckFeatureSupport(_DXGI_FEATURE_PRESENT_ALLOW_TEARING, unsafe.Pointer(&allowTearing), uint32(unsafe.Sizeof(allowTearing))); err == nil && allowTearing != 0 {
-			g.allowTearing = true
-		}
-	}
 
 	if err := g.initializeMembers(g.frameIndex); err != nil {
 		return err
@@ -495,21 +460,18 @@ func (g *graphics12) updateSwapChain(width, height int) error {
 		return errors.New("directx: the window handle is not initialized yet")
 	}
 
-	if g.swapChain == nil {
-		if microsoftgdk.IsXbox() {
-			if err := g.initSwapChainXbox(width, height); err != nil {
-				return err
-			}
-		} else {
-			if err := g.initSwapChainDesktop(width, height); err != nil {
-				return err
-			}
+	if microsoftgdk.IsXbox() {
+		if err := g.initSwapChainXbox(width, height); err != nil {
+			return err
 		}
 		return nil
 	}
 
-	if microsoftgdk.IsXbox() {
-		return errors.New("directx: resizing should never happen on Xbox")
+	if !g.graphicsInfra.isSwapChainInited() {
+		if err := g.initSwapChainDesktop(width, height); err != nil {
+			return err
+		}
+		return nil
 	}
 
 	g.newScreenWidth = width
@@ -518,45 +480,8 @@ func (g *graphics12) updateSwapChain(width, height int) error {
 	return nil
 }
 
-func (g *graphics12) initSwapChainDesktop(width, height int) (ferr error) {
-	// Create a swap chain.
-	//
-	// DXGI_ALPHA_MODE_PREMULTIPLIED doesn't work with a HWND well.
-	//
-	//     IDXGIFactory::CreateSwapChain: Alpha blended swapchains must be created with CreateSwapChainForComposition,
-	//     or CreateSwapChainForCoreWindow with the DXGI_SWAP_CHAIN_FLAG_FOREGROUND_LAYER flag
-	desc := &_DXGI_SWAP_CHAIN_DESC1{
-		Width:       uint32(width),
-		Height:      uint32(height),
-		Format:      _DXGI_FORMAT_B8G8R8A8_UNORM,
-		BufferUsage: _DXGI_USAGE_RENDER_TARGET_OUTPUT,
-		BufferCount: frameCount,
-		SwapEffect:  _DXGI_SWAP_EFFECT_FLIP_DISCARD,
-		SampleDesc: _DXGI_SAMPLE_DESC{
-			Count:   1,
-			Quality: 0,
-		},
-	}
-	if g.allowTearing {
-		desc.Flags |= uint32(_DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING)
-	}
-	s, err := g.factory.CreateSwapChainForHwnd(unsafe.Pointer(g.commandQueue), g.window, desc, nil, nil)
-	if err != nil {
-		return err
-	}
-	s.As(&g.swapChain)
-	defer func() {
-		if ferr != nil {
-			g.swapChain.Release()
-			g.swapChain = nil
-		}
-	}()
-
-	// MakeWindowAssociation should be called after swap chain creation.
-	// https://docs.microsoft.com/en-us/windows/win32/api/dxgi/nf-dxgi-idxgifactory-makewindowassociation
-	if err := g.factory.MakeWindowAssociation(g.window, _DXGI_MWA_NO_WINDOW_CHANGES|_DXGI_MWA_NO_ALT_ENTER); err != nil {
-		return err
-	}
+func (g *graphics12) initSwapChainDesktop(width, height int) error {
+	g.graphicsInfra.initSwapChain(width, height, unsafe.Pointer(g.commandQueue), g.window)
 
 	// TODO: Get the current buffer index?
 
@@ -564,7 +489,7 @@ func (g *graphics12) initSwapChainDesktop(width, height int) (ferr error) {
 		return err
 	}
 
-	g.frameIndex = int(g.swapChain.GetCurrentBackBufferIndex())
+	g.frameIndex = g.graphicsInfra.currentBackBufferIndex()
 
 	return nil
 }
@@ -636,11 +561,7 @@ func (g *graphics12) resizeSwapChainDesktop(width, height int) error {
 		r.Release()
 	}
 
-	var flag uint32
-	if g.allowTearing {
-		flag |= uint32(_DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING)
-	}
-	if err := g.swapChain.ResizeBuffers(frameCount, uint32(width), uint32(height), _DXGI_FORMAT_B8G8R8A8_UNORM, flag); err != nil {
+	if err := g.graphicsInfra.resizeSwapChain(width, height); err != nil {
 		return err
 	}
 
@@ -658,11 +579,11 @@ func (g *graphics12) createRenderTargetViewsDesktop() (ferr error) {
 		return err
 	}
 	for i := 0; i < frameCount; i++ {
-		r, err := g.swapChain.GetBuffer(uint32(i))
+		r, err := g.graphicsInfra.getBuffer(uint32(i), &_IID_ID3D12Resource)
 		if err != nil {
 			return err
 		}
-		g.renderTargets[i] = r
+		g.renderTargets[i] = (*_ID3D12Resource)(r)
 		defer func(i int) {
 			if ferr != nil {
 				g.renderTargets[i].Release()
@@ -670,7 +591,7 @@ func (g *graphics12) createRenderTargetViewsDesktop() (ferr error) {
 			}
 		}(i)
 
-		g.device.CreateRenderTargetView(r, nil, h)
+		g.device.CreateRenderTargetView((*_ID3D12Resource)(r), nil, h)
 		h.Offset(1, g.rtvDescriptorSize)
 	}
 
@@ -795,40 +716,7 @@ func (g *graphics12) End(present bool) error {
 }
 
 func (g *graphics12) presentDesktop() error {
-	if g.swapChain == nil {
-		return fmt.Errorf("directx: the swap chain is not initialized yet at End")
-	}
-
-	var syncInterval uint32
-	var flags _DXGI_PRESENT
-	if g.occluded {
-		// The screen is not visible. Test whether we can resume.
-		flags |= _DXGI_PRESENT_TEST
-	} else {
-		// Do actual rendering only when the screen is visible.
-		if g.vsyncEnabled {
-			syncInterval = 1
-		} else if g.allowTearing {
-			flags |= _DXGI_PRESENT_ALLOW_TEARING
-		}
-	}
-
-	occluded, err := g.swapChain.Present(syncInterval, uint32(flags))
-	if err != nil {
-		return err
-	}
-	g.occluded = occluded
-
-	// Reduce FPS when the screen is invisible.
-	now := time.Now()
-	if g.occluded {
-		if delta := 100*time.Millisecond - now.Sub(g.lastTime); delta > 0 {
-			time.Sleep(delta)
-		}
-	}
-	g.lastTime = now
-
-	return nil
+	return g.graphicsInfra.present(g.vsyncEnabled)
 }
 
 func (g *graphics12) presentXbox() error {
@@ -849,7 +737,7 @@ func (g *graphics12) moveToNextFrame() error {
 	if microsoftgdk.IsXbox() {
 		g.frameIndex = (g.frameIndex + 1) % frameCount
 	} else {
-		g.frameIndex = int(g.swapChain.GetCurrentBackBufferIndex())
+		g.frameIndex = g.graphicsInfra.currentBackBufferIndex()
 	}
 
 	if g.fence.GetCompletedValue() < g.fenceValues[g.frameIndex] {
