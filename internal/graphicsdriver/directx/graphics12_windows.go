@@ -481,7 +481,9 @@ func (g *graphics12) updateSwapChain(width, height int) error {
 }
 
 func (g *graphics12) initSwapChainDesktop(width, height int) error {
-	g.graphicsInfra.initSwapChain(width, height, unsafe.Pointer(g.commandQueue), g.window)
+	if err := g.graphicsInfra.initSwapChain(width, height, unsafe.Pointer(g.commandQueue), g.window); err != nil {
+		return err
+	}
 
 	// TODO: Get the current buffer index?
 
