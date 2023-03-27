@@ -14,6 +14,8 @@
 
 package glfw
 
+import "fmt"
+
 func ToCharModsCallback(cb func(window *Window, char rune, mods ModifierKey)) CharModsCallback {
 	if cb == nil {
 		return nil
@@ -65,5 +67,15 @@ func ToSizeCallback(cb func(window *Window, width int, height int)) SizeCallback
 	}
 	return func(window uintptr, width int, height int) {
 		cb(theGLFWWindows.get(window), width, height)
+	}
+}
+
+func ToDropCallback(cb func(window *Window, names []string)) DropCallback {
+	if cb == nil {
+		return nil
+	}
+	fmt.Println("ToDropCallback: FIX ME")
+	return func(window uintptr, names **byte) {
+		cb(theGLFWWindows.get(window), nil)
 	}
 }

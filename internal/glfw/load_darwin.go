@@ -40,16 +40,20 @@ func (d dylib) call(name string, args ...uintptr) uintptr {
 	if d.procs == nil {
 		d.procs = map[string]uintptr{}
 	}
+	var err error
 	if _, ok := d.procs[name]; !ok {
-		d.procs[name] = purego.Dlsym(d.lib, name)
+		d.procs[name], err = purego.Dlsym(d.lib, name)
+		if err != nil {
+			panic(err)
+		}
 	}
 	ret, _, _ := purego.SyscallN(d.procs[name], args...)
 	return ret
 }
 
 func (d dylib) unload() error {
-	if purego.Dlclose(d.lib) {
-		return fmt.Errorf("glfw: %s", purego.Dlerror())
+	if err := purego.Dlclose(d.lib); err != nil {
+		return fmt.Errorf("glfw: %s", err)
 	}
 	return nil
 }
@@ -155,9 +159,9 @@ func init() {
 	if _, err := file.Write(library); err != nil {
 		panic(fmt.Errorf("glfw: %w", err))
 	}
-	lib := purego.Dlopen(filePath, purego.RTLD_NOW|purego.RTLD_GLOBAL)
-	if lib == 0 {
-		panic(fmt.Errorf("glfw: %s", purego.Dlerror()))
+	lib, err := purego.Dlopen(filePath, purego.RTLD_NOW|purego.RTLD_GLOBAL)
+	if err != nil {
+		panic(fmt.Errorf("glfw: %s", err))
 	}
 	libglfw = &dylib{
 		lib: lib,
