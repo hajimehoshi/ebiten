@@ -19,8 +19,6 @@ import (
 	"math"
 	"unsafe"
 
-	"golang.org/x/sync/errgroup"
-
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 )
@@ -404,63 +402,6 @@ func (p *pipelineStates) ensureRootSignature(device *_ID3D12Device) (rootSignatu
 	p.rootSignature = rs
 
 	return p.rootSignature, nil
-}
-
-var vertexShaderCache = map[string]*_ID3DBlob{}
-
-func newShader(vs, ps string) (vsh, psh *_ID3DBlob, ferr error) {
-	var flag uint32 = uint32(_D3DCOMPILE_OPTIMIZATION_LEVEL3)
-
-	defer func() {
-		if ferr == nil {
-			return
-		}
-		if vsh != nil {
-			vsh.Release()
-		}
-		if psh != nil {
-			psh.Release()
-		}
-	}()
-
-	var wg errgroup.Group
-
-	// Vertex shaders are likely the same. If so, reuse the same _ID3DBlob.
-	if v, ok := vertexShaderCache[vs]; ok {
-		// Increment the reference count not to release this object unexpectedly.
-		// The value will be removed when the count reached 0.
-		// See (*Shader).disposeImpl.
-		v.AddRef()
-		vsh = v
-	} else {
-		defer func() {
-			if ferr == nil {
-				vertexShaderCache[vs] = vsh
-			}
-		}()
-		wg.Go(func() error {
-			v, err := _D3DCompile([]byte(vs), "shader", nil, nil, "VSMain", "vs_5_0", flag, 0)
-			if err != nil {
-				return fmt.Errorf("directx: D3DCompile for VSMain failed, original source: %s, %w", vs, err)
-			}
-			vsh = v
-			return nil
-		})
-	}
-	wg.Go(func() error {
-		p, err := _D3DCompile([]byte(ps), "shader", nil, nil, "PSMain", "ps_5_0", flag, 0)
-		if err != nil {
-			return fmt.Errorf("directx: D3DCompile for PSMain failed, original source: %s, %w", ps, err)
-		}
-		psh = p
-		return nil
-	})
-
-	if err := wg.Wait(); err != nil {
-		return nil, nil, err
-	}
-
-	return
 }
 
 func (p *pipelineStates) newPipelineState(device *_ID3D12Device, vsh, psh *_ID3DBlob, blend graphicsdriver.Blend, stencilMode stencilMode, screen bool) (state *_ID3D12PipelineState, ferr error) {

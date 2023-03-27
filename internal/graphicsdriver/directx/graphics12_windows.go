@@ -1068,7 +1068,7 @@ func (g *graphics12) MaxImageSize() int {
 
 func (g *graphics12) NewShader(program *shaderir.Program) (graphicsdriver.Shader, error) {
 	vs, ps, offsets := hlsl.Compile(program)
-	vsh, psh, err := newShader(vs, ps)
+	vsh, psh, err := compileShader(vs, ps)
 	if err != nil {
 		return nil, err
 	}

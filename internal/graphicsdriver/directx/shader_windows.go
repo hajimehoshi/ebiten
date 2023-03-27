@@ -17,6 +17,8 @@ package directx
 import (
 	"fmt"
 
+	"golang.org/x/sync/errgroup"
+
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
@@ -44,6 +46,63 @@ type Shader struct {
 	vertexShader   *_ID3DBlob
 	pixelShader    *_ID3DBlob
 	pipelineStates map[pipelineStateKey]*_ID3D12PipelineState
+}
+
+var vertexShaderCache = map[string]*_ID3DBlob{}
+
+func compileShader(vs, ps string) (vsh, psh *_ID3DBlob, ferr error) {
+	var flag uint32 = uint32(_D3DCOMPILE_OPTIMIZATION_LEVEL3)
+
+	defer func() {
+		if ferr == nil {
+			return
+		}
+		if vsh != nil {
+			vsh.Release()
+		}
+		if psh != nil {
+			psh.Release()
+		}
+	}()
+
+	var wg errgroup.Group
+
+	// Vertex shaders are likely the same. If so, reuse the same _ID3DBlob.
+	if v, ok := vertexShaderCache[vs]; ok {
+		// Increment the reference count not to release this object unexpectedly.
+		// The value will be removed when the count reached 0.
+		// See (*Shader).disposeImpl.
+		v.AddRef()
+		vsh = v
+	} else {
+		defer func() {
+			if ferr == nil {
+				vertexShaderCache[vs] = vsh
+			}
+		}()
+		wg.Go(func() error {
+			v, err := _D3DCompile([]byte(vs), "shader", nil, nil, "VSMain", "vs_5_0", flag, 0)
+			if err != nil {
+				return fmt.Errorf("directx: D3DCompile for VSMain failed, original source: %s, %w", vs, err)
+			}
+			vsh = v
+			return nil
+		})
+	}
+	wg.Go(func() error {
+		p, err := _D3DCompile([]byte(ps), "shader", nil, nil, "PSMain", "ps_5_0", flag, 0)
+		if err != nil {
+			return fmt.Errorf("directx: D3DCompile for PSMain failed, original source: %s, %w", ps, err)
+		}
+		psh = p
+		return nil
+	})
+
+	if err := wg.Wait(); err != nil {
+		return nil, nil, err
+	}
+
+	return
 }
 
 func (s *Shader) ID() graphicsdriver.ShaderID {
