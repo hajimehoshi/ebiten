@@ -1133,7 +1133,7 @@ func (g *graphics12) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.
 	}
 
 	shader := g.shaders[shaderID]
-	adjustedUniforms := shader.adjustUniforms(uniforms, shader)
+	adjustedUniforms := shader.adjustUniforms(uniforms)
 
 	w, h := dst.internalSize()
 	g.needFlushDrawCommandList = true

@@ -157,10 +157,10 @@ func (s *Shader) pipelineState(blend graphicsdriver.Blend, stencilMode stencilMo
 	return state, nil
 }
 
-func (s *Shader) adjustUniforms(uniforms []uint32, shader *Shader) []uint32 {
+func (s *Shader) adjustUniforms(uniforms []uint32) []uint32 {
 	var fs []uint32
 	var idx int
-	for i, typ := range shader.uniformTypes {
+	for i, typ := range s.uniformTypes {
 		if len(fs) < s.uniformOffsets[i]/4 {
 			fs = append(fs, make([]uint32, s.uniformOffsets[i]/4-len(fs))...)
 		}
