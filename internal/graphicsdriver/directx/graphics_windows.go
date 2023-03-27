@@ -27,6 +27,7 @@ import (
 	"golang.org/x/sys/windows"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
+	"github.com/hajimehoshi/ebiten/v2/internal/microsoftgdk"
 )
 
 type stencilMode int
@@ -54,10 +55,10 @@ func pow2(x uint32) uint32 {
 // NewGraphics creates an implementation of graphicsdriver.Graphics for DirectX.
 // The returned graphics value is nil iff the error is not nil.
 func NewGraphics() (graphicsdriver.Graphics, error) {
-	var (
-		useWARP       bool
-		useDebugLayer bool
-	)
+	var useWARP bool
+	var useDebugLayer bool
+	version := 11
+
 	env := os.Getenv("EBITENGINE_DIRECTX")
 	if env == "" {
 		// For backward compatibility, read the EBITEN_ version.
@@ -70,33 +71,52 @@ func NewGraphics() (graphicsdriver.Graphics, error) {
 			useWARP = true
 		case "debug":
 			useDebugLayer = true
+		case "version=11":
+			version = 11
+		case "version=12":
+			version = 12
 		}
 	}
 
-	// Specify the level 11 by default.
-	// Some old cards don't work well with the default feature level (#2447, #2486).
-	var featureLevel _D3D_FEATURE_LEVEL = _D3D_FEATURE_LEVEL_11_0
-	if env := os.Getenv("EBITENGINE_DIRECTX_FEATURE_LEVEL"); env != "" {
-		switch env {
-		case "11_0":
-			featureLevel = _D3D_FEATURE_LEVEL_11_0
-		case "11_1":
-			featureLevel = _D3D_FEATURE_LEVEL_11_1
-		case "12_0":
-			featureLevel = _D3D_FEATURE_LEVEL_12_0
-		case "12_1":
-			featureLevel = _D3D_FEATURE_LEVEL_12_1
-		case "12_2":
-			featureLevel = _D3D_FEATURE_LEVEL_12_2
-		}
+	// On Xbox, only DirectX 12 is available.
+	if microsoftgdk.IsXbox() {
+		version = 12
 	}
 
-	// TODO: Implement a new graphics for DirectX 11 (#2613).
-	g, err := newGraphics12(useWARP, useDebugLayer, featureLevel)
-	if err != nil {
-		return nil, err
+	switch version {
+	case 11:
+		g, err := newGraphics11(useWARP, useDebugLayer)
+		if err != nil {
+			return nil, err
+		}
+		return g, nil
+	case 12:
+		// Specify the feature level 11 by default.
+		// Some old cards don't work well with the default feature level (#2447, #2486).
+		var featureLevel _D3D_FEATURE_LEVEL = _D3D_FEATURE_LEVEL_11_0
+		if env := os.Getenv("EBITENGINE_DIRECTX_FEATURE_LEVEL"); env != "" {
+			switch env {
+			case "11_0":
+				featureLevel = _D3D_FEATURE_LEVEL_11_0
+			case "11_1":
+				featureLevel = _D3D_FEATURE_LEVEL_11_1
+			case "12_0":
+				featureLevel = _D3D_FEATURE_LEVEL_12_0
+			case "12_1":
+				featureLevel = _D3D_FEATURE_LEVEL_12_1
+			case "12_2":
+				featureLevel = _D3D_FEATURE_LEVEL_12_2
+			}
+		}
+
+		g, err := newGraphics12(useWARP, useDebugLayer, featureLevel)
+		if err != nil {
+			return nil, err
+		}
+		return g, nil
+	default:
+		panic(fmt.Sprintf("directx: unexpected DirectX version: %d", version))
 	}
-	return g, nil
 }
 
 type graphicsInfra struct {

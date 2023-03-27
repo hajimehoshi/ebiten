@@ -140,11 +140,13 @@ jobs:
         if: runner.os == 'Windows'
         run: |
           go test -shuffle=on -v ./...
+          env EBITENGINE_DIRECTX=version=12 go test -shuffle=on -v ./...
 
       - name: go test (Windows 386)
         if: runner.os == 'Windows'
         run: |
           env GOARCH=386 go test -shuffle=on -v ./...
+          env GOARCH=386 EBITENGINE_DIRECTX=version=12 go test -shuffle=on -v ./...
 
       - name: go test (Wasm)
         run: |

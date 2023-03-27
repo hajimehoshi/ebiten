@@ -80,6 +80,59 @@ func compileShader(vs, ps string) (vsh, psh *_ID3DBlob, ferr error) {
 	return
 }
 
+func constantBufferSize(uniformTypes []shaderir.Type, uniformOffsets []int) int {
+	var size int
+	for i, typ := range uniformTypes {
+		if size < uniformOffsets[i]/4 {
+			size = uniformOffsets[i] / 4
+		}
+
+		switch typ.Main {
+		case shaderir.Float:
+			size += 1
+		case shaderir.Int:
+			size += 1
+		case shaderir.Vec2, shaderir.IVec2:
+			size += 2
+		case shaderir.Vec3, shaderir.IVec3:
+			size += 3
+		case shaderir.Vec4, shaderir.IVec4:
+			size += 4
+		case shaderir.Mat2:
+			size += 6
+		case shaderir.Mat3:
+			size += 11
+		case shaderir.Mat4:
+			size += 16
+		case shaderir.Array:
+			// Each element is aligned to the boundary.
+			switch typ.Sub[0].Main {
+			case shaderir.Float:
+				size += 4*(typ.Length-1) + 1
+			case shaderir.Int:
+				size += 4*(typ.Length-1) + 1
+			case shaderir.Vec2, shaderir.IVec2:
+				size += 4*(typ.Length-1) + 2
+			case shaderir.Vec3, shaderir.IVec3:
+				size += 4*(typ.Length-1) + 3
+			case shaderir.Vec4, shaderir.IVec4:
+				size += 4 * typ.Length
+			case shaderir.Mat2:
+				size += 8*(typ.Length-1) + 6
+			case shaderir.Mat3:
+				size += 12*(typ.Length-1) + 11
+			case shaderir.Mat4:
+				size += 16 * typ.Length
+			default:
+				panic(fmt.Sprintf("directx: not implemented type for uniform variables: %s", typ.String()))
+			}
+		default:
+			panic(fmt.Sprintf("directx: not implemented type for uniform variables: %s", typ.String()))
+		}
+	}
+	return size
+}
+
 func adjustUniforms(uniformTypes []shaderir.Type, uniformOffsets []int, uniforms []uint32) []uint32 {
 	var fs []uint32
 	var idx int
