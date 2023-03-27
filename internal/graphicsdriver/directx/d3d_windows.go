@@ -112,10 +112,10 @@ func (i *_ID3DBlob) AddRef() uint32 {
 	return uint32(r)
 }
 
-func (i *_ID3DBlob) GetBufferPointer() uintptr {
+func (i *_ID3DBlob) GetBufferPointer() unsafe.Pointer {
 	r, _, _ := syscall.Syscall(i.vtbl.GetBufferPointer, 1, uintptr(unsafe.Pointer(i)),
 		0, 0)
-	return r
+	return unsafe.Pointer(r)
 }
 
 func (i *_ID3DBlob) GetBufferSize() uintptr {

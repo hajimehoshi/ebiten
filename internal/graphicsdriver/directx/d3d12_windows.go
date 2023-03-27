@@ -726,7 +726,7 @@ type _D3D12_ROOT_SIGNATURE_DESC struct {
 }
 
 type _D3D12_SHADER_BYTECODE struct {
-	pShaderBytecode uintptr
+	pShaderBytecode unsafe.Pointer
 	BytecodeLength  uintptr
 }
 
@@ -1507,10 +1507,10 @@ func (i *_ID3D12Device) CreateRenderTargetView(pResource *_ID3D12Resource, pDesc
 	runtime.KeepAlive(pDesc)
 }
 
-func (i *_ID3D12Device) CreateRootSignature(nodeMask uint32, pBlobWithRootSignature uintptr, blobLengthInBytes uintptr) (*_ID3D12RootSignature, error) {
+func (i *_ID3D12Device) CreateRootSignature(nodeMask uint32, pBlobWithRootSignature unsafe.Pointer, blobLengthInBytes uintptr) (*_ID3D12RootSignature, error) {
 	var signature *_ID3D12RootSignature
 	r, _, _ := syscall.Syscall6(i.vtbl.CreateRootSignature, 6, uintptr(unsafe.Pointer(i)),
-		uintptr(nodeMask), pBlobWithRootSignature, blobLengthInBytes,
+		uintptr(nodeMask), uintptr(pBlobWithRootSignature), blobLengthInBytes,
 		uintptr(unsafe.Pointer(&_IID_ID3D12RootSignature)), uintptr(unsafe.Pointer(&signature)))
 	if uint32(r) != uint32(windows.S_OK) {
 		return nil, fmt.Errorf("directx: ID3D12Device::CreateRootSignature failed: %w", handleError(windows.Handle(uint32(r))))

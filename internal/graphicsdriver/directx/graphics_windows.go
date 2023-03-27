@@ -17,6 +17,7 @@ package directx
 import (
 	"errors"
 	"fmt"
+	"math"
 	"os"
 	"runtime"
 	"strings"
@@ -28,7 +29,27 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 )
 
+type stencilMode int
+
+const (
+	prepareStencil stencilMode = iota
+	drawWithStencil
+	noStencil
+)
+
 const frameCount = 2
+
+func pow2(x uint32) uint32 {
+	if x > (math.MaxUint32+1)/2 {
+		return math.MaxUint32
+	}
+
+	var p2 uint32 = 1
+	for p2 < x {
+		p2 *= 2
+	}
+	return p2
+}
 
 // NewGraphics creates an implementation of graphicsdriver.Graphics for DirectX.
 // The returned graphics value is nil iff the error is not nil.

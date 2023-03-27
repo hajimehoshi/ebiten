@@ -23,7 +23,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 )
 
-var inputElementDescs = []_D3D12_INPUT_ELEMENT_DESC{
+var inputElementDescsForDX12 = []_D3D12_INPUT_ELEMENT_DESC{
 	{
 		SemanticName:         &([]byte("POSITION\000"))[0],
 		SemanticIndex:        0,
@@ -55,7 +55,7 @@ var inputElementDescs = []_D3D12_INPUT_ELEMENT_DESC{
 
 const numDescriptorsPerFrame = 32
 
-func blendFactorToBlend(f graphicsdriver.BlendFactor, alpha bool) _D3D12_BLEND {
+func blendFactorToBlend12(f graphicsdriver.BlendFactor, alpha bool) _D3D12_BLEND {
 	// D3D12_RENDER_TARGET_BLEND_DESC's *BlendAlpha members don't allow *_COLOR values.
 	// See https://learn.microsoft.com/en-us/windows/win32/api/d3d12/ns-d3d12-d3d12_render_target_blend_desc.
 
@@ -99,7 +99,7 @@ func blendFactorToBlend(f graphicsdriver.BlendFactor, alpha bool) _D3D12_BLEND {
 	}
 }
 
-func blendOperationToBlendOp(o graphicsdriver.BlendOperation) _D3D12_BLEND_OP {
+func blendOperationToBlendOp12(o graphicsdriver.BlendOperation) _D3D12_BLEND_OP {
 	switch o {
 	case graphicsdriver.BlendOperationAdd:
 		return _D3D12_BLEND_OP_ADD
@@ -176,7 +176,7 @@ func (p *pipelineStates) initialize(device *_ID3D12Device) (ferr error) {
 	return nil
 }
 
-func (p *pipelineStates) drawTriangles(device *_ID3D12Device, commandList *_ID3D12GraphicsCommandList, frameIndex int, screen bool, srcs [graphics.ShaderImageCount]*image12, shader *Shader, dstRegions []graphicsdriver.DstRegion, uniforms []uint32, blend graphicsdriver.Blend, indexOffset int, evenOdd bool) error {
+func (p *pipelineStates) drawTriangles(device *_ID3D12Device, commandList *_ID3D12GraphicsCommandList, frameIndex int, screen bool, srcs [graphics.ShaderImageCount]*image12, shader *shader12, dstRegions []graphicsdriver.DstRegion, uniforms []uint32, blend graphicsdriver.Blend, indexOffset int, evenOdd bool) error {
 	idx := len(p.constantBuffers[frameIndex])
 	if idx >= numDescriptorsPerFrame {
 		return fmt.Errorf("directx: too many constant buffers")
@@ -479,12 +479,12 @@ func (p *pipelineStates) newPipelineState(device *_ID3D12Device, vsh, psh *_ID3D
 				{
 					BlendEnable:           1,
 					LogicOpEnable:         0,
-					SrcBlend:              blendFactorToBlend(blend.BlendFactorSourceRGB, false),
-					DestBlend:             blendFactorToBlend(blend.BlendFactorDestinationRGB, false),
-					BlendOp:               blendOperationToBlendOp(blend.BlendOperationRGB),
-					SrcBlendAlpha:         blendFactorToBlend(blend.BlendFactorSourceAlpha, true),
-					DestBlendAlpha:        blendFactorToBlend(blend.BlendFactorDestinationAlpha, true),
-					BlendOpAlpha:          blendOperationToBlendOp(blend.BlendOperationAlpha),
+					SrcBlend:              blendFactorToBlend12(blend.BlendFactorSourceRGB, false),
+					DestBlend:             blendFactorToBlend12(blend.BlendFactorDestinationRGB, false),
+					BlendOp:               blendOperationToBlendOp12(blend.BlendOperationRGB),
+					SrcBlendAlpha:         blendFactorToBlend12(blend.BlendFactorSourceAlpha, true),
+					DestBlendAlpha:        blendFactorToBlend12(blend.BlendFactorDestinationAlpha, true),
+					BlendOpAlpha:          blendOperationToBlendOp12(blend.BlendOperationAlpha),
 					LogicOp:               _D3D12_LOGIC_OP_NOOP,
 					RenderTargetWriteMask: writeMask,
 				},
@@ -506,8 +506,8 @@ func (p *pipelineStates) newPipelineState(device *_ID3D12Device, vsh, psh *_ID3D
 		},
 		DepthStencilState: depthStencilDesc,
 		InputLayout: _D3D12_INPUT_LAYOUT_DESC{
-			pInputElementDescs: &inputElementDescs[0],
-			NumElements:        uint32(len(inputElementDescs)),
+			pInputElementDescs: &inputElementDescsForDX12[0],
+			NumElements:        uint32(len(inputElementDescsForDX12)),
 		},
 		PrimitiveTopologyType: _D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE,
 		NumRenderTargets:      1,
