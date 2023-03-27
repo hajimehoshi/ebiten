@@ -81,7 +81,7 @@ func compileShader(vs, ps string) (vsh, psh *_ID3DBlob, ferr error) {
 			}
 		}()
 		wg.Go(func() error {
-			v, err := _D3DCompile([]byte(vs), "shader", nil, nil, "VSMain", "vs_5_0", flag, 0)
+			v, err := _D3DCompile([]byte(vs), "shader", nil, nil, "VSMain", "vs_4_0", flag, 0)
 			if err != nil {
 				return fmt.Errorf("directx: D3DCompile for VSMain failed, original source: %s, %w", vs, err)
 			}
@@ -90,7 +90,7 @@ func compileShader(vs, ps string) (vsh, psh *_ID3DBlob, ferr error) {
 		})
 	}
 	wg.Go(func() error {
-		p, err := _D3DCompile([]byte(ps), "shader", nil, nil, "PSMain", "ps_5_0", flag, 0)
+		p, err := _D3DCompile([]byte(ps), "shader", nil, nil, "PSMain", "ps_4_0", flag, 0)
 		if err != nil {
 			return fmt.Errorf("directx: D3DCompile for PSMain failed, original source: %s, %w", ps, err)
 		}
