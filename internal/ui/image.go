@@ -133,7 +133,7 @@ func (i *Image) WritePixels(pix []byte, x, y, width, height int) {
 		i.dotsBuffer[[2]int{x, y}] = clr
 
 		// One square requires 6 indices (= 2 triangles).
-		if len(i.dotsBuffer) >= graphics.IndicesCount/6 {
+		if len(i.dotsBuffer) >= graphics.MaxVerticesCount/6 {
 			i.flushDotsBufferIfNeeded()
 		}
 		return
