@@ -994,6 +994,11 @@ func (g *graphics12) NewImage(width, height int) (graphicsdriver.Image, error) {
 }
 
 func (g *graphics12) NewScreenFramebufferImage(width, height int) (graphicsdriver.Image, error) {
+	if g.screenImage != nil {
+		g.screenImage.Dispose()
+		g.screenImage = nil
+	}
+
 	if err := g.updateSwapChain(width, height); err != nil {
 		return nil, err
 	}
