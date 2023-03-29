@@ -95,7 +95,6 @@ type graphics12 struct {
 	disposedShaders [frameCount][]*shader12
 
 	vsyncEnabled bool
-	transparent  bool
 
 	newScreenWidth  int
 	newScreenHeight int
@@ -860,7 +859,7 @@ func (g *graphics12) waitForCommandQueue() error {
 }
 
 func (g *graphics12) SetTransparent(transparent bool) {
-	g.transparent = transparent
+	// TODO: Implement this?
 }
 
 func (g *graphics12) SetVertices(vertices []float32, indices []uint16) (ferr error) {
