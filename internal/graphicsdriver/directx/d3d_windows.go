@@ -95,8 +95,12 @@ func init() {
 	procD3DCompile = d3dcompiler.NewProc("D3DCompile")
 }
 
+func isD3DCompilerDLLAvailable() bool {
+	return procD3DCompile != nil
+}
+
 func _D3DCompile(srcData []byte, sourceName string, pDefines []_D3D_SHADER_MACRO, pInclude unsafe.Pointer, entryPoint string, target string, flags1 uint32, flags2 uint32) (*_ID3DBlob, error) {
-	if procD3DCompile == nil {
+	if !isD3DCompilerDLLAvailable() {
 		return nil, fmt.Errorf("directx: d3dcompiler_*.dll is missing in this environment")
 	}
 

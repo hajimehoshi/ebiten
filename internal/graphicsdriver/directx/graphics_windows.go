@@ -73,6 +73,10 @@ func parseFeatureLevel(str string) (_D3D_FEATURE_LEVEL, bool) {
 // NewGraphics creates an implementation of graphicsdriver.Graphics for DirectX.
 // The returned graphics value is nil iff the error is not nil.
 func NewGraphics() (graphicsdriver.Graphics, error) {
+	if !isD3DCompilerDLLAvailable() {
+		return nil, fmt.Errorf("directx: d3dcompiler_*.dll is missing in this environment")
+	}
+
 	var useWARP bool
 	var useDebugLayer bool
 	version := 11
