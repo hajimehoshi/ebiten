@@ -285,6 +285,14 @@ func (p *pipelineStates) drawTriangles(device *_ID3D12Device, commandList *_ID3D
 	}
 	commandList.SetGraphicsRootDescriptorTable(2, sh)
 
+	if !evenOdd {
+		s, err := shader.pipelineState(blend, noStencil, screen)
+		if err != nil {
+			return err
+		}
+		commandList.SetPipelineState(s)
+	}
+
 	for _, dstRegion := range dstRegions {
 		commandList.RSSetScissorRects([]_D3D12_RECT{
 			{
@@ -309,11 +317,6 @@ func (p *pipelineStates) drawTriangles(device *_ID3D12Device, commandList *_ID3D
 			commandList.SetPipelineState(s)
 			commandList.DrawIndexedInstanced(uint32(dstRegion.IndexCount), 1, uint32(indexOffset), 0, 0)
 		} else {
-			s, err := shader.pipelineState(blend, noStencil, screen)
-			if err != nil {
-				return err
-			}
-			commandList.SetPipelineState(s)
 			commandList.DrawIndexedInstanced(uint32(dstRegion.IndexCount), 1, uint32(indexOffset), 0, 0)
 		}
 		indexOffset += dstRegion.IndexCount
