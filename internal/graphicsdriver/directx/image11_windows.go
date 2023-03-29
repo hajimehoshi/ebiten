@@ -113,7 +113,17 @@ func (i *image11) ReadPixels(buf []byte, x, y, width, height int) error {
 	if err := i.graphics.deviceContext.Map(unsafe.Pointer(staging), 0, _D3D11_MAP_READ, 0, &mapped); err != nil {
 		return err
 	}
-	copy(buf, unsafe.Slice((*byte)(mapped.pData), 4*width*height))
+
+	stride := int(mapped.RowPitch)
+	src := unsafe.Slice((*byte)(mapped.pData), stride*height)
+	if mapped.RowPitch == uint32(4*width) {
+		copy(buf, src)
+	} else {
+		for j := 0; j < height; j++ {
+			copy(buf[j*4*width:(j+1)*4*width], src[j*stride:j*stride+4*width])
+		}
+	}
+
 	i.graphics.deviceContext.Unmap(unsafe.Pointer(staging), 0)
 
 	return nil
