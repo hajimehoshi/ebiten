@@ -116,7 +116,7 @@ func (i *image11) ReadPixels(buf []byte, x, y, width, height int) error {
 
 	stride := int(mapped.RowPitch)
 	src := unsafe.Slice((*byte)(mapped.pData), stride*height)
-	if mapped.RowPitch == uint32(4*width) {
+	if stride == 4*width {
 		copy(buf, src)
 	} else {
 		for j := 0; j < height; j++ {
