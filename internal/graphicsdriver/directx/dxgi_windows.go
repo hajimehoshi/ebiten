@@ -130,11 +130,13 @@ type _DXGI_ADAPTER_DESC1 struct {
 	Flags                 uint32
 }
 
-type _DXGI_SWAP_CHAIN_FULLSCREEN_DESC struct {
+type _DXGI_MODE_DESC struct {
+	Width            uint32
+	Height           uint32
 	RefreshRate      _DXGI_RATIONAL
+	Format           _DXGI_FORMAT
 	ScanlineOrdering _DXGI_MODE_SCANLINE_ORDER
 	Scaling          _DXGI_MODE_SCALING
-	Windowed         _BOOL
 }
 
 type _DXGI_RATIONAL struct {
@@ -142,23 +144,27 @@ type _DXGI_RATIONAL struct {
 	Denominator uint32
 }
 
+type _DXGI_SWAP_CHAIN_FULLSCREEN_DESC struct {
+	RefreshRate      _DXGI_RATIONAL
+	ScanlineOrdering _DXGI_MODE_SCANLINE_ORDER
+	Scaling          _DXGI_MODE_SCALING
+	Windowed         _BOOL
+}
+
 type _DXGI_SAMPLE_DESC struct {
 	Count   uint32
 	Quality uint32
 }
 
-type _DXGI_SWAP_CHAIN_DESC1 struct {
-	Width       uint32
-	Height      uint32
-	Format      _DXGI_FORMAT
-	Stereo      _BOOL
-	SampleDesc  _DXGI_SAMPLE_DESC
-	BufferUsage _DXGI_USAGE
-	BufferCount uint32
-	Scaling     _DXGI_SCALING
-	SwapEffect  _DXGI_SWAP_EFFECT
-	AlphaMode   _DXGI_ALPHA_MODE
-	Flags       uint32
+type _DXGI_SWAP_CHAIN_DESC struct {
+	BufferDesc   _DXGI_MODE_DESC
+	SampleDesc   _DXGI_SAMPLE_DESC
+	BufferUsage  _DXGI_USAGE
+	BufferCount  uint32
+	OutputWindow windows.HWND
+	Windowed     _BOOL
+	SwapEffect   _DXGI_SWAP_EFFECT
+	Flags        uint32
 }
 
 type _LUID struct {
@@ -301,17 +307,15 @@ type _IDXGIFactory4_Vtbl struct {
 	EnumWarpAdapter               uintptr
 }
 
-func (i *_IDXGIFactory4) CreateSwapChainForHwnd(pDevice unsafe.Pointer, hWnd windows.HWND, pDesc *_DXGI_SWAP_CHAIN_DESC1, pFullscreenDesc *_DXGI_SWAP_CHAIN_FULLSCREEN_DESC, pRestrictToOutput *_IDXGIOutput) (*_IDXGISwapChain1, error) {
-	var swapChain *_IDXGISwapChain1
-	r, _, _ := syscall.Syscall9(i.vtbl.CreateSwapChainForHwnd, 7,
-		uintptr(unsafe.Pointer(i)), uintptr(pDevice), uintptr(hWnd),
-		uintptr(unsafe.Pointer(pDesc)), uintptr(unsafe.Pointer(pFullscreenDesc)), uintptr(unsafe.Pointer(pRestrictToOutput)),
-		uintptr(unsafe.Pointer(&swapChain)), 0, 0)
+func (i *_IDXGIFactory4) CreateSwapChain(pDevice unsafe.Pointer, pDesc *_DXGI_SWAP_CHAIN_DESC) (*_IDXGISwapChain, error) {
+	var swapChain *_IDXGISwapChain
+	r, _, _ := syscall.Syscall6(i.vtbl.CreateSwapChain, 4, uintptr(unsafe.Pointer(i)),
+		uintptr(pDevice), uintptr(unsafe.Pointer(pDesc)), uintptr(unsafe.Pointer(&swapChain)),
+		0, 0)
+	runtime.KeepAlive(pDevice)
 	runtime.KeepAlive(pDesc)
-	runtime.KeepAlive(pFullscreenDesc)
-	runtime.KeepAlive(pRestrictToOutput)
 	if uint32(r) != uint32(windows.S_OK) {
-		return nil, fmt.Errorf("directx: IDXGIFactory4::CreateSwapChainForHwnd failed: %w", handleError(windows.Handle(uint32(r))))
+		return nil, fmt.Errorf("directx: IDXGIFactory4::CreateSwapChain failed: %w", handleError(windows.Handle(uint32(r))))
 	}
 	return swapChain, nil
 }
@@ -442,44 +446,33 @@ func (i *_IDXGIOutput) Release() uint32 {
 	return uint32(r)
 }
 
-type _IDXGISwapChain1 struct {
-	vtbl *_IDXGISwapChain1_Vtbl
+type _IDXGISwapChain struct {
+	vtbl *_IDXGISwapChain_Vtbl
 }
 
-type _IDXGISwapChain1_Vtbl struct {
+type _IDXGISwapChain_Vtbl struct {
 	QueryInterface uintptr
 	AddRef         uintptr
 	Release        uintptr
 
-	SetPrivateData           uintptr
-	SetPrivateDataInterface  uintptr
-	GetPrivateData           uintptr
-	GetParent                uintptr
-	GetDevice                uintptr
-	Present                  uintptr
-	GetBuffer                uintptr
-	SetFullscreenState       uintptr
-	GetFullscreenState       uintptr
-	GetDesc                  uintptr
-	ResizeBuffers            uintptr
-	ResizeTarget             uintptr
-	GetContainingOutput      uintptr
-	GetFrameStatistics       uintptr
-	GetLastPresentCount      uintptr
-	GetDesc1                 uintptr
-	GetFullscreenDesc        uintptr
-	GetHwnd                  uintptr
-	GetCoreWindow            uintptr
-	Present1                 uintptr
-	IsTemporaryMonoSupported uintptr
-	GetRestrictToOutput      uintptr
-	SetBackgroundColor       uintptr
-	GetBackgroundColor       uintptr
-	SetRotation              uintptr
-	GetRotation              uintptr
+	SetPrivateData          uintptr
+	SetPrivateDataInterface uintptr
+	GetPrivateData          uintptr
+	GetParent               uintptr
+	GetDevice               uintptr
+	Present                 uintptr
+	GetBuffer               uintptr
+	SetFullscreenState      uintptr
+	GetFullscreenState      uintptr
+	GetDesc                 uintptr
+	ResizeBuffers           uintptr
+	ResizeTarget            uintptr
+	GetContainingOutput     uintptr
+	GetFrameStatistics      uintptr
+	GetLastPresentCount     uintptr
 }
 
-func (i *_IDXGISwapChain1) As(swapChain **_IDXGISwapChain4) {
+func (i *_IDXGISwapChain) As(swapChain **_IDXGISwapChain4) {
 	*swapChain = (*_IDXGISwapChain4)(unsafe.Pointer(i))
 }
 

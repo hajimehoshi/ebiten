@@ -237,22 +237,26 @@ func (g *graphicsInfra) initSwapChain(width, height int, device unsafe.Pointer, 
 	//
 	//     IDXGIFactory::CreateSwapChain: Alpha blended swapchains must be created with CreateSwapChainForComposition,
 	//     or CreateSwapChainForCoreWindow with the DXGI_SWAP_CHAIN_FLAG_FOREGROUND_LAYER flag
-	desc := &_DXGI_SWAP_CHAIN_DESC1{
-		Width:       uint32(width),
-		Height:      uint32(height),
-		Format:      _DXGI_FORMAT_B8G8R8A8_UNORM,
-		BufferUsage: _DXGI_USAGE_RENDER_TARGET_OUTPUT,
-		BufferCount: frameCount,
-		SwapEffect:  _DXGI_SWAP_EFFECT_FLIP_DISCARD,
+	desc := &_DXGI_SWAP_CHAIN_DESC{
+		BufferDesc: _DXGI_MODE_DESC{
+			Width:  uint32(width),
+			Height: uint32(height),
+			Format: _DXGI_FORMAT_B8G8R8A8_UNORM,
+		},
 		SampleDesc: _DXGI_SAMPLE_DESC{
 			Count:   1,
 			Quality: 0,
 		},
+		BufferUsage:  _DXGI_USAGE_RENDER_TARGET_OUTPUT,
+		BufferCount:  frameCount,
+		OutputWindow: window,
+		Windowed:     1,
+		SwapEffect:   _DXGI_SWAP_EFFECT_FLIP_DISCARD,
 	}
 	if g.allowTearing {
 		desc.Flags |= uint32(_DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING)
 	}
-	s, err := g.factory.CreateSwapChainForHwnd(device, window, desc, nil, nil)
+	s, err := g.factory.CreateSwapChain(device, desc)
 	if err != nil {
 		return err
 	}
