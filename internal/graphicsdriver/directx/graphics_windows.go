@@ -142,7 +142,7 @@ func NewGraphics() (graphicsdriver.Graphics, error) {
 
 type graphicsInfra struct {
 	factory   *_IDXGIFactory
-	swapChain *_IDXGISwapChain4
+	swapChain *_IDXGISwapChain
 
 	allowTearing bool
 
@@ -265,7 +265,7 @@ func (g *graphicsInfra) initSwapChain(width, height int, device unsafe.Pointer, 
 	if err != nil {
 		return err
 	}
-	s.As(&g.swapChain)
+	g.swapChain = s
 	defer func() {
 		if ferr != nil {
 			g.release()
@@ -297,7 +297,9 @@ func (g *graphicsInfra) resizeSwapChain(width, height int) error {
 }
 
 func (g *graphicsInfra) currentBackBufferIndex() int {
-	return int(g.swapChain.GetCurrentBackBufferIndex())
+	var swapChain4 *_IDXGISwapChain4
+	g.swapChain.As(&swapChain4)
+	return int(swapChain4.GetCurrentBackBufferIndex())
 }
 
 func (g *graphicsInfra) present(vsyncEnabled bool) error {

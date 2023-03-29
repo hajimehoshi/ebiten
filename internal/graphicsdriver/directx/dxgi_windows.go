@@ -502,6 +502,45 @@ func (i *_IDXGISwapChain) As(swapChain **_IDXGISwapChain4) {
 	*swapChain = (*_IDXGISwapChain4)(unsafe.Pointer(i))
 }
 
+func (i *_IDXGISwapChain) GetBuffer(buffer uint32, riid *windows.GUID) (unsafe.Pointer, error) {
+	var resource unsafe.Pointer
+	r, _, _ := syscall.Syscall6(i.vtbl.GetBuffer, 4, uintptr(unsafe.Pointer(i)),
+		uintptr(buffer), uintptr(unsafe.Pointer(riid)), uintptr(unsafe.Pointer(&resource)),
+		0, 0)
+	runtime.KeepAlive(riid)
+	if uint32(r) != uint32(windows.S_OK) {
+		return nil, fmt.Errorf("directx: IDXGISwapChain::GetBuffer failed: %w", handleError(windows.Handle(uint32(r))))
+	}
+	return resource, nil
+}
+
+func (i *_IDXGISwapChain) ResizeBuffers(bufferCount uint32, width uint32, height uint32, newFormat _DXGI_FORMAT, swapChainFlags uint32) error {
+	r, _, _ := syscall.Syscall6(i.vtbl.ResizeBuffers, 6,
+		uintptr(unsafe.Pointer(i)), uintptr(bufferCount), uintptr(width),
+		uintptr(height), uintptr(newFormat), uintptr(swapChainFlags))
+	if uint32(r) != uint32(windows.S_OK) {
+		return fmt.Errorf("directx: IDXGISwapChain::ResizeBuffers failed: %w", handleError(windows.Handle(uint32(r))))
+	}
+	return nil
+}
+
+func (i *_IDXGISwapChain) Present(syncInterval uint32, flags uint32) (occluded bool, err error) {
+	r, _, _ := syscall.Syscall(i.vtbl.Present, 3, uintptr(unsafe.Pointer(i)), uintptr(syncInterval), uintptr(flags))
+	if uint32(r) != uint32(windows.S_OK) {
+		// During a screen lock, Present fails (#2179).
+		if uint32(r) == uint32(windows.DXGI_STATUS_OCCLUDED) {
+			return true, nil
+		}
+		return false, fmt.Errorf("directx: IDXGISwapChain::Present failed: %w", handleError(windows.Handle(uint32(r))))
+	}
+	return false, nil
+}
+
+func (i *_IDXGISwapChain) Release() uint32 {
+	r, _, _ := syscall.Syscall(i.vtbl.Release, 1, uintptr(unsafe.Pointer(i)), 0, 0)
+	return uint32(r)
+}
+
 type _IDXGISwapChain4 struct {
 	vtbl *_IDXGISwapChain4_Vtbl
 }
@@ -552,43 +591,9 @@ type _IDXGISwapChain4_Vtbl struct {
 	SetHDRMetaData                uintptr
 }
 
-func (i *_IDXGISwapChain4) GetBuffer(buffer uint32, riid *windows.GUID) (unsafe.Pointer, error) {
-	var resource unsafe.Pointer
-	r, _, _ := syscall.Syscall6(i.vtbl.GetBuffer, 4, uintptr(unsafe.Pointer(i)),
-		uintptr(buffer), uintptr(unsafe.Pointer(riid)), uintptr(unsafe.Pointer(&resource)),
-		0, 0)
-	runtime.KeepAlive(riid)
-	if uint32(r) != uint32(windows.S_OK) {
-		return nil, fmt.Errorf("directx: IDXGISwapChain4::GetBuffer failed: %w", handleError(windows.Handle(uint32(r))))
-	}
-	return resource, nil
-}
-
 func (i *_IDXGISwapChain4) GetCurrentBackBufferIndex() uint32 {
 	r, _, _ := syscall.Syscall(i.vtbl.GetCurrentBackBufferIndex, 1, uintptr(unsafe.Pointer(i)), 0, 0)
 	return uint32(r)
-}
-
-func (i *_IDXGISwapChain4) Present(syncInterval uint32, flags uint32) (occluded bool, err error) {
-	r, _, _ := syscall.Syscall(i.vtbl.Present, 3, uintptr(unsafe.Pointer(i)), uintptr(syncInterval), uintptr(flags))
-	if uint32(r) != uint32(windows.S_OK) {
-		// During a screen lock, Present fails (#2179).
-		if uint32(r) == uint32(windows.DXGI_STATUS_OCCLUDED) {
-			return true, nil
-		}
-		return false, fmt.Errorf("directx: IDXGISwapChain4::Present failed: %w", handleError(windows.Handle(uint32(r))))
-	}
-	return false, nil
-}
-
-func (i *_IDXGISwapChain4) ResizeBuffers(bufferCount uint32, width uint32, height uint32, newFormat _DXGI_FORMAT, swapChainFlags uint32) error {
-	r, _, _ := syscall.Syscall6(i.vtbl.ResizeBuffers, 6,
-		uintptr(unsafe.Pointer(i)), uintptr(bufferCount), uintptr(width),
-		uintptr(height), uintptr(newFormat), uintptr(swapChainFlags))
-	if uint32(r) != uint32(windows.S_OK) {
-		return fmt.Errorf("directx: IDXGISwapChain4::ResizeBuffers failed: %w", handleError(windows.Handle(uint32(r))))
-	}
-	return nil
 }
 
 func (i *_IDXGISwapChain4) Release() uint32 {
