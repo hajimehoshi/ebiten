@@ -96,11 +96,12 @@ const (
 )
 
 var (
-	_IID_IDXGIAdapter1 = windows.GUID{Data1: 0x29038f61, Data2: 0x3839, Data3: 0x4626, Data4: [...]byte{0x91, 0xfd, 0x08, 0x68, 0x79, 0x01, 0x1a, 0x05}}
-	_IID_IDXGIDevice   = windows.GUID{Data1: 0x54ec77fa, Data2: 0x1377, Data3: 0x44e6, Data4: [...]byte{0x8c, 0x32, 0x88, 0xfd, 0x5f, 0x44, 0xc8, 0x4c}}
-	_IID_IDXGIFactory  = windows.GUID{Data1: 0x7b7166ec, Data2: 0x21c7, Data3: 0x44ae, Data4: [...]byte{0xb2, 0x1a, 0xc9, 0xae, 0x32, 0x1a, 0xe3, 0x69}}
-	_IID_IDXGIFactory4 = windows.GUID{Data1: 0x1bc6ea02, Data2: 0xef36, Data3: 0x464f, Data4: [...]byte{0xbf, 0x0c, 0x21, 0xca, 0x39, 0xe5, 0x16, 0x8a}}
-	_IID_IDXGIFactory5 = windows.GUID{Data1: 0x7632e1f5, Data2: 0xee65, Data3: 0x4dca, Data4: [...]byte{0x87, 0xfd, 0x84, 0xcd, 0x75, 0xf8, 0x83, 0x8d}}
+	_IID_IDXGIAdapter1   = windows.GUID{Data1: 0x29038f61, Data2: 0x3839, Data3: 0x4626, Data4: [...]byte{0x91, 0xfd, 0x08, 0x68, 0x79, 0x01, 0x1a, 0x05}}
+	_IID_IDXGIDevice     = windows.GUID{Data1: 0x54ec77fa, Data2: 0x1377, Data3: 0x44e6, Data4: [...]byte{0x8c, 0x32, 0x88, 0xfd, 0x5f, 0x44, 0xc8, 0x4c}}
+	_IID_IDXGIFactory    = windows.GUID{Data1: 0x7b7166ec, Data2: 0x21c7, Data3: 0x44ae, Data4: [...]byte{0xb2, 0x1a, 0xc9, 0xae, 0x32, 0x1a, 0xe3, 0x69}}
+	_IID_IDXGIFactory4   = windows.GUID{Data1: 0x1bc6ea02, Data2: 0xef36, Data3: 0x464f, Data4: [...]byte{0xbf, 0x0c, 0x21, 0xca, 0x39, 0xe5, 0x16, 0x8a}}
+	_IID_IDXGIFactory5   = windows.GUID{Data1: 0x7632e1f5, Data2: 0xee65, Data3: 0x4dca, Data4: [...]byte{0x87, 0xfd, 0x84, 0xcd, 0x75, 0xf8, 0x83, 0x8d}}
+	_IID_IDXGISwapChain4 = windows.GUID{Data1: 0x3d585d5a, Data2: 0xbd4a, Data3: 0x489e, Data4: [...]byte{0xb1, 0xf4, 0x3d, 0xbc, 0xb6, 0x45, 0x2f, 0xfb}}
 )
 
 var (
@@ -498,10 +499,6 @@ type _IDXGISwapChain_Vtbl struct {
 	GetLastPresentCount     uintptr
 }
 
-func (i *_IDXGISwapChain) As(swapChain **_IDXGISwapChain4) {
-	*swapChain = (*_IDXGISwapChain4)(unsafe.Pointer(i))
-}
-
 func (i *_IDXGISwapChain) GetBuffer(buffer uint32, riid *windows.GUID) (unsafe.Pointer, error) {
 	var resource unsafe.Pointer
 	r, _, _ := syscall.Syscall6(i.vtbl.GetBuffer, 4, uintptr(unsafe.Pointer(i)),
@@ -534,6 +531,16 @@ func (i *_IDXGISwapChain) Present(syncInterval uint32, flags uint32) (occluded b
 		return false, fmt.Errorf("directx: IDXGISwapChain::Present failed: %w", handleError(windows.Handle(uint32(r))))
 	}
 	return false, nil
+}
+
+func (i *_IDXGISwapChain) QueryInterface(riid *windows.GUID) (unsafe.Pointer, error) {
+	var v unsafe.Pointer
+	r, _, _ := syscall.Syscall(i.vtbl.QueryInterface, 3, uintptr(unsafe.Pointer(i)), uintptr(unsafe.Pointer(riid)), uintptr(unsafe.Pointer(&v)))
+	runtime.KeepAlive(riid)
+	if uint32(r) != uint32(windows.S_OK) {
+		return nil, fmt.Errorf("directx: IDXGISwapChain::QueryInterface failed: %w", handleError(windows.Handle(uint32(r))))
+	}
+	return v, nil
 }
 
 func (i *_IDXGISwapChain) Release() uint32 {

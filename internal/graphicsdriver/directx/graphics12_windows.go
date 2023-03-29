@@ -497,7 +497,11 @@ func (g *graphics12) initSwapChainDesktop(width, height int) error {
 		return err
 	}
 
-	g.frameIndex = g.graphicsInfra.currentBackBufferIndex()
+	idx, err := g.graphicsInfra.currentBackBufferIndex()
+	if err != nil {
+		return err
+	}
+	g.frameIndex = idx
 
 	return nil
 }
@@ -745,7 +749,11 @@ func (g *graphics12) moveToNextFrame() error {
 	if microsoftgdk.IsXbox() {
 		g.frameIndex = (g.frameIndex + 1) % frameCount
 	} else {
-		g.frameIndex = g.graphicsInfra.currentBackBufferIndex()
+		idx, err := g.graphicsInfra.currentBackBufferIndex()
+		if err != nil {
+			return err
+		}
+		g.frameIndex = idx
 	}
 
 	if g.fence.GetCompletedValue() < g.fenceValues[g.frameIndex] {

@@ -141,8 +141,9 @@ func NewGraphics() (graphicsdriver.Graphics, error) {
 }
 
 type graphicsInfra struct {
-	factory   *_IDXGIFactory
-	swapChain *_IDXGISwapChain
+	factory    *_IDXGIFactory
+	swapChain  *_IDXGISwapChain
+	swapChain4 *_IDXGISwapChain4
 
 	allowTearing bool
 
@@ -185,6 +186,10 @@ func (g *graphicsInfra) release() {
 	if g.swapChain != nil {
 		g.swapChain.Release()
 		g.swapChain = nil
+	}
+	if g.swapChain4 != nil {
+		g.swapChain4.Release()
+		g.swapChain4 = nil
 	}
 }
 
@@ -272,6 +277,10 @@ func (g *graphicsInfra) initSwapChain(width, height int, device unsafe.Pointer, 
 		}
 	}()
 
+	if s4, err := g.swapChain.QueryInterface(&_IID_IDXGISwapChain4); err == nil && s4 != nil {
+		g.swapChain4 = (*_IDXGISwapChain4)(s4)
+	}
+
 	// MakeWindowAssociation should be called after swap chain creation.
 	// https://docs.microsoft.com/en-us/windows/win32/api/dxgi/nf-dxgi-idxgifactory-makewindowassociation
 	if err := g.factory.MakeWindowAssociation(window, _DXGI_MWA_NO_WINDOW_CHANGES|_DXGI_MWA_NO_ALT_ENTER); err != nil {
@@ -296,10 +305,11 @@ func (g *graphicsInfra) resizeSwapChain(width, height int) error {
 	return nil
 }
 
-func (g *graphicsInfra) currentBackBufferIndex() int {
-	var swapChain4 *_IDXGISwapChain4
-	g.swapChain.As(&swapChain4)
-	return int(swapChain4.GetCurrentBackBufferIndex())
+func (g *graphicsInfra) currentBackBufferIndex() (int, error) {
+	if g.swapChain4 == nil {
+		return 0, fmt.Errorf("directx: IDXGISwapChain4 is not available")
+	}
+	return int(g.swapChain4.GetCurrentBackBufferIndex()), nil
 }
 
 func (g *graphicsInfra) present(vsyncEnabled bool) error {
