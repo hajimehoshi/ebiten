@@ -301,19 +301,6 @@ type _IDXGIFactory4_Vtbl struct {
 	EnumWarpAdapter               uintptr
 }
 
-func (i *_IDXGIFactory4) CreateSwapChainForComposition(pDevice unsafe.Pointer, pDesc *_DXGI_SWAP_CHAIN_DESC1, pRestrictToOutput *_IDXGIOutput) (*_IDXGISwapChain1, error) {
-	var swapChain *_IDXGISwapChain1
-	r, _, _ := syscall.Syscall6(i.vtbl.CreateSwapChainForComposition, 5,
-		uintptr(unsafe.Pointer(i)), uintptr(pDevice), uintptr(unsafe.Pointer(pDesc)),
-		uintptr(unsafe.Pointer(pRestrictToOutput)), uintptr(unsafe.Pointer(&swapChain)), 0)
-	runtime.KeepAlive(pDesc)
-	runtime.KeepAlive(pRestrictToOutput)
-	if uint32(r) != uint32(windows.S_OK) {
-		return nil, fmt.Errorf("directx: IDXGIFactory4::CreateSwapChainForComposition failed: %w", handleError(windows.Handle(uint32(r))))
-	}
-	return swapChain, nil
-}
-
 func (i *_IDXGIFactory4) CreateSwapChainForHwnd(pDevice unsafe.Pointer, hWnd windows.HWND, pDesc *_DXGI_SWAP_CHAIN_DESC1, pFullscreenDesc *_DXGI_SWAP_CHAIN_FULLSCREEN_DESC, pRestrictToOutput *_IDXGIOutput) (*_IDXGISwapChain1, error) {
 	var swapChain *_IDXGISwapChain1
 	r, _, _ := syscall.Syscall9(i.vtbl.CreateSwapChainForHwnd, 7,
