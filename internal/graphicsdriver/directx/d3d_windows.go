@@ -71,12 +71,35 @@ const (
 )
 
 var (
-	d3dcompiler = windows.NewLazySystemDLL("d3dcompiler_47.dll")
-
-	procD3DCompile = d3dcompiler.NewProc("D3DCompile")
+	procD3DCompile *windows.LazyProc
 )
 
+func init() {
+	var d3dcompiler *windows.LazyDLL
+
+	// Enumerate possible DLL names for d3dcompiler_*.dll.
+	// https://walbourn.github.io/hlsl-fxc-and-d3dcompile/
+	for v := 47; v >= 33; v-- {
+		dll := windows.NewLazySystemDLL(fmt.Sprintf("d3dcompiler_%d.dll", v))
+		if err := dll.Load(); err != nil {
+			continue
+		}
+		d3dcompiler = dll
+		break
+	}
+
+	if d3dcompiler == nil {
+		return
+	}
+
+	procD3DCompile = d3dcompiler.NewProc("D3DCompile")
+}
+
 func _D3DCompile(srcData []byte, sourceName string, pDefines []_D3D_SHADER_MACRO, pInclude unsafe.Pointer, entryPoint string, target string, flags1 uint32, flags2 uint32) (*_ID3DBlob, error) {
+	if procD3DCompile == nil {
+		return nil, fmt.Errorf("directx: d3dcompiler_*.dll is missing in this environment")
+	}
+
 	// TODO: Define _ID3DInclude for pInclude, but is it possible in Go?
 
 	var defs unsafe.Pointer
