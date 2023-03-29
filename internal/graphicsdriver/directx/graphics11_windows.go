@@ -151,7 +151,7 @@ func newGraphics11(useWARP bool, useDebugLayer bool) (gr11 *graphics11, ferr err
 		vsyncEnabled: true,
 	}
 
-	gi, err := newGraphicsInfra(useDebugLayer)
+	gi, err := newGraphicsInfra()
 	if err != nil {
 		return nil, err
 	}

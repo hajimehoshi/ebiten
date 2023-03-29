@@ -98,6 +98,7 @@ const (
 var (
 	_IID_IDXGIAdapter1 = windows.GUID{Data1: 0x29038f61, Data2: 0x3839, Data3: 0x4626, Data4: [...]byte{0x91, 0xfd, 0x08, 0x68, 0x79, 0x01, 0x1a, 0x05}}
 	_IID_IDXGIDevice   = windows.GUID{Data1: 0x54ec77fa, Data2: 0x1377, Data3: 0x44e6, Data4: [...]byte{0x8c, 0x32, 0x88, 0xfd, 0x5f, 0x44, 0xc8, 0x4c}}
+	_IID_IDXGIFactory  = windows.GUID{Data1: 0x7b7166ec, Data2: 0x21c7, Data3: 0x44ae, Data4: [...]byte{0xb2, 0x1a, 0xc9, 0xae, 0x32, 0x1a, 0xe3, 0x69}}
 	_IID_IDXGIFactory4 = windows.GUID{Data1: 0x1bc6ea02, Data2: 0xef36, Data3: 0x464f, Data4: [...]byte{0xbf, 0x0c, 0x21, 0xca, 0x39, 0xe5, 0x16, 0x8a}}
 	_IID_IDXGIFactory5 = windows.GUID{Data1: 0x7632e1f5, Data2: 0xee65, Data3: 0x4dca, Data4: [...]byte{0x87, 0xfd, 0x84, 0xcd, 0x75, 0xf8, 0x83, 0x8d}}
 )
@@ -105,14 +106,14 @@ var (
 var (
 	dxgi = windows.NewLazySystemDLL("dxgi.dll")
 
-	procCreateDXGIFactory2 = dxgi.NewProc("CreateDXGIFactory2")
+	procCreateDXGIFactory = dxgi.NewProc("CreateDXGIFactory")
 )
 
-func _CreateDXGIFactory2(flags uint32) (*_IDXGIFactory4, error) {
-	var factory *_IDXGIFactory4
-	r, _, _ := procCreateDXGIFactory2.Call(uintptr(flags), uintptr(unsafe.Pointer(&_IID_IDXGIFactory4)), uintptr(unsafe.Pointer(&factory)))
+func _CreateDXGIFactory() (*_IDXGIFactory, error) {
+	var factory *_IDXGIFactory
+	r, _, _ := procCreateDXGIFactory.Call(uintptr(unsafe.Pointer(&_IID_IDXGIFactory)), uintptr(unsafe.Pointer(&factory)))
 	if uint32(r) != uint32(windows.S_OK) {
-		return nil, fmt.Errorf("directx: CreateDXGIFactory2 failed: %w", handleError(windows.Handle(uint32(r))))
+		return nil, fmt.Errorf("directx: CreateDXGIFactory failed: %w", handleError(windows.Handle(uint32(r))))
 	}
 	return factory, nil
 }
@@ -271,6 +272,62 @@ func (i *_IDXGIDevice) Release() uint32 {
 	return uint32(r)
 }
 
+type _IDXGIFactory struct {
+	vtbl *_IDXGIFactory_Vtbl
+}
+
+type _IDXGIFactory_Vtbl struct {
+	QueryInterface uintptr
+	AddRef         uintptr
+	Release        uintptr
+
+	SetPrivateData          uintptr
+	SetPrivateDataInterface uintptr
+	GetPrivateData          uintptr
+	GetParent               uintptr
+	EnumAdapters            uintptr
+	MakeWindowAssociation   uintptr
+	GetWindowAssociation    uintptr
+	CreateSwapChain         uintptr
+	CreateSoftwareAdapter   uintptr
+}
+
+func (i *_IDXGIFactory) CreateSwapChain(pDevice unsafe.Pointer, pDesc *_DXGI_SWAP_CHAIN_DESC) (*_IDXGISwapChain, error) {
+	var swapChain *_IDXGISwapChain
+	r, _, _ := syscall.Syscall6(i.vtbl.CreateSwapChain, 4, uintptr(unsafe.Pointer(i)),
+		uintptr(pDevice), uintptr(unsafe.Pointer(pDesc)), uintptr(unsafe.Pointer(&swapChain)),
+		0, 0)
+	runtime.KeepAlive(pDevice)
+	runtime.KeepAlive(pDesc)
+	if uint32(r) != uint32(windows.S_OK) {
+		return nil, fmt.Errorf("directx: IDXGIFactory::CreateSwapChain failed: %w", handleError(windows.Handle(uint32(r))))
+	}
+	return swapChain, nil
+}
+
+func (i *_IDXGIFactory) MakeWindowAssociation(windowHandle windows.HWND, flags uint32) error {
+	r, _, _ := syscall.Syscall(i.vtbl.MakeWindowAssociation, 3, uintptr(unsafe.Pointer(i)), uintptr(windowHandle), uintptr(flags))
+	if uint32(r) != uint32(windows.S_OK) {
+		return fmt.Errorf("directx: IDXGIFactory::MakeWIndowAssociation failed: %w", handleError(windows.Handle(uint32(r))))
+	}
+	return nil
+}
+
+func (i *_IDXGIFactory) QueryInterface(riid *windows.GUID) (unsafe.Pointer, error) {
+	var v unsafe.Pointer
+	r, _, _ := syscall.Syscall(i.vtbl.QueryInterface, 3, uintptr(unsafe.Pointer(i)), uintptr(unsafe.Pointer(riid)), uintptr(unsafe.Pointer(&v)))
+	runtime.KeepAlive(riid)
+	if uint32(r) != uint32(windows.S_OK) {
+		return nil, fmt.Errorf("directx: IDXGIFactory::QueryInterface failed: %w", handleError(windows.Handle(uint32(r))))
+	}
+	return v, nil
+}
+
+func (i *_IDXGIFactory) Release() uint32 {
+	r, _, _ := syscall.Syscall(i.vtbl.Release, 1, uintptr(unsafe.Pointer(i)), 0, 0)
+	return uint32(r)
+}
+
 type _IDXGIFactory4 struct {
 	vtbl *_IDXGIFactory4_Vtbl
 }
@@ -307,19 +364,6 @@ type _IDXGIFactory4_Vtbl struct {
 	EnumWarpAdapter               uintptr
 }
 
-func (i *_IDXGIFactory4) CreateSwapChain(pDevice unsafe.Pointer, pDesc *_DXGI_SWAP_CHAIN_DESC) (*_IDXGISwapChain, error) {
-	var swapChain *_IDXGISwapChain
-	r, _, _ := syscall.Syscall6(i.vtbl.CreateSwapChain, 4, uintptr(unsafe.Pointer(i)),
-		uintptr(pDevice), uintptr(unsafe.Pointer(pDesc)), uintptr(unsafe.Pointer(&swapChain)),
-		0, 0)
-	runtime.KeepAlive(pDevice)
-	runtime.KeepAlive(pDesc)
-	if uint32(r) != uint32(windows.S_OK) {
-		return nil, fmt.Errorf("directx: IDXGIFactory4::CreateSwapChain failed: %w", handleError(windows.Handle(uint32(r))))
-	}
-	return swapChain, nil
-}
-
 func (i *_IDXGIFactory4) EnumAdapters1(adapter uint32) (*_IDXGIAdapter1, error) {
 	var ptr *_IDXGIAdapter1
 	r, _, _ := syscall.Syscall(i.vtbl.EnumAdapters1, 3, uintptr(unsafe.Pointer(i)), uintptr(adapter), uintptr(unsafe.Pointer(&ptr)))
@@ -336,24 +380,6 @@ func (i *_IDXGIFactory4) EnumWarpAdapter() (*_IDXGIAdapter1, error) {
 		return nil, fmt.Errorf("directx: IDXGIFactory4::EnumWarpAdapter failed: %w", handleError(windows.Handle(uint32(r))))
 	}
 	return ptr, nil
-}
-
-func (i *_IDXGIFactory4) MakeWindowAssociation(windowHandle windows.HWND, flags uint32) error {
-	r, _, _ := syscall.Syscall(i.vtbl.MakeWindowAssociation, 3, uintptr(unsafe.Pointer(i)), uintptr(windowHandle), uintptr(flags))
-	if uint32(r) != uint32(windows.S_OK) {
-		return fmt.Errorf("directx: IDXGIFactory4::MakeWIndowAssociation failed: %w", handleError(windows.Handle(uint32(r))))
-	}
-	return nil
-}
-
-func (i *_IDXGIFactory4) QueryInterface(riid *windows.GUID) (unsafe.Pointer, error) {
-	var v unsafe.Pointer
-	r, _, _ := syscall.Syscall(i.vtbl.QueryInterface, 3, uintptr(unsafe.Pointer(i)), uintptr(unsafe.Pointer(riid)), uintptr(unsafe.Pointer(&v)))
-	runtime.KeepAlive(riid)
-	if uint32(r) != uint32(windows.S_OK) {
-		return nil, fmt.Errorf("directx: IDXGIFactory4::QueryInterface failed: %w", handleError(windows.Handle(uint32(r))))
-	}
-	return v, nil
 }
 
 func (i *_IDXGIFactory4) Release() uint32 {

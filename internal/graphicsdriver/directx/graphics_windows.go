@@ -141,7 +141,7 @@ func NewGraphics() (graphicsdriver.Graphics, error) {
 }
 
 type graphicsInfra struct {
-	factory   *_IDXGIFactory4
+	factory   *_IDXGIFactory
 	swapChain *_IDXGISwapChain4
 
 	allowTearing bool
@@ -153,13 +153,8 @@ type graphicsInfra struct {
 	lastTime time.Time
 }
 
-func newGraphicsInfra(debug bool) (*graphicsInfra, error) {
-	var flag uint32
-	if debug {
-		flag = _DXGI_CREATE_FACTORY_DEBUG
-	}
-
-	f, err := _CreateDXGIFactory2(flag)
+func newGraphicsInfra() (*graphicsInfra, error) {
+	f, err := _CreateDXGIFactory()
 	if err != nil {
 		return nil, err
 	}
@@ -198,8 +193,18 @@ func (g *graphicsInfra) release() {
 //
 // warpForDX12 is valid only for DirectX 12.
 func (g *graphicsInfra) appendAdapters(adapters []*_IDXGIAdapter1, warpForDX12 bool) ([]*_IDXGIAdapter1, error) {
+	f, err := g.factory.QueryInterface(&_IID_IDXGIFactory4)
+	if err != nil {
+		return nil, err
+	}
+	if f == nil {
+		return nil, fmt.Errorf("directx: IID_IDXGIFactory4 was not available")
+	}
+	factory4 := (*_IDXGIFactory4)(f)
+	defer factory4.Release()
+
 	if warpForDX12 {
-		a, err := g.factory.EnumWarpAdapter()
+		a, err := factory4.EnumWarpAdapter()
 		if err != nil {
 			return nil, err
 		}
@@ -208,7 +213,7 @@ func (g *graphicsInfra) appendAdapters(adapters []*_IDXGIAdapter1, warpForDX12 b
 	}
 
 	for i := uint32(0); ; i++ {
-		a, err := g.factory.EnumAdapters1(i)
+		a, err := factory4.EnumAdapters1(i)
 		if errors.Is(err, _DXGI_ERROR_NOT_FOUND) {
 			break
 		}
