@@ -133,8 +133,10 @@ func (g *graphicsInfra) release() {
 
 // appendAdapters appends found adapters to the given adapters.
 // Releasing them is the caller's responsibility.
-func (g *graphicsInfra) appendAdapters(adapters []*_IDXGIAdapter1, warp bool) ([]*_IDXGIAdapter1, error) {
-	if warp {
+//
+// warpForDX12 is valid only for DirectX 12.
+func (g *graphicsInfra) appendAdapters(adapters []*_IDXGIAdapter1, warpForDX12 bool) ([]*_IDXGIAdapter1, error) {
+	if warpForDX12 {
 		a, err := g.factory.EnumWarpAdapter()
 		if err != nil {
 			return nil, err
@@ -150,14 +152,6 @@ func (g *graphicsInfra) appendAdapters(adapters []*_IDXGIAdapter1, warp bool) ([
 		}
 		if err != nil {
 			return nil, err
-		}
-
-		desc, err := a.GetDesc1()
-		if err != nil {
-			return nil, err
-		}
-		if desc.Flags&_DXGI_ADAPTER_FLAG_SOFTWARE != 0 {
-			continue
 		}
 
 		adapters = append(adapters, a)
