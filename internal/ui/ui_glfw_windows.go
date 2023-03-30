@@ -37,21 +37,36 @@ type graphicsDriverCreatorImpl struct {
 }
 
 func (g *graphicsDriverCreatorImpl) newAuto() (graphicsdriver.Graphics, GraphicsLibrary, error) {
-	// Creating a swap chain on an older machines than Windows 10 might fail (#2613).
 	var dxErr error
+	var glErr error
 	if winver.IsWindows10OrGreater() {
 		d, err := g.newDirectX()
 		if err == nil {
 			return d, GraphicsLibraryDirectX, nil
 		}
 		dxErr = err
-	}
 
-	o, err := g.newOpenGL()
-	if err == nil {
-		return o, GraphicsLibraryOpenGL, nil
+		o, err := g.newOpenGL()
+		if err == nil {
+			return o, GraphicsLibraryOpenGL, nil
+		}
+		glErr = err
+	} else {
+		// Creating a swap chain on an older machines than Windows 10 might fail (#2613).
+		// Prefer OpenGL to DirectX.
+		o, err := g.newOpenGL()
+		if err == nil {
+			return o, GraphicsLibraryOpenGL, nil
+		}
+		glErr = err
+
+		// Initializing OpenGL can fail, though this is pretty rare.
+		d, err := g.newDirectX()
+		if err == nil {
+			return d, GraphicsLibraryDirectX, nil
+		}
+		dxErr = err
 	}
-	glErr := err
 
 	return nil, GraphicsLibraryUnknown, fmt.Errorf("ui: failed to choose graphics drivers: DirectX: %v, OpenGL: %v", dxErr, glErr)
 }
