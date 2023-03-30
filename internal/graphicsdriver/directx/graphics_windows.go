@@ -251,6 +251,9 @@ func (g *graphicsInfra) initSwapChain(width, height int, device unsafe.Pointer, 
 	//
 	//     IDXGIFactory::CreateSwapChain: Alpha blended swapchains must be created with CreateSwapChainForComposition,
 	//     or CreateSwapChainForCoreWindow with the DXGI_SWAP_CHAIN_FLAG_FOREGROUND_LAYER flag
+	//
+	// Use *_SEQUENTIAL swap effects to follow the Mozilla way:
+	// https://github.com/mozilla/gecko-dev/blob/0907529ff72c456ddb47839f5f7ba16291f28dce/gfx/layers/d3d11/CompositorD3D11.cpp#L167-L254
 	desc := &_DXGI_SWAP_CHAIN_DESC{
 		BufferDesc: _DXGI_MODE_DESC{
 			Width:  uint32(width),
@@ -265,8 +268,15 @@ func (g *graphicsInfra) initSwapChain(width, height int, device unsafe.Pointer, 
 		BufferCount:  frameCount,
 		OutputWindow: window,
 		Windowed:     1,
-		SwapEffect:   _DXGI_SWAP_EFFECT_FLIP_DISCARD,
+		SwapEffect:   _DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL,
 	}
+
+	// DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL/DISCARD are not supported for older Windows than 10 or DirectX 12.
+	// https://learn.microsoft.com/en-us/windows/win32/api/dxgi/ne-dxgi-dxgi_swap_effect
+	if !isWindows10OrGreaterWin32() {
+		desc.SwapEffect = _DXGI_SWAP_EFFECT_SEQUENTIAL
+	}
+
 	if g.allowTearing {
 		desc.Flags |= uint32(_DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING)
 	}
