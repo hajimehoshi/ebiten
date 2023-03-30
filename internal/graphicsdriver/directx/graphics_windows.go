@@ -29,6 +29,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/microsoftgdk"
+	"github.com/hajimehoshi/ebiten/v2/internal/winver"
 )
 
 type stencilMode int
@@ -275,7 +276,7 @@ func (g *graphicsInfra) initSwapChain(width, height int, device unsafe.Pointer, 
 
 	// DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL/DISCARD are not supported for older Windows than 10 or DirectX 12.
 	// https://learn.microsoft.com/en-us/windows/win32/api/dxgi/ne-dxgi-dxgi_swap_effect
-	if !isWindows10OrGreaterWin32() {
+	if !winver.IsWindows10OrGreater() {
 		desc.SwapEffect = _DXGI_SWAP_EFFECT_SEQUENTIAL
 		desc.BufferCount = 1
 	}
