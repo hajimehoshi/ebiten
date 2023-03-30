@@ -52,7 +52,7 @@ func (g *graphicsDriverCreatorImpl) newAuto() (graphicsdriver.Graphics, Graphics
 		}
 		glErr = err
 	} else {
-		// Creating a swap chain on an older machines than Windows 10 might fail (#2613).
+		// Creating a swap chain on an older machine than Windows 10 might fail (#2613).
 		// Prefer OpenGL to DirectX.
 		o, err := g.newOpenGL()
 		if err == nil {
