@@ -156,6 +156,8 @@ type graphicsInfra struct {
 
 	// lastTime is the last time for rendering.
 	lastTime time.Time
+
+	bufferCount int
 }
 
 func newGraphicsInfra() (*graphicsInfra, error) {
@@ -275,7 +277,10 @@ func (g *graphicsInfra) initSwapChain(width, height int, device unsafe.Pointer, 
 	// https://learn.microsoft.com/en-us/windows/win32/api/dxgi/ne-dxgi-dxgi_swap_effect
 	if !isWindows10OrGreaterWin32() {
 		desc.SwapEffect = _DXGI_SWAP_EFFECT_SEQUENTIAL
+		desc.BufferCount = 1
 	}
+
+	g.bufferCount = int(desc.BufferCount)
 
 	if g.allowTearing {
 		desc.Flags |= uint32(_DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING)
@@ -313,7 +318,7 @@ func (g *graphicsInfra) resizeSwapChain(width, height int) error {
 	if g.allowTearing {
 		flag |= uint32(_DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING)
 	}
-	if err := g.swapChain.ResizeBuffers(frameCount, uint32(width), uint32(height), _DXGI_FORMAT_B8G8R8A8_UNORM, flag); err != nil {
+	if err := g.swapChain.ResizeBuffers(uint32(g.bufferCount), uint32(width), uint32(height), _DXGI_FORMAT_B8G8R8A8_UNORM, flag); err != nil {
 		return err
 	}
 	return nil
