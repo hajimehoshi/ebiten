@@ -278,6 +278,8 @@ func (g *graphicsInfra) initSwapChain(width, height int, device unsafe.Pointer, 
 	if !isWindows10OrGreaterWin32() {
 		desc.SwapEffect = _DXGI_SWAP_EFFECT_SEQUENTIAL
 		desc.BufferCount = 1
+		desc.BufferDesc.RefreshRate.Numerator = 0
+		desc.BufferDesc.RefreshRate.Denominator = 1
 	}
 
 	g.bufferCount = int(desc.BufferCount)
