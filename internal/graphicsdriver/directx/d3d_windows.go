@@ -79,8 +79,8 @@ func init() {
 
 	// Enumerate possible DLL names for d3dcompiler_*.dll.
 	// https://walbourn.github.io/hlsl-fxc-and-d3dcompile/
-	for v := 47; v >= 33; v-- {
-		dll := windows.NewLazySystemDLL(fmt.Sprintf("d3dcompiler_%d.dll", v))
+	for _, name := range []string{"d3dcompiler_47.dll", "d3dcompiler_46.dll", "d3dcompiler_43.dll"} {
+		dll := windows.NewLazySystemDLL(name)
 		if err := dll.Load(); err != nil {
 			continue
 		}
