@@ -21,6 +21,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"testing"
@@ -29,7 +30,26 @@ import (
 	exec "golang.org/x/sys/execabs"
 )
 
+func isWSL() (bool, error) {
+	if runtime.GOOS != "windows" {
+		return false, nil
+	}
+	abs, err := filepath.Abs(".")
+	if err != nil {
+		return false, err
+	}
+	return strings.HasPrefix(abs, `\\wsl$\`), nil
+}
+
 func TestPrograms(t *testing.T) {
+	wsl, err := isWSL()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if wsl {
+		t.Skip("WSL doesn't support LockFileEx (#1864)")
+	}
+
 	dir := "testdata"
 	ents, err := os.ReadDir(dir)
 	if err != nil {
