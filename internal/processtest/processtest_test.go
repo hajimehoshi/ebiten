@@ -78,8 +78,8 @@ func TestPrograms(t *testing.T) {
 			defer m.Unlock()
 
 			bin := filepath.Join(tmpdir, n)
-			if err := exec.Command("go", "build", "-o", bin, filepath.Join(dir, n)).Run(); err != nil {
-				t.Fatal(err)
+			if out, err := exec.Command("go", "build", "-o", bin, filepath.Join(dir, n)).CombinedOutput(); err != nil {
+				t.Fatalf("%v\n%s", err, string(out))
 			}
 
 			ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
