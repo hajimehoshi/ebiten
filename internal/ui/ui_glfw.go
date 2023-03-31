@@ -1019,7 +1019,8 @@ func (u *userInterfaceImpl) update() (float64, float64, error) {
 		return 0, 0, err
 	}
 
-	for u.bufferOnceSwapped && !u.isRunnableOnUnfocused() && u.window.GetAttrib(glfw.Focused) == 0 && !u.window.ShouldClose() {
+	// In the initial state on macOS, the window is not shown (#2620).
+	for u.window.GetAttrib(glfw.Visible) != 0 && !u.isRunnableOnUnfocused() && u.window.GetAttrib(glfw.Focused) == 0 && !u.window.ShouldClose() {
 		if err := hooks.SuspendAudio(); err != nil {
 			return 0, 0, err
 		}
