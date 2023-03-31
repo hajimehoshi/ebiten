@@ -59,6 +59,11 @@ func TestPrograms(t *testing.T) {
 	// Run sub-tests one by one, not in parallel (#2571).
 	var m sync.Mutex
 
+	tmpdir, err := os.MkdirTemp("", "ebitengine-processtest-*")
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	for _, e := range ents {
 		if e.IsDir() {
 			continue
@@ -72,10 +77,15 @@ func TestPrograms(t *testing.T) {
 			m.Lock()
 			defer m.Unlock()
 
+			bin := filepath.Join(tmpdir, n)
+			if err := exec.Command("go", "build", "-o", bin, filepath.Join(dir, n)).Run(); err != nil {
+				t.Fatal(err)
+			}
+
 			ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 			defer cancel()
 
-			cmd := exec.CommandContext(ctx, "go", "run", filepath.Join(dir, n))
+			cmd := exec.CommandContext(ctx, bin)
 			stderr := &bytes.Buffer{}
 			cmd.Stderr = stderr
 			if err := cmd.Run(); err != nil {
