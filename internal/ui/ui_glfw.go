@@ -1019,7 +1019,7 @@ func (u *userInterfaceImpl) update() (float64, float64, error) {
 		return 0, 0, err
 	}
 
-	for !u.isRunnableOnUnfocused() && u.window.GetAttrib(glfw.Focused) == 0 && !u.window.ShouldClose() {
+	for u.bufferOnceSwapped && !u.isRunnableOnUnfocused() && u.window.GetAttrib(glfw.Focused) == 0 && !u.window.ShouldClose() {
 		if err := hooks.SuspendAudio(); err != nil {
 			return 0, 0, err
 		}
