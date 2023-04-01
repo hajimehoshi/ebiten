@@ -13,7 +13,6 @@
 // limitations under the License.
 
 //go:build darwin || windows
-// +build darwin windows
 
 package glfw
 
