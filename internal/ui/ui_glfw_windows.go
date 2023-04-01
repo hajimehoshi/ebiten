@@ -29,6 +29,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/directx"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl"
 	"github.com/hajimehoshi/ebiten/v2/internal/microsoftgdk"
+	"github.com/hajimehoshi/ebiten/v2/internal/winver"
 )
 
 type graphicsDriverCreatorImpl struct {
@@ -36,15 +37,38 @@ type graphicsDriverCreatorImpl struct {
 }
 
 func (g *graphicsDriverCreatorImpl) newAuto() (graphicsdriver.Graphics, GraphicsLibrary, error) {
-	d, err1 := g.newDirectX()
-	if err1 == nil {
-		return d, GraphicsLibraryDirectX, nil
+	var dxErr error
+	var glErr error
+	if winver.IsWindows10OrGreater() {
+		d, err := g.newDirectX()
+		if err == nil {
+			return d, GraphicsLibraryDirectX, nil
+		}
+		dxErr = err
+
+		o, err := g.newOpenGL()
+		if err == nil {
+			return o, GraphicsLibraryOpenGL, nil
+		}
+		glErr = err
+	} else {
+		// Creating a swap chain on an older machine than Windows 10 might fail (#2613).
+		// Prefer OpenGL to DirectX.
+		o, err := g.newOpenGL()
+		if err == nil {
+			return o, GraphicsLibraryOpenGL, nil
+		}
+		glErr = err
+
+		// Initializing OpenGL can fail, though this is pretty rare.
+		d, err := g.newDirectX()
+		if err == nil {
+			return d, GraphicsLibraryDirectX, nil
+		}
+		dxErr = err
 	}
-	o, err2 := g.newOpenGL()
-	if err2 == nil {
-		return o, GraphicsLibraryOpenGL, nil
-	}
-	return nil, GraphicsLibraryUnknown, fmt.Errorf("ui: failed to choose graphics drivers: DirectX: %v, OpenGL: %v", err1, err2)
+
+	return nil, GraphicsLibraryUnknown, fmt.Errorf("ui: failed to choose graphics drivers: DirectX: %v, OpenGL: %v", dxErr, glErr)
 }
 
 func (*graphicsDriverCreatorImpl) newOpenGL() (graphicsdriver.Graphics, error) {

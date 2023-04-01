@@ -20,33 +20,8 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
-	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
-
-type stencilMode int
-
-const (
-	prepareStencil stencilMode = iota
-	drawWithStencil
-	noStencil
-)
-
-type pipelineStateKey struct {
-	blend       graphicsdriver.Blend
-	stencilMode stencilMode
-	screen      bool
-}
-
-type Shader struct {
-	graphics       *graphics12
-	id             graphicsdriver.ShaderID
-	uniformTypes   []shaderir.Type
-	uniformOffsets []int
-	vertexShader   *_ID3DBlob
-	pixelShader    *_ID3DBlob
-	pipelineStates map[pipelineStateKey]*_ID3D12PipelineState
-}
 
 var vertexShaderCache = map[string]*_ID3DBlob{}
 
@@ -105,64 +80,65 @@ func compileShader(vs, ps string) (vsh, psh *_ID3DBlob, ferr error) {
 	return
 }
 
-func (s *Shader) ID() graphicsdriver.ShaderID {
-	return s.id
-}
-
-func (s *Shader) Dispose() {
-	s.graphics.removeShader(s)
-}
-
-func (s *Shader) disposeImpl() {
-	for c, p := range s.pipelineStates {
-		p.Release()
-		delete(s.pipelineStates, c)
-	}
-
-	if s.pixelShader != nil {
-		s.pixelShader.Release()
-		s.pixelShader = nil
-	}
-	if s.vertexShader != nil {
-		count := s.vertexShader.Release()
-		if count == 0 {
-			for k, v := range vertexShaderCache {
-				if v == s.vertexShader {
-					delete(vertexShaderCache, k)
-				}
-			}
+func constantBufferSize(uniformTypes []shaderir.Type, uniformOffsets []int) int {
+	var size int
+	for i, typ := range uniformTypes {
+		if size < uniformOffsets[i]/4 {
+			size = uniformOffsets[i] / 4
 		}
-		s.vertexShader = nil
+
+		switch typ.Main {
+		case shaderir.Float:
+			size += 1
+		case shaderir.Int:
+			size += 1
+		case shaderir.Vec2, shaderir.IVec2:
+			size += 2
+		case shaderir.Vec3, shaderir.IVec3:
+			size += 3
+		case shaderir.Vec4, shaderir.IVec4:
+			size += 4
+		case shaderir.Mat2:
+			size += 6
+		case shaderir.Mat3:
+			size += 11
+		case shaderir.Mat4:
+			size += 16
+		case shaderir.Array:
+			// Each element is aligned to the boundary.
+			switch typ.Sub[0].Main {
+			case shaderir.Float:
+				size += 4*(typ.Length-1) + 1
+			case shaderir.Int:
+				size += 4*(typ.Length-1) + 1
+			case shaderir.Vec2, shaderir.IVec2:
+				size += 4*(typ.Length-1) + 2
+			case shaderir.Vec3, shaderir.IVec3:
+				size += 4*(typ.Length-1) + 3
+			case shaderir.Vec4, shaderir.IVec4:
+				size += 4 * typ.Length
+			case shaderir.Mat2:
+				size += 8*(typ.Length-1) + 6
+			case shaderir.Mat3:
+				size += 12*(typ.Length-1) + 11
+			case shaderir.Mat4:
+				size += 16 * typ.Length
+			default:
+				panic(fmt.Sprintf("directx: not implemented type for uniform variables: %s", typ.String()))
+			}
+		default:
+			panic(fmt.Sprintf("directx: not implemented type for uniform variables: %s", typ.String()))
+		}
 	}
+	return size
 }
 
-func (s *Shader) pipelineState(blend graphicsdriver.Blend, stencilMode stencilMode, screen bool) (*_ID3D12PipelineState, error) {
-	key := pipelineStateKey{
-		blend:       blend,
-		stencilMode: stencilMode,
-		screen:      screen,
-	}
-	if state, ok := s.pipelineStates[key]; ok {
-		return state, nil
-	}
-
-	state, err := s.graphics.pipelineStates.newPipelineState(s.graphics.device, s.vertexShader, s.pixelShader, blend, stencilMode, screen)
-	if err != nil {
-		return nil, err
-	}
-	if s.pipelineStates == nil {
-		s.pipelineStates = map[pipelineStateKey]*_ID3D12PipelineState{}
-	}
-	s.pipelineStates[key] = state
-	return state, nil
-}
-
-func (s *Shader) adjustUniforms(uniforms []uint32) []uint32 {
+func adjustUniforms(uniformTypes []shaderir.Type, uniformOffsets []int, uniforms []uint32) []uint32 {
 	var fs []uint32
 	var idx int
-	for i, typ := range s.uniformTypes {
-		if len(fs) < s.uniformOffsets[i]/4 {
-			fs = append(fs, make([]uint32, s.uniformOffsets[i]/4-len(fs))...)
+	for i, typ := range uniformTypes {
+		if len(fs) < uniformOffsets[i]/4 {
+			fs = append(fs, make([]uint32, uniformOffsets[i]/4-len(fs))...)
 		}
 
 		n := typ.Uint32Count()

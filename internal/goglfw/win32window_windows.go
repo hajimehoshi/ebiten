@@ -15,6 +15,7 @@ import (
 	"golang.org/x/sys/windows"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/microsoftgdk"
+	"github.com/hajimehoshi/ebiten/v2/internal/winver"
 )
 
 func (w *Window) getWindowStyle() uint32 {
@@ -137,7 +138,7 @@ func getFullWindowSize(style uint32, exStyle uint32, contentWidth, contentHeight
 		right:  int32(contentWidth),
 		bottom: int32(contentHeight),
 	}
-	if isWindows10AnniversaryUpdateOrGreaterWin32() {
+	if winver.IsWindows10AnniversaryUpdateOrGreater() {
 		if err := _AdjustWindowRectExForDpi(&rect, style, false, exStyle, dpi); err != nil {
 			return 0, 0, err
 		}
@@ -153,7 +154,7 @@ func (w *Window) applyAspectRatio(edge int, area *_RECT) error {
 	ratio := float32(w.numer) / float32(w.denom)
 
 	var dpi uint32 = _USER_DEFAULT_SCREEN_DPI
-	if isWindows10AnniversaryUpdateOrGreaterWin32() {
+	if winver.IsWindows10AnniversaryUpdateOrGreater() {
 		dpi = _GetDpiForWindow(w.platform.handle)
 	}
 
@@ -343,7 +344,7 @@ func (w *Window) updateWindowStyles() error {
 		return err
 	}
 
-	if isWindows10AnniversaryUpdateOrGreaterWin32() {
+	if winver.IsWindows10AnniversaryUpdateOrGreater() {
 		if err := _AdjustWindowRectExForDpi(&rect, style, false, w.getWindowExStyle(), _GetDpiForWindow(w.platform.handle)); err != nil {
 			return err
 		}
@@ -368,7 +369,7 @@ func (w *Window) updateWindowStyles() error {
 }
 
 func (w *Window) updateFramebufferTransparency() error {
-	if !_IsWindowsVistaOrGreater() {
+	if !winver.IsWindowsVistaOrGreater() {
 		return nil
 	}
 
@@ -382,7 +383,7 @@ func (w *Window) updateFramebufferTransparency() error {
 	}
 
 	var opaque bool
-	if !_IsWindows8OrGreater() {
+	if !winver.IsWindows8OrGreater() {
 		_, opaque, err = _DwmGetColorizationColor()
 		if err != nil {
 			// Ignore an error from DWM functions as they might not be implemented e.g. on Proton (#2113).
@@ -390,7 +391,7 @@ func (w *Window) updateFramebufferTransparency() error {
 		}
 	}
 
-	if _IsWindows8OrGreater() || !opaque {
+	if winver.IsWindows8OrGreater() || !opaque {
 		region, err := _CreateRectRgn(0, 0, -1, -1)
 		if err != nil {
 			return err
@@ -473,7 +474,7 @@ func (w *Window) acquireMonitor() error {
 
 		// HACK: When mouse trails are enabled the cursor becomes invisible when
 		//       the OpenGL ICD switches to page flipping
-		if _IsWindowsXPOrGreater() {
+		if winver.IsWindowsXPOrGreater() {
 			if err := _SystemParametersInfoW(_SPI_GETMOUSETRAILS, 0, uintptr(unsafe.Pointer(&_glfw.platformWindow.mouseTrailSize)), 0); err != nil {
 				return err
 			}
@@ -504,7 +505,7 @@ func (w *Window) releaseMonitor() error {
 		_SetThreadExecutionState(_ES_CONTINUOUS)
 
 		// HACK: Restore mouse trail length saved in acquireMonitor
-		if _IsWindowsXPOrGreater() {
+		if winver.IsWindowsXPOrGreater() {
 			if err := _SystemParametersInfoW(_SPI_SETMOUSETRAILS, _glfw.platformWindow.mouseTrailSize, 0, 0); err != nil {
 				return err
 			}
@@ -546,7 +547,7 @@ func (w *Window) maximizeWindowManually() error {
 			return err
 		}
 		exStyle := uint32(s)
-		if isWindows10AnniversaryUpdateOrGreaterWin32() {
+		if winver.IsWindows10AnniversaryUpdateOrGreater() {
 			dpi := _GetDpiForWindow(w.platform.handle)
 			if err := _AdjustWindowRectExForDpi(&rect, style, false, exStyle, dpi); err != nil {
 				return err
@@ -588,7 +589,7 @@ func windowProc(hWnd windows.HWND, uMsg uint32, wParam _WPARAM, lParam _LPARAM) 
 		// and for a regular window during its initial creation
 		switch uMsg {
 		case _WM_NCCREATE:
-			if isWindows10AnniversaryUpdateOrGreaterWin32() {
+			if winver.IsWindows10AnniversaryUpdateOrGreater() {
 				cs := (*_CREATESTRUCTW)(unsafe.Pointer(lParam))
 				wndconfig := (*wndconfig)(cs.lpCreateParams)
 
@@ -1062,7 +1063,7 @@ func windowProc(hWnd windows.HWND, uMsg uint32, wParam _WPARAM, lParam _LPARAM) 
 			break
 		}
 
-		if isWindows10AnniversaryUpdateOrGreaterWin32() {
+		if winver.IsWindows10AnniversaryUpdateOrGreater() {
 			dpi = _GetDpiForWindow(window.platform.handle)
 		}
 
@@ -1122,7 +1123,7 @@ func windowProc(hWnd windows.HWND, uMsg uint32, wParam _WPARAM, lParam _LPARAM) 
 		}
 
 		// Adjust the window size to keep the content area size constant
-		if isWindows10CreatorsUpdateOrGreaterWin32() {
+		if winver.IsWindows10CreatorsUpdateOrGreater() {
 			var source, target _RECT
 			size := (*_SIZE)(unsafe.Pointer(lParam))
 
@@ -1146,7 +1147,7 @@ func windowProc(hWnd windows.HWND, uMsg uint32, wParam _WPARAM, lParam _LPARAM) 
 
 		// Resize windowed mode windows that either permit rescaling or that
 		// need it to compensate for non-client area scaling
-		if window.monitor == nil && (window.platform.scaleToMonitor || isWindows10CreatorsUpdateOrGreaterWin32()) {
+		if window.monitor == nil && (window.platform.scaleToMonitor || winver.IsWindows10CreatorsUpdateOrGreater()) {
 			suggested := (*_RECT)(unsafe.Pointer(lParam))
 			if err := _SetWindowPos(window.platform.handle, _HWND_TOP,
 				suggested.left,
@@ -1244,7 +1245,7 @@ func (w *Window) createNativeWindow(wndconfig *wndconfig, fbconfig *fbconfig) er
 
 	handleToWindow[w.platform.handle] = w
 
-	if !microsoftgdk.IsXbox() && _IsWindows7OrGreater() {
+	if !microsoftgdk.IsXbox() && winver.IsWindows7OrGreater() {
 		if err := _ChangeWindowMessageFilterEx(w.platform.handle, _WM_DROPFILES, _MSGFLT_ALLOW, nil); err != nil {
 			return err
 		}
@@ -1291,7 +1292,7 @@ func (w *Window) createNativeWindow(wndconfig *wndconfig, fbconfig *fbconfig) er
 			return err
 		}
 
-		if isWindows10AnniversaryUpdateOrGreaterWin32() {
+		if winver.IsWindows10AnniversaryUpdateOrGreater() {
 			if err := _AdjustWindowRectExForDpi(&rect, style, false, exStyle, _GetDpiForWindow(w.platform.handle)); err != nil {
 				return err
 			}
@@ -1457,7 +1458,9 @@ func (w *Window) platformDestroyWindow() error {
 
 	if w.platform.handle != 0 {
 		if !microsoftgdk.IsXbox() {
-			if err := _DestroyWindow(w.platform.handle); err != nil {
+			// An error 'invalid window handle' can occur without any specific reasons (#2551).
+			// As there is nothing to do, just ignore this error.
+			if err := _DestroyWindow(w.platform.handle); err != nil && !errors.Is(err, windows.ERROR_INVALID_WINDOW_HANDLE) {
 				return err
 			}
 		}
@@ -1577,7 +1580,7 @@ func (w *Window) platformSetWindowPos(xpos, ypos int) error {
 		right:  int32(xpos),
 		bottom: int32(ypos),
 	}
-	if isWindows10AnniversaryUpdateOrGreaterWin32() {
+	if winver.IsWindows10AnniversaryUpdateOrGreater() {
 		if err := _AdjustWindowRectExForDpi(&rect, w.getWindowStyle(), false, w.getWindowExStyle(), _GetDpiForWindow(w.platform.handle)); err != nil {
 			return err
 		}
@@ -1619,7 +1622,7 @@ func (w *Window) platformSetWindowSize(width, height int) error {
 			bottom: int32(height),
 		}
 
-		if isWindows10AnniversaryUpdateOrGreaterWin32() {
+		if winver.IsWindows10AnniversaryUpdateOrGreater() {
 			if err := _AdjustWindowRectExForDpi(&rect, w.getWindowStyle(), false, w.getWindowExStyle(), _GetDpiForWindow(w.platform.handle)); err != nil {
 				return err
 			}
@@ -1688,7 +1691,7 @@ func (w *Window) platformGetWindowFrameSize() (left, top, right, bottom int, err
 		right:  int32(width),
 		bottom: int32(height),
 	}
-	if isWindows10AnniversaryUpdateOrGreaterWin32() {
+	if winver.IsWindows10AnniversaryUpdateOrGreater() {
 		if err := _AdjustWindowRectExForDpi(&rect, w.getWindowStyle(), false, w.getWindowExStyle(), _GetDpiForWindow(w.platform.handle)); err != nil {
 			return 0, 0, 0, 0, err
 		}
@@ -1770,7 +1773,7 @@ func (w *Window) platformSetWindowMonitor(monitor *Monitor, xpos, ypos, width, h
 				right:  int32(xpos + width),
 				bottom: int32(ypos + height),
 			}
-			if isWindows10AnniversaryUpdateOrGreaterWin32() {
+			if winver.IsWindows10AnniversaryUpdateOrGreater() {
 				if err := _AdjustWindowRectExForDpi(&rect, w.getWindowStyle(), false, w.getWindowExStyle(), _GetDpiForWindow(w.platform.handle)); err != nil {
 					return err
 				}
@@ -1853,7 +1856,7 @@ func (w *Window) platformSetWindowMonitor(monitor *Monitor, xpos, ypos, width, h
 			right:  int32(xpos + width),
 			bottom: int32(ypos + height),
 		}
-		if isWindows10AnniversaryUpdateOrGreaterWin32() {
+		if winver.IsWindows10AnniversaryUpdateOrGreater() {
 			if err := _AdjustWindowRectExForDpi(&rect, w.getWindowStyle(),
 				false, w.getWindowExStyle(),
 				_GetDpiForWindow(w.platform.handle)); err != nil {
@@ -1926,7 +1929,7 @@ func (w *Window) platformFramebufferTransparent() bool {
 		return false
 	}
 
-	if !_IsWindowsVistaOrGreater() {
+	if !winver.IsWindowsVistaOrGreater() {
 		return false
 	}
 
@@ -1935,7 +1938,7 @@ func (w *Window) platformFramebufferTransparent() bool {
 		return false
 	}
 
-	if !_IsWindows8OrGreater() {
+	if !winver.IsWindows8OrGreater() {
 		// HACK: Disable framebuffer transparency on Windows 7 when the
 		//       colorization color is opaque, because otherwise the window
 		//       contents is blended additively with the previous frame instead

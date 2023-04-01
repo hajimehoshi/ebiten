@@ -17,7 +17,6 @@ package directx
 import (
 	"errors"
 	"fmt"
-	"math"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
@@ -91,12 +90,11 @@ type graphics12 struct {
 	nextImageID    graphicsdriver.ImageID
 	disposedImages [frameCount][]*image12
 
-	shaders         map[graphicsdriver.ShaderID]*Shader
+	shaders         map[graphicsdriver.ShaderID]*shader12
 	nextShaderID    graphicsdriver.ShaderID
-	disposedShaders [frameCount][]*Shader
+	disposedShaders [frameCount][]*shader12
 
 	vsyncEnabled bool
-	transparent  bool
 
 	newScreenWidth  int
 	newScreenHeight int
@@ -150,7 +148,7 @@ func (g *graphics12) initializeDesktop(useWARP bool, useDebugLayer bool, feature
 		g.debug.EnableDebugLayer()
 	}
 
-	gi, err := newGraphicsInfra(g.debug != nil)
+	gi, err := newGraphicsInfra()
 	if err != nil {
 		return err
 	}
@@ -499,7 +497,11 @@ func (g *graphics12) initSwapChainDesktop(width, height int) error {
 		return err
 	}
 
-	g.frameIndex = g.graphicsInfra.currentBackBufferIndex()
+	idx, err := g.graphicsInfra.currentBackBufferIndex()
+	if err != nil {
+		return err
+	}
+	g.frameIndex = idx
 
 	return nil
 }
@@ -747,7 +749,11 @@ func (g *graphics12) moveToNextFrame() error {
 	if microsoftgdk.IsXbox() {
 		g.frameIndex = (g.frameIndex + 1) % frameCount
 	} else {
-		g.frameIndex = g.graphicsInfra.currentBackBufferIndex()
+		idx, err := g.graphicsInfra.currentBackBufferIndex()
+		if err != nil {
+			return err
+		}
+		g.frameIndex = idx
 	}
 
 	if g.fence.GetCompletedValue() < g.fenceValues[g.frameIndex] {
@@ -861,19 +867,7 @@ func (g *graphics12) waitForCommandQueue() error {
 }
 
 func (g *graphics12) SetTransparent(transparent bool) {
-	g.transparent = transparent
-}
-
-func pow2(x uint32) uint32 {
-	if x > (math.MaxUint32+1)/2 {
-		return math.MaxUint32
-	}
-
-	var p2 uint32 = 1
-	for p2 < x {
-		p2 *= 2
-	}
-	return p2
+	// TODO: Implement this?
 }
 
 func (g *graphics12) SetVertices(vertices []float32, indices []uint16) (ferr error) {
@@ -884,7 +878,7 @@ func (g *graphics12) SetVertices(vertices []float32, indices []uint16) (ferr err
 	} else {
 		g.vertices[g.frameIndex] = append(g.vertices[g.frameIndex], nil)
 	}
-	vsize := pow2(uint32(len(vertices)) * uint32(unsafe.Sizeof(float32(0))))
+	vsize := pow2(uint32(len(vertices)) * uint32(unsafe.Sizeof(vertices[0])))
 	if g.vertices[g.frameIndex][vidx] != nil && g.vertices[g.frameIndex][vidx].sizeInBytes < vsize {
 		g.vertices[g.frameIndex][vidx].release()
 		g.vertices[g.frameIndex][vidx] = nil
@@ -913,7 +907,7 @@ func (g *graphics12) SetVertices(vertices []float32, indices []uint16) (ferr err
 	} else {
 		g.indices[g.frameIndex] = append(g.indices[g.frameIndex], nil)
 	}
-	isize := pow2(uint32(len(indices)) * uint32(unsafe.Sizeof(uint16(0))))
+	isize := pow2(uint32(len(indices)) * uint32(unsafe.Sizeof(indices[0])))
 	if g.indices[g.frameIndex][iidx] != nil && g.indices[g.frameIndex][iidx].sizeInBytes < isize {
 		g.indices[g.frameIndex][iidx].release()
 		g.indices[g.frameIndex][iidx] = nil
@@ -1031,9 +1025,9 @@ func (g *graphics12) removeImage(img *image12) {
 	g.disposedImages[g.frameIndex] = append(g.disposedImages[g.frameIndex], img)
 }
 
-func (g *graphics12) addShader(s *Shader) {
+func (g *graphics12) addShader(s *shader12) {
 	if g.shaders == nil {
-		g.shaders = map[graphicsdriver.ShaderID]*Shader{}
+		g.shaders = map[graphicsdriver.ShaderID]*shader12{}
 	}
 	if _, ok := g.shaders[s.id]; ok {
 		panic(fmt.Sprintf("directx: shader ID %d was already registered", s.id))
@@ -1041,7 +1035,7 @@ func (g *graphics12) addShader(s *Shader) {
 	g.shaders[s.id] = s
 }
 
-func (g *graphics12) removeShader(s *Shader) {
+func (g *graphics12) removeShader(s *shader12) {
 	delete(g.shaders, s.id)
 	g.disposedShaders[g.frameIndex] = append(g.disposedShaders[g.frameIndex], s)
 }
@@ -1078,7 +1072,7 @@ func (g *graphics12) NewShader(program *shaderir.Program) (graphicsdriver.Shader
 		return nil, err
 	}
 
-	s := &Shader{
+	s := &shader12{
 		graphics:       g,
 		id:             g.genNextShaderID(),
 		uniformTypes:   program.Uniforms,
@@ -1138,7 +1132,7 @@ func (g *graphics12) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.
 	}
 
 	shader := g.shaders[shaderID]
-	adjustedUniforms := shader.adjustUniforms(uniforms)
+	adjustedUniforms := adjustUniforms(shader.uniformTypes, shader.uniformOffsets, uniforms)
 
 	w, h := dst.internalSize()
 	g.needFlushDrawCommandList = true

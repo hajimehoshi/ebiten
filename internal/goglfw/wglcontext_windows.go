@@ -14,6 +14,7 @@ import (
 	"golang.org/x/sys/windows"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/microsoftgdk"
+	"github.com/hajimehoshi/ebiten/v2/internal/winver"
 )
 
 func findPixelFormatAttribValue(attribs []int32, values []int32, attrib int32) int32 {
@@ -230,9 +231,9 @@ func makeContextCurrentWGL(window *Window) error {
 }
 
 func swapBuffersWGL(window *Window) error {
-	if window.monitor == nil && _IsWindowsVistaOrGreater() {
+	if window.monitor == nil && winver.IsWindowsVistaOrGreater() {
 		// DWM Composition is always enabled on Win8+
-		enabled := _IsWindows8OrGreater()
+		enabled := winver.IsWindows8OrGreater()
 
 		if !enabled {
 			var err error
@@ -266,9 +267,9 @@ func swapIntervalWGL(interval int) error {
 
 	window.context.platform.interval = interval
 
-	if window.monitor == nil && _IsWindowsVistaOrGreater() {
+	if window.monitor == nil && winver.IsWindowsVistaOrGreater() {
 		// DWM Composition is always enabled on Win8+
-		enabled := _IsWindows8OrGreater()
+		enabled := winver.IsWindows8OrGreater()
 
 		if !enabled {
 			e, err := _DwmIsCompositionEnabled()
