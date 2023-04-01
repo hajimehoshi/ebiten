@@ -909,7 +909,8 @@ func (w *Window) platformWindowIconified() bool {
 }
 
 func (w *Window) platformWindowVisible() bool {
-	panic("NOT IMPLEMENTED")
+	log.Println("platformWindowVisible: NOT IMPLEMENTED")
+	return false
 }
 
 func (w *Window) platformWindowMaximized() bool {

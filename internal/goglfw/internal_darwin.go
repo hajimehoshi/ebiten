@@ -8,7 +8,6 @@ package goglfw
 import (
 	"github.com/ebitengine/purego/objc"
 	"github.com/hajimehoshi/ebiten/v2/internal/cocoa"
-	"github.com/hajimehoshi/ebiten/v2/internal/corefoundation"
 )
 
 type platformContextState struct {
@@ -87,5 +86,5 @@ type platformLibraryWindowState struct {
 
 type platformLibraryContextState struct {
 	// dlopen handle for OpenGL.framework (for glfwGetProcAddress)
-	framework corefoundation.CFBundleRef
+	framework _CFBundleRef
 }

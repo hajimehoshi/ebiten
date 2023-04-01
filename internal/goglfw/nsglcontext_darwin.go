@@ -10,7 +10,6 @@ import (
 	"unsafe"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/cocoa"
-	cf "github.com/hajimehoshi/ebiten/v2/internal/corefoundation"
 )
 
 // Initialize OpenGL support
@@ -19,11 +18,7 @@ func initNSGL() error {
 		return nil
 	}
 
-	if err := cf.InitializeCF(); err != nil {
-		return err
-	}
-
-	_glfw.platformContext.framework = cf.CFBundleGetBundleWithIdentifier(cf.CFStringCreateWithCString(cf.KCFAllocatorDefault, []byte("com.apple.opengl\x00"), cf.KCFStringEncodingUTF8))
+	_glfw.platformContext.framework = _CFBundleGetBundleWithIdentifier(_CFStringCreateWithCString(kCFAllocatorDefault, []byte("com.apple.opengl\x00"), kCFStringEncodingUTF8))
 
 	if _glfw.platformContext.framework == 0 {
 		return fmt.Errorf("cocoa: failed to create application delegate")
@@ -218,11 +213,11 @@ func swapBuffersNSGL(w *Window) error {
 }
 
 func getProcAddressNSGL(s string) uintptr {
-	symbolName := cf.CFStringCreateWithCString(cf.KCFAllocatorDefault, CString(s), cf.KCFStringEncodingUTF8)
+	symbolName := _CFStringCreateWithCString(kCFAllocatorDefault, CString(s), kCFStringEncodingUTF8)
 
-	symbol := cf.CFBundleGetFunctionPointerForName(_glfw.platformContext.framework, symbolName)
+	symbol := _CFBundleGetFunctionPointerForName(_glfw.platformContext.framework, symbolName)
 
-	cf.CFRelease(cf.CFTypeRef(symbolName))
+	_CFRelease(_CFTypeRef(symbolName))
 
 	return symbol
 }

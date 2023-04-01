@@ -1,11 +1,23 @@
+// Copyright 2022 The Ebitengine Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package gamepad
 
 import (
 	"unsafe"
 
 	"github.com/ebitengine/purego"
-
-	"github.com/hajimehoshi/ebiten/v2/internal/corefoundation"
 )
 
 const kIOReturnSuccess = 0
@@ -101,20 +113,20 @@ func initializeIOKit() error {
 }
 
 var (
-	_IOHIDElementGetTypeID                      func() corefoundation.CFTypeID
-	_IOHIDManagerCreate                         func(allocator corefoundation.CFAllocatorRef, options _IOOptionBits) _IOHIDManagerRef
-	_IOHIDDeviceGetProperty                     func(device _IOHIDDeviceRef, key corefoundation.CFStringRef) corefoundation.CFTypeRef
+	_IOHIDElementGetTypeID                      func() _CFTypeID
+	_IOHIDManagerCreate                         func(allocator _CFAllocatorRef, options _IOOptionBits) _IOHIDManagerRef
+	_IOHIDDeviceGetProperty                     func(device _IOHIDDeviceRef, key _CFStringRef) _CFTypeRef
 	_IOHIDManagerOpen                           func(manager _IOHIDManagerRef, options _IOOptionBits) _IOReturn
-	_IOHIDManagerSetDeviceMatchingMultiple      func(manager _IOHIDManagerRef, multiple corefoundation.CFArrayRef)
+	_IOHIDManagerSetDeviceMatchingMultiple      func(manager _IOHIDManagerRef, multiple _CFArrayRef)
 	_IOHIDManagerRegisterDeviceMatchingCallback func(manager _IOHIDManagerRef, callback _IOHIDDeviceCallback, context unsafe.Pointer)
 	_IOHIDManagerRegisterDeviceRemovalCallback  func(manager _IOHIDManagerRef, callback _IOHIDDeviceCallback, context unsafe.Pointer)
-	_IOHIDManagerScheduleWithRunLoop            func(manager _IOHIDManagerRef, runLoop corefoundation.CFRunLoopRef, runLoopMode corefoundation.CFStringRef)
+	_IOHIDManagerScheduleWithRunLoop            func(manager _IOHIDManagerRef, runLoop _CFRunLoopRef, runLoopMode _CFStringRef)
 	_IOHIDElementGetType                        func(element _IOHIDElementRef) _IOHIDElementType
 	_IOHIDElementGetUsage                       func(element _IOHIDElementRef) uint32
 	_IOHIDElementGetUsagePage                   func(element _IOHIDElementRef) uint32
-	_IOHIDElementGetLogicalMin                  func(element _IOHIDElementRef) corefoundation.CFIndex
-	_IOHIDElementGetLogicalMax                  func(element _IOHIDElementRef) corefoundation.CFIndex
+	_IOHIDElementGetLogicalMin                  func(element _IOHIDElementRef) _CFIndex
+	_IOHIDElementGetLogicalMax                  func(element _IOHIDElementRef) _CFIndex
 	_IOHIDDeviceGetValue                        func(device _IOHIDDeviceRef, element _IOHIDElementRef, pValue *_IOHIDValueRef) _IOReturn
-	_IOHIDValueGetIntegerValue                  func(value _IOHIDValueRef) corefoundation.CFIndex
-	_IOHIDDeviceCopyMatchingElements            func(device _IOHIDDeviceRef, matching corefoundation.CFDictionaryRef, options _IOOptionBits) corefoundation.CFArrayRef
+	_IOHIDValueGetIntegerValue                  func(value _IOHIDValueRef) _CFIndex
+	_IOHIDDeviceCopyMatchingElements            func(device _IOHIDDeviceRef, matching _CFDictionaryRef, options _IOOptionBits) _CFArrayRef
 )

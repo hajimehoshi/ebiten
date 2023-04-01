@@ -15,7 +15,6 @@
 package goglfw
 
 import (
-	"reflect"
 	"strings"
 	"unsafe"
 
@@ -54,19 +53,27 @@ var (
 	class_NSOpenGLContext     = objc.GetClass("NSOpenGLContext")
 )
 
+var (
+	sel_alloc               = objc.RegisterName("alloc")
+	sel_initWithAttributes  = objc.RegisterName("initWithAttributes:")
+	sel_clearCurrentContext = objc.RegisterName("clearCurrentContext")
+	sel_makeContextCurrent  = objc.RegisterName("makeCurrentContext")
+	sel_init                = objc.RegisterName("init")
+)
+
 type NSOpenGLPixelFormat struct {
 	objc.ID
 }
 
 func NSOpenGLPixelFormat_alloc() NSOpenGLPixelFormat {
-	return NSOpenGLPixelFormat{objc.ID(class_NSOpenGLPixelFormat).Send(objc.RegisterName("alloc"))}
+	return NSOpenGLPixelFormat{objc.ID(class_NSOpenGLPixelFormat).Send(sel_alloc)}
 }
 
 func (f NSOpenGLPixelFormat) initWithAttributes(attribs []NSOpenGLPixelFormatAttribute) NSOpenGLPixelFormat {
 	if attribs[len(attribs)-1] != 0 {
 		panic("glfwwin: attribs must end with null terminator")
 	}
-	return NSOpenGLPixelFormat{f.Send(objc.RegisterName("initWithAttributes:"), &attribs[0])}
+	return NSOpenGLPixelFormat{f.Send(sel_initWithAttributes, &attribs[0])}
 }
 
 type NSOpenGLContext struct {
@@ -74,11 +81,11 @@ type NSOpenGLContext struct {
 }
 
 func NSOpenGLContext_alloc() NSOpenGLContext {
-	return NSOpenGLContext{objc.ID(class_NSOpenGLContext).Send(objc.RegisterName("alloc"))}
+	return NSOpenGLContext{objc.ID(class_NSOpenGLContext).Send(sel_alloc)}
 }
 
 func NSOpenGLContext_clearCurrentContext() {
-	objc.ID(class_NSOpenGLContext).Send(objc.RegisterName("clearCurrentContext"))
+	objc.ID(class_NSOpenGLContext).Send(sel_clearCurrentContext)
 }
 
 func (c NSOpenGLContext) initWithFormat_shareContext(format NSOpenGLPixelFormat, share NSOpenGLContext) NSOpenGLContext {
@@ -86,7 +93,7 @@ func (c NSOpenGLContext) initWithFormat_shareContext(format NSOpenGLPixelFormat,
 }
 
 func (c NSOpenGLContext) makeCurrentContext() {
-	c.Send(objc.RegisterName("makeCurrentContext"))
+	c.Send(sel_makeContextCurrent)
 }
 
 func (c NSOpenGLContext) setValues_forParameter(vals *int, param NSOpenGLContextParameter) {
@@ -97,8 +104,6 @@ func (c NSOpenGLContext) flushBuffer() {
 	c.Send(objc.RegisterName("flushBuffer"))
 }
 
-var sel_init = objc.RegisterName("init")
-
 // CString converts a go string to *byte that can be passed to C code.
 func CString(name string) []byte {
 	if strings.HasSuffix(name, "\x00") {
@@ -107,29 +112,6 @@ func CString(name string) []byte {
 	b := make([]byte, len(name)+1)
 	copy(b, name)
 	return b
-}
-
-func GoString(p uintptr) string {
-	if p == 0 {
-		return ""
-	}
-	var length int
-	for {
-		// use unsafe.Add once we reach 1.17
-		if *(*byte)(unsafe.Pointer(uintptr(unsafe.Pointer(p)) + uintptr(length))) == '\x00' {
-			break
-		}
-		length++
-	}
-	// use unsafe.Slice once we reach 1.17
-	s := make([]byte, length)
-	var src []byte
-	h := (*reflect.SliceHeader)(unsafe.Pointer(&src))
-	h.Data = uintptr(unsafe.Pointer(p))
-	h.Len = length
-	h.Cap = length
-	copy(s, src)
-	return string(s)
 }
 
 var (
@@ -151,6 +133,9 @@ func init() {
 	procCGDisplayModeRelease, _ = purego.Dlsym(_CoreGraphics, "CGDisplayModeRelease")
 	procCGDisplayModeGetWidth, _ = purego.Dlsym(_CoreGraphics, "CGDisplayModeGetWidth")
 	procCGDisplayModeGetHeight, _ = purego.Dlsym(_CoreGraphics, "CGDisplayModeGetHeight")
+	if err := initializeCF(); err != nil {
+		panic(err)
+	}
 }
 
 type (
@@ -201,3 +186,101 @@ func init() {
 	purego.RegisterLibFunc(&_CGDisplayModeGetRefreshRate, _CoreGraphics, "CGDisplayModeGetRefreshRate")
 	purego.RegisterLibFunc(&_CGDisplayBounds, _CoreGraphics, "CGDisplayBounds")
 }
+
+// This code is mostly copied from api_cf_darwin.go with some additional functions
+type (
+	_CFIndex                    int64
+	_CFAllocatorRef             uintptr
+	_CFArrayRef                 uintptr
+	_CFDictionaryRef            uintptr
+	_CFNumberRef                uintptr
+	_CFTypeRef                  uintptr
+	_CFRunLoopRef               uintptr
+	_CFNumberType               uintptr
+	_CFStringRef                uintptr
+	_CFBundleRef                uintptr
+	_CFArrayCallBacks           struct{}
+	_CFDictionaryKeyCallBacks   struct{}
+	_CFDictionaryValueCallBacks struct{}
+	_CFRunLoopRunResult         int32
+	_CFRunLoopMode              = _CFStringRef
+	_CFTimeInterval             float64
+	_CFTypeID                   uint64
+	_CFStringEncoding           uint32
+)
+
+var kCFAllocatorDefault _CFAllocatorRef = 0
+
+const (
+	kCFStringEncodingUTF8 _CFStringEncoding = 0x08000100
+)
+
+const (
+	kCFNumberSInt32Type _CFNumberType = 3
+	kCFNumberIntType    _CFNumberType = 9
+)
+
+var (
+	kCFTypeDictionaryKeyCallBacks   uintptr
+	kCFTypeDictionaryValueCallBacks uintptr
+	kCFTypeArrayCallBacks           uintptr
+	kCFRunLoopDefaultMode           uintptr
+)
+
+func initializeCF() error {
+	corefoundation, err := purego.Dlopen("CoreFoundation.framework/CoreFoundation", purego.RTLD_LAZY|purego.RTLD_GLOBAL)
+	if err != nil {
+		return err
+	}
+
+	kCFTypeDictionaryKeyCallBacks, err = purego.Dlsym(corefoundation, "kCFTypeDictionaryKeyCallBacks")
+	if err != nil {
+		return err
+	}
+	kCFTypeDictionaryValueCallBacks, err = purego.Dlsym(corefoundation, "kCFTypeDictionaryValueCallBacks")
+	if err != nil {
+		return err
+	}
+	kCFTypeArrayCallBacks, err = purego.Dlsym(corefoundation, "kCFTypeArrayCallBacks")
+	if err != nil {
+		return err
+	}
+	kCFRunLoopDefaultMode, err = purego.Dlsym(corefoundation, "kCFRunLoopDefaultMode")
+	if err != nil {
+		return err
+	}
+
+	purego.RegisterLibFunc(&_CFNumberCreate, corefoundation, "CFNumberCreate")
+	purego.RegisterLibFunc(&_CFNumberGetValue, corefoundation, "CFNumberGetValue")
+	purego.RegisterLibFunc(&_CFArrayCreate, corefoundation, "CFArrayCreate")
+	purego.RegisterLibFunc(&_CFArrayGetValueAtIndex, corefoundation, "CFArrayGetValueAtIndex")
+	purego.RegisterLibFunc(&_CFArrayGetCount, corefoundation, "CFArrayGetCount")
+	purego.RegisterLibFunc(&_CFDictionaryCreate, corefoundation, "CFDictionaryCreate")
+	purego.RegisterLibFunc(&_CFRelease, corefoundation, "CFRelease")
+	purego.RegisterLibFunc(&_CFRunLoopGetMain, corefoundation, "CFRunLoopGetMain")
+	purego.RegisterLibFunc(&_CFRunLoopRunInMode, corefoundation, "CFRunLoopRunInMode")
+	purego.RegisterLibFunc(&_CFGetTypeID, corefoundation, "CFGetTypeID")
+	purego.RegisterLibFunc(&_CFStringGetCString, corefoundation, "CFStringGetCString")
+	purego.RegisterLibFunc(&_CFStringCreateWithCString, corefoundation, "CFStringCreateWithCString")
+	purego.RegisterLibFunc(&_CFBundleGetBundleWithIdentifier, corefoundation, "CFBundleGetBundleWithIdentifier")
+	purego.RegisterLibFunc(&_CFBundleGetFunctionPointerForName, corefoundation, "CFBundleGetFunctionPointerForName")
+
+	return nil
+}
+
+var (
+	_CFNumberCreate                    func(allocator _CFAllocatorRef, theType _CFNumberType, valuePtr unsafe.Pointer) _CFNumberRef
+	_CFNumberGetValue                  func(number _CFNumberRef, theType _CFNumberType, valuePtr unsafe.Pointer) bool
+	_CFArrayCreate                     func(allocator _CFAllocatorRef, values *unsafe.Pointer, numValues _CFIndex, callbacks *_CFArrayCallBacks) _CFArrayRef
+	_CFArrayGetValueAtIndex            func(array _CFArrayRef, index _CFIndex) uintptr
+	_CFArrayGetCount                   func(array _CFArrayRef) _CFIndex
+	_CFDictionaryCreate                func(allocator _CFAllocatorRef, keys *unsafe.Pointer, values *unsafe.Pointer, numValues _CFIndex, keyCallBacks *_CFDictionaryKeyCallBacks, valueCallBacks *_CFDictionaryValueCallBacks) _CFDictionaryRef
+	_CFRelease                         func(cf _CFTypeRef)
+	_CFRunLoopGetMain                  func() _CFRunLoopRef
+	_CFRunLoopRunInMode                func(mode _CFRunLoopMode, seconds _CFTimeInterval, returnAfterSourceHandled bool) _CFRunLoopRunResult
+	_CFGetTypeID                       func(cf _CFTypeRef) _CFTypeID
+	_CFStringGetCString                func(theString _CFStringRef, buffer []byte, encoding _CFStringEncoding) bool
+	_CFStringCreateWithCString         func(alloc _CFAllocatorRef, cstr []byte, encoding _CFStringEncoding) _CFStringRef
+	_CFBundleGetBundleWithIdentifier   func(bundleID _CFStringRef) _CFBundleRef
+	_CFBundleGetFunctionPointerForName func(bundle _CFBundleRef, functionName _CFStringRef) uintptr
+)

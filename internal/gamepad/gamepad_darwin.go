@@ -19,7 +19,6 @@ package gamepad
 import (
 	"errors"
 	"fmt"
-	"github.com/hajimehoshi/ebiten/v2/internal/corefoundation"
 	"sort"
 	"strings"
 	"sync"
@@ -41,14 +40,14 @@ func newNativeGamepadsImpl() nativeGamepads {
 }
 
 func (g *nativeGamepadsImpl) init(gamepads *gamepads) error {
-	if err := corefoundation.InitializeCF(); err != nil {
+	if err := initializeCF(); err != nil {
 		return err
 	}
 	if err := initializeIOKit(); err != nil {
 		return err
 	}
 
-	var dicts []corefoundation.CFDictionaryRef
+	var dicts []_CFDictionaryRef
 
 	page := kHIDPage_GenericDesktop
 	for _, usage := range []uint{
@@ -56,48 +55,48 @@ func (g *nativeGamepadsImpl) init(gamepads *gamepads) error {
 		kHIDUsage_GD_GamePad,
 		kHIDUsage_GD_MultiAxisController,
 	} {
-		pageRef := corefoundation.CFNumberCreate(corefoundation.KCFAllocatorDefault, corefoundation.KCFNumberIntType, unsafe.Pointer(&page))
+		pageRef := _CFNumberCreate(kCFAllocatorDefault, kCFNumberIntType, unsafe.Pointer(&page))
 		if pageRef == 0 {
 			return errors.New("gamepad: CFNumberCreate returned nil")
 		}
-		defer corefoundation.CFRelease(corefoundation.CFTypeRef(pageRef))
+		defer _CFRelease(_CFTypeRef(pageRef))
 
-		usageRef := corefoundation.CFNumberCreate(corefoundation.KCFAllocatorDefault, corefoundation.KCFNumberIntType, unsafe.Pointer(&usage))
+		usageRef := _CFNumberCreate(kCFAllocatorDefault, kCFNumberIntType, unsafe.Pointer(&usage))
 		if usageRef == 0 {
 			return errors.New("gamepad: CFNumberCreate returned nil")
 		}
-		defer corefoundation.CFRelease(corefoundation.CFTypeRef(usageRef))
+		defer _CFRelease(_CFTypeRef(usageRef))
 
-		keys := []corefoundation.CFStringRef{
-			corefoundation.CFStringCreateWithCString(corefoundation.KCFAllocatorDefault, kIOHIDDeviceUsagePageKey, corefoundation.KCFStringEncodingUTF8),
-			corefoundation.CFStringCreateWithCString(corefoundation.KCFAllocatorDefault, kIOHIDDeviceUsageKey, corefoundation.KCFStringEncodingUTF8),
+		keys := []_CFStringRef{
+			_CFStringCreateWithCString(kCFAllocatorDefault, kIOHIDDeviceUsagePageKey, kCFStringEncodingUTF8),
+			_CFStringCreateWithCString(kCFAllocatorDefault, kIOHIDDeviceUsageKey, kCFStringEncodingUTF8),
 		}
-		values := []corefoundation.CFNumberRef{
+		values := []_CFNumberRef{
 			pageRef,
 			usageRef,
 		}
 
-		dict := corefoundation.CFDictionaryCreate(corefoundation.KCFAllocatorDefault,
+		dict := _CFDictionaryCreate(kCFAllocatorDefault,
 			(*unsafe.Pointer)(unsafe.Pointer(&keys[0])),
 			(*unsafe.Pointer)(unsafe.Pointer(&values[0])),
-			corefoundation.CFIndex(len(keys)), corefoundation.KCFTypeDictionaryKeyCallBacks, corefoundation.KCFTypeDictionaryValueCallBacks)
+			_CFIndex(len(keys)), *(**_CFDictionaryKeyCallBacks)(unsafe.Pointer(&kCFTypeDictionaryKeyCallBacks)), *(**_CFDictionaryValueCallBacks)(unsafe.Pointer(&kCFTypeDictionaryValueCallBacks)))
 		if dict == 0 {
 			return errors.New("gamepad: CFDictionaryCreate returned nil")
 		}
-		defer corefoundation.CFRelease(corefoundation.CFTypeRef(dict))
+		defer _CFRelease(_CFTypeRef(dict))
 
 		dicts = append(dicts, dict)
 	}
 
-	matching := corefoundation.CFArrayCreate(corefoundation.KCFAllocatorDefault,
+	matching := _CFArrayCreate(kCFAllocatorDefault,
 		(*unsafe.Pointer)(unsafe.Pointer(&dicts[0])),
-		corefoundation.CFIndex(len(dicts)), corefoundation.KCFTypeArrayCallBacks)
+		_CFIndex(len(dicts)), *(**_CFArrayCallBacks)(unsafe.Pointer(&kCFTypeArrayCallBacks)))
 	if matching == 0 {
 		return errors.New("gamepad: CFArrayCreateMutable returned nil")
 	}
-	defer corefoundation.CFRelease(corefoundation.CFTypeRef(matching))
+	defer _CFRelease(_CFTypeRef(matching))
 
-	g.hidManager = _IOHIDManagerCreate(corefoundation.KCFAllocatorDefault, kIOHIDOptionsTypeNone)
+	g.hidManager = _IOHIDManagerCreate(kCFAllocatorDefault, kIOHIDOptionsTypeNone)
 	if _IOHIDManagerOpen(g.hidManager, kIOHIDOptionsTypeNone) != kIOReturnSuccess {
 		return errors.New("gamepad: IOHIDManagerOpen failed")
 	}
@@ -106,10 +105,10 @@ func (g *nativeGamepadsImpl) init(gamepads *gamepads) error {
 	_IOHIDManagerRegisterDeviceMatchingCallback(g.hidManager, ebitenGamepadMatchingCallback, nil)
 	_IOHIDManagerRegisterDeviceRemovalCallback(g.hidManager, ebitenGamepadRemovalCallback, nil)
 
-	_IOHIDManagerScheduleWithRunLoop(g.hidManager, corefoundation.CFRunLoopGetMain(), corefoundation.KCFRunLoopDefaultMode)
+	_IOHIDManagerScheduleWithRunLoop(g.hidManager, _CFRunLoopGetMain(), **(**_CFStringRef)(unsafe.Pointer(&kCFRunLoopDefaultMode)))
 
 	// Execute the run loop once in order to register any initially-attached gamepads.
-	corefoundation.CFRunLoopRunInMode(corefoundation.KCFRunLoopDefaultMode, 0, false)
+	_CFRunLoopRunInMode(**(**_CFStringRef)(unsafe.Pointer(&kCFRunLoopDefaultMode)), 0, false)
 
 	return nil
 }
@@ -154,25 +153,25 @@ func (g *nativeGamepadsImpl) addDevice(device _IOHIDDeviceRef, gamepads *gamepad
 	}
 
 	name := "Unknown"
-	if prop := _IOHIDDeviceGetProperty(_IOHIDDeviceRef(device), corefoundation.CFStringCreateWithCString(corefoundation.KCFAllocatorDefault, kIOHIDProductKey, corefoundation.KCFStringEncodingUTF8)); prop != 0 {
+	if prop := _IOHIDDeviceGetProperty(device, _CFStringCreateWithCString(kCFAllocatorDefault, kIOHIDProductKey, kCFStringEncodingUTF8)); prop != 0 {
 		var cstr [256]byte
-		corefoundation.CFStringGetCString(corefoundation.CFStringRef(prop), cstr[:], corefoundation.KCFStringEncodingUTF8)
+		_CFStringGetCString(_CFStringRef(prop), cstr[:], kCFStringEncodingUTF8)
 		name = strings.TrimRight(string(cstr[:]), "\x00")
 	}
 
 	var vendor uint32
-	if prop := _IOHIDDeviceGetProperty(_IOHIDDeviceRef(device), corefoundation.CFStringCreateWithCString(corefoundation.KCFAllocatorDefault, kIOHIDVendorIDKey, corefoundation.KCFStringEncodingUTF8)); prop != 0 {
-		corefoundation.CFNumberGetValue(corefoundation.CFNumberRef(prop), corefoundation.KCFNumberSInt32Type, unsafe.Pointer(&vendor))
+	if prop := _IOHIDDeviceGetProperty(device, _CFStringCreateWithCString(kCFAllocatorDefault, kIOHIDVendorIDKey, kCFStringEncodingUTF8)); prop != 0 {
+		_CFNumberGetValue(_CFNumberRef(prop), kCFNumberSInt32Type, unsafe.Pointer(&vendor))
 	}
 
 	var product uint32
-	if prop := _IOHIDDeviceGetProperty(_IOHIDDeviceRef(device), corefoundation.CFStringCreateWithCString(corefoundation.KCFAllocatorDefault, kIOHIDProductIDKey, corefoundation.KCFStringEncodingUTF8)); prop != 0 {
-		corefoundation.CFNumberGetValue(corefoundation.CFNumberRef(prop), corefoundation.KCFNumberSInt32Type, unsafe.Pointer(&product))
+	if prop := _IOHIDDeviceGetProperty(device, _CFStringCreateWithCString(kCFAllocatorDefault, kIOHIDProductIDKey, kCFStringEncodingUTF8)); prop != 0 {
+		_CFNumberGetValue(_CFNumberRef(prop), kCFNumberSInt32Type, unsafe.Pointer(&product))
 	}
 
 	var version uint32
-	if prop := _IOHIDDeviceGetProperty(_IOHIDDeviceRef(device), corefoundation.CFStringCreateWithCString(corefoundation.KCFAllocatorDefault, kIOHIDVersionNumberKey, corefoundation.KCFStringEncodingUTF8)); prop != 0 {
-		corefoundation.CFNumberGetValue(corefoundation.CFNumberRef(prop), corefoundation.KCFNumberSInt32Type, unsafe.Pointer(&version))
+	if prop := _IOHIDDeviceGetProperty(device, _CFStringCreateWithCString(kCFAllocatorDefault, kIOHIDVersionNumberKey, kCFStringEncodingUTF8)); prop != 0 {
+		_CFNumberGetValue(_CFNumberRef(prop), kCFNumberSInt32Type, unsafe.Pointer(&version))
 	}
 
 	var sdlID string
@@ -191,7 +190,7 @@ func (g *nativeGamepadsImpl) addDevice(device _IOHIDDeviceRef, gamepads *gamepad
 	}
 
 	elements := _IOHIDDeviceCopyMatchingElements(device, 0, kIOHIDOptionsTypeNone)
-	defer corefoundation.CFRelease(corefoundation.CFTypeRef(elements))
+	defer _CFRelease(_CFTypeRef(elements))
 
 	n := &nativeGamepadImpl{
 		device: device,
@@ -199,9 +198,9 @@ func (g *nativeGamepadsImpl) addDevice(device _IOHIDDeviceRef, gamepads *gamepad
 	gp := gamepads.add(name, sdlID)
 	gp.native = n
 
-	for i := corefoundation.CFIndex(0); i < corefoundation.CFArrayGetCount(corefoundation.CFArrayRef(elements)); i++ {
-		native := (_IOHIDElementRef)(corefoundation.CFArrayGetValueAtIndex(corefoundation.CFArrayRef(elements), i))
-		if corefoundation.CFGetTypeID(corefoundation.CFTypeRef(native)) != _IOHIDElementGetTypeID() {
+	for i := _CFIndex(0); i < _CFArrayGetCount(elements); i++ {
+		native := (_IOHIDElementRef)(_CFArrayGetValueAtIndex(elements, i))
+		if _CFGetTypeID(_CFTypeRef(native)) != _IOHIDElementGetTypeID() {
 			continue
 		}
 
