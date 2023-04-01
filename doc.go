@@ -78,12 +78,19 @@
 // `EBITENGINE_DIRECTX` environment variable specifies various parameters for DirectX.
 // You can specify multiple values separated by a comma. The default value is empty (i.e. no parameters).
 //
-//	"warp":  Use WARP (i.e. software rendering).
-//	"debug": Use a debug layer.
+//	"debug":                      Use a debug layer.
+//	"warp":                       Use WARP (i.e. software rendering).
+//	"version=VERSION":            Specify a DirectX version (e.g. 11).
+//	"featurelevel=FEATURE_LEVEL": Specify a feature level (e.g. 11_0). This is for DirectX 12.
 //
-// `EBITENGINE_DIRECTX_FEATURE_LEVEL` environment variable specifies DirectX feature level.
-// The possible values are "11_0", "11_1", "12_0", "12_1", and "12_2".
-// The default value is "11_0".
+// The options taking arguments are exclusive, and if multiples are specified, the lastly specified value is adopted.
+//
+// The possible values for the option "version" are "11" and "12".
+// If the version is not specified, the default version 11 is adopted.
+// On Xbox, the "version" option is ignored and DirectX 12 is always adopted.
+//
+// The option "featurelevel" is valid only for DirectX 12.
+// The possible values are "11_0", "11_1", "12_0", "12_1", and "12_2". The default value is "11_0".
 //
 // `EBITENGINE_OPENGL` environment variable specifies various parameters for OpenGL.
 // You can specify multiple values separated by a comma. The default value is empty (i.e. no parameters).

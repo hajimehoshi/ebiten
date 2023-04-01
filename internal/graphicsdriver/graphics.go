@@ -57,6 +57,10 @@ type Graphics interface {
 	DrawTriangles(dst ImageID, srcs [graphics.ShaderImageCount]ImageID, shader ShaderID, dstRegions []DstRegion, indexOffset int, blend Blend, uniforms []uint32, evenOdd bool) error
 }
 
+type Resetter interface {
+	Reset() error
+}
+
 type Image interface {
 	ID() ImageID
 	Dispose()

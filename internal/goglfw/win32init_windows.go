@@ -12,6 +12,7 @@ import (
 	"golang.org/x/sys/windows"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/microsoftgdk"
+	"github.com/hajimehoshi/ebiten/v2/internal/winver"
 )
 
 func createKeyTables() {
@@ -238,41 +239,6 @@ func createHelperWindow() error {
 	return nil
 }
 
-func isWindowsVersionOrGreaterWin32(major, minor, sp uint16) bool {
-	osvi := _OSVERSIONINFOEXW{
-		dwMajorVersion:    uint32(major),
-		dwMinorVersion:    uint32(minor),
-		wServicePackMajor: sp,
-	}
-	osvi.dwOSVersionInfoSize = uint32(unsafe.Sizeof(osvi))
-	var mask uint32 = _VER_MAJORVERSION | _VER_MINORVERSION | _VER_SERVICEPACKMAJOR
-	cond := _VerSetConditionMask(0, _VER_MAJORVERSION, _VER_GREATER_EQUAL)
-	cond = _VerSetConditionMask(cond, _VER_MINORVERSION, _VER_GREATER_EQUAL)
-	cond = _VerSetConditionMask(cond, _VER_SERVICEPACKMAJOR, _VER_GREATER_EQUAL)
-	// HACK: Use RtlVerifyVersionInfo instead of VerifyVersionInfoW as the
-	//       latter lies unless the user knew to embed a non-default manifest
-	//       announcing support for Windows 10 via supportedOS GUID
-	return _RtlVerifyVersionInfo(&osvi, mask, cond) == 0
-}
-
-func isWindows10BuildOrGreaterWin32(build uint16) bool {
-	osvi := _OSVERSIONINFOEXW{
-		dwMajorVersion: 10,
-		dwMinorVersion: 0,
-		dwBuildNumber:  uint32(build),
-	}
-	osvi.dwOSVersionInfoSize = uint32(unsafe.Sizeof(osvi))
-	var mask uint32 = _VER_MAJORVERSION | _VER_MINORVERSION | _VER_BUILDNUMBER
-	cond := _VerSetConditionMask(0, _VER_MAJORVERSION, _VER_GREATER_EQUAL)
-	cond = _VerSetConditionMask(cond, _VER_MINORVERSION, _VER_GREATER_EQUAL)
-	cond = _VerSetConditionMask(cond, _VER_BUILDNUMBER, _VER_GREATER_EQUAL)
-
-	// HACK: Use RtlVerifyVersionInfo instead of VerifyVersionInfoW as the
-	//       latter lies unless the user knew to embed a non-default manifest
-	//       announcing support for Windows 10 via supportedOS GUID
-	return _RtlVerifyVersionInfo(&osvi, mask, cond) == 0
-}
-
 func platformInit() error {
 	// Changing the foreground lock timeout was removed from the original code.
 	// See https://github.com/glfw/glfw/commit/58b48a3a00d9c2a5ca10cc23069a71d8773cc7a4
@@ -286,17 +252,17 @@ func platformInit() error {
 	createKeyTables()
 	updateKeyNamesWin32()
 
-	if isWindows10CreatorsUpdateOrGreaterWin32() {
+	if winver.IsWindows10CreatorsUpdateOrGreater() {
 		if !microsoftgdk.IsXbox() {
 			// Ignore the error as SetProcessDpiAwarenessContext returns an error on Steam Deck (#2113).
 			// This seems an issue in Wine and/or Proton, but there is nothing we can do.
 			_ = _SetProcessDpiAwarenessContext(_DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2)
 		}
-	} else if _IsWindows8Point1OrGreater() {
+	} else if winver.IsWindows8Point1OrGreater() {
 		if err := _SetProcessDpiAwareness(_PROCESS_PER_MONITOR_DPI_AWARE); err != nil && !errors.Is(err, handleError(windows.E_ACCESSDENIED)) {
 			return err
 		}
-	} else if _IsWindowsVistaOrGreater() {
+	} else if winver.IsWindowsVistaOrGreater() {
 		_SetProcessDPIAware()
 	}
 

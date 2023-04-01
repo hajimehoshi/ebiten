@@ -116,11 +116,10 @@ jobs:
           go mod vendor
           go build -v .
 
-      - name: go test
-        # TODO: Add more test environments (#1305)
-        if: runner.os == 'Linux' || runner.os == 'Windows'
+      - name: go test (Linux)
+        if: runner.os == 'Linux'
         run: |
-          go test -shuffle=on -v ${{ runner.os == 'Linux' && '-p 1' || '' }} ./...
+          go test -shuffle=on -v -p=1 ./...
 
       - name: go test (Linux 386)
         if: runner.os == 'Linux'
@@ -129,18 +128,25 @@ jobs:
           sudo apt-get update
           sudo apt-get install gcc-multilib
           sudo apt-get install libasound2-dev:i386 libgl1-mesa-dev:i386 libxcursor-dev:i386 libxi-dev:i386 libxinerama-dev:i386 libxrandr-dev:i386 libxxf86vm-dev:i386
-          env CGO_ENABLED=1 GOARCH=386 go test -shuffle=on -v ${{ runner.os == 'Linux' && '-p 1' || '' }} ./...
+          env CGO_ENABLED=1 GOARCH=386 go test -shuffle=on -v -p=1 ./...
 
       - name: go test (Linux OpenGL ES)
         if: runner.os == 'Linux'
         run: |
           sudo apt-get install libgles2-mesa-dev
-          env EBITENGINE_GRAPHICS_LIBRARY=opengl EBITENGINE_OPENGL=es go test -shuffle=on -v ${{ runner.os == 'Linux' && '-p 1' || '' }} ./...
+          env EBITENGINE_GRAPHICS_LIBRARY=opengl EBITENGINE_OPENGL=es go test -shuffle=on -v -p=1 ./...
+
+      - name: go test (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          go test -shuffle=on -v ./...
+          env EBITENGINE_DIRECTX=version=12 go test -shuffle=on -v ./...
 
       - name: go test (Windows 386)
         if: runner.os == 'Windows'
         run: |
           env GOARCH=386 go test -shuffle=on -v ./...
+          env GOARCH=386 EBITENGINE_DIRECTX=version=12 go test -shuffle=on -v ./...
 
       - name: go test (Wasm)
         run: |
