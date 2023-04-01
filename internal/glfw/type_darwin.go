@@ -18,7 +18,7 @@ type (
 	CharModsCallback        func(window uintptr, char rune, mods ModifierKey)
 	CloseCallback           func(window uintptr)
 	FramebufferSizeCallback func(window uintptr, width int, height int)
-	DropCallback            func(window uintptr, names **byte)
+	DropCallback            func(window uintptr, count int, names **byte)
 	MonitorCallback         func(monitor uintptr, event PeripheralEvent)
 	ScrollCallback          func(window uintptr, xoff float64, yoff float64)
 	SizeCallback            func(window uintptr, width int, height int)

@@ -14,7 +14,11 @@
 
 package glfw
 
-import "fmt"
+import (
+	"unsafe"
+
+	"golang.org/x/sys/unix"
+)
 
 func ToCharModsCallback(cb func(window *Window, char rune, mods ModifierKey)) CharModsCallback {
 	if cb == nil {
@@ -61,21 +65,20 @@ func ToScrollCallback(cb func(window *Window, xoff float64, yoff float64)) Scrol
 	}
 }
 
-func ToSizeCallback(cb func(window *Window, width int, height int)) SizeCallback {
-	if cb == nil {
-		return nil
-	}
-	return func(window uintptr, width int, height int) {
-		cb(theGLFWWindows.get(window), width, height)
-	}
-}
-
 func ToDropCallback(cb func(window *Window, names []string)) DropCallback {
 	if cb == nil {
 		return nil
 	}
-	fmt.Println("ToDropCallback: FIX ME")
-	return func(window uintptr, names **byte) {
-		cb(theGLFWWindows.get(window), nil)
+	return func(window uintptr, count int, path **byte) {
+		strs := make([]string, count)
+		names := unsafe.Slice(path, count)
+		for i := range strs {
+			n := names[i]
+			if n == nil {
+				break
+			}
+			strs[i] = unix.BytePtrToString(n)
+		}
+		cb(theGLFWWindows.get(window), strs)
 	}
 }

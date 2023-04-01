@@ -15,7 +15,6 @@
 package glfw
 
 import (
-	"fmt"
 	"image"
 	"image/draw"
 	"math"
@@ -226,7 +225,6 @@ func (w *Window) SetCloseCallback(cbfun CloseCallback) (previous CloseCallback) 
 }
 
 func (w *Window) SetDropCallback(cbfun DropCallback) (previous DropCallback) {
-	fmt.Println("SetDropCallback: doesn't check for nil terminated strings")
 	libglfw.call("glfwSetDropCallback", w.w, purego.NewCallback(cbfun))
 	panicError()
 	return DropCallback(nil) // TODO
