@@ -261,8 +261,7 @@ func (u *userInterfaceImpl) Monitor() *Monitor {
 			return m
 		}
 	}
-	monitor := glfwMonitorToMonitor(glfwMonitor)
-	return &monitor
+	return nil
 }
 
 func updateMonitors() {
