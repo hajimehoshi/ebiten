@@ -108,7 +108,7 @@ func acceptError(codes ...ErrorCode) error {
 		return nil
 	}
 	for _, c := range codes {
-		if e := err.(*glfwError); e.code == c {
+		if err.(*glfwError).code == c {
 			return err
 		}
 	}
