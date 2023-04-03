@@ -81,7 +81,7 @@ func (e *glfwError) Error() string {
 
 var lastErr = make(chan *glfwError, 1)
 
-func fetchError() *glfwError {
+func fetchError() error {
 	select {
 	case err := <-lastErr:
 		return err
@@ -108,11 +108,11 @@ func acceptError(codes ...ErrorCode) error {
 		return nil
 	}
 	for _, c := range codes {
-		if err.code == c {
+		if e := err.(*glfwError); e.code == c {
 			return err
 		}
 	}
-	switch err.code {
+	switch err.(*glfwError).code {
 	case PlatformError:
 		// TODO: Should we log this?
 		return nil
