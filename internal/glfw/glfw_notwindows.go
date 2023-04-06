@@ -70,6 +70,10 @@ type Monitor struct {
 	m *glfw.Monitor
 }
 
+func (m *Monitor) IsMonitor(other *Monitor) bool {
+	return *m.m == *other.m
+}
+
 func (m *Monitor) GetContentScale() (float32, float32, error) {
 	x, y := m.m.GetContentScale()
 	return x, y, nil

@@ -257,7 +257,7 @@ func (u *userInterfaceImpl) Monitor() *Monitor {
 		return nil
 	}
 	for _, m := range monitors {
-		if m.m == glfwMonitor {
+		if m.m.IsMonitor(glfwMonitor) {
 			return m
 		}
 	}
