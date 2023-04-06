@@ -20,9 +20,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
-// MonitorID represents a monitor's identifier.
-type MonitorID int
-
 // Monitor represents a monitor available to the system.
 type Monitor ui.Monitor
 
