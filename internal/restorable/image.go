@@ -257,7 +257,7 @@ func (i *Image) makeStale(rect image.Rectangle) {
 	}
 
 	// Remove duplicated regions to avoid unnecessary reading pixels from GPU.
-	n := removeDuplicatedRegions(i.staleRegions)
+	n := removeDuplicatedRegions(i.staleRegions, origNum)
 	i.staleRegions = i.staleRegions[:n]
 
 	// Don't have to call makeStale recursively here.
@@ -483,11 +483,12 @@ func (i *Image) readPixelsFromGPU(graphicsDriver graphicsdriver.Graphics) error 
 	if i.stale {
 		rs = i.staleRegions
 	} else {
+		origNum := len(i.regionsCache)
 		i.regionsCache = i.appendRegionsForDrawTriangles(i.regionsCache)
 		defer func() {
 			i.regionsCache = i.regionsCache[:0]
 		}()
-		n := removeDuplicatedRegions(i.regionsCache)
+		n := removeDuplicatedRegions(i.regionsCache, origNum)
 		rs = i.regionsCache[:n]
 	}
 
@@ -625,11 +626,12 @@ func (i *Image) restore(graphicsDriver graphicsdriver.Graphics) error {
 
 	// In order to clear the draw-triangles history, read pixels from GPU.
 	if len(i.drawTrianglesHistory) > 0 {
+		origNum := len(i.regionsCache)
 		i.regionsCache = i.appendRegionsForDrawTriangles(i.regionsCache)
 		defer func() {
 			i.regionsCache = i.regionsCache[:0]
 		}()
-		n := removeDuplicatedRegions(i.regionsCache)
+		n := removeDuplicatedRegions(i.regionsCache, origNum)
 		rs := i.regionsCache[:n]
 
 		for _, r := range rs {
@@ -708,7 +710,7 @@ func (i *Image) appendRegionsForDrawTriangles(regions []image.Rectangle) []image
 		regions = append(regions, r)
 	}
 
-	nn := removeDuplicatedRegions(regions[n:])
+	nn := removeDuplicatedRegions(regions[n:], 0)
 	return regions[:n+nn]
 }
 
@@ -722,15 +724,24 @@ func regionToRectangle(region graphicsdriver.Region) image.Rectangle {
 
 // removeDuplicatedRegions removes duplicated regions and returns the new size of the slice.
 // If a region covers other regions, the covered regions are removed.
-func removeDuplicatedRegions(regions []image.Rectangle) int {
+// This assumes for efficiency that no duplicated regions exist in regions[0:alreadyCheckedUntil].
+func removeDuplicatedRegions(regions []image.Rectangle, alreadyCheckedUntil int) int {
+	m := len(regions)
 	for i, r := range regions {
 		if r.Empty() {
 			continue
 		}
-		for j, rr := range regions {
+		jStart := 0
+		if i < alreadyCheckedUntil {
+			// Skip any rectangle pair i, j
+			// where i < alreadyCheckedUntil && j < alreadyCheckedUntil.
+			jStart = alreadyCheckedUntil
+		}
+		for j := jStart; j < m; j++ {
 			if i == j {
 				continue
 			}
+			rr := regions[j]
 			if rr.Empty() {
 				continue
 			}

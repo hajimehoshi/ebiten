@@ -37,8 +37,9 @@ func areEqualRectangles(a, b []image.Rectangle) bool {
 
 func TestRemoveDuplicatedRegions(t *testing.T) {
 	cases := []struct {
-		In  []image.Rectangle
-		Out []image.Rectangle
+		In                  []image.Rectangle
+		AlreadyCheckedUntil int
+		Out                 []image.Rectangle
 	}{
 		{
 			In:  nil,
@@ -117,10 +118,41 @@ func TestRemoveDuplicatedRegions(t *testing.T) {
 				image.Rect(0, 0, 5, 5),
 			},
 		},
+		{
+			In: []image.Rectangle{
+				image.Rect(0, 0, 1, 3),
+				image.Rect(0, 0, 2, 2),
+				image.Rect(0, 0, 3, 1),
+				image.Rect(0, 0, 4, 4),
+				image.Rect(0, 0, 5, 5),
+			},
+			// Only the last rectangle will be checked against the first four.
+			AlreadyCheckedUntil: 4,
+			Out: []image.Rectangle{
+				image.Rect(0, 0, 5, 5),
+			},
+		},
+		{
+			In: []image.Rectangle{
+				image.Rect(0, 0, 2, 2),
+				image.Rect(0, 0, 3, 1),
+				image.Rect(0, 0, 4, 4),
+				image.Rect(0, 0, 5, 5),
+				image.Rect(0, 0, 1, 3),
+			},
+			// Only the last rectangle will be checked against the first four.
+			AlreadyCheckedUntil: 4,
+			Out: []image.Rectangle{
+				image.Rect(0, 0, 2, 2),
+				image.Rect(0, 0, 3, 1),
+				image.Rect(0, 0, 4, 4),
+				image.Rect(0, 0, 5, 5),
+			},
+		},
 	}
 
 	for _, c := range cases {
-		n := restorable.RemoveDuplicatedRegions(c.In)
+		n := restorable.RemoveDuplicatedRegions(c.In, c.AlreadyCheckedUntil)
 		got := c.In[:n]
 		want := c.Out
 		if !areEqualRectangles(got, want) {
