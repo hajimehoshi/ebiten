@@ -198,17 +198,15 @@ func (*userInterfaceImpl) Window() Window {
 
 type Monitor struct{}
 
-// Bounds returns the monitor's bounds.
 func (m *Monitor) Bounds() image.Rectangle {
 	return image.Rect(0, 0, 0, 0)
 }
 
-// Name returns "".
 func (m *Monitor) Name() string {
 	return ""
 }
 
-func (u *userInterfaceImpl) Monitors() []*Monitor {
+func (u *userInterfaceImpl) AppendMonitors(mons []*Monitor) []*Monitor {
 	return nil
 }
 
