@@ -66,19 +66,21 @@ func CreateStandardCursor(shape StandardCursor) *Cursor {
 	return &Cursor{c: c}
 }
 
-type Monitor glfw.Monitor
+type Monitor struct {
+	m *glfw.Monitor
+}
 
 func (m *Monitor) GetContentScale() (float32, float32, error) {
-	x, y := (*glfw.Monitor)(m).GetContentScale()
+	x, y := m.m.GetContentScale()
 	return x, y, nil
 }
 
 func (m *Monitor) GetPos() (x, y int) {
-	return (*glfw.Monitor)(m).GetPos()
+	return m.m.GetPos()
 }
 
 func (m *Monitor) GetVideoMode() *VidMode {
-	v := (*glfw.Monitor)(m).GetVideoMode()
+	v := m.m.GetVideoMode()
 	if v == nil {
 		return nil
 	}
@@ -93,7 +95,7 @@ func (m *Monitor) GetVideoMode() *VidMode {
 }
 
 func (m *Monitor) GetName() string {
-	return (*glfw.Monitor)(m).GetName()
+	return m.m.GetName()
 }
 
 type Window struct {
@@ -132,7 +134,7 @@ func (w *Window) GetMonitor() *Monitor {
 	if m == nil {
 		return nil
 	}
-	return (*Monitor)(m)
+	return &Monitor{m}
 }
 
 func (w *Window) GetMouseButton(button MouseButton) Action {
@@ -234,7 +236,7 @@ func (w *Window) SetInputMode(mode InputMode, value int) {
 func (w *Window) SetMonitor(monitor *Monitor, xpos, ypos, width, height, refreshRate int) {
 	var m *glfw.Monitor
 	if monitor != nil {
-		m = (*glfw.Monitor)(monitor)
+		m = monitor.m
 	}
 	w.w.SetMonitor(m, xpos, ypos, width, height, refreshRate)
 }
@@ -266,7 +268,7 @@ func (w *Window) SwapBuffers() {
 func CreateWindow(width, height int, title string, monitor *Monitor, share *Window) (*Window, error) {
 	var gm *glfw.Monitor
 	if monitor != nil {
-		gm = (*glfw.Monitor)(monitor)
+		gm = monitor.m
 	}
 	var gw *glfw.Window
 	if share != nil {
@@ -288,7 +290,7 @@ func GetMonitors() []*Monitor {
 	ms := []*Monitor{}
 	for _, m := range glfw.GetMonitors() {
 		if m != nil {
-			ms = append(ms, (*Monitor)(m))
+			ms = append(ms, &Monitor{m})
 		} else {
 			ms = append(ms, nil)
 		}
@@ -301,7 +303,7 @@ func GetPrimaryMonitor() *Monitor {
 	if m == nil {
 		return nil
 	}
-	return (*Monitor)(m)
+	return &Monitor{m}
 }
 
 func Init() error {

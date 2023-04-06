@@ -63,7 +63,7 @@ func ToMonitorCallback(cb func(monitor *Monitor, event PeripheralEvent)) Monitor
 	return func(monitor *glfw.Monitor, event glfw.PeripheralEvent) {
 		var m *Monitor
 		if monitor != nil {
-			m = (*Monitor)(monitor)
+			m = &Monitor{monitor}
 		}
 		cb(m, PeripheralEvent(event))
 	}
