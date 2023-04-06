@@ -37,94 +37,129 @@ func areEqualRectangles(a, b []image.Rectangle) bool {
 
 func TestRemoveDuplicatedRegions(t *testing.T) {
 	cases := []struct {
-		In  []image.Rectangle
-		Out []image.Rectangle
+		Regions    []image.Rectangle
+		NewRegions []image.Rectangle
+		Expected   []image.Rectangle
 	}{
 		{
-			In:  nil,
-			Out: nil,
+			Regions:    nil,
+			NewRegions: nil,
+			Expected:   nil,
 		},
 		{
-			In: []image.Rectangle{
+			NewRegions: []image.Rectangle{
 				image.Rect(0, 0, 2, 2),
 			},
-			Out: []image.Rectangle{
+			Expected: []image.Rectangle{
 				image.Rect(0, 0, 2, 2),
 			},
 		},
 		{
-			In: []image.Rectangle{
+			NewRegions: []image.Rectangle{
 				image.Rect(0, 0, 2, 2),
 				image.Rect(0, 0, 1, 1),
 			},
-			Out: []image.Rectangle{
+			Expected: []image.Rectangle{
 				image.Rect(0, 0, 2, 2),
 			},
 		},
 		{
-			In: []image.Rectangle{
+			NewRegions: []image.Rectangle{
 				image.Rect(0, 0, 1, 1),
 				image.Rect(0, 0, 2, 2),
 			},
-			Out: []image.Rectangle{
+			Expected: []image.Rectangle{
 				image.Rect(0, 0, 2, 2),
 			},
 		},
 		{
-			In: []image.Rectangle{
+			NewRegions: []image.Rectangle{
 				image.Rect(0, 0, 1, 3),
 				image.Rect(0, 0, 2, 2),
 				image.Rect(0, 0, 3, 1),
 			},
-			Out: []image.Rectangle{
+			Expected: []image.Rectangle{
 				image.Rect(0, 0, 1, 3),
 				image.Rect(0, 0, 2, 2),
 				image.Rect(0, 0, 3, 1),
 			},
 		},
 		{
-			In: []image.Rectangle{
+			NewRegions: []image.Rectangle{
 				image.Rect(0, 0, 1, 3),
 				image.Rect(0, 0, 2, 2),
 				image.Rect(0, 0, 3, 1),
 				image.Rect(0, 0, 4, 4),
 			},
-			Out: []image.Rectangle{
+			Expected: []image.Rectangle{
 				image.Rect(0, 0, 4, 4),
 			},
 		},
 		{
-			In: []image.Rectangle{
+			NewRegions: []image.Rectangle{
 				image.Rect(0, 0, 1, 3),
 				image.Rect(0, 0, 2, 2),
 				image.Rect(0, 0, 3, 1),
 				image.Rect(0, 0, 4, 4),
 				image.Rect(1, 1, 2, 2),
 			},
-			Out: []image.Rectangle{
+			Expected: []image.Rectangle{
 				image.Rect(0, 0, 4, 4),
 			},
 		},
 		{
-			In: []image.Rectangle{
+			NewRegions: []image.Rectangle{
 				image.Rect(0, 0, 1, 3),
 				image.Rect(0, 0, 2, 2),
 				image.Rect(0, 0, 3, 1),
 				image.Rect(0, 0, 4, 4),
 				image.Rect(0, 0, 5, 5),
 			},
-			Out: []image.Rectangle{
+			Expected: []image.Rectangle{
+				image.Rect(0, 0, 5, 5),
+			},
+		},
+		{
+			Regions: []image.Rectangle{
+				image.Rect(0, 0, 1, 3),
+				image.Rect(0, 0, 2, 2),
+				image.Rect(0, 0, 3, 1),
+				image.Rect(0, 0, 4, 4),
+			},
+			NewRegions: []image.Rectangle{
+				image.Rect(0, 0, 5, 5),
+			},
+			Expected: []image.Rectangle{
+				image.Rect(0, 0, 5, 5),
+			},
+		},
+		{
+			Regions: []image.Rectangle{
+				image.Rect(0, 0, 2, 2),
+				image.Rect(0, 0, 3, 1),
+				image.Rect(0, 0, 4, 4),
+				image.Rect(0, 0, 5, 5),
+			},
+			NewRegions: []image.Rectangle{
+				image.Rect(0, 0, 1, 3),
+			},
+			Expected: []image.Rectangle{
+				image.Rect(0, 0, 2, 2),
+				image.Rect(0, 0, 3, 1),
+				image.Rect(0, 0, 4, 4),
 				image.Rect(0, 0, 5, 5),
 			},
 		},
 	}
 
 	for _, c := range cases {
-		n := restorable.RemoveDuplicatedRegions(c.In)
-		got := c.In[:n]
-		want := c.Out
+		got := c.Regions
+		for _, r := range c.NewRegions {
+			restorable.AppendRegionRemovingDuplicates(&got, r)
+		}
+		want := c.Expected
 		if !areEqualRectangles(got, want) {
-			t.Errorf("restorable.RemoveDuplicatedRegions(%#v): got: %#v, want: %#v", c.In, got, want)
+			t.Errorf("restorable.RemoveDuplicatedRegions(%#v): got: %#v, want: %#v", c.NewRegions, got, want)
 		}
 	}
 }
