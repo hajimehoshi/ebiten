@@ -248,11 +248,7 @@ func (u *userInterfaceImpl) Monitor() *Monitor {
 	u.m.RLock()
 	defer u.m.RUnlock()
 	var glfwMonitor *glfw.Monitor
-	if u.isFullscreen() {
-		glfwMonitor = u.window.GetMonitor()
-	} else {
-		glfwMonitor = u.currentMonitor()
-	}
+	glfwMonitor = u.currentMonitor()
 	if glfwMonitor == nil {
 		return nil
 	}
