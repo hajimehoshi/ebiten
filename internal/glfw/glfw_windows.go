@@ -34,10 +34,6 @@ func CreateStandardCursor(shape StandardCursor) *Cursor {
 
 type Monitor goglfw.Monitor
 
-func (m *Monitor) IsMonitor(other *Monitor) bool {
-	return m == other
-}
-
 func (m *Monitor) GetContentScale() (float32, float32, error) {
 	return (*goglfw.Monitor)(m).GetContentScale()
 }

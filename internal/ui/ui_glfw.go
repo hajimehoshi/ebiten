@@ -253,7 +253,7 @@ func (u *userInterfaceImpl) Monitor() *Monitor {
 		return nil
 	}
 	for _, m := range monitors {
-		if m.m.IsMonitor(glfwMonitor) {
+		if m.m == glfwMonitor {
 			return m
 		}
 	}
@@ -1499,11 +1499,6 @@ func (u *userInterfaceImpl) currentMonitor() *glfw.Monitor {
 //
 // monitorFromWindow must be called on the main thread.
 func monitorFromWindow(window *glfw.Window) *glfw.Monitor {
-	// GetMonitor is available only in fullscreen.
-	if m := window.GetMonitor(); m != nil {
-		return m
-	}
-
 	// Getting a monitor from a window position is not reliable in general (e.g., when a window is put across
 	// multiple monitors, or, before SetWindowPosition is called.).
 	// Get the monitor which the current window belongs to. This requires OS API.
