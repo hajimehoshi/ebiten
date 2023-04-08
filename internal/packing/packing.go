@@ -20,10 +20,6 @@ import (
 	"fmt"
 )
 
-const (
-	minSize = 1
-)
-
 type Page struct {
 	root    *Node
 	width   int
@@ -190,12 +186,6 @@ func (p *Page) Alloc(width, height int) *Node {
 			width:  p.width,
 			height: p.height,
 		}
-	}
-	if width < minSize {
-		width = minSize
-	}
-	if height < minSize {
-		height = minSize
 	}
 	return p.extendForAndAlloc(width, height)
 }
