@@ -127,10 +127,6 @@ func (u *userInterfaceImpl) ScreenSizeInFullscreen() (int, int) {
 	return window.Get("innerWidth").Int(), window.Get("innerHeight").Int()
 }
 
-func (u *userInterfaceImpl) ScreenSizeInFullscreenForMonitor(int) (int, int) {
-	return window.Get("innerWidth").Int(), window.Get("innerHeight").Int()
-}
-
 func (u *userInterfaceImpl) SetFullscreen(fullscreen bool) {
 	if !canvas.Truthy() {
 		return

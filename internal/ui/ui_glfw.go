@@ -614,22 +614,13 @@ func (u *userInterfaceImpl) setWindowClosingHandled(handled bool) {
 }
 
 func (u *userInterfaceImpl) ScreenSizeInFullscreen() (int, int) {
-	return u.ScreenSizeInFullscreenForMonitor(-1)
-}
-
-func (u *userInterfaceImpl) ScreenSizeInFullscreenForMonitor(monitor int) (int, int) {
 	if !u.isRunning() {
 		return u.initFullscreenWidthInDIP, u.initFullscreenHeightInDIP
 	}
 
 	var w, h int
 	u.mainThread.Call(func() {
-		var m *glfw.Monitor
-		if monitor != glfw.DontCare {
-			m = monitors[monitor].m
-		} else {
-			m = u.currentMonitor()
-		}
+		m := u.currentMonitor()
 		if m == nil {
 			return
 		}

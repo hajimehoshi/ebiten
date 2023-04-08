@@ -344,10 +344,6 @@ func (u *userInterfaceImpl) ScreenSizeInFullscreen() (int, int) {
 	return 0, 0
 }
 
-func (u *userInterfaceImpl) ScreenSizeInFullscreenForMonitor(int) (int, int) {
-	return 0, 0
-}
-
 // SetOutsideSize is called from mobile/ebitenmobileview.
 //
 // SetOutsideSize is concurrent safe.
