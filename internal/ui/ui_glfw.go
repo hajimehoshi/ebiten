@@ -328,7 +328,7 @@ func (u *userInterfaceImpl) setWindowMonitor(monitor int) {
 	u.m.RLock()
 	defer u.m.RUnlock()
 
-	if monitor >= 0 && len(monitors) > monitor {
+	if monitor != glfw.DontCare {
 		m := monitors[monitor].m
 
 		// Ignore if it is the same monitor.
@@ -627,7 +627,7 @@ func (u *userInterfaceImpl) ScreenSizeInFullscreenForMonitor(monitor int) (int, 
 	var w, h int
 	u.mainThread.Call(func() {
 		var m *glfw.Monitor
-		if monitor >= 0 && len(monitors) > monitor {
+		if monitor != glfw.DontCare {
 			m = monitors[monitor].m
 		} else {
 			m = u.currentMonitor()
@@ -830,7 +830,7 @@ func (u *userInterfaceImpl) createWindow(width, height int, monitor int) error {
 	}
 
 	// Set our target monitor if provided. This is required to prevent an initial window flash on the default monitor.
-	if monitor >= 0 && len(monitors) > monitor {
+	if monitor != glfw.DontCare {
 		m := monitors[monitor]
 		x, y := m.m.GetPos()
 		sw := m.m.GetVideoMode().Width
@@ -1024,7 +1024,7 @@ func (u *userInterfaceImpl) initOnMainThread(options *RunOptions) error {
 	// Get our target monitor.
 	monitor := u.getInitWindowMonitor()
 
-	if monitor >= 0 && len(monitors) > monitor {
+	if monitor != glfw.DontCare {
 		setInitMonitor(monitors[monitor].m)
 	}
 
