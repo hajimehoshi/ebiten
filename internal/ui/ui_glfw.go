@@ -328,64 +328,62 @@ func (u *userInterfaceImpl) setWindowMonitor(monitor int) {
 	u.m.RLock()
 	defer u.m.RUnlock()
 
-	if monitor != glfw.DontCare {
-		m := monitors[monitor].m
+	m := monitors[monitor].m
 
-		// Ignore if it is the same monitor.
-		if m == u.window.GetMonitor() {
-			return
+	// Ignore if it is the same monitor.
+	if m == u.window.GetMonitor() {
+		return
+	}
+
+	// We set w, h so it can be set to the original dimensions if fullscreen.
+	w, h := u.window.GetSize()
+	fullscreen := u.isFullscreen()
+	// This is copied from setFullscreen. They should probably use a shared function.
+	if fullscreen {
+		origX, origY := u.origWindowPos()
+
+		w = int(u.dipToGLFWPixel(float64(u.origWindowWidthInDIP), u.currentMonitor()))
+		h = int(u.dipToGLFWPixel(float64(u.origWindowHeightInDIP), u.currentMonitor()))
+		if u.isNativeFullscreenAvailable() {
+			u.setNativeFullscreen(false)
+			// Adjust the window size later (after adjusting the position).
+		} else if !u.isNativeFullscreenAvailable() && u.window.GetMonitor() != nil {
+			u.window.SetMonitor(nil, 0, 0, w, h, 0)
 		}
 
-		// We set w, h so it can be set to the original dimensions if fullscreen.
-		w, h := u.window.GetSize()
-		fullscreen := u.isFullscreen()
-		// This is copied from setFullscreen. They should probably use a shared function.
-		if fullscreen {
-			origX, origY := u.origWindowPos()
+		// glfw.PollEvents is necessary for macOS to enable (*glfw.Window).SetPos and SetSize (#2296).
+		glfw.PollEvents()
 
-			w = int(u.dipToGLFWPixel(float64(u.origWindowWidthInDIP), u.currentMonitor()))
-			h = int(u.dipToGLFWPixel(float64(u.origWindowHeightInDIP), u.currentMonitor()))
-			if u.isNativeFullscreenAvailable() {
-				u.setNativeFullscreen(false)
-				// Adjust the window size later (after adjusting the position).
-			} else if !u.isNativeFullscreenAvailable() && u.window.GetMonitor() != nil {
-				u.window.SetMonitor(nil, 0, 0, w, h, 0)
-			}
-
-			// glfw.PollEvents is necessary for macOS to enable (*glfw.Window).SetPos and SetSize (#2296).
-			glfw.PollEvents()
-
-			if origX != invalidPos && origY != invalidPos {
+		if origX != invalidPos && origY != invalidPos {
+			u.window.SetPos(origX, origY)
+			// Dirty hack for macOS (#703). Rendering doesn't work correctly with one SetPos, but
+			// work with two or more SetPos.
+			if runtime.GOOS == "darwin" {
+				u.window.SetPos(origX+1, origY)
 				u.window.SetPos(origX, origY)
-				// Dirty hack for macOS (#703). Rendering doesn't work correctly with one SetPos, but
-				// work with two or more SetPos.
-				if runtime.GOOS == "darwin" {
-					u.window.SetPos(origX+1, origY)
-					u.window.SetPos(origX, origY)
-				}
-				u.setOrigWindowPos(invalidPos, invalidPos)
 			}
+			u.setOrigWindowPos(invalidPos, invalidPos)
+		}
+	}
+
+	x, y := m.GetPos()
+	sw := m.GetVideoMode().Width
+	sh := m.GetVideoMode().Height
+	x += (sw - w) / 2
+	y += (sh - h) / 3
+	u.window.SetPos(x, y)
+
+	if fullscreen {
+		if u.isNativeFullscreenAvailable() {
+			u.setNativeFullscreen(fullscreen)
+		} else {
+			v := m.GetVideoMode()
+			u.window.SetMonitor(m, 0, 0, v.Width, v.Height, v.RefreshRate)
 		}
 
-		x, y := m.GetPos()
-		sw := m.GetVideoMode().Width
-		sh := m.GetVideoMode().Height
-		x += (sw - w) / 2
-		y += (sh - h) / 3
-		u.window.SetPos(x, y)
+		u.setOrigWindowPos(x, y)
 
-		if fullscreen {
-			if u.isNativeFullscreenAvailable() {
-				u.setNativeFullscreen(fullscreen)
-			} else {
-				v := m.GetVideoMode()
-				u.window.SetMonitor(m, 0, 0, v.Width, v.Height, v.RefreshRate)
-			}
-
-			u.setOrigWindowPos(x, y)
-
-			u.adjustViewSizeAfterFullscreen()
-		}
+		u.adjustViewSizeAfterFullscreen()
 	}
 }
 
