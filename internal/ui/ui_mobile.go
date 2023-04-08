@@ -436,7 +436,7 @@ func (u *userInterfaceImpl) Window() Window {
 type Monitor struct{}
 
 func (m *Monitor) Bounds() image.Rectangle {
-	return image.Rect(0, 0, 0, 0)
+	return image.Rectangle{}
 }
 
 func (m *Monitor) Name() string {
