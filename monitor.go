@@ -44,9 +44,6 @@ func WindowMonitor() *Monitor {
 
 // SetWindowMonitor sets the monitor that the window should be on. This can be called before or after Run.
 func SetWindowMonitor(monitor *Monitor) {
-	if monitor == nil {
-		return
-	}
 	ui.Get().Window().SetMonitor((*ui.Monitor)(monitor))
 }
 

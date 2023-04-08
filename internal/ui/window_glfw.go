@@ -160,6 +160,9 @@ func (w *glfwWindow) Restore() {
 }
 
 func (w *glfwWindow) SetMonitor(monitor *Monitor) {
+	if monitor == nil {
+		panic("ui: SetMonitor can't be nil")
+	}
 	if !w.ui.isRunning() {
 		w.ui.setInitWindowMonitor(monitor.id)
 		return
