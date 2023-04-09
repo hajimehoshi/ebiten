@@ -385,7 +385,9 @@ func (g *graphics11) NewImage(width, height int) (graphicsdriver.Image, error) {
 }
 
 func (g *graphics11) NewScreenFramebufferImage(width, height int) (graphicsdriver.Image, error) {
+	var origWidth, origHeight int
 	if g.screenImage != nil {
+		origWidth, origHeight = g.screenImage.width, g.screenImage.height
 		g.screenImage.Dispose()
 		g.screenImage = nil
 	}
@@ -394,7 +396,7 @@ func (g *graphics11) NewScreenFramebufferImage(width, height int) (graphicsdrive
 		// For a new image11 instance, use the original image size now.
 		// Use the new image size when a swap chain is actually resized.
 		newWidth, newHeight := width, height
-		width, height = g.newScreenWidth, g.newScreenHeight
+		width, height = origWidth, origHeight
 		g.newScreenWidth, g.newScreenHeight = newWidth, newHeight
 	} else {
 		if err := g.graphicsInfra.initSwapChain(width, height, unsafe.Pointer(g.device), g.window); err != nil {
