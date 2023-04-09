@@ -144,6 +144,9 @@ type graphics11 struct {
 
 	vsyncEnabled bool
 	window       windows.HWND
+
+	newScreenWidth  int
+	newScreenHeight int
 }
 
 func newGraphics11(useWARP bool, useDebugLayer bool) (gr11 *graphics11, ferr error) {
@@ -247,9 +250,35 @@ func (g *graphics11) End(present bool) error {
 	if !present {
 		return nil
 	}
+
 	if err := g.graphicsInfra.present(g.vsyncEnabled); err != nil {
 		return err
 	}
+
+	if g.newScreenWidth != 0 && g.newScreenHeight != 0 {
+		if g.screenImage != nil {
+			// ResizeBuffer requires all the related resources released,
+			// so release the swapchain's buffer.
+			// Do not dispose the screen image itself since the image's ID is still used.
+			g.screenImage.disposeBuffers()
+		}
+
+		if err := g.graphicsInfra.resizeSwapChain(g.newScreenWidth, g.newScreenHeight); err != nil {
+			return err
+		}
+
+		t, err := g.graphicsInfra.getBuffer(0, &_IID_ID3D11Texture2D)
+		if err != nil {
+			return err
+		}
+		g.screenImage.width = g.newScreenWidth
+		g.screenImage.height = g.newScreenHeight
+		g.screenImage.texture = (*_ID3D11Texture2D)(t)
+
+		g.newScreenWidth = 0
+		g.newScreenHeight = 0
+	}
+
 	return nil
 }
 
@@ -362,9 +391,11 @@ func (g *graphics11) NewScreenFramebufferImage(width, height int) (graphicsdrive
 	}
 
 	if g.graphicsInfra.isSwapChainInited() {
-		if err := g.graphicsInfra.resizeSwapChain(width, height); err != nil {
-			return nil, err
-		}
+		// For a new image11 instance, use the original image size now.
+		// Use the new image size when a swap chain is actually resized.
+		newWidth, newHeight := width, height
+		width, height = g.newScreenWidth, g.newScreenHeight
+		g.newScreenWidth, g.newScreenHeight = newWidth, newHeight
 	} else {
 		if err := g.graphicsInfra.initSwapChain(width, height, unsafe.Pointer(g.device), g.window); err != nil {
 			return nil, err
