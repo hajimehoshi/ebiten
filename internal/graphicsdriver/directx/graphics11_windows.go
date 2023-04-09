@@ -356,11 +356,12 @@ func (g *graphics11) NewImage(width, height int) (graphicsdriver.Image, error) {
 }
 
 func (g *graphics11) NewScreenFramebufferImage(width, height int) (graphicsdriver.Image, error) {
+	if g.screenImage != nil {
+		g.screenImage.Dispose()
+		g.screenImage = nil
+	}
+
 	if g.graphicsInfra.isSwapChainInited() {
-		if g.screenImage != nil {
-			g.screenImage.Dispose()
-			g.screenImage = nil
-		}
 		if err := g.graphicsInfra.resizeSwapChain(width, height); err != nil {
 			return nil, err
 		}
@@ -368,11 +369,6 @@ func (g *graphics11) NewScreenFramebufferImage(width, height int) (graphicsdrive
 		if err := g.graphicsInfra.initSwapChain(width, height, unsafe.Pointer(g.device), g.window); err != nil {
 			return nil, err
 		}
-	}
-
-	if g.screenImage != nil {
-		g.screenImage.Dispose()
-		g.screenImage = nil
 	}
 
 	t, err := g.graphicsInfra.getBuffer(0, &_IID_ID3D11Texture2D)
