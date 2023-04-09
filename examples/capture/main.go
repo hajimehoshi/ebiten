@@ -100,8 +100,14 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	op.GeoM.Translate(g.x, g.y)
 	screen.DrawImage(pointerImage, op)
 
-	ebitenutil.DebugPrint(screen,
-		fmt.Sprintf("Move the red point with mouse when captured\nPress Space to toggle mouse capture\n(%0.2f, %0.2f)", g.x, g.y))
+	var message string
+
+	if ebiten.CursorMode() == ebiten.CursorModeCaptured {
+		message = fmt.Sprintf("Move the red point with mouse captured\nPress Space to release mouse capture\n(%0.2f, %0.2f)", g.x, g.y)
+	} else {
+		message = fmt.Sprintf("The red point can only move when mouse captured\nPress Space to capture mouse\n(%0.2f, %0.2f)", g.x, g.y)
+	}
+	ebitenutil.DebugPrint(screen, message)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
