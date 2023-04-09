@@ -150,8 +150,6 @@ type graphicsInfra struct {
 	swapChain  *_IDXGISwapChain
 	swapChain4 *_IDXGISwapChain4
 
-	allowTearing bool
-
 	// occluded reports whether the screen is invisible or not.
 	occluded bool
 
@@ -171,16 +169,6 @@ func newGraphicsInfra() (*graphicsInfra, error) {
 		factory: f,
 	}
 	runtime.SetFinalizer(g, (*graphicsInfra).release)
-
-	if f, err := g.factory.QueryInterface(&_IID_IDXGIFactory5); err == nil && f != nil {
-		factory := (*_IDXGIFactory5)(f)
-		defer factory.Release()
-
-		var allowTearing int32
-		if err := factory.CheckFeatureSupport(_DXGI_FEATURE_PRESENT_ALLOW_TEARING, unsafe.Pointer(&allowTearing), uint32(unsafe.Sizeof(allowTearing))); err == nil && allowTearing != 0 {
-			g.allowTearing = true
-		}
-	}
 
 	return g, nil
 }
@@ -282,10 +270,6 @@ func (g *graphicsInfra) initSwapChain(width, height int, device unsafe.Pointer, 
 	}
 
 	g.bufferCount = int(desc.BufferCount)
-
-	if g.allowTearing {
-		desc.Flags |= uint32(_DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING)
-	}
 	s, err := g.factory.CreateSwapChain(device, desc)
 	if err != nil {
 		return err
@@ -315,11 +299,7 @@ func (g *graphicsInfra) resizeSwapChain(width, height int) error {
 		return fmt.Errorf("directx: swap chain must be initialized at resizeSwapChain, but is not")
 	}
 
-	var flag uint32
-	if g.allowTearing {
-		flag |= uint32(_DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING)
-	}
-	if err := g.swapChain.ResizeBuffers(uint32(g.bufferCount), uint32(width), uint32(height), _DXGI_FORMAT_B8G8R8A8_UNORM, flag); err != nil {
+	if err := g.swapChain.ResizeBuffers(uint32(g.bufferCount), uint32(width), uint32(height), _DXGI_FORMAT_B8G8R8A8_UNORM, 0); err != nil {
 		return err
 	}
 	return nil
@@ -346,8 +326,6 @@ func (g *graphicsInfra) present(vsyncEnabled bool) error {
 		// Do actual rendering only when the screen is visible.
 		if vsyncEnabled {
 			syncInterval = 1
-		} else if g.allowTearing {
-			flags |= _DXGI_PRESENT_ALLOW_TEARING
 		}
 	}
 
