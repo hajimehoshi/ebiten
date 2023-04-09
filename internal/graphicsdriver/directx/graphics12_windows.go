@@ -990,14 +990,13 @@ func (g *graphics12) NewImage(width, height int) (graphicsdriver.Image, error) {
 }
 
 func (g *graphics12) NewScreenFramebufferImage(width, height int) (graphicsdriver.Image, error) {
-	var imageWidth, imageHeight int
+	imageWidth := width
+	imageHeight := height
 	if g.screenImage != nil {
-		imageWidth, imageHeight = g.screenImage.width, g.screenImage.height
+		imageWidth = g.screenImage.width
+		imageHeight = g.screenImage.height
 		g.screenImage.Dispose()
 		g.screenImage = nil
-	} else {
-		imageWidth = width
-		imageHeight = height
 	}
 
 	if err := g.updateSwapChain(width, height); err != nil {
