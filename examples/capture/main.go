@@ -79,7 +79,7 @@ func (g *Game) Update() error {
 		}
 	}
 
-	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
+	if inpututil.IsKeyJustPressed(ebiten.KeySpace) {
 		if ebiten.CursorMode() == ebiten.CursorModeCaptured {
 			// release cursor
 			ebiten.SetCursorMode(ebiten.CursorModeVisible)
@@ -101,7 +101,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	screen.DrawImage(pointerImage, op)
 
 	ebitenutil.DebugPrint(screen,
-		fmt.Sprintf("Move the red point with mouse when captured\nPress ESC to toggle mouse capture\n(%0.2f, %0.2f)", g.x, g.y))
+		fmt.Sprintf("Move the red point with mouse when captured\nPress Space to toggle mouse capture\n(%0.2f, %0.2f)", g.x, g.y))
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
