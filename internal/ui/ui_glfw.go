@@ -308,6 +308,10 @@ func getMonitorFromPosition(wx, wy int) *Monitor {
 	return nil
 }
 
+func initialWindowPosition(mw, mh, ww, wh int) (x, y int) {
+	return (mw - ww) / 2, (mh - wh) / 3
+}
+
 func (u *userInterfaceImpl) isRunning() bool {
 	return atomic.LoadUint32(&u.running) != 0
 }
@@ -367,11 +371,8 @@ func (u *userInterfaceImpl) setWindowMonitor(monitor int) {
 	}
 
 	x, y := m.GetPos()
-	sw := m.GetVideoMode().Width
-	sh := m.GetVideoMode().Height
-	x += (sw - w) / 2
-	y += (sh - h) / 3
-	u.window.SetPos(x, y)
+	px, py := initialWindowPosition(m.GetVideoMode().Width, m.GetVideoMode().Height, w, h)
+	u.window.SetPos(x+px, y+py)
 
 	if fullscreen {
 		if u.isNativeFullscreenAvailable() {
@@ -822,9 +823,8 @@ func (u *userInterfaceImpl) createWindow(width, height int, monitor int) error {
 	if monitor != glfw.DontCare {
 		m := monitors[monitor]
 		x, y := m.m.GetPos()
-		sw := m.m.GetVideoMode().Width
-		sh := m.m.GetVideoMode().Height
-		window.SetPos(x+(sw-width)/2, y+(sh-height)/3)
+		px, py := initialWindowPosition(m.m.GetVideoMode().Width, m.m.GetVideoMode().Height, width, height)
+		window.SetPos(x+px, y+py)
 	}
 	initializeWindowAfterCreation(window)
 
