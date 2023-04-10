@@ -115,7 +115,9 @@ func (u *userInterfaceImpl) setMouseCursorFromEvent(e js.Value) {
 	if u.cursorMode == CursorModeCaptured {
 		x, y := e.Get("clientX").Int(), e.Get("clientY").Int()
 		u.origCursorX, u.origCursorY = x, y
-		dx, dy := u.context.clientPositionToLogicalPosition(e.Get("movementX").Float(), e.Get("movementY").Float(), u.DeviceScaleFactor())
+		s := u.DeviceScaleFactor()
+		dx, dy := e.Get("movementX").Float()/s, e.Get("movementY").Float()/s
+		// TODO: Keep float64 values.
 		u.inputState.CursorX += int(dx)
 		u.inputState.CursorY += int(dy)
 		return
