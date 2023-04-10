@@ -46,9 +46,9 @@ import (
 )
 
 const (
-	channelCount    = 2
-	bitDepthInBytes = 2
-	bytesPerSample  = bitDepthInBytes * channelCount
+	channelCount         = 2
+	bitDepthInBytesInt16 = 2
+	bytesPerSampleInt16  = bitDepthInBytesInt16 * channelCount
 )
 
 // A Context represents a current state of audio.

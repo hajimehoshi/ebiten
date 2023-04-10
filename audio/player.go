@@ -251,7 +251,7 @@ func (p *playerImpl) Current() time.Duration {
 		return 0
 	}
 
-	samples := (p.stream.Current() - int64(p.player.UnplayedBufferSize())) / bytesPerSample
+	samples := (p.stream.Current() - int64(p.player.UnplayedBufferSize())) / bytesPerSampleInt16
 	return time.Duration(samples) * time.Second / time.Duration(p.factory.sampleRate)
 }
 
@@ -288,8 +288,8 @@ func (p *playerImpl) SetBufferSize(bufferSize time.Duration) {
 	p.m.Lock()
 	defer p.m.Unlock()
 
-	bufferSizeInBytes := int(bufferSize * bytesPerSample * time.Duration(p.factory.sampleRate) / time.Second)
-	bufferSizeInBytes = bufferSizeInBytes / bytesPerSample * bytesPerSample
+	bufferSizeInBytes := int(bufferSize * bytesPerSampleInt16 * time.Duration(p.factory.sampleRate) / time.Second)
+	bufferSizeInBytes = bufferSizeInBytes / bytesPerSampleInt16 * bytesPerSampleInt16
 	if p.player == nil {
 		p.initBufferSize = bufferSizeInBytes
 		return
@@ -358,11 +358,11 @@ func (s *timeStream) timeDurationToPos(offset time.Duration) int64 {
 	s.m.Lock()
 	defer s.m.Unlock()
 
-	o := int64(offset) * bytesPerSample * int64(s.sampleRate) / int64(time.Second)
+	o := int64(offset) * bytesPerSampleInt16 * int64(s.sampleRate) / int64(time.Second)
 
 	// Align the byte position with the samples.
-	o -= o % bytesPerSample
-	o += s.pos % bytesPerSample
+	o -= o % bytesPerSampleInt16
+	o += s.pos % bytesPerSampleInt16
 
 	return o
 }

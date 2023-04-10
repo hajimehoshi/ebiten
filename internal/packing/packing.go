@@ -20,10 +20,6 @@ import (
 	"fmt"
 )
 
-const (
-	minSize = 1
-)
-
 type Page struct {
 	root    *Node
 	width   int
@@ -107,32 +103,6 @@ func square(width, height int) float64 {
 	return float64(height) / float64(width)
 }
 
-func (p *Page) canAlloc(n *Node, width, height int) bool {
-	if p.root == nil {
-		return p.width >= width && p.height >= height
-	}
-	return canAlloc(p.root, width, height)
-}
-
-func canAlloc(n *Node, width, height int) bool {
-	if n.width < width || n.height < height {
-		return false
-	}
-	if n.used {
-		return false
-	}
-	if n.child0 == nil && n.child1 == nil {
-		return true
-	}
-	if canAlloc(n.child0, width, height) {
-		return true
-	}
-	if canAlloc(n.child1, width, height) {
-		return true
-	}
-	return false
-}
-
 func alloc(n *Node, width, height int) *Node {
 	if n.width < width || n.height < height {
 		return nil
@@ -178,7 +148,17 @@ func alloc(n *Node, width, height int) *Node {
 				parent: n,
 			}
 		}
-		return alloc(n.child0, width, height)
+		// Note: it now MUST fit, due to above preconditions (repeated here).
+		if n.child0.width < width || n.child0.height < height {
+			panic(fmt.Sprintf("packing: the newly created child node (%d, %d) unexpectedly does not contain the requested size (%d, %d)", n.child0.width, n.child0.height, width, height))
+		}
+		// Thus, alloc can't return nil, but it may do another split along the other dimension
+		// to get a node with the exact size (width, height).
+		node := alloc(n.child0, width, height)
+		if node == nil {
+			panic(fmt.Sprintf("packing: could not allocate the requested size (%d, %d) in the newly created child node (%d, %d)", width, height, n.child0.width, n.child0.height))
+		}
+		return node
 	}
 	if n.child0 == nil || n.child1 == nil {
 		panic("packing: both two children must not be nil at alloc")
@@ -201,23 +181,13 @@ func (p *Page) Alloc(width, height int) *Node {
 		panic("packing: width and height must > 0")
 	}
 
-	if !p.extendFor(width, height) {
-		return nil
-	}
-
 	if p.root == nil {
 		p.root = &Node{
 			width:  p.width,
 			height: p.height,
 		}
 	}
-	if width < minSize {
-		width = minSize
-	}
-	if height < minSize {
-		height = minSize
-	}
-	return alloc(p.root, width, height)
+	return p.extendForAndAlloc(width, height)
 }
 
 func (p *Page) Free(node *Node) {
@@ -255,13 +225,13 @@ func walk(n *Node, f func(n *Node) error) error {
 	return nil
 }
 
-func (p *Page) extendFor(width, height int) bool {
-	if p.canAlloc(p.root, width, height) {
-		return true
+func (p *Page) extendForAndAlloc(width, height int) *Node {
+	if n := alloc(p.root, width, height); n != nil {
+		return n
 	}
 
 	if p.width >= p.maxSize && p.height >= p.maxSize {
-		return false
+		return nil
 	}
 
 	// (1, 0), (0, 1), (2, 0), (1, 1), (0, 2), (3, 0), (2, 1), (1, 2), (0, 3), ...
@@ -284,14 +254,14 @@ func (p *Page) extendFor(width, height int) bool {
 			}
 
 			rollback := p.extend(newWidth, newHeight)
-			if p.canAlloc(p.root, width, height) {
-				return true
+			if n := alloc(p.root, width, height); n != nil {
+				return n
 			}
 			rollback()
 
 			// If the allocation failed even with a maximized page, give up the allocation.
 			if newWidth >= p.maxSize && newHeight >= p.maxSize {
-				return false
+				return nil
 			}
 		}
 	}

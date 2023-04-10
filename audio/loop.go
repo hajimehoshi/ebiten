@@ -26,7 +26,7 @@ type InfiniteLoop struct {
 	llength int64
 	pos     int64
 
-	// extra is the remainder in the case when the read byte sizes are not multiple of bitDepthInBytes.
+	// extra is the remainder in the case when the read byte sizes are not multiple of bitDepthInBytesInt16.
 	extra []byte
 
 	// afterLoop is data after the loop.
@@ -60,8 +60,8 @@ func NewInfiniteLoop(src io.ReadSeeker, length int64) *InfiniteLoop {
 func NewInfiniteLoopWithIntro(src io.ReadSeeker, introLength int64, loopLength int64) *InfiniteLoop {
 	return &InfiniteLoop{
 		src:     src,
-		lstart:  introLength / bytesPerSample * bytesPerSample,
-		llength: loopLength / bytesPerSample * bytesPerSample,
+		lstart:  introLength / bytesPerSampleInt16 * bytesPerSampleInt16,
+		llength: loopLength / bytesPerSampleInt16 * bytesPerSampleInt16,
 		pos:     -1,
 	}
 }
@@ -92,8 +92,8 @@ func (i *InfiniteLoop) blendRate(pos int64) float64 {
 	if pos >= i.lstart+int64(len(i.afterLoop)) {
 		return 0
 	}
-	p := (pos - i.lstart) / bytesPerSample
-	l := len(i.afterLoop) / bytesPerSample
+	p := (pos - i.lstart) / bytesPerSampleInt16
+	l := len(i.afterLoop) / bytesPerSampleInt16
 	return 1 - float64(p)/float64(l)
 }
 
@@ -119,7 +119,7 @@ func (i *InfiniteLoop) Read(b []byte) (int, error) {
 	}
 
 	// Save the remainder part to extra. This will be used at the next Read.
-	if rem := n % bitDepthInBytes; rem != 0 {
+	if rem := n % bitDepthInBytesInt16; rem != 0 {
 		i.extra = append(i.extra, b[n-rem:n]...)
 		b = b[:n-rem]
 		n = n - rem
@@ -128,17 +128,17 @@ func (i *InfiniteLoop) Read(b []byte) (int, error) {
 	// Blend afterLoop and the loop start to reduce noises (#1888).
 	// Ideally, afterLoop and the loop start should be identical, but they can have very slight differences.
 	if !i.noBlendForTesting && i.blending && i.pos >= i.lstart && i.pos-int64(n) < i.lstart+int64(len(i.afterLoop)) {
-		if n%bitDepthInBytes != 0 {
-			panic(fmt.Sprintf("audio: n must be a multiple of bitDepthInBytes but not: %d", n))
+		if n%bitDepthInBytesInt16 != 0 {
+			panic(fmt.Sprintf("audio: n must be a multiple of bitDepthInBytesInt16 but not: %d", n))
 		}
-		for idx := 0; idx < n/bitDepthInBytes; idx++ {
-			abspos := i.pos - int64(n) + int64(idx)*bitDepthInBytes
+		for idx := 0; idx < n/bitDepthInBytesInt16; idx++ {
+			abspos := i.pos - int64(n) + int64(idx)*bitDepthInBytesInt16
 			rate := i.blendRate(abspos)
 			if rate == 0 {
 				continue
 			}
 
-			// This assumes that bitDepthInBytes is 2.
+			// This assumes that bitDepthInBytesInt16 is 2.
 			relpos := abspos - i.lstart
 			afterLoop := int16(i.afterLoop[relpos]) | (int16(i.afterLoop[relpos+1]) << 8)
 			orig := int16(b[2*idx]) | (int16(b[2*idx+1]) << 8)
@@ -156,7 +156,7 @@ func (i *InfiniteLoop) Read(b []byte) (int, error) {
 	// Read the afterLoop part if necessary.
 	if i.pos == i.length() && err == nil {
 		if i.afterLoop == nil {
-			buflen := int64(256 * bytesPerSample)
+			buflen := int64(256 * bytesPerSampleInt16)
 			if buflen > i.length() {
 				buflen = i.length()
 			}

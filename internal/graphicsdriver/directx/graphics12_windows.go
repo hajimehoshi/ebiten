@@ -710,6 +710,8 @@ func (g *graphics12) End(present bool) error {
 			if err := g.resizeSwapChainDesktop(g.newScreenWidth, g.newScreenHeight); err != nil {
 				return err
 			}
+			g.screenImage.width = g.newScreenWidth
+			g.screenImage.height = g.newScreenHeight
 			g.newScreenWidth = 0
 			g.newScreenHeight = 0
 		}
@@ -988,7 +990,11 @@ func (g *graphics12) NewImage(width, height int) (graphicsdriver.Image, error) {
 }
 
 func (g *graphics12) NewScreenFramebufferImage(width, height int) (graphicsdriver.Image, error) {
+	imageWidth := width
+	imageHeight := height
 	if g.screenImage != nil {
+		imageWidth = g.screenImage.width
+		imageHeight = g.screenImage.height
 		g.screenImage.Dispose()
 		g.screenImage = nil
 	}
@@ -1000,8 +1006,8 @@ func (g *graphics12) NewScreenFramebufferImage(width, height int) (graphicsdrive
 	i := &image12{
 		graphics: g,
 		id:       g.genNextImageID(),
-		width:    width,
-		height:   height,
+		width:    imageWidth,
+		height:   imageHeight,
 		screen:   true,
 		states:   [frameCount]_D3D12_RESOURCE_STATES{0, 0},
 	}
