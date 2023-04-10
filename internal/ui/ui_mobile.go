@@ -484,5 +484,5 @@ func IsScreenTransparentAvailable() bool {
 }
 
 func InitialWindowPosition(mw, mh, ww, wh int) (x, y int) {
-	return (mw - ww) / 2, (mh - wh) / 3
+	return 0, 0
 }
