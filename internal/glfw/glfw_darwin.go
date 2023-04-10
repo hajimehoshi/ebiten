@@ -239,7 +239,12 @@ func (w *Window) SetCursor(cursor *Cursor) {
 }
 
 func (w *Window) SetFramebufferSizeCallback(cbfun FramebufferSizeCallback) (previous FramebufferSizeCallback) {
-	libglfw.call("glfwSetFramebufferSizeCallback", w.w, purego.NewCallback(cbfun))
+	// This gets called with a nil callback. Only convert it if it's not nil.
+	var cb uintptr
+	if cbfun != nil {
+		cb = purego.NewCallback(cbfun)
+	}
+	libglfw.call("glfwSetFramebufferSizeCallback", w.w, cb)
 	panicError()
 	return ToFramebufferSizeCallback(nil) // TODO
 }

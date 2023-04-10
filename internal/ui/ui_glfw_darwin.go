@@ -29,9 +29,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl"
 )
 
-var (
-	class_EbitengineWindowDelegate objc.Class
-)
+var class_EbitengineWindowDelegate objc.Class
 
 type windowDelegate struct {
 	isa           objc.Class `objc:"EbitengineWindowDelegate : NSObject <NSWindowDelegate>"`
@@ -55,13 +53,12 @@ func (w *windowDelegate) popResizableState(win objc.ID) {
 	w.origResizable = false
 }
 
-func (w *windowDelegate) InitWithOrigDelegate(cmd objc.SEL, origDelegate objc.ID) objc.ID {
-	self := objc.ID(unsafe.Pointer(w)).SendSuper(sel_init)
-	if self != 0 {
-		w = *(**windowDelegate)(unsafe.Pointer(&self))
+func (w *windowDelegate) InitWithOrigDelegate(cmd objc.SEL, origDelegate objc.ID) *windowDelegate {
+	w = objc.SendSuper[*windowDelegate](objc.ID(unsafe.Pointer(w)), sel_init)
+	if w != nil {
 		w.origDelegate = origDelegate
 	}
-	return self
+	return w
 }
 
 // The method set of origDelegate_ must sync with GLFWWindowDelegate's implementation.
