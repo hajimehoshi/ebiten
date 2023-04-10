@@ -1678,8 +1678,3 @@ func (u *userInterfaceImpl) setOrigWindowPos(x, y int) {
 func IsScreenTransparentAvailable() bool {
 	return true
 }
-
-// InitialWindowPosition returns the position for centering the given second width/height pair within the first width/height pair.
-func InitialWindowPosition(mw, mh, ww, wh int) (x, y int) {
-	return (mw - ww) / 2, (mh - wh) / 3
-}

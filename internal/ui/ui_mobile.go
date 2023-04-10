@@ -482,7 +482,3 @@ func (u *userInterfaceImpl) updateIconIfNeeded() {
 func IsScreenTransparentAvailable() bool {
 	return false
 }
-
-func InitialWindowPosition(mw, mh, ww, wh int) (x, y int) {
-	return 0, 0
-}
