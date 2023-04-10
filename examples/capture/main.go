@@ -83,12 +83,12 @@ func (g *Game) Update() error {
 		if ebiten.CursorMode() == ebiten.CursorModeCaptured {
 			// release cursor
 			ebiten.SetCursorMode(ebiten.CursorModeVisible)
-
-			// reset cursor position for its return
-			g.mouseX, g.mouseY = math.MinInt32, math.MinInt32
 		} else {
 			// recapture cursor
 			ebiten.SetCursorMode(ebiten.CursorModeCaptured)
+
+			// reset cursor position for its return
+			g.mouseX, g.mouseY = math.MinInt32, math.MinInt32
 		}
 	}
 
