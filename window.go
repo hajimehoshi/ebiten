@@ -166,8 +166,7 @@ var (
 func initializeWindowPositionIfNeeded(width, height int) {
 	if atomic.LoadUint32(&windowPositionSetExplicitly) == 0 {
 		sw, sh := ui.Get().ScreenSizeInFullscreen()
-		x := (sw - width) / 2
-		y := (sh - height) / 3
+		x, y := ui.InitialWindowPosition(sw, sh, width, height)
 		ui.Get().Window().SetPosition(x, y)
 	}
 }

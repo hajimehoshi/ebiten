@@ -308,7 +308,8 @@ func getMonitorFromPosition(wx, wy int) *Monitor {
 	return nil
 }
 
-func initialWindowPosition(mw, mh, ww, wh int) (x, y int) {
+// InitialWindowPosition returns the position for centering the given second width/height pair within the first width/height pair.
+func InitialWindowPosition(mw, mh, ww, wh int) (x, y int) {
 	return (mw - ww) / 2, (mh - wh) / 3
 }
 
@@ -371,7 +372,7 @@ func (u *userInterfaceImpl) setWindowMonitor(monitor int) {
 	}
 
 	x, y := m.GetPos()
-	px, py := initialWindowPosition(m.GetVideoMode().Width, m.GetVideoMode().Height, w, h)
+	px, py := InitialWindowPosition(m.GetVideoMode().Width, m.GetVideoMode().Height, w, h)
 	u.window.SetPos(x+px, y+py)
 
 	if fullscreen {
@@ -823,7 +824,7 @@ func (u *userInterfaceImpl) createWindow(width, height int, monitor int) error {
 	if monitor != glfw.DontCare {
 		m := monitors[monitor]
 		x, y := m.m.GetPos()
-		px, py := initialWindowPosition(m.m.GetVideoMode().Width, m.m.GetVideoMode().Height, width, height)
+		px, py := InitialWindowPosition(m.m.GetVideoMode().Width, m.m.GetVideoMode().Height, width, height)
 		window.SetPos(x+px, y+py)
 	}
 	initializeWindowAfterCreation(window)
