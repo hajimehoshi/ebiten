@@ -21,8 +21,12 @@ var Cursor vec2
 var ScreenSize vec2
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	srcOrigin, srcSize := imageSrcRegionOnTexture()
+	pos := (texCoord - srcOrigin) / srcSize
+	pos *= ScreenSize
+
 	lightpos := vec3(Cursor, 50)
-	lightdir := normalize(lightpos - position.xyz)
+	lightdir := normalize(lightpos - vec3(pos, 0))
 	normal := normalize(imageSrc1UnsafeAt(texCoord) - 0.5)
 	const ambient = 0.25
 	diffuse := 0.75 * max(0.0, dot(normal.xyz, lightdir))
