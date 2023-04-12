@@ -21,7 +21,11 @@ var Cursor vec2
 var ScreenSize vec2
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
-	dir := normalize(position.xy - Cursor)
+	srcOrigin, srcSize := imageSrcRegionOnTexture()
+	pos := (texCoord - srcOrigin) / srcSize
+	pos *= ScreenSize
+
+	dir := normalize(pos - Cursor)
 	clr := imageSrc2UnsafeAt(texCoord)
 
 	samples := [...]float{
@@ -34,7 +38,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	}
 	sum /= 10 + 1
 
-	dist := distance(position.xy, Cursor)
+	dist := distance(pos, Cursor)
 	t := clamp(dist/256, 0, 1)
 	return mix(clr, sum, t)
 }

@@ -21,6 +21,7 @@ var Cursor vec2
 var ScreenSize vec2
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	// Note that the value of position.xy is indeterministic as the destination image is somewhere on a texture atlas.
 	pos := position.xy/imageDstTextureSize() + Cursor/ScreenSize/4
 	clr := 0.0
 	clr += sin(pos.x*cos(Time/15)*80) + cos(pos.y*cos(Time/15)*10)
