@@ -183,7 +183,7 @@ func initialize() error {
 		return errors.New("ui: no monitor was found at initialize")
 	}
 
-	setInitMonitor(m)
+	theUI.setInitMonitor(m)
 
 	// Create system cursors. These cursors are destroyed at glfw.Terminate().
 	glfwSystemCursors[CursorShapeDefault] = nil
@@ -196,14 +196,14 @@ func initialize() error {
 	return nil
 }
 
-func setInitMonitor(m *glfw.Monitor) {
-	theUI.initMonitor = m
-	theUI.initDeviceScaleFactor = theUI.deviceScaleFactor(m)
+func (u *userInterfaceImpl) setInitMonitor(m *glfw.Monitor) {
+	u.initMonitor = m
+	u.initDeviceScaleFactor = u.deviceScaleFactor(m)
 	// GetVideoMode must be called from the main thread, then call this here and record
 	// initFullscreen{Width,Height}InDIP.
 	v := m.GetVideoMode()
-	theUI.initFullscreenWidthInDIP = int(theUI.dipFromGLFWMonitorPixel(float64(v.Width), m))
-	theUI.initFullscreenHeightInDIP = int(theUI.dipFromGLFWMonitorPixel(float64(v.Height), m))
+	u.initFullscreenWidthInDIP = int(u.dipFromGLFWMonitorPixel(float64(v.Width), m))
+	u.initFullscreenHeightInDIP = int(u.dipFromGLFWMonitorPixel(float64(v.Height), m))
 }
 
 // Monitor is a wrapper around glfw.Monitor.
@@ -1010,7 +1010,7 @@ func (u *userInterfaceImpl) initOnMainThread(options *RunOptions) error {
 	monitor := u.getInitWindowMonitor()
 
 	if monitor != glfw.DontCare {
-		setInitMonitor(monitors[monitor].m)
+		u.setInitMonitor(monitors[monitor].m)
 	}
 
 	ww, wh := u.getInitWindowSizeInDIP()
