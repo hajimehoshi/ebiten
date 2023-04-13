@@ -22,6 +22,8 @@ var ScreenSize vec2
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	center := ScreenSize / 2
+	// Convert a pixel to a texel by dividing by the texture size.
+	// TODO: This is confusing. Add a function to treat pixels (#1431).
 	amount := (center - Cursor) / 10 / imageSrcTextureSize()
 	var clr vec3
 	clr.r = imageSrc2At(texCoord + amount).r
