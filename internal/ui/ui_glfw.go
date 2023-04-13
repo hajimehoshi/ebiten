@@ -247,8 +247,7 @@ func (u *userInterfaceImpl) AppendMonitors(mons []*Monitor) []*Monitor {
 func (u *userInterfaceImpl) Monitor() *Monitor {
 	u.m.RLock()
 	defer u.m.RUnlock()
-	var glfwMonitor *glfw.Monitor
-	glfwMonitor = u.currentMonitor()
+	glfwMonitor := u.currentMonitor()
 	if glfwMonitor == nil {
 		return nil
 	}
