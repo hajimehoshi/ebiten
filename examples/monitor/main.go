@@ -15,6 +15,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"image/color"
 	"log"
@@ -108,14 +109,25 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 
 func main() {
 	g := &Game{}
+	monitor := 0
 
-	// Spawn the window on the last monitor reported.
+	// Allow the user to pass in a monitor flag to target a specific monitor.
+	flag.IntVar(&monitor, "monitor", 0, "target monitor to run the program on")
+	flag.Parse()
+
+	// Read our monitors.
 	monitors := ebiten.AppendMonitors(nil)
-	targetMonitor := monitors[len(monitors)-1]
 
+	// Ensure the user did not supply a monitor index beyond the range of available monitors. If they did, set the monitor to the primary.
+	if monitor >= 0 && monitor < len(monitors) {
+		monitor = 0
+	}
+
+	targetMonitor := monitors[monitor]
 	ebiten.SetWindowMonitor(targetMonitor)
-	ebiten.SetWindowSize(screenWidth, screenHeight)
 	ebiten.SetWindowTitle(targetMonitor.Name())
+	ebiten.SetWindowSize(screenWidth, screenHeight)
+
 	if err := ebiten.RunGame(g); err != nil {
 		log.Fatal(err)
 	}
