@@ -49,7 +49,7 @@ func (g *Game) Update() error {
 		cursorX, cursorY := ebiten.CursorPosition()
 
 		if g.mouseX == math.MinInt32 && g.mouseY == math.MinInt32 {
-			// initialize first position to establish delta
+			// Initialize first position to establish delta.
 			if cursorX != 0 && cursorY != 0 {
 				g.mouseX, g.mouseY = cursorX, cursorY
 			}
@@ -66,7 +66,7 @@ func (g *Game) Update() error {
 			}
 		}
 
-		// constrain red dot within screen view
+		// Constrain red dot within screen view.
 		if g.x < 0 {
 			g.x = 0
 		} else if g.x > screenWidth-8 {
@@ -82,13 +82,13 @@ func (g *Game) Update() error {
 
 	if inpututil.IsKeyJustPressed(ebiten.KeySpace) {
 		if ebiten.CursorMode() == ebiten.CursorModeCaptured {
-			// release cursor
+			// Release mouse cursor capture.
 			ebiten.SetCursorMode(ebiten.CursorModeVisible)
 		} else {
-			// recapture cursor
+			// Recapture mouse cursor.
 			ebiten.SetCursorMode(ebiten.CursorModeCaptured)
 
-			// reset cursor position for its return
+			// Reset mouse cursor position for its return.
 			g.mouseX, g.mouseY = math.MinInt32, math.MinInt32
 		}
 	}
@@ -102,7 +102,6 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	screen.DrawImage(pointerImage, op)
 
 	var message string
-
 	if ebiten.CursorMode() == ebiten.CursorModeCaptured {
 		message = fmt.Sprintf("Move the red point with mouse captured\nPress Space to release mouse capture\n(%0.2f, %0.2f)", g.x, g.y)
 	} else {
@@ -116,21 +115,22 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 }
 
 func main() {
-	g := &Game{
-		mouseX: math.MinInt32, mouseY: math.MinInt32,
-		x: float64(screenWidth / 2), y: float64(screenHeight / 2),
-	}
-
-	ebiten.SetWindowSize(screenWidth, screenHeight)
 	ebiten.SetWindowTitle("Mouse Capture (Ebitengine Demo)")
+	ebiten.SetWindowSize(screenWidth, screenHeight)
 
 	if runtime.GOOS == "js" {
-		// web browsers only allow cursor mode capture with user interaction
-		// start without cursor captured with message indicating how to capture
+		// Web browsers allow cursor mode capture only with user interaction.
+		// Start without cursor captured with message indicating how to capture.
 	} else {
 		ebiten.SetCursorMode(ebiten.CursorModeCaptured)
 	}
 
+	g := &Game{
+		mouseX: math.MinInt32,
+		mouseY: math.MinInt32,
+		x:      float64(screenWidth / 2),
+		y:      float64(screenHeight / 2),
+	}
 	if err := ebiten.RunGame(g); err != nil {
 		log.Fatal(err)
 	}
