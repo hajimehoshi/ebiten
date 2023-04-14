@@ -110,11 +110,8 @@ func main() {
 	g := &Game{}
 
 	// Spawn the window on the last monitor reported.
-	var targetMonitor *ebiten.Monitor
 	monitors := ebiten.AppendMonitors(nil)
-	if len(monitors) > 0 {
-		targetMonitor = monitors[len(monitors)-1]
-	}
+	targetMonitor := monitors[len(monitors)-1]
 
 	ebiten.SetWindowMonitor(targetMonitor)
 	ebiten.SetWindowSize(screenWidth, screenHeight)
