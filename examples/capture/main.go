@@ -19,6 +19,7 @@ import (
 	"image/color"
 	"log"
 	"math"
+	"runtime"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
@@ -123,7 +124,12 @@ func main() {
 	ebiten.SetWindowSize(screenWidth, screenHeight)
 	ebiten.SetWindowTitle("Mouse Capture (Ebitengine Demo)")
 
-	ebiten.SetCursorMode(ebiten.CursorModeCaptured)
+	if runtime.GOOS == "js" {
+		// web browsers only allow cursor mode capture with user interaction
+		// start without cursor captured with message indicating how to capture
+	} else {
+		ebiten.SetCursorMode(ebiten.CursorModeCaptured)
+	}
 
 	if err := ebiten.RunGame(g); err != nil {
 		log.Fatal(err)
