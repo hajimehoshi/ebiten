@@ -119,7 +119,6 @@ func main() {
 	ebiten.SetWindowMonitor(targetMonitor)
 	ebiten.SetWindowSize(screenWidth, screenHeight)
 	ebiten.SetWindowTitle(targetMonitor.Name())
-	ebiten.SetFullscreen(true)
 	if err := ebiten.RunGame(g); err != nil {
 		log.Fatal(err)
 	}
