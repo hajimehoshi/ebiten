@@ -170,6 +170,21 @@ func initialize() error {
 	glfw.WindowHint(glfw.Visible, glfw.False)
 	glfw.WindowHint(glfw.ClientAPI, glfw.NoAPI)
 
+	m, err := initialMonitorByOS()
+	if err != nil {
+		return err
+	}
+	if m == nil {
+		m = glfw.GetPrimaryMonitor()
+	}
+
+	// GetPrimaryMonitor might return nil in theory (#1887).
+	if m == nil {
+		return errors.New("ui: no monitor was found at initialize")
+	}
+
+	theUI.setInitMonitor(m)
+
 	// Create system cursors. These cursors are destroyed at glfw.Terminate().
 	glfwSystemCursors[CursorShapeDefault] = nil
 	glfwSystemCursors[CursorShapeText] = glfw.CreateStandardCursor(glfw.IBeamCursor)
@@ -788,7 +803,7 @@ func init() {
 // createWindow must be called from the main thread.
 //
 // createWindow does not set the position or size so far.
-func (u *userInterfaceImpl) createWindow(width, height int, m *Monitor) error {
+func (u *userInterfaceImpl) createWindow(width, height int, monitor int) error {
 	if u.window != nil {
 		panic("ui: u.window must not exist at createWindow")
 	}
@@ -799,10 +814,13 @@ func (u *userInterfaceImpl) createWindow(width, height int, m *Monitor) error {
 		return err
 	}
 
-	// Position our window. This is required to prevent an initial window flash on the default monitor.
-	x, y := m.m.GetPos()
-	px, py := InitialWindowPosition(m.m.GetVideoMode().Width, m.m.GetVideoMode().Height, width, height)
-	window.SetPos(x+px, y+py)
+	// Set our target monitor if provided. This is required to prevent an initial window flash on the default monitor.
+	if monitor != glfw.DontCare {
+		m := monitors[monitor]
+		x, y := m.m.GetPos()
+		px, py := InitialWindowPosition(m.m.GetVideoMode().Width, m.m.GetVideoMode().Height, width, height)
+		window.SetPos(x+px, y+py)
+	}
 	initializeWindowAfterCreation(window)
 
 	u.window = window
@@ -988,32 +1006,11 @@ func (u *userInterfaceImpl) initOnMainThread(options *RunOptions) error {
 	}
 
 	// Get our target monitor.
-	var monitor *Monitor
+	monitor := u.getInitWindowMonitor()
 
-	if monitorID := u.getInitWindowMonitor(); monitorID != glfw.DontCare {
-		monitor = monitors[monitorID]
-	} else {
-		m, err := initialMonitorByOS()
-		if err != nil {
-			return err
-		}
-		if m == nil {
-			m = glfw.GetPrimaryMonitor()
-		}
-
-		// GetPrimaryMonitor might return nil in theory (#1887).
-		if m == nil {
-			return errors.New("ui: no monitor was found at initialize")
-		}
-		for _, mon := range monitors {
-			if mon.m == m {
-				monitor = mon
-				break
-			}
-		}
+	if monitor != glfw.DontCare {
+		u.setInitMonitor(monitors[monitor].m)
 	}
-
-	u.setInitMonitor(monitor.m)
 
 	ww, wh := u.getInitWindowSizeInDIP()
 	initW := int(u.dipToGLFWPixel(float64(ww), u.initMonitor))
@@ -1033,6 +1030,13 @@ func (u *userInterfaceImpl) initOnMainThread(options *RunOptions) error {
 	if wy < 0 {
 		wy = 0
 	}
+	if max := u.initFullscreenWidthInDIP - ww; wx >= max {
+		wx = max
+	}
+	if max := u.initFullscreenHeightInDIP - wh; wy >= max {
+		wy = max
+	}
+	u.setWindowPositionInDIP(wx, wy, u.initMonitor)
 	u.setWindowSizeInDIP(ww, wh, true)
 
 	// Maximizing a window requires a proper size and position. Call Maximize here (#1117).
