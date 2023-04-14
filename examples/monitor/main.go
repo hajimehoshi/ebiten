@@ -58,7 +58,7 @@ type Game struct {
 }
 
 func (g *Game) Update() error {
-	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButton0) {
+	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 		cx, cy := ebiten.CursorPosition()
 		l := text.BoundString(mplusNormalFont, "|").Dy()
 		y := l
@@ -119,6 +119,7 @@ func main() {
 	ebiten.SetWindowMonitor(targetMonitor)
 	ebiten.SetWindowSize(screenWidth, screenHeight)
 	ebiten.SetWindowTitle(targetMonitor.Name())
+	ebiten.SetFullscreen(true)
 	if err := ebiten.RunGame(g); err != nil {
 		log.Fatal(err)
 	}
