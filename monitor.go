@@ -47,7 +47,7 @@ func SetWindowMonitor(monitor *Monitor) {
 	ui.Get().Window().SetMonitor((*ui.Monitor)(monitor))
 }
 
-// AppendMonitors returns the monitors reported by the system.
+// AppendMonitors returns the monitors reported by the system. On desktop platforms, there will always be at least one monitor appended and the first monitor in the slice will be the primary monitor. Any monitors added or removed will show up with subsequent calls to this function.
 func AppendMonitors(monitors []*Monitor) []*Monitor {
 	for _, m := range ui.Get().AppendMonitors(nil) {
 		monitors = append(monitors, (*Monitor)(m))
