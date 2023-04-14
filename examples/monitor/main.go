@@ -109,10 +109,10 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 
 func main() {
 	g := &Game{}
-	monitor := 0
 
 	// Allow the user to pass in a monitor flag to target a specific monitor.
-	flag.IntVar(&monitor, "monitor", 0, "target monitor to run the program on")
+	var monitor int
+	flag.IntVar(&monitor, "monitor", 0, "target monitor index to run the program on")
 	flag.Parse()
 
 	// Read our monitors.
