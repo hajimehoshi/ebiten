@@ -40,8 +40,8 @@ const (
 type Game struct {
 	mouseX int
 	mouseY int
-	x      float64
-	y      float64
+	x      int
+	y      int
 }
 
 func (g *Game) Update() error {
@@ -58,11 +58,11 @@ func (g *Game) Update() error {
 			g.mouseX, g.mouseY = cursorX, cursorY
 
 			if deltaX != 0 {
-				g.x += float64(deltaX)
+				g.x += deltaX
 			}
 
 			if deltaY != 0 {
-				g.y += float64(deltaY)
+				g.y += deltaY
 			}
 		}
 
@@ -98,14 +98,14 @@ func (g *Game) Update() error {
 
 func (g *Game) Draw(screen *ebiten.Image) {
 	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(g.x, g.y)
+	op.GeoM.Translate(float64(g.x), float64(g.y))
 	screen.DrawImage(pointerImage, op)
 
 	var message string
 	if ebiten.CursorMode() == ebiten.CursorModeCaptured {
-		message = fmt.Sprintf("Move the red point with mouse captured\nPress Space to release mouse capture\n(%0.2f, %0.2f)", g.x, g.y)
+		message = fmt.Sprintf("Move the red point with mouse captured\nPress Space to release mouse capture\n(%d, %d)", g.x, g.y)
 	} else {
-		message = fmt.Sprintf("The red point can only move when mouse captured\nPress Space to capture mouse\n(%0.2f, %0.2f)", g.x, g.y)
+		message = fmt.Sprintf("The red point can only move when mouse captured\nPress Space to capture mouse\n(%d, %d)", g.x, g.y)
 	}
 	ebitenutil.DebugPrint(screen, message)
 }
@@ -128,8 +128,8 @@ func main() {
 	g := &Game{
 		mouseX: math.MinInt32,
 		mouseY: math.MinInt32,
-		x:      float64(screenWidth / 2.0),
-		y:      float64(screenHeight / 2.0),
+		x:      screenWidth / 2,
+		y:      screenHeight / 2,
 	}
 	if err := ebiten.RunGame(g); err != nil {
 		log.Fatal(err)
