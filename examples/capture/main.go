@@ -69,14 +69,14 @@ func (g *Game) Update() error {
 		// Constrain red dot within screen view.
 		if g.x < 0 {
 			g.x = 0
-		} else if g.x > screenWidth-8 {
-			g.x = screenWidth - 8
+		} else if g.x > screenWidth-pointerImage.Bounds().Dx() {
+			g.x = screenWidth - pointerImage.Bounds().Dx()
 		}
 
 		if g.y < 0 {
 			g.y = 0
-		} else if g.y > screenHeight-8 {
-			g.y = screenHeight - 8
+		} else if g.y > screenHeight-pointerImage.Bounds().Dy() {
+			g.y = screenHeight - pointerImage.Bounds().Dy()
 		}
 	}
 
@@ -118,10 +118,9 @@ func main() {
 	ebiten.SetWindowTitle("Mouse Capture (Ebitengine Demo)")
 	ebiten.SetWindowSize(screenWidth, screenHeight)
 
-	if runtime.GOOS == "js" {
-		// Web browsers allow cursor mode capture only with user interaction.
-		// Start without cursor captured with message indicating how to capture.
-	} else {
+	// Web browsers allow cursor mode capture only with user interaction.
+	// Start without cursor captured with message indicating how to capture.
+	if runtime.GOOS != "js" {
 		ebiten.SetCursorMode(ebiten.CursorModeCaptured)
 	}
 
