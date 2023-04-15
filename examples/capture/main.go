@@ -128,8 +128,8 @@ func main() {
 	g := &Game{
 		mouseX: math.MinInt32,
 		mouseY: math.MinInt32,
-		x:      float64(screenWidth / 2),
-		y:      float64(screenHeight / 2),
+		x:      float64(screenWidth / 2.0),
+		y:      float64(screenHeight / 2.0),
 	}
 	if err := ebiten.RunGame(g); err != nil {
 		log.Fatal(err)
