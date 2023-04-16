@@ -17,8 +17,6 @@ package graphics
 import (
 	"bytes"
 	"fmt"
-	"go/parser"
-	"go/token"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/shader"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
@@ -114,17 +112,11 @@ func CompileShader(src []byte) (*shaderir.Program, error) {
 	buf.Write(src)
 	buf.WriteString(shaderSuffix)
 
-	fs := token.NewFileSet()
-	f, err := parser.ParseFile(fs, "", buf.Bytes(), parser.AllErrors)
-	if err != nil {
-		return nil, err
-	}
-
 	const (
 		vert = "__vertex"
 		frag = "Fragment"
 	)
-	ir, err := shader.Compile(fs, f, vert, frag, ShaderImageCount)
+	ir, err := shader.Compile(buf.Bytes(), vert, frag, ShaderImageCount)
 	if err != nil {
 		return nil, err
 	}

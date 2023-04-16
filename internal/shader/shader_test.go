@@ -16,8 +16,6 @@ package shader_test
 
 import (
 	"fmt"
-	"go/parser"
-	"go/token"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -170,13 +168,7 @@ func TestCompile(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.Name, func(t *testing.T) {
-			fset := token.NewFileSet()
-			f, err := parser.ParseFile(fset, "", tc.Src, parser.AllErrors)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			s, err := shader.Compile(fset, f, "Vertex", "Fragment", 0)
+			s, err := shader.Compile(tc.Src, "Vertex", "Fragment", 0)
 			if err != nil {
 				t.Error(err)
 				return

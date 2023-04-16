@@ -16,8 +16,6 @@ package shader_test
 
 import (
 	"fmt"
-	"go/parser"
-	"go/token"
 	"strings"
 	"testing"
 
@@ -26,18 +24,7 @@ import (
 )
 
 func compileToIR(src []byte) (*shaderir.Program, error) {
-	fset := token.NewFileSet()
-	f, err := parser.ParseFile(fset, "", src, parser.AllErrors)
-	if err != nil {
-		return nil, err
-	}
-
-	ir, err := shader.Compile(fset, f, "Vertex", "Fragment", 0)
-	if err != nil {
-		return nil, err
-	}
-
-	return ir, nil
+	return shader.Compile(src, "Vertex", "Fragment", 0)
 }
 
 func TestSyntaxShadowing(t *testing.T) {
