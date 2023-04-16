@@ -146,9 +146,8 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 	op := &ebiten.DrawRectShaderOptions{}
 	op.Uniforms = map[string]any{
-		"Time":       float32(g.time) / 60,
-		"Cursor":     []float32{float32(cx), float32(cy)},
-		"ScreenSize": []float32{float32(w), float32(h)},
+		"Time":   float32(g.time) / 60,
+		"Cursor": []float32{float32(cx), float32(cy)},
 	}
 	op.Images[0] = gopherImage
 	op.Images[1] = normalImage

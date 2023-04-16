@@ -14,16 +14,16 @@
 
 //go:build ignore
 
+//kage:unit pixel
+
 package main
 
 var Time float
 var Cursor vec2
-var ScreenSize vec2
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
-	srcOrigin, srcSize := imageSrcRegionOnTexture()
-	pos := (texCoord - srcOrigin) / srcSize
-	pos *= ScreenSize
+	dstOrigin, _ := imageDstRegionOnTexture()
+	pos := position.xy - dstOrigin
 
 	dir := normalize(pos - Cursor)
 	clr := imageSrc2UnsafeAt(texCoord)
@@ -33,8 +33,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	}
 	sum := clr
 	for i := 0; i < len(samples); i++ {
-		pos := texCoord + dir*samples[i]/imageSrcTextureSize()
-		sum += imageSrc2At(pos)
+		sum += imageSrc2At(texCoord + dir*samples[i])
 	}
 	sum /= 10 + 1
 

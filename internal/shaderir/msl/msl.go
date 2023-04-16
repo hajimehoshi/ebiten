@@ -47,16 +47,22 @@ func (c *compileContext) structName(p *shaderir.Program, t *shaderir.Type) strin
 	return n
 }
 
-const Prelude = `#include <metal_stdlib>
+func Prelude(unit shaderir.Unit) string {
+	str := `#include <metal_stdlib>
 
 using namespace metal;
-
-constexpr sampler texture_sampler{filter::nearest};
 
 template<typename T, typename U>
 T mod(T x, U y) {
 	return x - y * floor(x/y);
 }`
+	if unit == shaderir.Texel {
+		str += `
+
+constexpr sampler texture_sampler{filter::nearest};`
+	}
+	return str
+}
 
 func Compile(p *shaderir.Program, vertex, fragment string) (shader string) {
 	c := &compileContext{
@@ -64,7 +70,7 @@ func Compile(p *shaderir.Program, vertex, fragment string) (shader string) {
 	}
 
 	var lines []string
-	lines = append(lines, strings.Split(Prelude, "\n")...)
+	lines = append(lines, strings.Split(Prelude(p.Unit), "\n")...)
 	lines = append(lines, "", "{{.Structs}}")
 
 	if len(p.Attributes) > 0 {
@@ -396,7 +402,14 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 				args = append(args, expr(&exp))
 			}
 			if callee.Type == shaderir.BuiltinFuncExpr && callee.BuiltinFunc == shaderir.Texture2DF {
-				return fmt.Sprintf("%s.sample(texture_sampler, %s)", args[0], strings.Join(args[1:], ", "))
+				switch p.Unit {
+				case shaderir.Texel:
+					return fmt.Sprintf("%s.sample(texture_sampler, %s)", args[0], strings.Join(args[1:], ", "))
+				case shaderir.Pixel:
+					return fmt.Sprintf("%s.read(static_cast<uint2>(%s))", args[0], strings.Join(args[1:], ", "))
+				default:
+					panic(fmt.Sprintf("msl: unexpected unit: %d", p.Unit))
+				}
 			}
 			return fmt.Sprintf("%s(%s)", expr(&callee), strings.Join(args, ", "))
 		case shaderir.FieldSelector:

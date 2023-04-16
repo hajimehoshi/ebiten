@@ -3036,3 +3036,89 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		}
 	}
 }
+
+func TestCompilerDirective(t *testing.T) {
+	cases := []struct {
+		src  string
+		unit shaderir.Unit
+		err  bool
+	}{
+		{
+			src: `package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	return position
+}`,
+			unit: shaderir.Texel,
+			err:  false,
+		},
+		{
+			src: `//kage:unit texel
+
+package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	return position
+}`,
+			unit: shaderir.Texel,
+			err:  false,
+		},
+		{
+			src: `//kage:unit pixel
+
+package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	return position
+}`,
+			unit: shaderir.Pixel,
+			err:  false,
+		},
+		{
+			src: `//kage:unit foo
+
+package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	return position
+}`,
+			err: true,
+		},
+		{
+			src: `//kage:unit pixel
+//kage:unit pixel
+
+package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	return position
+}`,
+			err: true,
+		},
+		{
+			src: `//kage:unit pixel
+//kage:unit texel
+
+package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	return position
+}`,
+			err: true,
+		},
+	}
+	for _, c := range cases {
+		ir, err := compileToIR([]byte(c.src))
+		if err == nil && c.err {
+			t.Errorf("Compile(%q) must return an error but does not", c.src)
+		} else if err != nil && !c.err {
+			t.Errorf("Compile(%q) must not return nil but returned %v", c.src, err)
+		}
+		if err != nil || c.err {
+			continue
+		}
+		if got, want := ir.Unit, c.unit; got != want {
+			t.Errorf("Compile(%q).Unit: got: %d, want: %d", c.src, got, want)
+		}
+	}
+}

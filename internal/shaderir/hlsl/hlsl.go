@@ -31,6 +31,7 @@ const (
 type compileContext struct {
 	structNames map[string]string
 	structTypes []shaderir.Type
+	unit        shaderir.Unit
 }
 
 func (c *compileContext) structName(p *shaderir.Program, t *shaderir.Type) string {
@@ -87,7 +88,9 @@ float4x4 float4x4FromScalar(float x) {
 func Compile(p *shaderir.Program) (vertexShader, pixelShader string, offsets []int) {
 	offsets = calculateMemoryOffsets(p.Uniforms)
 
-	c := &compileContext{}
+	c := &compileContext{
+		unit: p.Unit,
+	}
 
 	var lines []string
 	lines = append(lines, strings.Split(Prelude, "\n")...)
@@ -117,7 +120,9 @@ func Compile(p *shaderir.Program) (vertexShader, pixelShader string, offsets []i
 		for i := 0; i < p.TextureCount; i++ {
 			lines = append(lines, fmt.Sprintf("Texture2D T%[1]d : register(t%[1]d);", i))
 		}
-		lines = append(lines, "SamplerState samp : register(s0);")
+		if c.unit == shaderir.Texel {
+			lines = append(lines, "SamplerState samp : register(s0);")
+		}
 	}
 
 	vslines := make([]string, len(lines))
@@ -472,7 +477,14 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 						return fmt.Sprintf("float4x4FromScalar(%s)", args[0])
 					}
 				case shaderir.Texture2DF:
-					return fmt.Sprintf("%s.Sample(samp, %s)", args[0], strings.Join(args[1:], ", "))
+					switch c.unit {
+					case shaderir.Pixel:
+						return fmt.Sprintf("%s.Load(int3(%s, 0))", args[0], strings.Join(args[1:], ", "))
+					case shaderir.Texel:
+						return fmt.Sprintf("%s.Sample(samp, %s)", args[0], strings.Join(args[1:], ", "))
+					default:
+						panic(fmt.Sprintf("hlsl: unexpected unit: %d", p.Unit))
+					}
 				}
 			}
 			return fmt.Sprintf("%s(%s)", expr(&e.Exprs[0]), strings.Join(args, ", "))

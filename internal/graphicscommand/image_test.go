@@ -41,14 +41,12 @@ func TestMain(m *testing.M) {
 	etesting.MainWithRunLoop(m)
 }
 
-func quadVertices(srcImage *graphicscommand.Image, w, h float32) []float32 {
-	sw, sh := srcImage.InternalSize()
-	swf, shf := float32(sw), float32(sh)
+func quadVertices(w, h float32) []float32 {
 	return []float32{
 		0, 0, 0, 0, 1, 1, 1, 1,
-		w, 0, w / swf, 0, 1, 1, 1, 1,
-		0, w, 0, h / shf, 1, 1, 1, 1,
-		w, h, w / swf, h / shf, 1, 1, 1, 1,
+		w, 0, w, 0, 1, 1, 1, 1,
+		0, w, 0, h, 1, 1, 1, 1,
+		w, h, w, h, 1, 1, 1, 1,
 	}
 }
 
@@ -57,7 +55,7 @@ func TestClear(t *testing.T) {
 	src := graphicscommand.NewImage(w/2, h/2, false)
 	dst := graphicscommand.NewImage(w, h, false)
 
-	vs := quadVertices(src, w/2, h/2)
+	vs := quadVertices(w/2, h/2)
 	is := graphics.QuadIndices()
 	dr := graphicsdriver.Region{
 		X:      0,
@@ -88,7 +86,7 @@ func TestWritePixelsPartAfterDrawTriangles(t *testing.T) {
 	clr := graphicscommand.NewImage(w, h, false)
 	src := graphicscommand.NewImage(w/2, h/2, false)
 	dst := graphicscommand.NewImage(w, h, false)
-	vs := quadVertices(src, w/2, h/2)
+	vs := quadVertices(w/2, h/2)
 	is := graphics.QuadIndices()
 	dr := graphicsdriver.Region{
 		X:      0,
@@ -107,7 +105,7 @@ func TestShader(t *testing.T) {
 	const w, h = 16, 16
 	clr := graphicscommand.NewImage(w, h, false)
 	dst := graphicscommand.NewImage(w, h, false)
-	vs := quadVertices(clr, w, h)
+	vs := quadVertices(w, h)
 	is := graphics.QuadIndices()
 	dr := graphicsdriver.Region{
 		X:      0,

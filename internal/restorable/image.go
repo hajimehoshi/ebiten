@@ -176,7 +176,7 @@ func (i *Image) Extend(width, height int) *Image {
 	srcs := [graphics.ShaderImageCount]*Image{i}
 	var offsets [graphics.ShaderImageCount - 1][2]float32
 	sw, sh := i.image.InternalSize()
-	vs := quadVertices(i, 0, 0, float32(sw), float32(sh), 0, 0, float32(sw), float32(sh), 1, 1, 1, 1)
+	vs := quadVertices(0, 0, float32(sw), float32(sh), 0, 0, float32(sw), float32(sh), 1, 1, 1, 1)
 	is := graphics.QuadIndices()
 	dr := graphicsdriver.Region{
 		X:      0,
@@ -191,22 +191,12 @@ func (i *Image) Extend(width, height int) *Image {
 }
 
 // quadVertices returns vertices to render a quad. These values are passed to graphicscommand.Image.
-func quadVertices(src *Image, dx0, dy0, dx1, dy1, sx0, sy0, sx1, sy1, cr, cg, cb, ca float32) []float32 {
-	if src == nil {
-		return []float32{
-			dx0, dy0, 0, 0, cr, cg, cb, ca,
-			dx1, dy0, 0, 0, cr, cg, cb, ca,
-			dx0, dy1, 0, 0, cr, cg, cb, ca,
-			dx1, dy1, 0, 0, cr, cg, cb, ca,
-		}
-	}
-	sw, sh := src.InternalSize()
-	swf, shf := float32(sw), float32(sh)
+func quadVertices(dx0, dy0, dx1, dy1, sx0, sy0, sx1, sy1, cr, cg, cb, ca float32) []float32 {
 	return []float32{
-		dx0, dy0, sx0 / swf, sy0 / shf, cr, cg, cb, ca,
-		dx1, dy0, sx1 / swf, sy0 / shf, cr, cg, cb, ca,
-		dx0, dy1, sx0 / swf, sy1 / shf, cr, cg, cb, ca,
-		dx1, dy1, sx1 / swf, sy1 / shf, cr, cg, cb, ca,
+		dx0, dy0, sx0, sy0, cr, cg, cb, ca,
+		dx1, dy0, sx1, sy0, cr, cg, cb, ca,
+		dx0, dy1, sx0, sy1, cr, cg, cb, ca,
+		dx1, dy1, sx1, sy1, cr, cg, cb, ca,
 	}
 }
 
@@ -214,7 +204,7 @@ func clearImage(i *graphicscommand.Image) {
 	// This needs to use 'InternalSize' to render the whole region, or edges are unexpectedly cleared on some
 	// devices.
 	dw, dh := i.InternalSize()
-	vs := quadVertices(nil, 0, 0, float32(dw), float32(dh), 0, 0, 0, 0, 0, 0, 0, 0)
+	vs := quadVertices(0, 0, float32(dw), float32(dh), 0, 0, 0, 0, 0, 0, 0, 0)
 	is := graphics.QuadIndices()
 	var offsets [graphics.ShaderImageCount - 1][2]float32
 	dstRegion := graphicsdriver.Region{

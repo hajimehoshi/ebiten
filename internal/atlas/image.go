@@ -24,6 +24,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/packing"
 	"github.com/hajimehoshi/ebiten/v2/internal/restorable"
+	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
 
 var (
@@ -455,14 +456,20 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 		ox, oy, _, _ := srcs[0].regionWithPadding()
 		ps := srcs[0].paddingSize()
 		oxf, oyf = float32(ox+ps), float32(oy+ps)
-		sw, sh := srcs[0].backend.restorable.InternalSize()
-		swf, shf := float32(sw), float32(sh)
 		n := len(vertices)
 		for i := 0; i < n; i += graphics.VertexFloatCount {
 			vertices[i] += dx
 			vertices[i+1] += dy
-			vertices[i+2] = (vertices[i+2] + oxf) / swf
-			vertices[i+3] = (vertices[i+3] + oyf) / shf
+			vertices[i+2] += oxf
+			vertices[i+3] += oyf
+		}
+		if shader.unit() == shaderir.Texel {
+			sw, sh := srcs[0].backend.restorable.InternalSize()
+			swf, shf := float32(sw), float32(sh)
+			for i := 0; i < n; i += graphics.VertexFloatCount {
+				vertices[i+2] /= swf
+				vertices[i+3] /= shf
+			}
 		}
 		// srcRegion can be deliberately empty when this is not needed in order to avoid unexpected
 		// performance issue (#1293).

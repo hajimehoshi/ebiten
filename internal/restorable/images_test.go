@@ -99,7 +99,7 @@ func TestRestoreWithoutDraw(t *testing.T) {
 	}
 }
 
-func quadVertices(srcImage *restorable.Image, sw, sh, x, y int) []float32 {
+func quadVertices(sw, sh, x, y int) []float32 {
 	dx0 := float32(x)
 	dy0 := float32(y)
 	dx1 := float32(x + sw)
@@ -108,17 +108,11 @@ func quadVertices(srcImage *restorable.Image, sw, sh, x, y int) []float32 {
 	sy0 := float32(0)
 	sx1 := float32(sw)
 	sy1 := float32(sh)
-	iswf := float32(1)
-	ishf := float32(1)
-	if srcImage != nil {
-		isw, ish := srcImage.InternalSize()
-		iswf, ishf = float32(isw), float32(ish)
-	}
 	return []float32{
-		dx0, dy0, sx0 / iswf, sy0 / ishf, 1, 1, 1, 1,
-		dx1, dy0, sx1 / iswf, sy0 / ishf, 1, 1, 1, 1,
-		dx0, dy1, sx0 / iswf, sy1 / ishf, 1, 1, 1, 1,
-		dx1, dy1, sx1 / iswf, sy1 / ishf, 1, 1, 1, 1,
+		dx0, dy0, sx0, sy0, 1, 1, 1, 1,
+		dx1, dy0, sx1, sy0, 1, 1, 1, 1,
+		dx0, dy1, sx0, sy1, 1, 1, 1, 1,
+		dx1, dy1, sx1, sy1, 1, 1, 1, 1,
 	}
 }
 
@@ -137,7 +131,7 @@ func TestRestoreChain(t *testing.T) {
 	clr := color.RGBA{A: 0xff}
 	imgs[0].WritePixels([]byte{clr.R, clr.G, clr.B, clr.A}, 0, 0, 1, 1)
 	for i := 0; i < num-1; i++ {
-		vs := quadVertices(imgs[i], 1, 1, 0, 0)
+		vs := quadVertices(1, 1, 0, 0)
 		is := graphics.QuadIndices()
 		dr := graphicsdriver.Region{
 			X:      0,
@@ -193,10 +187,10 @@ func TestRestoreChain2(t *testing.T) {
 		Width:  w,
 		Height: h,
 	}
-	imgs[8].DrawTriangles([graphics.ShaderImageCount]*restorable.Image{imgs[7]}, [graphics.ShaderImageCount - 1][2]float32{}, quadVertices(imgs[7], w, h, 0, 0), is, graphicsdriver.BlendCopy, dr, graphicsdriver.Region{}, restorable.NearestFilterShader, nil, false)
-	imgs[9].DrawTriangles([graphics.ShaderImageCount]*restorable.Image{imgs[8]}, [graphics.ShaderImageCount - 1][2]float32{}, quadVertices(imgs[8], w, h, 0, 0), is, graphicsdriver.BlendCopy, dr, graphicsdriver.Region{}, restorable.NearestFilterShader, nil, false)
+	imgs[8].DrawTriangles([graphics.ShaderImageCount]*restorable.Image{imgs[7]}, [graphics.ShaderImageCount - 1][2]float32{}, quadVertices(w, h, 0, 0), is, graphicsdriver.BlendCopy, dr, graphicsdriver.Region{}, restorable.NearestFilterShader, nil, false)
+	imgs[9].DrawTriangles([graphics.ShaderImageCount]*restorable.Image{imgs[8]}, [graphics.ShaderImageCount - 1][2]float32{}, quadVertices(w, h, 0, 0), is, graphicsdriver.BlendCopy, dr, graphicsdriver.Region{}, restorable.NearestFilterShader, nil, false)
 	for i := 0; i < 7; i++ {
-		imgs[i+1].DrawTriangles([graphics.ShaderImageCount]*restorable.Image{imgs[i]}, [graphics.ShaderImageCount - 1][2]float32{}, quadVertices(imgs[i], w, h, 0, 0), is, graphicsdriver.BlendCopy, dr, graphicsdriver.Region{}, restorable.NearestFilterShader, nil, false)
+		imgs[i+1].DrawTriangles([graphics.ShaderImageCount]*restorable.Image{imgs[i]}, [graphics.ShaderImageCount - 1][2]float32{}, quadVertices(w, h, 0, 0), is, graphicsdriver.BlendCopy, dr, graphicsdriver.Region{}, restorable.NearestFilterShader, nil, false)
 	}
 
 	if err := restorable.ResolveStaleImages(ui.GraphicsDriverForTesting(), false); err != nil {
@@ -242,10 +236,10 @@ func TestRestoreOverrideSource(t *testing.T) {
 		Width:  w,
 		Height: h,
 	}
-	img2.DrawTriangles([graphics.ShaderImageCount]*restorable.Image{img1}, [graphics.ShaderImageCount - 1][2]float32{}, quadVertices(img1, w, h, 0, 0), is, graphicsdriver.BlendSourceOver, dr, graphicsdriver.Region{}, restorable.NearestFilterShader, nil, false)
-	img3.DrawTriangles([graphics.ShaderImageCount]*restorable.Image{img2}, [graphics.ShaderImageCount - 1][2]float32{}, quadVertices(img2, w, h, 0, 0), is, graphicsdriver.BlendSourceOver, dr, graphicsdriver.Region{}, restorable.NearestFilterShader, nil, false)
+	img2.DrawTriangles([graphics.ShaderImageCount]*restorable.Image{img1}, [graphics.ShaderImageCount - 1][2]float32{}, quadVertices(w, h, 0, 0), is, graphicsdriver.BlendSourceOver, dr, graphicsdriver.Region{}, restorable.NearestFilterShader, nil, false)
+	img3.DrawTriangles([graphics.ShaderImageCount]*restorable.Image{img2}, [graphics.ShaderImageCount - 1][2]float32{}, quadVertices(w, h, 0, 0), is, graphicsdriver.BlendSourceOver, dr, graphicsdriver.Region{}, restorable.NearestFilterShader, nil, false)
 	img0.WritePixels([]byte{clr1.R, clr1.G, clr1.B, clr1.A}, 0, 0, w, h)
-	img1.DrawTriangles([graphics.ShaderImageCount]*restorable.Image{img0}, [graphics.ShaderImageCount - 1][2]float32{}, quadVertices(img0, w, h, 0, 0), is, graphicsdriver.BlendSourceOver, dr, graphicsdriver.Region{}, restorable.NearestFilterShader, nil, false)
+	img1.DrawTriangles([graphics.ShaderImageCount]*restorable.Image{img0}, [graphics.ShaderImageCount - 1][2]float32{}, quadVertices(w, h, 0, 0), is, graphicsdriver.BlendSourceOver, dr, graphicsdriver.Region{}, restorable.NearestFilterShader, nil, false)
 	if err := restorable.ResolveStaleImages(ui.GraphicsDriverForTesting(), false); err != nil {
 		t.Fatal(err)
 	}
@@ -330,23 +324,23 @@ func TestRestoreComplexGraph(t *testing.T) {
 		Height: h,
 	}
 	var offsets [graphics.ShaderImageCount - 1][2]float32
-	vs := quadVertices(img0, w, h, 0, 0)
+	vs := quadVertices(w, h, 0, 0)
 	img3.DrawTriangles([graphics.ShaderImageCount]*restorable.Image{img0}, offsets, vs, is, graphicsdriver.BlendSourceOver, dr, graphicsdriver.Region{}, restorable.NearestFilterShader, nil, false)
-	vs = quadVertices(img1, w, h, 1, 0)
+	vs = quadVertices(w, h, 1, 0)
 	img3.DrawTriangles([graphics.ShaderImageCount]*restorable.Image{img1}, offsets, vs, is, graphicsdriver.BlendSourceOver, dr, graphicsdriver.Region{}, restorable.NearestFilterShader, nil, false)
-	vs = quadVertices(img1, w, h, 1, 0)
+	vs = quadVertices(w, h, 1, 0)
 	img4.DrawTriangles([graphics.ShaderImageCount]*restorable.Image{img1}, offsets, vs, is, graphicsdriver.BlendSourceOver, dr, graphicsdriver.Region{}, restorable.NearestFilterShader, nil, false)
-	vs = quadVertices(img2, w, h, 2, 0)
+	vs = quadVertices(w, h, 2, 0)
 	img4.DrawTriangles([graphics.ShaderImageCount]*restorable.Image{img2}, offsets, vs, is, graphicsdriver.BlendSourceOver, dr, graphicsdriver.Region{}, restorable.NearestFilterShader, nil, false)
-	vs = quadVertices(img3, w, h, 0, 0)
+	vs = quadVertices(w, h, 0, 0)
 	img5.DrawTriangles([graphics.ShaderImageCount]*restorable.Image{img3}, offsets, vs, is, graphicsdriver.BlendSourceOver, dr, graphicsdriver.Region{}, restorable.NearestFilterShader, nil, false)
-	vs = quadVertices(img3, w, h, 0, 0)
+	vs = quadVertices(w, h, 0, 0)
 	img6.DrawTriangles([graphics.ShaderImageCount]*restorable.Image{img3}, offsets, vs, is, graphicsdriver.BlendSourceOver, dr, graphicsdriver.Region{}, restorable.NearestFilterShader, nil, false)
-	vs = quadVertices(img4, w, h, 1, 0)
+	vs = quadVertices(w, h, 1, 0)
 	img6.DrawTriangles([graphics.ShaderImageCount]*restorable.Image{img4}, offsets, vs, is, graphicsdriver.BlendSourceOver, dr, graphicsdriver.Region{}, restorable.NearestFilterShader, nil, false)
-	vs = quadVertices(img2, w, h, 0, 0)
+	vs = quadVertices(w, h, 0, 0)
 	img7.DrawTriangles([graphics.ShaderImageCount]*restorable.Image{img2}, offsets, vs, is, graphicsdriver.BlendSourceOver, dr, graphicsdriver.Region{}, restorable.NearestFilterShader, nil, false)
-	vs = quadVertices(img3, w, h, 2, 0)
+	vs = quadVertices(w, h, 2, 0)
 	img7.DrawTriangles([graphics.ShaderImageCount]*restorable.Image{img3}, offsets, vs, is, graphicsdriver.BlendSourceOver, dr, graphicsdriver.Region{}, restorable.NearestFilterShader, nil, false)
 	if err := restorable.ResolveStaleImages(ui.GraphicsDriverForTesting(), false); err != nil {
 		t.Fatal(err)
@@ -445,8 +439,8 @@ func TestRestoreRecursive(t *testing.T) {
 		Width:  w,
 		Height: h,
 	}
-	img1.DrawTriangles([graphics.ShaderImageCount]*restorable.Image{img0}, [graphics.ShaderImageCount - 1][2]float32{}, quadVertices(img0, w, h, 1, 0), is, graphicsdriver.BlendSourceOver, dr, graphicsdriver.Region{}, restorable.NearestFilterShader, nil, false)
-	img0.DrawTriangles([graphics.ShaderImageCount]*restorable.Image{img1}, [graphics.ShaderImageCount - 1][2]float32{}, quadVertices(img1, w, h, 1, 0), is, graphicsdriver.BlendSourceOver, dr, graphicsdriver.Region{}, restorable.NearestFilterShader, nil, false)
+	img1.DrawTriangles([graphics.ShaderImageCount]*restorable.Image{img0}, [graphics.ShaderImageCount - 1][2]float32{}, quadVertices(w, h, 1, 0), is, graphicsdriver.BlendSourceOver, dr, graphicsdriver.Region{}, restorable.NearestFilterShader, nil, false)
+	img0.DrawTriangles([graphics.ShaderImageCount]*restorable.Image{img1}, [graphics.ShaderImageCount - 1][2]float32{}, quadVertices(w, h, 1, 0), is, graphicsdriver.BlendSourceOver, dr, graphicsdriver.Region{}, restorable.NearestFilterShader, nil, false)
 	if err := restorable.ResolveStaleImages(ui.GraphicsDriverForTesting(), false); err != nil {
 		t.Fatal(err)
 	}
@@ -541,7 +535,7 @@ func TestDrawTrianglesAndWritePixels(t *testing.T) {
 	img1 := restorable.NewImage(2, 1, restorable.ImageTypeRegular)
 	defer img1.Dispose()
 
-	vs := quadVertices(img0, 1, 1, 0, 0)
+	vs := quadVertices(1, 1, 0, 0)
 	is := graphics.QuadIndices()
 	dr := graphicsdriver.Region{
 		X:      0,
@@ -592,8 +586,8 @@ func TestDispose(t *testing.T) {
 		Width:  1,
 		Height: 1,
 	}
-	img1.DrawTriangles([graphics.ShaderImageCount]*restorable.Image{img2}, [graphics.ShaderImageCount - 1][2]float32{}, quadVertices(img2, 1, 1, 0, 0), is, graphicsdriver.BlendCopy, dr, graphicsdriver.Region{}, restorable.NearestFilterShader, nil, false)
-	img0.DrawTriangles([graphics.ShaderImageCount]*restorable.Image{img1}, [graphics.ShaderImageCount - 1][2]float32{}, quadVertices(img1, 1, 1, 0, 0), is, graphicsdriver.BlendCopy, dr, graphicsdriver.Region{}, restorable.NearestFilterShader, nil, false)
+	img1.DrawTriangles([graphics.ShaderImageCount]*restorable.Image{img2}, [graphics.ShaderImageCount - 1][2]float32{}, quadVertices(1, 1, 0, 0), is, graphicsdriver.BlendCopy, dr, graphicsdriver.Region{}, restorable.NearestFilterShader, nil, false)
+	img0.DrawTriangles([graphics.ShaderImageCount]*restorable.Image{img1}, [graphics.ShaderImageCount - 1][2]float32{}, quadVertices(1, 1, 0, 0), is, graphicsdriver.BlendCopy, dr, graphicsdriver.Region{}, restorable.NearestFilterShader, nil, false)
 	img1.Dispose()
 
 	if err := restorable.ResolveStaleImages(ui.GraphicsDriverForTesting(), false); err != nil {
@@ -699,7 +693,7 @@ func TestWritePixelsOnly(t *testing.T) {
 		img0.WritePixels([]byte{1, 2, 3, 4}, i%w, i/w, 1, 1)
 	}
 
-	vs := quadVertices(img0, 1, 1, 0, 0)
+	vs := quadVertices(1, 1, 0, 0)
 	is := graphics.QuadIndices()
 	dr := graphicsdriver.Region{
 		X:      0,
@@ -758,7 +752,7 @@ func TestReadPixelsFromVolatileImage(t *testing.T) {
 		pix[i] = 0xff
 	}
 	src.WritePixels(pix, 0, 0, w, h)
-	vs := quadVertices(src, 1, 1, 0, 0)
+	vs := quadVertices(1, 1, 0, 0)
 	is := graphics.QuadIndices()
 	dr := graphicsdriver.Region{
 		X:      0,
@@ -787,7 +781,7 @@ func TestAllowWritePixelsAfterDrawTriangles(t *testing.T) {
 	src := restorable.NewImage(w, h, restorable.ImageTypeRegular)
 	dst := restorable.NewImage(w, h, restorable.ImageTypeRegular)
 
-	vs := quadVertices(src, w, h, 0, 0)
+	vs := quadVertices(w, h, 0, 0)
 	is := graphics.QuadIndices()
 	dr := graphicsdriver.Region{
 		X:      0,
@@ -811,7 +805,7 @@ func TestAllowWritePixelsForPartAfterDrawTriangles(t *testing.T) {
 	}
 	src.WritePixels(pix, 0, 0, w, h)
 
-	vs := quadVertices(src, w, h, 0, 0)
+	vs := quadVertices(w, h, 0, 0)
 	is := graphics.QuadIndices()
 	dr := graphicsdriver.Region{
 		X:      0,
@@ -910,7 +904,7 @@ func TestDrawTrianglesAndExtend(t *testing.T) {
 	src.WritePixels(pix, 0, 0, w, h)
 
 	orig := restorable.NewImage(w, h, restorable.ImageTypeRegular)
-	vs := quadVertices(src, w, h, 0, 0)
+	vs := quadVertices(w, h, 0, 0)
 	is := graphics.QuadIndices()
 	dr := graphicsdriver.Region{
 		X:      0,
@@ -964,7 +958,7 @@ func TestMutateSlices(t *testing.T) {
 	}
 	src.WritePixels(pix, 0, 0, w, h)
 
-	vs := quadVertices(src, w, h, 0, 0)
+	vs := quadVertices(w, h, 0, 0)
 	is := make([]uint16, len(graphics.QuadIndices()))
 	copy(is, graphics.QuadIndices())
 	dr := graphicsdriver.Region{
@@ -1162,7 +1156,7 @@ func TestDrawTrianglesAndReadPixels(t *testing.T) {
 
 	src.WritePixels([]byte{0x80, 0x80, 0x80, 0x80}, 0, 0, 1, 1)
 
-	vs := quadVertices(src, w, h, 0, 0)
+	vs := quadVertices(w, h, 0, 0)
 	is := graphics.QuadIndices()
 	dr := graphicsdriver.Region{
 		X:      0,
@@ -1191,7 +1185,7 @@ func TestWritePixelsAndDrawTriangles(t *testing.T) {
 	dst.WritePixels([]byte{0x40, 0x40, 0x40, 0x40}, 0, 0, 1, 1)
 
 	// Call DrawTriangles at a different region second.
-	vs := quadVertices(src, 1, 1, 1, 0)
+	vs := quadVertices(1, 1, 1, 0)
 	is := graphics.QuadIndices()
 	dr := graphicsdriver.Region{
 		X:      1,

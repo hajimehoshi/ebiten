@@ -14,17 +14,17 @@
 
 //go:build ignore
 
+//kage:unit pixel
+
 package main
 
 var Time float
 var Cursor vec2
-var ScreenSize vec2
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
-	center := ScreenSize / 2
-	// Convert a pixel to a texel by dividing by the texture size.
-	// TODO: This is confusing. Add a function to treat pixels (#1431).
-	amount := (center - Cursor) / 10 / imageSrcTextureSize()
+	_, dstSize := imageDstRegionOnTexture()
+	center := dstSize / 2
+	amount := (center - Cursor) / 10
 	var clr vec3
 	clr.r = imageSrc2At(texCoord + amount).r
 	clr.g = imageSrc2UnsafeAt(texCoord).g

@@ -22,6 +22,13 @@ import (
 	"strings"
 )
 
+type Unit int
+
+const (
+	Texel Unit = iota
+	Pixel
+)
+
 type Program struct {
 	UniformNames []string
 	Uniforms     []Type
@@ -31,6 +38,7 @@ type Program struct {
 	Funcs        []Func
 	VertexFunc   VertexFunc
 	FragmentFunc FragmentFunc
+	Unit         Unit
 
 	reachableUniforms   []bool
 	uniformUint32Counts []int

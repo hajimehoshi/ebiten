@@ -98,6 +98,7 @@ type compileContext struct {
 	version     GLSLVersion
 	structNames map[string]string
 	structTypes []shaderir.Type
+	unit        shaderir.Unit
 }
 
 func (c *compileContext) structName(p *shaderir.Program, t *shaderir.Type) string {
@@ -120,6 +121,7 @@ func Compile(p *shaderir.Program, version GLSLVersion) (vertexShader, fragmentSh
 	c := &compileContext{
 		version:     version,
 		structNames: map[string]string{},
+		unit:        p.Unit,
 	}
 
 	// Vertex func
@@ -513,8 +515,12 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 			for _, exp := range e.Exprs[1:] {
 				args = append(args, expr(&exp))
 			}
+			f := expr(&e.Exprs[0])
+			if f == "texelFetch" {
+				return fmt.Sprintf("%s(%s, ivec2(%s), 0)", f, args[0], args[1])
+			}
 			// Using parentheses at the callee is illegal.
-			return fmt.Sprintf("%s(%s)", expr(&e.Exprs[0]), strings.Join(args, ", "))
+			return fmt.Sprintf("%s(%s)", f, strings.Join(args, ", "))
 		case shaderir.FieldSelector:
 			return fmt.Sprintf("(%s).%s", expr(&e.Exprs[0]), expr(&e.Exprs[1]))
 		case shaderir.Index:

@@ -14,31 +14,28 @@
 
 //go:build ignore
 
+//kage:unit pixel
+
 package main
 
 var Time float
 var Cursor vec2
-var ScreenSize vec2
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
-	srcOrigin, srcSize := imageSrcRegionOnTexture()
-	pos := (texCoord - srcOrigin) / srcSize
-	pos *= ScreenSize
+	dstOrigin, dstSize := imageDstRegionOnTexture()
+	pos := position.xy - dstOrigin
 
-	border := ScreenSize.y*0.6 + 4*cos(Time*3+pos.y/10)
+	border := dstSize.y*0.6 + 4*cos(Time*3+pos.y/10)
 	if pos.y < border {
 		return imageSrc2UnsafeAt(texCoord)
 	}
 
-	// Convert a pixel to a texel by dividing by the texture size.
-	// TODO: This is confusing. Add a function to treat pixels (#1431).
-	srcTexSize := imageSrcTextureSize()
-	xoffset := (4 / srcTexSize.x) * cos(Time*3+pos.y/10)
-	yoffset := (20 / srcTexSize.y) * (1 + cos(Time*3+pos.y/40))
-	bordertex := border / srcTexSize.y
+	xoffset := 4 * cos(Time*3+pos.y/10)
+	yoffset := 20 * (1 + cos(Time*3+pos.y/40))
+	srcOrigin, _ := imageSrcRegionOnTexture()
 	clr := imageSrc2At(vec2(
 		texCoord.x+xoffset,
-		-(texCoord.y+yoffset-srcOrigin.y)+bordertex*2+srcOrigin.y,
+		-(texCoord.y+yoffset-srcOrigin.y)+border*2+srcOrigin.y,
 	)).rgb
 
 	overlay := vec3(0.5, 1, 1)

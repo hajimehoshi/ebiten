@@ -42,3 +42,7 @@ func (s *Shader) Dispose() {
 	}
 	theCommandQueue.Enqueue(c)
 }
+
+func (s *Shader) unit() shaderir.Unit {
+	return s.ir.Unit
+}

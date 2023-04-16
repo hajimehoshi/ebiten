@@ -15,11 +15,14 @@
 package shader
 
 import (
+	"bufio"
+	"bytes"
 	"fmt"
 	"go/ast"
 	gconstant "go/constant"
 	"go/parser"
 	"go/token"
+	"regexp"
 	"strings"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
@@ -49,6 +52,7 @@ type compileState struct {
 
 	vertexEntry   string
 	fragmentEntry string
+	unit          shaderir.Unit
 
 	ir shaderir.Program
 
@@ -182,6 +186,11 @@ func (p *ParseError) Error() string {
 }
 
 func Compile(src []byte, vertexEntry, fragmentEntry string, textureCount int) (*shaderir.Program, error) {
+	unit, err := ParseCompilerDirectives(src)
+	if err != nil {
+		return nil, err
+	}
+
 	fs := token.NewFileSet()
 	f, err := parser.ParseFile(fs, "", src, parser.AllErrors)
 	if err != nil {
@@ -192,6 +201,7 @@ func Compile(src []byte, vertexEntry, fragmentEntry string, textureCount int) (*
 		fs:            fs,
 		vertexEntry:   vertexEntry,
 		fragmentEntry: fragmentEntry,
+		unit:          unit,
 	}
 	s.global.ir = &shaderir.Block{}
 	s.parse(f)
@@ -209,12 +219,45 @@ func Compile(src []byte, vertexEntry, fragmentEntry string, textureCount int) (*
 	return &s.ir, nil
 }
 
+func ParseCompilerDirectives(src []byte) (shaderir.Unit, error) {
+	// TODO: Change the unit to pixels in v3 (#2645).
+	unit := shaderir.Texel
+
+	reUnit := regexp.MustCompile(`^//kage:unit\s+(.+)$`)
+	var unitParsed bool
+
+	buf := bytes.NewBuffer(src)
+	s := bufio.NewScanner(buf)
+	for s.Scan() {
+		m := reUnit.FindStringSubmatch(s.Text())
+		if m == nil {
+			continue
+		}
+		if unitParsed {
+			return 0, fmt.Errorf("shader: at most one //kage:unit can exist in a shader")
+		}
+		switch m[1] {
+		case "pixel":
+			unit = shaderir.Pixel
+		case "texel":
+			unit = shaderir.Texel
+		default:
+			return 0, fmt.Errorf("shader: invalid value for //kage:unit: %s", m[1])
+		}
+		unitParsed = true
+	}
+
+	return unit, nil
+}
+
 func (s *compileState) addError(pos token.Pos, str string) {
 	p := s.fs.Position(pos)
 	s.errs = append(s.errs, fmt.Sprintf("%s: %s", p, str))
 }
 
 func (cs *compileState) parse(f *ast.File) {
+	cs.ir.Unit = cs.unit
+
 	// Parse GenDecl for global variables, and then parse functions.
 	for _, d := range f.Decls {
 		if _, ok := d.(*ast.FuncDecl); !ok {

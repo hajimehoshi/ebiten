@@ -599,16 +599,23 @@ func (q *commandQueue) prependPreservedUniforms(uniforms []uint32, shader *Shade
 	}
 	idx += len(srcs) * 2
 
+	if shader.unit() == shaderir.Texel {
+		dstRegion.X /= float32(dw)
+		dstRegion.Y /= float32(dh)
+		dstRegion.Width /= float32(dw)
+		dstRegion.Height /= float32(dh)
+	}
+
 	// Set the destination region.
-	uniforms[idx+0] = math.Float32bits(dstRegion.X / float32(dw))
-	uniforms[idx+1] = math.Float32bits(dstRegion.Y / float32(dh))
+	uniforms[idx+0] = math.Float32bits(dstRegion.X)
+	uniforms[idx+1] = math.Float32bits(dstRegion.Y)
 	idx += 2
 
-	uniforms[idx+0] = math.Float32bits(dstRegion.Width / float32(dw))
-	uniforms[idx+1] = math.Float32bits(dstRegion.Height / float32(dh))
+	uniforms[idx+0] = math.Float32bits(dstRegion.Width)
+	uniforms[idx+1] = math.Float32bits(dstRegion.Height)
 	idx += 2
 
-	if srcs[0] != nil {
+	if shader.unit() == shaderir.Texel && srcs[0] != nil {
 		w, h := srcs[0].InternalSize()
 		srcRegion.X /= float32(w)
 		srcRegion.Y /= float32(h)
