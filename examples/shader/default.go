@@ -21,8 +21,8 @@ var Cursor vec2
 var ScreenSize vec2
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
-	dstOrigin, _ := imageDstRegionOnTexture()
-	pos := (position.xy - dstOrigin) / 1024
+	dstOrigin, dstSize := imageDstRegionOnTexture()
+	pos := (position.xy/imageDstTextureSize() - dstOrigin) / dstSize
 	pos += Cursor / ScreenSize / 4
 	clr := 0.0
 	clr += sin(pos.x*cos(Time/15)*80) + cos(pos.y*cos(Time/15)*10)
