@@ -18,8 +18,8 @@ import (
 	"fmt"
 	"image/color"
 	"log"
-	"math"
 	"runtime"
+	"sync"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
@@ -38,32 +38,30 @@ const (
 )
 
 type Game struct {
-	mouseX int
-	mouseY int
-	x      int
-	y      int
+	initOnce sync.Once
+	mouseX   int
+	mouseY   int
+	x        int
+	y        int
 }
 
 func (g *Game) Update() error {
+	g.initOnce.Do(func() {
+		// initialize cursor position on first update
+		g.mouseX, g.mouseY = ebiten.CursorPosition()
+	})
+
 	if ebiten.CursorMode() == ebiten.CursorModeCaptured {
 		cursorX, cursorY := ebiten.CursorPosition()
+		deltaX, deltaY := cursorX-g.mouseX, cursorY-g.mouseY
+		g.mouseX, g.mouseY = cursorX, cursorY
 
-		if g.mouseX == math.MinInt32 && g.mouseY == math.MinInt32 {
-			// Initialize first position to establish delta.
-			if cursorX != 0 && cursorY != 0 {
-				g.mouseX, g.mouseY = cursorX, cursorY
-			}
-		} else {
-			deltaX, deltaY := cursorX-g.mouseX, cursorY-g.mouseY
-			g.mouseX, g.mouseY = cursorX, cursorY
+		if deltaX != 0 {
+			g.x += deltaX
+		}
 
-			if deltaX != 0 {
-				g.x += deltaX
-			}
-
-			if deltaY != 0 {
-				g.y += deltaY
-			}
+		if deltaY != 0 {
+			g.y += deltaY
 		}
 
 		// Constrain red dot within screen view.
@@ -89,7 +87,7 @@ func (g *Game) Update() error {
 			ebiten.SetCursorMode(ebiten.CursorModeCaptured)
 
 			// Reset mouse cursor position for its return.
-			g.mouseX, g.mouseY = math.MinInt32, math.MinInt32
+			g.mouseX, g.mouseY = ebiten.CursorPosition()
 		}
 	}
 
@@ -125,10 +123,8 @@ func main() {
 	}
 
 	g := &Game{
-		mouseX: math.MinInt32,
-		mouseY: math.MinInt32,
-		x:      screenWidth / 2,
-		y:      screenHeight / 2,
+		x: screenWidth / 2,
+		y: screenHeight / 2,
 	}
 	if err := ebiten.RunGame(g); err != nil {
 		log.Fatal(err)
