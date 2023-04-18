@@ -309,7 +309,9 @@ func platformTerminate() error {
 
 	if _glfw.platformWindow.helperWindowHandle != 0 {
 		if !microsoftgdk.IsXbox() {
-			if err := _DestroyWindow(_glfw.platformWindow.helperWindowHandle); err != nil {
+			// An error 'invalid window handle' can occur without any specific reasons (#2551).
+			// As there is nothing to do, just ignore this error.
+			if err := _DestroyWindow(_glfw.platformWindow.helperWindowHandle); err != nil && !errors.Is(err, windows.ERROR_INVALID_WINDOW_HANDLE) {
 				return err
 			}
 		}
