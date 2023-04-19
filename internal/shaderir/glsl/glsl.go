@@ -28,7 +28,6 @@ type GLSLVersion int
 
 const (
 	GLSLVersionDefault GLSLVersion = iota
-	GLSLVersionES100
 	GLSLVersionES300
 )
 
@@ -65,8 +64,6 @@ func VertexPrelude(version GLSLVersion) string {
 	switch version {
 	case GLSLVersionDefault:
 		return utilFunctions
-	case GLSLVersionES100:
-		return utilFunctions
 	case GLSLVersionES300:
 		return `#version 300 es`
 	}
@@ -76,8 +73,6 @@ func VertexPrelude(version GLSLVersion) string {
 func FragmentPrelude(version GLSLVersion) string {
 	var prefix string
 	switch version {
-	case GLSLVersionES100:
-		prefix = `#extension GL_OES_standard_derivatives : enable` + "\n\n"
 	case GLSLVersionES300:
 		prefix = `#version 300 es` + "\n\n"
 	}
@@ -89,7 +84,7 @@ precision highp int;
 #define mediump
 #define highp
 #endif`
-	if version == GLSLVersionDefault || version == GLSLVersionES100 {
+	if version == GLSLVersionDefault {
 		prelude += "\n\n" + utilFunctions
 	}
 	return prelude
@@ -517,7 +512,7 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 			}
 			return fmt.Sprintf("%s(%s)", op, expr(&e.Exprs[0]))
 		case shaderir.Binary:
-			if e.Op == shaderir.ModOp && (c.version == GLSLVersionDefault || c.version == GLSLVersionES100) {
+			if e.Op == shaderir.ModOp && c.version == GLSLVersionDefault {
 				// '%' is not defined.
 				return fmt.Sprintf("modInt((%s), (%s))", expr(&e.Exprs[0]), expr(&e.Exprs[1]))
 			}
