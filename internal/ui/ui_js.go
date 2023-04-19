@@ -723,7 +723,8 @@ func (u *userInterfaceImpl) beginFrame() {
 func (u *userInterfaceImpl) endFrame() {
 }
 
-func (u *userInterfaceImpl) updateIconIfNeeded() {
+func (u *userInterfaceImpl) updateIconIfNeeded() error {
+	return nil
 }
 
 func IsScreenTransparentAvailable() bool {

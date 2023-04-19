@@ -1113,15 +1113,15 @@ func (u *userInterfaceImpl) updateGame() error {
 	return nil
 }
 
-func (u *userInterfaceImpl) updateIconIfNeeded() {
+func (u *userInterfaceImpl) updateIconIfNeeded() error {
 	// In the fullscreen mode, SetIcon fails (#1578).
 	if u.isFullscreen() {
-		return
+		return nil
 	}
 
 	imgs := u.getIconImages()
 	if len(imgs) == 0 {
-		return
+		return nil
 	}
 
 	u.setIconImages(nil)
@@ -1142,9 +1142,16 @@ func (u *userInterfaceImpl) updateIconIfNeeded() {
 		newImgs[i] = rgba
 	}
 
+	// Catch a possible error at 'At' (#2647).
+	if err := theGlobalState.error(); err != nil {
+		return err
+	}
+
 	u.mainThread.Call(func() {
 		u.window.SetIcon(newImgs)
 	})
+
+	return nil
 }
 
 func (u *userInterfaceImpl) swapBuffersOnRenderThread() {
