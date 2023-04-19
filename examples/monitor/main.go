@@ -119,7 +119,7 @@ func main() {
 	monitors := ebiten.AppendMonitors(nil)
 
 	// Ensure the user did not supply a monitor index beyond the range of available monitors. If they did, set the monitor to the primary.
-	if monitor >= 0 && monitor < len(monitors) {
+	if monitor < 0 || monitor >= len(monitors) {
 		monitor = 0
 	}
 
