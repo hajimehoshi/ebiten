@@ -721,7 +721,10 @@ func (u *userInterfaceImpl) Window() Window {
 type Monitor struct{}
 
 func (m *Monitor) Bounds() image.Rectangle {
-	return image.Rect(0, 0, window.Get("innerWidth").Int(), window.Get("innerHeight").Int())
+	screen := windows.Get("screen")
+	w := screen.Get("width").Int()
+	h := screen.Get("height").Int()
+	return image.Rect(0, 0, w, h)
 }
 
 func (m *Monitor) Name() string {
