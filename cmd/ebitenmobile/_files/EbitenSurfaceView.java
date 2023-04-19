@@ -73,7 +73,7 @@ class EbitenSurfaceView extends GLSurfaceView implements RenderRequester {
     }
 
     private void initialize() {
-        setEGLContextClientVersion(2);
+        setEGLContextClientVersion(3);
         setEGLConfigChooser(8, 8, 8, 8, 0, 0);
         setRenderer(new EbitenRenderer());
         Ebitenmobileview.setRenderRequester(this);

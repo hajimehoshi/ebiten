@@ -107,7 +107,7 @@
   }
 
   if (isGL) {
-    EAGLContext *context = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES2];
+    EAGLContext *context = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES3];
     [self glkView].context = context;
 
     [EAGLContext setCurrentContext:context];
