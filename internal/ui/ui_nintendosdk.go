@@ -199,6 +199,7 @@ func (*userInterfaceImpl) Window() Window {
 type Monitor struct{}
 
 func (m *Monitor) Bounds() image.Rectangle {
+	// TODO: This should return the available viewport dimensions.
 	return image.Rectangle{}
 }
 

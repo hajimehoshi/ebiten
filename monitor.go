@@ -23,7 +23,7 @@ import (
 // MonitorType represents a monitor available to the system.
 type MonitorType ui.Monitor
 
-// Bounds returns the position and size of the monitor.
+// Bounds returns the position and size of the monitor in device-independent pixels.
 func (m *MonitorType) Bounds() image.Rectangle {
 	return (*ui.Monitor)(m).Bounds()
 }
