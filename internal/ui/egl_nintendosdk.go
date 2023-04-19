@@ -71,8 +71,8 @@ func (e *egl) init(nativeWindowHandle C.NativeWindowType) error {
 	// Create new context and set it as current.
 	contextAttribs := []C.EGLint{
 		// Set target graphics api version.
-		C.EGL_CONTEXT_MAJOR_VERSION, 2,
-		C.EGL_CONTEXT_MINOR_VERSION, 1,
+		C.EGL_CONTEXT_MAJOR_VERSION, 3,
+		C.EGL_CONTEXT_MINOR_VERSION, 2,
 		// For debug callback
 		C.EGL_CONTEXT_FLAGS_KHR, C.EGL_CONTEXT_OPENGL_DEBUG_BIT_KHR,
 		C.EGL_NONE}

@@ -220,11 +220,11 @@ uniform S0 U0;`,
 			},
 			GlslVS: glslVertexPrelude + `
 uniform float U0;
-attribute vec2 A0;
-varying vec3 V0;`,
+in vec2 A0;
+out vec3 V0;`,
 			GlslFS: glslFragmentPrelude + `
 uniform float U0;
-varying vec3 V0;`,
+in vec3 V0;`,
 		},
 		{
 			Name: "Func",
@@ -930,11 +930,11 @@ void F0(float l0, float l1, thread float& l2) {
 			},
 			GlslVS: glslVertexPrelude + `
 uniform float U0;
-attribute vec4 A0;
-attribute float A1;
-attribute vec2 A2;
-varying float V0;
-varying vec2 V1;
+in vec4 A0;
+in float A1;
+in vec2 A2;
+out float V0;
+out vec2 V1;
 
 void main(void) {
 	gl_Position = A0;
@@ -943,8 +943,8 @@ void main(void) {
 }`,
 			GlslFS: glslFragmentPrelude + `
 uniform float U0;
-varying float V0;
-varying vec2 V1;`,
+in float V0;
+in vec2 V1;`,
 		},
 		{
 			Name: "FragmentFunc",
@@ -1002,11 +1002,11 @@ varying vec2 V1;`,
 			},
 			GlslVS: glslVertexPrelude + `
 uniform float U0;
-attribute vec4 A0;
-attribute float A1;
-attribute vec2 A2;
-varying float V0;
-varying vec2 V1;
+in vec4 A0;
+in float A1;
+in vec2 A2;
+out float V0;
+out vec2 V1;
 
 void main(void) {
 	gl_Position = A0;
@@ -1015,8 +1015,8 @@ void main(void) {
 }`,
 			GlslFS: glslFragmentPrelude + `
 uniform float U0;
-varying float V0;
-varying vec2 V1;
+in float V0;
+in vec2 V1;
 
 vec4 F0(in vec4 l0, in float l1, in vec2 l2);
 
@@ -1029,7 +1029,7 @@ vec4 F0(in vec4 l0, in float l1, in vec2 l2) {
 }
 
 void main(void) {
-	gl_FragColor = F0(gl_FragCoord, V0, V1);
+	fragColor = F0(gl_FragCoord, V0, V1);
 }`,
 		},
 	}

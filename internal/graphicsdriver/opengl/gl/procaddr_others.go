@@ -108,7 +108,6 @@ func getProcAddressGL(name string) uintptr {
 }
 
 func getProcAddressGLES(name string) uintptr {
-	name = strings.TrimSuffix(name, "EXT")
 	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))
 	return uintptr(C.getProcAddressGLES(libGLES, cname))

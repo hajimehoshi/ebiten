@@ -122,10 +122,7 @@ func (c *compileContext) builtinFuncString(f shaderir.BuiltinFunc) string {
 	case shaderir.Dfdy:
 		return "dFdy"
 	case shaderir.Texture2DF:
-		if c.version == GLSLVersionES300 {
-			return "texture"
-		}
-		return "texture2D"
+		return "texture"
 	default:
 		return string(f)
 	}

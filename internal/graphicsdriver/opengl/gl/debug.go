@@ -81,6 +81,14 @@ func (d *DebugContext) BindTexture(arg0 uint32, arg1 uint32) {
 	}
 }
 
+func (d *DebugContext) BindVertexArray(arg0 uint32) {
+	d.Context.BindVertexArray(arg0)
+	fmt.Fprintln(os.Stderr, "BindVertexArray")
+	if e := d.Context.GetError(); e != NO_ERROR {
+		panic(fmt.Sprintf("gl: GetError() returned %d at BindVertexArray", e))
+	}
+}
+
 func (d *DebugContext) BlendEquationSeparate(arg0 uint32, arg1 uint32) {
 	d.Context.BlendEquationSeparate(arg0, arg1)
 	fmt.Fprintln(os.Stderr, "BlendEquationSeparate")
@@ -200,6 +208,15 @@ func (d *DebugContext) CreateTexture() uint32 {
 	return out0
 }
 
+func (d *DebugContext) CreateVertexArray() uint32 {
+	out0 := d.Context.CreateVertexArray()
+	fmt.Fprintln(os.Stderr, "CreateVertexArray")
+	if e := d.Context.GetError(); e != NO_ERROR {
+		panic(fmt.Sprintf("gl: GetError() returned %d at CreateVertexArray", e))
+	}
+	return out0
+}
+
 func (d *DebugContext) DeleteBuffer(arg0 uint32) {
 	d.Context.DeleteBuffer(arg0)
 	fmt.Fprintln(os.Stderr, "DeleteBuffer")
@@ -245,6 +262,14 @@ func (d *DebugContext) DeleteTexture(arg0 uint32) {
 	fmt.Fprintln(os.Stderr, "DeleteTexture")
 	if e := d.Context.GetError(); e != NO_ERROR {
 		panic(fmt.Sprintf("gl: GetError() returned %d at DeleteTexture", e))
+	}
+}
+
+func (d *DebugContext) DeleteVertexArray(arg0 uint32) {
+	d.Context.DeleteVertexArray(arg0)
+	fmt.Fprintln(os.Stderr, "DeleteVertexArray")
+	if e := d.Context.GetError(); e != NO_ERROR {
+		panic(fmt.Sprintf("gl: GetError() returned %d at DeleteVertexArray", e))
 	}
 }
 

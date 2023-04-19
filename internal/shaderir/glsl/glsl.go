@@ -63,7 +63,7 @@ ivec4 modInt(ivec4 x, ivec4 y) {
 func VertexPrelude(version GLSLVersion) string {
 	switch version {
 	case GLSLVersionDefault:
-		return utilFunctions
+		return `#version 150` + "\n\n" + utilFunctions
 	case GLSLVersionES300:
 		return `#version 300 es`
 	}
@@ -73,6 +73,8 @@ func VertexPrelude(version GLSLVersion) string {
 func FragmentPrelude(version GLSLVersion) string {
 	var prefix string
 	switch version {
+	case GLSLVersionDefault:
+		prefix = `#version 150` + "\n\n"
 	case GLSLVersionES300:
 		prefix = `#version 300 es` + "\n\n"
 	}
@@ -83,7 +85,9 @@ precision highp int;
 #define lowp
 #define mediump
 #define highp
-#endif`
+#endif
+
+out vec4 fragColor;`
 	if version == GLSLVersionDefault {
 		prelude += "\n\n" + utilFunctions
 	}
@@ -132,18 +136,10 @@ func Compile(p *shaderir.Program, version GLSLVersion) (vertexShader, fragmentSh
 				vslines = append(vslines, fmt.Sprintf("uniform sampler2D T%d;", i))
 			}
 			for i, t := range p.Attributes {
-				keyword := "attribute"
-				if version == GLSLVersionES300 {
-					keyword = "in"
-				}
-				vslines = append(vslines, fmt.Sprintf("%s %s;", keyword, c.varDecl(p, &t, fmt.Sprintf("A%d", i))))
+				vslines = append(vslines, fmt.Sprintf("in %s;", c.varDecl(p, &t, fmt.Sprintf("A%d", i))))
 			}
 			for i, t := range p.Varyings {
-				keyword := "varying"
-				if version == GLSLVersionES300 {
-					keyword = "out"
-				}
-				vslines = append(vslines, fmt.Sprintf("%s %s;", keyword, c.varDecl(p, &t, fmt.Sprintf("V%d", i))))
+				vslines = append(vslines, fmt.Sprintf("out %s;", c.varDecl(p, &t, fmt.Sprintf("V%d", i))))
 			}
 		}
 
@@ -229,15 +225,8 @@ func Compile(p *shaderir.Program, version GLSLVersion) (vertexShader, fragmentSh
 				fslines = append(fslines, fmt.Sprintf("uniform sampler2D T%d;", i))
 			}
 			for i, t := range p.Varyings {
-				keyword := "varying"
-				if version == GLSLVersionES300 {
-					keyword = "in"
-				}
-				fslines = append(fslines, fmt.Sprintf("%s %s;", keyword, c.varDecl(p, &t, fmt.Sprintf("V%d", i))))
+				fslines = append(fslines, fmt.Sprintf("in %s;", c.varDecl(p, &t, fmt.Sprintf("V%d", i))))
 			}
-		}
-		if version == GLSLVersionES300 {
-			fslines = append(fslines, "out vec4 fragColor;")
 		}
 
 		var funcs []*shaderir.Func
@@ -615,11 +604,7 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 		case shaderir.Return:
 			switch {
 			case topBlock == p.FragmentFunc.Block:
-				token := "gl_FragColor"
-				if c.version == GLSLVersionES300 {
-					token = "fragColor"
-				}
-				lines = append(lines, fmt.Sprintf("%s%s = %s;", idt, token, expr(&s.Exprs[0])))
+				lines = append(lines, fmt.Sprintf("%sfragColor = %s;", idt, expr(&s.Exprs[0])))
 				// The 'return' statement is not required so far, as the fragment entrypoint has only one sentence so far. See adjustProgram implementation.
 			case len(s.Exprs) == 0:
 				lines = append(lines, idt+"return;")

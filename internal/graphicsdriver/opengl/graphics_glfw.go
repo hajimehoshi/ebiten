@@ -17,6 +17,8 @@
 package opengl
 
 import (
+	"runtime"
+
 	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
 )
 
@@ -30,6 +32,11 @@ func (g *Graphics) SetGLFWClientAPI() {
 	}
 
 	glfw.WindowHint(glfw.ClientAPI, glfw.OpenGLAPI)
-	glfw.WindowHint(glfw.ContextVersionMajor, 2)
-	glfw.WindowHint(glfw.ContextVersionMinor, 1)
+	glfw.WindowHint(glfw.ContextVersionMajor, 3)
+	glfw.WindowHint(glfw.ContextVersionMinor, 2)
+	// macOS requires forward-compatible and a core profile.
+	if runtime.GOOS == "darwin" {
+		glfw.WindowHint(glfw.OpenGLForwardCompatible, glfw.True)
+		glfw.WindowHint(glfw.OpenGLProfile, glfw.OpenGLCoreProfile)
+	}
 }

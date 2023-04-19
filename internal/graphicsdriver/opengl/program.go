@@ -112,6 +112,8 @@ func init() {
 }
 
 type openGLState struct {
+	vertexArray uint32
+
 	// arrayBuffer is OpenGL's array buffer (vertices data).
 	arrayBuffer buffer
 
@@ -148,11 +150,16 @@ func (s *openGLState) reset(context *context) error {
 		if s.elementArrayBuffer != 0 {
 			context.ctx.DeleteBuffer(uint32(s.elementArrayBuffer))
 		}
+		if s.vertexArray != 0 {
+			context.ctx.DeleteVertexArray(s.vertexArray)
+		}
 	}
+
 	s.arrayBuffer = 0
 	s.arrayBufferSizeInBytes = 0
 	s.elementArrayBuffer = 0
 	s.elementArrayBufferSizeInBytes = 0
+	s.vertexArray = 0
 
 	return nil
 }
@@ -170,6 +177,11 @@ func pow2(x int) int {
 }
 
 func (s *openGLState) setVertices(context *context, vertices []float32, indices []uint16) {
+	if s.vertexArray == 0 {
+		s.vertexArray = context.ctx.CreateVertexArray()
+	}
+	context.ctx.BindVertexArray(s.vertexArray)
+
 	if size := len(vertices) * 4; s.arrayBufferSizeInBytes < size {
 		if s.arrayBuffer != 0 {
 			context.ctx.DeleteBuffer(uint32(s.arrayBuffer))

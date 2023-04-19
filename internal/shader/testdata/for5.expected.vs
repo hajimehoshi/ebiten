@@ -1,7 +1,7 @@
 uniform float U0;
 uniform float U1;
 uniform float U2;
-attribute vec2 A0;
+in vec2 A0;
 
 int F0(in int l0);
 

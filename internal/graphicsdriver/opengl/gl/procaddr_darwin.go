@@ -16,7 +16,6 @@ package gl
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/ebitengine/purego"
 )
@@ -44,9 +43,6 @@ func (c *defaultContext) init() error {
 }
 
 func (c *defaultContext) getProcAddress(name string) (uintptr, error) {
-	if c.isES {
-		name = strings.TrimSuffix(name, "EXT")
-	}
 	proc, err := purego.Dlsym(opengl, name)
 	if err != nil {
 		return 0, err

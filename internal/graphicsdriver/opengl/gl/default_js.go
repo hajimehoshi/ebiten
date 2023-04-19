@@ -29,6 +29,7 @@ type defaultContext struct {
 	fnBindFramebuffer          js.Value
 	fnBindRenderbuffer         js.Value
 	fnBindTexture              js.Value
+	fnBindVertexArray          js.Value
 	fnBlendEquationSeparate    js.Value
 	fnBlendFuncSeparate        js.Value
 	fnBufferData               js.Value
@@ -43,12 +44,14 @@ type defaultContext struct {
 	fnCreateRenderbuffer       js.Value
 	fnCreateShader             js.Value
 	fnCreateTexture            js.Value
+	fnCreateVertexArray        js.Value
 	fnDeleteBuffer             js.Value
 	fnDeleteFramebuffer        js.Value
 	fnDeleteProgram            js.Value
 	fnDeleteRenderbuffer       js.Value
 	fnDeleteShader             js.Value
 	fnDeleteTexture            js.Value
+	fnDeleteVertexArray        js.Value
 	fnDisable                  js.Value
 	fnDisableVertexAttribArray js.Value
 	fnDrawElements             js.Value
@@ -102,6 +105,7 @@ type defaultContext struct {
 	renderbuffers    values
 	shaders          values
 	textures         values
+	vertexArrays     values
 	uniformLocations map[uint32]*values
 }
 
@@ -156,6 +160,7 @@ func NewDefaultContext(v js.Value) (Context, error) {
 		fnBindFramebuffer:          v.Get("bindFramebuffer").Call("bind", v),
 		fnBindRenderbuffer:         v.Get("bindRenderbuffer").Call("bind", v),
 		fnBindTexture:              v.Get("bindTexture").Call("bind", v),
+		fnBindVertexArray:          v.Get("bindVertexArray").Call("bind", v),
 		fnBlendEquationSeparate:    v.Get("blendEquationSeparate").Call("bind", v),
 		fnBlendFuncSeparate:        v.Get("blendFuncSeparate").Call("bind", v),
 		fnBufferData:               v.Get("bufferData").Call("bind", v),
@@ -170,12 +175,14 @@ func NewDefaultContext(v js.Value) (Context, error) {
 		fnCreateRenderbuffer:       v.Get("createRenderbuffer").Call("bind", v),
 		fnCreateShader:             v.Get("createShader").Call("bind", v),
 		fnCreateTexture:            v.Get("createTexture").Call("bind", v),
+		fnCreateVertexArray:        v.Get("createVertexArray").Call("bind", v),
 		fnDeleteBuffer:             v.Get("deleteBuffer").Call("bind", v),
 		fnDeleteFramebuffer:        v.Get("deleteFramebuffer").Call("bind", v),
 		fnDeleteProgram:            v.Get("deleteProgram").Call("bind", v),
 		fnDeleteRenderbuffer:       v.Get("deleteRenderbuffer").Call("bind", v),
 		fnDeleteShader:             v.Get("deleteShader").Call("bind", v),
 		fnDeleteTexture:            v.Get("deleteTexture").Call("bind", v),
+		fnDeleteVertexArray:        v.Get("deleteVertexArray").Call("bind", v),
 		fnDisable:                  v.Get("disable").Call("bind", v),
 		fnDisableVertexAttribArray: v.Get("disableVertexAttribArray").Call("bind", v),
 		fnDrawElements:             v.Get("drawElements").Call("bind", v),
@@ -269,6 +276,10 @@ func (c *defaultContext) BindTexture(target uint32, texture uint32) {
 	c.fnBindTexture.Invoke(target, c.textures.get(texture))
 }
 
+func (c *defaultContext) BindVertexArray(array uint32) {
+	c.fnBindVertexArray.Invoke(c.vertexArrays.get(array))
+}
+
 func (c *defaultContext) BlendEquationSeparate(modeRGB uint32, modeAlpha uint32) {
 	c.fnBlendEquationSeparate.Invoke(modeRGB, modeAlpha)
 }
@@ -327,6 +338,10 @@ func (c *defaultContext) CreateTexture() uint32 {
 	return c.textures.create(c.fnCreateTexture.Invoke())
 }
 
+func (c *defaultContext) CreateVertexArray() uint32 {
+	return c.vertexArrays.create(c.fnCreateVertexArray.Invoke())
+}
+
 func (c *defaultContext) DeleteBuffer(buffer uint32) {
 	c.fnDeleteBuffer.Invoke(c.buffers.get(buffer))
 	c.buffers.delete(buffer)
@@ -356,6 +371,11 @@ func (c *defaultContext) DeleteShader(shader uint32) {
 func (c *defaultContext) DeleteTexture(texture uint32) {
 	c.fnDeleteTexture.Invoke(c.textures.get(texture))
 	c.textures.delete(texture)
+}
+
+func (c *defaultContext) DeleteVertexArray(array uint32) {
+	c.fnDeleteVertexArray.Invoke(c.vertexArrays.get(array))
+	c.textures.delete(array)
 }
 
 func (c *defaultContext) Disable(cap uint32) {

@@ -29,5 +29,5 @@ vec4 F1(in vec4 l0) {
 }
 
 void main(void) {
-	gl_FragColor = F1(gl_FragCoord);
+	fragColor = F1(gl_FragCoord);
 }

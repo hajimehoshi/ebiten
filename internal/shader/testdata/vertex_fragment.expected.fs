@@ -1,6 +1,6 @@
 uniform vec2 U0;
-varying vec2 V0;
-varying vec4 V1;
+in vec2 V0;
+in vec4 V1;
 
 vec4 F0(in vec4 l0, in vec2 l1, in vec4 l2);
 
@@ -9,5 +9,5 @@ vec4 F0(in vec4 l0, in vec2 l1, in vec4 l2) {
 }
 
 void main(void) {
-	gl_FragColor = F0(gl_FragCoord, V0, V1);
+	fragColor = F0(gl_FragCoord, V0, V1);
 }

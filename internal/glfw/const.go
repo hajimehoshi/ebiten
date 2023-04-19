@@ -59,20 +59,22 @@ const (
 )
 
 const (
-	AutoIconify            = Hint(0x00020006)
-	ClientAPI              = Hint(0x00022001)
-	ContextCreationAPI     = Hint(0x0002200B)
-	ContextVersionMajor    = Hint(0x00022002)
-	ContextVersionMinor    = Hint(0x00022003)
-	Decorated              = Hint(0x00020005)
-	Floating               = Hint(0x00020007)
-	Focused                = Hint(0x00020001)
-	FocusOnShow            = Hint(0x0002000C)
-	Iconified              = Hint(0x00020002)
-	Maximized              = Hint(0x00020008)
-	Resizable              = Hint(0x00020003)
-	TransparentFramebuffer = Hint(0x0002000A)
-	Visible                = Hint(0x00020004)
+	AutoIconify             = Hint(0x00020006)
+	ClientAPI               = Hint(0x00022001)
+	ContextCreationAPI      = Hint(0x0002200B)
+	ContextVersionMajor     = Hint(0x00022002)
+	ContextVersionMinor     = Hint(0x00022003)
+	Decorated               = Hint(0x00020005)
+	Floating                = Hint(0x00020007)
+	Focused                 = Hint(0x00020001)
+	FocusOnShow             = Hint(0x0002000C)
+	Iconified               = Hint(0x00020002)
+	Maximized               = Hint(0x00020008)
+	OpenGLForwardCompatible = Hint(0x00022006)
+	OpenGLProfile           = Hint(0x00022008)
+	Resizable               = Hint(0x00020003)
+	TransparentFramebuffer  = Hint(0x0002000A)
+	Visible                 = Hint(0x00020004)
 )
 
 const (
@@ -82,13 +84,14 @@ const (
 )
 
 const (
-	CursorDisabled = 0x00034003
-	CursorHidden   = 0x00034002
-	CursorNormal   = 0x00034001
-	EGLContextAPI  = 0x00036002
-	NoAPI          = 0
-	OpenGLAPI      = 0x00030001
-	OpenGLESAPI    = 0x00030002
+	CursorDisabled    = 0x00034003
+	CursorHidden      = 0x00034002
+	CursorNormal      = 0x00034001
+	EGLContextAPI     = 0x00036002
+	NoAPI             = 0
+	OpenGLAPI         = 0x00030001
+	OpenGLCoreProfile = 0x00032001
+	OpenGLESAPI       = 0x00030002
 )
 
 const (
