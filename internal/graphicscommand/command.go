@@ -590,11 +590,12 @@ func (q *commandQueue) prependPreservedUniforms(uniforms []uint32, shader *Shade
 
 	// Set the source texture sizes.
 	for i, src := range srcs {
-		if src != nil {
-			w, h := src.InternalSize()
-			uniforms[idx+2*i] = math.Float32bits(float32(w))
-			uniforms[idx+2*i+1] = math.Float32bits(float32(h))
+		if src == nil {
+			continue
 		}
+		w, h := src.InternalSize()
+		uniforms[idx+2*i] = math.Float32bits(float32(w))
+		uniforms[idx+2*i+1] = math.Float32bits(float32(h))
 	}
 	idx += len(srcs) * 2
 

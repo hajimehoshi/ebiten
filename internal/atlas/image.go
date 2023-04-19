@@ -459,8 +459,8 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 		swf, shf := float32(sw), float32(sh)
 		n := len(vertices)
 		for i := 0; i < n; i += graphics.VertexFloatCount {
-			vertices[i] = vertices[i] + dx
-			vertices[i+1] = vertices[i+1] + dy
+			vertices[i] += dx
+			vertices[i+1] += dy
 			vertices[i+2] = (vertices[i+2] + oxf) / swf
 			vertices[i+3] = (vertices[i+3] + oyf) / shf
 		}
@@ -473,8 +473,8 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 	} else {
 		n := len(vertices)
 		for i := 0; i < n; i += graphics.VertexFloatCount {
-			vertices[i] = vertices[i] + dx
-			vertices[i+1] = vertices[i+1] + dy
+			vertices[i] += dx
+			vertices[i+1] += dy
 		}
 	}
 
