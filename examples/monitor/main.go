@@ -75,7 +75,7 @@ func (g *Game) Update() error {
 			b := text.BoundString(mplusNormalFont, fmt.Sprintf("%d: %s %s", i, m.Name(), m.Bounds().String()))
 			if cx >= b.Min.X && cx <= b.Max.X && cy >= b.Min.Y+y && cy <= b.Max.Y+y {
 				ebiten.SetWindowTitle(m.Name())
-				ebiten.SetWindowMonitor(m)
+				ebiten.SetMonitor(m)
 				break
 			}
 			y += l
@@ -95,7 +95,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		y += l
 	}
 
-	activeMonitor := ebiten.WindowMonitor()
+	activeMonitor := ebiten.Monitor()
 	for i, m := range ebiten.AppendMonitors(nil) {
 		if m == activeMonitor {
 			text.Draw(screen, fmt.Sprintf("active: %s (%d)", m.Name(), i), mplusNormalFont, x, y, color.White)
@@ -124,7 +124,7 @@ func main() {
 	}
 
 	targetMonitor := monitors[monitor]
-	ebiten.SetWindowMonitor(targetMonitor)
+	ebiten.SetMonitor(targetMonitor)
 	ebiten.SetWindowTitle(targetMonitor.Name())
 	ebiten.SetWindowSize(screenWidth, screenHeight)
 
