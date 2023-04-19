@@ -221,7 +221,13 @@ type Monitor struct {
 
 // Bounds returns the monitor's bounds.
 func (m *Monitor) Bounds() image.Rectangle {
-	return image.Rect(m.x, m.y, m.x+m.width, m.y+m.height)
+	ui := Get()
+	return image.Rect(
+		int(ui.dipFromGLFWMonitorPixel(float64(m.x), m.m)),
+		int(ui.dipFromGLFWMonitorPixel(float64(m.y), m.m)),
+		int(ui.dipFromGLFWMonitorPixel(float64(m.x+m.width), m.m)),
+		int(ui.dipFromGLFWMonitorPixel(float64(m.x+m.height), m.m)),
+	)
 }
 
 // Name returns the monitor's name.
