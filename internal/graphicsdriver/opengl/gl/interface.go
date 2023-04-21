@@ -14,6 +14,9 @@
 
 package gl
 
+//go:generate go run gen.go
+//go:generate gofmt -s -w .
+
 // Context is a context for OpenGL (ES) functions.
 //
 // Context is basically the same as gomobile's gl.Context.

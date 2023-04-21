@@ -52,6 +52,16 @@ type Graphics struct {
 	activatedTextures []activatedTexture
 }
 
+func newGraphics(ctx gl.Context) *Graphics {
+	g := &Graphics{}
+	if isDebug {
+		g.context.ctx = &gl.DebugContext{Context: ctx}
+	} else {
+		g.context.ctx = ctx
+	}
+	return g
+}
+
 func (g *Graphics) Begin() error {
 	// Do nothing.
 	return nil
