@@ -30,24 +30,23 @@ func (c *defaultContext) init() error {
 	return nil
 }
 
-func (c *defaultContext) getProcAddress(namea string) uintptr {
+func (c *defaultContext) getProcAddress(namea string) (uintptr, error) {
 	cname, err := windows.BytePtrFromString(namea)
 	if err != nil {
-		panic(err)
+		return 0, err
 	}
 
 	r, _, err := procWglGetProcAddress.Call(uintptr(unsafe.Pointer(cname)))
 	if r != 0 {
-		return r
+		return r, nil
 	}
 	if err != nil && err != windows.ERROR_SUCCESS && err != windows.ERROR_PROC_NOT_FOUND {
-		panic(fmt.Sprintf("gl: wglGetProcAddress failed for %s: %s", namea, err.Error()))
+		return 0, fmt.Errorf("gl: wglGetProcAddress failed for %s: %w", namea, err)
 	}
 
 	p := opengl32.NewProc(namea)
 	if err := p.Find(); err != nil {
-		// The proc is not found.
-		return 0
+		return 0, err
 	}
-	return p.Addr()
+	return p.Addr(), nil
 }

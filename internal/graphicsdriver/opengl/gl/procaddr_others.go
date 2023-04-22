@@ -94,22 +94,22 @@ func (c *defaultContext) init() error {
 	return fmt.Errorf("gl: failed to load libGL.so and libGLESv2.so")
 }
 
-func (c *defaultContext) getProcAddress(name string) unsafe.Pointer {
+func (c *defaultContext) getProcAddress(name string) (uintptr, error) {
 	if c.isES {
-		return getProcAddressGLES(name)
+		return getProcAddressGLES(name), nil
 	}
-	return getProcAddressGL(name)
+	return getProcAddressGL(name), nil
 }
 
-func getProcAddressGL(name string) unsafe.Pointer {
+func getProcAddressGL(name string) uintptr {
 	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))
-	return C.getProcAddressGL(libGL, cname)
+	return uintptr(C.getProcAddressGL(libGL, cname))
 }
 
-func getProcAddressGLES(name string) unsafe.Pointer {
+func getProcAddressGLES(name string) uintptr {
 	name = strings.TrimSuffix(name, "EXT")
 	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))
-	return C.getProcAddressGLES(libGLES, cname)
+	return uintptr(C.getProcAddressGLES(libGLES, cname))
 }
