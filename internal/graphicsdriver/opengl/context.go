@@ -22,6 +22,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl/gl"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
+	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/glsl"
 )
 
 type blendFactor int
@@ -105,8 +106,6 @@ type context struct {
 	highp              bool
 	highpOnce          sync.Once
 	initOnce           sync.Once
-
-	contextPlatform
 }
 
 func (c *context) bindTexture(t textureNative) {
@@ -481,4 +480,11 @@ func (c *context) newElementArrayBuffer(size int) buffer {
 	c.ctx.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, b)
 	c.ctx.BufferInit(gl.ELEMENT_ARRAY_BUFFER, size, gl.DYNAMIC_DRAW)
 	return buffer(b)
+}
+
+func (c *context) glslVersion() glsl.GLSLVersion {
+	if c.ctx.IsES() {
+		return glsl.GLSLVersionES300
+	}
+	return glsl.GLSLVersionDefault
 }

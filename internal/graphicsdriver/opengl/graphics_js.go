@@ -43,8 +43,5 @@ func NewGraphics(canvas js.Value) (graphicsdriver.Graphics, error) {
 		return nil, err
 	}
 
-	g := newGraphics(ctx)
-	g.context.canvas = canvas
-
-	return g, nil
+	return newGraphics(ctx), nil
 }
