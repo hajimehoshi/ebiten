@@ -26,52 +26,32 @@ import (
 
 type blendFactor int
 
-const (
-	glDstAlpha         blendFactor = 0x304
-	glDstColor         blendFactor = 0x306
-	glOne              blendFactor = 1
-	glOneMinusDstAlpha blendFactor = 0x305
-	glOneMinusDstColor blendFactor = 0x307
-	glOneMinusSrcAlpha blendFactor = 0x303
-	glOneMinusSrcColor blendFactor = 0x301
-	glSrcAlpha         blendFactor = 0x302
-	glSrcAlphaSaturate blendFactor = 0x308
-	glSrcColor         blendFactor = 0x300
-	glZero             blendFactor = 0
-)
-
 type blendOperation int
-
-const (
-	glFuncAdd             blendOperation = 0x8006
-	glFuncReverseSubtract blendOperation = 0x800b
-	glFuncSubtract        blendOperation = 0x800a
-)
 
 func convertBlendFactor(f graphicsdriver.BlendFactor) blendFactor {
 	switch f {
 	case graphicsdriver.BlendFactorZero:
-		return glZero
+		return gl.ZERO
 	case graphicsdriver.BlendFactorOne:
-		return glOne
+		return gl.ONE
 	case graphicsdriver.BlendFactorSourceColor:
-		return glSrcColor
+		return gl.SRC_COLOR
 	case graphicsdriver.BlendFactorOneMinusSourceColor:
-		return glOneMinusSrcColor
+		return gl.ONE_MINUS_SRC_COLOR
 	case graphicsdriver.BlendFactorSourceAlpha:
-		return glSrcAlpha
+		return gl.SRC_ALPHA
 	case graphicsdriver.BlendFactorOneMinusSourceAlpha:
-		return glOneMinusSrcAlpha
+		return gl.ONE_MINUS_SRC_ALPHA
 	case graphicsdriver.BlendFactorDestinationColor:
-		return glDstColor
+		return gl.DST_COLOR
 	case graphicsdriver.BlendFactorOneMinusDestinationColor:
-		return glOneMinusDstColor
+		return gl.ONE_MINUS_DST_COLOR
 	case graphicsdriver.BlendFactorDestinationAlpha:
-		return glDstAlpha
+		return gl.DST_ALPHA
 	case graphicsdriver.BlendFactorOneMinusDestinationAlpha:
-		return glOneMinusDstAlpha
+		return gl.ONE_MINUS_DST_ALPHA
 	case graphicsdriver.BlendFactorSourceAlphaSaturated:
-		return glSrcAlphaSaturate
+		return gl.SRC_ALPHA_SATURATE
 	default:
 		panic(fmt.Sprintf("opengl: invalid blend factor %d", f))
 	}
@@ -80,11 +60,11 @@ func convertBlendFactor(f graphicsdriver.BlendFactor) blendFactor {
 func convertBlendOperation(o graphicsdriver.BlendOperation) blendOperation {
 	switch o {
 	case graphicsdriver.BlendOperationAdd:
-		return glFuncAdd
+		return gl.FUNC_ADD
 	case graphicsdriver.BlendOperationSubtract:
-		return glFuncSubtract
+		return gl.FUNC_SUBTRACT
 	case graphicsdriver.BlendOperationReverseSubtract:
-		return glFuncReverseSubtract
+		return gl.FUNC_REVERSE_SUBTRACT
 	default:
 		panic(fmt.Sprintf("opengl: invalid blend operation %d", o))
 	}
