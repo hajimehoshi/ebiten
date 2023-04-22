@@ -13,10 +13,6 @@ package gl
 //   #define APIENTRYP APIENTRY *
 // #endif
 //
-// #ifndef GLAPI
-//   #define GLAPI extern
-// #endif
-//
 // #include <stdint.h>
 // #include <stdlib.h>
 //
@@ -30,13 +26,6 @@ package gl
 // typedef char GLchar;
 // typedef ptrdiff_t GLintptr;
 // typedef ptrdiff_t GLsizeiptr;
-//
-// typedef void (APIENTRY *GLDEBUGPROC)(GLenum source,GLenum type,GLuint id,GLenum severity,GLsizei length,const GLchar *message,const void *userParam);
-// typedef void (APIENTRY *GLDEBUGPROCARB)(GLenum source,GLenum type,GLuint id,GLenum severity,GLsizei length,const GLchar *message,const void *userParam);
-// typedef void (APIENTRY *GLDEBUGPROCKHR)(GLenum source,GLenum type,GLuint id,GLenum severity,GLsizei length,const GLchar *message,const void *userParam);
-// typedef void (APIENTRY *GLDEBUGPROCAMD)(GLuint id,GLenum category,GLenum severity,GLsizei length,const GLchar *message,void *userParam);
-// typedef unsigned short GLhalfNV;
-// typedef GLintptr GLvdpauSurfaceNV;
 //
 // typedef void  (APIENTRYP GPACTIVETEXTURE)(GLenum  texture);
 // typedef void  (APIENTRYP GPATTACHSHADER)(GLuint  program, GLuint  shader);
