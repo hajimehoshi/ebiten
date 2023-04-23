@@ -29,5 +29,5 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	clr.r = imageSrc2At(texCoord + amount).r
 	clr.g = imageSrc2UnsafeAt(texCoord).g
 	clr.b = imageSrc2At(texCoord - amount).b
-	return vec4(clr, 1.0)
+	return vec4(clr, 1)
 }

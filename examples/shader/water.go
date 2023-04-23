@@ -34,7 +34,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	// TODO: This is confusing. Add a function to treat pixels (#1431).
 	srcTexSize := imageSrcTextureSize()
 	xoffset := (4 / srcTexSize.x) * cos(Time*3+pos.y/10)
-	yoffset := (20 / srcTexSize.y) * (1.0 + cos(Time*3+pos.y/40))
+	yoffset := (20 / srcTexSize.y) * (1 + cos(Time*3+pos.y/40))
 	bordertex := border / srcTexSize.y
 	clr := imageSrc2At(vec2(
 		texCoord.x+xoffset,
