@@ -476,7 +476,7 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 					if len(args) == 1 {
 						return fmt.Sprintf("float4x4FromScalar(%s)", args[0])
 					}
-				case shaderir.Texture2DF:
+				case shaderir.TexelAt:
 					switch c.unit {
 					case shaderir.Pixel:
 						return fmt.Sprintf("%s.Load(int3(%s, 0))", args[0], strings.Join(args[1:], ", "))

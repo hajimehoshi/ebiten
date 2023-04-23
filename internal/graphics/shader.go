@@ -91,14 +91,14 @@ func imageSrcRegionOnTexture() (vec2, vec2) {
 		shaderSuffix += fmt.Sprintf(`
 func imageSrc%[1]dUnsafeAt(pos vec2) vec4 {
 	// pos is the position in positions of the source texture (= 0th image's texture).
-	return texture2D(__t%[1]d, %[2]s)
+	return __texelAt(__t%[1]d, %[2]s)
 }
 
 func imageSrc%[1]dAt(pos vec2) vec4 {
 	// pos is the position of the source texture (= 0th image's texture).
 	// If pos is in the region, the result is (1, 1). Otherwise, either element is 0.
 	in := step(__textureSourceRegionOrigin, pos) - step(__textureSourceRegionOrigin + __textureSourceRegionSize, pos)
-	return texture2D(__t%[1]d, %[2]s) * in.x * in.y
+	return __texelAt(__t%[1]d, %[2]s) * in.x * in.y
 }
 `, i, pos)
 	}

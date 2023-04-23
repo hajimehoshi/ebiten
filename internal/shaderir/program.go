@@ -276,11 +276,11 @@ const (
 	Reflect     BuiltinFunc = "reflect"
 	Refract     BuiltinFunc = "refract"
 	Transpose   BuiltinFunc = "transpose"
-	Texture2DF  BuiltinFunc = "texture2D"
 	Dfdx        BuiltinFunc = "dfdx"
 	Dfdy        BuiltinFunc = "dfdy"
 	Fwidth      BuiltinFunc = "fwidth"
 	DiscardF    BuiltinFunc = "discard"
+	TexelAt     BuiltinFunc = "__texelAt"
 )
 
 func ParseBuiltinFunc(str string) (BuiltinFunc, bool) {
@@ -334,11 +334,11 @@ func ParseBuiltinFunc(str string) (BuiltinFunc, bool) {
 		Reflect,
 		Refract,
 		Transpose,
-		Texture2DF,
 		Dfdx,
 		Dfdy,
 		Fwidth,
-		DiscardF:
+		DiscardF,
+		TexelAt:
 		return BuiltinFunc(str), true
 	}
 	return "", false

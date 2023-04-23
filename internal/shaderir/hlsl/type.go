@@ -143,8 +143,8 @@ func (c *compileContext) builtinFuncString(f shaderir.BuiltinFunc) string {
 		return "ddx"
 	case shaderir.Dfdy:
 		return "ddy"
-	case shaderir.Texture2DF:
-		return "?(texture2D)"
+	case shaderir.TexelAt:
+		return "?(__texelAt)"
 	default:
 		return string(f)
 	}

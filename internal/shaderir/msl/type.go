@@ -149,8 +149,8 @@ func builtinFuncString(f shaderir.BuiltinFunc) string {
 		return "float4x4"
 	case shaderir.Inversesqrt:
 		return "rsqrt"
-	case shaderir.Texture2DF:
-		return "?(texture2D)"
+	case shaderir.TexelAt:
+		return "?(__texelAt)"
 	}
 	return string(f)
 }

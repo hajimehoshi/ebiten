@@ -602,7 +602,7 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 					return nil, nil, nil, false
 				}
 				t = shaderir.Type{Main: shaderir.Mat4}
-			case shaderir.Texture2DF:
+			case shaderir.TexelAt:
 				if len(args) != 2 {
 					cs.addError(e.Pos(), fmt.Sprintf("number of %s's arguments must be 2 but %d", callee.BuiltinFunc, len(args)))
 					return nil, nil, nil, false
