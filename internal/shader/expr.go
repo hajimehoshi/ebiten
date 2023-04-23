@@ -1178,7 +1178,7 @@ func isValidSwizzling(swizzling string, t shaderir.Type) bool {
 
 	switch t.Main {
 	case shaderir.Vec2, shaderir.IVec2:
-		return !strings.ContainsAny(swizzling, "zwbarq")
+		return !strings.ContainsAny(swizzling, "zwbapq")
 	case shaderir.Vec3, shaderir.IVec3:
 		return !strings.ContainsAny(swizzling, "waq")
 	case shaderir.Vec4, shaderir.IVec4:
