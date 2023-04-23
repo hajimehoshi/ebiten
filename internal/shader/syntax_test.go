@@ -2765,8 +2765,30 @@ func TestSyntaxSwizzling(t *testing.T) {
 		{stmt: "var a vec2; var b vec3 = a.xyz; _ = b", err: true},
 		{stmt: "var a vec2; var b vec3 = a.xyw; _ = b", err: true},
 		{stmt: "var a vec2; var b vec3 = a.xyy; _ = b", err: false},
-		{stmt: "var a vec2; var b vec3 = a.xyz; _ = b", err: true},
+		{stmt: "var a vec2; var b vec3 = a.zzz; _ = b", err: true},
 		{stmt: "var a vec2; var b vec4 = a.xyzw; _ = b", err: true},
+
+		{stmt: "var a vec2; var b float = a.r; _ = b", err: false},
+		{stmt: "var a vec2; var b float = a.g; _ = b", err: false},
+		{stmt: "var a vec2; var b float = a.b; _ = b", err: true},
+		{stmt: "var a vec2; var b float = a.a; _ = b", err: true},
+		{stmt: "var a vec2; var b vec2 = a.rg; _ = b", err: false},
+		{stmt: "var a vec2; var b vec3 = a.rgb; _ = b", err: true},
+		{stmt: "var a vec2; var b vec3 = a.rga; _ = b", err: true},
+		{stmt: "var a vec2; var b vec3 = a.rgg; _ = b", err: false},
+		{stmt: "var a vec2; var b vec3 = a.bbb; _ = b", err: true},
+		{stmt: "var a vec2; var b vec4 = a.rgba; _ = b", err: true},
+
+		{stmt: "var a vec2; var b float = a.s; _ = b", err: false},
+		{stmt: "var a vec2; var b float = a.t; _ = b", err: false},
+		{stmt: "var a vec2; var b float = a.p; _ = b", err: true},
+		{stmt: "var a vec2; var b float = a.q; _ = b", err: true},
+		{stmt: "var a vec2; var b vec2 = a.st; _ = b", err: false},
+		{stmt: "var a vec2; var b vec3 = a.stp; _ = b", err: true},
+		{stmt: "var a vec2; var b vec3 = a.stq; _ = b", err: true},
+		{stmt: "var a vec2; var b vec3 = a.stt; _ = b", err: false},
+		{stmt: "var a vec2; var b vec3 = a.ppp; _ = b", err: true},
+		{stmt: "var a vec2; var b vec4 = a.stpq; _ = b", err: true},
 
 		{stmt: "var a vec3; var b float = a.x; _ = b", err: false},
 		{stmt: "var a vec3; var b float = a.y; _ = b", err: false},
@@ -2776,7 +2798,7 @@ func TestSyntaxSwizzling(t *testing.T) {
 		{stmt: "var a vec3; var b vec3 = a.xyz; _ = b", err: false},
 		{stmt: "var a vec3; var b vec3 = a.xyw; _ = b", err: true},
 		{stmt: "var a vec3; var b vec3 = a.xyy; _ = b", err: false},
-		{stmt: "var a vec3; var b vec3 = a.xyz; _ = b", err: false},
+		{stmt: "var a vec3; var b vec3 = a.zzz; _ = b", err: false},
 		{stmt: "var a vec3; var b vec4 = a.xyzw; _ = b", err: true},
 
 		{stmt: "var a vec4; var b float = a.x; _ = b", err: false},
@@ -2787,7 +2809,7 @@ func TestSyntaxSwizzling(t *testing.T) {
 		{stmt: "var a vec4; var b vec3 = a.xyz; _ = b", err: false},
 		{stmt: "var a vec4; var b vec3 = a.xyw; _ = b", err: false},
 		{stmt: "var a vec4; var b vec3 = a.xyy; _ = b", err: false},
-		{stmt: "var a vec4; var b vec3 = a.xyz; _ = b", err: false},
+		{stmt: "var a vec4; var b vec3 = a.zzz; _ = b", err: false},
 		{stmt: "var a vec4; var b vec4 = a.xyzw; _ = b", err: false},
 
 		{stmt: "var a ivec2; var b int = a.x; _ = b", err: false},
@@ -2798,7 +2820,7 @@ func TestSyntaxSwizzling(t *testing.T) {
 		{stmt: "var a ivec2; var b ivec3 = a.xyz; _ = b", err: true},
 		{stmt: "var a ivec2; var b ivec3 = a.xyw; _ = b", err: true},
 		{stmt: "var a ivec2; var b ivec3 = a.xyy; _ = b", err: false},
-		{stmt: "var a ivec2; var b ivec3 = a.xyz; _ = b", err: true},
+		{stmt: "var a ivec2; var b ivec3 = a.zzz; _ = b", err: true},
 		{stmt: "var a ivec2; var b ivec4 = a.xyzw; _ = b", err: true},
 
 		{stmt: "var a ivec3; var b int = a.x; _ = b", err: false},
@@ -2809,7 +2831,7 @@ func TestSyntaxSwizzling(t *testing.T) {
 		{stmt: "var a ivec3; var b ivec3 = a.xyz; _ = b", err: false},
 		{stmt: "var a ivec3; var b ivec3 = a.xyw; _ = b", err: true},
 		{stmt: "var a ivec3; var b ivec3 = a.xyy; _ = b", err: false},
-		{stmt: "var a ivec3; var b ivec3 = a.xyz; _ = b", err: false},
+		{stmt: "var a ivec3; var b ivec3 = a.zzz; _ = b", err: false},
 		{stmt: "var a ivec3; var b ivec4 = a.xyzw; _ = b", err: true},
 
 		{stmt: "var a ivec4; var b int = a.x; _ = b", err: false},
@@ -2820,7 +2842,7 @@ func TestSyntaxSwizzling(t *testing.T) {
 		{stmt: "var a ivec4; var b ivec3 = a.xyz; _ = b", err: false},
 		{stmt: "var a ivec4; var b ivec3 = a.xyw; _ = b", err: false},
 		{stmt: "var a ivec4; var b ivec3 = a.xyy; _ = b", err: false},
-		{stmt: "var a ivec4; var b ivec3 = a.xyz; _ = b", err: false},
+		{stmt: "var a ivec4; var b ivec3 = a.zzz; _ = b", err: false},
 		{stmt: "var a ivec4; var b ivec4 = a.xyzw; _ = b", err: false},
 	}
 
