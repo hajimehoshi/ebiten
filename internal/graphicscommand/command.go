@@ -621,10 +621,6 @@ func (q *commandQueue) prependPreservedUniforms(uniforms []uint32, shader *Shade
 		srcRegion.Y /= float32(h)
 		srcRegion.Width /= float32(w)
 		srcRegion.Height /= float32(h)
-		for i := range offsets {
-			offsets[i][0] /= float32(w)
-			offsets[i][1] /= float32(h)
-		}
 	}
 
 	// Set the source offsets.

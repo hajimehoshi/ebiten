@@ -56,7 +56,7 @@ func imageDstRegionOnTexture() (vec2, vec2) {
 	return __textureDestinationRegionOrigin, __textureDestinationRegionSize
 }
 
-// The unit is the source texture's pixel or texel.
+// The unit is the source texture's pixel.
 var __textureSourceOffsets [%[2]d]vec2
 
 // The unit is the source texture's pixel or texel.
@@ -82,7 +82,7 @@ func imageSrcRegionOnTexture() (vec2, vec2) {
 			case shaderir.Pixel:
 				pos = fmt.Sprintf("pos + __textureSourceOffsets[%d]", i-1)
 			case shaderir.Texel:
-				pos = fmt.Sprintf("(pos + __textureSourceOffsets[%d]) * __textureSizes[0] / __textureSizes[%d]", i-1, i)
+				pos = fmt.Sprintf("(pos * __textureSizes[0] + __textureSourceOffsets[%d]) / __textureSizes[%d]", i-1, i)
 			default:
 				return "", fmt.Errorf("graphics: unexpected unit: %d", unit)
 			}

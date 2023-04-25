@@ -1761,3 +1761,54 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		}
 	}
 }
+
+func TestShaderDifferentTextureSizes(t *testing.T) {
+	src0 := ebiten.NewImageWithOptions(image.Rect(0, 0, 20, 4000), &ebiten.NewImageOptions{
+		Unmanaged: true,
+	}).SubImage(image.Rect(4, 1025, 6, 1028)).(*ebiten.Image)
+	defer src0.Dispose()
+
+	src1 := ebiten.NewImageWithOptions(image.Rect(0, 0, 4000, 20), &ebiten.NewImageOptions{
+		Unmanaged: true,
+	}).SubImage(image.Rect(2047, 7, 2049, 10)).(*ebiten.Image)
+	defer src1.Dispose()
+
+	src0.Fill(color.RGBA{0x10, 0x20, 0x30, 0xff})
+	src1.Fill(color.RGBA{0x30, 0x20, 0x10, 0xff})
+
+	for _, unit := range []string{"texel", "pixel"} {
+		unit := unit
+		t.Run(fmt.Sprintf("unit %s", unit), func(t *testing.T) {
+			shader, err := ebiten.NewShader([]byte(fmt.Sprintf(`//kage:unit %s
+
+package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	return imageSrc0At(texCoord) + imageSrc1At(texCoord)
+}
+`, unit)))
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer shader.Dispose()
+
+			dst := ebiten.NewImage(2, 3)
+			defer dst.Dispose()
+
+			op := &ebiten.DrawRectShaderOptions{}
+			op.Images[0] = src0
+			op.Images[1] = src1
+			dst.DrawRectShader(2, 3, shader, op)
+
+			for j := 0; j < 3; j++ {
+				for i := 0; i < 2; i++ {
+					got := dst.At(i, j).(color.RGBA)
+					want := color.RGBA{0x40, 0x40, 0x40, 0xff}
+					if !sameColors(got, want, 1) {
+						t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
+					}
+				}
+			}
+		})
+	}
+}
