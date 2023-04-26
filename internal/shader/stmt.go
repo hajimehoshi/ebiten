@@ -639,6 +639,15 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 			}
 			stmts = append(stmts, ss...)
 
+			if len(l) != len(r) {
+				if len(r) == 0 {
+					cs.addError(pos, fmt.Sprintf("right-hand side (no value) used as value"))
+				} else {
+					cs.addError(pos, fmt.Sprintf("assignment mismatch: %d variables but the right-hand side has %d values", len(l), len(r)))
+				}
+				return nil, false
+			}
+
 			if l[0].Type == shaderir.Blank {
 				continue
 			}

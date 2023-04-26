@@ -3122,3 +3122,19 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		}
 	}
 }
+
+// Issue #2654
+func TestOmittedReturnType(t *testing.T) {
+	if _, err := compileToIR([]byte(`package main
+
+func foo(x vec2) {
+	x = bar(x)
+	_ = x
+}
+
+func bar(x vec2) {
+	return x
+}`)); err == nil {
+		t.Error("compileToIR must return an error but did not")
+	}
+}
