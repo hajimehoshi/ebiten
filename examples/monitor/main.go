@@ -56,29 +56,22 @@ const (
 )
 
 type Game struct {
+	monitors []*ebiten.MonitorType
 }
 
 func (g *Game) Update() error {
-	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
-		cx, cy := ebiten.CursorPosition()
-		l := text.BoundString(mplusNormalFont, "|").Dy()
-		y := l
+	// Refresh monitors.
+	g.monitors = ebiten.AppendMonitors(nil)
 
-		b := text.BoundString(mplusNormalFont, "toggle fullscreen")
-		if cx >= b.Min.X && cx <= b.Max.X && cy >= b.Min.Y+y && cy <= b.Max.Y+y {
-			ebiten.SetFullscreen(!ebiten.IsFullscreen())
-			return nil
-		}
-		y += l
-
-		for i, m := range ebiten.AppendMonitors(nil) {
-			b := text.BoundString(mplusNormalFont, fmt.Sprintf("%d: %s %s", i, m.Name(), m.Bounds().String()))
-			if cx >= b.Min.X && cx <= b.Max.X && cy >= b.Min.Y+y && cy <= b.Max.Y+y {
+	if inpututil.IsKeyJustReleased(ebiten.KeyF) {
+		ebiten.SetFullscreen(!ebiten.IsFullscreen())
+	} else {
+		for i := 0; i < len(g.monitors); i++ {
+			if inpututil.IsKeyJustPressed(ebiten.KeyDigit0 + ebiten.Key(i)) {
+				m := g.monitors[i]
 				ebiten.SetWindowTitle(m.Name())
 				ebiten.SetMonitor(m)
-				break
 			}
-			y += l
 		}
 	}
 	return nil
@@ -86,17 +79,16 @@ func (g *Game) Update() error {
 
 func (g *Game) Draw(screen *ebiten.Image) {
 	const x = 0
-	l := text.BoundString(mplusNormalFont, "|").Dy()
-	y := l
-	text.Draw(screen, "toggle fullscreen", mplusNormalFont, x, y, color.White)
-	y += l
-	for i, m := range ebiten.AppendMonitors(nil) {
+	y := 24
+	text.Draw(screen, "F to toggle fullscreen\n0-9 to change monitor", mplusNormalFont, x, y, color.White)
+	y += 72
+	for i, m := range g.monitors {
 		text.Draw(screen, fmt.Sprintf("%d: %s %s", i, m.Name(), m.Bounds().String()), mplusNormalFont, x, y, color.White)
-		y += l
+		y += 24
 	}
 
 	activeMonitor := ebiten.Monitor()
-	for i, m := range ebiten.AppendMonitors(nil) {
+	for i, m := range g.monitors {
 		if m == activeMonitor {
 			text.Draw(screen, fmt.Sprintf("active: %s (%d)", m.Name(), i), mplusNormalFont, x, y, color.White)
 		}
@@ -116,14 +108,14 @@ func main() {
 	flag.Parse()
 
 	// Read our monitors.
-	monitors := ebiten.AppendMonitors(nil)
+	g.monitors = ebiten.AppendMonitors(nil)
 
 	// Ensure the user did not supply a monitor index beyond the range of available monitors. If they did, set the monitor to the primary.
-	if monitor < 0 || monitor >= len(monitors) {
+	if monitor < 0 || monitor >= len(g.monitors) {
 		monitor = 0
 	}
 
-	targetMonitor := monitors[monitor]
+	targetMonitor := g.monitors[monitor]
 	ebiten.SetMonitor(targetMonitor)
 	ebiten.SetWindowTitle(targetMonitor.Name())
 	ebiten.SetWindowSize(screenWidth, screenHeight)
