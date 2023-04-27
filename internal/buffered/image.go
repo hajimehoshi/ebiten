@@ -16,6 +16,7 @@ package buffered
 
 import (
 	"fmt"
+	"image"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
@@ -89,12 +90,12 @@ func (i *Image) markDisposedImpl() {
 	i.img.MarkDisposed()
 }
 
-func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte, x, y, width, height int) error {
+func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte, region image.Rectangle) error {
 	checkDelayedCommandsFlushed("ReadPixels")
 
 	// If restorable.AlwaysReadPixelsFromGPU() returns false, the pixel data is cached in the restorable package.
 	if !restorable.AlwaysReadPixelsFromGPU() {
-		if err := i.img.ReadPixels(graphicsDriver, pixels, x, y, width, height); err != nil {
+		if err := i.img.ReadPixels(graphicsDriver, pixels, region); err != nil {
 			return err
 		}
 		return nil
@@ -102,16 +103,16 @@ func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte
 
 	if i.pixels == nil {
 		pix := make([]byte, 4*i.width*i.height)
-		if err := i.img.ReadPixels(graphicsDriver, pix, 0, 0, i.width, i.height); err != nil {
+		if err := i.img.ReadPixels(graphicsDriver, pix, image.Rect(0, 0, i.width, i.height)); err != nil {
 			return err
 		}
 		i.pixels = pix
 	}
 
-	lineWidth := 4 * width
-	for j := 0; j < height; j++ {
-		dstX := 4 * j * width
-		srcX := 4 * ((y+j)*i.width + x)
+	lineWidth := 4 * region.Dx()
+	for j := 0; j < region.Dy(); j++ {
+		dstX := 4 * j * region.Dx()
+		srcX := 4 * ((region.Min.Y+j)*i.width + region.Min.X)
 		copy(pixels[dstX:dstX+lineWidth], i.pixels[srcX:srcX+lineWidth])
 	}
 	return nil
@@ -123,8 +124,8 @@ func (i *Image) DumpScreenshot(graphicsDriver graphicsdriver.Graphics, name stri
 }
 
 // WritePixels replaces the pixels at the specified region.
-func (i *Image) WritePixels(pix []byte, x, y, width, height int) {
-	if l := 4 * width * height; len(pix) != l {
+func (i *Image) WritePixels(pix []byte, region image.Rectangle) {
+	if l := 4 * region.Dx() * region.Dy(); len(pix) != l {
 		panic(fmt.Sprintf("buffered: len(pix) was %d but must be %d", len(pix), l))
 	}
 
@@ -132,17 +133,17 @@ func (i *Image) WritePixels(pix []byte, x, y, width, height int) {
 		copied := make([]byte, len(pix))
 		copy(copied, pix)
 		if tryAddDelayedCommand(func() {
-			i.writePixelsImpl(copied, x, y, width, height)
+			i.writePixelsImpl(copied, region)
 		}) {
 			return
 		}
 	}
-	i.writePixelsImpl(pix, x, y, width, height)
+	i.writePixelsImpl(pix, region)
 }
 
-func (i *Image) writePixelsImpl(pix []byte, x, y, width, height int) {
+func (i *Image) writePixelsImpl(pix []byte, region image.Rectangle) {
 	i.invalidatePixels()
-	i.img.WritePixels(pix, x, y, width, height)
+	i.img.WritePixels(pix, region)
 }
 
 // DrawTriangles draws the src image with the given vertices.

@@ -515,10 +515,10 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 }
 
 // WritePixels replaces the pixels on the image.
-func (i *Image) WritePixels(pix []byte, x, y, width, height int) {
+func (i *Image) WritePixels(pix []byte, region image.Rectangle) {
 	backendsM.Lock()
 	defer backendsM.Unlock()
-	i.writePixels(pix, image.Rect(x, y, x+width, y+height))
+	i.writePixels(pix, region)
 }
 
 func (i *Image) writePixels(pix []byte, region image.Rectangle) {
@@ -585,7 +585,7 @@ func (i *Image) writePixels(pix []byte, region image.Rectangle) {
 	i.backend.restorable.WritePixels(pixb, r)
 }
 
-func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte, x, y, width, height int) error {
+func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte, region image.Rectangle) error {
 	backendsM.Lock()
 	defer backendsM.Unlock()
 
@@ -601,9 +601,7 @@ func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte
 	}
 
 	r := i.regionWithPadding()
-	x += r.Min.X
-	y += r.Min.Y
-	return i.backend.restorable.ReadPixels(graphicsDriver, pixels, image.Rect(x, y, x+width, y+height))
+	return i.backend.restorable.ReadPixels(graphicsDriver, pixels, region.Add(r.Min))
 }
 
 // MarkDisposed marks the image as disposed. The actual operation is deferred.

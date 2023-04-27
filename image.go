@@ -94,7 +94,7 @@ func (i *Image) Fill(clr color.Color) {
 	caf = float32(ca) / 0xffff
 	b := i.Bounds()
 	x, y := i.adjustPosition(b.Min.X, b.Min.Y)
-	i.image.Fill(crf, cgf, cbf, caf, x, y, b.Dx(), b.Dy())
+	i.image.Fill(crf, cgf, cbf, caf, image.Rect(x, y, x+b.Dx(), y+b.Dy()))
 }
 
 func canSkipMipmap(geom GeoM, filter builtinshader.Filter) bool {
@@ -881,7 +881,7 @@ func (i *Image) ReadPixels(pixels []byte) {
 	}
 
 	x, y := i.adjustPosition(b.Min.X, b.Min.Y)
-	i.image.ReadPixels(pixels, x, y, b.Dx(), b.Dy())
+	i.image.ReadPixels(pixels, image.Rect(x, y, x+b.Dx(), y+b.Dy()))
 }
 
 // At returns the color of the image at (x, y).
@@ -927,7 +927,7 @@ func (i *Image) at(x, y int) (r, g, b, a byte) {
 
 	x, y = i.adjustPosition(x, y)
 	var pix [4]byte
-	i.image.ReadPixels(pix[:], x, y, 1, 1)
+	i.image.ReadPixels(pix[:], image.Rect(x, y, x+1, y+1))
 	return pix[0], pix[1], pix[2], pix[3]
 }
 
@@ -950,7 +950,7 @@ func (i *Image) Set(x, y int, clr color.Color) {
 
 	dx, dy := i.adjustPosition(x, y)
 	cr, cg, cb, ca := clr.RGBA()
-	i.image.WritePixels([]byte{byte(cr / 0x101), byte(cg / 0x101), byte(cb / 0x101), byte(ca / 0x101)}, dx, dy, 1, 1)
+	i.image.WritePixels([]byte{byte(cr / 0x101), byte(cg / 0x101), byte(cb / 0x101), byte(ca / 0x101)}, image.Rect(dx, dy, dx+1, dy+1))
 }
 
 // Dispose disposes the image data.
@@ -997,7 +997,7 @@ func (i *Image) WritePixels(pixels []byte) {
 	// Do not need to copy pixels here.
 	// * In internal/mipmap, pixels are copied when necessary.
 	// * In internal/atlas, pixels are copied to make its paddings.
-	i.image.WritePixels(pixels, x, y, r.Dx(), r.Dy())
+	i.image.WritePixels(pixels, image.Rect(x, y, x+r.Dx(), y+r.Dy()))
 }
 
 // ReplacePixels replaces the pixels of the image.

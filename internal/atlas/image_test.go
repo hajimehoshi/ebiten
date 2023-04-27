@@ -15,6 +15,7 @@
 package atlas_test
 
 import (
+	"image"
 	"image/color"
 	"runtime"
 	"testing"
@@ -63,17 +64,17 @@ func TestEnsureIsolatedFromSourceBackend(t *testing.T) {
 	img1 := atlas.NewImage(bigSize, 100, atlas.ImageTypeRegular)
 	defer img1.MarkDisposed()
 	// Ensure img1's region is allocated.
-	img1.WritePixels(make([]byte, 4*bigSize*100), 0, 0, bigSize, 100)
+	img1.WritePixels(make([]byte, 4*bigSize*100), image.Rect(0, 0, bigSize, 100))
 
 	img2 := atlas.NewImage(100, bigSize, atlas.ImageTypeRegular)
 	defer img2.MarkDisposed()
-	img2.WritePixels(make([]byte, 4*100*bigSize), 0, 0, 100, bigSize)
+	img2.WritePixels(make([]byte, 4*100*bigSize), image.Rect(0, 0, 100, bigSize))
 
 	const size = 32
 
 	img3 := atlas.NewImage(size/2, size/2, atlas.ImageTypeRegular)
 	defer img3.MarkDisposed()
-	img3.WritePixels(make([]byte, (size/2)*(size/2)*4), 0, 0, size/2, size/2)
+	img3.WritePixels(make([]byte, (size/2)*(size/2)*4), image.Rect(0, 0, size/2, size/2))
 
 	img4 := atlas.NewImage(size, size, atlas.ImageTypeRegular)
 	defer img4.MarkDisposed()
@@ -90,7 +91,7 @@ func TestEnsureIsolatedFromSourceBackend(t *testing.T) {
 			pix[4*(i+j*size)+3] = byte(i + j)
 		}
 	}
-	img4.WritePixels(pix, 0, 0, size, size)
+	img4.WritePixels(pix, image.Rect(0, 0, size, size))
 
 	const (
 		dx0 = size / 4
@@ -126,7 +127,7 @@ func TestEnsureIsolatedFromSourceBackend(t *testing.T) {
 	}
 
 	pix = make([]byte, 4*size*size)
-	if err := img4.ReadPixels(ui.GraphicsDriverForTesting(), pix, 0, 0, size, size); err != nil {
+	if err := img4.ReadPixels(ui.GraphicsDriverForTesting(), pix, image.Rect(0, 0, size, size)); err != nil {
 		t.Fatal(err)
 	}
 	for j := 0; j < size; j++ {
@@ -158,11 +159,11 @@ func TestReputOnSourceBackend(t *testing.T) {
 
 	img0 := atlas.NewImage(size, size, atlas.ImageTypeRegular)
 	defer img0.MarkDisposed()
-	img0.WritePixels(make([]byte, 4*size*size), 0, 0, size, size)
+	img0.WritePixels(make([]byte, 4*size*size), image.Rect(0, 0, size, size))
 
 	img1 := atlas.NewImage(size, size, atlas.ImageTypeRegular)
 	defer img1.MarkDisposed()
-	img1.WritePixels(make([]byte, 4*size*size), 0, 0, size, size)
+	img1.WritePixels(make([]byte, 4*size*size), image.Rect(0, 0, size, size))
 	if got, want := img1.IsOnSourceBackendForTesting(), true; got != want {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
@@ -178,12 +179,12 @@ func TestReputOnSourceBackend(t *testing.T) {
 			pix[4*(i+j*size)+3] = byte(i + j)
 		}
 	}
-	img2.WritePixels(pix, 0, 0, size, size)
+	img2.WritePixels(pix, image.Rect(0, 0, size, size))
 
 	// Create a volatile image. This should always be on a non-source backend.
 	img3 := atlas.NewImage(size, size, atlas.ImageTypeVolatile)
 	defer img3.MarkDisposed()
-	img3.WritePixels(make([]byte, 4*size*size), 0, 0, size, size)
+	img3.WritePixels(make([]byte, 4*size*size), image.Rect(0, 0, size, size))
 	if got, want := img3.IsOnSourceBackendForTesting(), false; got != want {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
@@ -232,7 +233,7 @@ func TestReputOnSourceBackend(t *testing.T) {
 	}
 
 	pix = make([]byte, 4*size*size)
-	if err := img1.ReadPixels(ui.GraphicsDriverForTesting(), pix, 0, 0, size, size); err != nil {
+	if err := img1.ReadPixels(ui.GraphicsDriverForTesting(), pix, image.Rect(0, 0, size, size)); err != nil {
 		t.Fatal(err)
 	}
 	for j := 0; j < size; j++ {
@@ -256,7 +257,7 @@ func TestReputOnSourceBackend(t *testing.T) {
 	}
 
 	pix = make([]byte, 4*size*size)
-	if err := img1.ReadPixels(ui.GraphicsDriverForTesting(), pix, 0, 0, size, size); err != nil {
+	if err := img1.ReadPixels(ui.GraphicsDriverForTesting(), pix, image.Rect(0, 0, size, size)); err != nil {
 		t.Fatal(err)
 	}
 	for j := 0; j < size; j++ {
@@ -288,7 +289,7 @@ func TestReputOnSourceBackend(t *testing.T) {
 		if err := atlas.PutImagesOnSourceBackendForTesting(ui.GraphicsDriverForTesting()); err != nil {
 			t.Fatal(err)
 		}
-		img1.WritePixels(make([]byte, 4*size*size), 0, 0, size, size)
+		img1.WritePixels(make([]byte, 4*size*size), image.Rect(0, 0, size, size))
 		vs := quadVertices(size, size, 0, 0, 1)
 		img0.DrawTriangles([graphics.ShaderImageCount]*atlas.Image{img1}, vs, is, graphicsdriver.BlendCopy, dr, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, atlas.NearestFilterShader, nil, false)
 		if got, want := img1.IsOnSourceBackendForTesting(), false; got != want {
@@ -333,7 +334,7 @@ func TestExtend(t *testing.T) {
 		p0[4*i+2] = byte(i)
 		p0[4*i+3] = byte(i)
 	}
-	img0.WritePixels(p0, 0, 0, w0, h0)
+	img0.WritePixels(p0, image.Rect(0, 0, w0, h0))
 
 	const w1, h1 = minSourceImageSizeForTesting + 1, 100
 	img1 := atlas.NewImage(w1, h1, atlas.ImageTypeRegular)
@@ -347,10 +348,10 @@ func TestExtend(t *testing.T) {
 		p1[4*i+3] = byte(i)
 	}
 	// Ensure to allocate
-	img1.WritePixels(p1, 0, 0, w1, h1)
+	img1.WritePixels(p1, image.Rect(0, 0, w1, h1))
 
 	pix0 := make([]byte, 4*w0*h0)
-	if err := img0.ReadPixels(ui.GraphicsDriverForTesting(), pix0, 0, 0, w0, h0); err != nil {
+	if err := img0.ReadPixels(ui.GraphicsDriverForTesting(), pix0, image.Rect(0, 0, w0, h0)); err != nil {
 		t.Fatal(err)
 	}
 	for j := 0; j < h0; j++ {
@@ -369,7 +370,7 @@ func TestExtend(t *testing.T) {
 	}
 
 	pix1 := make([]byte, 4*w1*h1)
-	if err := img1.ReadPixels(ui.GraphicsDriverForTesting(), pix1, 0, 0, w1, h1); err != nil {
+	if err := img1.ReadPixels(ui.GraphicsDriverForTesting(), pix1, image.Rect(0, 0, w1, h1)); err != nil {
 		t.Fatal(err)
 	}
 	for j := 0; j < h1; j++ {
@@ -402,7 +403,7 @@ func TestWritePixelsAfterDrawTriangles(t *testing.T) {
 		pix[4*i+2] = byte(i)
 		pix[4*i+3] = byte(i)
 	}
-	src.WritePixels(pix, 0, 0, w, h)
+	src.WritePixels(pix, image.Rect(0, 0, w, h))
 
 	vs := quadVertices(w, h, 0, 0, 1)
 	is := graphics.QuadIndices()
@@ -413,10 +414,10 @@ func TestWritePixelsAfterDrawTriangles(t *testing.T) {
 		Height: h,
 	}
 	dst.DrawTriangles([graphics.ShaderImageCount]*atlas.Image{src}, vs, is, graphicsdriver.BlendCopy, dr, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, atlas.NearestFilterShader, nil, false)
-	dst.WritePixels(pix, 0, 0, w, h)
+	dst.WritePixels(pix, image.Rect(0, 0, w, h))
 
 	pix = make([]byte, 4*w*h)
-	if err := dst.ReadPixels(ui.GraphicsDriverForTesting(), pix, 0, 0, w, h); err != nil {
+	if err := dst.ReadPixels(ui.GraphicsDriverForTesting(), pix, image.Rect(0, 0, w, h)); err != nil {
 		t.Fatal(err)
 	}
 	for j := 0; j < h; j++ {
@@ -450,7 +451,7 @@ func TestSmallImages(t *testing.T) {
 		pix[4*i+2] = 0xff
 		pix[4*i+3] = 0xff
 	}
-	src.WritePixels(pix, 0, 0, w, h)
+	src.WritePixels(pix, image.Rect(0, 0, w, h))
 
 	vs := quadVertices(w, h, 0, 0, 1)
 	is := graphics.QuadIndices()
@@ -463,7 +464,7 @@ func TestSmallImages(t *testing.T) {
 	dst.DrawTriangles([graphics.ShaderImageCount]*atlas.Image{src}, vs, is, graphicsdriver.BlendSourceOver, dr, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, atlas.NearestFilterShader, nil, false)
 
 	pix = make([]byte, 4*w*h)
-	if err := dst.ReadPixels(ui.GraphicsDriverForTesting(), pix, 0, 0, w, h); err != nil {
+	if err := dst.ReadPixels(ui.GraphicsDriverForTesting(), pix, image.Rect(0, 0, w, h)); err != nil {
 		t.Fatal(err)
 	}
 	for j := 0; j < h; j++ {
@@ -497,7 +498,7 @@ func TestLongImages(t *testing.T) {
 		pix[4*i+2] = 0xff
 		pix[4*i+3] = 0xff
 	}
-	src.WritePixels(pix, 0, 0, w, h)
+	src.WritePixels(pix, image.Rect(0, 0, w, h))
 
 	const scale = 120
 	vs := quadVertices(w, h, 0, 0, scale)
@@ -511,7 +512,7 @@ func TestLongImages(t *testing.T) {
 	dst.DrawTriangles([graphics.ShaderImageCount]*atlas.Image{src}, vs, is, graphicsdriver.BlendSourceOver, dr, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, atlas.NearestFilterShader, nil, false)
 
 	pix = make([]byte, 4*dstW*dstH)
-	if err := dst.ReadPixels(ui.GraphicsDriverForTesting(), pix, 0, 0, dstW, dstH); err != nil {
+	if err := dst.ReadPixels(ui.GraphicsDriverForTesting(), pix, image.Rect(0, 0, dstW, dstH)); err != nil {
 		t.Fatal(err)
 	}
 	for j := 0; j < h; j++ {
@@ -547,12 +548,12 @@ func TestExtendWithBigImage(t *testing.T) {
 	img0 := atlas.NewImage(1, 1, atlas.ImageTypeRegular)
 	defer img0.MarkDisposed()
 
-	img0.WritePixels(make([]byte, 4*1*1), 0, 0, 1, 1)
+	img0.WritePixels(make([]byte, 4*1*1), image.Rect(0, 0, 1, 1))
 
 	img1 := atlas.NewImage(minSourceImageSizeForTesting+1, minSourceImageSizeForTesting+1, atlas.ImageTypeRegular)
 	defer img1.MarkDisposed()
 
-	img1.WritePixels(make([]byte, 4*(minSourceImageSizeForTesting+1)*(minSourceImageSizeForTesting+1)), 0, 0, minSourceImageSizeForTesting+1, minSourceImageSizeForTesting+1)
+	img1.WritePixels(make([]byte, 4*(minSourceImageSizeForTesting+1)*(minSourceImageSizeForTesting+1)), image.Rect(0, 0, minSourceImageSizeForTesting+1, minSourceImageSizeForTesting+1))
 }
 
 // Issue #1217
@@ -565,7 +566,7 @@ func TestMaxImageSize(t *testing.T) {
 	s := maxImageSizeForTesting - 2*paddingSize
 	img1 := atlas.NewImage(s, s, atlas.ImageTypeRegular)
 	defer img1.MarkDisposed()
-	img1.WritePixels(make([]byte, 4*s*s), 0, 0, s, s)
+	img1.WritePixels(make([]byte, 4*s*s), image.Rect(0, 0, s, s))
 }
 
 // Issue #1217 (disabled)
@@ -578,7 +579,7 @@ func Disable_TestMinImageSize(t *testing.T) {
 	s := minSourceImageSizeForTesting
 	img := atlas.NewImage(s, s, atlas.ImageTypeRegular)
 	defer img.MarkDisposed()
-	img.WritePixels(make([]byte, 4*s*s), 0, 0, s, s)
+	img.WritePixels(make([]byte, 4*s*s), image.Rect(0, 0, s, s))
 }
 
 func TestMaxImageSizeJust(t *testing.T) {
@@ -587,7 +588,7 @@ func TestMaxImageSizeJust(t *testing.T) {
 	// TODO: Should we allow such this size for ImageTypeRegular?
 	img := atlas.NewImage(s, s, atlas.ImageTypeUnmanaged)
 	defer img.MarkDisposed()
-	img.WritePixels(make([]byte, 4*s*s), 0, 0, s, s)
+	img.WritePixels(make([]byte, 4*s*s), image.Rect(0, 0, s, s))
 }
 
 func TestMaxImageSizeExceeded(t *testing.T) {
@@ -602,7 +603,7 @@ func TestMaxImageSizeExceeded(t *testing.T) {
 		}
 	}()
 
-	img.WritePixels(make([]byte, 4*(s+1)*s), 0, 0, s+1, s)
+	img.WritePixels(make([]byte, 4*(s+1)*s), image.Rect(0, 0, s+1, s))
 }
 
 // Issue #1421
@@ -726,7 +727,7 @@ func TestImageWritePixelsModify(t *testing.T) {
 				pix[4*(i+j*size)+3] = byte(i + j)
 			}
 		}
-		img.WritePixels(pix, 0, 0, size, size)
+		img.WritePixels(pix, image.Rect(0, 0, size, size))
 
 		// Modify pix after WritePixels.
 		for j := 0; j < size; j++ {
@@ -740,7 +741,7 @@ func TestImageWritePixelsModify(t *testing.T) {
 
 		// Check the pixels are the original ones.
 		pix = make([]byte, 4*size*size)
-		if err := img.ReadPixels(ui.GraphicsDriverForTesting(), pix, 0, 0, size, size); err != nil {
+		if err := img.ReadPixels(ui.GraphicsDriverForTesting(), pix, image.Rect(0, 0, size, size)); err != nil {
 			t.Fatal(err)
 		}
 		for j := 0; j < size; j++ {
