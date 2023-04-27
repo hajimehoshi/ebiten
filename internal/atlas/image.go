@@ -583,9 +583,7 @@ func (i *Image) writePixels(pix []byte, x, y, width, height int) {
 		copy(pixb[4*j*r.Dx():], pix[4*j*width:4*(j+1)*width])
 	}
 
-	x += r.Min.X
-	y += r.Min.Y
-	i.backend.restorable.WritePixels(pixb, x, y, r.Dx(), r.Dy())
+	i.backend.restorable.WritePixels(pixb, r.Min.X, r.Min.Y, r.Dx(), r.Dy())
 }
 
 func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte, x, y, width, height int) error {
