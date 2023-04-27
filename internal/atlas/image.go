@@ -368,16 +368,14 @@ func (i *Image) putOnSourceBackend(graphicsDriver graphicsdriver.Graphics) error
 	return nil
 }
 
-func (i *Image) regionWithPadding() (x, y, width, height int) {
+func (i *Image) regionWithPadding() image.Rectangle {
 	if i.backend == nil {
 		panic("atlas: backend must not be nil: not allocated yet?")
 	}
 	if !i.isOnAtlas() {
-		return 0, 0, i.width + i.paddingSize(), i.height + i.paddingSize()
+		return image.Rect(0, 0, i.width+i.paddingSize(), i.height+i.paddingSize())
 	}
-	// TODO: Use image.Rectangle as it is.
-	r := i.node.Region()
-	return r.Min.X, r.Min.Y, r.Dx(), r.Dy()
+	return i.node.Region()
 }
 
 func (i *Image) processSrc(src *Image) {
@@ -445,8 +443,8 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 		i.processSrc(src)
 	}
 
-	x, y, _, _ := i.regionWithPadding()
-	dx, dy := float32(x), float32(y)
+	r := i.regionWithPadding()
+	dx, dy := float32(r.Min.X), float32(r.Min.Y)
 	// TODO: Check if dstRegion does not to violate the region.
 
 	dstRegion.X += dx
@@ -454,8 +452,8 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 
 	var oxf, oyf float32
 	if srcs[0] != nil {
-		ox, oy, _, _ := srcs[0].regionWithPadding()
-		oxf, oyf = float32(ox), float32(oy)
+		r := srcs[0].regionWithPadding()
+		oxf, oyf = float32(r.Min.X), float32(r.Min.Y)
 		n := len(vertices)
 		for i := 0; i < n; i += graphics.VertexFloatCount {
 			vertices[i] += dx
@@ -492,9 +490,9 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 		if src == nil {
 			continue
 		}
-		ox, oy, _, _ := src.regionWithPadding()
-		offsets[i][0] = float32(ox) - oxf + subimageOffset[0]
-		offsets[i][1] = float32(oy) - oyf + subimageOffset[1]
+		r := src.regionWithPadding()
+		offsets[i][0] = float32(r.Min.X) - oxf + subimageOffset[0]
+		offsets[i][1] = float32(r.Min.Y) - oyf + subimageOffset[1]
 	}
 	for i, src := range srcs {
 		if src == nil {
@@ -542,11 +540,11 @@ func (i *Image) writePixels(pix []byte, x, y, width, height int) {
 		i.allocate(nil, true)
 	}
 
-	px, py, pw, ph := i.regionWithPadding()
+	r := i.regionWithPadding()
 
 	if x != 0 || y != 0 || width != i.width || height != i.height || i.paddingSize() == 0 {
-		x += px
-		y += py
+		x += r.Min.X
+		y += r.Min.Y
 
 		if pix == nil {
 			i.backend.restorable.WritePixels(nil, x, y, width, height)
@@ -560,7 +558,7 @@ func (i *Image) writePixels(pix []byte, x, y, width, height int) {
 		return
 	}
 
-	pixb := theTemporaryBytes.alloc(4 * pw * ph)
+	pixb := theTemporaryBytes.alloc(4 * r.Dx() * r.Dy())
 
 	// Clear the edges. pixb might not be zero-cleared.
 	// TODO: These loops assume that paddingSize is 1.
@@ -569,11 +567,11 @@ func (i *Image) writePixels(pix []byte, x, y, width, height int) {
 	if paddingSize != i.paddingSize() {
 		panic(fmt.Sprintf("atlas: writePixels assumes the padding is always 1 but the actual padding was %d", i.paddingSize()))
 	}
-	rowPixels := 4 * pw
+	rowPixels := 4 * r.Dx()
 	for i := 0; i < rowPixels; i++ {
-		pixb[rowPixels*(ph-1)+i] = 0
+		pixb[rowPixels*(r.Dy()-1)+i] = 0
 	}
-	for j := 1; j < ph; j++ {
+	for j := 1; j < r.Dy(); j++ {
 		pixb[rowPixels*j-4] = 0
 		pixb[rowPixels*j-3] = 0
 		pixb[rowPixels*j-2] = 0
@@ -582,12 +580,12 @@ func (i *Image) writePixels(pix []byte, x, y, width, height int) {
 
 	// Copy the content.
 	for j := 0; j < height; j++ {
-		copy(pixb[4*j*pw:], pix[4*j*width:4*(j+1)*width])
+		copy(pixb[4*j*r.Dx():], pix[4*j*width:4*(j+1)*width])
 	}
 
-	x += px
-	y += py
-	i.backend.restorable.WritePixels(pixb, x, y, pw, ph)
+	x += r.Min.X
+	y += r.Min.Y
+	i.backend.restorable.WritePixels(pixb, x, y, r.Dx(), r.Dy())
 }
 
 func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte, x, y, width, height int) error {
@@ -605,9 +603,9 @@ func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte
 		return nil
 	}
 
-	ox, oy, _, _ := i.regionWithPadding()
-	x += ox
-	y += oy
+	r := i.regionWithPadding()
+	x += r.Min.X
+	y += r.Min.Y
 	return i.backend.restorable.ReadPixels(graphicsDriver, pixels, x, y, width, height)
 }
 
@@ -656,7 +654,8 @@ func (i *Image) dispose(markDisposed bool) {
 	i.backend.page.Free(i.node)
 	if !i.backend.page.IsEmpty() {
 		// As this part can be reused, this should be cleared explicitly.
-		i.backend.restorable.ClearPixels(i.regionWithPadding())
+		r := i.regionWithPadding()
+		i.backend.restorable.ClearPixels(r.Min.X, r.Min.Y, r.Dx(), r.Dy())
 		return
 	}
 
