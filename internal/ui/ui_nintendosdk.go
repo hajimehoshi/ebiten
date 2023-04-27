@@ -212,6 +212,7 @@ func (u *userInterfaceImpl) AppendMonitors(mons []*Monitor) []*Monitor {
 }
 
 func (u *userInterfaceImpl) Monitor() *Monitor {
+	// TODO: Return a dummy monitor.
 	return nil
 }
 

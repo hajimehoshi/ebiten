@@ -28,7 +28,8 @@ func (m *MonitorType) Bounds() image.Rectangle {
 	return (*ui.Monitor)(m).Bounds()
 }
 
-// Name returns the monitor's name. On Linux, this reports the monitors in xrandr format. On Windows, this reports "Generic PnP Monitor" for all monitors.
+// Name returns the monitor's name. On Linux, this reports the monitors in xrandr format.
+// On Windows, this reports "Generic PnP Monitor" for all monitors.
 func (m *MonitorType) Name() string {
 	return (*ui.Monitor)(m).Name()
 }
@@ -47,8 +48,11 @@ func SetMonitor(monitor *MonitorType) {
 	ui.Get().Window().SetMonitor((*ui.Monitor)(monitor))
 }
 
-// AppendMonitors returns the monitors reported by the system. On desktop platforms, there will always be at least one monitor appended and the first monitor in the slice will be the primary monitor. Any monitors added or removed will show up with subsequent calls to this function.
+// AppendMonitors returns the monitors reported by the system.
+// On desktop platforms, there will always be at least one monitor appended and the first monitor in the slice will be the primary monitor.
+// Any monitors added or removed will show up with subsequent calls to this function.
 func AppendMonitors(monitors []*MonitorType) []*MonitorType {
+	// TODO: This is not an efficient operation. It would be best if we could directly pass monitors directly into `ui.AppendMonitors`.
 	for _, m := range ui.Get().AppendMonitors(nil) {
 		monitors = append(monitors, (*MonitorType)(m))
 	}
