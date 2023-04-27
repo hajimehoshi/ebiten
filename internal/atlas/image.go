@@ -375,7 +375,9 @@ func (i *Image) regionWithPadding() (x, y, width, height int) {
 	if !i.isOnAtlas() {
 		return 0, 0, i.width + i.paddingSize(), i.height + i.paddingSize()
 	}
-	return i.node.Region()
+	// TODO: Use image.Rectangle as it is.
+	r := i.node.Region()
+	return r.Min.X, r.Min.Y, r.Dx(), r.Dy()
 }
 
 func (i *Image) processSrc(src *Image) {
