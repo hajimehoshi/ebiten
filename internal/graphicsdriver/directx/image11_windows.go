@@ -16,6 +16,7 @@ package directx
 
 import (
 	"fmt"
+	"image"
 	"unsafe"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
@@ -79,10 +80,10 @@ func (i *image11) IsInvalidated() bool {
 	return false
 }
 
-func (i *image11) ReadPixels(buf []byte, x, y, width, height int) error {
+func (i *image11) ReadPixels(buf []byte, region image.Rectangle) error {
 	staging, err := i.graphics.device.CreateTexture2D(&_D3D11_TEXTURE2D_DESC{
-		Width:     uint32(width),
-		Height:    uint32(height),
+		Width:     uint32(region.Dx()),
+		Height:    uint32(region.Dy()),
 		MipLevels: 0,
 		ArraySize: 1,
 		Format:    _DXGI_FORMAT_R8G8B8A8_UNORM,
@@ -101,11 +102,11 @@ func (i *image11) ReadPixels(buf []byte, x, y, width, height int) error {
 	defer staging.Release()
 
 	i.graphics.deviceContext.CopySubresourceRegion(unsafe.Pointer(staging), 0, 0, 0, 0, unsafe.Pointer(i.texture), 0, &_D3D11_BOX{
-		left:   uint32(x),
-		top:    uint32(y),
+		left:   uint32(region.Min.X),
+		top:    uint32(region.Min.Y),
 		front:  0,
-		right:  uint32(x + width),
-		bottom: uint32(y + height),
+		right:  uint32(region.Max.X),
+		bottom: uint32(region.Max.Y),
 		back:   1,
 	})
 
@@ -115,12 +116,12 @@ func (i *image11) ReadPixels(buf []byte, x, y, width, height int) error {
 	}
 
 	stride := int(mapped.RowPitch)
-	src := unsafe.Slice((*byte)(mapped.pData), stride*height)
-	if stride == 4*width {
+	src := unsafe.Slice((*byte)(mapped.pData), stride*region.Dy())
+	if stride == 4*region.Dx() {
 		copy(buf, src)
 	} else {
-		for j := 0; j < height; j++ {
-			copy(buf[j*4*width:(j+1)*4*width], src[j*stride:j*stride+4*width])
+		for j := 0; j < region.Dy(); j++ {
+			copy(buf[j*4*region.Dx():(j+1)*4*region.Dx()], src[j*stride:j*stride+4*region.Dx()])
 		}
 	}
 
@@ -132,13 +133,13 @@ func (i *image11) ReadPixels(buf []byte, x, y, width, height int) error {
 func (i *image11) WritePixels(args []*graphicsdriver.WritePixelsArgs) error {
 	for _, a := range args {
 		i.graphics.deviceContext.UpdateSubresource(unsafe.Pointer(i.texture), 0, &_D3D11_BOX{
-			left:   uint32(a.X),
-			top:    uint32(a.Y),
+			left:   uint32(a.Region.Min.X),
+			top:    uint32(a.Region.Min.Y),
 			front:  0,
-			right:  uint32(a.X + a.Width),
-			bottom: uint32(a.Y + a.Height),
+			right:  uint32(a.Region.Max.X),
+			bottom: uint32(a.Region.Max.Y),
 			back:   1,
-		}, unsafe.Pointer(&a.Pixels[0]), uint32(4*a.Width), 0)
+		}, unsafe.Pointer(&a.Pixels[0]), uint32(4*a.Region.Dx()), 0)
 	}
 	return nil
 }

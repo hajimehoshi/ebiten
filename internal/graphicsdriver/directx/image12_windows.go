@@ -17,6 +17,7 @@ package directx
 import (
 	"errors"
 	"fmt"
+	"image"
 	"unsafe"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
@@ -71,7 +72,7 @@ func (*image12) IsInvalidated() bool {
 	return false
 }
 
-func (i *image12) ReadPixels(buf []byte, x, y, width, height int) error {
+func (i *image12) ReadPixels(buf []byte, region image.Rectangle) error {
 	if i.screen {
 		return errors.New("directx: Pixels cannot be called on the screen")
 	}
@@ -83,8 +84,8 @@ func (i *image12) ReadPixels(buf []byte, x, y, width, height int) error {
 	desc := _D3D12_RESOURCE_DESC{
 		Dimension:        _D3D12_RESOURCE_DIMENSION_TEXTURE2D,
 		Alignment:        0,
-		Width:            uint64(width),
-		Height:           uint32(height),
+		Width:            uint64(region.Dx()),
+		Height:           uint32(region.Dy()),
 		DepthOrArraySize: 1,
 		MipLevels:        0,
 		Format:           _DXGI_FORMAT_R8G8B8A8_UNORM,
@@ -126,11 +127,11 @@ func (i *image12) ReadPixels(buf []byte, x, y, width, height int) error {
 	i.graphics.needFlushCopyCommandList = true
 	i.graphics.copyCommandList.CopyTextureRegion_PlacedFootPrint_SubresourceIndex(
 		&dst, 0, 0, 0, &src, &_D3D12_BOX{
-			left:   uint32(x),
-			top:    uint32(y),
+			left:   uint32(region.Min.X),
+			top:    uint32(region.Min.Y),
 			front:  0,
-			right:  uint32(x + width),
-			bottom: uint32(y + height),
+			right:  uint32(region.Max.X),
+			bottom: uint32(region.Max.Y),
 			back:   1,
 		})
 
@@ -139,8 +140,8 @@ func (i *image12) ReadPixels(buf []byte, x, y, width, height int) error {
 	}
 
 	dstBytes := unsafe.Slice((*byte)(unsafe.Pointer(m)), totalBytes)
-	for j := 0; j < height; j++ {
-		copy(buf[j*width*4:(j+1)*width*4], dstBytes[j*int(layouts.Footprint.RowPitch):])
+	for j := 0; j < region.Dy(); j++ {
+		copy(buf[j*region.Dx()*4:(j+1)*region.Dx()*4], dstBytes[j*int(layouts.Footprint.RowPitch):])
 	}
 
 	readingStagingBuffer.Unmap(0, nil)
@@ -157,30 +158,16 @@ func (i *image12) WritePixels(args []*graphicsdriver.WritePixelsArgs) error {
 		return err
 	}
 
-	minX := i.width
-	minY := i.height
-	maxX := 0
-	maxY := 0
+	var region image.Rectangle
 	for _, a := range args {
-		if minX > a.X {
-			minX = a.X
-		}
-		if minY > a.Y {
-			minY = a.Y
-		}
-		if maxX < a.X+a.Width {
-			maxX = a.X + a.Width
-		}
-		if maxY < a.Y+a.Height {
-			maxY = a.Y + a.Height
-		}
+		region = region.Union(a.Region)
 	}
 
 	desc := _D3D12_RESOURCE_DESC{
 		Dimension:        _D3D12_RESOURCE_DIMENSION_TEXTURE2D,
 		Alignment:        0,
-		Width:            uint64(maxX - minX),
-		Height:           uint32(maxY - minY),
+		Width:            uint64(region.Dx()),
+		Height:           uint32(region.Dy()),
 		DepthOrArraySize: 1,
 		MipLevels:        0,
 		Format:           _DXGI_FORMAT_R8G8B8A8_UNORM,
@@ -211,8 +198,8 @@ func (i *image12) WritePixels(args []*graphicsdriver.WritePixelsArgs) error {
 
 	srcBytes := unsafe.Slice((*byte)(unsafe.Pointer(m)), totalBytes)
 	for _, a := range args {
-		for j := 0; j < a.Height; j++ {
-			copy(srcBytes[((a.Y-minY)+j)*int(layouts.Footprint.RowPitch)+(a.X-minX)*4:], a.Pixels[j*a.Width*4:(j+1)*a.Width*4])
+		for j := 0; j < a.Region.Dy(); j++ {
+			copy(srcBytes[((a.Region.Min.Y-region.Min.Y)+j)*int(layouts.Footprint.RowPitch)+(a.Region.Min.X-region.Min.X)*4:], a.Pixels[j*a.Region.Dx()*4:(j+1)*a.Region.Dx()*4])
 		}
 	}
 
@@ -228,12 +215,12 @@ func (i *image12) WritePixels(args []*graphicsdriver.WritePixelsArgs) error {
 			PlacedFootprint: layouts,
 		}
 		i.graphics.copyCommandList.CopyTextureRegion_SubresourceIndex_PlacedFootPrint(
-			&dst, uint32(a.X), uint32(a.Y), 0, &src, &_D3D12_BOX{
-				left:   uint32(a.X - minX),
-				top:    uint32(a.Y - minY),
+			&dst, uint32(a.Region.Min.X), uint32(a.Region.Min.Y), 0, &src, &_D3D12_BOX{
+				left:   uint32(a.Region.Min.X - region.Min.X),
+				top:    uint32(a.Region.Min.Y - region.Min.Y),
 				front:  0,
-				right:  uint32(a.X - minX + a.Width),
-				bottom: uint32(a.Y - minY + a.Height),
+				right:  uint32(a.Region.Max.X - region.Min.X),
+				bottom: uint32(a.Region.Max.Y - region.Min.Y),
 				back:   1,
 			})
 	}

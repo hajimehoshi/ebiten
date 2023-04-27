@@ -282,12 +282,12 @@ func (i *Image) WritePixels(pixels []byte, region image.Rectangle) {
 	theImages.makeStaleIfDependingOn(i)
 
 	if pixels != nil {
-		i.image.WritePixels(pixels, region.Min.X, region.Min.Y, region.Dx(), region.Dy())
+		i.image.WritePixels(pixels, region)
 	} else {
 		// TODO: When pixels == nil, we don't have to care the pixel state there. In such cases, the image
 		// accepts only WritePixels and not Fill or DrawTriangles.
 		// TODO: Separate Image struct into two: images for WritePixels-only, and the others.
-		i.image.WritePixels(make([]byte, 4*region.Dx()*region.Dy()), region.Min.X, region.Min.Y, region.Dx(), region.Dy())
+		i.image.WritePixels(make([]byte, 4*region.Dx()*region.Dy()), region)
 	}
 
 	// Even if the image is already stale, call makeStale to extend the stale region.
@@ -429,7 +429,7 @@ func (i *Image) readPixelsFromGPUIfNeeded(graphicsDriver graphicsdriver.Graphics
 
 func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte, region image.Rectangle) error {
 	if AlwaysReadPixelsFromGPU() {
-		if err := i.image.ReadPixels(graphicsDriver, pixels, region.Min.X, region.Min.Y, region.Dx(), region.Dy()); err != nil {
+		if err := i.image.ReadPixels(graphicsDriver, pixels, region); err != nil {
 			return err
 		}
 		return nil
@@ -494,7 +494,7 @@ func (i *Image) readPixelsFromGPU(graphicsDriver graphicsdriver.Graphics) error 
 			pix = make([]byte, 4*r.Dx()*r.Dy())
 			i.pixelsCache[r] = pix
 		}
-		if err := i.image.ReadPixels(graphicsDriver, pix, r.Min.X, r.Min.Y, r.Dx(), r.Dy()); err != nil {
+		if err := i.image.ReadPixels(graphicsDriver, pix, r); err != nil {
 			return err
 		}
 		i.basePixels.AddOrReplace(pix, r)
@@ -633,7 +633,7 @@ func (i *Image) restore(graphicsDriver graphicsdriver.Graphics) error {
 				pix = make([]byte, 4*r.Dx()*r.Dy())
 				i.pixelsCache[r] = pix
 			}
-			if err := gimg.ReadPixels(graphicsDriver, pix, r.Min.X, r.Min.Y, r.Dx(), r.Dy()); err != nil {
+			if err := gimg.ReadPixels(graphicsDriver, pix, r); err != nil {
 				return err
 			}
 			i.basePixels.AddOrReplace(pix, r)

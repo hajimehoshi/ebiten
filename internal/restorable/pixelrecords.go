@@ -122,7 +122,7 @@ func (pr *pixelsRecords) readPixels(pixels []byte, region image.Rectangle, image
 func (pr *pixelsRecords) apply(img *graphicscommand.Image) {
 	// TODO: Isn't this too heavy? Can we merge the operations?
 	for _, r := range pr.records {
-		img.WritePixels(r.pix, r.rect.Min.X, r.rect.Min.Y, r.rect.Dx(), r.rect.Dy())
+		img.WritePixels(r.pix, r.rect)
 	}
 }
 

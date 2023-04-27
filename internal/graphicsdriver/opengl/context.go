@@ -17,6 +17,7 @@ package opengl
 import (
 	"errors"
 	"fmt"
+	"image"
 	"sync"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
@@ -242,14 +243,18 @@ func (c *context) newTexture(width, height int) (textureNative, error) {
 	return textureNative(t), nil
 }
 
-func (c *context) framebufferPixels(buf []byte, f *framebuffer, x, y, width, height int) error {
-	if got, want := len(buf), 4*width*height; got != want {
+func (c *context) framebufferPixels(buf []byte, f *framebuffer, region image.Rectangle) error {
+	if got, want := len(buf), 4*region.Dx()*region.Dy(); got != want {
 		return fmt.Errorf("opengl: len(buf) must be %d but was %d at framebufferPixels", got, want)
 	}
 
 	c.ctx.Flush()
 	c.bindFramebuffer(f.native)
-	c.ctx.ReadPixels(buf, int32(x), int32(y), int32(width), int32(height), gl.RGBA, gl.UNSIGNED_BYTE)
+	x := int32(region.Min.X)
+	y := int32(region.Min.Y)
+	width := int32(region.Dx())
+	height := int32(region.Dy())
+	c.ctx.ReadPixels(buf, x, y, width, height, gl.RGBA, gl.UNSIGNED_BYTE)
 	return nil
 }
 

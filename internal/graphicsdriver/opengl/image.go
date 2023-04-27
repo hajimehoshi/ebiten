@@ -16,6 +16,7 @@ package opengl
 
 import (
 	"errors"
+	"image"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
@@ -71,11 +72,11 @@ func (i *Image) setViewport() error {
 	return nil
 }
 
-func (i *Image) ReadPixels(buf []byte, x, y, width, height int) error {
+func (i *Image) ReadPixels(buf []byte, region image.Rectangle) error {
 	if err := i.ensureFramebuffer(); err != nil {
 		return err
 	}
-	if err := i.graphics.context.framebufferPixels(buf, i.framebuffer, x, y, width, height); err != nil {
+	if err := i.graphics.context.framebufferPixels(buf, i.framebuffer, region); err != nil {
 		return err
 	}
 	return nil
@@ -147,7 +148,11 @@ func (i *Image) WritePixels(args []*graphicsdriver.WritePixelsArgs) error {
 
 	i.graphics.context.bindTexture(i.texture)
 	for _, a := range args {
-		i.graphics.context.ctx.TexSubImage2D(gl.TEXTURE_2D, 0, int32(a.X), int32(a.Y), int32(a.Width), int32(a.Height), gl.RGBA, gl.UNSIGNED_BYTE, a.Pixels)
+		x := int32(a.Region.Min.X)
+		y := int32(a.Region.Min.Y)
+		width := int32(a.Region.Dx())
+		height := int32(a.Region.Dy())
+		i.graphics.context.ctx.TexSubImage2D(gl.TEXTURE_2D, 0, x, y, width, height, gl.RGBA, gl.UNSIGNED_BYTE, a.Pixels)
 	}
 
 	return nil

@@ -15,6 +15,8 @@
 package graphicsdriver
 
 import (
+	"image"
+
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
@@ -65,7 +67,7 @@ type Image interface {
 	ID() ImageID
 	Dispose()
 	IsInvalidated() bool
-	ReadPixels(buf []byte, x, y, width, height int) error
+	ReadPixels(buf []byte, region image.Rectangle) error
 	WritePixels(args []*WritePixelsArgs) error
 }
 
@@ -73,10 +75,7 @@ type ImageID int
 
 type WritePixelsArgs struct {
 	Pixels []byte
-	X      int
-	Y      int
-	Width  int
-	Height int
+	Region image.Rectangle
 }
 
 type Shader interface {
