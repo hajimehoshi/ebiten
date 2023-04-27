@@ -518,15 +518,15 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 func (i *Image) WritePixels(pix []byte, x, y, width, height int) {
 	backendsM.Lock()
 	defer backendsM.Unlock()
-	i.writePixels(pix, x, y, width, height)
+	i.writePixels(pix, image.Rect(x, y, x+width, y+height))
 }
 
-func (i *Image) writePixels(pix []byte, x, y, width, height int) {
+func (i *Image) writePixels(pix []byte, region image.Rectangle) {
 	if i.disposed {
 		panic("atlas: the image must not be disposed at writePixels")
 	}
 
-	if l := 4 * width * height; len(pix) != l {
+	if l := 4 * region.Dx() * region.Dy(); len(pix) != l {
 		panic(fmt.Sprintf("atlas: len(p) must be %d but %d", l, len(pix)))
 	}
 
@@ -542,19 +542,18 @@ func (i *Image) writePixels(pix []byte, x, y, width, height int) {
 
 	r := i.regionWithPadding()
 
-	if x != 0 || y != 0 || width != i.width || height != i.height || i.paddingSize() == 0 {
-		x += r.Min.X
-		y += r.Min.Y
+	if region.Min.X != 0 || region.Min.Y != 0 || region.Dx() != i.width || region.Dy() != i.height || i.paddingSize() == 0 {
+		region = region.Add(r.Min)
 
 		if pix == nil {
-			i.backend.restorable.WritePixels(nil, x, y, width, height)
+			i.backend.restorable.WritePixels(nil, region)
 			return
 		}
 
 		// Copy pixels in the case when pix is modified before the graphics command is executed.
 		pix2 := theTemporaryBytes.alloc(len(pix))
 		copy(pix2, pix)
-		i.backend.restorable.WritePixels(pix2, x, y, width, height)
+		i.backend.restorable.WritePixels(pix2, region)
 		return
 	}
 
@@ -579,11 +578,11 @@ func (i *Image) writePixels(pix []byte, x, y, width, height int) {
 	}
 
 	// Copy the content.
-	for j := 0; j < height; j++ {
-		copy(pixb[4*j*r.Dx():], pix[4*j*width:4*(j+1)*width])
+	for j := 0; j < region.Dy(); j++ {
+		copy(pixb[4*j*r.Dx():], pix[4*j*region.Dx():4*(j+1)*region.Dx()])
 	}
 
-	i.backend.restorable.WritePixels(pixb, r.Min.X, r.Min.Y, r.Dx(), r.Dy())
+	i.backend.restorable.WritePixels(pixb, r)
 }
 
 func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte, x, y, width, height int) error {
@@ -604,7 +603,7 @@ func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte
 	r := i.regionWithPadding()
 	x += r.Min.X
 	y += r.Min.Y
-	return i.backend.restorable.ReadPixels(graphicsDriver, pixels, x, y, width, height)
+	return i.backend.restorable.ReadPixels(graphicsDriver, pixels, image.Rect(x, y, x+width, y+height))
 }
 
 // MarkDisposed marks the image as disposed. The actual operation is deferred.
@@ -653,7 +652,7 @@ func (i *Image) dispose(markDisposed bool) {
 	if !i.backend.page.IsEmpty() {
 		// As this part can be reused, this should be cleared explicitly.
 		r := i.regionWithPadding()
-		i.backend.restorable.ClearPixels(r.Min.X, r.Min.Y, r.Dx(), r.Dy())
+		i.backend.restorable.ClearPixels(r)
 		return
 	}
 
