@@ -720,8 +720,10 @@ func (u *userInterfaceImpl) Window() Window {
 
 type Monitor struct{}
 
+var dummyMonitor = &Monitor{}
+
 func (m *Monitor) Bounds() image.Rectangle {
-	screen := windows.Get("screen")
+	screen := window.Get("screen")
 	w := screen.Get("width").Int()
 	h := screen.Get("height").Int()
 	return image.Rect(0, 0, w, h)
@@ -732,12 +734,11 @@ func (m *Monitor) Name() string {
 }
 
 func (u *userInterfaceImpl) AppendMonitors(mons []*Monitor) []*Monitor {
-	return nil
+	return append(mons, dummyMonitor)
 }
 
 func (u *userInterfaceImpl) Monitor() *Monitor {
-	// TODO: Return a dummy monitor.
-	return nil
+	return dummyMonitor
 }
 
 func (u *userInterfaceImpl) beginFrame() {

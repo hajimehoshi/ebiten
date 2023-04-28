@@ -431,6 +431,8 @@ func (u *userInterfaceImpl) Window() Window {
 
 type Monitor struct{}
 
+var dummyMonitor = &Monitor{}
+
 func (m *Monitor) Bounds() image.Rectangle {
 	// TODO: This should return the available viewport dimensions.
 	return image.Rectangle{}
@@ -441,12 +443,11 @@ func (m *Monitor) Name() string {
 }
 
 func (u *userInterfaceImpl) AppendMonitors(mons []*Monitor) []*Monitor {
-	return nil
+	return append(mons, dummyMonitor)
 }
 
 func (u *userInterfaceImpl) Monitor() *Monitor {
-	// TODO: Return a dummy monitor.
-	return nil
+	return dummyMonitor
 }
 
 func (u *userInterfaceImpl) UpdateInput(keys map[Key]struct{}, runes []rune, touches []TouchForInput) {
