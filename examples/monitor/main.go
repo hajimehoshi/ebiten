@@ -61,14 +61,14 @@ type Game struct {
 
 func (g *Game) Update() error {
 	// Refresh monitors.
-	g.monitors = ebiten.AppendMonitors(nil)
+	g.monitors = ebiten.AppendMonitors(g.monitors[:0])
 
+	// Handle keypresses.
 	if inpututil.IsKeyJustReleased(ebiten.KeyF) {
 		ebiten.SetFullscreen(!ebiten.IsFullscreen())
 	} else {
-		for i := 0; i < len(g.monitors); i++ {
+		for i, m := range g.monitors {
 			if inpututil.IsKeyJustPressed(ebiten.KeyDigit0 + ebiten.Key(i)) {
-				m := g.monitors[i]
 				ebiten.SetWindowTitle(m.Name())
 				ebiten.SetMonitor(m)
 			}
@@ -82,6 +82,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	y := 24
 	text.Draw(screen, "F to toggle fullscreen\n0-9 to change monitor", mplusNormalFont, x, y, color.White)
 	y += 72
+
 	for i, m := range g.monitors {
 		text.Draw(screen, fmt.Sprintf("%d: %s %s", i, m.Name(), m.Bounds().String()), mplusNormalFont, x, y, color.White)
 		y += 24
