@@ -542,7 +542,7 @@ func (i *Image) writePixels(pix []byte, region image.Rectangle) {
 
 	r := i.regionWithPadding()
 
-	if region.Min.X != 0 || region.Min.Y != 0 || region.Dx() != i.width || region.Dy() != i.height || i.paddingSize() == 0 {
+	if !region.Eq(image.Rect(0, 0, i.width, i.height)) || i.paddingSize() == 0 {
 		region = region.Add(r.Min)
 
 		if pix == nil {
@@ -705,8 +705,11 @@ func (i *Image) allocate(forbiddenBackends []*backend, asSource bool) {
 		return
 	}
 
+	wp := i.width + i.paddingSize()
+	hp := i.height + i.paddingSize()
+
 	if !i.canBePutOnAtlas() {
-		if i.width+i.paddingSize() > maxSize || i.height+i.paddingSize() > maxSize {
+		if wp > maxSize || hp > maxSize {
 			panic(fmt.Sprintf("atlas: the image being put on an atlas is too big: width: %d, height: %d", i.width, i.height))
 		}
 
@@ -715,7 +718,7 @@ func (i *Image) allocate(forbiddenBackends []*backend, asSource bool) {
 			typ = restorable.ImageTypeVolatile
 		}
 		i.backend = &backend{
-			restorable: restorable.NewImage(i.width+i.paddingSize(), i.height+i.paddingSize(), typ),
+			restorable: restorable.NewImage(wp, hp, typ),
 			source:     asSource && typ == restorable.ImageTypeRegular,
 		}
 		return
@@ -733,7 +736,7 @@ loop:
 			}
 		}
 
-		if n, ok := b.tryAlloc(i.width+i.paddingSize(), i.height+i.paddingSize()); ok {
+		if n, ok := b.tryAlloc(wp, hp); ok {
 			i.backend = b
 			i.node = n
 			return
@@ -746,13 +749,13 @@ loop:
 	} else {
 		width, height = minDestinationSize, minDestinationSize
 	}
-	for i.width+i.paddingSize() > width {
+	for wp > width {
 		if width == maxSize {
 			panic(fmt.Sprintf("atlas: the image being put on an atlas is too big: width: %d, height: %d", i.width, i.height))
 		}
 		width *= 2
 	}
-	for i.height+i.paddingSize() > height {
+	for hp > height {
 		if height == maxSize {
 			panic(fmt.Sprintf("atlas: the image being put on an atlas is too big: width: %d, height: %d", i.width, i.height))
 		}
@@ -770,7 +773,7 @@ loop:
 	}
 	theBackends = append(theBackends, b)
 
-	n := b.page.Alloc(i.width+i.paddingSize(), i.height+i.paddingSize())
+	n := b.page.Alloc(wp, hp)
 	if n == nil {
 		panic("atlas: Alloc result must not be nil at allocate")
 	}
