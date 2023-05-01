@@ -190,6 +190,16 @@ func (i *_IDXGIAdapter) EnumOutputs(output uint32) (*_IDXGIOutput, error) {
 	return pOutput, nil
 }
 
+func (i *_IDXGIAdapter) GetParent(riid *windows.GUID) (unsafe.Pointer, error) {
+	var v unsafe.Pointer
+	r, _, _ := syscall.Syscall(i.vtbl.GetParent, 3, uintptr(unsafe.Pointer(i)), uintptr(unsafe.Pointer(riid)), uintptr(unsafe.Pointer(&v)))
+	runtime.KeepAlive(riid)
+	if uint32(r) != uint32(windows.S_OK) {
+		return nil, fmt.Errorf("directx: IDXGIAdapter::GetParent failed: %w", handleError(windows.Handle(uint32(r))))
+	}
+	return v, nil
+}
+
 func (i *_IDXGIAdapter) Release() uint32 {
 	r, _, _ := syscall.Syscall(i.vtbl.Release, 1, uintptr(unsafe.Pointer(i)), 0, 0)
 	return uint32(r)

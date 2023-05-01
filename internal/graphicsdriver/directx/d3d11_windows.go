@@ -821,6 +821,16 @@ func (i *_ID3D11Device) CreateVertexShader(pShaderBytecode unsafe.Pointer, bytec
 	return vertexShader, nil
 }
 
+func (i *_ID3D11Device) QueryInterface(riid *windows.GUID) (unsafe.Pointer, error) {
+	var v unsafe.Pointer
+	r, _, _ := syscall.Syscall(i.vtbl.QueryInterface, 3, uintptr(unsafe.Pointer(i)), uintptr(unsafe.Pointer(riid)), uintptr(unsafe.Pointer(&v)))
+	runtime.KeepAlive(riid)
+	if uint32(r) != uint32(windows.S_OK) {
+		return nil, fmt.Errorf("directx: ID3D11Device::QueryInterface failed: %w", handleError(windows.Handle(uint32(r))))
+	}
+	return v, nil
+}
+
 type _ID3D11DeviceContext struct {
 	vtbl *_ID3D11DeviceContext_Vtbl
 }

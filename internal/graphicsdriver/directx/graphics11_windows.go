@@ -154,18 +154,6 @@ func newGraphics11(useWARP bool, useDebugLayer bool) (gr11 *graphics11, ferr err
 		vsyncEnabled: true,
 	}
 
-	gi, err := newGraphicsInfra()
-	if err != nil {
-		return nil, err
-	}
-	g.graphicsInfra = gi
-	defer func() {
-		if ferr != nil {
-			g.graphicsInfra.release()
-			g.graphicsInfra = nil
-		}
-	}()
-
 	driverType := _D3D_DRIVER_TYPE_HARDWARE
 	if useWARP {
 		driverType = _D3D_DRIVER_TYPE_WARP
@@ -186,13 +174,46 @@ func newGraphics11(useWARP bool, useDebugLayer bool) (gr11 *graphics11, ferr err
 
 	// Apparently, adapter must be nil if the driver type is not unknown. This is not documented explicitly.
 	// https://learn.microsoft.com/en-us/windows/win32/api/d3d11/nf-d3d11-d3d11createdevice
-	d, f, ctx, err := _D3D11CreateDevice(nil, driverType, 0, uint32(flags), featureLevels, true, true)
+	d, fl, ctx, err := _D3D11CreateDevice(nil, driverType, 0, uint32(flags), featureLevels, true, true)
 	if err != nil {
 		return nil, err
 	}
 	g.device = (*_ID3D11Device)(d)
-	g.featureLevel = f
+	g.featureLevel = fl
 	g.deviceContext = (*_ID3D11DeviceContext)(ctx)
+
+	// Get IDXGIFactory from the current device and use it, instead of CreateDXGIFactory.
+	// Or, MakeWindowAssociation doesn't work well (#2661).
+	dd, err := g.device.QueryInterface(&_IID_IDXGIDevice)
+	if err != nil {
+		return nil, err
+	}
+	dxgiDevice := (*_IDXGIDevice)(dd)
+	defer dxgiDevice.Release()
+
+	dxgiAdapter, err := dxgiDevice.GetAdapter()
+	if err != nil {
+		return nil, err
+	}
+	defer dxgiAdapter.Release()
+
+	df, err := dxgiAdapter.GetParent(&_IID_IDXGIFactory)
+	if err != nil {
+		return nil, err
+	}
+	dxgiFactory := (*_IDXGIFactory)(df)
+
+	gi, err := newGraphicsInfra(dxgiFactory)
+	if err != nil {
+		return nil, err
+	}
+	g.graphicsInfra = gi
+	defer func() {
+		if ferr != nil {
+			g.graphicsInfra.release()
+			g.graphicsInfra = nil
+		}
+	}()
 
 	g.deviceContext.IASetPrimitiveTopology(_D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST)
 

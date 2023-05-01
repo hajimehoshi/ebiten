@@ -159,14 +159,10 @@ type graphicsInfra struct {
 	bufferCount int
 }
 
-func newGraphicsInfra() (*graphicsInfra, error) {
-	f, err := _CreateDXGIFactory()
-	if err != nil {
-		return nil, err
-	}
-
+// newGraphicsInfra takes the ownership of the given factory.
+func newGraphicsInfra(factory *_IDXGIFactory) (*graphicsInfra, error) {
 	g := &graphicsInfra{
-		factory: f,
+		factory: factory,
 	}
 	runtime.SetFinalizer(g, (*graphicsInfra).release)
 

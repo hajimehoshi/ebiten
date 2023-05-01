@@ -148,7 +148,11 @@ func (g *graphics12) initializeDesktop(useWARP bool, useDebugLayer bool, feature
 		g.debug.EnableDebugLayer()
 	}
 
-	gi, err := newGraphicsInfra()
+	f, err := _CreateDXGIFactory()
+	if err != nil {
+		return err
+	}
+	gi, err := newGraphicsInfra(f)
 	if err != nil {
 		return err
 	}
