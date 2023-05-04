@@ -577,25 +577,35 @@ func (q *commandQueue) prependPreservedUniforms(uniforms []uint32, shader *Shade
 	origUniforms := uniforms
 	uniforms = q.uint32sBuffer.alloc(len(origUniforms) + graphics.PreservedUniformUint32Count)
 	copy(uniforms[graphics.PreservedUniformUint32Count:], origUniforms)
-
-	var idx int
+	// Check the slice length explicitly to reduce boundary checks.
+	_ = uniforms[:graphics.PreservedUniformUint32Count]
 
 	// Set the destination texture size.
 	dw, dh := dst.InternalSize()
-	uniforms[idx+0] = math.Float32bits(float32(dw))
-	uniforms[idx+1] = math.Float32bits(float32(dh))
-	idx += 2
+	uniforms[0] = math.Float32bits(float32(dw))
+	uniforms[1] = math.Float32bits(float32(dh))
 
 	// Set the source texture sizes.
-	for i, src := range srcs {
-		if src == nil {
-			continue
-		}
-		w, h := src.InternalSize()
-		uniforms[idx+2*i] = math.Float32bits(float32(w))
-		uniforms[idx+2*i+1] = math.Float32bits(float32(h))
+	if srcs[0] != nil {
+		w, h := srcs[0].InternalSize()
+		uniforms[2] = math.Float32bits(float32(w))
+		uniforms[3] = math.Float32bits(float32(h))
 	}
-	idx += len(srcs) * 2
+	if srcs[1] != nil {
+		w, h := srcs[1].InternalSize()
+		uniforms[4] = math.Float32bits(float32(w))
+		uniforms[5] = math.Float32bits(float32(h))
+	}
+	if srcs[2] != nil {
+		w, h := srcs[2].InternalSize()
+		uniforms[6] = math.Float32bits(float32(w))
+		uniforms[7] = math.Float32bits(float32(h))
+	}
+	if srcs[3] != nil {
+		w, h := srcs[3].InternalSize()
+		uniforms[8] = math.Float32bits(float32(w))
+		uniforms[9] = math.Float32bits(float32(h))
+	}
 
 	if shader.unit() == shaderir.Texel {
 		dstRegion.X /= float32(dw)
@@ -605,13 +615,10 @@ func (q *commandQueue) prependPreservedUniforms(uniforms []uint32, shader *Shade
 	}
 
 	// Set the destination region.
-	uniforms[idx+0] = math.Float32bits(dstRegion.X)
-	uniforms[idx+1] = math.Float32bits(dstRegion.Y)
-	idx += 2
-
-	uniforms[idx+0] = math.Float32bits(dstRegion.Width)
-	uniforms[idx+1] = math.Float32bits(dstRegion.Height)
-	idx += 2
+	uniforms[10] = math.Float32bits(dstRegion.X)
+	uniforms[11] = math.Float32bits(dstRegion.Y)
+	uniforms[12] = math.Float32bits(dstRegion.Width)
+	uniforms[13] = math.Float32bits(dstRegion.Height)
 
 	if shader.unit() == shaderir.Texel && srcs[0] != nil {
 		w, h := srcs[0].InternalSize()
@@ -622,38 +629,35 @@ func (q *commandQueue) prependPreservedUniforms(uniforms []uint32, shader *Shade
 	}
 
 	// Set the source offsets.
-	for i, offset := range offsets {
-		uniforms[idx+2*i] = math.Float32bits(offset[0])
-		uniforms[idx+2*i+1] = math.Float32bits(offset[1])
-	}
-	idx += len(offsets) * 2
+	uniforms[14] = math.Float32bits(offsets[0][0])
+	uniforms[15] = math.Float32bits(offsets[0][1])
+	uniforms[16] = math.Float32bits(offsets[1][0])
+	uniforms[17] = math.Float32bits(offsets[1][1])
+	uniforms[18] = math.Float32bits(offsets[2][0])
+	uniforms[19] = math.Float32bits(offsets[2][1])
 
 	// Set the source region of texture0.
-	uniforms[idx+0] = math.Float32bits(srcRegion.X)
-	uniforms[idx+1] = math.Float32bits(srcRegion.Y)
-	idx += 2
+	uniforms[20] = math.Float32bits(srcRegion.X)
+	uniforms[21] = math.Float32bits(srcRegion.Y)
+	uniforms[22] = math.Float32bits(srcRegion.Width)
+	uniforms[23] = math.Float32bits(srcRegion.Height)
 
-	uniforms[idx+0] = math.Float32bits(srcRegion.Width)
-	uniforms[idx+1] = math.Float32bits(srcRegion.Height)
-	idx += 2
-
-	uniforms[idx+0] = math.Float32bits(2 / float32(dw))
-	uniforms[idx+1] = 0
-	uniforms[idx+2] = 0
-	uniforms[idx+3] = 0
-	uniforms[idx+4] = 0
-	uniforms[idx+5] = math.Float32bits(2 / float32(dh))
-	uniforms[idx+6] = 0
-	uniforms[idx+7] = 0
-	uniforms[idx+8] = 0
-	uniforms[idx+9] = 0
-	uniforms[idx+10] = math.Float32bits(1)
-	uniforms[idx+11] = 0
-	uniforms[idx+12] = math.Float32bits(-1)
-	uniforms[idx+13] = math.Float32bits(-1)
-	uniforms[idx+14] = 0
-	uniforms[idx+15] = math.Float32bits(1)
-	idx += 16
+	uniforms[24] = math.Float32bits(2 / float32(dw))
+	uniforms[25] = 0
+	uniforms[26] = 0
+	uniforms[27] = 0
+	uniforms[28] = 0
+	uniforms[29] = math.Float32bits(2 / float32(dh))
+	uniforms[30] = 0
+	uniforms[31] = 0
+	uniforms[32] = 0
+	uniforms[33] = 0
+	uniforms[34] = math.Float32bits(1)
+	uniforms[35] = 0
+	uniforms[36] = math.Float32bits(-1)
+	uniforms[37] = math.Float32bits(-1)
+	uniforms[38] = 0
+	uniforms[39] = math.Float32bits(1)
 
 	return uniforms
 }
