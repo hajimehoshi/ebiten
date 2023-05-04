@@ -40,8 +40,7 @@ type Program struct {
 	FragmentFunc FragmentFunc
 	Unit         Unit
 
-	reachableUniforms   []bool
-	uniformUint32Counts []int
+	uniformMask []uint32
 }
 
 type Func struct {
@@ -472,30 +471,26 @@ func (p *Program) reachableUniformVariablesFromBlock(block *Block) []int {
 // FilterUniformVariables replaces uniform variables with nil when they are not used.
 // By minimizing uniform variables, more commands can be merged in the graphicscommand package.
 func (p *Program) FilterUniformVariables(uniforms []uint32) {
-	if p.reachableUniforms == nil {
-		p.reachableUniforms = make([]bool, len(p.Uniforms))
+	if p.uniformMask == nil {
+		reachableUniforms := make([]bool, len(p.Uniforms))
 		for _, i := range p.reachableUniformVariablesFromBlock(p.VertexFunc.Block) {
-			p.reachableUniforms[i] = true
+			reachableUniforms[i] = true
 		}
 		for _, i := range p.reachableUniformVariablesFromBlock(p.FragmentFunc.Block) {
-			p.reachableUniforms[i] = true
+			reachableUniforms[i] = true
 		}
-	}
-
-	if p.uniformUint32Counts == nil {
-		p.uniformUint32Counts = make([]int, len(p.Uniforms))
 		for i, typ := range p.Uniforms {
-			p.uniformUint32Counts[i] = typ.Uint32Count()
+			fs := make([]uint32, typ.Uint32Count())
+			if reachableUniforms[i] {
+				for j := range fs {
+					fs[j] = (1 << 32) - 1
+				}
+			}
+			p.uniformMask = append(p.uniformMask, fs...)
 		}
 	}
 
-	var idx int
-	for i, n := range p.uniformUint32Counts {
-		if !p.reachableUniforms[i] {
-			for j := 0; j < n; j++ {
-				uniforms[idx+j] = 0
-			}
-		}
-		idx += n
+	for i, factor := range p.uniformMask {
+		uniforms[i] &= factor
 	}
 }
