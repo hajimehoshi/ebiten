@@ -14,6 +14,6 @@
 
 package shaderir
 
-func (p *Program) ReachableUniformVariablesFromBlock(block *Block) []int {
-	return p.reachableUniformVariablesFromBlock(block)
+func (p *Program) AppendReachableUniformVariablesFromBlock(indices []int, block *Block) []int {
+	return p.appendReachableUniformVariablesFromBlock(indices, block)
 }

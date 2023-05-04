@@ -436,7 +436,7 @@ func walkExprsInExpr(f func(expr *Expr), expr *Expr) {
 	}
 }
 
-func (p *Program) reachableUniformVariablesFromBlock(block *Block) []int {
+func (p *Program) appendReachableUniformVariablesFromBlock(indices []int, block *Block) []int {
 	indexToFunc := map[int]*Func{}
 	for _, f := range p.Funcs {
 		f := f
@@ -444,12 +444,12 @@ func (p *Program) reachableUniformVariablesFromBlock(block *Block) []int {
 	}
 
 	visitedFuncs := map[int]struct{}{}
-	indices := map[int]struct{}{}
+	indicesSet := map[int]struct{}{}
 	var f func(expr *Expr)
 	f = func(expr *Expr) {
 		switch expr.Type {
 		case UniformVariable:
-			indices[expr.Index] = struct{}{}
+			indicesSet[expr.Index] = struct{}{}
 		case FunctionExpr:
 			if _, ok := visitedFuncs[expr.Index]; ok {
 				return
@@ -460,24 +460,21 @@ func (p *Program) reachableUniformVariablesFromBlock(block *Block) []int {
 	}
 	walkExprs(f, block)
 
-	is := make([]int, 0, len(indices))
-	for i := range indices {
-		is = append(is, i)
+	for i := range indicesSet {
+		indices = append(indices, i)
 	}
-	sort.Ints(is)
-	return is
+	return indices
 }
 
 // FilterUniformVariables replaces uniform variables with nil when they are not used.
 // By minimizing uniform variables, more commands can be merged in the graphicscommand package.
 func (p *Program) FilterUniformVariables(uniforms []uint32) {
 	if p.uniformMask == nil {
+		indices := p.appendReachableUniformVariablesFromBlock(nil, p.VertexFunc.Block)
+		indices = p.appendReachableUniformVariablesFromBlock(indices, p.FragmentFunc.Block)
 		reachableUniforms := make([]bool, len(p.Uniforms))
-		for _, i := range p.reachableUniformVariablesFromBlock(p.VertexFunc.Block) {
-			reachableUniforms[i] = true
-		}
-		for _, i := range p.reachableUniformVariablesFromBlock(p.FragmentFunc.Block) {
-			reachableUniforms[i] = true
+		for _, idx := range indices {
+			reachableUniforms[idx] = true
 		}
 		for i, typ := range p.Uniforms {
 			fs := make([]uint32, typ.Uint32Count())

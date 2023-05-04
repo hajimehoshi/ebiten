@@ -15,6 +15,7 @@
 package shaderir_test
 
 import (
+	"sort"
 	"testing"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/shader"
@@ -105,7 +106,8 @@ func neverCalled() float {
 		if err != nil {
 			t.Fatal(err)
 		}
-		got := ir.ReachableUniformVariablesFromBlock(ir.Funcs[c.index].Block)
+		got := ir.AppendReachableUniformVariablesFromBlock(nil, ir.Funcs[c.index].Block)
+		sort.Ints(got)
 		want := c.expected
 		if !areIntSlicesEqual(got, want) {
 			t.Errorf("test: %v, got: %v, want: %v", c, got, want)
