@@ -449,7 +449,11 @@ func (p *Program) appendReachableUniformVariablesFromBlock(indices []int, block 
 	f = func(expr *Expr) {
 		switch expr.Type {
 		case UniformVariable:
+			if _, ok := indicesSet[expr.Index]; ok {
+				return
+			}
 			indicesSet[expr.Index] = struct{}{}
+			indices = append(indices, expr.Index)
 		case FunctionExpr:
 			if _, ok := visitedFuncs[expr.Index]; ok {
 				return
@@ -460,9 +464,6 @@ func (p *Program) appendReachableUniformVariablesFromBlock(indices []int, block 
 	}
 	walkExprs(f, block)
 
-	for i := range indicesSet {
-		indices = append(indices, i)
-	}
 	return indices
 }
 
