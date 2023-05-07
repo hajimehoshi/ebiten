@@ -62,7 +62,7 @@ func TestRestore(t *testing.T) {
 
 	clr0 := color.RGBA{A: 0xff}
 	img0.WritePixels([]byte{clr0.R, clr0.G, clr0.B, clr0.A}, image.Rect(0, 0, 1, 1))
-	if err := restorable.ResolveStaleImages(ui.GraphicsDriverForTesting(), false); err != nil {
+	if err := restorable.ResolveStaleImages(ui.GraphicsDriverForTesting()); err != nil {
 		t.Fatal(err)
 	}
 	if err := restorable.RestoreIfNeeded(ui.GraphicsDriverForTesting()); err != nil {
@@ -81,7 +81,7 @@ func TestRestoreWithoutDraw(t *testing.T) {
 
 	// If there is no drawing command on img0, img0 is cleared when restored.
 
-	if err := restorable.ResolveStaleImages(ui.GraphicsDriverForTesting(), false); err != nil {
+	if err := restorable.ResolveStaleImages(ui.GraphicsDriverForTesting()); err != nil {
 		t.Fatal(err)
 	}
 	if err := restorable.RestoreIfNeeded(ui.GraphicsDriverForTesting()); err != nil {
@@ -141,7 +141,7 @@ func TestRestoreChain(t *testing.T) {
 		}
 		imgs[i+1].DrawTriangles([graphics.ShaderImageCount]*restorable.Image{imgs[i]}, [graphics.ShaderImageCount - 1][2]float32{}, vs, is, graphicsdriver.BlendCopy, dr, graphicsdriver.Region{}, restorable.NearestFilterShader, nil, false)
 	}
-	if err := restorable.ResolveStaleImages(ui.GraphicsDriverForTesting(), false); err != nil {
+	if err := restorable.ResolveStaleImages(ui.GraphicsDriverForTesting()); err != nil {
 		t.Fatal(err)
 	}
 	if err := restorable.RestoreIfNeeded(ui.GraphicsDriverForTesting()); err != nil {
@@ -193,7 +193,7 @@ func TestRestoreChain2(t *testing.T) {
 		imgs[i+1].DrawTriangles([graphics.ShaderImageCount]*restorable.Image{imgs[i]}, [graphics.ShaderImageCount - 1][2]float32{}, quadVertices(w, h, 0, 0), is, graphicsdriver.BlendCopy, dr, graphicsdriver.Region{}, restorable.NearestFilterShader, nil, false)
 	}
 
-	if err := restorable.ResolveStaleImages(ui.GraphicsDriverForTesting(), false); err != nil {
+	if err := restorable.ResolveStaleImages(ui.GraphicsDriverForTesting()); err != nil {
 		t.Fatal(err)
 	}
 	if err := restorable.RestoreIfNeeded(ui.GraphicsDriverForTesting()); err != nil {
@@ -240,7 +240,7 @@ func TestRestoreOverrideSource(t *testing.T) {
 	img3.DrawTriangles([graphics.ShaderImageCount]*restorable.Image{img2}, [graphics.ShaderImageCount - 1][2]float32{}, quadVertices(w, h, 0, 0), is, graphicsdriver.BlendSourceOver, dr, graphicsdriver.Region{}, restorable.NearestFilterShader, nil, false)
 	img0.WritePixels([]byte{clr1.R, clr1.G, clr1.B, clr1.A}, image.Rect(0, 0, w, h))
 	img1.DrawTriangles([graphics.ShaderImageCount]*restorable.Image{img0}, [graphics.ShaderImageCount - 1][2]float32{}, quadVertices(w, h, 0, 0), is, graphicsdriver.BlendSourceOver, dr, graphicsdriver.Region{}, restorable.NearestFilterShader, nil, false)
-	if err := restorable.ResolveStaleImages(ui.GraphicsDriverForTesting(), false); err != nil {
+	if err := restorable.ResolveStaleImages(ui.GraphicsDriverForTesting()); err != nil {
 		t.Fatal(err)
 	}
 	if err := restorable.RestoreIfNeeded(ui.GraphicsDriverForTesting()); err != nil {
@@ -342,7 +342,7 @@ func TestRestoreComplexGraph(t *testing.T) {
 	img7.DrawTriangles([graphics.ShaderImageCount]*restorable.Image{img2}, offsets, vs, is, graphicsdriver.BlendSourceOver, dr, graphicsdriver.Region{}, restorable.NearestFilterShader, nil, false)
 	vs = quadVertices(w, h, 2, 0)
 	img7.DrawTriangles([graphics.ShaderImageCount]*restorable.Image{img3}, offsets, vs, is, graphicsdriver.BlendSourceOver, dr, graphicsdriver.Region{}, restorable.NearestFilterShader, nil, false)
-	if err := restorable.ResolveStaleImages(ui.GraphicsDriverForTesting(), false); err != nil {
+	if err := restorable.ResolveStaleImages(ui.GraphicsDriverForTesting()); err != nil {
 		t.Fatal(err)
 	}
 	if err := restorable.RestoreIfNeeded(ui.GraphicsDriverForTesting()); err != nil {
@@ -441,7 +441,7 @@ func TestRestoreRecursive(t *testing.T) {
 	}
 	img1.DrawTriangles([graphics.ShaderImageCount]*restorable.Image{img0}, [graphics.ShaderImageCount - 1][2]float32{}, quadVertices(w, h, 1, 0), is, graphicsdriver.BlendSourceOver, dr, graphicsdriver.Region{}, restorable.NearestFilterShader, nil, false)
 	img0.DrawTriangles([graphics.ShaderImageCount]*restorable.Image{img1}, [graphics.ShaderImageCount - 1][2]float32{}, quadVertices(w, h, 1, 0), is, graphicsdriver.BlendSourceOver, dr, graphicsdriver.Region{}, restorable.NearestFilterShader, nil, false)
-	if err := restorable.ResolveStaleImages(ui.GraphicsDriverForTesting(), false); err != nil {
+	if err := restorable.ResolveStaleImages(ui.GraphicsDriverForTesting()); err != nil {
 		t.Fatal(err)
 	}
 	if err := restorable.RestoreIfNeeded(ui.GraphicsDriverForTesting()); err != nil {
@@ -503,7 +503,7 @@ func TestWritePixels(t *testing.T) {
 			}
 		}
 	}
-	if err := restorable.ResolveStaleImages(ui.GraphicsDriverForTesting(), false); err != nil {
+	if err := restorable.ResolveStaleImages(ui.GraphicsDriverForTesting()); err != nil {
 		t.Fatal(err)
 	}
 	if err := restorable.RestoreIfNeeded(ui.GraphicsDriverForTesting()); err != nil {
@@ -546,7 +546,7 @@ func TestDrawTrianglesAndWritePixels(t *testing.T) {
 	img1.DrawTriangles([graphics.ShaderImageCount]*restorable.Image{img0}, [graphics.ShaderImageCount - 1][2]float32{}, vs, is, graphicsdriver.BlendCopy, dr, graphicsdriver.Region{}, restorable.NearestFilterShader, nil, false)
 	img1.WritePixels([]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}, image.Rect(0, 0, 2, 1))
 
-	if err := restorable.ResolveStaleImages(ui.GraphicsDriverForTesting(), false); err != nil {
+	if err := restorable.ResolveStaleImages(ui.GraphicsDriverForTesting()); err != nil {
 		t.Fatal(err)
 	}
 	if err := restorable.RestoreIfNeeded(ui.GraphicsDriverForTesting()); err != nil {
@@ -590,7 +590,7 @@ func TestDispose(t *testing.T) {
 	img0.DrawTriangles([graphics.ShaderImageCount]*restorable.Image{img1}, [graphics.ShaderImageCount - 1][2]float32{}, quadVertices(1, 1, 0, 0), is, graphicsdriver.BlendCopy, dr, graphicsdriver.Region{}, restorable.NearestFilterShader, nil, false)
 	img1.Dispose()
 
-	if err := restorable.ResolveStaleImages(ui.GraphicsDriverForTesting(), false); err != nil {
+	if err := restorable.ResolveStaleImages(ui.GraphicsDriverForTesting()); err != nil {
 		t.Fatal(err)
 	}
 	if err := restorable.RestoreIfNeeded(ui.GraphicsDriverForTesting()); err != nil {
@@ -722,7 +722,7 @@ func TestWritePixelsOnly(t *testing.T) {
 		}
 	}
 
-	if err := restorable.ResolveStaleImages(ui.GraphicsDriverForTesting(), false); err != nil {
+	if err := restorable.ResolveStaleImages(ui.GraphicsDriverForTesting()); err != nil {
 		t.Fatal(err)
 	}
 	if err := restorable.RestoreIfNeeded(ui.GraphicsDriverForTesting()); err != nil {
@@ -817,7 +817,7 @@ func TestAllowWritePixelsForPartAfterDrawTriangles(t *testing.T) {
 	dst.WritePixels(make([]byte, 4*2*2), image.Rect(0, 0, 2, 2))
 	// WritePixels for a part of image doesn't panic.
 
-	if err := restorable.ResolveStaleImages(ui.GraphicsDriverForTesting(), false); err != nil {
+	if err := restorable.ResolveStaleImages(ui.GraphicsDriverForTesting()); err != nil {
 		t.Fatal(err)
 	}
 	if err := restorable.RestoreIfNeeded(ui.GraphicsDriverForTesting()); err != nil {
@@ -974,7 +974,7 @@ func TestMutateSlices(t *testing.T) {
 	for i := range is {
 		is[i] = 0
 	}
-	if err := restorable.ResolveStaleImages(ui.GraphicsDriverForTesting(), false); err != nil {
+	if err := restorable.ResolveStaleImages(ui.GraphicsDriverForTesting()); err != nil {
 		t.Fatal(err)
 	}
 	if err := restorable.RestoreIfNeeded(ui.GraphicsDriverForTesting()); err != nil {
@@ -1126,7 +1126,7 @@ func TestOverlappedPixels(t *testing.T) {
 		}
 	}
 
-	if err := restorable.ResolveStaleImages(ui.GraphicsDriverForTesting(), false); err != nil {
+	if err := restorable.ResolveStaleImages(ui.GraphicsDriverForTesting()); err != nil {
 		t.Fatal(err)
 	}
 	if err := restorable.RestoreIfNeeded(ui.GraphicsDriverForTesting()); err != nil {

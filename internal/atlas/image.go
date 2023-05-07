@@ -791,7 +791,7 @@ func (i *Image) DumpScreenshot(graphicsDriver graphicsdriver.Graphics, path stri
 func EndFrame(graphicsDriver graphicsdriver.Graphics) error {
 	backendsM.Lock()
 
-	if err := restorable.ResolveStaleImages(graphicsDriver, true); err != nil {
+	if err := restorable.EndFrame(graphicsDriver); err != nil {
 		return err
 	}
 
