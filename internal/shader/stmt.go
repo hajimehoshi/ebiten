@@ -74,6 +74,11 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 			}
 			stmts = append(stmts, ss...)
 
+			if lhs[0].Type == shaderir.UniformVariable {
+				cs.addError(stmt.Pos(), fmt.Sprintf("a uniform variable cannot be assigned"))
+				return nil, false
+			}
+
 			var op shaderir.Op
 			switch stmt.Tok {
 			case token.ADD_ASSIGN:

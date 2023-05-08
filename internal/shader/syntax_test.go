@@ -3138,3 +3138,38 @@ func bar(x vec2) {
 		t.Error("compileToIR must return an error but did not")
 	}
 }
+
+// Issue #2648
+func TestAssignToUniformVariables(t *testing.T) {
+	if _, err := compileToIR([]byte(`package main
+
+var Foo float
+
+func foo(x vec2) {
+	Foo = 0
+}`)); err == nil {
+		t.Error("compileToIR must return an error but did not")
+	}
+
+	if _, err := compileToIR([]byte(`package main
+
+var Foo float
+
+func foo(x vec2) {
+	var x int
+	x, Foo = 0, 0
+	_ = x
+}`)); err == nil {
+		t.Error("compileToIR must return an error but did not")
+	}
+
+	if _, err := compileToIR([]byte(`package main
+
+var Foo float
+
+func foo(x vec2) {
+	Foo += 0
+}`)); err == nil {
+		t.Error("compileToIR must return an error but did not")
+	}
+}
