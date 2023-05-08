@@ -3139,7 +3139,7 @@ func bar(x vec2) {
 	}
 }
 
-// Issue #2648
+// Issue #2590
 func TestAssignToUniformVariables(t *testing.T) {
 	if _, err := compileToIR([]byte(`package main
 
