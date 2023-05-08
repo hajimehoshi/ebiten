@@ -92,6 +92,7 @@ type userInterfaceImpl struct {
 	initWindowFloating       bool
 	initWindowMaximized      bool
 
+	// bufferOnceSwapped must be accessed from the main thread.
 	bufferOnceSwapped bool
 
 	origWindowPosX        int
@@ -111,8 +112,9 @@ type userInterfaceImpl struct {
 	dropCallback                   glfw.DropCallback
 	framebufferSizeCallbackCh      chan struct{}
 
-	glContextSetOnce sync.Once
-	darwinInitOnce   sync.Once
+	glContextSetOnce      sync.Once
+	darwinInitOnce        sync.Once
+	bufferOnceSwappedOnce sync.Once
 
 	mainThread   threadInterface
 	renderThread threadInterface
@@ -1092,8 +1094,12 @@ func (u *userInterfaceImpl) updateGame() error {
 
 		// This works only for OpenGL.
 		u.swapBuffersOnRenderThread()
+	})
 
-		u.bufferOnceSwapped = true
+	u.bufferOnceSwappedOnce.Do(func() {
+		u.mainThread.Call(func() {
+			u.bufferOnceSwapped = true
+		})
 	})
 
 	if unfocused {
