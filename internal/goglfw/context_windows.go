@@ -602,8 +602,9 @@ func bytePtrToString(p *byte) string {
 	// Find NUL terminator.
 	n := 0
 	for ptr := unsafe.Pointer(p); *(*byte)(ptr) != 0; n++ {
-		ptr = unsafe.Pointer(uintptr(ptr) + 1)
+		ptr = unsafe.Add(ptr, 1)
 	}
 
+	// unsafe.String(p, n) is available as of Go 1.20.
 	return string(unsafe.Slice(p, n))
 }
