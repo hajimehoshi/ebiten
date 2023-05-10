@@ -367,7 +367,7 @@ type (
 )
 
 func _GET_X_LPARAM(lp _LPARAM) int {
-	return int(_LOWORD(uint32(lp)))
+	return int(int16(_LOWORD(uint32(lp))))
 }
 
 func _GET_XBUTTON_WPARAM(wParam _WPARAM) uint16 {
@@ -375,7 +375,7 @@ func _GET_XBUTTON_WPARAM(wParam _WPARAM) uint16 {
 }
 
 func _GET_Y_LPARAM(lp _LPARAM) int {
-	return int(_HIWORD(uint32(lp)))
+	return int(int16(_HIWORD(uint32(lp))))
 }
 
 func _HIWORD(dwValue uint32) uint16 {
