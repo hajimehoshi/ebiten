@@ -17,6 +17,29 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/winver"
 )
 
+type platformContextState struct {
+	dc       _HDC
+	handle   _HGLRC
+	interval int
+}
+
+type platformLibraryContextState struct {
+	inited bool
+
+	EXT_swap_control               bool
+	EXT_colorspace                 bool
+	ARB_multisample                bool
+	ARB_framebuffer_sRGB           bool
+	EXT_framebuffer_sRGB           bool
+	ARB_pixel_format               bool
+	ARB_create_context             bool
+	ARB_create_context_profile     bool
+	EXT_create_context_es2_profile bool
+	ARB_create_context_robustness  bool
+	ARB_create_context_no_error    bool
+	ARB_context_flush_control      bool
+}
+
 func findPixelFormatAttribValue(attribs []int32, values []int32, attrib int32) int32 {
 	for i := range attribs {
 		if attribs[i] == attrib {

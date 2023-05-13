@@ -3,6 +3,8 @@
 // SPDX-FileCopyrightText: 2006-2019 Camilla Löwy
 // SPDX-FileCopyrightText: 2022 The Ebitengine Authors
 
+//go:build darwin || windows
+
 package goglfw
 
 import (
