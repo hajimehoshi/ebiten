@@ -1654,6 +1654,10 @@ func (w *Window) platformSetWindowSizeLimits(minwidth, minheight, maxwidth, maxh
 	if err := _MoveWindow(w.platform.handle, area.left, area.top, area.right-area.left, area.bottom-area.top, true); err != nil {
 		return err
 	}
+
+	if err := w.updateWindowStyles(); err != nil {
+		return err
+	}
 	return nil
 }
 
