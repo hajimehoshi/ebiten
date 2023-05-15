@@ -122,7 +122,7 @@ jobs:
           go test -shuffle=on -v -p=1 ./...
 
       - name: go test (Linux 386)
-        if: runner.os == 'Linux'
+        if: false # This is tempoarily disabled due to an issue in GitHub Actions (#2667).
         run: |
           sudo dpkg --add-architecture i386
           sudo apt-get update
