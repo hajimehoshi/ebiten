@@ -28,6 +28,9 @@ type pixelsRecord struct {
 
 func (p *pixelsRecord) clearIfOverlapped(rect image.Rectangle) {
 	r := p.rect.Intersect(rect)
+	if r.Empty() {
+		return
+	}
 	ox := r.Min.X - p.rect.Min.X
 	oy := r.Min.Y - p.rect.Min.Y
 	w := p.rect.Dx()
