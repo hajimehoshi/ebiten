@@ -26,25 +26,6 @@ type pixelsRecord struct {
 	pix  []byte
 }
 
-func (p *pixelsRecord) clearIfOverlapped(rect image.Rectangle) {
-	r := p.rect.Intersect(rect)
-	if r.Empty() {
-		return
-	}
-	ox := r.Min.X - p.rect.Min.X
-	oy := r.Min.Y - p.rect.Min.Y
-	w := p.rect.Dx()
-	for j := 0; j < r.Dy(); j++ {
-		for i := 0; i < r.Dx(); i++ {
-			idx := 4 * ((oy+j)*w + ox + i)
-			p.pix[idx] = 0
-			p.pix[idx+1] = 0
-			p.pix[idx+2] = 0
-			p.pix[idx+3] = 0
-		}
-	}
-}
-
 func (p *pixelsRecord) readPixels(pixels []byte, region image.Rectangle, imageWidth, imageHeight int) {
 	r := p.rect.Intersect(region.Intersect(image.Rect(0, 0, imageWidth, imageHeight)))
 	if r.Empty() {
@@ -56,10 +37,19 @@ func (p *pixelsRecord) readPixels(pixels []byte, region image.Rectangle, imageWi
 	srcBaseX := r.Min.X - p.rect.Min.X
 	srcBaseY := r.Min.Y - p.rect.Min.Y
 	lineWidth := 4 * r.Dx()
-	for j := 0; j < r.Dy(); j++ {
-		dstX := 4 * ((dstBaseY+j)*region.Dx() + dstBaseX)
-		srcX := 4 * ((srcBaseY+j)*p.rect.Dx() + srcBaseX)
-		copy(pixels[dstX:dstX+lineWidth], p.pix[srcX:srcX+lineWidth])
+	if p.pix != nil {
+		for j := 0; j < r.Dy(); j++ {
+			dstX := 4 * ((dstBaseY+j)*region.Dx() + dstBaseX)
+			srcX := 4 * ((srcBaseY+j)*p.rect.Dx() + srcBaseX)
+			copy(pixels[dstX:dstX+lineWidth], p.pix[srcX:srcX+lineWidth])
+		}
+	} else {
+		for j := 0; j < r.Dy(); j++ {
+			dstX := 4 * ((dstBaseY+j)*region.Dx() + dstBaseX)
+			for i := 0; i < lineWidth; i++ {
+				pixels[i+dstX] = 0
+			}
+		}
 	}
 }
 
@@ -98,12 +88,19 @@ func (pr *pixelsRecords) addOrReplace(pixels []byte, region image.Rectangle) {
 }
 
 func (pr *pixelsRecords) clear(region image.Rectangle) {
+	if region.Empty() {
+		return
+	}
+
 	var n int
+	var needsClear bool
 	for _, r := range pr.records {
 		if r.rect.In(region) {
 			continue
 		}
-		r.clearIfOverlapped(region)
+		if r.rect.Overlaps(region) {
+			needsClear = true
+		}
 		pr.records[n] = r
 		n++
 	}
@@ -111,6 +108,11 @@ func (pr *pixelsRecords) clear(region image.Rectangle) {
 		pr.records[i] = nil
 	}
 	pr.records = pr.records[:n]
+	if needsClear {
+		pr.records = append(pr.records, &pixelsRecord{
+			rect: region,
+		})
+	}
 }
 
 func (pr *pixelsRecords) readPixels(pixels []byte, region image.Rectangle, imageWidth, imageHeight int) {
@@ -125,7 +127,11 @@ func (pr *pixelsRecords) readPixels(pixels []byte, region image.Rectangle, image
 func (pr *pixelsRecords) apply(img *graphicscommand.Image) {
 	// TODO: Isn't this too heavy? Can we merge the operations?
 	for _, r := range pr.records {
-		img.WritePixels(r.pix, r.rect)
+		if r.pix != nil {
+			img.WritePixels(r.pix, r.rect)
+		} else {
+			img.WritePixels(make([]byte, 4*r.rect.Dx()*r.rect.Dy()), r.rect)
+		}
 	}
 }
 
