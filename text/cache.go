@@ -32,11 +32,17 @@ type glyphAdvanceCacheValue struct {
 	ok      bool
 }
 
+type kernCacheKey struct {
+	r0 rune
+	r1 rune
+}
+
 type faceWithCache struct {
 	f font.Face
 
 	glyphBoundsCache  map[rune]glyphBoundsCacheValue
 	glyphAdvanceCache map[rune]glyphAdvanceCacheValue
+	kernCache         map[kernCacheKey]fixed.Int26_6
 }
 
 func (f *faceWithCache) Close() error {
@@ -46,6 +52,7 @@ func (f *faceWithCache) Close() error {
 
 	f.glyphBoundsCache = nil
 	f.glyphAdvanceCache = nil
+	f.kernCache = nil
 	return nil
 }
 
@@ -105,8 +112,17 @@ func (f *faceWithCache) GlyphAdvance(r rune) (advance fixed.Int26_6, ok bool) {
 }
 
 func (f *faceWithCache) Kern(r0, r1 rune) fixed.Int26_6 {
-	// TODO: Cache the values (#2673).
-	return f.f.Kern(r0, r1)
+	key := kernCacheKey{r0: r0, r1: r1}
+	if v, ok := f.kernCache[key]; ok {
+		return v
+	}
+
+	v := f.f.Kern(r0, r1)
+	if f.kernCache == nil {
+		f.kernCache = map[kernCacheKey]fixed.Int26_6{}
+	}
+	f.kernCache[key] = v
+	return v
 }
 
 func (f *faceWithCache) Metrics() font.Metrics {
