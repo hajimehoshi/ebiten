@@ -22,7 +22,7 @@ import (
 	"log"
 	"strings"
 
-	"github.com/hajimehoshi/bitmapfont/v2"
+	"github.com/hajimehoshi/bitmapfont/v3"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/examples/keyboard/keyboard"
@@ -91,7 +91,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	}
 
 	// Use bitmapfont.Face instead of ebitenutil.DebugPrint, since some key names might not be printed with DebugPrint.
-	text.Draw(screen, strings.Join(keyStrs, ", ")+"\n"+strings.Join(keyNames, ", "), bitmapfont.Face, 8, 12, color.White)
+	text.Draw(screen, strings.Join(keyStrs, ", ")+"\n"+strings.Join(keyNames, ", "), bitmapfont.Face, 4, 12, color.White)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
