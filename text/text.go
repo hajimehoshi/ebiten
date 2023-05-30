@@ -143,9 +143,8 @@ var textM sync.Mutex
 // Draw draws a given text on a given destination image dst.
 //
 // face is the font for text rendering.
-// (x, y) represents a 'dot' (period) position.
-// This means that if the given text consisted of a single character ".",
-// it would be positioned at the given position (x, y).
+// (x, y) represents a dot position in this figure:
+// https://developer.apple.com/library/archive/documentation/TextFonts/Conceptual/CocoaTextArchitecture/Art/glyphterms_2x.png.
 // Be careful that this doesn't represent upper-left corner position.
 //
 // clr is the color for text rendering.
@@ -186,7 +185,8 @@ func Draw(dst *ebiten.Image, text string, face font.Face, x, y int, clr color.Co
 //
 // face is the font for text rendering.
 // op is the options to draw glyph images.
-// The origin point is a 'dot' (period) position.
+// The origin point is a dot position in this figure:
+// https://developer.apple.com/library/archive/documentation/TextFonts/Conceptual/CocoaTextArchitecture/Art/glyphterms_2x.png.
 // Be careful that the origin point is not upper-left corner position of dst.
 // The default glyph color is white. op's ColorM adjusts the color.
 //
@@ -273,8 +273,8 @@ func DrawWithOptions(dst *ebiten.Image, text string, face font.Face, options *eb
 
 // BoundString returns the measured size of a given string using a given font.
 // This method will return the exact size in pixels that a string drawn by Draw will be.
-// The bound's origin point indicates the dot (period) position.
-// This means that if the text consists of one character '.', this dot is rendered at (0, 0).
+// The bound's origin point indicates the dot position in this figure:
+// https://developer.apple.com/library/archive/documentation/TextFonts/Conceptual/CocoaTextArchitecture/Art/glyphterms_2x.png.
 //
 // BoundString behaves almost exactly like golang.org/x/image/font's BoundString,
 // but newline characters '\n' in the input string move the text position to the following line.
