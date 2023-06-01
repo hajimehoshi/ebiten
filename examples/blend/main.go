@@ -22,7 +22,9 @@ import (
 	_ "image/png"
 	"log"
 
+	"golang.org/x/image/font"
 	"golang.org/x/image/font/inconsolata"
+	"golang.org/x/image/math/fixed"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/examples/resources/images/blend"
@@ -174,10 +176,16 @@ func maxSide(a, b *ebiten.Image) int {
 	)
 }
 
+func fixed26_6ToFloat64(x fixed.Int26_6) float64 {
+	return float64(x>>6) + float64(x&((1<<6)-1))/float64(1<<6)
+}
+
 // drawCenteredText is a util function for drawing blend mode description.
 func drawCenteredText(screen *ebiten.Image, cx, cy float64, s string) {
-	bounds := text.BoundString(inconsolata.Bold8x16, s)
-	x, y := int(cx)-bounds.Min.X-bounds.Dx()/2, int(cy)-bounds.Min.Y-bounds.Dy()/2
+	advance := font.MeasureString(inconsolata.Bold8x16, s)
+	m := inconsolata.Bold8x16.Metrics()
+	height := m.Ascent + m.Descent
+	x, y := int(cx-fixed26_6ToFloat64(advance)/2), int(cy-fixed26_6ToFloat64(height)/2+fixed26_6ToFloat64(m.Ascent))
 	text.Draw(screen, s, inconsolata.Bold8x16, x, y, color.Black)
 }
 
