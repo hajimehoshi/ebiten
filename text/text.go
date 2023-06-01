@@ -143,7 +143,7 @@ var textM sync.Mutex
 // Draw draws a given text on a given destination image dst.
 //
 // face is the font for text rendering.
-// (x, y) represents a dot position in this figure:
+// (x, y) represents the origin position in this figure:
 // https://developer.apple.com/library/archive/documentation/TextFonts/Conceptual/CocoaTextArchitecture/Art/glyphterms_2x.png.
 // Be careful that this doesn't represent upper-left corner position.
 //
@@ -185,7 +185,7 @@ func Draw(dst *ebiten.Image, text string, face font.Face, x, y int, clr color.Co
 //
 // face is the font for text rendering.
 // op is the options to draw glyph images.
-// The origin point is a dot position in this figure:
+// The origin point is the origin position in this figure:
 // https://developer.apple.com/library/archive/documentation/TextFonts/Conceptual/CocoaTextArchitecture/Art/glyphterms_2x.png.
 // Be careful that the origin point is not upper-left corner position of dst.
 // The default glyph color is white. op's ColorM adjusts the color.
@@ -273,7 +273,7 @@ func DrawWithOptions(dst *ebiten.Image, text string, face font.Face, options *eb
 
 // BoundString returns the measured size of a given string using a given font.
 // This method will return the exact size in pixels that a string drawn by Draw will be.
-// The bound's origin point indicates the dot position in this figure:
+// The bound's origin point indicates the origin position in this figure:
 // https://developer.apple.com/library/archive/documentation/TextFonts/Conceptual/CocoaTextArchitecture/Art/glyphterms_2x.png.
 //
 // BoundString behaves almost exactly like golang.org/x/image/font's BoundString,
