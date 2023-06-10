@@ -395,10 +395,9 @@ func (t *Tile) Draw(boardImage *ebiten.Image) {
 		f = mplusNormalFont
 	}
 
-	bound, _ := font.BoundString(f, str)
-	w := (bound.Max.X - bound.Min.X).Ceil()
-	h := (bound.Max.Y - bound.Min.Y).Ceil()
-	x = x + (tileSize-w)/2
-	y = y + (tileSize-h)/2 + h
+	w := font.MeasureString(f, str).Floor()
+	h := (f.Metrics().Ascent + f.Metrics().Descent).Floor()
+	x += (tileSize - w) / 2
+	y += (tileSize-h)/2 + f.Metrics().Ascent.Floor()
 	text.Draw(boardImage, str, f, x, y, tileColor(v))
 }
