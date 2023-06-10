@@ -149,11 +149,6 @@ var textM sync.Mutex
 //
 // clr is the color for text rendering.
 //
-// If you want to adjust the position of the text, these functions are useful:
-//
-//   - text.BoundString:                     the rendered bounds of the given text.
-//   - golang.org/x/image/font.Face.Metrics: the metrics of the face.
-//
 // The '\n' newline character puts the following text on the next line.
 // Line height is based on Metrics().Height of the font.
 //
@@ -189,11 +184,6 @@ func Draw(dst *ebiten.Image, text string, face font.Face, x, y int, clr color.Co
 // https://developer.apple.com/library/archive/documentation/TextFonts/Conceptual/CocoaTextArchitecture/Art/glyphterms_2x.png.
 // Be careful that the origin point is not upper-left corner position of dst.
 // The default glyph color is white. op's ColorM adjusts the color.
-//
-// If you want to adjust the position of the text, these functions are useful:
-//
-//   - text.BoundString:                     the rendered bounds of the given text.
-//   - golang.org/x/image/font.Face.Metrics: the metrics of the face.
 //
 // The '\n' newline character puts the following text on the next line.
 // Line height is based on Metrics().Height of the font.
@@ -286,6 +276,8 @@ func DrawWithOptions(dst *ebiten.Image, text string, face font.Face, options *eb
 // This is a known issue (#498).
 //
 // BoundString is concurrent-safe.
+//
+// Deprecated: as of v2.6. Use golang.org/x/image/font.BoundString instead, or use a face's Metrics (Ascent and Descent) and font.MeasureString instead.
 func BoundString(face font.Face, text string) image.Rectangle {
 	textM.Lock()
 	defer textM.Unlock()
