@@ -108,7 +108,7 @@ func boundString(face font.Face, str string) fixed.Rectangle26_6 {
 	m := face.Metrics()
 	minY := -m.Ascent
 	maxY := fixed.Int26_6(len(lines)-1)*m.Height + m.Descent
-	return fixed.Rectangle26_6{fixed.Point26_6{X: minX, Y: minY}, fixed.Point26_6{X: maxX, Y: maxY}}
+	return fixed.Rectangle26_6{Min: fixed.Point26_6{X: minX, Y: minY}, Max: fixed.Point26_6{X: maxX, Y: maxY}}
 }
 
 func fixed26_6ToFloat32(x fixed.Int26_6) float32 {
