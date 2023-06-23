@@ -382,14 +382,16 @@ func (i *bigOffscreenImage) drawTriangles(srcs [graphics.ShaderImageCount]*Image
 		vertices[idx+1] = (vertices[idx+1] - i.region.Y) * bigOffscreenScale
 	}
 
+	// Compute corners in dst coordinate space.
 	x0 := dstRegion.X
 	y0 := dstRegion.Y
 	x1 := dstRegion.X + dstRegion.Width
 	y1 := dstRegion.Y + dstRegion.Height
+	// Translate to i.region coordinate space, and clamp against region size.
 	x0 = max(x0-i.region.X, 0)
 	y0 = max(y0-i.region.Y, 0)
-	x1 = min(x1, i.region.X+i.region.Width)
-	y1 = min(y1, i.region.Y+i.region.Height)
+	x1 = min(x1-i.region.X, i.region.Width)
+	y1 = min(y1-i.region.Y, i.region.Height)
 	dstRegion = graphicsdriver.Region{
 		X:      x0 * bigOffscreenScale,
 		Y:      y0 * bigOffscreenScale,
