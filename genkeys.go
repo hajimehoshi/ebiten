@@ -35,6 +35,7 @@ var (
 	glfwKeyNameToGLFWKey            map[string]glfw.Key
 	uiKeyNameToGLFWKeyName          map[string]string
 	androidKeyToUIKeyName           map[int]string
+	iosKeyToUIKeyName               map[int]string
 	gbuildKeyToUIKeyName            map[key.Code]string
 	uiKeyNameToJSKey                map[string]string
 	oldEbitengineKeyNameToUIKeyName map[string]string
@@ -196,6 +197,90 @@ func init() {
 		118: "MetaRight",
 	}
 
+	// https://developer.apple.com/documentation/uikit/uikeyboardhidusage?language=objc
+	iosKeyToUIKeyName = map[int]string{
+		0xE2: "AltLeft",
+		0xE6: "AltRight",
+		0x51: "ArrowDown",
+		0x50: "ArrowLeft",
+		0x4F: "ArrowRight",
+		0x52: "ArrowUp",
+		0x35: "Backquote",
+
+		// These three keys are:
+		// - US backslash-pipe key (above return),
+		// - non-US backslash key (next to left shift; on German layout this is the <>| key), and
+		// - non-US hashmark key (bottom left of return; on German layout, this is the #' key).
+		// On US layout configurations, they all map to the same characters - the backslash.
+		//
+		// See also: https://www.w3.org/TR/uievents-code/#keyboard-102
+		0x31: "Backslash", // UIKeyboardHIDUsageKeyboardBackslash
+		0x64: "Backslash", // UIKeyboardHIDUsageKeyboardNonUSBackslash
+		0x32: "Backslash", // UIKeyboardHIDUsageKeyboardNonUSPound
+
+		0x2A: "Backspace",
+		0x2F: "BracketLeft",
+		0x30: "BracketRight",
+
+		// Caps Lock can either be a normal key or a hardware toggle.
+		0x39: "CapsLock", // UIKeyboardHIDUsageKeyboardCapsLock
+		0x82: "CapsLock", // UIKeyboardHIDUsageKeyboardLockingCapsLock
+
+		0x36: "Comma",
+		0xE0: "ControlLeft",
+		0xE4: "ControlRight",
+		0x4C: "Delete",
+		0x4D: "End",
+		0x28: "Enter",
+		0x2E: "Equal",
+		0x29: "Escape",
+		0x4A: "Home",
+		0x49: "Insert",
+		0x76: "ContextMenu",
+		0xE3: "MetaLeft",
+		0xE7: "MetaRight",
+		0x2D: "Minus",
+
+		// Num Lock can either be a normal key or a hardware toggle.
+		0x53: "NumLock", // UIKeyboardHIDUsageKeyboardNumLock
+		0x83: "NumLock", // UIKeyboardHIDUsageKeyboardLockingNumLock
+
+		0x57: "NumpadAdd",
+
+		// Some keyboard layouts have a comma, some a period on the numeric pad.
+		// They are the same key, though.
+		0x63: "NumpadDecimal", // UIKeyboardHIDUsageKeypadPeriod
+		0x85: "NumpadDecimal", // UIKeyboardHIDUsageKeypadComma
+
+		0x54: "NumpadDivide",
+		0x58: "NumpadEnter",
+
+		// Some numeric keypads also have an equals sign.
+		// There appear to be two separate keycodes for that.
+		0x67: "NumpadEqual", // UIKeyboardHIDUsageKeypadEqualSign
+		0x86: "NumpadEqual", // UIKeyboardHIDUsageKeypadEqualSignAS400
+
+		0x55: "NumpadMultiply",
+		0x56: "NumpadSubtract",
+		0x4E: "PageDown",
+		0x4B: "PageUp",
+		0x48: "Pause",
+		0x37: "Period",
+		0x46: "PrintScreen",
+		0x34: "Quote",
+
+		// Scroll Lock can either be a normal key or a hardware toggle.
+		0x47: "ScrollLock", // UIKeyboardHIDUsageKeyboardScrollLock
+		0x84: "ScrollLock", // UIKeyboardHIDUsageKeyboardLockingScrollLock
+
+		0x33: "Semicolon",
+		0xE1: "ShiftLeft",
+		0xE5: "ShiftRight",
+		0x38: "Slash",
+		0x2C: "Space",
+		0x2B: "Tab",
+	}
+
 	gbuildKeyToUIKeyName = map[key.Code]string{
 		key.CodeComma:              "Comma",
 		key.CodeFullStop:           "Period",
@@ -306,19 +391,23 @@ func init() {
 		uiKeyNameToGLFWKeyName[name] = string(c)
 		androidKeyToUIKeyName[7+int(c)-'0'] = name
 		// Gomobile's key code (= USB HID key codes) has successive key codes for 1, 2, ..., 9, 0
-		// in this order.
+		// in this order. Same for iOS.
 		if c == '0' {
+			iosKeyToUIKeyName[0x27] = name
 			gbuildKeyToUIKeyName[key.Code0] = name
 		} else {
+			iosKeyToUIKeyName[0x1E+int(c)-'1'] = name
 			gbuildKeyToUIKeyName[key.Code1+key.Code(c)-'1'] = name
 		}
 		uiKeyNameToJSKey[name] = name
+
 	}
 	// ASCII: A - Z
 	for c := 'A'; c <= 'Z'; c++ {
 		glfwKeyNameToGLFWKey[string(c)] = glfw.KeyA + glfw.Key(c) - 'A'
 		uiKeyNameToGLFWKeyName[string(c)] = string(c)
 		androidKeyToUIKeyName[29+int(c)-'A'] = string(c)
+		iosKeyToUIKeyName[0x04+int(c)-'A'] = string(c)
 		gbuildKeyToUIKeyName[key.CodeA+key.Code(c)-'A'] = string(c)
 		uiKeyNameToJSKey[string(c)] = "Key" + string(c)
 	}
@@ -328,6 +417,9 @@ func init() {
 		glfwKeyNameToGLFWKey[name] = glfw.KeyF1 + glfw.Key(i) - 1
 		uiKeyNameToGLFWKeyName[name] = name
 		androidKeyToUIKeyName[131+i-1] = name
+		// Note: iOS keys go up to F24 (with F13 being 0x68 and increasing from there),
+		// but Ebitengine currently only goes to F12.
+		iosKeyToUIKeyName[0x3A+i-1] = name
 		gbuildKeyToUIKeyName[key.CodeF1+key.Code(i)-1] = name
 		uiKeyNameToJSKey[name] = name
 	}
@@ -339,10 +431,12 @@ func init() {
 		uiKeyNameToGLFWKeyName[name] = "KP" + string(c)
 		androidKeyToUIKeyName[144+int(c)-'0'] = name
 		// Gomobile's key code (= USB HID key codes) has successive key codes for 1, 2, ..., 9, 0
-		// in this order.
+		// in this order. Same for iOS.
 		if c == '0' {
+			iosKeyToUIKeyName[0x62] = name
 			gbuildKeyToUIKeyName[key.CodeKeypad0] = name
 		} else {
+			iosKeyToUIKeyName[0x59+int(c)-'1'] = name
 			gbuildKeyToUIKeyName[key.CodeKeypad1+key.Code(c)-'1'] = name
 		}
 		uiKeyNameToJSKey[name] = name
@@ -583,6 +677,24 @@ var androidKeyToUIKey = map[int]ui.Key{
 }
 `
 
+const mobileIOSKeysTmpl = `{{.License}}
+
+{{.DoNotEdit}}
+
+{{.BuildTag}}
+
+package ebitenmobileview
+
+import (
+	"github.com/hajimehoshi/ebiten/v2/internal/ui"
+)
+
+var iosKeyToUIKey = map[int]ui.Key{
+{{range $key, $name := .IOSKeyToUIKeyName}}{{$key}}: ui.Key{{$name}},
+{{end}}
+}
+`
+
 const uiMobileKeysTmpl = `{{.License}}
 
 {{.DoNotEdit}}
@@ -725,6 +837,7 @@ func main() {
 		filepath.Join("internal", "ui", "keys_js.go"):                  uiJSKeysTmpl,
 		filepath.Join("keys.go"):                                       ebitengineKeysTmpl,
 		filepath.Join("mobile", "ebitenmobileview", "keys_android.go"): mobileAndroidKeysTmpl,
+		filepath.Join("mobile", "ebitenmobileview", "keys_ios.go"):     mobileIOSKeysTmpl,
 	} {
 		f, err := os.Create(path)
 		if err != nil {
@@ -764,6 +877,7 @@ func main() {
 			UIKeyNames                      []string
 			UIKeyNameToGLFWKeyName          map[string]string
 			AndroidKeyToUIKeyName           map[int]string
+			IOSKeyToUIKeyName               map[int]string
 			GBuildKeyToUIKeyName            map[key.Code]string
 			OldEbitengineKeyNameToUIKeyName map[string]string
 		}{
@@ -778,6 +892,7 @@ func main() {
 			UIKeyNames:                      uiKeyNames,
 			UIKeyNameToGLFWKeyName:          uiKeyNameToGLFWKeyName,
 			AndroidKeyToUIKeyName:           androidKeyToUIKeyName,
+			IOSKeyToUIKeyName:               iosKeyToUIKeyName,
 			GBuildKeyToUIKeyName:            gbuildKeyToUIKeyName,
 			OldEbitengineKeyNameToUIKeyName: oldEbitengineKeyNameToUIKeyName,
 		}); err != nil {

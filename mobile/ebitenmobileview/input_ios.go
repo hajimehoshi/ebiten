@@ -16,6 +16,7 @@ package ebitenmobileview
 
 import (
 	"fmt"
+	"unicode"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
@@ -48,11 +49,40 @@ func UpdateTouchesOnIOS(phase int, ptr int64, x, y int) {
 	case C.UITouchPhaseBegan, C.UITouchPhaseMoved, C.UITouchPhaseStationary:
 		id := getIDFromPtr(ptr)
 		touches[ui.TouchID(id)] = position{x, y}
+		runes = nil
 		updateInput()
 	case C.UITouchPhaseEnded, C.UITouchPhaseCancelled:
 		id := getIDFromPtr(ptr)
 		delete(ptrToID, ptr)
 		delete(touches, ui.TouchID(id))
+		runes = nil
+		updateInput()
+	default:
+		panic(fmt.Sprintf("ebitenmobileview: invalid phase: %d", phase))
+	}
+}
+
+func UpdatePressesOnIOS(phase int, keyCode int, keyString string) {
+	switch phase {
+	case C.UITouchPhaseBegan, C.UITouchPhaseMoved, C.UITouchPhaseStationary:
+		if key, ok := iosKeyToUIKey[keyCode]; ok {
+			keys[key] = struct{}{}
+		}
+		runes = nil
+		if phase == C.UITouchPhaseBegan {
+			for _, r := range keyString {
+				if !unicode.IsPrint(r) {
+					continue
+				}
+				runes = append(runes, r)
+			}
+		}
+		updateInput()
+	case C.UITouchPhaseEnded, C.UITouchPhaseCancelled:
+		if key, ok := iosKeyToUIKey[keyCode]; ok {
+			delete(keys, key)
+		}
+		runes = nil
 		updateInput()
 	default:
 		panic(fmt.Sprintf("ebitenmobileview: invalid phase: %d", phase))

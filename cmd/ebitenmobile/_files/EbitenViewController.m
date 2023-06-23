@@ -259,6 +259,28 @@
   [self updateTouches:touches];
 }
 
+- (void)updatePresses:(NSSet<UIPress *> *)presses {
+  if (@available(iOS 13.4, *)) {
+    // Note: before iOS 13.4, this just can return UIPressType, which is
+    // insufficient for games.
+    for (UIPress *press in presses) {
+      UIKey *key = press.key;
+      if (key == nil) {
+        continue;
+      }
+      EbitenmobileviewUpdatePressesOnIOS(press.phase, key.keyCode, key.characters);
+    }
+  }
+}
+
+- (void)pressesBegan:(NSSet<UIPress *> *)presses withEvent:(UIPressesEvent *)event {
+  [self updatePresses:presses];
+}
+
+- (void)pressesEnded:(NSSet<UIPress *> *)presses withEvent:(UIPressesEvent *)event {
+  [self updatePresses:presses];
+}
+
 - (void)suspendGame {
   NSAssert(started_, @"suspendGame must not be called before viewDidLoad is called");
 
