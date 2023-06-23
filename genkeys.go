@@ -14,7 +14,7 @@
 
 //go:build ignore
 
-// The key name convention follows the Web standard: https://www.w3.org/TR/uievents-code/#keyboard-key-codes
+// The key name convention follows the Web standard: https://www.w3.org/TR/uievents-code/#code-value-tables
 
 package main
 
