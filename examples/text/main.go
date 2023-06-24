@@ -18,9 +18,7 @@ import (
 	"image/color"
 	"log"
 	"math"
-	"math/rand"
 	"strings"
-	"time"
 
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/opentype"
@@ -68,10 +66,6 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-}
-
-func init() {
-	rand.Seed(time.Now().UnixNano())
 }
 
 type Game struct {
