@@ -142,12 +142,12 @@ func OnKeyDownOnAndroid(keyCode int, unicodeChar int, source int, deviceID int) 
 	case source&sourceKeyboard == sourceKeyboard:
 		if key, ok := androidKeyToUIKey[keyCode]; ok {
 			keys[key] = struct{}{}
-			var runes []rune
-			if r := rune(unicodeChar); r != 0 && unicode.IsPrint(r) {
-				runes = []rune{r}
-			}
-			updateInput(runes)
 		}
+		var runes []rune
+		if r := rune(unicodeChar); r != 0 && unicode.IsPrint(r) {
+			runes = []rune{r}
+		}
+		updateInput(runes)
 	}
 }
 
@@ -163,8 +163,8 @@ func OnKeyUpOnAndroid(keyCode int, source int, deviceID int) {
 	case source&sourceKeyboard == sourceKeyboard:
 		if key, ok := androidKeyToUIKey[keyCode]; ok {
 			delete(keys, key)
-			updateInput(nil)
 		}
+		updateInput(nil)
 	}
 }
 
