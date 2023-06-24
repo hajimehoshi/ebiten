@@ -27,7 +27,6 @@ type position struct {
 
 var (
 	keys    = map[ui.Key]struct{}{}
-	runes   []rune
 	touches = map[ui.TouchID]position{}
 )
 
@@ -35,7 +34,7 @@ var (
 	touchSlice []ui.TouchForInput
 )
 
-func updateInput() {
+func updateInput(runes []rune) {
 	touchSlice = touchSlice[:0]
 	for id, position := range touches {
 		touchSlice = append(touchSlice, ui.TouchForInput{

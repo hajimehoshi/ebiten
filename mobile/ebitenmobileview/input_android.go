@@ -123,10 +123,10 @@ func UpdateTouchesOnAndroid(action int, id int, x, y int) {
 	switch action {
 	case 0x00, 0x05, 0x02: // ACTION_DOWN, ACTION_POINTER_DOWN, ACTION_MOVE
 		touches[ui.TouchID(id)] = position{x, y}
-		updateInput()
+		updateInput(nil)
 	case 0x01, 0x06: // ACTION_UP, ACTION_POINTER_UP
 		delete(touches, ui.TouchID(id))
-		updateInput()
+		updateInput(nil)
 	}
 }
 
@@ -142,10 +142,11 @@ func OnKeyDownOnAndroid(keyCode int, unicodeChar int, source int, deviceID int) 
 	case source&sourceKeyboard == sourceKeyboard:
 		if key, ok := androidKeyToUIKey[keyCode]; ok {
 			keys[key] = struct{}{}
+			var runes []rune
 			if r := rune(unicodeChar); r != 0 && unicode.IsPrint(r) {
 				runes = []rune{r}
 			}
-			updateInput()
+			updateInput(runes)
 		}
 	}
 }
@@ -162,7 +163,7 @@ func OnKeyUpOnAndroid(keyCode int, source int, deviceID int) {
 	case source&sourceKeyboard == sourceKeyboard:
 		if key, ok := androidKeyToUIKey[keyCode]; ok {
 			delete(keys, key)
-			updateInput()
+			updateInput(nil)
 		}
 	}
 }

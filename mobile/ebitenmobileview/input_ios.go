@@ -49,14 +49,12 @@ func UpdateTouchesOnIOS(phase int, ptr int64, x, y int) {
 	case C.UITouchPhaseBegan, C.UITouchPhaseMoved, C.UITouchPhaseStationary:
 		id := getIDFromPtr(ptr)
 		touches[ui.TouchID(id)] = position{x, y}
-		runes = nil
-		updateInput()
+		updateInput(nil)
 	case C.UITouchPhaseEnded, C.UITouchPhaseCancelled:
 		id := getIDFromPtr(ptr)
 		delete(ptrToID, ptr)
 		delete(touches, ui.TouchID(id))
-		runes = nil
-		updateInput()
+		updateInput(nil)
 	default:
 		panic(fmt.Sprintf("ebitenmobileview: invalid phase: %d", phase))
 	}
@@ -68,7 +66,7 @@ func UpdatePressesOnIOS(phase int, keyCode int, keyString string) {
 		if key, ok := iosKeyToUIKey[keyCode]; ok {
 			keys[key] = struct{}{}
 		}
-		runes = nil
+		var runes []rune
 		if phase == C.UITouchPhaseBegan {
 			for _, r := range keyString {
 				if !unicode.IsPrint(r) {
@@ -77,13 +75,12 @@ func UpdatePressesOnIOS(phase int, keyCode int, keyString string) {
 				runes = append(runes, r)
 			}
 		}
-		updateInput()
+		updateInput(runes)
 	case C.UITouchPhaseEnded, C.UITouchPhaseCancelled:
 		if key, ok := iosKeyToUIKey[keyCode]; ok {
 			delete(keys, key)
 		}
-		runes = nil
-		updateInput()
+		updateInput(nil)
 	default:
 		panic(fmt.Sprintf("ebitenmobileview: invalid phase: %d", phase))
 	}
