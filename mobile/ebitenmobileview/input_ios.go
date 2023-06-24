@@ -48,12 +48,12 @@ func UpdateTouchesOnIOS(phase int, ptr int64, x, y int) {
 	case C.UITouchPhaseBegan, C.UITouchPhaseMoved, C.UITouchPhaseStationary:
 		id := getIDFromPtr(ptr)
 		touches[ui.TouchID(id)] = position{x, y}
-		updateInput()
+		updateInput(nil)
 	case C.UITouchPhaseEnded, C.UITouchPhaseCancelled:
 		id := getIDFromPtr(ptr)
 		delete(ptrToID, ptr)
 		delete(touches, ui.TouchID(id))
-		updateInput()
+		updateInput(nil)
 	default:
 		panic(fmt.Sprintf("ebitenmobileview: invalid phase: %d", phase))
 	}
