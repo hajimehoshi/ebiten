@@ -1,4 +1,4 @@
-image: fedora/latest
+image: fedora/rawhide
 packages:
   - alsa-lib-devel
   - libXcursor-devel
