@@ -112,6 +112,14 @@ func (c *ColorScale) ScaleWithColor(clr color.Color) {
 	c.Scale(float32(cr)/0xffff, float32(cg)/0xffff, float32(cb)/0xffff, float32(ca)/0xffff)
 }
 
+// ScaleWithColorScale multiplies the given color scale values to the current scale.
+func (c *ColorScale) ScaleWithColorScale(colorScale ColorScale) {
+	c.r_1 = (c.r_1+1)*(colorScale.r_1+1) - 1
+	c.g_1 = (c.g_1+1)*(colorScale.g_1+1) - 1
+	c.b_1 = (c.b_1+1)*(colorScale.b_1+1) - 1
+	c.a_1 = (c.a_1+1)*(colorScale.a_1+1) - 1
+}
+
 func (c *ColorScale) apply(r, g, b, a float32) (float32, float32, float32, float32) {
 	return (c.r_1 + 1) * r, (c.g_1 + 1) * g, (c.b_1 + 1) * b, (c.a_1 + 1) * a
 }
