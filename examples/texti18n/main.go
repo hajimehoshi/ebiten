@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// This example is a demonstration to render languages that cannot be rendered with the `text` package.
+// We plan to provide a useful API to render them more easily (#2454). Stay tuned!
+
 package main
 
 import (
