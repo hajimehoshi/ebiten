@@ -203,21 +203,18 @@ func (g *Game) drawGlyphs(dst *ebiten.Image, output *shaping.Output, originX, or
 		v, ok := g.glyphCache[key]
 		if !ok {
 			data := output.Face.GlyphData(glyph.GlyphID).(api.GlyphOutline)
-			if len(data.Segments) == 0 {
-				continue
-			}
-
-			segs := make([]api.Segment, len(data.Segments))
-			for i, seg := range data.Segments {
-				segs[i] = seg
-				for j := range seg.Args {
-					segs[i].Args[j].X *= scale
-					segs[i].Args[j].Y *= scale
-					segs[i].Args[j].Y *= -1
+			if len(data.Segments) > 0 {
+				segs := make([]api.Segment, len(data.Segments))
+				for i, seg := range data.Segments {
+					segs[i] = seg
+					for j := range seg.Args {
+						segs[i].Args[j].X *= scale
+						segs[i].Args[j].Y *= scale
+						segs[i].Args[j].Y *= -1
+					}
 				}
+				v.image, v.point = segmentsToImage(segs, orig)
 			}
-
-			v.image, v.point = segmentsToImage(segs, orig)
 			if g.glyphCache == nil {
 				g.glyphCache = map[glyphCacheKey]glyphCacheValue{}
 			}
