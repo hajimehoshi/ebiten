@@ -64,7 +64,7 @@ func (w *windowDelegate) InitWithOrigDelegate(cmd objc.SEL, origDelegate objc.ID
 	return self
 }
 
-// The method set of origDelegate_ must sync with GLFWWindowDelegate's implementation.
+// The method set of origDelegate must sync with GLFWWindowDelegate's implementation.
 // See cocoa_window.m in GLFW.
 
 func (w *windowDelegate) WindowShouldClose(cmd objc.SEL, notification objc.ID) bool {
