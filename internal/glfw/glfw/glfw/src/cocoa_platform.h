@@ -96,7 +96,6 @@ typedef VkResult (APIENTRY *PFN_vkCreateMacOSSurfaceMVK)(VkInstance,const VkMacO
 typedef VkResult (APIENTRY *PFN_vkCreateMetalSurfaceEXT)(VkInstance,const VkMetalSurfaceCreateInfoEXT*,const VkAllocationCallbacks*,VkSurfaceKHR*);
 
 #include "posix_thread.h"
-#include "cocoa_joystick.h"
 #include "nsgl_context.h"
 #include "egl_context.h"
 #include "osmesa_context.h"
@@ -157,7 +156,6 @@ typedef struct _GLFWlibraryNS
     GLFWbool            finishedLaunching;
     GLFWbool            cursorHidden;
     TISInputSourceRef   inputSource;
-    IOHIDManagerRef     hidManager;
     id                  unicodeData;
     id                  helper;
     id                  keyUpMonitor;

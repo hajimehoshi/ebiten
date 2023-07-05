@@ -3,7 +3,6 @@ package glfw
 /*
 #cgo CFLAGS: -x objective-c
 #include "glfw/src/cocoa_init.m"
-#include "glfw/src/cocoa_joystick.m"
 #include "glfw/src/cocoa_monitor.m"
 #include "glfw/src/cocoa_window.m"
 #include "glfw/src/cocoa_time.c"

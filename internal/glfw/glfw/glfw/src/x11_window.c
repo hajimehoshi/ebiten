@@ -137,11 +137,6 @@ static GLFWbool waitForAnyEvent(double* timeout)
         { _glfw.x11.emptyEventPipe[0], POLLIN }
     };
 
-#if defined(__linux__)
-    if (_glfw.linjs.inotify > 0)
-        fds[count++] = (struct pollfd) { _glfw.linjs.inotify, POLLIN };
-#endif
-
     while (!XPending(_glfw.x11.display))
     {
         if (!waitForData(fds, count, timeout))
@@ -2774,9 +2769,6 @@ void _glfwPlatformPollEvents(void)
 {
     drainEmptyEvents();
 
-#if defined(__linux__)
-    _glfwDetectJoystickConnectionLinux();
-#endif
     XPending(_glfw.x11.display);
 
     while (XQLength(_glfw.x11.display))

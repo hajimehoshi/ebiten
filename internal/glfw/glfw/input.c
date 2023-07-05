@@ -1,9 +1,5 @@
 #include "_cgo_export.h"
 
-void glfwSetJoystickCallbackCB() {
-  glfwSetJoystickCallback((GLFWjoystickfun)goJoystickCB);
-}
-
 void glfwSetKeyCallbackCB(GLFWwindow *window) {
   glfwSetKeyCallback(window, (GLFWkeyfun)goKeyCB);
 }
@@ -35,15 +31,3 @@ void glfwSetScrollCallbackCB(GLFWwindow *window) {
 void glfwSetDropCallbackCB(GLFWwindow *window) {
   glfwSetDropCallback(window, (GLFWdropfun)goDropCB);
 }
-
-float GetAxisAtIndex(float *axis, int i) { return axis[i]; }
-
-unsigned char GetButtonsAtIndex(unsigned char *buttons, int i) {
-  return buttons[i];
-}
-
-unsigned char GetGamepadButtonAtIndex(GLFWgamepadstate *gp, int i) {
-  return gp->buttons[i];
-}
-
-float GetGamepadAxisAtIndex(GLFWgamepadstate *gp, int i) { return gp->axes[i]; }

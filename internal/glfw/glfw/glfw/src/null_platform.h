@@ -40,7 +40,6 @@
 #include "osmesa_context.h"
 #include "posix_time.h"
 #include "posix_thread.h"
-#include "null_joystick.h"
 
 #define _glfw_dlopen(name) dlopen(name, RTLD_LAZY | RTLD_LOCAL)
 #define _glfw_dlclose(handle) dlclose(handle)

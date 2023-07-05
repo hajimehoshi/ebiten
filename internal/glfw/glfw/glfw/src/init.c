@@ -50,7 +50,6 @@ static _GLFWerror _glfwMainThreadError;
 static GLFWerrorfun _glfwErrorCallback;
 static _GLFWinitconfig _glfwInitHints =
 {
-    GLFW_TRUE,      // hat buttons
     {
         GLFW_TRUE,  // macOS menu bar
         GLFW_TRUE   // macOS bundle chdir
@@ -82,10 +81,6 @@ static void terminate(void)
     free(_glfw.monitors);
     _glfw.monitors = NULL;
     _glfw.monitorCount = 0;
-
-    free(_glfw.mappings);
-    _glfw.mappings = NULL;
-    _glfw.mappingCount = 0;
 
     _glfwTerminateVulkan();
     _glfwPlatformTerminate();
@@ -337,8 +332,6 @@ GLFWAPI int glfwInit(void)
 
     _glfwPlatformSetTls(&_glfw.errorSlot, &_glfwMainThreadError);
 
-    _glfwInitGamepadMappings();
-
     _glfw.initialized = GLFW_TRUE;
     _glfw.timer.offset = _glfwPlatformGetTimerValue();
 
@@ -358,9 +351,6 @@ GLFWAPI void glfwInitHint(int hint, int value)
 {
     switch (hint)
     {
-        case GLFW_JOYSTICK_HAT_BUTTONS:
-            _glfwInitHints.hatButtons = value;
-            return;
         case GLFW_COCOA_CHDIR_RESOURCES:
             _glfwInitHints.ns.chdir = value;
             return;

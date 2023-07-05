@@ -5,7 +5,6 @@ package glfw
 //#include <stdlib.h>
 //#define GLFW_INCLUDE_NONE
 //#include "glfw/include/GLFW/glfw3.h"
-//void glfwSetJoystickCallbackCB();
 //void glfwSetKeyCallbackCB(GLFWwindow *window);
 //void glfwSetCharCallbackCB(GLFWwindow *window);
 //void glfwSetCharModsCallbackCB(GLFWwindow *window);
@@ -14,10 +13,6 @@ package glfw
 //void glfwSetCursorEnterCallbackCB(GLFWwindow *window);
 //void glfwSetScrollCallbackCB(GLFWwindow *window);
 //void glfwSetDropCallbackCB(GLFWwindow *window);
-//float GetAxisAtIndex(float *axis, int i);
-//unsigned char GetButtonsAtIndex(unsigned char *buttons, int i);
-//float GetGamepadAxisAtIndex(GLFWgamepadstate *gp, int i);
-//unsigned char GetGamepadButtonAtIndex(GLFWgamepadstate *gp, int i);
 import "C"
 
 import (
@@ -25,93 +20,6 @@ import (
 	"image/draw"
 	"unsafe"
 )
-
-// Joystick corresponds to a joystick.
-type Joystick int
-
-// Joystick IDs.
-const (
-	Joystick1    Joystick = C.GLFW_JOYSTICK_1
-	Joystick2    Joystick = C.GLFW_JOYSTICK_2
-	Joystick3    Joystick = C.GLFW_JOYSTICK_3
-	Joystick4    Joystick = C.GLFW_JOYSTICK_4
-	Joystick5    Joystick = C.GLFW_JOYSTICK_5
-	Joystick6    Joystick = C.GLFW_JOYSTICK_6
-	Joystick7    Joystick = C.GLFW_JOYSTICK_7
-	Joystick8    Joystick = C.GLFW_JOYSTICK_8
-	Joystick9    Joystick = C.GLFW_JOYSTICK_9
-	Joystick10   Joystick = C.GLFW_JOYSTICK_10
-	Joystick11   Joystick = C.GLFW_JOYSTICK_11
-	Joystick12   Joystick = C.GLFW_JOYSTICK_12
-	Joystick13   Joystick = C.GLFW_JOYSTICK_13
-	Joystick14   Joystick = C.GLFW_JOYSTICK_14
-	Joystick15   Joystick = C.GLFW_JOYSTICK_15
-	Joystick16   Joystick = C.GLFW_JOYSTICK_16
-	JoystickLast Joystick = C.GLFW_JOYSTICK_LAST
-)
-
-// JoystickHatState corresponds to joystick hat states.
-type JoystickHatState int
-
-// Joystick Hat State IDs.
-const (
-	HatCentered  JoystickHatState = C.GLFW_HAT_CENTERED
-	HatUp        JoystickHatState = C.GLFW_HAT_UP
-	HatRight     JoystickHatState = C.GLFW_HAT_RIGHT
-	HatDown      JoystickHatState = C.GLFW_HAT_DOWN
-	HatLeft      JoystickHatState = C.GLFW_HAT_LEFT
-	HatRightUp   JoystickHatState = C.GLFW_HAT_RIGHT_UP
-	HatRightDown JoystickHatState = C.GLFW_HAT_RIGHT_DOWN
-	HatLeftUp    JoystickHatState = C.GLFW_HAT_LEFT_UP
-	HatLeftDown  JoystickHatState = C.GLFW_HAT_LEFT_DOWN
-)
-
-// GamepadAxis corresponds to a gamepad axis.
-type GamepadAxis int
-
-// Gamepad axis IDs.
-const (
-	AxisLeftX        GamepadAxis = C.GLFW_GAMEPAD_AXIS_LEFT_X
-	AxisLeftY        GamepadAxis = C.GLFW_GAMEPAD_AXIS_LEFT_Y
-	AxisRightX       GamepadAxis = C.GLFW_GAMEPAD_AXIS_RIGHT_X
-	AxisRightY       GamepadAxis = C.GLFW_GAMEPAD_AXIS_RIGHT_Y
-	AxisLeftTrigger  GamepadAxis = C.GLFW_GAMEPAD_AXIS_LEFT_TRIGGER
-	AxisRightTrigger GamepadAxis = C.GLFW_GAMEPAD_AXIS_RIGHT_TRIGGER
-	AxisLast         GamepadAxis = C.GLFW_GAMEPAD_AXIS_LAST
-)
-
-// GamepadButton corresponds to a gamepad button.
-type GamepadButton int
-
-// Gamepad button IDs.
-const (
-	ButtonA           GamepadButton = C.GLFW_GAMEPAD_BUTTON_A
-	ButtonB           GamepadButton = C.GLFW_GAMEPAD_BUTTON_B
-	ButtonX           GamepadButton = C.GLFW_GAMEPAD_BUTTON_X
-	ButtonY           GamepadButton = C.GLFW_GAMEPAD_BUTTON_Y
-	ButtonLeftBumper  GamepadButton = C.GLFW_GAMEPAD_BUTTON_LEFT_BUMPER
-	ButtonRightBumper GamepadButton = C.GLFW_GAMEPAD_BUTTON_RIGHT_BUMPER
-	ButtonBack        GamepadButton = C.GLFW_GAMEPAD_BUTTON_BACK
-	ButtonStart       GamepadButton = C.GLFW_GAMEPAD_BUTTON_START
-	ButtonGuide       GamepadButton = C.GLFW_GAMEPAD_BUTTON_GUIDE
-	ButtonLeftThumb   GamepadButton = C.GLFW_GAMEPAD_BUTTON_LEFT_THUMB
-	ButtonRightThumb  GamepadButton = C.GLFW_GAMEPAD_BUTTON_RIGHT_THUMB
-	ButtonDpadUp      GamepadButton = C.GLFW_GAMEPAD_BUTTON_DPAD_UP
-	ButtonDpadRight   GamepadButton = C.GLFW_GAMEPAD_BUTTON_DPAD_RIGHT
-	ButtonDpadDown    GamepadButton = C.GLFW_GAMEPAD_BUTTON_DPAD_DOWN
-	ButtonDpadLeft    GamepadButton = C.GLFW_GAMEPAD_BUTTON_DPAD_LEFT
-	ButtonLast        GamepadButton = C.GLFW_GAMEPAD_BUTTON_LAST
-	ButtonCross       GamepadButton = C.GLFW_GAMEPAD_BUTTON_CROSS
-	ButtonCircle      GamepadButton = C.GLFW_GAMEPAD_BUTTON_CIRCLE
-	ButtonSquare      GamepadButton = C.GLFW_GAMEPAD_BUTTON_SQUARE
-	ButtonTriangle    GamepadButton = C.GLFW_GAMEPAD_BUTTON_TRIANGLE
-)
-
-// GamepadState describes the input state of a gamepad.
-type GamepadState struct {
-	Buttons [15]Action
-	Axes    [6]float32
-}
 
 // Key corresponds to a keyboard key.
 type Key int
@@ -321,13 +229,6 @@ const (
 // Cursor represents a cursor.
 type Cursor struct {
 	data *C.GLFWcursor
-}
-
-var fJoystickHolder func(joy Joystick, event PeripheralEvent)
-
-//export goJoystickCB
-func goJoystickCB(joy, event C.int) {
-	fJoystickHolder(Joystick(joy), PeripheralEvent(event))
 }
 
 //export goMouseButtonCB
@@ -554,24 +455,6 @@ func (w *Window) SetCursor(c *Cursor) {
 	panicError()
 }
 
-// JoystickCallback is the joystick configuration callback.
-type JoystickCallback func(joy Joystick, event PeripheralEvent)
-
-// SetJoystickCallback sets the joystick configuration callback, or removes the
-// currently set callback. This is called when a joystick is connected to or
-// disconnected from the system.
-func SetJoystickCallback(cbfun JoystickCallback) (previous JoystickCallback) {
-	previous = fJoystickHolder
-	fJoystickHolder = cbfun
-	if cbfun == nil {
-		C.glfwSetJoystickCallback(nil)
-	} else {
-		C.glfwSetJoystickCallbackCB()
-	}
-	panicError()
-	return previous
-}
-
 // KeyCallback is the key callback.
 type KeyCallback func(w *Window, key Key, scancode int, action Action, mods ModifierKey)
 
@@ -745,231 +628,4 @@ func (w *Window) SetDropCallback(cbfun DropCallback) (previous DropCallback) {
 	}
 	panicError()
 	return previous
-}
-
-// Present returns whether the specified joystick is present.
-//
-// There is no need to call this function before other methods of Joystick type
-// as they all check for presence before performing any other work.
-//
-// This function must only be called from the main thread.
-func (joy Joystick) Present() bool {
-	return glfwbool(C.glfwJoystickPresent(C.int(joy)))
-}
-
-// GetAxes returns the values of all axes of the specified joystick. Each
-// element in the array is a value between -1.0 and 1.0.
-//
-// If the specified joystick is not present this function will return nil but
-// will not generate an error. This can be used instead of first calling
-// Present.
-//
-// This function must only be called from the main thread.
-func (joy Joystick) GetAxes() []float32 {
-	var length int
-
-	axis := C.glfwGetJoystickAxes(C.int(joy), (*C.int)(unsafe.Pointer(&length)))
-	if axis == nil {
-		return nil
-	}
-
-	a := make([]float32, length)
-	for i := 0; i < length; i++ {
-		a[i] = float32(C.GetAxisAtIndex(axis, C.int(i)))
-	}
-	return a
-}
-
-// GetButtons returns the state of all buttons of the specified joystick. Each
-// element in the array is either Press or Release.
-//
-// For backward compatibility with earlier versions that did not have GetHats,
-// the button array also includes all hats, each represented as four buttons.
-// The hats are in the same order as returned by GetHats and are in the order
-// up, right, down and left. To disable these extra buttons, set the
-// JoystickHatButtons init hint before initialization.
-//
-// If the specified joystick is not present this function will return nil but
-// will not generate an error. This can be used instead of first calling
-// Present.
-//
-// This function must only be called from the main thread.
-func (joy Joystick) GetButtons() []Action {
-	var length int
-
-	buttons := C.glfwGetJoystickButtons(
-		C.int(joy),
-		(*C.int)(unsafe.Pointer(&length)),
-	)
-	if buttons == nil {
-		return nil
-	}
-
-	b := make([]Action, length)
-	for i := 0; i < length; i++ {
-		b[i] = Action(C.GetButtonsAtIndex(buttons, C.int(i)))
-	}
-	return b
-}
-
-// GetHats returns the state of all hats of the specified joystick.
-//
-// If the specified joystick is not present this function will return nil but
-// will not generate an error. This can be used instead of first calling
-// Present.
-//
-// This function must only be called from the main thread.
-func (joy Joystick) GetHats() []JoystickHatState {
-	var length int
-
-	hats := C.glfwGetJoystickHats(C.int(joy), (*C.int)(unsafe.Pointer(&length)))
-	if hats == nil {
-		return nil
-	}
-
-	b := make([]JoystickHatState, length)
-	for i := 0; i < length; i++ {
-		b[i] = JoystickHatState(C.GetButtonsAtIndex(hats, C.int(i)))
-	}
-	return b
-}
-
-// GetName returns the name, encoded as UTF-8, of the specified joystick.
-//
-// If the specified joystick is not present this function will return nil but
-// will not generate an error. This can be used instead of first calling
-// Present.
-//
-// This function must only be called from the main thread.
-func (joy Joystick) GetName() string {
-	jn := C.glfwGetJoystickName(C.int(joy))
-	return C.GoString(jn)
-}
-
-// GetGUID returns the SDL compatible GUID, as a UTF-8 encoded
-// hexadecimal string, of the specified joystick.
-//
-// The GUID is what connects a joystick to a gamepad mapping. A connected
-// joystick will always have a GUID even if there is no gamepad mapping
-// assigned to it.
-//
-// If the specified joystick is not present this function will return empty
-// string but will not generate an error. This can be used instead of first
-// calling JoystickPresent.
-//
-// The GUID uses the format introduced in SDL 2.0.5. This GUID tries to uniquely
-// identify the make and model of a joystick but does not identify a specific
-// unit, e.g. all wired Xbox 360 controllers will have the same GUID on that
-// platform. The GUID for a unit may vary between platforms depending on what
-// hardware information the platform specific APIs provide.
-//
-// This function must only be called from the main thread.
-func (joy Joystick) GetGUID() string {
-	guid := C.glfwGetJoystickGUID(C.int(joy))
-	return C.GoString(guid)
-}
-
-// SetUserPointer sets the user-defined pointer of the joystick. The current value
-// is retained until the joystick is disconnected. The initial value is nil.
-//
-// This function may be called from the joystick callback, even for a joystick
-// that is being disconnected.
-//
-// This function may be called from any thread. Access is not synchronized.
-func (joy Joystick) SetUserPointer(pointer unsafe.Pointer) {
-	C.glfwSetJoystickUserPointer(C.int(joy), pointer)
-}
-
-// GetUserPointer returns the current value of the user-defined pointer of the
-// joystick. The initial value is nil.
-//
-// This function may be called from the joystick callback, even for a joystick
-// that is being disconnected.
-//
-// This function may be called from any thread. Access is not synchronized.
-func (joy Joystick) GetUserPointer() unsafe.Pointer {
-	return C.glfwGetJoystickUserPointer(C.int(joy))
-}
-
-// IsGamepad returns whether the specified joystick is both present and
-// has a gamepad mapping.
-//
-// If the specified joystick is present but does not have a gamepad mapping this
-// function will return false but will not generate an error. Call Present to
-// check if a joystick is present regardless of whether it has a mapping.
-//
-// This function must only be called from the main thread.
-func (joy Joystick) IsGamepad() bool {
-	return glfwbool(C.glfwJoystickIsGamepad(C.int(joy)))
-}
-
-// UpdateGamepadMappings parses the specified ASCII encoded string and updates
-// the internal list with any gamepad mappings it finds. This string may contain
-// either a single gamepad mapping or many mappings separated by newlines. The
-// parser supports the full format of the gamecontrollerdb.txt source file
-// including empty lines and comments.
-//
-// See Gamepad mappings for a description of the format.
-//
-// If there is already a gamepad mapping for a given GUID in the internal list,
-// it will be replaced by the one passed to this function. If the library is
-// terminated and re-initialized the internal list will revert to the built-in
-// default.
-//
-// This function must only be called from the main thread.
-func UpdateGamepadMappings(mapping string) bool {
-	m := C.CString(mapping)
-	defer C.free(unsafe.Pointer(m))
-	return glfwbool(C.glfwUpdateGamepadMappings(m))
-}
-
-// GetGamepadName returns the human-readable name of the gamepad from the
-// gamepad mapping assigned to the specified joystick.
-//
-// If the specified joystick is not present or does not have a gamepad mapping
-// this function will return empty string but will not generate an error. Call
-// Present to check whether it is present regardless of whether it has a
-// mapping.
-//
-// This function must only be called from the main thread.
-func (joy Joystick) GetGamepadName() string {
-	gn := C.glfwGetGamepadName(C.int(joy))
-	return C.GoString(gn)
-}
-
-// GetGamepadState retrives the state of the specified joystick remapped to an
-// Xbox-like gamepad.
-//
-// If the specified joystick is not present or does not have a gamepad mapping
-// this function will return nil but will not generate an error. Call
-// Present to check whether it is present regardless of whether it has a
-// mapping.
-//
-// The Guide button may not be available for input as it is often hooked by the
-// system or the Steam client.
-//
-// Not all devices have all the buttons or axes provided by GamepadState.
-// Unavailable buttons and axes will always report Release and 0.0 respectively.
-//
-// This function must only be called from the main thread.
-func (joy Joystick) GetGamepadState() *GamepadState {
-	var (
-		gs  GamepadState
-		cgs C.GLFWgamepadstate
-	)
-
-	ret := C.glfwGetGamepadState(C.int(joy), &cgs)
-	if ret == C.GLFW_FALSE {
-		return nil
-	}
-
-	for i := 0; i < 15; i++ {
-		gs.Buttons[i] = Action(C.GetGamepadButtonAtIndex(&cgs, C.int(i)))
-	}
-
-	for i := 0; i < 6; i++ {
-		gs.Axes[i] = float32(C.GetGamepadAxisAtIndex(&cgs, C.int(i)))
-	}
-
-	return &gs
 }
