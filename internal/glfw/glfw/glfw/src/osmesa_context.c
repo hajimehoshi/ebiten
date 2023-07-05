@@ -117,9 +117,6 @@ GLFWbool _glfwInitOSMesa(void)
     {
 #if defined(_GLFW_OSMESA_LIBRARY)
         _GLFW_OSMESA_LIBRARY,
-#elif defined(_WIN32)
-        "libOSMesa.dll",
-        "OSMesa.dll",
 #elif defined(__APPLE__)
         "libOSMesa.8.dylib",
 #elif defined(__CYGWIN__)

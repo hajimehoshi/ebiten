@@ -90,12 +90,6 @@ extern "C" {
  * Compiler- and platform-specific preprocessor work
  *************************************************************************/
 
-/* If we are we on Windows, we want a single define for it.
- */
-#if !defined(_WIN32) && (defined(__WIN32__) || defined(WIN32) || defined(__MINGW32__))
- #define _WIN32
-#endif /* _WIN32 */
-
 /* Include because most Windows GLU headers need wchar_t and
  * the macOS OpenGL header blocks the definition of ptrdiff_t by glext.h.
  * Include it unconditionally to avoid surprising side-effects.
@@ -119,27 +113,9 @@ extern "C" {
  * all platforms.  Additionally, the Windows OpenGL header needs APIENTRY.
  */
 #if !defined(APIENTRY)
- #if defined(_WIN32)
-  #define APIENTRY __stdcall
- #else
-  #define APIENTRY
- #endif
+ #define APIENTRY
  #define GLFW_APIENTRY_DEFINED
 #endif /* APIENTRY */
-
-/* Some Windows OpenGL headers need this.
- */
-#if !defined(WINGDIAPI) && defined(_WIN32)
- #define WINGDIAPI __declspec(dllimport)
- #define GLFW_WINGDIAPI_DEFINED
-#endif /* WINGDIAPI */
-
-/* Some Windows GLU headers need this.
- */
-#if !defined(CALLBACK) && defined(_WIN32)
- #define CALLBACK __stdcall
- #define GLFW_CALLBACK_DEFINED
-#endif /* CALLBACK */
 
 /* Include the chosen OpenGL or OpenGL ES headers.
  */
@@ -258,13 +234,7 @@ extern "C" {
 /* GLFWAPI is used to declare public API functions for export
  * from the DLL / shared library / dynamic library.
  */
-#if defined(_WIN32) && defined(_GLFW_BUILD_DLL)
- /* We are building GLFW as a Win32 DLL */
- #define GLFWAPI __declspec(dllexport)
-#elif defined(_WIN32) && defined(GLFW_DLL)
- /* We are calling a GLFW Win32 DLL */
- #define GLFWAPI __declspec(dllimport)
-#elif defined(__GNUC__) && defined(_GLFW_BUILD_DLL)
+#if defined(__GNUC__) && defined(_GLFW_BUILD_DLL)
  /* We are building GLFW as a Unix shared library */
  #define GLFWAPI __attribute__((visibility("default")))
 #else
