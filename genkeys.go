@@ -27,12 +27,11 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/go-gl/glfw/v3.3/glfw"
 	"golang.org/x/mobile/event/key"
 )
 
 var (
-	glfwKeyNameToGLFWKey            map[string]glfw.Key
+	glfwKeyNameToGLFWKey            map[string]int
 	uiKeyNameToGLFWKeyName          map[string]string
 	androidKeyToUIKeyName           map[int]string
 	iosKeyToUIKeyName               map[int]string
@@ -42,58 +41,58 @@ var (
 )
 
 func init() {
-	glfwKeyNameToGLFWKey = map[string]glfw.Key{
-		"Unknown":      glfw.KeyUnknown,
-		"Space":        glfw.KeySpace,
-		"Apostrophe":   glfw.KeyApostrophe,
-		"Comma":        glfw.KeyComma,
-		"Minus":        glfw.KeyMinus,
-		"Period":       glfw.KeyPeriod,
-		"Slash":        glfw.KeySlash,
-		"Semicolon":    glfw.KeySemicolon,
-		"Equal":        glfw.KeyEqual,
-		"LeftBracket":  glfw.KeyLeftBracket,
-		"Backslash":    glfw.KeyBackslash,
-		"RightBracket": glfw.KeyRightBracket,
-		"GraveAccent":  glfw.KeyGraveAccent,
-		"World1":       glfw.KeyWorld1,
-		"World2":       glfw.KeyWorld2,
-		"Escape":       glfw.KeyEscape,
-		"Enter":        glfw.KeyEnter,
-		"Tab":          glfw.KeyTab,
-		"Backspace":    glfw.KeyBackspace,
-		"Insert":       glfw.KeyInsert,
-		"Delete":       glfw.KeyDelete,
-		"Right":        glfw.KeyRight,
-		"Left":         glfw.KeyLeft,
-		"Down":         glfw.KeyDown,
-		"Up":           glfw.KeyUp,
-		"PageUp":       glfw.KeyPageUp,
-		"PageDown":     glfw.KeyPageDown,
-		"Home":         glfw.KeyHome,
-		"End":          glfw.KeyEnd,
-		"CapsLock":     glfw.KeyCapsLock,
-		"ScrollLock":   glfw.KeyScrollLock,
-		"NumLock":      glfw.KeyNumLock,
-		"PrintScreen":  glfw.KeyPrintScreen,
-		"Pause":        glfw.KeyPause,
-		"LeftShift":    glfw.KeyLeftShift,
-		"LeftControl":  glfw.KeyLeftControl,
-		"LeftAlt":      glfw.KeyLeftAlt,
-		"LeftSuper":    glfw.KeyLeftSuper,
-		"RightShift":   glfw.KeyRightShift,
-		"RightControl": glfw.KeyRightControl,
-		"RightAlt":     glfw.KeyRightAlt,
-		"RightSuper":   glfw.KeyRightSuper,
-		"Menu":         glfw.KeyMenu,
-		"KPDecimal":    glfw.KeyKPDecimal,
-		"KPDivide":     glfw.KeyKPDivide,
-		"KPMultiply":   glfw.KeyKPMultiply,
-		"KPSubtract":   glfw.KeyKPSubtract,
-		"KPAdd":        glfw.KeyKPAdd,
-		"KPEnter":      glfw.KeyKPEnter,
-		"KPEqual":      glfw.KeyKPEqual,
-		"Last":         glfw.KeyLast,
+	glfwKeyNameToGLFWKey = map[string]int{
+		"Unknown":      -1,
+		"Space":        32,
+		"Apostrophe":   39,
+		"Comma":        44,
+		"Minus":        45,
+		"Period":       46,
+		"Slash":        47,
+		"Semicolon":    59,
+		"Equal":        61,
+		"LeftBracket":  91,
+		"Backslash":    92,
+		"RightBracket": 93,
+		"GraveAccent":  96,
+		"World1":       161,
+		"World2":       162,
+		"Escape":       256,
+		"Enter":        257,
+		"Tab":          258,
+		"Backspace":    259,
+		"Insert":       260,
+		"Delete":       261,
+		"Right":        262,
+		"Left":         263,
+		"Down":         264,
+		"Up":           265,
+		"PageUp":       266,
+		"PageDown":     267,
+		"Home":         268,
+		"End":          269,
+		"CapsLock":     280,
+		"ScrollLock":   281,
+		"NumLock":      282,
+		"PrintScreen":  283,
+		"Pause":        284,
+		"LeftShift":    340,
+		"LeftControl":  341,
+		"LeftAlt":      342,
+		"LeftSuper":    343,
+		"RightShift":   344,
+		"RightControl": 345,
+		"RightAlt":     346,
+		"RightSuper":   347,
+		"Menu":         348,
+		"KPDecimal":    330,
+		"KPDivide":     331,
+		"KPMultiply":   332,
+		"KPSubtract":   333,
+		"KPAdd":        334,
+		"KPEnter":      335,
+		"KPEqual":      336,
+		"Last":         348,
 	}
 
 	uiKeyNameToGLFWKeyName = map[string]string{
@@ -384,9 +383,16 @@ func init() {
 		"MetaRight":      "MetaRight",
 	}
 
+	const (
+		glfwKey0   = 48
+		glfwKeyA   = 65
+		glfwKeyF1  = 290
+		glfwKeyKP0 = 320
+	)
+
 	// ASCII: 0 - 9
 	for c := '0'; c <= '9'; c++ {
-		glfwKeyNameToGLFWKey[string(c)] = glfw.Key0 + glfw.Key(c) - '0'
+		glfwKeyNameToGLFWKey[string(c)] = int(glfwKey0 + c - '0')
 		name := "Digit" + string(c)
 		uiKeyNameToGLFWKeyName[name] = string(c)
 		androidKeyToUIKeyName[7+int(c)-'0'] = name
@@ -404,7 +410,7 @@ func init() {
 	}
 	// ASCII: A - Z
 	for c := 'A'; c <= 'Z'; c++ {
-		glfwKeyNameToGLFWKey[string(c)] = glfw.KeyA + glfw.Key(c) - 'A'
+		glfwKeyNameToGLFWKey[string(c)] = int(glfwKeyA + c - 'A')
 		uiKeyNameToGLFWKeyName[string(c)] = string(c)
 		androidKeyToUIKeyName[29+int(c)-'A'] = string(c)
 		iosKeyToUIKeyName[0x04+int(c)-'A'] = string(c)
@@ -414,7 +420,7 @@ func init() {
 	// Function keys
 	for i := 1; i <= 12; i++ {
 		name := "F" + strconv.Itoa(i)
-		glfwKeyNameToGLFWKey[name] = glfw.KeyF1 + glfw.Key(i) - 1
+		glfwKeyNameToGLFWKey[name] = glfwKeyF1 + i - 1
 		uiKeyNameToGLFWKeyName[name] = name
 		androidKeyToUIKeyName[131+i-1] = name
 		// Note: iOS keys go up to F24 (with F13 being 0x68 and increasing from there),
@@ -427,7 +433,7 @@ func init() {
 	// https://www.w3.org/TR/uievents-code/#key-numpad-section
 	for c := '0'; c <= '9'; c++ {
 		name := "Numpad" + string(c)
-		glfwKeyNameToGLFWKey["KP"+string(c)] = glfw.KeyKP0 + glfw.Key(c) - '0'
+		glfwKeyNameToGLFWKey["KP"+string(c)] = int(glfwKeyKP0 + c - '0')
 		uiKeyNameToGLFWKeyName[name] = "KP" + string(c)
 		androidKeyToUIKeyName[144+int(c)-'0'] = name
 		// Gomobile's key code (= USB HID key codes) has successive key codes for 1, 2, ..., 9, 0
@@ -873,7 +879,7 @@ func main() {
 			EbitengineKeyNames              []string
 			EbitengineKeyNamesWithoutOld    []string
 			EbitengineKeyNamesWithoutMods   []string
-			GLFWKeyNameToGLFWKey            map[string]glfw.Key
+			GLFWKeyNameToGLFWKey            map[string]int
 			UIKeyNames                      []string
 			UIKeyNameToGLFWKeyName          map[string]string
 			AndroidKeyToUIKeyName           map[int]string
