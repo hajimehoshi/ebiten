@@ -112,10 +112,11 @@ func (u *userInterfaceImpl) setMouseCursorFromEvent(e js.Value) {
 		return
 	}
 
+	s := u.DeviceScaleFactor()
+	x, y := u.context.clientPositionToLogicalPosition(e.Get("clientX").Float(), e.Get("clientY").Float(), s)
+	u.origCursorX, u.origCursorY = int(x), int(y)
+
 	if u.cursorMode == CursorModeCaptured {
-		x, y := e.Get("clientX").Int(), e.Get("clientY").Int()
-		u.origCursorX, u.origCursorY = x, y
-		s := u.DeviceScaleFactor()
 		dx, dy := e.Get("movementX").Float()/s, e.Get("movementY").Float()/s
 		// TODO: Keep float64 values.
 		u.inputState.CursorX += int(dx)
@@ -123,9 +124,7 @@ func (u *userInterfaceImpl) setMouseCursorFromEvent(e js.Value) {
 		return
 	}
 
-	x, y := u.context.clientPositionToLogicalPosition(e.Get("clientX").Float(), e.Get("clientY").Float(), u.DeviceScaleFactor())
 	u.inputState.CursorX, u.inputState.CursorY = int(x), int(y)
-	u.origCursorX, u.origCursorY = int(x), int(y)
 }
 
 func (u *userInterfaceImpl) recoverCursorPosition() {
