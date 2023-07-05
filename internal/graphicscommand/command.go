@@ -464,7 +464,7 @@ type disposeShaderCommand struct {
 }
 
 func (c *disposeShaderCommand) String() string {
-	return fmt.Sprintf("dispose-shader: target")
+	return "dispose-shader: target"
 }
 
 // Exec executes the disposeShaderCommand.
@@ -503,7 +503,7 @@ type newShaderCommand struct {
 }
 
 func (c *newShaderCommand) String() string {
-	return fmt.Sprintf("new-shader")
+	return "new-shader"
 }
 
 // Exec executes a newShaderCommand.

@@ -57,7 +57,7 @@ func (cs *compileState) parseType(block *block, fname string, expr ast.Expr) (sh
 		}
 	case *ast.ArrayType:
 		if t.Len == nil {
-			cs.addError(t.Pos(), fmt.Sprintf("array length must be specified"))
+			cs.addError(t.Pos(), "array length must be specified")
 			return shaderir.Type{}, false
 		}
 		var length int
@@ -69,16 +69,16 @@ func (cs *compileState) parseType(block *block, fname string, expr ast.Expr) (sh
 				return shaderir.Type{}, false
 			}
 			if len(exprs) != 1 {
-				cs.addError(t.Pos(), fmt.Sprintf("invalid length of array"))
+				cs.addError(t.Pos(), "invalid length of array")
 				return shaderir.Type{}, false
 			}
 			if exprs[0].Type != shaderir.NumberExpr {
-				cs.addError(t.Pos(), fmt.Sprintf("length of array must be a constant number"))
+				cs.addError(t.Pos(), "length of array must be a constant number")
 				return shaderir.Type{}, false
 			}
 			l, ok := gconstant.Int64Val(exprs[0].Const)
 			if !ok {
-				cs.addError(t.Pos(), fmt.Sprintf("length of array must be an integer"))
+				cs.addError(t.Pos(), "length of array must be an integer")
 				return shaderir.Type{}, false
 			}
 			length = int(l)
@@ -89,7 +89,7 @@ func (cs *compileState) parseType(block *block, fname string, expr ast.Expr) (sh
 			return shaderir.Type{}, false
 		}
 		if elm.Main == shaderir.Array {
-			cs.addError(t.Pos(), fmt.Sprintf("array of array is forbidden"))
+			cs.addError(t.Pos(), "array of array is forbidden")
 			return shaderir.Type{}, false
 		}
 		return shaderir.Type{

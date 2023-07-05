@@ -42,7 +42,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 		switch stmt.Tok {
 		case token.DEFINE:
 			if len(stmt.Lhs) != len(stmt.Rhs) && len(stmt.Rhs) != 1 {
-				cs.addError(stmt.Pos(), fmt.Sprintf("single-value context and multiple-value context cannot be mixed"))
+				cs.addError(stmt.Pos(), "single-value context and multiple-value context cannot be mixed")
 				return nil, false
 			}
 
@@ -53,7 +53,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 			stmts = append(stmts, ss...)
 		case token.ASSIGN:
 			if len(stmt.Lhs) != len(stmt.Rhs) && len(stmt.Rhs) != 1 {
-				cs.addError(stmt.Pos(), fmt.Sprintf("single-value context and multiple-value context cannot be mixed"))
+				cs.addError(stmt.Pos(), "single-value context and multiple-value context cannot be mixed")
 				return nil, false
 			}
 			ss, ok := cs.assign(block, fname, stmt.Pos(), stmt.Lhs, stmt.Rhs, inParams, false)
@@ -75,7 +75,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 			stmts = append(stmts, ss...)
 
 			if lhs[0].Type == shaderir.UniformVariable {
-				cs.addError(stmt.Pos(), fmt.Sprintf("a uniform variable cannot be assigned"))
+				cs.addError(stmt.Pos(), "a uniform variable cannot be assigned")
 				return nil, false
 			}
 
@@ -559,7 +559,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 
 	case *ast.ExprStmt:
 		if _, ok := stmt.X.(*ast.CallExpr); !ok {
-			cs.addError(stmt.Pos(), fmt.Sprintf("the statement is evaluated but not used"))
+			cs.addError(stmt.Pos(), "the statement is evaluated but not used")
 			return nil, false
 		}
 
@@ -576,7 +576,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 				continue
 			}
 			if expr.Exprs[0].Type == shaderir.BuiltinFuncExpr {
-				cs.addError(stmt.Pos(), fmt.Sprintf("the statement is evaluated but not used"))
+				cs.addError(stmt.Pos(), "the statement is evaluated but not used")
 				return nil, false
 			}
 			stmts = append(stmts, shaderir.Stmt{
@@ -622,7 +622,7 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 					ts = rts
 				}
 				if len(ts) > 1 {
-					cs.addError(pos, fmt.Sprintf("single-value context and multiple-value context cannot be mixed"))
+					cs.addError(pos, "single-value context and multiple-value context cannot be mixed")
 					return nil, false
 				}
 
@@ -634,7 +634,7 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 			}
 
 			if len(r) > 1 {
-				cs.addError(pos, fmt.Sprintf("single-value context and multiple-value context cannot be mixed"))
+				cs.addError(pos, "single-value context and multiple-value context cannot be mixed")
 				return nil, false
 			}
 
@@ -646,7 +646,7 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 
 			if len(l) != len(r) {
 				if len(r) == 0 {
-					cs.addError(pos, fmt.Sprintf("right-hand side (no value) used as value"))
+					cs.addError(pos, "right-hand side (no value) used as value")
 				} else {
 					cs.addError(pos, fmt.Sprintf("assignment mismatch: %d variables but the right-hand side has %d values", len(l), len(r)))
 				}
@@ -675,7 +675,7 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 			}
 
 			if isAssignmentForbidden(&l[0]) {
-				cs.addError(pos, fmt.Sprintf("a uniform variable cannot be assigned"))
+				cs.addError(pos, "a uniform variable cannot be assigned")
 				return nil, false
 			}
 			allblank = false
@@ -747,7 +747,7 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 					return nil, false
 				}
 				if len(rhsExprs) != len(lhs) {
-					cs.addError(pos, fmt.Sprintf("single-value context and multiple-value context cannot be mixed"))
+					cs.addError(pos, "single-value context and multiple-value context cannot be mixed")
 				}
 				stmts = append(stmts, ss...)
 			}
@@ -797,7 +797,7 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 	}
 
 	if define && allblank {
-		cs.addError(pos, fmt.Sprintf("no new variables on left side of :="))
+		cs.addError(pos, "no new variables on left side of :=")
 		return nil, false
 	}
 

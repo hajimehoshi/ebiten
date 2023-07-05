@@ -497,7 +497,7 @@ func (cs *compileState) functionReturnTypes(block *block, expr ast.Expr) ([]shad
 
 func (s *compileState) parseVariable(block *block, fname string, vs *ast.ValueSpec) ([]variable, []shaderir.Expr, []shaderir.Stmt, bool) {
 	if len(vs.Names) != len(vs.Values) && len(vs.Values) != 1 && len(vs.Values) != 0 {
-		s.addError(vs.Pos(), fmt.Sprintf("the numbers of lhs and rhs don't match"))
+		s.addError(vs.Pos(), "the numbers of lhs and rhs don't match")
 		return nil, nil, nil, false
 	}
 
@@ -542,7 +542,7 @@ func (s *compileState) parseVariable(block *block, fname string, vs *ast.ValueSp
 					ts = rts
 				}
 				if len(ts) > 1 {
-					s.addError(vs.Pos(), fmt.Sprintf("the numbers of lhs and rhs don't match"))
+					s.addError(vs.Pos(), "the numbers of lhs and rhs don't match")
 				}
 				t = ts[0]
 			}
@@ -585,7 +585,7 @@ func (s *compileState) parseVariable(block *block, fname string, vs *ast.ValueSp
 						inittypes = ts
 					}
 					if len(ts) != len(vs.Names) {
-						s.addError(vs.Pos(), fmt.Sprintf("the numbers of lhs and rhs don't match"))
+						s.addError(vs.Pos(), "the numbers of lhs and rhs don't match")
 						continue
 					}
 				}
@@ -760,12 +760,12 @@ func (cs *compileState) parseFunc(block *block, d *ast.FuncDecl) (function, bool
 
 	checkVaryings := func(vs []variable) {
 		if len(cs.ir.Varyings) != len(vs) {
-			cs.addError(d.Pos(), fmt.Sprintf("the number of vertex entry point's returning values and the number of fragment entry point's params must be the same"))
+			cs.addError(d.Pos(), "the number of vertex entry point's returning values and the number of fragment entry point's params must be the same")
 			return
 		}
 		for i, t := range cs.ir.Varyings {
 			if t.Main != vs[i].typ.Main {
-				cs.addError(d.Pos(), fmt.Sprintf("vertex entry point's returning value types and fragment entry point's param types must match"))
+				cs.addError(d.Pos(), "vertex entry point's returning value types and fragment entry point's param types must match")
 			}
 		}
 	}
@@ -789,7 +789,7 @@ func (cs *compileState) parseFunc(block *block, d *ast.FuncDecl) (function, bool
 
 			// The first out-param is treated as gl_Position in GLSL.
 			if outParams[0].typ.Main != shaderir.Vec4 {
-				cs.addError(d.Pos(), fmt.Sprintf("vertex entry point must have at least one returning vec4 value for a position"))
+				cs.addError(d.Pos(), "vertex entry point must have at least one returning vec4 value for a position")
 				return function{}, false
 			}
 
@@ -804,16 +804,16 @@ func (cs *compileState) parseFunc(block *block, d *ast.FuncDecl) (function, bool
 			cs.varyingParsed = true
 		case cs.fragmentEntry:
 			if len(inParams) == 0 {
-				cs.addError(d.Pos(), fmt.Sprintf("fragment entry point must have at least one vec4 parameter for a position"))
+				cs.addError(d.Pos(), "fragment entry point must have at least one vec4 parameter for a position")
 				return function{}, false
 			}
 			if inParams[0].typ.Main != shaderir.Vec4 {
-				cs.addError(d.Pos(), fmt.Sprintf("fragment entry point must have at least one vec4 parameter for a position"))
+				cs.addError(d.Pos(), "fragment entry point must have at least one vec4 parameter for a position")
 				return function{}, false
 			}
 
 			if len(outParams) != 0 || returnType.Main != shaderir.Vec4 {
-				cs.addError(d.Pos(), fmt.Sprintf("fragment entry point must have one returning vec4 value for a color"))
+				cs.addError(d.Pos(), "fragment entry point must have one returning vec4 value for a color")
 				return function{}, false
 			}
 

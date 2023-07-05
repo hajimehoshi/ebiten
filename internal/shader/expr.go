@@ -870,7 +870,7 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 			// In the context where a local variable is marked as used, any expressions must have its
 			// meaning. Then, a blank identifier is not available there.
 			if markLocalVariableUsed {
-				cs.addError(e.Pos(), fmt.Sprintf("cannot use _ as value"))
+				cs.addError(e.Pos(), "cannot use _ as value")
 				return nil, nil, nil, false
 			}
 			return []shaderir.Expr{
@@ -1068,7 +1068,7 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 				return nil, nil, nil, false
 			}
 			if len(exprs) != 1 {
-				cs.addError(e.Pos(), fmt.Sprintf("multiple-value context is not available at a composite literal"))
+				cs.addError(e.Pos(), "multiple-value context is not available at a composite literal")
 				return nil, nil, nil, false
 			}
 			stmts = append(stmts, ss...)
@@ -1112,7 +1112,7 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 		stmts = append(stmts, ss...)
 
 		if len(exprs) != 1 {
-			cs.addError(e.Pos(), fmt.Sprintf("multiple-value context is not available at an index expression"))
+			cs.addError(e.Pos(), "multiple-value context is not available at an index expression")
 			return nil, nil, nil, false
 		}
 		idx := exprs[0]
@@ -1130,7 +1130,7 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 		}
 		stmts = append(stmts, ss...)
 		if len(exprs) != 1 {
-			cs.addError(e.Pos(), fmt.Sprintf("multiple-value context is not available at an index expression"))
+			cs.addError(e.Pos(), "multiple-value context is not available at an index expression")
 			return nil, nil, nil, false
 		}
 		x := exprs[0]
