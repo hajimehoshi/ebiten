@@ -353,7 +353,12 @@ func CursorMode() CursorModeType {
 // CursorModeCaptured also works on browsers.
 // When the user exits the captured mode not by SetCursorMode but by the UI (e.g., pressing ESC),
 // the previous cursor mode is set automatically.
+//
 // On browsers, setting CursorModeCaptured might be delayed especially just after escaping from a capture.
+//
+// On browsers, capturing a cursor requires a user gesture, otherwise SetCursorMode does nothing but leave an error message in console.
+// This behavior varies across browser implementations.
+// Check a user interaction before calling capturing a cursor e.g. by IsMouseButtonPressed or IsKeyPressed.
 //
 // SetCursorMode does nothing on mobiles.
 //
@@ -395,8 +400,9 @@ func IsFullscreen() bool {
 // On desktops, Ebitengine uses 'windowed' fullscreen mode, which doesn't change
 // your monitor's resolution.
 //
-// On browsers, triggering fullscreen requires a user gesture otherwise SetFullscreen does nothing but leave an error message in console.
-// This behaviour varies across browser implementations, your mileage may vary.
+// On browsers, triggering fullscreen requires a user gesture, otherwise SetFullscreen does nothing but leave an error message in console.
+// This behavior varies across browser implementations.
+// Check a user interaction before triggering fullscreen e.g. by IsMouseButtonPressed or IsKeyPressed.
 //
 // SetFullscreen does nothing on mobiles.
 //
