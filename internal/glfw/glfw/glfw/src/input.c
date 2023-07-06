@@ -632,37 +632,3 @@ GLFWAPI const char* glfwGetClipboardString(GLFWwindow* handle)
     _GLFW_REQUIRE_INIT_OR_RETURN(NULL);
     return _glfwPlatformGetClipboardString();
 }
-
-GLFWAPI double glfwGetTime(void)
-{
-    _GLFW_REQUIRE_INIT_OR_RETURN(0.0);
-    return (double) (_glfwPlatformGetTimerValue() - _glfw.timer.offset) /
-        _glfwPlatformGetTimerFrequency();
-}
-
-GLFWAPI void glfwSetTime(double time)
-{
-    _GLFW_REQUIRE_INIT();
-
-    if (time != time || time < 0.0 || time > 18446744073.0)
-    {
-        _glfwInputError(GLFW_INVALID_VALUE, "Invalid time %f", time);
-        return;
-    }
-
-    _glfw.timer.offset = _glfwPlatformGetTimerValue() -
-        (uint64_t) (time * _glfwPlatformGetTimerFrequency());
-}
-
-GLFWAPI uint64_t glfwGetTimerValue(void)
-{
-    _GLFW_REQUIRE_INIT_OR_RETURN(0);
-    return _glfwPlatformGetTimerValue();
-}
-
-GLFWAPI uint64_t glfwGetTimerFrequency(void)
-{
-    _GLFW_REQUIRE_INIT_OR_RETURN(0);
-    return _glfwPlatformGetTimerFrequency();
-}
-

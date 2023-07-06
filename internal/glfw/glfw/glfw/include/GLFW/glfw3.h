@@ -52,12 +52,6 @@ extern "C" {
  *  This is the reference documentation for OpenGL and OpenGL ES context related
  *  functions.  For more task-oriented information, see the @ref context_guide.
  */
-/*! @defgroup vulkan Vulkan support reference
- *  @brief Functions and types related to Vulkan.
- *
- *  This is the reference documentation for Vulkan related functions and types.
- *  For more task-oriented information, see the @ref vulkan_guide.
- */
 /*! @defgroup init Initialization, version and error reference
  *  @brief Functions and types related to initialization and error handling.
  *
@@ -95,19 +89,6 @@ extern "C" {
  * Include it unconditionally to avoid surprising side-effects.
  */
 #include <stddef.h>
-
-/* Include because it is needed by Vulkan and related functions.
- * Include it unconditionally to avoid surprising side-effects.
- */
-#include <stdint.h>
-
-#if defined(GLFW_INCLUDE_VULKAN)
-  #include <vulkan/vulkan.h>
-#endif /* Vulkan header */
-
-/* The Vulkan header may have indirectly included windows.h (because of
- * VK_USE_PLATFORM_WIN32_KHR) so we offer our replacement symbols after it.
- */
 
 /* It is customary to use APIENTRY for OpenGL function pointer declarations on
  * all platforms.  Additionally, the Windows OpenGL header needs APIENTRY.
@@ -274,7 +255,7 @@ extern "C" {
 /*! @brief One.
  *
  *  This is only semantic sugar for the number 1.  You can instead use `1` or
- *  `true` or `_True` or `GL_TRUE` or `VK_TRUE` or anything else that is equal
+ *  `true` or `_True` or `GL_TRUE` or anything else that is equal
  *  to one.
  *
  *  @ingroup init
@@ -283,7 +264,7 @@ extern "C" {
 /*! @brief Zero.
  *
  *  This is only semantic sugar for the number 0.  You can instead use `0` or
- *  `false` or `_False` or `GL_FALSE` or `VK_FALSE` or anything else that is
+ *  `false` or `_False` or `GL_FALSE` or anything else that is
  *  equal to zero.
  *
  *  @ingroup init
@@ -607,7 +588,7 @@ extern "C" {
  *  supports OpenGL ES via EGL, while Nvidia and Intel only support it via
  *  a WGL or GLX extension.  macOS does not provide OpenGL ES at all.  The Mesa
  *  EGL, OpenGL and OpenGL ES libraries do not interface with the Nvidia binary
- *  driver.  Older graphics drivers do not support Vulkan.
+ *  driver.
  */
 #define GLFW_API_UNAVAILABLE        0x00010006
 /*! @brief The requested OpenGL or OpenGL ES version is not available.
@@ -1018,20 +999,6 @@ extern "C" {
  *  @ingroup context
  */
 typedef void (*GLFWglproc)(void);
-
-/*! @brief Vulkan API function pointer type.
- *
- *  Generic function pointer used for returning Vulkan API function pointers
- *  without forcing a cast from a regular pointer.
- *
- *  @sa @ref vulkan_proc
- *  @sa @ref glfwGetInstanceProcAddress
- *
- *  @since Added in version 3.2.
- *
- *  @ingroup vulkan
- */
-typedef void (*GLFWvkproc)(void);
 
 /*! @brief Opaque monitor object.
  *
@@ -4724,108 +4691,6 @@ GLFWAPI void glfwSetClipboardString(GLFWwindow* window, const char* string);
  */
 GLFWAPI const char* glfwGetClipboardString(GLFWwindow* window);
 
-/*! @brief Returns the GLFW time.
- *
- *  This function returns the current GLFW time, in seconds.  Unless the time
- *  has been set using @ref glfwSetTime it measures time elapsed since GLFW was
- *  initialized.
- *
- *  This function and @ref glfwSetTime are helper functions on top of @ref
- *  glfwGetTimerFrequency and @ref glfwGetTimerValue.
- *
- *  The resolution of the timer is system dependent, but is usually on the order
- *  of a few micro- or nanoseconds.  It uses the highest-resolution monotonic
- *  time source on each supported platform.
- *
- *  @return The current time, in seconds, or zero if an
- *  [error](@ref error_handling) occurred.
- *
- *  @errors Possible errors include @ref GLFW_NOT_INITIALIZED.
- *
- *  @thread_safety This function may be called from any thread.  Reading and
- *  writing of the internal base time is not atomic, so it needs to be
- *  externally synchronized with calls to @ref glfwSetTime.
- *
- *  @sa @ref time
- *
- *  @since Added in version 1.0.
- *
- *  @ingroup input
- */
-GLFWAPI double glfwGetTime(void);
-
-/*! @brief Sets the GLFW time.
- *
- *  This function sets the current GLFW time, in seconds.  The value must be
- *  a positive finite number less than or equal to 18446744073.0, which is
- *  approximately 584.5 years.
- *
- *  This function and @ref glfwGetTime are helper functions on top of @ref
- *  glfwGetTimerFrequency and @ref glfwGetTimerValue.
- *
- *  @param[in] time The new value, in seconds.
- *
- *  @errors Possible errors include @ref GLFW_NOT_INITIALIZED and @ref
- *  GLFW_INVALID_VALUE.
- *
- *  @remark The upper limit of GLFW time is calculated as
- *  floor((2<sup>64</sup> - 1) / 10<sup>9</sup>) and is due to implementations
- *  storing nanoseconds in 64 bits.  The limit may be increased in the future.
- *
- *  @thread_safety This function may be called from any thread.  Reading and
- *  writing of the internal base time is not atomic, so it needs to be
- *  externally synchronized with calls to @ref glfwGetTime.
- *
- *  @sa @ref time
- *
- *  @since Added in version 2.2.
- *
- *  @ingroup input
- */
-GLFWAPI void glfwSetTime(double time);
-
-/*! @brief Returns the current value of the raw timer.
- *
- *  This function returns the current value of the raw timer, measured in
- *  1&nbsp;/&nbsp;frequency seconds.  To get the frequency, call @ref
- *  glfwGetTimerFrequency.
- *
- *  @return The value of the timer, or zero if an
- *  [error](@ref error_handling) occurred.
- *
- *  @errors Possible errors include @ref GLFW_NOT_INITIALIZED.
- *
- *  @thread_safety This function may be called from any thread.
- *
- *  @sa @ref time
- *  @sa @ref glfwGetTimerFrequency
- *
- *  @since Added in version 3.2.
- *
- *  @ingroup input
- */
-GLFWAPI uint64_t glfwGetTimerValue(void);
-
-/*! @brief Returns the frequency, in Hz, of the raw timer.
- *
- *  This function returns the frequency, in Hz, of the raw timer.
- *
- *  @return The frequency of the timer, in Hz, or zero if an
- *  [error](@ref error_handling) occurred.
- *
- *  @errors Possible errors include @ref GLFW_NOT_INITIALIZED.
- *
- *  @thread_safety This function may be called from any thread.
- *
- *  @sa @ref time
- *  @sa @ref glfwGetTimerValue
- *
- *  @since Added in version 3.2.
- *
- *  @ingroup input
- */
-GLFWAPI uint64_t glfwGetTimerFrequency(void);
-
 /*! @brief Makes the context of the specified window current for the calling
  *  thread.
  *
@@ -4896,9 +4761,6 @@ GLFWAPI GLFWwindow* glfwGetCurrentContext(void);
  *  a window without a context will generate a @ref GLFW_NO_WINDOW_CONTEXT
  *  error.
  *
- *  This function does not apply to Vulkan.  If you are rendering with Vulkan,
- *  see `vkQueuePresentKHR` instead.
- *
  *  @param[in] window The window whose buffers to swap.
  *
  *  @errors Possible errors include @ref GLFW_NOT_INITIALIZED, @ref
@@ -4935,9 +4797,6 @@ GLFWAPI void glfwSwapBuffers(GLFWwindow* window);
  *
  *  A context must be current on the calling thread.  Calling this function
  *  without a current context will cause a @ref GLFW_NO_CURRENT_CONTEXT error.
- *
- *  This function does not apply to Vulkan.  If you are rendering with Vulkan,
- *  see the present mode of your swapchain instead.
  *
  *  @param[in] interval The minimum number of screen updates to wait for
  *  until the buffers are swapped by @ref glfwSwapBuffers.
@@ -4980,10 +4839,6 @@ GLFWAPI void glfwSwapInterval(int interval);
  *  frequently.  The extension strings will not change during the lifetime of
  *  a context, so there is no danger in doing this.
  *
- *  This function does not apply to Vulkan.  If you are using Vulkan, see @ref
- *  glfwGetRequiredInstanceExtensions, `vkEnumerateInstanceExtensionProperties`
- *  and `vkEnumerateDeviceExtensionProperties` instead.
- *
  *  @param[in] extension The ASCII encoded name of the extension.
  *  @return `GLFW_TRUE` if the extension is available, or `GLFW_FALSE`
  *  otherwise.
@@ -5013,10 +4868,6 @@ GLFWAPI int glfwExtensionSupported(const char* extension);
  *  A context must be current on the calling thread.  Calling this function
  *  without a current context will cause a @ref GLFW_NO_CURRENT_CONTEXT error.
  *
- *  This function does not apply to Vulkan.  If you are rendering with Vulkan,
- *  see @ref glfwGetInstanceProcAddress, `vkGetInstanceProcAddr` and
- *  `vkGetDeviceProcAddr` instead.
- *
  *  @param[in] procname The ASCII encoded name of the function.
  *  @return The address of the function, or `NULL` if an
  *  [error](@ref error_handling) occurred.
@@ -5044,221 +4895,6 @@ GLFWAPI int glfwExtensionSupported(const char* extension);
  *  @ingroup context
  */
 GLFWAPI GLFWglproc glfwGetProcAddress(const char* procname);
-
-/*! @brief Returns whether the Vulkan loader and an ICD have been found.
- *
- *  This function returns whether the Vulkan loader and any minimally functional
- *  ICD have been found.
- *
- *  The availability of a Vulkan loader and even an ICD does not by itself guarantee that
- *  surface creation or even instance creation is possible.  Call @ref
- *  glfwGetRequiredInstanceExtensions to check whether the extensions necessary for Vulkan
- *  surface creation are available and @ref glfwGetPhysicalDevicePresentationSupport to
- *  check whether a queue family of a physical device supports image presentation.
- *
- *  @return `GLFW_TRUE` if Vulkan is minimally available, or `GLFW_FALSE`
- *  otherwise.
- *
- *  @errors Possible errors include @ref GLFW_NOT_INITIALIZED.
- *
- *  @thread_safety This function may be called from any thread.
- *
- *  @sa @ref vulkan_support
- *
- *  @since Added in version 3.2.
- *
- *  @ingroup vulkan
- */
-GLFWAPI int glfwVulkanSupported(void);
-
-/*! @brief Returns the Vulkan instance extensions required by GLFW.
- *
- *  This function returns an array of names of Vulkan instance extensions required
- *  by GLFW for creating Vulkan surfaces for GLFW windows.  If successful, the
- *  list will always contain `VK_KHR_surface`, so if you don't require any
- *  additional extensions you can pass this list directly to the
- *  `VkInstanceCreateInfo` struct.
- *
- *  If Vulkan is not available on the machine, this function returns `NULL` and
- *  generates a @ref GLFW_API_UNAVAILABLE error.  Call @ref glfwVulkanSupported
- *  to check whether Vulkan is at least minimally available.
- *
- *  If Vulkan is available but no set of extensions allowing window surface
- *  creation was found, this function returns `NULL`.  You may still use Vulkan
- *  for off-screen rendering and compute work.
- *
- *  @param[out] count Where to store the number of extensions in the returned
- *  array.  This is set to zero if an error occurred.
- *  @return An array of ASCII encoded extension names, or `NULL` if an
- *  [error](@ref error_handling) occurred.
- *
- *  @errors Possible errors include @ref GLFW_NOT_INITIALIZED and @ref
- *  GLFW_API_UNAVAILABLE.
- *
- *  @remark Additional extensions may be required by future versions of GLFW.
- *  You should check if any extensions you wish to enable are already in the
- *  returned array, as it is an error to specify an extension more than once in
- *  the `VkInstanceCreateInfo` struct.
- *
- *  @pointer_lifetime The returned array is allocated and freed by GLFW.  You
- *  should not free it yourself.  It is guaranteed to be valid only until the
- *  library is terminated.
- *
- *  @thread_safety This function may be called from any thread.
- *
- *  @sa @ref vulkan_ext
- *  @sa @ref glfwCreateWindowSurface
- *
- *  @since Added in version 3.2.
- *
- *  @ingroup vulkan
- */
-GLFWAPI const char** glfwGetRequiredInstanceExtensions(uint32_t* count);
-
-#if defined(VK_VERSION_1_0)
-
-/*! @brief Returns the address of the specified Vulkan instance function.
- *
- *  This function returns the address of the specified Vulkan core or extension
- *  function for the specified instance.  If instance is set to `NULL` it can
- *  return any function exported from the Vulkan loader, including at least the
- *  following functions:
- *
- *  - `vkEnumerateInstanceExtensionProperties`
- *  - `vkEnumerateInstanceLayerProperties`
- *  - `vkCreateInstance`
- *  - `vkGetInstanceProcAddr`
- *
- *  If Vulkan is not available on the machine, this function returns `NULL` and
- *  generates a @ref GLFW_API_UNAVAILABLE error.  Call @ref glfwVulkanSupported
- *  to check whether Vulkan is at least minimally available.
- *
- *  This function is equivalent to calling `vkGetInstanceProcAddr` with
- *  a platform-specific query of the Vulkan loader as a fallback.
- *
- *  @param[in] instance The Vulkan instance to query, or `NULL` to retrieve
- *  functions related to instance creation.
- *  @param[in] procname The ASCII encoded name of the function.
- *  @return The address of the function, or `NULL` if an
- *  [error](@ref error_handling) occurred.
- *
- *  @errors Possible errors include @ref GLFW_NOT_INITIALIZED and @ref
- *  GLFW_API_UNAVAILABLE.
- *
- *  @pointer_lifetime The returned function pointer is valid until the library
- *  is terminated.
- *
- *  @thread_safety This function may be called from any thread.
- *
- *  @sa @ref vulkan_proc
- *
- *  @since Added in version 3.2.
- *
- *  @ingroup vulkan
- */
-GLFWAPI GLFWvkproc glfwGetInstanceProcAddress(VkInstance instance, const char* procname);
-
-/*! @brief Returns whether the specified queue family can present images.
- *
- *  This function returns whether the specified queue family of the specified
- *  physical device supports presentation to the platform GLFW was built for.
- *
- *  If Vulkan or the required window surface creation instance extensions are
- *  not available on the machine, or if the specified instance was not created
- *  with the required extensions, this function returns `GLFW_FALSE` and
- *  generates a @ref GLFW_API_UNAVAILABLE error.  Call @ref glfwVulkanSupported
- *  to check whether Vulkan is at least minimally available and @ref
- *  glfwGetRequiredInstanceExtensions to check what instance extensions are
- *  required.
- *
- *  @param[in] instance The instance that the physical device belongs to.
- *  @param[in] device The physical device that the queue family belongs to.
- *  @param[in] queuefamily The index of the queue family to query.
- *  @return `GLFW_TRUE` if the queue family supports presentation, or
- *  `GLFW_FALSE` otherwise.
- *
- *  @errors Possible errors include @ref GLFW_NOT_INITIALIZED, @ref
- *  GLFW_API_UNAVAILABLE and @ref GLFW_PLATFORM_ERROR.
- *
- *  @remark @macos This function currently always returns `GLFW_TRUE`, as the
- *  `VK_MVK_macos_surface` and `VK_EXT_metal_surface` extensions do not provide
- *  a `vkGetPhysicalDevice*PresentationSupport` type function.
- *
- *  @thread_safety This function may be called from any thread.  For
- *  synchronization details of Vulkan objects, see the Vulkan specification.
- *
- *  @sa @ref vulkan_present
- *
- *  @since Added in version 3.2.
- *
- *  @ingroup vulkan
- */
-GLFWAPI int glfwGetPhysicalDevicePresentationSupport(VkInstance instance, VkPhysicalDevice device, uint32_t queuefamily);
-
-/*! @brief Creates a Vulkan surface for the specified window.
- *
- *  This function creates a Vulkan surface for the specified window.
- *
- *  If the Vulkan loader or at least one minimally functional ICD were not found,
- *  this function returns `VK_ERROR_INITIALIZATION_FAILED` and generates a @ref
- *  GLFW_API_UNAVAILABLE error.  Call @ref glfwVulkanSupported to check whether
- *  Vulkan is at least minimally available.
- *
- *  If the required window surface creation instance extensions are not
- *  available or if the specified instance was not created with these extensions
- *  enabled, this function returns `VK_ERROR_EXTENSION_NOT_PRESENT` and
- *  generates a @ref GLFW_API_UNAVAILABLE error.  Call @ref
- *  glfwGetRequiredInstanceExtensions to check what instance extensions are
- *  required.
- *
- *  The window surface cannot be shared with another API so the window must
- *  have been created with the [client api hint](@ref GLFW_CLIENT_API_attrib)
- *  set to `GLFW_NO_API` otherwise it generates a @ref GLFW_INVALID_VALUE error
- *  and returns `VK_ERROR_NATIVE_WINDOW_IN_USE_KHR`.
- *
- *  The window surface must be destroyed before the specified Vulkan instance.
- *  It is the responsibility of the caller to destroy the window surface.  GLFW
- *  does not destroy it for you.  Call `vkDestroySurfaceKHR` to destroy the
- *  surface.
- *
- *  @param[in] instance The Vulkan instance to create the surface in.
- *  @param[in] window The window to create the surface for.
- *  @param[in] allocator The allocator to use, or `NULL` to use the default
- *  allocator.
- *  @param[out] surface Where to store the handle of the surface.  This is set
- *  to `VK_NULL_HANDLE` if an error occurred.
- *  @return `VK_SUCCESS` if successful, or a Vulkan error code if an
- *  [error](@ref error_handling) occurred.
- *
- *  @errors Possible errors include @ref GLFW_NOT_INITIALIZED, @ref
- *  GLFW_API_UNAVAILABLE, @ref GLFW_PLATFORM_ERROR and @ref GLFW_INVALID_VALUE
- *
- *  @remark If an error occurs before the creation call is made, GLFW returns
- *  the Vulkan error code most appropriate for the error.  Appropriate use of
- *  @ref glfwVulkanSupported and @ref glfwGetRequiredInstanceExtensions should
- *  eliminate almost all occurrences of these errors.
- *
- *  @remark @macos GLFW prefers the `VK_EXT_metal_surface` extension, with the
- *  `VK_MVK_macos_surface` extension as a fallback.  The name of the selected
- *  extension, if any, is included in the array returned by @ref
- *  glfwGetRequiredInstanceExtensions.
- *
- *  @remark @macos This function creates and sets a `CAMetalLayer` instance for
- *  the window content view, which is required for MoltenVK to function.
- *
- *  @thread_safety This function may be called from any thread.  For
- *  synchronization details of Vulkan objects, see the Vulkan specification.
- *
- *  @sa @ref vulkan_surface
- *  @sa @ref glfwGetRequiredInstanceExtensions
- *
- *  @since Added in version 3.2.
- *
- *  @ingroup vulkan
- */
-GLFWAPI VkResult glfwCreateWindowSurface(VkInstance instance, GLFWwindow* window, const VkAllocationCallbacks* allocator, VkSurfaceKHR* surface);
-
-#endif /*VK_VERSION_1_0*/
 
 
 /*************************************************************************

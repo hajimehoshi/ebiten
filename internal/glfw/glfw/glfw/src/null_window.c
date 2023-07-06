@@ -312,24 +312,3 @@ int _glfwPlatformGetKeyScancode(int key)
 {
     return -1;
 }
-
-void _glfwPlatformGetRequiredInstanceExtensions(char** extensions)
-{
-}
-
-int _glfwPlatformGetPhysicalDevicePresentationSupport(VkInstance instance,
-                                                      VkPhysicalDevice device,
-                                                      uint32_t queuefamily)
-{
-    return GLFW_FALSE;
-}
-
-VkResult _glfwPlatformCreateWindowSurface(VkInstance instance,
-                                          _GLFWwindow* window,
-                                          const VkAllocationCallbacks* allocator,
-                                          VkSurfaceKHR* surface)
-{
-    // This seems like the most appropriate error to return here
-    return VK_ERROR_INITIALIZATION_FAILED;
-}
-

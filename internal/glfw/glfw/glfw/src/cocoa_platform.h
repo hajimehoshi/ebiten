@@ -73,28 +73,6 @@ typedef void* id;
  #define NSPasteboardTypeURL NSURLPboardType
 #endif
 
-typedef VkFlags VkMacOSSurfaceCreateFlagsMVK;
-typedef VkFlags VkMetalSurfaceCreateFlagsEXT;
-
-typedef struct VkMacOSSurfaceCreateInfoMVK
-{
-    VkStructureType                 sType;
-    const void*                     pNext;
-    VkMacOSSurfaceCreateFlagsMVK    flags;
-    const void*                     pView;
-} VkMacOSSurfaceCreateInfoMVK;
-
-typedef struct VkMetalSurfaceCreateInfoEXT
-{
-    VkStructureType                 sType;
-    const void*                     pNext;
-    VkMetalSurfaceCreateFlagsEXT    flags;
-    const void*                     pLayer;
-} VkMetalSurfaceCreateInfoEXT;
-
-typedef VkResult (APIENTRY *PFN_vkCreateMacOSSurfaceMVK)(VkInstance,const VkMacOSSurfaceCreateInfoMVK*,const VkAllocationCallbacks*,VkSurfaceKHR*);
-typedef VkResult (APIENTRY *PFN_vkCreateMetalSurfaceEXT)(VkInstance,const VkMetalSurfaceCreateInfoEXT*,const VkAllocationCallbacks*,VkSurfaceKHR*);
-
 #include "posix_thread.h"
 #include "nsgl_context.h"
 #include "egl_context.h"
@@ -213,6 +191,3 @@ void _glfwSetVideoModeNS(_GLFWmonitor* monitor, const GLFWvidmode* desired);
 void _glfwRestoreVideoModeNS(_GLFWmonitor* monitor);
 
 float _glfwTransformYNS(float y);
-
-void* _glfwLoadLocalVulkanLoaderNS(void);
-

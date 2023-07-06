@@ -29,20 +29,6 @@
 #include <xkbcommon/xkbcommon-compose.h>
 #include <dlfcn.h>
 
-typedef VkFlags VkWaylandSurfaceCreateFlagsKHR;
-
-typedef struct VkWaylandSurfaceCreateInfoKHR
-{
-    VkStructureType                 sType;
-    const void*                     pNext;
-    VkWaylandSurfaceCreateFlagsKHR  flags;
-    struct wl_display*              display;
-    struct wl_surface*              surface;
-} VkWaylandSurfaceCreateInfoKHR;
-
-typedef VkResult (APIENTRY *PFN_vkCreateWaylandSurfaceKHR)(VkInstance,const VkWaylandSurfaceCreateInfoKHR*,const VkAllocationCallbacks*,VkSurfaceKHR*);
-typedef VkBool32 (APIENTRY *PFN_vkGetPhysicalDeviceWaylandPresentationSupportKHR)(VkPhysicalDevice,uint32_t,struct wl_display*);
-
 #include "posix_thread.h"
 #include "posix_time.h"
 #include "xkb_unicode.h"

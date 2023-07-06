@@ -123,32 +123,6 @@ typedef XRenderPictFormat* (* PFN_XRenderFindVisualFormat)(Display*,Visual const
 #define XRenderQueryVersion _glfw.x11.xrender.QueryVersion
 #define XRenderFindVisualFormat _glfw.x11.xrender.FindVisualFormat
 
-typedef VkFlags VkXlibSurfaceCreateFlagsKHR;
-typedef VkFlags VkXcbSurfaceCreateFlagsKHR;
-
-typedef struct VkXlibSurfaceCreateInfoKHR
-{
-    VkStructureType             sType;
-    const void*                 pNext;
-    VkXlibSurfaceCreateFlagsKHR flags;
-    Display*                    dpy;
-    Window                      window;
-} VkXlibSurfaceCreateInfoKHR;
-
-typedef struct VkXcbSurfaceCreateInfoKHR
-{
-    VkStructureType             sType;
-    const void*                 pNext;
-    VkXcbSurfaceCreateFlagsKHR  flags;
-    xcb_connection_t*           connection;
-    xcb_window_t                window;
-} VkXcbSurfaceCreateInfoKHR;
-
-typedef VkResult (APIENTRY *PFN_vkCreateXlibSurfaceKHR)(VkInstance,const VkXlibSurfaceCreateInfoKHR*,const VkAllocationCallbacks*,VkSurfaceKHR*);
-typedef VkBool32 (APIENTRY *PFN_vkGetPhysicalDeviceXlibPresentationSupportKHR)(VkPhysicalDevice,uint32_t,Display*,VisualID);
-typedef VkResult (APIENTRY *PFN_vkCreateXcbSurfaceKHR)(VkInstance,const VkXcbSurfaceCreateInfoKHR*,const VkAllocationCallbacks*,VkSurfaceKHR*);
-typedef VkBool32 (APIENTRY *PFN_vkGetPhysicalDeviceXcbPresentationSupportKHR)(VkPhysicalDevice,uint32_t,xcb_connection_t*,xcb_visualid_t);
-
 #include "posix_thread.h"
 #include "posix_time.h"
 #include "xkb_unicode.h"
