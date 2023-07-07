@@ -78,7 +78,7 @@ func SwapInterval(interval int) {
 func ExtensionSupported(extension string) bool {
 	e := C.CString(extension)
 	defer C.free(unsafe.Pointer(e))
-	ret := glfwbool(C.glfwExtensionSupported(e))
+	ret := C.glfwExtensionSupported(e) != 0
 	panicError()
 	return ret
 }

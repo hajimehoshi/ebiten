@@ -270,7 +270,7 @@ func goWindowCloseCB(window unsafe.Pointer) {
 //export goWindowMaximizeCB
 func goWindowMaximizeCB(window unsafe.Pointer, maximized C.int) {
 	w := windows.get((*C.GLFWwindow)(window))
-	w.fMaximizeHolder(w, glfwbool(maximized))
+	w.fMaximizeHolder(w, maximized != 0)
 }
 
 //export goWindowRefreshCB
@@ -282,13 +282,13 @@ func goWindowRefreshCB(window unsafe.Pointer) {
 //export goWindowFocusCB
 func goWindowFocusCB(window unsafe.Pointer, focused C.int) {
 	w := windows.get((*C.GLFWwindow)(window))
-	isFocused := glfwbool(focused)
+	isFocused := focused != 0
 	w.fFocusHolder(w, isFocused)
 }
 
 //export goWindowIconifyCB
 func goWindowIconifyCB(window unsafe.Pointer, iconified C.int) {
-	isIconified := glfwbool(iconified)
+	isIconified := iconified != 0
 	w := windows.get((*C.GLFWwindow)(window))
 	w.fIconifyHolder(w, isIconified)
 }
@@ -409,7 +409,7 @@ func (w *Window) Destroy() {
 
 // ShouldClose reports the value of the close flag of the specified window.
 func (w *Window) ShouldClose() bool {
-	ret := glfwbool(C.glfwWindowShouldClose(w.data))
+	ret := C.glfwWindowShouldClose(w.data) != 0
 	panicError()
 	return ret
 }

@@ -283,7 +283,7 @@ func goCursorPosCB(window unsafe.Pointer, xpos, ypos C.double) {
 //export goCursorEnterCB
 func goCursorEnterCB(window unsafe.Pointer, entered C.int) {
 	w := windows.get((*C.GLFWwindow)(window))
-	hasEntered := glfwbool(entered)
+	hasEntered := entered != 0
 	w.fCursorEnterHolder(w, hasEntered)
 }
 
