@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 // SPDX-FileCopyrightText: 2014 Eric Woroshow
+// SPDX-FileCopyrightText: 2022 The Ebitengine Authors
 
 //go:build !darwin && !js && !windows
 
