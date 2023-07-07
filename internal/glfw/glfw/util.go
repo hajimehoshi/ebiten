@@ -6,9 +6,7 @@
 
 package glfw
 
-//#include <stdlib.h>
-//#define GLFW_INCLUDE_NONE
-//#include "glfw/include/GLFW/glfw3.h"
+// #include <stdlib.h>
 import "C"
 
 func glfwbool(b C.int) bool {
