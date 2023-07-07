@@ -2,17 +2,50 @@
 
 package glfw
 
-//#include <stdlib.h>
-//#define GLFW_INCLUDE_NONE
-//#include "glfw/include/GLFW/glfw3.h"
-//void glfwSetKeyCallbackCB(GLFWwindow *window);
-//void glfwSetCharCallbackCB(GLFWwindow *window);
-//void glfwSetCharModsCallbackCB(GLFWwindow *window);
-//void glfwSetMouseButtonCallbackCB(GLFWwindow *window);
-//void glfwSetCursorPosCallbackCB(GLFWwindow *window);
-//void glfwSetCursorEnterCallbackCB(GLFWwindow *window);
-//void glfwSetScrollCallbackCB(GLFWwindow *window);
-//void glfwSetDropCallbackCB(GLFWwindow *window);
+// #include <stdlib.h>
+// #define GLFW_INCLUDE_NONE
+// #include "glfw/include/GLFW/glfw3.h"
+//
+// void goKeyCB(void* window, int key, int  scancode, int action, int mods);
+// void goCharCB(void* window, unsigned int character);
+// void goCharModsCB(void* window, unsigned int character, int mods);
+// void goMouseButtonCB(void* window, int button, int action, int mods);
+// void goCursorPosCB(void* window, double xpos, double ypos);
+// void goCursorEnterCB(void* window, int entered);
+// void goScrollCB(void* window, double xoff, double yoff);
+// void goDropCB(void* window, int count, char** names);
+//
+// static void glfwSetKeyCallbackCB(GLFWwindow *window) {
+//   glfwSetKeyCallback(window, (GLFWkeyfun)goKeyCB);
+// }
+//
+// static void glfwSetCharCallbackCB(GLFWwindow *window) {
+//    glfwSetCharCallback(window, (GLFWcharfun)goCharCB);
+// }
+//
+// static void glfwSetCharModsCallbackCB(GLFWwindow *window) {
+//   glfwSetCharModsCallback(window, (GLFWcharmodsfun)goCharModsCB);
+// }
+//
+// static void glfwSetMouseButtonCallbackCB(GLFWwindow *window) {
+//   glfwSetMouseButtonCallback(window, (GLFWmousebuttonfun)goMouseButtonCB);
+// }
+//
+// static void glfwSetCursorPosCallbackCB(GLFWwindow *window) {
+//   glfwSetCursorPosCallback(window, (GLFWcursorposfun)goCursorPosCB);
+// }
+//
+// static void glfwSetCursorEnterCallbackCB(GLFWwindow *window) {
+//   glfwSetCursorEnterCallback(window, (GLFWcursorenterfun)goCursorEnterCB);
+// }
+//
+// static void glfwSetScrollCallbackCB(GLFWwindow *window) {
+//   glfwSetScrollCallback(window, (GLFWscrollfun)goScrollCB);
+// }
+//
+// static void glfwSetDropCallbackCB(GLFWwindow *window) {
+//   glfwSetDropCallback(window, (GLFWdropfun)goDropCB);
+// }
 import "C"
 
 import (

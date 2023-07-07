@@ -2,18 +2,55 @@
 
 package glfw
 
-//#include <stdlib.h>
-//#define GLFW_INCLUDE_NONE
-//#include "glfw/include/GLFW/glfw3.h"
-//void glfwSetWindowPosCallbackCB(GLFWwindow *window);
-//void glfwSetWindowSizeCallbackCB(GLFWwindow *window);
-//void glfwSetFramebufferSizeCallbackCB(GLFWwindow *window);
-//void glfwSetWindowCloseCallbackCB(GLFWwindow *window);
-//void glfwSetWindowRefreshCallbackCB(GLFWwindow *window);
-//void glfwSetWindowFocusCallbackCB(GLFWwindow *window);
-//void glfwSetWindowIconifyCallbackCB(GLFWwindow *window);
-//void glfwSetWindowMaximizeCallbackCB(GLFWwindow *window);
-//void glfwSetWindowContentScaleCallbackCB(GLFWwindow *window);
+// #include <stdlib.h>
+// #define GLFW_INCLUDE_NONE
+// #include "glfw/include/GLFW/glfw3.h"
+//
+// void goWindowPosCB(void* window, int xpos, int ypos);
+// void goWindowSizeCB(void* window, int width, int height);
+// void goWindowCloseCB(void* window);
+// void goWindowRefreshCB(void* window);
+// void goWindowFocusCB(void* window, int focused);
+// void goWindowIconifyCB(void* window, int iconified);
+// void goFramebufferSizeCB(void* window, int width, int height);
+// void goWindowMaximizeCB(void* window, int maximized);
+// void goWindowContentScaleCB(void* window, float x, float y);
+//
+// static void glfwSetWindowPosCallbackCB(GLFWwindow *window) {
+//   glfwSetWindowPosCallback(window, (GLFWwindowposfun)goWindowPosCB);
+// }
+//
+// static void glfwSetWindowSizeCallbackCB(GLFWwindow *window) {
+//   glfwSetWindowSizeCallback(window, (GLFWwindowsizefun)goWindowSizeCB);
+// }
+//
+// static void glfwSetWindowCloseCallbackCB(GLFWwindow *window) {
+//   glfwSetWindowCloseCallback(window, (GLFWwindowclosefun)goWindowCloseCB);
+// }
+//
+// static void glfwSetWindowRefreshCallbackCB(GLFWwindow *window) {
+//   glfwSetWindowRefreshCallback(window, (GLFWwindowrefreshfun)goWindowRefreshCB);
+// }
+//
+// static void glfwSetWindowFocusCallbackCB(GLFWwindow *window) {
+//   glfwSetWindowFocusCallback(window, (GLFWwindowfocusfun)goWindowFocusCB);
+// }
+//
+// static void glfwSetWindowIconifyCallbackCB(GLFWwindow *window) {
+//   glfwSetWindowIconifyCallback(window, (GLFWwindowiconifyfun)goWindowIconifyCB);
+// }
+//
+// static void glfwSetFramebufferSizeCallbackCB(GLFWwindow *window) {
+//   glfwSetFramebufferSizeCallback(window, (GLFWframebuffersizefun)goFramebufferSizeCB);
+// }
+//
+// static void glfwSetWindowMaximizeCallbackCB(GLFWwindow *window) {
+//   glfwSetWindowMaximizeCallback(window, (GLFWwindowmaximizefun)goWindowMaximizeCB);
+// }
+//
+// static void glfwSetWindowContentScaleCallbackCB(GLFWwindow *window) {
+//   glfwSetWindowContentScaleCallback(window, (GLFWwindowcontentscalefun)goWindowContentScaleCB);
+// }
 import "C"
 
 import (

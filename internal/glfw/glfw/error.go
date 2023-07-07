@@ -2,9 +2,14 @@
 
 package glfw
 
-//#define GLFW_INCLUDE_NONE
-//#include "glfw/include/GLFW/glfw3.h"
-//void glfwSetErrorCallbackCB();
+// #define GLFW_INCLUDE_NONE
+// #include "glfw/include/GLFW/glfw3.h"
+//
+// void goErrorCB(int code, char* desc);
+//
+// static void glfwSetErrorCallbackCB() {
+//   glfwSetErrorCallback((GLFWerrorfun)goErrorCB);
+// }
 import "C"
 
 import (
