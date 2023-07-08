@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: 2012 The glfw3-go Authors
 // SPDX-FileCopyrightText: 2023 The Ebitengine Authors
 
-//go:build (linux && wayland) || (freebsd && wayland) || (netbsd && wayland) || (openbsd && wayland)
+//go:build (freebsd || linux || netbsd || openbsd) && wayland
 
 package glfw
 

@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: 2012 The glfw3-go Authors
 // SPDX-FileCopyrightText: 2023 The Ebitengine Authors
 
-//go:build !windows
+//go:build darwin || freebsd || linux || netbsd || openbsd
 
 package glfw
 
