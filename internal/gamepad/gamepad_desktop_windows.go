@@ -414,6 +414,10 @@ func supportsXInput(guid windows.GUID) (bool, error) {
 		return false, nil
 	}
 
+	if count == 0 {
+		return false, nil
+	}
+
 	ridl := make([]_RAWINPUTDEVICELIST, count)
 	if _, err := _GetRawInputDeviceList(&ridl[0], &count); err != nil {
 		return false, err
