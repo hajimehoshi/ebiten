@@ -113,6 +113,8 @@ func init() {
 var japaneseOut shaping.Output
 
 func init() {
+	const japanese = language.Script(('j' << 24) | ('p' << 16) | ('a' << 8) | 'n')
+
 	face, err := font.ParseTTF(bytes.NewReader(fonts.MPlus1pRegular_ttf))
 	if err != nil {
 		log.Fatal(err)
@@ -125,7 +127,7 @@ func init() {
 		Direction: di.DirectionTTB,
 		Face:      face,
 		Size:      fixed.I(24),
-		Script:    language.Katakana_Or_Hiragana,
+		Script:    japanese,
 		Language:  "ja",
 	}
 	japaneseOut = (&shaping.HarfbuzzShaper{}).Shape(input)
