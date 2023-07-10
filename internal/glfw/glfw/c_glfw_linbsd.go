@@ -2,6 +2,8 @@
 // SPDX-FileCopyrightText: 2012 The glfw3-go Authors
 // SPDX-FileCopyrightText: 2023 The Ebitengine Authors
 
+//go:build freebsd || linux || netbsd || openbsd
+
 package glfw
 
 /*
@@ -17,9 +19,9 @@ package glfw
 	#include "glfw/src/wayland-xdg-shell-client-protocol.c"
 #endif
 #ifdef _GLFW_X11
-	#include "glfw/src/x11_window.c"
 	#include "glfw/src/x11_init.c"
 	#include "glfw/src/x11_monitor.c"
+	#include "glfw/src/x11_window.c"
 	#include "glfw/src/glx_context.c"
 #endif
 #include "glfw/src/posix_time.c"
