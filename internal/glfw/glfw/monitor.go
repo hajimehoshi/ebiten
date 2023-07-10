@@ -7,7 +7,7 @@
 package glfw
 
 // #define GLFW_INCLUDE_NONE
-// #include "glfw/include/GLFW/glfw3.h"
+// #include "glfw3.h"
 //
 // void goMonitorCB(void* monitor, int event);
 //
