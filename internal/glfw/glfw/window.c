@@ -28,6 +28,8 @@
 // Please use C89 style variable declarations in this file because VS 2010
 //========================================================================
 
+//go:build darwin || freebsd || linux || netbsd || openbsd
+
 #include "internal.h"
 
 #include <assert.h>
