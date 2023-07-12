@@ -25,6 +25,8 @@
 //
 //========================================================================
 
+//go:build darwin || freebsd || linux || netbsd || openbsd
+
 #include <pthread.h>
 
 #define _GLFW_PLATFORM_TLS_STATE    _GLFWtlsPOSIX   posix

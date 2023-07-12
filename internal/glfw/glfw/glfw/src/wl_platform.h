@@ -30,7 +30,7 @@
 #include <dlfcn.h>
 
 #include "posix_thread.h"
-#include "posix_time.h"
+#include "posix_time_linbsd.h"
 #include "xkb_unicode.h"
 #include "egl_context.h"
 #include "osmesa_context.h"

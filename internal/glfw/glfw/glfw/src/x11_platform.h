@@ -124,7 +124,7 @@ typedef XRenderPictFormat* (* PFN_XRenderFindVisualFormat)(Display*,Visual const
 #define XRenderFindVisualFormat _glfw.x11.xrender.FindVisualFormat
 
 #include "posix_thread.h"
-#include "posix_time.h"
+#include "posix_time_linbsd.h"
 #include "xkb_unicode.h"
 #include "glx_context.h"
 #include "egl_context.h"

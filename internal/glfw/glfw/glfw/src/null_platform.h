@@ -38,7 +38,7 @@
 #define _GLFW_EGL_LIBRARY_CONTEXT_STATE      struct { int dummyEGLLibraryContext; }
 
 #include "osmesa_context.h"
-#include "posix_time.h"
+#include "posix_time_linbsd.h"
 #include "posix_thread.h"
 
 #define _glfw_dlopen(name) dlopen(name, RTLD_LAZY | RTLD_LOCAL)
