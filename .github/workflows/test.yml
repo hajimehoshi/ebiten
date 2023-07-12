@@ -84,6 +84,12 @@ jobs:
           env GOOS=windows GOARCH=arm go build -v ./...
           env GOOS=windows GOARCH=arm64 go build -v ./...
 
+      - name: go build (Wayland)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get install libwayland-dev libxkbcommon-dev
+          go build -v -tags=wayland ./...
+
       - name: go build (macOS)
         if: runner.os == 'macOS'
         run: |
