@@ -25,6 +25,8 @@
 //
 //========================================================================
 
+//go:build darwin || freebsd || linux || netbsd || openbsd
+
 #include <dlfcn.h>
 
 #define _GLFW_PLATFORM_WINDOW_STATE _GLFWwindowNull null
