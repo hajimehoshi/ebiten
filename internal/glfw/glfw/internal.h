@@ -113,7 +113,7 @@ typedef void (APIENTRY * PFNGLGETINTEGERVPROC)(GLenum,GLint*);
 typedef const GLubyte* (APIENTRY * PFNGLGETSTRINGIPROC)(GLenum,GLuint);
 
 #if defined(_GLFW_COCOA)
- #include "./glfw/src/cocoa_platform.h"
+ #include "cocoa_platform_darwin.h"
 #elif defined(_GLFW_X11)
  #include "./glfw/src/x11_platform.h"
 #elif defined(_GLFW_WAYLAND)
