@@ -25,6 +25,8 @@
 //
 //========================================================================
 
+//go:build darwin || freebsd || linux || netbsd || openbsd
+
 #if defined(_GLFW_USE_EGLPLATFORM_H)
  #include <EGL/eglplatform.h>
 #elif defined(_GLFW_COCOA)

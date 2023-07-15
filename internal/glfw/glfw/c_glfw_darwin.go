@@ -11,6 +11,5 @@ package glfw
 #include "glfw/src/cocoa_window.m"
 #include "glfw/src/cocoa_time.c"
 #include "glfw/src/nsgl_context.m"
-#include "glfw/src/egl_context.c"
 */
 import "C"
