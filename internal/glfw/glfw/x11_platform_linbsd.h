@@ -130,7 +130,7 @@ typedef XRenderPictFormat* (* PFN_XRenderFindVisualFormat)(Display*,Visual const
 #include "xkb_unicode_linbsd.h"
 #include "glx_context_linbsd.h"
 #include "egl_context.h"
-#include "./glfw/src/osmesa_context.h"
+#include "osmesa_context.h"
 
 #define _glfw_dlopen(name) dlopen(name, RTLD_LAZY | RTLD_LOCAL)
 #define _glfw_dlclose(handle) dlclose(handle)
