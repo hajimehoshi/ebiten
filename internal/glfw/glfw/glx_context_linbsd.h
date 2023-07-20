@@ -25,6 +25,8 @@
 //
 //========================================================================
 
+//go:build (freebsd || linux || netbsd || openbsd) && !wayland
+
 #define GLX_VENDOR 1
 #define GLX_RGBA_BIT 0x00000001
 #define GLX_WINDOW_BIT 0x00000001

@@ -31,7 +31,7 @@
 
 #include "posix_thread.h"
 #include "posix_time_linbsd.h"
-#include "xkb_unicode.h"
+#include "xkb_unicode_linbsd.h"
 #include "egl_context.h"
 #include "osmesa_context.h"
 

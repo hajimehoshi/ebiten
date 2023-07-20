@@ -22,8 +22,6 @@ package glfw
 	#include "glfw/src/x11_init.c"
 	#include "glfw/src/x11_monitor.c"
 	#include "glfw/src/x11_window.c"
-	#include "glfw/src/glx_context.c"
 #endif
-#include "glfw/src/xkb_unicode.c"
 */
 import "C"
