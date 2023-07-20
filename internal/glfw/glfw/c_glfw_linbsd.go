@@ -18,10 +18,5 @@ package glfw
 	#include "glfw/src/wayland-xdg-decoration-unstable-v1-client-protocol.c"
 	#include "glfw/src/wayland-xdg-shell-client-protocol.c"
 #endif
-#ifdef _GLFW_X11
-	#include "glfw/src/x11_init.c"
-	#include "glfw/src/x11_monitor.c"
-	#include "glfw/src/x11_window.c"
-#endif
 */
 import "C"

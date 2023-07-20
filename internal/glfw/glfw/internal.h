@@ -115,7 +115,7 @@ typedef const GLubyte* (APIENTRY * PFNGLGETSTRINGIPROC)(GLenum,GLuint);
 #if defined(_GLFW_COCOA)
  #include "cocoa_platform_darwin.h"
 #elif defined(_GLFW_X11)
- #include "./glfw/src/x11_platform.h"
+ #include "x11_platform_linbsd.h"
 #elif defined(_GLFW_WAYLAND)
  #include "./glfw/src/wl_platform.h"
 #elif defined(_GLFW_OSMESA)
