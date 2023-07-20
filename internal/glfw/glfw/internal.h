@@ -118,8 +118,6 @@ typedef const GLubyte* (APIENTRY * PFNGLGETSTRINGIPROC)(GLenum,GLuint);
  #include "x11_platform_linbsd.h"
 #elif defined(_GLFW_WAYLAND)
  #include "./glfw/src/wl_platform.h"
-#elif defined(_GLFW_OSMESA)
- #include "null_platform.h"
 #else
  #error "No supported window creation API selected"
 #endif
