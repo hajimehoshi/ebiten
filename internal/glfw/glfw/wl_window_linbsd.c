@@ -26,6 +26,8 @@
 // It is fine to use C99 in this file because it will not be built with VS
 //========================================================================
 
+//go:build (freebsd || linux || netbsd || openbsd) && wayland
+
 #if !defined(_GNU_SOURCE)
  #define _GNU_SOURCE
 #endif
@@ -44,6 +46,7 @@
 #include <poll.h>
 #include <signal.h>
 #include <time.h>
+#include <linux/input.h>
 
 #define GLFW_BORDER_SIZE    4
 #define GLFW_CAPTION_HEIGHT 24
