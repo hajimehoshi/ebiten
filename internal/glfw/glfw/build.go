@@ -15,9 +15,6 @@ package glfw
 // Linker Options:
 #cgo darwin LDFLAGS: -framework Cocoa -framework IOKit -framework CoreVideo
 
-#cgo !gles2,darwin LDFLAGS: -framework OpenGL
-#cgo gles2,darwin LDFLAGS: -lGLESv2
-
 // Linux Build Tags
 // ----------------
 // GLFW Options:
@@ -25,11 +22,6 @@ package glfw
 #cgo linux,wayland CFLAGS: -D_GLFW_WAYLAND
 
 // Linker Options:
-#cgo linux,!gles1,!gles2,!gles3,!vulkan LDFLAGS: -lGL
-#cgo linux,gles1 LDFLAGS: -lGLESv1
-#cgo linux,gles2 LDFLAGS: -lGLESv2
-#cgo linux,gles3 LDFLAGS: -lGLESv3
-#cgo linux,vulkan LDFLAGS: -lvulkan
 #cgo linux,!wayland LDFLAGS: -lX11 -lXrandr -lXxf86vm -lXi -lXcursor -lm -lXinerama -ldl -lrt
 #cgo linux,wayland LDFLAGS: -lwayland-client -lwayland-cursor -lwayland-egl -lxkbcommon -lm -ldl -lrt
 
