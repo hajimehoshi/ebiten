@@ -4,7 +4,7 @@
 
 //go:build darwin || freebsd || linux || netbsd || openbsd
 
-package glfw
+package cglfw
 
 // #define GLFW_INCLUDE_NONE
 // #include "glfw3.h"

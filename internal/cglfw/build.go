@@ -4,7 +4,7 @@
 
 //go:build darwin || freebsd || linux || netbsd || openbsd
 
-package glfw
+package cglfw
 
 /*
 // Darwin Build Tags

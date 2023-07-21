@@ -17,17 +17,17 @@
 package glfw
 
 import (
-	"github.com/hajimehoshi/ebiten/v2/internal/glfw/glfw"
+	"github.com/hajimehoshi/ebiten/v2/internal/cglfw"
 )
 
 type (
-	CharModsCallback        = glfw.CharModsCallback
-	CloseCallback           = glfw.CloseCallback
-	DropCallback            = glfw.DropCallback
-	FramebufferSizeCallback = glfw.FramebufferSizeCallback
-	MonitorCallback         = glfw.MonitorCallback
-	ScrollCallback          = glfw.ScrollCallback
-	SizeCallback            = glfw.SizeCallback
+	CharModsCallback        = cglfw.CharModsCallback
+	CloseCallback           = cglfw.CloseCallback
+	DropCallback            = cglfw.DropCallback
+	FramebufferSizeCallback = cglfw.FramebufferSizeCallback
+	MonitorCallback         = cglfw.MonitorCallback
+	ScrollCallback          = cglfw.ScrollCallback
+	SizeCallback            = cglfw.SizeCallback
 )
 
 type VidMode struct {

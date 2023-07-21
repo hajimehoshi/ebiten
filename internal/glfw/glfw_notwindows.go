@@ -20,17 +20,17 @@ import (
 	"image"
 	"sync"
 
-	"github.com/hajimehoshi/ebiten/v2/internal/glfw/glfw"
+	"github.com/hajimehoshi/ebiten/v2/internal/cglfw"
 )
 
-type windows map[*glfw.Window]*Window
+type windows map[*cglfw.Window]*Window
 
 var (
 	theWindows = windows{}
 	windowsM   sync.Mutex
 )
 
-func (w windows) add(win *glfw.Window) *Window {
+func (w windows) add(win *cglfw.Window) *Window {
 	if win == nil {
 		return nil
 	}
@@ -41,13 +41,13 @@ func (w windows) add(win *glfw.Window) *Window {
 	return ww
 }
 
-func (w windows) remove(win *glfw.Window) {
+func (w windows) remove(win *cglfw.Window) {
 	windowsM.Lock()
 	delete(w, win)
 	windowsM.Unlock()
 }
 
-func (w windows) get(win *glfw.Window) *Window {
+func (w windows) get(win *cglfw.Window) *Window {
 	if win == nil {
 		return nil
 	}
@@ -58,16 +58,16 @@ func (w windows) get(win *glfw.Window) *Window {
 }
 
 type Cursor struct {
-	c *glfw.Cursor
+	c *cglfw.Cursor
 }
 
 func CreateStandardCursor(shape StandardCursor) *Cursor {
-	c := glfw.CreateStandardCursor(glfw.StandardCursor(shape))
+	c := cglfw.CreateStandardCursor(cglfw.StandardCursor(shape))
 	return &Cursor{c: c}
 }
 
 type Monitor struct {
-	m *glfw.Monitor
+	m *cglfw.Monitor
 }
 
 func (m *Monitor) GetContentScale() (float32, float32, error) {
@@ -95,7 +95,7 @@ func (m *Monitor) GetVideoMode() *VidMode {
 }
 
 type Window struct {
-	w *glfw.Window
+	w *cglfw.Window
 
 	prevSizeCallback SizeCallback
 }
@@ -110,7 +110,7 @@ func (w *Window) Focus() {
 }
 
 func (w *Window) GetAttrib(attrib Hint) int {
-	return w.w.GetAttrib(glfw.Hint(attrib))
+	return w.w.GetAttrib(cglfw.Hint(attrib))
 }
 
 func (w *Window) GetCursorPos() (x, y float64) {
@@ -118,11 +118,11 @@ func (w *Window) GetCursorPos() (x, y float64) {
 }
 
 func (w *Window) GetInputMode(mode InputMode) int {
-	return w.w.GetInputMode(glfw.InputMode(mode))
+	return w.w.GetInputMode(cglfw.InputMode(mode))
 }
 
 func (w *Window) GetKey(key Key) Action {
-	return Action(w.w.GetKey(glfw.Key(key)))
+	return Action(w.w.GetKey(cglfw.Key(key)))
 }
 
 func (w *Window) GetMonitor() *Monitor {
@@ -134,7 +134,7 @@ func (w *Window) GetMonitor() *Monitor {
 }
 
 func (w *Window) GetMouseButton(button MouseButton) Action {
-	return Action(w.w.GetMouseButton(glfw.MouseButton(button)))
+	return Action(w.w.GetMouseButton(cglfw.MouseButton(button)))
 }
 
 func (w *Window) GetPos() (x, y int) {
@@ -166,7 +166,7 @@ func (w *Window) Restore() {
 }
 
 func (w *Window) SetAttrib(attrib Hint, value int) {
-	w.w.SetAttrib(glfw.Hint(attrib), value)
+	w.w.SetAttrib(cglfw.Hint(attrib), value)
 }
 
 func (w *Window) SetCharModsCallback(cbfun CharModsCallback) (previous CharModsCallback) {
@@ -175,7 +175,7 @@ func (w *Window) SetCharModsCallback(cbfun CharModsCallback) (previous CharModsC
 }
 
 func (w *Window) SetCursor(cursor *Cursor) {
-	var c *glfw.Cursor
+	var c *cglfw.Cursor
 	if cursor != nil {
 		c = cursor.c
 	}
@@ -226,11 +226,11 @@ func (w *Window) SetIcon(images []image.Image) {
 }
 
 func (w *Window) SetInputMode(mode InputMode, value int) {
-	w.w.SetInputMode(glfw.InputMode(mode), value)
+	w.w.SetInputMode(cglfw.InputMode(mode), value)
 }
 
 func (w *Window) SetMonitor(monitor *Monitor, xpos, ypos, width, height, refreshRate int) {
-	var m *glfw.Monitor
+	var m *cglfw.Monitor
 	if monitor != nil {
 		m = monitor.m
 	}
@@ -262,16 +262,16 @@ func (w *Window) SwapBuffers() {
 }
 
 func CreateWindow(width, height int, title string, monitor *Monitor, share *Window) (*Window, error) {
-	var gm *glfw.Monitor
+	var gm *cglfw.Monitor
 	if monitor != nil {
 		gm = monitor.m
 	}
-	var gw *glfw.Window
+	var gw *cglfw.Window
 	if share != nil {
 		gw = share.w
 	}
 
-	w, err := glfw.CreateWindow(width, height, title, gm, gw)
+	w, err := cglfw.CreateWindow(width, height, title, gm, gw)
 	if err != nil {
 		return nil, err
 	}
@@ -279,12 +279,12 @@ func CreateWindow(width, height int, title string, monitor *Monitor, share *Wind
 }
 
 func GetKeyName(key Key, scancode int) string {
-	return glfw.GetKeyName(glfw.Key(key), scancode)
+	return cglfw.GetKeyName(cglfw.Key(key), scancode)
 }
 
 func GetMonitors() []*Monitor {
 	ms := []*Monitor{}
-	for _, m := range glfw.GetMonitors() {
+	for _, m := range cglfw.GetMonitors() {
 		if m != nil {
 			ms = append(ms, &Monitor{m})
 		} else {
@@ -295,7 +295,7 @@ func GetMonitors() []*Monitor {
 }
 
 func GetPrimaryMonitor() *Monitor {
-	m := glfw.GetPrimaryMonitor()
+	m := cglfw.GetPrimaryMonitor()
 	if m == nil {
 		return nil
 	}
@@ -303,38 +303,38 @@ func GetPrimaryMonitor() *Monitor {
 }
 
 func Init() error {
-	return glfw.Init()
+	return cglfw.Init()
 }
 
 func PollEvents() {
-	glfw.PollEvents()
+	cglfw.PollEvents()
 }
 
 func PostEmptyEvent() {
-	glfw.PostEmptyEvent()
+	cglfw.PostEmptyEvent()
 }
 
 func SetMonitorCallback(cbfun MonitorCallback) MonitorCallback {
-	glfw.SetMonitorCallback(cbfun)
+	cglfw.SetMonitorCallback(cbfun)
 	return ToMonitorCallback(nil)
 }
 
 func SwapInterval(interval int) {
-	glfw.SwapInterval(interval)
+	cglfw.SwapInterval(interval)
 }
 
 func Terminate() {
-	glfw.Terminate()
+	cglfw.Terminate()
 }
 
 func WaitEvents() {
-	glfw.WaitEvents()
+	cglfw.WaitEvents()
 }
 
 func WaitEventsTimeout(timeout float64) {
-	glfw.WaitEventsTimeout(timeout)
+	cglfw.WaitEventsTimeout(timeout)
 }
 
 func WindowHint(target Hint, hint int) {
-	glfw.WindowHint(glfw.Hint(target), hint)
+	cglfw.WindowHint(cglfw.Hint(target), hint)
 }

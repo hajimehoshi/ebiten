@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: 2012 The glfw3-go Authors
 // SPDX-FileCopyrightText: 2023 The Ebitengine Authors
 
-package glfw
+package cglfw
 
 /*
 #define GLFW_EXPOSE_NATIVE_COCOA

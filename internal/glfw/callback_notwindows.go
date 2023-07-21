@@ -17,14 +17,14 @@
 package glfw
 
 import (
-	"github.com/hajimehoshi/ebiten/v2/internal/glfw/glfw"
+	"github.com/hajimehoshi/ebiten/v2/internal/cglfw"
 )
 
 func ToCharModsCallback(cb func(window *Window, char rune, mods ModifierKey)) CharModsCallback {
 	if cb == nil {
 		return nil
 	}
-	return func(window *glfw.Window, char rune, mods glfw.ModifierKey) {
+	return func(window *cglfw.Window, char rune, mods cglfw.ModifierKey) {
 		cb(theWindows.get(window), char, ModifierKey(mods))
 	}
 }
@@ -33,7 +33,7 @@ func ToCloseCallback(cb func(window *Window)) CloseCallback {
 	if cb == nil {
 		return nil
 	}
-	return func(window *glfw.Window) {
+	return func(window *cglfw.Window) {
 		cb(theWindows.get(window))
 	}
 }
@@ -42,7 +42,7 @@ func ToDropCallback(cb func(window *Window, names []string)) DropCallback {
 	if cb == nil {
 		return nil
 	}
-	return func(window *glfw.Window, names []string) {
+	return func(window *cglfw.Window, names []string) {
 		cb(theWindows.get(window), names)
 	}
 }
@@ -51,7 +51,7 @@ func ToFramebufferSizeCallback(cb func(window *Window, width int, height int)) F
 	if cb == nil {
 		return nil
 	}
-	return func(window *glfw.Window, width int, height int) {
+	return func(window *cglfw.Window, width int, height int) {
 		cb(theWindows.get(window), width, height)
 	}
 }
@@ -60,7 +60,7 @@ func ToMonitorCallback(cb func(monitor *Monitor, event PeripheralEvent)) Monitor
 	if cb == nil {
 		return nil
 	}
-	return func(monitor *glfw.Monitor, event glfw.PeripheralEvent) {
+	return func(monitor *cglfw.Monitor, event cglfw.PeripheralEvent) {
 		var m *Monitor
 		if monitor != nil {
 			m = &Monitor{monitor}
@@ -73,7 +73,7 @@ func ToScrollCallback(cb func(window *Window, xoff float64, yoff float64)) Scrol
 	if cb == nil {
 		return nil
 	}
-	return func(window *glfw.Window, xoff float64, yoff float64) {
+	return func(window *cglfw.Window, xoff float64, yoff float64) {
 		cb(theWindows.get(window), xoff, yoff)
 	}
 }
@@ -82,7 +82,7 @@ func ToSizeCallback(cb func(window *Window, width int, height int)) SizeCallback
 	if cb == nil {
 		return nil
 	}
-	return func(window *glfw.Window, width, height int) {
+	return func(window *cglfw.Window, width, height int) {
 		cb(theWindows.get(window), width, height)
 	}
 }

@@ -4,7 +4,7 @@
 
 //go:build (freebsd || linux || netbsd || openbsd) && wayland
 
-package glfw
+package cglfw
 
 //#include <stdlib.h>
 //#define GLFW_EXPOSE_NATIVE_WAYLAND
