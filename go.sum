@@ -1,6 +1,6 @@
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
-github.com/ebitengine/purego v0.4.0-alpha.5.0.20230720110111-26d1789b9e6a h1:KakcOtkT2pvwoi73GIQivKowgsOjbv2CbG6T1KgwSkw=
-github.com/ebitengine/purego v0.4.0-alpha.5.0.20230720110111-26d1789b9e6a/go.mod h1:ah1In8AOtksoNK6yk5z1HTJeUkC1Ez4Wk2idgGslMwQ=
+github.com/ebitengine/purego v0.5.0-alpha h1:pNZNC8WofBTN3Nm196An50C5taL/87BhFR/RzKy2o4k=
+github.com/ebitengine/purego v0.5.0-alpha/go.mod h1:ah1In8AOtksoNK6yk5z1HTJeUkC1Ez4Wk2idgGslMwQ=
 github.com/go-text/typesetting v0.0.0-20230711001310-616e9d7753b1 h1:D6CSJ9aZ6tBLl9MsrTaHT4S1rJkrfl8OG9K31fHUV1Y=
 github.com/go-text/typesetting v0.0.0-20230711001310-616e9d7753b1/go.mod h1:evDBbvNR/KaVFZ2ZlDSOWWXIUKq0wCOEtzLxRM8SG3k=
 github.com/go-text/typesetting-utils v0.0.0-20230616150549-2a7df14b6a22 h1:LBQTFxP2MfsyEDqSKmUBZaDuDHN1vpqDyOZjcqS7MYI=
