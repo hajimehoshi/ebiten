@@ -2,7 +2,6 @@ image: ubuntu/lts
 packages:
   - libasound2-dev
   - libc6-dev
-  - libglu1-mesa-dev
   - libgl1-mesa-dev
   - libxcursor-dev
   - libxi-dev
