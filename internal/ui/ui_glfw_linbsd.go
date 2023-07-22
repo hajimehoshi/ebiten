@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !android && !darwin && !js && !windows && !nintendosdk
+//go:build (freebsd || (linux && !android) || netbsd || openbsd) && !nintendosdk
 
 package ui
 
