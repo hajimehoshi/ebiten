@@ -85,65 +85,37 @@ func canApplyBinaryOp(lhs, rhs *shaderir.Expr, lhst, rhst shaderir.Type, op shad
 
 	switch {
 	case lhs.Const != nil && rhs.Const != nil:
-		switch {
-		case lhs.ConstType == shaderir.ConstTypeNone && rhs.ConstType == shaderir.ConstTypeNone:
-			if canTruncateToFloat(lhs.Const) && canTruncateToFloat(rhs.Const) {
-				return true
-			}
-			if canTruncateToInteger(lhs.Const) && canTruncateToInteger(rhs.Const) {
-				return true
-			}
-			return lhs.Const.Kind() == rhs.Const.Kind()
-		case lhs.ConstType == shaderir.ConstTypeNone:
-			switch rhs.ConstType {
-			case shaderir.ConstTypeFloat:
-				return canTruncateToFloat(lhs.Const)
-			case shaderir.ConstTypeInt:
-				return canTruncateToInteger(lhs.Const)
-			}
-		case rhs.ConstType == shaderir.ConstTypeNone:
-			switch lhs.ConstType {
-			case shaderir.ConstTypeInt:
-				return canTruncateToInteger(rhs.Const)
-			case shaderir.ConstTypeFloat:
-				return canTruncateToFloat(rhs.Const)
-			}
+		if canTruncateToFloat(lhs.Const) && canTruncateToFloat(rhs.Const) {
+			return true
 		}
-		return lhs.ConstType == rhs.ConstType
+		if canTruncateToInteger(lhs.Const) && canTruncateToInteger(rhs.Const) {
+			return true
+		}
+		return lhs.Const.Kind() == rhs.Const.Kind()
 
 	case lhs.Const != nil:
-		switch lhs.ConstType {
-		case shaderir.ConstTypeNone:
-			if rhst.Main == shaderir.Float {
-				return canTruncateToFloat(lhs.Const)
-			}
-			if rhst.Main == shaderir.Int {
-				return canTruncateToInteger(lhs.Const)
-			}
-		case shaderir.ConstTypeFloat:
-			return rhst.Main == shaderir.Float
-		case shaderir.ConstTypeInt:
-			return rhst.Main == shaderir.Int
-		case shaderir.ConstTypeBool:
-			return rhst.Main == shaderir.Bool
+		if rhst.Main == shaderir.Float {
+			return canTruncateToFloat(lhs.Const)
 		}
+		if rhst.Main == shaderir.Int {
+			return canTruncateToInteger(lhs.Const)
+		}
+		if rhst.Main == shaderir.Bool {
+			return lhs.Const.Kind() == gconstant.Bool
+		}
+		return false
 
 	case rhs.Const != nil:
-		switch rhs.ConstType {
-		case shaderir.ConstTypeNone:
-			if lhst.Main == shaderir.Float {
-				return canTruncateToFloat(rhs.Const)
-			}
-			if lhst.Main == shaderir.Int {
-				return canTruncateToInteger(rhs.Const)
-			}
-		case shaderir.ConstTypeFloat:
-			return lhst.Main == shaderir.Float
-		case shaderir.ConstTypeInt:
-			return lhst.Main == shaderir.Int
-		case shaderir.ConstTypeBool:
-			return lhst.Main == shaderir.Bool
+		if lhst.Main == shaderir.Float {
+			return canTruncateToFloat(rhs.Const)
 		}
+		if lhst.Main == shaderir.Int {
+			return canTruncateToInteger(rhs.Const)
+		}
+		if lhst.Main == shaderir.Bool {
+			return rhs.Const.Kind() == gconstant.Bool
+		}
+		return false
 	}
 
 	// Comparing matrices are forbidden (#2187).
