@@ -36,6 +36,10 @@ func AreValidTypesForBinaryOp(op Op, lhs, rhs *Expr, lhst, rhst Type) bool {
 
 	// If both are untyped consts, compare the constants and try to truncate them if necessary.
 	if lhst.Main == None && rhst.Main == None {
+		// For %, both operands must be integers if both are constants. Truncatable to an integer is not enough.
+		if op == ModOp {
+			return lhs.Const.Kind() == constant.Int && rhs.Const.Kind() == constant.Int
+		}
 		if lhs.Const.Kind() == rhs.Const.Kind() {
 			return true
 		}
@@ -61,6 +65,10 @@ func AreValidTypesForBinaryOp(op Op, lhs, rhs *Expr, lhst, rhst Type) bool {
 
 	// If lhs is untyped and rhs is not, compare the constant and the type and try to truncate the constant if necessary.
 	if lhst.Main == None {
+		// For %, if only one of the operands is a constant, try to truncate it.
+		if op == ModOp {
+			return constant.ToInt(lhs.Const).Kind() != constant.Unknown && rhst.Main == Int
+		}
 		if rhst.Main == Float {
 			return constant.ToFloat(lhs.Const).Kind() != constant.Unknown
 		}
@@ -75,6 +83,9 @@ func AreValidTypesForBinaryOp(op Op, lhs, rhs *Expr, lhst, rhst Type) bool {
 
 	// Ditto.
 	if rhst.Main == None {
+		if op == ModOp {
+			return constant.ToInt(rhs.Const).Kind() != constant.Unknown && lhst.Main == Int
+		}
 		if lhst.Main == Float {
 			return constant.ToFloat(rhs.Const).Kind() != constant.Unknown
 		}

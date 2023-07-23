@@ -34,22 +34,6 @@ func canTruncateToFloat(v gconstant.Value) bool {
 	return gconstant.ToFloat(v).Kind() != gconstant.Unknown
 }
 
-func isModAvailableForConsts(lhs, rhs *shaderir.Expr) bool {
-	// % is available only when
-	// 1) both are untyped (constant) integers
-	// 2) either is an typed integer and the other is truncatable to an integer
-	if lhs.Const.Kind() == gconstant.Int && rhs.Const.Kind() == gconstant.Int {
-		return true
-	}
-	if lhs.Const.Kind() == gconstant.Int && canTruncateToInteger(rhs.Const) {
-		return true
-	}
-	if rhs.Const.Kind() == gconstant.Int && canTruncateToInteger(lhs.Const) {
-		return true
-	}
-	return false
-}
-
 func isValidForModOp(lhs, rhs *shaderir.Expr, lhst, rhst shaderir.Type) bool {
 	isInt := func(s *shaderir.Expr, t shaderir.Type) bool {
 		if t.Main == shaderir.Int {
@@ -76,22 +60,6 @@ func isValidForModOp(lhs, rhs *shaderir.Expr, lhst, rhst shaderir.Type) bool {
 	}
 
 	return false
-}
-
-func goConstantKindString(k gconstant.Kind) string {
-	switch k {
-	case gconstant.Bool:
-		return "bool"
-	case gconstant.String:
-		return "string"
-	case gconstant.Int:
-		return "int"
-	case gconstant.Float:
-		return "float"
-	case gconstant.Complex:
-		return "complex"
-	}
-	return "unknown"
 }
 
 var textureVariableRe = regexp.MustCompile(`\A__t(\d+)\z`)
@@ -161,14 +129,16 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 		}
 
 		if lhs[0].Const != nil && rhs[0].Const != nil {
+			if !shaderir.AreValidTypesForBinaryOp(op2, &lhs[0], &rhs[0], lhst, rhst) {
+				// TODO: Show a better type name for untyped constants.
+				cs.addError(e.Pos(), fmt.Sprintf("types don't match: %s %s %s", lhst.String(), op, rhst.String()))
+				return nil, nil, nil, false
+			}
+
 			var v gconstant.Value
 			var t shaderir.Type
 			switch op {
 			case token.EQL, token.NEQ, token.LSS, token.LEQ, token.GTR, token.GEQ, token.LAND, token.LOR:
-				if !shaderir.AreValidTypesForBinaryOp(op2, &lhs[0], &rhs[0], lhst, rhst) {
-					cs.addError(e.Pos(), fmt.Sprintf("types don't match: %s %s %s", lhst.String(), op, rhst.String()))
-					return nil, nil, nil, false
-				}
 				switch op {
 				case token.LAND, token.LOR:
 					b := gconstant.BoolVal(gconstant.BinaryOp(lhs[0].Const, op, rhs[0].Const))
@@ -178,16 +148,6 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 				}
 				t = shaderir.Type{Main: shaderir.Bool}
 			case token.REM:
-				if !isModAvailableForConsts(&lhs[0], &rhs[0]) {
-					var wrongTypeName string
-					if lhs[0].Const.Kind() != gconstant.Int {
-						wrongTypeName = goConstantKindString(lhs[0].Const.Kind())
-					} else {
-						wrongTypeName = goConstantKindString(rhs[0].Const.Kind())
-					}
-					cs.addError(e.Pos(), fmt.Sprintf("invalid operation: operator %% not defined on untyped %s", wrongTypeName))
-					return nil, nil, nil, false
-				}
 				if !cs.forceToInt(e, &lhs[0]) {
 					return nil, nil, nil, false
 				}
@@ -196,11 +156,6 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 				}
 				fallthrough
 			default:
-				if !shaderir.AreValidTypesForBinaryOp(op2, &lhs[0], &rhs[0], lhst, rhst) {
-					cs.addError(e.Pos(), fmt.Sprintf("types don't match: %s %s %s", lhst.String(), op, rhst.String()))
-					return nil, nil, nil, false
-				}
-
 				v = gconstant.BinaryOp(lhs[0].Const, op, rhs[0].Const)
 
 				switch {
