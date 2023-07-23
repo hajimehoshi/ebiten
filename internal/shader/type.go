@@ -107,20 +107,17 @@ func (cs *compileState) parseType(block *block, fname string, expr ast.Expr) (sh
 }
 
 func canBeFloatImplicitly(expr shaderir.Expr, t shaderir.Type) bool {
-	// TODO: For integers, should only constants be allowed?
+	if expr.Const != nil && canTruncateToFloat(expr.Const) {
+		return true
+	}
+
+	// canBeFloatImplicitly is used for a cast-like functions like float() or vec2().
+	// A non-constant integer value is acceptable.
 	if t.Main == shaderir.Int {
 		return true
 	}
 	if t.Main == shaderir.Float {
 		return true
-	}
-	if expr.Const != nil {
-		if expr.Const.Kind() == gconstant.Int {
-			return true
-		}
-		if expr.Const.Kind() == gconstant.Float {
-			return true
-		}
 	}
 	return false
 }
