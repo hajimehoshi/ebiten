@@ -3236,3 +3236,16 @@ func foo(x vec2) {
 		t.Error("compileToIR must return an error but did not")
 	}
 }
+
+// Issue #2705
+func TestSyntaxInitWithNegativeInteger(t *testing.T) {
+	if _, err := compileToIR([]byte(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	var x float = -0
+	_ = x
+	return position
+}`)); err != nil {
+		t.Error(err)
+	}
+}

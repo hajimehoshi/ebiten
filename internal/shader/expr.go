@@ -883,7 +883,7 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 		}, []shaderir.Type{t}, stmts, true
 
 	case *ast.UnaryExpr:
-		exprs, t, stmts, ok := cs.parseExpr(block, fname, e.X, markLocalVariableUsed)
+		exprs, ts, stmts, ok := cs.parseExpr(block, fname, e.X, markLocalVariableUsed)
 		if !ok {
 			return nil, nil, nil, false
 		}
@@ -894,16 +894,14 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 
 		if exprs[0].Const != nil {
 			v := gconstant.UnaryOp(e.Op, exprs[0].Const, 0)
-			t := shaderir.Type{Main: shaderir.Int}
-			if v.Kind() == gconstant.Float {
-				t = shaderir.Type{Main: shaderir.Float}
-			}
+			// Use the original type as it is.
+			// Keep the type untyped if the original expression is untyped (#2705).
 			return []shaderir.Expr{
 				{
 					Type:  shaderir.NumberExpr,
 					Const: v,
 				},
-			}, []shaderir.Type{t}, stmts, true
+			}, ts[:1], stmts, true
 		}
 
 		var op shaderir.Op
@@ -924,7 +922,7 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 				Op:    op,
 				Exprs: exprs,
 			},
-		}, t, stmts, true
+		}, ts[:1], stmts, true
 
 	case *ast.CompositeLit:
 		t, ok := cs.parseType(block, fname, e.Type)
