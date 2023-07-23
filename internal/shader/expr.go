@@ -58,7 +58,7 @@ func isValidForModOp(lhs, rhs *shaderir.Expr, lhst, rhst shaderir.Type) bool {
 		if s.Const == nil {
 			return false
 		}
-		if s.ConstType == shaderir.ConstTypeInt {
+		if s.Const.Kind() == gconstant.Int {
 			return true
 		}
 		if canTruncateToInteger(s.Const) {
