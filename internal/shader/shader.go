@@ -545,6 +545,9 @@ func (s *compileState) parseVariable(block *block, fname string, vs *ast.ValueSp
 					s.addError(vs.Pos(), "the numbers of lhs and rhs don't match")
 				}
 				t = ts[0]
+				if t.Main == shaderir.None {
+					t = toDefaultType(es[0].Const)
+				}
 			}
 
 			if es[0].Type == shaderir.NumberExpr {
@@ -567,6 +570,7 @@ func (s *compileState) parseVariable(block *block, fname string, vs *ast.ValueSp
 
 		default:
 			// Multiple-value context
+			// See testcase/var_multiple.go for an actual case.
 
 			if i == 0 {
 				init := vs.Values[0]
@@ -593,6 +597,10 @@ func (s *compileState) parseVariable(block *block, fname string, vs *ast.ValueSp
 
 			if t.Main == shaderir.None && len(inittypes) > 0 {
 				t = inittypes[i]
+				// TODO: Is it possible to reach this?
+				if t.Main == shaderir.None {
+					t = toDefaultType(initexprs[i].Const)
+				}
 			}
 
 			if !canAssign(&t, &inittypes[i], initexprs[i].Const) {

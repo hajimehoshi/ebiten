@@ -101,6 +101,7 @@ const (
 	Discard
 )
 
+// TODO: Remove ConstType (#2550)
 type ConstType int
 
 const (
@@ -114,11 +115,13 @@ type Expr struct {
 	Type        ExprType
 	Exprs       []Expr
 	Const       constant.Value
-	ConstType   ConstType
 	BuiltinFunc BuiltinFunc
 	Swizzling   string
 	Index       int
 	Op          Op
+
+	// TODO: Remove ConstType (#2550)
+	ConstType ConstType
 }
 
 type ExprType int
@@ -182,6 +185,10 @@ func OpFromToken(t token.Token, lhs, rhs Type) (Op, bool) {
 		}
 		return ComponentWiseMul, true
 	case token.QUO:
+		return Div, true
+	case token.QUO_ASSIGN:
+		// QUO_ASSIGN indicates an integer division.
+		// https://pkg.go.dev/go/constant/#BinaryOp
 		return Div, true
 	case token.REM:
 		return ModOp, true

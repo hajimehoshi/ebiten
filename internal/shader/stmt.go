@@ -625,7 +625,6 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 					cs.addError(pos, "single-value context and multiple-value context cannot be mixed")
 					return nil, false
 				}
-
 				t := ts[0]
 				if t.Main == shaderir.None {
 					t = toDefaultType(r[0].Const)

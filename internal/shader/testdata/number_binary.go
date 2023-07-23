@@ -15,3 +15,8 @@ func Foo2() vec4 {
 	var x3 = 5.0 / 2.0
 	return vec4(x0, x1, x2, x3)
 }
+
+func Foo3() vec4 {
+	var x0, x1, x2, x3 = 5 / 2, 5.0 / 2, 5 / 2.0, 5.0 / 2.0
+	return vec4(x0, x1, x2, x3)
+}

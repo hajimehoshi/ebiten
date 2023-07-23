@@ -3009,6 +3009,40 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	}
 }
 
+// Issue #2704
+func TestSyntaxConstType3(t *testing.T) {
+	cases := []struct {
+		stmt string
+		err  bool
+	}{
+		{stmt: "const x = 1; const y = 1; _ = x * y", err: false},
+		{stmt: "const x = 1; const y int = 1; _ = x * y", err: false},
+		{stmt: "const x int = 1; const y = 1; _ = x * y", err: false},
+		{stmt: "const x int = 1; const y int = 1; _ = x * y", err: false},
+		{stmt: "const x = 1; const y float = 1; _ = x * y", err: false},
+		{stmt: "const x float = 1; const y = 1; _ = x * y", err: false},
+		{stmt: "const x float = 1; const y float = 1; _ = x * y", err: false},
+		{stmt: "const x int = 1; const y float = 1; _ = x * y", err: true},
+		{stmt: "const x float = 1; const y int = 1; _ = x * y", err: true},
+	}
+
+	for _, c := range cases {
+		stmt := c.stmt
+		src := fmt.Sprintf(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	%s
+	return position
+}`, stmt)
+		_, err := compileToIR([]byte(src))
+		if err == nil && c.err {
+			t.Errorf("%s must return an error but does not", stmt)
+		} else if err != nil && !c.err {
+			t.Errorf("%s must not return nil but returned %v", stmt, err)
+		}
+	}
+}
+
 // Issue #2348
 func TestSyntaxCompositeLit(t *testing.T) {
 	cases := []struct {

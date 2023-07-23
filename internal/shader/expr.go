@@ -78,54 +78,6 @@ func isValidForModOp(lhs, rhs *shaderir.Expr, lhst, rhst shaderir.Type) bool {
 	return false
 }
 
-func canApplyBinaryOp(lhs, rhs *shaderir.Expr, lhst, rhst shaderir.Type, op shaderir.Op) bool {
-	if op == shaderir.AndAnd || op == shaderir.OrOr {
-		return lhst.Main == shaderir.Bool && rhst.Main == shaderir.Bool
-	}
-
-	switch {
-	case lhs.Const != nil && rhs.Const != nil:
-		if canTruncateToFloat(lhs.Const) && canTruncateToFloat(rhs.Const) {
-			return true
-		}
-		if canTruncateToInteger(lhs.Const) && canTruncateToInteger(rhs.Const) {
-			return true
-		}
-		return lhs.Const.Kind() == rhs.Const.Kind()
-
-	case lhs.Const != nil:
-		if rhst.Main == shaderir.Float {
-			return canTruncateToFloat(lhs.Const)
-		}
-		if rhst.Main == shaderir.Int {
-			return canTruncateToInteger(lhs.Const)
-		}
-		if rhst.Main == shaderir.Bool {
-			return lhs.Const.Kind() == gconstant.Bool
-		}
-		return false
-
-	case rhs.Const != nil:
-		if lhst.Main == shaderir.Float {
-			return canTruncateToFloat(rhs.Const)
-		}
-		if lhst.Main == shaderir.Int {
-			return canTruncateToInteger(rhs.Const)
-		}
-		if lhst.Main == shaderir.Bool {
-			return rhs.Const.Kind() == gconstant.Bool
-		}
-		return false
-	}
-
-	// Comparing matrices are forbidden (#2187).
-	if lhst.IsMatrix() || rhst.IsMatrix() {
-		return false
-	}
-
-	return lhst.Equal(&rhst)
-}
-
 func goConstantKindString(k gconstant.Kind) string {
 	switch k {
 	case gconstant.Bool:
@@ -211,7 +163,7 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 					cs.addError(e.Pos(), fmt.Sprintf("unexpected operator: %s", op))
 					return nil, nil, nil, false
 				}
-				if !canApplyBinaryOp(&lhs[0], &rhs[0], lhst, rhst, op2) {
+				if !shaderir.AreValidTypesForBinaryOp(op2, &lhs[0], &rhs[0], lhst, rhst) {
 					cs.addError(e.Pos(), fmt.Sprintf("types don't match: %s %s %s", lhst.String(), op, rhst.String()))
 					return nil, nil, nil, false
 				}
@@ -242,11 +194,28 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 				}
 				fallthrough
 			default:
+				op2, ok := shaderir.OpFromToken(op, lhst, rhst)
+				if !ok {
+					cs.addError(e.Pos(), fmt.Sprintf("unexpected operator: %s", op))
+					return nil, nil, nil, false
+				}
+				if !shaderir.AreValidTypesForBinaryOp(op2, &lhs[0], &rhs[0], lhst, rhst) {
+					cs.addError(e.Pos(), fmt.Sprintf("types don't match: %s %s %s", lhst.String(), op, rhst.String()))
+					return nil, nil, nil, false
+				}
+
 				v = gconstant.BinaryOp(lhs[0].Const, op, rhs[0].Const)
-				if v.Kind() == gconstant.Float {
+
+				switch {
+				case lhst.Main == shaderir.Float || rhst.Main == shaderir.Float:
 					t = shaderir.Type{Main: shaderir.Float}
-				} else {
+				case lhst.Main == shaderir.Int || rhst.Main == shaderir.Int:
 					t = shaderir.Type{Main: shaderir.Int}
+				case lhst.Main == shaderir.Bool || rhst.Main == shaderir.Bool:
+					t = shaderir.Type{Main: shaderir.Bool}
+				default:
+					// If both operands are untyped, keep untyped.
+					t = shaderir.Type{}
 				}
 			}
 
@@ -267,7 +236,7 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 		var t shaderir.Type
 		switch {
 		case op == shaderir.LessThanOp || op == shaderir.LessThanEqualOp || op == shaderir.GreaterThanOp || op == shaderir.GreaterThanEqualOp || op == shaderir.EqualOp || op == shaderir.NotEqualOp || op == shaderir.VectorEqualOp || op == shaderir.VectorNotEqualOp || op == shaderir.AndAnd || op == shaderir.OrOr:
-			if !canApplyBinaryOp(&lhs[0], &rhs[0], lhst, rhst, op) {
+			if !shaderir.AreValidTypesForBinaryOp(op, &lhs[0], &rhs[0], lhst, rhst) {
 				cs.addError(e.Pos(), fmt.Sprintf("types don't match: %s %s %s", lhst.String(), e.Op, rhst.String()))
 				return nil, nil, nil, false
 			}
