@@ -1812,3 +1812,45 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		})
 	}
 }
+
+func TestShaderIVec(t *testing.T) {
+	const w, h = 16, 16
+	dst := ebiten.NewImage(w, h)
+	src := ebiten.NewImage(w, h)
+
+	pix := make([]byte, 4*w*h)
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			pix[4*(j*w+i)] = byte(i)
+			pix[4*(j*w+i)+1] = byte(j)
+			pix[4*(j*w+i)+3] = 0xff
+		}
+	}
+	src.WritePixels(pix)
+
+	// Test that ivec2 can take any float values that can be casted to integers.
+	// This seems the common behavior in shading languages like GLSL, Metal, and HLSL.
+	shader, err := ebiten.NewShader([]byte(`//kage:unit pixel
+
+package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	orig, _ := imageSrcRegionOnTexture()
+	pos := ivec2(3.1, 4.2)
+	return imageSrc0At(vec2(pos.x, pos.y) + orig)
+}
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	op := &ebiten.DrawRectShaderOptions{}
+	op.Images[0] = src
+	dst.DrawRectShader(w, h, shader, op)
+
+	got := dst.At(0, 0).(color.RGBA)
+	want := color.RGBA{3, 4, 0, 0xff}
+	if got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+}
