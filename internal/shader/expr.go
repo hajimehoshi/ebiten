@@ -146,23 +146,25 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 		stmts = append(stmts, ss...)
 		rhst := ts[0]
 
+		op := e.Op
+		// https://pkg.go.dev/go/constant/#BinaryOp
+		// "To force integer division of Int operands, use op == token.QUO_ASSIGN instead of
+		// token.QUO; the result is guaranteed to be Int in this case."
+		if op == token.QUO && lhs[0].Const != nil && lhs[0].Const.Kind() == gconstant.Int && rhs[0].Const != nil && rhs[0].Const.Kind() == gconstant.Int {
+			op = token.QUO_ASSIGN
+		}
+
+		op2, ok := shaderir.OpFromToken(e.Op, lhst, rhst)
+		if !ok {
+			cs.addError(e.Pos(), fmt.Sprintf("unexpected operator: %s", e.Op))
+			return nil, nil, nil, false
+		}
+
 		if lhs[0].Const != nil && rhs[0].Const != nil {
-			op := e.Op
-			// https://pkg.go.dev/go/constant/#BinaryOp
-			// "To force integer division of Int operands, use op == token.QUO_ASSIGN instead of
-			// token.QUO; the result is guaranteed to be Int in this case."
-			if op == token.QUO && lhs[0].Const.Kind() == gconstant.Int && rhs[0].Const.Kind() == gconstant.Int {
-				op = token.QUO_ASSIGN
-			}
 			var v gconstant.Value
 			var t shaderir.Type
 			switch op {
 			case token.EQL, token.NEQ, token.LSS, token.LEQ, token.GTR, token.GEQ, token.LAND, token.LOR:
-				op2, ok := shaderir.OpFromToken(op, lhst, rhst)
-				if !ok {
-					cs.addError(e.Pos(), fmt.Sprintf("unexpected operator: %s", op))
-					return nil, nil, nil, false
-				}
 				if !shaderir.AreValidTypesForBinaryOp(op2, &lhs[0], &rhs[0], lhst, rhst) {
 					cs.addError(e.Pos(), fmt.Sprintf("types don't match: %s %s %s", lhst.String(), op, rhst.String()))
 					return nil, nil, nil, false
@@ -194,11 +196,6 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 				}
 				fallthrough
 			default:
-				op2, ok := shaderir.OpFromToken(op, lhst, rhst)
-				if !ok {
-					cs.addError(e.Pos(), fmt.Sprintf("unexpected operator: %s", op))
-					return nil, nil, nil, false
-				}
 				if !shaderir.AreValidTypesForBinaryOp(op2, &lhs[0], &rhs[0], lhst, rhst) {
 					cs.addError(e.Pos(), fmt.Sprintf("types don't match: %s %s %s", lhst.String(), op, rhst.String()))
 					return nil, nil, nil, false
@@ -227,16 +224,10 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 			}, []shaderir.Type{t}, stmts, true
 		}
 
-		op, ok := shaderir.OpFromToken(e.Op, lhst, rhst)
-		if !ok {
-			cs.addError(e.Pos(), fmt.Sprintf("unexpected operator: %s", e.Op))
-			return nil, nil, nil, false
-		}
-
 		var t shaderir.Type
 		switch {
-		case op == shaderir.LessThanOp || op == shaderir.LessThanEqualOp || op == shaderir.GreaterThanOp || op == shaderir.GreaterThanEqualOp || op == shaderir.EqualOp || op == shaderir.NotEqualOp || op == shaderir.VectorEqualOp || op == shaderir.VectorNotEqualOp || op == shaderir.AndAnd || op == shaderir.OrOr:
-			if !shaderir.AreValidTypesForBinaryOp(op, &lhs[0], &rhs[0], lhst, rhst) {
+		case op2 == shaderir.LessThanOp || op2 == shaderir.LessThanEqualOp || op2 == shaderir.GreaterThanOp || op2 == shaderir.GreaterThanEqualOp || op2 == shaderir.EqualOp || op2 == shaderir.NotEqualOp || op2 == shaderir.VectorEqualOp || op2 == shaderir.VectorNotEqualOp || op2 == shaderir.AndAnd || op2 == shaderir.OrOr:
+			if !shaderir.AreValidTypesForBinaryOp(op2, &lhs[0], &rhs[0], lhst, rhst) {
 				cs.addError(e.Pos(), fmt.Sprintf("types don't match: %s %s %s", lhst.String(), e.Op, rhst.String()))
 				return nil, nil, nil, false
 			}
@@ -244,7 +235,7 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 		case lhs[0].Const != nil && rhs[0].Const == nil:
 			switch rhst.Main {
 			case shaderir.Mat2, shaderir.Mat3, shaderir.Mat4:
-				if op != shaderir.MatrixMul {
+				if op2 != shaderir.MatrixMul {
 					cs.addError(e.Pos(), fmt.Sprintf("types don't match: %s %s %s", lhst.String(), e.Op, rhst.String()))
 					return nil, nil, nil, false
 				}
@@ -270,7 +261,7 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 		case lhs[0].Const == nil && rhs[0].Const != nil:
 			switch lhst.Main {
 			case shaderir.Mat2, shaderir.Mat3, shaderir.Mat4:
-				if op != shaderir.MatrixMul && op != shaderir.Div {
+				if op2 != shaderir.MatrixMul && op2 != shaderir.Div {
 					cs.addError(e.Pos(), fmt.Sprintf("types don't match: %s %s %s", lhst.String(), e.Op, rhst.String()))
 					return nil, nil, nil, false
 				}
@@ -297,7 +288,7 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 			}
 			t = lhst
 		case lhst.Equal(&rhst):
-			if op == shaderir.Div && (rhst.Main == shaderir.Mat2 || rhst.Main == shaderir.Mat3 || rhst.Main == shaderir.Mat4) {
+			if op2 == shaderir.Div && (rhst.Main == shaderir.Mat2 || rhst.Main == shaderir.Mat3 || rhst.Main == shaderir.Mat4) {
 				cs.addError(e.Pos(), fmt.Sprintf("invalid operation: operator %s not defined on %s", e.Op, rhst.String()))
 				return nil, nil, nil, false
 			}
@@ -307,7 +298,7 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 			case shaderir.Float, shaderir.Vec2, shaderir.Vec3, shaderir.Vec4:
 				t = rhst
 			case shaderir.Mat2, shaderir.Mat3, shaderir.Mat4:
-				if op != shaderir.MatrixMul {
+				if op2 != shaderir.MatrixMul {
 					cs.addError(e.Pos(), fmt.Sprintf("types don't match: %s %s %s", lhst.String(), e.Op, rhst.String()))
 					return nil, nil, nil, false
 				}
@@ -321,7 +312,7 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 			case shaderir.Float, shaderir.Vec2, shaderir.Vec3, shaderir.Vec4:
 				t = lhst
 			case shaderir.Mat2, shaderir.Mat3, shaderir.Mat4:
-				if op != shaderir.MatrixMul && op != shaderir.Div {
+				if op2 != shaderir.MatrixMul && op2 != shaderir.Div {
 					cs.addError(e.Pos(), fmt.Sprintf("types don't match: %s %s %s", lhst.String(), e.Op, rhst.String()))
 					return nil, nil, nil, false
 				}
@@ -330,13 +321,13 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 				cs.addError(e.Pos(), fmt.Sprintf("types don't match: %s %s %s", lhst.String(), e.Op, rhst.String()))
 				return nil, nil, nil, false
 			}
-		case op == shaderir.MatrixMul && (lhst.Main == shaderir.Vec2 && rhst.Main == shaderir.Mat2 ||
+		case op2 == shaderir.MatrixMul && (lhst.Main == shaderir.Vec2 && rhst.Main == shaderir.Mat2 ||
 			lhst.Main == shaderir.Mat2 && rhst.Main == shaderir.Vec2):
 			t = shaderir.Type{Main: shaderir.Vec2}
-		case op == shaderir.MatrixMul && (lhst.Main == shaderir.Vec3 && rhst.Main == shaderir.Mat3 ||
+		case op2 == shaderir.MatrixMul && (lhst.Main == shaderir.Vec3 && rhst.Main == shaderir.Mat3 ||
 			lhst.Main == shaderir.Mat3 && rhst.Main == shaderir.Vec3):
 			t = shaderir.Type{Main: shaderir.Vec3}
-		case op == shaderir.MatrixMul && (lhst.Main == shaderir.Vec4 && rhst.Main == shaderir.Mat4 ||
+		case op2 == shaderir.MatrixMul && (lhst.Main == shaderir.Vec4 && rhst.Main == shaderir.Mat4 ||
 			lhst.Main == shaderir.Mat4 && rhst.Main == shaderir.Vec4):
 			t = shaderir.Type{Main: shaderir.Vec4}
 		default:
@@ -345,7 +336,7 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 		}
 
 		// For `%`, both types must be deducible to integers.
-		if op == shaderir.ModOp {
+		if op2 == shaderir.ModOp {
 			if !isValidForModOp(&lhs[0], &rhs[0], lhst, rhst) {
 				var wrongType shaderir.Type
 				if lhst.Main != shaderir.Int {
@@ -361,7 +352,7 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 		return []shaderir.Expr{
 			{
 				Type:  shaderir.Binary,
-				Op:    op,
+				Op:    op2,
 				Exprs: []shaderir.Expr{lhs[0], rhs[0]},
 			},
 		}, []shaderir.Type{t}, stmts, true
