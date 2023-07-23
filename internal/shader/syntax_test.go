@@ -738,6 +738,15 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 }`)); err == nil {
 		t.Errorf("error must be non-nil but was nil")
 	}
+	if _, err := compileToIR([]byte(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	// If both are constants, both must be an integer!
+	a := 2.0 % 1.0
+	return vec4(a)
+}`)); err == nil {
+		t.Errorf("error must be non-nil but was nil")
+	}
 
 	if _, err := compileToIR([]byte(`package main
 
@@ -809,8 +818,28 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	if _, err := compileToIR([]byte(`package main
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	// If only one of two is a consntant, the constant can be a float.
+	a := 2
+	return vec4(a % 1.0)
+}`)); err != nil {
+		t.Error(err)
+	}
+
+	if _, err := compileToIR([]byte(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	a := 1
 	return vec4(2 % a)
+}`)); err != nil {
+		t.Error(err)
+	}
+
+	if _, err := compileToIR([]byte(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	// If only one of two is a consntant, the constant can be a float.
+	a := 1
+	return vec4(2.0 % a)
 }`)); err != nil {
 		t.Error(err)
 	}
