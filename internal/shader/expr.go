@@ -34,21 +34,17 @@ func canTruncateToFloat(v gconstant.Value) bool {
 	return gconstant.ToFloat(v).Kind() != gconstant.Unknown
 }
 
-func isUntypedInteger(expr *shaderir.Expr) bool {
-	return expr.Const.Kind() == gconstant.Int && expr.ConstType == shaderir.ConstTypeNone
-}
-
 func isModAvailableForConsts(lhs, rhs *shaderir.Expr) bool {
 	// % is available only when
-	// 1) both are untyped integers
+	// 1) both are untyped (constant) integers
 	// 2) either is an typed integer and the other is truncatable to an integer
-	if isUntypedInteger(lhs) && isUntypedInteger(rhs) {
+	if lhs.Const.Kind() == gconstant.Int && rhs.Const.Kind() == gconstant.Int {
 		return true
 	}
-	if lhs.ConstType == shaderir.ConstTypeInt && canTruncateToInteger(rhs.Const) {
+	if lhs.Const.Kind() == gconstant.Int && canTruncateToInteger(rhs.Const) {
 		return true
 	}
-	if rhs.ConstType == shaderir.ConstTypeInt && canTruncateToInteger(lhs.Const) {
+	if rhs.Const.Kind() == gconstant.Int && canTruncateToInteger(lhs.Const) {
 		return true
 	}
 	return false
