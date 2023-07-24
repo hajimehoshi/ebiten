@@ -128,32 +128,44 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 			return nil, nil, nil, false
 		}
 
-		// If both are consts, adjust the types.
-		if lhs[0].Const != nil && rhs[0].Const != nil && lhs[0].Const.Kind() != rhs[0].Const.Kind() {
-			l, r, ok := shaderir.AdjustConstTypesForBinaryOp(lhs[0].Const, rhs[0].Const, lhst, rhst)
-			if !ok {
-				// TODO: Show a better type name for untyped constants.
-				cs.addError(e.Pos(), fmt.Sprintf("types don't match: %s %s %s", lhst.String(), op, rhst.String()))
-				return nil, nil, nil, false
-			}
-			lhs[0].Const, rhs[0].Const = l, r
+		// Resolve untyped constants.
+		l, r, ok := shaderir.ResolveUntypedConstsForBinaryOp(lhs[0].Const, rhs[0].Const, lhst, rhst)
+		if !ok {
+			// TODO: Show a better type name for untyped constants.
+			cs.addError(e.Pos(), fmt.Sprintf("types don't match: %s %s %s", lhst.String(), op, rhst.String()))
+			return nil, nil, nil, false
+		}
+		lhs[0].Const, rhs[0].Const = l, r
 
-			// TODO: Remove this (#2550)
-			switch lhs[0].Const.Kind() {
-			case gconstant.Float:
-				lhs[0].ConstType = shaderir.ConstTypeFloat
-			case gconstant.Int:
-				lhs[0].ConstType = shaderir.ConstTypeInt
-			case gconstant.Bool:
-				lhs[0].ConstType = shaderir.ConstTypeBool
+		// If either is typed, resolve the other type.
+		// If both are untyped, keep them untyped.
+		if lhst.Main != shaderir.None || rhst.Main != shaderir.None {
+			// TODO: Remove ConstType (#2550)
+			if lhs[0].Const != nil {
+				switch lhs[0].Const.Kind() {
+				case gconstant.Float:
+					lhst = shaderir.Type{Main: shaderir.Float}
+					lhs[0].ConstType = shaderir.ConstTypeFloat
+				case gconstant.Int:
+					lhst = shaderir.Type{Main: shaderir.Int}
+					lhs[0].ConstType = shaderir.ConstTypeInt
+				case gconstant.Bool:
+					lhst = shaderir.Type{Main: shaderir.Bool}
+					lhs[0].ConstType = shaderir.ConstTypeBool
+				}
 			}
-			switch rhs[0].Const.Kind() {
-			case gconstant.Float:
-				rhs[0].ConstType = shaderir.ConstTypeFloat
-			case gconstant.Int:
-				rhs[0].ConstType = shaderir.ConstTypeInt
-			case gconstant.Bool:
-				rhs[0].ConstType = shaderir.ConstTypeBool
+			if rhs[0].Const != nil {
+				switch rhs[0].Const.Kind() {
+				case gconstant.Float:
+					rhst = shaderir.Type{Main: shaderir.Float}
+					rhs[0].ConstType = shaderir.ConstTypeFloat
+				case gconstant.Int:
+					rhst = shaderir.Type{Main: shaderir.Int}
+					rhs[0].ConstType = shaderir.ConstTypeInt
+				case gconstant.Bool:
+					rhst = shaderir.Type{Main: shaderir.Bool}
+					rhs[0].ConstType = shaderir.ConstTypeBool
+				}
 			}
 		}
 
@@ -227,17 +239,17 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 				}
 				fallthrough
 			case shaderir.Vec2, shaderir.Vec3, shaderir.Vec4:
-				if lhs[0].ConstType == shaderir.ConstTypeInt {
+				if lhst.Main != shaderir.Float {
 					cs.addError(e.Pos(), fmt.Sprintf("types don't match: %s %s %s", lhst.String(), e.Op, rhst.String()))
 					return nil, nil, nil, false
 				}
 			case shaderir.IVec2, shaderir.IVec3, shaderir.IVec4:
-				if !canTruncateToInteger(lhs[0].Const) {
+				if lhst.Main != shaderir.Int {
 					cs.addError(e.Pos(), fmt.Sprintf("types don't match: %s %s %s", lhst.String(), e.Op, rhst.String()))
 					return nil, nil, nil, false
 				}
 			case shaderir.Int:
-				if !canTruncateToInteger(lhs[0].Const) {
+				if lhst.Main != shaderir.Int {
 					cs.addError(e.Pos(), fmt.Sprintf("constant %s truncated to integer", lhs[0].Const.String()))
 					return nil, nil, nil, false
 				}
@@ -253,12 +265,12 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 				}
 				fallthrough
 			case shaderir.Vec2, shaderir.Vec3, shaderir.Vec4:
-				if rhs[0].ConstType == shaderir.ConstTypeInt {
+				if rhst.Main != shaderir.Float {
 					cs.addError(e.Pos(), fmt.Sprintf("types don't match: %s %s %s", lhst.String(), e.Op, rhst.String()))
 					return nil, nil, nil, false
 				}
 			case shaderir.IVec2, shaderir.IVec3, shaderir.IVec4:
-				if !canTruncateToInteger(rhs[0].Const) {
+				if rhst.Main != shaderir.Int {
 					cs.addError(e.Pos(), fmt.Sprintf("types don't match: %s %s %s", lhst.String(), e.Op, rhst.String()))
 					return nil, nil, nil, false
 				}
@@ -266,7 +278,7 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 					return nil, nil, nil, false
 				}
 			case shaderir.Int:
-				if !canTruncateToInteger(rhs[0].Const) {
+				if rhst.Main != shaderir.Int {
 					cs.addError(e.Pos(), fmt.Sprintf("constant %s truncated to integer", rhs[0].Const.String()))
 					return nil, nil, nil, false
 				}

@@ -18,7 +18,7 @@ import (
 	"go/constant"
 )
 
-func AdjustConstTypesForBinaryOp(lhs, rhs constant.Value, lhst, rhst Type) (constant.Value, constant.Value, bool) {
+func ResolveUntypedConstsForBinaryOp(lhs, rhs constant.Value, lhst, rhst Type) (newLhs, newRhs constant.Value, ok bool) {
 	if lhst.Main == None && rhst.Main == None {
 		if lhs.Kind() == rhs.Kind() {
 			return lhs, rhs, true
@@ -38,19 +38,11 @@ func AdjustConstTypesForBinaryOp(lhs, rhs constant.Value, lhst, rhst Type) (cons
 		return nil, nil, false
 	}
 
-	if lhst.Equal(&rhst) {
-		if lhs.Kind() == rhs.Kind() {
-			return lhs, rhs, true
-		}
-		// TODO: When to reach this?
-		return nil, nil, false
-	}
-
 	if lhst.Main == None {
-		if rhst.Main == Float && constant.ToFloat(lhs).Kind() != constant.Unknown {
+		if (rhst.Main == Float || rhst.isFloatVector() || rhst.IsMatrix()) && constant.ToFloat(lhs).Kind() != constant.Unknown {
 			return constant.ToFloat(lhs), rhs, true
 		}
-		if rhst.Main == Int && constant.ToInt(lhs).Kind() != constant.Unknown {
+		if (rhst.Main == Int || rhst.isIntVector()) && constant.ToInt(lhs).Kind() != constant.Unknown {
 			return constant.ToInt(lhs), rhs, true
 		}
 		if rhst.Main == Bool && lhs.Kind() == constant.Bool {
@@ -60,10 +52,10 @@ func AdjustConstTypesForBinaryOp(lhs, rhs constant.Value, lhst, rhst Type) (cons
 	}
 
 	if rhst.Main == None {
-		if lhst.Main == Float && constant.ToFloat(rhs).Kind() != constant.Unknown {
+		if (lhst.Main == Float || lhst.isFloatVector() || lhst.IsMatrix()) && constant.ToFloat(rhs).Kind() != constant.Unknown {
 			return lhs, constant.ToFloat(rhs), true
 		}
-		if lhst.Main == Int && constant.ToInt(rhs).Kind() != constant.Unknown {
+		if (lhst.Main == Int || lhst.isIntVector()) && constant.ToInt(rhs).Kind() != constant.Unknown {
 			return lhs, constant.ToInt(rhs), true
 		}
 		if lhst.Main == Bool && rhs.Kind() == constant.Bool {
@@ -72,7 +64,8 @@ func AdjustConstTypesForBinaryOp(lhs, rhs constant.Value, lhst, rhst Type) (cons
 		return nil, nil, false
 	}
 
-	return nil, nil, false
+	// lhst and rhst might not match, but this has nothing to do with resolving untyped consts.
+	return lhs, rhs, true
 }
 
 func AreValidTypesForBinaryOp(op Op, lhs, rhs *Expr, lhst, rhst Type) bool {
@@ -105,45 +98,10 @@ func AreValidTypesForBinaryOp(op Op, lhs, rhs *Expr, lhst, rhst Type) bool {
 		return true
 	}
 
-	// If the types match, that's fine.
-	if lhst.Equal(&rhst) {
-		return true
+	// Both types must not be untyped.
+	if lhst.Main == None || rhst.Main == None {
+		panic("shaderir: cannot resolve untyped values")
 	}
 
-	// If lhs is untyped and rhs is not, compare the constant and the type and try to truncate the constant if necessary.
-	if lhst.Main == None {
-		// For %, if only one of the operands is a constant, try to truncate it.
-		if op == ModOp {
-			return constant.ToInt(lhs.Const).Kind() != constant.Unknown && rhst.Main == Int
-		}
-		if rhst.Main == Float {
-			return constant.ToFloat(lhs.Const).Kind() != constant.Unknown
-		}
-		if rhst.Main == Int {
-			return constant.ToInt(lhs.Const).Kind() != constant.Unknown
-		}
-		if rhst.Main == Bool {
-			return lhs.Const.Kind() == constant.Bool
-		}
-		return false
-	}
-
-	// Ditto.
-	if rhst.Main == None {
-		if op == ModOp {
-			return constant.ToInt(rhs.Const).Kind() != constant.Unknown && lhst.Main == Int
-		}
-		if lhst.Main == Float {
-			return constant.ToFloat(rhs.Const).Kind() != constant.Unknown
-		}
-		if lhst.Main == Int {
-			return constant.ToInt(rhs.Const).Kind() != constant.Unknown
-		}
-		if lhst.Main == Bool {
-			return rhs.Const.Kind() == constant.Bool
-		}
-		return false
-	}
-
-	return false
+	return lhst.Equal(&rhst)
 }
