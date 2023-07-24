@@ -3249,3 +3249,45 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		t.Error(err)
 	}
 }
+
+// Issue #2706
+func TestSyntaxReturnConst(t *testing.T) {
+	cases := []struct {
+		typ  string
+		stmt string
+		err  bool
+	}{
+		{typ: "bool", stmt: "true", err: false},
+		{typ: "int", stmt: "true", err: true},
+		{typ: "float", stmt: "true", err: true},
+		{typ: "bool", stmt: "1", err: true},
+		{typ: "int", stmt: "1", err: false},
+		{typ: "float", stmt: "1", err: false},
+		{typ: "bool", stmt: "1.0", err: true},
+		{typ: "int", stmt: "1.0", err: false},
+		{typ: "float", stmt: "1.0", err: false},
+		{typ: "bool", stmt: "1.1", err: true},
+		{typ: "int", stmt: "1.1", err: true},
+		{typ: "float", stmt: "1.1", err: false},
+	}
+
+	for _, c := range cases {
+		typ := c.typ
+		stmt := c.stmt
+		src := fmt.Sprintf(`package main
+
+func Foo() %s {
+	return %s
+}
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	return position
+}`, typ, stmt)
+		_, err := compileToIR([]byte(src))
+		if err == nil && c.err {
+			t.Errorf("return %s for type %s must return an error but does not", stmt, typ)
+		} else if err != nil && !c.err {
+			t.Errorf("return %s for type %s must not return nil but returned %v", stmt, typ, err)
+		}
+	}
+}

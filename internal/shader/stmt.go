@@ -500,12 +500,22 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 			}
 			if expr.Const != nil {
 				switch outT.Main {
+				case shaderir.Bool:
+					if expr.Const.Kind() != gconstant.Bool {
+						cs.addError(stmt.Pos(), fmt.Sprintf("cannot use type %s as type %s in return argument", t.String(), &outT))
+						return nil, false
+					}
+					t = shaderir.Type{Main: shaderir.Bool}
 				case shaderir.Int:
 					if !cs.forceToInt(stmt, &expr) {
 						return nil, false
 					}
 					t = shaderir.Type{Main: shaderir.Int}
 				case shaderir.Float:
+					if gconstant.ToFloat(expr.Const).Kind() == gconstant.Unknown {
+						cs.addError(stmt.Pos(), fmt.Sprintf("cannot use type %s as type %s in return argument", t.String(), &outT))
+						return nil, false
+					}
 					t = shaderir.Type{Main: shaderir.Float}
 				}
 			}
