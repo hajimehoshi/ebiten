@@ -128,6 +128,37 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 			return nil, nil, nil, false
 		}
 
+		// If both are consts, adjust the types.
+		if lhs[0].Const != nil && rhs[0].Const != nil && lhs[0].Const.Kind() != rhs[0].Const.Kind() {
+			l, r, ok := shaderir.AdjustConstTypesForBinaryOp(lhs[0].Const, rhs[0].Const, lhst, rhst)
+			if !ok {
+				// TODO: Show a better type name for untyped constants.
+				cs.addError(e.Pos(), fmt.Sprintf("types don't match: %s %s %s", lhst.String(), op, rhst.String()))
+				return nil, nil, nil, false
+			}
+			lhs[0].Const, rhs[0].Const = l, r
+
+			// TODO: Remove this (#2550)
+			switch lhs[0].Const.Kind() {
+			case gconstant.Float:
+				lhs[0].ConstType = shaderir.ConstTypeFloat
+			case gconstant.Int:
+				lhs[0].ConstType = shaderir.ConstTypeInt
+			case gconstant.Bool:
+				lhs[0].ConstType = shaderir.ConstTypeBool
+			}
+			switch rhs[0].Const.Kind() {
+			case gconstant.Float:
+				rhs[0].ConstType = shaderir.ConstTypeFloat
+			case gconstant.Int:
+				rhs[0].ConstType = shaderir.ConstTypeInt
+			case gconstant.Bool:
+				rhs[0].ConstType = shaderir.ConstTypeBool
+			}
+		}
+
+		// TODO: Integrate AreValidTypesForBinaryOp calls to here.
+
 		if lhs[0].Const != nil && rhs[0].Const != nil {
 			if !shaderir.AreValidTypesForBinaryOp(op2, &lhs[0], &rhs[0], lhst, rhst) {
 				// TODO: Show a better type name for untyped constants.
