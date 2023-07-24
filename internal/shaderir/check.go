@@ -84,6 +84,10 @@ func AreValidTypesForBinaryOp(op Op, lhs, rhs *Expr, lhst, rhst Type) bool {
 		}
 	}
 
+	if op == Div && rhst.IsMatrix() {
+		return false
+	}
+
 	// If both are untyped consts, compare the constants and try to truncate them if necessary.
 	if lhst.Main == None && rhst.Main == None {
 		// Assume that the constant types are already adjusted.
@@ -103,5 +107,42 @@ func AreValidTypesForBinaryOp(op Op, lhs, rhs *Expr, lhst, rhst Type) bool {
 		panic("shaderir: cannot resolve untyped values")
 	}
 
-	return lhst.Equal(&rhst)
+	if lhst.Equal(&rhst) {
+		return true
+	}
+
+	if op == MatrixMul {
+		if lhst.IsMatrix() && (rhst.isFloatVector() || rhst.Main == Float) {
+			// TODO: Check dimensions
+			return true
+		}
+		if rhst.IsMatrix() && (lhst.isFloatVector() || lhst.Main == Float) {
+			// TODO: Check dimensions
+			return true
+		}
+		return false
+	}
+
+	if op == Div {
+		if lhst.IsMatrix() && (rhst.isFloatVector() || rhst.Main == Float) {
+			// TODO: Check dimensions
+			return true
+		}
+		// fallback
+	}
+
+	if lhst.isFloatVector() && rhst.Main == Float {
+		return true
+	}
+	if rhst.isFloatVector() && lhst.Main == Float {
+		return true
+	}
+	if lhst.isIntVector() && rhst.Main == Int {
+		return true
+	}
+	if rhst.isIntVector() && lhst.Main == Int {
+		return true
+	}
+
+	return false
 }
