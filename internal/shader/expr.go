@@ -195,14 +195,14 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 			t = lhst
 		case lhst.Equal(&rhst):
 			t = lhst
-		case lhst.Main == shaderir.Float:
-			t = rhst
-		case rhst.Main == shaderir.Float:
+		case op2 == shaderir.MatrixMul && (lhst.Main == shaderir.Float || lhst.IsVector()) && rhst.IsMatrix():
 			t = lhst
-		case op2 == shaderir.MatrixMul && lhst.IsVector() && rhst.IsMatrix():
-			t = lhst
-		case op2 == shaderir.MatrixMul && lhst.IsMatrix() && rhst.IsVector():
+		case op2 == shaderir.MatrixMul && lhst.IsMatrix() && (rhst.Main == shaderir.Float || rhst.IsVector()):
 			t = rhst
+		case (lhst.Main == shaderir.Float || lhst.Main == shaderir.Int) && rhst.IsVector():
+			t = rhst
+		case lhst.IsVector() && (rhst.Main == shaderir.Float || rhst.Main == shaderir.Int):
+			t = lhst
 		default:
 			panic(fmt.Sprintf("shaderir: invalid expression: %s %s %s", lhst.String(), e.Op, rhst.String()))
 		}
