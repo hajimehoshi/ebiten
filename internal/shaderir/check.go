@@ -69,30 +69,15 @@ func ResolveUntypedConstsForBinaryOp(lhs, rhs constant.Value, lhst, rhst Type) (
 }
 
 func AreValidTypesForBinaryOp(op Op, lhs, rhs *Expr, lhst, rhst Type) bool {
-	if op == AndAnd || op == OrOr {
-		return lhst.Main == Bool && rhst.Main == Bool
-	}
-
-	if op == VectorEqualOp || op == VectorNotEqualOp {
-		return lhst.IsVector() && rhst.IsVector() && lhst.Equal(&rhst)
-	}
-
-	// Comparing matrices are forbidden (#2187).
-	if op == LessThanOp || op == LessThanEqualOp || op == GreaterThanOp || op == GreaterThanEqualOp || op == EqualOp || op == NotEqualOp {
-		if lhst.IsMatrix() || rhst.IsMatrix() {
-			return false
-		}
-	}
-
-	if op == Div && rhst.IsMatrix() {
-		return false
-	}
-
 	// If both are untyped consts, compare the constants and try to truncate them if necessary.
 	if lhst.Main == None && rhst.Main == None {
 		// Assume that the constant types are already adjusted.
 		if lhs.Const.Kind() != rhs.Const.Kind() {
 			panic("shaderir: const types for a binary op must be adjusted")
+		}
+
+		if op == AndAnd || op == OrOr {
+			return lhs.Const.Kind() == constant.Bool && rhs.Const.Kind() == constant.Bool
 		}
 
 		// For %, both operands must be integers if both are constants. Truncatable to an integer is not enough.
@@ -107,25 +92,73 @@ func AreValidTypesForBinaryOp(op Op, lhs, rhs *Expr, lhst, rhst Type) bool {
 		panic("shaderir: cannot resolve untyped values")
 	}
 
+	if op == AndAnd || op == OrOr {
+		return lhst.Main == Bool && rhst.Main == Bool
+	}
+
+	if op == VectorEqualOp || op == VectorNotEqualOp {
+		return lhst.IsVector() && rhst.IsVector() && lhst.Equal(&rhst)
+	}
+
+	// Comparing matrices are forbidden (#2187).
+	if op == LessThanOp || op == LessThanEqualOp || op == GreaterThanOp || op == GreaterThanEqualOp || op == EqualOp || op == NotEqualOp {
+		if lhst.IsMatrix() || rhst.IsMatrix() {
+			return false
+		}
+		return lhst.Equal(&rhst)
+	}
+
+	if op == Div && rhst.IsMatrix() {
+		return false
+	}
+
+	if op == ModOp {
+		if lhst.Main == IVec2 && rhst.Main == IVec2 {
+			return true
+		}
+		if lhst.Main == IVec3 && rhst.Main == IVec3 {
+			return true
+		}
+		if lhst.Main == IVec4 && rhst.Main == IVec4 {
+			return true
+		}
+		return (lhst.Main == Int || lhst.isIntVector()) && rhst.Main == Int
+	}
+
 	if lhst.Equal(&rhst) {
 		return true
 	}
 
 	if op == MatrixMul {
-		if lhst.IsMatrix() && (rhst.isFloatVector() || rhst.Main == Float) {
-			// TODO: Check dimensions
+		if lhst.IsMatrix() && rhst.Main == Float {
 			return true
 		}
-		if rhst.IsMatrix() && (lhst.isFloatVector() || lhst.Main == Float) {
-			// TODO: Check dimensions
+		if lhst.Main == Mat2 && rhst.Main == Vec2 {
+			return true
+		}
+		if lhst.Main == Mat3 && rhst.Main == Vec3 {
+			return true
+		}
+		if lhst.Main == Mat4 && rhst.Main == Vec4 {
+			return true
+		}
+		if lhst.Main == Float && rhst.IsMatrix() {
+			return true
+		}
+		if lhst.Main == Vec2 && rhst.Main == Mat2 {
+			return true
+		}
+		if lhst.Main == Vec3 && rhst.Main == Mat3 {
+			return true
+		}
+		if lhst.Main == Vec4 && rhst.Main == Mat4 {
 			return true
 		}
 		return false
 	}
 
 	if op == Div {
-		if lhst.IsMatrix() && (rhst.isFloatVector() || rhst.Main == Float) {
-			// TODO: Check dimensions
+		if lhst.IsMatrix() && rhst.Main == Float {
 			return true
 		}
 		// fallback

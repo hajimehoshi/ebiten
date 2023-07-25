@@ -34,34 +34,6 @@ func canTruncateToFloat(v gconstant.Value) bool {
 	return gconstant.ToFloat(v).Kind() != gconstant.Unknown
 }
 
-func isValidForModOp(lhs, rhs *shaderir.Expr, lhst, rhst shaderir.Type) bool {
-	isInt := func(s *shaderir.Expr, t shaderir.Type) bool {
-		if t.Main == shaderir.Int {
-			return true
-		}
-		if s.Const == nil {
-			return false
-		}
-		if s.Const.Kind() == gconstant.Int {
-			return true
-		}
-		if canTruncateToInteger(s.Const) {
-			return true
-		}
-		return false
-	}
-
-	if isInt(lhs, lhst) {
-		return isInt(rhs, rhst)
-	}
-
-	if lhst.Main == shaderir.IVec2 || lhst.Main == shaderir.IVec3 || lhst.Main == shaderir.IVec4 {
-		return lhst.Equal(&rhst) || isInt(rhs, rhst)
-	}
-
-	return false
-}
-
 var textureVariableRe = regexp.MustCompile(`\A__t(\d+)\z`)
 
 func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, markLocalVariableUsed bool) ([]shaderir.Expr, []shaderir.Type, []shaderir.Stmt, bool) {
@@ -227,32 +199,12 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 			t = rhst
 		case rhst.Main == shaderir.Float:
 			t = lhst
-		case op2 == shaderir.MatrixMul && (lhst.Main == shaderir.Vec2 && rhst.Main == shaderir.Mat2 ||
-			lhst.Main == shaderir.Mat2 && rhst.Main == shaderir.Vec2):
-			t = shaderir.Type{Main: shaderir.Vec2}
-		case op2 == shaderir.MatrixMul && (lhst.Main == shaderir.Vec3 && rhst.Main == shaderir.Mat3 ||
-			lhst.Main == shaderir.Mat3 && rhst.Main == shaderir.Vec3):
-			t = shaderir.Type{Main: shaderir.Vec3}
-		case op2 == shaderir.MatrixMul && (lhst.Main == shaderir.Vec4 && rhst.Main == shaderir.Mat4 ||
-			lhst.Main == shaderir.Mat4 && rhst.Main == shaderir.Vec4):
-			t = shaderir.Type{Main: shaderir.Vec4}
+		case op2 == shaderir.MatrixMul && lhst.IsVector() && rhst.IsMatrix():
+			t = lhst
+		case op2 == shaderir.MatrixMul && lhst.IsMatrix() && rhst.IsVector():
+			t = rhst
 		default:
-			cs.addError(e.Pos(), fmt.Sprintf("invalid expression: %s %s %s", lhst.String(), e.Op, rhst.String()))
-			return nil, nil, nil, false
-		}
-
-		// For `%`, both types must be deducible to integers.
-		if op2 == shaderir.ModOp {
-			if !isValidForModOp(&lhs[0], &rhs[0], lhst, rhst) {
-				var wrongType shaderir.Type
-				if lhst.Main != shaderir.Int {
-					wrongType = lhst
-				} else {
-					wrongType = rhst
-				}
-				cs.addError(e.Pos(), fmt.Sprintf("invalid operation: operator %% not defined on %s", wrongType.String()))
-				return nil, nil, nil, false
-			}
+			panic(fmt.Sprintf("shaderir: invalid expression: %s %s %s", lhst.String(), e.Op, rhst.String()))
 		}
 
 		return []shaderir.Expr{
