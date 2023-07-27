@@ -3376,6 +3376,8 @@ func TestSyntaxCast(t *testing.T) {
 		{stmt: "a := int(1); _ = a", err: false},
 		{stmt: "a := int(1.0); _ = a", err: false},
 		{stmt: "a := int(1.1); _ = a", err: true},
+		{stmt: "const c = 1.1; a := int(c); _ = a", err: true},
+		{stmt: "const c float = 1.1; a := int(c); _ = a", err: true},
 		{stmt: "a := float(1); _ = a", err: false},
 		{stmt: "a := float(1.0); _ = a", err: false},
 		{stmt: "a := float(1.1); _ = a", err: false},
