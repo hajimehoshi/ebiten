@@ -1836,8 +1836,8 @@ package main
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	orig, _ := imageSrcRegionOnTexture()
-	pos := ivec2(3.1, 4.2)
-	return imageSrc0At(vec2(pos.x, pos.y) + orig)
+	pos := ivec2(3, 4)
+	return imageSrc0At(vec2(pos) + orig)
 }
 `))
 	if err != nil {

@@ -143,7 +143,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 						(lts[0].Main == shaderir.Vec3 && rts[0].Main == shaderir.Mat3) ||
 						(lts[0].Main == shaderir.Vec4 && rts[0].Main == shaderir.Mat4)) {
 						// OK
-					} else if (op == shaderir.MatrixMul || op == shaderir.ComponentWiseMul || lts[0].IsVector()) &&
+					} else if (op == shaderir.MatrixMul || op == shaderir.ComponentWiseMul || lts[0].IsFloatVector()) &&
 						(rts[0].Main == shaderir.Float ||
 							(rhs[0].Const != nil &&
 								rhs[0].ConstType != shaderir.ConstTypeInt &&

@@ -25,7 +25,7 @@ vec4 F1(in vec4 l0) {
 	}
 	l3 = 0;
 	l1 = (l1) + (l3);
-	return vec4(l1);
+	return vec4(float(l1));
 }
 
 void main(void) {

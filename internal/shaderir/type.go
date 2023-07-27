@@ -118,15 +118,7 @@ func (t *Type) Uint32Count() int {
 	}
 }
 
-func (t *Type) IsVector() bool {
-	switch t.Main {
-	case Vec2, Vec3, Vec4, IVec2, IVec3, IVec4:
-		return true
-	}
-	return false
-}
-
-func (t *Type) isFloatVector() bool {
+func (t *Type) IsFloatVector() bool {
 	switch t.Main {
 	case Vec2, Vec3, Vec4:
 		return true
@@ -134,7 +126,7 @@ func (t *Type) isFloatVector() bool {
 	return false
 }
 
-func (t *Type) isIntVector() bool {
+func (t *Type) IsIntVector() bool {
 	switch t.Main {
 	case IVec2, IVec3, IVec4:
 		return true

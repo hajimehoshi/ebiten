@@ -197,15 +197,19 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 			t = lhst
 		case op2 == shaderir.MatrixMul && lhst.Main == shaderir.Float && rhst.IsMatrix():
 			t = rhst
-		case op2 == shaderir.MatrixMul && lhst.IsVector() && rhst.IsMatrix():
+		case op2 == shaderir.MatrixMul && lhst.IsFloatVector() && rhst.IsMatrix():
 			t = lhst
 		case op2 == shaderir.MatrixMul && lhst.IsMatrix() && rhst.Main == shaderir.Float:
 			t = lhst
-		case op2 == shaderir.MatrixMul && lhst.IsMatrix() && rhst.IsVector():
+		case op2 == shaderir.MatrixMul && lhst.IsMatrix() && rhst.IsFloatVector():
 			t = rhst
-		case (lhst.Main == shaderir.Float || lhst.Main == shaderir.Int) && rhst.IsVector():
+		case lhst.Main == shaderir.Float && rhst.IsFloatVector():
 			t = rhst
-		case lhst.IsVector() && (rhst.Main == shaderir.Float || rhst.Main == shaderir.Int):
+		case lhst.Main == shaderir.Int && rhst.IsIntVector():
+			t = rhst
+		case lhst.IsFloatVector() && rhst.Main == shaderir.Float:
+			t = lhst
+		case lhst.IsIntVector() && rhst.Main == shaderir.Int:
 			t = lhst
 		default:
 			panic(fmt.Sprintf("shaderir: invalid expression: %s %s %s", lhst.String(), e.Op, rhst.String()))
@@ -291,29 +295,35 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 				}
 			case shaderir.IntF:
 				if len(args) == 1 && args[0].Const != nil {
-					if !canTruncateToInteger(args[0].Const) {
+					// For constants, a cast-like function doesn't work as a cast.
+					// For example, `int(1.1)` is invalid.
+					v := gconstant.ToInt(args[0].Const)
+					if v.Kind() == gconstant.Unknown {
 						cs.addError(e.Pos(), fmt.Sprintf("cannot convert %s to type int", args[0].Const.String()))
 						return nil, nil, nil, false
 					}
 					return []shaderir.Expr{
 						{
 							Type:      shaderir.NumberExpr,
-							Const:     gconstant.ToInt(args[0].Const),
+							Const:     v,
 							ConstType: shaderir.ConstTypeInt,
 						},
 					}, []shaderir.Type{{Main: shaderir.Int}}, stmts, true
 				}
 			case shaderir.FloatF:
 				if len(args) == 1 && args[0].Const != nil {
-					if gconstant.ToFloat(args[0].Const).Kind() != gconstant.Unknown {
-						return []shaderir.Expr{
-							{
-								Type:      shaderir.NumberExpr,
-								Const:     gconstant.ToFloat(args[0].Const),
-								ConstType: shaderir.ConstTypeFloat,
-							},
-						}, []shaderir.Type{{Main: shaderir.Float}}, stmts, true
+					v := gconstant.ToFloat(args[0].Const)
+					if v.Kind() == gconstant.Unknown {
+						cs.addError(e.Pos(), fmt.Sprintf("cannot convert %s to type float", args[0].Const.String()))
+						return nil, nil, nil, false
 					}
+					return []shaderir.Expr{
+						{
+							Type:      shaderir.NumberExpr,
+							Const:     v,
+							ConstType: shaderir.ConstTypeFloat,
+						},
+					}, []shaderir.Type{{Main: shaderir.Float}}, stmts, true
 				}
 			}
 
@@ -357,19 +367,19 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 				}
 				t = shaderir.Type{Main: shaderir.Vec4}
 			case shaderir.IVec2F:
-				if err := checkArgsForVec2BuiltinFunc(args, argts); err != nil {
+				if err := checkArgsForIVec2BuiltinFunc(args, argts); err != nil {
 					cs.addError(e.Pos(), err.Error())
 					return nil, nil, nil, false
 				}
 				t = shaderir.Type{Main: shaderir.IVec2}
 			case shaderir.IVec3F:
-				if err := checkArgsForVec3BuiltinFunc(args, argts); err != nil {
+				if err := checkArgsForIVec3BuiltinFunc(args, argts); err != nil {
 					cs.addError(e.Pos(), err.Error())
 					return nil, nil, nil, false
 				}
 				t = shaderir.Type{Main: shaderir.IVec3}
 			case shaderir.IVec4F:
-				if err := checkArgsForVec4BuiltinFunc(args, argts); err != nil {
+				if err := checkArgsForIVec4BuiltinFunc(args, argts); err != nil {
 					cs.addError(e.Pos(), err.Error())
 					return nil, nil, nil, false
 				}

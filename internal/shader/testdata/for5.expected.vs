@@ -25,6 +25,6 @@ void main(void) {
 	}
 	l2 = 0;
 	l0 = (l0) + (l2);
-	gl_Position = vec4(l0);
+	gl_Position = vec4(float(l0));
 	return;
 }

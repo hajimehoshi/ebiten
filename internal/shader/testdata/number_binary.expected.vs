@@ -11,7 +11,7 @@ vec4 F0(void) {
 	l1 = 2.5000000000e+00;
 	l2 = 2.5000000000e+00;
 	l3 = 2.5000000000e+00;
-	return vec4(l0, l1, l2, l3);
+	return vec4(float(l0), l1, l2, l3);
 }
 
 vec4 F1(void) {
@@ -23,7 +23,7 @@ vec4 F1(void) {
 	l1 = 2.5000000000e+00;
 	l2 = 2.5000000000e+00;
 	l3 = 2.5000000000e+00;
-	return vec4(l0, l1, l2, l3);
+	return vec4(float(l0), l1, l2, l3);
 }
 
 vec4 F2(void) {
@@ -35,5 +35,5 @@ vec4 F2(void) {
 	l1 = 2.5000000000e+00;
 	l2 = 2.5000000000e+00;
 	l3 = 2.5000000000e+00;
-	return vec4(l0, l1, l2, l3);
+	return vec4(float(l0), l1, l2, l3);
 }

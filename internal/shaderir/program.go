@@ -205,12 +205,12 @@ func OpFromToken(t token.Token, lhs, rhs Type) (Op, bool) {
 	case token.GEQ:
 		return GreaterThanEqualOp, true
 	case token.EQL:
-		if lhs.IsVector() || rhs.IsVector() {
+		if lhs.IsFloatVector() || lhs.IsIntVector() || rhs.IsFloatVector() || rhs.IsIntVector() {
 			return VectorEqualOp, true
 		}
 		return EqualOp, true
 	case token.NEQ:
-		if lhs.IsVector() || rhs.IsVector() {
+		if lhs.IsFloatVector() || lhs.IsIntVector() || rhs.IsFloatVector() || rhs.IsIntVector() {
 			return VectorNotEqualOp, true
 		}
 		return NotEqualOp, true
