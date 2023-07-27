@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"go/constant"
 	"go/token"
+	"math"
 	"regexp"
 	"strings"
 
@@ -260,29 +261,30 @@ func (c *compileContext) function(p *shaderir.Program, f *shaderir.Func, prototy
 }
 
 func constantToNumberLiteral(t shaderir.ConstType, v constant.Value) string {
-	switch t {
-	case shaderir.ConstTypeNone:
-		if v.Kind() == constant.Bool {
-			if constant.BoolVal(v) {
-				return "true"
-			}
-			return "false"
+	switch v.Kind() {
+	case constant.Bool:
+		if t != shaderir.ConstTypeBool && t != shaderir.ConstTypeNone {
+			return fmt.Sprintf("!(unexpected const-type for bool: %d)", t)
 		}
-		fallthrough
-	case shaderir.ConstTypeFloat:
-		if i := constant.ToInt(v); i.Kind() == constant.Int {
-			x, _ := constant.Int64Val(i)
-			return fmt.Sprintf("%d.0", x)
+		if constant.BoolVal(v) {
+			return "true"
 		}
-		if i := constant.ToFloat(v); i.Kind() == constant.Float {
-			x, _ := constant.Float64Val(i)
-			return fmt.Sprintf("%.10e", x)
+		return "false"
+	case constant.Int:
+		if t != shaderir.ConstTypeInt && t != shaderir.ConstTypeNone {
+			return fmt.Sprintf("!(unexpected const-type for int: %d)", t)
 		}
-	case shaderir.ConstTypeInt:
-		if i := constant.ToInt(v); i.Kind() == constant.Int {
-			x, _ := constant.Int64Val(i)
-			return fmt.Sprintf("%d", x)
+		x, _ := constant.Int64Val(v)
+		return fmt.Sprintf("%d", x)
+	case constant.Float:
+		if t != shaderir.ConstTypeFloat && t != shaderir.ConstTypeNone {
+			return fmt.Sprintf("!(unexpected const-type for float: %d)", t)
 		}
+		x, _ := constant.Float64Val(v)
+		if i := math.Floor(x); i == x {
+			return fmt.Sprintf("%d.0", int64(i))
+		}
+		return fmt.Sprintf("%.10e", x)
 	}
 	return fmt.Sprintf("?(unexpected literal: %s)", v)
 }

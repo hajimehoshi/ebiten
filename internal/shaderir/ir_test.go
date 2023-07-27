@@ -68,15 +68,31 @@ func ifStmt(cond shaderir.Expr, block *shaderir.Block, elseBlock *shaderir.Block
 }
 
 func forStmt(t shaderir.Type, index, init, end int, op shaderir.Op, delta int, block *shaderir.Block) shaderir.Stmt {
-	return shaderir.Stmt{
-		Type:        shaderir.For,
-		Blocks:      []*shaderir.Block{block},
-		ForVarType:  t,
-		ForVarIndex: index,
-		ForInit:     constant.MakeInt64(int64(init)),
-		ForEnd:      constant.MakeInt64(int64(end)),
-		ForOp:       op,
-		ForDelta:    constant.MakeInt64(int64(delta)),
+	switch t.Main {
+	case shaderir.Int:
+		return shaderir.Stmt{
+			Type:        shaderir.For,
+			Blocks:      []*shaderir.Block{block},
+			ForVarType:  t,
+			ForVarIndex: index,
+			ForInit:     constant.MakeInt64(int64(init)),
+			ForEnd:      constant.MakeInt64(int64(end)),
+			ForOp:       op,
+			ForDelta:    constant.MakeInt64(int64(delta)),
+		}
+	case shaderir.Float:
+		return shaderir.Stmt{
+			Type:        shaderir.For,
+			Blocks:      []*shaderir.Block{block},
+			ForVarType:  t,
+			ForVarIndex: index,
+			ForInit:     constant.MakeFloat64(float64(init)),
+			ForEnd:      constant.MakeFloat64(float64(end)),
+			ForOp:       op,
+			ForDelta:    constant.MakeFloat64(float64(delta)),
+		}
+	default:
+		panic("not reached")
 	}
 }
 

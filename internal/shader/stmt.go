@@ -507,15 +507,18 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 					}
 					t = shaderir.Type{Main: shaderir.Bool}
 				case shaderir.Int:
-					if !cs.forceToInt(stmt, &expr) {
+					if gconstant.ToInt(expr.Const).Kind() == gconstant.Unknown {
+						cs.addError(stmt.Pos(), fmt.Sprintf("cannot use type %s as type %s in return argument", t.String(), &outT))
 						return nil, false
 					}
+					expr.Const = gconstant.ToInt(expr.Const)
 					t = shaderir.Type{Main: shaderir.Int}
 				case shaderir.Float:
 					if gconstant.ToFloat(expr.Const).Kind() == gconstant.Unknown {
 						cs.addError(stmt.Pos(), fmt.Sprintf("cannot use type %s as type %s in return argument", t.String(), &outT))
 						return nil, false
 					}
+					expr.Const = gconstant.ToFloat(expr.Const)
 					t = shaderir.Type{Main: shaderir.Float}
 				}
 			}
@@ -843,7 +846,7 @@ func canAssign(lt *shaderir.Type, rt *shaderir.Type, rc gconstant.Value) bool {
 	case shaderir.Bool:
 		return rc.Kind() == gconstant.Bool
 	case shaderir.Int:
-		return canTruncateToInteger(rc)
+		return gconstant.ToInt(rc).Kind() != gconstant.Unknown
 	case shaderir.Float:
 		return gconstant.ToFloat(rc).Kind() != gconstant.Unknown
 	}

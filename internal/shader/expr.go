@@ -353,17 +353,38 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 					cs.addError(e.Pos(), err.Error())
 					return nil, nil, nil, false
 				}
+				for i := range args {
+					if args[i].Const == nil {
+						continue
+					}
+					args[i].Const = gconstant.ToFloat(args[i].Const)
+					argts[i] = shaderir.Type{Main: shaderir.Float}
+				}
 				t = shaderir.Type{Main: shaderir.Vec2}
 			case shaderir.Vec3F:
 				if err := checkArgsForVec3BuiltinFunc(args, argts); err != nil {
 					cs.addError(e.Pos(), err.Error())
 					return nil, nil, nil, false
 				}
+				for i := range args {
+					if args[i].Const == nil {
+						continue
+					}
+					args[i].Const = gconstant.ToFloat(args[i].Const)
+					argts[i] = shaderir.Type{Main: shaderir.Float}
+				}
 				t = shaderir.Type{Main: shaderir.Vec3}
 			case shaderir.Vec4F:
 				if err := checkArgsForVec4BuiltinFunc(args, argts); err != nil {
 					cs.addError(e.Pos(), err.Error())
 					return nil, nil, nil, false
+				}
+				for i := range args {
+					if args[i].Const == nil {
+						continue
+					}
+					args[i].Const = gconstant.ToFloat(args[i].Const)
+					argts[i] = shaderir.Type{Main: shaderir.Float}
 				}
 				t = shaderir.Type{Main: shaderir.Vec4}
 			case shaderir.IVec2F:
@@ -389,17 +410,38 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 					cs.addError(e.Pos(), err.Error())
 					return nil, nil, nil, false
 				}
+				for i := range args {
+					if args[i].Const == nil {
+						continue
+					}
+					args[i].Const = gconstant.ToFloat(args[i].Const)
+					argts[i] = shaderir.Type{Main: shaderir.Float}
+				}
 				t = shaderir.Type{Main: shaderir.Mat2}
 			case shaderir.Mat3F:
 				if err := checkArgsForMat3BuiltinFunc(args, argts); err != nil {
 					cs.addError(e.Pos(), err.Error())
 					return nil, nil, nil, false
 				}
+				for i := range args {
+					if args[i].Const == nil {
+						continue
+					}
+					args[i].Const = gconstant.ToFloat(args[i].Const)
+					argts[i] = shaderir.Type{Main: shaderir.Float}
+				}
 				t = shaderir.Type{Main: shaderir.Mat3}
 			case shaderir.Mat4F:
 				if err := checkArgsForMat4BuiltinFunc(args, argts); err != nil {
 					cs.addError(e.Pos(), err.Error())
 					return nil, nil, nil, false
+				}
+				for i := range args {
+					if args[i].Const == nil {
+						continue
+					}
+					args[i].Const = gconstant.ToFloat(args[i].Const)
+					argts[i] = shaderir.Type{Main: shaderir.Float}
 				}
 				t = shaderir.Type{Main: shaderir.Mat4}
 			case shaderir.TexelAt:
@@ -598,15 +640,20 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 		}
 
 		for i, p := range f.ir.InParams {
-			if args[i].Const != nil && p.Main == shaderir.Int {
-				if !cs.forceToInt(e, &args[i]) {
-					return nil, nil, nil, false
-				}
-			}
-
 			if !canAssign(&p, &argts[i], args[i].Const) {
 				cs.addError(e.Pos(), fmt.Sprintf("cannot use type %s as type %s in argument", argts[i].String(), p.String()))
 				return nil, nil, nil, false
+			}
+
+			if args[i].Const != nil {
+				switch p.Main {
+				case shaderir.Int:
+					args[i].Const = gconstant.ToInt(args[i].Const)
+					argts[i] = shaderir.Type{Main: shaderir.Int}
+				case shaderir.Float:
+					args[i].Const = gconstant.ToFloat(args[i].Const)
+					argts[i] = shaderir.Type{Main: shaderir.Float}
+				}
 			}
 		}
 
