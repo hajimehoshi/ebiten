@@ -126,7 +126,7 @@ func (t *Type) IsVector() bool {
 	return false
 }
 
-func (t *Type) IsFloatVector() bool {
+func (t *Type) isFloatVector() bool {
 	switch t.Main {
 	case Vec2, Vec3, Vec4:
 		return true
@@ -134,7 +134,7 @@ func (t *Type) IsFloatVector() bool {
 	return false
 }
 
-func (t *Type) IsIntVector() bool {
+func (t *Type) isIntVector() bool {
 	switch t.Main {
 	case IVec2, IVec3, IVec4:
 		return true

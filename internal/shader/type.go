@@ -106,38 +106,17 @@ func (cs *compileState) parseType(block *block, fname string, expr ast.Expr) (sh
 	}
 }
 
-func canBeFloat(expr shaderir.Expr, t shaderir.Type) bool {
-	if expr.Const != nil {
-		if t.Main == shaderir.Float {
-			return true
-		}
-		if canTruncateToFloat(expr.Const) {
-			return true
-		}
-		return false
+func canBeFloatImplicitly(expr shaderir.Expr, t shaderir.Type) bool {
+	if expr.Const != nil && canTruncateToFloat(expr.Const) {
+		return true
 	}
 
+	// canBeFloatImplicitly is used for a cast-like functions like float() or vec2().
+	// A non-constant integer value is acceptable.
 	if t.Main == shaderir.Int {
 		return true
 	}
 	if t.Main == shaderir.Float {
-		return true
-	}
-	return false
-}
-
-func canBeInt(expr shaderir.Expr, t shaderir.Type) bool {
-	if expr.Const != nil {
-		if t.Main == shaderir.Float {
-			return true
-		}
-		if canTruncateToInteger(expr.Const) {
-			return true
-		}
-		return false
-	}
-
-	if t.Main == shaderir.Int {
 		return true
 	}
 	return false
@@ -171,7 +150,7 @@ func checkArgsForIntBuiltinFunc(args []shaderir.Expr, argts []shaderir.Type) err
 	if argts[0].Main == shaderir.Int || argts[0].Main == shaderir.Float {
 		return nil
 	}
-	if args[0].Const != nil && (args[0].Const.Kind() == gconstant.Float || args[0].Const.Kind() == gconstant.Int) {
+	if args[0].Const != nil && canTruncateToInteger(args[0].Const) {
 		return nil
 	}
 	return fmt.Errorf("invalid arguments for int: (%s)", argts[0].String())
@@ -185,10 +164,7 @@ func checkArgsForFloatBuiltinFunc(args []shaderir.Expr, argts []shaderir.Type) e
 	if len(args) != 1 {
 		return fmt.Errorf("number of float's arguments must be 1 but %d", len(args))
 	}
-	if argts[0].Main == shaderir.Int || argts[0].Main == shaderir.Float {
-		return nil
-	}
-	if args[0].Const != nil && (args[0].Const.Kind() == gconstant.Float || args[0].Const.Kind() == gconstant.Int) {
+	if canBeFloatImplicitly(args[0], argts[0]) {
 		return nil
 	}
 	return fmt.Errorf("invalid arguments for float: (%s)", argts[0].String())
@@ -201,15 +177,14 @@ func checkArgsForVec2BuiltinFunc(args []shaderir.Expr, argts []shaderir.Type) er
 
 	switch len(args) {
 	case 1:
-		if canBeFloat(args[0], argts[0]) {
+		if canBeFloatImplicitly(args[0], argts[0]) {
 			return nil
 		}
-		// Allow any vectors to perform a cast-like function.
 		if argts[0].IsVector() && argts[0].VectorElementCount() == 2 {
 			return nil
 		}
 	case 2:
-		if canBeFloat(args[0], argts[0]) && canBeFloat(args[1], argts[1]) {
+		if canBeFloatImplicitly(args[0], argts[0]) && canBeFloatImplicitly(args[1], argts[1]) {
 			return nil
 		}
 	default:
@@ -230,22 +205,21 @@ func checkArgsForVec3BuiltinFunc(args []shaderir.Expr, argts []shaderir.Type) er
 
 	switch len(args) {
 	case 1:
-		if canBeFloat(args[0], argts[0]) {
+		if canBeFloatImplicitly(args[0], argts[0]) {
 			return nil
 		}
-		// Allow any vectors to perform a cast-like function.
 		if argts[0].IsVector() && argts[0].VectorElementCount() == 3 {
 			return nil
 		}
 	case 2:
-		if canBeFloat(args[0], argts[0]) && argts[1].IsFloatVector() && argts[1].VectorElementCount() == 2 {
+		if canBeFloatImplicitly(args[0], argts[0]) && argts[1].IsVector() && argts[1].VectorElementCount() == 2 {
 			return nil
 		}
-		if argts[0].IsFloatVector() && argts[0].VectorElementCount() == 2 && canBeFloat(args[1], argts[1]) {
+		if argts[0].IsVector() && argts[0].VectorElementCount() == 2 && canBeFloatImplicitly(args[1], argts[1]) {
 			return nil
 		}
 	case 3:
-		if canBeFloat(args[0], argts[0]) && canBeFloat(args[1], argts[1]) && canBeFloat(args[2], argts[2]) {
+		if canBeFloatImplicitly(args[0], argts[0]) && canBeFloatImplicitly(args[1], argts[1]) && canBeFloatImplicitly(args[2], argts[2]) {
 			return nil
 		}
 	default:
@@ -266,35 +240,34 @@ func checkArgsForVec4BuiltinFunc(args []shaderir.Expr, argts []shaderir.Type) er
 
 	switch len(args) {
 	case 1:
-		if canBeFloat(args[0], argts[0]) {
+		if canBeFloatImplicitly(args[0], argts[0]) {
 			return nil
 		}
-		// Allow any vectors to perform a cast-like function.
 		if argts[0].IsVector() && argts[0].VectorElementCount() == 4 {
 			return nil
 		}
 	case 2:
-		if canBeFloat(args[0], argts[0]) && argts[1].IsFloatVector() && argts[1].VectorElementCount() == 3 {
+		if canBeFloatImplicitly(args[0], argts[0]) && argts[1].IsVector() && argts[1].VectorElementCount() == 3 {
 			return nil
 		}
-		if argts[0].IsFloatVector() && argts[0].VectorElementCount() == 2 && argts[1].IsFloatVector() && argts[1].VectorElementCount() == 2 {
+		if argts[0].IsVector() && argts[0].VectorElementCount() == 2 && argts[1].IsVector() && argts[1].VectorElementCount() == 2 {
 			return nil
 		}
-		if argts[0].IsFloatVector() && argts[0].VectorElementCount() == 3 && canBeFloat(args[1], argts[1]) {
+		if argts[0].IsVector() && argts[0].VectorElementCount() == 3 && canBeFloatImplicitly(args[1], argts[1]) {
 			return nil
 		}
 	case 3:
-		if canBeFloat(args[0], argts[0]) && canBeFloat(args[1], argts[1]) && argts[2].IsFloatVector() && argts[2].VectorElementCount() == 2 {
+		if canBeFloatImplicitly(args[0], argts[0]) && canBeFloatImplicitly(args[1], argts[1]) && argts[2].IsVector() && argts[2].VectorElementCount() == 2 {
 			return nil
 		}
-		if canBeFloat(args[0], argts[0]) && argts[1].IsFloatVector() && argts[1].VectorElementCount() == 2 && canBeFloat(args[2], argts[2]) {
+		if canBeFloatImplicitly(args[0], argts[0]) && argts[1].IsVector() && argts[1].VectorElementCount() == 2 && canBeFloatImplicitly(args[2], argts[2]) {
 			return nil
 		}
-		if argts[0].IsFloatVector() && argts[0].VectorElementCount() == 2 && canBeFloat(args[1], argts[1]) && canBeFloat(args[2], argts[2]) {
+		if argts[0].IsVector() && argts[0].VectorElementCount() == 2 && canBeFloatImplicitly(args[1], argts[1]) && canBeFloatImplicitly(args[2], argts[2]) {
 			return nil
 		}
 	case 4:
-		if canBeFloat(args[0], argts[0]) && canBeFloat(args[1], argts[1]) && canBeFloat(args[2], argts[2]) && canBeFloat(args[3], argts[3]) {
+		if canBeFloatImplicitly(args[0], argts[0]) && canBeFloatImplicitly(args[1], argts[1]) && canBeFloatImplicitly(args[2], argts[2]) && canBeFloatImplicitly(args[3], argts[3]) {
 			return nil
 		}
 	default:
@@ -308,120 +281,6 @@ func checkArgsForVec4BuiltinFunc(args []shaderir.Expr, argts []shaderir.Type) er
 	return fmt.Errorf("invalid arguments for vec4: (%s)", strings.Join(str, ", "))
 }
 
-func checkArgsForIVec2BuiltinFunc(args []shaderir.Expr, argts []shaderir.Type) error {
-	if len(args) != len(argts) {
-		return fmt.Errorf("the number of arguments and types doesn't match: %d vs %d", len(args), len(argts))
-	}
-
-	switch len(args) {
-	case 1:
-		if canBeInt(args[0], argts[0]) {
-			return nil
-		}
-		// Allow any vectors to perform a cast-like function.
-		if argts[0].IsVector() && argts[0].VectorElementCount() == 2 {
-			return nil
-		}
-	case 2:
-		if canBeInt(args[0], argts[0]) && canBeInt(args[1], argts[1]) {
-			return nil
-		}
-	default:
-		return fmt.Errorf("invalid number of arguments for vec2")
-	}
-
-	var str []string
-	for _, t := range argts {
-		str = append(str, t.String())
-	}
-	return fmt.Errorf("invalid arguments for ivec2: (%s)", strings.Join(str, ", "))
-}
-
-func checkArgsForIVec3BuiltinFunc(args []shaderir.Expr, argts []shaderir.Type) error {
-	if len(args) != len(argts) {
-		return fmt.Errorf("the number of arguments and types doesn't match: %d vs %d", len(args), len(argts))
-	}
-
-	switch len(args) {
-	case 1:
-		if canBeInt(args[0], argts[0]) {
-			return nil
-		}
-		// Allow any vectors to perform a cast-like function.
-		if argts[0].IsVector() && argts[0].VectorElementCount() == 3 {
-			return nil
-		}
-	case 2:
-		if canBeInt(args[0], argts[0]) && argts[1].IsIntVector() && argts[1].VectorElementCount() == 2 {
-			return nil
-		}
-		if argts[0].IsIntVector() && argts[0].VectorElementCount() == 2 && canBeInt(args[1], argts[1]) {
-			return nil
-		}
-	case 3:
-		if canBeInt(args[0], argts[0]) && canBeInt(args[1], argts[1]) && canBeInt(args[2], argts[2]) {
-			return nil
-		}
-	default:
-		return fmt.Errorf("invalid number of arguments for vec3")
-	}
-
-	var str []string
-	for _, t := range argts {
-		str = append(str, t.String())
-	}
-	return fmt.Errorf("invalid arguments for ivec3: (%s)", strings.Join(str, ", "))
-}
-
-func checkArgsForIVec4BuiltinFunc(args []shaderir.Expr, argts []shaderir.Type) error {
-	if len(args) != len(argts) {
-		return fmt.Errorf("the number of arguments and types doesn't match: %d vs %d", len(args), len(argts))
-	}
-
-	switch len(args) {
-	case 1:
-		if canBeInt(args[0], argts[0]) {
-			return nil
-		}
-		// Allow any vectors to perform a cast-like function.
-		if argts[0].IsVector() && argts[0].VectorElementCount() == 4 {
-			return nil
-		}
-	case 2:
-		if canBeInt(args[0], argts[0]) && argts[1].IsIntVector() && argts[1].VectorElementCount() == 3 {
-			return nil
-		}
-		if argts[0].IsIntVector() && argts[0].VectorElementCount() == 2 && argts[1].IsIntVector() && argts[1].VectorElementCount() == 2 {
-			return nil
-		}
-		if argts[0].IsIntVector() && argts[0].VectorElementCount() == 3 && canBeInt(args[1], argts[1]) {
-			return nil
-		}
-	case 3:
-		if canBeInt(args[0], argts[0]) && canBeInt(args[1], argts[1]) && argts[2].IsIntVector() && argts[2].VectorElementCount() == 2 {
-			return nil
-		}
-		if canBeInt(args[0], argts[0]) && argts[1].IsIntVector() && argts[1].VectorElementCount() == 2 && canBeInt(args[2], argts[2]) {
-			return nil
-		}
-		if argts[0].IsIntVector() && argts[0].VectorElementCount() == 2 && canBeInt(args[1], argts[1]) && canBeInt(args[2], argts[2]) {
-			return nil
-		}
-	case 4:
-		if canBeInt(args[0], argts[0]) && canBeInt(args[1], argts[1]) && canBeInt(args[2], argts[2]) && canBeInt(args[3], argts[3]) {
-			return nil
-		}
-	default:
-		return fmt.Errorf("invalid number of arguments for vec4")
-	}
-
-	var str []string
-	for _, t := range argts {
-		str = append(str, t.String())
-	}
-	return fmt.Errorf("invalid arguments for ivec4: (%s)", strings.Join(str, ", "))
-}
-
 func checkArgsForMat2BuiltinFunc(args []shaderir.Expr, argts []shaderir.Type) error {
 	if len(args) != len(argts) {
 		return fmt.Errorf("the number of arguments and types doesn't match: %d vs %d", len(args), len(argts))
@@ -429,20 +288,20 @@ func checkArgsForMat2BuiltinFunc(args []shaderir.Expr, argts []shaderir.Type) er
 
 	switch len(args) {
 	case 1:
-		if canBeFloat(args[0], argts[0]) {
+		if canBeFloatImplicitly(args[0], argts[0]) {
 			return nil
 		}
 		if argts[0].Main == shaderir.Mat2 {
 			return nil
 		}
 	case 2:
-		if argts[0].IsFloatVector() && argts[0].VectorElementCount() == 2 && argts[1].IsFloatVector() && argts[1].VectorElementCount() == 2 {
+		if argts[0].IsVector() && argts[0].VectorElementCount() == 2 && argts[1].IsVector() && argts[1].VectorElementCount() == 2 {
 			return nil
 		}
 	case 4:
 		ok := true
 		for i := range argts {
-			if !canBeFloat(args[i], argts[i]) {
+			if !canBeFloatImplicitly(args[i], argts[i]) {
 				ok = false
 				break
 			}
@@ -468,22 +327,22 @@ func checkArgsForMat3BuiltinFunc(args []shaderir.Expr, argts []shaderir.Type) er
 
 	switch len(args) {
 	case 1:
-		if canBeFloat(args[0], argts[0]) {
+		if canBeFloatImplicitly(args[0], argts[0]) {
 			return nil
 		}
 		if argts[0].Main == shaderir.Mat3 {
 			return nil
 		}
 	case 3:
-		if argts[0].IsFloatVector() && argts[0].VectorElementCount() == 3 &&
-			argts[1].IsFloatVector() && argts[1].VectorElementCount() == 3 &&
-			argts[2].IsFloatVector() && argts[2].VectorElementCount() == 3 {
+		if argts[0].IsVector() && argts[0].VectorElementCount() == 3 &&
+			argts[1].IsVector() && argts[1].VectorElementCount() == 3 &&
+			argts[2].IsVector() && argts[2].VectorElementCount() == 3 {
 			return nil
 		}
 	case 9:
 		ok := true
 		for i := range argts {
-			if !canBeFloat(args[i], argts[i]) {
+			if !canBeFloatImplicitly(args[i], argts[i]) {
 				ok = false
 				break
 			}
@@ -509,23 +368,23 @@ func checkArgsForMat4BuiltinFunc(args []shaderir.Expr, argts []shaderir.Type) er
 
 	switch len(args) {
 	case 1:
-		if canBeFloat(args[0], argts[0]) {
+		if canBeFloatImplicitly(args[0], argts[0]) {
 			return nil
 		}
 		if argts[0].Main == shaderir.Mat4 {
 			return nil
 		}
 	case 4:
-		if argts[0].IsFloatVector() && argts[0].VectorElementCount() == 4 &&
-			argts[1].IsFloatVector() && argts[1].VectorElementCount() == 4 &&
-			argts[2].IsFloatVector() && argts[2].VectorElementCount() == 4 &&
-			argts[3].IsFloatVector() && argts[3].VectorElementCount() == 4 {
+		if argts[0].IsVector() && argts[0].VectorElementCount() == 4 &&
+			argts[1].IsVector() && argts[1].VectorElementCount() == 4 &&
+			argts[2].IsVector() && argts[2].VectorElementCount() == 4 &&
+			argts[3].IsVector() && argts[3].VectorElementCount() == 4 {
 			return nil
 		}
 	case 16:
 		ok := true
 		for i := range argts {
-			if !canBeFloat(args[i], argts[i]) {
+			if !canBeFloatImplicitly(args[i], argts[i]) {
 				ok = false
 				break
 			}

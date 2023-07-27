@@ -39,10 +39,10 @@ func ResolveUntypedConstsForBinaryOp(lhs, rhs constant.Value, lhst, rhst Type) (
 	}
 
 	if lhst.Main == None {
-		if (rhst.Main == Float || rhst.IsFloatVector() || rhst.IsMatrix()) && constant.ToFloat(lhs).Kind() != constant.Unknown {
+		if (rhst.Main == Float || rhst.isFloatVector() || rhst.IsMatrix()) && constant.ToFloat(lhs).Kind() != constant.Unknown {
 			return constant.ToFloat(lhs), rhs, true
 		}
-		if (rhst.Main == Int || rhst.IsIntVector()) && constant.ToInt(lhs).Kind() != constant.Unknown {
+		if (rhst.Main == Int || rhst.isIntVector()) && constant.ToInt(lhs).Kind() != constant.Unknown {
 			return constant.ToInt(lhs), rhs, true
 		}
 		if rhst.Main == Bool && lhs.Kind() == constant.Bool {
@@ -52,10 +52,10 @@ func ResolveUntypedConstsForBinaryOp(lhs, rhs constant.Value, lhst, rhst Type) (
 	}
 
 	if rhst.Main == None {
-		if (lhst.Main == Float || lhst.IsFloatVector() || lhst.IsMatrix()) && constant.ToFloat(rhs).Kind() != constant.Unknown {
+		if (lhst.Main == Float || lhst.isFloatVector() || lhst.IsMatrix()) && constant.ToFloat(rhs).Kind() != constant.Unknown {
 			return lhs, constant.ToFloat(rhs), true
 		}
-		if (lhst.Main == Int || lhst.IsIntVector()) && constant.ToInt(rhs).Kind() != constant.Unknown {
+		if (lhst.Main == Int || lhst.isIntVector()) && constant.ToInt(rhs).Kind() != constant.Unknown {
 			return lhs, constant.ToInt(rhs), true
 		}
 		if lhst.Main == Bool && rhs.Kind() == constant.Bool {
@@ -122,7 +122,7 @@ func AreValidTypesForBinaryOp(op Op, lhs, rhs *Expr, lhst, rhst Type) bool {
 		if lhst.Main == IVec4 && rhst.Main == IVec4 {
 			return true
 		}
-		return (lhst.Main == Int || lhst.IsIntVector()) && rhst.Main == Int
+		return (lhst.Main == Int || lhst.isIntVector()) && rhst.Main == Int
 	}
 
 	if lhst.Equal(&rhst) {
@@ -164,16 +164,16 @@ func AreValidTypesForBinaryOp(op Op, lhs, rhs *Expr, lhst, rhst Type) bool {
 		// fallback
 	}
 
-	if lhst.IsFloatVector() && rhst.Main == Float {
+	if lhst.isFloatVector() && rhst.Main == Float {
 		return true
 	}
-	if rhst.IsFloatVector() && lhst.Main == Float {
+	if rhst.isFloatVector() && lhst.Main == Float {
 		return true
 	}
-	if lhst.IsIntVector() && rhst.Main == Int {
+	if lhst.isIntVector() && rhst.Main == Int {
 		return true
 	}
-	if rhst.IsIntVector() && lhst.Main == Int {
+	if rhst.isIntVector() && lhst.Main == Int {
 		return true
 	}
 
