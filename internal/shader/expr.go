@@ -291,14 +291,20 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 				}
 			case shaderir.IntF:
 				if len(args) == 1 && args[0].Const != nil {
-					if !canTruncateToInteger(args[0].Const) {
-						cs.addError(e.Pos(), fmt.Sprintf("cannot convert %s to type int", args[0].Const.String()))
-						return nil, nil, nil, false
+					var v int64
+					switch args[0].Const.Kind() {
+					case gconstant.Int:
+						v, _ = gconstant.Int64Val(args[0].Const)
+					case gconstant.Float:
+						fv, _ := gconstant.Float64Val(args[0].Const)
+						v = int64(fv)
+					default:
+						panic("not reached")
 					}
 					return []shaderir.Expr{
 						{
 							Type:      shaderir.NumberExpr,
-							Const:     gconstant.ToInt(args[0].Const),
+							Const:     gconstant.MakeInt64(v),
 							ConstType: shaderir.ConstTypeInt,
 						},
 					}, []shaderir.Type{{Main: shaderir.Int}}, stmts, true
@@ -357,19 +363,19 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 				}
 				t = shaderir.Type{Main: shaderir.Vec4}
 			case shaderir.IVec2F:
-				if err := checkArgsForVec2BuiltinFunc(args, argts); err != nil {
+				if err := checkArgsForIVec2BuiltinFunc(args, argts); err != nil {
 					cs.addError(e.Pos(), err.Error())
 					return nil, nil, nil, false
 				}
 				t = shaderir.Type{Main: shaderir.IVec2}
 			case shaderir.IVec3F:
-				if err := checkArgsForVec3BuiltinFunc(args, argts); err != nil {
+				if err := checkArgsForIVec3BuiltinFunc(args, argts); err != nil {
 					cs.addError(e.Pos(), err.Error())
 					return nil, nil, nil, false
 				}
 				t = shaderir.Type{Main: shaderir.IVec3}
 			case shaderir.IVec4F:
-				if err := checkArgsForVec4BuiltinFunc(args, argts); err != nil {
+				if err := checkArgsForIVec4BuiltinFunc(args, argts); err != nil {
 					cs.addError(e.Pos(), err.Error())
 					return nil, nil, nil, false
 				}
