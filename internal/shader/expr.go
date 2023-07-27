@@ -438,7 +438,7 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 				}
 				for i := range args {
 					// If the argument is a non-typed constant value, treat this as a float value (#1874).
-					if args[i].Const != nil && args[i].ConstType == shaderir.ConstTypeNone && gconstant.ToFloat(args[i].Const).Kind() != gconstant.Unknown {
+					if args[i].Const != nil && argts[i].Main == shaderir.None && gconstant.ToFloat(args[i].Const).Kind() != gconstant.Unknown {
 						args[i].Const = gconstant.ToFloat(args[i].Const)
 						args[i].ConstType = shaderir.ConstTypeFloat
 						argts[i] = shaderir.Type{Main: shaderir.Float}
@@ -499,7 +499,7 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 				}
 				for i := range args {
 					// If the argument is a non-typed constant value, treat this as a float value (#1874).
-					if args[i].Const != nil && args[i].ConstType == shaderir.ConstTypeNone && gconstant.ToFloat(args[i].Const).Kind() != gconstant.Unknown {
+					if args[i].Const != nil && argts[i].Main == shaderir.None && gconstant.ToFloat(args[i].Const).Kind() != gconstant.Unknown {
 						args[i].Const = gconstant.ToFloat(args[i].Const)
 						args[i].ConstType = shaderir.ConstTypeFloat
 						argts[i] = shaderir.Type{Main: shaderir.Float}
@@ -550,7 +550,7 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 					return nil, nil, nil, false
 				}
 				// If the argument is a non-typed constant value, treat this as a float value (#1874).
-				if args[0].Const != nil && args[0].ConstType == shaderir.ConstTypeNone && gconstant.ToFloat(args[0].Const).Kind() != gconstant.Unknown {
+				if args[0].Const != nil && argts[0].Main == shaderir.None && gconstant.ToFloat(args[0].Const).Kind() != gconstant.Unknown {
 					args[0].Const = gconstant.ToFloat(args[0].Const)
 					args[0].ConstType = shaderir.ConstTypeFloat
 					argts[0] = shaderir.Type{Main: shaderir.Float}
