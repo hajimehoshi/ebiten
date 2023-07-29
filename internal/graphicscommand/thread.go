@@ -31,7 +31,7 @@ func SetRenderThread(thread Thread) {
 	theRenderThread = thread
 }
 
-// runOnRenderThread calls f on the rendering thread, and returns an error if any.
+// runOnRenderThread calls f on the rendering thread.
 func runOnRenderThread(f func()) {
 	theRenderThread.Call(f)
 }
