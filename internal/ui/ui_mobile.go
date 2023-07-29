@@ -331,7 +331,7 @@ func (u *userInterfaceImpl) update() error {
 	}()
 
 	w, h := u.outsideSize()
-	if err := u.context.updateFrame(u.graphicsDriver, w, h, deviceScale(), u); err != nil {
+	if err := u.context.updateFrame(u.graphicsDriver, w, h, deviceScale(), u, nil); err != nil {
 		return err
 	}
 	return nil

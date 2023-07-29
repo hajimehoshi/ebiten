@@ -171,7 +171,7 @@ func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, buf []byte, r
 		result: buf,
 	}
 	theCommandQueue.Enqueue(c)
-	if err := theCommandQueue.Flush(graphicsDriver, false); err != nil {
+	if err := theCommandQueue.Flush(graphicsDriver, false, nil); err != nil {
 		return err
 	}
 	return nil
@@ -201,7 +201,7 @@ func (i *Image) IsInvalidated(graphicsDriver graphicsdriver.Graphics) (bool, err
 		image: i,
 	}
 	theCommandQueue.Enqueue(c)
-	if err := theCommandQueue.Flush(graphicsDriver, false); err != nil {
+	if err := theCommandQueue.Flush(graphicsDriver, false, nil); err != nil {
 		return false, err
 	}
 	return c.result, nil

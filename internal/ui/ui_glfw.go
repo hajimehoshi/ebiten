@@ -1087,18 +1087,16 @@ func (u *userInterfaceImpl) updateGame() error {
 		})
 	})
 
-	if err := u.context.updateFrame(u.graphicsDriver, outsideWidth, outsideHeight, deviceScaleFactor, u); err != nil {
-		return err
-	}
-
-	u.renderThread.Call(func() {
+	if err := u.context.updateFrame(u.graphicsDriver, outsideWidth, outsideHeight, deviceScaleFactor, u, func() {
 		// Call updateVsync even though fpsMode is not updated.
 		// When toggling to fullscreen, vsync state might be reset unexpectedly (#1787).
 		u.updateVsyncOnRenderThread()
 
 		// This works only for OpenGL.
 		u.swapBuffersOnRenderThread()
-	})
+	}); err != nil {
+		return err
+	}
 
 	u.bufferOnceSwappedOnce.Do(func() {
 		u.mainThread.Call(func() {

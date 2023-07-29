@@ -788,10 +788,10 @@ func (i *Image) DumpScreenshot(graphicsDriver graphicsdriver.Graphics, path stri
 	return i.backend.restorable.Dump(graphicsDriver, path, blackbg, image.Rect(0, 0, i.width, i.height))
 }
 
-func EndFrame(graphicsDriver graphicsdriver.Graphics) error {
+func EndFrame(graphicsDriver graphicsdriver.Graphics, swapBuffersForGL func()) error {
 	backendsM.Lock()
 
-	if err := restorable.EndFrame(graphicsDriver); err != nil {
+	if err := restorable.EndFrame(graphicsDriver, swapBuffersForGL); err != nil {
 		return err
 	}
 

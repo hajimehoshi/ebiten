@@ -21,7 +21,7 @@ import (
 )
 
 func ResolveStaleImages(graphicsDriver graphicsdriver.Graphics) error {
-	return resolveStaleImages(graphicsDriver, false)
+	return resolveStaleImages(graphicsDriver, false, nil)
 }
 
 func AppendRegionRemovingDuplicates(regions *[]image.Rectangle, region image.Rectangle) {

@@ -56,7 +56,7 @@ var theImages = &images{
 	shaders: map[*Shader]struct{}{},
 }
 
-func EndFrame(graphicsDriver graphicsdriver.Graphics) error {
+func EndFrame(graphicsDriver graphicsdriver.Graphics, swapBuffersForGL func()) error {
 	if debug.IsDebug {
 		debug.Logf("Internal image sizes:\n")
 		imgs := make([]*graphicscommand.Image, 0, len(theImages.images))
@@ -65,13 +65,13 @@ func EndFrame(graphicsDriver graphicsdriver.Graphics) error {
 		}
 		graphicscommand.LogImagesInfo(imgs)
 	}
-	return resolveStaleImages(graphicsDriver, true)
+	return resolveStaleImages(graphicsDriver, true, swapBuffersForGL)
 }
 
 // resolveStaleImages flushes the queued draw commands and resolves all stale images.
 // If endFrame is true, the current screen might be used to present when flushing the commands.
-func resolveStaleImages(graphicsDriver graphicsdriver.Graphics, endFrame bool) error {
-	if err := graphicscommand.FlushCommands(graphicsDriver, endFrame); err != nil {
+func resolveStaleImages(graphicsDriver graphicsdriver.Graphics, endFrame bool, swapBuffersForGL func()) error {
+	if err := graphicscommand.FlushCommands(graphicsDriver, endFrame, swapBuffersForGL); err != nil {
 		return err
 	}
 	if !needsRestoring() {

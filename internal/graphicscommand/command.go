@@ -164,9 +164,16 @@ func (q *commandQueue) Enqueue(command command) {
 }
 
 // Flush flushes the command queue.
-func (q *commandQueue) Flush(graphicsDriver graphicsdriver.Graphics, endFrame bool) (err error) {
+func (q *commandQueue) Flush(graphicsDriver graphicsdriver.Graphics, endFrame bool, swapBuffersForGL func()) (err error) {
 	runOnRenderThread(func() {
 		err = q.flush(graphicsDriver, endFrame)
+		if err != nil {
+			return
+		}
+
+		if endFrame && swapBuffersForGL != nil {
+			swapBuffersForGL()
+		}
 	})
 	if endFrame {
 		q.uint32sBuffer.reset()
@@ -253,9 +260,9 @@ func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics, endFrame bo
 
 // FlushCommands flushes the command queue and present the screen if needed.
 // If endFrame is true, the current screen might be used to present.
-func FlushCommands(graphicsDriver graphicsdriver.Graphics, endFrame bool) error {
+func FlushCommands(graphicsDriver graphicsdriver.Graphics, endFrame bool, swapBuffersForGL func()) error {
 	flushImageBuffers()
-	return theCommandQueue.Flush(graphicsDriver, endFrame)
+	return theCommandQueue.Flush(graphicsDriver, endFrame, swapBuffersForGL)
 }
 
 // drawTrianglesCommand represents a drawing command to draw an image on another image.
