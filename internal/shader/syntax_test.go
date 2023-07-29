@@ -3260,6 +3260,20 @@ func foo(x vec2) {
 }`)); err == nil {
 		t.Error("compileToIR must return an error but did not")
 	}
+
+	// Issue #2711
+	if _, err := compileToIR([]byte(`package main
+
+var Foo float = 1
+`)); err == nil {
+		t.Error("compileToIR must return an error but did not")
+	}
+	if _, err := compileToIR([]byte(`package main
+
+var Foo, Bar int = 1, 1
+`)); err == nil {
+		t.Error("compileToIR must return an error but did not")
+	}
 }
 
 // Issue #2705

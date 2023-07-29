@@ -395,6 +395,11 @@ func (cs *compileState) parseDecl(b *block, fname string, d ast.Decl) ([]shaderi
 
 				stmts = append(stmts, ss...)
 				if b == &cs.global {
+					if len(inits) > 0 {
+						cs.addError(s.Pos(), "a uniform variable cannot have initial values")
+						return nil, false
+					}
+
 					// TODO: Should rhs be ignored?
 					for i, v := range vs {
 						if !strings.HasPrefix(v.name, "__") {
