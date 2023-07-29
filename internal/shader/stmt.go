@@ -30,7 +30,6 @@ func (cs *compileState) forceToInt(node ast.Node, expr *shaderir.Expr) bool {
 		return false
 	}
 	expr.Const = gconstant.ToInt(expr.Const)
-	expr.ConstType = shaderir.ConstTypeInt
 	return true
 }
 
@@ -124,7 +123,6 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 						(rts[0].Main == shaderir.None || rts[0].Main == shaderir.Float) &&
 						gconstant.ToFloat(rhs[0].Const).Kind() != gconstant.Unknown {
 						rhs[0].Const = gconstant.ToFloat(rhs[0].Const)
-						rhs[0].ConstType = shaderir.ConstTypeFloat
 					} else {
 						cs.addError(stmt.Pos(), fmt.Sprintf("invalid operation: mismatched types %s and %s", lts[0].String(), rts[0].String()))
 						return nil, false
@@ -137,7 +135,6 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 								gconstant.ToFloat(rhs[0].Const).Kind() != gconstant.Unknown)) {
 						if rhs[0].Const != nil {
 							rhs[0].Const = gconstant.ToFloat(rhs[0].Const)
-							rhs[0].ConstType = shaderir.ConstTypeFloat
 						}
 					} else if op == shaderir.MatrixMul && ((lts[0].Main == shaderir.Vec2 && rts[0].Main == shaderir.Mat2) ||
 						(lts[0].Main == shaderir.Vec3 && rts[0].Main == shaderir.Mat3) ||
@@ -150,7 +147,6 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 								gconstant.ToFloat(rhs[0].Const).Kind() != gconstant.Unknown)) {
 						if rhs[0].Const != nil {
 							rhs[0].Const = gconstant.ToFloat(rhs[0].Const)
-							rhs[0].ConstType = shaderir.ConstTypeFloat
 						}
 					} else {
 						cs.addError(stmt.Pos(), fmt.Sprintf("invalid operation: mismatched types %s and %s", lts[0].String(), rts[0].String()))
@@ -442,9 +438,8 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 					Exprs: []shaderir.Expr{
 						exprs[0],
 						{
-							Type:      shaderir.NumberExpr,
-							Const:     gconstant.MakeInt64(1),
-							ConstType: shaderir.ConstTypeInt,
+							Type:  shaderir.NumberExpr,
+							Const: gconstant.MakeInt64(1),
 						},
 					},
 				},
@@ -691,20 +686,6 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 				return nil, false
 			}
 			allblank = false
-
-			if r[0].Const != nil {
-				t, ok := block.findLocalVariableByIndex(l[0].Index)
-				if !ok {
-					cs.addError(pos, fmt.Sprintf("unexpected local variable index: %d", l[0].Index))
-					return nil, false
-				}
-				switch t.Main {
-				case shaderir.Int:
-					r[0].ConstType = shaderir.ConstTypeInt
-				case shaderir.Float:
-					r[0].ConstType = shaderir.ConstTypeFloat
-				}
-			}
 
 			for i := range lts {
 				if !canAssign(&lts[i], &rts[i], r[i].Const) {

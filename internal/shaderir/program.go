@@ -101,16 +101,6 @@ const (
 	Discard
 )
 
-// TODO: Remove ConstType (#2550)
-type ConstType int
-
-const (
-	ConstTypeNone ConstType = iota
-	ConstTypeBool
-	ConstTypeInt
-	ConstTypeFloat
-)
-
 type Expr struct {
 	Type        ExprType
 	Exprs       []Expr
@@ -119,9 +109,6 @@ type Expr struct {
 	Swizzling   string
 	Index       int
 	Op          Op
-
-	// TODO: Remove ConstType (#2550)
-	ConstType ConstType
 }
 
 type ExprType int

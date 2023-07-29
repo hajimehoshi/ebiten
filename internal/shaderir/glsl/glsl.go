@@ -377,26 +377,17 @@ func (c *compileContext) function(p *shaderir.Program, f *shaderir.Func, prototy
 	return lines
 }
 
-func constantToNumberLiteral(t shaderir.ConstType, v constant.Value) string {
+func constantToNumberLiteral(v constant.Value) string {
 	switch v.Kind() {
 	case constant.Bool:
-		if t != shaderir.ConstTypeBool && t != shaderir.ConstTypeNone {
-			return fmt.Sprintf("!(unexpected const-type for bool: %d)", t)
-		}
 		if constant.BoolVal(v) {
 			return "true"
 		}
 		return "false"
 	case constant.Int:
-		if t != shaderir.ConstTypeInt && t != shaderir.ConstTypeNone {
-			return fmt.Sprintf("!(unexpected const-type for int: %d)", t)
-		}
 		x, _ := constant.Int64Val(v)
 		return fmt.Sprintf("%d", x)
 	case constant.Float:
-		if t != shaderir.ConstTypeFloat && t != shaderir.ConstTypeNone {
-			return fmt.Sprintf("!(unexpected const-type for float: %d)", t)
-		}
 		x, _ := constant.Float64Val(v)
 		if i := math.Floor(x); i == x {
 			return fmt.Sprintf("%d.0", int64(i))
@@ -477,7 +468,7 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 	expr = func(e *shaderir.Expr) string {
 		switch e.Type {
 		case shaderir.NumberExpr:
-			return constantToNumberLiteral(e.ConstType, e.Const)
+			return constantToNumberLiteral(e.Const)
 		case shaderir.UniformVariable:
 			return fmt.Sprintf("U%d", e.Index)
 		case shaderir.TextureVariable:
@@ -564,14 +555,6 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 			}
 			lines = append(lines, fmt.Sprintf("%s}", idt))
 		case shaderir.For:
-			var ct shaderir.ConstType
-			switch s.ForVarType.Main {
-			case shaderir.Int:
-				ct = shaderir.ConstTypeInt
-			case shaderir.Float:
-				ct = shaderir.ConstTypeFloat
-			}
-
 			v := c.localVariableName(p, topBlock, s.ForVarIndex)
 			var delta string
 			switch val, _ := constant.Float64Val(s.ForDelta); val {
@@ -584,10 +567,10 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 			default:
 				d := s.ForDelta
 				if val > 0 {
-					delta = fmt.Sprintf("%s += %s", v, constantToNumberLiteral(ct, d))
+					delta = fmt.Sprintf("%s += %s", v, constantToNumberLiteral(d))
 				} else {
 					d = constant.UnaryOp(token.SUB, d, 0)
-					delta = fmt.Sprintf("%s -= %s", v, constantToNumberLiteral(ct, d))
+					delta = fmt.Sprintf("%s -= %s", v, constantToNumberLiteral(d))
 				}
 			}
 			var op string
@@ -599,8 +582,8 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 			}
 
 			t := s.ForVarType
-			init := constantToNumberLiteral(ct, s.ForInit)
-			end := constantToNumberLiteral(ct, s.ForEnd)
+			init := constantToNumberLiteral(s.ForInit)
+			end := constantToNumberLiteral(s.ForEnd)
 			t0, t1 := typeString(&t)
 			lines = append(lines, fmt.Sprintf("%sfor (%s %s%s = %s; %s %s %s; %s) {", idt, t0, v, t1, init, v, op, end, delta))
 			lines = append(lines, c.block(p, topBlock, s.Blocks[0], level+1)...)

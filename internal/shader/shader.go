@@ -37,7 +37,6 @@ type variable struct {
 type constant struct {
 	name  string
 	typ   shaderir.Type
-	ctyp  shaderir.ConstType
 	value gconstant.Value
 }
 
@@ -550,15 +549,6 @@ func (s *compileState) parseVariable(block *block, fname string, vs *ast.ValueSp
 				}
 			}
 
-			if es[0].Type == shaderir.NumberExpr {
-				switch t.Main {
-				case shaderir.Int:
-					es[0].ConstType = shaderir.ConstTypeInt
-				case shaderir.Float:
-					es[0].ConstType = shaderir.ConstTypeFloat
-				}
-			}
-
 			for i, rt := range rts {
 				if !canAssign(&t, &rt, es[i].Const) {
 					s.addError(vs.Pos(), fmt.Sprintf("cannot use type %s as type %s in variable declaration", rt.String(), t.String()))
@@ -682,22 +672,17 @@ func (s *compileState) parseConstant(block *block, fname string, vs *ast.ValueSp
 		}
 
 		c := es[0].Const
-		constType := es[0].ConstType
 		switch t.Main {
 		case shaderir.Bool:
-			constType = shaderir.ConstTypeBool
 		case shaderir.Int:
-			constType = shaderir.ConstTypeInt
 			c = gconstant.ToInt(c)
 		case shaderir.Float:
-			constType = shaderir.ConstTypeFloat
 			c = gconstant.ToFloat(c)
 		}
 
 		cs = append(cs, constant{
 			name:  name,
 			typ:   t,
-			ctyp:  constType,
 			value: c,
 		})
 	}

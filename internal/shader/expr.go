@@ -112,31 +112,24 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 		// If either is typed, resolve the other type.
 		// If both are untyped, keep them untyped.
 		if lhst.Main != shaderir.None || rhst.Main != shaderir.None {
-			// TODO: Remove ConstType (#2550)
 			if lhs[0].Const != nil {
 				switch lhs[0].Const.Kind() {
 				case gconstant.Float:
 					lhst = shaderir.Type{Main: shaderir.Float}
-					lhs[0].ConstType = shaderir.ConstTypeFloat
 				case gconstant.Int:
 					lhst = shaderir.Type{Main: shaderir.Int}
-					lhs[0].ConstType = shaderir.ConstTypeInt
 				case gconstant.Bool:
 					lhst = shaderir.Type{Main: shaderir.Bool}
-					lhs[0].ConstType = shaderir.ConstTypeBool
 				}
 			}
 			if rhs[0].Const != nil {
 				switch rhs[0].Const.Kind() {
 				case gconstant.Float:
 					rhst = shaderir.Type{Main: shaderir.Float}
-					rhs[0].ConstType = shaderir.ConstTypeFloat
 				case gconstant.Int:
 					rhst = shaderir.Type{Main: shaderir.Int}
-					rhs[0].ConstType = shaderir.ConstTypeInt
 				case gconstant.Bool:
 					rhst = shaderir.Type{Main: shaderir.Bool}
-					rhs[0].ConstType = shaderir.ConstTypeBool
 				}
 			}
 		}
@@ -274,9 +267,8 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 				}
 				return []shaderir.Expr{
 					{
-						Type:      shaderir.NumberExpr,
-						Const:     gconstant.MakeInt64(int64(argts[0].Length)),
-						ConstType: shaderir.ConstTypeInt,
+						Type:  shaderir.NumberExpr,
+						Const: gconstant.MakeInt64(int64(argts[0].Length)),
 					},
 				}, []shaderir.Type{{Main: shaderir.Int}}, stmts, true
 			case shaderir.BoolF:
@@ -287,9 +279,8 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 					}
 					return []shaderir.Expr{
 						{
-							Type:      shaderir.NumberExpr,
-							Const:     args[0].Const,
-							ConstType: shaderir.ConstTypeBool,
+							Type:  shaderir.NumberExpr,
+							Const: args[0].Const,
 						},
 					}, []shaderir.Type{{Main: shaderir.Bool}}, stmts, true
 				}
@@ -304,9 +295,8 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 					}
 					return []shaderir.Expr{
 						{
-							Type:      shaderir.NumberExpr,
-							Const:     v,
-							ConstType: shaderir.ConstTypeInt,
+							Type:  shaderir.NumberExpr,
+							Const: v,
 						},
 					}, []shaderir.Type{{Main: shaderir.Int}}, stmts, true
 				}
@@ -319,9 +309,8 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 					}
 					return []shaderir.Expr{
 						{
-							Type:      shaderir.NumberExpr,
-							Const:     v,
-							ConstType: shaderir.ConstTypeFloat,
+							Type:  shaderir.NumberExpr,
+							Const: v,
 						},
 					}, []shaderir.Type{{Main: shaderir.Float}}, stmts, true
 				}
@@ -482,7 +471,6 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 					// If the argument is a non-typed constant value, treat this as a float value (#1874).
 					if args[i].Const != nil && argts[i].Main == shaderir.None && gconstant.ToFloat(args[i].Const).Kind() != gconstant.Unknown {
 						args[i].Const = gconstant.ToFloat(args[i].Const)
-						args[i].ConstType = shaderir.ConstTypeFloat
 						argts[i] = shaderir.Type{Main: shaderir.Float}
 					}
 					if argts[i].Main != shaderir.Float && argts[i].Main != shaderir.Vec2 && argts[i].Main != shaderir.Vec3 && argts[i].Main != shaderir.Vec4 {
@@ -543,7 +531,6 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 					// If the argument is a non-typed constant value, treat this as a float value (#1874).
 					if args[i].Const != nil && argts[i].Main == shaderir.None && gconstant.ToFloat(args[i].Const).Kind() != gconstant.Unknown {
 						args[i].Const = gconstant.ToFloat(args[i].Const)
-						args[i].ConstType = shaderir.ConstTypeFloat
 						argts[i] = shaderir.Type{Main: shaderir.Float}
 					}
 					if argts[i].Main != shaderir.Float && argts[i].Main != shaderir.Vec2 && argts[i].Main != shaderir.Vec3 && argts[i].Main != shaderir.Vec4 {
@@ -594,7 +581,6 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 				// If the argument is a non-typed constant value, treat this as a float value (#1874).
 				if args[0].Const != nil && argts[0].Main == shaderir.None && gconstant.ToFloat(args[0].Const).Kind() != gconstant.Unknown {
 					args[0].Const = gconstant.ToFloat(args[0].Const)
-					args[0].ConstType = shaderir.ConstTypeFloat
 					argts[0] = shaderir.Type{Main: shaderir.Float}
 				}
 				switch callee.BuiltinFunc {
@@ -737,9 +723,8 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 		if c, ok := block.findConstant(e.Name); ok {
 			return []shaderir.Expr{
 				{
-					Type:      shaderir.NumberExpr,
-					Const:     c.value,
-					ConstType: c.ctyp,
+					Type:  shaderir.NumberExpr,
+					Const: c.value,
 				},
 			}, []shaderir.Type{c.typ}, nil, true
 		}
@@ -928,9 +913,8 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 								Index: idx,
 							},
 							{
-								Type:      shaderir.NumberExpr,
-								Const:     gconstant.MakeInt64(int64(i)),
-								ConstType: shaderir.ConstTypeInt,
+								Type:  shaderir.NumberExpr,
+								Const: gconstant.MakeInt64(int64(i)),
 							},
 						},
 					},
@@ -966,7 +950,6 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 				cs.addError(e.Pos(), fmt.Sprintf("constant %s truncated to integer", idx.Const.String()))
 				return nil, nil, nil, false
 			}
-			idx.ConstType = shaderir.ConstTypeInt
 		}
 
 		exprs, ts, ss, ok := cs.parseExpr(block, fname, e.X, markLocalVariableUsed)
