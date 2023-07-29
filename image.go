@@ -535,6 +535,8 @@ type DrawTrianglesShaderOptions struct {
 	// If the uniform variable type is an array, a vector or a matrix,
 	// you have to specify linearly flattened values as a slice or an array.
 	// For example, if the uniform variable type is [4]vec4, the length will be 16.
+	//
+	// If a uniform variable's name doesn't exist in Uniforms, this is treated as if zero values are specified.
 	Uniforms map[string]any
 
 	// Images is a set of the source images.
@@ -710,6 +712,8 @@ type DrawRectShaderOptions struct {
 	// If the uniform variable type is an array, a vector or a matrix,
 	// you have to specify linearly flattened values as a slice or an array.
 	// For example, if the uniform variable type is [4]vec4, the length will be 16.
+	//
+	// If a uniform variable's name doesn't exist in Uniforms, this is treated as if zero values are specified.
 	Uniforms map[string]any
 
 	// Images is a set of the source images.

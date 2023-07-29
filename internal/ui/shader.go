@@ -55,6 +55,9 @@ func (s *Shader) AppendUniforms(dst []uint32, uniforms map[string]any) []uint32 
 	origLen := len(dst)
 	if cap(dst)-len(dst) >= s.uniformUint32Count {
 		dst = dst[:len(dst)+s.uniformUint32Count]
+		for i := origLen; i < len(dst); i++ {
+			dst[i] = 0
+		}
 	} else {
 		dst = append(dst, make([]uint32, s.uniformUint32Count)...)
 	}

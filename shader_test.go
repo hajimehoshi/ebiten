@@ -1960,3 +1960,55 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		})
 	}
 }
+
+// Issue #2709
+func TestShaderUniformDefaultValue(t *testing.T) {
+	const w, h = 16, 16
+
+	dst := ebiten.NewImage(w, h)
+	s, err := ebiten.NewShader([]byte(`//kage:unit pixel
+
+package main
+
+var U vec4
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	return U
+}
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Draw with a uniform variable value.
+	op := &ebiten.DrawRectShaderOptions{}
+	op.Uniforms = map[string]any{
+		"U": [...]float32{1, 1, 1, 1},
+	}
+	dst.DrawRectShader(w, h, s, op)
+
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			got := dst.At(i, j).(color.RGBA)
+			want := color.RGBA{0xff, 0xff, 0xff, 0xff}
+			if got != want {
+				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+
+	// Draw without a uniform variable value. In this case, the uniform variable value should be 0.
+	dst.Clear()
+	op.Uniforms = nil
+	dst.DrawRectShader(w, h, s, op)
+
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			got := dst.At(i, j).(color.RGBA)
+			want := color.RGBA{0, 0, 0, 0}
+			if got != want {
+				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+}
