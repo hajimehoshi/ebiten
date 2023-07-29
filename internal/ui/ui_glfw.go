@@ -112,7 +112,6 @@ type userInterfaceImpl struct {
 	dropCallback                   glfw.DropCallback
 	framebufferSizeCallbackCh      chan struct{}
 
-	glContextSetOnce      sync.Once
 	darwinInitOnce        sync.Once
 	bufferOnceSwappedOnce sync.Once
 
@@ -1046,6 +1045,13 @@ func (u *userInterfaceImpl) loopGame() error {
 	defer u.mainThread.Call(func() {
 		glfw.Terminate()
 	})
+
+	u.renderThread.Call(func() {
+		if u.graphicsDriver.IsGL() {
+			u.window.MakeContextCurrent()
+		}
+	})
+
 	for {
 		if err := u.updateGame(); err != nil {
 			return err
@@ -1078,14 +1084,6 @@ func (u *userInterfaceImpl) updateGame() error {
 	}); err != nil {
 		return err
 	}
-
-	u.glContextSetOnce.Do(func() {
-		u.renderThread.Call(func() {
-			if u.graphicsDriver.IsGL() {
-				u.window.MakeContextCurrent()
-			}
-		})
-	})
 
 	if err := u.context.updateFrame(u.graphicsDriver, outsideWidth, outsideHeight, deviceScaleFactor, u, func() {
 		// Call updateVsync even though fpsMode is not updated.
