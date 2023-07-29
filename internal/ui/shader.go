@@ -69,13 +69,25 @@ func (s *Shader) AppendUniforms(dst []uint32, uniforms map[string]any) []uint32 
 			t := v.Type()
 			switch t.Kind() {
 			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+				if typ.Uint32Count() != 1 {
+					panic(fmt.Sprintf("ui: unexpected uniform value for %s (%s)", name, typ.String()))
+				}
 				dst[idx] = uint32(v.Int())
 			case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+				if typ.Uint32Count() != 1 {
+					panic(fmt.Sprintf("ui: unexpected uniform value for %s (%s)", name, typ.String()))
+				}
 				dst[idx] = uint32(v.Uint())
 			case reflect.Float32, reflect.Float64:
+				if typ.Uint32Count() != 1 {
+					panic(fmt.Sprintf("ui: unexpected uniform value for %s (%s)", name, typ.String()))
+				}
 				dst[idx] = math.Float32bits(float32(v.Float()))
 			case reflect.Slice, reflect.Array:
 				l := v.Len()
+				if typ.Uint32Count() != l {
+					panic(fmt.Sprintf("ui: unexpected uniform value for %s (%s)", name, typ.String()))
+				}
 				switch t.Elem().Kind() {
 				case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 					for i := 0; i < l; i++ {

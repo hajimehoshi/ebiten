@@ -1854,3 +1854,109 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
 }
+
+func TestShaderUniformSizes(t *testing.T) {
+	const w, h = 16, 16
+
+	dst := ebiten.NewImage(w, h)
+	s, err := ebiten.NewShader([]byte(`//kage:unit pixel
+
+package main
+
+var U vec4
+var V [3]float
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	return vec4(0)
+}
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tests := []struct {
+		uniforms map[string]any
+		err      bool
+	}{
+		{
+			uniforms: nil,
+			err:      false,
+		},
+		{
+			uniforms: map[string]any{
+				"U": 1,
+			},
+			err: true,
+		},
+		{
+			uniforms: map[string]any{
+				"U": "1",
+			},
+			err: true,
+		},
+		{
+			uniforms: map[string]any{
+				"U": []int32{1, 2, 3},
+			},
+			err: true,
+		},
+		{
+			uniforms: map[string]any{
+				"U": []int32{1, 2, 3, 4},
+			},
+			err: false,
+		},
+		{
+			uniforms: map[string]any{
+				"U": []int32{1, 2, 3, 4, 5},
+			},
+			err: true,
+		},
+		{
+			uniforms: map[string]any{
+				"V": 1,
+			},
+			err: true,
+		},
+		{
+			uniforms: map[string]any{
+				"V": "1",
+			},
+			err: true,
+		},
+		{
+			uniforms: map[string]any{
+				"V": []int32{1, 2},
+			},
+			err: true,
+		},
+		{
+			uniforms: map[string]any{
+				"V": []int32{1, 2, 3},
+			},
+			err: false,
+		},
+		{
+			uniforms: map[string]any{
+				"V": []int32{1, 2, 3, 4},
+			},
+			err: true,
+		},
+	}
+	for _, tc := range tests {
+		tc := tc
+		t.Run(fmt.Sprintf("%v", tc.uniforms), func(t *testing.T) {
+			defer func() {
+				r := recover()
+				if r != nil && !tc.err {
+					t.Errorf("DrawRectShader must not panic but did")
+				} else if r == nil && tc.err {
+					t.Errorf("DrawRectShader must panic but does not")
+				}
+			}()
+			op := &ebiten.DrawRectShaderOptions{}
+			op.Uniforms = tc.uniforms
+			dst.DrawRectShader(w, h, s, op)
+		})
+	}
+}

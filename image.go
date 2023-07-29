@@ -577,6 +577,8 @@ var _ [len(DrawTrianglesShaderOptions{}.Images) - graphics.ShaderImageCount]stru
 //
 // When a specified image is non-nil and is disposed, DrawTrianglesShader panics.
 //
+// If a specified uniform variable's length or type doesn't match with an expected one, DrawTrianglesShader panics.
+//
 // When the image i is disposed, DrawTrianglesShader does nothing.
 func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader *Shader, options *DrawTrianglesShaderOptions) {
 	i.copyCheck()
@@ -723,6 +725,8 @@ var _ [len(DrawRectShaderOptions{}.Images)]struct{} = [graphics.ShaderImageCount
 // For the details about the shader, see https://ebitengine.org/en/documents/shader.html.
 //
 // When one of the specified image is non-nil and is disposed, DrawRectShader panics.
+//
+// If a specified uniform variable's length or type doesn't match with an expected one, DrawRectShader panics.
 //
 // When the image i is disposed, DrawRectShader does nothing.
 func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawRectShaderOptions) {
