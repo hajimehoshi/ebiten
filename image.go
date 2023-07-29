@@ -581,6 +581,8 @@ var _ [len(DrawTrianglesShaderOptions{}.Images) - graphics.ShaderImageCount]stru
 //
 // If a specified uniform variable's length or type doesn't match with an expected one, DrawTrianglesShader panics.
 //
+// If a non-existent uniform variable name is specified, DrawTrianglesShader panics.
+//
 // When the image i is disposed, DrawTrianglesShader does nothing.
 func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader *Shader, options *DrawTrianglesShaderOptions) {
 	i.copyCheck()
@@ -731,6 +733,8 @@ var _ [len(DrawRectShaderOptions{}.Images)]struct{} = [graphics.ShaderImageCount
 // When one of the specified image is non-nil and is disposed, DrawRectShader panics.
 //
 // If a specified uniform variable's length or type doesn't match with an expected one, DrawRectShader panics.
+//
+// If a non-existent uniform variable name is specified, DrawRectShader panics.
 //
 // When the image i is disposed, DrawRectShader does nothing.
 func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawRectShaderOptions) {

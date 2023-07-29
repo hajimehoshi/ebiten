@@ -46,6 +46,22 @@ func (s *Shader) MarkDisposed() {
 }
 
 func (s *Shader) AppendUniforms(dst []uint32, uniforms map[string]any) []uint32 {
+	// Check the given names are valid.
+	// This is a linear search and not efficient, but the number of uniform variables should not be so big.
+	for n := range uniforms {
+		var found bool
+		for _, nn := range s.uniformNames {
+			if n == nn {
+				found = true
+				break
+			}
+		}
+		if found {
+			continue
+		}
+		panic(fmt.Sprintf("ui: unexpected uniform name: %s", n))
+	}
+
 	if s.uniformUint32Count == 0 {
 		for _, typ := range s.uniformTypes {
 			s.uniformUint32Count += typ.Uint32Count()
@@ -67,7 +83,6 @@ func (s *Shader) AppendUniforms(dst []uint32, uniforms map[string]any) []uint32 
 		typ := s.uniformTypes[i]
 
 		if uv, ok := uniforms[name]; ok {
-			// TODO: Panic if uniforms include an invalid name
 			v := reflect.ValueOf(uv)
 			t := v.Type()
 			switch t.Kind() {
