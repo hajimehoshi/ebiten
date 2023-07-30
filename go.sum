@@ -1,4 +1,6 @@
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
+github.com/ebitengine/oto/v3 v3.0.0-alpha.0.20230730050451-6a8a3187e7ac h1:2TqRbIcWt8FxkKueI6qT8HY78oDF2Q1ckbddjp0uUp8=
+github.com/ebitengine/oto/v3 v3.0.0-alpha.0.20230730050451-6a8a3187e7ac/go.mod h1:50zY546V7eVjIb6+jZGPrcSG64nGfKqDgPnwFft05o0=
 github.com/ebitengine/purego v0.5.0-alpha h1:pNZNC8WofBTN3Nm196An50C5taL/87BhFR/RzKy2o4k=
 github.com/ebitengine/purego v0.5.0-alpha/go.mod h1:ah1In8AOtksoNK6yk5z1HTJeUkC1Ez4Wk2idgGslMwQ=
 github.com/go-text/typesetting v0.0.0-20230717141307-09c70c30a055 h1:aUv3DYpk2eraRoyB7QZkyxgTVF7DrWcUui93iFRYO+8=
@@ -9,8 +11,6 @@ github.com/hajimehoshi/bitmapfont/v3 v3.0.0/go.mod h1:+CxxG+uMmgU4mI2poq944i3uZ6
 github.com/hajimehoshi/go-mp3 v0.3.4 h1:NUP7pBYH8OguP4diaTZ9wJbUbk3tC0KlfzsEpWmYj68=
 github.com/hajimehoshi/go-mp3 v0.3.4/go.mod h1:fRtZraRFcWb0pu7ok0LqyFhCUrPeMsGRSVop0eemFmo=
 github.com/hajimehoshi/oto/v2 v2.3.1/go.mod h1:seWLbgHH7AyUMYKfKYT9pg7PhUu9/SisyJvNTT+ASQo=
-github.com/hajimehoshi/oto/v2 v2.5.0-alpha.1 h1:ldztpxgRmIZeOFOhXh4CBz8yQxn5mRmEVtVXD7S+Wxw=
-github.com/hajimehoshi/oto/v2 v2.5.0-alpha.1/go.mod h1:XoAqcfGced8SVzCvx7DO2YA69Zpr1NiHNhnxJawxaZ0=
 github.com/jakecoffman/cp v1.2.1 h1:zkhc2Gpo9l4NLUZfeG3j33+3bQD7MkqPa+n5PdX+5mI=
 github.com/jakecoffman/cp v1.2.1/go.mod h1:JjY/Fp6d8E1CHnu74gWNnU0+b9VzEdUVPoJxg2PsTQg=
 github.com/jezek/xgb v1.1.0 h1:wnpxJzP1+rkbGclEkmwpVFQWpuE2PUGNUzP8SbfFobk=
