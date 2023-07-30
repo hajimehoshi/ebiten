@@ -28,6 +28,14 @@ func SetRenderThread(thread thread.Thread) {
 }
 
 // runOnRenderThread calls f on the rendering thread.
-func runOnRenderThread(f func()) {
-	theRenderThread.Call(f)
+func runOnRenderThread(f func(), sync bool) {
+	if sync {
+		theRenderThread.Call(f)
+		return
+	}
+
+	// As the current thread doesn't have a capacity in a channel,
+	// CallAsync should block when the previously-queued task is not executed yet.
+	// This blocking is expected as double-buffering is used.
+	theRenderThread.CallAsync(f)
 }

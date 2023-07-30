@@ -19,6 +19,7 @@ import (
 	"image"
 	"math"
 	"strings"
+	"sync/atomic"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/debug"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
@@ -36,6 +37,7 @@ type command interface {
 	fmt.Stringer
 
 	Exec(graphicsDriver graphicsdriver.Graphics, indexOffset int) error
+	NeedsSync() bool
 }
 
 type drawTrianglesCommandPool struct {
@@ -72,6 +74,8 @@ type commandQueue struct {
 	drawTrianglesCommandPool drawTrianglesCommandPool
 
 	uint32sBuffer uint32sBuffer
+
+	err atomic.Value
 }
 
 // theCommandQueues is the set of command queues for the current process.
@@ -179,18 +183,39 @@ func (q *commandQueue) Enqueue(command command) {
 }
 
 // Flush flushes the command queue.
-func (q *commandQueue) Flush(graphicsDriver graphicsdriver.Graphics, endFrame bool, swapBuffersForGL func()) (err error) {
+func (q *commandQueue) Flush(graphicsDriver graphicsdriver.Graphics, endFrame bool, swapBuffersForGL func()) error {
+	if err := q.err.Load(); err != nil {
+		return err.(error)
+	}
+
+	var sync bool
+	for _, c := range q.commands {
+		if c.NeedsSync() {
+			sync = true
+			break
+		}
+	}
+
+	var flushErr error
 	runOnRenderThread(func() {
-		err = q.flush(graphicsDriver, endFrame)
-		if err != nil {
+		if err := q.flush(graphicsDriver, endFrame); err != nil {
+			if sync {
+				return
+			}
+			q.err.Store(err)
 			return
 		}
 
 		if endFrame && swapBuffersForGL != nil {
 			swapBuffersForGL()
 		}
-	})
-	return
+	}, sync)
+
+	if sync && flushErr != nil {
+		return flushErr
+	}
+
+	return nil
 }
 
 // flush must be called the main thread.
@@ -346,6 +371,10 @@ func (c *drawTrianglesCommand) Exec(graphicsDriver graphicsdriver.Graphics, inde
 	return graphicsDriver.DrawTriangles(c.dst.image.ID(), imgs, c.shader.shader.ID(), c.dstRegions, indexOffset, c.blend, c.uniforms, c.evenOdd)
 }
 
+func (c *drawTrianglesCommand) NeedsSync() bool {
+	return false
+}
+
 func (c *drawTrianglesCommand) numVertices() int {
 	return len(c.vertices)
 }
@@ -452,6 +481,10 @@ func (c *writePixelsCommand) Exec(graphicsDriver graphicsdriver.Graphics, indexO
 	return nil
 }
 
+func (c *writePixelsCommand) NeedsSync() bool {
+	return false
+}
+
 type readPixelsCommand struct {
 	result []byte
 	img    *Image
@@ -464,6 +497,10 @@ func (c *readPixelsCommand) Exec(graphicsDriver graphicsdriver.Graphics, indexOf
 		return err
 	}
 	return nil
+}
+
+func (c *readPixelsCommand) NeedsSync() bool {
+	return true
 }
 
 func (c *readPixelsCommand) String() string {
@@ -485,6 +522,10 @@ func (c *disposeImageCommand) Exec(graphicsDriver graphicsdriver.Graphics, index
 	return nil
 }
 
+func (c *disposeImageCommand) NeedsSync() bool {
+	return false
+}
+
 // disposeShaderCommand represents a command to dispose a shader.
 type disposeShaderCommand struct {
 	target *Shader
@@ -498,6 +539,10 @@ func (c *disposeShaderCommand) String() string {
 func (c *disposeShaderCommand) Exec(graphicsDriver graphicsdriver.Graphics, indexOffset int) error {
 	c.target.shader.Dispose()
 	return nil
+}
+
+func (c *disposeShaderCommand) NeedsSync() bool {
+	return false
 }
 
 // newImageCommand represents a command to create an empty image with given width and height.
@@ -523,6 +568,10 @@ func (c *newImageCommand) Exec(graphicsDriver graphicsdriver.Graphics, indexOffs
 	return err
 }
 
+func (c *newImageCommand) NeedsSync() bool {
+	return true
+}
+
 // newShaderCommand is a command to create a shader.
 type newShaderCommand struct {
 	result *Shader
@@ -543,6 +592,10 @@ func (c *newShaderCommand) Exec(graphicsDriver graphicsdriver.Graphics, indexOff
 	return nil
 }
 
+func (c *newShaderCommand) NeedsSync() bool {
+	return true
+}
+
 type isInvalidatedCommand struct {
 	result bool
 	image  *Image
@@ -557,11 +610,15 @@ func (c *isInvalidatedCommand) Exec(graphicsDriver graphicsdriver.Graphics, inde
 	return nil
 }
 
+func (c *isInvalidatedCommand) NeedsSync() bool {
+	return true
+}
+
 // InitializeGraphicsDriverState initialize the current graphics driver state.
 func InitializeGraphicsDriverState(graphicsDriver graphicsdriver.Graphics) (err error) {
 	runOnRenderThread(func() {
 		err = graphicsDriver.Initialize()
-	})
+	}, true)
 	return
 }
 
@@ -571,7 +628,7 @@ func ResetGraphicsDriverState(graphicsDriver graphicsdriver.Graphics) (err error
 	if r, ok := graphicsDriver.(graphicsdriver.Resetter); ok {
 		runOnRenderThread(func() {
 			err = r.Reset()
-		})
+		}, true)
 	}
 	return nil
 }
@@ -581,7 +638,7 @@ func MaxImageSize(graphicsDriver graphicsdriver.Graphics) int {
 	var size int
 	runOnRenderThread(func() {
 		size = graphicsDriver.MaxImageSize()
-	})
+	}, true)
 	return size
 }
 

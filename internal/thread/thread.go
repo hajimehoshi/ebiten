@@ -22,40 +22,49 @@ import (
 type Thread interface {
 	Loop(ctx context.Context) error
 	Call(f func())
+	CallAsync(f func())
 
 	private()
 }
 
+type queueItem struct {
+	f    func()
+	sync bool
+}
+
 // OSThread represents an OS thread.
 type OSThread struct {
-	funcs chan func()
+	funcs chan queueItem
 	done  chan struct{}
 }
 
 // NewOSThread creates a new thread.
+//
+// queueSize indicates the function queue size. This matters when you use CallAsync.
 func NewOSThread() *OSThread {
 	return &OSThread{
-		funcs: make(chan func()),
+		funcs: make(chan queueItem),
 		done:  make(chan struct{}),
 	}
 }
 
 // Loop starts the thread loop until Stop is called on the current OS thread.
 //
-// Loop must be called on the thread.
+// Loop must be called on the OS thread.
 func (t *OSThread) Loop(ctx context.Context) error {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
 	for {
 		select {
-		case fn := <-t.funcs:
+		case item := <-t.funcs:
 			func() {
-				defer func() {
-					t.done <- struct{}{}
-				}()
-
-				fn()
+				if item.sync {
+					defer func() {
+						t.done <- struct{}{}
+					}()
+				}
+				item.f()
 			}()
 		case <-ctx.Done():
 			return ctx.Err()
@@ -65,15 +74,24 @@ func (t *OSThread) Loop(ctx context.Context) error {
 
 // Call calls f on the thread.
 //
-// Do not call this from the same thread. This would block forever.
+// Do not call Call from the same thread. Call would block forever.
 //
 // Call blocks if Loop is not called.
 func (t *OSThread) Call(f func()) {
-	t.funcs <- f
+	t.funcs <- queueItem{f: f, sync: true}
 	<-t.done
 }
 
 func (t *OSThread) private() {
+}
+
+// CallAsync tries to queue f.
+// CallAsync returns immediately if f can be queued.
+// CallAsync blocks if f cannot be queued.
+//
+// Do not call CallAsync from the same thread. CallAsync would block forever.
+func (t *OSThread) CallAsync(f func()) {
+	t.funcs <- queueItem{f: f, sync: false}
 }
 
 // NoopThread is used to disable threading.
@@ -91,6 +109,11 @@ func (t *NoopThread) Loop(ctx context.Context) error {
 
 // Call executes the func immediately.
 func (t *NoopThread) Call(f func()) {
+	f()
+}
+
+// CallAsync executes the func immediately.
+func (t *NoopThread) CallAsync(f func()) {
 	f()
 }
 

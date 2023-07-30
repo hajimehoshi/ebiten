@@ -1037,9 +1037,14 @@ func (u *userInterfaceImpl) update() (float64, float64, error) {
 }
 
 func (u *userInterfaceImpl) loopGame() error {
-	defer u.mainThread.Call(func() {
-		glfw.Terminate()
-	})
+	defer func() {
+		// Post a task to the render thread to ensure all the queued functions are executed.
+		// glfw.Terminate will remove the context and any graphics calls after that will be invalidated.
+		u.renderThread.Call(func() {})
+		u.mainThread.Call(func() {
+			glfw.Terminate()
+		})
+	}()
 
 	u.renderThread.Call(func() {
 		if u.graphicsDriver.IsGL() {
