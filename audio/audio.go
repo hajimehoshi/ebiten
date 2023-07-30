@@ -240,7 +240,7 @@ func (c *Context) IsReady() bool {
 			// problematic when a user tries to play audio after the context is ready.
 			// Play a dummy player to avoid the blocking (#969).
 			// Use a long enough buffer so that writing doesn't finish immediately (#970).
-			p := NewPlayerFromBytes(c, make([]byte, bufferSize()*2))
+			p := NewPlayerFromBytes(c, make([]byte, 16384))
 			p.Play()
 		}()
 	})
