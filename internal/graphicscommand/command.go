@@ -74,8 +74,23 @@ type commandQueue struct {
 	uint32sBuffer uint32sBuffer
 }
 
-// theCommandQueue is the command queue for the current process.
-var theCommandQueue = &commandQueue{}
+// theCommandQueues is the set of command queues for the current process.
+var (
+	theCommandQueues = [...]*commandQueue{
+		{},
+		{},
+	}
+	commandQueueIndex int
+)
+
+func currentCommandQueue() *commandQueue {
+	return theCommandQueues[commandQueueIndex]
+}
+
+func switchCommandQueue() {
+	commandQueueIndex++
+	commandQueueIndex = commandQueueIndex % len(theCommandQueues)
+}
 
 func (q *commandQueue) appendIndices(indices []uint16, offset uint16) {
 	n := len(q.indices)
@@ -263,7 +278,11 @@ func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics, endFrame bo
 // If endFrame is true, the current screen might be used to present.
 func FlushCommands(graphicsDriver graphicsdriver.Graphics, endFrame bool, swapBuffersForGL func()) error {
 	flushImageBuffers()
-	return theCommandQueue.Flush(graphicsDriver, endFrame, swapBuffersForGL)
+	if err := currentCommandQueue().Flush(graphicsDriver, endFrame, swapBuffersForGL); err != nil {
+		return err
+	}
+	switchCommandQueue()
+	return nil
 }
 
 // drawTrianglesCommand represents a drawing command to draw an image on another image.

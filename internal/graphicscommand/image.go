@@ -88,7 +88,7 @@ func NewImage(width, height int, screenFramebuffer bool) *Image {
 		height: height,
 		screen: screenFramebuffer,
 	}
-	theCommandQueue.Enqueue(c)
+	currentCommandQueue().Enqueue(c)
 	return i
 }
 
@@ -100,7 +100,7 @@ func (i *Image) flushBufferedWritePixels() {
 		dst:  i,
 		args: i.bufferedWP,
 	}
-	theCommandQueue.Enqueue(c)
+	currentCommandQueue().Enqueue(c)
 	i.bufferedWP = nil
 }
 
@@ -109,7 +109,7 @@ func (i *Image) Dispose() {
 	c := &disposeImageCommand{
 		target: i,
 	}
-	theCommandQueue.Enqueue(c)
+	currentCommandQueue().Enqueue(c)
 }
 
 func (i *Image) InternalSize() (int, int) {
@@ -158,7 +158,7 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, offsets [g
 	}
 	i.flushBufferedWritePixels()
 
-	theCommandQueue.EnqueueDrawTrianglesCommand(i, srcs, offsets, vertices, indices, blend, dstRegion, srcRegion, shader, uniforms, evenOdd)
+	currentCommandQueue().EnqueueDrawTrianglesCommand(i, srcs, offsets, vertices, indices, blend, dstRegion, srcRegion, shader, uniforms, evenOdd)
 }
 
 // ReadPixels reads the image's pixels.
@@ -170,8 +170,8 @@ func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, buf []byte, r
 		region: region,
 		result: buf,
 	}
-	theCommandQueue.Enqueue(c)
-	if err := theCommandQueue.Flush(graphicsDriver, false, nil); err != nil {
+	currentCommandQueue().Enqueue(c)
+	if err := currentCommandQueue().Flush(graphicsDriver, false, nil); err != nil {
 		return err
 	}
 	return nil
@@ -200,8 +200,8 @@ func (i *Image) IsInvalidated(graphicsDriver graphicsdriver.Graphics) (bool, err
 	c := &isInvalidatedCommand{
 		image: i,
 	}
-	theCommandQueue.Enqueue(c)
-	if err := theCommandQueue.Flush(graphicsDriver, false, nil); err != nil {
+	currentCommandQueue().Enqueue(c)
+	if err := currentCommandQueue().Flush(graphicsDriver, false, nil); err != nil {
 		return false, err
 	}
 	return c.result, nil
