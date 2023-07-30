@@ -86,7 +86,7 @@ func (p *dummyPlayer) SetVolume(volume float64) {
 	p.volume = volume
 }
 
-func (p *dummyPlayer) UnplayedBufferSize() int {
+func (p *dummyPlayer) BufferedSize() int {
 	return 0
 }
 

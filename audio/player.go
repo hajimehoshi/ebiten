@@ -29,7 +29,7 @@ type player interface {
 	IsPlaying() bool
 	Volume() float64
 	SetVolume(volume float64)
-	UnplayedBufferSize() int
+	BufferedSize() int
 	Err() error
 	SetBufferSize(bufferSize int)
 	io.Seeker
@@ -251,7 +251,7 @@ func (p *playerImpl) Current() time.Duration {
 		return 0
 	}
 
-	samples := (p.stream.Current() - int64(p.player.UnplayedBufferSize())) / bytesPerSampleInt16
+	samples := (p.stream.Current() - int64(p.player.BufferedSize())) / bytesPerSampleInt16
 	return time.Duration(samples) * time.Second / time.Duration(p.factory.sampleRate)
 }
 
