@@ -19,6 +19,13 @@ import (
 	"runtime"
 )
 
+type Thread interface {
+	Loop(ctx context.Context) error
+	Call(f func())
+
+	private()
+}
+
 // OSThread represents an OS thread.
 type OSThread struct {
 	funcs chan func()
@@ -66,6 +73,9 @@ func (t *OSThread) Call(f func()) {
 	<-t.done
 }
 
+func (t *OSThread) private() {
+}
+
 // NoopThread is used to disable threading.
 type NoopThread struct{}
 
@@ -74,10 +84,15 @@ func NewNoopThread() *NoopThread {
 	return &NoopThread{}
 }
 
-// Loop does nothing
+// Loop does nothing.
 func (t *NoopThread) Loop(ctx context.Context) error {
 	return nil
 }
 
-// Call executes the func immediately
-func (t *NoopThread) Call(f func()) { f() }
+// Call executes the func immediately.
+func (t *NoopThread) Call(f func()) {
+	f()
+}
+
+func (t *NoopThread) private() {
+}

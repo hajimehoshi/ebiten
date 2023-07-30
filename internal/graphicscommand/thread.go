@@ -18,16 +18,12 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/thread"
 )
 
-var theRenderThread Thread = thread.NewNoopThread()
-
-type Thread interface {
-	Call(f func())
-}
+var theRenderThread thread.Thread = thread.NewNoopThread()
 
 // SetRenderThread must be called from the rendering thread where e.g. OpenGL works.
 //
 // TODO: Create thread in this package instead of setting it externally.
-func SetRenderThread(thread Thread) {
+func SetRenderThread(thread thread.Thread) {
 	theRenderThread = thread
 }
 

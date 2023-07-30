@@ -17,7 +17,6 @@
 package ui
 
 import (
-	stdcontext "context"
 	"errors"
 	"fmt"
 	"image"
@@ -34,6 +33,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/hooks"
 	"github.com/hajimehoshi/ebiten/v2/internal/microsoftgdk"
+	"github.com/hajimehoshi/ebiten/v2/internal/thread"
 )
 
 func driverCursorModeToGLFWCursorMode(mode CursorMode) int {
@@ -115,14 +115,9 @@ type userInterfaceImpl struct {
 	darwinInitOnce        sync.Once
 	bufferOnceSwappedOnce sync.Once
 
-	mainThread   threadInterface
-	renderThread threadInterface
+	mainThread   thread.Thread
+	renderThread thread.Thread
 	m            sync.RWMutex
-}
-
-type threadInterface interface {
-	Loop(ctx stdcontext.Context) error
-	Call(f func())
 }
 
 const (
