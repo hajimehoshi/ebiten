@@ -175,9 +175,6 @@ func (q *commandQueue) Flush(graphicsDriver graphicsdriver.Graphics, endFrame bo
 			swapBuffersForGL()
 		}
 	})
-	if endFrame {
-		q.uint32sBuffer.reset()
-	}
 	return
 }
 
@@ -215,6 +212,10 @@ func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics, endFrame bo
 		q.vertices = q.vertices[:0]
 		q.indices = q.indices[:0]
 		q.tmpNumVertexFloats = 0
+
+		if endFrame {
+			q.uint32sBuffer.reset()
+		}
 	}()
 
 	cs := q.commands
