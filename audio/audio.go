@@ -224,12 +224,11 @@ func (c *Context) IsReady() bool {
 	c.m.Lock()
 	defer c.m.Unlock()
 
-	r := c.ready
-	if r {
-		return r
+	if c.ready {
+		return true
 	}
 	if len(c.players) != 0 {
-		return r
+		return false
 	}
 
 	c.readyOnce.Do(func() {
@@ -245,7 +244,7 @@ func (c *Context) IsReady() bool {
 		}()
 	})
 
-	return r
+	return false
 }
 
 // SampleRate returns the sample rate.
