@@ -21,6 +21,7 @@ import (
 	"sync"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/packing"
 	"github.com/hajimehoshi/ebiten/v2/internal/restorable"
@@ -32,68 +33,6 @@ var (
 	minDestinationSize = 0
 	maxSize            = 0
 )
-
-type temporaryBytes struct {
-	pixels           []byte
-	pos              int
-	notFullyUsedTime int
-}
-
-var (
-	theTemporaryBytesSet [2]temporaryBytes
-	temporaryBytesIndex  int
-)
-
-func currentTemporaryBytes() *temporaryBytes {
-	return &theTemporaryBytesSet[temporaryBytesIndex]
-}
-
-func switchTemporaryBytes() {
-	temporaryBytesIndex++
-	temporaryBytesIndex %= len(theTemporaryBytesSet)
-}
-
-func temporaryBytesSize(size int) int {
-	l := 16
-	for l < size {
-		l *= 2
-	}
-	return l
-}
-
-// alloc allocates the pixels and returns it.
-// Be careful that the returned pixels might not be zero-cleared.
-func (t *temporaryBytes) alloc(size int) []byte {
-	if len(t.pixels) < t.pos+size {
-		t.pixels = make([]byte, max(len(t.pixels)*2, temporaryBytesSize(size)))
-		t.pos = 0
-	}
-	pix := t.pixels[t.pos : t.pos+size]
-	t.pos += size
-	return pix
-}
-
-func (t *temporaryBytes) resetAtFrameEnd() {
-	const maxNotFullyUsedTime = 60
-
-	if temporaryBytesSize(t.pos) < len(t.pixels) {
-		if t.notFullyUsedTime < maxNotFullyUsedTime {
-			t.notFullyUsedTime++
-		}
-	} else {
-		t.notFullyUsedTime = 0
-	}
-
-	// Let the pixels GCed if this is not used for a while.
-	if t.notFullyUsedTime == maxNotFullyUsedTime && len(t.pixels) > 0 {
-		t.pixels = nil
-		t.notFullyUsedTime = 0
-	}
-
-	// Reset the position and reuse the allocated bytes.
-	// t.pixels should already be sent to GPU, then this can be reused.
-	t.pos = 0
-}
 
 func max(a, b int) int {
 	if a > b {
@@ -563,13 +502,13 @@ func (i *Image) writePixels(pix []byte, region image.Rectangle) {
 		}
 
 		// Copy pixels in the case when pix is modified before the graphics command is executed.
-		pix2 := currentTemporaryBytes().alloc(len(pix))
+		pix2 := graphicscommand.AllocBytes(len(pix))
 		copy(pix2, pix)
 		i.backend.restorable.WritePixels(pix2, region)
 		return
 	}
 
-	pixb := currentTemporaryBytes().alloc(4 * r.Dx() * r.Dy())
+	pixb := graphicscommand.AllocBytes(4 * r.Dx() * r.Dy())
 
 	// Clear the edges. pixb might not be zero-cleared.
 	// TODO: These loops assume that paddingSize is 1.
@@ -806,9 +745,6 @@ func EndFrame(graphicsDriver graphicsdriver.Graphics, swapBuffersForGL func()) e
 	if err := restorable.EndFrame(graphicsDriver, swapBuffersForGL); err != nil {
 		return err
 	}
-
-	currentTemporaryBytes().resetAtFrameEnd()
-	switchTemporaryBytes()
 
 	for b := range theSourceBackendsForOneFrame {
 		delete(theSourceBackendsForOneFrame, b)

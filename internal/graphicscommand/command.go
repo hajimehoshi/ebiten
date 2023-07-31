@@ -75,6 +75,8 @@ type commandQueue struct {
 
 	uint32sBuffer uint32sBuffer
 
+	temporaryBytes temporaryBytes
+
 	err atomic.Value
 }
 
@@ -255,6 +257,7 @@ func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics, endFrame bo
 
 		if endFrame {
 			q.uint32sBuffer.reset()
+			q.temporaryBytes.reset()
 		}
 	}()
 
