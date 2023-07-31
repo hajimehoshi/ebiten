@@ -29,6 +29,7 @@ func temporaryBytesSize(size int) int {
 }
 
 // alloc allocates the pixels and returns it.
+//
 // Be careful that the returned pixels might not be zero-cleared.
 func (t *temporaryBytes) alloc(size int) []byte {
 	if len(t.pixels) < t.pos+size {
@@ -66,6 +67,9 @@ func (t *temporaryBytes) reset() {
 	t.pos = 0
 }
 
+// AllocBytes allocates bytes from the cache.
+//
+// Be careful that the returned pixels might not be zero-cleared.
 func AllocBytes(size int) []byte {
 	return currentCommandQueue().temporaryBytes.alloc(size)
 }
