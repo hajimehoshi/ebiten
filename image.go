@@ -24,6 +24,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/builtinshader"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
+	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
@@ -730,11 +731,22 @@ var _ [len(DrawRectShaderOptions{}.Images)]struct{} = [graphics.ShaderImageCount
 //
 // For the details about the shader, see https://ebitengine.org/en/documents/shader.html.
 //
+// When one of the specified image is non-nil and its size is different from (width, height), DrawRectShader panics.
 // When one of the specified image is non-nil and is disposed, DrawRectShader panics.
 //
 // If a specified uniform variable's length or type doesn't match with an expected one, DrawRectShader panics.
 //
 // If a non-existent uniform variable name is specified, DrawRectShader panics.
+//
+// In a shader, texCoord in Fragment represents a position in a source image.
+// If no source images are specified, texCoord represents the position from (0, 0) to (width, height) in pixels.
+// If the unit is pixels by a compiler directive `//kage:unit pixels`, texCoord values are valid.
+// If the unit is texels (default), texCoord values still take from (0, 0) to (width, height),
+// but these are invalid since texCoord is expected to be in texels in the texel-unit mode.
+// This behavior is preserved for backward compatibility. It is recommended to use the pixel-unit mode to avoid confusion.
+//
+// If no source images are specified, imageSrcRegionOnTexture returns a valid size only when the unit is pixels,
+// but always returns 0 when the unit is texels (default).
 //
 // When the image i is disposed, DrawRectShader does nothing.
 func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawRectShaderOptions) {
@@ -775,6 +787,13 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 		b := img.Bounds()
 		sx, sy = img.adjustPosition(b.Min.X, b.Min.Y)
 		sr = img.adjustedRegion()
+	} else if shader.unit == shaderir.Pixel {
+		// Give the source size as pixels only when the unit is pixels so that users can get the source size via imageSrcRegionOnTexture (#2166).
+		// With the texel mode, the imageSrcRegionOnTexture values should be in texels so the source position in pixels would not match.
+		sr = graphicsdriver.Region{
+			Width:  float32(width),
+			Height: float32(height),
+		}
 	}
 
 	if offsetX, offsetY := i.adjustPosition(0, 0); offsetX != 0 || offsetY != 0 {

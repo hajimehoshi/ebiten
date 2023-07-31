@@ -2024,3 +2024,91 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		}
 	}
 }
+
+// Issue #2166
+func TestShaderDrawRectWithoutSource(t *testing.T) {
+	const (
+		dstW = 16
+		dstH = 16
+		srcW = 8
+		srcH = 8
+	)
+
+	src := ebiten.NewImage(srcW, srcH)
+
+	for _, unit := range []string{"pixel", "texel"} {
+		s, err := ebiten.NewShader([]byte(fmt.Sprintf(`//kage:unit %s
+
+package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	t := texCoord
+
+	origin, size := imageSrcRegionOnTexture()
+
+	// If the unit is texels and no source images are specified, size is always 0.
+	if size == vec2(0) {
+		// Even in this case, t is in pixels (0, 0) to (8, 8).
+		if t.x >= 4 && t.y >= 4 {
+			return vec4(1, 0, 1, 1)
+		}
+		return vec4(0, 1, 1, 1)
+	}
+
+	// Adjust texCoord into [0, 1].
+	t -= origin
+	if size != vec2(0) {
+		t /= size
+	}
+	if t.x >= 0.5 && t.y >= 0.5 {
+		return vec4(1, 0, 0, 1)
+	}
+	return vec4(0, 1, 0, 1)
+}
+`, unit)))
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		for _, withSrc := range []bool{false, true} {
+			withSrc := withSrc
+			title := "WithSrc,unit=" + unit
+			if !withSrc {
+				title = "WithoutSrc,unit=" + unit
+			}
+			t.Run(title, func(t *testing.T) {
+				dst := ebiten.NewImage(dstW, dstH)
+				const (
+					offsetX = (dstW - srcW) / 2
+					offsetY = (dstH - srcH) / 2
+				)
+				op := &ebiten.DrawRectShaderOptions{}
+				op.GeoM.Translate(offsetX, offsetY)
+				if withSrc {
+					op.Images[0] = src
+				}
+				dst.DrawRectShader(srcW, srcH, s, op)
+				for j := 0; j < dstH; j++ {
+					for i := 0; i < dstW; i++ {
+						got := dst.At(i, j).(color.RGBA)
+						var want color.RGBA
+						if offsetX <= i && i < offsetX+srcW && offsetY <= j && j < offsetY+srcH {
+							var blue byte
+							if !withSrc && unit == "texel" {
+								blue = 0xff
+							}
+							if offsetX+srcW/2 <= i && offsetY+srcH/2 <= j {
+								want = color.RGBA{0xff, 0, blue, 0xff}
+							} else {
+								want = color.RGBA{0, 0xff, blue, 0xff}
+							}
+						}
+						if got != want {
+							t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
+						}
+					}
+				}
+			})
+		}
+	}
+}
