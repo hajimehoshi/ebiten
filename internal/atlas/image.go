@@ -39,7 +39,19 @@ type temporaryBytes struct {
 	notFullyUsedTime int
 }
 
-var theTemporaryBytes temporaryBytes
+var (
+	theTemporaryBytesSet [2]temporaryBytes
+	temporaryBytesIndex  int
+)
+
+func currentTemporaryBytes() *temporaryBytes {
+	return &theTemporaryBytesSet[temporaryBytesIndex]
+}
+
+func switchTemporaryBytes() {
+	temporaryBytesIndex++
+	temporaryBytesIndex %= len(theTemporaryBytesSet)
+}
 
 func temporaryBytesSize(size int) int {
 	l := 16
@@ -551,13 +563,13 @@ func (i *Image) writePixels(pix []byte, region image.Rectangle) {
 		}
 
 		// Copy pixels in the case when pix is modified before the graphics command is executed.
-		pix2 := theTemporaryBytes.alloc(len(pix))
+		pix2 := currentTemporaryBytes().alloc(len(pix))
 		copy(pix2, pix)
 		i.backend.restorable.WritePixels(pix2, region)
 		return
 	}
 
-	pixb := theTemporaryBytes.alloc(4 * r.Dx() * r.Dy())
+	pixb := currentTemporaryBytes().alloc(4 * r.Dx() * r.Dy())
 
 	// Clear the edges. pixb might not be zero-cleared.
 	// TODO: These loops assume that paddingSize is 1.
@@ -795,7 +807,8 @@ func EndFrame(graphicsDriver graphicsdriver.Graphics, swapBuffersForGL func()) e
 		return err
 	}
 
-	theTemporaryBytes.resetAtFrameEnd()
+	currentTemporaryBytes().resetAtFrameEnd()
+	switchTemporaryBytes()
 
 	for b := range theSourceBackendsForOneFrame {
 		delete(theSourceBackendsForOneFrame, b)
