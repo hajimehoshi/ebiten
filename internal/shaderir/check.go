@@ -100,8 +100,12 @@ func AreValidTypesForBinaryOp(op Op, lhs, rhs *Expr, lhst, rhst Type) bool {
 		return (lhst.IsFloatVector() || lhst.IsIntVector()) && (rhst.IsFloatVector() || lhst.IsIntVector()) && lhst.Equal(&rhst)
 	}
 
+	if op == LessThanOp || op == LessThanEqualOp || op == GreaterThanOp || op == GreaterThanEqualOp {
+		return (lhst.Main == Int && rhst.Main == Int) || (lhst.Main == Float && rhst.Main == Float)
+	}
+
 	// Comparing matrices are forbidden (#2187).
-	if op == LessThanOp || op == LessThanEqualOp || op == GreaterThanOp || op == GreaterThanEqualOp || op == EqualOp || op == NotEqualOp {
+	if op == EqualOp || op == NotEqualOp {
 		if lhst.IsMatrix() || rhst.IsMatrix() {
 			return false
 		}
