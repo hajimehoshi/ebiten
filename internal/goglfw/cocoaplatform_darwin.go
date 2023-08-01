@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Zlib
+// SPDX-License-Identifier: Apache-2.0
 // SPDX-FileCopyrightText: 2002-2006 Marcus Geelnard
 // SPDX-FileCopyrightText: 2006-2019 Camilla Löwy
 // SPDX-FileCopyrightText: 2023 The Ebitengine Authors
