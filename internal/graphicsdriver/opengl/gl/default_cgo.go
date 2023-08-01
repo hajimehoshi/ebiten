@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: Apache-2.0
 // SPDX-FileCopyrightText: 2014 Eric Woroshow
 // SPDX-FileCopyrightText: 2022 The Ebitengine Authors
 
