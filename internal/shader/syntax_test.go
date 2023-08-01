@@ -3137,29 +3137,29 @@ func TestCompilerDirective(t *testing.T) {
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	return position
 }`,
-			unit: shaderir.Texel,
+			unit: shaderir.Texels,
 			err:  false,
 		},
 		{
-			src: `//kage:unit texel
+			src: `//kage:unit texels
 
 package main
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	return position
 }`,
-			unit: shaderir.Texel,
+			unit: shaderir.Texels,
 			err:  false,
 		},
 		{
-			src: `//kage:unit pixel
+			src: `//kage:unit pixels
 
 package main
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	return position
 }`,
-			unit: shaderir.Pixel,
+			unit: shaderir.Pixels,
 			err:  false,
 		},
 		{
@@ -3173,8 +3173,8 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 			err: true,
 		},
 		{
-			src: `//kage:unit pixel
-//kage:unit pixel
+			src: `//kage:unit pixels
+//kage:unit pixels
 
 package main
 
@@ -3184,8 +3184,8 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 			err: true,
 		},
 		{
-			src: `//kage:unit pixel
-//kage:unit texel
+			src: `//kage:unit pixels
+//kage:unit texels
 
 package main
 

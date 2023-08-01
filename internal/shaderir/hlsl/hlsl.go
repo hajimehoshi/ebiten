@@ -121,7 +121,7 @@ func Compile(p *shaderir.Program) (vertexShader, pixelShader string, offsets []i
 		for i := 0; i < p.TextureCount; i++ {
 			lines = append(lines, fmt.Sprintf("Texture2D T%[1]d : register(t%[1]d);", i))
 		}
-		if c.unit == shaderir.Texel {
+		if c.unit == shaderir.Texels {
 			lines = append(lines, "SamplerState samp : register(s0);")
 		}
 	}
@@ -471,9 +471,9 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 					}
 				case shaderir.TexelAt:
 					switch c.unit {
-					case shaderir.Pixel:
+					case shaderir.Pixels:
 						return fmt.Sprintf("%s.Load(int3(%s, 0))", args[0], strings.Join(args[1:], ", "))
-					case shaderir.Texel:
+					case shaderir.Texels:
 						return fmt.Sprintf("%s.Sample(samp, %s)", args[0], strings.Join(args[1:], ", "))
 					default:
 						panic(fmt.Sprintf("hlsl: unexpected unit: %d", p.Unit))

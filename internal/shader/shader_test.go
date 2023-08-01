@@ -53,7 +53,7 @@ func hlslNormalize(str string) string {
 }
 
 func metalNormalize(str string) string {
-	prelude := msl.Prelude(shaderir.Texel)
+	prelude := msl.Prelude(shaderir.Texels)
 	if strings.HasPrefix(str, prelude) {
 		str = str[len(prelude):]
 	}

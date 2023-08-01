@@ -181,7 +181,7 @@ func TestOutput(t *testing.T) {
 		{
 			Name: "Empty",
 			Program: shaderir.Program{
-				Unit: shaderir.Pixel,
+				Unit: shaderir.Pixels,
 			},
 			GlslVS: glsl.VertexPrelude(glsl.GLSLVersionDefault),
 			GlslFS: glsl.FragmentPrelude(glsl.GLSLVersionDefault),
@@ -189,7 +189,7 @@ func TestOutput(t *testing.T) {
 		{
 			Name: "Uniform",
 			Program: shaderir.Program{
-				Unit: shaderir.Pixel,
+				Unit: shaderir.Pixels,
 				Uniforms: []shaderir.Type{
 					{Main: shaderir.Float},
 				},
@@ -202,7 +202,7 @@ uniform float U0;`,
 		{
 			Name: "UniformStruct",
 			Program: shaderir.Program{
-				Unit: shaderir.Pixel,
+				Unit: shaderir.Pixels,
 				Uniforms: []shaderir.Type{
 					{
 						Main: shaderir.Struct,
@@ -228,7 +228,7 @@ uniform S0 U0;`,
 		{
 			Name: "Vars",
 			Program: shaderir.Program{
-				Unit: shaderir.Pixel,
+				Unit: shaderir.Pixels,
 				Uniforms: []shaderir.Type{
 					{Main: shaderir.Float},
 				},
@@ -250,7 +250,7 @@ in vec3 V0;`,
 		{
 			Name: "Func",
 			Program: shaderir.Program{
-				Unit: shaderir.Pixel,
+				Unit: shaderir.Pixels,
 				Funcs: []shaderir.Func{
 					{
 						Index: 0,
@@ -271,7 +271,7 @@ void F0(void) {
 		{
 			Name: "FuncParams",
 			Program: shaderir.Program{
-				Unit: shaderir.Pixel,
+				Unit: shaderir.Pixels,
 				Funcs: []shaderir.Func{
 					{
 						Index: 0,
@@ -300,7 +300,7 @@ void F0(in float l0, in vec2 l1, in vec4 l2, out mat4 l3) {
 		{
 			Name: "FuncReturn",
 			Program: shaderir.Program{
-				Unit: shaderir.Pixel,
+				Unit: shaderir.Pixels,
 				Funcs: []shaderir.Func{
 					{
 						Index: 0,
@@ -334,7 +334,7 @@ float F0(in float l0) {
 		{
 			Name: "FuncLocals",
 			Program: shaderir.Program{
-				Unit: shaderir.Pixel,
+				Unit: shaderir.Pixels,
 				Funcs: []shaderir.Func{
 					{
 						Index: 0,
@@ -369,7 +369,7 @@ void F0(in float l0, out float l1) {
 		{
 			Name: "FuncBlocks",
 			Program: shaderir.Program{
-				Unit: shaderir.Pixel,
+				Unit: shaderir.Pixels,
 				Funcs: []shaderir.Func{
 					{
 						Index: 0,
@@ -424,7 +424,7 @@ void F0(in float l0, out float l1) {
 		{
 			Name: "Add",
 			Program: shaderir.Program{
-				Unit: shaderir.Pixel,
+				Unit: shaderir.Pixels,
 				Funcs: []shaderir.Func{
 					{
 						Index: 0,
@@ -466,7 +466,7 @@ void F0(in float l0, in float l1, out float l2) {
 		{
 			Name: "Selection",
 			Program: shaderir.Program{
-				Unit: shaderir.Pixel,
+				Unit: shaderir.Pixels,
 				Funcs: []shaderir.Func{
 					{
 						Index: 0,
@@ -509,7 +509,7 @@ void F0(in bool l0, in float l1, in float l2, out float l3) {
 		{
 			Name: "Call",
 			Program: shaderir.Program{
-				Unit: shaderir.Pixel,
+				Unit: shaderir.Pixels,
 				Funcs: []shaderir.Func{
 					{
 						Index: 0,
@@ -558,7 +558,7 @@ void F0(in float l0, in float l1, out vec2 l2) {
 		{
 			Name: "BuiltinFunc",
 			Program: shaderir.Program{
-				Unit: shaderir.Pixel,
+				Unit: shaderir.Pixels,
 				Funcs: []shaderir.Func{
 					{
 						Index: 0,
@@ -600,7 +600,7 @@ void F0(in float l0, in float l1, out float l2) {
 		{
 			Name: "FieldSelector",
 			Program: shaderir.Program{
-				Unit: shaderir.Pixel,
+				Unit: shaderir.Pixels,
 				Funcs: []shaderir.Func{
 					{
 						Index: 0,
@@ -640,7 +640,7 @@ void F0(in vec4 l0, out vec2 l1) {
 		{
 			Name: "If",
 			Program: shaderir.Program{
-				Unit: shaderir.Pixel,
+				Unit: shaderir.Pixels,
 				Funcs: []shaderir.Func{
 					{
 						Index: 0,
@@ -705,7 +705,7 @@ void F0(in float l0, in float l1, out float l2) {
 		{
 			Name: "For",
 			Program: shaderir.Program{
-				Unit: shaderir.Pixel,
+				Unit: shaderir.Pixels,
 				Funcs: []shaderir.Func{
 					{
 						Index: 0,
@@ -761,7 +761,7 @@ void F0(in float l0, in float l1, out float l2) {
 		{
 			Name: "For2",
 			Program: shaderir.Program{
-				Unit: shaderir.Pixel,
+				Unit: shaderir.Pixels,
 				Funcs: []shaderir.Func{
 					{
 						Index: 0,
@@ -817,7 +817,7 @@ void F0(in float l0, in float l1, out float l2) {
 		l2 = l4;
 	}
 }`,
-			Metal: msl.Prelude(shaderir.Pixel) + `
+			Metal: msl.Prelude(shaderir.Pixels) + `
 
 void F0(float l0, float l1, thread float& l2);
 
@@ -831,7 +831,7 @@ void F0(float l0, float l1, thread float& l2) {
 		{
 			Name: "For3",
 			Program: shaderir.Program{
-				Unit: shaderir.Pixel,
+				Unit: shaderir.Pixels,
 				Funcs: []shaderir.Func{
 					{
 						Index: 0,
@@ -914,7 +914,7 @@ void F0(in float l0, in float l1, out float l2) {
 		l2 = l5;
 	}
 }`,
-			Metal: msl.Prelude(shaderir.Pixel) + `
+			Metal: msl.Prelude(shaderir.Pixels) + `
 
 void F0(float l0, float l1, thread float& l2);
 
@@ -932,7 +932,7 @@ void F0(float l0, float l1, thread float& l2) {
 		{
 			Name: "VertexFunc",
 			Program: shaderir.Program{
-				Unit: shaderir.Pixel,
+				Unit: shaderir.Pixels,
 				Uniforms: []shaderir.Type{
 					{Main: shaderir.Float},
 				},
@@ -985,7 +985,7 @@ in vec2 V1;`,
 		{
 			Name: "FragmentFunc",
 			Program: shaderir.Program{
-				Unit: shaderir.Pixel,
+				Unit: shaderir.Pixels,
 				Uniforms: []shaderir.Type{
 					{Main: shaderir.Float},
 				},

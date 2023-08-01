@@ -220,7 +220,7 @@ func Compile(src []byte, vertexEntry, fragmentEntry string, textureCount int) (*
 
 func ParseCompilerDirectives(src []byte) (shaderir.Unit, error) {
 	// TODO: Change the unit to pixels in v3 (#2645).
-	unit := shaderir.Texel
+	unit := shaderir.Texels
 
 	reUnit := regexp.MustCompile(`^//kage:unit\s+(.+)$`)
 	var unitParsed bool
@@ -236,10 +236,10 @@ func ParseCompilerDirectives(src []byte) (shaderir.Unit, error) {
 			return 0, fmt.Errorf("shader: at most one //kage:unit can exist in a shader")
 		}
 		switch m[1] {
-		case "pixel":
-			unit = shaderir.Pixel
-		case "texel":
-			unit = shaderir.Texel
+		case "pixels":
+			unit = shaderir.Pixels
+		case "texels":
+			unit = shaderir.Texels
 		default:
 			return 0, fmt.Errorf("shader: invalid value for //kage:unit: %s", m[1])
 		}

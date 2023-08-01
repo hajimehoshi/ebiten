@@ -79,9 +79,9 @@ func imageSrcRegionOnTexture() (vec2, vec2) {
 		if i >= 1 {
 			// Convert the position in texture0's positions to the target texture positions.
 			switch unit {
-			case shaderir.Pixel:
+			case shaderir.Pixels:
 				pos = fmt.Sprintf("pos + __textureSourceOffsets[%d]", i-1)
-			case shaderir.Texel:
+			case shaderir.Texels:
 				pos = fmt.Sprintf("(pos * __textureSizes[0] + __textureSourceOffsets[%d]) / __textureSizes[%d]", i-1, i)
 			default:
 				return "", fmt.Errorf("graphics: unexpected unit: %d", unit)

@@ -14,7 +14,7 @@
 
 //go:build ignore
 
-//kage:unit pixel
+//kage:unit pixels
 
 package main
 

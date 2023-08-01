@@ -52,7 +52,7 @@ var (
 	shadersM sync.Mutex
 )
 
-var tmpl = template.Must(template.New("tmpl").Parse(`//kage:unit pixel
+var tmpl = template.Must(template.New("tmpl").Parse(`//kage:unit pixels
 
 package main
 

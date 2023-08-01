@@ -25,8 +25,8 @@ import (
 type Unit int
 
 const (
-	Texel Unit = iota
-	Pixel
+	Texels Unit = iota
+	Pixels
 )
 
 type Program struct {

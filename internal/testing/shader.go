@@ -24,7 +24,7 @@ import (
 
 // ShaderProgramFill returns a shader source to fill the frambuffer.
 func ShaderProgramFill(r, g, b, a byte) *shaderir.Program {
-	ir, err := graphics.CompileShader([]byte(fmt.Sprintf(`//kage:unit pixel
+	ir, err := graphics.CompileShader([]byte(fmt.Sprintf(`//kage:unit pixels
 
 package main
 
@@ -49,7 +49,7 @@ func ShaderProgramImages(numImages int) *shaderir.Program {
 		exprs = append(exprs, fmt.Sprintf("imageSrc%dUnsafeAt(texCoord)", i))
 	}
 
-	ir, err := graphics.CompileShader([]byte(fmt.Sprintf(`//kage:unit pixel
+	ir, err := graphics.CompileShader([]byte(fmt.Sprintf(`//kage:unit pixels
 
 package main
 

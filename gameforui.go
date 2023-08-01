@@ -24,7 +24,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
-const screenShaderSrc = `//kage:unit pixel
+const screenShaderSrc = `//kage:unit pixels
 
 package main
 

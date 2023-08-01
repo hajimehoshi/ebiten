@@ -122,7 +122,7 @@ func (c *compileContext) builtinFuncString(f shaderir.BuiltinFunc) string {
 	case shaderir.Dfdy:
 		return "dFdy"
 	case shaderir.TexelAt:
-		if c.unit == shaderir.Pixel {
+		if c.unit == shaderir.Pixels {
 			return "texelFetch"
 		}
 		return "texture"

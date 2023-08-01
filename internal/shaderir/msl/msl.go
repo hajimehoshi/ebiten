@@ -57,7 +57,7 @@ template<typename T, typename U>
 T mod(T x, U y) {
 	return x - y * floor(x/y);
 }`
-	if unit == shaderir.Texel {
+	if unit == shaderir.Texels {
 		str += `
 
 constexpr sampler texture_sampler{filter::nearest};`
@@ -396,9 +396,9 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 			}
 			if callee.Type == shaderir.BuiltinFuncExpr && callee.BuiltinFunc == shaderir.TexelAt {
 				switch p.Unit {
-				case shaderir.Texel:
+				case shaderir.Texels:
 					return fmt.Sprintf("%s.sample(texture_sampler, %s)", args[0], strings.Join(args[1:], ", "))
-				case shaderir.Pixel:
+				case shaderir.Pixels:
 					return fmt.Sprintf("%s.read(static_cast<uint2>(%s))", args[0], strings.Join(args[1:], ", "))
 				default:
 					panic(fmt.Sprintf("msl: unexpected unit: %d", p.Unit))

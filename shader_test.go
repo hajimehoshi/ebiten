@@ -28,7 +28,7 @@ func TestShaderFill(t *testing.T) {
 	const w, h = 16, 16
 
 	dst := ebiten.NewImage(w, h)
-	s, err := ebiten.NewShader([]byte(`//kage:unit pixel
+	s, err := ebiten.NewShader([]byte(`//kage:unit pixels
 
 package main
 
@@ -60,7 +60,7 @@ func TestShaderFillWithDrawImage(t *testing.T) {
 	const w, h = 16, 16
 
 	dst := ebiten.NewImage(w, h)
-	s, err := ebiten.NewShader([]byte(`//kage:unit pixel
+	s, err := ebiten.NewShader([]byte(`//kage:unit pixels
 
 package main
 
@@ -97,7 +97,7 @@ func TestShaderWithDrawImageDoesNotWreckTextureUnits(t *testing.T) {
 	rect := image.Rectangle{Max: image.Point{X: w, Y: h}}
 
 	dst := ebiten.NewImageWithOptions(rect, &ebiten.NewImageOptions{Unmanaged: true})
-	s, err := ebiten.NewShader([]byte(`//kage:unit pixel
+	s, err := ebiten.NewShader([]byte(`//kage:unit pixels
 
 package main
 
@@ -167,7 +167,7 @@ func TestShaderFillWithDrawTriangles(t *testing.T) {
 	const w, h = 16, 16
 
 	dst := ebiten.NewImage(w, h)
-	s, err := ebiten.NewShader([]byte(`//kage:unit pixel
+	s, err := ebiten.NewShader([]byte(`//kage:unit pixels
 
 package main
 
@@ -244,7 +244,7 @@ func TestShaderFunction(t *testing.T) {
 	const w, h = 16, 16
 
 	dst := ebiten.NewImage(w, h)
-	s, err := ebiten.NewShader([]byte(`//kage:unit pixel
+	s, err := ebiten.NewShader([]byte(`//kage:unit pixels
 
 package main
 
@@ -277,7 +277,7 @@ func TestShaderUninitializedUniformVariables(t *testing.T) {
 	const w, h = 16, 16
 
 	dst := ebiten.NewImage(w, h)
-	s, err := ebiten.NewShader([]byte(`//kage:unit pixel
+	s, err := ebiten.NewShader([]byte(`//kage:unit pixels
 
 package main
 
@@ -308,7 +308,7 @@ func TestShaderMatrix(t *testing.T) {
 	const w, h = 16, 16
 
 	dst := ebiten.NewImage(w, h)
-	s, err := ebiten.NewShader([]byte(`//kage:unit pixel
+	s, err := ebiten.NewShader([]byte(`//kage:unit pixels
 
 package main
 
@@ -348,7 +348,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 func TestShaderSubImage(t *testing.T) {
 	const w, h = 16, 16
 
-	s, err := ebiten.NewShader([]byte(`//kage:unit pixel
+	s, err := ebiten.NewShader([]byte(`//kage:unit pixels
 
 package main
 
@@ -476,7 +476,7 @@ func TestShaderDerivatives(t *testing.T) {
 
 	const w, h = 16, 16
 
-	s, err := ebiten.NewShader([]byte(`//kage:unit pixel
+	s, err := ebiten.NewShader([]byte(`//kage:unit pixels
 
 package main
 
@@ -533,7 +533,7 @@ func TestShaderDerivatives2(t *testing.T) {
 
 	const w, h = 16, 16
 
-	s, err := ebiten.NewShader([]byte(`//kage:unit pixel
+	s, err := ebiten.NewShader([]byte(`//kage:unit pixels
 
 package main
 
@@ -598,7 +598,7 @@ func TestShaderUniformFirstElement(t *testing.T) {
 	}{
 		{
 			Name: "float array",
-			Shader: `//kage:unit pixel
+			Shader: `//kage:unit pixels
 
 package main
 
@@ -613,7 +613,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		},
 		{
 			Name: "float one-element array",
-			Shader: `//kage:unit pixel
+			Shader: `//kage:unit pixels
 
 package main
 
@@ -628,7 +628,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		},
 		{
 			Name: "matrix array",
-			Shader: `//kage:unit pixel
+			Shader: `//kage:unit pixels
 
 package main
 
@@ -672,7 +672,7 @@ func TestShaderFuncMod(t *testing.T) {
 	const w, h = 16, 16
 
 	dst := ebiten.NewImage(w, h)
-	s, err := ebiten.NewShader([]byte(`//kage:unit pixel
+	s, err := ebiten.NewShader([]byte(`//kage:unit pixels
 
 package main
 
@@ -708,7 +708,7 @@ func TestShaderMatrixInitialize(t *testing.T) {
 	src.Fill(color.RGBA{R: 0x10, G: 0x20, B: 0x30, A: 0xff})
 
 	dst := ebiten.NewImage(w, h)
-	s, err := ebiten.NewShader([]byte(`//kage:unit pixel
+	s, err := ebiten.NewShader([]byte(`//kage:unit pixels
 
 package main
 
@@ -740,7 +740,7 @@ func TestShaderModVectorAndFloat(t *testing.T) {
 	const w, h = 16, 16
 
 	dst := ebiten.NewImage(w, h)
-	s, err := ebiten.NewShader([]byte(`//kage:unit pixel
+	s, err := ebiten.NewShader([]byte(`//kage:unit pixels
 
 package main
 
@@ -773,7 +773,7 @@ func TestShaderTextureAt(t *testing.T) {
 	src.Fill(color.RGBA{R: 0x10, G: 0x20, B: 0x30, A: 0xff})
 
 	dst := ebiten.NewImage(w, h)
-	s, err := ebiten.NewShader([]byte(`//kage:unit pixel
+	s, err := ebiten.NewShader([]byte(`//kage:unit pixels
 
 package main
 
@@ -811,7 +811,7 @@ func TestShaderAtan2(t *testing.T) {
 	src.Fill(color.RGBA{R: 0x10, G: 0x20, B: 0x30, A: 0xff})
 
 	dst := ebiten.NewImage(w, h)
-	s, err := ebiten.NewShader([]byte(`//kage:unit pixel
+	s, err := ebiten.NewShader([]byte(`//kage:unit pixels
 
 package main
 
@@ -845,7 +845,7 @@ func TestShaderUniformMatrix2(t *testing.T) {
 	const w, h = 16, 16
 
 	dst := ebiten.NewImage(w, h)
-	s, err := ebiten.NewShader([]byte(`//kage:unit pixel
+	s, err := ebiten.NewShader([]byte(`//kage:unit pixels
 
 package main
 
@@ -885,7 +885,7 @@ func TestShaderUniformMatrix2Array(t *testing.T) {
 	const w, h = 16, 16
 
 	dst := ebiten.NewImage(w, h)
-	s, err := ebiten.NewShader([]byte(`//kage:unit pixel
+	s, err := ebiten.NewShader([]byte(`//kage:unit pixels
 
 package main
 
@@ -927,7 +927,7 @@ func TestShaderUniformMatrix3(t *testing.T) {
 	const w, h = 16, 16
 
 	dst := ebiten.NewImage(w, h)
-	s, err := ebiten.NewShader([]byte(`//kage:unit pixel
+	s, err := ebiten.NewShader([]byte(`//kage:unit pixels
 
 package main
 
@@ -968,7 +968,7 @@ func TestShaderUniformMatrix3Array(t *testing.T) {
 	const w, h = 16, 16
 
 	dst := ebiten.NewImage(w, h)
-	s, err := ebiten.NewShader([]byte(`//kage:unit pixel
+	s, err := ebiten.NewShader([]byte(`//kage:unit pixels
 
 package main
 
@@ -1012,7 +1012,7 @@ func TestShaderUniformMatrix4(t *testing.T) {
 	const w, h = 16, 16
 
 	dst := ebiten.NewImage(w, h)
-	s, err := ebiten.NewShader([]byte(`//kage:unit pixel
+	s, err := ebiten.NewShader([]byte(`//kage:unit pixels
 
 package main
 
@@ -1054,7 +1054,7 @@ func TestShaderUniformMatrix4Array(t *testing.T) {
 	const w, h = 16, 16
 
 	dst := ebiten.NewImage(w, h)
-	s, err := ebiten.NewShader([]byte(`//kage:unit pixel
+	s, err := ebiten.NewShader([]byte(`//kage:unit pixels
 
 package main
 
@@ -1099,7 +1099,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 func TestShaderOptionsNegativeBounds(t *testing.T) {
 	const w, h = 16, 16
 
-	s, err := ebiten.NewShader([]byte(`//kage:unit pixel
+	s, err := ebiten.NewShader([]byte(`//kage:unit pixels
 
 package main
 
@@ -1229,7 +1229,7 @@ func TestShaderVectorEqual(t *testing.T) {
 	const w, h = 16, 16
 
 	dst := ebiten.NewImage(w, h)
-	s, err := ebiten.NewShader([]byte(`//kage:unit pixel
+	s, err := ebiten.NewShader([]byte(`//kage:unit pixels
 
 package main
 
@@ -1279,7 +1279,7 @@ func TestShaderDiscard(t *testing.T) {
 	}
 	src.WritePixels(pix)
 
-	s, err := ebiten.NewShader([]byte(`//kage:unit pixel
+	s, err := ebiten.NewShader([]byte(`//kage:unit pixels
 
 package main
 
@@ -1326,7 +1326,7 @@ func TestShaderDrawRect(t *testing.T) {
 	dst := ebiten.NewImage(dstW, dstH)
 	src := ebiten.NewImage(srcW, srcH)
 
-	s, err := ebiten.NewShader([]byte(`//kage:unit pixel
+	s, err := ebiten.NewShader([]byte(`//kage:unit pixels
 
 package main
 
@@ -1375,7 +1375,7 @@ func TestShaderDrawRectColorScale(t *testing.T) {
 	const w, h = 16, 16
 
 	dst := ebiten.NewImage(w, h)
-	s, err := ebiten.NewShader([]byte(`//kage:unit pixel
+	s, err := ebiten.NewShader([]byte(`//kage:unit pixels
 
 package main
 
@@ -1407,7 +1407,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 }
 
 func TestShaderUniformInt(t *testing.T) {
-	const ints = `//kage:unit pixel
+	const ints = `//kage:unit pixels
 
 package main
 
@@ -1421,7 +1421,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 }
 `
 
-	const intArray = `//kage:unit pixel
+	const intArray = `//kage:unit pixels
 
 package main
 
@@ -1432,7 +1432,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 }
 `
 
-	const intVec = `//kage:unit pixel
+	const intVec = `//kage:unit pixels
 
 package main
 
@@ -1609,7 +1609,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 
 // Issue #2463
 func TestShaderUniformVec3Array(t *testing.T) {
-	const shader = `//kage:unit pixel
+	const shader = `//kage:unit pixels
 
 package main
 
@@ -1682,7 +1682,7 @@ return vec4(b)/255`,
 	}
 
 	for _, tc := range cases {
-		shader := fmt.Sprintf(`//kage:unit pixel
+		shader := fmt.Sprintf(`//kage:unit pixels
 
 package main
 
@@ -1716,7 +1716,7 @@ func TestShaderTexelAndPixel(t *testing.T) {
 	dstPixel := ebiten.NewImage(dstW, dstH)
 	src := ebiten.NewImage(srcW, srcH)
 
-	shaderTexel, err := ebiten.NewShader([]byte(fmt.Sprintf(`//kage:unit texel
+	shaderTexel, err := ebiten.NewShader([]byte(fmt.Sprintf(`//kage:unit texels
 
 package main
 
@@ -1731,7 +1731,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	if err != nil {
 		t.Fatal(err)
 	}
-	shaderPixel, err := ebiten.NewShader([]byte(`//kage:unit pixel
+	shaderPixel, err := ebiten.NewShader([]byte(`//kage:unit pixels
 
 package main
 
@@ -1776,7 +1776,7 @@ func TestShaderDifferentTextureSizes(t *testing.T) {
 	src0.Fill(color.RGBA{0x10, 0x20, 0x30, 0xff})
 	src1.Fill(color.RGBA{0x30, 0x20, 0x10, 0xff})
 
-	for _, unit := range []string{"texel", "pixel"} {
+	for _, unit := range []string{"texels", "pixels"} {
 		unit := unit
 		t.Run(fmt.Sprintf("unit %s", unit), func(t *testing.T) {
 			shader, err := ebiten.NewShader([]byte(fmt.Sprintf(`//kage:unit %s
@@ -1830,7 +1830,7 @@ func TestShaderIVec(t *testing.T) {
 
 	// Test that ivec2 can take any float values that can be casted to integers.
 	// This seems the common behavior in shading languages like GLSL, Metal, and HLSL.
-	shader, err := ebiten.NewShader([]byte(`//kage:unit pixel
+	shader, err := ebiten.NewShader([]byte(`//kage:unit pixels
 
 package main
 
@@ -1859,7 +1859,7 @@ func TestShaderUniformSizes(t *testing.T) {
 	const w, h = 16, 16
 
 	dst := ebiten.NewImage(w, h)
-	s, err := ebiten.NewShader([]byte(`//kage:unit pixel
+	s, err := ebiten.NewShader([]byte(`//kage:unit pixels
 
 package main
 
@@ -1978,7 +1978,7 @@ func TestShaderUniformDefaultValue(t *testing.T) {
 	const w, h = 16, 16
 
 	dst := ebiten.NewImage(w, h)
-	s, err := ebiten.NewShader([]byte(`//kage:unit pixel
+	s, err := ebiten.NewShader([]byte(`//kage:unit pixels
 
 package main
 
@@ -2036,7 +2036,7 @@ func TestShaderDrawRectWithoutSource(t *testing.T) {
 
 	src := ebiten.NewImage(srcW, srcH)
 
-	for _, unit := range []string{"pixel", "texel"} {
+	for _, unit := range []string{"pixels", "texels"} {
 		s, err := ebiten.NewShader([]byte(fmt.Sprintf(`//kage:unit %s
 
 package main
@@ -2094,7 +2094,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 						var want color.RGBA
 						if offsetX <= i && i < offsetX+srcW && offsetY <= j && j < offsetY+srcH {
 							var blue byte
-							if !withSrc && unit == "texel" {
+							if !withSrc && unit == "texels" {
 								blue = 0xff
 							}
 							if offsetX+srcW/2 <= i && offsetY+srcH/2 <= j {

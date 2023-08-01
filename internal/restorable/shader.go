@@ -80,7 +80,7 @@ func init() {
 		return nil
 	})
 	wg.Go(func() error {
-		ir, err := graphics.CompileShader([]byte(`//kage:unit pixel
+		ir, err := graphics.CompileShader([]byte(`//kage:unit pixels
 
 package main
 

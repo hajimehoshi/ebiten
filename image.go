@@ -740,7 +740,7 @@ var _ [len(DrawRectShaderOptions{}.Images)]struct{} = [graphics.ShaderImageCount
 //
 // In a shader, texCoord in Fragment represents a position in a source image.
 // If no source images are specified, texCoord represents the position from (0, 0) to (width, height) in pixels.
-// If the unit is pixels by a compiler directive `//kage:unit pixels`, texCoord values are valid.
+// If the unit is pixels by a compiler directive `//kage:unit pixelss`, texCoord values are valid.
 // If the unit is texels (default), texCoord values still take from (0, 0) to (width, height),
 // but these are invalid since texCoord is expected to be in texels in the texel-unit mode.
 // This behavior is preserved for backward compatibility. It is recommended to use the pixel-unit mode to avoid confusion.
@@ -787,7 +787,7 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 		b := img.Bounds()
 		sx, sy = img.adjustPosition(b.Min.X, b.Min.Y)
 		sr = img.adjustedRegion()
-	} else if shader.unit == shaderir.Pixel {
+	} else if shader.unit == shaderir.Pixels {
 		// Give the source size as pixels only when the unit is pixels so that users can get the source size via imageSrcRegionOnTexture (#2166).
 		// With the texel mode, the imageSrcRegionOnTexture values should be in texels so the source position in pixels would not match.
 		sr = graphicsdriver.Region{
