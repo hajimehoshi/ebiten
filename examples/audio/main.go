@@ -199,7 +199,7 @@ func (p *Player) update() error {
 	}
 
 	if p.audioPlayer.IsPlaying() {
-		p.current = p.audioPlayer.Current()
+		p.current = p.audioPlayer.Position()
 	}
 	if err := p.seekBarIfNeeded(); err != nil {
 		return err
@@ -327,7 +327,7 @@ func (p *Player) seekBarIfNeeded() error {
 	}
 	pos := time.Duration(x-bx) * p.total / time.Duration(bw)
 	p.current = pos
-	if err := p.audioPlayer.Seek(pos); err != nil {
+	if err := p.audioPlayer.SetPosition(pos); err != nil {
 		return err
 	}
 	return nil

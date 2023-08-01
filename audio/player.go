@@ -243,7 +243,7 @@ func (p *playerImpl) Close() error {
 	return nil
 }
 
-func (p *playerImpl) Current() time.Duration {
+func (p *playerImpl) Position() time.Duration {
 	p.m.Lock()
 	defer p.m.Unlock()
 	if err := p.ensurePlayer(); err != nil {
@@ -256,10 +256,10 @@ func (p *playerImpl) Current() time.Duration {
 }
 
 func (p *playerImpl) Rewind() error {
-	return p.Seek(0)
+	return p.SetPosition(0)
 }
 
-func (p *playerImpl) Seek(offset time.Duration) error {
+func (p *playerImpl) SetPosition(offset time.Duration) error {
 	p.m.Lock()
 	defer p.m.Unlock()
 

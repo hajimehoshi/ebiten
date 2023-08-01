@@ -104,7 +104,7 @@ func (g *Game) Update() error {
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	pos := g.player.Current()
+	pos := g.player.Position()
 	msg := fmt.Sprintf(`TPS: %0.2f
 This is an example using
 stereo audio panning.

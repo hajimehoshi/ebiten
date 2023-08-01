@@ -368,13 +368,20 @@ func (p *Player) Rewind() error {
 	return p.p.Rewind()
 }
 
+// SetPosition sets the position with the given offset.
+//
+// The passed source to NewPlayer must be io.Seeker, or SetPosition panics.
+//
+// SetPosition returns error when seeking the source stream returns an error.
+func (p *Player) SetPosition(offset time.Duration) error {
+	return p.p.SetPosition(offset)
+}
+
 // Seek seeks the position with the given offset.
 //
-// The passed source to NewPlayer must be io.Seeker, or Seek panics.
-//
-// Seek returns error when seeking the source stream returns error.
+// Deprecated: as of v2.6. Use SetPosition instead.
 func (p *Player) Seek(offset time.Duration) error {
-	return p.p.Seek(offset)
+	return p.SetPosition(offset)
 }
 
 // Pause pauses the playing.
@@ -382,12 +389,19 @@ func (p *Player) Pause() {
 	p.p.Pause()
 }
 
+// Position returns the current position in time.
+//
+// As long as the player continues to play, Position's returning value is increased monotonically,
+// even though the source stream loops and its position goes back.
+func (p *Player) Position() time.Duration {
+	return p.p.Position()
+}
+
 // Current returns the current position in time.
 //
-// As long as the player continues to play, Current's returning value is increased monotonically,
-// even though the source stream loops and its position goes back.
+// Deprecated: as of v2.6. Use Position instead.
 func (p *Player) Current() time.Duration {
-	return p.p.Current()
+	return p.Position()
 }
 
 // Volume returns the current volume of this player [0-1].
