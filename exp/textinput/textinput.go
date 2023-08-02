@@ -20,6 +20,8 @@ package textinput
 
 import (
 	"unicode/utf16"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
 // State represents the current state of text inputting.
@@ -41,8 +43,11 @@ type State struct {
 // Start returns a channel to send the state repeatedly, and a function to end the text inputting.
 //
 // Start returns nil and nil if the current environment doesn't support this package.
+//
+// (x, y) is in device-independent pixels.
 func Start(x, y int) (states chan State, close func()) {
-	return theTextInput.Start(x, y)
+	cx, cy := ui.LogicalPositionToClientPosition(float64(x), float64(y))
+	return theTextInput.Start(int(cx), int(cy))
 }
 
 func convertUTF16CountToByteCount(text string, c int) int {
