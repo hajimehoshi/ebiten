@@ -43,8 +43,6 @@ type State struct {
 // Start returns a channel to send the state repeatedly, and a function to end the text inputting.
 //
 // Start returns nil and nil if the current environment doesn't support this package.
-//
-// (x, y) is in device-independent pixels.
 func Start(x, y int) (states chan State, close func()) {
 	cx, cy := ui.LogicalPositionToClientPosition(float64(x), float64(y))
 	return theTextInput.Start(int(cx), int(cy))
