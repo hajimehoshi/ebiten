@@ -149,6 +149,9 @@ func (t *TextField) Update() {
 	}
 
 	var processed bool
+
+	// Text inputting can happen multiple times in one tick (1/60[s] by default).
+	// Handle all of them.
 	for {
 		if t.ch == nil {
 			x, y := t.bounds.Min.X, t.bounds.Min.Y
