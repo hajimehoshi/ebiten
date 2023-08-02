@@ -181,7 +181,7 @@ func (t *TextField) Update() {
 					t.text = t.text[:t.selectionStart] + state.Text + t.text[t.selectionEnd:]
 					t.selectionStart += len(state.Text)
 					t.selectionEnd = t.selectionStart
-					state = textinput.State{}
+					t.state = textinput.State{}
 					continue
 				}
 				t.state = state
