@@ -11,7 +11,7 @@ require (
 	github.com/jakecoffman/cp v1.2.1
 	github.com/jezek/xgb v1.1.0
 	github.com/jfreymuth/oggvorbis v1.0.5
-	golang.org/x/image v0.9.0
+	golang.org/x/image v0.10.0
 	golang.org/x/mobile v0.0.0-20230531173138-3c911d8e3eda
 	golang.org/x/sync v0.3.0
 	golang.org/x/sys v0.10.0
