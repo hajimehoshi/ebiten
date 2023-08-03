@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // SPDX-FileCopyrightText: 2002-2006 Marcus Geelnard
-// SPDX-FileCopyrightText: 2006-2019 Camilla Löwy
+// SPDX-FileCopyrightText: 2006-2019 Camilla Löwy <elmindreda@glfw.org>
+// SPDX-FileCopyrightText: 2012 Torsten Walluhn <tw@mad-cad.net>
 // SPDX-FileCopyrightText: 2022 The Ebitengine Authors
 
 //go:build darwin || windows
