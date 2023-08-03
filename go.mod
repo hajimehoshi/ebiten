@@ -5,7 +5,7 @@ go 1.18
 require (
 	github.com/ebitengine/oto/v3 v3.1.0-alpha.0.20230802152524-4a3b4ea61451
 	github.com/ebitengine/purego v0.5.0-alpha
-	github.com/go-text/typesetting v0.0.0-20230717141307-09c70c30a055
+	github.com/go-text/typesetting v0.0.0-20230803102845-24e03d8b5372
 	github.com/hajimehoshi/bitmapfont/v3 v3.0.0
 	github.com/hajimehoshi/go-mp3 v0.3.4
 	github.com/jakecoffman/cp v1.2.1
@@ -15,7 +15,7 @@ require (
 	golang.org/x/mobile v0.0.0-20230531173138-3c911d8e3eda
 	golang.org/x/sync v0.3.0
 	golang.org/x/sys v0.10.0
-	golang.org/x/tools v0.11.0
+	golang.org/x/tools v0.11.1
 )
 
 require (
