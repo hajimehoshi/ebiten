@@ -17,17 +17,13 @@ package graphics
 import (
 	"bytes"
 	"fmt"
-	"go/parser"
-	"go/token"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/shader"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
 
-var shaderSuffix string
-
-func init() {
-	shaderSuffix = `
+func shaderSuffix(unit shaderir.Unit) (string, error) {
+	shaderSuffix := `
 var __imageDstTextureSize vec2
 
 // imageSrcTextureSize returns the destination image's texture size in pixels.
@@ -41,36 +37,36 @@ var __textureSizes [%[1]d]vec2
 
 // imageSrcTextureSize returns the source image's texture size in pixels.
 // As an image is a part of internal texture, the texture is usually bigger than the image.
-// The texture's size is useful when you want to calculate pixels from texels.
+// The texture's size is useful when you want to calculate pixels from texels in the texel mode.
 func imageSrcTextureSize() vec2 {
 	return __textureSizes[0]
 }
 
-// The unit is the source texture's texel.
+// The unit is the source texture's pixel or texel.
 var __textureDestinationRegionOrigin vec2
 
-// The unit is the source texture's texel.
+// The unit is the source texture's pixel or texel.
 var __textureDestinationRegionSize vec2
 
 // imageDstRegionOnTexture returns the destination image's region (the origin and the size) on its texture.
-// The unit is the source texture's texel.
+// The unit is the source texture's pixel or texel.
 //
 // As an image is a part of internal texture, the image can be located at an arbitrary position on the texture.
 func imageDstRegionOnTexture() (vec2, vec2) {
 	return __textureDestinationRegionOrigin, __textureDestinationRegionSize
 }
 
-// The unit is the source texture's texel.
+// The unit is the source texture's pixel.
 var __textureSourceOffsets [%[2]d]vec2
 
-// The unit is the source texture's texel.
+// The unit is the source texture's pixel or texel.
 var __textureSourceRegionOrigin vec2
 
-// The unit is the source texture's texel.
+// The unit is the source texture's pixel or texel.
 var __textureSourceRegionSize vec2
 
 // imageSrcRegionOnTexture returns the source image's region (the origin and the size) on its texture.
-// The unit is the source texture's texel.
+// The unit is the source texture's pixel or texel.
 //
 // As an image is a part of internal texture, the image can be located at an arbitrary position on the texture.
 func imageSrcRegionOnTexture() (vec2, vec2) {
@@ -81,21 +77,28 @@ func imageSrcRegionOnTexture() (vec2, vec2) {
 	for i := 0; i < ShaderImageCount; i++ {
 		pos := "pos"
 		if i >= 1 {
-			// Convert the position in texture0's texels to the target texture texels.
-			pos = fmt.Sprintf("(pos + __textureSourceOffsets[%d]) * __textureSizes[0] / __textureSizes[%d]", i-1, i)
+			// Convert the position in texture0's positions to the target texture positions.
+			switch unit {
+			case shaderir.Pixels:
+				pos = fmt.Sprintf("pos + __textureSourceOffsets[%d]", i-1)
+			case shaderir.Texels:
+				pos = fmt.Sprintf("(pos * __textureSizes[0] + __textureSourceOffsets[%d]) / __textureSizes[%d]", i-1, i)
+			default:
+				return "", fmt.Errorf("graphics: unexpected unit: %d", unit)
+			}
 		}
 		// __t%d is a special variable for a texture variable.
 		shaderSuffix += fmt.Sprintf(`
 func imageSrc%[1]dUnsafeAt(pos vec2) vec4 {
-	// pos is the position in texels of the source texture (= 0th image's texture).
-	return texture2D(__t%[1]d, %[2]s)
+	// pos is the position in positions of the source texture (= 0th image's texture).
+	return __texelAt(__t%[1]d, %[2]s)
 }
 
 func imageSrc%[1]dAt(pos vec2) vec4 {
-	// pos is the position in texels of the source texture (= 0th image's texture).
+	// pos is the position of the source texture (= 0th image's texture).
 	// If pos is in the region, the result is (1, 1). Otherwise, either element is 0.
 	in := step(__textureSourceRegionOrigin, pos) - step(__textureSourceRegionOrigin + __textureSourceRegionSize, pos)
-	return texture2D(__t%[1]d, %[2]s) * in.x * in.y
+	return __texelAt(__t%[1]d, %[2]s) * in.x * in.y
 }
 `, i, pos)
 	}
@@ -107,24 +110,28 @@ func __vertex(position vec2, texCoord vec2, color vec4) (vec4, vec2, vec4) {
 	return __projectionMatrix * vec4(position, 0, 1), texCoord, color
 }
 `
+	return shaderSuffix, nil
 }
 
 func CompileShader(src []byte) (*shaderir.Program, error) {
-	var buf bytes.Buffer
-	buf.Write(src)
-	buf.WriteString(shaderSuffix)
-
-	fs := token.NewFileSet()
-	f, err := parser.ParseFile(fs, "", buf.Bytes(), parser.AllErrors)
+	unit, err := shader.ParseCompilerDirectives(src)
 	if err != nil {
 		return nil, err
 	}
+	suffix, err := shaderSuffix(unit)
+	if err != nil {
+		return nil, err
+	}
+
+	var buf bytes.Buffer
+	buf.Write(src)
+	buf.WriteString(suffix)
 
 	const (
 		vert = "__vertex"
 		frag = "Fragment"
 	)
-	ir, err := shader.Compile(fs, f, vert, frag, ShaderImageCount)
+	ir, err := shader.Compile(buf.Bytes(), vert, frag, ShaderImageCount)
 	if err != nil {
 		return nil, err
 	}

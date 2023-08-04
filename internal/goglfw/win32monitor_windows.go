@@ -1,6 +1,5 @@
-// SPDX-License-Identifier: Zlib
-// SPDX-FileCopyrightText: 2002-2006 Marcus Geelnard
-// SPDX-FileCopyrightText: 2006-2019 Camilla Löwy
+// SPDX-License-Identifier: Apache-2.0
+// SPDX-FileCopyrightText: 2021 Camilla Löwy <elmindreda@glfw.org>
 // SPDX-FileCopyrightText: 2022 The Ebitengine Authors
 
 package goglfw
@@ -12,6 +11,7 @@ import (
 	"golang.org/x/sys/windows"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/microsoftgdk"
+	"github.com/hajimehoshi/ebiten/v2/internal/winver"
 )
 
 func monitorCallback(handle _HMONITOR, dc _HDC, rect *_RECT, monitor *Monitor /* _LPARAM */) uintptr /* _BOOL */ {
@@ -217,7 +217,7 @@ func (m *Monitor) restoreVideoModeWin32() {
 func getMonitorContentScaleWin32(handle _HMONITOR) (xscale, yscale float32, err error) {
 	var xdpi, ydpi uint32
 
-	if _IsWindows8Point1OrGreater() {
+	if winver.IsWindows8Point1OrGreater() {
 		var err error
 		xdpi, ydpi, err = _GetDpiForMonitor(handle, _MDT_EFFECTIVE_DPI)
 		if err != nil {

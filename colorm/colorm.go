@@ -146,12 +146,12 @@ func (c *ColorM) ReadElements(body []float32, translation []float32) {
 	c.affineColorM().Elements(body, translation)
 }
 
-func uniforms(c ColorM) map[string]interface{} {
+func uniforms(c ColorM) map[string]any {
 	var body [16]float32
 	var translation [4]float32
 	c.affineColorM().Elements(body[:], translation[:])
 
-	uniforms := map[string]interface{}{}
+	uniforms := map[string]any{}
 	uniforms[builtinshader.UniformColorMBody] = body[:]
 	uniforms[builtinshader.UniformColorMTranslation] = translation[:]
 	return uniforms

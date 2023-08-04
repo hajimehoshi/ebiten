@@ -58,6 +58,40 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
             } else if (arg1Axis == MotionEvent.AXIS_BRAKE) {
                 arg1Axis = MotionEvent.AXIS_GAS;
             }
+
+            // Make sure the AXIS_Z is sorted between AXIS_RY and AXIS_RZ.
+            //
+            // The value ordering on Android otherwise is AXIS_X, AXIS_Y,
+            // all kinds of axes used by touchscreens or touchpads only,
+            // AXIS_Z, AXIS_RX, AXIS_RY, AXIS_RZ, hats, triggers,
+            // flight controls, car controls, misc stuff.
+            //
+            // This is because the usual pairing are:
+            // - AXIS_X, AXIS_Y (left stick).
+            // - AXIS_RX, AXIS_RY (sometimes the right stick, sometimes triggers).
+            // - AXIS_Z, AXIS_RZ (sometimes the right stick, sometimes triggers).
+            //
+            // This sorts the axes in the above order, which tends to be correct
+            // for Xbox-ish game pads that have the right stick on RX/RY and the
+            // triggers on Z/RZ.
+            //
+            // Gamepads that don't have AXIS_Z/AXIS_RZ but use
+            // AXIS_LTRIGGER/AXIS_RTRIGGER are unaffected by this.
+            //
+            // References:
+            // - https://developer.android.com/develop/ui/views/touch-and-input/game-controllers/controller-input
+            // - https://www.kernel.org/doc/html/latest/input/gamepad.html
+            if (arg0Axis == MotionEvent.AXIS_Z) {
+                arg0Axis = MotionEvent.AXIS_RZ - 1;
+            } else if (arg0Axis > MotionEvent.AXIS_Z && arg0Axis < MotionEvent.AXIS_RZ) {
+                arg0Axis--;
+            }
+            if (arg1Axis == MotionEvent.AXIS_Z) {
+                arg1Axis = MotionEvent.AXIS_RZ - 1;
+            } else if (arg1Axis > MotionEvent.AXIS_Z && arg1Axis < MotionEvent.AXIS_RZ) {
+                arg1Axis--;
+            }
+
             return arg0Axis - arg1Axis;
         }
     }
@@ -329,10 +363,18 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
         final int SDL_CONTROLLER_AXIS_TRIGGERRIGHT = 5;
 
         int naxes = 0;
+        boolean haveZ = false;
+        boolean havePastZBeforeRZ = false;
         for (InputDevice.MotionRange range : joystickDevice.getMotionRanges()) {
             if ((range.getSource() & InputDevice.SOURCE_CLASS_JOYSTICK) != 0) {
-                if (range.getAxis() != MotionEvent.AXIS_HAT_X && range.getAxis() != MotionEvent.AXIS_HAT_Y) {
+                int axis = range.getAxis();
+                if (axis != MotionEvent.AXIS_HAT_X && axis != MotionEvent.AXIS_HAT_Y) {
                     naxes++;
+                }
+                if (axis == MotionEvent.AXIS_Z) {
+                  haveZ = true;
+                } else if (axis > MotionEvent.AXIS_Z && axis < MotionEvent.AXIS_RZ) {
+                  havePastZBeforeRZ = true;
                 }
             }
         }
@@ -347,6 +389,11 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
         }
         if (naxes >= 6) {
             axisMask |= ((1 << SDL_CONTROLLER_AXIS_TRIGGERLEFT) | (1 << SDL_CONTROLLER_AXIS_TRIGGERRIGHT));
+        }
+        // Also add an indicator bit for whether the sorting order has changed.
+        // This serves to disable outdated gamecontrollerdb.txt mappings.
+        if (haveZ && havePastZBeforeRZ) {
+            axisMask |= 0x8000;
         }
         return axisMask;
     }

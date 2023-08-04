@@ -14,10 +14,12 @@
 
 //go:build ignore
 
+//kage:unit pixels
+
 package main
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
-	pos := position.xy / imageDstTextureSize()
+	pos := position.xy
 	origin, size := imageDstRegionOnTexture()
 	pos -= origin
 	pos /= size

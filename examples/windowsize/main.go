@@ -36,19 +36,20 @@ import (
 )
 
 var (
-	flagFullscreen      = flag.Bool("fullscreen", false, "fullscreen")
-	flagResizable       = flag.Bool("resizable", false, "make the window resizable")
-	flagWindowPosition  = flag.String("windowposition", "", "window position (e.g., 100,200)")
-	flagTransparent     = flag.Bool("transparent", false, "screen transparent")
-	flagAutoAdjusting   = flag.Bool("autoadjusting", false, "make the game screen auto-adjusting")
-	flagFloating        = flag.Bool("floating", false, "make the window floating")
-	flagMaximize        = flag.Bool("maximize", false, "maximize the window")
-	flagVsync           = flag.Bool("vsync", true, "enable vsync")
-	flagAutoRestore     = flag.Bool("autorestore", false, "restore the window automatically")
-	flagInitFocused     = flag.Bool("initfocused", true, "whether the window is focused on start")
-	flagMinWindowSize   = flag.String("minwindowsize", "", "minimum window size (e.g., 100x200)")
-	flagMaxWindowSize   = flag.String("maxwindowsize", "", "maximium window size (e.g., 1920x1080)")
-	flagGraphicsLibrary = flag.String("graphicslibrary", "", "graphics library (e.g. opengl)")
+	flagFullscreen          = flag.Bool("fullscreen", false, "fullscreen")
+	flagResizable           = flag.Bool("resizable", false, "make the window resizable")
+	flagWindowPosition      = flag.String("windowposition", "", "window position (e.g., 100,200)")
+	flagTransparent         = flag.Bool("transparent", false, "screen transparent")
+	flagAutoAdjusting       = flag.Bool("autoadjusting", false, "make the game screen auto-adjusting")
+	flagFloating            = flag.Bool("floating", false, "make the window floating")
+	flagMaximize            = flag.Bool("maximize", false, "maximize the window")
+	flagVsync               = flag.Bool("vsync", true, "enable vsync")
+	flagAutoRestore         = flag.Bool("autorestore", false, "restore the window automatically")
+	flagInitFocused         = flag.Bool("initfocused", true, "whether the window is focused on start")
+	flagMinWindowSize       = flag.String("minwindowsize", "", "minimum window size (e.g., 100x200)")
+	flagMaxWindowSize       = flag.String("maxwindowsize", "", "maximium window size (e.g., 1920x1080)")
+	flagGraphicsLibrary     = flag.String("graphicslibrary", "", "graphics library (e.g. opengl)")
+	flagRunnableOnUnfocused = flag.Bool("runnableonunfocused", true, "whether the app is runnable even on unfocused")
 )
 
 func init() {
@@ -429,9 +430,8 @@ func main() {
 	if *flagAutoAdjusting {
 		ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
 	}
-
-	if !*flagInitFocused {
-		ebiten.SetRunnableOnUnfocused(true)
+	if !*flagRunnableOnUnfocused {
+		ebiten.SetRunnableOnUnfocused(false)
 	}
 
 	minw, minh, maxw, maxh := -1, -1, -1, -1

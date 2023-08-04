@@ -29,6 +29,7 @@ type defaultContext struct {
 	fnBindFramebuffer          js.Value
 	fnBindRenderbuffer         js.Value
 	fnBindTexture              js.Value
+	fnBindVertexArray          js.Value
 	fnBlendEquationSeparate    js.Value
 	fnBlendFuncSeparate        js.Value
 	fnBufferData               js.Value
@@ -43,12 +44,14 @@ type defaultContext struct {
 	fnCreateRenderbuffer       js.Value
 	fnCreateShader             js.Value
 	fnCreateTexture            js.Value
+	fnCreateVertexArray        js.Value
 	fnDeleteBuffer             js.Value
 	fnDeleteFramebuffer        js.Value
 	fnDeleteProgram            js.Value
 	fnDeleteRenderbuffer       js.Value
 	fnDeleteShader             js.Value
 	fnDeleteTexture            js.Value
+	fnDeleteVertexArray        js.Value
 	fnDisable                  js.Value
 	fnDisableVertexAttribArray js.Value
 	fnDrawElements             js.Value
@@ -96,14 +99,13 @@ type defaultContext struct {
 	fnVertexAttribPointer      js.Value
 	fnViewport                 js.Value
 
-	webGL2 bool
-
 	buffers          values
 	framebuffers     values
 	programs         values
 	renderbuffers    values
 	shaders          values
 	textures         values
+	vertexArrays     values
 	uniformLocations map[uint32]*values
 }
 
@@ -158,6 +160,7 @@ func NewDefaultContext(v js.Value) (Context, error) {
 		fnBindFramebuffer:          v.Get("bindFramebuffer").Call("bind", v),
 		fnBindRenderbuffer:         v.Get("bindRenderbuffer").Call("bind", v),
 		fnBindTexture:              v.Get("bindTexture").Call("bind", v),
+		fnBindVertexArray:          v.Get("bindVertexArray").Call("bind", v),
 		fnBlendEquationSeparate:    v.Get("blendEquationSeparate").Call("bind", v),
 		fnBlendFuncSeparate:        v.Get("blendFuncSeparate").Call("bind", v),
 		fnBufferData:               v.Get("bufferData").Call("bind", v),
@@ -172,12 +175,14 @@ func NewDefaultContext(v js.Value) (Context, error) {
 		fnCreateRenderbuffer:       v.Get("createRenderbuffer").Call("bind", v),
 		fnCreateShader:             v.Get("createShader").Call("bind", v),
 		fnCreateTexture:            v.Get("createTexture").Call("bind", v),
+		fnCreateVertexArray:        v.Get("createVertexArray").Call("bind", v),
 		fnDeleteBuffer:             v.Get("deleteBuffer").Call("bind", v),
 		fnDeleteFramebuffer:        v.Get("deleteFramebuffer").Call("bind", v),
 		fnDeleteProgram:            v.Get("deleteProgram").Call("bind", v),
 		fnDeleteRenderbuffer:       v.Get("deleteRenderbuffer").Call("bind", v),
 		fnDeleteShader:             v.Get("deleteShader").Call("bind", v),
 		fnDeleteTexture:            v.Get("deleteTexture").Call("bind", v),
+		fnDeleteVertexArray:        v.Get("deleteVertexArray").Call("bind", v),
 		fnDisable:                  v.Get("disable").Call("bind", v),
 		fnDisableVertexAttribArray: v.Get("disableVertexAttribArray").Call("bind", v),
 		fnDrawElements:             v.Get("drawElements").Call("bind", v),
@@ -226,10 +231,6 @@ func NewDefaultContext(v js.Value) (Context, error) {
 		fnViewport:                 v.Get("viewport").Call("bind", v),
 	}
 
-	if webGL2 := js.Global().Get("WebGL2RenderingContext"); webGL2.Truthy() {
-		g.webGL2 = v.InstanceOf(webGL2)
-	}
-
 	return g, nil
 }
 
@@ -275,6 +276,10 @@ func (c *defaultContext) BindTexture(target uint32, texture uint32) {
 	c.fnBindTexture.Invoke(target, c.textures.get(texture))
 }
 
+func (c *defaultContext) BindVertexArray(array uint32) {
+	c.fnBindVertexArray.Invoke(c.vertexArrays.get(array))
+}
+
 func (c *defaultContext) BlendEquationSeparate(modeRGB uint32, modeAlpha uint32) {
 	c.fnBlendEquationSeparate.Invoke(modeRGB, modeAlpha)
 }
@@ -290,11 +295,7 @@ func (c *defaultContext) BufferInit(target uint32, size int, usage uint32) {
 func (c *defaultContext) BufferSubData(target uint32, offset int, data []byte) {
 	l := len(data)
 	arr := jsutil.TemporaryUint8ArrayFromUint8Slice(l, data)
-	if c.webGL2 {
-		c.fnBufferSubData.Invoke(target, offset, arr, 0, l)
-	} else {
-		c.fnBufferSubData.Invoke(target, offset, arr.Call("subarray", 0, l))
-	}
+	c.fnBufferSubData.Invoke(target, offset, arr, 0, l)
 }
 
 func (c *defaultContext) CheckFramebufferStatus(target uint32) uint32 {
@@ -337,6 +338,10 @@ func (c *defaultContext) CreateTexture() uint32 {
 	return c.textures.create(c.fnCreateTexture.Invoke())
 }
 
+func (c *defaultContext) CreateVertexArray() uint32 {
+	return c.vertexArrays.create(c.fnCreateVertexArray.Invoke())
+}
+
 func (c *defaultContext) DeleteBuffer(buffer uint32) {
 	c.fnDeleteBuffer.Invoke(c.buffers.get(buffer))
 	c.buffers.delete(buffer)
@@ -366,6 +371,11 @@ func (c *defaultContext) DeleteShader(shader uint32) {
 func (c *defaultContext) DeleteTexture(texture uint32) {
 	c.fnDeleteTexture.Invoke(c.textures.get(texture))
 	c.textures.delete(texture)
+}
+
+func (c *defaultContext) DeleteVertexArray(array uint32) {
+	c.fnDeleteVertexArray.Invoke(c.vertexArrays.get(array))
+	c.textures.delete(array)
 }
 
 func (c *defaultContext) Disable(cap uint32) {
@@ -540,27 +550,16 @@ func (c *defaultContext) TexParameteri(target uint32, pname uint32, param int32)
 
 func (c *defaultContext) TexSubImage2D(target uint32, level int32, xoffset int32, yoffset int32, width int32, height int32, format uint32, xtype uint32, pixels []byte) {
 	arr := jsutil.TemporaryUint8ArrayFromUint8Slice(len(pixels), pixels)
-	if c.webGL2 {
-		// void texSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset,
-		//                    GLsizei width, GLsizei height,
-		//                    GLenum format, GLenum type, ArrayBufferView pixels, srcOffset);
-		c.fnTexSubImage2D.Invoke(target, level, xoffset, yoffset, width, height, format, xtype, arr, 0)
-	} else {
-		// void texSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset,
-		//                    GLsizei width, GLsizei height,
-		//                    GLenum format, GLenum type, ArrayBufferView? pixels);
-		c.fnTexSubImage2D.Invoke(target, level, xoffset, yoffset, width, height, format, xtype, arr)
-	}
+	// void texSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset,
+	//                    GLsizei width, GLsizei height,
+	//                    GLenum format, GLenum type, ArrayBufferView pixels, srcOffset);
+	c.fnTexSubImage2D.Invoke(target, level, xoffset, yoffset, width, height, format, xtype, arr, 0)
 }
 
 func (c *defaultContext) Uniform1fv(location int32, value []float32) {
 	l := c.getUniformLocation(location)
 	arr := jsutil.TemporaryFloat32Array(len(value), value)
-	if c.webGL2 {
-		c.fnUniform1fv.Invoke(l, arr, 0, len(value))
-	} else {
-		c.fnUniform1fv.Invoke(l, arr.Call("subarray", 0, len(value)))
-	}
+	c.fnUniform1fv.Invoke(l, arr, 0, len(value))
 }
 
 func (c *defaultContext) Uniform1i(location int32, v0 int32) {
@@ -571,101 +570,61 @@ func (c *defaultContext) Uniform1i(location int32, v0 int32) {
 func (c *defaultContext) Uniform1iv(location int32, value []int32) {
 	l := c.getUniformLocation(location)
 	arr := jsutil.TemporaryInt32Array(len(value), value)
-	if c.webGL2 {
-		c.fnUniform1iv.Invoke(l, arr, 0, len(value))
-	} else {
-		c.fnUniform1iv.Invoke(l, arr.Call("subarray", 0, len(value)))
-	}
+	c.fnUniform1iv.Invoke(l, arr, 0, len(value))
 }
 
 func (c *defaultContext) Uniform2fv(location int32, value []float32) {
 	l := c.getUniformLocation(location)
 	arr := jsutil.TemporaryFloat32Array(len(value), value)
-	if c.webGL2 {
-		c.fnUniform2fv.Invoke(l, arr, 0, len(value))
-	} else {
-		c.fnUniform2fv.Invoke(l, arr.Call("subarray", 0, len(value)))
-	}
+	c.fnUniform2fv.Invoke(l, arr, 0, len(value))
 }
 
 func (c *defaultContext) Uniform2iv(location int32, value []int32) {
 	l := c.getUniformLocation(location)
 	arr := jsutil.TemporaryInt32Array(len(value), value)
-	if c.webGL2 {
-		c.fnUniform2iv.Invoke(l, arr, 0, len(value))
-	} else {
-		c.fnUniform2iv.Invoke(l, arr.Call("subarray", 0, len(value)))
-	}
+	c.fnUniform2iv.Invoke(l, arr, 0, len(value))
 }
 
 func (c *defaultContext) Uniform3fv(location int32, value []float32) {
 	l := c.getUniformLocation(location)
 	arr := jsutil.TemporaryFloat32Array(len(value), value)
-	if c.webGL2 {
-		c.fnUniform3fv.Invoke(l, arr, 0, len(value))
-	} else {
-		c.fnUniform3fv.Invoke(l, arr.Call("subarray", 0, len(value)))
-	}
+	c.fnUniform3fv.Invoke(l, arr, 0, len(value))
 }
 
 func (c *defaultContext) Uniform3iv(location int32, value []int32) {
 	l := c.getUniformLocation(location)
 	arr := jsutil.TemporaryInt32Array(len(value), value)
-	if c.webGL2 {
-		c.fnUniform3iv.Invoke(l, arr, 0, len(value))
-	} else {
-		c.fnUniform3iv.Invoke(l, arr.Call("subarray", 0, len(value)))
-	}
+	c.fnUniform3iv.Invoke(l, arr, 0, len(value))
 }
 
 func (c *defaultContext) Uniform4fv(location int32, value []float32) {
 	l := c.getUniformLocation(location)
 	arr := jsutil.TemporaryFloat32Array(len(value), value)
-	if c.webGL2 {
-		c.fnUniform4fv.Invoke(l, arr, 0, len(value))
-	} else {
-		c.fnUniform4fv.Invoke(l, arr.Call("subarray", 0, len(value)))
-	}
+	c.fnUniform4fv.Invoke(l, arr, 0, len(value))
 }
 
 func (c *defaultContext) Uniform4iv(location int32, value []int32) {
 	l := c.getUniformLocation(location)
 	arr := jsutil.TemporaryInt32Array(len(value), value)
-	if c.webGL2 {
-		c.fnUniform4iv.Invoke(l, arr, 0, len(value))
-	} else {
-		c.fnUniform4iv.Invoke(l, arr.Call("subarray", 0, len(value)))
-	}
+	c.fnUniform4iv.Invoke(l, arr, 0, len(value))
 }
 
 func (c *defaultContext) UniformMatrix2fv(location int32, value []float32) {
 	l := c.getUniformLocation(location)
 	arr := jsutil.TemporaryFloat32Array(len(value), value)
-	if c.webGL2 {
-		c.fnUniformMatrix2fv.Invoke(l, false, arr, 0, len(value))
-	} else {
-		c.fnUniformMatrix2fv.Invoke(l, false, arr.Call("subarray", 0, len(value)))
-	}
+	c.fnUniformMatrix2fv.Invoke(l, false, arr, 0, len(value))
 }
 
 func (c *defaultContext) UniformMatrix3fv(location int32, value []float32) {
 	l := c.getUniformLocation(location)
 	arr := jsutil.TemporaryFloat32Array(len(value), value)
-	if c.webGL2 {
-		c.fnUniformMatrix3fv.Invoke(l, false, arr, 0, len(value))
-	} else {
-		c.fnUniformMatrix3fv.Invoke(l, false, arr.Call("subarray", 0, len(value)))
-	}
+	c.fnUniformMatrix3fv.Invoke(l, false, arr, 0, len(value))
 }
 
 func (c *defaultContext) UniformMatrix4fv(location int32, value []float32) {
 	l := c.getUniformLocation(location)
 	arr := jsutil.TemporaryFloat32Array(len(value), value)
-	if c.webGL2 {
-		c.fnUniformMatrix4fv.Invoke(l, false, arr, 0, len(value))
-	} else {
-		c.fnUniformMatrix4fv.Invoke(l, false, arr.Call("subarray", 0, len(value)))
-	}
+	c.fnUniformMatrix4fv.Invoke(l, false, arr, 0, len(value))
 }
 
 func (c *defaultContext) UseProgram(program uint32) {

@@ -52,7 +52,9 @@ var (
 	shadersM sync.Mutex
 )
 
-var tmpl = template.Must(template.New("tmpl").Parse(`package main
+var tmpl = template.Must(template.New("tmpl").Parse(`//kage:unit pixels
+
+package main
 
 {{if .UseColorM}}
 var ColorMBody mat4
@@ -76,12 +78,9 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	clr := imageSrc0At(adjustTexelForAddressRepeat(texCoord))
 {{end}}
 {{else if eq .Filter .FilterLinear}}
-	sourceSize := imageSrcTextureSize()
-	texelSize := 1 / sourceSize
-
-	// Shift 1/512 [texel] to avoid the tie-breaking issue (#1212).
-	p0 := texCoord - texelSize/2 + texelSize/512
-	p1 := texCoord + texelSize/2 + texelSize/512
+	// Shift 1/512 [pixel] to avoid the tie-breaking issue (#1212).
+	p0 := texCoord - 1/2.0 + 1/512.0
+	p1 := texCoord + 1/2.0 + 1/512.0
 
 {{if eq .Address .AddressRepeat}}
 	p0 = adjustTexelForAddressRepeat(p0)
@@ -100,7 +99,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	c3 := imageSrc0At(p1)
 {{end}}
 
-	rate := fract(p0 * sourceSize)
+	rate := fract(p0)
 	clr := mix(mix(c0, c1, rate.x), mix(c2, c3, rate.x), rate.y)
 {{end}}
 

@@ -16,6 +16,7 @@ package mipmap
 
 import (
 	"fmt"
+	"image"
 	"math"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
@@ -56,13 +57,13 @@ func (m *Mipmap) DumpScreenshot(graphicsDriver graphicsdriver.Graphics, name str
 	return m.orig.DumpScreenshot(graphicsDriver, name, blackbg)
 }
 
-func (m *Mipmap) WritePixels(pix []byte, x, y, width, height int) {
-	m.orig.WritePixels(pix, x, y, width, height)
+func (m *Mipmap) WritePixels(pix []byte, region image.Rectangle) {
+	m.orig.WritePixels(pix, region)
 	m.disposeMipmaps()
 }
 
-func (m *Mipmap) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte, x, y, width, height int) error {
-	return m.orig.ReadPixels(graphicsDriver, pixels, x, y, width, height)
+func (m *Mipmap) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte, region image.Rectangle) error {
+	return m.orig.ReadPixels(graphicsDriver, pixels, region)
 }
 
 func (m *Mipmap) DrawTriangles(srcs [graphics.ShaderImageCount]*Mipmap, vertices []float32, indices []uint16, blend graphicsdriver.Blend, dstRegion, srcRegion graphicsdriver.Region, subimageOffsets [graphics.ShaderImageCount - 1][2]float32, shader *Shader, uniforms []uint32, evenOdd bool, canSkipMipmap bool) {

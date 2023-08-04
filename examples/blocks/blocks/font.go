@@ -61,8 +61,8 @@ func getArcadeFonts(scale int) font.Face {
 func textWidth(str string) int {
 	maxW := 0
 	for _, line := range strings.Split(str, "\n") {
-		b, _ := font.BoundString(getArcadeFonts(1), line)
-		w := (b.Max.X - b.Min.X).Ceil()
+		a := font.MeasureString(getArcadeFonts(1), line)
+		w := a.Floor()
 		if maxW < w {
 			maxW = w
 		}

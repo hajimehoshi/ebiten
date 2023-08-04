@@ -52,6 +52,16 @@ type Graphics struct {
 	activatedTextures []activatedTexture
 }
 
+func newGraphics(ctx gl.Context) *Graphics {
+	g := &Graphics{}
+	if isDebug {
+		g.context.ctx = &gl.DebugContext{Context: ctx}
+	} else {
+		g.context.ctx = ctx
+	}
+	return g
+}
+
 func (g *Graphics) Begin() error {
 	// Do nothing.
 	return nil
@@ -155,11 +165,7 @@ func (g *Graphics) Reset() error {
 }
 
 func (g *Graphics) SetVertices(vertices []float32, indices []uint16) error {
-	// Note that the vertices passed to BufferSubData is not under GC management
-	// in opengl package due to unsafe-way.
-	// See BufferSubData in context_mobile.go.
-	g.context.arrayBufferSubData(vertices)
-	g.context.elementArrayBufferSubData(indices)
+	g.state.setVertices(&g.context, vertices, indices)
 	return nil
 }
 

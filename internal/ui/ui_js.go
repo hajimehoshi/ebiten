@@ -68,6 +68,14 @@ func driverCursorShapeToCSSCursor(cursor CursorShape) string {
 		return "ew-resize"
 	case CursorShapeNSResize:
 		return "ns-resize"
+	case CursorShapeNESWResize:
+		return "nesw-resize"
+	case CursorShapeNWSEResize:
+		return "nwse-resize"
+	case CursorShapeMove:
+		return "move"
+	case CursorShapeNotAllowed:
+		return "not-allowed"
 	}
 	return "auto"
 }
@@ -81,8 +89,10 @@ type userInterfaceImpl struct {
 	running             bool
 	cursorMode          CursorMode
 	cursorPrevMode      CursorMode
+	captureCursorLater  bool
 	cursorShape         CursorShape
 	onceUpdateCalled    bool
+	lastCaptureExitTime time.Time
 
 	lastDeviceScaleFactor float64
 
@@ -190,6 +200,16 @@ func (u *userInterfaceImpl) CursorMode() CursorMode {
 }
 
 func (u *userInterfaceImpl) SetCursorMode(mode CursorMode) {
+	if mode == CursorModeCaptured && !u.canCaptureCursor() {
+		u.captureCursorLater = true
+		return
+	}
+	u.setCursorMode(mode)
+}
+
+func (u *userInterfaceImpl) setCursorMode(mode CursorMode) {
+	u.captureCursorLater = false
+
 	if !canvas.Truthy() {
 		return
 	}
@@ -200,6 +220,7 @@ func (u *userInterfaceImpl) SetCursorMode(mode CursorMode) {
 	u.cursorPrevMode = u.cursorMode
 	if u.cursorMode == CursorModeCaptured {
 		document.Call("exitPointerLock")
+		u.lastCaptureExitTime = time.Now()
 	}
 	u.cursorMode = mode
 	switch mode {
@@ -273,7 +294,25 @@ func (u *userInterfaceImpl) isFocused() bool {
 	return true
 }
 
+// canCaptureCursor reports whether a cursor can be captured or not now.
+// Just after escaping from a capture, a browser might not be able to capture a cursor (#2693).
+// If it is too early to capture a cursor, Ebitengine tries to delay it.
+//
+// See also https://w3c.github.io/pointerlock/#extensions-to-the-element-interface
+//
+// > Pointer lock is a transient activation-gated API, therefore a requestPointerLock() call
+// > MUST fail if the relevant global object of this does not have transient activation.
+// > This prevents locking upon initial navigation or re-acquiring lock without user's attention.
+func (u *userInterfaceImpl) canCaptureCursor() bool {
+	// 1.5 [sec] seems enough in the real world.
+	return time.Now().Sub(u.lastCaptureExitTime) >= 1500*time.Millisecond
+}
+
 func (u *userInterfaceImpl) update() error {
+	if u.captureCursorLater && u.canCaptureCursor() {
+		u.setCursorMode(CursorModeCaptured)
+	}
+
 	if u.suspended() {
 		return hooks.SuspendAudio()
 	}
@@ -305,11 +344,11 @@ func (u *userInterfaceImpl) updateImpl(force bool) error {
 
 	w, h := u.outsideSize()
 	if force {
-		if err := u.context.forceUpdateFrame(u.graphicsDriver, w, h, u.DeviceScaleFactor(), u); err != nil {
+		if err := u.context.forceUpdateFrame(u.graphicsDriver, w, h, u.DeviceScaleFactor(), u, nil); err != nil {
 			return err
 		}
 	} else {
-		if err := u.context.updateFrame(u.graphicsDriver, w, h, u.DeviceScaleFactor(), u); err != nil {
+		if err := u.context.updateFrame(u.graphicsDriver, w, h, u.DeviceScaleFactor(), u, nil); err != nil {
 			return err
 		}
 	}
@@ -747,7 +786,8 @@ func (u *userInterfaceImpl) beginFrame() {
 func (u *userInterfaceImpl) endFrame() {
 }
 
-func (u *userInterfaceImpl) updateIconIfNeeded() {
+func (u *userInterfaceImpl) updateIconIfNeeded() error {
+	return nil
 }
 
 func IsScreenTransparentAvailable() bool {

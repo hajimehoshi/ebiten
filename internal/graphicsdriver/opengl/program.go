@@ -16,6 +16,7 @@ package opengl
 
 import (
 	"fmt"
+	"math"
 	"runtime"
 	"unsafe"
 
@@ -61,11 +62,6 @@ func (a *arrayBufferLayout) totalBytes() int {
 	}
 	a.total = t
 	return a.total
-}
-
-// newArrayBuffer creates OpenGL's buffer object for the array buffer.
-func (a *arrayBufferLayout) newArrayBuffer(context *context) buffer {
-	return context.newArrayBuffer(a.totalBytes() * graphics.IndicesCount)
 }
 
 // enable starts using the array buffer.
@@ -115,13 +111,18 @@ func init() {
 	}
 }
 
-// openGLState is a state for
 type openGLState struct {
+	vertexArray uint32
+
 	// arrayBuffer is OpenGL's array buffer (vertices data).
 	arrayBuffer buffer
 
+	arrayBufferSizeInBytes int
+
 	// elementArrayBuffer is OpenGL's element array buffer (indices data).
 	elementArrayBuffer buffer
+
+	elementArrayBufferSizeInBytes int
 
 	lastProgram       program
 	lastUniforms      map[string][]uint32
@@ -149,16 +150,68 @@ func (s *openGLState) reset(context *context) error {
 		if s.elementArrayBuffer != 0 {
 			context.ctx.DeleteBuffer(uint32(s.elementArrayBuffer))
 		}
+		if s.vertexArray != 0 {
+			context.ctx.DeleteVertexArray(s.vertexArray)
+		}
 	}
 
-	s.arrayBuffer = theArrayBufferLayout.newArrayBuffer(context)
-
-	// Note that the indices passed to NewElementArrayBuffer is not under GC management
-	// in opengl package due to unsafe-way.
-	// See NewElementArrayBuffer in context_mobile.go.
-	s.elementArrayBuffer = context.newElementArrayBuffer(graphics.IndicesCount * 2)
+	s.arrayBuffer = 0
+	s.arrayBufferSizeInBytes = 0
+	s.elementArrayBuffer = 0
+	s.elementArrayBufferSizeInBytes = 0
+	s.vertexArray = 0
 
 	return nil
+}
+
+func pow2(x int) int {
+	if x > (math.MaxInt+1)/2 {
+		return math.MaxInt
+	}
+
+	p2 := 1
+	for p2 < x {
+		p2 *= 2
+	}
+	return p2
+}
+
+func (s *openGLState) setVertices(context *context, vertices []float32, indices []uint16) {
+	if s.vertexArray == 0 {
+		s.vertexArray = context.ctx.CreateVertexArray()
+	}
+	context.ctx.BindVertexArray(s.vertexArray)
+
+	if size := len(vertices) * 4; s.arrayBufferSizeInBytes < size {
+		if s.arrayBuffer != 0 {
+			context.ctx.DeleteBuffer(uint32(s.arrayBuffer))
+		}
+
+		newSize := pow2(size)
+		// newArrayBuffer calls BindBuffer.
+		s.arrayBuffer = context.newArrayBuffer(newSize)
+		s.arrayBufferSizeInBytes = newSize
+
+		// Reenable the array buffer layout explicitly after resetting the array buffer.
+		theArrayBufferLayout.enable(context)
+	}
+
+	if size := len(indices) * 2; s.elementArrayBufferSizeInBytes < size {
+		if s.elementArrayBuffer != 0 {
+			context.ctx.DeleteBuffer(uint32(s.elementArrayBuffer))
+		}
+
+		newSize := pow2(size)
+		// newElementArrayBuffer calls BindBuffer.
+		s.elementArrayBuffer = context.newElementArrayBuffer(newSize)
+		s.elementArrayBufferSizeInBytes = newSize
+	}
+
+	// Note that the vertices and the indices passed to BufferSubData is not under GC management in the gl package.
+	vs := unsafe.Slice((*byte)(unsafe.Pointer(&vertices[0])), len(vertices)*4)
+	context.ctx.BufferSubData(gl.ARRAY_BUFFER, 0, vs)
+	is := unsafe.Slice((*byte)(unsafe.Pointer(&indices[0])), len(indices)*2)
+	context.ctx.BufferSubData(gl.ELEMENT_ARRAY_BUFFER, 0, is)
 }
 
 func (s *openGLState) resetLastUniforms() {
@@ -207,11 +260,6 @@ func (g *Graphics) textureVariableName(idx int) string {
 func (g *Graphics) useProgram(program program, uniforms []uniformVariable, textures [graphics.ShaderImageCount]textureVariable) error {
 	if g.state.lastProgram != program {
 		g.context.ctx.UseProgram(uint32(program))
-		if g.state.lastProgram == 0 {
-			theArrayBufferLayout.enable(&g.context)
-			g.context.ctx.BindBuffer(gl.ARRAY_BUFFER, uint32(g.state.arrayBuffer))
-			g.context.ctx.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, uint32(g.state.elementArrayBuffer))
-		}
 
 		g.state.lastProgram = program
 		for k := range g.state.lastUniforms {

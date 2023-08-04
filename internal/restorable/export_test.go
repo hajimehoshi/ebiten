@@ -16,8 +16,14 @@ package restorable
 
 import (
 	"image"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 )
 
-func RemoveDuplicatedRegions(regions []image.Rectangle) int {
-	return removeDuplicatedRegions(regions)
+func ResolveStaleImages(graphicsDriver graphicsdriver.Graphics) error {
+	return resolveStaleImages(graphicsDriver, false, nil)
+}
+
+func AppendRegionRemovingDuplicates(regions *[]image.Rectangle, region image.Rectangle) {
+	appendRegionRemovingDuplicates(regions, region)
 }

@@ -32,8 +32,8 @@ func (c *defaultContext) init() error {
 	return nil
 }
 
-func (c *defaultContext) getProcAddress(name string) unsafe.Pointer {
+func (c *defaultContext) getProcAddress(name string) (uintptr, error) {
 	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))
-	return C.getProcAddress(cname)
+	return uintptr(C.getProcAddress(cname)), nil
 }

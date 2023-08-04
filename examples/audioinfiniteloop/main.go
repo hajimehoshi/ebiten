@@ -30,7 +30,7 @@ import (
 const (
 	screenWidth    = 640
 	screenHeight   = 480
-	sampleRate     = 32000
+	sampleRate     = 48000
 	bytesPerSample = 4 // 2 channels * 2 bytes (16 bit)
 
 	introLengthInSecond = 5
@@ -73,9 +73,9 @@ func (g *Game) Update() error {
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	pos := g.player.Current()
+	pos := g.player.Position()
 	if pos > 5*time.Second {
-		pos = (g.player.Current()-5*time.Second)%(4*time.Second) + 5*time.Second
+		pos = (g.player.Position()-5*time.Second)%(4*time.Second) + 5*time.Second
 	}
 	msg := fmt.Sprintf(`TPS: %0.2f
 This is an example using

@@ -18,7 +18,7 @@ vec4 F0(void) {
 	l5 = -5.0;
 	l6 = -5.0;
 	l7 = 5.0;
-	return (vec4(l0, l1, l2, l3)) + (vec4(l4, l5, l6, l7));
+	return (vec4(float(l0), float(l1), float(l2), float(l3))) + (vec4(l4, l5, l6, l7));
 }
 
 vec4 F1(void) {
@@ -38,5 +38,5 @@ vec4 F1(void) {
 	l5 = -5.0;
 	l6 = -5.0;
 	l7 = 5.0;
-	return (vec4(l0, l1, l2, l3)) + (vec4(l4, l5, l6, l7));
+	return (vec4(float(l0), float(l1), float(l2), float(l3))) + (vec4(l4, l5, l6, l7));
 }

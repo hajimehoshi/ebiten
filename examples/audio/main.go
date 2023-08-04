@@ -199,7 +199,7 @@ func (p *Player) update() error {
 	}
 
 	if p.audioPlayer.IsPlaying() {
-		p.current = p.audioPlayer.Current()
+		p.current = p.audioPlayer.Position()
 	}
 	if err := p.seekBarIfNeeded(); err != nil {
 		return err
@@ -327,7 +327,7 @@ func (p *Player) seekBarIfNeeded() error {
 	}
 	pos := time.Duration(x-bx) * p.total / time.Duration(bw)
 	p.current = pos
-	if err := p.audioPlayer.Seek(pos); err != nil {
+	if err := p.audioPlayer.SetPosition(pos); err != nil {
 		return err
 	}
 	return nil
@@ -336,13 +336,13 @@ func (p *Player) seekBarIfNeeded() error {
 func (p *Player) draw(screen *ebiten.Image) {
 	// Draw the bar.
 	x, y, w, h := playerBarRect()
-	vector.DrawFilledRect(screen, float32(x), float32(y), float32(w), float32(h), playerBarColor)
+	vector.DrawFilledRect(screen, float32(x), float32(y), float32(w), float32(h), playerBarColor, true)
 
 	// Draw the cursor on the bar.
 	c := p.current
 	cx := float32(x) + float32(w)*float32(p.current)/float32(p.total)
 	cy := float32(y) + float32(h)/2
-	vector.DrawFilledCircle(screen, cx, cy, 12, playerCurrentColor)
+	vector.DrawFilledCircle(screen, cx, cy, 12, playerCurrentColor, true)
 
 	// Compose the curren time text.
 	m := (c / time.Minute) % 100

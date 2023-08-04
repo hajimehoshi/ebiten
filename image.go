@@ -24,6 +24,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/builtinshader"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
+	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
@@ -38,10 +39,10 @@ type Image struct {
 	original *Image
 	bounds   image.Rectangle
 
-	// tmpVertices must not be reused until the vertices are sent to the graphics command queue.
+	// tmpVertices must not be reused until ui.Image.Draw* is called.
 	tmpVertices []float32
 
-	// tmpUniforms must not be reused until the vertices are sent to the graphics command queue.
+	// tmpUniforms must not be reused until ui.Image.Draw* is called.
 	tmpUniforms []uint32
 
 	// Do not add a 'buffering' member that are resolved lazily.
@@ -94,7 +95,7 @@ func (i *Image) Fill(clr color.Color) {
 	caf = float32(ca) / 0xffff
 	b := i.Bounds()
 	x, y := i.adjustPosition(b.Min.X, b.Min.Y)
-	i.image.Fill(crf, cgf, cbf, caf, x, y, b.Dx(), b.Dy())
+	i.image.Fill(crf, cgf, cbf, caf, image.Rect(x, y, x+b.Dx(), y+b.Dy()))
 }
 
 func canSkipMipmap(geom GeoM, filter builtinshader.Filter) bool {
@@ -114,7 +115,7 @@ type DrawImageOptions struct {
 	//
 	// ColorScale is slightly different from colorm.ColorM's Scale in terms of alphas.
 	// ColorScale is applied to premultiplied-alpha colors, while colorm.ColorM is applied to straight-alpha colors.
-	// Thus, colorm.ColorM.Scale(r, g, b, a) equals to ColorScale.Scale(r*a, g*a, b*a, a).
+	// Thus, ColorM.Scale(r, g, b, a) equals to ColorScale.Scale(r*a, g*a, b*a, a).
 	//
 	// The default (zero) value is identity, which is (1, 1, 1, 1).
 	ColorScale ColorScale
@@ -391,12 +392,17 @@ type DrawTrianglesOptions struct {
 }
 
 // MaxIndicesCount is the maximum number of indices for DrawTriangles and DrawTrianglesShader.
-const MaxIndicesCount = graphics.IndicesCount
+//
+// Deprecated: as of v2.6. This constant is no longer used.
+const MaxIndicesCount = (1 << 16) / 3 * 3
 
 // MaxIndicesNum is the maximum number of indices for DrawTriangles and DrawTrianglesShader.
 //
-// Deprecated: as of v2.4. Use MaxIndicesCount instead.
-const MaxIndicesNum = graphics.IndicesCount
+// Deprecated: as of v2.4. This constant is no longer used.
+const MaxIndicesNum = MaxIndicesCount
+
+// MaxVerticesCount is the maximum number of vertices for DrawTriangles and DrawTrianglesShader.
+const MaxVerticesCount = graphics.MaxVerticesCount
 
 // DrawTriangles draws triangles with the specified vertices and their indices.
 //
@@ -405,11 +411,14 @@ const MaxIndicesNum = graphics.IndicesCount
 // and adjust the color elements in the vertices. For an actual implementation,
 // see the example 'vector'.
 //
-// Vertex contains color values, which are interpreted as straight-alpha colors.
+// Vertex contains color values, which are interpreted as straight-alpha colors by default.
+// This depends on the option's ColorScaleMode.
+//
+// If len(vertices) is more than MaxVerticesCount, the exceeding part is ignored.
 //
 // If len(indices) is not multiple of 3, DrawTriangles panics.
 //
-// If len(indices) is more than MaxIndicesCount, DrawTriangles panics.
+// If a value in indices is out of range of vertices, or not less than MaxVerticesCount, DrawTriangles panics.
 //
 // The rule in which DrawTriangles works effectively is same as DrawImage's.
 //
@@ -426,13 +435,21 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 		return
 	}
 
+	if len(vertices) > graphics.MaxVerticesCount {
+		// The last part cannot be specified by indices. Just omit them.
+		vertices = vertices[:graphics.MaxVerticesCount]
+	}
 	if len(indices)%3 != 0 {
 		panic("ebiten: len(indices) % 3 must be 0")
 	}
-	if len(indices) > MaxIndicesCount {
-		panic("ebiten: len(indices) must be <= MaxIndicesCount")
+	for i, idx := range indices {
+		if int(idx) >= len(vertices) {
+			panic(fmt.Sprintf("ebiten: indices[%d] must be less than len(vertices) (%d) but was %d", i, len(vertices), idx))
+		}
+		if idx >= MaxVerticesCount {
+			panic(fmt.Sprintf("ebiten: indices[%d] must be less than MaxVerticesCount %d but was %d", i, MaxVerticesCount, idx))
+		}
 	}
-	// TODO: Check the maximum value of indices and len(vertices)?
 
 	if options == nil {
 		options = &DrawTrianglesOptions{}
@@ -519,6 +536,8 @@ type DrawTrianglesShaderOptions struct {
 	// If the uniform variable type is an array, a vector or a matrix,
 	// you have to specify linearly flattened values as a slice or an array.
 	// For example, if the uniform variable type is [4]vec4, the length will be 16.
+	//
+	// If a uniform variable's name doesn't exist in Uniforms, this is treated as if zero values are specified.
 	Uniforms map[string]any
 
 	// Images is a set of the source images.
@@ -553,11 +572,17 @@ var _ [len(DrawTrianglesShaderOptions{}.Images) - graphics.ShaderImageCount]stru
 //
 // For the details about the shader, see https://ebitengine.org/en/documents/shader.html.
 //
+// If len(vertices) is more than MaxVerticesCount, the exceeding part is ignored.
+//
 // If len(indices) is not multiple of 3, DrawTrianglesShader panics.
 //
-// If len(indices) is more than MaxIndicesCount, DrawTrianglesShader panics.
+// If a value in indices is out of range of vertices, or not less than MaxVerticesCount, DrawTrianglesShader panics.
 //
 // When a specified image is non-nil and is disposed, DrawTrianglesShader panics.
+//
+// If a specified uniform variable's length or type doesn't match with an expected one, DrawTrianglesShader panics.
+//
+// If a non-existent uniform variable name is specified, DrawTrianglesShader panics.
 //
 // When the image i is disposed, DrawTrianglesShader does nothing.
 func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader *Shader, options *DrawTrianglesShaderOptions) {
@@ -567,13 +592,21 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 		return
 	}
 
+	if len(vertices) > graphics.MaxVerticesCount {
+		// The last part cannot be specified by indices. Just omit them.
+		vertices = vertices[:graphics.MaxVerticesCount]
+	}
 	if len(indices)%3 != 0 {
 		panic("ebiten: len(indices) % 3 must be 0")
 	}
-	if len(indices) > MaxIndicesCount {
-		panic("ebiten: len(indices) must be <= MaxIndicesCount")
+	for i, idx := range indices {
+		if int(idx) >= len(vertices) {
+			panic(fmt.Sprintf("ebiten: indices[%d] must be less than len(vertices) (%d) but was %d", i, len(vertices), idx))
+		}
+		if idx >= MaxVerticesCount {
+			panic(fmt.Sprintf("ebiten: indices[%d] must be less than MaxVerticesCount %d but was %d", i, MaxVerticesCount, idx))
+		}
 	}
-	// TODO: Check the maximum value of indices and len(vertices)?
 
 	if options == nil {
 		options = &DrawTrianglesShaderOptions{}
@@ -682,6 +715,8 @@ type DrawRectShaderOptions struct {
 	// If the uniform variable type is an array, a vector or a matrix,
 	// you have to specify linearly flattened values as a slice or an array.
 	// For example, if the uniform variable type is [4]vec4, the length will be 16.
+	//
+	// If a uniform variable's name doesn't exist in Uniforms, this is treated as if zero values are specified.
 	Uniforms map[string]any
 
 	// Images is a set of the source images.
@@ -696,7 +731,22 @@ var _ [len(DrawRectShaderOptions{}.Images)]struct{} = [graphics.ShaderImageCount
 //
 // For the details about the shader, see https://ebitengine.org/en/documents/shader.html.
 //
+// When one of the specified image is non-nil and its size is different from (width, height), DrawRectShader panics.
 // When one of the specified image is non-nil and is disposed, DrawRectShader panics.
+//
+// If a specified uniform variable's length or type doesn't match with an expected one, DrawRectShader panics.
+//
+// If a non-existent uniform variable name is specified, DrawRectShader panics.
+//
+// In a shader, texCoord in Fragment represents a position in a source image.
+// If no source images are specified, texCoord represents the position from (0, 0) to (width, height) in pixels.
+// If the unit is pixels by a compiler directive `//kage:unit pixelss`, texCoord values are valid.
+// If the unit is texels (default), texCoord values still take from (0, 0) to (width, height),
+// but these are invalid since texCoord is expected to be in texels in the texel-unit mode.
+// This behavior is preserved for backward compatibility. It is recommended to use the pixel-unit mode to avoid confusion.
+//
+// If no source images are specified, imageSrcRegionOnTexture returns a valid size only when the unit is pixels,
+// but always returns 0 when the unit is texels (default).
 //
 // When the image i is disposed, DrawRectShader does nothing.
 func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawRectShaderOptions) {
@@ -737,6 +787,13 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 		b := img.Bounds()
 		sx, sy = img.adjustPosition(b.Min.X, b.Min.Y)
 		sr = img.adjustedRegion()
+	} else if shader.unit == shaderir.Pixels {
+		// Give the source size as pixels only when the unit is pixels so that users can get the source size via imageSrcRegionOnTexture (#2166).
+		// With the texel mode, the imageSrcRegionOnTexture values should be in texels so the source position in pixels would not match.
+		sr = graphicsdriver.Region{
+			Width:  float32(width),
+			Height: float32(height),
+		}
 	}
 
 	if offsetX, offsetY := i.adjustPosition(0, 0); offsetX != 0 || offsetY != 0 {
@@ -855,7 +912,7 @@ func (i *Image) ReadPixels(pixels []byte) {
 	}
 
 	x, y := i.adjustPosition(b.Min.X, b.Min.Y)
-	i.image.ReadPixels(pixels, x, y, b.Dx(), b.Dy())
+	i.image.ReadPixels(pixels, image.Rect(x, y, x+b.Dx(), y+b.Dy()))
 }
 
 // At returns the color of the image at (x, y).
@@ -901,7 +958,7 @@ func (i *Image) at(x, y int) (r, g, b, a byte) {
 
 	x, y = i.adjustPosition(x, y)
 	var pix [4]byte
-	i.image.ReadPixels(pix[:], x, y, 1, 1)
+	i.image.ReadPixels(pix[:], image.Rect(x, y, x+1, y+1))
 	return pix[0], pix[1], pix[2], pix[3]
 }
 
@@ -924,7 +981,7 @@ func (i *Image) Set(x, y int, clr color.Color) {
 
 	dx, dy := i.adjustPosition(x, y)
 	cr, cg, cb, ca := clr.RGBA()
-	i.image.WritePixels([]byte{byte(cr / 0x101), byte(cg / 0x101), byte(cb / 0x101), byte(ca / 0x101)}, dx, dy, 1, 1)
+	i.image.WritePixels([]byte{byte(cr / 0x101), byte(cg / 0x101), byte(cb / 0x101), byte(ca / 0x101)}, image.Rect(dx, dy, dx+1, dy+1))
 }
 
 // Dispose disposes the image data.
@@ -971,7 +1028,7 @@ func (i *Image) WritePixels(pixels []byte) {
 	// Do not need to copy pixels here.
 	// * In internal/mipmap, pixels are copied when necessary.
 	// * In internal/atlas, pixels are copied to make its paddings.
-	i.image.WritePixels(pixels, x, y, r.Dx(), r.Dy())
+	i.image.WritePixels(pixels, image.Rect(x, y, x+r.Dx(), y+r.Dy()))
 }
 
 // ReplacePixels replaces the pixels of the image.

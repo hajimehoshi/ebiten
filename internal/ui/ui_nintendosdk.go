@@ -122,13 +122,11 @@ func (u *userInterfaceImpl) Run(game Game, options *RunOptions) error {
 				u.updateInputState()
 			})
 
-			if err := u.context.updateFrame(u.graphicsDriver, float64(C.kScreenWidth), float64(C.kScreenHeight), deviceScaleFactor, u); err != nil {
+			if err := u.context.updateFrame(u.graphicsDriver, float64(C.kScreenWidth), float64(C.kScreenHeight), deviceScaleFactor, u, func() {
+				u.egl.swapBuffers()
+			}); err != nil {
 				return err
 			}
-
-			u.renderThread.Call(func() {
-				u.egl.swapBuffers()
-			})
 		}
 	})
 
@@ -223,7 +221,8 @@ func (u *userInterfaceImpl) beginFrame() {
 func (u *userInterfaceImpl) endFrame() {
 }
 
-func (u *userInterfaceImpl) updateIconIfNeeded() {
+func (u *userInterfaceImpl) updateIconIfNeeded() error {
+	return nil
 }
 
 func IsScreenTransparentAvailable() bool {

@@ -36,6 +36,10 @@ func NewShader(ir *shaderir.Program) *Shader {
 	return s
 }
 
+func (s *Shader) unit() shaderir.Unit {
+	return s.shader.Unit()
+}
+
 // MarkDisposed marks the shader as disposed. The actual operation is deferred.
 // MarkDisposed can be called from finalizers.
 //

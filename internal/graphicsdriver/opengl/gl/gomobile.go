@@ -71,6 +71,10 @@ func (g *gomobileContext) BindTexture(target uint32, texture uint32) {
 	g.ctx.BindTexture(gl.Enum(target), gl.Texture{Value: texture})
 }
 
+func (g *gomobileContext) BindVertexArray(array uint32) {
+	g.ctx.BindVertexArray(gl.VertexArray{Value: array})
+}
+
 func (g *gomobileContext) BlendEquationSeparate(modeRGB uint32, modeAlpha uint32) {
 	g.ctx.BlendEquationSeparate(gl.Enum(modeRGB), gl.Enum(modeAlpha))
 }
@@ -127,6 +131,10 @@ func (g *gomobileContext) CreateTexture() uint32 {
 	return g.ctx.CreateTexture().Value
 }
 
+func (g *gomobileContext) CreateVertexArray() uint32 {
+	return g.ctx.CreateVertexArray().Value
+}
+
 func (g *gomobileContext) DeleteBuffer(buffer uint32) {
 	g.ctx.DeleteBuffer(gl.Buffer{Value: buffer})
 }
@@ -149,6 +157,10 @@ func (g *gomobileContext) DeleteShader(shader uint32) {
 
 func (g *gomobileContext) DeleteTexture(texture uint32) {
 	g.ctx.DeleteTexture(gl.Texture{Value: texture})
+}
+
+func (g *gomobileContext) DeleteVertexArray(texture uint32) {
+	g.ctx.DeleteVertexArray(gl.VertexArray{Value: texture})
 }
 
 func (g *gomobileContext) Disable(cap uint32) {

@@ -6,7 +6,7 @@ vec2 F0(void) {
 	{
 		int l1 = 0;
 		l1 = 0;
-		return vec2(l1);
+		return vec2(float(l1));
 	}
 	return vec2(1.0);
 }

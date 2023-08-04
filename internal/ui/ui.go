@@ -16,6 +16,7 @@ package ui
 
 import (
 	"errors"
+	"image"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
 	"github.com/hajimehoshi/ebiten/v2/internal/mipmap"
@@ -51,6 +52,10 @@ const (
 	CursorShapePointer
 	CursorShapeEWResize
 	CursorShapeNSResize
+	CursorShapeNESWResize
+	CursorShapeNWSEResize
+	CursorShapeMove
+	CursorShapeNotAllowed
 )
 
 type WindowResizingMode int
@@ -72,8 +77,8 @@ func Get() *UserInterface {
 	return theUI
 }
 
-func (u *UserInterface) readPixels(mipmap *mipmap.Mipmap, pixels []byte, x, y, width, height int) error {
-	return mipmap.ReadPixels(u.graphicsDriver, pixels, x, y, width, height)
+func (u *UserInterface) readPixels(mipmap *mipmap.Mipmap, pixels []byte, region image.Rectangle) error {
+	return mipmap.ReadPixels(u.graphicsDriver, pixels, region)
 }
 
 func (u *UserInterface) dumpScreenshot(mipmap *mipmap.Mipmap, name string, blackbg bool) (string, error) {

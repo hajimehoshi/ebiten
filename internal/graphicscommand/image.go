@@ -88,7 +88,7 @@ func NewImage(width, height int, screenFramebuffer bool) *Image {
 		height: height,
 		screen: screenFramebuffer,
 	}
-	theCommandQueue.Enqueue(c)
+	currentCommandQueue().Enqueue(c)
 	return i
 }
 
@@ -100,7 +100,7 @@ func (i *Image) flushBufferedWritePixels() {
 		dst:  i,
 		args: i.bufferedWP,
 	}
-	theCommandQueue.Enqueue(c)
+	currentCommandQueue().Enqueue(c)
 	i.bufferedWP = nil
 }
 
@@ -109,7 +109,7 @@ func (i *Image) Dispose() {
 	c := &disposeImageCommand{
 		target: i,
 	}
-	theCommandQueue.Enqueue(c)
+	currentCommandQueue().Enqueue(c)
 }
 
 func (i *Image) InternalSize() (int, int) {
@@ -158,35 +158,29 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, offsets [g
 	}
 	i.flushBufferedWritePixels()
 
-	theCommandQueue.EnqueueDrawTrianglesCommand(i, srcs, offsets, vertices, indices, blend, dstRegion, srcRegion, shader, uniforms, evenOdd)
+	currentCommandQueue().EnqueueDrawTrianglesCommand(i, srcs, offsets, vertices, indices, blend, dstRegion, srcRegion, shader, uniforms, evenOdd)
 }
 
 // ReadPixels reads the image's pixels.
 // ReadPixels returns an error when an error happens in the graphics driver.
-func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, buf []byte, x, y, width, height int) error {
+func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, buf []byte, region image.Rectangle) error {
 	i.flushBufferedWritePixels()
 	c := &readPixelsCommand{
 		img:    i,
-		x:      x,
-		y:      y,
-		width:  width,
-		height: height,
+		region: region,
 		result: buf,
 	}
-	theCommandQueue.Enqueue(c)
-	if err := theCommandQueue.Flush(graphicsDriver, false); err != nil {
+	currentCommandQueue().Enqueue(c)
+	if err := currentCommandQueue().Flush(graphicsDriver, false, nil); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (i *Image) WritePixels(pixels []byte, x, y, width, height int) {
+func (i *Image) WritePixels(pixels []byte, region image.Rectangle) {
 	i.bufferedWP = append(i.bufferedWP, &graphicsdriver.WritePixelsArgs{
 		Pixels: pixels,
-		X:      x,
-		Y:      y,
-		Width:  width,
-		Height: height,
+		Region: region,
 	})
 	addImageWithBuffer(i)
 }
@@ -206,8 +200,8 @@ func (i *Image) IsInvalidated(graphicsDriver graphicsdriver.Graphics) (bool, err
 	c := &isInvalidatedCommand{
 		image: i,
 	}
-	theCommandQueue.Enqueue(c)
-	if err := theCommandQueue.Flush(graphicsDriver, false); err != nil {
+	currentCommandQueue().Enqueue(c)
+	if err := currentCommandQueue().Flush(graphicsDriver, false, nil); err != nil {
 		return false, err
 	}
 	return c.result, nil
@@ -228,7 +222,7 @@ func (i *Image) dumpTo(w io.Writer, graphicsDriver graphicsdriver.Graphics, blac
 	}
 
 	pix := make([]byte, 4*i.width*i.height)
-	if err := i.ReadPixels(graphicsDriver, pix, 0, 0, i.width, i.height); err != nil {
+	if err := i.ReadPixels(graphicsDriver, pix, image.Rect(0, 0, i.width, i.height)); err != nil {
 		return err
 	}
 

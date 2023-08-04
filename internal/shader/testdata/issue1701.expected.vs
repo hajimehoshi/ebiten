@@ -1,4 +1,4 @@
-attribute vec2 A0;
+in vec2 A0;
 
 void F0(void);
 void F1(void);

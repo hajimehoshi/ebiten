@@ -1,7 +1,7 @@
 uniform float U0;
 uniform float U1;
 uniform float U2;
-attribute vec2 A0;
+in vec2 A0;
 
 int F0(in int l0);
 
@@ -25,6 +25,6 @@ void main(void) {
 	}
 	l2 = 0;
 	l0 = (l0) + (l2);
-	gl_Position = vec4(l0);
+	gl_Position = vec4(float(l0));
 	return;
 }

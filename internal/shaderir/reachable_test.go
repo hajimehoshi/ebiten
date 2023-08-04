@@ -15,8 +15,7 @@
 package shaderir_test
 
 import (
-	"go/parser"
-	"go/token"
+	"sort"
 	"testing"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/shader"
@@ -24,18 +23,7 @@ import (
 )
 
 func compileToIR(src []byte) (*shaderir.Program, error) {
-	fset := token.NewFileSet()
-	f, err := parser.ParseFile(fset, "", src, parser.AllErrors)
-	if err != nil {
-		return nil, err
-	}
-
-	ir, err := shader.Compile(fset, f, "Vertex", "Fragment", 0)
-	if err != nil {
-		return nil, err
-	}
-
-	return ir, nil
+	return shader.Compile(src, "Vertex", "Fragment", 0)
 }
 
 func areIntSlicesEqual(a, b []int) bool {
@@ -118,7 +106,8 @@ func neverCalled() float {
 		if err != nil {
 			t.Fatal(err)
 		}
-		got := ir.ReachableUniformVariablesFromBlock(ir.Funcs[c.index].Block)
+		got := ir.AppendReachableUniformVariablesFromBlock(nil, ir.Funcs[c.index].Block)
+		sort.Ints(got)
 		want := c.expected
 		if !areIntSlicesEqual(got, want) {
 			t.Errorf("test: %v, got: %v, want: %v", c, got, want)

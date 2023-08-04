@@ -20,6 +20,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2/internal/builtinshader"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
+	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
@@ -28,6 +29,7 @@ import (
 // For the details about the shader, see https://ebitengine.org/en/documents/shader.html.
 type Shader struct {
 	shader *ui.Shader
+	unit   shaderir.Unit
 }
 
 // NewShader compiles a shader program in the shading language Kage, and returns the result.
@@ -42,6 +44,7 @@ func NewShader(src []byte) (*Shader, error) {
 	}
 	return &Shader{
 		shader: ui.NewShader(ir),
+		unit:   ir.Unit,
 	}, nil
 }
 

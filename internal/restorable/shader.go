@@ -50,6 +50,10 @@ func (s *Shader) restore() {
 	s.shader = graphicscommand.NewShader(s.ir)
 }
 
+func (s *Shader) Unit() shaderir.Unit {
+	return s.ir.Unit
+}
+
 var (
 	NearestFilterShader *Shader
 	LinearFilterShader  *Shader
@@ -76,7 +80,9 @@ func init() {
 		return nil
 	})
 	wg.Go(func() error {
-		ir, err := graphics.CompileShader([]byte(`package main
+		ir, err := graphics.CompileShader([]byte(`//kage:unit pixels
+
+package main
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	return vec4(0)

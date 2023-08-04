@@ -121,11 +121,11 @@ func (c *compileContext) builtinFuncString(f shaderir.BuiltinFunc) string {
 		return "dFdx"
 	case shaderir.Dfdy:
 		return "dFdy"
-	case shaderir.Texture2DF:
-		if c.version == GLSLVersionES300 {
-			return "texture"
+	case shaderir.TexelAt:
+		if c.unit == shaderir.Pixels {
+			return "texelFetch"
 		}
-		return "texture2D"
+		return "texture"
 	default:
 		return string(f)
 	}

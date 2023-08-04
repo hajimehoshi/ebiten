@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"go/constant"
 	"go/token"
+	"math"
 	"regexp"
 	"strings"
 
@@ -47,16 +48,22 @@ func (c *compileContext) structName(p *shaderir.Program, t *shaderir.Type) strin
 	return n
 }
 
-const Prelude = `#include <metal_stdlib>
+func Prelude(unit shaderir.Unit) string {
+	str := `#include <metal_stdlib>
 
 using namespace metal;
-
-constexpr sampler texture_sampler{filter::nearest};
 
 template<typename T, typename U>
 T mod(T x, U y) {
 	return x - y * floor(x/y);
 }`
+	if unit == shaderir.Texels {
+		str += `
+
+constexpr sampler texture_sampler{filter::nearest};`
+	}
+	return str
+}
 
 func Compile(p *shaderir.Program, vertex, fragment string) (shader string) {
 	c := &compileContext{
@@ -64,7 +71,7 @@ func Compile(p *shaderir.Program, vertex, fragment string) (shader string) {
 	}
 
 	var lines []string
-	lines = append(lines, strings.Split(Prelude, "\n")...)
+	lines = append(lines, strings.Split(Prelude(p.Unit), "\n")...)
 	lines = append(lines, "", "{{.Structs}}")
 
 	if len(p.Attributes) > 0 {
@@ -253,30 +260,22 @@ func (c *compileContext) function(p *shaderir.Program, f *shaderir.Func, prototy
 	return lines
 }
 
-func constantToNumberLiteral(t shaderir.ConstType, v constant.Value) string {
-	switch t {
-	case shaderir.ConstTypeNone:
-		if v.Kind() == constant.Bool {
-			if constant.BoolVal(v) {
-				return "true"
-			}
-			return "false"
+func constantToNumberLiteral(v constant.Value) string {
+	switch v.Kind() {
+	case constant.Bool:
+		if constant.BoolVal(v) {
+			return "true"
 		}
-		fallthrough
-	case shaderir.ConstTypeFloat:
-		if i := constant.ToInt(v); i.Kind() == constant.Int {
-			x, _ := constant.Int64Val(i)
-			return fmt.Sprintf("%d.0", x)
+		return "false"
+	case constant.Int:
+		x, _ := constant.Int64Val(v)
+		return fmt.Sprintf("%d", x)
+	case constant.Float:
+		x, _ := constant.Float64Val(v)
+		if i := math.Floor(x); i == x {
+			return fmt.Sprintf("%d.0", int64(i))
 		}
-		if i := constant.ToFloat(v); i.Kind() == constant.Float {
-			x, _ := constant.Float64Val(i)
-			return fmt.Sprintf("%.10e", x)
-		}
-	case shaderir.ConstTypeInt:
-		if i := constant.ToInt(v); i.Kind() == constant.Int {
-			x, _ := constant.Int64Val(i)
-			return fmt.Sprintf("%d", x)
-		}
+		return fmt.Sprintf("%.10e", x)
 	}
 	return fmt.Sprintf("?(unexpected literal: %s)", v)
 }
@@ -344,7 +343,7 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 	expr = func(e *shaderir.Expr) string {
 		switch e.Type {
 		case shaderir.NumberExpr:
-			return constantToNumberLiteral(e.ConstType, e.Const)
+			return constantToNumberLiteral(e.Const)
 		case shaderir.UniformVariable:
 			return fmt.Sprintf("U%d", e.Index)
 		case shaderir.TextureVariable:
@@ -395,8 +394,15 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 			for _, exp := range e.Exprs[1:] {
 				args = append(args, expr(&exp))
 			}
-			if callee.Type == shaderir.BuiltinFuncExpr && callee.BuiltinFunc == shaderir.Texture2DF {
-				return fmt.Sprintf("%s.sample(texture_sampler, %s)", args[0], strings.Join(args[1:], ", "))
+			if callee.Type == shaderir.BuiltinFuncExpr && callee.BuiltinFunc == shaderir.TexelAt {
+				switch p.Unit {
+				case shaderir.Texels:
+					return fmt.Sprintf("%s.sample(texture_sampler, %s)", args[0], strings.Join(args[1:], ", "))
+				case shaderir.Pixels:
+					return fmt.Sprintf("%s.read(static_cast<uint2>(%s))", args[0], strings.Join(args[1:], ", "))
+				default:
+					panic(fmt.Sprintf("msl: unexpected unit: %d", p.Unit))
+				}
 			}
 			return fmt.Sprintf("%s(%s)", expr(&callee), strings.Join(args, ", "))
 		case shaderir.FieldSelector:
@@ -441,14 +447,6 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 			}
 			lines = append(lines, fmt.Sprintf("%s}", idt))
 		case shaderir.For:
-			var ct shaderir.ConstType
-			switch s.ForVarType.Main {
-			case shaderir.Int:
-				ct = shaderir.ConstTypeInt
-			case shaderir.Float:
-				ct = shaderir.ConstTypeFloat
-			}
-
 			v := localVariableName(p, topBlock, s.ForVarIndex)
 			var delta string
 			switch val, _ := constant.Float64Val(s.ForDelta); val {
@@ -461,10 +459,10 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 			default:
 				d := s.ForDelta
 				if val > 0 {
-					delta = fmt.Sprintf("%s += %s", v, constantToNumberLiteral(ct, d))
+					delta = fmt.Sprintf("%s += %s", v, constantToNumberLiteral(d))
 				} else {
 					d = constant.UnaryOp(token.SUB, d, 0)
-					delta = fmt.Sprintf("%s -= %s", v, constantToNumberLiteral(ct, d))
+					delta = fmt.Sprintf("%s -= %s", v, constantToNumberLiteral(d))
 				}
 			}
 			var op string
@@ -476,8 +474,8 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 			}
 
 			t := s.ForVarType
-			init := constantToNumberLiteral(ct, s.ForInit)
-			end := constantToNumberLiteral(ct, s.ForEnd)
+			init := constantToNumberLiteral(s.ForInit)
+			end := constantToNumberLiteral(s.ForEnd)
 			ts := typeString(&t, false)
 			lines = append(lines, fmt.Sprintf("%sfor (%s %s = %s; %s %s %s; %s) {", idt, ts, v, init, v, op, end, delta))
 			lines = append(lines, c.block(p, topBlock, s.Blocks[0], level+1)...)

@@ -24,23 +24,19 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
-const screenShaderSrc = `package main
+const screenShaderSrc = `//kage:unit pixels
+
+package main
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
-	// TODO: Calculate the scale in the shader after pixels become the main unit in shaders (#1431)
 	_, dr := imageDstRegionOnTexture()
 	_, sr := imageSrcRegionOnTexture()
-	scale := (imageDstTextureSize() * dr) / (imageSrcTextureSize() * sr)
+	scale := dr/sr
 
-	sourceSize := imageSrcTextureSize()
-	// texelSize is one pixel size in texel sizes.
-	texelSize := 1 / sourceSize
-	halfScaledTexelSize := texelSize / 2 / scale
-
-	// Shift 1/512 [texel] to avoid the tie-breaking issue.
+	// Shift 1/512 [pixel] to avoid the tie-breaking issue.
 	pos := texCoord
-	p0 := pos - halfScaledTexelSize + (texelSize / 512)
-	p1 := pos + halfScaledTexelSize + (texelSize / 512)
+	p0 := pos - 1/2.0 + 1/512.0
+	p1 := pos + 1/2.0 + 1/512.0
 
 	// Texels must be in the source rect, so it is not necessary to check.
 	c0 := imageSrc0UnsafeAt(p0)
@@ -49,7 +45,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	c3 := imageSrc0UnsafeAt(p1)
 
 	// p is the p1 value in one pixel assuming that the pixel's upper-left is (0, 0) and the lower-right is (1, 1).
-	p := fract(p1 * sourceSize)
+	p := fract(p1)
 
 	// rate indicates how much the 4 colors are mixed. rate is in between [0, 1].
 	//

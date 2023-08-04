@@ -104,8 +104,12 @@ const (
 	_OCR_CROSS                                                 = 32515
 	_OCR_HAND                                                  = 32649
 	_OCR_IBEAM                                                 = 32513
+	_OCR_NO                                                    = 32648
 	_OCR_NORMAL                                                = 32512
+	_OCR_SIZEALL                                               = 32646
+	_OCR_SIZENESW                                              = 32643
 	_OCR_SIZENS                                                = 32645
+	_OCR_SIZENWSE                                              = 32642
 	_OCR_SIZEWE                                                = 32644
 	_PM_NOREMOVE                                               = 0x0000
 	_PM_REMOVE                                                 = 0x0001
@@ -164,11 +168,6 @@ const (
 	_TME_LEAVE                                                 = 0x00000002
 	_UNICODE_NOCHAR                                            = 0xffff
 	_USER_DEFAULT_SCREEN_DPI                                   = 96
-	_VER_BUILDNUMBER                                           = 0x00000004
-	_VER_GREATER_EQUAL                                         = 3
-	_VER_MAJORVERSION                                          = 0x00000002
-	_VER_MINORVERSION                                          = 0x00000001
-	_VER_SERVICEPACKMAJOR                                      = 0x00000020
 	_VERTSIZE                                                  = 6
 	_VK_ADD                                                    = 0x6B
 	_VK_CAPITAL                                                = 0x14
@@ -262,11 +261,6 @@ const (
 	_WGL_TRANSPARENT_INDEX_VALUE_ARB                           = 0x203B
 	_WGL_TRANSPARENT_RED_VALUE_ARB                             = 0x2037
 	_WGL_TYPE_RGBA_ARB                                         = 0x202B
-	_WIN32_WINNT_VISTA                                         = 0x0600
-	_WIN32_WINNT_WIN7                                          = 0x0601
-	_WIN32_WINNT_WIN8                                          = 0x0602
-	_WIN32_WINNT_WINBLUE                                       = 0x0603
-	_WIN32_WINNT_WINXP                                         = 0x0501
 	_WM_CAPTURECHANGED                                         = 0x0215
 	_WM_CHAR                                                   = 0x0102
 	_WM_CLOSE                                                  = 0x0010
@@ -377,7 +371,7 @@ type (
 )
 
 func _GET_X_LPARAM(lp _LPARAM) int {
-	return int(_LOWORD(uint32(lp)))
+	return int(int16(_LOWORD(uint32(lp))))
 }
 
 func _GET_XBUTTON_WPARAM(wParam _WPARAM) uint16 {
@@ -385,18 +379,11 @@ func _GET_XBUTTON_WPARAM(wParam _WPARAM) uint16 {
 }
 
 func _GET_Y_LPARAM(lp _LPARAM) int {
-	return int(_HIWORD(uint32(lp)))
-}
-func _HIBYTE(wValue uint16) byte {
-	return byte(wValue >> 8)
+	return int(int16(_HIWORD(uint32(lp))))
 }
 
 func _HIWORD(dwValue uint32) uint16 {
 	return uint16(dwValue >> 16)
-}
-
-func _LOBYTE(wValue uint16) byte {
-	return byte(wValue)
 }
 
 func _LOWORD(dwValue uint32) uint16 {
@@ -590,20 +577,6 @@ type _MSG struct {
 	lPrivate uint32
 }
 
-type _OSVERSIONINFOEXW struct {
-	dwOSVersionInfoSize uint32
-	dwMajorVersion      uint32
-	dwMinorVersion      uint32
-	dwBuildNumber       uint32
-	dwPlatformId        uint32
-	szCSDVersion        [128]uint16
-	wServicePackMajor   uint16
-	wServicePackMinor   uint16
-	wSuiteMask          uint16
-	wProductType        byte
-	wReserved           byte
-}
-
 type _PIXELFORMATDESCRIPTOR struct {
 	nSize           uint16
 	nVersion        uint16
@@ -722,7 +695,6 @@ var (
 	dwmapi   = windows.NewLazySystemDLL("dwmapi.dll")
 	gdi32    = windows.NewLazySystemDLL("gdi32.dll")
 	kernel32 = windows.NewLazySystemDLL("kernel32.dll")
-	ntdll    = windows.NewLazySystemDLL("ntdll.dll")
 	opengl32 = windows.NewLazySystemDLL("opengl32.dll")
 	shcore   = windows.NewLazySystemDLL("shcore.dll")
 	shell32  = windows.NewLazySystemDLL("shell32.dll")
@@ -749,9 +721,6 @@ var (
 	procTlsFree                 = kernel32.NewProc("TlsFree")
 	procTlsGetValue             = kernel32.NewProc("TlsGetValue")
 	procTlsSetValue             = kernel32.NewProc("TlsSetValue")
-	procVerSetConditionMask     = kernel32.NewProc("VerSetConditionMask")
-
-	procRtlVerifyVersionInfo = ntdll.NewProc("RtlVerifyVersionInfo")
 
 	procWGLCreateContext     = opengl32.NewProc("wglCreateContext")
 	procWGLDeleteContext     = opengl32.NewProc("wglDeleteContext")
@@ -1522,24 +1491,6 @@ func _ReleaseDC(hWnd windows.HWND, hDC _HDC) int32 {
 	return int32(r)
 }
 
-func _RtlVerifyVersionInfo(versionInfo *_OSVERSIONINFOEXW, typeMask uint32, conditionMask uint64) int32 {
-	var r uintptr
-	if unsafe.Sizeof(uintptr(0)) == unsafe.Sizeof(uint64(0)) {
-		r, _, _ = procRtlVerifyVersionInfo.Call(uintptr(unsafe.Pointer(versionInfo)), uintptr(typeMask), uintptr(conditionMask))
-	} else {
-		switch runtime.GOARCH {
-		case "386":
-			r, _, _ = procRtlVerifyVersionInfo.Call(uintptr(unsafe.Pointer(versionInfo)), uintptr(typeMask), uintptr(conditionMask), uintptr(conditionMask>>32))
-		case "arm":
-			// Adjust the alignment for ARM.
-			r, _, _ = procRtlVerifyVersionInfo.Call(uintptr(unsafe.Pointer(versionInfo)), uintptr(typeMask), 0, uintptr(conditionMask), uintptr(conditionMask>>32))
-		default:
-			panic(fmt.Sprintf("goglfw: GOARCH=%s is not supported", runtime.GOARCH))
-		}
-	}
-	return int32(r)
-}
-
 func _ScreenToClient(hWnd windows.HWND, lpPoint *_POINT) error {
 	r, _, e := procScreenToClient.Call(uintptr(hWnd), uintptr(unsafe.Pointer(lpPoint)))
 	if int32(r) == 0 && !errors.Is(e, windows.ERROR_SUCCESS) {
@@ -1775,16 +1726,6 @@ func _UnregisterDeviceNotification(handle _HDEVNOTIFY) error {
 		return fmt.Errorf("goglfw: UnregisterDeviceNotification failed: %w", e)
 	}
 	return nil
-}
-
-func _VerSetConditionMask(conditionMask uint64, typeMask uint32, condition byte) uint64 {
-	if unsafe.Sizeof(uintptr(0)) == unsafe.Sizeof(uint64(0)) {
-		r, _, _ := procVerSetConditionMask.Call(uintptr(conditionMask), uintptr(typeMask), uintptr(condition))
-		return uint64(r)
-	} else {
-		r1, r2, _ := procVerSetConditionMask.Call(uintptr(conditionMask), uintptr(conditionMask>>32), uintptr(typeMask), uintptr(condition))
-		return uint64(r1) | (uint64(r2) << 32)
-	}
 }
 
 func _WaitMessage() error {

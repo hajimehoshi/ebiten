@@ -18,20 +18,24 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/thread"
 )
 
-var theRenderThread Thread = thread.NewNoopThread()
-
-type Thread interface {
-	Call(f func())
-}
+var theRenderThread thread.Thread = thread.NewNoopThread()
 
 // SetRenderThread must be called from the rendering thread where e.g. OpenGL works.
 //
 // TODO: Create thread in this package instead of setting it externally.
-func SetRenderThread(thread Thread) {
+func SetRenderThread(thread thread.Thread) {
 	theRenderThread = thread
 }
 
-// runOnRenderThread calls f on the rendering thread, and returns an error if any.
-func runOnRenderThread(f func()) {
-	theRenderThread.Call(f)
+// runOnRenderThread calls f on the rendering thread.
+func runOnRenderThread(f func(), sync bool) {
+	if sync {
+		theRenderThread.Call(f)
+		return
+	}
+
+	// As the current thread doesn't have a capacity in a channel,
+	// CallAsync should block when the previously-queued task is not executed yet.
+	// This blocking is expected as double-buffering is used.
+	theRenderThread.CallAsync(f)
 }

@@ -30,7 +30,7 @@ func TestMain(m *testing.M) {
 // Issue #2589
 func TestLine0(t *testing.T) {
 	dst := ebiten.NewImage(16, 16)
-	vector.StrokeLine(dst, 0, 0, 0, 0, 2, color.White)
+	vector.StrokeLine(dst, 0, 0, 0, 0, 2, color.White, true)
 	if got, want := dst.At(0, 0), (color.RGBA{}); got != want {
 		t.Errorf("got: %v, want: %v", got, want)
 	}

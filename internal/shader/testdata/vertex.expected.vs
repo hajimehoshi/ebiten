@@ -1,9 +1,9 @@
 uniform vec2 U0;
-attribute vec2 A0;
-attribute vec2 A1;
-attribute vec4 A2;
-varying vec2 V0;
-varying vec4 V1;
+in vec2 A0;
+in vec2 A1;
+in vec4 A2;
+out vec2 V0;
+out vec4 V1;
 
 void main(void) {
 	mat4 l0 = mat4(0);

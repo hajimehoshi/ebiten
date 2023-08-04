@@ -1,4 +1,4 @@
-attribute vec2 A0;
+in vec2 A0;
 
 void main(void) {
 	if (true) {

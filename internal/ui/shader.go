@@ -46,6 +46,22 @@ func (s *Shader) MarkDisposed() {
 }
 
 func (s *Shader) AppendUniforms(dst []uint32, uniforms map[string]any) []uint32 {
+	// Check the given names are valid.
+	// This is a linear search and not efficient, but the number of uniform variables should not be so big.
+	for n := range uniforms {
+		var found bool
+		for _, nn := range s.uniformNames {
+			if n == nn {
+				found = true
+				break
+			}
+		}
+		if found {
+			continue
+		}
+		panic(fmt.Sprintf("ui: unexpected uniform name: %s", n))
+	}
+
 	if s.uniformUint32Count == 0 {
 		for _, typ := range s.uniformTypes {
 			s.uniformUint32Count += typ.Uint32Count()
@@ -55,6 +71,9 @@ func (s *Shader) AppendUniforms(dst []uint32, uniforms map[string]any) []uint32 
 	origLen := len(dst)
 	if cap(dst)-len(dst) >= s.uniformUint32Count {
 		dst = dst[:len(dst)+s.uniformUint32Count]
+		for i := origLen; i < len(dst); i++ {
+			dst[i] = 0
+		}
 	} else {
 		dst = append(dst, make([]uint32, s.uniformUint32Count)...)
 	}
@@ -64,18 +83,29 @@ func (s *Shader) AppendUniforms(dst []uint32, uniforms map[string]any) []uint32 
 		typ := s.uniformTypes[i]
 
 		if uv, ok := uniforms[name]; ok {
-			// TODO: Panic if uniforms include an invalid name
 			v := reflect.ValueOf(uv)
 			t := v.Type()
 			switch t.Kind() {
 			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+				if typ.Uint32Count() != 1 {
+					panic(fmt.Sprintf("ui: unexpected uniform value for %s (%s)", name, typ.String()))
+				}
 				dst[idx] = uint32(v.Int())
 			case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+				if typ.Uint32Count() != 1 {
+					panic(fmt.Sprintf("ui: unexpected uniform value for %s (%s)", name, typ.String()))
+				}
 				dst[idx] = uint32(v.Uint())
 			case reflect.Float32, reflect.Float64:
+				if typ.Uint32Count() != 1 {
+					panic(fmt.Sprintf("ui: unexpected uniform value for %s (%s)", name, typ.String()))
+				}
 				dst[idx] = math.Float32bits(float32(v.Float()))
 			case reflect.Slice, reflect.Array:
 				l := v.Len()
+				if typ.Uint32Count() != l {
+					panic(fmt.Sprintf("ui: unexpected uniform value for %s (%s)", name, typ.String()))
+				}
 				switch t.Elem().Kind() {
 				case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 					for i := 0; i < l; i++ {

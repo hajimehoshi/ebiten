@@ -37,8 +37,5 @@ func NewGraphics(context mgl.Context) (graphicsdriver.Graphics, error) {
 		}
 	}
 
-	g := &Graphics{}
-	g.context.ctx = ctx
-
-	return g, nil
+	return newGraphics(ctx), nil
 }

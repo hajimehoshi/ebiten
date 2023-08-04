@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"go/constant"
 	"go/token"
+	"math"
 	"regexp"
 	"strings"
 
@@ -28,7 +29,6 @@ type GLSLVersion int
 
 const (
 	GLSLVersionDefault GLSLVersion = iota
-	GLSLVersionES100
 	GLSLVersionES300
 )
 
@@ -64,9 +64,7 @@ ivec4 modInt(ivec4 x, ivec4 y) {
 func VertexPrelude(version GLSLVersion) string {
 	switch version {
 	case GLSLVersionDefault:
-		return utilFunctions
-	case GLSLVersionES100:
-		return utilFunctions
+		return `#version 150` + "\n\n" + utilFunctions
 	case GLSLVersionES300:
 		return `#version 300 es`
 	}
@@ -76,8 +74,8 @@ func VertexPrelude(version GLSLVersion) string {
 func FragmentPrelude(version GLSLVersion) string {
 	var prefix string
 	switch version {
-	case GLSLVersionES100:
-		prefix = `#extension GL_OES_standard_derivatives : enable` + "\n\n"
+	case GLSLVersionDefault:
+		prefix = `#version 150` + "\n\n"
 	case GLSLVersionES300:
 		prefix = `#version 300 es` + "\n\n"
 	}
@@ -88,8 +86,10 @@ precision highp int;
 #define lowp
 #define mediump
 #define highp
-#endif`
-	if version == GLSLVersionDefault || version == GLSLVersionES100 {
+#endif
+
+out vec4 fragColor;`
+	if version == GLSLVersionDefault {
 		prelude += "\n\n" + utilFunctions
 	}
 	return prelude
@@ -99,6 +99,7 @@ type compileContext struct {
 	version     GLSLVersion
 	structNames map[string]string
 	structTypes []shaderir.Type
+	unit        shaderir.Unit
 }
 
 func (c *compileContext) structName(p *shaderir.Program, t *shaderir.Type) string {
@@ -121,6 +122,7 @@ func Compile(p *shaderir.Program, version GLSLVersion) (vertexShader, fragmentSh
 	c := &compileContext{
 		version:     version,
 		structNames: map[string]string{},
+		unit:        p.Unit,
 	}
 
 	// Vertex func
@@ -137,18 +139,10 @@ func Compile(p *shaderir.Program, version GLSLVersion) (vertexShader, fragmentSh
 				vslines = append(vslines, fmt.Sprintf("uniform sampler2D T%d;", i))
 			}
 			for i, t := range p.Attributes {
-				keyword := "attribute"
-				if version == GLSLVersionES300 {
-					keyword = "in"
-				}
-				vslines = append(vslines, fmt.Sprintf("%s %s;", keyword, c.varDecl(p, &t, fmt.Sprintf("A%d", i))))
+				vslines = append(vslines, fmt.Sprintf("in %s;", c.varDecl(p, &t, fmt.Sprintf("A%d", i))))
 			}
 			for i, t := range p.Varyings {
-				keyword := "varying"
-				if version == GLSLVersionES300 {
-					keyword = "out"
-				}
-				vslines = append(vslines, fmt.Sprintf("%s %s;", keyword, c.varDecl(p, &t, fmt.Sprintf("V%d", i))))
+				vslines = append(vslines, fmt.Sprintf("out %s;", c.varDecl(p, &t, fmt.Sprintf("V%d", i))))
 			}
 		}
 
@@ -234,15 +228,8 @@ func Compile(p *shaderir.Program, version GLSLVersion) (vertexShader, fragmentSh
 				fslines = append(fslines, fmt.Sprintf("uniform sampler2D T%d;", i))
 			}
 			for i, t := range p.Varyings {
-				keyword := "varying"
-				if version == GLSLVersionES300 {
-					keyword = "in"
-				}
-				fslines = append(fslines, fmt.Sprintf("%s %s;", keyword, c.varDecl(p, &t, fmt.Sprintf("V%d", i))))
+				fslines = append(fslines, fmt.Sprintf("in %s;", c.varDecl(p, &t, fmt.Sprintf("V%d", i))))
 			}
-		}
-		if version == GLSLVersionES300 {
-			fslines = append(fslines, "out vec4 fragColor;")
 		}
 
 		var funcs []*shaderir.Func
@@ -390,30 +377,22 @@ func (c *compileContext) function(p *shaderir.Program, f *shaderir.Func, prototy
 	return lines
 }
 
-func constantToNumberLiteral(t shaderir.ConstType, v constant.Value) string {
-	switch t {
-	case shaderir.ConstTypeNone:
-		if v.Kind() == constant.Bool {
-			if constant.BoolVal(v) {
-				return "true"
-			}
-			return "false"
+func constantToNumberLiteral(v constant.Value) string {
+	switch v.Kind() {
+	case constant.Bool:
+		if constant.BoolVal(v) {
+			return "true"
 		}
-		fallthrough
-	case shaderir.ConstTypeFloat:
-		if i := constant.ToInt(v); i.Kind() == constant.Int {
-			x, _ := constant.Int64Val(i)
-			return fmt.Sprintf("%d.0", x)
+		return "false"
+	case constant.Int:
+		x, _ := constant.Int64Val(v)
+		return fmt.Sprintf("%d", x)
+	case constant.Float:
+		x, _ := constant.Float64Val(v)
+		if i := math.Floor(x); i == x {
+			return fmt.Sprintf("%d.0", int64(i))
 		}
-		if i := constant.ToFloat(v); i.Kind() == constant.Float {
-			x, _ := constant.Float64Val(i)
-			return fmt.Sprintf("%.10e", x)
-		}
-	case shaderir.ConstTypeInt:
-		if i := constant.ToInt(v); i.Kind() == constant.Int {
-			x, _ := constant.Int64Val(i)
-			return fmt.Sprintf("%d", x)
-		}
+		return fmt.Sprintf("%.10e", x)
 	}
 	return fmt.Sprintf("?(unexpected literal: %s)", v)
 }
@@ -489,7 +468,7 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 	expr = func(e *shaderir.Expr) string {
 		switch e.Type {
 		case shaderir.NumberExpr:
-			return constantToNumberLiteral(e.ConstType, e.Const)
+			return constantToNumberLiteral(e.Const)
 		case shaderir.UniformVariable:
 			return fmt.Sprintf("U%d", e.Index)
 		case shaderir.TextureVariable:
@@ -517,7 +496,7 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 			}
 			return fmt.Sprintf("%s(%s)", op, expr(&e.Exprs[0]))
 		case shaderir.Binary:
-			if e.Op == shaderir.ModOp && (c.version == GLSLVersionDefault || c.version == GLSLVersionES100) {
+			if e.Op == shaderir.ModOp && c.version == GLSLVersionDefault {
 				// '%' is not defined.
 				return fmt.Sprintf("modInt((%s), (%s))", expr(&e.Exprs[0]), expr(&e.Exprs[1]))
 			}
@@ -529,8 +508,12 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 			for _, exp := range e.Exprs[1:] {
 				args = append(args, expr(&exp))
 			}
+			f := expr(&e.Exprs[0])
+			if f == "texelFetch" {
+				return fmt.Sprintf("%s(%s, ivec2(%s), 0)", f, args[0], args[1])
+			}
 			// Using parentheses at the callee is illegal.
-			return fmt.Sprintf("%s(%s)", expr(&e.Exprs[0]), strings.Join(args, ", "))
+			return fmt.Sprintf("%s(%s)", f, strings.Join(args, ", "))
 		case shaderir.FieldSelector:
 			return fmt.Sprintf("(%s).%s", expr(&e.Exprs[0]), expr(&e.Exprs[1]))
 		case shaderir.Index:
@@ -572,14 +555,6 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 			}
 			lines = append(lines, fmt.Sprintf("%s}", idt))
 		case shaderir.For:
-			var ct shaderir.ConstType
-			switch s.ForVarType.Main {
-			case shaderir.Int:
-				ct = shaderir.ConstTypeInt
-			case shaderir.Float:
-				ct = shaderir.ConstTypeFloat
-			}
-
 			v := c.localVariableName(p, topBlock, s.ForVarIndex)
 			var delta string
 			switch val, _ := constant.Float64Val(s.ForDelta); val {
@@ -592,10 +567,10 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 			default:
 				d := s.ForDelta
 				if val > 0 {
-					delta = fmt.Sprintf("%s += %s", v, constantToNumberLiteral(ct, d))
+					delta = fmt.Sprintf("%s += %s", v, constantToNumberLiteral(d))
 				} else {
 					d = constant.UnaryOp(token.SUB, d, 0)
-					delta = fmt.Sprintf("%s -= %s", v, constantToNumberLiteral(ct, d))
+					delta = fmt.Sprintf("%s -= %s", v, constantToNumberLiteral(d))
 				}
 			}
 			var op string
@@ -607,8 +582,8 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 			}
 
 			t := s.ForVarType
-			init := constantToNumberLiteral(ct, s.ForInit)
-			end := constantToNumberLiteral(ct, s.ForEnd)
+			init := constantToNumberLiteral(s.ForInit)
+			end := constantToNumberLiteral(s.ForEnd)
 			t0, t1 := typeString(&t)
 			lines = append(lines, fmt.Sprintf("%sfor (%s %s%s = %s; %s %s %s; %s) {", idt, t0, v, t1, init, v, op, end, delta))
 			lines = append(lines, c.block(p, topBlock, s.Blocks[0], level+1)...)
@@ -620,11 +595,7 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 		case shaderir.Return:
 			switch {
 			case topBlock == p.FragmentFunc.Block:
-				token := "gl_FragColor"
-				if c.version == GLSLVersionES300 {
-					token = "fragColor"
-				}
-				lines = append(lines, fmt.Sprintf("%s%s = %s;", idt, token, expr(&s.Exprs[0])))
+				lines = append(lines, fmt.Sprintf("%sfragColor = %s;", idt, expr(&s.Exprs[0])))
 				// The 'return' statement is not required so far, as the fragment entrypoint has only one sentence so far. See adjustProgram implementation.
 			case len(s.Exprs) == 0:
 				lines = append(lines, idt+"return;")

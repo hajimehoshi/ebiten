@@ -17,7 +17,6 @@
 package gl
 
 import (
-	"errors"
 	"runtime"
 	"unsafe"
 
@@ -25,78 +24,81 @@ import (
 )
 
 type defaultContext struct {
-	gpActiveTexture              uintptr
-	gpAttachShader               uintptr
-	gpBindAttribLocation         uintptr
-	gpBindBuffer                 uintptr
-	gpBindFramebufferEXT         uintptr
-	gpBindRenderbufferEXT        uintptr
-	gpBindTexture                uintptr
-	gpBlendEquationSeparate      uintptr
-	gpBlendFuncSeparate          uintptr
-	gpBufferData                 uintptr
-	gpBufferSubData              uintptr
-	gpCheckFramebufferStatusEXT  uintptr
-	gpClear                      uintptr
-	gpColorMask                  uintptr
-	gpCompileShader              uintptr
-	gpCreateProgram              uintptr
-	gpCreateShader               uintptr
-	gpDeleteBuffers              uintptr
-	gpDeleteFramebuffersEXT      uintptr
-	gpDeleteProgram              uintptr
-	gpDeleteRenderbuffersEXT     uintptr
-	gpDeleteShader               uintptr
-	gpDeleteTextures             uintptr
-	gpDisable                    uintptr
-	gpDisableVertexAttribArray   uintptr
-	gpDrawElements               uintptr
-	gpEnable                     uintptr
-	gpEnableVertexAttribArray    uintptr
-	gpFlush                      uintptr
-	gpFramebufferRenderbufferEXT uintptr
-	gpFramebufferTexture2DEXT    uintptr
-	gpGenBuffers                 uintptr
-	gpGenFramebuffersEXT         uintptr
-	gpGenRenderbuffersEXT        uintptr
-	gpGenTextures                uintptr
-	gpGetError                   uintptr
-	gpGetIntegerv                uintptr
-	gpGetProgramInfoLog          uintptr
-	gpGetProgramiv               uintptr
-	gpGetShaderInfoLog           uintptr
-	gpGetShaderiv                uintptr
-	gpGetUniformLocation         uintptr
-	gpIsFramebufferEXT           uintptr
-	gpIsProgram                  uintptr
-	gpIsRenderbufferEXT          uintptr
-	gpIsTexture                  uintptr
-	gpLinkProgram                uintptr
-	gpPixelStorei                uintptr
-	gpReadPixels                 uintptr
-	gpRenderbufferStorageEXT     uintptr
-	gpScissor                    uintptr
-	gpShaderSource               uintptr
-	gpStencilFunc                uintptr
-	gpStencilOp                  uintptr
-	gpTexImage2D                 uintptr
-	gpTexParameteri              uintptr
-	gpTexSubImage2D              uintptr
-	gpUniform1fv                 uintptr
-	gpUniform1i                  uintptr
-	gpUniform1iv                 uintptr
-	gpUniform2fv                 uintptr
-	gpUniform2iv                 uintptr
-	gpUniform3fv                 uintptr
-	gpUniform3iv                 uintptr
-	gpUniform4fv                 uintptr
-	gpUniform4iv                 uintptr
-	gpUniformMatrix2fv           uintptr
-	gpUniformMatrix3fv           uintptr
-	gpUniformMatrix4fv           uintptr
-	gpUseProgram                 uintptr
-	gpVertexAttribPointer        uintptr
-	gpViewport                   uintptr
+	gpActiveTexture            uintptr
+	gpAttachShader             uintptr
+	gpBindAttribLocation       uintptr
+	gpBindBuffer               uintptr
+	gpBindFramebuffer          uintptr
+	gpBindRenderbuffer         uintptr
+	gpBindTexture              uintptr
+	gpBindVertexArray          uintptr
+	gpBlendEquationSeparate    uintptr
+	gpBlendFuncSeparate        uintptr
+	gpBufferData               uintptr
+	gpBufferSubData            uintptr
+	gpCheckFramebufferStatus   uintptr
+	gpClear                    uintptr
+	gpColorMask                uintptr
+	gpCompileShader            uintptr
+	gpCreateProgram            uintptr
+	gpCreateShader             uintptr
+	gpDeleteBuffers            uintptr
+	gpDeleteFramebuffers       uintptr
+	gpDeleteProgram            uintptr
+	gpDeleteRenderbuffers      uintptr
+	gpDeleteShader             uintptr
+	gpDeleteTextures           uintptr
+	gpDeleteVertexArrays       uintptr
+	gpDisable                  uintptr
+	gpDisableVertexAttribArray uintptr
+	gpDrawElements             uintptr
+	gpEnable                   uintptr
+	gpEnableVertexAttribArray  uintptr
+	gpFlush                    uintptr
+	gpFramebufferRenderbuffer  uintptr
+	gpFramebufferTexture2D     uintptr
+	gpGenBuffers               uintptr
+	gpGenFramebuffers          uintptr
+	gpGenRenderbuffers         uintptr
+	gpGenTextures              uintptr
+	gpGenVertexArrays          uintptr
+	gpGetError                 uintptr
+	gpGetIntegerv              uintptr
+	gpGetProgramInfoLog        uintptr
+	gpGetProgramiv             uintptr
+	gpGetShaderInfoLog         uintptr
+	gpGetShaderiv              uintptr
+	gpGetUniformLocation       uintptr
+	gpIsFramebuffer            uintptr
+	gpIsProgram                uintptr
+	gpIsRenderbuffer           uintptr
+	gpIsTexture                uintptr
+	gpLinkProgram              uintptr
+	gpPixelStorei              uintptr
+	gpReadPixels               uintptr
+	gpRenderbufferStorage      uintptr
+	gpScissor                  uintptr
+	gpShaderSource             uintptr
+	gpStencilFunc              uintptr
+	gpStencilOp                uintptr
+	gpTexImage2D               uintptr
+	gpTexParameteri            uintptr
+	gpTexSubImage2D            uintptr
+	gpUniform1fv               uintptr
+	gpUniform1i                uintptr
+	gpUniform1iv               uintptr
+	gpUniform2fv               uintptr
+	gpUniform2iv               uintptr
+	gpUniform3fv               uintptr
+	gpUniform3iv               uintptr
+	gpUniform4fv               uintptr
+	gpUniform4iv               uintptr
+	gpUniformMatrix2fv         uintptr
+	gpUniformMatrix3fv         uintptr
+	gpUniformMatrix4fv         uintptr
+	gpUseProgram               uintptr
+	gpVertexAttribPointer      uintptr
+	gpViewport                 uintptr
 
 	isES bool
 }
@@ -139,15 +141,19 @@ func (c *defaultContext) BindBuffer(target uint32, buffer uint32) {
 }
 
 func (c *defaultContext) BindFramebuffer(target uint32, framebuffer uint32) {
-	purego.SyscallN(c.gpBindFramebufferEXT, uintptr(target), uintptr(framebuffer))
+	purego.SyscallN(c.gpBindFramebuffer, uintptr(target), uintptr(framebuffer))
 }
 
 func (c *defaultContext) BindRenderbuffer(target uint32, renderbuffer uint32) {
-	purego.SyscallN(c.gpBindRenderbufferEXT, uintptr(target), uintptr(renderbuffer))
+	purego.SyscallN(c.gpBindRenderbuffer, uintptr(target), uintptr(renderbuffer))
 }
 
 func (c *defaultContext) BindTexture(target uint32, texture uint32) {
 	purego.SyscallN(c.gpBindTexture, uintptr(target), uintptr(texture))
+}
+
+func (c *defaultContext) BindVertexArray(array uint32) {
+	purego.SyscallN(c.gpBindVertexArray, uintptr(array))
 }
 
 func (c *defaultContext) BlendEquationSeparate(modeRGB uint32, modeAlpha uint32) {
@@ -168,7 +174,7 @@ func (c *defaultContext) BufferSubData(target uint32, offset int, data []byte) {
 }
 
 func (c *defaultContext) CheckFramebufferStatus(target uint32) uint32 {
-	ret, _, _ := purego.SyscallN(c.gpCheckFramebufferStatusEXT, uintptr(target))
+	ret, _, _ := purego.SyscallN(c.gpCheckFramebufferStatus, uintptr(target))
 	return uint32(ret)
 }
 
@@ -192,7 +198,7 @@ func (c *defaultContext) CreateBuffer() uint32 {
 
 func (c *defaultContext) CreateFramebuffer() uint32 {
 	var framebuffer uint32
-	purego.SyscallN(c.gpGenFramebuffersEXT, 1, uintptr(unsafe.Pointer(&framebuffer)))
+	purego.SyscallN(c.gpGenFramebuffers, 1, uintptr(unsafe.Pointer(&framebuffer)))
 	return framebuffer
 }
 
@@ -203,7 +209,7 @@ func (c *defaultContext) CreateProgram() uint32 {
 
 func (c *defaultContext) CreateRenderbuffer() uint32 {
 	var renderbuffer uint32
-	purego.SyscallN(c.gpGenRenderbuffersEXT, 1, uintptr(unsafe.Pointer(&renderbuffer)))
+	purego.SyscallN(c.gpGenRenderbuffers, 1, uintptr(unsafe.Pointer(&renderbuffer)))
 	return renderbuffer
 }
 
@@ -218,12 +224,18 @@ func (c *defaultContext) CreateTexture() uint32 {
 	return texture
 }
 
+func (c *defaultContext) CreateVertexArray() uint32 {
+	var array uint32
+	purego.SyscallN(c.gpGenVertexArrays, 1, uintptr(unsafe.Pointer(&array)))
+	return array
+}
+
 func (c *defaultContext) DeleteBuffer(buffer uint32) {
 	purego.SyscallN(c.gpDeleteBuffers, 1, uintptr(unsafe.Pointer(&buffer)))
 }
 
 func (c *defaultContext) DeleteFramebuffer(framebuffer uint32) {
-	purego.SyscallN(c.gpDeleteFramebuffersEXT, 1, uintptr(unsafe.Pointer(&framebuffer)))
+	purego.SyscallN(c.gpDeleteFramebuffers, 1, uintptr(unsafe.Pointer(&framebuffer)))
 }
 
 func (c *defaultContext) DeleteProgram(program uint32) {
@@ -231,7 +243,7 @@ func (c *defaultContext) DeleteProgram(program uint32) {
 }
 
 func (c *defaultContext) DeleteRenderbuffer(renderbuffer uint32) {
-	purego.SyscallN(c.gpDeleteRenderbuffersEXT, 1, uintptr(unsafe.Pointer(&renderbuffer)))
+	purego.SyscallN(c.gpDeleteRenderbuffers, 1, uintptr(unsafe.Pointer(&renderbuffer)))
 }
 
 func (c *defaultContext) DeleteShader(shader uint32) {
@@ -240,6 +252,10 @@ func (c *defaultContext) DeleteShader(shader uint32) {
 
 func (c *defaultContext) DeleteTexture(texture uint32) {
 	purego.SyscallN(c.gpDeleteTextures, 1, uintptr(unsafe.Pointer(&texture)))
+}
+
+func (c *defaultContext) DeleteVertexArray(array uint32) {
+	purego.SyscallN(c.gpDeleteVertexArrays, 1, uintptr(unsafe.Pointer(&array)))
 }
 
 func (c *defaultContext) Disable(cap uint32) {
@@ -267,11 +283,11 @@ func (c *defaultContext) Flush() {
 }
 
 func (c *defaultContext) FramebufferRenderbuffer(target uint32, attachment uint32, renderbuffertarget uint32, renderbuffer uint32) {
-	purego.SyscallN(c.gpFramebufferRenderbufferEXT, uintptr(target), uintptr(attachment), uintptr(renderbuffertarget), uintptr(renderbuffer))
+	purego.SyscallN(c.gpFramebufferRenderbuffer, uintptr(target), uintptr(attachment), uintptr(renderbuffertarget), uintptr(renderbuffer))
 }
 
 func (c *defaultContext) FramebufferTexture2D(target uint32, attachment uint32, textarget uint32, texture uint32, level int32) {
-	purego.SyscallN(c.gpFramebufferTexture2DEXT, uintptr(target), uintptr(attachment), uintptr(textarget), uintptr(texture), uintptr(level))
+	purego.SyscallN(c.gpFramebufferTexture2D, uintptr(target), uintptr(attachment), uintptr(textarget), uintptr(texture), uintptr(level))
 }
 
 func (c *defaultContext) GetError() uint32 {
@@ -319,7 +335,7 @@ func (c *defaultContext) GetUniformLocation(program uint32, name string) int32 {
 }
 
 func (c *defaultContext) IsFramebuffer(framebuffer uint32) bool {
-	ret, _, _ := purego.SyscallN(c.gpIsFramebufferEXT, uintptr(framebuffer))
+	ret, _, _ := purego.SyscallN(c.gpIsFramebuffer, uintptr(framebuffer))
 	return byte(ret) != 0
 }
 
@@ -329,7 +345,7 @@ func (c *defaultContext) IsProgram(program uint32) bool {
 }
 
 func (c *defaultContext) IsRenderbuffer(renderbuffer uint32) bool {
-	ret, _, _ := purego.SyscallN(c.gpIsRenderbufferEXT, uintptr(renderbuffer))
+	ret, _, _ := purego.SyscallN(c.gpIsRenderbuffer, uintptr(renderbuffer))
 	return byte(ret) != 0
 }
 
@@ -351,7 +367,7 @@ func (c *defaultContext) ReadPixels(dst []byte, x int32, y int32, width int32, h
 }
 
 func (c *defaultContext) RenderbufferStorage(target uint32, internalformat uint32, width int32, height int32) {
-	purego.SyscallN(c.gpRenderbufferStorageEXT, uintptr(target), uintptr(internalformat), uintptr(width), uintptr(height))
+	purego.SyscallN(c.gpRenderbufferStorage, uintptr(target), uintptr(internalformat), uintptr(width), uintptr(height))
 }
 
 func (c *defaultContext) Scissor(x int32, y int32, width int32, height int32) {
@@ -462,259 +478,85 @@ func (c *defaultContext) Viewport(x int32, y int32, width int32, height int32) {
 }
 
 func (c *defaultContext) LoadFunctions() error {
-	c.gpActiveTexture = c.getProcAddress("glActiveTexture")
-	if c.gpActiveTexture == 0 {
-		return errors.New("gl: glActiveTexture is missing")
-	}
-	c.gpAttachShader = c.getProcAddress("glAttachShader")
-	if c.gpAttachShader == 0 {
-		return errors.New("gl: glAttachShader is missing")
-	}
-	c.gpBindAttribLocation = c.getProcAddress("glBindAttribLocation")
-	if c.gpBindAttribLocation == 0 {
-		return errors.New("gl: glBindAttribLocation is missing")
-	}
-	c.gpBindBuffer = c.getProcAddress("glBindBuffer")
-	if c.gpBindBuffer == 0 {
-		return errors.New("gl: glBindBuffer is missing")
-	}
-	c.gpBindFramebufferEXT = c.getProcAddress("glBindFramebufferEXT")
-	c.gpBindRenderbufferEXT = c.getProcAddress("glBindRenderbufferEXT")
-	c.gpBindTexture = c.getProcAddress("glBindTexture")
-	if c.gpBindTexture == 0 {
-		return errors.New("gl: glBindTexture is missing")
-	}
-	c.gpBlendEquationSeparate = c.getProcAddress("glBlendEquationSeparate")
-	if c.gpBlendEquationSeparate == 0 {
-		return errors.New("gl: glBlendEquationSeparate is missing")
-	}
-	c.gpBlendFuncSeparate = c.getProcAddress("glBlendFuncSeparate")
-	if c.gpBlendFuncSeparate == 0 {
-		return errors.New("gl: glBlendFuncSeparate is missing")
-	}
-	c.gpBufferData = c.getProcAddress("glBufferData")
-	if c.gpBufferData == 0 {
-		return errors.New("gl: glBufferData is missing")
-	}
-	c.gpBufferSubData = c.getProcAddress("glBufferSubData")
-	if c.gpBufferSubData == 0 {
-		return errors.New("gl: glBufferSubData is missing")
-	}
-	c.gpCheckFramebufferStatusEXT = c.getProcAddress("glCheckFramebufferStatusEXT")
-	c.gpClear = c.getProcAddress("glClear")
-	if c.gpClear == 0 {
-		return errors.New("gl: glClear is missing")
-	}
-	c.gpColorMask = c.getProcAddress("glColorMask")
-	if c.gpColorMask == 0 {
-		return errors.New("gl: glColorMask is missing")
-	}
-	c.gpCompileShader = c.getProcAddress("glCompileShader")
-	if c.gpCompileShader == 0 {
-		return errors.New("gl: glCompileShader is missing")
-	}
-	c.gpCreateProgram = c.getProcAddress("glCreateProgram")
-	if c.gpCreateProgram == 0 {
-		return errors.New("gl: glCreateProgram is missing")
-	}
-	c.gpCreateShader = c.getProcAddress("glCreateShader")
-	if c.gpCreateShader == 0 {
-		return errors.New("gl: glCreateShader is missing")
-	}
-	c.gpDeleteBuffers = c.getProcAddress("glDeleteBuffers")
-	if c.gpDeleteBuffers == 0 {
-		return errors.New("gl: glDeleteBuffers is missing")
-	}
-	c.gpDeleteFramebuffersEXT = c.getProcAddress("glDeleteFramebuffersEXT")
-	c.gpDeleteProgram = c.getProcAddress("glDeleteProgram")
-	if c.gpDeleteProgram == 0 {
-		return errors.New("gl: glDeleteProgram is missing")
-	}
-	c.gpDeleteRenderbuffersEXT = c.getProcAddress("glDeleteRenderbuffersEXT")
-	c.gpDeleteShader = c.getProcAddress("glDeleteShader")
-	if c.gpDeleteShader == 0 {
-		return errors.New("gl: glDeleteShader is missing")
-	}
-	c.gpDeleteTextures = c.getProcAddress("glDeleteTextures")
-	if c.gpDeleteTextures == 0 {
-		return errors.New("gl: glDeleteTextures is missing")
-	}
-	c.gpDisable = c.getProcAddress("glDisable")
-	if c.gpDisable == 0 {
-		return errors.New("gl: glDisable is missing")
-	}
-	c.gpDisableVertexAttribArray = c.getProcAddress("glDisableVertexAttribArray")
-	if c.gpDisableVertexAttribArray == 0 {
-		return errors.New("gl: glDisableVertexAttribArray is missing")
-	}
-	c.gpDrawElements = c.getProcAddress("glDrawElements")
-	if c.gpDrawElements == 0 {
-		return errors.New("gl: glDrawElements is missing")
-	}
-	c.gpEnable = c.getProcAddress("glEnable")
-	if c.gpEnable == 0 {
-		return errors.New("gl: glEnable is missing")
-	}
-	c.gpEnableVertexAttribArray = c.getProcAddress("glEnableVertexAttribArray")
-	if c.gpEnableVertexAttribArray == 0 {
-		return errors.New("gl: glEnableVertexAttribArray is missing")
-	}
-	c.gpFlush = c.getProcAddress("glFlush")
-	if c.gpFlush == 0 {
-		return errors.New("gl: glFlush is missing")
-	}
-	c.gpFramebufferRenderbufferEXT = c.getProcAddress("glFramebufferRenderbufferEXT")
-	c.gpFramebufferTexture2DEXT = c.getProcAddress("glFramebufferTexture2DEXT")
-	c.gpGenBuffers = c.getProcAddress("glGenBuffers")
-	if c.gpGenBuffers == 0 {
-		return errors.New("gl: glGenBuffers is missing")
-	}
-	c.gpGenFramebuffersEXT = c.getProcAddress("glGenFramebuffersEXT")
-	c.gpGenRenderbuffersEXT = c.getProcAddress("glGenRenderbuffersEXT")
-	c.gpGenTextures = c.getProcAddress("glGenTextures")
-	if c.gpGenTextures == 0 {
-		return errors.New("gl: glGenTextures is missing")
-	}
-	c.gpGetError = c.getProcAddress("glGetError")
-	if c.gpGetError == 0 {
-		return errors.New("gl: glGetError is missing")
-	}
-	c.gpGetIntegerv = c.getProcAddress("glGetIntegerv")
-	if c.gpGetIntegerv == 0 {
-		return errors.New("gl: glGetIntegerv is missing")
-	}
-	c.gpGetProgramInfoLog = c.getProcAddress("glGetProgramInfoLog")
-	if c.gpGetProgramInfoLog == 0 {
-		return errors.New("gl: glGetProgramInfoLog is missing")
-	}
-	c.gpGetProgramiv = c.getProcAddress("glGetProgramiv")
-	if c.gpGetProgramiv == 0 {
-		return errors.New("gl: glGetProgramiv is missing")
-	}
-	c.gpGetShaderInfoLog = c.getProcAddress("glGetShaderInfoLog")
-	if c.gpGetShaderInfoLog == 0 {
-		return errors.New("gl: glGetShaderInfoLog is missing")
-	}
-	c.gpGetShaderiv = c.getProcAddress("glGetShaderiv")
-	if c.gpGetShaderiv == 0 {
-		return errors.New("gl: glGetShaderiv is missing")
-	}
-	c.gpGetUniformLocation = c.getProcAddress("glGetUniformLocation")
-	if c.gpGetUniformLocation == 0 {
-		return errors.New("gl: glGetUniformLocation is missing")
-	}
-	c.gpIsFramebufferEXT = c.getProcAddress("glIsFramebufferEXT")
-	c.gpIsProgram = c.getProcAddress("glIsProgram")
-	if c.gpIsProgram == 0 {
-		return errors.New("gl: glIsProgram is missing")
-	}
-	c.gpIsRenderbufferEXT = c.getProcAddress("glIsRenderbufferEXT")
-	c.gpIsTexture = c.getProcAddress("glIsTexture")
-	if c.gpIsTexture == 0 {
-		return errors.New("gl: glIsTexture is missing")
-	}
-	c.gpLinkProgram = c.getProcAddress("glLinkProgram")
-	if c.gpLinkProgram == 0 {
-		return errors.New("gl: glLinkProgram is missing")
-	}
-	c.gpPixelStorei = c.getProcAddress("glPixelStorei")
-	if c.gpPixelStorei == 0 {
-		return errors.New("gl: glPixelStorei is missing")
-	}
-	c.gpReadPixels = c.getProcAddress("glReadPixels")
-	if c.gpReadPixels == 0 {
-		return errors.New("gl: glReadPixels is missing")
-	}
-	c.gpRenderbufferStorageEXT = c.getProcAddress("glRenderbufferStorageEXT")
-	c.gpScissor = c.getProcAddress("glScissor")
-	if c.gpScissor == 0 {
-		return errors.New("gl: glScissor is missing")
-	}
-	c.gpShaderSource = c.getProcAddress("glShaderSource")
-	if c.gpShaderSource == 0 {
-		return errors.New("gl: glShaderSource is missing")
-	}
-	c.gpStencilFunc = c.getProcAddress("glStencilFunc")
-	if c.gpStencilFunc == 0 {
-		return errors.New("gl: glStencilFunc is missing")
-	}
-	c.gpStencilOp = c.getProcAddress("glStencilOp")
-	if c.gpStencilOp == 0 {
-		return errors.New("gl: glStencilOp is missing")
-	}
-	c.gpTexImage2D = c.getProcAddress("glTexImage2D")
-	if c.gpTexImage2D == 0 {
-		return errors.New("gl: glTexImage2D is missing")
-	}
-	c.gpTexParameteri = c.getProcAddress("glTexParameteri")
-	if c.gpTexParameteri == 0 {
-		return errors.New("gl: glTexParameteri is missing")
-	}
-	c.gpTexSubImage2D = c.getProcAddress("glTexSubImage2D")
-	if c.gpTexSubImage2D == 0 {
-		return errors.New("gl: glTexSubImage2D is missing")
-	}
-	c.gpUniform1fv = c.getProcAddress("glUniform1fv")
-	if c.gpUniform1fv == 0 {
-		return errors.New("gl: glUniform1fv is missing")
-	}
-	c.gpUniform1i = c.getProcAddress("glUniform1i")
-	if c.gpUniform1i == 0 {
-		return errors.New("gl: glUniform1i is missing")
-	}
-	c.gpUniform1iv = c.getProcAddress("glUniform1iv")
-	if c.gpUniform1iv == 0 {
-		return errors.New("gl: glUniform1iv is missing")
-	}
-	c.gpUniform2fv = c.getProcAddress("glUniform2fv")
-	if c.gpUniform2fv == 0 {
-		return errors.New("gl: glUniform2fv is missing")
-	}
-	c.gpUniform2iv = c.getProcAddress("glUniform2iv")
-	if c.gpUniform2iv == 0 {
-		return errors.New("gl: glUniform2iv is missing")
-	}
-	c.gpUniform3fv = c.getProcAddress("glUniform3fv")
-	if c.gpUniform3fv == 0 {
-		return errors.New("gl: glUniform3fv is missing")
-	}
-	c.gpUniform3iv = c.getProcAddress("glUniform3iv")
-	if c.gpUniform3iv == 0 {
-		return errors.New("gl: glUniform3iv is missing")
-	}
-	c.gpUniform4fv = c.getProcAddress("glUniform4fv")
-	if c.gpUniform4fv == 0 {
-		return errors.New("gl: glUniform4fv is missing")
-	}
-	c.gpUniform4iv = c.getProcAddress("glUniform4iv")
-	if c.gpUniform4iv == 0 {
-		return errors.New("gl: glUniform4iv is missing")
-	}
-	c.gpUniformMatrix2fv = c.getProcAddress("glUniformMatrix2fv")
-	if c.gpUniformMatrix2fv == 0 {
-		return errors.New("gl: glUniformMatrix2fv is missing")
-	}
-	c.gpUniformMatrix3fv = c.getProcAddress("glUniformMatrix3fv")
-	if c.gpUniformMatrix3fv == 0 {
-		return errors.New("gl: glUniformMatrix3fv is missing")
-	}
-	c.gpUniformMatrix4fv = c.getProcAddress("glUniformMatrix4fv")
-	if c.gpUniformMatrix4fv == 0 {
-		return errors.New("gl: glUniformMatrix4fv is missing")
-	}
-	c.gpUseProgram = c.getProcAddress("glUseProgram")
-	if c.gpUseProgram == 0 {
-		return errors.New("gl: glUseProgram is missing")
-	}
-	c.gpVertexAttribPointer = c.getProcAddress("glVertexAttribPointer")
-	if c.gpVertexAttribPointer == 0 {
-		return errors.New("gl: glVertexAttribPointer is missing")
-	}
-	c.gpViewport = c.getProcAddress("glViewport")
-	if c.gpViewport == 0 {
-		return errors.New("gl: glViewport is missing")
-	}
-	return nil
+	g := procAddressGetter{ctx: c}
+
+	c.gpActiveTexture = g.get("glActiveTexture")
+	c.gpAttachShader = g.get("glAttachShader")
+	c.gpBindAttribLocation = g.get("glBindAttribLocation")
+	c.gpBindBuffer = g.get("glBindBuffer")
+	c.gpBindFramebuffer = g.get("glBindFramebuffer")
+	c.gpBindRenderbuffer = g.get("glBindRenderbuffer")
+	c.gpBindTexture = g.get("glBindTexture")
+	c.gpBindVertexArray = g.get("glBindVertexArray")
+	c.gpBlendEquationSeparate = g.get("glBlendEquationSeparate")
+	c.gpBlendFuncSeparate = g.get("glBlendFuncSeparate")
+	c.gpBufferData = g.get("glBufferData")
+	c.gpBufferSubData = g.get("glBufferSubData")
+	c.gpCheckFramebufferStatus = g.get("glCheckFramebufferStatus")
+	c.gpClear = g.get("glClear")
+	c.gpColorMask = g.get("glColorMask")
+	c.gpCompileShader = g.get("glCompileShader")
+	c.gpCreateProgram = g.get("glCreateProgram")
+	c.gpCreateShader = g.get("glCreateShader")
+	c.gpDeleteBuffers = g.get("glDeleteBuffers")
+	c.gpDeleteFramebuffers = g.get("glDeleteFramebuffers")
+	c.gpDeleteProgram = g.get("glDeleteProgram")
+	c.gpDeleteRenderbuffers = g.get("glDeleteRenderbuffers")
+	c.gpDeleteShader = g.get("glDeleteShader")
+	c.gpDeleteTextures = g.get("glDeleteTextures")
+	c.gpDeleteVertexArrays = g.get("glDeleteVertexArrays")
+	c.gpDisable = g.get("glDisable")
+	c.gpDisableVertexAttribArray = g.get("glDisableVertexAttribArray")
+	c.gpDrawElements = g.get("glDrawElements")
+	c.gpEnable = g.get("glEnable")
+	c.gpEnableVertexAttribArray = g.get("glEnableVertexAttribArray")
+	c.gpFlush = g.get("glFlush")
+	c.gpFramebufferRenderbuffer = g.get("glFramebufferRenderbuffer")
+	c.gpFramebufferTexture2D = g.get("glFramebufferTexture2D")
+	c.gpGenBuffers = g.get("glGenBuffers")
+	c.gpGenFramebuffers = g.get("glGenFramebuffers")
+	c.gpGenRenderbuffers = g.get("glGenRenderbuffers")
+	c.gpGenTextures = g.get("glGenTextures")
+	c.gpGenVertexArrays = g.get("glGenVertexArrays")
+	c.gpGetError = g.get("glGetError")
+	c.gpGetIntegerv = g.get("glGetIntegerv")
+	c.gpGetProgramInfoLog = g.get("glGetProgramInfoLog")
+	c.gpGetProgramiv = g.get("glGetProgramiv")
+	c.gpGetShaderInfoLog = g.get("glGetShaderInfoLog")
+	c.gpGetShaderiv = g.get("glGetShaderiv")
+	c.gpGetUniformLocation = g.get("glGetUniformLocation")
+	c.gpIsFramebuffer = g.get("glIsFramebuffer")
+	c.gpIsProgram = g.get("glIsProgram")
+	c.gpIsRenderbuffer = g.get("glIsRenderbuffer")
+	c.gpIsTexture = g.get("glIsTexture")
+	c.gpLinkProgram = g.get("glLinkProgram")
+	c.gpPixelStorei = g.get("glPixelStorei")
+	c.gpReadPixels = g.get("glReadPixels")
+	c.gpRenderbufferStorage = g.get("glRenderbufferStorage")
+	c.gpScissor = g.get("glScissor")
+	c.gpShaderSource = g.get("glShaderSource")
+	c.gpStencilFunc = g.get("glStencilFunc")
+	c.gpStencilOp = g.get("glStencilOp")
+	c.gpTexImage2D = g.get("glTexImage2D")
+	c.gpTexParameteri = g.get("glTexParameteri")
+	c.gpTexSubImage2D = g.get("glTexSubImage2D")
+	c.gpUniform1fv = g.get("glUniform1fv")
+	c.gpUniform1i = g.get("glUniform1i")
+	c.gpUniform1iv = g.get("glUniform1iv")
+	c.gpUniform2fv = g.get("glUniform2fv")
+	c.gpUniform2iv = g.get("glUniform2iv")
+	c.gpUniform3fv = g.get("glUniform3fv")
+	c.gpUniform3iv = g.get("glUniform3iv")
+	c.gpUniform4fv = g.get("glUniform4fv")
+	c.gpUniform4iv = g.get("glUniform4iv")
+	c.gpUniformMatrix2fv = g.get("glUniformMatrix2fv")
+	c.gpUniformMatrix3fv = g.get("glUniformMatrix3fv")
+	c.gpUniformMatrix4fv = g.get("glUniformMatrix4fv")
+	c.gpUseProgram = g.get("glUseProgram")
+	c.gpVertexAttribPointer = g.get("glVertexAttribPointer")
+	c.gpViewport = g.get("glViewport")
+
+	return g.error()
 }
 
 // cStr takes a Go string (with or without null-termination)

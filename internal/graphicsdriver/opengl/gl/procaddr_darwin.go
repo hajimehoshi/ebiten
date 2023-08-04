@@ -16,7 +16,6 @@ package gl
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/ebitengine/purego"
 )
@@ -43,14 +42,10 @@ func (c *defaultContext) init() error {
 	return fmt.Errorf("gl: failed to load: OpenGL.framework: %v, OpenGLES.framework: %v", errGL, errGLES)
 }
 
-func (c *defaultContext) getProcAddress(name string) uintptr {
-	if c.isES {
-		name = strings.TrimSuffix(name, "EXT")
-	}
+func (c *defaultContext) getProcAddress(name string) (uintptr, error) {
 	proc, err := purego.Dlsym(opengl, name)
 	if err != nil {
-		// The proc is not found.
-		return 0
+		return 0, err
 	}
-	return proc
+	return proc, nil
 }

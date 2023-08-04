@@ -37,7 +37,7 @@ func (c *dummyContext) NewPlayer(r io.Reader) player {
 }
 
 func (c *dummyContext) MaxBufferSize() int {
-	return 48000 * channelCount * bitDepthInBytes / 4
+	return 48000 * channelCount * bitDepthInBytesInt16 / 4
 }
 
 func (c *dummyContext) Suspend() error {
@@ -86,7 +86,7 @@ func (p *dummyPlayer) SetVolume(volume float64) {
 	p.volume = volume
 }
 
-func (p *dummyPlayer) UnplayedBufferSize() int {
+func (p *dummyPlayer) BufferedSize() int {
 	return 0
 }
 

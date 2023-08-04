@@ -19,7 +19,7 @@ import (
 	"image/color"
 	"testing"
 
-	"github.com/hajimehoshi/bitmapfont/v2"
+	"github.com/hajimehoshi/bitmapfont/v3"
 	"golang.org/x/image/font"
 	"golang.org/x/image/math/fixed"
 

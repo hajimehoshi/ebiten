@@ -16,6 +16,7 @@ package ui
 
 import (
 	"fmt"
+	"image"
 	"math"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
@@ -40,7 +41,7 @@ type Image struct {
 	height    int
 	imageType atlas.ImageType
 
-	dotsBuffer map[[2]int][4]byte
+	dotsBuffer map[image.Point][4]byte
 
 	// bigOffscreenBuffer is a double-sized offscreen for anti-alias rendering.
 	bigOffscreenBuffer *bigOffscreenImage
@@ -115,35 +116,35 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 	i.mipmap.DrawTriangles(srcMipmaps, vertices, indices, blend, dstRegion, srcRegion, subimageOffsets, shader.shader, uniforms, evenOdd, canSkipMipmap)
 }
 
-func (i *Image) WritePixels(pix []byte, x, y, width, height int) {
+func (i *Image) WritePixels(pix []byte, region image.Rectangle) {
 	if i.modifyCallback != nil {
 		i.modifyCallback()
 	}
 
-	if width == 1 && height == 1 {
+	if region.Dx() == 1 && region.Dy() == 1 {
 		// Flush the other buffer to make the buffers exclusive.
 		i.flushBigOffscreenBufferIfNeeded()
 
 		if i.dotsBuffer == nil {
-			i.dotsBuffer = map[[2]int][4]byte{}
+			i.dotsBuffer = map[image.Point][4]byte{}
 		}
 
 		var clr [4]byte
 		copy(clr[:], pix)
-		i.dotsBuffer[[2]int{x, y}] = clr
+		i.dotsBuffer[region.Min] = clr
 
 		// One square requires 6 indices (= 2 triangles).
-		if len(i.dotsBuffer) >= graphics.IndicesCount/6 {
+		if len(i.dotsBuffer) >= graphics.MaxVerticesCount/6 {
 			i.flushDotsBufferIfNeeded()
 		}
 		return
 	}
 
 	i.flushBufferIfNeeded()
-	i.mipmap.WritePixels(pix, x, y, width, height)
+	i.mipmap.WritePixels(pix, region)
 }
 
-func (i *Image) ReadPixels(pixels []byte, x, y, width, height int) {
+func (i *Image) ReadPixels(pixels []byte, region image.Rectangle) {
 	// Check the error existence and avoid unnecessary calls.
 	if theGlobalState.error() != nil {
 		return
@@ -151,8 +152,8 @@ func (i *Image) ReadPixels(pixels []byte, x, y, width, height int) {
 
 	i.flushBigOffscreenBufferIfNeeded()
 
-	if width == 1 && height == 1 {
-		if c, ok := i.dotsBuffer[[2]int{x, y}]; ok {
+	if region.Dx() == 1 && region.Dy() == 1 {
+		if c, ok := i.dotsBuffer[region.Min]; ok {
 			copy(pixels, c[:])
 			return
 		}
@@ -162,7 +163,7 @@ func (i *Image) ReadPixels(pixels []byte, x, y, width, height int) {
 		i.flushDotsBufferIfNeeded()
 	}
 
-	if err := theUI.readPixels(i.mipmap, pixels, x, y, width, height); err != nil {
+	if err := theUI.readPixels(i.mipmap, pixels, region); err != nil {
 		if panicOnErrorOnReadingPixels {
 			panic(err)
 		}
@@ -192,8 +193,8 @@ func (i *Image) flushDotsBufferIfNeeded() {
 	sx, sy := float32(1), float32(1)
 	var idx int
 	for p, c := range i.dotsBuffer {
-		dx := float32(p[0])
-		dy := float32(p[1])
+		dx := float32(p.X)
+		dy := float32(p.Y)
 		crf := float32(c[0]) / 0xff
 		cgf := float32(c[1]) / 0xff
 		cbf := float32(c[2]) / 0xff
@@ -273,19 +274,19 @@ func init() {
 		pix[i] = 0xff
 	}
 	// As whiteImage is used at Fill, use WritePixels instead.
-	whiteImage.WritePixels(pix, 0, 0, whiteImage.width, whiteImage.height)
+	whiteImage.WritePixels(pix, image.Rect(0, 0, whiteImage.width, whiteImage.height))
 }
 
 func (i *Image) clear() {
-	i.Fill(0, 0, 0, 0, 0, 0, i.width, i.height)
+	i.Fill(0, 0, 0, 0, image.Rect(0, 0, i.width, i.height))
 }
 
-func (i *Image) Fill(r, g, b, a float32, x, y, width, height int) {
+func (i *Image) Fill(r, g, b, a float32, region image.Rectangle) {
 	dstRegion := graphicsdriver.Region{
-		X:      float32(x),
-		Y:      float32(y),
-		Width:  float32(width),
-		Height: float32(height),
+		X:      float32(region.Min.X),
+		Y:      float32(region.Min.Y),
+		Width:  float32(region.Dx()),
+		Height: float32(region.Dy()),
 	}
 
 	if len(i.tmpVerticesForFill) < 4*graphics.VertexFloatCount {
@@ -381,14 +382,16 @@ func (i *bigOffscreenImage) drawTriangles(srcs [graphics.ShaderImageCount]*Image
 		vertices[idx+1] = (vertices[idx+1] - i.region.Y) * bigOffscreenScale
 	}
 
+	// Compute corners in dst coordinate space.
 	x0 := dstRegion.X
 	y0 := dstRegion.Y
 	x1 := dstRegion.X + dstRegion.Width
 	y1 := dstRegion.Y + dstRegion.Height
+	// Translate to i.region coordinate space, and clamp against region size.
 	x0 = max(x0-i.region.X, 0)
 	y0 = max(y0-i.region.Y, 0)
-	x1 = min(x1, i.region.X+i.region.Width)
-	y1 = min(y1, i.region.Y+i.region.Height)
+	x1 = min(x1-i.region.X, i.region.Width)
+	y1 = min(y1-i.region.Y, i.region.Height)
 	dstRegion = graphicsdriver.Region{
 		X:      x0 * bigOffscreenScale,
 		Y:      y0 * bigOffscreenScale,

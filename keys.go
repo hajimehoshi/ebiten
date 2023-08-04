@@ -24,7 +24,7 @@ import (
 )
 
 // A Key represents a keyboard key.
-// These keys represent pysical keys of US keyboard.
+// These keys represent physical keys of US keyboard.
 // For example, KeyQ represents Q key on US keyboards and ' (quote) key on Dvorak keyboards.
 type Key int
 

@@ -38,30 +38,30 @@ func (p *Pixels) Apply(img *graphicscommand.Image) {
 	p.pixelsRecords.apply(img)
 }
 
-func (p *Pixels) AddOrReplace(pix []byte, x, y, width, height int) {
+func (p *Pixels) AddOrReplace(pix []byte, region image.Rectangle) {
 	if p.pixelsRecords == nil {
 		p.pixelsRecords = &pixelsRecords{}
 	}
-	p.pixelsRecords.addOrReplace(pix, x, y, width, height)
+	p.pixelsRecords.addOrReplace(pix, region)
 }
 
-func (p *Pixels) Clear(x, y, width, height int) {
+func (p *Pixels) Clear(region image.Rectangle) {
 	// Note that we don't care whether the region is actually removed or not here. There is an actual case that
 	// the region is allocated but nothing is rendered. See TestDisposeImmediately at shareable package.
 	if p.pixelsRecords == nil {
 		return
 	}
-	p.pixelsRecords.clear(x, y, width, height)
+	p.pixelsRecords.clear(region)
 }
 
-func (p *Pixels) ReadPixels(pixels []byte, x, y, width, height, imageWidth, imageHeight int) {
+func (p *Pixels) ReadPixels(pixels []byte, region image.Rectangle, imageWidth, imageHeight int) {
 	if p.pixelsRecords == nil {
 		for i := range pixels {
 			pixels[i] = 0
 		}
 		return
 	}
-	p.pixelsRecords.readPixels(pixels, x, y, width, height, imageWidth, imageHeight)
+	p.pixelsRecords.readPixels(pixels, region, imageWidth, imageHeight)
 }
 
 func (p *Pixels) AppendRegion(regions []image.Rectangle) []image.Rectangle {
@@ -176,7 +176,7 @@ func (i *Image) Extend(width, height int) *Image {
 	srcs := [graphics.ShaderImageCount]*Image{i}
 	var offsets [graphics.ShaderImageCount - 1][2]float32
 	sw, sh := i.image.InternalSize()
-	vs := quadVertices(i, 0, 0, float32(sw), float32(sh), 0, 0, float32(sw), float32(sh), 1, 1, 1, 1)
+	vs := quadVertices(0, 0, float32(sw), float32(sh), 0, 0, float32(sw), float32(sh), 1, 1, 1, 1)
 	is := graphics.QuadIndices()
 	dr := graphicsdriver.Region{
 		X:      0,
@@ -191,22 +191,12 @@ func (i *Image) Extend(width, height int) *Image {
 }
 
 // quadVertices returns vertices to render a quad. These values are passed to graphicscommand.Image.
-func quadVertices(src *Image, dx0, dy0, dx1, dy1, sx0, sy0, sx1, sy1, cr, cg, cb, ca float32) []float32 {
-	if src == nil {
-		return []float32{
-			dx0, dy0, 0, 0, cr, cg, cb, ca,
-			dx1, dy0, 0, 0, cr, cg, cb, ca,
-			dx0, dy1, 0, 0, cr, cg, cb, ca,
-			dx1, dy1, 0, 0, cr, cg, cb, ca,
-		}
-	}
-	sw, sh := src.InternalSize()
-	swf, shf := float32(sw), float32(sh)
+func quadVertices(dx0, dy0, dx1, dy1, sx0, sy0, sx1, sy1, cr, cg, cb, ca float32) []float32 {
 	return []float32{
-		dx0, dy0, sx0 / swf, sy0 / shf, cr, cg, cb, ca,
-		dx1, dy0, sx1 / swf, sy0 / shf, cr, cg, cb, ca,
-		dx0, dy1, sx0 / swf, sy1 / shf, cr, cg, cb, ca,
-		dx1, dy1, sx1 / swf, sy1 / shf, cr, cg, cb, ca,
+		dx0, dy0, sx0, sy0, cr, cg, cb, ca,
+		dx1, dy0, sx1, sy0, cr, cg, cb, ca,
+		dx0, dy1, sx0, sy1, cr, cg, cb, ca,
+		dx1, dy1, sx1, sy1, cr, cg, cb, ca,
 	}
 }
 
@@ -214,7 +204,7 @@ func clearImage(i *graphicscommand.Image) {
 	// This needs to use 'InternalSize' to render the whole region, or edges are unexpectedly cleared on some
 	// devices.
 	dw, dh := i.InternalSize()
-	vs := quadVertices(nil, 0, 0, float32(dw), float32(dh), 0, 0, 0, 0, 0, 0, 0, 0)
+	vs := quadVertices(0, 0, float32(dw), float32(dh), 0, 0, 0, 0, 0, 0, 0, 0)
 	is := graphics.QuadIndices()
 	var offsets [graphics.ShaderImageCount - 1][2]float32
 	dstRegion := graphicsdriver.Region{
@@ -240,25 +230,22 @@ func (i *Image) makeStale(rect image.Rectangle) {
 		return
 	}
 
-	origNum := len(i.staleRegions)
-	i.staleRegions = i.appendRegionsForDrawTriangles(i.staleRegions)
+	var addedRegions []image.Rectangle
+	i.appendRegionsForDrawTriangles(&addedRegions)
 	if !rect.Empty() {
-		i.staleRegions = append(i.staleRegions, rect)
+		appendRegionRemovingDuplicates(&addedRegions, rect)
+	}
+
+	for _, rect := range addedRegions {
+		appendRegionRemovingDuplicates(&i.staleRegions, rect)
 	}
 
 	i.clearDrawTrianglesHistory()
 
 	// Clear pixels to save memory.
-	for _, r := range i.staleRegions[origNum:] {
-		if r.Empty() {
-			continue
-		}
-		i.basePixels.Clear(r.Min.X, r.Min.Y, r.Dx(), r.Dy())
+	for _, r := range addedRegions {
+		i.basePixels.Clear(r)
 	}
-
-	// Remove duplicated regions to avoid unnecessary reading pixels from GPU.
-	n := removeDuplicatedRegions(i.staleRegions)
-	i.staleRegions = i.staleRegions[:n]
 
 	// Don't have to call makeStale recursively here.
 	// Restoring is done after topological sorting is done.
@@ -267,8 +254,8 @@ func (i *Image) makeStale(rect image.Rectangle) {
 }
 
 // ClearPixels clears the specified region by WritePixels.
-func (i *Image) ClearPixels(x, y, width, height int) {
-	i.WritePixels(nil, x, y, width, height)
+func (i *Image) ClearPixels(region image.Rectangle) {
+	i.WritePixels(nil, region)
 }
 
 func (i *Image) needsRestoring() bool {
@@ -278,13 +265,13 @@ func (i *Image) needsRestoring() bool {
 // WritePixels replaces the image pixels with the given pixels slice.
 //
 // The specified region must not be overlapped with other regions by WritePixels.
-func (i *Image) WritePixels(pixels []byte, x, y, width, height int) {
-	if width <= 0 || height <= 0 {
+func (i *Image) WritePixels(pixels []byte, region image.Rectangle) {
+	if region.Dx() <= 0 || region.Dy() <= 0 {
 		panic("restorable: width/height must be positive")
 	}
 	w, h := i.width, i.height
-	if x < 0 || y < 0 || w <= x || h <= y || x+width <= 0 || y+height <= 0 || w < x+width || h < y+height {
-		panic(fmt.Sprintf("restorable: out of range x: %d, y: %d, width: %d, height: %d", x, y, width, height))
+	if !region.In(image.Rect(0, 0, w, h)) {
+		panic(fmt.Sprintf("restorable: out of range %v", region))
 	}
 
 	// TODO: Avoid making other images stale if possible. (#514)
@@ -292,29 +279,29 @@ func (i *Image) WritePixels(pixels []byte, x, y, width, height int) {
 	theImages.makeStaleIfDependingOn(i)
 
 	if pixels != nil {
-		i.image.WritePixels(pixels, x, y, width, height)
+		i.image.WritePixels(pixels, region)
 	} else {
 		// TODO: When pixels == nil, we don't have to care the pixel state there. In such cases, the image
 		// accepts only WritePixels and not Fill or DrawTriangles.
 		// TODO: Separate Image struct into two: images for WritePixels-only, and the others.
-		i.image.WritePixels(make([]byte, 4*width*height), x, y, width, height)
+		i.image.WritePixels(make([]byte, 4*region.Dx()*region.Dy()), region)
 	}
 
 	// Even if the image is already stale, call makeStale to extend the stale region.
 	if !needsRestoring() || !i.needsRestoring() || i.stale {
-		i.makeStale(image.Rect(x, y, x+width, y+height))
+		i.makeStale(region)
 		return
 	}
 
-	if x == 0 && y == 0 && width == w && height == h {
+	if region.Eq(image.Rect(0, 0, w, h)) {
 		if pixels != nil {
 			// pixels can point to a shared region.
 			// This function is responsible to copy this.
 			copiedPixels := make([]byte, len(pixels))
 			copy(copiedPixels, pixels)
-			i.basePixels.AddOrReplace(copiedPixels, 0, 0, w, h)
+			i.basePixels.AddOrReplace(copiedPixels, image.Rect(0, 0, w, h))
 		} else {
-			i.basePixels.Clear(0, 0, w, h)
+			i.basePixels.Clear(image.Rect(0, 0, w, h))
 		}
 		i.clearDrawTrianglesHistory()
 		i.stale = false
@@ -324,7 +311,7 @@ func (i *Image) WritePixels(pixels []byte, x, y, width, height int) {
 
 	// Records for DrawTriangles cannot come before records for WritePixels.
 	if len(i.drawTrianglesHistory) > 0 {
-		i.makeStale(image.Rect(x, y, x+width, y+height))
+		i.makeStale(region)
 		return
 	}
 
@@ -333,9 +320,9 @@ func (i *Image) WritePixels(pixels []byte, x, y, width, height int) {
 		// This function is responsible to copy this.
 		copiedPixels := make([]byte, len(pixels))
 		copy(copiedPixels, pixels)
-		i.basePixels.AddOrReplace(copiedPixels, x, y, width, height)
+		i.basePixels.AddOrReplace(copiedPixels, region)
 	} else {
-		i.basePixels.Clear(x, y, width, height)
+		i.basePixels.Clear(region)
 	}
 }
 
@@ -437,9 +424,9 @@ func (i *Image) readPixelsFromGPUIfNeeded(graphicsDriver graphicsdriver.Graphics
 	return nil
 }
 
-func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte, x, y, width, height int) error {
+func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte, region image.Rectangle) error {
 	if AlwaysReadPixelsFromGPU() {
-		if err := i.image.ReadPixels(graphicsDriver, pixels, x, y, width, height); err != nil {
+		if err := i.image.ReadPixels(graphicsDriver, pixels, region); err != nil {
 			return err
 		}
 		return nil
@@ -448,10 +435,10 @@ func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte
 	if err := i.readPixelsFromGPUIfNeeded(graphicsDriver); err != nil {
 		return err
 	}
-	if got, want := len(pixels), 4*width*height; got != want {
+	if got, want := len(pixels), 4*region.Dx()*region.Dy(); got != want {
 		return fmt.Errorf("restorable: len(pixels) must be %d but %d at ReadPixels", want, got)
 	}
-	i.basePixels.ReadPixels(pixels, x, y, width, height, i.width, i.height)
+	i.basePixels.ReadPixels(pixels, region, i.width, i.height)
 	return nil
 }
 
@@ -483,12 +470,11 @@ func (i *Image) readPixelsFromGPU(graphicsDriver graphicsdriver.Graphics) error 
 	if i.stale {
 		rs = i.staleRegions
 	} else {
-		i.regionsCache = i.appendRegionsForDrawTriangles(i.regionsCache)
+		i.appendRegionsForDrawTriangles(&i.regionsCache)
 		defer func() {
 			i.regionsCache = i.regionsCache[:0]
 		}()
-		n := removeDuplicatedRegions(i.regionsCache)
-		rs = i.regionsCache[:n]
+		rs = i.regionsCache
 	}
 
 	for _, r := range rs {
@@ -505,10 +491,10 @@ func (i *Image) readPixelsFromGPU(graphicsDriver graphicsdriver.Graphics) error 
 			pix = make([]byte, 4*r.Dx()*r.Dy())
 			i.pixelsCache[r] = pix
 		}
-		if err := i.image.ReadPixels(graphicsDriver, pix, r.Min.X, r.Min.Y, r.Dx(), r.Dy()); err != nil {
+		if err := i.image.ReadPixels(graphicsDriver, pix, r); err != nil {
 			return err
 		}
-		i.basePixels.AddOrReplace(pix, r.Min.X, r.Min.Y, r.Dx(), r.Dy())
+		i.basePixels.AddOrReplace(pix, r)
 	}
 
 	i.clearDrawTrianglesHistory()
@@ -625,14 +611,12 @@ func (i *Image) restore(graphicsDriver graphicsdriver.Graphics) error {
 
 	// In order to clear the draw-triangles history, read pixels from GPU.
 	if len(i.drawTrianglesHistory) > 0 {
-		i.regionsCache = i.appendRegionsForDrawTriangles(i.regionsCache)
+		i.appendRegionsForDrawTriangles(&i.regionsCache)
 		defer func() {
 			i.regionsCache = i.regionsCache[:0]
 		}()
-		n := removeDuplicatedRegions(i.regionsCache)
-		rs := i.regionsCache[:n]
 
-		for _, r := range rs {
+		for _, r := range i.regionsCache {
 			if r.Empty() {
 				continue
 			}
@@ -646,10 +630,10 @@ func (i *Image) restore(graphicsDriver graphicsdriver.Graphics) error {
 				pix = make([]byte, 4*r.Dx()*r.Dy())
 				i.pixelsCache[r] = pix
 			}
-			if err := gimg.ReadPixels(graphicsDriver, pix, r.Min.X, r.Min.Y, r.Dx(), r.Dy()); err != nil {
+			if err := gimg.ReadPixels(graphicsDriver, pix, r); err != nil {
 				return err
 			}
-			i.basePixels.AddOrReplace(pix, r.Min.X, r.Min.Y, r.Dx(), r.Dy())
+			i.basePixels.AddOrReplace(pix, r)
 		}
 	}
 
@@ -698,18 +682,14 @@ func (i *Image) InternalSize() (int, int) {
 	return i.image.InternalSize()
 }
 
-func (i *Image) appendRegionsForDrawTriangles(regions []image.Rectangle) []image.Rectangle {
-	n := len(regions)
+func (i *Image) appendRegionsForDrawTriangles(regions *[]image.Rectangle) {
 	for _, d := range i.drawTrianglesHistory {
 		r := regionToRectangle(d.dstRegion)
 		if r.Empty() {
 			continue
 		}
-		regions = append(regions, r)
+		appendRegionRemovingDuplicates(regions, r)
 	}
-
-	nn := removeDuplicatedRegions(regions[n:])
-	return regions[:n+nn]
 }
 
 func regionToRectangle(region graphicsdriver.Region) image.Rectangle {
@@ -720,34 +700,29 @@ func regionToRectangle(region graphicsdriver.Region) image.Rectangle {
 		int(math.Ceil(float64(region.Y+region.Height))))
 }
 
-// removeDuplicatedRegions removes duplicated regions and returns the new size of the slice.
-// If a region covers other regions, the covered regions are removed.
-func removeDuplicatedRegions(regions []image.Rectangle) int {
-	for i, r := range regions {
-		if r.Empty() {
-			continue
-		}
-		for j, rr := range regions {
-			if i == j {
-				continue
-			}
-			if rr.Empty() {
-				continue
-			}
-			if rr.In(r) {
-				regions[j] = image.Rectangle{}
-			}
+// appendRegionRemovingDuplicates adds a region to a given list of regions,
+// but removes any duplicate between the newly added region and any existing regions.
+//
+// In case the newly added region is fully contained in any pre-existing region, this function does nothing.
+// Otherwise, any pre-existing regions that are fully contained in the newly added region are removed.
+//
+// This is done to avoid unnecessary reading pixels from GPU.
+func appendRegionRemovingDuplicates(regions *[]image.Rectangle, region image.Rectangle) {
+	for _, r := range *regions {
+		if region.In(r) {
+			// The newly added rectangle is fully contained in one of the input regions.
+			// Nothing to add.
+			return
 		}
 	}
-
+	// Separate loop, as regions must not get mutated before above return.
 	n := 0
-	for _, r := range regions {
-		if r.Empty() {
+	for _, r := range *regions {
+		if r.In(region) {
 			continue
 		}
-		regions[n] = r
+		(*regions)[n] = r
 		n++
 	}
-
-	return n
+	*regions = append((*regions)[:n], region)
 }

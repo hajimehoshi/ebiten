@@ -16,8 +16,6 @@ package shader_test
 
 import (
 	"fmt"
-	"go/parser"
-	"go/token"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -25,6 +23,7 @@ import (
 	"testing"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/shader"
+	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/glsl"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/hlsl"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/msl"
@@ -54,8 +53,9 @@ func hlslNormalize(str string) string {
 }
 
 func metalNormalize(str string) string {
-	if strings.HasPrefix(str, msl.Prelude) {
-		str = str[len(msl.Prelude):]
+	prelude := msl.Prelude(shaderir.Texels)
+	if strings.HasPrefix(str, prelude) {
+		str = str[len(prelude):]
 	}
 	return strings.TrimSpace(str)
 }
@@ -170,13 +170,7 @@ func TestCompile(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.Name, func(t *testing.T) {
-			fset := token.NewFileSet()
-			f, err := parser.ParseFile(fset, "", tc.Src, parser.AllErrors)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			s, err := shader.Compile(fset, f, "Vertex", "Fragment", 0)
+			s, err := shader.Compile(tc.Src, "Vertex", "Fragment", 0)
 			if err != nil {
 				t.Error(err)
 				return

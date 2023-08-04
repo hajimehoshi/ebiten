@@ -17,62 +17,43 @@ package opengl
 import (
 	"errors"
 	"fmt"
+	"image"
 	"sync"
-	"unsafe"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl/gl"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
+	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/glsl"
 )
 
 type blendFactor int
 
-const (
-	glDstAlpha         blendFactor = 0x304
-	glDstColor         blendFactor = 0x306
-	glOne              blendFactor = 1
-	glOneMinusDstAlpha blendFactor = 0x305
-	glOneMinusDstColor blendFactor = 0x307
-	glOneMinusSrcAlpha blendFactor = 0x303
-	glOneMinusSrcColor blendFactor = 0x301
-	glSrcAlpha         blendFactor = 0x302
-	glSrcAlphaSaturate blendFactor = 0x308
-	glSrcColor         blendFactor = 0x300
-	glZero             blendFactor = 0
-)
-
 type blendOperation int
-
-const (
-	glFuncAdd             blendOperation = 0x8006
-	glFuncReverseSubtract blendOperation = 0x800b
-	glFuncSubtract        blendOperation = 0x800a
-)
 
 func convertBlendFactor(f graphicsdriver.BlendFactor) blendFactor {
 	switch f {
 	case graphicsdriver.BlendFactorZero:
-		return glZero
+		return gl.ZERO
 	case graphicsdriver.BlendFactorOne:
-		return glOne
+		return gl.ONE
 	case graphicsdriver.BlendFactorSourceColor:
-		return glSrcColor
+		return gl.SRC_COLOR
 	case graphicsdriver.BlendFactorOneMinusSourceColor:
-		return glOneMinusSrcColor
+		return gl.ONE_MINUS_SRC_COLOR
 	case graphicsdriver.BlendFactorSourceAlpha:
-		return glSrcAlpha
+		return gl.SRC_ALPHA
 	case graphicsdriver.BlendFactorOneMinusSourceAlpha:
-		return glOneMinusSrcAlpha
+		return gl.ONE_MINUS_SRC_ALPHA
 	case graphicsdriver.BlendFactorDestinationColor:
-		return glDstColor
+		return gl.DST_COLOR
 	case graphicsdriver.BlendFactorOneMinusDestinationColor:
-		return glOneMinusDstColor
+		return gl.ONE_MINUS_DST_COLOR
 	case graphicsdriver.BlendFactorDestinationAlpha:
-		return glDstAlpha
+		return gl.DST_ALPHA
 	case graphicsdriver.BlendFactorOneMinusDestinationAlpha:
-		return glOneMinusDstAlpha
+		return gl.ONE_MINUS_DST_ALPHA
 	case graphicsdriver.BlendFactorSourceAlphaSaturated:
-		return glSrcAlphaSaturate
+		return gl.SRC_ALPHA_SATURATE
 	default:
 		panic(fmt.Sprintf("opengl: invalid blend factor %d", f))
 	}
@@ -81,11 +62,11 @@ func convertBlendFactor(f graphicsdriver.BlendFactor) blendFactor {
 func convertBlendOperation(o graphicsdriver.BlendOperation) blendOperation {
 	switch o {
 	case graphicsdriver.BlendOperationAdd:
-		return glFuncAdd
+		return gl.FUNC_ADD
 	case graphicsdriver.BlendOperationSubtract:
-		return glFuncSubtract
+		return gl.FUNC_SUBTRACT
 	case graphicsdriver.BlendOperationReverseSubtract:
-		return glFuncReverseSubtract
+		return gl.FUNC_REVERSE_SUBTRACT
 	default:
 		panic(fmt.Sprintf("opengl: invalid blend operation %d", o))
 	}
@@ -126,8 +107,6 @@ type context struct {
 	highp              bool
 	highpOnce          sync.Once
 	initOnce           sync.Once
-
-	contextPlatform
 }
 
 func (c *context) bindTexture(t textureNative) {
@@ -264,14 +243,18 @@ func (c *context) newTexture(width, height int) (textureNative, error) {
 	return textureNative(t), nil
 }
 
-func (c *context) framebufferPixels(buf []byte, f *framebuffer, x, y, width, height int) error {
-	if got, want := len(buf), 4*width*height; got != want {
+func (c *context) framebufferPixels(buf []byte, f *framebuffer, region image.Rectangle) error {
+	if got, want := len(buf), 4*region.Dx()*region.Dy(); got != want {
 		return fmt.Errorf("opengl: len(buf) must be %d but was %d at framebufferPixels", got, want)
 	}
 
 	c.ctx.Flush()
 	c.bindFramebuffer(f.native)
-	c.ctx.ReadPixels(buf, int32(x), int32(y), int32(width), int32(height), gl.RGBA, gl.UNSIGNED_BYTE)
+	x := int32(region.Min.X)
+	y := int32(region.Min.Y)
+	width := int32(region.Dx())
+	height := int32(region.Dy())
+	c.ctx.ReadPixels(buf, x, y, width, height, gl.RGBA, gl.UNSIGNED_BYTE)
 	return nil
 }
 
@@ -504,12 +487,9 @@ func (c *context) newElementArrayBuffer(size int) buffer {
 	return buffer(b)
 }
 
-func (c *context) arrayBufferSubData(data []float32) {
-	s := unsafe.Slice((*byte)(unsafe.Pointer(&data[0])), len(data)*4)
-	c.ctx.BufferSubData(gl.ARRAY_BUFFER, 0, s)
-}
-
-func (c *context) elementArrayBufferSubData(data []uint16) {
-	s := unsafe.Slice((*byte)(unsafe.Pointer(&data[0])), len(data)*2)
-	c.ctx.BufferSubData(gl.ELEMENT_ARRAY_BUFFER, 0, s)
+func (c *context) glslVersion() glsl.GLSLVersion {
+	if c.ctx.IsES() {
+		return glsl.GLSLVersionES300
+	}
+	return glsl.GLSLVersionDefault
 }

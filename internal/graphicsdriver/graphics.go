@@ -15,6 +15,8 @@
 package graphicsdriver
 
 import (
+	"image"
+
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
@@ -57,11 +59,15 @@ type Graphics interface {
 	DrawTriangles(dst ImageID, srcs [graphics.ShaderImageCount]ImageID, shader ShaderID, dstRegions []DstRegion, indexOffset int, blend Blend, uniforms []uint32, evenOdd bool) error
 }
 
+type Resetter interface {
+	Reset() error
+}
+
 type Image interface {
 	ID() ImageID
 	Dispose()
 	IsInvalidated() bool
-	ReadPixels(buf []byte, x, y, width, height int) error
+	ReadPixels(buf []byte, region image.Rectangle) error
 	WritePixels(args []*WritePixelsArgs) error
 }
 
@@ -69,10 +75,7 @@ type ImageID int
 
 type WritePixelsArgs struct {
 	Pixels []byte
-	X      int
-	Y      int
-	Width  int
-	Height int
+	Region image.Rectangle
 }
 
 type Shader interface {

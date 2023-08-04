@@ -58,12 +58,8 @@ func (v *view) colorPixelFormat() mtl.PixelFormat {
 	return v.ml.PixelFormat()
 }
 
-func (v *view) initialize() error {
-	d, err := mtl.CreateSystemDefaultDevice()
-	if err != nil {
-		return err
-	}
-	v.device = d
+func (v *view) initialize(device mtl.Device) error {
+	v.device = device
 
 	ml, err := ca.MakeMetalLayer()
 	if err != nil {

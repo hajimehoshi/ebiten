@@ -7,5 +7,5 @@ vec2 F0(void) {
 	l0 = (l0) + (1);
 	l1 = 1;
 	l1 = (l1) - (1);
-	return vec2(l0, l1);
+	return vec2(float(l0), float(l1));
 }

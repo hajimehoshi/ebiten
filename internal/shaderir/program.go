@@ -22,6 +22,13 @@ import (
 	"strings"
 )
 
+type Unit int
+
+const (
+	Texels Unit = iota
+	Pixels
+)
+
 type Program struct {
 	UniformNames []string
 	Uniforms     []Type
@@ -31,9 +38,9 @@ type Program struct {
 	Funcs        []Func
 	VertexFunc   VertexFunc
 	FragmentFunc FragmentFunc
+	Unit         Unit
 
-	reachableUniforms   []bool
-	uniformUint32Counts []int
+	uniformMask []uint32
 }
 
 type Func struct {
@@ -94,20 +101,10 @@ const (
 	Discard
 )
 
-type ConstType int
-
-const (
-	ConstTypeNone ConstType = iota
-	ConstTypeBool
-	ConstTypeInt
-	ConstTypeFloat
-)
-
 type Expr struct {
 	Type        ExprType
 	Exprs       []Expr
 	Const       constant.Value
-	ConstType   ConstType
 	BuiltinFunc BuiltinFunc
 	Swizzling   string
 	Index       int
@@ -176,6 +173,10 @@ func OpFromToken(t token.Token, lhs, rhs Type) (Op, bool) {
 		return ComponentWiseMul, true
 	case token.QUO:
 		return Div, true
+	case token.QUO_ASSIGN:
+		// QUO_ASSIGN indicates an integer division.
+		// https://pkg.go.dev/go/constant/#BinaryOp
+		return Div, true
 	case token.REM:
 		return ModOp, true
 	case token.SHL:
@@ -191,12 +192,12 @@ func OpFromToken(t token.Token, lhs, rhs Type) (Op, bool) {
 	case token.GEQ:
 		return GreaterThanEqualOp, true
 	case token.EQL:
-		if lhs.IsVector() || rhs.IsVector() {
+		if lhs.IsFloatVector() || lhs.IsIntVector() || rhs.IsFloatVector() || rhs.IsIntVector() {
 			return VectorEqualOp, true
 		}
 		return EqualOp, true
 	case token.NEQ:
-		if lhs.IsVector() || rhs.IsVector() {
+		if lhs.IsFloatVector() || lhs.IsIntVector() || rhs.IsFloatVector() || rhs.IsIntVector() {
 			return VectorNotEqualOp, true
 		}
 		return NotEqualOp, true
@@ -268,11 +269,11 @@ const (
 	Reflect     BuiltinFunc = "reflect"
 	Refract     BuiltinFunc = "refract"
 	Transpose   BuiltinFunc = "transpose"
-	Texture2DF  BuiltinFunc = "texture2D"
 	Dfdx        BuiltinFunc = "dfdx"
 	Dfdy        BuiltinFunc = "dfdy"
 	Fwidth      BuiltinFunc = "fwidth"
 	DiscardF    BuiltinFunc = "discard"
+	TexelAt     BuiltinFunc = "__texelAt"
 )
 
 func ParseBuiltinFunc(str string) (BuiltinFunc, bool) {
@@ -326,11 +327,11 @@ func ParseBuiltinFunc(str string) (BuiltinFunc, bool) {
 		Reflect,
 		Refract,
 		Transpose,
-		Texture2DF,
 		Dfdx,
 		Dfdy,
 		Fwidth,
-		DiscardF:
+		DiscardF,
+		TexelAt:
 		return BuiltinFunc(str), true
 	}
 	return "", false
@@ -429,7 +430,7 @@ func walkExprsInExpr(f func(expr *Expr), expr *Expr) {
 	}
 }
 
-func (p *Program) reachableUniformVariablesFromBlock(block *Block) []int {
+func (p *Program) appendReachableUniformVariablesFromBlock(indices []int, block *Block) []int {
 	indexToFunc := map[int]*Func{}
 	for _, f := range p.Funcs {
 		f := f
@@ -437,12 +438,16 @@ func (p *Program) reachableUniformVariablesFromBlock(block *Block) []int {
 	}
 
 	visitedFuncs := map[int]struct{}{}
-	indices := map[int]struct{}{}
+	indicesSet := map[int]struct{}{}
 	var f func(expr *Expr)
 	f = func(expr *Expr) {
 		switch expr.Type {
 		case UniformVariable:
-			indices[expr.Index] = struct{}{}
+			if _, ok := indicesSet[expr.Index]; ok {
+				return
+			}
+			indicesSet[expr.Index] = struct{}{}
+			indices = append(indices, expr.Index)
 		case FunctionExpr:
 			if _, ok := visitedFuncs[expr.Index]; ok {
 				return
@@ -453,41 +458,31 @@ func (p *Program) reachableUniformVariablesFromBlock(block *Block) []int {
 	}
 	walkExprs(f, block)
 
-	is := make([]int, 0, len(indices))
-	for i := range indices {
-		is = append(is, i)
-	}
-	sort.Ints(is)
-	return is
+	return indices
 }
 
 // FilterUniformVariables replaces uniform variables with nil when they are not used.
 // By minimizing uniform variables, more commands can be merged in the graphicscommand package.
 func (p *Program) FilterUniformVariables(uniforms []uint32) {
-	if p.reachableUniforms == nil {
-		p.reachableUniforms = make([]bool, len(p.Uniforms))
-		for _, i := range p.reachableUniformVariablesFromBlock(p.VertexFunc.Block) {
-			p.reachableUniforms[i] = true
+	if p.uniformMask == nil {
+		indices := p.appendReachableUniformVariablesFromBlock(nil, p.VertexFunc.Block)
+		indices = p.appendReachableUniformVariablesFromBlock(indices, p.FragmentFunc.Block)
+		reachableUniforms := make([]bool, len(p.Uniforms))
+		for _, idx := range indices {
+			reachableUniforms[idx] = true
 		}
-		for _, i := range p.reachableUniformVariablesFromBlock(p.FragmentFunc.Block) {
-			p.reachableUniforms[i] = true
-		}
-	}
-
-	if p.uniformUint32Counts == nil {
-		p.uniformUint32Counts = make([]int, len(p.Uniforms))
 		for i, typ := range p.Uniforms {
-			p.uniformUint32Counts[i] = typ.Uint32Count()
+			fs := make([]uint32, typ.Uint32Count())
+			if reachableUniforms[i] {
+				for j := range fs {
+					fs[j] = (1 << 32) - 1
+				}
+			}
+			p.uniformMask = append(p.uniformMask, fs...)
 		}
 	}
 
-	var idx int
-	for i, n := range p.uniformUint32Counts {
-		if !p.reachableUniforms[i] {
-			for j := 0; j < n; j++ {
-				uniforms[idx+j] = 0
-			}
-		}
-		idx += n
+	for i, factor := range p.uniformMask {
+		uniforms[i] &= factor
 	}
 }

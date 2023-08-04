@@ -37,9 +37,8 @@ const (
 )
 
 var (
-	uiImage       *ebiten.Image
-	uiFont        font.Face
-	uiFontMHeight int
+	uiImage *ebiten.Image
+	uiFont  font.Face
 )
 
 func init() {
@@ -62,8 +61,6 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	b, _, _ := uiFont.GlyphBounds('M')
-	uiFontMHeight = (b.Max.Y - b.Min.Y).Ceil()
 }
 
 type imageType int
@@ -186,10 +183,11 @@ func (b *Button) Draw(dst *ebiten.Image) {
 	}
 	drawNinePatches(dst, b.Rect, imageSrcRects[t])
 
-	bounds, _ := font.BoundString(uiFont, b.Text)
-	w := (bounds.Max.X - bounds.Min.X).Ceil()
+	m := uiFont.Metrics()
+	w := font.MeasureString(uiFont, b.Text).Floor()
+	h := (m.Ascent + m.Descent).Floor()
 	x := b.Rect.Min.X + (b.Rect.Dx()-w)/2
-	y := b.Rect.Max.Y - (b.Rect.Dy()-uiFontMHeight)/2
+	y := b.Rect.Min.Y + (b.Rect.Dy()-h)/2 + m.Ascent.Floor()
 	text.Draw(dst, b.Text, uiFont, x, y, color.Black)
 }
 
@@ -338,6 +336,8 @@ func (t *TextBox) contentOffset() (int, int) {
 func (t *TextBox) Draw(dst *ebiten.Image) {
 	drawNinePatches(dst, t.Rect, imageSrcRects[imageTypeTextBox])
 
+	// TODO: Use a sub-image of dst instead of an offscreen contentBuf.
+	// Using a sub-image is better in terms of performance.
 	if t.contentBuf != nil {
 		vw, vh := t.viewSize()
 		w, h := t.contentBuf.Bounds().Dx(), t.contentBuf.Bounds().Dy()
@@ -352,9 +352,10 @@ func (t *TextBox) Draw(dst *ebiten.Image) {
 	}
 
 	t.contentBuf.Clear()
+	m := uiFont.Metrics()
 	for i, line := range strings.Split(t.Text, "\n") {
 		x := -t.offsetX + textBoxPaddingLeft
-		y := -t.offsetY + i*lineHeight + lineHeight - (lineHeight-uiFontMHeight)/2
+		y := -t.offsetY + i*lineHeight + (lineHeight-(m.Ascent+m.Descent).Floor())/2 + m.Ascent.Floor()
 		if y < -lineHeight {
 			continue
 		}
@@ -388,8 +389,7 @@ type CheckBox struct {
 }
 
 func (c *CheckBox) width() int {
-	b, _ := font.BoundString(uiFont, c.Text)
-	w := (b.Max.X - b.Min.X).Ceil()
+	w := font.MeasureString(uiFont, c.Text).Floor()
 	return checkboxWidth + checkboxPaddingLeft + w
 }
 
@@ -423,8 +423,9 @@ func (c *CheckBox) Draw(dst *ebiten.Image) {
 		drawNinePatches(dst, r, imageSrcRects[imageTypeCheckBoxMark])
 	}
 
+	m := uiFont.Metrics()
 	x := c.X + checkboxWidth + checkboxPaddingLeft
-	y := (c.Y + 16) - (16-uiFontMHeight)/2
+	y := c.Y + (checkboxHeight-(m.Ascent+m.Descent).Floor())/2 + m.Ascent.Floor()
 	text.Draw(dst, c.Text, uiFont, x, y, color.Black)
 }
 

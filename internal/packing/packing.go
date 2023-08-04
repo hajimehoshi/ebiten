@@ -18,10 +18,7 @@ package packing
 import (
 	"errors"
 	"fmt"
-)
-
-const (
-	minSize = 1
+	"image"
 )
 
 type Page struct {
@@ -69,10 +66,7 @@ func (p *Page) IsEmpty() bool {
 }
 
 type Node struct {
-	x      int
-	y      int
-	width  int
-	height int
+	region image.Rectangle
 	used   bool
 
 	parent *Node
@@ -90,8 +84,8 @@ func (n *Node) canFree() bool {
 	return n.child0.canFree() && n.child1.canFree()
 }
 
-func (n *Node) Region() (x, y, width, height int) {
-	return n.x, n.y, n.width, n.height
+func (n *Node) Region() image.Rectangle {
+	return n.region
 }
 
 // square returns a float value indicating how much the given rectangle is close to a square.
@@ -107,78 +101,50 @@ func square(width, height int) float64 {
 	return float64(height) / float64(width)
 }
 
-func (p *Page) canAlloc(n *Node, width, height int) bool {
-	if p.root == nil {
-		return p.width >= width && p.height >= height
-	}
-	return canAlloc(p.root, width, height)
-}
-
-func canAlloc(n *Node, width, height int) bool {
-	if n.width < width || n.height < height {
-		return false
-	}
-	if n.used {
-		return false
-	}
-	if n.child0 == nil && n.child1 == nil {
-		return true
-	}
-	if canAlloc(n.child0, width, height) {
-		return true
-	}
-	if canAlloc(n.child1, width, height) {
-		return true
-	}
-	return false
-}
-
 func alloc(n *Node, width, height int) *Node {
-	if n.width < width || n.height < height {
+	if n.region.Dx() < width || n.region.Dy() < height {
 		return nil
 	}
 	if n.used {
 		return nil
 	}
 	if n.child0 == nil && n.child1 == nil {
-		if n.width == width && n.height == height {
+		if n.region.Dx() == width && n.region.Dy() == height {
 			n.used = true
 			return n
 		}
-		if square(n.width-width, n.height) >= square(n.width, n.height-height) {
+		if square(n.region.Dx()-width, n.region.Dy()) >= square(n.region.Dx(), n.region.Dy()-height) {
 			// Split vertically
 			n.child0 = &Node{
-				x:      n.x,
-				y:      n.y,
-				width:  width,
-				height: n.height,
+				region: image.Rect(n.region.Min.X, n.region.Min.Y, n.region.Min.X+width, n.region.Max.Y),
 				parent: n,
 			}
 			n.child1 = &Node{
-				x:      n.x + width,
-				y:      n.y,
-				width:  n.width - width,
-				height: n.height,
+				region: image.Rect(n.region.Min.X+width, n.region.Min.Y, n.region.Max.X, n.region.Max.Y),
 				parent: n,
 			}
 		} else {
 			// Split horizontally
 			n.child0 = &Node{
-				x:      n.x,
-				y:      n.y,
-				width:  n.width,
-				height: height,
+				region: image.Rect(n.region.Min.X, n.region.Min.Y, n.region.Max.X, n.region.Min.Y+height),
 				parent: n,
 			}
 			n.child1 = &Node{
-				x:      n.x,
-				y:      n.y + height,
-				width:  n.width,
-				height: n.height - height,
+				region: image.Rect(n.region.Min.X, n.region.Min.Y+height, n.region.Max.X, n.region.Max.Y),
 				parent: n,
 			}
 		}
-		return alloc(n.child0, width, height)
+		// Note: it now MUST fit, due to above preconditions (repeated here).
+		if n.child0.region.Dx() < width || n.child0.region.Dy() < height {
+			panic(fmt.Sprintf("packing: the newly created child node (%d, %d) unexpectedly does not contain the requested size (%d, %d)", n.child0.region.Dx(), n.child0.region.Dy(), width, height))
+		}
+		// Thus, alloc can't return nil, but it may do another split along the other dimension
+		// to get a node with the exact size (width, height).
+		node := alloc(n.child0, width, height)
+		if node == nil {
+			panic(fmt.Sprintf("packing: could not allocate the requested size (%d, %d) in the newly created child node (%d, %d)", width, height, n.child0.region.Dx(), n.child0.region.Dy()))
+		}
+		return node
 	}
 	if n.child0 == nil || n.child1 == nil {
 		panic("packing: both two children must not be nil at alloc")
@@ -201,23 +167,12 @@ func (p *Page) Alloc(width, height int) *Node {
 		panic("packing: width and height must > 0")
 	}
 
-	if !p.extendFor(width, height) {
-		return nil
-	}
-
 	if p.root == nil {
 		p.root = &Node{
-			width:  p.width,
-			height: p.height,
+			region: image.Rect(0, 0, p.width, p.height),
 		}
 	}
-	if width < minSize {
-		width = minSize
-	}
-	if height < minSize {
-		height = minSize
-	}
-	return alloc(p.root, width, height)
+	return p.extendForAndAlloc(width, height)
 }
 
 func (p *Page) Free(node *Node) {
@@ -255,13 +210,13 @@ func walk(n *Node, f func(n *Node) error) error {
 	return nil
 }
 
-func (p *Page) extendFor(width, height int) bool {
-	if p.canAlloc(p.root, width, height) {
-		return true
+func (p *Page) extendForAndAlloc(width, height int) *Node {
+	if n := alloc(p.root, width, height); n != nil {
+		return n
 	}
 
 	if p.width >= p.maxSize && p.height >= p.maxSize {
-		return false
+		return nil
 	}
 
 	// (1, 0), (0, 1), (2, 0), (1, 1), (0, 2), (3, 0), (2, 1), (1, 2), (0, 3), ...
@@ -284,14 +239,14 @@ func (p *Page) extendFor(width, height int) bool {
 			}
 
 			rollback := p.extend(newWidth, newHeight)
-			if p.canAlloc(p.root, width, height) {
-				return true
+			if n := alloc(p.root, width, height); n != nil {
+				return n
 			}
 			rollback()
 
 			// If the allocation failed even with a maximized page, give up the allocation.
 			if newWidth >= p.maxSize && newHeight >= p.maxSize {
-				return false
+				return nil
 			}
 		}
 	}
@@ -303,7 +258,7 @@ func (p *Page) extend(newWidth int, newHeight int) func() {
 	aborted := false
 	if p.root != nil {
 		_ = walk(p.root, func(n *Node) error {
-			if n.x+n.width < p.width && n.y+n.height < p.height {
+			if n.region.Max.X < p.width && n.region.Max.Y < p.height {
 				return nil
 			}
 			if n.used {
@@ -325,16 +280,10 @@ func (p *Page) extend(newWidth int, newHeight int) func() {
 		if newHeight-p.height > 0 {
 			upper := p.root
 			lower := &Node{
-				x:      0,
-				y:      p.height,
-				width:  p.width,
-				height: newHeight - p.height,
+				region: image.Rect(0, p.height, p.width, newHeight),
 			}
 			p.root = &Node{
-				x:      0,
-				y:      0,
-				width:  p.width,
-				height: newHeight,
+				region: image.Rect(0, 0, p.width, newHeight),
 				child0: upper,
 				child1: lower,
 			}
@@ -346,16 +295,10 @@ func (p *Page) extend(newWidth int, newHeight int) func() {
 		if newWidth-p.width > 0 {
 			left := p.root
 			right := &Node{
-				x:      p.width,
-				y:      0,
-				width:  newWidth - p.width,
-				height: newHeight,
+				region: image.Rect(p.width, 0, newWidth, newHeight),
 			}
 			p.root = &Node{
-				x:      0,
-				y:      0,
-				width:  newWidth,
-				height: newHeight,
+				region: image.Rect(0, 0, newWidth, newHeight),
 				child0: left,
 				child1: right,
 			}
@@ -374,28 +317,28 @@ func (p *Page) extend(newWidth int, newHeight int) func() {
 		}
 	} else {
 		origWidth, origHeight := p.width, p.height
-		origWidths := map[*Node]int{}
-		origHeights := map[*Node]int{}
+		origMaxXs := map[*Node]int{}
+		origMaxYs := map[*Node]int{}
 
 		for _, n := range edgeNodes {
-			if n.x+n.width == p.width {
-				origWidths[n] = n.width
-				n.width += newWidth - p.width
+			if n.region.Max.X == p.width {
+				origMaxXs[n] = n.region.Max.X
+				n.region.Max.X = newWidth
 			}
-			if n.y+n.height == p.height {
-				origHeights[n] = n.height
-				n.height += newHeight - p.height
+			if n.region.Max.Y == p.height {
+				origMaxYs[n] = n.region.Max.Y
+				n.region.Max.Y = newHeight
 			}
 		}
 
 		rollback = func() {
 			p.width = origWidth
 			p.height = origHeight
-			for n, w := range origWidths {
-				n.width = w
+			for n, x := range origMaxXs {
+				n.region.Max.X = x
 			}
-			for n, h := range origHeights {
-				n.height = h
+			for n, y := range origMaxYs {
+				n.region.Max.Y = y
 			}
 		}
 	}

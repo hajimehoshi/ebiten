@@ -30,7 +30,6 @@ func (cs *compileState) forceToInt(node ast.Node, expr *shaderir.Expr) bool {
 		return false
 	}
 	expr.Const = gconstant.ToInt(expr.Const)
-	expr.ConstType = shaderir.ConstTypeInt
 	return true
 }
 
@@ -42,7 +41,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 		switch stmt.Tok {
 		case token.DEFINE:
 			if len(stmt.Lhs) != len(stmt.Rhs) && len(stmt.Rhs) != 1 {
-				cs.addError(stmt.Pos(), fmt.Sprintf("single-value context and multiple-value context cannot be mixed"))
+				cs.addError(stmt.Pos(), "single-value context and multiple-value context cannot be mixed")
 				return nil, false
 			}
 
@@ -53,7 +52,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 			stmts = append(stmts, ss...)
 		case token.ASSIGN:
 			if len(stmt.Lhs) != len(stmt.Rhs) && len(stmt.Rhs) != 1 {
-				cs.addError(stmt.Pos(), fmt.Sprintf("single-value context and multiple-value context cannot be mixed"))
+				cs.addError(stmt.Pos(), "single-value context and multiple-value context cannot be mixed")
 				return nil, false
 			}
 			ss, ok := cs.assign(block, fname, stmt.Pos(), stmt.Lhs, stmt.Rhs, inParams, false)
@@ -73,6 +72,11 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 				return nil, false
 			}
 			stmts = append(stmts, ss...)
+
+			if lhs[0].Type == shaderir.UniformVariable {
+				cs.addError(stmt.Pos(), "a uniform variable cannot be assigned")
+				return nil, false
+			}
 
 			var op shaderir.Op
 			switch stmt.Tok {
@@ -116,10 +120,9 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 					}
 				case shaderir.Float:
 					if rhs[0].Const != nil &&
-						rhs[0].ConstType != shaderir.ConstTypeInt &&
+						(rts[0].Main == shaderir.None || rts[0].Main == shaderir.Float) &&
 						gconstant.ToFloat(rhs[0].Const).Kind() != gconstant.Unknown {
 						rhs[0].Const = gconstant.ToFloat(rhs[0].Const)
-						rhs[0].ConstType = shaderir.ConstTypeFloat
 					} else {
 						cs.addError(stmt.Pos(), fmt.Sprintf("invalid operation: mismatched types %s and %s", lts[0].String(), rts[0].String()))
 						return nil, false
@@ -128,24 +131,22 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 					if (op == shaderir.MatrixMul || op == shaderir.Div) &&
 						(rts[0].Main == shaderir.Float ||
 							(rhs[0].Const != nil &&
-								rhs[0].ConstType != shaderir.ConstTypeInt &&
+								(rts[0].Main == shaderir.None || rts[0].Main == shaderir.Float) &&
 								gconstant.ToFloat(rhs[0].Const).Kind() != gconstant.Unknown)) {
 						if rhs[0].Const != nil {
 							rhs[0].Const = gconstant.ToFloat(rhs[0].Const)
-							rhs[0].ConstType = shaderir.ConstTypeFloat
 						}
 					} else if op == shaderir.MatrixMul && ((lts[0].Main == shaderir.Vec2 && rts[0].Main == shaderir.Mat2) ||
 						(lts[0].Main == shaderir.Vec3 && rts[0].Main == shaderir.Mat3) ||
 						(lts[0].Main == shaderir.Vec4 && rts[0].Main == shaderir.Mat4)) {
 						// OK
-					} else if (op == shaderir.MatrixMul || op == shaderir.ComponentWiseMul || lts[0].IsVector()) &&
+					} else if (op == shaderir.MatrixMul || op == shaderir.ComponentWiseMul || lts[0].IsFloatVector()) &&
 						(rts[0].Main == shaderir.Float ||
 							(rhs[0].Const != nil &&
-								rhs[0].ConstType != shaderir.ConstTypeInt &&
+								(rts[0].Main == shaderir.None || rts[0].Main == shaderir.Float) &&
 								gconstant.ToFloat(rhs[0].Const).Kind() != gconstant.Unknown)) {
 						if rhs[0].Const != nil {
 							rhs[0].Const = gconstant.ToFloat(rhs[0].Const)
-							rhs[0].ConstType = shaderir.ConstTypeFloat
 						}
 					} else {
 						cs.addError(stmt.Pos(), fmt.Sprintf("invalid operation: mismatched types %s and %s", lts[0].String(), rts[0].String()))
@@ -437,9 +438,8 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 					Exprs: []shaderir.Expr{
 						exprs[0],
 						{
-							Type:      shaderir.NumberExpr,
-							Const:     gconstant.MakeInt64(1),
-							ConstType: shaderir.ConstTypeInt,
+							Type:  shaderir.NumberExpr,
+							Const: gconstant.MakeInt64(1),
 						},
 					},
 				},
@@ -495,12 +495,25 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 			}
 			if expr.Const != nil {
 				switch outT.Main {
-				case shaderir.Int:
-					if !cs.forceToInt(stmt, &expr) {
+				case shaderir.Bool:
+					if expr.Const.Kind() != gconstant.Bool {
+						cs.addError(stmt.Pos(), fmt.Sprintf("cannot use type %s as type %s in return argument", t.String(), &outT))
 						return nil, false
 					}
+					t = shaderir.Type{Main: shaderir.Bool}
+				case shaderir.Int:
+					if gconstant.ToInt(expr.Const).Kind() == gconstant.Unknown {
+						cs.addError(stmt.Pos(), fmt.Sprintf("cannot use type %s as type %s in return argument", t.String(), &outT))
+						return nil, false
+					}
+					expr.Const = gconstant.ToInt(expr.Const)
 					t = shaderir.Type{Main: shaderir.Int}
 				case shaderir.Float:
+					if gconstant.ToFloat(expr.Const).Kind() == gconstant.Unknown {
+						cs.addError(stmt.Pos(), fmt.Sprintf("cannot use type %s as type %s in return argument", t.String(), &outT))
+						return nil, false
+					}
+					expr.Const = gconstant.ToFloat(expr.Const)
 					t = shaderir.Type{Main: shaderir.Float}
 				}
 			}
@@ -554,7 +567,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 
 	case *ast.ExprStmt:
 		if _, ok := stmt.X.(*ast.CallExpr); !ok {
-			cs.addError(stmt.Pos(), fmt.Sprintf("the statement is evaluated but not used"))
+			cs.addError(stmt.Pos(), "the statement is evaluated but not used")
 			return nil, false
 		}
 
@@ -571,7 +584,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 				continue
 			}
 			if expr.Exprs[0].Type == shaderir.BuiltinFuncExpr {
-				cs.addError(stmt.Pos(), fmt.Sprintf("the statement is evaluated but not used"))
+				cs.addError(stmt.Pos(), "the statement is evaluated but not used")
 				return nil, false
 			}
 			stmts = append(stmts, shaderir.Stmt{
@@ -617,10 +630,9 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 					ts = rts
 				}
 				if len(ts) > 1 {
-					cs.addError(pos, fmt.Sprintf("single-value context and multiple-value context cannot be mixed"))
+					cs.addError(pos, "single-value context and multiple-value context cannot be mixed")
 					return nil, false
 				}
-
 				t := ts[0]
 				if t.Main == shaderir.None {
 					t = toDefaultType(r[0].Const)
@@ -629,7 +641,7 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 			}
 
 			if len(r) > 1 {
-				cs.addError(pos, fmt.Sprintf("single-value context and multiple-value context cannot be mixed"))
+				cs.addError(pos, "single-value context and multiple-value context cannot be mixed")
 				return nil, false
 			}
 
@@ -638,6 +650,15 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 				return nil, false
 			}
 			stmts = append(stmts, ss...)
+
+			if len(l) != len(r) {
+				if len(r) == 0 {
+					cs.addError(pos, "right-hand side (no value) used as value")
+				} else {
+					cs.addError(pos, fmt.Sprintf("assignment mismatch: %d variables but the right-hand side has %d values", len(l), len(r)))
+				}
+				return nil, false
+			}
 
 			if l[0].Type == shaderir.Blank {
 				continue
@@ -661,24 +682,10 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 			}
 
 			if isAssignmentForbidden(&l[0]) {
-				cs.addError(pos, fmt.Sprintf("a uniform variable cannot be assigned"))
+				cs.addError(pos, "a uniform variable cannot be assigned")
 				return nil, false
 			}
 			allblank = false
-
-			if r[0].Const != nil {
-				t, ok := block.findLocalVariableByIndex(l[0].Index)
-				if !ok {
-					cs.addError(pos, fmt.Sprintf("unexpected local variable index: %d", l[0].Index))
-					return nil, false
-				}
-				switch t.Main {
-				case shaderir.Int:
-					r[0].ConstType = shaderir.ConstTypeInt
-				case shaderir.Float:
-					r[0].ConstType = shaderir.ConstTypeFloat
-				}
-			}
 
 			for i := range lts {
 				if !canAssign(&lts[i], &rts[i], r[i].Const) {
@@ -733,7 +740,7 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 					return nil, false
 				}
 				if len(rhsExprs) != len(lhs) {
-					cs.addError(pos, fmt.Sprintf("single-value context and multiple-value context cannot be mixed"))
+					cs.addError(pos, "single-value context and multiple-value context cannot be mixed")
 				}
 				stmts = append(stmts, ss...)
 			}
@@ -783,7 +790,7 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 	}
 
 	if define && allblank {
-		cs.addError(pos, fmt.Sprintf("no new variables on left side of :="))
+		cs.addError(pos, "no new variables on left side of :=")
 		return nil, false
 	}
 
@@ -820,7 +827,7 @@ func canAssign(lt *shaderir.Type, rt *shaderir.Type, rc gconstant.Value) bool {
 	case shaderir.Bool:
 		return rc.Kind() == gconstant.Bool
 	case shaderir.Int:
-		return canTruncateToInteger(rc)
+		return gconstant.ToInt(rc).Kind() != gconstant.Unknown
 	case shaderir.Float:
 		return gconstant.ToFloat(rc).Kind() != gconstant.Unknown
 	}

@@ -152,8 +152,6 @@ func (g *Game) drawLine(screen *ebiten.Image, region image.Rectangle, cap vector
 		for i := range vs {
 			vs[i].SrcX = 1
 			vs[i].SrcY = 1
-			vs[i].SrcX = 1
-			vs[i].SrcY = 1
 			vs[i].ColorR = 1
 			vs[i].ColorG = 0
 			vs[i].ColorB = 0

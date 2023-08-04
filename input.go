@@ -35,8 +35,6 @@ import (
 // AppendInputChars is concurrent-safe.
 //
 // On Android (ebitenmobile), EbitenView must be focusable to enable to handle keyboard keys.
-//
-// Keyboards don't work on iOS yet (#1090).
 func AppendInputChars(runes []rune) []rune {
 	return theInputState.appendInputChars(runes)
 }
@@ -64,8 +62,6 @@ func InputChars() []rune {
 // IsKeyPressed is concurrent-safe.
 //
 // On Android (ebitenmobile), EbitenView must be focusable to enable to handle keyboard keys.
-//
-// Keyboards don't work on iOS yet (#1090).
 func IsKeyPressed(key Key) bool {
 	return theInputState.isKeyPressed(key)
 }

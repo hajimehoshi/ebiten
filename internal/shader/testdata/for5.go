@@ -22,7 +22,7 @@ func Vertex(pos vec2) vec4 {
 	}
 	y := 0
 	sum += y
-	return vec4(sum)
+	return vec4(float(sum))
 }
 
 func Fragment(pos vec4) vec4 {
@@ -37,5 +37,5 @@ func Fragment(pos vec4) vec4 {
 	}
 	y := 0
 	sum += y
-	return vec4(sum)
+	return vec4(float(sum))
 }

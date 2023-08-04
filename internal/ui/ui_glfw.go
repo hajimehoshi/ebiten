@@ -17,7 +17,6 @@
 package ui
 
 import (
-	stdcontext "context"
 	"errors"
 	"fmt"
 	"image"
@@ -34,6 +33,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/hooks"
 	"github.com/hajimehoshi/ebiten/v2/internal/microsoftgdk"
+	"github.com/hajimehoshi/ebiten/v2/internal/thread"
 )
 
 func driverCursorModeToGLFWCursorMode(mode CursorMode) int {
@@ -93,6 +93,9 @@ type userInterfaceImpl struct {
 	initWindowFloating       bool
 	initWindowMaximized      bool
 
+	// bufferOnceSwapped must be accessed from the main thread.
+	bufferOnceSwapped bool
+
 	origWindowPosX        int
 	origWindowPosY        int
 	origWindowWidthInDIP  int
@@ -110,16 +113,12 @@ type userInterfaceImpl struct {
 	dropCallback                   glfw.DropCallback
 	framebufferSizeCallbackCh      chan struct{}
 
-	glContextSetOnce sync.Once
+	darwinInitOnce        sync.Once
+	bufferOnceSwappedOnce sync.Once
 
-	mainThread   threadInterface
-	renderThread threadInterface
+	mainThread   thread.Thread
+	renderThread thread.Thread
 	m            sync.RWMutex
-}
-
-type threadInterface interface {
-	Loop(ctx stdcontext.Context) error
-	Call(f func())
 }
 
 const (
@@ -192,6 +191,10 @@ func initialize() error {
 	glfwSystemCursors[CursorShapePointer] = glfw.CreateStandardCursor(glfw.HandCursor)
 	glfwSystemCursors[CursorShapeEWResize] = glfw.CreateStandardCursor(glfw.HResizeCursor)
 	glfwSystemCursors[CursorShapeNSResize] = glfw.CreateStandardCursor(glfw.VResizeCursor)
+	glfwSystemCursors[CursorShapeNESWResize] = glfw.CreateStandardCursor(glfw.ResizeNESWCursor)
+	glfwSystemCursors[CursorShapeNWSEResize] = glfw.CreateStandardCursor(glfw.ResizeNWSECursor)
+	glfwSystemCursors[CursorShapeMove] = glfw.CreateStandardCursor(glfw.ResizeAllCursor)
+	glfwSystemCursors[CursorShapeNotAllowed] = glfw.CreateStandardCursor(glfw.NotAllowedCursor)
 
 	return nil
 }
@@ -751,7 +754,7 @@ func (u *userInterfaceImpl) SetCursorMode(mode CursorMode) {
 	u.mainThread.Call(func() {
 		u.window.SetInputMode(glfw.CursorMode, driverCursorModeToGLFWCursorMode(mode))
 		if mode == CursorModeVisible {
-			u.setNativeCursor(u.getCursorShape())
+			u.window.SetCursor(glfwSystemCursors[u.getCursorShape()])
 		}
 	})
 }
@@ -769,7 +772,7 @@ func (u *userInterfaceImpl) SetCursorShape(shape CursorShape) {
 		return
 	}
 	u.mainThread.Call(func() {
-		u.setNativeCursor(shape)
+		u.window.SetCursor(glfwSystemCursors[shape])
 	})
 }
 
@@ -959,11 +962,14 @@ event:
 func (u *userInterfaceImpl) initOnMainThread(options *RunOptions) error {
 	glfw.WindowHint(glfw.AutoIconify, glfw.False)
 
-	decorated := glfw.False
-	if u.isInitWindowDecorated() {
-		decorated = glfw.True
+	// On macOS, window decoration should be initialized once after buffers are swapped (#2600).
+	if runtime.GOOS != "darwin" {
+		decorated := glfw.False
+		if u.isInitWindowDecorated() {
+			decorated = glfw.True
+		}
+		glfw.WindowHint(glfw.Decorated, decorated)
 	}
-	glfw.WindowHint(glfw.Decorated, decorated)
 
 	glfwTransparent := glfw.False
 	if options.ScreenTransparent {
@@ -1057,7 +1063,10 @@ func (u *userInterfaceImpl) initOnMainThread(options *RunOptions) error {
 		_ = u.skipTaskbar()
 	}
 
-	u.window.Show()
+	// On macOS, the window is shown once after buffers are swapped at update.
+	if runtime.GOOS != "darwin" {
+		u.window.Show()
+	}
 
 	if g, ok := u.graphicsDriver.(interface{ SetWindow(uintptr) }); ok {
 		g.SetWindow(u.nativeWindow())
@@ -1132,9 +1141,24 @@ func (u *userInterfaceImpl) update() (float64, float64, error) {
 		return 0, 0, RegularTermination
 	}
 
-	if u.isInitFullscreen() {
+	// On macOS, one swapping buffers seems required before entering fullscreen (#2599).
+	if u.isInitFullscreen() && (u.bufferOnceSwapped || runtime.GOOS != "darwin") {
 		u.setFullscreen(true)
 		u.setInitFullscreen(false)
+	}
+
+	if runtime.GOOS == "darwin" && u.bufferOnceSwapped {
+		u.darwinInitOnce.Do(func() {
+			// On macOS, window decoration should be initialized once after buffers are swapped (#2600).
+			decorated := glfw.False
+			if u.isInitWindowDecorated() {
+				decorated = glfw.True
+			}
+			u.window.SetAttrib(glfw.Decorated, decorated)
+
+			// The window is not shown at the initialization on macOS. Show the window here.
+			u.window.Show()
+		})
 	}
 
 	// Initialize vsync after SetMonitor is called. See the comment in updateVsync.
@@ -1153,7 +1177,8 @@ func (u *userInterfaceImpl) update() (float64, float64, error) {
 		return 0, 0, err
 	}
 
-	for !u.isRunnableOnUnfocused() && u.window.GetAttrib(glfw.Focused) == 0 && !u.window.ShouldClose() {
+	// In the initial state on macOS, the window is not shown (#2620).
+	for u.window.GetAttrib(glfw.Visible) != 0 && !u.isRunnableOnUnfocused() && u.window.GetAttrib(glfw.Focused) == 0 && !u.window.ShouldClose() {
 		if err := hooks.SuspendAudio(); err != nil {
 			return 0, 0, err
 		}
@@ -1170,9 +1195,21 @@ func (u *userInterfaceImpl) update() (float64, float64, error) {
 }
 
 func (u *userInterfaceImpl) loopGame() error {
-	defer u.mainThread.Call(func() {
-		glfw.Terminate()
+	defer func() {
+		// Post a task to the render thread to ensure all the queued functions are executed.
+		// glfw.Terminate will remove the context and any graphics calls after that will be invalidated.
+		u.renderThread.Call(func() {})
+		u.mainThread.Call(func() {
+			glfw.Terminate()
+		})
+	}()
+
+	u.renderThread.Call(func() {
+		if u.graphicsDriver.IsGL() {
+			u.window.MakeContextCurrent()
+		}
 	})
+
 	for {
 		if err := u.updateGame(); err != nil {
 			return err
@@ -1206,25 +1243,21 @@ func (u *userInterfaceImpl) updateGame() error {
 		return err
 	}
 
-	u.glContextSetOnce.Do(func() {
-		u.renderThread.Call(func() {
-			if u.graphicsDriver.IsGL() {
-				u.window.MakeContextCurrent()
-			}
-		})
-	})
-
-	if err := u.context.updateFrame(u.graphicsDriver, outsideWidth, outsideHeight, deviceScaleFactor, u); err != nil {
-		return err
-	}
-
-	u.renderThread.Call(func() {
+	if err := u.context.updateFrame(u.graphicsDriver, outsideWidth, outsideHeight, deviceScaleFactor, u, func() {
 		// Call updateVsync even though fpsMode is not updated.
 		// When toggling to fullscreen, vsync state might be reset unexpectedly (#1787).
 		u.updateVsyncOnRenderThread()
 
 		// This works only for OpenGL.
 		u.swapBuffersOnRenderThread()
+	}); err != nil {
+		return err
+	}
+
+	u.bufferOnceSwappedOnce.Do(func() {
+		u.mainThread.Call(func() {
+			u.bufferOnceSwapped = true
+		})
 	})
 
 	if unfocused {
@@ -1244,15 +1277,15 @@ func (u *userInterfaceImpl) updateGame() error {
 	return nil
 }
 
-func (u *userInterfaceImpl) updateIconIfNeeded() {
+func (u *userInterfaceImpl) updateIconIfNeeded() error {
 	// In the fullscreen mode, SetIcon fails (#1578).
 	if u.isFullscreen() {
-		return
+		return nil
 	}
 
 	imgs := u.getIconImages()
 	if len(imgs) == 0 {
-		return
+		return nil
 	}
 
 	u.setIconImages(nil)
@@ -1273,9 +1306,16 @@ func (u *userInterfaceImpl) updateIconIfNeeded() {
 		newImgs[i] = rgba
 	}
 
+	// Catch a possible error at 'At' (#2647).
+	if err := theGlobalState.error(); err != nil {
+		return err
+	}
+
 	u.mainThread.Call(func() {
 		u.window.SetIcon(newImgs)
 	})
+
+	return nil
 }
 
 func (u *userInterfaceImpl) swapBuffersOnRenderThread() {
@@ -1682,4 +1722,8 @@ func (u *userInterfaceImpl) setOrigWindowPos(x, y int) {
 
 func IsScreenTransparentAvailable() bool {
 	return true
+}
+
+func RunOnMainThread(f func()) {
+	theUI.mainThread.Call(f)
 }

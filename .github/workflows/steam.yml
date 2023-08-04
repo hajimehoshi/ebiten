@@ -15,27 +15,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: Docker build (386)
-        run: |
-          curl --location --remote-name https://repo.steampowered.com/steamrt-images-scout/snapshots/latest-public-beta/com.valvesoftware.SteamRuntime.Sdk-i386-scout-sysroot.Dockerfile
-          curl --location --remote-name https://repo.steampowered.com/steamrt-images-scout/snapshots/latest-public-beta/com.valvesoftware.SteamRuntime.Sdk-i386-scout-sysroot.tar.gz
-          docker build -f com.valvesoftware.SteamRuntime.Sdk-i386-scout-sysroot.Dockerfile -t steamrt_scout_i386:latest .
-
       - name: Docker build (amd64)
         run: |
-          curl --location --remote-name https://repo.steampowered.com/steamrt-images-scout/snapshots/latest-public-beta/com.valvesoftware.SteamRuntime.Sdk-amd64,i386-scout-sysroot.Dockerfile
-          curl --location --remote-name https://repo.steampowered.com/steamrt-images-scout/snapshots/latest-public-beta/com.valvesoftware.SteamRuntime.Sdk-amd64,i386-scout-sysroot.tar.gz
-          docker build -f com.valvesoftware.SteamRuntime.Sdk-amd64,i386-scout-sysroot.Dockerfile -t steamrt_scout_amd64:latest .
+          curl --location --remote-name https://repo.steampowered.com/steamrt-images-sniper/snapshots/latest-container-runtime-public-beta/com.valvesoftware.SteamRuntime.Sdk-amd64,i386-sniper-sysroot.Dockerfile
+          curl --location --remote-name https://repo.steampowered.com/steamrt-images-sniper/snapshots/latest-container-runtime-public-beta/com.valvesoftware.SteamRuntime.Sdk-amd64,i386-sniper-sysroot.tar.gz
+          docker build -f com.valvesoftware.SteamRuntime.Sdk-amd64,i386-sniper-sysroot.Dockerfile -t steamrt_sniper_amd64:latest .
 
       - name: Go version
         id: go
         run: |
-          echo "::set-output name=version::$(curl --location https://go.dev/VERSION?m=text)"
-
-      - name: Docker run (386)
-        run: |
-          docker run --rm --workdir=/work --volume $(pwd):/work --env GO_FILENAME=${{ steps.go.outputs.version }}.linux-386.tar.gz steamrt_scout_i386:latest /bin/sh .github/workflows/steam.sh
+          echo "version=$(curl --location https://go.dev/VERSION?m=text)" >> $GITHUB_OUTPUT
 
       - name: Docker run (amd64)
         run: |
-          docker run --rm --workdir=/work --volume $(pwd):/work --env GO_FILENAME=${{ steps.go.outputs.version }}.linux-amd64.tar.gz steamrt_scout_amd64:latest /bin/sh .github/workflows/steam.sh
+          docker run --rm --workdir=/work --volume $(pwd):/work --env GO_FILENAME=${{ steps.go.outputs.version }}.linux-amd64.tar.gz steamrt_sniper_amd64:latest /bin/sh .github/workflows/steam.sh

@@ -87,6 +87,10 @@ func (c *ColorScale) SetA(a float32) {
 }
 
 // Scale multiplies the given values to the current scale.
+//
+// Scale is slightly different from colorm.ColorM's Scale in terms of alphas.
+// ColorScale is applied to premultiplied-alpha colors, while colorm.ColorM is applied to straight-alpha colors.
+// Thus, ColorM.Scale(r, g, b, a) equals to ColorScale.Scale(r*a, g*a, b*a, a).
 func (c *ColorScale) Scale(r, g, b, a float32) {
 	c.r_1 = (c.r_1+1)*r - 1
 	c.g_1 = (c.g_1+1)*g - 1
@@ -106,6 +110,14 @@ func (c *ColorScale) ScaleAlpha(a float32) {
 func (c *ColorScale) ScaleWithColor(clr color.Color) {
 	cr, cg, cb, ca := clr.RGBA()
 	c.Scale(float32(cr)/0xffff, float32(cg)/0xffff, float32(cb)/0xffff, float32(ca)/0xffff)
+}
+
+// ScaleWithColorScale multiplies the given color scale values to the current scale.
+func (c *ColorScale) ScaleWithColorScale(colorScale ColorScale) {
+	c.r_1 = (c.r_1+1)*(colorScale.r_1+1) - 1
+	c.g_1 = (c.g_1+1)*(colorScale.g_1+1) - 1
+	c.b_1 = (c.b_1+1)*(colorScale.b_1+1) - 1
+	c.a_1 = (c.a_1+1)*(colorScale.a_1+1) - 1
 }
 
 func (c *ColorScale) apply(r, g, b, a float32) (float32, float32, float32, float32) {

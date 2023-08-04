@@ -17,14 +17,14 @@ package audio
 import (
 	"io"
 
-	"github.com/hajimehoshi/oto/v2"
+	"github.com/ebitengine/oto/v3"
 )
 
 func newContext(sampleRate int) (context, chan struct{}, error) {
-	ctx, ready, err := oto.NewContextWithOptions(&oto.NewContextOptions{
+	ctx, ready, err := oto.NewContext(&oto.NewContextOptions{
 		SampleRate:   sampleRate,
 		ChannelCount: channelCount,
-		Format:       bitDepthInBytes,
+		Format:       oto.FormatSignedInt16LE,
 	})
 	err = addErrorInfoForContextCreation(err)
 	return &contextProxy{ctx}, ready, err
@@ -32,7 +32,7 @@ func newContext(sampleRate int) (context, chan struct{}, error) {
 
 // otoContext is an interface for *oto.Context.
 type otoContext interface {
-	NewPlayer(io.Reader) oto.Player
+	NewPlayer(io.Reader) *oto.Player
 	Suspend() error
 	Resume() error
 	Err() error
@@ -45,5 +45,5 @@ type contextProxy struct {
 
 // NewPlayer implements context.
 func (c *contextProxy) NewPlayer(r io.Reader) player {
-	return c.otoContext.NewPlayer(r).(player)
+	return c.otoContext.NewPlayer(r)
 }

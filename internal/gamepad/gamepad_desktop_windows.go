@@ -414,6 +414,10 @@ func supportsXInput(guid windows.GUID) (bool, error) {
 		return false, nil
 	}
 
+	if count == 0 {
+		return false, nil
+	}
+
 	ridl := make([]_RAWINPUTDEVICELIST, count)
 	if _, err := _GetRawInputDeviceList(&ridl[0], &count); err != nil {
 		return false, err
@@ -429,7 +433,8 @@ func supportsXInput(guid windows.GUID) (bool, error) {
 		}
 		size := uint32(unsafe.Sizeof(rdi))
 		if _, err := _GetRawInputDeviceInfoW(ridl[i].hDevice, _RIDI_DEVICEINFO, unsafe.Pointer(&rdi), &size); err != nil {
-			return false, err
+			// GetRawInputDeviceInfoW can return an error (#2603).
+			continue
 		}
 
 		if uint32(rdi.hid.dwVendorId)|(uint32(rdi.hid.dwProductId)<<16) != guid.Data1 {

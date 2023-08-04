@@ -68,12 +68,12 @@ func newContext(game Game) *context {
 	}
 }
 
-func (c *context) updateFrame(graphicsDriver graphicsdriver.Graphics, outsideWidth, outsideHeight float64, deviceScaleFactor float64, ui *userInterfaceImpl) error {
+func (c *context) updateFrame(graphicsDriver graphicsdriver.Graphics, outsideWidth, outsideHeight float64, deviceScaleFactor float64, ui *userInterfaceImpl, swapBuffersForGL func()) error {
 	// TODO: If updateCount is 0 and vsync is disabled, swapping buffers can be skipped.
-	return c.updateFrameImpl(graphicsDriver, clock.UpdateFrame(), outsideWidth, outsideHeight, deviceScaleFactor, ui, false)
+	return c.updateFrameImpl(graphicsDriver, clock.UpdateFrame(), outsideWidth, outsideHeight, deviceScaleFactor, ui, false, swapBuffersForGL)
 }
 
-func (c *context) forceUpdateFrame(graphicsDriver graphicsdriver.Graphics, outsideWidth, outsideHeight float64, deviceScaleFactor float64, ui *userInterfaceImpl) error {
+func (c *context) forceUpdateFrame(graphicsDriver graphicsdriver.Graphics, outsideWidth, outsideHeight float64, deviceScaleFactor float64, ui *userInterfaceImpl, swapBuffersForGL func()) error {
 	n := 1
 	if graphicsDriver.IsDirectX() {
 		// On DirectX, both framebuffers in the swap chain should be updated.
@@ -81,14 +81,14 @@ func (c *context) forceUpdateFrame(graphicsDriver graphicsdriver.Graphics, outsi
 		n = 2
 	}
 	for i := 0; i < n; i++ {
-		if err := c.updateFrameImpl(graphicsDriver, 1, outsideWidth, outsideHeight, deviceScaleFactor, ui, true); err != nil {
+		if err := c.updateFrameImpl(graphicsDriver, 1, outsideWidth, outsideHeight, deviceScaleFactor, ui, true, swapBuffersForGL); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, updateCount int, outsideWidth, outsideHeight float64, deviceScaleFactor float64, ui *userInterfaceImpl, forceDraw bool) (err error) {
+func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, updateCount int, outsideWidth, outsideHeight float64, deviceScaleFactor float64, ui *userInterfaceImpl, forceDraw bool, swapBuffersForGL func()) (err error) {
 	if err := theGlobalState.error(); err != nil {
 		return err
 	}
@@ -108,7 +108,7 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 		return err
 	}
 	defer func() {
-		if err1 := buffered.EndFrame(graphicsDriver); err == nil && err1 != nil {
+		if err1 := buffered.EndFrame(graphicsDriver, swapBuffersForGL); err == nil && err1 != nil {
 			err = err1
 		}
 	}()
@@ -147,7 +147,9 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 
 	// Update window icons during a frame, since an icon might be *ebiten.Image and
 	// getting pixels from it needs to be in a frame (#1468).
-	ui.updateIconIfNeeded()
+	if err := ui.updateIconIfNeeded(); err != nil {
+		return err
+	}
 
 	// Draw the game.
 	if err := c.drawGame(graphicsDriver, forceDraw); err != nil {
@@ -261,6 +263,11 @@ func (c *context) clientPositionToLogicalPosition(x, y float64, deviceScaleFacto
 	return (x*deviceScaleFactor - ox) / s, (y*deviceScaleFactor - oy) / s
 }
 
+func (c *context) logicalPositionToClientPosition(x, y float64, deviceScaleFactor float64) (float64, float64) {
+	s, ox, oy := c.screenScaleAndOffsets()
+	return (x*s + ox) / deviceScaleFactor, (y*s + oy) / deviceScaleFactor
+}
+
 func (c *context) screenScaleAndOffsets() (scale, offsetX, offsetY float64) {
 	scaleX := c.screenWidth / c.offscreenWidth
 	scaleY := c.screenHeight / c.offscreenHeight
@@ -270,4 +277,8 @@ func (c *context) screenScaleAndOffsets() (scale, offsetX, offsetY float64) {
 	offsetX = (c.screenWidth - width) / 2
 	offsetY = (c.screenHeight - height) / 2
 	return
+}
+
+func LogicalPositionToClientPosition(x, y float64) (float64, float64) {
+	return theUI.context.logicalPositionToClientPosition(x, y, theUI.DeviceScaleFactor())
 }

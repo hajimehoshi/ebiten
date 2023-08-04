@@ -7,7 +7,7 @@ packages:
   - libXi-devel
   - libXxf86vm-devel
   - mesa-libGLES-devel
-  - mesa-libGLU-devel
+  - mesa-libGL-devel
   - pkg-config
   - go
 sources:

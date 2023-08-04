@@ -16,6 +16,7 @@ package metal
 
 import (
 	"fmt"
+	"image"
 	"math"
 	"runtime"
 	"sort"
@@ -74,12 +75,14 @@ const (
 	noStencil
 )
 
-var creatingSystemDefaultDeviceSucceeded bool
+var systemDefaultDevice mtl.Device
 
 func init() {
 	// mtl.CreateSystemDefaultDevice must be called on the main thread (#2147).
-	_, err := mtl.CreateSystemDefaultDevice()
-	creatingSystemDefaultDeviceSucceeded = err == nil
+	d, err := mtl.CreateSystemDefaultDevice()
+	if err == nil {
+		systemDefaultDevice = d
+	}
 }
 
 // NewGraphics creates an implementation of graphicsdriver.Graphics for Metal.
@@ -88,7 +91,7 @@ func NewGraphics() (graphicsdriver.Graphics, error) {
 	// On old mac devices like iMac 2011, Metal is not supported (#779).
 	// TODO: Is there a better way to check whether Metal is available or not?
 	// It seems OK to call MTLCreateSystemDefaultDevice multiple times, so this should be fine.
-	if !creatingSystemDefaultDeviceSucceeded {
+	if systemDefaultDevice == (mtl.Device{}) {
 		return nil, fmt.Errorf("metal: mtl.CreateSystemDefaultDevice failed")
 	}
 
@@ -96,7 +99,8 @@ func NewGraphics() (graphicsdriver.Graphics, error) {
 
 	if runtime.GOOS != "ios" {
 		// Initializing a Metal device and a layer must be done in the main thread on macOS.
-		if err := g.view.initialize(); err != nil {
+		// Note that this assumes NewGraphics is called on the main thread on desktops.
+		if err := g.view.initialize(systemDefaultDevice); err != nil {
 			return nil, err
 		}
 	}
@@ -130,6 +134,10 @@ func (g *Graphics) SetUIView(uiview uintptr) {
 }
 
 func pow2(x uintptr) uintptr {
+	if x > (math.MaxUint+1)/2 {
+		return math.MaxUint
+	}
+
 	var p2 uintptr = 1
 	for p2 < x {
 		p2 *= 2
@@ -386,7 +394,7 @@ func (g *Graphics) Initialize() error {
 
 	if runtime.GOOS == "ios" {
 		// Initializing a Metal device and a layer must be done in the render thread on iOS.
-		if err := g.view.initialize(); err != nil {
+		if err := g.view.initialize(systemDefaultDevice); err != nil {
 			return err
 		}
 	}
@@ -808,17 +816,17 @@ func (i *Image) syncTexture() {
 	cb.WaitUntilCompleted()
 }
 
-func (i *Image) ReadPixels(buf []byte, x, y, width, height int) error {
-	if got, want := len(buf), 4*width*height; got != want {
+func (i *Image) ReadPixels(buf []byte, region image.Rectangle) error {
+	if got, want := len(buf), 4*region.Dx()*region.Dy(); got != want {
 		return fmt.Errorf("metal: len(buf) must be %d but %d at ReadPixels", want, got)
 	}
 
 	i.graphics.flushIfNeeded(false)
 	i.syncTexture()
 
-	i.texture.GetBytes(&buf[0], uintptr(4*width), mtl.Region{
-		Origin: mtl.Origin{X: x, Y: y},
-		Size:   mtl.Size{Width: width, Height: height, Depth: 1},
+	i.texture.GetBytes(&buf[0], uintptr(4*region.Dx()), mtl.Region{
+		Origin: mtl.Origin{X: region.Min.X, Y: region.Min.Y},
+		Size:   mtl.Size{Width: region.Dx(), Height: region.Dy(), Depth: 1},
 	}, 0)
 	return nil
 }
@@ -829,26 +837,10 @@ func (i *Image) WritePixels(args []*graphicsdriver.WritePixelsArgs) error {
 	g.flushRenderCommandEncoderIfNeeded()
 
 	// Calculate the smallest texture size to include all the values in args.
-	minX := math.MaxInt32
-	minY := math.MaxInt32
-	maxX := 0
-	maxY := 0
+	var region image.Rectangle
 	for _, a := range args {
-		if minX > a.X {
-			minX = a.X
-		}
-		if maxX < a.X+a.Width {
-			maxX = a.X + a.Width
-		}
-		if minY > a.Y {
-			minY = a.Y
-		}
-		if maxY < a.Y+a.Height {
-			maxY = a.Y + a.Height
-		}
+		region = region.Union(a.Region)
 	}
-	w := maxX - minX
-	h := maxY - minY
 
 	// Use a temporary texture to send pixels asynchronously, whichever the memory is shared (e.g., iOS) or
 	// managed (e.g., macOS). A temporary texture is needed since ReplaceRegion tries to sync the pixel
@@ -857,8 +849,8 @@ func (i *Image) WritePixels(args []*graphicsdriver.WritePixelsArgs) error {
 	td := mtl.TextureDescriptor{
 		TextureType: mtl.TextureType2D,
 		PixelFormat: mtl.PixelFormatRGBA8UNorm,
-		Width:       w,
-		Height:      h,
+		Width:       region.Dx(),
+		Height:      region.Dy(),
 		StorageMode: storageMode,
 		Usage:       mtl.TextureUsageShaderRead | mtl.TextureUsageRenderTarget,
 	}
@@ -867,9 +859,9 @@ func (i *Image) WritePixels(args []*graphicsdriver.WritePixelsArgs) error {
 
 	for _, a := range args {
 		t.ReplaceRegion(mtl.Region{
-			Origin: mtl.Origin{X: a.X - minX, Y: a.Y - minY, Z: 0},
-			Size:   mtl.Size{Width: a.Width, Height: a.Height, Depth: 1},
-		}, 0, unsafe.Pointer(&a.Pixels[0]), 4*a.Width)
+			Origin: mtl.Origin{X: a.Region.Min.X - region.Min.X, Y: a.Region.Min.Y - region.Min.Y, Z: 0},
+			Size:   mtl.Size{Width: a.Region.Dx(), Height: a.Region.Dy(), Depth: 1},
+		}, 0, unsafe.Pointer(&a.Pixels[0]), 4*a.Region.Dx())
 	}
 
 	if g.cb == (mtl.CommandBuffer{}) {
@@ -877,9 +869,9 @@ func (i *Image) WritePixels(args []*graphicsdriver.WritePixelsArgs) error {
 	}
 	bce := g.cb.MakeBlitCommandEncoder()
 	for _, a := range args {
-		so := mtl.Origin{X: a.X - minX, Y: a.Y - minY, Z: 0}
-		ss := mtl.Size{Width: a.Width, Height: a.Height, Depth: 1}
-		do := mtl.Origin{X: a.X, Y: a.Y, Z: 0}
+		so := mtl.Origin{X: a.Region.Min.X - region.Min.X, Y: a.Region.Min.Y - region.Min.Y, Z: 0}
+		ss := mtl.Size{Width: a.Region.Dx(), Height: a.Region.Dy(), Depth: 1}
+		do := mtl.Origin{X: a.Region.Min.X, Y: a.Region.Min.Y, Z: 0}
 		bce.CopyFromTexture(t, 0, 0, so, ss, i.texture, 0, 0, do)
 	}
 	bce.EndEncoding()

@@ -18,11 +18,11 @@ import (
 	"image/color"
 	"log"
 	"math"
-	"math/rand"
-	"time"
+	"strings"
 
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/opentype"
+	"golang.org/x/image/math/fixed"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/examples/resources/fonts"
@@ -68,10 +68,6 @@ func init() {
 	}
 }
 
-func init() {
-	rand.Seed(time.Now().UnixNano())
-}
-
 type Game struct {
 	counter        int
 	kanjiText      []rune
@@ -87,19 +83,45 @@ func (g *Game) Update() error {
 	return nil
 }
 
+func boundString(face font.Face, str string) fixed.Rectangle26_6 {
+	str = strings.TrimRight(str, "\n")
+	lines := strings.Split(str, "\n")
+	if len(lines) == 0 {
+		return fixed.Rectangle26_6{}
+	}
+
+	minX := fixed.I(0)
+	maxX := fixed.I(0)
+	for _, line := range lines {
+		a := font.MeasureString(face, line)
+		if maxX < a {
+			maxX = a
+		}
+	}
+
+	m := face.Metrics()
+	minY := -m.Ascent
+	maxY := fixed.Int26_6(len(lines)-1)*m.Height + m.Descent
+	return fixed.Rectangle26_6{Min: fixed.Point26_6{X: minX, Y: minY}, Max: fixed.Point26_6{X: maxX, Y: maxY}}
+}
+
+func fixed26_6ToFloat32(x fixed.Int26_6) float32 {
+	return float32(x>>6) + float32(x&((1<<6)-1))/(1<<6)
+}
+
 func (g *Game) Draw(screen *ebiten.Image) {
 	gray := color.RGBA{0x80, 0x80, 0x80, 0xff}
 
 	{
 		const x, y = 20, 40
-		b := text.BoundString(mplusNormalFont, sampleText)
-		vector.DrawFilledRect(screen, float32(b.Min.X+x), float32(b.Min.Y+y), float32(b.Dx()), float32(b.Dy()), gray)
+		b := boundString(mplusNormalFont, sampleText)
+		vector.DrawFilledRect(screen, fixed26_6ToFloat32(b.Min.X)+x, fixed26_6ToFloat32(b.Min.Y)+y, fixed26_6ToFloat32(b.Max.X-b.Min.X), fixed26_6ToFloat32(b.Max.Y-b.Min.Y), gray, false)
 		text.Draw(screen, sampleText, mplusNormalFont, x, y, color.White)
 	}
 	{
 		const x, y = 20, 140
-		b := text.BoundString(mplusBigFont, sampleText)
-		vector.DrawFilledRect(screen, float32(b.Min.X+x), float32(b.Min.Y+y), float32(b.Dx()), float32(b.Dy()), gray)
+		b := boundString(mplusBigFont, sampleText)
+		vector.DrawFilledRect(screen, fixed26_6ToFloat32(b.Min.X)+x, fixed26_6ToFloat32(b.Min.Y)+y, fixed26_6ToFloat32(b.Max.X-b.Min.X), fixed26_6ToFloat32(b.Max.Y-b.Min.Y), gray, false)
 		text.Draw(screen, sampleText, mplusBigFont, x, y, color.White)
 	}
 	{
@@ -113,8 +135,8 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	{
 		const x, y = 160, 240
 		const lineHeight = 80
-		b := text.BoundString(text.FaceWithLineHeight(mplusBigFont, lineHeight), sampleText)
-		vector.DrawFilledRect(screen, float32(b.Min.X+x), float32(b.Min.Y+y), float32(b.Dx()), float32(b.Dy()), gray)
+		b := boundString(text.FaceWithLineHeight(mplusBigFont, lineHeight), sampleText)
+		vector.DrawFilledRect(screen, fixed26_6ToFloat32(b.Min.X)+x, fixed26_6ToFloat32(b.Min.Y)+y, fixed26_6ToFloat32(b.Max.X-b.Min.X), fixed26_6ToFloat32(b.Max.Y-b.Min.Y), gray, false)
 		text.Draw(screen, sampleText, text.FaceWithLineHeight(mplusBigFont, lineHeight), x, y, color.White)
 	}
 	{

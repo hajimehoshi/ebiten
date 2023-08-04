@@ -46,9 +46,9 @@ import (
 )
 
 const (
-	channelCount    = 2
-	bitDepthInBytes = 2
-	bytesPerSample  = bitDepthInBytes * channelCount
+	channelCount         = 2
+	bitDepthInBytesInt16 = 2
+	bytesPerSampleInt16  = bitDepthInBytesInt16 * channelCount
 )
 
 // A Context represents a current state of audio.
@@ -224,12 +224,11 @@ func (c *Context) IsReady() bool {
 	c.m.Lock()
 	defer c.m.Unlock()
 
-	r := c.ready
-	if r {
-		return r
+	if c.ready {
+		return true
 	}
 	if len(c.players) != 0 {
-		return r
+		return false
 	}
 
 	c.readyOnce.Do(func() {
@@ -240,12 +239,12 @@ func (c *Context) IsReady() bool {
 			// problematic when a user tries to play audio after the context is ready.
 			// Play a dummy player to avoid the blocking (#969).
 			// Use a long enough buffer so that writing doesn't finish immediately (#970).
-			p := NewPlayerFromBytes(c, make([]byte, bufferSize()*2))
+			p := NewPlayerFromBytes(c, make([]byte, 16384))
 			p.Play()
 		}()
 	})
 
-	return r
+	return false
 }
 
 // SampleRate returns the sample rate.
@@ -369,13 +368,20 @@ func (p *Player) Rewind() error {
 	return p.p.Rewind()
 }
 
+// SetPosition sets the position with the given offset.
+//
+// The passed source to NewPlayer must be io.Seeker, or SetPosition panics.
+//
+// SetPosition returns error when seeking the source stream returns an error.
+func (p *Player) SetPosition(offset time.Duration) error {
+	return p.p.SetPosition(offset)
+}
+
 // Seek seeks the position with the given offset.
 //
-// The passed source to NewPlayer must be io.Seeker, or Seek panics.
-//
-// Seek returns error when seeking the source stream returns error.
+// Deprecated: as of v2.6. Use SetPosition instead.
 func (p *Player) Seek(offset time.Duration) error {
-	return p.p.Seek(offset)
+	return p.SetPosition(offset)
 }
 
 // Pause pauses the playing.
@@ -383,12 +389,19 @@ func (p *Player) Pause() {
 	p.p.Pause()
 }
 
+// Position returns the current position in time.
+//
+// As long as the player continues to play, Position's returning value is increased monotonically,
+// even though the source stream loops and its position goes back.
+func (p *Player) Position() time.Duration {
+	return p.p.Position()
+}
+
 // Current returns the current position in time.
 //
-// As long as the player continues to play, Current's returning value is increased monotonically,
-// even though the source stream loops and its position goes back.
+// Deprecated: as of v2.6. Use Position instead.
 func (p *Player) Current() time.Duration {
-	return p.p.Current()
+	return p.Position()
 }
 
 // Volume returns the current volume of this player [0-1].
