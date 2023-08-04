@@ -2112,3 +2112,39 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		}
 	}
 }
+
+// Issue #2719
+func TestShaderMatrixDivFloat(t *testing.T) {
+	const w, h = 16, 16
+
+	src := ebiten.NewImage(w, h)
+	src.Fill(color.RGBA{R: 0x10, G: 0x20, B: 0x30, A: 0xff})
+
+	dst := ebiten.NewImage(w, h)
+	s, err := ebiten.NewShader([]byte(`//kage:unit pixels
+
+package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	var x = 2.0
+	return mat4(3) / x * imageSrc0At(texCoord);
+}
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	op := &ebiten.DrawRectShaderOptions{}
+	op.Images[0] = src
+	dst.DrawRectShader(w, h, s, op)
+
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			got := dst.At(i, j).(color.RGBA)
+			want := color.RGBA{R: 0x18, G: 0x30, B: 0x48, A: 0xff}
+			if !sameColors(got, want, 2) {
+				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+}

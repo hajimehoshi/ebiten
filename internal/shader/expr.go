@@ -196,6 +196,8 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 			t = lhst
 		case op2 == shaderir.MatrixMul && lhst.IsMatrix() && rhst.IsFloatVector():
 			t = rhst
+		case op2 == shaderir.Div && lhst.IsMatrix() && rhst.Main == shaderir.Float:
+			t = lhst
 		case lhst.Main == shaderir.Float && rhst.IsFloatVector():
 			t = rhst
 		case lhst.Main == shaderir.Int && rhst.IsIntVector():
