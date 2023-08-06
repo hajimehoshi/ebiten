@@ -82,13 +82,8 @@ func putImagesOnSourceBackend(graphicsDriver graphicsdriver.Graphics) error {
 				return err
 			}
 			i.usedAsSourceCount = 0
-			delete(imagesToPutOnSourceBackend, i)
 		}
-	}
-
-	// Reset the images. The images will be registered again when it is used as a rendering source.
-	for k := range imagesToPutOnSourceBackend {
-		delete(imagesToPutOnSourceBackend, k)
+		delete(imagesToPutOnSourceBackend, i)
 	}
 
 	for i := range imagesBackendJustCreated {
