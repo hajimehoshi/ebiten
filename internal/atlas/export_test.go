@@ -22,8 +22,8 @@ const (
 	BaseCountToPutOnSourceBackend = baseCountToPutOnSourceBackend
 )
 
-func PutImagesOnSourceBackendForTesting(graphicsDriver graphicsdriver.Graphics) error {
-	return putImagesOnSourceBackend(graphicsDriver)
+func PutImagesOnSourceBackendForTesting(graphicsDriver graphicsdriver.Graphics) {
+	putImagesOnSourceBackend(graphicsDriver)
 }
 
 var (

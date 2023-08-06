@@ -64,7 +64,7 @@ func flushDeferred() {
 // Actual time duration is increased in an exponential way for each usage as a rendering target.
 const baseCountToPutOnSourceBackend = 10
 
-func putImagesOnSourceBackend(graphicsDriver graphicsdriver.Graphics) error {
+func putImagesOnSourceBackend(graphicsDriver graphicsdriver.Graphics) {
 	// The counter usedAsDestinationCount is updated at most once per frame (#2676).
 	for i := range imagesUsedAsDestination {
 		if i.usedAsDestinationCount < math.MaxInt {
@@ -78,9 +78,7 @@ func putImagesOnSourceBackend(graphicsDriver graphicsdriver.Graphics) error {
 			i.usedAsSourceCount++
 		}
 		if i.usedAsSourceCount >= baseCountToPutOnSourceBackend*(1<<uint(min(i.usedAsDestinationCount, 31))) {
-			if err := i.putOnSourceBackend(graphicsDriver); err != nil {
-				return err
-			}
+			i.putOnSourceBackend(graphicsDriver)
 			i.usedAsSourceCount = 0
 		}
 		delete(imagesToPutOnSourceBackend, i)
@@ -89,7 +87,6 @@ func putImagesOnSourceBackend(graphicsDriver graphicsdriver.Graphics) error {
 	for i := range imagesBackendJustCreated {
 		delete(imagesBackendJustCreated, i)
 	}
-	return nil
 }
 
 type backend struct {
@@ -295,14 +292,14 @@ func (i *Image) ensureIsolatedFromSource(backends []*backend) {
 	newI.moveTo(i)
 }
 
-func (i *Image) putOnSourceBackend(graphicsDriver graphicsdriver.Graphics) error {
+func (i *Image) putOnSourceBackend(graphicsDriver graphicsdriver.Graphics) {
 	if i.backend == nil {
 		i.allocate(nil, true)
-		return nil
+		return
 	}
 
 	if i.isOnSourceBackend() {
-		return nil
+		return
 	}
 
 	if !i.canBePutOnAtlas() {
@@ -334,8 +331,6 @@ func (i *Image) putOnSourceBackend(graphicsDriver graphicsdriver.Graphics) error
 	if !i.isOnSourceBackend() {
 		panic("atlas: i must be on a source backend but not")
 	}
-
-	return nil
 }
 
 func (i *Image) regionWithPadding() image.Rectangle {
@@ -817,9 +812,7 @@ func BeginFrame(graphicsDriver graphicsdriver.Graphics) error {
 	}
 
 	flushDeferred()
-	if err := putImagesOnSourceBackend(graphicsDriver); err != nil {
-		return err
-	}
+	putImagesOnSourceBackend(graphicsDriver)
 
 	return nil
 }
