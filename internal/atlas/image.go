@@ -90,6 +90,10 @@ func putImagesOnSourceBackend(graphicsDriver graphicsdriver.Graphics) error {
 	for k := range imagesToPutOnSourceBackend {
 		delete(imagesToPutOnSourceBackend, k)
 	}
+
+	for i := range imagesBackendJustCreated {
+		delete(imagesBackendJustCreated, i)
+	}
 	return nil
 }
 
@@ -135,6 +139,8 @@ var (
 	imagesToPutOnSourceBackend = map[*Image]struct{}{}
 
 	imagesUsedAsDestination = map[*Image]struct{}{}
+
+	imagesBackendJustCreated = map[*Image]struct{}{}
 
 	deferred []func()
 
@@ -238,14 +244,20 @@ func (i *Image) ensureIsolatedFromSource(backends []*backend) {
 			bs = append(bs, b)
 		}
 		i.allocate(bs, false)
+		imagesBackendJustCreated[i] = struct{}{}
 		return
+	}
+
+	// imagesUsedAsDestination affects the counter usedAsDestination.
+	// The larger this counter is, the harder it is for the image to be transferred to the source backend.
+	// This counter is not updated when the backend is created in this frame.
+	if _, ok := imagesBackendJustCreated[i]; !ok {
+		imagesUsedAsDestination[i] = struct{}{}
 	}
 
 	if !i.isOnAtlas() {
 		return
 	}
-
-	imagesUsedAsDestination[i] = struct{}{}
 
 	// Check if i has the same backend as the given backends.
 	var needsIsolation bool

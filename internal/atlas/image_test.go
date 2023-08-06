@@ -676,8 +676,13 @@ func TestImageIsNotReputOnSourceBackendWithoutUsingAsSource(t *testing.T) {
 		Height: size,
 	}
 
-	// Use src2 as a rendering target, and make src2 an independent image.
-	src2.DrawTriangles([graphics.ShaderImageCount]*atlas.Image{src}, vs, is, graphicsdriver.BlendCopy, dr, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, atlas.NearestFilterShader, nil, false)
+	// Use src2 as a rendering target, and make src2 on a destination backend.
+	//
+	// Call DrawTriangles multiple times.
+	// The number of DrawTriangles doesn't matter as long as these are called in one frame.
+	for i := 0; i < 2; i++ {
+		src2.DrawTriangles([graphics.ShaderImageCount]*atlas.Image{src}, vs, is, graphicsdriver.BlendCopy, dr, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, atlas.NearestFilterShader, nil, false)
+	}
 	if got, want := src2.IsOnSourceBackendForTesting(), false; got != want {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
