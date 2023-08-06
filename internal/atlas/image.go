@@ -64,9 +64,15 @@ func flushDeferred() {
 const baseCountToPutOnSourceBackend = 10
 
 func putImagesOnSourceBackend(graphicsDriver graphicsdriver.Graphics) error {
+	// The counter usedAsDestinationCount is updated at most once per frame (#2676).
+	for i := range imagesUsedAsDestination {
+		i.usedAsDestinationCount++
+		delete(imagesUsedAsDestination, i)
+	}
+
 	for i := range imagesToPutOnSourceBackend {
 		i.usedAsSourceCount++
-		if i.usedAsSourceCount >= baseCountToPutOnSourceBackend*(1<<uint(min(i.destinationCount, 31))) {
+		if i.usedAsSourceCount >= baseCountToPutOnSourceBackend*(1<<uint(min(i.usedAsDestinationCount, 31))) {
 			if err := i.putOnSourceBackend(graphicsDriver); err != nil {
 				return err
 			}
@@ -123,6 +129,8 @@ var (
 
 	imagesToPutOnSourceBackend = map[*Image]struct{}{}
 
+	imagesUsedAsDestination = map[*Image]struct{}{}
+
 	deferred []func()
 
 	// deferredM is a mutex for the slice operations. This must not be used for other usages.
@@ -172,10 +180,11 @@ type Image struct {
 	// WritePixels doesn't affect this value since WritePixels can be done on images on an atlas.
 	usedAsSourceCount int
 
-	// destinationCount represents how many times an image switches its backend when the image is used
-	// as a rendering destination at DrawTriangles.
-	// destinationCount affects the calculation when to put the image onto a texture atlas again.
-	destinationCount int
+	// usedAsDestinationCount represents how many times an image is used as a rendering destination at DrawTriangles.
+	// usedAsDestinationCount affects the calculation when to put the image onto a texture atlas again.
+	//
+	// usedAsDestinationCount is never reset.
+	usedAsDestinationCount int
 }
 
 // moveTo moves its content to the given image dst.
@@ -231,6 +240,8 @@ func (i *Image) ensureIsolatedFromSource(backends []*backend) {
 		return
 	}
 
+	imagesUsedAsDestination[i] = struct{}{}
+
 	// Check if i has the same backend as the given backends.
 	var needsIsolation bool
 	for _, b := range backends {
@@ -270,10 +281,6 @@ func (i *Image) ensureIsolatedFromSource(backends []*backend) {
 	delete(theSourceBackendsForOneFrame, origBackend)
 
 	newI.moveTo(i)
-
-	// Count up only when the backend is switched. (#2586).
-	// This counting up must be done after moveTo.
-	i.destinationCount++
 }
 
 func (i *Image) putOnSourceBackend(graphicsDriver graphicsdriver.Graphics) error {
