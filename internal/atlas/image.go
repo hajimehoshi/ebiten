@@ -230,6 +230,7 @@ func (i *Image) paddingSize() int {
 
 func (i *Image) ensureIsolatedFromSource(backends []*backend) {
 	i.resetUsedAsSourceCount()
+	imagesUsedAsDestination[i] = struct{}{}
 
 	if i.backend == nil {
 		// `theSourceBackendsForOneFrame` already includes `backends`.
@@ -244,8 +245,6 @@ func (i *Image) ensureIsolatedFromSource(backends []*backend) {
 	if !i.isOnAtlas() {
 		return
 	}
-
-	imagesUsedAsDestination[i] = struct{}{}
 
 	// Check if i has the same backend as the given backends.
 	var needsIsolation bool
