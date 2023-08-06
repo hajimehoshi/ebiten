@@ -17,6 +17,7 @@ package atlas
 import (
 	"fmt"
 	"image"
+	"math"
 	"runtime"
 	"sync"
 
@@ -66,12 +67,16 @@ const baseCountToPutOnSourceBackend = 10
 func putImagesOnSourceBackend(graphicsDriver graphicsdriver.Graphics) error {
 	// The counter usedAsDestinationCount is updated at most once per frame (#2676).
 	for i := range imagesUsedAsDestination {
-		i.usedAsDestinationCount++
+		if i.usedAsDestinationCount < math.MaxInt {
+			i.usedAsDestinationCount++
+		}
 		delete(imagesUsedAsDestination, i)
 	}
 
 	for i := range imagesToPutOnSourceBackend {
-		i.usedAsSourceCount++
+		if i.usedAsSourceCount < math.MaxInt {
+			i.usedAsSourceCount++
+		}
 		if i.usedAsSourceCount >= baseCountToPutOnSourceBackend*(1<<uint(min(i.usedAsDestinationCount, 31))) {
 			if err := i.putOnSourceBackend(graphicsDriver); err != nil {
 				return err
