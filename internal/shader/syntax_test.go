@@ -3521,3 +3521,25 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		}
 	}
 }
+
+// Issue #2680
+func TestForWithLocalVariable(t *testing.T) {
+	if _, err := compileToIR([]byte(`package main
+
+func foo() {
+	i := 0
+	for i = 0; i < 1; i++ {
+	}
+}`)); err == nil {
+		t.Error("compileToIR must return an error but did not")
+	}
+	if _, err := compileToIR([]byte(`package main
+
+func foo() {
+	for i, j := 0, 0; i < 1; i++ {
+		_ = j
+	}
+}`)); err == nil {
+		t.Error("compileToIR must return an error but did not")
+	}
+}

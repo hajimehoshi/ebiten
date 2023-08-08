@@ -214,7 +214,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 		}
 
 		// Create a new pseudo block for the initial statement, so that the counter variable belongs to the
-		// new pseudo block for each for-loop. Without this, the samely named counter variables in different
+		// new pseudo block for each for-loop. Without this, the same-named counter variables in different
 		// for-loops confuses the parser.
 		pseudoBlock, ok := cs.parseBlock(block, fname, []ast.Stmt{stmt.Init}, inParams, outParams, returnType, false)
 		if !ok {
@@ -236,6 +236,11 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 		}
 		varidx := ss[0].Exprs[0].Index
 		if ss[0].Exprs[1].Const == nil {
+			cs.addError(stmt.Pos(), msg)
+			return nil, false
+		}
+
+		if len(pseudoBlock.vars) != 1 {
 			cs.addError(stmt.Pos(), msg)
 			return nil, false
 		}
