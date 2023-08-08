@@ -24,7 +24,7 @@ jobs:
       - name: Go version
         id: go
         run: |
-          echo "version=$(curl --location https://go.dev/VERSION?m=text)" >> $GITHUB_OUTPUT
+          echo "version=$(curl --location https://go.dev/VERSION?m=text | head -n 1)" >> $GITHUB_OUTPUT
 
       - name: Docker run (amd64)
         run: |
