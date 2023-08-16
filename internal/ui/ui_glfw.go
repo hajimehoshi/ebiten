@@ -254,18 +254,23 @@ func (u *userInterfaceImpl) AppendMonitors(mons []*Monitor) []*Monitor {
 
 // Monitor returns the window's current monitor. Returns nil if there is no current monitor yet.
 func (u *userInterfaceImpl) Monitor() *Monitor {
-	u.m.RLock()
-	defer u.m.RUnlock()
-	glfwMonitor := u.currentMonitor()
-	if glfwMonitor == nil {
+	if !u.isRunning() {
 		return nil
 	}
-	for _, m := range monitors {
-		if m.m == glfwMonitor {
-			return m
+	var monitor *Monitor
+	u.mainThread.Call(func() {
+		glfwMonitor := u.currentMonitor()
+		if glfwMonitor == nil {
+			return
 		}
-	}
-	return nil
+		for _, m := range monitors {
+			if m.m == glfwMonitor {
+				monitor = m
+				return
+			}
+		}
+	})
+	return monitor
 }
 
 func updateMonitors() {
@@ -328,6 +333,7 @@ func (u *userInterfaceImpl) setRunning(running bool) {
 	}
 }
 
+// setWindowMonitor must be called on the main thread.
 func (u *userInterfaceImpl) setWindowMonitor(monitor int) {
 	if microsoftgdk.IsXbox() {
 		return
