@@ -16,7 +16,6 @@ package opengl
 
 import (
 	"errors"
-	"image"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
@@ -72,12 +71,14 @@ func (i *Image) setViewport() error {
 	return nil
 }
 
-func (i *Image) ReadPixels(buf []byte, region image.Rectangle) error {
+func (i *Image) ReadPixels(args []graphicsdriver.PixelsArgs) error {
 	if err := i.ensureFramebuffer(); err != nil {
 		return err
 	}
-	if err := i.graphics.context.framebufferPixels(buf, i.framebuffer, region); err != nil {
-		return err
+	for _, arg := range args {
+		if err := i.graphics.context.framebufferPixels(arg.Pixels, i.framebuffer, arg.Region); err != nil {
+			return err
+		}
 	}
 	return nil
 }

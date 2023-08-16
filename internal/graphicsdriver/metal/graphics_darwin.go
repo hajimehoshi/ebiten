@@ -816,18 +816,19 @@ func (i *Image) syncTexture() {
 	cb.WaitUntilCompleted()
 }
 
-func (i *Image) ReadPixels(buf []byte, region image.Rectangle) error {
-	if got, want := len(buf), 4*region.Dx()*region.Dy(); got != want {
-		return fmt.Errorf("metal: len(buf) must be %d but %d at ReadPixels", want, got)
-	}
-
+func (i *Image) ReadPixels(args []graphicsdriver.PixelsArgs) error {
 	i.graphics.flushIfNeeded(false)
 	i.syncTexture()
 
-	i.texture.GetBytes(&buf[0], uintptr(4*region.Dx()), mtl.Region{
-		Origin: mtl.Origin{X: region.Min.X, Y: region.Min.Y},
-		Size:   mtl.Size{Width: region.Dx(), Height: region.Dy(), Depth: 1},
-	}, 0)
+	for _, arg := range args {
+		if got, want := len(arg.Pixels), 4*arg.Region.Dx()*arg.Region.Dy(); got != want {
+			return fmt.Errorf("metal: len(buf) must be %d but %d at ReadPixels", want, got)
+		}
+		i.texture.GetBytes(&arg.Pixels[0], uintptr(4*arg.Region.Dx()), mtl.Region{
+			Origin: mtl.Origin{X: arg.Region.Min.X, Y: arg.Region.Min.Y},
+			Size:   mtl.Size{Width: arg.Region.Dx(), Height: arg.Region.Dy(), Depth: 1},
+		}, 0)
+	}
 	return nil
 }
 

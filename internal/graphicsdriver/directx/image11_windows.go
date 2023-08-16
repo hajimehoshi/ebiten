@@ -80,10 +80,15 @@ func (i *image11) IsInvalidated() bool {
 	return false
 }
 
-func (i *image11) ReadPixels(buf []byte, region image.Rectangle) error {
+func (i *image11) ReadPixels(args []graphicsdriver.PixelsArgs) error {
+	var unionRegion image.Rectangle
+	for _, a := range args {
+		unionRegion = unionRegion.Union(a.Region)
+	}
+
 	staging, err := i.graphics.device.CreateTexture2D(&_D3D11_TEXTURE2D_DESC{
-		Width:     uint32(region.Dx()),
-		Height:    uint32(region.Dy()),
+		Width:     uint32(unionRegion.Dx()),
+		Height:    uint32(unionRegion.Dy()),
 		MipLevels: 0,
 		ArraySize: 1,
 		Format:    _DXGI_FORMAT_R8G8B8A8_UNORM,
@@ -102,11 +107,11 @@ func (i *image11) ReadPixels(buf []byte, region image.Rectangle) error {
 	defer staging.Release()
 
 	i.graphics.deviceContext.CopySubresourceRegion(unsafe.Pointer(staging), 0, 0, 0, 0, unsafe.Pointer(i.texture), 0, &_D3D11_BOX{
-		left:   uint32(region.Min.X),
-		top:    uint32(region.Min.Y),
+		left:   uint32(unionRegion.Min.X),
+		top:    uint32(unionRegion.Min.Y),
 		front:  0,
-		right:  uint32(region.Max.X),
-		bottom: uint32(region.Max.Y),
+		right:  uint32(unionRegion.Max.X),
+		bottom: uint32(unionRegion.Max.Y),
 		back:   1,
 	})
 
@@ -116,12 +121,16 @@ func (i *image11) ReadPixels(buf []byte, region image.Rectangle) error {
 	}
 
 	stride := int(mapped.RowPitch)
-	src := unsafe.Slice((*byte)(mapped.pData), stride*region.Dy())
-	if stride == 4*region.Dx() {
-		copy(buf, src)
-	} else {
-		for j := 0; j < region.Dy(); j++ {
-			copy(buf[j*4*region.Dx():(j+1)*4*region.Dx()], src[j*stride:j*stride+4*region.Dx()])
+	srcPix := unsafe.Slice((*byte)(mapped.pData), stride*unionRegion.Dy())
+	for _, a := range args {
+		w := a.Region.Dx()
+		if unionRegion == a.Region && stride == 4*w {
+			copy(a.Pixels, srcPix)
+			continue
+		}
+		offset := 4*(a.Region.Min.X-unionRegion.Min.X) + stride*(a.Region.Min.Y-unionRegion.Min.Y)
+		for j := 0; j < a.Region.Dy(); j++ {
+			copy(a.Pixels[j*4*w:(j+1)*4*w], srcPix[offset+j*stride:])
 		}
 	}
 

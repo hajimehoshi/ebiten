@@ -426,7 +426,12 @@ func (i *Image) readPixelsFromGPUIfNeeded(graphicsDriver graphicsdriver.Graphics
 
 func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte, region image.Rectangle) error {
 	if AlwaysReadPixelsFromGPU() {
-		if err := i.image.ReadPixels(graphicsDriver, pixels, region); err != nil {
+		if err := i.image.ReadPixels(graphicsDriver, []graphicsdriver.PixelsArgs{
+			{
+				Pixels: pixels,
+				Region: region,
+			},
+		}); err != nil {
 			return err
 		}
 		return nil
@@ -477,6 +482,7 @@ func (i *Image) readPixelsFromGPU(graphicsDriver graphicsdriver.Graphics) error 
 		rs = i.regionsCache
 	}
 
+	args := make([]graphicsdriver.PixelsArgs, 0, len(rs))
 	for _, r := range rs {
 		if r.Empty() {
 			continue
@@ -491,10 +497,19 @@ func (i *Image) readPixelsFromGPU(graphicsDriver graphicsdriver.Graphics) error 
 			pix = make([]byte, 4*r.Dx()*r.Dy())
 			i.pixelsCache[r] = pix
 		}
-		if err := i.image.ReadPixels(graphicsDriver, pix, r); err != nil {
-			return err
-		}
-		i.basePixels.AddOrReplace(pix, r)
+
+		args = append(args, graphicsdriver.PixelsArgs{
+			Pixels: pix,
+			Region: r,
+		})
+	}
+
+	if err := i.image.ReadPixels(graphicsDriver, args); err != nil {
+		return err
+	}
+
+	for _, a := range args {
+		i.basePixels.AddOrReplace(a.Pixels, a.Region)
 	}
 
 	i.clearDrawTrianglesHistory()
@@ -616,6 +631,7 @@ func (i *Image) restore(graphicsDriver graphicsdriver.Graphics) error {
 			i.regionsCache = i.regionsCache[:0]
 		}()
 
+		args := make([]graphicsdriver.PixelsArgs, 0, len(i.regionsCache))
 		for _, r := range i.regionsCache {
 			if r.Empty() {
 				continue
@@ -630,10 +646,18 @@ func (i *Image) restore(graphicsDriver graphicsdriver.Graphics) error {
 				pix = make([]byte, 4*r.Dx()*r.Dy())
 				i.pixelsCache[r] = pix
 			}
-			if err := gimg.ReadPixels(graphicsDriver, pix, r); err != nil {
-				return err
-			}
-			i.basePixels.AddOrReplace(pix, r)
+			args = append(args, graphicsdriver.PixelsArgs{
+				Pixels: pix,
+				Region: r,
+			})
+		}
+
+		if err := gimg.ReadPixels(graphicsDriver, args); err != nil {
+			return err
+		}
+
+		for _, a := range args {
+			i.basePixels.AddOrReplace(a.Pixels, a.Region)
 		}
 	}
 

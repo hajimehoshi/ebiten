@@ -16,7 +16,6 @@ package graphicscommand
 
 import (
 	"fmt"
-	"image"
 	"math"
 	"strings"
 	"sync/atomic"
@@ -489,14 +488,13 @@ func (c *writePixelsCommand) NeedsSync() bool {
 }
 
 type readPixelsCommand struct {
-	result []byte
-	img    *Image
-	region image.Rectangle
+	img  *Image
+	args []graphicsdriver.PixelsArgs
 }
 
 // Exec executes a readPixelsCommand.
 func (c *readPixelsCommand) Exec(graphicsDriver graphicsdriver.Graphics, indexOffset int) error {
-	if err := c.img.image.ReadPixels(c.result, c.region); err != nil {
+	if err := c.img.image.ReadPixels(c.args); err != nil {
 		return err
 	}
 	return nil

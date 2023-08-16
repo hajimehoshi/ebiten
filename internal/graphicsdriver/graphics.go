@@ -67,7 +67,7 @@ type Image interface {
 	ID() ImageID
 	Dispose()
 	IsInvalidated() bool
-	ReadPixels(buf []byte, region image.Rectangle) error
+	ReadPixels(args []PixelsArgs) error
 	WritePixels(args []PixelsArgs) error
 }
 

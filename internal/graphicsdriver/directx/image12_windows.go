@@ -72,7 +72,7 @@ func (*image12) IsInvalidated() bool {
 	return false
 }
 
-func (i *image12) ReadPixels(buf []byte, region image.Rectangle) error {
+func (i *image12) ReadPixels(args []graphicsdriver.PixelsArgs) error {
 	if i.screen {
 		return errors.New("directx: Pixels cannot be called on the screen")
 	}
@@ -81,11 +81,16 @@ func (i *image12) ReadPixels(buf []byte, region image.Rectangle) error {
 		return err
 	}
 
+	var unionRegion image.Rectangle
+	for _, a := range args {
+		unionRegion = unionRegion.Union(a.Region)
+	}
+
 	desc := _D3D12_RESOURCE_DESC{
 		Dimension:        _D3D12_RESOURCE_DIMENSION_TEXTURE2D,
 		Alignment:        0,
-		Width:            uint64(region.Dx()),
-		Height:           uint32(region.Dy()),
+		Width:            uint64(unionRegion.Dx()),
+		Height:           uint32(unionRegion.Dy()),
 		DepthOrArraySize: 1,
 		MipLevels:        0,
 		Format:           _DXGI_FORMAT_R8G8B8A8_UNORM,
@@ -127,11 +132,11 @@ func (i *image12) ReadPixels(buf []byte, region image.Rectangle) error {
 	i.graphics.needFlushCopyCommandList = true
 	i.graphics.copyCommandList.CopyTextureRegion_PlacedFootPrint_SubresourceIndex(
 		&dst, 0, 0, 0, &src, &_D3D12_BOX{
-			left:   uint32(region.Min.X),
-			top:    uint32(region.Min.Y),
+			left:   uint32(unionRegion.Min.X),
+			top:    uint32(unionRegion.Min.Y),
 			front:  0,
-			right:  uint32(region.Max.X),
-			bottom: uint32(region.Max.Y),
+			right:  uint32(unionRegion.Max.X),
+			bottom: uint32(unionRegion.Max.Y),
 			back:   1,
 		})
 
@@ -139,9 +144,18 @@ func (i *image12) ReadPixels(buf []byte, region image.Rectangle) error {
 		return err
 	}
 
-	dstBytes := unsafe.Slice((*byte)(unsafe.Pointer(m)), totalBytes)
-	for j := 0; j < region.Dy(); j++ {
-		copy(buf[j*region.Dx()*4:(j+1)*region.Dx()*4], dstBytes[j*int(layouts.Footprint.RowPitch):])
+	stride := int(layouts.Footprint.RowPitch)
+	srcPix := unsafe.Slice((*byte)(unsafe.Pointer(m)), totalBytes)
+	for _, a := range args {
+		w := a.Region.Dx()
+		if unionRegion == a.Region && stride == 4*w {
+			copy(a.Pixels, srcPix)
+			continue
+		}
+		offset := 4*(a.Region.Min.X-unionRegion.Min.X) + stride*(a.Region.Min.Y-unionRegion.Min.Y)
+		for j := 0; j < a.Region.Dy(); j++ {
+			copy(a.Pixels[j*w*4:(j+1)*w*4], srcPix[offset+j*stride:])
+		}
 	}
 
 	readingStagingBuffer.Unmap(0, nil)
