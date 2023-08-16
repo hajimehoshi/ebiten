@@ -149,7 +149,7 @@ func (i *image12) ReadPixels(buf []byte, region image.Rectangle) error {
 	return nil
 }
 
-func (i *image12) WritePixels(args []*graphicsdriver.WritePixelsArgs) error {
+func (i *image12) WritePixels(args []*graphicsdriver.PixelsArgs) error {
 	if i.screen {
 		return errors.New("directx: WritePixels cannot be called on the screen")
 	}

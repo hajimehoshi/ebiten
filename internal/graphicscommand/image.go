@@ -43,7 +43,7 @@ type Image struct {
 	// have its graphicsdriver.Image.
 	id int
 
-	bufferedWP []*graphicsdriver.WritePixelsArgs
+	bufferedWP []*graphicsdriver.PixelsArgs
 }
 
 var nextID = 1
@@ -178,7 +178,7 @@ func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, buf []byte, r
 }
 
 func (i *Image) WritePixels(pixels []byte, region image.Rectangle) {
-	i.bufferedWP = append(i.bufferedWP, &graphicsdriver.WritePixelsArgs{
+	i.bufferedWP = append(i.bufferedWP, &graphicsdriver.PixelsArgs{
 		Pixels: pixels,
 		Region: region,
 	})

@@ -831,7 +831,7 @@ func (i *Image) ReadPixels(buf []byte, region image.Rectangle) error {
 	return nil
 }
 
-func (i *Image) WritePixels(args []*graphicsdriver.WritePixelsArgs) error {
+func (i *Image) WritePixels(args []*graphicsdriver.PixelsArgs) error {
 	g := i.graphics
 
 	g.flushRenderCommandEncoderIfNeeded()
