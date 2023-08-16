@@ -131,7 +131,7 @@ func (i *Image) ensureStencilBuffer() error {
 	return nil
 }
 
-func (i *Image) WritePixels(args []*graphicsdriver.PixelsArgs) error {
+func (i *Image) WritePixels(args []graphicsdriver.PixelsArgs) error {
 	if i.screen {
 		return errors.New("opengl: WritePixels cannot be called on the screen")
 	}

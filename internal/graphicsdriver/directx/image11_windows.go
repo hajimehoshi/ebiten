@@ -130,7 +130,7 @@ func (i *image11) ReadPixels(buf []byte, region image.Rectangle) error {
 	return nil
 }
 
-func (i *image11) WritePixels(args []*graphicsdriver.PixelsArgs) error {
+func (i *image11) WritePixels(args []graphicsdriver.PixelsArgs) error {
 	for _, a := range args {
 		i.graphics.deviceContext.UpdateSubresource(unsafe.Pointer(i.texture), 0, &_D3D11_BOX{
 			left:   uint32(a.Region.Min.X),

@@ -43,7 +43,7 @@ type Image struct {
 	// have its graphicsdriver.Image.
 	id int
 
-	bufferedWP []*graphicsdriver.PixelsArgs
+	bufferedWritePixelsArgs []graphicsdriver.PixelsArgs
 }
 
 var nextID = 1
@@ -93,19 +93,20 @@ func NewImage(width, height int, screenFramebuffer bool) *Image {
 }
 
 func (i *Image) flushBufferedWritePixels() {
-	if len(i.bufferedWP) == 0 {
+	if len(i.bufferedWritePixelsArgs) == 0 {
 		return
 	}
 	c := &writePixelsCommand{
 		dst:  i,
-		args: i.bufferedWP,
+		args: i.bufferedWritePixelsArgs,
 	}
 	currentCommandQueue().Enqueue(c)
-	i.bufferedWP = nil
+
+	i.bufferedWritePixelsArgs = nil
 }
 
 func (i *Image) Dispose() {
-	i.bufferedWP = nil
+	i.bufferedWritePixelsArgs = nil
 	c := &disposeImageCommand{
 		target: i,
 	}
@@ -178,7 +179,7 @@ func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, buf []byte, r
 }
 
 func (i *Image) WritePixels(pixels []byte, region image.Rectangle) {
-	i.bufferedWP = append(i.bufferedWP, &graphicsdriver.PixelsArgs{
+	i.bufferedWritePixelsArgs = append(i.bufferedWritePixelsArgs, graphicsdriver.PixelsArgs{
 		Pixels: pixels,
 		Region: region,
 	})

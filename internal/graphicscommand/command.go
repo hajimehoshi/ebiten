@@ -466,7 +466,7 @@ func mightOverlapDstRegions(vertices1, vertices2 []float32) bool {
 // writePixelsCommand represents a command to replace pixels of an image.
 type writePixelsCommand struct {
 	dst  *Image
-	args []*graphicsdriver.PixelsArgs
+	args []graphicsdriver.PixelsArgs
 }
 
 func (c *writePixelsCommand) String() string {
