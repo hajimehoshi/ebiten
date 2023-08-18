@@ -279,10 +279,7 @@ func (i *Image) ensureIsolatedFromSource(backends []*backend) {
 		Height: h,
 	}
 
-	origBackend := i.backend
 	newI.drawTriangles([graphics.ShaderImageCount]*Image{i}, vs, is, graphicsdriver.BlendCopy, dr, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, NearestFilterShader, nil, false, true)
-	delete(theSourceBackendsForOneFrame, origBackend)
-
 	newI.moveTo(i)
 }
 
@@ -599,8 +596,6 @@ func (i *Image) dispose(markDisposed bool) {
 	}
 
 	i.backend.restorable.Dispose()
-
-	delete(theSourceBackendsForOneFrame, i.backend)
 
 	for idx, sh := range theBackends {
 		if sh == i.backend {
