@@ -370,7 +370,7 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 		}
 		if src.backend == nil {
 			// It is possible to spcify i.backend as a forbidden backend, but this might prevent a good allocation for a source image.
-			// If the backend becomes the same as i's, this will be changed later.
+			// If the backend becomes the same as i's, i's backend will be changed at ensureIsolatedFromSource.
 			src.allocate(nil, true)
 		}
 		backends = append(backends, src.backend)
