@@ -99,6 +99,10 @@ type backend struct {
 	// If a non-source (destination) image is used as a source many times,
 	// the image's backend might be turned into a source backend to optimize draw calls.
 	source bool
+
+	// sourceInThisFrame reports whether this backend is used as a source in this frame.
+	// sourceInThisFrame is reset every frame.
+	sourceInThisFrame bool
 }
 
 func (b *backend) tryAlloc(width, height int) (*packing.Node, bool) {
@@ -121,10 +125,6 @@ var (
 
 	// theBackends is a set of atlases.
 	theBackends []*backend
-
-	// theSourceBackendsForOneFrame is a temporary set of backends that are used as sources in one frame.
-	// theSourceBackendsForOneFrame is reset every frame.
-	theSourceBackendsForOneFrame = map[*backend]struct{}{}
 
 	imagesToPutOnSourceBackend = map[*Image]struct{}{}
 
@@ -231,10 +231,12 @@ func (i *Image) ensureIsolatedFromSource(backends []*backend) {
 	imagesUsedAsDestination[i] = struct{}{}
 
 	if i.backend == nil {
-		// `theSourceBackendsForOneFrame` already includes `backends`.
-		bs := make([]*backend, 0, len(theSourceBackendsForOneFrame))
-		for b := range theSourceBackendsForOneFrame {
-			bs = append(bs, b)
+		// `sourceInThisFrame` of `backends` should be true, so `backends` should be in `bs`.
+		var bs []*backend
+		for _, b := range theBackends {
+			if b.sourceInThisFrame {
+				bs = append(bs, b)
+			}
 		}
 		i.allocate(bs, false)
 		i.backendJustCreated = true
@@ -260,11 +262,12 @@ func (i *Image) ensureIsolatedFromSource(backends []*backend) {
 	newI := NewImage(i.width, i.height, i.imageType)
 
 	// Call allocate explicitly in order to have an isolated backend from the specified backends.
-	// `theSourceBackendsForOneFrame` already includes `backends`.
-	bs := make([]*backend, 0, 1+len(theSourceBackendsForOneFrame))
-	bs = append(bs, i.backend)
-	for b := range theSourceBackendsForOneFrame {
-		bs = append(bs, b)
+	// `sourceInThisFrame` of `backends` should be true, so `backends` should be in `bs`.
+	bs := []*backend{i.backend}
+	for _, b := range theBackends {
+		if b.sourceInThisFrame {
+			bs = append(bs, b)
+		}
 	}
 	newI.allocate(bs, false)
 
@@ -371,7 +374,7 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 			src.allocate(nil, true)
 		}
 		backends = append(backends, src.backend)
-		theSourceBackendsForOneFrame[src.backend] = struct{}{}
+		src.backend.sourceInThisFrame = true
 	}
 
 	i.ensureIsolatedFromSource(backends)
@@ -734,8 +737,8 @@ func EndFrame(graphicsDriver graphicsdriver.Graphics, swapBuffersForGL func()) e
 		return err
 	}
 
-	for b := range theSourceBackendsForOneFrame {
-		delete(theSourceBackendsForOneFrame, b)
+	for _, b := range theBackends {
+		b.sourceInThisFrame = false
 	}
 
 	return nil
