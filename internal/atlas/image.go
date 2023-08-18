@@ -68,10 +68,10 @@ func putImagesOnSourceBackend(graphicsDriver graphicsdriver.Graphics) {
 	// The counter usedAsDestinationCount is updated at most once per frame (#2676).
 	for i := range imagesUsedAsDestination {
 		// This counter is not updated when the backend is created in this frame.
-		if !i.backendJustCreated && i.usedAsDestinationCount < math.MaxInt {
+		if !i.backendCreatedInThisFrame && i.usedAsDestinationCount < math.MaxInt {
 			i.usedAsDestinationCount++
 		}
-		i.backendJustCreated = false
+		i.backendCreatedInThisFrame = false
 		delete(imagesUsedAsDestination, i)
 	}
 
@@ -164,8 +164,8 @@ type Image struct {
 	imageType ImageType
 	disposed  bool
 
-	backend            *backend
-	backendJustCreated bool
+	backend                   *backend
+	backendCreatedInThisFrame bool
 
 	node *packing.Node
 
@@ -239,7 +239,7 @@ func (i *Image) ensureIsolatedFromSource(backends []*backend) {
 			}
 		}
 		i.allocate(bs, false)
-		i.backendJustCreated = true
+		i.backendCreatedInThisFrame = true
 		return
 	}
 
