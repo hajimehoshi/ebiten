@@ -67,9 +67,11 @@ const baseCountToPutOnSourceBackend = 10
 func putImagesOnSourceBackend(graphicsDriver graphicsdriver.Graphics) {
 	// The counter usedAsDestinationCount is updated at most once per frame (#2676).
 	for i := range imagesUsedAsDestination {
-		if i.usedAsDestinationCount < math.MaxInt {
+		// This counter is not updated when the backend is created in this frame.
+		if !i.backendJustCreated && i.usedAsDestinationCount < math.MaxInt {
 			i.usedAsDestinationCount++
 		}
+		i.backendJustCreated = false
 		delete(imagesUsedAsDestination, i)
 	}
 
@@ -82,10 +84,6 @@ func putImagesOnSourceBackend(graphicsDriver graphicsdriver.Graphics) {
 			i.usedAsSourceCount = 0
 		}
 		delete(imagesToPutOnSourceBackend, i)
-	}
-
-	for i := range imagesBackendJustCreated {
-		delete(imagesBackendJustCreated, i)
 	}
 }
 
@@ -132,8 +130,6 @@ var (
 
 	imagesUsedAsDestination = map[*Image]struct{}{}
 
-	imagesBackendJustCreated = map[*Image]struct{}{}
-
 	deferred []func()
 
 	// deferredM is a mutex for the slice operations. This must not be used for other usages.
@@ -168,7 +164,8 @@ type Image struct {
 	imageType ImageType
 	disposed  bool
 
-	backend *backend
+	backend            *backend
+	backendJustCreated bool
 
 	node *packing.Node
 
@@ -229,6 +226,10 @@ func (i *Image) paddingSize() int {
 func (i *Image) ensureIsolatedFromSource(backends []*backend) {
 	i.resetUsedAsSourceCount()
 
+	// imagesUsedAsDestination affects the counter usedAsDestination.
+	// The larger this counter is, the harder it is for the image to be transferred to the source backend.
+	imagesUsedAsDestination[i] = struct{}{}
+
 	if i.backend == nil {
 		// `theSourceBackendsForOneFrame` already includes `backends`.
 		bs := make([]*backend, 0, len(theSourceBackendsForOneFrame))
@@ -236,15 +237,8 @@ func (i *Image) ensureIsolatedFromSource(backends []*backend) {
 			bs = append(bs, b)
 		}
 		i.allocate(bs, false)
-		imagesBackendJustCreated[i] = struct{}{}
+		i.backendJustCreated = true
 		return
-	}
-
-	// imagesUsedAsDestination affects the counter usedAsDestination.
-	// The larger this counter is, the harder it is for the image to be transferred to the source backend.
-	// This counter is not updated when the backend is created in this frame.
-	if _, ok := imagesBackendJustCreated[i]; !ok {
-		imagesUsedAsDestination[i] = struct{}{}
 	}
 
 	if !i.isOnAtlas() {
