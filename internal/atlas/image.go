@@ -77,7 +77,7 @@ func putImagesOnSourceBackend(graphicsDriver graphicsdriver.Graphics) {
 		if i.usedAsSourceCount < math.MaxInt {
 			i.usedAsSourceCount++
 		}
-		if i.usedAsSourceCount >= baseCountToPutOnSourceBackend*(1<<uint(min(i.usedAsDestinationCount, 31))) {
+		if int64(i.usedAsSourceCount) >= int64(baseCountToPutOnSourceBackend*(1<<uint(min(i.usedAsDestinationCount, 31)))) {
 			i.putOnSourceBackend(graphicsDriver)
 			i.usedAsSourceCount = 0
 		}
