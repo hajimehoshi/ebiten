@@ -17,6 +17,7 @@ package atlas
 import (
 	"fmt"
 	"image"
+	"math"
 	"runtime"
 	"sync"
 
@@ -113,8 +114,10 @@ const baseCountToPutOnSourceBackend = 10
 
 func putImagesOnSourceBackend(graphicsDriver graphicsdriver.Graphics) error {
 	for i := range imagesToPutOnSourceBackend {
-		i.usedAsSourceCount++
-		if i.usedAsSourceCount >= baseCountToPutOnSourceBackend*(1<<uint(min(i.destinationCount, 31))) {
+		if i.usedAsSourceCount < math.MaxInt {
+			i.usedAsSourceCount++
+		}
+		if int64(i.usedAsSourceCount) >= int64(baseCountToPutOnSourceBackend*(1<<uint(min(i.destinationCount, 31)))) {
 			if err := i.putOnSourceBackend(graphicsDriver); err != nil {
 				return err
 			}
