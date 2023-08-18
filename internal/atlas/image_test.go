@@ -791,4 +791,39 @@ func TestPowerOf2(t *testing.T) {
 	}
 }
 
+func TestDestinationCountOverflow(t *testing.T) {
+	const w, h = 256, 256
+	src := atlas.NewImage(w, h, atlas.ImageTypeRegular)
+	defer src.MarkDisposed()
+	dst0 := atlas.NewImage(w, h, atlas.ImageTypeRegular)
+	defer dst0.MarkDisposed()
+	dst1 := atlas.NewImage(w, h, atlas.ImageTypeRegular)
+	defer dst1.MarkDisposed()
+
+	vs := quadVertices(w, h, 0, 0, 1)
+	is := graphics.QuadIndices()
+	dr := graphicsdriver.Region{
+		X:      0,
+		Y:      0,
+		Width:  w,
+		Height: h,
+	}
+
+	// Use dst0 as a destination for a while.
+	for i := 0; i < 31; i++ {
+		dst0.DrawTriangles([graphics.ShaderImageCount]*atlas.Image{src}, vs, is, graphicsdriver.BlendCopy, dr, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, atlas.NearestFilterShader, nil, false)
+		atlas.PutImagesOnSourceBackendForTesting(ui.GraphicsDriverForTesting())
+	}
+
+	// Use dst0 as a source for a while.
+	// As dst0 is used as a destination too many times (31 is a maximum), dst0's backend should never be a source backend.
+	for i := 0; i < 100; i++ {
+		dst1.DrawTriangles([graphics.ShaderImageCount]*atlas.Image{dst0}, vs, is, graphicsdriver.BlendCopy, dr, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, atlas.NearestFilterShader, nil, false)
+		atlas.PutImagesOnSourceBackendForTesting(ui.GraphicsDriverForTesting())
+		if dst0.IsOnSourceBackendForTesting() {
+			t.Errorf("dst0 cannot be on a source backend: %d", i)
+		}
+	}
+}
+
 // TODO: Add tests to extend image on an atlas out of the main loop
