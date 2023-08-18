@@ -337,29 +337,6 @@ func (i *Image) regionWithPadding() image.Rectangle {
 	return i.node.Region()
 }
 
-func (i *Image) processSrc(src *Image) {
-	if src == nil {
-		return
-	}
-	if src.disposed {
-		panic("atlas: the drawing source image must not be disposed (DrawTriangles)")
-	}
-
-	if src.backend == nil {
-		backends := make([]*backend, 0, 1)
-		if i.backend != nil {
-			backends = append(backends, i.backend)
-		}
-		src.allocate(backends, true)
-	}
-
-	// Compare i and source images after ensuring i is not on an atlas, or
-	// i and a source image might share the same atlas even though i != src.
-	if i.backend.restorable == src.backend.restorable {
-		panic("atlas: Image.DrawTriangles: source must be different from the receiver")
-	}
-}
-
 // DrawTriangles draws triangles with the given image.
 //
 // The vertex floats are:
@@ -388,6 +365,9 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 		if src == nil {
 			continue
 		}
+		if src.disposed {
+			panic("atlas: the drawing source image must not be disposed (DrawTriangles)")
+		}
 		if src.backend == nil {
 			// It is possible to spcify i.backend as a forbidden backend, but this might prevent a good allocation for a source image.
 			// If the backend becomes the same as i's, this will be changed later.
@@ -396,10 +376,15 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 		backends = append(backends, src.backend)
 		theSourceBackendsForOneFrame[src.backend] = struct{}{}
 	}
+
 	i.ensureIsolatedFromSource(backends)
 
 	for _, src := range srcs {
-		i.processSrc(src)
+		// Compare i and source images after ensuring i is not on an atlas, or
+		// i and a source image might share the same atlas even though i != src.
+		if src != nil && i.backend.restorable == src.backend.restorable {
+			panic("atlas: Image.DrawTriangles: source must be different from the receiver")
+		}
 	}
 
 	r := i.regionWithPadding()
