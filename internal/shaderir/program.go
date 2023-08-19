@@ -40,7 +40,7 @@ type Program struct {
 	FragmentFunc FragmentFunc
 	Unit         Unit
 
-	uniformMask []uint32
+	uniformFactors []uint32
 }
 
 type Func struct {
@@ -464,7 +464,7 @@ func (p *Program) appendReachableUniformVariablesFromBlock(indices []int, block 
 // FilterUniformVariables replaces uniform variables with nil when they are not used.
 // By minimizing uniform variables, more commands can be merged in the graphicscommand package.
 func (p *Program) FilterUniformVariables(uniforms []uint32) {
-	if p.uniformMask == nil {
+	if p.uniformFactors == nil {
 		indices := p.appendReachableUniformVariablesFromBlock(nil, p.VertexFunc.Block)
 		indices = p.appendReachableUniformVariablesFromBlock(indices, p.FragmentFunc.Block)
 		reachableUniforms := make([]bool, len(p.Uniforms))
@@ -475,14 +475,14 @@ func (p *Program) FilterUniformVariables(uniforms []uint32) {
 			fs := make([]uint32, typ.Uint32Count())
 			if reachableUniforms[i] {
 				for j := range fs {
-					fs[j] = (1 << 32) - 1
+					fs[j] = 1
 				}
 			}
-			p.uniformMask = append(p.uniformMask, fs...)
+			p.uniformFactors = append(p.uniformFactors, fs...)
 		}
 	}
 
-	for i, factor := range p.uniformMask {
-		uniforms[i] &= factor
+	for i, factor := range p.uniformFactors {
+		uniforms[i] *= factor
 	}
 }
