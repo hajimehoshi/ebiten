@@ -59,14 +59,8 @@ func (s *Shader) appendUniforms(dst []uint32, uniforms map[string]any) []uint32 
 	return s.shader.AppendUniforms(dst, uniforms)
 }
 
-type builtinShaderKey struct {
-	filter    builtinshader.Filter
-	address   builtinshader.Address
-	useColorM bool
-}
-
 var (
-	builtinShaders  = map[builtinShaderKey]*Shader{}
+	builtinShaders  [builtinshader.FilterCount][builtinshader.AddressCount][2]*Shader
 	builtinShadersM sync.Mutex
 )
 
@@ -74,12 +68,11 @@ func builtinShader(filter builtinshader.Filter, address builtinshader.Address, u
 	builtinShadersM.Lock()
 	defer builtinShadersM.Unlock()
 
-	key := builtinShaderKey{
-		filter:    filter,
-		address:   address,
-		useColorM: useColorM,
+	var c int
+	if useColorM {
+		c = 1
 	}
-	if s, ok := builtinShaders[key]; ok {
+	if s := builtinShaders[filter][address][c]; s != nil {
 		return s
 	}
 
@@ -100,6 +93,6 @@ func builtinShader(filter builtinshader.Filter, address builtinshader.Address, u
 		shader = s
 	}
 
-	builtinShaders[key] = shader
+	builtinShaders[filter][address][c] = shader
 	return shader
 }

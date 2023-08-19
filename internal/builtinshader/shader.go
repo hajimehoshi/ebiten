@@ -28,6 +28,8 @@ const (
 	FilterLinear
 )
 
+const FilterCount = 2
+
 type Address int
 
 const (
@@ -36,19 +38,15 @@ const (
 	AddressRepeat
 )
 
+const AddressCount = 3
+
 const (
 	UniformColorMBody        = "ColorMBody"
 	UniformColorMTranslation = "ColorMTranslation"
 )
 
-type key struct {
-	Filter    Filter
-	Address   Address
-	UseColorM bool
-}
-
 var (
-	shaders  = map[key][]byte{}
+	shaders  [FilterCount][AddressCount][2][]byte
 	shadersM sync.Mutex
 )
 
@@ -132,12 +130,11 @@ func Shader(filter Filter, address Address, useColorM bool) []byte {
 	shadersM.Lock()
 	defer shadersM.Unlock()
 
-	k := key{
-		Filter:    filter,
-		Address:   address,
-		UseColorM: useColorM,
+	var c int
+	if useColorM {
+		c = 1
 	}
-	if s, ok := shaders[k]; ok {
+	if s := shaders[filter][address][c]; s != nil {
 		return s
 	}
 
@@ -165,6 +162,6 @@ func Shader(filter Filter, address Address, useColorM bool) []byte {
 	}
 
 	b := buf.Bytes()
-	shaders[k] = b
+	shaders[filter][address][c] = b
 	return b
 }
