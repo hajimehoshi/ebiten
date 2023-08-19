@@ -675,21 +675,33 @@ func (q *commandQueue) prependPreservedUniforms(uniforms []uint32, shader *Shade
 		w, h := srcs[0].InternalSize()
 		uniforms[2] = math.Float32bits(float32(w))
 		uniforms[3] = math.Float32bits(float32(h))
+	} else {
+		uniforms[2] = 0
+		uniforms[3] = 0
 	}
 	if srcs[1] != nil {
 		w, h := srcs[1].InternalSize()
 		uniforms[4] = math.Float32bits(float32(w))
 		uniforms[5] = math.Float32bits(float32(h))
+	} else {
+		uniforms[4] = 0
+		uniforms[5] = 0
 	}
 	if srcs[2] != nil {
 		w, h := srcs[2].InternalSize()
 		uniforms[6] = math.Float32bits(float32(w))
 		uniforms[7] = math.Float32bits(float32(h))
+	} else {
+		uniforms[6] = 0
+		uniforms[7] = 0
 	}
 	if srcs[3] != nil {
 		w, h := srcs[3].InternalSize()
 		uniforms[8] = math.Float32bits(float32(w))
 		uniforms[9] = math.Float32bits(float32(h))
+	} else {
+		uniforms[8] = 0
+		uniforms[9] = 0
 	}
 
 	if shader.unit() == shaderir.Texels {
