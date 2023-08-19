@@ -18,13 +18,14 @@ import (
 	"sync"
 )
 
-type pos struct {
-	x, y int
+type posAndScale struct {
+	x, y  int
+	scale float64
 }
 
 var (
 	m     sync.Mutex
-	cache = map[pos]float64{}
+	cache []posAndScale
 )
 
 // GetAt returns the device scale at (x, y), i.e. the number of device-dependent pixels per device-independent pixel.
@@ -32,11 +33,19 @@ var (
 func GetAt(x, y int) float64 {
 	m.Lock()
 	defer m.Unlock()
-	if s, ok := cache[pos{x, y}]; ok {
-		return s
+
+	for _, p := range cache {
+		if p.x == x && p.y == y {
+			return p.scale
+		}
 	}
+
 	s := impl(x, y)
-	cache[pos{x, y}] = s
+	cache = append(cache, posAndScale{
+		x:     x,
+		y:     y,
+		scale: s,
+	})
 	return s
 }
 
@@ -50,7 +59,6 @@ func ClearCache() {
 
 	m.Lock()
 	defer m.Unlock()
-	for k := range cache {
-		delete(cache, k)
-	}
+
+	cache = cache[:0]
 }
