@@ -761,25 +761,19 @@ func (q *commandQueue) prependPreservedUniforms(uniforms []uint32, shader *Shade
 
 // uint32sBuffer is a reusable buffer to allocate []uint32.
 type uint32sBuffer struct {
-	buf [2][]uint32
-
-	// index is switched at the end of the frame,
-	// and the buffer of the original index is kept until the next frame ends.
-	index int
+	buf []uint32
 }
 
 func (b *uint32sBuffer) alloc(n int) []uint32 {
-	buf := b.buf[b.index]
+	buf := b.buf
 	if len(buf)+n > cap(buf) {
 		buf = make([]uint32, 0, max(roundUpPower2(len(buf)+n), 16))
 	}
 	s := buf[len(buf) : len(buf)+n]
-	b.buf[b.index] = buf[:len(buf)+n]
+	b.buf = buf[:len(buf)+n]
 	return s
 }
 
 func (b *uint32sBuffer) reset() {
-	b.buf[b.index] = b.buf[b.index][:0]
-	b.index++
-	b.index %= len(b.buf)
+	b.buf = b.buf[:0]
 }
