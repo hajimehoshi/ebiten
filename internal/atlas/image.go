@@ -66,16 +66,16 @@ const baseCountToPutOnSourceBackend = 10
 
 func putImagesOnSourceBackend(graphicsDriver graphicsdriver.Graphics) {
 	// The counter usedAsDestinationCount is updated at most once per frame (#2676).
-	for i := range imagesUsedAsDestination {
+	imagesUsedAsDestination.forEach(func(i *Image) {
 		// This counter is not updated when the backend is created in this frame.
 		if !i.backendCreatedInThisFrame && i.usedAsDestinationCount < math.MaxInt {
 			i.usedAsDestinationCount++
 		}
 		i.backendCreatedInThisFrame = false
-		delete(imagesUsedAsDestination, i)
-	}
+	})
+	imagesUsedAsDestination.clear()
 
-	for i := range imagesToPutOnSourceBackend {
+	imagesToPutOnSourceBackend.forEach(func(i *Image) {
 		if i.usedAsSourceCount < math.MaxInt {
 			i.usedAsSourceCount++
 		}
@@ -83,8 +83,8 @@ func putImagesOnSourceBackend(graphicsDriver graphicsdriver.Graphics) {
 			i.putOnSourceBackend(graphicsDriver)
 			i.usedAsSourceCount = 0
 		}
-		delete(imagesToPutOnSourceBackend, i)
-	}
+	})
+	imagesToPutOnSourceBackend.clear()
 }
 
 type backend struct {
@@ -126,9 +126,9 @@ var (
 	// theBackends is a set of atlases.
 	theBackends []*backend
 
-	imagesToPutOnSourceBackend = map[*Image]struct{}{}
+	imagesToPutOnSourceBackend smallImageSet
 
-	imagesUsedAsDestination = map[*Image]struct{}{}
+	imagesUsedAsDestination smallImageSet
 
 	deferred []func()
 
@@ -213,7 +213,7 @@ func (i *Image) isOnSourceBackend() bool {
 
 func (i *Image) resetUsedAsSourceCount() {
 	i.usedAsSourceCount = 0
-	delete(imagesToPutOnSourceBackend, i)
+	imagesToPutOnSourceBackend.remove(i)
 }
 
 func (i *Image) paddingSize() int {
@@ -228,7 +228,7 @@ func (i *Image) ensureIsolatedFromSource(backends []*backend) {
 
 	// imagesUsedAsDestination affects the counter usedAsDestination.
 	// The larger this counter is, the harder it is for the image to be transferred to the source backend.
-	imagesUsedAsDestination[i] = struct{}{}
+	imagesUsedAsDestination.add(i)
 
 	if i.backend == nil {
 		// `sourceInThisFrame` of `backends` should be true, so `backends` should be in `bs`.
@@ -453,7 +453,7 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 		}
 		if !src.isOnSourceBackend() && src.canBePutOnAtlas() {
 			// src might already registered, but assigning it again is not harmful.
-			imagesToPutOnSourceBackend[src] = struct{}{}
+			imagesToPutOnSourceBackend.add(src)
 		}
 	}
 }
