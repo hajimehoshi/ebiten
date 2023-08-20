@@ -59,7 +59,22 @@ type Blend struct {
 	BlendOperationAlpha BlendOperation
 }
 
+var (
+	defaultBlendInternalBlend = graphicsdriver.Blend{
+		BlendFactorSourceRGB:        BlendFactorDefault.internalBlendFactor(true),
+		BlendFactorSourceAlpha:      BlendFactorDefault.internalBlendFactor(true),
+		BlendFactorDestinationRGB:   BlendFactorDefault.internalBlendFactor(false),
+		BlendFactorDestinationAlpha: BlendFactorDefault.internalBlendFactor(false),
+		BlendOperationRGB:           BlendOperationAdd.internalBlendOperation(),
+		BlendOperationAlpha:         BlendOperationAdd.internalBlendOperation(),
+	}
+)
+
 func (b Blend) internalBlend() graphicsdriver.Blend {
+	// A shortcut for the most common blend.
+	if b == (Blend{}) {
+		return defaultBlendInternalBlend
+	}
 	return graphicsdriver.Blend{
 		BlendFactorSourceRGB:        b.BlendFactorSourceRGB.internalBlendFactor(true),
 		BlendFactorSourceAlpha:      b.BlendFactorSourceAlpha.internalBlendFactor(true),
