@@ -662,8 +662,6 @@ func (q *commandQueue) prependPreservedUniforms(uniforms []uint32, shader *Shade
 	origUniforms := uniforms
 	uniforms = q.uint32sBuffer.alloc(len(origUniforms) + graphics.PreservedUniformUint32Count)
 	copy(uniforms[graphics.PreservedUniformUint32Count:], origUniforms)
-	// Check the slice length explicitly to reduce boundary checks.
-	_ = uniforms[:graphics.PreservedUniformUint32Count]
 
 	// Set the destination texture size.
 	dw, dh := dst.InternalSize()
