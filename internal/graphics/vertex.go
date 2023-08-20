@@ -80,7 +80,7 @@ func QuadVertices(dst []float32, sx0, sy0, sx1, sy1 float32, a, b, c, d, tx, ty 
 	u0, v0, u1, v1 := sx0, sy0, sx1, sy1
 
 	// This function is very performance-sensitive and implement in a very dumb way.
-	_ = dst[:4*VertexFloatCount]
+	dst = dst[:4*VertexFloatCount]
 
 	dst[0] = adjustDestinationPixel(tx)
 	dst[1] = adjustDestinationPixel(ty)
