@@ -100,8 +100,8 @@ func switchCommandQueue() {
 func (q *commandQueue) appendIndices(indices []uint16, offset uint16) {
 	n := len(q.indices)
 	q.indices = append(q.indices, indices...)
-	for i := range indices {
-		q.indices[n+i] += offset
+	for i := n; i < len(q.indices); i++ {
+		q.indices[i] += offset
 	}
 }
 
