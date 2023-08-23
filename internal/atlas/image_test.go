@@ -826,4 +826,41 @@ func TestDestinationCountOverflow(t *testing.T) {
 	}
 }
 
+// Issue #2729
+func TestIteratingImagesToPutOnSourceBackend(t *testing.T) {
+	const w, h = 16, 16
+	src := atlas.NewImage(w, h, atlas.ImageTypeRegular)
+	defer src.MarkDisposed()
+	srcs := make([]*atlas.Image, 10)
+	for i := range srcs {
+		srcs[i] = atlas.NewImage(w, h, atlas.ImageTypeRegular)
+		defer srcs[i].MarkDisposed()
+	}
+	dst := atlas.NewImage(w, h, atlas.ImageTypeRegular)
+	defer dst.MarkDisposed()
+
+	// Use srcs as detinations once.
+	vs := quadVertices(w, h, 0, 0, 1)
+	is := graphics.QuadIndices()
+	dr := graphicsdriver.Region{
+		X:      0,
+		Y:      0,
+		Width:  w,
+		Height: h,
+	}
+	for _, img := range srcs {
+		img.DrawTriangles([graphics.ShaderImageCount]*atlas.Image{src}, vs, is, graphicsdriver.BlendCopy, dr, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, atlas.NearestFilterShader, nil, false)
+	}
+	atlas.PutImagesOnSourceBackendForTesting(ui.GraphicsDriverForTesting())
+
+	// Use srcs as sources. This will register an image to imagesToPutOnSourceBackend.
+	// Check iterating the registered image works correctly.
+	for i := 0; i < 100; i++ {
+		for _, src := range srcs {
+			dst.DrawTriangles([graphics.ShaderImageCount]*atlas.Image{src}, vs, is, graphicsdriver.BlendCopy, dr, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, atlas.NearestFilterShader, nil, false)
+		}
+		atlas.PutImagesOnSourceBackendForTesting(ui.GraphicsDriverForTesting())
+	}
+}
+
 // TODO: Add tests to extend image on an atlas out of the main loop

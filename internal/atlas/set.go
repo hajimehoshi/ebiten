@@ -19,9 +19,14 @@ package atlas
 // If the number of items is big, a map might be better than a slice.
 type smallImageSet struct {
 	s []*Image
+
+	tmp []*Image
 }
 
 func (s *smallImageSet) add(image *Image) {
+	if image == nil {
+		panic("atlas: nil image cannot be added")
+	}
 	for _, img := range s.s {
 		if img == image {
 			return
@@ -42,9 +47,18 @@ func (s *smallImageSet) remove(image *Image) {
 }
 
 func (s *smallImageSet) forEach(f func(*Image)) {
-	for _, img := range s.s {
+	// Copy images to a temporary buffer since f might modify the original slice s.s (#2729).
+	s.tmp = append(s.tmp, s.s...)
+
+	for _, img := range s.tmp {
 		f(img)
 	}
+
+	// Clear the temporary buffer.
+	for i := range s.tmp {
+		s.tmp[i] = nil
+	}
+	s.tmp = s.tmp[:0]
 }
 
 func (s *smallImageSet) clear() {
