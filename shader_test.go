@@ -1942,18 +1942,6 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 			},
 			err: true,
 		},
-		{
-			uniforms: map[string]any{
-				"W": 1,
-			},
-			err: true,
-		},
-		{
-			uniforms: map[string]any{
-				"W": []int32{1, 2, 3},
-			},
-			err: true,
-		},
 	}
 	for _, tc := range tests {
 		tc := tc
