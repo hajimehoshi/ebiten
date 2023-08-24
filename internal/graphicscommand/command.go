@@ -709,9 +709,11 @@ func (q *commandQueue) prependPreservedUniforms(uniforms []uint32, shader *Shade
 		dstRegion.Height /= float32(dh)
 	}
 
-	// Set the destination region.
+	// Set the destination region origin.
 	uniforms[10] = math.Float32bits(dstRegion.X)
 	uniforms[11] = math.Float32bits(dstRegion.Y)
+
+	// Set the destination region size.
 	uniforms[12] = math.Float32bits(dstRegion.Width)
 	uniforms[13] = math.Float32bits(dstRegion.Height)
 
@@ -723,7 +725,7 @@ func (q *commandQueue) prependPreservedUniforms(uniforms []uint32, shader *Shade
 		srcRegion.Height /= float32(h)
 	}
 
-	// Set the source offsets.
+	// Set the source region offsets.
 	uniforms[14] = math.Float32bits(offsets[0][0])
 	uniforms[15] = math.Float32bits(offsets[0][1])
 	uniforms[16] = math.Float32bits(offsets[1][0])
@@ -731,28 +733,38 @@ func (q *commandQueue) prependPreservedUniforms(uniforms []uint32, shader *Shade
 	uniforms[18] = math.Float32bits(offsets[2][0])
 	uniforms[19] = math.Float32bits(offsets[2][1])
 
-	// Set the source region of texture0.
+	// Set the source region origin.
 	uniforms[20] = math.Float32bits(srcRegion.X)
 	uniforms[21] = math.Float32bits(srcRegion.Y)
+
+	// Set the source region sizes.
+	// TODO: Set a different sizes for a different source (#1870).
 	uniforms[22] = math.Float32bits(srcRegion.Width)
 	uniforms[23] = math.Float32bits(srcRegion.Height)
+	uniforms[24] = math.Float32bits(srcRegion.Width)
+	uniforms[25] = math.Float32bits(srcRegion.Height)
+	uniforms[26] = math.Float32bits(srcRegion.Width)
+	uniforms[27] = math.Float32bits(srcRegion.Height)
+	uniforms[28] = math.Float32bits(srcRegion.Width)
+	uniforms[29] = math.Float32bits(srcRegion.Height)
 
-	uniforms[24] = math.Float32bits(2 / float32(dw))
-	uniforms[25] = 0
-	uniforms[26] = 0
-	uniforms[27] = 0
-	uniforms[28] = 0
-	uniforms[29] = math.Float32bits(2 / float32(dh))
-	uniforms[30] = 0
+	// Set the projection matrix.
+	uniforms[30] = math.Float32bits(2 / float32(dw))
 	uniforms[31] = 0
 	uniforms[32] = 0
 	uniforms[33] = 0
-	uniforms[34] = math.Float32bits(1)
-	uniforms[35] = 0
-	uniforms[36] = math.Float32bits(-1)
-	uniforms[37] = math.Float32bits(-1)
+	uniforms[34] = 0
+	uniforms[35] = math.Float32bits(2 / float32(dh))
+	uniforms[36] = 0
+	uniforms[37] = 0
 	uniforms[38] = 0
-	uniforms[39] = math.Float32bits(1)
+	uniforms[39] = 0
+	uniforms[40] = math.Float32bits(1)
+	uniforms[41] = 0
+	uniforms[42] = math.Float32bits(-1)
+	uniforms[43] = math.Float32bits(-1)
+	uniforms[44] = 0
+	uniforms[45] = math.Float32bits(1)
 
 	return uniforms
 }

@@ -25,29 +25,22 @@ const (
 	// Any shaders in Ebitengine must have these uniform variables.
 	PreservedUniformVariablesCount = 1 + // the destination texture size
 		1 + // the source texture sizes array
-		1 + // the destination image region's origin
-		1 + // the destination image region's size
+		1 + // the destination image region origin
+		1 + // the destination image region size
 		1 + // the offsets array of the second and the following source images
-		1 + // the source image region's origin
-		1 + // the source image region's size
+		1 + // the source image region origin
+		1 + // the source image region sizes array
 		1 // the projection matrix
 
-	TextureDestinationSizeUniformVariableIndex       = 0
-	TextureSourceSizesUniformVariableIndex           = 1
-	ImageDestinationRegionOriginUniformVariableIndex = 2
-	ImageDestinationRegionSizeUniformVariableIndex   = 3
-	ImageSourceOffsetsUniformVariableIndex           = 4
-	ImageSourceRegionOriginUniformVariableIndex      = 5
-	ImageSourceRegionSizeUniformVariableIndex        = 6
-	ProjectionMatrixUniformVariableIndex             = 7
+	ProjectionMatrixUniformVariableIndex = 7
 
 	PreservedUniformUint32Count = 2 + // the destination texture size
 		2*ShaderImageCount + // the source texture sizes array
-		2 + // the destination image region's origin
-		2 + // the destination image region's size
+		2 + // the destination image region origin
+		2 + // the destination image region size
 		2*(ShaderImageCount-1) + // the offsets array of the second and the following source images
-		2 + // the source image region's origin
-		2 + // the source image region's size
+		2 + // the source image region origin
+		2*ShaderImageCount + // the source image region sizes array
 		16 // the projection matrix
 )
 

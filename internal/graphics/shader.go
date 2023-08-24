@@ -63,14 +63,14 @@ var __imageSrcOffsets [%[2]d]vec2
 var __imageSrcRegionOrigin vec2
 
 // The unit is the source texture's pixel or texel.
-var __imageSrcRegionSize vec2
+var __imageSrcRegionSizes [%[1]d]vec2
 
 // imageSrcRegionOnTexture returns the source image's region (the origin and the size) on its texture.
 // The unit is the source texture's pixel or texel.
 //
 // As an image is a part of internal texture, the image can be located at an arbitrary position on the texture.
 func imageSrcRegionOnTexture() (vec2, vec2) {
-	return __imageSrcRegionOrigin, __imageSrcRegionSize
+	return __imageSrcRegionOrigin, __imageSrcRegionSizes[0]
 }
 `, ShaderImageCount, ShaderImageCount-1)
 
@@ -97,7 +97,7 @@ func imageSrc%[1]dUnsafeAt(pos vec2) vec4 {
 func imageSrc%[1]dAt(pos vec2) vec4 {
 	// pos is the position of the source texture (= 0th image's texture).
 	// If pos is in the region, the result is (1, 1). Otherwise, either element is 0.
-	in := step(__imageSrcRegionOrigin, pos) - step(__imageSrcRegionOrigin + __imageSrcRegionSize, pos)
+	in := step(__imageSrcRegionOrigin, pos) - step(__imageSrcRegionOrigin + __imageSrcRegionSizes[%[1]d], pos)
 	return __texelAt(__t%[1]d, %[2]s) * in.x * in.y
 }
 `, i, pos)
