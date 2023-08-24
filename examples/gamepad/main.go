@@ -67,7 +67,7 @@ func (g *Game) Update() error {
 		}
 
 		maxButton := ebiten.GamepadButton(ebiten.GamepadButtonCount(id))
-		for b := ebiten.GamepadButton(id); b < maxButton; b++ {
+		for b := ebiten.GamepadButton(0); b < maxButton; b++ {
 			if ebiten.IsGamepadButtonPressed(id, b) {
 				g.pressedButtons[id] = append(g.pressedButtons[id], strconv.Itoa(int(b)))
 			}
