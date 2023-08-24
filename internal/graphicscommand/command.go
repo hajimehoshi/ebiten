@@ -111,7 +111,7 @@ func mustUseDifferentVertexBuffer(nextNumVertexFloats int) bool {
 }
 
 // EnqueueDrawTrianglesCommand enqueues a drawing-image command.
-func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.ShaderImageCount]*Image, offsets [graphics.ShaderImageCount - 1][2]float32, vertices []float32, indices []uint16, blend graphicsdriver.Blend, dstRegion, srcRegion graphicsdriver.Region, shader *Shader, uniforms []uint32, evenOdd bool) {
+func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint16, blend graphicsdriver.Blend, dstRegion graphicsdriver.Region, srcRegions [graphics.ShaderImageCount]graphicsdriver.Region, shader *Shader, uniforms []uint32, evenOdd bool) {
 	if len(vertices) > graphics.MaxVertexFloatsCount {
 		panic(fmt.Sprintf("graphicscommand: len(vertices) must equal to or less than %d but was %d", graphics.MaxVertexFloatsCount, len(vertices)))
 	}
@@ -131,7 +131,7 @@ func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.Sh
 	// prependPreservedUniforms not only prepends values to the given slice but also creates a new slice.
 	// Allocating a new slice is necessary to make EnqueueDrawTrianglesCommand safe so far.
 	// TODO: This might cause a performance issue (#2601).
-	uniforms = q.prependPreservedUniforms(uniforms, shader, dst, srcs, offsets, dstRegion, srcRegion)
+	uniforms = q.prependPreservedUniforms(uniforms, shader, dst, srcs, dstRegion, srcRegions)
 
 	// Remove unused uniform variables so that more commands can be merged.
 	shader.ir.FilterUniformVariables(uniforms)
@@ -662,7 +662,7 @@ func roundUpPower2(x int) int {
 	return p2
 }
 
-func (q *commandQueue) prependPreservedUniforms(uniforms []uint32, shader *Shader, dst *Image, srcs [graphics.ShaderImageCount]*Image, offsets [graphics.ShaderImageCount - 1][2]float32, dstRegion, srcRegion graphicsdriver.Region) []uint32 {
+func (q *commandQueue) prependPreservedUniforms(uniforms []uint32, shader *Shader, dst *Image, srcs [graphics.ShaderImageCount]*Image, dstRegion graphicsdriver.Region, srcRegions [graphics.ShaderImageCount]graphicsdriver.Region) []uint32 {
 	origUniforms := uniforms
 	uniforms = q.uint32sBuffer.alloc(len(origUniforms) + graphics.PreservedUniformUint32Count)
 	copy(uniforms[graphics.PreservedUniformUint32Count:], origUniforms)
@@ -721,36 +721,38 @@ func (q *commandQueue) prependPreservedUniforms(uniforms []uint32, shader *Shade
 	uniforms[12] = math.Float32bits(dstRegion.Width)
 	uniforms[13] = math.Float32bits(dstRegion.Height)
 
-	if shader.unit() == shaderir.Texels && srcs[0] != nil {
-		w, h := srcs[0].InternalSize()
-		srcRegion.X /= float32(w)
-		srcRegion.Y /= float32(h)
-		srcRegion.Width /= float32(w)
-		srcRegion.Height /= float32(h)
+	if shader.unit() == shaderir.Texels {
+		for i, src := range srcs {
+			if src == nil {
+				continue
+			}
+			w, h := src.InternalSize()
+			srcRegions[i].X /= float32(w)
+			srcRegions[i].Y /= float32(h)
+			srcRegions[i].Width /= float32(w)
+			srcRegions[i].Height /= float32(h)
+		}
 	}
 
-	// Set the source region offsets.
-	uniforms[14] = math.Float32bits(offsets[0][0])
-	uniforms[15] = math.Float32bits(offsets[0][1])
-	uniforms[16] = math.Float32bits(offsets[1][0])
-	uniforms[17] = math.Float32bits(offsets[1][1])
-	uniforms[18] = math.Float32bits(offsets[2][0])
-	uniforms[19] = math.Float32bits(offsets[2][1])
-
-	// Set the source region origin.
-	uniforms[20] = math.Float32bits(srcRegion.X)
-	uniforms[21] = math.Float32bits(srcRegion.Y)
+	// Set the source region origins.
+	uniforms[14] = math.Float32bits(srcRegions[0].X)
+	uniforms[15] = math.Float32bits(srcRegions[0].Y)
+	uniforms[16] = math.Float32bits(srcRegions[1].X)
+	uniforms[17] = math.Float32bits(srcRegions[1].Y)
+	uniforms[18] = math.Float32bits(srcRegions[2].X)
+	uniforms[19] = math.Float32bits(srcRegions[2].Y)
+	uniforms[20] = math.Float32bits(srcRegions[3].X)
+	uniforms[21] = math.Float32bits(srcRegions[3].Y)
 
 	// Set the source region sizes.
-	// TODO: Set a different sizes for a different source (#1870).
-	uniforms[22] = math.Float32bits(srcRegion.Width)
-	uniforms[23] = math.Float32bits(srcRegion.Height)
-	uniforms[24] = math.Float32bits(srcRegion.Width)
-	uniforms[25] = math.Float32bits(srcRegion.Height)
-	uniforms[26] = math.Float32bits(srcRegion.Width)
-	uniforms[27] = math.Float32bits(srcRegion.Height)
-	uniforms[28] = math.Float32bits(srcRegion.Width)
-	uniforms[29] = math.Float32bits(srcRegion.Height)
+	uniforms[22] = math.Float32bits(srcRegions[0].Width)
+	uniforms[23] = math.Float32bits(srcRegions[0].Height)
+	uniforms[24] = math.Float32bits(srcRegions[1].Width)
+	uniforms[25] = math.Float32bits(srcRegions[1].Height)
+	uniforms[26] = math.Float32bits(srcRegions[2].Width)
+	uniforms[27] = math.Float32bits(srcRegions[2].Height)
+	uniforms[28] = math.Float32bits(srcRegions[3].Width)
+	uniforms[29] = math.Float32bits(srcRegions[3].Height)
 
 	// Set the projection matrix.
 	uniforms[30] = math.Float32bits(2 / float32(dw))

@@ -66,7 +66,7 @@ func (m *Mipmap) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byt
 	return m.orig.ReadPixels(graphicsDriver, pixels, region)
 }
 
-func (m *Mipmap) DrawTriangles(srcs [graphics.ShaderImageCount]*Mipmap, vertices []float32, indices []uint16, blend graphicsdriver.Blend, dstRegion, srcRegion graphicsdriver.Region, subimageOffsets [graphics.ShaderImageCount - 1][2]float32, shader *Shader, uniforms []uint32, evenOdd bool, canSkipMipmap bool) {
+func (m *Mipmap) DrawTriangles(srcs [graphics.ShaderImageCount]*Mipmap, vertices []float32, indices []uint16, blend graphicsdriver.Blend, dstRegion graphicsdriver.Region, srcRegions [graphics.ShaderImageCount]graphicsdriver.Region, shader *Shader, uniforms []uint32, evenOdd bool, canSkipMipmap bool) {
 	if len(indices) == 0 {
 		return
 	}
@@ -124,7 +124,7 @@ func (m *Mipmap) DrawTriangles(srcs [graphics.ShaderImageCount]*Mipmap, vertices
 		imgs[i] = src.orig
 	}
 
-	m.orig.DrawTriangles(imgs, vertices, indices, blend, dstRegion, srcRegion, subimageOffsets, shader.shader, uniforms, evenOdd)
+	m.orig.DrawTriangles(imgs, vertices, indices, blend, dstRegion, srcRegions, shader.shader, uniforms, evenOdd)
 	m.disposeMipmaps()
 }
 
@@ -193,7 +193,7 @@ func (m *Mipmap) level(level int) *buffered.Image {
 		Width:  float32(w2),
 		Height: float32(h2),
 	}
-	s.DrawTriangles([graphics.ShaderImageCount]*buffered.Image{src}, vs, is, graphicsdriver.BlendCopy, dstRegion, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, shader.shader, nil, false)
+	s.DrawTriangles([graphics.ShaderImageCount]*buffered.Image{src}, vs, is, graphicsdriver.BlendCopy, dstRegion, [graphics.ShaderImageCount]graphicsdriver.Region{}, shader.shader, nil, false)
 	m.setImg(level, s)
 
 	return m.imgs[level]

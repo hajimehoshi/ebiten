@@ -149,7 +149,7 @@ func (i *Image) writePixelsImpl(pix []byte, region image.Rectangle) {
 // DrawTriangles draws the src image with the given vertices.
 //
 // Copying vertices and indices is the caller's responsibility.
-func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint16, blend graphicsdriver.Blend, dstRegion, srcRegion graphicsdriver.Region, subimageOffsets [graphics.ShaderImageCount - 1][2]float32, shader *Shader, uniforms []uint32, evenOdd bool) {
+func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint16, blend graphicsdriver.Blend, dstRegion graphicsdriver.Region, srcRegions [graphics.ShaderImageCount]graphicsdriver.Region, shader *Shader, uniforms []uint32, evenOdd bool) {
 	for _, src := range srcs {
 		if i == src {
 			panic("buffered: Image.DrawTriangles: source images must be different from the receiver")
@@ -164,15 +164,15 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 		us := make([]uint32, len(uniforms))
 		copy(us, uniforms)
 		if tryAddDelayedCommand(func() {
-			i.drawTrianglesImpl(srcs, vs, is, blend, dstRegion, srcRegion, subimageOffsets, shader, us, evenOdd)
+			i.drawTrianglesImpl(srcs, vs, is, blend, dstRegion, srcRegions, shader, us, evenOdd)
 		}) {
 			return
 		}
 	}
-	i.drawTrianglesImpl(srcs, vertices, indices, blend, dstRegion, srcRegion, subimageOffsets, shader, uniforms, evenOdd)
+	i.drawTrianglesImpl(srcs, vertices, indices, blend, dstRegion, srcRegions, shader, uniforms, evenOdd)
 }
 
-func (i *Image) drawTrianglesImpl(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint16, blend graphicsdriver.Blend, dstRegion, srcRegion graphicsdriver.Region, subimageOffsets [graphics.ShaderImageCount - 1][2]float32, shader *Shader, uniforms []uint32, evenOdd bool) {
+func (i *Image) drawTrianglesImpl(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint16, blend graphicsdriver.Blend, dstRegion graphicsdriver.Region, srcRegions [graphics.ShaderImageCount]graphicsdriver.Region, shader *Shader, uniforms []uint32, evenOdd bool) {
 	var imgs [graphics.ShaderImageCount]*atlas.Image
 	for i, img := range srcs {
 		if img == nil {
@@ -182,7 +182,7 @@ func (i *Image) drawTrianglesImpl(srcs [graphics.ShaderImageCount]*Image, vertic
 	}
 
 	i.invalidatePixels()
-	i.img.DrawTriangles(imgs, vertices, indices, blend, dstRegion, srcRegion, subimageOffsets, shader.shader, uniforms, evenOdd)
+	i.img.DrawTriangles(imgs, vertices, indices, blend, dstRegion, srcRegions, shader.shader, uniforms, evenOdd)
 }
 
 type Shader struct {

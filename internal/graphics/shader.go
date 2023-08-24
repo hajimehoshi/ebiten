@@ -33,13 +33,13 @@ func imageDstTextureSize() vec2 {
 `
 
 	shaderSuffix += fmt.Sprintf(`
-var __srcTextureSizes [%[1]d]vec2
+var __imageSrcTextureSizes [%[1]d]vec2
 
 // imageSrcTextureSize returns the source image's texture size in pixels.
 // As an image is a part of internal texture, the texture is usually bigger than the image.
 // The texture's size is useful when you want to calculate pixels from texels in the texel mode.
 func imageSrcTextureSize() vec2 {
-	return __srcTextureSizes[0]
+	return __imageSrcTextureSizes[0]
 }
 
 // The unit is the source texture's pixel or texel.
@@ -56,11 +56,8 @@ func imageDstRegionOnTexture() (vec2, vec2) {
 	return __imageDstRegionOrigin, __imageDstRegionSize
 }
 
-// The unit is the source texture's pixel.
-var __imageSrcOffsets [%[2]d]vec2
-
 // The unit is the source texture's pixel or texel.
-var __imageSrcRegionOrigin vec2
+var __imageSrcRegionOrigins [%[1]d]vec2
 
 // The unit is the source texture's pixel or texel.
 var __imageSrcRegionSizes [%[1]d]vec2
@@ -70,9 +67,9 @@ var __imageSrcRegionSizes [%[1]d]vec2
 //
 // As an image is a part of internal texture, the image can be located at an arbitrary position on the texture.
 func imageSrcRegionOnTexture() (vec2, vec2) {
-	return __imageSrcRegionOrigin, __imageSrcRegionSizes[0]
+	return __imageSrcRegionOrigins[0], __imageSrcRegionSizes[0]
 }
-`, ShaderImageCount, ShaderImageCount-1)
+`, ShaderImageCount)
 
 	for i := 0; i < ShaderImageCount; i++ {
 		pos := "pos"
@@ -80,9 +77,9 @@ func imageSrcRegionOnTexture() (vec2, vec2) {
 			// Convert the position in texture0's positions to the target texture positions.
 			switch unit {
 			case shaderir.Pixels:
-				pos = fmt.Sprintf("pos + __imageSrcOffsets[%d]", i-1)
+				pos = fmt.Sprintf("pos - __imageSrcRegionOrigins[0] + __imageSrcRegionOrigins[%d]", i)
 			case shaderir.Texels:
-				pos = fmt.Sprintf("(pos * __srcTextureSizes[0] + __imageSrcOffsets[%d]) / __srcTextureSizes[%d]", i-1, i)
+				pos = fmt.Sprintf("((pos - __imageSrcRegionOrigins[0]) * __imageSrcTextureSizes[0]) / __imageSrcTextureSizes[%[1]d] + __imageSrcRegionOrigins[%[1]d]", i)
 			default:
 				return "", fmt.Errorf("graphics: unexpected unit: %d", unit)
 			}
@@ -93,14 +90,29 @@ func imageSrc%[1]dUnsafeAt(pos vec2) vec4 {
 	// pos is the position in positions of the source texture (= 0th image's texture).
 	return __texelAt(__t%[1]d, %[2]s)
 }
-
+`, i, pos)
+		switch unit {
+		case shaderir.Pixels:
+			shaderSuffix += fmt.Sprintf(`
 func imageSrc%[1]dAt(pos vec2) vec4 {
 	// pos is the position of the source texture (= 0th image's texture).
 	// If pos is in the region, the result is (1, 1). Otherwise, either element is 0.
-	in := step(__imageSrcRegionOrigin, pos) - step(__imageSrcRegionOrigin + __imageSrcRegionSizes[%[1]d], pos)
+	in := step(__imageSrcRegionOrigins[0], pos) - step(__imageSrcRegionOrigins[0] + __imageSrcRegionSizes[%[1]d], pos)
 	return __texelAt(__t%[1]d, %[2]s) * in.x * in.y
 }
 `, i, pos)
+		case shaderir.Texels:
+			shaderSuffix += fmt.Sprintf(`
+func imageSrc%[1]dAt(pos vec2) vec4 {
+	// pos is the position of the source texture (= 0th image's texture).
+	// If pos is in the region, the result is (1, 1). Otherwise, either element is 0.
+	// With the texel mode, all the source region sizes are the same (#1870).
+	// As pos is in texels of the 0th texture, always use the 0th image region size.
+	in := step(__imageSrcRegionOrigins[0], pos) - step(__imageSrcRegionOrigins[0] + __imageSrcRegionSizes[0], pos)
+	return __texelAt(__t%[1]d, %[2]s) * in.x * in.y
+}
+`, i, pos)
+		}
 	}
 
 	shaderSuffix += `

@@ -270,7 +270,7 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) {
 		})
 	}
 
-	i.image.DrawTriangles(srcs, vs, is, blend, i.adjustedRegion(), img.adjustedRegion(), [graphics.ShaderImageCount - 1][2]float32{}, shader.shader, i.tmpUniforms, false, canSkipMipmap(geoM, filter), false)
+	i.image.DrawTriangles(srcs, vs, is, blend, i.adjustedRegion(), [graphics.ShaderImageCount]graphicsdriver.Region{img.adjustedRegion()}, shader.shader, i.tmpUniforms, false, canSkipMipmap(geoM, filter), false)
 }
 
 // Vertex represents a vertex passed to DrawTriangles.
@@ -515,7 +515,7 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 		})
 	}
 
-	i.image.DrawTriangles(srcs, vs, is, blend, i.adjustedRegion(), img.adjustedRegion(), [graphics.ShaderImageCount - 1][2]float32{}, shader.shader, i.tmpUniforms, options.FillRule == EvenOdd, filter != builtinshader.FilterLinear, options.AntiAlias)
+	i.image.DrawTriangles(srcs, vs, is, blend, i.adjustedRegion(), [graphics.ShaderImageCount]graphicsdriver.Region{img.adjustedRegion()}, shader.shader, i.tmpUniforms, options.FillRule == EvenOdd, filter != builtinshader.FilterLinear, options.AntiAlias)
 }
 
 // DrawTrianglesShaderOptions represents options for DrawTrianglesShader.
@@ -659,28 +659,18 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 		imgs[i] = img.image
 	}
 
-	var sr graphicsdriver.Region
-	if img := options.Images[0]; img != nil {
-		sr = img.adjustedRegion()
-	}
-
-	var offsets [graphics.ShaderImageCount - 1][2]float32
-	for i, img := range options.Images[1:] {
+	var srcRegions [graphics.ShaderImageCount]graphicsdriver.Region
+	for i, img := range options.Images {
 		if img == nil {
 			continue
 		}
-		b := img.Bounds()
-		x, y := img.adjustPosition(b.Min.X, b.Min.Y)
-		// (sr.X, sr.Y) is the upper-left position of the first image.
-		// Calculate the distance between the current image's upper-left position and the first one's.
-		offsets[i][0] = float32(x) - sr.X
-		offsets[i][1] = float32(y) - sr.Y
+		srcRegions[i] = img.adjustedRegion()
 	}
 
 	i.tmpUniforms = i.tmpUniforms[:0]
 	i.tmpUniforms = shader.appendUniforms(i.tmpUniforms, options.Uniforms)
 
-	i.image.DrawTriangles(imgs, vs, is, blend, i.adjustedRegion(), sr, offsets, shader.shader, i.tmpUniforms, options.FillRule == EvenOdd, true, options.AntiAlias)
+	i.image.DrawTriangles(imgs, vs, is, blend, i.adjustedRegion(), srcRegions, shader.shader, i.tmpUniforms, options.FillRule == EvenOdd, true, options.AntiAlias)
 }
 
 // DrawRectShaderOptions represents options for DrawRectShader.
@@ -775,16 +765,20 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 		imgs[i] = img.image
 	}
 
-	var sr graphicsdriver.Region
-	if img := options.Images[0]; img != nil {
-		sr = img.adjustedRegion()
-	} else if shader.unit == shaderir.Pixels {
-		// Give the source size as pixels only when the unit is pixels so that users can get the source size via imageSrcRegionOnTexture (#2166).
-		// With the texel mode, the imageSrcRegionOnTexture values should be in texels so the source position in pixels would not match.
-		sr = graphicsdriver.Region{
-			Width:  float32(width),
-			Height: float32(height),
+	var srcRegions [graphics.ShaderImageCount]graphicsdriver.Region
+	for i, img := range options.Images {
+		if img == nil {
+			if shader.unit == shaderir.Pixels && i == 0 {
+				// Give the source size as pixels only when the unit is pixels so that users can get the source size via imageSrcRegionOnTexture (#2166).
+				// With the texel mode, the imageSrcRegionOnTexture values should be in texels so the source position in pixels would not match.
+				srcRegions[i] = graphicsdriver.Region{
+					Width:  float32(width),
+					Height: float32(height),
+				}
+			}
+			continue
 		}
+		srcRegions[i] = img.adjustedRegion()
 	}
 
 	geoM := options.GeoM
@@ -794,27 +788,15 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 	a, b, c, d, tx, ty := geoM.elements32()
 	cr, cg, cb, ca := options.ColorScale.elements()
 	vs := i.ensureTmpVertices(4 * graphics.VertexFloatCount)
-	// Do not use sr.Width and sr.Height as these might be empty.
-	graphics.QuadVertices(vs, sr.X, sr.Y, sr.X+float32(width), sr.Y+float32(height), a, b, c, d, tx, ty, cr, cg, cb, ca)
-	is := graphics.QuadIndices()
 
-	var offsets [graphics.ShaderImageCount - 1][2]float32
-	for i, img := range options.Images[1:] {
-		if img == nil {
-			continue
-		}
-		b := img.Bounds()
-		x, y := img.adjustPosition(b.Min.X, b.Min.Y)
-		// (sr.X, sr.Y) is the upper-left position of the first image.
-		// Calculate the distance between the current image's upper-left position and the first one's.
-		offsets[i][0] = float32(x) - sr.X
-		offsets[i][1] = float32(y) - sr.Y
-	}
+	// Do not use srcRegions[0].Width and srcRegions[-].Height as these might be empty.
+	graphics.QuadVertices(vs, srcRegions[0].X, srcRegions[0].Y, srcRegions[0].X+float32(width), srcRegions[0].Y+float32(height), a, b, c, d, tx, ty, cr, cg, cb, ca)
+	is := graphics.QuadIndices()
 
 	i.tmpUniforms = i.tmpUniforms[:0]
 	i.tmpUniforms = shader.appendUniforms(i.tmpUniforms, options.Uniforms)
 
-	i.image.DrawTriangles(imgs, vs, is, blend, i.adjustedRegion(), sr, offsets, shader.shader, i.tmpUniforms, false, true, false)
+	i.image.DrawTriangles(imgs, vs, is, blend, i.adjustedRegion(), srcRegions, shader.shader, i.tmpUniforms, false, true, false)
 }
 
 // SubImage returns an image representing the portion of the image p visible through r.

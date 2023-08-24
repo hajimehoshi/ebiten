@@ -41,12 +41,12 @@ func TestShaderFillTwice(t *testing.T) {
 	}
 	g := ui.GraphicsDriverForTesting()
 	s0 := atlas.NewShader(etesting.ShaderProgramFill(0xff, 0xff, 0xff, 0xff))
-	dst.DrawTriangles([graphics.ShaderImageCount]*atlas.Image{}, vs, is, graphicsdriver.BlendCopy, dr, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, s0, nil, false)
+	dst.DrawTriangles([graphics.ShaderImageCount]*atlas.Image{}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderImageCount]graphicsdriver.Region{}, s0, nil, false)
 
 	// Vertices must be recreated (#1755)
 	vs = quadVertices(w, h, 0, 0, 1)
 	s1 := atlas.NewShader(etesting.ShaderProgramFill(0x80, 0x80, 0x80, 0xff))
-	dst.DrawTriangles([graphics.ShaderImageCount]*atlas.Image{}, vs, is, graphicsdriver.BlendCopy, dr, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, s1, nil, false)
+	dst.DrawTriangles([graphics.ShaderImageCount]*atlas.Image{}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderImageCount]graphicsdriver.Region{}, s1, nil, false)
 
 	pix := make([]byte, 4*w*h)
 	if err := dst.ReadPixels(g, pix, image.Rect(0, 0, w, h)); err != nil {
@@ -74,11 +74,11 @@ func TestImageDrawTwice(t *testing.T) {
 		Width:  w,
 		Height: h,
 	}
-	dst.DrawTriangles([graphics.ShaderImageCount]*atlas.Image{src0}, vs, is, graphicsdriver.BlendCopy, dr, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, atlas.NearestFilterShader, nil, false)
+	dst.DrawTriangles([graphics.ShaderImageCount]*atlas.Image{src0}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderImageCount]graphicsdriver.Region{}, atlas.NearestFilterShader, nil, false)
 
 	// Vertices must be recreated (#1755)
 	vs = quadVertices(w, h, 0, 0, 1)
-	dst.DrawTriangles([graphics.ShaderImageCount]*atlas.Image{src1}, vs, is, graphicsdriver.BlendCopy, dr, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, atlas.NearestFilterShader, nil, false)
+	dst.DrawTriangles([graphics.ShaderImageCount]*atlas.Image{src1}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderImageCount]graphicsdriver.Region{}, atlas.NearestFilterShader, nil, false)
 
 	pix := make([]byte, 4*w*h)
 	if err := dst.ReadPixels(ui.GraphicsDriverForTesting(), pix, image.Rect(0, 0, w, h)); err != nil {
