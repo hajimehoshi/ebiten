@@ -197,9 +197,13 @@ func (q *commandQueue) Flush(graphicsDriver graphicsdriver.Graphics, endFrame bo
 		}
 	}
 
+	logger := debug.SwitchLogger()
+
 	var flushErr error
 	runOnRenderThread(func() {
-		if err := q.flush(graphicsDriver, endFrame); err != nil {
+		defer logger.Flush()
+
+		if err := q.flush(graphicsDriver, endFrame, logger); err != nil {
 			if sync {
 				return
 			}
@@ -220,7 +224,7 @@ func (q *commandQueue) Flush(graphicsDriver graphicsdriver.Graphics, endFrame bo
 }
 
 // flush must be called the main thread.
-func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics, endFrame bool) (err error) {
+func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics, endFrame bool, logger debug.Logger) (err error) {
 	// If endFrame is true, Begin/End should be called to ensure the framebuffer is swapped.
 	if len(q.commands) == 0 && !endFrame {
 		return nil
@@ -228,7 +232,7 @@ func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics, endFrame bo
 
 	es := q.indices
 	vs := q.vertices
-	debug.Logf("Graphics commands:\n")
+	logger.Logf("Graphics commands:\n")
 
 	if err := graphicsDriver.Begin(); err != nil {
 		return err
@@ -287,7 +291,7 @@ func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics, endFrame bo
 			if err := c.Exec(graphicsDriver, indexOffset); err != nil {
 				return err
 			}
-			debug.Logf("  %s\n", c)
+			logger.Logf("  %s\n", c)
 			// TODO: indexOffset should be reset if the command type is different
 			// from the previous one. This fix is needed when another drawing command is
 			// introduced than drawTrianglesCommand.

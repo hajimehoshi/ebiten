@@ -1,4 +1,4 @@
-// Copyright 2020 The Ebiten Authors
+// Copyright 2023 The Ebitengine Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,23 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !ebitenginedebug && !ebitendebug
-
 package debug
 
-const IsDebug = false
-
-func Logf(format string, args ...any) {
-}
-
-func SwitchLogger() Logger {
-	return dummyLogger{}
-}
-
-type dummyLogger struct{}
-
-func (dummyLogger) Logf(format string, args ...any) {
-}
-
-func (dummyLogger) Flush() {
+type Logger interface {
+	Logf(format string, args ...any)
+	Flush()
 }
