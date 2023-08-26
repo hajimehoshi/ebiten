@@ -35,7 +35,7 @@ func init() {
 	//go:cgo_import_dynamic _ _ "Metal.framework/Metal"
 
 	// It is also necessary for CoreGraphics to be linked
-	_, _ = purego.Dlopen("CoreGraphics.framework/CoreGraphics", purego.RTLD_LAZY|purego.RTLD_GLOBAL)
+	_, _ = purego.Dlopen("/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics", purego.RTLD_LAZY|purego.RTLD_GLOBAL)
 }
 
 func Example_listDevices() {

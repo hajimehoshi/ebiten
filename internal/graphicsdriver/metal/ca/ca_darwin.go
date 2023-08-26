@@ -52,7 +52,7 @@ type MetalLayer struct {
 //
 // Reference: https://developer.apple.com/documentation/quartzcore/cametallayer.
 func MakeMetalLayer() (MetalLayer, error) {
-	coreGraphics, err := purego.Dlopen("CoreGraphics.framework/CoreGraphics", purego.RTLD_LAZY|purego.RTLD_GLOBAL)
+	coreGraphics, err := purego.Dlopen("/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics", purego.RTLD_LAZY|purego.RTLD_GLOBAL)
 	if err != nil {
 		return MetalLayer{}, err
 	}

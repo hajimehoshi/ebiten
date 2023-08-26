@@ -25,14 +25,14 @@ var (
 )
 
 func (c *defaultContext) init() error {
-	lib, errGLES := purego.Dlopen("OpenGLES.framework/OpenGLES", purego.RTLD_LAZY|purego.RTLD_GLOBAL)
+	lib, errGLES := purego.Dlopen("/System/Library/Frameworks/OpenGLES.framework/OpenGLES", purego.RTLD_LAZY|purego.RTLD_GLOBAL)
 	if errGLES == nil {
 		c.isES = true
 		opengl = lib
 		return nil
 	}
 
-	lib, errGL := purego.Dlopen("OpenGL.framework/OpenGL", purego.RTLD_LAZY|purego.RTLD_GLOBAL)
+	lib, errGL := purego.Dlopen("/System/Library/Frameworks/OpenGL.framework/OpenGL", purego.RTLD_LAZY|purego.RTLD_GLOBAL)
 	if errGL == nil {
 		opengl = lib
 		return nil

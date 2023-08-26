@@ -569,7 +569,7 @@ var (
 //
 // Reference: https://developer.apple.com/documentation/metal/1433401-mtlcreatesystemdefaultdevice.
 func CreateSystemDefaultDevice() (Device, error) {
-	metal, err := purego.Dlopen("Metal.framework/Metal", purego.RTLD_LAZY|purego.RTLD_GLOBAL)
+	metal, err := purego.Dlopen("/System/Library/Frameworks/Metal.framework/Metal", purego.RTLD_LAZY|purego.RTLD_GLOBAL)
 	if err != nil {
 		return Device{}, err
 	}

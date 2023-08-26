@@ -87,7 +87,7 @@ type (
 type _IOHIDDeviceCallback func(context unsafe.Pointer, result _IOReturn, sender unsafe.Pointer, device _IOHIDDeviceRef)
 
 func initializeIOKit() error {
-	iokit, err := purego.Dlopen("IOKit.framework/IOKit", purego.RTLD_LAZY|purego.RTLD_GLOBAL)
+	iokit, err := purego.Dlopen("/System/Library/Frameworks/IOKit.framework/IOKit", purego.RTLD_LAZY|purego.RTLD_GLOBAL)
 	if err != nil {
 		return err
 	}
