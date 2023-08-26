@@ -59,7 +59,7 @@ var (
 )
 
 func initializeCF() error {
-	corefoundation, err := purego.Dlopen("CoreFoundation.framework/CoreFoundation", purego.RTLD_LAZY|purego.RTLD_GLOBAL)
+	corefoundation, err := purego.Dlopen("/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation", purego.RTLD_LAZY|purego.RTLD_GLOBAL)
 	if err != nil {
 		return err
 	}
