@@ -240,10 +240,11 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) {
 	}
 	filter := builtinshader.Filter(options.Filter)
 
+	geoM := options.GeoM
 	if offsetX, offsetY := i.adjustPosition(0, 0); offsetX != 0 || offsetY != 0 {
-		options.GeoM.Translate(float64(offsetX), float64(offsetY))
+		geoM.Translate(float64(offsetX), float64(offsetY))
 	}
-	a, b, c, d, tx, ty := options.GeoM.elements32()
+	a, b, c, d, tx, ty := geoM.elements32()
 
 	bounds := img.Bounds()
 	sx0, sy0 := img.adjustPosition(bounds.Min.X, bounds.Min.Y)
@@ -269,7 +270,7 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) {
 		})
 	}
 
-	i.image.DrawTriangles(srcs, vs, is, blend, i.adjustedRegion(), img.adjustedRegion(), [graphics.ShaderImageCount - 1][2]float32{}, shader.shader, i.tmpUniforms, false, canSkipMipmap(options.GeoM, filter), false)
+	i.image.DrawTriangles(srcs, vs, is, blend, i.adjustedRegion(), img.adjustedRegion(), [graphics.ShaderImageCount - 1][2]float32{}, shader.shader, i.tmpUniforms, false, canSkipMipmap(geoM, filter), false)
 }
 
 // Vertex represents a vertex passed to DrawTriangles.
@@ -792,10 +793,11 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 		}
 	}
 
+	geoM := options.GeoM
 	if offsetX, offsetY := i.adjustPosition(0, 0); offsetX != 0 || offsetY != 0 {
-		options.GeoM.Translate(float64(offsetX), float64(offsetY))
+		geoM.Translate(float64(offsetX), float64(offsetY))
 	}
-	a, b, c, d, tx, ty := options.GeoM.elements32()
+	a, b, c, d, tx, ty := geoM.elements32()
 	cr, cg, cb, ca := options.ColorScale.elements()
 	vs := i.ensureTmpVertices(4 * graphics.VertexFloatCount)
 	graphics.QuadVertices(vs, float32(sx), float32(sy), float32(sx+width), float32(sy+height), a, b, c, d, tx, ty, cr, cg, cb, ca)

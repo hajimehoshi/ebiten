@@ -4203,3 +4203,31 @@ func TestImageDrawTrianglesShaderWithTooBigIndex(t *testing.T) {
 	}
 	dst.DrawTrianglesShader(vs, is, shader, nil)
 }
+
+// Issue #2733
+func TestImageGeoMAfterDraw(t *testing.T) {
+	src := ebiten.NewImage(1, 1)
+	dst := ebiten.NewImageWithOptions(image.Rect(-1, -1, 0, 0), nil)
+	op0 := &ebiten.DrawImageOptions{}
+	dst.DrawImage(src, op0)
+	if x, y := op0.GeoM.Apply(0, 0); x != 0 || y != 0 {
+		t.Errorf("got: (%0.2f, %0.2f), want: (0, 0)", x, y)
+	}
+
+	s, err := ebiten.NewShader([]byte(`//kage:unit pixels
+
+package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	return vec4(1)
+}
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	op1 := &ebiten.DrawRectShaderOptions{}
+	dst.DrawRectShader(1, 1, s, op1)
+	if x, y := op1.GeoM.Apply(0, 0); x != 0 || y != 0 {
+		t.Errorf("got: (%0.2f, %0.2f), want: (0, 0)", x, y)
+	}
+}
