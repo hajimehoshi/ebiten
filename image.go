@@ -789,7 +789,7 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 	cr, cg, cb, ca := options.ColorScale.elements()
 	vs := i.ensureTmpVertices(4 * graphics.VertexFloatCount)
 
-	// Do not use srcRegions[0].Width and srcRegions[-].Height as these might be empty.
+	// Do not use srcRegions[0].Width and srcRegions[0].Height as these might be empty.
 	graphics.QuadVertices(vs, srcRegions[0].X, srcRegions[0].Y, srcRegions[0].X+float32(width), srcRegions[0].Y+float32(height), a, b, c, d, tx, ty, cr, cg, cb, ca)
 	is := graphics.QuadIndices()
 
