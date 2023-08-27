@@ -93,9 +93,7 @@ func (i *Image) Fill(clr color.Color) {
 	cgf = float32(cg) / 0xffff
 	cbf = float32(cb) / 0xffff
 	caf = float32(ca) / 0xffff
-	b := i.Bounds()
-	x, y := i.adjustPosition(b.Min.X, b.Min.Y)
-	i.image.Fill(crf, cgf, cbf, caf, image.Rect(x, y, x+b.Dx(), y+b.Dy()))
+	i.image.Fill(crf, cgf, cbf, caf, i.adjustedBounds())
 }
 
 func canSkipMipmap(geom GeoM, filter builtinshader.Filter) bool {
@@ -170,6 +168,12 @@ func (i *Image) adjustPositionF32(x, y float32) (float32, float32) {
 	x -= float32(r.Min.X)
 	y -= float32(r.Min.Y)
 	return x, y
+}
+
+func (i *Image) adjustedBounds() image.Rectangle {
+	b := i.Bounds()
+	x, y := i.adjustPosition(b.Min.X, b.Min.Y)
+	return image.Rect(x, y, x+b.Dx(), y+b.Dy())
 }
 
 func (i *Image) adjustedRegion() graphicsdriver.Region {
@@ -886,8 +890,7 @@ func (i *Image) ReadPixels(pixels []byte) {
 		return
 	}
 
-	x, y := i.adjustPosition(b.Min.X, b.Min.Y)
-	i.image.ReadPixels(pixels, image.Rect(x, y, x+b.Dx(), y+b.Dy()))
+	i.image.ReadPixels(pixels, i.adjustedBounds())
 }
 
 // At returns the color of the image at (x, y).
@@ -998,12 +1001,10 @@ func (i *Image) WritePixels(pixels []byte) {
 		return
 	}
 
-	r := i.Bounds()
-	x, y := i.adjustPosition(r.Min.X, r.Min.Y)
 	// Do not need to copy pixels here.
 	// * In internal/mipmap, pixels are copied when necessary.
 	// * In internal/atlas, pixels are copied to make its paddings.
-	i.image.WritePixels(pixels, image.Rect(x, y, x+r.Dx(), y+r.Dy()))
+	i.image.WritePixels(pixels, i.adjustedBounds())
 }
 
 // ReplacePixels replaces the pixels of the image.
