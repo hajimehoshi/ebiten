@@ -1332,9 +1332,8 @@ package main
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	// Adjust texCoord into [0, 1].
-	origin, size := imageSrcRegionOnTexture()
-	texCoord -= origin
-	texCoord /= size
+	texCoord -= imageSrc0Origin()
+	texCoord /= imageSrc0Size()
 	if texCoord.x >= 0.5 && texCoord.y >= 0.5 {
 		return vec4(1, 0, 0, 1)
 	}
@@ -1721,8 +1720,7 @@ func TestShaderTexelAndPixel(t *testing.T) {
 package main
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
-	orig, size := imageSrcRegionOnTexture()
-	pos := (texCoord - orig) / size
+	pos := (texCoord - imageSrc0Origin()) / imageSrc0Size()
 	pos *= vec2(%d, %d)
 	pos /= 255
 	return vec4(pos.x, pos.y, 0, 1)
@@ -1736,8 +1734,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 package main
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
-	orig, _ := imageSrcRegionOnTexture()
-	pos := texCoord - orig
+	pos := texCoord - imageSrc0Origin()
 	pos /= 255
 	return vec4(pos.x, pos.y, 0, 1)
 }
@@ -1835,9 +1832,8 @@ func TestShaderIVec(t *testing.T) {
 package main
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
-	orig, _ := imageSrcRegionOnTexture()
 	pos := ivec2(3, 4)
-	return imageSrc0At(vec2(pos) + orig)
+	return imageSrc0At(vec2(pos) + imageSrc0Origin())
 }
 `))
 	if err != nil {
@@ -2032,7 +2028,7 @@ package main
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	t := texCoord
 
-	origin, size := imageSrcRegionOnTexture()
+	size := imageSrc0Size()
 
 	// If the unit is texels and no source images are specified, size is always 0.
 	if size == vec2(0) {
@@ -2044,7 +2040,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	}
 
 	// Adjust texCoord into [0, 1].
-	t -= origin
+	t -= imageSrc0Origin()
 	if size != vec2(0) {
 		t /= size
 	}

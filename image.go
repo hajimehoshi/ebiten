@@ -737,7 +737,7 @@ var _ [len(DrawRectShaderOptions{}.Images)]struct{} = [graphics.ShaderImageCount
 // but these are invalid since texCoord is expected to be in texels in the texel-unit mode.
 // This behavior is preserved for backward compatibility. It is recommended to use the pixel-unit mode to avoid confusion.
 //
-// If no source images are specified, imageSrcRegionOnTexture returns a valid size only when the unit is pixels,
+// If no source images are specified, imageSrc0Size returns a valid size only when the unit is pixels,
 // but always returns 0 when the unit is texels (default).
 //
 // When the image i is disposed, DrawRectShader does nothing.
@@ -777,8 +777,8 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 	for i, img := range options.Images {
 		if img == nil {
 			if shader.unit == shaderir.Pixels && i == 0 {
-				// Give the source size as pixels only when the unit is pixels so that users can get the source size via imageSrcRegionOnTexture (#2166).
-				// With the texel mode, the imageSrcRegionOnTexture values should be in texels so the source position in pixels would not match.
+				// Give the source size as pixels only when the unit is pixels so that users can get the source size via imageSrc0Size (#2166).
+				// With the texel mode, the imageSrc0Origin and imageSrc0Size values should be in texels so the source position in pixels would not match.
 				srcRegions[i] = graphicsdriver.Region{
 					Width:  float32(width),
 					Height: float32(height),

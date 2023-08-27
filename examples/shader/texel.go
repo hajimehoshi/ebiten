@@ -20,8 +20,7 @@ package main
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	pos := position.xy
-	origin, size := imageDstRegionOnTexture()
-	pos -= origin
-	pos /= size
+	pos -= imageDstOrigin()
+	pos /= imageDstSize()
 	return vec4(pos.x, pos.y, 0, 1)
 }

@@ -61,7 +61,8 @@ var ColorMTranslation vec4
 
 {{if eq .Address .AddressRepeat}}
 func adjustTexelForAddressRepeat(p vec2) vec2 {
-	origin, size := imageSrcRegionOnTexture()
+	origin := imageSrc0Origin()
+	size := imageSrc0Size()
 	return mod(p - origin, size) + origin
 }
 {{end}}

@@ -22,17 +22,16 @@ var Time float
 var Cursor vec2
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
-	dstOrigin, dstSize := imageDstRegionOnTexture()
-	pos := position.xy - dstOrigin
+	pos := position.xy - imageDstOrigin()
 
-	border := dstSize.y*0.6 + 4*cos(Time*3+pos.y/10)
+	border := imageDstSize().y*0.6 + 4*cos(Time*3+pos.y/10)
 	if pos.y < border {
 		return imageSrc2UnsafeAt(texCoord)
 	}
 
 	xoffset := 4 * cos(Time*3+pos.y/10)
 	yoffset := 20 * (1 + cos(Time*3+pos.y/40))
-	srcOrigin, _ := imageSrcRegionOnTexture()
+	srcOrigin := imageSrc0Origin()
 	clr := imageSrc2At(vec2(
 		texCoord.x+xoffset,
 		-(texCoord.y+yoffset-srcOrigin.y)+border*2+srcOrigin.y,

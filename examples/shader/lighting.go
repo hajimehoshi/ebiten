@@ -22,8 +22,7 @@ var Time float
 var Cursor vec2
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
-	dstOrigin, _ := imageDstRegionOnTexture()
-	pos := position.xy - dstOrigin
+	pos := position.xy - imageDstOrigin()
 
 	lightpos := vec3(Cursor, 50)
 	lightdir := normalize(lightpos - vec3(pos, 0))

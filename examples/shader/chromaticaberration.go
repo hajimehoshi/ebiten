@@ -22,8 +22,7 @@ var Time float
 var Cursor vec2
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
-	_, dstSize := imageDstRegionOnTexture()
-	center := dstSize / 2
+	center := imageDstSize() / 2
 	amount := (center - Cursor) / 10
 	var clr vec3
 	clr.r = imageSrc2At(texCoord + amount).r

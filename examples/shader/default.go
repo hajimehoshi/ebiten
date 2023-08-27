@@ -22,9 +22,8 @@ var Time float
 var Cursor vec2
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
-	dstOrigin, dstSize := imageDstRegionOnTexture()
-	pos := (position.xy - dstOrigin) / dstSize
-	pos += Cursor / dstSize / 4
+	pos := (position.xy - imageDstOrigin()) / imageDstSize()
+	pos += Cursor / imageDstSize() / 4
 	clr := 0.0
 	clr += sin(pos.x*cos(Time/15)*80) + cos(pos.y*cos(Time/15)*10)
 	clr += sin(pos.y*sin(Time/10)*40) + cos(pos.x*sin(Time/25)*40)

@@ -29,10 +29,6 @@ const screenShaderSrc = `//kage:unit pixels
 package main
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
-	_, dr := imageDstRegionOnTexture()
-	_, sr := imageSrcRegionOnTexture()
-	scale := dr/sr
-
 	// Shift 1/512 [pixel] to avoid the tie-breaking issue.
 	pos := texCoord
 	p0 := pos - 1/2.0 + 1/512.0
@@ -49,8 +45,9 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 
 	// rate indicates how much the 4 colors are mixed. rate is in between [0, 1].
 	//
-	//     0 <= p <= 1/Scale: The rate is in between [0, 1]
-	//     1/Scale < p:       Don't care. Adjacent colors (e.g. c0 vs c1 in an X direction) should be the same.
+	//     0 <= p <= 1/scale: The rate is in between [0, 1]
+	//     1/scale < p:       Don't care. Adjacent colors (e.g. c0 vs c1 in an X direction) should be the same.
+	scale := imageDstSize()/imageSrc0Size()
 	rate := clamp(p*scale, 0, 1)
 	return mix(mix(c0, c1, rate.x), mix(c2, c3, rate.x), rate.y)
 }
