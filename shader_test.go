@@ -2136,3 +2136,113 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		}
 	}
 }
+
+func TestShaderDifferentSourceSizes(t *testing.T) {
+	src0 := ebiten.NewImageWithOptions(image.Rect(0, 0, 20, 4000), &ebiten.NewImageOptions{
+		Unmanaged: true,
+	}).SubImage(image.Rect(4, 1025, 7, 1029)).(*ebiten.Image) // 3x4
+	defer src0.Dispose()
+
+	src1 := ebiten.NewImageWithOptions(image.Rect(0, 0, 4000, 20), &ebiten.NewImageOptions{
+		Unmanaged: true,
+	}).SubImage(image.Rect(2047, 7, 2049, 10)).(*ebiten.Image) // 2x3
+	defer src1.Dispose()
+
+	src0.Fill(color.RGBA{0x10, 0x20, 0x30, 0xff})
+	src1.Fill(color.RGBA{0x30, 0x20, 0x10, 0xff})
+
+	for _, unit := range []string{"texels", "pixels"} {
+		unit := unit
+		t.Run(fmt.Sprintf("unit %s", unit), func(t *testing.T) {
+			if unit == "texels" {
+				defer func() {
+					if r := recover(); r == nil {
+						t.Errorf("DrawTrianglesShader must panic with different sizes but not (unit=%s)", unit)
+					}
+				}()
+			}
+			shader, err := ebiten.NewShader([]byte(fmt.Sprintf(`//kage:unit %s
+
+package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	return imageSrc0At(texCoord) + imageSrc1At(texCoord)
+}
+`, unit)))
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer shader.Dispose()
+
+			dst := ebiten.NewImage(3, 4)
+			defer dst.Dispose()
+
+			op := &ebiten.DrawTrianglesShaderOptions{}
+			op.Images[0] = src0
+			op.Images[1] = src1
+			vs := []ebiten.Vertex{
+				{
+					DstX:   0,
+					DstY:   0,
+					SrcX:   4,
+					SrcY:   1025,
+					ColorR: 1,
+					ColorG: 1,
+					ColorB: 1,
+					ColorA: 1,
+				},
+				{
+					DstX:   3,
+					DstY:   0,
+					SrcX:   7,
+					SrcY:   1025,
+					ColorR: 1,
+					ColorG: 1,
+					ColorB: 1,
+					ColorA: 1,
+				},
+				{
+					DstX:   0,
+					DstY:   4,
+					SrcX:   4,
+					SrcY:   1029,
+					ColorR: 1,
+					ColorG: 1,
+					ColorB: 1,
+					ColorA: 1,
+				},
+				{
+					DstX:   3,
+					DstY:   4,
+					SrcX:   7,
+					SrcY:   1029,
+					ColorR: 1,
+					ColorG: 1,
+					ColorB: 1,
+					ColorA: 1,
+				},
+			}
+			is := []uint16{0, 1, 2, 1, 2, 3}
+			dst.DrawTrianglesShader(vs, is, shader, op)
+
+			if unit == "texel" {
+				t.Fatal("not reached")
+			}
+
+			for j := 0; j < 4; j++ {
+				for i := 0; i < 3; i++ {
+					got := dst.At(i, j).(color.RGBA)
+					var want color.RGBA
+					if i < 2 && j < 3 {
+						want = color.RGBA{0x40, 0x40, 0x40, 0xff}
+					} else {
+						want = color.RGBA{0x10, 0x20, 0x30, 0xff}
+					}
+					if !sameColors(got, want, 1) {
+						t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
+					}
+				}
+			}
+		})
+	}
+}

@@ -575,8 +575,9 @@ var _ [len(DrawTrianglesShaderOptions{}.Images) - graphics.ShaderImageCount]stru
 //
 // For the details about the shader, see https://ebitengine.org/en/documents/shader.html.
 //
-// When one of the specified image is non-nil and its size is different from (width, height), DrawTrianglesShader panics.
-// When one of the specified image is non-nil and is disposed, DrawTrianglesShader panics.
+// If the shader unit is texels, one of the specified image is non-nil and its size is different from (width, height),
+// DrawTrianglesShader panics.
+// If one of the specified image is non-nil and is disposed, DrawTrianglesShader panics.
 //
 // If len(vertices) is more than MaxVerticesCount, the exceeding part is ignored.
 //
@@ -653,12 +654,14 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 		if img.isDisposed() {
 			panic("ebiten: the given image to DrawTrianglesShader must not be disposed")
 		}
-		if i == 0 {
-			imgSize = img.Bounds().Size()
-		} else {
-			// TODO: Check imgw > 0 && imgh > 0
-			if img.Bounds().Size() != imgSize {
-				panic("ebiten: all the source images must be the same size with the rectangle")
+		if shader.unit == shaderir.Texels {
+			if i == 0 {
+				imgSize = img.Bounds().Size()
+			} else {
+				// TODO: Check imgw > 0 && imgh > 0
+				if img.Bounds().Size() != imgSize {
+					panic("ebiten: all the source images must be the same size with the rectangle")
+				}
 			}
 		}
 		imgs[i] = img.image
