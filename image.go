@@ -230,8 +230,6 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) {
 		return
 	}
 
-	// Calculate vertices before locking because the user can do anything in
-	// options.ImageParts interface without deadlock (e.g. Call Image functions).
 	if options == nil {
 		options = &DrawImageOptions{}
 	}
