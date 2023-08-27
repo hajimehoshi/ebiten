@@ -14,6 +14,8 @@
 
 //go:build ignore
 
+//kage:unit pixels
+
 // Reference: a public domain CRT effect
 // https://github.com/libretro/glsl-shaders/blob/master/crt/shaders/crt-lottes.glsl
 
