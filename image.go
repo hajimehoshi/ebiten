@@ -659,11 +659,8 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 		imgs[i] = img.image
 	}
 
-	var sx, sy int
 	var sr graphicsdriver.Region
 	if img := options.Images[0]; img != nil {
-		b := img.Bounds()
-		sx, sy = img.adjustPosition(b.Min.X, b.Min.Y)
 		sr = img.adjustedRegion()
 	}
 
@@ -674,10 +671,10 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 		}
 		b := img.Bounds()
 		x, y := img.adjustPosition(b.Min.X, b.Min.Y)
-		// (sx, sy) is the upper-left position of the first image.
+		// (sr.X, sr.Y) is the upper-left position of the first image.
 		// Calculate the distance between the current image's upper-left position and the first one's.
-		offsets[i][0] = float32(x - sx)
-		offsets[i][1] = float32(y - sy)
+		offsets[i][0] = float32(x) - sr.X
+		offsets[i][1] = float32(y) - sr.Y
 	}
 
 	i.tmpUniforms = i.tmpUniforms[:0]
@@ -778,11 +775,8 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 		imgs[i] = img.image
 	}
 
-	var sx, sy int
 	var sr graphicsdriver.Region
 	if img := options.Images[0]; img != nil {
-		b := img.Bounds()
-		sx, sy = img.adjustPosition(b.Min.X, b.Min.Y)
 		sr = img.adjustedRegion()
 	} else if shader.unit == shaderir.Pixels {
 		// Give the source size as pixels only when the unit is pixels so that users can get the source size via imageSrcRegionOnTexture (#2166).
@@ -800,7 +794,8 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 	a, b, c, d, tx, ty := geoM.elements32()
 	cr, cg, cb, ca := options.ColorScale.elements()
 	vs := i.ensureTmpVertices(4 * graphics.VertexFloatCount)
-	graphics.QuadVertices(vs, float32(sx), float32(sy), float32(sx+width), float32(sy+height), a, b, c, d, tx, ty, cr, cg, cb, ca)
+	// Do not use sr.Width and sr.Height as these might be empty.
+	graphics.QuadVertices(vs, sr.X, sr.Y, sr.X+float32(width), sr.Y+float32(height), a, b, c, d, tx, ty, cr, cg, cb, ca)
 	is := graphics.QuadIndices()
 
 	var offsets [graphics.ShaderImageCount - 1][2]float32
@@ -810,10 +805,10 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 		}
 		b := img.Bounds()
 		x, y := img.adjustPosition(b.Min.X, b.Min.Y)
-		// (sx, sy) is the upper-left position of the first image.
+		// (sr.X, sr.Y) is the upper-left position of the first image.
 		// Calculate the distance between the current image's upper-left position and the first one's.
-		offsets[i][0] = float32(x - sx)
-		offsets[i][1] = float32(y - sy)
+		offsets[i][0] = float32(x) - sr.X
+		offsets[i][1] = float32(y) - sr.Y
 	}
 
 	i.tmpUniforms = i.tmpUniforms[:0]
