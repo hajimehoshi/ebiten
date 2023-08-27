@@ -575,6 +575,9 @@ var _ [len(DrawTrianglesShaderOptions{}.Images) - graphics.ShaderImageCount]stru
 //
 // For the details about the shader, see https://ebitengine.org/en/documents/shader.html.
 //
+// When one of the specified image is non-nil and its size is different from (width, height), DrawTrianglesShader panics.
+// When one of the specified image is non-nil and is disposed, DrawTrianglesShader panics.
+//
 // If len(vertices) is more than MaxVerticesCount, the exceeding part is ignored.
 //
 // If len(indices) is not multiple of 3, DrawTrianglesShader panics.
