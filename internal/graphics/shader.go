@@ -27,6 +27,8 @@ func shaderSuffix(unit shaderir.Unit) (string, error) {
 var __imageDstTextureSize vec2
 
 // imageSrcTextureSize returns the destination image's texture size in pixels.
+//
+// Deprecated: as of v2.6. Use the pixel-unit mode.
 func imageDstTextureSize() vec2 {
 	return __imageDstTextureSize
 }
@@ -36,6 +38,8 @@ var __imageSrcTextureSizes [%[1]d]vec2
 // imageSrcTextureSize returns the 0th source image's texture size in pixels.
 // As an image is a part of internal texture, the texture is usually bigger than the image.
 // The texture's size is useful when you want to calculate pixels from texels in the texel mode.
+//
+// Deprecated: as of v2.6. Use the pixel-unit mode.
 func imageSrcTextureSize() vec2 {
 	return __imageSrcTextureSizes[0]
 }
