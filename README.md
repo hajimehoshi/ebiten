@@ -26,8 +26,6 @@ Ebitengine (formerly known as Ebiten) is an open source game engine for the Go p
 * Nintendo Switch
 * Xbox
 
-Note: External (bluetooth) keyboards are not available on iOS yet.
-
 For installation on desktops, see [the installation instruction](https://ebitengine.org/en/documents/install.html).
 
 ## Features
