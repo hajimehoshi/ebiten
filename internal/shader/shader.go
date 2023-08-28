@@ -407,6 +407,12 @@ func (cs *compileState) parseDecl(b *block, fname string, d ast.Decl) ([]shaderi
 								cs.addError(s.Names[i].Pos(), fmt.Sprintf("global variables must be exposed: %s", v.name))
 							}
 						}
+						for _, name := range cs.ir.UniformNames {
+							if name == v.name {
+								cs.addError(s.Pos(), fmt.Sprintf("%s redeclared in this block", name))
+								return nil, false
+							}
+						}
 						cs.ir.UniformNames = append(cs.ir.UniformNames, v.name)
 						cs.ir.Uniforms = append(cs.ir.Uniforms, v.typ)
 					}

@@ -3543,3 +3543,46 @@ func foo() {
 		t.Error("compileToIR must return an error but did not")
 	}
 }
+
+// Issue #2648
+func TestDuplicatedVariables(t *testing.T) {
+	if _, err := compileToIR([]byte(`package main
+
+var Foo int
+var Foo int
+`)); err == nil {
+		t.Error("compileToIR must return an error but did not")
+	}
+	if _, err := compileToIR([]byte(`package main
+
+var Foo int
+var Bar float
+var Foo vec2
+`)); err == nil {
+		t.Error("compileToIR must return an error but did not")
+	}
+	if _, err := compileToIR([]byte(`package main
+
+func foo() {
+	var x int
+	var x int
+	_ = x
+}
+
+`)); err == nil {
+		t.Error("compileToIR must return an error but did not")
+	}
+	if _, err := compileToIR([]byte(`package main
+
+func foo() {
+	var x int
+	var y float
+	var x vec2
+	_ = x
+	_ = y
+}
+
+`)); err == nil {
+		t.Error("compileToIR must return an error but did not")
+	}
+}
