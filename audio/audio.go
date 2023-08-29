@@ -198,21 +198,36 @@ func (c *Context) removePlayer(p *playerImpl) {
 }
 
 func (c *Context) gcPlayers() error {
+	// A Context must not call playerImpl's functions with a lock, or this causes a deadlock (#2737).
+	// Copy the playerImpls and iterate them without a lock.
+	var players []*playerImpl
 	c.m.Lock()
-	defer c.m.Unlock()
+	players = make([]*playerImpl, 0, len(c.players))
+	for p := range c.players {
+		players = append(players, p)
+	}
+	c.m.Unlock()
+
+	var playersToRemove []*playerImpl
 
 	// Now reader players cannot call removePlayers from themselves in the current implementation.
 	// Underlying playering can be the pause state after fishing its playing,
 	// but there is no way to notify this to players so far.
 	// Instead, let's check the states proactively every frame.
-	for p := range c.players {
+	for _, p := range players {
 		if err := p.Err(); err != nil {
 			return err
 		}
 		if !p.IsPlaying() {
-			delete(c.players, p)
+			playersToRemove = append(playersToRemove, p)
 		}
 	}
+
+	c.m.Lock()
+	for _, p := range playersToRemove {
+		delete(c.players, p)
+	}
+	c.m.Unlock()
 
 	return nil
 }
