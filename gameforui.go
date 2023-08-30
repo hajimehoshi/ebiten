@@ -29,10 +29,9 @@ const screenShaderSrc = `//kage:unit pixels
 package main
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
-	// Shift 1/512 [pixel] to avoid the tie-breaking issue.
 	pos := texCoord
-	p0 := pos - 1/2.0 + 1/512.0
-	p1 := pos + 1/2.0 + 1/512.0
+	p0 := pos - 1/2.0
+	p1 := pos + 1/2.0
 
 	// Texels must be in the source rect, so it is not necessary to check.
 	c0 := imageSrc0UnsafeAt(p0)

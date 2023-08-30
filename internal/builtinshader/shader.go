@@ -77,9 +77,8 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	clr := imageSrc0At(adjustTexelForAddressRepeat(texCoord))
 {{end}}
 {{else if eq .Filter .FilterLinear}}
-	// Shift 1/512 [pixel] to avoid the tie-breaking issue (#1212).
-	p0 := texCoord - 1/2.0 + 1/512.0
-	p1 := texCoord + 1/2.0 + 1/512.0
+	p0 := texCoord - 1/2.0
+	p1 := texCoord + 1/2.0
 
 {{if eq .Address .AddressRepeat}}
 	p0 = adjustTexelForAddressRepeat(p0)
