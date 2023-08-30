@@ -1466,10 +1466,7 @@ func (u *userInterfaceImpl) setFullscreen(fullscreen bool) {
 	}
 
 	// glfw.PollEvents is necessary for macOS to enable (*glfw.Window).SetPos and SetSize (#2296).
-	// This polling causes issues on Linux and Windows when rapidly toggling fullscreen, so we only run it under macOS.
-	if runtime.GOOS == "darwin" {
-		glfw.PollEvents()
-	}
+	glfw.PollEvents()
 
 	if origX != invalidPos && origY != invalidPos {
 		u.window.SetPos(origX, origY)
