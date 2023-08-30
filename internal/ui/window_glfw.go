@@ -159,6 +159,19 @@ func (w *glfwWindow) Restore() {
 	w.ui.mainThread.Call(w.ui.restoreWindow)
 }
 
+func (w *glfwWindow) SetMonitor(monitor *Monitor) {
+	if monitor == nil {
+		panic("ui: monitor cannot be nil at SetMonitor")
+	}
+	if !w.ui.isRunning() {
+		w.ui.setInitWindowMonitor(monitor.id)
+		return
+	}
+	w.ui.mainThread.Call(func() {
+		w.ui.setWindowMonitor(monitor.id)
+	})
+}
+
 func (w *glfwWindow) Position() (int, int) {
 	if !w.ui.isRunning() {
 		panic("ui: WindowPosition can't be called before the main loop starts")

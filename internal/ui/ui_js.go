@@ -15,6 +15,7 @@
 package ui
 
 import (
+	"image"
 	"sync"
 	"syscall/js"
 	"time"
@@ -754,6 +755,29 @@ func (u *userInterfaceImpl) readInputState(inputState *InputState) {
 
 func (u *userInterfaceImpl) Window() Window {
 	return &nullWindow{}
+}
+
+type Monitor struct{}
+
+var theMonitor = &Monitor{}
+
+func (m *Monitor) Bounds() image.Rectangle {
+	screen := window.Get("screen")
+	w := screen.Get("width").Int()
+	h := screen.Get("height").Int()
+	return image.Rect(0, 0, w, h)
+}
+
+func (m *Monitor) Name() string {
+	return ""
+}
+
+func (u *userInterfaceImpl) AppendMonitors(mons []*Monitor) []*Monitor {
+	return append(mons, theMonitor)
+}
+
+func (u *userInterfaceImpl) Monitor() *Monitor {
+	return theMonitor
 }
 
 func (u *userInterfaceImpl) beginFrame() {

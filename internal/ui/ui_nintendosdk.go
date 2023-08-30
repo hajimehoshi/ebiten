@@ -22,6 +22,7 @@ import "C"
 
 import (
 	stdcontext "context"
+	"image"
 	"runtime"
 	"sync"
 
@@ -191,6 +192,27 @@ func (*userInterfaceImpl) ScheduleFrame() {
 
 func (*userInterfaceImpl) Window() Window {
 	return &nullWindow{}
+}
+
+type Monitor struct{}
+
+var theMonitor = &Monitor{}
+
+func (m *Monitor) Bounds() image.Rectangle {
+	// TODO: This should return the available viewport dimensions.
+	return image.Rectangle{}
+}
+
+func (m *Monitor) Name() string {
+	return ""
+}
+
+func (u *userInterfaceImpl) AppendMonitors(mons []*Monitor) []*Monitor {
+	return append(mons, theMonitor)
+}
+
+func (u *userInterfaceImpl) Monitor() *Monitor {
+	return theMonitor
 }
 
 func (u *userInterfaceImpl) beginFrame() {

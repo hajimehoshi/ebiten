@@ -94,6 +94,10 @@ func (m *Monitor) GetVideoMode() *VidMode {
 	}
 }
 
+func (m *Monitor) GetName() string {
+	return m.m.GetName()
+}
+
 type Window struct {
 	w *cglfw.Window
 

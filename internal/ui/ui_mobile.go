@@ -19,6 +19,7 @@ package ui
 import (
 	stdcontext "context"
 	"fmt"
+	"image"
 	"runtime/debug"
 	"sync"
 	"sync/atomic"
@@ -426,6 +427,27 @@ func (u *userInterfaceImpl) readInputState(inputState *InputState) {
 
 func (u *userInterfaceImpl) Window() Window {
 	return &nullWindow{}
+}
+
+type Monitor struct{}
+
+var theMonitor = &Monitor{}
+
+func (m *Monitor) Bounds() image.Rectangle {
+	// TODO: This should return the available viewport dimensions.
+	return image.Rectangle{}
+}
+
+func (m *Monitor) Name() string {
+	return ""
+}
+
+func (u *userInterfaceImpl) AppendMonitors(mons []*Monitor) []*Monitor {
+	return append(mons, theMonitor)
+}
+
+func (u *userInterfaceImpl) Monitor() *Monitor {
+	return theMonitor
 }
 
 func (u *userInterfaceImpl) UpdateInput(keys map[Key]struct{}, runes []rune, touches []TouchForInput) {

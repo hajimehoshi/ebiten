@@ -56,6 +56,14 @@ func (m *Monitor) GetVideoMode() *VidMode {
 	return (*VidMode)(v)
 }
 
+func (m *Monitor) GetName() string {
+	v, err := (*goglfw.Monitor)(m).GetName()
+	if err != nil {
+		panic(err)
+	}
+	return v
+}
+
 type Window goglfw.Window
 
 func (w *Window) Destroy() {
