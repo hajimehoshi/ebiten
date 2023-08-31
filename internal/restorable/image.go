@@ -102,6 +102,37 @@ const (
 	ImageTypeVolatile
 )
 
+// emptyPixels holds a byte slice used for ClearPixels.
+// All the elements of the slice must be 0 and must not be modified.
+//
+// emptyPixels resets its slice if this is not used for a while.
+type emptyPixels struct {
+	s     []byte
+	last  int
+	count int
+}
+
+var theEmptyPixels emptyPixels
+
+func (e *emptyPixels) alloc(size int) []byte {
+	if cap(e.s) < size {
+		n := 16
+		for n < size {
+			n <<= 1
+		}
+		e.s = make([]byte, n)
+	}
+	e.last = e.count
+	return e.s[:size]
+}
+
+func (e *emptyPixels) endFrame() {
+	e.count++
+	if e.count-e.last >= 60 {
+		e.s = nil
+	}
+}
+
 // Image represents an image that can be restored when GL context is lost.
 type Image struct {
 	image *graphicscommand.Image
@@ -281,7 +312,7 @@ func (i *Image) WritePixels(pixels []byte, region image.Rectangle) {
 		// TODO: When pixels == nil, we don't have to care the pixel state there. In such cases, the image
 		// accepts only WritePixels and not Fill or DrawTriangles.
 		// TODO: Separate Image struct into two: images for WritePixels-only, and the others.
-		i.image.WritePixels(make([]byte, 4*region.Dx()*region.Dy()), region)
+		i.image.WritePixels(theEmptyPixels.alloc(4*region.Dx()*region.Dy()), region)
 	}
 
 	// Even if the image is already stale, call makeStale to extend the stale region.
