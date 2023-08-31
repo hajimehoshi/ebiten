@@ -42,7 +42,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	c3 := imageSrc0UnsafeAt(p1)
 
 	// p is the p1 value in one pixel assuming that the pixel's upper-left is (0, 0) and the lower-right is (1, 1).
-	rate := clamp(fract(p1), 0, 1)
+	rate := clamp(fract(p1)*scale, 0, 1)
 	return mix(mix(c0, c1, rate.x), mix(c2, c3, rate.x), rate.y)
 }
 `
