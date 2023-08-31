@@ -97,7 +97,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	c3 := imageSrc0At(p1)
 {{end}}
 
-	rate := fract(p0)
+	rate := fract(p1)
 	clr := mix(mix(c0, c1, rate.x), mix(c2, c3, rate.x), rate.y)
 {{end}}
 
