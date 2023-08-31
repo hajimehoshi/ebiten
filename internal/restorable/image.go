@@ -102,37 +102,6 @@ const (
 	ImageTypeVolatile
 )
 
-// emptyPixels holds a byte slice used for ClearPixels.
-// All the elements of the slice must be 0 and must not be modified.
-//
-// emptyPixels resets its slice if this is not used for a while.
-type emptyPixels struct {
-	s     []byte
-	last  int
-	count int
-}
-
-var theEmptyPixels emptyPixels
-
-func (e *emptyPixels) alloc(size int) []byte {
-	if cap(e.s) < size {
-		n := 16
-		for n < size {
-			n <<= 1
-		}
-		e.s = make([]byte, n)
-	}
-	e.last = e.count
-	return e.s[:size]
-}
-
-func (e *emptyPixels) endFrame() {
-	e.count++
-	if e.count-e.last >= 60 {
-		e.s = nil
-	}
-}
-
 // Image represents an image that can be restored when GL context is lost.
 type Image struct {
 	image *graphicscommand.Image
@@ -170,7 +139,7 @@ type Image struct {
 	imageType ImageType
 }
 
-// NewImage creates a white image with the given size.
+// NewImage creates an emtpy image with the given size.
 //
 // The returned image is cleared.
 //
@@ -186,7 +155,11 @@ func NewImage(width, height int, imageType ImageType) *Image {
 		height:    height,
 		imageType: imageType,
 	}
-	clearImage(i.image)
+
+	// This needs to use 'InternalSize' to render the whole region, or edges are unexpectedly cleared on some
+	// devices.
+	iw, ih := i.image.InternalSize()
+	clearImage(i.image, image.Rect(0, 0, iw, ih))
 	theImages.add(i)
 	return i
 }
@@ -229,17 +202,14 @@ func quadVertices(dx0, dy0, dx1, dy1, sx0, sy0, sx1, sy1, cr, cg, cb, ca float32
 	}
 }
 
-func clearImage(i *graphicscommand.Image) {
-	// This needs to use 'InternalSize' to render the whole region, or edges are unexpectedly cleared on some
-	// devices.
-	dw, dh := i.InternalSize()
-	vs := quadVertices(0, 0, float32(dw), float32(dh), 0, 0, 0, 0, 0, 0, 0, 0)
+func clearImage(i *graphicscommand.Image, region image.Rectangle) {
+	vs := quadVertices(float32(region.Min.X), float32(region.Min.Y), float32(region.Max.X), float32(region.Max.Y), 0, 0, 0, 0, 0, 0, 0, 0)
 	is := graphics.QuadIndices()
 	dstRegion := graphicsdriver.Region{
-		X:      0,
-		Y:      0,
-		Width:  float32(dw),
-		Height: float32(dh),
+		X:      float32(region.Min.X),
+		Y:      float32(region.Min.Y),
+		Width:  float32(region.Dx()),
+		Height: float32(region.Dy()),
 	}
 	i.DrawTriangles([graphics.ShaderImageCount]*graphicscommand.Image{}, vs, is, graphicsdriver.BlendClear, dstRegion, [graphics.ShaderImageCount]graphicsdriver.Region{}, clearShader.shader, nil, false)
 }
@@ -309,10 +279,7 @@ func (i *Image) WritePixels(pixels []byte, region image.Rectangle) {
 	if pixels != nil {
 		i.image.WritePixels(pixels, region)
 	} else {
-		// TODO: When pixels == nil, we don't have to care the pixel state there. In such cases, the image
-		// accepts only WritePixels and not Fill or DrawTriangles.
-		// TODO: Separate Image struct into two: images for WritePixels-only, and the others.
-		i.image.WritePixels(theEmptyPixels.alloc(4*region.Dx()*region.Dy()), region)
+		clearImage(i.image, region)
 	}
 
 	// Even if the image is already stale, call makeStale to extend the stale region.
@@ -623,7 +590,8 @@ func (i *Image) restore(graphicsDriver graphicsdriver.Graphics) error {
 		return nil
 	case ImageTypeVolatile:
 		i.image = graphicscommand.NewImage(w, h, false)
-		clearImage(i.image)
+		iw, ih := i.image.InternalSize()
+		clearImage(i.image, image.Rect(0, 0, iw, ih))
 		return nil
 	}
 
@@ -633,7 +601,8 @@ func (i *Image) restore(graphicsDriver graphicsdriver.Graphics) error {
 
 	gimg := graphicscommand.NewImage(w, h, false)
 	// Clear the image explicitly.
-	clearImage(gimg)
+	iw, ih := gimg.InternalSize()
+	clearImage(gimg, image.Rect(0, 0, iw, ih))
 
 	i.basePixels.Apply(gimg)
 

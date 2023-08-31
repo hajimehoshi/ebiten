@@ -65,13 +65,7 @@ func EndFrame(graphicsDriver graphicsdriver.Graphics, swapBuffersForGL func()) e
 		}
 		graphicscommand.LogImagesInfo(imgs)
 	}
-
-	if err := resolveStaleImages(graphicsDriver, true, swapBuffersForGL); err != nil {
-		return err
-	}
-
-	theEmptyPixels.endFrame()
-	return nil
+	return resolveStaleImages(graphicsDriver, true, swapBuffersForGL)
 }
 
 // resolveStaleImages flushes the queued draw commands and resolves all stale images.
