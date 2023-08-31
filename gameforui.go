@@ -29,9 +29,11 @@ const screenShaderSrc = `//kage:unit pixels
 package main
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	// Blend source colors in a square region, which size is 1/scale.
+	scale := imageDstSize()/imageSrc0Size()
 	pos := texCoord
-	p0 := pos - 1/2.0
-	p1 := pos + 1/2.0
+	p0 := pos - 1/2.0/scale
+	p1 := pos + 1/2.0/scale
 
 	// Texels must be in the source rect, so it is not necessary to check.
 	c0 := imageSrc0UnsafeAt(p0)
@@ -40,14 +42,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	c3 := imageSrc0UnsafeAt(p1)
 
 	// p is the p1 value in one pixel assuming that the pixel's upper-left is (0, 0) and the lower-right is (1, 1).
-	p := fract(p1)
-
-	// rate indicates how much the 4 colors are mixed. rate is in between [0, 1].
-	//
-	//     0 <= p <= 1/scale: The rate is in between [0, 1]
-	//     1/scale < p:       1
-	scale := imageDstSize()/imageSrc0Size()
-	rate := clamp(p*scale, 0, 1)
+	rate := clamp(fract(p1), 0, 1)
 	return mix(mix(c0, c1, rate.x), mix(c2, c3, rate.x), rate.y)
 }
 `
