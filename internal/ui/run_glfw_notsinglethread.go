@@ -28,16 +28,19 @@ import (
 func (u *userInterfaceImpl) Run(game Game, options *RunOptions) error {
 	u.context = newContext(game)
 
+	u.mainThread = thread.NewOSThread()
+	u.renderThread = thread.NewOSThread()
+	graphicscommand.SetRenderThread(u.renderThread)
+
+	// Set the running state true after the main thread is set, and before initOnMainThread is called (#2742).
+	// TODO: As the existance of the main thread is the same as the value of `running`, this is redundant.
+	// Make `mainThread` atomic and remove `running` if possible.
 	u.setRunning(true)
 	defer u.setRunning(false)
 
 	if err := u.initOnMainThread(options); err != nil {
 		return err
 	}
-
-	u.mainThread = thread.NewOSThread()
-	u.renderThread = thread.NewOSThread()
-	graphicscommand.SetRenderThread(u.renderThread)
 
 	ctx, cancel := stdcontext.WithCancel(stdcontext.Background())
 	defer cancel()
