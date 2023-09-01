@@ -55,7 +55,7 @@ jobs:
           git clone --depth=1 https://github.com/hajimehoshi/go-inovation
           cd go-inovation
           go mod edit -replace=github.com/hajimehoshi/ebiten/v2=$GITHUB_WORKSPACE
-          go mod tidy
+          go mod tidy -compat=1.17
 
       - name: Xvfb
         if: runner.os == 'Linux'
@@ -118,7 +118,7 @@ jobs:
           echo ')' >> main.go
           echo 'func main() {}' >> main.go
           go mod edit -replace github.com/hajimehoshi/ebiten/v2=$GITHUB_WORKSPACE
-          go mod tidy
+          go mod tidy -compat=1.17
           go mod vendor
           go build -v .
 
