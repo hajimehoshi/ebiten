@@ -93,6 +93,9 @@ func (u *userInterfaceImpl) keyName(key Key) string {
 
 	var name string
 	u.mainThread.Call(func() {
+		if u.isTerminated() {
+			return
+		}
 		name = glfw.GetKeyName(gk, 0)
 	})
 	return name

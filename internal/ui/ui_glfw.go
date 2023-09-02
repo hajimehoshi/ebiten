@@ -62,6 +62,7 @@ type userInterfaceImpl struct {
 	maxWindowHeightInDIP int
 
 	running              uint32
+	terminated           uint32
 	runnableOnUnfocused  bool
 	fpsMode              FPSModeType
 	iconImages           []image.Image
@@ -259,6 +260,9 @@ func (u *userInterfaceImpl) Monitor() *Monitor {
 	}
 	var monitor *Monitor
 	u.mainThread.Call(func() {
+		if u.isTerminated() {
+			return
+		}
 		glfwMonitor := u.currentMonitor()
 		if glfwMonitor == nil {
 			return
@@ -322,7 +326,11 @@ func getMonitorFromPosition(wx, wy int) *Monitor {
 }
 
 func (u *userInterfaceImpl) isRunning() bool {
-	return atomic.LoadUint32(&u.running) != 0
+	return atomic.LoadUint32(&u.running) != 0 && !u.isTerminated()
+}
+
+func (u *userInterfaceImpl) isTerminated() bool {
+	return atomic.LoadUint32(&u.terminated) != 0
 }
 
 func (u *userInterfaceImpl) setRunning(running bool) {
@@ -331,6 +339,10 @@ func (u *userInterfaceImpl) setRunning(running bool) {
 	} else {
 		atomic.StoreUint32(&u.running, 0)
 	}
+}
+
+func (u *userInterfaceImpl) setTerminated() {
+	atomic.StoreUint32(&u.terminated, 1)
 }
 
 // setWindowMonitor must be called on the main thread.
@@ -628,12 +640,18 @@ func (u *userInterfaceImpl) setWindowClosingHandled(handled bool) {
 }
 
 func (u *userInterfaceImpl) ScreenSizeInFullscreen() (int, int) {
+	if u.isTerminated() {
+		return 0, 0
+	}
 	if !u.isRunning() {
 		return u.initFullscreenWidthInDIP, u.initFullscreenHeightInDIP
 	}
 
 	var w, h int
 	u.mainThread.Call(func() {
+		if u.isTerminated() {
+			return
+		}
 		m := u.currentMonitor()
 		if m == nil {
 			return
@@ -658,11 +676,17 @@ func (u *userInterfaceImpl) IsFullscreen() bool {
 		return false
 	}
 
+	if u.isTerminated() {
+		return false
+	}
 	if !u.isRunning() {
 		return u.isInitFullscreen()
 	}
-	b := false
+	var b bool
 	u.mainThread.Call(func() {
+		if u.isTerminated() {
+			return
+		}
 		b = u.isFullscreen()
 	})
 	return b
@@ -673,12 +697,18 @@ func (u *userInterfaceImpl) SetFullscreen(fullscreen bool) {
 		return
 	}
 
+	if u.isTerminated() {
+		return
+	}
 	if !u.isRunning() {
 		u.setInitFullscreen(fullscreen)
 		return
 	}
 
 	u.mainThread.Call(func() {
+		if u.isTerminated() {
+			return
+		}
 		if u.isFullscreen() == fullscreen {
 			return
 		}
@@ -693,6 +723,9 @@ func (u *userInterfaceImpl) IsFocused() bool {
 
 	var focused bool
 	u.mainThread.Call(func() {
+		if u.isTerminated() {
+			return
+		}
 		focused = u.window.GetAttrib(glfw.Focused) == glfw.True
 	})
 	return focused
@@ -707,6 +740,9 @@ func (u *userInterfaceImpl) IsRunnableOnUnfocused() bool {
 }
 
 func (u *userInterfaceImpl) SetFPSMode(mode FPSModeType) {
+	if u.isTerminated() {
+		return
+	}
 	if !u.isRunning() {
 		u.m.Lock()
 		u.fpsMode = mode
@@ -714,6 +750,9 @@ func (u *userInterfaceImpl) SetFPSMode(mode FPSModeType) {
 		return
 	}
 	u.mainThread.Call(func() {
+		if u.isTerminated() {
+			return
+		}
 		if !u.fpsModeInited {
 			u.fpsMode = mode
 			return
@@ -732,12 +771,18 @@ func (u *userInterfaceImpl) ScheduleFrame() {
 }
 
 func (u *userInterfaceImpl) CursorMode() CursorMode {
+	if u.isTerminated() {
+		return 0
+	}
 	if !u.isRunning() {
 		return u.getInitCursorMode()
 	}
 
 	var mode int
 	u.mainThread.Call(func() {
+		if u.isTerminated() {
+			return
+		}
 		mode = u.window.GetInputMode(glfw.CursorMode)
 	})
 
@@ -756,11 +801,17 @@ func (u *userInterfaceImpl) CursorMode() CursorMode {
 }
 
 func (u *userInterfaceImpl) SetCursorMode(mode CursorMode) {
+	if u.isTerminated() {
+		return
+	}
 	if !u.isRunning() {
 		u.setInitCursorMode(mode)
 		return
 	}
 	u.mainThread.Call(func() {
+		if u.isTerminated() {
+			return
+		}
 		u.window.SetInputMode(glfw.CursorMode, driverCursorModeToGLFWCursorMode(mode))
 		if mode == CursorModeVisible {
 			u.window.SetCursor(glfwSystemCursors[u.getCursorShape()])
@@ -773,6 +824,10 @@ func (u *userInterfaceImpl) CursorShape() CursorShape {
 }
 
 func (u *userInterfaceImpl) SetCursorShape(shape CursorShape) {
+	if u.isTerminated() {
+		return
+	}
+
 	old := u.setCursorShape(shape)
 	if old == shape {
 		return
@@ -781,17 +836,26 @@ func (u *userInterfaceImpl) SetCursorShape(shape CursorShape) {
 		return
 	}
 	u.mainThread.Call(func() {
+		if u.isTerminated() {
+			return
+		}
 		u.window.SetCursor(glfwSystemCursors[shape])
 	})
 }
 
 func (u *userInterfaceImpl) DeviceScaleFactor() float64 {
+	if u.isTerminated() {
+		return 0
+	}
 	if !u.isRunning() {
 		return u.initDeviceScaleFactor
 	}
 
-	f := 0.0
+	var f float64
 	u.mainThread.Call(func() {
+		if u.isTerminated() {
+			return
+		}
 		f = u.deviceScaleFactor(u.currentMonitor())
 	})
 	return f
@@ -1210,6 +1274,7 @@ func (u *userInterfaceImpl) loopGame() error {
 		u.renderThread.Call(func() {})
 		u.mainThread.Call(func() {
 			glfw.Terminate()
+			u.setTerminated()
 		})
 	}()
 
