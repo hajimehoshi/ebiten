@@ -3586,3 +3586,37 @@ func foo() {
 		t.Error("compileToIR must return an error but did not")
 	}
 }
+
+// Issue #2747
+func TestMultipleAssignmentsAndTypeCheck(t *testing.T) {
+	if _, err := compileToIR([]byte(`package main
+
+func Foo() (float, bool) {
+	return 0, false
+}
+
+func Bar() {
+	f, b := Foo()
+	_, _ = f, b
+	return
+}
+`)); err != nil {
+		t.Error(err)
+	}
+	if _, err := compileToIR([]byte(`package main
+
+func Foo() (float, bool) {
+	return 0, false
+}
+
+func Bar() {
+	var f float
+	var b bool
+	f, b = Foo()
+	_, _ = f, b
+	return
+}
+`)); err != nil {
+		t.Error(err)
+	}
+}

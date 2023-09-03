@@ -620,16 +620,23 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 			}
 			stmts = append(stmts, ss...)
 
+			if len(l) != 1 {
+				cs.addError(pos, fmt.Sprintf("unexpected count of types in lhs: %d", len(l)))
+				return nil, false
+			}
+			if len(lts) != 1 {
+				cs.addError(pos, fmt.Sprintf("unexpected count of expressions in lhs: %d", len(l)))
+				return nil, false
+			}
+
 			if l[0].Type == shaderir.Blank {
 				continue
 			}
 			allblank = false
 
-			for i, lt := range lts {
-				if !canAssign(&lt, &rhsTypes[i], rhsExprs[i].Const) {
-					cs.addError(pos, fmt.Sprintf("cannot use type %s as type %s in variable declaration", rhsTypes[i].String(), lt.String()))
-					return nil, false
-				}
+			if !canAssign(&lts[0], &rhsTypes[i], rhsExprs[i].Const) {
+				cs.addError(pos, fmt.Sprintf("cannot use type %s as type %s in variable declaration", rhsTypes[i].String(), lts[0].String()))
+				return nil, false
 			}
 
 			stmts = append(stmts, shaderir.Stmt{
