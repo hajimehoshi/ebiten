@@ -199,166 +199,11 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 		stmts = append(stmts, ss...)
 
 	case *ast.ForStmt:
-		msg := "for-statement must follow this format: for (varname) := (constant); (varname) (op) (constant); (varname) (op) (constant) { ..."
-		if stmt.Init == nil {
-			cs.addError(stmt.Pos(), msg)
-			return nil, false
-		}
-		if stmt.Cond == nil {
-			cs.addError(stmt.Pos(), msg)
-			return nil, false
-		}
-		if stmt.Post == nil {
-			cs.addError(stmt.Pos(), msg)
-			return nil, false
-		}
-
-		// Create a new pseudo block for the initial statement, so that the counter variable belongs to the
-		// new pseudo block for each for-loop. Without this, the same-named counter variables in different
-		// for-loops confuses the parser.
-		pseudoBlock, ok := cs.parseBlock(block, fname, []ast.Stmt{stmt.Init}, inParams, outParams, returnType, false)
+		ss, ok := cs.parseFor(block, fname, stmt, inParams, outParams, returnType, true)
 		if !ok {
 			return nil, false
 		}
-		ss := pseudoBlock.ir.Stmts
-
-		if len(ss) != 1 {
-			cs.addError(stmt.Pos(), msg)
-			return nil, false
-		}
-		if ss[0].Type != shaderir.Assign {
-			cs.addError(stmt.Pos(), msg)
-			return nil, false
-		}
-		if ss[0].Exprs[0].Type != shaderir.LocalVariable {
-			cs.addError(stmt.Pos(), msg)
-			return nil, false
-		}
-		varidx := ss[0].Exprs[0].Index
-		if ss[0].Exprs[1].Const == nil {
-			cs.addError(stmt.Pos(), msg)
-			return nil, false
-		}
-
-		if len(pseudoBlock.vars) != 1 {
-			cs.addError(stmt.Pos(), msg)
-			return nil, false
-		}
-
-		vartype := pseudoBlock.vars[0].typ
-		init := ss[0].Exprs[1].Const
-
-		exprs, ts, ss, ok := cs.parseExpr(pseudoBlock, fname, stmt.Cond, true)
-		if !ok {
-			return nil, false
-		}
-		if len(exprs) != 1 {
-			cs.addError(stmt.Pos(), msg)
-			return nil, false
-		}
-		if len(ts) != 1 || ts[0].Main != shaderir.Bool {
-			cs.addError(stmt.Pos(), "for-statement's condition must be bool")
-			return nil, false
-		}
-		if len(ss) != 0 {
-			cs.addError(stmt.Pos(), msg)
-			return nil, false
-		}
-		if exprs[0].Type != shaderir.Binary {
-			cs.addError(stmt.Pos(), msg)
-			return nil, false
-		}
-		op := exprs[0].Op
-		if op != shaderir.LessThanOp && op != shaderir.LessThanEqualOp && op != shaderir.GreaterThanOp && op != shaderir.GreaterThanEqualOp && op != shaderir.EqualOp && op != shaderir.NotEqualOp {
-			cs.addError(stmt.Pos(), "for-statement's condition must have one of these operators: <, <=, >, >=, ==, !=")
-			return nil, false
-		}
-		if exprs[0].Exprs[0].Type != shaderir.LocalVariable {
-			cs.addError(stmt.Pos(), msg)
-			return nil, false
-		}
-		if exprs[0].Exprs[0].Index != varidx {
-			cs.addError(stmt.Pos(), msg)
-			return nil, false
-		}
-		if exprs[0].Exprs[1].Const == nil {
-			cs.addError(stmt.Pos(), msg)
-			return nil, false
-		}
-		end := exprs[0].Exprs[1].Const
-
-		postSs, ok := cs.parseStmt(pseudoBlock, fname, stmt.Post, inParams, outParams, returnType)
-		if !ok {
-			return nil, false
-		}
-		if len(postSs) != 1 {
-			cs.addError(stmt.Pos(), msg)
-			return nil, false
-		}
-		if postSs[0].Type != shaderir.Assign {
-			cs.addError(stmt.Pos(), msg)
-			return nil, false
-		}
-		if postSs[0].Exprs[0].Type != shaderir.LocalVariable {
-			cs.addError(stmt.Pos(), msg)
-			return nil, false
-		}
-		if postSs[0].Exprs[0].Index != varidx {
-			cs.addError(stmt.Pos(), msg)
-			return nil, false
-		}
-		if postSs[0].Exprs[1].Type != shaderir.Binary {
-			cs.addError(stmt.Pos(), msg)
-			return nil, false
-		}
-		if postSs[0].Exprs[1].Exprs[0].Type != shaderir.LocalVariable {
-			cs.addError(stmt.Pos(), msg)
-			return nil, false
-		}
-		if postSs[0].Exprs[1].Exprs[0].Index != varidx {
-			cs.addError(stmt.Pos(), msg)
-			return nil, false
-		}
-		if postSs[0].Exprs[1].Exprs[1].Const == nil {
-			cs.addError(stmt.Pos(), msg)
-			return nil, false
-		}
-		delta := postSs[0].Exprs[1].Exprs[1].Const
-		switch postSs[0].Exprs[1].Op {
-		case shaderir.Add:
-		case shaderir.Sub:
-			delta = gconstant.UnaryOp(token.SUB, delta, 0)
-		default:
-			cs.addError(stmt.Pos(), "for-statement's post statement must have one of these operators: +=, -=, ++, --")
-			return nil, false
-		}
-
-		b, ok := cs.parseBlock(pseudoBlock, fname, []ast.Stmt{stmt.Body}, inParams, outParams, returnType, true)
-		if !ok {
-			return nil, false
-		}
-		bodyir := b.ir
-		for len(bodyir.Stmts) == 1 && bodyir.Stmts[0].Type == shaderir.BlockStmt {
-			bodyir = bodyir.Stmts[0].Blocks[0]
-		}
-
-		// As the pseudo block is not actually used, copy the variable part to the actual block.
-		// This must be done after parsing the for-loop is done, or the duplicated variables confuses the
-		// parsing.
-		v := pseudoBlock.vars[0]
-		v.forLoopCounter = true
-		block.vars = append(block.vars, v)
-
-		stmts = append(stmts, shaderir.Stmt{
-			Type:        shaderir.For,
-			Blocks:      []*shaderir.Block{bodyir},
-			ForVarType:  vartype,
-			ForVarIndex: varidx,
-			ForInit:     init,
-			ForEnd:      end,
-			ForOp:       op,
-			ForDelta:    delta,
-		})
+		stmts = append(stmts, ss...)
 
 	case *ast.IfStmt:
 		if stmt.Init != nil {
@@ -838,4 +683,169 @@ func canAssign(lt *shaderir.Type, rt *shaderir.Type, rc gconstant.Value) bool {
 	}
 
 	return false
+}
+
+func (cs *compileState) parseFor(block *block, fname string, stmt *ast.ForStmt, inParams, outParams []variable, returnType shaderir.Type, checkLocalVariableUsage bool) ([]shaderir.Stmt, bool) {
+	msg := "for-statement must follow this format: for (varname) := (constant); (varname) (op) (constant); (varname) (op) (constant) { ..."
+	if stmt.Init == nil {
+		cs.addError(stmt.Pos(), msg)
+		return nil, false
+	}
+	if stmt.Cond == nil {
+		cs.addError(stmt.Pos(), msg)
+		return nil, false
+	}
+	if stmt.Post == nil {
+		cs.addError(stmt.Pos(), msg)
+		return nil, false
+	}
+
+	// Create a new pseudo block for the initial statement, so that the counter variable belongs to the
+	// new pseudo block for each for-loop. Without this, the same-named counter variables in different
+	// for-loops confuses the parser.
+	pseudoBlock, ok := cs.parseBlock(block, fname, []ast.Stmt{stmt.Init}, inParams, outParams, returnType, false)
+	if !ok {
+		return nil, false
+	}
+	ss := pseudoBlock.ir.Stmts
+
+	if len(ss) != 1 {
+		cs.addError(stmt.Pos(), msg)
+		return nil, false
+	}
+	if ss[0].Type != shaderir.Assign {
+		cs.addError(stmt.Pos(), msg)
+		return nil, false
+	}
+	if ss[0].Exprs[0].Type != shaderir.LocalVariable {
+		cs.addError(stmt.Pos(), msg)
+		return nil, false
+	}
+	varidx := ss[0].Exprs[0].Index
+	if ss[0].Exprs[1].Const == nil {
+		cs.addError(stmt.Pos(), msg)
+		return nil, false
+	}
+
+	if len(pseudoBlock.vars) != 1 {
+		cs.addError(stmt.Pos(), msg)
+		return nil, false
+	}
+
+	vartype := pseudoBlock.vars[0].typ
+	init := ss[0].Exprs[1].Const
+
+	exprs, ts, ss, ok := cs.parseExpr(pseudoBlock, fname, stmt.Cond, true)
+	if !ok {
+		return nil, false
+	}
+	if len(exprs) != 1 {
+		cs.addError(stmt.Pos(), msg)
+		return nil, false
+	}
+	if len(ts) != 1 || ts[0].Main != shaderir.Bool {
+		cs.addError(stmt.Pos(), "for-statement's condition must be bool")
+		return nil, false
+	}
+	if len(ss) != 0 {
+		cs.addError(stmt.Pos(), msg)
+		return nil, false
+	}
+	if exprs[0].Type != shaderir.Binary {
+		cs.addError(stmt.Pos(), msg)
+		return nil, false
+	}
+	op := exprs[0].Op
+	if op != shaderir.LessThanOp && op != shaderir.LessThanEqualOp && op != shaderir.GreaterThanOp && op != shaderir.GreaterThanEqualOp && op != shaderir.EqualOp && op != shaderir.NotEqualOp {
+		cs.addError(stmt.Pos(), "for-statement's condition must have one of these operators: <, <=, >, >=, ==, !=")
+		return nil, false
+	}
+	if exprs[0].Exprs[0].Type != shaderir.LocalVariable {
+		cs.addError(stmt.Pos(), msg)
+		return nil, false
+	}
+	if exprs[0].Exprs[0].Index != varidx {
+		cs.addError(stmt.Pos(), msg)
+		return nil, false
+	}
+	if exprs[0].Exprs[1].Const == nil {
+		cs.addError(stmt.Pos(), msg)
+		return nil, false
+	}
+	end := exprs[0].Exprs[1].Const
+
+	postSs, ok := cs.parseStmt(pseudoBlock, fname, stmt.Post, inParams, outParams, returnType)
+	if !ok {
+		return nil, false
+	}
+	if len(postSs) != 1 {
+		cs.addError(stmt.Pos(), msg)
+		return nil, false
+	}
+	if postSs[0].Type != shaderir.Assign {
+		cs.addError(stmt.Pos(), msg)
+		return nil, false
+	}
+	if postSs[0].Exprs[0].Type != shaderir.LocalVariable {
+		cs.addError(stmt.Pos(), msg)
+		return nil, false
+	}
+	if postSs[0].Exprs[0].Index != varidx {
+		cs.addError(stmt.Pos(), msg)
+		return nil, false
+	}
+	if postSs[0].Exprs[1].Type != shaderir.Binary {
+		cs.addError(stmt.Pos(), msg)
+		return nil, false
+	}
+	if postSs[0].Exprs[1].Exprs[0].Type != shaderir.LocalVariable {
+		cs.addError(stmt.Pos(), msg)
+		return nil, false
+	}
+	if postSs[0].Exprs[1].Exprs[0].Index != varidx {
+		cs.addError(stmt.Pos(), msg)
+		return nil, false
+	}
+	if postSs[0].Exprs[1].Exprs[1].Const == nil {
+		cs.addError(stmt.Pos(), msg)
+		return nil, false
+	}
+	delta := postSs[0].Exprs[1].Exprs[1].Const
+	switch postSs[0].Exprs[1].Op {
+	case shaderir.Add:
+	case shaderir.Sub:
+		delta = gconstant.UnaryOp(token.SUB, delta, 0)
+	default:
+		cs.addError(stmt.Pos(), "for-statement's post statement must have one of these operators: +=, -=, ++, --")
+		return nil, false
+	}
+
+	b, ok := cs.parseBlock(pseudoBlock, fname, []ast.Stmt{stmt.Body}, inParams, outParams, returnType, true)
+	if !ok {
+		return nil, false
+	}
+	bodyir := b.ir
+	for len(bodyir.Stmts) == 1 && bodyir.Stmts[0].Type == shaderir.BlockStmt {
+		bodyir = bodyir.Stmts[0].Blocks[0]
+	}
+
+	// As the pseudo block is not actually used, copy the variable part to the actual block.
+	// This must be done after parsing the for-loop is done, or the duplicated variables confuses the
+	// parsing.
+	v := pseudoBlock.vars[0]
+	v.forLoopCounter = true
+	block.vars = append(block.vars, v)
+
+	return []shaderir.Stmt{
+		{
+			Type:        shaderir.For,
+			Blocks:      []*shaderir.Block{bodyir},
+			ForVarType:  vartype,
+			ForVarIndex: varidx,
+			ForInit:     init,
+			ForEnd:      end,
+			ForOp:       op,
+			ForDelta:    delta,
+		},
+	}, true
 }
