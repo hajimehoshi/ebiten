@@ -558,7 +558,7 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 				block.vars = append(block.vars, variable{
 					typ: t,
 				})
-				idx := len(block.vars) - 1
+				idx := block.totalLocalVariableCount() - 1
 				stmts = append(stmts,
 					shaderir.Stmt{
 						Type: shaderir.Assign,
