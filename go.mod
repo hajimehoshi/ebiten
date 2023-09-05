@@ -12,7 +12,7 @@ require (
 	github.com/jezek/xgb v1.1.0
 	github.com/jfreymuth/oggvorbis v1.0.5
 	golang.org/x/image v0.11.0
-	golang.org/x/mobile v0.0.0-20230905140555-fbe1c053b6a9
+	golang.org/x/mobile v0.0.0-20230818142238-7088062f872d
 	golang.org/x/sync v0.3.0
 	golang.org/x/sys v0.11.0
 	golang.org/x/tools v0.12.1-0.20230818130535-1517d1a3ba60
@@ -20,7 +20,7 @@ require (
 
 require (
 	github.com/jfreymuth/vorbis v1.0.2 // indirect
-	golang.org/x/exp/shiny v0.0.0-20230817173708-d852ddb80c63 // indirect
+	golang.org/x/exp v0.0.0-20190731235908-ec7cb31e5a56 // indirect
 	golang.org/x/mod v0.12.0 // indirect
 	golang.org/x/text v0.12.0 // indirect
 )
