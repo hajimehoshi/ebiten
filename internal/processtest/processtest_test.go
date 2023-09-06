@@ -56,13 +56,10 @@ func TestPrograms(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	tmpdir := t.TempDir()
+
 	// Run sub-tests one by one, not in parallel (#2571).
 	var m sync.Mutex
-
-	tmpdir, err := os.MkdirTemp("", "ebitengine-processtest-*")
-	if err != nil {
-		t.Fatal(err)
-	}
 
 	for _, e := range ents {
 		if e.IsDir() {
