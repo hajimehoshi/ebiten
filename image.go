@@ -963,7 +963,7 @@ func (i *Image) Set(x, y int, clr color.Color) {
 
 	dx, dy := i.adjustPosition(x, y)
 	cr, cg, cb, ca := clr.RGBA()
-	i.image.WritePixels([]byte{byte(cr / 0x101), byte(cg / 0x101), byte(cb / 0x101), byte(ca / 0x101)}, image.Rect(dx, dy, dx+1, dy+1))
+	i.image.WritePixels([]byte{byte(cr >> 8), byte(cg >> 8), byte(cb >> 8), byte(ca >> 8)}, image.Rect(dx, dy, dx+1, dy+1))
 }
 
 // Dispose disposes the image data.
