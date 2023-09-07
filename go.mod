@@ -3,8 +3,8 @@ module github.com/hajimehoshi/ebiten/v2
 go 1.18
 
 require (
-	github.com/ebitengine/oto/v3 v3.1.0-alpha.2
-	github.com/ebitengine/purego v0.5.0-alpha.1
+	github.com/ebitengine/oto/v3 v3.1.0-alpha.2.0.20230907160415-270e2cbf1b2a
+	github.com/ebitengine/purego v0.5.0-alpha.2
 	github.com/go-text/typesetting v0.0.0-20230803102845-24e03d8b5372
 	github.com/hajimehoshi/bitmapfont/v3 v3.0.0
 	github.com/hajimehoshi/go-mp3 v0.3.4
