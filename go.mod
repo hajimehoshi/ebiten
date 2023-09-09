@@ -3,8 +3,8 @@ module github.com/hajimehoshi/ebiten/v2
 go 1.18
 
 require (
-	github.com/ebitengine/oto/v3 v3.1.0-alpha.2.0.20230907160415-270e2cbf1b2a
-	github.com/ebitengine/purego v0.5.0-alpha.2
+	github.com/ebitengine/oto/v3 v3.1.0-alpha.2.0.20230909164631-3369785c90ea
+	github.com/ebitengine/purego v0.5.0-alpha.2.0.20230909154830-63192295690d
 	github.com/go-text/typesetting v0.0.0-20230905121921-abdbcca6e0eb
 	github.com/hajimehoshi/bitmapfont/v3 v3.0.0
 	github.com/hajimehoshi/go-mp3 v0.3.4
@@ -24,6 +24,3 @@ require (
 	golang.org/x/mod v0.12.0 // indirect
 	golang.org/x/text v0.13.0 // indirect
 )
-
-// will update once purego pr is merged
-replace github.com/ebitengine/purego => PUT_PATH_TO_PUREGO_PR
