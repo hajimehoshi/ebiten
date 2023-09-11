@@ -60,7 +60,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 				return nil, false
 			}
 			stmts = append(stmts, ss...)
-		case token.ADD_ASSIGN, token.SUB_ASSIGN, token.MUL_ASSIGN, token.QUO_ASSIGN, token.REM_ASSIGN:
+		case token.ADD_ASSIGN, token.SUB_ASSIGN, token.MUL_ASSIGN, token.QUO_ASSIGN, token.REM_ASSIGN, token.AND_ASSIGN, token.OR_ASSIGN, token.XOR_ASSIGN, token.AND_NOT_ASSIGN:
 			rhs, rts, ss, ok := cs.parseExpr(block, fname, stmt.Rhs[0], true)
 			if !ok {
 				return nil, false
@@ -94,6 +94,15 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 				op = shaderir.Div
 			case token.REM_ASSIGN:
 				op = shaderir.ModOp
+			case token.AND_ASSIGN:
+				op = shaderir.And
+			case token.OR_ASSIGN:
+				op = shaderir.Or
+			case token.XOR_ASSIGN:
+				op = shaderir.Xor
+			default:
+				cs.addError(stmt.Pos(), fmt.Sprintf("unexpected token: %s", stmt.Tok))
+				return nil, false
 			}
 
 			if lts[0].Main == rts[0].Main {

@@ -2242,3 +2242,60 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		})
 	}
 }
+
+// Issue #2752
+func TestShaderBitwiseOperator(t *testing.T) {
+	const w, h = 16, 16
+
+	src := ebiten.NewImage(w, h)
+	src.Fill(color.RGBA{R: 0x24, G: 0x3f, B: 0x6a, A: 0xff})
+
+	for _, assign := range []bool{false, true} {
+		assign := assign
+		name := "op"
+		if assign {
+			name = "op+assign"
+		}
+		t.Run(name, func(t *testing.T) {
+			var code string
+			if assign {
+				code = `	v.rgb &= 0x5a
+	v.rgb |= 0x30
+	v.rgb ^= 0x8d`
+			} else {
+				code = `	v.rgb = v.rgb & 0x5a
+	v.rgb = v.rgb | 0x30
+	v.rgb = v.rgb ^ 0x8d`
+			}
+
+			s, err := ebiten.NewShader([]byte(fmt.Sprintf(`//kage:unit pixels
+
+package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	v := ivec4(imageSrc0At(texCoord) * 0xff)
+%s
+	return vec4(v) / 0xff;
+}
+`, code)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			dst := ebiten.NewImage(w, h)
+			op := &ebiten.DrawRectShaderOptions{}
+			op.Images[0] = src
+			dst.DrawRectShader(w, h, s, op)
+
+			for j := 0; j < h; j++ {
+				for i := 0; i < w; i++ {
+					got := dst.At(i, j).(color.RGBA)
+					want := color.RGBA{R: 0xbd, G: 0xb7, B: 0xf7, A: 0xff}
+					if !sameColors(got, want, 2) {
+						t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
+					}
+				}
+			}
+		})
+	}
+}
