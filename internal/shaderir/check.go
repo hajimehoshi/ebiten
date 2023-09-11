@@ -84,6 +84,11 @@ func AreValidTypesForBinaryOp(op Op, lhs, rhs *Expr, lhst, rhst Type) bool {
 		if op == ModOp {
 			return lhs.Const.Kind() == constant.Int && rhs.Const.Kind() == constant.Int
 		}
+
+		if op == And || op == Or || op == Xor {
+			return lhs.Const.Kind() == constant.Int && rhs.Const.Kind() == constant.Int
+		}
+
 		return true
 	}
 
