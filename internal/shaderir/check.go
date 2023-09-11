@@ -129,6 +129,28 @@ func AreValidTypesForBinaryOp(op Op, lhs, rhs *Expr, lhst, rhst Type) bool {
 		return (lhst.Main == Int || lhst.IsIntVector()) && rhst.Main == Int
 	}
 
+	if op == And || op == Or || op == Xor {
+		if lhst.Main == Int && rhst.Main == Int {
+			return true
+		}
+		if lhst.Main == IVec2 && rhst.Main == IVec2 {
+			return true
+		}
+		if lhst.Main == IVec3 && rhst.Main == IVec3 {
+			return true
+		}
+		if lhst.Main == IVec4 && rhst.Main == IVec4 {
+			return true
+		}
+		if lhst.IsIntVector() && rhst.Main == Int {
+			return true
+		}
+		if lhst.Main == Int && rhst.IsIntVector() {
+			return true
+		}
+		return false
+	}
+
 	if lhst.Equal(&rhst) {
 		return true
 	}

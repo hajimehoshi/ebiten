@@ -155,6 +155,16 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 				if lhst.Main != shaderir.None || rhst.Main != shaderir.None {
 					t = shaderir.Type{Main: shaderir.Bool}
 				}
+			case token.AND, token.OR, token.XOR, token.AND_NOT:
+				if lhs[0].Const.Kind() != gconstant.Int {
+					cs.addError(e.Pos(), fmt.Sprintf("operator %s not defined on %s (%s)", op, lhs[0].Const.String(), lhst.String()))
+					return nil, nil, nil, false
+				}
+				if rhs[0].Const.Kind() != gconstant.Int {
+					cs.addError(e.Pos(), fmt.Sprintf("operator %s not defined on %s (%s)", op, rhs[0].Const.String(), rhst.String()))
+					return nil, nil, nil, false
+				}
+				fallthrough
 			default:
 				v = gconstant.BinaryOp(lhs[0].Const, op, rhs[0].Const)
 				switch {
