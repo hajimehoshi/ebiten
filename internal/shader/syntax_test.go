@@ -1421,6 +1421,112 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	}
 }
 
+// Issue #2754
+func TestSyntaxBitwiseOperatorAssign(t *testing.T) {
+	cases := []struct {
+		stmt string
+		err  bool
+	}{
+		{stmt: "a := 1; a &= 2", err: false},
+		{stmt: "a := 1; a &= 2.0", err: false},
+		{stmt: "const c = 2; a := 1; a &= c", err: false},
+		{stmt: "const c = 2.0; a := 1; a &= c", err: false},
+		{stmt: "const c int = 2; a := 1; a &= c", err: false},
+		{stmt: "const c int = 2.0; a := 1; a &= c", err: false},
+		{stmt: "const c float = 2; a := 1; a &= c", err: true},
+		{stmt: "const c float = 2.0; a := 1; a &= c", err: true},
+		{stmt: "a := 1; a &= int(2)", err: false},
+		{stmt: "a := 1; a &= vec2(2)", err: true},
+		{stmt: "a := 1; a &= vec3(2)", err: true},
+		{stmt: "a := 1; a &= vec4(2)", err: true},
+		{stmt: "a := 1; a &= ivec2(2)", err: true},
+		{stmt: "a := 1; a &= ivec3(2)", err: true},
+		{stmt: "a := 1; a &= ivec4(2)", err: true},
+		{stmt: "a := 1; a &= mat2(2)", err: true},
+		{stmt: "a := 1; a &= mat3(2)", err: true},
+		{stmt: "a := 1; a &= mat4(2)", err: true},
+		{stmt: "a := 1.0; a &= 2", err: true},
+		{stmt: "a := ivec2(1); a &= 2", err: false},
+		{stmt: "a := ivec2(1); a &= ivec2(1)", err: false},
+		{stmt: "a := ivec2(1); a &= ivec3(1)", err: true},
+		{stmt: "a := ivec2(1); a &= ivec4(1)", err: true},
+		{stmt: "a := vec2(1); a &= 2", err: true},
+		{stmt: "a := vec2(1); a &= vec2(2)", err: true},
+		{stmt: "a := mat2(1); a &= 2", err: true},
+		{stmt: "a := mat2(1); a &= mat2(2)", err: true},
+
+		{stmt: "a := 1; a |= 2", err: false},
+		{stmt: "a := 1; a |= 2.0", err: false},
+		{stmt: "const c = 2; a := 1; a |= c", err: false},
+		{stmt: "const c = 2.0; a := 1; a |= c", err: false},
+		{stmt: "const c int = 2; a := 1; a |= c", err: false},
+		{stmt: "const c int = 2.0; a := 1; a |= c", err: false},
+		{stmt: "const c float = 2; a := 1; a |= c", err: true},
+		{stmt: "const c float = 2.0; a := 1; a |= c", err: true},
+		{stmt: "a := 1; a |= int(2)", err: false},
+		{stmt: "a := 1; a |= vec2(2)", err: true},
+		{stmt: "a := 1; a |= vec3(2)", err: true},
+		{stmt: "a := 1; a |= vec4(2)", err: true},
+		{stmt: "a := 1; a |= ivec2(2)", err: true},
+		{stmt: "a := 1; a |= ivec3(2)", err: true},
+		{stmt: "a := 1; a |= ivec4(2)", err: true},
+		{stmt: "a := 1; a |= mat2(2)", err: true},
+		{stmt: "a := 1; a |= mat3(2)", err: true},
+		{stmt: "a := 1; a |= mat4(2)", err: true},
+		{stmt: "a := 1.0; a |= 2", err: true},
+		{stmt: "a := ivec2(1); a |= 2", err: false},
+		{stmt: "a := ivec2(1); a |= ivec2(1)", err: false},
+		{stmt: "a := ivec2(1); a |= ivec3(1)", err: true},
+		{stmt: "a := ivec2(1); a |= ivec4(1)", err: true},
+		{stmt: "a := vec2(1); a |= 2", err: true},
+		{stmt: "a := vec2(1); a |= vec2(2)", err: true},
+		{stmt: "a := mat2(1); a |= 2", err: true},
+		{stmt: "a := mat2(1); a |= mat2(2)", err: true},
+
+		{stmt: "a := 1; a ^= 2", err: false},
+		{stmt: "a := 1; a ^= 2.0", err: false},
+		{stmt: "const c = 2; a := 1; a ^= c", err: false},
+		{stmt: "const c = 2.0; a := 1; a ^= c", err: false},
+		{stmt: "const c int = 2; a := 1; a ^= c", err: false},
+		{stmt: "const c int = 2.0; a := 1; a ^= c", err: false},
+		{stmt: "const c float = 2; a := 1; a ^= c", err: true},
+		{stmt: "const c float = 2.0; a := 1; a ^= c", err: true},
+		{stmt: "a := 1; a ^= int(2)", err: false},
+		{stmt: "a := 1; a ^= vec2(2)", err: true},
+		{stmt: "a := 1; a ^= vec3(2)", err: true},
+		{stmt: "a := 1; a ^= vec4(2)", err: true},
+		{stmt: "a := 1; a ^= ivec2(2)", err: true},
+		{stmt: "a := 1; a ^= ivec3(2)", err: true},
+		{stmt: "a := 1; a ^= ivec4(2)", err: true},
+		{stmt: "a := 1; a ^= mat2(2)", err: true},
+		{stmt: "a := 1; a ^= mat3(2)", err: true},
+		{stmt: "a := 1; a ^= mat4(2)", err: true},
+		{stmt: "a := 1.0; a ^= 2", err: true},
+		{stmt: "a := ivec2(1); a ^= 2", err: false},
+		{stmt: "a := ivec2(1); a ^= ivec2(1)", err: false},
+		{stmt: "a := ivec2(1); a ^= ivec3(1)", err: true},
+		{stmt: "a := ivec2(1); a ^= ivec4(1)", err: true},
+		{stmt: "a := vec2(1); a ^= 2", err: true},
+		{stmt: "a := vec2(1); a ^= vec2(2)", err: true},
+		{stmt: "a := mat2(1); a ^= 2", err: true},
+		{stmt: "a := mat2(1); a ^= mat2(2)", err: true},
+	}
+
+	for _, c := range cases {
+		_, err := compileToIR([]byte(fmt.Sprintf(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	%s
+	return position
+}`, c.stmt)))
+		if err == nil && c.err {
+			t.Errorf("%s must return an error but does not", c.stmt)
+		} else if err != nil && !c.err {
+			t.Errorf("%s must not return nil but returned %v", c.stmt, err)
+		}
+	}
+}
+
 func TestSyntaxAtan(t *testing.T) {
 	cases := []struct {
 		stmt string

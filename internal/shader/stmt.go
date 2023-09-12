@@ -110,6 +110,15 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 					cs.addError(stmt.Pos(), fmt.Sprintf("invalid operation: operator / not defined on %s", rts[0].String()))
 					return nil, false
 				}
+				if op == shaderir.And || op == shaderir.Or || op == shaderir.Xor {
+					if lts[0].Main != shaderir.Int && !lts[0].IsIntVector() {
+						cs.addError(stmt.Pos(), fmt.Sprintf("invalid operation: operator %s not defined on %s", stmt.Tok, lts[0].String()))
+					}
+					if rts[0].Main != shaderir.Int && !rts[0].IsIntVector() {
+						cs.addError(stmt.Pos(), fmt.Sprintf("invalid operation: operator %s not defined on %s", stmt.Tok, rts[0].String()))
+					}
+					return nil, false
+				}
 				if lts[0].Main == shaderir.Int && rhs[0].Const != nil {
 					if !cs.forceToInt(stmt, &rhs[0]) {
 						return nil, false
@@ -128,7 +137,9 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 						}
 					}
 				case shaderir.Float:
-					if rhs[0].Const != nil &&
+					if op == shaderir.And || op == shaderir.Or || op == shaderir.Xor {
+						cs.addError(stmt.Pos(), fmt.Sprintf("invalid operation: operator %s not defined on %s", stmt.Tok, lts[0].String()))
+					} else if rhs[0].Const != nil &&
 						(rts[0].Main == shaderir.None || rts[0].Main == shaderir.Float) &&
 						gconstant.ToFloat(rhs[0].Const).Kind() != gconstant.Unknown {
 						rhs[0].Const = gconstant.ToFloat(rhs[0].Const)
@@ -137,7 +148,9 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 						return nil, false
 					}
 				case shaderir.Vec2, shaderir.Vec3, shaderir.Vec4, shaderir.Mat2, shaderir.Mat3, shaderir.Mat4:
-					if (op == shaderir.MatrixMul || op == shaderir.Div) &&
+					if op == shaderir.And || op == shaderir.Or || op == shaderir.Xor {
+						cs.addError(stmt.Pos(), fmt.Sprintf("invalid operation: operator %s not defined on %s", stmt.Tok, lts[0].String()))
+					} else if (op == shaderir.MatrixMul || op == shaderir.Div) &&
 						(rts[0].Main == shaderir.Float ||
 							(rhs[0].Const != nil &&
 								(rts[0].Main == shaderir.None || rts[0].Main == shaderir.Float) &&
