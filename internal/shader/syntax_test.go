@@ -85,6 +85,19 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 `)); err == nil {
 		t.Errorf("error must be non-nil but was nil")
 	}
+	if _, err := compileToIR([]byte(`package main
+
+func foo() {
+	var x int
+	var y float
+	var x vec2
+	_ = x
+	_ = y
+}
+
+`)); err == nil {
+		t.Error("compileToIR must return an error but did not")
+	}
 }
 
 func TestSyntaxDuplicatedFunctions(t *testing.T) {
@@ -1285,8 +1298,6 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		}
 	}
 }
-
-// TODO
 
 // Issue #1971
 func TestSyntaxOperatorMultiplyAssign(t *testing.T) {
@@ -3125,7 +3136,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	}
 }
 
-func TestCompilerDirective(t *testing.T) {
+func TestSyntaxCompilerDirective(t *testing.T) {
 	cases := []struct {
 		src  string
 		unit shaderir.Unit
@@ -3212,7 +3223,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 }
 
 // Issue #2654
-func TestOmittedReturnType(t *testing.T) {
+func TestSyntaxOmittedReturnType(t *testing.T) {
 	if _, err := compileToIR([]byte(`package main
 
 func foo(x vec2) {
@@ -3228,7 +3239,7 @@ func bar(x vec2) {
 }
 
 // Issue #2590
-func TestAssignToUniformVariables(t *testing.T) {
+func TestSyntaxAssignToUniformVariables(t *testing.T) {
 	if _, err := compileToIR([]byte(`package main
 
 var Foo float
@@ -3523,7 +3534,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 }
 
 // Issue #2680
-func TestForWithLocalVariable(t *testing.T) {
+func TestSyntaxForWithLocalVariable(t *testing.T) {
 	if _, err := compileToIR([]byte(`package main
 
 func foo() {
@@ -3545,7 +3556,7 @@ func foo() {
 }
 
 // Issue #2648
-func TestDuplicatedVariables(t *testing.T) {
+func TestSyntaxDuplicatedUniformVariables(t *testing.T) {
 	if _, err := compileToIR([]byte(`package main
 
 var Foo int
@@ -3561,34 +3572,10 @@ var Foo vec2
 `)); err == nil {
 		t.Error("compileToIR must return an error but did not")
 	}
-	if _, err := compileToIR([]byte(`package main
-
-func foo() {
-	var x int
-	var x int
-	_ = x
-}
-
-`)); err == nil {
-		t.Error("compileToIR must return an error but did not")
-	}
-	if _, err := compileToIR([]byte(`package main
-
-func foo() {
-	var x int
-	var y float
-	var x vec2
-	_ = x
-	_ = y
-}
-
-`)); err == nil {
-		t.Error("compileToIR must return an error but did not")
-	}
 }
 
 // Issue #2747
-func TestMultipleAssignmentsAndTypeCheck(t *testing.T) {
+func TestSyntaxMultipleAssignmentsAndTypeCheck(t *testing.T) {
 	if _, err := compileToIR([]byte(`package main
 
 func Foo() (float, bool) {
