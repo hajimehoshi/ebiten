@@ -134,7 +134,8 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 			}
 		}
 
-		if !shaderir.AreValidTypesForBinaryOp(op2, &lhs[0], &rhs[0], lhst, rhst) {
+		t, ok := shaderir.TypeFromBinaryOp(op2, &lhs[0], &rhs[0], lhst, rhst)
+		if !ok {
 			// TODO: Show a better type name for untyped constants.
 			cs.addError(e.Pos(), fmt.Sprintf("types don't match: %s %s %s", lhst.String(), op, rhst.String()))
 			return nil, nil, nil, false
@@ -142,32 +143,14 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 
 		if lhs[0].Const != nil && rhs[0].Const != nil {
 			var v gconstant.Value
-			var t shaderir.Type
 			switch op {
 			case token.LAND, token.LOR:
 				b := gconstant.BoolVal(gconstant.BinaryOp(lhs[0].Const, op, rhs[0].Const))
 				v = gconstant.MakeBool(b)
-				if lhst.Main != shaderir.None || rhst.Main != shaderir.None {
-					t = shaderir.Type{Main: shaderir.Bool}
-				}
 			case token.EQL, token.NEQ, token.LSS, token.LEQ, token.GTR, token.GEQ:
 				v = gconstant.MakeBool(gconstant.Compare(lhs[0].Const, op, rhs[0].Const))
-				if lhst.Main != shaderir.None || rhst.Main != shaderir.None {
-					t = shaderir.Type{Main: shaderir.Bool}
-				}
 			default:
 				v = gconstant.BinaryOp(lhs[0].Const, op, rhs[0].Const)
-				switch {
-				case lhst.Main == shaderir.Float || rhst.Main == shaderir.Float:
-					t = shaderir.Type{Main: shaderir.Float}
-				case lhst.Main == shaderir.Int || rhst.Main == shaderir.Int:
-					t = shaderir.Type{Main: shaderir.Int}
-				case lhst.Main == shaderir.Bool || rhst.Main == shaderir.Bool:
-					t = shaderir.Type{Main: shaderir.Bool}
-				default:
-					// If both operands are untyped, keep untyped.
-					t = shaderir.Type{}
-				}
 			}
 
 			return []shaderir.Expr{
@@ -176,38 +159,6 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 					Const: v,
 				},
 			}, []shaderir.Type{t}, stmts, true
-		}
-
-		var t shaderir.Type
-		switch {
-		case op2 == shaderir.LessThanOp || op2 == shaderir.LessThanEqualOp || op2 == shaderir.GreaterThanOp || op2 == shaderir.GreaterThanEqualOp || op2 == shaderir.EqualOp || op2 == shaderir.NotEqualOp || op2 == shaderir.VectorEqualOp || op2 == shaderir.VectorNotEqualOp || op2 == shaderir.AndAnd || op2 == shaderir.OrOr:
-			t = shaderir.Type{Main: shaderir.Bool}
-		case lhs[0].Const != nil && rhs[0].Const == nil:
-			t = rhst
-		case lhs[0].Const == nil && rhs[0].Const != nil:
-			t = lhst
-		case lhst.Equal(&rhst):
-			t = lhst
-		case op2 == shaderir.MatrixMul && lhst.Main == shaderir.Float && rhst.IsMatrix():
-			t = rhst
-		case op2 == shaderir.MatrixMul && lhst.IsFloatVector() && rhst.IsMatrix():
-			t = lhst
-		case op2 == shaderir.MatrixMul && lhst.IsMatrix() && rhst.Main == shaderir.Float:
-			t = lhst
-		case op2 == shaderir.MatrixMul && lhst.IsMatrix() && rhst.IsFloatVector():
-			t = rhst
-		case op2 == shaderir.Div && lhst.IsMatrix() && rhst.Main == shaderir.Float:
-			t = lhst
-		case lhst.Main == shaderir.Float && rhst.IsFloatVector():
-			t = rhst
-		case lhst.Main == shaderir.Int && rhst.IsIntVector():
-			t = rhst
-		case lhst.IsFloatVector() && rhst.Main == shaderir.Float:
-			t = lhst
-		case lhst.IsIntVector() && rhst.Main == shaderir.Int:
-			t = lhst
-		default:
-			panic(fmt.Sprintf("shaderir: invalid expression: %s %s %s", lhst.String(), e.Op, rhst.String()))
 		}
 
 		return []shaderir.Expr{
