@@ -68,16 +68,16 @@ func ResolveUntypedConstsForBinaryOp(lhs, rhs constant.Value, lhst, rhst Type) (
 	return lhs, rhs, true
 }
 
-func TypeFromBinaryOp(op Op, lhs, rhs *Expr, lhst, rhst Type) (Type, bool) {
+func TypeFromBinaryOp(op Op, lhst, rhst Type, lhsConst, rhsConst constant.Value) (Type, bool) {
 	// If both are untyped consts, compare the constants and try to truncate them if necessary.
 	if lhst.Main == None && rhst.Main == None {
 		// Assume that the constant types are already adjusted.
-		if lhs.Const.Kind() != rhs.Const.Kind() {
+		if lhsConst.Kind() != rhsConst.Kind() {
 			panic("shaderir: const types for a binary op must be adjusted")
 		}
 
 		if op == AndAnd || op == OrOr {
-			if lhs.Const.Kind() == constant.Bool && rhs.Const.Kind() == constant.Bool {
+			if lhsConst.Kind() == constant.Bool && rhsConst.Kind() == constant.Bool {
 				return Type{Main: Bool}, true
 			}
 			return Type{}, false
@@ -85,14 +85,14 @@ func TypeFromBinaryOp(op Op, lhs, rhs *Expr, lhst, rhst Type) (Type, bool) {
 
 		// For %, both operands must be integers if both are constants. Truncatable to an integer is not enough.
 		if op == ModOp {
-			if lhs.Const.Kind() == constant.Int && rhs.Const.Kind() == constant.Int {
+			if lhsConst.Kind() == constant.Int && rhsConst.Kind() == constant.Int {
 				return Type{Main: Int}, true
 			}
 			return Type{}, false
 		}
 
 		if op == And || op == Or || op == Xor {
-			if lhs.Const.Kind() == constant.Int && rhs.Const.Kind() == constant.Int {
+			if lhsConst.Kind() == constant.Int && rhsConst.Kind() == constant.Int {
 				return Type{Main: Int}, true
 			}
 			return Type{}, false

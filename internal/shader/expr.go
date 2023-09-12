@@ -134,7 +134,7 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 			}
 		}
 
-		t, ok := shaderir.TypeFromBinaryOp(op2, &lhs[0], &rhs[0], lhst, rhst)
+		t, ok := shaderir.TypeFromBinaryOp(op2, lhst, rhst, lhs[0].Const, rhs[0].Const)
 		if !ok {
 			// TODO: Show a better type name for untyped constants.
 			cs.addError(e.Pos(), fmt.Sprintf("types don't match: %s %s %s", lhst.String(), op, rhst.String()))
