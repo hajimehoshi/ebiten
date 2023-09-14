@@ -357,7 +357,7 @@ func (u *userInterfaceImpl) setWindowMonitor(monitor int) {
 	m := monitors[monitor].m
 
 	// Ignore if it is the same monitor.
-	if m == u.window.GetMonitor() {
+	if m == u.currentMonitor() {
 		return
 	}
 
