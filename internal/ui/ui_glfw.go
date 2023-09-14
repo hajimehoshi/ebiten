@@ -366,33 +366,7 @@ func (u *userInterfaceImpl) setWindowMonitor(monitor int) {
 	fullscreen := u.isFullscreen()
 	// This is copied from setFullscreen. They should probably use a shared function.
 	if fullscreen {
-		origX, origY := u.origWindowPos()
-
-		w = int(u.dipToGLFWPixel(float64(u.origWindowWidthInDIP), u.currentMonitor()))
-		h = int(u.dipToGLFWPixel(float64(u.origWindowHeightInDIP), u.currentMonitor()))
-		if u.isNativeFullscreenAvailable() {
-			u.setNativeFullscreen(false)
-			// Adjust the window size later (after adjusting the position).
-		} else if !u.isNativeFullscreenAvailable() && u.window.GetMonitor() != nil {
-			u.window.SetMonitor(nil, 0, 0, w, h, 0)
-		}
-
-		// glfw.PollEvents is necessary for macOS to enable (*glfw.Window).SetPos and SetSize (#2296).
-		// This polling causes issues on Linux and Windows when rapidly toggling fullscreen, so we only run it under macOS.
-		if runtime.GOOS == "darwin" {
-			glfw.PollEvents()
-		}
-
-		if origX != invalidPos && origY != invalidPos {
-			u.window.SetPos(origX, origY)
-			// Dirty hack for macOS (#703). Rendering doesn't work correctly with one SetPos, but
-			// work with two or more SetPos.
-			if runtime.GOOS == "darwin" {
-				u.window.SetPos(origX+1, origY)
-				u.window.SetPos(origX, origY)
-			}
-			u.setOrigWindowPos(invalidPos, invalidPos)
-		}
+		u.setFullscreen(false)
 	}
 
 	x, y := m.GetPos()
@@ -400,16 +374,7 @@ func (u *userInterfaceImpl) setWindowMonitor(monitor int) {
 	u.window.SetPos(x+px, y+py)
 
 	if fullscreen {
-		if u.isNativeFullscreenAvailable() {
-			u.setNativeFullscreen(fullscreen)
-		} else {
-			v := m.GetVideoMode()
-			u.window.SetMonitor(m, 0, 0, v.Width, v.Height, v.RefreshRate)
-		}
-
-		u.setOrigWindowPos(x, y)
-
-		u.adjustViewSizeAfterFullscreen()
+		u.setFullscreen(true)
 	}
 }
 
