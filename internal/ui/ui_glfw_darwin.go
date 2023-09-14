@@ -122,6 +122,7 @@ func init() {
 			{
 				Cmd: sel_windowWillEnterFullScreen,
 				Fn: func(id objc.ID, cmd objc.SEL, notification objc.ID) {
+					theUI.disableWindowSizeLimits()
 					pushResizableState(id, cocoa.NSNotification{ID: notification}.Object())
 				},
 			},
@@ -135,6 +136,7 @@ func init() {
 				Cmd: sel_windowWillExitFullScreen,
 				Fn: func(id objc.ID, cmd objc.SEL, notification objc.ID) {
 					pushResizableState(id, cocoa.NSNotification{ID: notification}.Object())
+					theUI.updateWindowSizeLimits()
 				},
 			},
 			{
