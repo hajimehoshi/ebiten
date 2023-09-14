@@ -367,6 +367,14 @@ func (u *userInterfaceImpl) setWindowMonitor(monitor int) {
 	// This is copied from setFullscreen. They should probably use a shared function.
 	if fullscreen {
 		u.setFullscreen(false)
+		// Just after exiting fullscreen, the window state seems very unstable (#2758).
+		// Wait for a while with polling events.
+		if runtime.GOOS == "darwin" {
+			for i := 0; i < 60; i++ {
+				glfw.PollEvents()
+				time.Sleep(time.Second / 60)
+			}
+		}
 	}
 
 	x, y := m.GetPos()
