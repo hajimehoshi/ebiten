@@ -1461,6 +1461,13 @@ func (u *userInterfaceImpl) setWindowSizeInDIP(width, height int, callSetSize bo
 	u.updateWindowSizeLimits()
 }
 
+// setOrigWindowPosWithCurrentPos must be called from the main thread.
+func (u *userInterfaceImpl) setOrigWindowPosWithCurrentPos() {
+	if x, y := u.origWindowPos(); x == invalidPos || y == invalidPos {
+		u.setOrigWindowPos(u.window.GetPos())
+	}
+}
+
 // setFullscreen must be called from the main thread.
 func (u *userInterfaceImpl) setFullscreen(fullscreen bool) {
 	if u.isFullscreen() == fullscreen {
