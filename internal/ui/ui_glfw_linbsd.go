@@ -176,7 +176,7 @@ func initialMonitorByOS() (*glfw.Monitor, error) {
 	x, y := int(rep.RootX), int(rep.RootY)
 
 	// Find the monitor including the cursor.
-	for _, m := range ensureMonitors() {
+	for _, m := range appendMonitors(nil) {
 		w, h := m.vm.Width, m.vm.Height
 		if x >= m.x && x < m.x+w && y >= m.y && y < m.y+h {
 			return m.m, nil
