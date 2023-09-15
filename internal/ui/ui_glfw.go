@@ -1321,14 +1321,6 @@ func (u *userInterfaceImpl) updateWindowSizeLimits() {
 	u.window.SetSizeLimits(minw, minh, maxw, maxh)
 }
 
-// disableWindowSizeLimits disables a window size limitation temporarily, especially for fullscreen
-// In order to enable the size limitation, call updateWindowSizeLimits.
-//
-// disableWindowSizeLimits must be called from the main thread.
-func (u *userInterfaceImpl) disableWindowSizeLimits() {
-	u.window.SetSizeLimits(glfw.DontCare, glfw.DontCare, glfw.DontCare, glfw.DontCare)
-}
-
 // adjustWindowSizeBasedOnSizeLimitsInDIP adjust the size based on the window size limits.
 // width and height are in device-independent pixels.
 func (u *userInterfaceImpl) adjustWindowSizeBasedOnSizeLimitsInDIP(width, height int) (int, int) {
@@ -1405,8 +1397,6 @@ func (u *userInterfaceImpl) setFullscreen(fullscreen bool) {
 
 	// Enter the fullscreen.
 	if fullscreen {
-		u.disableWindowSizeLimits()
-
 		if x, y := u.origWindowPos(); x == invalidPos || y == invalidPos {
 			u.setOrigWindowPos(u.window.GetPos())
 		}
@@ -1427,7 +1417,6 @@ func (u *userInterfaceImpl) setFullscreen(fullscreen bool) {
 	}
 
 	// Exit the fullscreen.
-	u.updateWindowSizeLimits()
 
 	// Get the original window position and size before changing the state of fullscreen.
 	// TODO: Why?
