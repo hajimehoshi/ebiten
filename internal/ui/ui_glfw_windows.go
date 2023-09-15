@@ -140,7 +140,7 @@ func initialMonitorByOS() (*glfw.Monitor, error) {
 	x, y := int(px), int(py)
 
 	// Find the monitor including the cursor.
-	for _, m := range appendMonitors(nil) {
+	for _, m := range theMonitors.append(nil) {
 		w, h := m.vm.Width, m.vm.Height
 		if x >= m.x && x < m.x+w && y >= m.y && y < m.y+h {
 			return m.m, nil
@@ -173,7 +173,7 @@ func monitorFromWin32Window(w windows.HWND) *glfw.Monitor {
 	}
 
 	x, y := int(mi.rcMonitor.left), int(mi.rcMonitor.top)
-	for _, m := range appendMonitors(nil) {
+	for _, m := range theMonitors.append(nil) {
 		if m.x == x && m.y == y {
 			return m.m
 		}

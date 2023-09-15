@@ -256,7 +256,7 @@ func initialMonitorByOS() (*glfw.Monitor, error) {
 	x, y := currentMouseLocation()
 
 	// Find the monitor including the cursor.
-	for _, m := range appendMonitors(nil) {
+	for _, m := range theMonitors.append(nil) {
 		w, h := m.vm.Width, m.vm.Height
 		if x >= m.x && x < m.x+w && y >= m.y && y < m.y+h {
 			return m.m, nil
@@ -279,7 +279,7 @@ func monitorFromWindowByOS(w *glfw.Window) *glfw.Monitor {
 	screenID := cocoa.NSNumber{ID: screenDictionary.ObjectForKey(cocoa.NSString_alloc().InitWithUTF8String("NSScreenNumber").ID)}
 	aID := uintptr(screenID.UnsignedIntValue()) // CGDirectDisplayID
 	pool.Release()
-	for _, m := range appendMonitors(nil) {
+	for _, m := range theMonitors.append(nil) {
 		if m.m.GetCocoaMonitor() == aID {
 			return m.m
 		}

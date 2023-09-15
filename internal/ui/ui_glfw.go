@@ -155,9 +155,9 @@ func init() {
 		panic(err)
 	}
 	glfw.SetMonitorCallback(glfw.ToMonitorCallback(func(monitor *glfw.Monitor, event glfw.PeripheralEvent) {
-		updateMonitors()
+		theMonitors.update()
 	}))
-	updateMonitors()
+	theMonitors.update()
 }
 
 var glfwSystemCursors = map[CursorShape]*glfw.Cursor{}
@@ -210,81 +210,9 @@ func (u *userInterfaceImpl) setInitMonitor(m *glfw.Monitor) {
 	u.initFullscreenHeightInDIP = int(u.dipFromGLFWMonitorPixel(float64(v.Height), m))
 }
 
-// Monitor is a wrapper around glfw.Monitor.
-type Monitor struct {
-	m  *glfw.Monitor
-	vm *glfw.VidMode
-	// Pos of monitor in virtual coords
-	x      int
-	y      int
-	width  int
-	height int
-	id     int
-	name   string
-}
-
-// Bounds returns the monitor's bounds.
-func (m *Monitor) Bounds() image.Rectangle {
-	ui := Get()
-	return image.Rect(
-		int(ui.dipFromGLFWMonitorPixel(float64(m.x), m.m)),
-		int(ui.dipFromGLFWMonitorPixel(float64(m.y), m.m)),
-		int(ui.dipFromGLFWMonitorPixel(float64(m.x+m.width), m.m)),
-		int(ui.dipFromGLFWMonitorPixel(float64(m.x+m.height), m.m)),
-	)
-}
-
-// Name returns the monitor's name.
-func (m *Monitor) Name() string {
-	return m.name
-}
-
-var (
-	// monitors is the monitor list cache for desktop glfw compile targets.
-	// populated by 'updateMonitors' which is called on init and every
-	// monitor config change event.
-	//
-	// monitors must be manipulated on the main thread.
-	monitors []*Monitor
-
-	monitorsM sync.Mutex
-
-	updateMonitorsCalled int32
-)
-
-func appendMonitors(ms []*Monitor) []*Monitor {
-	if atomic.LoadInt32(&updateMonitorsCalled) == 0 {
-		updateMonitors()
-	}
-
-	monitorsM.Lock()
-	defer monitorsM.Unlock()
-
-	return append(ms, monitors...)
-}
-
-func monitorFromGLFWMonitor(glfwMonitor *glfw.Monitor) *Monitor {
-	monitorsM.Lock()
-	defer monitorsM.Unlock()
-
-	for _, m := range monitors {
-		if m.m == glfwMonitor {
-			return m
-		}
-	}
-	return nil
-}
-
-func monitorFromID(id int) *Monitor {
-	monitorsM.Lock()
-	defer monitorsM.Unlock()
-
-	return monitors[id]
-}
-
 // AppendMonitors appends the current monitors to the passed in mons slice and returns it.
 func (u *userInterfaceImpl) AppendMonitors(monitors []*Monitor) []*Monitor {
-	return appendMonitors(monitors)
+	return theMonitors.append(monitors)
 }
 
 // Monitor returns the window's current monitor. Returns nil if there is no current monitor yet.
@@ -301,42 +229,9 @@ func (u *userInterfaceImpl) Monitor() *Monitor {
 		if glfwMonitor == nil {
 			return
 		}
-		monitor = monitorFromGLFWMonitor(glfwMonitor)
+		monitor = theMonitors.monitorFromGLFWMonitor(glfwMonitor)
 	})
 	return monitor
-}
-
-func updateMonitors() {
-	glfwMonitors := glfw.GetMonitors()
-	newMonitors := make([]*Monitor, 0, len(glfwMonitors))
-	for i, m := range glfwMonitors {
-		monitor := glfwMonitorToMonitor(m)
-		monitor.id = i
-		newMonitors = append(newMonitors, &monitor)
-	}
-
-	monitorsM.Lock()
-	monitors = newMonitors
-	monitorsM.Unlock()
-
-	clearVideoModeScaleCache()
-	devicescale.ClearCache()
-
-	atomic.StoreInt32(&updateMonitorsCalled, 1)
-}
-
-func glfwMonitorToMonitor(m *glfw.Monitor) Monitor {
-	x, y := m.GetPos()
-	vm := m.GetVideoMode()
-	return Monitor{
-		m:      m,
-		vm:     m.GetVideoMode(),
-		x:      x,
-		y:      y,
-		width:  vm.Width,
-		height: vm.Height,
-		name:   m.GetName(),
-	}
 }
 
 // getMonitorFromPosition returns a monitor for the given window x/y,
@@ -344,7 +239,7 @@ func glfwMonitorToMonitor(m *glfw.Monitor) Monitor {
 //
 // getMonitorFromPosition must be called on the main thread.
 func getMonitorFromPosition(wx, wy int) *Monitor {
-	for _, m := range appendMonitors(nil) {
+	for _, m := range theMonitors.append(nil) {
 		// TODO: Fix incorrectness in the cases of https://github.com/glfw/glfw/issues/1961.
 		// See also internal/devicescale/impl_desktop.go for a maybe better way of doing this.
 		if m.x <= wx && wx < m.x+m.vm.Width && m.y <= wy && wy < m.y+m.vm.Height {
@@ -380,7 +275,7 @@ func (u *userInterfaceImpl) setWindowMonitor(monitor int) {
 		return
 	}
 
-	m := monitorFromID(monitor).m
+	m := theMonitors.monitorFromID(monitor).m
 
 	// Ignore if it is the same monitor.
 	if m == u.currentMonitor() {
@@ -897,7 +792,7 @@ func (u *userInterfaceImpl) createWindow(width, height int, monitor int) error {
 
 	// Set our target monitor if provided. This is required to prevent an initial window flash on the default monitor.
 	if monitor != glfw.DontCare {
-		m := monitorFromID(monitor)
+		m := theMonitors.monitorFromID(monitor)
 		x, y := m.m.GetPos()
 		px, py := InitialWindowPosition(m.m.GetVideoMode().Width, m.m.GetVideoMode().Height, width, height)
 		window.SetPos(x+px, y+py)
@@ -1093,7 +988,7 @@ func (u *userInterfaceImpl) initOnMainThread(options *RunOptions) error {
 	monitor := u.getInitWindowMonitor()
 
 	if monitor != glfw.DontCare {
-		u.setInitMonitor(monitorFromID(monitor).m)
+		u.setInitMonitor(theMonitors.monitorFromID(monitor).m)
 	}
 
 	ww, wh := u.getInitWindowSizeInDIP()
