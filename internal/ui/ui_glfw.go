@@ -1552,7 +1552,6 @@ func (u *userInterfaceImpl) Window() Window {
 
 // maximizeWindow must be called from the main thread.
 func (u *userInterfaceImpl) maximizeWindow() {
-	// TODO: Can we remove this condition?
 	if u.isNativeFullscreen() {
 		return
 	}
