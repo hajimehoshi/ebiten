@@ -88,7 +88,8 @@ func KeyName(key Key) string {
 //
 // CursorPosition is concurrent-safe.
 func CursorPosition() (x, y int) {
-	return theInputState.cursorPosition()
+	cx, cy := theInputState.cursorPosition()
+	return int(cx), int(cy)
 }
 
 // Wheel returns x and y offsets of the mouse wheel or touchpad scroll.
@@ -427,7 +428,7 @@ func (i *inputState) isKeyPressed(key Key) bool {
 	}
 }
 
-func (i *inputState) cursorPosition() (int, int) {
+func (i *inputState) cursorPosition() (float64, float64) {
 	i.m.Lock()
 	defer i.m.Unlock()
 	return i.state.CursorX, i.state.CursorY

@@ -100,8 +100,8 @@ type userInterfaceImpl struct {
 
 	context     *context
 	inputState  InputState
-	origCursorX int
-	origCursorY int
+	origCursorX float64
+	origCursorY float64
 
 	keyboardLayoutMap js.Value
 

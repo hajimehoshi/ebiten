@@ -41,8 +41,8 @@ type Touch struct {
 type InputState struct {
 	KeyPressed         [KeyMax + 1]bool
 	MouseButtonPressed [MouseButtonMax + 1]bool
-	CursorX            int
-	CursorY            int
+	CursorX            float64
+	CursorY            float64
 	WheelX             float64
 	WheelY             float64
 	Touches            []Touch

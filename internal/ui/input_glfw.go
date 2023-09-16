@@ -68,7 +68,7 @@ func (u *userInterfaceImpl) updateInputState() error {
 
 	// AdjustPosition can return NaN at the initialization.
 	if !math.IsNaN(cx) && !math.IsNaN(cy) {
-		u.inputState.CursorX, u.inputState.CursorY = int(cx), int(cy)
+		u.inputState.CursorX, u.inputState.CursorY = cx, cy
 	}
 
 	if err := gamepad.Update(); err != nil {
