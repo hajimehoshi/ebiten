@@ -1319,6 +1319,9 @@ func (u *userInterfaceImpl) updateWindowSizeLimits() {
 		maxh = int(u.dipToGLFWPixel(float64(maxh), m))
 	}
 	u.window.SetSizeLimits(minw, minh, maxw, maxh)
+
+	// The window size limit affects the resizing mode, especially on macOS (#).
+	u.setWindowResizingModeForOS(u.windowResizingMode)
 }
 
 // adjustWindowSizeBasedOnSizeLimitsInDIP adjust the size based on the window size limits.

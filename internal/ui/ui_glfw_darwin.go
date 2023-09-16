@@ -348,11 +348,22 @@ func (u *userInterfaceImpl) adjustViewSizeAfterFullscreen() {
 	window.SetBackgroundColor(cocoa.NSColor_colorWithSRGBRedGreenBlueAlpha(0, 0, 0, 0))
 }
 
+func (u *userInterfaceImpl) isFullscreenAllowedFromUI(mode WindowResizingMode) bool {
+	if u.maxWindowWidthInDIP != glfw.DontCare || u.maxWindowHeightInDIP != glfw.DontCare {
+		return false
+	}
+	if mode == WindowResizingModeOnlyFullscreenEnabled {
+		return true
+	}
+	if mode == WindowResizingModeEnabled {
+		return true
+	}
+	return false
+}
+
 func (u *userInterfaceImpl) setWindowResizingModeForOS(mode WindowResizingMode) {
-	allowFullscreen := mode == WindowResizingModeOnlyFullscreenEnabled ||
-		mode == WindowResizingModeEnabled
 	var collectionBehavior uint
-	if allowFullscreen {
+	if u.isFullscreenAllowedFromUI(mode) {
 		collectionBehavior |= cocoa.NSWindowCollectionBehaviorManaged
 		collectionBehavior |= cocoa.NSWindowCollectionBehaviorFullScreenPrimary
 	} else {
