@@ -8,10 +8,7 @@ package cglfw
 
 import "C"
 
-// #cgo !wayland openbsd pkg-config: x11 xau xcb xdmcp
-// #cgo wayland,!openbsd pkg-config: wayland-client wayland-cursor wayland-egl epoll-shim
-// #cgo CFLAGS: -D_GLFW_HAS_DLOPEN
-// #cgo !wayland openbsd CFLAGS: -D_GLFW_X11 -D_GLFW_HAS_GLXGETPROCADDRESSARB
-// #cgo wayland,!openbsd CFLAGS: -D_GLFW_WAYLAND
+// #cgo pkg-config: x11 xau xcb xdmcp
+// #cgo CFLAGS: -D_GLFW_HAS_DLOPEN -D_GLFW_X11 -D_GLFW_HAS_GLXGETPROCADDRESSARB
 // #cgo LDFLAGS: -lm
 import "C"

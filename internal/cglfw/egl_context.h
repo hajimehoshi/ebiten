@@ -15,10 +15,6 @@ typedef id EGLNativeWindowType;
  #define EGLAPIENTRY
 typedef Display* EGLNativeDisplayType;
 typedef Window EGLNativeWindowType;
-#elif defined(_GLFW_WAYLAND)
- #define EGLAPIENTRY
-typedef struct wl_display* EGLNativeDisplayType;
-typedef struct wl_egl_window* EGLNativeWindowType;
 #else
  #error "No supported EGL platform selected"
 #endif

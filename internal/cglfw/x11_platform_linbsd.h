@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: 2006-2019 Camilla Löwy <elmindreda@glfw.org>
 // SPDX-FileCopyrightText: 2023 The Ebitengine Authors
 
-//go:build (freebsd || linux || netbsd || openbsd) && !wayland
+//go:build freebsd || linux || netbsd || openbsd
 
 #include <unistd.h>
 #include <signal.h>

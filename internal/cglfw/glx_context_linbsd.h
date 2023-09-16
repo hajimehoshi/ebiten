@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: 2006-2017 Camilla Löwy <elmindreda@glfw.org>
 // SPDX-FileCopyrightText: 2023 The Ebitengine Authors
 
-//go:build (freebsd || linux || netbsd || openbsd) && !wayland
+//go:build freebsd || linux || netbsd || openbsd
 
 #define GLX_VENDOR 1
 #define GLX_RGBA_BIT 0x00000001

@@ -94,8 +94,6 @@ typedef const GLubyte* (APIENTRY * PFNGLGETSTRINGIPROC)(GLenum,GLuint);
  #include "cocoa_platform_darwin.h"
 #elif defined(_GLFW_X11)
  #include "x11_platform_linbsd.h"
-#elif defined(_GLFW_WAYLAND)
- #include "wl_platform_linbsd.h"
 #else
  #error "No supported window creation API selected"
 #endif

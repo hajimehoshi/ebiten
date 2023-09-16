@@ -61,7 +61,6 @@ extern "C" {
  *  * `GLFW_EXPOSE_NATIVE_WIN32`
  *  * `GLFW_EXPOSE_NATIVE_COCOA`
  *  * `GLFW_EXPOSE_NATIVE_X11`
- *  * `GLFW_EXPOSE_NATIVE_WAYLAND`
  *
  *  The available context API macros are:
  *  * `GLFW_EXPOSE_NATIVE_WGL`
@@ -103,8 +102,6 @@ extern "C" {
  #elif defined(GLFW_EXPOSE_NATIVE_X11) || defined(GLFW_EXPOSE_NATIVE_GLX)
   #include <X11/Xlib.h>
   #include <X11/extensions/Xrandr.h>
- #elif defined(GLFW_EXPOSE_NATIVE_WAYLAND)
-  #include <wayland-client.h>
  #endif
 
  #if defined(GLFW_EXPOSE_NATIVE_NSGL)
@@ -346,56 +343,6 @@ GLFWAPI GLXContext glfwGetGLXContext(GLFWwindow* window);
  *  @ingroup native
  */
 GLFWAPI GLXWindow glfwGetGLXWindow(GLFWwindow* window);
-#endif
-
-#if defined(GLFW_EXPOSE_NATIVE_WAYLAND)
-/*! @brief Returns the `struct wl_display*` used by GLFW.
- *
- *  @return The `struct wl_display*` used by GLFW, or `NULL` if an
- *  [error](@ref error_handling) occurred.
- *
- *  @errors Possible errors include @ref GLFW_NOT_INITIALIZED.
- *
- *  @thread_safety This function may be called from any thread.  Access is not
- *  synchronized.
- *
- *  @since Added in version 3.2.
- *
- *  @ingroup native
- */
-GLFWAPI struct wl_display* glfwGetWaylandDisplay(void);
-
-/*! @brief Returns the `struct wl_output*` of the specified monitor.
- *
- *  @return The `struct wl_output*` of the specified monitor, or `NULL` if an
- *  [error](@ref error_handling) occurred.
- *
- *  @errors Possible errors include @ref GLFW_NOT_INITIALIZED.
- *
- *  @thread_safety This function may be called from any thread.  Access is not
- *  synchronized.
- *
- *  @since Added in version 3.2.
- *
- *  @ingroup native
- */
-GLFWAPI struct wl_output* glfwGetWaylandMonitor(GLFWmonitor* monitor);
-
-/*! @brief Returns the main `struct wl_surface*` of the specified window.
- *
- *  @return The main `struct wl_surface*` of the specified window, or `NULL` if
- *  an [error](@ref error_handling) occurred.
- *
- *  @errors Possible errors include @ref GLFW_NOT_INITIALIZED.
- *
- *  @thread_safety This function may be called from any thread.  Access is not
- *  synchronized.
- *
- *  @since Added in version 3.2.
- *
- *  @ingroup native
- */
-GLFWAPI struct wl_surface* glfwGetWaylandWindow(GLFWwindow* window);
 #endif
 
 #if defined(GLFW_EXPOSE_NATIVE_EGL)
