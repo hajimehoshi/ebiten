@@ -35,14 +35,19 @@
 #define Button7            7
 
 // Motif WM hints flags
-#define MWM_HINTS_DECORATIONS   2
-#define MWM_DECOR_ALL           1
 #define MWM_HINTS_FUNCTIONS     1
 #define MWM_FUNC_RESIZE         2
 #define MWM_FUNC_MOVE           4
 #define MWM_FUNC_MINIMIZE       8
 #define MWM_FUNC_MAXIMIZE       16
 #define MWM_FUNC_CLOSE          32
+#define MWM_HINTS_DECORATIONS   2
+#define MWM_DECOR_BORDER        2
+#define MWM_DECOR_RESIZEH       4
+#define MWM_DECOR_TITLE         8
+#define MWM_DECOR_MENU          16
+#define MWM_DECOR_MINIMIZE      32
+#define MWM_DECOR_MAXIMIZE      64
 
 #define _GLFW_XDND_VERSION 5
 
@@ -296,12 +301,61 @@ static void sendEventToWM(_GLFWwindow* window, Atom type,
                &event);
 }
 
+static void updateWindowHints(_GLFWwindow* window)
+{
+    Bool maximizable = False;
+    if (!window->monitor && window->resizable && window->maxwidth == GLFW_DONT_CARE && window->maxheight == GLFW_DONT_CARE)
+    {
+        maximizable = True;
+    }
+
+    struct
+    {
+        unsigned long flags;
+        unsigned long functions;
+        unsigned long decorations;
+        long input_mode;
+        unsigned long status;
+    } hints = {0};
+
+    hints.flags = MWM_HINTS_FUNCTIONS | MWM_HINTS_DECORATIONS;
+
+    hints.functions = MWM_FUNC_MOVE | MWM_FUNC_MINIMIZE | MWM_FUNC_CLOSE;
+    if (window->resizable && window->decorated)
+    {
+        hints.functions |= MWM_FUNC_RESIZE;
+    }
+    if (maximizable)
+    {
+        hints.functions |= MWM_FUNC_MAXIMIZE;
+    }
+
+    if (window->decorated)
+    {
+        hints.decorations |= MWM_DECOR_BORDER | MWM_DECOR_TITLE | MWM_DECOR_MENU | MWM_DECOR_MINIMIZE;
+        if (window->resizable)
+        {
+            hints.decorations |= MWM_DECOR_RESIZEH;
+        }
+        if (maximizable)
+        {
+            hints.decorations |= MWM_DECOR_MAXIMIZE;
+        }
+    }
+
+    XChangeProperty(_glfw.x11.display, window->x11.handle,
+                    _glfw.x11.MOTIF_WM_HINTS,
+                    _glfw.x11.MOTIF_WM_HINTS, 32,
+                    PropModeReplace,
+                    (unsigned char*) &hints,
+                    sizeof(hints) / sizeof(long));
+}
+
 // Updates the normal hints according to the window settings
 //
 static void updateNormalHints(_GLFWwindow* window, int width, int height)
 {
     XSizeHints* hints = XAllocSizeHints();
-    Bool maximizable = False;
 
     if (!window->monitor)
     {
@@ -321,10 +375,6 @@ static void updateNormalHints(_GLFWwindow* window, int width, int height)
                 hints->flags |= PMaxSize;
                 hints->max_width = window->maxwidth;
                 hints->max_height = window->maxheight;
-            }
-            else
-            {
-                maximizable = True;
             }
 
             if (window->numer != GLFW_DONT_CARE &&
@@ -349,31 +399,7 @@ static void updateNormalHints(_GLFWwindow* window, int width, int height)
     XSetWMNormalHints(_glfw.x11.display, window->x11.handle, hints);
     XFree(hints);
 
-    struct
-    {
-        unsigned long flags;
-        unsigned long functions;
-        unsigned long decorations;
-        long input_mode;
-        unsigned long status;
-    } mwmHints = {0};
-
-    mwmHints.flags = MWM_HINTS_FUNCTIONS;
-    mwmHints.functions = MWM_FUNC_MOVE | MWM_FUNC_MINIMIZE | MWM_FUNC_CLOSE;
-    if (window->resizable)
-    {
-        mwmHints.functions |= MWM_FUNC_RESIZE;
-    }
-    if (maximizable)
-    {
-        mwmHints.functions |= MWM_FUNC_MAXIMIZE;
-    }
-    XChangeProperty(_glfw.x11.display, window->x11.handle,
-                    _glfw.x11.MOTIF_WM_HINTS,
-                    _glfw.x11.MOTIF_WM_HINTS, 32,
-                    PropModeReplace,
-                    (unsigned char*) &mwmHints,
-                    sizeof(mwmHints) / sizeof(long));
+    updateWindowHints(window);
 }
 
 // Updates the full screen status of the window
@@ -2642,24 +2668,7 @@ void _glfwPlatformSetWindowResizable(_GLFWwindow* window, GLFWbool enabled)
 
 void _glfwPlatformSetWindowDecorated(_GLFWwindow* window, GLFWbool enabled)
 {
-    struct
-    {
-        unsigned long flags;
-        unsigned long functions;
-        unsigned long decorations;
-        long input_mode;
-        unsigned long status;
-    } hints = {0};
-
-    hints.flags = MWM_HINTS_DECORATIONS;
-    hints.decorations = enabled ? MWM_DECOR_ALL : 0;
-
-    XChangeProperty(_glfw.x11.display, window->x11.handle,
-                    _glfw.x11.MOTIF_WM_HINTS,
-                    _glfw.x11.MOTIF_WM_HINTS, 32,
-                    PropModeReplace,
-                    (unsigned char*) &hints,
-                    sizeof(hints) / sizeof(long));
+    updateWindowHints(window);
 }
 
 void _glfwPlatformSetWindowFloating(_GLFWwindow* window, GLFWbool enabled)
