@@ -37,6 +37,12 @@
 // Motif WM hints flags
 #define MWM_HINTS_DECORATIONS   2
 #define MWM_DECOR_ALL           1
+#define MWM_HINTS_FUNCTIONS     1
+#define MWM_FUNC_RESIZE         2
+#define MWM_FUNC_MOVE           4
+#define MWM_FUNC_MINIMIZE       8
+#define MWM_FUNC_MAXIMIZE       16
+#define MWM_FUNC_CLOSE          32
 
 #define _GLFW_XDND_VERSION 5
 
@@ -295,6 +301,7 @@ static void sendEventToWM(_GLFWwindow* window, Atom type,
 static void updateNormalHints(_GLFWwindow* window, int width, int height)
 {
     XSizeHints* hints = XAllocSizeHints();
+    Bool maximizable = False;
 
     if (!window->monitor)
     {
@@ -314,6 +321,10 @@ static void updateNormalHints(_GLFWwindow* window, int width, int height)
                 hints->flags |= PMaxSize;
                 hints->max_width = window->maxwidth;
                 hints->max_height = window->maxheight;
+            }
+            else
+            {
+                maximizable = True;
             }
 
             if (window->numer != GLFW_DONT_CARE &&
@@ -337,6 +348,32 @@ static void updateNormalHints(_GLFWwindow* window, int width, int height)
 
     XSetWMNormalHints(_glfw.x11.display, window->x11.handle, hints);
     XFree(hints);
+
+    struct
+    {
+        unsigned long flags;
+        unsigned long functions;
+        unsigned long decorations;
+        long input_mode;
+        unsigned long status;
+    } mwmHints = {0};
+
+    mwmHints.flags = MWM_HINTS_FUNCTIONS;
+    mwmHints.functions = MWM_FUNC_MOVE | MWM_FUNC_MINIMIZE | MWM_FUNC_CLOSE;
+    if (window->resizable)
+    {
+        mwmHints.functions |= MWM_FUNC_RESIZE;
+    }
+    if (maximizable)
+    {
+        mwmHints.functions |= MWM_FUNC_MAXIMIZE;
+    }
+    XChangeProperty(_glfw.x11.display, window->x11.handle,
+                    _glfw.x11.MOTIF_WM_HINTS,
+                    _glfw.x11.MOTIF_WM_HINTS, 32,
+                    PropModeReplace,
+                    (unsigned char*) &mwmHints,
+                    sizeof(mwmHints) / sizeof(long));
 }
 
 // Updates the full screen status of the window
