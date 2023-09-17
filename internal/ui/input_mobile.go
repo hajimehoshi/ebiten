@@ -49,7 +49,7 @@ func (u *userInterfaceImpl) updateInputStateFromOutside(keys map[Key]struct{}, r
 }
 
 func (u *userInterfaceImpl) updateInputState() error {
-	// TODO: Adjust cursor and touch positions based on the latest layout.
+	// TODO: Adjust cursor and touch positions based on the latest layout (#2763).
 	return nil
 }
 
