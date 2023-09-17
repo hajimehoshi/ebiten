@@ -30,18 +30,19 @@ import (
 )
 
 func (u *userInterfaceImpl) updateInputState() error {
-	var ferr error
+	var err error
 	u.mainThread.Call(func() {
-		if err := gamepad.Update(); err != nil {
-			ferr = err
-			return
-		}
-		u.updateInputStateImpl()
+		err = u.updateInputStateImpl()
 	})
-	return ferr
+	return err
 }
 
-func (u *userInterfaceImpl) updateInputStateImpl() {
+// updateInputStateImpl must be called from the main thread.
+func (u *userInterfaceImpl) updateInputStateImpl() error {
+	if err := gamepad.Update(); err != nil {
+		return err
+	}
+
 	C.ebitengine_UpdateTouches()
 
 	u.nativeTouches = u.nativeTouches[:0]
@@ -66,6 +67,8 @@ func (u *userInterfaceImpl) updateInputStateImpl() {
 			Y:  int(y),
 		})
 	}
+
+	return nil
 }
 
 func KeyName(key Key) string {

@@ -47,8 +47,16 @@ func (u *userInterfaceImpl) registerInputCallbacks() {
 	}))
 }
 
-// updateInput must be called from the main thread.
 func (u *userInterfaceImpl) updateInputState() error {
+	var err error
+	u.mainThread.Call(func() {
+		err = u.updateInputStateImpl()
+	})
+	return err
+}
+
+// updateInputStateImpl must be called from the main thread.
+func (u *userInterfaceImpl) updateInputStateImpl() error {
 	u.m.Lock()
 	defer u.m.Unlock()
 
