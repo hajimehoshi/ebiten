@@ -224,3 +224,8 @@ func (u *userInterfaceImpl) keyName(key Key) string {
 func UpdateInputFromEvent(e js.Value) {
 	theUI.updateInputFromEvent(e)
 }
+
+func (u *userInterfaceImpl) updateInputState() error {
+	// TODO: Adjust cursor and touch positions based on the latest layout.
+	return nil
+}

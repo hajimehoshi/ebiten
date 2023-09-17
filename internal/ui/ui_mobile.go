@@ -219,7 +219,7 @@ func (u *userInterfaceImpl) appMain(a app.App) {
 			for _, t := range touches {
 				ts = append(ts, t)
 			}
-			u.updateInputState(keys, runes, ts)
+			u.updateInputStateFromOutside(keys, runes, ts)
 		}
 	}
 }
@@ -451,7 +451,7 @@ func (u *userInterfaceImpl) Monitor() *Monitor {
 }
 
 func (u *userInterfaceImpl) UpdateInput(keys map[Key]struct{}, runes []rune, touches []TouchForInput) {
-	u.updateInputState(keys, runes, touches)
+	u.updateInputStateFromOutside(keys, runes, touches)
 	if u.fpsMode == FPSModeVsyncOffMinimum {
 		u.renderRequester.RequestRenderIfNeeded()
 	}

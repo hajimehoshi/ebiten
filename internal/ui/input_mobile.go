@@ -26,7 +26,7 @@ type TouchForInput struct {
 	Y float64
 }
 
-func (u *userInterfaceImpl) updateInputState(keys map[Key]struct{}, runes []rune, touches []TouchForInput) {
+func (u *userInterfaceImpl) updateInputStateFromOutside(keys map[Key]struct{}, runes []rune, touches []TouchForInput) {
 	u.m.Lock()
 	defer u.m.Unlock()
 
@@ -46,6 +46,11 @@ func (u *userInterfaceImpl) updateInputState(keys map[Key]struct{}, runes []rune
 			Y:  int(y),
 		})
 	}
+}
+
+func (u *userInterfaceImpl) updateInputState() error {
+	// TODO: Adjust cursor and touch positions based on the latest layout.
+	return nil
 }
 
 func KeyName(key Key) string {

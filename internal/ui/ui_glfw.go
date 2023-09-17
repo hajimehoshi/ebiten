@@ -1140,9 +1140,6 @@ func (u *userInterfaceImpl) update() (float64, float64, error) {
 	} else {
 		glfw.WaitEvents()
 	}
-	if err := u.updateInputState(); err != nil {
-		return 0, 0, err
-	}
 
 	// In the initial state on macOS, the window is not shown (#2620).
 	for u.window.GetAttrib(glfw.Visible) != 0 && !u.isRunnableOnUnfocused() && u.window.GetAttrib(glfw.Focused) == 0 && !u.window.ShouldClose() {

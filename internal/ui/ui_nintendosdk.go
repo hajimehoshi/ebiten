@@ -28,7 +28,6 @@ import (
 
 	"golang.org/x/sync/errgroup"
 
-	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl"
@@ -116,11 +115,6 @@ func (u *userInterfaceImpl) Run(game Game, options *RunOptions) error {
 
 		for {
 			recordProfilerHeartbeat()
-
-			u.mainThread.Call(func() {
-				gamepad.Update()
-				u.updateInputState()
-			})
 
 			if err := u.context.updateFrame(u.graphicsDriver, float64(C.kScreenWidth), float64(C.kScreenHeight), deviceScaleFactor, u, func() {
 				u.egl.swapBuffers()

@@ -118,6 +118,11 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 		return nil
 	}
 
+	// Update the input state after the layout is updated as a cursor position is affected by the layout.
+	if err := ui.updateInputState(); err != nil {
+		return err
+	}
+
 	// Ensure that Update is called once before Draw so that Update can be used for initialization.
 	if !c.updateCalled && updateCount == 0 {
 		updateCount = 1
