@@ -31,6 +31,12 @@ var (
 	stringTouchmove  = js.ValueOf("touchmove")
 )
 
+type touchInClient struct {
+	id TouchID
+	x  float64
+	y  float64
+}
+
 func jsKeyToID(key js.Value) Key {
 	// js.Value cannot be used as a map key.
 	// As the number of keys is around 100, just a dumb loop should work.
@@ -112,35 +118,34 @@ func (u *userInterfaceImpl) setMouseCursorFromEvent(e js.Value) {
 		return
 	}
 
-	s := u.DeviceScaleFactor()
-	x, y := u.context.clientPositionToLogicalPosition(e.Get("clientX").Float(), e.Get("clientY").Float(), s)
-	u.origCursorX, u.origCursorY = x, y
+	u.origCursorXInClient = e.Get("clientX").Float()
+	u.origCursorYInClient = e.Get("clientY").Float()
 
 	if u.cursorMode == CursorModeCaptured {
-		dx, dy := e.Get("movementX").Float()/s, e.Get("movementY").Float()/s
-		u.inputState.CursorX += dx
-		u.inputState.CursorY += dy
+		u.cursorXInClient += e.Get("movementX").Float()
+		u.cursorYInClient += e.Get("movementY").Float()
 		return
 	}
 
-	u.inputState.CursorX, u.inputState.CursorY = x, y
+	u.cursorXInClient = u.origCursorXInClient
+	u.cursorYInClient = u.origCursorYInClient
 }
 
 func (u *userInterfaceImpl) recoverCursorPosition() {
-	u.inputState.CursorX, u.inputState.CursorY = u.origCursorX, u.origCursorY
+	u.cursorXInClient = u.origCursorXInClient
+	u.cursorYInClient = u.origCursorYInClient
 }
 
 func (u *userInterfaceImpl) updateTouchesFromEvent(e js.Value) {
-	u.inputState.Touches = u.inputState.Touches[:0]
+	u.touchesInClient = u.touchesInClient[:0]
 
 	touches := e.Get("targetTouches")
 	for i := 0; i < touches.Length(); i++ {
 		t := touches.Call("item", i)
-		x, y := u.context.clientPositionToLogicalPosition(t.Get("clientX").Float(), t.Get("clientY").Float(), u.DeviceScaleFactor())
-		u.inputState.Touches = append(u.inputState.Touches, Touch{
-			ID: TouchID(t.Get("identifier").Int()),
-			X:  int(x),
-			Y:  int(y),
+		u.touchesInClient = append(u.touchesInClient, touchInClient{
+			id: TouchID(t.Get("identifier").Int()),
+			x:  t.Get("clientX").Float(),
+			y:  t.Get("clientY").Float(),
 		})
 	}
 }
@@ -226,6 +231,19 @@ func UpdateInputFromEvent(e js.Value) {
 }
 
 func (u *userInterfaceImpl) updateInputState() error {
-	// TODO: Adjust cursor and touch positions based on the latest layout (#2763).
+	s := u.DeviceScaleFactor()
+	cx, cy := u.context.clientPositionToLogicalPosition(u.cursorXInClient, u.cursorYInClient, s)
+	u.inputState.CursorX, u.inputState.CursorY = cx, cy
+
+	u.inputState.Touches = u.inputState.Touches[:0]
+	for _, t := range u.touchesInClient {
+		x, y := u.context.clientPositionToLogicalPosition(t.x, t.y, s)
+		u.inputState.Touches = append(u.inputState.Touches, Touch{
+			ID: t.id,
+			X:  int(x),
+			Y:  int(y),
+		})
+	}
+
 	return nil
 }

@@ -98,10 +98,13 @@ type userInterfaceImpl struct {
 
 	err error
 
-	context     *context
-	inputState  InputState
-	origCursorX float64
-	origCursorY float64
+	context             *context
+	inputState          InputState
+	cursorXInClient     float64
+	cursorYInClient     float64
+	origCursorXInClient float64
+	origCursorYInClient float64
+	touchesInClient     []touchInClient
 
 	keyboardLayoutMap js.Value
 
