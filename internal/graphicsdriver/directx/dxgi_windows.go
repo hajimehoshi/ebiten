@@ -35,6 +35,12 @@ const (
 
 type _DXGI_COLOR_SPACE_TYPE int32
 
+type _DXGI_FEATURE int32
+
+const (
+	_DXGI_FEATURE_PRESENT_ALLOW_TEARING _DXGI_FEATURE = 0
+)
+
 type _DXGI_FORMAT int32
 
 const (
@@ -54,10 +60,17 @@ type _DXGI_MODE_SCALING int32
 type _DXGI_PRESENT uint32
 
 const (
-	_DXGI_PRESENT_TEST _DXGI_PRESENT = 0x00000001
+	_DXGI_PRESENT_TEST          _DXGI_PRESENT = 0x00000001
+	_DXGI_PRESENT_ALLOW_TEARING _DXGI_PRESENT = 0x00000200
 )
 
 type _DXGI_SCALING int32
+
+type _DXGI_SWAP_CHAIN_FLAG int32
+
+const (
+	_DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING _DXGI_SWAP_CHAIN_FLAG = 2048
+)
 
 type _DXGI_SWAP_EFFECT int32
 
@@ -90,6 +103,7 @@ var (
 	_IID_IDXGIDevice     = windows.GUID{Data1: 0x54ec77fa, Data2: 0x1377, Data3: 0x44e6, Data4: [...]byte{0x8c, 0x32, 0x88, 0xfd, 0x5f, 0x44, 0xc8, 0x4c}}
 	_IID_IDXGIFactory    = windows.GUID{Data1: 0x7b7166ec, Data2: 0x21c7, Data3: 0x44ae, Data4: [...]byte{0xb2, 0x1a, 0xc9, 0xae, 0x32, 0x1a, 0xe3, 0x69}}
 	_IID_IDXGIFactory4   = windows.GUID{Data1: 0x1bc6ea02, Data2: 0xef36, Data3: 0x464f, Data4: [...]byte{0xbf, 0x0c, 0x21, 0xca, 0x39, 0xe5, 0x16, 0x8a}}
+	_IID_IDXGIFactory5   = windows.GUID{Data1: 0x7632e1f5, Data2: 0xee65, Data3: 0x4dca, Data4: [...]byte{0x87, 0xfd, 0x84, 0xcd, 0x75, 0xf8, 0x83, 0x8d}}
 	_IID_IDXGISwapChain4 = windows.GUID{Data1: 0x3d585d5a, Data2: 0xbd4a, Data3: 0x489e, Data4: [...]byte{0xb1, 0xf4, 0x3d, 0xbc, 0xb6, 0x45, 0x2f, 0xfb}}
 )
 
@@ -383,6 +397,59 @@ func (i *_IDXGIFactory4) EnumWarpAdapter() (*_IDXGIAdapter1, error) {
 }
 
 func (i *_IDXGIFactory4) Release() uint32 {
+	r, _, _ := syscall.Syscall(i.vtbl.Release, 1, uintptr(unsafe.Pointer(i)), 0, 0)
+	return uint32(r)
+}
+
+type _IDXGIFactory5 struct {
+	vtbl *_IDXGIFactory5_Vtbl
+}
+
+type _IDXGIFactory5_Vtbl struct {
+	QueryInterface uintptr
+	AddRef         uintptr
+	Release        uintptr
+
+	SetPrivateData                uintptr
+	SetPrivateDataInterface       uintptr
+	GetPrivateData                uintptr
+	GetParent                     uintptr
+	EnumAdapters                  uintptr
+	MakeWindowAssociation         uintptr
+	GetWindowAssociation          uintptr
+	CreateSwapChain               uintptr
+	CreateSoftwareAdapter         uintptr
+	EnumAdapters1                 uintptr
+	IsCurrent                     uintptr
+	IsWindowedStereoEnabled       uintptr
+	CreateSwapChainForHwnd        uintptr
+	CreateSwapChainForCoreWindow  uintptr
+	GetSharedResourceAdapterLuid  uintptr
+	RegisterStereoStatusWindow    uintptr
+	RegisterStereoStatusEvent     uintptr
+	UnregisterStereoStatus        uintptr
+	RegisterOcclusionStatusWindow uintptr
+	RegisterOcclusionStatusEvent  uintptr
+	UnregisterOcclusionStatus     uintptr
+	CreateSwapChainForComposition uintptr
+	GetCreationFlags              uintptr
+	EnumAdapterByLuid             uintptr
+	EnumWarpAdapter               uintptr
+	CheckFeatureSupport           uintptr
+}
+
+func (i *_IDXGIFactory5) CheckFeatureSupport(feature _DXGI_FEATURE, pFeatureSupportData unsafe.Pointer, featureSupportDataSize uint32) error {
+	r, _, _ := syscall.Syscall6(i.vtbl.CheckFeatureSupport, 4, uintptr(unsafe.Pointer(i)),
+		uintptr(feature), uintptr(pFeatureSupportData), uintptr(featureSupportDataSize),
+		0, 0)
+	runtime.KeepAlive(pFeatureSupportData)
+	if uint32(r) != uint32(windows.S_OK) {
+		return fmt.Errorf("directx: IDXGIFactory5::CheckFeatureSupport failed: %w", handleError(windows.Handle(uint32(r))))
+	}
+	return nil
+}
+
+func (i *_IDXGIFactory5) Release() uint32 {
 	r, _, _ := syscall.Syscall(i.vtbl.Release, 1, uintptr(unsafe.Pointer(i)), 0, 0)
 	return uint32(r)
 }
