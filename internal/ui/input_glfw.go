@@ -66,27 +66,13 @@ func (u *userInterfaceImpl) updateInputStateImpl() error {
 	for gb, ub := range glfwMouseButtonToMouseButton {
 		u.inputState.MouseButtonPressed[ub] = u.window.GetMouseButton(gb) == glfw.Press
 	}
-
+	cx, cy := u.window.GetCursorPos()
+	// TODO: This is tricky. Rename the function?
 	m := u.currentMonitor()
 	s := u.deviceScaleFactor(m)
-
-	cx, cy := u.savedCursorX, u.savedCursorY
-	defer func() {
-		u.savedCursorX = math.NaN()
-		u.savedCursorY = math.NaN()
-	}()
-
-	if !math.IsNaN(cx) && !math.IsNaN(cy) {
-		cx2, cy2 := u.context.logicalPositionToClientPosition(cx, cy, s)
-		cx2 = u.dipToGLFWPixel(cx2, m)
-		cy2 = u.dipToGLFWPixel(cy2, m)
-		u.window.SetCursorPos(cx2, cy2)
-	} else {
-		cx2, cy2 := u.window.GetCursorPos()
-		cx2 = u.dipFromGLFWPixel(cx2, m)
-		cy2 = u.dipFromGLFWPixel(cy2, m)
-		cx, cy = u.context.clientPositionToLogicalPosition(cx2, cy2, s)
-	}
+	cx = u.dipFromGLFWPixel(cx, m)
+	cy = u.dipFromGLFWPixel(cy, m)
+	cx, cy = u.context.clientPositionToLogicalPosition(cx, cy, s)
 
 	// AdjustPosition can return NaN at the initialization.
 	if !math.IsNaN(cx) && !math.IsNaN(cy) {
@@ -121,12 +107,4 @@ func (u *userInterfaceImpl) keyName(key Key) string {
 		name = glfw.GetKeyName(gk, 0)
 	})
 	return name
-}
-
-func (u *userInterfaceImpl) saveCursorPosition() {
-	u.m.Lock()
-	defer u.m.Unlock()
-
-	u.savedCursorX = u.inputState.CursorX
-	u.savedCursorY = u.inputState.CursorY
 }

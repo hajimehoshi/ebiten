@@ -178,11 +178,6 @@ func (w *Window) SetCharModsCallback(cbfun CharModsCallback) (previous CharModsC
 	return ToCharModsCallback(nil) // TODO
 }
 
-func (w *Window) SetCloseCallback(cbfun CloseCallback) (previous CloseCallback) {
-	w.w.SetCloseCallback(cbfun)
-	return ToCloseCallback(nil) // TODO
-}
-
 func (w *Window) SetCursor(cursor *Cursor) {
 	var c *cglfw.Cursor
 	if cursor != nil {
@@ -191,8 +186,9 @@ func (w *Window) SetCursor(cursor *Cursor) {
 	w.w.SetCursor(c)
 }
 
-func (w *Window) SetCursorPos(xpos, ypos float64) {
-	w.w.SetCursorPos(xpos, ypos)
+func (w *Window) SetCloseCallback(cbfun CloseCallback) (previous CloseCallback) {
+	w.w.SetCloseCallback(cbfun)
+	return ToCloseCallback(nil) // TODO
 }
 
 func (w *Window) SetDropCallback(cbfun DropCallback) (previous DropCallback) {

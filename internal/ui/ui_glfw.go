@@ -20,7 +20,6 @@ import (
 	"errors"
 	"fmt"
 	"image"
-	"math"
 	"os"
 	"runtime"
 	"sync"
@@ -105,10 +104,8 @@ type userInterfaceImpl struct {
 
 	fpsModeInited bool
 
-	inputState   InputState
-	iwindow      glfwWindow
-	savedCursorX float64
-	savedCursorY float64
+	inputState InputState
+	iwindow    glfwWindow
 
 	sizeCallback                   glfw.SizeCallback
 	closeCallback                  glfw.CloseCallback
@@ -148,8 +145,6 @@ func init() {
 		fpsMode:                  FPSModeVsyncOn,
 		origWindowPosX:           invalidPos,
 		origWindowPosY:           invalidPos,
-		savedCursorX:             math.NaN(),
-		savedCursorY:             math.NaN(),
 	}
 	theUI.iwindow.ui = &theUI.userInterfaceImpl
 }
@@ -1406,10 +1401,6 @@ func (u *userInterfaceImpl) setOrigWindowPosWithCurrentPos() {
 func (u *userInterfaceImpl) setFullscreen(fullscreen bool) {
 	if u.isFullscreen() == fullscreen {
 		return
-	}
-
-	if u.window.GetInputMode(glfw.CursorMode) == glfw.CursorDisabled {
-		u.saveCursorPosition()
 	}
 
 	// Enter the fullscreen.
