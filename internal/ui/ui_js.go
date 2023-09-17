@@ -16,6 +16,7 @@ package ui
 
 import (
 	"image"
+	"math"
 	"sync"
 	"syscall/js"
 	"time"
@@ -106,6 +107,12 @@ type userInterfaceImpl struct {
 	origCursorYInClient float64
 	touchesInClient     []touchInClient
 
+	savedCursorX              float64
+	savedCursorY              float64
+	savedOutsideWidth         float64
+	savedOutsideHeight        float64
+	outsideSizeUnchangedCount int
+
 	keyboardLayoutMap js.Value
 
 	m         sync.Mutex
@@ -115,6 +122,8 @@ type userInterfaceImpl struct {
 func init() {
 	theUI.userInterfaceImpl = userInterfaceImpl{
 		runnableOnUnfocused: true,
+		savedCursorX:        math.NaN(),
+		savedCursorY:        math.NaN(),
 	}
 }
 
@@ -150,6 +159,11 @@ func (u *userInterfaceImpl) SetFullscreen(fullscreen bool) {
 	if fullscreen == u.IsFullscreen() {
 		return
 	}
+
+	if theUI.cursorMode == CursorModeCaptured {
+		theUI.saveCursorPosition()
+	}
+
 	if fullscreen {
 		f := canvas.Get("requestFullscreen")
 		if !f.Truthy() {
@@ -158,6 +172,7 @@ func (u *userInterfaceImpl) SetFullscreen(fullscreen bool) {
 		f.Call("bind", canvas).Invoke()
 		return
 	}
+
 	f := document.Get("exitFullscreen")
 	if !f.Truthy() {
 		f = document.Get("webkitExitFullscreen")

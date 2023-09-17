@@ -15,6 +15,7 @@
 package ui
 
 import (
+	"math"
 	"syscall/js"
 	"unicode"
 )
@@ -230,10 +231,50 @@ func UpdateInputFromEvent(e js.Value) {
 	theUI.updateInputFromEvent(e)
 }
 
+func (u *userInterfaceImpl) saveCursorPosition() {
+	u.savedCursorX = u.inputState.CursorX
+	u.savedCursorY = u.inputState.CursorY
+	w, h := u.outsideSize()
+	u.savedOutsideWidth = w
+	u.savedOutsideHeight = h
+}
+
 func (u *userInterfaceImpl) updateInputState() error {
 	s := u.DeviceScaleFactor()
-	cx, cy := u.context.clientPositionToLogicalPosition(u.cursorXInClient, u.cursorYInClient, s)
-	u.inputState.CursorX, u.inputState.CursorY = cx, cy
+
+	if !math.IsNaN(u.savedCursorX) && !math.IsNaN(u.savedCursorY) {
+		// If savedCursorX and savedCursorY are valid values, the cursor is saved just before entering or exiting from fullscreen.
+		// Even after entering or exiting from fullscreening, the outside (body) size is not updated for a while.
+		// Wait for the outside size updated.
+		if w, h := u.outsideSize(); u.savedOutsideWidth != w || u.savedOutsideHeight != h {
+			u.inputState.CursorX = u.savedCursorX
+			u.inputState.CursorY = u.savedCursorY
+			cx, cy := u.context.logicalPositionToClientPosition(u.inputState.CursorX, u.inputState.CursorY, s)
+			u.cursorXInClient = cx
+			u.cursorYInClient = cy
+			u.savedCursorX = math.NaN()
+			u.savedCursorY = math.NaN()
+			u.savedOutsideWidth = 0
+			u.savedOutsideHeight = 0
+			u.outsideSizeUnchangedCount = 0
+		} else {
+			u.outsideSizeUnchangedCount++
+
+			// If the outside size is not changed for a while, probably the screen size is not actually changed.
+			// Reset the state.
+			if u.outsideSizeUnchangedCount > 60 {
+				u.savedCursorX = math.NaN()
+				u.savedCursorY = math.NaN()
+				u.savedOutsideWidth = 0
+				u.savedOutsideHeight = 0
+				u.outsideSizeUnchangedCount = 0
+			}
+		}
+	} else {
+		cx, cy := u.context.clientPositionToLogicalPosition(u.cursorXInClient, u.cursorYInClient, s)
+		u.inputState.CursorX = cx
+		u.inputState.CursorY = cy
+	}
 
 	u.inputState.Touches = u.inputState.Touches[:0]
 	for _, t := range u.touchesInClient {
