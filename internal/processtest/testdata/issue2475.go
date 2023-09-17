@@ -30,6 +30,13 @@ type Game struct {
 	y     int
 }
 
+func delta(x0, x1 int) int {
+	if x0 < x1 {
+		return x1 - x0
+	}
+	return x0 - x1
+}
+
 func (g *Game) Update() error {
 	switch g.count {
 	case 0:
@@ -41,7 +48,8 @@ func (g *Game) Update() error {
 	case 60:
 		return ebiten.Termination
 	default:
-		if x, y := ebiten.CursorPosition(); g.x != x || g.y != y {
+		// Allow some numerical errors (±1).
+		if x, y := ebiten.CursorPosition(); delta(g.x, x) > 1 || delta(g.y, y) > 1 {
 			return fmt.Errorf("cursor position changed: got: (%d, %d), want: (%d, %d)", x, y, g.x, g.y)
 		}
 	}
@@ -56,7 +64,8 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 func (g *Game) Layout(width, height int) (int, int) {
 	// Using a fixed size matters.
-	// If a window size is changed or fullscreened, the cursor position calculation considers the current screen scale.
+	// If a window size is changed or fullscreened, the cursor position calculation considers the current screen scale, and
+	// a fixed size changes the scale.
 	return 320, 240
 }
 
