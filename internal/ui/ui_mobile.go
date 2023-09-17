@@ -114,6 +114,7 @@ type userInterfaceImpl struct {
 	context *context
 
 	inputState InputState
+	touches    []TouchForInput
 
 	fpsMode         FPSModeType
 	renderRequester RenderRequester

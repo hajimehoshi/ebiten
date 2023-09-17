@@ -37,19 +37,27 @@ func (u *userInterfaceImpl) updateInputStateFromOutside(keys map[Key]struct{}, r
 
 	u.inputState.Runes = append(u.inputState.Runes, runes...)
 
-	u.inputState.Touches = u.inputState.Touches[:0]
+	u.touches = u.touches[:0]
 	for _, t := range touches {
-		x, y := u.context.clientPositionToLogicalPosition(t.X, t.Y, u.DeviceScaleFactor())
+		u.touches = append(u.touches, t)
+	}
+}
+
+func (u *userInterfaceImpl) updateInputState() error {
+	u.m.Lock()
+	defer u.m.Unlock()
+
+	s := u.DeviceScaleFactor()
+
+	u.inputState.Touches = u.inputState.Touches[:0]
+	for _, t := range u.touches {
+		x, y := u.context.clientPositionToLogicalPosition(t.X, t.Y, s)
 		u.inputState.Touches = append(u.inputState.Touches, Touch{
 			ID: t.ID,
 			X:  int(x),
 			Y:  int(y),
 		})
 	}
-}
-
-func (u *userInterfaceImpl) updateInputState() error {
-	// TODO: Adjust cursor and touch positions based on the latest layout (#2763).
 	return nil
 }
 
