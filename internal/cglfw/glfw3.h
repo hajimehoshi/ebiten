@@ -721,6 +721,13 @@ extern "C" {
  */
 #define GLFW_FOCUS_ON_SHOW          0x0002000C
 
+/*! @brief Mouse input transparency window hint and attribute
+ *
+ *  Mouse input transparency [window hint](@ref GLFW_MOUSE_PASSTHROUGH_hint) or
+ *  [window attribute](@ref GLFW_MOUSE_PASSTHROUGH_attrib).
+ */
+#define GLFW_MOUSE_PASSTHROUGH      0x0002000D
+
 /*! @brief Framebuffer bit depth hint.
  *
  *  Framebuffer bit depth [hint](@ref GLFW_RED_BITS).

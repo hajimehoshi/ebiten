@@ -58,6 +58,7 @@ const (
 	TransparentFramebuffer Hint = 0x0002000A
 	Hovered                Hint = 0x0002000B
 	FocusOnShow            Hint = 0x0002000C
+	MousePassthrough       Hint = 0x0002000D
 
 	RedBits        Hint = 0x00021001
 	GreenBits      Hint = 0x00021002

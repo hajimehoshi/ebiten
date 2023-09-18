@@ -70,6 +70,7 @@ const (
 	FocusOnShow             = Hint(0x0002000C)
 	Iconified               = Hint(0x00020002)
 	Maximized               = Hint(0x00020008)
+	MousePassthrough        = Hint(0x0002000D)
 	OpenGLForwardCompatible = Hint(0x00022006)
 	OpenGLProfile           = Hint(0x00022008)
 	Resizable               = Hint(0x00020003)

@@ -917,6 +917,9 @@ int _glfwPlatformCreateWindow(_GLFWwindow* window,
             return GLFW_FALSE;
     }
 
+    if (wndconfig->mousePassthrough)
+        _glfwPlatformSetWindowMousePassthrough(window, GLFW_TRUE);
+
     if (window->monitor)
     {
         _glfwPlatformShowWindow(window);
@@ -1433,6 +1436,13 @@ void _glfwPlatformSetWindowFloating(_GLFWwindow* window, GLFWbool enabled)
     else
         [window->ns.object setLevel:NSNormalWindowLevel];
     } // autoreleasepool
+}
+
+void _glfwPlatformSetWindowMousePassthrough(_GLFWwindow* window, GLFWbool enabled)
+{
+    @autoreleasepool {
+    [window->ns.object setIgnoresMouseEvents:enabled];
+    }
 }
 
 float _glfwPlatformGetWindowOpacity(_GLFWwindow* window)

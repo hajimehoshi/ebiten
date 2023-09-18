@@ -333,6 +333,7 @@ const (
 	_WS_EX_LAYERED                                             = 0x00080000
 	_WS_EX_OVERLAPPEDWINDOW                                    = _WS_EX_WINDOWEDGE | _WS_EX_CLIENTEDGE
 	_WS_EX_TOPMOST                                             = 0x00000008
+	_WS_EX_TRANSPARENT                                         = 0x00000020
 	_WS_EX_WINDOWEDGE                                          = 0x00000100
 	_WS_MAXIMIZE                                               = 0x01000000
 	_WS_MAXIMIZEBOX                                            = 0x00010000

@@ -155,6 +155,10 @@ func (w *Window) platformSetWindowFloating(enabled bool) error {
 	panic("goglfw: Window.platformSetWindowFloating is not implemented yet")
 }
 
+func (w *Window) platformSetWindowMousePassthrough(enabled bool) error {
+	panic("goglfw: Window.platformSetWindowMousePassthrough is not implemented yet")
+}
+
 func (w *Window) platformGetWindowOpacity() (float32, error) {
 	// cocoa_window.m:L1462
 	panic("goglfw: Window.platformGetWindowOpacity is not implemented yet")

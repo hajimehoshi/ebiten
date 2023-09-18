@@ -120,13 +120,14 @@ func CreateWindow(width, height int, title string, monitor *Monitor, share *Wind
 			RefreshRate: _glfw.hints.refreshRate,
 		},
 
-		monitor:     monitor,
-		resizable:   wndconfig.resizable,
-		decorated:   wndconfig.decorated,
-		autoIconify: wndconfig.autoIconify,
-		floating:    wndconfig.floating,
-		focusOnShow: wndconfig.focusOnShow,
-		cursorMode:  CursorNormal,
+		monitor:          monitor,
+		resizable:        wndconfig.resizable,
+		decorated:        wndconfig.decorated,
+		autoIconify:      wndconfig.autoIconify,
+		floating:         wndconfig.floating,
+		focusOnShow:      wndconfig.focusOnShow,
+		mousePassthrough: wndconfig.mousePassthrough,
+		cursorMode:       CursorNormal,
 
 		doublebuffer: fbconfig.doublebuffer,
 
@@ -252,6 +253,8 @@ func WindowHint(hint Hint, value int) error {
 		_glfw.hints.window.centerCursor = intToBool(value)
 	case FocusOnShow:
 		_glfw.hints.window.focusOnShow = intToBool(value)
+	case MousePassthrough:
+		_glfw.hints.window.mousePassthrough = intToBool(value)
 	case ClientAPI:
 		_glfw.hints.context.client = value
 	case ContextCreationAPI:
@@ -597,6 +600,8 @@ func (w *Window) GetAttrib(attrib Hint) (int, error) {
 		return boolToInt(b), nil
 	case FocusOnShow:
 		return boolToInt(w.focusOnShow), nil
+	case MousePassthrough:
+		return boolToInt(w.mousePassthrough), nil
 	case TransparentFramebuffer:
 		return boolToInt(w.platformFramebufferTransparent()), nil
 	case Resizable:
@@ -680,6 +685,12 @@ func (w *Window) SetAttrib(attrib Hint, value int) error {
 		return nil
 	case FocusOnShow:
 		w.focusOnShow = bValue
+		return nil
+	case MousePassthrough:
+		w.mousePassthrough = bValue
+		if err := w.platformSetWindowMousePassthrough(bValue); err != nil {
+			return err
+		}
 		return nil
 	default:
 		return fmt.Errorf("goglfw: invalid window attribute 0x%08X: %w", attrib, InvalidEnum)

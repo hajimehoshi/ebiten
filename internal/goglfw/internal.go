@@ -23,19 +23,20 @@ type initconfig struct {
 }
 
 type wndconfig struct {
-	width          int
-	height         int
-	title          string
-	resizable      bool
-	visible        bool
-	decorated      bool
-	focused        bool
-	autoIconify    bool
-	floating       bool
-	maximized      bool
-	centerCursor   bool
-	focusOnShow    bool
-	scaleToMonitor bool
+	width            int
+	height           int
+	title            string
+	resizable        bool
+	visible          bool
+	decorated        bool
+	focused          bool
+	autoIconify      bool
+	floating         bool
+	maximized        bool
+	centerCursor     bool
+	focusOnShow      bool
+	mousePassthrough bool
+	scaleToMonitor   bool
 }
 
 type ctxconfig struct {
@@ -118,17 +119,18 @@ type (
 )
 
 type Window struct {
-	resizable    bool
-	decorated    bool
-	autoIconify  bool
-	floating     bool
-	focusOnShow  bool
-	shouldClose  bool
-	userPointer  unsafe.Pointer
-	doublebuffer bool
-	videoMode    VidMode
-	monitor      *Monitor
-	cursor       *Cursor
+	resizable        bool
+	decorated        bool
+	autoIconify      bool
+	floating         bool
+	focusOnShow      bool
+	mousePassthrough bool
+	shouldClose      bool
+	userPointer      unsafe.Pointer
+	doublebuffer     bool
+	videoMode        VidMode
+	monitor          *Monitor
+	cursor           *Cursor
 
 	minwidth  int
 	minheight int

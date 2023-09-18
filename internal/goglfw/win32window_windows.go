@@ -1409,6 +1409,12 @@ func (w *Window) platformCreateWindow(wndconfig *wndconfig, ctxconfig *ctxconfig
 		}
 	}
 
+	if wndconfig.mousePassthrough {
+		if err := w.platformSetWindowMousePassthrough(true); err != nil {
+			return err
+		}
+	}
+
 	if w.monitor != nil {
 		w.platformShowWindow()
 		if err := w.platformFocusWindow(); err != nil {
@@ -1970,6 +1976,49 @@ func (w *Window) platformSetWindowFloating(enabled bool) error {
 		after = _HWND_TOPMOST
 	}
 	return _SetWindowPos(w.platform.handle, after, 0, 0, 0, 0, _SWP_NOACTIVATE|_SWP_NOMOVE|_SWP_NOSIZE)
+}
+
+func (w *Window) platformSetWindowMousePassthrough(enabled bool) error {
+	exStyle, err := _GetWindowLongW(w.platform.handle, _GWL_EXSTYLE)
+	if err != nil {
+		return err
+	}
+
+	var key _COLORREF
+	var alpha byte
+	var flags uint32
+	if exStyle&_WS_EX_LAYERED != 0 {
+		var err error
+		key, alpha, flags, err = _GetLayeredWindowAttributes(w.platform.handle)
+		if err != nil {
+			return err
+		}
+	}
+
+	if enabled {
+		exStyle |= _WS_EX_TRANSPARENT | _WS_EX_LAYERED
+	} else {
+		exStyle &^= _WS_EX_TRANSPARENT
+		// NOTE: Window opacity also needs the layered window style so do not
+		//       remove it if the window is alpha blended
+		if exStyle&_WS_EX_LAYERED != 0 {
+			if flags&_LWA_ALPHA == 0 {
+				exStyle &^= _WS_EX_LAYERED
+			}
+		}
+	}
+
+	if _, err := _SetWindowLongW(w.platform.handle, _GWL_EXSTYLE, exStyle); err != nil {
+		return err
+	}
+
+	if enabled {
+		if err := _SetLayeredWindowAttributes(w.platform.handle, key, alpha, flags); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (w *Window) platformGetWindowOpacity() (float32, error) {

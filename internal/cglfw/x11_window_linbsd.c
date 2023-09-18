@@ -2056,6 +2056,9 @@ int _glfwPlatformCreateWindow(_GLFWwindow* window,
             return GLFW_FALSE;
     }
 
+    if (wndconfig->mousePassthrough)
+        _glfwPlatformSetWindowMousePassthrough(window, GLFW_TRUE);
+
     if (window->monitor)
     {
         _glfwPlatformShowWindow(window);
@@ -2739,6 +2742,25 @@ void _glfwPlatformSetWindowFloating(_GLFWwindow* window, GLFWbool enabled)
     }
 
     XFlush(_glfw.x11.display);
+}
+
+void _glfwPlatformSetWindowMousePassthrough(_GLFWwindow* window, GLFWbool enabled)
+{
+    if (!_glfw.x11.xshape.available)
+        return;
+
+    if (enabled)
+    {
+        Region region = XCreateRegion();
+        XShapeCombineRegion(_glfw.x11.display, window->x11.handle,
+                            ShapeInput, 0, 0, region, ShapeSet);
+        XDestroyRegion(region);
+    }
+    else
+    {
+        XShapeCombineMask(_glfw.x11.display, window->x11.handle,
+                          ShapeInput, 0, 0, None, ShapeSet);
+    }
 }
 
 float _glfwPlatformGetWindowOpacity(_GLFWwindow* window)
