@@ -54,7 +54,7 @@ func IsWindowDecorated() bool {
 // The window is decorated by default.
 //
 // SetWindowDecorated works only on desktops.
-// SetWindowDecorated does nothing on other platforms.
+// SetWindowDecorated does nothing if the platform is not a desktop.
 //
 // SetWindowDecorated is concurrent-safe.
 func SetWindowDecorated(decorated bool) {
@@ -99,7 +99,7 @@ func SetWindowResizable(resizable bool) {
 
 // SetWindowTitle sets the title of the window.
 //
-// SetWindowTitle does nothing on browsers or mobiles.
+// SetWindowTitle does nothing if the platform is not a desktop.
 //
 // SetWindowTitle is concurrent-safe.
 func SetWindowTitle(title string) {
@@ -123,7 +123,7 @@ func SetWindowTitle(title string) {
 //
 // As macOS windows don't have icons, SetWindowIcon doesn't work on macOS.
 //
-// SetWindowIcon doesn't work on browsers or mobiles.
+// SetWindowIcon doesn't work if the platform is not a desktop.
 //
 // SetWindowIcon is concurrent-safe.
 func SetWindowIcon(iconImages []image.Image) {
@@ -138,7 +138,7 @@ func SetWindowIcon(iconImages []image.Image) {
 //
 // WindowPosition returns the original window position in fullscreen mode.
 //
-// WindowPosition returns (0, 0) on browsers and mobiles.
+// WindowPosition returns (0, 0) if the platform is not a desktop.
 //
 // WindowPosition is concurrent-safe.
 func WindowPosition() (x, y int) {
@@ -151,7 +151,7 @@ func WindowPosition() (x, y int) {
 //
 // SetWindowPosition sets the original window position in fullscreen mode.
 //
-// SetWindowPosition does nothing on browsers and mobiles.
+// SetWindowPosition does nothing if the platform is not a desktop.
 //
 // SetWindowPosition is concurrent-safe.
 func SetWindowPosition(x, y int) {
@@ -215,7 +215,7 @@ func SetWindowSizeLimits(minw, minh, maxw, maxh int) {
 
 // IsWindowFloating reports whether the window is always shown above all the other windows.
 //
-// IsWindowFloating returns false on browsers and mobiles.
+// IsWindowFloating returns false if the platform is not a desktop.
 //
 // IsWindowFloating is concurrent-safe.
 func IsWindowFloating() bool {
@@ -224,7 +224,7 @@ func IsWindowFloating() bool {
 
 // SetWindowFloating sets the state whether the window is always shown above all the other windows.
 //
-// SetWindowFloating does nothing on browsers or mobiles.
+// SetWindowFloating does nothing if the platform is not a desktop.
 //
 // SetWindowFloating is concurrent-safe.
 func SetWindowFloating(float bool) {
@@ -235,7 +235,7 @@ func SetWindowFloating(float bool) {
 //
 // MaximizeWindow does nothing when the window is not resizable (WindowResizingModeEnabled).
 //
-// MaximizeWindow does nothing on browsers or mobiles.
+// MaximizeWindow does nothing if the platform is not a desktop.
 //
 // MaximizeWindow is concurrent-safe.
 func MaximizeWindow() {
@@ -246,7 +246,7 @@ func MaximizeWindow() {
 //
 // IsWindowMaximized returns false when the window is not resizable (WindowResizingModeEnabled).
 //
-// IsWindowMaximized always returns false on browsers and mobiles.
+// IsWindowMaximized always returns false if the platform is not a desktop.
 //
 // IsWindowMaximized is concurrent-safe.
 func IsWindowMaximized() bool {
@@ -257,7 +257,7 @@ func IsWindowMaximized() bool {
 //
 // If the main loop does not start yet, MinimizeWindow does nothing.
 //
-// MinimizeWindow does nothing on browsers or mobiles.
+// MinimizeWindow does nothing if the platform is not a desktop.
 //
 // MinimizeWindow is concurrent-safe.
 func MinimizeWindow() {
@@ -266,7 +266,7 @@ func MinimizeWindow() {
 
 // IsWindowMinimized reports whether the window is minimized or not.
 //
-// IsWindowMinimized always returns false on browsers and mobiles.
+// IsWindowMinimized always returns false if the platform is not a desktop.
 //
 // IsWindowMinimized is concurrent-safe.
 func IsWindowMinimized() bool {
@@ -289,7 +289,7 @@ func RestoreWindow() {
 // As the window is closed immediately by default,
 // you might want to call SetWindowClosingHandled(true) to prevent the window is automatically closed.
 //
-// IsWindowBeingClosed always returns false on other platforms.
+// IsWindowBeingClosed always returns false if the platform is not a desktop.
 //
 // IsWindowBeingClosed is concurrent-safe.
 func IsWindowBeingClosed() bool {
@@ -304,7 +304,7 @@ func IsWindowBeingClosed() bool {
 // To end the game, you have to return an error value at the Game's Update function.
 //
 // SetWindowClosingHandled works only on desktops.
-// SetWindowClosingHandled does nothing on other platforms.
+// SetWindowClosingHandled does nothing if the platform is not a desktop.
 //
 // SetWindowClosingHandled is concurrent-safe.
 func SetWindowClosingHandled(handled bool) {
@@ -313,9 +313,31 @@ func SetWindowClosingHandled(handled bool) {
 
 // IsWindowClosingHandled reports whether the window closing is handled or not on desktops by SetWindowClosingHandled.
 //
-// IsWindowClosingHandled always returns false on other platforms.
+// IsWindowClosingHandled always returns false if the platform is not a desktop.
 //
 // IsWindowClosingHandled is concurrent-safe.
 func IsWindowClosingHandled() bool {
 	return ui.Get().Window().IsClosingHandled()
+}
+
+// SetWindowMousePassthrough sets whether a mouse cursor passthroughs the window or not on desktops. The default state is false.
+//
+// Even if this is set true, some platforms might requrie a window to be undecorated
+// in order to make the mouse cursor passthrough the window.
+//
+// SetWindowMousePassthrough works only on desktops.
+// SetWindowMousePassthrough does nothing if the platform is not a desktop.
+//
+// SetWindowMousePassthrough is concurrent-safe.
+func SetWindowMousePassthrough(enabled bool) {
+	ui.Get().Window().SetMousePassthrough(enabled)
+}
+
+// IsWindowMousePassthrough reports whether a mouse cursor passthroughs the window or not on desktops.
+//
+// IsWindowMousePassthrough alaywas returns false if the platform is not a desktop.
+//
+// IsWindowMousePassthrough is concurrent-safe.
+func IsWindowMousePassthrough() bool {
+	return ui.Get().Window().IsMousePassthrough()
 }

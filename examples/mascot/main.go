@@ -142,6 +142,7 @@ func main() {
 	ebiten.SetWindowDecorated(false)
 	ebiten.SetWindowFloating(true)
 	ebiten.SetWindowSize(width, height)
+	ebiten.SetWindowMousePassthrough(true)
 
 	op := &ebiten.RunGameOptions{}
 	op.ScreenTransparent = true

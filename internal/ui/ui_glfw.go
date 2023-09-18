@@ -84,16 +84,17 @@ type userInterfaceImpl struct {
 	initFullscreenWidthInDIP  int
 	initFullscreenHeightInDIP int
 
-	initFullscreen           bool
-	initCursorMode           CursorMode
-	initWindowDecorated      bool
-	initWindowMonitor        int
-	initWindowPositionXInDIP int
-	initWindowPositionYInDIP int
-	initWindowWidthInDIP     int
-	initWindowHeightInDIP    int
-	initWindowFloating       bool
-	initWindowMaximized      bool
+	initFullscreen             bool
+	initCursorMode             CursorMode
+	initWindowDecorated        bool
+	initWindowMonitor          int
+	initWindowPositionXInDIP   int
+	initWindowPositionYInDIP   int
+	initWindowWidthInDIP       int
+	initWindowHeightInDIP      int
+	initWindowFloating         bool
+	initWindowMaximized        bool
+	initWindowMousePassthrough bool
 
 	// bufferOnceSwapped must be accessed from the main thread.
 	bufferOnceSwapped bool
@@ -523,6 +524,18 @@ func (u *userInterfaceImpl) setInitWindowMaximized(maximized bool) {
 	u.m.Lock()
 	u.initWindowMaximized = maximized
 	u.m.Unlock()
+}
+
+func (u *userInterfaceImpl) isInitWindowMousePassthrough() bool {
+	u.m.RLock()
+	defer u.m.RUnlock()
+	return u.initWindowMousePassthrough
+}
+
+func (u *userInterfaceImpl) setInitWindowMousePassthrough(enabled bool) {
+	u.m.Lock()
+	defer u.m.Unlock()
+	u.initWindowMousePassthrough = enabled
 }
 
 func (u *userInterfaceImpl) isWindowClosingHandled() bool {
@@ -983,6 +996,12 @@ func (u *userInterfaceImpl) initOnMainThread(options *RunOptions) error {
 		focused = glfw.False
 	}
 	glfw.WindowHint(glfw.FocusOnShow, focused)
+
+	mousePassthrough := glfw.False
+	if u.isInitWindowMousePassthrough() {
+		mousePassthrough = glfw.True
+	}
+	glfw.WindowHint(glfw.MousePassthrough, mousePassthrough)
 
 	// Set the window visible explicitly or the application freezes on Wayland (#974).
 	if os.Getenv("WAYLAND_DISPLAY") != "" {
@@ -1715,6 +1734,19 @@ func (u *userInterfaceImpl) origWindowPos() (int, int) {
 func (u *userInterfaceImpl) setOrigWindowPos(x, y int) {
 	u.origWindowPosX = x
 	u.origWindowPosY = y
+}
+
+// setWindowMousePassthrough must be called from the main thread.
+func (u *userInterfaceImpl) setWindowMousePassthrough(enabled bool) {
+	if microsoftgdk.IsXbox() {
+		return
+	}
+
+	v := glfw.False
+	if enabled {
+		v = glfw.True
+	}
+	u.window.SetAttrib(glfw.MousePassthrough, v)
 }
 
 func IsScreenTransparentAvailable() bool {

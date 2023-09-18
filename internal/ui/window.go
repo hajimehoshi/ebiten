@@ -41,6 +41,8 @@ type Window interface {
 	Restore()
 	SetClosingHandled(handled bool)
 	IsClosingHandled() bool
+	SetMousePassthrough(enabled bool)
+	IsMousePassthrough() bool
 }
 
 type nullWindow struct{}
@@ -117,5 +119,12 @@ func (*nullWindow) SetClosingHandled(handled bool) {
 }
 
 func (*nullWindow) IsClosingHandled() bool {
+	return false
+}
+
+func (*nullWindow) SetMousePassthrough(enabled bool) {
+}
+
+func (*nullWindow) IsMousePassthrough() bool {
 	return false
 }

@@ -387,3 +387,36 @@ func (w *glfwWindow) SetClosingHandled(handled bool) {
 func (w *glfwWindow) IsClosingHandled() bool {
 	return w.ui.isWindowClosingHandled()
 }
+
+func (w *glfwWindow) SetMousePassthrough(enabled bool) {
+	if w.ui.isTerminated() {
+		return
+	}
+	if !w.ui.isRunning() {
+		w.ui.setInitWindowMousePassthrough(enabled)
+		return
+	}
+	w.ui.mainThread.Call(func() {
+		if w.ui.isTerminated() {
+			return
+		}
+		w.ui.setWindowMousePassthrough(enabled)
+	})
+}
+
+func (w *glfwWindow) IsMousePassthrough() bool {
+	if w.ui.isTerminated() {
+		return false
+	}
+	if !w.ui.isRunning() {
+		return w.ui.isInitWindowMousePassthrough()
+	}
+	var v bool
+	w.ui.mainThread.Call(func() {
+		if w.ui.isTerminated() {
+			return
+		}
+		v = w.ui.window.GetAttrib(glfw.MousePassthrough) == glfw.True
+	})
+	return v
+}

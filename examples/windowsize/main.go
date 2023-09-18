@@ -147,6 +147,7 @@ func (g *game) Update() error {
 	floating := ebiten.IsWindowFloating()
 	resizingMode := ebiten.WindowResizingMode()
 	screenCleared := ebiten.IsScreenClearedEveryFrame()
+	mousePassthrough := ebiten.IsWindowMousePassthrough()
 
 	const d = 16
 	toUpdateWindowSize := false
@@ -267,6 +268,9 @@ func (g *game) Update() error {
 			restore = inpututil.IsKeyJustPressed(ebiten.KeyE)
 		}
 	}
+	if inpututil.IsKeyJustPressed(ebiten.KeyP) {
+		mousePassthrough = !mousePassthrough
+	}
 
 	if toUpdateWindowSize {
 		g.width = screenWidth
@@ -303,6 +307,8 @@ func (g *game) Update() error {
 	if inpututil.IsKeyJustPressed(ebiten.KeyI) {
 		ebiten.SetWindowIcon([]image.Image{createRandomIconImage()})
 	}
+
+	ebiten.SetWindowMousePassthrough(mousePassthrough)
 
 	g.count++
 	return nil
@@ -357,6 +363,7 @@ func (g *game) Draw(screen *ebiten.Image) {
 [D] Switch the window decoration (only for desktops)
 [L] Switch the window floating state (only for desktops)
 [W] Switch whether to skip clearing the screen
+[P] Switch whether a mouse cursor passthroughs the window (only for desktops)
 %s
 IsFocused?: %s
 Window Position: (%d, %d)
