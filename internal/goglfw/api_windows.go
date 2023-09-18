@@ -805,7 +805,7 @@ var (
 	procSetCursorPos                  = user32.NewProc("SetCursorPos")
 	procSetFocus                      = user32.NewProc("SetFocus")
 	procSetForegroundWindow           = user32.NewProc("SetForegroundWindow")
-	procSetLayeredWindowAttributes    = user32.NewProc("procSetLayeredWindowAttributes")
+	procSetLayeredWindowAttributes    = user32.NewProc("SetLayeredWindowAttributes")
 	procSetProcessDPIAware            = user32.NewProc("SetProcessDPIAware")
 	procSetProcessDpiAwarenessContext = user32.NewProc("SetProcessDpiAwarenessContext")
 	procSetWindowLongW                = user32.NewProc("SetWindowLongW")
