@@ -28,10 +28,10 @@ const screenShaderSrc = `//kage:unit pixels
 
 package main
 
-func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 	// Blend source colors in a square region, which size is 1/scale.
 	scale := imageDstSize()/imageSrc0Size()
-	pos := texCoord
+	pos := srcPos
 	p0 := pos - 1/2.0/scale
 	p1 := pos + 1/2.0/scale
 

@@ -18,8 +18,8 @@
 
 package main
 
-func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
-	pos := position.xy
+func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+	pos := dstPos.xy
 	pos -= imageDstOrigin()
 	pos /= imageDstSize()
 	return vec4(pos.x, pos.y, 0, 1)

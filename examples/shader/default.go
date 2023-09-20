@@ -21,8 +21,8 @@ package main
 var Time float
 var Cursor vec2
 
-func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
-	pos := (position.xy - imageDstOrigin()) / imageDstSize()
+func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+	pos := (dstPos.xy - imageDstOrigin()) / imageDstSize()
 	pos += Cursor / imageDstSize() / 4
 	clr := 0.0
 	clr += sin(pos.x*cos(Time/15)*80) + cos(pos.y*cos(Time/15)*10)

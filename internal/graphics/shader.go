@@ -154,8 +154,8 @@ func imageSrc%[1]dAt(pos vec2) vec4 {
 	shaderSuffix += `
 var __projectionMatrix mat4
 
-func __vertex(position vec2, texCoord vec2, color vec4) (vec4, vec2, vec4) {
-	return __projectionMatrix * vec4(position, 0, 1), texCoord, color
+func __vertex(dstPos vec2, srcPos vec2, color vec4) (vec4, vec2, vec4) {
+	return __projectionMatrix * vec4(dstPos, 0, 1), srcPos, color
 }
 `
 	return shaderSuffix, nil

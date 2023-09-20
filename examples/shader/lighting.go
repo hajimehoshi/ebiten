@@ -21,13 +21,13 @@ package main
 var Time float
 var Cursor vec2
 
-func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
-	pos := position.xy - imageDstOrigin()
+func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+	pos := dstPos.xy - imageDstOrigin()
 
 	lightpos := vec3(Cursor, 50)
 	lightdir := normalize(lightpos - vec3(pos, 0))
-	normal := normalize(imageSrc1UnsafeAt(texCoord) - 0.5)
+	normal := normalize(imageSrc1UnsafeAt(srcPos) - 0.5)
 	const ambient = 0.25
 	diffuse := 0.75 * max(0.0, dot(normal.xyz, lightdir))
-	return imageSrc0UnsafeAt(texCoord) * (ambient + diffuse)
+	return imageSrc0UnsafeAt(srcPos) * (ambient + diffuse)
 }

@@ -67,18 +67,18 @@ func adjustTexelForAddressRepeat(p vec2) vec2 {
 }
 {{end}}
 
-func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 {{if eq .Filter .FilterNearest}}
 {{if eq .Address .AddressUnsafe}}
-	clr := imageSrc0UnsafeAt(texCoord)
+	clr := imageSrc0UnsafeAt(srcPos)
 {{else if eq .Address .AddressClampToZero}}
-	clr := imageSrc0At(texCoord)
+	clr := imageSrc0At(srcPos)
 {{else if eq .Address .AddressRepeat}}
-	clr := imageSrc0At(adjustTexelForAddressRepeat(texCoord))
+	clr := imageSrc0At(adjustTexelForAddressRepeat(srcPos))
 {{end}}
 {{else if eq .Filter .FilterLinear}}
-	p0 := texCoord - 1/2.0
-	p1 := texCoord + 1/2.0
+	p0 := srcPos - 1/2.0
+	p1 := srcPos + 1/2.0
 
 {{if eq .Address .AddressRepeat}}
 	p0 = adjustTexelForAddressRepeat(p0)

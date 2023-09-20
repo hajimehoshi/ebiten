@@ -31,11 +31,11 @@ func Warp(pos vec2) vec2 {
 	return pos/2 + 0.5
 }
 
-func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 	// Adjust the texture position to [0, 1].
 	origin := imageSrc0Origin()
 	size := imageSrc0Size()
-	pos := texCoord
+	pos := srcPos
 	pos -= origin
 	pos /= size
 

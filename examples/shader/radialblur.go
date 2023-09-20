@@ -21,18 +21,18 @@ package main
 var Time float
 var Cursor vec2
 
-func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
-	pos := position.xy - imageDstOrigin()
+func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+	pos := dstPos.xy - imageDstOrigin()
 
 	dir := normalize(pos - Cursor)
-	clr := imageSrc2UnsafeAt(texCoord)
+	clr := imageSrc2UnsafeAt(srcPos)
 
 	samples := [...]float{
 		-22, -14, -8, -4, -2, 2, 4, 8, 14, 22,
 	}
 	sum := clr
 	for i := 0; i < len(samples); i++ {
-		sum += imageSrc2At(texCoord + dir*samples[i])
+		sum += imageSrc2At(srcPos + dir*samples[i])
 	}
 	sum /= 10 + 1
 
