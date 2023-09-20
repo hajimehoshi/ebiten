@@ -26,7 +26,7 @@ func shaderSuffix(unit shaderir.Unit) (string, error) {
 	shaderSuffix := fmt.Sprintf(`
 var __imageDstTextureSize vec2
 
-// imageSrcTextureSize returns the destination image's texture size in pixels.
+// imageDstTextureSize returns the destination image's texture size in pixels.
 //
 // Deprecated: as of v2.6. Use the pixel-unit mode.
 func imageDstTextureSize() vec2 {
@@ -44,7 +44,7 @@ func imageSrcTextureSize() vec2 {
 	return __imageSrcTextureSizes[0]
 }
 
-// The unit is the source texture's pixel or texel.
+// The unit is the destination texture's pixel or texel.
 var __imageDstRegionOrigin vec2
 
 // The unit is the source texture's pixel or texel.
@@ -60,7 +60,7 @@ func imageDstRegionOnTexture() (vec2, vec2) {
 	return __imageDstRegionOrigin, __imageDstRegionSize
 }
 
-// imageDstRegionOnTexture returns the destination image's origin on its texture.
+// imageDstOrigin returns the destination image's origin on its texture.
 // The unit is the source texture's pixel or texel.
 //
 // As an image is a part of internal texture, the image can be located at an arbitrary position on the texture.
@@ -68,7 +68,7 @@ func imageDstOrigin() vec2 {
 	return __imageDstRegionOrigin
 }
 
-// imageDstRegionOnTexture returns the destination image's size.
+// imageDstSize returns the destination image's size.
 // The unit is the source texture's pixel or texel.
 func imageDstSize() vec2 {
 	return __imageDstRegionSize
