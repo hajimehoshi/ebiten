@@ -3311,6 +3311,16 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 }`,
 			err: true,
 		},
+		{
+			src: "\t    " + `//kage:unit pixels` + "    \t\r" + `
+package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	return position
+}`,
+			unit: shaderir.Pixels,
+			err:  false,
+		},
 	}
 	for _, c := range cases {
 		ir, err := compileToIR([]byte(c.src))
