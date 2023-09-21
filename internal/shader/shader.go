@@ -222,7 +222,9 @@ func ParseCompilerDirectives(src []byte) (shaderir.Unit, error) {
 	// TODO: Change the unit to pixels in v3 (#2645).
 	unit := shaderir.Texels
 
-	reUnit := regexp.MustCompile(`^//kage:unit\s+(.+)$`)
+	// Go's whitespace is U+0020 (SP), U+0009 (\t), U+000d (\r), and U+000A (\n).
+	// See https://go.dev/ref/spec#Tokens
+	reUnit := regexp.MustCompile(`^[ \t\r\n]*//kage:unit\s+([^ \t\r\n]+)[ \t\r\n]*$`)
 	var unitParsed bool
 
 	buf := bytes.NewBuffer(src)
