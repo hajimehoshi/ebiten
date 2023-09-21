@@ -20,7 +20,7 @@
 
 #import "Ebitenmobileview.objc.h"
 
-@interface {{.PrefixUpper}}EbitenViewController : UIViewController<EbitenmobileviewRenderRequester>
+@interface {{.PrefixUpper}}EbitenViewController : UIViewController<EbitenmobileviewRenderRequester, EbitenmobileviewSetGameNotifier>
 @end
 
 @implementation {{.PrefixUpper}}EbitenViewController {
@@ -32,6 +32,28 @@
   CADisplayLink* displayLink_;
   bool           explicitRendering_;
   NSThread*      renderThread_;
+  bool           viewDidLoad_;
+  bool           gameSet_;
+}
+
+- (id)initWithNibName:(NSString *)nibNameOrNil
+               bundle:(NSBundle *)nibBundleOrNil {
+  self = [super initWithNibName:nibNameOrNil
+                         bundle:nibBundleOrNil];
+  if (self) {
+    EbitenmobileviewSetSetGameNotifier(self);
+  }
+  return self;
+}
+
+- (id)initWithCoder:(NSCoder *)coder {
+  // Though initWithCoder might not be a designated initializer, this should be overwritten.
+  // https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/Archiving/Articles/codingobjects.html
+  self = [super initWithCoder:coder];
+  if (self) {
+    EbitenmobileviewSetSetGameNotifier(self);
+  }
+  return self;
 }
 
 - (UIView*)metalView {
@@ -52,6 +74,18 @@
 
 - (void)viewDidLoad {
   [super viewDidLoad];
+
+  viewDidLoad_ = true;
+  if (viewDidLoad_ && gameSet_) {
+    [self initView];
+  }
+}
+
+- (void)initView {
+  // initView must be called only when viewDidLoad_, and gameSet_ are true i.e. mobile.SetGame is called.
+  // Or, EbitenmobileviewIsGL causes a dead lock (#2768).
+  // A game is requried to determine a graphics driver, and EbitenmobileviewIsGL cannot return a value without a game.
+  NSAssert(viewDidLoad_ && gameSet_, @"viewDidLoad must be called and a game must be set at initView");
 
   if (!started_) {
     @synchronized(self) {
@@ -122,6 +156,10 @@
 }
 
 - (void)viewWillLayoutSubviews {
+  if (!started_) {
+    return;
+  }
+
   NSError* err = nil;
   BOOL isGL = NO;
   EbitenmobileviewIsGL(&isGL, &err);
@@ -143,6 +181,11 @@
 
 - (void)viewDidLayoutSubviews {
   [super viewDidLayoutSubviews];
+
+  if (!started_) {
+    return;
+  }
+
   CGRect viewRect = [[self view] frame];
 
   EbitenmobileviewLayout(viewRect.size.width, viewRect.size.height);
@@ -217,6 +260,10 @@
 }
 
 - (void)updateTouches:(NSSet*)touches {
+  if (!started_) {
+    return;
+  }
+
   NSError* err = nil;
   BOOL isGL = NO;
   EbitenmobileviewIsGL(&isGL, &err);
@@ -260,6 +307,10 @@
 }
 
 - (void)updatePresses:(NSSet<UIPress *> *)presses {
+  if (!started_) {
+    return;
+  }
+
   if (@available(iOS 13.4, *)) {
     // Note: before iOS 13.4, this just can return UIPressType, which is
     // insufficient for games.
@@ -282,7 +333,9 @@
 }
 
 - (void)suspendGame {
-  NSAssert(started_, @"suspendGame must not be called before viewDidLoad is called");
+  if (!started_) {
+    return;
+  }
 
   @synchronized(self) {
     active_ = false;
@@ -296,7 +349,9 @@
 }
 
 - (void)resumeGame {
-  NSAssert(started_, @"resumeGame must not be called before viewDidLoad is called");
+  if (!started_) {
+    return;
+  }
 
   @synchronized(self) {
     active_ = true;
@@ -326,6 +381,15 @@
       [displayLink_ setPaused:NO];
     }
   }
+}
+
+- (void)notifySetGame {
+  dispatch_async(dispatch_get_main_queue(), ^{
+      gameSet_ = true;
+      if (viewDidLoad_ && gameSet_) {
+        [self initView];
+      }
+    });
 }
 
 @end
