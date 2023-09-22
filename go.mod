@@ -12,7 +12,7 @@ require (
 	github.com/jezek/xgb v1.1.0
 	github.com/jfreymuth/oggvorbis v1.0.5
 	golang.org/x/image v0.12.0
-	golang.org/x/mobile v0.0.0-20230906132913-2077a3224571
+	golang.org/x/mobile v0.0.0-20230922142353-e2f452493d57
 	golang.org/x/sync v0.3.0
 	golang.org/x/sys v0.12.0
 	golang.org/x/tools v0.13.0
