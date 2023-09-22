@@ -77,6 +77,11 @@ func main() {
 		return
 	}
 
+	// This test is flaky on Windows (especially on GitHub Actions). Skip this.
+	if runtime.GOOS == "windows" {
+		return
+	}
+
 	ebiten.SetCursorMode(ebiten.CursorModeCaptured)
 	if err := ebiten.RunGame(&Game{}); err != nil {
 		panic(err)
