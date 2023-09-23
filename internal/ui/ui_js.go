@@ -21,7 +21,6 @@ import (
 	"syscall/js"
 	"time"
 
-	"github.com/hajimehoshi/ebiten/v2/internal/devicescale"
 	"github.com/hajimehoshi/ebiten/v2/internal/file"
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
@@ -95,7 +94,7 @@ type userInterfaceImpl struct {
 	onceUpdateCalled    bool
 	lastCaptureExitTime time.Time
 
-	lastDeviceScaleFactor float64
+	deviceScaleFactor float64
 
 	err error
 
@@ -280,7 +279,16 @@ func (u *userInterfaceImpl) SetCursorShape(shape CursorShape) {
 }
 
 func (u *userInterfaceImpl) DeviceScaleFactor() float64 {
-	return devicescale.GetAt(0, 0)
+	if u.deviceScaleFactor != 0 {
+		return u.deviceScaleFactor
+	}
+
+	ratio := window.Get("devicePixelRatio").Float()
+	if ratio == 0 {
+		ratio = 1
+	}
+	u.deviceScaleFactor = ratio
+	return u.deviceScaleFactor
 }
 
 func (u *userInterfaceImpl) outsideSize() (float64, float64) {
@@ -354,11 +362,13 @@ func (u *userInterfaceImpl) updateImpl(force bool) error {
 		return err
 	}
 
-	a := u.DeviceScaleFactor()
-	if u.lastDeviceScaleFactor != a {
+	if !u.onceUpdateCalled {
 		u.updateScreenSize()
 	}
-	u.lastDeviceScaleFactor = a
+
+	// TODO: If DeviceScaleFactor changes, call updateScreenSize.
+	// Now there is not a good way to detect the change.
+	// See also https://crbug.com/123694.
 
 	w, h := u.outsideSize()
 	if force {
@@ -401,7 +411,9 @@ func (u *userInterfaceImpl) loop(game Game) <-chan error {
 			return
 		}
 		if u.needsUpdate() {
-			u.onceUpdateCalled = true
+			defer func() {
+				u.onceUpdateCalled = true
+			}()
 			u.renderingScheduled = false
 			if err := u.update(); err != nil {
 				close(reqStopAudioCh)
