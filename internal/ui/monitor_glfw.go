@@ -28,13 +28,11 @@ import (
 type Monitor struct {
 	m  *glfw.Monitor
 	vm *glfw.VidMode
-	// Pos of monitor in virtual coords
-	x      int
-	y      int
-	width  int
-	height int
-	id     int
-	name   string
+
+	id   int
+	name string
+	x    int
+	y    int
 }
 
 // Name returns the monitor's name.
@@ -91,16 +89,13 @@ func (m *monitors) update() {
 	newMonitors := make([]*Monitor, 0, len(glfwMonitors))
 	for i, m := range glfwMonitors {
 		x, y := m.GetPos()
-		vm := m.GetVideoMode()
 		newMonitors = append(newMonitors, &Monitor{
-			m:      m,
-			vm:     m.GetVideoMode(),
-			x:      x,
-			y:      y,
-			width:  vm.Width,
-			height: vm.Height,
-			name:   m.GetName(),
-			id:     i,
+			m:    m,
+			vm:   m.GetVideoMode(),
+			id:   i,
+			name: m.GetName(),
+			x:    x,
+			y:    y,
 		})
 	}
 

@@ -307,8 +307,8 @@ func (u *userInterfaceImpl) setWindowMonitor(monitor *Monitor) {
 	w := u.dipToGLFWPixel(float64(ww), monitor.m)
 	h := u.dipToGLFWPixel(float64(wh), monitor.m)
 	x, y := monitor.x, monitor.y
-	mw := u.dipFromGLFWMonitorPixel(float64(monitor.width), monitor.m)
-	mh := u.dipFromGLFWMonitorPixel(float64(monitor.height), monitor.m)
+	mw := u.dipFromGLFWMonitorPixel(float64(monitor.vm.Width), monitor.m)
+	mh := u.dipFromGLFWMonitorPixel(float64(monitor.vm.Height), monitor.m)
 	mw = u.dipToGLFWPixel(mw, monitor.m)
 	mh = u.dipToGLFWPixel(mh, monitor.m)
 	px, py := InitialWindowPosition(int(mw), int(mh), int(w), int(h))
