@@ -17,42 +17,17 @@ package main
 import (
 	"flag"
 	"fmt"
-	"image/color"
 	"log"
-
-	"golang.org/x/image/font"
-	"golang.org/x/image/font/opentype"
+	"strings"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/examples/resources/fonts"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
-	"github.com/hajimehoshi/ebiten/v2/text"
 )
-
-var (
-	mplusNormalFont font.Face
-)
-
-func init() {
-	tt, err := opentype.Parse(fonts.MPlus1pRegular_ttf)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	const dpi = 72
-	mplusNormalFont, err = opentype.NewFace(tt, &opentype.FaceOptions{
-		Size:    24,
-		DPI:     dpi,
-		Hinting: font.HintingFull,
-	})
-	if err != nil {
-		log.Fatal(err)
-	}
-}
 
 const (
-	screenWidth  = 640
-	screenHeight = 480
+	windowWidth  = 640
+	windowHeight = 480
 )
 
 type Game struct {
@@ -78,26 +53,26 @@ func (g *Game) Update() error {
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	const x = 0
-	y := 24
-	text.Draw(screen, "F to toggle fullscreen\n0-9 to change monitor", mplusNormalFont, x, y, color.White)
-	y += 72
+	lines := []string{"F to toggle fullscreen", "0-9 to change monitor"}
 
+	lines = append(lines, "")
 	for i, m := range g.monitors {
-		text.Draw(screen, fmt.Sprintf("%d: %s %s", i, m.Name(), m.Bounds().String()), mplusNormalFont, x, y, color.White)
-		y += 24
+		lines = append(lines, fmt.Sprintf("%d: %s %s", i, m.Name(), m.Bounds().String()))
 	}
 
 	activeMonitor := ebiten.Monitor()
+	lines = append(lines, "")
 	for i, m := range g.monitors {
 		if m == activeMonitor {
-			text.Draw(screen, fmt.Sprintf("active: %s (%d)", m.Name(), i), mplusNormalFont, x, y, color.White)
+			lines = append(lines, fmt.Sprintf("active: %s (%d)", m.Name(), i))
 		}
 	}
+
+	ebitenutil.DebugPrint(screen, strings.Join(lines, "\n"))
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
-	return screenWidth, screenHeight
+	return windowWidth / 2, windowHeight / 2
 }
 
 func main() {
@@ -119,7 +94,7 @@ func main() {
 	targetMonitor := g.monitors[monitor]
 	ebiten.SetMonitor(targetMonitor)
 	ebiten.SetWindowTitle(targetMonitor.Name())
-	ebiten.SetWindowSize(screenWidth, screenHeight)
+	ebiten.SetWindowSize(windowWidth, windowHeight)
 
 	if err := ebiten.RunGame(g); err != nil {
 		log.Fatal(err)
