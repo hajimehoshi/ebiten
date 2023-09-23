@@ -33,7 +33,6 @@ import (
 	"golang.org/x/mobile/event/touch"
 	"golang.org/x/mobile/gl"
 
-	"github.com/hajimehoshi/ebiten/v2/internal/devicescale"
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
@@ -102,6 +101,9 @@ type userInterfaceImpl struct {
 	outsideWidth  float64
 	outsideHeight float64
 
+	deviceScaleFactorOnce sync.Once
+	deviceScaleFactor     float64
+
 	foreground int32
 	errCh      chan error
 
@@ -122,10 +124,6 @@ type userInterfaceImpl struct {
 	renderThread *thread.OSThread
 
 	m sync.RWMutex
-}
-
-func deviceScale() float64 {
-	return devicescale.GetAt(0, 0)
 }
 
 // appMain is the main routine for gomobile-build mode.
@@ -185,7 +183,7 @@ func (u *userInterfaceImpl) appMain(a app.App) {
 			}
 			switch e.Type {
 			case touch.TypeBegin, touch.TypeMove:
-				s := deviceScale()
+				s := u.DeviceScaleFactor()
 				touches[e.Sequence] = TouchForInput{
 					ID: TouchID(e.Sequence),
 					X:  float64(e.X) / s,
@@ -317,7 +315,7 @@ func (u *userInterfaceImpl) outsideSize() (float64, float64) {
 		outsideHeight = u.outsideHeight
 	} else {
 		// gomobile build
-		d := deviceScale()
+		d := u.DeviceScaleFactor()
 		outsideWidth = float64(u.gbuildWidthPx) / d
 		outsideHeight = float64(u.gbuildHeightPx) / d
 	}
@@ -333,7 +331,7 @@ func (u *userInterfaceImpl) update() error {
 	}()
 
 	w, h := u.outsideSize()
-	if err := u.context.updateFrame(u.graphicsDriver, w, h, deviceScale(), u, nil); err != nil {
+	if err := u.context.updateFrame(u.graphicsDriver, w, h, u.DeviceScaleFactor(), u, nil); err != nil {
 		return err
 	}
 	return nil
@@ -417,7 +415,11 @@ func (u *userInterfaceImpl) updateExplicitRenderingModeIfNeeded() {
 }
 
 func (u *userInterfaceImpl) DeviceScaleFactor() float64 {
-	return deviceScale()
+	// Assume that the device scale factor never changes on mobiles.
+	u.deviceScaleFactorOnce.Do(func() {
+		u.deviceScaleFactor = deviceScaleFactorImpl()
+	})
+	return u.deviceScaleFactor
 }
 
 func (u *userInterfaceImpl) readInputState(inputState *InputState) {

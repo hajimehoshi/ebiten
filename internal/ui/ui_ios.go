@@ -14,6 +14,16 @@
 
 package ui
 
+// #cgo CFLAGS: -x objective-c
+// #cgo LDFLAGS: -framework Foundation -framework UIKit
+//
+// #import <UIKit/UIKit.h>
+//
+// static double devicePixelRatio() {
+//   return [[UIScreen mainScreen] nativeScale];
+// }
+import "C"
+
 import (
 	"fmt"
 
@@ -85,4 +95,9 @@ func (u *userInterfaceImpl) isGL() (bool, error) {
 	}
 
 	return u.graphicsDriver.IsGL(), nil
+}
+
+func deviceScaleFactorImpl() float64 {
+	// TODO: Can this be called from non-main threads?
+	return float64(C.devicePixelRatio())
 }
