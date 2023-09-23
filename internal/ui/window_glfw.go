@@ -241,7 +241,7 @@ func (w *glfwWindow) SetMonitor(monitor *Monitor) {
 		if w.ui.isTerminated() {
 			return
 		}
-		w.ui.setWindowMonitor(monitor.id)
+		w.ui.setWindowMonitor(monitor)
 	})
 }
 

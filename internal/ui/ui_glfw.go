@@ -277,20 +277,19 @@ func (u *userInterfaceImpl) setTerminated() {
 }
 
 // setWindowMonitor must be called on the main thread.
-func (u *userInterfaceImpl) setWindowMonitor(monitor int) {
+func (u *userInterfaceImpl) setWindowMonitor(monitor *Monitor) {
 	if microsoftgdk.IsXbox() {
 		return
 	}
 
-	m := theMonitors.monitorFromID(monitor).m
-
 	// Ignore if it is the same monitor.
-	if m == u.currentMonitor() {
+	if monitor.m == u.currentMonitor() {
 		return
 	}
 
-	// We set w, h so it can be set to the original dimensions if fullscreen.
-	w, h := u.window.GetSize()
+	ww := u.origWindowWidthInDIP
+	wh := u.origWindowHeightInDIP
+
 	fullscreen := u.isFullscreen()
 	// This is copied from setFullscreen. They should probably use a shared function.
 	if fullscreen {
@@ -305,8 +304,14 @@ func (u *userInterfaceImpl) setWindowMonitor(monitor int) {
 		}
 	}
 
-	x, y := m.GetPos()
-	px, py := InitialWindowPosition(m.GetVideoMode().Width, m.GetVideoMode().Height, w, h)
+	w := u.dipToGLFWPixel(float64(ww), monitor.m)
+	h := u.dipToGLFWPixel(float64(wh), monitor.m)
+	x, y := monitor.x, monitor.y
+	mw := u.dipFromGLFWMonitorPixel(float64(monitor.width), monitor.m)
+	mh := u.dipFromGLFWMonitorPixel(float64(monitor.height), monitor.m)
+	mw = u.dipToGLFWPixel(mw, monitor.m)
+	mh = u.dipToGLFWPixel(mh, monitor.m)
+	px, py := InitialWindowPosition(int(mw), int(mh), int(w), int(h))
 	u.window.SetPos(x+px, y+py)
 
 	if fullscreen {
@@ -793,7 +798,12 @@ func (u *userInterfaceImpl) createWindow(width, height int, monitor *glfw.Monito
 
 	// Set our target monitor if provided. This is required to prevent an initial window flash on the default monitor.
 	x, y := monitor.GetPos()
-	px, py := InitialWindowPosition(monitor.GetVideoMode().Width, monitor.GetVideoMode().Height, width, height)
+	vm := monitor.GetVideoMode()
+	mw := u.dipFromGLFWMonitorPixel(float64(vm.Width), monitor)
+	mh := u.dipFromGLFWMonitorPixel(float64(vm.Height), monitor)
+	mw = u.dipToGLFWPixel(mw, monitor)
+	mh = u.dipToGLFWPixel(mh, monitor)
+	px, py := InitialWindowPosition(int(mw), int(mh), width, height)
 	window.SetPos(x+px, y+py)
 
 	initializeWindowAfterCreation(window)
