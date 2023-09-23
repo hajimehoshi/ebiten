@@ -315,6 +315,9 @@ func (u *userInterfaceImpl) setWindowMonitor(monitor *Monitor) {
 	u.window.SetPos(x+px, y+py)
 
 	if fullscreen {
+		// Calling setFullscreen immediately might not work well, especially on Linux (#2778).
+		// Just wait a little bit. 1/30[s] seems enough in most cases.
+		time.Sleep(time.Second / 30)
 		u.setFullscreen(true)
 	}
 }
