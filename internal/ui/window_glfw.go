@@ -234,7 +234,7 @@ func (w *glfwWindow) SetMonitor(monitor *Monitor) {
 		return
 	}
 	if !w.ui.isRunning() {
-		w.ui.setInitMonitor(monitor.m)
+		w.ui.setInitMonitor(monitor)
 		return
 	}
 	w.ui.mainThread.Call(func() {
