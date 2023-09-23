@@ -15,19 +15,11 @@
 package ebiten
 
 import (
-	"image"
-
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
 // MonitorType represents a monitor available to the system.
 type MonitorType ui.Monitor
-
-// Bounds returns the position and size of the monitor in pixels.
-// Be careful that the unit is not device-independent pixels.
-func (m *MonitorType) Bounds() image.Rectangle {
-	return (*ui.Monitor)(m).Bounds()
-}
 
 // Name returns the monitor's name. On Linux, this reports the monitors in xrandr format.
 // On Windows, this reports "Generic PnP Monitor" for all monitors.

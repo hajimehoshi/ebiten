@@ -57,7 +57,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 	lines = append(lines, "")
 	for i, m := range g.monitors {
-		lines = append(lines, fmt.Sprintf("%d: %s %s", i, m.Name(), m.Bounds().String()))
+		lines = append(lines, fmt.Sprintf("%d: %s", i, m.Name()))
 	}
 
 	activeMonitor := ebiten.Monitor()
