@@ -17,7 +17,6 @@
 package ui
 
 import (
-	"image"
 	"sync"
 	"sync/atomic"
 
@@ -36,11 +35,6 @@ type Monitor struct {
 	height int
 	id     int
 	name   string
-}
-
-// Bounds returns the monitor's bounds.
-func (m *Monitor) Bounds() image.Rectangle {
-	return image.Rect(m.x, m.y, m.x+m.width, m.y+m.height)
 }
 
 // Name returns the monitor's name.
