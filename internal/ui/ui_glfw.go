@@ -87,7 +87,6 @@ type userInterfaceImpl struct {
 	initFullscreen             bool
 	initCursorMode             CursorMode
 	initWindowDecorated        bool
-	initWindowMonitor          int
 	initWindowPositionXInDIP   int
 	initWindowPositionYInDIP   int
 	initWindowWidthInDIP       int
@@ -141,7 +140,6 @@ func init() {
 		maxWindowHeightInDIP:     glfw.DontCare,
 		initCursorMode:           CursorModeVisible,
 		initWindowDecorated:      true,
-		initWindowMonitor:        glfw.DontCare,
 		initWindowPositionXInDIP: invalidPos,
 		initWindowPositionYInDIP: invalidPos,
 		initWindowWidthInDIP:     640,
@@ -207,6 +205,9 @@ func initialize() error {
 }
 
 func (u *userInterfaceImpl) setInitMonitor(m *glfw.Monitor) {
+	u.m.Lock()
+	defer u.m.Unlock()
+
 	u.initMonitor = m
 	u.initDeviceScaleFactor = u.deviceScaleFactor(m)
 	// GetVideoMode must be called from the main thread, then call this here and record
@@ -424,24 +425,6 @@ func (u *userInterfaceImpl) setIconImages(iconImages []image.Image) {
 	u.m.Lock()
 	u.iconImages = iconImages
 	u.m.Unlock()
-}
-
-func (u *userInterfaceImpl) getInitWindowMonitor() int {
-	u.m.RLock()
-	v := u.initWindowMonitor
-	u.m.RUnlock()
-	return v
-}
-
-func (u *userInterfaceImpl) setInitWindowMonitor(monitor int) {
-	if microsoftgdk.IsXbox() {
-		return
-	}
-
-	u.m.Lock()
-	defer u.m.Unlock()
-
-	u.initWindowMonitor = monitor
 }
 
 func (u *userInterfaceImpl) getInitWindowPositionInDIP() (int, int) {
@@ -797,7 +780,7 @@ func init() {
 // createWindow must be called from the main thread.
 //
 // createWindow does not set the position or size so far.
-func (u *userInterfaceImpl) createWindow(width, height int, monitor int) error {
+func (u *userInterfaceImpl) createWindow(width, height int, monitor *glfw.Monitor) error {
 	if u.window != nil {
 		panic("ui: u.window must not exist at createWindow")
 	}
@@ -809,12 +792,10 @@ func (u *userInterfaceImpl) createWindow(width, height int, monitor int) error {
 	}
 
 	// Set our target monitor if provided. This is required to prevent an initial window flash on the default monitor.
-	if monitor != glfw.DontCare {
-		m := theMonitors.monitorFromID(monitor)
-		x, y := m.m.GetPos()
-		px, py := InitialWindowPosition(m.m.GetVideoMode().Width, m.m.GetVideoMode().Height, width, height)
-		window.SetPos(x+px, y+py)
-	}
+	x, y := monitor.GetPos()
+	px, py := InitialWindowPosition(monitor.GetVideoMode().Width, monitor.GetVideoMode().Height, width, height)
+	window.SetPos(x+px, y+py)
+
 	initializeWindowAfterCreation(window)
 
 	u.window = window
@@ -1008,23 +989,16 @@ func (u *userInterfaceImpl) initOnMainThread(options *RunOptions) error {
 		glfw.WindowHint(glfw.Visible, glfw.True)
 	}
 
-	// Get our target monitor.
-	monitor := u.getInitWindowMonitor()
-
-	if monitor != glfw.DontCare {
-		u.setInitMonitor(theMonitors.monitorFromID(monitor).m)
-	}
-
 	ww, wh := u.getInitWindowSizeInDIP()
 	initW := int(u.dipToGLFWPixel(float64(ww), u.initMonitor))
 	initH := int(u.dipToGLFWPixel(float64(wh), u.initMonitor))
-	if err := u.createWindow(initW, initH, monitor); err != nil {
+	if err := u.createWindow(initW, initH, u.initMonitor); err != nil {
 		return err
 	}
 
 	// The position must be set before the size is set (#1982).
 	// setWindowSize refers the current monitor's device scale.
-	// TODO: currentMonitor is very hard to use correctly. Refactor this.
+	// TODO: The window position is already set at createWindow. Unify the logic.
 	wx, wy := u.getInitWindowPositionInDIP()
 	// Force to put the window in the initial monitor (#1575).
 	if wx < 0 {
