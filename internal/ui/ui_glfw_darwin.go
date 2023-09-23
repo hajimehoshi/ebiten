@@ -184,16 +184,16 @@ func (*graphicsDriverCreatorImpl) newMetal() (graphicsdriver.Graphics, error) {
 	return metal.NewGraphics()
 }
 
-// clearVideoModeScaleCache must be called from the main thread.
-func clearVideoModeScaleCache() {}
+// videoModeScale must be called from the main thread.
+func videoModeScale(monitor *glfw.Monitor) float64 {
+	return 1
+}
 
-// dipFromGLFWMonitorPixel must be called from the main thread.
-func (u *userInterfaceImpl) dipFromGLFWMonitorPixel(x float64, monitor *glfw.Monitor) float64 {
+func (u *userInterfaceImpl) dipFromGLFWMonitorPixel(x float64, monitor *Monitor) float64 {
 	return x
 }
 
-// dipFromGLFWPixel must be called from the main thread.
-func (u *userInterfaceImpl) dipFromGLFWPixel(x float64, monitor *glfw.Monitor) float64 {
+func (u *userInterfaceImpl) dipFromGLFWPixel(x float64, monitor *Monitor) float64 {
 	// NOTE: On macOS, GLFW exposes the device independent coordinate system.
 	// Thus, the conversion functions are unnecessary,
 	// however we still need the deviceScaleFactor internally
@@ -201,12 +201,11 @@ func (u *userInterfaceImpl) dipFromGLFWPixel(x float64, monitor *glfw.Monitor) f
 	return x
 }
 
-// dipToGLFWPixel must be called from the main thread.
-func (u *userInterfaceImpl) dipToGLFWPixel(x float64, monitor *glfw.Monitor) float64 {
+func (u *userInterfaceImpl) dipToGLFWPixel(x float64, monitor *Monitor) float64 {
 	return x
 }
 
-func (u *userInterfaceImpl) adjustWindowPosition(x, y int, monitor *glfw.Monitor) (int, int) {
+func (u *userInterfaceImpl) adjustWindowPosition(x, y int, monitor *Monitor) (int, int) {
 	return x, y
 }
 
@@ -254,21 +253,21 @@ func currentMouseLocation() (x, y int) {
 	return int(point.X), int(point.Y)
 }
 
-func initialMonitorByOS() (*glfw.Monitor, error) {
+func initialMonitorByOS() (*Monitor, error) {
 	x, y := currentMouseLocation()
 
 	// Find the monitor including the cursor.
 	for _, m := range theMonitors.append(nil) {
-		w, h := m.vm.Width, m.vm.Height
+		w, h := m.videoMode.Width, m.videoMode.Height
 		if x >= m.x && x < m.x+w && y >= m.y && y < m.y+h {
-			return m.m, nil
+			return m, nil
 		}
 	}
 
 	return nil, nil
 }
 
-func monitorFromWindowByOS(w *glfw.Window) *glfw.Monitor {
+func monitorFromWindowByOS(w *glfw.Window) *Monitor {
 	window := cocoa.NSWindow{ID: objc.ID(w.GetCocoaWindow())}
 	pool := cocoa.NSAutoreleasePool_new()
 	screen := cocoa.NSScreen_mainScreen()
@@ -283,7 +282,7 @@ func monitorFromWindowByOS(w *glfw.Window) *glfw.Monitor {
 	pool.Release()
 	for _, m := range theMonitors.append(nil) {
 		if m.m.GetCocoaMonitor() == aID {
-			return m.m
+			return m
 		}
 	}
 	return nil

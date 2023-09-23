@@ -179,7 +179,7 @@ func initialize() error {
 		return err
 	}
 	if m == nil {
-		m = glfw.GetPrimaryMonitor()
+		m = theMonitors.monitorFromGLFWMonitor(glfw.GetPrimaryMonitor())
 	}
 
 	// GetPrimaryMonitor might return nil in theory (#1887).
@@ -187,7 +187,7 @@ func initialize() error {
 		return errors.New("ui: no monitor was found at initialize")
 	}
 
-	theUI.setInitMonitor(theMonitors.monitorFromGLFWMonitor(m))
+	theUI.setInitMonitor(m)
 
 	// Create system cursors. These cursors are destroyed at glfw.Terminate().
 	glfwSystemCursors[CursorShapeDefault] = nil
@@ -211,10 +211,10 @@ func (u *userInterfaceImpl) setInitMonitor(m *Monitor) {
 	u.initMonitor = m
 
 	// TODO: Remove these members. These can be calculated anytime from initMonitor.
-	u.initDeviceScaleFactor = u.deviceScaleFactor(m.m)
-	v := m.vm
-	u.initFullscreenWidthInDIP = int(u.dipFromGLFWMonitorPixel(float64(v.Width), m.m))
-	u.initFullscreenHeightInDIP = int(u.dipFromGLFWMonitorPixel(float64(v.Height), m.m))
+	u.initDeviceScaleFactor = u.deviceScaleFactor(m)
+	v := m.videoMode
+	u.initFullscreenWidthInDIP = int(u.dipFromGLFWMonitorPixel(float64(v.Width), m))
+	u.initFullscreenHeightInDIP = int(u.dipFromGLFWMonitorPixel(float64(v.Height), m))
 }
 
 // AppendMonitors appends the current monitors to the passed in mons slice and returns it.
@@ -232,11 +232,7 @@ func (u *userInterfaceImpl) Monitor() *Monitor {
 		if u.isTerminated() {
 			return
 		}
-		glfwMonitor := u.currentMonitor()
-		if glfwMonitor == nil {
-			return
-		}
-		monitor = theMonitors.monitorFromGLFWMonitor(glfwMonitor)
+		monitor = u.currentMonitor()
 	})
 	return monitor
 }
@@ -249,7 +245,7 @@ func getMonitorFromPosition(wx, wy int) *Monitor {
 	for _, m := range theMonitors.append(nil) {
 		// TODO: Fix incorrectness in the cases of https://github.com/glfw/glfw/issues/1961.
 		// See also internal/devicescale/impl_desktop.go for a maybe better way of doing this.
-		if m.x <= wx && wx < m.x+m.vm.Width && m.y <= wy && wy < m.y+m.vm.Height {
+		if m.x <= wx && wx < m.x+m.videoMode.Width && m.y <= wy && wy < m.y+m.videoMode.Height {
 			return m
 		}
 	}
@@ -283,7 +279,7 @@ func (u *userInterfaceImpl) setWindowMonitor(monitor *Monitor) {
 	}
 
 	// Ignore if it is the same monitor.
-	if monitor.m == u.currentMonitor() {
+	if monitor == u.currentMonitor() {
 		return
 	}
 
@@ -304,15 +300,14 @@ func (u *userInterfaceImpl) setWindowMonitor(monitor *Monitor) {
 		}
 	}
 
-	w := u.dipToGLFWPixel(float64(ww), monitor.m)
-	h := u.dipToGLFWPixel(float64(wh), monitor.m)
-	x, y := monitor.x, monitor.y
-	mw := u.dipFromGLFWMonitorPixel(float64(monitor.vm.Width), monitor.m)
-	mh := u.dipFromGLFWMonitorPixel(float64(monitor.vm.Height), monitor.m)
-	mw = u.dipToGLFWPixel(mw, monitor.m)
-	mh = u.dipToGLFWPixel(mh, monitor.m)
+	w := u.dipToGLFWPixel(float64(ww), monitor)
+	h := u.dipToGLFWPixel(float64(wh), monitor)
+	mw := u.dipFromGLFWMonitorPixel(float64(monitor.videoMode.Width), monitor)
+	mh := u.dipFromGLFWMonitorPixel(float64(monitor.videoMode.Height), monitor)
+	mw = u.dipToGLFWPixel(mw, monitor)
+	mh = u.dipToGLFWPixel(mh, monitor)
 	px, py := InitialWindowPosition(int(mw), int(mh), int(w), int(h))
-	u.window.SetPos(x+px, y+py)
+	u.window.SetPos(monitor.x+px, monitor.y+py)
 
 	if fullscreen {
 		// Calling setFullscreen immediately might not work well, especially on Linux (#2778).
@@ -559,9 +554,9 @@ func (u *userInterfaceImpl) ScreenSizeInFullscreen() (int, int) {
 		if m == nil {
 			return
 		}
-		v := m.GetVideoMode()
-		w = int(u.dipFromGLFWMonitorPixel(float64(v.Width), m))
-		h = int(u.dipFromGLFWMonitorPixel(float64(v.Height), m))
+		vm := m.videoMode
+		w = int(u.dipFromGLFWMonitorPixel(float64(vm.Width), m))
+		h = int(u.dipFromGLFWMonitorPixel(float64(vm.Height), m))
 	})
 	return w, h
 }
@@ -765,15 +760,14 @@ func (u *userInterfaceImpl) DeviceScaleFactor() float64 {
 }
 
 // deviceScaleFactor must be called from the main thread.
-func (u *userInterfaceImpl) deviceScaleFactor(monitor *glfw.Monitor) float64 {
+func (u *userInterfaceImpl) deviceScaleFactor(monitor *Monitor) float64 {
 	// It is rare, but monitor can be nil when glfw.GetPrimaryMonitor returns nil.
 	// In this case, return 1 as a tentative scale (#1878).
 	if monitor == nil {
 		return 1
 	}
 
-	mx, my := monitor.GetPos()
-	return devicescale.GetAt(mx, my)
+	return devicescale.GetAt(monitor.x, monitor.y)
 }
 
 func init() {
@@ -788,7 +782,7 @@ func init() {
 // createWindow must be called from the main thread.
 //
 // createWindow does not set the position or size so far.
-func (u *userInterfaceImpl) createWindow(width, height int, monitor *glfw.Monitor) error {
+func (u *userInterfaceImpl) createWindow(width, height int, monitor *Monitor) error {
 	if u.window != nil {
 		panic("ui: u.window must not exist at createWindow")
 	}
@@ -800,14 +794,13 @@ func (u *userInterfaceImpl) createWindow(width, height int, monitor *glfw.Monito
 	}
 
 	// Set our target monitor if provided. This is required to prevent an initial window flash on the default monitor.
-	x, y := monitor.GetPos()
-	vm := monitor.GetVideoMode()
+	vm := monitor.videoMode
 	mw := u.dipFromGLFWMonitorPixel(float64(vm.Width), monitor)
 	mh := u.dipFromGLFWMonitorPixel(float64(vm.Height), monitor)
 	mw = u.dipToGLFWPixel(mw, monitor)
 	mh = u.dipToGLFWPixel(mh, monitor)
 	px, py := InitialWindowPosition(int(mw), int(mh), width, height)
-	window.SetPos(x+px, y+py)
+	window.SetPos(monitor.x+px, monitor.y+py)
 
 	initializeWindowAfterCreation(window)
 
@@ -1003,9 +996,9 @@ func (u *userInterfaceImpl) initOnMainThread(options *RunOptions) error {
 	}
 
 	ww, wh := u.getInitWindowSizeInDIP()
-	initW := int(u.dipToGLFWPixel(float64(ww), u.initMonitor.m))
-	initH := int(u.dipToGLFWPixel(float64(wh), u.initMonitor.m))
-	if err := u.createWindow(initW, initH, u.initMonitor.m); err != nil {
+	initW := int(u.dipToGLFWPixel(float64(ww), u.initMonitor))
+	initH := int(u.dipToGLFWPixel(float64(wh), u.initMonitor))
+	if err := u.createWindow(initW, initH, u.initMonitor); err != nil {
 		return err
 	}
 
@@ -1026,7 +1019,7 @@ func (u *userInterfaceImpl) initOnMainThread(options *RunOptions) error {
 	if max := u.initFullscreenHeightInDIP - wh; wy >= max {
 		wy = max
 	}
-	u.setWindowPositionInDIP(wx, wy, u.initMonitor.m)
+	u.setWindowPositionInDIP(wx, wy, u.initMonitor)
 	u.setWindowSizeInDIP(ww, wh, true)
 
 	// Maximizing a window requires a proper size and position. Call Maximize here (#1117).
@@ -1070,8 +1063,8 @@ func (u *userInterfaceImpl) outsideSize() (float64, float64) {
 		// reflecting the adjustment of the view size (#1745).
 		var w, h float64
 		if m := u.currentMonitor(); m != nil {
-			v := m.GetVideoMode()
-			ww, wh := v.Width, v.Height
+			vm := m.videoMode
+			ww, wh := vm.Width, vm.Height
 			w = u.dipFromGLFWMonitorPixel(float64(ww), m)
 			h = u.dipFromGLFWMonitorPixel(float64(wh), m)
 		}
@@ -1434,8 +1427,8 @@ func (u *userInterfaceImpl) setFullscreen(fullscreen bool) {
 				return
 			}
 
-			v := m.GetVideoMode()
-			u.window.SetMonitor(m, 0, 0, v.Width, v.Height, v.RefreshRate)
+			vm := m.videoMode
+			u.window.SetMonitor(m.m, 0, 0, vm.Width, vm.Height, vm.RefreshRate)
 		}
 		u.adjustViewSizeAfterFullscreen()
 		return
@@ -1519,20 +1512,20 @@ func (u *userInterfaceImpl) updateVsyncOnRenderThread() {
 // currentMonitor returns the current active monitor.
 //
 // currentMonitor must be called on the main thread.
-func (u *userInterfaceImpl) currentMonitor() *glfw.Monitor {
+func (u *userInterfaceImpl) currentMonitor() *Monitor {
 	if u.window == nil {
-		return u.initMonitor.m
+		return u.initMonitor
 	}
 	if m := monitorFromWindow(u.window); m != nil {
 		return m
 	}
-	return glfw.GetPrimaryMonitor()
+	return theMonitors.monitorFromGLFWMonitor(glfw.GetPrimaryMonitor())
 }
 
 // monitorFromWindow returns the monitor from the given window.
 //
 // monitorFromWindow must be called on the main thread.
-func monitorFromWindow(window *glfw.Window) *glfw.Monitor {
+func monitorFromWindow(window *glfw.Window) *Monitor {
 	// Getting a monitor from a window position is not reliable in general (e.g., when a window is put across
 	// multiple monitors, or, before SetWindowPosition is called.).
 	// Get the monitor which the current window belongs to. This requires OS API.
@@ -1542,7 +1535,7 @@ func monitorFromWindow(window *glfw.Window) *glfw.Monitor {
 
 	// As the fallback, detect the monitor from the window.
 	if m := getMonitorFromPosition(window.GetPos()); m != nil {
-		return m.m
+		return m
 	}
 
 	return nil
@@ -1669,13 +1662,13 @@ func (u *userInterfaceImpl) setWindowResizingMode(mode WindowResizingMode) {
 // x and y are the position in device-independent pixels.
 //
 // setWindowPositionInDIP must be called from the main thread.
-func (u *userInterfaceImpl) setWindowPositionInDIP(x, y int, monitor *glfw.Monitor) {
+func (u *userInterfaceImpl) setWindowPositionInDIP(x, y int, monitor *Monitor) {
 	if microsoftgdk.IsXbox() {
 		// Do nothing. The position is always fixed.
 		return
 	}
 
-	mx, my := monitor.GetPos()
+	mx, my := monitor.x, monitor.y
 	xf := u.dipToGLFWPixel(float64(x), monitor)
 	yf := u.dipToGLFWPixel(float64(y), monitor)
 	if x, y := u.adjustWindowPosition(mx+int(xf), my+int(yf), monitor); u.isFullscreen() {

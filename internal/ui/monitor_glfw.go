@@ -26,13 +26,14 @@ import (
 
 // Monitor is a wrapper around glfw.Monitor.
 type Monitor struct {
-	m  *glfw.Monitor
-	vm *glfw.VidMode
+	m         *glfw.Monitor
+	videoMode *glfw.VidMode
 
-	id   int
-	name string
-	x    int
-	y    int
+	id             int
+	name           string
+	x              int
+	y              int
+	videoModeScale float64
 }
 
 // Name returns the monitor's name.
@@ -90,12 +91,13 @@ func (m *monitors) update() {
 	for i, m := range glfwMonitors {
 		x, y := m.GetPos()
 		newMonitors = append(newMonitors, &Monitor{
-			m:    m,
-			vm:   m.GetVideoMode(),
-			id:   i,
-			name: m.GetName(),
-			x:    x,
-			y:    y,
+			m:              m,
+			videoMode:      m.GetVideoMode(),
+			id:             i,
+			name:           m.GetName(),
+			x:              x,
+			y:              y,
+			videoModeScale: videoModeScale(m),
 		})
 	}
 
@@ -103,7 +105,6 @@ func (m *monitors) update() {
 	m.monitors = newMonitors
 	m.m.Unlock()
 
-	clearVideoModeScaleCache()
 	devicescale.ClearCache()
 
 	atomic.StoreInt32(&m.updateCalled, 1)

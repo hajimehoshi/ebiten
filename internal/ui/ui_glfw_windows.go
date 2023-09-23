@@ -86,30 +86,32 @@ func (*graphicsDriverCreatorImpl) newMetal() (graphicsdriver.Graphics, error) {
 	return nil, nil
 }
 
-// clearVideoModeScaleCache must be called from the main thread.
-func clearVideoModeScaleCache() {}
+// videoModeScale must be called from the main thread.
+func videoModeScale(monitor *glfw.Monitor) float64 {
+	return 1
+}
 
 // dipFromGLFWMonitorPixel must be called from the main thread.
-func (u *userInterfaceImpl) dipFromGLFWMonitorPixel(x float64, monitor *glfw.Monitor) float64 {
+func (u *userInterfaceImpl) dipFromGLFWMonitorPixel(x float64, monitor *Monitor) float64 {
 	return x / u.deviceScaleFactor(monitor)
 }
 
 // dipFromGLFWPixel must be called from the main thread.
-func (u *userInterfaceImpl) dipFromGLFWPixel(x float64, monitor *glfw.Monitor) float64 {
+func (u *userInterfaceImpl) dipFromGLFWPixel(x float64, monitor *Monitor) float64 {
 	return x / u.deviceScaleFactor(monitor)
 }
 
 // dipToGLFWPixel must be called from the main thread.
-func (u *userInterfaceImpl) dipToGLFWPixel(x float64, monitor *glfw.Monitor) float64 {
+func (u *userInterfaceImpl) dipToGLFWPixel(x float64, monitor *Monitor) float64 {
 	return x * u.deviceScaleFactor(monitor)
 }
 
-func (u *userInterfaceImpl) adjustWindowPosition(x, y int, monitor *glfw.Monitor) (int, int) {
+func (u *userInterfaceImpl) adjustWindowPosition(x, y int, monitor *Monitor) (int, int) {
 	if microsoftgdk.IsXbox() {
 		return x, y
 	}
 
-	mx, my := monitor.GetPos()
+	mx, my := monitor.x, monitor.y
 	// As the video width/height might be wrong,
 	// adjust x/y at least to enable to handle the window (#328)
 	if x < mx {
@@ -125,9 +127,9 @@ func (u *userInterfaceImpl) adjustWindowPosition(x, y int, monitor *glfw.Monitor
 	return x, y
 }
 
-func initialMonitorByOS() (*glfw.Monitor, error) {
+func initialMonitorByOS() (*Monitor, error) {
 	if microsoftgdk.IsXbox() {
-		return glfw.GetPrimaryMonitor(), nil
+		return theMonitors.monitorFromGLFWMonitor(glfw.GetPrimaryMonitor()), nil
 	}
 
 	px, py, err := _GetCursorPos()
@@ -141,23 +143,23 @@ func initialMonitorByOS() (*glfw.Monitor, error) {
 
 	// Find the monitor including the cursor.
 	for _, m := range theMonitors.append(nil) {
-		w, h := m.vm.Width, m.vm.Height
+		w, h := m.videoMode.Width, m.videoMode.Height
 		if x >= m.x && x < m.x+w && y >= m.y && y < m.y+h {
-			return m.m, nil
+			return m, nil
 		}
 	}
 
 	return nil, nil
 }
 
-func monitorFromWindowByOS(w *glfw.Window) *glfw.Monitor {
+func monitorFromWindowByOS(w *glfw.Window) *Monitor {
 	if microsoftgdk.IsXbox() {
-		return glfw.GetPrimaryMonitor()
+		return theMonitors.monitorFromGLFWMonitor(glfw.GetPrimaryMonitor())
 	}
 	return monitorFromWin32Window(windows.HWND(w.GetWin32Window()))
 }
 
-func monitorFromWin32Window(w windows.HWND) *glfw.Monitor {
+func monitorFromWin32Window(w windows.HWND) *Monitor {
 	// Get the current monitor by the window handle instead of the window position. It is because the window
 	// position is not reliable in some cases e.g. when the window is put across multiple monitors.
 
@@ -175,7 +177,7 @@ func monitorFromWin32Window(w windows.HWND) *glfw.Monitor {
 	x, y := int(mi.rcMonitor.left), int(mi.rcMonitor.top)
 	for _, m := range theMonitors.append(nil) {
 		if m.x == x && m.y == y {
-			return m.m
+			return m
 		}
 	}
 	return nil

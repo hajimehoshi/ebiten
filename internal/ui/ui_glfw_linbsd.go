@@ -51,39 +51,8 @@ func (*graphicsDriverCreatorImpl) newMetal() (graphicsdriver.Graphics, error) {
 	return nil, nil
 }
 
-type videoModeScaleCacheKey struct{ X, Y int }
-
-var videoModeScaleCache = map[videoModeScaleCacheKey]float64{}
-
-// clearVideoModeScaleCache must be called from the main thread.
-func clearVideoModeScaleCache() {
-	for k := range videoModeScaleCache {
-		delete(videoModeScaleCache, k)
-	}
-}
-
 // videoModeScale must be called from the main thread.
 func videoModeScale(m *glfw.Monitor) float64 {
-	if m == nil {
-		return 1
-	}
-
-	// Caching wrapper for videoModeScaleUncached as
-	// videoModeScaleUncached may be expensive (uses blocking calls on X connection)
-	// and public ScreenSizeInFullscreen API needs the videoModeScale.
-	monitorX, monitorY := m.GetPos()
-	cacheKey := videoModeScaleCacheKey{X: monitorX, Y: monitorY}
-	if cached, ok := videoModeScaleCache[cacheKey]; ok {
-		return cached
-	}
-
-	scale := videoModeScaleUncached(m)
-	videoModeScaleCache[cacheKey] = scale
-	return scale
-}
-
-// videoModeScaleUncached must be called from the main thread.
-func videoModeScaleUncached(m *glfw.Monitor) float64 {
 	// TODO: if glfw/glfw#1961 gets fixed, this function may need revising.
 	// In case GLFW decides to switch to returning logical pixels, we can just return 1.
 
@@ -142,25 +111,25 @@ func videoModeScaleUncached(m *glfw.Monitor) float64 {
 }
 
 // dipFromGLFWMonitorPixel must be called from the main thread.
-func (u *userInterfaceImpl) dipFromGLFWMonitorPixel(x float64, monitor *glfw.Monitor) float64 {
-	return x / (videoModeScale(monitor) * u.deviceScaleFactor(monitor))
+func (u *userInterfaceImpl) dipFromGLFWMonitorPixel(x float64, monitor *Monitor) float64 {
+	return x / (monitor.videoModeScale * u.deviceScaleFactor(monitor))
 }
 
 // dipFromGLFWPixel must be called from the main thread.
-func (u *userInterfaceImpl) dipFromGLFWPixel(x float64, monitor *glfw.Monitor) float64 {
+func (u *userInterfaceImpl) dipFromGLFWPixel(x float64, monitor *Monitor) float64 {
 	return x / u.deviceScaleFactor(monitor)
 }
 
 // dipToGLFWPixel must be called from the main thread.
-func (u *userInterfaceImpl) dipToGLFWPixel(x float64, monitor *glfw.Monitor) float64 {
+func (u *userInterfaceImpl) dipToGLFWPixel(x float64, monitor *Monitor) float64 {
 	return x * u.deviceScaleFactor(monitor)
 }
 
-func (u *userInterfaceImpl) adjustWindowPosition(x, y int, monitor *glfw.Monitor) (int, int) {
+func (u *userInterfaceImpl) adjustWindowPosition(x, y int, monitor *Monitor) (int, int) {
 	return x, y
 }
 
-func initialMonitorByOS() (*glfw.Monitor, error) {
+func initialMonitorByOS() (*Monitor, error) {
 	xconn, err := xgb.NewConn()
 	if err != nil {
 		// Assume we're on pure Wayland then.
@@ -177,16 +146,16 @@ func initialMonitorByOS() (*glfw.Monitor, error) {
 
 	// Find the monitor including the cursor.
 	for _, m := range theMonitors.append(nil) {
-		w, h := m.vm.Width, m.vm.Height
+		w, h := m.videoMode.Width, m.videoMode.Height
 		if x >= m.x && x < m.x+w && y >= m.y && y < m.y+h {
-			return m.m, nil
+			return m, nil
 		}
 	}
 
 	return nil, nil
 }
 
-func monitorFromWindowByOS(_ *glfw.Window) *glfw.Monitor {
+func monitorFromWindowByOS(_ *glfw.Window) *Monitor {
 	// TODO: Implement this correctly. (#1119).
 	return nil
 }

@@ -264,9 +264,8 @@ func (w *glfwWindow) Position() (int, int) {
 			wx, wy = w.ui.window.GetPos()
 		}
 		m := w.ui.currentMonitor()
-		mx, my := m.GetPos()
-		wx -= mx
-		wy -= my
+		wx -= m.x
+		wy -= m.y
 		xf := w.ui.dipFromGLFWPixel(float64(wx), m)
 		yf := w.ui.dipFromGLFWPixel(float64(wy), m)
 		x, y = int(xf), int(yf)
