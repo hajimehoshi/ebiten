@@ -171,9 +171,6 @@ func initialize() error {
 		return err
 	}
 
-	glfw.WindowHint(glfw.Visible, glfw.False)
-	glfw.WindowHint(glfw.ClientAPI, glfw.NoAPI)
-
 	// Update the monitor first. The monitor state is depended on various functions like initialMonitorByOS.
 	theMonitors.update()
 
