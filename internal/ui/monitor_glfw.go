@@ -63,7 +63,7 @@ var theMonitors monitors
 
 func (m *monitors) append(ms []*Monitor) []*Monitor {
 	if atomic.LoadInt32(&m.updateCalled) == 0 {
-		m.update()
+		panic("ui: (*monitors).update must be called before (*monitors).append is called")
 	}
 
 	m.m.Lock()
@@ -91,6 +91,7 @@ func (m *monitors) monitorFromID(id int) *Monitor {
 	return m.monitors[id]
 }
 
+// update must be called from the main thread.
 func (m *monitors) update() {
 	glfwMonitors := glfw.GetMonitors()
 	newMonitors := make([]*Monitor, 0, len(glfwMonitors))

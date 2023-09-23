@@ -155,13 +155,13 @@ func init() {
 
 func init() {
 	hideConsoleWindowOnWindows()
+
 	if err := initialize(); err != nil {
 		panic(err)
 	}
 	glfw.SetMonitorCallback(glfw.ToMonitorCallback(func(monitor *glfw.Monitor, event glfw.PeripheralEvent) {
 		theMonitors.update()
 	}))
-	theMonitors.update()
 }
 
 var glfwSystemCursors = map[CursorShape]*glfw.Cursor{}
@@ -173,6 +173,9 @@ func initialize() error {
 
 	glfw.WindowHint(glfw.Visible, glfw.False)
 	glfw.WindowHint(glfw.ClientAPI, glfw.NoAPI)
+
+	// Update the monitor first. The monitor state is depended on various functions like initialMonitorByOS.
+	theMonitors.update()
 
 	m, err := initialMonitorByOS()
 	if err != nil {
