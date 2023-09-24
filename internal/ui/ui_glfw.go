@@ -216,6 +216,12 @@ func (u *userInterfaceImpl) setInitMonitor(m *Monitor) {
 	u.initFullscreenHeightInDIP = int(u.dipFromGLFWMonitorPixel(float64(v.Height), m))
 }
 
+func (u *userInterfaceImpl) getInitMonitor() *Monitor {
+	u.m.Lock()
+	defer u.m.Unlock()
+	return u.initMonitor
+}
+
 // AppendMonitors appends the current monitors to the passed in mons slice and returns it.
 func (u *userInterfaceImpl) AppendMonitors(monitors []*Monitor) []*Monitor {
 	return theMonitors.append(monitors)
@@ -772,34 +778,44 @@ func init() {
 
 // createWindow creates a GLFW window.
 //
-// width and height are in GLFW pixels (not device-independent pixels).
-//
 // createWindow must be called from the main thread.
-//
-// createWindow does not set the position or size so far.
-func (u *userInterfaceImpl) createWindow(width, height int, monitor *Monitor) error {
+func (u *userInterfaceImpl) createWindow() error {
 	if u.window != nil {
 		panic("ui: u.window must not exist at createWindow")
 	}
 
-	// As a start, create a window with temporary size to create OpenGL context thread.
+	monitor := u.getInitMonitor()
+	ww, wh := u.getInitWindowSizeInDIP()
+	width := int(u.dipToGLFWPixel(float64(ww), monitor))
+	height := int(u.dipToGLFWPixel(float64(wh), monitor))
 	window, err := glfw.CreateWindow(width, height, "", nil, nil)
 	if err != nil {
 		return err
 	}
+	u.window = window
 
-	// Set our target monitor if provided. This is required to prevent an initial window flash on the default monitor.
-	vm := monitor.videoMode
-	mw := u.dipFromGLFWMonitorPixel(float64(vm.Width), monitor)
-	mh := u.dipFromGLFWMonitorPixel(float64(vm.Height), monitor)
-	mw = u.dipToGLFWPixel(mw, monitor)
-	mh = u.dipToGLFWPixel(mh, monitor)
-	px, py := InitialWindowPosition(int(mw), int(mh), width, height)
-	window.SetPos(monitor.x+px, monitor.y+py)
+	// The position must be set before the size is set (#1982).
+	// setWindowSize refers the current monitor's device scale.
+	wx, wy := u.getInitWindowPositionInDIP()
+	// Force to put the window in the initial monitor (#1575).
+	if wx < 0 {
+		wx = 0
+	}
+	if wy < 0 {
+		wy = 0
+	}
+	if max := u.initFullscreenWidthInDIP - ww; wx >= max {
+		wx = max
+	}
+	if max := u.initFullscreenHeightInDIP - wh; wy >= max {
+		wy = max
+	}
+	u.setWindowPositionInDIP(wx, wy, monitor)
+
+	// Though the size is already specified, call setWindowSizeInDIP explicitly to adjust member variables.
+	u.setWindowSizeInDIP(ww, wh, true)
 
 	initializeWindowAfterCreation(window)
-
-	u.window = window
 
 	// Even just after a window creation, FramebufferSize callback might be invoked (#1847).
 	// Ensure to consume this callback.
@@ -990,32 +1006,9 @@ func (u *userInterfaceImpl) initOnMainThread(options *RunOptions) error {
 		glfw.WindowHint(glfw.Visible, glfw.True)
 	}
 
-	ww, wh := u.getInitWindowSizeInDIP()
-	initW := int(u.dipToGLFWPixel(float64(ww), u.initMonitor))
-	initH := int(u.dipToGLFWPixel(float64(wh), u.initMonitor))
-	if err := u.createWindow(initW, initH, u.initMonitor); err != nil {
+	if err := u.createWindow(); err != nil {
 		return err
 	}
-
-	// The position must be set before the size is set (#1982).
-	// setWindowSize refers the current monitor's device scale.
-	// TODO: The window position is already set at createWindow. Unify the logic.
-	wx, wy := u.getInitWindowPositionInDIP()
-	// Force to put the window in the initial monitor (#1575).
-	if wx < 0 {
-		wx = 0
-	}
-	if wy < 0 {
-		wy = 0
-	}
-	if max := u.initFullscreenWidthInDIP - ww; wx >= max {
-		wx = max
-	}
-	if max := u.initFullscreenHeightInDIP - wh; wy >= max {
-		wy = max
-	}
-	u.setWindowPositionInDIP(wx, wy, u.initMonitor)
-	u.setWindowSizeInDIP(ww, wh, true)
 
 	// Maximizing a window requires a proper size and position. Call Maximize here (#1117).
 	if u.isInitWindowMaximized() {
@@ -1509,7 +1502,7 @@ func (u *userInterfaceImpl) updateVsyncOnRenderThread() {
 // currentMonitor must be called on the main thread.
 func (u *userInterfaceImpl) currentMonitor() *Monitor {
 	if u.window == nil {
-		return u.initMonitor
+		return u.getInitMonitor()
 	}
 	if m := monitorFromWindow(u.window); m != nil {
 		return m
