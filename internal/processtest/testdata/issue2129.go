@@ -26,7 +26,7 @@ func (g *Game) Update() error {
 	const shaderData = `
 package main
 
-func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 	return vec4(1)
 }
 `
