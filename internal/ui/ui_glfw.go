@@ -27,7 +27,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/hajimehoshi/ebiten/v2/internal/devicescale"
 	"github.com/hajimehoshi/ebiten/v2/internal/file"
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
 	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
@@ -239,12 +238,9 @@ func (u *userInterfaceImpl) Monitor() *Monitor {
 
 // getMonitorFromPosition returns a monitor for the given window x/y,
 // or returns nil if monitor is not found.
-//
-// getMonitorFromPosition must be called on the main thread.
 func getMonitorFromPosition(wx, wy int) *Monitor {
 	for _, m := range theMonitors.append(nil) {
 		// TODO: Fix incorrectness in the cases of https://github.com/glfw/glfw/issues/1961.
-		// See also internal/devicescale/impl_desktop.go for a maybe better way of doing this.
 		if m.x <= wx && wx < m.x+m.videoMode.Width && m.y <= wy && wy < m.y+m.videoMode.Height {
 			return m
 		}
@@ -759,7 +755,6 @@ func (u *userInterfaceImpl) DeviceScaleFactor() float64 {
 	return f
 }
 
-// deviceScaleFactor must be called from the main thread.
 func (u *userInterfaceImpl) deviceScaleFactor(monitor *Monitor) float64 {
 	// It is rare, but monitor can be nil when glfw.GetPrimaryMonitor returns nil.
 	// In this case, return 1 as a tentative scale (#1878).
@@ -767,7 +762,7 @@ func (u *userInterfaceImpl) deviceScaleFactor(monitor *Monitor) float64 {
 		return 1
 	}
 
-	return devicescale.GetAt(monitor.x, monitor.y)
+	return monitor.contentScale
 }
 
 func init() {

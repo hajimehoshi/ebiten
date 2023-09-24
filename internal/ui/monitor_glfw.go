@@ -20,7 +20,6 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/hajimehoshi/ebiten/v2/internal/devicescale"
 	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
 )
 
@@ -33,6 +32,7 @@ type Monitor struct {
 	name           string
 	x              int
 	y              int
+	contentScale   float64
 	videoModeScale float64
 }
 
@@ -90,6 +90,25 @@ func (m *monitors) update() {
 	newMonitors := make([]*Monitor, 0, len(glfwMonitors))
 	for i, m := range glfwMonitors {
 		x, y := m.GetPos()
+
+		// TODO: Detect the update of the content scale by SetContentScaleCallback (#2343).
+		contentScale := 1.0
+
+		// Keep calling GetContentScale until the returned scale is 0 (#2051).
+		// Retry this at most 5 times to avoid an infinite loop.
+		for i := 0; i < 5; i++ {
+			// An error can happen e.g. when entering a screensaver on Windows (#2488).
+			sx, _, err := m.GetContentScale()
+			if err != nil {
+				continue
+			}
+			if sx == 0 {
+				continue
+			}
+			contentScale = float64(sx)
+			break
+		}
+
 		newMonitors = append(newMonitors, &Monitor{
 			m:              m,
 			videoMode:      m.GetVideoMode(),
@@ -97,6 +116,7 @@ func (m *monitors) update() {
 			name:           m.GetName(),
 			x:              x,
 			y:              y,
+			contentScale:   contentScale,
 			videoModeScale: videoModeScale(m),
 		})
 	}
@@ -104,8 +124,6 @@ func (m *monitors) update() {
 	m.m.Lock()
 	m.monitors = newMonitors
 	m.m.Unlock()
-
-	devicescale.ClearCache()
 
 	atomic.StoreInt32(&m.updateCalled, 1)
 }

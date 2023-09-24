@@ -91,17 +91,14 @@ func videoModeScale(monitor *glfw.Monitor) float64 {
 	return 1
 }
 
-// dipFromGLFWMonitorPixel must be called from the main thread.
 func (u *userInterfaceImpl) dipFromGLFWMonitorPixel(x float64, monitor *Monitor) float64 {
 	return x / u.deviceScaleFactor(monitor)
 }
 
-// dipFromGLFWPixel must be called from the main thread.
 func (u *userInterfaceImpl) dipFromGLFWPixel(x float64, monitor *Monitor) float64 {
 	return x / u.deviceScaleFactor(monitor)
 }
 
-// dipToGLFWPixel must be called from the main thread.
 func (u *userInterfaceImpl) dipToGLFWPixel(x float64, monitor *Monitor) float64 {
 	return x * u.deviceScaleFactor(monitor)
 }
