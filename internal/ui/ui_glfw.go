@@ -789,17 +789,17 @@ func (u *userInterfaceImpl) createWindow() error {
 	mw := int(u.dipFromGLFWMonitorPixel(float64(monitor.videoMode.Width), monitor))
 	mh := int(u.dipFromGLFWMonitorPixel(float64(monitor.videoMode.Height), monitor))
 	// Force to put the window in the initial monitor (#1575).
-	if wx < 0 {
-		wx = 0
-	}
-	if wy < 0 {
-		wy = 0
-	}
 	if max := mw - ww; wx >= max {
 		wx = max
 	}
 	if max := mh - wh; wy >= max {
 		wy = max
+	}
+	if wx < 0 {
+		wx = 0
+	}
+	if wy < 0 {
+		wy = 0
 	}
 	u.setWindowPositionInDIP(wx, wy, monitor)
 
