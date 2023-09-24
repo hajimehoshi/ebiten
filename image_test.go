@@ -2197,7 +2197,7 @@ func TestImageDrawTrianglesShaderInterpolatesValues(t *testing.T) {
 	is := []uint16{0, 1, 2, 1, 2, 3}
 	shader, err := ebiten.NewShader([]byte(`
 		package main
-		func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+		func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 			return color
 		}
 	`))
@@ -4152,7 +4152,7 @@ func TestImageDrawTrianglesShaderWithGreaterIndexThanVerticesCount(t *testing.T)
 	is := []uint16{0, 1, 2, 1, 2, 4}
 	shader, err := ebiten.NewShader([]byte(`
 		package main
-		func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+		func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 			return color
 		}
 	`))
@@ -4194,7 +4194,7 @@ func TestImageDrawTrianglesShaderWithTooBigIndex(t *testing.T) {
 	is := []uint16{0, 1, 2, 1, 2, ebiten.MaxVerticesCount}
 	shader, err := ebiten.NewShader([]byte(`
 		package main
-		func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+		func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 			return color
 		}
 	`))
@@ -4218,7 +4218,7 @@ func TestImageGeoMAfterDraw(t *testing.T) {
 
 package main
 
-func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 	return vec4(1)
 }
 `))
