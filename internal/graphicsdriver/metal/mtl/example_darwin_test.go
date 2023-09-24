@@ -32,7 +32,7 @@ import (
 func init() {
 	// for these tests to pass Metal must be linked directly.
 	// it is not needed for any of the others nor for Ebitengine to work properly.
-	//go:cgo_import_dynamic _ _ "Metal.framework/Metal"
+	//go:cgo_import_dynamic _ _ "/System/Library/Frameworks/Metal.framework/Metal"
 
 	// It is also necessary for CoreGraphics to be linked
 	_, _ = purego.Dlopen("/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics", purego.RTLD_LAZY|purego.RTLD_GLOBAL)
