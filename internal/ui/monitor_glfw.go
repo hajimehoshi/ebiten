@@ -84,6 +84,21 @@ func (m *monitors) monitorFromID(id int) *Monitor {
 	return m.monitors[id]
 }
 
+// monitorFromPosition returns a monitor for the given position (x, y),
+// or returns nil if monitor is not found.
+func (m *monitors) monitorFromPosition(x, y int) *Monitor {
+	m.m.Lock()
+	defer m.m.Unlock()
+
+	for _, m := range m.monitors {
+		// TODO: Fix incorrectness in the cases of https://github.com/glfw/glfw/issues/1961.
+		if m.x <= x && x < m.x+m.videoMode.Width && m.y <= y && y < m.y+m.videoMode.Height {
+			return m
+		}
+	}
+	return nil
+}
+
 // update must be called from the main thread.
 func (m *monitors) update() {
 	glfwMonitors := glfw.GetMonitors()

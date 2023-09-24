@@ -229,18 +229,6 @@ func (u *userInterfaceImpl) Monitor() *Monitor {
 	return monitor
 }
 
-// getMonitorFromPosition returns a monitor for the given window x/y,
-// or returns nil if monitor is not found.
-func getMonitorFromPosition(wx, wy int) *Monitor {
-	for _, m := range theMonitors.append(nil) {
-		// TODO: Fix incorrectness in the cases of https://github.com/glfw/glfw/issues/1961.
-		if m.x <= wx && wx < m.x+m.videoMode.Width && m.y <= wy && wy < m.y+m.videoMode.Height {
-			return m
-		}
-	}
-	return nil
-}
-
 func (u *userInterfaceImpl) isRunning() bool {
 	return atomic.LoadUint32(&u.running) != 0 && !u.isTerminated()
 }
@@ -1493,29 +1481,20 @@ func (u *userInterfaceImpl) currentMonitor() *Monitor {
 	if u.window == nil {
 		return u.getInitMonitor()
 	}
-	if m := monitorFromWindow(u.window); m != nil {
-		return m
-	}
-	return theMonitors.monitorFromGLFWMonitor(glfw.GetPrimaryMonitor())
-}
 
-// monitorFromWindow returns the monitor from the given window.
-//
-// monitorFromWindow must be called on the main thread.
-func monitorFromWindow(window *glfw.Window) *Monitor {
 	// Getting a monitor from a window position is not reliable in general (e.g., when a window is put across
 	// multiple monitors, or, before SetWindowPosition is called.).
 	// Get the monitor which the current window belongs to. This requires OS API.
-	if m := monitorFromWindowByOS(window); m != nil {
+	if m := monitorFromWindowByOS(u.window); m != nil {
 		return m
 	}
 
 	// As the fallback, detect the monitor from the window.
-	if m := getMonitorFromPosition(window.GetPos()); m != nil {
+	if m := theMonitors.monitorFromPosition(u.window.GetPos()); m != nil {
 		return m
 	}
 
-	return nil
+	return theMonitors.monitorFromGLFWMonitor(glfw.GetPrimaryMonitor())
 }
 
 func (u *userInterfaceImpl) readInputState(inputState *InputState) {
