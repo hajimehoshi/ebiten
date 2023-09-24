@@ -724,7 +724,7 @@ func (u *userInterfaceImpl) DeviceScaleFactor() float64 {
 		return 0
 	}
 	if !u.isRunning() {
-		return u.deviceScaleFactor(u.getInitMonitor())
+		return u.getInitMonitor().deviceScaleFactor()
 	}
 
 	var f float64
@@ -732,19 +732,9 @@ func (u *userInterfaceImpl) DeviceScaleFactor() float64 {
 		if u.isTerminated() {
 			return
 		}
-		f = u.deviceScaleFactor(u.currentMonitor())
+		f = u.currentMonitor().deviceScaleFactor()
 	})
 	return f
-}
-
-func (u *userInterfaceImpl) deviceScaleFactor(monitor *Monitor) float64 {
-	// It is rare, but monitor can be nil when glfw.GetPrimaryMonitor returns nil.
-	// In this case, return 1 as a tentative scale (#1878).
-	if monitor == nil {
-		return 1
-	}
-
-	return monitor.contentScale
 }
 
 func init() {
@@ -853,7 +843,7 @@ func (u *userInterfaceImpl) registerWindowFramebufferSizeCallback() {
 
 			// The framebuffer size is always scaled by the device scale factor (#1975).
 			// See also the implementation in uiContext.updateOffscreen.
-			s := u.deviceScaleFactor(u.currentMonitor())
+			s := u.currentMonitor().deviceScaleFactor()
 			ww := int(float64(w) / s)
 			wh := int(float64(h) / s)
 			u.setWindowSizeInDIP(ww, wh, false)
@@ -1172,7 +1162,7 @@ func (u *userInterfaceImpl) updateGame() error {
 	var err error
 	if u.mainThread.Call(func() {
 		outsideWidth, outsideHeight, err = u.update()
-		deviceScaleFactor = u.deviceScaleFactor(u.currentMonitor())
+		deviceScaleFactor = u.currentMonitor().deviceScaleFactor()
 	}); err != nil {
 		return err
 	}
@@ -1332,7 +1322,7 @@ func (u *userInterfaceImpl) setWindowSizeInDIP(width, height int, callSetSize bo
 		height = 1
 	}
 
-	scale := u.deviceScaleFactor(u.currentMonitor())
+	scale := u.currentMonitor().deviceScaleFactor()
 	if u.origWindowWidthInDIP == width && u.origWindowHeightInDIP == height && u.lastDeviceScaleFactor == scale {
 		return
 	}

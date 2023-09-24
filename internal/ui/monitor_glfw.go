@@ -41,6 +41,15 @@ func (m *Monitor) Name() string {
 	return m.name
 }
 
+func (m *Monitor) deviceScaleFactor() float64 {
+	// It is rare, but monitor can be nil when glfw.GetPrimaryMonitor returns nil.
+	// In this case, return 1 as a tentative scale (#1878).
+	if m == nil {
+		return 1
+	}
+	return m.contentScale
+}
+
 type monitors struct {
 	// monitors is the monitor list cache for desktop glfw compile targets.
 	// populated by 'updateMonitors' which is called on init and every

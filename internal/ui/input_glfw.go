@@ -68,7 +68,7 @@ func (u *userInterfaceImpl) updateInputStateImpl() error {
 	}
 
 	m := u.currentMonitor()
-	s := u.deviceScaleFactor(m)
+	s := m.deviceScaleFactor()
 
 	cx, cy := u.savedCursorX, u.savedCursorY
 	defer func() {

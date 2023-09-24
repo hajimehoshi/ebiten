@@ -111,15 +111,15 @@ func videoModeScale(m *glfw.Monitor) float64 {
 }
 
 func (u *userInterfaceImpl) dipFromGLFWMonitorPixel(x float64, monitor *Monitor) float64 {
-	return x / (monitor.videoModeScale * u.deviceScaleFactor(monitor))
+	return x / (monitor.videoModeScale * monitor.deviceScaleFactor())
 }
 
 func (u *userInterfaceImpl) dipFromGLFWPixel(x float64, monitor *Monitor) float64 {
-	return x / u.deviceScaleFactor(monitor)
+	return x / monitor.deviceScaleFactor()
 }
 
 func (u *userInterfaceImpl) dipToGLFWPixel(x float64, monitor *Monitor) float64 {
-	return x * u.deviceScaleFactor(monitor)
+	return x * monitor.deviceScaleFactor()
 }
 
 func (u *userInterfaceImpl) adjustWindowPosition(x, y int, monitor *Monitor) (int, int) {
