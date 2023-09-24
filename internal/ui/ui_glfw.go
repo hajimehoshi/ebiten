@@ -204,8 +204,8 @@ func (u *userInterfaceImpl) setInitMonitor(m *Monitor) {
 }
 
 func (u *userInterfaceImpl) getInitMonitor() *Monitor {
-	u.m.Lock()
-	defer u.m.Unlock()
+	u.m.RLock()
+	defer u.m.RUnlock()
 	return u.initMonitor
 }
 
@@ -450,10 +450,9 @@ func (u *userInterfaceImpl) getInitWindowSizeInDIP() (int, int) {
 		return microsoftgdk.MonitorResolution()
 	}
 
-	u.m.Lock()
-	w, h := u.initWindowWidthInDIP, u.initWindowHeightInDIP
-	u.m.Unlock()
-	return w, h
+	u.m.RLock()
+	defer u.m.RUnlock()
+	return u.initWindowWidthInDIP, u.initWindowHeightInDIP
 }
 
 func (u *userInterfaceImpl) setInitWindowSizeInDIP(width, height int) {
