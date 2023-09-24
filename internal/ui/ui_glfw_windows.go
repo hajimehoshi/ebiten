@@ -91,15 +91,15 @@ func videoModeScale(monitor *glfw.Monitor) float64 {
 	return 1
 }
 
-func (u *userInterfaceImpl) dipFromGLFWMonitorPixel(x float64, monitor *Monitor) float64 {
+func dipFromGLFWMonitorPixel(x float64, monitor *Monitor) float64 {
 	return x / monitor.deviceScaleFactor()
 }
 
-func (u *userInterfaceImpl) dipFromGLFWPixel(x float64, monitor *Monitor) float64 {
+func dipFromGLFWPixel(x float64, monitor *Monitor) float64 {
 	return x / monitor.deviceScaleFactor()
 }
 
-func (u *userInterfaceImpl) dipToGLFWPixel(x float64, monitor *Monitor) float64 {
+func dipToGLFWPixel(x float64, monitor *Monitor) float64 {
 	return x * monitor.deviceScaleFactor()
 }
 

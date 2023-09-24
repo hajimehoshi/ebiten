@@ -189,11 +189,11 @@ func videoModeScale(monitor *glfw.Monitor) float64 {
 	return 1
 }
 
-func (u *userInterfaceImpl) dipFromGLFWMonitorPixel(x float64, monitor *Monitor) float64 {
+func dipFromGLFWMonitorPixel(x float64, monitor *Monitor) float64 {
 	return x
 }
 
-func (u *userInterfaceImpl) dipFromGLFWPixel(x float64, monitor *Monitor) float64 {
+func dipFromGLFWPixel(x float64, monitor *Monitor) float64 {
 	// NOTE: On macOS, GLFW exposes the device independent coordinate system.
 	// Thus, the conversion functions are unnecessary,
 	// however we still need the deviceScaleFactor internally
@@ -201,7 +201,7 @@ func (u *userInterfaceImpl) dipFromGLFWPixel(x float64, monitor *Monitor) float6
 	return x
 }
 
-func (u *userInterfaceImpl) dipToGLFWPixel(x float64, monitor *Monitor) float64 {
+func dipToGLFWPixel(x float64, monitor *Monitor) float64 {
 	return x
 }
 
