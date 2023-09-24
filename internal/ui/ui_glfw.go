@@ -784,11 +784,10 @@ func (u *userInterfaceImpl) createWindow() error {
 	u.window = window
 
 	// The position must be set before the size is set (#1982).
-	// setWindowSize refers the current monitor's device scale.
+	// setWindowSizeInDIP refers the current monitor's device scale.
 	wx, wy := u.getInitWindowPositionInDIP()
 	mw := int(u.dipFromGLFWMonitorPixel(float64(monitor.videoMode.Width), monitor))
 	mh := int(u.dipFromGLFWMonitorPixel(float64(monitor.videoMode.Height), monitor))
-	// Force to put the window in the initial monitor (#1575).
 	if max := mw - ww; wx >= max {
 		wx = max
 	}
