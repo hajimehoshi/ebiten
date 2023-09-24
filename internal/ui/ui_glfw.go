@@ -76,13 +76,7 @@ type userInterfaceImpl struct {
 
 	lastDeviceScaleFactor float64
 
-	// These values are not changed after initialized.
-	// TODO: the fullscreen size should be updated when the initial window position is changed?
-	initMonitor               *Monitor
-	initDeviceScaleFactor     float64
-	initFullscreenWidthInDIP  int
-	initFullscreenHeightInDIP int
-
+	initMonitor                *Monitor
 	initFullscreen             bool
 	initCursorMode             CursorMode
 	initWindowDecorated        bool
@@ -206,14 +200,7 @@ func initialize() error {
 func (u *userInterfaceImpl) setInitMonitor(m *Monitor) {
 	u.m.Lock()
 	defer u.m.Unlock()
-
 	u.initMonitor = m
-
-	// TODO: Remove these members. These can be calculated anytime from initMonitor.
-	u.initDeviceScaleFactor = u.deviceScaleFactor(m)
-	v := m.videoMode
-	u.initFullscreenWidthInDIP = int(u.dipFromGLFWMonitorPixel(float64(v.Width), m))
-	u.initFullscreenHeightInDIP = int(u.dipFromGLFWMonitorPixel(float64(v.Height), m))
 }
 
 func (u *userInterfaceImpl) getInitMonitor() *Monitor {
@@ -544,7 +531,10 @@ func (u *userInterfaceImpl) ScreenSizeInFullscreen() (int, int) {
 		return 0, 0
 	}
 	if !u.isRunning() {
-		return u.initFullscreenWidthInDIP, u.initFullscreenHeightInDIP
+		m := u.getInitMonitor()
+		w := u.dipFromGLFWMonitorPixel(float64(m.videoMode.Width), m)
+		h := u.dipFromGLFWMonitorPixel(float64(m.videoMode.Height), m)
+		return int(w), int(h)
 	}
 
 	var w, h int
@@ -556,9 +546,8 @@ func (u *userInterfaceImpl) ScreenSizeInFullscreen() (int, int) {
 		if m == nil {
 			return
 		}
-		vm := m.videoMode
-		w = int(u.dipFromGLFWMonitorPixel(float64(vm.Width), m))
-		h = int(u.dipFromGLFWMonitorPixel(float64(vm.Height), m))
+		w = int(u.dipFromGLFWMonitorPixel(float64(m.videoMode.Width), m))
+		h = int(u.dipFromGLFWMonitorPixel(float64(m.videoMode.Height), m))
 	})
 	return w, h
 }
@@ -748,7 +737,7 @@ func (u *userInterfaceImpl) DeviceScaleFactor() float64 {
 		return 0
 	}
 	if !u.isRunning() {
-		return u.initDeviceScaleFactor
+		return u.deviceScaleFactor(u.getInitMonitor())
 	}
 
 	var f float64
@@ -797,6 +786,8 @@ func (u *userInterfaceImpl) createWindow() error {
 	// The position must be set before the size is set (#1982).
 	// setWindowSize refers the current monitor's device scale.
 	wx, wy := u.getInitWindowPositionInDIP()
+	mw := int(u.dipFromGLFWMonitorPixel(float64(monitor.videoMode.Width), monitor))
+	mh := int(u.dipFromGLFWMonitorPixel(float64(monitor.videoMode.Height), monitor))
 	// Force to put the window in the initial monitor (#1575).
 	if wx < 0 {
 		wx = 0
@@ -804,10 +795,10 @@ func (u *userInterfaceImpl) createWindow() error {
 	if wy < 0 {
 		wy = 0
 	}
-	if max := u.initFullscreenWidthInDIP - ww; wx >= max {
+	if max := mw - ww; wx >= max {
 		wx = max
 	}
-	if max := u.initFullscreenHeightInDIP - wh; wy >= max {
+	if max := mh - wh; wy >= max {
 		wy = max
 	}
 	u.setWindowPositionInDIP(wx, wy, monitor)
