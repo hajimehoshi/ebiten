@@ -111,7 +111,7 @@ func videoModeScale(m *glfw.Monitor) float64 {
 }
 
 func dipFromGLFWMonitorPixel(x float64, monitor *Monitor) float64 {
-	return x / (monitor.videoModeScale * monitor.deviceScaleFactor())
+	return x / (monitor.videoModeScale() * monitor.deviceScaleFactor())
 }
 
 func dipFromGLFWPixel(x float64, monitor *Monitor) float64 {
