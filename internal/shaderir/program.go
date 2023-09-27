@@ -471,14 +471,16 @@ func (p *Program) FilterUniformVariables(uniforms []uint32) {
 		for _, idx := range indices {
 			reachableUniforms[idx] = true
 		}
+		p.uniformFactors = make([]uint32, len(uniforms))
+		var idx int
 		for i, typ := range p.Uniforms {
-			fs := make([]uint32, typ.Uint32Count())
+			c := typ.Uint32Count()
 			if reachableUniforms[i] {
-				for j := range fs {
-					fs[j] = 1
+				for i := idx; i < idx+c; i++ {
+					p.uniformFactors[i] = 1
 				}
 			}
-			p.uniformFactors = append(p.uniformFactors, fs...)
+			idx += c
 		}
 	}
 
