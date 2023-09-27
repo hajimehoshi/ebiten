@@ -110,8 +110,11 @@ func videoModeScale(m *glfw.Monitor) float64 {
 	return 1
 }
 
-func dipFromGLFWMonitorPixel(x float64, monitor *Monitor) float64 {
-	return x / (monitor.videoModeScale() * monitor.deviceScaleFactor())
+// glfwMonitorSizeInDIP must be called from the main thread.
+func glfwMonitorSizeInDIP(monitor *glfw.Monitor, contentScale float64) (float64, float64) {
+	vm := monitor.GetVideoMode()
+	vs := videoModeScale(monitor)
+	return float64(vm.Width) / (vs * contentScale), float64(vm.Height) / (vs * contentScale)
 }
 
 func dipFromGLFWPixel(x float64, monitor *Monitor) float64 {

@@ -28,12 +28,13 @@ type Monitor struct {
 	m         *glfw.Monitor
 	videoMode *glfw.VidMode
 
-	id              int
-	name            string
-	x               int
-	y               int
-	contentScale    float64
-	videoModeScale_ float64
+	id           int
+	name         string
+	x            int
+	y            int
+	widthInDIP   float64
+	heightInDIP  float64
+	contentScale float64
 }
 
 // Name returns the monitor's name.
@@ -50,13 +51,8 @@ func (m *Monitor) deviceScaleFactor() float64 {
 	return m.contentScale
 }
 
-func (m *Monitor) videoModeScale() float64 {
-	// It is rare, but monitor can be nil when glfw.GetPrimaryMonitor returns nil.
-	// In this case, return 1 as a tentative scale (#1878).
-	if m == nil {
-		return 1
-	}
-	return m.videoModeScale_
+func (m *Monitor) sizeInDIP() (float64, float64) {
+	return m.widthInDIP, m.heightInDIP
 }
 
 type monitors struct {
@@ -142,15 +138,17 @@ func (m *monitors) update() {
 			break
 		}
 
+		w, h := glfwMonitorSizeInDIP(m, contentScale)
 		newMonitors = append(newMonitors, &Monitor{
-			m:               m,
-			videoMode:       m.GetVideoMode(),
-			id:              i,
-			name:            m.GetName(),
-			x:               x,
-			y:               y,
-			contentScale:    contentScale,
-			videoModeScale_: videoModeScale(m),
+			m:            m,
+			videoMode:    m.GetVideoMode(),
+			id:           i,
+			name:         m.GetName(),
+			x:            x,
+			y:            y,
+			widthInDIP:   w,
+			heightInDIP:  h,
+			contentScale: contentScale,
 		})
 	}
 

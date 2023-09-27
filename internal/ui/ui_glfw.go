@@ -279,8 +279,7 @@ func (u *userInterfaceImpl) setWindowMonitor(monitor *Monitor) {
 
 	w := dipToGLFWPixel(float64(ww), monitor)
 	h := dipToGLFWPixel(float64(wh), monitor)
-	mw := dipFromGLFWMonitorPixel(float64(monitor.videoMode.Width), monitor)
-	mh := dipFromGLFWMonitorPixel(float64(monitor.videoMode.Height), monitor)
+	mw, mh := monitor.sizeInDIP()
 	mw = dipToGLFWPixel(mw, monitor)
 	mh = dipToGLFWPixel(mh, monitor)
 	px, py := InitialWindowPosition(int(mw), int(mh), int(w), int(h))
@@ -519,8 +518,7 @@ func (u *userInterfaceImpl) ScreenSizeInFullscreen() (int, int) {
 	}
 	if !u.isRunning() {
 		m := u.getInitMonitor()
-		w := dipFromGLFWMonitorPixel(float64(m.videoMode.Width), m)
-		h := dipFromGLFWMonitorPixel(float64(m.videoMode.Height), m)
+		w, h := m.sizeInDIP()
 		return int(w), int(h)
 	}
 
@@ -533,8 +531,9 @@ func (u *userInterfaceImpl) ScreenSizeInFullscreen() (int, int) {
 		if m == nil {
 			return
 		}
-		w = int(dipFromGLFWMonitorPixel(float64(m.videoMode.Width), m))
-		h = int(dipFromGLFWMonitorPixel(float64(m.videoMode.Height), m))
+		wf, hf := m.sizeInDIP()
+		w = int(wf)
+		h = int(hf)
 	})
 	return w, h
 }
@@ -763,12 +762,11 @@ func (u *userInterfaceImpl) createWindow() error {
 	// The position must be set before the size is set (#1982).
 	// setWindowSizeInDIP refers the current monitor's device scale.
 	wx, wy := u.getInitWindowPositionInDIP()
-	mw := int(dipFromGLFWMonitorPixel(float64(monitor.videoMode.Width), monitor))
-	mh := int(dipFromGLFWMonitorPixel(float64(monitor.videoMode.Height), monitor))
-	if max := mw - ww; wx >= max {
+	mw, mh := monitor.sizeInDIP()
+	if max := int(mw) - ww; wx >= max {
 		wx = max
 	}
-	if max := mh - wh; wy >= max {
+	if max := int(mh) - wh; wy >= max {
 		wy = max
 	}
 	if wx < 0 {
@@ -1018,10 +1016,7 @@ func (u *userInterfaceImpl) outsideSize() (float64, float64) {
 		// reflecting the adjustment of the view size (#1745).
 		var w, h float64
 		if m := u.currentMonitor(); m != nil {
-			vm := m.videoMode
-			ww, wh := vm.Width, vm.Height
-			w = dipFromGLFWMonitorPixel(float64(ww), m)
-			h = dipFromGLFWMonitorPixel(float64(wh), m)
+			w, h = m.sizeInDIP()
 		}
 		return w, h
 	}
