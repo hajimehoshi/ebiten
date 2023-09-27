@@ -76,7 +76,7 @@ func (i *Image) MarkDisposed() {
 	i.modifyCallback = nil
 }
 
-func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint16, blend graphicsdriver.Blend, dstRegion graphicsdriver.Region, srcRegions [graphics.ShaderImageCount]graphicsdriver.Region, shader *Shader, uniforms []uint32, evenOdd bool, canSkipMipmap bool, antialias bool) {
+func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint16, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderImageCount]image.Rectangle, shader *Shader, uniforms []uint32, evenOdd bool, canSkipMipmap bool, antialias bool) {
 	if i.modifyCallback != nil {
 		i.modifyCallback()
 	}
@@ -245,13 +245,8 @@ func (i *Image) flushDotsBufferIfNeeded() {
 	i.dotsBuffer = nil
 
 	srcs := [graphics.ShaderImageCount]*mipmap.Mipmap{whiteImage.mipmap}
-	dr := graphicsdriver.Region{
-		X:      0,
-		Y:      0,
-		Width:  float32(i.width),
-		Height: float32(i.height),
-	}
-	i.mipmap.DrawTriangles(srcs, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderImageCount]graphicsdriver.Region{}, NearestFilterShader.shader, nil, false, true)
+	dr := image.Rect(0, 0, i.width, i.height)
+	i.mipmap.DrawTriangles(srcs, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderImageCount]image.Rectangle{}, NearestFilterShader.shader, nil, false, true)
 }
 
 func (i *Image) flushBigOffscreenBufferIfNeeded() {
@@ -282,13 +277,6 @@ func (i *Image) clear() {
 }
 
 func (i *Image) Fill(r, g, b, a float32, region image.Rectangle) {
-	dstRegion := graphicsdriver.Region{
-		X:      float32(region.Min.X),
-		Y:      float32(region.Min.Y),
-		Width:  float32(region.Dx()),
-		Height: float32(region.Dy()),
-	}
-
 	if len(i.tmpVerticesForFill) < 4*graphics.VertexFloatCount {
 		i.tmpVerticesForFill = make([]float32, 4*graphics.VertexFloatCount)
 	}
@@ -302,7 +290,7 @@ func (i *Image) Fill(r, g, b, a float32, region image.Rectangle) {
 
 	srcs := [graphics.ShaderImageCount]*Image{whiteImage}
 
-	i.DrawTriangles(srcs, i.tmpVerticesForFill, is, graphicsdriver.BlendCopy, dstRegion, [graphics.ShaderImageCount]graphicsdriver.Region{}, NearestFilterShader, nil, false, true, false)
+	i.DrawTriangles(srcs, i.tmpVerticesForFill, is, graphicsdriver.BlendCopy, region, [graphics.ShaderImageCount]image.Rectangle{}, NearestFilterShader, nil, false, true, false)
 }
 
 type bigOffscreenImage struct {
@@ -310,7 +298,7 @@ type bigOffscreenImage struct {
 	imageType atlas.ImageType
 
 	image  *Image
-	region graphicsdriver.Region
+	region image.Rectangle
 
 	blend graphicsdriver.Blend
 	dirty bool
@@ -334,7 +322,7 @@ func (i *bigOffscreenImage) markDisposed() {
 	i.dirty = false
 }
 
-func (i *bigOffscreenImage) drawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint16, blend graphicsdriver.Blend, dstRegion graphicsdriver.Region, srcRegions [graphics.ShaderImageCount]graphicsdriver.Region, shader *Shader, uniforms []uint32, evenOdd bool, canSkipMipmap bool, antialias bool) {
+func (i *bigOffscreenImage) drawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint16, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderImageCount]image.Rectangle, shader *Shader, uniforms []uint32, evenOdd bool, canSkipMipmap bool, antialias bool) {
 	if i.blend != blend {
 		i.flush()
 	}
@@ -347,12 +335,12 @@ func (i *bigOffscreenImage) drawTriangles(srcs [graphics.ShaderImageCount]*Image
 		i.region = r
 	}
 
-	if i.region.Width == 0 || i.region.Height == 0 {
+	if i.region.Empty() {
 		return
 	}
 
 	if i.image == nil {
-		i.image = NewImage(int(i.region.Width)*bigOffscreenScale, int(i.region.Height)*bigOffscreenScale, i.imageType)
+		i.image = NewImage(i.region.Dx()*bigOffscreenScale, i.region.Dy()*bigOffscreenScale, i.imageType)
 	}
 
 	// Copy the current rendering result to get the correct blending result.
@@ -364,40 +352,26 @@ func (i *bigOffscreenImage) drawTriangles(srcs [graphics.ShaderImageCount]*Image
 		// i.tmpVerticesForCopying can be resused as this is sent to DrawTriangles immediately.
 		graphics.QuadVertices(
 			i.tmpVerticesForCopying,
-			i.region.X, i.region.Y, i.region.X+i.region.Width, i.region.Y+i.region.Height,
+			float32(i.region.Min.X), float32(i.region.Min.Y), float32(i.region.Max.X), float32(i.region.Max.Y),
 			bigOffscreenScale, 0, 0, bigOffscreenScale, 0, 0,
 			1, 1, 1, 1)
 		is := graphics.QuadIndices()
-		dstRegion := graphicsdriver.Region{
-			X:      0,
-			Y:      0,
-			Width:  i.region.Width * bigOffscreenScale,
-			Height: i.region.Height * bigOffscreenScale,
-		}
-		i.image.DrawTriangles(srcs, i.tmpVerticesForCopying, is, graphicsdriver.BlendCopy, dstRegion, [graphics.ShaderImageCount]graphicsdriver.Region{}, NearestFilterShader, nil, false, true, false)
+		dstRegion := image.Rect(0, 0, i.region.Dx()*bigOffscreenScale, i.region.Dy()*bigOffscreenScale)
+		i.image.DrawTriangles(srcs, i.tmpVerticesForCopying, is, graphicsdriver.BlendCopy, dstRegion, [graphics.ShaderImageCount]image.Rectangle{}, NearestFilterShader, nil, false, true, false)
 	}
 
 	for idx := 0; idx < len(vertices); idx += graphics.VertexFloatCount {
-		vertices[idx] = (vertices[idx] - i.region.X) * bigOffscreenScale
-		vertices[idx+1] = (vertices[idx+1] - i.region.Y) * bigOffscreenScale
+		vertices[idx] = (vertices[idx] - float32(i.region.Min.X)) * bigOffscreenScale
+		vertices[idx+1] = (vertices[idx+1] - float32(i.region.Min.Y)) * bigOffscreenScale
 	}
 
-	// Compute corners in dst coordinate space.
-	x0 := dstRegion.X
-	y0 := dstRegion.Y
-	x1 := dstRegion.X + dstRegion.Width
-	y1 := dstRegion.Y + dstRegion.Height
 	// Translate to i.region coordinate space, and clamp against region size.
-	x0 = max(x0-i.region.X, 0)
-	y0 = max(y0-i.region.Y, 0)
-	x1 = min(x1-i.region.X, i.region.Width)
-	y1 = min(y1-i.region.Y, i.region.Height)
-	dstRegion = graphicsdriver.Region{
-		X:      x0 * bigOffscreenScale,
-		Y:      y0 * bigOffscreenScale,
-		Width:  (x1 - x0) * bigOffscreenScale,
-		Height: (y1 - y0) * bigOffscreenScale,
-	}
+	dstRegion = dstRegion.Sub(i.region.Min)
+	dstRegion = dstRegion.Intersect(image.Rect(0, 0, i.region.Dx(), i.region.Dy()))
+	dstRegion.Min.X *= bigOffscreenScale
+	dstRegion.Min.Y *= bigOffscreenScale
+	dstRegion.Max.X *= bigOffscreenScale
+	dstRegion.Max.Y *= bigOffscreenScale
 
 	i.image.DrawTriangles(srcs, vertices, indices, blend, dstRegion, srcRegions, shader, uniforms, evenOdd, canSkipMipmap, false)
 	i.dirty = true
@@ -422,8 +396,8 @@ func (i *bigOffscreenImage) flush() {
 	// i.tmpVerticesForFlushing can be reused as this is sent to DrawTriangles in this function.
 	graphics.QuadVertices(
 		i.tmpVerticesForFlushing,
-		0, 0, i.region.Width*bigOffscreenScale, i.region.Height*bigOffscreenScale,
-		1.0/bigOffscreenScale, 0, 0, 1.0/bigOffscreenScale, i.region.X, i.region.Y,
+		0, 0, float32(i.region.Dx()*bigOffscreenScale), float32(i.region.Dy()*bigOffscreenScale),
+		1.0/bigOffscreenScale, 0, 0, 1.0/bigOffscreenScale, float32(i.region.Min.X), float32(i.region.Min.Y),
 		1, 1, 1, 1)
 	is := graphics.QuadIndices()
 	dstRegion := i.region
@@ -431,13 +405,13 @@ func (i *bigOffscreenImage) flush() {
 	if i.blend != graphicsdriver.BlendSourceOver {
 		blend = graphicsdriver.BlendCopy
 	}
-	i.orig.DrawTriangles(srcs, i.tmpVerticesForFlushing, is, blend, dstRegion, [graphics.ShaderImageCount]graphicsdriver.Region{}, LinearFilterShader, nil, false, true, false)
+	i.orig.DrawTriangles(srcs, i.tmpVerticesForFlushing, is, blend, dstRegion, [graphics.ShaderImageCount]image.Rectangle{}, LinearFilterShader, nil, false, true, false)
 
 	i.image.clear()
 	i.dirty = false
 }
 
-func (i *bigOffscreenImage) requiredRegion(vertices []float32) graphicsdriver.Region {
+func (i *bigOffscreenImage) requiredRegion(vertices []float32) image.Rectangle {
 	minX := float32(i.orig.width)
 	minY := float32(i.orig.height)
 	maxX := float32(0)
@@ -460,35 +434,19 @@ func (i *bigOffscreenImage) requiredRegion(vertices []float32) graphicsdriver.Re
 	}
 
 	// Adjust the granularity of the rectangle.
-	minX = float32(roundDown16(int(minX)))
-	minY = float32(roundDown16(int(minY)))
-	maxX = float32(roundUp16(int(maxX)))
-	maxY = float32(roundUp16(int(maxY)))
+	r := image.Rect(
+		roundDown16(int(minX)),
+		roundDown16(int(minY)),
+		roundUp16(int(maxX)),
+		roundUp16(int(maxY)))
+	r = r.Intersect(image.Rect(0, 0, i.orig.width, i.orig.height))
 
-	if minX < 0 {
-		minX = 0
-	}
-	if minY < 0 {
-		minY = 0
-	}
-	if maxX > float32(i.orig.width) {
-		maxX = float32(i.orig.width)
-	}
-	if maxY > float32(i.orig.height) {
-		maxY = float32(i.orig.height)
-	}
-
-	r := graphicsdriver.Region{
-		X:      minX,
-		Y:      minY,
-		Width:  maxX - minX,
-		Height: maxY - minY,
-	}
-	if r.Width < 0 || r.Height < 0 {
+	// TODO: Is this check required?
+	if r.Dx() < 0 || r.Dy() < 0 {
 		return i.region
 	}
 
-	return union(r, i.region)
+	return r.Union(i.region)
 }
 
 func floor(x float32) float32 {
@@ -519,24 +477,4 @@ func max(x, y float32) float32 {
 		return x
 	}
 	return y
-}
-
-func union(r0, r1 graphicsdriver.Region) graphicsdriver.Region {
-	if r0.Width == 0 || r0.Height == 0 {
-		return r1
-	}
-	if r1.Width == 0 || r1.Height == 0 {
-		return r0
-	}
-
-	x0 := min(r0.X, r1.X)
-	y0 := min(r0.Y, r1.Y)
-	x1 := max(r0.X+r0.Width, r1.X+r1.Width)
-	y1 := max(r0.Y+r0.Height, r1.Y+r1.Height)
-	return graphicsdriver.Region{
-		X:      x0,
-		Y:      y0,
-		Width:  x1 - x0,
-		Height: y1 - y0,
-	}
 }

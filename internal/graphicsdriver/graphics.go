@@ -21,15 +21,8 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
 
-type Region struct {
-	X      float32
-	Y      float32
-	Width  float32
-	Height float32
-}
-
 type DstRegion struct {
-	Region     Region
+	Region     image.Rectangle
 	IndexCount int
 }
 

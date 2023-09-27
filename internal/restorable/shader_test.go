@@ -45,13 +45,8 @@ func clearImage(img *restorable.Image, w, h int) {
 		dx1, dy1, sx1, sy1, 0, 0, 0, 0,
 	}
 	is := graphics.QuadIndices()
-	dr := graphicsdriver.Region{
-		X:      0,
-		Y:      0,
-		Width:  float32(w),
-		Height: float32(h),
-	}
-	img.DrawTriangles([graphics.ShaderImageCount]*restorable.Image{emptyImage}, vs, is, graphicsdriver.BlendClear, dr, [graphics.ShaderImageCount]graphicsdriver.Region{}, restorable.NearestFilterShader, nil, false)
+	dr := image.Rect(0, 0, w, h)
+	img.DrawTriangles([graphics.ShaderImageCount]*restorable.Image{emptyImage}, vs, is, graphicsdriver.BlendClear, dr, [graphics.ShaderImageCount]image.Rectangle{}, restorable.NearestFilterShader, nil, false)
 }
 
 func TestShader(t *testing.T) {
@@ -59,13 +54,8 @@ func TestShader(t *testing.T) {
 	defer img.Dispose()
 
 	s := restorable.NewShader(etesting.ShaderProgramFill(0xff, 0, 0, 0xff))
-	dr := graphicsdriver.Region{
-		X:      0,
-		Y:      0,
-		Width:  1,
-		Height: 1,
-	}
-	img.DrawTriangles([graphics.ShaderImageCount]*restorable.Image{}, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), graphicsdriver.BlendCopy, dr, [graphics.ShaderImageCount]graphicsdriver.Region{}, s, nil, false)
+	dr := image.Rect(0, 0, 1, 1)
+	img.DrawTriangles([graphics.ShaderImageCount]*restorable.Image{}, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), graphicsdriver.BlendCopy, dr, [graphics.ShaderImageCount]image.Rectangle{}, s, nil, false)
 
 	if err := restorable.ResolveStaleImages(ui.GraphicsDriverForTesting()); err != nil {
 		t.Fatal(err)
@@ -94,13 +84,8 @@ func TestShaderChain(t *testing.T) {
 
 	s := restorable.NewShader(etesting.ShaderProgramImages(1))
 	for i := 0; i < num-1; i++ {
-		dr := graphicsdriver.Region{
-			X:      0,
-			Y:      0,
-			Width:  1,
-			Height: 1,
-		}
-		imgs[i+1].DrawTriangles([graphics.ShaderImageCount]*restorable.Image{imgs[i]}, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), graphicsdriver.BlendCopy, dr, [graphics.ShaderImageCount]graphicsdriver.Region{}, s, nil, false)
+		dr := image.Rect(0, 0, 1, 1)
+		imgs[i+1].DrawTriangles([graphics.ShaderImageCount]*restorable.Image{imgs[i]}, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), graphicsdriver.BlendCopy, dr, [graphics.ShaderImageCount]image.Rectangle{}, s, nil, false)
 	}
 
 	if err := restorable.ResolveStaleImages(ui.GraphicsDriverForTesting()); err != nil {
@@ -131,13 +116,8 @@ func TestShaderMultipleSources(t *testing.T) {
 	dst := restorable.NewImage(1, 1, restorable.ImageTypeRegular)
 
 	s := restorable.NewShader(etesting.ShaderProgramImages(3))
-	dr := graphicsdriver.Region{
-		X:      0,
-		Y:      0,
-		Width:  1,
-		Height: 1,
-	}
-	dst.DrawTriangles(srcs, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), graphicsdriver.BlendCopy, dr, [graphics.ShaderImageCount]graphicsdriver.Region{}, s, nil, false)
+	dr := image.Rect(0, 0, 1, 1)
+	dst.DrawTriangles(srcs, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), graphicsdriver.BlendCopy, dr, [graphics.ShaderImageCount]image.Rectangle{}, s, nil, false)
 
 	// Clear one of the sources after DrawTriangles. dst should not be affected.
 	clearImage(srcs[0], 1, 1)
@@ -168,31 +148,11 @@ func TestShaderMultipleSourcesOnOneTexture(t *testing.T) {
 	dst := restorable.NewImage(1, 1, restorable.ImageTypeRegular)
 
 	s := restorable.NewShader(etesting.ShaderProgramImages(3))
-	dr := graphicsdriver.Region{
-		X:      0,
-		Y:      0,
-		Width:  1,
-		Height: 1,
-	}
-	srcRegions := [graphics.ShaderImageCount]graphicsdriver.Region{
-		{
-			X:      0,
-			Y:      0,
-			Width:  1,
-			Height: 1,
-		},
-		{
-			X:      1,
-			Y:      0,
-			Width:  1,
-			Height: 1,
-		},
-		{
-			X:      2,
-			Y:      0,
-			Width:  1,
-			Height: 1,
-		},
+	dr := image.Rect(0, 0, 1, 1)
+	srcRegions := [graphics.ShaderImageCount]image.Rectangle{
+		image.Rect(0, 0, 1, 1),
+		image.Rect(1, 0, 2, 1),
+		image.Rect(2, 0, 3, 1),
 	}
 	dst.DrawTriangles(srcs, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), graphicsdriver.BlendCopy, dr, srcRegions, s, nil, false)
 
@@ -218,13 +178,8 @@ func TestShaderDispose(t *testing.T) {
 	defer img.Dispose()
 
 	s := restorable.NewShader(etesting.ShaderProgramFill(0xff, 0, 0, 0xff))
-	dr := graphicsdriver.Region{
-		X:      0,
-		Y:      0,
-		Width:  1,
-		Height: 1,
-	}
-	img.DrawTriangles([graphics.ShaderImageCount]*restorable.Image{}, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), graphicsdriver.BlendCopy, dr, [graphics.ShaderImageCount]graphicsdriver.Region{}, s, nil, false)
+	dr := image.Rect(0, 0, 1, 1)
+	img.DrawTriangles([graphics.ShaderImageCount]*restorable.Image{}, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), graphicsdriver.BlendCopy, dr, [graphics.ShaderImageCount]image.Rectangle{}, s, nil, false)
 
 	// Dispose the shader. This should invalidate all the images using this shader i.e., all the images become
 	// stale.

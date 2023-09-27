@@ -296,10 +296,10 @@ func (p *pipelineStates) drawTriangles(device *_ID3D12Device, commandList *_ID3D
 	for _, dstRegion := range dstRegions {
 		commandList.RSSetScissorRects([]_D3D12_RECT{
 			{
-				left:   int32(dstRegion.Region.X),
-				top:    int32(dstRegion.Region.Y),
-				right:  int32(dstRegion.Region.X + dstRegion.Region.Width),
-				bottom: int32(dstRegion.Region.Y + dstRegion.Region.Height),
+				left:   int32(dstRegion.Region.Min.X),
+				top:    int32(dstRegion.Region.Min.Y),
+				right:  int32(dstRegion.Region.Max.X),
+				bottom: int32(dstRegion.Region.Max.Y),
 			},
 		})
 		if evenOdd {

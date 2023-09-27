@@ -17,7 +17,6 @@ package restorable
 import (
 	"fmt"
 	"image"
-	"math"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
@@ -77,8 +76,8 @@ type drawTrianglesHistoryItem struct {
 	vertices   []float32
 	indices    []uint16
 	blend      graphicsdriver.Blend
-	dstRegion  graphicsdriver.Region
-	srcRegions [graphics.ShaderImageCount]graphicsdriver.Region
+	dstRegion  image.Rectangle
+	srcRegions [graphics.ShaderImageCount]image.Rectangle
 	shader     *Shader
 	uniforms   []uint32
 	evenOdd    bool
@@ -180,13 +179,8 @@ func (i *Image) Extend(width, height int) *Image {
 	sw, sh := i.image.InternalSize()
 	vs := quadVertices(0, 0, float32(sw), float32(sh), 0, 0, float32(sw), float32(sh), 1, 1, 1, 1)
 	is := graphics.QuadIndices()
-	dr := graphicsdriver.Region{
-		X:      0,
-		Y:      0,
-		Width:  float32(sw),
-		Height: float32(sh),
-	}
-	newImg.DrawTriangles(srcs, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderImageCount]graphicsdriver.Region{}, NearestFilterShader, nil, false)
+	dr := image.Rect(0, 0, sw, sh)
+	newImg.DrawTriangles(srcs, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderImageCount]image.Rectangle{}, NearestFilterShader, nil, false)
 	i.Dispose()
 
 	return newImg
@@ -205,13 +199,7 @@ func quadVertices(dx0, dy0, dx1, dy1, sx0, sy0, sx1, sy1, cr, cg, cb, ca float32
 func clearImage(i *graphicscommand.Image, region image.Rectangle) {
 	vs := quadVertices(float32(region.Min.X), float32(region.Min.Y), float32(region.Max.X), float32(region.Max.Y), 0, 0, 0, 0, 0, 0, 0, 0)
 	is := graphics.QuadIndices()
-	dstRegion := graphicsdriver.Region{
-		X:      float32(region.Min.X),
-		Y:      float32(region.Min.Y),
-		Width:  float32(region.Dx()),
-		Height: float32(region.Dy()),
-	}
-	i.DrawTriangles([graphics.ShaderImageCount]*graphicscommand.Image{}, vs, is, graphicsdriver.BlendClear, dstRegion, [graphics.ShaderImageCount]graphicsdriver.Region{}, clearShader.shader, nil, false)
+	i.DrawTriangles([graphics.ShaderImageCount]*graphicscommand.Image{}, vs, is, graphicsdriver.BlendClear, region, [graphics.ShaderImageCount]image.Rectangle{}, clearShader.shader, nil, false)
 }
 
 // BasePixelsForTesting returns the image's basePixels for testing.
@@ -333,7 +321,7 @@ func (i *Image) WritePixels(pixels []byte, region image.Rectangle) {
 //	5: Color G
 //	6: Color B
 //	7: Color Y
-func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint16, blend graphicsdriver.Blend, dstRegion graphicsdriver.Region, srcRegions [graphics.ShaderImageCount]graphicsdriver.Region, shader *Shader, uniforms []uint32, evenOdd bool) {
+func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint16, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderImageCount]image.Rectangle, shader *Shader, uniforms []uint32, evenOdd bool) {
 	if len(vertices) == 0 {
 		return
 	}
@@ -353,7 +341,7 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 
 	// Even if the image is already stale, call makeStale to extend the stale region.
 	if srcstale || !needsRestoring() || !i.needsRestoring() || i.stale {
-		i.makeStale(regionToRectangle(dstRegion))
+		i.makeStale(dstRegion)
 	} else {
 		i.appendDrawTrianglesHistory(srcs, vertices, indices, blend, dstRegion, srcRegions, shader, uniforms, evenOdd)
 	}
@@ -369,7 +357,7 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 }
 
 // appendDrawTrianglesHistory appends a draw-image history item to the image.
-func (i *Image) appendDrawTrianglesHistory(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint16, blend graphicsdriver.Blend, dstRegion graphicsdriver.Region, srcRegions [graphics.ShaderImageCount]graphicsdriver.Region, shader *Shader, uniforms []uint32, evenOdd bool) {
+func (i *Image) appendDrawTrianglesHistory(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint16, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderImageCount]image.Rectangle, shader *Shader, uniforms []uint32, evenOdd bool) {
 	if i.stale || !i.needsRestoring() {
 		panic("restorable: an image must not be stale or need restoring at appendDrawTrianglesHistory")
 	}
@@ -380,7 +368,7 @@ func (i *Image) appendDrawTrianglesHistory(srcs [graphics.ShaderImageCount]*Imag
 	// TODO: Would it be possible to merge draw image history items?
 	const maxDrawTrianglesHistoryCount = 1024
 	if len(i.drawTrianglesHistory)+1 > maxDrawTrianglesHistoryCount {
-		i.makeStale(regionToRectangle(dstRegion))
+		i.makeStale(dstRegion)
 		return
 	}
 	// All images must be resolved and not stale each after frame.
@@ -704,20 +692,11 @@ func (i *Image) InternalSize() (int, int) {
 
 func (i *Image) appendRegionsForDrawTriangles(regions *[]image.Rectangle) {
 	for _, d := range i.drawTrianglesHistory {
-		r := regionToRectangle(d.dstRegion)
-		if r.Empty() {
+		if d.dstRegion.Empty() {
 			continue
 		}
-		appendRegionRemovingDuplicates(regions, r)
+		appendRegionRemovingDuplicates(regions, d.dstRegion)
 	}
-}
-
-func regionToRectangle(region graphicsdriver.Region) image.Rectangle {
-	return image.Rect(
-		int(math.Floor(float64(region.X))),
-		int(math.Floor(float64(region.Y))),
-		int(math.Ceil(float64(region.X+region.Width))),
-		int(math.Ceil(float64(region.Y+region.Height))))
 }
 
 // appendRegionRemovingDuplicates adds a region to a given list of regions,
