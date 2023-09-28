@@ -464,17 +464,3 @@ func roundDown16(x int) int {
 func roundUp16(x int) int {
 	return ((x - 1) & ^(0xf)) + 0x10
 }
-
-func min(x, y float32) float32 {
-	if x < y {
-		return x
-	}
-	return y
-}
-
-func max(x, y float32) float32 {
-	if x > y {
-		return x
-	}
-	return y
-}
