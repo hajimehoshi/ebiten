@@ -251,10 +251,10 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 
 	for _, dstRegion := range dstRegions {
 		g.context.ctx.Scissor(
-			int32(dstRegion.Region.X),
-			int32(dstRegion.Region.Y),
-			int32(dstRegion.Region.Width),
-			int32(dstRegion.Region.Height),
+			int32(dstRegion.Region.Min.X),
+			int32(dstRegion.Region.Min.Y),
+			int32(dstRegion.Region.Dx()),
+			int32(dstRegion.Region.Dy()),
 		)
 		if evenOdd {
 			g.context.ctx.Clear(gl.STENCIL_BUFFER_BIT)

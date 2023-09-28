@@ -176,17 +176,6 @@ func (i *Image) adjustedBounds() image.Rectangle {
 	return image.Rect(x, y, x+b.Dx(), y+b.Dy())
 }
 
-func (i *Image) adjustedRegion() graphicsdriver.Region {
-	b := i.Bounds()
-	x, y := i.adjustPosition(b.Min.X, b.Min.Y)
-	return graphicsdriver.Region{
-		X:      float32(x),
-		Y:      float32(y),
-		Width:  float32(b.Dx()),
-		Height: float32(b.Dy()),
-	}
-}
-
 // DrawImage draws the given image on the image i.
 //
 // DrawImage accepts the options. For details, see the document of
@@ -272,7 +261,7 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) {
 		})
 	}
 
-	i.image.DrawTriangles(srcs, vs, is, blend, i.adjustedRegion(), [graphics.ShaderImageCount]graphicsdriver.Region{img.adjustedRegion()}, shader.shader, i.tmpUniforms, false, canSkipMipmap(geoM, filter), false)
+	i.image.DrawTriangles(srcs, vs, is, blend, i.adjustedBounds(), [graphics.ShaderImageCount]image.Rectangle{img.adjustedBounds()}, shader.shader, i.tmpUniforms, false, canSkipMipmap(geoM, filter), false)
 }
 
 // Vertex represents a vertex passed to DrawTriangles.
@@ -517,7 +506,7 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 		})
 	}
 
-	i.image.DrawTriangles(srcs, vs, is, blend, i.adjustedRegion(), [graphics.ShaderImageCount]graphicsdriver.Region{img.adjustedRegion()}, shader.shader, i.tmpUniforms, options.FillRule == EvenOdd, filter != builtinshader.FilterLinear, options.AntiAlias)
+	i.image.DrawTriangles(srcs, vs, is, blend, i.adjustedBounds(), [graphics.ShaderImageCount]image.Rectangle{img.adjustedBounds()}, shader.shader, i.tmpUniforms, options.FillRule == EvenOdd, filter != builtinshader.FilterLinear, options.AntiAlias)
 }
 
 // DrawTrianglesShaderOptions represents options for DrawTrianglesShader.
@@ -667,18 +656,18 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 		imgs[i] = img.image
 	}
 
-	var srcRegions [graphics.ShaderImageCount]graphicsdriver.Region
+	var srcRegions [graphics.ShaderImageCount]image.Rectangle
 	for i, img := range options.Images {
 		if img == nil {
 			continue
 		}
-		srcRegions[i] = img.adjustedRegion()
+		srcRegions[i] = img.adjustedBounds()
 	}
 
 	i.tmpUniforms = i.tmpUniforms[:0]
 	i.tmpUniforms = shader.appendUniforms(i.tmpUniforms, options.Uniforms)
 
-	i.image.DrawTriangles(imgs, vs, is, blend, i.adjustedRegion(), srcRegions, shader.shader, i.tmpUniforms, options.FillRule == EvenOdd, true, options.AntiAlias)
+	i.image.DrawTriangles(imgs, vs, is, blend, i.adjustedBounds(), srcRegions, shader.shader, i.tmpUniforms, options.FillRule == EvenOdd, true, options.AntiAlias)
 }
 
 // DrawRectShaderOptions represents options for DrawRectShader.
@@ -773,20 +762,17 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 		imgs[i] = img.image
 	}
 
-	var srcRegions [graphics.ShaderImageCount]graphicsdriver.Region
+	var srcRegions [graphics.ShaderImageCount]image.Rectangle
 	for i, img := range options.Images {
 		if img == nil {
 			if shader.unit == shaderir.Pixels && i == 0 {
 				// Give the source size as pixels only when the unit is pixels so that users can get the source size via imageSrc0Size (#2166).
 				// With the texel mode, the imageSrc0Origin and imageSrc0Size values should be in texels so the source position in pixels would not match.
-				srcRegions[i] = graphicsdriver.Region{
-					Width:  float32(width),
-					Height: float32(height),
-				}
+				srcRegions[i] = image.Rect(0, 0, width, height)
 			}
 			continue
 		}
-		srcRegions[i] = img.adjustedRegion()
+		srcRegions[i] = img.adjustedBounds()
 	}
 
 	geoM := options.GeoM
@@ -797,14 +783,17 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 	cr, cg, cb, ca := options.ColorScale.elements()
 	vs := i.ensureTmpVertices(4 * graphics.VertexFloatCount)
 
-	// Do not use srcRegions[0].Width and srcRegions[0].Height as these might be empty.
-	graphics.QuadVertices(vs, srcRegions[0].X, srcRegions[0].Y, srcRegions[0].X+float32(width), srcRegions[0].Y+float32(height), a, b, c, d, tx, ty, cr, cg, cb, ca)
+	// Do not use srcRegions[0].Dx() and srcRegions[0].Dy() as these might be empty.
+	graphics.QuadVertices(vs,
+		float32(srcRegions[0].Min.X), float32(srcRegions[0].Min.Y),
+		float32(srcRegions[0].Min.X+width), float32(srcRegions[0].Min.Y+height),
+		a, b, c, d, tx, ty, cr, cg, cb, ca)
 	is := graphics.QuadIndices()
 
 	i.tmpUniforms = i.tmpUniforms[:0]
 	i.tmpUniforms = shader.appendUniforms(i.tmpUniforms, options.Uniforms)
 
-	i.image.DrawTriangles(imgs, vs, is, blend, i.adjustedRegion(), srcRegions, shader.shader, i.tmpUniforms, false, true, false)
+	i.image.DrawTriangles(imgs, vs, is, blend, i.adjustedBounds(), srcRegions, shader.shader, i.tmpUniforms, false, true, false)
 }
 
 // SubImage returns an image representing the portion of the image p visible through r.

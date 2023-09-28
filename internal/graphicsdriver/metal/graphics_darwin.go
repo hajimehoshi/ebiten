@@ -561,10 +561,10 @@ func (g *Graphics) draw(dst *Image, dstRegions []graphicsdriver.DstRegion, srcs 
 
 	for _, dstRegion := range dstRegions {
 		g.rce.SetScissorRect(mtl.ScissorRect{
-			X:      int(dstRegion.Region.X),
-			Y:      int(dstRegion.Region.Y),
-			Width:  int(dstRegion.Region.Width),
-			Height: int(dstRegion.Region.Height),
+			X:      dstRegion.Region.Min.X,
+			Y:      dstRegion.Region.Min.Y,
+			Width:  dstRegion.Region.Dx(),
+			Height: dstRegion.Region.Dy(),
 		})
 
 		if evenOdd {

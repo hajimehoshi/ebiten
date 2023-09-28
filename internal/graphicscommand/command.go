@@ -16,6 +16,7 @@ package graphicscommand
 
 import (
 	"fmt"
+	"image"
 	"math"
 	"strings"
 	"sync/atomic"
@@ -111,7 +112,7 @@ func mustUseDifferentVertexBuffer(nextNumVertexFloats int) bool {
 }
 
 // EnqueueDrawTrianglesCommand enqueues a drawing-image command.
-func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint16, blend graphicsdriver.Blend, dstRegion graphicsdriver.Region, srcRegions [graphics.ShaderImageCount]graphicsdriver.Region, shader *Shader, uniforms []uint32, evenOdd bool) {
+func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint16, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderImageCount]image.Rectangle, shader *Shader, uniforms []uint32, evenOdd bool) {
 	if len(vertices) > graphics.MaxVertexFloatsCount {
 		panic(fmt.Sprintf("graphicscommand: len(vertices) must equal to or less than %d but was %d", graphics.MaxVertexFloatsCount, len(vertices)))
 	}
@@ -662,7 +663,23 @@ func roundUpPower2(x int) int {
 	return p2
 }
 
-func (q *commandQueue) prependPreservedUniforms(uniforms []uint32, shader *Shader, dst *Image, srcs [graphics.ShaderImageCount]*Image, dstRegion graphicsdriver.Region, srcRegions [graphics.ShaderImageCount]graphicsdriver.Region) []uint32 {
+type rectangleF32 struct {
+	x      float32
+	y      float32
+	width  float32
+	height float32
+}
+
+func imageRectangleToRectangleF32(r image.Rectangle) rectangleF32 {
+	return rectangleF32{
+		x:      float32(r.Min.X),
+		y:      float32(r.Min.Y),
+		width:  float32(r.Dx()),
+		height: float32(r.Dy()),
+	}
+}
+
+func (q *commandQueue) prependPreservedUniforms(uniforms []uint32, shader *Shader, dst *Image, srcs [graphics.ShaderImageCount]*Image, dstRegion image.Rectangle, srcRegions [graphics.ShaderImageCount]image.Rectangle) []uint32 {
 	origUniforms := uniforms
 	uniforms = q.uint32sBuffer.alloc(len(origUniforms) + graphics.PreservedUniformUint32Count)
 	copy(uniforms[graphics.PreservedUniformUint32Count:], origUniforms)
@@ -706,53 +723,58 @@ func (q *commandQueue) prependPreservedUniforms(uniforms []uint32, shader *Shade
 		uniforms[9] = 0
 	}
 
+	dr := imageRectangleToRectangleF32(dstRegion)
 	if shader.unit() == shaderir.Texels {
-		dstRegion.X /= float32(dw)
-		dstRegion.Y /= float32(dh)
-		dstRegion.Width /= float32(dw)
-		dstRegion.Height /= float32(dh)
+		dr.x /= float32(dw)
+		dr.y /= float32(dh)
+		dr.width /= float32(dw)
+		dr.height /= float32(dh)
 	}
 
 	// Set the destination region origin.
-	uniforms[10] = math.Float32bits(dstRegion.X)
-	uniforms[11] = math.Float32bits(dstRegion.Y)
+	uniforms[10] = math.Float32bits(dr.x)
+	uniforms[11] = math.Float32bits(dr.y)
 
 	// Set the destination region size.
-	uniforms[12] = math.Float32bits(dstRegion.Width)
-	uniforms[13] = math.Float32bits(dstRegion.Height)
+	uniforms[12] = math.Float32bits(dr.width)
+	uniforms[13] = math.Float32bits(dr.height)
 
+	var srs [graphics.ShaderImageCount]rectangleF32
+	for i, r := range srcRegions {
+		srs[i] = imageRectangleToRectangleF32(r)
+	}
 	if shader.unit() == shaderir.Texels {
 		for i, src := range srcs {
 			if src == nil {
 				continue
 			}
 			w, h := src.InternalSize()
-			srcRegions[i].X /= float32(w)
-			srcRegions[i].Y /= float32(h)
-			srcRegions[i].Width /= float32(w)
-			srcRegions[i].Height /= float32(h)
+			srs[i].x /= float32(w)
+			srs[i].y /= float32(h)
+			srs[i].width /= float32(w)
+			srs[i].height /= float32(h)
 		}
 	}
 
 	// Set the source region origins.
-	uniforms[14] = math.Float32bits(srcRegions[0].X)
-	uniforms[15] = math.Float32bits(srcRegions[0].Y)
-	uniforms[16] = math.Float32bits(srcRegions[1].X)
-	uniforms[17] = math.Float32bits(srcRegions[1].Y)
-	uniforms[18] = math.Float32bits(srcRegions[2].X)
-	uniforms[19] = math.Float32bits(srcRegions[2].Y)
-	uniforms[20] = math.Float32bits(srcRegions[3].X)
-	uniforms[21] = math.Float32bits(srcRegions[3].Y)
+	uniforms[14] = math.Float32bits(srs[0].x)
+	uniforms[15] = math.Float32bits(srs[0].y)
+	uniforms[16] = math.Float32bits(srs[1].x)
+	uniforms[17] = math.Float32bits(srs[1].y)
+	uniforms[18] = math.Float32bits(srs[2].x)
+	uniforms[19] = math.Float32bits(srs[2].y)
+	uniforms[20] = math.Float32bits(srs[3].x)
+	uniforms[21] = math.Float32bits(srs[3].y)
 
 	// Set the source region sizes.
-	uniforms[22] = math.Float32bits(srcRegions[0].Width)
-	uniforms[23] = math.Float32bits(srcRegions[0].Height)
-	uniforms[24] = math.Float32bits(srcRegions[1].Width)
-	uniforms[25] = math.Float32bits(srcRegions[1].Height)
-	uniforms[26] = math.Float32bits(srcRegions[2].Width)
-	uniforms[27] = math.Float32bits(srcRegions[2].Height)
-	uniforms[28] = math.Float32bits(srcRegions[3].Width)
-	uniforms[29] = math.Float32bits(srcRegions[3].Height)
+	uniforms[22] = math.Float32bits(srs[0].width)
+	uniforms[23] = math.Float32bits(srs[0].height)
+	uniforms[24] = math.Float32bits(srs[1].width)
+	uniforms[25] = math.Float32bits(srs[1].height)
+	uniforms[26] = math.Float32bits(srs[2].width)
+	uniforms[27] = math.Float32bits(srs[2].height)
+	uniforms[28] = math.Float32bits(srs[3].width)
+	uniforms[29] = math.Float32bits(srs[3].height)
 
 	// Set the projection matrix.
 	uniforms[30] = math.Float32bits(2 / float32(dw))

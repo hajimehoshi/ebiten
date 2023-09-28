@@ -275,14 +275,9 @@ func (i *Image) ensureIsolatedFromSource(backends []*backend) {
 	vs := make([]float32, 4*graphics.VertexFloatCount)
 	graphics.QuadVertices(vs, 0, 0, w, h, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
 	is := graphics.QuadIndices()
-	dr := graphicsdriver.Region{
-		X:      0,
-		Y:      0,
-		Width:  w,
-		Height: h,
-	}
+	dr := image.Rect(0, 0, i.width, i.height)
 
-	newI.drawTriangles([graphics.ShaderImageCount]*Image{i}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderImageCount]graphicsdriver.Region{}, NearestFilterShader, nil, false, true)
+	newI.drawTriangles([graphics.ShaderImageCount]*Image{i}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderImageCount]image.Rectangle{}, NearestFilterShader, nil, false, true)
 	newI.moveTo(i)
 }
 
@@ -311,13 +306,8 @@ func (i *Image) putOnSourceBackend(graphicsDriver graphicsdriver.Graphics) {
 	vs := make([]float32, 4*graphics.VertexFloatCount)
 	graphics.QuadVertices(vs, 0, 0, w, h, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
 	is := graphics.QuadIndices()
-	dr := graphicsdriver.Region{
-		X:      0,
-		Y:      0,
-		Width:  w,
-		Height: h,
-	}
-	newI.drawTriangles([graphics.ShaderImageCount]*Image{i}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderImageCount]graphicsdriver.Region{}, NearestFilterShader, nil, false, true)
+	dr := image.Rect(0, 0, i.width, i.height)
+	newI.drawTriangles([graphics.ShaderImageCount]*Image{i}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderImageCount]image.Rectangle{}, NearestFilterShader, nil, false, true)
 
 	newI.moveTo(i)
 	i.usedAsSourceCount = 0
@@ -349,13 +339,13 @@ func (i *Image) regionWithPadding() image.Rectangle {
 //	5: Color G
 //	6: Color B
 //	7: Color Y
-func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint16, blend graphicsdriver.Blend, dstRegion graphicsdriver.Region, srcRegions [graphics.ShaderImageCount]graphicsdriver.Region, shader *Shader, uniforms []uint32, evenOdd bool) {
+func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint16, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderImageCount]image.Rectangle, shader *Shader, uniforms []uint32, evenOdd bool) {
 	backendsM.Lock()
 	defer backendsM.Unlock()
 	i.drawTriangles(srcs, vertices, indices, blend, dstRegion, srcRegions, shader, uniforms, evenOdd, false)
 }
 
-func (i *Image) drawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint16, blend graphicsdriver.Blend, dstRegion graphicsdriver.Region, srcRegions [graphics.ShaderImageCount]graphicsdriver.Region, shader *Shader, uniforms []uint32, evenOdd bool, keepOnAtlas bool) {
+func (i *Image) drawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint16, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderImageCount]image.Rectangle, shader *Shader, uniforms []uint32, evenOdd bool, keepOnAtlas bool) {
 	if i.disposed {
 		panic("atlas: the drawing target image must not be disposed (DrawTriangles)")
 	}
@@ -388,11 +378,10 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 	}
 
 	r := i.regionWithPadding()
-	dx, dy := float32(r.Min.X), float32(r.Min.Y)
 	// TODO: Check if dstRegion does not to violate the region.
+	dstRegion = dstRegion.Add(r.Min)
 
-	dstRegion.X += dx
-	dstRegion.Y += dy
+	dx, dy := float32(r.Min.X), float32(r.Min.Y)
 
 	var oxf, oyf float32
 	if srcs[0] != nil {
@@ -428,13 +417,12 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 
 		// A source region can be deliberately empty when this is not needed in order to avoid unexpected
 		// performance issue (#1293).
-		if srcRegions[i].Width == 0 || srcRegions[i].Height == 0 {
+		if srcRegions[i].Empty() {
 			continue
 		}
 
 		r := src.regionWithPadding()
-		srcRegions[i].X += float32(r.Min.X)
-		srcRegions[i].Y += float32(r.Min.Y)
+		srcRegions[i] = srcRegions[i].Add(r.Min)
 	}
 
 	var imgs [graphics.ShaderImageCount]*restorable.Image

@@ -578,10 +578,10 @@ func (g *graphics11) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphic
 	for _, dstRegion := range dstRegions {
 		g.deviceContext.RSSetScissorRects([]_D3D11_RECT{
 			{
-				left:   int32(dstRegion.Region.X),
-				top:    int32(dstRegion.Region.Y),
-				right:  int32(dstRegion.Region.X + dstRegion.Region.Width),
-				bottom: int32(dstRegion.Region.Y + dstRegion.Region.Height),
+				left:   int32(dstRegion.Region.Min.X),
+				top:    int32(dstRegion.Region.Min.Y),
+				right:  int32(dstRegion.Region.Max.X),
+				bottom: int32(dstRegion.Region.Max.Y),
 			},
 		})
 
