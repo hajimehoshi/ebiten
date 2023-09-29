@@ -425,17 +425,19 @@ func (u *userInterfaceImpl) setRunnableOnUnfocused(runnableOnUnfocused bool) {
 	u.m.Unlock()
 }
 
-func (u *userInterfaceImpl) getIconImages() []image.Image {
+func (u *userInterfaceImpl) getAndResetIconImages() []image.Image {
 	u.m.RLock()
+	defer u.m.RUnlock()
 	i := u.iconImages
-	u.m.RUnlock()
+	u.iconImages = nil
 	return i
 }
 
 func (u *userInterfaceImpl) setIconImages(iconImages []image.Image) {
 	u.m.Lock()
-	u.iconImages = iconImages
-	u.m.Unlock()
+	defer u.m.Unlock()
+	u.iconImages = make([]image.Image, len(iconImages))
+	copy(u.iconImages, iconImages)
 }
 
 func (u *userInterfaceImpl) getInitWindowPositionInDIP() (int, int) {
@@ -1262,14 +1264,18 @@ func (u *userInterfaceImpl) updateIconIfNeeded() error {
 		return nil
 	}
 
-	imgs := u.getIconImages()
-	if len(imgs) == 0 {
+	imgs := u.getAndResetIconImages()
+	// A 0-size slice and nil are distinguished here.
+	// A 0-size slice means a user indicates to reset the icon.
+	// On the other hand, nil means a user didn't update the icon state.
+	if imgs == nil {
 		return nil
 	}
 
-	u.setIconImages(nil)
-
-	newImgs := make([]image.Image, len(imgs))
+	var newImgs []image.Image
+	if len(imgs) > 0 {
+		newImgs = make([]image.Image, len(imgs))
+	}
 	for i, img := range imgs {
 		// TODO: If img is not *ebiten.Image, this converting is not necessary.
 		// However, this package cannot refer *ebiten.Image due to the package

@@ -307,6 +307,9 @@ func (g *game) Update() error {
 	if inpututil.IsKeyJustPressed(ebiten.KeyI) {
 		ebiten.SetWindowIcon([]image.Image{createRandomIconImage()})
 	}
+	if inpututil.IsKeyJustPressed(ebiten.KeyJ) {
+		ebiten.SetWindowIcon(nil)
+	}
 
 	ebiten.SetWindowMousePassthrough(mousePassthrough)
 
@@ -358,6 +361,7 @@ func (g *game) Draw(screen *ebiten.Image) {
 [U] Switch the runnable-on-unfocused state
 [C] Switch the cursor mode (visible, hidden, or captured)
 [I] Change the window icon (only for desktops)
+[J] Reset the window icon (only for desktops)
 [V] Switch the vsync
 [T] Switch TPS (ticks per second)
 [D] Switch the window decoration (only for desktops)
