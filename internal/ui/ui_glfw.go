@@ -69,7 +69,6 @@ type userInterfaceImpl struct {
 	cursorShape          CursorShape
 	windowClosingHandled bool
 	windowResizingMode   WindowResizingMode
-	inFrame              uint32
 
 	// err must be accessed from the main thread.
 	err error
@@ -799,11 +798,9 @@ func (u *userInterfaceImpl) createWindow() error {
 }
 
 func (u *userInterfaceImpl) beginFrame() {
-	atomic.StoreUint32(&u.inFrame, 1)
 }
 
 func (u *userInterfaceImpl) endFrame() {
-	atomic.StoreUint32(&u.inFrame, 0)
 }
 
 // registerWindowCloseCallback must be called from the main thread.
