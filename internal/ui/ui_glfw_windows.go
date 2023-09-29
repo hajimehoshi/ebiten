@@ -136,14 +136,7 @@ func initialMonitorByOS() (*Monitor, error) {
 	x, y := int(px), int(py)
 
 	// Find the monitor including the cursor.
-	for _, m := range theMonitors.append(nil) {
-		w, h := m.videoMode.Width, m.videoMode.Height
-		if x >= m.x && x < m.x+w && y >= m.y && y < m.y+h {
-			return m, nil
-		}
-	}
-
-	return nil, nil
+	return theMonitors.monitorFromPosition(x, y), nil
 }
 
 func monitorFromWindowByOS(w *glfw.Window) *Monitor {

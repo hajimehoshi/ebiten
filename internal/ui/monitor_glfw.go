@@ -99,13 +99,15 @@ func (m *monitors) monitorFromID(id int) *Monitor {
 
 // monitorFromPosition returns a monitor for the given position (x, y),
 // or returns nil if monitor is not found.
+// The position is in GLFW pixels.
 func (m *monitors) monitorFromPosition(x, y int) *Monitor {
 	m.m.Lock()
 	defer m.m.Unlock()
 
 	for _, m := range m.monitors {
+		// Use an inclusive range. On macOS, the cursor position can take this range (#2794).
 		// TODO: Fix incorrectness in the cases of https://github.com/glfw/glfw/issues/1961.
-		if m.x <= x && x < m.x+m.videoMode.Width && m.y <= y && y < m.y+m.videoMode.Height {
+		if m.x <= x && x <= m.x+m.videoMode.Width && m.y <= y && y <= m.y+m.videoMode.Height {
 			return m
 		}
 	}

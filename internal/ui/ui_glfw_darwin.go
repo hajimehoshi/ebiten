@@ -239,7 +239,7 @@ var (
 	sel_windowWillExitFullScreen      = objc.RegisterName("windowWillExitFullScreen:")
 )
 
-func currentMouseLocationInDIP() (x, y int) {
+func currentMouseLocation() (x, y int) {
 	sig := cocoa.NSMethodSignature_signatureWithObjCTypes("{NSPoint=dd}@:")
 	inv := cocoa.NSInvocation_invocationWithMethodSignature(sig)
 	inv.SetTarget(objc.ID(class_NSEvent))
@@ -248,8 +248,6 @@ func currentMouseLocationInDIP() (x, y int) {
 	var point cocoa.NSPoint
 	inv.GetReturnValue(unsafe.Pointer(&point))
 
-	// On macOS, the unit of GLFW (OS-native) pixels' scale and device-independent pixels's scale are the same.
-	// The monitor sizes' scales are also the same.
 	x, y = int(point.X), int(point.Y)
 
 	// On macOS, the Y axis is upward. Adjust the Y position (#807, #2794).
@@ -260,17 +258,10 @@ func currentMouseLocationInDIP() (x, y int) {
 }
 
 func initialMonitorByOS() (*Monitor, error) {
-	x, y := currentMouseLocationInDIP()
+	x, y := currentMouseLocation()
 
 	// Find the monitor including the cursor.
-	for _, m := range theMonitors.append(nil) {
-		w, h := m.videoMode.Width, m.videoMode.Height
-		if x >= m.x && x < m.x+w && y >= m.y && y < m.y+h {
-			return m, nil
-		}
-	}
-
-	return nil, nil
+	return theMonitors.monitorFromPosition(x, y), nil
 }
 
 func monitorFromWindowByOS(w *glfw.Window) *Monitor {
