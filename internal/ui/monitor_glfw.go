@@ -72,12 +72,23 @@ func (m *monitors) append(ms []*Monitor) []*Monitor {
 	return append(ms, m.monitors...)
 }
 
+func (m *monitors) primaryMonitor() *Monitor {
+	if atomic.LoadInt32(&m.updateCalled) == 0 {
+		panic("ui: (*monitors).primaryMonitor must be called before (*monitors).append is called")
+	}
+
+	m.m.Lock()
+	defer m.m.Unlock()
+
+	return m.monitors[0]
+}
+
 func (m *monitors) monitorFromGLFWMonitor(glfwMonitor *glfw.Monitor) *Monitor {
 	m.m.Lock()
 	defer m.m.Unlock()
 
 	for _, m := range m.monitors {
-		if m.m == glfwMonitor {
+		if x, y := glfwMonitor.GetPos(); m.x == x && m.y == y {
 			return m
 		}
 	}
