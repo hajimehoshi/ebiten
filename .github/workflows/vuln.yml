@@ -1,10 +1,6 @@
 name: Vulnerability Check
 
-on:
-  pull_request:
-  push:
-    branches:
-      - main
+on: [push, pull_request]
 
 jobs:
   test:
