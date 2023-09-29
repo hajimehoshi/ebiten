@@ -1204,11 +1204,17 @@ func (u *userInterfaceImpl) updateIconIfNeeded() error {
 	}
 
 	imgs := u.getAndResetIconImages()
-	if len(imgs) == 0 {
+	// A 0-size slice and nil are distinguished here.
+	// A 0-size slice means a user indicates to reset the icon.
+	// On the other hand, nil means a user didn't update the icon state.
+	if imgs == nil {
 		return nil
 	}
 
-	newImgs := make([]image.Image, len(imgs))
+	var newImgs []image.Image
+	if len(imgs) > 0 {
+		newImgs = make([]image.Image, len(imgs))
+	}
 	for i, img := range imgs {
 		// TODO: If img is not *ebiten.Image, this converting is not necessary.
 		// However, this package cannot refer *ebiten.Image due to the package

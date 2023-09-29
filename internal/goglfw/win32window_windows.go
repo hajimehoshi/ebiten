@@ -1559,6 +1559,9 @@ func (w *Window) platformSetWindowIcon(images []*Image) error {
 	if len(images) > 0 {
 		w.platform.bigIcon = bigIcon
 		w.platform.smallIcon = smallIcon
+	} else {
+		w.platform.bigIcon = 0
+		w.platform.smallIcon = 0
 	}
 	return nil
 }
