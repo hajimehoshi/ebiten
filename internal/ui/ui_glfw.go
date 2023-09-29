@@ -405,6 +405,10 @@ func (u *userInterfaceImpl) getAndResetIconImages() []image.Image {
 func (u *userInterfaceImpl) setIconImages(iconImages []image.Image) {
 	u.m.Lock()
 	defer u.m.Unlock()
+
+	// Even if iconImages is nil, always create a slice.
+	// A 0-size slice and nil are distinguished.
+	// See the comment in updateIconIfNeeded.
 	u.iconImages = make([]image.Image, len(iconImages))
 	copy(u.iconImages, iconImages)
 }
