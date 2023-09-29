@@ -394,17 +394,19 @@ func (u *userInterfaceImpl) setRunnableOnUnfocused(runnableOnUnfocused bool) {
 	u.m.Unlock()
 }
 
-func (u *userInterfaceImpl) getIconImages() []image.Image {
+func (u *userInterfaceImpl) getAndResetIconImages() []image.Image {
 	u.m.RLock()
-	i := u.iconImages
-	u.m.RUnlock()
-	return i
+	defer u.m.RUnlock()
+	s := u.iconImages
+	u.iconImages = nil
+	return s
 }
 
 func (u *userInterfaceImpl) setIconImages(iconImages []image.Image) {
 	u.m.Lock()
-	u.iconImages = iconImages
-	u.m.Unlock()
+	defer u.m.Unlock()
+	u.iconImages = make([]image.Image, len(iconImages))
+	copy(u.iconImages, iconImages)
 }
 
 func (u *userInterfaceImpl) getInitWindowPositionInDIP() (int, int) {
@@ -1201,12 +1203,10 @@ func (u *userInterfaceImpl) updateIconIfNeeded() error {
 		return nil
 	}
 
-	imgs := u.getIconImages()
+	imgs := u.getAndResetIconImages()
 	if len(imgs) == 0 {
 		return nil
 	}
-
-	u.setIconImages(nil)
 
 	newImgs := make([]image.Image, len(imgs))
 	for i, img := range imgs {
