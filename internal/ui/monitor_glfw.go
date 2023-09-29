@@ -74,7 +74,7 @@ func (m *monitors) append(ms []*Monitor) []*Monitor {
 
 func (m *monitors) primaryMonitor() *Monitor {
 	if atomic.LoadInt32(&m.updateCalled) == 0 {
-		panic("ui: (*monitors).primaryMonitor must be called before (*monitors).append is called")
+		panic("ui: (*monitors).update must be called before (*monitors).primaryMonitor is called")
 	}
 
 	m.m.Lock()
