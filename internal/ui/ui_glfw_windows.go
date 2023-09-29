@@ -123,7 +123,7 @@ func (u *userInterfaceImpl) adjustWindowPosition(x, y int, monitor *Monitor) (in
 
 func initialMonitorByOS() (*Monitor, error) {
 	if microsoftgdk.IsXbox() {
-		return theMonitors.monitorFromGLFWMonitor(glfw.GetPrimaryMonitor()), nil
+		return theMonitors.primaryMonitor(), nil
 	}
 
 	px, py, err := _GetCursorPos()
@@ -148,7 +148,7 @@ func initialMonitorByOS() (*Monitor, error) {
 
 func monitorFromWindowByOS(w *glfw.Window) *Monitor {
 	if microsoftgdk.IsXbox() {
-		return theMonitors.monitorFromGLFWMonitor(glfw.GetPrimaryMonitor())
+		return theMonitors.primaryMonitor()
 	}
 	return monitorFromWin32Window(windows.HWND(w.GetWin32Window()))
 }
