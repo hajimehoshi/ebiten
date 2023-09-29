@@ -18,7 +18,6 @@ package ui
 
 import (
 	"fmt"
-	"math"
 	"runtime"
 
 	"github.com/jezek/xgb"
@@ -51,8 +50,11 @@ func (*graphicsDriverCreatorImpl) newMetal() (graphicsdriver.Graphics, error) {
 	return nil, nil
 }
 
-// videoModeScale must be called from the main thread.
-func videoModeScale(m *glfw.Monitor) float64 {
+// glfwMonitorSizeInGLFWPixels must be called from the main thread.
+func glfwMonitorSizeInGLFWPixels(m *glfw.Monitor) (int, int) {
+	vm := m.GetVideoMode()
+	physWidth, physHeight := vm.Width, vm.Height
+
 	// TODO: if glfw/glfw#1961 gets fixed, this function may need revising.
 	// In case GLFW decides to switch to returning logical pixels, we can just return 1.
 
@@ -66,20 +68,20 @@ func videoModeScale(m *glfw.Monitor) float64 {
 		// No X11 connection?
 		// Assume we're on pure Wayland then.
 		// GLFW/Wayland shouldn't be having this issue.
-		return 1
+		return physWidth, physHeight
 	}
 	defer xconn.Close()
 
 	if err := randr.Init(xconn); err != nil {
 		// No RANDR extension? No problem.
-		return 1
+		return physWidth, physHeight
 	}
 
 	root := xproto.Setup(xconn).DefaultScreen(xconn).Root
 	res, err := randr.GetScreenResourcesCurrent(xconn, root).Reply()
 	if err != nil {
 		// Likely means RANDR is not working. No problem.
-		return 1
+		return physWidth, physHeight
 	}
 
 	monitorX, monitorY := m.GetPos()
@@ -96,25 +98,18 @@ func videoModeScale(m *glfw.Monitor) float64 {
 			continue
 		}
 		if int(info.X) == monitorX && int(info.Y) == monitorY {
-			xWidth, xHeight := info.Width, info.Height
-			vm := m.GetVideoMode()
-			physWidth, physHeight := vm.Width, vm.Height
-			// Return one scale, even though there may be separate X and Y scales.
-			// Return the _larger_ scale, as this would yield a letterboxed display on mismatch, rather than a cut-off one.
-			scale := math.Max(float64(physWidth)/float64(xWidth), float64(physHeight)/float64(xHeight))
-			return scale
+			return int(info.Width), int(info.Height)
 		}
 	}
 
 	// Monitor not known to XRandR. Weird.
-	return 1
+	return physWidth, physHeight
 }
 
 // glfwMonitorSizeInDIP must be called from the main thread.
 func glfwMonitorSizeInDIP(monitor *glfw.Monitor, contentScale float64) (float64, float64) {
-	vm := monitor.GetVideoMode()
-	vs := videoModeScale(monitor)
-	return float64(vm.Width) / (vs * contentScale), float64(vm.Height) / (vs * contentScale)
+	w, h := glfwMonitorSizeInGLFWPixels(monitor)
+	return float64(w) / contentScale, float64(h) / contentScale
 }
 
 func dipFromGLFWPixel(x float64, monitor *Monitor) float64 {
