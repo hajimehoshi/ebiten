@@ -172,7 +172,7 @@ func initialize() error {
 		return err
 	}
 	if m == nil {
-		m = theMonitors.monitorFromGLFWMonitor(glfw.GetPrimaryMonitor())
+		m = theMonitors.primaryMonitor()
 	}
 
 	// GetPrimaryMonitor might return nil in theory (#1887).
@@ -1479,7 +1479,7 @@ func (u *userInterfaceImpl) currentMonitor() *Monitor {
 		return m
 	}
 
-	return theMonitors.monitorFromGLFWMonitor(glfw.GetPrimaryMonitor())
+	return theMonitors.primaryMonitor()
 }
 
 func (u *userInterfaceImpl) readInputState(inputState *InputState) {
