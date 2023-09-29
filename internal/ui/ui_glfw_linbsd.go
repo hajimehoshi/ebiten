@@ -106,12 +106,6 @@ func glfwMonitorSizeInGLFWPixels(m *glfw.Monitor) (int, int) {
 	return physWidth, physHeight
 }
 
-// glfwMonitorSizeInDIP must be called from the main thread.
-func glfwMonitorSizeInDIP(monitor *glfw.Monitor, contentScale float64) (float64, float64) {
-	w, h := glfwMonitorSizeInGLFWPixels(monitor)
-	return float64(w) / contentScale, float64(h) / contentScale
-}
-
 func dipFromGLFWPixel(x float64, monitor *Monitor) float64 {
 	return x / monitor.deviceScaleFactor()
 }

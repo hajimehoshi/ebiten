@@ -184,10 +184,10 @@ func (*graphicsDriverCreatorImpl) newMetal() (graphicsdriver.Graphics, error) {
 	return metal.NewGraphics()
 }
 
-// glfwMonitorSizeInDIP must be called from the main thread.
-func glfwMonitorSizeInDIP(monitor *glfw.Monitor, contentScale float64) (float64, float64) {
-	vm := monitor.GetVideoMode()
-	return float64(vm.Width), float64(vm.Height)
+// glfwMonitorSizeInGLFWPixels must be called from the main thread.
+func glfwMonitorSizeInGLFWPixels(m *glfw.Monitor) (int, int) {
+	vm := m.GetVideoMode()
+	return vm.Width, vm.Height
 }
 
 func dipFromGLFWPixel(x float64, monitor *Monitor) float64 {

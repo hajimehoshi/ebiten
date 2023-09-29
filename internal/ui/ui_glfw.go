@@ -279,11 +279,13 @@ func (u *userInterfaceImpl) setWindowMonitor(monitor *Monitor) {
 
 	w := dipToGLFWPixel(float64(ww), monitor)
 	h := dipToGLFWPixel(float64(wh), monitor)
+	mx := monitor.boundsInGLFWPixels.Min.X
+	my := monitor.boundsInGLFWPixels.Min.Y
 	mw, mh := monitor.sizeInDIP()
 	mw = dipToGLFWPixel(mw, monitor)
 	mh = dipToGLFWPixel(mh, monitor)
 	px, py := InitialWindowPosition(int(mw), int(mh), int(w), int(h))
-	u.window.SetPos(monitor.x+px, monitor.y+py)
+	u.window.SetPos(mx+px, my+py)
 
 	if fullscreen {
 		// Calling setFullscreen immediately might not work well, especially on Linux (#2778).
@@ -1609,7 +1611,8 @@ func (u *userInterfaceImpl) setWindowPositionInDIP(x, y int, monitor *Monitor) {
 		return
 	}
 
-	mx, my := monitor.x, monitor.y
+	mx := monitor.boundsInGLFWPixels.Min.X
+	my := monitor.boundsInGLFWPixels.Min.Y
 	xf := dipToGLFWPixel(float64(x), monitor)
 	yf := dipToGLFWPixel(float64(y), monitor)
 	if x, y := u.adjustWindowPosition(mx+int(xf), my+int(yf), monitor); u.isFullscreen() {

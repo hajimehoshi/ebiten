@@ -86,10 +86,10 @@ func (*graphicsDriverCreatorImpl) newMetal() (graphicsdriver.Graphics, error) {
 	return nil, nil
 }
 
-// glfwMonitorSizeInDIP must be called from the main thread.
-func glfwMonitorSizeInDIP(monitor *glfw.Monitor, contentScale float64) (float64, float64) {
-	vm := monitor.GetVideoMode()
-	return float64(vm.Width) / contentScale, float64(vm.Height) / contentScale
+// glfwMonitorSizeInGLFWPixels must be called from the main thread.
+func glfwMonitorSizeInGLFWPixels(m *glfw.Monitor) (int, int) {
+	vm := m.GetVideoMode()
+	return vm.Width, vm.Height
 }
 
 func dipFromGLFWPixel(x float64, monitor *Monitor) float64 {
@@ -105,7 +105,8 @@ func (u *userInterfaceImpl) adjustWindowPosition(x, y int, monitor *Monitor) (in
 		return x, y
 	}
 
-	mx, my := monitor.x, monitor.y
+	mx := monitor.boundsInGLFWPixels.Min.X
+	my := monitor.boundsInGLFWPixels.Min.Y
 	// As the video width/height might be wrong,
 	// adjust x/y at least to enable to handle the window (#328)
 	if x < mx {
@@ -163,7 +164,9 @@ func monitorFromWin32Window(w windows.HWND) *Monitor {
 
 	x, y := int(mi.rcMonitor.left), int(mi.rcMonitor.top)
 	for _, m := range theMonitors.append(nil) {
-		if m.x == x && m.y == y {
+		mx := m.boundsInGLFWPixels.Min.X
+		my := m.boundsInGLFWPixels.Min.Y
+		if mx == x && my == y {
 			return m
 		}
 	}

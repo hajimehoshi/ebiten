@@ -17,6 +17,7 @@
 package ui
 
 import (
+	"image"
 	"sync"
 	"sync/atomic"
 
@@ -28,13 +29,10 @@ type Monitor struct {
 	m         *glfw.Monitor
 	videoMode *glfw.VidMode
 
-	id           int
-	name         string
-	x            int
-	y            int
-	widthInDIP   float64
-	heightInDIP  float64
-	contentScale float64
+	id                 int
+	name               string
+	boundsInGLFWPixels image.Rectangle
+	contentScale       float64
 }
 
 // Name returns the monitor's name.
@@ -52,7 +50,8 @@ func (m *Monitor) deviceScaleFactor() float64 {
 }
 
 func (m *Monitor) sizeInDIP() (float64, float64) {
-	return m.widthInDIP, m.heightInDIP
+	w, h := m.boundsInGLFWPixels.Dx(), m.boundsInGLFWPixels.Dy()
+	return dipFromGLFWPixel(float64(w), m), dipFromGLFWPixel(float64(h), m)
 }
 
 type monitors struct {
@@ -106,8 +105,8 @@ func (m *monitors) monitorFromPosition(x, y int) *Monitor {
 
 	for _, m := range m.monitors {
 		// Use an inclusive range. On macOS, the cursor position can take this range (#2794).
-		// TODO: Fix incorrectness in the cases of https://github.com/glfw/glfw/issues/1961.
-		if m.x <= x && x <= m.x+m.videoMode.Width && m.y <= y && y <= m.y+m.videoMode.Height {
+		b := m.boundsInGLFWPixels
+		if b.Min.X <= x && x <= b.Max.X && b.Min.Y <= y && y <= b.Max.Y {
 			return m
 		}
 	}
@@ -139,17 +138,15 @@ func (m *monitors) update() {
 			break
 		}
 
-		w, h := glfwMonitorSizeInDIP(m, contentScale)
+		w, h := glfwMonitorSizeInGLFWPixels(m)
+		b := image.Rect(x, y, x+w, y+h)
 		newMonitors = append(newMonitors, &Monitor{
-			m:            m,
-			videoMode:    m.GetVideoMode(),
-			id:           i,
-			name:         m.GetName(),
-			x:            x,
-			y:            y,
-			widthInDIP:   w,
-			heightInDIP:  h,
-			contentScale: contentScale,
+			m:                  m,
+			videoMode:          m.GetVideoMode(),
+			id:                 i,
+			name:               m.GetName(),
+			boundsInGLFWPixels: b,
+			contentScale:       contentScale,
 		})
 	}
 
