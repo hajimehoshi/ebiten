@@ -1484,7 +1484,13 @@ func (u *userInterfaceImpl) currentMonitor() *Monitor {
 	}
 
 	// As the fallback, detect the monitor from the window.
-	if m := theMonitors.monitorFromPosition(u.window.GetPos()); m != nil {
+	x, y := u.window.GetPos()
+	// On fullscreen, shift the position slightly. Otherwise, a wrong monitor could be detected, as the position is on the edge (#2794).
+	if u.isFullscreen() {
+		x++
+		y++
+	}
+	if m := theMonitors.monitorFromPosition(x, y); m != nil {
 		return m
 	}
 
