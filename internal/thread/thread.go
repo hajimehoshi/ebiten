@@ -50,6 +50,8 @@ func NewOSThread() *OSThread {
 
 // Loop starts the thread loop until Stop is called on the current OS thread.
 //
+// Loop returns ctx's error if exists.
+//
 // Loop must be called on the OS thread.
 func (t *OSThread) Loop(ctx context.Context) error {
 	runtime.LockOSThread()
