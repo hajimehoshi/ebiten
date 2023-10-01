@@ -866,7 +866,7 @@ func main() {
 		case filepath.Join("internal", "glfw", "keys.go"):
 			buildTag = "//go:build !js"
 		case filepath.Join("internal", "ui", "keys_mobile.go"):
-			buildTag = "//go:build (android || ios) && !nintendosdk"
+			buildTag = "//go:build android || ios"
 		case filepath.Join("internal", "ui", "keys_glfw.go"):
 			buildTag = "//go:build !android && !ios && !js && !nintendosdk"
 		}
