@@ -21,6 +21,7 @@ body:
       - label: Android
       - label: iOS
       - label: Nintendo Switch
+      - label: PlayStation 5
       - label: Xbox
       - label: Web Browsers
   validations:

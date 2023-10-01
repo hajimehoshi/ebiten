@@ -14,6 +14,8 @@ os:ios:
 - "- \\[(x|X)\\] iOS\n"
 os:nintendoswitch:
 - "- \\[(x|X)\\] Nintendo Switch\n"
+os:playstation5:
+- "- \\[(x|X)\\] PlayStation 5\n"
 os:xbox:
 - "- \\[(x|X)\\] Xbox\n"
 os:js:
