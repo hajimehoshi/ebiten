@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build (freebsd || (linux && !android) || netbsd || openbsd) && !nintendosdk
+//go:build (freebsd || (linux && !android) || netbsd || openbsd) && !nintendosdk && !playstation5
 
 package ui
 
@@ -53,6 +53,10 @@ func (*graphicsDriverCreatorImpl) newDirectX() (graphicsdriver.Graphics, error) 
 
 func (*graphicsDriverCreatorImpl) newMetal() (graphicsdriver.Graphics, error) {
 	return nil, errors.New("ui: Metal is not supported in this environment")
+}
+
+func (*graphicsDriverCreatorImpl) newPlayStation5() (graphicsdriver.Graphics, error) {
+	return nil, errors.New("ui: PlayStation 5 is not supported in this environment")
 }
 
 // glfwMonitorSizeInGLFWPixels must be called from the main thread.

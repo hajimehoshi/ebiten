@@ -1,4 +1,4 @@
-// Copyright 2021 The Ebiten Authors
+// Copyright 2023 The Ebitengine Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,38 +12,27 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build nintendosdk
+//go:build playstation5
 
 package ui
 
-// #include "init_nintendosdk.h"
-// #include "input_nintendosdk.h"
-import "C"
-
 import (
-	stdcontext "context"
 	"errors"
 	"image"
 	"runtime"
-	"sync"
 
-	"golang.org/x/sync/errgroup"
-
-	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
-	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl"
-	"github.com/hajimehoshi/ebiten/v2/internal/thread"
 )
 
 type graphicsDriverCreatorImpl struct{}
 
 func (g *graphicsDriverCreatorImpl) newAuto() (graphicsdriver.Graphics, GraphicsLibrary, error) {
-	graphics, err := g.newOpenGL()
-	return graphics, GraphicsLibraryOpenGL, err
+	graphics, err := g.newPlayStation5()
+	return graphics, GraphicsLibraryPlayStation5, err
 }
 
 func (*graphicsDriverCreatorImpl) newOpenGL() (graphicsdriver.Graphics, error) {
-	return opengl.NewGraphics()
+	return nil, errors.New("ui: OpenGL is not supported in this environment")
 }
 
 func (*graphicsDriverCreatorImpl) newDirectX() (graphicsdriver.Graphics, error) {
@@ -55,7 +44,7 @@ func (*graphicsDriverCreatorImpl) newMetal() (graphicsdriver.Graphics, error) {
 }
 
 func (*graphicsDriverCreatorImpl) newPlayStation5() (graphicsdriver.Graphics, error) {
-	return nil, errors.New("ui: PlayStation 5 is not supported in this environment")
+	return nil, errors.New("ui: not implemented yet")
 }
 
 const deviceScaleFactor = 1
@@ -67,16 +56,7 @@ func init() {
 type userInterfaceImpl struct {
 	graphicsDriver graphicsdriver.Graphics
 
-	context       *context
-	inputState    InputState
-	nativeTouches []C.struct_Touch
-
-	egl egl
-
-	mainThread   *thread.OSThread
-	renderThread *thread.OSThread
-
-	m sync.Mutex
+	context *context
 }
 
 func (u *UserInterface) init() error {
@@ -84,61 +64,7 @@ func (u *UserInterface) init() error {
 }
 
 func (u *UserInterface) Run(game Game, options *RunOptions) error {
-	u.context = newContext(game)
-	g, lib, err := newGraphicsDriver(&graphicsDriverCreatorImpl{}, options.GraphicsLibrary)
-	if err != nil {
-		return err
-	}
-	u.graphicsDriver = g
-	u.setGraphicsLibrary(lib)
-
-	n := C.ebitengine_Initialize()
-	if err := u.egl.init(n); err != nil {
-		return err
-	}
-
-	initializeProfiler()
-
-	u.mainThread = thread.NewOSThread()
-	u.renderThread = thread.NewOSThread()
-	graphicscommand.SetRenderThread(u.renderThread)
-
-	ctx, cancel := stdcontext.WithCancel(stdcontext.Background())
-	defer cancel()
-
-	var wg errgroup.Group
-
-	// Run the render thread.
-	wg.Go(func() error {
-		defer cancel()
-		_ = u.renderThread.Loop(ctx)
-		return nil
-	})
-
-	// Run the game thread.
-	wg.Go(func() error {
-		defer cancel()
-
-		u.renderThread.Call(func() {
-			u.egl.makeContextCurrent()
-		})
-
-		for {
-			recordProfilerHeartbeat()
-
-			if err := u.context.updateFrame(u.graphicsDriver, float64(C.kScreenWidth), float64(C.kScreenHeight), deviceScaleFactor, u, func() {
-				u.egl.swapBuffers()
-			}); err != nil {
-				return err
-			}
-		}
-	})
-
-	// Run the main thread.
-	_ = u.mainThread.Loop(ctx)
-	if err := wg.Wait(); err != nil {
-		return err
-	}
+	// TODO: Implement this.
 	return nil
 }
 
@@ -155,9 +81,7 @@ func (*UserInterface) ScreenSizeInFullscreen() (int, int) {
 }
 
 func (u *UserInterface) readInputState(inputState *InputState) {
-	u.m.Lock()
-	defer u.m.Unlock()
-	u.inputState.copyAndReset(inputState)
+	// TODO: Implement this.
 }
 
 func (*UserInterface) CursorMode() CursorMode {

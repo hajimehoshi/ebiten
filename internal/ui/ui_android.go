@@ -116,6 +116,10 @@ func (*graphicsDriverCreatorImpl) newMetal() (graphicsdriver.Graphics, error) {
 	return nil, errors.New("ui: Metal is not supported in this environment")
 }
 
+func (*graphicsDriverCreatorImpl) newPlayStation5() (graphicsdriver.Graphics, error) {
+	return nil, errors.New("ui: PlayStation 5 is not supported in this environment")
+}
+
 func deviceScaleFactorImpl() float64 {
 	var s float64
 	if err := app.RunOnJVM(func(vm, env, ctx uintptr) error {

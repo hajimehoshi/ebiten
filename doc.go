@@ -70,10 +70,11 @@
 // This environment variable works when RunGame is called or RunGameWithOptions is called with GraphicsLibraryAuto.
 // This can take one of the following value:
 //
-//	"auto":    Ebitengine chooses the graphics library automatically. This is the default value.
-//	"opengl":  OpenGL, OpenGL ES, or WebGL.
-//	"directx": DirectX. This works only on Windows.
-//	"metal":   Metal. This works only on macOS or iOS.
+//	"auto":         Ebitengine chooses the graphics library automatically. This is the default value.
+//	"opengl":       OpenGL, OpenGL ES, or WebGL.
+//	"directx":      DirectX. This works only on Windows.
+//	"metal":        Metal. This works only on macOS or iOS.
+//	"playstation5": PlayStation 5. This works only on PlayStation 5.
 //
 // `EBITENGINE_DIRECTX` environment variable specifies various parameters for DirectX.
 // You can specify multiple values separated by a comma. The default value is empty (i.e. no parameters).
@@ -115,4 +116,6 @@
 // `nintendosdk` is for NintendoSDK (e.g. Nintendo Switch).
 //
 // `nintendosdkprofile` enables a profiler for NintendoSDK.
+//
+// `playstation5` is for PlayStation 5.
 package ebiten

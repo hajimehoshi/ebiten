@@ -1,4 +1,4 @@
-// Copyright 2021 The Ebiten Authors
+// Copyright 2023 The Ebitengine Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,17 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build microsoftgdk || nintendosdk || playstation5
+//go:build playstation5
 
-// This file is for some special environments.
-// You usually don't have to care about this file.
-// Actually this example works without this file in usual cases.
+package ui
 
-package main
+func (u *UserInterface) updateInputState() error {
+	// TODO: Implement this
+	return nil
+}
 
-import "C"
-
-//export GoMain
-func GoMain() {
-	main()
+func (u *UserInterface) KeyName(key Key) string {
+	return ""
 }

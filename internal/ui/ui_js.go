@@ -50,6 +50,10 @@ func (*graphicsDriverCreatorImpl) newMetal() (graphicsdriver.Graphics, error) {
 	return nil, errors.New("ui: Metal is not supported in this environment")
 }
 
+func (*graphicsDriverCreatorImpl) newPlayStation5() (graphicsdriver.Graphics, error) {
+	return nil, errors.New("ui: PlayStation 5 is not supported in this environment")
+}
+
 var (
 	stringNone        = js.ValueOf("none")
 	stringTransparent = js.ValueOf("transparent")

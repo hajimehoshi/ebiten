@@ -112,6 +112,11 @@ jobs:
         run: |
           go build -tags=nintendosdk -v ./...
 
+      - name: go build (PlayStation 5)
+        if: runner.os == 'Linux'
+        run: |
+          go build -tags=playstation5 -v ./...
+
       - name: go mod vendor
         run: |
           mkdir /tmp/vendoring

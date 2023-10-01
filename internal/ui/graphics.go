@@ -26,6 +26,7 @@ type graphicsDriverCreator interface {
 	newOpenGL() (graphicsdriver.Graphics, error)
 	newDirectX() (graphicsdriver.Graphics, error)
 	newMetal() (graphicsdriver.Graphics, error)
+	newPlayStation5() (graphicsdriver.Graphics, error)
 }
 
 func newGraphicsDriver(creator graphicsDriverCreator, graphicsLibrary GraphicsLibrary) (graphicsdriver.Graphics, GraphicsLibrary, error) {
@@ -47,6 +48,8 @@ func newGraphicsDriver(creator graphicsDriverCreator, graphicsLibrary GraphicsLi
 			graphicsLibrary = GraphicsLibraryDirectX
 		case "metal":
 			graphicsLibrary = GraphicsLibraryMetal
+		case "playstation5":
+			graphicsLibrary = GraphicsLibraryPlayStation5
 		default:
 			return nil, 0, fmt.Errorf("ui: an unsupported graphics library is specified by the environment variable: %s", env)
 		}
@@ -80,6 +83,12 @@ func newGraphicsDriver(creator graphicsDriverCreator, graphicsLibrary GraphicsLi
 			return nil, 0, err
 		}
 		return g, GraphicsLibraryMetal, nil
+	case GraphicsLibraryPlayStation5:
+		g, err := creator.newPlayStation5()
+		if err != nil {
+			return nil, 0, err
+		}
+		return g, GraphicsLibraryPlayStation5, nil
 	default:
 		return nil, 0, fmt.Errorf("ui: an unsupported graphics library is specified: %d", graphicsLibrary)
 	}
@@ -93,24 +102,27 @@ type GraphicsLibrary int
 
 const (
 	GraphicsLibraryAuto GraphicsLibrary = iota
+	GraphicsLibraryUnknown
 	GraphicsLibraryOpenGL
 	GraphicsLibraryDirectX
 	GraphicsLibraryMetal
-	GraphicsLibraryUnknown
+	GraphicsLibraryPlayStation5
 )
 
 func (g GraphicsLibrary) String() string {
 	switch g {
 	case GraphicsLibraryAuto:
 		return "Auto"
+	case GraphicsLibraryUnknown:
+		return "Unknown"
 	case GraphicsLibraryOpenGL:
 		return "OpenGL"
 	case GraphicsLibraryDirectX:
 		return "DirectX"
 	case GraphicsLibraryMetal:
 		return "Metal"
-	case GraphicsLibraryUnknown:
-		return "Unknown"
+	case GraphicsLibraryPlayStation5:
+		return "PlayStation 5"
 	default:
 		return fmt.Sprintf("GraphicsLibrary(%d)", g)
 	}

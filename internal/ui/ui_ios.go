@@ -66,6 +66,10 @@ func (g *graphicsDriverCreatorImpl) newMetal() (graphicsdriver.Graphics, error) 
 	return metal.NewGraphics()
 }
 
+func (*graphicsDriverCreatorImpl) newPlayStation5() (graphicsdriver.Graphics, error) {
+	return nil, errors.New("ui: PlayStation 5 is not supported in this environment")
+}
+
 func (u *UserInterface) SetUIView(uiview uintptr) error {
 	select {
 	case err := <-u.errCh:

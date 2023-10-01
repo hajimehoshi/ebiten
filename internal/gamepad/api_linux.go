@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !android && !nintendosdk
+//go:build !android && !nintendosdk && !playstation5
 
 package gamepad
 

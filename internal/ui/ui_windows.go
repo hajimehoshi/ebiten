@@ -89,6 +89,10 @@ func (*graphicsDriverCreatorImpl) newMetal() (graphicsdriver.Graphics, error) {
 	return nil, errors.New("ui: Metal is not supported in this environment")
 }
 
+func (*graphicsDriverCreatorImpl) newPlayStation5() (graphicsdriver.Graphics, error) {
+	return nil, errors.New("ui: PlayStation 5 is not supported in this environment")
+}
+
 // glfwMonitorSizeInGLFWPixels must be called from the main thread.
 func glfwMonitorSizeInGLFWPixels(m *glfw.Monitor) (int, int, error) {
 	vm, err := m.GetVideoMode()
