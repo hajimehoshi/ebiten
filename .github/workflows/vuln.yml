@@ -12,7 +12,7 @@ jobs:
       - name: List the latest stable versions of Go
         id: go-dev-stable-versions
         run: |
-          versions_json=$(curl -s https://go.dev/dl/?mode=json | jq '.[].version' | sed -e "s/^go//" | jq -s -c '.')
+          versions_json=$(curl -s https://go.dev/dl/?mode=json | jq '.[].version' | sed -e 's/^"go/"/' | jq -s -c '.')
           echo "version-list=$versions_json" >> $GITHUB_OUTPUT
 
       - name: Notify on go-dev-stable-versions
