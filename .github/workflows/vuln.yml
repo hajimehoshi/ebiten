@@ -3,11 +3,28 @@ name: Vulnerability Check
 on: [push, pull_request]
 
 jobs:
+  go-versions:
+    name: Get stable Go versions
+    runs-on: ubuntu-latest
+    outputs:
+      version-list: ${{ steps.go-dev-stable-versions.outputs.version-list }}
+    steps:
+    - name: Check if version files changed
+      id: go-dev-stable-versions
+      run: |
+        VERSIONS=$(curl -s https://go.dev/dl/?mode=json | jq -r '.[].version' | sed -e "s/^go//")
+        readarray -t VERSIONS_ARRAY <<< "$VERSIONS"
+        VERSIONS_JSON=$(jq --compact-output --null-input '$ARGS.positional' --args -- "${VERSIONS_ARRAY[@]}")
+        echo "version-list=${{toJSON($VERSIONS_JSON)}}" >> $GITHUB_OUTPUT
+    - name: Notify on go-dev-stable-versions
+      run: echo "::Notice::version-list is ${{ fromJSON(steps.go-dev-stable-versions.outputs.version-list) }}"
+
   test:
+    needs: [go-versions]
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        go: ['1.20.7', '1.21.0']
+        go: ${{ fromJson(needs.go-versions.outputs.version-list) }}
     name: Vulnerability Check with Go ${{ matrix.go }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     env:
