@@ -12,14 +12,11 @@ jobs:
       - name: List the latest stable versions of Go
         id: go-dev-stable-versions
         run: |
-          VERSIONS=$(curl -s https://go.dev/dl/?mode=json | jq -r '.[].version' | sed -e "s/^go//")
-          readarray -t VERSIONS_ARRAY <<< "$VERSIONS"
-          VERSIONS_JSON=$(jq --compact-output --null-input '$ARGS.positional' --args -- "${VERSIONS_ARRAY[@]}")
-          # VERSIONS_JSON should be in a format that fromJson(...) can read
-          echo "version-list=$VERSIONS_JSON" >> $GITHUB_OUTPUT
+          versions_json=$(curl -s https://go.dev/dl/?mode=json | jq '.[].version' | sed -e "s/^go//" | jq -s -c '.')
+          echo "version-list=$versions_json" >> $GITHUB_OUTPUT
 
       - name: Notify on go-dev-stable-versions
-        run: echo "::Notice::version-list is ${{ steps.go-dev-stable-versions.outputs.version-list }}"
+        run: echo "::notice::version-list is ${{ steps.go-dev-stable-versions.outputs.version-list }}"
 
   test:
     needs: [go-versions]
