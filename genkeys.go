@@ -418,15 +418,25 @@ func init() {
 		uiKeyNameToJSKey[string(c)] = "Key" + string(c)
 	}
 	// Function keys
-	for i := 1; i <= 12; i++ {
+	for i := 1; i <= 24; i++ {
 		name := "F" + strconv.Itoa(i)
 		glfwKeyNameToGLFWKey[name] = glfwKeyF1 + i - 1
 		uiKeyNameToGLFWKeyName[name] = name
-		androidKeyToUIKeyName[131+i-1] = name
-		// Note: iOS keys go up to F24 (with F13 being 0x68 and increasing from there),
-		// but Ebitengine currently only goes to F12.
-		iosKeyToUIKeyName[0x3A+i-1] = name
-		gbuildKeyToUIKeyName[key.CodeF1+key.Code(i)-1] = name
+		// Android doesn't support F13 and more as constants of KeyEvent:
+		// https://developer.android.com/reference/android/view/KeyEvent
+		//
+		// Note that F13 might be avilable if HID devices are available directly:
+		// https://source.android.com/docs/core/interaction/input/keyboard-devices
+		if i <= 12 {
+			androidKeyToUIKeyName[131+i-1] = name
+		}
+		if i <= 12 {
+			iosKeyToUIKeyName[0x3A+i-1] = name
+			gbuildKeyToUIKeyName[key.CodeF1+key.Code(i)-1] = name
+		} else {
+			iosKeyToUIKeyName[0x68+i-13] = name
+			gbuildKeyToUIKeyName[key.CodeF13+key.Code(i)-13] = name
+		}
 		uiKeyNameToJSKey[name] = name
 	}
 	// Numpad

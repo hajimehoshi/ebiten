@@ -92,6 +92,18 @@ const (
 	KeyF10
 	KeyF11
 	KeyF12
+	KeyF13
+	KeyF14
+	KeyF15
+	KeyF16
+	KeyF17
+	KeyF18
+	KeyF19
+	KeyF20
+	KeyF21
+	KeyF22
+	KeyF23
+	KeyF24
 	KeyHome
 	KeyInsert
 	KeyMetaLeft
@@ -275,6 +287,30 @@ func (k Key) String() string {
 		return "KeyF11"
 	case KeyF12:
 		return "KeyF12"
+	case KeyF13:
+		return "KeyF13"
+	case KeyF14:
+		return "KeyF14"
+	case KeyF15:
+		return "KeyF15"
+	case KeyF16:
+		return "KeyF16"
+	case KeyF17:
+		return "KeyF17"
+	case KeyF18:
+		return "KeyF18"
+	case KeyF19:
+		return "KeyF19"
+	case KeyF20:
+		return "KeyF20"
+	case KeyF21:
+		return "KeyF21"
+	case KeyF22:
+		return "KeyF22"
+	case KeyF23:
+		return "KeyF23"
+	case KeyF24:
+		return "KeyF24"
 	case KeyHome:
 		return "KeyHome"
 	case KeyInsert:

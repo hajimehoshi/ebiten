@@ -99,6 +99,18 @@ const (
 	KeyF10            Key = Key(ui.KeyF10)
 	KeyF11            Key = Key(ui.KeyF11)
 	KeyF12            Key = Key(ui.KeyF12)
+	KeyF13            Key = Key(ui.KeyF13)
+	KeyF14            Key = Key(ui.KeyF14)
+	KeyF15            Key = Key(ui.KeyF15)
+	KeyF16            Key = Key(ui.KeyF16)
+	KeyF17            Key = Key(ui.KeyF17)
+	KeyF18            Key = Key(ui.KeyF18)
+	KeyF19            Key = Key(ui.KeyF19)
+	KeyF20            Key = Key(ui.KeyF20)
+	KeyF21            Key = Key(ui.KeyF21)
+	KeyF22            Key = Key(ui.KeyF22)
+	KeyF23            Key = Key(ui.KeyF23)
+	KeyF24            Key = Key(ui.KeyF24)
 	KeyHome           Key = Key(ui.KeyHome)
 	KeyInsert         Key = Key(ui.KeyInsert)
 	KeyMetaLeft       Key = Key(ui.KeyMetaLeft)
@@ -324,6 +336,30 @@ func (k Key) isValid() bool {
 	case KeyF11:
 		return true
 	case KeyF12:
+		return true
+	case KeyF13:
+		return true
+	case KeyF14:
+		return true
+	case KeyF15:
+		return true
+	case KeyF16:
+		return true
+	case KeyF17:
+		return true
+	case KeyF18:
+		return true
+	case KeyF19:
+		return true
+	case KeyF20:
+		return true
+	case KeyF21:
+		return true
+	case KeyF22:
+		return true
+	case KeyF23:
+		return true
+	case KeyF24:
 		return true
 	case KeyHome:
 		return true
@@ -554,6 +590,30 @@ func (k Key) String() string {
 		return "F11"
 	case KeyF12:
 		return "F12"
+	case KeyF13:
+		return "F13"
+	case KeyF14:
+		return "F14"
+	case KeyF15:
+		return "F15"
+	case KeyF16:
+		return "F16"
+	case KeyF17:
+		return "F17"
+	case KeyF18:
+		return "F18"
+	case KeyF19:
+		return "F19"
+	case KeyF20:
+		return "F20"
+	case KeyF21:
+		return "F21"
+	case KeyF22:
+		return "F22"
+	case KeyF23:
+		return "F23"
+	case KeyF24:
+		return "F24"
 	case KeyHome:
 		return "Home"
 	case KeyInsert:
@@ -802,6 +862,30 @@ func keyNameToKeyCode(name string) (Key, bool) {
 		return KeyF11, true
 	case "f12":
 		return KeyF12, true
+	case "f13":
+		return KeyF13, true
+	case "f14":
+		return KeyF14, true
+	case "f15":
+		return KeyF15, true
+	case "f16":
+		return KeyF16, true
+	case "f17":
+		return KeyF17, true
+	case "f18":
+		return KeyF18, true
+	case "f19":
+		return KeyF19, true
+	case "f20":
+		return KeyF20, true
+	case "f21":
+		return KeyF21, true
+	case "f22":
+		return KeyF22, true
+	case "f23":
+		return KeyF23, true
+	case "f24":
+		return KeyF24, true
 	case "graveaccent":
 		return KeyGraveAccent, true
 	case "home":
