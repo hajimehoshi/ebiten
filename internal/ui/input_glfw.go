@@ -27,8 +27,8 @@ var glfwMouseButtonToMouseButton = map[glfw.MouseButton]MouseButton{
 	glfw.MouseButtonLeft:   MouseButton0,
 	glfw.MouseButtonMiddle: MouseButton1,
 	glfw.MouseButtonRight:  MouseButton2,
-	glfw.MouseButton3:      MouseButton3,
-	glfw.MouseButton4:      MouseButton4,
+	glfw.MouseButton4:      MouseButton3,
+	glfw.MouseButton5:      MouseButton4,
 }
 
 func (u *userInterfaceImpl) registerInputCallbacks() {

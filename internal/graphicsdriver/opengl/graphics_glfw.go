@@ -36,7 +36,7 @@ func (g *Graphics) SetGLFWClientAPI() {
 	glfw.WindowHint(glfw.ContextVersionMinor, 2)
 	// macOS requires forward-compatible and a core profile.
 	if runtime.GOOS == "darwin" {
-		glfw.WindowHint(glfw.OpenGLForwardCompatible, glfw.True)
+		glfw.WindowHint(glfw.OpenGLForwardCompat, glfw.True)
 		glfw.WindowHint(glfw.OpenGLProfile, glfw.OpenGLCoreProfile)
 	}
 }
