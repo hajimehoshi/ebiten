@@ -3,8 +3,6 @@
 // SPDX-FileCopyrightText: 2006-2018 Camilla Löwy <elmindreda@glfw.org>
 // SPDX-FileCopyrightText: 2022 The Ebitengine Authors
 
-//go:build darwin || windows
-
 package goglfw
 
 func terminate() error {

@@ -4,8 +4,6 @@
 // SPDX-FileCopyrightText: 2012 Torsten Walluhn <tw@mad-cad.net>
 // SPDX-FileCopyrightText: 2022 The Ebitengine Authors
 
-//go:build darwin || windows
-
 package goglfw
 
 import (
