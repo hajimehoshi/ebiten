@@ -1640,25 +1640,6 @@ func (u *userInterfaceImpl) setWindowTitle(title string) {
 	u.window.SetTitle(title)
 }
 
-// forceToRefreshIfNeeded forces to refresh the framebuffer by resizing the window quickly.
-// This is a very dirty but necessary hack for DirectX (#2050).
-// With DirectX, the framebuffer is not rendered correctly when the window is resized by dragging
-// or just after the resizing finishes by dragging.
-// forceToRefreshIfNeeded must be called from the main thread.
-func (u *userInterfaceImpl) forceToRefreshIfNeeded() {
-	if !u.graphicsDriver.IsDirectX() {
-		return
-	}
-
-	x, y := u.window.GetPos()
-	u.window.SetPos(x+1, y+1)
-	glfw.PollEvents()
-	time.Sleep(time.Millisecond)
-	u.window.SetPos(x, y)
-	glfw.PollEvents()
-	time.Sleep(time.Millisecond)
-}
-
 // isWindowMaximized must be called from the main thread.
 func (u *userInterfaceImpl) isWindowMaximized() bool {
 	return u.window.GetAttrib(glfw.Maximized) == glfw.True && !u.isNativeFullscreen()
