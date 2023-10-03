@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: 2006-2019 Camilla Löwy <elmindreda@glfw.org>
 // SPDX-FileCopyrightText: 2022 The Ebitengine Authors
 
-package goglfw
+package glfw
 
 import (
 	"fmt"
@@ -26,13 +26,13 @@ func checkValidContextConfig(ctxconfig *ctxconfig) error {
 	if ctxconfig.source != NativeContextAPI &&
 		ctxconfig.source != EGLContextAPI &&
 		ctxconfig.source != OSMesaContextAPI {
-		return fmt.Errorf("goglfw: invalid context creation API 0x%08X: %w", ctxconfig.source, InvalidEnum)
+		return fmt.Errorf("glfw: invalid context creation API 0x%08X: %w", ctxconfig.source, InvalidEnum)
 	}
 
 	if ctxconfig.client != NoAPI &&
 		ctxconfig.client != OpenGLAPI &&
 		ctxconfig.client != OpenGLESAPI {
-		return fmt.Errorf("goglfw: invalid client API 0x%08X: %w", ctxconfig.client, InvalidEnum)
+		return fmt.Errorf("glfw: invalid client API 0x%08X: %w", ctxconfig.client, InvalidEnum)
 	}
 
 	if ctxconfig.client == OpenGLAPI {
@@ -46,25 +46,25 @@ func checkValidContextConfig(ctxconfig *ctxconfig) error {
 			// OpenGL 3.x series ended with version 3.3
 			// For now, let everything else through
 
-			return fmt.Errorf("goglfw: invalid OpenGL version %d.%d: %w", ctxconfig.major, ctxconfig.minor, InvalidValue)
+			return fmt.Errorf("glfw: invalid OpenGL version %d.%d: %w", ctxconfig.major, ctxconfig.minor, InvalidValue)
 		}
 
 		if ctxconfig.profile != 0 {
 			if ctxconfig.profile != OpenGLCoreProfile && ctxconfig.profile != OpenGLCompatProfile {
-				return fmt.Errorf("goglfw: invalid OpenGL profile 0x%08X: %w", ctxconfig.profile, InvalidEnum)
+				return fmt.Errorf("glfw: invalid OpenGL profile 0x%08X: %w", ctxconfig.profile, InvalidEnum)
 			}
 
 			if ctxconfig.major <= 2 || (ctxconfig.major == 3 && ctxconfig.minor < 2) {
 				// Desktop OpenGL context profiles are only defined for version 3.2
 				// and above
 
-				return fmt.Errorf("goglfw: context profiles are only defined for OpenGL version 3.2 and above: %w", InvalidValue)
+				return fmt.Errorf("glfw: context profiles are only defined for OpenGL version 3.2 and above: %w", InvalidValue)
 			}
 		}
 
 		if ctxconfig.forward && ctxconfig.major <= 2 {
 			// Forward-compatible contexts are only defined for OpenGL version 3.0 and above
-			return fmt.Errorf("goglfw: forward-compatibility is only defined for OpenGL version 3.0 and above: %w", InvalidValue)
+			return fmt.Errorf("glfw: forward-compatibility is only defined for OpenGL version 3.0 and above: %w", InvalidValue)
 		}
 	} else if ctxconfig.client == OpenGLESAPI {
 		if ctxconfig.major < 1 || ctxconfig.minor < 0 ||
@@ -75,19 +75,19 @@ func checkValidContextConfig(ctxconfig *ctxconfig) error {
 			// OpenGL ES 2.x series ended with version 2.0
 			// For now, let everything else through
 
-			return fmt.Errorf("goglfw: invalid OpenGL ES version %d.%d: %w", ctxconfig.major, ctxconfig.minor, InvalidValue)
+			return fmt.Errorf("glfw: invalid OpenGL ES version %d.%d: %w", ctxconfig.major, ctxconfig.minor, InvalidValue)
 		}
 	}
 
 	if ctxconfig.robustness != 0 {
 		if ctxconfig.robustness != NoResetNotification && ctxconfig.robustness != LoseContextOnReset {
-			return fmt.Errorf("goglfw: invalid context robustness mode 0x%08X: %w", ctxconfig.robustness, InvalidEnum)
+			return fmt.Errorf("glfw: invalid context robustness mode 0x%08X: %w", ctxconfig.robustness, InvalidEnum)
 		}
 	}
 
 	if ctxconfig.release != 0 {
 		if ctxconfig.release != ReleaseBehaviorNone && ctxconfig.release != ReleaseBehaviorFlush {
-			return fmt.Errorf("goglfw: invalid context release behavior 0x%08X: %w", ctxconfig.release, InvalidEnum)
+			return fmt.Errorf("glfw: invalid context release behavior 0x%08X: %w", ctxconfig.release, InvalidEnum)
 		}
 	}
 
@@ -267,16 +267,16 @@ func (w *Window) refreshContextAttribs(ctxconfig *ctxconfig) (ferr error) {
 	getIntegerv := w.context.getProcAddress("glGetIntegerv")
 	getString := w.context.getProcAddress("glGetString")
 	if getIntegerv == 0 || getString == 0 {
-		return fmt.Errorf("goglfw: entry point retrieval is broken: %w", PlatformError)
+		return fmt.Errorf("glfw: entry point retrieval is broken: %w", PlatformError)
 	}
 
 	r, _, _ := purego.SyscallN(getString, GL_VERSION)
 	version := bytePtrToString((*byte)(unsafe.Pointer(r)))
 	if version == "" {
 		if ctxconfig.client == OpenGLAPI {
-			return fmt.Errorf("goglfw: OpenGL version string retrieval is broken: %w", PlatformError)
+			return fmt.Errorf("glfw: OpenGL version string retrieval is broken: %w", PlatformError)
 		} else {
-			return fmt.Errorf("goglfw: OpenGL ES version string retrieval is broken: %w", PlatformError)
+			return fmt.Errorf("glfw: OpenGL ES version string retrieval is broken: %w", PlatformError)
 		}
 	}
 
@@ -294,9 +294,9 @@ func (w *Window) refreshContextAttribs(ctxconfig *ctxconfig) (ferr error) {
 	m := regexp.MustCompile(`^(\d+)(\.(\d+)(\.(\d+))?)?`).FindStringSubmatch(version)
 	if m == nil {
 		if w.context.client == OpenGLAPI {
-			return fmt.Errorf("goglfw: no version found in OpenGL version string: %w", PlatformError)
+			return fmt.Errorf("glfw: no version found in OpenGL version string: %w", PlatformError)
 		} else {
-			return fmt.Errorf("goglfw: no version found in OpenGL ES version string: %w", PlatformError)
+			return fmt.Errorf("glfw: no version found in OpenGL ES version string: %w", PlatformError)
 		}
 	}
 	w.context.major, _ = strconv.Atoi(m[1])
@@ -312,9 +312,9 @@ func (w *Window) refreshContextAttribs(ctxconfig *ctxconfig) (ferr error) {
 		// {GLX|WGL}_ARB_create_context extension and fail here
 
 		if w.context.client == OpenGLAPI {
-			return fmt.Errorf("goglfw: requested OpenGL version %d.%d, got version %d.%d: %w", ctxconfig.major, ctxconfig.minor, w.context.major, w.context.minor, VersionUnavailable)
+			return fmt.Errorf("glfw: requested OpenGL version %d.%d, got version %d.%d: %w", ctxconfig.major, ctxconfig.minor, w.context.major, w.context.minor, VersionUnavailable)
 		} else {
-			return fmt.Errorf("goglfw: requested OpenGL ES version %d.%d, got version %d.%d: %w", ctxconfig.major, ctxconfig.minor, w.context.major, w.context.minor, VersionUnavailable)
+			return fmt.Errorf("glfw: requested OpenGL ES version %d.%d, got version %d.%d: %w", ctxconfig.major, ctxconfig.minor, w.context.major, w.context.minor, VersionUnavailable)
 		}
 	}
 
@@ -325,7 +325,7 @@ func (w *Window) refreshContextAttribs(ctxconfig *ctxconfig) (ferr error) {
 
 		glGetStringi := w.context.getProcAddress("glGetStringi")
 		if glGetStringi == 0 {
-			return fmt.Errorf("goglfw: entry point retrieval is broken: %w", PlatformError)
+			return fmt.Errorf("glfw: entry point retrieval is broken: %w", PlatformError)
 		}
 	}
 
@@ -463,7 +463,7 @@ func (w *Window) MakeContextCurrent() error {
 	previous := (*Window)(unsafe.Pointer(ptr))
 
 	if w != nil && w.context.client == NoAPI {
-		return fmt.Errorf("goglfw: cannot make current with a window that has no OpenGL or OpenGL ES context: %w", NoWindowContext)
+		return fmt.Errorf("glfw: cannot make current with a window that has no OpenGL or OpenGL ES context: %w", NoWindowContext)
 	}
 
 	if previous != nil {
@@ -499,7 +499,7 @@ func (w *Window) SwapBuffers() error {
 	}
 
 	if w.context.client == NoAPI {
-		return fmt.Errorf("goglfw: cannot swap buffers of a window that has no OpenGL or OpenGL ES context: %w", NoWindowContext)
+		return fmt.Errorf("glfw: cannot swap buffers of a window that has no OpenGL or OpenGL ES context: %w", NoWindowContext)
 	}
 
 	if err := w.context.swapBuffers(w); err != nil {
@@ -519,7 +519,7 @@ func SwapInterval(interval int) error {
 	}
 	window := (*Window)(unsafe.Pointer(ptr))
 	if window == nil {
-		return fmt.Errorf("goglfw: cannot set swap interval without a current OpenGL or OpenGL ES context %w", NoCurrentContext)
+		return fmt.Errorf("glfw: cannot set swap interval without a current OpenGL or OpenGL ES context %w", NoCurrentContext)
 	}
 
 	if err := window.context.swapInterval(interval); err != nil {
@@ -544,7 +544,7 @@ func ExtensionSupported(extension string) (bool, error) {
 	}
 	window := (*Window)(unsafe.Pointer(ptr))
 	if window == nil {
-		return false, fmt.Errorf("goglfw: cannot query extension without a current OpenGL or OpenGL ES context %w", NoCurrentContext)
+		return false, fmt.Errorf("glfw: cannot query extension without a current OpenGL or OpenGL ES context %w", NoCurrentContext)
 	}
 
 	if window.context.major >= 3 {
@@ -558,7 +558,7 @@ func ExtensionSupported(extension string) (bool, error) {
 		for i := 0; i < int(count); i++ {
 			r, _, _ := purego.SyscallN(glGetStringi, GL_EXTENSIONS, uintptr(i))
 			if r == 0 {
-				return false, fmt.Errorf("goglfw: extension string retrieval is broken: %w", PlatformError)
+				return false, fmt.Errorf("glfw: extension string retrieval is broken: %w", PlatformError)
 			}
 
 			en := bytePtrToString((*byte)(unsafe.Pointer(r)))
@@ -572,7 +572,7 @@ func ExtensionSupported(extension string) (bool, error) {
 		glGetString := window.context.getProcAddress("glGetString")
 		r, _, _ := purego.SyscallN(glGetString, GL_EXTENSIONS)
 		if r == 0 {
-			return false, fmt.Errorf("goglfw: extension string retrieval is broken: %w", PlatformError)
+			return false, fmt.Errorf("glfw: extension string retrieval is broken: %w", PlatformError)
 		}
 
 		extensions := bytePtrToString((*byte)(unsafe.Pointer(r)))

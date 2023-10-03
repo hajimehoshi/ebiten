@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package goglfw
+package glfw
 
 import (
 	"errors"
@@ -839,7 +839,7 @@ func _AdjustWindowRectEx(lpRect *_RECT, dwStyle uint32, menu bool, dwExStyle uin
 	}
 	r, _, e := procAdjustWindowRectEx.Call(uintptr(unsafe.Pointer(lpRect)), uintptr(dwStyle), bMenu, uintptr(dwExStyle))
 	if int32(r) == 0 && !errors.Is(e, windows.ERROR_SUCCESS) {
-		return fmt.Errorf("goglfw: AdjustWindowRectEx failed: %w", e)
+		return fmt.Errorf("glfw: AdjustWindowRectEx failed: %w", e)
 	}
 	return nil
 }
@@ -851,7 +851,7 @@ func _AdjustWindowRectExForDpi(lpRect *_RECT, dwStyle uint32, menu bool, dwExSty
 	}
 	r, _, e := procAdjustWindowRectExForDpi.Call(uintptr(unsafe.Pointer(lpRect)), uintptr(dwStyle), bMenu, uintptr(dwExStyle), uintptr(dpi))
 	if int32(r) == 0 && !errors.Is(e, windows.ERROR_SUCCESS) {
-		return fmt.Errorf("goglfw: AdjustWindowRectExForDpi failed: %w", e)
+		return fmt.Errorf("glfw: AdjustWindowRectExForDpi failed: %w", e)
 	}
 	return nil
 }
@@ -859,7 +859,7 @@ func _AdjustWindowRectExForDpi(lpRect *_RECT, dwStyle uint32, menu bool, dwExSty
 func _BringWindowToTop(hWnd windows.HWND) error {
 	r, _, e := procBringWindowToTop.Call(uintptr(hWnd))
 	if int32(r) == 0 && !errors.Is(e, windows.ERROR_SUCCESS) {
-		return fmt.Errorf("goglfw: BringWindowToTop failed: %w", e)
+		return fmt.Errorf("glfw: BringWindowToTop failed: %w", e)
 	}
 	return nil
 }
@@ -870,7 +870,7 @@ func _ChangeDisplaySettingsExW(deviceName string, lpDevMode *_DEVMODEW, hwnd win
 		var err error
 		lpszDeviceName, err = windows.UTF16PtrFromString(deviceName)
 		if err != nil {
-			panic("goglfw: device name must not include a NUL character")
+			panic("glfw: device name must not include a NUL character")
 		}
 	}
 
@@ -884,7 +884,7 @@ func _ChangeDisplaySettingsExW(deviceName string, lpDevMode *_DEVMODEW, hwnd win
 func _ChangeWindowMessageFilterEx(hwnd windows.HWND, message uint32, action uint32, pChangeFilterStruct *_CHANGEFILTERSTRUCT) error {
 	r, _, e := procChangeWindowMessageFilterEx.Call(uintptr(hwnd), uintptr(message), uintptr(action), uintptr(unsafe.Pointer(pChangeFilterStruct)))
 	if int32(r) == 0 && !errors.Is(e, windows.ERROR_SUCCESS) {
-		return fmt.Errorf("goglfw: ChangeWindowMessageFilterEx failed: %w", e)
+		return fmt.Errorf("glfw: ChangeWindowMessageFilterEx failed: %w", e)
 	}
 	return nil
 }
@@ -892,7 +892,7 @@ func _ChangeWindowMessageFilterEx(hwnd windows.HWND, message uint32, action uint
 func _ChoosePixelFormat(hdc _HDC, ppfd *_PIXELFORMATDESCRIPTOR) (int32, error) {
 	r, _, e := procChoosePixelFormat.Call(uintptr(hdc), uintptr(unsafe.Pointer(ppfd)))
 	if int32(r) == 0 && !errors.Is(e, windows.ERROR_SUCCESS) {
-		return 0, fmt.Errorf("goglfw: ChoosePixelFormat failed: %w", e)
+		return 0, fmt.Errorf("glfw: ChoosePixelFormat failed: %w", e)
 	}
 	return int32(r), nil
 }
@@ -900,7 +900,7 @@ func _ChoosePixelFormat(hdc _HDC, ppfd *_PIXELFORMATDESCRIPTOR) (int32, error) {
 func _ClientToScreen(hWnd windows.HWND, lpPoint *_POINT) error {
 	r, _, e := procClientToScreen.Call(uintptr(hWnd), uintptr(unsafe.Pointer(lpPoint)))
 	if int32(r) == 0 && !errors.Is(e, windows.ERROR_SUCCESS) {
-		return fmt.Errorf("goglfw: ClientToScreen failed: %w", e)
+		return fmt.Errorf("glfw: ClientToScreen failed: %w", e)
 	}
 	return nil
 }
@@ -908,7 +908,7 @@ func _ClientToScreen(hWnd windows.HWND, lpPoint *_POINT) error {
 func _ClipCursor(lpRect *_RECT) error {
 	r, _, e := procClipCursor.Call(uintptr(unsafe.Pointer(lpRect)))
 	if int32(r) == 0 && !errors.Is(e, windows.ERROR_SUCCESS) {
-		return fmt.Errorf("goglfw: ClipCursor failed: %w", e)
+		return fmt.Errorf("glfw: ClipCursor failed: %w", e)
 	}
 	return nil
 }
@@ -916,7 +916,7 @@ func _ClipCursor(lpRect *_RECT) error {
 func _CreateBitmap(nWidth int32, nHeight int32, nPlanes uint32, nBitCount uint32, lpBits unsafe.Pointer) (_HBITMAP, error) {
 	r, _, e := procCreateBitmap.Call(uintptr(nWidth), uintptr(nHeight), uintptr(nPlanes), uintptr(nBitCount), uintptr(lpBits))
 	if _HBITMAP(r) == 0 {
-		return 0, fmt.Errorf("goglfw: CreateBitmap failed: %w", e)
+		return 0, fmt.Errorf("glfw: CreateBitmap failed: %w", e)
 	}
 	return _HBITMAP(r), nil
 }
@@ -926,7 +926,7 @@ func _CreateDIBSection(hdc _HDC, pbmi *_BITMAPV5HEADER, usage uint32, hSection w
 	var bits *byte
 	r, _, e := procCreateDIBSection.Call(uintptr(hdc), uintptr(unsafe.Pointer(pbmi)), uintptr(usage), uintptr(unsafe.Pointer(&bits)), uintptr(hSection), uintptr(offset))
 	if _HBITMAP(r) == 0 {
-		return 0, nil, fmt.Errorf("goglfw: CreateDIBSection failed: %w", e)
+		return 0, nil, fmt.Errorf("glfw: CreateDIBSection failed: %w", e)
 	}
 	return _HBITMAP(r), bits, nil
 }
@@ -934,7 +934,7 @@ func _CreateDIBSection(hdc _HDC, pbmi *_BITMAPV5HEADER, usage uint32, hSection w
 func _CreateRectRgn(x1, y1, x2, y2 int32) (_HRGN, error) {
 	r, _, e := procCreateRectRgn.Call(uintptr(x1), uintptr(y1), uintptr(x2), uintptr(y2))
 	if _HRGN(r) == 0 {
-		return 0, fmt.Errorf("goglfw: CreateRectRgn failed: %w", e)
+		return 0, fmt.Errorf("glfw: CreateRectRgn failed: %w", e)
 	}
 	return _HRGN(r), nil
 }
@@ -942,7 +942,7 @@ func _CreateRectRgn(x1, y1, x2, y2 int32) (_HRGN, error) {
 func _CreateIconIndirect(piconinfo *_ICONINFO) (_HICON, error) {
 	r, _, e := procCreateIconIndirect.Call(uintptr(unsafe.Pointer(piconinfo)))
 	if _HICON(r) == 0 {
-		return 0, fmt.Errorf("goglfw: CreateIconIndirect failed: %w", e)
+		return 0, fmt.Errorf("glfw: CreateIconIndirect failed: %w", e)
 	}
 	return _HICON(r), nil
 }
@@ -953,7 +953,7 @@ func _CreateWindowExW(dwExStyle uint32, className string, windowName string, dwS
 		var err error
 		lpClassName, err = windows.UTF16PtrFromString(className)
 		if err != nil {
-			panic("goglfw: class name msut not include a NUL character")
+			panic("glfw: class name msut not include a NUL character")
 		}
 	}
 
@@ -962,7 +962,7 @@ func _CreateWindowExW(dwExStyle uint32, className string, windowName string, dwS
 		var err error
 		lpWindowName, err = windows.UTF16PtrFromString(windowName)
 		if err != nil {
-			panic("goglfw: window name msut not include a NUL character")
+			panic("glfw: window name msut not include a NUL character")
 		}
 	}
 
@@ -974,7 +974,7 @@ func _CreateWindowExW(dwExStyle uint32, className string, windowName string, dwS
 	runtime.KeepAlive(lpWindowName)
 
 	if windows.HWND(r) == 0 {
-		return 0, fmt.Errorf("goglfw: CreateWindowExW failed: %w", e)
+		return 0, fmt.Errorf("glfw: CreateWindowExW failed: %w", e)
 	}
 	return windows.HWND(r), nil
 }
@@ -987,7 +987,7 @@ func _DefWindowProcW(hWnd windows.HWND, uMsg uint32, wParam _WPARAM, lParam _LPA
 func _DestroyIcon(hIcon _HICON) error {
 	r, _, e := procDestroyIcon.Call(uintptr(hIcon))
 	if int32(r) == 0 && !errors.Is(e, windows.ERROR_SUCCESS) {
-		return fmt.Errorf("goglfw: DestroyIcon failed: %w", e)
+		return fmt.Errorf("glfw: DestroyIcon failed: %w", e)
 	}
 	return nil
 }
@@ -995,7 +995,7 @@ func _DestroyIcon(hIcon _HICON) error {
 func _DestroyWindow(hWnd windows.HWND) error {
 	r, _, e := procDestroyWindow.Call(uintptr(hWnd))
 	if int32(r) == 0 && !errors.Is(e, windows.ERROR_SUCCESS) {
-		return fmt.Errorf("goglfw: DestroyWindow failed: %w", e)
+		return fmt.Errorf("glfw: DestroyWindow failed: %w", e)
 	}
 	return nil
 }
@@ -1003,7 +1003,7 @@ func _DestroyWindow(hWnd windows.HWND) error {
 func _DeleteObject(ho _HGDIOBJ) error {
 	r, _, e := procDeleteObject.Call(uintptr(ho))
 	if int32(r) == 0 && !errors.Is(e, windows.ERROR_SUCCESS) {
-		return fmt.Errorf("goglfw: DeleteObject failed: %w", e)
+		return fmt.Errorf("glfw: DeleteObject failed: %w", e)
 	}
 	return nil
 }
@@ -1011,7 +1011,7 @@ func _DeleteObject(ho _HGDIOBJ) error {
 func _DescribePixelFormat(hdc _HDC, iPixelFormat int32, nBytes uint32, ppfd *_PIXELFORMATDESCRIPTOR) (int32, error) {
 	r, _, e := procDescribePixelFormat.Call(uintptr(hdc), uintptr(iPixelFormat), uintptr(nBytes), uintptr(unsafe.Pointer(ppfd)))
 	if int32(r) == 0 && !errors.Is(e, windows.ERROR_SUCCESS) {
-		return 0, fmt.Errorf("goglfw: DescribePixelFormat failed: %w", e)
+		return 0, fmt.Errorf("glfw: DescribePixelFormat failed: %w", e)
 	}
 	return int32(r), nil
 }
@@ -1054,7 +1054,7 @@ func _DragQueryPoint(hDrop _HDROP) (_POINT, bool) {
 func _DwmEnableBlurBehindWindow(hWnd windows.HWND, pBlurBehind *_DWM_BLURBEHIND) error {
 	r, _, _ := procDwmEnableBlurBehindWindow.Call(uintptr(hWnd), uintptr(unsafe.Pointer(pBlurBehind)))
 	if uint32(r) != uint32(windows.S_OK) {
-		return fmt.Errorf("goglfw: DwmEnableBlurBehindWindow failed: %w", handleError(windows.Handle(uint32(r))))
+		return fmt.Errorf("glfw: DwmEnableBlurBehindWindow failed: %w", handleError(windows.Handle(uint32(r))))
 	}
 	return nil
 }
@@ -1064,7 +1064,7 @@ func _DwmGetColorizationColor() (uint32, bool, error) {
 	var opaqueBlend int32
 	r, _, _ := procDwmGetColorizationColor.Call(uintptr(unsafe.Pointer(&colorization)), uintptr(unsafe.Pointer(&opaqueBlend)))
 	if uint32(r) != uint32(windows.S_OK) {
-		return 0, false, fmt.Errorf("goglfw: DwmGetColorizationColor failed: %w", handleError(windows.Handle(uint32(r))))
+		return 0, false, fmt.Errorf("glfw: DwmGetColorizationColor failed: %w", handleError(windows.Handle(uint32(r))))
 	}
 	return colorization, opaqueBlend != 0, nil
 }
@@ -1072,7 +1072,7 @@ func _DwmGetColorizationColor() (uint32, bool, error) {
 func _DwmFlush() error {
 	r, _, _ := procDwmFlush.Call()
 	if uint32(r) != uint32(windows.S_OK) {
-		return fmt.Errorf("goglfw: DwmFlush failed: %w", handleError(windows.Handle(uint32(r))))
+		return fmt.Errorf("glfw: DwmFlush failed: %w", handleError(windows.Handle(uint32(r))))
 	}
 	return nil
 }
@@ -1081,7 +1081,7 @@ func _DwmIsCompositionEnabled() (bool, error) {
 	var enabled int32
 	r, _, _ := procDwmIsCompositionEnabled.Call(uintptr(unsafe.Pointer(&enabled)))
 	if uint32(r) != uint32(windows.S_OK) {
-		return false, fmt.Errorf("goglfw: DwmIsCompositionEnabled failed: %w", handleError(windows.Handle(uint32(r))))
+		return false, fmt.Errorf("glfw: DwmIsCompositionEnabled failed: %w", handleError(windows.Handle(uint32(r))))
 	}
 	return enabled != 0, nil
 }
@@ -1089,7 +1089,7 @@ func _DwmIsCompositionEnabled() (bool, error) {
 func _EnableNonClientDpiScaling(hwnd windows.HWND) error {
 	r, _, e := procEnableNonClientDpiScaling.Call(uintptr(hwnd))
 	if int32(r) == 0 && !errors.Is(e, windows.ERROR_SUCCESS) {
-		return fmt.Errorf("goglfw: EnableNonClientDpiScaling failed: %w", e)
+		return fmt.Errorf("glfw: EnableNonClientDpiScaling failed: %w", e)
 	}
 	return nil
 }
@@ -1100,7 +1100,7 @@ func _EnumDisplayDevicesW(device string, iDevNum uint32, dwFlags uint32) (_DISPL
 		var err error
 		lpDevice, err = windows.UTF16PtrFromString(device)
 		if err != nil {
-			panic("goglfw: device name must not include a NUL character")
+			panic("glfw: device name must not include a NUL character")
 		}
 	}
 
@@ -1118,7 +1118,7 @@ func _EnumDisplayDevicesW(device string, iDevNum uint32, dwFlags uint32) (_DISPL
 func _EnumDisplayMonitors(hdc _HDC, lprcClip *_RECT, lpfnEnum uintptr, dwData _LPARAM) error {
 	r, _, e := procEnumDisplayMonitors.Call(uintptr(hdc), uintptr(unsafe.Pointer(lprcClip)), uintptr(lpfnEnum), uintptr(dwData))
 	if int32(r) == 0 && !errors.Is(e, windows.ERROR_SUCCESS) {
-		return fmt.Errorf("goglfw: EnumDisplayMonitors failed: %w", e)
+		return fmt.Errorf("glfw: EnumDisplayMonitors failed: %w", e)
 	}
 	return nil
 }
@@ -1129,7 +1129,7 @@ func _EnumDisplaySettingsExW(deviceName string, iModeNum uint32, dwFlags uint32)
 		var err error
 		lpszDeviceName, err = windows.UTF16PtrFromString(deviceName)
 		if err != nil {
-			panic("goglfw: device name must not include a NUL character")
+			panic("glfw: device name must not include a NUL character")
 		}
 	}
 
@@ -1151,7 +1151,7 @@ func _EnumDisplaySettingsW(deviceName string, iModeNum uint32) (_DEVMODEW, bool)
 		var err error
 		lpszDeviceName, err = windows.UTF16PtrFromString(deviceName)
 		if err != nil {
-			panic("goglfw: device name must not include a NUL character")
+			panic("glfw: device name must not include a NUL character")
 		}
 	}
 
@@ -1184,7 +1184,7 @@ func _GetActiveWindow() windows.HWND {
 func _GetClassLongPtrW(hWnd windows.HWND, nIndex int32) (uintptr, error) {
 	r, _, e := procGetClassLongPtrW.Call(uintptr(hWnd), uintptr(nIndex))
 	if r == 0 {
-		return 0, fmt.Errorf("goglfw: GetClassLongPtrW failed: %w", e)
+		return 0, fmt.Errorf("glfw: GetClassLongPtrW failed: %w", e)
 	}
 	return r, nil
 }
@@ -1193,7 +1193,7 @@ func _GetClientRect(hWnd windows.HWND) (_RECT, error) {
 	var rect _RECT
 	r, _, e := procGetClientRect.Call(uintptr(hWnd), uintptr(unsafe.Pointer(&rect)))
 	if int32(r) == 0 && !errors.Is(e, windows.ERROR_SUCCESS) {
-		return _RECT{}, fmt.Errorf("goglfw: GetClientRect failed: %w", e)
+		return _RECT{}, fmt.Errorf("glfw: GetClientRect failed: %w", e)
 	}
 	return rect, nil
 }
@@ -1202,7 +1202,7 @@ func _GetCursorPos() (_POINT, error) {
 	var point _POINT
 	r, _, e := procGetCursorPos.Call(uintptr(unsafe.Pointer(&point)))
 	if int32(r) == 0 && !errors.Is(e, windows.ERROR_SUCCESS) {
-		return _POINT{}, fmt.Errorf("goglfw: GetCursorPos failed: %w", e)
+		return _POINT{}, fmt.Errorf("glfw: GetCursorPos failed: %w", e)
 	}
 	return point, nil
 }
@@ -1210,7 +1210,7 @@ func _GetCursorPos() (_POINT, error) {
 func _GetDC(hWnd windows.HWND) (_HDC, error) {
 	r, _, e := procGetDC.Call(uintptr(hWnd))
 	if _HDC(r) == 0 {
-		return 0, fmt.Errorf("goglfw: GetDC failed: %w", e)
+		return 0, fmt.Errorf("glfw: GetDC failed: %w", e)
 	}
 	return _HDC(r), nil
 }
@@ -1233,7 +1233,7 @@ func _GetKeyState(nVirtKey int32) int16 {
 func _GetLayeredWindowAttributes(hWnd windows.HWND) (key _COLORREF, alpha byte, flags uint32, err error) {
 	r, _, e := procGetLayeredWindowAttributes.Call(uintptr(hWnd), uintptr(unsafe.Pointer(&key)), uintptr(unsafe.Pointer(&alpha)), uintptr(unsafe.Pointer(&flags)))
 	if int32(r) == 0 && !errors.Is(e, windows.ERROR_SUCCESS) {
-		return 0, 0, 0, fmt.Errorf("goglfw: GetLayeredWindowAttributes failed: %w", e)
+		return 0, 0, 0, fmt.Errorf("glfw: GetLayeredWindowAttributes failed: %w", e)
 	}
 	return
 }
@@ -1250,14 +1250,14 @@ func _GetModuleHandleExW(dwFlags uint32, lpModuleName any) (_HMODULE, error) {
 		if moduleName != "" {
 			p, err := windows.UTF16PtrFromString(moduleName)
 			if err != nil {
-				panic("goglfw: module name must not include a NUL character")
+				panic("glfw: module name must not include a NUL character")
 			}
 			ptr = unsafe.Pointer(p)
 		}
 	case unsafe.Pointer:
 		ptr = moduleName
 	default:
-		return 0, fmt.Errorf("goglfw: GetModuleHandleExW: lpModuleName must be a string or an unsafe.Pointer but %T", moduleName)
+		return 0, fmt.Errorf("glfw: GetModuleHandleExW: lpModuleName must be a string or an unsafe.Pointer but %T", moduleName)
 	}
 
 	var module _HMODULE
@@ -1265,7 +1265,7 @@ func _GetModuleHandleExW(dwFlags uint32, lpModuleName any) (_HMODULE, error) {
 	runtime.KeepAlive(ptr)
 
 	if int32(r) != 1 {
-		return 0, fmt.Errorf("goglfw: GetModuleHandleExW failed: %w", e)
+		return 0, fmt.Errorf("glfw: GetModuleHandleExW failed: %w", e)
 	}
 	return module, nil
 }
@@ -1293,7 +1293,7 @@ func _GetMonitorInfoW_Ex(hMonitor _HMONITOR) (_MONITORINFOEXW, bool) {
 func _GetDpiForMonitor(hmonitor _HMONITOR, dpiType _MONITOR_DPI_TYPE) (dpiX, dpiY uint32, err error) {
 	r, _, _ := procGetDpiForMonitor.Call(uintptr(hmonitor), uintptr(dpiType), uintptr(unsafe.Pointer(&dpiX)), uintptr(unsafe.Pointer(&dpiY)))
 	if uint32(r) != uint32(windows.S_OK) {
-		return 0, 0, fmt.Errorf("goglfw: GetDpiForMonitor failed: %w", handleError(windows.Handle(uint32(r))))
+		return 0, 0, fmt.Errorf("glfw: GetDpiForMonitor failed: %w", handleError(windows.Handle(uint32(r))))
 	}
 	return dpiX, dpiY, nil
 }
@@ -1301,7 +1301,7 @@ func _GetDpiForMonitor(hmonitor _HMONITOR, dpiType _MONITOR_DPI_TYPE) (dpiX, dpi
 func _GetRawInputData(hRawInput _HRAWINPUT, uiCommand uint32, pData unsafe.Pointer, pcbSize *uint32) (uint32, error) {
 	r, _, e := procGetRawInputData.Call(uintptr(hRawInput), uintptr(uiCommand), uintptr(pData), uintptr(unsafe.Pointer(pcbSize)), unsafe.Sizeof(_RAWINPUTHEADER{}))
 	if uint32(r) == (1<<32)-1 {
-		return 0, fmt.Errorf("goglfw: GetRawInputData failed: %w", e)
+		return 0, fmt.Errorf("glfw: GetRawInputData failed: %w", e)
 	}
 	return uint32(r), nil
 }
@@ -1309,7 +1309,7 @@ func _GetRawInputData(hRawInput _HRAWINPUT, uiCommand uint32, pData unsafe.Point
 func _GetSystemMetrics(nIndex int32) (int32, error) {
 	r, _, e := procGetSystemMetrics.Call(uintptr(nIndex))
 	if int32(r) == 0 && !errors.Is(e, windows.ERROR_SUCCESS) {
-		return 0, fmt.Errorf("goglfw: GetSystemMetrics failed: %w", e)
+		return 0, fmt.Errorf("glfw: GetSystemMetrics failed: %w", e)
 	}
 	return int32(r), nil
 }
@@ -1317,7 +1317,7 @@ func _GetSystemMetrics(nIndex int32) (int32, error) {
 func _GetSystemMetricsForDpi(nIndex int32, dpi uint32) (int32, error) {
 	r, _, e := procGetSystemMetricsForDpi.Call(uintptr(nIndex), uintptr(dpi))
 	if int32(r) == 0 && !errors.Is(e, windows.ERROR_SUCCESS) {
-		return 0, fmt.Errorf("goglfw: GetSystemMetrics failed: %w", e)
+		return 0, fmt.Errorf("glfw: GetSystemMetrics failed: %w", e)
 	}
 	return int32(r), nil
 }
@@ -1325,7 +1325,7 @@ func _GetSystemMetricsForDpi(nIndex int32, dpi uint32) (int32, error) {
 func _GetWindowLongW(hWnd windows.HWND, nIndex int32) (int32, error) {
 	r, _, e := procGetWindowLongW.Call(uintptr(hWnd), uintptr(nIndex))
 	if int32(r) == 0 && !errors.Is(e, windows.ERROR_SUCCESS) {
-		return 0, fmt.Errorf("goglfw: GetWindowLongW failed: %w", e)
+		return 0, fmt.Errorf("glfw: GetWindowLongW failed: %w", e)
 	}
 	return int32(r), nil
 }
@@ -1336,7 +1336,7 @@ func _GetWindowPlacement(hWnd windows.HWND) (_WINDOWPLACEMENT, error) {
 
 	r, _, e := procGetWindowPlacement.Call(uintptr(hWnd), uintptr(unsafe.Pointer(&wp)))
 	if int32(r) == 0 && !errors.Is(e, windows.ERROR_SUCCESS) {
-		return _WINDOWPLACEMENT{}, fmt.Errorf("goglfw: GetWindowPlacement failed: %w", e)
+		return _WINDOWPLACEMENT{}, fmt.Errorf("glfw: GetWindowPlacement failed: %w", e)
 	}
 	return wp, nil
 }
@@ -1345,7 +1345,7 @@ func _GetWindowRect(hWnd windows.HWND) (_RECT, error) {
 	var rect _RECT
 	r, _, e := procGetWindowRect.Call(uintptr(hWnd), uintptr(unsafe.Pointer(&rect)))
 	if int(r) == 0 {
-		return _RECT{}, fmt.Errorf("goglfw: GetWindowRect failed: %w", e)
+		return _RECT{}, fmt.Errorf("glfw: GetWindowRect failed: %w", e)
 	}
 	return rect, nil
 }
@@ -1368,7 +1368,7 @@ func _IsZoomed(hWnd windows.HWND) bool {
 func _LoadCursorW(hInstance _HINSTANCE, lpCursorName uintptr) (_HCURSOR, error) {
 	r, _, e := procLoadCursorW.Call(uintptr(hInstance), lpCursorName)
 	if _HCURSOR(r) == 0 {
-		return 0, fmt.Errorf("goglfw: LoadCursorW: %w", e)
+		return 0, fmt.Errorf("glfw: LoadCursorW: %w", e)
 	}
 	return _HCURSOR(r), nil
 }
@@ -1376,7 +1376,7 @@ func _LoadCursorW(hInstance _HINSTANCE, lpCursorName uintptr) (_HCURSOR, error) 
 func _LoadImageW(hInst _HINSTANCE, name uintptr, typ uint32, cx int32, cy int32, fuLoad uint32) (windows.Handle, error) {
 	r, _, e := procLoadImageW.Call(uintptr(hInst), name, uintptr(typ), uintptr(cx), uintptr(cy), uintptr(fuLoad))
 	if windows.Handle(r) == 0 {
-		return 0, fmt.Errorf("goglfw: LoadImageW: %w", e)
+		return 0, fmt.Errorf("glfw: LoadImageW: %w", e)
 	}
 	return windows.Handle(r), nil
 }
@@ -1398,7 +1398,7 @@ func _MoveWindow(hWnd windows.HWND, x, y, nWidth, nHeight int32, repaint bool) e
 	}
 	r, _, e := procMoveWindow.Call(uintptr(hWnd), uintptr(x), uintptr(y), uintptr(nWidth), uintptr(nHeight), bRepaint)
 	if int32(r) == 0 && !errors.Is(e, windows.ERROR_SUCCESS) {
-		return fmt.Errorf("goglfw: MoveWindow: %w", e)
+		return fmt.Errorf("glfw: MoveWindow: %w", e)
 	}
 	return nil
 }
@@ -1410,7 +1410,7 @@ func _MsgWaitForMultipleObjects(nCount uint32, pHandles *windows.Handle, waitAll
 	}
 	r, _, e := procMsgWaitForMultipleObjects.Call(uintptr(nCount), uintptr(unsafe.Pointer(pHandles)), fWaitAll, uintptr(dwMilliseconds), uintptr(dwWakeMask))
 	if uint32(r) == _WAIT_FAILED {
-		return 0, fmt.Errorf("goglfw: MsgWaitForMultipleObjects failed: %w", e)
+		return 0, fmt.Errorf("glfw: MsgWaitForMultipleObjects failed: %w", e)
 	}
 	return uint32(r), nil
 }
@@ -1428,7 +1428,7 @@ func _PeekMessageW(lpMsg *_MSG, hWnd windows.HWND, wMsgFilterMin uint32, wMsgFil
 func _PostMessageW(hWnd windows.HWND, msg uint32, wParam _WPARAM, lParam _LPARAM) error {
 	r, _, e := procPostMessageW.Call(uintptr(hWnd), uintptr(msg), uintptr(wParam), uintptr(lParam))
 	if int32(r) == 0 && !errors.Is(e, windows.ERROR_SUCCESS) {
-		return fmt.Errorf("goglfw: PostMessageW failed: %w", e)
+		return fmt.Errorf("glfw: PostMessageW failed: %w", e)
 	}
 	return nil
 }
@@ -1445,7 +1445,7 @@ func _PtInRect(lprc *_RECT, pt _POINT) bool {
 			// Adjust the alignment for ARM.
 			r, _, _ = procPtInRect.Call(uintptr(unsafe.Pointer(lprc)), 0, uintptr(pt.x), uintptr(pt.y))
 		default:
-			panic(fmt.Sprintf("goglfw: GOARCH=%s is not supported", runtime.GOARCH))
+			panic(fmt.Sprintf("glfw: GOARCH=%s is not supported", runtime.GOARCH))
 		}
 	}
 	return int32(r) != 0
@@ -1454,7 +1454,7 @@ func _PtInRect(lprc *_RECT, pt _POINT) bool {
 func _RegisterClassExW(unnamedParam1 *_WNDCLASSEXW) (_ATOM, error) {
 	r, _, e := procRegisterClassExW.Call(uintptr(unsafe.Pointer(unnamedParam1)))
 	if _ATOM(r) == 0 {
-		return 0, fmt.Errorf("goglfw: RegisterClassExW failed: %w", e)
+		return 0, fmt.Errorf("glfw: RegisterClassExW failed: %w", e)
 	}
 	return _ATOM(r), nil
 }
@@ -1462,7 +1462,7 @@ func _RegisterClassExW(unnamedParam1 *_WNDCLASSEXW) (_ATOM, error) {
 func _RegisterDeviceNotificationW(hRecipient windows.Handle, notificationFilter unsafe.Pointer, flags uint32) (_HDEVNOTIFY, error) {
 	r, _, e := procRegisterDeviceNotificationW.Call(uintptr(hRecipient), uintptr(notificationFilter), uintptr(flags))
 	if _HDEVNOTIFY(r) == 0 {
-		return 0, fmt.Errorf("goglfw: RegisterDeviceNotificationW failed: %w", e)
+		return 0, fmt.Errorf("glfw: RegisterDeviceNotificationW failed: %w", e)
 	}
 	return _HDEVNOTIFY(r), nil
 }
@@ -1474,7 +1474,7 @@ func _RegisterRawInputDevices(pRawInputDevices []_RAWINPUTDEVICE) error {
 	}
 	r, _, e := procRegisterRawInputDevices.Call(uintptr(rawInputDevices), uintptr(len(pRawInputDevices)), unsafe.Sizeof(_RAWINPUTDEVICE{}))
 	if int32(r) == 0 && !errors.Is(e, windows.ERROR_SUCCESS) {
-		return fmt.Errorf("goglfw: RegisterRawInputDevices failed: %w", e)
+		return fmt.Errorf("glfw: RegisterRawInputDevices failed: %w", e)
 	}
 	return nil
 }
@@ -1482,7 +1482,7 @@ func _RegisterRawInputDevices(pRawInputDevices []_RAWINPUTDEVICE) error {
 func _ReleaseCapture() error {
 	r, _, e := procReleaseCapture.Call()
 	if int32(r) == 0 && !errors.Is(e, windows.ERROR_SUCCESS) {
-		return fmt.Errorf("goglfw: ReleaseCapture failed: %w", e)
+		return fmt.Errorf("glfw: ReleaseCapture failed: %w", e)
 	}
 	return nil
 }
@@ -1495,7 +1495,7 @@ func _ReleaseDC(hWnd windows.HWND, hDC _HDC) int32 {
 func _ScreenToClient(hWnd windows.HWND, lpPoint *_POINT) error {
 	r, _, e := procScreenToClient.Call(uintptr(hWnd), uintptr(unsafe.Pointer(lpPoint)))
 	if int32(r) == 0 && !errors.Is(e, windows.ERROR_SUCCESS) {
-		return fmt.Errorf("goglfw: ScreenToClient failed: %w", e)
+		return fmt.Errorf("glfw: ScreenToClient failed: %w", e)
 	}
 	return nil
 }
@@ -1518,7 +1518,7 @@ func _SetCursor(hCursor _HCURSOR) _HCURSOR {
 func _SetCursorPos(x, y int32) error {
 	r, _, e := procSetCursorPos.Call(uintptr(x), uintptr(y))
 	if int32(r) == 0 && !errors.Is(e, windows.ERROR_SUCCESS) {
-		return fmt.Errorf("goglfw: SetCursorPos failed: %w", e)
+		return fmt.Errorf("glfw: SetCursorPos failed: %w", e)
 	}
 	return nil
 }
@@ -1526,7 +1526,7 @@ func _SetCursorPos(x, y int32) error {
 func _SetFocus(hWnd windows.HWND) (windows.HWND, error) {
 	r, _, e := procSetFocus.Call(uintptr(hWnd))
 	if windows.HWND(r) == 0 {
-		return 0, fmt.Errorf("goglfw: SetFocus failed: %w", e)
+		return 0, fmt.Errorf("glfw: SetFocus failed: %w", e)
 	}
 	return windows.HWND(r), nil
 }
@@ -1539,7 +1539,7 @@ func _SetForegroundWindow(hWnd windows.HWND) bool {
 func _SetLayeredWindowAttributes(hwnd windows.HWND, crKey _COLORREF, bAlpha byte, dwFlags uint32) error {
 	r, _, e := procSetLayeredWindowAttributes.Call(uintptr(hwnd), uintptr(crKey), uintptr(bAlpha), uintptr(dwFlags))
 	if int32(r) == 0 && !errors.Is(e, windows.ERROR_SUCCESS) {
-		return fmt.Errorf("goglfw: SetLayeredWindowAttributes failed: %w", e)
+		return fmt.Errorf("glfw: SetLayeredWindowAttributes failed: %w", e)
 	}
 	return nil
 }
@@ -1547,7 +1547,7 @@ func _SetLayeredWindowAttributes(hwnd windows.HWND, crKey _COLORREF, bAlpha byte
 func _SetPixelFormat(hdc _HDC, format int32, ppfd *_PIXELFORMATDESCRIPTOR) error {
 	r, _, e := procSetPixelFormat.Call(uintptr(hdc), uintptr(format), uintptr(unsafe.Pointer(ppfd)))
 	if int32(r) == 0 && !errors.Is(e, windows.ERROR_SUCCESS) {
-		return fmt.Errorf("goglfw: SetPixelFormat failed: %w", e)
+		return fmt.Errorf("glfw: SetPixelFormat failed: %w", e)
 	}
 	return nil
 }
@@ -1560,7 +1560,7 @@ func _SetProcessDPIAware() bool {
 func _SetProcessDpiAwareness(value _PROCESS_DPI_AWARENESS) error {
 	r, _, _ := procSetProcessDpiAwareness.Call(uintptr(value))
 	if uint32(r) != uint32(windows.S_OK) {
-		return fmt.Errorf("goglfw: SetProcessDpiAwareness failed: %w", handleError(windows.Handle(uint32(r))))
+		return fmt.Errorf("glfw: SetProcessDpiAwareness failed: %w", handleError(windows.Handle(uint32(r))))
 	}
 	return nil
 }
@@ -1568,7 +1568,7 @@ func _SetProcessDpiAwareness(value _PROCESS_DPI_AWARENESS) error {
 func _SetProcessDpiAwarenessContext(value _DPI_AWARENESS_CONTEXT) error {
 	r, _, e := procSetProcessDpiAwarenessContext.Call(uintptr(value))
 	if int32(r) == 0 && !errors.Is(e, windows.ERROR_SUCCESS) {
-		return fmt.Errorf("goglfw: SetProcessDpiAwarenessContext failed: %w", e)
+		return fmt.Errorf("glfw: SetProcessDpiAwarenessContext failed: %w", e)
 	}
 	return nil
 }
@@ -1581,7 +1581,7 @@ func _SetThreadExecutionState(esFlags _EXECUTION_STATE) _EXECUTION_STATE {
 func _SetWindowLongW(hWnd windows.HWND, nIndex int32, dwNewLong int32) (int32, error) {
 	r, _, e := procSetWindowLongW.Call(uintptr(hWnd), uintptr(nIndex), uintptr(dwNewLong))
 	if int32(r) == 0 && !errors.Is(e, windows.ERROR_SUCCESS) {
-		return 0, fmt.Errorf("goglfw: SetWindowLongW failed: %w", e)
+		return 0, fmt.Errorf("glfw: SetWindowLongW failed: %w", e)
 	}
 	return int32(r), nil
 }
@@ -1589,7 +1589,7 @@ func _SetWindowLongW(hWnd windows.HWND, nIndex int32, dwNewLong int32) (int32, e
 func _SetWindowPlacement(hWnd windows.HWND, lpwndpl *_WINDOWPLACEMENT) error {
 	r, _, e := procSetWindowPlacement.Call(uintptr(hWnd), uintptr(unsafe.Pointer(lpwndpl)))
 	if int32(r) == 0 && !errors.Is(e, windows.ERROR_SUCCESS) {
-		return fmt.Errorf("goglfw: SetWindowPlacement failed: %w", e)
+		return fmt.Errorf("glfw: SetWindowPlacement failed: %w", e)
 	}
 	return nil
 }
@@ -1597,7 +1597,7 @@ func _SetWindowPlacement(hWnd windows.HWND, lpwndpl *_WINDOWPLACEMENT) error {
 func _SetWindowPos(hWnd windows.HWND, hWndInsertAfter windows.HWND, x, y, cx, cy int32, uFlags uint32) error {
 	r, _, e := procSetWindowPos.Call(uintptr(hWnd), uintptr(hWndInsertAfter), uintptr(x), uintptr(y), uintptr(cx), uintptr(cy), uintptr(uFlags))
 	if int32(r) == 0 && !errors.Is(e, windows.ERROR_SUCCESS) {
-		return fmt.Errorf("goglfw: SetWindowPos failed: %w", e)
+		return fmt.Errorf("glfw: SetWindowPos failed: %w", e)
 	}
 	return nil
 }
@@ -1606,14 +1606,14 @@ func _SetWindowTextW(hWnd windows.HWND, str string) error {
 	// An empty string is also a valid value. Always create an uint16 pointer.
 	lpString, err := windows.UTF16PtrFromString(str)
 	if err != nil {
-		panic("goglfw: str must not include a NUL character")
+		panic("glfw: str must not include a NUL character")
 	}
 
 	r, _, e := procSetWindowTextW.Call(uintptr(hWnd), uintptr(unsafe.Pointer(lpString)))
 	runtime.KeepAlive(lpString)
 
 	if int32(r) == 0 && !errors.Is(e, windows.ERROR_SUCCESS) {
-		return fmt.Errorf("goglfw: SetWindowTextW failed: %w", e)
+		return fmt.Errorf("glfw: SetWindowTextW failed: %w", e)
 	}
 	return nil
 }
@@ -1626,7 +1626,7 @@ func _ShowWindow(hWnd windows.HWND, nCmdShow int32) bool {
 func _SwapBuffers(unnamedParam1 _HDC) error {
 	r, _, e := procSwapBuffers.Call(uintptr(unnamedParam1))
 	if int32(r) == 0 && !errors.Is(e, windows.ERROR_SUCCESS) {
-		return fmt.Errorf("goglfw: SwapBuffers failed: %w", e)
+		return fmt.Errorf("glfw: SwapBuffers failed: %w", e)
 	}
 	return nil
 }
@@ -1634,7 +1634,7 @@ func _SwapBuffers(unnamedParam1 _HDC) error {
 func _SystemParametersInfoW(uiAction uint32, uiParam uint32, pvParam uintptr, fWinIni uint32) error {
 	r, _, e := procSystemParametersInfoW.Call(uintptr(uiAction), uintptr(uiParam), pvParam, uintptr(fWinIni))
 	if int32(r) == 0 && !errors.Is(e, windows.ERROR_SUCCESS) {
-		return fmt.Errorf("goglfw: SystemParametersInfoW failed: %w", e)
+		return fmt.Errorf("glfw: SystemParametersInfoW failed: %w", e)
 	}
 	return nil
 }
@@ -1642,7 +1642,7 @@ func _SystemParametersInfoW(uiAction uint32, uiParam uint32, pvParam uintptr, fW
 func _TlsAlloc() (uint32, error) {
 	r, _, e := procTlsAlloc.Call()
 	if uint32(r) == _TLS_OUT_OF_INDEXES {
-		return 0, fmt.Errorf("goglfw: TlsAlloc failed: %w", e)
+		return 0, fmt.Errorf("glfw: TlsAlloc failed: %w", e)
 	}
 	return uint32(r), nil
 }
@@ -1650,7 +1650,7 @@ func _TlsAlloc() (uint32, error) {
 func _TlsFree(dwTlsIndex uint32) error {
 	r, _, e := procTlsFree.Call(uintptr(dwTlsIndex))
 	if int32(r) == 0 && !errors.Is(e, windows.ERROR_SUCCESS) {
-		return fmt.Errorf("goglfw: TlsFree failed: %w", e)
+		return fmt.Errorf("glfw: TlsFree failed: %w", e)
 	}
 	return nil
 }
@@ -1658,7 +1658,7 @@ func _TlsFree(dwTlsIndex uint32) error {
 func _TlsGetValue(dwTlsIndex uint32) (uintptr, error) {
 	r, _, e := procTlsGetValue.Call(uintptr(dwTlsIndex))
 	if r == 0 && !errors.Is(e, windows.ERROR_SUCCESS) {
-		return 0, fmt.Errorf("goglfw: TlsGetValue failed: %w", e)
+		return 0, fmt.Errorf("glfw: TlsGetValue failed: %w", e)
 	}
 	return r, nil
 }
@@ -1666,7 +1666,7 @@ func _TlsGetValue(dwTlsIndex uint32) (uintptr, error) {
 func _TlsSetValue(dwTlsIndex uint32, lpTlsValue uintptr) error {
 	r, _, e := procTlsSetValue.Call(uintptr(dwTlsIndex), lpTlsValue)
 	if int32(r) == 0 && !errors.Is(e, windows.ERROR_SUCCESS) {
-		return fmt.Errorf("goglfw: TlsSetValue failed: %w", e)
+		return fmt.Errorf("glfw: TlsSetValue failed: %w", e)
 	}
 	return nil
 }
@@ -1697,7 +1697,7 @@ func _TranslateMessage(lpMsg *_MSG) bool {
 func _TrackMouseEvent(lpEventTrack *_TRACKMOUSEEVENT) error {
 	r, _, e := procTrackMouseEvent.Call(uintptr(unsafe.Pointer(lpEventTrack)))
 	if int32(r) == 0 && !errors.Is(e, windows.ERROR_SUCCESS) {
-		return fmt.Errorf("goglfw: TrackMouseEvent failed: %w", e)
+		return fmt.Errorf("glfw: TrackMouseEvent failed: %w", e)
 	}
 	return nil
 }
@@ -1708,7 +1708,7 @@ func _UnregisterClassW(className string, hInstance _HINSTANCE) error {
 		var err error
 		lpClassName, err = windows.UTF16PtrFromString(className)
 		if err != nil {
-			panic("goglfw: class name must not include a NUL character")
+			panic("glfw: class name must not include a NUL character")
 		}
 	}
 
@@ -1716,7 +1716,7 @@ func _UnregisterClassW(className string, hInstance _HINSTANCE) error {
 	runtime.KeepAlive(lpClassName)
 
 	if int32(r) == 0 && !errors.Is(e, windows.ERROR_SUCCESS) {
-		return fmt.Errorf("goglfw: UnregisterClassW failed: %w", e)
+		return fmt.Errorf("glfw: UnregisterClassW failed: %w", e)
 	}
 	return nil
 }
@@ -1724,7 +1724,7 @@ func _UnregisterClassW(className string, hInstance _HINSTANCE) error {
 func _UnregisterDeviceNotification(handle _HDEVNOTIFY) error {
 	r, _, e := procUnregisterDeviceNotification.Call(uintptr(handle))
 	if int32(r) == 0 && !errors.Is(e, windows.ERROR_SUCCESS) {
-		return fmt.Errorf("goglfw: UnregisterDeviceNotification failed: %w", e)
+		return fmt.Errorf("glfw: UnregisterDeviceNotification failed: %w", e)
 	}
 	return nil
 }
@@ -1732,7 +1732,7 @@ func _UnregisterDeviceNotification(handle _HDEVNOTIFY) error {
 func _WaitMessage() error {
 	r, _, e := procWaitMessage.Call()
 	if int32(r) == 0 && !errors.Is(e, windows.ERROR_SUCCESS) {
-		return fmt.Errorf("goglfw: WaitMessage failed: %w", e)
+		return fmt.Errorf("glfw: WaitMessage failed: %w", e)
 	}
 	return nil
 }
@@ -1740,7 +1740,7 @@ func _WaitMessage() error {
 func wglCreateContext(unnamedParam1 _HDC) (_HGLRC, error) {
 	r, _, e := procWGLCreateContext.Call(uintptr(unnamedParam1))
 	if _HGLRC(r) == 0 {
-		return 0, fmt.Errorf("goglfw: wglCreateContext failed: %w", e)
+		return 0, fmt.Errorf("glfw: wglCreateContext failed: %w", e)
 	}
 	return _HGLRC(r), nil
 }
@@ -1749,7 +1749,7 @@ func wglCreateContextAttribsARB(hDC _HDC, hshareContext _HGLRC, attribList *int3
 	r, _, e := syscall.Syscall(procWGLCreateContextAttribsARB, 3, uintptr(hDC), uintptr(hshareContext), uintptr(unsafe.Pointer(attribList)))
 	if _HGLRC(r) == 0 {
 		// TODO: Show more detailed error? See the original implementation.
-		return 0, fmt.Errorf("goglfw: wglCreateContextAttribsARB failed: %w", e)
+		return 0, fmt.Errorf("glfw: wglCreateContextAttribsARB failed: %w", e)
 	}
 	return _HGLRC(r), nil
 }
@@ -1757,7 +1757,7 @@ func wglCreateContextAttribsARB(hDC _HDC, hshareContext _HGLRC, attribList *int3
 func wglDeleteContext(unnamedParam1 _HGLRC) error {
 	r, _, e := procWGLDeleteContext.Call(uintptr(unnamedParam1))
 	if int32(r) == 0 && !errors.Is(e, windows.ERROR_SUCCESS) {
-		return fmt.Errorf("goglfw: wglDeleteContext failed: %w", e)
+		return fmt.Errorf("glfw: wglDeleteContext failed: %w", e)
 	}
 	return nil
 }
@@ -1793,7 +1793,7 @@ func wglGetExtensionsStringEXT_Available() bool {
 func wglGetPixelFormatAttribivARB(hdc _HDC, iPixelFormat int32, iLayerPlane int32, nAttributes uint32, piAttributes *int32, piValues *int32) error {
 	r, _, e := syscall.Syscall6(procWGLGetPixelFormatAttribivARB, 6, uintptr(hdc), uintptr(iPixelFormat), uintptr(iLayerPlane), uintptr(nAttributes), uintptr(unsafe.Pointer(piAttributes)), uintptr(unsafe.Pointer(piValues)))
 	if int32(r) == 0 && !errors.Is(e, windows.ERROR_SUCCESS) {
-		return fmt.Errorf("goglfw: wglGetPixelFormatAttribivARB failed: %w", e)
+		return fmt.Errorf("glfw: wglGetPixelFormatAttribivARB failed: %w", e)
 	}
 	return nil
 }
@@ -1801,7 +1801,7 @@ func wglGetPixelFormatAttribivARB(hdc _HDC, iPixelFormat int32, iLayerPlane int3
 func wglGetProcAddress(unnamedParam1 string) uintptr {
 	ptr, err := windows.BytePtrFromString(unnamedParam1)
 	if err != nil {
-		panic("goglfw: unnamedParam1 must not include a NUL character")
+		panic("glfw: unnamedParam1 must not include a NUL character")
 	}
 	r, _, _ := procWGLGetProcAddress.Call(uintptr(unsafe.Pointer(ptr)))
 	return r
@@ -1810,7 +1810,7 @@ func wglGetProcAddress(unnamedParam1 string) uintptr {
 func wglMakeCurrent(unnamedParam1 _HDC, unnamedParam2 _HGLRC) error {
 	r, _, e := procWGLMakeCurrent.Call(uintptr(unnamedParam1), uintptr(unnamedParam2))
 	if int32(r) == 0 && !errors.Is(e, windows.ERROR_SUCCESS) {
-		return fmt.Errorf("goglfw: wglMakeCurrent failed: %w", e)
+		return fmt.Errorf("glfw: wglMakeCurrent failed: %w", e)
 	}
 	return nil
 }
@@ -1818,7 +1818,7 @@ func wglMakeCurrent(unnamedParam1 _HDC, unnamedParam2 _HGLRC) error {
 func wglShareLists(unnamedParam1 _HGLRC, unnamedParam2 _HGLRC) error {
 	r, _, e := procWGLShareLists.Call(uintptr(unnamedParam1), uintptr(unnamedParam2))
 	if int32(r) == 0 && !errors.Is(e, windows.ERROR_SUCCESS) {
-		return fmt.Errorf("goglfw: wglShareLists failed: %w", e)
+		return fmt.Errorf("glfw: wglShareLists failed: %w", e)
 	}
 	return nil
 }
@@ -1826,7 +1826,7 @@ func wglShareLists(unnamedParam1 _HGLRC, unnamedParam2 _HGLRC) error {
 func wglSwapIntervalEXT(interval int32) error {
 	r, _, e := syscall.Syscall(procWGLSwapIntervalEXT, 1, uintptr(interval), 0, 0)
 	if int32(r) == 0 && !errors.Is(e, windows.ERROR_SUCCESS) {
-		return fmt.Errorf("goglfw: wglSwapIntervalEXT failed: %w", e)
+		return fmt.Errorf("glfw: wglSwapIntervalEXT failed: %w", e)
 	}
 	return nil
 }

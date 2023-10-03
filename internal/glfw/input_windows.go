@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: 2006-2019 Camilla Löwy <elmindreda@glfw.org>
 // SPDX-FileCopyrightText: 2022 The Ebitengine Authors
 
-package goglfw
+package glfw
 
 import (
 	"fmt"
@@ -142,7 +142,7 @@ func (w *Window) GetInputMode(mode InputMode) (int, error) {
 	case RawMouseMotion:
 		return boolToInt(w.rawMouseMotion), nil
 	default:
-		return 0, fmt.Errorf("goglfw: invalid input mode 0x%08X: %w", mode, InvalidEnum)
+		return 0, fmt.Errorf("glfw: invalid input mode 0x%08X: %w", mode, InvalidEnum)
 	}
 }
 
@@ -154,7 +154,7 @@ func (w *Window) SetInputMode(mode InputMode, value int) error {
 	switch mode {
 	case CursorMode:
 		if value != CursorNormal && value != CursorHidden && value != CursorDisabled {
-			return fmt.Errorf("goglfw: invalid cursor mode 0x%08X: %w", value, InvalidEnum)
+			return fmt.Errorf("glfw: invalid cursor mode 0x%08X: %w", value, InvalidEnum)
 		}
 
 		if w.cursorMode == value {
@@ -215,7 +215,7 @@ func (w *Window) SetInputMode(mode InputMode, value int) error {
 
 	case RawMouseMotion:
 		if !platformRawMouseMotionSupported() {
-			return fmt.Errorf("goglfw: raw mouse motion is not supported on this system: %w", PlatformError)
+			return fmt.Errorf("glfw: raw mouse motion is not supported on this system: %w", PlatformError)
 		}
 
 		if w.rawMouseMotion == intToBool(value) {
@@ -229,7 +229,7 @@ func (w *Window) SetInputMode(mode InputMode, value int) error {
 		return nil
 
 	default:
-		return fmt.Errorf("goglfw: invalid input mode 0x%08X: %w", mode, InvalidEnum)
+		return fmt.Errorf("glfw: invalid input mode 0x%08X: %w", mode, InvalidEnum)
 	}
 }
 
@@ -261,7 +261,7 @@ func GetKeyScancode(key Key) (int, error) {
 	}
 
 	if key < KeySpace || key > KeyLast {
-		return 0, fmt.Errorf("goglfw: invalid key %d: %w", key, InvalidEnum)
+		return 0, fmt.Errorf("glfw: invalid key %d: %w", key, InvalidEnum)
 	}
 
 	return platformGetKeyScancode(key), nil
@@ -273,7 +273,7 @@ func (w *Window) GetKey(key Key) (Action, error) {
 	}
 
 	if key < KeySpace || key > KeyLast {
-		return 0, fmt.Errorf("goglfw: invalid key %d: %w", key, InvalidEnum)
+		return 0, fmt.Errorf("glfw: invalid key %d: %w", key, InvalidEnum)
 	}
 
 	if w.keys[key] == stick {
@@ -291,7 +291,7 @@ func (w *Window) GetMouseButton(button MouseButton) (Action, error) {
 	}
 
 	if button < MouseButton1 || button > MouseButtonLast {
-		return 0, fmt.Errorf("goglfw: invalid mouse button %d: %w", button, InvalidEnum)
+		return 0, fmt.Errorf("glfw: invalid mouse button %d: %w", button, InvalidEnum)
 	}
 
 	if w.mouseButtons[button] == stick {
@@ -321,7 +321,7 @@ func (w *Window) SetCursorPos(xpos, ypos float64) error {
 	}
 
 	if xpos != xpos || xpos < -math.MaxFloat64 || xpos > math.MaxFloat64 || ypos != ypos || ypos < -math.MaxFloat64 || ypos > math.MaxFloat64 {
-		return fmt.Errorf("goglfw: invalid cursor position %f %f: %w", xpos, ypos, InvalidValue)
+		return fmt.Errorf("glfw: invalid cursor position %f %f: %w", xpos, ypos, InvalidValue)
 	}
 
 	if !w.platformWindowFocused() {
@@ -354,7 +354,7 @@ func CreateStandardCursor(shape StandardCursor) (*Cursor, error) {
 		shape != ResizeNESWCursor &&
 		shape != ResizeAllCursor &&
 		shape != NotAllowedCursor {
-		return nil, fmt.Errorf("goglfw: invalid standard cursor 0x%08X: %w", shape, InvalidEnum)
+		return nil, fmt.Errorf("glfw: invalid standard cursor 0x%08X: %w", shape, InvalidEnum)
 	}
 
 	cursor := &Cursor{}

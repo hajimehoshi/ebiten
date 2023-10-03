@@ -51,8 +51,11 @@ func (*graphicsDriverCreatorImpl) newMetal() (graphicsdriver.Graphics, error) {
 }
 
 // glfwMonitorSizeInGLFWPixels must be called from the main thread.
-func glfwMonitorSizeInGLFWPixels(m *glfw.Monitor) (int, int) {
-	vm := m.GetVideoMode()
+func glfwMonitorSizeInGLFWPixels(m *glfw.Monitor) (int, int, error) {
+	vm, err := m.GetVideoMode()
+	if err != nil {
+		return 0, 0, err
+	}
 	physWidth, physHeight := vm.Width, vm.Height
 
 	// TODO: if glfw/glfw#1961 gets fixed, this function may need revising.
@@ -68,23 +71,27 @@ func glfwMonitorSizeInGLFWPixels(m *glfw.Monitor) (int, int) {
 		// No X11 connection?
 		// Assume we're on pure Wayland then.
 		// GLFW/Wayland shouldn't be having this issue.
-		return physWidth, physHeight
+		return physWidth, physHeight, nil
 	}
 	defer xconn.Close()
 
 	if err := randr.Init(xconn); err != nil {
 		// No RANDR extension? No problem.
-		return physWidth, physHeight
+		return physWidth, physHeight, nil
 	}
 
 	root := xproto.Setup(xconn).DefaultScreen(xconn).Root
 	res, err := randr.GetScreenResourcesCurrent(xconn, root).Reply()
 	if err != nil {
 		// Likely means RANDR is not working. No problem.
-		return physWidth, physHeight
+		return physWidth, physHeight, nil
 	}
 
-	monitorX, monitorY := m.GetPos()
+	monitorX, monitorY, err := m.GetPos()
+	if err != nil {
+		// TODO: Is it OK to ignore this error?
+		return physWidth, physHeight, nil
+	}
 
 	for _, crtc := range res.Crtcs[:res.NumCrtcs] {
 		info, err := randr.GetCrtcInfo(xconn, crtc, res.ConfigTimestamp).Reply()
@@ -98,12 +105,12 @@ func glfwMonitorSizeInGLFWPixels(m *glfw.Monitor) (int, int) {
 			continue
 		}
 		if int(info.X) == monitorX && int(info.Y) == monitorY {
-			return int(info.Width), int(info.Height)
+			return int(info.Width), int(info.Height), nil
 		}
 	}
 
 	// Monitor not known to XRandR. Weird.
-	return physWidth, physHeight
+	return physWidth, physHeight, nil
 }
 
 func dipFromGLFWPixel(x float64, monitor *Monitor) float64 {
@@ -137,14 +144,14 @@ func initialMonitorByOS() (*Monitor, error) {
 	return theMonitors.monitorFromPosition(x, y), nil
 }
 
-func monitorFromWindowByOS(_ *glfw.Window) *Monitor {
+func monitorFromWindowByOS(_ *glfw.Window) (*Monitor, error) {
 	// TODO: Implement this correctly. (#1119).
-	return nil
+	return nil, nil
 }
 
-func (u *userInterfaceImpl) nativeWindow() uintptr {
+func (u *userInterfaceImpl) nativeWindow() (uintptr, error) {
 	// TODO: Implement this.
-	return 0
+	return 0, nil
 }
 
 func (u *userInterfaceImpl) isNativeFullscreen() bool {
@@ -165,15 +172,18 @@ func (u *userInterfaceImpl) adjustViewSizeAfterFullscreen() {
 func (u *userInterfaceImpl) setWindowResizingModeForOS(mode WindowResizingMode) {
 }
 
-func initializeWindowAfterCreation(w *glfw.Window) {
+func initializeWindowAfterCreation(w *glfw.Window) error {
 	// Show the window once before getting the position of the window.
 	// On Linux/Unix, the window position is not reliable before showing.
-	w.Show()
+	if err := w.Show(); err != nil {
+		return err
+	}
 
 	// Hiding the window makes the position unreliable again. Do not call w.Hide() here (#1829)
 	// Calling Hide is problematic especially on XWayland and/or Sway.
 	// Apparently the window state is inconsistent just after the window is created, but we are not sure.
 	// For more details, see the discussion in #1829.
+	return nil
 }
 
 func (u *userInterfaceImpl) skipTaskbar() error {

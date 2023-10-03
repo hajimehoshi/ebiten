@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: 2021 Camilla Löwy <elmindreda@glfw.org>
 // SPDX-FileCopyrightText: 2022 The Ebitengine Authors
 
-package goglfw
+package glfw
 
 import (
 	"errors"
@@ -189,21 +189,21 @@ func (m *Monitor) setVideoModeWin32(desired *VidMode) error {
 		m.platform.modeChanged = true
 		return nil
 	case _DISP_CHANGE_BADDUALVIEW:
-		return errors.New("goglfw: the system uses DualView at Monitor.setVideoModeWin32")
+		return errors.New("glfw: the system uses DualView at Monitor.setVideoModeWin32")
 	case _DISP_CHANGE_BADFLAGS:
-		return errors.New("goglfw: invalid flags at Monitor.setVideoModeWin32")
+		return errors.New("glfw: invalid flags at Monitor.setVideoModeWin32")
 	case _DISP_CHANGE_BADMODE:
-		return errors.New("goglfw: graphics mode not supported at Monitor.setVideoModeWin32")
+		return errors.New("glfw: graphics mode not supported at Monitor.setVideoModeWin32")
 	case _DISP_CHANGE_BADPARAM:
-		return errors.New("goglfw: invalid parameter at Monitor.setVideoModeWin32")
+		return errors.New("glfw: invalid parameter at Monitor.setVideoModeWin32")
 	case _DISP_CHANGE_FAILED:
-		return errors.New("goglfw: graphics mode failed at Monitor.setVideoModeWin32")
+		return errors.New("glfw: graphics mode failed at Monitor.setVideoModeWin32")
 	case _DISP_CHANGE_NOTUPDATED:
-		return errors.New("goglfw: failed to write to registry at Monitor.setVideoModeWin32")
+		return errors.New("glfw: failed to write to registry at Monitor.setVideoModeWin32")
 	case _DISP_CHANGE_RESTART:
-		return errors.New("goglfw: computer restart required at Monitor.setVideoModeWin32")
+		return errors.New("glfw: computer restart required at Monitor.setVideoModeWin32")
 	default:
-		return errors.New("goglfw: unknown error at Monitor.setVideoModeWin32")
+		return errors.New("glfw: unknown error at Monitor.setVideoModeWin32")
 	}
 }
 

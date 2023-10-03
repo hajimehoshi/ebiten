@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: 2006-2019 Camilla Löwy <elmindreda@glfw.org>
 // SPDX-FileCopyrightText: 2022 The Ebitengine Authors
 
-package goglfw
+package glfw
 
 import (
 	"errors"
@@ -1209,7 +1209,7 @@ func (w *Window) createNativeWindow(wndconfig *wndconfig, fbconfig *fbconfig) er
 	if w.monitor != nil {
 		mi, ok := _GetMonitorInfoW(w.monitor.platform.handle)
 		if !ok {
-			return fmt.Errorf("goglfw: GetMonitorInfoW failed")
+			return fmt.Errorf("glfw: GetMonitorInfoW failed")
 		}
 		// NOTE: This window placement is temporary and approximate, as the
 		//       correct position and size cannot be known until the monitor
@@ -1361,7 +1361,7 @@ func registerWindowClassWin32() error {
 	wc.hCursor = cursor
 	className, err := windows.UTF16FromString(_GLFW_WNDCLASSNAME)
 	if err != nil {
-		panic("goglfw: _GLFW_WNDCLASSNAME must not inclucde a NUL character")
+		panic("glfw: _GLFW_WNDCLASSNAME must not inclucde a NUL character")
 	}
 	wc.lpszClassName = &className[0]
 	defer runtime.KeepAlive(className)
@@ -2303,7 +2303,7 @@ func (c *Cursor) platformCreateStandardCursor(shape StandardCursor) error {
 	case NotAllowedCursor: // v3.4
 		id = _OCR_NO
 	default:
-		return fmt.Errorf("goglfw: invalid shape: %d", shape)
+		return fmt.Errorf("glfw: invalid shape: %d", shape)
 	}
 
 	h, err := _LoadImageW(0, uintptr(id), _IMAGE_CURSOR, 0, 0, _LR_DEFAULTSIZE|_LR_SHARED)
@@ -2338,11 +2338,11 @@ func (w *Window) platformSetCursor(cursor *Cursor) error {
 }
 
 func platformSetClipboardString(str string) error {
-	panic("goglfw: platformSetClipboardString is not implemented")
+	panic("glfw: platformSetClipboardString is not implemented")
 }
 
 func platformGetClipboardString() (string, error) {
-	panic("goglfw: platformGetClipboardString is not implemented")
+	panic("glfw: platformGetClipboardString is not implemented")
 }
 
 func (w *Window) GetWin32Window() (windows.HWND, error) {

@@ -22,21 +22,40 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
 )
 
-func (g *Graphics) SetGLFWClientAPI() {
+func (g *Graphics) SetGLFWClientAPI() error {
 	if g.context.ctx.IsES() {
-		glfw.WindowHint(glfw.ClientAPI, glfw.OpenGLESAPI)
-		glfw.WindowHint(glfw.ContextVersionMajor, 3)
-		glfw.WindowHint(glfw.ContextVersionMinor, 0)
-		glfw.WindowHint(glfw.ContextCreationAPI, glfw.EGLContextAPI)
-		return
+		if err := glfw.WindowHint(glfw.ClientAPI, glfw.OpenGLESAPI); err != nil {
+			return err
+		}
+		if err := glfw.WindowHint(glfw.ContextVersionMajor, 3); err != nil {
+			return err
+		}
+		if err := glfw.WindowHint(glfw.ContextVersionMinor, 0); err != nil {
+			return err
+		}
+		if err := glfw.WindowHint(glfw.ContextCreationAPI, glfw.EGLContextAPI); err != nil {
+			return err
+		}
+		return nil
 	}
 
-	glfw.WindowHint(glfw.ClientAPI, glfw.OpenGLAPI)
-	glfw.WindowHint(glfw.ContextVersionMajor, 3)
-	glfw.WindowHint(glfw.ContextVersionMinor, 2)
+	if err := glfw.WindowHint(glfw.ClientAPI, glfw.OpenGLAPI); err != nil {
+		return err
+	}
+	if err := glfw.WindowHint(glfw.ContextVersionMajor, 3); err != nil {
+		return err
+	}
+	if err := glfw.WindowHint(glfw.ContextVersionMinor, 2); err != nil {
+		return err
+	}
 	// macOS requires forward-compatible and a core profile.
 	if runtime.GOOS == "darwin" {
-		glfw.WindowHint(glfw.OpenGLForwardCompat, glfw.True)
-		glfw.WindowHint(glfw.OpenGLProfile, glfw.OpenGLCoreProfile)
+		if err := glfw.WindowHint(glfw.OpenGLForwardCompat, glfw.True); err != nil {
+			return err
+		}
+		if err := glfw.WindowHint(glfw.OpenGLProfile, glfw.OpenGLCoreProfile); err != nil {
+			return err
+		}
 	}
+	return nil
 }

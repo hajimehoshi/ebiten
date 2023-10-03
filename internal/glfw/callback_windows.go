@@ -16,69 +16,30 @@
 
 package glfw
 
-import (
-	"github.com/hajimehoshi/ebiten/v2/internal/goglfw"
-)
-
 func ToCharModsCallback(cb func(window *Window, char rune, mods ModifierKey)) CharModsCallback {
-	if cb == nil {
-		return nil
-	}
-	return func(window *goglfw.Window, char rune, mods goglfw.ModifierKey) {
-		cb((*Window)(window), char, ModifierKey(mods))
-	}
+	return cb
 }
 
 func ToCloseCallback(cb func(window *Window)) CloseCallback {
-	if cb == nil {
-		return nil
-	}
-	return func(window *goglfw.Window) {
-		cb((*Window)(window))
-	}
+	return cb
 }
 
 func ToDropCallback(cb func(window *Window, names []string)) DropCallback {
-	if cb == nil {
-		return nil
-	}
-	return func(window *goglfw.Window, names []string) {
-		cb((*Window)(window), names)
-	}
+	return cb
 }
 
 func ToFramebufferSizeCallback(cb func(window *Window, width int, height int)) FramebufferSizeCallback {
-	if cb == nil {
-		return nil
-	}
-	return func(window *goglfw.Window, width int, height int) {
-		cb((*Window)(window), width, height)
-	}
+	return cb
 }
 
 func ToMonitorCallback(cb func(monitor *Monitor, event PeripheralEvent)) MonitorCallback {
-	if cb == nil {
-		return nil
-	}
-	return func(monitor *goglfw.Monitor, event goglfw.PeripheralEvent) {
-		cb((*Monitor)(monitor), PeripheralEvent(event))
-	}
+	return cb
 }
 
 func ToScrollCallback(cb func(window *Window, xoff float64, yoff float64)) ScrollCallback {
-	if cb == nil {
-		return nil
-	}
-	return func(window *goglfw.Window, xoff float64, yoff float64) {
-		cb((*Window)(window), xoff, yoff)
-	}
+	return cb
 }
 
 func ToSizeCallback(cb func(window *Window, width int, height int)) SizeCallback {
-	if cb == nil {
-		return nil
-	}
-	return func(window *goglfw.Window, width int, height int) {
-		cb((*Window)(window), width, height)
-	}
+	return cb
 }

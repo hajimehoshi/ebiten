@@ -31,20 +31,27 @@ var glfwMouseButtonToMouseButton = map[glfw.MouseButton]MouseButton{
 	glfw.MouseButton5:      MouseButton4,
 }
 
-func (u *userInterfaceImpl) registerInputCallbacks() {
-	u.window.SetCharModsCallback(glfw.ToCharModsCallback(func(w *glfw.Window, char rune, mods glfw.ModifierKey) {
+func (u *userInterfaceImpl) registerInputCallbacks() error {
+	if _, err := u.window.SetCharModsCallback(glfw.ToCharModsCallback(func(w *glfw.Window, char rune, mods glfw.ModifierKey) {
 		// As this function is called from GLFW callbacks, the current thread is main.
 		u.m.Lock()
 		defer u.m.Unlock()
 		u.inputState.appendRune(char)
-	}))
-	u.window.SetScrollCallback(glfw.ToScrollCallback(func(w *glfw.Window, xoff float64, yoff float64) {
+	})); err != nil {
+		return err
+	}
+
+	if _, err := u.window.SetScrollCallback(glfw.ToScrollCallback(func(w *glfw.Window, xoff float64, yoff float64) {
 		// As this function is called from GLFW callbacks, the current thread is main.
 		u.m.Lock()
 		defer u.m.Unlock()
 		u.inputState.WheelX += xoff
 		u.inputState.WheelY += yoff
-	}))
+	})); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (u *userInterfaceImpl) updateInputState() error {
@@ -61,13 +68,24 @@ func (u *userInterfaceImpl) updateInputStateImpl() error {
 	defer u.m.Unlock()
 
 	for uk, gk := range uiKeyToGLFWKey {
-		u.inputState.KeyPressed[uk] = u.window.GetKey(gk) == glfw.Press
+		s, err := u.window.GetKey(gk)
+		if err != nil {
+			return err
+		}
+		u.inputState.KeyPressed[uk] = s == glfw.Press
 	}
 	for gb, ub := range glfwMouseButtonToMouseButton {
-		u.inputState.MouseButtonPressed[ub] = u.window.GetMouseButton(gb) == glfw.Press
+		s, err := u.window.GetMouseButton(gb)
+		if err != nil {
+			return err
+		}
+		u.inputState.MouseButtonPressed[ub] = s == glfw.Press
 	}
 
-	m := u.currentMonitor()
+	m, err := u.currentMonitor()
+	if err != nil {
+		return err
+	}
 	s := m.deviceScaleFactor()
 
 	cx, cy := u.savedCursorX, u.savedCursorY
@@ -80,9 +98,14 @@ func (u *userInterfaceImpl) updateInputStateImpl() error {
 		cx2, cy2 := u.context.logicalPositionToClientPosition(cx, cy, s)
 		cx2 = dipToGLFWPixel(cx2, m)
 		cy2 = dipToGLFWPixel(cy2, m)
-		u.window.SetCursorPos(cx2, cy2)
+		if err := u.window.SetCursorPos(cx2, cy2); err != nil {
+			return err
+		}
 	} else {
-		cx2, cy2 := u.window.GetCursorPos()
+		cx2, cy2, err := u.window.GetCursorPos()
+		if err != nil {
+			return err
+		}
 		cx2 = dipFromGLFWPixel(cx2, m)
 		cy2 = dipFromGLFWPixel(cy2, m)
 		cx, cy = u.context.clientPositionToLogicalPosition(cx2, cy2, s)
@@ -118,7 +141,12 @@ func (u *userInterfaceImpl) keyName(key Key) string {
 		if u.isTerminated() {
 			return
 		}
-		name = glfw.GetKeyName(gk, 0)
+		n, err := glfw.GetKeyName(gk, 0)
+		if err != nil {
+			theGlobalState.setError(err)
+			return
+		}
+		name = n
 	})
 	return name
 }

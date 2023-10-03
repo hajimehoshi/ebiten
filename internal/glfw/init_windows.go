@@ -3,7 +3,11 @@
 // SPDX-FileCopyrightText: 2006-2018 Camilla Löwy <elmindreda@glfw.org>
 // SPDX-FileCopyrightText: 2022 The Ebitengine Authors
 
-package goglfw
+package glfw
+
+import (
+	"errors"
+)
 
 func terminate() error {
 	for _, w := range _glfw.windows {
@@ -36,6 +40,14 @@ func terminate() error {
 func Init() (ferr error) {
 	defer func() {
 		if ferr != nil {
+			// InvalidValue can happen when specific joysticks are used. This issue
+			// will be fixed in GLFW 3.3.5. As a temporary fix, ignore this error.
+			// See go-gl/glfw#292, go-gl/glfw#324, and glfw/glfw#1763
+			// (#1229).
+			if errors.Is(ferr, InvalidValue) {
+				ferr = nil
+				return
+			}
 			_ = terminate()
 		}
 	}()

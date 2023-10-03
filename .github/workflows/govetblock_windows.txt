@@ -1,2 +1,2 @@
+github.com/hajimehoshi/ebiten/v2/internal/glfw
 github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/directx
-github.com/hajimehoshi/ebiten/v2/internal/goglfw

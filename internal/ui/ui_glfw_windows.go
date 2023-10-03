@@ -85,9 +85,12 @@ func (*graphicsDriverCreatorImpl) newMetal() (graphicsdriver.Graphics, error) {
 }
 
 // glfwMonitorSizeInGLFWPixels must be called from the main thread.
-func glfwMonitorSizeInGLFWPixels(m *glfw.Monitor) (int, int) {
-	vm := m.GetVideoMode()
-	return vm.Width, vm.Height
+func glfwMonitorSizeInGLFWPixels(m *glfw.Monitor) (int, int, error) {
+	vm, err := m.GetVideoMode()
+	if err != nil {
+		return 0, 0, err
+	}
+	return vm.Width, vm.Height, nil
 }
 
 func dipFromGLFWPixel(x float64, monitor *Monitor) float64 {
@@ -138,11 +141,15 @@ func initialMonitorByOS() (*Monitor, error) {
 	return theMonitors.monitorFromPosition(x, y), nil
 }
 
-func monitorFromWindowByOS(w *glfw.Window) *Monitor {
+func monitorFromWindowByOS(w *glfw.Window) (*Monitor, error) {
 	if microsoftgdk.IsXbox() {
-		return theMonitors.primaryMonitor()
+		return theMonitors.primaryMonitor(), nil
 	}
-	return monitorFromWin32Window(windows.HWND(w.GetWin32Window()))
+	window, err := w.GetWin32Window()
+	if err != nil {
+		return nil, err
+	}
+	return monitorFromWin32Window(window), nil
 }
 
 func monitorFromWin32Window(w windows.HWND) *Monitor {
@@ -171,8 +178,9 @@ func monitorFromWin32Window(w windows.HWND) *Monitor {
 	return nil
 }
 
-func (u *userInterfaceImpl) nativeWindow() uintptr {
-	return u.window.GetWin32Window()
+func (u *userInterfaceImpl) nativeWindow() (uintptr, error) {
+	w, err := u.window.GetWin32Window()
+	return uintptr(w), err
 }
 
 func (u *userInterfaceImpl) isNativeFullscreen() bool {
@@ -193,7 +201,8 @@ func (u *userInterfaceImpl) adjustViewSizeAfterFullscreen() {
 func (u *userInterfaceImpl) setWindowResizingModeForOS(mode WindowResizingMode) {
 }
 
-func initializeWindowAfterCreation(w *glfw.Window) {
+func initializeWindowAfterCreation(w *glfw.Window) error {
+	return nil
 }
 
 func (u *userInterfaceImpl) skipTaskbar() error {
@@ -212,7 +221,11 @@ func (u *userInterfaceImpl) skipTaskbar() error {
 	t := (*_ITaskbarList)(ptr)
 	defer t.Release()
 
-	if err := t.DeleteTab(windows.HWND(u.window.GetWin32Window())); err != nil {
+	w, err := u.window.GetWin32Window()
+	if err != nil {
+		return err
+	}
+	if err := t.DeleteTab(w); err != nil {
 		return err
 	}
 

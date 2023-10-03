@@ -114,11 +114,17 @@ func (m *monitors) monitorFromPosition(x, y int) *Monitor {
 }
 
 // update must be called from the main thread.
-func (m *monitors) update() {
-	glfwMonitors := glfw.GetMonitors()
+func (m *monitors) update() error {
+	glfwMonitors, err := glfw.GetMonitors()
+	if err != nil {
+		return err
+	}
 	newMonitors := make([]*Monitor, 0, len(glfwMonitors))
 	for i, m := range glfwMonitors {
-		x, y := m.GetPos()
+		x, y, err := m.GetPos()
+		if err != nil {
+			return err
+		}
 
 		// TODO: Detect the update of the content scale by SetContentScaleCallback (#2343).
 		contentScale := 1.0
@@ -138,13 +144,24 @@ func (m *monitors) update() {
 			break
 		}
 
-		w, h := glfwMonitorSizeInGLFWPixels(m)
+		videoMode, err := m.GetVideoMode()
+		if err != nil {
+			return err
+		}
+		name, err := m.GetName()
+		if err != nil {
+			return err
+		}
+		w, h, err := glfwMonitorSizeInGLFWPixels(m)
+		if err != nil {
+			return err
+		}
 		b := image.Rect(x, y, x+w, y+h)
 		newMonitors = append(newMonitors, &Monitor{
 			m:                  m,
-			videoMode:          m.GetVideoMode(),
+			videoMode:          videoMode,
 			id:                 i,
-			name:               m.GetName(),
+			name:               name,
 			boundsInGLFWPixels: b,
 			contentScale:       contentScale,
 		})
@@ -155,4 +172,5 @@ func (m *monitors) update() {
 	m.m.Unlock()
 
 	atomic.StoreInt32(&m.updateCalled, 1)
+	return nil
 }

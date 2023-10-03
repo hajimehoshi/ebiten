@@ -3,11 +3,11 @@
 // SPDX-FileCopyrightText: 2006-2017 Camilla Löwy <elmindreda@glfw.org>
 // SPDX-FileCopyrightText: 2022 The Ebitengine Authors
 
-package goglfw
+package glfw
 
 func (t *tls) create() error {
 	if t.platform.allocated {
-		panic("goglfw: TLS must not be allocated")
+		panic("glfw: TLS must not be allocated")
 	}
 
 	i, err := _TlsAlloc()
@@ -32,7 +32,7 @@ func (t *tls) destroy() error {
 
 func (t *tls) get() (uintptr, error) {
 	if !t.platform.allocated {
-		panic("goglfw: TLS must be allocated")
+		panic("glfw: TLS must be allocated")
 	}
 
 	return _TlsGetValue(t.platform.index)
@@ -40,7 +40,7 @@ func (t *tls) get() (uintptr, error) {
 
 func (t *tls) set(value uintptr) error {
 	if !t.platform.allocated {
-		panic("goglfw: TLS must be allocated")
+		panic("glfw: TLS must be allocated")
 	}
 
 	return _TlsSetValue(t.platform.index, value)

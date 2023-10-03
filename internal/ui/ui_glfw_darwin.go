@@ -122,7 +122,10 @@ func init() {
 			{
 				Cmd: sel_windowWillEnterFullScreen,
 				Fn: func(id objc.ID, cmd objc.SEL, notification objc.ID) {
-					theUI.setOrigWindowPosWithCurrentPos()
+					if err := theUI.setOrigWindowPosWithCurrentPos(); err != nil {
+						theGlobalState.setError(err)
+						return
+					}
 					pushResizableState(id, cocoa.NSNotification{ID: notification}.Object())
 				},
 			},
@@ -139,7 +142,10 @@ func init() {
 					// Even a window has a size limitation, a window can be fullscreen by calling SetFullscreen(true).
 					// In this case, the window size limitation is disabled temporarily.
 					// When exiting from fullscreen, reset the window size limitation.
-					theUI.updateWindowSizeLimits()
+					if err := theUI.updateWindowSizeLimits(); err != nil {
+						theGlobalState.setError(err)
+						return
+					}
 				},
 			},
 			{
@@ -185,9 +191,12 @@ func (*graphicsDriverCreatorImpl) newMetal() (graphicsdriver.Graphics, error) {
 }
 
 // glfwMonitorSizeInGLFWPixels must be called from the main thread.
-func glfwMonitorSizeInGLFWPixels(m *glfw.Monitor) (int, int) {
-	vm := m.GetVideoMode()
-	return vm.Width, vm.Height
+func glfwMonitorSizeInGLFWPixels(m *glfw.Monitor) (int, int, error) {
+	vm, err := m.GetVideoMode()
+	if err != nil {
+		return 0, 0, err
+	}
+	return vm.Width, vm.Height, nil
 }
 
 func dipFromGLFWPixel(x float64, monitor *Monitor) float64 {
@@ -264,7 +273,7 @@ func initialMonitorByOS() (*Monitor, error) {
 	return theMonitors.monitorFromPosition(x, y), nil
 }
 
-func monitorFromWindowByOS(w *glfw.Window) *Monitor {
+func monitorFromWindowByOS(w *glfw.Window) (*Monitor, error) {
 	window := cocoa.NSWindow{ID: objc.ID(w.GetCocoaWindow())}
 	pool := cocoa.NSAutoreleasePool_new()
 	screen := cocoa.NSScreen_mainScreen()
@@ -279,14 +288,14 @@ func monitorFromWindowByOS(w *glfw.Window) *Monitor {
 	pool.Release()
 	for _, m := range theMonitors.append(nil) {
 		if m.m.GetCocoaMonitor() == aID {
-			return m
+			return m, nil
 		}
 	}
-	return nil
+	return nil, nil
 }
 
-func (u *userInterfaceImpl) nativeWindow() uintptr {
-	return u.window.GetCocoaWindow()
+func (u *userInterfaceImpl) nativeWindow() (uintptr, error) {
+	return u.window.GetCocoaWindow(), nil
 }
 
 func (u *userInterfaceImpl) isNativeFullscreen() bool {
@@ -372,12 +381,13 @@ func (u *userInterfaceImpl) setWindowResizingModeForOS(mode WindowResizingMode) 
 	objc.ID(u.window.GetCocoaWindow()).Send(sel_setCollectionBehavior, collectionBehavior)
 }
 
-func initializeWindowAfterCreation(w *glfw.Window) {
+func initializeWindowAfterCreation(w *glfw.Window) error {
 	// TODO: Register NSWindowWillEnterFullScreenNotification and so on.
 	// Enable resizing temporary before making the window fullscreen.
 	nswindow := objc.ID(w.GetCocoaWindow())
 	delegate := objc.ID(class_EbitengineWindowDelegate).Send(sel_alloc).Send(sel_initWithOrigDelegate, nswindow.Send(sel_delegate))
 	nswindow.Send(sel_setDelegate, delegate)
+	return nil
 }
 
 func (u *userInterfaceImpl) skipTaskbar() error {
