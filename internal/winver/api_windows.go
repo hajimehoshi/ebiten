@@ -78,7 +78,7 @@ func _RtlVerifyVersionInfo(versionInfo *_OSVERSIONINFOEXW, typeMask uint32, cond
 			// Adjust the alignment for ARM.
 			r, _, _ = procRtlVerifyVersionInfo.Call(uintptr(unsafe.Pointer(versionInfo)), uintptr(typeMask), 0, uintptr(conditionMask), uintptr(conditionMask>>32))
 		default:
-			panic(fmt.Sprintf("goglfw: GOARCH=%s is not supported", runtime.GOARCH))
+			panic(fmt.Sprintf("winver: GOARCH=%s is not supported", runtime.GOARCH))
 		}
 	}
 	return int32(r)
