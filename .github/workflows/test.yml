@@ -67,7 +67,7 @@ jobs:
 
       - name: go vet (vettool)
         run: |
-          (cd ./internal/vettools; go install .)
+          go install ./internal/vettools
           go vet -vettool=$(which vettools)${{ runner.os == 'Windows' && '.exe' || '' }} -v ./...
 
       - name: go build
