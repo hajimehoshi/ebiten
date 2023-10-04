@@ -15,6 +15,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/kisielk/errcheck/errcheck"
@@ -27,7 +28,10 @@ import (
 func main() {
 	const filename = ".errcheck_excludes"
 	if _, err := os.Stat(filename); err == nil {
-		errcheck.Analyzer.Flags.Set("exclude", filename)
+		if err := errcheck.Analyzer.Flags.Set("exclude", filename); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
 	}
 	multichecker.Main(atomic.Analyzer,
 		atomicalign.Analyzer,
