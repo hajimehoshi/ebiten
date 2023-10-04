@@ -96,8 +96,6 @@ type userInterfaceImpl struct {
 
 	deviceScaleFactor float64
 
-	err error
-
 	context             *context
 	inputState          InputState
 	cursorXInClient     float64
@@ -406,8 +404,8 @@ func (u *userInterfaceImpl) loop(game Game) <-chan error {
 
 	var cf js.Func
 	f := func() {
-		if u.err != nil {
-			errCh <- u.err
+		if err := theGlobalState.error(); err != nil {
+			errCh <- err
 			return
 		}
 		if u.needsUpdate() {
@@ -574,8 +572,8 @@ func setWindowEventHandlers(v js.Value) {
 		// updateImpl can block. Use goroutine.
 		// See https://pkg.go.dev/syscall/js#FuncOf.
 		go func() {
-			if err := theUI.updateImpl(true); err != nil && theUI.err != nil {
-				theUI.err = err
+			if err := theUI.updateImpl(true); err != nil {
+				theGlobalState.setError(err)
 				return
 			}
 		}()
@@ -591,8 +589,8 @@ func setCanvasEventHandlers(v js.Value) {
 
 		e := args[0]
 		e.Call("preventDefault")
-		if err := theUI.updateInputFromEvent(e); err != nil && theUI.err != nil {
-			theUI.err = err
+		if err := theUI.updateInputFromEvent(e); err != nil {
+			theGlobalState.setError(err)
 			return nil
 		}
 		return nil
@@ -600,8 +598,8 @@ func setCanvasEventHandlers(v js.Value) {
 	v.Call("addEventListener", "keyup", js.FuncOf(func(this js.Value, args []js.Value) any {
 		e := args[0]
 		e.Call("preventDefault")
-		if err := theUI.updateInputFromEvent(e); err != nil && theUI.err != nil {
-			theUI.err = err
+		if err := theUI.updateInputFromEvent(e); err != nil {
+			theGlobalState.setError(err)
 			return nil
 		}
 		return nil
@@ -614,8 +612,8 @@ func setCanvasEventHandlers(v js.Value) {
 
 		e := args[0]
 		e.Call("preventDefault")
-		if err := theUI.updateInputFromEvent(e); err != nil && theUI.err != nil {
-			theUI.err = err
+		if err := theUI.updateInputFromEvent(e); err != nil {
+			theGlobalState.setError(err)
 			return nil
 		}
 		return nil
@@ -623,8 +621,8 @@ func setCanvasEventHandlers(v js.Value) {
 	v.Call("addEventListener", "mouseup", js.FuncOf(func(this js.Value, args []js.Value) any {
 		e := args[0]
 		e.Call("preventDefault")
-		if err := theUI.updateInputFromEvent(e); err != nil && theUI.err != nil {
-			theUI.err = err
+		if err := theUI.updateInputFromEvent(e); err != nil {
+			theGlobalState.setError(err)
 			return nil
 		}
 		return nil
@@ -632,8 +630,8 @@ func setCanvasEventHandlers(v js.Value) {
 	v.Call("addEventListener", "mousemove", js.FuncOf(func(this js.Value, args []js.Value) any {
 		e := args[0]
 		e.Call("preventDefault")
-		if err := theUI.updateInputFromEvent(e); err != nil && theUI.err != nil {
-			theUI.err = err
+		if err := theUI.updateInputFromEvent(e); err != nil {
+			theGlobalState.setError(err)
 			return nil
 		}
 		return nil
@@ -641,8 +639,8 @@ func setCanvasEventHandlers(v js.Value) {
 	v.Call("addEventListener", "wheel", js.FuncOf(func(this js.Value, args []js.Value) any {
 		e := args[0]
 		e.Call("preventDefault")
-		if err := theUI.updateInputFromEvent(e); err != nil && theUI.err != nil {
-			theUI.err = err
+		if err := theUI.updateInputFromEvent(e); err != nil {
+			theGlobalState.setError(err)
 			return nil
 		}
 		return nil
@@ -655,8 +653,8 @@ func setCanvasEventHandlers(v js.Value) {
 
 		e := args[0]
 		e.Call("preventDefault")
-		if err := theUI.updateInputFromEvent(e); err != nil && theUI.err != nil {
-			theUI.err = err
+		if err := theUI.updateInputFromEvent(e); err != nil {
+			theGlobalState.setError(err)
 			return nil
 		}
 		return nil
@@ -664,8 +662,8 @@ func setCanvasEventHandlers(v js.Value) {
 	v.Call("addEventListener", "touchend", js.FuncOf(func(this js.Value, args []js.Value) any {
 		e := args[0]
 		e.Call("preventDefault")
-		if err := theUI.updateInputFromEvent(e); err != nil && theUI.err != nil {
-			theUI.err = err
+		if err := theUI.updateInputFromEvent(e); err != nil {
+			theGlobalState.setError(err)
 			return nil
 		}
 		return nil
@@ -673,8 +671,8 @@ func setCanvasEventHandlers(v js.Value) {
 	v.Call("addEventListener", "touchmove", js.FuncOf(func(this js.Value, args []js.Value) any {
 		e := args[0]
 		e.Call("preventDefault")
-		if err := theUI.updateInputFromEvent(e); err != nil && theUI.err != nil {
-			theUI.err = err
+		if err := theUI.updateInputFromEvent(e); err != nil {
+			theGlobalState.setError(err)
 			return nil
 		}
 		return nil
@@ -735,8 +733,8 @@ func (u *userInterfaceImpl) forceUpdateOnMinimumFPSMode() {
 	// updateImpl can block. Use goroutine.
 	// See https://pkg.go.dev/syscall/js#FuncOf.
 	go func() {
-		if err := u.updateImpl(true); err != nil && u.err != nil {
-			u.err = err
+		if err := u.updateImpl(true); err != nil {
+			theGlobalState.setError(err)
 		}
 	}()
 }

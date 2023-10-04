@@ -70,9 +70,6 @@ type userInterfaceImpl struct {
 	windowClosingHandled bool
 	windowResizingMode   WindowResizingMode
 
-	// err must be accessed from the main thread.
-	err error
-
 	lastDeviceScaleFactor float64
 
 	initMonitor                *Monitor
@@ -1059,8 +1056,8 @@ func (u *userInterfaceImpl) setFPSMode(fpsMode FPSModeType) {
 
 // update must be called from the main thread.
 func (u *userInterfaceImpl) update() (float64, float64, error) {
-	if u.err != nil {
-		return 0, 0, u.err
+	if err := theGlobalState.error(); err != nil {
+		return 0, 0, err
 	}
 
 	if u.window.ShouldClose() {

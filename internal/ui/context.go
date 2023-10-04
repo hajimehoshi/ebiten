@@ -89,10 +89,6 @@ func (c *context) forceUpdateFrame(graphicsDriver graphicsdriver.Graphics, outsi
 }
 
 func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, updateCount int, outsideWidth, outsideHeight float64, deviceScaleFactor float64, ui *userInterfaceImpl, forceDraw bool, swapBuffersForGL func()) (err error) {
-	if err := theGlobalState.error(); err != nil {
-		return err
-	}
-
 	ui.beginFrame()
 	defer ui.endFrame()
 
