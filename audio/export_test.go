@@ -127,11 +127,11 @@ func (h *dummyHook) AppendHookOnBeforeUpdate(f func() error) {
 }
 
 func init() {
-	hookForTesting = &dummyHook{}
+	hookerForTesting = &dummyHook{}
 }
 
 func UpdateForTesting() error {
-	for _, f := range hookForTesting.(*dummyHook).updates {
+	for _, f := range hookerForTesting.(*dummyHook).updates {
 		if err := f(); err != nil {
 			return err
 		}

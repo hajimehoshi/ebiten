@@ -42,7 +42,7 @@ import (
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2/audio/internal/convert"
-	"github.com/hajimehoshi/ebiten/v2/internal/hooks"
+	"github.com/hajimehoshi/ebiten/v2/internal/hook"
 )
 
 const (
@@ -438,33 +438,33 @@ func (p *Player) SetBufferSize(bufferSize time.Duration) {
 	p.p.SetBufferSize(bufferSize)
 }
 
-type hook interface {
+type hooker interface {
 	OnSuspendAudio(f func() error)
 	OnResumeAudio(f func() error)
 	AppendHookOnBeforeUpdate(f func() error)
 }
 
-var hookForTesting hook
+var hookerForTesting hooker
 
-func getHook() hook {
-	if hookForTesting != nil {
-		return hookForTesting
+func getHook() hooker {
+	if hookerForTesting != nil {
+		return hookerForTesting
 	}
-	return &hookImpl{}
+	return &hookerImpl{}
 }
 
-type hookImpl struct{}
+type hookerImpl struct{}
 
-func (h *hookImpl) OnSuspendAudio(f func() error) {
-	hooks.OnSuspendAudio(f)
+func (h *hookerImpl) OnSuspendAudio(f func() error) {
+	hook.OnSuspendAudio(f)
 }
 
-func (h *hookImpl) OnResumeAudio(f func() error) {
-	hooks.OnResumeAudio(f)
+func (h *hookerImpl) OnResumeAudio(f func() error) {
+	hook.OnResumeAudio(f)
 }
 
-func (h *hookImpl) AppendHookOnBeforeUpdate(f func() error) {
-	hooks.AppendHookOnBeforeUpdate(f)
+func (h *hookerImpl) AppendHookOnBeforeUpdate(f func() error) {
+	hook.AppendHookOnBeforeUpdate(f)
 }
 
 // Resample converts the sample rate of the given stream.

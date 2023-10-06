@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package hooks
+package hook
 
 import (
 	"sync"
@@ -20,10 +20,10 @@ import (
 
 var m sync.Mutex
 
-var onBeforeUpdateHooks = []func() error{}
+var onBeforeUpdateHooks []func() error
 
 // AppendHookOnBeforeUpdate appends a hook function that is run before the main update function
-// every frame.
+// every tick.
 func AppendHookOnBeforeUpdate(f func() error) {
 	m.Lock()
 	onBeforeUpdateHooks = append(onBeforeUpdateHooks, f)

@@ -20,7 +20,7 @@ import (
 	"sync"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/internal/hooks"
+	"github.com/hajimehoshi/ebiten/v2/internal/hook"
 )
 
 type pos struct {
@@ -80,7 +80,7 @@ var theInputState = &inputState{
 }
 
 func init() {
-	hooks.AppendHookOnBeforeUpdate(func() error {
+	hook.AppendHookOnBeforeUpdate(func() error {
 		theInputState.update()
 		return nil
 	})

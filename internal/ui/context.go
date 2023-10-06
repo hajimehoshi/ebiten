@@ -23,7 +23,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/clock"
 	"github.com/hajimehoshi/ebiten/v2/internal/debug"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
-	"github.com/hajimehoshi/ebiten/v2/internal/hooks"
+	"github.com/hajimehoshi/ebiten/v2/internal/hook"
 	"github.com/hajimehoshi/ebiten/v2/internal/mipmap"
 )
 
@@ -133,7 +133,7 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 			ui.readInputState(inputState)
 		})
 
-		if err := hooks.RunBeforeUpdateHooks(); err != nil {
+		if err := hook.RunBeforeUpdateHooks(); err != nil {
 			return err
 		}
 		if err := c.game.Update(); err != nil {

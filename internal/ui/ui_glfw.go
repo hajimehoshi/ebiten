@@ -31,7 +31,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
 	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
-	"github.com/hajimehoshi/ebiten/v2/internal/hooks"
+	"github.com/hajimehoshi/ebiten/v2/internal/hook"
 	"github.com/hajimehoshi/ebiten/v2/internal/microsoftgdk"
 	"github.com/hajimehoshi/ebiten/v2/internal/thread"
 )
@@ -1380,7 +1380,7 @@ func (u *userInterfaceImpl) update() (float64, float64, error) {
 		return 0, 0, err
 	}
 	for visible != 0 && !u.isRunnableOnUnfocused() && focused == 0 && !shouldClose {
-		if err := hooks.SuspendAudio(); err != nil {
+		if err := hook.SuspendAudio(); err != nil {
 			return 0, 0, err
 		}
 		// Wait for an arbitrary period to avoid busy loop.
@@ -1389,7 +1389,7 @@ func (u *userInterfaceImpl) update() (float64, float64, error) {
 			return 0, 0, err
 		}
 	}
-	if err := hooks.ResumeAudio(); err != nil {
+	if err := hook.ResumeAudio(); err != nil {
 		return 0, 0, err
 	}
 

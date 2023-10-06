@@ -26,7 +26,7 @@ import (
 	"golang.org/x/image/math/fixed"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/internal/hooks"
+	"github.com/hajimehoshi/ebiten/v2/internal/hook"
 )
 
 var (
@@ -38,7 +38,7 @@ func now() int64 {
 }
 
 func init() {
-	hooks.AppendHookOnBeforeUpdate(func() error {
+	hook.AppendHookOnBeforeUpdate(func() error {
 		monotonicClock++
 		return nil
 	})

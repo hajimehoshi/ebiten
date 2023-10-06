@@ -25,7 +25,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl"
-	"github.com/hajimehoshi/ebiten/v2/internal/hooks"
+	"github.com/hajimehoshi/ebiten/v2/internal/hook"
 )
 
 type graphicsDriverCreatorImpl struct {
@@ -338,9 +338,9 @@ func (u *userInterfaceImpl) update() error {
 	}
 
 	if u.suspended() {
-		return hooks.SuspendAudio()
+		return hook.SuspendAudio()
 	}
-	if err := hooks.ResumeAudio(); err != nil {
+	if err := hook.ResumeAudio(); err != nil {
 		return err
 	}
 	return u.updateImpl(false)
@@ -465,12 +465,12 @@ func (u *userInterfaceImpl) loop(game Game) <-chan error {
 			select {
 			case <-t.C:
 				if u.suspended() {
-					if err := hooks.SuspendAudio(); err != nil {
+					if err := hook.SuspendAudio(); err != nil {
 						errCh <- err
 						return
 					}
 				} else {
-					if err := hooks.ResumeAudio(); err != nil {
+					if err := hook.ResumeAudio(); err != nil {
 						errCh <- err
 						return
 					}

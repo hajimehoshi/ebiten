@@ -36,7 +36,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
-	"github.com/hajimehoshi/ebiten/v2/internal/hooks"
+	"github.com/hajimehoshi/ebiten/v2/internal/hook"
 	"github.com/hajimehoshi/ebiten/v2/internal/restorable"
 	"github.com/hajimehoshi/ebiten/v2/internal/thread"
 )
@@ -231,9 +231,9 @@ func (u *userInterfaceImpl) SetForeground(foreground bool) error {
 	atomic.StoreInt32(&u.foreground, v)
 
 	if foreground {
-		return hooks.ResumeAudio()
+		return hook.ResumeAudio()
 	} else {
-		return hooks.SuspendAudio()
+		return hook.SuspendAudio()
 	}
 }
 

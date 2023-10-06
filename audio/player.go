@@ -59,7 +59,6 @@ func newPlayerFactory(sampleRate int) *playerFactory {
 	if driverForTesting != nil {
 		f.context = driverForTesting
 	}
-	// TODO: Consider the hooks.
 	return f
 }
 
