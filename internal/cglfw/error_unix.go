@@ -119,12 +119,11 @@ func (e *Error) Error() string {
 // Note: There are many cryptic caveats to proper error handling here.
 // See: https://github.com/go-gl/glfw3/pull/86
 
-// Holds the value of the last error.
+// lastError holds the value of the last error.
 var lastError = make(chan *Error, 1)
 
 //export goErrorCB
 func goErrorCB(code C.int, desc *C.char) {
-	flushErrors()
 	err := &Error{ErrorCode(code), C.GoString(desc)}
 	select {
 	case lastError <- err:
@@ -137,28 +136,6 @@ func goErrorCB(code C.int, desc *C.char) {
 // Set the glfw callback internally
 func init() {
 	C.glfwSetErrorCallbackCB()
-}
-
-// flushErrors is called by Terminate before it actually calls C.glfwTerminate,
-// this ensures that any uncaught errors buffered in lastError are printed
-// before the program exits.
-func flushErrors() {
-	err := fetchError()
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "GLFW: An uncaught error has occurred:", err)
-		fmt.Fprintln(os.Stderr, "GLFW: Please report this bug in the Go package immediately.")
-	}
-}
-
-// fetchError fetches the next error from the error channel, it does not block
-// and returns nil if there is no error present.
-func fetchError() *Error {
-	select {
-	case err := <-lastError:
-		return err
-	default:
-		return nil
-	}
 }
 
 // fetchErrorIgnoringPlatformError is fetchError igoring platformError.

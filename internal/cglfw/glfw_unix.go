@@ -10,7 +10,10 @@ package cglfw
 //#define GLFW_INCLUDE_NONE
 //#include "glfw3_unix.h"
 import "C"
-import "unsafe"
+
+import (
+	"unsafe"
+)
 
 // Version constants.
 const (
@@ -56,9 +59,12 @@ func Init() error {
 // this function, as it is called by Init before it returns failure.
 //
 // This function may only be called from the main thread.
-func Terminate() {
-	flushErrors()
+func Terminate() error {
 	C.glfwTerminate()
+	if err := fetchErrorIgnoringPlatformError(); err != nil {
+		return err
+	}
+	return nil
 }
 
 // InitHint function sets hints for the next initialization of GLFW.

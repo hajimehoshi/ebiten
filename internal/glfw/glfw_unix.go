@@ -353,8 +353,7 @@ func SwapInterval(interval int) error {
 }
 
 func Terminate() error {
-	cglfw.Terminate()
-	return nil
+	return cglfw.Terminate()
 }
 
 func WaitEvents() error {
