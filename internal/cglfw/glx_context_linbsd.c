@@ -5,7 +5,7 @@
 
 //go:build freebsd || linux || netbsd || openbsd
 
-#include "internal.h"
+#include "internal_unix.h"
 
 #include <string.h>
 #include <stdlib.h>

@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: 2009-2019 Camilla Löwy <elmindreda@glfw.org>
 // SPDX-FileCopyrightText: 2023 The Ebitengine Authors
 
-#include "internal.h"
+#include "internal_unix.h"
 
 #include <float.h>
 #include <string.h>

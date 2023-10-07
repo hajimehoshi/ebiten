@@ -5,7 +5,7 @@
 
 //go:build darwin || freebsd || linux || netbsd || openbsd
 
-#include "internal.h"
+#include "internal_unix.h"
 
 #include <assert.h>
 #include <math.h>

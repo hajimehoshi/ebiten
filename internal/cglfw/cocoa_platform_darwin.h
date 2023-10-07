@@ -51,10 +51,10 @@ typedef void* id;
  #define NSPasteboardTypeURL NSURLPboardType
 #endif
 
-#include "posix_thread.h"
+#include "posix_thread_unix.h"
 #include "nsgl_context_darwin.h"
-#include "egl_context.h"
-#include "osmesa_context.h"
+#include "egl_context_unix.h"
+#include "osmesa_context_unix.h"
 
 #define _glfw_dlopen(name) dlopen(name, RTLD_LAZY | RTLD_LOCAL)
 #define _glfw_dlclose(handle) dlclose(handle)

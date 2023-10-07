@@ -25,7 +25,7 @@
 #endif
 
 #define GLFW_INCLUDE_NONE
-#include "glfw3.h"
+#include "glfw3_unix.h"
 
 #define _GLFW_INSERT_FIRST      0
 #define _GLFW_INSERT_LAST       1
@@ -259,9 +259,9 @@ struct _GLFWcontext
 
     // This is defined in the context API's context.h
     _GLFW_PLATFORM_CONTEXT_STATE;
-    // This is defined in egl_context.h
+    // This is defined in egl_context_unix.h
     _GLFW_EGL_CONTEXT_STATE;
-    // This is defined in osmesa_context.h
+    // This is defined in osmesa_context_unix.h
     _GLFW_OSMESA_CONTEXT_STATE;
 };
 
@@ -414,9 +414,9 @@ struct _GLFWlibrary
     _GLFW_PLATFORM_LIBRARY_WINDOW_STATE;
     // This is defined in the context API's context.h
     _GLFW_PLATFORM_LIBRARY_CONTEXT_STATE;
-    // This is defined in egl_context.h
+    // This is defined in egl_context_unix.h
     _GLFW_EGL_LIBRARY_CONTEXT_STATE;
-    // This is defined in osmesa_context.h
+    // This is defined in osmesa_context_unix.h
     _GLFW_OSMESA_LIBRARY_CONTEXT_STATE;
 };
 

@@ -122,12 +122,12 @@ typedef void (* PFN_XShapeCombineMask)(Display*,Window,int,int,int,Pixmap,int);
 #define XShapeCombineRegion _glfw.x11.xshape.ShapeCombineRegion
 #define XShapeCombineMask _glfw.x11.xshape.ShapeCombineMask
 
-#include "posix_thread.h"
+#include "posix_thread_unix.h"
 #include "posix_time_linbsd.h"
 #include "xkb_unicode_linbsd.h"
 #include "glx_context_linbsd.h"
-#include "egl_context.h"
-#include "osmesa_context.h"
+#include "egl_context_unix.h"
+#include "osmesa_context_unix.h"
 
 #define _glfw_dlopen(name) dlopen(name, RTLD_LAZY | RTLD_LOCAL)
 #define _glfw_dlclose(handle) dlclose(handle)

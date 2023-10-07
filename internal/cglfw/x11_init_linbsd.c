@@ -9,7 +9,7 @@
  #define _GNU_SOURCE
 #endif
 
-#include "internal.h"
+#include "internal_unix.h"
 
 #include <X11/Xresource.h>
 

@@ -38,7 +38,7 @@ extern "C" {
  * Doxygen documentation
  *************************************************************************/
 
-/*! @file glfw3.h
+/*! @file glfw3_unix.h
  *  @brief The header of the GLFW 3 API.
  *
  *  This is the header file of the GLFW 3 API.  It defines all its types and

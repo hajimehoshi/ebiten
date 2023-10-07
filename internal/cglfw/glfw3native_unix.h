@@ -38,7 +38,7 @@ extern "C" {
  * Doxygen documentation
  *************************************************************************/
 
-/*! @file glfw3native.h
+/*! @file glfw3native_unix.h
  *  @brief The header of the native access functions.
  *
  *  This is the header file of the native access functions.  See @ref native for
@@ -51,7 +51,7 @@ extern "C" {
  *  doing and how to fix problems caused by using them.  If you don't, you
  *  shouldn't be using them.**
  *
- *  Before the inclusion of @ref glfw3native.h, you may define zero or more
+ *  Before the inclusion of @ref glfw3native_unix.h, you may define zero or more
  *  window system API macro and zero or more context creation API macros.
  *
  *  The chosen backends must match those the library was compiled for.  Failure
@@ -75,13 +75,13 @@ extern "C" {
  *  defined.
  *
  *  If you do not want the platform-specific headers to be included, define
- *  `GLFW_NATIVE_INCLUDE_NONE` before including the @ref glfw3native.h header.
+ *  `GLFW_NATIVE_INCLUDE_NONE` before including the @ref glfw3native_unix.h header.
  *
  *  @code
  *  #define GLFW_EXPOSE_NATIVE_WIN32
  *  #define GLFW_EXPOSE_NATIVE_WGL
  *  #define GLFW_NATIVE_INCLUDE_NONE
- *  #include <GLFW/glfw3native.h>
+ *  #include <GLFW/glfw3native_unix.h>
  *  @endcode
  */
 
@@ -108,7 +108,7 @@ extern "C" {
   /* NSGL is declared by Cocoa.h */
  #endif
  #if defined(GLFW_EXPOSE_NATIVE_GLX)
-  /* This is a workaround for the fact that glfw3.h defines GLAPIENTRY because by
+  /* This is a workaround for the fact that glfw3_unix.h defines GLAPIENTRY because by
    * default it also acts as an OpenGL header
    * However, glx.h will include gl.h, which will define it unconditionally
    */
@@ -122,7 +122,7 @@ extern "C" {
   #include <EGL/egl.h>
  #endif
  #if defined(GLFW_EXPOSE_NATIVE_OSMESA)
-  /* This is a workaround for the fact that glfw3.h defines GLAPIENTRY because by
+  /* This is a workaround for the fact that glfw3_unix.h defines GLAPIENTRY because by
    * default it also acts as an OpenGL header
    * However, osmesa.h will include gl.h, which will define it unconditionally
    */

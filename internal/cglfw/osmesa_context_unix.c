@@ -9,7 +9,7 @@
 #include <string.h>
 #include <assert.h>
 
-#include "internal.h"
+#include "internal_unix.h"
 
 
 static void makeContextCurrentOSMesa(_GLFWwindow* window)

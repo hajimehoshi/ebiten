@@ -7,8 +7,8 @@ package cglfw
 /*
 #define GLFW_EXPOSE_NATIVE_COCOA
 #define GLFW_EXPOSE_NATIVE_NSGL
-#include "glfw3.h"
-#include "glfw3native.h"
+#include "glfw3_unix.h"
+#include "glfw3native_unix.h"
 
 // workaround wrappers needed due to a cgo and/or LLVM bug.
 // See: https://github.com/go-gl/glfw/issues/136
