@@ -205,6 +205,7 @@ func (q *commandQueue) Flush(graphicsDriver graphicsdriver.Graphics, endFrame bo
 
 		if err := q.flush(graphicsDriver, endFrame, logger); err != nil {
 			if sync {
+				flushErr = err
 				return
 			}
 			q.err.Store(err)
