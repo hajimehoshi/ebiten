@@ -154,22 +154,24 @@ func (u *userInterfaceImpl) nativeWindow() (uintptr, error) {
 	return 0, nil
 }
 
-func (u *userInterfaceImpl) isNativeFullscreen() bool {
-	return false
+func (u *userInterfaceImpl) isNativeFullscreen() (bool, error) {
+	return false, nil
 }
 
 func (u *userInterfaceImpl) isNativeFullscreenAvailable() bool {
 	return false
 }
 
-func (u *userInterfaceImpl) setNativeFullscreen(fullscreen bool) {
+func (u *userInterfaceImpl) setNativeFullscreen(fullscreen bool) error {
 	panic(fmt.Sprintf("ui: setNativeFullscreen is not implemented in this environment: %s", runtime.GOOS))
 }
 
-func (u *userInterfaceImpl) adjustViewSizeAfterFullscreen() {
+func (u *userInterfaceImpl) adjustViewSizeAfterFullscreen() error {
+	return nil
 }
 
-func (u *userInterfaceImpl) setWindowResizingModeForOS(mode WindowResizingMode) {
+func (u *userInterfaceImpl) setWindowResizingModeForOS(mode WindowResizingMode) error {
+	return nil
 }
 
 func initializeWindowAfterCreation(w *glfw.Window) error {

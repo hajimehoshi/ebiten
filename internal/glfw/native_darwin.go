@@ -14,10 +14,18 @@
 
 package glfw
 
-func (w *Window) GetCocoaWindow() uintptr {
-	return uintptr(w.w.GetCocoaWindow())
+func (w *Window) GetCocoaWindow() (uintptr, error) {
+	ptr, err := w.w.GetCocoaWindow()
+	if err != nil {
+		return 0, err
+	}
+	return uintptr(ptr), nil
 }
 
-func (m *Monitor) GetCocoaMonitor() uintptr {
-	return m.m.GetCocoaMonitor()
+func (m *Monitor) GetCocoaMonitor() (uintptr, error) {
+	ptr, err := m.m.GetCocoaMonitor()
+	if err != nil {
+		return 0, err
+	}
+	return uintptr(ptr), nil
 }

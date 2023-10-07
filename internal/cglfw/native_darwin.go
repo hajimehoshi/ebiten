@@ -23,22 +23,19 @@ import "C"
 import "unsafe"
 
 // GetCocoaMonitor returns the CGDirectDisplayID of the monitor.
-func (m *Monitor) GetCocoaMonitor() uintptr {
+func (m *Monitor) GetCocoaMonitor() (uintptr, error) {
 	ret := uintptr(C.glfwGetCocoaMonitor(m.data))
-	panicError()
-	return ret
+	return ret, fetchErrorIgnoringPlatformError()
 }
 
 // GetCocoaWindow returns the NSWindow of the window.
-func (w *Window) GetCocoaWindow() unsafe.Pointer {
+func (w *Window) GetCocoaWindow() (unsafe.Pointer, error) {
 	ret := C.workaround_glfwGetCocoaWindow(w.data)
-	panicError()
-	return ret
+	return ret, fetchErrorIgnoringPlatformError()
 }
 
 // GetNSGLContext returns the NSOpenGLContext of the window.
-func (w *Window) GetNSGLContext() unsafe.Pointer {
+func (w *Window) GetNSGLContext() (unsafe.Pointer, error) {
 	ret := C.workaround_glfwGetNSGLContext(w.data)
-	panicError()
-	return ret
+	return ret, fetchErrorIgnoringPlatformError()
 }

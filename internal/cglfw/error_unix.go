@@ -208,3 +208,18 @@ func fetchError() *Error {
 		return nil
 	}
 }
+
+// fetchErrorIgnoringPlatformError is fetchError igoring platformError.
+// This emulates panicError but without panicking.
+func fetchErrorIgnoringPlatformError() error {
+	select {
+	case err := <-lastError:
+		if err.Code == platformError {
+			fmt.Fprintln(os.Stderr, err)
+			return nil
+		}
+		return err
+	default:
+		return nil
+	}
+}

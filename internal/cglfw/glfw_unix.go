@@ -123,9 +123,9 @@ func GetClipboardString() string {
 // string.
 //
 // This function may only be called from the main thread.
-func SetClipboardString(str string) {
+func SetClipboardString(str string) error {
 	cp := C.CString(str)
 	defer C.free(unsafe.Pointer(cp))
 	C.glfwSetClipboardString(nil, cp)
-	panicError()
+	return fetchErrorIgnoringPlatformError()
 }

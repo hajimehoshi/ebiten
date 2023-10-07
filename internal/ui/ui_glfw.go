@@ -628,7 +628,11 @@ func (u *userInterfaceImpl) isFullscreen() (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	return m != nil || u.isNativeFullscreen(), nil
+	n, err := u.isNativeFullscreen()
+	if err != nil {
+		return false, err
+	}
+	return m != nil || n, nil
 }
 
 func (u *userInterfaceImpl) IsFullscreen() bool {
@@ -1188,7 +1192,9 @@ func (u *userInterfaceImpl) initOnMainThread(options *RunOptions) error {
 		}
 	}
 
-	u.setWindowResizingModeForOS(u.windowResizingMode)
+	if err := u.setWindowResizingModeForOS(u.windowResizingMode); err != nil {
+		return err
+	}
 
 	if options.SkipTaskbar {
 		// Ignore the error.
@@ -1239,7 +1245,11 @@ func (u *userInterfaceImpl) outsideSize() (float64, float64, error) {
 	if err != nil {
 		return 0, 0, err
 	}
-	if f && !u.isNativeFullscreen() {
+	n, err := u.isNativeFullscreen()
+	if err != nil {
+		return 0, 0, err
+	}
+	if f && !n {
 		// On Linux, the window size is not reliable just after making the window
 		// fullscreened. Use the monitor size.
 		// On macOS's native fullscreen, the window's size returns a more precise size
@@ -1600,8 +1610,10 @@ func (u *userInterfaceImpl) updateWindowSizeLimits() error {
 		return err
 	}
 
-	// The window size limit affects the resizing mode, especially on macOS (#).
-	u.setWindowResizingModeForOS(u.windowResizingMode)
+	// The window size limit affects the resizing mode, especially on macOS (#2260).
+	if err := u.setWindowResizingModeForOS(u.windowResizingMode); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -1744,7 +1756,9 @@ func (u *userInterfaceImpl) setFullscreen(fullscreen bool) error {
 		}
 
 		if u.isNativeFullscreenAvailable() {
-			u.setNativeFullscreen(fullscreen)
+			if err := u.setNativeFullscreen(fullscreen); err != nil {
+				return err
+			}
 		} else {
 			m, err := u.currentMonitor()
 			if err != nil {
@@ -1759,7 +1773,9 @@ func (u *userInterfaceImpl) setFullscreen(fullscreen bool) error {
 				return err
 			}
 		}
-		u.adjustViewSizeAfterFullscreen()
+		if err := u.adjustViewSizeAfterFullscreen(); err != nil {
+			return err
+		}
 		return nil
 	}
 
@@ -1779,7 +1795,9 @@ func (u *userInterfaceImpl) setFullscreen(fullscreen bool) error {
 	ww := int(dipToGLFWPixel(float64(u.origWindowWidthInDIP), m))
 	wh := int(dipToGLFWPixel(float64(u.origWindowHeightInDIP), m))
 	if u.isNativeFullscreenAvailable() {
-		u.setNativeFullscreen(false)
+		if err := u.setNativeFullscreen(false); err != nil {
+			return err
+		}
 		// Adjust the window size later (after adjusting the position).
 	} else {
 		m, err := u.window.GetMonitor()
@@ -1932,7 +1950,11 @@ func (u *userInterfaceImpl) Window() Window {
 
 // maximizeWindow must be called from the main thread.
 func (u *userInterfaceImpl) maximizeWindow() error {
-	if u.isNativeFullscreen() {
+	n, err := u.isNativeFullscreen()
+	if err != nil {
+		return err
+	}
+	if n {
 		return nil
 	}
 
@@ -1969,7 +1991,11 @@ func (u *userInterfaceImpl) maximizeWindow() error {
 // iconifyWindow must be called from the main thread.
 func (u *userInterfaceImpl) iconifyWindow() error {
 	// Iconifying a native fullscreen window on macOS is forbidden.
-	if u.isNativeFullscreen() {
+	n, err := u.isNativeFullscreen()
+	if err != nil {
+		return err
+	}
+	if n {
 		return nil
 	}
 
@@ -2085,7 +2111,9 @@ func (u *userInterfaceImpl) setWindowResizingMode(mode WindowResizingMode) error
 	if err := u.window.SetAttrib(glfw.Resizable, v); err != nil {
 		return err
 	}
-	u.setWindowResizingModeForOS(mode)
+	if err := u.setWindowResizingModeForOS(mode); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -2132,7 +2160,11 @@ func (u *userInterfaceImpl) isWindowMaximized() (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	return a == glfw.True && !u.isNativeFullscreen(), nil
+	n, err := u.isNativeFullscreen()
+	if err != nil {
+		return false, err
+	}
+	return a == glfw.True && !n, nil
 }
 
 func (u *userInterfaceImpl) origWindowPos() (int, int) {

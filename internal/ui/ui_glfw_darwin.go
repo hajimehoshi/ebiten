@@ -274,7 +274,11 @@ func initialMonitorByOS() (*Monitor, error) {
 }
 
 func monitorFromWindowByOS(w *glfw.Window) (*Monitor, error) {
-	window := cocoa.NSWindow{ID: objc.ID(w.GetCocoaWindow())}
+	cocoaWindow, err := w.GetCocoaWindow()
+	if err != nil {
+		return nil, err
+	}
+	window := cocoa.NSWindow{ID: objc.ID(cocoaWindow)}
 	pool := cocoa.NSAutoreleasePool_new()
 	screen := cocoa.NSScreen_mainScreen()
 	if window.ID != 0 && window.IsVisible() {
@@ -287,7 +291,11 @@ func monitorFromWindowByOS(w *glfw.Window) (*Monitor, error) {
 	aID := uintptr(screenID.UnsignedIntValue()) // CGDirectDisplayID
 	pool.Release()
 	for _, m := range theMonitors.append(nil) {
-		if m.m.GetCocoaMonitor() == aID {
+		cocoaMonitor, err := m.m.GetCocoaMonitor()
+		if err != nil {
+			return nil, err
+		}
+		if cocoaMonitor == aID {
 			return m, nil
 		}
 	}
@@ -295,11 +303,15 @@ func monitorFromWindowByOS(w *glfw.Window) (*Monitor, error) {
 }
 
 func (u *userInterfaceImpl) nativeWindow() (uintptr, error) {
-	return u.window.GetCocoaWindow(), nil
+	return u.window.GetCocoaWindow()
 }
 
-func (u *userInterfaceImpl) isNativeFullscreen() bool {
-	return cocoa.NSWindow{ID: objc.ID(u.window.GetCocoaWindow())}.StyleMask()&cocoa.NSWindowStyleMaskFullScreen != 0
+func (u *userInterfaceImpl) isNativeFullscreen() (bool, error) {
+	w, err := u.window.GetCocoaWindow()
+	if err != nil {
+		return false, err
+	}
+	return cocoa.NSWindow{ID: objc.ID(w)}.StyleMask()&cocoa.NSWindowStyleMaskFullScreen != 0, nil
 }
 
 func (u *userInterfaceImpl) isNativeFullscreenAvailable() bool {
@@ -308,12 +320,16 @@ func (u *userInterfaceImpl) isNativeFullscreenAvailable() bool {
 	return true
 }
 
-func (u *userInterfaceImpl) setNativeFullscreen(fullscreen bool) {
+func (u *userInterfaceImpl) setNativeFullscreen(fullscreen bool) error {
 	// Toggling fullscreen might ignore events like keyUp. Ensure that events are fired.
 	glfw.WaitEventsTimeout(0.1)
-	window := cocoa.NSWindow{ID: objc.ID(u.window.GetCocoaWindow())}
+	w, err := u.window.GetCocoaWindow()
+	if err != nil {
+		return err
+	}
+	window := cocoa.NSWindow{ID: objc.ID(w)}
 	if window.StyleMask()&cocoa.NSWindowStyleMaskFullScreen != 0 == fullscreen {
-		return
+		return nil
 	}
 	// Even though EbitengineWindowDelegate is used, this hack is still required.
 	// toggleFullscreen doesn't work when the window is not resizable.
@@ -329,16 +345,22 @@ func (u *userInterfaceImpl) setNativeFullscreen(fullscreen bool) {
 	if !origFullScreen {
 		window.Send(sel_setCollectionBehavior, cocoa.NSUInteger(cocoa.NSUInteger(origCollectionBehavior)))
 	}
+
+	return nil
 }
 
-func (u *userInterfaceImpl) adjustViewSizeAfterFullscreen() {
+func (u *userInterfaceImpl) adjustViewSizeAfterFullscreen() error {
 	if u.graphicsDriver.IsGL() {
-		return
+		return nil
 	}
 
-	window := cocoa.NSWindow{ID: objc.ID(u.window.GetCocoaWindow())}
+	w, err := u.window.GetCocoaWindow()
+	if err != nil {
+		return err
+	}
+	window := cocoa.NSWindow{ID: objc.ID(w)}
 	if window.StyleMask()&cocoa.NSWindowStyleMaskFullScreen == 0 {
-		return
+		return nil
 	}
 
 	// Reduce the view height (#1745).
@@ -347,7 +369,7 @@ func (u *userInterfaceImpl) adjustViewSizeAfterFullscreen() {
 	view := window.ContentView()
 	viewSize := view.Frame().Size
 	if windowSize.Width != viewSize.Width || windowSize.Height != viewSize.Height {
-		return
+		return nil
 	}
 	viewSize.Width--
 	view.SetFrameSize(viewSize)
@@ -355,6 +377,7 @@ func (u *userInterfaceImpl) adjustViewSizeAfterFullscreen() {
 	// NSColor.blackColor (0, 0, 0, 1) didn't work.
 	// Use the transparent color instead.
 	window.SetBackgroundColor(cocoa.NSColor_colorWithSRGBRedGreenBlueAlpha(0, 0, 0, 0))
+	return nil
 }
 
 func (u *userInterfaceImpl) isFullscreenAllowedFromUI(mode WindowResizingMode) bool {
@@ -370,7 +393,7 @@ func (u *userInterfaceImpl) isFullscreenAllowedFromUI(mode WindowResizingMode) b
 	return false
 }
 
-func (u *userInterfaceImpl) setWindowResizingModeForOS(mode WindowResizingMode) {
+func (u *userInterfaceImpl) setWindowResizingModeForOS(mode WindowResizingMode) error {
 	var collectionBehavior uint
 	if u.isFullscreenAllowedFromUI(mode) {
 		collectionBehavior |= cocoa.NSWindowCollectionBehaviorManaged
@@ -378,13 +401,22 @@ func (u *userInterfaceImpl) setWindowResizingModeForOS(mode WindowResizingMode) 
 	} else {
 		collectionBehavior |= cocoa.NSWindowCollectionBehaviorFullScreenNone
 	}
-	objc.ID(u.window.GetCocoaWindow()).Send(sel_setCollectionBehavior, collectionBehavior)
+	w, err := u.window.GetCocoaWindow()
+	if err != nil {
+		return err
+	}
+	objc.ID(w).Send(sel_setCollectionBehavior, collectionBehavior)
+	return nil
 }
 
 func initializeWindowAfterCreation(w *glfw.Window) error {
 	// TODO: Register NSWindowWillEnterFullScreenNotification and so on.
 	// Enable resizing temporary before making the window fullscreen.
-	nswindow := objc.ID(w.GetCocoaWindow())
+	cocoaWindow, err := w.GetCocoaWindow()
+	if err != nil {
+		return err
+	}
+	nswindow := objc.ID(cocoaWindow)
 	delegate := objc.ID(class_EbitengineWindowDelegate).Send(sel_alloc).Send(sel_initWithOrigDelegate, nswindow.Send(sel_delegate))
 	nswindow.Send(sel_setDelegate, delegate)
 	return nil
