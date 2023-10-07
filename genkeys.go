@@ -874,7 +874,7 @@ func main() {
 		buildTag := ""
 		switch path {
 		case filepath.Join("internal", "glfw", "keys.go"):
-			buildTag = "//go:build !js"
+			buildTag = "//go:build darwin || freebsd || linux || netbsd || openbsd || windows"
 		case filepath.Join("internal", "ui", "keys_mobile.go"):
 			buildTag = "//go:build android || ios"
 		case filepath.Join("internal", "ui", "keys_glfw.go"):
