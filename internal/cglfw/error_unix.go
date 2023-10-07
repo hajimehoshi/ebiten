@@ -129,8 +129,8 @@ func goErrorCB(code C.int, desc *C.char) {
 	select {
 	case lastError <- err:
 	default:
-		fmt.Println("GLFW: An uncaught error has occurred:", err)
-		fmt.Println("GLFW: Please report this bug in the Go package immediately.")
+		fmt.Fprintln(os.Stderr, "GLFW: An uncaught error has occurred:", err)
+		fmt.Fprintln(os.Stderr, "GLFW: Please report this bug in the Go package immediately.")
 	}
 }
 
@@ -145,8 +145,8 @@ func init() {
 func flushErrors() {
 	err := fetchError()
 	if err != nil {
-		fmt.Println("GLFW: An uncaught error has occurred:", err)
-		fmt.Println("GLFW: Please report this bug in the Go package immediately.")
+		fmt.Fprintln(os.Stderr, "GLFW: An uncaught error has occurred:", err)
+		fmt.Fprintln(os.Stderr, "GLFW: Please report this bug in the Go package immediately.")
 	}
 }
 
@@ -189,15 +189,6 @@ func acceptError(codes ...ErrorCode) error {
 	}
 }
 
-// panicError is a helper used by functions which expect no errors (except
-// programmer errors) to occur. It will panic if it finds any such error.
-func panicError() {
-	err := acceptError()
-	if err != nil {
-		panic(err)
-	}
-}
-
 // fetchError fetches the next error from the error channel, it does not block
 // and returns nil if there is no error present.
 func fetchError() *Error {
@@ -210,7 +201,6 @@ func fetchError() *Error {
 }
 
 // fetchErrorIgnoringPlatformError is fetchError igoring platformError.
-// This emulates panicError but without panicking.
 func fetchErrorIgnoringPlatformError() error {
 	select {
 	case err := <-lastError:
