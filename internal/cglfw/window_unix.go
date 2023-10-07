@@ -395,7 +395,10 @@ func CreateWindow(width, height int, title string, monitor *Monitor, share *Wind
 
 	w := C.glfwCreateWindow(C.int(width), C.int(height), t, m, s)
 	if w == nil {
-		return nil, acceptError(APIUnavailable, VersionUnavailable)
+		if err := fetchErrorIgnoringPlatformError(); err != nil {
+			return nil, err
+		}
+		return nil, nil
 	}
 
 	wnd := &Window{data: w}
@@ -1047,13 +1050,18 @@ func (w *Window) SetClipboardString(str string) error {
 // glfw.GetClipboardString()
 //
 // This function may only be called from the main thread.
-func (w *Window) GetClipboardString() string {
+func (w *Window) GetClipboardString() (string, error) {
 	cs := C.glfwGetClipboardString(w.data)
 	if cs == nil {
-		_ = acceptError(FormatUnavailable)
-		return ""
+		if err := fetchErrorIgnoringPlatformError(); err != nil {
+			if cerr, ok := err.(*Error); ok && cerr.Code == FormatUnavailable {
+				return "", nil
+			}
+			return "", err
+		}
+		return "", nil
 	}
-	return C.GoString(cs)
+	return C.GoString(cs), nil
 }
 
 // PollEvents processes only those events that have already been received and

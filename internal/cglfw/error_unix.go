@@ -150,45 +150,6 @@ func flushErrors() {
 	}
 }
 
-// acceptError fetches the next error from the error channel, it accepts only
-// errors with one of the given error codes. If any other error is encountered,
-// a panic will occur.
-//
-// Platform errors are always printed, for information why please see:
-//
-//	https://github.com/go-gl/glfw/issues/127
-func acceptError(codes ...ErrorCode) error {
-	// Grab the next error, if there is one.
-	err := fetchError()
-	if err == nil {
-		return nil
-	}
-
-	// Only if the error has the specific error code accepted by the caller, do
-	// we return the error.
-	for _, code := range codes {
-		if err.Code == code {
-			return err
-		}
-	}
-
-	// The error isn't accepted by the caller. If the error code is not a code
-	// defined in the GLFW C documentation as a programmer error, then the
-	// caller should have accepted it. This is effectively a bug in this
-	// package.
-	switch err.Code {
-	case platformError:
-		fmt.Fprintln(os.Stderr, err)
-		return nil
-	case notInitialized, noCurrentContext, invalidEnum, invalidValue, outOfMemory:
-		panic(err)
-	default:
-		fmt.Fprintln(os.Stderr, "GLFW: An invalid error was not accepted by the caller:", err)
-		fmt.Fprintln(os.Stderr, "GLFW: Please report this bug in the Go package immediately.")
-		panic(err)
-	}
-}
-
 // fetchError fetches the next error from the error channel, it does not block
 // and returns nil if there is no error present.
 func fetchError() *Error {

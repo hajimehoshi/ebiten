@@ -40,14 +40,10 @@ const (
 // This function may only be called from the main thread.
 func Init() error {
 	C.glfwInit()
-	// invalidValue can happen when specific joysticks are used. This issue
-	// will be fixed in GLFW 3.3.5. As a temporary fix, ignore this error.
-	// See go-gl/glfw#292, go-gl/glfw#324, and glfw/glfw#1763.
-	err := acceptError(APIUnavailable, invalidValue)
-	if e, ok := err.(*Error); ok && e.Code == invalidValue {
-		return nil
+	if err := fetchErrorIgnoringPlatformError(); err != nil {
+		return err
 	}
-	return err
+	return nil
 }
 
 // Terminate destroys all remaining windows, frees any allocated resources and
@@ -110,13 +106,18 @@ func GetVersionString() string {
 // contains or is convertible to a UTF-8 encoded string.
 //
 // This function may only be called from the main thread.
-func GetClipboardString() string {
+func GetClipboardString() (string, error) {
 	cs := C.glfwGetClipboardString(nil)
 	if cs == nil {
-		_ = acceptError(FormatUnavailable)
-		return ""
+		if err := fetchErrorIgnoringPlatformError(); err != nil {
+			if cerr, ok := err.(*Error); ok && cerr.Code == FormatUnavailable {
+				return "", nil
+			}
+			return "", err
+		}
+		return "", nil
 	}
-	return C.GoString(cs)
+	return C.GoString(cs), nil
 }
 
 // SetClipboardString sets the system clipboard to the specified UTF-8 encoded
