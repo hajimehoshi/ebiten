@@ -18,7 +18,7 @@ import "C"
 
 import (
 	"fmt"
-	"log"
+	"os"
 )
 
 // ErrorCode corresponds to an error code.
@@ -178,13 +178,13 @@ func acceptError(codes ...ErrorCode) error {
 	// package.
 	switch err.Code {
 	case platformError:
-		log.Println(err)
+		fmt.Fprintln(os.Stderr, err)
 		return nil
 	case notInitialized, noCurrentContext, invalidEnum, invalidValue, outOfMemory:
 		panic(err)
 	default:
-		fmt.Println("GLFW: An invalid error was not accepted by the caller:", err)
-		fmt.Println("GLFW: Please report this bug in the Go package immediately.")
+		fmt.Fprintln(os.Stderr, "GLFW: An invalid error was not accepted by the caller:", err)
+		fmt.Fprintln(os.Stderr, "GLFW: Please report this bug in the Go package immediately.")
 		panic(err)
 	}
 }
