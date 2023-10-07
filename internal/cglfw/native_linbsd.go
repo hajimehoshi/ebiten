@@ -15,45 +15,57 @@ package cglfw
 import "C"
 import "unsafe"
 
-func GetX11Display() *C.Display {
+func GetX11Display() (*C.Display, error) {
 	ret := C.glfwGetX11Display()
-	panicError()
-	return ret
+	if err := fetchErrorIgnoringPlatformError(); err != nil {
+		return nil, err
+	}
+	return ret, nil
 }
 
 // GetX11Adapter returns the RRCrtc of the monitor.
-func (m *Monitor) GetX11Adapter() C.RRCrtc {
+func (m *Monitor) GetX11Adapter() (C.RRCrtc, error) {
 	ret := C.glfwGetX11Adapter(m.data)
-	panicError()
-	return ret
+	if err := fetchErrorIgnoringPlatformError(); err != nil {
+		return 0, err
+	}
+	return ret, nil
 }
 
 // GetX11Monitor returns the RROutput of the monitor.
-func (m *Monitor) GetX11Monitor() C.RROutput {
+func (m *Monitor) GetX11Monitor() (C.RROutput, error) {
 	ret := C.glfwGetX11Monitor(m.data)
-	panicError()
-	return ret
+	if err := fetchErrorIgnoringPlatformError(); err != nil {
+		return 0, err
+	}
+	return ret, nil
 }
 
 // GetX11Window returns the Window of the window.
-func (w *Window) GetX11Window() C.Window {
+func (w *Window) GetX11Window() (C.Window, error) {
 	ret := C.glfwGetX11Window(w.data)
-	panicError()
-	return ret
+	if err := fetchErrorIgnoringPlatformError(); err != nil {
+		return 0, err
+	}
+	return ret, nil
 }
 
 // GetGLXContext returns the GLXContext of the window.
-func (w *Window) GetGLXContext() C.GLXContext {
+func (w *Window) GetGLXContext() (C.GLXContext, error) {
 	ret := C.glfwGetGLXContext(w.data)
-	panicError()
-	return ret
+	if err := fetchErrorIgnoringPlatformError(); err != nil {
+		return nil, err
+	}
+	return ret, nil
 }
 
 // GetGLXWindow returns the GLXWindow of the window.
-func (w *Window) GetGLXWindow() C.GLXWindow {
+func (w *Window) GetGLXWindow() (C.GLXWindow, error) {
 	ret := C.glfwGetGLXWindow(w.data)
-	panicError()
-	return ret
+	if err := fetchErrorIgnoringPlatformError(); err != nil {
+		return 0, err
+	}
+	return ret, nil
 }
 
 // SetX11SelectionString sets the X11 selection string.
