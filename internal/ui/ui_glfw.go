@@ -148,11 +148,11 @@ func init() {
 	if err := initialize(); err != nil {
 		panic(err)
 	}
-	if _, err := glfw.SetMonitorCallback(glfw.ToMonitorCallback(func(monitor *glfw.Monitor, event glfw.PeripheralEvent) {
+	if _, err := glfw.SetMonitorCallback(func(monitor *glfw.Monitor, event glfw.PeripheralEvent) {
 		if err := theMonitors.update(); err != nil {
 			theGlobalState.setError(err)
 		}
-	})); err != nil {
+	}); err != nil {
 		panic(err)
 	}
 }
@@ -954,7 +954,7 @@ func (u *userInterfaceImpl) endFrame() {
 // registerWindowCloseCallback must be called from the main thread.
 func (u *userInterfaceImpl) registerWindowCloseCallback() error {
 	if u.closeCallback == nil {
-		u.closeCallback = glfw.ToCloseCallback(func(_ *glfw.Window) {
+		u.closeCallback = func(_ *glfw.Window) {
 			u.m.Lock()
 			u.inputState.WindowBeingClosed = true
 			u.m.Unlock()
@@ -970,7 +970,7 @@ func (u *userInterfaceImpl) registerWindowCloseCallback() error {
 				theGlobalState.setError(err)
 				return
 			}
-		})
+		}
 	}
 	if _, err := u.window.SetCloseCallback(u.closeCallback); err != nil {
 		return err
@@ -987,7 +987,7 @@ func (u *userInterfaceImpl) registerWindowFramebufferSizeCallback() error {
 		//
 		// When a decorating state changes, the callback of arguments might be an unexpected value on macOS (#2257)
 		// Then, do not register this callback on macOS.
-		u.defaultFramebufferSizeCallback = glfw.ToFramebufferSizeCallback(func(_ *glfw.Window, w, h int) {
+		u.defaultFramebufferSizeCallback = func(_ *glfw.Window, w, h int) {
 			f, err := u.isFullscreen()
 			if err != nil {
 				theGlobalState.setError(err)
@@ -1019,7 +1019,7 @@ func (u *userInterfaceImpl) registerWindowFramebufferSizeCallback() error {
 				theGlobalState.setError(err)
 				return
 			}
-		})
+		}
 	}
 	if _, err := u.window.SetFramebufferSizeCallback(u.defaultFramebufferSizeCallback); err != nil {
 		return err
@@ -1029,11 +1029,11 @@ func (u *userInterfaceImpl) registerWindowFramebufferSizeCallback() error {
 
 func (u *userInterfaceImpl) registerDropCallback() error {
 	if u.dropCallback == nil {
-		u.dropCallback = glfw.ToDropCallback(func(_ *glfw.Window, names []string) {
+		u.dropCallback = func(_ *glfw.Window, names []string) {
 			u.m.Lock()
 			defer u.m.Unlock()
 			u.inputState.DroppedFiles = file.NewVirtualFS(names)
-		})
+		}
 	}
 	if _, err := u.window.SetDropCallback(u.dropCallback); err != nil {
 		return err
@@ -1050,14 +1050,14 @@ func (u *userInterfaceImpl) waitForFramebufferSizeCallback(window *glfw.Window, 
 	u.framebufferSizeCallbackCh = make(chan struct{}, 1)
 
 	if u.framebufferSizeCallback == nil {
-		u.framebufferSizeCallback = glfw.ToFramebufferSizeCallback(func(_ *glfw.Window, _, _ int) {
+		u.framebufferSizeCallback = func(_ *glfw.Window, _, _ int) {
 			// This callback can be invoked multiple times by one PollEvents in theory (#1618).
 			// Allow the case when the channel is full.
 			select {
 			case u.framebufferSizeCallbackCh <- struct{}{}:
 			default:
 			}
-		})
+		}
 	}
 	if _, err := window.SetFramebufferSizeCallback(u.framebufferSizeCallback); err != nil {
 		return err

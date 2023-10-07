@@ -4,7 +4,7 @@
 
 //go:build darwin || freebsd || linux || netbsd || openbsd
 
-package cglfw
+package glfw
 
 // #define GLFW_INCLUDE_NONE
 // #include "glfw3_unix.h"
@@ -41,31 +41,11 @@ type Monitor struct {
 	data *C.GLFWmonitor
 }
 
-// PeripheralEvent corresponds to a peripheral(Monitor or Joystick)
-// configuration event.
-type PeripheralEvent int
-
 // GammaRamp describes the gamma ramp for a monitor.
 type GammaRamp struct {
 	Red   []uint16 // A slice of value describing the response of the red channel.
 	Green []uint16 // A slice of value describing the response of the green channel.
 	Blue  []uint16 // A slice of value describing the response of the blue channel.
-}
-
-// PeripheralEvent events.
-const (
-	Connected    PeripheralEvent = C.GLFW_CONNECTED
-	Disconnected PeripheralEvent = C.GLFW_DISCONNECTED
-)
-
-// VidMode describes a single video mode.
-type VidMode struct {
-	Width       int // The width, in pixels, of the video mode.
-	Height      int // The height, in pixels, of the video mode.
-	RedBits     int // The bit depth of the red channel of the video mode.
-	GreenBits   int // The bit depth of the green channel of the video mode.
-	BlueBits    int // The bit depth of the blue channel of the video mode.
-	RefreshRate int // The refresh rate, in Hz, of the video mode.
 }
 
 var fMonitorHolder func(monitor *Monitor, event PeripheralEvent)
@@ -142,10 +122,10 @@ func (m *Monitor) GetWorkarea() (x, y, width, height int) {
 // and any UI elements.
 //
 // This function must only be called from the main thread.
-func (m *Monitor) GetContentScale() (float32, float32) {
+func (m *Monitor) GetContentScale() (float32, float32, error) {
 	var x, y C.float
 	C.glfwGetMonitorContentScale(m.data, &x, &y)
-	return float32(x), float32(y)
+	return float32(x), float32(y), nil
 }
 
 // SetUserPointer sets the user-defined pointer of the monitor. The current value
@@ -206,7 +186,7 @@ type MonitorCallback func(monitor *Monitor, event PeripheralEvent)
 // disconnected from the system.
 //
 // This function must only be called from the main thread.
-func SetMonitorCallback(cbfun MonitorCallback) MonitorCallback {
+func SetMonitorCallback(cbfun MonitorCallback) (MonitorCallback, error) {
 	previous := fMonitorHolder
 	fMonitorHolder = cbfun
 	if cbfun == nil {
@@ -214,7 +194,7 @@ func SetMonitorCallback(cbfun MonitorCallback) MonitorCallback {
 	} else {
 		C.glfwSetMonitorCallbackCB()
 	}
-	return previous
+	return previous, nil
 }
 
 // GetVideoModes returns an array of all video modes supported by the monitor.

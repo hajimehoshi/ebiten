@@ -1,369 +1,139 @@
-// Copyright 2018 The Ebiten Authors
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// SPDX-License-Identifier: Apache-2.0
+// SPDX-FileCopyrightText: 2012 The glfw3-go Authors
+// SPDX-FileCopyrightText: 2023 The Ebitengine Authors
 
 //go:build darwin || freebsd || linux || netbsd || openbsd
 
 package glfw
 
+//#include <stdlib.h>
+//#define GLFW_INCLUDE_NONE
+//#include "glfw3_unix.h"
+import "C"
+
 import (
-	"image"
-	"sync"
-
-	"github.com/hajimehoshi/ebiten/v2/internal/cglfw"
+	"errors"
+	"unsafe"
 )
 
-type windows map[*cglfw.Window]*Window
-
-var (
-	theWindows = windows{}
-	windowsM   sync.Mutex
+// Version constants.
+const (
+	VersionMajor    = C.GLFW_VERSION_MAJOR    // This is incremented when the API is changed in non-compatible ways.
+	VersionMinor    = C.GLFW_VERSION_MINOR    // This is incremented when features are added to the API but it remains backward-compatible.
+	VersionRevision = C.GLFW_VERSION_REVISION // This is incremented when a bug fix release is made that does not contain any API changes.
 )
 
-func (w windows) add(win *cglfw.Window) *Window {
-	if win == nil {
-		return nil
-	}
-	ww := &Window{w: win}
-	windowsM.Lock()
-	w[win] = ww
-	windowsM.Unlock()
-	return ww
-}
-
-func (w windows) remove(win *cglfw.Window) {
-	windowsM.Lock()
-	delete(w, win)
-	windowsM.Unlock()
-}
-
-func (w windows) get(win *cglfw.Window) *Window {
-	if win == nil {
-		return nil
-	}
-	windowsM.Lock()
-	ww := w[win]
-	windowsM.Unlock()
-	return ww
-}
-
-type Cursor struct {
-	c *cglfw.Cursor
-}
-
-func CreateStandardCursor(shape StandardCursor) (*Cursor, error) {
-	c, err := cglfw.CreateStandardCursor(cglfw.StandardCursor(shape))
-	if err != nil {
-		return nil, err
-	}
-	return &Cursor{c: c}, nil
-}
-
-type Monitor struct {
-	m *cglfw.Monitor
-}
-
-func (m *Monitor) GetContentScale() (float32, float32, error) {
-	x, y := m.m.GetContentScale()
-	return x, y, nil
-}
-
-func (m *Monitor) GetPos() (x, y int, err error) {
-	return m.m.GetPos()
-}
-
-func (m *Monitor) GetVideoMode() (*VidMode, error) {
-	v, err := m.m.GetVideoMode()
-	if err != nil {
-		return nil, err
-	}
-	if v == nil {
-		return nil, nil
-	}
-	return &VidMode{
-		Width:       v.Width,
-		Height:      v.Height,
-		RedBits:     v.RedBits,
-		GreenBits:   v.GreenBits,
-		BlueBits:    v.BlueBits,
-		RefreshRate: v.RefreshRate,
-	}, nil
-}
-
-func (m *Monitor) GetName() (string, error) {
-	return m.m.GetName()
-}
-
-type Window struct {
-	w *cglfw.Window
-}
-
-func (w *Window) Destroy() error {
-	if err := w.w.Destroy(); err != nil {
-		return err
-	}
-	theWindows.remove(w.w)
-	return nil
-}
-
-func (w *Window) Focus() error {
-	w.w.Focus()
-	return nil
-}
-
-func (w *Window) GetAttrib(attrib Hint) (int, error) {
-	return w.w.GetAttrib(cglfw.Hint(attrib))
-}
-
-func (w *Window) GetCursorPos() (x, y float64, err error) {
-	return w.w.GetCursorPos()
-}
-
-func (w *Window) GetInputMode(mode InputMode) (int, error) {
-	return w.w.GetInputMode(cglfw.InputMode(mode))
-}
-
-func (w *Window) GetKey(key Key) (Action, error) {
-	a, err := w.w.GetKey(cglfw.Key(key))
-	if err != nil {
-		return 0, err
-	}
-	return Action(a), nil
-}
-
-func (w *Window) GetMonitor() (*Monitor, error) {
-	m, err := w.w.GetMonitor()
-	if err != nil {
-		return nil, err
-	}
-	if m == nil {
-		return nil, nil
-	}
-	return &Monitor{m}, nil
-}
-
-func (w *Window) GetMouseButton(button MouseButton) (Action, error) {
-	a, err := w.w.GetMouseButton(cglfw.MouseButton(button))
-	if err != nil {
-		return 0, err
-	}
-	return Action(a), nil
-}
-
-func (w *Window) GetPos() (x, y int, err error) {
-	return w.w.GetPos()
-}
-
-func (w *Window) GetSize() (width, height int, err error) {
-	return w.w.GetSize()
-}
-
-func (w *Window) Hide() error {
-	return w.w.Hide()
-}
-
-func (w *Window) Iconify() error {
-	w.w.Iconify()
-	return nil
-}
-
-func (w *Window) MakeContextCurrent() error {
-	return w.w.MakeContextCurrent()
-}
-
-func (w *Window) Maximize() error {
-	w.w.Maximize()
-	return nil
-}
-
-func (w *Window) Restore() error {
-	w.w.Restore()
-	return nil
-}
-
-func (w *Window) SetAttrib(attrib Hint, value int) error {
-	w.w.SetAttrib(cglfw.Hint(attrib), value)
-	return nil
-}
-
-func (w *Window) SetCharModsCallback(cbfun CharModsCallback) (previous CharModsCallback, err error) {
-	return w.w.SetCharModsCallback(cbfun)
-}
-
-func (w *Window) SetCloseCallback(cbfun CloseCallback) (previous CloseCallback, err error) {
-	return w.w.SetCloseCallback(cbfun)
-}
-
-func (w *Window) SetCursor(cursor *Cursor) error {
-	var c *cglfw.Cursor
-	if cursor != nil {
-		c = cursor.c
-	}
-	return w.w.SetCursor(c)
-}
-
-func (w *Window) SetCursorPos(xpos, ypos float64) error {
-	return w.w.SetCursorPos(xpos, ypos)
-}
-
-func (w *Window) SetDropCallback(cbfun DropCallback) (previous DropCallback, err error) {
-	return w.w.SetDropCallback(cbfun)
-}
-
-func (w *Window) SetFramebufferSizeCallback(cbfun FramebufferSizeCallback) (previous FramebufferSizeCallback, err error) {
-	return w.w.SetFramebufferSizeCallback(cbfun)
-}
-
-func (w *Window) SetScrollCallback(cbfun ScrollCallback) (previous ScrollCallback, err error) {
-	return w.w.SetScrollCallback(cbfun)
-}
-
-func (w *Window) SetShouldClose(value bool) error {
-	return w.w.SetShouldClose(value)
-}
-
-func (w *Window) SetSizeCallback(cbfun SizeCallback) (previous SizeCallback, err error) {
-	return w.w.SetSizeCallback(cbfun)
-}
-
-func (w *Window) SetSizeLimits(minw, minh, maxw, maxh int) error {
-	return w.w.SetSizeLimits(minw, minh, maxw, maxh)
-}
-
-func (w *Window) SetIcon(images []image.Image) error {
-	return w.w.SetIcon(images)
-}
-
-func (w *Window) SetInputMode(mode InputMode, value int) error {
-	return w.w.SetInputMode(cglfw.InputMode(mode), value)
-}
-
-func (w *Window) SetMonitor(monitor *Monitor, xpos, ypos, width, height, refreshRate int) error {
-	var m *cglfw.Monitor
-	if monitor != nil {
-		m = monitor.m
-	}
-	if err := w.w.SetMonitor(m, xpos, ypos, width, height, refreshRate); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (w *Window) SetPos(xpos, ypos int) error {
-	return w.w.SetPos(xpos, ypos)
-}
-
-func (w *Window) SetSize(width, height int) error {
-	return w.w.SetSize(width, height)
-}
-
-func (w *Window) SetTitle(title string) error {
-	return w.w.SetTitle(title)
-}
-
-func (w *Window) ShouldClose() (bool, error) {
-	return w.w.ShouldClose()
-}
-
-func (w *Window) Show() error {
-	return w.w.Show()
-}
-
-func (w *Window) SwapBuffers() error {
-	return w.w.SwapBuffers()
-}
-
-func CreateWindow(width, height int, title string, monitor *Monitor, share *Window) (*Window, error) {
-	var gm *cglfw.Monitor
-	if monitor != nil {
-		gm = monitor.m
-	}
-	var gw *cglfw.Window
-	if share != nil {
-		gw = share.w
-	}
-
-	w, err := cglfw.CreateWindow(width, height, title, gm, gw)
-	if err != nil {
-		return nil, err
-	}
-	return theWindows.add(w), nil
-}
-
-func GetKeyName(key Key, scancode int) (string, error) {
-	return cglfw.GetKeyName(cglfw.Key(key), scancode)
-}
-
-func GetMonitors() ([]*Monitor, error) {
-	monitors, err := cglfw.GetMonitors()
-	if err != nil {
-		return nil, err
-	}
-	var ms []*Monitor
-	for _, m := range monitors {
-		if m != nil {
-			ms = append(ms, &Monitor{m})
-		} else {
-			ms = append(ms, nil)
-		}
-	}
-	return ms, nil
-}
-
-func GetPrimaryMonitor() (*Monitor, error) {
-	m, err := cglfw.GetPrimaryMonitor()
-	if err != nil {
-		return nil, err
-	}
-	if m == nil {
-		return nil, nil
-	}
-	return &Monitor{m}, nil
-}
-
+// Init initializes the GLFW library. Before most GLFW functions can be used,
+// GLFW must be initialized, and before a program terminates GLFW should be
+// terminated in order to free any resources allocated during or after
+// initialization.
+//
+// If this function fails, it calls Terminate before returning. If it succeeds,
+// you should call Terminate before the program exits.
+//
+// Additional calls to this function after successful initialization but before
+// termination will succeed but will do nothing.
+//
+// This function may take several seconds to complete on some systems, while on
+// other systems it may take only a fraction of a second to complete.
+//
+// On Mac OS X, this function will change the current directory of the
+// application to the Contents/Resources subdirectory of the application's
+// bundle, if present.
+//
+// This function may only be called from the main thread.
 func Init() error {
-	return cglfw.Init()
+	C.glfwInit()
+	if err := fetchErrorIgnoringPlatformError(); err != nil {
+		return err
+	}
+	return nil
 }
 
-func PollEvents() error {
-	return cglfw.PollEvents()
-}
-
-func PostEmptyEvent() error {
-	return cglfw.PostEmptyEvent()
-}
-
-func SetMonitorCallback(cbfun MonitorCallback) (MonitorCallback, error) {
-	cglfw.SetMonitorCallback(cbfun)
-	return ToMonitorCallback(nil), nil
-}
-
-func SwapInterval(interval int) error {
-	return cglfw.SwapInterval(interval)
-}
-
+// Terminate destroys all remaining windows, frees any allocated resources and
+// sets the library to an uninitialized state. Once this is called, you must
+// again call Init successfully before you will be able to use most GLFW
+// functions.
+//
+// If GLFW has been successfully initialized, this function should be called
+// before the program exits. If initialization fails, there is no need to call
+// this function, as it is called by Init before it returns failure.
+//
+// This function may only be called from the main thread.
 func Terminate() error {
-	return cglfw.Terminate()
+	C.glfwTerminate()
+	if err := fetchErrorIgnoringPlatformError(); err != nil {
+		return err
+	}
+	return nil
 }
 
-func WaitEvents() error {
-	return cglfw.WaitEvents()
+// InitHint function sets hints for the next initialization of GLFW.
+//
+// The values you set hints to are never reset by GLFW, but they only take
+// effect during initialization. Once GLFW has been initialized, any values you
+// set will be ignored until the library is terminated and initialized again.
+//
+// Some hints are platform specific. These may be set on any platform but they
+// will only affect their specific platform. Other platforms will ignore them.
+// Setting these hints requires no platform specific headers or functions.
+//
+// This function must only be called from the main thread.
+func InitHint(hint Hint, value int) {
+	C.glfwInitHint(C.int(hint), C.int(value))
 }
 
-func WaitEventsTimeout(timeout float64) error {
-	return cglfw.WaitEventsTimeout(timeout)
+// GetVersion retrieves the major, minor and revision numbers of the GLFW
+// library. It is intended for when you are using GLFW as a shared library and
+// want to ensure that you are using the minimum required version.
+//
+// This function may be called before Init.
+func GetVersion() (major, minor, revision int) {
+	var (
+		maj C.int
+		min C.int
+		rev C.int
+	)
+
+	C.glfwGetVersion(&maj, &min, &rev)
+	return int(maj), int(min), int(rev)
 }
 
-func WindowHint(target Hint, hint int) error {
-	return cglfw.WindowHint(cglfw.Hint(target), hint)
+// GetVersionString returns a static string generated at compile-time according
+// to which configuration macros were defined. This is intended for use when
+// submitting bug reports, to allow developers to see which code paths are
+// enabled in a binary.
+//
+// This function may be called before Init.
+func GetVersionString() string {
+	return C.GoString(C.glfwGetVersionString())
+}
+
+// GetClipboardString returns the contents of the system clipboard, if it
+// contains or is convertible to a UTF-8 encoded string.
+//
+// This function may only be called from the main thread.
+func GetClipboardString() (string, error) {
+	cs := C.glfwGetClipboardString(nil)
+	if cs == nil {
+		if err := fetchErrorIgnoringPlatformError(); err != nil {
+			if errors.Is(err, FormatUnavailable) {
+				return "", nil
+			}
+			return "", err
+		}
+		return "", nil
+	}
+	return C.GoString(cs), nil
+}
+
+// SetClipboardString sets the system clipboard to the specified UTF-8 encoded
+// string.
+//
+// This function may only be called from the main thread.
+func SetClipboardString(str string) error {
+	cp := C.CString(str)
+	defer C.free(unsafe.Pointer(cp))
+	C.glfwSetClipboardString(nil, cp)
+	return fetchErrorIgnoringPlatformError()
 }

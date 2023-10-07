@@ -4,7 +4,7 @@
 
 //go:build freebsd || linux || netbsd || openbsd
 
-package cglfw
+package glfw
 
 //#include <stdlib.h>
 //#define GLFW_EXPOSE_NATIVE_X11

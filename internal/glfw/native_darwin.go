@@ -1,31 +1,41 @@
-// Copyright 2018 The Ebiten Authors
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// SPDX-License-Identifier: Apache-2.0
+// SPDX-FileCopyrightText: 2012 The glfw3-go Authors
+// SPDX-FileCopyrightText: 2023 The Ebitengine Authors
 
 package glfw
 
-func (w *Window) GetCocoaWindow() (uintptr, error) {
-	ptr, err := w.w.GetCocoaWindow()
-	if err != nil {
-		return 0, err
-	}
-	return uintptr(ptr), nil
+/*
+#define GLFW_EXPOSE_NATIVE_COCOA
+#define GLFW_EXPOSE_NATIVE_NSGL
+#include "glfw3_unix.h"
+#include "glfw3native_unix.h"
+
+// workaround wrappers needed due to a cgo and/or LLVM bug.
+// See: https://github.com/go-gl/glfw/issues/136
+static void *workaround_glfwGetCocoaWindow(GLFWwindow *w) {
+	return (void *)glfwGetCocoaWindow(w);
+}
+static void *workaround_glfwGetNSGLContext(GLFWwindow *w) {
+	return (void *)glfwGetNSGLContext(w);
+}
+*/
+import "C"
+import "unsafe"
+
+// GetCocoaMonitor returns the CGDirectDisplayID of the monitor.
+func (m *Monitor) GetCocoaMonitor() (uintptr, error) {
+	ret := uintptr(C.glfwGetCocoaMonitor(m.data))
+	return ret, fetchErrorIgnoringPlatformError()
 }
 
-func (m *Monitor) GetCocoaMonitor() (uintptr, error) {
-	ptr, err := m.m.GetCocoaMonitor()
-	if err != nil {
-		return 0, err
-	}
-	return uintptr(ptr), nil
+// GetCocoaWindow returns the NSWindow of the window.
+func (w *Window) GetCocoaWindow() (uintptr, error) {
+	ret := uintptr(C.workaround_glfwGetCocoaWindow(w.data))
+	return ret, fetchErrorIgnoringPlatformError()
+}
+
+// GetNSGLContext returns the NSOpenGLContext of the window.
+func (w *Window) GetNSGLContext() (unsafe.Pointer, error) {
+	ret := C.workaround_glfwGetNSGLContext(w.data)
+	return ret, fetchErrorIgnoringPlatformError()
 }

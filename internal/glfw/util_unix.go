@@ -4,7 +4,7 @@
 
 //go:build darwin || freebsd || linux || netbsd || openbsd
 
-package cglfw
+package glfw
 
 // #include <stdlib.h>
 import "C"

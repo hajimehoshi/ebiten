@@ -4,7 +4,7 @@
 
 //go:build darwin || freebsd || linux || netbsd || openbsd
 
-package cglfw
+package glfw
 
 // #include <stdlib.h>
 // #define GLFW_INCLUDE_NONE
@@ -90,120 +90,6 @@ func (w *windowList) get(wnd *C.GLFWwindow) *Window {
 	defer w.l.Unlock()
 	return w.m[wnd]
 }
-
-// Hint corresponds to hints that can be set before creating a window.
-//
-// Hint also corresponds to the attributes of the window that can be get after
-// its creation.
-type Hint int
-
-// Init related hints. (Use with glfw.InitHint)
-const (
-	CocoaChdirResources Hint = C.GLFW_COCOA_CHDIR_RESOURCES // Specifies whether to set the current directory to the application to the Contents/Resources subdirectory of the application's bundle, if present.
-	CocoaMenubar        Hint = C.GLFW_COCOA_MENUBAR         // Specifies whether to create a basic menu bar, either from a nib or manually, when the first window is created, which is when AppKit is initialized.
-)
-
-// Window related hints/attributes.
-const (
-	Focused                Hint = C.GLFW_FOCUSED                 // Specifies whether the window will be given input focus when created. This hint is ignored for full screen and initially hidden windows.
-	Iconified              Hint = C.GLFW_ICONIFIED               // Specifies whether the window will be minimized.
-	Maximized              Hint = C.GLFW_MAXIMIZED               // Specifies whether the window is maximized.
-	Visible                Hint = C.GLFW_VISIBLE                 // Specifies whether the window will be initially visible.
-	Hovered                Hint = C.GLFW_HOVERED                 // Specifies whether the cursor is currently directly over the content area of the window, with no other windows between. See Cursor enter/leave events for details.
-	Resizable              Hint = C.GLFW_RESIZABLE               // Specifies whether the window will be resizable by the user.
-	Decorated              Hint = C.GLFW_DECORATED               // Specifies whether the window will have window decorations such as a border, a close widget, etc.
-	Floating               Hint = C.GLFW_FLOATING                // Specifies whether the window will be always-on-top.
-	AutoIconify            Hint = C.GLFW_AUTO_ICONIFY            // Specifies whether fullscreen windows automatically iconify (and restore the previous video mode) on focus loss.
-	CenterCursor           Hint = C.GLFW_CENTER_CURSOR           // Specifies whether the cursor should be centered over newly created full screen windows. This hint is ignored for windowed mode windows.
-	TransparentFramebuffer Hint = C.GLFW_TRANSPARENT_FRAMEBUFFER // Specifies whether the framebuffer should be transparent.
-	FocusOnShow            Hint = C.GLFW_FOCUS_ON_SHOW           // Specifies whether the window will be given input focus when glfwShowWindow is called.
-	ScaleToMonitor         Hint = C.GLFW_SCALE_TO_MONITOR        // Specified whether the window content area should be resized based on the monitor content scale of any monitor it is placed on. This includes the initial placement when the window is created.
-)
-
-// Context related hints.
-const (
-	ClientAPI               Hint = C.GLFW_CLIENT_API               // Specifies which client API to create the context for. Hard constraint.
-	ContextVersionMajor     Hint = C.GLFW_CONTEXT_VERSION_MAJOR    // Specifies the client API version that the created context must be compatible with.
-	ContextVersionMinor     Hint = C.GLFW_CONTEXT_VERSION_MINOR    // Specifies the client API version that the created context must be compatible with.
-	ContextRobustness       Hint = C.GLFW_CONTEXT_ROBUSTNESS       // Specifies the robustness strategy to be used by the context.
-	ContextReleaseBehavior  Hint = C.GLFW_CONTEXT_RELEASE_BEHAVIOR // Specifies the release behavior to be used by the context.
-	OpenGLForwardCompatible Hint = C.GLFW_OPENGL_FORWARD_COMPAT    // Specifies whether the OpenGL context should be forward-compatible. Hard constraint.
-	OpenGLDebugContext      Hint = C.GLFW_OPENGL_DEBUG_CONTEXT     // Specifies whether to create a debug OpenGL context, which may have additional error and performance issue reporting functionality. If OpenGL ES is requested, this hint is ignored.
-	OpenGLProfile           Hint = C.GLFW_OPENGL_PROFILE           // Specifies which OpenGL profile to create the context for. Hard constraint.
-	ContextCreationAPI      Hint = C.GLFW_CONTEXT_CREATION_API     // Specifies which context creation API to use to create the context.
-)
-
-// Framebuffer related hints.
-const (
-	ContextRevision        Hint = C.GLFW_CONTEXT_REVISION
-	RedBits                Hint = C.GLFW_RED_BITS                 // Specifies the desired bit depth of the default framebuffer.
-	GreenBits              Hint = C.GLFW_GREEN_BITS               // Specifies the desired bit depth of the default framebuffer.
-	BlueBits               Hint = C.GLFW_BLUE_BITS                // Specifies the desired bit depth of the default framebuffer.
-	AlphaBits              Hint = C.GLFW_ALPHA_BITS               // Specifies the desired bit depth of the default framebuffer.
-	DepthBits              Hint = C.GLFW_DEPTH_BITS               // Specifies the desired bit depth of the default framebuffer.
-	StencilBits            Hint = C.GLFW_STENCIL_BITS             // Specifies the desired bit depth of the default framebuffer.
-	AccumRedBits           Hint = C.GLFW_ACCUM_RED_BITS           // Specifies the desired bit depth of the accumulation buffer.
-	AccumGreenBits         Hint = C.GLFW_ACCUM_GREEN_BITS         // Specifies the desired bit depth of the accumulation buffer.
-	AccumBlueBits          Hint = C.GLFW_ACCUM_BLUE_BITS          // Specifies the desired bit depth of the accumulation buffer.
-	AccumAlphaBits         Hint = C.GLFW_ACCUM_ALPHA_BITS         // Specifies the desired bit depth of the accumulation buffer.
-	AuxBuffers             Hint = C.GLFW_AUX_BUFFERS              // Specifies the desired number of auxiliary buffers.
-	Stereo                 Hint = C.GLFW_STEREO                   // Specifies whether to use stereoscopic rendering. Hard constraint.
-	Samples                Hint = C.GLFW_SAMPLES                  // Specifies the desired number of samples to use for multisampling. Zero disables multisampling.
-	SRGBCapable            Hint = C.GLFW_SRGB_CAPABLE             // Specifies whether the framebuffer should be sRGB capable.
-	RefreshRate            Hint = C.GLFW_REFRESH_RATE             // Specifies the desired refresh rate for full screen windows. If set to zero, the highest available refresh rate will be used. This hint is ignored for windowed mode windows.
-	DoubleBuffer           Hint = C.GLFW_DOUBLEBUFFER             // Specifies whether the framebuffer should be double buffered. You nearly always want to use double buffering. This is a hard constraint.
-	CocoaGraphicsSwitching Hint = C.GLFW_COCOA_GRAPHICS_SWITCHING // Specifies whether to in Automatic Graphics Switching, i.e. to allow the system to choose the integrated GPU for the OpenGL context and move it between GPUs if necessary or whether to force it to always run on the discrete GPU.
-	CocoaRetinaFramebuffer Hint = C.GLFW_COCOA_RETINA_FRAMEBUFFER // Specifies whether to use full resolution framebuffers on Retina displays.
-)
-
-// Naming related hints. (Use with glfw.WindowHintString)
-const (
-	CocoaFrameNAME  Hint = C.GLFW_COCOA_FRAME_NAME  // Specifies the UTF-8 encoded name to use for autosaving the window frame, or if empty disables frame autosaving for the window.
-	X11ClassName    Hint = C.GLFW_X11_CLASS_NAME    // Specifies the desired ASCII encoded class parts of the ICCCM WM_CLASS window property.nd instance parts of the ICCCM WM_CLASS window property.
-	X11InstanceName Hint = C.GLFW_X11_INSTANCE_NAME // Specifies the desired ASCII encoded instance parts of the ICCCM WM_CLASS window property.nd instance parts of the ICCCM WM_CLASS window property.
-)
-
-// Values for the ClientAPI hint.
-const (
-	OpenGLAPI   int = C.GLFW_OPENGL_API
-	OpenGLESAPI int = C.GLFW_OPENGL_ES_API
-	NoAPI       int = C.GLFW_NO_API
-)
-
-// Values for ContextCreationAPI hint.
-const (
-	NativeContextAPI int = C.GLFW_NATIVE_CONTEXT_API
-	EGLContextAPI    int = C.GLFW_EGL_CONTEXT_API
-	OSMesaContextAPI int = C.GLFW_OSMESA_CONTEXT_API
-)
-
-// Values for the ContextRobustness hint.
-const (
-	NoRobustness        int = C.GLFW_NO_ROBUSTNESS
-	NoResetNotification int = C.GLFW_NO_RESET_NOTIFICATION
-	LoseContextOnReset  int = C.GLFW_LOSE_CONTEXT_ON_RESET
-)
-
-// Values for ContextReleaseBehavior hint.
-const (
-	AnyReleaseBehavior   int = C.GLFW_ANY_RELEASE_BEHAVIOR
-	ReleaseBehaviorFlush int = C.GLFW_RELEASE_BEHAVIOR_FLUSH
-	ReleaseBehaviorNone  int = C.GLFW_RELEASE_BEHAVIOR_NONE
-)
-
-// Values for the OpenGLProfile hint.
-const (
-	OpenGLAnyProfile    int = C.GLFW_OPENGL_ANY_PROFILE
-	OpenGLCoreProfile   int = C.GLFW_OPENGL_CORE_PROFILE
-	OpenGLCompatProfile int = C.GLFW_OPENGL_COMPAT_PROFILE
-)
-
-// Other values.
-const (
-	True     int = 1 // GL_TRUE
-	False    int = 0 // GL_FALSE
-	DontCare int = C.GLFW_DONT_CARE
-)
 
 // Window represents a window.
 type Window struct {
@@ -689,8 +575,9 @@ func (w *Window) RequestAttention() {
 //
 // Do not use this function to steal focus from other applications unless you are certain that
 // is what the user wants. Focus stealing can be extremely disruptive.
-func (w *Window) Focus() {
+func (w *Window) Focus() error {
 	C.glfwFocusWindow(w.data)
+	return nil
 }
 
 // Iconify iconifies/minimizes the window, if it was previously restored. If it
@@ -699,16 +586,18 @@ func (w *Window) Focus() {
 // nothing.
 //
 // This function may only be called from the main thread.
-func (w *Window) Iconify() {
+func (w *Window) Iconify() error {
 	C.glfwIconifyWindow(w.data)
+	return nil
 }
 
 // Maximize maximizes the specified window if it was previously not maximized.
 // If the window is already maximized, this function does nothing.
 //
 // If the specified window is a full screen window, this function does nothing.
-func (w *Window) Maximize() {
+func (w *Window) Maximize() error {
 	C.glfwMaximizeWindow(w.data)
+	return nil
 }
 
 // Restore restores the window, if it was previously iconified/minimized. If it
@@ -717,8 +606,9 @@ func (w *Window) Maximize() {
 // nothing.
 //
 // This function may only be called from the main thread.
-func (w *Window) Restore() {
+func (w *Window) Restore() error {
 	C.glfwRestoreWindow(w.data)
+	return nil
 }
 
 // Show makes the window visible, if it was previously hidden. If the window is
@@ -810,8 +700,9 @@ func (w *Window) GetAttrib(attrib Hint) (int, error) {
 // will take effect if the window is later made full screen.
 //
 // This function may only be called from the main thread.
-func (w *Window) SetAttrib(attrib Hint, value int) {
+func (w *Window) SetAttrib(attrib Hint, value int) error {
 	C.glfwSetWindowAttrib(w.data, C.int(attrib), C.int(value))
+	return nil
 }
 
 // SetUserPointer sets the user-defined pointer of the window. The current value

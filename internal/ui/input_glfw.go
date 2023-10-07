@@ -32,22 +32,22 @@ var glfwMouseButtonToMouseButton = map[glfw.MouseButton]MouseButton{
 }
 
 func (u *userInterfaceImpl) registerInputCallbacks() error {
-	if _, err := u.window.SetCharModsCallback(glfw.ToCharModsCallback(func(w *glfw.Window, char rune, mods glfw.ModifierKey) {
+	if _, err := u.window.SetCharModsCallback(func(w *glfw.Window, char rune, mods glfw.ModifierKey) {
 		// As this function is called from GLFW callbacks, the current thread is main.
 		u.m.Lock()
 		defer u.m.Unlock()
 		u.inputState.appendRune(char)
-	})); err != nil {
+	}); err != nil {
 		return err
 	}
 
-	if _, err := u.window.SetScrollCallback(glfw.ToScrollCallback(func(w *glfw.Window, xoff float64, yoff float64) {
+	if _, err := u.window.SetScrollCallback(func(w *glfw.Window, xoff float64, yoff float64) {
 		// As this function is called from GLFW callbacks, the current thread is main.
 		u.m.Lock()
 		defer u.m.Unlock()
 		u.inputState.WheelX += xoff
 		u.inputState.WheelY += yoff
-	})); err != nil {
+	}); err != nil {
 		return err
 	}
 

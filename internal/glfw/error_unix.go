@@ -4,7 +4,7 @@
 
 //go:build darwin || freebsd || linux || netbsd || openbsd
 
-package cglfw
+package glfw
 
 // #define GLFW_INCLUDE_NONE
 // #include "glfw3_unix.h"
@@ -21,49 +21,6 @@ import (
 	"fmt"
 	"os"
 )
-
-// ErrorCode corresponds to an error code.
-type ErrorCode int
-
-const (
-	NotInitialized     = ErrorCode(0x00010001)
-	NoCurrentContext   = ErrorCode(0x00010002)
-	InvalidEnum        = ErrorCode(0x00010003)
-	InvalidValue       = ErrorCode(0x00010004)
-	OutOfMemory        = ErrorCode(0x00010005)
-	APIUnavailable     = ErrorCode(0x00010006)
-	VersionUnavailable = ErrorCode(0x00010007)
-	PlatformError      = ErrorCode(0x00010008)
-	FormatUnavailable  = ErrorCode(0x00010009)
-	NoWindowContext    = ErrorCode(0x0001000A)
-)
-
-func (e ErrorCode) Error() string {
-	switch e {
-	case NotInitialized:
-		return "the GLFW library is not initialized"
-	case NoCurrentContext:
-		return "there is no current context"
-	case InvalidEnum:
-		return "invalid argument for enum parameter"
-	case InvalidValue:
-		return "invalid value for parameter"
-	case OutOfMemory:
-		return "out of memory"
-	case APIUnavailable:
-		return "the requested API is unavailable"
-	case VersionUnavailable:
-		return "the requested API version is unavailable"
-	case PlatformError:
-		return "a platform-specific error occurred"
-	case FormatUnavailable:
-		return "the requested format is unavailable"
-	case NoWindowContext:
-		return "the specified window has no context"
-	default:
-		return fmt.Sprintf("GLFW error (%d)", e)
-	}
-}
 
 // Note: There are many cryptic caveats to proper error handling here.
 // See: https://github.com/go-gl/glfw3/pull/86

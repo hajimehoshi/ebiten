@@ -4,7 +4,7 @@
 
 //go:build freebsd || netbsd || openbsd
 
-package cglfw
+package glfw
 
 import "C"
 
