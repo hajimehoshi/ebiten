@@ -12,6 +12,7 @@ package cglfw
 import "C"
 
 import (
+	"errors"
 	"unsafe"
 )
 
@@ -116,7 +117,7 @@ func GetClipboardString() (string, error) {
 	cs := C.glfwGetClipboardString(nil)
 	if cs == nil {
 		if err := fetchErrorIgnoringPlatformError(); err != nil {
-			if cerr, ok := err.(*Error); ok && cerr.Code == FormatUnavailable {
+			if errors.Is(err, FormatUnavailable) {
 				return "", nil
 			}
 			return "", err

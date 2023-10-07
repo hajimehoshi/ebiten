@@ -58,6 +58,7 @@ package cglfw
 import "C"
 
 import (
+	"errors"
 	"image"
 	"image/draw"
 	"sync"
@@ -1054,7 +1055,7 @@ func (w *Window) GetClipboardString() (string, error) {
 	cs := C.glfwGetClipboardString(w.data)
 	if cs == nil {
 		if err := fetchErrorIgnoringPlatformError(); err != nil {
-			if cerr, ok := err.(*Error); ok && cerr.Code == FormatUnavailable {
+			if errors.Is(err, FormatUnavailable) {
 				return "", nil
 			}
 			return "", err
