@@ -76,13 +76,15 @@ func goMonitorCB(monitor unsafe.Pointer, event C.int) {
 }
 
 // GetMonitors returns a slice of handles for all currently connected monitors.
-func GetMonitors() []*Monitor {
+func GetMonitors() ([]*Monitor, error) {
 	var length int
 
 	mC := C.glfwGetMonitors((*C.int)(unsafe.Pointer(&length)))
-	panicError()
+	if err := fetchErrorIgnoringPlatformError(); err != nil {
+		return nil, err
+	}
 	if mC == nil {
-		return nil
+		return nil, nil
 	}
 
 	m := make([]*Monitor, length)
@@ -91,27 +93,31 @@ func GetMonitors() []*Monitor {
 		m[i] = &Monitor{C.GetMonitorAtIndex(mC, C.int(i))}
 	}
 
-	return m
+	return m, nil
 }
 
 // GetPrimaryMonitor returns the primary monitor. This is usually the monitor
 // where elements like the Windows task bar or the OS X menu bar is located.
-func GetPrimaryMonitor() *Monitor {
+func GetPrimaryMonitor() (*Monitor, error) {
 	m := C.glfwGetPrimaryMonitor()
-	panicError()
-	if m == nil {
-		return nil
+	if err := fetchErrorIgnoringPlatformError(); err != nil {
+		return nil, err
 	}
-	return &Monitor{m}
+	if m == nil {
+		return nil, nil
+	}
+	return &Monitor{m}, nil
 }
 
 // GetPos returns the position, in screen coordinates, of the upper-left
 // corner of the monitor.
-func (m *Monitor) GetPos() (x, y int) {
+func (m *Monitor) GetPos() (x, y int, err error) {
 	var xpos, ypos C.int
 	C.glfwGetMonitorPos(m.data, &xpos, &ypos)
-	panicError()
-	return int(xpos), int(ypos)
+	if err := fetchErrorIgnoringPlatformError(); err != nil {
+		return 0, 0, err
+	}
+	return int(xpos), int(ypos), nil
 }
 
 // GetWorkarea returns the position, in screen coordinates, of the upper-left
@@ -170,21 +176,25 @@ func (m *Monitor) GetUserPointer() unsafe.Pointer {
 // Note: Some operating systems do not provide accurate information, either
 // because the monitor's EDID data is incorrect, or because the driver does not
 // report it accurately.
-func (m *Monitor) GetPhysicalSize() (width, height int) {
+func (m *Monitor) GetPhysicalSize() (width, height int, err error) {
 	var wi, h C.int
 	C.glfwGetMonitorPhysicalSize(m.data, &wi, &h)
-	panicError()
-	return int(wi), int(h)
+	if err := fetchErrorIgnoringPlatformError(); err != nil {
+		return 0, 0, err
+	}
+	return int(wi), int(h), nil
 }
 
 // GetName returns a human-readable name of the monitor, encoded as UTF-8.
-func (m *Monitor) GetName() string {
+func (m *Monitor) GetName() (string, error) {
 	mn := C.glfwGetMonitorName(m.data)
-	panicError()
-	if mn == nil {
-		return ""
+	if err := fetchErrorIgnoringPlatformError(); err != nil {
+		return "", err
 	}
-	return C.GoString(mn)
+	if mn == nil {
+		return "", nil
+	}
+	return C.GoString(mn), nil
 }
 
 // MonitorCallback is the signature for monitor configuration callback
@@ -211,13 +221,15 @@ func SetMonitorCallback(cbfun MonitorCallback) MonitorCallback {
 // The returned array is sorted in ascending order, first by color bit depth
 // (the sum of all channel depths) and then by resolution area (the product of
 // width and height).
-func (m *Monitor) GetVideoModes() []*VidMode {
+func (m *Monitor) GetVideoModes() ([]*VidMode, error) {
 	var length int
 
 	vC := C.glfwGetVideoModes(m.data, (*C.int)(unsafe.Pointer(&length)))
-	panicError()
+	if err := fetchErrorIgnoringPlatformError(); err != nil {
+		return nil, err
+	}
 	if vC == nil {
-		return nil
+		return nil, nil
 	}
 
 	v := make([]*VidMode, length)
@@ -227,36 +239,43 @@ func (m *Monitor) GetVideoModes() []*VidMode {
 		v[i] = &VidMode{int(t.width), int(t.height), int(t.redBits), int(t.greenBits), int(t.blueBits), int(t.refreshRate)}
 	}
 
-	return v
+	return v, nil
 }
 
 // GetVideoMode returns the current video mode of the monitor. If you
 // are using a full screen window, the return value will therefore depend on
 // whether it is focused.
-func (m *Monitor) GetVideoMode() *VidMode {
+func (m *Monitor) GetVideoMode() (*VidMode, error) {
 	t := C.glfwGetVideoMode(m.data)
 	if t == nil {
-		return nil
+		return nil, nil
 	}
-	panicError()
-	return &VidMode{int(t.width), int(t.height), int(t.redBits), int(t.greenBits), int(t.blueBits), int(t.refreshRate)}
+	if err := fetchErrorIgnoringPlatformError(); err != nil {
+		return nil, err
+	}
+	return &VidMode{int(t.width), int(t.height), int(t.redBits), int(t.greenBits), int(t.blueBits), int(t.refreshRate)}, nil
 }
 
 // SetGamma generates a 256-element gamma ramp from the specified exponent and then calls
 // SetGamma with it.
-func (m *Monitor) SetGamma(gamma float32) {
+func (m *Monitor) SetGamma(gamma float32) error {
 	C.glfwSetGamma(m.data, C.float(gamma))
-	panicError()
+	if err := fetchErrorIgnoringPlatformError(); err != nil {
+		return err
+	}
+	return nil
 }
 
 // GetGammaRamp retrieves the current gamma ramp of the monitor.
-func (m *Monitor) GetGammaRamp() *GammaRamp {
+func (m *Monitor) GetGammaRamp() (*GammaRamp, error) {
 	var ramp GammaRamp
 
 	rampC := C.glfwGetGammaRamp(m.data)
-	panicError()
+	if err := fetchErrorIgnoringPlatformError(); err != nil {
+		return nil, err
+	}
 	if rampC == nil {
-		return nil
+		return nil, nil
 	}
 
 	length := int(rampC.size)
@@ -270,11 +289,11 @@ func (m *Monitor) GetGammaRamp() *GammaRamp {
 		ramp.Blue[i] = uint16(C.GetGammaAtIndex(rampC.blue, C.int(i)))
 	}
 
-	return &ramp
+	return &ramp, nil
 }
 
 // SetGammaRamp sets the current gamma ramp for the monitor.
-func (m *Monitor) SetGammaRamp(ramp *GammaRamp) {
+func (m *Monitor) SetGammaRamp(ramp *GammaRamp) error {
 	var rampC C.GLFWgammaramp
 
 	length := len(ramp.Red)
@@ -286,5 +305,8 @@ func (m *Monitor) SetGammaRamp(ramp *GammaRamp) {
 	}
 
 	C.glfwSetGammaRamp(m.data, &rampC)
-	panicError()
+	if err := fetchErrorIgnoringPlatformError(); err != nil {
+		return err
+	}
+	return nil
 }

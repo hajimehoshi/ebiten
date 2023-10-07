@@ -322,7 +322,9 @@ func (u *userInterfaceImpl) isNativeFullscreenAvailable() bool {
 
 func (u *userInterfaceImpl) setNativeFullscreen(fullscreen bool) error {
 	// Toggling fullscreen might ignore events like keyUp. Ensure that events are fired.
-	glfw.WaitEventsTimeout(0.1)
+	if err := glfw.WaitEventsTimeout(0.1); err != nil {
+		return err
+	}
 	w, err := u.window.GetCocoaWindow()
 	if err != nil {
 		return err

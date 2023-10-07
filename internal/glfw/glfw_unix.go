@@ -62,7 +62,10 @@ type Cursor struct {
 }
 
 func CreateStandardCursor(shape StandardCursor) (*Cursor, error) {
-	c := cglfw.CreateStandardCursor(cglfw.StandardCursor(shape))
+	c, err := cglfw.CreateStandardCursor(cglfw.StandardCursor(shape))
+	if err != nil {
+		return nil, err
+	}
 	return &Cursor{c: c}, nil
 }
 
@@ -76,12 +79,14 @@ func (m *Monitor) GetContentScale() (float32, float32, error) {
 }
 
 func (m *Monitor) GetPos() (x, y int, err error) {
-	x, y = m.m.GetPos()
-	return
+	return m.m.GetPos()
 }
 
 func (m *Monitor) GetVideoMode() (*VidMode, error) {
-	v := m.m.GetVideoMode()
+	v, err := m.m.GetVideoMode()
+	if err != nil {
+		return nil, err
+	}
 	if v == nil {
 		return nil, nil
 	}
@@ -96,18 +101,19 @@ func (m *Monitor) GetVideoMode() (*VidMode, error) {
 }
 
 func (m *Monitor) GetName() (string, error) {
-	return m.m.GetName(), nil
+	return m.m.GetName()
 }
 
 type Window struct {
 	w *cglfw.Window
-
-	prevSizeCallback SizeCallback
 }
 
-func (w *Window) Destroy() {
-	w.w.Destroy()
+func (w *Window) Destroy() error {
+	if err := w.w.Destroy(); err != nil {
+		return err
+	}
 	theWindows.remove(w.w)
+	return nil
 }
 
 func (w *Window) Focus() error {
@@ -116,24 +122,30 @@ func (w *Window) Focus() error {
 }
 
 func (w *Window) GetAttrib(attrib Hint) (int, error) {
-	return w.w.GetAttrib(cglfw.Hint(attrib)), nil
+	return w.w.GetAttrib(cglfw.Hint(attrib))
 }
 
 func (w *Window) GetCursorPos() (x, y float64, err error) {
-	x, y = w.w.GetCursorPos()
-	return
+	return w.w.GetCursorPos()
 }
 
 func (w *Window) GetInputMode(mode InputMode) (int, error) {
-	return w.w.GetInputMode(cglfw.InputMode(mode)), nil
+	return w.w.GetInputMode(cglfw.InputMode(mode))
 }
 
 func (w *Window) GetKey(key Key) (Action, error) {
-	return Action(w.w.GetKey(cglfw.Key(key))), nil
+	a, err := w.w.GetKey(cglfw.Key(key))
+	if err != nil {
+		return 0, err
+	}
+	return Action(a), nil
 }
 
 func (w *Window) GetMonitor() (*Monitor, error) {
-	m := w.w.GetMonitor()
+	m, err := w.w.GetMonitor()
+	if err != nil {
+		return nil, err
+	}
 	if m == nil {
 		return nil, nil
 	}
@@ -141,21 +153,23 @@ func (w *Window) GetMonitor() (*Monitor, error) {
 }
 
 func (w *Window) GetMouseButton(button MouseButton) (Action, error) {
-	return Action(w.w.GetMouseButton(cglfw.MouseButton(button))), nil
+	a, err := w.w.GetMouseButton(cglfw.MouseButton(button))
+	if err != nil {
+		return 0, err
+	}
+	return Action(a), nil
 }
 
 func (w *Window) GetPos() (x, y int, err error) {
-	x, y = w.w.GetPos()
-	return
+	return w.w.GetPos()
 }
 
 func (w *Window) GetSize() (width, height int, err error) {
-	width, height = w.w.GetSize()
-	return
+	return w.w.GetSize()
 }
 
-func (w *Window) Hide() {
-	w.w.Hide()
+func (w *Window) Hide() error {
+	return w.w.Hide()
 }
 
 func (w *Window) Iconify() error {
@@ -164,8 +178,7 @@ func (w *Window) Iconify() error {
 }
 
 func (w *Window) MakeContextCurrent() error {
-	w.w.MakeContextCurrent()
-	return nil
+	return w.w.MakeContextCurrent()
 }
 
 func (w *Window) Maximize() error {
@@ -184,13 +197,11 @@ func (w *Window) SetAttrib(attrib Hint, value int) error {
 }
 
 func (w *Window) SetCharModsCallback(cbfun CharModsCallback) (previous CharModsCallback, err error) {
-	w.w.SetCharModsCallback(cbfun)
-	return ToCharModsCallback(nil), nil // TODO
+	return w.w.SetCharModsCallback(cbfun)
 }
 
 func (w *Window) SetCloseCallback(cbfun CloseCallback) (previous CloseCallback, err error) {
-	w.w.SetCloseCallback(cbfun)
-	return ToCloseCallback(nil), nil // TODO
+	return w.w.SetCloseCallback(cbfun)
 }
 
 func (w *Window) SetCursor(cursor *Cursor) error {
@@ -198,55 +209,43 @@ func (w *Window) SetCursor(cursor *Cursor) error {
 	if cursor != nil {
 		c = cursor.c
 	}
-	w.w.SetCursor(c)
-	return nil
+	return w.w.SetCursor(c)
 }
 
 func (w *Window) SetCursorPos(xpos, ypos float64) error {
-	w.w.SetCursorPos(xpos, ypos)
-	return nil
+	return w.w.SetCursorPos(xpos, ypos)
 }
 
 func (w *Window) SetDropCallback(cbfun DropCallback) (previous DropCallback, err error) {
-	w.w.SetDropCallback(cbfun)
-	return ToDropCallback(nil), nil // TODO
+	return w.w.SetDropCallback(cbfun)
 }
 
 func (w *Window) SetFramebufferSizeCallback(cbfun FramebufferSizeCallback) (previous FramebufferSizeCallback, err error) {
-	w.w.SetFramebufferSizeCallback(cbfun)
-	return ToFramebufferSizeCallback(nil), nil // TODO
+	return w.w.SetFramebufferSizeCallback(cbfun)
 }
 
 func (w *Window) SetScrollCallback(cbfun ScrollCallback) (previous ScrollCallback, err error) {
-	w.w.SetScrollCallback(cbfun)
-	return ToScrollCallback(nil), nil // TODO
+	return w.w.SetScrollCallback(cbfun)
 }
 
 func (w *Window) SetShouldClose(value bool) error {
-	w.w.SetShouldClose(value)
-	return nil
+	return w.w.SetShouldClose(value)
 }
 
 func (w *Window) SetSizeCallback(cbfun SizeCallback) (previous SizeCallback, err error) {
-	w.w.SetSizeCallback(cbfun)
-	prev := w.prevSizeCallback
-	w.prevSizeCallback = cbfun
-	return prev, nil
+	return w.w.SetSizeCallback(cbfun)
 }
 
 func (w *Window) SetSizeLimits(minw, minh, maxw, maxh int) error {
-	w.w.SetSizeLimits(minw, minh, maxw, maxh)
-	return nil
+	return w.w.SetSizeLimits(minw, minh, maxw, maxh)
 }
 
 func (w *Window) SetIcon(images []image.Image) error {
-	w.w.SetIcon(images)
-	return nil
+	return w.w.SetIcon(images)
 }
 
 func (w *Window) SetInputMode(mode InputMode, value int) error {
-	w.w.SetInputMode(cglfw.InputMode(mode), value)
-	return nil
+	return w.w.SetInputMode(cglfw.InputMode(mode), value)
 }
 
 func (w *Window) SetMonitor(monitor *Monitor, xpos, ypos, width, height, refreshRate int) error {
@@ -254,37 +253,34 @@ func (w *Window) SetMonitor(monitor *Monitor, xpos, ypos, width, height, refresh
 	if monitor != nil {
 		m = monitor.m
 	}
-	w.w.SetMonitor(m, xpos, ypos, width, height, refreshRate)
+	if err := w.w.SetMonitor(m, xpos, ypos, width, height, refreshRate); err != nil {
+		return err
+	}
 	return nil
 }
 
 func (w *Window) SetPos(xpos, ypos int) error {
-	w.w.SetPos(xpos, ypos)
-	return nil
+	return w.w.SetPos(xpos, ypos)
 }
 
 func (w *Window) SetSize(width, height int) error {
-	w.w.SetSize(width, height)
-	return nil
+	return w.w.SetSize(width, height)
 }
 
 func (w *Window) SetTitle(title string) error {
-	w.w.SetTitle(title)
-	return nil
+	return w.w.SetTitle(title)
 }
 
 func (w *Window) ShouldClose() (bool, error) {
-	return w.w.ShouldClose(), nil
+	return w.w.ShouldClose()
 }
 
 func (w *Window) Show() error {
-	w.w.Show()
-	return nil
+	return w.w.Show()
 }
 
 func (w *Window) SwapBuffers() error {
-	w.w.SwapBuffers()
-	return nil
+	return w.w.SwapBuffers()
 }
 
 func CreateWindow(width, height int, title string, monitor *Monitor, share *Window) (*Window, error) {
@@ -305,12 +301,16 @@ func CreateWindow(width, height int, title string, monitor *Monitor, share *Wind
 }
 
 func GetKeyName(key Key, scancode int) (string, error) {
-	return cglfw.GetKeyName(cglfw.Key(key), scancode), nil
+	return cglfw.GetKeyName(cglfw.Key(key), scancode)
 }
 
 func GetMonitors() ([]*Monitor, error) {
+	monitors, err := cglfw.GetMonitors()
+	if err != nil {
+		return nil, err
+	}
 	var ms []*Monitor
-	for _, m := range cglfw.GetMonitors() {
+	for _, m := range monitors {
 		if m != nil {
 			ms = append(ms, &Monitor{m})
 		} else {
@@ -320,12 +320,15 @@ func GetMonitors() ([]*Monitor, error) {
 	return ms, nil
 }
 
-func GetPrimaryMonitor() *Monitor {
-	m := cglfw.GetPrimaryMonitor()
-	if m == nil {
-		return nil
+func GetPrimaryMonitor() (*Monitor, error) {
+	m, err := cglfw.GetPrimaryMonitor()
+	if err != nil {
+		return nil, err
 	}
-	return &Monitor{m}
+	if m == nil {
+		return nil, nil
+	}
+	return &Monitor{m}, nil
 }
 
 func Init() error {
@@ -333,13 +336,11 @@ func Init() error {
 }
 
 func PollEvents() error {
-	cglfw.PollEvents()
-	return nil
+	return cglfw.PollEvents()
 }
 
 func PostEmptyEvent() error {
-	cglfw.PostEmptyEvent()
-	return nil
+	return cglfw.PostEmptyEvent()
 }
 
 func SetMonitorCallback(cbfun MonitorCallback) (MonitorCallback, error) {
@@ -348,8 +349,7 @@ func SetMonitorCallback(cbfun MonitorCallback) (MonitorCallback, error) {
 }
 
 func SwapInterval(interval int) error {
-	cglfw.SwapInterval(interval)
-	return nil
+	return cglfw.SwapInterval(interval)
 }
 
 func Terminate() error {
@@ -358,15 +358,13 @@ func Terminate() error {
 }
 
 func WaitEvents() error {
-	cglfw.WaitEvents()
-	return nil
+	return cglfw.WaitEvents()
 }
 
-func WaitEventsTimeout(timeout float64) {
-	cglfw.WaitEventsTimeout(timeout)
+func WaitEventsTimeout(timeout float64) error {
+	return cglfw.WaitEventsTimeout(timeout)
 }
 
 func WindowHint(target Hint, hint int) error {
-	cglfw.WindowHint(cglfw.Hint(target), hint)
-	return nil
+	return cglfw.WindowHint(cglfw.Hint(target), hint)
 }

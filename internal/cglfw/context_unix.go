@@ -19,33 +19,44 @@ import (
 // Originally GLFW 3 passes a null pointer to detach the context.
 // But since we're using receievers, DetachCurrentContext should
 // be used instead.
-func (w *Window) MakeContextCurrent() {
+func (w *Window) MakeContextCurrent() error {
 	C.glfwMakeContextCurrent(w.data)
-	panicError()
+	if err := fetchErrorIgnoringPlatformError(); err != nil {
+		return err
+	}
+	return nil
 }
 
 // DetachCurrentContext detaches the current context.
-func DetachCurrentContext() {
+func DetachCurrentContext() error {
 	C.glfwMakeContextCurrent(nil)
-	panicError()
+	if err := fetchErrorIgnoringPlatformError(); err != nil {
+		return err
+	}
+	return nil
 }
 
 // GetCurrentContext returns the window whose context is current.
-func GetCurrentContext() *Window {
+func GetCurrentContext() (*Window, error) {
 	w := C.glfwGetCurrentContext()
-	panicError()
-	if w == nil {
-		return nil
+	if err := fetchErrorIgnoringPlatformError(); err != nil {
+		return nil, err
 	}
-	return windows.get(w)
+	if w == nil {
+		return nil, nil
+	}
+	return windows.get(w), nil
 }
 
 // SwapBuffers swaps the front and back buffers of the window. If the
 // swap interval is greater than zero, the GPU driver waits the specified number
 // of screen updates before swapping the buffers.
-func (w *Window) SwapBuffers() {
+func (w *Window) SwapBuffers() error {
 	C.glfwSwapBuffers(w.data)
-	panicError()
+	if err := fetchErrorIgnoringPlatformError(); err != nil {
+		return err
+	}
+	return nil
 }
 
 // SwapInterval sets the swap interval for the current context, i.e. the number
@@ -62,9 +73,12 @@ func (w *Window) SwapBuffers() {
 //
 // Some GPU drivers do not honor the requested swap interval, either because of
 // user settings that override the request or due to bugs in the driver.
-func SwapInterval(interval int) {
+func SwapInterval(interval int) error {
 	C.glfwSwapInterval(C.int(interval))
-	panicError()
+	if err := fetchErrorIgnoringPlatformError(); err != nil {
+		return err
+	}
+	return nil
 }
 
 // ExtensionSupported reports whether the specified OpenGL or context creation
@@ -75,12 +89,14 @@ func SwapInterval(interval int) {
 // recommended that you cache its results if it's going to be used frequently.
 // The extension strings will not change during the lifetime of a context, so
 // there is no danger in doing this.
-func ExtensionSupported(extension string) bool {
+func ExtensionSupported(extension string) (bool, error) {
 	e := C.CString(extension)
 	defer C.free(unsafe.Pointer(e))
 	ret := C.glfwExtensionSupported(e) != 0
-	panicError()
-	return ret
+	if err := fetchErrorIgnoringPlatformError(); err != nil {
+		return false, err
+	}
+	return ret, nil
 }
 
 // GetProcAddress returns the address of the specified OpenGL or OpenGL ES core
@@ -91,10 +107,12 @@ func ExtensionSupported(extension string) bool {
 //
 // This function is used to provide GL proc resolving capabilities to an
 // external C library.
-func GetProcAddress(procname string) unsafe.Pointer {
+func GetProcAddress(procname string) (unsafe.Pointer, error) {
 	p := C.CString(procname)
 	defer C.free(unsafe.Pointer(p))
 	ret := unsafe.Pointer(C.glfwGetProcAddress(p))
-	panicError()
-	return ret
+	if err := fetchErrorIgnoringPlatformError(); err != nil {
+		return nil, err
+	}
+	return ret, nil
 }

@@ -324,16 +324,21 @@ func goDropCB(window unsafe.Pointer, count C.int, names **C.char) { // TODO: The
 }
 
 // GetInputMode returns the value of an input option of the window.
-func (w *Window) GetInputMode(mode InputMode) int {
+func (w *Window) GetInputMode(mode InputMode) (int, error) {
 	ret := int(C.glfwGetInputMode(w.data, C.int(mode)))
-	panicError()
-	return ret
+	if err := fetchErrorIgnoringPlatformError(); err != nil {
+		return 0, err
+	}
+	return ret, nil
 }
 
 // SetInputMode sets an input option for the window.
-func (w *Window) SetInputMode(mode InputMode, value int) {
+func (w *Window) SetInputMode(mode InputMode, value int) error {
 	C.glfwSetInputMode(w.data, C.int(mode), C.int(value))
-	panicError()
+	if err := fetchErrorIgnoringPlatformError(); err != nil {
+		return err
+	}
+	return nil
 }
 
 // RawMouseMotionSupported returns whether raw mouse motion is supported on the
@@ -372,19 +377,23 @@ func GetKeyScancode(key Key) int {
 // The key functions deal with physical keys, with key tokens named after their
 // use on the standard US keyboard layout. If you want to input text, use the
 // Unicode character callback instead.
-func (w *Window) GetKey(key Key) Action {
+func (w *Window) GetKey(key Key) (Action, error) {
 	ret := Action(C.glfwGetKey(w.data, C.int(key)))
-	panicError()
-	return ret
+	if err := fetchErrorIgnoringPlatformError(); err != nil {
+		return 0, err
+	}
+	return ret, nil
 }
 
 // GetKeyName returns the localized name of the specified printable key.
 //
 // If the key is glfw.KeyUnknown, the scancode is used, otherwise the scancode is ignored.
-func GetKeyName(key Key, scancode int) string {
+func GetKeyName(key Key, scancode int) (string, error) {
 	ret := C.glfwGetKeyName(C.int(key), C.int(scancode))
-	panicError()
-	return C.GoString(ret)
+	if err := fetchErrorIgnoringPlatformError(); err != nil {
+		return "", err
+	}
+	return C.GoString(ret), nil
 }
 
 // GetMouseButton returns the last state reported for the specified mouse button.
@@ -392,10 +401,12 @@ func GetKeyName(key Key, scancode int) string {
 // If the StickyMouseButtons input mode is enabled, this function returns Press
 // the first time you call this function after a mouse button has been pressed,
 // even if the mouse button has already been released.
-func (w *Window) GetMouseButton(button MouseButton) Action {
+func (w *Window) GetMouseButton(button MouseButton) (Action, error) {
 	ret := Action(C.glfwGetMouseButton(w.data, C.int(button)))
-	panicError()
-	return ret
+	if err := fetchErrorIgnoringPlatformError(); err != nil {
+		return 0, err
+	}
+	return ret, nil
 }
 
 // GetCursorPos returns the last reported position of the cursor.
@@ -406,11 +417,13 @@ func (w *Window) GetMouseButton(button MouseButton) Action {
 // The coordinate can be converted to their integer equivalents with the floor
 // function. Casting directly to an integer type works for positive coordinates,
 // but fails for negative ones.
-func (w *Window) GetCursorPos() (x, y float64) {
+func (w *Window) GetCursorPos() (x, y float64, err error) {
 	var xpos, ypos C.double
 	C.glfwGetCursorPos(w.data, &xpos, &ypos)
-	panicError()
-	return float64(xpos), float64(ypos)
+	if err := fetchErrorIgnoringPlatformError(); err != nil {
+		return 0, 0, err
+	}
+	return float64(xpos), float64(ypos), nil
 }
 
 // SetCursorPos sets the position of the cursor. The specified window must
@@ -419,9 +432,12 @@ func (w *Window) GetCursorPos() (x, y float64) {
 //
 // If the cursor is disabled (with CursorDisabled) then the cursor position is
 // unbounded and limited only by the minimum and maximum values of a double.
-func (w *Window) SetCursorPos(xpos, ypos float64) {
+func (w *Window) SetCursorPos(xpos, ypos float64) error {
 	C.glfwSetCursorPos(w.data, C.double(xpos), C.double(ypos))
-	panicError()
+	if err := fetchErrorIgnoringPlatformError(); err != nil {
+		return err
+	}
+	return nil
 }
 
 // CreateCursor creates a new custom cursor image that can be set for a window with SetCursor.
@@ -435,7 +451,7 @@ func (w *Window) SetCursorPos(xpos, ypos float64) {
 //
 // The cursor hotspot is specified in pixels, relative to the upper-left corner of the cursor image.
 // Like all other coordinate systems in GLFW, the X-axis points to the right and the Y-axis points down.
-func CreateCursor(img image.Image, xhot, yhot int) *Cursor {
+func CreateCursor(img image.Image, xhot, yhot int) (*Cursor, error) {
 	var imgC C.GLFWimage
 	var pixels []uint8
 	b := img.Bounds()
@@ -458,24 +474,31 @@ func CreateCursor(img image.Image, xhot, yhot int) *Cursor {
 	c := C.glfwCreateCursor(&imgC, C.int(xhot), C.int(yhot))
 
 	free()
-	panicError()
+	if err := fetchErrorIgnoringPlatformError(); err != nil {
+		return nil, err
+	}
 
-	return &Cursor{c}
+	return &Cursor{c}, nil
 }
 
 // CreateStandardCursor returns a cursor with a standard shape,
 // that can be set for a window with SetCursor.
-func CreateStandardCursor(shape StandardCursor) *Cursor {
+func CreateStandardCursor(shape StandardCursor) (*Cursor, error) {
 	c := C.glfwCreateStandardCursor(C.int(shape))
-	panicError()
-	return &Cursor{c}
+	if err := fetchErrorIgnoringPlatformError(); err != nil {
+		return nil, err
+	}
+	return &Cursor{c}, nil
 }
 
 // Destroy destroys a cursor previously created with CreateCursor.
 // Any remaining cursors will be destroyed by Terminate.
-func (c *Cursor) Destroy() {
+func (c *Cursor) Destroy() error {
 	C.glfwDestroyCursor(c.data)
-	panicError()
+	if err := fetchErrorIgnoringPlatformError(); err != nil {
+		return err
+	}
+	return nil
 }
 
 // SetCursor sets the cursor image to be used when the cursor is over the client area
@@ -483,13 +506,16 @@ func (c *Cursor) Destroy() {
 // window is CursorNormal.
 //
 // On some platforms, the set cursor may not be visible unless the window also has input focus.
-func (w *Window) SetCursor(c *Cursor) {
+func (w *Window) SetCursor(c *Cursor) error {
 	if c == nil {
 		C.glfwSetCursor(w.data, nil)
 	} else {
 		C.glfwSetCursor(w.data, c.data)
 	}
-	panicError()
+	if err := fetchErrorIgnoringPlatformError(); err != nil {
+		return err
+	}
+	return nil
 }
 
 // KeyCallback is the key callback.
@@ -507,7 +533,7 @@ type KeyCallback func(w *Window, key Key, scancode int, action Action, mods Modi
 // fact that the synthetic ones are generated after the window has lost focus,
 // i.e. Focused will be false and the focus callback will have already been
 // called.
-func (w *Window) SetKeyCallback(cbfun KeyCallback) (previous KeyCallback) {
+func (w *Window) SetKeyCallback(cbfun KeyCallback) (previous KeyCallback, err error) {
 	previous = w.fKeyHolder
 	w.fKeyHolder = cbfun
 	if cbfun == nil {
@@ -515,8 +541,10 @@ func (w *Window) SetKeyCallback(cbfun KeyCallback) (previous KeyCallback) {
 	} else {
 		C.glfwSetKeyCallbackCB(w.data)
 	}
-	panicError()
-	return previous
+	if err := fetchErrorIgnoringPlatformError(); err != nil {
+		return nil, err
+	}
+	return previous, nil
 }
 
 // CharCallback is the character callback.
@@ -536,7 +564,7 @@ type CharCallback func(w *Window, char rune)
 // not be called if modifier keys are held down that would prevent normal text
 // input on that platform, for example a Super (Command) key on OS X or Alt key
 // on Windows. There is a character with modifiers callback that receives these events.
-func (w *Window) SetCharCallback(cbfun CharCallback) (previous CharCallback) {
+func (w *Window) SetCharCallback(cbfun CharCallback) (previous CharCallback, err error) {
 	previous = w.fCharHolder
 	w.fCharHolder = cbfun
 	if cbfun == nil {
@@ -544,8 +572,10 @@ func (w *Window) SetCharCallback(cbfun CharCallback) (previous CharCallback) {
 	} else {
 		C.glfwSetCharCallbackCB(w.data)
 	}
-	panicError()
-	return previous
+	if err := fetchErrorIgnoringPlatformError(); err != nil {
+		return nil, err
+	}
+	return previous, nil
 }
 
 // CharModsCallback is the character with modifiers callback.
@@ -563,7 +593,7 @@ type CharModsCallback func(w *Window, char rune, mods ModifierKey)
 // map 1:1 to physical keys, as a key may produce zero, one or more characters.
 // If you want to know whether a specific physical key was pressed or released,
 // see the key callback instead.
-func (w *Window) SetCharModsCallback(cbfun CharModsCallback) (previous CharModsCallback) {
+func (w *Window) SetCharModsCallback(cbfun CharModsCallback) (previous CharModsCallback, err error) {
 	previous = w.fCharModsHolder
 	w.fCharModsHolder = cbfun
 	if cbfun == nil {
@@ -571,8 +601,10 @@ func (w *Window) SetCharModsCallback(cbfun CharModsCallback) (previous CharModsC
 	} else {
 		C.glfwSetCharModsCallbackCB(w.data)
 	}
-	panicError()
-	return previous
+	if err := fetchErrorIgnoringPlatformError(); err != nil {
+		return nil, err
+	}
+	return previous, nil
 }
 
 // MouseButtonCallback is the mouse button callback.
@@ -586,7 +618,7 @@ type MouseButtonCallback func(w *Window, button MouseButton, action Action, mods
 // user-generated events by the fact that the synthetic ones are generated after
 // the window has lost focus, i.e. Focused will be false and the focus
 // callback will have already been called.
-func (w *Window) SetMouseButtonCallback(cbfun MouseButtonCallback) (previous MouseButtonCallback) {
+func (w *Window) SetMouseButtonCallback(cbfun MouseButtonCallback) (previous MouseButtonCallback, err error) {
 	previous = w.fMouseButtonHolder
 	w.fMouseButtonHolder = cbfun
 	if cbfun == nil {
@@ -594,8 +626,10 @@ func (w *Window) SetMouseButtonCallback(cbfun MouseButtonCallback) (previous Mou
 	} else {
 		C.glfwSetMouseButtonCallbackCB(w.data)
 	}
-	panicError()
-	return previous
+	if err := fetchErrorIgnoringPlatformError(); err != nil {
+		return nil, err
+	}
+	return previous, nil
 }
 
 // CursorPosCallback the cursor position callback.
@@ -604,7 +638,7 @@ type CursorPosCallback func(w *Window, xpos float64, ypos float64)
 // SetCursorPosCallback sets the cursor position callback which is called
 // when the cursor is moved. The callback is provided with the position relative
 // to the upper-left corner of the client area of the window.
-func (w *Window) SetCursorPosCallback(cbfun CursorPosCallback) (previous CursorPosCallback) {
+func (w *Window) SetCursorPosCallback(cbfun CursorPosCallback) (previous CursorPosCallback, err error) {
 	previous = w.fCursorPosHolder
 	w.fCursorPosHolder = cbfun
 	if cbfun == nil {
@@ -612,8 +646,10 @@ func (w *Window) SetCursorPosCallback(cbfun CursorPosCallback) (previous CursorP
 	} else {
 		C.glfwSetCursorPosCallbackCB(w.data)
 	}
-	panicError()
-	return previous
+	if err := fetchErrorIgnoringPlatformError(); err != nil {
+		return nil, err
+	}
+	return previous, nil
 }
 
 // CursorEnterCallback is the cursor boundary crossing callback.
@@ -621,7 +657,7 @@ type CursorEnterCallback func(w *Window, entered bool)
 
 // SetCursorEnterCallback the cursor boundary crossing callback which is called
 // when the cursor enters or leaves the client area of the window.
-func (w *Window) SetCursorEnterCallback(cbfun CursorEnterCallback) (previous CursorEnterCallback) {
+func (w *Window) SetCursorEnterCallback(cbfun CursorEnterCallback) (previous CursorEnterCallback, err error) {
 	previous = w.fCursorEnterHolder
 	w.fCursorEnterHolder = cbfun
 	if cbfun == nil {
@@ -629,8 +665,10 @@ func (w *Window) SetCursorEnterCallback(cbfun CursorEnterCallback) (previous Cur
 	} else {
 		C.glfwSetCursorEnterCallbackCB(w.data)
 	}
-	panicError()
-	return previous
+	if err := fetchErrorIgnoringPlatformError(); err != nil {
+		return nil, err
+	}
+	return previous, nil
 }
 
 // ScrollCallback is the scroll callback.
@@ -638,7 +676,7 @@ type ScrollCallback func(w *Window, xoff float64, yoff float64)
 
 // SetScrollCallback sets the scroll callback which is called when a scrolling
 // device is used, such as a mouse wheel or scrolling area of a touchpad.
-func (w *Window) SetScrollCallback(cbfun ScrollCallback) (previous ScrollCallback) {
+func (w *Window) SetScrollCallback(cbfun ScrollCallback) (previous ScrollCallback, err error) {
 	previous = w.fScrollHolder
 	w.fScrollHolder = cbfun
 	if cbfun == nil {
@@ -646,8 +684,10 @@ func (w *Window) SetScrollCallback(cbfun ScrollCallback) (previous ScrollCallbac
 	} else {
 		C.glfwSetScrollCallbackCB(w.data)
 	}
-	panicError()
-	return previous
+	if err := fetchErrorIgnoringPlatformError(); err != nil {
+		return nil, err
+	}
+	return previous, nil
 }
 
 // DropCallback is the drop callback.
@@ -655,7 +695,7 @@ type DropCallback func(w *Window, names []string)
 
 // SetDropCallback sets the drop callback which is called when an object
 // is dropped over the window.
-func (w *Window) SetDropCallback(cbfun DropCallback) (previous DropCallback) {
+func (w *Window) SetDropCallback(cbfun DropCallback) (previous DropCallback, err error) {
 	previous = w.fDropHolder
 	w.fDropHolder = cbfun
 	if cbfun == nil {
@@ -663,6 +703,8 @@ func (w *Window) SetDropCallback(cbfun DropCallback) (previous DropCallback) {
 	} else {
 		C.glfwSetDropCallbackCB(w.data)
 	}
-	panicError()
-	return previous
+	if err := fetchErrorIgnoringPlatformError(); err != nil {
+		return nil, err
+	}
+	return previous, nil
 }
