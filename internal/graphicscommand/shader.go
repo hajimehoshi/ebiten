@@ -32,7 +32,7 @@ func NewShader(ir *shaderir.Program) *Shader {
 		result: s,
 		ir:     ir,
 	}
-	currentCommandQueue().Enqueue(c)
+	theCommandQueueManager.enqueueCommand(c)
 	return s
 }
 
@@ -40,7 +40,7 @@ func (s *Shader) Dispose() {
 	c := &disposeShaderCommand{
 		target: s,
 	}
-	currentCommandQueue().Enqueue(c)
+	theCommandQueueManager.enqueueCommand(c)
 }
 
 func (s *Shader) unit() shaderir.Unit {

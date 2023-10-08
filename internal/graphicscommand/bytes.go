@@ -71,5 +71,5 @@ func (t *temporaryBytes) reset() {
 //
 // Be careful that the returned pixels might not be zero-cleared.
 func AllocBytes(size int) []byte {
-	return currentCommandQueue().temporaryBytes.alloc(size)
+	return theCommandQueueManager.allocBytes(size)
 }

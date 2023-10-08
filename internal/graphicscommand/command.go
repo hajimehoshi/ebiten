@@ -19,6 +19,7 @@ import (
 	"image"
 	"math"
 	"strings"
+	"sync"
 	"sync/atomic"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/debug"
@@ -79,24 +80,6 @@ type commandQueue struct {
 	temporaryBytes temporaryBytes
 
 	err atomic.Value
-}
-
-// theCommandQueues is the set of command queues for the current process.
-var (
-	theCommandQueues = [...]*commandQueue{
-		{},
-		{},
-	}
-	commandQueueIndex int
-)
-
-func currentCommandQueue() *commandQueue {
-	return theCommandQueues[commandQueueIndex]
-}
-
-func switchCommandQueue() {
-	commandQueueIndex++
-	commandQueueIndex = commandQueueIndex % len(theCommandQueues)
 }
 
 func (q *commandQueue) appendIndices(indices []uint16, offset uint16) {
@@ -217,6 +200,8 @@ func (q *commandQueue) Flush(graphicsDriver graphicsdriver.Graphics, endFrame bo
 		if endFrame && swapBuffersForGL != nil {
 			swapBuffersForGL()
 		}
+
+		theCommandQueueManager.putCommandQueue(q)
 	}, sync)
 
 	if sync && flushErr != nil {
@@ -312,9 +297,7 @@ func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics, endFrame bo
 // If endFrame is true, the current screen might be used to present.
 func FlushCommands(graphicsDriver graphicsdriver.Graphics, endFrame bool, swapBuffersForGL func()) error {
 	flushImageBuffers()
-	q := currentCommandQueue()
-	switchCommandQueue()
-	if err := q.Flush(graphicsDriver, endFrame, swapBuffersForGL); err != nil {
+	if err := theCommandQueueManager.flush(graphicsDriver, endFrame, swapBuffersForGL); err != nil {
 		return err
 	}
 	return nil
@@ -649,6 +632,89 @@ func MaxImageSize(graphicsDriver graphicsdriver.Graphics) int {
 		size = graphicsDriver.MaxImageSize()
 	}, true)
 	return size
+}
+
+type commandQueuePool struct {
+	cache []*commandQueue
+	m     sync.Mutex
+}
+
+func (c *commandQueuePool) get() (*commandQueue, error) {
+	c.m.Lock()
+	defer c.m.Unlock()
+
+	if len(c.cache) == 0 {
+		return &commandQueue{}, nil
+	}
+
+	for _, q := range c.cache {
+		if err := q.err.Load(); err != nil {
+			return nil, err.(error)
+		}
+	}
+
+	q := c.cache[len(c.cache)-1]
+	c.cache[len(c.cache)-1] = nil
+	c.cache = c.cache[:len(c.cache)-1]
+	return q, nil
+}
+
+func (c *commandQueuePool) put(queue *commandQueue) {
+	c.m.Lock()
+	defer c.m.Unlock()
+
+	c.cache = append(c.cache, queue)
+}
+
+type commandQueueManager struct {
+	pool    commandQueuePool
+	current *commandQueue
+}
+
+var theCommandQueueManager commandQueueManager
+
+func (c *commandQueueManager) allocBytes(size int) []byte {
+	if c.current == nil {
+		c.current, _ = c.pool.get()
+	}
+	return c.current.temporaryBytes.alloc(size)
+}
+
+func (c *commandQueueManager) enqueueCommand(command command) {
+	if c.current == nil {
+		c.current, _ = c.pool.get()
+	}
+	c.current.Enqueue(command)
+}
+
+// put can be called from any goroutines.
+func (c *commandQueueManager) putCommandQueue(commandQueue *commandQueue) {
+	c.pool.put(commandQueue)
+}
+
+func (c *commandQueueManager) enqueueDrawTrianglesCommand(dst *Image, srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint16, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderImageCount]image.Rectangle, shader *Shader, uniforms []uint32, evenOdd bool) {
+	if c.current == nil {
+		c.current, _ = c.pool.get()
+	}
+	c.current.EnqueueDrawTrianglesCommand(dst, srcs, vertices, indices, blend, dstRegion, srcRegions, shader, uniforms, evenOdd)
+}
+
+func (c *commandQueueManager) flush(graphicsDriver graphicsdriver.Graphics, endFrame bool, swapBuffersForGL func()) error {
+	// Switch the command queue.
+	prev := c.current
+	q, err := c.pool.get()
+	if err != nil {
+		return err
+	}
+	c.current = q
+
+	if prev == nil {
+		return nil
+	}
+	if err := prev.Flush(graphicsDriver, endFrame, swapBuffersForGL); err != nil {
+		return err
+	}
+	return nil
 }
 
 func max(a, b int) int {
