@@ -311,10 +311,11 @@ func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics, endFrame bo
 // If endFrame is true, the current screen might be used to present.
 func FlushCommands(graphicsDriver graphicsdriver.Graphics, endFrame bool, swapBuffersForGL func()) error {
 	flushImageBuffers()
-	if err := currentCommandQueue().Flush(graphicsDriver, endFrame, swapBuffersForGL); err != nil {
+	q := currentCommandQueue()
+	switchCommandQueue()
+	if err := q.Flush(graphicsDriver, endFrame, swapBuffersForGL); err != nil {
 		return err
 	}
-	switchCommandQueue()
 	return nil
 }
 
