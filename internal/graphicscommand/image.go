@@ -54,31 +54,6 @@ func genNextID() int {
 	return id
 }
 
-// imagesWithBuffers is the set of an image with buffers.
-var imagesWithBuffers = map[*Image]struct{}{}
-
-// addImageWithBuffer adds an image to the list of images with unflushed buffers.
-func addImageWithBuffer(img *Image) {
-	imagesWithBuffers[img] = struct{}{}
-}
-
-// removeImageWithBuffer removes an image from the list of images with unflushed buffers.
-func removeImageWithBuffer(img *Image) {
-	delete(imagesWithBuffers, img)
-}
-
-// flushImageBuffers flushes all the image buffers and send to the command queue.
-// flushImageBuffers should be called before flushing commands.
-func flushImageBuffers() {
-	for img := range imagesWithBuffers {
-		img.flushBufferedWritePixels()
-	}
-
-	if len(imagesWithBuffers) != 0 {
-		panic("graphicscommand: len(imagesWithBuffers) must be empty after flushing")
-	}
-}
-
 // NewImage returns a new image.
 //
 // Note that the image is not initialized yet.
@@ -110,8 +85,6 @@ func (i *Image) flushBufferedWritePixels() {
 	theCommandQueueManager.enqueueCommand(c)
 
 	i.bufferedWritePixelsArgs = nil
-
-	removeImageWithBuffer(i)
 }
 
 func (i *Image) Dispose() {
@@ -120,8 +93,6 @@ func (i *Image) Dispose() {
 		target: i,
 	}
 	theCommandQueueManager.enqueueCommand(c)
-
-	removeImageWithBuffer(i)
 }
 
 func (i *Image) InternalSize() (int, int) {
@@ -193,7 +164,6 @@ func (i *Image) WritePixels(pixels []byte, region image.Rectangle) {
 		Pixels: pixels,
 		Region: region,
 	})
-	addImageWithBuffer(i)
 }
 
 func (i *Image) IsInvalidated(graphicsDriver graphicsdriver.Graphics) (bool, error) {

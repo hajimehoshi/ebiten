@@ -30,7 +30,6 @@ import (
 // FlushCommands flushes the command queue and present the screen if needed.
 // If endFrame is true, the current screen might be used to present.
 func FlushCommands(graphicsDriver graphicsdriver.Graphics, endFrame bool, swapBuffersForGL func()) error {
-	flushImageBuffers()
 	if err := theCommandQueueManager.flush(graphicsDriver, endFrame, swapBuffersForGL); err != nil {
 		return err
 	}
@@ -51,8 +50,6 @@ type commandQueue struct {
 	drawTrianglesCommandPool drawTrianglesCommandPool
 
 	uint32sBuffer uint32sBuffer
-
-	temporaryBytes temporaryBytes
 
 	err atomic.Value
 }
@@ -223,7 +220,6 @@ func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics, endFrame bo
 
 		if endFrame {
 			q.uint32sBuffer.reset()
-			q.temporaryBytes.reset()
 		}
 	}()
 
@@ -440,13 +436,6 @@ type commandQueueManager struct {
 }
 
 var theCommandQueueManager commandQueueManager
-
-func (c *commandQueueManager) allocBytes(size int) []byte {
-	if c.current == nil {
-		c.current, _ = c.pool.get()
-	}
-	return c.current.temporaryBytes.alloc(size)
-}
 
 func (c *commandQueueManager) enqueueCommand(command command) {
 	if c.current == nil {
