@@ -49,6 +49,7 @@ func (p *drawTrianglesCommandPool) get() *drawTrianglesCommand {
 		return &drawTrianglesCommand{}
 	}
 	v := p.pool[len(p.pool)-1]
+	p.pool[len(p.pool)-1] = nil
 	p.pool = p.pool[:len(p.pool)-1]
 	return v
 }
