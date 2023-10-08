@@ -50,8 +50,15 @@ type commandQueue struct {
 	drawTrianglesCommandPool drawTrianglesCommandPool
 
 	uint32sBuffer uint32sBuffer
+	finalizers    []func()
 
 	err atomic.Value
+}
+
+// addFinalizer adds a finalizer function to this queue.
+// A finalizer is executed when the command queue is flushed at the end of the frame.
+func (q *commandQueue) addFinalizer(f func()) {
+	q.finalizers = append(q.finalizers, f)
 }
 
 func (q *commandQueue) appendIndices(indices []uint16, offset uint16) {
@@ -220,6 +227,11 @@ func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics, endFrame bo
 
 		if endFrame {
 			q.uint32sBuffer.reset()
+			for i, f := range q.finalizers {
+				f()
+				q.finalizers[i] = nil
+			}
+			q.finalizers = q.finalizers[:0]
 		}
 	}()
 
@@ -247,7 +259,7 @@ func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics, endFrame bo
 		}
 		indexOffset := 0
 		for _, c := range cs[:nc] {
-			if err := c.Exec(graphicsDriver, indexOffset); err != nil {
+			if err := c.Exec(q, graphicsDriver, indexOffset); err != nil {
 				return err
 			}
 			logger.Logf("  %s\n", c)

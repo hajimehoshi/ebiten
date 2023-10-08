@@ -92,7 +92,12 @@ func TestWritePixelsPartAfterDrawTriangles(t *testing.T) {
 	dr := image.Rect(0, 0, w, h)
 	dst.DrawTriangles([graphics.ShaderImageCount]*graphicscommand.Image{clr}, vs, is, graphicsdriver.BlendClear, dr, [graphics.ShaderImageCount]image.Rectangle{}, nearestFilterShader, nil, false)
 	dst.DrawTriangles([graphics.ShaderImageCount]*graphicscommand.Image{src}, vs, is, graphicsdriver.BlendSourceOver, dr, [graphics.ShaderImageCount]image.Rectangle{}, nearestFilterShader, nil, false)
-	dst.WritePixels(make([]byte, 4), image.Rect(0, 0, 1, 1))
+	bs := graphics.NewManagedBytes(4, func(bs []byte) {
+		for i := range bs {
+			bs[i] = 0
+		}
+	})
+	dst.WritePixels(bs, image.Rect(0, 0, 1, 1))
 
 	// TODO: Check the result.
 }

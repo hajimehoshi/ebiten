@@ -16,6 +16,7 @@ package graphicscommand
 
 import (
 	"fmt"
+	"image"
 	"math"
 	"strings"
 
@@ -33,7 +34,7 @@ import (
 type command interface {
 	fmt.Stringer
 
-	Exec(graphicsDriver graphicsdriver.Graphics, indexOffset int) error
+	Exec(commandQueue *commandQueue, graphicsDriver graphicsdriver.Graphics, indexOffset int) error
 	NeedsSync() bool
 }
 
@@ -101,7 +102,7 @@ func (c *drawTrianglesCommand) String() string {
 }
 
 // Exec executes the drawTrianglesCommand.
-func (c *drawTrianglesCommand) Exec(graphicsDriver graphicsdriver.Graphics, indexOffset int) error {
+func (c *drawTrianglesCommand) Exec(commandQueue *commandQueue, graphicsDriver graphicsdriver.Graphics, indexOffset int) error {
 	// TODO: Is it ok not to bind any framebuffer here?
 	if len(c.dstRegions) == 0 {
 		return nil
@@ -211,7 +212,12 @@ func mightOverlapDstRegions(vertices1, vertices2 []float32) bool {
 // writePixelsCommand represents a command to replace pixels of an image.
 type writePixelsCommand struct {
 	dst  *Image
-	args []graphicsdriver.PixelsArgs
+	args []writePixelsCommandArgs
+}
+
+type writePixelsCommandArgs struct {
+	pixels *graphics.ManagedBytes
+	region image.Rectangle
 }
 
 func (c *writePixelsCommand) String() string {
@@ -219,11 +225,24 @@ func (c *writePixelsCommand) String() string {
 }
 
 // Exec executes the writePixelsCommand.
-func (c *writePixelsCommand) Exec(graphicsDriver graphicsdriver.Graphics, indexOffset int) error {
+func (c *writePixelsCommand) Exec(commandQueue *commandQueue, graphicsDriver graphicsdriver.Graphics, indexOffset int) error {
 	if len(c.args) == 0 {
 		return nil
 	}
-	if err := c.dst.image.WritePixels(c.args); err != nil {
+	args := make([]graphicsdriver.PixelsArgs, 0, len(c.args))
+	for _, a := range c.args {
+		pix, f := a.pixels.GetAndRelease()
+		// A finalizer is executed when flushing the queue at the end of the frame.
+		// At the end of the frame, the last command is rendering triangles onto the screen,
+		// so the bytes are already sent to GPU and synced.
+		// TODO: This might be fragile. When is the better time to call finalizers by a command queue?
+		commandQueue.addFinalizer(f)
+		args = append(args, graphicsdriver.PixelsArgs{
+			Pixels: pix,
+			Region: a.region,
+		})
+	}
+	if err := c.dst.image.WritePixels(args); err != nil {
 		return err
 	}
 	return nil
@@ -239,7 +258,7 @@ type readPixelsCommand struct {
 }
 
 // Exec executes a readPixelsCommand.
-func (c *readPixelsCommand) Exec(graphicsDriver graphicsdriver.Graphics, indexOffset int) error {
+func (c *readPixelsCommand) Exec(commandQueue *commandQueue, graphicsDriver graphicsdriver.Graphics, indexOffset int) error {
 	if err := c.img.image.ReadPixels(c.args); err != nil {
 		return err
 	}
@@ -264,7 +283,7 @@ func (c *disposeImageCommand) String() string {
 }
 
 // Exec executes the disposeImageCommand.
-func (c *disposeImageCommand) Exec(graphicsDriver graphicsdriver.Graphics, indexOffset int) error {
+func (c *disposeImageCommand) Exec(commandQueue *commandQueue, graphicsDriver graphicsdriver.Graphics, indexOffset int) error {
 	c.target.image.Dispose()
 	return nil
 }
@@ -283,7 +302,7 @@ func (c *disposeShaderCommand) String() string {
 }
 
 // Exec executes the disposeShaderCommand.
-func (c *disposeShaderCommand) Exec(graphicsDriver graphicsdriver.Graphics, indexOffset int) error {
+func (c *disposeShaderCommand) Exec(commandQueue *commandQueue, graphicsDriver graphicsdriver.Graphics, indexOffset int) error {
 	c.target.shader.Dispose()
 	return nil
 }
@@ -305,7 +324,7 @@ func (c *newImageCommand) String() string {
 }
 
 // Exec executes a newImageCommand.
-func (c *newImageCommand) Exec(graphicsDriver graphicsdriver.Graphics, indexOffset int) error {
+func (c *newImageCommand) Exec(commandQueue *commandQueue, graphicsDriver graphicsdriver.Graphics, indexOffset int) error {
 	var err error
 	if c.screen {
 		c.result.image, err = graphicsDriver.NewScreenFramebufferImage(c.width, c.height)
@@ -330,7 +349,7 @@ func (c *newShaderCommand) String() string {
 }
 
 // Exec executes a newShaderCommand.
-func (c *newShaderCommand) Exec(graphicsDriver graphicsdriver.Graphics, indexOffset int) error {
+func (c *newShaderCommand) Exec(commandQueue *commandQueue, graphicsDriver graphicsdriver.Graphics, indexOffset int) error {
 	s, err := graphicsDriver.NewShader(c.ir)
 	if err != nil {
 		return err
@@ -352,7 +371,7 @@ func (c *isInvalidatedCommand) String() string {
 	return fmt.Sprintf("is-invalidated: image: %d", c.image.id)
 }
 
-func (c *isInvalidatedCommand) Exec(graphicsDriver graphicsdriver.Graphics, indexOffset int) error {
+func (c *isInvalidatedCommand) Exec(commandQueue *commandQueue, graphicsDriver graphicsdriver.Graphics, indexOffset int) error {
 	c.result = c.image.image.IsInvalidated()
 	return nil
 }

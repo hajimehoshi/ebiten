@@ -482,39 +482,38 @@ func (i *Image) writePixels(pix []byte, region image.Rectangle) {
 		}
 
 		// Copy pixels in the case when pix is modified before the graphics command is executed.
-		// TODO: Create byte slices from a pool.
-		pix2 := make([]byte, len(pix))
-		copy(pix2, pix)
+		pix2 := graphics.NewManagedBytes(len(pix), func(bs []byte) {
+			copy(bs, pix)
+		})
 		i.backend.restorable.WritePixels(pix2, region)
 		return
 	}
 
-	// TODO: Create byte slices from a pool.
-	pixb := make([]byte, 4*r.Dx()*r.Dy())
-
-	// Clear the edges. pixb might not be zero-cleared.
 	// TODO: These loops assume that paddingSize is 1.
 	// TODO: Is clearing edges explicitly really needed?
 	const paddingSize = 1
 	if paddingSize != i.paddingSize() {
 		panic(fmt.Sprintf("atlas: writePixels assumes the padding is always 1 but the actual padding was %d", i.paddingSize()))
 	}
-	rowPixels := 4 * r.Dx()
-	for i := 0; i < rowPixels; i++ {
-		pixb[rowPixels*(r.Dy()-1)+i] = 0
-	}
-	for j := 1; j < r.Dy(); j++ {
-		pixb[rowPixels*j-4] = 0
-		pixb[rowPixels*j-3] = 0
-		pixb[rowPixels*j-2] = 0
-		pixb[rowPixels*j-1] = 0
-	}
 
-	// Copy the content.
-	for j := 0; j < region.Dy(); j++ {
-		copy(pixb[4*j*r.Dx():], pix[4*j*region.Dx():4*(j+1)*region.Dx()])
-	}
+	pixb := graphics.NewManagedBytes(4*r.Dx()*r.Dy(), func(bs []byte) {
+		// Clear the edges. bs might not be zero-cleared.
+		rowPixels := 4 * r.Dx()
+		for i := 0; i < rowPixels; i++ {
+			bs[rowPixels*(r.Dy()-1)+i] = 0
+		}
+		for j := 1; j < r.Dy(); j++ {
+			bs[rowPixels*j-4] = 0
+			bs[rowPixels*j-3] = 0
+			bs[rowPixels*j-2] = 0
+			bs[rowPixels*j-1] = 0
+		}
 
+		// Copy the content.
+		for j := 0; j < region.Dy(); j++ {
+			copy(bs[4*j*r.Dx():], pix[4*j*region.Dx():4*(j+1)*region.Dx()])
+		}
+	})
 	i.backend.restorable.WritePixels(pixb, r)
 }
 

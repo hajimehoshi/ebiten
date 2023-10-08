@@ -43,7 +43,7 @@ type Image struct {
 	// have its graphicsdriver.Image.
 	id int
 
-	bufferedWritePixelsArgs []graphicsdriver.PixelsArgs
+	bufferedWritePixelsArgs []writePixelsCommandArgs
 }
 
 var nextID = 1
@@ -78,6 +78,7 @@ func (i *Image) flushBufferedWritePixels() {
 	if len(i.bufferedWritePixelsArgs) == 0 {
 		return
 	}
+
 	c := &writePixelsCommand{
 		dst:  i,
 		args: i.bufferedWritePixelsArgs,
@@ -159,10 +160,10 @@ func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, args []graphi
 	return nil
 }
 
-func (i *Image) WritePixels(pixels []byte, region image.Rectangle) {
-	i.bufferedWritePixelsArgs = append(i.bufferedWritePixelsArgs, graphicsdriver.PixelsArgs{
-		Pixels: pixels,
-		Region: region,
+func (i *Image) WritePixels(pixels *graphics.ManagedBytes, region image.Rectangle) {
+	i.bufferedWritePixelsArgs = append(i.bufferedWritePixelsArgs, writePixelsCommandArgs{
+		pixels: pixels,
+		region: region,
 	})
 }
 

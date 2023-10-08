@@ -18,12 +18,13 @@ import (
 	"fmt"
 	"image"
 
+	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 )
 
 type pixelsRecord struct {
 	rect image.Rectangle
-	pix  []byte
+	pix  *graphics.ManagedBytes
 }
 
 func (p *pixelsRecord) readPixels(pixels []byte, region image.Rectangle, imageWidth, imageHeight int) {
@@ -41,7 +42,7 @@ func (p *pixelsRecord) readPixels(pixels []byte, region image.Rectangle, imageWi
 		for j := 0; j < r.Dy(); j++ {
 			dstX := 4 * ((dstBaseY+j)*region.Dx() + dstBaseX)
 			srcX := 4 * ((srcBaseY+j)*p.rect.Dx() + srcBaseX)
-			copy(pixels[dstX:dstX+lineWidth], p.pix[srcX:srcX+lineWidth])
+			p.pix.Read(pixels[dstX:dstX+lineWidth], srcX, srcX+lineWidth)
 		}
 	} else {
 		for j := 0; j < r.Dy(); j++ {
@@ -57,9 +58,9 @@ type pixelsRecords struct {
 	records []*pixelsRecord
 }
 
-func (pr *pixelsRecords) addOrReplace(pixels []byte, region image.Rectangle) {
-	if len(pixels) != 4*region.Dx()*region.Dy() {
-		msg := fmt.Sprintf("restorable: len(pixels) must be 4*%d*%d = %d but %d", region.Dx(), region.Dy(), 4*region.Dx()*region.Dy(), len(pixels))
+func (pr *pixelsRecords) addOrReplace(pixels *graphics.ManagedBytes, region image.Rectangle) {
+	if pixels.Len() != 4*region.Dx()*region.Dy() {
+		msg := fmt.Sprintf("restorable: len(pixels) must be 4*%d*%d = %d but %d", region.Dx(), region.Dy(), 4*region.Dx()*region.Dy(), pixels.Len())
 		if pixels == nil {
 			msg += " (nil)"
 		}
@@ -128,7 +129,8 @@ func (pr *pixelsRecords) apply(img *graphicscommand.Image) {
 	// TODO: Isn't this too heavy? Can we merge the operations?
 	for _, r := range pr.records {
 		if r.pix != nil {
-			img.WritePixels(r.pix, r.rect)
+			// Clone a ManagedBytes as the package graphicscommand has a different lifetime management.
+			img.WritePixels(r.pix.Clone(), r.rect)
 		} else {
 			clearImage(img, r.rect)
 		}
@@ -143,4 +145,15 @@ func (pr *pixelsRecords) appendRegions(regions []image.Rectangle) []image.Rectan
 		regions = append(regions, r.rect)
 	}
 	return regions
+}
+
+func (pr *pixelsRecords) dispose() {
+	for _, r := range pr.records {
+		if r.pix == nil {
+			continue
+		}
+		// As the package graphicscommands already has cloned ManagedBytes objects, it is OK to release it.
+		_, f := r.pix.GetAndRelease()
+		f()
+	}
 }

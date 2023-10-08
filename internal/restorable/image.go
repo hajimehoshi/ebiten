@@ -37,7 +37,7 @@ func (p *Pixels) Apply(img *graphicscommand.Image) {
 	p.pixelsRecords.apply(img)
 }
 
-func (p *Pixels) AddOrReplace(pix []byte, region image.Rectangle) {
+func (p *Pixels) AddOrReplace(pix *graphics.ManagedBytes, region image.Rectangle) {
 	if p.pixelsRecords == nil {
 		p.pixelsRecords = &pixelsRecords{}
 	}
@@ -68,6 +68,13 @@ func (p *Pixels) AppendRegion(regions []image.Rectangle) []image.Rectangle {
 		return regions
 	}
 	return p.pixelsRecords.appendRegions(regions)
+}
+
+func (p *Pixels) Dispose() {
+	if p.pixelsRecords == nil {
+		return
+	}
+	p.pixelsRecords.dispose()
 }
 
 // drawTrianglesHistoryItem is an item for history of draw-image commands.
@@ -251,7 +258,7 @@ func (i *Image) needsRestoring() bool {
 // WritePixels replaces the image pixels with the given pixels slice.
 //
 // The specified region must not be overlapped with other regions by WritePixels.
-func (i *Image) WritePixels(pixels []byte, region image.Rectangle) {
+func (i *Image) WritePixels(pixels *graphics.ManagedBytes, region image.Rectangle) {
 	if region.Dx() <= 0 || region.Dy() <= 0 {
 		panic("restorable: width/height must be positive")
 	}
@@ -278,7 +285,8 @@ func (i *Image) WritePixels(pixels []byte, region image.Rectangle) {
 
 	if region.Eq(image.Rect(0, 0, w, h)) {
 		if pixels != nil {
-			i.basePixels.AddOrReplace(pixels, image.Rect(0, 0, w, h))
+			// Clone a ManagedBytes as the package graphicscommand has a different lifetime management.
+			i.basePixels.AddOrReplace(pixels.Clone(), image.Rect(0, 0, w, h))
 		} else {
 			i.basePixels.Clear(image.Rect(0, 0, w, h))
 		}
@@ -295,7 +303,8 @@ func (i *Image) WritePixels(pixels []byte, region image.Rectangle) {
 	}
 
 	if pixels != nil {
-		i.basePixels.AddOrReplace(pixels, region)
+		// Clone a ManagedBytes as the package graphicscommand has a different lifetime management.
+		i.basePixels.AddOrReplace(pixels.Clone(), region)
 	} else {
 		i.basePixels.Clear(region)
 	}
@@ -483,7 +492,10 @@ func (i *Image) readPixelsFromGPU(graphicsDriver graphicsdriver.Graphics) error 
 	}
 
 	for _, a := range args {
-		i.basePixels.AddOrReplace(a.Pixels, a.Region)
+		bs := graphics.NewManagedBytes(len(a.Pixels), func(bs []byte) {
+			copy(bs, a.Pixels)
+		})
+		i.basePixels.AddOrReplace(bs, a.Region)
 	}
 
 	i.clearDrawTrianglesHistory()
@@ -563,6 +575,7 @@ func (i *Image) restore(graphicsDriver graphicsdriver.Graphics) error {
 		// The screen image should also be recreated because framebuffer might
 		// be changed.
 		i.image = graphicscommand.NewImage(w, h, true)
+		i.basePixels.Dispose()
 		i.basePixels = Pixels{}
 		i.clearDrawTrianglesHistory()
 		i.stale = false
@@ -633,7 +646,10 @@ func (i *Image) restore(graphicsDriver graphicsdriver.Graphics) error {
 		}
 
 		for _, a := range args {
-			i.basePixels.AddOrReplace(a.Pixels, a.Region)
+			bs := graphics.NewManagedBytes(len(a.Pixels), func(bs []byte) {
+				copy(bs, a.Pixels)
+			})
+			i.basePixels.AddOrReplace(bs, a.Region)
 		}
 	}
 
@@ -651,6 +667,7 @@ func (i *Image) Dispose() {
 	theImages.remove(i)
 	i.image.Dispose()
 	i.image = nil
+	i.basePixels.Dispose()
 	i.basePixels = Pixels{}
 	i.pixelsCache = nil
 	i.clearDrawTrianglesHistory()
