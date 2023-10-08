@@ -130,7 +130,7 @@ func (pr *pixelsRecords) apply(img *graphicscommand.Image) {
 		if r.pix != nil {
 			img.WritePixels(r.pix, r.rect)
 		} else {
-			img.WritePixels(make([]byte, 4*r.rect.Dx()*r.rect.Dy()), r.rect)
+			clearImage(img, r.rect)
 		}
 	}
 }
