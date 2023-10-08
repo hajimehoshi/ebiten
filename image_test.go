@@ -4231,3 +4231,22 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 		t.Errorf("got: (%0.2f, %0.2f), want: (0, 0)", x, y)
 	}
 }
+
+func TestImageWritePixelAndDispose(t *testing.T) {
+	const (
+		w = 16
+		h = 16
+	)
+	img := ebiten.NewImage(w, h)
+	pix := make([]byte, 4*w*h)
+	for i := range pix {
+		pix[i] = 0xff
+	}
+	img.WritePixels(pix)
+	img.Dispose()
+
+	// Confirm that any pixel information is invalidated after Dispose is called.
+	if got, want := img.At(0, 0), (color.RGBA{}); got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+}
