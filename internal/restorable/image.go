@@ -278,11 +278,7 @@ func (i *Image) WritePixels(pixels []byte, region image.Rectangle) {
 
 	if region.Eq(image.Rect(0, 0, w, h)) {
 		if pixels != nil {
-			// pixels can point to a shared region.
-			// This function is responsible to copy this.
-			copiedPixels := make([]byte, len(pixels))
-			copy(copiedPixels, pixels)
-			i.basePixels.AddOrReplace(copiedPixels, image.Rect(0, 0, w, h))
+			i.basePixels.AddOrReplace(pixels, image.Rect(0, 0, w, h))
 		} else {
 			i.basePixels.Clear(image.Rect(0, 0, w, h))
 		}
@@ -299,11 +295,7 @@ func (i *Image) WritePixels(pixels []byte, region image.Rectangle) {
 	}
 
 	if pixels != nil {
-		// pixels can point to a shared region.
-		// This function is responsible to copy this.
-		copiedPixels := make([]byte, len(pixels))
-		copy(copiedPixels, pixels)
-		i.basePixels.AddOrReplace(copiedPixels, region)
+		i.basePixels.AddOrReplace(pixels, region)
 	} else {
 		i.basePixels.Clear(region)
 	}

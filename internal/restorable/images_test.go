@@ -461,6 +461,7 @@ func TestWritePixels(t *testing.T) {
 	}
 	img.WritePixels(pix, image.Rect(5, 7, 9, 11))
 	// Check the region (5, 7)-(9, 11). Outside state is indeterminate.
+	pix = make([]byte, 4*4*4)
 	for i := range pix {
 		pix[i] = 0
 	}
