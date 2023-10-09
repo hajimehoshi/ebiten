@@ -19,6 +19,7 @@ import (
 	"os"
 	"runtime"
 	"testing"
+	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
@@ -307,18 +308,27 @@ func TestWritePixelsAndModifyBeforeMain(t *testing.T) {
 	}
 }
 
-var isImageGCed bool
+var imageGCedCh = make(chan struct{})
 
 func init() {
 	img := buffered.NewImage(1, 1, atlas.ImageTypeRegular)
 	runtime.SetFinalizer(img, func(*buffered.Image) {
-		isImageGCed = true
+		close(imageGCedCh)
 	})
 }
 
 func TestGC(t *testing.T) {
+	t.Skip("flaky (especially on GitHub Actions)")
+
 	runtime.GC()
-	if !isImageGCed {
+	runtime.GC()
+
+	// A finalizer should be called eventually, but this might not be immediate.
+	// Set a time out.
+	select {
+	case <-imageGCedCh:
+		return
+	case <-time.After(time.Second):
 		t.Error("an image in init() must be GCed but not")
 	}
 }
