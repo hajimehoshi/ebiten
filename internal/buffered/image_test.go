@@ -26,11 +26,11 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/buffered"
 )
 
-var mainCh = make(chan func())
+var gameUpdateCh = make(chan func())
 
-func runOnMainThread(f func()) {
+func runOnGameUpdate(f func()) {
 	ch := make(chan struct{})
-	mainCh <- func() {
+	gameUpdateCh <- func() {
 		f()
 		close(ch)
 	}
@@ -45,7 +45,7 @@ type game struct {
 
 func (g *game) Update() error {
 	select {
-	case f := <-mainCh:
+	case f := <-gameUpdateCh:
 		f()
 	case <-g.endCh:
 		return ebiten.Termination
@@ -93,7 +93,7 @@ var testSetBeforeMainResult = func() testResult {
 
 	ch := make(chan color.RGBA, 1)
 	go func() {
-		runOnMainThread(func() {
+		runOnGameUpdate(func() {
 			ch <- img.At(0, 0).(color.RGBA)
 		})
 	}()
@@ -122,7 +122,7 @@ var testDrawImageBeforeMainResult = func() testResult {
 
 	ch := make(chan color.RGBA, 1)
 	go func() {
-		runOnMainThread(func() {
+		runOnGameUpdate(func() {
 			ch <- dst.At(0, 0).(color.RGBA)
 		})
 	}()
@@ -183,7 +183,7 @@ var testDrawTrianglesBeforeMainResult = func() testResult {
 
 	ch := make(chan color.RGBA, 1)
 	go func() {
-		runOnMainThread(func() {
+		runOnGameUpdate(func() {
 			ch <- dst.At(0, 0).(color.RGBA)
 		})
 	}()
@@ -212,7 +212,7 @@ var testSetAndFillBeforeMainResult = func() testResult {
 
 	ch := make(chan color.RGBA, 1)
 	go func() {
-		runOnMainThread(func() {
+		runOnGameUpdate(func() {
 			ch <- img.At(0, 0).(color.RGBA)
 		})
 	}()
@@ -248,7 +248,7 @@ var testSetAndWritePixelsBeforeMainResult = func() testResult {
 
 	ch := make(chan color.RGBA, 1)
 	go func() {
-		runOnMainThread(func() {
+		runOnGameUpdate(func() {
 			ch <- img.At(0, 0).(color.RGBA)
 		})
 	}()
@@ -288,7 +288,7 @@ var testWritePixelsAndModifyBeforeMainResult = func() testResult {
 
 	ch := make(chan color.RGBA, 1)
 	go func() {
-		runOnMainThread(func() {
+		runOnGameUpdate(func() {
 			ch <- img.At(0, 0).(color.RGBA)
 		})
 	}()
@@ -318,17 +318,16 @@ func init() {
 }
 
 func TestGC(t *testing.T) {
-	t.Skip("flaky (especially on GitHub Actions)")
+	runOnGameUpdate(func() {
+		runtime.GC()
 
-	runtime.GC()
-	runtime.GC()
-
-	// A finalizer should be called eventually, but this might not be immediate.
-	// Set a time out.
-	select {
-	case <-imageGCedCh:
-		return
-	case <-time.After(time.Second):
-		t.Error("an image in init() must be GCed but not")
-	}
+		// A finalizer should be called eventually, but this might not be immediate.
+		// Set a time out.
+		select {
+		case <-imageGCedCh:
+			return
+		case <-time.After(time.Second):
+			t.Error("an image in init() must be GCed but not")
+		}
+	})
 }
