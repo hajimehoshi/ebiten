@@ -44,6 +44,7 @@ func flushDelayedCommandsSlow() {
 		for _, f := range delayedCommands {
 			f()
 		}
+		delayedCommands = nil
 		delayedCommandsFlushed = 1
 	}
 }
