@@ -17,9 +17,12 @@ package buffered_test
 import (
 	"image/color"
 	"os"
+	"runtime"
 	"testing"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
+	"github.com/hajimehoshi/ebiten/v2/internal/buffered"
 )
 
 var mainCh = make(chan func())
@@ -301,5 +304,21 @@ func TestWritePixelsAndModifyBeforeMain(t *testing.T) {
 
 	if got != want {
 		t.Errorf("got: %v, want: %v", got, want)
+	}
+}
+
+var isImageGCed bool
+
+func init() {
+	img := buffered.NewImage(1, 1, atlas.ImageTypeRegular)
+	runtime.SetFinalizer(img, func(*buffered.Image) {
+		isImageGCed = true
+	})
+}
+
+func TestGC(t *testing.T) {
+	runtime.GC()
+	if !isImageGCed {
+		t.Error("an image in init() must be GCed but not")
 	}
 }
