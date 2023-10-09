@@ -482,13 +482,15 @@ func (i *Image) writePixels(pix []byte, region image.Rectangle) {
 		}
 
 		// Copy pixels in the case when pix is modified before the graphics command is executed.
-		pix2 := allocBytesFromPool(len(pix))
+		// TODO: Create byte slices from a pool.
+		pix2 := make([]byte, len(pix))
 		copy(pix2, pix)
 		i.backend.restorable.WritePixels(pix2, region)
 		return
 	}
 
-	pixb := allocBytesFromPool(4 * r.Dx() * r.Dy())
+	// TODO: Create byte slices from a pool.
+	pixb := make([]byte, 4*r.Dx()*r.Dy())
 
 	// Clear the edges. pixb might not be zero-cleared.
 	// TODO: These loops assume that paddingSize is 1.
