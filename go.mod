@@ -13,15 +13,15 @@ require (
 	github.com/jfreymuth/oggvorbis v1.0.5
 	github.com/kisielk/errcheck v1.6.3
 	golang.org/x/image v0.13.0
-	golang.org/x/mobile v0.0.0-20230922142353-e2f452493d57
+	golang.org/x/mobile v0.0.0-20231006135142-2b44d11868fe
 	golang.org/x/sync v0.4.0
 	golang.org/x/sys v0.13.0
-	golang.org/x/tools v0.13.0
+	golang.org/x/tools v0.14.0
 )
 
 require (
 	github.com/jfreymuth/vorbis v1.0.2 // indirect
 	golang.org/x/exp/shiny v0.0.0-20230817173708-d852ddb80c63 // indirect
-	golang.org/x/mod v0.12.0 // indirect
+	golang.org/x/mod v0.13.0 // indirect
 	golang.org/x/text v0.13.0 // indirect
 )
