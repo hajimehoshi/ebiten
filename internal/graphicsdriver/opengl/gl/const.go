@@ -40,7 +40,9 @@ const (
 	INVERT                = 0x150A
 	KEEP                  = 0x1E00
 	LINK_STATUS           = 0x8B82
+	MAX                   = 0x8008
 	MAX_TEXTURE_SIZE      = 0x0D33
+	MIN                   = 0x8007
 	NEAREST               = 0x2600
 	NO_ERROR              = 0
 	NOTEQUAL              = 0x0205

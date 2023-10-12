@@ -200,6 +200,20 @@ const (
 	//     c_out = (BlendFactorDestinationRGB) × c_dst - (BlendFactorSourceRGB) × c_src
 	//     α_out = (BlendFactorDestinationAlpha) × α_dst - (BlendFactorSourceAlpha) × α_src
 	BlendOperationReverseSubtract
+
+	// BlendOperationMin represents a minimum function for the source and destination color.
+	// If BlendOperationMin is specified, blend factors are not used.
+	//
+	//     c_out = min(c_dst, c_src)
+	//     α_out = min(α_dst, α_src)
+	BlendOperationMin
+
+	// BlendOperationMax represents a maximum function for the source and destination color.
+	// If BlendOperationMax is specified, blend factors are not used.
+	//
+	//     c_out = max(c_dst, c_src)
+	//     α_out = max(α_dst, α_src)
+	BlendOperationMax
 )
 
 func (b BlendOperation) internalBlendOperation() graphicsdriver.BlendOperation {
@@ -210,6 +224,10 @@ func (b BlendOperation) internalBlendOperation() graphicsdriver.BlendOperation {
 		return graphicsdriver.BlendOperationSubtract
 	case BlendOperationReverseSubtract:
 		return graphicsdriver.BlendOperationReverseSubtract
+	case BlendOperationMin:
+		return graphicsdriver.BlendOperationMin
+	case BlendOperationMax:
+		return graphicsdriver.BlendOperationMax
 	default:
 		panic(fmt.Sprintf("ebiten: invalid blend operation: %d", b))
 	}

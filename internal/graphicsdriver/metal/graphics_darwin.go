@@ -381,6 +381,10 @@ func blendOperationToMetalBlendOperation(o graphicsdriver.BlendOperation) mtl.Bl
 		return mtl.BlendOperationSubtract
 	case graphicsdriver.BlendOperationReverseSubtract:
 		return mtl.BlendOperationReverseSubtract
+	case graphicsdriver.BlendOperationMin:
+		return mtl.BlendOperationMin
+	case graphicsdriver.BlendOperationMax:
+		return mtl.BlendOperationMax
 	default:
 		panic(fmt.Sprintf("metal: invalid blend operation: %d", o))
 	}

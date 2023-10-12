@@ -335,11 +335,24 @@ func TestImageDispose(t *testing.T) {
 	}
 }
 
-func min(a, b int) int {
+type ordered interface {
+	~int | ~int8 | ~int16 | ~int32 | ~int64 | ~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64 | ~uintptr | ~float32 | ~float64 | ~string
+}
+
+// TODO: Use the built-in function min from Go 1.21.
+func min[T ordered](a, b T) T {
 	if a < b {
 		return a
 	}
 	return b
+}
+
+// TODO: Use the built-in function max from Go 1.21.
+func max[T ordered](a, b T) T {
+	if a < b {
+		return b
+	}
+	return a
 }
 
 func TestImageBlendLighter(t *testing.T) {
@@ -3677,6 +3690,87 @@ func TestImageBlendOperation(t *testing.T) {
 					want.A = clamp(int(sa) - int(da))
 				case ebiten.BlendOperationReverseSubtract:
 					want.A = clamp(int(da) - int(sa))
+				}
+
+				if !sameColors(got, want, 1) {
+					t.Errorf("dst.At(%d, 0): operations: %d, %d: got: %v, want: %v", i, rgbOp, alphaOp, got, want)
+				}
+			}
+		}
+	}
+}
+
+func TestImageBlendOperationMinAndMax(t *testing.T) {
+	const w, h = 16, 1
+	dst := ebiten.NewImage(w, h)
+	src := ebiten.NewImage(w, h)
+
+	dstColor := func(i int) (byte, byte, byte, byte) {
+		return byte(4 * i * 17), byte(4*i*17 + 1), byte(4*i*17 + 2), byte(4*i*17 + 3)
+	}
+	srcColor := func(i int) (byte, byte, byte, byte) {
+		return byte(4 * i * 13), byte(4*i*13 + 1), byte(4*i*13 + 2), byte(4*i*13 + 3)
+	}
+
+	dstPix := make([]byte, 4*w*h)
+	for i := 0; i < w; i++ {
+		r, g, b, a := dstColor(i)
+		dstPix[4*i] = r
+		dstPix[4*i+1] = g
+		dstPix[4*i+2] = b
+		dstPix[4*i+3] = a
+	}
+	srcPix := make([]byte, 4*w*h)
+	for i := 0; i < w; i++ {
+		r, g, b, a := srcColor(i)
+		srcPix[4*i] = r
+		srcPix[4*i+1] = g
+		srcPix[4*i+2] = b
+		srcPix[4*i+3] = a
+	}
+	src.WritePixels(srcPix)
+
+	operations := []ebiten.BlendOperation{
+		ebiten.BlendOperationMin,
+		ebiten.BlendOperationMax,
+	}
+	for _, rgbOp := range operations {
+		for _, alphaOp := range operations {
+			// Reset the destination state.
+			dst.WritePixels(dstPix)
+			op := &ebiten.DrawImageOptions{}
+			// Use the default blend factors, and confirm that the factors are ignored.
+			op.Blend = ebiten.Blend{
+				BlendFactorSourceRGB:        ebiten.BlendFactorDefault,
+				BlendFactorSourceAlpha:      ebiten.BlendFactorDefault,
+				BlendFactorDestinationRGB:   ebiten.BlendFactorDefault,
+				BlendFactorDestinationAlpha: ebiten.BlendFactorDefault,
+				BlendOperationRGB:           rgbOp,
+				BlendOperationAlpha:         alphaOp,
+			}
+			dst.DrawImage(src, op)
+			for i := 0; i < w; i++ {
+				got := dst.At(i, 0).(color.RGBA)
+
+				sr, sg, sb, sa := srcColor(i)
+				dr, dg, db, da := dstColor(i)
+
+				var want color.RGBA
+				switch rgbOp {
+				case ebiten.BlendOperationMin:
+					want.R = min(sr, dr)
+					want.G = min(sg, dg)
+					want.B = min(sb, db)
+				case ebiten.BlendOperationMax:
+					want.R = max(sr, dr)
+					want.G = max(sg, dg)
+					want.B = max(sb, db)
+				}
+				switch alphaOp {
+				case ebiten.BlendOperationMin:
+					want.A = min(sa, da)
+				case ebiten.BlendOperationMax:
+					want.A = max(sa, da)
 				}
 
 				if !sameColors(got, want, 1) {

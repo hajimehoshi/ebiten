@@ -67,6 +67,10 @@ func convertBlendOperation(o graphicsdriver.BlendOperation) blendOperation {
 		return gl.FUNC_SUBTRACT
 	case graphicsdriver.BlendOperationReverseSubtract:
 		return gl.FUNC_REVERSE_SUBTRACT
+	case graphicsdriver.BlendOperationMin:
+		return gl.MIN
+	case graphicsdriver.BlendOperationMax:
+		return gl.MAX
 	default:
 		panic(fmt.Sprintf("opengl: invalid blend operation %d", o))
 	}

@@ -45,6 +45,8 @@ const (
 	BlendOperationAdd BlendOperation = iota
 	BlendOperationSubtract
 	BlendOperationReverseSubtract
+	BlendOperationMin
+	BlendOperationMax
 )
 
 var BlendSourceOver = Blend{

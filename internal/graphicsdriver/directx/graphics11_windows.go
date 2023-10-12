@@ -106,6 +106,10 @@ func blendOperationToBlendOp11(o graphicsdriver.BlendOperation) _D3D11_BLEND_OP 
 		return _D3D11_BLEND_OP_SUBTRACT
 	case graphicsdriver.BlendOperationReverseSubtract:
 		return _D3D11_BLEND_OP_REV_SUBTRACT
+	case graphicsdriver.BlendOperationMin:
+		return _D3D11_BLEND_OP_MIN
+	case graphicsdriver.BlendOperationMax:
+		return _D3D11_BLEND_OP_MAX
 	default:
 		panic(fmt.Sprintf("directx: invalid blend operation: %d", o))
 	}
