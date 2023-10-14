@@ -43,9 +43,9 @@ func getConsoleWindow() windows.HWND {
 	return windows.HWND(r)
 }
 
-// hideConsoleWindowOnWindows will hide the console window that is showing when
+// hideConsoleWindow will hide the console window that is showing when
 // compiling on Windows without specifying the '-ldflags "-Hwindowsgui"' flag.
-func hideConsoleWindowOnWindows() {
+func hideConsoleWindow() {
 	// In Xbox, GetWindowThreadProcessId might not exist.
 	if user32.NewProc("GetWindowThreadProcessId").Find() != nil {
 		return

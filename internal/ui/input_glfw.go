@@ -122,11 +122,7 @@ func (u *UserInterface) updateInputStateImpl() error {
 	return nil
 }
 
-func KeyName(key Key) string {
-	return theUI.keyName(key)
-}
-
-func (u *UserInterface) keyName(key Key) string {
+func (u *UserInterface) KeyName(key Key) string {
 	if !u.isRunning() {
 		return ""
 	}

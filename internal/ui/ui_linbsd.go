@@ -29,6 +29,10 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl"
 )
 
+func (u *UserInterface) initializePlatform() error {
+	return nil
+}
+
 type graphicsDriverCreatorImpl struct {
 	transparent bool
 }

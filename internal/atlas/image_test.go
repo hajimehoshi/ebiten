@@ -117,7 +117,7 @@ func TestEnsureIsolatedFromSourceBackend(t *testing.T) {
 	}
 
 	pix = make([]byte, 4*size*size)
-	if err := img4.ReadPixels(ui.GraphicsDriverForTesting(), pix, image.Rect(0, 0, size, size)); err != nil {
+	if err := img4.ReadPixels(ui.Get().GraphicsDriverForTesting(), pix, image.Rect(0, 0, size, size)); err != nil {
 		t.Fatal(err)
 	}
 	for j := 0; j < size; j++ {
@@ -195,7 +195,7 @@ func TestReputOnSourceBackend(t *testing.T) {
 	// Use the doubled count since img1 was on a texture atlas and became an isolated image once.
 	// Then, img1 requires longer time to recover to be on a texture atlas again.
 	for i := 0; i < atlas.BaseCountToPutOnSourceBackend*2; i++ {
-		atlas.PutImagesOnSourceBackendForTesting(ui.GraphicsDriverForTesting())
+		atlas.PutImagesOnSourceBackendForTesting(ui.Get().GraphicsDriverForTesting())
 		vs := quadVertices(size, size, 0, 0, 1)
 		img0.DrawTriangles([graphics.ShaderImageCount]*atlas.Image{img1}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderImageCount]image.Rectangle{}, atlas.NearestFilterShader, nil, false)
 		if got, want := img1.IsOnSourceBackendForTesting(), false; got != want {
@@ -203,16 +203,16 @@ func TestReputOnSourceBackend(t *testing.T) {
 		}
 	}
 	// Finally, img1 is on a source backend.
-	atlas.PutImagesOnSourceBackendForTesting(ui.GraphicsDriverForTesting())
+	atlas.PutImagesOnSourceBackendForTesting(ui.Get().GraphicsDriverForTesting())
 	vs := quadVertices(size, size, 0, 0, 1)
 	img0.DrawTriangles([graphics.ShaderImageCount]*atlas.Image{img1}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderImageCount]image.Rectangle{}, atlas.NearestFilterShader, nil, false)
 	if got, want := img1.IsOnSourceBackendForTesting(), true; got != want {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
-	atlas.PutImagesOnSourceBackendForTesting(ui.GraphicsDriverForTesting())
+	atlas.PutImagesOnSourceBackendForTesting(ui.Get().GraphicsDriverForTesting())
 
 	pix = make([]byte, 4*size*size)
-	if err := img1.ReadPixels(ui.GraphicsDriverForTesting(), pix, image.Rect(0, 0, size, size)); err != nil {
+	if err := img1.ReadPixels(ui.Get().GraphicsDriverForTesting(), pix, image.Rect(0, 0, size, size)); err != nil {
 		t.Fatal(err)
 	}
 	for j := 0; j < size; j++ {
@@ -236,7 +236,7 @@ func TestReputOnSourceBackend(t *testing.T) {
 	}
 
 	pix = make([]byte, 4*size*size)
-	if err := img1.ReadPixels(ui.GraphicsDriverForTesting(), pix, image.Rect(0, 0, size, size)); err != nil {
+	if err := img1.ReadPixels(ui.Get().GraphicsDriverForTesting(), pix, image.Rect(0, 0, size, size)); err != nil {
 		t.Fatal(err)
 	}
 	for j := 0; j < size; j++ {
@@ -265,7 +265,7 @@ func TestReputOnSourceBackend(t *testing.T) {
 	// Use img1 as a render source, but call WritePixels.
 	// Now use 4x count as img1 became an isolated image again.
 	for i := 0; i < atlas.BaseCountToPutOnSourceBackend*4; i++ {
-		atlas.PutImagesOnSourceBackendForTesting(ui.GraphicsDriverForTesting())
+		atlas.PutImagesOnSourceBackendForTesting(ui.Get().GraphicsDriverForTesting())
 		img1.WritePixels(make([]byte, 4*size*size), image.Rect(0, 0, size, size))
 		vs := quadVertices(size, size, 0, 0, 1)
 		img0.DrawTriangles([graphics.ShaderImageCount]*atlas.Image{img1}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderImageCount]image.Rectangle{}, atlas.NearestFilterShader, nil, false)
@@ -273,7 +273,7 @@ func TestReputOnSourceBackend(t *testing.T) {
 			t.Errorf("got: %v, want: %v", got, want)
 		}
 	}
-	atlas.PutImagesOnSourceBackendForTesting(ui.GraphicsDriverForTesting())
+	atlas.PutImagesOnSourceBackendForTesting(ui.Get().GraphicsDriverForTesting())
 
 	// img1 is not on an atlas due to WritePixels.
 	vs = quadVertices(size, size, 0, 0, 1)
@@ -284,7 +284,7 @@ func TestReputOnSourceBackend(t *testing.T) {
 
 	// Use img3 as a render source. As img3 is volatile, img3 is never on an atlas.
 	for i := 0; i < atlas.BaseCountToPutOnSourceBackend*2; i++ {
-		atlas.PutImagesOnSourceBackendForTesting(ui.GraphicsDriverForTesting())
+		atlas.PutImagesOnSourceBackendForTesting(ui.Get().GraphicsDriverForTesting())
 		vs := quadVertices(size, size, 0, 0, 1)
 		img0.DrawTriangles([graphics.ShaderImageCount]*atlas.Image{img3}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderImageCount]image.Rectangle{}, atlas.NearestFilterShader, nil, false)
 		if got, want := img3.IsOnSourceBackendForTesting(), false; got != want {
@@ -324,7 +324,7 @@ func TestExtend(t *testing.T) {
 	img1.WritePixels(p1, image.Rect(0, 0, w1, h1))
 
 	pix0 := make([]byte, 4*w0*h0)
-	if err := img0.ReadPixels(ui.GraphicsDriverForTesting(), pix0, image.Rect(0, 0, w0, h0)); err != nil {
+	if err := img0.ReadPixels(ui.Get().GraphicsDriverForTesting(), pix0, image.Rect(0, 0, w0, h0)); err != nil {
 		t.Fatal(err)
 	}
 	for j := 0; j < h0; j++ {
@@ -343,7 +343,7 @@ func TestExtend(t *testing.T) {
 	}
 
 	pix1 := make([]byte, 4*w1*h1)
-	if err := img1.ReadPixels(ui.GraphicsDriverForTesting(), pix1, image.Rect(0, 0, w1, h1)); err != nil {
+	if err := img1.ReadPixels(ui.Get().GraphicsDriverForTesting(), pix1, image.Rect(0, 0, w1, h1)); err != nil {
 		t.Fatal(err)
 	}
 	for j := 0; j < h1; j++ {
@@ -385,7 +385,7 @@ func TestWritePixelsAfterDrawTriangles(t *testing.T) {
 	dst.WritePixels(pix, image.Rect(0, 0, w, h))
 
 	pix = make([]byte, 4*w*h)
-	if err := dst.ReadPixels(ui.GraphicsDriverForTesting(), pix, image.Rect(0, 0, w, h)); err != nil {
+	if err := dst.ReadPixels(ui.Get().GraphicsDriverForTesting(), pix, image.Rect(0, 0, w, h)); err != nil {
 		t.Fatal(err)
 	}
 	for j := 0; j < h; j++ {
@@ -427,7 +427,7 @@ func TestSmallImages(t *testing.T) {
 	dst.DrawTriangles([graphics.ShaderImageCount]*atlas.Image{src}, vs, is, graphicsdriver.BlendSourceOver, dr, [graphics.ShaderImageCount]image.Rectangle{}, atlas.NearestFilterShader, nil, false)
 
 	pix = make([]byte, 4*w*h)
-	if err := dst.ReadPixels(ui.GraphicsDriverForTesting(), pix, image.Rect(0, 0, w, h)); err != nil {
+	if err := dst.ReadPixels(ui.Get().GraphicsDriverForTesting(), pix, image.Rect(0, 0, w, h)); err != nil {
 		t.Fatal(err)
 	}
 	for j := 0; j < h; j++ {
@@ -470,7 +470,7 @@ func TestLongImages(t *testing.T) {
 	dst.DrawTriangles([graphics.ShaderImageCount]*atlas.Image{src}, vs, is, graphicsdriver.BlendSourceOver, dr, [graphics.ShaderImageCount]image.Rectangle{}, atlas.NearestFilterShader, nil, false)
 
 	pix = make([]byte, 4*dstW*dstH)
-	if err := dst.ReadPixels(ui.GraphicsDriverForTesting(), pix, image.Rect(0, 0, dstW, dstH)); err != nil {
+	if err := dst.ReadPixels(ui.Get().GraphicsDriverForTesting(), pix, image.Rect(0, 0, dstW, dstH)); err != nil {
 		t.Fatal(err)
 	}
 	for j := 0; j < h; j++ {
@@ -586,7 +586,7 @@ func TestDisposedAndReputOnSourceBackend(t *testing.T) {
 
 	// Use src as a render source.
 	for i := 0; i < atlas.BaseCountToPutOnSourceBackend/2; i++ {
-		atlas.PutImagesOnSourceBackendForTesting(ui.GraphicsDriverForTesting())
+		atlas.PutImagesOnSourceBackendForTesting(ui.Get().GraphicsDriverForTesting())
 		vs := quadVertices(size, size, 0, 0, 1)
 		dst.DrawTriangles([graphics.ShaderImageCount]*atlas.Image{src}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderImageCount]image.Rectangle{}, atlas.NearestFilterShader, nil, false)
 		if got, want := src.IsOnSourceBackendForTesting(), false; got != want {
@@ -601,7 +601,7 @@ func TestDisposedAndReputOnSourceBackend(t *testing.T) {
 	atlas.FlushDeferredForTesting()
 
 	// Confirm that PutImagesOnSourceBackendForTesting doesn't panic.
-	atlas.PutImagesOnSourceBackendForTesting(ui.GraphicsDriverForTesting())
+	atlas.PutImagesOnSourceBackendForTesting(ui.Get().GraphicsDriverForTesting())
 }
 
 // Issue #1456
@@ -634,7 +634,7 @@ func TestImageIsNotReputOnSourceBackendWithoutUsingAsSource(t *testing.T) {
 	// Update the count without using src2 as a rendering source.
 	// This should not affect whether src2 is on an atlas or not.
 	for i := 0; i < atlas.BaseCountToPutOnSourceBackend; i++ {
-		atlas.PutImagesOnSourceBackendForTesting(ui.GraphicsDriverForTesting())
+		atlas.PutImagesOnSourceBackendForTesting(ui.Get().GraphicsDriverForTesting())
 		if got, want := src2.IsOnSourceBackendForTesting(), false; got != want {
 			t.Errorf("got: %v, want: %v", got, want)
 		}
@@ -642,7 +642,7 @@ func TestImageIsNotReputOnSourceBackendWithoutUsingAsSource(t *testing.T) {
 
 	// Update the count with using src2 as a rendering source.
 	for i := 0; i < atlas.BaseCountToPutOnSourceBackend; i++ {
-		atlas.PutImagesOnSourceBackendForTesting(ui.GraphicsDriverForTesting())
+		atlas.PutImagesOnSourceBackendForTesting(ui.Get().GraphicsDriverForTesting())
 		vs := quadVertices(size, size, 0, 0, 1)
 		dst.DrawTriangles([graphics.ShaderImageCount]*atlas.Image{src2}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderImageCount]image.Rectangle{}, atlas.NearestFilterShader, nil, false)
 		if got, want := src2.IsOnSourceBackendForTesting(), false; got != want {
@@ -650,7 +650,7 @@ func TestImageIsNotReputOnSourceBackendWithoutUsingAsSource(t *testing.T) {
 		}
 	}
 
-	atlas.PutImagesOnSourceBackendForTesting(ui.GraphicsDriverForTesting())
+	atlas.PutImagesOnSourceBackendForTesting(ui.Get().GraphicsDriverForTesting())
 	if got, want := src2.IsOnSourceBackendForTesting(), true; got != want {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
@@ -684,7 +684,7 @@ func TestImageWritePixelsModify(t *testing.T) {
 
 		// Check the pixels are the original ones.
 		pix = make([]byte, 4*size*size)
-		if err := img.ReadPixels(ui.GraphicsDriverForTesting(), pix, image.Rect(0, 0, size, size)); err != nil {
+		if err := img.ReadPixels(ui.Get().GraphicsDriverForTesting(), pix, image.Rect(0, 0, size, size)); err != nil {
 			t.Fatal(err)
 		}
 		for j := 0; j < size; j++ {
@@ -767,14 +767,14 @@ func TestDestinationCountOverflow(t *testing.T) {
 	// Use dst0 as a destination for a while.
 	for i := 0; i < 31; i++ {
 		dst0.DrawTriangles([graphics.ShaderImageCount]*atlas.Image{src}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderImageCount]image.Rectangle{}, atlas.NearestFilterShader, nil, false)
-		atlas.PutImagesOnSourceBackendForTesting(ui.GraphicsDriverForTesting())
+		atlas.PutImagesOnSourceBackendForTesting(ui.Get().GraphicsDriverForTesting())
 	}
 
 	// Use dst0 as a source for a while.
 	// As dst0 is used as a destination too many times (31 is a maximum), dst0's backend should never be a source backend.
 	for i := 0; i < 100; i++ {
 		dst1.DrawTriangles([graphics.ShaderImageCount]*atlas.Image{dst0}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderImageCount]image.Rectangle{}, atlas.NearestFilterShader, nil, false)
-		atlas.PutImagesOnSourceBackendForTesting(ui.GraphicsDriverForTesting())
+		atlas.PutImagesOnSourceBackendForTesting(ui.Get().GraphicsDriverForTesting())
 		if dst0.IsOnSourceBackendForTesting() {
 			t.Errorf("dst0 cannot be on a source backend: %d", i)
 		}
@@ -801,7 +801,7 @@ func TestIteratingImagesToPutOnSourceBackend(t *testing.T) {
 	for _, img := range srcs {
 		img.DrawTriangles([graphics.ShaderImageCount]*atlas.Image{src}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderImageCount]image.Rectangle{}, atlas.NearestFilterShader, nil, false)
 	}
-	atlas.PutImagesOnSourceBackendForTesting(ui.GraphicsDriverForTesting())
+	atlas.PutImagesOnSourceBackendForTesting(ui.Get().GraphicsDriverForTesting())
 
 	// Use srcs as sources. This will register an image to imagesToPutOnSourceBackend.
 	// Check iterating the registered image works correctly.
@@ -809,7 +809,7 @@ func TestIteratingImagesToPutOnSourceBackend(t *testing.T) {
 		for _, src := range srcs {
 			dst.DrawTriangles([graphics.ShaderImageCount]*atlas.Image{src}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderImageCount]image.Rectangle{}, atlas.NearestFilterShader, nil, false)
 		}
-		atlas.PutImagesOnSourceBackendForTesting(ui.GraphicsDriverForTesting())
+		atlas.PutImagesOnSourceBackendForTesting(ui.Get().GraphicsDriverForTesting())
 	}
 }
 

@@ -57,10 +57,10 @@ func TestShader(t *testing.T) {
 	dr := image.Rect(0, 0, 1, 1)
 	img.DrawTriangles([graphics.ShaderImageCount]*restorable.Image{}, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), graphicsdriver.BlendCopy, dr, [graphics.ShaderImageCount]image.Rectangle{}, s, nil, false)
 
-	if err := restorable.ResolveStaleImages(ui.GraphicsDriverForTesting()); err != nil {
+	if err := restorable.ResolveStaleImages(ui.Get().GraphicsDriverForTesting()); err != nil {
 		t.Fatal(err)
 	}
-	if err := restorable.RestoreIfNeeded(ui.GraphicsDriverForTesting()); err != nil {
+	if err := restorable.RestoreIfNeeded(ui.Get().GraphicsDriverForTesting()); err != nil {
 		t.Fatal(err)
 	}
 
@@ -88,10 +88,10 @@ func TestShaderChain(t *testing.T) {
 		imgs[i+1].DrawTriangles([graphics.ShaderImageCount]*restorable.Image{imgs[i]}, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), graphicsdriver.BlendCopy, dr, [graphics.ShaderImageCount]image.Rectangle{}, s, nil, false)
 	}
 
-	if err := restorable.ResolveStaleImages(ui.GraphicsDriverForTesting()); err != nil {
+	if err := restorable.ResolveStaleImages(ui.Get().GraphicsDriverForTesting()); err != nil {
 		t.Fatal(err)
 	}
-	if err := restorable.RestoreIfNeeded(ui.GraphicsDriverForTesting()); err != nil {
+	if err := restorable.RestoreIfNeeded(ui.Get().GraphicsDriverForTesting()); err != nil {
 		t.Fatal(err)
 	}
 
@@ -122,10 +122,10 @@ func TestShaderMultipleSources(t *testing.T) {
 	// Clear one of the sources after DrawTriangles. dst should not be affected.
 	clearImage(srcs[0], 1, 1)
 
-	if err := restorable.ResolveStaleImages(ui.GraphicsDriverForTesting()); err != nil {
+	if err := restorable.ResolveStaleImages(ui.Get().GraphicsDriverForTesting()); err != nil {
 		t.Fatal(err)
 	}
-	if err := restorable.RestoreIfNeeded(ui.GraphicsDriverForTesting()); err != nil {
+	if err := restorable.RestoreIfNeeded(ui.Get().GraphicsDriverForTesting()); err != nil {
 		t.Fatal(err)
 	}
 
@@ -159,10 +159,10 @@ func TestShaderMultipleSourcesOnOneTexture(t *testing.T) {
 	// Clear one of the sources after DrawTriangles. dst should not be affected.
 	clearImage(srcs[0], 3, 1)
 
-	if err := restorable.ResolveStaleImages(ui.GraphicsDriverForTesting()); err != nil {
+	if err := restorable.ResolveStaleImages(ui.Get().GraphicsDriverForTesting()); err != nil {
 		t.Fatal(err)
 	}
-	if err := restorable.RestoreIfNeeded(ui.GraphicsDriverForTesting()); err != nil {
+	if err := restorable.RestoreIfNeeded(ui.Get().GraphicsDriverForTesting()); err != nil {
 		t.Fatal(err)
 	}
 
@@ -185,10 +185,10 @@ func TestShaderDispose(t *testing.T) {
 	// stale.
 	s.Dispose()
 
-	if err := restorable.ResolveStaleImages(ui.GraphicsDriverForTesting()); err != nil {
+	if err := restorable.ResolveStaleImages(ui.Get().GraphicsDriverForTesting()); err != nil {
 		t.Fatal(err)
 	}
-	if err := restorable.RestoreIfNeeded(ui.GraphicsDriverForTesting()); err != nil {
+	if err := restorable.RestoreIfNeeded(ui.Get().GraphicsDriverForTesting()); err != nil {
 		t.Fatal(err)
 	}
 

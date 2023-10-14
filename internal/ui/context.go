@@ -280,6 +280,6 @@ func (c *context) screenScaleAndOffsets() (scale, offsetX, offsetY float64) {
 	return
 }
 
-func LogicalPositionToClientPosition(x, y float64) (float64, float64) {
-	return theUI.context.logicalPositionToClientPosition(x, y, theUI.DeviceScaleFactor())
+func (u *UserInterface) LogicalPositionToClientPosition(x, y float64) (float64, float64) {
+	return u.context.logicalPositionToClientPosition(x, y, u.DeviceScaleFactor())
 }

@@ -32,8 +32,7 @@ import (
 
 var class_EbitengineWindowDelegate objc.Class
 
-func init() {
-	var err error
+func (u *UserInterface) initializePlatform() error {
 	pushResizableState := func(id, win objc.ID) {
 		window := cocoa.NSWindow{ID: win}
 		id.Send(sel_setOrigResizable, window.StyleMask()&cocoa.NSWindowStyleMaskResizable != 0)
@@ -48,7 +47,7 @@ func init() {
 		}
 		id.Send(sel_setOrigResizable, false)
 	}
-	class_EbitengineWindowDelegate, err = objc.RegisterClass(
+	d, err := objc.RegisterClass(
 		"EbitengineWindowDelegate",
 		objc.GetClass("NSObject"),
 		[]*objc.Protocol{objc.GetProtocol("NSWindowDelegate")},
@@ -122,7 +121,7 @@ func init() {
 			{
 				Cmd: sel_windowWillEnterFullScreen,
 				Fn: func(id objc.ID, cmd objc.SEL, notification objc.ID) {
-					if err := theUI.setOrigWindowPosWithCurrentPos(); err != nil {
+					if err := u.setOrigWindowPosWithCurrentPos(); err != nil {
 						theGlobalState.setError(err)
 						return
 					}
@@ -142,7 +141,7 @@ func init() {
 					// Even a window has a size limitation, a window can be fullscreen by calling SetFullscreen(true).
 					// In this case, the window size limitation is disabled temporarily.
 					// When exiting from fullscreen, reset the window size limitation.
-					if err := theUI.updateWindowSizeLimits(); err != nil {
+					if err := u.updateWindowSizeLimits(); err != nil {
 						theGlobalState.setError(err)
 						return
 					}
@@ -158,8 +157,11 @@ func init() {
 		},
 	)
 	if err != nil {
-		panic(err)
+		return err
 	}
+	class_EbitengineWindowDelegate = d
+
+	return nil
 }
 
 type graphicsDriverCreatorImpl struct {

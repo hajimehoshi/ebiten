@@ -19,6 +19,7 @@ import (
 	"sync/atomic"
 )
 
+// TODO: Move theGlobalState to UserInterface's member
 var theGlobalState = globalState{
 	isScreenClearedEveryFrame_: 1,
 	graphicsLibrary_:           int32(GraphicsLibraryUnknown),
@@ -81,9 +82,9 @@ func FPSMode() FPSModeType {
 	return theGlobalState.fpsMode()
 }
 
-func SetFPSMode(fpsMode FPSModeType) {
+func (u *UserInterface) SetFPSMode(fpsMode FPSModeType) {
 	theGlobalState.setFPSMode(fpsMode)
-	theUI.SetFPSMode(fpsMode)
+	u.setFPSMode(fpsMode)
 }
 
 func IsScreenClearedEveryFrame() bool {

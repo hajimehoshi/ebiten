@@ -51,8 +51,8 @@ var (
 	renderEndCh = make(chan struct{})
 )
 
-func init() {
-	theUI.userInterfaceImpl = userInterfaceImpl{
+func (u *UserInterface) init() error {
+	u.userInterfaceImpl = userInterfaceImpl{
 		foreground:           1,
 		graphicsDriverInitCh: make(chan struct{}),
 		errCh:                make(chan error),
@@ -61,6 +61,7 @@ func init() {
 		outsideWidth:  640,
 		outsideHeight: 480,
 	}
+	return nil
 }
 
 // Update is called from mobile/ebitenmobileview.
@@ -249,11 +250,7 @@ func (u *UserInterface) Run(game Game, options *RunOptions) error {
 	return nil
 }
 
-func RunWithoutMainLoop(game Game, options *RunOptions) {
-	theUI.runWithoutMainLoop(game, options)
-}
-
-func (u *UserInterface) runWithoutMainLoop(game Game, options *RunOptions) {
+func (u *UserInterface) RunWithoutMainLoop(game Game, options *RunOptions) {
 	go func() {
 		if err := u.run(game, false, options); err != nil {
 			u.errCh <- err
@@ -402,7 +399,7 @@ func (u *UserInterface) SetRunnableOnUnfocused(runnableOnUnfocused bool) {
 	// Do nothing
 }
 
-func (u *UserInterface) SetFPSMode(mode FPSModeType) {
+func (u *UserInterface) setFPSMode(mode FPSModeType) {
 	u.fpsMode = mode
 	u.updateExplicitRenderingModeIfNeeded()
 }

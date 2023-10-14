@@ -76,7 +76,7 @@ func IsKeyPressed(key Key) bool {
 //
 // KeyName is concurrent-safe.
 func KeyName(key Key) string {
-	return ui.KeyName(ui.Key(key))
+	return ui.Get().KeyName(ui.Key(key))
 }
 
 // CursorPosition returns a position of a mouse cursor relative to the game screen (window). The cursor position is

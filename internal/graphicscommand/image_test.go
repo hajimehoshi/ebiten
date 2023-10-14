@@ -62,7 +62,7 @@ func TestClear(t *testing.T) {
 	dst.DrawTriangles([graphics.ShaderImageCount]*graphicscommand.Image{src}, vs, is, graphicsdriver.BlendClear, dr, [graphics.ShaderImageCount]image.Rectangle{}, nearestFilterShader, nil, false)
 
 	pix := make([]byte, 4*w*h)
-	if err := dst.ReadPixels(ui.GraphicsDriverForTesting(), []graphicsdriver.PixelsArgs{
+	if err := dst.ReadPixels(ui.Get().GraphicsDriverForTesting(), []graphicsdriver.PixelsArgs{
 		{
 			Pixels: pix,
 			Region: image.Rect(0, 0, w, h),
@@ -111,7 +111,7 @@ func TestShader(t *testing.T) {
 	dr := image.Rect(0, 0, w, h)
 	dst.DrawTriangles([graphics.ShaderImageCount]*graphicscommand.Image{clr}, vs, is, graphicsdriver.BlendClear, dr, [graphics.ShaderImageCount]image.Rectangle{}, nearestFilterShader, nil, false)
 
-	g := ui.GraphicsDriverForTesting()
+	g := ui.Get().GraphicsDriverForTesting()
 	s := graphicscommand.NewShader(etesting.ShaderProgramFill(0xff, 0, 0, 0xff))
 	dst.DrawTriangles([graphics.ShaderImageCount]*graphicscommand.Image{}, vs, is, graphicsdriver.BlendSourceOver, dr, [graphics.ShaderImageCount]image.Rectangle{}, s, nil, false)
 

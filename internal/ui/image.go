@@ -36,6 +36,8 @@ func SetPanicOnErrorOnReadingPixelsForTesting(value bool) {
 const bigOffscreenScale = 2
 
 type Image struct {
+	ui *UserInterface
+
 	mipmap    *mipmap.Mipmap
 	width     int
 	height    int
@@ -53,8 +55,9 @@ type Image struct {
 	tmpVerticesForFill []float32
 }
 
-func NewImage(width, height int, imageType atlas.ImageType) *Image {
+func (u *UserInterface) NewImage(width, height int, imageType atlas.ImageType) *Image {
 	return &Image{
+		ui:        u,
 		mipmap:    mipmap.New(width, height, imageType),
 		width:     width,
 		height:    height,
@@ -95,7 +98,7 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 			default:
 				panic(fmt.Sprintf("ui: unexpected image type: %d", imageType))
 			}
-			i.bigOffscreenBuffer = newBigOffscreenImage(i, imageType)
+			i.bigOffscreenBuffer = i.ui.newBigOffscreenImage(i, imageType)
 		}
 
 		i.bigOffscreenBuffer.drawTriangles(srcs, vertices, indices, blend, dstRegion, srcRegions, shader, uniforms, evenOdd, canSkipMipmap, false)
@@ -163,7 +166,7 @@ func (i *Image) ReadPixels(pixels []byte, region image.Rectangle) {
 		i.flushDotsBufferIfNeeded()
 	}
 
-	if err := theUI.readPixels(i.mipmap, pixels, region); err != nil {
+	if err := i.ui.readPixels(i.mipmap, pixels, region); err != nil {
 		if panicOnErrorOnReadingPixels {
 			panic(err)
 		}
@@ -173,7 +176,7 @@ func (i *Image) ReadPixels(pixels []byte, region image.Rectangle) {
 
 func (i *Image) DumpScreenshot(name string, blackbg bool) (string, error) {
 	i.flushBufferIfNeeded()
-	return theUI.dumpScreenshot(i.mipmap, name, blackbg)
+	return i.ui.dumpScreenshot(i.mipmap, name, blackbg)
 }
 
 func (i *Image) flushBufferIfNeeded() {
@@ -244,7 +247,7 @@ func (i *Image) flushDotsBufferIfNeeded() {
 	}
 	i.dotsBuffer = nil
 
-	srcs := [graphics.ShaderImageCount]*mipmap.Mipmap{whiteImage.mipmap}
+	srcs := [graphics.ShaderImageCount]*mipmap.Mipmap{i.ui.whiteImage.mipmap}
 	dr := image.Rect(0, 0, i.width, i.height)
 	i.mipmap.DrawTriangles(srcs, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderImageCount]image.Rectangle{}, NearestFilterShader.shader, nil, false, true)
 }
@@ -255,21 +258,8 @@ func (i *Image) flushBigOffscreenBufferIfNeeded() {
 	}
 }
 
-func DumpImages(dir string) (string, error) {
-	return theUI.dumpImages(dir)
-}
-
-var (
-	whiteImage = NewImage(3, 3, atlas.ImageTypeRegular)
-)
-
-func init() {
-	pix := make([]byte, 4*whiteImage.width*whiteImage.height)
-	for i := range pix {
-		pix[i] = 0xff
-	}
-	// As whiteImage is used at Fill, use WritePixels instead.
-	whiteImage.WritePixels(pix, image.Rect(0, 0, whiteImage.width, whiteImage.height))
+func (u *UserInterface) DumpImages(dir string) (string, error) {
+	return u.dumpImages(dir)
 }
 
 func (i *Image) clear() {
@@ -283,17 +273,19 @@ func (i *Image) Fill(r, g, b, a float32, region image.Rectangle) {
 	// i.tmpVerticesForFill can be reused as this is sent to DrawTriangles immediately.
 	graphics.QuadVertices(
 		i.tmpVerticesForFill,
-		1, 1, float32(whiteImage.width-1), float32(whiteImage.height-1),
+		1, 1, float32(i.ui.whiteImage.width-1), float32(i.ui.whiteImage.height-1),
 		float32(i.width), 0, 0, float32(i.height), 0, 0,
 		r, g, b, a)
 	is := graphics.QuadIndices()
 
-	srcs := [graphics.ShaderImageCount]*Image{whiteImage}
+	srcs := [graphics.ShaderImageCount]*Image{i.ui.whiteImage}
 
 	i.DrawTriangles(srcs, i.tmpVerticesForFill, is, graphicsdriver.BlendCopy, region, [graphics.ShaderImageCount]image.Rectangle{}, NearestFilterShader, nil, false, true, false)
 }
 
 type bigOffscreenImage struct {
+	ui *UserInterface
+
 	orig      *Image
 	imageType atlas.ImageType
 
@@ -307,8 +299,9 @@ type bigOffscreenImage struct {
 	tmpVerticesForCopying  []float32
 }
 
-func newBigOffscreenImage(orig *Image, imageType atlas.ImageType) *bigOffscreenImage {
+func (u *UserInterface) newBigOffscreenImage(orig *Image, imageType atlas.ImageType) *bigOffscreenImage {
 	return &bigOffscreenImage{
+		ui:        u,
 		orig:      orig,
 		imageType: imageType,
 	}
@@ -340,7 +333,7 @@ func (i *bigOffscreenImage) drawTriangles(srcs [graphics.ShaderImageCount]*Image
 	}
 
 	if i.image == nil {
-		i.image = NewImage(i.region.Dx()*bigOffscreenScale, i.region.Dy()*bigOffscreenScale, i.imageType)
+		i.image = i.ui.NewImage(i.region.Dx()*bigOffscreenScale, i.region.Dy()*bigOffscreenScale, i.imageType)
 	}
 
 	// Copy the current rendering result to get the correct blending result.

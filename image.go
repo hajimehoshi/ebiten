@@ -1068,7 +1068,7 @@ func newImage(bounds image.Rectangle, imageType atlas.ImageType) *Image {
 	}
 
 	i := &Image{
-		image:  ui.NewImage(width, height, imageType),
+		image:  ui.Get().NewImage(width, height, imageType),
 		bounds: bounds,
 	}
 	i.addr = i

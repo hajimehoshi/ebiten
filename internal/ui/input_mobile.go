@@ -61,7 +61,7 @@ func (u *UserInterface) updateInputState() error {
 	return nil
 }
 
-func KeyName(key Key) string {
+func (u *UserInterface) KeyName(key Key) string {
 	// TODO: Implement this.
 	return ""
 }

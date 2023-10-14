@@ -123,8 +123,10 @@ const (
 func init() {
 	// Lock the main thread.
 	runtime.LockOSThread()
+}
 
-	theUI.userInterfaceImpl = userInterfaceImpl{
+func (u *UserInterface) init() error {
+	u.userInterfaceImpl = userInterfaceImpl{
 		runnableOnUnfocused:      true,
 		minWindowWidthInDIP:      glfw.DontCare,
 		minWindowHeightInDIP:     glfw.DontCare,
@@ -142,25 +144,28 @@ func init() {
 		savedCursorX:             math.NaN(),
 		savedCursorY:             math.NaN(),
 	}
-	theUI.iwindow.ui = theUI
+	u.iwindow.ui = u
 
-	hideConsoleWindowOnWindows()
-
-	if err := initialize(); err != nil {
-		panic(err)
+	if err := u.initializePlatform(); err != nil {
+		return err
+	}
+	if err := u.initializeGLFW(); err != nil {
+		return err
 	}
 	if _, err := glfw.SetMonitorCallback(func(monitor *glfw.Monitor, event glfw.PeripheralEvent) {
 		if err := theMonitors.update(); err != nil {
 			theGlobalState.setError(err)
 		}
 	}); err != nil {
-		panic(err)
+		return err
 	}
+
+	return nil
 }
 
 var glfwSystemCursors = map[CursorShape]*glfw.Cursor{}
 
-func initialize() error {
+func (u *UserInterface) initializeGLFW() error {
 	if err := glfw.Init(); err != nil {
 		return err
 	}
@@ -183,7 +188,7 @@ func initialize() error {
 		return errors.New("ui: no monitor was found at initialize")
 	}
 
-	theUI.setInitMonitor(m)
+	u.setInitMonitor(m)
 
 	// Create system cursors. These cursors are destroyed at glfw.Terminate().
 	glfwSystemCursors[CursorShapeDefault] = nil
@@ -722,7 +727,7 @@ func (u *UserInterface) IsRunnableOnUnfocused() bool {
 	return u.isRunnableOnUnfocused()
 }
 
-func (u *UserInterface) SetFPSMode(mode FPSModeType) {
+func (u *UserInterface) setFPSMode(mode FPSModeType) {
 	if u.isTerminated() {
 		return
 	}
@@ -741,7 +746,7 @@ func (u *UserInterface) SetFPSMode(mode FPSModeType) {
 			u.fpsMode = mode
 			return
 		}
-		if err := u.setFPSMode(mode); err != nil {
+		if err := u.setFPSModeImpl(mode); err != nil {
 			theGlobalState.setError(err)
 			return
 		}
@@ -1285,8 +1290,8 @@ func (u *UserInterface) outsideSize() (float64, float64, error) {
 	return w, h, nil
 }
 
-// setFPSMode must be called from the main thread.
-func (u *UserInterface) setFPSMode(fpsMode FPSModeType) error {
+// setFPSModeImpl must be called from the main thread.
+func (u *UserInterface) setFPSModeImpl(fpsMode FPSModeType) error {
 	needUpdate := u.fpsMode != fpsMode || !u.fpsModeInited
 	u.fpsMode = fpsMode
 	u.fpsModeInited = true
@@ -1356,7 +1361,7 @@ func (u *UserInterface) update() (float64, float64, error) {
 	// Initialize vsync after SetMonitor is called. See the comment in updateVsync.
 	// Calling this inside setWindowSize didn't work (#1363).
 	if !u.fpsModeInited {
-		if err := u.setFPSMode(u.fpsMode); err != nil {
+		if err := u.setFPSModeImpl(u.fpsMode); err != nil {
 			return 0, 0, err
 		}
 	}
@@ -2192,6 +2197,6 @@ func IsScreenTransparentAvailable() bool {
 	return true
 }
 
-func RunOnMainThread(f func()) {
-	theUI.mainThread.Call(f)
+func (u *UserInterface) RunOnMainThread(f func()) {
+	u.mainThread.Call(f)
 }

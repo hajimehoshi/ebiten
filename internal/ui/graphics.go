@@ -98,8 +98,8 @@ func newGraphicsDriver(creator graphicsDriverCreator, graphicsLibrary GraphicsLi
 	}
 }
 
-func GraphicsDriverForTesting() graphicsdriver.Graphics {
-	return theUI.graphicsDriver
+func (u *UserInterface) GraphicsDriverForTesting() graphicsdriver.Graphics {
+	return u.graphicsDriver
 }
 
 type GraphicsLibrary int

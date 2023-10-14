@@ -58,7 +58,7 @@ var theTextInput textInput
 
 func (t *textInput) Start(x, y int) (chan State, func()) {
 	var session *session
-	ui.RunOnMainThread(func() {
+	ui.Get().RunOnMainThread(func() {
 		if t.session != nil {
 			t.session.end()
 			t.session = nil

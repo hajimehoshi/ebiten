@@ -30,6 +30,11 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/winver"
 )
 
+func (u *UserInterface) initializePlatform() error {
+	hideConsoleWindow()
+	return nil
+}
+
 type graphicsDriverCreatorImpl struct {
 	transparent bool
 }

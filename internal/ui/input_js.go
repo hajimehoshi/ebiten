@@ -199,11 +199,7 @@ func init() {
 	})
 }
 
-func KeyName(key Key) string {
-	return theUI.keyName(key)
-}
-
-func (u *UserInterface) keyName(key Key) string {
+func (u *UserInterface) KeyName(key Key) string {
 	if !u.running {
 		return ""
 	}

@@ -52,7 +52,7 @@ func takeScreenshot(screen *Image, transparent bool) error {
 }
 
 func dumpInternalImages() error {
-	dumpedDir, err := ui.DumpImages("internalimages_" + datetimeForFilename())
+	dumpedDir, err := ui.Get().DumpImages("internalimages_" + datetimeForFilename())
 	if err != nil {
 		return err
 	}

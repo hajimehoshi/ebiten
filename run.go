@@ -477,9 +477,9 @@ func IsVsyncEnabled() bool {
 // the game uses the display's vsync.
 func SetVsyncEnabled(enabled bool) {
 	if enabled {
-		ui.SetFPSMode(ui.FPSModeVsyncOn)
+		ui.Get().SetFPSMode(ui.FPSModeVsyncOn)
 	} else {
-		ui.SetFPSMode(ui.FPSModeVsyncOffMaximum)
+		ui.Get().SetFPSMode(ui.FPSModeVsyncOffMaximum)
 	}
 }
 
@@ -536,7 +536,7 @@ func FPSMode() FPSModeType {
 //
 // Deprecated: as of v2.5. Use SetVsyncEnabled instead.
 func SetFPSMode(mode FPSModeType) {
-	ui.SetFPSMode(mode)
+	ui.Get().SetFPSMode(mode)
 }
 
 // ScheduleFrame schedules a next frame when the current FPS mode is FPSModeVsyncOffMinimum.

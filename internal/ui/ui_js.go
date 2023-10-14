@@ -144,8 +144,8 @@ func (u *UserInterface) SetFullscreen(fullscreen bool) {
 		return
 	}
 
-	if theUI.cursorMode == CursorModeCaptured {
-		theUI.saveCursorPosition()
+	if u.cursorMode == CursorModeCaptured {
+		u.saveCursorPosition()
 	}
 
 	if fullscreen {
@@ -186,7 +186,7 @@ func (u *UserInterface) IsRunnableOnUnfocused() bool {
 	return u.runnableOnUnfocused
 }
 
-func (u *UserInterface) SetFPSMode(mode FPSModeType) {
+func (u *UserInterface) setFPSMode(mode FPSModeType) {
 	u.fpsMode = mode
 }
 
@@ -236,7 +236,7 @@ func (u *UserInterface) setCursorMode(mode CursorMode) {
 }
 
 func (u *UserInterface) recoverCursorMode() {
-	if theUI.cursorPrevMode == CursorModeCaptured {
+	if u.cursorPrevMode == CursorModeCaptured {
 		panic("ui: cursorPrevMode must not be CursorModeCaptured at recoverCursorMode")
 	}
 	u.SetCursorMode(u.cursorPrevMode)
@@ -471,8 +471,8 @@ func (u *UserInterface) loop(game Game) <-chan error {
 	return errCh
 }
 
-func init() {
-	theUI.userInterfaceImpl = userInterfaceImpl{
+func (u *UserInterface) init() error {
+	u.userInterfaceImpl = userInterfaceImpl{
 		runnableOnUnfocused: true,
 		savedCursorX:        math.NaN(),
 		savedCursorY:        math.NaN(),
@@ -480,7 +480,7 @@ func init() {
 
 	// docuemnt is undefined on node.js
 	if !document.Truthy() {
-		return
+		return nil
 	}
 
 	if !document.Get("body").Truthy() {
@@ -492,7 +492,7 @@ func init() {
 		<-ch
 	}
 
-	setWindowEventHandlers(window)
+	u.setWindowEventHandlers(window)
 
 	// Adjust the initial scale to 1.
 	// https://developer.mozilla.org/en/docs/Mozilla/Mobile/Viewport_meta_tag
@@ -528,7 +528,7 @@ func init() {
 	canvas.Call("setAttribute", "tabindex", 1)
 	canvas.Get("style").Set("outline", "none")
 
-	setCanvasEventHandlers(canvas)
+	u.setCanvasEventHandlers(canvas)
 
 	// Pointer Lock
 	document.Call("addEventListener", "pointerlockchange", js.FuncOf(func(this js.Value, args []js.Value) any {
@@ -538,10 +538,10 @@ func init() {
 		// Recover the state correctly when the pointer lock exits.
 
 		// A user can exit the pointer lock by pressing ESC. In this case, sync the cursor mode state.
-		if theUI.cursorMode == CursorModeCaptured {
-			theUI.recoverCursorMode()
+		if u.cursorMode == CursorModeCaptured {
+			u.recoverCursorMode()
 		}
-		theUI.recoverCursorPosition()
+		u.recoverCursorPosition()
 		return nil
 	}))
 	document.Call("addEventListener", "pointerlockerror", js.FuncOf(func(this js.Value, args []js.Value) any {
@@ -556,16 +556,18 @@ func init() {
 		js.Global().Get("console").Call("error", "webkitfullscreenerror event is fired. 'allow=\"fullscreen\"' or 'allowfullscreen' might be required at an iframe. This function on browsers must be called as a result of a gestural interaction or orientation change.")
 		return nil
 	}))
+
+	return nil
 }
 
-func setWindowEventHandlers(v js.Value) {
+func (u *UserInterface) setWindowEventHandlers(v js.Value) {
 	v.Call("addEventListener", "resize", js.FuncOf(func(this js.Value, args []js.Value) any {
-		theUI.updateScreenSize()
+		u.updateScreenSize()
 
 		// updateImpl can block. Use goroutine.
 		// See https://pkg.go.dev/syscall/js#FuncOf.
 		go func() {
-			if err := theUI.updateImpl(true); err != nil {
+			if err := u.updateImpl(true); err != nil {
 				theGlobalState.setError(err)
 				return
 			}
@@ -574,7 +576,7 @@ func setWindowEventHandlers(v js.Value) {
 	}))
 }
 
-func setCanvasEventHandlers(v js.Value) {
+func (u *UserInterface) setCanvasEventHandlers(v js.Value) {
 	// Keyboard
 	v.Call("addEventListener", "keydown", js.FuncOf(func(this js.Value, args []js.Value) any {
 		// Focus the canvas explicitly to activate tha game (#961).
@@ -582,7 +584,7 @@ func setCanvasEventHandlers(v js.Value) {
 
 		e := args[0]
 		e.Call("preventDefault")
-		if err := theUI.updateInputFromEvent(e); err != nil {
+		if err := u.updateInputFromEvent(e); err != nil {
 			theGlobalState.setError(err)
 			return nil
 		}
@@ -591,7 +593,7 @@ func setCanvasEventHandlers(v js.Value) {
 	v.Call("addEventListener", "keyup", js.FuncOf(func(this js.Value, args []js.Value) any {
 		e := args[0]
 		e.Call("preventDefault")
-		if err := theUI.updateInputFromEvent(e); err != nil {
+		if err := u.updateInputFromEvent(e); err != nil {
 			theGlobalState.setError(err)
 			return nil
 		}
@@ -605,7 +607,7 @@ func setCanvasEventHandlers(v js.Value) {
 
 		e := args[0]
 		e.Call("preventDefault")
-		if err := theUI.updateInputFromEvent(e); err != nil {
+		if err := u.updateInputFromEvent(e); err != nil {
 			theGlobalState.setError(err)
 			return nil
 		}
@@ -614,7 +616,7 @@ func setCanvasEventHandlers(v js.Value) {
 	v.Call("addEventListener", "mouseup", js.FuncOf(func(this js.Value, args []js.Value) any {
 		e := args[0]
 		e.Call("preventDefault")
-		if err := theUI.updateInputFromEvent(e); err != nil {
+		if err := u.updateInputFromEvent(e); err != nil {
 			theGlobalState.setError(err)
 			return nil
 		}
@@ -623,7 +625,7 @@ func setCanvasEventHandlers(v js.Value) {
 	v.Call("addEventListener", "mousemove", js.FuncOf(func(this js.Value, args []js.Value) any {
 		e := args[0]
 		e.Call("preventDefault")
-		if err := theUI.updateInputFromEvent(e); err != nil {
+		if err := u.updateInputFromEvent(e); err != nil {
 			theGlobalState.setError(err)
 			return nil
 		}
@@ -632,7 +634,7 @@ func setCanvasEventHandlers(v js.Value) {
 	v.Call("addEventListener", "wheel", js.FuncOf(func(this js.Value, args []js.Value) any {
 		e := args[0]
 		e.Call("preventDefault")
-		if err := theUI.updateInputFromEvent(e); err != nil {
+		if err := u.updateInputFromEvent(e); err != nil {
 			theGlobalState.setError(err)
 			return nil
 		}
@@ -646,7 +648,7 @@ func setCanvasEventHandlers(v js.Value) {
 
 		e := args[0]
 		e.Call("preventDefault")
-		if err := theUI.updateInputFromEvent(e); err != nil {
+		if err := u.updateInputFromEvent(e); err != nil {
 			theGlobalState.setError(err)
 			return nil
 		}
@@ -655,7 +657,7 @@ func setCanvasEventHandlers(v js.Value) {
 	v.Call("addEventListener", "touchend", js.FuncOf(func(this js.Value, args []js.Value) any {
 		e := args[0]
 		e.Call("preventDefault")
-		if err := theUI.updateInputFromEvent(e); err != nil {
+		if err := u.updateInputFromEvent(e); err != nil {
 			theGlobalState.setError(err)
 			return nil
 		}
@@ -664,7 +666,7 @@ func setCanvasEventHandlers(v js.Value) {
 	v.Call("addEventListener", "touchmove", js.FuncOf(func(this js.Value, args []js.Value) any {
 		e := args[0]
 		e.Call("preventDefault")
-		if err := theUI.updateInputFromEvent(e); err != nil {
+		if err := u.updateInputFromEvent(e); err != nil {
 			theGlobalState.setError(err)
 			return nil
 		}
@@ -700,7 +702,7 @@ func setCanvasEventHandlers(v js.Value) {
 			return nil
 		}
 
-		go theUI.appendDroppedFiles(data)
+		go u.appendDroppedFiles(data)
 		return nil
 	}))
 }

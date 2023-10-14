@@ -67,14 +67,45 @@ const (
 )
 
 type UserInterface struct {
+	whiteImage *Image
+
 	userInterfaceImpl
 }
 
-var theUI = &UserInterface{}
+var (
+	theUI *UserInterface
+)
+
+func init() {
+	// newUserInterface() must be called in the main goroutine.
+	u, err := newUserInterface()
+	if err != nil {
+		panic(err)
+	}
+	theUI = u
+}
 
 func Get() *UserInterface {
-	// TODO: Get is a legacy API to access this package. Remove this.
 	return theUI
+}
+
+// newUserInterface must be called from the main thread.
+func newUserInterface() (*UserInterface, error) {
+	u := &UserInterface{}
+
+	u.whiteImage = u.NewImage(3, 3, atlas.ImageTypeRegular)
+	pix := make([]byte, 4*u.whiteImage.width*u.whiteImage.height)
+	for i := range pix {
+		pix[i] = 0xff
+	}
+	// As a white image is used at Fill, use WritePixels instead.
+	u.whiteImage.WritePixels(pix, image.Rect(0, 0, u.whiteImage.width, u.whiteImage.height))
+
+	if err := u.init(); err != nil {
+		return nil, err
+	}
+
+	return u, nil
 }
 
 func (u *UserInterface) readPixels(mipmap *mipmap.Mipmap, pixels []byte, region image.Rectangle) error {
