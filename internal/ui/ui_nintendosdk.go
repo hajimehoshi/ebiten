@@ -74,6 +74,10 @@ type userInterfaceImpl struct {
 	m sync.Mutex
 }
 
+func (u *UserInterface) init() error {
+	return nil
+}
+
 func (u *UserInterface) Run(game Game, options *RunOptions) error {
 	u.context = newContext(game)
 	g, err := newGraphicsDriver(&graphicsDriverCreatorImpl{}, options.GraphicsLibrary)
