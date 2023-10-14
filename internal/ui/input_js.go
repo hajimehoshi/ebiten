@@ -227,10 +227,6 @@ func (u *userInterfaceImpl) keyName(key Key) string {
 	return n.String()
 }
 
-func UpdateInputFromEvent(e js.Value) {
-	theUI.updateInputFromEvent(e)
-}
-
 func (u *userInterfaceImpl) saveCursorPosition() {
 	u.savedCursorX = u.inputState.CursorX
 	u.savedCursorY = u.inputState.CursorY
