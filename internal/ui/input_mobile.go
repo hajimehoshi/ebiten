@@ -26,7 +26,7 @@ type TouchForInput struct {
 	Y float64
 }
 
-func (u *userInterfaceImpl) updateInputStateFromOutside(keys map[Key]struct{}, runes []rune, touches []TouchForInput) {
+func (u *UserInterface) updateInputStateFromOutside(keys map[Key]struct{}, runes []rune, touches []TouchForInput) {
 	u.m.Lock()
 	defer u.m.Unlock()
 
@@ -43,7 +43,7 @@ func (u *userInterfaceImpl) updateInputStateFromOutside(keys map[Key]struct{}, r
 	}
 }
 
-func (u *userInterfaceImpl) updateInputState() error {
+func (u *UserInterface) updateInputState() error {
 	u.m.Lock()
 	defer u.m.Unlock()
 

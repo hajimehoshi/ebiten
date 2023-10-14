@@ -211,7 +211,7 @@ func dipToGLFWPixel(x float64, monitor *Monitor) float64 {
 	return x
 }
 
-func (u *userInterfaceImpl) adjustWindowPosition(x, y int, monitor *Monitor) (int, int) {
+func (u *UserInterface) adjustWindowPosition(x, y int, monitor *Monitor) (int, int) {
 	return x, y
 }
 
@@ -302,11 +302,11 @@ func monitorFromWindowByOS(w *glfw.Window) (*Monitor, error) {
 	return nil, nil
 }
 
-func (u *userInterfaceImpl) nativeWindow() (uintptr, error) {
+func (u *UserInterface) nativeWindow() (uintptr, error) {
 	return u.window.GetCocoaWindow()
 }
 
-func (u *userInterfaceImpl) isNativeFullscreen() (bool, error) {
+func (u *UserInterface) isNativeFullscreen() (bool, error) {
 	w, err := u.window.GetCocoaWindow()
 	if err != nil {
 		return false, err
@@ -314,13 +314,13 @@ func (u *userInterfaceImpl) isNativeFullscreen() (bool, error) {
 	return cocoa.NSWindow{ID: objc.ID(w)}.StyleMask()&cocoa.NSWindowStyleMaskFullScreen != 0, nil
 }
 
-func (u *userInterfaceImpl) isNativeFullscreenAvailable() bool {
+func (u *UserInterface) isNativeFullscreenAvailable() bool {
 	// TODO: If the window is transparent, we should use GLFW's windowed fullscreen (#1822, #1857).
 	// However, if the user clicks the green button, should this window be in native fullscreen mode?
 	return true
 }
 
-func (u *userInterfaceImpl) setNativeFullscreen(fullscreen bool) error {
+func (u *UserInterface) setNativeFullscreen(fullscreen bool) error {
 	// Toggling fullscreen might ignore events like keyUp. Ensure that events are fired.
 	if err := glfw.WaitEventsTimeout(0.1); err != nil {
 		return err
@@ -351,7 +351,7 @@ func (u *userInterfaceImpl) setNativeFullscreen(fullscreen bool) error {
 	return nil
 }
 
-func (u *userInterfaceImpl) adjustViewSizeAfterFullscreen() error {
+func (u *UserInterface) adjustViewSizeAfterFullscreen() error {
 	if u.graphicsDriver.IsGL() {
 		return nil
 	}
@@ -382,7 +382,7 @@ func (u *userInterfaceImpl) adjustViewSizeAfterFullscreen() error {
 	return nil
 }
 
-func (u *userInterfaceImpl) isFullscreenAllowedFromUI(mode WindowResizingMode) bool {
+func (u *UserInterface) isFullscreenAllowedFromUI(mode WindowResizingMode) bool {
 	if u.maxWindowWidthInDIP != glfw.DontCare || u.maxWindowHeightInDIP != glfw.DontCare {
 		return false
 	}
@@ -395,7 +395,7 @@ func (u *userInterfaceImpl) isFullscreenAllowedFromUI(mode WindowResizingMode) b
 	return false
 }
 
-func (u *userInterfaceImpl) setWindowResizingModeForOS(mode WindowResizingMode) error {
+func (u *UserInterface) setWindowResizingModeForOS(mode WindowResizingMode) error {
 	var collectionBehavior uint
 	if u.isFullscreenAllowedFromUI(mode) {
 		collectionBehavior |= cocoa.NSWindowCollectionBehaviorManaged
@@ -424,6 +424,6 @@ func initializeWindowAfterCreation(w *glfw.Window) error {
 	return nil
 }
 
-func (u *userInterfaceImpl) skipTaskbar() error {
+func (u *UserInterface) skipTaskbar() error {
 	return nil
 }

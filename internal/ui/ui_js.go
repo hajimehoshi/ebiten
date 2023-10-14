@@ -129,11 +129,11 @@ var (
 	documentHidden   = js.Global().Get("Object").Call("getOwnPropertyDescriptor", js.Global().Get("Document").Get("prototype"), "hidden").Get("get").Call("bind", document)
 )
 
-func (u *userInterfaceImpl) ScreenSizeInFullscreen() (int, int) {
+func (u *UserInterface) ScreenSizeInFullscreen() (int, int) {
 	return window.Get("innerWidth").Int(), window.Get("innerHeight").Int()
 }
 
-func (u *userInterfaceImpl) SetFullscreen(fullscreen bool) {
+func (u *UserInterface) SetFullscreen(fullscreen bool) {
 	if !canvas.Truthy() {
 		return
 	}
@@ -164,7 +164,7 @@ func (u *userInterfaceImpl) SetFullscreen(fullscreen bool) {
 	f.Call("bind", document).Invoke()
 }
 
-func (u *userInterfaceImpl) IsFullscreen() bool {
+func (u *UserInterface) IsFullscreen() bool {
 	if !document.Truthy() {
 		return false
 	}
@@ -174,34 +174,34 @@ func (u *userInterfaceImpl) IsFullscreen() bool {
 	return true
 }
 
-func (u *userInterfaceImpl) IsFocused() bool {
+func (u *UserInterface) IsFocused() bool {
 	return u.isFocused()
 }
 
-func (u *userInterfaceImpl) SetRunnableOnUnfocused(runnableOnUnfocused bool) {
+func (u *UserInterface) SetRunnableOnUnfocused(runnableOnUnfocused bool) {
 	u.runnableOnUnfocused = runnableOnUnfocused
 }
 
-func (u *userInterfaceImpl) IsRunnableOnUnfocused() bool {
+func (u *UserInterface) IsRunnableOnUnfocused() bool {
 	return u.runnableOnUnfocused
 }
 
-func (u *userInterfaceImpl) SetFPSMode(mode FPSModeType) {
+func (u *UserInterface) SetFPSMode(mode FPSModeType) {
 	u.fpsMode = mode
 }
 
-func (u *userInterfaceImpl) ScheduleFrame() {
+func (u *UserInterface) ScheduleFrame() {
 	u.renderingScheduled = true
 }
 
-func (u *userInterfaceImpl) CursorMode() CursorMode {
+func (u *UserInterface) CursorMode() CursorMode {
 	if !canvas.Truthy() {
 		return CursorModeHidden
 	}
 	return u.cursorMode
 }
 
-func (u *userInterfaceImpl) SetCursorMode(mode CursorMode) {
+func (u *UserInterface) SetCursorMode(mode CursorMode) {
 	if mode == CursorModeCaptured && !u.canCaptureCursor() {
 		u.captureCursorLater = true
 		return
@@ -209,7 +209,7 @@ func (u *userInterfaceImpl) SetCursorMode(mode CursorMode) {
 	u.setCursorMode(mode)
 }
 
-func (u *userInterfaceImpl) setCursorMode(mode CursorMode) {
+func (u *UserInterface) setCursorMode(mode CursorMode) {
 	u.captureCursorLater = false
 
 	if !canvas.Truthy() {
@@ -235,21 +235,21 @@ func (u *userInterfaceImpl) setCursorMode(mode CursorMode) {
 	}
 }
 
-func (u *userInterfaceImpl) recoverCursorMode() {
+func (u *UserInterface) recoverCursorMode() {
 	if theUI.cursorPrevMode == CursorModeCaptured {
 		panic("ui: cursorPrevMode must not be CursorModeCaptured at recoverCursorMode")
 	}
 	u.SetCursorMode(u.cursorPrevMode)
 }
 
-func (u *userInterfaceImpl) CursorShape() CursorShape {
+func (u *UserInterface) CursorShape() CursorShape {
 	if !canvas.Truthy() {
 		return CursorShapeDefault
 	}
 	return u.cursorShape
 }
 
-func (u *userInterfaceImpl) SetCursorShape(shape CursorShape) {
+func (u *UserInterface) SetCursorShape(shape CursorShape) {
 	if !canvas.Truthy() {
 		return
 	}
@@ -263,7 +263,7 @@ func (u *userInterfaceImpl) SetCursorShape(shape CursorShape) {
 	}
 }
 
-func (u *userInterfaceImpl) DeviceScaleFactor() float64 {
+func (u *UserInterface) DeviceScaleFactor() float64 {
 	if u.deviceScaleFactor != 0 {
 		return u.deviceScaleFactor
 	}
@@ -276,7 +276,7 @@ func (u *userInterfaceImpl) DeviceScaleFactor() float64 {
 	return u.deviceScaleFactor
 }
 
-func (u *userInterfaceImpl) outsideSize() (float64, float64) {
+func (u *UserInterface) outsideSize() (float64, float64) {
 	if document.Truthy() {
 		body := document.Get("body")
 		bw := body.Get("clientWidth").Float()
@@ -288,14 +288,14 @@ func (u *userInterfaceImpl) outsideSize() (float64, float64) {
 	return 640, 480
 }
 
-func (u *userInterfaceImpl) suspended() bool {
+func (u *UserInterface) suspended() bool {
 	if u.runnableOnUnfocused {
 		return false
 	}
 	return !u.isFocused()
 }
 
-func (u *userInterfaceImpl) isFocused() bool {
+func (u *UserInterface) isFocused() bool {
 	if !documentHasFocus.Invoke().Bool() {
 		return false
 	}
@@ -314,12 +314,12 @@ func (u *userInterfaceImpl) isFocused() bool {
 // > Pointer lock is a transient activation-gated API, therefore a requestPointerLock() call
 // > MUST fail if the relevant global object of this does not have transient activation.
 // > This prevents locking upon initial navigation or re-acquiring lock without user's attention.
-func (u *userInterfaceImpl) canCaptureCursor() bool {
+func (u *UserInterface) canCaptureCursor() bool {
 	// 1.5 [sec] seems enough in the real world.
 	return time.Now().Sub(u.lastCaptureExitTime) >= 1500*time.Millisecond
 }
 
-func (u *userInterfaceImpl) update() error {
+func (u *UserInterface) update() error {
 	if u.captureCursorLater && u.canCaptureCursor() {
 		u.setCursorMode(CursorModeCaptured)
 	}
@@ -333,7 +333,7 @@ func (u *userInterfaceImpl) update() error {
 	return u.updateImpl(false)
 }
 
-func (u *userInterfaceImpl) updateImpl(force bool) error {
+func (u *UserInterface) updateImpl(force bool) error {
 	// Guard updateImpl as this function cannot be invoked until this finishes (#2339).
 	u.m.Lock()
 	defer u.m.Unlock()
@@ -368,7 +368,7 @@ func (u *userInterfaceImpl) updateImpl(force bool) error {
 	return nil
 }
 
-func (u *userInterfaceImpl) needsUpdate() bool {
+func (u *UserInterface) needsUpdate() bool {
 	if u.fpsMode != FPSModeVsyncOffMinimum {
 		return true
 	}
@@ -382,7 +382,7 @@ func (u *userInterfaceImpl) needsUpdate() bool {
 	return false
 }
 
-func (u *userInterfaceImpl) loop(game Game) <-chan error {
+func (u *UserInterface) loop(game Game) <-chan error {
 	u.context = newContext(game)
 
 	errCh := make(chan error, 1)
@@ -705,7 +705,7 @@ func setCanvasEventHandlers(v js.Value) {
 	}))
 }
 
-func (u *userInterfaceImpl) appendDroppedFiles(data js.Value) {
+func (u *UserInterface) appendDroppedFiles(data js.Value) {
 	u.dropFileM.Lock()
 	defer u.dropFileM.Unlock()
 
@@ -718,7 +718,7 @@ func (u *userInterfaceImpl) appendDroppedFiles(data js.Value) {
 	u.inputState.DroppedFiles = file.NewFileEntryFS(fs)
 }
 
-func (u *userInterfaceImpl) forceUpdateOnMinimumFPSMode() {
+func (u *UserInterface) forceUpdateOnMinimumFPSMode() {
 	if u.fpsMode != FPSModeVsyncOffMinimum {
 		return
 	}
@@ -732,7 +732,7 @@ func (u *userInterfaceImpl) forceUpdateOnMinimumFPSMode() {
 	}()
 }
 
-func (u *userInterfaceImpl) Run(game Game, options *RunOptions) error {
+func (u *UserInterface) Run(game Game, options *RunOptions) error {
 	if !options.InitUnfocused && window.Truthy() {
 		// Do not focus the canvas when the current document is in an iframe.
 		// Otherwise, the parent page tries to focus the iframe on every loading, which is annoying (#1373).
@@ -759,7 +759,7 @@ func (u *userInterfaceImpl) Run(game Game, options *RunOptions) error {
 	return <-u.loop(game)
 }
 
-func (u *userInterfaceImpl) updateScreenSize() {
+func (u *UserInterface) updateScreenSize() {
 	if document.Truthy() {
 		body := document.Get("body")
 		bw := int(body.Get("clientWidth").Float() * u.DeviceScaleFactor())
@@ -769,12 +769,12 @@ func (u *userInterfaceImpl) updateScreenSize() {
 	}
 }
 
-func (u *userInterfaceImpl) readInputState(inputState *InputState) {
+func (u *UserInterface) readInputState(inputState *InputState) {
 	u.inputState.copyAndReset(inputState)
 	u.keyboardLayoutMap = js.Value{}
 }
 
-func (u *userInterfaceImpl) Window() Window {
+func (u *UserInterface) Window() Window {
 	return &nullWindow{}
 }
 
@@ -793,21 +793,21 @@ func (m *Monitor) Name() string {
 	return ""
 }
 
-func (u *userInterfaceImpl) AppendMonitors(mons []*Monitor) []*Monitor {
+func (u *UserInterface) AppendMonitors(mons []*Monitor) []*Monitor {
 	return append(mons, theMonitor)
 }
 
-func (u *userInterfaceImpl) Monitor() *Monitor {
+func (u *UserInterface) Monitor() *Monitor {
 	return theMonitor
 }
 
-func (u *userInterfaceImpl) beginFrame() {
+func (u *UserInterface) beginFrame() {
 }
 
-func (u *userInterfaceImpl) endFrame() {
+func (u *UserInterface) endFrame() {
 }
 
-func (u *userInterfaceImpl) updateIconIfNeeded() error {
+func (u *UserInterface) updateIconIfNeeded() error {
 	return nil
 }
 

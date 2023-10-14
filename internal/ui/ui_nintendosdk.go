@@ -74,7 +74,7 @@ type userInterfaceImpl struct {
 	m sync.Mutex
 }
 
-func (u *userInterfaceImpl) Run(game Game, options *RunOptions) error {
+func (u *UserInterface) Run(game Game, options *RunOptions) error {
 	u.context = newContext(game)
 	g, err := newGraphicsDriver(&graphicsDriverCreatorImpl{}, options.GraphicsLibrary)
 	if err != nil {
@@ -132,59 +132,59 @@ func (u *userInterfaceImpl) Run(game Game, options *RunOptions) error {
 	return nil
 }
 
-func (*userInterfaceImpl) DeviceScaleFactor() float64 {
+func (*UserInterface) DeviceScaleFactor() float64 {
 	return deviceScaleFactor
 }
 
-func (*userInterfaceImpl) IsFocused() bool {
+func (*UserInterface) IsFocused() bool {
 	return true
 }
 
-func (*userInterfaceImpl) ScreenSizeInFullscreen() (int, int) {
+func (*UserInterface) ScreenSizeInFullscreen() (int, int) {
 	return 0, 0
 }
 
-func (u *userInterfaceImpl) readInputState(inputState *InputState) {
+func (u *UserInterface) readInputState(inputState *InputState) {
 	u.m.Lock()
 	defer u.m.Unlock()
 	u.inputState.copyAndReset(inputState)
 }
 
-func (*userInterfaceImpl) CursorMode() CursorMode {
+func (*UserInterface) CursorMode() CursorMode {
 	return CursorModeHidden
 }
 
-func (*userInterfaceImpl) SetCursorMode(mode CursorMode) {
+func (*UserInterface) SetCursorMode(mode CursorMode) {
 }
 
-func (*userInterfaceImpl) CursorShape() CursorShape {
+func (*UserInterface) CursorShape() CursorShape {
 	return CursorShapeDefault
 }
 
-func (*userInterfaceImpl) SetCursorShape(shape CursorShape) {
+func (*UserInterface) SetCursorShape(shape CursorShape) {
 }
 
-func (*userInterfaceImpl) IsFullscreen() bool {
+func (*UserInterface) IsFullscreen() bool {
 	return false
 }
 
-func (*userInterfaceImpl) SetFullscreen(fullscreen bool) {
+func (*UserInterface) SetFullscreen(fullscreen bool) {
 }
 
-func (*userInterfaceImpl) IsRunnableOnUnfocused() bool {
+func (*UserInterface) IsRunnableOnUnfocused() bool {
 	return false
 }
 
-func (*userInterfaceImpl) SetRunnableOnUnfocused(runnableOnUnfocused bool) {
+func (*UserInterface) SetRunnableOnUnfocused(runnableOnUnfocused bool) {
 }
 
-func (*userInterfaceImpl) SetFPSMode(mode FPSModeType) {
+func (*UserInterface) SetFPSMode(mode FPSModeType) {
 }
 
-func (*userInterfaceImpl) ScheduleFrame() {
+func (*UserInterface) ScheduleFrame() {
 }
 
-func (*userInterfaceImpl) Window() Window {
+func (*UserInterface) Window() Window {
 	return &nullWindow{}
 }
 
@@ -201,21 +201,21 @@ func (m *Monitor) Name() string {
 	return ""
 }
 
-func (u *userInterfaceImpl) AppendMonitors(mons []*Monitor) []*Monitor {
+func (u *UserInterface) AppendMonitors(mons []*Monitor) []*Monitor {
 	return append(mons, theMonitor)
 }
 
-func (u *userInterfaceImpl) Monitor() *Monitor {
+func (u *UserInterface) Monitor() *Monitor {
 	return theMonitor
 }
 
-func (u *userInterfaceImpl) beginFrame() {
+func (u *UserInterface) beginFrame() {
 }
 
-func (u *userInterfaceImpl) endFrame() {
+func (u *UserInterface) endFrame() {
 }
 
-func (u *userInterfaceImpl) updateIconIfNeeded() error {
+func (u *UserInterface) updateIconIfNeeded() error {
 	return nil
 }
 

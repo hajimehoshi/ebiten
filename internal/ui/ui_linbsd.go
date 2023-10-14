@@ -121,7 +121,7 @@ func dipToGLFWPixel(x float64, monitor *Monitor) float64 {
 	return x * monitor.deviceScaleFactor()
 }
 
-func (u *userInterfaceImpl) adjustWindowPosition(x, y int, monitor *Monitor) (int, int) {
+func (u *UserInterface) adjustWindowPosition(x, y int, monitor *Monitor) (int, int) {
 	return x, y
 }
 
@@ -149,28 +149,28 @@ func monitorFromWindowByOS(_ *glfw.Window) (*Monitor, error) {
 	return nil, nil
 }
 
-func (u *userInterfaceImpl) nativeWindow() (uintptr, error) {
+func (u *UserInterface) nativeWindow() (uintptr, error) {
 	// TODO: Implement this.
 	return 0, nil
 }
 
-func (u *userInterfaceImpl) isNativeFullscreen() (bool, error) {
+func (u *UserInterface) isNativeFullscreen() (bool, error) {
 	return false, nil
 }
 
-func (u *userInterfaceImpl) isNativeFullscreenAvailable() bool {
+func (u *UserInterface) isNativeFullscreenAvailable() bool {
 	return false
 }
 
-func (u *userInterfaceImpl) setNativeFullscreen(fullscreen bool) error {
+func (u *UserInterface) setNativeFullscreen(fullscreen bool) error {
 	panic(fmt.Sprintf("ui: setNativeFullscreen is not implemented in this environment: %s", runtime.GOOS))
 }
 
-func (u *userInterfaceImpl) adjustViewSizeAfterFullscreen() error {
+func (u *UserInterface) adjustViewSizeAfterFullscreen() error {
 	return nil
 }
 
-func (u *userInterfaceImpl) setWindowResizingModeForOS(mode WindowResizingMode) error {
+func (u *UserInterface) setWindowResizingModeForOS(mode WindowResizingMode) error {
 	return nil
 }
 
@@ -188,6 +188,6 @@ func initializeWindowAfterCreation(w *glfw.Window) error {
 	return nil
 }
 
-func (u *userInterfaceImpl) skipTaskbar() error {
+func (u *UserInterface) skipTaskbar() error {
 	return nil
 }

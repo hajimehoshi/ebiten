@@ -101,7 +101,7 @@ func dipToGLFWPixel(x float64, monitor *Monitor) float64 {
 	return x * monitor.deviceScaleFactor()
 }
 
-func (u *userInterfaceImpl) adjustWindowPosition(x, y int, monitor *Monitor) (int, int) {
+func (u *UserInterface) adjustWindowPosition(x, y int, monitor *Monitor) (int, int) {
 	if microsoftgdk.IsXbox() {
 		return x, y
 	}
@@ -178,28 +178,28 @@ func monitorFromWin32Window(w windows.HWND) *Monitor {
 	return nil
 }
 
-func (u *userInterfaceImpl) nativeWindow() (uintptr, error) {
+func (u *UserInterface) nativeWindow() (uintptr, error) {
 	w, err := u.window.GetWin32Window()
 	return uintptr(w), err
 }
 
-func (u *userInterfaceImpl) isNativeFullscreen() (bool, error) {
+func (u *UserInterface) isNativeFullscreen() (bool, error) {
 	return false, nil
 }
 
-func (u *userInterfaceImpl) isNativeFullscreenAvailable() bool {
+func (u *UserInterface) isNativeFullscreenAvailable() bool {
 	return false
 }
 
-func (u *userInterfaceImpl) setNativeFullscreen(fullscreen bool) error {
+func (u *UserInterface) setNativeFullscreen(fullscreen bool) error {
 	panic(fmt.Sprintf("ui: setNativeFullscreen is not implemented in this environment: %s", runtime.GOOS))
 }
 
-func (u *userInterfaceImpl) adjustViewSizeAfterFullscreen() error {
+func (u *UserInterface) adjustViewSizeAfterFullscreen() error {
 	return nil
 }
 
-func (u *userInterfaceImpl) setWindowResizingModeForOS(mode WindowResizingMode) error {
+func (u *UserInterface) setWindowResizingModeForOS(mode WindowResizingMode) error {
 	return nil
 }
 
@@ -207,7 +207,7 @@ func initializeWindowAfterCreation(w *glfw.Window) error {
 	return nil
 }
 
-func (u *userInterfaceImpl) skipTaskbar() error {
+func (u *UserInterface) skipTaskbar() error {
 	// S_FALSE is returned when CoInitializeEx is nested. This is a successful case.
 	if err := windows.CoInitializeEx(0, windows.COINIT_MULTITHREADED); err != nil && !errors.Is(err, syscall.Errno(windows.S_FALSE)) {
 		return err

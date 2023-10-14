@@ -24,7 +24,7 @@ import (
 )
 
 type glfwWindow struct {
-	ui *userInterfaceImpl
+	ui *UserInterface
 }
 
 func (w *glfwWindow) IsDecorated() bool {

@@ -73,7 +73,7 @@ func IsGL() (bool, error) {
 	return theUI.isGL()
 }
 
-func (u *userInterfaceImpl) setUIView(uiview uintptr) error {
+func (u *UserInterface) setUIView(uiview uintptr) error {
 	select {
 	case err := <-u.errCh:
 		return err
@@ -87,7 +87,7 @@ func (u *userInterfaceImpl) setUIView(uiview uintptr) error {
 	return nil
 }
 
-func (u *userInterfaceImpl) isGL() (bool, error) {
+func (u *UserInterface) isGL() (bool, error) {
 	select {
 	case err := <-u.errCh:
 		return false, err

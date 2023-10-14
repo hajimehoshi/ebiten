@@ -31,7 +31,7 @@ var glfwMouseButtonToMouseButton = map[glfw.MouseButton]MouseButton{
 	glfw.MouseButton5:      MouseButton4,
 }
 
-func (u *userInterfaceImpl) registerInputCallbacks() error {
+func (u *UserInterface) registerInputCallbacks() error {
 	if _, err := u.window.SetCharModsCallback(func(w *glfw.Window, char rune, mods glfw.ModifierKey) {
 		// As this function is called from GLFW callbacks, the current thread is main.
 		u.m.Lock()
@@ -54,7 +54,7 @@ func (u *userInterfaceImpl) registerInputCallbacks() error {
 	return nil
 }
 
-func (u *userInterfaceImpl) updateInputState() error {
+func (u *UserInterface) updateInputState() error {
 	var err error
 	u.mainThread.Call(func() {
 		err = u.updateInputStateImpl()
@@ -63,7 +63,7 @@ func (u *userInterfaceImpl) updateInputState() error {
 }
 
 // updateInputStateImpl must be called from the main thread.
-func (u *userInterfaceImpl) updateInputStateImpl() error {
+func (u *UserInterface) updateInputStateImpl() error {
 	u.m.Lock()
 	defer u.m.Unlock()
 
@@ -126,7 +126,7 @@ func KeyName(key Key) string {
 	return theUI.keyName(key)
 }
 
-func (u *userInterfaceImpl) keyName(key Key) string {
+func (u *UserInterface) keyName(key Key) string {
 	if !u.isRunning() {
 		return ""
 	}
@@ -151,7 +151,7 @@ func (u *userInterfaceImpl) keyName(key Key) string {
 	return name
 }
 
-func (u *userInterfaceImpl) saveCursorPosition() {
+func (u *UserInterface) saveCursorPosition() {
 	u.m.Lock()
 	defer u.m.Unlock()
 

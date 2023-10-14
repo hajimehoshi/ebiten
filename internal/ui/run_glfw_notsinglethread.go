@@ -25,7 +25,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/thread"
 )
 
-func (u *userInterfaceImpl) Run(game Game, options *RunOptions) error {
+func (u *UserInterface) Run(game Game, options *RunOptions) error {
 	u.context = newContext(game)
 
 	u.mainThread = thread.NewOSThread()

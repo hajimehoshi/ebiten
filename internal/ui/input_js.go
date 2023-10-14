@@ -57,7 +57,7 @@ var codeToMouseButton = map[int]MouseButton{
 	4: MouseButton4,
 }
 
-func (u *userInterfaceImpl) keyDown(code js.Value) {
+func (u *UserInterface) keyDown(code js.Value) {
 	id := jsKeyToID(code)
 	if id < 0 {
 		return
@@ -65,7 +65,7 @@ func (u *userInterfaceImpl) keyDown(code js.Value) {
 	u.inputState.KeyPressed[id] = true
 }
 
-func (u *userInterfaceImpl) keyUp(code js.Value) {
+func (u *UserInterface) keyUp(code js.Value) {
 	id := jsKeyToID(code)
 	if id < 0 {
 		return
@@ -73,15 +73,15 @@ func (u *userInterfaceImpl) keyUp(code js.Value) {
 	u.inputState.KeyPressed[id] = false
 }
 
-func (u *userInterfaceImpl) mouseDown(code int) {
+func (u *UserInterface) mouseDown(code int) {
 	u.inputState.MouseButtonPressed[codeToMouseButton[code]] = true
 }
 
-func (u *userInterfaceImpl) mouseUp(code int) {
+func (u *UserInterface) mouseUp(code int) {
 	u.inputState.MouseButtonPressed[codeToMouseButton[code]] = false
 }
 
-func (u *userInterfaceImpl) updateInputFromEvent(e js.Value) error {
+func (u *UserInterface) updateInputFromEvent(e js.Value) error {
 	// Avoid using js.Value.String() as String creates a Uint8Array via a TextEncoder and causes a heavy
 	// overhead (#1437).
 	switch t := e.Get("type"); {
@@ -114,7 +114,7 @@ func (u *userInterfaceImpl) updateInputFromEvent(e js.Value) error {
 	return nil
 }
 
-func (u *userInterfaceImpl) setMouseCursorFromEvent(e js.Value) {
+func (u *UserInterface) setMouseCursorFromEvent(e js.Value) {
 	if u.context == nil {
 		return
 	}
@@ -132,12 +132,12 @@ func (u *userInterfaceImpl) setMouseCursorFromEvent(e js.Value) {
 	u.cursorYInClient = u.origCursorYInClient
 }
 
-func (u *userInterfaceImpl) recoverCursorPosition() {
+func (u *UserInterface) recoverCursorPosition() {
 	u.cursorXInClient = u.origCursorXInClient
 	u.cursorYInClient = u.origCursorYInClient
 }
 
-func (u *userInterfaceImpl) updateTouchesFromEvent(e js.Value) {
+func (u *UserInterface) updateTouchesFromEvent(e js.Value) {
 	u.touchesInClient = u.touchesInClient[:0]
 
 	touches := e.Get("targetTouches")
@@ -203,7 +203,7 @@ func KeyName(key Key) string {
 	return theUI.keyName(key)
 }
 
-func (u *userInterfaceImpl) keyName(key Key) string {
+func (u *UserInterface) keyName(key Key) string {
 	if !u.running {
 		return ""
 	}
@@ -231,7 +231,7 @@ func UpdateInputFromEvent(e js.Value) {
 	theUI.updateInputFromEvent(e)
 }
 
-func (u *userInterfaceImpl) saveCursorPosition() {
+func (u *UserInterface) saveCursorPosition() {
 	u.savedCursorX = u.inputState.CursorX
 	u.savedCursorY = u.inputState.CursorY
 	w, h := u.outsideSize()
@@ -239,7 +239,7 @@ func (u *userInterfaceImpl) saveCursorPosition() {
 	u.savedOutsideHeight = h
 }
 
-func (u *userInterfaceImpl) updateInputState() error {
+func (u *UserInterface) updateInputState() error {
 	s := u.DeviceScaleFactor()
 
 	if !math.IsNaN(u.savedCursorX) && !math.IsNaN(u.savedCursorY) {
