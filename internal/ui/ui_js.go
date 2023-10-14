@@ -116,14 +116,6 @@ type userInterfaceImpl struct {
 	dropFileM sync.Mutex
 }
 
-func init() {
-	theUI.userInterfaceImpl = userInterfaceImpl{
-		runnableOnUnfocused: true,
-		savedCursorX:        math.NaN(),
-		savedCursorY:        math.NaN(),
-	}
-}
-
 var (
 	window                = js.Global().Get("window")
 	document              = js.Global().Get("document")
@@ -133,14 +125,9 @@ var (
 )
 
 var (
-	documentHasFocus js.Value
-	documentHidden   js.Value
-)
-
-func init() {
 	documentHasFocus = document.Get("hasFocus").Call("bind", document)
-	documentHidden = js.Global().Get("Object").Call("getOwnPropertyDescriptor", js.Global().Get("Document").Get("prototype"), "hidden").Get("get").Call("bind", document)
-}
+	documentHidden   = js.Global().Get("Object").Call("getOwnPropertyDescriptor", js.Global().Get("Document").Get("prototype"), "hidden").Get("get").Call("bind", document)
+)
 
 func (u *userInterfaceImpl) ScreenSizeInFullscreen() (int, int) {
 	return window.Get("innerWidth").Int(), window.Get("innerHeight").Int()
@@ -485,6 +472,12 @@ func (u *userInterfaceImpl) loop(game Game) <-chan error {
 }
 
 func init() {
+	theUI.userInterfaceImpl = userInterfaceImpl{
+		runnableOnUnfocused: true,
+		savedCursorX:        math.NaN(),
+		savedCursorY:        math.NaN(),
+	}
+
 	// docuemnt is undefined on node.js
 	if !document.Truthy() {
 		return

@@ -121,6 +121,9 @@ const (
 )
 
 func init() {
+	// Lock the main thread.
+	runtime.LockOSThread()
+
 	theUI.userInterfaceImpl = userInterfaceImpl{
 		runnableOnUnfocused:      true,
 		minWindowWidthInDIP:      glfw.DontCare,
@@ -140,9 +143,7 @@ func init() {
 		savedCursorY:             math.NaN(),
 	}
 	theUI.iwindow.ui = &theUI.userInterfaceImpl
-}
 
-func init() {
 	hideConsoleWindowOnWindows()
 
 	if err := initialize(); err != nil {
@@ -867,11 +868,6 @@ func (u *userInterfaceImpl) DeviceScaleFactor() float64 {
 		f = m.deviceScaleFactor()
 	})
 	return f
-}
-
-func init() {
-	// Lock the main thread.
-	runtime.LockOSThread()
 }
 
 // createWindow creates a GLFW window.
