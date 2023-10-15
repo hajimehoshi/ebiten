@@ -66,14 +66,6 @@ func (g *graphicsDriverCreatorImpl) newMetal() (graphicsdriver.Graphics, error) 
 }
 
 func (u *UserInterface) SetUIView(uiview uintptr) error {
-	return u.setUIView(uiview)
-}
-
-func (u *UserInterface) IsGL() (bool, error) {
-	return u.isGL()
-}
-
-func (u *UserInterface) setUIView(uiview uintptr) error {
 	select {
 	case err := <-u.errCh:
 		return err
@@ -87,7 +79,7 @@ func (u *UserInterface) setUIView(uiview uintptr) error {
 	return nil
 }
 
-func (u *UserInterface) isGL() (bool, error) {
+func (u *UserInterface) IsGL() (bool, error) {
 	select {
 	case err := <-u.errCh:
 		return false, err
