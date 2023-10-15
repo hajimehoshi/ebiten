@@ -42,8 +42,6 @@ type Graphics interface {
 	SetVsyncEnabled(enabled bool)
 	NeedsRestoring() bool
 	NeedsClearingScreen() bool
-	IsGL() bool
-	IsDirectX() bool
 	MaxImageSize() int
 
 	NewShader(program *shaderir.Program) (Shader, error)

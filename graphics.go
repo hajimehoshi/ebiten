@@ -66,5 +66,5 @@ type DebugInfo struct {
 
 // ReadDebugInfo writes debug info (e.g. current graphics library) into a provided struct.
 func ReadDebugInfo(d *DebugInfo) {
-	d.GraphicsLibrary = GraphicsLibrary(ui.Get().GetGraphicsLibrary())
+	d.GraphicsLibrary = GraphicsLibrary(ui.Get().GraphicsLibrary())
 }

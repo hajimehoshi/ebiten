@@ -173,6 +173,6 @@ func (u *UserInterface) setGraphicsLibrary(library GraphicsLibrary) {
 	atomic.StoreInt32(&u.graphicsLibrary, int32(library))
 }
 
-func (u *UserInterface) GetGraphicsLibrary() GraphicsLibrary {
+func (u *UserInterface) GraphicsLibrary() GraphicsLibrary {
 	return GraphicsLibrary(atomic.LoadInt32(&u.graphicsLibrary))
 }

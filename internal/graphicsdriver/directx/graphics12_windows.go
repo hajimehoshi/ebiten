@@ -1063,14 +1063,6 @@ func (g *graphics12) NeedsClearingScreen() bool {
 	return true
 }
 
-func (g *graphics12) IsGL() bool {
-	return false
-}
-
-func (g *graphics12) IsDirectX() bool {
-	return true
-}
-
 func (g *graphics12) MaxImageSize() int {
 	return _D3D12_REQ_TEXTURE2D_U_OR_V_DIMENSION
 }

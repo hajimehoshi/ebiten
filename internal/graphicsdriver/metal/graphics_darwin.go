@@ -686,14 +686,6 @@ func (g *Graphics) NeedsClearingScreen() bool {
 	return false
 }
 
-func (g *Graphics) IsGL() bool {
-	return false
-}
-
-func (g *Graphics) IsDirectX() bool {
-	return false
-}
-
 func (g *Graphics) MaxImageSize() int {
 	if g.maxImageSize != 0 {
 		return g.maxImageSize

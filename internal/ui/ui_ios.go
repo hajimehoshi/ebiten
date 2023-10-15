@@ -77,7 +77,7 @@ func (u *UserInterface) setUIView(uiview uintptr) error {
 	select {
 	case err := <-u.errCh:
 		return err
-	case <-u.graphicsDriverInitCh:
+	case <-u.graphicsLibraryInitCh:
 	}
 
 	// This function should be called only when the graphics library is Metal.
@@ -91,10 +91,10 @@ func (u *UserInterface) isGL() (bool, error) {
 	select {
 	case err := <-u.errCh:
 		return false, err
-	case <-u.graphicsDriverInitCh:
+	case <-u.graphicsLibraryInitCh:
 	}
 
-	return u.graphicsDriver.IsGL(), nil
+	return u.GraphicsLibrary() == GraphicsLibraryOpenGL, nil
 }
 
 func deviceScaleFactorImpl() float64 {

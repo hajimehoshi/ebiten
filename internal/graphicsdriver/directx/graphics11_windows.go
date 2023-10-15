@@ -472,14 +472,6 @@ func (g *graphics11) NeedsClearingScreen() bool {
 	return true
 }
 
-func (g *graphics11) IsGL() bool {
-	return false
-}
-
-func (g *graphics11) IsDirectX() bool {
-	return true
-}
-
 func (g *graphics11) MaxImageSize() int {
 	switch g.featureLevel {
 	case _D3D_FEATURE_LEVEL_10_0:

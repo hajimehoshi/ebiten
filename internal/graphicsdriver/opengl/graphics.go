@@ -295,14 +295,6 @@ func (g *Graphics) NeedsClearingScreen() bool {
 	return true
 }
 
-func (g *Graphics) IsGL() bool {
-	return true
-}
-
-func (g *Graphics) IsDirectX() bool {
-	return false
-}
-
 func (g *Graphics) MaxImageSize() int {
 	return g.context.getMaxTextureSize()
 }

@@ -1137,7 +1137,7 @@ func (u *UserInterface) initOnMainThread(options *RunOptions) error {
 	u.setGraphicsLibrary(lib)
 	u.graphicsDriver.SetTransparent(options.ScreenTransparent)
 
-	if u.graphicsDriver.IsGL() {
+	if u.GraphicsLibrary() == GraphicsLibraryOpenGL {
 		if err := u.graphicsDriver.(interface{ SetGLFWClientAPI() error }).SetGLFWClientAPI(); err != nil {
 			return err
 		}
@@ -1427,7 +1427,7 @@ func (u *UserInterface) loopGame() (ferr error) {
 	}()
 
 	u.renderThread.Call(func() {
-		if u.graphicsDriver.IsGL() {
+		if u.GraphicsLibrary() == GraphicsLibraryOpenGL {
 			if err := u.window.MakeContextCurrent(); err != nil {
 				u.setError(err)
 				return
@@ -1572,7 +1572,7 @@ func (u *UserInterface) updateIconIfNeeded() error {
 }
 
 func (u *UserInterface) swapBuffersOnRenderThread() error {
-	if u.graphicsDriver.IsGL() {
+	if u.GraphicsLibrary() == GraphicsLibraryOpenGL {
 		if err := u.window.SwapBuffers(); err != nil {
 			return err
 		}
@@ -1876,7 +1876,7 @@ func (u *UserInterface) minimumWindowWidth() (int, error) {
 }
 
 func (u *UserInterface) updateVsyncOnRenderThread() error {
-	if u.graphicsDriver.IsGL() {
+	if u.GraphicsLibrary() == GraphicsLibraryOpenGL {
 		// SwapInterval is affected by the current monitor of the window.
 		// This needs to be called at least after SetMonitor.
 		// Without SwapInterval after SetMonitor, vsynch doesn't work (#375).

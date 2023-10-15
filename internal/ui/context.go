@@ -75,7 +75,7 @@ func (c *context) updateFrame(graphicsDriver graphicsdriver.Graphics, outsideWid
 
 func (c *context) forceUpdateFrame(graphicsDriver graphicsdriver.Graphics, outsideWidth, outsideHeight float64, deviceScaleFactor float64, ui *UserInterface, swapBuffersForGL func()) error {
 	n := 1
-	if graphicsDriver.IsDirectX() {
+	if ui.GraphicsLibrary() == GraphicsLibraryDirectX {
 		// On DirectX, both framebuffers in the swap chain should be updated.
 		// Or, the rendering result becomes unexpected when the window is resized.
 		n = 2

@@ -354,7 +354,7 @@ func (u *UserInterface) setNativeFullscreen(fullscreen bool) error {
 }
 
 func (u *UserInterface) adjustViewSizeAfterFullscreen() error {
-	if u.graphicsDriver.IsGL() {
+	if u.GraphicsLibrary() == GraphicsLibraryOpenGL {
 		return nil
 	}
 
