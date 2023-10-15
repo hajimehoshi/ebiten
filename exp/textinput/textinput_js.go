@@ -78,14 +78,14 @@ func (t *textInput) init() {
 			e.Call("preventDefault")
 		}
 		if !e.Get("isComposing").Bool() {
-			ui.UpdateInputFromEvent(e)
+			ui.Get().UpdateInputFromEvent(e)
 		}
 		return nil
 	}))
 	t.textareaElement.Call("addEventListener", "keyup", js.FuncOf(func(this js.Value, args []js.Value) any {
 		e := args[0]
 		if !e.Get("isComposing").Bool() {
-			ui.UpdateInputFromEvent(e)
+			ui.Get().UpdateInputFromEvent(e)
 		}
 		return nil
 	}))

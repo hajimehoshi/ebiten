@@ -65,12 +65,12 @@ func (g *graphicsDriverCreatorImpl) newMetal() (graphicsdriver.Graphics, error) 
 	return metal.NewGraphics()
 }
 
-func SetUIView(uiview uintptr) error {
-	return theUI.setUIView(uiview)
+func (u *UserInterface) SetUIView(uiview uintptr) error {
+	return u.setUIView(uiview)
 }
 
-func IsGL() (bool, error) {
-	return theUI.isGL()
+func (u *UserInterface) IsGL() (bool, error) {
+	return u.isGL()
 }
 
 func (u *UserInterface) setUIView(uiview uintptr) error {

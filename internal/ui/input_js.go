@@ -223,8 +223,8 @@ func (u *UserInterface) KeyName(key Key) string {
 	return n.String()
 }
 
-func UpdateInputFromEvent(e js.Value) {
-	theUI.updateInputFromEvent(e)
+func (u *UserInterface) UpdateInputFromEvent(e js.Value) {
+	u.updateInputFromEvent(e)
 }
 
 func (u *UserInterface) saveCursorPosition() {

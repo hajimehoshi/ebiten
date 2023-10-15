@@ -19,9 +19,9 @@ import (
 )
 
 func SetUIView(uiview int64) error {
-	return ui.SetUIView(uintptr(uiview))
+	return ui.Get().SetUIView(uintptr(uiview))
 }
 
 func IsGL() (bool, error) {
-	return ui.IsGL()
+	return ui.Get().IsGL()
 }
