@@ -80,13 +80,13 @@ func (*graphicsDriverCreatorImpl) newOpenGL() (graphicsdriver.Graphics, error) {
 
 func (g *graphicsDriverCreatorImpl) newDirectX() (graphicsdriver.Graphics, error) {
 	if g.transparent {
-		return nil, fmt.Errorf("ui: DirectX is not available with a transparent window")
+		return nil, errors.New("ui: DirectX is not available with a transparent window")
 	}
 	return directx.NewGraphics()
 }
 
 func (*graphicsDriverCreatorImpl) newMetal() (graphicsdriver.Graphics, error) {
-	return nil, fmt.Errorf("ui: Metal is not supported in this environment")
+	return nil, errors.New("ui: Metal is not supported in this environment")
 }
 
 // glfwMonitorSizeInGLFWPixels must be called from the main thread.
