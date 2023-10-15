@@ -67,26 +67,17 @@ func newGraphicsDriver(creator graphicsDriverCreator, graphicsLibrary GraphicsLi
 		if err != nil {
 			return nil, 0, err
 		}
-		if g == nil {
-			return nil, 0, fmt.Errorf("ui: %s is specified but OpenGL is not available", graphicsLibrary)
-		}
 		return g, GraphicsLibraryOpenGL, nil
 	case GraphicsLibraryDirectX:
 		g, err := creator.newDirectX()
 		if err != nil {
 			return nil, 0, err
 		}
-		if g == nil {
-			return nil, 0, fmt.Errorf("ui: %s is specified but DirectX is not available.", graphicsLibrary)
-		}
 		return g, GraphicsLibraryDirectX, nil
 	case GraphicsLibraryMetal:
 		g, err := creator.newMetal()
 		if err != nil {
 			return nil, 0, err
-		}
-		if g == nil {
-			return nil, 0, fmt.Errorf("ui: %s is specified but Metal is not available", graphicsLibrary)
 		}
 		return g, GraphicsLibraryMetal, nil
 	default:
