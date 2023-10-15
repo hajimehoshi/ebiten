@@ -15,6 +15,7 @@
 package ui
 
 import (
+	"fmt"
 	"image"
 	"math"
 	"sync"
@@ -42,11 +43,11 @@ func (g *graphicsDriverCreatorImpl) newOpenGL() (graphicsdriver.Graphics, error)
 }
 
 func (*graphicsDriverCreatorImpl) newDirectX() (graphicsdriver.Graphics, error) {
-	return nil, nil
+	return nil, fmt.Errorf("ui: DirectX is not supported in this environment")
 }
 
 func (*graphicsDriverCreatorImpl) newMetal() (graphicsdriver.Graphics, error) {
-	return nil, nil
+	return nil, fmt.Errorf("ui: Metal is not supported in this environment")
 }
 
 var (
