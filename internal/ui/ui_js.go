@@ -748,13 +748,14 @@ func (u *UserInterface) Run(game Game, options *RunOptions) error {
 		}
 	}
 	u.running = true
-	g, err := newGraphicsDriver(&graphicsDriverCreatorImpl{
+	g, lib, err := newGraphicsDriver(&graphicsDriverCreatorImpl{
 		canvas: canvas,
 	}, options.GraphicsLibrary)
 	if err != nil {
 		return err
 	}
 	u.graphicsDriver = g
+	theGlobalState.setGraphicsLibrary(lib)
 
 	if bodyStyle := document.Get("body").Get("style"); options.ScreenTransparent {
 		bodyStyle.Set("backgroundColor", "transparent")

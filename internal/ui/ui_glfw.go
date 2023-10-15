@@ -1127,13 +1127,14 @@ func (u *UserInterface) initOnMainThread(options *RunOptions) error {
 		return err
 	}
 
-	g, err := newGraphicsDriver(&graphicsDriverCreatorImpl{
+	g, lib, err := newGraphicsDriver(&graphicsDriverCreatorImpl{
 		transparent: options.ScreenTransparent,
 	}, options.GraphicsLibrary)
 	if err != nil {
 		return err
 	}
 	u.graphicsDriver = g
+	theGlobalState.setGraphicsLibrary(lib)
 	u.graphicsDriver.SetTransparent(options.ScreenTransparent)
 
 	if u.graphicsDriver.IsGL() {

@@ -28,7 +28,7 @@ type graphicsDriverCreator interface {
 	newMetal() (graphicsdriver.Graphics, error)
 }
 
-func newGraphicsDriver(creator graphicsDriverCreator, graphicsLibrary GraphicsLibrary) (graphicsdriver.Graphics, error) {
+func newGraphicsDriver(creator graphicsDriverCreator, graphicsLibrary GraphicsLibrary) (graphicsdriver.Graphics, GraphicsLibrary, error) {
 	if graphicsLibrary == GraphicsLibraryAuto {
 		envName := "EBITENGINE_GRAPHICS_LIBRARY"
 		env := os.Getenv(envName)
@@ -48,7 +48,7 @@ func newGraphicsDriver(creator graphicsDriverCreator, graphicsLibrary GraphicsLi
 		case "metal":
 			graphicsLibrary = GraphicsLibraryMetal
 		default:
-			return nil, fmt.Errorf("ui: an unsupported graphics library is specified by the environment variable: %s", env)
+			return nil, 0, fmt.Errorf("ui: an unsupported graphics library is specified by the environment variable: %s", env)
 		}
 	}
 
@@ -56,45 +56,41 @@ func newGraphicsDriver(creator graphicsDriverCreator, graphicsLibrary GraphicsLi
 	case GraphicsLibraryAuto:
 		g, lib, err := creator.newAuto()
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		if g == nil {
-			return nil, fmt.Errorf("ui: no graphics library is available")
+			return nil, 0, fmt.Errorf("ui: no graphics library is available")
 		}
-		theGlobalState.setGraphicsLibrary(lib)
-		return g, nil
+		return g, lib, nil
 	case GraphicsLibraryOpenGL:
 		g, err := creator.newOpenGL()
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		if g == nil {
-			return nil, fmt.Errorf("ui: %s is specified but OpenGL is not available", graphicsLibrary)
+			return nil, 0, fmt.Errorf("ui: %s is specified but OpenGL is not available", graphicsLibrary)
 		}
-		theGlobalState.setGraphicsLibrary(GraphicsLibraryOpenGL)
-		return g, nil
+		return g, GraphicsLibraryOpenGL, nil
 	case GraphicsLibraryDirectX:
 		g, err := creator.newDirectX()
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		if g == nil {
-			return nil, fmt.Errorf("ui: %s is specified but DirectX is not available.", graphicsLibrary)
+			return nil, 0, fmt.Errorf("ui: %s is specified but DirectX is not available.", graphicsLibrary)
 		}
-		theGlobalState.setGraphicsLibrary(GraphicsLibraryDirectX)
-		return g, nil
+		return g, GraphicsLibraryDirectX, nil
 	case GraphicsLibraryMetal:
 		g, err := creator.newMetal()
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		if g == nil {
-			return nil, fmt.Errorf("ui: %s is specified but Metal is not available", graphicsLibrary)
+			return nil, 0, fmt.Errorf("ui: %s is specified but Metal is not available", graphicsLibrary)
 		}
-		theGlobalState.setGraphicsLibrary(GraphicsLibraryMetal)
-		return g, nil
+		return g, GraphicsLibraryMetal, nil
 	default:
-		return nil, fmt.Errorf("ui: an unsupported graphics library is specified: %d", graphicsLibrary)
+		return nil, 0, fmt.Errorf("ui: an unsupported graphics library is specified: %d", graphicsLibrary)
 	}
 }
 

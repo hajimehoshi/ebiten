@@ -80,11 +80,12 @@ func (u *UserInterface) init() error {
 
 func (u *UserInterface) Run(game Game, options *RunOptions) error {
 	u.context = newContext(game)
-	g, err := newGraphicsDriver(&graphicsDriverCreatorImpl{}, options.GraphicsLibrary)
+	g, lib, err := newGraphicsDriver(&graphicsDriverCreatorImpl{}, options.GraphicsLibrary)
 	if err != nil {
 		return err
 	}
 	u.graphicsDriver = g
+	theGlobalState.setGraphicsLibrary(lib)
 
 	n := C.ebitengine_Initialize()
 	if err := u.egl.init(n); err != nil {

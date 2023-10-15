@@ -281,13 +281,14 @@ func (u *UserInterface) run(game Game, mainloop bool, options *RunOptions) (err 
 		graphicscommand.SetRenderThread(u.renderThread)
 	}
 
-	g, err := newGraphicsDriver(&graphicsDriverCreatorImpl{
+	g, lib, err := newGraphicsDriver(&graphicsDriverCreatorImpl{
 		gomobileContext: mgl,
 	}, options.GraphicsLibrary)
 	if err != nil {
 		return err
 	}
 	u.graphicsDriver = g
+	theGlobalState.setGraphicsLibrary(lib)
 	close(u.graphicsDriverInitCh)
 
 	// If gomobile-build is used, wait for the outside size fixed.
