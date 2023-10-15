@@ -55,7 +55,7 @@ func (g *graphicsDriverCreatorImpl) newOpenGL() (graphicsdriver.Graphics, error)
 }
 
 func (*graphicsDriverCreatorImpl) newDirectX() (graphicsdriver.Graphics, error) {
-	return nil, fmt.Errorf("ui: DirectX is not supported in this environment")
+	return nil, nil
 }
 
 func (g *graphicsDriverCreatorImpl) newMetal() (graphicsdriver.Graphics, error) {

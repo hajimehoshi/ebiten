@@ -86,7 +86,7 @@ func (g *graphicsDriverCreatorImpl) newDirectX() (graphicsdriver.Graphics, error
 }
 
 func (*graphicsDriverCreatorImpl) newMetal() (graphicsdriver.Graphics, error) {
-	return nil, fmt.Errorf("ui: Metal is not supported in this environment")
+	return nil, nil
 }
 
 // glfwMonitorSizeInGLFWPixels must be called from the main thread.

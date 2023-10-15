@@ -108,11 +108,11 @@ func (g *graphicsDriverCreatorImpl) newOpenGL() (graphicsdriver.Graphics, error)
 }
 
 func (*graphicsDriverCreatorImpl) newDirectX() (graphicsdriver.Graphics, error) {
-	return nil, fmt.Errorf("ui: DirectX is not supported in this environment")
+	return nil, nil
 }
 
 func (*graphicsDriverCreatorImpl) newMetal() (graphicsdriver.Graphics, error) {
-	return nil, fmt.Errorf("ui: Metal is not supported in this environment")
+	return nil, nil
 }
 
 func deviceScaleFactorImpl() float64 {
