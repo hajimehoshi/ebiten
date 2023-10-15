@@ -85,7 +85,6 @@ static float deviceScale(uintptr_t java_vm, uintptr_t jni_env, uintptr_t ctx) {
 import "C"
 
 import (
-	"errors"
 	"fmt"
 
 	"golang.org/x/mobile/app"
@@ -109,11 +108,11 @@ func (g *graphicsDriverCreatorImpl) newOpenGL() (graphicsdriver.Graphics, error)
 }
 
 func (*graphicsDriverCreatorImpl) newDirectX() (graphicsdriver.Graphics, error) {
-	return nil, errors.Errorf("ui: DirectX is not supported in this environment")
+	return nil, fmt.Errorf("ui: DirectX is not supported in this environment")
 }
 
 func (*graphicsDriverCreatorImpl) newMetal() (graphicsdriver.Graphics, error) {
-	return nil, errors.Errorf("ui: Metal is not supported in this environment")
+	return nil, fmt.Errorf("ui: Metal is not supported in this environment")
 }
 
 func deviceScaleFactorImpl() float64 {
