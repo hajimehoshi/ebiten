@@ -149,7 +149,7 @@ func (i *Image) WritePixels(pix []byte, region image.Rectangle) {
 
 func (i *Image) ReadPixels(pixels []byte, region image.Rectangle) {
 	// Check the error existence and avoid unnecessary calls.
-	if theGlobalState.error() != nil {
+	if i.ui.error() != nil {
 		return
 	}
 
@@ -170,7 +170,7 @@ func (i *Image) ReadPixels(pixels []byte, region image.Rectangle) {
 		if panicOnErrorOnReadingPixels {
 			panic(err)
 		}
-		theGlobalState.setError(err)
+		i.ui.setError(err)
 	}
 }
 

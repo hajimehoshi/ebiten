@@ -288,7 +288,7 @@ func (u *UserInterface) run(game Game, mainloop bool, options *RunOptions) (err 
 		return err
 	}
 	u.graphicsDriver = g
-	theGlobalState.setGraphicsLibrary(lib)
+	u.setGraphicsLibrary(lib)
 	close(u.graphicsDriverInitCh)
 
 	// If gomobile-build is used, wait for the outside size fixed.

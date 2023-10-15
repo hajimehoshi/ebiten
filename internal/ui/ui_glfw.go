@@ -153,7 +153,7 @@ func (u *UserInterface) init() error {
 	}
 	if _, err := glfw.SetMonitorCallback(func(monitor *glfw.Monitor, event glfw.PeripheralEvent) {
 		if err := theMonitors.update(); err != nil {
-			theGlobalState.setError(err)
+			u.setError(err)
 		}
 	}); err != nil {
 		return err
@@ -278,7 +278,7 @@ func (u *UserInterface) Monitor() *Monitor {
 		}
 		m, err := u.currentMonitor()
 		if err != nil {
-			theGlobalState.setError(err)
+			u.setError(err)
 			return
 		}
 		monitor = m
@@ -611,7 +611,7 @@ func (u *UserInterface) ScreenSizeInFullscreen() (int, int) {
 		}
 		m, err := u.currentMonitor()
 		if err != nil {
-			theGlobalState.setError(err)
+			u.setError(err)
 			return
 		}
 		if m == nil {
@@ -658,7 +658,7 @@ func (u *UserInterface) IsFullscreen() bool {
 		}
 		b, err := u.isFullscreen()
 		if err != nil {
-			theGlobalState.setError(err)
+			u.setError(err)
 			return
 		}
 		fullscreen = b
@@ -685,14 +685,14 @@ func (u *UserInterface) SetFullscreen(fullscreen bool) {
 		}
 		f, err := u.isFullscreen()
 		if err != nil {
-			theGlobalState.setError(err)
+			u.setError(err)
 			return
 		}
 		if f == fullscreen {
 			return
 		}
 		if err := u.setFullscreen(fullscreen); err != nil {
-			theGlobalState.setError(err)
+			u.setError(err)
 			return
 		}
 	})
@@ -710,7 +710,7 @@ func (u *UserInterface) IsFocused() bool {
 		}
 		a, err := u.window.GetAttrib(glfw.Focused)
 		if err != nil {
-			theGlobalState.setError(err)
+			u.setError(err)
 			return
 		}
 		focused = a == glfw.True
@@ -752,7 +752,7 @@ func (u *UserInterface) SetFPSMode(mode FPSModeType) {
 			return
 		}
 		if err := u.setFPSMode(mode); err != nil {
-			theGlobalState.setError(err)
+			u.setError(err)
 			return
 		}
 	})
@@ -765,7 +765,7 @@ func (u *UserInterface) ScheduleFrame() {
 	// As the main thread can be blocked, do not check the current FPS mode.
 	// PostEmptyEvent is concurrent safe.
 	if err := glfw.PostEmptyEvent(); err != nil {
-		theGlobalState.setError(err)
+		u.setError(err)
 		return
 	}
 }
@@ -785,7 +785,7 @@ func (u *UserInterface) CursorMode() CursorMode {
 		}
 		m, err := u.window.GetInputMode(glfw.CursorMode)
 		if err != nil {
-			theGlobalState.setError(err)
+			u.setError(err)
 			return
 		}
 		mode = m
@@ -818,12 +818,12 @@ func (u *UserInterface) SetCursorMode(mode CursorMode) {
 			return
 		}
 		if err := u.window.SetInputMode(glfw.CursorMode, driverCursorModeToGLFWCursorMode(mode)); err != nil {
-			theGlobalState.setError(err)
+			u.setError(err)
 			return
 		}
 		if mode == CursorModeVisible {
 			if err := u.window.SetCursor(glfwSystemCursors[u.getCursorShape()]); err != nil {
-				theGlobalState.setError(err)
+				u.setError(err)
 				return
 			}
 		}
@@ -851,7 +851,7 @@ func (u *UserInterface) SetCursorShape(shape CursorShape) {
 			return
 		}
 		if err := u.window.SetCursor(glfwSystemCursors[shape]); err != nil {
-			theGlobalState.setError(err)
+			u.setError(err)
 			return
 		}
 	})
@@ -872,7 +872,7 @@ func (u *UserInterface) DeviceScaleFactor() float64 {
 		}
 		m, err := u.currentMonitor()
 		if err != nil {
-			theGlobalState.setError(err)
+			u.setError(err)
 			return
 		}
 		f = m.deviceScaleFactor()
@@ -969,11 +969,11 @@ func (u *UserInterface) registerWindowCloseCallback() error {
 				return
 			}
 			if err := u.window.Focus(); err != nil {
-				theGlobalState.setError(err)
+				u.setError(err)
 				return
 			}
 			if err := u.window.SetShouldClose(false); err != nil {
-				theGlobalState.setError(err)
+				u.setError(err)
 				return
 			}
 		}
@@ -996,7 +996,7 @@ func (u *UserInterface) registerWindowFramebufferSizeCallback() error {
 		u.defaultFramebufferSizeCallback = func(_ *glfw.Window, w, h int) {
 			f, err := u.isFullscreen()
 			if err != nil {
-				theGlobalState.setError(err)
+				u.setError(err)
 				return
 			}
 			if f {
@@ -1004,7 +1004,7 @@ func (u *UserInterface) registerWindowFramebufferSizeCallback() error {
 			}
 			a, err := u.window.GetAttrib(glfw.Iconified)
 			if err != nil {
-				theGlobalState.setError(err)
+				u.setError(err)
 				return
 			}
 			if a == glfw.True {
@@ -1015,14 +1015,14 @@ func (u *UserInterface) registerWindowFramebufferSizeCallback() error {
 			// See also the implementation in uiContext.updateOffscreen.
 			m, err := u.currentMonitor()
 			if err != nil {
-				theGlobalState.setError(err)
+				u.setError(err)
 				return
 			}
 			s := m.deviceScaleFactor()
 			ww := int(float64(w) / s)
 			wh := int(float64(h) / s)
 			if err := u.setWindowSizeInDIP(ww, wh, false); err != nil {
-				theGlobalState.setError(err)
+				u.setError(err)
 				return
 			}
 		}
@@ -1134,7 +1134,7 @@ func (u *UserInterface) initOnMainThread(options *RunOptions) error {
 		return err
 	}
 	u.graphicsDriver = g
-	theGlobalState.setGraphicsLibrary(lib)
+	u.setGraphicsLibrary(lib)
 	u.graphicsDriver.SetTransparent(options.ScreenTransparent)
 
 	if u.graphicsDriver.IsGL() {
@@ -1322,7 +1322,7 @@ func (u *UserInterface) setFPSMode(fpsMode FPSModeType) error {
 
 // update must be called from the main thread.
 func (u *UserInterface) update() (float64, float64, error) {
-	if err := theGlobalState.error(); err != nil {
+	if err := u.error(); err != nil {
 		return 0, 0, err
 	}
 
@@ -1429,7 +1429,7 @@ func (u *UserInterface) loopGame() (ferr error) {
 	u.renderThread.Call(func() {
 		if u.graphicsDriver.IsGL() {
 			if err := u.window.MakeContextCurrent(); err != nil {
-				theGlobalState.setError(err)
+				u.setError(err)
 				return
 			}
 		}
@@ -1483,13 +1483,13 @@ func (u *UserInterface) updateGame() error {
 		// Call updateVsync even though fpsMode is not updated.
 		// When toggling to fullscreen, vsync state might be reset unexpectedly (#1787).
 		if err := u.updateVsyncOnRenderThread(); err != nil {
-			theGlobalState.setError(err)
+			u.setError(err)
 			return
 		}
 
 		// This works only for OpenGL.
 		if err := u.swapBuffersOnRenderThread(); err != nil {
-			theGlobalState.setError(err)
+			u.setError(err)
 			return
 		}
 	}); err != nil {
@@ -1557,7 +1557,7 @@ func (u *UserInterface) updateIconIfNeeded() error {
 	}
 
 	// Catch a possible error at 'At' (#2647).
-	if err := theGlobalState.error(); err != nil {
+	if err := u.error(); err != nil {
 		return err
 	}
 

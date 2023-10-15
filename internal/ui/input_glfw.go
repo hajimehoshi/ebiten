@@ -139,7 +139,7 @@ func (u *UserInterface) KeyName(key Key) string {
 		}
 		n, err := glfw.GetKeyName(gk, 0)
 		if err != nil {
-			theGlobalState.setError(err)
+			u.setError(err)
 			return
 		}
 		name = n

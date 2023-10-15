@@ -395,7 +395,7 @@ func (u *UserInterface) loop(game Game) <-chan error {
 
 	var cf js.Func
 	f := func() {
-		if err := theGlobalState.error(); err != nil {
+		if err := u.error(); err != nil {
 			errCh <- err
 			return
 		}
@@ -572,7 +572,7 @@ func (u *UserInterface) setWindowEventHandlers(v js.Value) {
 		// See https://pkg.go.dev/syscall/js#FuncOf.
 		go func() {
 			if err := u.updateImpl(true); err != nil {
-				theGlobalState.setError(err)
+				u.setError(err)
 				return
 			}
 		}()
@@ -589,7 +589,7 @@ func (u *UserInterface) setCanvasEventHandlers(v js.Value) {
 		e := args[0]
 		e.Call("preventDefault")
 		if err := u.updateInputFromEvent(e); err != nil {
-			theGlobalState.setError(err)
+			u.setError(err)
 			return nil
 		}
 		return nil
@@ -598,7 +598,7 @@ func (u *UserInterface) setCanvasEventHandlers(v js.Value) {
 		e := args[0]
 		e.Call("preventDefault")
 		if err := u.updateInputFromEvent(e); err != nil {
-			theGlobalState.setError(err)
+			u.setError(err)
 			return nil
 		}
 		return nil
@@ -612,7 +612,7 @@ func (u *UserInterface) setCanvasEventHandlers(v js.Value) {
 		e := args[0]
 		e.Call("preventDefault")
 		if err := u.updateInputFromEvent(e); err != nil {
-			theGlobalState.setError(err)
+			u.setError(err)
 			return nil
 		}
 		return nil
@@ -621,7 +621,7 @@ func (u *UserInterface) setCanvasEventHandlers(v js.Value) {
 		e := args[0]
 		e.Call("preventDefault")
 		if err := u.updateInputFromEvent(e); err != nil {
-			theGlobalState.setError(err)
+			u.setError(err)
 			return nil
 		}
 		return nil
@@ -630,7 +630,7 @@ func (u *UserInterface) setCanvasEventHandlers(v js.Value) {
 		e := args[0]
 		e.Call("preventDefault")
 		if err := u.updateInputFromEvent(e); err != nil {
-			theGlobalState.setError(err)
+			u.setError(err)
 			return nil
 		}
 		return nil
@@ -639,7 +639,7 @@ func (u *UserInterface) setCanvasEventHandlers(v js.Value) {
 		e := args[0]
 		e.Call("preventDefault")
 		if err := u.updateInputFromEvent(e); err != nil {
-			theGlobalState.setError(err)
+			u.setError(err)
 			return nil
 		}
 		return nil
@@ -653,7 +653,7 @@ func (u *UserInterface) setCanvasEventHandlers(v js.Value) {
 		e := args[0]
 		e.Call("preventDefault")
 		if err := u.updateInputFromEvent(e); err != nil {
-			theGlobalState.setError(err)
+			u.setError(err)
 			return nil
 		}
 		return nil
@@ -662,7 +662,7 @@ func (u *UserInterface) setCanvasEventHandlers(v js.Value) {
 		e := args[0]
 		e.Call("preventDefault")
 		if err := u.updateInputFromEvent(e); err != nil {
-			theGlobalState.setError(err)
+			u.setError(err)
 			return nil
 		}
 		return nil
@@ -671,7 +671,7 @@ func (u *UserInterface) setCanvasEventHandlers(v js.Value) {
 		e := args[0]
 		e.Call("preventDefault")
 		if err := u.updateInputFromEvent(e); err != nil {
-			theGlobalState.setError(err)
+			u.setError(err)
 			return nil
 		}
 		return nil
@@ -733,7 +733,7 @@ func (u *UserInterface) forceUpdateOnMinimumFPSMode() {
 	// See https://pkg.go.dev/syscall/js#FuncOf.
 	go func() {
 		if err := u.updateImpl(true); err != nil {
-			theGlobalState.setError(err)
+			u.setError(err)
 		}
 	}()
 }
@@ -755,7 +755,7 @@ func (u *UserInterface) Run(game Game, options *RunOptions) error {
 		return err
 	}
 	u.graphicsDriver = g
-	theGlobalState.setGraphicsLibrary(lib)
+	u.setGraphicsLibrary(lib)
 
 	if bodyStyle := document.Get("body").Get("style"); options.ScreenTransparent {
 		bodyStyle.Set("backgroundColor", "transparent")

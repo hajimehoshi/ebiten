@@ -122,7 +122,7 @@ func (u *UserInterface) initializePlatform() error {
 				Cmd: sel_windowWillEnterFullScreen,
 				Fn: func(id objc.ID, cmd objc.SEL, notification objc.ID) {
 					if err := u.setOrigWindowPosWithCurrentPos(); err != nil {
-						theGlobalState.setError(err)
+						u.setError(err)
 						return
 					}
 					pushResizableState(id, cocoa.NSNotification{ID: notification}.Object())
@@ -142,7 +142,7 @@ func (u *UserInterface) initializePlatform() error {
 					// In this case, the window size limitation is disabled temporarily.
 					// When exiting from fullscreen, reset the window size limitation.
 					if err := u.updateWindowSizeLimits(); err != nil {
-						theGlobalState.setError(err)
+						u.setError(err)
 						return
 					}
 				},

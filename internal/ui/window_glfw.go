@@ -41,7 +41,7 @@ func (w *glfwWindow) IsDecorated() bool {
 		}
 		a, err := w.ui.window.GetAttrib(glfw.Decorated)
 		if err != nil {
-			theGlobalState.setError(err)
+			w.ui.setError(err)
 			return
 		}
 		v = a == glfw.True
@@ -63,7 +63,7 @@ func (w *glfwWindow) SetDecorated(decorated bool) {
 			return
 		}
 		if err := w.ui.setWindowDecorated(decorated); err != nil {
-			theGlobalState.setError(err)
+			w.ui.setError(err)
 			return
 		}
 	})
@@ -104,7 +104,7 @@ func (w *glfwWindow) SetResizingMode(mode WindowResizingMode) {
 			return
 		}
 		if err := w.ui.setWindowResizingMode(mode); err != nil {
-			theGlobalState.setError(err)
+			w.ui.setError(err)
 			return
 		}
 	})
@@ -124,7 +124,7 @@ func (w *glfwWindow) IsFloating() bool {
 		}
 		a, err := w.ui.window.GetAttrib(glfw.Floating)
 		if err != nil {
-			theGlobalState.setError(err)
+			w.ui.setError(err)
 			return
 		}
 		v = a == glfw.True
@@ -145,7 +145,7 @@ func (w *glfwWindow) SetFloating(floating bool) {
 			return
 		}
 		if err := w.ui.setWindowFloating(floating); err != nil {
-			theGlobalState.setError(err)
+			w.ui.setError(err)
 			return
 		}
 	})
@@ -168,7 +168,7 @@ func (w *glfwWindow) IsMaximized() bool {
 		}
 		m, err := w.ui.isWindowMaximized()
 		if err != nil {
-			theGlobalState.setError(err)
+			w.ui.setError(err)
 			return
 		}
 		v = m
@@ -201,7 +201,7 @@ func (w *glfwWindow) Maximize() {
 			return
 		}
 		if err := w.ui.maximizeWindow(); err != nil {
-			theGlobalState.setError(err)
+			w.ui.setError(err)
 			return
 		}
 	})
@@ -218,7 +218,7 @@ func (w *glfwWindow) IsMinimized() bool {
 		}
 		a, err := w.ui.window.GetAttrib(glfw.Iconified)
 		if err != nil {
-			theGlobalState.setError(err)
+			w.ui.setError(err)
 			return
 		}
 		v = a == glfw.True
@@ -236,7 +236,7 @@ func (w *glfwWindow) Minimize() {
 			return
 		}
 		if err := w.ui.iconifyWindow(); err != nil {
-			theGlobalState.setError(err)
+			w.ui.setError(err)
 			return
 		}
 	})
@@ -258,7 +258,7 @@ func (w *glfwWindow) Restore() {
 			return
 		}
 		if err := w.ui.restoreWindow(); err != nil {
-			theGlobalState.setError(err)
+			w.ui.setError(err)
 			return
 		}
 	})
@@ -280,7 +280,7 @@ func (w *glfwWindow) SetMonitor(monitor *Monitor) {
 			return
 		}
 		if err := w.ui.setWindowMonitor(monitor); err != nil {
-			theGlobalState.setError(err)
+			w.ui.setError(err)
 			return
 		}
 	})
@@ -300,7 +300,7 @@ func (w *glfwWindow) Position() (int, int) {
 		}
 		f, err := w.ui.isFullscreen()
 		if err != nil {
-			theGlobalState.setError(err)
+			w.ui.setError(err)
 			return
 		}
 
@@ -310,14 +310,14 @@ func (w *glfwWindow) Position() (int, int) {
 		} else {
 			x, y, err := w.ui.window.GetPos()
 			if err != nil {
-				theGlobalState.setError(err)
+				w.ui.setError(err)
 				return
 			}
 			wx, wy = x, y
 		}
 		m, err := w.ui.currentMonitor()
 		if err != nil {
-			theGlobalState.setError(err)
+			w.ui.setError(err)
 			return
 		}
 		wx -= m.boundsInGLFWPixels.Min.X
@@ -343,11 +343,11 @@ func (w *glfwWindow) SetPosition(x, y int) {
 		}
 		m, err := w.ui.currentMonitor()
 		if err != nil {
-			theGlobalState.setError(err)
+			w.ui.setError(err)
 			return
 		}
 		if err := w.ui.setWindowPositionInDIP(x, y, m); err != nil {
-			theGlobalState.setError(err)
+			w.ui.setError(err)
 			return
 		}
 	})
@@ -388,14 +388,14 @@ func (w *glfwWindow) SetSize(width, height int) {
 		}
 		m, err := w.ui.isWindowMaximized()
 		if err != nil {
-			theGlobalState.setError(err)
+			w.ui.setError(err)
 			return
 		}
 		if m && runtime.GOOS != "darwin" {
 			return
 		}
 		if err := w.ui.setWindowSizeInDIP(width, height, true); err != nil {
-			theGlobalState.setError(err)
+			w.ui.setError(err)
 			return
 		}
 	})
@@ -421,7 +421,7 @@ func (w *glfwWindow) SetSizeLimits(minw, minh, maxw, maxh int) {
 			return
 		}
 		if err := w.ui.updateWindowSizeLimits(); err != nil {
-			theGlobalState.setError(err)
+			w.ui.setError(err)
 			return
 		}
 	})
@@ -451,7 +451,7 @@ func (w *glfwWindow) SetTitle(title string) {
 			return
 		}
 		if err := w.ui.setWindowTitle(title); err != nil {
-			theGlobalState.setError(err)
+			w.ui.setError(err)
 			return
 		}
 	})
@@ -478,7 +478,7 @@ func (w *glfwWindow) SetMousePassthrough(enabled bool) {
 			return
 		}
 		if err := w.ui.setWindowMousePassthrough(enabled); err != nil {
-			theGlobalState.setError(err)
+			w.ui.setError(err)
 			return
 		}
 	})
@@ -498,7 +498,7 @@ func (w *glfwWindow) IsMousePassthrough() bool {
 		}
 		a, err := w.ui.window.GetAttrib(glfw.MousePassthrough)
 		if err != nil {
-			theGlobalState.setError(err)
+			w.ui.setError(err)
 			return
 		}
 		v = a == glfw.True

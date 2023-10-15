@@ -157,14 +157,14 @@ var (
 //
 // SetScreenClearedEveryFrame is concurrent-safe.
 func SetScreenClearedEveryFrame(cleared bool) {
-	ui.SetScreenClearedEveryFrame(cleared)
+	ui.Get().SetScreenClearedEveryFrame(cleared)
 }
 
 // IsScreenClearedEveryFrame returns true if the frame isn't cleared at the beginning.
 //
 // IsScreenClearedEveryFrame is concurrent-safe.
 func IsScreenClearedEveryFrame() bool {
-	return ui.IsScreenClearedEveryFrame()
+	return ui.Get().IsScreenClearedEveryFrame()
 }
 
 // SetScreenFilterEnabled enables/disables the use of the "screen" filter Ebitengine uses.

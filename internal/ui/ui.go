@@ -17,6 +17,8 @@ package ui
 import (
 	"errors"
 	"image"
+	"sync"
+	"sync/atomic"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
 	"github.com/hajimehoshi/ebiten/v2/internal/mipmap"
@@ -67,6 +69,12 @@ const (
 )
 
 type UserInterface struct {
+	err  error
+	errM sync.Mutex
+
+	isScreenClearedEveryFrame int32
+	graphicsLibrary           int32
+
 	whiteImage *Image
 
 	userInterfaceImpl
@@ -91,7 +99,10 @@ func Get() *UserInterface {
 
 // newUserInterface must be called from the main thread.
 func newUserInterface() (*UserInterface, error) {
-	u := &UserInterface{}
+	u := &UserInterface{
+		isScreenClearedEveryFrame: 1,
+		graphicsLibrary:           int32(GraphicsLibraryUnknown),
+	}
 
 	u.whiteImage = u.NewImage(3, 3, atlas.ImageTypeRegular)
 	pix := make([]byte, 4*u.whiteImage.width*u.whiteImage.height)
@@ -130,4 +141,38 @@ type RunOptions struct {
 // InitialWindowPosition returns the position for centering the given second width/height pair within the first width/height pair.
 func InitialWindowPosition(mw, mh, ww, wh int) (x, y int) {
 	return (mw - ww) / 2, (mh - wh) / 3
+}
+
+func (u *UserInterface) error() error {
+	u.errM.Lock()
+	defer u.errM.Unlock()
+	return u.err
+}
+
+func (u *UserInterface) setError(err error) {
+	u.errM.Lock()
+	defer u.errM.Unlock()
+	if u.err == nil {
+		u.err = err
+	}
+}
+
+func (u *UserInterface) IsScreenClearedEveryFrame() bool {
+	return atomic.LoadInt32(&u.isScreenClearedEveryFrame) != 0
+}
+
+func (u *UserInterface) SetScreenClearedEveryFrame(cleared bool) {
+	v := int32(0)
+	if cleared {
+		v = 1
+	}
+	atomic.StoreInt32(&u.isScreenClearedEveryFrame, v)
+}
+
+func (u *UserInterface) setGraphicsLibrary(library GraphicsLibrary) {
+	atomic.StoreInt32(&u.graphicsLibrary, int32(library))
+}
+
+func (u *UserInterface) GetGraphicsLibrary() GraphicsLibrary {
+	return GraphicsLibrary(atomic.LoadInt32(&u.graphicsLibrary))
 }

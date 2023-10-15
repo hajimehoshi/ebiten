@@ -141,7 +141,7 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 		}
 
 		// Catch the error that happened at (*Image).At.
-		if err := theGlobalState.error(); err != nil {
+		if err := ui.error(); err != nil {
 			return err
 		}
 	}
@@ -153,7 +153,7 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 	}
 
 	// Draw the game.
-	if err := c.drawGame(graphicsDriver, forceDraw); err != nil {
+	if err := c.drawGame(graphicsDriver, ui, forceDraw); err != nil {
 		return err
 	}
 
@@ -168,8 +168,8 @@ func (c *context) newOffscreenImage(w, h int) *Image {
 	return img
 }
 
-func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics, forceDraw bool) error {
-	if (c.offscreen.imageType == atlas.ImageTypeVolatile) != theGlobalState.isScreenClearedEveryFrame() {
+func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics, ui *UserInterface, forceDraw bool) error {
+	if (c.offscreen.imageType == atlas.ImageTypeVolatile) != ui.IsScreenClearedEveryFrame() {
 		w, h := c.offscreen.width, c.offscreen.height
 		c.offscreen.MarkDisposed()
 		c.offscreen = c.newOffscreenImage(w, h)
@@ -181,7 +181,7 @@ func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics, forceDraw boo
 	// Even though updateCount == 0, the offscreen is cleared and Draw is called.
 	// Draw should not update the game state and then the screen should not be updated without Update, but
 	// users might want to process something at Draw with the time intervals of FPS.
-	if theGlobalState.isScreenClearedEveryFrame() {
+	if ui.IsScreenClearedEveryFrame() {
 		c.offscreen.clear()
 	}
 
