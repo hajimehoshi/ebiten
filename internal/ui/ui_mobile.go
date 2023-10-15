@@ -119,7 +119,7 @@ type userInterfaceImpl struct {
 	inputState InputState
 	touches    []TouchForInput
 
-	fpsMode         FPSModeType
+	fpsMode         int32
 	renderRequester RenderRequester
 
 	renderThread *thread.OSThread
@@ -399,16 +399,20 @@ func (u *UserInterface) SetRunnableOnUnfocused(runnableOnUnfocused bool) {
 	// Do nothing
 }
 
-func (u *UserInterface) setFPSMode(mode FPSModeType) {
-	u.fpsMode = mode
-	u.updateExplicitRenderingModeIfNeeded()
+func (u *UserInterface) FPSMode() FPSModeType {
+	return FPSModeType(atomic.LoadInt32(&u.fpsMode))
 }
 
-func (u *UserInterface) updateExplicitRenderingModeIfNeeded() {
+func (u *UserInterface) SetFPSMode(mode FPSModeType) {
+	atomic.StoreInt32(&u.fpsMode, int32(mode))
+	u.updateExplicitRenderingModeIfNeeded(mode)
+}
+
+func (u *UserInterface) updateExplicitRenderingModeIfNeeded(fpsMode FPSModeType) {
 	if u.renderRequester == nil {
 		return
 	}
-	u.renderRequester.SetExplicitRenderingMode(u.fpsMode == FPSModeVsyncOffMinimum)
+	u.renderRequester.SetExplicitRenderingMode(fpsMode == FPSModeVsyncOffMinimum)
 }
 
 func (u *UserInterface) DeviceScaleFactor() float64 {
@@ -452,7 +456,7 @@ func (u *UserInterface) Monitor() *Monitor {
 
 func (u *UserInterface) UpdateInput(keys map[Key]struct{}, runes []rune, touches []TouchForInput) {
 	u.updateInputStateFromOutside(keys, runes, touches)
-	if u.fpsMode == FPSModeVsyncOffMinimum {
+	if FPSModeType(atomic.LoadInt32(&u.fpsMode)) == FPSModeVsyncOffMinimum {
 		u.renderRequester.RequestRenderIfNeeded()
 	}
 }
@@ -464,11 +468,11 @@ type RenderRequester interface {
 
 func (u *UserInterface) SetRenderRequester(renderRequester RenderRequester) {
 	u.renderRequester = renderRequester
-	u.updateExplicitRenderingModeIfNeeded()
+	u.updateExplicitRenderingModeIfNeeded(FPSModeType(atomic.LoadInt32(&u.fpsMode)))
 }
 
 func (u *UserInterface) ScheduleFrame() {
-	if u.renderRequester != nil && u.fpsMode == FPSModeVsyncOffMinimum {
+	if u.renderRequester != nil && FPSModeType(atomic.LoadInt32(&u.fpsMode)) == FPSModeVsyncOffMinimum {
 		u.renderRequester.RequestRenderIfNeeded()
 	}
 }

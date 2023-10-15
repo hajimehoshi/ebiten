@@ -470,7 +470,7 @@ func DeviceScaleFactor() float64 {
 // IsVsyncEnabled returns a boolean value indicating whether
 // the game uses the display's vsync.
 func IsVsyncEnabled() bool {
-	return ui.FPSMode() == ui.FPSModeVsyncOn
+	return ui.Get().FPSMode() == ui.FPSModeVsyncOn
 }
 
 // SetVsyncEnabled sets a boolean value indicating whether
@@ -526,7 +526,7 @@ const (
 //
 // Deprecated: as of v2.5. Use SetVsyncEnabled instead.
 func FPSMode() FPSModeType {
-	return ui.FPSMode()
+	return ui.Get().FPSMode()
 }
 
 // SetFPSMode sets the FPS mode.

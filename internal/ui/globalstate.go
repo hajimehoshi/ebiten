@@ -31,7 +31,6 @@ type globalState struct {
 	err_ error
 	errM sync.Mutex
 
-	fpsMode_                   int32
 	isScreenClearedEveryFrame_ int32
 	graphicsLibrary_           int32
 }
@@ -48,14 +47,6 @@ func (g *globalState) setError(err error) {
 	if g.err_ == nil {
 		g.err_ = err
 	}
-}
-
-func (g *globalState) fpsMode() FPSModeType {
-	return FPSModeType(atomic.LoadInt32(&g.fpsMode_))
-}
-
-func (g *globalState) setFPSMode(fpsMode FPSModeType) {
-	atomic.StoreInt32(&g.fpsMode_, int32(fpsMode))
 }
 
 func (g *globalState) isScreenClearedEveryFrame() bool {
@@ -76,15 +67,6 @@ func (g *globalState) setGraphicsLibrary(library GraphicsLibrary) {
 
 func (g *globalState) graphicsLibrary() GraphicsLibrary {
 	return GraphicsLibrary(atomic.LoadInt32(&g.graphicsLibrary_))
-}
-
-func FPSMode() FPSModeType {
-	return theGlobalState.fpsMode()
-}
-
-func (u *UserInterface) SetFPSMode(fpsMode FPSModeType) {
-	theGlobalState.setFPSMode(fpsMode)
-	u.setFPSMode(fpsMode)
 }
 
 func IsScreenClearedEveryFrame() bool {

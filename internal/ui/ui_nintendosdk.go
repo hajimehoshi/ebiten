@@ -182,7 +182,11 @@ func (*UserInterface) IsRunnableOnUnfocused() bool {
 func (*UserInterface) SetRunnableOnUnfocused(runnableOnUnfocused bool) {
 }
 
-func (*UserInterface) setFPSMode(mode FPSModeType) {
+func (*UserInterface) FPSMode() FPSModeType {
+	return FPSModeVsyncOn
+}
+
+func (*UserInterface) SetFPSMode(mode FPSModeType) {
 }
 
 func (*UserInterface) ScheduleFrame() {

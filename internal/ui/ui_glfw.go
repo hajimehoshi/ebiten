@@ -138,7 +138,6 @@ func (u *UserInterface) init() error {
 		initWindowPositionYInDIP: invalidPos,
 		initWindowWidthInDIP:     640,
 		initWindowHeightInDIP:    480,
-		fpsMode:                  FPSModeVsyncOn,
 		origWindowPosX:           invalidPos,
 		origWindowPosY:           invalidPos,
 		savedCursorX:             math.NaN(),
@@ -727,14 +726,20 @@ func (u *UserInterface) IsRunnableOnUnfocused() bool {
 	return u.isRunnableOnUnfocused()
 }
 
-func (u *UserInterface) setFPSMode(mode FPSModeType) {
+func (u *UserInterface) FPSMode() FPSModeType {
+	u.m.Lock()
+	defer u.m.Unlock()
+	return u.fpsMode
+}
+
+func (u *UserInterface) SetFPSMode(mode FPSModeType) {
 	if u.isTerminated() {
 		return
 	}
 	if !u.isRunning() {
 		u.m.Lock()
+		defer u.m.Unlock()
 		u.fpsMode = mode
-		u.m.Unlock()
 		return
 	}
 
@@ -746,7 +751,7 @@ func (u *UserInterface) setFPSMode(mode FPSModeType) {
 			u.fpsMode = mode
 			return
 		}
-		if err := u.setFPSModeImpl(mode); err != nil {
+		if err := u.setFPSMode(mode); err != nil {
 			theGlobalState.setError(err)
 			return
 		}
@@ -1290,8 +1295,8 @@ func (u *UserInterface) outsideSize() (float64, float64, error) {
 	return w, h, nil
 }
 
-// setFPSModeImpl must be called from the main thread.
-func (u *UserInterface) setFPSModeImpl(fpsMode FPSModeType) error {
+// setFPSMode must be called from the main thread.
+func (u *UserInterface) setFPSMode(fpsMode FPSModeType) error {
 	needUpdate := u.fpsMode != fpsMode || !u.fpsModeInited
 	u.fpsMode = fpsMode
 	u.fpsModeInited = true
@@ -1361,7 +1366,7 @@ func (u *UserInterface) update() (float64, float64, error) {
 	// Initialize vsync after SetMonitor is called. See the comment in updateVsync.
 	// Calling this inside setWindowSize didn't work (#1363).
 	if !u.fpsModeInited {
-		if err := u.setFPSModeImpl(u.fpsMode); err != nil {
+		if err := u.setFPSMode(u.fpsMode); err != nil {
 			return 0, 0, err
 		}
 	}
