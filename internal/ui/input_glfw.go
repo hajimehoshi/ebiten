@@ -19,6 +19,7 @@ package ui
 import (
 	"math"
 
+	"github.com/hajimehoshi/ebiten/v2/event"
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
 	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
 )
@@ -47,6 +48,35 @@ func (u *UserInterface) registerInputCallbacks() error {
 		defer u.m.Unlock()
 		u.inputState.WheelX += xoff
 		u.inputState.WheelY += yoff
+	}); err != nil {
+		return err
+	}
+
+	// For HandleEvent
+	if _, err := u.window.SetCursorPosCallback(func(w *glfw.Window, xpos float64, ypos float64) {
+		m, err := u.currentMonitor()
+		if err != nil {
+			u.setError(err)
+			return
+		}
+		x := dipFromGLFWPixel(xpos, m)
+		y := dipFromGLFWPixel(ypos, m)
+		x, y = u.context.clientPositionToLogicalPosition(x, y, m.deviceScaleFactor())
+		u.context.sendInputEvent(event.MouseMoveEvent{
+			X: x,
+			Y: y,
+		})
+	}); err != nil {
+		return err
+	}
+	if _, err := u.window.SetMouseButtonCallback(func(w *glfw.Window, button glfw.MouseButton, action glfw.Action, mods glfw.ModifierKey) {
+		// TODO: Use button and mods
+		switch action {
+		case glfw.Release:
+			u.context.sendInputEvent(event.MouseUpEvent{})
+		case glfw.Press:
+			u.context.sendInputEvent(event.MouseDownEvent{})
+		}
 	}); err != nil {
 		return err
 	}

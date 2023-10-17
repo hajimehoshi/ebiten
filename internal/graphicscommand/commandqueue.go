@@ -192,6 +192,9 @@ func (q *commandQueue) Flush(graphicsDriver graphicsdriver.Graphics, endFrame bo
 			}
 		}
 	}
+	/*if endFrame {
+		sync = true
+	}*/
 
 	logger := debug.SwitchLogger()
 

@@ -114,6 +114,12 @@ func (g *gameForUI) NewScreenImage(width, height int) *ui.Image {
 	return g.screen.image
 }
 
+func (g *gameForUI) HandleEvent(event any) {
+	if h, ok := g.game.(EventHandler); ok {
+		h.HandleEvent(event)
+	}
+}
+
 func (g *gameForUI) Layout(outsideWidth, outsideHeight float64) (float64, float64) {
 	if l, ok := g.game.(LayoutFer); ok {
 		return l.LayoutF(outsideWidth, outsideHeight)

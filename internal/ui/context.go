@@ -16,6 +16,7 @@ package ui
 
 import (
 	"math"
+	"sync"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
 	"github.com/hajimehoshi/ebiten/v2/internal/clock"
@@ -33,6 +34,7 @@ type Game interface {
 	NewOffscreenImage(width, height int) *Image
 	NewScreenImage(width, height int) *Image
 	Layout(outsideWidth, outsideHeight float64) (screenWidth, screenHeight float64)
+	HandleEvent(event any)
 	UpdateInputState(fn func(*InputState))
 	Update() error
 	DrawOffscreen() error
@@ -40,7 +42,8 @@ type Game interface {
 }
 
 type context struct {
-	game Game
+	game    Game
+	inputCh chan any
 
 	updateCalled bool
 
@@ -55,12 +58,34 @@ type context struct {
 	isOffscreenModified bool
 
 	skipCount int
+
+	gameM sync.Mutex
 }
 
 func newContext(game Game) *context {
-	return &context{
-		game: game,
+	c := &context{
+		game:    game,
+		inputCh: make(chan any, 128),
 	}
+
+	// Create an independent goroutine from Update/Draw not to cause deadlock at (*UserInterface).readPixels.
+	go func() {
+		// TODO: Abort this loop when the game terminates.
+		for e := range c.inputCh {
+			e := e
+			func() {
+				c.gameM.Lock()
+				defer c.gameM.Unlock()
+				c.game.HandleEvent(e)
+			}()
+		}
+	}()
+
+	return c
+}
+
+func (c *context) sendInputEvent(event any) {
+	c.inputCh <- event
 }
 
 func (c *context) updateFrame(graphicsDriver graphicsdriver.Graphics, outsideWidth, outsideHeight float64, deviceScaleFactor float64, ui *UserInterface, swapBuffersForGL func()) error {
@@ -90,6 +115,18 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 		return nil
 	}
 
+	if err := c.updateGameInFrame(graphicsDriver, updateCount, outsideWidth, outsideHeight, deviceScaleFactor, ui, forceDraw, swapBuffersForGL); err != nil {
+		return err
+	}
+
+	if err := atlas.SwapBuffers(graphicsDriver, swapBuffersForGL); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *context) updateGameInFrame(graphicsDriver graphicsdriver.Graphics, updateCount int, outsideWidth, outsideHeight float64, deviceScaleFactor float64, ui *UserInterface, forceDraw bool, swapBuffersForGL func()) (err error) {
 	debug.Logf("----\n")
 
 	if err := atlas.BeginFrame(graphicsDriver); err != nil {
@@ -101,12 +138,10 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 			err = err1
 			return
 		}
-
-		if err1 := atlas.SwapBuffers(graphicsDriver, swapBuffersForGL); err1 != nil && err == nil {
-			err = err1
-			return
-		}
 	}()
+
+	c.gameM.Lock()
+	defer c.gameM.Unlock()
 
 	// ForceUpdate can be invoked even if the context is not initialized yet (#1591).
 	if w, h := c.layoutGame(outsideWidth, outsideHeight, deviceScaleFactor); w == 0 || h == 0 {

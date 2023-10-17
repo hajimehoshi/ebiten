@@ -93,6 +93,10 @@ type LayoutFer interface {
 	LayoutF(outsideWidth, outsideHeight float64) (screenWidth, screenHeight float64)
 }
 
+type EventHandler interface {
+	HandleEvent(event any)
+}
+
 // FinalScreen represents the final screen image.
 // FinalScreen implements a part of Image functions.
 type FinalScreen interface {

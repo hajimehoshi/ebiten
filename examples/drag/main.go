@@ -16,6 +16,7 @@ package main
 
 import (
 	"bytes"
+	"flag"
 	"image"
 	"image/color"
 	_ "image/png"
@@ -25,6 +26,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
+	"github.com/hajimehoshi/ebiten/v2/event"
 	"github.com/hajimehoshi/ebiten/v2/examples/resources/images"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
@@ -36,6 +38,10 @@ func init() {
 const (
 	screenWidth  = 640
 	screenHeight = 480
+)
+
+var (
+	flagEvent = flag.Bool("event", false, "use HandleEvent")
 )
 
 // Sprite represents an image.
@@ -117,6 +123,21 @@ func (t *TouchStrokeSource) IsJustReleased() bool {
 	return inpututil.IsTouchJustReleased(t.ID)
 }
 
+type MouseEventStrokeSource struct {
+	pressed        bool
+	x              float64
+	y              float64
+	isJustReleased bool
+}
+
+func (m *MouseEventStrokeSource) Position() (int, int) {
+	return int(m.x), int(m.y)
+}
+
+func (m *MouseEventStrokeSource) IsJustReleased() bool {
+	return m.isJustReleased
+}
+
 // Stroke manages the current drag state by mouse.
 type Stroke struct {
 	source StrokeSource
@@ -160,9 +181,12 @@ func (s *Stroke) Sprite() *Sprite {
 }
 
 type Game struct {
-	touchIDs []ebiten.TouchID
-	strokes  map[*Stroke]struct{}
-	sprites  []*Sprite
+	touchIDs    []ebiten.TouchID
+	tickStrokes map[*Stroke]struct{}
+	eventStroke *Stroke
+	sprites     []*Sprite
+
+	mouseEventStrokeSource MouseEventStrokeSource
 }
 
 var (
@@ -205,8 +229,8 @@ func NewGame() *Game {
 
 	// Initialize the game.
 	return &Game{
-		strokes: map[*Stroke]struct{}{},
-		sprites: sprites,
+		tickStrokes: map[*Stroke]struct{}{},
+		sprites:     sprites,
 	}
 }
 
@@ -234,11 +258,47 @@ func (g *Game) moveSpriteToFront(sprite *Sprite) {
 	g.sprites = append(g.sprites, sprite)
 }
 
+func (g *Game) HandleEvent(e any) {
+	if !*flagEvent {
+		return
+	}
+
+	switch e := e.(type) {
+	case event.MouseDownEvent:
+		g.mouseEventStrokeSource.pressed = true
+		g.mouseEventStrokeSource.isJustReleased = false
+	case event.MouseMoveEvent:
+		if g.mouseEventStrokeSource.pressed {
+			g.mouseEventStrokeSource.x = e.X
+			g.mouseEventStrokeSource.y = e.Y
+			if g.eventStroke == nil {
+				if sp := g.spriteAt(int(e.X), int(e.Y)); sp != nil {
+					g.eventStroke = NewStroke(&g.mouseEventStrokeSource, sp)
+				}
+			}
+		}
+	case event.MouseUpEvent:
+		g.mouseEventStrokeSource.pressed = false
+		g.mouseEventStrokeSource.isJustReleased = true
+	}
+
+	if g.eventStroke != nil {
+		g.eventStroke.Update()
+		if !g.eventStroke.sprite.dragged {
+			g.eventStroke = nil
+		}
+	}
+}
+
 func (g *Game) Update() error {
+	if *flagEvent {
+		return nil
+	}
+
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 		if sp := g.spriteAt(ebiten.CursorPosition()); sp != nil {
 			s := NewStroke(&MouseStrokeSource{}, sp)
-			g.strokes[s] = struct{}{}
+			g.tickStrokes[s] = struct{}{}
 			g.moveSpriteToFront(sp)
 		}
 	}
@@ -246,15 +306,15 @@ func (g *Game) Update() error {
 	for _, id := range g.touchIDs {
 		if sp := g.spriteAt(ebiten.TouchPosition(id)); sp != nil {
 			s := NewStroke(&TouchStrokeSource{id}, sp)
-			g.strokes[s] = struct{}{}
+			g.tickStrokes[s] = struct{}{}
 			g.moveSpriteToFront(sp)
 		}
 	}
 
-	for s := range g.strokes {
+	for s := range g.tickStrokes {
 		s.Update()
 		if !s.sprite.dragged {
-			delete(g.strokes, s)
+			delete(g.tickStrokes, s)
 		}
 	}
 	return nil
@@ -277,6 +337,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 }
 
 func main() {
+	flag.Parse()
 	ebiten.SetWindowSize(screenWidth, screenHeight)
 	ebiten.SetWindowTitle("Drag & Drop (Ebitengine Demo)")
 	if err := ebiten.RunGame(NewGame()); err != nil {

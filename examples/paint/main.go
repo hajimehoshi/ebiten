@@ -15,6 +15,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"image"
 	"image/color"
@@ -24,11 +25,16 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/colorm"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
+	"github.com/hajimehoshi/ebiten/v2/event"
 )
 
 const (
 	screenWidth  = 640
 	screenHeight = 480
+)
+
+var (
+	flagEvent = flag.Bool("event", false, "use HandleEvent")
 )
 
 var (
@@ -70,6 +76,8 @@ type Game struct {
 	count   int
 
 	canvasImage *ebiten.Image
+
+	mousePressedByEvent bool
 }
 
 func NewGame() *Game {
@@ -80,14 +88,34 @@ func NewGame() *Game {
 	return g
 }
 
+func (g *Game) HandleEvent(e any) {
+	if !*flagEvent {
+		return
+	}
+
+	switch e := e.(type) {
+	case event.MouseDownEvent:
+		g.mousePressedByEvent = true
+	case event.MouseMoveEvent:
+		if g.mousePressedByEvent {
+			g.paint(g.canvasImage, int(e.X), int(e.Y))
+			g.count++
+		}
+	case event.MouseUpEvent:
+		g.mousePressedByEvent = false
+	}
+}
+
 func (g *Game) Update() error {
-	drawn := false
+	var drawn bool
 
 	// Paint the brush by mouse dragging
 	mx, my := ebiten.CursorPosition()
-	if ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
-		g.paint(g.canvasImage, mx, my)
-		drawn = true
+	if !*flagEvent {
+		if ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
+			g.paint(g.canvasImage, mx, my)
+			drawn = true
+		}
 	}
 	g.cursor = pos{
 		x: mx,
@@ -142,6 +170,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 }
 
 func main() {
+	flag.Parse()
 	ebiten.SetWindowSize(screenWidth, screenHeight)
 	ebiten.SetWindowTitle("Paint (Ebitengine Demo)")
 	if err := ebiten.RunGame(NewGame()); err != nil {
