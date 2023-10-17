@@ -719,6 +719,7 @@ func (i *Image) DumpScreenshot(graphicsDriver graphicsdriver.Graphics, path stri
 }
 
 func EndFrame(graphicsDriver graphicsdriver.Graphics, swapBuffersForGL func()) error {
+	// Flushing draw commands starts. Stop queuing new graphics commands until the next frame.
 	backendsM.Lock()
 
 	if err := restorable.EndFrame(graphicsDriver, swapBuffersForGL); err != nil {
