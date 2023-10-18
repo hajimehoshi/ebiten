@@ -22,22 +22,24 @@ import (
 )
 
 type Shader struct {
+	ir     *shaderir.Program
 	shader *restorable.Shader
 }
 
 func NewShader(ir *shaderir.Program) *Shader {
-	backendsM.Lock()
-	defer backendsM.Unlock()
-
-	s := &Shader{
-		shader: restorable.NewShader(ir),
+	// A shader is initialized lazily, and the lock is not needed.
+	return &Shader{
+		ir: ir,
 	}
-	runtime.SetFinalizer(s, (*Shader).MarkDisposed)
-	return s
 }
 
-func (s *Shader) unit() shaderir.Unit {
-	return s.shader.Unit()
+func (s *Shader) ensureShader() *restorable.Shader {
+	if s.shader != nil {
+		return s.shader
+	}
+	s.shader = restorable.NewShader(s.ir)
+	s.ir = nil
+	return s.shader
 }
 
 // MarkDisposed marks the shader as disposed. The actual operation is deferred.

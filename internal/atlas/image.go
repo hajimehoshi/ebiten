@@ -393,7 +393,7 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 			vertices[i+2] += oxf
 			vertices[i+3] += oyf
 		}
-		if shader.unit() == shaderir.Texels {
+		if shader.ensureShader().Unit() == shaderir.Texels {
 			sw, sh := srcs[0].backend.restorable.InternalSize()
 			swf, shf := float32(sw), float32(sh)
 			for i := 0; i < n; i += graphics.VertexFloatCount {
@@ -432,7 +432,7 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 		imgs[i] = src.backend.restorable
 	}
 
-	i.backend.restorable.DrawTriangles(imgs, vertices, indices, blend, dstRegion, srcRegions, shader.shader, uniforms, evenOdd)
+	i.backend.restorable.DrawTriangles(imgs, vertices, indices, blend, dstRegion, srcRegions, shader.ensureShader(), uniforms, evenOdd)
 
 	for _, src := range srcs {
 		if src == nil {

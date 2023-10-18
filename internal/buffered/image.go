@@ -162,38 +162,12 @@ type Shader struct {
 }
 
 func NewShader(ir *shaderir.Program) *Shader {
-	s := &Shader{}
-	s.initialize(ir)
-	return s
-}
-
-func (s *Shader) initialize(ir *shaderir.Program) {
-	if maybeCanAddDelayedCommand() {
-		if tryAddDelayedCommand(func() {
-			s.initializeImpl(ir)
-		}) {
-			return
-		}
+	return &Shader{
+		shader: atlas.NewShader(ir),
 	}
-	s.initializeImpl(ir)
-}
-
-func (s *Shader) initializeImpl(ir *shaderir.Program) {
-	s.shader = atlas.NewShader(ir)
 }
 
 func (s *Shader) MarkDisposed() {
-	if maybeCanAddDelayedCommand() {
-		if tryAddDelayedCommand(func() {
-			s.markDisposedImpl()
-		}) {
-			return
-		}
-	}
-	s.markDisposedImpl()
-}
-
-func (s *Shader) markDisposedImpl() {
 	s.shader.MarkDisposed()
 	s.shader = nil
 }
