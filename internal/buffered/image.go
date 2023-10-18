@@ -59,6 +59,7 @@ func (i *Image) invalidatePixels() {
 }
 
 func (i *Image) MarkDisposed() {
+	i.invalidatePixels()
 	if maybeCanAddDelayedCommand() {
 		if tryAddDelayedCommand(func() {
 			i.markDisposedImpl()
@@ -70,7 +71,6 @@ func (i *Image) MarkDisposed() {
 }
 
 func (i *Image) markDisposedImpl() {
-	i.invalidatePixels()
 	i.img.MarkDisposed()
 }
 
@@ -112,6 +112,7 @@ func (i *Image) WritePixels(pix []byte, region image.Rectangle) {
 	if l := 4 * region.Dx() * region.Dy(); len(pix) != l {
 		panic(fmt.Sprintf("buffered: len(pix) was %d but must be %d", len(pix), l))
 	}
+	i.invalidatePixels()
 
 	if maybeCanAddDelayedCommand() {
 		copied := make([]byte, len(pix))
@@ -126,7 +127,6 @@ func (i *Image) WritePixels(pix []byte, region image.Rectangle) {
 }
 
 func (i *Image) writePixelsImpl(pix []byte, region image.Rectangle) {
-	i.invalidatePixels()
 	i.img.WritePixels(pix, region)
 }
 
@@ -139,6 +139,7 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 			panic("buffered: Image.DrawTriangles: source images must be different from the receiver")
 		}
 	}
+	i.invalidatePixels()
 
 	if maybeCanAddDelayedCommand() {
 		vs := make([]float32, len(vertices))
@@ -165,7 +166,6 @@ func (i *Image) drawTrianglesImpl(srcs [graphics.ShaderImageCount]*Image, vertic
 		imgs[i] = img.img
 	}
 
-	i.invalidatePixels()
 	i.img.DrawTriangles(imgs, vertices, indices, blend, dstRegion, srcRegions, shader.shader, uniforms, evenOdd)
 }
 
