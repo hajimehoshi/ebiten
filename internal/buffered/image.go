@@ -47,27 +47,11 @@ func EndFrame(graphicsDriver graphicsdriver.Graphics, swapBuffersForGL func()) e
 }
 
 func NewImage(width, height int, imageType atlas.ImageType) *Image {
-	i := &Image{
+	return &Image{
 		width:  width,
 		height: height,
+		img:    atlas.NewImage(width, height, imageType),
 	}
-	i.initialize(imageType)
-	return i
-}
-
-func (i *Image) initialize(imageType atlas.ImageType) {
-	if maybeCanAddDelayedCommand() {
-		if tryAddDelayedCommand(func() {
-			i.initializeImpl(imageType)
-		}) {
-			return
-		}
-	}
-	i.initializeImpl(imageType)
-}
-
-func (i *Image) initializeImpl(imageType atlas.ImageType) {
-	i.img = atlas.NewImage(i.width, i.height, imageType)
 }
 
 func (i *Image) invalidatePixels() {
