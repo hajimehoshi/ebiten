@@ -24,12 +24,11 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/debug"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/hook"
-	"github.com/hajimehoshi/ebiten/v2/internal/mipmap"
 )
 
 var (
-	NearestFilterShader = &Shader{shader: mipmap.NearestFilterShader}
-	LinearFilterShader  = &Shader{shader: mipmap.LinearFilterShader}
+	NearestFilterShader = &Shader{shader: atlas.NearestFilterShader}
+	LinearFilterShader  = &Shader{shader: atlas.LinearFilterShader}
 )
 
 type Game interface {

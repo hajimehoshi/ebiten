@@ -23,7 +23,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/buffered"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
-	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
 
 func canUseMipmap(imageType atlas.ImageType) bool {
@@ -66,7 +65,7 @@ func (m *Mipmap) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byt
 	return m.orig.ReadPixels(graphicsDriver, pixels, region)
 }
 
-func (m *Mipmap) DrawTriangles(srcs [graphics.ShaderImageCount]*Mipmap, vertices []float32, indices []uint16, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderImageCount]image.Rectangle, shader *Shader, uniforms []uint32, evenOdd bool, canSkipMipmap bool) {
+func (m *Mipmap) DrawTriangles(srcs [graphics.ShaderImageCount]*Mipmap, vertices []float32, indices []uint16, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderImageCount]image.Rectangle, shader *atlas.Shader, uniforms []uint32, evenOdd bool, canSkipMipmap bool) {
 	if len(indices) == 0 {
 		return
 	}
@@ -124,7 +123,7 @@ func (m *Mipmap) DrawTriangles(srcs [graphics.ShaderImageCount]*Mipmap, vertices
 		imgs[i] = src.orig
 	}
 
-	m.orig.DrawTriangles(imgs, vertices, indices, blend, dstRegion, srcRegions, shader.shader, uniforms, evenOdd)
+	m.orig.DrawTriangles(imgs, vertices, indices, blend, dstRegion, srcRegions, shader, uniforms, evenOdd)
 	m.disposeMipmaps()
 }
 
@@ -150,12 +149,12 @@ func (m *Mipmap) level(level int) *buffered.Image {
 
 	var src *buffered.Image
 	vs := make([]float32, 4*graphics.VertexFloatCount)
-	shader := NearestFilterShader
+	shader := atlas.NearestFilterShader
 	switch {
 	case level == 1:
 		src = m.orig
 		graphics.QuadVertices(vs, 0, 0, float32(m.width), float32(m.height), 0.5, 0, 0, 0.5, 0, 0, 1, 1, 1, 1)
-		shader = LinearFilterShader
+		shader = atlas.LinearFilterShader
 	case level > 1:
 		src = m.level(level - 1)
 		if src == nil {
@@ -165,7 +164,7 @@ func (m *Mipmap) level(level int) *buffered.Image {
 		w := sizeForLevel(m.width, level-1)
 		h := sizeForLevel(m.height, level-1)
 		graphics.QuadVertices(vs, 0, 0, float32(w), float32(h), 0.5, 0, 0, 0.5, 0, 0, 1, 1, 1, 1)
-		shader = LinearFilterShader
+		shader = atlas.LinearFilterShader
 	default:
 		panic(fmt.Sprintf("mipmap: invalid level: %d", level))
 	}
@@ -188,7 +187,7 @@ func (m *Mipmap) level(level int) *buffered.Image {
 	s := buffered.NewImage(w2, h2, m.imageType)
 
 	dstRegion := image.Rect(0, 0, w2, h2)
-	s.DrawTriangles([graphics.ShaderImageCount]*buffered.Image{src}, vs, is, graphicsdriver.BlendCopy, dstRegion, [graphics.ShaderImageCount]image.Rectangle{}, shader.shader, nil, false)
+	s.DrawTriangles([graphics.ShaderImageCount]*buffered.Image{src}, vs, is, graphicsdriver.BlendCopy, dstRegion, [graphics.ShaderImageCount]image.Rectangle{}, shader, nil, false)
 	m.setImg(level, s)
 
 	return m.imgs[level]
@@ -277,23 +276,3 @@ func pow2(power int) float32 {
 	x := 1
 	return float32(x << uint(power))
 }
-
-type Shader struct {
-	shader *buffered.Shader
-}
-
-func NewShader(ir *shaderir.Program) *Shader {
-	return &Shader{
-		shader: buffered.NewShader(ir),
-	}
-}
-
-func (s *Shader) MarkDisposed() {
-	s.shader.MarkDisposed()
-	s.shader = nil
-}
-
-var (
-	NearestFilterShader = &Shader{shader: buffered.NearestFilterShader}
-	LinearFilterShader  = &Shader{shader: buffered.LinearFilterShader}
-)
