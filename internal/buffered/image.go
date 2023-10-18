@@ -58,9 +58,14 @@ func (i *Image) MarkDisposed() {
 }
 
 func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte, region image.Rectangle) error {
+	// If this function is called from the game (Update/Draw) goroutine, and after EndFrame and before BeginFrame,
+	// (*atlas.Image).ReadPixels's channel never returns a value and causes a dead lock.
+	// It is assumed that this never happens so far, but if handling inputs after EndFrame is implemented,
+	// this might be possible (#1704).
+
 	// If restorable.AlwaysReadPixelsFromGPU() returns false, the pixel data is cached in the restorable package.
 	if !restorable.AlwaysReadPixelsFromGPU() {
-		if err := i.img.ReadPixels(graphicsDriver, pixels, region); err != nil {
+		if err := <-i.img.ReadPixels(graphicsDriver, pixels, region); err != nil {
 			return err
 		}
 		return nil
@@ -68,7 +73,7 @@ func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte
 
 	if i.pixels == nil {
 		pix := make([]byte, 4*i.width*i.height)
-		if err := i.img.ReadPixels(graphicsDriver, pix, image.Rect(0, 0, i.width, i.height)); err != nil {
+		if err := <-i.img.ReadPixels(graphicsDriver, pix, image.Rect(0, 0, i.width, i.height)); err != nil {
 			return err
 		}
 		i.pixels = pix

@@ -539,18 +539,30 @@ func (i *Image) writePixels(pix []byte, region image.Rectangle) {
 	i.backend.restorable.WritePixels(pixb, r)
 }
 
-func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte, region image.Rectangle) error {
+func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte, region image.Rectangle) chan error {
 	backendsM.Lock()
 	defer backendsM.Unlock()
 
 	if !inFrame {
-		panic("atlas: ReadPixels must be called in between BeginFrame and EndFrame")
+		ch := make(chan error)
+		deferredM.Lock()
+		deferred = append(deferred, func() {
+			ch <- i.readPixels(graphicsDriver, pixels, region)
+		})
+		deferredM.Unlock()
+		return ch
 	}
 
 	// In the tests, BeginFrame might not be called often and then images might not be disposed (#2292).
 	// To prevent memory leaks, flush the deferred functions here.
 	flushDeferred()
 
+	ch := make(chan error, 1)
+	ch <- i.readPixels(graphicsDriver, pixels, region)
+	return ch
+}
+
+func (i *Image) readPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte, region image.Rectangle) error {
 	if i.backend == nil || i.backend.restorable == nil {
 		for i := range pixels {
 			pixels[i] = 0
