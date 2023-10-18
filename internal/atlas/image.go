@@ -742,7 +742,7 @@ func (i *Image) DumpScreenshot(graphicsDriver graphicsdriver.Graphics, path stri
 	defer backendsM.Unlock()
 
 	if !inFrame {
-		panic("atlas: ReadPixels must be called in between BeginFrame and EndFrame")
+		panic("atlas: DumpScreenshots must be called in between BeginFrame and EndFrame")
 	}
 
 	return i.backend.restorable.Dump(graphicsDriver, path, blackbg, image.Rect(0, 0, i.width, i.height))
@@ -752,8 +752,12 @@ func EndFrame(graphicsDriver graphicsdriver.Graphics, swapBuffersForGL func()) e
 	backendsM.Lock()
 	defer backendsM.Unlock()
 	defer func() {
-		inFrame = true
+		inFrame = false
 	}()
+
+	if !inFrame {
+		panic("atlas: inFrame must be true in EndFrame")
+	}
 
 	if err := restorable.EndFrame(graphicsDriver, swapBuffersForGL); err != nil {
 		return err
@@ -780,6 +784,11 @@ func floorPowerOf2(x int) int {
 func BeginFrame(graphicsDriver graphicsdriver.Graphics) error {
 	backendsM.Lock()
 	defer backendsM.Unlock()
+
+	if inFrame {
+		panic("atlas: inFrame must be false in BeginFrame")
+	}
+
 	inFrame = true
 
 	var err error
@@ -821,5 +830,10 @@ func BeginFrame(graphicsDriver graphicsdriver.Graphics) error {
 func DumpImages(graphicsDriver graphicsdriver.Graphics, dir string) (string, error) {
 	backendsM.Lock()
 	defer backendsM.Unlock()
+
+	if !inFrame {
+		panic("atlas: DumpImages must be called in between BeginFrame and EndFrame")
+	}
+
 	return restorable.DumpImages(graphicsDriver, dir)
 }
