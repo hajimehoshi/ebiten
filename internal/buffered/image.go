@@ -59,18 +59,6 @@ func (i *Image) invalidatePixels() {
 }
 
 func (i *Image) MarkDisposed() {
-	i.invalidatePixels()
-	if maybeCanAddDelayedCommand() {
-		if tryAddDelayedCommand(func() {
-			i.markDisposedImpl()
-		}) {
-			return
-		}
-	}
-	i.markDisposedImpl()
-}
-
-func (i *Image) markDisposedImpl() {
 	i.img.MarkDisposed()
 }
 
