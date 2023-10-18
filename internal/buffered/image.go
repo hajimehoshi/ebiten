@@ -34,11 +34,7 @@ type Image struct {
 }
 
 func BeginFrame(graphicsDriver graphicsdriver.Graphics) error {
-	if err := atlas.BeginFrame(graphicsDriver); err != nil {
-		return err
-	}
-	flushDelayedCommands()
-	return nil
+	return atlas.BeginFrame(graphicsDriver)
 }
 
 func EndFrame(graphicsDriver graphicsdriver.Graphics, swapBuffersForGL func()) error {
@@ -62,8 +58,6 @@ func (i *Image) MarkDisposed() {
 }
 
 func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte, region image.Rectangle) error {
-	checkDelayedCommandsFlushed("ReadPixels")
-
 	// If restorable.AlwaysReadPixelsFromGPU() returns false, the pixel data is cached in the restorable package.
 	if !restorable.AlwaysReadPixelsFromGPU() {
 		if err := i.img.ReadPixels(graphicsDriver, pixels, region); err != nil {
@@ -90,7 +84,6 @@ func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte
 }
 
 func (i *Image) DumpScreenshot(graphicsDriver graphicsdriver.Graphics, name string, blackbg bool) (string, error) {
-	checkDelayedCommandsFlushed("Dump")
 	return i.img.DumpScreenshot(graphicsDriver, name, blackbg)
 }
 
@@ -101,19 +94,6 @@ func (i *Image) WritePixels(pix []byte, region image.Rectangle) {
 	}
 	i.invalidatePixels()
 
-	if maybeCanAddDelayedCommand() {
-		copied := make([]byte, len(pix))
-		copy(copied, pix)
-		if tryAddDelayedCommand(func() {
-			i.writePixelsImpl(copied, region)
-		}) {
-			return
-		}
-	}
-	i.writePixelsImpl(pix, region)
-}
-
-func (i *Image) writePixelsImpl(pix []byte, region image.Rectangle) {
 	i.img.WritePixels(pix, region)
 }
 
@@ -128,23 +108,6 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 	}
 	i.invalidatePixels()
 
-	if maybeCanAddDelayedCommand() {
-		vs := make([]float32, len(vertices))
-		copy(vs, vertices)
-		is := make([]uint16, len(indices))
-		copy(is, indices)
-		us := make([]uint32, len(uniforms))
-		copy(us, uniforms)
-		if tryAddDelayedCommand(func() {
-			i.drawTrianglesImpl(srcs, vs, is, blend, dstRegion, srcRegions, shader, us, evenOdd)
-		}) {
-			return
-		}
-	}
-	i.drawTrianglesImpl(srcs, vertices, indices, blend, dstRegion, srcRegions, shader, uniforms, evenOdd)
-}
-
-func (i *Image) drawTrianglesImpl(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint16, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderImageCount]image.Rectangle, shader *atlas.Shader, uniforms []uint32, evenOdd bool) {
 	var imgs [graphics.ShaderImageCount]*atlas.Image
 	for i, img := range srcs {
 		if img == nil {

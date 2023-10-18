@@ -120,6 +120,10 @@ var (
 	// backendsM is a mutex for critical sections of the backend and packing.Node objects.
 	backendsM sync.Mutex
 
+	// inFrame indicates whether the current state is in between BeginFrame and EndFrame or not.
+	// If inFrame is false, function calls on an image should be deferred until the next BeginFrame.
+	inFrame bool
+
 	initOnce sync.Once
 
 	// theBackends is a set of atlases.
@@ -134,18 +138,6 @@ var (
 	// deferredM is a mutex for the slice operations. This must not be used for other usages.
 	deferredM sync.Mutex
 )
-
-func init() {
-	// Lock the mutex before a frame begins.
-	//
-	// In each frame, restoring images and resolving images happen respectively:
-	//
-	//   [Restore -> Resolve] -> [Restore -> Resolve] -> ...
-	//
-	// Between each frame, any image operations are not permitted, or stale images would remain when restoring
-	// (#913).
-	backendsM.Lock()
-}
 
 type ImageType int
 
@@ -341,6 +333,23 @@ func (i *Image) regionWithPadding() image.Rectangle {
 func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint16, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderImageCount]image.Rectangle, shader *Shader, uniforms []uint32, evenOdd bool) {
 	backendsM.Lock()
 	defer backendsM.Unlock()
+
+	if !inFrame {
+		vs := make([]float32, len(vertices))
+		copy(vs, vertices)
+		is := make([]uint16, len(indices))
+		copy(is, indices)
+		us := make([]uint32, len(uniforms))
+		copy(us, uniforms)
+
+		deferredM.Lock()
+		deferred = append(deferred, func() {
+			i.drawTriangles(srcs, vs, is, blend, dstRegion, srcRegions, shader, us, evenOdd, false)
+		})
+		deferredM.Unlock()
+		return
+	}
+
 	i.drawTriangles(srcs, vertices, indices, blend, dstRegion, srcRegions, shader, uniforms, evenOdd, false)
 }
 
@@ -449,6 +458,19 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 func (i *Image) WritePixels(pix []byte, region image.Rectangle) {
 	backendsM.Lock()
 	defer backendsM.Unlock()
+
+	if !inFrame {
+		copied := make([]byte, len(pix))
+		copy(copied, pix)
+
+		deferredM.Lock()
+		deferred = append(deferred, func() {
+			i.writePixels(copied, region)
+		})
+		deferredM.Unlock()
+		return
+	}
+
 	i.writePixels(pix, region)
 }
 
@@ -520,6 +542,10 @@ func (i *Image) writePixels(pix []byte, region image.Rectangle) {
 func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte, region image.Rectangle) error {
 	backendsM.Lock()
 	defer backendsM.Unlock()
+
+	if !inFrame {
+		panic("atlas: ReadPixels must be called in between BeginFrame and EndFrame")
+	}
 
 	// In the tests, BeginFrame might not be called often and then images might not be disposed (#2292).
 	// To prevent memory leaks, flush the deferred functions here.
@@ -715,12 +741,19 @@ func (i *Image) DumpScreenshot(graphicsDriver graphicsdriver.Graphics, path stri
 	backendsM.Lock()
 	defer backendsM.Unlock()
 
+	if !inFrame {
+		panic("atlas: ReadPixels must be called in between BeginFrame and EndFrame")
+	}
+
 	return i.backend.restorable.Dump(graphicsDriver, path, blackbg, image.Rect(0, 0, i.width, i.height))
 }
 
 func EndFrame(graphicsDriver graphicsdriver.Graphics, swapBuffersForGL func()) error {
-	// Flushing draw commands starts. Stop queuing new graphics commands until the next frame.
 	backendsM.Lock()
+	defer backendsM.Unlock()
+	defer func() {
+		inFrame = true
+	}()
 
 	if err := restorable.EndFrame(graphicsDriver, swapBuffersForGL); err != nil {
 		return err
@@ -745,7 +778,9 @@ func floorPowerOf2(x int) int {
 }
 
 func BeginFrame(graphicsDriver graphicsdriver.Graphics) error {
+	backendsM.Lock()
 	defer backendsM.Unlock()
+	inFrame = true
 
 	var err error
 	initOnce.Do(func() {
