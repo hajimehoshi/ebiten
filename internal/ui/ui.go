@@ -130,15 +130,16 @@ func (u *UserInterface) readPixels(mipmap *mipmap.Mipmap, pixels []byte, region 
 	if !ok {
 		ch := make(chan error)
 		u.context.appendDeferredFunc(func() {
+			defer close(ch)
 			ok, err := mipmap.ReadPixels(u.graphicsDriver, pixels, region)
+			if err != nil {
+				ch <- err
+				return
+			}
 			if !ok {
 				// This never reaches since this function must be called in a frame.
 				panic("ui: ReadPixels unexpectedly failed")
 			}
-			if err != nil {
-				ch <- err
-			}
-			close(ch)
 		})
 
 		// If this function is called from the game (Update/Draw) goroutine in between two frames,

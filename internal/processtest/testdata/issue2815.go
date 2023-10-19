@@ -37,14 +37,17 @@ func (g *Game) Update() error {
 		g.end0 = make(chan struct{})
 		g.end1 = make(chan struct{})
 		g.errCh = make(chan error)
-		img := ebiten.NewImage(1, 1)
-		img.WritePixels([]byte{0xff, 0xff, 0xff, 0xff})
+		src := ebiten.NewImage(1, 2)
+		src.WritePixels([]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff})
+		img := ebiten.NewImage(1, 2)
 		go func() {
 			t := time.Tick(time.Microsecond)
 		loop:
 			for {
 				select {
 				case <-t:
+					// Call DrawImage every time in order to invalidate the internal pixels cache.
+					img.DrawImage(src, nil)
 					got := img.At(0, 0).(color.RGBA)
 					want := color.RGBA{0xff, 0xff, 0xff, 0xff}
 					if got != want {
