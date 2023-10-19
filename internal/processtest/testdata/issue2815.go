@@ -17,6 +17,8 @@
 package main
 
 import (
+	"fmt"
+	"image/color"
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -27,20 +29,29 @@ type Game struct {
 	count int
 	end0  chan struct{}
 	end1  chan struct{}
+	errCh chan error
 }
 
 func (g *Game) Update() error {
 	if !g.init {
 		g.end0 = make(chan struct{})
 		g.end1 = make(chan struct{})
+		g.errCh = make(chan error)
 		img := ebiten.NewImage(1, 1)
+		img.WritePixels([]byte{0xff, 0xff, 0xff, 0xff})
 		go func() {
 			t := time.Tick(time.Microsecond)
 		loop:
 			for {
 				select {
 				case <-t:
-					img.At(0, 0)
+					got := img.At(0, 0).(color.RGBA)
+					want := color.RGBA{0xff, 0xff, 0xff, 0xff}
+					if got != want {
+						g.errCh <- fmt.Errorf("got: %v, want: %v", got, want)
+						close(g.errCh)
+						return
+					}
 				case <-g.end0:
 					close(g.end1)
 					break loop
@@ -49,6 +60,13 @@ func (g *Game) Update() error {
 		}()
 		g.init = true
 	}
+
+	select {
+	case err := <-g.errCh:
+		return err
+	default:
+	}
+
 	g.count++
 	if g.count >= 60 {
 		close(g.end0)

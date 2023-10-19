@@ -59,6 +59,9 @@ type context struct {
 	skipCount int
 
 	setContextOnce sync.Once
+
+	deferred  []func()
+	deferredM sync.Mutex
 }
 
 func newContext(game Game) *context {
@@ -107,6 +110,11 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 			err = err1
 		}
 	}()
+
+	// Flush deferred functions, like reading pixels from GPU.
+	if err := c.flushDeferredFuncs(ui); err != nil {
+		return err
+	}
 
 	// ForceUpdate can be invoked even if the context is not initialized yet (#1591).
 	if w, h := c.layoutGame(outsideWidth, outsideHeight, deviceScaleFactor); w == 0 || h == 0 {
@@ -281,4 +289,32 @@ func (c *context) screenScaleAndOffsets() (scale, offsetX, offsetY float64) {
 
 func (u *UserInterface) LogicalPositionToClientPosition(x, y float64) (float64, float64) {
 	return u.context.logicalPositionToClientPosition(x, y, u.DeviceScaleFactor())
+}
+
+// appendDeferredFunc appends a function.
+// An appended function is called at the next frame.
+func (c *context) appendDeferredFunc(f func()) {
+	c.deferredM.Lock()
+	defer c.deferredM.Unlock()
+	c.deferred = append(c.deferred, f)
+}
+
+func (c *context) flushDeferredFuncs(ui *UserInterface) error {
+	c.deferredM.Lock()
+	fs := c.deferred
+	c.deferred = nil
+	c.deferredM.Unlock()
+
+	for _, f := range fs {
+		f()
+	}
+
+	if len(fs) > 0 {
+		// Catch the error that happened at (*Image).At.
+		if err := ui.error(); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

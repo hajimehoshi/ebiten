@@ -539,33 +539,23 @@ func (i *Image) writePixels(pix []byte, region image.Rectangle) {
 	i.backend.restorable.WritePixels(pixb, r)
 }
 
-func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte, region image.Rectangle) chan error {
+func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte, region image.Rectangle) (ok bool, err error) {
 	backendsM.Lock()
 	defer backendsM.Unlock()
 
 	if !inFrame {
-		ch := make(chan error)
-		deferredM.Lock()
-		deferred = append(deferred, func() {
-			if err := i.readPixels(graphicsDriver, pixels, region); err != nil {
-				ch <- err
-			}
-			close(ch)
-		})
-		deferredM.Unlock()
-		return ch
+		// Not ready to read pixels. Try this later.
+		return false, nil
 	}
 
 	// In the tests, BeginFrame might not be called often and then images might not be disposed (#2292).
 	// To prevent memory leaks, flush the deferred functions here.
 	flushDeferred()
 
-	ch := make(chan error, 1)
 	if err := i.readPixels(graphicsDriver, pixels, region); err != nil {
-		ch <- err
+		return false, err
 	}
-	close(ch)
-	return ch
+	return true, nil
 }
 
 func (i *Image) readPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte, region image.Rectangle) error {
