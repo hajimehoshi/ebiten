@@ -547,7 +547,10 @@ func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte
 		ch := make(chan error)
 		deferredM.Lock()
 		deferred = append(deferred, func() {
-			ch <- i.readPixels(graphicsDriver, pixels, region)
+			if err := i.readPixels(graphicsDriver, pixels, region); err != nil {
+				ch <- err
+			}
+			close(ch)
 		})
 		deferredM.Unlock()
 		return ch
@@ -558,7 +561,10 @@ func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte
 	flushDeferred()
 
 	ch := make(chan error, 1)
-	ch <- i.readPixels(graphicsDriver, pixels, region)
+	if err := i.readPixels(graphicsDriver, pixels, region); err != nil {
+		ch <- err
+	}
+	close(ch)
 	return ch
 }
 
