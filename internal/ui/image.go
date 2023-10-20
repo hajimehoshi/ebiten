@@ -45,6 +45,9 @@ type Image struct {
 
 	dotsBuffer map[image.Point][4]byte
 
+	// lastBlend is the lastly-used blend for mipmap.Image.
+	lastBlend graphicsdriver.Blend
+
 	// bigOffscreenBuffer is a double-sized offscreen for anti-alias rendering.
 	bigOffscreenBuffer *bigOffscreenImage
 
@@ -62,6 +65,7 @@ func (u *UserInterface) NewImage(width, height int, imageType atlas.ImageType) *
 		width:     width,
 		height:    height,
 		imageType: imageType,
+		lastBlend: graphicsdriver.BlendSourceOver,
 	}
 }
 
@@ -83,6 +87,8 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 	if i.modifyCallback != nil {
 		i.modifyCallback()
 	}
+
+	i.lastBlend = blend
 
 	if antialias {
 		// Flush the other buffer to make the buffers exclusive.
@@ -249,7 +255,9 @@ func (i *Image) flushDotsBufferIfNeeded() {
 
 	srcs := [graphics.ShaderImageCount]*mipmap.Mipmap{i.ui.whiteImage.mipmap}
 	dr := image.Rect(0, 0, i.width, i.height)
-	i.mipmap.DrawTriangles(srcs, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderImageCount]image.Rectangle{}, NearestFilterShader.shader, nil, false, true)
+	blend := graphicsdriver.BlendCopy
+	i.lastBlend = blend
+	i.mipmap.DrawTriangles(srcs, vs, is, blend, dr, [graphics.ShaderImageCount]image.Rectangle{}, NearestFilterShader.shader, nil, false, true)
 }
 
 func (i *Image) flushBigOffscreenBufferIfNeeded() {
@@ -280,7 +288,13 @@ func (i *Image) Fill(r, g, b, a float32, region image.Rectangle) {
 
 	srcs := [graphics.ShaderImageCount]*Image{i.ui.whiteImage}
 
-	i.DrawTriangles(srcs, i.tmpVerticesForFill, is, graphicsdriver.BlendCopy, region, [graphics.ShaderImageCount]image.Rectangle{}, NearestFilterShader, nil, false, true, false)
+	blend := graphicsdriver.BlendCopy
+	// If possible, use BlendSourceOver to encourage batching (#2817).
+	if a == 1 && i.lastBlend == graphicsdriver.BlendSourceOver {
+		blend = graphicsdriver.BlendSourceOver
+	}
+	// i.lastBlend is updated in DrawTriangles.
+	i.DrawTriangles(srcs, i.tmpVerticesForFill, is, blend, region, [graphics.ShaderImageCount]image.Rectangle{}, NearestFilterShader, nil, false, true, false)
 }
 
 type bigOffscreenImage struct {
