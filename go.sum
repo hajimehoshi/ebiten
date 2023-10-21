@@ -1,5 +1,5 @@
-github.com/ebitengine/oto/v3 v3.2.0-alpha.2 h1:349j/AUMRaEsRs3NcMRvecDpMc8rCY/KEg0Tfwm8i5I=
-github.com/ebitengine/oto/v3 v3.2.0-alpha.2/go.mod h1:JtMbxJHZBDXfS8BmVYwzWk9Z6r7jsjwsHzOuZrEkfs4=
+github.com/ebitengine/oto/v3 v3.2.0-alpha.2.0.20231021101548-b794c0292b2b h1:gi77VfxDFdIxm2lHa4lmKcrKi3CRft2R+FHijvoQXRg=
+github.com/ebitengine/oto/v3 v3.2.0-alpha.2.0.20231021101548-b794c0292b2b/go.mod h1:JtMbxJHZBDXfS8BmVYwzWk9Z6r7jsjwsHzOuZrEkfs4=
 github.com/ebitengine/purego v0.6.0-alpha.1 h1:sqv1QBCjn8yiT3EqrUJDT+5OUpwSl9wGQ8SXJSWyNUU=
 github.com/ebitengine/purego v0.6.0-alpha.1/go.mod h1:ah1In8AOtksoNK6yk5z1HTJeUkC1Ez4Wk2idgGslMwQ=
 github.com/go-text/typesetting v0.0.0-20230905121921-abdbcca6e0eb h1:4GpJirtA8yY24aqbU3uppiXGYiVpWfLIrqc2NNKKk9s=
