@@ -56,7 +56,7 @@ var theImages = &images{
 	shaders: map[*Shader]struct{}{},
 }
 
-func EndFrame(graphicsDriver graphicsdriver.Graphics, swapBuffersForGL func()) error {
+func SwapBuffers(graphicsDriver graphicsdriver.Graphics, swapBuffersForGL func()) error {
 	if debug.IsDebug {
 		debug.Logf("Internal image sizes:\n")
 		imgs := make([]*graphicscommand.Image, 0, len(theImages.images))

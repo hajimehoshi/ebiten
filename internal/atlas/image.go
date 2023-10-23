@@ -756,7 +756,7 @@ func (i *Image) DumpScreenshot(graphicsDriver graphicsdriver.Graphics, path stri
 	return i.backend.restorable.Dump(graphicsDriver, path, blackbg, image.Rect(0, 0, i.width, i.height))
 }
 
-func EndFrame(graphicsDriver graphicsdriver.Graphics, swapBuffersForGL func()) error {
+func EndFrame() error {
 	backendsM.Lock()
 	defer backendsM.Unlock()
 	defer func() {
@@ -767,14 +767,26 @@ func EndFrame(graphicsDriver graphicsdriver.Graphics, swapBuffersForGL func()) e
 		panic("atlas: inFrame must be true in EndFrame")
 	}
 
-	if err := restorable.EndFrame(graphicsDriver, swapBuffersForGL); err != nil {
-		return err
-	}
-
 	for _, b := range theBackends {
 		b.sourceInThisFrame = false
 	}
 
+	return nil
+}
+
+func SwapBuffers(graphicsDriver graphicsdriver.Graphics, swapBuffersForGL func()) error {
+	func() {
+		backendsM.Lock()
+		defer backendsM.Unlock()
+
+		if inFrame {
+			panic("atlas: inFrame must be false in SwapBuffer")
+		}
+	}()
+
+	if err := restorable.SwapBuffers(graphicsDriver, swapBuffersForGL); err != nil {
+		return err
+	}
 	return nil
 }
 

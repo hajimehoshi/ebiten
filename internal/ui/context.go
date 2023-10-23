@@ -19,7 +19,6 @@ import (
 	"sync"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
-	"github.com/hajimehoshi/ebiten/v2/internal/buffered"
 	"github.com/hajimehoshi/ebiten/v2/internal/clock"
 	"github.com/hajimehoshi/ebiten/v2/internal/debug"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
@@ -102,14 +101,9 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 
 	debug.Logf("----\n")
 
-	if err := buffered.BeginFrame(graphicsDriver); err != nil {
+	if err := atlas.BeginFrame(graphicsDriver); err != nil {
 		return err
 	}
-	defer func() {
-		if err1 := buffered.EndFrame(graphicsDriver, swapBuffersForGL); err == nil && err1 != nil {
-			err = err1
-		}
-	}()
 
 	// Flush deferred functions, like reading pixels from GPU.
 	if err := c.flushDeferredFuncs(ui); err != nil {
@@ -161,6 +155,14 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 
 	// Draw the game.
 	if err := c.drawGame(graphicsDriver, ui, forceDraw); err != nil {
+		return err
+	}
+
+	if err := atlas.EndFrame(); err != nil {
+		return err
+	}
+
+	if err := atlas.SwapBuffers(graphicsDriver, swapBuffersForGL); err != nil {
 		return err
 	}
 

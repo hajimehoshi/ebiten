@@ -33,14 +33,6 @@ type Image struct {
 	pixels []byte
 }
 
-func BeginFrame(graphicsDriver graphicsdriver.Graphics) error {
-	return atlas.BeginFrame(graphicsDriver)
-}
-
-func EndFrame(graphicsDriver graphicsdriver.Graphics, swapBuffersForGL func()) error {
-	return atlas.EndFrame(graphicsDriver, swapBuffersForGL)
-}
-
 func NewImage(width, height int, imageType atlas.ImageType) *Image {
 	return &Image{
 		width:  width,
