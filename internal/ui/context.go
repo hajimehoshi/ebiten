@@ -105,6 +105,18 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 		return err
 	}
 
+	defer func() {
+		if err1 := atlas.EndFrame(); err1 != nil && err == nil {
+			err = err1
+			return
+		}
+
+		if err1 := atlas.SwapBuffers(graphicsDriver, swapBuffersForGL); err1 != nil && err == nil {
+			err = err1
+			return
+		}
+	}()
+
 	// Flush deferred functions, like reading pixels from GPU.
 	if err := c.flushDeferredFuncs(ui); err != nil {
 		return err
@@ -155,14 +167,6 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 
 	// Draw the game.
 	if err := c.drawGame(graphicsDriver, ui, forceDraw); err != nil {
-		return err
-	}
-
-	if err := atlas.EndFrame(); err != nil {
-		return err
-	}
-
-	if err := atlas.SwapBuffers(graphicsDriver, swapBuffersForGL); err != nil {
 		return err
 	}
 
