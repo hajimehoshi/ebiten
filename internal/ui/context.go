@@ -59,13 +59,13 @@ type context struct {
 
 	setContextOnce sync.Once
 
-	deferred  []func()
-	deferredM sync.Mutex
+	funcsInFrameCh chan func()
 }
 
 func newContext(game Game) *context {
 	return &context{
-		game: game,
+		game:           game,
+		funcsInFrameCh: make(chan func()),
 	}
 }
 
@@ -118,8 +118,8 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 	}()
 
 	// Flush deferred functions, like reading pixels from GPU.
-	if err := c.flushDeferredFuncs(ui); err != nil {
-		return err
+	if err := c.processFuncsInFrame(ui); err != nil {
+		return nil
 	}
 
 	// ForceUpdate can be invoked even if the context is not initialized yet (#1591).
@@ -297,30 +297,31 @@ func (u *UserInterface) LogicalPositionToClientPosition(x, y float64) (float64, 
 	return u.context.logicalPositionToClientPosition(x, y, u.DeviceScaleFactor())
 }
 
-// appendDeferredFunc appends a function.
-// An appended function is called at the next frame.
-func (c *context) appendDeferredFunc(f func()) {
-	c.deferredM.Lock()
-	defer c.deferredM.Unlock()
-	c.deferred = append(c.deferred, f)
-}
-
-func (c *context) flushDeferredFuncs(ui *UserInterface) error {
-	c.deferredM.Lock()
-	fs := c.deferred
-	c.deferred = nil
-	c.deferredM.Unlock()
-
-	for _, f := range fs {
+func (c *context) runInFrame(f func()) {
+	ch := make(chan struct{})
+	c.funcsInFrameCh <- func() {
+		defer close(ch)
 		f()
 	}
+	<-ch
+	return
+}
 
-	if len(fs) > 0 {
-		// Catch the error that happened at (*Image).At.
-		if err := ui.error(); err != nil {
-			return err
+func (c *context) processFuncsInFrame(ui *UserInterface) error {
+	var processed bool
+	for {
+		select {
+		case f := <-c.funcsInFrameCh:
+			f()
+			processed = true
+		default:
+			if processed {
+				// Catch the error that happened at (*Image).At.
+				if err := ui.error(); err != nil {
+					return err
+				}
+			}
+			return nil
 		}
 	}
-
-	return nil
 }

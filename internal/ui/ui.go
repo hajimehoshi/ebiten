@@ -128,12 +128,16 @@ func (u *UserInterface) readPixels(mipmap *mipmap.Mipmap, pixels []byte, region 
 	// ReadPixels failed since this was called in between two frames.
 	// Try this again at the next frame.
 	if !ok {
-		ch := make(chan error)
-		u.context.appendDeferredFunc(func() {
-			defer close(ch)
+		// If this function is called from the same sequence as a game's Update and Draw,
+		// this causes a dead lock.
+		// This never happens so far, but if handling inputs after EndFrame is implemented,
+		// this might be possible (#1704).
+
+		var err1 error
+		u.context.runInFrame(func() {
 			ok, err := mipmap.ReadPixels(u.graphicsDriver, pixels, region)
 			if err != nil {
-				ch <- err
+				err1 = err
 				return
 			}
 			if !ok {
@@ -141,12 +145,7 @@ func (u *UserInterface) readPixels(mipmap *mipmap.Mipmap, pixels []byte, region 
 				panic("ui: ReadPixels unexpectedly failed")
 			}
 		})
-
-		// If this function is called from the game (Update/Draw) goroutine in between two frames,
-		// this channel never returns and causes a dead lock.
-		// This never happens so far, but if handling inputs after EndFrame is implemented,
-		// this might be possible (#1704).
-		return <-ch
+		return err1
 	}
 
 	return nil
