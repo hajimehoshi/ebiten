@@ -119,7 +119,7 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 
 	// Flush deferred functions, like reading pixels from GPU.
 	if err := c.processFuncsInFrame(ui); err != nil {
-		return nil
+		return err
 	}
 
 	// ForceUpdate can be invoked even if the context is not initialized yet (#1591).
