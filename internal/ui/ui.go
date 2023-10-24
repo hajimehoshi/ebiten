@@ -120,35 +120,7 @@ func newUserInterface() (*UserInterface, error) {
 }
 
 func (u *UserInterface) readPixels(mipmap *mipmap.Mipmap, pixels []byte, region image.Rectangle) error {
-	ok, err := mipmap.ReadPixels(u.graphicsDriver, pixels, region)
-	if err != nil {
-		return err
-	}
-
-	// ReadPixels failed since this was called in between two frames.
-	// Try this again at the next frame.
-	if !ok {
-		// If this function is called from the same sequence as a game's Update and Draw,
-		// this causes a dead lock.
-		// This never happens so far, but if handling inputs after EndFrame is implemented,
-		// this might be possible (#1704).
-
-		var err1 error
-		u.context.runInFrame(func() {
-			ok, err := mipmap.ReadPixels(u.graphicsDriver, pixels, region)
-			if err != nil {
-				err1 = err
-				return
-			}
-			if !ok {
-				// This never reaches since this function must be called in a frame.
-				panic("ui: ReadPixels unexpectedly failed")
-			}
-		})
-		return err1
-	}
-
-	return nil
+	return mipmap.ReadPixels(u.graphicsDriver, pixels, region)
 }
 
 func (u *UserInterface) dumpScreenshot(mipmap *mipmap.Mipmap, name string, blackbg bool) (string, error) {

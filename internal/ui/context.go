@@ -58,14 +58,11 @@ type context struct {
 	skipCount int
 
 	setContextOnce sync.Once
-
-	funcsInFrameCh chan func()
 }
 
 func newContext(game Game) *context {
 	return &context{
-		game:           game,
-		funcsInFrameCh: make(chan func()),
+		game: game,
 	}
 }
 
@@ -116,11 +113,6 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 			return
 		}
 	}()
-
-	// Flush deferred functions, like reading pixels from GPU.
-	if err := c.processFuncsInFrame(ui); err != nil {
-		return err
-	}
 
 	// ForceUpdate can be invoked even if the context is not initialized yet (#1591).
 	if w, h := c.layoutGame(outsideWidth, outsideHeight, deviceScaleFactor); w == 0 || h == 0 {
@@ -295,33 +287,4 @@ func (c *context) screenScaleAndOffsets() (scale, offsetX, offsetY float64) {
 
 func (u *UserInterface) LogicalPositionToClientPosition(x, y float64) (float64, float64) {
 	return u.context.logicalPositionToClientPosition(x, y, u.DeviceScaleFactor())
-}
-
-func (c *context) runInFrame(f func()) {
-	ch := make(chan struct{})
-	c.funcsInFrameCh <- func() {
-		defer close(ch)
-		f()
-	}
-	<-ch
-	return
-}
-
-func (c *context) processFuncsInFrame(ui *UserInterface) error {
-	var processed bool
-	for {
-		select {
-		case f := <-c.funcsInFrameCh:
-			f()
-			processed = true
-		default:
-			if processed {
-				// Catch the error that happened at (*Image).At.
-				if err := ui.error(); err != nil {
-					return err
-				}
-			}
-			return nil
-		}
-	}
 }

@@ -61,7 +61,7 @@ func (m *Mipmap) WritePixels(pix []byte, region image.Rectangle) {
 	m.disposeMipmaps()
 }
 
-func (m *Mipmap) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte, region image.Rectangle) (ok bool, err error) {
+func (m *Mipmap) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte, region image.Rectangle) error {
 	return m.orig.ReadPixels(graphicsDriver, pixels, region)
 }
 

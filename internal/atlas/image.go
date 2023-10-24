@@ -48,17 +48,6 @@ func min(a, b int) int {
 	return b
 }
 
-func flushDeferred() {
-	deferredM.Lock()
-	fs := deferred
-	deferred = nil
-	deferredM.Unlock()
-
-	for _, f := range fs {
-		f()
-	}
-}
-
 // baseCountToPutOnSourceBackend represents the base time duration when the image can be put onto an atlas.
 // Actual time duration is increased in an exponential way for each usage as a rendering target.
 const baseCountToPutOnSourceBackend = 10
@@ -132,11 +121,6 @@ var (
 	imagesToPutOnSourceBackend smallImageSet
 
 	imagesUsedAsDestination smallImageSet
-
-	deferred []func()
-
-	// deferredM is a mutex for the slice operations. This must not be used for other usages.
-	deferredM sync.Mutex
 )
 
 type ImageType int
@@ -342,11 +326,9 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 		us := make([]uint32, len(uniforms))
 		copy(us, uniforms)
 
-		deferredM.Lock()
-		deferred = append(deferred, func() {
+		appendDeferred(func() {
 			i.drawTriangles(srcs, vs, is, blend, dstRegion, srcRegions, shader, us, evenOdd, false)
 		})
-		deferredM.Unlock()
 		return
 	}
 
@@ -463,11 +445,9 @@ func (i *Image) WritePixels(pix []byte, region image.Rectangle) {
 		copied := make([]byte, len(pix))
 		copy(copied, pix)
 
-		deferredM.Lock()
-		deferred = append(deferred, func() {
+		appendDeferred(func() {
 			i.writePixels(copied, region)
 		})
-		deferredM.Unlock()
 		return
 	}
 
@@ -539,26 +519,30 @@ func (i *Image) writePixels(pix []byte, region image.Rectangle) {
 	i.backend.restorable.WritePixels(pixb, r)
 }
 
-func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte, region image.Rectangle) (ok bool, err error) {
+// ReadPixels reads pixels on the given region to the given slice pixels.
+//
+// ReadPixels blocks until BeginFrame is called if necessary in order to ensure this is called in a frame (between BeginFrame and EndFrame).
+// Be careful not to cause a deadlock by blocking a BeginFrame call by this ReadPixels call.
+func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte, region image.Rectangle) error {
+	var err error
+	theFuncsInFrame.runFuncInFrame(func() {
+		err = i.readPixels(graphicsDriver, pixels, region)
+	})
+	return err
+}
+
+func (i *Image) readPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte, region image.Rectangle) error {
 	backendsM.Lock()
 	defer backendsM.Unlock()
 
 	if !inFrame {
-		// Not ready to read pixels. Try this later.
-		return false, nil
+		panic("atlas: inFrame must be true in readPixels")
 	}
 
 	// In the tests, BeginFrame might not be called often and then images might not be disposed (#2292).
 	// To prevent memory leaks, flush the deferred functions here.
 	flushDeferred()
 
-	if err := i.readPixels(graphicsDriver, pixels, region); err != nil {
-		return false, err
-	}
-	return true, nil
-}
-
-func (i *Image) readPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte, region image.Rectangle) error {
 	if i.backend == nil || i.backend.restorable == nil {
 		for i := range pixels {
 			pixels[i] = 0
@@ -577,11 +561,9 @@ func (i *Image) readPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte
 // Defer this operation until it becomes safe. (#913)
 func (i *Image) MarkDisposed() {
 	// As MarkDisposed can be invoked from finalizers, backendsM should not be used.
-	deferredM.Lock()
-	deferred = append(deferred, func() {
+	appendDeferred(func() {
 		i.dispose(true)
 	})
-	deferredM.Unlock()
 }
 
 func (i *Image) dispose(markDisposed bool) {
@@ -757,6 +739,9 @@ func (i *Image) DumpScreenshot(graphicsDriver graphicsdriver.Graphics, path stri
 }
 
 func EndFrame() error {
+	// endFrame must be called outside of backendsM.
+	theFuncsInFrame.endFrame()
+
 	backendsM.Lock()
 	defer backendsM.Unlock()
 	defer func() {
@@ -802,6 +787,9 @@ func floorPowerOf2(x int) int {
 }
 
 func BeginFrame(graphicsDriver graphicsdriver.Graphics) error {
+	// beginFrame must be called outside of backendsM.
+	defer theFuncsInFrame.beginFrame()
+
 	backendsM.Lock()
 	defer backendsM.Unlock()
 

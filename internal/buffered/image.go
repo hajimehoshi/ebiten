@@ -49,24 +49,19 @@ func (i *Image) MarkDisposed() {
 	i.img.MarkDisposed()
 }
 
-func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte, region image.Rectangle) (ok bool, err error) {
+func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte, region image.Rectangle) error {
 	// If restorable.AlwaysReadPixelsFromGPU() returns false, the pixel data is cached in the restorable package.
 	if !restorable.AlwaysReadPixelsFromGPU() {
-		ok, err := i.img.ReadPixels(graphicsDriver, pixels, region)
-		if err != nil {
-			return false, err
+		if err := i.img.ReadPixels(graphicsDriver, pixels, region); err != nil {
+			return err
 		}
-		return ok, nil
+		return nil
 	}
 
 	if i.pixels == nil {
 		pix := make([]byte, 4*i.width*i.height)
-		ok, err := i.img.ReadPixels(graphicsDriver, pix, image.Rect(0, 0, i.width, i.height))
-		if err != nil {
-			return false, err
-		}
-		if !ok {
-			return false, nil
+		if err := i.img.ReadPixels(graphicsDriver, pix, image.Rect(0, 0, i.width, i.height)); err != nil {
+			return err
 		}
 		i.pixels = pix
 	}
@@ -77,7 +72,7 @@ func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte
 		srcX := 4 * ((region.Min.Y+j)*i.width + region.Min.X)
 		copy(pixels[dstX:dstX+lineWidth], i.pixels[srcX:srcX+lineWidth])
 	}
-	return true, nil
+	return nil
 }
 
 func (i *Image) DumpScreenshot(graphicsDriver graphicsdriver.Graphics, name string, blackbg bool) (string, error) {
