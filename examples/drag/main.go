@@ -40,9 +40,10 @@ const (
 
 // Sprite represents an image.
 type Sprite struct {
-	image *ebiten.Image
-	x     int
-	y     int
+	image      *ebiten.Image
+	alphaImage *image.Alpha
+	x          int
+	y          int
 }
 
 // In returns true if (x, y) is in the sprite, and false otherwise.
@@ -50,10 +51,10 @@ func (s *Sprite) In(x, y int) bool {
 	// Check the actual color (alpha) value at the specified position
 	// so that the result of In becomes natural to users.
 	//
-	// Note that this is not a good manner to use At for logic
-	// since color from At might include some errors on some machines.
-	// As this is not so important logic, it's ok to use it so far.
-	return s.image.At(x-s.x, y-s.y).(color.RGBA).A > 0
+	// Use alphaImage (*image.Alpha) instead of image (*ebiten.Image) here.
+	// It is because (*ebiten.Image).At is very slow as this reads pixels from GPU,
+	// and should be avoided whenever possible.
+	return s.alphaImage.At(x-s.x, y-s.y).(color.Alpha).A > 0
 }
 
 // MoveBy moves the sprite by (x, y).
@@ -186,7 +187,10 @@ type Game struct {
 	sprites  []*Sprite
 }
 
-var ebitenImage *ebiten.Image
+var (
+	ebitenImage      *ebiten.Image
+	ebitenAlphaImage *image.Alpha
+)
 
 func init() {
 	// Decode an image from the image file's byte slice.
@@ -195,6 +199,16 @@ func init() {
 		log.Fatal(err)
 	}
 	ebitenImage = ebiten.NewImageFromImage(img)
+
+	// Clone an image but only with alpha values.
+	// This is used to detect a user cursor touches the image.
+	b := img.Bounds()
+	ebitenAlphaImage = image.NewAlpha(b)
+	for j := b.Min.Y; j < b.Max.Y; j++ {
+		for i := b.Min.X; i < b.Max.X; i++ {
+			ebitenAlphaImage.Set(i, j, img.At(i, j))
+		}
+	}
 }
 
 func NewGame() *Game {
@@ -203,9 +217,10 @@ func NewGame() *Game {
 	w, h := ebitenImage.Bounds().Dx(), ebitenImage.Bounds().Dy()
 	for i := 0; i < 50; i++ {
 		s := &Sprite{
-			image: ebitenImage,
-			x:     rand.Intn(screenWidth - w),
-			y:     rand.Intn(screenHeight - h),
+			image:      ebitenImage,
+			alphaImage: ebitenAlphaImage,
+			x:          rand.Intn(screenWidth - w),
+			y:          rand.Intn(screenHeight - h),
 		}
 		sprites = append(sprites, s)
 	}
