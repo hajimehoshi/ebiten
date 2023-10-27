@@ -74,8 +74,6 @@ type UserInterface struct {
 
 	isScreenClearedEveryFrame int32
 	graphicsLibrary           int32
-	running                   int32
-	terminated                int32
 
 	whiteImage *Image
 
@@ -177,24 +175,4 @@ func (u *UserInterface) setGraphicsLibrary(library GraphicsLibrary) {
 
 func (u *UserInterface) GraphicsLibrary() GraphicsLibrary {
 	return GraphicsLibrary(atomic.LoadInt32(&u.graphicsLibrary))
-}
-
-func (u *UserInterface) isRunning() bool {
-	return atomic.LoadInt32(&u.running) != 0 && !u.isTerminated()
-}
-
-func (u *UserInterface) setRunning(running bool) {
-	if running {
-		atomic.StoreInt32(&u.running, 1)
-	} else {
-		atomic.StoreInt32(&u.running, 0)
-	}
-}
-
-func (u *UserInterface) isTerminated() bool {
-	return atomic.LoadInt32(&u.terminated) != 0
-}
-
-func (u *UserInterface) setTerminated() {
-	atomic.StoreInt32(&u.terminated, 1)
 }

@@ -200,7 +200,7 @@ func init() {
 }
 
 func (u *UserInterface) KeyName(key Key) string {
-	if !u.isRunning() {
+	if !u.running {
 		return ""
 	}
 

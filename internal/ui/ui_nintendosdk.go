@@ -84,15 +84,7 @@ func (u *UserInterface) init() error {
 }
 
 func (u *UserInterface) Run(game Game, options *RunOptions) error {
-	u.mainThread = thread.NewOSThread()
-	u.renderThread = thread.NewOSThread()
-	graphicscommand.SetRenderThread(u.renderThread)
-
-	u.setRunning(true)
-	defer u.setRunning(false)
-
 	u.context = newContext(game)
-
 	g, lib, err := newGraphicsDriver(&graphicsDriverCreatorImpl{}, options.GraphicsLibrary)
 	if err != nil {
 		return err
@@ -106,6 +98,10 @@ func (u *UserInterface) Run(game Game, options *RunOptions) error {
 	}
 
 	initializeProfiler()
+
+	u.mainThread = thread.NewOSThread()
+	u.renderThread = thread.NewOSThread()
+	graphicscommand.SetRenderThread(u.renderThread)
 
 	ctx, cancel := stdcontext.WithCancel(stdcontext.Background())
 	defer cancel()

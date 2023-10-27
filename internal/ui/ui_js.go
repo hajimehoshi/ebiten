@@ -91,6 +91,7 @@ type userInterfaceImpl struct {
 	runnableOnUnfocused bool
 	fpsMode             FPSModeType
 	renderingScheduled  bool
+	running             bool
 	cursorMode          CursorMode
 	cursorPrevMode      CursorMode
 	captureCursorLater  bool
@@ -743,9 +744,6 @@ func (u *UserInterface) forceUpdateOnMinimumFPSMode() {
 }
 
 func (u *UserInterface) Run(game Game, options *RunOptions) error {
-	u.setRunning(true)
-	defer u.setRunning(false)
-
 	if !options.InitUnfocused && window.Truthy() {
 		// Do not focus the canvas when the current document is in an iframe.
 		// Otherwise, the parent page tries to focus the iframe on every loading, which is annoying (#1373).
@@ -754,7 +752,7 @@ func (u *UserInterface) Run(game Game, options *RunOptions) error {
 			canvas.Call("focus")
 		}
 	}
-
+	u.running = true
 	g, lib, err := newGraphicsDriver(&graphicsDriverCreatorImpl{
 		canvas: canvas,
 	}, options.GraphicsLibrary)

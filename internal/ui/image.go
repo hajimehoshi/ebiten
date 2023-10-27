@@ -154,10 +154,6 @@ func (i *Image) WritePixels(pix []byte, region image.Rectangle) {
 }
 
 func (i *Image) ReadPixels(pixels []byte, region image.Rectangle) {
-	if !i.ui.isRunning() {
-		panic("ui: ReadPixels cannot be called before the game starts")
-	}
-
 	// Check the error existence and avoid unnecessary calls.
 	if i.ui.error() != nil {
 		return
