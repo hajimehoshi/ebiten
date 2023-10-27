@@ -16,7 +16,6 @@ package ui
 
 import (
 	"math"
-	"sync"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
 	"github.com/hajimehoshi/ebiten/v2/internal/clock"
@@ -56,8 +55,6 @@ type context struct {
 	isOffscreenModified bool
 
 	skipCount int
-
-	setContextOnce sync.Once
 }
 
 func newContext(game Game) *context {
