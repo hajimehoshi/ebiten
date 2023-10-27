@@ -26,8 +26,6 @@ import (
 )
 
 func (u *UserInterface) Run(game Game, options *RunOptions) error {
-	u.context = newContext(game)
-
 	u.mainThread = thread.NewOSThread()
 	u.renderThread = thread.NewOSThread()
 	graphicscommand.SetRenderThread(u.renderThread)
@@ -37,6 +35,8 @@ func (u *UserInterface) Run(game Game, options *RunOptions) error {
 	// Make `mainThread` atomic and remove `running` if possible.
 	u.setRunning(true)
 	defer u.setRunning(false)
+
+	u.context = newContext(game)
 
 	if err := u.initOnMainThread(options); err != nil {
 		return err

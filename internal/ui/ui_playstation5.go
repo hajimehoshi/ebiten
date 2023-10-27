@@ -64,6 +64,9 @@ func (u *UserInterface) init() error {
 }
 
 func (u *UserInterface) Run(game Game, options *RunOptions) error {
+	u.setRunning(true)
+	defer u.setRunning(false)
+
 	// TODO: Implement this.
 	return nil
 }

@@ -22,8 +22,6 @@ import (
 )
 
 func (u *UserInterface) Run(game Game, options *RunOptions) error {
-	u.context = newContext(game)
-
 	// Initialize the main thread first so the thread is available at u.run (#809).
 	u.mainThread = thread.NewNoopThread()
 	u.renderThread = thread.NewNoopThread()
@@ -31,6 +29,8 @@ func (u *UserInterface) Run(game Game, options *RunOptions) error {
 
 	u.setRunning(true)
 	defer u.setRunning(false)
+
+	u.context = newContext(game)
 
 	if err := u.initOnMainThread(options); err != nil {
 		return err

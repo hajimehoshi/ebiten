@@ -269,8 +269,6 @@ func (u *UserInterface) run(game Game, mainloop bool, options *RunOptions) (err 
 		}
 	}()
 
-	u.context = newContext(game)
-
 	var mgl gl.Context
 	if mainloop {
 		// When gomobile-build is used, GL functions must be called via
@@ -280,6 +278,11 @@ func (u *UserInterface) run(game Game, mainloop bool, options *RunOptions) (err 
 		u.renderThread = thread.NewOSThread()
 		graphicscommand.SetRenderThread(u.renderThread)
 	}
+
+	u.setRunning(true)
+	defer u.setRunning(false)
+
+	u.context = newContext(game)
 
 	g, lib, err := newGraphicsDriver(&graphicsDriverCreatorImpl{
 		gomobileContext: mgl,
