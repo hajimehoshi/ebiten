@@ -707,7 +707,7 @@ func (g *Graphics) MaxImageSize() int {
 		return g.maxImageSize
 	}
 
-	// supportsFeatureSet is deprecated but some old macOS/iOS versions supports only this (#2553).
+	// supportsFeatureSet is deprecated but some old macOS/iOS versions support only this (#2553).
 	switch {
 	case d.SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily5_v1):
 		g.maxImageSize = 16384

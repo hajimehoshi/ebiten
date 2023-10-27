@@ -57,7 +57,7 @@ func (v *view) forceSetDisplaySyncEnabled(enabled bool) {
 		// Apparently 2 makes FPS half. Use 3.
 		v.ml.SetMaximumDrawableCount(3)
 	} else {
-		// Use 2 in usual case not to cause rendering delays (#2822).
+		// Use 2 in a usual case not to cause rendering delays (#2822).
 		v.ml.SetMaximumDrawableCount(2)
 	}
 }
