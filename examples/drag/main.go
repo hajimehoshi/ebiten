@@ -44,6 +44,7 @@ type Sprite struct {
 	alphaImage *image.Alpha
 	x          int
 	y          int
+	dragged    bool
 }
 
 // In returns true if (x, y) is in the sprite, and false otherwise.
@@ -57,12 +58,12 @@ func (s *Sprite) In(x, y int) bool {
 	return s.alphaImage.At(x-s.x, y-s.y).(color.Alpha).A > 0
 }
 
-// MoveBy moves the sprite by (x, y).
-func (s *Sprite) MoveBy(x, y int) {
+// MoveTo moves the sprite to the position (x, y).
+func (s *Sprite) MoveTo(x, y int) {
 	w, h := s.image.Bounds().Dx(), s.image.Bounds().Dy()
 
-	s.x += x
-	s.y += y
+	s.x = x
+	s.y = y
 	if s.x < 0 {
 		s.x = 0
 	}
@@ -78,9 +79,9 @@ func (s *Sprite) MoveBy(x, y int) {
 }
 
 // Draw draws the sprite.
-func (s *Sprite) Draw(screen *ebiten.Image, dx, dy int, alpha float32) {
+func (s *Sprite) Draw(screen *ebiten.Image, alpha float32) {
 	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(float64(s.x+dx), float64(s.y+dy))
+	op.GeoM.Translate(float64(s.x), float64(s.y))
 	op.ColorScale.ScaleAlpha(alpha)
 	screen.DrawImage(s.image, op)
 	screen.DrawImage(s.image, op)
@@ -120,65 +121,42 @@ func (t *TouchStrokeSource) IsJustReleased() bool {
 type Stroke struct {
 	source StrokeSource
 
-	// initX and initY represents the position when dragging starts.
-	initX int
-	initY int
+	// offsetX and offsetY represents a relative value from the sprite's upper-left position to the cursor position.
+	offsetX int
+	offsetY int
 
-	// currentX and currentY represents the current position
-	currentX int
-	currentY int
-
-	released bool
-
-	// draggingObject represents a object (sprite in this case)
-	// that is being dragged.
-	draggingObject any
+	// sprite represents a sprite being dragged.
+	sprite *Sprite
 }
 
-func NewStroke(source StrokeSource) *Stroke {
-	cx, cy := source.Position()
+func NewStroke(source StrokeSource, sprite *Sprite) *Stroke {
+	sprite.dragged = true
+	x, y := source.Position()
 	return &Stroke{
-		source:   source,
-		initX:    cx,
-		initY:    cy,
-		currentX: cx,
-		currentY: cy,
+		source:  source,
+		offsetX: x - sprite.x,
+		offsetY: y - sprite.y,
+		sprite:  sprite,
 	}
 }
 
 func (s *Stroke) Update() {
-	if s.released {
+	if !s.sprite.dragged {
 		return
 	}
 	if s.source.IsJustReleased() {
-		s.released = true
+		s.sprite.dragged = false
 		return
 	}
+
 	x, y := s.source.Position()
-	s.currentX = x
-	s.currentY = y
+	x -= s.offsetX
+	y -= s.offsetY
+	s.sprite.MoveTo(x, y)
 }
 
-func (s *Stroke) IsReleased() bool {
-	return s.released
-}
-
-func (s *Stroke) Position() (int, int) {
-	return s.currentX, s.currentY
-}
-
-func (s *Stroke) PositionDiff() (int, int) {
-	dx := s.currentX - s.initX
-	dy := s.currentY - s.initY
-	return dx, dy
-}
-
-func (s *Stroke) DraggingObject() any {
-	return s.draggingObject
-}
-
-func (s *Stroke) SetDraggingObject(object any) {
-	s.draggingObject = object
+func (s *Stroke) Sprite() *Sprite {
+	return s.sprite
 }
 
 type Game struct {
@@ -244,50 +222,38 @@ func (g *Game) spriteAt(x, y int) *Sprite {
 	return nil
 }
 
-func (g *Game) updateStroke(stroke *Stroke) {
-	stroke.Update()
-	if !stroke.IsReleased() {
-		return
-	}
-
-	s := stroke.DraggingObject().(*Sprite)
-	if s == nil {
-		return
-	}
-
-	s.MoveBy(stroke.PositionDiff())
-
+func (g *Game) moveSpriteToFront(sprite *Sprite) {
 	index := -1
 	for i, ss := range g.sprites {
-		if ss == s {
+		if ss == sprite {
 			index = i
 			break
 		}
 	}
-
-	// Move the dragged sprite to the front.
 	g.sprites = append(g.sprites[:index], g.sprites[index+1:]...)
-	g.sprites = append(g.sprites, s)
-
-	stroke.SetDraggingObject(nil)
+	g.sprites = append(g.sprites, sprite)
 }
 
 func (g *Game) Update() error {
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
-		s := NewStroke(&MouseStrokeSource{})
-		s.SetDraggingObject(g.spriteAt(s.Position()))
-		g.strokes[s] = struct{}{}
+		if sp := g.spriteAt(ebiten.CursorPosition()); sp != nil {
+			s := NewStroke(&MouseStrokeSource{}, sp)
+			g.strokes[s] = struct{}{}
+			g.moveSpriteToFront(sp)
+		}
 	}
 	g.touchIDs = inpututil.AppendJustPressedTouchIDs(g.touchIDs[:0])
 	for _, id := range g.touchIDs {
-		s := NewStroke(&TouchStrokeSource{id})
-		s.SetDraggingObject(g.spriteAt(s.Position()))
-		g.strokes[s] = struct{}{}
+		if sp := g.spriteAt(ebiten.TouchPosition(id)); sp != nil {
+			s := NewStroke(&TouchStrokeSource{id}, sp)
+			g.strokes[s] = struct{}{}
+			g.moveSpriteToFront(sp)
+		}
 	}
 
 	for s := range g.strokes {
-		g.updateStroke(s)
-		if s.IsReleased() {
+		s.Update()
+		if !s.sprite.dragged {
 			delete(g.strokes, s)
 		}
 	}
@@ -295,23 +261,11 @@ func (g *Game) Update() error {
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	draggingSprites := map[*Sprite]struct{}{}
-	for s := range g.strokes {
-		if sprite := s.DraggingObject().(*Sprite); sprite != nil {
-			draggingSprites[sprite] = struct{}{}
-		}
-	}
-
 	for _, s := range g.sprites {
-		if _, ok := draggingSprites[s]; ok {
-			continue
-		}
-		s.Draw(screen, 0, 0, 1)
-	}
-	for s := range g.strokes {
-		dx, dy := s.PositionDiff()
-		if sprite := s.DraggingObject().(*Sprite); sprite != nil {
-			sprite.Draw(screen, dx, dy, 0.5)
+		if s.dragged {
+			s.Draw(screen, 0.5)
+		} else {
+			s.Draw(screen, 1)
 		}
 	}
 
