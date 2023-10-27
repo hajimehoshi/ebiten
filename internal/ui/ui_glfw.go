@@ -24,7 +24,6 @@ import (
 	"os"
 	"runtime"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/file"
@@ -61,8 +60,6 @@ type userInterfaceImpl struct {
 	maxWindowWidthInDIP  int
 	maxWindowHeightInDIP int
 
-	running              uint32
-	terminated           uint32
 	runnableOnUnfocused  bool
 	fpsMode              FPSModeType
 	iconImages           []image.Image
@@ -284,26 +281,6 @@ func (u *UserInterface) Monitor() *Monitor {
 		monitor = m
 	})
 	return monitor
-}
-
-func (u *UserInterface) isRunning() bool {
-	return atomic.LoadUint32(&u.running) != 0 && !u.isTerminated()
-}
-
-func (u *UserInterface) isTerminated() bool {
-	return atomic.LoadUint32(&u.terminated) != 0
-}
-
-func (u *UserInterface) setRunning(running bool) {
-	if running {
-		atomic.StoreUint32(&u.running, 1)
-	} else {
-		atomic.StoreUint32(&u.running, 0)
-	}
-}
-
-func (u *UserInterface) setTerminated() {
-	atomic.StoreUint32(&u.terminated, 1)
 }
 
 // setWindowMonitor must be called on the main thread.
