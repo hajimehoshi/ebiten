@@ -30,6 +30,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/file"
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
 	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/hook"
 	"github.com/hajimehoshi/ebiten/v2/internal/microsoftgdk"
@@ -1317,8 +1318,10 @@ func (u *UserInterface) setFPSMode(fpsMode FPSModeType) error {
 		return err
 	}
 
+	vsyncEnabled := u.fpsMode == FPSModeVsyncOn
+	graphicscommand.SetVsyncEnabled(vsyncEnabled)
 	u.renderThread.CallAsync(func() {
-		u.graphicsDriver.SetVsyncEnabled(u.fpsMode == FPSModeVsyncOn)
+		u.graphicsDriver.SetVsyncEnabled(vsyncEnabled)
 	})
 
 	return nil

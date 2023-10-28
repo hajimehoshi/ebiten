@@ -27,6 +27,16 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
 
+var vsyncEnabled int32 = 1
+
+func SetVsyncEnabled(enabled bool) {
+	if enabled {
+		atomic.StoreInt32(&vsyncEnabled, 1)
+	} else {
+		atomic.StoreInt32(&vsyncEnabled, 0)
+	}
+}
+
 // FlushCommands flushes the command queue and present the screen if needed.
 // If endFrame is true, the current screen might be used to present.
 func FlushCommands(graphicsDriver graphicsdriver.Graphics, endFrame bool, swapBuffersForGL func()) error {
@@ -154,10 +164,16 @@ func (q *commandQueue) Flush(graphicsDriver graphicsdriver.Graphics, endFrame bo
 	}
 
 	var sync bool
-	for _, c := range q.commands {
-		if c.NeedsSync() {
-			sync = true
-			break
+	// Disable asynchrnous rendering when vsync is on, as this causes a rendering delay (#2822).
+	if endFrame && atomic.LoadInt32(&vsyncEnabled) != 0 {
+		sync = true
+	}
+	if !sync {
+		for _, c := range q.commands {
+			if c.NeedsSync() {
+				sync = true
+				break
+			}
 		}
 	}
 
