@@ -274,6 +274,9 @@ func (g *graphicsInfra) initSwapChain(width, height int, device unsafe.Pointer, 
 	// https://learn.microsoft.com/en-us/windows/win32/api/dxgi/ne-dxgi-dxgi_swap_effect
 	if !winver.IsWindows10OrGreater() {
 		desc.SwapEffect = _DXGI_SWAP_EFFECT_SEQUENTIAL
+		// With the non-flip (bitblt) mode, the buffer count should be 1. See also:
+		// * https://bugzilla.mozilla.org/show_bug.cgi?id=1419293#c18
+		// * https://learn.microsoft.com/en-us/windows/win32/direct3ddxgi/dxgi-flip-model
 		desc.BufferCount = 1
 	}
 
