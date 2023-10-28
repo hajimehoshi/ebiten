@@ -1317,6 +1317,10 @@ func (u *UserInterface) setFPSMode(fpsMode FPSModeType) error {
 		return err
 	}
 
+	u.renderThread.CallAsync(func() {
+		u.graphicsDriver.SetVsyncEnabled(u.fpsMode == FPSModeVsyncOn)
+	})
+
 	return nil
 }
 
@@ -1894,7 +1898,6 @@ func (u *UserInterface) updateVsyncOnRenderThread() error {
 			}
 		}
 	}
-	u.graphicsDriver.SetVsyncEnabled(u.fpsMode == FPSModeVsyncOn)
 	return nil
 }
 
