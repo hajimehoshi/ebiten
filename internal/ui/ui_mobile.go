@@ -122,8 +122,6 @@ type userInterfaceImpl struct {
 	fpsMode         int32
 	renderRequester RenderRequester
 
-	renderThread *thread.OSThread
-
 	m sync.RWMutex
 }
 

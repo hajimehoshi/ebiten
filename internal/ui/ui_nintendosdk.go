@@ -28,7 +28,6 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl"
-	"github.com/hajimehoshi/ebiten/v2/internal/thread"
 )
 
 type graphicsDriverCreatorImpl struct{}
@@ -68,9 +67,6 @@ type userInterfaceImpl struct {
 	nativeTouches []C.struct_Touch
 
 	egl egl
-
-	mainThread   *thread.OSThread
-	renderThread *thread.OSThread
 
 	m sync.Mutex
 }
