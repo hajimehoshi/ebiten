@@ -930,12 +930,6 @@ func (u *UserInterface) createWindow() error {
 	return nil
 }
 
-func (u *UserInterface) beginFrame() {
-}
-
-func (u *UserInterface) endFrame() {
-}
-
 // registerWindowCloseCallback must be called from the main thread.
 func (u *UserInterface) registerWindowCloseCallback() error {
 	if u.closeCallback == nil {

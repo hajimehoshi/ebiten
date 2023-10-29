@@ -150,12 +150,6 @@ func (*UserInterface) Window() Window {
 	return &nullWindow{}
 }
 
-func (u *UserInterface) beginFrame() {
-}
-
-func (u *UserInterface) endFrame() {
-}
-
 func (u *UserInterface) updateIconIfNeeded() error {
 	return nil
 }

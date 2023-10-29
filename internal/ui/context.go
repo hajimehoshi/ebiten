@@ -84,9 +84,6 @@ func (c *context) forceUpdateFrame(graphicsDriver graphicsdriver.Graphics, outsi
 }
 
 func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, updateCount int, outsideWidth, outsideHeight float64, deviceScaleFactor float64, ui *UserInterface, forceDraw bool, swapBuffersForGL func()) (err error) {
-	ui.beginFrame()
-	defer ui.endFrame()
-
 	// The given outside size can be 0 e.g. just after restoring from the fullscreen mode on Windows (#1589)
 	// Just ignore such cases. Otherwise, creating a zero-sized framebuffer causes a panic.
 	if outsideWidth == 0 || outsideHeight == 0 {

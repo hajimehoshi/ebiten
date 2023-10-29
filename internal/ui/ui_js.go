@@ -814,12 +814,6 @@ func (u *UserInterface) Monitor() *Monitor {
 	return theMonitor
 }
 
-func (u *UserInterface) beginFrame() {
-}
-
-func (u *UserInterface) endFrame() {
-}
-
 func (u *UserInterface) updateIconIfNeeded() error {
 	return nil
 }

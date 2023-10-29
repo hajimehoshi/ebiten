@@ -481,12 +481,6 @@ func (u *UserInterface) ScheduleFrame() {
 	}
 }
 
-func (u *UserInterface) beginFrame() {
-}
-
-func (u *UserInterface) endFrame() {
-}
-
 func (u *UserInterface) updateIconIfNeeded() error {
 	return nil
 }
