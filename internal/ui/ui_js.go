@@ -390,9 +390,7 @@ func (u *UserInterface) needsUpdate() bool {
 	return false
 }
 
-func (u *UserInterface) loop(game Game) <-chan error {
-	u.context = newContext(game)
-
+func (u *UserInterface) loopGame() error {
 	errCh := make(chan error, 1)
 	reqStopAudioCh := make(chan struct{})
 	resStopAudioCh := make(chan struct{})
@@ -476,7 +474,7 @@ func (u *UserInterface) loop(game Game) <-chan error {
 		}
 	}()
 
-	return errCh
+	return <-errCh
 }
 
 func (u *UserInterface) init() error {
@@ -743,9 +741,10 @@ func (u *UserInterface) forceUpdateOnMinimumFPSMode() {
 }
 
 func (u *UserInterface) Run(game Game, options *RunOptions) error {
-	u.setRunning(true)
-	defer u.setRunning(false)
+	return u.run(game, options)
+}
 
+func (u *UserInterface) initOnMainThread(options *RunOptions) error {
 	if !options.InitUnfocused && window.Truthy() {
 		// Do not focus the canvas when the current document is in an iframe.
 		// Otherwise, the parent page tries to focus the iframe on every loading, which is annoying (#1373).
@@ -770,7 +769,7 @@ func (u *UserInterface) Run(game Game, options *RunOptions) error {
 		bodyStyle.Set("backgroundColor", "#000")
 	}
 
-	return <-u.loop(game)
+	return nil
 }
 
 func (u *UserInterface) updateScreenSize() {

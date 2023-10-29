@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !android && !ios && !js && !nintendosdk && !playstation5 && !ebitenginesinglethread && !ebitensinglethread
+//go:build !android && !ios && !js && !ebitenginesinglethread && !ebitensinglethread
 
 package ui
 
@@ -25,7 +25,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/thread"
 )
 
-func (u *UserInterface) Run(game Game, options *RunOptions) error {
+func (u *UserInterface) run(game Game, options *RunOptions) error {
 	u.mainThread = thread.NewOSThread()
 	u.renderThread = thread.NewOSThread()
 	graphicscommand.SetRenderThread(u.renderThread)

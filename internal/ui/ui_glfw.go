@@ -107,9 +107,7 @@ type userInterfaceImpl struct {
 	darwinInitOnce        sync.Once
 	bufferOnceSwappedOnce sync.Once
 
-	mainThread   thread.Thread
-	renderThread thread.Thread
-	m            sync.RWMutex
+	m sync.RWMutex
 }
 
 const (
@@ -121,6 +119,10 @@ const (
 func init() {
 	// Lock the main thread.
 	runtime.LockOSThread()
+}
+
+func (u *UserInterface) Run(game Game, options *RunOptions) error {
+	return u.run(game, options)
 }
 
 func (u *UserInterface) init() error {

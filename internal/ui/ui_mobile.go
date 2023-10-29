@@ -241,7 +241,7 @@ func (u *UserInterface) SetForeground(foreground bool) error {
 func (u *UserInterface) Run(game Game, options *RunOptions) error {
 	u.setGBuildSizeCh = make(chan struct{})
 	go func() {
-		if err := u.run(game, true, options); err != nil {
+		if err := u.runMobile(game, true, options); err != nil {
 			// As mobile apps never ends, Loop can't return. Just panic here.
 			panic(err)
 		}
@@ -252,13 +252,13 @@ func (u *UserInterface) Run(game Game, options *RunOptions) error {
 
 func (u *UserInterface) RunWithoutMainLoop(game Game, options *RunOptions) {
 	go func() {
-		if err := u.run(game, false, options); err != nil {
+		if err := u.runMobile(game, false, options); err != nil {
 			u.errCh <- err
 		}
 	}()
 }
 
-func (u *UserInterface) run(game Game, mainloop bool, options *RunOptions) (err error) {
+func (u *UserInterface) runMobile(game Game, mainloop bool, options *RunOptions) (err error) {
 	// Convert the panic to a regular error so that Java/Objective-C layer can treat this easily e.g., for
 	// Crashlytics. A panic is treated as SIGABRT, and there is no way to handle this on Java/Objective-C layer
 	// unfortunately.

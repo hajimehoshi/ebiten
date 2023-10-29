@@ -64,10 +64,15 @@ func (u *UserInterface) init() error {
 }
 
 func (u *UserInterface) Run(game Game, options *RunOptions) error {
-	u.setRunning(true)
-	defer u.setRunning(false)
+	return u.run(game, options)
+}
 
-	// TODO: Implement this.
+func (u *UserInterface) initOnMainThread(options *RunOptions) error {
+	return nil
+}
+
+func (u *UserInterface) loopGame() error {
+	// TODO: Implement this
 	return nil
 }
 

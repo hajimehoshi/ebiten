@@ -22,6 +22,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
 	"github.com/hajimehoshi/ebiten/v2/internal/mipmap"
+	"github.com/hajimehoshi/ebiten/v2/internal/thread"
 )
 
 // RegularTermination represents a regular termination.
@@ -78,6 +79,9 @@ type UserInterface struct {
 	terminated                int32
 
 	whiteImage *Image
+
+	mainThread   thread.Thread
+	renderThread thread.Thread
 
 	userInterfaceImpl
 }

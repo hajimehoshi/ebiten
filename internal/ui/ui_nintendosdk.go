@@ -21,15 +21,11 @@ package ui
 import "C"
 
 import (
-	stdcontext "context"
 	"errors"
 	"image"
 	"runtime"
 	"sync"
 
-	"golang.org/x/sync/errgroup"
-
-	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl"
 	"github.com/hajimehoshi/ebiten/v2/internal/thread"
@@ -84,15 +80,10 @@ func (u *UserInterface) init() error {
 }
 
 func (u *UserInterface) Run(game Game, options *RunOptions) error {
-	u.mainThread = thread.NewOSThread()
-	u.renderThread = thread.NewOSThread()
-	graphicscommand.SetRenderThread(u.renderThread)
+	return u.run(game, options)
+}
 
-	u.setRunning(true)
-	defer u.setRunning(false)
-
-	u.context = newContext(game)
-
+func (u *UserInterface) initOnMainThread(options *RunOptions) error {
 	g, lib, err := newGraphicsDriver(&graphicsDriverCreatorImpl{}, options.GraphicsLibrary)
 	if err != nil {
 		return err
@@ -107,43 +98,23 @@ func (u *UserInterface) Run(game Game, options *RunOptions) error {
 
 	initializeProfiler()
 
-	ctx, cancel := stdcontext.WithCancel(stdcontext.Background())
-	defer cancel()
-
-	var wg errgroup.Group
-
-	// Run the render thread.
-	wg.Go(func() error {
-		defer cancel()
-		_ = u.renderThread.Loop(ctx)
-		return nil
-	})
-
-	// Run the game thread.
-	wg.Go(func() error {
-		defer cancel()
-
-		u.renderThread.Call(func() {
-			u.egl.makeContextCurrent()
-		})
-
-		for {
-			recordProfilerHeartbeat()
-
-			if err := u.context.updateFrame(u.graphicsDriver, float64(C.kScreenWidth), float64(C.kScreenHeight), deviceScaleFactor, u, func() {
-				u.egl.swapBuffers()
-			}); err != nil {
-				return err
-			}
-		}
-	})
-
-	// Run the main thread.
-	_ = u.mainThread.Loop(ctx)
-	if err := wg.Wait(); err != nil {
-		return err
-	}
 	return nil
+}
+
+func (u *UserInterface) loopGame() error {
+	u.renderThread.Call(func() {
+		u.egl.makeContextCurrent()
+	})
+
+	for {
+		recordProfilerHeartbeat()
+
+		if err := u.context.updateFrame(u.graphicsDriver, float64(C.kScreenWidth), float64(C.kScreenHeight), deviceScaleFactor, u, func() {
+			u.egl.swapBuffers()
+		}); err != nil {
+			return err
+		}
+	}
 }
 
 func (*UserInterface) DeviceScaleFactor() float64 {
