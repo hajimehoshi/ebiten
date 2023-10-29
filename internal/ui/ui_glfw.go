@@ -33,7 +33,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/hook"
 	"github.com/hajimehoshi/ebiten/v2/internal/microsoftgdk"
-	"github.com/hajimehoshi/ebiten/v2/internal/thread"
 )
 
 func driverCursorModeToGLFWCursorMode(mode CursorMode) int {
