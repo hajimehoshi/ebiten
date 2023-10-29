@@ -22,6 +22,7 @@ import (
 	"runtime"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/playstation5"
 )
 
 type graphicsDriverCreatorImpl struct{}
@@ -44,7 +45,7 @@ func (*graphicsDriverCreatorImpl) newMetal() (graphicsdriver.Graphics, error) {
 }
 
 func (*graphicsDriverCreatorImpl) newPlayStation5() (graphicsdriver.Graphics, error) {
-	return nil, errors.New("ui: not implemented yet")
+	return playstation5.NewGraphics()
 }
 
 const (
