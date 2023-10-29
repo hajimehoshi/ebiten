@@ -47,7 +47,12 @@ func (*graphicsDriverCreatorImpl) newPlayStation5() (graphicsdriver.Graphics, er
 	return nil, errors.New("ui: not implemented yet")
 }
 
-const deviceScaleFactor = 1
+const (
+	// TODO: Get this value from the SDK.
+	screenWidth       = 3840
+	screenHeight      = 2160
+	deviceScaleFactor = 1
+)
 
 func init() {
 	runtime.LockOSThread()
@@ -68,11 +73,22 @@ func (u *UserInterface) Run(game Game, options *RunOptions) error {
 }
 
 func (u *UserInterface) initOnMainThread(options *RunOptions) error {
+	g, lib, err := newGraphicsDriver(&graphicsDriverCreatorImpl{}, options.GraphicsLibrary)
+	if err != nil {
+		return err
+	}
+	u.graphicsDriver = g
+	u.setGraphicsLibrary(lib)
+
 	return nil
 }
 
 func (u *UserInterface) loopGame() error {
-	// TODO: Implement this
+	for {
+		if err := u.context.updateFrame(u.graphicsDriver, screenWidth, screenHeight, deviceScaleFactor, u, nil); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
