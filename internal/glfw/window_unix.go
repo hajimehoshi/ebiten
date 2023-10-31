@@ -60,7 +60,6 @@ import "C"
 import (
 	"errors"
 	"image"
-	"image/draw"
 	"sync"
 	"unsafe"
 )
@@ -357,33 +356,19 @@ func (w *Window) SetTitle(title string) error {
 // images will be rescaled as needed. Good sizes include 16x16, 32x32 and 48x48.
 func (w *Window) SetIcon(images []image.Image) error {
 	count := len(images)
-	cimages := make([]C.GLFWimage, count)
-	freePixels := make([]func(), count)
+	glfwImgs := make([]C.GLFWimage, 0, count)
 
-	for i, img := range images {
-		b := img.Bounds()
-
-		m := image.NewNRGBA(image.Rect(0, 0, b.Dx(), b.Dy()))
-		draw.Draw(m, m.Bounds(), img, b.Min, draw.Src)
-		pixels := m.Pix
-
-		pix, free := bytes(pixels)
-		freePixels[i] = free
-
-		cimages[i].width = C.int(b.Dx())
-		cimages[i].height = C.int(b.Dy())
-		cimages[i].pixels = (*C.uchar)(pix)
+	for _, img := range images {
+		glfwImg, free := imageToGLFWImage(img)
+		defer free()
+		glfwImgs = append(glfwImgs, glfwImg)
 	}
 
 	var p *C.GLFWimage
 	if count > 0 {
-		p = &cimages[0]
+		p = &glfwImgs[0]
 	}
 	C.glfwSetWindowIcon(w.data, C.int(count), p)
-
-	for _, v := range freePixels {
-		v()
-	}
 
 	if err := fetchErrorIgnoringPlatformError(); err != nil {
 		return err
