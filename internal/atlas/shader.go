@@ -50,6 +50,16 @@ func (s *Shader) ensureShader() *restorable.Shader {
 
 // Deallocate deallocates the internal state.
 func (s *Shader) Deallocate() {
+	backendsM.Lock()
+	defer backendsM.Unlock()
+
+	if !inFrame {
+		appendDeferred(func() {
+			s.deallocate()
+		})
+		return
+	}
+
 	s.deallocate()
 }
 

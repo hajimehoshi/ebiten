@@ -547,6 +547,14 @@ func (i *Image) MarkDisposed() {
 	backendsM.Lock()
 	defer backendsM.Unlock()
 
+	if !inFrame {
+		appendDeferred(func() {
+			i.deallocate()
+			runtime.SetFinalizer(i, nil)
+		})
+		return
+	}
+
 	i.deallocate()
 	runtime.SetFinalizer(i, nil)
 }

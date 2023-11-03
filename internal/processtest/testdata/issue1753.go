@@ -56,10 +56,10 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 			return fmt.Errorf("phase: %d, got: %v, want: %v", g.phase, got, want)
 		}
 
-		// Dispose the shader. When a new shader is created in the next phase, the underlying shader ID might be reused.
+		// Deallocate the shader. When a new shader is created in the next phase, the underlying shader ID might be reused.
 		// This test checks that the new shader works in this situation.
 		// The actual disposal will happen after this frame and before the next frame in the current implementation.
-		s.Dispose()
+		s.Deallocate()
 
 		g.phase++
 
