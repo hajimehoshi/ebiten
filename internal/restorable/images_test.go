@@ -908,7 +908,7 @@ func TestMutateSlices(t *testing.T) {
 	src.WritePixels(bytesToManagedBytes(pix), image.Rect(0, 0, w, h))
 
 	vs := quadVertices(w, h, 0, 0)
-	is := make([]uint16, len(graphics.QuadIndices()))
+	is := make([]uint32, len(graphics.QuadIndices()))
 	copy(is, graphics.QuadIndices())
 	dr := image.Rect(0, 0, w, h)
 	dst.DrawTriangles([graphics.ShaderImageCount]*restorable.Image{src}, vs, is, graphicsdriver.BlendSourceOver, dr, [graphics.ShaderImageCount]image.Rectangle{}, restorable.NearestFilterShader, nil, false)

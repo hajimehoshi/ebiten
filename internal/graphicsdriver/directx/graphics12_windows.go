@@ -876,7 +876,7 @@ func (g *graphics12) SetTransparent(transparent bool) {
 	// TODO: Implement this?
 }
 
-func (g *graphics12) SetVertices(vertices []float32, indices []uint16) (ferr error) {
+func (g *graphics12) SetVertices(vertices []float32, indices []uint32) (ferr error) {
 	// Create buffers if necessary.
 	vidx := len(g.vertices[g.frameIndex])
 	if cap(g.vertices[g.frameIndex]) > vidx {
@@ -946,7 +946,7 @@ func (g *graphics12) SetVertices(vertices []float32, indices []uint16) (ferr err
 	if err != nil {
 		return err
 	}
-	copy(unsafe.Slice((*uint16)(unsafe.Pointer(m)), len(indices)), indices)
+	copy(unsafe.Slice((*uint32)(unsafe.Pointer(m)), len(indices)), indices)
 	g.indices[g.frameIndex][iidx].value.Unmap(0, nil)
 
 	return nil
@@ -1159,7 +1159,7 @@ func (g *graphics12) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.
 	g.drawCommandList.IASetIndexBuffer(&_D3D12_INDEX_BUFFER_VIEW{
 		BufferLocation: g.indices[g.frameIndex][len(g.indices[g.frameIndex])-1].value.GetGPUVirtualAddress(),
 		SizeInBytes:    g.indices[g.frameIndex][len(g.indices[g.frameIndex])-1].sizeInBytes,
-		Format:         _DXGI_FORMAT_R16_UINT,
+		Format:         _DXGI_FORMAT_R32_UINT,
 	})
 
 	if err := g.pipelineStates.drawTriangles(g.device, g.drawCommandList, g.frameIndex, dst.screen, srcImages, shader, dstRegions, adjustedUniforms, blend, indexOffset, evenOdd); err != nil {

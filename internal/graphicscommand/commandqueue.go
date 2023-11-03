@@ -53,7 +53,7 @@ type commandQueue struct {
 
 	// vertices represents a vertices data in OpenGL's array buffer.
 	vertices []float32
-	indices  []uint16
+	indices  []uint32
 
 	tmpNumVertexFloats int
 
@@ -71,7 +71,7 @@ func (q *commandQueue) addFinalizer(f func()) {
 	q.finalizers = append(q.finalizers, f)
 }
 
-func (q *commandQueue) appendIndices(indices []uint16, offset uint16) {
+func (q *commandQueue) appendIndices(indices []uint32, offset uint32) {
 	n := len(q.indices)
 	q.indices = append(q.indices, indices...)
 	for i := n; i < len(q.indices); i++ {
@@ -85,7 +85,7 @@ func mustUseDifferentVertexBuffer(nextNumVertexFloats int) bool {
 }
 
 // EnqueueDrawTrianglesCommand enqueues a drawing-image command.
-func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint16, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderImageCount]image.Rectangle, shader *Shader, uniforms []uint32, evenOdd bool) {
+func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint32, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderImageCount]image.Rectangle, shader *Shader, uniforms []uint32, evenOdd bool) {
 	if len(vertices) > graphics.MaxVertexFloatsCount {
 		panic(fmt.Sprintf("graphicscommand: len(vertices) must equal to or less than %d but was %d", graphics.MaxVertexFloatsCount, len(vertices)))
 	}
@@ -99,7 +99,7 @@ func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.Sh
 	// Assume that all the image sizes are same.
 	// Assume that the images are packed from the front in the slice srcs.
 	q.vertices = append(q.vertices, vertices...)
-	q.appendIndices(indices, uint16(q.tmpNumVertexFloats/graphics.VertexFloatCount))
+	q.appendIndices(indices, uint32(q.tmpNumVertexFloats/graphics.VertexFloatCount))
 	q.tmpNumVertexFloats += len(vertices)
 
 	// prependPreservedUniforms not only prepends values to the given slice but also creates a new slice.
@@ -477,7 +477,7 @@ func (c *commandQueueManager) putCommandQueue(commandQueue *commandQueue) {
 	c.pool.put(commandQueue)
 }
 
-func (c *commandQueueManager) enqueueDrawTrianglesCommand(dst *Image, srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint16, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderImageCount]image.Rectangle, shader *Shader, uniforms []uint32, evenOdd bool) {
+func (c *commandQueueManager) enqueueDrawTrianglesCommand(dst *Image, srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint32, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderImageCount]image.Rectangle, shader *Shader, uniforms []uint32, evenOdd bool) {
 	if c.current == nil {
 		c.current, _ = c.pool.get()
 	}

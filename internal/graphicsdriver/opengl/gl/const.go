@@ -76,7 +76,7 @@ const (
 	TRUE                  = 1
 	UNPACK_ALIGNMENT      = 0x0CF5
 	UNSIGNED_BYTE         = 0x1401
-	UNSIGNED_SHORT        = 0x1403
+	UNSIGNED_INT          = 0x1405
 	VERTEX_SHADER         = 0x8B31
 	WRITE_ONLY            = 0x88B9
 	ZERO                  = 0

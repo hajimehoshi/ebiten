@@ -36,7 +36,7 @@ type Graphics interface {
 	Begin() error
 	End(present bool) error
 	SetTransparent(transparent bool)
-	SetVertices(vertices []float32, indices []uint16) error
+	SetVertices(vertices []float32, indices []uint32) error
 	NewImage(width, height int) (Image, error)
 	NewScreenFramebufferImage(width, height int) (Image, error)
 	SetVsyncEnabled(enabled bool)

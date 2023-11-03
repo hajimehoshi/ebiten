@@ -17,6 +17,7 @@ package opengl
 import (
 	"fmt"
 	"runtime"
+	"unsafe"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
@@ -164,7 +165,7 @@ func (g *Graphics) Reset() error {
 	return g.state.reset(&g.context)
 }
 
-func (g *Graphics) SetVertices(vertices []float32, indices []uint16) error {
+func (g *Graphics) SetVertices(vertices []float32, indices []uint32) error {
 	g.state.setVertices(&g.context, vertices, indices)
 	return nil
 }
@@ -262,13 +263,13 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 			g.context.ctx.StencilOp(gl.KEEP, gl.KEEP, gl.INVERT)
 			g.context.ctx.ColorMask(false, false, false, false)
 
-			g.context.ctx.DrawElements(gl.TRIANGLES, int32(dstRegion.IndexCount), gl.UNSIGNED_SHORT, indexOffset*2)
+			g.context.ctx.DrawElements(gl.TRIANGLES, int32(dstRegion.IndexCount), gl.UNSIGNED_INT, indexOffset*int(unsafe.Sizeof(uint32(0))))
 
 			g.context.ctx.StencilFunc(gl.NOTEQUAL, 0x00, 0xff)
 			g.context.ctx.StencilOp(gl.KEEP, gl.KEEP, gl.KEEP)
 			g.context.ctx.ColorMask(true, true, true, true)
 		}
-		g.context.ctx.DrawElements(gl.TRIANGLES, int32(dstRegion.IndexCount), gl.UNSIGNED_SHORT, indexOffset*2) // 2 is uint16 size in bytes
+		g.context.ctx.DrawElements(gl.TRIANGLES, int32(dstRegion.IndexCount), gl.UNSIGNED_INT, indexOffset*int(unsafe.Sizeof(uint32(0))))
 		indexOffset += dstRegion.IndexCount
 	}
 

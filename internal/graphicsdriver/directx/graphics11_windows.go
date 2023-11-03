@@ -316,7 +316,7 @@ func (g *graphics11) SetTransparent(transparent bool) {
 	// TODO: Implement this?
 }
 
-func (g *graphics11) SetVertices(vertices []float32, indices []uint16) error {
+func (g *graphics11) SetVertices(vertices []float32, indices []uint32) error {
 	if size := pow2(uint32(len(vertices)) * uint32(unsafe.Sizeof(vertices[0]))); g.vertexBufferSizeInBytes < size {
 		if g.vertexBuffer != nil {
 			g.vertexBuffer.Release()
@@ -352,7 +352,7 @@ func (g *graphics11) SetVertices(vertices []float32, indices []uint16) error {
 		}
 		g.indexBuffer = b
 		g.indexBufferSizeInBytes = size
-		g.deviceContext.IASetIndexBuffer(g.indexBuffer, _DXGI_FORMAT_R16_UINT, 0)
+		g.deviceContext.IASetIndexBuffer(g.indexBuffer, _DXGI_FORMAT_R32_UINT, 0)
 	}
 
 	// Copy the vertices data.
@@ -371,7 +371,7 @@ func (g *graphics11) SetVertices(vertices []float32, indices []uint16) error {
 		if err := g.deviceContext.Map(unsafe.Pointer(g.indexBuffer), 0, _D3D11_MAP_WRITE_DISCARD, 0, &mapped); err != nil {
 			return err
 		}
-		copy(unsafe.Slice((*uint16)(mapped.pData), len(indices)), indices)
+		copy(unsafe.Slice((*uint32)(mapped.pData), len(indices)), indices)
 		g.deviceContext.Unmap(unsafe.Pointer(g.indexBuffer), 0)
 	}
 

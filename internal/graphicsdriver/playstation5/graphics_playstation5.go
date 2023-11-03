@@ -44,7 +44,7 @@ func (g *Graphics) End(present bool) error {
 func (g *Graphics) SetTransparent(transparent bool) {
 }
 
-func (g *Graphics) SetVertices(vertices []float32, indices []uint16) error {
+func (g *Graphics) SetVertices(vertices []float32, indices []uint32) error {
 	return nil
 }
 

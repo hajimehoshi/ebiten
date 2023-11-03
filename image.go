@@ -488,8 +488,10 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 			vs[i*graphics.VertexFloatCount+7] = v.ColorA * ca
 		}
 	}
-	is := make([]uint16, len(indices))
-	copy(is, indices)
+	is := make([]uint32, len(indices))
+	for i := range is {
+		is[i] = uint32(indices[i])
+	}
 
 	srcs := [graphics.ShaderImageCount]*ui.Image{img.image}
 
@@ -635,8 +637,11 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 		vs[i*graphics.VertexFloatCount+6] = v.ColorB
 		vs[i*graphics.VertexFloatCount+7] = v.ColorA
 	}
-	is := make([]uint16, len(indices))
-	copy(is, indices)
+
+	is := make([]uint32, len(indices))
+	for i := range is {
+		is[i] = uint32(indices[i])
+	}
 
 	var imgs [graphics.ShaderImageCount]*ui.Image
 	var imgSize image.Point

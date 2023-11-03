@@ -80,7 +80,7 @@ func (i *Image) Deallocate() {
 	i.dotsBuffer = nil
 }
 
-func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint16, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderImageCount]image.Rectangle, shader *Shader, uniforms []uint32, evenOdd bool, canSkipMipmap bool, antialias bool) {
+func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint32, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderImageCount]image.Rectangle, shader *Shader, uniforms []uint32, evenOdd bool, canSkipMipmap bool, antialias bool) {
 	if i.modifyCallback != nil {
 		i.modifyCallback()
 	}
@@ -195,7 +195,7 @@ func (i *Image) flushDotsBufferIfNeeded() {
 
 	l := len(i.dotsBuffer)
 	vs := make([]float32, l*4*graphics.VertexFloatCount)
-	is := make([]uint16, l*6)
+	is := make([]uint32, l*6)
 	sx, sy := float32(1), float32(1)
 	var idx int
 	for p, c := range i.dotsBuffer {
@@ -239,12 +239,12 @@ func (i *Image) flushDotsBufferIfNeeded() {
 		vs[graphics.VertexFloatCount*4*idx+30] = cbf
 		vs[graphics.VertexFloatCount*4*idx+31] = caf
 
-		is[6*idx] = uint16(4 * idx)
-		is[6*idx+1] = uint16(4*idx + 1)
-		is[6*idx+2] = uint16(4*idx + 2)
-		is[6*idx+3] = uint16(4*idx + 1)
-		is[6*idx+4] = uint16(4*idx + 2)
-		is[6*idx+5] = uint16(4*idx + 3)
+		is[6*idx] = uint32(4 * idx)
+		is[6*idx+1] = uint32(4*idx + 1)
+		is[6*idx+2] = uint32(4*idx + 2)
+		is[6*idx+3] = uint32(4*idx + 1)
+		is[6*idx+4] = uint32(4*idx + 2)
+		is[6*idx+5] = uint32(4*idx + 3)
 
 		idx++
 	}
@@ -325,7 +325,7 @@ func (i *bigOffscreenImage) deallocate() {
 	i.dirty = false
 }
 
-func (i *bigOffscreenImage) drawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint16, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderImageCount]image.Rectangle, shader *Shader, uniforms []uint32, evenOdd bool, canSkipMipmap bool, antialias bool) {
+func (i *bigOffscreenImage) drawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint32, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderImageCount]image.Rectangle, shader *Shader, uniforms []uint32, evenOdd bool, canSkipMipmap bool, antialias bool) {
 	if i.blend != blend {
 		i.flush()
 	}

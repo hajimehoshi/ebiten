@@ -591,7 +591,7 @@ func TestImageEdge(t *testing.T) {
 								ColorA: 1,
 							},
 						}
-						is := graphics.QuadIndices()
+						is := []uint16{0, 1, 2, 1, 2, 3}
 						op.Filter = f
 						img1.DrawTriangles(vs, is, img0, op)
 					}
