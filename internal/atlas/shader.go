@@ -38,11 +38,11 @@ func (s *Shader) ensureShader() *restorable.Shader {
 		return s.shader
 	}
 	s.shader = restorable.NewShader(s.ir)
-	runtime.SetFinalizer(s, func(s *Shader) {
+	runtime.SetFinalizer(s, func(shader *Shader) {
 		// A function from finalizer must not be blocked, but disposing operation can be blocked.
 		// Defer this operation until it becomes safe. (#913)
 		appendDeferred(func() {
-			s.deallocate()
+			shader.deallocate()
 		})
 	})
 	return s.shader

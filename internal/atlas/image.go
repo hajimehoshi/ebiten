@@ -624,11 +624,11 @@ func (i *Image) allocate(forbiddenBackends []*backend, asSource bool) {
 		panic("atlas: the image is already allocated")
 	}
 
-	runtime.SetFinalizer(i, func(img *Image) {
+	runtime.SetFinalizer(i, func(image *Image) {
 		// A function from finalizer must not be blocked, but disposing operation can be blocked.
 		// Defer this operation until it becomes safe. (#913)
 		appendDeferred(func() {
-			i.deallocate()
+			image.deallocate()
 			runtime.SetFinalizer(i, nil)
 		})
 	})
