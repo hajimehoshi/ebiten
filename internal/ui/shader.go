@@ -40,9 +40,8 @@ func NewShader(ir *shaderir.Program) *Shader {
 	}
 }
 
-func (s *Shader) MarkDisposed() {
-	s.shader.MarkDisposed()
-	s.shader = nil
+func (s *Shader) Deallocate() {
+	s.shader.Deallocate()
 }
 
 func (s *Shader) AppendUniforms(dst []uint32, uniforms map[string]any) []uint32 {

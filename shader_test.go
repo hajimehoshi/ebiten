@@ -2299,3 +2299,54 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 		})
 	}
 }
+
+func TestShaderDeallocate(t *testing.T) {
+	const w, h = 16, 16
+
+	dst := ebiten.NewImage(w, h)
+	s, err := ebiten.NewShader([]byte(`//kage:unit pixels
+
+package main
+
+func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+	return vec4(1, 0, 0, 1)
+}
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	dst.DrawRectShader(w/2, h/2, s, nil)
+
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			got := dst.At(i, j).(color.RGBA)
+			var want color.RGBA
+			if i < w/2 && j < h/2 {
+				want = color.RGBA{R: 0xff, A: 0xff}
+			}
+			if got != want {
+				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+
+	// Even after Deallocate is called, the shader is still available.
+	s.Deallocate()
+
+	dst.Clear()
+	dst.DrawRectShader(w/2, h/2, s, nil)
+
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			got := dst.At(i, j).(color.RGBA)
+			var want color.RGBA
+			if i < w/2 && j < h/2 {
+				want = color.RGBA{R: 0xff, A: 0xff}
+			}
+			if got != want {
+				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+}

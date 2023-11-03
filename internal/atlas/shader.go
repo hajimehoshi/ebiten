@@ -38,25 +38,22 @@ func (s *Shader) ensureShader() *restorable.Shader {
 		return s.shader
 	}
 	s.shader = restorable.NewShader(s.ir)
-	s.ir = nil
+	runtime.SetFinalizer(s, func(s *Shader) {
+		// A function from finalizer must not be blocked, but disposing operation can be blocked.
+		// Defer this operation until it becomes safe. (#913)
+		appendDeferred(func() {
+			s.deallocate()
+		})
+	})
 	return s.shader
 }
 
-// MarkDisposed marks the shader as disposed. The actual operation is deferred.
-// MarkDisposed can be called from finalizers.
-//
-// A function from finalizer must not be blocked, but disposing operation can be blocked.
-// Defer this operation until it becomes safe. (#913)
-func (s *Shader) MarkDisposed() {
-	// As MarkDisposed can be invoked from finalizers, backendsM should not be used.
-	deferredM.Lock()
-	deferred = append(deferred, func() {
-		s.dispose()
-	})
-	deferredM.Unlock()
+// Deallocate deallocates the internal state.
+func (s *Shader) Deallocate() {
+	s.deallocate()
 }
 
-func (s *Shader) dispose() {
+func (s *Shader) deallocate() {
 	runtime.SetFinalizer(s, nil)
 	if s.shader == nil {
 		return
