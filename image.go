@@ -586,6 +586,10 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 		return
 	}
 
+	if shader.isDisposed() {
+		panic("ebiten: the given shader to DrawTrianglesShader must not be disposed")
+	}
+
 	if len(vertices) > graphics.MaxVerticesCount {
 		// The last part cannot be specified by indices. Just omit them.
 		vertices = vertices[:graphics.MaxVerticesCount]
@@ -735,6 +739,10 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 
 	if i.isDisposed() {
 		return
+	}
+
+	if shader.isDisposed() {
+		panic("ebiten: the given shader to DrawRectShader must not be disposed")
 	}
 
 	if options == nil {
