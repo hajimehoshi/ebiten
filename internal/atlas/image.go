@@ -542,17 +542,13 @@ func (i *Image) readPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte
 	return i.backend.restorable.ReadPixels(graphicsDriver, pixels, region.Add(r.Min))
 }
 
-// MarkDisposed marks the image as disposed. The actual operation is deferred.
-// MarkDisposed can be called from finalizers.
-//
-// A function from finalizer must not be blocked, but disposing operation can be blocked.
-// Defer this operation until it becomes safe. (#913)
+// MarkDisposed marks the image as disposed.
 func (i *Image) MarkDisposed() {
-	// As MarkDisposed can be invoked from finalizers, backendsM should not be used.
-	appendDeferred(func() {
-		i.deallocate()
-		runtime.SetFinalizer(i, nil)
-	})
+	backendsM.Lock()
+	defer backendsM.Unlock()
+
+	i.deallocate()
+	runtime.SetFinalizer(i, nil)
 }
 
 func (i *Image) deallocate() {
@@ -619,7 +615,14 @@ func (i *Image) allocate(forbiddenBackends []*backend, asSource bool) {
 		panic("atlas: the image is already allocated")
 	}
 
-	runtime.SetFinalizer(i, (*Image).MarkDisposed)
+	runtime.SetFinalizer(i, func(img *Image) {
+		// A function from finalizer must not be blocked, but disposing operation can be blocked.
+		// Defer this operation until it becomes safe. (#913)
+		appendDeferred(func() {
+			i.deallocate()
+			runtime.SetFinalizer(i, nil)
+		})
+	})
 
 	if i.imageType == ImageTypeScreen {
 		if asSource {
