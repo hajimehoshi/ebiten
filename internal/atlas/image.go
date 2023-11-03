@@ -137,7 +137,6 @@ type Image struct {
 	width     int
 	height    int
 	imageType ImageType
-	disposed  bool
 
 	backend                   *backend
 	backendCreatedInThisFrame bool
@@ -170,8 +169,8 @@ func (i *Image) moveTo(dst *Image) {
 	dst.deallocate()
 	*dst = *i
 
-	// i is no longer available but Dispose must not be called
-	// since i and dst have the same values as node.
+	// i is no longer available but the finalizer must not be called
+	// since i and dst share the same backend and the same node.
 	runtime.SetFinalizer(i, nil)
 }
 
@@ -336,17 +335,10 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 }
 
 func (i *Image) drawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint16, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderImageCount]image.Rectangle, shader *Shader, uniforms []uint32, evenOdd bool, keepOnAtlas bool) {
-	if i.disposed {
-		panic("atlas: the drawing target image must not be disposed (DrawTriangles)")
-	}
-
 	backends := make([]*backend, 0, len(srcs))
 	for _, src := range srcs {
 		if src == nil {
 			continue
-		}
-		if src.disposed {
-			panic("atlas: the drawing source image must not be disposed (DrawTriangles)")
 		}
 		if src.backend == nil {
 			// It is possible to spcify i.backend as a forbidden backend, but this might prevent a good allocation for a source image.
@@ -455,10 +447,6 @@ func (i *Image) WritePixels(pix []byte, region image.Rectangle) {
 }
 
 func (i *Image) writePixels(pix []byte, region image.Rectangle) {
-	if i.disposed {
-		panic("atlas: the image must not be disposed at writePixels")
-	}
-
 	if l := 4 * region.Dx() * region.Dy(); len(pix) != l {
 		panic(fmt.Sprintf("atlas: len(p) must be %d but %d", l, len(pix)))
 	}
@@ -563,7 +551,6 @@ func (i *Image) MarkDisposed() {
 	// As MarkDisposed can be invoked from finalizers, backendsM should not be used.
 	appendDeferred(func() {
 		i.deallocate()
-		i.disposed = true
 		runtime.SetFinalizer(i, nil)
 	})
 }
@@ -577,10 +564,6 @@ func (i *Image) deallocate() {
 	i.resetUsedAsSourceCount()
 	i.usedAsDestinationCount = 0
 	imagesUsedAsDestination.remove(i)
-
-	if i.disposed {
-		return
-	}
 
 	if i.backend == nil {
 		// Not allocated yet.
