@@ -170,7 +170,7 @@ func (c *context) newOffscreenImage(w, h int) *Image {
 func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics, ui *UserInterface, forceDraw bool) error {
 	if (c.offscreen.imageType == atlas.ImageTypeVolatile) != ui.IsScreenClearedEveryFrame() {
 		w, h := c.offscreen.width, c.offscreen.height
-		c.offscreen.MarkDisposed()
+		c.offscreen.Deallocate()
 		c.offscreen = c.newOffscreenImage(w, h)
 	}
 
@@ -230,21 +230,17 @@ func (c *context) layoutGame(outsideWidth, outsideHeight float64, deviceScaleFac
 	ow := int(math.Ceil(c.offscreenWidth))
 	oh := int(math.Ceil(c.offscreenHeight))
 
-	if c.screen != nil {
-		if c.screen.width != sw || c.screen.height != sh {
-			c.screen.MarkDisposed()
-			c.screen = nil
-		}
+	if c.screen != nil && (c.screen.width != sw || c.screen.height != sh) {
+		c.screen.Deallocate()
+		c.screen = nil
 	}
 	if c.screen == nil {
 		c.screen = c.game.NewScreenImage(sw, sh)
 	}
 
-	if c.offscreen != nil {
-		if c.offscreen.width != ow || c.offscreen.height != oh {
-			c.offscreen.MarkDisposed()
-			c.offscreen = nil
-		}
+	if c.offscreen != nil && (c.offscreen.width != ow || c.offscreen.height != oh) {
+		c.offscreen.Deallocate()
+		c.offscreen = nil
 	}
 	if c.offscreen == nil {
 		c.offscreen = c.newOffscreenImage(ow, oh)

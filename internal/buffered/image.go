@@ -45,8 +45,8 @@ func (i *Image) invalidatePixels() {
 	i.pixels = nil
 }
 
-func (i *Image) MarkDisposed() {
-	i.img.MarkDisposed()
+func (i *Image) Deallocate() {
+	i.img.Deallocate()
 }
 
 func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte, region image.Rectangle) error {

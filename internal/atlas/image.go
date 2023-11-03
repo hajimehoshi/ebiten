@@ -542,8 +542,9 @@ func (i *Image) readPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte
 	return i.backend.restorable.ReadPixels(graphicsDriver, pixels, region.Add(r.Min))
 }
 
-// MarkDisposed marks the image as disposed.
-func (i *Image) MarkDisposed() {
+// Deallocate deallocates the internal state.
+// Even after this call, the image is still available as a new cleared image.
+func (i *Image) Deallocate() {
 	backendsM.Lock()
 	defer backendsM.Unlock()
 

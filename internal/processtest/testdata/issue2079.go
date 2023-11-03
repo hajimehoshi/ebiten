@@ -45,7 +45,7 @@ func (g *Game) Layout(width, height int) (int, int) {
 	go func() {
 		i := ebiten.NewImage(width, height)
 		i.Fill(color.White)
-		i.Dispose()
+		i.Deallocate()
 		close(done)
 	}()
 

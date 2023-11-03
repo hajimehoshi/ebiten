@@ -57,14 +57,19 @@ func (s *Shader) Dispose() {
 	s.shader = nil
 }
 
-// Deallocate deallocates the internal state of shader.
+// Deallocate deallocates the internal state of the shader.
 // Even after Deallocate is called, the shader is still available.
 // In this case, the shader's internal state is allocated again.
 //
 // Usually, you don't have to call Deallocate since the internal state is automatically released by GC.
 // However, if you are sure that the shader is no longer used but not sure how this shader object is referred,
 // you can call Deallocate to make sure that the internal state is deallocated.
+//
+// If the shader is disposed, Deallocate does nothing.
 func (s *Shader) Deallocate() {
+	if s.shader == nil {
+		return
+	}
 	s.shader.Deallocate()
 }
 

@@ -649,13 +649,13 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 			const w, h = 1, 1
 
 			dst := ebiten.NewImage(w, h)
-			defer dst.Dispose()
+			defer dst.Deallocate()
 
 			s, err := ebiten.NewShader([]byte(shader.Shader))
 			if err != nil {
 				t.Fatal(err)
 			}
-			defer s.Dispose()
+			defer s.Deallocate()
 
 			op := &ebiten.DrawRectShaderOptions{}
 			op.Uniforms = shader.Uniforms
@@ -1588,13 +1588,13 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 			const w, h = 1, 1
 
 			dst := ebiten.NewImage(w, h)
-			defer dst.Dispose()
+			defer dst.Deallocate()
 
 			s, err := ebiten.NewShader([]byte(tc.Shader))
 			if err != nil {
 				t.Fatal(err)
 			}
-			defer s.Dispose()
+			defer s.Deallocate()
 
 			op := &ebiten.DrawRectShaderOptions{}
 			op.Uniforms = tc.Uniforms
@@ -1621,13 +1621,13 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 	const w, h = 1, 1
 
 	dst := ebiten.NewImage(w, h)
-	defer dst.Dispose()
+	defer dst.Deallocate()
 
 	s, err := ebiten.NewShader([]byte(shader))
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer s.Dispose()
+	defer s.Deallocate()
 
 	op := &ebiten.DrawRectShaderOptions{}
 	op.Uniforms = map[string]any{
@@ -1692,13 +1692,13 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 		const w, h = 1, 1
 
 		dst := ebiten.NewImage(w, h)
-		defer dst.Dispose()
+		defer dst.Deallocate()
 
 		s, err := ebiten.NewShader([]byte(shader))
 		if err != nil {
 			t.Fatal(err)
 		}
-		defer s.Dispose()
+		defer s.Deallocate()
 
 		op := &ebiten.DrawRectShaderOptions{}
 		dst.DrawRectShader(w, h, s, op)
@@ -1763,12 +1763,12 @@ func TestShaderDifferentTextureSizes(t *testing.T) {
 	src0 := ebiten.NewImageWithOptions(image.Rect(0, 0, 20, 4000), &ebiten.NewImageOptions{
 		Unmanaged: true,
 	}).SubImage(image.Rect(4, 1025, 6, 1028)).(*ebiten.Image)
-	defer src0.Dispose()
+	defer src0.Deallocate()
 
 	src1 := ebiten.NewImageWithOptions(image.Rect(0, 0, 4000, 20), &ebiten.NewImageOptions{
 		Unmanaged: true,
 	}).SubImage(image.Rect(2047, 7, 2049, 10)).(*ebiten.Image)
-	defer src1.Dispose()
+	defer src1.Deallocate()
 
 	src0.Fill(color.RGBA{0x10, 0x20, 0x30, 0xff})
 	src1.Fill(color.RGBA{0x30, 0x20, 0x10, 0xff})
@@ -1787,10 +1787,10 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 			if err != nil {
 				t.Fatal(err)
 			}
-			defer shader.Dispose()
+			defer shader.Deallocate()
 
 			dst := ebiten.NewImage(2, 3)
-			defer dst.Dispose()
+			defer dst.Deallocate()
 
 			op := &ebiten.DrawRectShaderOptions{}
 			op.Images[0] = src0
@@ -2137,12 +2137,12 @@ func TestShaderDifferentSourceSizes(t *testing.T) {
 	src0 := ebiten.NewImageWithOptions(image.Rect(0, 0, 20, 4000), &ebiten.NewImageOptions{
 		Unmanaged: true,
 	}).SubImage(image.Rect(4, 1025, 7, 1029)).(*ebiten.Image) // 3x4
-	defer src0.Dispose()
+	defer src0.Deallocate()
 
 	src1 := ebiten.NewImageWithOptions(image.Rect(0, 0, 4000, 20), &ebiten.NewImageOptions{
 		Unmanaged: true,
 	}).SubImage(image.Rect(2047, 7, 2049, 10)).(*ebiten.Image) // 2x3
-	defer src1.Dispose()
+	defer src1.Deallocate()
 
 	src0.Fill(color.RGBA{0x10, 0x20, 0x30, 0xff})
 	src1.Fill(color.RGBA{0x30, 0x20, 0x10, 0xff})
@@ -2168,10 +2168,10 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 			if err != nil {
 				t.Fatal(err)
 			}
-			defer shader.Dispose()
+			defer shader.Deallocate()
 
 			dst := ebiten.NewImage(3, 4)
-			defer dst.Dispose()
+			defer dst.Deallocate()
 
 			op := &ebiten.DrawTrianglesShaderOptions{}
 			op.Images[0] = src0

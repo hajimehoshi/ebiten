@@ -62,25 +62,25 @@ func TestEnsureIsolatedFromSourceBackend(t *testing.T) {
 	// Create img1 and img2 with this size so that the next images are allocated
 	// with non-upper-left location.
 	img1 := atlas.NewImage(bigSize, 100, atlas.ImageTypeRegular)
-	defer img1.MarkDisposed()
+	defer img1.Deallocate()
 	// Ensure img1's region is allocated.
 	img1.WritePixels(make([]byte, 4*bigSize*100), image.Rect(0, 0, bigSize, 100))
 
 	img2 := atlas.NewImage(100, bigSize, atlas.ImageTypeRegular)
-	defer img2.MarkDisposed()
+	defer img2.Deallocate()
 	img2.WritePixels(make([]byte, 4*100*bigSize), image.Rect(0, 0, 100, bigSize))
 
 	const size = 32
 
 	img3 := atlas.NewImage(size/2, size/2, atlas.ImageTypeRegular)
-	defer img3.MarkDisposed()
+	defer img3.Deallocate()
 	img3.WritePixels(make([]byte, (size/2)*(size/2)*4), image.Rect(0, 0, size/2, size/2))
 
 	img4 := atlas.NewImage(size, size, atlas.ImageTypeRegular)
-	defer img4.MarkDisposed()
+	defer img4.Deallocate()
 
 	img5 := atlas.NewImage(size/2, size/2, atlas.ImageTypeRegular)
-	defer img3.MarkDisposed()
+	defer img3.Deallocate()
 
 	pix := make([]byte, size*size*4)
 	for j := 0; j < size; j++ {
@@ -148,18 +148,18 @@ func TestReputOnSourceBackend(t *testing.T) {
 	const size = 16
 
 	img0 := atlas.NewImage(size, size, atlas.ImageTypeRegular)
-	defer img0.MarkDisposed()
+	defer img0.Deallocate()
 	img0.WritePixels(make([]byte, 4*size*size), image.Rect(0, 0, size, size))
 
 	img1 := atlas.NewImage(size, size, atlas.ImageTypeRegular)
-	defer img1.MarkDisposed()
+	defer img1.Deallocate()
 	img1.WritePixels(make([]byte, 4*size*size), image.Rect(0, 0, size, size))
 	if got, want := img1.IsOnSourceBackendForTesting(), true; got != want {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
 
 	img2 := atlas.NewImage(size, size, atlas.ImageTypeRegular)
-	defer img2.MarkDisposed()
+	defer img2.Deallocate()
 	pix := make([]byte, 4*size*size)
 	for j := 0; j < size; j++ {
 		for i := 0; i < size; i++ {
@@ -173,7 +173,7 @@ func TestReputOnSourceBackend(t *testing.T) {
 
 	// Create a volatile image. This should always be on a non-source backend.
 	img3 := atlas.NewImage(size, size, atlas.ImageTypeVolatile)
-	defer img3.MarkDisposed()
+	defer img3.Deallocate()
 	img3.WritePixels(make([]byte, 4*size*size), image.Rect(0, 0, size, size))
 	if got, want := img3.IsOnSourceBackendForTesting(), false; got != want {
 		t.Errorf("got: %v, want: %v", got, want)
@@ -298,7 +298,7 @@ func TestReputOnSourceBackend(t *testing.T) {
 func TestExtend(t *testing.T) {
 	const w0, h0 = 100, 100
 	img0 := atlas.NewImage(w0, h0, atlas.ImageTypeRegular)
-	defer img0.MarkDisposed()
+	defer img0.Deallocate()
 
 	p0 := make([]byte, 4*w0*h0)
 	for i := 0; i < w0*h0; i++ {
@@ -311,7 +311,7 @@ func TestExtend(t *testing.T) {
 
 	const w1, h1 = minSourceImageSizeForTesting + 1, 100
 	img1 := atlas.NewImage(w1, h1, atlas.ImageTypeRegular)
-	defer img1.MarkDisposed()
+	defer img1.Deallocate()
 
 	p1 := make([]byte, 4*w1*h1)
 	for i := 0; i < w1*h1; i++ {
@@ -365,9 +365,9 @@ func TestExtend(t *testing.T) {
 func TestWritePixelsAfterDrawTriangles(t *testing.T) {
 	const w, h = 256, 256
 	src := atlas.NewImage(w, h, atlas.ImageTypeRegular)
-	defer src.MarkDisposed()
+	defer src.Deallocate()
 	dst := atlas.NewImage(w, h, atlas.ImageTypeRegular)
-	defer dst.MarkDisposed()
+	defer dst.Deallocate()
 
 	pix := make([]byte, 4*w*h)
 	for i := 0; i < w*h; i++ {
@@ -408,9 +408,9 @@ func TestWritePixelsAfterDrawTriangles(t *testing.T) {
 func TestSmallImages(t *testing.T) {
 	const w, h = 4, 8
 	src := atlas.NewImage(w, h, atlas.ImageTypeRegular)
-	defer src.MarkDisposed()
+	defer src.Deallocate()
 	dst := atlas.NewImage(w, h, atlas.ImageTypeRegular)
-	defer dst.MarkDisposed()
+	defer dst.Deallocate()
 
 	pix := make([]byte, 4*w*h)
 	for i := 0; i < w*h; i++ {
@@ -448,11 +448,11 @@ func TestSmallImages(t *testing.T) {
 func TestLongImages(t *testing.T) {
 	const w, h = 1, 6
 	src := atlas.NewImage(w, h, atlas.ImageTypeRegular)
-	defer src.MarkDisposed()
+	defer src.Deallocate()
 
 	const dstW, dstH = 256, 256
 	dst := atlas.NewImage(dstW, dstH, atlas.ImageTypeRegular)
-	defer dst.MarkDisposed()
+	defer dst.Deallocate()
 
 	pix := make([]byte, 4*w*h)
 	for i := 0; i < w*h; i++ {
@@ -487,16 +487,16 @@ func TestLongImages(t *testing.T) {
 	}
 }
 
-func TestDisposeImmediately(t *testing.T) {
+func TestDeallocateImmediately(t *testing.T) {
 	// This tests restorable.Image.ClearPixels is called but WritePixels is not called.
 
 	img0 := atlas.NewImage(16, 16, atlas.ImageTypeRegular)
 	img0.EnsureIsolatedFromSourceForTesting(nil)
-	defer img0.MarkDisposed()
+	defer img0.Deallocate()
 
 	img1 := atlas.NewImage(16, 16, atlas.ImageTypeRegular)
 	img1.EnsureIsolatedFromSourceForTesting(nil)
-	defer img1.MarkDisposed()
+	defer img1.Deallocate()
 
 	// img0 and img1 should share the same backend in 99.9999% possibility.
 }
@@ -504,12 +504,12 @@ func TestDisposeImmediately(t *testing.T) {
 // Issue #1028
 func TestExtendWithBigImage(t *testing.T) {
 	img0 := atlas.NewImage(1, 1, atlas.ImageTypeRegular)
-	defer img0.MarkDisposed()
+	defer img0.Deallocate()
 
 	img0.WritePixels(make([]byte, 4*1*1), image.Rect(0, 0, 1, 1))
 
 	img1 := atlas.NewImage(minSourceImageSizeForTesting+1, minSourceImageSizeForTesting+1, atlas.ImageTypeRegular)
-	defer img1.MarkDisposed()
+	defer img1.Deallocate()
 
 	img1.WritePixels(make([]byte, 4*(minSourceImageSizeForTesting+1)*(minSourceImageSizeForTesting+1)), image.Rect(0, 0, minSourceImageSizeForTesting+1, minSourceImageSizeForTesting+1))
 }
@@ -517,13 +517,13 @@ func TestExtendWithBigImage(t *testing.T) {
 // Issue #1217
 func TestMaxImageSize(t *testing.T) {
 	img0 := atlas.NewImage(1, 1, atlas.ImageTypeRegular)
-	defer img0.MarkDisposed()
+	defer img0.Deallocate()
 	paddingSize := img0.PaddingSizeForTesting()
 
 	// This tests that a too-big image is allocated correctly.
 	s := maxImageSizeForTesting - 2*paddingSize
 	img1 := atlas.NewImage(s, s, atlas.ImageTypeRegular)
-	defer img1.MarkDisposed()
+	defer img1.Deallocate()
 	img1.WritePixels(make([]byte, 4*s*s), image.Rect(0, 0, s, s))
 }
 
@@ -536,7 +536,7 @@ func Disable_TestMinImageSize(t *testing.T) {
 	// Though the image size is minimum size of the backend, extending the backend happens due to the paddings.
 	s := minSourceImageSizeForTesting
 	img := atlas.NewImage(s, s, atlas.ImageTypeRegular)
-	defer img.MarkDisposed()
+	defer img.Deallocate()
 	img.WritePixels(make([]byte, 4*s*s), image.Rect(0, 0, s, s))
 }
 
@@ -545,7 +545,7 @@ func TestMaxImageSizeJust(t *testing.T) {
 	// An unmanaged image never belongs to an atlas and doesn't have its paddings.
 	// TODO: Should we allow such this size for ImageTypeRegular?
 	img := atlas.NewImage(s, s, atlas.ImageTypeUnmanaged)
-	defer img.MarkDisposed()
+	defer img.Deallocate()
 	img.WritePixels(make([]byte, 4*s*s), image.Rect(0, 0, s, s))
 }
 
@@ -553,7 +553,7 @@ func TestMaxImageSizeExceeded(t *testing.T) {
 	// This tests that a too-big image is allocated correctly.
 	s := maxImageSizeForTesting
 	img := atlas.NewImage(s+1, s, atlas.ImageTypeRegular)
-	defer img.MarkDisposed()
+	defer img.Deallocate()
 
 	defer func() {
 		if err := recover(); err == nil {
@@ -565,15 +565,15 @@ func TestMaxImageSizeExceeded(t *testing.T) {
 }
 
 // Issue #1421
-func TestDisposedAndReputOnSourceBackend(t *testing.T) {
+func TestDeallocatedAndReputOnSourceBackend(t *testing.T) {
 	const size = 16
 
 	src := atlas.NewImage(size, size, atlas.ImageTypeRegular)
-	defer src.MarkDisposed()
+	defer src.Deallocate()
 	src2 := atlas.NewImage(size, size, atlas.ImageTypeRegular)
-	defer src2.MarkDisposed()
+	defer src2.Deallocate()
 	dst := atlas.NewImage(size, size, atlas.ImageTypeRegular)
-	defer dst.MarkDisposed()
+	defer dst.Deallocate()
 
 	// Use src as a render target so that src is not on an atlas.
 	vs := quadVertices(size, size, 0, 0, 1)
@@ -594,11 +594,8 @@ func TestDisposedAndReputOnSourceBackend(t *testing.T) {
 		}
 	}
 
-	// Before PutImagesOnSourceBackendForTesting, dispose the image.
-	src.MarkDisposed()
-
-	// Force to dispose the image.
-	atlas.FlushDeferredForTesting()
+	// Before PutImagesOnSourceBackendForTesting, deallocate the image.
+	src.Deallocate()
 
 	// Confirm that PutImagesOnSourceBackendForTesting doesn't panic.
 	atlas.PutImagesOnSourceBackendForTesting(ui.Get().GraphicsDriverForTesting())
@@ -609,11 +606,11 @@ func TestImageIsNotReputOnSourceBackendWithoutUsingAsSource(t *testing.T) {
 	const size = 16
 
 	src := atlas.NewImage(size, size, atlas.ImageTypeRegular)
-	defer src.MarkDisposed()
+	defer src.Deallocate()
 	src2 := atlas.NewImage(size, size, atlas.ImageTypeRegular)
-	defer src2.MarkDisposed()
+	defer src2.Deallocate()
 	dst := atlas.NewImage(size, size, atlas.ImageTypeRegular)
-	defer dst.MarkDisposed()
+	defer dst.Deallocate()
 
 	// Use src as a render target so that src is not on an atlas.
 	vs := quadVertices(size, size, 0, 0, 1)
@@ -660,7 +657,7 @@ func TestImageWritePixelsModify(t *testing.T) {
 	for _, typ := range []atlas.ImageType{atlas.ImageTypeRegular, atlas.ImageTypeVolatile, atlas.ImageTypeUnmanaged} {
 		const size = 16
 		img := atlas.NewImage(size, size, typ)
-		defer img.MarkDisposed()
+		defer img.Deallocate()
 		pix := make([]byte, 4*size*size)
 		for j := 0; j < size; j++ {
 			for i := 0; i < size; i++ {
@@ -754,11 +751,11 @@ func TestPowerOf2(t *testing.T) {
 func TestDestinationCountOverflow(t *testing.T) {
 	const w, h = 256, 256
 	src := atlas.NewImage(w, h, atlas.ImageTypeRegular)
-	defer src.MarkDisposed()
+	defer src.Deallocate()
 	dst0 := atlas.NewImage(w, h, atlas.ImageTypeRegular)
-	defer dst0.MarkDisposed()
+	defer dst0.Deallocate()
 	dst1 := atlas.NewImage(w, h, atlas.ImageTypeRegular)
-	defer dst1.MarkDisposed()
+	defer dst1.Deallocate()
 
 	vs := quadVertices(w, h, 0, 0, 1)
 	is := graphics.QuadIndices()
@@ -785,14 +782,14 @@ func TestDestinationCountOverflow(t *testing.T) {
 func TestIteratingImagesToPutOnSourceBackend(t *testing.T) {
 	const w, h = 16, 16
 	src := atlas.NewImage(w, h, atlas.ImageTypeRegular)
-	defer src.MarkDisposed()
+	defer src.Deallocate()
 	srcs := make([]*atlas.Image, 10)
 	for i := range srcs {
 		srcs[i] = atlas.NewImage(w, h, atlas.ImageTypeRegular)
-		defer srcs[i].MarkDisposed()
+		defer srcs[i].Deallocate()
 	}
 	dst := atlas.NewImage(w, h, atlas.ImageTypeRegular)
-	defer dst.MarkDisposed()
+	defer dst.Deallocate()
 
 	// Use srcs as detinations once.
 	vs := quadVertices(w, h, 0, 0, 1)

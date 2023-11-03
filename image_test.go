@@ -264,7 +264,7 @@ func TestImageDotByDotInversion(t *testing.T) {
 func TestImageWritePixels(t *testing.T) {
 	// Create a dummy image so that the shared texture is used and origImg's position is shifted.
 	dummyImg := ebiten.NewImageFromImage(image.NewRGBA(image.Rect(0, 0, 16, 16)))
-	defer dummyImg.Dispose()
+	defer dummyImg.Deallocate()
 
 	_, origImg, err := openEbitenImage()
 	if err != nil {
@@ -328,6 +328,19 @@ func TestImageDispose(t *testing.T) {
 
 	// The color is transparent (color.RGBA{}).
 	// Note that the value's type must be color.RGBA.
+	got := img.At(0, 0)
+	want := color.RGBA{}
+	if got != want {
+		t.Errorf("img.At(0, 0) got: %v, want: %v", got, want)
+	}
+}
+
+func TestImageDeallocate(t *testing.T) {
+	img := ebiten.NewImage(16, 16)
+	img.Fill(color.White)
+	img.Deallocate()
+
+	// The color is transparent (color.RGBA{}).
 	got := img.At(0, 0)
 	want := color.RGBA{}
 	if got != want {
@@ -1716,6 +1729,37 @@ func TestImageAtAfterDisposingSubImage(t *testing.T) {
 	}
 }
 
+func TestImageAtAfterDeallocateSubImage(t *testing.T) {
+	img := ebiten.NewImage(16, 16)
+	img.Set(0, 0, color.White)
+	img.SubImage(image.Rect(0, 0, 16, 16))
+	runtime.GC()
+
+	want := color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff}
+	want64 := color.RGBA64{R: 0xffff, G: 0xffff, B: 0xffff, A: 0xffff}
+	got := img.At(0, 0)
+	if got != want {
+		t.Errorf("At(0,0) got: %v, want: %v", got, want)
+	}
+	got = img.RGBA64At(0, 0)
+	if got != want64 {
+		t.Errorf("RGBA64At(0,0) got: %v, want: %v", got, want)
+	}
+
+	img.Set(0, 1, color.White)
+	sub := img.SubImage(image.Rect(0, 0, 16, 16)).(*ebiten.Image)
+	sub.Deallocate()
+
+	got = img.At(0, 1)
+	if got != want {
+		t.Errorf("At(0,1) got: %v, want: %v", got, want64)
+	}
+	got = img.RGBA64At(0, 1)
+	if got != want64 {
+		t.Errorf("RGBA64At(0,1) got: %v, want: %v", got, want64)
+	}
+}
+
 func TestImageSubImageSubImage(t *testing.T) {
 	img := ebiten.NewImage(16, 16)
 	img.Fill(color.White)
@@ -2263,6 +2307,14 @@ func TestImageDrawDisposedImage(t *testing.T) {
 	dst.DrawImage(src, nil)
 }
 
+func TestImageDrawDeallocatedImage(t *testing.T) {
+	dst := ebiten.NewImage(16, 16)
+	src := ebiten.NewImage(16, 16)
+	src.Deallocate()
+	// DrawImage must not panic.
+	dst.DrawImage(src, nil)
+}
+
 func TestImageDrawTrianglesDisposedImage(t *testing.T) {
 	defer func() {
 		if r := recover(); r == nil {
@@ -2275,6 +2327,16 @@ func TestImageDrawTrianglesDisposedImage(t *testing.T) {
 	src.Dispose()
 	vs := make([]ebiten.Vertex, 4)
 	is := []uint16{0, 1, 2, 1, 2, 3}
+	dst.DrawTriangles(vs, is, src, nil)
+}
+
+func TestImageDrawTrianglesDeallocateImage(t *testing.T) {
+	dst := ebiten.NewImage(16, 16)
+	src := ebiten.NewImage(16, 16)
+	src.Deallocate()
+	vs := make([]ebiten.Vertex, 4)
+	is := []uint16{0, 1, 2, 1, 2, 3}
+	// DrawTriangles must not panic.
 	dst.DrawTriangles(vs, is, src, nil)
 }
 
@@ -4342,5 +4404,60 @@ func TestImageWritePixelAndDispose(t *testing.T) {
 	// Confirm that any pixel information is invalidated after Dispose is called.
 	if got, want := img.At(0, 0), (color.RGBA{}); got != want {
 		t.Errorf("got: %v, want: %v", got, want)
+	}
+}
+
+func TestImageWritePixelAndDeallocate(t *testing.T) {
+	const (
+		w = 16
+		h = 16
+	)
+	img := ebiten.NewImage(w, h)
+	pix := make([]byte, 4*w*h)
+	for i := range pix {
+		pix[i] = 0xff
+	}
+	img.WritePixels(pix)
+	img.Deallocate()
+
+	// Confirm that any pixel information is cleared after Dealocate is called.
+	if got, want := img.At(0, 0), (color.RGBA{}); got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+}
+
+func TestImageDrawImageAfterDeallocation(t *testing.T) {
+	src, _, err := openEbitenImage()
+	if err != nil {
+		t.Fatal(err)
+		return
+	}
+
+	w, h := src.Bounds().Dx(), src.Bounds().Dy()
+	dst := ebiten.NewImage(w, h)
+
+	dst.DrawImage(src, nil)
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			got := dst.At(i, j)
+			want := src.At(i, j)
+			if got != want {
+				t.Errorf("At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+
+	// Even after deallocating the image, the image is still available.
+	dst.Deallocate()
+
+	dst.DrawImage(src, nil)
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			got := dst.At(i, j)
+			want := src.At(i, j)
+			if got != want {
+				t.Errorf("At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
 	}
 }

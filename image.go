@@ -963,7 +963,9 @@ func (i *Image) Set(x, y int, clr color.Color) {
 //
 // If the image is a sub-image, Dispose does nothing.
 //
-// When the image is disposed, Dispose does nothing.
+// If the image is disposed, Dispose does nothing.
+//
+// Deprecated: as of v2.7. Use Deallocate instead.
 func (i *Image) Dispose() {
 	i.copyCheck()
 
@@ -973,8 +975,31 @@ func (i *Image) Dispose() {
 	if i.isSubImage() {
 		return
 	}
-	i.image.MarkDisposed()
+	i.image.Deallocate()
 	i.image = nil
+}
+
+// Deallocate clears the image and deallocates the internal state of the image.
+// Even after Deallocate is called, the image is still available.
+// In this case, the image's internal state is allocated again.
+//
+// Usually, you don't have to call Deallocate since the internal state is automatically released by GC.
+// However, if you are sure that the image is no longer used but not sure how this image object is referred,
+// you can call Deallocate to make sure that the internal state is deallocated.
+//
+// If the image is a sub-image, Deallocate does nothing.
+//
+// If the image is disposed, Deallocate does nothing.
+func (i *Image) Deallocate() {
+	i.copyCheck()
+
+	if i.isDisposed() {
+		return
+	}
+	if i.isSubImage() {
+		return
+	}
+	i.image.Deallocate()
 }
 
 // WritePixels replaces the pixels of the image.

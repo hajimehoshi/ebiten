@@ -69,18 +69,15 @@ func (u *UserInterface) NewImage(width, height int, imageType atlas.ImageType) *
 	}
 }
 
-func (i *Image) MarkDisposed() {
+func (i *Image) Deallocate() {
 	if i.mipmap == nil {
 		return
 	}
 	if i.bigOffscreenBuffer != nil {
-		i.bigOffscreenBuffer.markDisposed()
-		i.bigOffscreenBuffer = nil
+		i.bigOffscreenBuffer.deallocate()
 	}
-	i.mipmap.MarkDisposed()
-	i.mipmap = nil
+	i.mipmap.Deallocate()
 	i.dotsBuffer = nil
-	i.modifyCallback = nil
 }
 
 func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint16, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderImageCount]image.Rectangle, shader *Shader, uniforms []uint32, evenOdd bool, canSkipMipmap bool, antialias bool) {
@@ -321,10 +318,9 @@ func (u *UserInterface) newBigOffscreenImage(orig *Image, imageType atlas.ImageT
 	}
 }
 
-func (i *bigOffscreenImage) markDisposed() {
+func (i *bigOffscreenImage) deallocate() {
 	if i.image != nil {
-		i.image.MarkDisposed()
-		i.image = nil
+		i.image.Deallocate()
 	}
 	i.dirty = false
 }

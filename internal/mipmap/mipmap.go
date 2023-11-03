@@ -58,7 +58,7 @@ func (m *Mipmap) DumpScreenshot(graphicsDriver graphicsdriver.Graphics, name str
 
 func (m *Mipmap) WritePixels(pix []byte, region image.Rectangle) {
 	m.orig.WritePixels(pix, region)
-	m.disposeMipmaps()
+	m.deallocateMipmaps()
 }
 
 func (m *Mipmap) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte, region image.Rectangle) error {
@@ -124,7 +124,7 @@ func (m *Mipmap) DrawTriangles(srcs [graphics.ShaderImageCount]*Mipmap, vertices
 	}
 
 	m.orig.DrawTriangles(imgs, vertices, indices, blend, dstRegion, srcRegions, shader, uniforms, evenOdd)
-	m.disposeMipmaps()
+	m.deallocateMipmaps()
 }
 
 func (m *Mipmap) setImg(level int, img *buffered.Image) {
@@ -203,16 +203,15 @@ func sizeForLevel(x int, level int) int {
 	return x
 }
 
-func (m *Mipmap) MarkDisposed() {
-	m.disposeMipmaps()
-	m.orig.MarkDisposed()
-	m.orig = nil
+func (m *Mipmap) Deallocate() {
+	m.deallocateMipmaps()
+	m.orig.Deallocate()
 }
 
-func (m *Mipmap) disposeMipmaps() {
+func (m *Mipmap) deallocateMipmaps() {
 	for _, img := range m.imgs {
 		if img != nil {
-			img.MarkDisposed()
+			img.Deallocate()
 		}
 	}
 	for k := range m.imgs {

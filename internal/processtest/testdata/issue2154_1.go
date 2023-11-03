@@ -84,14 +84,14 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	)
 
 	src0 := ebiten.NewImage(w, h)
-	defer src0.Dispose()
+	defer src0.Deallocate()
 	src0.Fill(color.RGBA{0xff, 0xff, 0xff, 0xff})
 	src0.Set(0, 0, color.RGBA{0, 0, 0, 0xff})
 	src0.Set(0, 1, color.RGBA{0, 0, 0, 0xff})
 	src0.Set(1, 0, color.RGBA{0, 0, 0, 0xff})
 
 	src1 := ebiten.NewImage(w, h)
-	defer src1.Dispose()
+	defer src1.Deallocate()
 	src1.DrawImage(src0, nil)
 
 	screen.Fill(color.RGBA{0xff, 0xff, 0xff, 0xff})

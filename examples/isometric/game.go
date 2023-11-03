@@ -192,7 +192,7 @@ func (g *Game) renderLevel(screen *ebiten.Image) {
 	if scaleLater {
 		if g.offscreen != nil {
 			if g.offscreen.Bounds().Size() != screen.Bounds().Size() {
-				g.offscreen.Dispose()
+				g.offscreen.Deallocate()
 				g.offscreen = nil
 			}
 		}

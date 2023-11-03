@@ -87,7 +87,7 @@ func newGameForUI(game Game, transparent bool) *gameForUI {
 
 func (g *gameForUI) NewOffscreenImage(width, height int) *ui.Image {
 	if g.offscreen != nil {
-		g.offscreen.Dispose()
+		g.offscreen.Deallocate()
 		g.offscreen = nil
 	}
 
@@ -106,7 +106,7 @@ func (g *gameForUI) NewOffscreenImage(width, height int) *ui.Image {
 
 func (g *gameForUI) NewScreenImage(width, height int) *ui.Image {
 	if g.screen != nil {
-		g.screen.Dispose()
+		g.screen.Deallocate()
 		g.screen = nil
 	}
 
