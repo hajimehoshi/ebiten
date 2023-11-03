@@ -167,7 +167,7 @@ type Image struct {
 //
 // moveTo is similar to C++'s move semantics.
 func (i *Image) moveTo(dst *Image) {
-	dst.dispose(false)
+	dst.deallocate()
 	*dst = *i
 
 	// i is no longer available but Dispose must not be called
@@ -562,23 +562,21 @@ func (i *Image) readPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte
 func (i *Image) MarkDisposed() {
 	// As MarkDisposed can be invoked from finalizers, backendsM should not be used.
 	appendDeferred(func() {
-		i.dispose(true)
+		i.deallocate()
+		i.disposed = true
+		runtime.SetFinalizer(i, nil)
 	})
 }
 
-func (i *Image) dispose(markDisposed bool) {
+func (i *Image) deallocate() {
 	defer func() {
-		if markDisposed {
-			i.disposed = true
-		}
 		i.backend = nil
 		i.node = nil
-		if markDisposed {
-			runtime.SetFinalizer(i, nil)
-		}
 	}()
 
 	i.resetUsedAsSourceCount()
+	i.usedAsDestinationCount = 0
+	imagesUsedAsDestination.remove(i)
 
 	if i.disposed {
 		return
