@@ -260,7 +260,7 @@ type RunGameOptions struct {
 	// Functions like `SetWindowSize` will no longer be concurrent-safe with this build tag.
 	// They must be called from the main thread or the same goroutine as the given game's callback functions like Update.
 	//
-	// SingleThread works only with desktops.
+	// SingleThread works only with desktops and consoles.
 	//
 	// If SingleThread is false, and if the build tag `ebitenginesinglethread` is specified,
 	// the single thread mode is used.
