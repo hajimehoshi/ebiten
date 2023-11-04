@@ -48,16 +48,16 @@ const (
 	is32bit = 1 >> (^uint(0) >> 63)
 	is64bit = 1 - is32bit
 
-	// MaxVerticesCount is the maximum number of vertices for one draw call.
+	// MaxVertexCount is the maximum number of vertices for one draw call.
 	//
 	// On 64bit architectures, this value is 2^32-1, as the index type is uint32.
 	// This value cannot be exactly 2^32 especially with WebGL 2, as 2^32th vertex is not rendered correctly.
 	// See https://registry.khronos.org/webgl/specs/latest/2.0/#5.18 .
 	//
-	// On 32bit architectures, this value is an adjusted number so that MaxVertexFloatsCount doesn't overflow int.
-	MaxVerticesCount = is64bit*math.MaxUint32 + is32bit*(math.MaxInt32/VertexFloatCount)
+	// On 32bit architectures, this value is an adjusted number so that MaxVertexFloatCount doesn't overflow int.
+	MaxVertexCount = is64bit*math.MaxUint32 + is32bit*(math.MaxInt32/VertexFloatCount)
 
-	MaxVertexFloatsCount = MaxVerticesCount * VertexFloatCount
+	MaxVertexFloatCount = MaxVertexCount * VertexFloatCount
 )
 
 var (

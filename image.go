@@ -394,7 +394,12 @@ const MaxIndicesCount = (1 << 16) / 3 * 3
 const MaxIndicesNum = MaxIndicesCount
 
 // MaxVerticesCount is the maximum number of vertices for DrawTriangles and DrawTrianglesShader.
-const MaxVerticesCount = graphics.MaxVerticesCount
+//
+// Deprecated: as of v2.7. Use MaxVertexCount instead.
+const MaxVerticesCount = graphics.MaxVertexCount
+
+// MaxVertexCount is the maximum number of vertices for DrawTriangles and DrawTrianglesShader.
+const MaxVertexCount = graphics.MaxVertexCount
 
 // DrawTriangles draws triangles with the specified vertices and their indices.
 //
@@ -406,11 +411,11 @@ const MaxVerticesCount = graphics.MaxVerticesCount
 // Vertex contains color values, which are interpreted as straight-alpha colors by default.
 // This depends on the option's ColorScaleMode.
 //
-// If len(vertices) is more than MaxVerticesCount, the exceeding part is ignored.
+// If len(vertices) is more than MaxVertexCount, the exceeding part is ignored.
 //
 // If len(indices) is not multiple of 3, DrawTriangles panics.
 //
-// If a value in indices is out of range of vertices, or not less than MaxVerticesCount, DrawTriangles panics.
+// If a value in indices is out of range of vertices, or not less than MaxVertexCount, DrawTriangles panics.
 //
 // The rule in which DrawTriangles works effectively is same as DrawImage's.
 //
@@ -427,9 +432,9 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 		return
 	}
 
-	if len(vertices) > graphics.MaxVerticesCount {
+	if len(vertices) > graphics.MaxVertexCount {
 		// The last part cannot be specified by indices. Just omit them.
-		vertices = vertices[:graphics.MaxVerticesCount]
+		vertices = vertices[:graphics.MaxVertexCount]
 	}
 	if len(indices)%3 != 0 {
 		panic("ebiten: len(indices) % 3 must be 0")
@@ -567,11 +572,11 @@ var _ [len(DrawTrianglesShaderOptions{}.Images) - graphics.ShaderImageCount]stru
 // DrawTrianglesShader panics.
 // If one of the specified image is non-nil and is disposed, DrawTrianglesShader panics.
 //
-// If len(vertices) is more than MaxVerticesCount, the exceeding part is ignored.
+// If len(vertices) is more than MaxVertexCount, the exceeding part is ignored.
 //
 // If len(indices) is not multiple of 3, DrawTrianglesShader panics.
 //
-// If a value in indices is out of range of vertices, or not less than MaxVerticesCount, DrawTrianglesShader panics.
+// If a value in indices is out of range of vertices, or not less than MaxVertexCount, DrawTrianglesShader panics.
 //
 // When a specified image is non-nil and is disposed, DrawTrianglesShader panics.
 //
@@ -589,9 +594,9 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 		panic("ebiten: the given shader to DrawTrianglesShader must not be disposed")
 	}
 
-	if len(vertices) > graphics.MaxVerticesCount {
+	if len(vertices) > graphics.MaxVertexCount {
 		// The last part cannot be specified by indices. Just omit them.
-		vertices = vertices[:graphics.MaxVerticesCount]
+		vertices = vertices[:graphics.MaxVertexCount]
 	}
 	if len(indices)%3 != 0 {
 		panic("ebiten: len(indices) % 3 must be 0")
