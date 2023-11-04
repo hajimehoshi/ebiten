@@ -107,7 +107,7 @@
 // This affects performance very much.
 //
 // `ebitenginesinglethread` disables Ebitengine's thread safety to unlock maximum performance. If you use this you will have
-// to manage threads yourself. Functions like IsKeyPressed will no longer be concurrent-safe with this build tag.
+// to manage threads yourself. Functions like `SetWindowSize` will no longer be concurrent-safe with this build tag.
 // They must be called from the main thread or the same goroutine as the given game's callback functions like Update
 // `ebitenginesinglethread` works only with desktops.
 // `ebitenginesinglethread` was deprecated as of v2.7. Use RunGameOptions.SingleThread instead.
