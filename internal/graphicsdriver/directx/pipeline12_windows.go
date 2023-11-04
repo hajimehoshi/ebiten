@@ -180,7 +180,7 @@ func (p *pipelineStates) initialize(device *_ID3D12Device) (ferr error) {
 	return nil
 }
 
-func (p *pipelineStates) drawTriangles(device *_ID3D12Device, commandList *_ID3D12GraphicsCommandList, frameIndex int, screen bool, srcs [graphics.ShaderImageCount]*image12, shader *shader12, dstRegions []graphicsdriver.DstRegion, uniforms []uint32, blend graphicsdriver.Blend, indexOffset int, evenOdd bool) error {
+func (p *pipelineStates) drawTriangles(device *_ID3D12Device, commandList *_ID3D12GraphicsCommandList, frameIndex int, screen bool, srcs [graphics.ShaderImageCount]*image12, shader *shader12, dstRegions []graphicsdriver.DstRegion, uniforms []uint32, blend graphicsdriver.Blend, indexOffset int, fillRule graphicsdriver.FillRule) error {
 	idx := len(p.constantBuffers[frameIndex])
 	if idx >= numDescriptorsPerFrame {
 		return fmt.Errorf("directx: too many constant buffers")
@@ -289,7 +289,7 @@ func (p *pipelineStates) drawTriangles(device *_ID3D12Device, commandList *_ID3D
 	}
 	commandList.SetGraphicsRootDescriptorTable(2, sh)
 
-	if !evenOdd {
+	if fillRule == graphicsdriver.FillAll {
 		s, err := shader.pipelineState(blend, noStencil, screen)
 		if err != nil {
 			return err
@@ -306,7 +306,10 @@ func (p *pipelineStates) drawTriangles(device *_ID3D12Device, commandList *_ID3D
 				bottom: int32(dstRegion.Region.Max.Y),
 			},
 		})
-		if evenOdd {
+		switch fillRule {
+		case graphicsdriver.FillAll:
+			commandList.DrawIndexedInstanced(uint32(dstRegion.IndexCount), 1, uint32(indexOffset), 0, 0)
+		case graphicsdriver.EvenOdd:
 			s, err := shader.pipelineState(blend, prepareStencil, screen)
 			if err != nil {
 				return err
@@ -319,8 +322,6 @@ func (p *pipelineStates) drawTriangles(device *_ID3D12Device, commandList *_ID3D
 				return err
 			}
 			commandList.SetPipelineState(s)
-			commandList.DrawIndexedInstanced(uint32(dstRegion.IndexCount), 1, uint32(indexOffset), 0, 0)
-		} else {
 			commandList.DrawIndexedInstanced(uint32(dstRegion.IndexCount), 1, uint32(indexOffset), 0, 0)
 		}
 		indexOffset += dstRegion.IndexCount

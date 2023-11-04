@@ -1086,7 +1086,7 @@ func (g *graphics12) NewShader(program *shaderir.Program) (graphicsdriver.Shader
 	return s, nil
 }
 
-func (g *graphics12) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.ShaderImageCount]graphicsdriver.ImageID, shaderID graphicsdriver.ShaderID, dstRegions []graphicsdriver.DstRegion, indexOffset int, blend graphicsdriver.Blend, uniforms []uint32, evenOdd bool) error {
+func (g *graphics12) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.ShaderImageCount]graphicsdriver.ImageID, shaderID graphicsdriver.ShaderID, dstRegions []graphicsdriver.DstRegion, indexOffset int, blend graphicsdriver.Blend, uniforms []uint32, fillRule graphicsdriver.FillRule) error {
 	if shaderID == graphicsdriver.InvalidShaderID {
 		return fmt.Errorf("directx: shader ID is invalid")
 	}
@@ -1097,7 +1097,7 @@ func (g *graphics12) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.
 
 	// Release constant buffers when too many ones will be created.
 	numPipelines := 1
-	if evenOdd {
+	if fillRule == graphicsdriver.EvenOdd {
 		numPipelines = 2
 	}
 	if len(g.pipelineStates.constantBuffers[g.frameIndex])+numPipelines > numDescriptorsPerFrame {
@@ -1129,7 +1129,7 @@ func (g *graphics12) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.
 		g.drawCommandList.ResourceBarrier(resourceBarriers)
 	}
 
-	if err := dst.setAsRenderTarget(g.drawCommandList, g.device, evenOdd); err != nil {
+	if err := dst.setAsRenderTarget(g.drawCommandList, g.device, fillRule != graphicsdriver.FillAll); err != nil {
 		return err
 	}
 
@@ -1162,7 +1162,7 @@ func (g *graphics12) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.
 		Format:         _DXGI_FORMAT_R32_UINT,
 	})
 
-	if err := g.pipelineStates.drawTriangles(g.device, g.drawCommandList, g.frameIndex, dst.screen, srcImages, shader, dstRegions, adjustedUniforms, blend, indexOffset, evenOdd); err != nil {
+	if err := g.pipelineStates.drawTriangles(g.device, g.drawCommandList, g.frameIndex, dst.screen, srcImages, shader, dstRegions, adjustedUniforms, blend, indexOffset, fillRule); err != nil {
 		return err
 	}
 

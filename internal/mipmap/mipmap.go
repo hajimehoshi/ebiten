@@ -65,7 +65,7 @@ func (m *Mipmap) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byt
 	return m.orig.ReadPixels(graphicsDriver, pixels, region)
 }
 
-func (m *Mipmap) DrawTriangles(srcs [graphics.ShaderImageCount]*Mipmap, vertices []float32, indices []uint32, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderImageCount]image.Rectangle, shader *atlas.Shader, uniforms []uint32, evenOdd bool, canSkipMipmap bool) {
+func (m *Mipmap) DrawTriangles(srcs [graphics.ShaderImageCount]*Mipmap, vertices []float32, indices []uint32, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderImageCount]image.Rectangle, shader *atlas.Shader, uniforms []uint32, fillRule graphicsdriver.FillRule, canSkipMipmap bool) {
 	if len(indices) == 0 {
 		return
 	}
@@ -123,7 +123,7 @@ func (m *Mipmap) DrawTriangles(srcs [graphics.ShaderImageCount]*Mipmap, vertices
 		imgs[i] = src.orig
 	}
 
-	m.orig.DrawTriangles(imgs, vertices, indices, blend, dstRegion, srcRegions, shader, uniforms, evenOdd)
+	m.orig.DrawTriangles(imgs, vertices, indices, blend, dstRegion, srcRegions, shader, uniforms, fillRule)
 	m.deallocateMipmaps()
 }
 
@@ -187,7 +187,7 @@ func (m *Mipmap) level(level int) *buffered.Image {
 	s := buffered.NewImage(w2, h2, m.imageType)
 
 	dstRegion := image.Rect(0, 0, w2, h2)
-	s.DrawTriangles([graphics.ShaderImageCount]*buffered.Image{src}, vs, is, graphicsdriver.BlendCopy, dstRegion, [graphics.ShaderImageCount]image.Rectangle{}, shader, nil, false)
+	s.DrawTriangles([graphics.ShaderImageCount]*buffered.Image{src}, vs, is, graphicsdriver.BlendCopy, dstRegion, [graphics.ShaderImageCount]image.Rectangle{}, shader, nil, graphicsdriver.FillAll)
 	m.setImg(level, s)
 
 	return m.imgs[level]

@@ -519,7 +519,7 @@ func (g *graphics11) removeShader(s *shader11) {
 	delete(g.shaders, s.id)
 }
 
-func (g *graphics11) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.ShaderImageCount]graphicsdriver.ImageID, shaderID graphicsdriver.ShaderID, dstRegions []graphicsdriver.DstRegion, indexOffset int, blend graphicsdriver.Blend, uniforms []uint32, evenOdd bool) error {
+func (g *graphics11) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.ShaderImageCount]graphicsdriver.ImageID, shaderID graphicsdriver.ShaderID, dstRegions []graphicsdriver.DstRegion, indexOffset int, blend graphicsdriver.Blend, uniforms []uint32, fillRule graphicsdriver.FillRule) error {
 	// Remove bound textures first. This is needed to avoid warnings on the debugger.
 	g.deviceContext.OMSetRenderTargets([]*_ID3D11RenderTargetView{nil}, nil)
 	srvs := [graphics.ShaderImageCount]*_ID3D11ShaderResourceView{}
@@ -547,7 +547,7 @@ func (g *graphics11) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphic
 		},
 	})
 
-	if err := dst.setAsRenderTarget(evenOdd); err != nil {
+	if err := dst.setAsRenderTarget(fillRule != graphicsdriver.FillAll); err != nil {
 		return err
 	}
 
@@ -557,7 +557,7 @@ func (g *graphics11) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphic
 		return err
 	}
 
-	if !evenOdd {
+	if fillRule == graphicsdriver.FillAll {
 		bs, err := g.blendState(blend, noStencil)
 		if err != nil {
 			return err
@@ -581,7 +581,10 @@ func (g *graphics11) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphic
 			},
 		})
 
-		if evenOdd {
+		switch fillRule {
+		case graphicsdriver.FillAll:
+			g.deviceContext.DrawIndexed(uint32(dstRegion.IndexCount), uint32(indexOffset), 0)
+		case graphicsdriver.EvenOdd:
 			bs, err := g.blendState(blend, prepareStencil)
 			if err != nil {
 				return err
@@ -604,8 +607,6 @@ func (g *graphics11) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphic
 				return err
 			}
 			g.deviceContext.OMSetDepthStencilState(dss, 0)
-			g.deviceContext.DrawIndexed(uint32(dstRegion.IndexCount), uint32(indexOffset), 0)
-		} else {
 			g.deviceContext.DrawIndexed(uint32(dstRegion.IndexCount), uint32(indexOffset), 0)
 		}
 
