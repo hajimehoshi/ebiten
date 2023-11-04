@@ -27,6 +27,22 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
 
+const (
+	is32bit = 1 >> (^uint(0) >> 63)
+	is64bit = 1 - is32bit
+
+	// MaxVertexCount is the maximum number of vertices for one draw call.
+	//
+	// On 64bit architectures, this value is 2^32-1, as the index type is uint32.
+	// This value cannot be exactly 2^32 especially with WebGL 2, as 2^32th vertex is not rendered correctly.
+	// See https://registry.khronos.org/webgl/specs/latest/2.0/#5.18 .
+	//
+	// On 32bit architectures, this value is an adjusted number so that maxVertexFloatCount doesn't overflow int.
+	MaxVertexCount = is64bit*math.MaxUint32 + is32bit*(math.MaxInt32/graphics.VertexFloatCount)
+
+	maxVertexFloatCount = MaxVertexCount * graphics.VertexFloatCount
+)
+
 var vsyncEnabled int32 = 1
 
 func SetVsyncEnabled(enabled bool) {
@@ -81,13 +97,13 @@ func (q *commandQueue) appendIndices(indices []uint32, offset uint32) {
 
 // mustUseDifferentVertexBuffer reports whether a different vertex buffer must be used.
 func mustUseDifferentVertexBuffer(nextNumVertexFloats int) bool {
-	return nextNumVertexFloats > graphics.MaxVertexFloatCount
+	return nextNumVertexFloats > maxVertexFloatCount
 }
 
 // EnqueueDrawTrianglesCommand enqueues a drawing-image command.
 func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint32, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderImageCount]image.Rectangle, shader *Shader, uniforms []uint32, evenOdd bool) {
-	if len(vertices) > graphics.MaxVertexFloatCount {
-		panic(fmt.Sprintf("graphicscommand: len(vertices) must equal to or less than %d but was %d", graphics.MaxVertexFloatCount, len(vertices)))
+	if len(vertices) > maxVertexFloatCount {
+		panic(fmt.Sprintf("graphicscommand: len(vertices) must equal to or less than %d but was %d", maxVertexFloatCount, len(vertices)))
 	}
 
 	split := false

@@ -23,6 +23,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
 	"github.com/hajimehoshi/ebiten/v2/internal/builtinshader"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
@@ -396,10 +397,10 @@ const MaxIndicesNum = MaxIndicesCount
 // MaxVerticesCount is the maximum number of vertices for DrawTriangles and DrawTrianglesShader.
 //
 // Deprecated: as of v2.7. Use MaxVertexCount instead.
-const MaxVerticesCount = graphics.MaxVertexCount
+const MaxVerticesCount = graphicscommand.MaxVertexCount
 
 // MaxVertexCount is the maximum number of vertices for DrawTriangles and DrawTrianglesShader.
-const MaxVertexCount = graphics.MaxVertexCount
+const MaxVertexCount = graphicscommand.MaxVertexCount
 
 // DrawTriangles draws triangles with the specified vertices and their indices.
 //
@@ -432,9 +433,9 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 		return
 	}
 
-	if len(vertices) > graphics.MaxVertexCount {
+	if len(vertices) > graphicscommand.MaxVertexCount {
 		// The last part cannot be specified by indices. Just omit them.
-		vertices = vertices[:graphics.MaxVertexCount]
+		vertices = vertices[:graphicscommand.MaxVertexCount]
 	}
 	if len(indices)%3 != 0 {
 		panic("ebiten: len(indices) % 3 must be 0")
@@ -594,9 +595,9 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 		panic("ebiten: the given shader to DrawTrianglesShader must not be disposed")
 	}
 
-	if len(vertices) > graphics.MaxVertexCount {
+	if len(vertices) > graphicscommand.MaxVertexCount {
 		// The last part cannot be specified by indices. Just omit them.
-		vertices = vertices[:graphics.MaxVertexCount]
+		vertices = vertices[:graphicscommand.MaxVertexCount]
 	}
 	if len(indices)%3 != 0 {
 		panic("ebiten: len(indices) % 3 must be 0")
