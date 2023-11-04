@@ -262,7 +262,7 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) {
 		})
 	}
 
-	i.image.DrawTriangles(srcs, vs, is, blend, i.adjustedBounds(), [graphics.ShaderImageCount]image.Rectangle{img.adjustedBounds()}, shader.shader, i.tmpUniforms, false, canSkipMipmap(geoM, filter), false)
+	i.image.DrawTriangles(srcs, vs, is, blend, i.adjustedBounds(), [graphics.ShaderImageCount]image.Rectangle{img.adjustedBounds()}, shader.shader, i.tmpUniforms, graphicsdriver.FillAll, canSkipMipmap(geoM, filter), false)
 }
 
 // Vertex represents a vertex passed to DrawTriangles.
@@ -312,11 +312,11 @@ type FillRule int
 
 const (
 	// FillAll indicates all the triangles are rendered regardless of overlaps.
-	FillAll FillRule = iota
+	FillAll FillRule = FillRule(graphicsdriver.FillAll)
 
 	// EvenOdd means that triangles are rendered based on the even-odd rule.
 	// If and only if the number of overlaps is odd, the region is rendered.
-	EvenOdd
+	EvenOdd FillRule = FillRule(graphicsdriver.EvenOdd)
 )
 
 // ColorScaleMode is the mode of color scales in vertices.
@@ -511,7 +511,7 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 		})
 	}
 
-	i.image.DrawTriangles(srcs, vs, is, blend, i.adjustedBounds(), [graphics.ShaderImageCount]image.Rectangle{img.adjustedBounds()}, shader.shader, i.tmpUniforms, options.FillRule == EvenOdd, filter != builtinshader.FilterLinear, options.AntiAlias)
+	i.image.DrawTriangles(srcs, vs, is, blend, i.adjustedBounds(), [graphics.ShaderImageCount]image.Rectangle{img.adjustedBounds()}, shader.shader, i.tmpUniforms, graphicsdriver.FillRule(options.FillRule), filter != builtinshader.FilterLinear, options.AntiAlias)
 }
 
 // DrawTrianglesShaderOptions represents options for DrawTrianglesShader.
@@ -676,7 +676,7 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 	i.tmpUniforms = i.tmpUniforms[:0]
 	i.tmpUniforms = shader.appendUniforms(i.tmpUniforms, options.Uniforms)
 
-	i.image.DrawTriangles(imgs, vs, is, blend, i.adjustedBounds(), srcRegions, shader.shader, i.tmpUniforms, options.FillRule == EvenOdd, true, options.AntiAlias)
+	i.image.DrawTriangles(imgs, vs, is, blend, i.adjustedBounds(), srcRegions, shader.shader, i.tmpUniforms, graphicsdriver.FillRule(options.FillRule), true, options.AntiAlias)
 }
 
 // DrawRectShaderOptions represents options for DrawRectShader.
@@ -806,7 +806,7 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 	i.tmpUniforms = i.tmpUniforms[:0]
 	i.tmpUniforms = shader.appendUniforms(i.tmpUniforms, options.Uniforms)
 
-	i.image.DrawTriangles(imgs, vs, is, blend, i.adjustedBounds(), srcRegions, shader.shader, i.tmpUniforms, false, true, false)
+	i.image.DrawTriangles(imgs, vs, is, blend, i.adjustedBounds(), srcRegions, shader.shader, i.tmpUniforms, graphicsdriver.FillAll, true, false)
 }
 
 // SubImage returns an image representing the portion of the image p visible through r.

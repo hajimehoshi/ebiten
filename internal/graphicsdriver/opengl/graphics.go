@@ -182,7 +182,7 @@ func (g *Graphics) uniformVariableName(idx int) string {
 	return name
 }
 
-func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.ShaderImageCount]graphicsdriver.ImageID, shaderID graphicsdriver.ShaderID, dstRegions []graphicsdriver.DstRegion, indexOffset int, blend graphicsdriver.Blend, uniforms []uint32, evenOdd bool) error {
+func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.ShaderImageCount]graphicsdriver.ImageID, shaderID graphicsdriver.ShaderID, dstRegions []graphicsdriver.DstRegion, indexOffset int, blend graphicsdriver.Blend, uniforms []uint32, fillRule graphicsdriver.FillRule) error {
 	if shaderID == graphicsdriver.InvalidShaderID {
 		return fmt.Errorf("opengl: shader ID is invalid")
 	}
@@ -243,7 +243,7 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 	}
 	g.uniformVars = g.uniformVars[:0]
 
-	if evenOdd {
+	if fillRule == graphicsdriver.EvenOdd {
 		if err := destination.ensureStencilBuffer(); err != nil {
 			return err
 		}
@@ -257,7 +257,7 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 			int32(dstRegion.Region.Dx()),
 			int32(dstRegion.Region.Dy()),
 		)
-		if evenOdd {
+		if fillRule == graphicsdriver.EvenOdd {
 			g.context.ctx.Clear(gl.STENCIL_BUFFER_BIT)
 			g.context.ctx.StencilFunc(gl.ALWAYS, 0x00, 0xff)
 			g.context.ctx.StencilOp(gl.KEEP, gl.KEEP, gl.INVERT)
@@ -273,7 +273,7 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 		indexOffset += dstRegion.IndexCount
 	}
 
-	if evenOdd {
+	if fillRule == graphicsdriver.EvenOdd {
 		g.context.ctx.Disable(gl.STENCIL_TEST)
 	}
 
