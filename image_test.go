@@ -2805,7 +2805,7 @@ func BenchmarkColorMScale(b *testing.B) {
 	}
 }
 
-func TestIndicesOverflow(t *testing.T) {
+func TestImageMoreIndicesThanMaxUint16(t *testing.T) {
 	const (
 		w = 16
 		h = 16
@@ -2817,10 +2817,10 @@ func TestIndicesOverflow(t *testing.T) {
 
 	op := &ebiten.DrawTrianglesOptions{}
 	vs := make([]ebiten.Vertex, 3)
-	is := make([]uint16, graphics.MaxVerticesCount/3*3)
+	is := make([]uint16, 65538)
 	dst.DrawTriangles(vs, is, src, op)
 
-	// Cause an overflow for indices.
+	// The next draw call should work well (and this is likely batched).
 	vs = []ebiten.Vertex{
 		{
 			DstX:   0,
@@ -2877,7 +2877,7 @@ func TestIndicesOverflow(t *testing.T) {
 	}
 }
 
-func TestVerticesOverflow(t *testing.T) {
+func TestImageMoreVerticesThanMaxUint16(t *testing.T) {
 	const (
 		w = 16
 		h = 16
@@ -2888,11 +2888,11 @@ func TestVerticesOverflow(t *testing.T) {
 	src.Fill(color.White)
 
 	op := &ebiten.DrawTrianglesOptions{}
-	vs := make([]ebiten.Vertex, graphics.MaxVerticesCount-1)
+	vs := make([]ebiten.Vertex, math.MaxUint16+1)
 	is := make([]uint16, 3)
 	dst.DrawTriangles(vs, is, src, op)
 
-	// Cause an overflow for vertices.
+	// The next draw call should work well (and this is likely batched).
 	vs = []ebiten.Vertex{
 		{
 			DstX:   0,
@@ -2947,26 +2947,6 @@ func TestVerticesOverflow(t *testing.T) {
 			}
 		}
 	}
-}
-
-func TestTooManyVertices(t *testing.T) {
-	const (
-		w = 16
-		h = 16
-	)
-
-	dst := ebiten.NewImage(w, h)
-	src := ebiten.NewImage(w, h)
-	src.Fill(color.White)
-
-	op := &ebiten.DrawTrianglesOptions{}
-	vs := make([]ebiten.Vertex, graphics.MaxVerticesCount+1)
-	is := make([]uint16, 3)
-	dst.DrawTriangles(vs, is, src, op)
-
-	// Force to cause flushing the graphics commands.
-	// Confirm this doesn't freeze.
-	dst.At(0, 0)
 }
 
 func TestImageNewImageFromEbitenImage(t *testing.T) {
@@ -4306,48 +4286,6 @@ func TestImageDrawTrianglesShaderWithGreaterIndexThanVerticesCount(t *testing.T)
 
 	vs := make([]ebiten.Vertex, 4)
 	is := []uint16{0, 1, 2, 1, 2, 4}
-	shader, err := ebiten.NewShader([]byte(`
-		package main
-		func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
-			return color
-		}
-	`))
-	if err != nil {
-		t.Fatalf("could not compile shader: %v", err)
-	}
-	dst.DrawTrianglesShader(vs, is, shader, nil)
-}
-
-// Issue #2611
-func TestImageDrawTrianglesWithTooBigIndex(t *testing.T) {
-	defer func() {
-		if r := recover(); r == nil {
-			t.Errorf("DrawTriangles must panic but not")
-		}
-	}()
-
-	const w, h = 16, 16
-	dst := ebiten.NewImage(w, h)
-	src := ebiten.NewImage(w, h)
-
-	vs := make([]ebiten.Vertex, ebiten.MaxVerticesCount+1)
-	is := []uint16{0, 1, 2, 1, 2, ebiten.MaxVerticesCount}
-	dst.DrawTriangles(vs, is, src, nil)
-}
-
-// Issue #2611
-func TestImageDrawTrianglesShaderWithTooBigIndex(t *testing.T) {
-	defer func() {
-		if r := recover(); r == nil {
-			t.Errorf("DrawTrianglesShader must panic but not")
-		}
-	}()
-
-	const w, h = 16, 16
-	dst := ebiten.NewImage(w, h)
-
-	vs := make([]ebiten.Vertex, ebiten.MaxVerticesCount+1)
-	is := []uint16{0, 1, 2, 1, 2, ebiten.MaxVerticesCount}
 	shader, err := ebiten.NewShader([]byte(`
 		package main
 		func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
