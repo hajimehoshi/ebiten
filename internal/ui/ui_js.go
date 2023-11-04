@@ -741,7 +741,7 @@ func (u *UserInterface) forceUpdateOnMinimumFPSMode() {
 }
 
 func (u *UserInterface) Run(game Game, options *RunOptions) error {
-	return u.run(game, options)
+	return u.runSingleThread(game, options)
 }
 
 func (u *UserInterface) initOnMainThread(options *RunOptions) error {

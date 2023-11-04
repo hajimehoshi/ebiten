@@ -121,7 +121,10 @@ func init() {
 }
 
 func (u *UserInterface) Run(game Game, options *RunOptions) error {
-	return u.run(game, options)
+	if options.SingleThread || buildTagSingleThread {
+		return u.runSingleThread(game, options)
+	}
+	return u.runMultiThread(game, options)
 }
 
 func (u *UserInterface) init() error {

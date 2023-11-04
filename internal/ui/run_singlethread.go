@@ -12,33 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build js || (!android && !ios && (ebitenginesinglethread || ebitensinglethread))
+//go:build ebitenginesinglethread || ebitensinglethread
 
 package ui
 
-import (
-	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
-	"github.com/hajimehoshi/ebiten/v2/internal/thread"
-)
-
-func (u *UserInterface) run(game Game, options *RunOptions) error {
-	// Initialize the main thread first so the thread is available at u.run (#809).
-	u.mainThread = thread.NewNoopThread()
-	u.renderThread = thread.NewNoopThread()
-	graphicscommand.SetRenderThread(u.renderThread)
-
-	u.setRunning(true)
-	defer u.setRunning(false)
-
-	u.context = newContext(game)
-
-	if err := u.initOnMainThread(options); err != nil {
-		return err
-	}
-
-	if err := u.loopGame(); err != nil {
-		return err
-	}
-
-	return nil
-}
+const buildTagSingleThread = true

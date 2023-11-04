@@ -253,6 +253,20 @@ type RunGameOptions struct {
 	//
 	// The default (zero) value is false, which means that an icon is shown on a taskbar.
 	SkipTaskbar bool
+
+	// SingleThread indicates whether the single thread mode is used explicitly or not.
+	// The single thread mode disables Ebitengine's thread safety to unlock maximum performance.
+	// If you use this you will have to manage threads yourself.
+	// Functions like IsKeyPressed will no longer be concurrent-safe with this build tag.
+	// They must be called from the main thread or the same goroutine as the given game's callback functions like Update.
+	//
+	// SingleThread works only with desktops.
+	//
+	// If SingleThread is false, and if the build tag `ebitenginesinglethread` is specified,
+	// the single thread mode is used.
+	//
+	// The default (zero) value is false, which means that the single thread mode is disabled.
+	SingleThread bool
 }
 
 // RunGameWithOptions starts the main loop and runs the game with the specified options.
@@ -672,6 +686,7 @@ func toUIRunOptions(options *RunGameOptions) *ui.RunOptions {
 		InitUnfocused:     options.InitUnfocused,
 		ScreenTransparent: options.ScreenTransparent,
 		SkipTaskbar:       options.SkipTaskbar,
+		SingleThread:      options.SingleThread,
 	}
 }
 
