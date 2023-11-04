@@ -75,6 +75,6 @@ func (g *Graphics) NewShader(program *shaderir.Program) (graphicsdriver.Shader, 
 	return nil, nil
 }
 
-func (g *Graphics) DrawTriangles(dst graphicsdriver.ImageID, srcs [graphics.ShaderImageCount]graphicsdriver.ImageID, shader graphicsdriver.ShaderID, dstRegions []graphicsdriver.DstRegion, indexOffset int, blend graphicsdriver.Blend, uniforms []uint32, evenOdd bool) error {
+func (g *Graphics) DrawTriangles(dst graphicsdriver.ImageID, srcs [graphics.ShaderImageCount]graphicsdriver.ImageID, shader graphicsdriver.ShaderID, dstRegions []graphicsdriver.DstRegion, indexOffset int, blend graphicsdriver.Blend, uniforms []uint32, fillRule graphicsdriver.FillRule) error {
 	return nil
 }
