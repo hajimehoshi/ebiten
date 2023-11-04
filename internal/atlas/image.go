@@ -251,7 +251,7 @@ func (i *Image) ensureIsolatedFromSource(backends []*backend) {
 	is := graphics.QuadIndices()
 	dr := image.Rect(0, 0, i.width, i.height)
 
-	newI.drawTriangles([graphics.ShaderImageCount]*Image{i}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderImageCount]image.Rectangle{}, NearestFilterShader, nil, graphicsdriver.FillAll)
+	newI.drawTriangles([graphics.ShaderImageCount]*Image{i}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderImageCount]image.Rectangle{}, NearestFilterShader, nil, false)
 	newI.moveTo(i)
 }
 
@@ -281,7 +281,7 @@ func (i *Image) putOnSourceBackend(graphicsDriver graphicsdriver.Graphics) {
 	graphics.QuadVertices(vs, 0, 0, w, h, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
 	is := graphics.QuadIndices()
 	dr := image.Rect(0, 0, i.width, i.height)
-	newI.drawTriangles([graphics.ShaderImageCount]*Image{i}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderImageCount]image.Rectangle{}, NearestFilterShader, nil, graphicsdriver.FillAll)
+	newI.drawTriangles([graphics.ShaderImageCount]*Image{i}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderImageCount]image.Rectangle{}, NearestFilterShader, nil, false)
 
 	newI.moveTo(i)
 	i.usedAsSourceCount = 0
@@ -313,7 +313,7 @@ func (i *Image) regionWithPadding() image.Rectangle {
 //	5: Color G
 //	6: Color B
 //	7: Color Y
-func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint32, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderImageCount]image.Rectangle, shader *Shader, uniforms []uint32, fillRule graphicsdriver.FillRule) {
+func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint32, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderImageCount]image.Rectangle, shader *Shader, uniforms []uint32, evenOdd bool) {
 	backendsM.Lock()
 	defer backendsM.Unlock()
 
@@ -326,15 +326,15 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 		copy(us, uniforms)
 
 		appendDeferred(func() {
-			i.drawTriangles(srcs, vs, is, blend, dstRegion, srcRegions, shader, us, fillRule)
+			i.drawTriangles(srcs, vs, is, blend, dstRegion, srcRegions, shader, us, evenOdd)
 		})
 		return
 	}
 
-	i.drawTriangles(srcs, vertices, indices, blend, dstRegion, srcRegions, shader, uniforms, fillRule)
+	i.drawTriangles(srcs, vertices, indices, blend, dstRegion, srcRegions, shader, uniforms, evenOdd)
 }
 
-func (i *Image) drawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint32, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderImageCount]image.Rectangle, shader *Shader, uniforms []uint32, fillRule graphicsdriver.FillRule) {
+func (i *Image) drawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint32, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderImageCount]image.Rectangle, shader *Shader, uniforms []uint32, evenOdd bool) {
 	backends := make([]*backend, 0, len(srcs))
 	for _, src := range srcs {
 		if src == nil {
@@ -415,7 +415,7 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 		imgs[i] = src.backend.restorable
 	}
 
-	i.backend.restorable.DrawTriangles(imgs, vertices, indices, blend, dstRegion, srcRegions, shader.ensureShader(), uniforms, fillRule)
+	i.backend.restorable.DrawTriangles(imgs, vertices, indices, blend, dstRegion, srcRegions, shader.ensureShader(), uniforms, evenOdd)
 
 	for _, src := range srcs {
 		if src == nil {

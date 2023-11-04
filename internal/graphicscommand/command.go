@@ -68,7 +68,7 @@ type drawTrianglesCommand struct {
 	dstRegions []graphicsdriver.DstRegion
 	shader     *Shader
 	uniforms   []uint32
-	fillRule   graphicsdriver.FillRule
+	evenOdd    bool
 }
 
 func (c *drawTrianglesCommand) String() string {
@@ -98,7 +98,7 @@ func (c *drawTrianglesCommand) String() string {
 		}
 	}
 
-	return fmt.Sprintf("draw-triangles: dst: %s <- src: [%s], num of dst regions: %d, num of indices: %d, blend: %s, fill rule: %s", dst, strings.Join(srcstrs[:], ", "), len(c.dstRegions), c.numIndices(), blend, c.fillRule)
+	return fmt.Sprintf("draw-triangles: dst: %s <- src: [%s], num of dst regions: %d, num of indices: %d, blend: %s, even-odd: %t", dst, strings.Join(srcstrs[:], ", "), len(c.dstRegions), c.numIndices(), blend, c.evenOdd)
 }
 
 // Exec executes the drawTrianglesCommand.
@@ -117,7 +117,7 @@ func (c *drawTrianglesCommand) Exec(commandQueue *commandQueue, graphicsDriver g
 		imgs[i] = src.image.ID()
 	}
 
-	return graphicsDriver.DrawTriangles(c.dst.image.ID(), imgs, c.shader.shader.ID(), c.dstRegions, indexOffset, c.blend, c.uniforms, c.fillRule)
+	return graphicsDriver.DrawTriangles(c.dst.image.ID(), imgs, c.shader.shader.ID(), c.dstRegions, indexOffset, c.blend, c.uniforms, c.evenOdd)
 }
 
 func (c *drawTrianglesCommand) NeedsSync() bool {
@@ -142,7 +142,7 @@ func (c *drawTrianglesCommand) setVertices(vertices []float32) {
 
 // CanMergeWithDrawTrianglesCommand returns a boolean value indicating whether the other drawTrianglesCommand can be merged
 // with the drawTrianglesCommand c.
-func (c *drawTrianglesCommand) CanMergeWithDrawTrianglesCommand(dst *Image, srcs [graphics.ShaderImageCount]*Image, vertices []float32, blend graphicsdriver.Blend, shader *Shader, uniforms []uint32, fillRule graphicsdriver.FillRule) bool {
+func (c *drawTrianglesCommand) CanMergeWithDrawTrianglesCommand(dst *Image, srcs [graphics.ShaderImageCount]*Image, vertices []float32, blend graphicsdriver.Blend, shader *Shader, uniforms []uint32, evenOdd bool) bool {
 	if c.shader != shader {
 		return false
 	}
@@ -163,10 +163,10 @@ func (c *drawTrianglesCommand) CanMergeWithDrawTrianglesCommand(dst *Image, srcs
 	if c.blend != blend {
 		return false
 	}
-	if c.fillRule != fillRule {
+	if c.evenOdd != evenOdd {
 		return false
 	}
-	if c.fillRule == graphicsdriver.EvenOdd && mightOverlapDstRegions(c.vertices, vertices) {
+	if c.evenOdd && mightOverlapDstRegions(c.vertices, vertices) {
 		return false
 	}
 	return true
