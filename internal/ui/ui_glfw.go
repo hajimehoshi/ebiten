@@ -120,13 +120,6 @@ func init() {
 	runtime.LockOSThread()
 }
 
-func (u *UserInterface) Run(game Game, options *RunOptions) error {
-	if options.SingleThread || buildTagSingleThread {
-		return u.runSingleThread(game, options)
-	}
-	return u.runMultiThread(game, options)
-}
-
 func (u *UserInterface) init() error {
 	u.userInterfaceImpl = userInterfaceImpl{
 		runnableOnUnfocused:      true,

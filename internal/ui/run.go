@@ -18,12 +18,20 @@ package ui
 
 import (
 	stdcontext "context"
+	"runtime"
 
 	"golang.org/x/sync/errgroup"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/v2/internal/thread"
 )
+
+func (u *UserInterface) Run(game Game, options *RunOptions) error {
+	if options.SingleThread || buildTagSingleThread || runtime.GOOS == "js" {
+		return u.runSingleThread(game, options)
+	}
+	return u.runMultiThread(game, options)
+}
 
 func (u *UserInterface) runMultiThread(game Game, options *RunOptions) error {
 	u.mainThread = thread.NewOSThread()

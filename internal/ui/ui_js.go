@@ -740,10 +740,6 @@ func (u *UserInterface) forceUpdateOnMinimumFPSMode() {
 	}()
 }
 
-func (u *UserInterface) Run(game Game, options *RunOptions) error {
-	return u.runSingleThread(game, options)
-}
-
 func (u *UserInterface) initOnMainThread(options *RunOptions) error {
 	if !options.InitUnfocused && window.Truthy() {
 		// Do not focus the canvas when the current document is in an iframe.

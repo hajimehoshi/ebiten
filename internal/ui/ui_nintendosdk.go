@@ -75,13 +75,6 @@ func (u *UserInterface) init() error {
 	return nil
 }
 
-func (u *UserInterface) Run(game Game, options *RunOptions) error {
-	if options.SingleThread || buildTagSingleThread {
-		return u.runSingleThread(game, options)
-	}
-	return u.runMultiThread(game, options)
-}
-
 func (u *UserInterface) initOnMainThread(options *RunOptions) error {
 	g, lib, err := newGraphicsDriver(&graphicsDriverCreatorImpl{}, options.GraphicsLibrary)
 	if err != nil {
