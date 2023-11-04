@@ -15,16 +15,12 @@
 package ui
 
 import (
-	stdcontext "context"
 	"errors"
 	"image"
 	"sync"
 	"sync/atomic"
 
-	"golang.org/x/sync/errgroup"
-
 	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
-	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/v2/internal/mipmap"
 	"github.com/hajimehoshi/ebiten/v2/internal/thread"
 )
@@ -206,66 +202,4 @@ func (u *UserInterface) isTerminated() bool {
 
 func (u *UserInterface) setTerminated() {
 	atomic.StoreInt32(&u.terminated, 1)
-}
-
-func (u *UserInterface) runMultiThread(game Game, options *RunOptions) error {
-	u.mainThread = thread.NewOSThread()
-	u.renderThread = thread.NewOSThread()
-	graphicscommand.SetRenderThread(u.renderThread)
-
-	// Set the running state true after the main thread is set, and before initOnMainThread is called (#2742).
-	// TODO: As the existance of the main thread is the same as the value of `running`, this is redundant.
-	// Make `mainThread` atomic and remove `running` if possible.
-	u.setRunning(true)
-	defer u.setRunning(false)
-
-	u.context = newContext(game)
-
-	if err := u.initOnMainThread(options); err != nil {
-		return err
-	}
-
-	ctx, cancel := stdcontext.WithCancel(stdcontext.Background())
-	defer cancel()
-
-	var wg errgroup.Group
-
-	// Run the render thread.
-	wg.Go(func() error {
-		defer cancel()
-		_ = u.renderThread.Loop(ctx)
-		return nil
-	})
-
-	// Run the game thread.
-	wg.Go(func() error {
-		defer cancel()
-		return u.loopGame()
-	})
-
-	// Run the main thread.
-	_ = u.mainThread.Loop(ctx)
-	return wg.Wait()
-}
-
-func (u *UserInterface) runSingleThread(game Game, options *RunOptions) error {
-	// Initialize the main thread first so the thread is available at u.run (#809).
-	u.mainThread = thread.NewNoopThread()
-	u.renderThread = thread.NewNoopThread()
-	graphicscommand.SetRenderThread(u.renderThread)
-
-	u.setRunning(true)
-	defer u.setRunning(false)
-
-	u.context = newContext(game)
-
-	if err := u.initOnMainThread(options); err != nil {
-		return err
-	}
-
-	if err := u.loopGame(); err != nil {
-		return err
-	}
-
-	return nil
 }
