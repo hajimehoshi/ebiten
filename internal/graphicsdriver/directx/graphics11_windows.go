@@ -584,25 +584,39 @@ func (g *graphics11) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphic
 		switch fillRule {
 		case graphicsdriver.FillAll:
 			g.deviceContext.DrawIndexed(uint32(dstRegion.IndexCount), uint32(indexOffset), 0)
-		case graphicsdriver.EvenOdd:
-			bs, err := g.blendState(blend, prepareStencil)
+		case graphicsdriver.NonZero:
+			bs, err := g.blendState(blend, incrementStencil)
 			if err != nil {
 				return err
 			}
 			g.deviceContext.OMSetBlendState(bs, nil, 0xffffffff)
-			dss, err := g.depthStencilState(prepareStencil)
+			dss, err := g.depthStencilState(incrementStencil)
 			if err != nil {
 				return err
 			}
 			g.deviceContext.OMSetDepthStencilState(dss, 0)
 			g.deviceContext.DrawIndexed(uint32(dstRegion.IndexCount), uint32(indexOffset), 0)
-
-			bs, err = g.blendState(blend, drawWithStencil)
+		case graphicsdriver.EvenOdd:
+			bs, err := g.blendState(blend, invertStencil)
 			if err != nil {
 				return err
 			}
 			g.deviceContext.OMSetBlendState(bs, nil, 0xffffffff)
-			dss, err = g.depthStencilState(drawWithStencil)
+			dss, err := g.depthStencilState(invertStencil)
+			if err != nil {
+				return err
+			}
+			g.deviceContext.OMSetDepthStencilState(dss, 0)
+			g.deviceContext.DrawIndexed(uint32(dstRegion.IndexCount), uint32(indexOffset), 0)
+		}
+
+		if fillRule != graphicsdriver.FillAll {
+			bs, err := g.blendState(blend, drawWithStencil)
+			if err != nil {
+				return err
+			}
+			g.deviceContext.OMSetBlendState(bs, nil, 0xffffffff)
+			dss, err := g.depthStencilState(drawWithStencil)
 			if err != nil {
 				return err
 			}
@@ -627,9 +641,9 @@ func (g *graphics11) genNextShaderID() graphicsdriver.ShaderID {
 }
 
 func (g *graphics11) blendState(blend graphicsdriver.Blend, stencilMode stencilMode) (*_ID3D11BlendState, error) {
-	writeMask := uint8(_D3D11_COLOR_WRITE_ENABLE_ALL)
-	if stencilMode == prepareStencil {
-		writeMask = 0
+	var writeMask uint8
+	if stencilMode == noStencil || stencilMode == drawWithStencil {
+		writeMask = uint8(_D3D11_COLOR_WRITE_ENABLE_ALL)
 	}
 
 	key := blendStateKey{
@@ -693,7 +707,11 @@ func (g *graphics11) depthStencilState(mode stencilMode) (*_ID3D11DepthStencilSt
 		},
 	}
 	switch mode {
-	case prepareStencil:
+	case incrementStencil:
+		desc.StencilEnable = 1
+		desc.FrontFace.StencilPassOp = _D3D11_STENCIL_OP_INCR
+		desc.BackFace.StencilPassOp = _D3D11_STENCIL_OP_DECR
+	case invertStencil:
 		desc.StencilEnable = 1
 		desc.FrontFace.StencilPassOp = _D3D11_STENCIL_OP_INVERT
 		desc.BackFace.StencilPassOp = _D3D11_STENCIL_OP_INVERT

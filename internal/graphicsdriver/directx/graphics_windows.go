@@ -35,9 +35,10 @@ import (
 type stencilMode int
 
 const (
-	prepareStencil stencilMode = iota
+	noStencil stencilMode = iota
+	incrementStencil
+	invertStencil
 	drawWithStencil
-	noStencil
 )
 
 const frameCount = 2

@@ -79,7 +79,7 @@ type defaultContext struct {
 	fnShaderSource             js.Value
 	fnStencilFunc              js.Value
 	fnStencilMask              js.Value
-	fnStencilOp                js.Value
+	fnStencilOpSeparate        js.Value
 	fnTexImage2D               js.Value
 	fnTexSubImage2D            js.Value
 	fnTexParameteri            js.Value
@@ -210,7 +210,7 @@ func NewDefaultContext(v js.Value) (Context, error) {
 		fnShaderSource:             v.Get("shaderSource").Call("bind", v),
 		fnStencilFunc:              v.Get("stencilFunc").Call("bind", v),
 		fnStencilMask:              v.Get("stencilMask").Call("bind", v),
-		fnStencilOp:                v.Get("stencilOp").Call("bind", v),
+		fnStencilOpSeparate:        v.Get("stencilOpSeparate").Call("bind", v),
 		fnTexImage2D:               v.Get("texImage2D").Call("bind", v),
 		fnTexSubImage2D:            v.Get("texSubImage2D").Call("bind", v),
 		fnTexParameteri:            v.Get("texParameteri").Call("bind", v),
@@ -533,8 +533,8 @@ func (c *defaultContext) StencilFunc(func_ uint32, ref int32, mask uint32) {
 	c.fnStencilFunc.Invoke(func_, ref, mask)
 }
 
-func (c *defaultContext) StencilOp(sfail, dpfail, dppass uint32) {
-	c.fnStencilOp.Invoke(sfail, dpfail, dppass)
+func (c *defaultContext) StencilOpSeparate(face, sfail, dpfail, dppass uint32) {
+	c.fnStencilOpSeparate.Invoke(face, sfail, dpfail, dppass)
 }
 
 func (c *defaultContext) TexImage2D(target uint32, level int32, internalformat int32, width int32, height int32, format uint32, xtype uint32, pixels []byte) {

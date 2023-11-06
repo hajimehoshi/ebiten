@@ -17,10 +17,12 @@ package gl
 const (
 	ALWAYS                = 0x0207
 	ARRAY_BUFFER          = 0x8892
+	BACK                  = 0x0405
 	BLEND                 = 0x0BE2
 	CLAMP_TO_EDGE         = 0x812F
 	COLOR_ATTACHMENT0     = 0x8CE0
 	COMPILE_STATUS        = 0x8B81
+	DECR_WRAP             = 0x8508
 	DEPTH24_STENCIL8      = 0x88F0
 	DST_ALPHA             = 0x0304
 	DST_COLOR             = 0x0306
@@ -32,10 +34,13 @@ const (
 	FRAMEBUFFER           = 0x8D40
 	FRAMEBUFFER_BINDING   = 0x8CA6
 	FRAMEBUFFER_COMPLETE  = 0x8CD5
+	FRONT                 = 0x0404
+	FRONT_AND_BACK        = 0x0408
 	FUNC_ADD              = 0x8006
 	FUNC_REVERSE_SUBTRACT = 0x800b
 	FUNC_SUBTRACT         = 0x800a
 	HIGH_FLOAT            = 0x8DF2
+	INCR_WRAP             = 0x8507
 	INFO_LOG_LENGTH       = 0x8B84
 	INVERT                = 0x150A
 	KEEP                  = 0x1E00

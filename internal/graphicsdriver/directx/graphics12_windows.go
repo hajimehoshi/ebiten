@@ -1097,7 +1097,7 @@ func (g *graphics12) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.
 
 	// Release constant buffers when too many ones will be created.
 	numPipelines := 1
-	if fillRule == graphicsdriver.EvenOdd {
+	if fillRule != graphicsdriver.FillAll {
 		numPipelines = 2
 	}
 	if len(g.pipelineStates.constantBuffers[g.frameIndex])+numPipelines > numDescriptorsPerFrame {

@@ -2793,6 +2793,189 @@ func TestImageEvenOdd(t *testing.T) {
 	}
 }
 
+func TestImageFillRule(t *testing.T) {
+	for _, fillRule := range []ebiten.FillRule{ebiten.FillAll, ebiten.NonZero, ebiten.EvenOdd} {
+		fillRule := fillRule
+		var name string
+		switch fillRule {
+		case ebiten.FillAll:
+			name = "FillAll"
+		case ebiten.NonZero:
+			name = "NonZero"
+		case ebiten.EvenOdd:
+			name = "EvenOdd"
+		}
+		t.Run(name, func(t *testing.T) {
+			whiteImage := ebiten.NewImage(3, 3)
+			whiteImage.Fill(color.White)
+			emptySubImage := whiteImage.SubImage(image.Rect(1, 1, 2, 2)).(*ebiten.Image)
+
+			// The outside rectangle (clockwise)
+			vs0 := []ebiten.Vertex{
+				{
+					DstX: 1, DstY: 1, SrcX: 1, SrcY: 1,
+					ColorR: 1, ColorG: 0, ColorB: 0, ColorA: 1,
+				},
+				{
+					DstX: 15, DstY: 1, SrcX: 1, SrcY: 1,
+					ColorR: 1, ColorG: 0, ColorB: 0, ColorA: 1,
+				},
+				{
+					DstX: 15, DstY: 15, SrcX: 1, SrcY: 1,
+					ColorR: 1, ColorG: 0, ColorB: 0, ColorA: 1,
+				},
+				{
+					DstX: 1, DstY: 15, SrcX: 1, SrcY: 1,
+					ColorR: 1, ColorG: 0, ColorB: 0, ColorA: 1,
+				},
+			}
+			is0 := []uint16{0, 1, 2, 2, 3, 0}
+
+			// An inside rectangle (clockwise)
+			vs1 := []ebiten.Vertex{
+				{
+					DstX: 2, DstY: 2, SrcX: 1, SrcY: 1,
+					ColorR: 0, ColorG: 1, ColorB: 0, ColorA: 1,
+				},
+				{
+					DstX: 7, DstY: 2, SrcX: 1, SrcY: 1,
+					ColorR: 0, ColorG: 1, ColorB: 0, ColorA: 1,
+				},
+				{
+					DstX: 7, DstY: 7, SrcX: 1, SrcY: 1,
+					ColorR: 0, ColorG: 1, ColorB: 0, ColorA: 1,
+				},
+				{
+					DstX: 2, DstY: 7, SrcX: 1, SrcY: 1,
+					ColorR: 0, ColorG: 1, ColorB: 0, ColorA: 1,
+				},
+			}
+			is1 := []uint16{4, 5, 6, 6, 7, 4}
+
+			// An inside rectangle (counter-clockwise)
+			vs2 := []ebiten.Vertex{
+				{
+					DstX: 9, DstY: 9, SrcX: 1, SrcY: 1,
+					ColorR: 0, ColorG: 0, ColorB: 1, ColorA: 1,
+				},
+				{
+					DstX: 14, DstY: 9, SrcX: 1, SrcY: 1,
+					ColorR: 0, ColorG: 0, ColorB: 1, ColorA: 1,
+				},
+				{
+					DstX: 14, DstY: 14, SrcX: 1, SrcY: 1,
+					ColorR: 0, ColorG: 0, ColorB: 1, ColorA: 1,
+				},
+				{
+					DstX: 9, DstY: 14, SrcX: 1, SrcY: 1,
+					ColorR: 0, ColorG: 0, ColorB: 1, ColorA: 1,
+				},
+			}
+			is2 := []uint16{8, 11, 10, 10, 9, 8}
+
+			// Draw all the vertices once. The even-odd rule is applied for all the vertices once.
+			dst := ebiten.NewImage(16, 16)
+			op := &ebiten.DrawTrianglesOptions{
+				FillRule: fillRule,
+			}
+			dst.DrawTriangles(append(append(vs0, vs1...), vs2...), append(append(is0, is1...), is2...), emptySubImage, op)
+			for j := 0; j < 16; j++ {
+				for i := 0; i < 16; i++ {
+					got := dst.At(i, j)
+					var want color.RGBA
+					switch {
+					case 2 <= i && i < 7 && 2 <= j && j < 7:
+						if fillRule != ebiten.EvenOdd {
+							want = color.RGBA{G: 0xff, A: 0xff}
+						}
+					case 9 <= i && i < 14 && 9 <= j && j < 14:
+						if fillRule == ebiten.FillAll {
+							want = color.RGBA{B: 0xff, A: 0xff}
+						}
+					case 1 <= i && i < 15 && 1 <= j && j < 15:
+						want = color.RGBA{R: 0xff, A: 0xff}
+					}
+					if got != want {
+						t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
+					}
+				}
+			}
+
+			// Do the same thing but with a little shift. This confirms that the underlying stencil buffer is cleared correctly.
+			for i := range vs0 {
+				vs0[i].DstX++
+				vs0[i].DstY++
+			}
+			for i := range vs1 {
+				vs1[i].DstX++
+				vs1[i].DstY++
+			}
+			for i := range vs2 {
+				vs2[i].DstX++
+				vs2[i].DstY++
+			}
+			dst.Clear()
+			dst.DrawTriangles(append(append(vs0, vs1...), vs2...), append(append(is0, is1...), is2...), emptySubImage, op)
+			for j := 0; j < 16; j++ {
+				for i := 0; i < 16; i++ {
+					got := dst.At(i, j)
+					var want color.RGBA
+					switch {
+					case 3 <= i && i < 8 && 3 <= j && j < 8:
+						if fillRule != ebiten.EvenOdd {
+							want = color.RGBA{G: 0xff, A: 0xff}
+						}
+					case 10 <= i && i < 15 && 10 <= j && j < 15:
+						if fillRule == ebiten.FillAll {
+							want = color.RGBA{B: 0xff, A: 0xff}
+						}
+					case 2 <= i && i < 16 && 2 <= j && j < 16:
+						want = color.RGBA{R: 0xff, A: 0xff}
+					}
+					if got != want {
+						t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
+					}
+				}
+			}
+
+			// Do the same thing but with split DrawTriangle calls. This confirms that fill rules are applied for one call.
+			for i := range vs0 {
+				vs0[i].DstX--
+				vs0[i].DstY--
+			}
+			for i := range vs1 {
+				vs1[i].DstX--
+				vs1[i].DstY--
+			}
+			for i := range vs2 {
+				vs2[i].DstX--
+				vs2[i].DstY--
+			}
+			dst.Clear()
+			dst.DrawTriangles(vs0, []uint16{0, 1, 2, 2, 3, 0}, emptySubImage, op)
+			dst.DrawTriangles(vs1, []uint16{0, 1, 2, 2, 3, 0}, emptySubImage, op)
+			dst.DrawTriangles(vs2, []uint16{0, 3, 2, 2, 1, 0}, emptySubImage, op)
+			for j := 0; j < 16; j++ {
+				for i := 0; i < 16; i++ {
+					got := dst.At(i, j)
+					var want color.RGBA
+					switch {
+					case 2 <= i && i < 7 && 2 <= j && j < 7:
+						want = color.RGBA{G: 0xff, A: 0xff}
+					case 9 <= i && i < 14 && 9 <= j && j < 14:
+						want = color.RGBA{B: 0xff, A: 0xff}
+					case 1 <= i && i < 15 && 1 <= j && j < 15:
+						want = color.RGBA{R: 0xff, A: 0xff}
+					}
+					if got != want {
+						t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
+					}
+				}
+			}
+		})
+	}
+}
+
 // #1658
 func BenchmarkColorMScale(b *testing.B) {
 	r := rand.Float64

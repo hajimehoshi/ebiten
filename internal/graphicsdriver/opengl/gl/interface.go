@@ -81,7 +81,7 @@ type Context interface {
 	Scissor(x, y, width, height int32)
 	ShaderSource(shader uint32, xstring string)
 	StencilFunc(func_ uint32, ref int32, mask uint32)
-	StencilOp(sfail, dpfail, dppass uint32)
+	StencilOpSeparate(face, sfail, dpfail, dppass uint32)
 	TexImage2D(target uint32, level int32, internalformat int32, width int32, height int32, format uint32, xtype uint32, pixels []byte)
 	TexParameteri(target uint32, pname uint32, param int32)
 	TexSubImage2D(target uint32, level int32, xoffset int32, yoffset int32, width int32, height int32, format uint32, xtype uint32, pixels []byte)

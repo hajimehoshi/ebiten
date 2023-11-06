@@ -314,6 +314,10 @@ const (
 	// FillAll indicates all the triangles are rendered regardless of overlaps.
 	FillAll FillRule = FillRule(graphicsdriver.FillAll)
 
+	// NonZero means that triangles are rendered based on the non-zero rule.
+	// If and only if the number of overlaps is not 0, the region is rendered.
+	NonZero FillRule = FillRule(graphicsdriver.NonZero)
+
 	// EvenOdd means that triangles are rendered based on the even-odd rule.
 	// If and only if the number of overlaps is odd, the region is rendered.
 	EvenOdd FillRule = FillRule(graphicsdriver.EvenOdd)
@@ -367,7 +371,7 @@ type DrawTrianglesOptions struct {
 
 	// FillRule indicates the rule how an overlapped region is rendered.
 	//
-	// The rule EvenOdd is useful when you want to render a complex polygon.
+	// The rules NonZero and EvenOdd are useful when you want to render a complex polygon.
 	// A complex polygon is a non-convex polygon like a concave polygon, a polygon with holes, or a self-intersecting polygon.
 	// See examples/vector for actual usages.
 	//
@@ -543,7 +547,7 @@ type DrawTrianglesShaderOptions struct {
 
 	// FillRule indicates the rule how an overlapped region is rendered.
 	//
-	// The rule EvenOdd is useful when you want to render a complex polygon.
+	// The rules NonZero and EvenOdd are useful when you want to render a complex polygon.
 	// A complex polygon is a non-convex polygon like a concave polygon, a polygon with holes, or a self-intersecting polygon.
 	// See examples/vector for actual usages.
 	//

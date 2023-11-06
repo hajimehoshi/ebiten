@@ -267,8 +267,8 @@ func (g *gomobileContext) StencilFunc(func_ uint32, ref int32, mask uint32) {
 	g.ctx.StencilFunc(gl.Enum(func_), int(ref), mask)
 }
 
-func (g *gomobileContext) StencilOp(sfail, dpfail, dppass uint32) {
-	g.ctx.StencilOp(gl.Enum(sfail), gl.Enum(dpfail), gl.Enum(dppass))
+func (g *gomobileContext) StencilOpSeparate(face, sfail, dpfail, dppass uint32) {
+	g.ctx.StencilOpSeparate(gl.Enum(face), gl.Enum(sfail), gl.Enum(dpfail), gl.Enum(dppass))
 }
 
 func (g *gomobileContext) TexImage2D(target uint32, level int32, internalformat int32, width int32, height int32, format uint32, xtype uint32, pixels []byte) {

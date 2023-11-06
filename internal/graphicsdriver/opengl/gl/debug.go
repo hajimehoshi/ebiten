@@ -501,11 +501,11 @@ func (d *DebugContext) StencilFunc(arg0 uint32, arg1 int32, arg2 uint32) {
 	}
 }
 
-func (d *DebugContext) StencilOp(arg0 uint32, arg1 uint32, arg2 uint32) {
-	d.Context.StencilOp(arg0, arg1, arg2)
-	fmt.Fprintln(os.Stderr, "StencilOp")
+func (d *DebugContext) StencilOpSeparate(arg0 uint32, arg1 uint32, arg2 uint32, arg3 uint32) {
+	d.Context.StencilOpSeparate(arg0, arg1, arg2, arg3)
+	fmt.Fprintln(os.Stderr, "StencilOpSeparate")
 	if e := d.Context.GetError(); e != NO_ERROR {
-		panic(fmt.Sprintf("gl: GetError() returned %d at StencilOp", e))
+		panic(fmt.Sprintf("gl: GetError() returned %d at StencilOpSeparate", e))
 	}
 }
 

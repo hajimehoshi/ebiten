@@ -396,7 +396,7 @@ func (p *Path) Close() {
 //
 // The returned vertice's SrcX and SrcY are 0, and ColorR, ColorG, ColorB, and ColorA are 1.
 //
-// The returned values are intended to be passed to DrawTriangles or DrawTrianglesShader with the EvenOdd fill rule
+// The returned values are intended to be passed to DrawTriangles or DrawTrianglesShader with the fill rule NonZero or EvenOdd
 // in order to render a complex polygon like a concave polygon, a polygon with holes, or a self-intersecting polygon.
 //
 // The returned vertices and indices should be rendered with a solid (non-transparent) color with the default Blend (source-over).
@@ -480,7 +480,7 @@ type StrokeOptions struct {
 // The returned vertice's SrcX and SrcY are 0, and ColorR, ColorG, ColorB, and ColorA are 1.
 //
 // The returned values are intended to be passed to DrawTriangles or DrawTrianglesShader with a solid (non-transparent) color
-// with the FillAll fill rule (not the EvenOdd fill rule).
+// with the FillAll fill rule (not NonZero or EvenOdd fill rule).
 func (p *Path) AppendVerticesAndIndicesForStroke(vertices []ebiten.Vertex, indices []uint16, op *StrokeOptions) ([]ebiten.Vertex, []uint16) {
 	if op == nil {
 		return vertices, indices

@@ -166,7 +166,7 @@ func (c *drawTrianglesCommand) CanMergeWithDrawTrianglesCommand(dst *Image, srcs
 	if c.fillRule != fillRule {
 		return false
 	}
-	if c.fillRule == graphicsdriver.EvenOdd && mightOverlapDstRegions(c.vertices, vertices) {
+	if c.fillRule != graphicsdriver.FillAll && mightOverlapDstRegions(c.vertices, vertices) {
 		return false
 	}
 	return true

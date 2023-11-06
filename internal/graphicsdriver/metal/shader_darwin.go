@@ -119,10 +119,10 @@ func (s *Shader) RenderPipelineState(view *view, blend graphicsdriver.Blend, ste
 	rpld.ColorAttachments[0].AlphaBlendOperation = blendOperationToMetalBlendOperation(blend.BlendOperationAlpha)
 	rpld.ColorAttachments[0].RGBBlendOperation = blendOperationToMetalBlendOperation(blend.BlendOperationRGB)
 
-	if stencilMode == prepareStencil {
-		rpld.ColorAttachments[0].WriteMask = mtl.ColorWriteMaskNone
-	} else {
+	if stencilMode == noStencil || stencilMode == drawWithStencil {
 		rpld.ColorAttachments[0].WriteMask = mtl.ColorWriteMaskAll
+	} else {
+		rpld.ColorAttachments[0].WriteMask = mtl.ColorWriteMaskNone
 	}
 
 	rps, err := view.getMTLDevice().MakeRenderPipelineState(rpld)

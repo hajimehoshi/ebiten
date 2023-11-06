@@ -244,9 +244,9 @@ package gl
 //   typedef void (*fn)(GLenum func, GLint ref, GLuint mask);
 //   ((fn)(fnptr))(func, ref, mask);
 // }
-// static void glowStencilOp(uintptr_t fnptr, GLenum fail, GLenum zfail, GLenum zpass) {
-//   typedef void (*fn)(GLenum fail, GLenum zfail, GLenum zpass);
-//   ((fn)(fnptr))(fail, zfail, zpass);
+// static void glowStencilOpSeparate(uintptr_t fnptr, GLenum face, GLenum fail, GLenum zfail, GLenum zpass) {
+//   typedef void (*fn)(GLenum face, GLenum fail, GLenum zfail, GLenum zpass);
+//   ((fn)(fnptr))(face, fail, zfail, zpass);
 // }
 // static void glowTexImage2D(uintptr_t fnptr, GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const void* pixels) {
 //   typedef void (*fn)(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const void* pixels);
@@ -384,7 +384,7 @@ type defaultContext struct {
 	gpScissor                  C.uintptr_t
 	gpShaderSource             C.uintptr_t
 	gpStencilFunc              C.uintptr_t
-	gpStencilOp                C.uintptr_t
+	gpStencilOpSeparate        C.uintptr_t
 	gpTexImage2D               C.uintptr_t
 	gpTexParameteri            C.uintptr_t
 	gpTexSubImage2D            C.uintptr_t
@@ -688,8 +688,8 @@ func (c *defaultContext) StencilFunc(xfunc uint32, ref int32, mask uint32) {
 	C.glowStencilFunc(c.gpStencilFunc, C.GLenum(xfunc), C.GLint(ref), C.GLuint(mask))
 }
 
-func (c *defaultContext) StencilOp(fail uint32, zfail uint32, zpass uint32) {
-	C.glowStencilOp(c.gpStencilOp, C.GLenum(fail), C.GLenum(zfail), C.GLenum(zpass))
+func (c *defaultContext) StencilOpSeparate(face uint32, fail uint32, zfail uint32, zpass uint32) {
+	C.glowStencilOpSeparate(c.gpStencilOpSeparate, C.GLenum(face), C.GLenum(fail), C.GLenum(zfail), C.GLenum(zpass))
 }
 
 func (c *defaultContext) TexImage2D(target uint32, level int32, internalformat int32, width int32, height int32, format uint32, xtype uint32, pixels []byte) {
@@ -840,7 +840,7 @@ func (c *defaultContext) LoadFunctions() error {
 	c.gpScissor = C.uintptr_t(g.get("glScissor"))
 	c.gpShaderSource = C.uintptr_t(g.get("glShaderSource"))
 	c.gpStencilFunc = C.uintptr_t(g.get("glStencilFunc"))
-	c.gpStencilOp = C.uintptr_t(g.get("glStencilOp"))
+	c.gpStencilOpSeparate = C.uintptr_t(g.get("glStencilOpSeparate"))
 	c.gpTexImage2D = C.uintptr_t(g.get("glTexImage2D"))
 	c.gpTexParameteri = C.uintptr_t(g.get("glTexParameteri"))
 	c.gpTexSubImage2D = C.uintptr_t(g.get("glTexSubImage2D"))

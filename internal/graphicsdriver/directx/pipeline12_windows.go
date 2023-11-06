@@ -309,21 +309,31 @@ func (p *pipelineStates) drawTriangles(device *_ID3D12Device, commandList *_ID3D
 		switch fillRule {
 		case graphicsdriver.FillAll:
 			commandList.DrawIndexedInstanced(uint32(dstRegion.IndexCount), 1, uint32(indexOffset), 0, 0)
-		case graphicsdriver.EvenOdd:
-			s, err := shader.pipelineState(blend, prepareStencil, screen)
+		case graphicsdriver.NonZero:
+			s, err := shader.pipelineState(blend, incrementStencil, screen)
 			if err != nil {
 				return err
 			}
 			commandList.SetPipelineState(s)
 			commandList.DrawIndexedInstanced(uint32(dstRegion.IndexCount), 1, uint32(indexOffset), 0, 0)
-
-			s, err = shader.pipelineState(blend, drawWithStencil, screen)
+		case graphicsdriver.EvenOdd:
+			s, err := shader.pipelineState(blend, invertStencil, screen)
 			if err != nil {
 				return err
 			}
 			commandList.SetPipelineState(s)
 			commandList.DrawIndexedInstanced(uint32(dstRegion.IndexCount), 1, uint32(indexOffset), 0, 0)
 		}
+
+		if fillRule != graphicsdriver.FillAll {
+			s, err := shader.pipelineState(blend, drawWithStencil, screen)
+			if err != nil {
+				return err
+			}
+			commandList.SetPipelineState(s)
+			commandList.DrawIndexedInstanced(uint32(dstRegion.IndexCount), 1, uint32(indexOffset), 0, 0)
+		}
+
 		indexOffset += dstRegion.IndexCount
 	}
 
@@ -443,14 +453,21 @@ func (p *pipelineStates) newPipelineState(device *_ID3D12Device, vsh, psh *_ID3D
 			StencilFunc:        _D3D12_COMPARISON_FUNC_ALWAYS,
 		},
 	}
-	writeMask := uint8(_D3D12_COLOR_WRITE_ENABLE_ALL)
+
+	var writeMask uint8
+	if stencilMode == noStencil || stencilMode == drawWithStencil {
+		writeMask = uint8(_D3D12_COLOR_WRITE_ENABLE_ALL)
+	}
 
 	switch stencilMode {
-	case prepareStencil:
+	case incrementStencil:
+		depthStencilDesc.StencilEnable = 1
+		depthStencilDesc.FrontFace.StencilPassOp = _D3D12_STENCIL_OP_INCR
+		depthStencilDesc.BackFace.StencilPassOp = _D3D12_STENCIL_OP_DECR
+	case invertStencil:
 		depthStencilDesc.StencilEnable = 1
 		depthStencilDesc.FrontFace.StencilPassOp = _D3D12_STENCIL_OP_INVERT
 		depthStencilDesc.BackFace.StencilPassOp = _D3D12_STENCIL_OP_INVERT
-		writeMask = 0
 	case drawWithStencil:
 		depthStencilDesc.StencilEnable = 1
 		depthStencilDesc.FrontFace.StencilFunc = _D3D12_COMPARISON_FUNC_NOT_EQUAL
