@@ -26,7 +26,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/examples/resources/fonts"
-	"github.com/hajimehoshi/ebiten/v2/text"
+	"github.com/hajimehoshi/ebiten/v2/text/v2"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
@@ -39,8 +39,8 @@ const sampleText = `  The quick brown fox jumps
 over the lazy dog.`
 
 var (
-	mplusNormalFont font.Face
-	mplusBigFont    font.Face
+	mplusNormalFace *text.StdFace
+	mplusBigFace    *text.StdFace
 )
 
 func init() {
@@ -50,7 +50,7 @@ func init() {
 	}
 
 	const dpi = 72
-	mplusNormalFont, err = opentype.NewFace(tt, &opentype.FaceOptions{
+	mplusNormalFont, err := opentype.NewFace(tt, &opentype.FaceOptions{
 		Size:    24,
 		DPI:     dpi,
 		Hinting: font.HintingVertical,
@@ -58,7 +58,9 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	mplusBigFont, err = opentype.NewFace(tt, &opentype.FaceOptions{
+	mplusNormalFace = text.NewStdFace(mplusNormalFont)
+
+	mplusBigFont, err := opentype.NewFace(tt, &opentype.FaceOptions{
 		Size:    32,
 		DPI:     dpi,
 		Hinting: font.HintingVertical,
@@ -66,43 +68,24 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	mplusBigFace = text.NewStdFace(mplusBigFont)
 }
 
 type Game struct {
 	counter        int
 	kanjiText      []rune
 	kanjiTextColor color.RGBA
-	glyphs         []text.Glyph
+	glyphs         [][]text.Glyph
 }
 
 func (g *Game) Update() error {
 	// Initialize the glyphs for special (colorful) rendering.
 	if len(g.glyphs) == 0 {
-		g.glyphs = text.AppendGlyphs(g.glyphs, mplusNormalFont, sampleText)
-	}
-	return nil
-}
-
-func boundString(face font.Face, str string) fixed.Rectangle26_6 {
-	str = strings.TrimRight(str, "\n")
-	lines := strings.Split(str, "\n")
-	if len(lines) == 0 {
-		return fixed.Rectangle26_6{}
-	}
-
-	minX := fixed.I(0)
-	maxX := fixed.I(0)
-	for _, line := range lines {
-		a := font.MeasureString(face, line)
-		if maxX < a {
-			maxX = a
+		for _, line := range strings.Split(sampleText, "\n") {
+			g.glyphs = append(g.glyphs, text.AppendGlyphs(nil, line, mplusNormalFace, 0, 0))
 		}
 	}
-
-	m := face.Metrics()
-	minY := -m.Ascent
-	maxY := fixed.Int26_6(len(lines)-1)*m.Height + m.Descent
-	return fixed.Rectangle26_6{Min: fixed.Point26_6{X: minX, Y: minY}, Max: fixed.Point26_6{X: maxX, Y: maxY}}
+	return nil
 }
 
 func fixed26_6ToFloat32(x fixed.Int26_6) float32 {
@@ -114,30 +97,40 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 	{
 		const x, y = 20, 40
-		b := boundString(mplusNormalFont, sampleText)
-		vector.DrawFilledRect(screen, fixed26_6ToFloat32(b.Min.X)+x, fixed26_6ToFloat32(b.Min.Y)+y, fixed26_6ToFloat32(b.Max.X-b.Min.X), fixed26_6ToFloat32(b.Max.Y-b.Min.Y), gray, false)
-		text.Draw(screen, sampleText, mplusNormalFont, x, y, color.White)
+		w, h := text.Measure(sampleText, mplusNormalFace, mplusNormalFace.Metrics().Height)
+		vector.DrawFilledRect(screen, x, y, float32(w), float32(h), gray, false)
+		op := &text.DrawOptions{}
+		op.GeoM.Translate(x, y)
+		op.LineHeightInPixels = mplusNormalFace.Metrics().Height
+		text.Draw(screen, sampleText, mplusNormalFace, op)
 	}
 	{
 		const x, y = 20, 140
-		b := boundString(mplusBigFont, sampleText)
-		vector.DrawFilledRect(screen, fixed26_6ToFloat32(b.Min.X)+x, fixed26_6ToFloat32(b.Min.Y)+y, fixed26_6ToFloat32(b.Max.X-b.Min.X), fixed26_6ToFloat32(b.Max.Y-b.Min.Y), gray, false)
-		text.Draw(screen, sampleText, mplusBigFont, x, y, color.White)
+		w, h := text.Measure(sampleText, mplusBigFace, mplusBigFace.Metrics().Height)
+		vector.DrawFilledRect(screen, x, y, float32(w), float32(h), gray, false)
+		op := &text.DrawOptions{}
+		op.GeoM.Translate(x, y)
+		op.LineHeightInPixels = mplusBigFace.Metrics().Height
+		text.Draw(screen, sampleText, mplusBigFace, op)
 	}
 	{
 		const x, y = 20, 240
-		op := &ebiten.DrawImageOptions{}
+		op := &text.DrawOptions{}
 		op.GeoM.Rotate(math.Pi / 4)
 		op.GeoM.Translate(x, y)
 		op.Filter = ebiten.FilterLinear
-		text.DrawWithOptions(screen, sampleText, mplusNormalFont, op)
+		op.LineHeightInPixels = mplusNormalFace.Metrics().Height
+		text.Draw(screen, sampleText, mplusNormalFace, op)
 	}
 	{
 		const x, y = 160, 240
 		const lineHeight = 80
-		b := boundString(text.FaceWithLineHeight(mplusBigFont, lineHeight), sampleText)
-		vector.DrawFilledRect(screen, fixed26_6ToFloat32(b.Min.X)+x, fixed26_6ToFloat32(b.Min.Y)+y, fixed26_6ToFloat32(b.Max.X-b.Min.X), fixed26_6ToFloat32(b.Max.Y-b.Min.Y), gray, false)
-		text.Draw(screen, sampleText, text.FaceWithLineHeight(mplusBigFont, lineHeight), x, y, color.White)
+		w, h := text.Measure(sampleText, mplusBigFace, lineHeight)
+		vector.DrawFilledRect(screen, x, y, float32(w), float32(h), gray, false)
+		op := &text.DrawOptions{}
+		op.GeoM.Translate(x, y)
+		op.LineHeightInPixels = lineHeight
+		text.Draw(screen, sampleText, mplusBigFace, op)
 	}
 	{
 		const x, y = 240, 400
@@ -145,25 +138,28 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		// g.glyphs is initialized by text.AppendGlyphs.
 		// You can customize how to render each glyph.
 		// In this example, multiple colors are used to render glyphs.
-		for i, gl := range g.glyphs {
-			op.GeoM.Reset()
-			op.GeoM.Translate(x, y)
-			op.GeoM.Translate(gl.X, gl.Y)
-			op.ColorScale.Reset()
-			r := float32(1)
-			if i%3 == 0 {
-				r = 0.5
+		for j, line := range g.glyphs {
+			for i, gl := range line {
+				op.GeoM.Reset()
+				op.GeoM.Translate(x, y)
+				op.GeoM.Translate(0, float64(j)*mplusNormalFace.Metrics().Height)
+				op.GeoM.Translate(gl.X, gl.Y)
+				op.ColorScale.Reset()
+				r := float32(1)
+				if i%3 == 0 {
+					r = 0.5
+				}
+				g := float32(1)
+				if i%3 == 1 {
+					g = 0.5
+				}
+				b := float32(1)
+				if i%3 == 2 {
+					b = 0.5
+				}
+				op.ColorScale.Scale(r, g, b, 1)
+				screen.DrawImage(gl.Image, op)
 			}
-			g := float32(1)
-			if i%3 == 1 {
-				g = 0.5
-			}
-			b := float32(1)
-			if i%3 == 2 {
-				b = 0.5
-			}
-			op.ColorScale.Scale(r, g, b, 1)
-			screen.DrawImage(gl.Image, op)
 		}
 	}
 }

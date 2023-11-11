@@ -17,7 +17,6 @@ package main
 import (
 	"bytes"
 	"image"
-	"image/color"
 	_ "image/png"
 	"log"
 	"strings"
@@ -28,13 +27,15 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/examples/keyboard/keyboard"
 	rkeyboard "github.com/hajimehoshi/ebiten/v2/examples/resources/images/keyboard"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
-	"github.com/hajimehoshi/ebiten/v2/text"
+	"github.com/hajimehoshi/ebiten/v2/text/v2"
 )
 
 const (
 	screenWidth  = 320
 	screenHeight = 240
 )
+
+var fontFace = text.NewStdFace(bitmapfont.Face)
 
 var keyboardImage *ebiten.Image
 
@@ -91,7 +92,9 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	}
 
 	// Use bitmapfont.Face instead of ebitenutil.DebugPrint, since some key names might not be printed with DebugPrint.
-	text.Draw(screen, strings.Join(keyStrs, ", ")+"\n"+strings.Join(keyNames, ", "), bitmapfont.Face, 4, 12, color.White)
+	textOp := &text.DrawOptions{}
+	textOp.LineHeightInPixels = fontFace.Metrics().Height
+	text.Draw(screen, strings.Join(keyStrs, ", ")+"\n"+strings.Join(keyNames, ", "), fontFace, textOp)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {

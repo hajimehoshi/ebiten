@@ -24,17 +24,15 @@ import (
 	"unicode/utf8"
 
 	"github.com/hajimehoshi/bitmapfont/v3"
-	"golang.org/x/image/font"
-	"golang.org/x/image/math/fixed"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/exp/textinput"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
-	"github.com/hajimehoshi/ebiten/v2/text"
+	"github.com/hajimehoshi/ebiten/v2/text/v2"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
-var fontFace = bitmapfont.FaceEA
+var fontFace = text.NewStdFace(bitmapfont.FaceEA)
 
 const (
 	screenWidth  = 640
@@ -93,15 +91,15 @@ func (t *TextField) textIndexByCursorPosition(x, y int) (int, bool) {
 		y = 0
 	}
 
-	lineHeight := fontFace.Metrics().Height.Ceil()
+	lineHeight := int(fontFace.Metrics().Height)
 	var nlCount int
 	var lineStart int
-	var prevAdvance fixed.Int26_6
+	var prevAdvance float64
 	for i, r := range t.text {
 		var x0, x1 int
-		currentAdvance := font.MeasureString(fontFace, t.text[lineStart:i])
+		currentAdvance := text.Advance(fontFace, t.text[lineStart:i])
 		if lineStart < i {
-			x0 = ((prevAdvance + currentAdvance) / 2).Ceil()
+			x0 = int((prevAdvance + currentAdvance) / 2)
 		}
 		if r == '\n' {
 			x1 = int(math.MaxInt32)
@@ -110,10 +108,10 @@ func (t *TextField) textIndexByCursorPosition(x, y int) (int, bool) {
 			for !utf8.ValidString(t.text[i:nextI]) {
 				nextI++
 			}
-			nextAdvance := font.MeasureString(fontFace, t.text[lineStart:nextI])
-			x1 = ((currentAdvance + nextAdvance) / 2).Ceil()
+			nextAdvance := text.Advance(fontFace, t.text[lineStart:nextI])
+			x1 = int((currentAdvance + nextAdvance) / 2)
 		} else {
-			x1 = currentAdvance.Ceil()
+			x1 = int(currentAdvance)
 		}
 		if x0 <= x && x < x1 && nlCount*lineHeight <= y && y < (nlCount+1)*lineHeight {
 			return i, true
@@ -159,7 +157,7 @@ func (t *TextField) Update() {
 			cx, cy := t.cursorPos()
 			px, py := textFieldPadding()
 			x += cx + px
-			y += cy + py + fontFace.Metrics().Ascent.Ceil()
+			y += cy + py + int(fontFace.Metrics().HAscent)
 			t.ch, t.end = textinput.Start(x, y)
 			// Start returns nil for non-supported envrionments.
 			if t.ch == nil {
@@ -257,8 +255,8 @@ func (t *TextField) cursorPos() (int, int) {
 	if t.state.Text != "" {
 		txt += t.state.Text[:t.state.CompositionSelectionStartInBytes]
 	}
-	x := font.MeasureString(fontFace, txt).Ceil()
-	y := nlCount * fontFace.Metrics().Height.Ceil()
+	x := int(text.Advance(fontFace, txt))
+	y := nlCount * int(fontFace.Metrics().Height)
 	return x, y
 }
 
@@ -276,7 +274,7 @@ func (t *TextField) Draw(screen *ebiten.Image) {
 		cx, cy := t.cursorPos()
 		x += px + cx
 		y += py + cy
-		h := fontFace.Metrics().Height.Ceil()
+		h := int(fontFace.Metrics().Height)
 		vector.StrokeLine(screen, float32(x), float32(y), float32(x), float32(y+h), 1, color.Black, false)
 	}
 
@@ -286,15 +284,19 @@ func (t *TextField) Draw(screen *ebiten.Image) {
 	}
 
 	tx := t.bounds.Min.X + px
-	ty := t.bounds.Min.Y + py + fontFace.Metrics().Ascent.Ceil()
-	text.Draw(screen, shownText, fontFace, tx, ty, color.Black)
+	ty := t.bounds.Min.Y + py
+	op := &text.DrawOptions{}
+	op.GeoM.Translate(float64(tx), float64(ty))
+	op.ColorScale.ScaleWithColor(color.Black)
+	op.LineHeightInPixels = fontFace.Metrics().Height
+	text.Draw(screen, shownText, fontFace, op)
 }
 
 const textFieldHeight = 24
 
 func textFieldPadding() (int, int) {
 	m := fontFace.Metrics()
-	return 4, (textFieldHeight - m.Height.Ceil()) / 2
+	return 4, (textFieldHeight - int(m.Height)) / 2
 }
 
 type Game struct {

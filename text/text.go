@@ -15,6 +15,8 @@
 // Package text offers functions to draw texts on an Ebitengine's image.
 //
 // For the example using a TTF font, see font package in the examples.
+//
+// Deprecated: as of v2.7. Use text/v2 instead.
 package text
 
 import (
