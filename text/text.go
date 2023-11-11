@@ -179,11 +179,11 @@ func Draw(dst *ebiten.Image, text string, face font.Face, x, y int, clr color.Co
 // DrawWithOptions draws a given text on a given destination image dst.
 //
 // face is the font for text rendering.
-// op is the options to draw glyph images.
+// options is the options to draw glyph images.
 // The origin point is the origin position in this figure:
 // https://developer.apple.com/library/archive/documentation/TextFonts/Conceptual/CocoaTextArchitecture/Art/glyphterms_2x.png.
 // Be careful that the origin point is not upper-left corner position of dst.
-// The default glyph color is white. op's ColorM adjusts the color.
+// The default glyph color is white. options' ColorScale adjusts the color.
 //
 // The '\n' newline character puts the following text on the next line.
 // Line height is based on Metrics().Height of the font.
