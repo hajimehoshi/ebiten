@@ -395,8 +395,8 @@ func (f faceWithLineHeight) Close() error {
 	return f.face.Close()
 }
 
-func (f faceWithLineHeight) Glyph(dot fixed.Point26_6, r rune) (dr image.Rectangle, mask image.Image, maskp image.Point, advance fixed.Int26_6, ok bool) {
-	return f.face.Glyph(dot, r)
+func (f faceWithLineHeight) Glyph(origin fixed.Point26_6, r rune) (dr image.Rectangle, mask image.Image, maskp image.Point, advance fixed.Int26_6, ok bool) {
+	return f.face.Glyph(origin, r)
 }
 
 func (f faceWithLineHeight) GlyphBounds(r rune) (bounds fixed.Rectangle26_6, advance fixed.Int26_6, ok bool) {
@@ -429,12 +429,12 @@ type Glyph struct {
 
 	// X is the X position to render this glyph.
 	// The position is determined in a sequence of characters given at AppendGlyphs.
-	// The position's origin is the first character's dot ('.') position.
+	// The position's origin is the first character's origin position.
 	X float64
 
 	// Y is the Y position to render this glyph.
 	// The position is determined in a sequence of characters given at AppendGlyphs.
-	// The position's origin is the first character's dot ('.') position.
+	// The position's origin is the first character's origin position.
 	Y float64
 }
 
