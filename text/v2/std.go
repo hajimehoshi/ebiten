@@ -126,34 +126,33 @@ func (s *StdFace) appendGlyphs(glyphs []Glyph, text string, originX, originY flo
 
 func (s *StdFace) glyphImage(r rune, origin fixed.Point26_6) (*ebiten.Image, float64, float64, fixed.Int26_6) {
 	b, a, _ := s.f.GlyphBounds(r)
-	offset := fixed.Point26_6{
+	subpixelOffset := fixed.Point26_6{
 		X: (adjustOffsetGranularity(origin.X) + b.Min.X) & ((1 << 6) - 1),
 		Y: (fixed.I(origin.Y.Floor()) + b.Min.Y) & ((1 << 6) - 1),
 	}
 	key := glyphImageCacheKey{
 		rune:    r,
-		xoffset: offset.X,
+		xoffset: subpixelOffset.X,
 		// yoffset is always an integer, so this doesn't have to be a key.
 	}
 	img := theGlyphImageCache.getOrCreate(s, key, func() *ebiten.Image {
-		return s.glyphImageImpl(r, offset)
+		return s.glyphImageImpl(r, subpixelOffset, b)
 	})
-	imgX := fixed26_6ToFloat64(origin.X + b.Min.X - offset.X)
-	imgY := fixed26_6ToFloat64(origin.Y + b.Min.Y - offset.Y)
+	imgX := fixed26_6ToFloat64(origin.X + b.Min.X - subpixelOffset.X)
+	imgY := fixed26_6ToFloat64(origin.Y + b.Min.Y - subpixelOffset.Y)
 	return img, imgX, imgY, a
 }
 
-func (s *StdFace) glyphImageImpl(r rune, offset fixed.Point26_6) *ebiten.Image {
-	b, _, _ := s.f.GlyphBounds(r)
-	w, h := (b.Max.X - b.Min.X).Ceil(), (b.Max.Y - b.Min.Y).Ceil()
+func (s *StdFace) glyphImageImpl(r rune, subpixelOffset fixed.Point26_6, glyphBounds fixed.Rectangle26_6) *ebiten.Image {
+	w, h := (glyphBounds.Max.X - glyphBounds.Min.X).Ceil(), (glyphBounds.Max.Y - glyphBounds.Min.Y).Ceil()
 	if w == 0 || h == 0 {
 		return nil
 	}
 
-	if b.Min.X&((1<<6)-1) != 0 {
+	if glyphBounds.Min.X&((1<<6)-1) != 0 {
 		w++
 	}
-	if b.Min.Y&((1<<6)-1) != 0 {
+	if glyphBounds.Min.Y&((1<<6)-1) != 0 {
 		h++
 	}
 	rgba := image.NewRGBA(image.Rect(0, 0, w, h))
@@ -162,12 +161,11 @@ func (s *StdFace) glyphImageImpl(r rune, offset fixed.Point26_6) *ebiten.Image {
 		Dst:  rgba,
 		Src:  image.White,
 		Face: s.f,
+		Dot: fixed.Point26_6{
+			X: -glyphBounds.Min.X + subpixelOffset.X,
+			Y: -glyphBounds.Min.Y + subpixelOffset.Y,
+		},
 	}
-
-	x, y := -b.Min.X, -b.Min.Y
-	x += offset.X
-	y += offset.Y
-	d.Dot = fixed.Point26_6{X: x, Y: y}
 	d.DrawString(string(r))
 
 	return ebiten.NewImageFromImage(rgba)
