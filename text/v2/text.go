@@ -78,8 +78,10 @@ func float64ToFixed26_6(x float64) fixed.Int26_6 {
 	return fixed.Int26_6(i)<<6 + fixed.Int26_6(frac*(1<<6))
 }
 
+const glyphVariationCount = 4
+
 func adjustOffsetGranularity(x fixed.Int26_6) fixed.Int26_6 {
-	return x / (1 << 4) * (1 << 4)
+	return x / (1 << glyphVariationCount) * (1 << glyphVariationCount)
 }
 
 // Glyph represents one glyph to render.
@@ -196,4 +198,39 @@ func Measure(text string, face Face, lineHeightInPixels float64) (width, height 
 	}
 	secondary := float64(lineCount-1)*lineHeightInPixels + m.VAscent + m.VDescent
 	return secondary, primary
+}
+
+// CacheGlyphs pre-caches the glyphs for the given text and the given font face into the cache.
+//
+// CacheGlyphs doesn't treat multiple lines.
+//
+// Glyphs used for rendering are cached in the least-recently-used way.
+// Then old glyphs might be evicted from the cache.
+// As the cache capacity has limitations, it is not guaranteed that all the glyphs for runes given at CacheGlyphs are cached.
+// The cache is shared with Draw and AppendGlyphs.
+//
+// One rune can have multiple variations of glyphs due to sub-pixels in X or Y direction.
+// CacheGlyphs creates all such variations for one rune, while Draw and AppendGlyphs create only necessary glyphs.
+//
+// Draw and AppendGlyphs automatically create and cache necessary glyphs, so usually you don't have to call CacheGlyphs explicitly.
+// However, for example, when you call Draw for each rune of one big text, Draw tries to create the glyph cache and render it for each rune.
+// This is very inefficient because creating a glyph image and rendering it are different operations
+// (`(*ebiten.Image).WritePixels` and `(*ebiten.Image).DrawImage`) and can never be merged as one draw call.
+// CacheGlyphs creates necessary glyphs without rendering them so that these operations are likely merged into one draw call regardless of the size of the text.
+//
+// CacheGlyphs is concurrent-safe.
+func CacheGlyphs(text string, face Face) {
+	var x, y float64
+
+	var buf []Glyph
+	// Create all the possible variations (#2528).
+	for i := 0; i < 4; i++ {
+		if face.direction().isHorizontal() {
+			x += 1.0 / glyphVariationCount
+		} else {
+			y += 1.0 / glyphVariationCount
+		}
+		buf = AppendGlyphs(buf, text, face, x, y)
+		buf = buf[:0]
+	}
 }
