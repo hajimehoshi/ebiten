@@ -96,7 +96,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	gray := color.RGBA{0x80, 0x80, 0x80, 0xff}
 
 	{
-		const x, y = 20, 40
+		const x, y = 20, 20
 		w, h := text.Measure(sampleText, mplusNormalFace, mplusNormalFace.Metrics().Height)
 		vector.DrawFilledRect(screen, x, y, float32(w), float32(h), gray, false)
 		op := &text.DrawOptions{}
@@ -105,7 +105,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		text.Draw(screen, sampleText, mplusNormalFace, op)
 	}
 	{
-		const x, y = 20, 140
+		const x, y = 20, 120
 		w, h := text.Measure(sampleText, mplusBigFace, mplusBigFace.Metrics().Height)
 		vector.DrawFilledRect(screen, x, y, float32(w), float32(h), gray, false)
 		op := &text.DrawOptions{}
@@ -114,7 +114,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		text.Draw(screen, sampleText, mplusBigFace, op)
 	}
 	{
-		const x, y = 20, 240
+		const x, y = 20, 220
 		op := &text.DrawOptions{}
 		op.GeoM.Rotate(math.Pi / 4)
 		op.GeoM.Translate(x, y)
@@ -123,7 +123,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		text.Draw(screen, sampleText, mplusNormalFace, op)
 	}
 	{
-		const x, y = 160, 240
+		const x, y = 160, 220
 		const lineHeight = 80
 		w, h := text.Measure(sampleText, mplusBigFace, lineHeight)
 		vector.DrawFilledRect(screen, x, y, float32(w), float32(h), gray, false)
@@ -133,7 +133,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		text.Draw(screen, sampleText, mplusBigFace, op)
 	}
 	{
-		const x, y = 240, 400
+		const x, y = 240, 380
 		op := &ebiten.DrawImageOptions{}
 		// g.glyphs is initialized by text.AppendGlyphs.
 		// You can customize how to render each glyph.
