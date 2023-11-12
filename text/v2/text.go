@@ -85,7 +85,7 @@ func float64ToFixed26_6(x float64) fixed.Int26_6 {
 const glyphVariationCount = 4
 
 func adjustOffsetGranularity(x fixed.Int26_6) fixed.Int26_6 {
-	return x / (1 << glyphVariationCount) * (1 << glyphVariationCount)
+	return x / ((1 << 6) / glyphVariationCount) * ((1 << 6) / glyphVariationCount)
 }
 
 // Glyph represents one glyph to render.
