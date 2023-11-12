@@ -95,15 +95,17 @@ func (s *StdFace) advance(text string) float64 {
 func (s *StdFace) appendGlyphs(glyphs []Glyph, text string, originX, originY float64) []Glyph {
 	s.copyCheck()
 
-	x := float64ToFixed26_6(originX)
-	y := float64ToFixed26_6(originY)
+	origin := fixed.Point26_6{
+		X: float64ToFixed26_6(originX),
+		Y: float64ToFixed26_6(originY),
+	}
 	prevR := rune(-1)
 
 	for i, r := range text {
 		if prevR >= 0 {
-			x += s.f.Kern(prevR, r)
+			origin.X += s.f.Kern(prevR, r)
 		}
-		img, imgX, imgY, a := s.glyphImage(r, x, y)
+		img, imgX, imgY, a := s.glyphImage(r, origin)
 		if img != nil {
 			// Adjust the position to the integers.
 			// The current glyph images assume that they are rendered on integer positions so far.
@@ -115,18 +117,18 @@ func (s *StdFace) appendGlyphs(glyphs []Glyph, text string, originX, originY flo
 				Y:            imgY,
 			})
 		}
-		x += a
+		origin.X += a
 		prevR = r
 	}
 
 	return glyphs
 }
 
-func (s *StdFace) glyphImage(r rune, x, y fixed.Int26_6) (*ebiten.Image, float64, float64, fixed.Int26_6) {
+func (s *StdFace) glyphImage(r rune, origin fixed.Point26_6) (*ebiten.Image, float64, float64, fixed.Int26_6) {
 	b, a, _ := s.f.GlyphBounds(r)
 	offset := fixed.Point26_6{
-		X: (adjustOffsetGranularity(x) + b.Min.X) & ((1 << 6) - 1),
-		Y: (fixed.I(y.Floor()) + b.Min.Y) & ((1 << 6) - 1),
+		X: (adjustOffsetGranularity(origin.X) + b.Min.X) & ((1 << 6) - 1),
+		Y: (fixed.I(origin.Y.Floor()) + b.Min.Y) & ((1 << 6) - 1),
 	}
 	key := glyphImageCacheKey{
 		rune:    r,
@@ -136,8 +138,8 @@ func (s *StdFace) glyphImage(r rune, x, y fixed.Int26_6) (*ebiten.Image, float64
 	img := theGlyphImageCache.getOrCreate(s, key, func() *ebiten.Image {
 		return s.glyphImageImpl(r, offset)
 	})
-	imgX := fixed26_6ToFloat64(x + b.Min.X - offset.X)
-	imgY := fixed26_6ToFloat64(y + b.Min.Y - offset.Y)
+	imgX := fixed26_6ToFloat64(origin.X + b.Min.X - offset.X)
+	imgY := fixed26_6ToFloat64(origin.Y + b.Min.Y - offset.Y)
 	return img, imgX, imgY, a
 }
 
