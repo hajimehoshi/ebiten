@@ -20,13 +20,12 @@ package text
 import (
 	"math"
 	"strings"
+	"sync/atomic"
 
 	"golang.org/x/image/math/fixed"
 
 	"github.com/hajimehoshi/ebiten/v2"
 )
-
-type faceCacheKey uint64
 
 // Face is an interface representing a font face. The implementations are only GoTextFace and StdFace.
 type Face interface {
@@ -63,6 +62,10 @@ type Metrics struct {
 	// The value is typically positive, even though a descender goes below the baseline.
 	HDescent float64
 
+	// Width is the recommended amount of horizontal space between two lines of text in pixels.
+	// If the face is StdFace or the font dosen't support a vertical direction, Width is 0.
+	Width float64
+
 	// VAscent is the distance in pixels from the top of a line to its baseline for vertical lines.
 	// If the face is StdFace or the font dosen't support a vertical direction, VAscent is 0.
 	VAscent float64
@@ -72,8 +75,18 @@ type Metrics struct {
 	VDescent float64
 }
 
+func fixed26_6ToFloat32(x fixed.Int26_6) float32 {
+	return float32(x>>6) + float32(x&((1<<6)-1))/float32(1<<6)
+}
+
 func fixed26_6ToFloat64(x fixed.Int26_6) float64 {
 	return float64(x>>6) + float64(x&((1<<6)-1))/float64(1<<6)
+}
+
+func float32ToFixed26_6(x float32) fixed.Int26_6 {
+	i := float32(math.Floor(float64(x)))
+	frac := x - i
+	return fixed.Int26_6(i)<<6 + fixed.Int26_6(frac*(1<<6))
 }
 
 func float64ToFixed26_6(x float64) fixed.Int26_6 {
@@ -226,4 +239,10 @@ func CacheGlyphs(text string, face Face) {
 			y += 1.0 / glyphVariationCount
 		}
 	}
+}
+
+var currentUniqueID uint64
+
+func nextUniqueID() uint64 {
+	return atomic.AddUint64(&currentUniqueID, 1)
 }

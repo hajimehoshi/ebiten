@@ -16,7 +16,6 @@ package text
 
 import (
 	"math"
-	"runtime"
 	"sync"
 
 	"golang.org/x/image/math/fixed"
@@ -40,10 +39,24 @@ func init() {
 	})
 }
 
+type faceCacheKey struct {
+	stdFaceID uint64
+
+	goTextFaceSourceID     uint64
+	goTextFaceDirection    Direction
+	goTextFaceSizeInPoints float64
+	goTextFaceLanguage     string
+	goTextFaceScript       string
+	goTextFaceVariations   string
+	goTextFaceFeatures     string
+}
+
 type glyphImageCacheKey struct {
-	// For StdFace
-	rune    rune
+	// id is rune for StdFace, and GID for GoTextFace.
+	id uint32
+
 	xoffset fixed.Int26_6
+	yoffset fixed.Int26_6
 }
 
 type glyphImageCacheEntry struct {
@@ -109,10 +122,13 @@ func (g *glyphImageCache) getOrCreate(face Face, key glyphImageCacheKey, create 
 	return img
 }
 
-func (g *glyphImageCache) clear(face Face) {
-	runtime.SetFinalizer(face, nil)
-
+func (g *glyphImageCache) clear(comp func(key faceCacheKey) bool) {
 	g.m.Lock()
 	defer g.m.Unlock()
-	delete(g.cache, face.faceCacheKey())
+
+	for key := range g.cache {
+		if comp(key) {
+			delete(g.cache, key)
+		}
+	}
 }

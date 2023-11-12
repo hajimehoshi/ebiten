@@ -17,7 +17,6 @@ package text
 import (
 	"image"
 	"runtime"
-	"sync/atomic"
 	"unicode/utf8"
 
 	"golang.org/x/image/font"
@@ -25,12 +24,6 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 )
-
-var currentStdFaceID uint64
-
-func nextStdFaceID() uint64 {
-	return atomic.AddUint64(&currentStdFaceID, 1)
-}
 
 var _ Face = (*StdFace)(nil)
 
@@ -51,11 +44,18 @@ func NewStdFace(face font.Face) *StdFace {
 		f: &faceWithCache{
 			f: face,
 		},
-		id: nextStdFaceID(),
+		id: nextUniqueID(),
 	}
 	s.addr = s
-	runtime.SetFinalizer(s, theGlyphImageCache.clear)
+	runtime.SetFinalizer(s, finalizeStdFace)
 	return s
+}
+
+func finalizeStdFace(face *StdFace) {
+	runtime.SetFinalizer(face, nil)
+	theGlyphImageCache.clear(func(key faceCacheKey) bool {
+		return key.stdFaceID == face.id
+	})
 }
 
 func (s *StdFace) copyCheck() {
@@ -84,7 +84,9 @@ func (s *StdFace) UnsafeInternal() any {
 
 // faceCacheKey implements Face.
 func (s *StdFace) faceCacheKey() faceCacheKey {
-	return faceCacheKey(s.id)
+	return faceCacheKey{
+		stdFaceID: s.id,
+	}
 }
 
 // advance implements Face.
@@ -137,7 +139,7 @@ func (s *StdFace) glyphImage(r rune, origin fixed.Point26_6) (*ebiten.Image, int
 		Y: (origin.Y + b.Min.Y) & ((1 << 6) - 1),
 	}
 	key := glyphImageCacheKey{
-		rune:    r,
+		id:      uint32(r),
 		xoffset: subpixelOffset.X,
 		// yoffset is always the same if the rune is the same, so this doesn't have to be a key.
 	}

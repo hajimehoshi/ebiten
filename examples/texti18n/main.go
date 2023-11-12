@@ -22,115 +22,62 @@ import (
 	_ "embed"
 	"image"
 	"image/color"
-	"image/draw"
 	"log"
-	"math"
 
-	"github.com/go-text/typesetting/di"
-	"github.com/go-text/typesetting/font"
-	"github.com/go-text/typesetting/language"
-	"github.com/go-text/typesetting/opentype/api"
-	"github.com/go-text/typesetting/shaping"
-	"golang.org/x/image/math/fixed"
-	"golang.org/x/image/vector"
+	"golang.org/x/text/language"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/examples/resources/fonts"
+	"github.com/hajimehoshi/ebiten/v2/text/v2"
 )
 
 //go:embed NotoSansArabic-Regular.ttf
 var arabicTTF []byte
 
-var arabicOut shaping.Output
+var arabicFaceSource *text.GoTextFaceSource
 
 func init() {
-	face, err := font.ParseTTF(bytes.NewReader(arabicTTF))
+	s, err := text.NewGoTextFaceSource(bytes.NewReader(arabicTTF))
 	if err != nil {
 		log.Fatal(err)
 	}
-	runes := []rune("لمّا كان الاعتراف بالكرامة المتأصلة في جميع")
-	input := shaping.Input{
-		Text:      runes,
-		RunStart:  0,
-		RunEnd:    len(runes),
-		Direction: di.DirectionRTL,
-		Face:      face,
-		Size:      fixed.I(24),
-		Script:    language.Arabic,
-		Language:  "ar",
-	}
-	arabicOut = (&shaping.HarfbuzzShaper{}).Shape(input)
+	arabicFaceSource = s
 }
 
 //go:embed NotoSansDevanagari-Regular.ttf
 var devanagariTTF []byte
 
-var devanagariOut shaping.Output
+var devanagariFaceSource *text.GoTextFaceSource
 
 func init() {
-	face, err := font.ParseTTF(bytes.NewReader(devanagariTTF))
+	s, err := text.NewGoTextFaceSource(bytes.NewReader(devanagariTTF))
 	if err != nil {
 		log.Fatal(err)
 	}
-	runes := []rune("चूंकि मानव परिवार के सभी सदस्यों के जन्मजात गौरव और समान")
-	input := shaping.Input{
-		Text:      runes,
-		RunStart:  0,
-		RunEnd:    len(runes),
-		Direction: di.DirectionLTR,
-		Face:      face,
-		Size:      fixed.I(24),
-		Script:    language.Devanagari,
-		Language:  "hi",
-	}
-	devanagariOut = (&shaping.HarfbuzzShaper{}).Shape(input)
+	devanagariFaceSource = s
 }
 
 //go:embed NotoSansThai-Regular.ttf
 var thaiTTF []byte
 
-var thaiOut shaping.Output
+var thaiFaceSource *text.GoTextFaceSource
 
 func init() {
-	face, err := font.ParseTTF(bytes.NewReader(thaiTTF))
+	s, err := text.NewGoTextFaceSource(bytes.NewReader(thaiTTF))
 	if err != nil {
 		log.Fatal(err)
 	}
-	runes := []rune("โดยที่การไม่นำพาและการหมิ่นในคุณค่าของสิทธิมนุษยชน")
-	input := shaping.Input{
-		Text:      runes,
-		RunStart:  0,
-		RunEnd:    len(runes),
-		Direction: di.DirectionLTR,
-		Face:      face,
-		Size:      fixed.I(24),
-		Script:    language.Thai,
-		Language:  "th",
-	}
-	thaiOut = (&shaping.HarfbuzzShaper{}).Shape(input)
+	thaiFaceSource = s
 }
 
-var japaneseOut shaping.Output
+var japaneseFaceSource *text.GoTextFaceSource
 
 func init() {
-	const japanese = language.Script(('j' << 24) | ('p' << 16) | ('a' << 8) | 'n')
-
-	face, err := font.ParseTTF(bytes.NewReader(fonts.MPlus1pRegular_ttf))
+	s, err := text.NewGoTextFaceSource(bytes.NewReader(fonts.MPlus1pRegular_ttf))
 	if err != nil {
 		log.Fatal(err)
 	}
-	runes := []rune("ラーメン。")
-	input := shaping.Input{
-		Text:      runes,
-		RunStart:  0,
-		RunEnd:    len(runes),
-		Direction: di.DirectionTTB,
-		Face:      face,
-		Size:      fixed.I(24),
-		Script:    japanese,
-		Language:  "ja",
-	}
-	japaneseOut = (&shaping.HarfbuzzShaper{}).Shape(input)
+	japaneseFaceSource = s
 }
 
 var (
@@ -151,21 +98,6 @@ const (
 )
 
 type Game struct {
-	vertices []ebiten.Vertex
-	indices  []uint16
-
-	glyphCache map[glyphCacheKey]glyphCacheValue
-}
-
-type glyphCacheKey struct {
-	output  *shaping.Output // TODO: This should be a font.Face instead of shaping.Output.
-	glyphID api.GID
-	origin  fixed.Point26_6
-}
-
-type glyphCacheValue struct {
-	image *ebiten.Image
-	point image.Point
 }
 
 func (g *Game) Update() error {
@@ -173,67 +105,47 @@ func (g *Game) Update() error {
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	g.drawGlyphs(screen, &arabicOut, 20, 100)
-	g.drawGlyphs(screen, &devanagariOut, 20, 150)
-	g.drawGlyphs(screen, &thaiOut, 20, 200)
-	g.drawGlyphs(screen, &japaneseOut, 20, 250)
-}
+	const arabicText = "لمّا كان الاعتراف بالكرامة المتأصلة في جميع"
 
-func fixed26_6ToFloat32(x fixed.Int26_6) float32 {
-	return float32(x>>6) + (float32(x&(1<<6-1)) / (1 << 6))
-}
+	op := &text.DrawOptions{}
+	op.GeoM.Translate(screenWidth-20, 100)
+	text.Draw(screen, arabicText, &text.GoTextFace{
+		Source:       arabicFaceSource,
+		Direction:    text.DirectionRightToLeft,
+		SizeInPoints: 24,
+		Language:     language.Arabic,
+	}, op)
 
-func float32ToFixed26_6(x float32) fixed.Int26_6 {
-	i := float32(math.Floor(float64(x)))
-	return (fixed.Int26_6(i) << 6) + fixed.Int26_6((x-i)*(1<<6))
-}
+	const hindiText = "चूंकि मानव परिवार के सभी सदस्यों के जन्मजात गौरव और समान"
 
-func (g *Game) drawGlyphs(dst *ebiten.Image, output *shaping.Output, originX, originY float32) {
-	g.vertices = g.vertices[:0]
-	g.indices = g.indices[:0]
+	op.GeoM.Reset()
+	op.GeoM.Translate(20, 150)
+	text.Draw(screen, hindiText, &text.GoTextFace{
+		Source:       devanagariFaceSource,
+		SizeInPoints: 24,
+		Language:     language.Hindi,
+	}, op)
 
-	scale := fixed26_6ToFloat32(output.Size) / float32(output.Face.Font.Upem())
+	const thaiText = "โดยที่การไม่นำพาและการหมิ่นในคุณค่าของสิทธิมนุษยชน"
 
-	orig := fixed.Point26_6{
-		X: float32ToFixed26_6(originX),
-		Y: float32ToFixed26_6(originY),
-	}
-	for _, glyph := range output.Glyphs {
-		key := glyphCacheKey{
-			output:  output,
-			glyphID: glyph.GlyphID,
-			origin:  orig,
-		}
+	op.GeoM.Reset()
+	op.GeoM.Translate(20, 200)
+	text.Draw(screen, thaiText, &text.GoTextFace{
+		Source:       thaiFaceSource,
+		SizeInPoints: 24,
+		Language:     language.Thai,
+	}, op)
 
-		v, ok := g.glyphCache[key]
-		if !ok {
-			data := output.Face.GlyphData(glyph.GlyphID).(api.GlyphOutline)
-			if len(data.Segments) > 0 {
-				segs := make([]api.Segment, len(data.Segments))
-				for i, seg := range data.Segments {
-					segs[i] = seg
-					for j := range seg.Args {
-						segs[i].Args[j].X *= scale
-						segs[i].Args[j].Y *= scale
-						segs[i].Args[j].Y *= -1
-					}
-				}
-				v.image, v.point = segmentsToImage(segs, orig)
-			}
-			if g.glyphCache == nil {
-				g.glyphCache = map[glyphCacheKey]glyphCacheValue{}
-			}
-			g.glyphCache[key] = v
-		}
+	const japaneseText = "ラーメン。"
 
-		if v.image != nil {
-			op := &ebiten.DrawImageOptions{}
-			op.GeoM.Translate(float64(v.point.X), float64(v.point.Y))
-			dst.DrawImage(v.image, op)
-		}
-
-		orig = orig.Add(fixed.Point26_6{X: glyph.XAdvance, Y: glyph.YAdvance * -1})
-	}
+	op.GeoM.Reset()
+	op.GeoM.Translate(20, 250)
+	text.Draw(screen, japaneseText, &text.GoTextFace{
+		Source:       japaneseFaceSource,
+		Direction:    text.DirectionTopToBottomAndRightToLeft,
+		SizeInPoints: 24,
+		Language:     language.Thai,
+	}, op)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
@@ -246,95 +158,4 @@ func main() {
 	if err := ebiten.RunGame(&Game{}); err != nil {
 		log.Fatal(err)
 	}
-}
-
-func segmentsToRect(segs []api.Segment) fixed.Rectangle26_6 {
-	if len(segs) == 0 {
-		return fixed.Rectangle26_6{}
-	}
-
-	minX := float32(math.Inf(1))
-	minY := float32(math.Inf(1))
-	maxX := float32(math.Inf(-1))
-	maxY := float32(math.Inf(-1))
-
-	for _, seg := range segs {
-		n := 1
-		switch seg.Op {
-		case api.SegmentOpQuadTo:
-			n = 2
-		case api.SegmentOpCubeTo:
-			n = 3
-		}
-		for i := 0; i < n; i++ {
-			x := seg.Args[i].X
-			y := seg.Args[i].Y
-			if minX > x {
-				minX = x
-			}
-			if minY > y {
-				minY = y
-			}
-			if maxX < x {
-				maxX = x
-			}
-			if maxY < y {
-				maxY = y
-			}
-		}
-	}
-
-	return fixed.Rectangle26_6{
-		Min: fixed.Point26_6{
-			X: float32ToFixed26_6(minX),
-			Y: float32ToFixed26_6(minY),
-		},
-		Max: fixed.Point26_6{
-			X: float32ToFixed26_6(maxX),
-			Y: float32ToFixed26_6(maxY),
-		},
-	}
-}
-
-func segmentsToImage(segs []api.Segment, orig fixed.Point26_6) (*ebiten.Image, image.Point) {
-	dBounds := segmentsToRect(segs).Add(orig)
-	dr := image.Rect(
-		dBounds.Min.X.Floor(),
-		dBounds.Min.Y.Floor(),
-		dBounds.Max.X.Ceil(),
-		dBounds.Max.Y.Ceil(),
-	)
-	biasX := fixed26_6ToFloat32(orig.X) - float32(dr.Min.X)
-	biasY := fixed26_6ToFloat32(orig.Y) - float32(dr.Min.Y)
-
-	width, height := dr.Dx(), dr.Dy()
-	if width <= 0 || height <= 0 {
-		return nil, image.Point{}
-	}
-
-	rast := vector.NewRasterizer(width, height)
-	rast.DrawOp = draw.Src
-	for _, seg := range segs {
-		switch seg.Op {
-		case api.SegmentOpMoveTo:
-			rast.MoveTo(seg.Args[0].X+biasX, seg.Args[0].Y+biasY)
-		case api.SegmentOpLineTo:
-			rast.LineTo(seg.Args[0].X+biasX, seg.Args[0].Y+biasY)
-		case api.SegmentOpQuadTo:
-			rast.QuadTo(
-				seg.Args[0].X+biasX, seg.Args[0].Y+biasY,
-				seg.Args[1].X+biasX, seg.Args[1].Y+biasY,
-			)
-		case api.SegmentOpCubeTo:
-			rast.CubeTo(
-				seg.Args[0].X+biasX, seg.Args[0].Y+biasY,
-				seg.Args[1].X+biasX, seg.Args[1].Y+biasY,
-				seg.Args[2].X+biasX, seg.Args[2].Y+biasY,
-			)
-		}
-	}
-
-	dst := image.NewAlpha(image.Rect(0, 0, width, height))
-	rast.Draw(dst, dst.Bounds(), image.Opaque, image.Point{})
-	return ebiten.NewImageFromImage(dst), dr.Min
 }
