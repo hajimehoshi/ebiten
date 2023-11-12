@@ -26,6 +26,8 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
+type faceCacheKey uint64
+
 // Face is an interface representing a font face. The implementations are only GoTextFace and StdFace.
 type Face interface {
 	// Metrics returns the metrics for this Face.
@@ -35,6 +37,8 @@ type Face interface {
 	// The returned value is either a semi-standard font.Face or go-text's font.Face.
 	// This is unsafe since this might make internal cache states out of sync.
 	UnsafeInternal() any
+
+	faceCacheKey() faceCacheKey
 
 	advance(text string) float64
 

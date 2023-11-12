@@ -52,7 +52,7 @@ type glyphImageCacheEntry struct {
 }
 
 type glyphImageCache struct {
-	cache map[Face]map[glyphImageCacheKey]*glyphImageCacheEntry
+	cache map[faceCacheKey]map[glyphImageCacheKey]*glyphImageCacheEntry
 	m     sync.Mutex
 }
 
@@ -62,17 +62,18 @@ func (g *glyphImageCache) getOrCreate(face Face, key glyphImageCacheKey, create 
 	g.m.Lock()
 	defer g.m.Unlock()
 
-	e, ok := g.cache[face][key]
+	e, ok := g.cache[face.faceCacheKey()][key]
 	if ok {
 		e.atime = now()
 		return e.image
 	}
 
 	if g.cache == nil {
-		g.cache = map[Face]map[glyphImageCacheKey]*glyphImageCacheEntry{}
+		g.cache = map[faceCacheKey]map[glyphImageCacheKey]*glyphImageCacheEntry{}
 	}
-	if g.cache[face] == nil {
-		g.cache[face] = map[glyphImageCacheKey]*glyphImageCacheEntry{}
+	faceCacheKey := face.faceCacheKey()
+	if g.cache[faceCacheKey] == nil {
+		g.cache[faceCacheKey] = map[glyphImageCacheKey]*glyphImageCacheEntry{}
 	}
 
 	img := create()
@@ -86,7 +87,7 @@ func (g *glyphImageCache) getOrCreate(face Face, key glyphImageCacheKey, create 
 		// Keep this until the face is GCed.
 		e.atime = infTime
 	}
-	g.cache[face][key] = e
+	g.cache[faceCacheKey][key] = e
 
 	// Clean up old entries.
 
@@ -95,13 +96,13 @@ func (g *glyphImageCache) getOrCreate(face Face, key glyphImageCacheKey, create 
 	// Even after cleaning up the cache, the number of glyphs might still exceed the soft limit, but
 	// this is fine.
 	const cacheSoftLimit = 512
-	if len(g.cache[face]) > cacheSoftLimit {
-		for key, e := range g.cache[face] {
+	if len(g.cache[faceCacheKey]) > cacheSoftLimit {
+		for key, e := range g.cache[faceCacheKey] {
 			// 60 is an arbitrary number.
 			if e.atime >= now()-60 {
 				continue
 			}
-			delete(g.cache[face], key)
+			delete(g.cache[faceCacheKey], key)
 		}
 	}
 
@@ -113,5 +114,5 @@ func (g *glyphImageCache) clear(face Face) {
 
 	g.m.Lock()
 	defer g.m.Unlock()
-	delete(g.cache, face)
+	delete(g.cache, face.faceCacheKey())
 }

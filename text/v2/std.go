@@ -17,12 +17,19 @@ package text
 import (
 	"image"
 	"runtime"
+	"sync/atomic"
 
 	"golang.org/x/image/font"
 	"golang.org/x/image/math/fixed"
 
 	"github.com/hajimehoshi/ebiten/v2"
 )
+
+var currentStdFaceID uint64
+
+func nextStdFaceID() uint64 {
+	return atomic.AddUint64(&currentStdFaceID, 1)
+}
 
 var _ Face = (*StdFace)(nil)
 
@@ -31,6 +38,8 @@ var _ Face = (*StdFace)(nil)
 // StdFace must not be copied by value.
 type StdFace struct {
 	f *faceWithCache
+
+	id uint64
 
 	addr *StdFace
 }
@@ -41,6 +50,7 @@ func NewStdFace(face font.Face) *StdFace {
 		f: &faceWithCache{
 			f: face,
 		},
+		id: nextStdFaceID(),
 	}
 	s.addr = s
 	runtime.SetFinalizer(s, theGlyphImageCache.clear)
@@ -69,6 +79,11 @@ func (s *StdFace) Metrics() Metrics {
 func (s *StdFace) UnsafeInternal() any {
 	s.copyCheck()
 	return s.f.f
+}
+
+// faceCacheKey implements Face.
+func (s *StdFace) faceCacheKey() faceCacheKey {
+	return faceCacheKey(s.id)
 }
 
 // advance implements Face.
