@@ -128,12 +128,12 @@ func (s *StdFace) glyphImage(r rune, origin fixed.Point26_6) (*ebiten.Image, flo
 	b, a, _ := s.f.GlyphBounds(r)
 	subpixelOffset := fixed.Point26_6{
 		X: (adjustOffsetGranularity(origin.X) + b.Min.X) & ((1 << 6) - 1),
-		Y: (fixed.I(origin.Y.Floor()) + b.Min.Y) & ((1 << 6) - 1),
+		Y: b.Min.Y & ((1 << 6) - 1),
 	}
 	key := glyphImageCacheKey{
 		rune:    r,
 		xoffset: subpixelOffset.X,
-		// yoffset is always an integer, so this doesn't have to be a key.
+		// yoffset is always the same if the rune is the same, so this doesn't have to be a key.
 	}
 	img := theGlyphImageCache.getOrCreate(s, key, func() *ebiten.Image {
 		return s.glyphImageImpl(r, subpixelOffset, b)
