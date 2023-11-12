@@ -225,12 +225,13 @@ func CacheGlyphs(text string, face Face) {
 	var buf []Glyph
 	// Create all the possible variations (#2528).
 	for i := 0; i < 4; i++ {
+		buf = AppendGlyphs(buf, text, face, x, y)
+		buf = buf[:0]
+
 		if face.direction().isHorizontal() {
 			x += 1.0 / glyphVariationCount
 		} else {
 			y += 1.0 / glyphVariationCount
 		}
-		buf = AppendGlyphs(buf, text, face, x, y)
-		buf = buf[:0]
 	}
 }
