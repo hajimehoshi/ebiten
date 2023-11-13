@@ -113,8 +113,8 @@ func (s *StdFace) appendGlyphs(glyphs []Glyph, text string, originX, originY flo
 				Rune:         r,
 				IndexInBytes: i,
 				Image:        img,
-				X:            imgX,
-				Y:            imgY,
+				X:            float64(imgX),
+				Y:            float64(imgY),
 			})
 		}
 		origin.X += a
@@ -124,11 +124,15 @@ func (s *StdFace) appendGlyphs(glyphs []Glyph, text string, originX, originY flo
 	return glyphs
 }
 
-func (s *StdFace) glyphImage(r rune, origin fixed.Point26_6) (*ebiten.Image, float64, float64, fixed.Int26_6) {
+func (s *StdFace) glyphImage(r rune, origin fixed.Point26_6) (*ebiten.Image, int, int, fixed.Int26_6) {
+	// Assume that StdFace's direction is always horizontal.
+	origin.X = adjustGranularity(origin.X)
+	origin.Y &^= ((1 << 6) - 1)
+
 	b, a, _ := s.f.GlyphBounds(r)
 	subpixelOffset := fixed.Point26_6{
-		X: (adjustOffsetGranularity(origin.X) + b.Min.X) & ((1 << 6) - 1),
-		Y: b.Min.Y & ((1 << 6) - 1),
+		X: (origin.X + b.Min.X) & ((1 << 6) - 1),
+		Y: (origin.Y + b.Min.Y) & ((1 << 6) - 1),
 	}
 	key := glyphImageCacheKey{
 		rune:    r,
@@ -138,8 +142,8 @@ func (s *StdFace) glyphImage(r rune, origin fixed.Point26_6) (*ebiten.Image, flo
 	img := theGlyphImageCache.getOrCreate(s, key, func() *ebiten.Image {
 		return s.glyphImageImpl(r, subpixelOffset, b)
 	})
-	imgX := fixed26_6ToFloat64(origin.X + b.Min.X - subpixelOffset.X)
-	imgY := fixed26_6ToFloat64(origin.Y + b.Min.Y - subpixelOffset.Y)
+	imgX := (origin.X + b.Min.X).Floor()
+	imgY := (origin.Y + b.Min.Y).Floor()
 	return img, imgX, imgY, a
 }
 
