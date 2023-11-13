@@ -35,12 +35,16 @@ const (
 // DrawImageOptions.GeoM is an additional geometry transformation
 // after putting the rendering region along with the specified alignments.
 // DrawImageOptions.ColorScale scales the text color.
+type DrawOptions struct {
+	ebiten.DrawImageOptions
+	LayoutOptions
+}
+
+// LayoutOptions represents options for layouting texts.
 //
 // PrimaryAlign and SecondaryAlign determine where to put the text in the given region at Draw.
 // Draw might render the text outside of the specified image bounds, so you might have to specify GeoM to make the text visible.
-type DrawOptions struct {
-	ebiten.DrawImageOptions
-
+type LayoutOptions struct {
 	// LineHeightInPixels is a line height in pixels.
 	LineHeightInPixels float64
 
@@ -95,12 +99,43 @@ type DrawOptions struct {
 // If the vertical alignment is center, the rendering region's middle Y comes to the origin.
 // If the vertical alignment is bottom, the rendering region's bottom Y comes to the origin.
 func Draw(dst *ebiten.Image, text string, face Face, options *DrawOptions) {
+	if options == nil {
+		options = &DrawOptions{}
+	}
+
+	geoM := options.GeoM
+	for _, g := range AppendGlyphs(nil, text, face, &options.LayoutOptions) {
+		op := &options.DrawImageOptions
+		op.GeoM.Reset()
+		op.GeoM.Translate(g.X, g.Y)
+		op.GeoM.Concat(geoM)
+		dst.DrawImage(g.Image, op)
+	}
+}
+
+// AppendGlyphs appends glyphs to the given slice and returns a slice.
+//
+// AppendGlyphs is a low-level API, and you can use AppendGlyphs to have more control than Draw.
+// AppendGlyphs is also available to precache glyphs.
+//
+// For the details of options, see Draw function.
+//
+// AppendGlyphs is concurrent-safe.
+func AppendGlyphs(glyphs []Glyph, text string, face Face, options *LayoutOptions) []Glyph {
+	return appendGlyphs(glyphs, text, face, 0, 0, options)
+}
+
+// appendGlyphs appends glyphs to the given slice and returns a slice.
+//
+// appendGlyphs assumes the text is rendered with the position (x, y).
+// (x, y) might affect the subpixel rendering results.
+func appendGlyphs(glyphs []Glyph, text string, face Face, x, y float64, options *LayoutOptions) []Glyph {
 	if text == "" {
-		return
+		return glyphs
 	}
 
 	if options == nil {
-		options = &DrawOptions{}
+		options = &LayoutOptions{}
 	}
 
 	// Calculate the advances for each line.
@@ -171,7 +206,6 @@ func Draw(dst *ebiten.Image, text string, face Face, options *DrawOptions) {
 
 	var originX, originY float64
 	var i int
-	geoM := options.GeoM
 	for t := text; ; {
 		line, rest, found := strings.Cut(t, "\n")
 
@@ -197,7 +231,7 @@ func Draw(dst *ebiten.Image, text string, face Face, options *DrawOptions) {
 			}
 		}
 
-		drawLine(dst, line, face, options, originX+offsetX, originY+offsetY, geoM)
+		glyphs = face.appendGlyphs(glyphs, line, originX+offsetX+x, originY+offsetY+y)
 
 		if !found {
 			break
@@ -217,17 +251,8 @@ func Draw(dst *ebiten.Image, text string, face Face, options *DrawOptions) {
 			originX -= options.LineHeightInPixels
 		}
 	}
-}
 
-func drawLine(dst *ebiten.Image, line string, face Face, options *DrawOptions, originX, originY float64, geoM ebiten.GeoM) {
-	op := &options.DrawImageOptions
-	gs := face.appendGlyphs(nil, line, originX, originY)
-	for _, g := range gs {
-		op.GeoM.Reset()
-		op.GeoM.Translate(g.X, g.Y)
-		op.GeoM.Concat(geoM)
-		dst.DrawImage(g.Image, op)
-	}
+	return glyphs
 }
 
 type horizontalAlign int

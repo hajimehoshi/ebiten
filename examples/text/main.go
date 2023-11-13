@@ -18,7 +18,6 @@ import (
 	"image/color"
 	"log"
 	"math"
-	"strings"
 
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/opentype"
@@ -75,15 +74,15 @@ type Game struct {
 	counter        int
 	kanjiText      []rune
 	kanjiTextColor color.RGBA
-	glyphs         [][]text.Glyph
+	glyphs         []text.Glyph
 }
 
 func (g *Game) Update() error {
 	// Initialize the glyphs for special (colorful) rendering.
 	if len(g.glyphs) == 0 {
-		for _, line := range strings.Split(sampleText, "\n") {
-			g.glyphs = append(g.glyphs, text.AppendGlyphs(nil, line, mplusNormalFace, 0, 0))
-		}
+		op := &text.LayoutOptions{}
+		op.LineHeightInPixels = mplusNormalFace.Metrics().Height
+		g.glyphs = text.AppendGlyphs(g.glyphs, sampleText, mplusNormalFace, op)
 	}
 	return nil
 }
@@ -137,33 +136,30 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		text.Draw(screen, sampleText, mplusBigFace, op)
 	}
 	{
-		const x, y = 240, 380
+		const x, y = 240, 360
 		op := &ebiten.DrawImageOptions{}
 		// g.glyphs is initialized by text.AppendGlyphs.
 		// You can customize how to render each glyph.
 		// In this example, multiple colors are used to render glyphs.
-		for j, line := range g.glyphs {
-			for i, gl := range line {
-				op.GeoM.Reset()
-				op.GeoM.Translate(x, y)
-				op.GeoM.Translate(0, float64(j)*mplusNormalFace.Metrics().Height)
-				op.GeoM.Translate(gl.X, gl.Y)
-				op.ColorScale.Reset()
-				r := float32(1)
-				if i%3 == 0 {
-					r = 0.5
-				}
-				g := float32(1)
-				if i%3 == 1 {
-					g = 0.5
-				}
-				b := float32(1)
-				if i%3 == 2 {
-					b = 0.5
-				}
-				op.ColorScale.Scale(r, g, b, 1)
-				screen.DrawImage(gl.Image, op)
+		for i, gl := range g.glyphs {
+			op.GeoM.Reset()
+			op.GeoM.Translate(x, y)
+			op.GeoM.Translate(gl.X, gl.Y)
+			op.ColorScale.Reset()
+			r := float32(1)
+			if i%3 == 0 {
+				r = 0.5
 			}
+			g := float32(1)
+			if i%3 == 1 {
+				g = 0.5
+			}
+			b := float32(1)
+			if i%3 == 2 {
+				b = 0.5
+			}
+			op.ColorScale.Scale(r, g, b, 1)
+			screen.DrawImage(gl.Image, op)
 		}
 	}
 }

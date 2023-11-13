@@ -115,18 +115,6 @@ type Glyph struct {
 	GID uint32
 }
 
-// AppendGlyphs appends glyphs to the given slice and returns a slice.
-//
-// AppendGlyphs is a low-level API, and you can use AppendGlyphs to have more control than Draw.
-// AppendGlyphs is also available to precache glyphs.
-//
-// AppendGlyphs doesn't treat multiple lines.
-//
-// AppendGlyphs is concurrent-safe.
-func AppendGlyphs(glyphs []Glyph, text string, face Face, originX, originY float64) []Glyph {
-	return face.appendGlyphs(glyphs, text, originX, originY)
-}
-
 // Advance returns the advanced distance from the origin position when rendering the given text with the given face.
 //
 // Advance doesn't treat multiple lines.
@@ -229,7 +217,7 @@ func CacheGlyphs(text string, face Face) {
 	var buf []Glyph
 	// Create all the possible variations (#2528).
 	for i := 0; i < 4; i++ {
-		buf = AppendGlyphs(buf, text, face, x, y)
+		buf = appendGlyphs(buf, text, face, x, y, nil)
 		buf = buf[:0]
 
 		if face.direction().isHorizontal() {
