@@ -128,8 +128,12 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		w, h := text.Measure(sampleText, mplusBigFace, lineHeight)
 		vector.DrawFilledRect(screen, x, y, float32(w), float32(h), gray, false)
 		op := &text.DrawOptions{}
-		op.GeoM.Translate(x, y)
+		// Add the width as the text rendering region's upper-right position comes to (0, 0)
+		// when the horizontal alignment is right. The alignment is specified later (PrimaryAlign).
+		op.GeoM.Translate(x+w, y)
 		op.LineHeightInPixels = lineHeight
+		// The primary alignment for the left-to-right direction is a horizontal alignment, and the end means the right.
+		op.PrimaryAlign = text.AlignEnd
 		text.Draw(screen, sampleText, mplusBigFace, op)
 	}
 	{
