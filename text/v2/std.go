@@ -18,6 +18,7 @@ import (
 	"image"
 	"runtime"
 	"sync/atomic"
+	"unicode/utf8"
 
 	"golang.org/x/image/font"
 	"golang.org/x/image/math/fixed"
@@ -92,7 +93,7 @@ func (s *StdFace) advance(text string) float64 {
 }
 
 // appendGlyphs implements Face.
-func (s *StdFace) appendGlyphs(glyphs []Glyph, text string, originX, originY float64) []Glyph {
+func (s *StdFace) appendGlyphs(glyphs []Glyph, text string, indexOffset int, originX, originY float64) []Glyph {
 	s.copyCheck()
 
 	origin := fixed.Point26_6{
@@ -109,12 +110,13 @@ func (s *StdFace) appendGlyphs(glyphs []Glyph, text string, originX, originY flo
 		if img != nil {
 			// Adjust the position to the integers.
 			// The current glyph images assume that they are rendered on integer positions so far.
+			_, size := utf8.DecodeRuneInString(text[i:])
 			glyphs = append(glyphs, Glyph{
-				Rune:         r,
-				IndexInBytes: i,
-				Image:        img,
-				X:            float64(imgX),
-				Y:            float64(imgY),
+				StartIndexInBytes: indexOffset + i,
+				EndIndexInBytes:   indexOffset + i + size,
+				Image:             img,
+				X:                 float64(imgX),
+				Y:                 float64(imgY),
 			})
 		}
 		origin.X += a

@@ -42,7 +42,7 @@ type Face interface {
 
 	advance(text string) float64
 
-	appendGlyphs(glyphs []Glyph, text string, originX, originY float64) []Glyph
+	appendGlyphs(glyphs []Glyph, text string, indexOffset int, originX, originY float64) []Glyph
 
 	direction() Direction
 
@@ -90,11 +90,14 @@ func adjustGranularity(x fixed.Int26_6) fixed.Int26_6 {
 
 // Glyph represents one glyph to render.
 type Glyph struct {
-	// Rune is a character for this glyph.
-	Rune rune
+	// StartIndexInBytes is the start index in bytes for the given string at AppendGlyphs.
+	StartIndexInBytes int
 
-	// IndexInBytes is an index in bytes for the given string at AppendGlyphs.
-	IndexInBytes int
+	// EndIndexInBytes is the end index in bytes for the given string at AppendGlyphs.
+	EndIndexInBytes int
+
+	// GID is an ID for a glyph of TrueType or OpenType font. GID is valid when the font is GoTextFont.
+	GID uint32
 
 	// Image is a rasterized glyph image.
 	// Image is a grayscale image i.e. RGBA values are the same.
@@ -110,9 +113,6 @@ type Glyph struct {
 	// The position is determined in a sequence of characters given at AppendGlyphs.
 	// The position's origin is the first character's origin position.
 	Y float64
-
-	// GID is an ID for a glyph of TrueType or OpenType font. GID is valid when the font is GoTextFont.
-	GID uint32
 }
 
 // Advance returns the advanced distance from the origin position when rendering the given text with the given face.

@@ -204,6 +204,7 @@ func appendGlyphs(glyphs []Glyph, text string, face Face, x, y float64, options 
 		}
 	}
 
+	var indexOffset int
 	var originX, originY float64
 	var i int
 	for t := text; ; {
@@ -231,12 +232,13 @@ func appendGlyphs(glyphs []Glyph, text string, face Face, x, y float64, options 
 			}
 		}
 
-		glyphs = face.appendGlyphs(glyphs, line, originX+offsetX+x, originY+offsetY+y)
+		glyphs = face.appendGlyphs(glyphs, line, indexOffset, originX+offsetX+x, originY+offsetY+y)
 
 		if !found {
 			break
 		}
 		t = rest
+		indexOffset += len(line) + 1
 		i++
 
 		// Advance the origin position in the secondary direction.
