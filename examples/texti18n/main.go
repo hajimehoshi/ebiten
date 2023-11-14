@@ -144,7 +144,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		Source:       japaneseFaceSource,
 		Direction:    text.DirectionTopToBottomAndRightToLeft,
 		SizeInPoints: 24,
-		Language:     language.Thai,
+		Language:     language.Japanese,
 	}, op)
 }
 
