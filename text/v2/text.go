@@ -120,7 +120,7 @@ type Glyph struct {
 // Advance doesn't treat multiple lines.
 //
 // Advance is concurrent-safe.
-func Advance(face Face, text string) float64 {
+func Advance(text string, face Face) float64 {
 	return face.advance(text)
 }
 

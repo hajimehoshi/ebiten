@@ -97,7 +97,7 @@ func (t *TextField) textIndexByCursorPosition(x, y int) (int, bool) {
 	var prevAdvance float64
 	for i, r := range t.text {
 		var x0, x1 int
-		currentAdvance := text.Advance(fontFace, t.text[lineStart:i])
+		currentAdvance := text.Advance(t.text[lineStart:i], fontFace)
 		if lineStart < i {
 			x0 = int((prevAdvance + currentAdvance) / 2)
 		}
@@ -108,7 +108,7 @@ func (t *TextField) textIndexByCursorPosition(x, y int) (int, bool) {
 			for !utf8.ValidString(t.text[i:nextI]) {
 				nextI++
 			}
-			nextAdvance := text.Advance(fontFace, t.text[lineStart:nextI])
+			nextAdvance := text.Advance(t.text[lineStart:nextI], fontFace)
 			x1 = int((currentAdvance + nextAdvance) / 2)
 		} else {
 			x1 = int(currentAdvance)
@@ -255,7 +255,7 @@ func (t *TextField) cursorPos() (int, int) {
 	if t.state.Text != "" {
 		txt += t.state.Text[:t.state.CompositionSelectionStartInBytes]
 	}
-	x := int(text.Advance(fontFace, txt))
+	x := int(text.Advance(txt, fontFace))
 	y := nlCount * int(fontFace.Metrics().Height)
 	return x, y
 }
