@@ -854,6 +854,32 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 				cs.addError(e.Pos(), "multiple-value context is not available at a composite literal")
 				return nil, nil, nil, false
 			}
+
+			expr := exprs[0]
+			if expr.Const != nil {
+				switch t.Sub[0].Main {
+				case shaderir.Bool:
+					if expr.Const.Kind() != gconstant.Bool {
+						cs.addError(e.Pos(), fmt.Sprintf("cannot %s to type bool", expr.Const.String()))
+					}
+				case shaderir.Int:
+					if !canTruncateToInteger(expr.Const) {
+						cs.addError(e.Pos(), fmt.Sprintf("constant %s truncated to integer", expr.Const.String()))
+						return nil, nil, nil, false
+					}
+					expr.Const = gconstant.ToInt(expr.Const)
+				case shaderir.Float:
+					if !canTruncateToFloat(expr.Const) {
+						cs.addError(e.Pos(), fmt.Sprintf("constant %s truncated to float", expr.Const.String()))
+						return nil, nil, nil, false
+					}
+					expr.Const = gconstant.ToFloat(expr.Const)
+				default:
+					cs.addError(e.Pos(), fmt.Sprintf("constant %s cannot be used for the array type %s", expr.Const.String(), t.String()))
+					return nil, nil, nil, false
+				}
+			}
+
 			stmts = append(stmts, ss...)
 			stmts = append(stmts, shaderir.Stmt{
 				Type: shaderir.Assign,
@@ -871,7 +897,7 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 							},
 						},
 					},
-					exprs[0],
+					expr,
 				},
 			})
 		}
