@@ -20,8 +20,6 @@ package main
 import (
 	"bytes"
 	_ "embed"
-	"image"
-	"image/color"
 	"log"
 
 	"golang.org/x/text/language"
@@ -78,18 +76,6 @@ func init() {
 		log.Fatal(err)
 	}
 	japaneseFaceSource = s
-}
-
-var (
-	whiteImage = ebiten.NewImage(3, 3)
-
-	// whiteSubImage is an internal sub image of whiteImage.
-	// Use whiteSubImage at DrawTriangles instead of whiteImage in order to avoid bleeding edges.
-	whiteSubImage = whiteImage.SubImage(image.Rect(1, 1, 2, 2)).(*ebiten.Image)
-)
-
-func init() {
-	whiteImage.Fill(color.White)
 }
 
 const (
