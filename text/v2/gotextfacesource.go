@@ -147,7 +147,7 @@ func (g *GoTextFaceSource) shape(text string, face *GoTextFace) (shaping.Output,
 		Direction:    face.diDirection(),
 		Face:         face.Source.f,
 		FontFeatures: face.features,
-		Size:         float64ToFixed26_6(face.SizeInPoints),
+		Size:         float64ToFixed26_6(face.SizeInPixels),
 		Script:       face.gScript(),
 		Language:     language.Language(face.Language.String()),
 	}

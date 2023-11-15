@@ -373,6 +373,6 @@ func (t *Tile) Draw(boardImage *ebiten.Image) {
 	textOp.SecondaryAlign = text.AlignCenter
 	text.Draw(boardImage, str, &text.GoTextFace{
 		Source:       mplusFaceSource,
-		SizeInPoints: sizeInPoints,
+		SizeInPixels: sizeInPoints,
 	}, textOp)
 }

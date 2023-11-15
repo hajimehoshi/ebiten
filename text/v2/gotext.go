@@ -40,7 +40,7 @@ type GoTextFace struct {
 	Source *GoTextFaceSource
 
 	Direction    Direction
-	SizeInPoints float64
+	SizeInPixels float64
 
 	// Language is a hiint for a language (BCP 47).
 	Language language.Tag
@@ -179,7 +179,7 @@ func MustParseTag(str string) Tag {
 
 // Metrics implements Face.
 func (g *GoTextFace) Metrics() Metrics {
-	scale := g.Source.scale(g.SizeInPoints)
+	scale := g.Source.scale(g.SizeInPixels)
 
 	var m Metrics
 	if h, ok := g.Source.f.FontHExtents(); ok {
@@ -238,7 +238,7 @@ func (g *GoTextFace) faceCacheKey() faceCacheKey {
 	return faceCacheKey{
 		goTextFaceSourceID:     g.Source.id,
 		goTextFaceDirection:    g.Direction,
-		goTextFaceSizeInPoints: g.SizeInPoints,
+		goTextFaceSizeInPixels: g.SizeInPixels,
 		goTextFaceLanguage:     g.Language.String(),
 		goTextFaceScript:       g.Script.String(),
 		goTextFaceVariations:   g.ensureVariationsString(),
@@ -250,7 +250,7 @@ func (g *GoTextFace) outputCacheKey(text string) goTextOutputCacheKey {
 	return goTextOutputCacheKey{
 		text:         text,
 		direction:    g.Direction,
-		sizeInPoints: g.SizeInPoints,
+		sizeInPoints: g.SizeInPixels,
 		language:     g.Language.String(),
 		script:       g.Script.String(),
 		variations:   g.ensureVariationsString(),

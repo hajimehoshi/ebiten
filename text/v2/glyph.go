@@ -44,7 +44,7 @@ type faceCacheKey struct {
 
 	goTextFaceSourceID     uint64
 	goTextFaceDirection    Direction
-	goTextFaceSizeInPoints float64
+	goTextFaceSizeInPixels float64
 	goTextFaceLanguage     string
 	goTextFaceScript       string
 	goTextFaceVariations   string

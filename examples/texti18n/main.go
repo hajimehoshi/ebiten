@@ -98,7 +98,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	text.Draw(screen, arabicText, &text.GoTextFace{
 		Source:       arabicFaceSource,
 		Direction:    text.DirectionRightToLeft,
-		SizeInPoints: 24,
+		SizeInPixels: 24,
 		Language:     language.Arabic,
 	}, op)
 
@@ -108,7 +108,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	op.GeoM.Translate(20, 110)
 	text.Draw(screen, hindiText, &text.GoTextFace{
 		Source:       devanagariFaceSource,
-		SizeInPoints: 24,
+		SizeInPixels: 24,
 		Language:     language.Hindi,
 	}, op)
 
@@ -118,7 +118,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	op.GeoM.Translate(20, 160)
 	text.Draw(screen, thaiText, &text.GoTextFace{
 		Source:       thaiFaceSource,
-		SizeInPoints: 24,
+		SizeInPixels: 24,
 		Language:     language.Thai,
 	}, op)
 
@@ -130,7 +130,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	text.Draw(screen, japaneseText, &text.GoTextFace{
 		Source:       japaneseFaceSource,
 		Direction:    text.DirectionTopToBottomAndRightToLeft,
-		SizeInPoints: 24,
+		SizeInPixels: 24,
 		Language:     language.Japanese,
 	}, op)
 }
