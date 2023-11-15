@@ -54,7 +54,7 @@ func NewStdFace(face font.Face) *StdFace {
 func finalizeStdFace(face *StdFace) {
 	runtime.SetFinalizer(face, nil)
 	theGlyphImageCache.clear(func(key faceCacheKey) bool {
-		return key.stdFaceID == face.id
+		return key.id == face.id
 	})
 }
 
@@ -85,7 +85,7 @@ func (s *StdFace) UnsafeInternal() any {
 // faceCacheKey implements Face.
 func (s *StdFace) faceCacheKey() faceCacheKey {
 	return faceCacheKey{
-		stdFaceID: s.id,
+		id: s.id,
 	}
 }
 

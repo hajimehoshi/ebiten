@@ -236,13 +236,8 @@ func (g *GoTextFace) ensureFeaturesString() string {
 // faceCacheKey implements Face.
 func (g *GoTextFace) faceCacheKey() faceCacheKey {
 	return faceCacheKey{
-		goTextFaceSourceID:     g.Source.id,
-		goTextFaceDirection:    g.Direction,
+		id:                     g.Source.id,
 		goTextFaceSizeInPixels: g.SizeInPixels,
-		goTextFaceLanguage:     g.Language.String(),
-		goTextFaceScript:       g.Script.String(),
-		goTextFaceVariations:   g.ensureVariationsString(),
-		goTextFaceFeatures:     g.ensureFeaturesString(),
 	}
 }
 

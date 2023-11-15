@@ -124,7 +124,7 @@ func NewGoTextFaceSourcesFromCollection(source io.ReadSeeker) ([]*GoTextFaceSour
 func finalizeGoTextFaceSource(source *GoTextFaceSource) {
 	runtime.SetFinalizer(source, nil)
 	theGlyphImageCache.clear(func(key faceCacheKey) bool {
-		return key.goTextFaceSourceID == source.id
+		return key.id == source.id
 	})
 }
 
