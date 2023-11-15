@@ -250,7 +250,7 @@ func (g *GoTextFace) outputCacheKey(text string) goTextOutputCacheKey {
 	return goTextOutputCacheKey{
 		text:         text,
 		direction:    g.Direction,
-		sizeInPoints: g.SizeInPixels,
+		sizeInPixels: g.SizeInPixels,
 		language:     g.Language.String(),
 		script:       g.Script.String(),
 		variations:   g.ensureVariationsString(),

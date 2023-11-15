@@ -29,7 +29,7 @@ import (
 type goTextOutputCacheKey struct {
 	text         string
 	direction    Direction
-	sizeInPoints float64
+	sizeInPixels float64
 	language     string
 	script       string
 	variations   string
@@ -215,6 +215,6 @@ func (g *GoTextFaceSource) shape(text string, face *GoTextFace) (shaping.Output,
 	return out, gs
 }
 
-func (g *GoTextFaceSource) scale(sizeInPoints float64) float64 {
-	return sizeInPoints / float64(g.f.Upem())
+func (g *GoTextFaceSource) scale(sizeInPixels float64) float64 {
+	return sizeInPixels / float64(g.f.Upem())
 }
