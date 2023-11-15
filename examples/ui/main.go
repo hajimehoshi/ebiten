@@ -22,23 +22,22 @@ import (
 	"log"
 	"strings"
 
-	"golang.org/x/image/font"
 	"golang.org/x/image/font/gofont/goregular"
-	"golang.org/x/image/font/opentype"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/examples/resources/images"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
-	"github.com/hajimehoshi/ebiten/v2/text"
+	"github.com/hajimehoshi/ebiten/v2/text/v2"
 )
 
 const (
+	uiFontSize = 12
 	lineHeight = 16
 )
 
 var (
-	uiImage *ebiten.Image
-	uiFont  font.Face
+	uiImage      *ebiten.Image
+	uiFaceSource *text.GoTextFaceSource
 )
 
 func init() {
@@ -48,19 +47,14 @@ func init() {
 		log.Fatal(err)
 	}
 	uiImage = ebiten.NewImageFromImage(img)
+}
 
-	tt, err := opentype.Parse(goregular.TTF)
+func init() {
+	s, err := text.NewGoTextFaceSource(bytes.NewReader(goregular.TTF))
 	if err != nil {
 		log.Fatal(err)
 	}
-	uiFont, err = opentype.NewFace(tt, &opentype.FaceOptions{
-		Size:    12,
-		DPI:     72,
-		Hinting: font.HintingVertical,
-	})
-	if err != nil {
-		log.Fatal(err)
-	}
+	uiFaceSource = s
 }
 
 type imageType int
@@ -183,12 +177,16 @@ func (b *Button) Draw(dst *ebiten.Image) {
 	}
 	drawNinePatches(dst, b.Rect, imageSrcRects[t])
 
-	m := uiFont.Metrics()
-	w := font.MeasureString(uiFont, b.Text).Floor()
-	h := (m.Ascent + m.Descent).Floor()
-	x := b.Rect.Min.X + (b.Rect.Dx()-w)/2
-	y := b.Rect.Min.Y + (b.Rect.Dy()-h)/2 + m.Ascent.Floor()
-	text.Draw(dst, b.Text, uiFont, x, y, color.Black)
+	op := &text.DrawOptions{}
+	op.GeoM.Translate(float64(b.Rect.Min.X+b.Rect.Max.X)/2, float64(b.Rect.Min.Y+b.Rect.Max.Y)/2)
+	op.ColorScale.ScaleWithColor(color.Black)
+	op.LineHeight = lineHeight
+	op.PrimaryAlign = text.AlignCenter
+	op.SecondaryAlign = text.AlignCenter
+	text.Draw(dst, b.Text, &text.GoTextFace{
+		Source: uiFaceSource,
+		Size:   uiFontSize,
+	}, op)
 }
 
 func (b *Button) SetOnPressed(f func(b *Button)) {
@@ -285,6 +283,7 @@ func (v *VScrollBar) Draw(dst *ebiten.Image) {
 
 const (
 	textBoxPaddingLeft = 8
+	textBoxPaddingTop  = 4
 )
 
 type TextBox struct {
@@ -321,7 +320,7 @@ func (t *TextBox) Update() {
 }
 
 func (t *TextBox) contentSize() (int, int) {
-	h := len(strings.Split(t.Text, "\n")) * lineHeight
+	h := len(strings.Split(t.Text, "\n"))*lineHeight + textBoxPaddingTop
 	return t.Rect.Dx(), h
 }
 
@@ -352,18 +351,17 @@ func (t *TextBox) Draw(dst *ebiten.Image) {
 	}
 
 	t.contentBuf.Clear()
-	m := uiFont.Metrics()
-	for i, line := range strings.Split(t.Text, "\n") {
-		x := -t.offsetX + textBoxPaddingLeft
-		y := -t.offsetY + i*lineHeight + (lineHeight-(m.Ascent+m.Descent).Floor())/2 + m.Ascent.Floor()
-		if y < -lineHeight {
-			continue
-		}
-		if _, h := t.viewSize(); y >= h+lineHeight {
-			continue
-		}
-		text.Draw(t.contentBuf, line, uiFont, x, y, color.Black)
-	}
+	textOp := &text.DrawOptions{}
+	x := -float64(t.offsetX) + textBoxPaddingLeft
+	y := -float64(t.offsetY) + textBoxPaddingTop
+	textOp.GeoM.Translate(x, y)
+	textOp.ColorScale.ScaleWithColor(color.Black)
+	textOp.LineHeight = lineHeight
+	text.Draw(t.contentBuf, t.Text, &text.GoTextFace{
+		Source: uiFaceSource,
+		Size:   uiFontSize,
+	}, textOp)
+
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(float64(t.Rect.Min.X), float64(t.Rect.Min.Y))
 	dst.DrawImage(t.contentBuf, op)
@@ -389,8 +387,11 @@ type CheckBox struct {
 }
 
 func (c *CheckBox) width() int {
-	w := font.MeasureString(uiFont, c.Text).Floor()
-	return checkboxWidth + checkboxPaddingLeft + w
+	w := text.Advance(c.Text, &text.GoTextFace{
+		Source: uiFaceSource,
+		Size:   uiFontSize,
+	})
+	return checkboxWidth + checkboxPaddingLeft + int(w)
 }
 
 func (c *CheckBox) Update() {
@@ -423,10 +424,18 @@ func (c *CheckBox) Draw(dst *ebiten.Image) {
 		drawNinePatches(dst, r, imageSrcRects[imageTypeCheckBoxMark])
 	}
 
-	m := uiFont.Metrics()
 	x := c.X + checkboxWidth + checkboxPaddingLeft
-	y := c.Y + (checkboxHeight-(m.Ascent+m.Descent).Floor())/2 + m.Ascent.Floor()
-	text.Draw(dst, c.Text, uiFont, x, y, color.Black)
+	y := c.Y + checkboxHeight/2
+	op := &text.DrawOptions{}
+	op.GeoM.Translate(float64(x), float64(y))
+	op.ColorScale.ScaleWithColor(color.Black)
+	op.LineHeight = lineHeight
+	op.PrimaryAlign = text.AlignStart
+	op.SecondaryAlign = text.AlignCenter
+	text.Draw(dst, c.Text, &text.GoTextFace{
+		Source: uiFaceSource,
+		Size:   uiFontSize,
+	}, op)
 }
 
 func (c *CheckBox) Checked() bool {
