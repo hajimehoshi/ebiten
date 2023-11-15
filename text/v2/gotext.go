@@ -179,7 +179,7 @@ func MustParseTag(str string) Tag {
 
 // Metrics implements Face.
 func (g *GoTextFace) Metrics() Metrics {
-	scale := float64(g.SizeInPoints) / float64(g.Source.f.Font.Upem())
+	scale := g.Source.scale(g.SizeInPoints)
 
 	var m Metrics
 	if h, ok := g.Source.f.FontHExtents(); ok {

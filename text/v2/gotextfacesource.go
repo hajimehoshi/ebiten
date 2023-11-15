@@ -178,7 +178,7 @@ func (g *GoTextFaceSource) shape(text string, face *GoTextFace) (shaping.Output,
 		}
 
 		scaledSegs := make([]api.Segment, len(segs))
-		scale := fixed26_6ToFloat32(out.Size) / float32(out.Face.Font.Upem())
+		scale := float32(g.scale(fixed26_6ToFloat64(out.Size)))
 		for i, seg := range segs {
 			scaledSegs[i] = seg
 			for j := range seg.Args {
@@ -213,4 +213,8 @@ func (g *GoTextFaceSource) shape(text string, face *GoTextFace) (shaping.Output,
 	}
 
 	return out, gs
+}
+
+func (g *GoTextFaceSource) scale(sizeInPoints float64) float64 {
+	return sizeInPoints / float64(g.f.Upem())
 }
