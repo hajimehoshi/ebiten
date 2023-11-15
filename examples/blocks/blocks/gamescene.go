@@ -28,6 +28,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/colorm"
 	"github.com/hajimehoshi/ebiten/v2/examples/resources/images"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
+	"github.com/hajimehoshi/ebiten/v2/text/v2"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
@@ -85,7 +86,7 @@ func init() {
 
 	// Windows: Next
 	x, y = nextWindowLabelPosition()
-	drawTextWithShadow(imageWindows, "NEXT", x, y, 1, fontColor)
+	drawTextWithShadow(imageWindows, "NEXT", x, y, 1, fontColor, text.AlignStart, text.AlignStart)
 	x, y = nextWindowPosition()
 	drawWindow(imageWindows, x, y, 5*blockWidth, 5*blockHeight)
 
@@ -102,26 +103,26 @@ func init() {
 	drawTextBox(imageWindows, "LINES", x, y, textBoxWidth())
 
 	// Gameover
-	imageGameover.Fill(color.NRGBA{0x00, 0x00, 0x00, 0x80})
+	imageGameover.Fill(color.RGBA{0x00, 0x00, 0x00, 0x80})
 	y = (ScreenHeight - blockHeight) / 2
-	drawTextWithShadowCenter(imageGameover, "GAME OVER\n\nPRESS SPACE", 0, y, 1, color.White, ScreenWidth)
+	drawTextWithShadow(imageGameover, "GAME OVER\n\nPRESS SPACE", ScreenWidth/2, y, 1, color.White, text.AlignCenter, text.AlignStart)
 }
 
 func drawWindow(r *ebiten.Image, x, y, width, height int) {
 	vector.DrawFilledRect(r, float32(x), float32(y), float32(width), float32(height), color.RGBA{0, 0, 0, 0xc0}, false)
 }
 
-var fontColor = color.NRGBA{0x40, 0x40, 0xff, 0xff}
+var fontColor = color.RGBA{0x40, 0x40, 0xff, 0xff}
 
 func drawTextBox(r *ebiten.Image, label string, x, y, width int) {
-	drawTextWithShadow(r, label, x, y, 1, fontColor)
-	y += blockWidth
+	drawTextWithShadow(r, label, x, y, 1, fontColor, text.AlignStart, text.AlignStart)
+	y += blockHeight
 	drawWindow(r, x, y, width, 2*blockHeight)
 }
 
 func drawTextBoxContent(r *ebiten.Image, content string, x, y, width int) {
-	y += blockWidth
-	drawTextWithShadowRight(r, content, x, y+blockHeight*3/4, 1, color.White, width-blockWidth/2)
+	y += blockHeight
+	drawTextWithShadow(r, content, x+width-2*blockHeight/4, y+2*blockHeight/2, 1, color.White, text.AlignEnd, text.AlignCenter)
 }
 
 type GameScene struct {

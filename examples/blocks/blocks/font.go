@@ -15,16 +15,13 @@
 package blocks
 
 import (
+	"bytes"
 	"image/color"
 	"log"
-	"strings"
-
-	"golang.org/x/image/font"
-	"golang.org/x/image/font/opentype"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/examples/resources/fonts"
-	"github.com/hajimehoshi/ebiten/v2/text"
+	"github.com/hajimehoshi/ebiten/v2/text/v2"
 )
 
 const (
@@ -32,65 +29,39 @@ const (
 )
 
 var (
-	arcadeFonts map[int]font.Face
+	arcadeFaceSource *text.GoTextFaceSource
 )
 
-func getArcadeFonts(scale int) font.Face {
-	if arcadeFonts == nil {
-		tt, err := opentype.Parse(fonts.PressStart2P_ttf)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		arcadeFonts = map[int]font.Face{}
-		for i := 1; i <= 4; i++ {
-			const dpi = 72
-			arcadeFonts[i], err = opentype.NewFace(tt, &opentype.FaceOptions{
-				Size:    float64(arcadeFontBaseSize * i),
-				DPI:     dpi,
-				Hinting: font.HintingFull,
-			})
-			if err != nil {
-				log.Fatal(err)
-			}
-		}
+func init() {
+	s, err := text.NewGoTextFaceSource(bytes.NewReader(fonts.PressStart2P_ttf))
+	if err != nil {
+		log.Fatal(err)
 	}
-	return arcadeFonts[scale]
-}
-
-func textWidth(str string) int {
-	maxW := 0
-	for _, line := range strings.Split(str, "\n") {
-		a := font.MeasureString(getArcadeFonts(1), line)
-		w := a.Floor()
-		if maxW < w {
-			maxW = w
-		}
-	}
-	return maxW
+	arcadeFaceSource = s
 }
 
 var (
-	shadowColor = color.NRGBA{0, 0, 0, 0x80}
+	shadowColor = color.RGBA{0, 0, 0, 0x80}
 )
 
-func drawTextWithShadow(rt *ebiten.Image, str string, x, y, scale int, clr color.Color) {
-	offsetY := arcadeFontBaseSize * scale
-	for _, line := range strings.Split(str, "\n") {
-		y += offsetY
-		text.Draw(rt, line, getArcadeFonts(scale), x+1, y+1, shadowColor)
-		text.Draw(rt, line, getArcadeFonts(scale), x, y, clr)
-	}
-}
+func drawTextWithShadow(rt *ebiten.Image, str string, x, y, scale int, clr color.Color, primaryAlign, secondaryAlign text.Align) {
+	op := &text.DrawOptions{}
+	op.GeoM.Translate(float64(x)+1, float64(y)+1)
+	op.ColorScale.ScaleWithColor(shadowColor)
+	op.LineHeight = arcadeFontBaseSize * float64(scale)
+	op.PrimaryAlign = primaryAlign
+	op.SecondaryAlign = secondaryAlign
+	text.Draw(rt, str, &text.GoTextFace{
+		Source: arcadeFaceSource,
+		Size:   arcadeFontBaseSize * float64(scale),
+	}, op)
 
-func drawTextWithShadowCenter(rt *ebiten.Image, str string, x, y, scale int, clr color.Color, width int) {
-	w := textWidth(str) * scale
-	x += (width - w) / 2
-	drawTextWithShadow(rt, str, x, y, scale, clr)
-}
-
-func drawTextWithShadowRight(rt *ebiten.Image, str string, x, y, scale int, clr color.Color, width int) {
-	w := textWidth(str) * scale
-	x += width - w
-	drawTextWithShadow(rt, str, x, y, scale, clr)
+	op.GeoM.Reset()
+	op.GeoM.Translate(float64(x), float64(y))
+	op.ColorScale.Reset()
+	op.ColorScale.ScaleWithColor(clr)
+	text.Draw(rt, str, &text.GoTextFace{
+		Source: arcadeFaceSource,
+		Size:   arcadeFontBaseSize * float64(scale),
+	}, op)
 }

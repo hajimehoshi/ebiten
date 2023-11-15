@@ -21,6 +21,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
+	"github.com/hajimehoshi/ebiten/v2/text/v2"
 )
 
 type GamepadScene struct {
@@ -103,5 +104,5 @@ ROTATE RIGHT: %s
 		msg = "OK!"
 	}
 	str := fmt.Sprintf(f, s.buttonStates[0], s.buttonStates[1], s.buttonStates[2], s.buttonStates[3], s.buttonStates[4], msg)
-	drawTextWithShadow(screen, str, 16, 16, 1, color.White)
+	drawTextWithShadow(screen, str, 16, 16, 1, color.White, text.AlignStart, text.AlignStart)
 }

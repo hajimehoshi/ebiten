@@ -23,6 +23,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	rblocks "github.com/hajimehoshi/ebiten/v2/examples/resources/images/blocks"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
+	"github.com/hajimehoshi/ebiten/v2/text/v2"
 )
 
 var imageBackground *ebiten.Image
@@ -88,9 +89,9 @@ func (s *TitleScene) Draw(r *ebiten.Image) {
 	drawLogo(r, "BLOCKS")
 
 	message := "PRESS SPACE TO START"
-	x := 0
+	x := ScreenWidth / 2
 	y := ScreenHeight - 48
-	drawTextWithShadowCenter(r, message, x, y, 1, color.NRGBA{0x80, 0, 0, 0xff}, ScreenWidth)
+	drawTextWithShadow(r, message, x, y, 1, color.RGBA{0x80, 0, 0, 0xff}, text.AlignCenter, text.AlignStart)
 }
 
 func (s *TitleScene) drawTitleBackground(r *ebiten.Image, c int) {
@@ -109,7 +110,7 @@ func (s *TitleScene) drawTitleBackground(r *ebiten.Image, c int) {
 
 func drawLogo(r *ebiten.Image, str string) {
 	const scale = 4
-	x := 0
+	x := ScreenWidth / 2
 	y := 32
-	drawTextWithShadowCenter(r, str, x, y, scale, color.NRGBA{0x00, 0x00, 0x80, 0xff}, ScreenWidth)
+	drawTextWithShadow(r, str, x, y, scale, color.RGBA{0x00, 0x00, 0x80, 0xff}, text.AlignCenter, text.AlignStart)
 }
