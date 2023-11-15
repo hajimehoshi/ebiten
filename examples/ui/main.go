@@ -290,7 +290,6 @@ type TextBox struct {
 	Rect image.Rectangle
 	Text string
 
-	contentBuf *ebiten.Image
 	vScrollBar *VScrollBar
 	offsetX    int
 	offsetY    int
@@ -335,36 +334,17 @@ func (t *TextBox) contentOffset() (int, int) {
 func (t *TextBox) Draw(dst *ebiten.Image) {
 	drawNinePatches(dst, t.Rect, imageSrcRects[imageTypeTextBox])
 
-	// TODO: Use a sub-image of dst instead of an offscreen contentBuf.
-	// Using a sub-image is better in terms of performance.
-	if t.contentBuf != nil {
-		vw, vh := t.viewSize()
-		w, h := t.contentBuf.Bounds().Dx(), t.contentBuf.Bounds().Dy()
-		if vw > w || vh > h {
-			t.contentBuf.Deallocate()
-			t.contentBuf = nil
-		}
-	}
-	if t.contentBuf == nil {
-		w, h := t.viewSize()
-		t.contentBuf = ebiten.NewImage(w, h)
-	}
-
-	t.contentBuf.Clear()
 	textOp := &text.DrawOptions{}
 	x := -float64(t.offsetX) + textBoxPaddingLeft
 	y := -float64(t.offsetY) + textBoxPaddingTop
 	textOp.GeoM.Translate(x, y)
+	textOp.GeoM.Translate(float64(t.Rect.Min.X), float64(t.Rect.Min.Y))
 	textOp.ColorScale.ScaleWithColor(color.Black)
 	textOp.LineHeight = lineHeight
-	text.Draw(t.contentBuf, t.Text, &text.GoTextFace{
+	text.Draw(dst.SubImage(t.Rect).(*ebiten.Image), t.Text, &text.GoTextFace{
 		Source: uiFaceSource,
 		Size:   uiFontSize,
 	}, textOp)
-
-	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(float64(t.Rect.Min.X), float64(t.Rect.Min.Y))
-	dst.DrawImage(t.contentBuf, op)
 
 	t.vScrollBar.Draw(dst)
 }
