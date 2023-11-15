@@ -45,8 +45,8 @@ type DrawOptions struct {
 // PrimaryAlign and SecondaryAlign determine where to put the text in the given region at Draw.
 // Draw might render the text outside of the specified image bounds, so you might have to specify GeoM to make the text visible.
 type LayoutOptions struct {
-	// LineHeightInPixels is a line height in pixels.
-	LineHeightInPixels float64
+	// LineHeight is a line height in pixels.
+	LineHeight float64
 
 	// PrimaryAlign is an alignment of the primary direction, in which a text in one line is rendered.
 	// The primary direction is the horizontal direction for a horizontal-direction face,
@@ -162,9 +162,9 @@ func appendGlyphs(glyphs []Glyph, text string, face Face, x, y float64, options 
 	var boundaryWidth, boundaryHeight float64
 	if d.isHorizontal() {
 		boundaryWidth = longestAdvance
-		boundaryHeight = float64(lineCount-1)*options.LineHeightInPixels + m.HAscent + m.HDescent
+		boundaryHeight = float64(lineCount-1)*options.LineHeight + m.HAscent + m.HDescent
 	} else {
-		boundaryWidth = float64(lineCount-1)*options.LineHeightInPixels + m.VAscent + m.VDescent
+		boundaryWidth = float64(lineCount-1)*options.LineHeight + m.VAscent + m.VDescent
 		boundaryHeight = longestAdvance
 	}
 
@@ -244,13 +244,13 @@ func appendGlyphs(glyphs []Glyph, text string, face Face, x, y float64, options 
 		// Advance the origin position in the secondary direction.
 		switch face.direction() {
 		case DirectionLeftToRight:
-			originY += options.LineHeightInPixels
+			originY += options.LineHeight
 		case DirectionRightToLeft:
-			originY += options.LineHeightInPixels
+			originY += options.LineHeight
 		case DirectionTopToBottomAndLeftToRight:
-			originX += options.LineHeightInPixels
+			originX += options.LineHeight
 		case DirectionTopToBottomAndRightToLeft:
-			originX -= options.LineHeightInPixels
+			originX -= options.LineHeight
 		}
 	}
 

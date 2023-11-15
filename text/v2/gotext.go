@@ -37,10 +37,15 @@ var _ Face = (*GoTextFace)(nil)
 // With a GoTextFace, shaping.HarfBuzzShaper is always used as a shaper internally.
 // GoTextFace includes the source and various options.
 type GoTextFace struct {
+	// Source is the font face source.
 	Source *GoTextFaceSource
 
-	Direction    Direction
-	SizeInPixels float64
+	// Direction is the rendering direction.
+	// The default (zero) value is left-to-right horizontal.
+	Direction Direction
+
+	// Size is the font size in pixels.
+	Size float64
 
 	// Language is a hiint for a language (BCP 47).
 	Language language.Tag
@@ -179,7 +184,7 @@ func MustParseTag(str string) Tag {
 
 // Metrics implements Face.
 func (g *GoTextFace) Metrics() Metrics {
-	scale := g.Source.scale(g.SizeInPixels)
+	scale := g.Source.scale(g.Size)
 
 	var m Metrics
 	if h, ok := g.Source.f.FontHExtents(); ok {
@@ -236,20 +241,20 @@ func (g *GoTextFace) ensureFeaturesString() string {
 // faceCacheKey implements Face.
 func (g *GoTextFace) faceCacheKey() faceCacheKey {
 	return faceCacheKey{
-		id:                     g.Source.id,
-		goTextFaceSizeInPixels: g.SizeInPixels,
+		id:             g.Source.id,
+		goTextFaceSize: g.Size,
 	}
 }
 
 func (g *GoTextFace) outputCacheKey(text string) goTextOutputCacheKey {
 	return goTextOutputCacheKey{
-		text:         text,
-		direction:    g.Direction,
-		sizeInPixels: g.SizeInPixels,
-		language:     g.Language.String(),
-		script:       g.Script.String(),
-		variations:   g.ensureVariationsString(),
-		features:     g.ensureFeaturesString(),
+		text:       text,
+		direction:  g.Direction,
+		size:       g.Size,
+		language:   g.Language.String(),
+		script:     g.Script.String(),
+		variations: g.ensureVariationsString(),
+		features:   g.ensureFeaturesString(),
 	}
 }
 

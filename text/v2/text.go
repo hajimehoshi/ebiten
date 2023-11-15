@@ -175,7 +175,7 @@ func (d Direction) isHorizontal() bool {
 // With a vertical direction face, the width and the height are calculated in an opposite manner.
 //
 // Measure is concurrent-safe.
-func Measure(text string, face Face, lineHeightInPixels float64) (width, height float64) {
+func Measure(text string, face Face, lineHeight float64) (width, height float64) {
 	if text == "" {
 		return 0, 0
 	}
@@ -198,10 +198,10 @@ func Measure(text string, face Face, lineHeightInPixels float64) (width, height 
 	m := face.Metrics()
 
 	if face.direction().isHorizontal() {
-		secondary := float64(lineCount-1)*lineHeightInPixels + m.HAscent + m.HDescent
+		secondary := float64(lineCount-1)*lineHeight + m.HAscent + m.HDescent
 		return primary, secondary
 	}
-	secondary := float64(lineCount-1)*lineHeightInPixels + m.VAscent + m.VDescent
+	secondary := float64(lineCount-1)*lineHeight + m.VAscent + m.VDescent
 	return secondary, primary
 }
 

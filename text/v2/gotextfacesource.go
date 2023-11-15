@@ -27,13 +27,13 @@ import (
 )
 
 type goTextOutputCacheKey struct {
-	text         string
-	direction    Direction
-	sizeInPixels float64
-	language     string
-	script       string
-	variations   string
-	features     string
+	text       string
+	direction  Direction
+	size       float64
+	language   string
+	script     string
+	variations string
+	features   string
 }
 
 type glyph struct {
@@ -147,7 +147,7 @@ func (g *GoTextFaceSource) shape(text string, face *GoTextFace) (shaping.Output,
 		Direction:    face.diDirection(),
 		Face:         face.Source.f,
 		FontFeatures: face.features,
-		Size:         float64ToFixed26_6(face.SizeInPixels),
+		Size:         float64ToFixed26_6(face.Size),
 		Script:       face.gScript(),
 		Language:     language.Language(face.Language.String()),
 	}
@@ -215,6 +215,6 @@ func (g *GoTextFaceSource) shape(text string, face *GoTextFace) (shaping.Output,
 	return out, gs
 }
 
-func (g *GoTextFaceSource) scale(sizeInPixels float64) float64 {
-	return sizeInPixels / float64(g.f.Upem())
+func (g *GoTextFaceSource) scale(size float64) float64 {
+	return size / float64(g.f.Upem())
 }

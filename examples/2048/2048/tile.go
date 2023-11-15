@@ -358,12 +358,12 @@ func (t *Tile) Draw(boardImage *ebiten.Image) {
 	boardImage.DrawImage(tileImage, op)
 	str := strconv.Itoa(v)
 
-	sizeInPixels := 48.0
+	size := 48.0
 	switch {
 	case 3 < len(str):
-		sizeInPixels = 24
+		size = 24
 	case 2 < len(str):
-		sizeInPixels = 32
+		size = 32
 	}
 
 	textOp := &text.DrawOptions{}
@@ -372,7 +372,7 @@ func (t *Tile) Draw(boardImage *ebiten.Image) {
 	textOp.PrimaryAlign = text.AlignCenter
 	textOp.SecondaryAlign = text.AlignCenter
 	text.Draw(boardImage, str, &text.GoTextFace{
-		Source:       mplusFaceSource,
-		SizeInPixels: sizeInPixels,
+		Source: mplusFaceSource,
+		Size:   size,
 	}, textOp)
 }

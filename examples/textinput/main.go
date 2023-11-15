@@ -288,7 +288,7 @@ func (t *TextField) Draw(screen *ebiten.Image) {
 	op := &text.DrawOptions{}
 	op.GeoM.Translate(float64(tx), float64(ty))
 	op.ColorScale.ScaleWithColor(color.Black)
-	op.LineHeightInPixels = fontFace.Metrics().Height
+	op.LineHeight = fontFace.Metrics().Height
 	text.Draw(screen, shownText, fontFace, op)
 }
 

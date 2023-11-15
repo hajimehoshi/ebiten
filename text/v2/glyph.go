@@ -40,8 +40,8 @@ func init() {
 }
 
 type faceCacheKey struct {
-	id                     uint64
-	goTextFaceSizeInPixels float64
+	id             uint64
+	goTextFaceSize float64
 }
 
 type glyphImageCacheKey struct {
