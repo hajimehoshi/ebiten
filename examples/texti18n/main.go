@@ -94,7 +94,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	const arabicText = "لمّا كان الاعتراف بالكرامة المتأصلة في جميع"
 
 	op := &text.DrawOptions{}
-	op.GeoM.Translate(screenWidth-20, 100)
+	op.GeoM.Translate(screenWidth-20, 40)
 	text.Draw(screen, arabicText, &text.GoTextFace{
 		Source:       arabicFaceSource,
 		Direction:    text.DirectionRightToLeft,
@@ -105,7 +105,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	const hindiText = "चूंकि मानव परिवार के सभी सदस्यों के जन्मजात गौरव और समान"
 
 	op.GeoM.Reset()
-	op.GeoM.Translate(20, 150)
+	op.GeoM.Translate(20, 110)
 	text.Draw(screen, hindiText, &text.GoTextFace{
 		Source:       devanagariFaceSource,
 		SizeInPoints: 24,
@@ -115,17 +115,18 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	const thaiText = "โดยที่การไม่นำพาและการหมิ่นในคุณค่าของสิทธิมนุษยชน"
 
 	op.GeoM.Reset()
-	op.GeoM.Translate(20, 200)
+	op.GeoM.Translate(20, 160)
 	text.Draw(screen, thaiText, &text.GoTextFace{
 		Source:       thaiFaceSource,
 		SizeInPoints: 24,
 		Language:     language.Thai,
 	}, op)
 
-	const japaneseText = "ラーメン。"
+	const japaneseText = "あのイーハトーヴォの\nすきとおった風、\n夏でも底に冷たさを\nもつ青いそら…"
 
 	op.GeoM.Reset()
-	op.GeoM.Translate(20, 250)
+	op.GeoM.Translate(screenWidth-20, 210)
+	op.LineHeightInPixels = 48
 	text.Draw(screen, japaneseText, &text.GoTextFace{
 		Source:       japaneseFaceSource,
 		Direction:    text.DirectionTopToBottomAndRightToLeft,
