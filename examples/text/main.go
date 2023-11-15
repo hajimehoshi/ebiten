@@ -15,13 +15,10 @@
 package main
 
 import (
+	"bytes"
 	"image/color"
 	"log"
 	"math"
-
-	"golang.org/x/image/font"
-	"golang.org/x/image/font/opentype"
-	"golang.org/x/image/math/fixed"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/examples/resources/fonts"
@@ -38,36 +35,26 @@ const sampleText = `  The quick brown fox jumps
 over the lazy dog.`
 
 var (
-	mplusNormalFace *text.StdFace
-	mplusBigFace    *text.StdFace
+	mplusFaceSource *text.GoTextFaceSource
+	mplusNormalFace *text.GoTextFace
+	mplusBigFace    *text.GoTextFace
 )
 
 func init() {
-	tt, err := opentype.Parse(fonts.MPlus1pRegular_ttf)
+	s, err := text.NewGoTextFaceSource(bytes.NewReader(fonts.MPlus1pRegular_ttf))
 	if err != nil {
 		log.Fatal(err)
 	}
+	mplusFaceSource = s
 
-	const dpi = 72
-	mplusNormalFont, err := opentype.NewFace(tt, &opentype.FaceOptions{
-		Size:    24,
-		DPI:     dpi,
-		Hinting: font.HintingVertical,
-	})
-	if err != nil {
-		log.Fatal(err)
+	mplusNormalFace = &text.GoTextFace{
+		Source: mplusFaceSource,
+		Size:   24,
 	}
-	mplusNormalFace = text.NewStdFace(mplusNormalFont)
-
-	mplusBigFont, err := opentype.NewFace(tt, &opentype.FaceOptions{
-		Size:    32,
-		DPI:     dpi,
-		Hinting: font.HintingVertical,
-	})
-	if err != nil {
-		log.Fatal(err)
+	mplusBigFace = &text.GoTextFace{
+		Source: mplusFaceSource,
+		Size:   32,
 	}
-	mplusBigFace = text.NewStdFace(mplusBigFont)
 }
 
 type Game struct {
@@ -85,10 +72,6 @@ func (g *Game) Update() error {
 		g.glyphs = text.AppendGlyphs(g.glyphs, sampleText, mplusNormalFace, op)
 	}
 	return nil
-}
-
-func fixed26_6ToFloat32(x fixed.Int26_6) float32 {
-	return float32(x>>6) + float32(x&((1<<6)-1))/(1<<6)
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
