@@ -15,6 +15,7 @@
 package twenty48
 
 import (
+	"bytes"
 	"errors"
 	"image/color"
 	"log"
@@ -22,51 +23,21 @@ import (
 	"sort"
 	"strconv"
 
-	"golang.org/x/image/font"
-	"golang.org/x/image/font/opentype"
-
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/examples/resources/fonts"
-	"github.com/hajimehoshi/ebiten/v2/text"
+	"github.com/hajimehoshi/ebiten/v2/text/v2"
 )
 
 var (
-	mplusSmallFont  font.Face
-	mplusNormalFont font.Face
-	mplusBigFont    font.Face
+	mplusFaceSource *text.GoTextFaceSource
 )
 
 func init() {
-	tt, err := opentype.Parse(fonts.MPlus1pRegular_ttf)
+	s, err := text.NewGoTextFaceSource(bytes.NewReader(fonts.MPlus1pRegular_ttf))
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	const dpi = 72
-	mplusSmallFont, err = opentype.NewFace(tt, &opentype.FaceOptions{
-		Size:    24,
-		DPI:     dpi,
-		Hinting: font.HintingVertical,
-	})
-	if err != nil {
-		log.Fatal(err)
-	}
-	mplusNormalFont, err = opentype.NewFace(tt, &opentype.FaceOptions{
-		Size:    32,
-		DPI:     dpi,
-		Hinting: font.HintingVertical,
-	})
-	if err != nil {
-		log.Fatal(err)
-	}
-	mplusBigFont, err = opentype.NewFace(tt, &opentype.FaceOptions{
-		Size:    48,
-		DPI:     dpi,
-		Hinting: font.HintingVertical,
-	})
-	if err != nil {
-		log.Fatal(err)
-	}
+	mplusFaceSource = s
 }
 
 // TileData represents a tile information like a value and a position.
@@ -387,17 +358,21 @@ func (t *Tile) Draw(boardImage *ebiten.Image) {
 	boardImage.DrawImage(tileImage, op)
 	str := strconv.Itoa(v)
 
-	f := mplusBigFont
+	sizeInPoints := 48.0
 	switch {
 	case 3 < len(str):
-		f = mplusSmallFont
+		sizeInPoints = 24
 	case 2 < len(str):
-		f = mplusNormalFont
+		sizeInPoints = 32
 	}
 
-	w := font.MeasureString(f, str).Floor()
-	h := (f.Metrics().Ascent + f.Metrics().Descent).Floor()
-	x += (tileSize - w) / 2
-	y += (tileSize-h)/2 + f.Metrics().Ascent.Floor()
-	text.Draw(boardImage, str, f, x, y, tileColor(v))
+	textOp := &text.DrawOptions{}
+	textOp.GeoM.Translate(float64(x)+float64(tileSize)/2, float64(y)+float64(tileSize)/2)
+	textOp.ColorScale.ScaleWithColor(tileColor(v))
+	textOp.PrimaryAlign = text.AlignCenter
+	textOp.SecondaryAlign = text.AlignCenter
+	text.Draw(boardImage, str, &text.GoTextFace{
+		Source:       mplusFaceSource,
+		SizeInPoints: sizeInPoints,
+	}, textOp)
 }

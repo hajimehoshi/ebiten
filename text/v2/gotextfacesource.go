@@ -128,25 +128,6 @@ func finalizeGoTextFaceSource(source *GoTextFaceSource) {
 	})
 }
 
-// Metrics returns the font's metrics.
-func (g *GoTextFaceSource) Metrics() Metrics {
-	upem := float64(g.f.Font.Upem())
-
-	var m Metrics
-	if h, ok := g.f.FontHExtents(); ok {
-		m.Height = float64(h.Ascender-h.Descender+h.LineGap) / upem
-		m.HAscent = float64(h.Ascender) / upem
-		m.HDescent = float64(-h.Descender) / upem
-	}
-	if v, ok := g.f.FontVExtents(); ok {
-		m.Width = float64(v.Ascender-v.Descender+v.LineGap) / upem
-		m.VAscent = float64(v.Ascender) / upem
-		m.VDescent = float64(-v.Descender) / upem
-	}
-
-	return m
-}
-
 func (g *GoTextFaceSource) shape(text string, face *GoTextFace) (shaping.Output, []glyph) {
 	g.m.Lock()
 	defer g.m.Unlock()

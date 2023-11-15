@@ -179,7 +179,21 @@ func MustParseTag(str string) Tag {
 
 // Metrics implements Face.
 func (g *GoTextFace) Metrics() Metrics {
-	return g.Source.Metrics()
+	scale := float64(g.SizeInPoints) / float64(g.Source.f.Font.Upem())
+
+	var m Metrics
+	if h, ok := g.Source.f.FontHExtents(); ok {
+		m.Height = float64(h.Ascender-h.Descender+h.LineGap) * scale
+		m.HAscent = float64(h.Ascender) * scale
+		m.HDescent = float64(-h.Descender) * scale
+	}
+	if v, ok := g.Source.f.FontVExtents(); ok {
+		m.Width = float64(v.Ascender-v.Descender+v.LineGap) * scale
+		m.VAscent = float64(v.Ascender) * scale
+		m.VDescent = float64(-v.Descender) * scale
+	}
+
+	return m
 }
 
 // UnsafeInternal implements Face.
