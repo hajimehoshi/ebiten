@@ -93,7 +93,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 	// Use bitmapfont.Face instead of ebitenutil.DebugPrint, since some key names might not be printed with DebugPrint.
 	textOp := &text.DrawOptions{}
-	textOp.LineHeight = fontFace.Metrics().Height
+	textOp.LineSpacingInPixels = fontFace.Metrics().Height
 	text.Draw(screen, strings.Join(keyStrs, ", ")+"\n"+strings.Join(keyNames, ", "), fontFace, textOp)
 }
 

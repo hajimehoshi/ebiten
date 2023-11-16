@@ -126,7 +126,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 	op.GeoM.Reset()
 	op.GeoM.Translate(screenWidth-20, 210)
-	op.LineHeight = 48
+	op.LineSpacingInPixels = 48
 	text.Draw(screen, japaneseText, &text.GoTextFace{
 		Source:    japaneseFaceSource,
 		Direction: text.DirectionTopToBottomAndRightToLeft,

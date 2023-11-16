@@ -91,7 +91,7 @@ func (t *TextField) textIndexByCursorPosition(x, y int) (int, bool) {
 		y = 0
 	}
 
-	lineHeight := int(fontFace.Metrics().Height)
+	lineSpacingInPixels := int(fontFace.Metrics().Height)
 	var nlCount int
 	var lineStart int
 	var prevAdvance float64
@@ -113,7 +113,7 @@ func (t *TextField) textIndexByCursorPosition(x, y int) (int, bool) {
 		} else {
 			x1 = int(currentAdvance)
 		}
-		if x0 <= x && x < x1 && nlCount*lineHeight <= y && y < (nlCount+1)*lineHeight {
+		if x0 <= x && x < x1 && nlCount*lineSpacingInPixels <= y && y < (nlCount+1)*lineSpacingInPixels {
 			return i, true
 		}
 		prevAdvance = currentAdvance
@@ -288,7 +288,7 @@ func (t *TextField) Draw(screen *ebiten.Image) {
 	op := &text.DrawOptions{}
 	op.GeoM.Translate(float64(tx), float64(ty))
 	op.ColorScale.ScaleWithColor(color.Black)
-	op.LineHeight = fontFace.Metrics().Height
+	op.LineSpacingInPixels = fontFace.Metrics().Height
 	text.Draw(screen, shownText, fontFace, op)
 }
 

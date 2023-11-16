@@ -48,7 +48,7 @@ func drawTextWithShadow(rt *ebiten.Image, str string, x, y, scale int, clr color
 	op := &text.DrawOptions{}
 	op.GeoM.Translate(float64(x)+1, float64(y)+1)
 	op.ColorScale.ScaleWithColor(shadowColor)
-	op.LineHeight = arcadeFontBaseSize * float64(scale)
+	op.LineSpacingInPixels = arcadeFontBaseSize * float64(scale)
 	op.PrimaryAlign = primaryAlign
 	op.SecondaryAlign = secondaryAlign
 	text.Draw(rt, str, &text.GoTextFace{

@@ -31,8 +31,8 @@ import (
 )
 
 const (
-	uiFontSize = 12
-	lineHeight = 16
+	uiFontSize          = 12
+	lineSpacingInPixels = 16
 )
 
 var (
@@ -180,7 +180,7 @@ func (b *Button) Draw(dst *ebiten.Image) {
 	op := &text.DrawOptions{}
 	op.GeoM.Translate(float64(b.Rect.Min.X+b.Rect.Max.X)/2, float64(b.Rect.Min.Y+b.Rect.Max.Y)/2)
 	op.ColorScale.ScaleWithColor(color.Black)
-	op.LineHeight = lineHeight
+	op.LineSpacingInPixels = lineSpacingInPixels
 	op.PrimaryAlign = text.AlignCenter
 	op.SecondaryAlign = text.AlignCenter
 	text.Draw(dst, b.Text, &text.GoTextFace{
@@ -319,7 +319,7 @@ func (t *TextBox) Update() {
 }
 
 func (t *TextBox) contentSize() (int, int) {
-	h := len(strings.Split(t.Text, "\n"))*lineHeight + textBoxPaddingTop
+	h := len(strings.Split(t.Text, "\n"))*lineSpacingInPixels + textBoxPaddingTop
 	return t.Rect.Dx(), h
 }
 
@@ -340,7 +340,7 @@ func (t *TextBox) Draw(dst *ebiten.Image) {
 	textOp.GeoM.Translate(x, y)
 	textOp.GeoM.Translate(float64(t.Rect.Min.X), float64(t.Rect.Min.Y))
 	textOp.ColorScale.ScaleWithColor(color.Black)
-	textOp.LineHeight = lineHeight
+	textOp.LineSpacingInPixels = lineSpacingInPixels
 	text.Draw(dst.SubImage(t.Rect).(*ebiten.Image), t.Text, &text.GoTextFace{
 		Source: uiFaceSource,
 		Size:   uiFontSize,
@@ -409,7 +409,7 @@ func (c *CheckBox) Draw(dst *ebiten.Image) {
 	op := &text.DrawOptions{}
 	op.GeoM.Translate(float64(x), float64(y))
 	op.ColorScale.ScaleWithColor(color.Black)
-	op.LineHeight = lineHeight
+	op.LineSpacingInPixels = lineSpacingInPixels
 	op.PrimaryAlign = text.AlignStart
 	op.SecondaryAlign = text.AlignCenter
 	text.Draw(dst, c.Text, &text.GoTextFace{

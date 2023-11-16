@@ -68,7 +68,7 @@ func (g *Game) Update() error {
 	// Initialize the glyphs for special (colorful) rendering.
 	if len(g.glyphs) == 0 {
 		op := &text.LayoutOptions{}
-		op.LineHeight = mplusNormalFace.Metrics().Height
+		op.LineSpacingInPixels = mplusNormalFace.Metrics().Height
 		g.glyphs = text.AppendGlyphs(g.glyphs, sampleText, mplusNormalFace, op)
 	}
 	return nil
@@ -83,7 +83,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		vector.DrawFilledRect(screen, x, y, float32(w), float32(h), gray, false)
 		op := &text.DrawOptions{}
 		op.GeoM.Translate(x, y)
-		op.LineHeight = mplusNormalFace.Metrics().Height
+		op.LineSpacingInPixels = mplusNormalFace.Metrics().Height
 		text.Draw(screen, sampleText, mplusNormalFace, op)
 	}
 	{
@@ -92,7 +92,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		vector.DrawFilledRect(screen, x, y, float32(w), float32(h), gray, false)
 		op := &text.DrawOptions{}
 		op.GeoM.Translate(x, y)
-		op.LineHeight = mplusBigFace.Metrics().Height
+		op.LineSpacingInPixels = mplusBigFace.Metrics().Height
 		text.Draw(screen, sampleText, mplusBigFace, op)
 	}
 	{
@@ -101,19 +101,19 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		op.GeoM.Rotate(math.Pi / 4)
 		op.GeoM.Translate(x, y)
 		op.Filter = ebiten.FilterLinear
-		op.LineHeight = mplusNormalFace.Metrics().Height
+		op.LineSpacingInPixels = mplusNormalFace.Metrics().Height
 		text.Draw(screen, sampleText, mplusNormalFace, op)
 	}
 	{
 		const x, y = 160, 220
-		const lineHeight = 80
-		w, h := text.Measure(sampleText, mplusBigFace, lineHeight)
+		const lineSpacingInPixels = 80
+		w, h := text.Measure(sampleText, mplusBigFace, lineSpacingInPixels)
 		vector.DrawFilledRect(screen, x, y, float32(w), float32(h), gray, false)
 		op := &text.DrawOptions{}
 		// Add the width as the text rendering region's upper-right position comes to (0, 0)
 		// when the horizontal alignment is right. The alignment is specified later (PrimaryAlign).
 		op.GeoM.Translate(x+w, y)
-		op.LineHeight = lineHeight
+		op.LineSpacingInPixels = lineSpacingInPixels
 		// The primary alignment for the left-to-right direction is a horizontal alignment, and the end means the right.
 		op.PrimaryAlign = text.AlignEnd
 		text.Draw(screen, sampleText, mplusBigFace, op)
