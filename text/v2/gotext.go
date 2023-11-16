@@ -338,9 +338,10 @@ func (g *GoTextFace) glyphImage(glyph glyph, origin fixed.Point26_6) (*ebiten.Im
 		Y: (origin.Y + b.Min.Y) & ((1 << 6) - 1),
 	}
 	key := glyphImageCacheKey{
-		id:      uint32(glyph.shapingGlyph.GlyphID),
-		xoffset: subpixelOffset.X,
-		yoffset: subpixelOffset.Y,
+		id:         uint32(glyph.shapingGlyph.GlyphID),
+		xoffset:    subpixelOffset.X,
+		yoffset:    subpixelOffset.Y,
+		variations: g.ensureVariationsString(),
 	}
 	img := theGlyphImageCache.getOrCreate(g, key, func() *ebiten.Image {
 		return segmentsToImage(glyph.scaledSegments, subpixelOffset, b)

@@ -50,6 +50,8 @@ type glyphImageCacheKey struct {
 
 	xoffset fixed.Int26_6
 	yoffset fixed.Int26_6
+
+	variations string
 }
 
 type glyphImageCacheEntry struct {
