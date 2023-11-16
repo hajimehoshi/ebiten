@@ -95,10 +95,21 @@ func float64ToFixed26_6(x float64) fixed.Int26_6 {
 	return fixed.Int26_6(i)<<6 + fixed.Int26_6(frac*(1<<6))
 }
 
-const glyphVariationCount = 4
+func glyphVariationCount(face Face) int {
+	m := face.Metrics()
+	if (m.HAscent != 0 || m.HDescent != 0) && m.HAscent+m.HDescent < 16 {
+		return 8
+	}
+	if (m.VAscent != 0 || m.VDescent != 0) && m.VAscent+m.VDescent < 16 {
+		return 8
+	}
+	// TODO: For big faces, a smaller value might be enough.
+	return 4
+}
 
-func adjustGranularity(x fixed.Int26_6) fixed.Int26_6 {
-	return x / ((1 << 6) / glyphVariationCount) * ((1 << 6) / glyphVariationCount)
+func adjustGranularity(x fixed.Int26_6, face Face) fixed.Int26_6 {
+	c := glyphVariationCount(face)
+	return x / ((1 << 6) / fixed.Int26_6(c)) * ((1 << 6) / fixed.Int26_6(c))
 }
 
 // Glyph represents one glyph to render.
@@ -227,16 +238,18 @@ func Measure(text string, face Face, lineHeight float64) (width, height float64)
 func CacheGlyphs(text string, face Face) {
 	var x, y float64
 
+	c := glyphVariationCount(face)
+
 	var buf []Glyph
 	// Create all the possible variations (#2528).
-	for i := 0; i < 4; i++ {
+	for i := 0; i < c; i++ {
 		buf = appendGlyphs(buf, text, face, x, y, nil)
 		buf = buf[:0]
 
 		if face.direction().isHorizontal() {
-			x += 1.0 / glyphVariationCount
+			x += 1.0 / float64(c)
 		} else {
-			y += 1.0 / glyphVariationCount
+			y += 1.0 / float64(c)
 		}
 	}
 }

@@ -325,11 +325,11 @@ func (g *GoTextFace) appendGlyphs(glyphs []Glyph, text string, indexOffset int, 
 
 func (g *GoTextFace) glyphImage(glyph glyph, origin fixed.Point26_6) (*ebiten.Image, int, int) {
 	if g.direction().isHorizontal() {
-		origin.X = adjustGranularity(origin.X)
+		origin.X = adjustGranularity(origin.X, g)
 		origin.Y &^= ((1 << 6) - 1)
 	} else {
 		origin.X &^= ((1 << 6) - 1)
-		origin.Y = adjustGranularity(origin.Y)
+		origin.Y = adjustGranularity(origin.Y, g)
 	}
 
 	b := segmentsToBounds(glyph.scaledSegments)

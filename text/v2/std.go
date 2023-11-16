@@ -130,7 +130,7 @@ func (s *StdFace) appendGlyphs(glyphs []Glyph, text string, indexOffset int, ori
 
 func (s *StdFace) glyphImage(r rune, origin fixed.Point26_6) (*ebiten.Image, int, int, fixed.Int26_6) {
 	// Assume that StdFace's direction is always horizontal.
-	origin.X = adjustGranularity(origin.X)
+	origin.X = adjustGranularity(origin.X, s)
 	origin.Y &^= ((1 << 6) - 1)
 
 	b, a, _ := s.f.GlyphBounds(r)
