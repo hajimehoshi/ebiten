@@ -96,15 +96,23 @@ func float64ToFixed26_6(x float64) fixed.Int26_6 {
 }
 
 func glyphVariationCount(face Face) int {
-	m := face.Metrics()
-	if (m.HAscent != 0 || m.HDescent != 0) && m.HAscent+m.HDescent < 16 {
+	var s float64
+	if m := face.Metrics(); face.direction().isHorizontal() {
+		s = m.HAscent + m.HDescent
+	} else {
+		s = m.VAscent + m.VDescent
+	}
+	// The threshold is decided based on the rendering result of the examples (e.g. examples/text, examples/ui).
+	if s < 20 {
 		return 8
 	}
-	if (m.VAscent != 0 || m.VDescent != 0) && m.VAscent+m.VDescent < 16 {
-		return 8
+	if s < 40 {
+		return 4
 	}
-	// TODO: For big faces, a smaller value might be enough.
-	return 4
+	if s < 80 {
+		return 2
+	}
+	return 1
 }
 
 func adjustGranularity(x fixed.Int26_6, face Face) fixed.Int26_6 {
