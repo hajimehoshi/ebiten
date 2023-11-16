@@ -269,7 +269,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	switch g.mode {
 	case ModeTitle:
 		titleTexts = "FLAPPY GOPHER"
-		texts = "\n\n\n\n\n\n\nPRESS SPACE KEY\n\nOR A/B BUTTON\n\nOR TOUCH SCREEN"
+		texts = "\n\n\n\n\n\nPRESS SPACE KEY\n\nOR A/B BUTTON\n\nOR TOUCH SCREEN"
 	case ModeGameOver:
 		texts = "\nGAME OVER!"
 	}
@@ -298,7 +298,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		const msg = "Go Gopher by Renee French is\nlicenced under CC BY 3.0."
 
 		op := &text.DrawOptions{}
-		op.GeoM.Translate(screenWidth/2, screenHeight)
+		op.GeoM.Translate(screenWidth/2, screenHeight-smallFontSize/2)
 		op.ColorScale.ScaleWithColor(color.White)
 		op.LineHeight = smallFontSize
 		op.PrimaryAlign = text.AlignCenter
