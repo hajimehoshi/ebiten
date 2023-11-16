@@ -117,7 +117,8 @@ func glyphVariationCount(face Face) int {
 
 func adjustGranularity(x fixed.Int26_6, face Face) fixed.Int26_6 {
 	c := glyphVariationCount(face)
-	return x / ((1 << 6) / fixed.Int26_6(c)) * ((1 << 6) / fixed.Int26_6(c))
+	factor := (1 << 6) / fixed.Int26_6(c)
+	return x / factor * factor
 }
 
 // Glyph represents one glyph to render.
