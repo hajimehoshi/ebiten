@@ -22,18 +22,20 @@ import (
 	_ "image/png"
 	"log"
 
-	"golang.org/x/image/font"
 	"golang.org/x/image/font/inconsolata"
-	"golang.org/x/image/math/fixed"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/examples/resources/images/blend"
-	"github.com/hajimehoshi/ebiten/v2/text"
+	"github.com/hajimehoshi/ebiten/v2/text/v2"
 )
 
 const (
 	screenWidth  = 800
 	screenHeight = 800
+)
+
+var (
+	inconsolataFace = text.NewStdFace(inconsolata.Bold8x16)
 )
 
 // mode is a blend mode with description.
@@ -176,17 +178,14 @@ func maxSide(a, b *ebiten.Image) int {
 	)
 }
 
-func fixed26_6ToFloat64(x fixed.Int26_6) float64 {
-	return float64(x>>6) + float64(x&((1<<6)-1))/float64(1<<6)
-}
-
 // drawCenteredText is a util function for drawing blend mode description.
 func drawCenteredText(screen *ebiten.Image, cx, cy float64, s string) {
-	advance := font.MeasureString(inconsolata.Bold8x16, s)
-	m := inconsolata.Bold8x16.Metrics()
-	height := m.Ascent + m.Descent
-	x, y := int(cx-fixed26_6ToFloat64(advance)/2), int(cy-fixed26_6ToFloat64(height)/2+fixed26_6ToFloat64(m.Ascent))
-	text.Draw(screen, s, inconsolata.Bold8x16, x, y, color.Black)
+	op := &text.DrawOptions{}
+	op.GeoM.Translate(cx, cy)
+	op.ColorScale.ScaleWithColor(color.Black)
+	op.PrimaryAlign = text.AlignCenter
+	op.SecondaryAlign = text.AlignCenter
+	text.Draw(screen, s, inconsolataFace, op)
 }
 
 func main() {
