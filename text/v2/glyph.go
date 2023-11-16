@@ -101,7 +101,7 @@ func (g *glyphImageCache) getOrCreate(face Face, key glyphImageCacheKey, create 
 	// If the number of glyphs exceeds this soft limits, old glyphs are removed.
 	// Even after cleaning up the cache, the number of glyphs might still exceed the soft limit, but
 	// this is fine.
-	const cacheSoftLimit = 512
+	cacheSoftLimit := 128 * glyphVariationCount(face)
 	if len(g.cache[faceCacheKey]) > cacheSoftLimit {
 		for key, e := range g.cache[faceCacheKey] {
 			// 60 is an arbitrary number.
