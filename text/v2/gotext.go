@@ -332,7 +332,7 @@ func (g *GoTextFace) glyphImage(glyph glyph, origin fixed.Point26_6) (*ebiten.Im
 		origin.Y = adjustGranularity(origin.Y, g)
 	}
 
-	b := segmentsToBounds(glyph.scaledSegments)
+	b := glyph.bounds
 	subpixelOffset := fixed.Point26_6{
 		X: (origin.X + b.Min.X) & ((1 << 6) - 1),
 		Y: (origin.Y + b.Min.Y) & ((1 << 6) - 1),

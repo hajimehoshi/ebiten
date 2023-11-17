@@ -24,6 +24,7 @@ import (
 	"github.com/go-text/typesetting/language"
 	"github.com/go-text/typesetting/opentype/api"
 	"github.com/go-text/typesetting/shaping"
+	"golang.org/x/image/math/fixed"
 )
 
 type goTextOutputCacheKey struct {
@@ -41,6 +42,7 @@ type glyph struct {
 	startIndex     int
 	endIndex       int
 	scaledSegments []api.Segment
+	bounds         fixed.Rectangle26_6
 }
 
 type goTextOutputCacheValue struct {
@@ -193,6 +195,7 @@ func (g *GoTextFaceSource) shape(text string, face *GoTextFace) (shaping.Output,
 			startIndex:     indices[gl.ClusterIndex],
 			endIndex:       indices[gl.ClusterIndex+gl.RuneCount],
 			scaledSegments: scaledSegs,
+			bounds:         segmentsToBounds(scaledSegs),
 		}
 	}
 	g.outputCache[key] = &goTextOutputCacheValue{
