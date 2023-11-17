@@ -116,7 +116,7 @@ func segmentsToImage(segs []api.Segment, subpixelOffset fixed.Point26_6, glyphBo
 		}
 	}
 
-	dst := image.NewAlpha(image.Rect(0, 0, w, h))
+	dst := image.NewRGBA(image.Rect(0, 0, w, h))
 	rast.Draw(dst, dst.Bounds(), image.Opaque, image.Point{})
 	return ebiten.NewImageFromImage(dst)
 }
