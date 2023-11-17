@@ -15,18 +15,16 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"image/color"
 	"log"
 	"math/rand"
 	"time"
 
-	"golang.org/x/image/font"
-	"golang.org/x/image/font/opentype"
-
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/examples/resources/fonts"
-	"github.com/hajimehoshi/ebiten/v2/text"
+	"github.com/hajimehoshi/ebiten/v2/text/v2"
 )
 
 const (
@@ -37,9 +35,7 @@ const (
 const sampleText = `The quick brown fox jumps over the lazy dog.`
 
 var (
-	mplusNormalFont font.Face
-	mplusBigFont    font.Face
-	jaKanjis        = []rune{}
+	jaKanjis = []rune{}
 )
 
 func init() {
@@ -86,32 +82,16 @@ func init() {
 	}
 }
 
+var (
+	mplusFaceSource *text.GoTextFaceSource
+)
+
 func init() {
-	tt, err := opentype.Parse(fonts.MPlus1pRegular_ttf)
+	s, err := text.NewGoTextFaceSource(bytes.NewReader(fonts.MPlus1pRegular_ttf))
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	const dpi = 72
-	mplusNormalFont, err = opentype.NewFace(tt, &opentype.FaceOptions{
-		Size:    24,
-		DPI:     dpi,
-		Hinting: font.HintingVertical,
-	})
-	if err != nil {
-		log.Fatal(err)
-	}
-	mplusBigFont, err = opentype.NewFace(tt, &opentype.FaceOptions{
-		Size:    48,
-		DPI:     dpi,
-		Hinting: font.HintingFull, // Use quantization to save glyph cache images.
-	})
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// Adjust the line height.
-	mplusBigFont = text.FaceWithLineHeight(mplusBigFont, 54)
+	mplusFaceSource = s
 }
 
 func init() {
@@ -128,8 +108,8 @@ func (g *Game) Update() error {
 	// Change the text color for each second.
 	if g.counter%ebiten.TPS() == 0 {
 		g.kanjiText = ""
-		for j := 0; j < 4; j++ {
-			for i := 0; i < 8; i++ {
+		for j := 0; j < 6; j++ {
+			for i := 0; i < 12; i++ {
 				g.kanjiText += string(jaKanjis[rand.Intn(len(jaKanjis))])
 			}
 			g.kanjiText += "\n"
@@ -145,17 +125,41 @@ func (g *Game) Update() error {
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
+	const (
+		normalFontSize = 24
+		bigFontSize    = 48
+	)
+
 	const x = 20
 
 	// Draw info
 	msg := fmt.Sprintf("TPS: %0.2f", ebiten.ActualTPS())
-	text.Draw(screen, msg, mplusNormalFont, x, 40, color.White)
+	op := &text.DrawOptions{}
+	op.GeoM.Translate(x, 20)
+	op.ColorScale.ScaleWithColor(color.White)
+	text.Draw(screen, msg, &text.GoTextFace{
+		Source: mplusFaceSource,
+		Size:   normalFontSize,
+	}, op)
 
 	// Draw the sample text
-	text.Draw(screen, sampleText, mplusNormalFont, x, 80, color.White)
+	op = &text.DrawOptions{}
+	op.GeoM.Translate(x, 60)
+	op.ColorScale.ScaleWithColor(color.White)
+	text.Draw(screen, sampleText, &text.GoTextFace{
+		Source: mplusFaceSource,
+		Size:   normalFontSize,
+	}, op)
 
 	// Draw Kanji text lines
-	text.Draw(screen, g.kanjiText, mplusBigFont, x, 160, g.kanjiTextColor)
+	op = &text.DrawOptions{}
+	op.GeoM.Translate(x, 110)
+	op.ColorScale.ScaleWithColor(g.kanjiTextColor)
+	op.LineSpacingInPixels = bigFontSize * 1.2
+	text.Draw(screen, g.kanjiText, &text.GoTextFace{
+		Source: mplusFaceSource,
+		Size:   bigFontSize,
+	}, op)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
