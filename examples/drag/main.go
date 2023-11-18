@@ -84,7 +84,6 @@ func (s *Sprite) Draw(screen *ebiten.Image, alpha float32) {
 	op.GeoM.Translate(float64(s.x), float64(s.y))
 	op.ColorScale.ScaleAlpha(alpha)
 	screen.DrawImage(s.image, op)
-	screen.DrawImage(s.image, op)
 }
 
 // StrokeSource represents a input device to provide strokes.
