@@ -1358,20 +1358,32 @@ func (u *UserInterface) update() (float64, float64, error) {
 		}
 	}
 
-	// In the initial state on macOS, the window is not shown (#2620).
-	visible, err := u.window.GetAttrib(glfw.Visible)
-	if err != nil {
-		return 0, 0, err
-	}
-	focused, err := u.window.GetAttrib(glfw.Focused)
-	if err != nil {
-		return 0, 0, err
-	}
-	shouldClose, err := u.window.ShouldClose()
-	if err != nil {
-		return 0, 0, err
-	}
-	for visible != 0 && !u.isRunnableOnUnfocused() && focused == 0 && !shouldClose {
+	for !u.isRunnableOnUnfocused() {
+		// In the initial state on macOS, the window is not shown (#2620).
+		visible, err := u.window.GetAttrib(glfw.Visible)
+		if err != nil {
+			return 0, 0, err
+		}
+		if visible == glfw.False {
+			break
+		}
+
+		focused, err := u.window.GetAttrib(glfw.Focused)
+		if err != nil {
+			return 0, 0, err
+		}
+		if focused != glfw.False {
+			break
+		}
+
+		shouldClose, err := u.window.ShouldClose()
+		if err != nil {
+			return 0, 0, err
+		}
+		if shouldClose {
+			break
+		}
+
 		if err := hook.SuspendAudio(); err != nil {
 			return 0, 0, err
 		}
@@ -1381,6 +1393,7 @@ func (u *UserInterface) update() (float64, float64, error) {
 			return 0, 0, err
 		}
 	}
+
 	if err := hook.ResumeAudio(); err != nil {
 		return 0, 0, err
 	}
