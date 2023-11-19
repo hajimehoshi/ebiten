@@ -17,7 +17,6 @@ package text
 import (
 	"bytes"
 	"io"
-	"runtime"
 	"sync"
 
 	"github.com/go-text/typesetting/font"
@@ -25,6 +24,8 @@ import (
 	"github.com/go-text/typesetting/opentype/api"
 	"github.com/go-text/typesetting/shaping"
 	"golang.org/x/image/math/fixed"
+
+	"github.com/hajimehoshi/ebiten/v2"
 )
 
 type goTextOutputCacheKey struct {
@@ -53,10 +54,10 @@ type goTextOutputCacheValue struct {
 
 // GoTextFaceSource is a source of a GoTextFace. This can be shared by multiple GoTextFace objects.
 type GoTextFaceSource struct {
-	f  font.Face
-	id uint64
+	f font.Face
 
-	outputCache map[goTextOutputCacheKey]*goTextOutputCacheValue
+	outputCache     map[goTextOutputCacheKey]*goTextOutputCacheValue
+	glyphImageCache map[float64]*glyphImageCache
 
 	addr *GoTextFaceSource
 
@@ -94,11 +95,9 @@ func NewGoTextFaceSource(source io.ReadSeeker) (*GoTextFaceSource, error) {
 	}
 
 	s := &GoTextFaceSource{
-		f:  f,
-		id: nextUniqueID(),
+		f: f,
 	}
 	s.addr = s
-	runtime.SetFinalizer(s, finalizeGoTextFaceSource)
 	return s, nil
 }
 
@@ -117,21 +116,12 @@ func NewGoTextFaceSourcesFromCollection(source io.ReadSeeker) ([]*GoTextFaceSour
 	sources := make([]*GoTextFaceSource, len(fs))
 	for i, f := range fs {
 		s := &GoTextFaceSource{
-			f:  f,
-			id: nextUniqueID(),
+			f: f,
 		}
 		s.addr = s
-		runtime.SetFinalizer(s, finalizeGoTextFaceSource)
 		sources[i] = s
 	}
 	return sources, nil
-}
-
-func finalizeGoTextFaceSource(source *GoTextFaceSource) {
-	runtime.SetFinalizer(source, nil)
-	theGlyphImageCache.clear(func(key faceCacheKey) bool {
-		return key.id == source.id
-	})
 }
 
 func (g *GoTextFaceSource) copyCheck() {
@@ -232,4 +222,14 @@ func (g *GoTextFaceSource) shape(text string, face *GoTextFace) (shaping.Output,
 
 func (g *GoTextFaceSource) scale(size float64) float64 {
 	return size / float64(g.f.Upem())
+}
+
+func (g *GoTextFaceSource) getOrCreateGlyphImage(goTextFace *GoTextFace, key glyphImageCacheKey, create func() *ebiten.Image) *ebiten.Image {
+	if g.glyphImageCache == nil {
+		g.glyphImageCache = map[float64]*glyphImageCache{}
+	}
+	if _, ok := g.glyphImageCache[goTextFace.Size]; !ok {
+		g.glyphImageCache[goTextFace.Size] = &glyphImageCache{}
+	}
+	return g.glyphImageCache[goTextFace.Size].getOrCreate(goTextFace, key, create)
 }

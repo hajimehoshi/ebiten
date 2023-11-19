@@ -39,11 +39,6 @@ func init() {
 	})
 }
 
-type faceCacheKey struct {
-	id             uint64
-	goTextFaceSize float64
-}
-
 type glyphImageCacheKey struct {
 	// id is rune for StdFace, and GID for GoTextFace.
 	id uint32
@@ -60,28 +55,22 @@ type glyphImageCacheEntry struct {
 }
 
 type glyphImageCache struct {
-	cache map[faceCacheKey]map[glyphImageCacheKey]*glyphImageCacheEntry
+	cache map[glyphImageCacheKey]*glyphImageCacheEntry
 	m     sync.Mutex
 }
-
-var theGlyphImageCache glyphImageCache
 
 func (g *glyphImageCache) getOrCreate(face Face, key glyphImageCacheKey, create func() *ebiten.Image) *ebiten.Image {
 	g.m.Lock()
 	defer g.m.Unlock()
 
-	e, ok := g.cache[face.faceCacheKey()][key]
+	e, ok := g.cache[key]
 	if ok {
 		e.atime = now()
 		return e.image
 	}
 
 	if g.cache == nil {
-		g.cache = map[faceCacheKey]map[glyphImageCacheKey]*glyphImageCacheEntry{}
-	}
-	faceCacheKey := face.faceCacheKey()
-	if g.cache[faceCacheKey] == nil {
-		g.cache[faceCacheKey] = map[glyphImageCacheKey]*glyphImageCacheEntry{}
+		g.cache = map[glyphImageCacheKey]*glyphImageCacheEntry{}
 	}
 
 	img := create()
@@ -95,7 +84,7 @@ func (g *glyphImageCache) getOrCreate(face Face, key glyphImageCacheKey, create 
 		// Keep this until the face is GCed.
 		e.atime = infTime
 	}
-	g.cache[faceCacheKey][key] = e
+	g.cache[key] = e
 
 	// Clean up old entries.
 
@@ -104,26 +93,15 @@ func (g *glyphImageCache) getOrCreate(face Face, key glyphImageCacheKey, create 
 	// Even after cleaning up the cache, the number of glyphs might still exceed the soft limit, but
 	// this is fine.
 	cacheSoftLimit := 128 * glyphVariationCount(face)
-	if len(g.cache[faceCacheKey]) > cacheSoftLimit {
-		for key, e := range g.cache[faceCacheKey] {
+	if len(g.cache) > cacheSoftLimit {
+		for key, e := range g.cache {
 			// 60 is an arbitrary number.
 			if e.atime >= now()-60 {
 				continue
 			}
-			delete(g.cache[faceCacheKey], key)
+			delete(g.cache, key)
 		}
 	}
 
 	return img
-}
-
-func (g *glyphImageCache) clear(comp func(key faceCacheKey) bool) {
-	g.m.Lock()
-	defer g.m.Unlock()
-
-	for key := range g.cache {
-		if comp(key) {
-			delete(g.cache, key)
-		}
-	}
 }

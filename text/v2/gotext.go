@@ -238,14 +238,6 @@ func (g *GoTextFace) ensureFeaturesString() string {
 	return g.featuresString
 }
 
-// faceCacheKey implements Face.
-func (g *GoTextFace) faceCacheKey() faceCacheKey {
-	return faceCacheKey{
-		id:             g.Source.id,
-		goTextFaceSize: g.Size,
-	}
-}
-
 func (g *GoTextFace) outputCacheKey(text string) goTextOutputCacheKey {
 	return goTextOutputCacheKey{
 		text:       text,
@@ -343,7 +335,7 @@ func (g *GoTextFace) glyphImage(glyph glyph, origin fixed.Point26_6) (*ebiten.Im
 		yoffset:    subpixelOffset.Y,
 		variations: g.ensureVariationsString(),
 	}
-	img := theGlyphImageCache.getOrCreate(g, key, func() *ebiten.Image {
+	img := g.Source.getOrCreateGlyphImage(g, key, func() *ebiten.Image {
 		return segmentsToImage(glyph.scaledSegments, subpixelOffset, b)
 	})
 

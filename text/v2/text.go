@@ -20,7 +20,6 @@ package text
 import (
 	"math"
 	"strings"
-	"sync/atomic"
 
 	"golang.org/x/image/math/fixed"
 
@@ -36,8 +35,6 @@ type Face interface {
 	// The returned value is either a semi-standard font.Face or go-text's font.Face.
 	// This is unsafe since this might make internal cache states out of sync.
 	UnsafeInternal() any
-
-	faceCacheKey() faceCacheKey
 
 	advance(text string) float64
 
@@ -261,10 +258,4 @@ func CacheGlyphs(text string, face Face) {
 			y += 1.0 / float64(c)
 		}
 	}
-}
-
-var currentUniqueID uint64
-
-func nextUniqueID() uint64 {
-	return atomic.AddUint64(&currentUniqueID, 1)
 }
