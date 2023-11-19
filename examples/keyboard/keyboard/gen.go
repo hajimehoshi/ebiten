@@ -17,49 +17,29 @@
 package main
 
 import (
+	"bytes"
 	"image"
-	"image/color"
 	"image/png"
 	"log"
 	"os"
 	"path/filepath"
 	"text/template"
 
-	"golang.org/x/image/font"
-	"golang.org/x/image/font/opentype"
-
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/text"
-)
-
-const (
-	arcadeFontSize = 8
+	"github.com/hajimehoshi/ebiten/v2/examples/resources/fonts"
+	"github.com/hajimehoshi/ebiten/v2/text/v2"
 )
 
 var (
-	arcadeFont font.Face
+	arcadeFaceSource *text.GoTextFaceSource
 )
 
 func init() {
-	b, err := os.ReadFile(filepath.Join("..", "..", "resources", "fonts", "pressstart2p.ttf"))
+	s, err := text.NewGoTextFaceSource(bytes.NewReader(fonts.PressStart2P_ttf))
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	tt, err := opentype.Parse(b)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	const dpi = 72
-	arcadeFont, err = opentype.NewFace(tt, &opentype.FaceOptions{
-		Size:    arcadeFontSize,
-		DPI:     dpi,
-		Hinting: font.HintingFull,
-	})
-	if err != nil {
-		log.Fatal(err)
-	}
+	arcadeFaceSource = s
 }
 
 var keyboardKeys = [][]string{
@@ -135,10 +115,9 @@ func keyDisplayNameToKey(name string) ebiten.Key {
 	panic("not reached: unknown key " + name)
 }
 
-func drawKey(t *ebiten.Image, name string, x, y, width int) {
+func drawKey(dst *ebiten.Image, name string, x, y, width int) {
 	const height = 16
 	width--
-	img := ebiten.NewImage(width, height)
 	p := make([]byte, width*height*4)
 	for j := 0; j < height; j++ {
 		for i := 0; i < width; i++ {
@@ -175,13 +154,17 @@ func drawKey(t *ebiten.Image, name string, x, y, width int) {
 			}
 		}
 	}
-	img.WritePixels(p)
-	const offset = 4
-	text.Draw(img, name, arcadeFont, offset, arcadeFontSize+offset+1, color.White)
+	dst.SubImage(image.Rect(x, y, x+width, y+height)).(*ebiten.Image).WritePixels(p)
 
-	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(float64(x), float64(y))
-	t.DrawImage(img, op)
+	textOp := &text.DrawOptions{}
+	textOp.GeoM.Translate(float64(x), float64(y))
+	textOp.GeoM.Translate(float64(width)/2, float64(height)/2)
+	textOp.PrimaryAlign = text.AlignCenter
+	textOp.SecondaryAlign = text.AlignCenter
+	text.Draw(dst, name, &text.GoTextFace{
+		Source: arcadeFaceSource,
+		Size:   8,
+	}, textOp)
 }
 
 func outputKeyboardImage() (map[ebiten.Key]image.Rectangle, error) {
