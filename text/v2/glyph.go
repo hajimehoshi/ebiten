@@ -18,8 +18,6 @@ import (
 	"math"
 	"sync"
 
-	"golang.org/x/image/math/fixed"
-
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/internal/hook"
 )
@@ -39,27 +37,17 @@ func init() {
 	})
 }
 
-type glyphImageCacheKey struct {
-	// id is rune for StdFace, and GID for GoTextFace.
-	id uint32
-
-	xoffset fixed.Int26_6
-	yoffset fixed.Int26_6
-
-	variations string
-}
-
 type glyphImageCacheEntry struct {
 	image *ebiten.Image
 	atime int64
 }
 
-type glyphImageCache struct {
-	cache map[glyphImageCacheKey]*glyphImageCacheEntry
+type glyphImageCache[Key comparable] struct {
+	cache map[Key]*glyphImageCacheEntry
 	m     sync.Mutex
 }
 
-func (g *glyphImageCache) getOrCreate(face Face, key glyphImageCacheKey, create func() *ebiten.Image) *ebiten.Image {
+func (g *glyphImageCache[Key]) getOrCreate(face Face, key Key, create func() *ebiten.Image) *ebiten.Image {
 	g.m.Lock()
 	defer g.m.Unlock()
 
@@ -70,7 +58,7 @@ func (g *glyphImageCache) getOrCreate(face Face, key glyphImageCacheKey, create 
 	}
 
 	if g.cache == nil {
-		g.cache = map[glyphImageCacheKey]*glyphImageCacheEntry{}
+		g.cache = map[Key]*glyphImageCacheEntry{}
 	}
 
 	img := create()

@@ -52,12 +52,19 @@ type goTextOutputCacheValue struct {
 	atime  int64
 }
 
+type goTextGlyphImageCacheKey struct {
+	gid        api.GID
+	xoffset    fixed.Int26_6
+	yoffset    fixed.Int26_6
+	variations string
+}
+
 // GoTextFaceSource is a source of a GoTextFace. This can be shared by multiple GoTextFace objects.
 type GoTextFaceSource struct {
 	f font.Face
 
 	outputCache     map[goTextOutputCacheKey]*goTextOutputCacheValue
-	glyphImageCache map[float64]*glyphImageCache
+	glyphImageCache map[float64]*glyphImageCache[goTextGlyphImageCacheKey]
 
 	addr *GoTextFaceSource
 
@@ -224,12 +231,12 @@ func (g *GoTextFaceSource) scale(size float64) float64 {
 	return size / float64(g.f.Upem())
 }
 
-func (g *GoTextFaceSource) getOrCreateGlyphImage(goTextFace *GoTextFace, key glyphImageCacheKey, create func() *ebiten.Image) *ebiten.Image {
+func (g *GoTextFaceSource) getOrCreateGlyphImage(goTextFace *GoTextFace, key goTextGlyphImageCacheKey, create func() *ebiten.Image) *ebiten.Image {
 	if g.glyphImageCache == nil {
-		g.glyphImageCache = map[float64]*glyphImageCache{}
+		g.glyphImageCache = map[float64]*glyphImageCache[goTextGlyphImageCacheKey]{}
 	}
 	if _, ok := g.glyphImageCache[goTextFace.Size]; !ok {
-		g.glyphImageCache[goTextFace.Size] = &glyphImageCache{}
+		g.glyphImageCache[goTextFace.Size] = &glyphImageCache[goTextGlyphImageCacheKey]{}
 	}
 	return g.glyphImageCache[goTextFace.Size].getOrCreate(goTextFace, key, create)
 }

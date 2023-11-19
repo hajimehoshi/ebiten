@@ -26,13 +26,20 @@ import (
 
 var _ Face = (*StdFace)(nil)
 
+type stdFaceGlyphImageCacheKey struct {
+	rune    rune
+	xoffset fixed.Int26_6
+
+	// yoffset is always the same if the rune is the same, so this doesn't have to be a key.
+}
+
 // StdFace is a Face implementation for a semi-standard font.Face (golang.org/x/image/font).
 // StdFace is useful to transit from existing codebase with text v1, or to use some bitmap fonts defined as font.Face.
 // StdFace must not be copied by value.
 type StdFace struct {
 	f *faceWithCache
 
-	glyphImageCache glyphImageCache
+	glyphImageCache glyphImageCache[stdFaceGlyphImageCacheKey]
 
 	addr *StdFace
 }
@@ -121,10 +128,9 @@ func (s *StdFace) glyphImage(r rune, origin fixed.Point26_6) (*ebiten.Image, int
 		X: (origin.X + b.Min.X) & ((1 << 6) - 1),
 		Y: (origin.Y + b.Min.Y) & ((1 << 6) - 1),
 	}
-	key := glyphImageCacheKey{
-		id:      uint32(r),
+	key := stdFaceGlyphImageCacheKey{
+		rune:    r,
 		xoffset: subpixelOffset.X,
-		// yoffset is always the same if the rune is the same, so this doesn't have to be a key.
 	}
 	img := s.glyphImageCache.getOrCreate(s, key, func() *ebiten.Image {
 		return s.glyphImageImpl(r, subpixelOffset, b)

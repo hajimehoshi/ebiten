@@ -329,8 +329,8 @@ func (g *GoTextFace) glyphImage(glyph glyph, origin fixed.Point26_6) (*ebiten.Im
 		X: (origin.X + b.Min.X) & ((1 << 6) - 1),
 		Y: (origin.Y + b.Min.Y) & ((1 << 6) - 1),
 	}
-	key := glyphImageCacheKey{
-		id:         uint32(glyph.shapingGlyph.GlyphID),
+	key := goTextGlyphImageCacheKey{
+		gid:        glyph.shapingGlyph.GlyphID,
 		xoffset:    subpixelOffset.X,
 		yoffset:    subpixelOffset.Y,
 		variations: g.ensureVariationsString(),
