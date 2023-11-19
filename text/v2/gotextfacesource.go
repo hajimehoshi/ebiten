@@ -58,6 +58,8 @@ type GoTextFaceSource struct {
 
 	outputCache map[goTextOutputCacheKey]*goTextOutputCacheValue
 
+	addr *GoTextFaceSource
+
 	m sync.Mutex
 }
 
@@ -95,6 +97,7 @@ func NewGoTextFaceSource(source io.ReadSeeker) (*GoTextFaceSource, error) {
 		f:  f,
 		id: nextUniqueID(),
 	}
+	s.addr = s
 	runtime.SetFinalizer(s, finalizeGoTextFaceSource)
 	return s, nil
 }
@@ -117,6 +120,7 @@ func NewGoTextFaceSourcesFromCollection(source io.ReadSeeker) ([]*GoTextFaceSour
 			f:  f,
 			id: nextUniqueID(),
 		}
+		s.addr = s
 		runtime.SetFinalizer(s, finalizeGoTextFaceSource)
 		sources[i] = s
 	}
@@ -130,7 +134,15 @@ func finalizeGoTextFaceSource(source *GoTextFaceSource) {
 	})
 }
 
+func (g *GoTextFaceSource) copyCheck() {
+	if g.addr != g {
+		panic("text: illegal use of non-zero GoTextFaceSource copied by value")
+	}
+}
+
 func (g *GoTextFaceSource) shape(text string, face *GoTextFace) (shaping.Output, []glyph) {
+	g.copyCheck()
+
 	g.m.Lock()
 	defer g.m.Unlock()
 
