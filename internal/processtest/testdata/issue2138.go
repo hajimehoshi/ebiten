@@ -17,23 +17,22 @@
 package main
 
 import (
+	"bytes"
 	"image"
 	"image/color"
 	"math"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/text"
+	"github.com/hajimehoshi/ebiten/v2/text/v2"
 	"github.com/hajimehoshi/ebiten/v2/vector"
-	"golang.org/x/image/font"
 	"golang.org/x/image/font/gofont/goregular"
-	"golang.org/x/image/font/opentype"
 )
 
 var (
 	whiteImage        = ebiten.NewImage(3, 3)
 	debugCircleImage  *ebiten.Image
 	whiteTextureImage = whiteImage.SubImage(image.Rect(1, 1, 2, 2)).(*ebiten.Image)
-	face              font.Face
+	faceSource        *text.GoTextFaceSource
 )
 
 func init() {
@@ -44,11 +43,7 @@ func init() {
 
 	whiteImage.Fill(color.Black)
 
-	f, _ := opentype.Parse(goregular.TTF)
-	face, _ = opentype.NewFace(f, &opentype.FaceOptions{
-		Size: 12,
-		DPI:  72,
-	})
+	faceSource, _ = text.NewGoTextFaceSource(bytes.NewReader(goregular.TTF))
 }
 
 type Game struct {
@@ -68,7 +63,12 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	//     panic: directx: IDXGISwapChain4::Present failed: HRESULT(2289696773)
 
 	screen.DrawImage(debugCircleImage, nil)
-	text.Draw(screen, "014678.,", face, 100, 100, color.White)
+	op := &text.DrawOptions{}
+	op.GeoM.Translate(100, 100)
+	text.Draw(screen, "014678.,", &text.GoTextFace{
+		Source: faceSource,
+		Size:   12,
+	}, op)
 
 	p := vector.Path{}
 	p.Arc(100, 100, 6, 0, 2*math.Pi, vector.Clockwise)
