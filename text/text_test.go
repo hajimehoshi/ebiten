@@ -66,14 +66,14 @@ func (f *testFace) Glyph(dot fixed.Point26_6, r rune) (dr image.Rectangle, mask 
 	a := image.NewAlpha(dr)
 	switch r {
 	case 'a':
-		for j := 0; j < testFaceSize; j++ {
-			for i := 0; i < testFaceSize; i++ {
+		for j := dr.Min.Y; j < dr.Max.Y; j++ {
+			for i := dr.Min.X; i < dr.Max.X; i++ {
 				a.SetAlpha(i, j, color.Alpha{A: 0x80})
 			}
 		}
 	case 'b':
-		for j := 0; j < testFaceSize; j++ {
-			for i := 0; i < testFaceSize; i++ {
+		for j := dr.Min.Y; j < dr.Max.Y; j++ {
+			for i := dr.Min.X; i < dr.Max.X; i++ {
 				a.SetAlpha(i, j, color.Alpha{A: 0xff})
 			}
 		}
@@ -109,15 +109,16 @@ func (f *testFace) Close() error {
 func (f *testFace) Metrics() font.Metrics {
 	return font.Metrics{
 		Height:     fixed.I(testFaceSize),
-		Ascent:     fixed.I(testFaceSize),
-		Descent:    0,
+		Ascent:     0,
+		Descent:    fixed.I(testFaceSize),
 		XHeight:    0,
 		CapHeight:  fixed.I(testFaceSize),
 		CaretSlope: image.Pt(0, 1),
 	}
 }
 
-func TestTextOverlap(t *testing.T) {
+// Issue #1378
+func TestNegativeKern(t *testing.T) {
 	f := &testFace{}
 	dst := ebiten.NewImage(testFaceSize*2, testFaceSize)
 
