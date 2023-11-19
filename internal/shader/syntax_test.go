@@ -514,6 +514,21 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 `)); err == nil {
 		t.Errorf("error must be non-nil but was nil")
 	}
+
+	// Issue #2848
+	if _, err := compileToIR([]byte(`package main
+
+func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+	var floats [4]float
+	for i := 0; i < 3; i++ {
+		j := i + 1
+		floats[j] = float(i)
+	}
+	return vec4(floats[0], floats[1], floats[2], floats[3])
+}
+`)); err != nil {
+		t.Error(err)
+	}
 }
 
 func TestSyntaxBlankLhs(t *testing.T) {

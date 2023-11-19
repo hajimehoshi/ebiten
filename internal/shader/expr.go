@@ -913,7 +913,7 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 		var stmts []shaderir.Stmt
 
 		// Parse the index first
-		exprs, _, ss, ok := cs.parseExpr(block, fname, e.Index, markLocalVariableUsed)
+		exprs, _, ss, ok := cs.parseExpr(block, fname, e.Index, true)
 		if !ok {
 			return nil, nil, nil, false
 		}
