@@ -21,9 +21,10 @@ import (
 
 	"github.com/go-text/typesetting/opentype/api"
 	"golang.org/x/image/math/fixed"
-	"golang.org/x/image/vector"
+	gvector "golang.org/x/image/vector"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
 func segmentsToBounds(segs []api.Segment) fixed.Rectangle26_6 {
@@ -94,7 +95,7 @@ func segmentsToImage(segs []api.Segment, subpixelOffset fixed.Point26_6, glyphBo
 	biasX := fixed26_6ToFloat32(-glyphBounds.Min.X + subpixelOffset.X)
 	biasY := fixed26_6ToFloat32(-glyphBounds.Min.Y + subpixelOffset.Y)
 
-	rast := vector.NewRasterizer(w, h)
+	rast := gvector.NewRasterizer(w, h)
 	rast.DrawOp = draw.Src
 	for _, seg := range segs {
 		switch seg.Op {
@@ -119,4 +120,27 @@ func segmentsToImage(segs []api.Segment, subpixelOffset fixed.Point26_6, glyphBo
 	dst := image.NewRGBA(image.Rect(0, 0, w, h))
 	rast.Draw(dst, dst.Bounds(), image.Opaque, image.Point{})
 	return ebiten.NewImageFromImage(dst)
+}
+
+func appendVectorPathFromSegments(path *vector.Path, segs []api.Segment, x, y float32) {
+	for _, seg := range segs {
+		switch seg.Op {
+		case api.SegmentOpMoveTo:
+			path.MoveTo(seg.Args[0].X+x, seg.Args[0].Y+y)
+		case api.SegmentOpLineTo:
+			path.LineTo(seg.Args[0].X+x, seg.Args[0].Y+y)
+		case api.SegmentOpQuadTo:
+			path.QuadTo(
+				seg.Args[0].X+x, seg.Args[0].Y+y,
+				seg.Args[1].X+x, seg.Args[1].Y+y,
+			)
+		case api.SegmentOpCubeTo:
+			path.CubicTo(
+				seg.Args[0].X+x, seg.Args[0].Y+y,
+				seg.Args[1].X+x, seg.Args[1].Y+y,
+				seg.Args[2].X+x, seg.Args[2].Y+y,
+			)
+		}
+	}
+	path.Close()
 }

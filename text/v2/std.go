@@ -22,6 +22,7 @@ import (
 	"golang.org/x/image/math/fixed"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
 var _ Face = (*StdFace)(nil)
@@ -84,8 +85,8 @@ func (s *StdFace) advance(text string) float64 {
 	return fixed26_6ToFloat64(font.MeasureString(s.f, text))
 }
 
-// appendGlyphs implements Face.
-func (s *StdFace) appendGlyphs(glyphs []Glyph, text string, indexOffset int, originX, originY float64) []Glyph {
+// appendGlyphsForLine implements Face.
+func (s *StdFace) appendGlyphsForLine(glyphs []Glyph, line string, indexOffset int, originX, originY float64) []Glyph {
 	s.copyCheck()
 
 	origin := fixed.Point26_6{
@@ -94,7 +95,7 @@ func (s *StdFace) appendGlyphs(glyphs []Glyph, text string, indexOffset int, ori
 	}
 	prevR := rune(-1)
 
-	for i, r := range text {
+	for i, r := range line {
 		if prevR >= 0 {
 			origin.X += s.f.Kern(prevR, r)
 		}
@@ -102,7 +103,7 @@ func (s *StdFace) appendGlyphs(glyphs []Glyph, text string, indexOffset int, ori
 		if img != nil {
 			// Adjust the position to the integers.
 			// The current glyph images assume that they are rendered on integer positions so far.
-			_, size := utf8.DecodeRuneInString(text[i:])
+			_, size := utf8.DecodeRuneInString(line[i:])
 			glyphs = append(glyphs, Glyph{
 				StartIndexInBytes: indexOffset + i,
 				EndIndexInBytes:   indexOffset + i + size,
@@ -171,6 +172,10 @@ func (s *StdFace) glyphImageImpl(r rune, subpixelOffset fixed.Point26_6, glyphBo
 // direction implelements Face.
 func (s *StdFace) direction() Direction {
 	return DirectionLeftToRight
+}
+
+// appendVectorPathForLine implements Face.
+func (s *StdFace) appendVectorPathForLine(path *vector.Path, text string, originX, originY float64) {
 }
 
 // Metrics implelements Face.

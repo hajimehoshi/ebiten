@@ -29,6 +29,7 @@ import (
 	"golang.org/x/text/language"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
 var _ Face = (*GoTextFace)(nil)
@@ -286,14 +287,13 @@ func (g *GoTextFace) advance(text string) float64 {
 	return fixed26_6ToFloat64(output.Advance)
 }
 
-// appendGlyphs implements Face.
-func (g *GoTextFace) appendGlyphs(glyphs []Glyph, text string, indexOffset int, originX, originY float64) []Glyph {
-	_, gs := g.Source.shape(text, g)
-
+// appendGlyphsForLine implements Face.
+func (g *GoTextFace) appendGlyphsForLine(glyphs []Glyph, line string, indexOffset int, originX, originY float64) []Glyph {
 	origin := fixed.Point26_6{
 		X: float64ToFixed26_6(originX),
 		Y: float64ToFixed26_6(originY),
 	}
+	_, gs := g.Source.shape(line, g)
 	for _, glyph := range gs {
 		img, imgX, imgY := g.glyphImage(glyph, origin)
 		if img != nil {
@@ -342,6 +342,22 @@ func (g *GoTextFace) glyphImage(glyph glyph, origin fixed.Point26_6) (*ebiten.Im
 	imgX := (origin.X + b.Min.X).Floor()
 	imgY := (origin.Y + b.Min.Y).Floor()
 	return img, imgX, imgY
+}
+
+// appendVectorPathForLine implements Face.
+func (g *GoTextFace) appendVectorPathForLine(path *vector.Path, line string, originX, originY float64) {
+	origin := fixed.Point26_6{
+		X: float64ToFixed26_6(originX),
+		Y: float64ToFixed26_6(originY),
+	}
+	_, gs := g.Source.shape(line, g)
+	for _, glyph := range gs {
+		appendVectorPathFromSegments(path, glyph.scaledSegments, fixed26_6ToFloat32(origin.X), fixed26_6ToFloat32(origin.Y))
+		origin = origin.Add(fixed.Point26_6{
+			X: glyph.shapingGlyph.XAdvance,
+			Y: -glyph.shapingGlyph.YAdvance,
+		})
+	}
 }
 
 // direction implements Face.

@@ -24,6 +24,7 @@ import (
 	"golang.org/x/image/math/fixed"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
 // Face is an interface representing a font face. The implementations are only GoTextFace and StdFace.
@@ -38,7 +39,8 @@ type Face interface {
 
 	advance(text string) float64
 
-	appendGlyphs(glyphs []Glyph, text string, indexOffset int, originX, originY float64) []Glyph
+	appendGlyphsForLine(glyphs []Glyph, line string, indexOffset int, originX, originY float64) []Glyph
+	appendVectorPathForLine(path *vector.Path, text string, originX, originY float64)
 
 	direction() Direction
 

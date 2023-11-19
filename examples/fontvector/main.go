@@ -15,17 +15,15 @@
 package main
 
 import (
+	"bytes"
 	"image"
 	"image/color"
 	"log"
 	"math"
 
-	"golang.org/x/image/font"
-	"golang.org/x/image/font/sfnt"
-	"golang.org/x/image/math/fixed"
-
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/examples/resources/fonts"
+	"github.com/hajimehoshi/ebiten/v2/text/v2"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
@@ -46,13 +44,8 @@ const (
 	screenHeight = 480
 )
 
-func fixed26_6ToFloat32(x fixed.Int26_6) float32 {
-	return float32(x>>6) + float32(x&((1<<6)-1))/float32(1<<6)
-}
-
 type Game struct {
-	segments sfnt.Segments
-	bounds   fixed.Rectangle26_6
+	path     vector.Path
 	vertices []ebiten.Vertex
 	indices  []uint16
 
@@ -60,83 +53,37 @@ type Game struct {
 }
 
 func (g *Game) Update() error {
+	if g.tick == 0 {
+		s, err := text.NewGoTextFaceSource(bytes.NewReader(fonts.MPlus1pRegular_ttf))
+		if err != nil {
+			return err
+		}
+		op := &text.LayoutOptions{}
+		op.LineSpacingInPixels = 100
+		text.AppendVectorPath(&g.path, "あいうえお\nかきくけこ", &text.GoTextFace{
+			Source: s,
+			Size:   100,
+		}, op)
+	}
+
 	g.tick++
 
-	if g.segments == nil {
-		ppem := fixed.I(300)
-
-		f, err := sfnt.Parse(fonts.MPlus1pRegular_ttf)
-		if err != nil {
-			return err
-		}
-
-		var b sfnt.Buffer
-		idx, err := f.GlyphIndex(&b, 'あ')
-		if err != nil {
-			return err
-		}
-
-		segments, err := f.LoadGlyph(&b, idx, ppem, nil)
-		if err != nil {
-			return err
-		}
-		g.segments = segments
-
-		bounds, err := f.Bounds(&b, ppem, font.HintingNone)
-		if err != nil {
-			return err
-		}
-		g.bounds = bounds
-	}
 	return nil
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	var path vector.Path
-	for _, seg := range g.segments {
-		switch seg.Op {
-		case sfnt.SegmentOpMoveTo:
-			path.MoveTo(
-				fixed26_6ToFloat32(seg.Args[0].X),
-				fixed26_6ToFloat32(seg.Args[0].Y),
-			)
-		case sfnt.SegmentOpLineTo:
-			path.LineTo(
-				fixed26_6ToFloat32(seg.Args[0].X),
-				fixed26_6ToFloat32(seg.Args[0].Y),
-			)
-		case sfnt.SegmentOpQuadTo:
-			path.QuadTo(
-				fixed26_6ToFloat32(seg.Args[0].X),
-				fixed26_6ToFloat32(seg.Args[0].Y),
-				fixed26_6ToFloat32(seg.Args[1].X),
-				fixed26_6ToFloat32(seg.Args[1].Y),
-			)
-		case sfnt.SegmentOpCubeTo:
-			path.CubicTo(
-				fixed26_6ToFloat32(seg.Args[0].X),
-				fixed26_6ToFloat32(seg.Args[0].Y),
-				fixed26_6ToFloat32(seg.Args[1].X),
-				fixed26_6ToFloat32(seg.Args[1].Y),
-				fixed26_6ToFloat32(seg.Args[2].X),
-				fixed26_6ToFloat32(seg.Args[2].Y),
-			)
-		}
-	}
-	path.Close()
-
 	g.vertices = g.vertices[:0]
 	g.indices = g.indices[:0]
 
 	op := &vector.StrokeOptions{}
-	op.Width = 7*(float32(math.Sin(float64(g.tick)*2*math.Pi/180))+1) + 1
+	op.Width = 2*(float32(math.Sin(float64(g.tick)*2*math.Pi/180))+1) + 1
 	op.LineJoin = vector.LineJoinRound
 	op.LineCap = vector.LineCapRound
-	g.vertices, g.indices = path.AppendVerticesAndIndicesForStroke(g.vertices, g.indices, op)
+	g.vertices, g.indices = g.path.AppendVerticesAndIndicesForStroke(g.vertices, g.indices, op)
 
 	for i := range g.vertices {
-		g.vertices[i].DstX += screenWidth/2 - fixed26_6ToFloat32(g.bounds.Max.X+g.bounds.Min.X)/2
-		g.vertices[i].DstY += screenHeight/2 - fixed26_6ToFloat32(g.bounds.Max.Y+g.bounds.Min.Y)/2
+		g.vertices[i].DstX += 50
+		g.vertices[i].DstY += 50
 		g.vertices[i].SrcX = 1
 		g.vertices[i].SrcY = 1
 	}

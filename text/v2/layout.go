@@ -18,6 +18,7 @@ import (
 	"strings"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
 // Align is the alignment that determines how to put a text.
@@ -125,13 +126,30 @@ func AppendGlyphs(glyphs []Glyph, text string, face Face, options *LayoutOptions
 	return appendGlyphs(glyphs, text, face, 0, 0, options)
 }
 
+// AppndVectorPath appends a vector path for glyphs to the given path.
+//
+// AppendVectorPath works only when face is *GoTextFace so far. For other types, AppendVectorPath does nothing.
+func AppendVectorPath(path *vector.Path, text string, face Face, options *LayoutOptions) {
+	forEachLine(text, face, options, func(line string, indexOffset int, originX, originY float64) {
+		face.appendVectorPathForLine(path, line, originX, originY)
+	})
+}
+
 // appendGlyphs appends glyphs to the given slice and returns a slice.
 //
 // appendGlyphs assumes the text is rendered with the position (x, y).
 // (x, y) might affect the subpixel rendering results.
 func appendGlyphs(glyphs []Glyph, text string, face Face, x, y float64, options *LayoutOptions) []Glyph {
+	forEachLine(text, face, options, func(line string, indexOffset int, originX, originY float64) {
+		glyphs = face.appendGlyphsForLine(glyphs, line, indexOffset, originX+x, originY+y)
+	})
+	return glyphs
+}
+
+// forEachLine interates lines.
+func forEachLine(text string, face Face, options *LayoutOptions, f func(text string, indexOffset int, originX, originY float64)) {
 	if text == "" {
-		return glyphs
+		return
 	}
 
 	if options == nil {
@@ -232,7 +250,7 @@ func appendGlyphs(glyphs []Glyph, text string, face Face, x, y float64, options 
 			}
 		}
 
-		glyphs = face.appendGlyphs(glyphs, line, indexOffset, originX+offsetX+x, originY+offsetY+y)
+		f(line, indexOffset, originX+offsetX, originY+offsetY)
 
 		if !found {
 			break
@@ -253,8 +271,6 @@ func appendGlyphs(glyphs []Glyph, text string, face Face, x, y float64, options 
 			originX -= options.LineSpacingInPixels
 		}
 	}
-
-	return glyphs
 }
 
 type horizontalAlign int
