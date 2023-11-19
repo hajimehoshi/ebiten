@@ -59,10 +59,10 @@ func (g *Game) Update() error {
 			return err
 		}
 		op := &text.LayoutOptions{}
-		op.LineSpacingInPixels = 100
-		text.AppendVectorPath(&g.path, "あいうえお\nかきくけこ", &text.GoTextFace{
+		op.LineSpacingInPixels = 110
+		text.AppendVectorPath(&g.path, "ABCEDFG\nabcdefg\nあいうえお\nかきくけこ", &text.GoTextFace{
 			Source: s,
-			Size:   100,
+			Size:   90,
 		}, op)
 	}
 
@@ -83,7 +83,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 	for i := range g.vertices {
 		g.vertices[i].DstX += 50
-		g.vertices[i].DstY += 50
+		g.vertices[i].DstY += 0
 		g.vertices[i].SrcX = 1
 		g.vertices[i].SrcY = 1
 	}
