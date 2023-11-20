@@ -171,3 +171,72 @@ func TestNegativeKern(t *testing.T) {
 		}
 	}
 }
+
+type unhashableStdFace func()
+
+const unhashableStdFaceSize = 10
+
+func (u *unhashableStdFace) Glyph(dot fixed.Point26_6, r rune) (dr image.Rectangle, mask image.Image, maskp image.Point, advance fixed.Int26_6, ok bool) {
+	dr = image.Rect(0, 0, unhashableStdFaceSize, unhashableStdFaceSize)
+	a := image.NewAlpha(dr)
+	for j := dr.Min.Y; j < dr.Max.Y; j++ {
+		for i := dr.Min.X; i < dr.Max.X; i++ {
+			a.SetAlpha(i, j, color.Alpha{A: 0xff})
+		}
+	}
+	mask = a
+	advance = fixed.I(unhashableStdFaceSize)
+	ok = true
+	return
+}
+
+func (u *unhashableStdFace) GlyphBounds(r rune) (bounds fixed.Rectangle26_6, advance fixed.Int26_6, ok bool) {
+	bounds = fixed.R(0, 0, unhashableStdFaceSize, unhashableStdFaceSize)
+	advance = fixed.I(unhashableStdFaceSize)
+	ok = true
+	return
+}
+
+func (u *unhashableStdFace) GlyphAdvance(r rune) (advance fixed.Int26_6, ok bool) {
+	return fixed.I(unhashableStdFaceSize), true
+}
+
+func (u *unhashableStdFace) Kern(r0, r1 rune) fixed.Int26_6 {
+	return 0
+}
+
+func (u *unhashableStdFace) Close() error {
+	return nil
+}
+
+func (u *unhashableStdFace) Metrics() font.Metrics {
+	return font.Metrics{
+		Height:     fixed.I(unhashableStdFaceSize),
+		Ascent:     0,
+		Descent:    fixed.I(unhashableStdFaceSize),
+		XHeight:    0,
+		CapHeight:  fixed.I(unhashableStdFaceSize),
+		CaretSlope: image.Pt(0, 1),
+	}
+}
+
+// Issue #2669
+func TestUnhashableFace(t *testing.T) {
+	var face unhashableStdFace
+	f := text.NewStdFace(&face)
+	dst := ebiten.NewImage(unhashableStdFaceSize*2, unhashableStdFaceSize*2)
+	text.Draw(dst, "a", f, nil)
+
+	for j := 0; j < unhashableStdFaceSize*2; j++ {
+		for i := 0; i < unhashableStdFaceSize*2; i++ {
+			got := dst.At(i, j)
+			var want color.RGBA
+			if i < unhashableStdFaceSize && j < unhashableStdFaceSize {
+				want = color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff}
+				if got != want {
+					t.Errorf("At(%d, %d): got: %v, want: %v", i, j, got, want)
+				}
+			}
+		}
+	}
+}
