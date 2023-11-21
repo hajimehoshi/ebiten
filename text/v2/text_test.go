@@ -233,9 +233,9 @@ func TestUnhashableFace(t *testing.T) {
 			var want color.RGBA
 			if i < unhashableStdFaceSize && j < unhashableStdFaceSize {
 				want = color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff}
-				if got != want {
-					t.Errorf("At(%d, %d): got: %v, want: %v", i, j, got, want)
-				}
+			}
+			if got != want {
+				t.Errorf("At(%d, %d): got: %v, want: %v", i, j, got, want)
 			}
 		}
 	}
