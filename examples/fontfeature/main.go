@@ -109,7 +109,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	}, op)
 
 	// Draw the sample text.
-	const sampleText = `0 (number) / O (alphabet)
+	const sampleText = `0 (Number) / O (Alphabet)
 ffi
 3.14
 2.71`
