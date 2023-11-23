@@ -20,6 +20,7 @@ package main
 import (
 	"bytes"
 	_ "embed"
+	"image/color"
 	"log"
 
 	"golang.org/x/text/language"
@@ -27,6 +28,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/examples/resources/fonts"
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
+	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
 //go:embed NotoSansArabic-Regular.ttf
@@ -91,48 +93,70 @@ func (g *Game) Update() error {
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	const arabicText = "لمّا كان الاعتراف بالكرامة المتأصلة في جميع"
+	gray := color.RGBA{0x80, 0x80, 0x80, 0xff}
 
-	op := &text.DrawOptions{}
-	op.GeoM.Translate(screenWidth-20, 40)
-	text.Draw(screen, arabicText, &text.GoTextFace{
-		Source:    arabicFaceSource,
-		Direction: text.DirectionRightToLeft,
-		Size:      24,
-		Language:  language.Arabic,
-	}, op)
-
-	const hindiText = "चूंकि मानव परिवार के सभी सदस्यों के जन्मजात गौरव और समान"
-
-	op.GeoM.Reset()
-	op.GeoM.Translate(20, 110)
-	text.Draw(screen, hindiText, &text.GoTextFace{
-		Source:   devanagariFaceSource,
-		Size:     24,
-		Language: language.Hindi,
-	}, op)
-
-	const thaiText = "โดยที่การไม่นำพาและการหมิ่นในคุณค่าของสิทธิมนุษยชน"
-
-	op.GeoM.Reset()
-	op.GeoM.Translate(20, 160)
-	text.Draw(screen, thaiText, &text.GoTextFace{
-		Source:   thaiFaceSource,
-		Size:     24,
-		Language: language.Thai,
-	}, op)
-
-	const japaneseText = "あのイーハトーヴォの\nすきとおった風、\n夏でも底に冷たさを\nもつ青いそら…"
-
-	op.GeoM.Reset()
-	op.GeoM.Translate(screenWidth-20, 210)
-	op.LineSpacingInPixels = 48
-	text.Draw(screen, japaneseText, &text.GoTextFace{
-		Source:    japaneseFaceSource,
-		Direction: text.DirectionTopToBottomAndRightToLeft,
-		Size:      24,
-		Language:  language.Japanese,
-	}, op)
+	{
+		const arabicText = "لمّا كان الاعتراف بالكرامة المتأصلة في جميع"
+		f := &text.GoTextFace{
+			Source:    arabicFaceSource,
+			Direction: text.DirectionRightToLeft,
+			Size:      24,
+			Language:  language.Arabic,
+		}
+		x, y := screenWidth-20, 40
+		w, h := text.Measure(arabicText, f, 0)
+		// The left upper point is not x but x-w, since the text runs in the rigth-to-left direction.
+		vector.DrawFilledRect(screen, float32(x)-float32(w), float32(y), float32(w), float32(h), gray, false)
+		op := &text.DrawOptions{}
+		op.GeoM.Translate(float64(x), float64(y))
+		text.Draw(screen, arabicText, f, op)
+	}
+	{
+		const hindiText = "चूंकि मानव परिवार के सभी सदस्यों के जन्मजात गौरव और समान"
+		f := &text.GoTextFace{
+			Source:   devanagariFaceSource,
+			Size:     24,
+			Language: language.Hindi,
+		}
+		x, y := 20, 100
+		w, h := text.Measure(hindiText, f, 0)
+		vector.DrawFilledRect(screen, float32(x), float32(y), float32(w), float32(h), gray, false)
+		op := &text.DrawOptions{}
+		op.GeoM.Translate(float64(x), float64(y))
+		text.Draw(screen, hindiText, f, op)
+	}
+	{
+		const thaiText = "โดยที่การไม่นำพาและการหมิ่นในคุณค่าของสิทธิมนุษยชน"
+		f := &text.GoTextFace{
+			Source:   thaiFaceSource,
+			Size:     24,
+			Language: language.Thai,
+		}
+		x, y := 20, 160
+		w, h := text.Measure(thaiText, f, 0)
+		vector.DrawFilledRect(screen, float32(x), float32(y), float32(w), float32(h), gray, false)
+		op := &text.DrawOptions{}
+		op.GeoM.Translate(float64(x), float64(y))
+		text.Draw(screen, thaiText, f, op)
+	}
+	{
+		const japaneseText = "あのイーハトーヴォの\nすきとおった風、\n夏でも底に冷たさを\nもつ青いそら…"
+		f := &text.GoTextFace{
+			Source:    japaneseFaceSource,
+			Direction: text.DirectionTopToBottomAndRightToLeft,
+			Size:      24,
+			Language:  language.Japanese,
+		}
+		const lineSpacing = 48
+		x, y := screenWidth-20, 210
+		w, h := text.Measure(japaneseText, f, lineSpacing)
+		// The left upper point is not x but x-w, since the text runs in the rigth-to-left direction as the secondary direction.
+		vector.DrawFilledRect(screen, float32(x)-float32(w), float32(y), float32(w), float32(h), gray, false)
+		op := &text.DrawOptions{}
+		op.GeoM.Translate(float64(x), float64(y))
+		op.LineSpacingInPixels = lineSpacing
+		text.Draw(screen, japaneseText, f, op)
+	}
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {

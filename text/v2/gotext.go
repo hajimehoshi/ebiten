@@ -284,7 +284,10 @@ func (g *GoTextFace) gScript() glanguage.Script {
 // advance implements Face.
 func (g *GoTextFace) advance(text string) float64 {
 	output, _ := g.Source.shape(text, g)
-	return fixed26_6ToFloat64(output.Advance)
+	if g.direction().isHorizontal() {
+		return fixed26_6ToFloat64(output.Advance)
+	}
+	return -fixed26_6ToFloat64(output.Advance)
 }
 
 // appendGlyphsForLine implements Face.
