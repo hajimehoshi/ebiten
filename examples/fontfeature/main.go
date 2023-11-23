@@ -99,7 +99,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 [L] 'liga' (Standard Ligatures) (%d)
 [T] 'tnum' (Tabular Figures) (%d)
 [S] 'smcp' (Small Capitals) (%d)
-[Z] 'zero' (Slashed Zero) `, g.liga, g.tnum, g.smcp)
+[Z] 'zero' (Slashed Zero) (%d)`, g.liga, g.tnum, g.smcp, g.zero)
 	op := &text.DrawOptions{}
 	op.GeoM.Translate(20, 20)
 	op.LineSpacingInPixels = 30
