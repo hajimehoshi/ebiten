@@ -147,12 +147,11 @@ func (s *StdFace) glyphImageImpl(r rune, subpixelOffset fixed.Point26_6, glyphBo
 		return nil
 	}
 
-	if glyphBounds.Min.X&((1<<6)-1) != 0 {
-		w++
-	}
-	if glyphBounds.Min.Y&((1<<6)-1) != 0 {
-		h++
-	}
+	// Add always 1 to the size.
+	// In theory, it is possible to determine whether +1 is necessary or not, but the calculation is pretty complicated.
+	w++
+	h++
+
 	rgba := image.NewRGBA(image.Rect(0, 0, w, h))
 
 	d := font.Drawer{
