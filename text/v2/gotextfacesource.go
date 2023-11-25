@@ -157,6 +157,13 @@ func (g *GoTextFaceSource) Metadata() Metadata {
 	return g.metadata
 }
 
+// UnsafeInternal returns its font.Face.
+//
+// This is unsafe since this might make internal cache states out of sync.
+func (g *GoTextFaceSource) UnsafeInternal() font.Face {
+	return g.f
+}
+
 func (g *GoTextFaceSource) shape(text string, face *GoTextFace) (shaping.Output, []glyph) {
 	g.copyCheck()
 

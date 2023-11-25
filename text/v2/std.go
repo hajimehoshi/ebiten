@@ -74,8 +74,10 @@ func (s *StdFace) Metrics() Metrics {
 	}
 }
 
-// UnsafeInternal implements Face.
-func (s *StdFace) UnsafeInternal() any {
+// UnsafeInternal returns its internal font.Face.
+//
+// This is unsafe since this might make internal cache states out of sync.
+func (s *StdFace) UnsafeInternal() font.Face {
 	s.copyCheck()
 	return s.f.f
 }

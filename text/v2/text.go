@@ -32,11 +32,6 @@ type Face interface {
 	// Metrics returns the metrics for this Face.
 	Metrics() Metrics
 
-	// UnsafeInternal returns the internal object for this face.
-	// The returned value is either a semi-standard font.Face or go-text's font.Face.
-	// This is unsafe since this might make internal cache states out of sync.
-	UnsafeInternal() any
-
 	advance(text string) float64
 
 	appendGlyphsForLine(glyphs []Glyph, line string, indexOffset int, originX, originY float64) []Glyph

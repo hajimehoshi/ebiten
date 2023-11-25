@@ -202,11 +202,6 @@ func (g *GoTextFace) Metrics() Metrics {
 	return m
 }
 
-// UnsafeInternal implements Face.
-func (g *GoTextFace) UnsafeInternal() any {
-	return g.Source.f
-}
-
 func (g *GoTextFace) ensureVariationsString() string {
 	if g.variationsString != "" {
 		return g.variationsString
