@@ -104,13 +104,13 @@ func NewGoTextFaceSource(source io.ReadSeeker) (*GoTextFaceSource, error) {
 		return nil, err
 	}
 
-	ft, err := ofont.NewFont(l)
+	f, err := ofont.NewFont(l)
 	if err != nil {
 		return nil, err
 	}
 
 	s := &GoTextFaceSource{
-		f: &ofont.Face{Font: ft},
+		f: &ofont.Face{Font: f},
 	}
 	s.addr = s
 	s.metadata = metadataFromLoader(l)
@@ -132,12 +132,12 @@ func NewGoTextFaceSourcesFromCollection(source io.ReadSeeker) ([]*GoTextFaceSour
 
 	sources := make([]*GoTextFaceSource, len(ls))
 	for i, l := range ls {
-		ft, err := ofont.NewFont(l)
+		f, err := ofont.NewFont(l)
 		if err != nil {
 			return nil, err
 		}
 		s := &GoTextFaceSource{
-			f: &ofont.Face{Font: ft},
+			f: &ofont.Face{Font: f},
 		}
 		s.addr = s
 		s.metadata = metadataFromLoader(l)
