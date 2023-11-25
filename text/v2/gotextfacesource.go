@@ -22,6 +22,8 @@ import (
 	"github.com/go-text/typesetting/font"
 	"github.com/go-text/typesetting/language"
 	"github.com/go-text/typesetting/opentype/api"
+	ofont "github.com/go-text/typesetting/opentype/api/font"
+	"github.com/go-text/typesetting/opentype/loader"
 	"github.com/go-text/typesetting/shaping"
 	"golang.org/x/image/math/fixed"
 
@@ -61,7 +63,8 @@ type goTextGlyphImageCacheKey struct {
 
 // GoTextFaceSource is a source of a GoTextFace. This can be shared by multiple GoTextFace objects.
 type GoTextFaceSource struct {
-	f font.Face
+	f        font.Face
+	metadata Metadata
 
 	outputCache     map[goTextOutputCacheKey]*goTextOutputCacheValue
 	glyphImageCache map[float64]*glyphImageCache[goTextGlyphImageCacheKey]
@@ -96,15 +99,22 @@ func NewGoTextFaceSource(source io.ReadSeeker) (*GoTextFaceSource, error) {
 		return nil, err
 	}
 
-	f, err := font.ParseTTF(src)
+	l, err := loader.NewLoader(src)
+	if err != nil {
+		return nil, err
+	}
+
+	ft, err := ofont.NewFont(l)
 	if err != nil {
 		return nil, err
 	}
 
 	s := &GoTextFaceSource{
-		f: f,
+		f: &ofont.Face{Font: ft},
 	}
 	s.addr = s
+	s.metadata = metadataFromLoader(l)
+
 	return s, nil
 }
 
@@ -115,17 +125,22 @@ func NewGoTextFaceSourcesFromCollection(source io.ReadSeeker) ([]*GoTextFaceSour
 		return nil, err
 	}
 
-	fs, err := font.ParseTTC(src)
+	ls, err := loader.NewLoaders(src)
 	if err != nil {
 		return nil, err
 	}
 
-	sources := make([]*GoTextFaceSource, len(fs))
-	for i, f := range fs {
+	sources := make([]*GoTextFaceSource, len(ls))
+	for i, l := range ls {
+		ft, err := ofont.NewFont(l)
+		if err != nil {
+			return nil, err
+		}
 		s := &GoTextFaceSource{
-			f: f,
+			f: &ofont.Face{Font: ft},
 		}
 		s.addr = s
+		s.metadata = metadataFromLoader(l)
 		sources[i] = s
 	}
 	return sources, nil
@@ -135,6 +150,11 @@ func (g *GoTextFaceSource) copyCheck() {
 	if g.addr != g {
 		panic("text: illegal use of non-zero GoTextFaceSource copied by value")
 	}
+}
+
+// Metadata returns its metadata.
+func (g *GoTextFaceSource) Metadata() Metadata {
+	return g.metadata
 }
 
 func (g *GoTextFaceSource) shape(text string, face *GoTextFace) (shaping.Output, []glyph) {
