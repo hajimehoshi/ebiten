@@ -87,6 +87,12 @@ func (s *StdFace) advance(text string) float64 {
 	return fixed26_6ToFloat64(font.MeasureString(s.f, text))
 }
 
+// hasGlyph implements Face.
+func (s *StdFace) hasGlyph(r rune) bool {
+	_, ok := s.f.GlyphAdvance(r)
+	return ok
+}
+
 // appendGlyphsForLine implements Face.
 func (s *StdFace) appendGlyphsForLine(glyphs []Glyph, line string, indexOffset int, originX, originY float64) []Glyph {
 	s.copyCheck()
@@ -176,7 +182,7 @@ func (s *StdFace) direction() Direction {
 }
 
 // appendVectorPathForLine implements Face.
-func (s *StdFace) appendVectorPathForLine(path *vector.Path, text string, originX, originY float64) {
+func (s *StdFace) appendVectorPathForLine(path *vector.Path, line string, originX, originY float64) {
 }
 
 // Metrics implelements Face.

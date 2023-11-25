@@ -34,8 +34,10 @@ type Face interface {
 
 	advance(text string) float64
 
+	hasGlyph(r rune) bool
+
 	appendGlyphsForLine(glyphs []Glyph, line string, indexOffset int, originX, originY float64) []Glyph
-	appendVectorPathForLine(path *vector.Path, text string, originX, originY float64)
+	appendVectorPathForLine(path *vector.Path, line string, originX, originY float64)
 
 	direction() Direction
 
