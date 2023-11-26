@@ -74,8 +74,8 @@ type GoTextFaceSource struct {
 	m sync.Mutex
 }
 
-func toFontResource(source io.ReadSeeker) (font.Resource, error) {
-	// font.Resource has io.ReaderAt in addition to io.ReadSeeker.
+func toFontResource(source io.Reader) (font.Resource, error) {
+	// font.Resource has io.Seeker and io.ReaderAt in addition to io.Reader.
 	// If source has it, use it as it is.
 	if s, ok := source.(font.Resource); ok {
 		return s, nil
@@ -83,7 +83,7 @@ func toFontResource(source io.ReadSeeker) (font.Resource, error) {
 
 	// Read all the bytes and convert this to bytes.Reader.
 	// This is a very rough solution, but it works.
-	// TODO: Implement io.ReaderAt in a more efficient way.
+	// TODO: Implement io.ReaderAt in a more efficient way when source is io.Seeker.
 	bs, err := io.ReadAll(source)
 	if err != nil {
 		return nil, err
@@ -93,7 +93,7 @@ func toFontResource(source io.ReadSeeker) (font.Resource, error) {
 }
 
 // NewGoTextFaceSource parses an OpenType or TrueType font and returns a GoTextFaceSource object.
-func NewGoTextFaceSource(source io.ReadSeeker) (*GoTextFaceSource, error) {
+func NewGoTextFaceSource(source io.Reader) (*GoTextFaceSource, error) {
 	src, err := toFontResource(source)
 	if err != nil {
 		return nil, err
@@ -119,7 +119,7 @@ func NewGoTextFaceSource(source io.ReadSeeker) (*GoTextFaceSource, error) {
 }
 
 // NewGoTextFaceSourcesFromCollection parses an OpenType or TrueType font collection and returns a slice of GoTextFaceSource objects.
-func NewGoTextFaceSourcesFromCollection(source io.ReadSeeker) ([]*GoTextFaceSource, error) {
+func NewGoTextFaceSourcesFromCollection(source io.Reader) ([]*GoTextFaceSource, error) {
 	src, err := toFontResource(source)
 	if err != nil {
 		return nil, err
