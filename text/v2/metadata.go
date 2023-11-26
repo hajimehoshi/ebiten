@@ -32,6 +32,9 @@ func metadataFromLoader(l *loader.Loader) Metadata {
 	d := metadata.Metadata(l)
 	return Metadata{
 		Family:    d.Family,
+		Style:     Style(d.Aspect.Style),
+		Weight:    Weight(d.Aspect.Weight),
+		Stretch:   Stretch(d.Aspect.Stretch),
 		Monospace: d.IsMonospace,
 	}
 }
