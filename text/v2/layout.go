@@ -128,7 +128,8 @@ func AppendGlyphs(glyphs []Glyph, text string, face Face, options *LayoutOptions
 
 // AppndVectorPath appends a vector path for glyphs to the given path.
 //
-// AppendVectorPath works only when face is *GoTextFace so far. For other types, AppendVectorPath does nothing.
+// AppendVectorPath works only when the face is *GoTextFace or a composite face using *GoTextFace so far.
+// For other types, AppendVectorPath does nothing.
 func AppendVectorPath(path *vector.Path, text string, face Face, options *LayoutOptions) {
 	forEachLine(text, face, options, func(line string, indexOffset int, originX, originY float64) {
 		face.appendVectorPathForLine(path, line, originX, originY)

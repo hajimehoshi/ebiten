@@ -27,7 +27,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
-// Face is an interface representing a font face. The implementations are only GoTextFace and StdFace.
+// Face is an interface representing a font face. The implementations are only faces in this package, like GoTextFace and StdFace.
 type Face interface {
 	// Metrics returns the metrics for this Face.
 	Metrics() Metrics
@@ -125,7 +125,7 @@ type Glyph struct {
 	// EndIndexInBytes is the end index in bytes for the given string at AppendGlyphs.
 	EndIndexInBytes int
 
-	// GID is an ID for a glyph of TrueType or OpenType font. GID is valid when the font is GoTextFont.
+	// GID is an ID for a glyph of TrueType or OpenType font. GID is valid when the face is GoTextFace.
 	GID uint32
 
 	// Image is a rasterized glyph image.
