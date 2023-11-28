@@ -21,21 +21,19 @@ import (
 
 // Metadata represents a font face's metadata.
 type Metadata struct {
-	Family    string
-	Style     Style
-	Weight    Weight
-	Stretch   Stretch
-	Monospace bool
+	Family  string
+	Style   Style
+	Weight  Weight
+	Stretch Stretch
 }
 
 func metadataFromLoader(l *loader.Loader) Metadata {
-	d := metadata.Metadata(l)
+	f, a, _ := metadata.Describe(l, nil)
 	return Metadata{
-		Family:    d.Family,
-		Style:     Style(d.Aspect.Style),
-		Weight:    Weight(d.Aspect.Weight),
-		Stretch:   Stretch(d.Aspect.Stretch),
-		Monospace: d.IsMonospace,
+		Family:  f,
+		Style:   Style(a.Style),
+		Weight:  Weight(a.Weight),
+		Stretch: Stretch(a.Stretch),
 	}
 }
 
