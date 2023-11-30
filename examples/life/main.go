@@ -9,14 +9,9 @@ package main
 import (
 	"log"
 	"math/rand"
-	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
 )
-
-func init() {
-	rand.Seed(time.Now().UnixNano())
-}
 
 // World represents the game state.
 type World struct {
