@@ -46,11 +46,11 @@ type Image struct {
 	bufferedWritePixelsArgs []writePixelsCommandArgs
 }
 
-var nextID = 1
+var nextImageID = 1
 
-func genNextID() int {
-	id := nextID
-	nextID++
+func genNextImageID() int {
+	id := nextImageID
+	nextImageID++
 	return id
 }
 
@@ -62,7 +62,7 @@ func NewImage(width, height int, screenFramebuffer bool) *Image {
 		width:  width,
 		height: height,
 		screen: screenFramebuffer,
-		id:     genNextID(),
+		id:     genNextImageID(),
 	}
 	c := &newImageCommand{
 		result: i,

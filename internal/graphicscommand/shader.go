@@ -19,14 +19,24 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
 
+var nextShaderID = 1
+
+func genNextShaderID() int {
+	id := nextShaderID
+	nextShaderID++
+	return id
+}
+
 type Shader struct {
 	shader graphicsdriver.Shader
 	ir     *shaderir.Program
+	id     int
 }
 
 func NewShader(ir *shaderir.Program) *Shader {
 	s := &Shader{
 		ir: ir,
+		id: genNextShaderID(),
 	}
 	c := &newShaderCommand{
 		result: s,
