@@ -32,9 +32,10 @@ type MultiFace struct {
 
 // NewMultiFace creates a new MultiFace from the given faces.
 func NewMultiFace(faces ...Face) *MultiFace {
-	return &MultiFace{
-		faces: faces,
-	}
+	m := &MultiFace{}
+	m.faces = make([]Face, len(faces))
+	copy(m.faces, faces)
+	return m
 }
 
 // Metrics implements Face.
