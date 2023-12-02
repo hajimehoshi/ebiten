@@ -68,7 +68,7 @@ func (g *Game) Update() error {
 	// Initialize the glyphs for special (colorful) rendering.
 	if len(g.glyphs) == 0 {
 		op := &text.LayoutOptions{}
-		op.LineSpacingInPixels = mplusNormalFace.Metrics().Height
+		op.LineSpacingInPixels = mplusNormalFace.Size * 1.5
 		g.glyphs = text.AppendGlyphs(g.glyphs, sampleText, mplusNormalFace, op)
 	}
 	return nil
@@ -79,20 +79,20 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 	{
 		const x, y = 20, 20
-		w, h := text.Measure(sampleText, mplusNormalFace, mplusNormalFace.Metrics().Height)
+		w, h := text.Measure(sampleText, mplusNormalFace, mplusNormalFace.Size*1.5)
 		vector.DrawFilledRect(screen, x, y, float32(w), float32(h), gray, false)
 		op := &text.DrawOptions{}
 		op.GeoM.Translate(x, y)
-		op.LineSpacingInPixels = mplusNormalFace.Metrics().Height
+		op.LineSpacingInPixels = mplusNormalFace.Size * 1.5
 		text.Draw(screen, sampleText, mplusNormalFace, op)
 	}
 	{
 		const x, y = 20, 120
-		w, h := text.Measure(sampleText, mplusBigFace, mplusBigFace.Metrics().Height)
+		w, h := text.Measure(sampleText, mplusBigFace, mplusBigFace.Size*1.5)
 		vector.DrawFilledRect(screen, x, y, float32(w), float32(h), gray, false)
 		op := &text.DrawOptions{}
 		op.GeoM.Translate(x, y)
-		op.LineSpacingInPixels = mplusBigFace.Metrics().Height
+		op.LineSpacingInPixels = mplusBigFace.Size * 1.5
 		text.Draw(screen, sampleText, mplusBigFace, op)
 	}
 	{
@@ -101,7 +101,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		op.GeoM.Rotate(math.Pi / 4)
 		op.GeoM.Translate(x, y)
 		op.Filter = ebiten.FilterLinear
-		op.LineSpacingInPixels = mplusNormalFace.Metrics().Height
+		op.LineSpacingInPixels = mplusNormalFace.Size * 1.5
 		text.Draw(screen, sampleText, mplusNormalFace, op)
 	}
 	{

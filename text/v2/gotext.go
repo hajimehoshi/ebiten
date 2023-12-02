@@ -189,12 +189,12 @@ func (g *GoTextFace) Metrics() Metrics {
 
 	var m Metrics
 	if h, ok := g.Source.f.FontHExtents(); ok {
-		m.Height = float64(h.Ascender-h.Descender+h.LineGap) * scale
+		m.HLineGap = float64(h.LineGap) * scale
 		m.HAscent = float64(h.Ascender) * scale
 		m.HDescent = float64(-h.Descender) * scale
 	}
 	if v, ok := g.Source.f.FontVExtents(); ok {
-		m.Width = float64(v.Ascender-v.Descender+v.LineGap) * scale
+		m.VLineGap = float64(v.LineGap) * scale
 		m.VAscent = float64(v.Ascender) * scale
 		m.VDescent = float64(-v.Descender) * scale
 	}

@@ -33,8 +33,8 @@ func (m MultiFace) Metrics() Metrics {
 	var mt Metrics
 	for _, f := range m {
 		mt1 := f.Metrics()
-		if mt1.Height > mt.Height {
-			mt.Height = mt1.Height
+		if mt1.HLineGap > mt.HLineGap {
+			mt.HLineGap = mt1.HLineGap
 		}
 		if mt1.HAscent > mt.HAscent {
 			mt.HAscent = mt1.HAscent
@@ -42,8 +42,8 @@ func (m MultiFace) Metrics() Metrics {
 		if mt1.HDescent > mt.HDescent {
 			mt.HDescent = mt1.HDescent
 		}
-		if mt1.Width > mt.Width {
-			mt.Width = mt1.Width
+		if mt1.VLineGap > mt.VLineGap {
+			mt.VLineGap = mt1.VLineGap
 		}
 		if mt1.VAscent > mt.VAscent {
 			mt.VAscent = mt1.VAscent

@@ -48,8 +48,8 @@ type Face interface {
 // Metrics holds the metrics for a Face.
 // A visual depiction is at https://developer.apple.com/library/mac/documentation/TextFonts/Conceptual/CocoaTextArchitecture/Art/glyph_metrics_2x.png
 type Metrics struct {
-	// Height is the recommended amount of vertical space between two lines of text in pixels.
-	Height float64
+	// HLineGap is the recommended amount of vertical space between two lines of text in pixels.
+	HLineGap float64
 
 	// HAscent is the distance in pixels from the top of a line to its baseline for horizontal lines.
 	HAscent float64
@@ -58,9 +58,9 @@ type Metrics struct {
 	// The value is typically positive, even though a descender goes below the baseline.
 	HDescent float64
 
-	// Width is the recommended amount of horizontal space between two lines of text in pixels.
-	// If the face is StdFace or the font dosen't support a vertical direction, Width is 0.
-	Width float64
+	// VLineGap is the recommended amount of horizontal space between two lines of text in pixels.
+	// If the face is StdFace or the font dosen't support a vertical direction, VLineGap is 0.
+	VLineGap float64
 
 	// VAscent is the distance in pixels from the top of a line to its baseline for vertical lines.
 	// If the face is StdFace or the font dosen't support a vertical direction, VAscent is 0.

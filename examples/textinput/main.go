@@ -91,7 +91,7 @@ func (t *TextField) textIndexByCursorPosition(x, y int) (int, bool) {
 		y = 0
 	}
 
-	lineSpacingInPixels := int(fontFace.Metrics().Height)
+	lineSpacingInPixels := int(fontFace.Metrics().HLineGap + fontFace.Metrics().HAscent + fontFace.Metrics().HDescent)
 	var nlCount int
 	var lineStart int
 	var prevAdvance float64
@@ -256,7 +256,7 @@ func (t *TextField) cursorPos() (int, int) {
 		txt += t.state.Text[:t.state.CompositionSelectionStartInBytes]
 	}
 	x := int(text.Advance(txt, fontFace))
-	y := nlCount * int(fontFace.Metrics().Height)
+	y := nlCount * int(fontFace.Metrics().HLineGap+fontFace.Metrics().HAscent+fontFace.Metrics().HDescent)
 	return x, y
 }
 
@@ -274,7 +274,7 @@ func (t *TextField) Draw(screen *ebiten.Image) {
 		cx, cy := t.cursorPos()
 		x += px + cx
 		y += py + cy
-		h := int(fontFace.Metrics().Height)
+		h := int(fontFace.Metrics().HLineGap + fontFace.Metrics().HAscent + fontFace.Metrics().HDescent)
 		vector.StrokeLine(screen, float32(x), float32(y), float32(x), float32(y+h), 1, color.Black, false)
 	}
 
@@ -288,7 +288,7 @@ func (t *TextField) Draw(screen *ebiten.Image) {
 	op := &text.DrawOptions{}
 	op.GeoM.Translate(float64(tx), float64(ty))
 	op.ColorScale.ScaleWithColor(color.Black)
-	op.LineSpacingInPixels = fontFace.Metrics().Height
+	op.LineSpacingInPixels = fontFace.Metrics().HLineGap + fontFace.Metrics().HAscent + fontFace.Metrics().HDescent
 	text.Draw(screen, shownText, fontFace, op)
 }
 
@@ -296,7 +296,7 @@ const textFieldHeight = 24
 
 func textFieldPadding() (int, int) {
 	m := fontFace.Metrics()
-	return 4, (textFieldHeight - int(m.Height)) / 2
+	return 4, (textFieldHeight - int(m.HLineGap+m.HAscent+m.HDescent)) / 2
 }
 
 type Game struct {

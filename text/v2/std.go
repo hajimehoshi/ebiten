@@ -68,7 +68,7 @@ func (s *StdFace) Metrics() Metrics {
 
 	m := s.f.Metrics()
 	return Metrics{
-		Height:   fixed26_6ToFloat64(m.Height),
+		HLineGap: fixed26_6ToFloat64(m.Height - m.Ascent - m.Descent),
 		HAscent:  fixed26_6ToFloat64(m.Ascent),
 		HDescent: fixed26_6ToFloat64(m.Descent),
 	}
