@@ -20,18 +20,28 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
-var _ Face = (MultiFace)(nil)
+var _ Face = (*MultiFace)(nil)
 
 // MultiFace is a Face that consists of multiple Face objects.
 // The face in the first index is used in the highest priority, and the last the lowest priority.
 //
 // There is a known issue: if the writing directions of the faces don't agree, the rendering result might be messed up.
-type MultiFace []Face
+type MultiFace struct {
+	faces []Face
+}
+
+// NewMultiFace creates a new MultiFace from the given faces.
+func NewMultiFace(faces []Face) *MultiFace {
+	m := &MultiFace{}
+	m.faces = make([]Face, len(faces))
+	copy(m.faces, faces)
+	return m
+}
 
 // Metrics implements Face.
-func (m MultiFace) Metrics() Metrics {
+func (m *MultiFace) Metrics() Metrics {
 	var mt Metrics
-	for _, f := range m {
+	for _, f := range m.faces {
 		mt1 := f.Metrics()
 		if mt1.HLineGap > mt.HLineGap {
 			mt.HLineGap = mt1.HLineGap
@@ -56,21 +66,21 @@ func (m MultiFace) Metrics() Metrics {
 }
 
 // advance implements Face.
-func (m MultiFace) advance(text string) float64 {
+func (m *MultiFace) advance(text string) float64 {
 	var a float64
 	for _, c := range m.splitText(text) {
 		if c.faceIndex == -1 {
 			continue
 		}
-		f := m[c.faceIndex]
+		f := m.faces[c.faceIndex]
 		a += f.advance(text[c.textStartIndex:c.textEndIndex])
 	}
 	return a
 }
 
 // hasGlyph implements Face.
-func (m MultiFace) hasGlyph(r rune) bool {
-	for _, f := range m {
+func (m *MultiFace) hasGlyph(r rune) bool {
+	for _, f := range m.faces {
 		if f.hasGlyph(r) {
 			return true
 		}
@@ -79,12 +89,12 @@ func (m MultiFace) hasGlyph(r rune) bool {
 }
 
 // appendGlyphsForLine implements Face.
-func (m MultiFace) appendGlyphsForLine(glyphs []Glyph, line string, indexOffset int, originX, originY float64) []Glyph {
+func (m *MultiFace) appendGlyphsForLine(glyphs []Glyph, line string, indexOffset int, originX, originY float64) []Glyph {
 	for _, c := range m.splitText(line) {
 		if c.faceIndex == -1 {
 			continue
 		}
-		f := m[c.faceIndex]
+		f := m.faces[c.faceIndex]
 		t := line[c.textStartIndex:c.textEndIndex]
 		glyphs = f.appendGlyphsForLine(glyphs, t, indexOffset, originX, originY)
 		if a := f.advance(t); f.direction().isHorizontal() {
@@ -98,12 +108,12 @@ func (m MultiFace) appendGlyphsForLine(glyphs []Glyph, line string, indexOffset 
 }
 
 // appendVectorPathForLine implements Face.
-func (m MultiFace) appendVectorPathForLine(path *vector.Path, line string, originX, originY float64) {
+func (m *MultiFace) appendVectorPathForLine(path *vector.Path, line string, originX, originY float64) {
 	for _, c := range m.splitText(line) {
 		if c.faceIndex == -1 {
 			continue
 		}
-		f := m[c.faceIndex]
+		f := m.faces[c.faceIndex]
 		t := line[c.textStartIndex:c.textEndIndex]
 		f.appendVectorPathForLine(path, t, originX, originY)
 		if a := f.advance(t); f.direction().isHorizontal() {
@@ -115,15 +125,15 @@ func (m MultiFace) appendVectorPathForLine(path *vector.Path, line string, origi
 }
 
 // direction implements Face.
-func (m MultiFace) direction() Direction {
-	if len(m) == 0 {
+func (m *MultiFace) direction() Direction {
+	if len(m.faces) == 0 {
 		return DirectionLeftToRight
 	}
-	return m[0].direction()
+	return m.faces[0].direction()
 }
 
 // private implements Face.
-func (m MultiFace) private() {
+func (m *MultiFace) private() {
 }
 
 type textChunk struct {
@@ -132,7 +142,7 @@ type textChunk struct {
 	faceIndex      int
 }
 
-func (m MultiFace) splitText(text string) []textChunk {
+func (m *MultiFace) splitText(text string) []textChunk {
 	var chunks []textChunk
 
 	for ri, r := range text {
@@ -140,7 +150,7 @@ func (m MultiFace) splitText(text string) []textChunk {
 		fi := -1
 
 		_, l := utf8.DecodeRuneInString(text[ri:])
-		for i, f := range m {
+		for i, f := range m.faces {
 			if !f.hasGlyph(r) {
 				continue
 			}
