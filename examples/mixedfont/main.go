@@ -74,7 +74,7 @@ func (g *Game) Update() error {
 			Size:   32,
 		}
 
-		g.face = text.NewMultiFace([]text.Face{en, ja})
+		g.face = text.NewMultiFace(en, ja)
 	}
 	return nil
 }

@@ -31,11 +31,10 @@ type MultiFace struct {
 }
 
 // NewMultiFace creates a new MultiFace from the given faces.
-func NewMultiFace(faces []Face) *MultiFace {
-	m := &MultiFace{}
-	m.faces = make([]Face, len(faces))
-	copy(m.faces, faces)
-	return m
+func NewMultiFace(faces ...Face) *MultiFace {
+	return &MultiFace{
+		faces: faces,
+	}
 }
 
 // Metrics implements Face.
