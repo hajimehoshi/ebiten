@@ -57,19 +57,24 @@ type Game struct {
 
 func (g *Game) Update() error {
 	if g.face == nil {
-		g.face = text.NewMultiFace([]text.Face{
-			// goregular.TTF is used primarily. If a glyph is not found in this font, the second font is used.
-			&text.GoTextFace{
-				Source: goRegularFaceSource,
-				Size:   24,
-			},
-			// M+ Font is the second font.
-			// Use a relatively big size to see different-sized faces are well mixed.
-			&text.GoTextFace{
-				Source: mplusFaceSource,
-				Size:   32,
-			},
+		// goregular.TTF is used primarily. If a glyph is not found in this font, the second font is used.
+		// Use text.LimitedFace to limit the glyphs.
+		en := text.NewLimitedFace(&text.GoTextFace{
+			Source: goRegularFaceSource,
+			Size:   24,
 		})
+		// Limit the glyphs for ASCII and Latin-1 characters for this face.
+		// This means that, for example, '…' (U+2026) is not rendered by this face.
+		en.AddUnicodeRange('\u0020', '\u00ff')
+
+		// M+ Font is the second font.
+		// Use a relatively big size to see different-sized faces are well mixed.
+		ja := &text.GoTextFace{
+			Source: mplusFaceSource,
+			Size:   32,
+		}
+
+		g.face = text.NewMultiFace([]text.Face{en, ja})
 	}
 	return nil
 }
@@ -78,7 +83,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	op := &text.DrawOptions{}
 	op.GeoM.Translate(20, 20)
 	op.LineSpacingInPixels = 48
-	text.Draw(screen, "HelloこんにちはWorld世界\n日本語とEnglish", g.face, op)
+	text.Draw(screen, "HelloこんにちはWorld世界\n日本語とEnglish…", g.face, op)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
