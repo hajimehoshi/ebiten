@@ -42,7 +42,7 @@ func NewMultiFace(faces ...Face) (*MultiFace, error) {
 	d := faces[0].direction()
 	for _, f := range faces[1:] {
 		if f.direction() != d {
-			return nil, errors.New("text: all the faces' directions must agree")
+			return nil, errors.New("text: all the faces' directions must agree at NewMultiFace")
 		}
 	}
 
