@@ -15,6 +15,7 @@
 package text
 
 import (
+	"errors"
 	"unicode/utf8"
 
 	"github.com/hajimehoshi/ebiten/v2/vector"
@@ -31,11 +32,24 @@ type MultiFace struct {
 }
 
 // NewMultiFace creates a new MultiFace from the given faces.
-func NewMultiFace(faces ...Face) *MultiFace {
+//
+// NewMultiFace returns an error when no faces are given, or the faces' directions don't agree.
+func NewMultiFace(faces ...Face) (*MultiFace, error) {
+	if len(faces) == 0 {
+		return nil, errors.New("text: no faces are given at NewMultiFace")
+	}
+
+	d := faces[0].direction()
+	for _, f := range faces[1:] {
+		if f.direction() != d {
+			return nil, errors.New("text: all the faces' directions must agree")
+		}
+	}
+
 	m := &MultiFace{}
 	m.faces = make([]Face, len(faces))
 	copy(m.faces, faces)
-	return m
+	return m, nil
 }
 
 // Metrics implements Face.

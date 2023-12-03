@@ -243,7 +243,10 @@ func TestUnhashableFace(t *testing.T) {
 
 func TestMultiFace(t *testing.T) {
 	faces := []text.Face{text.NewStdFace(bitmapfont.Face)}
-	f := text.NewMultiFace(faces...)
+	f, err := text.NewMultiFace(faces...)
+	if err != nil {
+		t.Fatal(err)
+	}
 	img := ebiten.NewImage(30, 30)
 	text.Draw(img, "Hello", f, nil)
 
