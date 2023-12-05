@@ -160,16 +160,17 @@ func (m *MultiFace) splitText(text string) []textChunk {
 	var chunks []textChunk
 
 	for ri, r := range text {
-		// -1 indicates the default face index. -1 is used when no face is found for the glyph.
 		fi := -1
-
 		_, l := utf8.DecodeRuneInString(text[ri:])
 		for i, f := range m.faces {
-			if !f.hasGlyph(r) {
+			if !f.hasGlyph(r) && i < len(m.faces)-1 {
 				continue
 			}
 			fi = i
 			break
+		}
+		if fi == -1 {
+			panic("text: a face was not selected correctly")
 		}
 
 		var s int

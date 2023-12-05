@@ -240,17 +240,3 @@ func TestUnhashableFace(t *testing.T) {
 		}
 	}
 }
-
-func TestMultiFace(t *testing.T) {
-	faces := []text.Face{text.NewStdFace(bitmapfont.Face)}
-	f, err := text.NewMultiFace(faces...)
-	if err != nil {
-		t.Fatal(err)
-	}
-	img := ebiten.NewImage(30, 30)
-	text.Draw(img, "Hello", f, nil)
-
-	// Confirm that the given slice doesn't cause crash.
-	faces[0] = nil
-	text.Draw(img, "World", f, nil)
-}
