@@ -291,8 +291,8 @@ func (g *GoTextFace) hasGlyph(r rune) bool {
 	return ok
 }
 
-// appendClustersForLine implements Face.
-func (g *GoTextFace) appendClustersForLine(clusters []Cluster, line string, indexOffset int, originX, originY float64) []Cluster {
+// appendGlyphsForLine implements Face.
+func (g *GoTextFace) appendGlyphsForLine(glyphs []Glyph, line string, indexOffset int, originX, originY float64) []Glyph {
 	origin := fixed.Point26_6{
 		X: float64ToFixed26_6(originX),
 		Y: float64ToFixed26_6(originY),
@@ -300,23 +300,23 @@ func (g *GoTextFace) appendClustersForLine(clusters []Cluster, line string, inde
 	_, gs := g.Source.shape(line, g)
 	for _, glyph := range gs {
 		img, imgX, imgY := g.glyphImage(glyph, origin)
-		// Append a glyph even if img is nil.
-		// This is necessary to return index information for control characters.
-		clusters = append(clusters, Cluster{
-			StartIndexInBytes: indexOffset + glyph.startIndex,
-			EndIndexInBytes:   indexOffset + glyph.endIndex,
-			GID:               uint32(glyph.shapingGlyph.GlyphID),
-			Image:             img,
-			X:                 float64(imgX),
-			Y:                 float64(imgY),
-		})
+		if img != nil {
+			glyphs = append(glyphs, Glyph{
+				StartIndexInBytes: indexOffset + glyph.startIndex,
+				EndIndexInBytes:   indexOffset + glyph.endIndex,
+				GID:               uint32(glyph.shapingGlyph.GlyphID),
+				Image:             img,
+				X:                 float64(imgX),
+				Y:                 float64(imgY),
+			})
+		}
 		origin = origin.Add(fixed.Point26_6{
 			X: glyph.shapingGlyph.XAdvance,
 			Y: -glyph.shapingGlyph.YAdvance,
 		})
 	}
 
-	return clusters
+	return glyphs
 }
 
 func (g *GoTextFace) glyphImage(glyph glyph, origin fixed.Point26_6) (*ebiten.Image, int, int) {

@@ -102,15 +102,15 @@ func (m *MultiFace) hasGlyph(r rune) bool {
 	return false
 }
 
-// appendClustersForLine implements Face.
-func (m *MultiFace) appendClustersForLine(clusters []Cluster, line string, indexOffset int, originX, originY float64) []Cluster {
+// appendGlyphsForLine implements Face.
+func (m *MultiFace) appendGlyphsForLine(glyphs []Glyph, line string, indexOffset int, originX, originY float64) []Glyph {
 	for _, c := range m.splitText(line) {
 		if c.faceIndex == -1 {
 			continue
 		}
 		f := m.faces[c.faceIndex]
 		t := line[c.textStartIndex:c.textEndIndex]
-		clusters = f.appendClustersForLine(clusters, t, indexOffset, originX, originY)
+		glyphs = f.appendGlyphsForLine(glyphs, t, indexOffset, originX, originY)
 		if a := f.advance(t); f.direction().isHorizontal() {
 			originX += a
 		} else {
@@ -118,7 +118,7 @@ func (m *MultiFace) appendClustersForLine(clusters []Cluster, line string, index
 		}
 		indexOffset += len(t)
 	}
-	return clusters
+	return glyphs
 }
 
 // appendVectorPathForLine implements Face.

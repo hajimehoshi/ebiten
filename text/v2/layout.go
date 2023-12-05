@@ -105,10 +105,7 @@ func Draw(dst *ebiten.Image, text string, face Face, options *DrawOptions) {
 	}
 
 	geoM := options.GeoM
-	for _, g := range AppendClusters(nil, text, face, &options.LayoutOptions) {
-		if g.Image == nil {
-			continue
-		}
+	for _, g := range AppendGlyphs(nil, text, face, &options.LayoutOptions) {
 		op := &options.DrawImageOptions
 		op.GeoM.Reset()
 		op.GeoM.Translate(g.X, g.Y)
@@ -117,16 +114,16 @@ func Draw(dst *ebiten.Image, text string, face Face, options *DrawOptions) {
 	}
 }
 
-// AppendClusters appends glyphs to the given slice and returns a slice.
+// AppendGlyphs appends glyphs to the given slice and returns a slice.
 //
-// AppendClusters is a low-level API, and you can use AppendClusters to have more control than Draw.
-// AppendClusters is also available to precache glyphs.
+// AppendGlyphs is a low-level API, and you can use AppendGlyphs to have more control than Draw.
+// AppendGlyphs is also available to precache glyphs.
 //
 // For the details of options, see Draw function.
 //
-// AppendClusters is concurrent-safe.
-func AppendClusters(glyphs []Cluster, text string, face Face, options *LayoutOptions) []Cluster {
-	return appendClusters(glyphs, text, face, 0, 0, options)
+// AppendGlyphs is concurrent-safe.
+func AppendGlyphs(glyphs []Glyph, text string, face Face, options *LayoutOptions) []Glyph {
+	return appendGlyphs(glyphs, text, face, 0, 0, options)
 }
 
 // AppndVectorPath appends a vector path for glyphs to the given path.
@@ -139,13 +136,13 @@ func AppendVectorPath(path *vector.Path, text string, face Face, options *Layout
 	})
 }
 
-// appendClusters appends glyphs to the given slice and returns a slice.
+// appendGlyphs appends glyphs to the given slice and returns a slice.
 //
-// appendClusters assumes the text is rendered with the position (x, y).
+// appendGlyphs assumes the text is rendered with the position (x, y).
 // (x, y) might affect the subpixel rendering results.
-func appendClusters(glyphs []Cluster, text string, face Face, x, y float64, options *LayoutOptions) []Cluster {
+func appendGlyphs(glyphs []Glyph, text string, face Face, x, y float64, options *LayoutOptions) []Glyph {
 	forEachLine(text, face, options, func(line string, indexOffset int, originX, originY float64) {
-		glyphs = face.appendClustersForLine(glyphs, line, indexOffset, originX+x, originY+y)
+		glyphs = face.appendGlyphsForLine(glyphs, line, indexOffset, originX+x, originY+y)
 	})
 	return glyphs
 }

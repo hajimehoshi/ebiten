@@ -40,7 +40,7 @@ over the lazy dog.`
 
 	f := text.NewStdFace(bitmapfont.Face)
 	got := sampleText
-	for _, g := range text.AppendClusters(nil, sampleText, f, nil) {
+	for _, g := range text.AppendGlyphs(nil, sampleText, f, nil) {
 		got = got[:g.StartIndexInBytes] + strings.Repeat(" ", g.EndIndexInBytes-g.StartIndexInBytes) + got[g.EndIndexInBytes:]
 	}
 	want := regexp.MustCompile(`\S`).ReplaceAllString(sampleText, " ")
