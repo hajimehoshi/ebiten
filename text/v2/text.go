@@ -36,7 +36,7 @@ type Face interface {
 
 	hasGlyph(r rune) bool
 
-	appendGlyphsForLine(glyphs []Glyph, line string, indexOffset int, originX, originY float64) []Glyph
+	appendClustersForLine(glyphs []Cluster, line string, indexOffset int, originX, originY float64) []Cluster
 	appendVectorPathForLine(path *vector.Path, line string, originX, originY float64)
 
 	direction() Direction
@@ -117,12 +117,12 @@ func adjustGranularity(x fixed.Int26_6, face Face) fixed.Int26_6 {
 	return x / factor * factor
 }
 
-// Glyph represents one glyph to render.
-type Glyph struct {
-	// StartIndexInBytes is the start index in bytes for the given string at AppendGlyphs.
+// Cluster represents one grapheme cluster.
+type Cluster struct {
+	// StartIndexInBytes is the start index in bytes for the given string at AppendClusters.
 	StartIndexInBytes int
 
-	// EndIndexInBytes is the end index in bytes for the given string at AppendGlyphs.
+	// EndIndexInBytes is the end index in bytes for the given string at AppendClusters.
 	EndIndexInBytes int
 
 	// GID is an ID for a glyph of TrueType or OpenType font. GID is valid when the face is GoTextFace.
@@ -134,12 +134,12 @@ type Glyph struct {
 	Image *ebiten.Image
 
 	// X is the X position to render this glyph.
-	// The position is determined in a sequence of characters given at AppendGlyphs.
+	// The position is determined in a sequence of characters given at AppendClusters.
 	// The position's origin is the first character's origin position.
 	X float64
 
 	// Y is the Y position to render this glyph.
-	// The position is determined in a sequence of characters given at AppendGlyphs.
+	// The position is determined in a sequence of characters given at AppendClusters.
 	// The position's origin is the first character's origin position.
 	Y float64
 }
@@ -245,10 +245,10 @@ func CacheGlyphs(text string, face Face) {
 
 	c := glyphVariationCount(face)
 
-	var buf []Glyph
+	var buf []Cluster
 	// Create all the possible variations (#2528).
 	for i := 0; i < c; i++ {
-		buf = appendGlyphs(buf, text, face, x, y, nil)
+		buf = appendClusters(buf, text, face, x, y, nil)
 		buf = buf[:0]
 
 		if face.direction().isHorizontal() {

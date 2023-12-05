@@ -93,8 +93,8 @@ func (s *StdFace) hasGlyph(r rune) bool {
 	return ok
 }
 
-// appendGlyphsForLine implements Face.
-func (s *StdFace) appendGlyphsForLine(glyphs []Glyph, line string, indexOffset int, originX, originY float64) []Glyph {
+// appendClustersForLine implements Face.
+func (s *StdFace) appendClustersForLine(clusters []Cluster, line string, indexOffset int, originX, originY float64) []Cluster {
 	s.copyCheck()
 
 	origin := fixed.Point26_6{
@@ -108,23 +108,25 @@ func (s *StdFace) appendGlyphsForLine(glyphs []Glyph, line string, indexOffset i
 			origin.X += s.f.Kern(prevR, r)
 		}
 		img, imgX, imgY, a := s.glyphImage(r, origin)
-		if img != nil {
-			// Adjust the position to the integers.
-			// The current glyph images assume that they are rendered on integer positions so far.
-			_, size := utf8.DecodeRuneInString(line[i:])
-			glyphs = append(glyphs, Glyph{
-				StartIndexInBytes: indexOffset + i,
-				EndIndexInBytes:   indexOffset + i + size,
-				Image:             img,
-				X:                 float64(imgX),
-				Y:                 float64(imgY),
-			})
-		}
+
+		// Adjust the position to the integers.
+		// The current glyph images assume that they are rendered on integer positions so far.
+		_, size := utf8.DecodeRuneInString(line[i:])
+
+		// Append a glyph even if img is nil.
+		// This is necessary to return index information for control characters.
+		clusters = append(clusters, Cluster{
+			StartIndexInBytes: indexOffset + i,
+			EndIndexInBytes:   indexOffset + i + size,
+			Image:             img,
+			X:                 float64(imgX),
+			Y:                 float64(imgY),
+		})
 		origin.X += a
 		prevR = r
 	}
 
-	return glyphs
+	return clusters
 }
 
 func (s *StdFace) glyphImage(r rune, origin fixed.Point26_6) (*ebiten.Image, int, int, fixed.Int26_6) {

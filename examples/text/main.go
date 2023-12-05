@@ -61,15 +61,15 @@ type Game struct {
 	counter        int
 	kanjiText      []rune
 	kanjiTextColor color.RGBA
-	glyphs         []text.Glyph
+	clusters       []text.Cluster
 }
 
 func (g *Game) Update() error {
 	// Initialize the glyphs for special (colorful) rendering.
-	if len(g.glyphs) == 0 {
+	if len(g.clusters) == 0 {
 		op := &text.LayoutOptions{}
 		op.LineSpacingInPixels = mplusNormalFace.Size * 1.5
-		g.glyphs = text.AppendGlyphs(g.glyphs, sampleText, mplusNormalFace, op)
+		g.clusters = text.AppendClusters(g.clusters, sampleText, mplusNormalFace, op)
 	}
 	return nil
 }
@@ -121,13 +121,16 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	{
 		const x, y = 240, 360
 		op := &ebiten.DrawImageOptions{}
-		// g.glyphs is initialized by text.AppendGlyphs.
+		// g.glyphs is initialized by text.AppendClusters
 		// You can customize how to render each glyph.
 		// In this example, multiple colors are used to render glyphs.
-		for i, gl := range g.glyphs {
+		for i, c := range g.clusters {
+			if c.Image == nil {
+				continue
+			}
 			op.GeoM.Reset()
 			op.GeoM.Translate(x, y)
-			op.GeoM.Translate(gl.X, gl.Y)
+			op.GeoM.Translate(c.X, c.Y)
 			op.ColorScale.Reset()
 			r := float32(1)
 			if i%3 == 0 {
@@ -142,7 +145,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 				b = 0.5
 			}
 			op.ColorScale.Scale(r, g, b, 1)
-			screen.DrawImage(gl.Image, op)
+			screen.DrawImage(c.Image, op)
 		}
 	}
 }
