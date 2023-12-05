@@ -108,18 +108,20 @@ func (s *StdFace) appendGlyphsForLine(glyphs []Glyph, line string, indexOffset i
 			origin.X += s.f.Kern(prevR, r)
 		}
 		img, imgX, imgY, a := s.glyphImage(r, origin)
-		if img != nil {
-			// Adjust the position to the integers.
-			// The current glyph images assume that they are rendered on integer positions so far.
-			_, size := utf8.DecodeRuneInString(line[i:])
-			glyphs = append(glyphs, Glyph{
-				StartIndexInBytes: indexOffset + i,
-				EndIndexInBytes:   indexOffset + i + size,
-				Image:             img,
-				X:                 float64(imgX),
-				Y:                 float64(imgY),
-			})
-		}
+
+		// Adjust the position to the integers.
+		// The current glyph images assume that they are rendered on integer positions so far.
+		_, size := utf8.DecodeRuneInString(line[i:])
+
+		// Append a glyph even if img is nil.
+		// This is necessary to return index information for control characters.
+		glyphs = append(glyphs, Glyph{
+			StartIndexInBytes: indexOffset + i,
+			EndIndexInBytes:   indexOffset + i + size,
+			Image:             img,
+			X:                 float64(imgX),
+			Y:                 float64(imgY),
+		})
 		origin.X += a
 		prevR = r
 	}

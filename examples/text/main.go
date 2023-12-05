@@ -125,6 +125,9 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		// You can customize how to render each glyph.
 		// In this example, multiple colors are used to render glyphs.
 		for i, gl := range g.glyphs {
+			if gl.Image == nil {
+				continue
+			}
 			op.GeoM.Reset()
 			op.GeoM.Translate(x, y)
 			op.GeoM.Translate(gl.X, gl.Y)

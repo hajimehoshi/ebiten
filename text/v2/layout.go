@@ -106,6 +106,9 @@ func Draw(dst *ebiten.Image, text string, face Face, options *DrawOptions) {
 
 	geoM := options.GeoM
 	for _, g := range AppendGlyphs(nil, text, face, &options.LayoutOptions) {
+		if g.Image == nil {
+			continue
+		}
 		op := &options.DrawImageOptions
 		op.GeoM.Reset()
 		op.GeoM.Translate(g.X, g.Y)
