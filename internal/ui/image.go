@@ -388,7 +388,7 @@ func (i *bigOffscreenImage) flush() {
 		return
 	}
 
-	// Mark the offscreen clearn earlier to avoid recursive calls.
+	// Mark the offscreen clean earlier to avoid recursive calls.
 	i.dirty = false
 
 	srcs := [graphics.ShaderImageCount]*Image{i.image}
