@@ -2,9 +2,9 @@ github.com/ebitengine/oto/v3 v3.2.0-alpha.2.0.20231021101548-b794c0292b2b h1:gi7
 github.com/ebitengine/oto/v3 v3.2.0-alpha.2.0.20231021101548-b794c0292b2b/go.mod h1:JtMbxJHZBDXfS8BmVYwzWk9Z6r7jsjwsHzOuZrEkfs4=
 github.com/ebitengine/purego v0.6.0-alpha.2 h1:lYSvMtNBEjNGAzqPC5WP7bHUOxkFU3L+JZMdxK7krkw=
 github.com/ebitengine/purego v0.6.0-alpha.2/go.mod h1:ah1In8AOtksoNK6yk5z1HTJeUkC1Ez4Wk2idgGslMwQ=
-github.com/go-text/typesetting v0.0.0-20231126133128-3b7c9205d99e h1:XYK2AGBUaDkE9yG8FMOWCm0v/fjmcbkccKm1t3IIK/M=
-github.com/go-text/typesetting v0.0.0-20231126133128-3b7c9205d99e/go.mod h1:evDBbvNR/KaVFZ2ZlDSOWWXIUKq0wCOEtzLxRM8SG3k=
-github.com/go-text/typesetting-utils v0.0.0-20230616150549-2a7df14b6a22 h1:LBQTFxP2MfsyEDqSKmUBZaDuDHN1vpqDyOZjcqS7MYI=
+github.com/go-text/typesetting v0.0.0-20231206174126-ce41cc83e028 h1:Ml7tuFjpWEaaUcgzQv/yx/oLkyGAFNmgBwVEvvnElGU=
+github.com/go-text/typesetting v0.0.0-20231206174126-ce41cc83e028/go.mod h1:MrLApvxyzSW0MhQqLc484jkUWYX4wsEvEqDosB5Io80=
+github.com/go-text/typesetting-utils v0.0.0-20231204162240-fa4dc564ba79 h1:3yBOzx29wog0i7TnUBMcp90EwIb+A5kqmr5vny1UOm8=
 github.com/hajimehoshi/bitmapfont/v3 v3.0.0 h1:r2+6gYK38nfztS/et50gHAswb9hXgxXECYgE8Nczmi4=
 github.com/hajimehoshi/bitmapfont/v3 v3.0.0/go.mod h1:+CxxG+uMmgU4mI2poq944i3uZ6UYFfAkj9V6WqmuvZA=
 github.com/hajimehoshi/go-mp3 v0.3.4 h1:NUP7pBYH8OguP4diaTZ9wJbUbk3tC0KlfzsEpWmYj68=
