@@ -85,7 +85,7 @@ func (g *Game) initAudioIfNeeded() {
 	g.player.Play()
 }
 
-// time is whithin the 0 ... 1 range
+// time is within the 0 ... 1 range
 func lerp(a, b, t float64) float64 {
 	return a*(1-t) + b*t
 }

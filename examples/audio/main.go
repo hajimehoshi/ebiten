@@ -344,7 +344,7 @@ func (p *Player) draw(screen *ebiten.Image) {
 	cy := float32(y) + float32(h)/2
 	vector.DrawFilledCircle(screen, cx, cy, 12, playerCurrentColor, true)
 
-	// Compose the curren time text.
+	// Compose the current time text.
 	m := (c / time.Minute) % 100
 	s := (c / time.Second) % 60
 	currentTimeStr := fmt.Sprintf("%02d:%02d", m, s)
