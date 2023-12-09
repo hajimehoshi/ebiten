@@ -240,3 +240,119 @@ func TestUnhashableFace(t *testing.T) {
 		}
 	}
 }
+
+func TestConvertToFixed26_6(t *testing.T) {
+	testCases := []struct {
+		In  float64
+		Out fixed.Int26_6
+	}{
+		{
+			In:  0,
+			Out: 0,
+		},
+		{
+			In:  0.25,
+			Out: fixed.I(1) / 4,
+		},
+		{
+			In:  0.5,
+			Out: fixed.I(1) / 2,
+		},
+		{
+			In:  1.25,
+			Out: fixed.I(1) * 5 / 4,
+		},
+		{
+			In:  1,
+			Out: fixed.I(1),
+		},
+		{
+			In:  -0.25,
+			Out: fixed.I(-1) / 4,
+		},
+		{
+			In:  -0.5,
+			Out: fixed.I(-1) / 2,
+		},
+		{
+			In:  -1,
+			Out: fixed.I(-1),
+		},
+		{
+			In:  -1.25,
+			Out: fixed.I(-1) * 5 / 4,
+		},
+	}
+
+	for _, tc := range testCases {
+		got := text.Float32ToFixed26_6(float32(tc.In))
+		want := tc.Out
+		if got != want {
+			t.Errorf("Float32ToFixed26_6(%v): got: %v, want: %v", tc.In, got, want)
+		}
+
+		got = text.Float64ToFixed26_6(tc.In)
+		want = tc.Out
+		if got != want {
+			t.Errorf("Float32ToFixed26_6(%v): got: %v, want: %v", tc.In, got, want)
+		}
+	}
+}
+
+func TestConvertToFloat(t *testing.T) {
+	testCases := []struct {
+		In  fixed.Int26_6
+		Out float64
+	}{
+		{
+			In:  0,
+			Out: 0,
+		},
+		{
+			In:  fixed.I(1) / 4,
+			Out: 0.25,
+		},
+		{
+			In:  fixed.I(1) / 2,
+			Out: 0.5,
+		},
+		{
+			In:  fixed.I(1) * 5 / 4,
+			Out: 1.25,
+		},
+		{
+			In:  fixed.I(1),
+			Out: 1,
+		},
+		{
+			In:  fixed.I(-1) / 4,
+			Out: -0.25,
+		},
+		{
+			In:  fixed.I(-1) / 2,
+			Out: -0.5,
+		},
+		{
+			In:  fixed.I(-1),
+			Out: -1,
+		},
+		{
+			In:  fixed.I(-1) * 5 / 4,
+			Out: -1.25,
+		},
+	}
+
+	for _, tc := range testCases {
+		got := text.Fixed26_6ToFloat32(tc.In)
+		want := float32(tc.Out)
+		if got != want {
+			t.Errorf("Fixed26_6ToFloat32(%v): got: %v, want: %v", tc.In, got, want)
+		}
+
+		got64 := text.Fixed26_6ToFloat64(tc.In)
+		want64 := tc.Out
+		if got64 != want64 {
+			t.Errorf("Fixed26_6ToFloat64(%v): got: %v, want: %v", tc.In, got64, want64)
+		}
+	}
+}

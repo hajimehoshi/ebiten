@@ -18,7 +18,6 @@
 package text
 
 import (
-	"math"
 	"strings"
 
 	"golang.org/x/image/math/fixed"
@@ -72,23 +71,19 @@ type Metrics struct {
 }
 
 func fixed26_6ToFloat32(x fixed.Int26_6) float32 {
-	return float32(x>>6) + float32(x&((1<<6)-1))/float32(1<<6)
+	return float32(x) / (1 << 6)
 }
 
 func fixed26_6ToFloat64(x fixed.Int26_6) float64 {
-	return float64(x>>6) + float64(x&((1<<6)-1))/float64(1<<6)
+	return float64(x) / (1 << 6)
 }
 
 func float32ToFixed26_6(x float32) fixed.Int26_6 {
-	i := float32(math.Floor(float64(x)))
-	frac := x - i
-	return fixed.Int26_6(i)<<6 + fixed.Int26_6(frac*(1<<6))
+	return fixed.Int26_6(x * (1 << 6))
 }
 
 func float64ToFixed26_6(x float64) fixed.Int26_6 {
-	i := math.Floor(x)
-	frac := x - i
-	return fixed.Int26_6(i)<<6 + fixed.Int26_6(frac*(1<<6))
+	return fixed.Int26_6(x * (1 << 6))
 }
 
 func glyphVariationCount(face Face) int {
