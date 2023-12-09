@@ -49,9 +49,9 @@ type glyph struct {
 }
 
 type goTextOutputCacheValue struct {
-	output shaping.Output
-	glyphs []glyph
-	atime  int64
+	outputs []shaping.Output
+	glyphs  []glyph
+	atime   int64
 }
 
 type goTextGlyphImageCacheKey struct {
@@ -164,7 +164,7 @@ func (g *GoTextFaceSource) UnsafeInternal() font.Face {
 	return g.f
 }
 
-func (g *GoTextFaceSource) shape(text string, face *GoTextFace) (shaping.Output, []glyph) {
+func (g *GoTextFaceSource) shape(text string, face *GoTextFace) ([]shaping.Output, []glyph) {
 	g.copyCheck()
 
 	g.m.Lock()
@@ -173,7 +173,7 @@ func (g *GoTextFaceSource) shape(text string, face *GoTextFace) (shaping.Output,
 	key := face.outputCacheKey(text)
 	if out, ok := g.outputCache[key]; ok {
 		out.atime = now()
-		return out.output, out.glyphs
+		return out.outputs, out.glyphs
 	}
 
 	g.f.SetVariations(face.variations)
@@ -189,54 +189,81 @@ func (g *GoTextFaceSource) shape(text string, face *GoTextFace) (shaping.Output,
 		Script:       face.gScript(),
 		Language:     language.Language(face.Language.String()),
 	}
-	out := (&shaping.HarfbuzzShaper{}).Shape(input)
+
+	var inputs []shaping.Input
+	if face.Direction.isHorizontal() {
+		// shaping.Segmenter is not used for horizontal texts so far due to a bug (go-text/typesetting#127).
+		inputs = []shaping.Input{input}
+	} else {
+		var seg shaping.Segmenter
+		inputs = seg.Split(input, &singleFontmap{face: face.Source.f})
+	}
+
+	if face.Direction == DirectionRightToLeft {
+		// Reverse the input for RTL texts.
+		for i, j := 0, len(inputs)-1; i < j; i, j = i+1, j-1 {
+			inputs[i], inputs[j] = inputs[j], inputs[i]
+		}
+	}
+
+	outputs := make([]shaping.Output, len(inputs))
+	var gs []glyph
+	for i, input := range inputs {
+		out := (&shaping.HarfbuzzShaper{}).Shape(input)
+		outputs[i] = out
+
+		(shaping.Line{out}).AdjustBaselines()
+
+		var indices []int
+		for i := range text {
+			indices = append(indices, i)
+		}
+		indices = append(indices, len(text))
+
+		for _, gl := range out.Glyphs {
+			gl := gl
+			var segs []api.Segment
+			switch data := g.f.GlyphData(gl.GlyphID).(type) {
+			case api.GlyphOutline:
+				if out.Direction.IsSideways() {
+					data.Sideways(fixed26_6ToFloat32(-gl.YOffset) / fixed26_6ToFloat32(out.Size) * float32(face.Source.f.Upem()))
+				}
+				segs = data.Segments
+			case api.GlyphSVG:
+				segs = data.Outline.Segments
+			case api.GlyphBitmap:
+				if data.Outline != nil {
+					segs = data.Outline.Segments
+				}
+			}
+
+			scaledSegs := make([]api.Segment, len(segs))
+			scale := float32(g.scale(fixed26_6ToFloat64(out.Size)))
+			for i, seg := range segs {
+				scaledSegs[i] = seg
+				for j := range seg.Args {
+					scaledSegs[i].Args[j].X *= scale
+					scaledSegs[i].Args[j].Y *= -scale
+				}
+			}
+
+			gs = append(gs, glyph{
+				shapingGlyph:   &gl,
+				startIndex:     indices[gl.ClusterIndex],
+				endIndex:       indices[gl.ClusterIndex+gl.RuneCount],
+				scaledSegments: scaledSegs,
+				bounds:         segmentsToBounds(scaledSegs),
+			})
+		}
+	}
+
 	if g.outputCache == nil {
 		g.outputCache = map[goTextOutputCacheKey]*goTextOutputCacheValue{}
 	}
-
-	var indices []int
-	for i := range text {
-		indices = append(indices, i)
-	}
-	indices = append(indices, len(text))
-
-	gs := make([]glyph, len(out.Glyphs))
-	for i, gl := range out.Glyphs {
-		gl := gl
-		var segs []api.Segment
-		switch data := g.f.GlyphData(gl.GlyphID).(type) {
-		case api.GlyphOutline:
-			segs = data.Segments
-		case api.GlyphSVG:
-			segs = data.Outline.Segments
-		case api.GlyphBitmap:
-			if data.Outline != nil {
-				segs = data.Outline.Segments
-			}
-		}
-
-		scaledSegs := make([]api.Segment, len(segs))
-		scale := float32(g.scale(fixed26_6ToFloat64(out.Size)))
-		for i, seg := range segs {
-			scaledSegs[i] = seg
-			for j := range seg.Args {
-				scaledSegs[i].Args[j].X *= scale
-				scaledSegs[i].Args[j].Y *= -scale
-			}
-		}
-
-		gs[i] = glyph{
-			shapingGlyph:   &gl,
-			startIndex:     indices[gl.ClusterIndex],
-			endIndex:       indices[gl.ClusterIndex+gl.RuneCount],
-			scaledSegments: scaledSegs,
-			bounds:         segmentsToBounds(scaledSegs),
-		}
-	}
 	g.outputCache[key] = &goTextOutputCacheValue{
-		output: out,
-		glyphs: gs,
-		atime:  now(),
+		outputs: outputs,
+		glyphs:  gs,
+		atime:   now(),
 	}
 
 	const cacheSoftLimit = 512
@@ -250,7 +277,7 @@ func (g *GoTextFaceSource) shape(text string, face *GoTextFace) (shaping.Output,
 		}
 	}
 
-	return out, gs
+	return outputs, gs
 }
 
 func (g *GoTextFaceSource) scale(size float64) float64 {
@@ -265,4 +292,12 @@ func (g *GoTextFaceSource) getOrCreateGlyphImage(goTextFace *GoTextFace, key goT
 		g.glyphImageCache[goTextFace.Size] = &glyphImageCache[goTextGlyphImageCacheKey]{}
 	}
 	return g.glyphImageCache[goTextFace.Size].getOrCreate(goTextFace, key, create)
+}
+
+type singleFontmap struct {
+	face font.Face
+}
+
+func (s *singleFontmap) ResolveFace(r rune) font.Face {
+	return s.face
 }

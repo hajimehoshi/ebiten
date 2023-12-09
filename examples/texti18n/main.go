@@ -83,6 +83,19 @@ func init() {
 	myanmarFaceSource = s
 }
 
+//go:embed NotoSansMongolian-Regular.ttf
+var mongolianTTF []byte
+
+var mongolianFaceSource *text.GoTextFaceSource
+
+func init() {
+	s, err := text.NewGoTextFaceSource(bytes.NewReader(mongolianTTF))
+	if err != nil {
+		log.Fatal(err)
+	}
+	mongolianFaceSource = s
+}
+
 var japaneseFaceSource *text.GoTextFaceSource
 
 func init() {
@@ -167,7 +180,26 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		text.Draw(screen, thaiText, f, op)
 	}
 	{
-		const japaneseText = "あのイーハトーヴォの\nすきとおった風、\n夏でも底に冷たさを\nもつ青いそら…"
+		const mongolianText = "ᠬᠦᠮᠦᠨ ᠪᠦᠷ ᠲᠥᠷᠥᠵᠦ ᠮᠡᠨᠳᠡᠯᠡᠬᠦ\nᠡᠷᠬᠡ ᠴᠢᠯᠥᠭᠡ ᠲᠡᠢ᠂ ᠠᠳᠠᠯᠢᠬᠠᠨ"
+		f := &text.GoTextFace{
+			Source:    mongolianFaceSource,
+			Direction: text.DirectionTopToBottomAndLeftToRight,
+			Size:      24,
+			Language:  language.Mongolian,
+			// language.Mongolian.Script() returns "Cyrl" (Cyrillic), but we want Mongolian script here.
+			Script: language.MustParseScript("Mong"),
+		}
+		const lineSpacing = 48
+		x, y := 20, 280
+		w, h := text.Measure(mongolianText, f, lineSpacing)
+		vector.DrawFilledRect(screen, float32(x), float32(y), float32(w), float32(h), gray, false)
+		op := &text.DrawOptions{}
+		op.GeoM.Translate(float64(x), float64(y))
+		op.LineSpacingInPixels = lineSpacing
+		text.Draw(screen, mongolianText, f, op)
+	}
+	{
+		const japaneseText = "あのイーハトーヴォの\nすきとおった風、\n夏でも底に冷たさを\nもつ青いそら…\nあHello World.あ"
 		f := &text.GoTextFace{
 			Source:    japaneseFaceSource,
 			Direction: text.DirectionTopToBottomAndRightToLeft,

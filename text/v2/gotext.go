@@ -278,11 +278,17 @@ func (g *GoTextFace) gScript() glanguage.Script {
 
 // advance implements Face.
 func (g *GoTextFace) advance(text string) float64 {
-	output, _ := g.Source.shape(text, g)
-	if g.direction().isHorizontal() {
-		return fixed26_6ToFloat64(output.Advance)
+	outputs, _ := g.Source.shape(text, g)
+
+	var a fixed.Int26_6
+	for _, output := range outputs {
+		a += output.Advance
 	}
-	return -fixed26_6ToFloat64(output.Advance)
+
+	if g.direction().isHorizontal() {
+		return fixed26_6ToFloat64(a)
+	}
+	return -fixed26_6ToFloat64(a)
 }
 
 // hasGlyph implements Face.

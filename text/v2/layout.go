@@ -186,22 +186,18 @@ func forEachLine(text string, face Face, options *LayoutOptions, f func(text str
 		boundaryWidth = longestAdvance
 		boundaryHeight = float64(lineCount-1)*options.LineSpacingInPixels + m.HAscent + m.HDescent
 	} else {
+		// TODO: Perhaps HAscent and HDescent should be used for sideways glyphs.
 		boundaryWidth = float64(lineCount-1)*options.LineSpacingInPixels + m.VAscent + m.VDescent
 		boundaryHeight = longestAdvance
 	}
 
 	var offsetX, offsetY float64
 
-	// The Y position has an offset by an ascent for horizontal texts.
-	if d.isHorizontal() {
-		offsetY += m.HAscent
-	}
-	// TODO: Adjust offsets for vertical texts.
-
 	// Adjust the offset based on the secondary alignments.
 	h, v := calcAligns(d, options.PrimaryAlign, options.SecondaryAlign)
 	switch d {
 	case DirectionLeftToRight, DirectionRightToLeft:
+		offsetY += m.HAscent
 		switch v {
 		case verticalAlignTop:
 		case verticalAlignCenter:
@@ -210,7 +206,8 @@ func forEachLine(text string, face Face, options *LayoutOptions, f func(text str
 			offsetY -= boundaryHeight
 		}
 	case DirectionTopToBottomAndLeftToRight:
-		offsetX -= m.VAscent
+		// TODO: Perhaps HDescent should be used for sideways glyphs.
+		offsetX += m.VDescent
 		switch h {
 		case horizontalAlignLeft:
 		case horizontalAlignCenter:
@@ -219,6 +216,7 @@ func forEachLine(text string, face Face, options *LayoutOptions, f func(text str
 			offsetX -= boundaryWidth
 		}
 	case DirectionTopToBottomAndRightToLeft:
+		// TODO: Perhaps HAscent should be used for sideways glyphs.
 		offsetX -= m.VAscent
 		switch h {
 		case horizontalAlignLeft:
