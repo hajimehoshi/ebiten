@@ -26,7 +26,8 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
-// Face is an interface representing a font face. The implementations are only faces in this package, like GoTextFace and StdFace.
+// Face is an interface representing a font face.
+// The implementations are only faces defined in this package, like GoTextFace and StdFace.
 type Face interface {
 	// Metrics returns the metrics for this Face.
 	Metrics() Metrics

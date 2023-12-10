@@ -221,8 +221,7 @@ func (g *GoTextFaceSource) shape(text string, face *GoTextFace) (shaping.Output,
 			scaledSegs[i] = seg
 			for j := range seg.Args {
 				scaledSegs[i].Args[j].X *= scale
-				scaledSegs[i].Args[j].Y *= scale
-				scaledSegs[i].Args[j].Y *= -1
+				scaledSegs[i].Args[j].Y *= -scale
 			}
 		}
 
