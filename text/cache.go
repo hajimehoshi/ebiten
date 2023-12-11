@@ -38,7 +38,8 @@ type kernCacheKey struct {
 }
 
 type faceWithCache struct {
-	f font.Face
+	f       font.Face
+	metrics font.Metrics
 
 	glyphBoundsCache  map[rune]glyphBoundsCacheValue
 	glyphAdvanceCache map[rune]glyphAdvanceCacheValue
@@ -126,5 +127,9 @@ func (f *faceWithCache) Kern(r0, r1 rune) fixed.Int26_6 {
 }
 
 func (f *faceWithCache) Metrics() font.Metrics {
-	return f.f.Metrics()
+	if f.metrics != (font.Metrics{}) {
+		return f.metrics
+	}
+	f.metrics = f.f.Metrics()
+	return f.metrics
 }
