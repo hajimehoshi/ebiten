@@ -192,8 +192,11 @@ func forEachLine(text string, face Face, options *LayoutOptions, f func(text str
 
 	var offsetX, offsetY float64
 
-	// Whichever the direction and the alignments are, the Y position has an offset by an ascent for horizontal texts.
-	offsetY += m.HAscent
+	// The Y position has an offset by an ascent for horizontal texts.
+	if d.isHorizontal() {
+		offsetY += m.HAscent
+	}
+	// TODO: Adjust offsets for vertical texts.
 
 	// Adjust the offset based on the secondary alignments.
 	h, v := calcAligns(d, options.PrimaryAlign, options.SecondaryAlign)
