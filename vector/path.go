@@ -103,7 +103,7 @@ func (p *Path) MoveTo(x, y float32) {
 	})
 }
 
-// LineTo adds a line segument to the path, which starts from the last position of the current subpath
+// LineTo adds a line segment to the path, which starts from the last position of the current subpath
 // and ends to the given position (x, y).
 // If p doesn't have any subpaths or the last subpath is closed, LineTo sets (x, y) as the start position of a new subpath.
 func (p *Path) LineTo(x, y float32) {
