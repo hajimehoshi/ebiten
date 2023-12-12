@@ -115,6 +115,11 @@ func segmentsToImage(segs []api.Segment, subpixelOffset fixed.Point26_6, glyphBo
 		}
 	}
 
+	// Explicit closing is necessary especially for some OpenType fonts like
+	// NotoSansJP-VF.otf in https://github.com/notofonts/noto-cjk/releases/tag/Sans2.004.
+	// See also https://github.com/go-text/typesetting/issues/122.
+	rast.ClosePath()
+
 	dst := image.NewRGBA(image.Rect(0, 0, w, h))
 	rast.Draw(dst, dst.Bounds(), image.Opaque, image.Point{})
 	return ebiten.NewImageFromImage(dst)
