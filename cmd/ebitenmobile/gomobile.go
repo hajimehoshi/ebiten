@@ -191,6 +191,10 @@ import (
 		return tmp, err
 	}
 
+	// The newly added Go files like gobind.go might add new dependencies.
+	if err := runGo("mod", "tidy"); err != nil {
+		return tmp, err
+	}
 	if err := runGo("build", "-o", exe(filepath.Join("bin", "gobind")), "-tags", "ebitenmobilegobind", filepath.Join("src", "gobind.go")); err != nil {
 		return tmp, err
 	}
