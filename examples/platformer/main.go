@@ -79,12 +79,13 @@ type char struct {
 }
 
 func (c *char) tryJump() {
-	// Now the character can jump anytime, even when the character is not on the ground.
-	// If you want to restrict the character to jump only when it is on the ground, you can add an 'if' clause:
-	//
-	//     if gopher.y == groundY * unit {
-	//         ...
-	c.vy = -10 * unit
+	// Now the character can jump once.
+	// If you want your character to jump in the air more than once, delete the if statement
+
+	if c.y == groundY *unit{
+		c.vy = -10 * unit
+	}
+
 }
 
 func (c *char) update() {
