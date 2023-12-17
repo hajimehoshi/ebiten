@@ -73,7 +73,7 @@ func (g *Graphics) End(present bool) error {
 	// TODO: examples/sprites worked without this. Is this really needed?
 	g.context.ctx.Flush()
 
-	// The last uniforms must be reset after swapping the buffer (#2517).
+	// The last uniforms must be reset before swapping the buffer (#2517).
 	if present {
 		g.state.resetLastUniforms()
 	}
