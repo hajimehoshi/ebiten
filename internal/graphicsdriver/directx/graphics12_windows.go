@@ -688,7 +688,7 @@ func (g *graphics12) End(present bool) error {
 
 	// Release vertices and indices buffers when too many ones were created.
 	// The threshold is an arbitrary number.
-	// This is needed espciallly for testings, where present is always false.
+	// This is needed especially for testings, where present is always false.
 	if len(g.vertices[g.frameIndex]) >= 16 {
 		if err := g.waitForCommandQueue(); err != nil {
 			return err

@@ -991,7 +991,7 @@ static Window createHelperWindow(void)
                          CWEventMask, &wa);
 }
 
-// Create the pipe for empty events without assumuing the OS has pipe2(2)
+// Create the pipe for empty events without assuming the OS has pipe2(2)
 //
 static GLFWbool createEmptyEventPipe(void)
 {

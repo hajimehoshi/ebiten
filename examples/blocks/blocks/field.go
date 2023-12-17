@@ -126,7 +126,7 @@ func (f *Field) flushable() bool {
 }
 
 // flushableLine returns a boolean value indicating whether
-// the line j is flushabled or not.
+// the line j is flushable or not.
 func (f *Field) flushableLine(j int) bool {
 	for i := 0; i < fieldBlockCountX; i++ {
 		if f.blocks[i][j] == BlockTypeNone {

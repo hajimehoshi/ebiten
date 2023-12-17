@@ -39,7 +39,7 @@ func (u *UserInterface) runMultiThread(game Game, options *RunOptions) error {
 	graphicscommand.SetRenderThread(u.renderThread)
 
 	// Set the running state true after the main thread is set, and before initOnMainThread is called (#2742).
-	// TODO: As the existance of the main thread is the same as the value of `running`, this is redundant.
+	// TODO: As the existence of the main thread is the same as the value of `running`, this is redundant.
 	// Make `mainThread` atomic and remove `running` if possible.
 	u.setRunning(true)
 	defer u.setRunning(false)

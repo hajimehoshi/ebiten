@@ -62,7 +62,7 @@ func (s *StdFace) copyCheck() {
 	}
 }
 
-// Metrics implelements Face.
+// Metrics implements Face.
 func (s *StdFace) Metrics() Metrics {
 	s.copyCheck()
 
@@ -178,7 +178,7 @@ func (s *StdFace) glyphImageImpl(r rune, subpixelOffset fixed.Point26_6, glyphBo
 	return ebiten.NewImageFromImage(rgba)
 }
 
-// direction implelements Face.
+// direction implements Face.
 func (s *StdFace) direction() Direction {
 	return DirectionLeftToRight
 }
@@ -187,6 +187,6 @@ func (s *StdFace) direction() Direction {
 func (s *StdFace) appendVectorPathForLine(path *vector.Path, line string, originX, originY float64) {
 }
 
-// Metrics implelements Face.
+// Metrics implements Face.
 func (s *StdFace) private() {
 }

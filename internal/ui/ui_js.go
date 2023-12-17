@@ -435,7 +435,7 @@ func (u *UserInterface) loopGame() error {
 	go f()
 
 	// Run another loop to watch suspended() as the above update function is never called when the tab is hidden.
-	// To check the document's visiblity, visibilitychange event should usually be used. However, this event is
+	// To check the document's visibility, visibilitychange event should usually be used. However, this event is
 	// not reliable and sometimes it is not fired (#961). Then, watch the state regularly instead.
 	go func() {
 		defer close(resStopAudioCh)
@@ -484,7 +484,7 @@ func (u *UserInterface) init() error {
 		savedCursorY:        math.NaN(),
 	}
 
-	// docuemnt is undefined on node.js
+	// document is undefined on node.js
 	if !document.Truthy() {
 		return nil
 	}

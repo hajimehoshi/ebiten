@@ -97,7 +97,7 @@ func (g *gameForUI) NewOffscreenImage(width, height int) *ui.Image {
 	// and the shader program unexpectedly picks the pixel on the edges.
 	imageType := atlas.ImageTypeUnmanaged
 	if ui.Get().IsScreenClearedEveryFrame() {
-		// A violatile image is also always isolated.
+		// A volatile image is also always isolated.
 		imageType = atlas.ImageTypeVolatile
 	}
 	g.offscreen = newImage(image.Rect(0, 0, width, height), imageType)

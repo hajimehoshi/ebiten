@@ -44,7 +44,7 @@ func init() {
 	C.glfwSetErrorCallbackCB()
 }
 
-// fetchErrorIgnoringPlatformError is fetchError igoring platformError.
+// fetchErrorIgnoringPlatformError is fetchError ignoring platformError.
 func fetchErrorIgnoringPlatformError() error {
 	select {
 	case err := <-lastError:

@@ -1361,7 +1361,7 @@ func registerWindowClassWin32() error {
 	wc.hCursor = cursor
 	className, err := windows.UTF16FromString(_GLFW_WNDCLASSNAME)
 	if err != nil {
-		panic("glfw: _GLFW_WNDCLASSNAME must not inclucde a NUL character")
+		panic("glfw: _GLFW_WNDCLASSNAME must not include a NUL character")
 	}
 	wc.lpszClassName = &className[0]
 	defer runtime.KeepAlive(className)

@@ -84,7 +84,7 @@
 - (void)initView {
   // initView must be called only when viewDidLoad_, and gameSet_ are true i.e. mobile.SetGame is called.
   // Or, EbitenmobileviewIsGL causes a dead lock (#2768).
-  // A game is requried to determine a graphics driver, and EbitenmobileviewIsGL cannot return a value without a game.
+  // A game is required to determine a graphics driver, and EbitenmobileviewIsGL cannot return a value without a game.
   NSAssert(viewDidLoad_ && gameSet_, @"viewDidLoad must be called and a game must be set at initView");
 
   if (!started_) {

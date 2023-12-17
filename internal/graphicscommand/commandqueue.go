@@ -184,7 +184,7 @@ func (q *commandQueue) Flush(graphicsDriver graphicsdriver.Graphics, endFrame bo
 	}
 
 	var sync bool
-	// Disable asynchrnous rendering when vsync is on, as this causes a rendering delay (#2822).
+	// Disable asynchronous rendering when vsync is on, as this causes a rendering delay (#2822).
 	if endFrame && atomic.LoadInt32(&vsyncEnabled) != 0 {
 		sync = true
 	}

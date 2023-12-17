@@ -32,7 +32,7 @@ var (
 	lastNow int64
 
 	// lastSystemTime is the last system time in the previous UpdateFrame.
-	// lastSystemTime indicates the logical time in the game, so this can be bigger than the curren time.
+	// lastSystemTime indicates the logical time in the game, so this can be bigger than the current time.
 	lastSystemTime int64
 
 	actualFPS   float64
