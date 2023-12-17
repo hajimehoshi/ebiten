@@ -113,7 +113,7 @@ func (c *char) draw(screen *ebiten.Image) {
 	}
 
 	op := &ebiten.DrawImageOptions{}
-	// Use a smaller scale than 1 to shrink the image.
+	// Use a smaller scale than 1 to shrink the image. For make image bigger use more than 1 to make bigger.
 	op.GeoM.Scale(0.5, 0.5)
 	op.GeoM.Translate(float64(c.x)/unit, float64(c.y)/unit)
 	screen.DrawImage(s, op)
@@ -128,7 +128,7 @@ func (g *Game) Update() error {
 		g.gopher = &char{x: 50 * unit, y: groundY * unit}
 	}
 
-	// Controls.
+	// Controls
 	if ebiten.IsKeyPressed(ebiten.KeyA) || ebiten.IsKeyPressed(ebiten.KeyArrowLeft) {
 		g.gopher.vx = -4 * unit
 	} else if ebiten.IsKeyPressed(ebiten.KeyD) || ebiten.IsKeyPressed(ebiten.KeyArrowRight) {
