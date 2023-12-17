@@ -72,8 +72,10 @@ const (
 )
 
 type char struct {
-	x  int
-	y  int
+	//Positions
+	x int
+	y int
+	//x and y velocities
 	vx int
 	vy int
 }
@@ -112,6 +114,7 @@ func (c *char) draw(screen *ebiten.Image) {
 		s = leftSprite
 	}
 
+	//Use a float64 value less than 1 to shrink the image. For make the image bigger use more than 1 float64 value
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Scale(0.5, 0.5)
 	op.GeoM.Translate(float64(c.x)/unit, float64(c.y)/unit)
@@ -123,6 +126,7 @@ type Game struct {
 }
 
 func (g *Game) Update() error {
+	//Since it was formed as a nil(null), its position at birth is adjusted like this.
 	if g.gopher == nil {
 		g.gopher = &char{x: 50 * unit, y: groundY * unit}
 	}
@@ -149,7 +153,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	// Draws the Gopher
 	g.gopher.draw(screen)
 
-	// Show the message
+	// Show the message and TPS
 	msg := fmt.Sprintf("TPS: %0.2f\nPress the space key to jump.", ebiten.ActualTPS())
 	ebitenutil.DebugPrint(screen, msg)
 }
