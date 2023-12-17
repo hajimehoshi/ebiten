@@ -113,7 +113,7 @@ func (c *char) draw(screen *ebiten.Image) {
 	}
 
 	op := &ebiten.DrawImageOptions{}
-	// Use a smaller scale than 1 to shrink the image. For make image bigger use more than 1 to make bigger.
+	// Use a smaller scale than 1 to shrink the image.
 	op.GeoM.Scale(0.5, 0.5)
 	op.GeoM.Translate(float64(c.x)/unit, float64(c.y)/unit)
 	screen.DrawImage(s, op)
