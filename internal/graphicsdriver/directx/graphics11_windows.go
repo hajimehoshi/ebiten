@@ -168,7 +168,7 @@ func newGraphics11(useWARP bool, useDebugLayer bool) (gr11 *graphics11, ferr err
 		flags |= _D3D11_CREATE_DEVICE_DEBUG
 	}
 
-	// Avoid _D3D_FEATURE_LEVEL_11_1 as DirectX 11.0 doesn't recgonize this.
+	// Avoid _D3D_FEATURE_LEVEL_11_1 as DirectX 11.0 doesn't recognize this.
 	// Avoid _D3D_FEATURE_LEVEL_9_* for some shaders features (#1431).
 	featureLevels := []_D3D_FEATURE_LEVEL{
 		_D3D_FEATURE_LEVEL_11_0,

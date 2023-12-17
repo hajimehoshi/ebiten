@@ -33,7 +33,7 @@ type platformWindowState struct {
 	lastCursorPosX int
 	lastCursorPosY int
 
-	// The last recevied high surrogate when decoding pairs of UTF-16 messages
+	// The last received high surrogate when decoding pairs of UTF-16 messages
 	highSurrogate uint16
 }
 

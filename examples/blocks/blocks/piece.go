@@ -82,7 +82,7 @@ func transpose(bs [][]bool) [][]bool {
 	for j, row := range bs {
 		blocks[j] = make([]bool, len(row))
 	}
-	// Tranpose the argument matrix.
+	// Transpose the argument matrix.
 	for i, col := range bs {
 		for j, v := range col {
 			blocks[j][i] = v

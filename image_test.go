@@ -4541,7 +4541,7 @@ func TestImageWritePixelAndDeallocate(t *testing.T) {
 	img.WritePixels(pix)
 	img.Deallocate()
 
-	// Confirm that any pixel information is cleared after Dealocate is called.
+	// Confirm that any pixel information is cleared after Deallocate is called.
 	if got, want := img.At(0, 0), (color.RGBA{}); got != want {
 		t.Errorf("got: %v, want: %v", got, want)
 	}

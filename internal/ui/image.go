@@ -351,7 +351,7 @@ func (i *bigOffscreenImage) drawTriangles(srcs [graphics.ShaderImageCount]*Image
 		if len(i.tmpVerticesForCopying) < 4*graphics.VertexFloatCount {
 			i.tmpVerticesForCopying = make([]float32, 4*graphics.VertexFloatCount)
 		}
-		// i.tmpVerticesForCopying can be resused as this is sent to DrawTriangles immediately.
+		// i.tmpVerticesForCopying can be reused as this is sent to DrawTriangles immediately.
 		graphics.QuadVertices(
 			i.tmpVerticesForCopying,
 			float32(i.region.Min.X), float32(i.region.Min.Y), float32(i.region.Max.X), float32(i.region.Max.Y),

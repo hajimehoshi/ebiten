@@ -578,7 +578,7 @@ func MaxTPS() int {
 }
 
 // ActualTPS returns the current TPS (ticks per second),
-// that represents how many Update function is called in a second.
+// that represents how many times Update function is called in a second.
 //
 // This value is for measurement and/or debug, and your game logic should not rely on this value.
 //
@@ -588,7 +588,7 @@ func ActualTPS() float64 {
 }
 
 // CurrentTPS returns the current TPS (ticks per second),
-// that represents how many Update function is called in a second.
+// that represents how many times Update function is called in a second.
 //
 // Deprecated: as of v2.4. Use ActualTPS instead.
 func CurrentTPS() float64 {
@@ -604,7 +604,7 @@ const SyncWithFPS = clock.SyncWithFPS
 const UncappedTPS = SyncWithFPS
 
 // SetTPS sets the maximum TPS (ticks per second),
-// that represents how many updating function is called per second.
+// that represents how many times updating function is called per second.
 // The initial value is 60.
 //
 // If tps is SyncWithFPS, TPS is uncapped and the game is updated per frame.
@@ -616,7 +616,7 @@ func SetTPS(tps int) {
 }
 
 // SetMaxTPS sets the maximum TPS (ticks per second),
-// that represents how many updating function is called per second.
+// that represents how many times updating function is called per second.
 //
 // Deprecated: as of v2.4. Use SetTPS instead.
 func SetMaxTPS(tps int) {

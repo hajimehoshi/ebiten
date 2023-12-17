@@ -791,7 +791,7 @@ func TestIteratingImagesToPutOnSourceBackend(t *testing.T) {
 	dst := atlas.NewImage(w, h, atlas.ImageTypeRegular)
 	defer dst.Deallocate()
 
-	// Use srcs as detinations once.
+	// Use srcs as destinations once.
 	vs := quadVertices(w, h, 0, 0, 1)
 	is := graphics.QuadIndices()
 	dr := image.Rect(0, 0, w, h)

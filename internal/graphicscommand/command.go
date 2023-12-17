@@ -205,8 +205,8 @@ func dstRegionFromVertices(vertices []float32) (minX, minY, maxX, maxY float32) 
 func mightOverlapDstRegions(vertices1, vertices2 []float32) bool {
 	minX1, minY1, maxX1, maxY1 := dstRegionFromVertices(vertices1)
 	minX2, minY2, maxX2, maxY2 := dstRegionFromVertices(vertices2)
-	const mergin = 1
-	return minX1 < maxX2+mergin && minX2 < maxX1+mergin && minY1 < maxY2+mergin && minY2 < maxY1+mergin
+	const margin = 1
+	return minX1 < maxX2+margin && minX2 < maxX1+margin && minY1 < maxY2+margin && minY2 < maxY1+margin
 }
 
 // writePixelsCommand represents a command to replace pixels of an image.

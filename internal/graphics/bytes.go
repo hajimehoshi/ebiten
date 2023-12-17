@@ -22,7 +22,7 @@ import (
 // ManagedBytes is a managed byte slice.
 // The internal byte alice are managed in a pool.
 // ManagedBytes is useful when its lifetime is explicit, as the underlying byte slice can be reused for another ManagedBytes later.
-// This can redduce allocations and GCs.
+// This can reduce allocations and GCs.
 type ManagedBytes struct {
 	bytes []byte
 	pool  *bytesPool

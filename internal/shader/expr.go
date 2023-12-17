@@ -625,7 +625,7 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 			}, []shaderir.Type{t}, stmts, true
 		}
 
-		// Even if the function doesn't return anything, calling the function should be done eariler to keep
+		// Even if the function doesn't return anything, calling the function should be done earlier to keep
 		// the evaluation order.
 		stmts = append(stmts, shaderir.Stmt{
 			Type: shaderir.ExprStmt,

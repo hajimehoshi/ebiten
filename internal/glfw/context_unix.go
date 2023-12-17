@@ -17,7 +17,7 @@ import (
 
 // MakeContextCurrent makes the context of the window current.
 // Originally GLFW 3 passes a null pointer to detach the context.
-// But since we're using receievers, DetachCurrentContext should
+// But since we're using receivers, DetachCurrentContext should
 // be used instead.
 func (w *Window) MakeContextCurrent() error {
 	C.glfwMakeContextCurrent(w.data)

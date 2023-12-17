@@ -104,7 +104,7 @@ func init() {
 		for i := range keys {
 			freq := baseFreq * math.Exp2(float64(i-1)/12.0)
 
-			// Clculate the wave data for the freq.
+			// Calculate the wave data for the freq.
 			length := 4 * sampleRate * baseFreq / int(freq)
 			l := make([]int16, length)
 			r := make([]int16, length)

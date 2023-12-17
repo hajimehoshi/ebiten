@@ -322,7 +322,7 @@ func IsWindowClosingHandled() bool {
 
 // SetWindowMousePassthrough sets whether a mouse cursor passthroughs the window or not on desktops. The default state is false.
 //
-// Even if this is set true, some platforms might requrie a window to be undecorated
+// Even if this is set true, some platforms might require a window to be undecorated
 // in order to make the mouse cursor passthrough the window.
 //
 // SetWindowMousePassthrough works only on desktops.
@@ -335,7 +335,7 @@ func SetWindowMousePassthrough(enabled bool) {
 
 // IsWindowMousePassthrough reports whether a mouse cursor passthroughs the window or not on desktops.
 //
-// IsWindowMousePassthrough alaywas returns false if the platform is not a desktop.
+// IsWindowMousePassthrough always returns false if the platform is not a desktop.
 //
 // IsWindowMousePassthrough is concurrent-safe.
 func IsWindowMousePassthrough() bool {

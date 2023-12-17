@@ -49,7 +49,7 @@ type Blend struct {
 	// BlendFactorDestinationRGB is a factor for destination RGB values.
 	BlendFactorDestinationRGB BlendFactor
 
-	// BlendFactorDestinationAlpha is a factor for destination apha values.
+	// BlendFactorDestinationAlpha is a factor for destination alpha values.
 	BlendFactorDestinationAlpha BlendFactor
 
 	// BlendOperationRGB is an operation for source and destination RGB values.

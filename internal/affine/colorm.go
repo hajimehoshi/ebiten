@@ -61,7 +61,7 @@ type ColorM interface {
 	Equals(other ColorM) bool
 
 	// Concat multiplies a color matrix with the other color matrix.
-	// This is same as muptiplying the matrix other and the matrix c in this order.
+	// This is same as multiplying the matrix other and the matrix c in this order.
 	Concat(other ColorM) ColorM
 
 	// Scale scales the matrix by (r, g, b, a).
@@ -618,7 +618,7 @@ func (c *colorMImplBodyTranslate) Concat(other ColorM) ColorM {
 
 	return &colorMImplBodyTranslate{
 		// TODO: This is a temporary hack to calculate multiply of transposed matrices.
-		// Fix mulSquare implmentation and swap the arguments.
+		// Fix mulSquare implementation and swap the arguments.
 		body: mulSquare(rhsb, &lhsb, ColorMDim-1),
 		translate: [...]float32{
 			lhsb[0]*rhst[0] + lhsb[4]*rhst[1] + lhsb[8]*rhst[2] + lhsb[12]*rhst[3] + lhst[0],
@@ -755,7 +755,7 @@ var (
 )
 
 // ChangeHSV changes HSV (Hue-Saturation-Value) elements.
-// hueTheta is a radian value to ratate hue.
+// hueTheta is a radian value to rotate hue.
 // saturationScale is a value to scale saturation.
 // valueScale is a value to scale value (a.k.a. brightness).
 //
