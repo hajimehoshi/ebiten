@@ -80,7 +80,9 @@ type UserInterface struct {
 
 	whiteImage *Image
 
-	mainThread   thread.Thread
+	mainThread thread.Thread
+
+	// TODO: Remove this (#2714).
 	renderThread thread.Thread
 
 	userInterfaceImpl

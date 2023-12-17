@@ -45,12 +45,16 @@ const (
 
 var vsyncEnabled int32 = 1
 
-func SetVsyncEnabled(enabled bool) {
+func SetVsyncEnabled(enabled bool, graphicsDriver graphicsdriver.Graphics) {
 	if enabled {
 		atomic.StoreInt32(&vsyncEnabled, 1)
 	} else {
 		atomic.StoreInt32(&vsyncEnabled, 0)
 	}
+
+	runOnRenderThread(func() {
+		graphicsDriver.SetVsyncEnabled(enabled)
+	}, true)
 }
 
 // FlushCommands flushes the command queue and present the screen if needed.

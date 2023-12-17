@@ -1287,10 +1287,7 @@ func (u *UserInterface) setFPSMode(fpsMode FPSModeType) error {
 	}
 
 	vsyncEnabled := u.fpsMode == FPSModeVsyncOn
-	graphicscommand.SetVsyncEnabled(vsyncEnabled)
-	u.renderThread.CallAsync(func() {
-		u.graphicsDriver.SetVsyncEnabled(vsyncEnabled)
-	})
+	graphicscommand.SetVsyncEnabled(vsyncEnabled, u.graphicsDriver)
 
 	return nil
 }
@@ -1341,6 +1338,7 @@ func (u *UserInterface) update() (float64, float64, error) {
 
 	// Initialize vsync after SetMonitor is called. See the comment in updateVsync.
 	// Calling this inside setWindowSize didn't work (#1363).
+	// Also, setFPSMode has to be called after graphicscommand.SetRenderThread is called (#2714).
 	if !u.fpsModeInited {
 		if err := u.setFPSMode(u.fpsMode); err != nil {
 			return 0, 0, err
