@@ -76,7 +76,9 @@ func (g *Graphics) End(present bool) error {
 	// The last uniforms must be reset before swapping the buffer (#2517).
 	if present {
 		g.state.resetLastUniforms()
+		g.swapBuffers()
 	}
+
 	return nil
 }
 
@@ -157,7 +159,11 @@ func (g *Graphics) removeImage(img *Image) {
 }
 
 func (g *Graphics) Initialize() error {
-	return g.state.reset(&g.context)
+	g.makeContextCurrent()
+	if err := g.state.reset(&g.context); err != nil {
+		return err
+	}
+	return nil
 }
 
 // Reset resets or initializes the current OpenGL state.

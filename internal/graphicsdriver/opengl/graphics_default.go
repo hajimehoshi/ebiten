@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !android && !ios && !js
+//go:build !android && !ios && !js && !nintendosdk
 
 package opengl
 
@@ -37,4 +37,12 @@ func NewGraphics() (graphicsdriver.Graphics, error) {
 	}
 
 	return newGraphics(ctx), nil
+}
+
+func (g *Graphics) makeContextCurrent() {
+	// TODO: Implement this (#2714).
+}
+
+func (g *Graphics) swapBuffers() {
+	// TODO: Implement this (#2714).
 }

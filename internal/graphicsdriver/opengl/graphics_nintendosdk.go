@@ -1,4 +1,4 @@
-// Copyright 2018 The Ebiten Authors
+// Copyright 2023 The Ebitengine Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,38 +12,33 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build android || ios
+//go:build nintendosdk
 
 package opengl
 
 import (
-	mgl "golang.org/x/mobile/gl"
-
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl/gl"
 )
 
-// NewGraphics creates an implementation of graphicsdriver.Graphics for OpenGL.
-// The returned graphics value is nil iff the error is not nil.
-func NewGraphics(context mgl.Context) (graphicsdriver.Graphics, error) {
-	var ctx gl.Context
-	if context != nil {
-		ctx = gl.NewGomobileContext(context.(mgl.Context))
-	} else {
-		var err error
-		ctx, err = gl.NewDefaultContext()
-		if err != nil {
-			return nil, err
-		}
-	}
+var (
+	theEGL egl
+)
 
+func NewGraphics(nativeWindowType uintptr) (graphicsdriver.Graphics, error) {
+	theEGL.init(nativeWindowType)
+
+	ctx, err := gl.NewDefaultContext()
+	if err != nil {
+		return nil, err
+	}
 	return newGraphics(ctx), nil
 }
 
 func (g *Graphics) makeContextCurrent() {
-	// TODO: Implement this (#2714).
+	theEGL.makeContextCurrent()
 }
 
 func (g *Graphics) swapBuffers() {
-	// TODO: Implement this (#2714).
+	theEGL.swapBuffers()
 }

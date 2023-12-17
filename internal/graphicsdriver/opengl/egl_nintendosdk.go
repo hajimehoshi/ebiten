@@ -14,8 +14,11 @@
 
 //go:build nintendosdk
 
-package ui
+package opengl
 
+// #cgo !darwin LDFLAGS: -Wl,-unresolved-symbols=ignore-all
+// #cgo darwin LDFLAGS: -Wl,-undefined,dynamic_lookup
+//
 // #include <EGL/egl.h>
 // #include <EGL/eglext.h>
 import "C"
@@ -30,7 +33,7 @@ type egl struct {
 	context C.EGLContext
 }
 
-func (e *egl) init(nativeWindowHandle C.NativeWindowType) error {
+func (e *egl) init(nativeWindowHandle uintptr) error {
 	// Initialize EGL
 	e.display = C.eglGetDisplay(C.NativeDisplayType(C.EGL_DEFAULT_DISPLAY))
 	if e.display == 0 {
@@ -58,7 +61,7 @@ func (e *egl) init(nativeWindowHandle C.NativeWindowType) error {
 		return fmt.Errorf("ui: eglChooseConfig failed: numConfigs must be 1 but %d", numConfigs)
 	}
 
-	e.surface = C.eglCreateWindowSurface(e.display, config, nativeWindowHandle, nil)
+	e.surface = C.eglCreateWindowSurface(e.display, config, C.NativeWindowType(nativeWindowHandle), nil)
 	if e.surface == C.EGLSurface(C.EGL_NO_SURFACE) {
 		return fmt.Errorf("ui: eglCreateWindowSurface failed")
 	}
