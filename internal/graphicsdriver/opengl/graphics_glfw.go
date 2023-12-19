@@ -38,7 +38,9 @@ func NewGraphics() (graphicsdriver.Graphics, error) {
 		return nil, err
 	}
 
-	setGLFWClientAPI(ctx.IsES())
+	if err := setGLFWClientAPI(ctx.IsES()); err != nil {
+		return nil, err
+	}
 
 	return newGraphics(ctx), nil
 }
