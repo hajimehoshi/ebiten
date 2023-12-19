@@ -17,10 +17,37 @@
 package opengl
 
 import (
+	"fmt"
 	"runtime"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl/gl"
+	"github.com/hajimehoshi/ebiten/v2/internal/microsoftgdk"
 )
+
+// NewGraphics creates an implementation of graphicsdriver.Graphics for OpenGL.
+// The returned graphics value is nil iff the error is not nil.
+func NewGraphics() (graphicsdriver.Graphics, error) {
+	if microsoftgdk.IsXbox() {
+		return nil, fmt.Errorf("opengl: OpenGL is not supported on Xbox")
+	}
+
+	ctx, err := gl.NewDefaultContext()
+	if err != nil {
+		return nil, err
+	}
+
+	return newGraphics(ctx), nil
+}
+
+func (g *Graphics) makeContextCurrent() {
+	// TODO: Implement this (#2714).
+}
+
+func (g *Graphics) swapBuffers() {
+	// TODO: Implement this (#2714).
+}
 
 func (g *Graphics) SetGLFWClientAPI() error {
 	if g.context.ctx.IsES() {

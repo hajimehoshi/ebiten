@@ -41,9 +41,7 @@ func NewGraphics(context mgl.Context) (graphicsdriver.Graphics, error) {
 }
 
 func (g *Graphics) makeContextCurrent() {
-	// TODO: Implement this (#2714).
 }
 
 func (g *Graphics) swapBuffers() {
-	// TODO: Implement this (#2714).
 }
