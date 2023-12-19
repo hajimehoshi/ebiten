@@ -35,6 +35,7 @@ type activatedTexture struct {
 type Graphics struct {
 	state   openGLState
 	context context
+	vsync   bool
 
 	nextImageID graphicsdriver.ImageID
 	images      map[graphicsdriver.ImageID]*Image
@@ -56,7 +57,9 @@ type Graphics struct {
 }
 
 func newGraphics(ctx gl.Context) *Graphics {
-	g := &Graphics{}
+	g := &Graphics{
+		vsync: true,
+	}
 	if isDebug {
 		g.context.ctx = &gl.DebugContext{Context: ctx}
 	} else {
@@ -78,7 +81,9 @@ func (g *Graphics) End(present bool) error {
 	// The last uniforms must be reset before swapping the buffer (#2517).
 	if present {
 		g.state.resetLastUniforms()
-		g.swapBuffers()
+		if err := g.swapBuffers(); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -298,7 +303,7 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 }
 
 func (g *Graphics) SetVsyncEnabled(enabled bool) {
-	// Do nothing
+	g.vsync = enabled
 }
 
 func (g *Graphics) NeedsRestoring() bool {

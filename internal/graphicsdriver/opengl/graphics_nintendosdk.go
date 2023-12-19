@@ -39,6 +39,7 @@ func (g *Graphics) makeContextCurrent() {
 	theEGL.makeContextCurrent()
 }
 
-func (g *Graphics) swapBuffers() {
+func (g *Graphics) swapBuffers() error {
 	theEGL.swapBuffers()
+	return nil
 }

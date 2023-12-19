@@ -43,5 +43,6 @@ func NewGraphics(context mgl.Context) (graphicsdriver.Graphics, error) {
 func (g *Graphics) makeContextCurrent() {
 }
 
-func (g *Graphics) swapBuffers() {
+func (g *Graphics) swapBuffers() error {
+	return nil
 }

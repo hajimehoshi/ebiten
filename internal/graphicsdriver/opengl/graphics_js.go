@@ -49,5 +49,6 @@ func NewGraphics(canvas js.Value) (graphicsdriver.Graphics, error) {
 func (g *Graphics) makeContextCurrent() {
 }
 
-func (g *Graphics) swapBuffers() {
+func (g *Graphics) swapBuffers() error {
+	return nil
 }

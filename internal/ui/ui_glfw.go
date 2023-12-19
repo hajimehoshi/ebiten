@@ -1336,7 +1336,7 @@ func (u *UserInterface) update() (float64, float64, error) {
 		}
 	}
 
-	// Initialize vsync after SetMonitor is called. See the comment in updateVsync.
+	// Initialize vsync after SetMonitor is called.
 	// Calling this inside setWindowSize didn't work (#1363).
 	// Also, setFPSMode has to be called after graphicscommand.SetRenderThread is called (#2714).
 	if !u.fpsModeInited {
@@ -1466,13 +1466,6 @@ func (u *UserInterface) updateGame() error {
 	}
 
 	if err := u.context.updateFrame(u.graphicsDriver, outsideWidth, outsideHeight, deviceScaleFactor, u, func() {
-		// Call updateVsync even though fpsMode is not updated.
-		// When toggling to fullscreen, vsync state might be reset unexpectedly (#1787).
-		if err := u.updateVsyncOnRenderThread(); err != nil {
-			u.setError(err)
-			return
-		}
-
 		// This works only for OpenGL.
 		if err := u.swapBuffersOnRenderThread(); err != nil {
 			u.setError(err)
@@ -1859,28 +1852,6 @@ func (u *UserInterface) minimumWindowWidth() (int, error) {
 	// On macOS, resizing the window by cursor sometimes ignores the minimum size.
 	// To avoid the flaky behavior, do not add a limitation.
 	return 1, nil
-}
-
-func (u *UserInterface) updateVsyncOnRenderThread() error {
-	if u.GraphicsLibrary() == GraphicsLibraryOpenGL {
-		// SwapInterval is affected by the current monitor of the window.
-		// This needs to be called at least after SetMonitor.
-		// Without SwapInterval after SetMonitor, vsynch doesn't work (#375).
-		//
-		// TODO: (#405) If triple buffering is needed, SwapInterval(0) should be called,
-		// but is this correct? If glfw.SwapInterval(0) and the driver doesn't support triple
-		// buffering, what will happen?
-		if u.fpsMode == FPSModeVsyncOn {
-			if err := glfw.SwapInterval(1); err != nil {
-				return err
-			}
-		} else {
-			if err := glfw.SwapInterval(0); err != nil {
-				return err
-			}
-		}
-	}
-	return nil
 }
 
 // currentMonitor returns the current active monitor.

@@ -45,8 +45,25 @@ func (g *Graphics) makeContextCurrent() {
 	// TODO: Implement this (#2714).
 }
 
-func (g *Graphics) swapBuffers() {
+func (g *Graphics) swapBuffers() error {
+	// Call SwapIntervals even though vsync is not changed.
+	// When toggling to fullscreen, vsync state might be reset unexpectedly (#1787).
+
+	// SwapInterval is affected by the current monitor of the window.
+	// This needs to be called at least after SetMonitor.
+	// Without SwapInterval after SetMonitor, vsynch doesn't work (#375).
+	if g.vsync {
+		if err := glfw.SwapInterval(1); err != nil {
+			return err
+		}
+	} else {
+		if err := glfw.SwapInterval(0); err != nil {
+			return err
+		}
+	}
+
 	// TODO: Implement this (#2714).
+	return nil
 }
 
 func (g *Graphics) SetGLFWClientAPI() error {
