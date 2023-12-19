@@ -1106,11 +1106,7 @@ func (u *UserInterface) initOnMainThread(options *RunOptions) error {
 	u.setGraphicsLibrary(lib)
 	u.graphicsDriver.SetTransparent(options.ScreenTransparent)
 
-	if u.GraphicsLibrary() == GraphicsLibraryOpenGL {
-		if err := u.graphicsDriver.(interface{ SetGLFWClientAPI() error }).SetGLFWClientAPI(); err != nil {
-			return err
-		}
-	} else {
+	if u.GraphicsLibrary() != GraphicsLibraryOpenGL {
 		if err := glfw.WindowHint(glfw.ClientAPI, glfw.NoAPI); err != nil {
 			return err
 		}
