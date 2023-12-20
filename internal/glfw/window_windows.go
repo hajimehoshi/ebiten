@@ -160,7 +160,7 @@ func defaultWindowHints() error {
 
 	// The default is OpenGL with minimum version 1.0
 	_glfw.hints.context = ctxconfig{
-		client: OpenGLAPI,
+		client: NoAPI, // This is different from the original GLFW, which uses OpenGLAPI by default.
 		source: NativeContextAPI,
 		major:  1,
 		minor:  0,

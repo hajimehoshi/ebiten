@@ -1106,11 +1106,8 @@ func (u *UserInterface) initOnMainThread(options *RunOptions) error {
 	u.setGraphicsLibrary(lib)
 	u.graphicsDriver.SetTransparent(options.ScreenTransparent)
 
-	if u.GraphicsLibrary() != GraphicsLibraryOpenGL {
-		if err := glfw.WindowHint(glfw.ClientAPI, glfw.NoAPI); err != nil {
-			return err
-		}
-	}
+	// internal/glfw is customized and the default client API is NoAPI, not OpenGLAPI.
+	// Then, glfw.WindowHint(glfw.ClientAPI, glfw.NoAPI) doesn't have to be called.
 
 	// Before creating a window, set it unresizable no matter what u.isInitWindowResizable() is (#1987).
 	// Making the window resizable here doesn't work correctly when switching to enable resizing.
