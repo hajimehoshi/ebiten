@@ -102,6 +102,8 @@ func (g *Game) reset() {
 }
 
 func (g *Game) Update() error {
+	// Decide the snake's direction along with the user input.
+	// A U-turn is forbidden here (e.g. if the snake is moving in the left direction, the snake cannot go to the right direction immediately).
 	if inpututil.IsKeyJustPressed(ebiten.KeyArrowLeft) || inpututil.IsKeyJustPressed(ebiten.KeyA) {
 		if g.moveDirection != dirRight {
 			g.moveDirection = dirLeft
