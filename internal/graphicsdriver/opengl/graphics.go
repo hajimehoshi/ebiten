@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build !playstation5
+
 package opengl
 
 import (
@@ -33,6 +35,7 @@ type activatedTexture struct {
 type Graphics struct {
 	state   openGLState
 	context context
+	vsync   bool
 
 	nextImageID graphicsdriver.ImageID
 	images      map[graphicsdriver.ImageID]*Image
@@ -54,7 +57,9 @@ type Graphics struct {
 }
 
 func newGraphics(ctx gl.Context) *Graphics {
-	g := &Graphics{}
+	g := &Graphics{
+		vsync: true,
+	}
 	if isDebug {
 		g.context.ctx = &gl.DebugContext{Context: ctx}
 	} else {
@@ -73,10 +78,14 @@ func (g *Graphics) End(present bool) error {
 	// TODO: examples/sprites worked without this. Is this really needed?
 	g.context.ctx.Flush()
 
-	// The last uniforms must be reset after swapping the buffer (#2517).
+	// The last uniforms must be reset before swapping the buffer (#2517).
 	if present {
 		g.state.resetLastUniforms()
+		if err := g.swapBuffers(); err != nil {
+			return err
+		}
 	}
+
 	return nil
 }
 
@@ -157,7 +166,11 @@ func (g *Graphics) removeImage(img *Image) {
 }
 
 func (g *Graphics) Initialize() error {
-	return g.state.reset(&g.context)
+	g.makeContextCurrent()
+	if err := g.state.reset(&g.context); err != nil {
+		return err
+	}
+	return nil
 }
 
 // Reset resets or initializes the current OpenGL state.
@@ -290,7 +303,7 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 }
 
 func (g *Graphics) SetVsyncEnabled(enabled bool) {
-	// Do nothing
+	g.vsync = enabled
 }
 
 func (g *Graphics) NeedsRestoring() bool {

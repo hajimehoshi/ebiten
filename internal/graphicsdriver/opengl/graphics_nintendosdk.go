@@ -12,18 +12,34 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build playstation5
+//go:build nintendosdk
 
-package gl
+package opengl
 
 import (
-	"errors"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl/gl"
 )
 
-func (c *defaultContext) init() error {
-	return errors.New("gl: defaultContext is not implemented")
+var (
+	theEGL egl
+)
+
+func NewGraphics(nativeWindowType uintptr) (graphicsdriver.Graphics, error) {
+	theEGL.init(nativeWindowType)
+
+	ctx, err := gl.NewDefaultContext()
+	if err != nil {
+		return nil, err
+	}
+	return newGraphics(ctx), nil
 }
 
-func (c *defaultContext) getProcAddress(name string) (uintptr, error) {
-	return 0, errors.New("gl: defaultContext is not implemented")
+func (g *Graphics) makeContextCurrent() {
+	theEGL.makeContextCurrent()
+}
+
+func (g *Graphics) swapBuffers() error {
+	theEGL.swapBuffers()
+	return nil
 }

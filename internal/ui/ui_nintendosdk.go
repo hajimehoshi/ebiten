@@ -30,15 +30,17 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl"
 )
 
-type graphicsDriverCreatorImpl struct{}
+type graphicsDriverCreatorImpl struct {
+	nativeWindow C.NativeWindowType
+}
 
 func (g *graphicsDriverCreatorImpl) newAuto() (graphicsdriver.Graphics, GraphicsLibrary, error) {
 	graphics, err := g.newOpenGL()
 	return graphics, GraphicsLibraryOpenGL, err
 }
 
-func (*graphicsDriverCreatorImpl) newOpenGL() (graphicsdriver.Graphics, error) {
-	return opengl.NewGraphics()
+func (g *graphicsDriverCreatorImpl) newOpenGL() (graphicsdriver.Graphics, error) {
+	return opengl.NewGraphics(uintptr(g.nativeWindow))
 }
 
 func (*graphicsDriverCreatorImpl) newDirectX() (graphicsdriver.Graphics, error) {
@@ -66,8 +68,6 @@ type userInterfaceImpl struct {
 	inputState    InputState
 	nativeTouches []C.struct_Touch
 
-	egl egl
-
 	m sync.Mutex
 }
 
@@ -76,17 +76,15 @@ func (u *UserInterface) init() error {
 }
 
 func (u *UserInterface) initOnMainThread(options *RunOptions) error {
-	g, lib, err := newGraphicsDriver(&graphicsDriverCreatorImpl{}, options.GraphicsLibrary)
+	n := C.ebitengine_Initialize()
+	g, lib, err := newGraphicsDriver(&graphicsDriverCreatorImpl{
+		nativeWindow: n,
+	}, options.GraphicsLibrary)
 	if err != nil {
 		return err
 	}
 	u.graphicsDriver = g
 	u.setGraphicsLibrary(lib)
-
-	n := C.ebitengine_Initialize()
-	if err := u.egl.init(n); err != nil {
-		return err
-	}
 
 	initializeProfiler()
 
@@ -94,16 +92,10 @@ func (u *UserInterface) initOnMainThread(options *RunOptions) error {
 }
 
 func (u *UserInterface) loopGame() error {
-	u.renderThread.Call(func() {
-		u.egl.makeContextCurrent()
-	})
-
 	for {
 		recordProfilerHeartbeat()
 
-		if err := u.context.updateFrame(u.graphicsDriver, float64(C.kScreenWidth), float64(C.kScreenHeight), deviceScaleFactor, u, func() {
-			u.egl.swapBuffers()
-		}); err != nil {
+		if err := u.context.updateFrame(u.graphicsDriver, float64(C.kScreenWidth), float64(C.kScreenHeight), deviceScaleFactor, u, nil); err != nil {
 			return err
 		}
 	}
