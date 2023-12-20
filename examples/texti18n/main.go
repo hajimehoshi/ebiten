@@ -70,6 +70,19 @@ func init() {
 	thaiFaceSource = s
 }
 
+//go:embed NotoSansMyanmar-Regular.ttf
+var myanmarTTF []byte
+
+var myanmarFaceSource *text.GoTextFaceSource
+
+func init() {
+	s, err := text.NewGoTextFaceSource(bytes.NewReader(myanmarTTF))
+	if err != nil {
+		log.Fatal(err)
+	}
+	myanmarFaceSource = s
+}
+
 var japaneseFaceSource *text.GoTextFaceSource
 
 func init() {
@@ -82,7 +95,7 @@ func init() {
 
 const (
 	screenWidth  = 640
-	screenHeight = 480
+	screenHeight = 640
 )
 
 type Game struct {
@@ -126,7 +139,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		text.Draw(screen, hindiText, f, op)
 	}
 	{
-		const thaiText = "โดยที่การไม่นำพาและการหมิ่นในคุณค่าของสิทธิมนุษยชน"
+		const thaiText = "โดยที่การยอมรับนับถือเกียรติศักดิ์ประจำตัว"
 		f := &text.GoTextFace{
 			Source:   thaiFaceSource,
 			Size:     24,
@@ -140,6 +153,20 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		text.Draw(screen, thaiText, f, op)
 	}
 	{
+		const myanmarText = "လူခပ်သိမ်း၏ မျိုးရိုးဂုဏ်သိက္ခာနှင့်တကွ"
+		f := &text.GoTextFace{
+			Source:   myanmarFaceSource,
+			Size:     24,
+			Language: language.Burmese,
+		}
+		x, y := 20, 210
+		w, h := text.Measure(myanmarText, f, 0)
+		vector.DrawFilledRect(screen, float32(x), float32(y), float32(w), float32(h), gray, false)
+		op := &text.DrawOptions{}
+		op.GeoM.Translate(float64(x), float64(y))
+		text.Draw(screen, myanmarText, f, op)
+	}
+	{
 		const japaneseText = "あのイーハトーヴォの\nすきとおった風、\n夏でも底に冷たさを\nもつ青いそら…"
 		f := &text.GoTextFace{
 			Source:    japaneseFaceSource,
@@ -148,7 +175,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 			Language:  language.Japanese,
 		}
 		const lineSpacing = 48
-		x, y := screenWidth-20, 210
+		x, y := screenWidth-20, 300
 		w, h := text.Measure(japaneseText, f, lineSpacing)
 		// The left upper point is not x but x-w, since the text runs in the rigth-to-left direction as the secondary direction.
 		vector.DrawFilledRect(screen, float32(x)-float32(w), float32(y), float32(w), float32(h), gray, false)
