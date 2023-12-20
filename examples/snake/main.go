@@ -103,7 +103,7 @@ func (g *Game) reset() {
 
 func (g *Game) Update() error {
 	//Here, in order to prevent it from suddenly going in the opposite direction in the movement logic,
-	//we block the value used to move to the opposite side with an if statement,
+	//block the value used to move to the opposite side with an if statement,
 	//for instance:
 	//If the snake suddenly presses the go left button while going to the right, so that it does not go to the left.
 	if inpututil.IsKeyJustPressed(ebiten.KeyArrowLeft) || inpututil.IsKeyJustPressed(ebiten.KeyA) {
