@@ -98,12 +98,14 @@ type Game struct {
 }
 
 func (g *Game) Update() error {
+	//Reducing the number of edges and preventing it from being less than 1
 	if inpututil.IsKeyJustPressed(ebiten.KeyArrowLeft) {
 		g.ngon--
 		if g.ngon < 1 {
 			g.ngon = 1
 		}
 	}
+	//Increasing the number of edges and preventing it from being more than 120
 	if inpututil.IsKeyJustPressed(ebiten.KeyArrowRight) {
 		g.ngon++
 		if g.ngon > 120 {
@@ -138,6 +140,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 func main() {
 	ebiten.SetWindowSize(screenWidth, screenHeight)
 	ebiten.SetWindowTitle("Polygons (Ebitengine Demo)")
+	//Initializes as decagon.
 	if err := ebiten.RunGame(&Game{ngon: 10}); err != nil {
 		log.Fatal(err)
 	}
