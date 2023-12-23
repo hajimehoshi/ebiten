@@ -39,8 +39,6 @@ type OSThread struct {
 }
 
 // NewOSThread creates a new thread.
-//
-// queueSize indicates the function queue size. This matters when you use CallAsync.
 func NewOSThread() *OSThread {
 	return &OSThread{
 		funcs: make(chan queueItem),
