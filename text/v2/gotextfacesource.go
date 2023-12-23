@@ -190,14 +190,8 @@ func (g *GoTextFaceSource) shape(text string, face *GoTextFace) ([]shaping.Outpu
 		Language:     language.Language(face.Language.String()),
 	}
 
-	var inputs []shaping.Input
-	if face.Direction.isHorizontal() {
-		// shaping.Segmenter is not used for horizontal texts so far due to a bug (go-text/typesetting#127).
-		inputs = []shaping.Input{input}
-	} else {
-		var seg shaping.Segmenter
-		inputs = seg.Split(input, &singleFontmap{face: face.Source.f})
-	}
+	var seg shaping.Segmenter
+	inputs := seg.Split(input, &singleFontmap{face: face.Source.f})
 
 	if face.Direction == DirectionRightToLeft {
 		// Reverse the input for RTL texts.
