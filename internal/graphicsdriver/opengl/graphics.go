@@ -166,7 +166,9 @@ func (g *Graphics) removeImage(img *Image) {
 }
 
 func (g *Graphics) Initialize() error {
-	g.makeContextCurrent()
+	if err := g.makeContextCurrent(); err != nil {
+		return err
+	}
 	if err := g.state.reset(&g.context); err != nil {
 		return err
 	}

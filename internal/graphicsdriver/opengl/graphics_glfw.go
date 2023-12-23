@@ -83,8 +83,9 @@ func setGLFWClientAPI(isES bool) error {
 	return nil
 }
 
-func (g *Graphics) makeContextCurrent() {
+func (g *Graphics) makeContextCurrent() error {
 	// TODO: Implement this (#2714).
+	return nil
 }
 
 func (g *Graphics) swapBuffers() error {

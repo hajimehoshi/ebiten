@@ -35,8 +35,8 @@ func NewGraphics(nativeWindowType uintptr) (graphicsdriver.Graphics, error) {
 	return newGraphics(ctx), nil
 }
 
-func (g *Graphics) makeContextCurrent() {
-	theEGL.makeContextCurrent()
+func (g *Graphics) makeContextCurrent() error {
+	return theEGL.makeContextCurrent()
 }
 
 func (g *Graphics) swapBuffers() error {
