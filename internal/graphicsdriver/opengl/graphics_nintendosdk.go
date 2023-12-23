@@ -21,25 +21,29 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl/gl"
 )
 
-var (
-	theEGL egl
-)
+type graphicsPlatform struct {
+	egl *egl
+}
 
 func NewGraphics(nativeWindowType uintptr) (graphicsdriver.Graphics, error) {
-	theEGL.init(nativeWindowType)
-
 	ctx, err := gl.NewDefaultContext()
 	if err != nil {
 		return nil, err
 	}
-	return newGraphics(ctx), nil
+	g := newGraphics(ctx)
+	e, err := newEGL(nativeWindowType)
+	if err != nil {
+		return nil, err
+	}
+	g.egl = e
+	return g, nil
 }
 
 func (g *Graphics) makeContextCurrent() error {
-	return theEGL.makeContextCurrent()
+	return g.egl.makeContextCurrent()
 }
 
 func (g *Graphics) swapBuffers() error {
-	theEGL.swapBuffers()
+	g.egl.swapBuffers()
 	return nil
 }

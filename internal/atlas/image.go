@@ -752,7 +752,7 @@ func EndFrame() error {
 	return nil
 }
 
-func SwapBuffers(graphicsDriver graphicsdriver.Graphics, swapBuffersForGL func()) error {
+func SwapBuffers(graphicsDriver graphicsdriver.Graphics) error {
 	func() {
 		backendsM.Lock()
 		defer backendsM.Unlock()
@@ -762,7 +762,7 @@ func SwapBuffers(graphicsDriver graphicsdriver.Graphics, swapBuffersForGL func()
 		}
 	}()
 
-	if err := restorable.SwapBuffers(graphicsDriver, swapBuffersForGL); err != nil {
+	if err := restorable.SwapBuffers(graphicsDriver); err != nil {
 		return err
 	}
 	return nil

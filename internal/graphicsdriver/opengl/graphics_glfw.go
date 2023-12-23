@@ -26,6 +26,10 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/microsoftgdk"
 )
 
+type graphicsPlatform struct {
+	window *glfw.Window
+}
+
 // NewGraphics creates an implementation of graphicsdriver.Graphics for OpenGL.
 // The returned graphics value is nil iff the error is not nil.
 func NewGraphics() (graphicsdriver.Graphics, error) {
@@ -83,9 +87,12 @@ func setGLFWClientAPI(isES bool) error {
 	return nil
 }
 
+func (g *Graphics) SetGLFWWindow(window *glfw.Window) {
+	g.window = window
+}
+
 func (g *Graphics) makeContextCurrent() error {
-	// TODO: Implement this (#2714).
-	return nil
+	return g.window.MakeContextCurrent()
 }
 
 func (g *Graphics) swapBuffers() error {
@@ -105,6 +112,8 @@ func (g *Graphics) swapBuffers() error {
 		}
 	}
 
-	// TODO: Implement this (#2714).
+	if err := g.window.SwapBuffers(); err != nil {
+		return err
+	}
 	return nil
 }

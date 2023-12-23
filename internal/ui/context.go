@@ -63,12 +63,12 @@ func newContext(game Game) *context {
 	}
 }
 
-func (c *context) updateFrame(graphicsDriver graphicsdriver.Graphics, outsideWidth, outsideHeight float64, deviceScaleFactor float64, ui *UserInterface, swapBuffersForGL func()) error {
+func (c *context) updateFrame(graphicsDriver graphicsdriver.Graphics, outsideWidth, outsideHeight float64, deviceScaleFactor float64, ui *UserInterface) error {
 	// TODO: If updateCount is 0 and vsync is disabled, swapping buffers can be skipped.
-	return c.updateFrameImpl(graphicsDriver, clock.UpdateFrame(), outsideWidth, outsideHeight, deviceScaleFactor, ui, false, swapBuffersForGL)
+	return c.updateFrameImpl(graphicsDriver, clock.UpdateFrame(), outsideWidth, outsideHeight, deviceScaleFactor, ui, false)
 }
 
-func (c *context) forceUpdateFrame(graphicsDriver graphicsdriver.Graphics, outsideWidth, outsideHeight float64, deviceScaleFactor float64, ui *UserInterface, swapBuffersForGL func()) error {
+func (c *context) forceUpdateFrame(graphicsDriver graphicsdriver.Graphics, outsideWidth, outsideHeight float64, deviceScaleFactor float64, ui *UserInterface) error {
 	n := 1
 	if ui.GraphicsLibrary() == GraphicsLibraryDirectX {
 		// On DirectX, both framebuffers in the swap chain should be updated.
@@ -76,14 +76,14 @@ func (c *context) forceUpdateFrame(graphicsDriver graphicsdriver.Graphics, outsi
 		n = 2
 	}
 	for i := 0; i < n; i++ {
-		if err := c.updateFrameImpl(graphicsDriver, 1, outsideWidth, outsideHeight, deviceScaleFactor, ui, true, swapBuffersForGL); err != nil {
+		if err := c.updateFrameImpl(graphicsDriver, 1, outsideWidth, outsideHeight, deviceScaleFactor, ui, true); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, updateCount int, outsideWidth, outsideHeight float64, deviceScaleFactor float64, ui *UserInterface, forceDraw bool, swapBuffersForGL func()) (err error) {
+func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, updateCount int, outsideWidth, outsideHeight float64, deviceScaleFactor float64, ui *UserInterface, forceDraw bool) (err error) {
 	// The given outside size can be 0 e.g. just after restoring from the fullscreen mode on Windows (#1589)
 	// Just ignore such cases. Otherwise, creating a zero-sized framebuffer causes a panic.
 	if outsideWidth == 0 || outsideHeight == 0 {
@@ -102,7 +102,7 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 			return
 		}
 
-		if err1 := atlas.SwapBuffers(graphicsDriver, swapBuffersForGL); err1 != nil && err == nil {
+		if err1 := atlas.SwapBuffers(graphicsDriver); err1 != nil && err == nil {
 			err = err1
 			return
 		}

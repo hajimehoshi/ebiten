@@ -59,8 +59,8 @@ func SetVsyncEnabled(enabled bool, graphicsDriver graphicsdriver.Graphics) {
 
 // FlushCommands flushes the command queue and present the screen if needed.
 // If endFrame is true, the current screen might be used to present.
-func FlushCommands(graphicsDriver graphicsdriver.Graphics, endFrame bool, swapBuffersForGL func()) error {
-	if err := theCommandQueueManager.flush(graphicsDriver, endFrame, swapBuffersForGL); err != nil {
+func FlushCommands(graphicsDriver graphicsdriver.Graphics, endFrame bool) error {
+	if err := theCommandQueueManager.flush(graphicsDriver, endFrame); err != nil {
 		return err
 	}
 	return nil
@@ -178,7 +178,7 @@ func (q *commandQueue) Enqueue(command command) {
 }
 
 // Flush flushes the command queue.
-func (q *commandQueue) Flush(graphicsDriver graphicsdriver.Graphics, endFrame bool, swapBuffersForGL func()) error {
+func (q *commandQueue) Flush(graphicsDriver graphicsdriver.Graphics, endFrame bool) error {
 	if err := q.err.Load(); err != nil {
 		return err.(error)
 	}
@@ -210,10 +210,6 @@ func (q *commandQueue) Flush(graphicsDriver graphicsdriver.Graphics, endFrame bo
 			}
 			q.err.Store(err)
 			return
-		}
-
-		if endFrame && swapBuffersForGL != nil {
-			swapBuffersForGL()
 		}
 
 		theCommandQueueManager.putCommandQueue(q)
@@ -504,7 +500,7 @@ func (c *commandQueueManager) enqueueDrawTrianglesCommand(dst *Image, srcs [grap
 	c.current.EnqueueDrawTrianglesCommand(dst, srcs, vertices, indices, blend, dstRegion, srcRegions, shader, uniforms, fillRule)
 }
 
-func (c *commandQueueManager) flush(graphicsDriver graphicsdriver.Graphics, endFrame bool, swapBuffersForGL func()) error {
+func (c *commandQueueManager) flush(graphicsDriver graphicsdriver.Graphics, endFrame bool) error {
 	// Switch the command queue.
 	prev := c.current
 	q, err := c.pool.get()
@@ -516,7 +512,7 @@ func (c *commandQueueManager) flush(graphicsDriver graphicsdriver.Graphics, endF
 	if prev == nil {
 		return nil
 	}
-	if err := prev.Flush(graphicsDriver, endFrame, swapBuffersForGL); err != nil {
+	if err := prev.Flush(graphicsDriver, endFrame); err != nil {
 		return err
 	}
 	return nil

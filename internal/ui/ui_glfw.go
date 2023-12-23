@@ -1177,7 +1177,10 @@ func (u *UserInterface) initOnMainThread(options *RunOptions) error {
 		}
 	}
 
-	if g, ok := u.graphicsDriver.(interface{ SetWindow(uintptr) }); ok {
+	switch g := u.graphicsDriver.(type) {
+	case interface{ SetGLFWWindow(window *glfw.Window) }:
+		g.SetGLFWWindow(u.window)
+	case interface{ SetWindow(uintptr) }:
 		w, err := u.nativeWindow()
 		if err != nil {
 			return err
@@ -1405,15 +1408,6 @@ func (u *UserInterface) loopGame() (ferr error) {
 		})
 	}()
 
-	u.renderThread.Call(func() {
-		if u.GraphicsLibrary() == GraphicsLibraryOpenGL {
-			if err := u.window.MakeContextCurrent(); err != nil {
-				u.setError(err)
-				return
-			}
-		}
-	})
-
 	for {
 		if err := u.updateGame(); err != nil {
 			return err
@@ -1458,13 +1452,7 @@ func (u *UserInterface) updateGame() error {
 		return err
 	}
 
-	if err := u.context.updateFrame(u.graphicsDriver, outsideWidth, outsideHeight, deviceScaleFactor, u, func() {
-		// This works only for OpenGL.
-		if err := u.swapBuffersOnRenderThread(); err != nil {
-			u.setError(err)
-			return
-		}
-	}); err != nil {
+	if err := u.context.updateFrame(u.graphicsDriver, outsideWidth, outsideHeight, deviceScaleFactor, u); err != nil {
 		return err
 	}
 
@@ -1540,15 +1528,6 @@ func (u *UserInterface) updateIconIfNeeded() error {
 		return err
 	}
 
-	return nil
-}
-
-func (u *UserInterface) swapBuffersOnRenderThread() error {
-	if u.GraphicsLibrary() == GraphicsLibraryOpenGL {
-		if err := u.window.SwapBuffers(); err != nil {
-			return err
-		}
-	}
 	return nil
 }
 

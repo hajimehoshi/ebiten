@@ -54,6 +54,8 @@ type Graphics struct {
 	// activatedTextures is a set of activated textures.
 	// textureNative cannot be a map key unfortunately.
 	activatedTextures []activatedTexture
+
+	graphicsPlatform
 }
 
 func newGraphics(ctx gl.Context) *Graphics {

@@ -154,7 +154,7 @@ func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, args []graphi
 		args: args,
 	}
 	theCommandQueueManager.enqueueCommand(c)
-	if err := theCommandQueueManager.flush(graphicsDriver, false, nil); err != nil {
+	if err := theCommandQueueManager.flush(graphicsDriver, false); err != nil {
 		return err
 	}
 	return nil
@@ -183,7 +183,7 @@ func (i *Image) IsInvalidated(graphicsDriver graphicsdriver.Graphics) (bool, err
 		image: i,
 	}
 	theCommandQueueManager.enqueueCommand(c)
-	if err := theCommandQueueManager.flush(graphicsDriver, false, nil); err != nil {
+	if err := theCommandQueueManager.flush(graphicsDriver, false); err != nil {
 		return false, err
 	}
 	return c.result, nil

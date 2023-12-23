@@ -22,6 +22,9 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl/gl"
 )
 
+type graphicsPlatform struct {
+}
+
 // NewGraphics creates an implementation of graphicsdriver.Graphics for OpenGL.
 // The returned graphics value is nil iff the error is not nil.
 func NewGraphics(canvas js.Value) (graphicsdriver.Graphics, error) {

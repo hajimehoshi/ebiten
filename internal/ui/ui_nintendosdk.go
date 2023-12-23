@@ -95,7 +95,7 @@ func (u *UserInterface) loopGame() error {
 	for {
 		recordProfilerHeartbeat()
 
-		if err := u.context.updateFrame(u.graphicsDriver, float64(C.kScreenWidth), float64(C.kScreenHeight), deviceScaleFactor, u, nil); err != nil {
+		if err := u.context.updateFrame(u.graphicsDriver, float64(C.kScreenWidth), float64(C.kScreenHeight), deviceScaleFactor, u); err != nil {
 			return err
 		}
 	}

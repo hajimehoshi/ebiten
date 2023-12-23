@@ -33,15 +33,16 @@ type egl struct {
 	context C.EGLContext
 }
 
-func (e *egl) init(nativeWindowHandle uintptr) error {
-	// Initialize EGL
+func newEGL(nativeWindowHandle uintptr) (*egl, error) {
+	e := &egl{}
+
 	e.display = C.eglGetDisplay(C.NativeDisplayType(C.EGL_DEFAULT_DISPLAY))
 	if e.display == 0 {
-		return fmt.Errorf("opengl: eglGetDisplay failed")
+		return nil, fmt.Errorf("opengl: eglGetDisplay failed")
 	}
 
 	if r := C.eglInitialize(e.display, nil, nil); r == 0 {
-		return fmt.Errorf("opengl: eglInitialize failed")
+		return nil, fmt.Errorf("opengl: eglInitialize failed")
 	}
 
 	configAttribs := []C.EGLint{
@@ -55,20 +56,20 @@ func (e *egl) init(nativeWindowHandle uintptr) error {
 	var numConfigs C.EGLint
 	var config C.EGLConfig
 	if r := C.eglChooseConfig(e.display, &configAttribs[0], &config, 1, &numConfigs); r == 0 {
-		return fmt.Errorf("opengl: eglChooseConfig failed")
+		return nil, fmt.Errorf("opengl: eglChooseConfig failed")
 	}
 	if numConfigs != 1 {
-		return fmt.Errorf("opengl: eglChooseConfig failed: numConfigs must be 1 but %d", numConfigs)
+		return nil, fmt.Errorf("opengl: eglChooseConfig failed: numConfigs must be 1 but %d", numConfigs)
 	}
 
 	e.surface = C.eglCreateWindowSurface(e.display, config, C.NativeWindowType(nativeWindowHandle), nil)
 	if e.surface == C.EGLSurface(C.EGL_NO_SURFACE) {
-		return fmt.Errorf("opengl: eglCreateWindowSurface failed")
+		return nil, fmt.Errorf("opengl: eglCreateWindowSurface failed")
 	}
 
 	// Set the current rendering API.
 	if r := C.eglBindAPI(C.EGL_OPENGL_API); r == 0 {
-		return fmt.Errorf("opengl: eglBindAPI failed")
+		return nil, fmt.Errorf("opengl: eglBindAPI failed")
 	}
 
 	// Create new context and set it as current.
@@ -81,10 +82,10 @@ func (e *egl) init(nativeWindowHandle uintptr) error {
 		C.EGL_NONE}
 	e.context = C.eglCreateContext(e.display, config, C.EGLContext(C.EGL_NO_CONTEXT), &contextAttribs[0])
 	if e.context == C.EGLContext(C.EGL_NO_CONTEXT) {
-		return fmt.Errorf("opengl: eglCreateContext failed: error: %d", C.eglGetError())
+		return nil, fmt.Errorf("opengl: eglCreateContext failed: error: %d", C.eglGetError())
 	}
 
-	return nil
+	return e, nil
 }
 
 func (e *egl) makeContextCurrent() error {
