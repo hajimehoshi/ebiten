@@ -59,7 +59,7 @@ func (g *Game) Update() error {
 			return err
 		}
 		op := &text.LayoutOptions{}
-		op.LineSpacingInPixels = 110
+		op.LineSpacing = 110
 		text.AppendVectorPath(&g.path, "ABCEDFG\nabcdefg\nあいうえお\nかきくけこ", &text.GoTextFace{
 			Source: s,
 			Size:   90,

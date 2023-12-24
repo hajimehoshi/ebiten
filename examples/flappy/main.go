@@ -277,7 +277,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	op := &text.DrawOptions{}
 	op.GeoM.Translate(screenWidth/2, 3*titleFontSize)
 	op.ColorScale.ScaleWithColor(color.White)
-	op.LineSpacingInPixels = titleFontSize
+	op.LineSpacing = titleFontSize
 	op.PrimaryAlign = text.AlignCenter
 	text.Draw(screen, titleTexts, &text.GoTextFace{
 		Source: arcadeFaceSource,
@@ -287,7 +287,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	op = &text.DrawOptions{}
 	op.GeoM.Translate(screenWidth/2, 3*titleFontSize)
 	op.ColorScale.ScaleWithColor(color.White)
-	op.LineSpacingInPixels = fontSize
+	op.LineSpacing = fontSize
 	op.PrimaryAlign = text.AlignCenter
 	text.Draw(screen, texts, &text.GoTextFace{
 		Source: arcadeFaceSource,
@@ -300,7 +300,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		op := &text.DrawOptions{}
 		op.GeoM.Translate(screenWidth/2, screenHeight-smallFontSize/2)
 		op.ColorScale.ScaleWithColor(color.White)
-		op.LineSpacingInPixels = smallFontSize
+		op.LineSpacing = smallFontSize
 		op.PrimaryAlign = text.AlignCenter
 		op.SecondaryAlign = text.AlignEnd
 		text.Draw(screen, msg, &text.GoTextFace{
@@ -312,7 +312,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	op = &text.DrawOptions{}
 	op.GeoM.Translate(screenWidth, 0)
 	op.ColorScale.ScaleWithColor(color.White)
-	op.LineSpacingInPixels = fontSize
+	op.LineSpacing = fontSize
 	op.PrimaryAlign = text.AlignEnd
 	text.Draw(screen, fmt.Sprintf("%04d", g.score()), &text.GoTextFace{
 		Source: arcadeFaceSource,

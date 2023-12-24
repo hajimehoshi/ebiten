@@ -288,7 +288,7 @@ func (t *TextField) Draw(screen *ebiten.Image) {
 	op := &text.DrawOptions{}
 	op.GeoM.Translate(float64(tx), float64(ty))
 	op.ColorScale.ScaleWithColor(color.Black)
-	op.LineSpacingInPixels = fontFace.Metrics().HLineGap + fontFace.Metrics().HAscent + fontFace.Metrics().HDescent
+	op.LineSpacing = fontFace.Metrics().HLineGap + fontFace.Metrics().HAscent + fontFace.Metrics().HDescent
 	text.Draw(screen, shownText, fontFace, op)
 }
 

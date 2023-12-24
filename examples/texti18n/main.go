@@ -195,7 +195,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		vector.DrawFilledRect(screen, float32(x), float32(y), float32(w), float32(h), gray, false)
 		op := &text.DrawOptions{}
 		op.GeoM.Translate(float64(x), float64(y))
-		op.LineSpacingInPixels = lineSpacing
+		op.LineSpacing = lineSpacing
 		text.Draw(screen, mongolianText, f, op)
 	}
 	{
@@ -213,7 +213,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		vector.DrawFilledRect(screen, float32(x)-float32(w), float32(y), float32(w), float32(h), gray, false)
 		op := &text.DrawOptions{}
 		op.GeoM.Translate(float64(x), float64(y))
-		op.LineSpacingInPixels = lineSpacing
+		op.LineSpacing = lineSpacing
 		text.Draw(screen, japaneseText, f, op)
 	}
 }

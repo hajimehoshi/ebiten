@@ -46,8 +46,9 @@ type DrawOptions struct {
 // PrimaryAlign and SecondaryAlign determine where to put the text in the given region at Draw.
 // Draw might render the text outside of the specified image bounds, so you might have to specify GeoM to make the text visible.
 type LayoutOptions struct {
-	// LineSpacingInPixels is a distance between two adjacent lines's baselines.
-	LineSpacingInPixels float64
+	// LineSpacing is a distance between two adjacent lines's baselines.
+	// The unit is in pixels.
+	LineSpacing float64
 
 	// PrimaryAlign is an alignment of the primary direction, in which a text in one line is rendered.
 	// The primary direction is the horizontal direction for a horizontal-direction face,
@@ -184,10 +185,10 @@ func forEachLine(text string, face Face, options *LayoutOptions, f func(text str
 	var boundaryWidth, boundaryHeight float64
 	if d.isHorizontal() {
 		boundaryWidth = longestAdvance
-		boundaryHeight = float64(lineCount-1)*options.LineSpacingInPixels + m.HAscent + m.HDescent
+		boundaryHeight = float64(lineCount-1)*options.LineSpacing + m.HAscent + m.HDescent
 	} else {
 		// TODO: Perhaps HAscent and HDescent should be used for sideways glyphs.
-		boundaryWidth = float64(lineCount-1)*options.LineSpacingInPixels + m.VAscent + m.VDescent
+		boundaryWidth = float64(lineCount-1)*options.LineSpacing + m.VAscent + m.VDescent
 		boundaryHeight = longestAdvance
 	}
 
@@ -267,13 +268,13 @@ func forEachLine(text string, face Face, options *LayoutOptions, f func(text str
 		// Advance the origin position in the secondary direction.
 		switch face.direction() {
 		case DirectionLeftToRight:
-			originY += options.LineSpacingInPixels
+			originY += options.LineSpacing
 		case DirectionRightToLeft:
-			originY += options.LineSpacingInPixels
+			originY += options.LineSpacing
 		case DirectionTopToBottomAndLeftToRight:
-			originX += options.LineSpacingInPixels
+			originX += options.LineSpacing
 		case DirectionTopToBottomAndRightToLeft:
-			originX -= options.LineSpacingInPixels
+			originX -= options.LineSpacing
 		}
 	}
 }

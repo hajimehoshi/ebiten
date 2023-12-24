@@ -102,7 +102,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 [Z] 'zero' (Slashed Zero) (%d)`, g.liga, g.tnum, g.smcp, g.zero)
 	op := &text.DrawOptions{}
 	op.GeoM.Translate(20, 20)
-	op.LineSpacingInPixels = 30
+	op.LineSpacing = 30
 	text.Draw(screen, inst, &text.GoTextFace{
 		Source: firaSansFaceSource,
 		Size:   20,
@@ -115,7 +115,7 @@ ffi
 2.71`
 	op = &text.DrawOptions{}
 	op.GeoM.Translate(20, screenHeight/2)
-	op.LineSpacingInPixels = 50
+	op.LineSpacing = 50
 	f := &text.GoTextFace{
 		Source: firaSansFaceSource,
 		Size:   40,

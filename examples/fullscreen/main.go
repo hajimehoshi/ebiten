@@ -99,7 +99,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	textOp := &text.DrawOptions{}
 	textOp.GeoM.Translate(50*scale, 50*scale)
 	textOp.ColorScale.ScaleWithColor(color.White)
-	textOp.LineSpacingInPixels = 12 * ebiten.DeviceScaleFactor() * 1.5
+	textOp.LineSpacing = 12 * ebiten.DeviceScaleFactor() * 1.5
 	text.Draw(screen, msg, &text.GoTextFace{
 		Source: mplusFaceSource,
 		Size:   12 * ebiten.DeviceScaleFactor(),

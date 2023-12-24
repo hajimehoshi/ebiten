@@ -86,7 +86,7 @@ func (g *Game) Update() error {
 func (g *Game) Draw(screen *ebiten.Image) {
 	op := &text.DrawOptions{}
 	op.GeoM.Translate(20, 20)
-	op.LineSpacingInPixels = 48
+	op.LineSpacing = 48
 	text.Draw(screen, "HelloこんにちはWorld世界\n日本語とEnglish…", g.face, op)
 }
 

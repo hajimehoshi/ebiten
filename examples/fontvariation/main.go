@@ -116,7 +116,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 [Z, X]: slnt (Slant): %0.0f [%d-%d]`, g.wght, minWght, maxWght, g.wdth, minWdth, maxWdth, g.slnt, minSlnt, maxSlnt)
 	op := &text.DrawOptions{}
 	op.GeoM.Translate(20, 20)
-	op.LineSpacingInPixels = 30
+	op.LineSpacing = 30
 	text.Draw(screen, inst, &text.GoTextFace{
 		Source: robotoFlexFaceSource,
 		Size:   20,
@@ -127,7 +127,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 over the lazy dog.`
 	op = &text.DrawOptions{}
 	op.GeoM.Translate(20, screenHeight/2)
-	op.LineSpacingInPixels = 50
+	op.LineSpacing = 50
 	f := &text.GoTextFace{
 		Source: robotoFlexFaceSource,
 		Size:   40,

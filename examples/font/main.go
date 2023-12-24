@@ -155,7 +155,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	op = &text.DrawOptions{}
 	op.GeoM.Translate(x, 110)
 	op.ColorScale.ScaleWithColor(g.kanjiTextColor)
-	op.LineSpacingInPixels = bigFontSize * 1.2
+	op.LineSpacing = bigFontSize * 1.2
 	text.Draw(screen, g.kanjiText, &text.GoTextFace{
 		Source: mplusFaceSource,
 		Size:   bigFontSize,
