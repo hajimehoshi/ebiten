@@ -410,13 +410,7 @@ func HasStandardAxis(id string, axis StandardAxis) bool {
 	if mappings == nil {
 		return false
 	}
-
-	mapping := mappings[axis]
-	if mapping == nil {
-		return false
-	}
-
-	return true
+	return mappings[axis] != nil
 }
 
 func AxisValue(id string, axis StandardAxis, state GamepadState) float64 {
@@ -467,13 +461,7 @@ func HasStandardButton(id string, button StandardButton) bool {
 	if mappings == nil {
 		return false
 	}
-
-	mapping := mappings[button]
-	if mapping == nil {
-		return false
-	}
-
-	return true
+	return mappings[button] != nil
 }
 
 func ButtonValue(id string, button StandardButton, state GamepadState) float64 {
