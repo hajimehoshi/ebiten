@@ -180,18 +180,18 @@ func GamepadAxisNum(id GamepadID) int {
 // GamepadAxisValue returns a float value [-1.0 - 1.0] of the given gamepad (id)'s axis (axis).
 //
 // GamepadAxisValue is concurrent-safe.
-func GamepadAxisValue(id GamepadID, axis int) float64 {
+func GamepadAxisValue(id GamepadID, axis GamepadAxisType) float64 {
 	g := gamepad.Get(id)
 	if g == nil {
 		return 0
 	}
-	return g.Axis(axis)
+	return g.Axis(int(axis))
 }
 
 // GamepadAxis returns a float value [-1.0 - 1.0] of the given gamepad (id)'s axis (axis).
 //
 // Deprecated: as of v2.2. Use GamepadAxisValue instead.
-func GamepadAxis(id GamepadID, axis int) float64 {
+func GamepadAxis(id GamepadID, axis GamepadAxisType) float64 {
 	return GamepadAxisValue(id, axis)
 }
 

@@ -59,6 +59,10 @@ const (
 	GamepadButtonMax GamepadButton = GamepadButton31
 )
 
+// GamepadAxisType represents a gamepad axis.
+// This is the same as int for backward compatibility in v2.
+type GamepadAxisType = int
+
 // StandardGamepadButton represents a gamepad button in the standard layout.
 //
 // The layout and the button values are based on the web standard.

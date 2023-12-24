@@ -59,7 +59,7 @@ func (v virtualGamepadButton) StandardGamepadButton() ebiten.StandardGamepadButt
 const axisThreshold = 0.75
 
 type axis struct {
-	id       int
+	id       ebiten.GamepadAxisType
 	positive bool
 }
 
@@ -73,7 +73,7 @@ type gamepadConfig struct {
 	assignedButtons map[ebiten.GamepadButton]struct{}
 	assignedAxes    map[axis]struct{}
 
-	defaultAxesValues map[int]float64
+	defaultAxesValues map[ebiten.GamepadAxisType]float64
 }
 
 func (c *gamepadConfig) SetGamepadID(id ebiten.GamepadID) {
@@ -122,9 +122,9 @@ func (c *gamepadConfig) initializeIfNeeded() {
 	// These default values are used to detect if an axis is actually pressed.
 	// For example, on PS4 controllers, L2/R2's axes value can be -1.0.
 	if c.defaultAxesValues == nil {
-		c.defaultAxesValues = map[int]float64{}
-		na := ebiten.GamepadAxisCount(c.gamepadID)
-		for a := 0; a < na; a++ {
+		c.defaultAxesValues = map[ebiten.GamepadAxisType]float64{}
+		na := ebiten.GamepadAxisType(ebiten.GamepadAxisCount(c.gamepadID))
+		for a := ebiten.GamepadAxisType(0); a < na; a++ {
 			c.defaultAxesValues[a] = ebiten.GamepadAxisValue(c.gamepadID, a)
 		}
 	}
@@ -161,8 +161,8 @@ func (c *gamepadConfig) Scan(b virtualGamepadButton) bool {
 		}
 	}
 
-	na := ebiten.GamepadAxisCount(c.gamepadID)
-	for a := 0; a < na; a++ {
+	na := ebiten.GamepadAxisType(ebiten.GamepadAxisCount(c.gamepadID))
+	for a := ebiten.GamepadAxisType(0); a < na; a++ {
 		v := ebiten.GamepadAxisValue(c.gamepadID, a)
 		const delta = 0.25
 

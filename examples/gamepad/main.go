@@ -60,8 +60,8 @@ func (g *Game) Update() error {
 	g.axes = map[ebiten.GamepadID][]string{}
 	g.pressedButtons = map[ebiten.GamepadID][]string{}
 	for id := range g.gamepadIDs {
-		maxAxis := ebiten.GamepadAxisCount(id)
-		for a := 0; a < maxAxis; a++ {
+		maxAxis := ebiten.GamepadAxisType(ebiten.GamepadAxisCount(id))
+		for a := ebiten.GamepadAxisType(0); a < maxAxis; a++ {
 			v := ebiten.GamepadAxisValue(id, a)
 			g.axes[id] = append(g.axes[id], fmt.Sprintf("%d:%+0.2f", a, v))
 		}
