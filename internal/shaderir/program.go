@@ -461,7 +461,7 @@ func (p *Program) appendReachableUniformVariablesFromBlock(indices []int, block 
 	return indices
 }
 
-// FilterUniformVariables replaces uniform variables with nil when they are not used.
+// FilterUniformVariables replaces uniform variables with 0 when they are not used.
 // By minimizing uniform variables, more commands can be merged in the graphicscommand package.
 func (p *Program) FilterUniformVariables(uniforms []uint32) {
 	if p.uniformFactors == nil {
