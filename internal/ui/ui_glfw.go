@@ -1397,9 +1397,7 @@ func (u *UserInterface) update() (float64, float64, error) {
 
 func (u *UserInterface) loopGame() (ferr error) {
 	defer func() {
-		// Post a task to the render thread to ensure all the queued functions are executed.
-		// glfw.Terminate will remove the context and any graphics calls after that will be invalidated.
-		u.renderThread.Call(func() {})
+		graphicscommand.Terminate()
 		u.mainThread.Call(func() {
 			if err := glfw.Terminate(); err != nil {
 				ferr = err
