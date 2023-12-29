@@ -104,6 +104,7 @@ type userInterfaceImpl struct {
 	framebufferSizeCallbackCh      chan struct{}
 
 	darwinInitOnce        sync.Once
+	showWindowOnce        sync.Once
 	bufferOnceSwappedOnce sync.Once
 
 	m sync.RWMutex
@@ -1077,6 +1078,11 @@ func (u *UserInterface) initOnMainThread(options *RunOptions) error {
 		return err
 	}
 
+	// Window is shown after the first buffer swap.
+	if err := glfw.WindowHint(glfw.Visible, glfw.False); err != nil {
+		return err
+	}
+
 	// On macOS, window decoration should be initialized once after buffers are swapped (#2600).
 	if runtime.GOOS != "darwin" {
 		decorated := glfw.False
@@ -1168,13 +1174,6 @@ func (u *UserInterface) initOnMainThread(options *RunOptions) error {
 	if options.SkipTaskbar {
 		// Ignore the error.
 		_ = u.skipTaskbar()
-	}
-
-	// On macOS, the window is shown once after buffers are swapped at update.
-	if runtime.GOOS != "darwin" {
-		if err := u.window.Show(); err != nil {
-			return err
-		}
 	}
 
 	switch g := u.graphicsDriver.(type) {
@@ -1321,8 +1320,17 @@ func (u *UserInterface) update() (float64, float64, error) {
 			if err = u.window.SetAttrib(glfw.Decorated, decorated); err != nil {
 				return
 			}
+		})
+		if err != nil {
+			return 0, 0, err
+		}
+	}
 
-			// The window is not shown at the initialization on macOS. Show the window here.
+	if u.bufferOnceSwapped {
+		var err error
+		u.showWindowOnce.Do(func() {
+			// Show the window after first buffer swap to avoid flash of white on Windows.
+			// On macOS this delay was already the behavior; it now the default for all glfw platforms.
 			if err = u.window.Show(); err != nil {
 				return
 			}
