@@ -1329,8 +1329,7 @@ func (u *UserInterface) update() (float64, float64, error) {
 	if u.bufferOnceSwapped {
 		var err error
 		u.showWindowOnce.Do(func() {
-			// Show the window after first buffer swap to avoid flash of white on Windows.
-			// On macOS this delay was already the behavior; it now the default for all glfw platforms.
+			// Show the window after first buffer swap to avoid flash of white especially on Windows.
 			if err = u.window.Show(); err != nil {
 				return
 			}
