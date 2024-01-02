@@ -22,16 +22,16 @@ import (
 )
 
 type view struct {
-	window uintptr
-	uiview uintptr
-
-	windowChanged bool
 	vsyncDisabled bool
 
 	device mtl.Device
 	ml     ca.MetalLayer
 
+	maximumDrawableCount int
+
 	once sync.Once
+
+	viewPlatform
 }
 
 func (v *view) setDrawableSize(width, height int) {
@@ -52,14 +52,24 @@ func (v *view) setDisplaySyncEnabled(enabled bool) {
 func (v *view) forceSetDisplaySyncEnabled(enabled bool) {
 	v.ml.SetDisplaySyncEnabled(enabled)
 	v.vsyncDisabled = !enabled
+	v.updateMaximumDrawableCount()
+}
 
-	if v.vsyncDisabled {
+func (v *view) updateMaximumDrawableCount() {
+	var count int
+	if v.vsyncDisabled || v.isFullscreen() {
 		// Apparently 2 makes FPS half. Use 3.
-		v.ml.SetMaximumDrawableCount(3)
+		count = 3
 	} else {
 		// Use 2 in a usual case not to cause rendering delays (#2822).
-		v.ml.SetMaximumDrawableCount(2)
+		count = 2
 	}
+
+	if v.maximumDrawableCount == count {
+		return
+	}
+	v.ml.SetMaximumDrawableCount(count)
+	v.maximumDrawableCount = count
 }
 
 func (v *view) colorPixelFormat() mtl.PixelFormat {

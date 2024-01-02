@@ -23,9 +23,15 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/mtl"
 )
 
+type viewPlatform struct {
+	window        cocoa.NSWindow
+	windowChanged bool
+	fullscreen    bool
+}
+
 func (v *view) setWindow(window uintptr) {
 	// NSView can be updated e.g., fullscreen-state is switched.
-	v.window = window
+	v.window = cocoa.NSWindow{ID: objc.ID(window)}
 	v.windowChanged = true
 }
 
@@ -34,15 +40,22 @@ func (v *view) setUIView(uiview uintptr) {
 }
 
 func (v *view) update() {
-	if !v.windowChanged {
-		return
+	if v.windowChanged {
+		// TODO: Should this be called on the main thread?
+		v.window.ContentView().SetLayer(uintptr(v.ml.Layer()))
+		v.window.ContentView().SetWantsLayer(true)
+		v.windowChanged = false
 	}
 
-	// TODO: Should this be called on the main thread?
-	cocoaWindow := cocoa.NSWindow{ID: objc.ID(v.window)}
-	cocoaWindow.ContentView().SetLayer(uintptr(v.ml.Layer()))
-	cocoaWindow.ContentView().SetWantsLayer(true)
-	v.windowChanged = false
+	fullscreen := v.window.StyleMask()&cocoa.NSWindowStyleMaskFullScreen != 0
+	if v.fullscreen != fullscreen {
+		v.fullscreen = fullscreen
+		v.updateMaximumDrawableCount()
+	}
+}
+
+func (v *view) isFullscreen() bool {
+	return v.fullscreen
 }
 
 const (

@@ -42,6 +42,10 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/mtl"
 )
 
+type viewPlatform struct {
+	uiview uintptr
+}
+
 func (v *view) setWindow(window uintptr) {
 	panic("metal: setWindow is not available on iOS")
 }
@@ -58,6 +62,10 @@ func (v *view) update() {
 		C.addSublayer(unsafe.Pointer(v.uiview), v.ml.Layer())
 	})
 	C.setFrame(v.ml.Layer(), unsafe.Pointer(v.uiview))
+}
+
+func (v *view) isFullscreen() bool {
+	return false
 }
 
 const (
