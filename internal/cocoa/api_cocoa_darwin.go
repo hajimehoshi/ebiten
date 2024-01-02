@@ -183,6 +183,14 @@ func (v NSView) Frame() NSRect {
 	return rect
 }
 
+func (v NSView) SetLayer(layer uintptr) {
+	v.Send(objc.RegisterName("setLayer:"), layer)
+}
+
+func (v NSView) SetWantsLayer(wantsLayer bool) {
+	v.Send(objc.RegisterName("setWantsLayer:"), wantsLayer)
+}
+
 // NSInvocation is being used to call functions that can't be called directly with purego.SyscallN.
 // See the downsides of that function for what it cannot do.
 type NSInvocation struct {

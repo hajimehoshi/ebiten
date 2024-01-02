@@ -17,8 +17,10 @@
 package metal
 
 import (
+	"github.com/ebitengine/purego/objc"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/cocoa"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/mtl"
-	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/ns"
 )
 
 func (v *view) setWindow(window uintptr) {
@@ -37,8 +39,8 @@ func (v *view) update() {
 	}
 
 	// TODO: Should this be called on the main thread?
-	cocoaWindow := ns.NewWindow(v.window)
-	cocoaWindow.ContentView().SetLayer(v.ml)
+	cocoaWindow := cocoa.NSWindow{ID: objc.ID(v.window)}
+	cocoaWindow.ContentView().SetLayer(uintptr(v.ml.Layer()))
 	cocoaWindow.ContentView().SetWantsLayer(true)
 	v.windowChanged = false
 }
