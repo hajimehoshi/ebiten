@@ -53,13 +53,8 @@ func (v *view) forceSetDisplaySyncEnabled(enabled bool) {
 	v.ml.SetDisplaySyncEnabled(enabled)
 	v.vsyncDisabled = !enabled
 
-	if v.vsyncDisabled {
-		// Apparently 2 makes FPS half. Use 3.
-		v.ml.SetMaximumDrawableCount(3)
-	} else {
-		// Use 2 in a usual case not to cause rendering delays (#2822).
-		v.ml.SetMaximumDrawableCount(2)
-	}
+	// Always use 3. There are some situations that the FPS becomes half, or the FPS becomes too low (#2880).
+	v.ml.SetMaximumDrawableCount(3)
 }
 
 func (v *view) colorPixelFormat() mtl.PixelFormat {
