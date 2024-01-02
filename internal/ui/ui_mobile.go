@@ -38,7 +38,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/hook"
 	"github.com/hajimehoshi/ebiten/v2/internal/restorable"
-	"github.com/hajimehoshi/ebiten/v2/internal/thread"
 )
 
 var (
@@ -91,7 +90,7 @@ func (u *UserInterface) Update() error {
 		cancel()
 	}()
 
-	_ = u.renderThread.Loop(ctx)
+	graphicscommand.LoopRenderThread(ctx)
 	return nil
 }
 
@@ -273,8 +272,7 @@ func (u *UserInterface) runMobile(game Game, mainloop bool, options *RunOptions)
 		// gl.Context so that they are called on the appropriate thread.
 		mgl = <-glContextCh
 	} else {
-		u.renderThread = thread.NewOSThread()
-		graphicscommand.SetRenderThread(u.renderThread)
+		graphicscommand.SetOSThreadAsRenderThread()
 	}
 
 	u.setRunning(true)

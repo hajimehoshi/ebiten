@@ -82,9 +82,6 @@ type UserInterface struct {
 
 	mainThread thread.Thread
 
-	// TODO: Remove this (#2714).
-	renderThread thread.Thread
-
 	userInterfaceImpl
 }
 

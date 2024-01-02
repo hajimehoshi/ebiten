@@ -15,16 +15,20 @@
 package graphicscommand
 
 import (
+	"context"
+
 	"github.com/hajimehoshi/ebiten/v2/internal/thread"
 )
 
 var theRenderThread thread.Thread = thread.NewNoopThread()
 
-// SetRenderThread must be called from the rendering thread where e.g. OpenGL works.
-//
-// TODO: Create thread in this package instead of setting it externally.
-func SetRenderThread(thread thread.Thread) {
-	theRenderThread = thread
+// SetOSThreadAsRenderThread sets an OS thread as rendering thread e.g. for OpenGL.
+func SetOSThreadAsRenderThread() {
+	theRenderThread = thread.NewOSThread()
+}
+
+func LoopRenderThread(ctx context.Context) {
+	_ = theRenderThread.Loop(ctx)
 }
 
 // runOnRenderThread calls f on the rendering thread.
