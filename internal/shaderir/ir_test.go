@@ -1088,7 +1088,7 @@ void main(void) {
 					t.Errorf("%s fragment: got: %s, want: %s", tc.Name, got, want)
 				}
 			}
-			m := msl.Compile(&tc.Program, "Vertex", "Fragment")
+			m := msl.Compile(&tc.Program)
 			if tc.Metal != "" {
 				got := m
 				want := tc.Metal + "\n"

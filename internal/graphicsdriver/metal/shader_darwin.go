@@ -63,21 +63,16 @@ func (s *Shader) Dispose() {
 }
 
 func (s *Shader) init(device mtl.Device) error {
-	const (
-		v = "Vertex"
-		f = "Fragment"
-	)
-
-	src := msl.Compile(s.ir, v, f)
+	src := msl.Compile(s.ir)
 	lib, err := device.MakeLibrary(src, mtl.CompileOptions{})
 	if err != nil {
 		return fmt.Errorf("metal: device.MakeLibrary failed: %w, source: %s", err, src)
 	}
-	vs, err := lib.MakeFunction(v)
+	vs, err := lib.MakeFunction(msl.VertexName)
 	if err != nil {
 		return fmt.Errorf("metal: lib.MakeFunction for vertex failed: %w, source: %s", err, src)
 	}
-	fs, err := lib.MakeFunction(f)
+	fs, err := lib.MakeFunction(msl.FragmentName)
 	if err != nil {
 		return fmt.Errorf("metal: lib.MakeFunction for fragment failed: %w, source: %s", err, src)
 	}

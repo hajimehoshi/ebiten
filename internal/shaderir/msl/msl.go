@@ -65,7 +65,12 @@ constexpr sampler texture_sampler{filter::nearest};`
 	return str
 }
 
-func Compile(p *shaderir.Program, vertex, fragment string) (shader string) {
+const (
+	VertexName   = "Vertex"
+	FragmentName = "Fragment"
+)
+
+func Compile(p *shaderir.Program) (shader string) {
 	c := &compileContext{
 		structNames: map[string]string{},
 	}
@@ -109,7 +114,7 @@ func Compile(p *shaderir.Program, vertex, fragment string) (shader string) {
 	if p.VertexFunc.Block != nil && len(p.VertexFunc.Block.Stmts) > 0 {
 		lines = append(lines, "")
 		lines = append(lines,
-			fmt.Sprintf("vertex Varyings %s(", vertex),
+			fmt.Sprintf("vertex Varyings %s(", VertexName),
 			"\tuint vid [[vertex_id]],",
 			"\tconst device Attributes* attributes [[buffer(0)]]")
 		for i, u := range p.Uniforms {
@@ -132,7 +137,7 @@ func Compile(p *shaderir.Program, vertex, fragment string) (shader string) {
 	if p.FragmentFunc.Block != nil && len(p.FragmentFunc.Block.Stmts) > 0 {
 		lines = append(lines, "")
 		lines = append(lines,
-			fmt.Sprintf("fragment float4 %s(", fragment),
+			fmt.Sprintf("fragment float4 %s(", FragmentName),
 			"\tVaryings varyings [[stage_in]]")
 		for i, u := range p.Uniforms {
 			lines[len(lines)-1] += ","
