@@ -26,8 +26,6 @@ import (
 	"strconv"
 	"strings"
 	"text/template"
-
-	"golang.org/x/mobile/event/key"
 )
 
 var (
@@ -35,7 +33,6 @@ var (
 	uiKeyNameToGLFWKeyName          map[string]string
 	androidKeyToUIKeyName           map[int]string
 	iosKeyToUIKeyName               map[int]string
-	gbuildKeyToUIKeyName            map[key.Code]string
 	uiKeyNameToJSKey                map[string]string
 	oldEbitengineKeyNameToUIKeyName map[string]string
 )
@@ -280,58 +277,6 @@ func init() {
 		0x2B: "Tab",
 	}
 
-	gbuildKeyToUIKeyName = map[key.Code]string{
-		key.CodeComma:              "Comma",
-		key.CodeFullStop:           "Period",
-		key.CodeLeftAlt:            "AltLeft",
-		key.CodeRightAlt:           "AltRight",
-		key.CodeCapsLock:           "CapsLock",
-		key.CodeLeftControl:        "ControlLeft",
-		key.CodeRightControl:       "ControlRight",
-		key.CodeLeftShift:          "ShiftLeft",
-		key.CodeRightShift:         "ShiftRight",
-		key.CodeReturnEnter:        "Enter",
-		key.CodeSpacebar:           "Space",
-		key.CodeTab:                "Tab",
-		key.CodeDeleteForward:      "Delete",
-		key.CodeEnd:                "End",
-		key.CodeHome:               "Home",
-		key.CodeInsert:             "Insert",
-		key.CodePageDown:           "PageDown",
-		key.CodePageUp:             "PageUp",
-		key.CodeDownArrow:          "ArrowDown",
-		key.CodeLeftArrow:          "ArrowLeft",
-		key.CodeRightArrow:         "ArrowRight",
-		key.CodeUpArrow:            "ArrowUp",
-		key.CodeEscape:             "Escape",
-		key.CodeDeleteBackspace:    "Backspace",
-		key.CodeApostrophe:         "Quote",
-		key.CodeHyphenMinus:        "Minus",
-		key.CodeSlash:              "Slash",
-		key.CodeSemicolon:          "Semicolon",
-		key.CodeEqualSign:          "Equal",
-		key.CodeLeftSquareBracket:  "BracketLeft",
-		key.CodeBackslash:          "Backslash",
-		key.CodeRightSquareBracket: "BracketRight",
-		key.CodeGraveAccent:        "Backquote",
-		key.CodeKeypadNumLock:      "NumLock",
-		key.CodePause:              "Pause",
-		key.CodeKeypadPlusSign:     "NumpadAdd",
-		key.CodeKeypadFullStop:     "NumpadDecimal",
-		key.CodeKeypadSlash:        "NumpadDivide",
-		key.CodeKeypadAsterisk:     "NumpadMultiply",
-		key.CodeKeypadHyphenMinus:  "NumpadSubtract",
-		key.CodeKeypadEnter:        "NumpadEnter",
-		key.CodeKeypadEqualSign:    "NumpadEqual",
-		key.CodeLeftGUI:            "MetaLeft",
-		key.CodeRightGUI:           "MetaRight",
-
-		// Missing keys:
-		//   ui.KeyPrintScreen
-		//   ui.KeyScrollLock
-		//   ui.KeyMenu
-	}
-
 	// The UI key and JS key are almost same but very slightly different (e.g., 'A' vs 'KeyA').
 	uiKeyNameToJSKey = map[string]string{
 		"Comma":          "Comma",
@@ -400,10 +345,8 @@ func init() {
 		// in this order. Same for iOS.
 		if c == '0' {
 			iosKeyToUIKeyName[0x27] = name
-			gbuildKeyToUIKeyName[key.Code0] = name
 		} else {
 			iosKeyToUIKeyName[0x1E+int(c)-'1'] = name
-			gbuildKeyToUIKeyName[key.Code1+key.Code(c)-'1'] = name
 		}
 		uiKeyNameToJSKey[name] = name
 
@@ -414,7 +357,6 @@ func init() {
 		uiKeyNameToGLFWKeyName[string(c)] = string(c)
 		androidKeyToUIKeyName[29+int(c)-'A'] = string(c)
 		iosKeyToUIKeyName[0x04+int(c)-'A'] = string(c)
-		gbuildKeyToUIKeyName[key.CodeA+key.Code(c)-'A'] = string(c)
 		uiKeyNameToJSKey[string(c)] = "Key" + string(c)
 	}
 	// Function keys
@@ -432,10 +374,8 @@ func init() {
 		}
 		if i <= 12 {
 			iosKeyToUIKeyName[0x3A+i-1] = name
-			gbuildKeyToUIKeyName[key.CodeF1+key.Code(i)-1] = name
 		} else {
 			iosKeyToUIKeyName[0x68+i-13] = name
-			gbuildKeyToUIKeyName[key.CodeF13+key.Code(i)-13] = name
 		}
 		uiKeyNameToJSKey[name] = name
 	}
@@ -450,10 +390,8 @@ func init() {
 		// in this order. Same for iOS.
 		if c == '0' {
 			iosKeyToUIKeyName[0x62] = name
-			gbuildKeyToUIKeyName[key.CodeKeypad0] = name
 		} else {
 			iosKeyToUIKeyName[0x59+int(c)-'1'] = name
-			gbuildKeyToUIKeyName[key.CodeKeypad1+key.Code(c)-'1'] = name
 		}
 		uiKeyNameToJSKey[name] = name
 	}
@@ -711,24 +649,6 @@ var iosKeyToUIKey = map[int]ui.Key{
 }
 `
 
-const uiMobileKeysTmpl = `{{.License}}
-
-{{.DoNotEdit}}
-
-{{.BuildTag}}
-
-package ui
-
-import (
-	"golang.org/x/mobile/event/key"
-)
-
-var gbuildKeyToUIKey = map[key.Code]Key{
-{{range $key, $name := .GBuildKeyToUIKeyName}}key.{{$key}}: Key{{$name}},
-{{end}}
-}
-`
-
 func digitKey(name string) int {
 	if len(name) != 1 {
 		return -1
@@ -849,7 +769,6 @@ func main() {
 		filepath.Join("internal", "glfw", "keys.go"):                   glfwKeysTmpl,
 		filepath.Join("internal", "ui", "keys.go"):                     uiKeysTmpl,
 		filepath.Join("internal", "ui", "keys_glfw.go"):                uiGLFWKeysTmpl,
-		filepath.Join("internal", "ui", "keys_mobile.go"):              uiMobileKeysTmpl,
 		filepath.Join("internal", "ui", "keys_js.go"):                  uiJSKeysTmpl,
 		filepath.Join("keys.go"):                                       ebitengineKeysTmpl,
 		filepath.Join("mobile", "ebitenmobileview", "keys_android.go"): mobileAndroidKeysTmpl,
@@ -894,7 +813,6 @@ func main() {
 			UIKeyNameToGLFWKeyName          map[string]string
 			AndroidKeyToUIKeyName           map[int]string
 			IOSKeyToUIKeyName               map[int]string
-			GBuildKeyToUIKeyName            map[key.Code]string
 			OldEbitengineKeyNameToUIKeyName map[string]string
 		}{
 			License:                         license,
@@ -909,7 +827,6 @@ func main() {
 			UIKeyNameToGLFWKeyName:          uiKeyNameToGLFWKeyName,
 			AndroidKeyToUIKeyName:           androidKeyToUIKeyName,
 			IOSKeyToUIKeyName:               iosKeyToUIKeyName,
-			GBuildKeyToUIKeyName:            gbuildKeyToUIKeyName,
 			OldEbitengineKeyNameToUIKeyName: oldEbitengineKeyNameToUIKeyName,
 		}); err != nil {
 			log.Fatal(err)
