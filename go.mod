@@ -12,10 +12,10 @@ require (
 	github.com/jezek/xgb v1.1.1
 	github.com/jfreymuth/oggvorbis v1.0.5
 	github.com/kisielk/errcheck v1.6.3
-	golang.org/x/image v0.14.0
+	golang.org/x/image v0.15.0
 	golang.org/x/mobile v0.0.0-20231127183840-76ac6878050a
-	golang.org/x/sync v0.5.0
-	golang.org/x/sys v0.15.0
+	golang.org/x/sync v0.6.0
+	golang.org/x/sys v0.16.0
 	golang.org/x/text v0.14.0
 	golang.org/x/tools v0.16.1
 )
