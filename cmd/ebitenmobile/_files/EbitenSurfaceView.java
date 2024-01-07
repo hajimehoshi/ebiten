@@ -33,10 +33,15 @@ class EbitenSurfaceView extends GLSurfaceView implements RenderRequester {
     private class EbitenRenderer implements GLSurfaceView.Renderer {
 
         private boolean errored_ = false;
+        private boolean onceSurfaceCreated_ = false;
+        private boolean contextLost_ = false;
 
         @Override
         public void onDrawFrame(GL10 gl) {
             if (errored_) {
+                return;
+            }
+            if (contextLost_) {
                 return;
             }
             try {
@@ -54,7 +59,17 @@ class EbitenSurfaceView extends GLSurfaceView implements RenderRequester {
 
         @Override
         public void onSurfaceCreated(GL10 gl, EGLConfig config) {
-            Ebitenmobileview.onContextLost();
+            if (!onceSurfaceCreated_) {
+                onceSurfaceCreated_ = true;
+                return;
+            }
+            contextLost_ = true;
+            new Handler(Looper.getMainLooper()).post(new Runnable() {
+                @Override
+                public void run() {
+                    onContextLost();
+                }
+            });
         }
 
         @Override
@@ -76,11 +91,18 @@ class EbitenSurfaceView extends GLSurfaceView implements RenderRequester {
         setEGLContextClientVersion(3);
         setEGLConfigChooser(8, 8, 8, 8, 0, 0);
         setRenderer(new EbitenRenderer());
+        setPreserveEGLContextOnPause(true);
         Ebitenmobileview.setRenderRequester(this);
     }
 
     private void onErrorOnGameUpdate(Exception e) {
         ((EbitenView)getParent()).onErrorOnGameUpdate(e);
+    }
+
+    private void onContextLost() {
+        Log.v("Go", "Kill the application due to a context lost");
+        // TODO: Relaunch this application for better UX (#805).
+        Runtime.getRuntime().exit(0);
     }
 
     @Override

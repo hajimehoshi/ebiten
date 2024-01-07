@@ -30,7 +30,6 @@ import (
 	"sync"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/internal/restorable"
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
@@ -111,10 +110,6 @@ func Suspend() error {
 
 func Resume() error {
 	return ui.Get().SetForeground(true)
-}
-
-func OnContextLost() {
-	restorable.OnContextLost()
 }
 
 func DeviceScale() float64 {

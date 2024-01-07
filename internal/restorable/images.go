@@ -15,8 +15,6 @@
 package restorable
 
 import (
-	"runtime"
-
 	"github.com/hajimehoshi/ebiten/v2/internal/debug"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
@@ -44,10 +42,9 @@ func EnableRestoringForTesting() {
 
 // images is a set of Image objects.
 type images struct {
-	images      map[*Image]struct{}
-	shaders     map[*Shader]struct{}
-	lastTarget  *Image
-	contextLost bool
+	images     map[*Image]struct{}
+	shaders    map[*Shader]struct{}
+	lastTarget *Image
 }
 
 // theImages represents the images for the current process.
@@ -91,23 +88,19 @@ func RestoreIfNeeded(graphicsDriver graphicsdriver.Graphics) error {
 	if !forceRestoring {
 		var r bool
 
-		if canDetectContextLostExplicitly {
-			r = theImages.contextLost
-		} else {
-			// As isInvalidated() is expensive, call this only for one image.
-			// This assumes that if there is one image that is invalidated, all images are invalidated.
-			for img := range theImages.images {
-				// The screen image might not have a texture. Skip this.
-				if img.imageType == ImageTypeScreen {
-					continue
-				}
-				var err error
-				r, err = img.isInvalidated(graphicsDriver)
-				if err != nil {
-					return err
-				}
-				break
+		// As isInvalidated() is expensive, call this only for one image.
+		// This assumes that if there is one image that is invalidated, all images are invalidated.
+		for img := range theImages.images {
+			// The screen image might not have a texture. Skip this.
+			if img.imageType == ImageTypeScreen {
+				continue
 			}
+			var err error
+			r, err = img.isInvalidated(graphicsDriver)
+			if err != nil {
+				return err
+			}
+			break
 		}
 
 		if !r {
@@ -265,8 +258,6 @@ func (i *images) restore(graphicsDriver graphicsdriver.Graphics) error {
 		}
 	}
 
-	i.contextLost = false
-
 	return nil
 }
 
@@ -283,14 +274,3 @@ func InitializeGraphicsDriverState(graphicsDriver graphicsdriver.Graphics) error
 func MaxImageSize(graphicsDriver graphicsdriver.Graphics) int {
 	return graphicscommand.MaxImageSize(graphicsDriver)
 }
-
-// OnContextLost is called when the context lost is detected in an explicit way.
-func OnContextLost() {
-	canDetectContextLostExplicitly = true
-	theImages.contextLost = true
-}
-
-// canDetectContextLostExplicitly reports whether Ebitengine can detect a context lost in an explicit way.
-// On Android, a context lost can be detected via GLSurfaceView.Renderer.onSurfaceCreated.
-// On iOS w/ OpenGL ES, this can be detected only when gomobile-build is used.
-var canDetectContextLostExplicitly = runtime.GOOS == "android"
