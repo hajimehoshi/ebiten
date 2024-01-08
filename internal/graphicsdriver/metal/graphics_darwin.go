@@ -708,10 +708,6 @@ func (g *Graphics) SetVsyncEnabled(enabled bool) {
 	g.view.setDisplaySyncEnabled(enabled)
 }
 
-func (g *Graphics) NeedsRestoring() bool {
-	return false
-}
-
 func (g *Graphics) NeedsClearingScreen() bool {
 	return false
 }

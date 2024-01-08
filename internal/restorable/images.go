@@ -23,11 +23,9 @@ import (
 // forceRestoring reports whether restoring forcely happens or not.
 var forceRestoring = false
 
-var needsRestoringByGraphicsDriver bool
-
 // needsRestoring reports whether restoring process works or not.
 func needsRestoring() bool {
-	return forceRestoring || needsRestoringByGraphicsDriver
+	return forceRestoring
 }
 
 // AlwaysReadPixelsFromGPU reports whether ReadPixels always reads pixels from GPU or not.
@@ -266,7 +264,6 @@ var graphicsDriverInitialized bool
 // InitializeGraphicsDriverState initializes the graphics driver state.
 func InitializeGraphicsDriverState(graphicsDriver graphicsdriver.Graphics) error {
 	graphicsDriverInitialized = true
-	needsRestoringByGraphicsDriver = graphicsDriver.NeedsRestoring()
 	return graphicscommand.InitializeGraphicsDriverState(graphicsDriver)
 }
 

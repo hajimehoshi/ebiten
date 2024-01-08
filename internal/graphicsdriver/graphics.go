@@ -62,7 +62,6 @@ type Graphics interface {
 	NewImage(width, height int) (Image, error)
 	NewScreenFramebufferImage(width, height int) (Image, error)
 	SetVsyncEnabled(enabled bool)
-	NeedsRestoring() bool
 	NeedsClearingScreen() bool
 	MaxImageSize() int
 

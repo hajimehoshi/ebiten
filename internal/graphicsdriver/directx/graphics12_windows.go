@@ -1054,10 +1054,6 @@ func (g *graphics12) SetVsyncEnabled(enabled bool) {
 	g.vsyncEnabled = enabled
 }
 
-func (g *graphics12) NeedsRestoring() bool {
-	return false
-}
-
 func (g *graphics12) NeedsClearingScreen() bool {
 	// TODO: Confirm this is really true.
 	return true
