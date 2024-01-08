@@ -75,7 +75,6 @@ type Context interface {
 	IsFramebuffer(framebuffer uint32) bool
 	IsProgram(program uint32) bool
 	IsRenderbuffer(renderbuffer uint32) bool
-	IsTexture(texture uint32) bool
 	LinkProgram(program uint32)
 	PixelStorei(pname uint32, param int32)
 	ReadPixels(dst []byte, x int32, y int32, width int32, height int32, format uint32, xtype uint32)

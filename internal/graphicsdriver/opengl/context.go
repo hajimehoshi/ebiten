@@ -275,9 +275,6 @@ func (c *context) framebufferPixelsToBuffer(f *framebuffer, buffer buffer, width
 }
 
 func (c *context) deleteTexture(t textureNative) {
-	if !c.ctx.IsTexture(uint32(t)) {
-		return
-	}
 	if c.lastTexture == t {
 		c.lastTexture = 0
 	}

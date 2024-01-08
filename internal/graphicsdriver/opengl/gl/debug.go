@@ -433,15 +433,6 @@ func (d *DebugContext) IsRenderbuffer(arg0 uint32) bool {
 	return out0
 }
 
-func (d *DebugContext) IsTexture(arg0 uint32) bool {
-	out0 := d.Context.IsTexture(arg0)
-	fmt.Fprintln(os.Stderr, "IsTexture")
-	if e := d.Context.GetError(); e != NO_ERROR {
-		panic(fmt.Sprintf("gl: GetError() returned %d at IsTexture", e))
-	}
-	return out0
-}
-
 func (d *DebugContext) LinkProgram(arg0 uint32) {
 	d.Context.LinkProgram(arg0)
 	fmt.Fprintln(os.Stderr, "LinkProgram")

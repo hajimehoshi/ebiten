@@ -72,7 +72,6 @@ type defaultContext struct {
 	gpIsFramebuffer            uintptr
 	gpIsProgram                uintptr
 	gpIsRenderbuffer           uintptr
-	gpIsTexture                uintptr
 	gpLinkProgram              uintptr
 	gpPixelStorei              uintptr
 	gpReadPixels               uintptr
@@ -349,11 +348,6 @@ func (c *defaultContext) IsRenderbuffer(renderbuffer uint32) bool {
 	return byte(ret) != 0
 }
 
-func (c *defaultContext) IsTexture(texture uint32) bool {
-	ret, _, _ := purego.SyscallN(c.gpIsTexture, uintptr(texture))
-	return byte(ret) != 0
-}
-
 func (c *defaultContext) LinkProgram(program uint32) {
 	purego.SyscallN(c.gpLinkProgram, uintptr(program))
 }
@@ -528,7 +522,6 @@ func (c *defaultContext) LoadFunctions() error {
 	c.gpIsFramebuffer = g.get("glIsFramebuffer")
 	c.gpIsProgram = g.get("glIsProgram")
 	c.gpIsRenderbuffer = g.get("glIsRenderbuffer")
-	c.gpIsTexture = g.get("glIsTexture")
 	c.gpLinkProgram = g.get("glLinkProgram")
 	c.gpPixelStorei = g.get("glPixelStorei")
 	c.gpReadPixels = g.get("glReadPixels")
