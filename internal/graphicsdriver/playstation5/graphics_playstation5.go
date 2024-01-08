@@ -97,10 +97,6 @@ func (g *Graphics) NewScreenFramebufferImage(width, height int) (graphicsdriver.
 func (g *Graphics) SetVsyncEnabled(enabled bool) {
 }
 
-func (g *Graphics) NeedsRestoring() bool {
-	return false
-}
-
 func (g *Graphics) NeedsClearingScreen() bool {
 	return false
 }
