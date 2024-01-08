@@ -27,37 +27,26 @@ import (
 
 type Shader struct {
 	shader *graphicscommand.Shader
-	ir     *shaderir.Program
 }
 
 func NewShader(ir *shaderir.Program) *Shader {
 	s := &Shader{
 		shader: graphicscommand.NewShader(ir),
-		ir:     ir,
 	}
-	theImages.addShader(s)
 	return s
 }
 
 func (s *Shader) Dispose() {
-	theImages.removeShader(s)
 	s.shader.Dispose()
 	s.shader = nil
-	s.ir = nil
-}
-
-func (s *Shader) restore() {
-	s.shader = graphicscommand.NewShader(s.ir)
-}
-
-func (s *Shader) Unit() shaderir.Unit {
-	return s.ir.Unit
 }
 
 var (
-	NearestFilterShader *Shader
-	LinearFilterShader  *Shader
-	clearShader         *Shader
+	NearestFilterShader   *Shader
+	NearestFilterShaderIR *shaderir.Program
+	LinearFilterShader    *Shader
+	LinearFilterShaderIR  *shaderir.Program
+	clearShader           *Shader
 )
 
 func init() {
@@ -96,7 +85,9 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 	if err := wg.Wait(); err != nil {
 		panic(err)
 	}
+	NearestFilterShaderIR = nearestIR
 	NearestFilterShader = NewShader(nearestIR)
+	LinearFilterShaderIR = linearIR
 	LinearFilterShader = NewShader(linearIR)
 	clearShader = NewShader(clearIR)
 }

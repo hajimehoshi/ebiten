@@ -22,14 +22,12 @@ import (
 
 // images is a set of Image objects.
 type images struct {
-	images  map[*Image]struct{}
-	shaders map[*Shader]struct{}
+	images map[*Image]struct{}
 }
 
 // theImages represents the images for the current process.
 var theImages = &images{
-	images:  map[*Image]struct{}{},
-	shaders: map[*Shader]struct{}{},
+	images: map[*Image]struct{}{},
 }
 
 func SwapBuffers(graphicsDriver graphicsdriver.Graphics) error {
@@ -64,17 +62,9 @@ func (i *images) add(img *Image) {
 	i.images[img] = struct{}{}
 }
 
-func (i *images) addShader(shader *Shader) {
-	i.shaders[shader] = struct{}{}
-}
-
 // remove removes img from the images.
 func (i *images) remove(img *Image) {
 	delete(i.images, img)
-}
-
-func (i *images) removeShader(shader *Shader) {
-	delete(i.shaders, shader)
 }
 
 var graphicsDriverInitialized bool
