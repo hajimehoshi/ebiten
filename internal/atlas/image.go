@@ -592,12 +592,14 @@ func (i *Image) deallocate() {
 
 	for idx, sh := range theBackends {
 		if sh == i.backend {
-			theBackends = append(theBackends[:idx], theBackends[idx+1:]...)
+			copy(theBackends[idx:], theBackends[idx+1:])
+			theBackends[len(theBackends)-1] = nil
+			theBackends = theBackends[:len(theBackends)-1]
 			return
 		}
 	}
 
-	panic("atlas: backend not found at an image being disposed")
+	panic("atlas: backend not found at an image being deallocated")
 }
 
 func NewImage(width, height int, imageType ImageType) *Image {
