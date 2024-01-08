@@ -195,30 +195,6 @@ func clearImage(i *graphicscommand.Image, region image.Rectangle) {
 // makeStale makes the image stale.
 func (i *Image) makeStale(rect image.Rectangle) {
 	i.stale = true
-
-	// If ReadPixels always reads pixels from GPU, staleRegions are never used.
-	if alwaysReadPixelsFromGPU() {
-		return
-	}
-
-	var addedRegions []image.Rectangle
-	if !rect.Empty() {
-		appendRegionRemovingDuplicates(&addedRegions, rect)
-	}
-
-	for _, rect := range addedRegions {
-		appendRegionRemovingDuplicates(&i.staleRegions, rect)
-	}
-
-	// Clear pixels to save memory.
-	for _, r := range addedRegions {
-		i.basePixels.Clear(r)
-	}
-
-	// Don't have to call makeStale recursively here.
-	// Restoring is done after topological sorting is done.
-	// If an image depends on another stale image, this means that
-	// the former image can be restored from the latest state of the latter image.
 }
 
 // ClearPixels clears the specified region by WritePixels.
@@ -287,35 +263,15 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 	i.image.DrawTriangles(imgs, vertices, indices, blend, dstRegion, srcRegions, shader.shader, uniforms, fillRule)
 }
 
-func (i *Image) readPixelsFromGPUIfNeeded(graphicsDriver graphicsdriver.Graphics) error {
-	if i.stale {
-		if err := i.readPixelsFromGPU(graphicsDriver); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte, region image.Rectangle) error {
-	if alwaysReadPixelsFromGPU() {
-		if err := i.image.ReadPixels(graphicsDriver, []graphicsdriver.PixelsArgs{
-			{
-				Pixels: pixels,
-				Region: region,
-			},
-		}); err != nil {
-			return err
-		}
-		return nil
-	}
-
-	if err := i.readPixelsFromGPUIfNeeded(graphicsDriver); err != nil {
+	if err := i.image.ReadPixels(graphicsDriver, []graphicsdriver.PixelsArgs{
+		{
+			Pixels: pixels,
+			Region: region,
+		},
+	}); err != nil {
 		return err
 	}
-	if got, want := len(pixels), 4*region.Dx()*region.Dy(); got != want {
-		return fmt.Errorf("restorable: len(pixels) must be %d but %d at ReadPixels", want, got)
-	}
-	i.basePixels.ReadPixels(pixels, region, i.width, i.height)
 	return nil
 }
 
@@ -339,56 +295,6 @@ func (i *Image) makeStaleIfDependingOnShader(shader *Shader) {
 		// There is no new region to make stale.
 		i.makeStale(image.Rectangle{})
 	}
-}
-
-// readPixelsFromGPU reads the pixels from GPU and resolves the image's 'stale' state.
-func (i *Image) readPixelsFromGPU(graphicsDriver graphicsdriver.Graphics) error {
-	var rs []image.Rectangle
-	if i.stale {
-		rs = i.staleRegions
-	} else {
-		defer func() {
-			i.regionsCache = i.regionsCache[:0]
-		}()
-		rs = i.regionsCache
-	}
-
-	args := make([]graphicsdriver.PixelsArgs, 0, len(rs))
-	for _, r := range rs {
-		if r.Empty() {
-			continue
-		}
-
-		if i.pixelsCache == nil {
-			i.pixelsCache = map[image.Rectangle][]byte{}
-		}
-
-		pix, ok := i.pixelsCache[r]
-		if !ok {
-			pix = make([]byte, 4*r.Dx()*r.Dy())
-			i.pixelsCache[r] = pix
-		}
-
-		args = append(args, graphicsdriver.PixelsArgs{
-			Pixels: pix,
-			Region: r,
-		})
-	}
-
-	if err := i.image.ReadPixels(graphicsDriver, args); err != nil {
-		return err
-	}
-
-	for _, a := range args {
-		bs := graphics.NewManagedBytes(len(a.Pixels), func(bs []byte) {
-			copy(bs, a.Pixels)
-		})
-		i.basePixels.AddOrReplace(bs, a.Region)
-	}
-
-	i.stale = false
-	i.staleRegions = i.staleRegions[:0]
-	return nil
 }
 
 // dependsOn reports whether the image depends on target.
