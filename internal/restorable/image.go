@@ -35,7 +35,10 @@ const (
 
 // Image represents an image.
 type Image struct {
-	image *graphicscommand.Image
+	// Image is the underlying image.
+	// This member is exported on purpose.
+	// TODO: Move the implementation to internal/atlas package (#805).
+	Image *graphicscommand.Image
 
 	width  int
 	height int
@@ -54,7 +57,7 @@ func NewImage(width, height int, imageType ImageType) *Image {
 	}
 
 	i := &Image{
-		image:     graphicscommand.NewImage(width, height, imageType == ImageTypeScreen),
+		Image:     graphicscommand.NewImage(width, height, imageType == ImageTypeScreen),
 		width:     width,
 		height:    height,
 		imageType: imageType,
@@ -62,8 +65,8 @@ func NewImage(width, height int, imageType ImageType) *Image {
 
 	// This needs to use 'InternalSize' to render the whole region, or edges are unexpectedly cleared on some
 	// devices.
-	iw, ih := i.image.InternalSize()
-	clearImage(i.image, image.Rect(0, 0, iw, ih))
+	iw, ih := i.Image.InternalSize()
+	clearImage(i.Image, image.Rect(0, 0, iw, ih))
 	theImages.add(i)
 	return i
 }
@@ -81,7 +84,7 @@ func (i *Image) Extend(width, height int) *Image {
 	// Use DrawTriangles instead of WritePixels because the image i might be stale and not have its pixels
 	// information.
 	srcs := [graphics.ShaderImageCount]*Image{i}
-	sw, sh := i.image.InternalSize()
+	sw, sh := i.Image.InternalSize()
 	vs := quadVertices(0, 0, float32(sw), float32(sh), 0, 0, float32(sw), float32(sh), 1, 1, 1, 1)
 	is := graphics.QuadIndices()
 	dr := image.Rect(0, 0, sw, sh)
@@ -125,9 +128,9 @@ func (i *Image) WritePixels(pixels *graphics.ManagedBytes, region image.Rectangl
 	}
 
 	if pixels != nil {
-		i.image.WritePixels(pixels, region)
+		i.Image.WritePixels(pixels, region)
 	} else {
-		clearImage(i.image, region)
+		clearImage(i.Image, region)
 	}
 }
 
@@ -153,13 +156,13 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 		if src == nil {
 			continue
 		}
-		imgs[i] = src.image
+		imgs[i] = src.Image
 	}
-	i.image.DrawTriangles(imgs, vertices, indices, blend, dstRegion, srcRegions, shader.shader, uniforms, fillRule)
+	i.Image.DrawTriangles(imgs, vertices, indices, blend, dstRegion, srcRegions, shader.shader, uniforms, fillRule)
 }
 
 func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte, region image.Rectangle) error {
-	if err := i.image.ReadPixels(graphicsDriver, []graphicsdriver.PixelsArgs{
+	if err := i.Image.ReadPixels(graphicsDriver, []graphicsdriver.PixelsArgs{
 		{
 			Pixels: pixels,
 			Region: region,
@@ -175,14 +178,14 @@ func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte
 // After disposing, calling the function of the image causes unexpected results.
 func (i *Image) Dispose() {
 	theImages.remove(i)
-	i.image.Dispose()
-	i.image = nil
+	i.Image.Dispose()
+	i.Image = nil
 }
 
 func (i *Image) Dump(graphicsDriver graphicsdriver.Graphics, path string, blackbg bool, rect image.Rectangle) (string, error) {
-	return i.image.Dump(graphicsDriver, path, blackbg, rect)
+	return i.Image.Dump(graphicsDriver, path, blackbg, rect)
 }
 
 func (i *Image) InternalSize() (int, int) {
-	return i.image.InternalSize()
+	return i.Image.InternalSize()
 }

@@ -22,6 +22,7 @@ import (
 	"sync"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/packing"
 	"github.com/hajimehoshi/ebiten/v2/internal/restorable"
@@ -830,5 +831,12 @@ func DumpImages(graphicsDriver graphicsdriver.Graphics, dir string) (string, err
 		panic("atlas: DumpImages must be called in between BeginFrame and EndFrame")
 	}
 
-	return restorable.DumpImages(graphicsDriver, dir)
+	images := make([]*graphicscommand.Image, 0, len(theBackends))
+	for _, backend := range theBackends {
+		if backend.restorable == nil {
+			continue
+		}
+		images = append(images, backend.restorable.Image)
+	}
+	return graphicscommand.DumpImages(images, graphicsDriver, dir)
 }
