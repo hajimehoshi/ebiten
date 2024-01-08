@@ -94,6 +94,9 @@ type backend struct {
 }
 
 func (b *backend) tryAlloc(width, height int) (*packing.Node, bool) {
+	if b.page == nil {
+		return nil, false
+	}
 	n := b.page.Alloc(width, height)
 	if n == nil {
 		// The page can't be extended anymore. Return as failure.
@@ -643,6 +646,7 @@ func (i *Image) allocate(forbiddenBackends []*backend, asSource bool) {
 		i.backend = &backend{
 			restorable: restorable.NewImage(i.width, i.height, restorable.ImageTypeScreen),
 		}
+		theBackends = append(theBackends, i.backend)
 		return
 	}
 
@@ -658,6 +662,7 @@ func (i *Image) allocate(forbiddenBackends []*backend, asSource bool) {
 			restorable: restorable.NewImage(wp, hp, restorable.ImageTypeRegular),
 			source:     asSource && i.imageType == ImageTypeRegular,
 		}
+		theBackends = append(theBackends, i.backend)
 		return
 	}
 
