@@ -31,9 +31,6 @@ const (
 
 	// ImageTypeScreen indicates the image is used as an actual screen.
 	ImageTypeScreen
-
-	// ImageTypeVolatile indicates the image is cleared whenever a frame starts.
-	ImageTypeVolatile
 )
 
 // Image represents an image.
