@@ -20,22 +20,8 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 )
 
-// forceRestoring reports whether restoring forcely happens or not.
-var forceRestoring = false
-
-// needsRestoring reports whether restoring process works or not.
-func needsRestoring() bool {
-	return forceRestoring
-}
-
-// AlwaysReadPixelsFromGPU reports whether ReadPixels always reads pixels from GPU or not.
-func AlwaysReadPixelsFromGPU() bool {
-	return !needsRestoring()
-}
-
-// EnableRestoringForTesting forces to enable restoring for testing.
-func EnableRestoringForTesting() {
-	forceRestoring = true
+func alwaysReadPixelsFromGPU() bool {
+	return true
 }
 
 // images is a set of Image objects.
@@ -60,56 +46,10 @@ func SwapBuffers(graphicsDriver graphicsdriver.Graphics) error {
 		}
 		graphicscommand.LogImagesInfo(imgs)
 	}
-	return resolveStaleImages(graphicsDriver, true)
-}
-
-// resolveStaleImages flushes the queued draw commands and resolves all stale images.
-// If endFrame is true, the current screen might be used to present when flushing the commands.
-func resolveStaleImages(graphicsDriver graphicsdriver.Graphics, endFrame bool) error {
-	if err := graphicscommand.FlushCommands(graphicsDriver, endFrame); err != nil {
+	if err := graphicscommand.FlushCommands(graphicsDriver, true); err != nil {
 		return err
 	}
-	if !needsRestoring() {
-		return nil
-	}
-	return theImages.resolveStaleImages(graphicsDriver)
-}
-
-// RestoreIfNeeded restores the images.
-//
-// Restoring means to make all *graphicscommand.Image objects have their textures and framebuffers.
-func RestoreIfNeeded(graphicsDriver graphicsdriver.Graphics) error {
-	if !needsRestoring() {
-		return nil
-	}
-
-	if !forceRestoring {
-		var r bool
-
-		// As isInvalidated() is expensive, call this only for one image.
-		// This assumes that if there is one image that is invalidated, all images are invalidated.
-		for img := range theImages.images {
-			// The screen image might not have a texture. Skip this.
-			if img.imageType == ImageTypeScreen {
-				continue
-			}
-			var err error
-			r, err = img.isInvalidated(graphicsDriver)
-			if err != nil {
-				return err
-			}
-			break
-		}
-
-		if !r {
-			return nil
-		}
-	}
-
-	if err := graphicscommand.ResetGraphicsDriverState(graphicsDriver); err != nil {
-		return err
-	}
-	return theImages.restore(graphicsDriver)
+	return nil
 }
 
 // DumpImages dumps all the current images to the specified directory.
@@ -144,17 +84,6 @@ func (i *images) removeShader(shader *Shader) {
 	delete(i.shaders, shader)
 }
 
-// resolveStaleImages resolves stale images.
-func (i *images) resolveStaleImages(graphicsDriver graphicsdriver.Graphics) error {
-	i.lastTarget = nil
-	for img := range i.images {
-		if err := img.resolveStale(graphicsDriver); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 // makeStaleIfDependingOn makes all the images stale that depend on target.
 //
 // When target is modified, all images depending on target can't be restored with target.
@@ -180,83 +109,6 @@ func (i *images) makeStaleIfDependingOnShader(shader *Shader) {
 	for img := range i.images {
 		img.makeStaleIfDependingOnShader(shader)
 	}
-}
-
-// restore restores the images.
-//
-// Restoring means to make all *graphicscommand.Image objects have their textures and framebuffers.
-func (i *images) restore(graphicsDriver graphicsdriver.Graphics) error {
-	if !needsRestoring() {
-		panic("restorable: restore cannot be called when restoring is disabled")
-	}
-
-	// Dispose all the shaders ahead of restoring. A current shader ID and a new shader ID can be duplicated.
-	for s := range i.shaders {
-		s.shader.Dispose()
-		s.shader = nil
-	}
-	for s := range i.shaders {
-		s.restore()
-	}
-
-	// Dispose all the images ahead of restoring. A current texture ID and a new texture ID can be duplicated.
-	// TODO: Write a test to confirm that ID duplication never happens.
-	for i := range i.images {
-		i.image.Dispose()
-		i.image = nil
-	}
-
-	// Let's do topological sort based on dependencies of drawing history.
-	// It is assured that there are not loops since cyclic drawing makes images stale.
-	type edge struct {
-		source *Image
-		target *Image
-	}
-	images := map[*Image]struct{}{}
-	for i := range i.images {
-		images[i] = struct{}{}
-	}
-	edges := map[edge]struct{}{}
-	for t := range images {
-		for s := range t.dependingImages() {
-			edges[edge{source: s, target: t}] = struct{}{}
-		}
-	}
-
-	var sorted []*Image
-	for len(images) > 0 {
-		// current represents images that have no incoming edges.
-		current := map[*Image]struct{}{}
-		for i := range images {
-			current[i] = struct{}{}
-		}
-		for e := range edges {
-			if _, ok := current[e.target]; ok {
-				delete(current, e.target)
-			}
-		}
-		for i := range current {
-			delete(images, i)
-			sorted = append(sorted, i)
-		}
-		removed := []edge{}
-		for e := range edges {
-			if _, ok := current[e.source]; ok {
-				removed = append(removed, e)
-			}
-		}
-		for _, e := range removed {
-			delete(edges, e)
-		}
-	}
-
-	for _, img := range sorted {
-		if err := img.restore(graphicsDriver); err != nil {
-			return err
-		}
-	}
-
-	return nil
 }
 
 var graphicsDriverInitialized bool

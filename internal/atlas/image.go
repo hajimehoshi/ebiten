@@ -817,11 +817,6 @@ func BeginFrame(graphicsDriver graphicsdriver.Graphics) error {
 		return err
 	}
 
-	// Restore images first before other image manipulations (#2075).
-	if err := restorable.RestoreIfNeeded(graphicsDriver); err != nil {
-		return err
-	}
-
 	flushDeferred()
 	putImagesOnSourceBackend(graphicsDriver)
 

@@ -21,7 +21,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
-	"github.com/hajimehoshi/ebiten/v2/internal/restorable"
 )
 
 type Image struct {
@@ -50,14 +49,6 @@ func (i *Image) Deallocate() {
 }
 
 func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte, region image.Rectangle) error {
-	// If restorable.AlwaysReadPixelsFromGPU() returns false, the pixel data is cached in the restorable package.
-	if !restorable.AlwaysReadPixelsFromGPU() {
-		if err := i.img.ReadPixels(graphicsDriver, pixels, region); err != nil {
-			return err
-		}
-		return nil
-	}
-
 	if i.pixels == nil {
 		pix := make([]byte, 4*i.width*i.height)
 		if err := i.img.ReadPixels(graphicsDriver, pix, image.Rect(0, 0, i.width, i.height)); err != nil {
