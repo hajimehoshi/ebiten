@@ -47,10 +47,6 @@ func (i *Image) ID() graphicsdriver.ImageID {
 	return i.id
 }
 
-func (i *Image) IsInvalidated() bool {
-	return !i.graphics.context.ctx.IsTexture(uint32(i.texture))
-}
-
 func (i *Image) Dispose() {
 	if i.framebuffer != nil {
 		i.graphics.context.deleteFramebuffer(i.framebuffer.native)

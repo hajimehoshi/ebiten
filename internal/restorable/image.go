@@ -616,14 +616,6 @@ func (i *Image) Dispose() {
 	i.staleRegions = i.staleRegions[:0]
 }
 
-// isInvalidated returns a boolean value indicating whether the image is invalidated.
-//
-// If an image is invalidated, GL context is lost and all the images should be restored asap.
-func (i *Image) isInvalidated(graphicsDriver graphicsdriver.Graphics) (bool, error) {
-	// IsInvalidated flushes the commands internally.
-	return i.image.IsInvalidated(graphicsDriver)
-}
-
 func (i *Image) Dump(graphicsDriver graphicsdriver.Graphics, path string, blackbg bool, rect image.Rectangle) (string, error) {
 	return i.image.Dump(graphicsDriver, path, blackbg, rect)
 }

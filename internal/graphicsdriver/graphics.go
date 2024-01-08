@@ -78,7 +78,6 @@ type Resetter interface {
 type Image interface {
 	ID() ImageID
 	Dispose()
-	IsInvalidated() bool
 	ReadPixels(args []PixelsArgs) error
 	WritePixels(args []PixelsArgs) error
 }

@@ -135,10 +135,6 @@ func (i *Image) Dispose() {
 	C.ebitengine_DisposeImage(C.int(i.id))
 }
 
-func (i *Image) IsInvalidated() bool {
-	return false
-}
-
 func (i *Image) ReadPixels(args []graphicsdriver.PixelsArgs) error {
 	// TODO: Implement this
 	return nil

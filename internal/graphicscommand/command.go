@@ -362,24 +362,6 @@ func (c *newShaderCommand) NeedsSync() bool {
 	return true
 }
 
-type isInvalidatedCommand struct {
-	result bool
-	image  *Image
-}
-
-func (c *isInvalidatedCommand) String() string {
-	return fmt.Sprintf("is-invalidated: image: %d", c.image.id)
-}
-
-func (c *isInvalidatedCommand) Exec(commandQueue *commandQueue, graphicsDriver graphicsdriver.Graphics, indexOffset int) error {
-	c.result = c.image.image.IsInvalidated()
-	return nil
-}
-
-func (c *isInvalidatedCommand) NeedsSync() bool {
-	return true
-}
-
 // InitializeGraphicsDriverState initialize the current graphics driver state.
 func InitializeGraphicsDriverState(graphicsDriver graphicsdriver.Graphics) (err error) {
 	runOnRenderThread(func() {

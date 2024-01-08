@@ -817,13 +817,6 @@ func (i *Image) Dispose() {
 	i.graphics.removeImage(i)
 }
 
-func (i *Image) IsInvalidated() bool {
-	// TODO: Does Metal cause context lost?
-	// https://developer.apple.com/documentation/metal/mtlresource/1515898-setpurgeablestate
-	// https://developer.apple.com/documentation/metal/mtldevicenotificationhandler
-	return false
-}
-
 func (i *Image) syncTexture() {
 	i.graphics.flushRenderCommandEncoderIfNeeded()
 

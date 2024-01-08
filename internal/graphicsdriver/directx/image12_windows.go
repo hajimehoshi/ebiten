@@ -68,10 +68,6 @@ func (i *image12) disposeImpl() {
 	}
 }
 
-func (*image12) IsInvalidated() bool {
-	return false
-}
-
 func (i *image12) ReadPixels(args []graphicsdriver.PixelsArgs) error {
 	if i.screen {
 		return errors.New("directx: Pixels cannot be called on the screen")
