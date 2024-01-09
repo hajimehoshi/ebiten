@@ -79,6 +79,7 @@ func NewGame() *Game {
 }
 
 func (g *Game) Update() error {
+	//Uses ebiten.CursorPosition() to direct the stars to where you move the cursor
 	x, y := ebiten.CursorPosition()
 	for i := 0; i < starsCount; i++ {
 		g.stars[i].Update(float32(x*scale), float32(y*scale))
