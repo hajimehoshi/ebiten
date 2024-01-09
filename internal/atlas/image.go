@@ -94,6 +94,9 @@ type backend struct {
 }
 
 func (b *backend) tryAlloc(width, height int) (*packing.Node, bool) {
+	if b.page == nil {
+		return nil, false
+	}
 	n := b.page.Alloc(width, height)
 	if n == nil {
 		// The page can't be extended anymore. Return as failure.
@@ -376,7 +379,7 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 			vertices[i+2] += oxf
 			vertices[i+3] += oyf
 		}
-		if shader.ensureShader().Unit() == shaderir.Texels {
+		if shader.ir.Unit == shaderir.Texels {
 			sw, sh := srcs[0].backend.restorable.InternalSize()
 			swf, shf := float32(sw), float32(sh)
 			for i := 0; i < n; i += graphics.VertexFloatCount {
@@ -592,12 +595,14 @@ func (i *Image) deallocate() {
 
 	for idx, sh := range theBackends {
 		if sh == i.backend {
-			theBackends = append(theBackends[:idx], theBackends[idx+1:]...)
+			copy(theBackends[idx:], theBackends[idx+1:])
+			theBackends[len(theBackends)-1] = nil
+			theBackends = theBackends[:len(theBackends)-1]
 			return
 		}
 	}
 
-	panic("atlas: backend not found at an image being disposed")
+	panic("atlas: backend not found at an image being deallocated")
 }
 
 func NewImage(width, height int, imageType ImageType) *Image {
@@ -641,6 +646,7 @@ func (i *Image) allocate(forbiddenBackends []*backend, asSource bool) {
 		i.backend = &backend{
 			restorable: restorable.NewImage(i.width, i.height, restorable.ImageTypeScreen),
 		}
+		theBackends = append(theBackends, i.backend)
 		return
 	}
 
@@ -652,14 +658,11 @@ func (i *Image) allocate(forbiddenBackends []*backend, asSource bool) {
 			panic(fmt.Sprintf("atlas: the image being put on an atlas is too big: width: %d, height: %d", i.width, i.height))
 		}
 
-		typ := restorable.ImageTypeRegular
-		if i.imageType == ImageTypeVolatile {
-			typ = restorable.ImageTypeVolatile
-		}
 		i.backend = &backend{
-			restorable: restorable.NewImage(wp, hp, typ),
-			source:     asSource && typ == restorable.ImageTypeRegular,
+			restorable: restorable.NewImage(wp, hp, restorable.ImageTypeRegular),
+			source:     asSource && i.imageType == ImageTypeRegular,
 		}
+		theBackends = append(theBackends, i.backend)
 		return
 	}
 
@@ -701,12 +704,8 @@ loop:
 		height *= 2
 	}
 
-	typ := restorable.ImageTypeRegular
-	if i.imageType == ImageTypeVolatile {
-		typ = restorable.ImageTypeVolatile
-	}
 	b := &backend{
-		restorable: restorable.NewImage(width, height, typ),
+		restorable: restorable.NewImage(width, height, restorable.ImageTypeRegular),
 		page:       packing.NewPage(width, height, maxSize),
 		source:     asSource,
 	}
@@ -814,11 +813,6 @@ func BeginFrame(graphicsDriver graphicsdriver.Graphics) error {
 		}
 	})
 	if err != nil {
-		return err
-	}
-
-	// Restore images first before other image manipulations (#2075).
-	if err := restorable.RestoreIfNeeded(graphicsDriver); err != nil {
 		return err
 	}
 

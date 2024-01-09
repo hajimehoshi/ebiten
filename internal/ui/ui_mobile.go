@@ -20,29 +20,18 @@ import (
 	stdcontext "context"
 	"fmt"
 	"image"
+	"runtime"
 	"runtime/debug"
 	"sync"
 	"sync/atomic"
-	"unicode"
-
-	"golang.org/x/mobile/app"
-	"golang.org/x/mobile/event/key"
-	"golang.org/x/mobile/event/lifecycle"
-	"golang.org/x/mobile/event/paint"
-	"golang.org/x/mobile/event/size"
-	"golang.org/x/mobile/event/touch"
-	"golang.org/x/mobile/gl"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/hook"
-	"github.com/hajimehoshi/ebiten/v2/internal/restorable"
 )
 
 var (
-	glContextCh = make(chan gl.Context, 1)
-
 	// renderCh receives when updating starts.
 	renderCh = make(chan struct{})
 
@@ -107,12 +96,6 @@ type userInterfaceImpl struct {
 	foreground int32
 	errCh      chan error
 
-	// Used for gomobile-build
-	gbuildWidthPx   int
-	gbuildHeightPx  int
-	setGBuildSizeCh chan struct{}
-	once            sync.Once
-
 	context *context
 
 	inputState InputState
@@ -122,103 +105,6 @@ type userInterfaceImpl struct {
 	renderRequester RenderRequester
 
 	m sync.RWMutex
-}
-
-// appMain is the main routine for gomobile-build mode.
-func (u *UserInterface) appMain(a app.App) {
-	var glctx gl.Context
-	var sizeInited bool
-
-	touches := map[touch.Sequence]TouchForInput{}
-	keys := map[Key]struct{}{}
-
-	for e := range a.Events() {
-		var updateInput bool
-		var runes []rune
-
-		switch e := a.Filter(e).(type) {
-		case lifecycle.Event:
-			switch e.Crosses(lifecycle.StageVisible) {
-			case lifecycle.CrossOn:
-				if err := u.SetForeground(true); err != nil {
-					// There are no other ways than panicking here.
-					panic(err)
-				}
-				restorable.OnContextLost()
-				glctx, _ = e.DrawContext.(gl.Context)
-				// Assume that glctx is always a same instance.
-				// Then, only once initializing should be enough.
-				if glContextCh != nil {
-					glContextCh <- glctx
-					glContextCh = nil
-				}
-				a.Send(paint.Event{})
-			case lifecycle.CrossOff:
-				if err := u.SetForeground(false); err != nil {
-					// There are no other ways than panicking here.
-					panic(err)
-				}
-				glctx = nil
-			}
-		case size.Event:
-			u.setGBuildSize(e.WidthPx, e.HeightPx)
-			sizeInited = true
-		case paint.Event:
-			if !sizeInited {
-				a.Send(paint.Event{})
-				continue
-			}
-			if glctx == nil || e.External {
-				continue
-			}
-			renderCh <- struct{}{}
-			<-renderEndCh
-			a.Publish()
-			a.Send(paint.Event{})
-		case touch.Event:
-			if !sizeInited {
-				continue
-			}
-			switch e.Type {
-			case touch.TypeBegin, touch.TypeMove:
-				s := u.DeviceScaleFactor()
-				touches[e.Sequence] = TouchForInput{
-					ID: TouchID(e.Sequence),
-					X:  float64(e.X) / s,
-					Y:  float64(e.Y) / s,
-				}
-			case touch.TypeEnd:
-				delete(touches, e.Sequence)
-			}
-			updateInput = true
-		case key.Event:
-			k, ok := gbuildKeyToUIKey[e.Code]
-			if ok {
-				switch e.Direction {
-				case key.DirPress, key.DirNone:
-					keys[k] = struct{}{}
-				case key.DirRelease:
-					delete(keys, k)
-				}
-			}
-
-			switch e.Direction {
-			case key.DirPress, key.DirNone:
-				if e.Rune != -1 && unicode.IsPrint(e.Rune) {
-					runes = []rune{e.Rune}
-				}
-			}
-			updateInput = true
-		}
-
-		if updateInput {
-			var ts []TouchForInput
-			for _, t := range touches {
-				ts = append(ts, t)
-			}
-			u.updateInputStateFromOutside(keys, runes, ts)
-		}
-	}
 }
 
 func (u *UserInterface) SetForeground(foreground bool) error {
@@ -236,26 +122,18 @@ func (u *UserInterface) SetForeground(foreground bool) error {
 }
 
 func (u *UserInterface) Run(game Game, options *RunOptions) error {
-	u.setGBuildSizeCh = make(chan struct{})
-	go func() {
-		if err := u.runMobile(game, true, options); err != nil {
-			// As mobile apps never ends, Loop can't return. Just panic here.
-			panic(err)
-		}
-	}()
-	app.Main(u.appMain)
-	return nil
+	return fmt.Errorf("internal/ui: Run is not implemented for GOOS=%s", runtime.GOOS)
 }
 
 func (u *UserInterface) RunWithoutMainLoop(game Game, options *RunOptions) {
 	go func() {
-		if err := u.runMobile(game, false, options); err != nil {
+		if err := u.runMobile(game, options); err != nil {
 			u.errCh <- err
 		}
 	}()
 }
 
-func (u *UserInterface) runMobile(game Game, mainloop bool, options *RunOptions) (err error) {
+func (u *UserInterface) runMobile(game Game, options *RunOptions) (err error) {
 	// Convert the panic to a regular error so that Java/Objective-C layer can treat this easily e.g., for
 	// Crashlytics. A panic is treated as SIGABRT, and there is no way to handle this on Java/Objective-C layer
 	// unfortunately.
@@ -266,34 +144,20 @@ func (u *UserInterface) runMobile(game Game, mainloop bool, options *RunOptions)
 		}
 	}()
 
-	var mgl gl.Context
-	if mainloop {
-		// When gomobile-build is used, GL functions must be called via
-		// gl.Context so that they are called on the appropriate thread.
-		mgl = <-glContextCh
-	} else {
-		graphicscommand.SetOSThreadAsRenderThread()
-	}
+	graphicscommand.SetOSThreadAsRenderThread()
 
 	u.setRunning(true)
 	defer u.setRunning(false)
 
 	u.context = newContext(game)
 
-	g, lib, err := newGraphicsDriver(&graphicsDriverCreatorImpl{
-		gomobileContext: mgl,
-	}, options.GraphicsLibrary)
+	g, lib, err := newGraphicsDriver(&graphicsDriverCreatorImpl{}, options.GraphicsLibrary)
 	if err != nil {
 		return err
 	}
 	u.graphicsDriver = g
 	u.setGraphicsLibrary(lib)
 	close(u.graphicsLibraryInitCh)
-
-	// If gomobile-build is used, wait for the outside size fixed.
-	if u.setGBuildSizeCh != nil {
-		<-u.setGBuildSizeCh
-	}
 
 	for {
 		if err := u.update(); err != nil {
@@ -304,21 +168,10 @@ func (u *UserInterface) runMobile(game Game, mainloop bool, options *RunOptions)
 
 // outsideSize must be called on the same goroutine as update().
 func (u *UserInterface) outsideSize() (float64, float64) {
-	var outsideWidth, outsideHeight float64
-
 	u.m.RLock()
-	if u.gbuildWidthPx == 0 || u.gbuildHeightPx == 0 {
-		outsideWidth = u.outsideWidth
-		outsideHeight = u.outsideHeight
-	} else {
-		// gomobile build
-		d := u.DeviceScaleFactor()
-		outsideWidth = float64(u.gbuildWidthPx) / d
-		outsideHeight = float64(u.gbuildHeightPx) / d
-	}
-	u.m.RUnlock()
+	defer u.m.RUnlock()
 
-	return outsideWidth, outsideHeight
+	return u.outsideWidth, u.outsideHeight
 }
 
 func (u *UserInterface) update() error {
@@ -350,17 +203,6 @@ func (u *UserInterface) SetOutsideSize(outsideWidth, outsideHeight float64) {
 		u.outsideHeight = outsideHeight
 	}
 	u.m.Unlock()
-}
-
-func (u *UserInterface) setGBuildSize(widthPx, heightPx int) {
-	u.m.Lock()
-	u.gbuildWidthPx = widthPx
-	u.gbuildHeightPx = heightPx
-	u.m.Unlock()
-
-	u.once.Do(func() {
-		close(u.setGBuildSizeCh)
-	})
 }
 
 func (u *UserInterface) CursorMode() CursorMode {

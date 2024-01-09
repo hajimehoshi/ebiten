@@ -212,10 +212,6 @@ package gl
 //   typedef GLboolean (*fn)(GLuint renderbuffer);
 //   return ((fn)(fnptr))(renderbuffer);
 // }
-// static GLboolean glowIsTexture(uintptr_t fnptr, GLuint texture) {
-//   typedef GLboolean (*fn)(GLuint texture);
-//   return ((fn)(fnptr))(texture);
-// }
 // static void glowLinkProgram(uintptr_t fnptr, GLuint program) {
 //   typedef void (*fn)(GLuint program);
 //   ((fn)(fnptr))(program);
@@ -376,7 +372,6 @@ type defaultContext struct {
 	gpIsFramebuffer            C.uintptr_t
 	gpIsProgram                C.uintptr_t
 	gpIsRenderbuffer           C.uintptr_t
-	gpIsTexture                C.uintptr_t
 	gpLinkProgram              C.uintptr_t
 	gpPixelStorei              C.uintptr_t
 	gpReadPixels               C.uintptr_t
@@ -653,11 +648,6 @@ func (c *defaultContext) IsRenderbuffer(renderbuffer uint32) bool {
 	return ret == TRUE
 }
 
-func (c *defaultContext) IsTexture(texture uint32) bool {
-	ret := C.glowIsTexture(c.gpIsTexture, C.GLuint(texture))
-	return ret == TRUE
-}
-
 func (c *defaultContext) LinkProgram(program uint32) {
 	C.glowLinkProgram(c.gpLinkProgram, C.GLuint(program))
 }
@@ -832,7 +822,6 @@ func (c *defaultContext) LoadFunctions() error {
 	c.gpIsFramebuffer = C.uintptr_t(g.get("glIsFramebuffer"))
 	c.gpIsProgram = C.uintptr_t(g.get("glIsProgram"))
 	c.gpIsRenderbuffer = C.uintptr_t(g.get("glIsRenderbuffer"))
-	c.gpIsTexture = C.uintptr_t(g.get("glIsTexture"))
 	c.gpLinkProgram = C.uintptr_t(g.get("glLinkProgram"))
 	c.gpPixelStorei = C.uintptr_t(g.get("glPixelStorei"))
 	c.gpReadPixels = C.uintptr_t(g.get("glReadPixels"))

@@ -62,7 +62,6 @@ type Graphics interface {
 	NewImage(width, height int) (Image, error)
 	NewScreenFramebufferImage(width, height int) (Image, error)
 	SetVsyncEnabled(enabled bool)
-	NeedsRestoring() bool
 	NeedsClearingScreen() bool
 	MaxImageSize() int
 
@@ -79,7 +78,6 @@ type Resetter interface {
 type Image interface {
 	ID() ImageID
 	Dispose()
-	IsInvalidated() bool
 	ReadPixels(args []PixelsArgs) error
 	WritePixels(args []PixelsArgs) error
 }

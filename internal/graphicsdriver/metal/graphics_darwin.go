@@ -708,10 +708,6 @@ func (g *Graphics) SetVsyncEnabled(enabled bool) {
 	g.view.setDisplaySyncEnabled(enabled)
 }
 
-func (g *Graphics) NeedsRestoring() bool {
-	return false
-}
-
 func (g *Graphics) NeedsClearingScreen() bool {
 	return false
 }
@@ -819,13 +815,6 @@ func (i *Image) Dispose() {
 		i.texture = mtl.Texture{}
 	}
 	i.graphics.removeImage(i)
-}
-
-func (i *Image) IsInvalidated() bool {
-	// TODO: Does Metal cause context lost?
-	// https://developer.apple.com/documentation/metal/mtlresource/1515898-setpurgeablestate
-	// https://developer.apple.com/documentation/metal/mtldevicenotificationhandler
-	return false
 }
 
 func (i *Image) syncTexture() {

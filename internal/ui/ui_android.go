@@ -89,14 +89,12 @@ import (
 	"fmt"
 
 	"golang.org/x/mobile/app"
-	"golang.org/x/mobile/gl"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl"
 )
 
 type graphicsDriverCreatorImpl struct {
-	gomobileContext gl.Context
 }
 
 func (g *graphicsDriverCreatorImpl) newAuto() (graphicsdriver.Graphics, GraphicsLibrary, error) {
@@ -105,7 +103,7 @@ func (g *graphicsDriverCreatorImpl) newAuto() (graphicsdriver.Graphics, Graphics
 }
 
 func (g *graphicsDriverCreatorImpl) newOpenGL() (graphicsdriver.Graphics, error) {
-	return opengl.NewGraphics(g.gomobileContext)
+	return opengl.NewGraphics()
 }
 
 func (*graphicsDriverCreatorImpl) newDirectX() (graphicsdriver.Graphics, error) {

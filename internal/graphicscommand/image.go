@@ -167,28 +167,6 @@ func (i *Image) WritePixels(pixels *graphics.ManagedBytes, region image.Rectangl
 	})
 }
 
-func (i *Image) IsInvalidated(graphicsDriver graphicsdriver.Graphics) (bool, error) {
-	if i.screen {
-		// The screen image might not have a texture, and in this case it is impossible to detect whether
-		// the image is invalidated or not.
-		return false, fmt.Errorf("graphicscommand: IsInvalidated cannot be called on the screen image")
-	}
-
-	// i.image can be nil before initializing.
-	if i.image == nil {
-		return false, nil
-	}
-
-	c := &isInvalidatedCommand{
-		image: i,
-	}
-	theCommandQueueManager.enqueueCommand(c)
-	if err := theCommandQueueManager.flush(graphicsDriver, false); err != nil {
-		return false, err
-	}
-	return c.result, nil
-}
-
 func (i *Image) dumpName(path string) string {
 	return strings.ReplaceAll(path, "*", strconv.Itoa(i.id))
 }

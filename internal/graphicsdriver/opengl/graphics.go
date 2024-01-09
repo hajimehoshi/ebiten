@@ -18,7 +18,6 @@ package opengl
 
 import (
 	"fmt"
-	"runtime"
 	"unsafe"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
@@ -308,14 +307,6 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 
 func (g *Graphics) SetVsyncEnabled(enabled bool) {
 	g.vsync = enabled
-}
-
-func (g *Graphics) NeedsRestoring() bool {
-	// Though it is possible to have a logic to restore the graphics data for GPU, do not use it for performance (#1603).
-	if runtime.GOOS == "js" {
-		return false
-	}
-	return g.context.ctx.IsES()
 }
 
 func (g *Graphics) NeedsClearingScreen() bool {

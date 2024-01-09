@@ -463,10 +463,6 @@ func (g *graphics11) SetVsyncEnabled(enabled bool) {
 	g.vsyncEnabled = enabled
 }
 
-func (g *graphics11) NeedsRestoring() bool {
-	return false
-}
-
 func (g *graphics11) NeedsClearingScreen() bool {
 	// TODO: Confirm this is really true.
 	return true

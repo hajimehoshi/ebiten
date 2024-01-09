@@ -70,7 +70,6 @@ type defaultContext struct {
 	fnIsFramebuffer            js.Value
 	fnIsProgram                js.Value
 	fnIsRenderbuffer           js.Value
-	fnIsTexture                js.Value
 	fnLinkProgram              js.Value
 	fnPixelStorei              js.Value
 	fnReadPixels               js.Value
@@ -201,7 +200,6 @@ func NewDefaultContext(v js.Value) (Context, error) {
 		fnIsFramebuffer:            v.Get("isFramebuffer").Call("bind", v),
 		fnIsProgram:                v.Get("isProgram").Call("bind", v),
 		fnIsRenderbuffer:           v.Get("isRenderbuffer").Call("bind", v),
-		fnIsTexture:                v.Get("isTexture").Call("bind", v),
 		fnLinkProgram:              v.Get("linkProgram").Call("bind", v),
 		fnPixelStorei:              v.Get("pixelStorei").Call("bind", v),
 		fnReadPixels:               v.Get("readPixels").Call("bind", v),
@@ -493,10 +491,6 @@ func (c *defaultContext) IsProgram(program uint32) bool {
 
 func (c *defaultContext) IsRenderbuffer(renderbuffer uint32) bool {
 	return c.fnIsRenderbuffer.Invoke(c.renderbuffers.get(renderbuffer)).Bool()
-}
-
-func (c *defaultContext) IsTexture(texture uint32) bool {
-	return c.fnIsTexture.Invoke(c.textures.get(texture)).Bool()
 }
 
 func (c *defaultContext) LinkProgram(program uint32) {

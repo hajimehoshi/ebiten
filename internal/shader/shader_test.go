@@ -195,7 +195,7 @@ func TestCompile(t *testing.T) {
 			}
 
 			if tc.Metal != nil {
-				m := msl.Compile(s, "Vertex", "Fragment")
+				m := msl.Compile(s)
 				if got, want := metalNormalize(m), metalNormalize(string(tc.Metal)); got != want {
 					compare(t, "Metal", got, want)
 				}
@@ -203,7 +203,7 @@ func TestCompile(t *testing.T) {
 
 			// Just check that Compile doesn't cause panic.
 			// TODO: Should the results be tested?
-			msl.Compile(s, "Vertex", "Fragmentp")
+			msl.Compile(s)
 		})
 	}
 }

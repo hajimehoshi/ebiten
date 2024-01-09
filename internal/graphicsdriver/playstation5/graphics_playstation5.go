@@ -97,10 +97,6 @@ func (g *Graphics) NewScreenFramebufferImage(width, height int) (graphicsdriver.
 func (g *Graphics) SetVsyncEnabled(enabled bool) {
 }
 
-func (g *Graphics) NeedsRestoring() bool {
-	return false
-}
-
 func (g *Graphics) NeedsClearingScreen() bool {
 	return false
 }
@@ -137,10 +133,6 @@ func (i *Image) ID() graphicsdriver.ImageID {
 
 func (i *Image) Dispose() {
 	C.ebitengine_DisposeImage(C.int(i.id))
-}
-
-func (i *Image) IsInvalidated() bool {
-	return false
 }
 
 func (i *Image) ReadPixels(args []graphicsdriver.PixelsArgs) error {

@@ -73,6 +73,12 @@ func (s *Shader) deallocate() {
 }
 
 var (
-	NearestFilterShader = &Shader{shader: restorable.NearestFilterShader}
-	LinearFilterShader  = &Shader{shader: restorable.LinearFilterShader}
+	NearestFilterShader = &Shader{
+		shader: restorable.NearestFilterShader,
+		ir:     restorable.LinearFilterShaderIR,
+	}
+	LinearFilterShader = &Shader{
+		shader: restorable.LinearFilterShader,
+		ir:     restorable.LinearFilterShaderIR,
+	}
 )

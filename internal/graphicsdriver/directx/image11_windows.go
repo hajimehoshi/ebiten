@@ -76,10 +76,6 @@ func (i *image11) disposeBuffers() {
 	}
 }
 
-func (i *image11) IsInvalidated() bool {
-	return false
-}
-
 func (i *image11) ReadPixels(args []graphicsdriver.PixelsArgs) error {
 	var unionRegion image.Rectangle
 	for _, a := range args {
