@@ -52,10 +52,6 @@ type Image struct {
 //
 // Note that Dispose is not called automatically.
 func NewImage(width, height int, imageType ImageType) *Image {
-	if !graphicsDriverInitialized {
-		panic("restorable: graphics driver must be ready at NewImage but not")
-	}
-
 	i := &Image{
 		Image:     graphicscommand.NewImage(width, height, imageType == ImageTypeScreen),
 		width:     width,

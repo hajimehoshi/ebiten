@@ -126,6 +126,8 @@ var (
 	imagesToPutOnSourceBackend smallImageSet
 
 	imagesUsedAsDestination smallImageSet
+
+	graphicsDriverInitialized bool
 )
 
 type ImageType int
@@ -627,6 +629,10 @@ func (i *Image) canBePutOnAtlas() bool {
 }
 
 func (i *Image) allocate(forbiddenBackends []*backend, asSource bool) {
+	if !graphicsDriverInitialized {
+		panic("atlas: graphics driver must be ready at allocate but not")
+	}
+
 	if i.backend != nil {
 		panic("atlas: the image is already allocated")
 	}
@@ -806,7 +812,7 @@ func BeginFrame(graphicsDriver graphicsdriver.Graphics) error {
 
 	var err error
 	initOnce.Do(func() {
-		err = restorable.InitializeGraphicsDriverState(graphicsDriver)
+		err = graphicscommand.InitializeGraphicsDriverState(graphicsDriver)
 		if err != nil {
 			return
 		}
@@ -822,8 +828,10 @@ func BeginFrame(graphicsDriver graphicsdriver.Graphics) error {
 			minDestinationSize = 16
 		}
 		if maxSize == 0 {
-			maxSize = floorPowerOf2(restorable.MaxImageSize(graphicsDriver))
+			maxSize = floorPowerOf2(graphicscommand.MaxImageSize(graphicsDriver))
 		}
+
+		graphicsDriverInitialized = true
 	})
 	if err != nil {
 		return err
