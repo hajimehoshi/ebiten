@@ -50,6 +50,16 @@ func min(a, b int) int {
 	return b
 }
 
+// quadVertices returns vertices to render a quad. These values are passed to graphicscommand.Image.
+func quadVertices(dx0, dy0, dx1, dy1, sx0, sy0, sx1, sy1, cr, cg, cb, ca float32) []float32 {
+	return []float32{
+		dx0, dy0, sx0, sy0, cr, cg, cb, ca,
+		dx1, dy0, sx1, sy0, cr, cg, cb, ca,
+		dx0, dy1, sx0, sy1, cr, cg, cb, ca,
+		dx1, dy1, sx1, sy1, cr, cg, cb, ca,
+	}
+}
+
 // baseCountToPutOnSourceBackend represents the base time duration when the image can be put onto an atlas.
 // Actual time duration is increased in an exponential way for each usage as a rendering target.
 const baseCountToPutOnSourceBackend = 10
@@ -108,12 +118,36 @@ func (b *backend) tryAlloc(width, height int) (*packing.Node, bool) {
 		return nil, false
 	}
 
-	w, h := b.page.Size()
-	b.restorable = b.restorable.Extend(w, h)
-	b.width = w
-	b.height = h
+	b.extendIfNeeded(b.page.Size())
 
 	return n, true
+}
+
+// extendIfNeeded extends the image by the given size if necessary.
+// extendIfNeeded creates a new image with the given size and copies the pixels of the given source image.
+// extendIfNeeded disposes an old image after its call when a new image is created.
+func (b *backend) extendIfNeeded(width, height int) {
+	if b.width >= width && b.height >= height {
+		return
+	}
+
+	// Assume that the screen image is never extended.
+	newImg := restorable.NewImage(width, height, false)
+
+	// Use DrawTriangles instead of WritePixels because the image i might be stale and not have its pixels
+	// information.
+	srcs := [graphics.ShaderImageCount]*graphicscommand.Image{b.restorable.Image}
+	sw, sh := b.restorable.Image.InternalSize()
+	vs := quadVertices(0, 0, float32(sw), float32(sh), 0, 0, float32(sw), float32(sh), 1, 1, 1, 1)
+	is := graphics.QuadIndices()
+	dr := image.Rect(0, 0, sw, sh)
+	newImg.Image.DrawTriangles(srcs, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderImageCount]image.Rectangle{}, NearestFilterShader.ensureShader().Shader, nil, graphicsdriver.FillAll)
+	b.restorable.Image.Dispose()
+	b.restorable.Image = nil
+
+	b.restorable = newImg
+	b.width = width
+	b.height = height
 }
 
 var (

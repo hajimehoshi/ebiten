@@ -52,31 +52,6 @@ func NewImage(width, height int, screen bool) *Image {
 	return i
 }
 
-// Extend extends the image by the given size.
-// Extend creates a new image with the given size and copies the pixels of the given source image.
-// Extend disposes itself after its call.
-func (i *Image) Extend(width, height int) *Image {
-	if i.width >= width && i.height >= height {
-		return i
-	}
-
-	// Assume that the screen image is never extended.
-	newImg := NewImage(width, height, false)
-
-	// Use DrawTriangles instead of WritePixels because the image i might be stale and not have its pixels
-	// information.
-	srcs := [graphics.ShaderImageCount]*graphicscommand.Image{i.Image}
-	sw, sh := i.Image.InternalSize()
-	vs := quadVertices(0, 0, float32(sw), float32(sh), 0, 0, float32(sw), float32(sh), 1, 1, 1, 1)
-	is := graphics.QuadIndices()
-	dr := image.Rect(0, 0, sw, sh)
-	newImg.Image.DrawTriangles(srcs, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderImageCount]image.Rectangle{}, NearestFilterShader.Shader, nil, graphicsdriver.FillAll)
-	i.Image.Dispose()
-	i.Image = nil
-
-	return newImg
-}
-
 // quadVertices returns vertices to render a quad. These values are passed to graphicscommand.Image.
 func quadVertices(dx0, dy0, dx1, dy1, sx0, sy0, sx1, sy1, cr, cg, cb, ca float32) []float32 {
 	return []float32{
