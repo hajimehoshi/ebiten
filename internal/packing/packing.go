@@ -172,7 +172,7 @@ func (p *Page) Alloc(width, height int) *Node {
 			region: image.Rect(0, 0, p.width, p.height),
 		}
 	}
-	return p.extendForAndAlloc(width, height)
+	return p.extendAndAlloc(width, height)
 }
 
 func (p *Page) Free(node *Node) {
@@ -210,7 +210,7 @@ func walk(n *Node, f func(n *Node) error) error {
 	return nil
 }
 
-func (p *Page) extendForAndAlloc(width, height int) *Node {
+func (p *Page) extendAndAlloc(width, height int) *Node {
 	if n := alloc(p.root, width, height); n != nil {
 		return n
 	}
