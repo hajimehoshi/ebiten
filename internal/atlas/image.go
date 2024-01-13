@@ -546,8 +546,15 @@ func (i *Image) readPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte
 		return nil
 	}
 
-	r := i.regionWithPadding()
-	return i.backend.restorable.ReadPixels(graphicsDriver, pixels, region.Add(r.Min))
+	if err := i.backend.restorable.Image.ReadPixels(graphicsDriver, []graphicsdriver.PixelsArgs{
+		{
+			Pixels: pixels,
+			Region: region.Add(i.regionWithPadding().Min),
+		},
+	}); err != nil {
+		return err
+	}
+	return nil
 }
 
 // Deallocate deallocates the internal state.
