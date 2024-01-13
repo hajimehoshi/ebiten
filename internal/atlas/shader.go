@@ -68,7 +68,8 @@ func (s *Shader) deallocate() {
 	if s.shader == nil {
 		return
 	}
-	s.shader.Dispose()
+	s.shader.Shader.Dispose()
+	s.shader.Shader = nil
 	s.shader = nil
 }
 

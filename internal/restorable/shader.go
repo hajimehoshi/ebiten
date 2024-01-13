@@ -26,19 +26,14 @@ import (
 )
 
 type Shader struct {
-	shader *graphicscommand.Shader
+	Shader *graphicscommand.Shader
 }
 
 func NewShader(ir *shaderir.Program) *Shader {
 	s := &Shader{
-		shader: graphicscommand.NewShader(ir),
+		Shader: graphicscommand.NewShader(ir),
 	}
 	return s
-}
-
-func (s *Shader) Dispose() {
-	s.shader.Dispose()
-	s.shader = nil
 }
 
 var (

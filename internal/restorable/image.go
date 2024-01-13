@@ -91,7 +91,7 @@ func quadVertices(dx0, dy0, dx1, dy1, sx0, sy0, sx1, sy1, cr, cg, cb, ca float32
 func clearImage(i *graphicscommand.Image, region image.Rectangle) {
 	vs := quadVertices(float32(region.Min.X), float32(region.Min.Y), float32(region.Max.X), float32(region.Max.Y), 0, 0, 0, 0, 0, 0, 0, 0)
 	is := graphics.QuadIndices()
-	i.DrawTriangles([graphics.ShaderImageCount]*graphicscommand.Image{}, vs, is, graphicsdriver.BlendClear, region, [graphics.ShaderImageCount]image.Rectangle{}, clearShader.shader, nil, graphicsdriver.FillAll)
+	i.DrawTriangles([graphics.ShaderImageCount]*graphicscommand.Image{}, vs, is, graphicsdriver.BlendClear, region, [graphics.ShaderImageCount]image.Rectangle{}, clearShader.Shader, nil, graphicsdriver.FillAll)
 }
 
 // ClearPixels clears the specified region by WritePixels.
@@ -141,5 +141,5 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 		}
 		imgs[i] = src.Image
 	}
-	i.Image.DrawTriangles(imgs, vertices, indices, blend, dstRegion, srcRegions, shader.shader, uniforms, fillRule)
+	i.Image.DrawTriangles(imgs, vertices, indices, blend, dstRegion, srcRegions, shader.Shader, uniforms, fillRule)
 }
