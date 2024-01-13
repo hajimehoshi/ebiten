@@ -18,12 +18,17 @@
 extern "C" {
 #endif
 
-int ebitengine_InitializeGraphics(void);
-int ebitengine_NewImage(int* image, int width, int height);
-int ebitengine_NewScreenFramebufferImage(int* image, int width, int height);
+typedef struct ebitengine_Error {
+  const char* message;
+  int         code;
+} ebitengine_Error;
+
+ebitengine_Error ebitengine_InitializeGraphics(void);
+ebitengine_Error ebitengine_NewImage(int* image, int width, int height);
+ebitengine_Error ebitengine_NewScreenFramebufferImage(int* image, int width, int height);
 void ebitengine_DisposeImage(int id);
 
-int ebitengine_NewShader(int* shader, const char* source);
+ebitengine_Error ebitengine_NewShader(int* shader, const char* source);
 void ebitengine_DisposeShader(int id);
 
 #ifdef __cplusplus

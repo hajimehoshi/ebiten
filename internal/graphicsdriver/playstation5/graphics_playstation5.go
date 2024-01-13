@@ -28,12 +28,21 @@ import (
 )
 
 type playstation5Error struct {
-	name string
-	code C.int
+	name    string
+	code    int
+	message string
+}
+
+func newPlaystation5Error(name string, err C.ebitengine_Error) *playstation5Error {
+	return &playstation5Error{
+		name:    name,
+		code:    int(err.code),
+		message: C.GoString(err.message),
+	}
 }
 
 func (e *playstation5Error) Error() string {
-	return fmt.Sprintf("playstation5: error at %s, code: %d", e.name, e.code)
+	return fmt.Sprintf("playstation5: error at %s, code: %d, message: %s", e.name, e.code, e.message)
 }
 
 type Graphics struct {
@@ -44,11 +53,8 @@ func NewGraphics() (*Graphics, error) {
 }
 
 func (g *Graphics) Initialize() error {
-	if errCode := C.ebitengine_InitializeGraphics(); errCode != 0 {
-		return &playstation5Error{
-			name: "(*playstation5.Graphics).Initialize",
-			code: errCode,
-		}
+	if err := C.ebitengine_InitializeGraphics(); err.code != 0 {
+		return newPlaystation5Error("(*playstation5.Graphics).Initialize", err)
 	}
 	return nil
 }
@@ -70,11 +76,8 @@ func (g *Graphics) SetVertices(vertices []float32, indices []uint32) error {
 
 func (g *Graphics) NewImage(width, height int) (graphicsdriver.Image, error) {
 	var id C.int
-	if errCode := C.ebitengine_NewImage(&id, C.int(width), C.int(height)); errCode != 0 {
-		return nil, &playstation5Error{
-			name: "(*playstation5.Graphics).NewImage",
-			code: errCode,
-		}
+	if err := C.ebitengine_NewImage(&id, C.int(width), C.int(height)); err.code != 0 {
+		return nil, newPlaystation5Error("(*playstation5.Graphics).NewImage", err)
 	}
 	return &Image{
 		id: graphicsdriver.ImageID(id),
@@ -83,11 +86,8 @@ func (g *Graphics) NewImage(width, height int) (graphicsdriver.Image, error) {
 
 func (g *Graphics) NewScreenFramebufferImage(width, height int) (graphicsdriver.Image, error) {
 	var id C.int
-	if errCode := C.ebitengine_NewScreenFramebufferImage(&id, C.int(width), C.int(height)); errCode != 0 {
-		return nil, &playstation5Error{
-			name: "(*playstation5.Graphics).NewScreenFramebufferImage",
-			code: errCode,
-		}
+	if err := C.ebitengine_NewScreenFramebufferImage(&id, C.int(width), C.int(height)); err.code != 0 {
+		return nil, newPlaystation5Error("(*playstation5.Graphics).NewScreenFramebufferImage", err)
 	}
 	return &Image{
 		id: graphicsdriver.ImageID(id),
@@ -108,11 +108,8 @@ func (g *Graphics) MaxImageSize() int {
 func (g *Graphics) NewShader(program *shaderir.Program) (graphicsdriver.Shader, error) {
 	var id C.int
 	// TODO: Give a source code.
-	if errCode := C.ebitengine_NewShader(&id, nil); errCode != 0 {
-		return nil, &playstation5Error{
-			name: "(*playstation5.Graphics).NewShader",
-			code: errCode,
-		}
+	if err := C.ebitengine_NewShader(&id, nil); err.code != 0 {
+		return nil, newPlaystation5Error("(*playstation5.Graphics).NewShader", err)
 	}
 	return &Shader{
 		id: graphicsdriver.ShaderID(id),
