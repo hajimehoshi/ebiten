@@ -385,7 +385,7 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 			vertices[i+3] += oyf
 		}
 		if shader.ir.Unit == shaderir.Texels {
-			sw, sh := srcs[0].backend.restorable.InternalSize()
+			sw, sh := srcs[0].backend.restorable.Image.InternalSize()
 			swf, shf := float32(sw), float32(sh)
 			for i := 0; i < n; i += graphics.VertexFloatCount {
 				vertices[i+2] /= swf
@@ -584,7 +584,8 @@ func (i *Image) deallocate() {
 	}
 
 	if !i.isOnAtlas() {
-		i.backend.restorable.Dispose()
+		i.backend.restorable.Image.Dispose()
+		i.backend.restorable.Image = nil
 		return
 	}
 
@@ -596,7 +597,8 @@ func (i *Image) deallocate() {
 		return
 	}
 
-	i.backend.restorable.Dispose()
+	i.backend.restorable.Image.Dispose()
+	i.backend.restorable.Image = nil
 
 	for idx, sh := range theBackends {
 		if sh == i.backend {
@@ -736,7 +738,7 @@ func (i *Image) DumpScreenshot(graphicsDriver graphicsdriver.Graphics, path stri
 		panic("atlas: DumpScreenshots must be called in between BeginFrame and EndFrame")
 	}
 
-	return i.backend.restorable.Dump(graphicsDriver, path, blackbg, image.Rect(0, 0, i.width, i.height))
+	return i.backend.restorable.Image.Dump(graphicsDriver, path, blackbg, image.Rect(0, 0, i.width, i.height))
 }
 
 func EndFrame() error {
