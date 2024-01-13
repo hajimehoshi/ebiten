@@ -105,7 +105,8 @@ func (b *backend) tryAlloc(width, height int) (*packing.Node, bool) {
 		return nil, false
 	}
 
-	b.restorable = b.restorable.Extend(b.page.Size())
+	w, h := b.page.Size()
+	b.restorable = b.restorable.Extend(w, h)
 
 	return n, true
 }
@@ -652,7 +653,7 @@ func (i *Image) allocate(forbiddenBackends []*backend, asSource bool) {
 		}
 		// A screen image doesn't have a padding.
 		i.backend = &backend{
-			restorable: restorable.NewImage(i.width, i.height, restorable.ImageTypeScreen),
+			restorable: restorable.NewImage(i.width, i.height, true),
 		}
 		theBackends = append(theBackends, i.backend)
 		return
@@ -667,7 +668,7 @@ func (i *Image) allocate(forbiddenBackends []*backend, asSource bool) {
 		}
 
 		i.backend = &backend{
-			restorable: restorable.NewImage(wp, hp, restorable.ImageTypeRegular),
+			restorable: restorable.NewImage(wp, hp, false),
 			source:     asSource && i.imageType == ImageTypeRegular,
 		}
 		theBackends = append(theBackends, i.backend)
@@ -713,7 +714,7 @@ loop:
 	}
 
 	b := &backend{
-		restorable: restorable.NewImage(width, height, restorable.ImageTypeRegular),
+		restorable: restorable.NewImage(width, height, false),
 		page:       packing.NewPage(width, height, maxSize),
 		source:     asSource,
 	}

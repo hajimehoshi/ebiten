@@ -23,16 +23,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 )
 
-type ImageType int
-
-const (
-	// ImageTypeRegular indicates the image is a regular image.
-	ImageTypeRegular ImageType = iota
-
-	// ImageTypeScreen indicates the image is used as an actual screen.
-	ImageTypeScreen
-)
-
 // Image represents an image.
 type Image struct {
 	// Image is the underlying image.
@@ -42,8 +32,6 @@ type Image struct {
 
 	width  int
 	height int
-
-	imageType ImageType
 }
 
 // NewImage creates an emtpy image with the given size.
@@ -51,12 +39,11 @@ type Image struct {
 // The returned image is cleared.
 //
 // Note that Dispose is not called automatically.
-func NewImage(width, height int, imageType ImageType) *Image {
+func NewImage(width, height int, screen bool) *Image {
 	i := &Image{
-		Image:     graphicscommand.NewImage(width, height, imageType == ImageTypeScreen),
-		width:     width,
-		height:    height,
-		imageType: imageType,
+		Image:  graphicscommand.NewImage(width, height, screen),
+		width:  width,
+		height: height,
 	}
 
 	// This needs to use 'InternalSize' to render the whole region, or edges are unexpectedly cleared on some
@@ -74,7 +61,8 @@ func (i *Image) Extend(width, height int) *Image {
 		return i
 	}
 
-	newImg := NewImage(width, height, i.imageType)
+	// Assume that the screen image is never extended.
+	newImg := NewImage(width, height, false)
 
 	// Use DrawTriangles instead of WritePixels because the image i might be stale and not have its pixels
 	// information.
