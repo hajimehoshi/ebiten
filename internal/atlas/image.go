@@ -343,6 +343,10 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 }
 
 func (i *Image) drawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint32, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderImageCount]image.Rectangle, shader *Shader, uniforms []uint32, fillRule graphicsdriver.FillRule) {
+	if len(vertices) == 0 {
+		return
+	}
+
 	backends := make([]*backend, 0, len(srcs))
 	for _, src := range srcs {
 		if src == nil {
@@ -415,15 +419,15 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 		srcRegions[i] = srcRegions[i].Add(r.Min)
 	}
 
-	var imgs [graphics.ShaderImageCount]*restorable.Image
+	var imgs [graphics.ShaderImageCount]*graphicscommand.Image
 	for i, src := range srcs {
 		if src == nil {
 			continue
 		}
-		imgs[i] = src.backend.restorable
+		imgs[i] = src.backend.restorable.Image
 	}
 
-	i.backend.restorable.DrawTriangles(imgs, vertices, indices, blend, dstRegion, srcRegions, shader.ensureShader(), uniforms, fillRule)
+	i.backend.restorable.Image.DrawTriangles(imgs, vertices, indices, blend, dstRegion, srcRegions, shader.ensureShader().Shader, uniforms, fillRule)
 
 	for _, src := range srcs {
 		if src == nil {
