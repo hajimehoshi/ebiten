@@ -41,7 +41,7 @@ var (
 	NearestFilterShaderIR *shaderir.Program
 	LinearFilterShader    *Shader
 	LinearFilterShaderIR  *shaderir.Program
-	clearShader           *Shader
+	ClearShader           *Shader
 )
 
 func init() {
@@ -84,5 +84,5 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 	NearestFilterShader = NewShader(nearestIR)
 	LinearFilterShaderIR = linearIR
 	LinearFilterShader = NewShader(linearIR)
-	clearShader = NewShader(clearIR)
+	ClearShader = NewShader(clearIR)
 }
