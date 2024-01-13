@@ -27,8 +27,6 @@ type Image struct {
 	img    *atlas.Image
 	width  int
 	height int
-
-	// pixels is valid only when restorable.AlwaysReadPixelsFromGPU() returns true.
 	pixels []byte
 }
 

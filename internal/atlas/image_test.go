@@ -488,7 +488,7 @@ func TestLongImages(t *testing.T) {
 }
 
 func TestDeallocateImmediately(t *testing.T) {
-	// This tests restorable.Image.ClearPixels is called but WritePixels is not called.
+	// This tests ClearPixels is called but WritePixels is not called.
 
 	img0 := atlas.NewImage(16, 16, atlas.ImageTypeRegular)
 	img0.EnsureIsolatedFromSourceForTesting(nil)
