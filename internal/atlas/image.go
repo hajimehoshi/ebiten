@@ -26,7 +26,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/packing"
-	"github.com/hajimehoshi/ebiten/v2/internal/restorable"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
 
@@ -141,7 +140,7 @@ func (b *backend) extendIfNeeded(width, height int) {
 	vs := quadVertices(0, 0, float32(sw), float32(sh), 0, 0, float32(sw), float32(sh), 1, 1, 1, 1)
 	is := graphics.QuadIndices()
 	dr := image.Rect(0, 0, sw, sh)
-	newImg.DrawTriangles(srcs, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderImageCount]image.Rectangle{}, NearestFilterShader.ensureShader().Shader, nil, graphicsdriver.FillAll)
+	newImg.DrawTriangles(srcs, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderImageCount]image.Rectangle{}, NearestFilterShader.ensureShader(), nil, graphicsdriver.FillAll)
 	b.image.Dispose()
 
 	b.image = newImg
@@ -165,7 +164,7 @@ func newClearedImage(width, height int, screen bool) *graphicscommand.Image {
 func clearImage(i *graphicscommand.Image, region image.Rectangle) {
 	vs := quadVertices(float32(region.Min.X), float32(region.Min.Y), float32(region.Max.X), float32(region.Max.Y), 0, 0, 0, 0, 0, 0, 0, 0)
 	is := graphics.QuadIndices()
-	i.DrawTriangles([graphics.ShaderImageCount]*graphicscommand.Image{}, vs, is, graphicsdriver.BlendClear, region, [graphics.ShaderImageCount]image.Rectangle{}, restorable.ClearShader.Shader, nil, graphicsdriver.FillAll)
+	i.DrawTriangles([graphics.ShaderImageCount]*graphicscommand.Image{}, vs, is, graphicsdriver.BlendClear, region, [graphics.ShaderImageCount]image.Rectangle{}, clearShader.ensureShader(), nil, graphicsdriver.FillAll)
 }
 
 func (b *backend) clearPixels(region image.Rectangle) {
@@ -501,7 +500,7 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 		imgs[i] = src.backend.image
 	}
 
-	i.backend.image.DrawTriangles(imgs, vertices, indices, blend, dstRegion, srcRegions, shader.ensureShader().Shader, uniforms, fillRule)
+	i.backend.image.DrawTriangles(imgs, vertices, indices, blend, dstRegion, srcRegions, shader.ensureShader(), uniforms, fillRule)
 
 	for _, src := range srcs {
 		if src == nil {
