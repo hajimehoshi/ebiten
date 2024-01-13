@@ -475,7 +475,7 @@ func (i *Image) writePixels(pix []byte, region image.Rectangle) {
 		region = region.Add(r.Min)
 
 		if pix == nil {
-			i.backend.restorable.WritePixels(nil, region)
+			i.backend.restorable.ClearPixels(region)
 			return
 		}
 
