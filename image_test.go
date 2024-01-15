@@ -4582,3 +4582,29 @@ func TestImageDrawImageAfterDeallocation(t *testing.T) {
 		}
 	}
 }
+
+func TestUnsyncedPixels(t *testing.T) {
+	// This tests a corner case in internal/buffer.Image.
+	dst := ebiten.NewImage(16, 16)
+
+	// Add an entry for dotsBuffer at (0, 0).
+	dst.Set(0, 0, color.RGBA{0xff, 0xff, 0xff, 0xff})
+
+	// Merge the entry into the cached pixels.
+	// The entry for dotsBuffer is now gone in the current implementation.
+	dst.ReadPixels(make([]byte, 4*16*16))
+
+	// Call WritePixels with the outside region of (0, 0).
+	dst.SubImage(image.Rect(1, 1, 3, 3)).(*ebiten.Image).WritePixels(make([]byte, 4*2*2))
+
+	// Flush unsynced pixel cache.
+	src := ebiten.NewImage(16, 16)
+	dst.DrawImage(src, nil)
+
+	// Check the result is correct.
+	got := dst.At(0, 0)
+	want := color.RGBA{0xff, 0xff, 0xff, 0xff}
+	if got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+}
