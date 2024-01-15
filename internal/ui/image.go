@@ -43,6 +43,8 @@ type Image struct {
 	height    int
 	imageType atlas.ImageType
 
+	dotsBuffer map[image.Point][4]byte
+
 	// lastBlend is the lastly-used blend for mipmap.Image.
 	lastBlend graphicsdriver.Blend
 
@@ -75,6 +77,7 @@ func (i *Image) Deallocate() {
 		i.bigOffscreenBuffer.deallocate()
 	}
 	i.mipmap.Deallocate()
+	i.dotsBuffer = nil
 }
 
 func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint32, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderImageCount]image.Rectangle, shader *Shader, uniforms []uint32, fillRule graphicsdriver.FillRule, canSkipMipmap bool, antialias bool) {
@@ -85,6 +88,9 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 	i.lastBlend = blend
 
 	if antialias {
+		// Flush the other buffer to make the buffers exclusive.
+		i.flushDotsBufferIfNeeded()
+
 		if i.bigOffscreenBuffer == nil {
 			var imageType atlas.ImageType
 			switch i.imageType {
@@ -120,6 +126,25 @@ func (i *Image) WritePixels(pix []byte, region image.Rectangle) {
 	if i.modifyCallback != nil {
 		i.modifyCallback()
 	}
+
+	if region.Dx() == 1 && region.Dy() == 1 {
+		// Flush the other buffer to make the buffers exclusive.
+		i.flushBigOffscreenBufferIfNeeded()
+
+		if i.dotsBuffer == nil {
+			i.dotsBuffer = map[image.Point][4]byte{}
+		}
+
+		var clr [4]byte
+		copy(clr[:], pix)
+		i.dotsBuffer[region.Min] = clr
+
+		if len(i.dotsBuffer) >= 10000 {
+			i.flushDotsBufferIfNeeded()
+		}
+		return
+	}
+
 	i.flushBufferIfNeeded()
 	i.mipmap.WritePixels(pix, region)
 }
@@ -131,6 +156,17 @@ func (i *Image) ReadPixels(pixels []byte, region image.Rectangle) {
 	}
 
 	i.flushBigOffscreenBufferIfNeeded()
+
+	if region.Dx() == 1 && region.Dy() == 1 {
+		if c, ok := i.dotsBuffer[region.Min]; ok {
+			copy(pixels, c[:])
+			return
+		}
+		// Do not call flushDotsBufferIfNeeded here. This would slow (image/draw).Draw.
+		// See ebiten.TestImageDrawOver.
+	} else {
+		i.flushDotsBufferIfNeeded()
+	}
 
 	if err := i.ui.readPixels(i.mipmap, pixels, region); err != nil {
 		if panicOnErrorOnReadingPixels {
@@ -146,7 +182,78 @@ func (i *Image) DumpScreenshot(name string, blackbg bool) (string, error) {
 }
 
 func (i *Image) flushBufferIfNeeded() {
+	// The buffers are exclusive and the order should not matter.
+	i.flushDotsBufferIfNeeded()
 	i.flushBigOffscreenBufferIfNeeded()
+}
+
+func (i *Image) flushDotsBufferIfNeeded() {
+	if len(i.dotsBuffer) == 0 {
+		return
+	}
+
+	l := len(i.dotsBuffer)
+	vs := make([]float32, l*4*graphics.VertexFloatCount)
+	is := make([]uint32, l*6)
+	sx, sy := float32(1), float32(1)
+	var idx int
+	for p, c := range i.dotsBuffer {
+		dx := float32(p.X)
+		dy := float32(p.Y)
+		crf := float32(c[0]) / 0xff
+		cgf := float32(c[1]) / 0xff
+		cbf := float32(c[2]) / 0xff
+		caf := float32(c[3]) / 0xff
+
+		vs[graphics.VertexFloatCount*4*idx] = dx
+		vs[graphics.VertexFloatCount*4*idx+1] = dy
+		vs[graphics.VertexFloatCount*4*idx+2] = sx
+		vs[graphics.VertexFloatCount*4*idx+3] = sy
+		vs[graphics.VertexFloatCount*4*idx+4] = crf
+		vs[graphics.VertexFloatCount*4*idx+5] = cgf
+		vs[graphics.VertexFloatCount*4*idx+6] = cbf
+		vs[graphics.VertexFloatCount*4*idx+7] = caf
+		vs[graphics.VertexFloatCount*4*idx+8] = dx + 1
+		vs[graphics.VertexFloatCount*4*idx+9] = dy
+		vs[graphics.VertexFloatCount*4*idx+10] = sx + 1
+		vs[graphics.VertexFloatCount*4*idx+11] = sy
+		vs[graphics.VertexFloatCount*4*idx+12] = crf
+		vs[graphics.VertexFloatCount*4*idx+13] = cgf
+		vs[graphics.VertexFloatCount*4*idx+14] = cbf
+		vs[graphics.VertexFloatCount*4*idx+15] = caf
+		vs[graphics.VertexFloatCount*4*idx+16] = dx
+		vs[graphics.VertexFloatCount*4*idx+17] = dy + 1
+		vs[graphics.VertexFloatCount*4*idx+18] = sx
+		vs[graphics.VertexFloatCount*4*idx+19] = sy + 1
+		vs[graphics.VertexFloatCount*4*idx+20] = crf
+		vs[graphics.VertexFloatCount*4*idx+21] = cgf
+		vs[graphics.VertexFloatCount*4*idx+22] = cbf
+		vs[graphics.VertexFloatCount*4*idx+23] = caf
+		vs[graphics.VertexFloatCount*4*idx+24] = dx + 1
+		vs[graphics.VertexFloatCount*4*idx+25] = dy + 1
+		vs[graphics.VertexFloatCount*4*idx+26] = sx + 1
+		vs[graphics.VertexFloatCount*4*idx+27] = sy + 1
+		vs[graphics.VertexFloatCount*4*idx+28] = crf
+		vs[graphics.VertexFloatCount*4*idx+29] = cgf
+		vs[graphics.VertexFloatCount*4*idx+30] = cbf
+		vs[graphics.VertexFloatCount*4*idx+31] = caf
+
+		is[6*idx] = uint32(4 * idx)
+		is[6*idx+1] = uint32(4*idx + 1)
+		is[6*idx+2] = uint32(4*idx + 2)
+		is[6*idx+3] = uint32(4*idx + 1)
+		is[6*idx+4] = uint32(4*idx + 2)
+		is[6*idx+5] = uint32(4*idx + 3)
+
+		idx++
+	}
+	i.dotsBuffer = nil
+
+	srcs := [graphics.ShaderImageCount]*mipmap.Mipmap{i.ui.whiteImage.mipmap}
+	dr := image.Rect(0, 0, i.width, i.height)
+	blend := graphicsdriver.BlendCopy
+	i.lastBlend = blend
+	i.mipmap.DrawTriangles(srcs, vs, is, blend, dr, [graphics.ShaderImageCount]image.Rectangle{}, NearestFilterShader.shader, nil, graphicsdriver.FillAll, true)
 }
 
 func (i *Image) flushBigOffscreenBufferIfNeeded() {
