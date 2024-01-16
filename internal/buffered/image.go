@@ -120,8 +120,20 @@ func (i *Image) WritePixels(pix []byte, region image.Rectangle) {
 	}
 
 	// Writing one pixel is a special case.
-	// Do not discard the cached pixels in this case, especially for (image/draw).Image.
+	// Do not write pixels in GPU especially for (image/draw).Image.
 	if region.Dx() == 1 && region.Dy() == 1 {
+		// If i.pixels exists, update this instead of adding an entry to dotsBuffer.
+		if i.pixels != nil {
+			idx := 4 * (region.Min.Y*i.width + region.Min.X)
+			i.pixels[idx] = pix[0]
+			i.pixels[idx+1] = pix[1]
+			i.pixels[idx+2] = pix[2]
+			i.pixels[idx+3] = pix[3]
+			i.pixelsUnsynced = true
+			delete(i.dotsBuffer, region.Min)
+			return
+		}
+
 		if i.dotsBuffer == nil {
 			i.dotsBuffer = map[image.Point][4]byte{}
 		}
