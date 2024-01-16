@@ -146,7 +146,7 @@ func (i *Image) WritePixels(pix []byte, region image.Rectangle) {
 			copy(i.pixels[dstX:dstX+lineWidth], pix[srcX:srcX+lineWidth])
 		}
 		// pixelsUnsynced can NOT be set false as the outside pixels of the region is not written by WritePixels here.
-		// See the test ebiten.TestUnsyncedPixels.
+		// See the test TestUnsyncedPixels.
 	}
 
 	// Even if i.pixels is nil, do not create a pixel cache.
