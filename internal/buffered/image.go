@@ -210,11 +210,7 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 // syncPixelsIfNeeded syncs the pixels between CPU and GPU.
 // After syncPixelsIfNeeded, dotsBuffer is cleared, but pixels migth remain.
 func (i *Image) syncPixelsIfNeeded() {
-	if len(i.dotsBuffer) == 0 && !i.pixelsUnsynced {
-		return
-	}
-
-	if i.pixels != nil {
+	if i.pixelsUnsynced {
 		// If this image already has pixels, use WritePixels instead of DrawTriangles for efficiency.
 		for pos, clr := range i.dotsBuffer {
 			idx := 4 * (pos.Y*i.width + pos.X)
@@ -229,12 +225,8 @@ func (i *Image) syncPixelsIfNeeded() {
 		return
 	}
 
-	if i.pixelsUnsynced {
-		panic("buffered: pixelsUnsynced must be false as pixels is nil")
-	}
-
 	if len(i.dotsBuffer) == 0 {
-		panic("buffered: len(i.dotsBuffers) must be > 0 at this point")
+		return
 	}
 
 	l := len(i.dotsBuffer)
