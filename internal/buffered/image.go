@@ -120,7 +120,7 @@ func (i *Image) WritePixels(pix []byte, region image.Rectangle) {
 	}
 
 	// Writing one pixel is a special case.
-	// Do not write pixels in GPU especially for (image/draw).Image.
+	// Do not write pixels in GPU, as (image/draw).Image's functions might call WritePixels with pixels one by one.
 	if region.Dx() == 1 && region.Dy() == 1 {
 		// If i.pixels exists, update this instead of adding an entry to dotsBuffer.
 		if i.pixels != nil {
@@ -208,7 +208,7 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 }
 
 // syncPixelsIfNeeded syncs the pixels between CPU and GPU.
-// After syncPixelsIfNeeded, dotsBuffer is cleared, but pixels migth remain.
+// After syncPixelsIfNeeded, dotsBuffer is cleared, but pixels might remain.
 func (i *Image) syncPixelsIfNeeded() {
 	if i.pixelsUnsynced {
 		// If this image already has pixels, use WritePixels instead of DrawTriangles for efficiency.
