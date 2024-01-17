@@ -53,11 +53,14 @@ const (
 )
 
 func (v *view) maximumDrawableCount() int {
-	// Use 2 for Arm Mac (#2883).
-	if runtime.GOARCH == "arm64" {
-		return 2
-	}
+	// Note that the architecture might not be the true reason of the issues (#2880, #2883).
+	// Hajime tested only MacBook Pro 2020 (Intel) and MacBook Pro 2023 (M3).
 
 	// Use 3 for Intel Mac and iOS. With 2, There are some situations that the FPS becomes half, or the FPS becomes too low (#2880).
-	return 3
+	if runtime.GOARCH == "amd64" {
+		return 3
+	}
+
+	// Use 2 for Arm Mac (#2883).
+	return 2
 }
