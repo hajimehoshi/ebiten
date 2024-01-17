@@ -83,8 +83,7 @@ func (v *view) initialize(device mtl.Device) error {
 	// nextDrawable took more than one second if the window has other controls like NSTextView (#1029).
 	v.ml.SetPresentsWithTransaction(false)
 
-	// Always use 3. There are some situations that the FPS becomes half, or the FPS becomes too low (#2880).
-	v.ml.SetMaximumDrawableCount(3)
+	v.ml.SetMaximumDrawableCount(v.maximumDrawableCount())
 
 	return nil
 }

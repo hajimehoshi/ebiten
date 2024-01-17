@@ -17,6 +17,8 @@
 package metal
 
 import (
+	"runtime"
+
 	"github.com/ebitengine/purego/objc"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/cocoa"
@@ -49,3 +51,13 @@ const (
 	storageMode         = mtl.StorageModeManaged
 	resourceStorageMode = mtl.ResourceStorageModeManaged
 )
+
+func (v *view) maximumDrawableCount() int {
+	// Use 2 for Arm Mac (#2883).
+	if runtime.GOARCH == "arm64" {
+		return 2
+	}
+
+	// Use 3 for Intel Mac and iOS. With 2, There are some situations that the FPS becomes half, or the FPS becomes too low (#2880).
+	return 3
+}
