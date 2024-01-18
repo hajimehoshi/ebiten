@@ -170,8 +170,8 @@ func (m *Mipmap) level(level int) *buffered.Image {
 	}
 	is := graphics.QuadIndices()
 
-	w2 := sizeForLevel(m.width, level-1)
-	h2 := sizeForLevel(m.height, level-1)
+	w2 := sizeForLevel(m.width, level)
+	h2 := sizeForLevel(m.height, level)
 	if w2 == 0 || h2 == 0 {
 		m.setImg(level, nil)
 		return nil
