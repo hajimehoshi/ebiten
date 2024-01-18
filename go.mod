@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/ebitengine/oto/v3 v3.2.0-alpha.3
-	github.com/ebitengine/purego v0.6.0-alpha.3.0.20240117155942-d2ab45a294a4
+	github.com/ebitengine/purego v0.6.0-alpha.3.0.20240118143548-886e3a0b044a
 	github.com/go-text/typesetting v0.0.0-20231221124458-48cc05a56658
 	github.com/hajimehoshi/bitmapfont/v3 v3.0.0
 	github.com/hajimehoshi/go-mp3 v0.3.4
