@@ -36,6 +36,8 @@ func (v *view) setUIView(uiview uintptr) {
 }
 
 func (v *view) update() {
+	v.ml.SetMaximumDrawableCount(v.maximumDrawableCount())
+
 	if !v.windowChanged {
 		return
 	}
@@ -44,6 +46,7 @@ func (v *view) update() {
 	cocoaWindow := cocoa.NSWindow{ID: objc.ID(v.window)}
 	cocoaWindow.ContentView().SetLayer(uintptr(v.ml.Layer()))
 	cocoaWindow.ContentView().SetWantsLayer(true)
+
 	v.windowChanged = false
 }
 
@@ -61,6 +64,16 @@ func (v *view) maximumDrawableCount() int {
 		return 3
 	}
 
-	// Use 2 for Arm Mac (#2883).
+	// Use 3 in fullscren.
+	// Though this might degrade FPS, this is necessary to avoid mysterious rendering delays.
+	if v.isFullscreen() {
+		return 3
+	}
+
+	// Use 2 for a Wnidow to avoid mysterious blinking (#2883).
 	return 2
+}
+
+func (v *view) isFullscreen() bool {
+	return cocoa.NSWindow{ID: objc.ID(v.window)}.StyleMask()&cocoa.NSWindowStyleMaskFullScreen != 0
 }
