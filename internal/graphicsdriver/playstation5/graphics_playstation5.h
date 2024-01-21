@@ -14,6 +14,8 @@
 
 //go:build playstation5
 
+#include <stdbool.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -22,6 +24,10 @@ typedef struct ebitengine_Error {
   const char* message;
   int         code;
 } ebitengine_Error;
+
+bool ebitengine_IsErrorNil(ebitengine_Error* err) {
+  return err->message == NULL && err->code == 0;
+}
 
 ebitengine_Error ebitengine_InitializeGraphics(void);
 ebitengine_Error ebitengine_NewImage(int* image, int width, int height);
