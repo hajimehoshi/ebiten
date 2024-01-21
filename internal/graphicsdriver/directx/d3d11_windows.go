@@ -16,6 +16,7 @@ package directx
 
 import (
 	"fmt"
+	"math"
 	"runtime"
 	"syscall"
 	"unsafe"
@@ -963,7 +964,7 @@ func (i *_ID3D11DeviceContext) ClearState() {
 
 func (i *_ID3D11DeviceContext) ClearDepthStencilView(pDepthStencilView *_ID3D11DepthStencilView, clearFlags uint8, depth float32, stencil uint8) {
 	_, _, _ = syscall.Syscall6(i.vtbl.ClearDepthStencilView, 5, uintptr(unsafe.Pointer(i)),
-		uintptr(unsafe.Pointer(pDepthStencilView)), uintptr(clearFlags), uintptr(depth),
+		uintptr(unsafe.Pointer(pDepthStencilView)), uintptr(clearFlags), uintptr(math.Float32bits(depth)),
 		uintptr(stencil), 0)
 	runtime.KeepAlive(pDepthStencilView)
 }
