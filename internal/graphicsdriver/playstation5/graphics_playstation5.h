@@ -14,6 +14,9 @@
 
 //go:build playstation5
 
+#ifndef EBITENGINE_INTERNAL_GRAPHICSDRIVER_PLAYSTATION5_GRAPHICS_PLAYSTATION5_H
+#define EBITENGINE_INTERNAL_GRAPHICSDRIVER_PLAYSTATION5_GRAPHICS_PLAYSTATION5_H
+
 #include <stdbool.h>
 #include <stddef.h>
 
@@ -26,7 +29,7 @@ typedef struct ebitengine_Error {
   int         code;
 } ebitengine_Error;
 
-bool ebitengine_IsErrorNil(ebitengine_Error* err) {
+static bool ebitengine_IsErrorNil(ebitengine_Error* err) {
   return err->message == NULL && err->code == 0;
 }
 
@@ -41,3 +44,5 @@ void ebitengine_DisposeShader(int id);
 #ifdef __cplusplus
 } // extern "C"
 #endif
+
+#endif // EBITENGINE_INTERNAL_GRAPHICSDRIVER_PLAYSTATION5_GRAPHICS_PLAYSTATION5_H
