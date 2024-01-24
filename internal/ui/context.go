@@ -17,6 +17,7 @@ package ui
 import (
 	"math"
 	"sync"
+	"time"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
 	"github.com/hajimehoshi/ebiten/v2/internal/buffered"
@@ -56,6 +57,7 @@ type context struct {
 	offscreenHeight float64
 
 	isOffscreenModified bool
+	lastDrawTime        time.Time
 
 	skipCount int
 
@@ -203,6 +205,11 @@ func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics, forceDraw boo
 		c.skipCount = 0
 	}
 
+	now := time.Now()
+	defer func() {
+		c.lastDrawTime = now
+	}()
+
 	if c.skipCount < maxSkipCount {
 		if graphicsDriver.NeedsClearingScreen() {
 			// This clear is needed for fullscreen mode or some mobile platforms (#622).
@@ -214,6 +221,9 @@ func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics, forceDraw boo
 		// The final screen is never used as the rendering source.
 		// Flush its buffer here just in case.
 		c.screen.flushBufferIfNeeded()
+	} else if delta := time.Second/60 - now.Sub(c.lastDrawTime); delta > 0 {
+		// When swapping buffers is skipped and Draw is called too early, sleep for a while to suppress CPU usages (#2890).
+		time.Sleep(delta)
 	}
 
 	return nil

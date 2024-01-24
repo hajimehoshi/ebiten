@@ -20,7 +20,6 @@ import (
 	"math"
 	"runtime"
 	"sort"
-	"time"
 	"unsafe"
 
 	"github.com/ebitengine/purego/objc"
@@ -61,8 +60,6 @@ type Graphics struct {
 	transparent  bool
 	maxImageSize int
 	tmpTextures  []mtl.Texture
-
-	lastFlush time.Time
 
 	pool cocoa.NSAutoreleasePool
 }
@@ -230,25 +227,12 @@ func (g *Graphics) flushIfNeeded(present bool) {
 		return
 	}
 
-	now := time.Now()
-	defer func() {
-		g.lastFlush = now
-	}()
-
 	g.flushRenderCommandEncoderIfNeeded()
 
 	if present {
 		// This check is necessary when skipping to render the screen (SetScreenClearedEveryFrame(false)).
-		if g.screenDrawable == (ca.MetalDrawable{}) {
-			if g.cb != (mtl.CommandBuffer{}) {
-				g.screenDrawable = g.view.nextDrawable()
-			} else {
-				if delta := time.Second/60 - now.Sub(g.lastFlush); delta > 0 {
-					// nextDrawable can return immediately when the command buffer is empty.
-					// To avoid high CPU usage, sleep instead (#2520).
-					time.Sleep(delta)
-				}
-			}
+		if g.screenDrawable == (ca.MetalDrawable{}) && g.cb != (mtl.CommandBuffer{}) {
+			g.screenDrawable = g.view.nextDrawable()
 		}
 		if g.screenDrawable != (ca.MetalDrawable{}) {
 			g.cb.PresentDrawable(g.screenDrawable)
