@@ -40,6 +40,10 @@ type _D3D12_RESOURCE_DESC struct {
 	SampleDesc       _DXGI_SAMPLE_DESC
 	Layout           _D3D12_TEXTURE_LAYOUT
 	Flags            _D3D12_RESOURCE_FLAGS
+
+	// This is a pseudo padding which D3D12_RESOURCE_DESC1 would use.
+	// Mysteriously, some functions don't work correctly without this hack (#2867).
+	_ [12]byte
 }
 
 type _D3D12_ROOT_PARAMETER struct {
