@@ -1,7 +1,7 @@
 github.com/ebitengine/oto/v3 v3.2.0-alpha.3 h1:gDsHiEBKofH9scQ7rf+3jE1XOutgB0KvTkvP74LaRH4=
 github.com/ebitengine/oto/v3 v3.2.0-alpha.3/go.mod h1:JtMbxJHZBDXfS8BmVYwzWk9Z6r7jsjwsHzOuZrEkfs4=
-github.com/ebitengine/purego v0.6.0-alpha.3.0.20240118143548-886e3a0b044a h1:rNwwOydpn3RWyO55Ody7qNmNVPJvpNiPycjDY68/eI4=
-github.com/ebitengine/purego v0.6.0-alpha.3.0.20240118143548-886e3a0b044a/go.mod h1:ah1In8AOtksoNK6yk5z1HTJeUkC1Ez4Wk2idgGslMwQ=
+github.com/ebitengine/purego v0.6.0-alpha.4.0.20240127153756-e7ad88ddfffe h1:bac7sG+vDG+mBmjElwI0p1a2L09rxkY8xcmv5QEFyGA=
+github.com/ebitengine/purego v0.6.0-alpha.4.0.20240127153756-e7ad88ddfffe/go.mod h1:ah1In8AOtksoNK6yk5z1HTJeUkC1Ez4Wk2idgGslMwQ=
 github.com/go-text/typesetting v0.1.1-0.20231231232151-8d81c02dc157 h1:gNNO+Nvt8Kkg+VWN7qKvV02f+0pxH9zdKDMTixfn17Q=
 github.com/go-text/typesetting v0.1.1-0.20231231232151-8d81c02dc157/go.mod h1:d22AnmeKq/on0HNv73UFriMKc4Ez6EqZAofLhAzpSzI=
 github.com/go-text/typesetting-utils v0.0.0-20231211103740-d9332ae51f04 h1:zBx+p/W2aQYtNuyZNcTfinWvXBQwYtDfme051PR/lAY=
