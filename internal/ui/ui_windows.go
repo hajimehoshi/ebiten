@@ -242,3 +242,13 @@ func (u *UserInterface) skipTaskbar() error {
 
 	return nil
 }
+
+func init() {
+	if microsoftgdk.IsXbox() {
+		// TimeBeginPeriod might not be defined in Xbox.
+		return
+	}
+	// Use a better timer resolution (golang/go#44343).
+	// TODO: This might not be necessary from Go 1.23.
+	windows.TimeBeginPeriod(1)
+}
