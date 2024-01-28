@@ -20,6 +20,8 @@ import (
 	"sync"
 	"sync/atomic"
 
+	_ "github.com/ebitengine/hideconsole"
+
 	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
 	"github.com/hajimehoshi/ebiten/v2/internal/mipmap"
 	"github.com/hajimehoshi/ebiten/v2/internal/thread"
