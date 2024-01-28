@@ -249,6 +249,7 @@ func init() {
 		return
 	}
 	// Use a better timer resolution (golang/go#44343).
+	// An error is ignored. The application is still valid even if a higher resolution timer is not available.
 	// TODO: This might not be necessary from Go 1.23.
-	windows.TimeBeginPeriod(1)
+	_ = windows.TimeBeginPeriod(1)
 }
