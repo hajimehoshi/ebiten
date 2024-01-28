@@ -319,7 +319,8 @@ func isValidJavaIdentifier(name string) bool {
 		return false
 	}
 
-	// Java identifiers must not be a Java keyword.
+	// Java identifiers must not be a Java keyword or a boolean/null literal.
+	// https://docs.oracle.com/javase/specs/jls/se21/html/jls-3.html#jls-Identifier
 	switch name {
 	case "_", "abstract", "assert", "boolean", "break", "byte", "case", "catch", "char", "class", "const", "continue", "default", "do", "double", "else", "enum", "extends", "final", "finally", "float", "for", "goto", "if", "implements", "import", "instanceof", "int", "interface", "long", "native", "new", "package", "private", "protected", "public", "return", "short", "static", "strictfp", "super", "switch", "synchronized", "this", "throw", "throws", "transient", "try", "void", "volatile", "while":
 		return false
@@ -338,7 +339,7 @@ func isValidJavaIdentifier(name string) bool {
 	isJavaDigit := unicode.IsDigit
 
 	// A Java identifier is a Java letter or Java letter followed by Java letters or Java digits.
-	// https://docs.oracle.com/javase/specs/jls/se13/html/jls-3.html#jls-Identifier
+	// https://docs.oracle.com/javase/specs/jls/se21/html/jls-3.html#jls-Identifier
 	for i, r := range name {
 		if !isJavaLetter(r) && (i == 0 || !isJavaDigit(r)) {
 			return false
