@@ -67,3 +67,7 @@ func hideConsoleWindow() {
 		_ = freeConsole()
 	}
 }
+
+func init() {
+	hideConsoleWindow()
+}

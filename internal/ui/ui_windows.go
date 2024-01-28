@@ -31,7 +31,6 @@ import (
 )
 
 func (u *UserInterface) initializePlatform() error {
-	hideConsoleWindow()
 	return nil
 }
 
