@@ -29,6 +29,7 @@ import (
 	"path/filepath"
 	"strings"
 	"text/template"
+	"unicode"
 
 	exec "golang.org/x/sys/execabs"
 	"golang.org/x/tools/go/packages"
@@ -40,15 +41,6 @@ const (
 
 //go:embed _files/EbitenViewController.h
 var objcH string
-
-func init() {
-	flag.Usage = func() {
-		// This message is copied from `gomobile bind -h`
-		fmt.Fprintf(os.Stderr, "%s bind [-target android|ios] [-bootclasspath <path>] [-classpath <path>] [-o output] [build flags] [package]\n", ebitenmobileCommand)
-		os.Exit(2)
-	}
-	flag.Parse()
-}
 
 func goEnv(name string) string {
 	if val := os.Getenv(name); val != "" {
@@ -90,6 +82,13 @@ var (
 )
 
 func main() {
+	flag.Usage = func() {
+		// This message is copied from `gomobile bind -h`
+		fmt.Fprintf(os.Stderr, "%s bind [-target android|ios] [-bootclasspath <path>] [-classpath <path>] [-o output] [build flags] [package]\n", ebitenmobileCommand)
+		os.Exit(2)
+	}
+	flag.Parse()
+
 	args := flag.Args()
 	if len(args) < 1 {
 		flag.Usage()
@@ -134,6 +133,10 @@ func main() {
 			buildLdflags += " "
 		}
 		buildLdflags += "-extldflags=-Wl,-soname,libgojni.so"
+
+		if !isValidJavaPackageName(bindJavaPkg) {
+			log.Fatalf("invalid Java package name: %s", bindJavaPkg)
+		}
 	}
 
 	dir, err := prepareGomobileCommands()
@@ -296,3 +299,50 @@ var iosModuleMapTmpl = template.Must(template.New("iosmmap").Parse(`framework mo
 {{end}}
     export *
 }`))
+
+func isValidJavaPackageName(name string) bool {
+	if name == "" {
+		return false
+	}
+	// A Java package name consists of one or more Java identifiers separated by dots.
+	for _, token := range strings.Split(name, ".") {
+		if !isValidJavaIdentifier(token) {
+			return false
+		}
+	}
+	return true
+}
+
+// isValidJavaIdentifier reports whether the given strings is a valid Java identifier.
+func isValidJavaIdentifier(name string) bool {
+	if name == "" {
+		return false
+	}
+
+	// Java identifiers must not be a Java keyword.
+	switch name {
+	case "_", "abstract", "assert", "boolean", "break", "byte", "case", "catch", "char", "class", "const", "continue", "default", "do", "double", "else", "enum", "extends", "final", "finally", "float", "for", "goto", "if", "implements", "import", "instanceof", "int", "interface", "long", "native", "new", "package", "private", "protected", "public", "return", "short", "static", "strictfp", "super", "switch", "synchronized", "this", "throw", "throws", "transient", "try", "void", "volatile", "while":
+		return false
+	}
+	if name == "null" || name == "true" || name == "false" {
+		return false
+	}
+
+	// References:
+	// * https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Character.html#isJavaIdentifierPart(int)
+	// * https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Character.html#isJavaIdentifierStart(int)
+
+	isJavaLetter := func(r rune) bool {
+		return unicode.IsLetter(r) || unicode.Is(unicode.Pc, r) || unicode.Is(unicode.Sc, r)
+	}
+	isJavaDigit := unicode.IsDigit
+
+	// A Java identifier is a Java letter or Java letter followed by Java letters or Java digits.
+	// https://docs.oracle.com/javase/specs/jls/se13/html/jls-3.html#jls-Identifier
+	for i, r := range name {
+		if !isJavaLetter(r) && (i == 0 || !isJavaDigit(r)) {
+			return false
+		}
+	}
+	return true
+}
