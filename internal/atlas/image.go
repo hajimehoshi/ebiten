@@ -715,6 +715,15 @@ func (i *Image) canBePutOnAtlas() bool {
 	return i.width+i.paddingSize() <= maxSize && i.height+i.paddingSize() <= maxSize
 }
 
+func (i *Image) finalize() {
+	// A function from finalizer must not be blocked, but disposing operation can be blocked.
+	// Defer this operation until it becomes safe. (#913)
+	appendDeferred(func() {
+		i.deallocate()
+		runtime.SetFinalizer(i, nil)
+	})
+}
+
 func (i *Image) allocate(forbiddenBackends []*backend, asSource bool) {
 	if !graphicsDriverInitialized {
 		panic("atlas: graphics driver must be ready at allocate but not")
@@ -724,14 +733,7 @@ func (i *Image) allocate(forbiddenBackends []*backend, asSource bool) {
 		panic("atlas: the image is already allocated")
 	}
 
-	runtime.SetFinalizer(i, func(image *Image) {
-		// A function from finalizer must not be blocked, but disposing operation can be blocked.
-		// Defer this operation until it becomes safe. (#913)
-		appendDeferred(func() {
-			image.deallocate()
-			runtime.SetFinalizer(i, nil)
-		})
-	})
+	runtime.SetFinalizer(i, (*Image).finalize)
 
 	if i.imageType == ImageTypeScreen {
 		if asSource {

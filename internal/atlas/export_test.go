@@ -67,3 +67,9 @@ func (i *Image) EnsureIsolatedFromSourceForTesting(backends []*backend) {
 var FlushDeferredForTesting = flushDeferred
 
 var FloorPowerOf2 = floorPowerOf2
+
+func DeferredFuncCountForTesting() int {
+	deferredM.Lock()
+	defer deferredM.Unlock()
+	return len(deferred)
+}
