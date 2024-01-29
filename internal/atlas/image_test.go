@@ -811,12 +811,11 @@ func TestIteratingImagesToPutOnSourceBackend(t *testing.T) {
 }
 
 func TestGC(t *testing.T) {
-	c0 := atlas.DeferredFuncCountForTesting()
 	img := atlas.NewImage(16, 16, atlas.ImageTypeRegular)
 	img.WritePixels(make([]byte, 4*16*16), image.Rect(0, 0, 16, 16))
-	_ = img
+	runtime.KeepAlive(img)
+	c0 := atlas.DeferredFuncCountForTesting()
 	runtime.GC()
-
 	c1 := atlas.DeferredFuncCountForTesting()
 	if got, want := c1, c0+1; got != want {
 		t.Errorf("got: %d, want: %d", got, want)
