@@ -813,11 +813,17 @@ func TestIteratingImagesToPutOnSourceBackend(t *testing.T) {
 func TestGC(t *testing.T) {
 	img := atlas.NewImage(16, 16, atlas.ImageTypeRegular)
 	img.WritePixels(make([]byte, 4*16*16), image.Rect(0, 0, 16, 16))
-	c0 := atlas.DeferredFuncCountForTesting()
+
+	// Ensure other objects are GCed, as GC appends deferred functions for collected objects.
+	runtime.GC()
+
+	// Get the difference of the number of deferred functions before and after img is GCed.
+	c := atlas.DeferredFuncCountForTesting()
 	runtime.KeepAlive(img)
 	runtime.GC()
-	c1 := atlas.DeferredFuncCountForTesting()
-	if got, want := c1, c0+1; got != want {
+	diff := atlas.DeferredFuncCountForTesting() - c
+
+	if got, want := diff, 1; got != want {
 		t.Errorf("got: %d, want: %d", got, want)
 	}
 }
