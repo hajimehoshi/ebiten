@@ -38,18 +38,20 @@ func NewShader(ir *shaderir.Program) *Shader {
 	}
 }
 
+func (s *Shader) finalize() {
+	// A function from finalizer must not be blocked, but disposing operation can be blocked.
+	// Defer this operation until it becomes safe. (#913)
+	appendDeferred(func() {
+		s.deallocate()
+	})
+}
+
 func (s *Shader) ensureShader() *graphicscommand.Shader {
 	if s.shader != nil {
 		return s.shader
 	}
 	s.shader = graphicscommand.NewShader(s.ir)
-	runtime.SetFinalizer(s, func(shader *Shader) {
-		// A function from finalizer must not be blocked, but disposing operation can be blocked.
-		// Defer this operation until it becomes safe. (#913)
-		appendDeferred(func() {
-			shader.deallocate()
-		})
-	})
+	runtime.SetFinalizer(s, (*Shader).finalize)
 	return s.shader
 }
 

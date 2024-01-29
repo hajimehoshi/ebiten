@@ -17,6 +17,7 @@ package atlas_test
 import (
 	"image"
 	"image/color"
+	"runtime"
 	"testing"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
@@ -76,5 +77,30 @@ func TestImageDrawTwice(t *testing.T) {
 	}
 	if got, want := (color.RGBA{R: pix[0], G: pix[1], B: pix[2], A: pix[3]}), (color.RGBA{R: 0x80, G: 0x80, B: 0x80, A: 0xff}); got != want {
 		t.Errorf("got: %v, want: %v", got, want)
+	}
+}
+
+func TestGCShader(t *testing.T) {
+	s := atlas.NewShader(etesting.ShaderProgramFill(0xff, 0xff, 0xff, 0xff))
+
+	// Use the shader to initialize it.
+	const w, h = 1, 1
+	dst := atlas.NewImage(w, h, atlas.ImageTypeRegular)
+	vs := quadVertices(w, h, 0, 0, 1)
+	is := graphics.QuadIndices()
+	dr := image.Rect(0, 0, w, h)
+	dst.DrawTriangles([graphics.ShaderImageCount]*atlas.Image{}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderImageCount]image.Rectangle{}, s, nil, graphicsdriver.FillAll)
+
+	// Ensure other objects are GCed, as GC appends deferred functions for collected objects.
+	runtime.GC()
+
+	// Get the difference of the number of deferred functions before and after s is GCed.
+	c := atlas.DeferredFuncCountForTesting()
+	runtime.KeepAlive(s)
+	runtime.GC()
+	diff := atlas.DeferredFuncCountForTesting() - c
+
+	if got, want := diff, 1; got != want {
+		t.Errorf("got: %d, want: %d", got, want)
 	}
 }
