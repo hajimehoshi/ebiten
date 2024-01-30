@@ -113,10 +113,9 @@ func (t *textInput) Start(x, y int) (chan State, func()) {
 	t.textareaElement.Set("value", "")
 	t.textareaElement.Call("focus")
 
-	xf, yf := ui.Get().LogicalPositionToClientPosition(float64(x), float64(y))
 	style := t.textareaElement.Get("style")
-	style.Set("left", fmt.Sprintf("%0.2fpx", xf))
-	style.Set("top", fmt.Sprintf("%0.2fpx", yf))
+	style.Set("left", fmt.Sprintf("%dpx", x))
+	style.Set("top", fmt.Sprintf("%dpx", y))
 
 	s := newSession()
 	t.session = s
