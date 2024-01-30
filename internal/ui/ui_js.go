@@ -100,13 +100,14 @@ type userInterfaceImpl struct {
 
 	deviceScaleFactor float64
 
-	context             *context
-	inputState          InputState
-	cursorXInClient     float64
-	cursorYInClient     float64
-	origCursorXInClient float64
-	origCursorYInClient float64
-	touchesInClient     []touchInClient
+	context                   *context
+	inputState                InputState
+	keyDurationsByKeyProperty map[Key]int
+	cursorXInClient           float64
+	cursorYInClient           float64
+	origCursorXInClient       float64
+	origCursorYInClient       float64
+	touchesInClient           []touchInClient
 
 	savedCursorX              float64
 	savedCursorY              float64

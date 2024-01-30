@@ -21,6 +21,11 @@ import (
 )
 
 var (
+	stringAlt     = js.ValueOf("Alt")
+	stringControl = js.ValueOf("Control")
+	stringMeta    = js.ValueOf("Meta")
+	stringShift   = js.ValueOf("Shift")
+
 	stringKeydown    = js.ValueOf("keydown")
 	stringKeyup      = js.ValueOf("keyup")
 	stringMousedown  = js.ValueOf("mousedown")
@@ -57,20 +62,74 @@ var codeToMouseButton = map[int]MouseButton{
 	4: MouseButton4,
 }
 
-func (u *UserInterface) keyDown(code js.Value) {
-	id := jsCodeToID(code)
-	if id < 0 {
-		return
+func eventToKeys(e js.Value) (key0, key1 Key, fromKeyProperty bool) {
+	id := jsCodeToID(e.Get("code"))
+	if id >= 0 {
+		return id, -1, false
 	}
-	u.inputState.KeyPressed[id] = true
+
+	// With a virtual keyboard on mobile devices, e.code is empty. Use a 'key' property instead (#2898).
+	key := e.Get("key")
+
+	// The key property doesn't distinghlish between left and right modifier keys.
+	// Let's assume both keys are pressed.
+	switch {
+	case key.Equal(stringAlt):
+		return KeyAltLeft, KeyAltRight, true
+	case key.Equal(stringControl):
+		return KeyControlLeft, KeyControlRight, true
+	case key.Equal(stringMeta):
+		return KeyMetaLeft, KeyMetaRight, true
+	case key.Equal(stringShift):
+		return KeyShiftLeft, KeyShiftRight, true
+	}
+
+	for uiKey, jsKey := range uiKeyToJSKey {
+		if key.Equal(jsKey) {
+			return uiKey, -1, true
+		}
+	}
+
+	return -1, -1, false
 }
 
-func (u *UserInterface) keyUp(code js.Value) {
-	id := jsCodeToID(code)
-	if id < 0 {
-		return
+func (u *UserInterface) keyDown(event js.Value) {
+	key0, key1, fromKeyProperty := eventToKeys(event)
+	if key0 >= 0 {
+		// If the key value comes from a 'key' property, a 'keydown' and 'keyup' event might be fired too quickly.
+		// Record the key duration to prevent immediate resetting a key state by a 'keyup' event.
+		// Resetting a key state is delayed until the next tick. See updateInputState.
+		if fromKeyProperty && !u.inputState.KeyPressed[key0] {
+			if u.keyDurationsByKeyProperty == nil {
+				u.keyDurationsByKeyProperty = map[Key]int{}
+			}
+			u.keyDurationsByKeyProperty[key0] = 1
+		}
+		u.inputState.KeyPressed[key0] = true
 	}
-	u.inputState.KeyPressed[id] = false
+	if key1 >= 0 {
+		if fromKeyProperty && !u.inputState.KeyPressed[key1] {
+			if u.keyDurationsByKeyProperty == nil {
+				u.keyDurationsByKeyProperty = map[Key]int{}
+			}
+			u.keyDurationsByKeyProperty[key1] = 1
+		}
+		u.inputState.KeyPressed[key1] = true
+	}
+}
+
+func (u *UserInterface) keyUp(event js.Value) {
+	key0, key1, fromKeyProperty := eventToKeys(event)
+	if key0 >= 0 {
+		if !fromKeyProperty || u.keyDurationsByKeyProperty[key0] == 0 {
+			u.inputState.KeyPressed[key0] = false
+		}
+	}
+	if key1 >= 0 {
+		if !fromKeyProperty || u.keyDurationsByKeyProperty[key1] == 0 {
+			u.inputState.KeyPressed[key1] = false
+		}
+	}
 }
 
 func (u *UserInterface) mouseDown(code int) {
@@ -91,9 +150,9 @@ func (u *UserInterface) updateInputFromEvent(e js.Value) error {
 				u.inputState.appendRune(r)
 			}
 		}
-		u.keyDown(e.Get("code"))
+		u.keyDown(e)
 	case t.Equal(stringKeyup):
-		u.keyUp(e.Get("code"))
+		u.keyUp(e)
 	case t.Equal(stringMousedown):
 		u.mouseDown(e.Get("button").Int())
 		u.setMouseCursorFromEvent(e)
@@ -236,6 +295,16 @@ func (u *UserInterface) saveCursorPosition() {
 }
 
 func (u *UserInterface) updateInputState() error {
+	// Reset the key state if a key is pressed by a 'key' property and the key's duration is big enough.
+	for key, duration := range u.keyDurationsByKeyProperty {
+		if duration >= 2 {
+			delete(u.keyDurationsByKeyProperty, key)
+			u.inputState.KeyPressed[key] = false
+			continue
+		}
+		u.keyDurationsByKeyProperty[key]++
+	}
+
 	s := u.DeviceScaleFactor()
 
 	if !math.IsNaN(u.savedCursorX) && !math.IsNaN(u.savedCursorY) {
@@ -283,4 +352,67 @@ func (u *UserInterface) updateInputState() error {
 	}
 
 	return nil
+}
+
+// uiKeyToJSKey is a map from Key values to KeyboardEvent's key values.
+// Note that js.Value cannot be a map key.
+//
+// Reference: https://developer.mozilla.org/en-US/docs/Web/API/UI_Events/Keyboard_event_key_values
+var uiKeyToJSKey = map[Key]js.Value{
+	KeyCapsLock:       js.ValueOf("CapsLock"),
+	KeyNumLock:        js.ValueOf("NumLock"),
+	KeyScrollLock:     js.ValueOf("ScrollLock"),
+	KeyEnter:          js.ValueOf("Enter"),
+	KeyTab:            js.ValueOf("Tab"),
+	KeySpace:          js.ValueOf(" "),
+	KeyArrowDown:      js.ValueOf("ArrowDown"),
+	KeyArrowLeft:      js.ValueOf("ArrowLeft"),
+	KeyArrowRight:     js.ValueOf("ArrowRight"),
+	KeyArrowUp:        js.ValueOf("ArrowUp"),
+	KeyEnd:            js.ValueOf("End"),
+	KeyHome:           js.ValueOf("Home"),
+	KeyPageDown:       js.ValueOf("PageDown"),
+	KeyPageUp:         js.ValueOf("PageUp"),
+	KeyBackspace:      js.ValueOf("Backspace"),
+	KeyDelete:         js.ValueOf("Delete"),
+	KeyInsert:         js.ValueOf("Insert"),
+	KeyContextMenu:    js.ValueOf("ContextMenu"),
+	KeyEscape:         js.ValueOf("Escape"),
+	KeyPause:          js.ValueOf("Pause"),
+	KeyPrintScreen:    js.ValueOf("PrintScreen"),
+	KeyF1:             js.ValueOf("F1"),
+	KeyF2:             js.ValueOf("F2"),
+	KeyF3:             js.ValueOf("F3"),
+	KeyF4:             js.ValueOf("F4"),
+	KeyF5:             js.ValueOf("F5"),
+	KeyF6:             js.ValueOf("F6"),
+	KeyF7:             js.ValueOf("F7"),
+	KeyF8:             js.ValueOf("F8"),
+	KeyF9:             js.ValueOf("F9"),
+	KeyF10:            js.ValueOf("F10"),
+	KeyF11:            js.ValueOf("F11"),
+	KeyF12:            js.ValueOf("F12"),
+	KeyF13:            js.ValueOf("F13"),
+	KeyF14:            js.ValueOf("F14"),
+	KeyF15:            js.ValueOf("F15"),
+	KeyF16:            js.ValueOf("F16"),
+	KeyF17:            js.ValueOf("F17"),
+	KeyF18:            js.ValueOf("F18"),
+	KeyF19:            js.ValueOf("F19"),
+	KeyF20:            js.ValueOf("F20"),
+	KeyNumpadDecimal:  js.ValueOf("Decimal"),
+	KeyNumpadMultiply: js.ValueOf("Multiply"),
+	KeyNumpadAdd:      js.ValueOf("Add"),
+	KeyNumpadDivide:   js.ValueOf("Divide"),
+	KeyNumpadSubtract: js.ValueOf("Subtract"),
+	KeyNumpad0:        js.ValueOf("0"),
+	KeyNumpad1:        js.ValueOf("1"),
+	KeyNumpad2:        js.ValueOf("2"),
+	KeyNumpad3:        js.ValueOf("3"),
+	KeyNumpad4:        js.ValueOf("4"),
+	KeyNumpad5:        js.ValueOf("5"),
+	KeyNumpad6:        js.ValueOf("6"),
+	KeyNumpad7:        js.ValueOf("7"),
+	KeyNumpad8:        js.ValueOf("8"),
+	KeyNumpad9:        js.ValueOf("9"),
 }
