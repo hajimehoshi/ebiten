@@ -310,8 +310,14 @@ func (g *Game) Update() error {
 		g.textFields = append(g.textFields, NewTextField(image.Rect(16, 80, screenWidth-16, screenHeight-16), true))
 	}
 
-	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
-		x, y := ebiten.CursorPosition()
+	ids := inpututil.AppendJustPressedTouchIDs(nil)
+	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) || len(ids) > 0 {
+		var x, y int
+		if len(ids) > 0 {
+			x, y = ebiten.TouchPosition(ids[0])
+		} else {
+			x, y = ebiten.CursorPosition()
+		}
 		for _, tf := range g.textFields {
 			if tf.Contains(x, y) {
 				tf.Focus()
