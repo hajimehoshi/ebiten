@@ -1,5 +1,5 @@
-github.com/ebitengine/hideconsole v0.1.1-0.20240128160611-57e7b6b00abd h1:ZOUjLrx0thTZUs43SlHbC/SnLX1ApeCV3S+wElVZfjE=
-github.com/ebitengine/hideconsole v0.1.1-0.20240128160611-57e7b6b00abd/go.mod h1:hTTBTvVYWKBuxPr7peweneWdkUwEuHuB3C1R/ielR1A=
+github.com/ebitengine/hideconsole v1.0.0 h1:5J4U0kXF+pv/DhiXt5/lTz0eO5ogJ1iXb8Yj1yReDqE=
+github.com/ebitengine/hideconsole v1.0.0/go.mod h1:hTTBTvVYWKBuxPr7peweneWdkUwEuHuB3C1R/ielR1A=
 github.com/ebitengine/oto/v3 v3.2.0-alpha.3 h1:gDsHiEBKofH9scQ7rf+3jE1XOutgB0KvTkvP74LaRH4=
 github.com/ebitengine/oto/v3 v3.2.0-alpha.3/go.mod h1:JtMbxJHZBDXfS8BmVYwzWk9Z6r7jsjwsHzOuZrEkfs4=
 github.com/ebitengine/purego v0.6.0-alpha.4.0.20240127153756-e7ad88ddfffe h1:bac7sG+vDG+mBmjElwI0p1a2L09rxkY8xcmv5QEFyGA=
