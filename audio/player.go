@@ -326,6 +326,28 @@ func (p *playerImpl) source() io.Reader {
 	return p.src
 }
 
+func (p *playerImpl) onContextSuspended() {
+	p.m.Lock()
+	defer p.m.Unlock()
+
+	if p.player == nil {
+		return
+	}
+	p.stopwatch.stop()
+}
+
+func (p *playerImpl) onContextResumed() {
+	p.m.Lock()
+	defer p.m.Unlock()
+
+	if p.player == nil {
+		return
+	}
+	if p.isPlaying() {
+		p.stopwatch.start()
+	}
+}
+
 func (p *playerImpl) updatePosition() {
 	p.m.Lock()
 	defer p.m.Unlock()

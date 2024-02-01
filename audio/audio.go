@@ -111,11 +111,17 @@ func NewContext(sampleRate int) *Context {
 		if err := c.playerFactory.suspend(); err != nil {
 			return err
 		}
+		if err := c.onSuspend(); err != nil {
+			return err
+		}
 		return nil
 	})
 	h.OnResumeAudio(func() error {
 		<-c.semaphore
 		if err := c.playerFactory.resume(); err != nil {
+			return err
+		}
+		if err := c.onResume(); err != nil {
 			return err
 		}
 		return nil
@@ -195,6 +201,48 @@ func (c *Context) removePlayingPlayer(p *playerImpl) {
 	c.m.Lock()
 	delete(c.playingPlayers, p)
 	c.m.Unlock()
+}
+
+func (c *Context) onSuspend() error {
+	// A Context must not call playerImpl's functions with a lock, or this causes a deadlock (#2737).
+	// Copy the playerImpls and iterate them without a lock.
+	var players []*playerImpl
+	c.m.Lock()
+	players = make([]*playerImpl, 0, len(c.playingPlayers))
+	for p := range c.playingPlayers {
+		players = append(players, p)
+	}
+	c.m.Unlock()
+
+	for _, p := range players {
+		if err := p.Err(); err != nil {
+			return err
+		}
+		p.onContextSuspended()
+	}
+
+	return nil
+}
+
+func (c *Context) onResume() error {
+	// A Context must not call playerImpl's functions with a lock, or this causes a deadlock (#2737).
+	// Copy the playerImpls and iterate them without a lock.
+	var players []*playerImpl
+	c.m.Lock()
+	players = make([]*playerImpl, 0, len(c.playingPlayers))
+	for p := range c.playingPlayers {
+		players = append(players, p)
+	}
+	c.m.Unlock()
+
+	for _, p := range players {
+		if err := p.Err(); err != nil {
+			return err
+		}
+		p.onContextResumed()
+	}
+
+	return nil
 }
 
 func (c *Context) updatePlayers() error {
