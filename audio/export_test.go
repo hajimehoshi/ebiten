@@ -142,7 +142,7 @@ func UpdateForTesting() error {
 func PlayersCountForTesting() int {
 	c := CurrentContext()
 	c.m.Lock()
-	n := len(c.players)
+	n := len(c.playingPlayers)
 	c.m.Unlock()
 	return n
 }

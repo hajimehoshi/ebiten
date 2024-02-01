@@ -70,7 +70,7 @@ type Context struct {
 	ready      bool
 	readyOnce  sync.Once
 
-	players map[*playerImpl]struct{}
+	playingPlayers map[*playerImpl]struct{}
 
 	m         sync.Mutex
 	semaphore chan struct{}
@@ -97,11 +97,11 @@ func NewContext(sampleRate int) *Context {
 	}
 
 	c := &Context{
-		sampleRate:    sampleRate,
-		playerFactory: newPlayerFactory(sampleRate),
-		players:       map[*playerImpl]struct{}{},
-		inited:        make(chan struct{}),
-		semaphore:     make(chan struct{}, 1),
+		sampleRate:     sampleRate,
+		playerFactory:  newPlayerFactory(sampleRate),
+		playingPlayers: map[*playerImpl]struct{}{},
+		inited:         make(chan struct{}),
+		semaphore:      make(chan struct{}, 1),
 	}
 	theContext = c
 
@@ -175,14 +175,14 @@ func (c *Context) setReady() {
 	c.m.Unlock()
 }
 
-func (c *Context) addPlayer(p *playerImpl) {
+func (c *Context) addPlayingPlayer(p *playerImpl) {
 	c.m.Lock()
 	defer c.m.Unlock()
-	c.players[p] = struct{}{}
+	c.playingPlayers[p] = struct{}{}
 
 	// Check the source duplication
 	srcs := map[io.Reader]struct{}{}
-	for p := range c.players {
+	for p := range c.playingPlayers {
 		if _, ok := srcs[p.source()]; ok {
 			c.err = errors.New("audio: a same source is used by multiple Player")
 			return
@@ -191,9 +191,9 @@ func (c *Context) addPlayer(p *playerImpl) {
 	}
 }
 
-func (c *Context) removePlayer(p *playerImpl) {
+func (c *Context) removePlayingPlayer(p *playerImpl) {
 	c.m.Lock()
-	delete(c.players, p)
+	delete(c.playingPlayers, p)
 	c.m.Unlock()
 }
 
@@ -202,8 +202,8 @@ func (c *Context) gcPlayers() error {
 	// Copy the playerImpls and iterate them without a lock.
 	var players []*playerImpl
 	c.m.Lock()
-	players = make([]*playerImpl, 0, len(c.players))
-	for p := range c.players {
+	players = make([]*playerImpl, 0, len(c.playingPlayers))
+	for p := range c.playingPlayers {
 		players = append(players, p)
 	}
 	c.m.Unlock()
@@ -225,7 +225,7 @@ func (c *Context) gcPlayers() error {
 
 	c.m.Lock()
 	for _, p := range playersToRemove {
-		delete(c.players, p)
+		delete(c.playingPlayers, p)
 	}
 	c.m.Unlock()
 
@@ -242,7 +242,7 @@ func (c *Context) IsReady() bool {
 	if c.ready {
 		return true
 	}
-	if len(c.players) != 0 {
+	if len(c.playingPlayers) != 0 {
 		return false
 	}
 

@@ -177,7 +177,7 @@ func (p *playerImpl) Play() {
 		return
 	}
 	p.player.Play()
-	p.context.addPlayer(p)
+	p.context.addPlayingPlayer(p)
 }
 
 func (p *playerImpl) Pause() {
@@ -192,7 +192,7 @@ func (p *playerImpl) Pause() {
 	}
 
 	p.player.Pause()
-	p.context.removePlayer(p)
+	p.context.removePlayingPlayer(p)
 }
 
 func (p *playerImpl) IsPlaying() bool {
@@ -250,7 +250,7 @@ func (p *playerImpl) Position() time.Duration {
 		return 0
 	}
 
-	samples := (p.stream.Current() - int64(p.player.BufferedSize())) / bytesPerSampleInt16
+	samples := (p.stream.position() - int64(p.player.BufferedSize())) / bytesPerSampleInt16
 	return time.Duration(samples) * time.Second / time.Duration(p.factory.sampleRate)
 }
 
@@ -366,7 +366,7 @@ func (s *timeStream) timeDurationToPos(offset time.Duration) int64 {
 	return o
 }
 
-func (s *timeStream) Current() int64 {
+func (s *timeStream) position() int64 {
 	s.m.Lock()
 	defer s.m.Unlock()
 
