@@ -136,7 +136,7 @@ func NewContext(sampleRate int) *Context {
 			return err
 		}
 
-		if err := c.gcPlayers(); err != nil {
+		if err := c.updatePlayers(); err != nil {
 			return err
 		}
 		return nil
@@ -197,7 +197,7 @@ func (c *Context) removePlayingPlayer(p *playerImpl) {
 	c.m.Unlock()
 }
 
-func (c *Context) gcPlayers() error {
+func (c *Context) updatePlayers() error {
 	// A Context must not call playerImpl's functions with a lock, or this causes a deadlock (#2737).
 	// Copy the playerImpls and iterate them without a lock.
 	var players []*playerImpl
@@ -218,6 +218,7 @@ func (c *Context) gcPlayers() error {
 		if err := p.Err(); err != nil {
 			return err
 		}
+		p.updatePosition()
 		if !p.IsPlaying() {
 			playersToRemove = append(playersToRemove, p)
 		}

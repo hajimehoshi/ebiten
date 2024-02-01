@@ -69,7 +69,20 @@ type playerImpl struct {
 	stream         *timeStream
 	factory        *playerFactory
 	initBufferSize int
-	m              sync.Mutex
+
+	// adjustedPosition is the player's more accurate position.
+	// The underlying buffer might not be changed even if the player is playing.
+	// adjustedPosition is adjusted by the time duration during the player position doesn't change while its playing.
+	adjustedPosition time.Duration
+
+	// lastSamples is the last value of the number of samples.
+	// When lastSamples is a negative number, this value is not initialized yet.
+	lastSamples int64
+
+	// stopwatch is a stopwatch to measure the time duration during the player position doesn't change while its playing.
+	stopwatch stopwatch
+
+	m sync.Mutex
 }
 
 func (f *playerFactory) newPlayer(context *Context, src io.Reader) (*playerImpl, error) {
@@ -77,9 +90,10 @@ func (f *playerFactory) newPlayer(context *Context, src io.Reader) (*playerImpl,
 	defer f.m.Unlock()
 
 	p := &playerImpl{
-		src:     src,
-		context: context,
-		factory: f,
+		src:         src,
+		context:     context,
+		factory:     f,
+		lastSamples: -1,
 	}
 	runtime.SetFinalizer(p, (*playerImpl).Close)
 	return p, nil
@@ -178,6 +192,7 @@ func (p *playerImpl) Play() {
 	}
 	p.player.Play()
 	p.context.addPlayingPlayer(p)
+	p.stopwatch.start()
 }
 
 func (p *playerImpl) Pause() {
@@ -193,12 +208,16 @@ func (p *playerImpl) Pause() {
 
 	p.player.Pause()
 	p.context.removePlayingPlayer(p)
+	p.stopwatch.stop()
 }
 
 func (p *playerImpl) IsPlaying() bool {
 	p.m.Lock()
 	defer p.m.Unlock()
+	return p.isPlaying()
+}
 
+func (p *playerImpl) isPlaying() bool {
 	if p.player == nil {
 		return false
 	}
@@ -237,6 +256,7 @@ func (p *playerImpl) Close() error {
 			p.player = nil
 		}()
 		p.player.Pause()
+		p.stopwatch.stop()
 		return p.player.Close()
 	}
 	return nil
@@ -245,13 +265,7 @@ func (p *playerImpl) Close() error {
 func (p *playerImpl) Position() time.Duration {
 	p.m.Lock()
 	defer p.m.Unlock()
-
-	if p.player == nil {
-		return 0
-	}
-
-	samples := (p.stream.position() - int64(p.player.BufferedSize())) / bytesPerSampleInt16
-	return time.Duration(samples) * time.Second / time.Duration(p.factory.sampleRate)
+	return p.adjustedPosition
 }
 
 func (p *playerImpl) Rewind() error {
@@ -263,6 +277,7 @@ func (p *playerImpl) SetPosition(offset time.Duration) error {
 	defer p.m.Unlock()
 
 	if offset == 0 && p.player == nil {
+		p.adjustedPosition = 0
 		return nil
 	}
 
@@ -273,6 +288,13 @@ func (p *playerImpl) SetPosition(offset time.Duration) error {
 	pos := p.stream.timeDurationToPos(offset)
 	if _, err := p.player.Seek(pos, io.SeekStart); err != nil {
 		return err
+	}
+	p.lastSamples = -1
+	// Just after setting a position, the buffer size should be 0 as no data is sent.
+	p.adjustedPosition = p.stream.positionInTimeDuration()
+	p.stopwatch.reset()
+	if p.isPlaying() {
+		p.stopwatch.start()
 	}
 	return nil
 }
@@ -302,6 +324,34 @@ func (p *playerImpl) SetBufferSize(bufferSize time.Duration) {
 
 func (p *playerImpl) source() io.Reader {
 	return p.src
+}
+
+func (p *playerImpl) updatePosition() {
+	p.m.Lock()
+	defer p.m.Unlock()
+
+	if p.player == nil {
+		p.adjustedPosition = 0
+		return
+	}
+
+	samples := (p.stream.position() - int64(p.player.BufferedSize())) / bytesPerSampleInt16
+
+	var adjustingTime time.Duration
+	if p.lastSamples >= 0 && p.lastSamples == samples {
+		// If the number of samples is not changed from the last tick,
+		// the underlying buffer is not updated yet. Adjust the position by the time (#2901).
+		adjustingTime = p.stopwatch.current()
+	} else {
+		p.lastSamples = samples
+		p.stopwatch.reset()
+		if p.isPlaying() {
+			p.stopwatch.start()
+		}
+	}
+
+	// Update the adjusted position every tick. This is necessary to keep the position accurate.
+	p.adjustedPosition = time.Duration(samples)*time.Second/time.Duration(p.factory.sampleRate) + adjustingTime
 }
 
 type timeStream struct {
@@ -375,4 +425,11 @@ func (s *timeStream) position() int64 {
 	defer s.m.Unlock()
 
 	return s.pos
+}
+
+func (s *timeStream) positionInTimeDuration() time.Duration {
+	s.m.Lock()
+	defer s.m.Unlock()
+
+	return time.Duration(s.pos) * time.Second / (time.Duration(s.sampleRate) * bytesPerSampleInt16)
 }
