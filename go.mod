@@ -5,7 +5,7 @@ go 1.18
 require (
 	github.com/ebitengine/hideconsole v1.0.0
 	github.com/ebitengine/oto/v3 v3.2.0-alpha.3
-	github.com/ebitengine/purego v0.6.0-alpha.4.0.20240127153756-e7ad88ddfffe
+	github.com/ebitengine/purego v0.6.0-alpha.5
 	github.com/go-text/typesetting v0.1.1-0.20231231232151-8d81c02dc157
 	github.com/hajimehoshi/bitmapfont/v3 v3.0.0
 	github.com/hajimehoshi/go-mp3 v0.3.4
