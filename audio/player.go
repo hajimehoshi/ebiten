@@ -262,6 +262,10 @@ func (p *playerImpl) SetPosition(offset time.Duration) error {
 	p.m.Lock()
 	defer p.m.Unlock()
 
+	if offset == 0 && p.player == nil {
+		return nil
+	}
+
 	if err := p.ensurePlayer(); err != nil {
 		return err
 	}
