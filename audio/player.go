@@ -245,8 +245,8 @@ func (p *playerImpl) Close() error {
 func (p *playerImpl) Position() time.Duration {
 	p.m.Lock()
 	defer p.m.Unlock()
-	if err := p.ensurePlayer(); err != nil {
-		p.context.setError(err)
+
+	if p.player == nil {
 		return 0
 	}
 
