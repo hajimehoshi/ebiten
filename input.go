@@ -54,11 +54,6 @@ func InputChars() []rune {
 // Note that a Key represents a physical key of US keyboard layout.
 // For example, KeyQ represents Q key on US keyboards and ' (quote) key on Dvorak keyboards.
 //
-// Known issue: On Edge browser, some keys don't work well:
-//
-//   - KeyKPEnter and KeyKPEqual are recognized as KeyEnter and KeyEqual.
-//   - KeyPrintScreen is only treated at keyup event.
-//
 // IsKeyPressed is concurrent-safe.
 //
 // On Android (ebitenmobile), EbitenView must be focusable to enable to handle keyboard keys.
