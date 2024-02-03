@@ -593,7 +593,7 @@ import (
 	"syscall/js"
 )
 
-var uiKeyToJSKey = map[Key]js.Value{
+var uiKeyToJSCode = map[Key]js.Value{
 {{range $name, $code := .UIKeyNameToJSKey}}Key{{$name}}: js.ValueOf({{$code | printf "%q"}}),
 {{end}}
 }

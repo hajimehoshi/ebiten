@@ -20,7 +20,7 @@ import (
 	"syscall/js"
 )
 
-var uiKeyToJSKey = map[Key]js.Value{
+var uiKeyToJSCode = map[Key]js.Value{
 	KeyA:              js.ValueOf("KeyA"),
 	KeyAltLeft:        js.ValueOf("AltLeft"),
 	KeyAltRight:       js.ValueOf("AltRight"),

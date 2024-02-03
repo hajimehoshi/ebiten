@@ -38,11 +38,11 @@ type touchInClient struct {
 	y  float64
 }
 
-func jsKeyToID(key js.Value) Key {
+func jsCodeToID(code js.Value) Key {
 	// js.Value cannot be used as a map key.
 	// As the number of keys is around 100, just a dumb loop should work.
-	for uiKey, jsKey := range uiKeyToJSKey {
-		if jsKey.Equal(key) {
+	for uiKey, jsCode := range uiKeyToJSCode {
+		if jsCode.Equal(code) {
 			return uiKey
 		}
 	}
@@ -58,7 +58,7 @@ var codeToMouseButton = map[int]MouseButton{
 }
 
 func (u *UserInterface) keyDown(code js.Value) {
-	id := jsKeyToID(code)
+	id := jsCodeToID(code)
 	if id < 0 {
 		return
 	}
@@ -66,7 +66,7 @@ func (u *UserInterface) keyDown(code js.Value) {
 }
 
 func (u *UserInterface) keyUp(code js.Value) {
-	id := jsKeyToID(code)
+	id := jsCodeToID(code)
 	if id < 0 {
 		return
 	}
@@ -216,7 +216,7 @@ func (u *UserInterface) KeyName(key Key) string {
 		u.keyboardLayoutMap = <-jsKeyboardGetLayoutMapCh
 	}
 
-	n := u.keyboardLayoutMap.Call("get", uiKeyToJSKey[key])
+	n := u.keyboardLayoutMap.Call("get", uiKeyToJSCode[key])
 	if n.IsUndefined() {
 		return ""
 	}
