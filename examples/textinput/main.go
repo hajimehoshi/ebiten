@@ -138,6 +138,21 @@ func (t *TextField) Blur() {
 
 func (t *TextField) Update() {
 	if !t.focused {
+		// If the text field still has a session, read the last state and process it just in case.
+		if t.ch != nil {
+			select {
+			case state, ok := <-t.ch:
+				if ok && state.Committed {
+					t.text = t.text[:t.selectionStart] + state.Text + t.text[t.selectionEnd:]
+					t.selectionStart += len(state.Text)
+					t.selectionEnd = t.selectionStart
+					t.state = textinput.State{}
+				}
+				t.state = state
+			default:
+				break
+			}
+		}
 		if t.end != nil {
 			t.end()
 			t.ch = nil

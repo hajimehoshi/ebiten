@@ -91,7 +91,19 @@ func (t *textInput) init() {
 	}))
 	t.textareaElement.Call("addEventListener", "input", js.FuncOf(func(this js.Value, args []js.Value) any {
 		e := args[0]
-		t.trySend(!e.Get("isComposing").Bool())
+		if e.Get("isComposing").Bool() {
+			t.trySend(false)
+			return nil
+		}
+		if e.Get("inputType").String() == "insertLineBreak" {
+			t.trySend(true)
+			return nil
+		}
+		t.trySend(false)
+		return nil
+	}))
+	t.textareaElement.Call("addEventListener", "change", js.FuncOf(func(this js.Value, args []js.Value) any {
+		t.trySend(true)
 		return nil
 	}))
 	// TODO: What about other events like wheel?
