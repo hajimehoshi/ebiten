@@ -33,7 +33,7 @@ var (
 	uiKeyNameToGLFWKeyName          map[string]string
 	androidKeyToUIKeyName           map[int]string
 	iosKeyToUIKeyName               map[int]string
-	uiKeyNameToJSKey                map[string]string
+	uiKeyNameToJSCode               map[string]string
 	oldEbitengineKeyNameToUIKeyName map[string]string
 )
 
@@ -278,7 +278,7 @@ func init() {
 	}
 
 	// The UI key and JS key are almost same but very slightly different (e.g., 'A' vs 'KeyA').
-	uiKeyNameToJSKey = map[string]string{
+	uiKeyNameToJSCode = map[string]string{
 		"Comma":          "Comma",
 		"Period":         "Period",
 		"AltLeft":        "AltLeft",
@@ -348,7 +348,7 @@ func init() {
 		} else {
 			iosKeyToUIKeyName[0x1E+int(c)-'1'] = name
 		}
-		uiKeyNameToJSKey[name] = name
+		uiKeyNameToJSCode[name] = name
 
 	}
 	// ASCII: A - Z
@@ -357,7 +357,7 @@ func init() {
 		uiKeyNameToGLFWKeyName[string(c)] = string(c)
 		androidKeyToUIKeyName[29+int(c)-'A'] = string(c)
 		iosKeyToUIKeyName[0x04+int(c)-'A'] = string(c)
-		uiKeyNameToJSKey[string(c)] = "Key" + string(c)
+		uiKeyNameToJSCode[string(c)] = "Key" + string(c)
 	}
 	// Function keys
 	for i := 1; i <= 24; i++ {
@@ -377,7 +377,7 @@ func init() {
 		} else {
 			iosKeyToUIKeyName[0x68+i-13] = name
 		}
-		uiKeyNameToJSKey[name] = name
+		uiKeyNameToJSCode[name] = name
 	}
 	// Numpad
 	// https://www.w3.org/TR/uievents-code/#key-numpad-section
@@ -393,7 +393,7 @@ func init() {
 		} else {
 			iosKeyToUIKeyName[0x59+int(c)-'1'] = name
 		}
-		uiKeyNameToJSKey[name] = name
+		uiKeyNameToJSCode[name] = name
 	}
 
 	// Keys for backward compatibility
@@ -594,7 +594,7 @@ import (
 )
 
 var uiKeyToJSCode = map[Key]js.Value{
-{{range $name, $code := .UIKeyNameToJSKey}}Key{{$name}}: js.ValueOf({{$code | printf "%q"}}),
+{{range $name, $code := .UIKeyNameToJSCode}}Key{{$name}}: js.ValueOf({{$code | printf "%q"}}),
 {{end}}
 }
 `
@@ -743,7 +743,7 @@ func main() {
 	ebitengineKeyNamesWithoutMods := []string{}
 	uiKeyNames := []string{}
 
-	for name := range uiKeyNameToJSKey {
+	for name := range uiKeyNameToJSCode {
 		uiKeyNames = append(uiKeyNames, name)
 		ebitengineKeyNames = append(ebitengineKeyNames, name)
 		ebitengineKeyNamesWithoutOld = append(ebitengineKeyNamesWithoutOld, name)
@@ -804,7 +804,7 @@ func main() {
 			License                         string
 			DoNotEdit                       string
 			BuildTag                        string
-			UIKeyNameToJSKey                map[string]string
+			UIKeyNameToJSCode               map[string]string
 			EbitengineKeyNames              []string
 			EbitengineKeyNamesWithoutOld    []string
 			EbitengineKeyNamesWithoutMods   []string
@@ -818,7 +818,7 @@ func main() {
 			License:                         license,
 			DoNotEdit:                       doNotEdit,
 			BuildTag:                        buildTag,
-			UIKeyNameToJSKey:                uiKeyNameToJSKey,
+			UIKeyNameToJSCode:               uiKeyNameToJSCode,
 			EbitengineKeyNames:              ebitengineKeyNames,
 			EbitengineKeyNamesWithoutOld:    ebitengineKeyNamesWithoutOld,
 			EbitengineKeyNamesWithoutMods:   ebitengineKeyNamesWithoutMods,
