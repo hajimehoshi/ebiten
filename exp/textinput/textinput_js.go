@@ -99,6 +99,11 @@ func (t *textInput) init() {
 			t.trySend(true)
 			return nil
 		}
+		if e.Get("data").Equal(js.Null()) {
+			// When a new line is inserted, the 'data' property might be null.
+			t.trySend(true)
+			return nil
+		}
 		t.trySend(false)
 		return nil
 	}))
