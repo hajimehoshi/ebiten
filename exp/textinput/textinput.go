@@ -25,6 +25,8 @@ import (
 )
 
 // State represents the current state of text inputting.
+//
+// State is the low-level API. For most use cases, Field is easier to use.
 type State struct {
 	// Text represents the current inputting text.
 	Text string
@@ -44,6 +46,8 @@ type State struct {
 
 // Start starts text inputting.
 // Start returns a channel to send the state repeatedly, and a function to end the text inputting.
+//
+// Start is the low-leve API. For most use cases, Field is easier to use.
 //
 // Start returns nil and nil if the current environment doesn't support this package.
 func Start(x, y int) (states chan State, close func()) {

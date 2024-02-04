@@ -40,16 +40,9 @@ const (
 )
 
 type TextField struct {
-	bounds         image.Rectangle
-	multilines     bool
-	text           string
-	selectionStart int
-	selectionEnd   int
-	focused        bool
-
-	ch    chan textinput.State
-	end   func()
-	state textinput.State
+	bounds     image.Rectangle
+	multilines bool
+	field      textinput.Field
 }
 
 func NewTextField(bounds image.Rectangle, multilines bool) *TextField {
@@ -63,17 +56,13 @@ func (t *TextField) Contains(x, y int) bool {
 	return image.Pt(x, y).In(t.bounds)
 }
 
-func (t *TextField) SetSelectionStartByCursorPosition(x, y int) (bool, error) {
-	if err := t.cleanUp(); err != nil {
-		return false, err
-	}
+func (t *TextField) SetSelectionStartByCursorPosition(x, y int) bool {
 	idx, ok := t.textIndexByCursorPosition(x, y)
 	if !ok {
-		return false, nil
+		return false
 	}
-	t.selectionStart = idx
-	t.selectionEnd = idx
-	return true, nil
+	t.field.SetSelection(idx, idx)
+	return true
 }
 
 func (t *TextField) textIndexByCursorPosition(x, y int) (int, bool) {
@@ -97,20 +86,21 @@ func (t *TextField) textIndexByCursorPosition(x, y int) (int, bool) {
 	var nlCount int
 	var lineStart int
 	var prevAdvance float64
-	for i, r := range t.text {
+	txt := t.field.Text()
+	for i, r := range txt {
 		var x0, x1 int
-		currentAdvance := text.Advance(t.text[lineStart:i], fontFace)
+		currentAdvance := text.Advance(txt[lineStart:i], fontFace)
 		if lineStart < i {
 			x0 = int((prevAdvance + currentAdvance) / 2)
 		}
 		if r == '\n' {
 			x1 = int(math.MaxInt32)
-		} else if i < len(t.text) {
+		} else if i < len(txt) {
 			nextI := i + 1
-			for !utf8.ValidString(t.text[i:nextI]) {
+			for !utf8.ValidString(txt[i:nextI]) {
 				nextI++
 			}
-			nextAdvance := text.Advance(t.text[lineStart:nextI], fontFace)
+			nextAdvance := text.Advance(txt[lineStart:nextI], fontFace)
 			x1 = int((currentAdvance + nextAdvance) / 2)
 		} else {
 			x1 = int(currentAdvance)
@@ -127,146 +117,86 @@ func (t *TextField) textIndexByCursorPosition(x, y int) (int, bool) {
 		}
 	}
 
-	return len(t.text), true
+	return len(txt), true
 }
 
 func (t *TextField) Focus() {
-	t.focused = true
+	t.field.Focus()
 }
 
 func (t *TextField) Blur() {
-	t.focused = false
-}
-
-func (t *TextField) cleanUp() error {
-	if t.ch != nil {
-		select {
-		case state, ok := <-t.ch:
-			if state.Error != nil {
-				return state.Error
-			}
-			if ok && state.Committed {
-				t.text = t.text[:t.selectionStart] + state.Text + t.text[t.selectionEnd:]
-				t.selectionStart += len(state.Text)
-				t.selectionEnd = t.selectionStart
-				t.state = textinput.State{}
-			}
-			t.state = state
-		default:
-			break
-		}
-	}
-	if t.end != nil {
-		t.end()
-		t.ch = nil
-		t.end = nil
-		t.state = textinput.State{}
-	}
-	return nil
+	t.field.Blur()
 }
 
 func (t *TextField) Update() error {
-	if !t.focused {
-		// If the text field still has a session, read the last state and process it just in case.
-		if err := t.cleanUp(); err != nil {
-			return err
-		}
+	if !t.field.IsFocused() {
 		return nil
 	}
 
-	var processed bool
-
-	// Text inputting can happen multiple times in one tick (1/60[s] by default).
-	// Handle all of them.
-	for {
-		if t.ch == nil {
-			x, y := t.bounds.Min.X, t.bounds.Min.Y
-			cx, cy := t.cursorPos()
-			px, py := textFieldPadding()
-			x += cx + px
-			y += cy + py + int(fontFace.Metrics().HAscent)
-			t.ch, t.end = textinput.Start(x, y)
-			// Start returns nil for non-supported envrionments.
-			if t.ch == nil {
-				return nil
-			}
-		}
-
-	readchar:
-		for {
-			select {
-			case state, ok := <-t.ch:
-				if state.Error != nil {
-					return state.Error
-				}
-				processed = true
-				if !ok {
-					t.ch = nil
-					t.end = nil
-					t.state = textinput.State{}
-					break readchar
-				}
-				if state.Committed {
-					t.text = t.text[:t.selectionStart] + state.Text + t.text[t.selectionEnd:]
-					t.selectionStart += len(state.Text)
-					t.selectionEnd = t.selectionStart
-					t.state = textinput.State{}
-					continue
-				}
-				t.state = state
-			default:
-				break readchar
-			}
-		}
-
-		if t.ch == nil {
-			continue
-		}
-
-		break
+	x, y := t.bounds.Min.X, t.bounds.Min.Y
+	cx, cy := t.cursorPos()
+	px, py := textFieldPadding()
+	x += cx + px
+	y += cy + py + int(fontFace.Metrics().HAscent)
+	handled, err := t.field.HandleInput(x, y)
+	if err != nil {
+		return err
 	}
-
-	if processed {
+	if handled {
 		return nil
 	}
 
 	switch {
 	case inpututil.IsKeyJustPressed(ebiten.KeyEnter):
 		if t.multilines {
-			t.text = t.text[:t.selectionStart] + "\n" + t.text[t.selectionEnd:]
-			t.selectionStart += 1
-			t.selectionEnd = t.selectionStart
+			text := t.field.Text()
+			selectionStart, selectionEnd := t.field.Selection()
+			text = text[:selectionStart] + "\n" + text[selectionEnd:]
+			selectionStart += len("\n")
+			selectionEnd = selectionStart
+			t.field.SetTextAndSelection(text, selectionStart, selectionEnd)
 		}
 	case inpututil.IsKeyJustPressed(ebiten.KeyBackspace):
-		if t.selectionStart > 0 {
+		text := t.field.Text()
+		selectionStart, selectionEnd := t.field.Selection()
+		if selectionStart != selectionEnd {
+			text = text[:selectionStart] + text[selectionEnd:]
+		} else if selectionStart > 0 {
 			// TODO: Remove a grapheme instead of a code point.
-			_, l := utf8.DecodeLastRuneInString(t.text[:t.selectionStart])
-			t.text = t.text[:t.selectionStart-l] + t.text[t.selectionEnd:]
-			t.selectionStart -= l
+			_, l := utf8.DecodeLastRuneInString(text[:selectionStart])
+			text = text[:selectionStart-l] + text[selectionEnd:]
+			selectionStart -= l
 		}
-		t.selectionEnd = t.selectionStart
+		selectionEnd = selectionStart
+		t.field.SetTextAndSelection(text, selectionStart, selectionEnd)
 	case inpututil.IsKeyJustPressed(ebiten.KeyLeft):
-		if t.selectionStart > 0 {
+		text := t.field.Text()
+		selectionStart, _ := t.field.Selection()
+		if selectionStart > 0 {
 			// TODO: Remove a grapheme instead of a code point.
-			_, l := utf8.DecodeLastRuneInString(t.text[:t.selectionStart])
-			t.selectionStart -= l
+			_, l := utf8.DecodeLastRuneInString(text[:selectionStart])
+			selectionStart -= l
 		}
-		t.selectionEnd = t.selectionStart
+		t.field.SetTextAndSelection(text, selectionStart, selectionStart)
 	case inpututil.IsKeyJustPressed(ebiten.KeyRight):
-		if t.selectionEnd < len(t.text) {
+		text := t.field.Text()
+		_, selectionEnd := t.field.Selection()
+		if selectionEnd < len(text) {
 			// TODO: Remove a grapheme instead of a code point.
-			_, l := utf8.DecodeRuneInString(t.text[t.selectionEnd:])
-			t.selectionEnd += l
+			_, l := utf8.DecodeRuneInString(text[selectionEnd:])
+			selectionEnd += l
 		}
-		t.selectionStart = t.selectionEnd
+		t.field.SetTextAndSelection(text, selectionEnd, selectionEnd)
 	}
 
 	if !t.multilines {
-		orig := t.text
+		orig := t.field.Text()
 		new := strings.ReplaceAll(orig, "\n", "")
 		if new != orig {
-			t.selectionStart -= strings.Count(orig[:t.selectionStart], "\n")
-			t.selectionEnd -= strings.Count(orig[:t.selectionEnd], "\n")
+			selectionStart, selectionEnd := t.field.Selection()
+			selectionStart -= strings.Count(orig[:selectionStart], "\n")
+			selectionEnd -= strings.Count(orig[:selectionEnd], "\n")
+			t.field.SetSelection(selectionStart, selectionEnd)
 		}
 	}
 
@@ -276,17 +206,20 @@ func (t *TextField) Update() error {
 func (t *TextField) cursorPos() (int, int) {
 	var nlCount int
 	lastNLPos := -1
-	for i, r := range t.text[:t.selectionStart] {
+	txt := t.field.TextForRendering()
+	selectionStart, _ := t.field.Selection()
+	if s, _, ok := t.field.CompositionSelection(); ok {
+		selectionStart += s
+	}
+	txt = txt[:selectionStart]
+	for i, r := range txt {
 		if r == '\n' {
 			nlCount++
 			lastNLPos = i
 		}
 	}
 
-	txt := t.text[lastNLPos+1 : t.selectionStart]
-	if t.state.Text != "" {
-		txt += t.state.Text[:t.state.CompositionSelectionStartInBytes]
-	}
+	txt = txt[lastNLPos+1:]
 	x := int(text.Advance(txt, fontFace))
 	y := nlCount * int(fontFace.Metrics().HLineGap+fontFace.Metrics().HAscent+fontFace.Metrics().HDescent)
 	return x, y
@@ -295,13 +228,14 @@ func (t *TextField) cursorPos() (int, int) {
 func (t *TextField) Draw(screen *ebiten.Image) {
 	vector.DrawFilledRect(screen, float32(t.bounds.Min.X), float32(t.bounds.Min.Y), float32(t.bounds.Dx()), float32(t.bounds.Dy()), color.White, false)
 	var clr color.Color = color.Black
-	if t.focused {
+	if t.field.IsFocused() {
 		clr = color.RGBA{0, 0, 0xff, 0xff}
 	}
 	vector.StrokeRect(screen, float32(t.bounds.Min.X), float32(t.bounds.Min.Y), float32(t.bounds.Dx()), float32(t.bounds.Dy()), 1, clr, false)
 
 	px, py := textFieldPadding()
-	if t.focused && t.selectionStart >= 0 {
+	selectionStart, _ := t.field.Selection()
+	if t.field.IsFocused() && selectionStart >= 0 {
 		x, y := t.bounds.Min.X, t.bounds.Min.Y
 		cx, cy := t.cursorPos()
 		x += px + cx
@@ -310,18 +244,13 @@ func (t *TextField) Draw(screen *ebiten.Image) {
 		vector.StrokeLine(screen, float32(x), float32(y), float32(x), float32(y+h), 1, color.Black, false)
 	}
 
-	shownText := t.text
-	if t.focused && t.state.Text != "" {
-		shownText = t.text[:t.selectionStart] + t.state.Text + t.text[t.selectionEnd:]
-	}
-
 	tx := t.bounds.Min.X + px
 	ty := t.bounds.Min.Y + py
 	op := &text.DrawOptions{}
 	op.GeoM.Translate(float64(tx), float64(ty))
 	op.ColorScale.ScaleWithColor(color.Black)
 	op.LineSpacing = fontFace.Metrics().HLineGap + fontFace.Metrics().HAscent + fontFace.Metrics().HDescent
-	text.Draw(screen, shownText, fontFace, op)
+	text.Draw(screen, t.field.TextForRendering(), fontFace, op)
 }
 
 const textFieldHeight = 24
@@ -353,9 +282,7 @@ func (g *Game) Update() error {
 		for _, tf := range g.textFields {
 			if tf.Contains(x, y) {
 				tf.Focus()
-				if _, err := tf.SetSelectionStartByCursorPosition(x, y); err != nil {
-					return err
-				}
+				tf.SetSelectionStartByCursorPosition(x, y)
 			} else {
 				tf.Blur()
 			}
