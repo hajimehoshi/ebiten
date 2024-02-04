@@ -4582,3 +4582,29 @@ func TestImageDrawImageAfterDeallocation(t *testing.T) {
 		}
 	}
 }
+
+func TestSubImageIntoZeroAlloc(t *testing.T) {
+	i := ebiten.NewImage(1, 1)
+	var s ebiten.Image
+	allocs := testing.AllocsPerRun(1, func() {
+		i.SubImageInto(&s, image.Rect(0, 0, 1, 1))
+	})
+	if allocs != 0 {
+		t.Fatalf("have %d allocs, wanted 0", int(allocs))
+	}
+}
+
+func BenchmarkSubImageInto(b *testing.B) {
+	img := ebiten.NewImage(1, 1)
+	var subimg ebiten.Image
+	for i := 0; i < b.N; i++ {
+		img.SubImageInto(&subimg, image.Rect(0, 0, 1, 1))
+	}
+}
+
+func BenchmarkSubImage(b *testing.B) {
+	img := ebiten.NewImage(1, 1)
+	for i := 0; i < b.N; i++ {
+		img.SubImage(image.Rect(0, 0, 1, 1))
+	}
+}

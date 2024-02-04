@@ -827,9 +827,37 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 // Successive uses of multiple various regions as rendering destination is still efficient
 // when all the underlying images are the same, but some platforms like browsers might not work efficiently.
 func (i *Image) SubImage(r image.Rectangle) image.Image {
+	var s Image
+	if !i.SubImageInto(&s, r) {
+		return nil
+	}
+	return &s
+}
+
+// SubImageInto is like SubImage, but it returns the result through the s parameter.
+// The s image will be initialized to a result of taking the SubImage from i.
+//
+// This code is semantically equivalent to:
+//
+//	s := i.SubImage(r)
+//
+// You might want to use this method to avoid a new Image object heap allocations.
+// Use it like this:
+//
+//	var s ebiten.Image
+//	i.SubImageInto(&s, r)
+//
+// And then use s as your sub image.
+//
+// This method returns false if i is disposed.
+func (i *Image) SubImageInto(s *Image, r image.Rectangle) bool {
+	// Try to keep this method zero alloc.
+	// There is a test for that (TestSubImageIntoZeroAlloc).
+	// There is also a benchmark for the comparison.
+
 	i.copyCheck()
 	if i.isDisposed() {
-		return nil
+		return false
 	}
 
 	r = r.Intersect(i.Bounds())
@@ -843,14 +871,14 @@ func (i *Image) SubImage(r image.Rectangle) image.Image {
 		orig = i.original
 	}
 
-	img := &Image{
+	*s = Image{
 		image:    i.image,
 		bounds:   r,
 		original: orig,
 	}
-	img.addr = img
+	s.addr = s
 
-	return img
+	return true
 }
 
 // Bounds returns the bounds of the image.
