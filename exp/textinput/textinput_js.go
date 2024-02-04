@@ -43,6 +43,7 @@ var theTextInput textInput
 
 func (t *textInput) init() {
 	t.textareaElement = document.Call("createElement", "textarea")
+	t.textareaElement.Set("id", "ebitengine-textinput")
 	t.textareaElement.Set("autocapitalize", "off")
 	t.textareaElement.Set("spellcheck", false)
 	t.textareaElement.Set("translate", "no")
@@ -111,6 +112,29 @@ func (t *textInput) init() {
 		t.trySend(true)
 		return nil
 	}))
+	body.Call("appendChild", t.textareaElement)
+
+	js.Global().Call("eval", `
+// Process the textarea element under user-interaction events.
+// This is due to an iOS Safari restriction (#2898).
+let handler = (e) => {
+	if (window._ebitengine_textinput_x === undefined || window._ebitengine_textinput_y === undefined) {
+		return;
+	}
+	let textarea = document.getElementById("ebitengine-textinput");
+	textarea.value = '';
+	textarea.focus();
+	textarea.style.left = _ebitengine_textinput_x + 'px';
+	textarea.style.top = _ebitengine_textinput_y + 'px';
+	window._ebitengine_textinput_x = undefined;
+	window._ebitengine_textinput_y = undefined;
+	window._ebitengine_textinput_ready = true;
+};
+
+let body = window.document.body;
+body.addEventListener("click", handler);
+body.addEventListener("touchstart", handler);`)
+
 	// TODO: What about other events like wheel?
 }
 
@@ -119,24 +143,37 @@ func (t *textInput) Start(x, y int) (chan State, func()) {
 		return nil, nil
 	}
 
+	if js.Global().Get("_ebitengine_textinput_ready").Truthy() {
+		s := newSession()
+		t.session = s
+		js.Global().Get("window").Set("_ebitengine_textinput_ready", js.Undefined())
+		return s.ch, s.end
+	}
+
 	if t.session != nil {
 		t.session.end()
 		t.session = nil
 	}
 
-	if !body.Call("contains", t.textareaElement).Bool() {
-		body.Call("appendChild", t.textareaElement)
+	// If a textarea is focused, create a session immediately.
+	// A virtual keyboard should already be shown on mobile browsers.
+	if document.Get("activeElement").Equal(t.textareaElement) {
+		t.textareaElement.Set("value", "")
+		t.textareaElement.Call("focus")
+		style := t.textareaElement.Get("style")
+		style.Set("left", fmt.Sprintf("%dpx", x))
+		style.Set("top", fmt.Sprintf("%dpx", y))
+
+		s := newSession()
+		t.session = s
+		return s.ch, s.end
 	}
-	t.textareaElement.Set("value", "")
-	t.textareaElement.Call("focus")
 
-	style := t.textareaElement.Get("style")
-	style.Set("left", fmt.Sprintf("%dpx", x))
-	style.Set("top", fmt.Sprintf("%dpx", y))
-
-	s := newSession()
-	t.session = s
-	return s.ch, s.end
+	// On iOS Safari, `focus` works only in user-interaction events (#2898).
+	// Assuming Start is called every tick, defer the starting process to the next user-interaction event.
+	js.Global().Get("window").Set("_ebitengine_textinput_x", x)
+	js.Global().Get("window").Set("_ebitengine_textinput_y", y)
+	return nil, nil
 }
 
 func (t *textInput) trySend(committed bool) {
