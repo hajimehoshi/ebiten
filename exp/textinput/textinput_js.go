@@ -131,7 +131,7 @@ let handler = (e) => {
 };
 
 let body = window.document.body;
-body.addEventListener("click", handler);
+body.addEventListener("mouseup", handler);
 body.addEventListener("touchend", handler);
 body.addEventListener("keyup", handler);`)
 
