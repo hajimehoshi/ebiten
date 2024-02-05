@@ -64,11 +64,11 @@ func (t *TextField) Contains(x, y int) bool {
 }
 
 func (t *TextField) SetSelectionStartByCursorPosition(x, y int) bool {
+	t.cleanUp()
 	idx, ok := t.textIndexByCursorPosition(x, y)
 	if !ok {
 		return false
 	}
-
 	t.selectionStart = idx
 	t.selectionEnd = idx
 	return true
@@ -136,29 +136,33 @@ func (t *TextField) Blur() {
 	t.focused = false
 }
 
+func (t *TextField) cleanUp() {
+	if t.ch != nil {
+		select {
+		case state, ok := <-t.ch:
+			if ok && state.Committed {
+				t.text = t.text[:t.selectionStart] + state.Text + t.text[t.selectionEnd:]
+				t.selectionStart += len(state.Text)
+				t.selectionEnd = t.selectionStart
+				t.state = textinput.State{}
+			}
+			t.state = state
+		default:
+			break
+		}
+	}
+	if t.end != nil {
+		t.end()
+		t.ch = nil
+		t.end = nil
+		t.state = textinput.State{}
+	}
+}
+
 func (t *TextField) Update() {
 	if !t.focused {
 		// If the text field still has a session, read the last state and process it just in case.
-		if t.ch != nil {
-			select {
-			case state, ok := <-t.ch:
-				if ok && state.Committed {
-					t.text = t.text[:t.selectionStart] + state.Text + t.text[t.selectionEnd:]
-					t.selectionStart += len(state.Text)
-					t.selectionEnd = t.selectionStart
-					t.state = textinput.State{}
-				}
-				t.state = state
-			default:
-				break
-			}
-		}
-		if t.end != nil {
-			t.end()
-			t.ch = nil
-			t.end = nil
-			t.state = textinput.State{}
-		}
+		t.cleanUp()
 		return
 	}
 

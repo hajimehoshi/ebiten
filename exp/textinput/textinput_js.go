@@ -15,6 +15,7 @@
 package textinput
 
 import (
+	"fmt"
 	"syscall/js"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
@@ -77,6 +78,10 @@ func (t *textInput) init() {
 		if e.Get("code").String() == "Tab" {
 			e.Call("preventDefault")
 		}
+		if e.Get("code").String() == "Enter" || e.Get("key").String() == "Enter" {
+			// Ignore Enter key to avoid ebiten.IsKeyPressed(ebiten.KeyEnter) unexpectedly becomes true, especially for iOS Safari.
+			return nil
+		}
 		if !e.Get("isComposing").Bool() {
 			ui.Get().UpdateInputFromEvent(e)
 		}
@@ -104,6 +109,7 @@ func (t *textInput) init() {
 			t.trySend(true)
 			return nil
 		}
+		// Though `isComposing` is false, send the text as being not committed for text completion on mobile browsers.
 		t.trySend(false)
 		return nil
 	}))
@@ -143,16 +149,35 @@ func (t *textInput) Start(x, y int) (chan State, func()) {
 		return nil, nil
 	}
 
-	if t.session != nil {
-		t.session.end()
-		t.session = nil
-	}
-
 	if js.Global().Get("_ebitengine_textinput_ready").Truthy() {
+		if t.session != nil {
+			t.session.end()
+		}
 		s := newSession()
 		t.session = s
 		js.Global().Get("window").Set("_ebitengine_textinput_ready", js.Undefined())
 		return s.ch, s.end
+	}
+
+	// If a textarea is focused, create a session immediately.
+	// A virtual keyboard should already be shown on mobile browsers.
+	if document.Get("activeElement").Equal(t.textareaElement) {
+		t.textareaElement.Set("value", "")
+		t.textareaElement.Call("focus")
+		style := t.textareaElement.Get("style")
+		style.Set("left", fmt.Sprintf("%dpx", x))
+		style.Set("top", fmt.Sprintf("%dpx", y))
+
+		if t.session == nil {
+			s := newSession()
+			t.session = s
+		}
+		return t.session.ch, t.session.end
+	}
+
+	if t.session != nil {
+		t.session.end()
+		t.session = nil
 	}
 
 	// On iOS Safari, `focus` works only in user-interaction events (#2898).
