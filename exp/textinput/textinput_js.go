@@ -15,7 +15,6 @@
 package textinput
 
 import (
-	"fmt"
 	"syscall/js"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
@@ -133,7 +132,8 @@ let handler = (e) => {
 
 let body = window.document.body;
 body.addEventListener("click", handler);
-body.addEventListener("touchstart", handler);`)
+body.addEventListener("touchend", handler);
+body.addEventListener("keyup", handler);`)
 
 	// TODO: What about other events like wheel?
 }
@@ -143,29 +143,15 @@ func (t *textInput) Start(x, y int) (chan State, func()) {
 		return nil, nil
 	}
 
-	if js.Global().Get("_ebitengine_textinput_ready").Truthy() {
-		s := newSession()
-		t.session = s
-		js.Global().Get("window").Set("_ebitengine_textinput_ready", js.Undefined())
-		return s.ch, s.end
-	}
-
 	if t.session != nil {
 		t.session.end()
 		t.session = nil
 	}
 
-	// If a textarea is focused, create a session immediately.
-	// A virtual keyboard should already be shown on mobile browsers.
-	if document.Get("activeElement").Equal(t.textareaElement) {
-		t.textareaElement.Set("value", "")
-		t.textareaElement.Call("focus")
-		style := t.textareaElement.Get("style")
-		style.Set("left", fmt.Sprintf("%dpx", x))
-		style.Set("top", fmt.Sprintf("%dpx", y))
-
+	if js.Global().Get("_ebitengine_textinput_ready").Truthy() {
 		s := newSession()
 		t.session = s
+		js.Global().Get("window").Set("_ebitengine_textinput_ready", js.Undefined())
 		return s.ch, s.end
 	}
 
