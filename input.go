@@ -87,6 +87,18 @@ func CursorPosition() (x, y int) {
 	return int(cx), int(cy)
 }
 
+// CursorPositionF returns a float64 position of a mouse cursor relative to the game screen (window). The cursor position is
+// 'logical' position and this considers the scale of the screen.
+//
+// CursorPositionF returns (0, 0) before the main loop on desktops and browsers.
+//
+// CursorPositionF always returns (0, 0) on mobiles.
+//
+// CursorPositionF is concurrent-safe.
+func CursorPositionF() (x, y float64) {
+	return theInputState.cursorPosition()
+}
+
 // Wheel returns x and y offsets of the mouse wheel or touchpad scroll.
 // It returns 0 if the wheel isn't being rolled.
 //
