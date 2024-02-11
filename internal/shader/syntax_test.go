@@ -3834,3 +3834,15 @@ func Bar() int {
 		t.Error("compileToIR must return an error but did not")
 	}
 }
+
+// Issue #2891
+func TestSyntaxTailingUnaryOperator(t *testing.T) {
+	if _, err := compileToIR([]byte(`package main
+
+func Foo() {
+	1 + x := vec2(2)
+}
+`)); err == nil {
+		t.Error("compileToIR must return an error but did not")
+	}
+}
