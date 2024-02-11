@@ -3818,3 +3818,19 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 		}
 	}
 }
+
+// Issue #2891
+func TestSyntaxInvalidArgument(t *testing.T) {
+	if _, err := compileToIR([]byte(`package main
+
+func Foo(x int) int {
+	return 0
+}
+
+func Bar() int {
+	return Foo(Foo)
+}
+`)); err == nil {
+		t.Error("compileToIR must return an error but did not")
+	}
+}

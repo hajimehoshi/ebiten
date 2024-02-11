@@ -187,6 +187,12 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 				cs.addError(e.Pos(), fmt.Sprintf("single-value context and multiple-value context cannot be mixed: %s", e.Fun))
 				return nil, nil, nil, false
 			}
+			for _, expr := range es {
+				if expr.Type == shaderir.FunctionExpr {
+					cs.addError(e.Pos(), fmt.Sprintf("function name cannot be an argument: %s", e.Fun))
+					return nil, nil, nil, false
+				}
+			}
 			args = append(args, es...)
 			argts = append(argts, ts...)
 			stmts = append(stmts, ss...)
