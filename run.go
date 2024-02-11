@@ -267,6 +267,12 @@ type RunGameOptions struct {
 	//
 	// The default (zero) value is false, which means that the single thread mode is disabled.
 	SingleThread bool
+
+	// X11DisplayName is a class name in the ICCCM WM_CLASS window property.
+	X11ClassName string
+
+	// X11InstanceName is an instance name in the ICCCM WM_CLASS window property.
+	X11InstanceName string
 }
 
 // RunGameWithOptions starts the main loop and runs the game with the specified options.
@@ -675,11 +681,25 @@ func SetInitFocused(focused bool) {
 var initUnfocused int32 = 0
 
 func toUIRunOptions(options *RunGameOptions) *ui.RunOptions {
+	const (
+		defaultX11ClassName    = "Ebitengine-Application"
+		defaultX11InstanceName = "ebitengine-application"
+	)
+
 	if options == nil {
 		return &ui.RunOptions{
 			InitUnfocused:     atomic.LoadInt32(&initUnfocused) != 0,
 			ScreenTransparent: atomic.LoadInt32(&screenTransparent) != 0,
+			X11ClassName:      defaultX11ClassName,
+			X11InstanceName:   defaultX11InstanceName,
 		}
+	}
+
+	if options.X11ClassName == "" {
+		options.X11ClassName = defaultX11ClassName
+	}
+	if options.X11InstanceName == "" {
+		options.X11InstanceName = defaultX11InstanceName
 	}
 	return &ui.RunOptions{
 		GraphicsLibrary:   ui.GraphicsLibrary(options.GraphicsLibrary),
@@ -687,6 +707,8 @@ func toUIRunOptions(options *RunGameOptions) *ui.RunOptions {
 		ScreenTransparent: options.ScreenTransparent,
 		SkipTaskbar:       options.SkipTaskbar,
 		SingleThread:      options.SingleThread,
+		X11ClassName:      options.X11ClassName,
+		X11InstanceName:   options.X11InstanceName,
 	}
 }
 

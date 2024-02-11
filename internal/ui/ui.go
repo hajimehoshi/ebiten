@@ -144,6 +144,8 @@ type RunOptions struct {
 	ScreenTransparent bool
 	SkipTaskbar       bool
 	SingleThread      bool
+	X11ClassName      string
+	X11InstanceName   string
 }
 
 // InitialWindowPosition returns the position for centering the given second width/height pair within the first width/height pair.

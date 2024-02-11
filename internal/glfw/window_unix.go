@@ -225,10 +225,14 @@ func WindowHint(target Hint, hint int) error {
 // Setting these hints requires no platform specific headers or functions.
 //
 // This function must only be called from the main thread.
-func WindowHintString(hint Hint, value string) {
+func WindowHintString(hint Hint, value string) error {
 	str := C.CString(value)
 	defer C.free(unsafe.Pointer(str))
 	C.glfwWindowHintString(C.int(hint), str)
+	if err := fetchErrorIgnoringPlatformError(); err != nil {
+		return err
+	}
+	return nil
 }
 
 // CreateWindow creates a window and its associated context. Most of the options

@@ -475,6 +475,8 @@ func main() {
 	}
 	op.InitUnfocused = !*flagInitFocused
 	op.ScreenTransparent = *flagTransparent
+	op.X11ClassName = "Window-Size"
+	op.X11InstanceName = "window-size"
 
 	const title = "Window Size (Ebitengine Demo)"
 	ww := int(float64(g.width) * initScreenScale)

@@ -1083,6 +1083,14 @@ func (u *UserInterface) initOnMainThread(options *RunOptions) error {
 		return err
 	}
 
+	if err := glfw.WindowHintString(glfw.X11ClassName, options.X11ClassName); err != nil {
+		return err
+	}
+
+	if err := glfw.WindowHintString(glfw.X11InstanceName, options.X11InstanceName); err != nil {
+		return err
+	}
+
 	// On macOS, window decoration should be initialized once after buffers are swapped (#2600).
 	if runtime.GOOS != "darwin" {
 		decorated := glfw.False
