@@ -16,7 +16,6 @@ package ui
 
 import (
 	"errors"
-	"image"
 	"math"
 	"sync"
 	"syscall/js"
@@ -791,13 +790,6 @@ func (u *UserInterface) Window() Window {
 type Monitor struct{}
 
 var theMonitor = &Monitor{}
-
-func (m *Monitor) Bounds() image.Rectangle {
-	screen := window.Get("screen")
-	w := screen.Get("width").Int()
-	h := screen.Get("height").Int()
-	return image.Rect(0, 0, w, h)
-}
 
 func (m *Monitor) Name() string {
 	return ""

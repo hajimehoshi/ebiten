@@ -19,7 +19,6 @@ package ui
 import (
 	stdcontext "context"
 	"fmt"
-	"image"
 	"runtime"
 	"runtime/debug"
 	"sync"
@@ -278,11 +277,6 @@ func (u *UserInterface) Window() Window {
 type Monitor struct{}
 
 var theMonitor = &Monitor{}
-
-func (m *Monitor) Bounds() image.Rectangle {
-	// TODO: This should return the available viewport dimensions.
-	return image.Rectangle{}
-}
 
 func (m *Monitor) Name() string {
 	return ""

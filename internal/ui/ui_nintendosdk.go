@@ -22,7 +22,6 @@ import "C"
 
 import (
 	"errors"
-	"image"
 	"runtime"
 	"sync"
 
@@ -168,11 +167,6 @@ func (u *UserInterface) updateIconIfNeeded() error {
 type Monitor struct{}
 
 var theMonitor = &Monitor{}
-
-func (m *Monitor) Bounds() image.Rectangle {
-	// TODO: This should return the available viewport dimensions.
-	return image.Rectangle{}
-}
 
 func (m *Monitor) Name() string {
 	return ""
