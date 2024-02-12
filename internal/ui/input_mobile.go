@@ -47,7 +47,7 @@ func (u *UserInterface) updateInputState() error {
 	u.m.Lock()
 	defer u.m.Unlock()
 
-	s := u.DeviceScaleFactor()
+	s := theMonitor.DeviceScaleFactor()
 
 	u.inputState.Touches = u.inputState.Touches[:0]
 	for _, t := range u.touches {

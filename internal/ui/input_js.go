@@ -305,7 +305,7 @@ func (u *UserInterface) updateInputState() error {
 		u.keyDurationsByKeyProperty[key]++
 	}
 
-	s := u.DeviceScaleFactor()
+	s := theMonitor.DeviceScaleFactor()
 
 	if !math.IsNaN(u.savedCursorX) && !math.IsNaN(u.savedCursorY) {
 		// If savedCursorX and savedCursorY are valid values, the cursor is saved just before entering or exiting from fullscreen.

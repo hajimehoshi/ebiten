@@ -376,7 +376,7 @@ Window size limitation: (%d, %d) - (%d, %d)
 Cursor: (%d, %d)
 TPS: Current: %0.2f / Max: %s
 FPS: %0.2f
-Device Scale Factor: %0.2f`, msgM, msgR, fg, wx, wy, ww, wh, minw, minh, maxw, maxh, cx, cy, ebiten.ActualTPS(), tpsStr, ebiten.ActualFPS(), ebiten.DeviceScaleFactor())
+Device Scale Factor: %0.2f`, msgM, msgR, fg, wx, wy, ww, wh, minw, minh, maxw, maxh, cx, cy, ebiten.ActualTPS(), tpsStr, ebiten.ActualFPS(), ebiten.Monitor().DeviceScaleFactor())
 	ebitenutil.DebugPrint(screen, msg)
 }
 
@@ -400,7 +400,7 @@ func parseWindowPosition() (int, int, bool) {
 }
 
 func main() {
-	fmt.Printf("Device scale factor: %0.2f\n", ebiten.DeviceScaleFactor())
+	fmt.Printf("Device scale factor: %0.2f\n", ebiten.Monitor().DeviceScaleFactor())
 	w, h := ebiten.ScreenSizeInFullscreen()
 	fmt.Printf("Screen size in fullscreen: %d, %d\n", w, h)
 

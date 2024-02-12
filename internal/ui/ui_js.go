@@ -97,8 +97,6 @@ type userInterfaceImpl struct {
 	onceUpdateCalled    bool
 	lastCaptureExitTime time.Time
 
-	deviceScaleFactor float64
-
 	context                   *context
 	inputState                InputState
 	keyDurationsByKeyProperty map[Key]int
@@ -271,19 +269,6 @@ func (u *UserInterface) SetCursorShape(shape CursorShape) {
 	}
 }
 
-func (u *UserInterface) DeviceScaleFactor() float64 {
-	if u.deviceScaleFactor != 0 {
-		return u.deviceScaleFactor
-	}
-
-	ratio := window.Get("devicePixelRatio").Float()
-	if ratio == 0 {
-		ratio = 1
-	}
-	u.deviceScaleFactor = ratio
-	return u.deviceScaleFactor
-}
-
 func (u *UserInterface) outsideSize() (float64, float64) {
 	if document.Truthy() {
 		body := document.Get("body")
@@ -365,11 +350,11 @@ func (u *UserInterface) updateImpl(force bool) error {
 
 	w, h := u.outsideSize()
 	if force {
-		if err := u.context.forceUpdateFrame(u.graphicsDriver, w, h, u.DeviceScaleFactor(), u); err != nil {
+		if err := u.context.forceUpdateFrame(u.graphicsDriver, w, h, theMonitor.DeviceScaleFactor(), u); err != nil {
 			return err
 		}
 	} else {
-		if err := u.context.updateFrame(u.graphicsDriver, w, h, u.DeviceScaleFactor(), u); err != nil {
+		if err := u.context.updateFrame(u.graphicsDriver, w, h, theMonitor.DeviceScaleFactor(), u); err != nil {
 			return err
 		}
 	}
@@ -771,8 +756,9 @@ func (u *UserInterface) initOnMainThread(options *RunOptions) error {
 func (u *UserInterface) updateScreenSize() {
 	if document.Truthy() {
 		body := document.Get("body")
-		bw := int(body.Get("clientWidth").Float() * u.DeviceScaleFactor())
-		bh := int(body.Get("clientHeight").Float() * u.DeviceScaleFactor())
+		f := theMonitor.DeviceScaleFactor()
+		bw := int(body.Get("clientWidth").Float() * f)
+		bh := int(body.Get("clientHeight").Float() * f)
 		canvas.Set("width", bw)
 		canvas.Set("height", bh)
 	}
@@ -787,12 +773,27 @@ func (u *UserInterface) Window() Window {
 	return &nullWindow{}
 }
 
-type Monitor struct{}
+type Monitor struct {
+	deviceScaleFactor float64
+}
 
 var theMonitor = &Monitor{}
 
 func (m *Monitor) Name() string {
 	return ""
+}
+
+func (m *Monitor) DeviceScaleFactor() float64 {
+	if m.deviceScaleFactor != 0 {
+		return m.deviceScaleFactor
+	}
+
+	ratio := window.Get("devicePixelRatio").Float()
+	if ratio == 0 {
+		ratio = 1
+	}
+	m.deviceScaleFactor = ratio
+	return m.deviceScaleFactor
 }
 
 func (u *UserInterface) AppendMonitors(mons []*Monitor) []*Monitor {

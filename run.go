@@ -480,11 +480,11 @@ func SetRunnableOnUnfocused(runnableOnUnfocused bool) {
 // DeviceScaleFactor must be called on the main thread before the main loop, and is concurrent-safe after the main
 // loop.
 //
-// DeviceScaleFactor is concurrent-safe.
-//
 // BUG: DeviceScaleFactor value is not affected by SetWindowPosition before RunGame (#1575).
+//
+// Deprecated: as of v2.6. Use Monitor().DeviceScaleFactor() instead.
 func DeviceScaleFactor() float64 {
-	return ui.Get().DeviceScaleFactor()
+	return Monitor().DeviceScaleFactor()
 }
 
 // IsVsyncEnabled returns a boolean value indicating whether

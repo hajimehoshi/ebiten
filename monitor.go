@@ -27,6 +27,20 @@ func (m *MonitorType) Name() string {
 	return (*ui.Monitor)(m).Name()
 }
 
+// DeviceScaleFactor returns the device scale factor of the monitor.
+//
+// DeviceScaleFactor returns a meaningful value on high-DPI display environment,
+// otherwise DeviceScaleFactor returns 1.
+//
+// DeviceScaleFactor might panic on init function on some devices like Android.
+// Then, it is not recommended to call DeviceScaleFactor from init functions.
+//
+// DeviceScaleFactor must be called on the main thread before the main loop,
+// and is concurrent-safe after the main loop.
+func (m *MonitorType) DeviceScaleFactor() float64 {
+	return (*ui.Monitor)(m).DeviceScaleFactor()
+}
+
 // Monitor returns the current monitor.
 func Monitor() *MonitorType {
 	m := ui.Get().Monitor()

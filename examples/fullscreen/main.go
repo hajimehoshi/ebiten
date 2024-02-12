@@ -72,7 +72,7 @@ func (g *Game) Update() error {
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	scale := ebiten.DeviceScaleFactor()
+	scale := ebiten.Monitor().DeviceScaleFactor()
 
 	w, h := gophersImage.Bounds().Dx(), gophersImage.Bounds().Dy()
 	op := &ebiten.DrawImageOptions{}
@@ -99,15 +99,15 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	textOp := &text.DrawOptions{}
 	textOp.GeoM.Translate(50*scale, 50*scale)
 	textOp.ColorScale.ScaleWithColor(color.White)
-	textOp.LineSpacing = 12 * ebiten.DeviceScaleFactor() * 1.5
+	textOp.LineSpacing = 12 * ebiten.Monitor().DeviceScaleFactor() * 1.5
 	text.Draw(screen, msg, &text.GoTextFace{
 		Source: mplusFaceSource,
-		Size:   12 * ebiten.DeviceScaleFactor(),
+		Size:   12 * ebiten.Monitor().DeviceScaleFactor(),
 	}, textOp)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
-	s := ebiten.DeviceScaleFactor()
+	s := ebiten.Monitor().DeviceScaleFactor()
 	return int(float64(outsideWidth) * s), int(float64(outsideHeight) * s)
 }
 

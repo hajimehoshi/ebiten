@@ -833,29 +833,6 @@ func (u *UserInterface) SetCursorShape(shape CursorShape) {
 	})
 }
 
-func (u *UserInterface) DeviceScaleFactor() float64 {
-	if u.isTerminated() {
-		return 0
-	}
-	if !u.isRunning() {
-		return u.getInitMonitor().deviceScaleFactor()
-	}
-
-	var f float64
-	u.mainThread.Call(func() {
-		if u.isTerminated() {
-			return
-		}
-		m, err := u.currentMonitor()
-		if err != nil {
-			u.setError(err)
-			return
-		}
-		f = m.deviceScaleFactor()
-	})
-	return f
-}
-
 // createWindow creates a GLFW window.
 //
 // createWindow must be called from the main thread.
@@ -988,7 +965,7 @@ func (u *UserInterface) registerWindowFramebufferSizeCallback() error {
 				u.setError(err)
 				return
 			}
-			s := m.deviceScaleFactor()
+			s := m.DeviceScaleFactor()
 			ww := int(float64(w) / s)
 			wh := int(float64(h) / s)
 			if err := u.setWindowSizeInDIP(ww, wh, false); err != nil {
@@ -1460,7 +1437,7 @@ func (u *UserInterface) updateGame() error {
 		if err != nil {
 			return
 		}
-		deviceScaleFactor = m.deviceScaleFactor()
+		deviceScaleFactor = m.DeviceScaleFactor()
 	}); err != nil {
 		return err
 	}
@@ -1639,7 +1616,7 @@ func (u *UserInterface) setWindowSizeInDIP(width, height int, callSetSize bool) 
 	if err != nil {
 		return err
 	}
-	scale := mon.deviceScaleFactor()
+	scale := mon.DeviceScaleFactor()
 	if u.origWindowWidthInDIP == width && u.origWindowHeightInDIP == height && u.lastDeviceScaleFactor == scale {
 		return nil
 	}

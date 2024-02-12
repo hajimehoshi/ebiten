@@ -123,11 +123,11 @@ func glfwMonitorSizeInGLFWPixels(m *glfw.Monitor) (int, int, error) {
 }
 
 func dipFromGLFWPixel(x float64, monitor *Monitor) float64 {
-	return x / monitor.deviceScaleFactor()
+	return x / monitor.DeviceScaleFactor()
 }
 
 func dipToGLFWPixel(x float64, monitor *Monitor) float64 {
-	return x * monitor.deviceScaleFactor()
+	return x * monitor.DeviceScaleFactor()
 }
 
 func (u *UserInterface) adjustWindowPosition(x, y int, monitor *Monitor) (int, int) {

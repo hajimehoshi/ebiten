@@ -86,7 +86,7 @@ func (u *UserInterface) updateInputStateImpl() error {
 	if err != nil {
 		return err
 	}
-	s := m.deviceScaleFactor()
+	s := m.DeviceScaleFactor()
 
 	cx, cy := u.savedCursorX, u.savedCursorY
 	defer func() {

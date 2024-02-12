@@ -54,8 +54,6 @@ func (*graphicsDriverCreatorImpl) newPlayStation5() (graphicsdriver.Graphics, er
 	return nil, errors.New("ui: PlayStation 5 is not supported in this environment")
 }
 
-const deviceScaleFactor = 1
-
 func init() {
 	runtime.LockOSThread()
 }
@@ -94,14 +92,10 @@ func (u *UserInterface) loopGame() error {
 	for {
 		recordProfilerHeartbeat()
 
-		if err := u.context.updateFrame(u.graphicsDriver, float64(C.kScreenWidth), float64(C.kScreenHeight), deviceScaleFactor, u); err != nil {
+		if err := u.context.updateFrame(u.graphicsDriver, float64(C.kScreenWidth), float64(C.kScreenHeight), theMonitor.DeviceScaleFactor(), u); err != nil {
 			return err
 		}
 	}
-}
-
-func (*UserInterface) DeviceScaleFactor() float64 {
-	return deviceScaleFactor
 }
 
 func (*UserInterface) IsFocused() bool {
@@ -170,6 +164,10 @@ var theMonitor = &Monitor{}
 
 func (m *Monitor) Name() string {
 	return ""
+}
+
+func (m *Monitor) DeviceScaleFactor() float64 {
+	return 1
 }
 
 func (u *UserInterface) AppendMonitors(mons []*Monitor) []*Monitor {

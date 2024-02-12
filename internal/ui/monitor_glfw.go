@@ -40,7 +40,8 @@ func (m *Monitor) Name() string {
 	return m.name
 }
 
-func (m *Monitor) deviceScaleFactor() float64 {
+// DeviceScaleFactor is concurrent-safe as contentScale is immutable.
+func (m *Monitor) DeviceScaleFactor() float64 {
 	// It is rare, but monitor can be nil when glfw.GetPrimaryMonitor returns nil.
 	// In this case, return 1 as a tentative scale (#1878).
 	if m == nil {

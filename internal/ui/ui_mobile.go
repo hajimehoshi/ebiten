@@ -89,9 +89,6 @@ type userInterfaceImpl struct {
 	outsideWidth  float64
 	outsideHeight float64
 
-	deviceScaleFactorOnce sync.Once
-	deviceScaleFactor     float64
-
 	foreground int32
 	errCh      chan error
 
@@ -179,8 +176,11 @@ func (u *UserInterface) update() error {
 		renderEndCh <- struct{}{}
 	}()
 
+	// The device scale factor can be obtained after the main function starts, especially on Android.
+	theMonitor.initDeviceScaleFactorIfNeeded()
+
 	w, h := u.outsideSize()
-	if err := u.context.updateFrame(u.graphicsDriver, w, h, u.DeviceScaleFactor(), u); err != nil {
+	if err := u.context.updateFrame(u.graphicsDriver, w, h, theMonitor.DeviceScaleFactor(), u); err != nil {
 		return err
 	}
 	return nil
@@ -256,14 +256,6 @@ func (u *UserInterface) updateExplicitRenderingModeIfNeeded(fpsMode FPSModeType)
 	u.renderRequester.SetExplicitRenderingMode(fpsMode == FPSModeVsyncOffMinimum)
 }
 
-func (u *UserInterface) DeviceScaleFactor() float64 {
-	// Assume that the device scale factor never changes on mobiles.
-	u.deviceScaleFactorOnce.Do(func() {
-		u.deviceScaleFactor = deviceScaleFactorImpl()
-	})
-	return u.deviceScaleFactor
-}
-
 func (u *UserInterface) readInputState(inputState *InputState) {
 	u.m.Lock()
 	defer u.m.Unlock()
@@ -274,12 +266,32 @@ func (u *UserInterface) Window() Window {
 	return &nullWindow{}
 }
 
-type Monitor struct{}
+type Monitor struct {
+	deviceScaleFactor float64
+
+	m sync.Mutex
+}
 
 var theMonitor = &Monitor{}
 
 func (m *Monitor) Name() string {
 	return ""
+}
+
+func (m *Monitor) initDeviceScaleFactorIfNeeded() {
+	// Assume that the device scale factor never changes on mobiles.
+	m.m.Lock()
+	defer m.m.Unlock()
+	if m.deviceScaleFactor != 0 {
+		return
+	}
+	m.deviceScaleFactor = deviceScaleFactorImpl()
+}
+
+func (m *Monitor) DeviceScaleFactor() float64 {
+	m.m.Lock()
+	defer m.m.Unlock()
+	return m.deviceScaleFactor
 }
 
 func (u *UserInterface) AppendMonitors(mons []*Monitor) []*Monitor {

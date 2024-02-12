@@ -60,7 +60,7 @@ func (u *UserInterface) updateInputStateImpl() error {
 
 	u.inputState.Touches = u.inputState.Touches[:0]
 	for _, t := range u.nativeTouches {
-		x, y := u.context.clientPositionToLogicalPosition(float64(t.x), float64(t.y), deviceScaleFactor)
+		x, y := u.context.clientPositionToLogicalPosition(float64(t.x), float64(t.y), theMonitor.DeviceScaleFactor())
 		u.inputState.Touches = append(u.inputState.Touches, Touch{
 			ID: TouchID(t.id),
 			X:  int(x),

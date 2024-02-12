@@ -50,9 +50,8 @@ func (*graphicsDriverCreatorImpl) newPlayStation5() (graphicsdriver.Graphics, er
 
 const (
 	// TODO: Get this value from the SDK.
-	screenWidth       = 3840
-	screenHeight      = 2160
-	deviceScaleFactor = 1
+	screenWidth  = 3840
+	screenHeight = 2160
 )
 
 func init() {
@@ -82,15 +81,11 @@ func (u *UserInterface) initOnMainThread(options *RunOptions) error {
 
 func (u *UserInterface) loopGame() error {
 	for {
-		if err := u.context.updateFrame(u.graphicsDriver, screenWidth, screenHeight, deviceScaleFactor, u); err != nil {
+		if err := u.context.updateFrame(u.graphicsDriver, screenWidth, screenHeight, theMonitor.DeviceScaleFactor(), u); err != nil {
 			return err
 		}
 	}
 	return nil
-}
-
-func (*UserInterface) DeviceScaleFactor() float64 {
-	return deviceScaleFactor
 }
 
 func (*UserInterface) IsFocused() bool {
@@ -162,6 +157,10 @@ func (m *Monitor) Bounds() image.Rectangle {
 
 func (m *Monitor) Name() string {
 	return ""
+}
+
+func (m *Monitor) DeviceScaleFactor() float64 {
+	return 1
 }
 
 func (u *UserInterface) AppendMonitors(mons []*Monitor) []*Monitor {
