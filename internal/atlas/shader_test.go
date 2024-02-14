@@ -19,6 +19,7 @@ import (
 	"image/color"
 	"runtime"
 	"testing"
+	"time"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
@@ -98,8 +99,17 @@ func TestGCShader(t *testing.T) {
 	c := atlas.DeferredFuncCountForTesting()
 	runtime.KeepAlive(s)
 	runtime.GC()
-	diff := atlas.DeferredFuncCountForTesting() - c
 
+	// In theory, a finalizer might be called a little later. Try a few times.
+	for i := 0; i < 3; i++ {
+		diff := atlas.DeferredFuncCountForTesting() - c
+		if diff == 1 {
+			return
+		}
+		time.Sleep(time.Millisecond)
+	}
+
+	diff := atlas.DeferredFuncCountForTesting() - c
 	if got, want := diff, 1; got != want {
 		t.Errorf("got: %d, want: %d", got, want)
 	}
