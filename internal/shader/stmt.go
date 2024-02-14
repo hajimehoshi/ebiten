@@ -622,6 +622,10 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 			}
 
 			if define {
+				if _, ok := e.(*ast.Ident); !ok {
+					cs.addError(pos, "non-name on the left side of :=")
+					return nil, false
+				}
 				name := e.(*ast.Ident).Name
 				if name != "_" {
 					for _, v := range block.vars {
