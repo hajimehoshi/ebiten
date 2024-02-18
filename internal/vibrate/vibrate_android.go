@@ -17,7 +17,7 @@ package vibrate
 import (
 	"time"
 
-	"golang.org/x/mobile/app"
+	"github.com/ebitengine/gomobile/app"
 )
 
 /*

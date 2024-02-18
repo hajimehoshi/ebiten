@@ -88,7 +88,7 @@ import (
 	"errors"
 	"fmt"
 
-	"golang.org/x/mobile/app"
+	"github.com/ebitengine/gomobile/app"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl"

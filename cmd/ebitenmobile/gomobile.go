@@ -23,7 +23,7 @@ import (
 	"runtime/debug"
 
 	// Add a dependency on gomobile in order to get the version via debug.ReadBuildInfo().
-	_ "golang.org/x/mobile/geom"
+	_ "github.com/ebitengine/gomobile/geom"
 	exec "golang.org/x/sys/execabs"
 )
 
@@ -135,8 +135,8 @@ func prepareGomobileCommands() (string, error) {
 package %s
 
 import (
-	_ "golang.org/x/mobile/cmd/gobind"
-	_ "golang.org/x/mobile/cmd/gomobile"
+	_ "github.com/ebitengine/gomobile/cmd/gobind"
+	_ "github.com/ebitengine/gomobile/cmd/gomobile"
 )
 `, buildtags, modname)), 0644); err != nil {
 		return tmp, err
@@ -147,27 +147,27 @@ import (
 		return tmp, err
 	}
 
-	// To record gomobile to go.sum for Go 1.16 and later, go-get gomobile instead of golang.org/x/mobile (#1487).
+	// To record gomobile to go.sum for Go 1.16 and later, go-get gomobile instead of github.com/ebitengine/gomobile (#1487).
 	// This also records gobind as gomobile depends on gobind indirectly.
 	// Using `...` doesn't work on Windows since mobile/internal/mobileinit cannot be compiled on Windows w/o Cgo (#1493).
-	if err := runGo("get", "golang.org/x/mobile/cmd/gomobile@"+h); err != nil {
+	if err := runGo("get", "github.com/ebitengine/gomobile/cmd/gomobile@"+h); err != nil {
 		return tmp, err
 	}
 	if localgm := os.Getenv("EBITENMOBILE_GOMOBILE"); localgm != "" {
 		if !filepath.IsAbs(localgm) {
 			localgm = filepath.Join(pwd, localgm)
 		}
-		if err := runGo("mod", "edit", "-replace=golang.org/x/mobile="+localgm); err != nil {
+		if err := runGo("mod", "edit", "-replace=github.com/ebitengine/gomobile="+localgm); err != nil {
 			return tmp, err
 		}
 	}
 	if err := runGo("mod", "tidy"); err != nil {
 		return tmp, err
 	}
-	if err := runGo("build", "-o", exe(filepath.Join("bin", "gomobile")), "golang.org/x/mobile/cmd/gomobile"); err != nil {
+	if err := runGo("build", "-o", exe(filepath.Join("bin", "gomobile")), "github.com/ebitengine/gomobile/cmd/gomobile"); err != nil {
 		return tmp, err
 	}
-	if err := runGo("build", "-o", exe(filepath.Join("bin", "gobind-original")), "golang.org/x/mobile/cmd/gobind"); err != nil {
+	if err := runGo("build", "-o", exe(filepath.Join("bin", "gobind-original")), "github.com/ebitengine/gomobile/cmd/gobind"); err != nil {
 		return tmp, err
 	}
 
@@ -212,7 +212,7 @@ func gomobileHash() (string, error) {
 		return "", fmt.Errorf("ebitenmobile: debug.ReadBuildInfo failed")
 	}
 	for _, m := range info.Deps {
-		if m.Path == "golang.org/x/mobile" {
+		if m.Path == "github.com/ebitengine/gomobile" {
 			return m.Version, nil
 		}
 	}

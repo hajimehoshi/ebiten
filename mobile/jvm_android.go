@@ -15,13 +15,13 @@
 package mobile
 
 import (
-	"golang.org/x/mobile/app"
+	"github.com/ebitengine/gomobile/app"
 )
 
 // RunOnJVM runs fn on a new goroutine locked to an OS thread with a JNIEnv.
 //
-// RunOnJVM is a wrapper of golang.org/x/mobile/app's RunOnJVM.
-// RunOnJVM is preferable in order to reduce a direct dependency on golang.org/x/mobile in your application.
+// RunOnJVM is a wrapper of github.com/ebitengine/gomobile/app's RunOnJVM.
+// RunOnJVM is preferable in order to reduce a direct dependency on github.com/ebitengine/gomobile in your application.
 //
 // RunOnJVM blocks until the call to fn is complete. Any Java
 // exception or failure to attach to the JVM is returned as an error.

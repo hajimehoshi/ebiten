@@ -22,7 +22,7 @@ package gl
 // Context is a context for OpenGL (ES) functions.
 //
 // Context is basically the same as gomobile's gl.Context.
-// See https://pkg.go.dev/golang.org/x/mobile/gl#Context
+// See https://pkg.go.dev/github.com/ebitengine/gomobile/gl#Context
 type Context interface {
 	LoadFunctions() error
 	IsES() bool

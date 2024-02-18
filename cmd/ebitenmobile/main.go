@@ -16,6 +16,7 @@
 //
 // For the usage, see https://ebitengine.org/en/documents/mobile.html.
 //
+// ebitenmobile uses github.com/ebitengine/gomobile for gomobile, not golang.org/x/mobile.
 // gomobile's version is fixed by ebitenmobile.
 // You can specify gomobile's version by EBITENMOBILE_GOMOBILE environment variable.
 package main
