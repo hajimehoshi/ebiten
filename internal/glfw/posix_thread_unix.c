@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: 2006-2017 Camilla Löwy <elmindreda@glfw.org>
 // SPDX-FileCopyrightText: 2023 The Ebitengine Authors
 
-//go:build darwin || freebsd || linux || netbsd || openbsd
+//go:build freebsd || linux || netbsd || openbsd
 
 #include "internal_unix.h"
 
