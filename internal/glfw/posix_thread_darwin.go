@@ -10,10 +10,6 @@ import "C"
 
 import "unsafe"
 
-// //////////////////////////////////////////////////////////////////////////
-// //////                       GLFW platform API                      //////
-// //////////////////////////////////////////////////////////////////////////
-
 // TODO: make these methods on GLFWtls like on windows
 // TODO: use uintptr instead of unsafe.Pointer once matching C API is no longer needed
 

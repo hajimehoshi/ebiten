@@ -7,19 +7,12 @@ package glfw
 // #include "internal_unix.h"
 import "C"
 
-// Initialise timer
-//
 //export _glfwInitTimerNS
 func _glfwInitTimerNS() {
 	var info mach_timebase_info_data_t
 	mach_timebase_info(&info)
 	C._glfw.timer.ns.frequency = C.ulonglong(info.denom*1e9) / C.ulonglong(info.numer)
 }
-
-////////////////////////////////////////////////////////////////////////////
-////////                       GLFW platform API                      //////
-////////////////////////////////////////////////////////////////////////////
-//
 
 //export _glfwPlatformGetTimerValue
 func _glfwPlatformGetTimerValue() uint64 {
