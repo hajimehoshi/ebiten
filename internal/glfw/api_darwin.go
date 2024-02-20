@@ -4,6 +4,7 @@
 
 package glfw
 
+//#include "internal_unix.h"
 import "C"
 import "github.com/ebitengine/purego"
 
@@ -14,12 +15,33 @@ type mach_timebase_info_data_t struct {
 
 var mach_absolute_time func() uint64
 var mach_timebase_info func(*mach_timebase_info_data_t)
+var pthread_key_create func(key *C.pthread_key_t, destructor uintptr) int32
+var pthread_key_delete func(key C.pthread_key_t) int32
+var pthread_getspecific func(key C.pthread_key_t) uintptr
+var pthread_setspecific func(key C.pthread_key_t, value uintptr) int32
+var pthread_mutex_init func(mutex *C.pthread_mutex_t, attr *C.pthread_mutexattr_t) int32
+var pthread_mutex_destroy func(mutex *C.pthread_mutex_t) int32
+var pthread_mutex_lock func(mutex *C.pthread_mutex_t) int32
+var pthread_mutex_unlock func(mutex *C.pthread_mutex_t) int32
+
+// TODO: replace with Go error handling
+var _glfwInputError func(code int32, format *byte)
 
 func init() {
+	purego.RegisterLibFunc(&_glfwInputError, purego.RTLD_DEFAULT, "_glfwInputError")
+
 	libSystem, err := purego.Dlopen("/usr/lib/libSystem.B.dylib", purego.RTLD_LAZY|purego.RTLD_GLOBAL)
 	if err != nil {
 		panic(err)
 	}
 	purego.RegisterLibFunc(&mach_absolute_time, libSystem, "mach_absolute_time")
 	purego.RegisterLibFunc(&mach_timebase_info, libSystem, "mach_timebase_info")
+	purego.RegisterLibFunc(&pthread_key_create, libSystem, "pthread_key_create")
+	purego.RegisterLibFunc(&pthread_key_delete, libSystem, "pthread_key_delete")
+	purego.RegisterLibFunc(&pthread_getspecific, libSystem, "pthread_getspecific")
+	purego.RegisterLibFunc(&pthread_setspecific, libSystem, "pthread_setspecific")
+	purego.RegisterLibFunc(&pthread_mutex_init, libSystem, "pthread_mutex_init")
+	purego.RegisterLibFunc(&pthread_mutex_destroy, libSystem, "pthread_mutex_destroy")
+	purego.RegisterLibFunc(&pthread_mutex_lock, libSystem, "pthread_mutex_lock")
+	purego.RegisterLibFunc(&pthread_mutex_unlock, libSystem, "pthread_mutex_unlock")
 }
