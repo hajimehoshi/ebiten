@@ -3,20 +3,19 @@
 // SPDX-FileCopyrightText: 2006-2017 Camilla Löwy <elmindreda@glfw.org>
 // SPDX-FileCopyrightText: 2024 The Ebitengine Authors
 
-//go:build darwin
-
 package glfw
 
-//#include "internal_unix.h"
+// #include "internal_unix.h"
 import "C"
+
 import "unsafe"
 
 // //////////////////////////////////////////////////////////////////////////
 // //////                       GLFW platform API                      //////
 // //////////////////////////////////////////////////////////////////////////
 
-//TODO: make these methods on GLFWtls like on windows
-//TODO: use uintptr instead of unsafe.Pointer once matching C API is no longer needed
+// TODO: make these methods on GLFWtls like on windows
+// TODO: use uintptr instead of unsafe.Pointer once matching C API is no longer needed
 
 //export _glfwPlatformCreateTls
 func _glfwPlatformCreateTls(tls *C._GLFWtls) C.GLFWbool {

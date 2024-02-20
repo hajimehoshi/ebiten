@@ -4,10 +4,12 @@
 
 package glfw
 
-//#include "internal_unix.h"
+// #include "internal_unix.h"
 import "C"
+
 import (
 	"fmt"
+
 	"github.com/ebitengine/purego"
 )
 
