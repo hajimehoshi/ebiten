@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// gamecontrollerdb.txt is downloaded at https://github.com/gabomdq/SDL_GameControllerDB.
+// gamecontrollerdb.txt is downloaded at https://github.com/mdqinc/SDL_GameControllerDB.
 
 // To update the database file, run:
 //
-//     curl --location --remote-name https://raw.githubusercontent.com/gabomdq/SDL_GameControllerDB/master/gamecontrollerdb.txt
+//     curl --location --remote-name https://raw.githubusercontent.com/mdqinc/SDL_GameControllerDB/master/gamecontrollerdb.txt
 
 package gamepaddb
 
