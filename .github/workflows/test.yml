@@ -179,7 +179,7 @@ jobs:
       - name: ebitenmobile bind (Android)
         run: |
           cd /tmp/go-inovation
-          ebitenmobile bind -target android -androidapi 19 -javapkg com.hajimehoshi.goinovation -o inovation.aar -v github.com/hajimehoshi/go-inovation/mobile
+          ebitenmobile bind -target android -androidapi 23 -javapkg com.hajimehoshi.goinovation -o inovation.aar -v github.com/hajimehoshi/go-inovation/mobile
 
       - name: ebitenmobile bind (iOS)
         if: runner.os == 'macOS'
