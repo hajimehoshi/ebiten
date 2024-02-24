@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"image"
 	"math"
+	"math/bits"
 	"runtime"
 	"sync"
 
@@ -885,11 +886,7 @@ func floorPowerOf2(x int) int {
 	if x <= 0 {
 		return 0
 	}
-	p2 := 1
-	for p2*2 <= x {
-		p2 *= 2
-	}
-	return p2
+	return 1 << (bits.Len(uint(x)) - 1)
 }
 
 func BeginFrame(graphicsDriver graphicsdriver.Graphics) error {
