@@ -176,9 +176,6 @@ func (u *UserInterface) update() error {
 		renderEndCh <- struct{}{}
 	}()
 
-	// The device scale factor can be obtained after the main function starts, especially on Android.
-	theMonitor.initDeviceScaleFactorIfNeeded()
-
 	w, h := u.outsideSize()
 	if err := u.context.updateFrame(u.graphicsDriver, w, h, theMonitor.DeviceScaleFactor(), u); err != nil {
 		return err
@@ -197,11 +194,11 @@ func (u *UserInterface) ScreenSizeInFullscreen() (int, int) {
 // SetOutsideSize is concurrent safe.
 func (u *UserInterface) SetOutsideSize(outsideWidth, outsideHeight float64) {
 	u.m.Lock()
+	defer u.m.Unlock()
 	if u.outsideWidth != outsideWidth || u.outsideHeight != outsideHeight {
 		u.outsideWidth = outsideWidth
 		u.outsideHeight = outsideHeight
 	}
-	u.m.Unlock()
 }
 
 func (u *UserInterface) CursorMode() CursorMode {
@@ -267,7 +264,8 @@ func (u *UserInterface) Window() Window {
 }
 
 type Monitor struct {
-	deviceScaleFactor float64
+	deviceScaleFactor     float64
+	deviceScaleFactorOnce sync.Once
 
 	m sync.Mutex
 }
@@ -278,19 +276,16 @@ func (m *Monitor) Name() string {
 	return ""
 }
 
-func (m *Monitor) initDeviceScaleFactorIfNeeded() {
-	// Assume that the device scale factor never changes on mobiles.
-	m.m.Lock()
-	defer m.m.Unlock()
-	if m.deviceScaleFactor != 0 {
-		return
-	}
-	m.deviceScaleFactor = deviceScaleFactorImpl()
-}
-
 func (m *Monitor) DeviceScaleFactor() float64 {
 	m.m.Lock()
 	defer m.m.Unlock()
+
+	// The device scale factor can be obtained after the main function starts, especially on Android.
+	// Initialize this lazily.
+	m.deviceScaleFactorOnce.Do(func() {
+		// Assume that the device scale factor never changes on mobiles.
+		m.deviceScaleFactor = deviceScaleFactorImpl()
+	})
 	return m.deviceScaleFactor
 }
 
