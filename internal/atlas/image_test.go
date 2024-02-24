@@ -20,6 +20,7 @@ import (
 	"runtime"
 	"testing"
 	"time"
+	"unsafe"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
@@ -811,26 +812,32 @@ func TestIteratingImagesToPutOnSourceBackend(t *testing.T) {
 	}
 }
 
+func ensureGC() {
+	// Use a pointer to avoid tinyalloc. A tinyalloc-ed object's finalizer might not called immediately.
+	// See runtime/mfinal_test.go.
+	x := new(unsafe.Pointer)
+	ch := make(chan struct{})
+	runtime.SetFinalizer(x, func(*unsafe.Pointer) { close(ch) })
+	runtime.KeepAlive(x)
+	runtime.GC()
+	<-ch
+
+	// Add a little sleep to wait for other finalizers.
+	// TODO: Is there a better way?
+	time.Sleep(time.Millisecond)
+}
+
 func TestGC(t *testing.T) {
 	img := atlas.NewImage(16, 16, atlas.ImageTypeRegular)
 	img.WritePixels(make([]byte, 4*16*16), image.Rect(0, 0, 16, 16))
 
 	// Ensure other objects are GCed, as GC appends deferred functions for collected objects.
-	runtime.GC()
+	ensureGC()
 
 	// Get the difference of the number of deferred functions before and after img is GCed.
 	c := atlas.DeferredFuncCountForTesting()
 	runtime.KeepAlive(img)
-	runtime.GC()
-
-	// In theory, a finalizer might be called a little later. Try a few times.
-	for i := 0; i < 3; i++ {
-		diff := atlas.DeferredFuncCountForTesting() - c
-		if diff == 1 {
-			return
-		}
-		time.Sleep(time.Millisecond)
-	}
+	ensureGC()
 
 	diff := atlas.DeferredFuncCountForTesting() - c
 	if got, want := diff, 1; got != want {

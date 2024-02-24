@@ -19,7 +19,6 @@ import (
 	"image/color"
 	"runtime"
 	"testing"
-	"time"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
@@ -93,21 +92,12 @@ func TestGCShader(t *testing.T) {
 	dst.DrawTriangles([graphics.ShaderImageCount]*atlas.Image{}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderImageCount]image.Rectangle{}, s, nil, graphicsdriver.FillAll)
 
 	// Ensure other objects are GCed, as GC appends deferred functions for collected objects.
-	runtime.GC()
+	ensureGC()
 
 	// Get the difference of the number of deferred functions before and after s is GCed.
 	c := atlas.DeferredFuncCountForTesting()
 	runtime.KeepAlive(s)
-	runtime.GC()
-
-	// In theory, a finalizer might be called a little later. Try a few times.
-	for i := 0; i < 3; i++ {
-		diff := atlas.DeferredFuncCountForTesting() - c
-		if diff == 1 {
-			return
-		}
-		time.Sleep(time.Millisecond)
-	}
+	ensureGC()
 
 	diff := atlas.DeferredFuncCountForTesting() - c
 	if got, want := diff, 1; got != want {
