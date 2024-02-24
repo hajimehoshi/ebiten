@@ -32,13 +32,12 @@ func isPositivePowerOf2(x int) bool {
 	if x <= 0 {
 		return false
 	}
-	for x > 1 {
-		if x/2*2 != x {
-			return false
-		}
-		x /= 2
+
+	if x&(x-1) == 0 {
+		return true
 	}
-	return true
+
+	return false
 }
 
 func NewPage(initWidth, initHeight int, maxSize int) *Page {
