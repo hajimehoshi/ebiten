@@ -886,7 +886,6 @@ func floorPowerOf2(x int) int {
 	if x <= 0 {
 		return 0
 	}
-
 	return 1 << (bits.Len(uint(x)) - 1)
 }
 
