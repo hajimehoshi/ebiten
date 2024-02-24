@@ -33,11 +33,7 @@ func isPositivePowerOf2(x int) bool {
 		return false
 	}
 
-	if x&(x-1) == 0 {
-		return true
-	}
-
-	return false
+	return x&(x-1) == 0
 }
 
 func NewPage(initWidth, initHeight int, maxSize int) *Page {
