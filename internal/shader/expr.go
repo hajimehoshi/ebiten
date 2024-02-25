@@ -426,21 +426,90 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 					cs.addError(e.Pos(), fmt.Sprintf("number of %s's arguments must be 3 but %d", callee.BuiltinFunc, len(args)))
 					return nil, nil, nil, false
 				}
-				for i := range args {
-					// If the argument is a non-typed constant value, treat this as a float value (#1874).
-					if args[i].Const != nil && argts[i].Main == shaderir.None && gconstant.ToFloat(args[i].Const).Kind() != gconstant.Unknown {
-						args[i].Const = gconstant.ToFloat(args[i].Const)
-						argts[i] = shaderir.Type{Main: shaderir.Float}
+				switch callee.BuiltinFunc {
+				case shaderir.Clamp:
+					if kind, allConsts := resolveConstKind(args, argts); allConsts {
+						switch kind {
+						case gconstant.Unknown:
+							cs.addError(e.Pos(), fmt.Sprintf("%s's arguments don't match: %s, %s, and %s", callee.BuiltinFunc, argts[0].String(), argts[1].String(), argts[2].String()))
+							return nil, nil, nil, false
+						case gconstant.Int:
+							for i, arg := range args {
+								v := gconstant.ToInt(arg.Const)
+								if v.Kind() == gconstant.Unknown {
+									cs.addError(e.Pos(), fmt.Sprintf("cannot convert %s to type int", arg.Const.String()))
+									return nil, nil, nil, false
+								}
+								args[i].Const = gconstant.ToInt(args[i].Const)
+								argts[i] = shaderir.Type{Main: shaderir.Int}
+							}
+						case gconstant.Float:
+							for i, arg := range args {
+								v := gconstant.ToFloat(arg.Const)
+								if v.Kind() == gconstant.Unknown {
+									cs.addError(e.Pos(), fmt.Sprintf("cannot convert %s to type float", arg.Const.String()))
+									return nil, nil, nil, false
+								}
+								args[i].Const = gconstant.ToFloat(args[i].Const)
+								argts[i] = shaderir.Type{Main: shaderir.Float}
+							}
+						}
 					}
-					if argts[i].Main != shaderir.Float && argts[i].Main != shaderir.Vec2 && argts[i].Main != shaderir.Vec3 && argts[i].Main != shaderir.Vec4 {
-						cs.addError(e.Pos(), fmt.Sprintf("cannot use %s as float, vec2, vec3, or vec4 value in argument to %s", argts[i].String(), callee.BuiltinFunc))
-						return nil, nil, nil, false
+					if argts[0].IsIntVector() {
+						for i := 1; i < 3; i++ {
+							if args[i].Const != nil {
+								v := gconstant.ToInt(args[i].Const)
+								if v.Kind() == gconstant.Unknown {
+									cs.addError(e.Pos(), fmt.Sprintf("cannot convert %s to type int", args[i].Const.String()))
+									return nil, nil, nil, false
+								}
+								args[i].Const = v
+								argts[i] = shaderir.Type{Main: shaderir.Int}
+							}
+						}
+					}
+					if argts[0].IsFloatVector() {
+						for i := 1; i < 3; i++ {
+							if args[i].Const != nil {
+								v := gconstant.ToFloat(args[i].Const)
+								if v.Kind() == gconstant.Unknown {
+									cs.addError(e.Pos(), fmt.Sprintf("cannot convert %s to type float", args[i].Const.String()))
+									return nil, nil, nil, false
+								}
+								args[i].Const = v
+								argts[i] = shaderir.Type{Main: shaderir.Float}
+							}
+						}
+					}
+				default:
+					for i := range args {
+						// If the argument is a non-typed constant value, treat this as a float value (#1874).
+						if args[i].Const != nil && argts[i].Main == shaderir.None && gconstant.ToFloat(args[i].Const).Kind() != gconstant.Unknown {
+							args[i].Const = gconstant.ToFloat(args[i].Const)
+							argts[i] = shaderir.Type{Main: shaderir.Float}
+						}
+					}
+				}
+				for i := range args {
+					switch callee.BuiltinFunc {
+					case shaderir.Clamp:
+						if argts[i].Main != shaderir.Float && !argts[i].IsFloatVector() && argts[i].Main != shaderir.Int && !argts[i].IsIntVector() {
+							cs.addError(e.Pos(), fmt.Sprintf("cannot use %s as float, vecN, int, or ivecN value in argument to %s", argts[i].String(), callee.BuiltinFunc))
+							return nil, nil, nil, false
+						}
+					default:
+						if argts[i].Main != shaderir.Float && !argts[i].IsFloatVector() {
+							cs.addError(e.Pos(), fmt.Sprintf("cannot use %s as float, vec2, vec3, or vec4 value in argument to %s", argts[i].String(), callee.BuiltinFunc))
+							return nil, nil, nil, false
+						}
 					}
 				}
 				switch callee.BuiltinFunc {
 				case shaderir.Clamp:
-					if (!argts[0].Equal(&argts[1]) || !argts[0].Equal(&argts[2])) && (argts[1].Main != shaderir.Float || argts[2].Main != shaderir.Float) {
-						cs.addError(e.Pos(), fmt.Sprintf("the second and the third arguments for %s must equal to the first argument %s or float but %s and %s", callee.BuiltinFunc, argts[0].String(), argts[1].String(), argts[2].String()))
+					if !((argts[0].Equal(&argts[1]) && argts[0].Equal(&argts[2])) ||
+						(argts[0].IsFloatVector() && argts[1].Main == shaderir.Float && argts[2].Main == shaderir.Float) ||
+						(argts[0].IsIntVector() && argts[1].Main == shaderir.Int && argts[2].Main == shaderir.Int)) {
+						cs.addError(e.Pos(), fmt.Sprintf("the second and the third arguments for %s must equal to the first argument %s or float or int but %s and %s", callee.BuiltinFunc, argts[0].String(), argts[1].String(), argts[2].String()))
 						return nil, nil, nil, false
 					}
 				case shaderir.Mix:
