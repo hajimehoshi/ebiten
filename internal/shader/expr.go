@@ -489,19 +489,34 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 
 				switch callee.BuiltinFunc {
 				case shaderir.Min, shaderir.Max:
-					if args[0].Const != nil && args[1].Const != nil {
-						if gconstant.ToInt(args[0].Const).Kind() != gconstant.Unknown && gconstant.ToInt(args[1].Const).Kind() != gconstant.Unknown {
-							args[0].Const = gconstant.ToInt(args[0].Const)
-							args[1].Const = gconstant.ToInt(args[1].Const)
-							argts[0] = shaderir.Type{Main: shaderir.Int}
-							argts[1] = shaderir.Type{Main: shaderir.Int}
-						} else if gconstant.ToFloat(args[0].Const).Kind() != gconstant.Unknown && gconstant.ToFloat(args[1].Const).Kind() != gconstant.Unknown {
-							args[0].Const = gconstant.ToFloat(args[0].Const)
-							args[1].Const = gconstant.ToFloat(args[1].Const)
-							argts[0] = shaderir.Type{Main: shaderir.Float}
-							argts[1] = shaderir.Type{Main: shaderir.Float}
+					if kind, allConsts := resolveConstKind(args, argts); allConsts {
+						switch kind {
+						case gconstant.Unknown:
+							cs.addError(e.Pos(), fmt.Sprintf("%s's arguments don't match: %s and %s", callee.BuiltinFunc, argts[0].String(), argts[1].String()))
+							return nil, nil, nil, false
+						case gconstant.Int:
+							for i, arg := range args {
+								v := gconstant.ToInt(arg.Const)
+								if v.Kind() == gconstant.Unknown {
+									cs.addError(e.Pos(), fmt.Sprintf("cannot convert %s to type int", arg.Const.String()))
+									return nil, nil, nil, false
+								}
+								args[i].Const = gconstant.ToInt(args[i].Const)
+								argts[i] = shaderir.Type{Main: shaderir.Int}
+							}
+						case gconstant.Float:
+							for i, arg := range args {
+								v := gconstant.ToFloat(arg.Const)
+								if v.Kind() == gconstant.Unknown {
+									cs.addError(e.Pos(), fmt.Sprintf("cannot convert %s to type float", arg.Const.String()))
+									return nil, nil, nil, false
+								}
+								args[i].Const = gconstant.ToFloat(args[i].Const)
+								argts[i] = shaderir.Type{Main: shaderir.Float}
+							}
 						}
 					}
+
 					if argts[0].IsIntVector() && args[1].Const != nil {
 						v := gconstant.ToInt(args[1].Const)
 						if v.Kind() == gconstant.Unknown {
@@ -1071,4 +1086,52 @@ func isValidSwizzling(swizzling string, t shaderir.Type) bool {
 	default:
 		return false
 	}
+}
+
+func resolveConstKind(exprs []shaderir.Expr, ts []shaderir.Type) (kind gconstant.Kind, allConsts bool) {
+	if len(exprs) != len(ts) {
+		panic("not reached")
+	}
+
+	for _, expr := range exprs {
+		if expr.Const == nil {
+			return gconstant.Unknown, false
+		}
+	}
+
+	kind = gconstant.Unknown
+	for _, t := range ts {
+		switch t.Main {
+		case shaderir.None:
+			continue
+		case shaderir.Int:
+			switch kind {
+			case gconstant.Unknown:
+				kind = gconstant.Int
+			case gconstant.Int:
+			case gconstant.Float:
+				return gconstant.Unknown, true
+			}
+		case shaderir.Float:
+			switch kind {
+			case gconstant.Unknown:
+				kind = gconstant.Float
+			case gconstant.Int:
+				return gconstant.Unknown, true
+			case gconstant.Float:
+			}
+		}
+	}
+
+	// Prefer floats over integers for non-typed constant values.
+	// For example, max(1.0, 1) should return a float value.
+	if kind == gconstant.Unknown {
+		for _, expr := range exprs {
+			if expr.Const.Kind() == gconstant.Float {
+				return gconstant.Float, true
+			}
+		}
+	}
+
+	return gconstant.Int, true
 }
