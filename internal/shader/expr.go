@@ -537,19 +537,37 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 					cs.addError(e.Pos(), fmt.Sprintf("number of %s's arguments must be 1 but %d", callee.BuiltinFunc, len(args)))
 					return nil, nil, nil, false
 				}
-				// If the argument is a non-typed constant value, treat this as a float value (#1874).
-				if args[0].Const != nil && argts[0].Main == shaderir.None && gconstant.ToFloat(args[0].Const).Kind() != gconstant.Unknown {
-					args[0].Const = gconstant.ToFloat(args[0].Const)
-					argts[0] = shaderir.Type{Main: shaderir.Float}
+
+				if args[0].Const != nil && argts[0].Main == shaderir.None {
+					switch callee.BuiltinFunc {
+					case shaderir.Abs, shaderir.Sign:
+						if args[0].Const.Kind() == gconstant.Int {
+							argts[0] = shaderir.Type{Main: shaderir.Int}
+						}
+						if args[0].Const.Kind() == gconstant.Float {
+							argts[0] = shaderir.Type{Main: shaderir.Float}
+						}
+					default:
+						// If the argument is a non-typed constant value, treat this as a float value (#1874).
+						if gconstant.ToFloat(args[0].Const).Kind() != gconstant.Unknown {
+							args[0].Const = gconstant.ToFloat(args[0].Const)
+							argts[0] = shaderir.Type{Main: shaderir.Float}
+						}
+					}
 				}
 				switch callee.BuiltinFunc {
 				case shaderir.Transpose:
-					if argts[0].Main != shaderir.Mat2 && argts[0].Main != shaderir.Mat3 && argts[0].Main != shaderir.Mat4 {
+					if !argts[0].IsMatrix() {
 						cs.addError(e.Pos(), fmt.Sprintf("cannot use %s as mat2, mat3, or mat4 value in argument to %s", argts[0].String(), callee.BuiltinFunc))
 						return nil, nil, nil, false
 					}
+				case shaderir.Abs, shaderir.Sign:
+					if argts[0].Main != shaderir.Float && !argts[0].IsFloatVector() && argts[0].Main != shaderir.Int && !argts[0].IsIntVector() {
+						cs.addError(e.Pos(), fmt.Sprintf("cannot use %s as float, vecN, int, or ivenN value in argument to %s", argts[0].String(), callee.BuiltinFunc))
+						return nil, nil, nil, false
+					}
 				default:
-					if argts[0].Main != shaderir.Float && argts[0].Main != shaderir.Vec2 && argts[0].Main != shaderir.Vec3 && argts[0].Main != shaderir.Vec4 {
+					if argts[0].Main != shaderir.Float && !argts[0].IsFloatVector() {
 						cs.addError(e.Pos(), fmt.Sprintf("cannot use %s as float, vec2, vec3, or vec4 value in argument to %s", argts[0].String(), callee.BuiltinFunc))
 						return nil, nil, nil, false
 					}

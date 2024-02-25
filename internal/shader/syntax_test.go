@@ -2103,8 +2103,6 @@ func TestSyntaxBuiltinFuncSingleArgType(t *testing.T) {
 		"log2",
 		"sqrt",
 		"inversesqrt",
-		"abs",
-		"sign",
 		"floor",
 		"ceil",
 		"fract",
@@ -2113,6 +2111,51 @@ func TestSyntaxBuiltinFuncSingleArgType(t *testing.T) {
 		"dfdx",
 		"dfdy",
 		"fwidth",
+	}
+	for _, c := range cases {
+		for _, f := range funcs {
+			stmt := strings.ReplaceAll(c.stmt, "{{.Func}}", f)
+			src := fmt.Sprintf(`package main
+
+func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+	%s
+	return dstPos
+}`, stmt)
+			_, err := compileToIR([]byte(src))
+			if err == nil && c.err {
+				t.Errorf("%s must return an error but does not", stmt)
+			} else if err != nil && !c.err {
+				t.Errorf("%s must not return nil but returned %v", stmt, err)
+			}
+		}
+	}
+}
+
+func TestSyntaxBuiltinFuncSingleArgTypeInteger(t *testing.T) {
+	cases := []struct {
+		stmt string
+		err  bool
+	}{
+		{stmt: "a := {{.Func}}(); _ = a", err: true},
+		{stmt: "a := {{.Func}}(false); _ = a", err: true},
+		{stmt: "a := {{.Func}}(1); _ = a", err: false},
+		{stmt: "a := {{.Func}}(1.0); _ = a", err: false},
+		{stmt: "a := {{.Func}}(int(1)); _ = a", err: false},
+		{stmt: "a := {{.Func}}(vec2(1)); _ = a", err: false},
+		{stmt: "a := {{.Func}}(vec3(1)); _ = a", err: false},
+		{stmt: "a := {{.Func}}(vec4(1)); _ = a", err: false},
+		{stmt: "a := {{.Func}}(ivec2(1)); _ = a", err: false},
+		{stmt: "a := {{.Func}}(ivec3(1)); _ = a", err: false},
+		{stmt: "a := {{.Func}}(ivec4(1)); _ = a", err: false},
+		{stmt: "a := {{.Func}}(mat2(1)); _ = a", err: true},
+		{stmt: "a := {{.Func}}(mat3(1)); _ = a", err: true},
+		{stmt: "a := {{.Func}}(mat4(1)); _ = a", err: true},
+		{stmt: "a := {{.Func}}(1, 1); _ = a", err: true},
+	}
+
+	funcs := []string{
+		"abs",
+		"sign",
 	}
 	for _, c := range cases {
 		for _, f := range funcs {
