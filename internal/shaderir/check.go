@@ -98,6 +98,13 @@ func TypeFromBinaryOp(op Op, lhst, rhst Type, lhsConst, rhsConst constant.Value)
 			return Type{}, false
 		}
 
+		if op == LeftShift || op == RightShift {
+			if lhsConst.Kind() == constant.Int && rhsConst.Kind() == constant.Int {
+				return Type{Main: Int}, true
+			}
+			return Type{}, false
+		}
+
 		if op == EqualOp || op == NotEqualOp || op == LessThanOp || op == LessThanEqualOp || op == GreaterThanOp || op == GreaterThanEqualOp {
 			return Type{Main: Bool}, true
 		}
@@ -173,7 +180,7 @@ func TypeFromBinaryOp(op Op, lhst, rhst Type, lhsConst, rhsConst constant.Value)
 		return Type{}, false
 	}
 
-	if op == And || op == Or || op == Xor || op == LeftShift || op == RightShift {
+	if op == And || op == Or || op == Xor {
 		if lhst.Main == Int && rhst.Main == Int {
 			return Type{Main: Int}, true
 		}
@@ -190,9 +197,26 @@ func TypeFromBinaryOp(op Op, lhst, rhst Type, lhsConst, rhsConst constant.Value)
 			return lhst, true
 		}
 		if lhst.Main == Int && rhst.IsIntVector() {
-			if op == And || op == Or || op == Xor {
-				return rhst, true
-			}
+			return rhst, true
+		}
+		return Type{}, false
+	}
+
+	if op == LeftShift || op == RightShift {
+		if lhst.Main == Int && rhst.Main == Int {
+			return Type{Main: Int}, true
+		}
+		if lhst.Main == IVec2 && rhst.Main == IVec2 {
+			return Type{Main: IVec2}, true
+		}
+		if lhst.Main == IVec3 && rhst.Main == IVec3 {
+			return Type{Main: IVec3}, true
+		}
+		if lhst.Main == IVec4 && rhst.Main == IVec4 {
+			return Type{Main: IVec4}, true
+		}
+		if lhst.IsIntVector() && rhst.Main == Int {
+			return lhst, true
 		}
 		return Type{}, false
 	}
