@@ -60,7 +60,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 				return nil, false
 			}
 			stmts = append(stmts, ss...)
-		case token.ADD_ASSIGN, token.SUB_ASSIGN, token.MUL_ASSIGN, token.QUO_ASSIGN, token.REM_ASSIGN, token.AND_ASSIGN, token.OR_ASSIGN, token.XOR_ASSIGN, token.AND_NOT_ASSIGN:
+		case token.ADD_ASSIGN, token.SUB_ASSIGN, token.MUL_ASSIGN, token.QUO_ASSIGN, token.REM_ASSIGN, token.AND_ASSIGN, token.OR_ASSIGN, token.XOR_ASSIGN, token.AND_NOT_ASSIGN, token.SHL_ASSIGN, token.SHR_ASSIGN:
 			rhs, rts, ss, ok := cs.parseExpr(block, fname, stmt.Rhs[0], true)
 			if !ok {
 				return nil, false
@@ -100,6 +100,10 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 				op = shaderir.Or
 			case token.XOR_ASSIGN:
 				op = shaderir.Xor
+			case token.SHL_ASSIGN:
+				op = shaderir.LeftShift
+			case token.SHR_ASSIGN:
+				op = shaderir.RightShift
 			default:
 				cs.addError(stmt.Pos(), fmt.Sprintf("unexpected token: %s", stmt.Tok))
 				return nil, false
@@ -111,6 +115,15 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 					return nil, false
 				}
 				if op == shaderir.And || op == shaderir.Or || op == shaderir.Xor {
+					if lts[0].Main != shaderir.Int && !lts[0].IsIntVector() {
+						cs.addError(stmt.Pos(), fmt.Sprintf("invalid operation: operator %s not defined on %s", stmt.Tok, lts[0].String()))
+					}
+					if rts[0].Main != shaderir.Int && !rts[0].IsIntVector() {
+						cs.addError(stmt.Pos(), fmt.Sprintf("invalid operation: operator %s not defined on %s", stmt.Tok, rts[0].String()))
+					}
+					return nil, false
+				}
+				if op == shaderir.LeftShift || op == shaderir.RightShift {
 					if lts[0].Main != shaderir.Int && !lts[0].IsIntVector() {
 						cs.addError(stmt.Pos(), fmt.Sprintf("invalid operation: operator %s not defined on %s", stmt.Tok, lts[0].String()))
 					}
@@ -137,7 +150,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 						}
 					}
 				case shaderir.Float:
-					if op == shaderir.And || op == shaderir.Or || op == shaderir.Xor {
+					if op == shaderir.And || op == shaderir.Or || op == shaderir.Xor || op == shaderir.LeftShift || op == shaderir.RightShift {
 						cs.addError(stmt.Pos(), fmt.Sprintf("invalid operation: operator %s not defined on %s", stmt.Tok, lts[0].String()))
 					} else if rhs[0].Const != nil &&
 						(rts[0].Main == shaderir.None || rts[0].Main == shaderir.Float) &&
@@ -148,7 +161,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 						return nil, false
 					}
 				case shaderir.Vec2, shaderir.Vec3, shaderir.Vec4, shaderir.Mat2, shaderir.Mat3, shaderir.Mat4:
-					if op == shaderir.And || op == shaderir.Or || op == shaderir.Xor {
+					if op == shaderir.And || op == shaderir.Or || op == shaderir.Xor || op == shaderir.LeftShift || op == shaderir.RightShift {
 						cs.addError(stmt.Pos(), fmt.Sprintf("invalid operation: operator %s not defined on %s", stmt.Tok, lts[0].String()))
 					} else if (op == shaderir.MatrixMul || op == shaderir.Div) &&
 						(rts[0].Main == shaderir.Float ||
