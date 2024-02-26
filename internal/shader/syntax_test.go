@@ -1320,6 +1320,9 @@ func TestSyntaxOperatorShift(t *testing.T) {
 		stmt string
 		err  bool
 	}{
+		{stmt: "a := 1 << 2.0; _ = a", err: true},
+		{stmt: "a := 1.0 << 2; _ = a", err: true},
+		{stmt: "a := 1.0 << 2.0; _ = a", err: true},
 		{stmt: "a := 1 << 2; _ = a", err: false},
 		{stmt: "a := float(1.0) << 2; _ = a", err: true},
 		{stmt: "a := 1 << float(2.0); _ = a", err: true},
@@ -1386,6 +1389,7 @@ func TestSyntaxOperatorShiftAssign(t *testing.T) {
 		err  bool
 	}{
 		{stmt: "a := 1; a <<= 2; _ = a", err: false},
+		{stmt: "a := 1; a <<= 2.0; _ = a", err: false},
 		{stmt: "a := float(1.0); a <<= 2; _ = a", err: true},
 		{stmt: "a := 1; a <<= float(2.0); _ = a", err: true},
 		{stmt: "a := ivec2(1); a <<= 2; _ = a", err: false},
@@ -1407,6 +1411,7 @@ func TestSyntaxOperatorShiftAssign(t *testing.T) {
 		{stmt: "a := vec3(1); a <<= ivec2(2); _ = a", err: true},
 		{stmt: "a := ivec2(1); a <<= vec3(2); _ = a", err: true},
 		{stmt: "const c = 2; a := 1; a <<= c; _ = a", err: false},
+		{stmt: "const c = 2.0; a := 1; a <<= c; _ = a", err: false},
 		{stmt: "const c = 2; a := float(1.0); a <<= c; _ = a", err: true},
 		{stmt: "const c float = 2; a := 1; a <<= c; _ = a", err: true},
 		{stmt: "const c float = 2.0; a := 1; a <<= c; _ = a", err: true},
@@ -1414,6 +1419,7 @@ func TestSyntaxOperatorShiftAssign(t *testing.T) {
 		{stmt: "const c int = 2; a := vec2(1); a <<= c; _ = a", err: true},
 
 		{stmt: "a := 1; a >>= 2; _ = a", err: false},
+		{stmt: "a := 1; a >>= 2.0; _ = a", err: false},
 		{stmt: "a := float(1.0); a >>= 2; _ = a", err: true},
 		{stmt: "a := 1; a >>= float(2.0); _ = a", err: true},
 		{stmt: "a := ivec2(1); a >>= 2; _ = a", err: false},
@@ -1435,6 +1441,7 @@ func TestSyntaxOperatorShiftAssign(t *testing.T) {
 		{stmt: "a := vec3(1); a >>= ivec2(2); _ = a", err: true},
 		{stmt: "a := ivec2(1); a >>= vec3(2); _ = a", err: true},
 		{stmt: "const c = 2; a := 1; a >>= c; _ = a", err: false},
+		{stmt: "const c = 2.0; a := 1; a >>= c; _ = a", err: false},
 		{stmt: "const c = 2; a := float(1.0); a >>= c; _ = a", err: true},
 		{stmt: "const c float = 2; a := 1; a >>= c; _ = a", err: true},
 		{stmt: "const c float = 2.0; a := 1; a >>= c; _ = a", err: true},
