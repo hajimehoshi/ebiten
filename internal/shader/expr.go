@@ -124,11 +124,8 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 
 				// If left is untyped const
 				if lhst.Main == shaderir.None && lhs[0].Const != nil {
-					if rhs[0].Const != nil {
-						lhst = shaderir.Type{Main: shaderir.Int}
-					} else {
-						lhst = shaderir.Type{Main: shaderir.DeducedInt}
-					}
+					lhst = shaderir.Type{Main: shaderir.Int}
+					// Left should be implicitly converted to the type it would assume if the shift expression were replaced by its left operand alone.
 				}
 			}
 		} else {

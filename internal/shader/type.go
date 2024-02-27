@@ -165,7 +165,7 @@ func checkArgsForIntBuiltinFunc(args []shaderir.Expr, argts []shaderir.Type) err
 	if len(args) != 1 {
 		return fmt.Errorf("number of int's arguments must be 1 but %d", len(args))
 	}
-	if argts[0].Main == shaderir.Int || argts[0].Main == shaderir.Float || argts[0].Main == shaderir.DeducedInt {
+	if argts[0].Main == shaderir.Int || argts[0].Main == shaderir.Float {
 		return nil
 	}
 	if args[0].Const != nil && gconstant.ToInt(args[0].Const).Kind() != gconstant.Unknown {

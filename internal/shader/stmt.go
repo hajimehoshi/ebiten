@@ -514,9 +514,6 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 					return nil, false
 				}
 				t := ts[0]
-				if t.Main == shaderir.DeducedInt {
-					cs.addError(pos, "invalid operation: shifted operand 1 (type float) must be integer")
-				}
 				if t.Main == shaderir.None {
 					t = toDefaultType(r[0].Const)
 				}
@@ -706,9 +703,6 @@ func toDefaultType(v gconstant.Value) shaderir.Type {
 
 func canAssign(lt *shaderir.Type, rt *shaderir.Type, rc gconstant.Value) bool {
 	if lt.Equal(rt) {
-		return true
-	}
-	if lt.Main == shaderir.Int && rt.Main == shaderir.DeducedInt {
 		return true
 	}
 
