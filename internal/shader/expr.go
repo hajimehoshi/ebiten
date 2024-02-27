@@ -101,7 +101,13 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 		}
 
 		// Resolve untyped constants.
-		l, r, ok := shaderir.ResolveUntypedConstsForBinaryOp(lhs[0].Const, rhs[0].Const, lhst, rhst)
+		var l gconstant.Value
+		var r gconstant.Value
+		if op2 == shaderir.LeftShift || op2 == shaderir.RightShift {
+			l, r, ok = shaderir.ResolveUntypedConstsForBitShiftOp(lhs[0].Const, rhs[0].Const, lhst, rhst)
+		} else {
+			l, r, ok = shaderir.ResolveUntypedConstsForBinaryOp(lhs[0].Const, rhs[0].Const, lhst, rhst)
+		}
 		if !ok {
 			// TODO: Show a better type name for untyped constants.
 			cs.addError(e.Pos(), fmt.Sprintf("types don't match: %s %s %s", lhst.String(), op, rhst.String()))
@@ -109,27 +115,45 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 		}
 		lhs[0].Const, rhs[0].Const = l, r
 
-		// If either is typed, resolve the other type.
-		// If both are untyped, keep them untyped.
-		if lhst.Main != shaderir.None || rhst.Main != shaderir.None {
-			if lhs[0].Const != nil {
-				switch lhs[0].Const.Kind() {
-				case gconstant.Float:
-					lhst = shaderir.Type{Main: shaderir.Float}
-				case gconstant.Int:
-					lhst = shaderir.Type{Main: shaderir.Int}
-				case gconstant.Bool:
-					lhst = shaderir.Type{Main: shaderir.Bool}
+		if op2 == shaderir.LeftShift || op2 == shaderir.RightShift {
+			if !(lhst.Main == shaderir.None && rhst.Main == shaderir.None) {
+				// If both are const
+				if rhs[0].Const != nil && (rhst.Main == shaderir.None || lhs[0].Const != nil) {
+					rhst = shaderir.Type{Main: shaderir.Int}
+				}
+
+				// If left is untyped const
+				if lhst.Main == shaderir.None && lhs[0].Const != nil {
+					if rhs[0].Const != nil {
+						lhst = shaderir.Type{Main: shaderir.Int}
+					} else {
+						lhst = shaderir.Type{Main: shaderir.DeducedInt}
+					}
 				}
 			}
-			if rhs[0].Const != nil {
-				switch rhs[0].Const.Kind() {
-				case gconstant.Float:
-					rhst = shaderir.Type{Main: shaderir.Float}
-				case gconstant.Int:
-					rhst = shaderir.Type{Main: shaderir.Int}
-				case gconstant.Bool:
-					rhst = shaderir.Type{Main: shaderir.Bool}
+		} else {
+			// If either is typed, resolve the other type.
+			// If both are untyped, keep them untyped.
+			if lhst.Main != shaderir.None || rhst.Main != shaderir.None {
+				if lhs[0].Const != nil {
+					switch lhs[0].Const.Kind() {
+					case gconstant.Float:
+						lhst = shaderir.Type{Main: shaderir.Float}
+					case gconstant.Int:
+						lhst = shaderir.Type{Main: shaderir.Int}
+					case gconstant.Bool:
+						lhst = shaderir.Type{Main: shaderir.Bool}
+					}
+				}
+				if rhs[0].Const != nil {
+					switch rhs[0].Const.Kind() {
+					case gconstant.Float:
+						rhst = shaderir.Type{Main: shaderir.Float}
+					case gconstant.Int:
+						rhst = shaderir.Type{Main: shaderir.Int}
+					case gconstant.Bool:
+						rhst = shaderir.Type{Main: shaderir.Bool}
+					}
 				}
 			}
 		}

@@ -18,6 +18,29 @@ import (
 	"go/constant"
 )
 
+func ResolveUntypedConstsForBitShiftOp(lhs, rhs constant.Value, lhst, rhst Type) (newLhs, newRhs constant.Value, ok bool) {
+	cLhs := lhs
+	cRhs := rhs
+
+	// Right is const -> int
+	if rhs != nil {
+		cRhs = constant.ToInt(rhs)
+		if cRhs.Kind() == constant.Unknown {
+			return nil, nil, false
+		}
+	}
+
+	// Left if untyped const -> int
+	if lhs != nil && lhst.Main == None {
+		cLhs = constant.ToInt(lhs)
+		if cLhs.Kind() == constant.Unknown {
+			return nil, nil, false
+		}
+	}
+
+	return cLhs, cRhs, true
+}
+
 func ResolveUntypedConstsForBinaryOp(lhs, rhs constant.Value, lhst, rhst Type) (newLhs, newRhs constant.Value, ok bool) {
 	if lhst.Main == None && rhst.Main == None {
 		if lhs.Kind() == rhs.Kind() {
@@ -98,13 +121,6 @@ func TypeFromBinaryOp(op Op, lhst, rhst Type, lhsConst, rhsConst constant.Value)
 			return Type{}, false
 		}
 
-		if op == LeftShift || op == RightShift {
-			if lhsConst.Kind() == constant.Int && rhsConst.Kind() == constant.Int {
-				return Type{Main: Int}, true
-			}
-			return Type{}, false
-		}
-
 		if op == EqualOp || op == NotEqualOp || op == LessThanOp || op == LessThanEqualOp || op == GreaterThanOp || op == GreaterThanEqualOp {
 			return Type{Main: Bool}, true
 		}
@@ -126,6 +142,19 @@ func TypeFromBinaryOp(op Op, lhst, rhst Type, lhsConst, rhsConst constant.Value)
 	// Both types must not be untyped.
 	if lhst.Main == None || rhst.Main == None {
 		panic("shaderir: cannot resolve untyped values")
+	}
+
+	if op == LeftShift || op == RightShift {
+		if (lhst.Main == Int || lhst.Main == DeducedInt) && rhst.Main == Int {
+			return Type{Main: lhst.Main}, true
+		}
+		if lhst.IsIntVector() && rhst.Main == Int {
+			return Type{Main: lhst.Main}, true
+		}
+		if lhst.IsIntVector() && rhst.IsIntVector() && lhst.VectorElementCount() == rhst.VectorElementCount() {
+			return Type{Main: lhst.Main}, true
+		}
+		return Type{}, false
 	}
 
 	if op == AndAnd || op == OrOr {
@@ -198,25 +227,6 @@ func TypeFromBinaryOp(op Op, lhst, rhst Type, lhsConst, rhsConst constant.Value)
 		}
 		if lhst.Main == Int && rhst.IsIntVector() {
 			return rhst, true
-		}
-		return Type{}, false
-	}
-
-	if op == LeftShift || op == RightShift {
-		if lhst.Main == Int && rhst.Main == Int {
-			return Type{Main: Int}, true
-		}
-		if lhst.Main == IVec2 && rhst.Main == IVec2 {
-			return Type{Main: IVec2}, true
-		}
-		if lhst.Main == IVec3 && rhst.Main == IVec3 {
-			return Type{Main: IVec3}, true
-		}
-		if lhst.Main == IVec4 && rhst.Main == IVec4 {
-			return Type{Main: IVec4}, true
-		}
-		if lhst.IsIntVector() && rhst.Main == Int {
-			return lhst, true
 		}
 		return Type{}, false
 	}
