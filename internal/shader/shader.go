@@ -61,6 +61,8 @@ type compileState struct {
 
 	varyingParsed bool
 
+	delayedTypeCheks map[ast.Expr]delayedValidator
+
 	errs []string
 }
 
@@ -80,6 +82,13 @@ func (cs *compileState) findUniformVariable(name string) (int, bool) {
 		}
 	}
 	return 0, false
+}
+
+func (cs *compileState) addDelayedTypeCheck(at ast.Expr, check delayedValidator) {
+	if cs.delayedTypeCheks == nil {
+		cs.delayedTypeCheks = make(map[ast.Expr]delayedValidator, 1)
+	}
+	cs.delayedTypeCheks[at] = check
 }
 
 type typ struct {
@@ -350,6 +359,12 @@ func (cs *compileState) parse(f *ast.File) {
 	for _, f := range cs.funcs {
 		cs.ir.Funcs = append(cs.ir.Funcs, f.ir)
 	}
+
+	// if len(cs.delayedTypeCheks) != 0 {
+	// 	for _, check := range cs.delayedTypeCheks {
+	// 		cs.addError(check.Pos(), check.Error())
+	// 	}
+	// }
 }
 
 func (cs *compileState) parseDecl(b *block, fname string, d ast.Decl) ([]shaderir.Stmt, bool) {

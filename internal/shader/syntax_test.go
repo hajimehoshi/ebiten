@@ -1320,23 +1320,27 @@ func TestSyntaxOperatorShift(t *testing.T) {
 		stmt string
 		err  bool
 	}{
-		// {stmt: "s := 1; var a float = float(1 << s); _ = a", err: true},
-		// {stmt: "s := 1; var a float = float(1.0 << s); _ = a", err: true},
-		// {stmt: "s := 1; var a int = int(1 << s); _ = a", err: false},
-		// {stmt: "s := 1; var a int = int(1.0 << s); _ = a", err: false},
-		// {stmt: "s := 1; a := 1 << s; _ = a", err: false},
-		// {stmt: "s := 1; a := 1.0 << s; _ = a", err: true},
-		// {stmt: "s := 1; a := int(1.0 << s); _ = a", err: false},
-		// {stmt: "s := 1; var a float = float(1.0 << s); _ = a", err: true},
-		// {stmt: "s := 1; var a float = 1.0 << s; _ = a", err: true},
-		// {stmt: "s := 1; var a float = 1 << s; _ = a", err: true},
-		// {stmt: "s := 1; var a int = 1.0 << s; _ = a", err: false},
-		// {stmt: "s := 1; var a int = 1 << s; _ = a", err: false},
+		{stmt: "s := 1; t := 2; _ = t + 1.0 << s", err: false},
+		{stmt: "s := 1; _ = 1 << s", err: false},
+		{stmt: "s := 1; _ = 1.0 << s", err: true},
+		{stmt: "var a = 1; b := a << 2.0; _ = b", err: false},
+		{stmt: "s := 1; var a float; a = 1 << s; _ = a", err: true},
+		{stmt: "s := 1; var a float = 1 << s; _ = a", err: true},
+		{stmt: "s := 1; var a float = float(1.0 << s); _ = a", err: true},
+		{stmt: "s := 1; var a int = int(1 << s); _ = a", err: false},
+		{stmt: "s := 1; var a int = int(1.0 << s); _ = a", err: false},
+		{stmt: "s := 1; a := 1 << s; _ = a", err: false},
+		{stmt: "s := 1; a := 1.0 << s; _ = a", err: true},
+		{stmt: "s := 1; a := int(1.0 << s); _ = a", err: false},
+		{stmt: "s := 1; var a float = float(1.0 << s); _ = a", err: true},
+		{stmt: "s := 1; var a float = 1.0 << s; _ = a", err: true},
+		{stmt: "s := 1; var a float = 1 << s; _ = a", err: true},
+		{stmt: "s := 1; var a int = 1.0 << s; _ = a", err: false},
+		{stmt: "s := 1; var a int = 1 << s; _ = a", err: false},
 
 		{stmt: "var a float = 1.0 << 2.0; _ = a", err: false},
 		{stmt: "var a int = 1.0 << 2; _ = a", err: false},
 		{stmt: "var a float = 1.0 << 2; _ = a", err: false},
-		{stmt: "var a = 1.0 << 2; _ = a", err: false},
 		{stmt: "a := 1 << 2.0; _ = a", err: false},
 		{stmt: "a := 1.0 << 2; _ = a", err: false},
 		{stmt: "a := 1.0 << 2.0; _ = a", err: false},
@@ -1362,36 +1366,6 @@ func TestSyntaxOperatorShift(t *testing.T) {
 		{stmt: "a := ivec2(1) << vec2(2); _ = a", err: true},
 		{stmt: "a := vec3(1) << ivec2(2); _ = a", err: true},
 		{stmt: "a := ivec2(1) << vec3(2); _ = a", err: true},
-
-		{stmt: "var a float = 1.0 >> 2.0; _ = a", err: false},
-		{stmt: "var a int = 1.0 >> 2; _ = a", err: false},
-		{stmt: "var a float = 1.0 >> 2; _ = a", err: false},
-		{stmt: "var a = 1.0 >> 2; _ = a", err: false},
-		{stmt: "a := 1 >> 2.0; _ = a", err: false},
-		{stmt: "a := 1.0 >> 2; _ = a", err: false},
-		{stmt: "a := 1.0 >> 2.0; _ = a", err: false},
-		{stmt: "a := 1 >> 2; _ = a", err: false},
-		{stmt: "a := float(1.0) >> 2; _ = a", err: true},
-		{stmt: "a := 1 >> float(2.0); _ = a", err: false},
-		{stmt: "a := 1.0 >> float(2.0); _ = a", err: false},
-		{stmt: "a := ivec2(1) >> 2; _ = a", err: false},
-		{stmt: "a := 1 >> ivec2(2); _ = a", err: true},
-		{stmt: "a := ivec2(1) >> float(2.0); _ = a", err: true},
-		{stmt: "a := float(1.0) >> ivec2(2); _ = a", err: true},
-		{stmt: "a := ivec2(1) >> ivec2(2); _ = a", err: false},
-		{stmt: "a := ivec3(1) >> ivec2(2); _ = a", err: true},
-		{stmt: "a := ivec2(1) >> ivec3(2); _ = a", err: true},
-		{stmt: "a := 1 >> vec2(2); _ = a", err: true},
-		{stmt: "a := vec2(1) >> 2; _ = a", err: true},
-		{stmt: "a := float(1.0) >> vec2(2); _ = a", err: true},
-		{stmt: "a := vec2(1) >> float(2.0); _ = a", err: true},
-		{stmt: "a := vec2(1) >> vec2(2); _ = a", err: true},
-		{stmt: "a := vec2(1) >> vec3(2); _ = a", err: true},
-		{stmt: "a := vec3(1) >> vec2(2); _ = a", err: true},
-		{stmt: "a := vec2(1) >> ivec2(2); _ = a", err: true},
-		{stmt: "a := ivec2(1) >> vec2(2); _ = a", err: true},
-		{stmt: "a := vec3(1) >> ivec2(2); _ = a", err: true},
-		{stmt: "a := ivec2(1) >> vec3(2); _ = a", err: true},
 	}
 
 	for _, c := range cases {
@@ -1405,6 +1379,80 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 			t.Errorf("%s must return an error but does not", c.stmt)
 		} else if err != nil && !c.err {
 			t.Errorf("%s must not return nil but returned %v", c.stmt, err)
+		}
+	}
+
+	casesFunc := []struct {
+		prog string
+		err  bool
+	}{
+		{
+			prog: `package main
+				func Foo(x int) {
+					_ = x
+				}
+				func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+					s := 1	
+					Foo(1 << s)
+					return dstPos
+				}`,
+			err: false,
+		},
+		{
+			prog: `package main
+				func Foo(x int) {
+					_ = x
+				}
+				func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+					s := 1	
+					Foo(1.0 << s)
+					return dstPos
+				}`,
+			err: false,
+		},
+		{
+			prog: `package main
+				func Foo(x float) {
+					_ = x
+				}
+				func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+					s := 1	
+					Foo(1 << s)
+					return dstPos
+				}`,
+			err: true,
+		},
+		{
+			prog: `package main
+				func Foo(x float) {
+					_ = x
+				}
+				func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+					s := 1	
+					Foo(1 << s)
+					return dstPos
+				}`,
+			err: true,
+		},
+		{
+			prog: `package main
+				func Foo(x float) {
+					_ = x
+				}
+				func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {	
+					Foo(1.0 << 2.0)
+					return dstPos
+				}`,
+			err: false,
+		},
+	}
+
+	for _, c := range casesFunc {
+		_, err := compileToIR([]byte(c.prog))
+		if err == nil && c.err {
+			t.Errorf("%s must return an error but does not", c.prog)
+		} else if err != nil && !c.err {
+			t.Errorf("%s must not return nil but returned %v", c.prog, err)
 		}
 	}
 }
