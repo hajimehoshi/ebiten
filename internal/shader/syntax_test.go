@@ -1320,9 +1320,35 @@ func TestSyntaxOperatorShift(t *testing.T) {
 		stmt string
 		err  bool
 	}{
-		{stmt: "s := 1; t := 2; _ = t + 1.0 << s", err: false},
-		{stmt: "s := 1; _ = 1 << s", err: false},
-		{stmt: "s := 1; _ = 1.0 << s", err: true},
+		{stmt: "s := 1; a := 1.0<<s + vec2(1); _ = a", err: true},
+		{stmt: "s := 1; a := 1.0<<s + ivec2(1); _ = a", err: false},
+		{stmt: "s := 1; a := 1.0<<s + foo_int_int(1.0<<s); _ = a", err: false},
+		{stmt: "s := 1; a := 1.0<<s + 1.0<<s; _ = a", err: true},
+		{stmt: "s := 1; a := 1<<s + 1.0<<s; _ = a", err: true},
+		{stmt: "s := 1; a := 1.0<<s + 1<<s; _ = a", err: true},
+		{stmt: "s := 1; a := 1<<s + 1<<s; _ = a", err: false},
+		{stmt: "s := 1; foo_multivar(0, 0, 1<<s)", err: false},
+		{stmt: "s := 1; foo_multivar(0, 1.0<<s, 0)", err: true},
+		{stmt: "s := 1; foo_multivar(1.0<<s, 0, 0)", err: false},
+		{stmt: "s := 12; a := foo_multivar(1.0<<s, 0, 0); _ = a", err: false},
+		{stmt: "s := 12; a := foo_multivar(0, 1.0<<s, 0); _ = a", err: true},
+		{stmt: "s := 12; a := foo_multivar(0, 0, 1.0<<s); _ = a", err: false},
+		{stmt: "a := foo_multivar(0, 0, 1.0<<2.0); _ = a", err: false},
+		{stmt: "a := foo_multivar(0, 1.0<<2.0, 0); _ = a", err: false},
+		{stmt: "s := 12; var a int = 1.0 << 2.0 << 3.0 << 4.0 << s; _ = a", err: false},
+		{stmt: "s := 12; var a float = 1 << 1 << 1 << 1 << s; _ = a", err: true},
+		{stmt: "s := 12; var a float = 1 << s + 1.2; _ = a", err: true},
+		{stmt: "s := 12; a := 1.0 << s + 1.2; _ = a", err: true},
+		{stmt: "s := 12; a := 1.0 << s + foo_float_float(2); _ = a", err: true},
+		{stmt: "s := 12; a := 1.0 << s + foo_float_int(2); _ = a", err: false},
+		{stmt: "s := 12; a := foo_float_int(1.0<<s) + foo_float_int(2); _ = a", err: true},
+		{stmt: "s := 12; a := foo_int_float(1<<s) + foo_int_float(2); _ = a", err: false},
+		{stmt: "s := 12; a := foo_int_int(1<<s) + foo_int_int(2); _ = a", err: false},
+		{stmt: "s := 1; t := 2.0; a := t + 1.0 << s; _ = a", err: true},
+		{stmt: "s := 1; t := 2; a := t + 1.0 << s; _ = a", err: false},
+		{stmt: "s := 1; b := 1 << s; _ = b", err: false},
+		{stmt: "s := 1; a = 1.0 << s; _ = a", err: true},
+
 		{stmt: "var a = 1; b := a << 2.0; _ = b", err: false},
 		{stmt: "s := 1; var a float; a = 1 << s; _ = a", err: true},
 		{stmt: "s := 1; var a float = 1 << s; _ = a", err: true},
@@ -1370,7 +1396,11 @@ func TestSyntaxOperatorShift(t *testing.T) {
 
 	for _, c := range cases {
 		_, err := compileToIR([]byte(fmt.Sprintf(`package main
-
+func foo_multivar(x int, y float, z int) int {return x}
+func foo_int_int(x int) int {return x}
+func foo_float_int(x float) int {return int(x)}
+func foo_int_float(x int) float {return float(x)}
+func foo_float_float(x float) float {return x}
 func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 	%s
 	return dstPos
@@ -1379,80 +1409,6 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 			t.Errorf("%s must return an error but does not", c.stmt)
 		} else if err != nil && !c.err {
 			t.Errorf("%s must not return nil but returned %v", c.stmt, err)
-		}
-	}
-
-	casesFunc := []struct {
-		prog string
-		err  bool
-	}{
-		{
-			prog: `package main
-				func Foo(x int) {
-					_ = x
-				}
-				func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
-					s := 1	
-					Foo(1 << s)
-					return dstPos
-				}`,
-			err: false,
-		},
-		{
-			prog: `package main
-				func Foo(x int) {
-					_ = x
-				}
-				func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
-					s := 1	
-					Foo(1.0 << s)
-					return dstPos
-				}`,
-			err: false,
-		},
-		{
-			prog: `package main
-				func Foo(x float) {
-					_ = x
-				}
-				func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
-					s := 1	
-					Foo(1 << s)
-					return dstPos
-				}`,
-			err: true,
-		},
-		{
-			prog: `package main
-				func Foo(x float) {
-					_ = x
-				}
-				func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
-					s := 1	
-					Foo(1 << s)
-					return dstPos
-				}`,
-			err: true,
-		},
-		{
-			prog: `package main
-				func Foo(x float) {
-					_ = x
-				}
-				func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {	
-					Foo(1.0 << 2.0)
-					return dstPos
-				}`,
-			err: false,
-		},
-	}
-
-	for _, c := range casesFunc {
-		_, err := compileToIR([]byte(c.prog))
-		if err == nil && c.err {
-			t.Errorf("%s must return an error but does not", c.prog)
-		} else if err != nil && !c.err {
-			t.Errorf("%s must not return nil but returned %v", c.prog, err)
 		}
 	}
 }

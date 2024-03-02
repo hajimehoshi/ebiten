@@ -16,6 +16,7 @@
 package shaderir
 
 import (
+	"go/ast"
 	"go/constant"
 	"go/token"
 	"sort"
@@ -74,16 +75,17 @@ type Block struct {
 }
 
 type Stmt struct {
-	Type        StmtType
-	Exprs       []Expr
-	Blocks      []*Block
-	ForVarType  Type
-	ForVarIndex int
-	ForInit     constant.Value
-	ForEnd      constant.Value
-	ForOp       Op
-	ForDelta    constant.Value
-	InitIndex   int
+	Type          StmtType
+	Exprs         []Expr
+	Blocks        []*Block
+	ForVarType    Type
+	ForVarIndex   int
+	ForInit       constant.Value
+	ForEnd        constant.Value
+	ForOp         Op
+	ForDelta      constant.Value
+	InitIndex     int
+	IsTypeGuessed bool
 }
 
 type StmtType int
@@ -109,6 +111,7 @@ type Expr struct {
 	Swizzling   string
 	Index       int
 	Op          Op
+	Ast         ast.Expr
 }
 
 type ExprType int
