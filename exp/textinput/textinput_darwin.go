@@ -59,10 +59,7 @@ var theTextInput textInput
 func (t *textInput) Start(x, y int) (chan State, func()) {
 	var session *session
 	ui.Get().RunOnMainThread(func() {
-		if t.session != nil {
-			t.session.end()
-			t.session = nil
-		}
+		t.end()
 		C.start(C.int(x), C.int(y))
 		session = newSession()
 		t.session = session
