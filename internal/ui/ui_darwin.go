@@ -206,7 +206,7 @@ func glfwMonitorSizeInGLFWPixels(m *glfw.Monitor) (int, int, error) {
 	return vm.Width, vm.Height, nil
 }
 
-func dipFromGLFWPixel(x float64, monitor *Monitor) float64 {
+func dipFromGLFWPixel(x float64, scale float64) float64 {
 	// NOTE: On macOS, GLFW exposes the device independent coordinate system.
 	// Thus, the conversion functions are unnecessary,
 	// however we still need the deviceScaleFactor internally
@@ -214,7 +214,7 @@ func dipFromGLFWPixel(x float64, monitor *Monitor) float64 {
 	return x
 }
 
-func dipToGLFWPixel(x float64, monitor *Monitor) float64 {
+func dipToGLFWPixel(x float64, scale float64) float64 {
 	return x
 }
 

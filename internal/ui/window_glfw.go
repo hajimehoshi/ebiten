@@ -322,8 +322,9 @@ func (w *glfwWindow) Position() (int, int) {
 		}
 		wx -= m.boundsInGLFWPixels.Min.X
 		wy -= m.boundsInGLFWPixels.Min.Y
-		xf := dipFromGLFWPixel(float64(wx), m)
-		yf := dipFromGLFWPixel(float64(wy), m)
+		s := m.DeviceScaleFactor()
+		xf := dipFromGLFWPixel(float64(wx), s)
+		yf := dipFromGLFWPixel(float64(wy), s)
 		x, y = int(xf), int(yf)
 	})
 	return x, y

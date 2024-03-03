@@ -52,7 +52,8 @@ func (m *Monitor) DeviceScaleFactor() float64 {
 
 func (m *Monitor) sizeInDIP() (float64, float64) {
 	w, h := m.boundsInGLFWPixels.Dx(), m.boundsInGLFWPixels.Dy()
-	return dipFromGLFWPixel(float64(w), m), dipFromGLFWPixel(float64(h), m)
+	s := m.DeviceScaleFactor()
+	return dipFromGLFWPixel(float64(w), s), dipFromGLFWPixel(float64(h), s)
 }
 
 type monitors struct {

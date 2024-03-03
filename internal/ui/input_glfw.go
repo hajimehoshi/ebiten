@@ -96,8 +96,8 @@ func (u *UserInterface) updateInputStateImpl() error {
 
 	if !math.IsNaN(cx) && !math.IsNaN(cy) {
 		cx2, cy2 := u.context.logicalPositionToClientPosition(cx, cy, s)
-		cx2 = dipToGLFWPixel(cx2, m)
-		cy2 = dipToGLFWPixel(cy2, m)
+		cx2 = dipToGLFWPixel(cx2, s)
+		cy2 = dipToGLFWPixel(cy2, s)
 		if err := u.window.SetCursorPos(cx2, cy2); err != nil {
 			return err
 		}
@@ -106,8 +106,8 @@ func (u *UserInterface) updateInputStateImpl() error {
 		if err != nil {
 			return err
 		}
-		cx2 = dipFromGLFWPixel(cx2, m)
-		cy2 = dipFromGLFWPixel(cy2, m)
+		cx2 = dipFromGLFWPixel(cx2, s)
+		cy2 = dipFromGLFWPixel(cy2, s)
 		cx, cy = u.context.clientPositionToLogicalPosition(cx2, cy2, s)
 	}
 

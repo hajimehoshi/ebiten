@@ -321,13 +321,14 @@ func (u *UserInterface) setWindowMonitor(monitor *Monitor) error {
 		}
 	}
 
-	w := dipToGLFWPixel(float64(ww), monitor)
-	h := dipToGLFWPixel(float64(wh), monitor)
+	s := monitor.DeviceScaleFactor()
+	w := dipToGLFWPixel(float64(ww), s)
+	h := dipToGLFWPixel(float64(wh), s)
 	mx := monitor.boundsInGLFWPixels.Min.X
 	my := monitor.boundsInGLFWPixels.Min.Y
 	mw, mh := monitor.sizeInDIP()
-	mw = dipToGLFWPixel(mw, monitor)
-	mh = dipToGLFWPixel(mh, monitor)
+	mw = dipToGLFWPixel(mw, s)
+	mh = dipToGLFWPixel(mh, s)
 	px, py := InitialWindowPosition(int(mw), int(mh), int(w), int(h))
 	if err := u.window.SetPos(mx+px, my+py); err != nil {
 		return err
@@ -843,8 +844,9 @@ func (u *UserInterface) createWindow() error {
 
 	monitor := u.getInitMonitor()
 	ww, wh := u.getInitWindowSizeInDIP()
-	width := int(dipToGLFWPixel(float64(ww), monitor))
-	height := int(dipToGLFWPixel(float64(wh), monitor))
+	s := monitor.DeviceScaleFactor()
+	width := int(dipToGLFWPixel(float64(ww), s))
+	height := int(dipToGLFWPixel(float64(wh), s))
 	window, err := glfw.CreateWindow(width, height, "", nil, nil)
 	if err != nil {
 		return err
@@ -1240,8 +1242,9 @@ func (u *UserInterface) outsideSize() (float64, float64, error) {
 	if err != nil {
 		return 0, 0, err
 	}
-	w := dipFromGLFWPixel(float64(ww), m)
-	h := dipFromGLFWPixel(float64(wh), m)
+	s := m.DeviceScaleFactor()
+	w := dipFromGLFWPixel(float64(ww), s)
+	h := dipFromGLFWPixel(float64(wh), s)
 	return w, h, nil
 }
 
@@ -1529,30 +1532,31 @@ func (u *UserInterface) updateWindowSizeLimits() error {
 	}
 	minw, minh, maxw, maxh := u.getWindowSizeLimitsInDIP()
 
+	s := m.DeviceScaleFactor()
 	if minw < 0 {
 		// Always set the minimum window width.
 		mw, err := u.minimumWindowWidth()
 		if err != nil {
 			return err
 		}
-		minw = int(dipToGLFWPixel(float64(mw), m))
+		minw = int(dipToGLFWPixel(float64(mw), s))
 	} else {
-		minw = int(dipToGLFWPixel(float64(minw), m))
+		minw = int(dipToGLFWPixel(float64(minw), s))
 	}
 	if minh < 0 {
 		minh = glfw.DontCare
 	} else {
-		minh = int(dipToGLFWPixel(float64(minh), m))
+		minh = int(dipToGLFWPixel(float64(minh), s))
 	}
 	if maxw < 0 {
 		maxw = glfw.DontCare
 	} else {
-		maxw = int(dipToGLFWPixel(float64(maxw), m))
+		maxw = int(dipToGLFWPixel(float64(maxw), s))
 	}
 	if maxh < 0 {
 		maxh = glfw.DontCare
 	} else {
-		maxh = int(dipToGLFWPixel(float64(maxh), m))
+		maxh = int(dipToGLFWPixel(float64(maxh), s))
 	}
 	if err := u.window.SetSizeLimits(minw, minh, maxw, maxh); err != nil {
 		return err
@@ -1640,8 +1644,9 @@ func (u *UserInterface) setWindowSizeInDIP(width, height int, callSetSize bool) 
 		if err != nil {
 			return err
 		}
-		newW := int(dipToGLFWPixel(float64(width), m))
-		newH := int(dipToGLFWPixel(float64(height), m))
+		s := m.DeviceScaleFactor()
+		newW := int(dipToGLFWPixel(float64(width), s))
+		newH := int(dipToGLFWPixel(float64(height), s))
 		if oldW != newW || oldH != newH {
 			// Just after SetSize, GetSize is not reliable especially on Linux/UNIX.
 			// Let's wait for FramebufferSize callback in any cases.
@@ -1740,8 +1745,9 @@ func (u *UserInterface) setFullscreen(fullscreen bool) error {
 	if err != nil {
 		return err
 	}
-	ww := int(dipToGLFWPixel(float64(u.origWindowWidthInDIP), m))
-	wh := int(dipToGLFWPixel(float64(u.origWindowHeightInDIP), m))
+	s := m.DeviceScaleFactor()
+	ww := int(dipToGLFWPixel(float64(u.origWindowWidthInDIP), s))
+	wh := int(dipToGLFWPixel(float64(u.origWindowHeightInDIP), s))
 	if u.isNativeFullscreenAvailable() {
 		if err := u.setNativeFullscreen(false); err != nil {
 			return err
@@ -2061,8 +2067,9 @@ func (u *UserInterface) setWindowPositionInDIP(x, y int, monitor *Monitor) error
 
 	mx := monitor.boundsInGLFWPixels.Min.X
 	my := monitor.boundsInGLFWPixels.Min.Y
-	xf := dipToGLFWPixel(float64(x), monitor)
-	yf := dipToGLFWPixel(float64(y), monitor)
+	s := monitor.DeviceScaleFactor()
+	xf := dipToGLFWPixel(float64(x), s)
+	yf := dipToGLFWPixel(float64(y), s)
 	if x, y := u.adjustWindowPosition(mx+int(xf), my+int(yf), monitor); f {
 		u.setOrigWindowPos(x, y)
 	} else {
