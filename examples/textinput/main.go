@@ -63,15 +63,17 @@ func (t *TextField) Contains(x, y int) bool {
 	return image.Pt(x, y).In(t.bounds)
 }
 
-func (t *TextField) SetSelectionStartByCursorPosition(x, y int) bool {
-	t.cleanUp()
+func (t *TextField) SetSelectionStartByCursorPosition(x, y int) (bool, error) {
+	if err := t.cleanUp(); err != nil {
+		return false, err
+	}
 	idx, ok := t.textIndexByCursorPosition(x, y)
 	if !ok {
-		return false
+		return false, nil
 	}
 	t.selectionStart = idx
 	t.selectionEnd = idx
-	return true
+	return true, nil
 }
 
 func (t *TextField) textIndexByCursorPosition(x, y int) (int, bool) {
@@ -136,10 +138,13 @@ func (t *TextField) Blur() {
 	t.focused = false
 }
 
-func (t *TextField) cleanUp() {
+func (t *TextField) cleanUp() error {
 	if t.ch != nil {
 		select {
 		case state, ok := <-t.ch:
+			if state.Error != nil {
+				return state.Error
+			}
 			if ok && state.Committed {
 				t.text = t.text[:t.selectionStart] + state.Text + t.text[t.selectionEnd:]
 				t.selectionStart += len(state.Text)
@@ -157,13 +162,16 @@ func (t *TextField) cleanUp() {
 		t.end = nil
 		t.state = textinput.State{}
 	}
+	return nil
 }
 
-func (t *TextField) Update() {
+func (t *TextField) Update() error {
 	if !t.focused {
 		// If the text field still has a session, read the last state and process it just in case.
-		t.cleanUp()
-		return
+		if err := t.cleanUp(); err != nil {
+			return err
+		}
+		return nil
 	}
 
 	var processed bool
@@ -180,7 +188,7 @@ func (t *TextField) Update() {
 			t.ch, t.end = textinput.Start(x, y)
 			// Start returns nil for non-supported envrionments.
 			if t.ch == nil {
-				return
+				return nil
 			}
 		}
 
@@ -188,6 +196,9 @@ func (t *TextField) Update() {
 		for {
 			select {
 			case state, ok := <-t.ch:
+				if state.Error != nil {
+					return state.Error
+				}
 				processed = true
 				if !ok {
 					t.ch = nil
@@ -216,7 +227,7 @@ func (t *TextField) Update() {
 	}
 
 	if processed {
-		return
+		return nil
 	}
 
 	switch {
@@ -258,6 +269,8 @@ func (t *TextField) Update() {
 			t.selectionEnd -= strings.Count(orig[:t.selectionEnd], "\n")
 		}
 	}
+
+	return nil
 }
 
 func (t *TextField) cursorPos() (int, int) {
@@ -340,7 +353,9 @@ func (g *Game) Update() error {
 		for _, tf := range g.textFields {
 			if tf.Contains(x, y) {
 				tf.Focus()
-				tf.SetSelectionStartByCursorPosition(x, y)
+				if _, err := tf.SetSelectionStartByCursorPosition(x, y); err != nil {
+					return err
+				}
 			} else {
 				tf.Blur()
 			}
@@ -348,7 +363,9 @@ func (g *Game) Update() error {
 	}
 
 	for _, tf := range g.textFields {
-		tf.Update()
+		if err := tf.Update(); err != nil {
+			return err
+		}
 	}
 
 	x, y := ebiten.CursorPosition()

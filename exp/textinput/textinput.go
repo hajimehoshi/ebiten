@@ -37,6 +37,9 @@ type State struct {
 
 	// Committed reports whether the current Text is the settled text.
 	Committed bool
+
+	// Error is an error that happens during text inputting.
+	Error error
 }
 
 // Start starts text inputting.
