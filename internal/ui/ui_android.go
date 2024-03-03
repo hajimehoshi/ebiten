@@ -129,3 +129,7 @@ func deviceScaleFactorImpl() float64 {
 	}
 	return s
 }
+
+func dipToNativePixels(x float64, scale float64) float64 {
+	return x * scale
+}

@@ -181,3 +181,7 @@ func (u *UserInterface) Monitor() *Monitor {
 func IsScreenTransparentAvailable() bool {
 	return false
 }
+
+func dipToNativePixels(x float64, scale float64) float64 {
+	return x
+}

@@ -47,7 +47,7 @@ type State struct {
 //
 // Start returns nil and nil if the current environment doesn't support this package.
 func Start(x, y int) (states chan State, close func()) {
-	cx, cy := ui.Get().LogicalPositionToClientPosition(float64(x), float64(y))
+	cx, cy := ui.Get().LogicalPositionToClientPositionInNativePixels(float64(x), float64(y))
 	return theTextInput.Start(int(cx), int(cy))
 }
 

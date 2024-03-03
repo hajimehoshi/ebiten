@@ -2131,3 +2131,7 @@ func IsScreenTransparentAvailable() bool {
 func (u *UserInterface) RunOnMainThread(f func()) {
 	u.mainThread.Call(f)
 }
+
+func dipToNativePixels(x float64, scale float64) float64 {
+	return dipToGLFWPixel(x, scale)
+}

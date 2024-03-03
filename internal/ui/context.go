@@ -285,6 +285,10 @@ func (c *context) screenScaleAndOffsets() (scale, offsetX, offsetY float64) {
 	return
 }
 
-func (u *UserInterface) LogicalPositionToClientPosition(x, y float64) (float64, float64) {
-	return u.context.logicalPositionToClientPosition(x, y, u.Monitor().DeviceScaleFactor())
+func (u *UserInterface) LogicalPositionToClientPositionInNativePixels(x, y float64) (float64, float64) {
+	s := u.Monitor().DeviceScaleFactor()
+	x, y = u.context.logicalPositionToClientPosition(x, y, s)
+	x = dipToNativePixels(x, s)
+	y = dipToNativePixels(y, s)
+	return x, y
 }

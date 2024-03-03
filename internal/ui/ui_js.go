@@ -811,3 +811,7 @@ func (u *UserInterface) updateIconIfNeeded() error {
 func IsScreenTransparentAvailable() bool {
 	return true
 }
+
+func dipToNativePixels(x float64, scale float64) float64 {
+	return x
+}

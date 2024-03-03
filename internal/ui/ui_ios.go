@@ -92,3 +92,7 @@ func deviceScaleFactorImpl() float64 {
 	// TODO: Can this be called from non-main threads?
 	return float64(C.devicePixelRatio())
 }
+
+func dipToNativePixels(x float64, scale float64) float64 {
+	return x
+}
