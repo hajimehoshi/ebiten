@@ -16,7 +16,7 @@ require (
 	github.com/kisielk/errcheck v1.6.3
 	golang.org/x/image v0.15.0
 	golang.org/x/sync v0.6.0
-	golang.org/x/sys v0.17.0
+	golang.org/x/sys v0.18.0
 	golang.org/x/text v0.14.0
 	golang.org/x/tools v0.18.0
 )
