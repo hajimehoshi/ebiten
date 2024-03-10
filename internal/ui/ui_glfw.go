@@ -1321,6 +1321,9 @@ func (u *UserInterface) update() (float64, float64, error) {
 			if err = u.window.Show(); err != nil {
 				return
 			}
+			if err = u.window.Focus(); err != nil {
+				return
+			}
 		})
 		if err != nil {
 			return 0, 0, err
