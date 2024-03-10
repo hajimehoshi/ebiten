@@ -1,11 +1,12 @@
-array<float2, 3> F0(void);
+void F0(thread array<float2, 3>& l0);
 
-array<float2, 3> F0(void) {
-	array<float2, 2> l0 = {};
-	array<float2, 3> l1 = {};
+void F0(thread array<float2, 3>& l0) {
+	array<float2, 2> l1 = {};
+	array<float2, 3> l2 = {};
 	{
-		array<float2, 2> l1 = {};
-		l1 = l0;
+		array<float2, 2> l2 = {};
+		l2 = l1;
 	}
-	return l1;
+	l0 = l2;
+	return;
 }

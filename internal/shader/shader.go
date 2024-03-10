@@ -740,7 +740,9 @@ func (cs *compileState) parseFuncParams(block *block, fname string, d *ast.FuncD
 		}
 	}
 
-	if len(out) == 1 && out[0].name == "" {
+	// If there is only one returning value, it is treated as a returning value.
+	// An array cannot be a returning value, especially for HLSL (#2923).
+	if len(out) == 1 && out[0].name == "" && out[0].typ.Main != shaderir.Array {
 		ret = out[0].typ
 		out = nil
 	}
