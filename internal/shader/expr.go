@@ -1192,6 +1192,10 @@ func resolveConstKind(exprs []shaderir.Expr, ts []shaderir.Type) (kind gconstant
 		}
 	}
 
+	if kind == gconstant.Float {
+		return gconstant.Float, true
+	}
+
 	// Prefer floats over integers for non-typed constant values.
 	// For example, max(1.0, 1) should return a float value.
 	if kind == gconstant.Unknown {
