@@ -20,6 +20,7 @@ import (
 
 var _ Face = (*LimitedFace)(nil)
 
+// LimitedFace is a Face with glyph limitations.
 type LimitedFace struct {
 	face          Face
 	unicodeRanges unicodeRanges
