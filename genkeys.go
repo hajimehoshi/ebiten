@@ -140,9 +140,17 @@ func init() {
 		"NumpadSubtract": "KPSubtract",
 		"NumpadEnter":    "KPEnter",
 		"NumpadEqual":    "KPEqual",
+		"IntlBackslash":  "World1",
 	}
 
 	// https://developer.android.com/reference/android/view/KeyEvent
+	//
+	// Android doesn't distinguish these keys:
+	// - a US backslash key (HID: 0x31),
+	// - an international pound/tilde key (HID: 0x32), and
+	// - an international backslash key (HID: 0x64).
+	// These are mapped to the same key code KEYCODE_BACKSLASH (73).
+	// See https://source.android.com/docs/core/interaction/input/keyboard-devices
 	androidKeyToUIKeyName = map[int]string{
 		55:  "Comma",
 		56:  "Period",
@@ -204,15 +212,15 @@ func init() {
 		0x35: "Backquote",
 
 		// These three keys are:
-		// - US backslash-pipe key (above return),
-		// - non-US backslash key (next to left shift; on German layout this is the <>| key), and
+		// - US backslash-pipe key, and
 		// - non-US hashmark key (bottom left of return; on German layout, this is the #' key).
 		// On US layout configurations, they all map to the same characters - the backslash.
 		//
 		// See also: https://www.w3.org/TR/uievents-code/#keyboard-102
 		0x31: "Backslash", // UIKeyboardHIDUsageKeyboardBackslash
-		0x64: "Backslash", // UIKeyboardHIDUsageKeyboardNonUSBackslash
 		0x32: "Backslash", // UIKeyboardHIDUsageKeyboardNonUSPound
+
+		0x64: "IntlBackslash", // UIKeyboardHIDUsageKeyboardNonUSBackslash
 
 		0x2A: "Backspace",
 		0x2F: "BracketLeft",
@@ -326,6 +334,7 @@ func init() {
 		"NumpadEqual":    "NumpadEqual",
 		"MetaLeft":       "MetaLeft",
 		"MetaRight":      "MetaRight",
+		"IntlBackslash":  "IntlBackslash",
 	}
 
 	const (

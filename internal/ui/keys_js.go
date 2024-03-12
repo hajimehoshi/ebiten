@@ -87,6 +87,7 @@ var uiKeyToJSCode = map[Key]js.Value{
 	KeyHome:           js.ValueOf("Home"),
 	KeyI:              js.ValueOf("KeyI"),
 	KeyInsert:         js.ValueOf("Insert"),
+	KeyIntlBackslash:  js.ValueOf("IntlBackslash"),
 	KeyJ:              js.ValueOf("KeyJ"),
 	KeyK:              js.ValueOf("KeyK"),
 	KeyL:              js.ValueOf("KeyL"),

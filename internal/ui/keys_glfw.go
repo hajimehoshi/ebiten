@@ -89,6 +89,7 @@ var uiKeyToGLFWKey = map[Key]glfw.Key{
 	KeyHome:           glfw.KeyHome,
 	KeyI:              glfw.KeyI,
 	KeyInsert:         glfw.KeyInsert,
+	KeyIntlBackslash:  glfw.KeyWorld1,
 	KeyJ:              glfw.KeyJ,
 	KeyK:              glfw.KeyK,
 	KeyL:              glfw.KeyL,

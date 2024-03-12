@@ -106,6 +106,7 @@ const (
 	KeyF24
 	KeyHome
 	KeyInsert
+	KeyIntlBackslash
 	KeyMetaLeft
 	KeyMetaRight
 	KeyMinus
@@ -315,6 +316,8 @@ func (k Key) String() string {
 		return "KeyHome"
 	case KeyInsert:
 		return "KeyInsert"
+	case KeyIntlBackslash:
+		return "KeyIntlBackslash"
 	case KeyMetaLeft:
 		return "KeyMetaLeft"
 	case KeyMetaRight:

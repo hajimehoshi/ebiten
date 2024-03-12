@@ -117,7 +117,7 @@ var iosKeyToUIKey = map[int]ui.Key{
 	97:  ui.KeyNumpad9,
 	98:  ui.KeyNumpad0,
 	99:  ui.KeyNumpadDecimal,
-	100: ui.KeyBackslash,
+	100: ui.KeyIntlBackslash,
 	103: ui.KeyNumpadEqual,
 	104: ui.KeyF13,
 	105: ui.KeyF14,

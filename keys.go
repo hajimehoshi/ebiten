@@ -113,6 +113,7 @@ const (
 	KeyF24            Key = Key(ui.KeyF24)
 	KeyHome           Key = Key(ui.KeyHome)
 	KeyInsert         Key = Key(ui.KeyInsert)
+	KeyIntlBackslash  Key = Key(ui.KeyIntlBackslash)
 	KeyMetaLeft       Key = Key(ui.KeyMetaLeft)
 	KeyMetaRight      Key = Key(ui.KeyMetaRight)
 	KeyMinus          Key = Key(ui.KeyMinus)
@@ -364,6 +365,8 @@ func (k Key) isValid() bool {
 	case KeyHome:
 		return true
 	case KeyInsert:
+		return true
+	case KeyIntlBackslash:
 		return true
 	case KeyMeta:
 		return true
@@ -618,6 +621,8 @@ func (k Key) String() string {
 		return "Home"
 	case KeyInsert:
 		return "Insert"
+	case KeyIntlBackslash:
+		return "IntlBackslash"
 	case KeyMeta:
 		return "Meta"
 	case KeyMetaLeft:
@@ -892,6 +897,8 @@ func keyNameToKeyCode(name string) (Key, bool) {
 		return KeyHome, true
 	case "insert":
 		return KeyInsert, true
+	case "intlbackslash":
+		return KeyIntlBackslash, true
 	case "kp0":
 		return KeyKP0, true
 	case "kp1":
