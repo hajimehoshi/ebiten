@@ -587,6 +587,9 @@ var _ [len(DrawTrianglesShaderOptions{}.Images) - graphics.ShaderImageCount]stru
 //
 // If a specified uniform variable's length or type doesn't match with an expected one, DrawTrianglesShader panics.
 //
+// Even if a result is an invalid color as a premultiplied-alpha color, i.e. an alpha value exceeds other color values,
+// the value is kept and is not clamped.
+//
 // When the image i is disposed, DrawTrianglesShader does nothing.
 func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader *Shader, options *DrawTrianglesShaderOptions) {
 	i.copyCheck()
@@ -741,6 +744,9 @@ var _ [len(DrawRectShaderOptions{}.Images)]struct{} = [graphics.ShaderImageCount
 //
 // If no source images are specified, imageSrc0Size returns a valid size only when the unit is pixels,
 // but always returns 0 when the unit is texels (default).
+//
+// Even if a result is an invalid color as a premultiplied-alpha color, i.e. an alpha value exceeds other color values,
+// the value is kept and is not clamped.
 //
 // When the image i is disposed, DrawRectShader does nothing.
 func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawRectShaderOptions) {
@@ -954,6 +960,9 @@ func (i *Image) at(x, y int) (r, g, b, a byte) {
 //
 // Set implements the standard draw.Image's Set.
 //
+// Even if a result is an invalid color as a premultiplied-alpha color, i.e. an alpha value exceeds other color values,
+// the value is kept and is not clamped.
+//
 // If the image is disposed, Set does nothing.
 func (i *Image) Set(x, y int, clr color.Color) {
 	i.copyCheck()
@@ -1027,6 +1036,9 @@ func (i *Image) Deallocate() {
 // If len(pix) is not correct, WritePixels panics.
 //
 // WritePixels also works on a sub-image.
+//
+// Even if a result is an invalid color as a premultiplied-alpha color, i.e. an alpha value exceeds other color values,
+// the value is kept and is not clamped.
 //
 // When the image is disposed, WritePixels does nothing.
 func (i *Image) WritePixels(pixels []byte) {

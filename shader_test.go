@@ -2429,3 +2429,61 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 		}
 	}
 }
+
+// Issue #2798
+func TestShaderInvalidPremultipliedAlphaColor(t *testing.T) {
+	// This test checks the rendering result when the shader returns an invalid premultiplied alpha color.
+	// The result values are kept and not clamped.
+
+	const w, h = 16, 16
+
+	dst := ebiten.NewImage(w, h)
+	s, err := ebiten.NewShader([]byte(`//kage:unit pixels
+
+package main
+
+func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+	return vec4(1, 0.75, 0.5, 0.25)
+}
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	dst.DrawRectShader(w, h, s, nil)
+
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			got := dst.At(i, j).(color.RGBA)
+			want := color.RGBA{R: 0xff, G: 0xc0, B: 0x80, A: 0x40}
+			if !sameColors(got, want, 2) {
+				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+
+	dst.Clear()
+	s, err = ebiten.NewShader([]byte(`//kage:unit pixels
+
+package main
+
+func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+	return vec4(1, 0.75, 0.5, 0)
+}
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	dst.DrawRectShader(w, h, s, nil)
+
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			got := dst.At(i, j).(color.RGBA)
+			want := color.RGBA{R: 0xff, G: 0xc0, B: 0x80, A: 0}
+			if !sameColors(got, want, 2) {
+				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+}

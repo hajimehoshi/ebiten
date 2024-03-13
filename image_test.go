@@ -4582,3 +4582,44 @@ func TestImageDrawImageAfterDeallocation(t *testing.T) {
 		}
 	}
 }
+
+// Issue #2798
+func TestImageInvalidPremultipliedAlphaColor(t *testing.T) {
+	// This test checks the rendering result when Set and WritePixels use an invalid premultiplied alpha color.
+	// The result values are kept and not clamped.
+
+	const (
+		w = 16
+		h = 16
+	)
+
+	dst := ebiten.NewImage(w, h)
+	dst.Set(0, 0, color.RGBA{R: 0xff, G: 0xc0, B: 0x80, A: 0x40})
+	dst.Set(0, 1, color.RGBA{R: 0xff, G: 0xc0, B: 0x80, A: 0x00})
+	if got, want := dst.At(0, 0).(color.RGBA), (color.RGBA{R: 0xff, G: 0xc0, B: 0x80, A: 0x40}); got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+	if got, want := dst.At(0, 1).(color.RGBA), (color.RGBA{R: 0xff, G: 0xc0, B: 0x80, A: 0x00}); got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+
+	pix := make([]byte, 4*w*h)
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			pix[4*(j*16+i)] = byte(i)
+			pix[4*(j*16+i)+1] = byte(j)
+			pix[4*(j*16+i)+2] = 0x80
+			pix[4*(j*16+i)+3] = byte(i - j)
+		}
+	}
+	dst.WritePixels(pix)
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			got := dst.At(i, j)
+			want := color.RGBA{R: byte(i), G: byte(j), B: 0x80, A: byte(i - j)}
+			if got != want {
+				t.Errorf("At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+}
