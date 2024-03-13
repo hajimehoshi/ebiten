@@ -73,6 +73,10 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 			return nil, nil, nil, false
 		}
 		stmts = append(stmts, ss...)
+		if len(ts) == 0 {
+			cs.addError(e.Pos(), fmt.Sprintf("unexpected binary operator: %s", e.X))
+			return nil, nil, nil, false
+		}
 		lhst := ts[0]
 
 		rhs, ts, ss, ok := cs.parseExpr(block, fname, e.Y, markLocalVariableUsed)
@@ -921,7 +925,7 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 			return nil, nil, nil, false
 		}
 
-		if !isValidSwizzling(e.Sel.Name, types[0]) {
+		if len(types) == 0 || !isValidSwizzling(e.Sel.Name, types[0]) {
 			cs.addError(e.Pos(), fmt.Sprintf("unexpected swizzling: %s", e.Sel.Name))
 			return nil, nil, nil, false
 		}
@@ -975,6 +979,10 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 		}
 		if len(exprs) != 1 {
 			cs.addError(e.Pos(), fmt.Sprintf("multiple-value context is not available at a unary operator: %s", e.X))
+			return nil, nil, nil, false
+		}
+		if len(ts) == 0 {
+			cs.addError(e.Pos(), fmt.Sprintf("unexpected unary operator: %s", e.X))
 			return nil, nil, nil, false
 		}
 
@@ -1122,6 +1130,10 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 		stmts = append(stmts, ss...)
 		if len(exprs) != 1 {
 			cs.addError(e.Pos(), "multiple-value context is not available at an index expression")
+			return nil, nil, nil, false
+		}
+		if len(ts) == 0 {
+			cs.addError(e.Pos(), "unexpected index expression")
 			return nil, nil, nil, false
 		}
 		x := exprs[0]
