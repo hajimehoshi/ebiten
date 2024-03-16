@@ -347,7 +347,8 @@ func (p *Player) draw(screen *ebiten.Image) {
 	// Compose the current time text.
 	m := (c / time.Minute) % 100
 	s := (c / time.Second) % 60
-	currentTimeStr := fmt.Sprintf("%02d:%02d", m, s)
+	ms := (c / time.Millisecond) % 1000
+	currentTimeStr := fmt.Sprintf("%02d:%02d.%03d", m, s, ms)
 
 	// Draw buttons
 	op := &ebiten.DrawImageOptions{}
