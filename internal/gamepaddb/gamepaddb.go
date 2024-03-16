@@ -120,8 +120,8 @@ const (
 type mapping struct {
 	Type       mappingType
 	Index      int
-	AxisScale  int
-	AxisOffset int
+	AxisScale  float64
+	AxisOffset float64
 	HatState   int
 }
 
@@ -222,8 +222,8 @@ func parseMappingElement(str string) (*mapping, error) {
 			tilda = true
 		}
 
-		min := -1
-		max := 1
+		min := -1.0
+		max := 1.0
 		numstr := str[1:]
 
 		if str[0] == '+' {
@@ -429,7 +429,7 @@ func StandardAxisValue(id string, axis StandardAxis, state GamepadState) float64
 
 	switch mapping.Type {
 	case mappingTypeAxis:
-		v := state.Axis(mapping.Index)*float64(mapping.AxisScale) + float64(mapping.AxisOffset)
+		v := state.Axis(mapping.Index)*mapping.AxisScale + mapping.AxisOffset
 		if v > 1 {
 			return 1
 		} else if v < -1 {
@@ -484,7 +484,7 @@ func standardButtonValue(id string, button StandardButton, state GamepadState) f
 
 	switch mapping.Type {
 	case mappingTypeAxis:
-		v := state.Axis(mapping.Index)*float64(mapping.AxisScale) + float64(mapping.AxisOffset)
+		v := state.Axis(mapping.Index)*mapping.AxisScale + mapping.AxisOffset
 		if v > 1 {
 			v = 1
 		} else if v < -1 {
