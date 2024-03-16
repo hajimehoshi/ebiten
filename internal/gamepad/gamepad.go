@@ -356,7 +356,7 @@ func (g *Gamepad) IsStandardButtonAvailable(button gamepaddb.StandardButton) boo
 // StandardAxisValue is concurrent-safe.
 func (g *Gamepad) StandardAxisValue(axis gamepaddb.StandardAxis) float64 {
 	if gamepaddb.HasStandardLayoutMapping(g.sdlID) {
-		return gamepaddb.AxisValue(g.sdlID, axis, g)
+		return gamepaddb.StandardAxisValue(g.sdlID, axis, g)
 	}
 	if m := g.native.standardAxisInOwnMapping(axis); m != nil {
 		return m.Value()*2 - 1
@@ -367,7 +367,7 @@ func (g *Gamepad) StandardAxisValue(axis gamepaddb.StandardAxis) float64 {
 // StandardButtonValue is concurrent-safe.
 func (g *Gamepad) StandardButtonValue(button gamepaddb.StandardButton) float64 {
 	if gamepaddb.HasStandardLayoutMapping(g.sdlID) {
-		return gamepaddb.ButtonValue(g.sdlID, button, g)
+		return gamepaddb.StandardButtonValue(g.sdlID, button, g)
 	}
 	if m := g.native.standardButtonInOwnMapping(button); m != nil {
 		return m.Value()
@@ -378,7 +378,7 @@ func (g *Gamepad) StandardButtonValue(button gamepaddb.StandardButton) float64 {
 // IsStandardButtonPressed is concurrent-safe.
 func (g *Gamepad) IsStandardButtonPressed(button gamepaddb.StandardButton) bool {
 	if gamepaddb.HasStandardLayoutMapping(g.sdlID) {
-		return gamepaddb.IsButtonPressed(g.sdlID, button, g)
+		return gamepaddb.IsStandardButtonPressed(g.sdlID, button, g)
 	}
 	if m := g.native.standardButtonInOwnMapping(button); m != nil {
 		return m.Pressed()

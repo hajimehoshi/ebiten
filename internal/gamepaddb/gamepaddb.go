@@ -413,7 +413,7 @@ func HasStandardAxis(id string, axis StandardAxis) bool {
 	return mappings[axis] != nil
 }
 
-func AxisValue(id string, axis StandardAxis, state GamepadState) float64 {
+func StandardAxisValue(id string, axis StandardAxis, state GamepadState) float64 {
 	mappingsM.RLock()
 	defer mappingsM.RUnlock()
 
@@ -464,14 +464,14 @@ func HasStandardButton(id string, button StandardButton) bool {
 	return mappings[button] != nil
 }
 
-func ButtonValue(id string, button StandardButton, state GamepadState) float64 {
+func StandardButtonValue(id string, button StandardButton, state GamepadState) float64 {
 	mappingsM.RLock()
 	defer mappingsM.RUnlock()
 
-	return buttonValue(id, button, state)
+	return standardButtonValue(id, button, state)
 }
 
-func buttonValue(id string, button StandardButton, state GamepadState) float64 {
+func standardButtonValue(id string, button StandardButton, state GamepadState) float64 {
 	mappings := buttonMappings(id)
 	if mappings == nil {
 		return 0
@@ -513,7 +513,7 @@ func buttonValue(id string, button StandardButton, state GamepadState) float64 {
 // Note: should be used with >, not >=, comparisons.
 const ButtonPressedThreshold = 30.0 / 255.0
 
-func IsButtonPressed(id string, button StandardButton, state GamepadState) bool {
+func IsStandardButtonPressed(id string, button StandardButton, state GamepadState) bool {
 	mappingsM.RLock()
 	defer mappingsM.RUnlock()
 
@@ -529,7 +529,7 @@ func IsButtonPressed(id string, button StandardButton, state GamepadState) bool 
 
 	switch mapping.Type {
 	case mappingTypeAxis:
-		v := buttonValue(id, button, state)
+		v := standardButtonValue(id, button, state)
 		return v > ButtonPressedThreshold
 	case mappingTypeButton:
 		return state.Button(mapping.Index)
