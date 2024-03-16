@@ -193,6 +193,34 @@ func (g *Game) Draw(screen *ebiten.Image) {
 			if ebiten.IsStandardGamepadLayoutAvailable(id) {
 				str += "\n"
 				str += standardMap(id) + "\n"
+
+				// Print unmapped buttons.
+				buttonIDs := map[ebiten.GamepadButton]struct{}{}
+				for i := 0; i < ebiten.GamepadButtonCount(id); i++ {
+					buttonIDs[ebiten.GamepadButton(i)] = struct{}{}
+				}
+				for _, m := range ebiten.GamepadMapping(id) {
+					if m.PhysicalType == ebiten.GamepadMappingTypeButton {
+						delete(buttonIDs, ebiten.GamepadButton(m.PhysicalIndex))
+					}
+				}
+				if len(buttonIDs) > 0 {
+					unmappedButtonIDs := make([]ebiten.GamepadButton, 0, len(buttonIDs))
+					for id := range buttonIDs {
+						unmappedButtonIDs = append(unmappedButtonIDs, id)
+					}
+					sort.Slice(unmappedButtonIDs, func(i, j int) bool {
+						return unmappedButtonIDs[i] < unmappedButtonIDs[j]
+					})
+					str += "  Unmapped Buttons: "
+					for i, id := range unmappedButtonIDs {
+						str += fmt.Sprintf("%d", id)
+						if i < len(unmappedButtonIDs)-1 {
+							str += ", "
+						}
+					}
+					str += "\n"
+				}
 			}
 			str += "\n"
 		}

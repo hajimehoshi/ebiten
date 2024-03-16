@@ -105,3 +105,32 @@ const (
 	StandardGamepadAxisRightStickVertical   StandardGamepadAxis = gamepaddb.StandardAxisRightStickVertical
 	StandardGamepadAxisMax                  StandardGamepadAxis = StandardGamepadAxisRightStickVertical
 )
+
+type GamepadMappingType = gamepaddb.MappingType
+
+const (
+	GamepadMappingTypeButton GamepadMappingType = gamepaddb.MappingTypeButton
+	GamepadMappingTypeAxis   GamepadMappingType = gamepaddb.MappingTypeAxis
+)
+
+type GamepadMappingItem struct {
+	StandardType                 GamepadMappingType
+	StandardIndex                int
+	PhysicalType                 GamepadMappingType
+	PhysicalIndex                int
+	PhysicalToStandardAxisScale  float64
+	PhysicalToStandardAxisOffset float64
+}
+
+func GamepadMapping(id GamepadID) []GamepadMappingItem {
+	g := gamepad.Get(id)
+	if g == nil {
+		return nil
+	}
+	m := g.Mapping()
+	mapping := make([]GamepadMappingItem, len(m))
+	for i, v := range m {
+		mapping[i] = GamepadMappingItem(v)
+	}
+	return mapping
+}

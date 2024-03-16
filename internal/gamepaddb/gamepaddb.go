@@ -102,12 +102,12 @@ func init() {
 	}
 }
 
-type mappingType int
+type MappingType int
 
 const (
-	mappingTypeButton mappingType = iota
-	mappingTypeAxis
-	mappingTypeHat
+	MappingTypeButton MappingType = iota
+	MappingTypeAxis
+	MappingTypeHat
 )
 
 const (
@@ -117,8 +117,8 @@ const (
 	HatLeft  = 8
 )
 
-type mapping struct {
-	Type       mappingType
+type MappingItem struct {
+	Type       MappingType
 	Index      int
 	AxisScale  float64
 	AxisOffset float64
@@ -127,12 +127,12 @@ type mapping struct {
 
 var (
 	gamepadNames          = map[string]string{}
-	gamepadButtonMappings = map[string]map[StandardButton]mapping{}
-	gamepadAxisMappings   = map[string]map[StandardAxis]mapping{}
+	gamepadButtonMappings = map[string]map[StandardButton]MappingItem{}
+	gamepadAxisMappings   = map[string]map[StandardAxis]MappingItem{}
 	mappingsM             sync.RWMutex
 )
 
-func parseLine(line string, platform platform) (id string, name string, buttons map[StandardButton]mapping, axes map[StandardAxis]mapping, err error) {
+func parseLine(line string, platform platform) (id string, name string, buttons map[StandardButton]MappingItem, axes map[StandardAxis]MappingItem, err error) {
 	line = strings.TrimSpace(line)
 	if len(line) == 0 {
 		return "", "", nil, nil, nil
@@ -192,7 +192,7 @@ func parseLine(line string, platform platform) (id string, name string, buttons 
 
 		if b, ok := toStandardGamepadButton(tks[0]); ok {
 			if buttons == nil {
-				buttons = map[StandardButton]mapping{}
+				buttons = map[StandardButton]MappingItem{}
 			}
 			buttons[b] = gb
 			continue
@@ -200,7 +200,7 @@ func parseLine(line string, platform platform) (id string, name string, buttons 
 
 		if a, ok := toStandardGamepadAxis(tks[0]); ok {
 			if axes == nil {
-				axes = map[StandardAxis]mapping{}
+				axes = map[StandardAxis]MappingItem{}
 			}
 			axes[a] = gb
 			continue
@@ -213,7 +213,7 @@ func parseLine(line string, platform platform) (id string, name string, buttons 
 	return tokens[0], tokens[1], buttons, axes, nil
 }
 
-func parseMappingElement(str string) (mapping, error) {
+func parseMappingElement(str string) (MappingItem, error) {
 	switch {
 	case str[0] == 'a' || strings.HasPrefix(str, "+a") || strings.HasPrefix(str, "-a"):
 		var tilda bool
@@ -259,11 +259,11 @@ func parseMappingElement(str string) (mapping, error) {
 
 		index, err := strconv.Atoi(numstr)
 		if err != nil {
-			return mapping{}, err
+			return MappingItem{}, err
 		}
 
-		return mapping{
-			Type:       mappingTypeAxis,
+		return MappingItem{
+			Type:       MappingTypeAxis,
 			Index:      index,
 			AxisScale:  scale,
 			AxisOffset: offset,
@@ -272,34 +272,34 @@ func parseMappingElement(str string) (mapping, error) {
 	case str[0] == 'b':
 		index, err := strconv.Atoi(str[1:])
 		if err != nil {
-			return mapping{}, err
+			return MappingItem{}, err
 		}
-		return mapping{
-			Type:  mappingTypeButton,
+		return MappingItem{
+			Type:  MappingTypeButton,
 			Index: index,
 		}, nil
 
 	case str[0] == 'h':
 		tokens := strings.Split(str[1:], ".")
 		if len(tokens) < 2 {
-			return mapping{}, fmt.Errorf("gamepaddb: unexpected hat: %s", str)
+			return MappingItem{}, fmt.Errorf("gamepaddb: unexpected hat: %s", str)
 		}
 		index, err := strconv.Atoi(tokens[0])
 		if err != nil {
-			return mapping{}, err
+			return MappingItem{}, err
 		}
 		hat, err := strconv.Atoi(tokens[1])
 		if err != nil {
-			return mapping{}, err
+			return MappingItem{}, err
 		}
-		return mapping{
-			Type:     mappingTypeHat,
+		return MappingItem{
+			Type:     MappingTypeHat,
 			Index:    index,
 			HatState: hat,
 		}, nil
 	}
 
-	return mapping{}, fmt.Errorf("gamepaddb: unepxected mapping: %s", str)
+	return MappingItem{}, fmt.Errorf("gamepaddb: unepxected mapping: %s", str)
 }
 
 func toStandardGamepadButton(str string) (StandardButton, bool) {
@@ -358,7 +358,7 @@ func toStandardGamepadAxis(str string) (StandardAxis, bool) {
 	}
 }
 
-func buttonMappings(id string) map[StandardButton]mapping {
+func buttonMapping(id string) map[StandardButton]MappingItem {
 	if m, ok := gamepadButtonMappings[id]; ok {
 		return m
 	}
@@ -370,7 +370,7 @@ func buttonMappings(id string) map[StandardButton]mapping {
 	return nil
 }
 
-func axisMappings(id string) map[StandardAxis]mapping {
+func axisMapping(id string) map[StandardAxis]MappingItem {
 	if m, ok := gamepadAxisMappings[id]; ok {
 		return m
 	}
@@ -386,7 +386,7 @@ func HasStandardLayoutMapping(id string) bool {
 	mappingsM.RLock()
 	defer mappingsM.RUnlock()
 
-	return buttonMappings(id) != nil || axisMappings(id) != nil
+	return buttonMapping(id) != nil || axisMapping(id) != nil
 }
 
 type GamepadState interface {
@@ -406,7 +406,7 @@ func HasStandardAxis(id string, axis StandardAxis) bool {
 	mappingsM.RLock()
 	defer mappingsM.RUnlock()
 
-	mappings := axisMappings(id)
+	mappings := axisMapping(id)
 	if mappings == nil {
 		return false
 	}
@@ -418,7 +418,7 @@ func StandardAxisValue(id string, axis StandardAxis, state GamepadState) float64
 	mappingsM.RLock()
 	defer mappingsM.RUnlock()
 
-	mappings := axisMappings(id)
+	mappings := axisMapping(id)
 	if mappings == nil {
 		return 0
 	}
@@ -429,7 +429,7 @@ func StandardAxisValue(id string, axis StandardAxis, state GamepadState) float64
 	}
 
 	switch mapping.Type {
-	case mappingTypeAxis:
+	case MappingTypeAxis:
 		v := state.Axis(mapping.Index)*mapping.AxisScale + mapping.AxisOffset
 		if v > 1 {
 			return 1
@@ -437,13 +437,13 @@ func StandardAxisValue(id string, axis StandardAxis, state GamepadState) float64
 			return -1
 		}
 		return v
-	case mappingTypeButton:
+	case MappingTypeButton:
 		if state.Button(mapping.Index) {
 			return 1
 		} else {
 			return -1
 		}
-	case mappingTypeHat:
+	case MappingTypeHat:
 		if state.Hat(mapping.Index)&mapping.HatState != 0 {
 			return 1
 		} else {
@@ -458,7 +458,7 @@ func HasStandardButton(id string, button StandardButton) bool {
 	mappingsM.RLock()
 	defer mappingsM.RUnlock()
 
-	mappings := buttonMappings(id)
+	mappings := buttonMapping(id)
 	if mappings == nil {
 		return false
 	}
@@ -474,7 +474,7 @@ func StandardButtonValue(id string, button StandardButton, state GamepadState) f
 }
 
 func standardButtonValue(id string, button StandardButton, state GamepadState) float64 {
-	mappings := buttonMappings(id)
+	mappings := buttonMapping(id)
 	if mappings == nil {
 		return 0
 	}
@@ -485,7 +485,7 @@ func standardButtonValue(id string, button StandardButton, state GamepadState) f
 	}
 
 	switch mapping.Type {
-	case mappingTypeAxis:
+	case MappingTypeAxis:
 		v := state.Axis(mapping.Index)*mapping.AxisScale + mapping.AxisOffset
 		if v > 1 {
 			v = 1
@@ -494,12 +494,12 @@ func standardButtonValue(id string, button StandardButton, state GamepadState) f
 		}
 		// Adjust [-1, 1] to [0, 1]
 		return (v + 1) / 2
-	case mappingTypeButton:
+	case MappingTypeButton:
 		if state.Button(mapping.Index) {
 			return 1
 		}
 		return 0
-	case mappingTypeHat:
+	case MappingTypeHat:
 		if state.Hat(mapping.Index)&mapping.HatState != 0 {
 			return 1
 		}
@@ -530,16 +530,25 @@ func IsStandardButtonPressed(id string, button StandardButton, state GamepadStat
 	}
 
 	switch mapping.Type {
-	case mappingTypeAxis:
+	case MappingTypeAxis:
 		v := standardButtonValue(id, button, state)
 		return v > ButtonPressedThreshold
-	case mappingTypeButton:
+	case MappingTypeButton:
 		return state.Button(mapping.Index)
-	case mappingTypeHat:
+	case MappingTypeHat:
 		return state.Hat(mapping.Index)&mapping.HatState != 0
 	}
 
 	return false
+}
+
+// UnsafeMapping returns the mapping of the gamepad.
+// UnsafeMapping is unsafe. The returned values must not be modified.
+func UnsafeMapping(id string) (map[StandardButton]MappingItem, map[StandardAxis]MappingItem) {
+	mappingsM.RLock()
+	defer mappingsM.RUnlock()
+
+	return buttonMapping(id), axisMapping(id)
 }
 
 // Update adds new gamepad mappings.
@@ -556,8 +565,8 @@ func Update(mappingData []byte) error {
 	type parsedLine struct {
 		id      string
 		name    string
-		buttons map[StandardButton]mapping
-		axes    map[StandardAxis]mapping
+		buttons map[StandardButton]MappingItem
+		axes    map[StandardAxis]MappingItem
 	}
 	var lines []parsedLine
 
@@ -611,155 +620,155 @@ func addAndroidDefaultMappings(id string) bool {
 		return false
 	}
 
-	gamepadButtonMappings[id] = map[StandardButton]mapping{}
-	gamepadAxisMappings[id] = map[StandardAxis]mapping{}
+	gamepadButtonMappings[id] = map[StandardButton]MappingItem{}
+	gamepadAxisMappings[id] = map[StandardAxis]MappingItem{}
 
 	// For mappings, see mobile/ebitenmobileview/input_android.go.
 
 	if buttonMask&(1<<SDLControllerButtonA) != 0 {
-		gamepadButtonMappings[id][StandardButtonRightBottom] = mapping{
-			Type:  mappingTypeButton,
+		gamepadButtonMappings[id][StandardButtonRightBottom] = MappingItem{
+			Type:  MappingTypeButton,
 			Index: SDLControllerButtonA,
 		}
 	}
 	if buttonMask&(1<<SDLControllerButtonB) != 0 {
-		gamepadButtonMappings[id][StandardButtonRightRight] = mapping{
-			Type:  mappingTypeButton,
+		gamepadButtonMappings[id][StandardButtonRightRight] = MappingItem{
+			Type:  MappingTypeButton,
 			Index: SDLControllerButtonB,
 		}
 	} else {
 		// Use the back button as "B" for easy UI navigation with TV remotes.
-		gamepadButtonMappings[id][StandardButtonRightRight] = mapping{
-			Type:  mappingTypeButton,
+		gamepadButtonMappings[id][StandardButtonRightRight] = MappingItem{
+			Type:  MappingTypeButton,
 			Index: SDLControllerButtonBack,
 		}
 		buttonMask &^= uint16(1) << SDLControllerButtonBack
 	}
 	if buttonMask&(1<<SDLControllerButtonX) != 0 {
-		gamepadButtonMappings[id][StandardButtonRightLeft] = mapping{
-			Type:  mappingTypeButton,
+		gamepadButtonMappings[id][StandardButtonRightLeft] = MappingItem{
+			Type:  MappingTypeButton,
 			Index: SDLControllerButtonX,
 		}
 	}
 	if buttonMask&(1<<SDLControllerButtonY) != 0 {
-		gamepadButtonMappings[id][StandardButtonRightTop] = mapping{
-			Type:  mappingTypeButton,
+		gamepadButtonMappings[id][StandardButtonRightTop] = MappingItem{
+			Type:  MappingTypeButton,
 			Index: SDLControllerButtonY,
 		}
 	}
 	if buttonMask&(1<<SDLControllerButtonBack) != 0 {
-		gamepadButtonMappings[id][StandardButtonCenterLeft] = mapping{
-			Type:  mappingTypeButton,
+		gamepadButtonMappings[id][StandardButtonCenterLeft] = MappingItem{
+			Type:  MappingTypeButton,
 			Index: SDLControllerButtonBack,
 		}
 	}
 	if buttonMask&(1<<SDLControllerButtonGuide) != 0 {
 		// TODO: If SDKVersion >= 30, add this code:
 		//
-		//     gamepadButtonMappings[id][StandardButtonCenterCenter] = mapping{
+		//     gamepadButtonMappings[id][StandardButtonCenterCenter] = MappingItem{
 		//         Type:  mappingTypeButton,
 		//         Index: SDLControllerButtonGuide,
 		//     }
 	}
 	if buttonMask&(1<<SDLControllerButtonStart) != 0 {
-		gamepadButtonMappings[id][StandardButtonCenterRight] = mapping{
-			Type:  mappingTypeButton,
+		gamepadButtonMappings[id][StandardButtonCenterRight] = MappingItem{
+			Type:  MappingTypeButton,
 			Index: SDLControllerButtonStart,
 		}
 	}
 	if buttonMask&(1<<SDLControllerButtonLeftStick) != 0 {
-		gamepadButtonMappings[id][StandardButtonLeftStick] = mapping{
-			Type:  mappingTypeButton,
+		gamepadButtonMappings[id][StandardButtonLeftStick] = MappingItem{
+			Type:  MappingTypeButton,
 			Index: SDLControllerButtonLeftStick,
 		}
 	}
 	if buttonMask&(1<<SDLControllerButtonRightStick) != 0 {
-		gamepadButtonMappings[id][StandardButtonRightStick] = mapping{
-			Type:  mappingTypeButton,
+		gamepadButtonMappings[id][StandardButtonRightStick] = MappingItem{
+			Type:  MappingTypeButton,
 			Index: SDLControllerButtonRightStick,
 		}
 	}
 	if buttonMask&(1<<SDLControllerButtonLeftShoulder) != 0 {
-		gamepadButtonMappings[id][StandardButtonFrontTopLeft] = mapping{
-			Type:  mappingTypeButton,
+		gamepadButtonMappings[id][StandardButtonFrontTopLeft] = MappingItem{
+			Type:  MappingTypeButton,
 			Index: SDLControllerButtonLeftShoulder,
 		}
 	}
 	if buttonMask&(1<<SDLControllerButtonRightShoulder) != 0 {
-		gamepadButtonMappings[id][StandardButtonFrontTopRight] = mapping{
-			Type:  mappingTypeButton,
+		gamepadButtonMappings[id][StandardButtonFrontTopRight] = MappingItem{
+			Type:  MappingTypeButton,
 			Index: SDLControllerButtonRightShoulder,
 		}
 	}
 
 	if buttonMask&(1<<SDLControllerButtonDpadUp) != 0 {
-		gamepadButtonMappings[id][StandardButtonLeftTop] = mapping{
-			Type:  mappingTypeButton,
+		gamepadButtonMappings[id][StandardButtonLeftTop] = MappingItem{
+			Type:  MappingTypeButton,
 			Index: SDLControllerButtonDpadUp,
 		}
 	}
 	if buttonMask&(1<<SDLControllerButtonDpadDown) != 0 {
-		gamepadButtonMappings[id][StandardButtonLeftBottom] = mapping{
-			Type:  mappingTypeButton,
+		gamepadButtonMappings[id][StandardButtonLeftBottom] = MappingItem{
+			Type:  MappingTypeButton,
 			Index: SDLControllerButtonDpadDown,
 		}
 	}
 	if buttonMask&(1<<SDLControllerButtonDpadLeft) != 0 {
-		gamepadButtonMappings[id][StandardButtonLeftLeft] = mapping{
-			Type:  mappingTypeButton,
+		gamepadButtonMappings[id][StandardButtonLeftLeft] = MappingItem{
+			Type:  MappingTypeButton,
 			Index: SDLControllerButtonDpadLeft,
 		}
 	}
 	if buttonMask&(1<<SDLControllerButtonDpadRight) != 0 {
-		gamepadButtonMappings[id][StandardButtonLeftRight] = mapping{
-			Type:  mappingTypeButton,
+		gamepadButtonMappings[id][StandardButtonLeftRight] = MappingItem{
+			Type:  MappingTypeButton,
 			Index: SDLControllerButtonDpadRight,
 		}
 	}
 
 	if axisMask&(1<<SDLControllerAxisLeftX) != 0 {
-		gamepadAxisMappings[id][StandardAxisLeftStickHorizontal] = mapping{
-			Type:       mappingTypeAxis,
+		gamepadAxisMappings[id][StandardAxisLeftStickHorizontal] = MappingItem{
+			Type:       MappingTypeAxis,
 			Index:      SDLControllerAxisLeftX,
 			AxisScale:  1,
 			AxisOffset: 0,
 		}
 	}
 	if axisMask&(1<<SDLControllerAxisLeftY) != 0 {
-		gamepadAxisMappings[id][StandardAxisLeftStickVertical] = mapping{
-			Type:       mappingTypeAxis,
+		gamepadAxisMappings[id][StandardAxisLeftStickVertical] = MappingItem{
+			Type:       MappingTypeAxis,
 			Index:      SDLControllerAxisLeftY,
 			AxisScale:  1,
 			AxisOffset: 0,
 		}
 	}
 	if axisMask&(1<<SDLControllerAxisRightX) != 0 {
-		gamepadAxisMappings[id][StandardAxisRightStickHorizontal] = mapping{
-			Type:       mappingTypeAxis,
+		gamepadAxisMappings[id][StandardAxisRightStickHorizontal] = MappingItem{
+			Type:       MappingTypeAxis,
 			Index:      SDLControllerAxisRightX,
 			AxisScale:  1,
 			AxisOffset: 0,
 		}
 	}
 	if axisMask&(1<<SDLControllerAxisRightY) != 0 {
-		gamepadAxisMappings[id][StandardAxisRightStickVertical] = mapping{
-			Type:       mappingTypeAxis,
+		gamepadAxisMappings[id][StandardAxisRightStickVertical] = MappingItem{
+			Type:       MappingTypeAxis,
 			Index:      SDLControllerAxisRightY,
 			AxisScale:  1,
 			AxisOffset: 0,
 		}
 	}
 	if axisMask&(1<<SDLControllerAxisTriggerLeft) != 0 {
-		gamepadButtonMappings[id][StandardButtonFrontBottomLeft] = mapping{
-			Type:       mappingTypeAxis,
+		gamepadButtonMappings[id][StandardButtonFrontBottomLeft] = MappingItem{
+			Type:       MappingTypeAxis,
 			Index:      SDLControllerAxisTriggerLeft,
 			AxisScale:  1,
 			AxisOffset: 0,
 		}
 	}
 	if axisMask&(1<<SDLControllerAxisTriggerRight) != 0 {
-		gamepadButtonMappings[id][StandardButtonFrontBottomRight] = mapping{
-			Type:       mappingTypeAxis,
+		gamepadButtonMappings[id][StandardButtonFrontBottomRight] = MappingItem{
+			Type:       MappingTypeAxis,
 			Index:      SDLControllerAxisTriggerRight,
 			AxisScale:  1,
 			AxisOffset: 0,

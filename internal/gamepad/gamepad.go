@@ -408,3 +408,97 @@ func (g *Gamepad) Vibrate(duration time.Duration, strongMagnitude float64, weakM
 
 	g.native.vibrate(duration, strongMagnitude, weakMagnitude)
 }
+
+type MappingItem struct {
+	StandardType                 gamepaddb.MappingType
+	StandardIndex                int
+	PhysicalType                 gamepaddb.MappingType
+	PhysicalIndex                int
+	PhysicalToStandardAxisScale  float64
+	PhysicalToStandardAxisOffset float64
+}
+
+func (g *Gamepad) Mapping() []MappingItem {
+	g.m.Lock()
+	defer g.m.Unlock()
+
+	if g.native.hasOwnStandardLayoutMapping() {
+		var mapping []MappingItem
+
+		buttonCount := g.native.buttonCount() + g.native.hatCount()*4
+		if buttonCount > int(gamepaddb.StandardButtonMax)+1 {
+			buttonCount = int(gamepaddb.StandardButtonMax) + 1
+		}
+		for i := 0; i < buttonCount; i++ {
+			mapping = append(mapping, MappingItem{
+				StandardType:  gamepaddb.MappingTypeButton,
+				StandardIndex: i,
+				PhysicalType:  gamepaddb.MappingTypeButton,
+				PhysicalIndex: i,
+			})
+		}
+
+		axisCount := g.native.axisCount()
+		if axisCount > int(gamepaddb.StandardAxisMax)+1 {
+			axisCount = int(gamepaddb.StandardAxisMax) + 1
+		}
+		for i := 0; i < axisCount; i++ {
+			mapping = append(mapping, MappingItem{
+				StandardType:                gamepaddb.MappingTypeAxis,
+				StandardIndex:               i,
+				PhysicalType:                gamepaddb.MappingTypeAxis,
+				PhysicalIndex:               i,
+				PhysicalToStandardAxisScale: 1,
+			})
+		}
+
+		return mapping
+	}
+
+	var mapping []MappingItem
+	buttons, axes := gamepaddb.UnsafeMapping(g.sdlID)
+	for button, item := range buttons {
+		item := g.convertMappingItem(item)
+		item.StandardType = gamepaddb.MappingTypeButton
+		item.StandardIndex = int(button)
+		mapping = append(mapping, item)
+	}
+	for axis, item := range axes {
+		item := g.convertMappingItem(item)
+		item.StandardType = gamepaddb.MappingTypeAxis
+		item.StandardIndex = int(axis)
+		mapping = append(mapping, item)
+	}
+
+	return mapping
+}
+
+func (g *Gamepad) convertMappingItem(item gamepaddb.MappingItem) MappingItem {
+	var r MappingItem
+	switch item.Type {
+	case gamepaddb.MappingTypeButton:
+		r.PhysicalType = gamepaddb.MappingTypeButton
+		r.PhysicalIndex = item.Index
+	case gamepaddb.MappingTypeAxis:
+		r.PhysicalType = gamepaddb.MappingTypeAxis
+		r.PhysicalIndex = item.Index
+		r.PhysicalToStandardAxisScale = item.AxisScale
+		r.PhysicalToStandardAxisOffset = item.AxisOffset
+	case gamepaddb.MappingTypeHat:
+		// Convert a hat value to a button value.
+		r.PhysicalType = gamepaddb.MappingTypeButton
+		var offset int
+		switch item.HatState {
+		case hatUp:
+			offset = 0
+		case hatRight:
+			offset = 1
+		case hatDown:
+			offset = 2
+		case hatLeft:
+			offset = 3
+		}
+		r.PhysicalIndex = g.native.buttonCount() + 4*item.Index + offset
+	}
+	return r
+}
