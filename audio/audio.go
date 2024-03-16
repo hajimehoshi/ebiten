@@ -60,11 +60,6 @@ const (
 type Context struct {
 	playerFactory *playerFactory
 
-	// inited represents whether the audio device is initialized and available or not.
-	// On Android, audio loop cannot be started unless JVM is accessible. After updating one frame, JVM should exist.
-	inited     chan struct{}
-	initedOnce sync.Once
-
 	sampleRate int
 	err        error
 	ready      bool
@@ -100,7 +95,6 @@ func NewContext(sampleRate int) *Context {
 		sampleRate:     sampleRate,
 		playerFactory:  newPlayerFactory(sampleRate),
 		playingPlayers: map[*playerImpl]struct{}{},
-		inited:         make(chan struct{}),
 		semaphore:      make(chan struct{}, 1),
 	}
 	theContext = c
@@ -128,10 +122,6 @@ func NewContext(sampleRate int) *Context {
 	})
 
 	h.AppendHookOnBeforeUpdate(func() error {
-		c.initedOnce.Do(func() {
-			close(c.inited)
-		})
-
 		var err error
 		theContextLock.Lock()
 		if theContext != nil {
@@ -314,18 +304,6 @@ func (c *Context) IsReady() bool {
 // SampleRate returns the sample rate.
 func (c *Context) SampleRate() int {
 	return c.sampleRate
-}
-
-func (c *Context) acquireSemaphore() {
-	c.semaphore <- struct{}{}
-}
-
-func (c *Context) releaseSemaphore() {
-	<-c.semaphore
-}
-
-func (c *Context) waitUntilInited() {
-	<-c.inited
 }
 
 // Player is an audio player which has one stream.
