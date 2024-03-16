@@ -356,6 +356,10 @@ func (p *playerImpl) updatePosition() {
 		p.adjustedPosition = 0
 		return
 	}
+	if !p.context.IsReady() {
+		p.adjustedPosition = 0
+		return
+	}
 
 	samples := (p.stream.position() - int64(p.player.BufferedSize())) / bytesPerSampleInt16
 
