@@ -63,7 +63,6 @@ type Context struct {
 	sampleRate int
 	err        error
 	ready      bool
-	readyOnce  sync.Once
 
 	playingPlayers map[*playerImpl]struct{}
 
@@ -130,6 +129,19 @@ func NewContext(sampleRate int) *Context {
 		theContextLock.Unlock()
 		if err != nil {
 			return err
+		}
+
+		// Initialize the context here in the case when there is no player and
+		// the program waits for IsReady() to be true (#969, #970, #2715).
+		ready, err := c.playerFactory.initContextIfNeeded()
+		if err != nil {
+			return err
+		}
+		if ready != nil {
+			go func() {
+				<-ready
+				c.setReady()
+			}()
 		}
 
 		if err := c.updatePlayers(); err != nil {
@@ -277,28 +289,7 @@ func (c *Context) updatePlayers() error {
 func (c *Context) IsReady() bool {
 	c.m.Lock()
 	defer c.m.Unlock()
-
-	if c.ready {
-		return true
-	}
-	if len(c.playingPlayers) != 0 {
-		return false
-	}
-
-	c.readyOnce.Do(func() {
-		// Create another goroutine since (*Player).Play can lock the context's mutex.
-		// TODO: Is this needed for reader players?
-		go func() {
-			// The audio context is never ready unless there is a player. This is
-			// problematic when a user tries to play audio after the context is ready.
-			// Play a dummy player to avoid the blocking (#969).
-			// Use a long enough buffer so that writing doesn't finish immediately (#970).
-			p := NewPlayerFromBytes(c, make([]byte, 16384))
-			p.Play()
-		}()
-	})
-
-	return false
+	return c.ready
 }
 
 // SampleRate returns the sample rate.
