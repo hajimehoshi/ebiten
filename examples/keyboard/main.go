@@ -35,7 +35,7 @@ const (
 	screenHeight = 240
 )
 
-var fontFace = text.NewStdFace(bitmapfont.Face)
+var fontFace = text.NewGoXFace(bitmapfont.Face)
 
 var keyboardImage *ebiten.Image
 

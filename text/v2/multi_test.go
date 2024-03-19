@@ -26,7 +26,7 @@ import (
 )
 
 func TestMultiFace(t *testing.T) {
-	faces := []text.Face{text.NewStdFace(bitmapfont.Face)}
+	faces := []text.Face{text.NewGoXFace(bitmapfont.Face)}
 	f, err := text.NewMultiFace(faces...)
 	if err != nil {
 		t.Fatal(err)

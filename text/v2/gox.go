@@ -25,29 +25,29 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
-var _ Face = (*StdFace)(nil)
+var _ Face = (*GoXFace)(nil)
 
-type stdFaceGlyphImageCacheKey struct {
+type goXFaceGlyphImageCacheKey struct {
 	rune    rune
 	xoffset fixed.Int26_6
 
 	// yoffset is always the same if the rune is the same, so this doesn't have to be a key.
 }
 
-// StdFace is a Face implementation for a semi-standard font.Face (golang.org/x/image/font).
-// StdFace is useful to transit from existing codebase with text v1, or to use some bitmap fonts defined as font.Face.
-// StdFace must not be copied by value.
-type StdFace struct {
+// GoXFace is a Face implementation for a semi-standard font.Face (golang.org/x/image/font).
+// GoXFace is useful to transit from existing codebase with text v1, or to use some bitmap fonts defined as font.Face.
+// GoXFace must not be copied by value.
+type GoXFace struct {
 	f *faceWithCache
 
-	glyphImageCache glyphImageCache[stdFaceGlyphImageCacheKey]
+	glyphImageCache glyphImageCache[goXFaceGlyphImageCacheKey]
 
-	addr *StdFace
+	addr *GoXFace
 }
 
-// NewStdFace creates a new StdFace from a semi-standard font.Face.
-func NewStdFace(face font.Face) *StdFace {
-	s := &StdFace{
+// NewGoXFace creates a new GoXFace from a semi-standard font.Face.
+func NewGoXFace(face font.Face) *GoXFace {
+	s := &GoXFace{
 		f: &faceWithCache{
 			f: face,
 		},
@@ -56,14 +56,14 @@ func NewStdFace(face font.Face) *StdFace {
 	return s
 }
 
-func (s *StdFace) copyCheck() {
+func (s *GoXFace) copyCheck() {
 	if s.addr != s {
-		panic("text: illegal use of non-zero StdFace copied by value")
+		panic("text: illegal use of non-zero GoXFace copied by value")
 	}
 }
 
 // Metrics implements Face.
-func (s *StdFace) Metrics() Metrics {
+func (s *GoXFace) Metrics() Metrics {
 	s.copyCheck()
 
 	m := s.f.Metrics()
@@ -77,24 +77,24 @@ func (s *StdFace) Metrics() Metrics {
 // UnsafeInternal returns its internal font.Face.
 //
 // This is unsafe since this might make internal cache states out of sync.
-func (s *StdFace) UnsafeInternal() font.Face {
+func (s *GoXFace) UnsafeInternal() font.Face {
 	s.copyCheck()
 	return s.f.f
 }
 
 // advance implements Face.
-func (s *StdFace) advance(text string) float64 {
+func (s *GoXFace) advance(text string) float64 {
 	return fixed26_6ToFloat64(font.MeasureString(s.f, text))
 }
 
 // hasGlyph implements Face.
-func (s *StdFace) hasGlyph(r rune) bool {
+func (s *GoXFace) hasGlyph(r rune) bool {
 	_, ok := s.f.GlyphAdvance(r)
 	return ok
 }
 
 // appendGlyphsForLine implements Face.
-func (s *StdFace) appendGlyphsForLine(glyphs []Glyph, line string, indexOffset int, originX, originY float64) []Glyph {
+func (s *GoXFace) appendGlyphsForLine(glyphs []Glyph, line string, indexOffset int, originX, originY float64) []Glyph {
 	s.copyCheck()
 
 	origin := fixed.Point26_6{
@@ -129,8 +129,8 @@ func (s *StdFace) appendGlyphsForLine(glyphs []Glyph, line string, indexOffset i
 	return glyphs
 }
 
-func (s *StdFace) glyphImage(r rune, origin fixed.Point26_6) (*ebiten.Image, int, int, fixed.Int26_6) {
-	// Assume that StdFace's direction is always horizontal.
+func (s *GoXFace) glyphImage(r rune, origin fixed.Point26_6) (*ebiten.Image, int, int, fixed.Int26_6) {
+	// Assume that GoXFace's direction is always horizontal.
 	origin.X = adjustGranularity(origin.X, s)
 	origin.Y &^= ((1 << 6) - 1)
 
@@ -139,7 +139,7 @@ func (s *StdFace) glyphImage(r rune, origin fixed.Point26_6) (*ebiten.Image, int
 		X: (origin.X + b.Min.X) & ((1 << 6) - 1),
 		Y: (origin.Y + b.Min.Y) & ((1 << 6) - 1),
 	}
-	key := stdFaceGlyphImageCacheKey{
+	key := goXFaceGlyphImageCacheKey{
 		rune:    r,
 		xoffset: subpixelOffset.X,
 	}
@@ -151,7 +151,7 @@ func (s *StdFace) glyphImage(r rune, origin fixed.Point26_6) (*ebiten.Image, int
 	return img, imgX, imgY, a
 }
 
-func (s *StdFace) glyphImageImpl(r rune, subpixelOffset fixed.Point26_6, glyphBounds fixed.Rectangle26_6) *ebiten.Image {
+func (s *GoXFace) glyphImageImpl(r rune, subpixelOffset fixed.Point26_6, glyphBounds fixed.Rectangle26_6) *ebiten.Image {
 	w, h := (glyphBounds.Max.X - glyphBounds.Min.X).Ceil(), (glyphBounds.Max.Y - glyphBounds.Min.Y).Ceil()
 	if w == 0 || h == 0 {
 		return nil
@@ -179,14 +179,14 @@ func (s *StdFace) glyphImageImpl(r rune, subpixelOffset fixed.Point26_6, glyphBo
 }
 
 // direction implements Face.
-func (s *StdFace) direction() Direction {
+func (s *GoXFace) direction() Direction {
 	return DirectionLeftToRight
 }
 
 // appendVectorPathForLine implements Face.
-func (s *StdFace) appendVectorPathForLine(path *vector.Path, line string, originX, originY float64) {
+func (s *GoXFace) appendVectorPathForLine(path *vector.Path, line string, originX, originY float64) {
 }
 
 // Metrics implements Face.
-func (s *StdFace) private() {
+func (s *GoXFace) private() {
 }

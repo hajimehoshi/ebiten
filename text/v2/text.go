@@ -27,7 +27,7 @@ import (
 )
 
 // Face is an interface representing a font face.
-// The implementations are only faces defined in this package, like GoTextFace and StdFace.
+// The implementations are only faces defined in this package, like GoTextFace and GoXFace.
 type Face interface {
 	// Metrics returns the metrics for this Face.
 	Metrics() Metrics
@@ -59,15 +59,15 @@ type Metrics struct {
 	HDescent float64
 
 	// VLineGap is the recommended amount of horizontal space between two lines of text in pixels.
-	// If the face is StdFace or the font doesn't support a vertical direction, VLineGap is 0.
+	// If the face is GoXFace or the font doesn't support a vertical direction, VLineGap is 0.
 	VLineGap float64
 
 	// VAscent is the distance in pixels from the top of a line to its baseline for vertical lines.
-	// If the face is StdFace or the font doesn't support a vertical direction, VAscent is 0.
+	// If the face is GoXFace or the font doesn't support a vertical direction, VAscent is 0.
 	VAscent float64
 
 	// VDescent is the distance in pixels from the top of a line to its baseline for vertical lines.
-	// If the face is StdFace or the font doesn't support a vertical direction, VDescent is 0.
+	// If the face is GoXFace or the font doesn't support a vertical direction, VDescent is 0.
 	VDescent float64
 }
 

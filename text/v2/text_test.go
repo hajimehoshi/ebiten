@@ -38,7 +38,7 @@ func TestGlyphIndex(t *testing.T) {
 	const sampleText = `The quick brown fox jumps
 over the lazy dog.`
 
-	f := text.NewStdFace(bitmapfont.Face)
+	f := text.NewGoXFace(bitmapfont.Face)
 	got := sampleText
 	for _, g := range text.AppendGlyphs(nil, sampleText, f, nil) {
 		got = got[:g.StartIndexInBytes] + strings.Repeat(" ", g.EndIndexInBytes-g.StartIndexInBytes) + got[g.EndIndexInBytes:]
@@ -55,7 +55,7 @@ func TestTextColor(t *testing.T) {
 	op := &text.DrawOptions{}
 	op.GeoM.Translate(0, 0)
 	op.ColorScale.ScaleWithColor(clr)
-	text.Draw(img, "Hello", text.NewStdFace(bitmapfont.Face), op)
+	text.Draw(img, "Hello", text.NewGoXFace(bitmapfont.Face), op)
 
 	w, h := img.Bounds().Dx(), img.Bounds().Dy()
 	allTransparent := true
@@ -77,12 +77,12 @@ func TestTextColor(t *testing.T) {
 	}
 }
 
-const testStdFaceSize = 6
+const testGoXFaceSize = 6
 
-type testStdFace struct{}
+type testGoXFace struct{}
 
-func (f *testStdFace) Glyph(dot fixed.Point26_6, r rune) (dr image.Rectangle, mask image.Image, maskp image.Point, advance fixed.Int26_6, ok bool) {
-	dr = image.Rect(0, 0, testStdFaceSize, testStdFaceSize)
+func (f *testGoXFace) Glyph(dot fixed.Point26_6, r rune) (dr image.Rectangle, mask image.Image, maskp image.Point, advance fixed.Int26_6, ok bool) {
+	dr = image.Rect(0, 0, testGoXFaceSize, testGoXFaceSize)
 	a := image.NewAlpha(dr)
 	switch r {
 	case 'a':
@@ -99,56 +99,56 @@ func (f *testStdFace) Glyph(dot fixed.Point26_6, r rune) (dr image.Rectangle, ma
 		}
 	}
 	mask = a
-	advance = fixed.I(testStdFaceSize)
+	advance = fixed.I(testGoXFaceSize)
 	ok = true
 	return
 }
 
-func (f *testStdFace) GlyphBounds(r rune) (bounds fixed.Rectangle26_6, advance fixed.Int26_6, ok bool) {
-	bounds = fixed.R(0, 0, testStdFaceSize, testStdFaceSize)
-	advance = fixed.I(testStdFaceSize)
+func (f *testGoXFace) GlyphBounds(r rune) (bounds fixed.Rectangle26_6, advance fixed.Int26_6, ok bool) {
+	bounds = fixed.R(0, 0, testGoXFaceSize, testGoXFaceSize)
+	advance = fixed.I(testGoXFaceSize)
 	ok = true
 	return
 }
 
-func (f *testStdFace) GlyphAdvance(r rune) (advance fixed.Int26_6, ok bool) {
-	return fixed.I(testStdFaceSize), true
+func (f *testGoXFace) GlyphAdvance(r rune) (advance fixed.Int26_6, ok bool) {
+	return fixed.I(testGoXFaceSize), true
 }
 
-func (f *testStdFace) Kern(r0, r1 rune) fixed.Int26_6 {
+func (f *testGoXFace) Kern(r0, r1 rune) fixed.Int26_6 {
 	if r1 == 'b' {
-		return fixed.I(-testStdFaceSize)
+		return fixed.I(-testGoXFaceSize)
 	}
 	return 0
 }
 
-func (f *testStdFace) Close() error {
+func (f *testGoXFace) Close() error {
 	return nil
 }
 
-func (f *testStdFace) Metrics() font.Metrics {
+func (f *testGoXFace) Metrics() font.Metrics {
 	return font.Metrics{
-		Height:     fixed.I(testStdFaceSize),
+		Height:     fixed.I(testGoXFaceSize),
 		Ascent:     0,
-		Descent:    fixed.I(testStdFaceSize),
+		Descent:    fixed.I(testGoXFaceSize),
 		XHeight:    0,
-		CapHeight:  fixed.I(testStdFaceSize),
+		CapHeight:  fixed.I(testGoXFaceSize),
 		CaretSlope: image.Pt(0, 1),
 	}
 }
 
 // Issue #1378
 func TestNegativeKern(t *testing.T) {
-	f := text.NewStdFace(&testStdFace{})
-	dst := ebiten.NewImage(testStdFaceSize*2, testStdFaceSize)
+	f := text.NewGoXFace(&testGoXFace{})
+	dst := ebiten.NewImage(testGoXFaceSize*2, testGoXFaceSize)
 
-	// With testStdFace, 'b' is rendered at the previous position as 0xff.
+	// With testGoXFace, 'b' is rendered at the previous position as 0xff.
 	// 'a' is rendered at the current position as 0x80.
 	op := &text.DrawOptions{}
 	op.GeoM.Translate(0, 0)
 	text.Draw(dst, "ab", f, op)
-	for j := 0; j < testStdFaceSize; j++ {
-		for i := 0; i < testStdFaceSize; i++ {
+	for j := 0; j < testGoXFaceSize; j++ {
+		for i := 0; i < testGoXFaceSize; i++ {
 			got := dst.At(i, j)
 			want := color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff}
 			if got != want {
@@ -159,10 +159,10 @@ func TestNegativeKern(t *testing.T) {
 
 	// The glyph 'a' should be treated correctly.
 	op = &text.DrawOptions{}
-	op.GeoM.Translate(testStdFaceSize, 0)
+	op.GeoM.Translate(testGoXFaceSize, 0)
 	text.Draw(dst, "a", f, op)
-	for j := 0; j < testStdFaceSize; j++ {
-		for i := testStdFaceSize; i < testStdFaceSize*2; i++ {
+	for j := 0; j < testGoXFaceSize; j++ {
+		for i := testGoXFaceSize; i < testGoXFaceSize*2; i++ {
 			got := dst.At(i, j)
 			want := color.RGBA{R: 0x80, G: 0x80, B: 0x80, A: 0x80}
 			if got != want {
@@ -172,12 +172,12 @@ func TestNegativeKern(t *testing.T) {
 	}
 }
 
-type unhashableStdFace func()
+type unhashableGoXFace func()
 
-const unhashableStdFaceSize = 10
+const unhashableGoXFaceSize = 10
 
-func (u *unhashableStdFace) Glyph(dot fixed.Point26_6, r rune) (dr image.Rectangle, mask image.Image, maskp image.Point, advance fixed.Int26_6, ok bool) {
-	dr = image.Rect(0, 0, unhashableStdFaceSize, unhashableStdFaceSize)
+func (u *unhashableGoXFace) Glyph(dot fixed.Point26_6, r rune) (dr image.Rectangle, mask image.Image, maskp image.Point, advance fixed.Int26_6, ok bool) {
+	dr = image.Rect(0, 0, unhashableGoXFaceSize, unhashableGoXFaceSize)
 	a := image.NewAlpha(dr)
 	for j := dr.Min.Y; j < dr.Max.Y; j++ {
 		for i := dr.Min.X; i < dr.Max.X; i++ {
@@ -185,53 +185,53 @@ func (u *unhashableStdFace) Glyph(dot fixed.Point26_6, r rune) (dr image.Rectang
 		}
 	}
 	mask = a
-	advance = fixed.I(unhashableStdFaceSize)
+	advance = fixed.I(unhashableGoXFaceSize)
 	ok = true
 	return
 }
 
-func (u *unhashableStdFace) GlyphBounds(r rune) (bounds fixed.Rectangle26_6, advance fixed.Int26_6, ok bool) {
-	bounds = fixed.R(0, 0, unhashableStdFaceSize, unhashableStdFaceSize)
-	advance = fixed.I(unhashableStdFaceSize)
+func (u *unhashableGoXFace) GlyphBounds(r rune) (bounds fixed.Rectangle26_6, advance fixed.Int26_6, ok bool) {
+	bounds = fixed.R(0, 0, unhashableGoXFaceSize, unhashableGoXFaceSize)
+	advance = fixed.I(unhashableGoXFaceSize)
 	ok = true
 	return
 }
 
-func (u *unhashableStdFace) GlyphAdvance(r rune) (advance fixed.Int26_6, ok bool) {
-	return fixed.I(unhashableStdFaceSize), true
+func (u *unhashableGoXFace) GlyphAdvance(r rune) (advance fixed.Int26_6, ok bool) {
+	return fixed.I(unhashableGoXFaceSize), true
 }
 
-func (u *unhashableStdFace) Kern(r0, r1 rune) fixed.Int26_6 {
+func (u *unhashableGoXFace) Kern(r0, r1 rune) fixed.Int26_6 {
 	return 0
 }
 
-func (u *unhashableStdFace) Close() error {
+func (u *unhashableGoXFace) Close() error {
 	return nil
 }
 
-func (u *unhashableStdFace) Metrics() font.Metrics {
+func (u *unhashableGoXFace) Metrics() font.Metrics {
 	return font.Metrics{
-		Height:     fixed.I(unhashableStdFaceSize),
+		Height:     fixed.I(unhashableGoXFaceSize),
 		Ascent:     0,
-		Descent:    fixed.I(unhashableStdFaceSize),
+		Descent:    fixed.I(unhashableGoXFaceSize),
 		XHeight:    0,
-		CapHeight:  fixed.I(unhashableStdFaceSize),
+		CapHeight:  fixed.I(unhashableGoXFaceSize),
 		CaretSlope: image.Pt(0, 1),
 	}
 }
 
 // Issue #2669
 func TestUnhashableFace(t *testing.T) {
-	var face unhashableStdFace
-	f := text.NewStdFace(&face)
-	dst := ebiten.NewImage(unhashableStdFaceSize*2, unhashableStdFaceSize*2)
+	var face unhashableGoXFace
+	f := text.NewGoXFace(&face)
+	dst := ebiten.NewImage(unhashableGoXFaceSize*2, unhashableGoXFaceSize*2)
 	text.Draw(dst, "a", f, nil)
 
-	for j := 0; j < unhashableStdFaceSize*2; j++ {
-		for i := 0; i < unhashableStdFaceSize*2; i++ {
+	for j := 0; j < unhashableGoXFaceSize*2; j++ {
+		for i := 0; i < unhashableGoXFaceSize*2; i++ {
 			got := dst.At(i, j)
 			var want color.RGBA
-			if i < unhashableStdFaceSize && j < unhashableStdFaceSize {
+			if i < unhashableGoXFaceSize && j < unhashableGoXFaceSize {
 				want = color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff}
 			}
 			if got != want {

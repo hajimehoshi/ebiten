@@ -32,7 +32,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
-var fontFace = text.NewStdFace(bitmapfont.FaceEA)
+var fontFace = text.NewGoXFace(bitmapfont.FaceEA)
 
 const (
 	screenWidth  = 640

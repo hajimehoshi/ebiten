@@ -35,7 +35,7 @@ const (
 )
 
 var (
-	inconsolataFace = text.NewStdFace(inconsolata.Bold8x16)
+	inconsolataFace = text.NewGoXFace(inconsolata.Bold8x16)
 )
 
 // mode is a blend mode with description.
