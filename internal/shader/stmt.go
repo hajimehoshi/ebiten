@@ -49,10 +49,6 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 			if !ok {
 				return nil, false
 			}
-			for i := range ss {
-				ss[i].IsTypeGuessed = true
-			}
-
 			stmts = append(stmts, ss...)
 		case token.ASSIGN:
 			if len(stmt.Lhs) != len(stmt.Rhs) && len(stmt.Rhs) != 1 {
@@ -476,25 +472,6 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 	default:
 		cs.addError(stmt.Pos(), fmt.Sprintf("unexpected statement: %#v", stmt))
 		return nil, false
-	}
-
-	// Need to run delayed checks
-	if len(cs.delayedTypeCheks) != 0 {
-		for _, st := range stmts {
-			cs.ValidateDefaultTypes(block, st)
-		}
-
-		// Collect all errors first
-		foundErr := false
-		for s, v := range cs.delayedTypeCheks {
-			if _, ok := v.IsValidated(); !ok {
-				foundErr = true
-				cs.addError(s.Pos(), v.Error())
-			}
-		}
-		if foundErr {
-			return nil, false
-		}
 	}
 	return stmts, true
 }

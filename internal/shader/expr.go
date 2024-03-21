@@ -37,6 +37,11 @@ func canTruncateToFloat(v gconstant.Value) bool {
 var textureVariableRe = regexp.MustCompile(`\A__t(\d+)\z`)
 
 func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, markLocalVariableUsed bool) (rexpr []shaderir.Expr, rtype []shaderir.Type, rstmt []shaderir.Stmt, ok bool) {
+	defer func() {
+		// Due to use of early return in the parsing, delayed checks are conducted in defer
+		ok = ok && cs.tryValidateDelayed(expr)
+	}()
+
 	switch e := expr.(type) {
 	case *ast.BasicLit:
 		switch e.Kind {
@@ -128,11 +133,7 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 					lhst = shaderir.Type{Main: shaderir.Int}
 					// Left should be implicitly converted to the type it would assume if the shift expression were replaced by its left operand alone.
 					if rhs[0].Const == nil {
-						defer func() {
-							if ok {
-								cs.addDelayedTypeCheck(expr, &delayedShiftValidator{value: origLvalue})
-							}
-						}()
+						cs.addDelayedTypeCheck(expr, &delayedShiftValidator{value: origLvalue, pos: e.Pos(), last: expr})
 					}
 				}
 			}
@@ -201,7 +202,6 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 			{
 				Type:  shaderir.Binary,
 				Op:    op2,
-				Ast:   expr,
 				Exprs: []shaderir.Expr{lhs[0], rhs[0]},
 			},
 		}, []shaderir.Type{t}, stmts, true

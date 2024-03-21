@@ -61,7 +61,7 @@ type compileState struct {
 
 	varyingParsed bool
 
-	delayedTypeCheks map[ast.Expr]delayedTypeValidator
+	delayedTypeCheks map[ast.Expr]delayedValidator
 
 	errs []string
 }
@@ -84,9 +84,9 @@ func (cs *compileState) findUniformVariable(name string) (int, bool) {
 	return 0, false
 }
 
-func (cs *compileState) addDelayedTypeCheck(at ast.Expr, check delayedTypeValidator) {
+func (cs *compileState) addDelayedTypeCheck(at ast.Expr, check delayedValidator) {
 	if cs.delayedTypeCheks == nil {
-		cs.delayedTypeCheks = make(map[ast.Expr]delayedTypeValidator, 1)
+		cs.delayedTypeCheks = make(map[ast.Expr]delayedValidator, 1)
 	}
 	cs.delayedTypeCheks[at] = check
 }
