@@ -359,6 +359,12 @@ func (cs *compileState) parse(f *ast.File) {
 	for _, f := range cs.funcs {
 		cs.ir.Funcs = append(cs.ir.Funcs, f.ir)
 	}
+
+	// if len(cs.delayedTypeCheks) != 0 {
+	// 	for _, check := range cs.delayedTypeCheks {
+	// 		cs.addError(check.Pos(), check.Error())
+	// 	}
+	// }
 }
 
 func (cs *compileState) parseDecl(b *block, fname string, d ast.Decl) ([]shaderir.Stmt, bool) {
