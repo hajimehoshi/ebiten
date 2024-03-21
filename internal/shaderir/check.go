@@ -145,7 +145,7 @@ func TypeFromBinaryOp(op Op, lhst, rhst Type, lhsConst, rhsConst constant.Value)
 	}
 
 	if op == LeftShift || op == RightShift {
-		if lhst.Main == Int && rhst.Main == Int {
+		if (lhst.Main == Int || lhst.Main == DeducedInt) && rhst.Main == Int {
 			return Type{Main: lhst.Main}, true
 		}
 		if lhst.IsIntVector() && rhst.Main == Int {

@@ -180,6 +180,7 @@ const (
 	Texture
 	Array
 	Struct
+	DeducedInt
 )
 
 func descendantLocalVars(block, target *Block) ([]Type, bool) {
