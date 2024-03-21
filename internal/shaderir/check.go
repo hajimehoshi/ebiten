@@ -216,19 +216,10 @@ func TypeFromBinaryOp(op Op, lhst, rhst Type, lhsConst, rhsConst constant.Value)
 	}
 
 	if op == LeftShift || op == RightShift {
-		if lhst.Main == Int && rhst.Main == Int {
-			return Type{Main: Int}, true
+		if (lhst.Main == Int || lhst.IsIntVector()) && rhst.Main == Int {
+			return lhst, true
 		}
-		if lhst.Main == IVec2 && rhst.Main == IVec2 {
-			return Type{Main: IVec2}, true
-		}
-		if lhst.Main == IVec3 && rhst.Main == IVec3 {
-			return Type{Main: IVec3}, true
-		}
-		if lhst.Main == IVec4 && rhst.Main == IVec4 {
-			return Type{Main: IVec4}, true
-		}
-		if lhst.IsIntVector() && rhst.Main == Int {
+		if lhst.IsIntVector() && rhst.IsIntVector() && lhst.VectorElementCount() == rhst.VectorElementCount() {
 			return lhst, true
 		}
 		return Type{}, false
