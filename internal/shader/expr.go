@@ -101,7 +101,7 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 		}
 
 		// Resolve untyped constants.
-		l, r, ok := shaderir.ResolveUntypedConstsForBinaryOp(lhs[0].Const, rhs[0].Const, lhst, rhst)
+		l, r, ok := shaderir.ResolveUntypedConstsForBinaryOp(op2, lhs[0].Const, rhs[0].Const, lhst, rhst)
 		if !ok {
 			// TODO: Show a better type name for untyped constants.
 			cs.addError(e.Pos(), fmt.Sprintf("types don't match: %s %s %s", lhst.String(), op, rhst.String()))

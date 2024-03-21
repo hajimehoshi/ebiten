@@ -18,8 +18,21 @@ import (
 	"go/constant"
 )
 
-func ResolveUntypedConstsForBinaryOp(lhs, rhs constant.Value, lhst, rhst Type) (newLhs, newRhs constant.Value, ok bool) {
+func ResolveUntypedConstsForBinaryOp(op Op, lhs, rhs constant.Value, lhst, rhst Type) (newLhs, newRhs constant.Value, ok bool) {
 	if lhst.Main == None && rhst.Main == None {
+		if op == LeftShift || op == RightShift {
+			newLhs = constant.ToInt(lhs)
+			newRhs = constant.ToInt(rhs)
+
+			if newLhs.Kind() == constant.Unknown {
+				return nil, nil, false
+			}
+			if newRhs.Kind() == constant.Unknown {
+				return nil, nil, false
+			}
+			return newLhs, newRhs, true
+		}
+
 		if lhs.Kind() == rhs.Kind() {
 			return lhs, rhs, true
 		}
