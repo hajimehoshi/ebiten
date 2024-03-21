@@ -243,6 +243,7 @@ type nativeGamepad interface {
 	axisCount() int
 	buttonCount() int
 	hatCount() int
+	isAxisReady(axis int) bool
 	axisValue(axis int) float64
 	buttonValue(button int) float64
 	isButtonPressed(button int) bool
@@ -294,6 +295,14 @@ func (g *Gamepad) HatCount() int {
 	defer g.m.Unlock()
 
 	return g.native.hatCount()
+}
+
+// IsAxisReady is concurrent-safe.
+func (g *Gamepad) IsAxisReady(axis int) bool {
+	g.m.Lock()
+	defer g.m.Unlock()
+
+	return g.native.isAxisReady(axis)
 }
 
 // Axis is concurrent-safe.

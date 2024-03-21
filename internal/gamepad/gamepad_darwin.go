@@ -399,6 +399,10 @@ func (g *nativeGamepadImpl) hatCount() int {
 	return len(g.hatValues)
 }
 
+func (g *nativeGamepadImpl) isAxisReady(axis int) bool {
+	return axis >= 0 && axis < g.axisCount()
+}
+
 func (g *nativeGamepadImpl) axisValue(axis int) float64 {
 	if axis < 0 || axis >= len(g.axisValues) {
 		return 0

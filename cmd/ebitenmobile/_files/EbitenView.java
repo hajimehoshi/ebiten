@@ -244,12 +244,6 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
         int axisMask = getAxisMask(inputDevice);
 
         Ebitenmobileview.onGamepadAdded(deviceId, inputDevice.getName(), gamepad.axes.size(), gamepad.hats.size()/2, descriptor, vendorId, productId, buttonMask, axisMask);
-
-        // Initialize the trigger axes values explicitly, or the initial button values would be 0.5 instead of 0.
-        if (gamepad.axes.size() >= 6) {
-            Ebitenmobileview.onGamepadAxisChanged(deviceId, 4, -1);
-            Ebitenmobileview.onGamepadAxisChanged(deviceId, 5, -1);
-        }
     }
 
     // The implementation is copied from SDL:

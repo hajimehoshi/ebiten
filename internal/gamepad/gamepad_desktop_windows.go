@@ -721,6 +721,10 @@ func (g *nativeGamepadDesktop) hatCount() int {
 	return 1
 }
 
+func (g *nativeGamepadDesktop) isAxisReady(axis int) bool {
+	return axis >= 0 && axis < g.axisCount()
+}
+
 func (g *nativeGamepadDesktop) axisValue(axis int) float64 {
 	if g.usesDInput() {
 		if axis < 0 || axis >= len(g.dinputAxes) {

@@ -47,6 +47,7 @@ func (g *gamepads) addAndroidGamepad(androidDeviceID int, name, sdlID string, ax
 	gp := g.add(name, sdlID)
 	gp.native = &nativeGamepadImpl{
 		androidDeviceID: androidDeviceID,
+		axesReady:       make([]bool, axisCount),
 		axes:            make([]float64, axisCount),
 		buttons:         make([]bool, gamepaddb.SDLControllerButtonMax+1),
 		hats:            make([]int, hatCount),
@@ -110,6 +111,13 @@ func (g *Gamepad) updateAndroidGamepadAxis(axis int, value float64) {
 		return
 	}
 	n.axes[axis] = value
+
+	// MotionEvent with 0 value can be sent when a gamepad is connected even though an axis is not touched (#2598).
+	// This is problematic when an axis is a trigger button where -1 should be the default value.
+	// When MotionEvent with non-0 value is sent, it seems fine to assume that the axis is actually touched and ready.
+	if value != 0 {
+		n.axesReady[axis] = true
+	}
 }
 
 func (g *Gamepad) updateAndroidGamepadButton(button Button, pressed bool) {

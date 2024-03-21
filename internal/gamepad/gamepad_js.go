@@ -152,6 +152,10 @@ func (g *nativeGamepadImpl) hatCount() int {
 	return 0
 }
 
+func (g *nativeGamepadImpl) isAxisReady(axis int) bool {
+	return axis >= 0 && axis < g.axisCount()
+}
+
 func (g *nativeGamepadImpl) axisValue(axis int) float64 {
 	axes := g.value.Get("axes")
 	if axis < 0 || axis >= axes.Length() {
