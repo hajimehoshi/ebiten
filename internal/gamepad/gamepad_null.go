@@ -66,6 +66,10 @@ func (*nativeGamepadImpl) hatCount() int {
 	return 0
 }
 
+func (g *nativeGamepadImpl) isAxisReady(axis int) bool {
+	return false
+}
+
 func (*nativeGamepadImpl) axisValue(axis int) float64 {
 	return 0
 }

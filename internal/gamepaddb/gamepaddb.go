@@ -390,6 +390,7 @@ func HasStandardLayoutMapping(id string) bool {
 }
 
 type GamepadState interface {
+	IsAxisReady(index int) bool
 	Axis(index int) float64
 	Button(index int) bool
 	Hat(index int) int
@@ -430,6 +431,9 @@ func StandardAxisValue(id string, axis StandardAxis, state GamepadState) float64
 
 	switch mapping.Type {
 	case mappingTypeAxis:
+		if !state.IsAxisReady(mapping.Index) {
+			return 0
+		}
 		v := state.Axis(mapping.Index)*mapping.AxisScale + mapping.AxisOffset
 		if v > 1 {
 			return 1
@@ -486,6 +490,9 @@ func standardButtonValue(id string, button StandardButton, state GamepadState) f
 
 	switch mapping.Type {
 	case mappingTypeAxis:
+		if !state.IsAxisReady(mapping.Index) {
+			return 0
+		}
 		v := state.Axis(mapping.Index)*mapping.AxisScale + mapping.AxisOffset
 		if v > 1 {
 			v = 1

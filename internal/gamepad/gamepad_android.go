@@ -37,9 +37,10 @@ func (*nativeGamepadsImpl) update(gamepads *gamepads) error {
 type nativeGamepadImpl struct {
 	androidDeviceID int
 
-	axes    []float64
-	buttons []bool
-	hats    []int
+	axesReady []bool
+	axes      []float64
+	buttons   []bool
+	hats      []int
 }
 
 func (*nativeGamepadImpl) update(gamepad *gamepads) error {
@@ -69,6 +70,13 @@ func (g *nativeGamepadImpl) buttonCount() int {
 
 func (g *nativeGamepadImpl) hatCount() int {
 	return len(g.hats)
+}
+
+func (g *nativeGamepadImpl) isAxisReady(axis int) bool {
+	if axis < 0 || axis >= len(g.axesReady) {
+		return false
+	}
+	return g.axesReady[axis]
 }
 
 func (g *nativeGamepadImpl) axisValue(axis int) float64 {
