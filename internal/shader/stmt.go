@@ -292,7 +292,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 		})
 
 	case *ast.IncDecStmt:
-		exprs, _, ss, ok := cs.parseExpr(block, fname, stmt.X, true)
+		exprs, ts, ss, ok := cs.parseExpr(block, fname, stmt.X, true)
 		if !ok {
 			return nil, false
 		}
@@ -303,6 +303,16 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 			op = shaderir.Add
 		case token.DEC:
 			op = shaderir.Sub
+		}
+		var c gconstant.Value
+		switch {
+		case ts[0].Main == shaderir.Int, ts[0].IsIntVector():
+			c = gconstant.MakeInt64(1)
+		case ts[0].Main == shaderir.Float, ts[0].IsFloatVector():
+			c = gconstant.MakeFloat64(1)
+		default:
+			cs.addError(stmt.Pos(), fmt.Sprintf("invalid operation %s (non-numeric type %s)", stmt.Tok.String(), ts[0].String()))
+			return nil, false
 		}
 		stmts = append(stmts, shaderir.Stmt{
 			Type: shaderir.Assign,
@@ -315,7 +325,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 						exprs[0],
 						{
 							Type:  shaderir.NumberExpr,
-							Const: gconstant.MakeInt64(1),
+							Const: c,
 						},
 					},
 				},

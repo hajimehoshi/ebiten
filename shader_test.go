@@ -2487,3 +2487,75 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 		}
 	}
 }
+
+// Issue #2933
+func TestShaderIncDecStmt(t *testing.T) {
+	const w, h = 16, 16
+
+	dst := ebiten.NewImage(w, h)
+	s, err := ebiten.NewShader([]byte(`//kage:unit pixels
+
+package main
+
+func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+	a := 0
+	a++
+	b := -0.5
+	b++
+	c := ivec2(0)
+	c++
+	d := vec2(-0.25)
+	d++
+	return vec4(float(a), b, float(c.x), d.y)
+}
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	dst.DrawRectShader(w, h, s, nil)
+
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			got := dst.At(i, j).(color.RGBA)
+			want := color.RGBA{R: 0xff, G: 0x80, B: 0xff, A: 0xc0}
+			if !sameColors(got, want, 2) {
+				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+
+	dst.Clear()
+
+	s, err = ebiten.NewShader([]byte(`//kage:unit pixels
+
+package main
+
+func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+	a := 1
+	a--
+	b := 1.5
+	b--
+	c := ivec2(1)
+	c--
+	d := vec2(1.25)
+	d--
+	return vec4(float(a), b, float(c.x), d.y)
+}
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	dst.DrawRectShader(w, h, s, nil)
+
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			got := dst.At(i, j).(color.RGBA)
+			want := color.RGBA{R: 0x00, G: 0x80, B: 0x00, A: 0x40}
+			if !sameColors(got, want, 2) {
+				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+}
