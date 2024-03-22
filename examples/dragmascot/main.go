@@ -90,6 +90,7 @@ func (m *mascot) Update() error {
 		m.dragStartCursorX, m.dragStartCursorY = ebiten.CursorPosition()
 	}
 	if m.dragging {
+		// Move the window only by the delta of the cursor.
 		cx, cy := ebiten.CursorPosition()
 		dx := int(float64(cx-m.dragStartCursorX) * m.cursorToWindowX)
 		dy := int(float64(cy-m.dragStartCursorY) * m.cursorToWindowY)
