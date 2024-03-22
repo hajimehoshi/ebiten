@@ -582,6 +582,12 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 					cs.addError(pos, fmt.Sprintf("cannot use type %s as type %s in variable declaration", rts[i].String(), lts[i].String()))
 					return nil, false
 				}
+				switch lts[0].Main {
+				case shaderir.Int:
+					r[i].Const = gconstant.ToInt(r[i].Const)
+				case shaderir.Float:
+					r[i].Const = gconstant.ToFloat(r[i].Const)
+				}
 			}
 
 			if len(lhs) == 1 {
