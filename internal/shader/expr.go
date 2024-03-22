@@ -153,9 +153,9 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 				shift, ok := gconstant.Int64Val(rhs[0].Const)
 				if !ok {
 					cs.addError(e.Pos(), fmt.Sprintf("unexpected %s type for: %s", rhs[0].Const.String(), e.Op))
-				} else {
-					v = gconstant.Shift(lhs[0].Const, op, uint(shift))
+					return nil, nil, nil, false
 				}
+				v = gconstant.Shift(lhs[0].Const, op, uint(shift))
 			default:
 				v = gconstant.BinaryOp(lhs[0].Const, op, rhs[0].Const)
 			}

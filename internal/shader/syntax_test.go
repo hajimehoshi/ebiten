@@ -1324,6 +1324,9 @@ func TestSyntaxOperatorShift(t *testing.T) {
 		{stmt: "a := 1 << 2.0; _ = a", err: false},
 		{stmt: "a := 1.0 << 2; _ = a", err: false},
 		{stmt: "a := 1.0 << 2.0; _ = a", err: false},
+		{stmt: "a := 1.0 << int(1); _ = a", err: false},
+		{stmt: "a := int(1) << 2.0; _ = a", err: false},
+		{stmt: "a := ivec2(1) << 2.0; _ = a", err: false},
 		{stmt: "var a = 1; b := a << 2.0; _ = b", err: false},
 		{stmt: "var a = 1; b := 2.0 << a; _ = b", err: false}, // PR: #2916
 		{stmt: "a := float(1.0) << 2; _ = a", err: true},
@@ -1351,6 +1354,9 @@ func TestSyntaxOperatorShift(t *testing.T) {
 		{stmt: "a := 1 >> 2.0; _ = a", err: false},
 		{stmt: "a := 1.0 >> 2; _ = a", err: false},
 		{stmt: "a := 1.0 >> 2.0; _ = a", err: false},
+		{stmt: "a := 1.0 >> int(1); _ = a", err: false},
+		{stmt: "a := int(1) >> 2.0; _ = a", err: false},
+		{stmt: "a := ivec2(1) >> 2.0; _ = a", err: false},
 		{stmt: "var a = 1; b := a >> 2.0; _ = b", err: false},
 		{stmt: "var a = 1; b := 2.0 >> a; _ = b", err: false}, // PR: #2916
 		{stmt: "a := float(1.0) >> 2; _ = a", err: true},
