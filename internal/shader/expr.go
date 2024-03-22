@@ -105,7 +105,7 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 		}
 
 		// Resolve untyped constants.
-		l, r, ok := shaderir.ResolveUntypedConstsForBinaryOp(lhs[0].Const, rhs[0].Const, lhst, rhst)
+		l, r, ok := shaderir.ResolveUntypedConstsForBinaryOp(op2, lhs[0].Const, rhs[0].Const, lhst, rhst)
 		if !ok {
 			// TODO: Show a better type name for untyped constants.
 			cs.addError(e.Pos(), fmt.Sprintf("types don't match: %s %s %s", lhst.String(), op, rhst.String()))
@@ -153,6 +153,13 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 				v = gconstant.MakeBool(b)
 			case token.EQL, token.NEQ, token.LSS, token.LEQ, token.GTR, token.GEQ:
 				v = gconstant.MakeBool(gconstant.Compare(lhs[0].Const, op, rhs[0].Const))
+			case token.SHL, token.SHR:
+				shift, ok := gconstant.Int64Val(rhs[0].Const)
+				if !ok {
+					cs.addError(e.Pos(), fmt.Sprintf("unexpected %s type for: %s", rhs[0].Const.String(), e.Op))
+					return nil, nil, nil, false
+				}
+				v = gconstant.Shift(lhs[0].Const, op, uint(shift))
 			default:
 				v = gconstant.BinaryOp(lhs[0].Const, op, rhs[0].Const)
 			}

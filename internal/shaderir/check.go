@@ -18,8 +18,21 @@ import (
 	"go/constant"
 )
 
-func ResolveUntypedConstsForBinaryOp(lhs, rhs constant.Value, lhst, rhst Type) (newLhs, newRhs constant.Value, ok bool) {
+func ResolveUntypedConstsForBinaryOp(op Op, lhs, rhs constant.Value, lhst, rhst Type) (newLhs, newRhs constant.Value, ok bool) {
 	if lhst.Main == None && rhst.Main == None {
+		if op == LeftShift || op == RightShift {
+			newLhs = constant.ToInt(lhs)
+			newRhs = constant.ToInt(rhs)
+
+			if newLhs.Kind() == constant.Unknown {
+				return nil, nil, false
+			}
+			if newRhs.Kind() == constant.Unknown {
+				return nil, nil, false
+			}
+			return newLhs, newRhs, true
+		}
+
 		if lhs.Kind() == rhs.Kind() {
 			return lhs, rhs, true
 		}
@@ -92,6 +105,13 @@ func TypeFromBinaryOp(op Op, lhst, rhst Type, lhsConst, rhsConst constant.Value)
 		}
 
 		if op == And || op == Or || op == Xor {
+			if lhsConst.Kind() == constant.Int && rhsConst.Kind() == constant.Int {
+				return Type{Main: Int}, true
+			}
+			return Type{}, false
+		}
+
+		if op == LeftShift || op == RightShift {
 			if lhsConst.Kind() == constant.Int && rhsConst.Kind() == constant.Int {
 				return Type{Main: Int}, true
 			}
@@ -191,6 +211,16 @@ func TypeFromBinaryOp(op Op, lhst, rhst Type, lhsConst, rhsConst constant.Value)
 		}
 		if lhst.Main == Int && rhst.IsIntVector() {
 			return rhst, true
+		}
+		return Type{}, false
+	}
+
+	if op == LeftShift || op == RightShift {
+		if (lhst.Main == Int || lhst.IsIntVector()) && rhst.Main == Int {
+			return lhst, true
+		}
+		if lhst.IsIntVector() && rhst.IsIntVector() && lhst.VectorElementCount() == rhst.VectorElementCount() {
+			return lhst, true
 		}
 		return Type{}, false
 	}
