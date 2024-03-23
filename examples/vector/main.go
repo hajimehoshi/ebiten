@@ -140,12 +140,16 @@ func drawEbitenText(screen *ebiten.Image, x, y int, aa bool, line bool) {
 
 	op := &ebiten.DrawTrianglesOptions{}
 	op.AntiAlias = aa
-	if !line {
-		// ebiten.EvenOdd is also fine here.
-		// NonZero and EvenOdd differ when rendering a complex polygons with self-intersections and/or holes.
-		// See https://en.wikipedia.org/wiki/Nonzero-rule and https://en.wikipedia.org/wiki/Even%E2%80%93odd_rule .
-		op.FillRule = ebiten.NonZero
-	}
+
+	// For strokes (AppendVerticesAndIndicesForStroke), FillAll and NonZero work.
+	//
+	// For filling (AppendVerticesAndIndicesForFilling), NonZero and EvenOdd work.
+	// NonZero and EvenOdd differ when rendering a complex polygons with self-intersections and/or holes.
+	// See https://en.wikipedia.org/wiki/Nonzero-rule and https://en.wikipedia.org/wiki/Even%E2%80%93odd_rule .
+	//
+	// For simplicity, this example always uses NonZero, whichever strokes or filling is done.
+	op.FillRule = ebiten.NonZero
+
 	screen.DrawTriangles(vs, is, whiteSubImage, op)
 }
 
@@ -199,9 +203,7 @@ func drawEbitenLogo(screen *ebiten.Image, x, y int, aa bool, line bool) {
 
 	op := &ebiten.DrawTrianglesOptions{}
 	op.AntiAlias = aa
-	if !line {
-		op.FillRule = ebiten.NonZero
-	}
+	op.FillRule = ebiten.NonZero
 	screen.DrawTriangles(vs, is, whiteSubImage, op)
 }
 
@@ -243,9 +245,7 @@ func drawArc(screen *ebiten.Image, count int, aa bool, line bool) {
 
 	op := &ebiten.DrawTrianglesOptions{}
 	op.AntiAlias = aa
-	if !line {
-		op.FillRule = ebiten.NonZero
-	}
+	op.FillRule = ebiten.NonZero
 	screen.DrawTriangles(vs, is, whiteSubImage, op)
 }
 
@@ -300,9 +300,7 @@ func drawWave(screen *ebiten.Image, counter int, aa bool, line bool) {
 
 	op := &ebiten.DrawTrianglesOptions{}
 	op.AntiAlias = aa
-	if !line {
-		op.FillRule = ebiten.NonZero
-	}
+	op.FillRule = ebiten.NonZero
 	screen.DrawTriangles(vs, is, whiteSubImage, op)
 }
 

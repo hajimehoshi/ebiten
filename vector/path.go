@@ -480,7 +480,7 @@ type StrokeOptions struct {
 // The returned vertice's SrcX and SrcY are 0, and ColorR, ColorG, ColorB, and ColorA are 1.
 //
 // The returned values are intended to be passed to DrawTriangles or DrawTrianglesShader with a solid (non-transparent) color
-// with the FillAll fill rule (not NonZero or EvenOdd fill rule).
+// with FillAll or NonZero fill rule, not EvenOdd fill rule.
 func (p *Path) AppendVerticesAndIndicesForStroke(vertices []ebiten.Vertex, indices []uint16, op *StrokeOptions) ([]ebiten.Vertex, []uint16) {
 	if op == nil {
 		return vertices, indices
@@ -536,7 +536,8 @@ func (p *Path) AppendVerticesAndIndicesForStroke(vertices []ebiten.Vertex, indic
 					ColorA: 1,
 				})
 			}
-			indices = append(indices, idx, idx+1, idx+2, idx+1, idx+2, idx+3)
+			// All the triangles are rendered in clockwise order to enable NonZero filling rule (#2833).
+			indices = append(indices, idx, idx+1, idx+2, idx+1, idx+3, idx+2)
 
 			// Add line joints.
 			var nextRect [4]point
