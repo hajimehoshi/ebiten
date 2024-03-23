@@ -81,6 +81,7 @@ func NewGraphics() (graphicsdriver.Graphics, error) {
 
 	var useWARP bool
 	var useDebugLayer bool
+	var allowTearing bool
 	version := 11
 
 	// Specify the feature level 11 by default.
@@ -108,6 +109,8 @@ func NewGraphics() (graphicsdriver.Graphics, error) {
 			useWARP = true
 		case t == "debug":
 			useDebugLayer = true
+		case t == "tearing":
+			allowTearing = true
 		case strings.HasPrefix(t, "version="):
 			v, err := strconv.Atoi(t[len("version="):])
 			if err != nil {
@@ -130,13 +133,13 @@ func NewGraphics() (graphicsdriver.Graphics, error) {
 
 	switch version {
 	case 11:
-		g, err := newGraphics11(useWARP, useDebugLayer)
+		g, err := newGraphics11(useWARP, useDebugLayer, allowTearing)
 		if err != nil {
 			return nil, err
 		}
 		return g, nil
 	case 12:
-		g, err := newGraphics12(useWARP, useDebugLayer, featureLevel)
+		g, err := newGraphics12(useWARP, useDebugLayer, allowTearing, featureLevel)
 		if err != nil {
 			return nil, err
 		}
@@ -163,19 +166,21 @@ type graphicsInfra struct {
 }
 
 // newGraphicsInfra takes the ownership of the given factory.
-func newGraphicsInfra(factory *_IDXGIFactory) (*graphicsInfra, error) {
+func newGraphicsInfra(factory *_IDXGIFactory, allowTearing bool) (*graphicsInfra, error) {
 	g := &graphicsInfra{
 		factory: factory,
 	}
 	runtime.SetFinalizer(g, (*graphicsInfra).release)
 
-	if f, err := g.factory.QueryInterface(&_IID_IDXGIFactory5); err == nil && f != nil {
-		factory := (*_IDXGIFactory5)(f)
-		defer factory.Release()
+	if allowTearing {
+		if f, err := g.factory.QueryInterface(&_IID_IDXGIFactory5); err == nil && f != nil {
+			factory := (*_IDXGIFactory5)(f)
+			defer factory.Release()
 
-		var allowTearing int32
-		if err := factory.CheckFeatureSupport(_DXGI_FEATURE_PRESENT_ALLOW_TEARING, unsafe.Pointer(&allowTearing), uint32(unsafe.Sizeof(allowTearing))); err == nil && allowTearing != 0 {
-			g.allowTearing = true
+			var allowTearing int32
+			if err := factory.CheckFeatureSupport(_DXGI_FEATURE_PRESENT_ALLOW_TEARING, unsafe.Pointer(&allowTearing), uint32(unsafe.Sizeof(allowTearing))); err == nil && allowTearing != 0 {
+				g.allowTearing = true
+			}
 		}
 	}
 
