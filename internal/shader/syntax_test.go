@@ -4103,6 +4103,48 @@ func Bar() {
 `)); err != nil {
 		t.Error(err)
 	}
+
+	if _, err := compileToIR([]byte(`package main
+
+func Foo() {
+	a, b := 0
+	_, _ = a, b
+}
+`)); err == nil {
+		t.Error("compileToIR must return an error but did not")
+	}
+
+	if _, err := compileToIR([]byte(`package main
+
+func Foo() {
+	a, b, c := 0, 0
+	_, _ = a, b, c
+}
+`)); err == nil {
+		t.Error("compileToIR must return an error but did not")
+	}
+
+	if _, err := compileToIR([]byte(`package main
+
+func Foo() {
+	var a, b int
+	a, b = 0
+	_, _ = a, b
+}
+`)); err == nil {
+		t.Error("compileToIR must return an error but did not")
+	}
+
+	if _, err := compileToIR([]byte(`package main
+
+func Foo() {
+	var a, b, c int
+	a, b, c = 0, 0
+	_, _ = a, b, c
+}
+`)); err == nil {
+		t.Error("compileToIR must return an error but did not")
+	}
 }
 
 func TestSyntaxBitwiseOperator(t *testing.T) {

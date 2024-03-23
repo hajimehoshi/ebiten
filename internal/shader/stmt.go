@@ -492,8 +492,8 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 	var rhsTypes []shaderir.Type
 	allblank := true
 
-	for i, e := range lhs {
-		if len(lhs) == len(rhs) {
+	if len(lhs) == len(rhs) {
+		for i, e := range lhs {
 			// Prase RHS first for the order of the statements.
 			r, rts, ss, ok := cs.parseExpr(block, fname, rhs[i], true)
 			if !ok {
@@ -627,20 +627,21 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 						},
 					})
 			}
-		} else {
-			if i == 0 {
-				var ss []shaderir.Stmt
-				var ok bool
-				rhsExprs, rhsTypes, ss, ok = cs.parseExpr(block, fname, rhs[0], true)
-				if !ok {
-					return nil, false
-				}
-				if len(rhsExprs) != len(lhs) {
-					cs.addError(pos, "single-value context and multiple-value context cannot be mixed")
-				}
-				stmts = append(stmts, ss...)
-			}
+		}
+	} else {
+		var ss []shaderir.Stmt
+		var ok bool
+		rhsExprs, rhsTypes, ss, ok = cs.parseExpr(block, fname, rhs[0], true)
+		if !ok {
+			return nil, false
+		}
+		if len(lhs) != len(rhsExprs) {
+			cs.addError(pos, fmt.Sprintf("assignment mismatch: %d variables but %d", len(lhs), len(rhsExprs)))
+			return nil, false
+		}
+		stmts = append(stmts, ss...)
 
+		for i, e := range lhs {
 			if define {
 				if _, ok := e.(*ast.Ident); !ok {
 					cs.addError(pos, "non-name on the left side of :=")
