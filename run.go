@@ -352,6 +352,8 @@ func isRunGameEnded() bool {
 //
 // ScreenSizeInFullscreen must be called on the main thread before ebiten.RunGame, and is concurrent-safe after
 // ebiten.RunGame.
+//
+// Deprecated: as of v2.6. Use Monitor().Size() instead.
 func ScreenSizeInFullscreen() (int, int) {
 	return ui.Get().ScreenSizeInFullscreen()
 }

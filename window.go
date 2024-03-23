@@ -165,7 +165,7 @@ var (
 
 func initializeWindowPositionIfNeeded(width, height int) {
 	if atomic.LoadUint32(&windowPositionSetExplicitly) == 0 {
-		sw, sh := ui.Get().ScreenSizeInFullscreen()
+		sw, sh := ui.Get().Monitor().Size()
 		x, y := ui.InitialWindowPosition(sw, sh, width, height)
 		ui.Get().Window().SetPosition(x, y)
 	}
@@ -175,7 +175,7 @@ func initializeWindowPositionIfNeeded(width, height int) {
 // WindowSize returns (0, 0) on other environments.
 //
 // Even if the application is in fullscreen mode, WindowSize returns the original window size
-// If you need the fullscreen dimensions, see ScreenSizeInFullscreen instead.
+// If you need the fullscreen dimensions, see Monitor().Size() instead.
 //
 // WindowSize is concurrent-safe.
 func WindowSize() (int, int) {

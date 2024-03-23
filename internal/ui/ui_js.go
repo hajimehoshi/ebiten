@@ -121,6 +121,7 @@ type userInterfaceImpl struct {
 var (
 	window                = js.Global().Get("window")
 	document              = js.Global().Get("document")
+	screen                = js.Global().Get("screen")
 	canvas                js.Value
 	requestAnimationFrame = js.Global().Get("requestAnimationFrame")
 	setTimeout            = js.Global().Get("setTimeout")
@@ -130,10 +131,6 @@ var (
 	documentHasFocus = document.Get("hasFocus").Call("bind", document)
 	documentHidden   = js.Global().Get("Object").Call("getOwnPropertyDescriptor", js.Global().Get("Document").Get("prototype"), "hidden").Get("get").Call("bind", document)
 )
-
-func (u *UserInterface) ScreenSizeInFullscreen() (int, int) {
-	return window.Get("innerWidth").Int(), window.Get("innerHeight").Int()
-}
 
 func (u *UserInterface) SetFullscreen(fullscreen bool) {
 	if !canvas.Truthy() {
@@ -794,6 +791,10 @@ func (m *Monitor) DeviceScaleFactor() float64 {
 	}
 	m.deviceScaleFactor = ratio
 	return m.deviceScaleFactor
+}
+
+func (m *Monitor) Size() (int, int) {
+	return screen.Get("width").Int(), screen.Get("height").Int()
 }
 
 func (u *UserInterface) AppendMonitors(mons []*Monitor) []*Monitor {

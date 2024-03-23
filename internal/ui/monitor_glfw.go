@@ -42,12 +42,13 @@ func (m *Monitor) Name() string {
 
 // DeviceScaleFactor is concurrent-safe as contentScale is immutable.
 func (m *Monitor) DeviceScaleFactor() float64 {
-	// It is rare, but monitor can be nil when glfw.GetPrimaryMonitor returns nil.
-	// In this case, return 1 as a tentative scale (#1878).
-	if m == nil {
-		return 1
-	}
 	return m.contentScale
+}
+
+// Size returns the size of the monitor in device-independent pixels.
+func (m *Monitor) Size() (int, int) {
+	w, h := m.sizeInDIP()
+	return int(w), int(h)
 }
 
 func (m *Monitor) sizeInDIP() (float64, float64) {
@@ -88,6 +89,11 @@ func (m *monitors) primaryMonitor() *Monitor {
 	m.m.Lock()
 	defer m.m.Unlock()
 
+	// GetMonitors might return nil in theory (#1878, #1887).
+	// primaryMonitor can be called at the initialization, so monitors can be nil.
+	if len(m.monitors) == 0 {
+		return nil
+	}
 	return m.monitors[0]
 }
 

@@ -85,7 +85,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	op.Filter = ebiten.FilterLinear
 	screen.DrawImage(gophersImage, op)
 
-	fw, fh := ebiten.ScreenSizeInFullscreen()
+	fw, fh := ebiten.Monitor().Size()
 	msg := "This is an example of the finest fullscreen.\n"
 	if runtime.GOOS == "js" {
 		msg += "Press F or touch the screen to enter fullscreen (again).\n"

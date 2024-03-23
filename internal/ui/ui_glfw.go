@@ -178,9 +178,9 @@ func (u *UserInterface) initializeGLFW() error {
 		m = theMonitors.primaryMonitor()
 	}
 
-	// GetPrimaryMonitor might return nil in theory (#1887).
+	// GetMonitors might return nil in theory (#1878, #1887).
 	if m == nil {
-		return errors.New("ui: no monitor was found at initialize")
+		return errors.New("ui: no monitor was found at initializeGLFW")
 	}
 
 	u.setInitMonitor(m)
@@ -265,7 +265,7 @@ func (u *UserInterface) AppendMonitors(monitors []*Monitor) []*Monitor {
 // Monitor returns the window's current monitor. Returns nil if there is no current monitor yet.
 func (u *UserInterface) Monitor() *Monitor {
 	if !u.isRunning() {
-		return nil
+		return u.getInitMonitor()
 	}
 	var monitor *Monitor
 	u.mainThread.Call(func() {
@@ -569,36 +569,6 @@ func (u *UserInterface) setWindowClosingHandled(handled bool) {
 	u.m.Lock()
 	u.windowClosingHandled = handled
 	u.m.Unlock()
-}
-
-func (u *UserInterface) ScreenSizeInFullscreen() (int, int) {
-	if u.isTerminated() {
-		return 0, 0
-	}
-	if !u.isRunning() {
-		m := u.getInitMonitor()
-		w, h := m.sizeInDIP()
-		return int(w), int(h)
-	}
-
-	var w, h int
-	u.mainThread.Call(func() {
-		if u.isTerminated() {
-			return
-		}
-		m, err := u.currentMonitor()
-		if err != nil {
-			u.setError(err)
-			return
-		}
-		if m == nil {
-			return
-		}
-		wf, hf := m.sizeInDIP()
-		w = int(wf)
-		h = int(hf)
-	})
-	return w, h
 }
 
 // isFullscreen must be called from the main thread.

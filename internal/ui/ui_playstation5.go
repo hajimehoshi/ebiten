@@ -92,10 +92,6 @@ func (*UserInterface) IsFocused() bool {
 	return true
 }
 
-func (*UserInterface) ScreenSizeInFullscreen() (int, int) {
-	return 0, 0
-}
-
 func (u *UserInterface) readInputState(inputState *InputState) {
 	// TODO: Implement this.
 }
@@ -161,6 +157,10 @@ func (m *Monitor) Name() string {
 
 func (m *Monitor) DeviceScaleFactor() float64 {
 	return 1
+}
+
+func (m *Monitor) Size() (int, int) {
+	return screenWidth, screenHeight
 }
 
 func (u *UserInterface) AppendMonitors(mons []*Monitor) []*Monitor {

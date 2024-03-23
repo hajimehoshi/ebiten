@@ -80,7 +80,7 @@ func (m *mascot) Layout(outsideWidth, outsideHeight int) (int, int) {
 func (m *mascot) Update() error {
 	m.count++
 
-	sw, sh := ebiten.ScreenSizeInFullscreen()
+	sw, sh := ebiten.Monitor().Size()
 	ebiten.SetWindowPosition(m.x16/16, m.y16/16+sh-height)
 
 	if m.vx16 == 0 {

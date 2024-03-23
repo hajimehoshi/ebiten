@@ -183,12 +183,6 @@ func (u *UserInterface) update() error {
 	return nil
 }
 
-func (u *UserInterface) ScreenSizeInFullscreen() (int, int) {
-	// TODO: This function should return gbuildWidthPx, gbuildHeightPx,
-	// but these values are not initialized until the main loop starts.
-	return 0, 0
-}
-
 // SetOutsideSize is called from mobile/ebitenmobileview.
 //
 // SetOutsideSize is concurrent safe.
@@ -287,6 +281,11 @@ func (m *Monitor) DeviceScaleFactor() float64 {
 		m.deviceScaleFactor = deviceScaleFactorImpl()
 	})
 	return m.deviceScaleFactor
+}
+
+func (m *Monitor) Size() (int, int) {
+	// TODO: Return a valid value.
+	return 0, 0
 }
 
 func (u *UserInterface) AppendMonitors(mons []*Monitor) []*Monitor {

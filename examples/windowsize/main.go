@@ -401,7 +401,7 @@ func parseWindowPosition() (int, int, bool) {
 
 func main() {
 	fmt.Printf("Device scale factor: %0.2f\n", ebiten.Monitor().DeviceScaleFactor())
-	w, h := ebiten.ScreenSizeInFullscreen()
+	w, h := ebiten.Monitor().Size()
 	fmt.Printf("Screen size in fullscreen: %d, %d\n", w, h)
 
 	// Decode an image from the image file's byte slice.
