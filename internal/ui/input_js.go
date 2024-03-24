@@ -416,3 +416,13 @@ var uiKeyToJSKey = map[Key]js.Value{
 	KeyNumpad8:        js.ValueOf("8"),
 	KeyNumpad9:        js.ValueOf("9"),
 }
+
+func (i *InputState) resetForBlur() {
+	for j := range i.KeyPressed {
+		i.KeyPressed[j] = false
+	}
+	for j := range i.MouseButtonPressed {
+		i.MouseButtonPressed[j] = false
+	}
+	i.Touches = i.Touches[:0]
+}

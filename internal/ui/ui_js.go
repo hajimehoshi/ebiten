@@ -693,6 +693,12 @@ func (u *UserInterface) setCanvasEventHandlers(v js.Value) {
 		go u.appendDroppedFiles(data)
 		return nil
 	}))
+
+	// Blur
+	v.Call("addEventListener", "blur", js.FuncOf(func(this js.Value, args []js.Value) any {
+		u.inputState.resetForBlur()
+		return nil
+	}))
 }
 
 func (u *UserInterface) appendDroppedFiles(data js.Value) {
