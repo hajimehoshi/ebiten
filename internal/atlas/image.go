@@ -60,6 +60,23 @@ func quadVertices(dx0, dy0, dx1, dy1, sx0, sy0, sx1, sy1, cr, cg, cb, ca float32
 	}
 }
 
+func appendDeferred(f func()) {
+	deferredM.Lock()
+	defer deferredM.Unlock()
+	deferred = append(deferred, f)
+}
+
+func flushDeferred() {
+	deferredM.Lock()
+	fs := deferred
+	deferred = nil
+	deferredM.Unlock()
+
+	for _, f := range fs {
+		f()
+	}
+}
+
 // baseCountToPutOnSourceBackend represents the base time duration when the image can be put onto an atlas.
 // Actual time duration is increased in an exponential way for each usage as a rendering target.
 const baseCountToPutOnSourceBackend = 10
@@ -203,6 +220,11 @@ var (
 	imagesUsedAsDestination smallImageSet
 
 	graphicsDriverInitialized bool
+
+	deferred []func()
+
+	// deferredM is a mutex for the slice operations. This must not be used for other usages.
+	deferredM sync.Mutex
 )
 
 type ImageType int
@@ -593,30 +615,26 @@ func (i *Image) writePixels(pix []byte, region image.Rectangle) {
 	i.backend.writePixels(pixb, r)
 }
 
-// ReadPixels reads pixels on the given region to the given slice pixels.
-//
-// ReadPixels blocks until BeginFrame is called if necessary in order to ensure this is called in a frame (between BeginFrame and EndFrame).
-// Be careful not to cause a deadlock by blocking a BeginFrame call by this ReadPixels call.
-func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte, region image.Rectangle) error {
-	var err error
-	theFuncsInFrame.runFuncInFrame(func() {
-		err = i.readPixels(graphicsDriver, pixels, region)
-	})
-	return err
-}
-
-func (i *Image) readPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte, region image.Rectangle) error {
+func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte, region image.Rectangle) (ok bool, err error) {
 	backendsM.Lock()
 	defer backendsM.Unlock()
 
 	if !inFrame {
-		panic("atlas: inFrame must be true in readPixels")
+		// Not ready to read pixels. Try this later.
+		return false, nil
 	}
 
 	// In the tests, BeginFrame might not be called often and then images might not be disposed (#2292).
 	// To prevent memory leaks, flush the deferred functions here.
 	flushDeferred()
 
+	if err := i.readPixels(graphicsDriver, pixels, region); err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+func (i *Image) readPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte, region image.Rectangle) error {
 	if i.backend == nil || i.backend.image == nil {
 		for i := range pixels {
 			pixels[i] = 0
@@ -835,9 +853,6 @@ func (i *Image) DumpScreenshot(graphicsDriver graphicsdriver.Graphics, path stri
 }
 
 func EndFrame() error {
-	// endFrame must be called outside of backendsM.
-	theFuncsInFrame.endFrame()
-
 	backendsM.Lock()
 	defer backendsM.Unlock()
 	defer func() {
@@ -890,9 +905,6 @@ func floorPowerOf2(x int) int {
 }
 
 func BeginFrame(graphicsDriver graphicsdriver.Graphics) error {
-	// beginFrame must be called outside of backendsM.
-	defer theFuncsInFrame.beginFrame()
-
 	backendsM.Lock()
 	defer backendsM.Unlock()
 

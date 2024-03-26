@@ -38,8 +38,12 @@ func TestUnsyncedPixels(t *testing.T) {
 
 	// Merge the entry into the cached pixels.
 	// The entry for dotsBuffer is now gone in the current implementation.
-	if err := dst.ReadPixels(ui.Get().GraphicsDriverForTesting(), make([]byte, 4*16*16), image.Rect(0, 0, 16, 16)); err != nil {
+	ok, err := dst.ReadPixels(ui.Get().GraphicsDriverForTesting(), make([]byte, 4*16*16), image.Rect(0, 0, 16, 16))
+	if err != nil {
 		t.Fatal(err)
+	}
+	if !ok {
+		t.Fatal("ReadPixels failed")
 	}
 
 	// Call WritePixels with the outside region of (0, 0).
@@ -56,8 +60,12 @@ func TestUnsyncedPixels(t *testing.T) {
 
 	// Check the result is correct.
 	var got [4]byte
-	if err := dst.ReadPixels(ui.Get().GraphicsDriverForTesting(), got[:], image.Rect(0, 0, 1, 1)); err != nil {
+	ok, err = dst.ReadPixels(ui.Get().GraphicsDriverForTesting(), got[:], image.Rect(0, 0, 1, 1))
+	if err != nil {
 		t.Fatal(err)
+	}
+	if !ok {
+		t.Fatal("ReadPixels failed")
 	}
 	want := [4]byte{0xff, 0xff, 0xff, 0xff}
 	if got != want {

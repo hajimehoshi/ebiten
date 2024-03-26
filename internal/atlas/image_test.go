@@ -119,8 +119,12 @@ func TestEnsureIsolatedFromSourceBackend(t *testing.T) {
 	}
 
 	pix = make([]byte, 4*size*size)
-	if err := img4.ReadPixels(ui.Get().GraphicsDriverForTesting(), pix, image.Rect(0, 0, size, size)); err != nil {
+	ok, err := img4.ReadPixels(ui.Get().GraphicsDriverForTesting(), pix, image.Rect(0, 0, size, size))
+	if err != nil {
 		t.Fatal(err)
+	}
+	if !ok {
+		t.Fatal("ReadPixels failed")
 	}
 	for j := 0; j < size; j++ {
 		for i := 0; i < size; i++ {
@@ -214,8 +218,12 @@ func TestReputOnSourceBackend(t *testing.T) {
 	atlas.PutImagesOnSourceBackendForTesting(ui.Get().GraphicsDriverForTesting())
 
 	pix = make([]byte, 4*size*size)
-	if err := img1.ReadPixels(ui.Get().GraphicsDriverForTesting(), pix, image.Rect(0, 0, size, size)); err != nil {
+	ok, err := img1.ReadPixels(ui.Get().GraphicsDriverForTesting(), pix, image.Rect(0, 0, size, size))
+	if err != nil {
 		t.Fatal(err)
+	}
+	if !ok {
+		t.Fatal("ReadPixels failed")
 	}
 	for j := 0; j < size; j++ {
 		for i := 0; i < size; i++ {
@@ -238,8 +246,12 @@ func TestReputOnSourceBackend(t *testing.T) {
 	}
 
 	pix = make([]byte, 4*size*size)
-	if err := img1.ReadPixels(ui.Get().GraphicsDriverForTesting(), pix, image.Rect(0, 0, size, size)); err != nil {
+	ok, err = img1.ReadPixels(ui.Get().GraphicsDriverForTesting(), pix, image.Rect(0, 0, size, size))
+	if err != nil {
 		t.Fatal(err)
+	}
+	if !ok {
+		t.Fatal("ReadPixels failed")
 	}
 	for j := 0; j < size; j++ {
 		for i := 0; i < size; i++ {
@@ -326,8 +338,12 @@ func TestExtend(t *testing.T) {
 	img1.WritePixels(p1, image.Rect(0, 0, w1, h1))
 
 	pix0 := make([]byte, 4*w0*h0)
-	if err := img0.ReadPixels(ui.Get().GraphicsDriverForTesting(), pix0, image.Rect(0, 0, w0, h0)); err != nil {
+	ok, err := img0.ReadPixels(ui.Get().GraphicsDriverForTesting(), pix0, image.Rect(0, 0, w0, h0))
+	if err != nil {
 		t.Fatal(err)
+	}
+	if !ok {
+		t.Fatal("ReadPixels failed")
 	}
 	for j := 0; j < h0; j++ {
 		for i := 0; i < w0; i++ {
@@ -345,8 +361,12 @@ func TestExtend(t *testing.T) {
 	}
 
 	pix1 := make([]byte, 4*w1*h1)
-	if err := img1.ReadPixels(ui.Get().GraphicsDriverForTesting(), pix1, image.Rect(0, 0, w1, h1)); err != nil {
+	ok, err = img1.ReadPixels(ui.Get().GraphicsDriverForTesting(), pix1, image.Rect(0, 0, w1, h1))
+	if err != nil {
 		t.Fatal(err)
+	}
+	if !ok {
+		t.Fatal("ReadPixels failed")
 	}
 	for j := 0; j < h1; j++ {
 		for i := 0; i < w1; i++ {
@@ -387,8 +407,12 @@ func TestWritePixelsAfterDrawTriangles(t *testing.T) {
 	dst.WritePixels(pix, image.Rect(0, 0, w, h))
 
 	pix = make([]byte, 4*w*h)
-	if err := dst.ReadPixels(ui.Get().GraphicsDriverForTesting(), pix, image.Rect(0, 0, w, h)); err != nil {
+	ok, err := dst.ReadPixels(ui.Get().GraphicsDriverForTesting(), pix, image.Rect(0, 0, w, h))
+	if err != nil {
 		t.Fatal(err)
+	}
+	if !ok {
+		t.Fatal("ReadPixels failed")
 	}
 	for j := 0; j < h; j++ {
 		for i := 0; i < w; i++ {
@@ -429,8 +453,12 @@ func TestSmallImages(t *testing.T) {
 	dst.DrawTriangles([graphics.ShaderImageCount]*atlas.Image{src}, vs, is, graphicsdriver.BlendSourceOver, dr, [graphics.ShaderImageCount]image.Rectangle{}, atlas.NearestFilterShader, nil, graphicsdriver.FillAll)
 
 	pix = make([]byte, 4*w*h)
-	if err := dst.ReadPixels(ui.Get().GraphicsDriverForTesting(), pix, image.Rect(0, 0, w, h)); err != nil {
+	ok, err := dst.ReadPixels(ui.Get().GraphicsDriverForTesting(), pix, image.Rect(0, 0, w, h))
+	if err != nil {
 		t.Fatal(err)
+	}
+	if !ok {
+		t.Fatal("ReadPixels failed")
 	}
 	for j := 0; j < h; j++ {
 		for i := 0; i < w; i++ {
@@ -472,8 +500,12 @@ func TestLongImages(t *testing.T) {
 	dst.DrawTriangles([graphics.ShaderImageCount]*atlas.Image{src}, vs, is, graphicsdriver.BlendSourceOver, dr, [graphics.ShaderImageCount]image.Rectangle{}, atlas.NearestFilterShader, nil, graphicsdriver.FillAll)
 
 	pix = make([]byte, 4*dstW*dstH)
-	if err := dst.ReadPixels(ui.Get().GraphicsDriverForTesting(), pix, image.Rect(0, 0, dstW, dstH)); err != nil {
+	ok, err := dst.ReadPixels(ui.Get().GraphicsDriverForTesting(), pix, image.Rect(0, 0, dstW, dstH))
+	if err != nil {
 		t.Fatal(err)
+	}
+	if !ok {
+		t.Fatal("ReadPixels failed")
 	}
 	for j := 0; j < h; j++ {
 		for i := 0; i < w*scale; i++ {
@@ -683,8 +715,12 @@ func TestImageWritePixelsModify(t *testing.T) {
 
 		// Check the pixels are the original ones.
 		pix = make([]byte, 4*size*size)
-		if err := img.ReadPixels(ui.Get().GraphicsDriverForTesting(), pix, image.Rect(0, 0, size, size)); err != nil {
+		ok, err := img.ReadPixels(ui.Get().GraphicsDriverForTesting(), pix, image.Rect(0, 0, size, size))
+		if err != nil {
 			t.Fatal(err)
+		}
+		if !ok {
+			t.Fatal("ReadPixels failed")
 		}
 		for j := 0; j < size; j++ {
 			for i := 0; i < size; i++ {

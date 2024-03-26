@@ -67,21 +67,25 @@ func (i *Image) Deallocate() {
 	i.pixelsUnsynced = false
 }
 
-func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte, region image.Rectangle) error {
+func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte, region image.Rectangle) (bool, error) {
 	// Do not call flushDotsBufferIfNeeded here. This would slow (image/draw).Draw.
 	// See ebiten.TestImageDrawOver.
 
 	if region.Dx() == 1 && region.Dy() == 1 {
 		if c, ok := i.dotsBuffer[region.Min]; ok {
 			copy(pixels, c[:])
-			return nil
+			return true, nil
 		}
 	}
 
 	if i.pixels == nil {
 		pix := make([]byte, 4*i.width*i.height)
-		if err := i.img.ReadPixels(graphicsDriver, pix, image.Rect(0, 0, i.width, i.height)); err != nil {
-			return err
+		ok, err := i.img.ReadPixels(graphicsDriver, pix, image.Rect(0, 0, i.width, i.height))
+		if err != nil {
+			return false, err
+		}
+		if !ok {
+			return false, nil
 		}
 		i.pixels = pix
 	}
@@ -105,7 +109,7 @@ func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte
 		copy(pixels[dstX:dstX+lineWidth], i.pixels[srcX:srcX+lineWidth])
 	}
 
-	return nil
+	return true, nil
 }
 
 func (i *Image) DumpScreenshot(graphicsDriver graphicsdriver.Graphics, name string, blackbg bool) (string, error) {
