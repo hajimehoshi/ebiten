@@ -54,11 +54,6 @@ func goEnv(name string) string {
 	return strings.TrimSpace(string(val))
 }
 
-const (
-	// Copied from gomobile.
-	minAndroidAPI = 15
-)
-
 var (
 	buildA          bool   // -a
 	buildI          bool   // -i
@@ -98,6 +93,11 @@ func main() {
 	if args[0] != "bind" {
 		flag.Usage()
 	}
+
+	// minAndroidAPI specifies the minimum API version for Android.
+	// Now Google Player v23.30.99+ drops the API level that is older than 21.
+	// See https://apilevels.com/.
+	const minAndroidAPI = 21
 
 	var flagset flag.FlagSet
 	flagset.StringVar(&buildO, "o", "", "")
@@ -148,6 +148,20 @@ func main() {
 	}()
 	if err != nil {
 		log.Fatal(err)
+	}
+
+	// If args doesn't include '-androidapi', set it to args explicitly.
+	// It's because ebitenmobile's default API level is different from gomobile's one.
+	if buildTarget == "android" && buildAndroidAPI == minAndroidAPI {
+		var found bool
+		flag.Visit(func(f *flag.Flag) {
+			if f.Name == "androidapi" {
+				found = true
+			}
+		})
+		if !found {
+			args = append([]string{args[0], "-androidapi", fmt.Sprintf("%d", minAndroidAPI)}, args[1:]...)
+		}
 	}
 
 	if err := doBind(args, &flagset, buildTarget); err != nil {
