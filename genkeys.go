@@ -576,7 +576,7 @@ const uiGLFWKeysTmpl = `{{.License}}
 
 {{.DoNotEdit}}
 
-{{.BuildTag}}
+{{.BuildConstraints}}
 
 package ui
 
@@ -594,7 +594,7 @@ const uiJSKeysTmpl = `{{.License}}
 
 {{.DoNotEdit}}
 
-{{.BuildTag}}
+{{.BuildConstraints}}
 
 package ui
 
@@ -612,7 +612,7 @@ const glfwKeysTmpl = `{{.License}}
 
 {{.DoNotEdit}}
 
-{{.BuildTag}}
+{{.BuildConstraints}}
 
 package glfw
 
@@ -626,7 +626,7 @@ const mobileAndroidKeysTmpl = `{{.License}}
 
 {{.DoNotEdit}}
 
-{{.BuildTag}}
+{{.BuildConstraints}}
 
 package ebitenmobileview
 
@@ -644,7 +644,7 @@ const mobileIOSKeysTmpl = `{{.License}}
 
 {{.DoNotEdit}}
 
-{{.BuildTag}}
+{{.BuildConstraints}}
 
 package ebitenmobileview
 
@@ -799,20 +799,20 @@ func main() {
 
 		// The build tag can't be included in the templates because of `go vet`.
 		// Pass the build tag and extract this in the template to make `go vet` happy.
-		buildTag := ""
+		buildConstraints := ""
 		switch path {
 		case filepath.Join("internal", "glfw", "keys.go"):
-			buildTag = "//go:build darwin || freebsd || linux || netbsd || openbsd || windows"
+			buildConstraints = "//go:build darwin || freebsd || linux || netbsd || openbsd || windows"
 		case filepath.Join("internal", "ui", "keys_mobile.go"):
-			buildTag = "//go:build android || ios"
+			buildConstraints = "//go:build android || ios"
 		case filepath.Join("internal", "ui", "keys_glfw.go"):
-			buildTag = "//go:build !android && !ios && !js && !nintendosdk && !playstation5"
+			buildConstraints = "//go:build !android && !ios && !js && !nintendosdk && !playstation5"
 		}
 		// NOTE: According to godoc, maps are automatically sorted by key.
 		if err := tmpl.Execute(f, struct {
 			License                         string
 			DoNotEdit                       string
-			BuildTag                        string
+			BuildConstraints                string
 			UIKeyNameToJSCode               map[string]string
 			EbitengineKeyNames              []string
 			EbitengineKeyNamesWithoutOld    []string
@@ -826,7 +826,7 @@ func main() {
 		}{
 			License:                         license,
 			DoNotEdit:                       doNotEdit,
-			BuildTag:                        buildTag,
+			BuildConstraints:                buildConstraints,
 			UIKeyNameToJSCode:               uiKeyNameToJSCode,
 			EbitengineKeyNames:              ebitengineKeyNames,
 			EbitengineKeyNamesWithoutOld:    ebitengineKeyNamesWithoutOld,
