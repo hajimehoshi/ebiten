@@ -63,7 +63,7 @@ import (
 	_ "embed"
 )
 
-//go:embed gamecontrollerdb_{{.Platform}}.txt
+//go:embed gamecontrollerdb_{{.FileNameSuffix}}.txt
 var controllerBytes []byte
 //go:embed gamecontrollerdb_glfw.txt
 var glfwControllerBytes []byte
@@ -122,7 +122,7 @@ func run() error {
 	}
 
 	for sdlName, platform := range supported {
-		controllerDb, ok := controllerDBs[sdlName]
+		controllerDB, ok := controllerDBs[sdlName]
 		if !ok {
 			return fmt.Errorf("failed to find controller db for platform %s in gamecontrollerdb_txt", sdlName)
 		}
@@ -133,9 +133,9 @@ func run() error {
 			return fmt.Errorf("failed to open file: %v", err)
 		}
 		defer txtFile.Close()
-		written, err := txtFile.Write(controllerDb)
+		written, err := txtFile.Write(controllerDB)
 		if err != nil {
-			return fmt.Errorf("failed to write controller db for %s, expected to write %d bytes, wrote %d: %v", sdlName, len(controllerDb), written, err)
+			return fmt.Errorf("failed to write controller db for %s, expected to write %d bytes, wrote %d: %v", sdlName, len(controllerDB), written, err)
 		}
 
 		path := fmt.Sprintf("db_%s.go", platform.filenameSuffix)
@@ -154,12 +154,12 @@ func run() error {
 			License          string
 			DoNotEdit        string
 			BuildConstraints string
-			Platform         string
+			FileNameSuffix   string
 		}{
 			License:          license,
 			DoNotEdit:        doNotEdit,
 			BuildConstraints: platform.buildConstraints,
-			Platform:         platform.filenameSuffix,
+			FileNameSuffix:   platform.filenameSuffix,
 		})
 		if err != nil {
 			return err
