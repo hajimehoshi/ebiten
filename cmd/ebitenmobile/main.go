@@ -251,7 +251,7 @@ func doBind(args []string, flagset *flag.FlagSet, buildOS string) error {
 			// TODO: strings.Title is used here for the consistency with gomobile (see cmd/gomobile/bind_iosapp.go).
 			// As strings.Title is deprecated, golang.org/x/text/cases should be used.
 			frameworkNameBase = strings.Title(frameworkNameBase)
-			dir := filepath.Join(buildO, name, frameworkNameBase+".framework", "Versions", "A")
+			dir := filepath.Join(buildO, name, frameworkNameBase+".framework")
 
 			if err := os.WriteFile(filepath.Join(dir, "Headers", prefixUpper+"EbitenViewController.h"), []byte(replacePrefixes(objcH)), 0644); err != nil {
 				return err
