@@ -13,6 +13,8 @@
 // limitations under the License.
 
 //go:generate go run gen.go
+//go:generate gofmt -s -w .
+
 package gamepaddb
 
 import (
