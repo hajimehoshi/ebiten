@@ -95,7 +95,7 @@ func main() {
 	}
 
 	// minAndroidAPI specifies the minimum API version for Android.
-	// Now Google Player v23.30.99+ drops the API level that is older than 21.
+	// Now Google Player v23.30.99+ drops API levels that are older than 21.
 	// See https://apilevels.com/.
 	const minAndroidAPI = 21
 
