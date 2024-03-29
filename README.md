@@ -45,8 +45,9 @@ For installation on desktops, see [the installation instruction](https://ebiteng
   * [ebitenutil](https://pkg.go.dev/github.com/hajimehoshi/ebiten/v2/ebitenutil)
   * [inpututil](https://pkg.go.dev/github.com/hajimehoshi/ebiten/v2/inpututil)
   * [mobile](https://pkg.go.dev/github.com/hajimehoshi/ebiten/v2/mobile)
-  * [text](https://pkg.go.dev/github.com/hajimehoshi/ebiten/v2/text)
+  * [text/v2](https://pkg.go.dev/github.com/hajimehoshi/ebiten/v2/text/v2)
   * [vector](https://pkg.go.dev/github.com/hajimehoshi/ebiten/v2/vector)
+  * [exp/textinput](https://pkg.go.dev/github.com/hajimehoshi/ebiten/v2/exp/textinput)
 
 ## Community
 
