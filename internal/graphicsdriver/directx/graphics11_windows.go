@@ -153,7 +153,7 @@ type graphics11 struct {
 	newScreenHeight int
 }
 
-func newGraphics11(useWARP bool, useDebugLayer bool, allowTearing bool) (gr11 *graphics11, ferr error) {
+func newGraphics11(useWARP bool, useDebugLayer bool) (gr11 *graphics11, ferr error) {
 	g := &graphics11{
 		vsyncEnabled: true,
 	}
@@ -207,7 +207,7 @@ func newGraphics11(useWARP bool, useDebugLayer bool, allowTearing bool) (gr11 *g
 	}
 	dxgiFactory := (*_IDXGIFactory)(df)
 
-	gi, err := newGraphicsInfra(dxgiFactory, allowTearing)
+	gi, err := newGraphicsInfra(dxgiFactory)
 	if err != nil {
 		return nil, err
 	}

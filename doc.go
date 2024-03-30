@@ -81,7 +81,6 @@
 //
 //	"debug":                      Use a debug layer.
 //	"warp":                       Use WARP (i.e. software rendering).
-//	"tearing":                    Allow tearing when vsync is off.
 //	"version=VERSION":            Specify a DirectX version (e.g. 11).
 //	"featurelevel=FEATURE_LEVEL": Specify a feature level (e.g. 11_0). This is for DirectX 12.
 //

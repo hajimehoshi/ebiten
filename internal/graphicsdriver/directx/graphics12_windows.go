@@ -106,7 +106,7 @@ type graphics12 struct {
 	pipelineStates
 }
 
-func newGraphics12(useWARP bool, useDebugLayer bool, allowTearing bool, featureLevel _D3D_FEATURE_LEVEL) (*graphics12, error) {
+func newGraphics12(useWARP bool, useDebugLayer bool, featureLevel _D3D_FEATURE_LEVEL) (*graphics12, error) {
 	g := &graphics12{}
 
 	// Initialize not only a device but also other members like a fence.
@@ -116,7 +116,7 @@ func newGraphics12(useWARP bool, useDebugLayer bool, allowTearing bool, featureL
 			return nil, err
 		}
 	} else {
-		if err := g.initializeDesktop(useWARP, useDebugLayer, allowTearing, featureLevel); err != nil {
+		if err := g.initializeDesktop(useWARP, useDebugLayer, featureLevel); err != nil {
 			return nil, err
 		}
 	}
@@ -124,7 +124,7 @@ func newGraphics12(useWARP bool, useDebugLayer bool, allowTearing bool, featureL
 	return g, nil
 }
 
-func (g *graphics12) initializeDesktop(useWARP bool, useDebugLayer bool, allowTearing bool, featureLevel _D3D_FEATURE_LEVEL) (ferr error) {
+func (g *graphics12) initializeDesktop(useWARP bool, useDebugLayer bool, featureLevel _D3D_FEATURE_LEVEL) (ferr error) {
 	if err := d3d12.Load(); err != nil {
 		return err
 	}
@@ -152,7 +152,7 @@ func (g *graphics12) initializeDesktop(useWARP bool, useDebugLayer bool, allowTe
 	if err != nil {
 		return err
 	}
-	gi, err := newGraphicsInfra(f, allowTearing)
+	gi, err := newGraphicsInfra(f)
 	if err != nil {
 		return err
 	}
