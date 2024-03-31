@@ -91,6 +91,8 @@ func (g *Game) Update() error {
 		g.prevY = y
 	}()
 
+	hovering := image.Pt(x, y).In(g.contentArea)
+
 	// If a pointing device is just released, start scrolling.
 	if g.isPointingDeviceJustReleased() && g.dragging {
 		g.dragging = false
@@ -98,9 +100,15 @@ func (g *Game) Update() error {
 		return nil
 	}
 
+	// Process a mouse wheel.
+	if _, wheelY := ebiten.Wheel(); wheelY != 0 && !g.dragging && hovering {
+		g.velocityY = int(wheelY)
+	}
+
 	// If a pointing device is NOT pressed, scroll by the inertia.
 	if !g.isPointingDevicePressed() {
 		g.dragging = false
+
 		g.setOffsetY(g.offsetY + g.velocityY)
 		if g.velocityY != 0 {
 			g.velocityY = int(float64(g.velocityY) * 15.0 / 16.0)
@@ -111,7 +119,7 @@ func (g *Game) Update() error {
 	// As a pointing device is pressed, stop the inertia.
 	g.velocityY = 0
 
-	if !g.dragging && image.Pt(x, y).In(g.contentArea) {
+	if !g.dragging && hovering {
 		g.dragging = true
 		g.offsetStartY = g.offsetY
 		g.startY = y
