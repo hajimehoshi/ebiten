@@ -44,7 +44,7 @@ type Game struct {
 	// offsetStartY is the content offset in the Y axis when dragging started.
 	offsetStartY int
 
-	// velocityY is the scrolling velocity when a pointing device is released.
+	// velocityY is the scrolling velocity in the Y axis.
 	velocityY int
 
 	itemCount  int
