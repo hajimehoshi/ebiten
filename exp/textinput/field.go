@@ -82,7 +82,7 @@ type Field struct {
 }
 
 // HandleInput updates the field state.
-// HandleInput must be called every tick, i.e., every HandleInput, when Field is focused.
+// HandleInput must be called every tick, i.e., every Update, when Field is focused.
 // HandleInput takes a position where an IME window is shown if needed.
 //
 // HandleInput returns whether the text inputting is handled or not.
