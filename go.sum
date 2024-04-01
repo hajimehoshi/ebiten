@@ -2,8 +2,8 @@ github.com/ebitengine/gomobile v0.0.0-20240329170434-1771503ff0a8 h1:5e8X7WEdOWr
 github.com/ebitengine/gomobile v0.0.0-20240329170434-1771503ff0a8/go.mod h1:tWboRRNagZwwwis4QIgEFG1ZNFwBJ3LAhSLAXAAxobQ=
 github.com/ebitengine/hideconsole v1.0.0 h1:5J4U0kXF+pv/DhiXt5/lTz0eO5ogJ1iXb8Yj1yReDqE=
 github.com/ebitengine/hideconsole v1.0.0/go.mod h1:hTTBTvVYWKBuxPr7peweneWdkUwEuHuB3C1R/ielR1A=
-github.com/ebitengine/oto/v3 v3.3.0-alpha h1:XxKkEhWl1w5zK9TjPwod+vZeTU91pXYYSooAGk9ya8o=
-github.com/ebitengine/oto/v3 v3.3.0-alpha/go.mod h1:T2/VV0UWG97GEEf4kORMU2nCneYT/YmwSTxPutSVaUg=
+github.com/ebitengine/oto/v3 v3.3.0-alpha.0.20240401142028-457cd3ebf3f3 h1:4vw8U48AKjRSXjwWZLi7g/xA6wNM7PjGNh7TBNES6sI=
+github.com/ebitengine/oto/v3 v3.3.0-alpha.0.20240401142028-457cd3ebf3f3/go.mod h1:T2/VV0UWG97GEEf4kORMU2nCneYT/YmwSTxPutSVaUg=
 github.com/ebitengine/purego v0.8.0-alpha h1:xWsUo8xQZLH8f9TzXXSvs/qjc2s6rhNGYxEo5Qd10so=
 github.com/ebitengine/purego v0.8.0-alpha/go.mod h1:ah1In8AOtksoNK6yk5z1HTJeUkC1Ez4Wk2idgGslMwQ=
 github.com/go-text/typesetting v0.1.1-0.20240325125605-c7936fe59984 h1:NwCC36eQsDf1xVZG9jD7ngXNNjsvk8KXky15ogA1Vo0=
