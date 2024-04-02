@@ -18,7 +18,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"strings"
 
 	"github.com/go-text/typesetting/di"
 	glanguage "github.com/go-text/typesetting/language"
@@ -265,10 +264,6 @@ func (g *GoTextFace) gScript() glanguage.Script {
 		s, _ := g.Language.Script()
 		str = s.String()
 	}
-
-	// ISO 15924 itself is case-insensitive [1], but go-text uses small-caps.
-	// [1] https://www.unicode.org/iso15924/faq.html#17
-	str = strings.ToLower(str)
 	s, err := glanguage.ParseScript(str)
 	if err != nil {
 		panic(err)
