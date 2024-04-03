@@ -14,6 +14,8 @@
 
 //go:build !ios
 
+// TODO: Remove Cgo with PureGo (#1162).
+
 #import <Cocoa/Cocoa.h>
 
 void ebitengine_textinput_update(const char* text, int start, int end, BOOL committed);

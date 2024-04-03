@@ -16,36 +16,11 @@
 
 package textinput
 
-// TODO: Remove Cgo after ebitengine/purego#143 is resolved.
-
-// #cgo CFLAGS: -x objective-c
-// #cgo LDFLAGS: -framework Cocoa
-//
-// #import <Cocoa/Cocoa.h>
-//
-// @interface TextInputClient : NSView<NSTextInputClient>
-// @end
-//
-// static TextInputClient* getTextInputClient() {
-//   static TextInputClient* textInputClient;
-//   if (!textInputClient) {
-//     textInputClient = [[TextInputClient alloc] init];
-//   }
-//   return textInputClient;
-// }
-//
-// static void start(int x, int y) {
-//   TextInputClient* textInputClient = getTextInputClient();
-//   NSWindow* window = [[NSApplication sharedApplication] mainWindow];
-//   [[window contentView] addSubview: textInputClient];
-//   [window makeFirstResponder: textInputClient];
-//
-//   y = [[window contentView] frame].size.height - y - 4;
-//   [textInputClient setFrame:NSMakeRect(x, y, 1, 1)];
-// }
 import "C"
 
 import (
+	"github.com/ebitengine/purego/objc"
+
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
@@ -60,7 +35,7 @@ func (t *textInput) Start(x, y int) (chan State, func()) {
 	var session *session
 	ui.Get().RunOnMainThread(func() {
 		t.end()
-		C.start(C.int(x), C.int(y))
+		start(x, y)
 		session = newSession()
 		t.session = session
 	})
@@ -98,4 +73,58 @@ func (t *textInput) end() {
 		t.session.end()
 		t.session = nil
 	}
+}
+
+var (
+	selAddSubview         = objc.RegisterName("addSubview:")
+	selAlloc              = objc.RegisterName("alloc")
+	selContentView        = objc.RegisterName("contentView")
+	selFrame              = objc.RegisterName("frame")
+	selInit               = objc.RegisterName("init")
+	selMainWindow         = objc.RegisterName("mainWindow")
+	selMakeFirstResponder = objc.RegisterName("makeFirstResponder:")
+	selSetFrame           = objc.RegisterName("setFrame:")
+	selSharedApplication  = objc.RegisterName("sharedApplication")
+
+	idNSApplication = objc.ID(objc.GetClass("NSApplication"))
+)
+
+var theTextInputClient objc.ID
+
+func getTextInputClient() objc.ID {
+	if theTextInputClient == 0 {
+		class := objc.ID(objc.GetClass("TextInputClient"))
+		theTextInputClient = class.Send(selAlloc).Send(selInit)
+	}
+	return theTextInputClient
+}
+
+type nsPoint struct {
+	x float64
+	y float64
+}
+
+type nsSize struct {
+	width  float64
+	height float64
+}
+
+type nsRect struct {
+	origin nsPoint
+	size   nsSize
+}
+
+func start(x, y int) {
+	t := getTextInputClient()
+	window := idNSApplication.Send(selSharedApplication).Send(selMainWindow)
+	contentView := window.Send(selContentView)
+	contentView.Send(selAddSubview, t)
+	window.Send(selMakeFirstResponder, t)
+
+	r := objc.Send[nsRect](contentView, selFrame)
+	y = int(r.size.height) - y - 4
+	t.Send(selSetFrame, nsRect{
+		origin: nsPoint{float64(x), float64(y)},
+		size:   nsSize{1, 1},
+	})
 }
