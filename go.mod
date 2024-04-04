@@ -5,7 +5,7 @@ go 1.18
 require (
 	github.com/ebitengine/gomobile v0.0.0-20240329170434-1771503ff0a8
 	github.com/ebitengine/hideconsole v1.0.0
-	github.com/ebitengine/oto/v3 v3.3.0-alpha.0.20240401142028-457cd3ebf3f3
+	github.com/ebitengine/oto/v3 v3.3.0-alpha.1
 	github.com/ebitengine/purego v0.8.0-alpha.0.20240404024320-d0aedd0f4393
 	github.com/go-text/typesetting v0.1.1-0.20240402181327-ced1d6822703
 	github.com/hajimehoshi/bitmapfont/v3 v3.0.0
