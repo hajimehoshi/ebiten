@@ -87,8 +87,7 @@ precision highp int;
 #define mediump
 #define highp
 #endif
-
-out vec4 fragColor;`
+`
 	if version == GLSLVersionDefault {
 		prelude += "\n\n" + utilFunctions
 	}
@@ -420,7 +419,7 @@ func (c *compileContext) localVariableName(p *shaderir.Program, topBlock *shader
 		case idx < nv+1:
 			return fmt.Sprintf("V%d", idx-1)
 		default:
-			return fmt.Sprintf("l%d", idx-(nv+1))
+			return fmt.Sprintf("gl_FragData[%d]", idx-(nv+1))
 		}
 	default:
 		return fmt.Sprintf("l%d", idx)
@@ -595,7 +594,7 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 		case shaderir.Return:
 			switch {
 			case topBlock == p.FragmentFunc.Block:
-				lines = append(lines, fmt.Sprintf("%sfragColor = %s;", idt, expr(&s.Exprs[0])))
+				lines = append(lines, fmt.Sprintf("%s%s;", idt, expr(&s.Exprs[0])))
 				// The 'return' statement is not required so far, as the fragment entrypoint has only one sentence so far. See adjustProgram implementation.
 			case len(s.Exprs) == 0:
 				lines = append(lines, idt+"return;")
@@ -645,15 +644,20 @@ func adjustProgram(p *shaderir.Program) *shaderir.Program {
 		Main: shaderir.Vec4, // gl_FragCoord
 	}
 	copy(inParams[1:], newP.Varyings)
+	// Out parameters of a fragment func are colors
+	outParams := make([]shaderir.Type, p.ColorsOutCount)
+	for i := range outParams {
+		outParams[i] = shaderir.Type{
+			Main: shaderir.Vec4,
+		}
+	}
+	newP.FragmentFunc.Block.LocalVarIndexOffset += (p.ColorsOutCount-1)
 
 	newP.Funcs = append(newP.Funcs, shaderir.Func{
 		Index:     funcIdx,
 		InParams:  inParams,
-		OutParams: nil,
-		Return: shaderir.Type{
-			Main: shaderir.Vec4,
-		},
-		Block: newP.FragmentFunc.Block,
+		OutParams: outParams,
+		Block:     newP.FragmentFunc.Block,
 	})
 
 	// Create an AST to call the new function.
@@ -663,7 +667,7 @@ func adjustProgram(p *shaderir.Program) *shaderir.Program {
 			Index: funcIdx,
 		},
 	}
-	for i := 0; i < 1+len(newP.Varyings); i++ {
+	for i := 0; i < 1+len(newP.Varyings)+p.ColorsOutCount; i++ {
 		call = append(call, shaderir.Expr{
 			Type:  shaderir.LocalVariable,
 			Index: i,

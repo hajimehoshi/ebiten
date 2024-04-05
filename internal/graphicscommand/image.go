@@ -130,7 +130,7 @@ func (i *Image) InternalSize() (int, int) {
 //
 // If the source image is not specified, i.e., src is nil and there is no image in the uniform variables, the
 // elements for the source image are not used.
-func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint32, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderImageCount]image.Rectangle, shader *Shader, uniforms []uint32, fillRule graphicsdriver.FillRule) {
+func (i *Image) DrawTriangles(srcs [graphics.ShaderSrcImageCount]*Image, vertices []float32, indices []uint32, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderSrcImageCount]image.Rectangle, shader *Shader, uniforms []uint32, fillRule graphicsdriver.FillRule) {
 	for _, src := range srcs {
 		if src == nil {
 			continue
@@ -142,7 +142,45 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 	}
 	i.flushBufferedWritePixels()
 
-	theCommandQueueManager.enqueueDrawTrianglesCommand(i, srcs, vertices, indices, blend, dstRegion, srcRegions, shader, uniforms, fillRule)
+	theCommandQueueManager.enqueueDrawTrianglesCommand([graphics.ShaderDstImageCount]*Image{i}, srcs, vertices, indices, blend, dstRegion, srcRegions, shader, uniforms, fillRule)
+}
+
+// DrawTriangles draws triangles with the given image.
+//
+// The vertex floats are:
+//
+//	0: Destination X in pixels
+//	1: Destination Y in pixels
+//	2: Source X in texels
+//	3: Source Y in texels
+//	4: Color R [0.0-1.0]
+//	5: Color G
+//	6: Color B
+//	7: Color Y
+//
+// src and shader are exclusive and only either is non-nil.
+//
+// The elements that index is in between 2 and 7 are used for the source images.
+// The source image is 1) src argument if non-nil, or 2) an image value in the uniform variables if it exists.
+// If there are multiple images in the uniform variables, the smallest ID's value is adopted.
+//
+// If the source image is not specified, i.e., src is nil and there is no image in the uniform variables, the
+// elements for the source image are not used.
+func DrawTrianglesMRT(dsts [graphics.ShaderDstImageCount]*Image, srcs [graphics.ShaderSrcImageCount]*Image, vertices []float32, indices []uint32, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderSrcImageCount]image.Rectangle, shader *Shader, uniforms []uint32, fillRule graphicsdriver.FillRule) {
+	for _, src := range srcs {
+		if src == nil {
+			continue
+		}
+		if src.screen {
+			panic("graphicscommand: the screen image cannot be the rendering des")
+		}
+		src.flushBufferedWritePixels()
+	}
+	for _, dst := range dsts {
+		dst.flushBufferedWritePixels()
+	}
+
+	theCommandQueueManager.enqueueDrawTrianglesCommand(dsts, srcs, vertices, indices, blend, dstRegion, srcRegions, shader, uniforms, fillRule)
 }
 
 // ReadPixels reads the image's pixels.

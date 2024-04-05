@@ -65,7 +65,7 @@ func (m *Mipmap) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byt
 	return m.orig.ReadPixels(graphicsDriver, pixels, region)
 }
 
-func (m *Mipmap) DrawTriangles(srcs [graphics.ShaderImageCount]*Mipmap, vertices []float32, indices []uint32, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderImageCount]image.Rectangle, shader *atlas.Shader, uniforms []uint32, fillRule graphicsdriver.FillRule, canSkipMipmap bool) {
+func (m *Mipmap) DrawTriangles(srcs [graphics.ShaderSrcImageCount]*Mipmap, vertices []float32, indices []uint32, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderSrcImageCount]image.Rectangle, shader *atlas.Shader, uniforms []uint32, fillRule graphicsdriver.FillRule, canSkipMipmap bool) {
 	if len(indices) == 0 {
 		return
 	}
@@ -103,7 +103,7 @@ func (m *Mipmap) DrawTriangles(srcs [graphics.ShaderImageCount]*Mipmap, vertices
 		}
 	}
 
-	var imgs [graphics.ShaderImageCount]*buffered.Image
+	var imgs [graphics.ShaderSrcImageCount]*buffered.Image
 	for i, src := range srcs {
 		if src == nil {
 			continue
@@ -125,6 +125,78 @@ func (m *Mipmap) DrawTriangles(srcs [graphics.ShaderImageCount]*Mipmap, vertices
 
 	m.orig.DrawTriangles(imgs, vertices, indices, blend, dstRegion, srcRegions, shader, uniforms, fillRule)
 	m.deallocateMipmaps()
+}
+
+func DrawTrianglesMRT(dsts [graphics.ShaderDstImageCount]*Mipmap, srcs [graphics.ShaderSrcImageCount]*Mipmap, vertices []float32, indices []uint32, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderSrcImageCount]image.Rectangle, shader *atlas.Shader, uniforms []uint32, fillRule graphicsdriver.FillRule, canSkipMipmap bool) {
+	if len(indices) == 0 {
+		return
+	}
+
+	level := 0
+	// TODO: Do we need to check all the sources' states of being volatile?
+	if !canSkipMipmap && srcs[0] != nil && canUseMipmap(srcs[0].imageType) {
+		level = math.MaxInt32
+		for i := 0; i < len(indices)/3; i++ {
+			const n = graphics.VertexFloatCount
+			dx0 := vertices[n*indices[3*i]+0]
+			dy0 := vertices[n*indices[3*i]+1]
+			sx0 := vertices[n*indices[3*i]+2]
+			sy0 := vertices[n*indices[3*i]+3]
+			dx1 := vertices[n*indices[3*i+1]+0]
+			dy1 := vertices[n*indices[3*i+1]+1]
+			sx1 := vertices[n*indices[3*i+1]+2]
+			sy1 := vertices[n*indices[3*i+1]+3]
+			dx2 := vertices[n*indices[3*i+2]+0]
+			dy2 := vertices[n*indices[3*i+2]+1]
+			sx2 := vertices[n*indices[3*i+2]+2]
+			sy2 := vertices[n*indices[3*i+2]+3]
+			if l := mipmapLevelFromDistance(dx0, dy0, dx1, dy1, sx0, sy0, sx1, sy1); level > l {
+				level = l
+			}
+			if l := mipmapLevelFromDistance(dx1, dy1, dx2, dy2, sx1, sy1, sx2, sy2); level > l {
+				level = l
+			}
+			if l := mipmapLevelFromDistance(dx2, dy2, dx0, dy0, sx2, sy2, sx0, sy0); level > l {
+				level = l
+			}
+		}
+		if level == math.MaxInt32 {
+			panic("mipmap: level must be calculated at least once but not")
+		}
+	}
+
+	var dstImgs [graphics.ShaderDstImageCount]*buffered.Image
+	for i, dst := range dsts {
+		if dst == nil {
+			continue
+		}
+		dstImgs[i] = dst.orig
+	}
+
+	var srcImgs [graphics.ShaderSrcImageCount]*buffered.Image
+	for i, src := range srcs {
+		if src == nil {
+			continue
+		}
+		if level != 0 {
+			if img := src.level(level); img != nil {
+				const n = graphics.VertexFloatCount
+				s := float32(pow2(level))
+				for i := 0; i < len(vertices)/n; i++ {
+					vertices[i*n+2] /= s
+					vertices[i*n+3] /= s
+				}
+				srcImgs[i] = img
+				continue
+			}
+		}
+		srcImgs[i] = src.orig
+	}
+
+	buffered.DrawTrianglesMRT(dstImgs, srcImgs, vertices, indices, blend, dstRegion, srcRegions, shader, uniforms, fillRule)
+	for _, dst := range dsts {
+		dst.deallocateMipmaps()
+	}
 }
 
 func (m *Mipmap) setImg(level int, img *buffered.Image) {
@@ -187,7 +259,7 @@ func (m *Mipmap) level(level int) *buffered.Image {
 	s := buffered.NewImage(w2, h2, m.imageType)
 
 	dstRegion := image.Rect(0, 0, w2, h2)
-	s.DrawTriangles([graphics.ShaderImageCount]*buffered.Image{src}, vs, is, graphicsdriver.BlendCopy, dstRegion, [graphics.ShaderImageCount]image.Rectangle{}, shader, nil, graphicsdriver.FillAll)
+	s.DrawTriangles([graphics.ShaderSrcImageCount]*buffered.Image{src}, vs, is, graphicsdriver.BlendCopy, dstRegion, [graphics.ShaderSrcImageCount]image.Rectangle{}, shader, nil, graphicsdriver.FillAll)
 	m.setImg(level, s)
 
 	return m.imgs[level]

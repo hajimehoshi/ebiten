@@ -60,6 +60,7 @@ type Context interface {
 	Disable(cap uint32)
 	DisableVertexAttribArray(index uint32)
 	DrawElements(mode uint32, count int32, xtype uint32, offset int)
+	DrawBuffers(buffers []uint32)
 	Enable(cap uint32)
 	EnableVertexAttribArray(index uint32)
 	Flush()

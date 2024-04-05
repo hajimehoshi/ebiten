@@ -515,14 +515,14 @@ func (g *graphics11) removeShader(s *shader11) {
 	delete(g.shaders, s.id)
 }
 
-func (g *graphics11) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.ShaderImageCount]graphicsdriver.ImageID, shaderID graphicsdriver.ShaderID, dstRegions []graphicsdriver.DstRegion, indexOffset int, blend graphicsdriver.Blend, uniforms []uint32, fillRule graphicsdriver.FillRule) error {
+func (g *graphics11) DrawTriangles(dstIDs [graphics.ShaderDstImageCount]graphicsdriver.ImageID, srcIDs [graphics.ShaderSrcImageCount]graphicsdriver.ImageID, shaderID graphicsdriver.ShaderID, dstRegions []graphicsdriver.DstRegion, indexOffset int, blend graphicsdriver.Blend, uniforms []uint32, fillRule graphicsdriver.FillRule) error {
 	// Remove bound textures first. This is needed to avoid warnings on the debugger.
 	g.deviceContext.OMSetRenderTargets([]*_ID3D11RenderTargetView{nil}, nil)
-	srvs := [graphics.ShaderImageCount]*_ID3D11ShaderResourceView{}
+	srvs := [graphics.ShaderSrcImageCount]*_ID3D11ShaderResourceView{}
 	g.deviceContext.PSSetShaderResources(0, srvs[:])
 
-	dst := g.images[dstID]
-	var srcs [graphics.ShaderImageCount]*image11
+	dst := g.images[dstIDs[0]] // TODO: handle array
+	var srcs [graphics.ShaderSrcImageCount]*image11
 	for i, id := range srcIDs {
 		img := g.images[id]
 		if img == nil {

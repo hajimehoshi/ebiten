@@ -128,7 +128,7 @@ type pipelineStates struct {
 	constantBufferMaps [frameCount][]uintptr
 }
 
-const numConstantBufferAndSourceTextures = 1 + graphics.ShaderImageCount
+const numConstantBufferAndSourceTextures = 1 + graphics.ShaderSrcImageCount
 
 func (p *pipelineStates) initialize(device *_ID3D12Device) (ferr error) {
 	// Create a CBV/SRV/UAV descriptor heap.
@@ -180,7 +180,7 @@ func (p *pipelineStates) initialize(device *_ID3D12Device) (ferr error) {
 	return nil
 }
 
-func (p *pipelineStates) drawTriangles(device *_ID3D12Device, commandList *_ID3D12GraphicsCommandList, frameIndex int, screen bool, srcs [graphics.ShaderImageCount]*image12, shader *shader12, dstRegions []graphicsdriver.DstRegion, uniforms []uint32, blend graphicsdriver.Blend, indexOffset int, fillRule graphicsdriver.FillRule) error {
+func (p *pipelineStates) drawTriangles(device *_ID3D12Device, commandList *_ID3D12GraphicsCommandList, frameIndex int, screen bool, srcs [graphics.ShaderSrcImageCount]*image12, shader *shader12, dstRegions []graphicsdriver.DstRegion, uniforms []uint32, blend graphicsdriver.Blend, indexOffset int, fillRule graphicsdriver.FillRule) error {
 	idx := len(p.constantBuffers[frameIndex])
 	if idx >= numDescriptorsPerFrame {
 		return fmt.Errorf("directx: too many constant buffers")
@@ -354,7 +354,7 @@ func (p *pipelineStates) ensureRootSignature(device *_ID3D12Device) (rootSignatu
 	}
 	srv := _D3D12_DESCRIPTOR_RANGE{
 		RangeType:                         _D3D12_DESCRIPTOR_RANGE_TYPE_SRV, // t0
-		NumDescriptors:                    graphics.ShaderImageCount,
+		NumDescriptors:                    graphics.ShaderSrcImageCount,
 		BaseShaderRegister:                0,
 		RegisterSpace:                     0,
 		OffsetInDescriptorsFromTableStart: 1,

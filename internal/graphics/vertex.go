@@ -15,7 +15,8 @@
 package graphics
 
 const (
-	ShaderImageCount = 4
+	ShaderSrcImageCount = 4
+	ShaderDstImageCount = 4
 
 	// PreservedUniformVariablesCount represents the number of preserved uniform variables.
 	// Any shaders in Ebitengine must have these uniform variables.
@@ -30,11 +31,11 @@ const (
 	ProjectionMatrixUniformVariableIndex = 6
 
 	PreservedUniformUint32Count = 2 + // the destination texture size
-		2*ShaderImageCount + // the source texture sizes array
+		2*ShaderSrcImageCount + // the source texture sizes array
 		2 + // the destination image region origin
 		2 + // the destination image region size
-		2*ShaderImageCount + // the source image region origins array
-		2*ShaderImageCount + // the source image region sizes array
+		2*ShaderSrcImageCount + // the source image region origins array
+		2*ShaderSrcImageCount + // the source image region sizes array
 		16 // the projection matrix
 )
 

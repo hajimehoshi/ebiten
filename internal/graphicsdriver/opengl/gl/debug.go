@@ -293,6 +293,14 @@ func (d *DebugContext) DisableVertexAttribArray(arg0 uint32) {
 	}
 }
 
+func (d *DebugContext) DrawBuffers(arg0 []uint32) {
+	d.Context.DrawBuffers(arg0)
+	fmt.Fprintln(os.Stderr, "DrawBuffers")
+	if e := d.Context.GetError(); e != NO_ERROR {
+		panic(fmt.Sprintf("gl: GetError() returned %d at DrawBuffers", e))
+	}
+}
+
 func (d *DebugContext) DrawElements(arg0 uint32, arg1 int32, arg2 uint32, arg3 int) {
 	d.Context.DrawElements(arg0, arg1, arg2, arg3)
 	fmt.Fprintln(os.Stderr, "DrawElements")

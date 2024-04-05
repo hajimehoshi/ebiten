@@ -89,9 +89,9 @@ var __imageSrcRegionSizes [%[1]d]vec2
 func imageSrcRegionOnTexture() (vec2, vec2) {
 	return __imageSrcRegionOrigins[0], __imageSrcRegionSizes[0]
 }
-`, ShaderImageCount)
+`, ShaderSrcImageCount)
 
-	for i := 0; i < ShaderImageCount; i++ {
+	for i := 0; i < ShaderSrcImageCount; i++ {
 		shaderSuffix += fmt.Sprintf(`
 // imageSrc%[1]dOrigin returns the source image's region origin on its texture.
 // The unit is the source texture's pixel or texel.
@@ -179,7 +179,7 @@ func CompileShader(src []byte) (*shaderir.Program, error) {
 		vert = "__vertex"
 		frag = "Fragment"
 	)
-	ir, err := shader.Compile(buf.Bytes(), vert, frag, ShaderImageCount)
+	ir, err := shader.Compile(buf.Bytes(), vert, frag, ShaderSrcImageCount)
 	if err != nil {
 		return nil, err
 	}

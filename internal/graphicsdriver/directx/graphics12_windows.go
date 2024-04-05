@@ -1082,7 +1082,7 @@ func (g *graphics12) NewShader(program *shaderir.Program) (graphicsdriver.Shader
 	return s, nil
 }
 
-func (g *graphics12) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.ShaderImageCount]graphicsdriver.ImageID, shaderID graphicsdriver.ShaderID, dstRegions []graphicsdriver.DstRegion, indexOffset int, blend graphicsdriver.Blend, uniforms []uint32, fillRule graphicsdriver.FillRule) error {
+func (g *graphics12) DrawTriangles(dstIDs [graphics.ShaderDstImageCount]graphicsdriver.ImageID, srcs [graphics.ShaderSrcImageCount]graphicsdriver.ImageID, shaderID graphicsdriver.ShaderID, dstRegions []graphicsdriver.DstRegion, indexOffset int, blend graphicsdriver.Blend, uniforms []uint32, fillRule graphicsdriver.FillRule) error {
 	if shaderID == graphicsdriver.InvalidShaderID {
 		return fmt.Errorf("directx: shader ID is invalid")
 	}
@@ -1103,13 +1103,13 @@ func (g *graphics12) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.
 		g.pipelineStates.releaseConstantBuffers(g.frameIndex)
 	}
 
-	dst := g.images[dstID]
+	dst := g.images[dstIDs[0]] // TODO: handle array
 	var resourceBarriers []_D3D12_RESOURCE_BARRIER_Transition
 	if rb, ok := dst.transiteState(_D3D12_RESOURCE_STATE_RENDER_TARGET); ok {
 		resourceBarriers = append(resourceBarriers, rb)
 	}
 
-	var srcImages [graphics.ShaderImageCount]*image12
+	var srcImages [graphics.ShaderSrcImageCount]*image12
 	for i, srcID := range srcs {
 		src := g.images[srcID]
 		if src == nil {

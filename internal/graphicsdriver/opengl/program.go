@@ -258,8 +258,20 @@ func (g *Graphics) textureVariableName(idx int) string {
 	return name
 }
 
+func (g *Graphics) colorBufferVariableName(idx int) string {
+	if v, ok := g.colorBufferVariableNameCache[idx]; ok {
+		return v
+	}
+	if g.colorBufferVariableNameCache == nil {
+		g.colorBufferVariableNameCache = map[int]string{}
+	}
+	name := fmt.Sprintf("gl_FragData[%d]", idx)
+	g.colorBufferVariableNameCache[idx] = name
+	return name
+}
+
 // useProgram uses the program (programTexture).
-func (g *Graphics) useProgram(program program, uniforms []uniformVariable, textures [graphics.ShaderImageCount]textureVariable) error {
+func (g *Graphics) useProgram(program program, uniforms []uniformVariable, textures [graphics.ShaderSrcImageCount]textureVariable) error {
 	if g.state.lastProgram != program {
 		g.context.ctx.UseProgram(uint32(program))
 
