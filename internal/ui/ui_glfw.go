@@ -1027,9 +1027,13 @@ func (u *UserInterface) initOnMainThread(options *RunOptions) error {
 		return err
 	}
 
-	// Window is shown after the first buffer swap.
-	if err := glfw.WindowHint(glfw.Visible, glfw.False); err != nil {
-		return err
+	// Window is shown after the first buffer swap (#2725).
+	// On Linux or UNIX, there is a problematic desktop environment like i3wm
+	// where an invisible window size cannot be initialized correctly (#2951).
+	if runtime.GOOS == "darwin" || runtime.GOOS == "windows" {
+		if err := glfw.WindowHint(glfw.Visible, glfw.False); err != nil {
+			return err
+		}
 	}
 
 	if err := glfw.WindowHintString(glfw.X11ClassName, options.X11ClassName); err != nil {
