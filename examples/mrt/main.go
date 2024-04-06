@@ -15,6 +15,7 @@
 package main
 
 import (
+	"image"
 	_ "image/jpeg"
 	"log"
 
@@ -29,13 +30,10 @@ const (
 
 var (
 	dsts = [4]*ebiten.Image{
+		/*ebiten.NewImage(dstSize, dstSize),
 		ebiten.NewImage(dstSize, dstSize),
 		ebiten.NewImage(dstSize, dstSize),
-		ebiten.NewImage(dstSize, dstSize),
-		ebiten.NewImage(dstSize, dstSize),
-		/*ebiten.NewImageWithOptions(image.Rect(0, 0, dstSize, dstSize), &ebiten.NewImageOptions{
-			Unmanaged: true,
-		}),
+		ebiten.NewImage(dstSize, dstSize),*/
 		ebiten.NewImageWithOptions(image.Rect(0, 0, dstSize, dstSize), &ebiten.NewImageOptions{
 			Unmanaged: true,
 		}),
@@ -44,7 +42,10 @@ var (
 		}),
 		ebiten.NewImageWithOptions(image.Rect(0, 0, dstSize, dstSize), &ebiten.NewImageOptions{
 			Unmanaged: true,
-		}),*/
+		}),
+		ebiten.NewImageWithOptions(image.Rect(0, 0, dstSize, dstSize), &ebiten.NewImageOptions{
+			Unmanaged: true,
+		}),
 	}
 
 	shaderSrc = []byte(
