@@ -216,14 +216,15 @@ func (g *Graphics) DrawTriangles(dstIDs [graphics.ShaderDstImageCount]graphicsdr
 		if dst == nil {
 			continue
 		}
-		if err := dst.setViewport(); err != nil {
-			return err
-		}
 		destinations[i] = dst
 		dstCount++
 	}
 	if dstCount == 0 {
 		return nil
+	}
+	// Only necessary for the same shared framebuffer
+	if err := destinations[0].setViewport(); err != nil {
+		return err
 	}
 
 	// Color attachments
@@ -231,9 +232,6 @@ func (g *Graphics) DrawTriangles(dstIDs [graphics.ShaderDstImageCount]graphicsdr
 	for i, dst := range destinations {
 		if dst == nil {
 			continue
-		}
-		if dstCount > 1 {
-			//fmt.Println("id:", dst.texture, "ok:", dst.id, "regions:", len(dstRegions))
 		}
 		attached = append(attached, uint32(gl.COLOR_ATTACHMENT0+i))
 		g.context.ctx.FramebufferTexture2D(gl.FRAMEBUFFER, uint32(gl.COLOR_ATTACHMENT0+i), gl.TEXTURE_2D, uint32(dst.texture), 0)
