@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: 2014 Eric Woroshow
 // SPDX-FileCopyrightText: 2022 The Ebitengine Authors
 
-//go:build nintendosdk
+//go:build !darwin && !js && !windows && !playstation5
 
 package gl
 
