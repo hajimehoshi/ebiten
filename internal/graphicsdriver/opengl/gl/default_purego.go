@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build darwin || windows
+//go:build (darwin || freebsd || linux || netbsd || openbsd || windows) && !nintendosdk && !playstation5
 
 package gl
 
