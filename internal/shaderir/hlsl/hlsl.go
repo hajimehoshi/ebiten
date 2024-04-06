@@ -22,6 +22,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
 
@@ -190,7 +191,15 @@ func Compile(p *shaderir.Program) (vertexShader, pixelShader string, offsets []i
 	}
 	if p.FragmentFunc.Block != nil && len(p.FragmentFunc.Block.Stmts) > 0 {
 		pslines = append(pslines, "")
-		pslines = append(pslines, fmt.Sprintf("float4 PSMain(Varyings %s) : SV_TARGET {", vsOut))
+		pslines = append(pslines, "struct PS_OUTPUT")
+		pslines = append(pslines, "{")
+		for i := 0; i < graphics.ShaderDstImageCount; i++ {
+			pslines = append(pslines, fmt.Sprintf("\tfloat4 Color%d: SV_Target%d;", i, i))
+		}
+		pslines = append(pslines, "};")
+		pslines = append(pslines, "")
+		pslines = append(pslines, fmt.Sprintf("PS_OUTPUT PSMain(Varyings %s) {", vsOut))
+		pslines = append(pslines, "\tPS_OUTPUT output;")
 		pslines = append(pslines, c.block(p, p.FragmentFunc.Block, p.FragmentFunc.Block, 0)...)
 		pslines = append(pslines, "}")
 	}
@@ -226,6 +235,8 @@ func Compile(p *shaderir.Program) (vertexShader, pixelShader string, offsets []i
 
 	vertexShader = shaders[0]
 	pixelShader = shaders[1]
+
+	fmt.Println("PS:", pixelShader)
 
 	return
 }
@@ -353,7 +364,7 @@ func (c *compileContext) localVariableName(p *shaderir.Program, topBlock *shader
 		case idx < nv+1:
 			return fmt.Sprintf("%s.M%d", vsOut, idx-1)
 		default:
-			return fmt.Sprintf("l%d", idx-(nv+1))
+			return fmt.Sprintf("output.Color%d", idx-(nv+1))
 		}
 	default:
 		return fmt.Sprintf("l%d", idx)
@@ -393,9 +404,6 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 	}
 
 	var lines []string
-	for i := range block.LocalVars {
-		lines = append(lines, c.initVariable(p, topBlock, block, block.LocalVarIndexOffset+i, true, level)...)
-	}
 
 	var expr func(e *shaderir.Expr) string
 	expr = func(e *shaderir.Expr) string {
@@ -502,7 +510,8 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 		case shaderir.Assign:
 			lhs := s.Exprs[0]
 			rhs := s.Exprs[1]
-			if lhs.Type == shaderir.LocalVariable {
+			isOutput := strings.HasPrefix(expr(&lhs), "output.Color")
+			if !isOutput && lhs.Type == shaderir.LocalVariable {
 				if t := p.LocalVariableType(topBlock, block, lhs.Index); t.Main == shaderir.Array {
 					for i := 0; i < t.Length; i++ {
 						lines = append(lines, fmt.Sprintf("%[1]s%[2]s[%[3]d] = %[4]s[%[3]d];", idt, expr(&lhs), i, expr(&rhs)))
@@ -564,7 +573,7 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 			case topBlock == p.VertexFunc.Block:
 				lines = append(lines, fmt.Sprintf("%sreturn %s;", idt, vsOut))
 			case len(s.Exprs) == 0:
-				lines = append(lines, idt+"return;")
+				lines = append(lines, idt+"return output;")
 			default:
 				lines = append(lines, fmt.Sprintf("%sreturn %s;", idt, expr(&s.Exprs[0])))
 			}

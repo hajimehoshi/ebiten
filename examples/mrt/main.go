@@ -1,4 +1,4 @@
-// Copyright 2020 The Ebiten Authors
+// Copyright 2024 The Ebiten Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -124,7 +124,7 @@ func main() {
 	ebiten.SetWindowSize(screenWidth, screenHeight)
 	ebiten.SetWindowTitle("MRT (Ebitengine Demo)")
 	if err := ebiten.RunGameWithOptions(&Game{}, &ebiten.RunGameOptions{
-		GraphicsLibrary: ebiten.GraphicsLibraryOpenGL,
+		GraphicsLibrary: ebiten.GraphicsLibraryDirectX,
 	}); err != nil {
 		log.Fatal(err)
 	}

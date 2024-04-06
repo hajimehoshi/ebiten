@@ -521,7 +521,15 @@ func (g *graphics11) DrawTriangles(dstIDs [graphics.ShaderDstImageCount]graphics
 	srvs := [graphics.ShaderSrcImageCount]*_ID3D11ShaderResourceView{}
 	g.deviceContext.PSSetShaderResources(0, srvs[:])
 
-	dst := g.images[dstIDs[0]] // TODO: handle array
+	var dsts []*image11
+	for _, id := range dstIDs {
+		img := g.images[id]
+		if img == nil {
+			continue
+		}
+		dsts = append(dsts, img)
+	}
+
 	var srcs [graphics.ShaderSrcImageCount]*image11
 	for i, id := range srcIDs {
 		img := g.images[id]
@@ -531,7 +539,7 @@ func (g *graphics11) DrawTriangles(dstIDs [graphics.ShaderDstImageCount]graphics
 		srcs[i] = img
 	}
 
-	w, h := dst.internalSize()
+	w, h := dsts[0].internalSize()
 	g.deviceContext.RSSetViewports([]_D3D11_VIEWPORT{
 		{
 			TopLeftX: 0,
@@ -543,7 +551,7 @@ func (g *graphics11) DrawTriangles(dstIDs [graphics.ShaderDstImageCount]graphics
 		},
 	})
 
-	if err := dst.setAsRenderTarget(fillRule != graphicsdriver.FillAll); err != nil {
+	if err := setAsRenderTargets(dsts, fillRule != graphicsdriver.FillAll); err != nil {
 		return err
 	}
 
