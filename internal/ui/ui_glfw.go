@@ -1028,12 +1028,8 @@ func (u *UserInterface) initOnMainThread(options *RunOptions) error {
 	}
 
 	// Window is shown after the first buffer swap (#2725).
-	// On Linux or UNIX, there is a problematic desktop environment like i3wm
-	// where an invisible window size cannot be initialized correctly (#2951).
-	if runtime.GOOS == "darwin" || runtime.GOOS == "windows" {
-		if err := glfw.WindowHint(glfw.Visible, glfw.False); err != nil {
-			return err
-		}
+	if err := glfw.WindowHint(glfw.Visible, glfw.False); err != nil {
+		return err
 	}
 
 	if err := glfw.WindowHintString(glfw.X11ClassName, options.X11ClassName); err != nil {
@@ -1296,6 +1292,40 @@ func (u *UserInterface) update() (float64, float64, error) {
 				return
 			}
 			if err = u.window.Focus(); err != nil {
+				return
+			}
+
+			if runtime.GOOS == "darwin" || runtime.GOOS == "windows" {
+				return
+			}
+
+			// On Linux or UNIX, there is a problematic desktop environment like i3wm
+			// where an invisible window size cannot be initialized correctly (#2951).
+			// Call SetSize explicitly after the window becomes visible.
+
+			fullscreen, e := u.isFullscreen()
+			if e != nil {
+				err = e
+				return
+			}
+			if fullscreen {
+				return
+			}
+
+			m, e := u.currentMonitor()
+			if e != nil {
+				err = e
+				return
+			}
+			s := m.DeviceScaleFactor()
+			newW := int(dipToGLFWPixel(float64(u.origWindowWidthInDIP), s))
+			newH := int(dipToGLFWPixel(float64(u.origWindowHeightInDIP), s))
+
+			// Even though a framebuffer callback is not called, waitForFramebufferSizeCallback returns by timeout,
+			// so it is safe to use this.
+			if err = u.waitForFramebufferSizeCallback(u.window, func() error {
+				return u.window.SetSize(newW, newH)
+			}); err != nil {
 				return
 			}
 		})
