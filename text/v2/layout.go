@@ -101,15 +101,17 @@ type LayoutOptions struct {
 // If the vertical alignment is center, the rendering region's middle Y comes to the origin.
 // If the vertical alignment is bottom, the rendering region's bottom Y comes to the origin.
 func Draw(dst *ebiten.Image, text string, face Face, options *DrawOptions) {
-	if options == nil {
-		options = &DrawOptions{}
+	var layoutOp LayoutOptions
+	var drawOp ebiten.DrawImageOptions
+
+	if options != nil {
+		layoutOp = options.LayoutOptions
+		drawOp = options.DrawImageOptions
 	}
 
-	// Copy the options to avoid modifying the original options (#2954).
-	drawOp := options.DrawImageOptions
 	geoM := drawOp.GeoM
 
-	for _, g := range AppendGlyphs(nil, text, face, &options.LayoutOptions) {
+	for _, g := range AppendGlyphs(nil, text, face, &layoutOp) {
 		if g.Image == nil {
 			continue
 		}
