@@ -36,6 +36,10 @@ var _ Face = (*GoTextFace)(nil)
 // GoTextFace is a Face implementation for go-text's font.Face (github.com/go-text/typesetting).
 // With a GoTextFace, shaping.HarfBuzzShaper is always used as a shaper internally.
 // GoTextFace includes the source and various options.
+//
+// Unlike GoXFace, one GoTextFace instance doesn't have its own glyph image cache.
+// Instead, a GoTextFaceSource has a glyph image cache.
+// You can casually create multiple GoTextFace instances from the same GoTextFaceSource.
 type GoTextFace struct {
 	// Source is the font face source.
 	Source *GoTextFaceSource
