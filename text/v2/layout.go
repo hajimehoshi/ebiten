@@ -105,16 +105,18 @@ func Draw(dst *ebiten.Image, text string, face Face, options *DrawOptions) {
 		options = &DrawOptions{}
 	}
 
-	geoM := options.GeoM
+	// Copy the options to avoid modifying the original options (#2954).
+	drawOp := options.DrawImageOptions
+	geoM := drawOp.GeoM
+
 	for _, g := range AppendGlyphs(nil, text, face, &options.LayoutOptions) {
 		if g.Image == nil {
 			continue
 		}
-		op := &options.DrawImageOptions
-		op.GeoM.Reset()
-		op.GeoM.Translate(g.X, g.Y)
-		op.GeoM.Concat(geoM)
-		dst.DrawImage(g.Image, op)
+		drawOp.GeoM.Reset()
+		drawOp.GeoM.Translate(g.X, g.Y)
+		drawOp.GeoM.Concat(geoM)
+		dst.DrawImage(g.Image, &drawOp)
 	}
 }
 
