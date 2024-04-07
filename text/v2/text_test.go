@@ -356,3 +356,18 @@ func TestConvertToFloat(t *testing.T) {
 		}
 	}
 }
+
+// Issue #2954
+func TestDrawOptionsNotModified(t *testing.T) {
+	img := ebiten.NewImage(30, 30)
+
+	op := &text.DrawOptions{}
+	text.Draw(img, "Hello", text.NewGoXFace(bitmapfont.Face), op)
+
+	if got, want := op.GeoM, (ebiten.GeoM{}); got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+	if got, want := op.ColorScale, (ebiten.ColorScale{}); got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+}
