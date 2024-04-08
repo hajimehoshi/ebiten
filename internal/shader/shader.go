@@ -823,9 +823,11 @@ func (cs *compileState) parseFunc(block *block, d *ast.FuncDecl) (function, bool
 			}
 
 			// The first out-param is treated as gl_FragColor in GLSL.
-			if outParams[0].typ.Main != shaderir.Vec4 {
-				cs.addError(d.Pos(), "fragment entry point must have at least one returning vec4 value for a color")
-				return function{}, false
+			for i := range outParams {
+				if outParams[i].typ.Main != shaderir.Vec4 {
+					cs.addError(d.Pos(), "fragment entry point must only have vec4 return values for colors")
+					return function{}, false
+				}
 			}
 			// Adjust the number of textures to write to
 			cs.ir.ColorsOutCount = len(outParams)

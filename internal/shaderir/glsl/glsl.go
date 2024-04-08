@@ -603,7 +603,7 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 			}
 		case shaderir.Discard:
 			// 'discard' is invoked only in the fragment shader entry point.
-			lines = append(lines, idt+"discard;", idt+"return vec4(0.0);")
+			lines = append(lines, idt+"discard;") //, idt+"return vec4(0.0);")
 		default:
 			lines = append(lines, fmt.Sprintf("%s?(unexpected stmt: %d)", idt, s.Type))
 		}
@@ -651,7 +651,7 @@ func adjustProgram(p *shaderir.Program) *shaderir.Program {
 			Main: shaderir.Vec4,
 		}
 	}
-	newP.FragmentFunc.Block.LocalVarIndexOffset += (p.ColorsOutCount-1)
+	newP.FragmentFunc.Block.LocalVarIndexOffset += (p.ColorsOutCount - 1)
 
 	newP.Funcs = append(newP.Funcs, shaderir.Func{
 		Index:     funcIdx,
