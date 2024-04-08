@@ -265,7 +265,7 @@ func (g *Graphics) colorBufferVariableName(idx int) string {
 	if g.colorBufferVariableNameCache == nil {
 		g.colorBufferVariableNameCache = map[int]string{}
 	}
-	name := fmt.Sprintf("gl_FragData[%d]", idx)
+	name := fmt.Sprintf("fragColor%d", idx)
 	g.colorBufferVariableNameCache[idx] = name
 	return name
 }

@@ -15,11 +15,13 @@
 package main
 
 import (
+	"fmt"
 	"image"
 	_ "image/jpeg"
 	"log"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 )
 
 const (
@@ -71,11 +73,9 @@ func init() {
 }
 
 type Game struct {
-	count int
 }
 
 func (g *Game) Update() error {
-	g.count++
 	return nil
 }
 
@@ -114,6 +114,8 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	opts.GeoM.Reset()
 	opts.GeoM.Translate(dstSize, dstSize)
 	screen.DrawImage(dsts[3], opts)
+
+	ebitenutil.DebugPrint(screen, fmt.Sprintf("FPS: %.2f", ebiten.ActualFPS()))
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
@@ -122,9 +124,10 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 
 func main() {
 	ebiten.SetWindowSize(screenWidth, screenHeight)
+	ebiten.SetVsyncEnabled(false)
 	ebiten.SetWindowTitle("MRT (Ebitengine Demo)")
 	if err := ebiten.RunGameWithOptions(&Game{}, &ebiten.RunGameOptions{
-		GraphicsLibrary: ebiten.GraphicsLibraryDirectX,
+		GraphicsLibrary: ebiten.GraphicsLibraryOpenGL,
 	}); err != nil {
 		log.Fatal(err)
 	}

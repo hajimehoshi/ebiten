@@ -69,7 +69,11 @@ func (s *Shader) compile() error {
 	}
 	defer s.graphics.context.ctx.DeleteShader(uint32(fs))
 
-	p, err := s.graphics.context.newProgram([]shader{vs, fs}, theArrayBufferLayout.names())
+	colorNames := make([]string, s.ir.ColorsOutCount)
+	for i := range colorNames {
+		colorNames[i] = s.graphics.colorBufferVariableName(i)
+	}
+	p, err := s.graphics.context.newProgram([]shader{vs, fs}, theArrayBufferLayout.names(), colorNames)
 	if err != nil {
 		return err
 	}

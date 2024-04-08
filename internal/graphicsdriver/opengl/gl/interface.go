@@ -31,6 +31,7 @@ type Context interface {
 	AttachShader(program uint32, shader uint32)
 	BindAttribLocation(program uint32, index uint32, name string)
 	BindBuffer(target uint32, buffer uint32)
+	BindFragDataLocation(program uint32, index uint32, name string)
 	BindFramebuffer(target uint32, framebuffer uint32)
 	BindRenderbuffer(target uint32, renderbuffer uint32)
 	BindTexture(target uint32, texture uint32)

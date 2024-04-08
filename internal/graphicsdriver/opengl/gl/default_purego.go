@@ -28,6 +28,7 @@ type defaultContext struct {
 	gpAttachShader             uintptr
 	gpBindAttribLocation       uintptr
 	gpBindBuffer               uintptr
+	gpBindFragDataLocation     uintptr
 	gpBindFramebuffer          uintptr
 	gpBindRenderbuffer         uintptr
 	gpBindTexture              uintptr
@@ -138,6 +139,12 @@ func (c *defaultContext) BindAttribLocation(program uint32, index uint32, name s
 
 func (c *defaultContext) BindBuffer(target uint32, buffer uint32) {
 	purego.SyscallN(c.gpBindBuffer, uintptr(target), uintptr(buffer))
+}
+
+func (c *defaultContext) BindFragDataLocation(program uint32, index uint32, name string) {
+	cname, free := cStr(name)
+	defer free()
+	purego.SyscallN(c.gpBindFragDataLocation, uintptr(program), uintptr(index), uintptr(unsafe.Pointer(cname)))
 }
 
 func (c *defaultContext) BindFramebuffer(target uint32, framebuffer uint32) {
@@ -483,6 +490,7 @@ func (c *defaultContext) LoadFunctions() error {
 	c.gpAttachShader = g.get("glAttachShader")
 	c.gpBindAttribLocation = g.get("glBindAttribLocation")
 	c.gpBindBuffer = g.get("glBindBuffer")
+	c.gpBindFragDataLocation = g.get("glBindFragDataLocation")
 	c.gpBindFramebuffer = g.get("glBindFramebuffer")
 	c.gpBindRenderbuffer = g.get("glBindRenderbuffer")
 	c.gpBindTexture = g.get("glBindTexture")

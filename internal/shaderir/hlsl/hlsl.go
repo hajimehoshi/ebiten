@@ -607,11 +607,6 @@ func adjustProgram(p *shaderir.Program) *shaderir.Program {
 	copy(newP.Funcs, p.Funcs)
 
 	// Create a new function whose body is the same is the fragment shader's entry point.
-	// The entry point will call this.
-	// This indirect call is needed for these issues:
-	// - Assignment to gl_FragColor doesn't work (#2245)
-	// - There are some odd compilers that don't work with early returns and gl_FragColor (#2247)
-
 	// Determine a unique index of the new function.
 	var funcIdx int
 	for _, f := range newP.Funcs {
@@ -659,7 +654,8 @@ func adjustProgram(p *shaderir.Program) *shaderir.Program {
 	// Replace the entry point with just calling the new function.
 	stmts := []shaderir.Stmt{
 		{
-			// Return: This will be replaced with assignment to gl_FragColor.
+			// Return: This will be replaced with a call to the new function.
+			// Then the output structure containing colors will be returned.
 			Type: shaderir.Return,
 			Exprs: []shaderir.Expr{
 				// The function call

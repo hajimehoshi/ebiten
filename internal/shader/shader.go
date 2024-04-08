@@ -822,7 +822,7 @@ func (cs *compileState) parseFunc(block *block, d *ast.FuncDecl) (function, bool
 				return function{}, false
 			}
 
-			// The first out-param is treated as gl_FragColor in GLSL.
+			// The first out-param is treated as fragColor0 in GLSL.
 			for i := range outParams {
 				if outParams[i].typ.Main != shaderir.Vec4 {
 					cs.addError(d.Pos(), "fragment entry point must only have vec4 return values for colors")

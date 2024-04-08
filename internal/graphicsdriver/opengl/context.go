@@ -396,7 +396,7 @@ func (c *context) newShader(shaderType uint32, source string) (shader, error) {
 	return shader(s), nil
 }
 
-func (c *context) newProgram(shaders []shader, attributes []string) (program, error) {
+func (c *context) newProgram(shaders []shader, attributes, fragData []string) (program, error) {
 	p := c.ctx.CreateProgram()
 	if p == 0 {
 		return 0, errors.New("opengl: glCreateProgram failed")
@@ -408,6 +408,10 @@ func (c *context) newProgram(shaders []shader, attributes []string) (program, er
 
 	for i, name := range attributes {
 		c.ctx.BindAttribLocation(p, uint32(i), name)
+	}
+
+	for i, name := range fragData {
+		c.ctx.BindFragDataLocation(p, uint32(i), name)
 	}
 
 	c.ctx.LinkProgram(p)
