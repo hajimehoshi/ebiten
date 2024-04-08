@@ -22,7 +22,6 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
 
@@ -89,6 +88,7 @@ float4x4 float4x4FromScalar(float x) {
 
 func Compile(p *shaderir.Program) (vertexShader, pixelShader string, offsets []int) {
 	offsets = calculateMemoryOffsets(p.Uniforms)
+	p = adjustProgram(p)
 
 	c := &compileContext{
 		unit: p.Unit,
@@ -193,7 +193,7 @@ func Compile(p *shaderir.Program) (vertexShader, pixelShader string, offsets []i
 		pslines = append(pslines, "")
 		pslines = append(pslines, "struct PS_OUTPUT")
 		pslines = append(pslines, "{")
-		for i := 0; i < graphics.ShaderDstImageCount; i++ {
+		for i := 0; i < p.ColorsOutCount; i++ {
 			pslines = append(pslines, fmt.Sprintf("\tfloat4 Color%d: SV_Target%d;", i, i))
 		}
 		pslines = append(pslines, "};")
@@ -404,6 +404,9 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 	}
 
 	var lines []string
+	for i := range block.LocalVars {
+		lines = append(lines, c.initVariable(p, topBlock, block, block.LocalVarIndexOffset+i, true, level)...)
+	}
 
 	var expr func(e *shaderir.Expr) string
 	expr = func(e *shaderir.Expr) string {
@@ -510,8 +513,7 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 		case shaderir.Assign:
 			lhs := s.Exprs[0]
 			rhs := s.Exprs[1]
-			isOutput := strings.HasPrefix(expr(&lhs), "output.Color")
-			if !isOutput && lhs.Type == shaderir.LocalVariable {
+			if lhs.Type == shaderir.LocalVariable {
 				if t := p.LocalVariableType(topBlock, block, lhs.Index); t.Main == shaderir.Array {
 					for i := 0; i < t.Length; i++ {
 						lines = append(lines, fmt.Sprintf("%[1]s%[2]s[%[3]d] = %[4]s[%[3]d];", idt, expr(&lhs), i, expr(&rhs)))
@@ -572,18 +574,109 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 			switch {
 			case topBlock == p.VertexFunc.Block:
 				lines = append(lines, fmt.Sprintf("%sreturn %s;", idt, vsOut))
-			case len(s.Exprs) == 0:
+			case topBlock == p.FragmentFunc.Block:
+				// Call to the pseudo fragment func based on out parameters
+				lines = append(lines, idt+expr(&s.Exprs[0])+";")
 				lines = append(lines, idt+"return output;")
+			case len(s.Exprs) == 0:
+				lines = append(lines, idt+"return;")
 			default:
 				lines = append(lines, fmt.Sprintf("%sreturn %s;", idt, expr(&s.Exprs[0])))
 			}
 		case shaderir.Discard:
 			// 'discard' is invoked only in the fragment shader entry point.
-			lines = append(lines, idt+"discard;", idt+"return float4(0.0, 0.0, 0.0, 0.0);")
+			lines = append(lines, idt+"discard;")
 		default:
 			lines = append(lines, fmt.Sprintf("%s?(unexpected stmt: %d)", idt, s.Type))
 		}
 	}
 
 	return lines
+}
+
+func adjustProgram(p *shaderir.Program) *shaderir.Program {
+	if p.FragmentFunc.Block == nil {
+		return p
+	}
+
+	// Shallow-clone the program in order not to modify p itself.
+	newP := *p
+
+	// Create a new slice not to affect the original p.
+	newP.Funcs = make([]shaderir.Func, len(p.Funcs))
+	copy(newP.Funcs, p.Funcs)
+
+	// Create a new function whose body is the same is the fragment shader's entry point.
+	// The entry point will call this.
+	// This indirect call is needed for these issues:
+	// - Assignment to gl_FragColor doesn't work (#2245)
+	// - There are some odd compilers that don't work with early returns and gl_FragColor (#2247)
+
+	// Determine a unique index of the new function.
+	var funcIdx int
+	for _, f := range newP.Funcs {
+		if funcIdx <= f.Index {
+			funcIdx = f.Index + 1
+		}
+	}
+
+	// For parameters of a fragment func, see the comment in internal/shaderir/program.go.
+	inParams := make([]shaderir.Type, 1+len(newP.Varyings))
+	inParams[0] = shaderir.Type{
+		Main: shaderir.Vec4, // gl_FragCoord
+	}
+	copy(inParams[1:], newP.Varyings)
+	// Out parameters of a fragment func are colors
+	outParams := make([]shaderir.Type, p.ColorsOutCount)
+	for i := range outParams {
+		outParams[i] = shaderir.Type{
+			Main: shaderir.Vec4,
+		}
+	}
+	newP.FragmentFunc.Block.LocalVarIndexOffset += (p.ColorsOutCount - 1)
+
+	newP.Funcs = append(newP.Funcs, shaderir.Func{
+		Index:     funcIdx,
+		InParams:  inParams,
+		OutParams: outParams,
+		Block:     newP.FragmentFunc.Block,
+	})
+
+	// Create an AST to call the new function.
+	call := []shaderir.Expr{
+		{
+			Type:  shaderir.FunctionExpr,
+			Index: funcIdx,
+		},
+	}
+	for i := 0; i < 1+len(newP.Varyings)+p.ColorsOutCount; i++ {
+		call = append(call, shaderir.Expr{
+			Type:  shaderir.LocalVariable,
+			Index: i,
+		})
+	}
+
+	// Replace the entry point with just calling the new function.
+	stmts := []shaderir.Stmt{
+		{
+			// Return: This will be replaced with assignment to gl_FragColor.
+			Type: shaderir.Return,
+			Exprs: []shaderir.Expr{
+				// The function call
+				{
+					Type:  shaderir.Call,
+					Exprs: call,
+				},
+			},
+		},
+	}
+	newP.FragmentFunc = shaderir.FragmentFunc{
+		Block: &shaderir.Block{
+			LocalVars:           nil,
+			LocalVarIndexOffset: 1 + len(newP.Varyings) + 1,
+			Stmts:               stmts,
+		},
+	}
+
+	return &newP
 }
