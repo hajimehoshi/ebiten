@@ -538,7 +538,7 @@ func (w *Window) SetOpacity(opacity float32) {
 	C.glfwSetWindowOpacity(w.data, C.float(opacity))
 }
 
-// RequestWindowAttention funciton requests user attention to the specified
+// RequestAttention function requests user attention to the specified
 // window. On platforms where this is not supported, attention is requested to
 // the application as a whole.
 //
