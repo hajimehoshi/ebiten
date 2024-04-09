@@ -102,6 +102,7 @@ type context struct {
 
 	locationCache      *locationCache
 	screenFramebuffer  framebufferNative // This might not be the default frame buffer '0' (e.g. iOS).
+	targetFramebuffer  framebufferNative
 	lastFramebuffer    framebufferNative
 	lastTexture        textureNative
 	lastRenderbuffer   renderbufferNative
@@ -139,26 +140,25 @@ func (c *context) bindFramebuffer(f framebufferNative) {
 	c.lastFramebuffer = f
 }
 
-func (c *context) setViewport(f *framebuffer) {
-	c.bindFramebuffer(f.native)
-	if c.lastViewportWidth == f.width && c.lastViewportHeight == f.height {
+func (c *context) setViewport(w, h int, screen bool) {
+	if c.lastViewportWidth == w && c.lastViewportHeight == h {
 		return
 	}
 
 	// On some environments, viewport size must be within the framebuffer size.
 	// e.g. Edge (#71), Chrome on GPD Pocket (#420), macOS Mojave (#691).
 	// Use the same size of the framebuffer here.
-	c.ctx.Viewport(0, 0, int32(f.width), int32(f.height))
+	c.ctx.Viewport(0, 0, int32(w), int32(h))
 
 	// glViewport must be called at least at every frame on iOS.
 	// As the screen framebuffer is the last render target, next SetViewport should be
 	// the first call at a frame.
-	if f.native == c.screenFramebuffer {
+	if screen {
 		c.lastViewportWidth = 0
 		c.lastViewportHeight = 0
 	} else {
-		c.lastViewportWidth = f.width
-		c.lastViewportHeight = f.height
+		c.lastViewportWidth = w
+		c.lastViewportHeight = h
 	}
 }
 
@@ -329,22 +329,16 @@ func (c *context) deleteRenderbuffer(r renderbufferNative) {
 }
 
 func (c *context) newFramebuffer(texture textureNative, width, height int) (*framebuffer, error) {
-	f := c.ctx.CreateFramebuffer()
-	if f <= 0 {
-		return nil, fmt.Errorf("opengl: creating framebuffer failed: the returned value is not positive but %d", f)
+	var f = uint32(c.targetFramebuffer)
+	if f == 0 {
+		f = c.ctx.CreateFramebuffer()
+		if f <= 0 {
+			return nil, fmt.Errorf("opengl: creating framebuffer failed: the returned value is not positive but %d", f)
+		}
+		c.targetFramebuffer = framebufferNative(f)
 	}
 	c.bindFramebuffer(framebufferNative(f))
 
-	c.ctx.FramebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, uint32(texture), 0)
-	if s := c.ctx.CheckFramebufferStatus(gl.FRAMEBUFFER); s != gl.FRAMEBUFFER_COMPLETE {
-		if s != 0 {
-			return nil, fmt.Errorf("opengl: creating framebuffer failed: %v", s)
-		}
-		if e := c.ctx.GetError(); e != gl.NO_ERROR {
-			return nil, fmt.Errorf("opengl: creating framebuffer failed: (glGetError) %d", e)
-		}
-		return nil, fmt.Errorf("opengl: creating framebuffer failed: unknown error")
-	}
 	return &framebuffer{
 		native: framebufferNative(f),
 		width:  width,
@@ -360,24 +354,6 @@ func (c *context) bindStencilBuffer(f framebufferNative, r renderbufferNative) e
 		return errors.New(fmt.Sprintf("opengl: glFramebufferRenderbuffer failed: %d", s))
 	}
 	return nil
-}
-
-func (c *context) deleteFramebuffer(f framebufferNative) {
-	if f == c.screenFramebuffer {
-		return
-	}
-	if !c.ctx.IsFramebuffer(uint32(f)) {
-		return
-	}
-	// If a framebuffer to be deleted is bound, a newly bound framebuffer
-	// will be a default framebuffer.
-	// https://www.khronos.org/opengles/sdk/docs/man/xhtml/glDeleteFramebuffers.xml
-	if c.lastFramebuffer == f {
-		c.lastFramebuffer = invalidFramebuffer
-		c.lastViewportWidth = 0
-		c.lastViewportHeight = 0
-	}
-	c.ctx.DeleteFramebuffer(uint32(f))
 }
 
 func (c *context) newShader(shaderType uint32, source string) (shader, error) {

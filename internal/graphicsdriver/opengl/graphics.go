@@ -207,7 +207,14 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 
 	g.drawCalled = true
 
-	if err := destination.setViewport(); err != nil {
+	if err := destination.ensureFramebuffer(); err != nil {
+		return err
+	}
+	g.context.bindFramebuffer(destination.framebuffer.native)
+	g.context.ctx.FramebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, uint32(destination.texture), 0)
+
+	w, h := destination.framebufferSize()
+	if err := destination.setViewport(w, h); err != nil {
 		return err
 	}
 	g.context.blend(blend)
