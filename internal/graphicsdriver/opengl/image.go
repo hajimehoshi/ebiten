@@ -25,14 +25,13 @@ import (
 )
 
 type Image struct {
-	id          graphicsdriver.ImageID
-	graphics    *Graphics
-	texture     textureNative
-	stencil     renderbufferNative
-	framebuffer framebufferNative
-	width       int
-	height      int
-	screen      bool
+	id       graphicsdriver.ImageID
+	graphics *Graphics
+	texture  textureNative
+	stencil  renderbufferNative
+	width    int
+	height   int
+	screen   bool
 }
 
 func (i *Image) ID() graphicsdriver.ImageID {
@@ -55,12 +54,21 @@ func (i *Image) setViewport(w, h int) error {
 	return nil
 }
 
-func (i *Image) ReadPixels(args []graphicsdriver.PixelsArgs) error {
-	if err := i.ensureFramebuffer(); err != nil {
-		return err
+func (i *Image) ensureFramebuffer() {
+	f := i.graphics.context.targetFramebuffer
+	if i.screen {
+		f = i.graphics.context.screenFramebuffer
 	}
+
+	i.graphics.context.bindFramebuffer(f)
+	i.graphics.context.ctx.FramebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, uint32(i.texture), 0)
+}
+
+func (i *Image) ReadPixels(args []graphicsdriver.PixelsArgs) error {
+	i.ensureFramebuffer()
+
 	for _, arg := range args {
-		if err := i.graphics.context.framebufferPixels(arg.Pixels, i.framebuffer, arg.Region); err != nil {
+		if err := i.graphics.context.framebufferPixels(arg.Pixels, arg.Region); err != nil {
 			return err
 		}
 	}
@@ -77,31 +85,9 @@ func (i *Image) framebufferSize() (int, int) {
 	return graphics.InternalImageSize(i.width), graphics.InternalImageSize(i.height)
 }
 
-func (i *Image) ensureFramebuffer() error {
-	if i.framebuffer != invalidFramebuffer {
-		return nil
-	}
-
-	w, h := i.framebufferSize()
-	if i.screen {
-		i.framebuffer = i.graphics.context.screenFramebuffer
-		return nil
-	}
-	f, err := i.graphics.context.newFramebuffer(i.texture, w, h)
-	if err != nil {
-		return err
-	}
-	i.framebuffer = f
-	return nil
-}
-
-func (i *Image) ensureStencilBuffer() error {
+func (i *Image) ensureStencilBuffer(f framebufferNative) error {
 	if i.stencil != 0 {
 		return nil
-	}
-
-	if err := i.ensureFramebuffer(); err != nil {
-		return err
 	}
 
 	r, err := i.graphics.context.newRenderbuffer(i.framebufferSize())
@@ -110,7 +96,7 @@ func (i *Image) ensureStencilBuffer() error {
 	}
 	i.stencil = r
 
-	if err := i.graphics.context.bindStencilBuffer(i.framebuffer, i.stencil); err != nil {
+	if err := i.graphics.context.bindStencilBuffer(f, i.stencil); err != nil {
 		return err
 	}
 	return nil

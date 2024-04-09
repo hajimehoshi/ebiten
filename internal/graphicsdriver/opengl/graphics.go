@@ -122,11 +122,10 @@ func (g *Graphics) genNextShaderID() graphicsdriver.ShaderID {
 
 func (g *Graphics) NewImage(width, height int) (graphicsdriver.Image, error) {
 	i := &Image{
-		id:          g.genNextImageID(),
-		graphics:    g,
-		framebuffer: invalidFramebuffer,
-		width:       width,
-		height:      height,
+		id:       g.genNextImageID(),
+		graphics: g,
+		width:    width,
+		height:   height,
 	}
 	w := graphics.InternalImageSize(width)
 	h := graphics.InternalImageSize(height)
@@ -208,12 +207,12 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 
 	g.drawCalled = true
 
-	if err := destination.ensureFramebuffer(); err != nil {
-		return err
+	f := g.context.targetFramebuffer
+	if destination.screen {
+		f = g.context.screenFramebuffer
 	}
 
-	g.context.bindFramebuffer(destination.framebuffer)
-	g.context.ctx.FramebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, uint32(destination.texture), 0)
+	destination.ensureFramebuffer()
 
 	w, h := destination.framebufferSize()
 	if err := destination.setViewport(w, h); err != nil {
@@ -269,7 +268,7 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 	g.uniformVars = g.uniformVars[:0]
 
 	if fillRule != graphicsdriver.FillAll {
-		if err := destination.ensureStencilBuffer(); err != nil {
+		if err := destination.ensureStencilBuffer(f); err != nil {
 			return err
 		}
 		g.context.ctx.Enable(gl.STENCIL_TEST)
