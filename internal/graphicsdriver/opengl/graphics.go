@@ -211,6 +211,7 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 	if err := destination.ensureFramebuffer(); err != nil {
 		return err
 	}
+
 	g.context.bindFramebuffer(destination.framebuffer)
 	g.context.ctx.FramebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, uint32(destination.texture), 0)
 
