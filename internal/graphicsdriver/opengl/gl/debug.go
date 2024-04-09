@@ -61,14 +61,6 @@ func (d *DebugContext) BindBuffer(arg0 uint32, arg1 uint32) {
 	}
 }
 
-func (d *DebugContext) BindFragDataLocation(arg0 uint32, arg1 uint32, arg2 string) {
-	d.Context.BindFragDataLocation(arg0, arg1, arg2)
-	fmt.Fprintln(os.Stderr, "BindFragDataLocation")
-	if e := d.Context.GetError(); e != NO_ERROR {
-		panic(fmt.Sprintf("gl: GetError() returned %d at BindFragDataLocation", e))
-	}
-}
-
 func (d *DebugContext) BindFramebuffer(arg0 uint32, arg1 uint32) {
 	d.Context.BindFramebuffer(arg0, arg1)
 	fmt.Fprintln(os.Stderr, "BindFramebuffer")

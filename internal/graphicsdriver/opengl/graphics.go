@@ -47,7 +47,6 @@ type Graphics struct {
 
 	uniformVariableNameCache     map[int]string
 	textureVariableNameCache     map[int]string
-	colorBufferVariableNameCache map[int]string
 
 	uniformVars []uniformVariable
 

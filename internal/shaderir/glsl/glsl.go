@@ -229,9 +229,6 @@ func Compile(p *shaderir.Program, version GLSLVersion) (vertexShader, fragmentSh
 				fslines = append(fslines, fmt.Sprintf("in %s;", c.varDecl(p, &t, fmt.Sprintf("V%d", i))))
 			}
 		}
-		for i := 0; i < p.ColorsOutCount; i++ {
-			fslines = append(fslines, fmt.Sprintf("out vec4 fragColor%d;", i))
-		}
 
 		var funcs []*shaderir.Func
 		if p.VertexFunc.Block != nil {
@@ -423,7 +420,7 @@ func (c *compileContext) localVariableName(p *shaderir.Program, topBlock *shader
 		case idx < nv+1:
 			return fmt.Sprintf("V%d", idx-1)
 		default:
-			return fmt.Sprintf("fragColor%d", idx-(nv+1))
+			return fmt.Sprintf("gl_FragData[%d]", idx-(nv+1))
 		}
 	default:
 		return fmt.Sprintf("l%d", idx)
