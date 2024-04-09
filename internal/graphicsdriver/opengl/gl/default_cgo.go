@@ -128,7 +128,7 @@ package gl
 //   typedef void (*fn)(GLuint index);
 //   ((fn)(fnptr))(index);
 // }
-// static void glowDrawBuffers(GLsizei n, const GLenum* bufs) {
+// static void glowDrawBuffers(uintptr_t fnptr, GLsizei n, const GLenum* bufs) {
 //   typedef void (*fn)(GLsizei n, const GLenum* bufs);
 //   ((fn)(fnptr))(n, bufs);
 // }
