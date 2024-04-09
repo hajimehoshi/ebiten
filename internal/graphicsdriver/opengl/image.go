@@ -29,17 +29,10 @@ type Image struct {
 	graphics    *Graphics
 	texture     textureNative
 	stencil     renderbufferNative
-	framebuffer *framebuffer
+	framebuffer framebufferNative
 	width       int
 	height      int
 	screen      bool
-}
-
-// framebuffer is a wrapper of OpenGL's framebuffer.
-type framebuffer struct {
-	native   framebufferNative
-	width    int
-	height   int
 }
 
 func (i *Image) ID() graphicsdriver.ImageID {
@@ -85,13 +78,13 @@ func (i *Image) framebufferSize() (int, int) {
 }
 
 func (i *Image) ensureFramebuffer() error {
-	if i.framebuffer != nil {
+	if i.framebuffer != invalidFramebuffer {
 		return nil
 	}
 
 	w, h := i.framebufferSize()
 	if i.screen {
-		i.framebuffer = i.graphics.context.newScreenFramebuffer(w, h)
+		i.framebuffer = i.graphics.context.screenFramebuffer
 		return nil
 	}
 	f, err := i.graphics.context.newFramebuffer(i.texture, w, h)
@@ -117,7 +110,7 @@ func (i *Image) ensureStencilBuffer() error {
 	}
 	i.stencil = r
 
-	if err := i.graphics.context.bindStencilBuffer(i.framebuffer.native, i.stencil); err != nil {
+	if err := i.graphics.context.bindStencilBuffer(i.framebuffer, i.stencil); err != nil {
 		return err
 	}
 	return nil

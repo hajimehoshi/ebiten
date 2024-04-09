@@ -162,14 +162,6 @@ func (c *context) setViewport(w, h int, screen bool) {
 	}
 }
 
-func (c *context) newScreenFramebuffer(width, height int) *framebuffer {
-	return &framebuffer{
-		native: c.screenFramebuffer,
-		width:  width,
-		height: height,
-	}
-}
-
 func (c *context) getMaxTextureSize() int {
 	c.maxTextureSizeOnce.Do(func() {
 		c.maxTextureSize = c.ctx.GetInteger(gl.MAX_TEXTURE_SIZE)
@@ -249,13 +241,13 @@ func (c *context) newTexture(width, height int) (textureNative, error) {
 	return textureNative(t), nil
 }
 
-func (c *context) framebufferPixels(buf []byte, f *framebuffer, region image.Rectangle) error {
+func (c *context) framebufferPixels(buf []byte, f framebufferNative, region image.Rectangle) error {
 	if got, want := len(buf), 4*region.Dx()*region.Dy(); got != want {
 		return fmt.Errorf("opengl: len(buf) must be %d but was %d at framebufferPixels", got, want)
 	}
 
 	c.ctx.Flush()
-	c.bindFramebuffer(f.native)
+	c.bindFramebuffer(f)
 	x := int32(region.Min.X)
 	y := int32(region.Min.Y)
 	width := int32(region.Dx())
@@ -264,10 +256,10 @@ func (c *context) framebufferPixels(buf []byte, f *framebuffer, region image.Rec
 	return nil
 }
 
-func (c *context) framebufferPixelsToBuffer(f *framebuffer, buffer buffer, width, height int) {
+func (c *context) framebufferPixelsToBuffer(f framebufferNative, buffer buffer, width, height int) {
 	c.ctx.Flush()
 
-	c.bindFramebuffer(f.native)
+	c.bindFramebuffer(f)
 
 	c.ctx.BindBuffer(gl.PIXEL_PACK_BUFFER, uint32(buffer))
 	c.ctx.ReadPixels(nil, 0, 0, int32(width), int32(height), gl.RGBA, gl.UNSIGNED_BYTE)
@@ -328,22 +320,18 @@ func (c *context) deleteRenderbuffer(r renderbufferNative) {
 	c.ctx.DeleteRenderbuffer(uint32(r))
 }
 
-func (c *context) newFramebuffer(texture textureNative, width, height int) (*framebuffer, error) {
+func (c *context) newFramebuffer(texture textureNative, width, height int) (framebufferNative, error) {
 	var f = uint32(c.targetFramebuffer)
 	if f == 0 {
 		f = c.ctx.CreateFramebuffer()
 		if f <= 0 {
-			return nil, fmt.Errorf("opengl: creating framebuffer failed: the returned value is not positive but %d", f)
+			return invalidFramebuffer, fmt.Errorf("opengl: creating framebuffer failed: the returned value is not positive but %d", f)
 		}
 		c.targetFramebuffer = framebufferNative(f)
 	}
 	c.bindFramebuffer(framebufferNative(f))
 
-	return &framebuffer{
-		native: framebufferNative(f),
-		width:  width,
-		height: height,
-	}, nil
+	return framebufferNative(f), nil
 }
 
 func (c *context) bindStencilBuffer(f framebufferNative, r renderbufferNative) error {

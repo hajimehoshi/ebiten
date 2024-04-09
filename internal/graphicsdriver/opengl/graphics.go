@@ -122,10 +122,11 @@ func (g *Graphics) genNextShaderID() graphicsdriver.ShaderID {
 
 func (g *Graphics) NewImage(width, height int) (graphicsdriver.Image, error) {
 	i := &Image{
-		id:       g.genNextImageID(),
-		graphics: g,
-		width:    width,
-		height:   height,
+		id:          g.genNextImageID(),
+		graphics:    g,
+		framebuffer: invalidFramebuffer,
+		width:       width,
+		height:      height,
 	}
 	w := graphics.InternalImageSize(width)
 	h := graphics.InternalImageSize(height)
@@ -210,7 +211,7 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 	if err := destination.ensureFramebuffer(); err != nil {
 		return err
 	}
-	g.context.bindFramebuffer(destination.framebuffer.native)
+	g.context.bindFramebuffer(destination.framebuffer)
 	g.context.ctx.FramebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, uint32(destination.texture), 0)
 
 	w, h := destination.framebufferSize()
