@@ -587,10 +587,14 @@ func (g *graphics11) DrawTriangles(dstIDs [graphics.ShaderDstImageCount]graphics
 	var dsts [graphics.ShaderDstImageCount]*image11
 	var viewports [graphics.ShaderDstImageCount]_D3D11_VIEWPORT
 	var targetCount int
+	firstTarget := -1
 	for i, id := range dstIDs {
 		img := g.images[id]
 		if img == nil {
 			continue
+		}
+		if firstTarget == -1 {
+			firstTarget = i
 		}
 		dsts[i] = img
 		w, h := img.internalSize()
@@ -614,8 +618,12 @@ func (g *graphics11) DrawTriangles(dstIDs [graphics.ShaderDstImageCount]graphics
 		srcs[i] = img
 	}
 
-	// TODO: this is not correct, we can't assume that a single image means no MRT!
-	if targetCount > 1 {
+	// If the number of targets is more than one, or if the only target is the first one, then
+	// it is safe to assume that MRT is used.
+	// Also, it only matters in order to specify empty targets/viewports when not all slots are
+	// being filled.
+	usesMRT := targetCount > 1 || firstTarget > 0
+	if usesMRT {
 		targetCount = graphics.ShaderDstImageCount
 	}
 	g.deviceContext.RSSetViewports(viewports[:targetCount])
