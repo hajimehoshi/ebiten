@@ -539,13 +539,6 @@ func (g *graphics11) setAsRenderTargets(dsts []*image11, useStencil bool) error 
 		if i.screen {
 			return fmt.Errorf("directx: a stencil buffer is not available for a screen image")
 		}
-		if i.stencilView == nil {
-			sv, err := g.device.CreateDepthStencilView(unsafe.Pointer(i.stencil), nil)
-			if err != nil {
-				return err
-			}
-			i.stencilView = sv
-		}
 		if i.stencil == nil {
 			w, h := i.internalSize()
 			s, err := g.device.CreateTexture2D(&_D3D11_TEXTURE2D_DESC{
@@ -568,6 +561,13 @@ func (g *graphics11) setAsRenderTargets(dsts []*image11, useStencil bool) error 
 			}
 			i.stencil = s
 		}
+		if i.stencilView == nil {
+			sv, err := g.device.CreateDepthStencilView(unsafe.Pointer(i.stencil), nil)
+			if err != nil {
+				return err
+			}
+			i.stencilView = sv
+		}
 	}
 
 	g.deviceContext.OMSetRenderTargets(rtvs, dsts[0].stencilView)
@@ -584,25 +584,25 @@ func (g *graphics11) DrawTriangles(dstIDs [graphics.ShaderDstImageCount]graphics
 	srvs := [graphics.ShaderSrcImageCount]*_ID3D11ShaderResourceView{}
 	g.deviceContext.PSSetShaderResources(0, srvs[:])
 
-	var dsts []*image11
-	var viewports []_D3D11_VIEWPORT
-	for _, id := range dstIDs {
+	var dsts [graphics.ShaderDstImageCount]*image11
+	var viewports [graphics.ShaderDstImageCount]_D3D11_VIEWPORT
+	var targetCount int
+	for i, id := range dstIDs {
 		img := g.images[id]
 		if img == nil {
-			dsts = append(dsts, nil)
-			viewports = append(viewports, _D3D11_VIEWPORT{})
 			continue
 		}
-		dsts = append(dsts, img)
+		dsts[i] = img
 		w, h := img.internalSize()
-		viewports = append(viewports, _D3D11_VIEWPORT{
+		viewports[i] = _D3D11_VIEWPORT{
 			TopLeftX: 0,
 			TopLeftY: 0,
 			Width:    float32(w),
 			Height:   float32(h),
 			MinDepth: 0,
 			MaxDepth: 1,
-		})
+		}
+		targetCount++
 	}
 
 	var srcs [graphics.ShaderSrcImageCount]*image11
@@ -614,9 +614,13 @@ func (g *graphics11) DrawTriangles(dstIDs [graphics.ShaderDstImageCount]graphics
 		srcs[i] = img
 	}
 
-	g.deviceContext.RSSetViewports(viewports)
+	// TODO: this is not correct, we can't assume that a single image means no MRT!
+	if targetCount > 1 {
+		targetCount = graphics.ShaderDstImageCount
+	}
+	g.deviceContext.RSSetViewports(viewports[:targetCount])
 
-	if err := g.setAsRenderTargets(dsts, fillRule != graphicsdriver.FillAll); err != nil {
+	if err := g.setAsRenderTargets(dsts[:targetCount], fillRule != graphicsdriver.FillAll); err != nil {
 		return err
 	}
 

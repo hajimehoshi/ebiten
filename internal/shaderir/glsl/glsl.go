@@ -296,8 +296,6 @@ func Compile(p *shaderir.Program, version GLSLVersion) (vertexShader, fragmentSh
 	vs = strings.TrimSpace(vs) + "\n"
 	fs = strings.TrimSpace(fs) + "\n"
 
-	fmt.Println("FS:", fs)
-
 	return vs, fs
 }
 

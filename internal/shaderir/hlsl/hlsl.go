@@ -236,8 +236,6 @@ func Compile(p *shaderir.Program) (vertexShader, pixelShader string, offsets []i
 	vertexShader = shaders[0]
 	pixelShader = shaders[1]
 
-	fmt.Println("PS:", pixelShader)
-
 	return
 }
 
