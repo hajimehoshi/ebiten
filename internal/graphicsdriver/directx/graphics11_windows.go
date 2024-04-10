@@ -515,6 +515,69 @@ func (g *graphics11) removeShader(s *shader11) {
 	delete(g.shaders, s.id)
 }
 
+func (g *graphics11) setAsRenderTargets(dsts []*image11, useStencil bool) error {
+	var rtvs []*_ID3D11RenderTargetView
+	for _, i := range dsts {
+		// Ignore a nil image in case of MRT
+		if i == nil {
+			rtvs = append(rtvs, nil)
+			continue
+		}
+		if i.renderTargetView == nil {
+			rtv, err := g.device.CreateRenderTargetView(unsafe.Pointer(i.texture), nil)
+			if err != nil {
+				return err
+			}
+			i.renderTargetView = rtv
+		}
+		rtvs = append(rtvs, i.renderTargetView)
+
+		if !useStencil {
+			continue
+		}
+
+		if i.screen {
+			return fmt.Errorf("directx: a stencil buffer is not available for a screen image")
+		}
+		if i.stencilView == nil {
+			sv, err := g.device.CreateDepthStencilView(unsafe.Pointer(i.stencil), nil)
+			if err != nil {
+				return err
+			}
+			i.stencilView = sv
+		}
+		if i.stencil == nil {
+			w, h := i.internalSize()
+			s, err := g.device.CreateTexture2D(&_D3D11_TEXTURE2D_DESC{
+				Width:     uint32(w),
+				Height:    uint32(h),
+				MipLevels: 0,
+				ArraySize: 1,
+				Format:    _DXGI_FORMAT_D24_UNORM_S8_UINT,
+				SampleDesc: _DXGI_SAMPLE_DESC{
+					Count:   1,
+					Quality: 0,
+				},
+				Usage:          _D3D11_USAGE_DEFAULT,
+				BindFlags:      uint32(_D3D11_BIND_DEPTH_STENCIL),
+				CPUAccessFlags: 0,
+				MiscFlags:      0,
+			}, nil)
+			if err != nil {
+				return err
+			}
+			i.stencil = s
+		}
+	}
+
+	g.deviceContext.OMSetRenderTargets(rtvs, dsts[0].stencilView)
+	if useStencil {
+		g.deviceContext.ClearDepthStencilView(dsts[0].stencilView, uint8(_D3D11_CLEAR_STENCIL), 0, 0)
+	}
+
+	return nil
+}
+
 func (g *graphics11) DrawTriangles(dstIDs [graphics.ShaderDstImageCount]graphicsdriver.ImageID, srcIDs [graphics.ShaderSrcImageCount]graphicsdriver.ImageID, shaderID graphicsdriver.ShaderID, dstRegions []graphicsdriver.DstRegion, indexOffset int, blend graphicsdriver.Blend, uniforms []uint32, fillRule graphicsdriver.FillRule) error {
 	// Remove bound textures first. This is needed to avoid warnings on the debugger.
 	g.deviceContext.OMSetRenderTargets([]*_ID3D11RenderTargetView{nil}, nil)
@@ -522,12 +585,24 @@ func (g *graphics11) DrawTriangles(dstIDs [graphics.ShaderDstImageCount]graphics
 	g.deviceContext.PSSetShaderResources(0, srvs[:])
 
 	var dsts []*image11
+	var viewports []_D3D11_VIEWPORT
 	for _, id := range dstIDs {
 		img := g.images[id]
 		if img == nil {
+			dsts = append(dsts, nil)
+			viewports = append(viewports, _D3D11_VIEWPORT{})
 			continue
 		}
 		dsts = append(dsts, img)
+		w, h := img.internalSize()
+		viewports = append(viewports, _D3D11_VIEWPORT{
+			TopLeftX: 0,
+			TopLeftY: 0,
+			Width:    float32(w),
+			Height:   float32(h),
+			MinDepth: 0,
+			MaxDepth: 1,
+		})
 	}
 
 	var srcs [graphics.ShaderSrcImageCount]*image11
@@ -539,19 +614,9 @@ func (g *graphics11) DrawTriangles(dstIDs [graphics.ShaderDstImageCount]graphics
 		srcs[i] = img
 	}
 
-	w, h := dsts[0].internalSize()
-	g.deviceContext.RSSetViewports([]_D3D11_VIEWPORT{
-		{
-			TopLeftX: 0,
-			TopLeftY: 0,
-			Width:    float32(w),
-			Height:   float32(h),
-			MinDepth: 0,
-			MaxDepth: 1,
-		},
-	})
+	g.deviceContext.RSSetViewports(viewports)
 
-	if err := setAsRenderTargets(dsts, fillRule != graphicsdriver.FillAll); err != nil {
+	if err := g.setAsRenderTargets(dsts, fillRule != graphicsdriver.FillAll); err != nil {
 		return err
 	}
 

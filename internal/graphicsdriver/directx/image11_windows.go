@@ -204,69 +204,6 @@ func (i *image11) setAsRenderTarget(useStencil bool) error {
 	return nil
 }
 
-func setAsRenderTargets(dsts []*image11, useStencil bool) error {
-	for _, i := range dsts {
-		if i.renderTargetView == nil {
-			rtv, err := i.graphics.device.CreateRenderTargetView(unsafe.Pointer(i.texture), nil)
-			if err != nil {
-				return err
-			}
-			i.renderTargetView = rtv
-		}
-
-		if !useStencil {
-			continue
-		}
-
-		if i.screen {
-			return fmt.Errorf("directx: a stencil buffer is not available for a screen image")
-		}
-		if i.stencilView == nil {
-			sv, err := i.graphics.device.CreateDepthStencilView(unsafe.Pointer(i.stencil), nil)
-			if err != nil {
-				return err
-			}
-			i.stencilView = sv
-		}
-		if i.stencil == nil {
-			w, h := i.internalSize()
-			s, err := i.graphics.device.CreateTexture2D(&_D3D11_TEXTURE2D_DESC{
-				Width:     uint32(w),
-				Height:    uint32(h),
-				MipLevels: 0,
-				ArraySize: 1,
-				Format:    _DXGI_FORMAT_D24_UNORM_S8_UINT,
-				SampleDesc: _DXGI_SAMPLE_DESC{
-					Count:   1,
-					Quality: 0,
-				},
-				Usage:          _D3D11_USAGE_DEFAULT,
-				BindFlags:      uint32(_D3D11_BIND_DEPTH_STENCIL),
-				CPUAccessFlags: 0,
-				MiscFlags:      0,
-			}, nil)
-			if err != nil {
-				return err
-			}
-			i.stencil = s
-		}
-	}
-
-	var rtvs []*_ID3D11RenderTargetView
-	var dsvs []*_ID3D11DepthStencilView
-	for _, i := range dsts {
-		rtvs = append(rtvs, i.renderTargetView)
-		dsvs = append(dsvs, i.stencilView)
-	}
-
-	dsts[0].graphics.deviceContext.OMSetRenderTargets(rtvs, dsts[0].stencilView)
-	if useStencil {
-		dsts[0].graphics.deviceContext.ClearDepthStencilView(dsts[0].stencilView, uint8(_D3D11_CLEAR_STENCIL), 0, 0)
-	}
-
-	return nil
-}
-
 func (i *image11) getShaderResourceView() (*_ID3D11ShaderResourceView, error) {
 	if i.shaderResourceView == nil {
 		srv, err := i.graphics.device.CreateShaderResourceView(unsafe.Pointer(i.texture), nil)
