@@ -45,8 +45,8 @@ type Graphics struct {
 	// drawCalled is true just after Draw is called. This holds true until WritePixels is called.
 	drawCalled bool
 
-	uniformVariableNameCache     map[int]string
-	textureVariableNameCache     map[int]string
+	uniformVariableNameCache map[int]string
+	textureVariableNameCache map[int]string
 
 	uniformVars []uniformVariable
 
@@ -204,9 +204,9 @@ func (g *Graphics) DrawTriangles(dstIDs [graphics.ShaderDstImageCount]graphicsdr
 	}
 
 	g.drawCalled = true
-
+	g.context.ctx.BindTexture(gl.TEXTURE_2D, 0)
 	dstCount := 0
-	var destinations [graphics.ShaderDstImageCount]*Image
+	var dsts [graphics.ShaderDstImageCount]*Image
 	for i, dstID := range dstIDs {
 		if dstID == graphicsdriver.InvalidImageID {
 			continue
@@ -215,27 +215,66 @@ func (g *Graphics) DrawTriangles(dstIDs [graphics.ShaderDstImageCount]graphicsdr
 		if dst == nil {
 			continue
 		}
-		destinations[i] = dst
+		dst.ensureFramebuffer()
+		dsts[i] = dst
 		dstCount++
 	}
 	if dstCount == 0 {
 		return nil
 	}
+	g.context.bindFramebuffer(0)
+
 	// Only necessary for the same shared framebuffer
-	if err := destinations[0].setViewport(); err != nil {
-		return err
+	f := uint32(dsts[0].framebuffer.native)
+	if dstCount > 1 {
+		if g.context.mrtFramebuffer == 0 {
+			f = g.context.ctx.CreateFramebuffer()
+			if f <= 0 {
+				return fmt.Errorf("opengl: creating framebuffer failed: the returned value is not positive but %d", f)
+			}
+			g.context.mrtFramebuffer = framebufferNative(f)
+		} else {
+			f = uint32(g.context.mrtFramebuffer)
+		}
+
+		g.context.bindFramebuffer(framebufferNative(f))
+		//g.context.ctx.BindFramebuffer(gl.FRAMEBUFFER, f)
+
+		// Reset color attachments
+		if s := g.context.ctx.CheckFramebufferStatus(gl.FRAMEBUFFER); s == gl.FRAMEBUFFER_COMPLETE {
+			g.context.ctx.Clear(16384 | gl.STENCIL_BUFFER_BIT)
+		}
+		for i, dst := range dsts {
+			if dst == nil {
+				continue
+			}
+			g.context.ctx.FramebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0+uint32(i), gl.TEXTURE_2D, uint32(dst.texture), 0)
+		}
+		if s := g.context.ctx.CheckFramebufferStatus(gl.FRAMEBUFFER); s != gl.FRAMEBUFFER_COMPLETE {
+			if s != 0 {
+				return fmt.Errorf("opengl: creating framebuffer failed: %v", s)
+			}
+			if e := g.context.ctx.GetError(); e != gl.NO_ERROR {
+				return fmt.Errorf("opengl: creating framebuffer failed: (glGetError) %d", e)
+			}
+			return fmt.Errorf("opengl: creating framebuffer failed: unknown error")
+		}
+		// Color attachments
+		var attached []uint32
+		for i, dst := range dsts {
+			if dst == nil {
+				attached = append(attached, gl.NONE)
+				continue
+			}
+			attached = append(attached, uint32(gl.COLOR_ATTACHMENT0+i))
+		}
+		g.context.ctx.DrawBuffers(attached)
+	} else {
+		g.context.bindFramebuffer(framebufferNative(f))
 	}
 
-	// Color attachments
-	var attached []uint32
-	for i, dst := range destinations {
-		if dst == nil {
-			continue
-		}
-		attached = append(attached, uint32(gl.COLOR_ATTACHMENT0+i))
-		g.context.ctx.FramebufferTexture2D(gl.FRAMEBUFFER, uint32(gl.COLOR_ATTACHMENT0+i), gl.TEXTURE_2D, uint32(dst.texture), 0)
-	}
-	g.context.ctx.DrawBuffers(attached)
+	w, h := dsts[0].framebufferSize()
+	g.context.setViewport(w, h, dsts[0].screen)
 
 	g.context.blend(blend)
 
@@ -259,7 +298,7 @@ func (g *Graphics) DrawTriangles(dstIDs [graphics.ShaderDstImageCount]graphicsdr
 	}
 
 	// In OpenGL, the NDC's Y direction is upward, so flip the Y direction for the final framebuffer.
-	if dstCount == 1 && destinations[0] != nil && destinations[0].screen {
+	if dstCount == 1 && dsts[0] != nil && dsts[0].screen {
 		const idx = graphics.ProjectionMatrixUniformVariableIndex
 		// Invert the sign bits as float32 values.
 		g.uniformVars[idx].value[1] ^= 1 << 31
@@ -287,11 +326,11 @@ func (g *Graphics) DrawTriangles(dstIDs [graphics.ShaderDstImageCount]graphicsdr
 	g.uniformVars = g.uniformVars[:0]
 
 	if fillRule != graphicsdriver.FillAll {
-		for _, dst := range destinations {
+		for _, dst := range dsts {
 			if dst == nil {
 				continue
 			}
-			if err := dst.ensureStencilBuffer(); err != nil {
+			if err := dst.ensureStencilBuffer(framebufferNative(f)); err != nil {
 				return err
 			}
 		}
@@ -335,6 +374,10 @@ func (g *Graphics) DrawTriangles(dstIDs [graphics.ShaderDstImageCount]graphicsdr
 	if fillRule != graphicsdriver.FillAll {
 		g.context.ctx.Disable(gl.STENCIL_TEST)
 	}
+
+	// Detach existing color attachments
+	//g.context.bindFramebuffer(fb)
+	//TODO:
 
 	return nil
 }

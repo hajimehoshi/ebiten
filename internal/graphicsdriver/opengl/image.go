@@ -37,7 +37,6 @@ type Image struct {
 
 // framebuffer is a wrapper of OpenGL's framebuffer.
 type framebuffer struct {
-	graphics *Graphics
 	native   framebufferNative
 	width    int
 	height   int
@@ -59,14 +58,6 @@ func (i *Image) Dispose() {
 	}
 
 	i.graphics.removeImage(i)
-}
-
-func (i *Image) setViewport() error {
-	if err := i.ensureFramebuffer(); err != nil {
-		return err
-	}
-	i.graphics.context.setViewport(i.framebuffer)
-	return nil
 }
 
 func (i *Image) ReadPixels(args []graphicsdriver.PixelsArgs) error {
@@ -109,14 +100,14 @@ func (i *Image) ensureFramebuffer() error {
 	return nil
 }
 
-func (i *Image) ensureStencilBuffer() error {
+func (i *Image) ensureStencilBuffer(f framebufferNative) error {
 	if i.stencil != 0 {
 		return nil
 	}
 
-	if err := i.ensureFramebuffer(); err != nil {
+	/*if err := i.ensureFramebuffer(); err != nil {
 		return err
-	}
+	}*/
 
 	r, err := i.graphics.context.newRenderbuffer(i.framebufferSize())
 	if err != nil {
@@ -124,7 +115,7 @@ func (i *Image) ensureStencilBuffer() error {
 	}
 	i.stencil = r
 
-	if err := i.graphics.context.bindStencilBuffer(i.framebuffer.native, i.stencil); err != nil {
+	if err := i.graphics.context.bindStencilBuffer(f, i.stencil); err != nil {
 		return err
 	}
 	return nil

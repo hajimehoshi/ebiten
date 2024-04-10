@@ -229,6 +229,12 @@ func Compile(p *shaderir.Program, version GLSLVersion) (vertexShader, fragmentSh
 				fslines = append(fslines, fmt.Sprintf("in %s;", c.varDecl(p, &t, fmt.Sprintf("V%d", i))))
 			}
 		}
+		// If ES300 out colors need to be defined explicitely
+		if version == GLSLVersionES300 {
+			for i := 0; i < p.ColorsOutCount; i++ {
+				fslines = append(fslines, fmt.Sprintf("layout(location = %d) out vec4 glFragColor%d;", i, i))
+			}
+		}
 
 		var funcs []*shaderir.Func
 		if p.VertexFunc.Block != nil {
@@ -420,6 +426,9 @@ func (c *compileContext) localVariableName(p *shaderir.Program, topBlock *shader
 		case idx < nv+1:
 			return fmt.Sprintf("V%d", idx-1)
 		default:
+			if c.version == GLSLVersionES300 {
+				return fmt.Sprintf("glFragColor%d", idx-(nv+1))
+			}
 			return fmt.Sprintf("gl_FragData[%d]", idx-(nv+1))
 		}
 	default:

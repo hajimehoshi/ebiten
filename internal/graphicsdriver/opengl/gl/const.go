@@ -52,6 +52,7 @@ const (
 	MIN                   = 0x8007
 	NEAREST               = 0x2600
 	NO_ERROR              = 0
+	NONE                  = 0
 	NOTEQUAL              = 0x0205
 	ONE                   = 1
 	ONE_MINUS_DST_ALPHA   = 0x0305

@@ -24,6 +24,7 @@ var (
 	uint8Array   = js.Global().Get("Uint8Array")
 	float32Array = js.Global().Get("Float32Array")
 	int32Array   = js.Global().Get("Int32Array")
+	uint32Array  = js.Global().Get("Uint32Array")
 )
 
 var (
@@ -40,8 +41,11 @@ var (
 	// temporaryFloat32Array is a Float32ArrayBuffer whose underlying buffer is always temporaryArrayBuffer.
 	temporaryFloat32Array = float32Array.New(temporaryArrayBuffer)
 
-	// temporaryInt32Array is a Float32ArrayBuffer whose underlying buffer is always temporaryArrayBuffer.
+	// temporaryInt32Array is a Int32ArrayBuffer whose underlying buffer is always temporaryArrayBuffer.
 	temporaryInt32Array = int32Array.New(temporaryArrayBuffer)
+
+	// temporaryUint32Array is a Uint32ArrayBuffer whose underlying buffer is always temporaryArrayBuffer.
+	temporaryUint32Array = uint32Array.New(temporaryArrayBuffer)
 )
 
 func ensureTemporaryArrayBufferSize(byteLength int) {
@@ -54,6 +58,7 @@ func ensureTemporaryArrayBufferSize(byteLength int) {
 		temporaryUint8Array = uint8Array.New(temporaryArrayBuffer)
 		temporaryFloat32Array = float32Array.New(temporaryArrayBuffer)
 		temporaryInt32Array = int32Array.New(temporaryArrayBuffer)
+		temporaryUint32Array = uint32Array.New(temporaryArrayBuffer)
 	}
 }
 
@@ -100,4 +105,12 @@ func TemporaryInt32Array(minLength int, data []int32) js.Value {
 	ensureTemporaryArrayBufferSize(minLength * 4)
 	copySliceToTemporaryArrayBuffer(data)
 	return temporaryInt32Array
+}
+
+// NewUint32Array returns a Uint32Array whose length is equal to the length of data.
+func NewUint32Array(data []uint32) js.Value {
+	ensureTemporaryArrayBufferSize(len(data) * 4)
+	copySliceToTemporaryArrayBuffer(data)
+	a := temporaryUint32Array.Call("slice", 0, len(data))
+	return a
 }
