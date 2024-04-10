@@ -204,8 +204,8 @@ func (g *Graphics) DrawTriangles(dstIDs [graphics.ShaderDstImageCount]graphicsdr
 	}
 
 	g.drawCalled = true
-	g.context.ctx.BindTexture(gl.TEXTURE_2D, 0)
-	dstCount := 0
+	targetCount := 0
+	firstTarget := -1
 	var dsts [graphics.ShaderDstImageCount]*Image
 	for i, dstID := range dstIDs {
 		if dstID == graphicsdriver.InvalidImageID {
@@ -215,30 +215,32 @@ func (g *Graphics) DrawTriangles(dstIDs [graphics.ShaderDstImageCount]graphicsdr
 		if dst == nil {
 			continue
 		}
+		if firstTarget == -1 {
+			firstTarget = i
+		}
 		dst.ensureFramebuffer()
 		dsts[i] = dst
-		dstCount++
+		targetCount++
 	}
-	if dstCount == 0 {
-		return nil
-	}
-	g.context.bindFramebuffer(0)
 
-	// Only necessary for the same shared framebuffer
-	f := uint32(dsts[0].framebuffer.native)
-	if dstCount > 1 {
-		if g.context.mrtFramebuffer == 0 {
+	f := uint32(dsts[firstTarget].framebuffer.native)
+	// If the number of targets is more than one, or if the only target is the first one, then
+	// it is safe to assume that MRT is used.
+	// Also, it only matters in order to specify empty targets/viewports when not all slots are
+	// being filled.
+	usesMRT := firstTarget > 0 || targetCount > 1
+	if usesMRT {
+		f = uint32(g.context.mrtFramebuffer)
+		// Create the initial MRT framebuffer
+		if f == 0 {
 			f = g.context.ctx.CreateFramebuffer()
 			if f <= 0 {
 				return fmt.Errorf("opengl: creating framebuffer failed: the returned value is not positive but %d", f)
 			}
 			g.context.mrtFramebuffer = framebufferNative(f)
-		} else {
-			f = uint32(g.context.mrtFramebuffer)
 		}
 
 		g.context.bindFramebuffer(framebufferNative(f))
-		//g.context.ctx.BindFramebuffer(gl.FRAMEBUFFER, f)
 
 		// Reset color attachments
 		if s := g.context.ctx.CheckFramebufferStatus(gl.FRAMEBUFFER); s == gl.FRAMEBUFFER_COMPLETE {
@@ -273,8 +275,8 @@ func (g *Graphics) DrawTriangles(dstIDs [graphics.ShaderDstImageCount]graphicsdr
 		g.context.bindFramebuffer(framebufferNative(f))
 	}
 
-	w, h := dsts[0].framebuffer.viewportWidth, dsts[0].framebuffer.viewportHeight
-	g.context.setViewport(w, h, dsts[0].screen)
+	w, h := dsts[firstTarget].viewportSize() //.framebuffer.viewportWidth, dsts[firstTarget].framebuffer.viewportHeight
+	g.context.setViewport(w, h, dsts[firstTarget].screen)
 
 	g.context.blend(blend)
 
@@ -298,7 +300,7 @@ func (g *Graphics) DrawTriangles(dstIDs [graphics.ShaderDstImageCount]graphicsdr
 	}
 
 	// In OpenGL, the NDC's Y direction is upward, so flip the Y direction for the final framebuffer.
-	if dstCount == 1 && dsts[0] != nil && dsts[0].screen {
+	if !usesMRT && dsts[firstTarget].screen {
 		const idx = graphics.ProjectionMatrixUniformVariableIndex
 		// Invert the sign bits as float32 values.
 		g.uniformVars[idx].value[1] ^= 1 << 31
@@ -326,13 +328,8 @@ func (g *Graphics) DrawTriangles(dstIDs [graphics.ShaderDstImageCount]graphicsdr
 	g.uniformVars = g.uniformVars[:0]
 
 	if fillRule != graphicsdriver.FillAll {
-		for _, dst := range dsts {
-			if dst == nil {
-				continue
-			}
-			if err := dst.ensureStencilBuffer(framebufferNative(f)); err != nil {
-				return err
-			}
+		if err := dsts[firstTarget].ensureStencilBuffer(framebufferNative(f)); err != nil {
+			return err
 		}
 		g.context.ctx.Enable(gl.STENCIL_TEST)
 	}

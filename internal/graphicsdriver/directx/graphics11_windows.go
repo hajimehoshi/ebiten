@@ -622,8 +622,7 @@ func (g *graphics11) DrawTriangles(dstIDs [graphics.ShaderDstImageCount]graphics
 	// it is safe to assume that MRT is used.
 	// Also, it only matters in order to specify empty targets/viewports when not all slots are
 	// being filled.
-	usesMRT := targetCount > 1 || firstTarget > 0
-	if usesMRT {
+	if targetCount > 1 || firstTarget > 0 {
 		targetCount = graphics.ShaderDstImageCount
 	}
 	g.deviceContext.RSSetViewports(viewports[:targetCount])
