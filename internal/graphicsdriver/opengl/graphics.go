@@ -242,7 +242,7 @@ func (g *Graphics) DrawTriangles(dstIDs [graphics.ShaderDstImageCount]graphicsdr
 
 		// Reset color attachments
 		if s := g.context.ctx.CheckFramebufferStatus(gl.FRAMEBUFFER); s == gl.FRAMEBUFFER_COMPLETE {
-			g.context.ctx.Clear(16384 | gl.STENCIL_BUFFER_BIT)
+			g.context.ctx.Clear(gl.COLOR_BUFFER_BIT | gl.STENCIL_BUFFER_BIT)
 		}
 		for i, dst := range dsts {
 			if dst == nil {
