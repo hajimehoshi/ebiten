@@ -162,9 +162,9 @@ func (c *context) setViewport(width, height int, screen bool) {
 
 func (c *context) newScreenFramebuffer(width, height int) *framebuffer {
 	return &framebuffer{
-		native: c.screenFramebuffer,
-		width:  width,
-		height: height,
+		native:         c.screenFramebuffer,
+		viewportWidth:  width,
+		viewportHeight: height,
 	}
 }
 
@@ -334,9 +334,9 @@ func (c *context) newFramebuffer(texture textureNative, width, height int) (*fra
 		return nil, fmt.Errorf("opengl: creating framebuffer failed: unknown error")
 	}
 	return &framebuffer{
-		native: framebufferNative(f),
-		width:  width,
-		height: height,
+		native:         framebufferNative(f),
+		viewportWidth:  width,
+		viewportHeight: height,
 	}, nil
 }
 

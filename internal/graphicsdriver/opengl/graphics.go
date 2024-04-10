@@ -273,7 +273,7 @@ func (g *Graphics) DrawTriangles(dstIDs [graphics.ShaderDstImageCount]graphicsdr
 		g.context.bindFramebuffer(framebufferNative(f))
 	}
 
-	w, h := dsts[0].framebufferSize()
+	w, h := dsts[0].framebuffer.viewportWidth, dsts[0].framebuffer.viewportHeight
 	g.context.setViewport(w, h, dsts[0].screen)
 
 	g.context.blend(blend)

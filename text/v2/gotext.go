@@ -36,6 +36,10 @@ var _ Face = (*GoTextFace)(nil)
 // GoTextFace is a Face implementation for go-text's font.Face (github.com/go-text/typesetting).
 // With a GoTextFace, shaping.HarfBuzzShaper is always used as a shaper internally.
 // GoTextFace includes the source and various options.
+//
+// Unlike GoXFace, one GoTextFace instance doesn't have its own glyph image cache.
+// Instead, a GoTextFaceSource has a glyph image cache.
+// You can casually create multiple GoTextFace instances from the same GoTextFaceSource.
 type GoTextFace struct {
 	// Source is the font face source.
 	Source *GoTextFaceSource
@@ -164,7 +168,7 @@ func (t Tag) String() string {
 	return string([]byte{byte(t >> 24), byte(t >> 16), byte(t >> 8), byte(t)})
 }
 
-// PraseTag converts a string to Tag.
+// ParseTag converts a string to Tag.
 func ParseTag(str string) (Tag, error) {
 	if len(str) != 4 {
 		return 0, fmt.Errorf("text: a string's length must be 4 but was %d at ParseTag", len(str))
@@ -172,7 +176,7 @@ func ParseTag(str string) (Tag, error) {
 	return Tag((uint32(str[0]) << 24) | (uint32(str[1]) << 16) | (uint32(str[2]) << 8) | uint32(str[3])), nil
 }
 
-// MustPraseTag converts a string to Tag.
+// MustParseTag converts a string to Tag.
 // If parsing fails, MustParseTag panics.
 func MustParseTag(str string) Tag {
 	t, err := ParseTag(str)
