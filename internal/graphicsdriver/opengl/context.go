@@ -141,14 +141,14 @@ func (c *context) bindFramebuffer(f framebufferNative) {
 
 func (c *context) setViewport(f *framebuffer) {
 	c.bindFramebuffer(f.native)
-	if c.lastViewportWidth == f.width && c.lastViewportHeight == f.height {
+	if c.lastViewportWidth == f.viewportWidth && c.lastViewportHeight == f.viewportHeight {
 		return
 	}
 
 	// On some environments, viewport size must be within the framebuffer size.
 	// e.g. Edge (#71), Chrome on GPD Pocket (#420), macOS Mojave (#691).
 	// Use the same size of the framebuffer here.
-	c.ctx.Viewport(0, 0, int32(f.width), int32(f.height))
+	c.ctx.Viewport(0, 0, int32(f.viewportWidth), int32(f.viewportHeight))
 
 	// glViewport must be called at least at every frame on iOS.
 	// As the screen framebuffer is the last render target, next SetViewport should be
@@ -157,16 +157,16 @@ func (c *context) setViewport(f *framebuffer) {
 		c.lastViewportWidth = 0
 		c.lastViewportHeight = 0
 	} else {
-		c.lastViewportWidth = f.width
-		c.lastViewportHeight = f.height
+		c.lastViewportWidth = f.viewportWidth
+		c.lastViewportHeight = f.viewportHeight
 	}
 }
 
 func (c *context) newScreenFramebuffer(width, height int) *framebuffer {
 	return &framebuffer{
-		native: c.screenFramebuffer,
-		width:  width,
-		height: height,
+		native:         c.screenFramebuffer,
+		viewportWidth:  width,
+		viewportHeight: height,
 	}
 }
 
@@ -346,9 +346,9 @@ func (c *context) newFramebuffer(texture textureNative, width, height int) (*fra
 		return nil, fmt.Errorf("opengl: creating framebuffer failed: unknown error")
 	}
 	return &framebuffer{
-		native: framebufferNative(f),
-		width:  width,
-		height: height,
+		native:         framebufferNative(f),
+		viewportWidth:  width,
+		viewportHeight: height,
 	}, nil
 }
 
