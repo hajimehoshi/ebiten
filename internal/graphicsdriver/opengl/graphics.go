@@ -218,7 +218,9 @@ func (g *Graphics) DrawTriangles(dstIDs [graphics.ShaderDstImageCount]graphicsdr
 		if firstTarget == -1 {
 			firstTarget = i
 		}
-		dst.ensureFramebuffer()
+		if err := dst.ensureFramebuffer(); err != nil {
+			return err
+		}
 		dsts[i] = dst
 		targetCount++
 	}
