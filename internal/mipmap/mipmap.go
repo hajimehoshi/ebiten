@@ -195,6 +195,9 @@ func DrawTrianglesMRT(dsts [graphics.ShaderDstImageCount]*Mipmap, srcs [graphics
 
 	buffered.DrawTrianglesMRT(dstImgs, srcImgs, vertices, indices, blend, dstRegion, srcRegions, shader, uniforms, fillRule)
 	for _, dst := range dsts {
+		if dst == nil {
+			continue
+		}
 		dst.deallocateMipmaps()
 	}
 }

@@ -809,6 +809,9 @@ func DrawTrianglesShaderMRT(dsts [graphics.ShaderDstImageCount]*Image, vertices 
 	}
 
 	for _, dst := range dsts {
+		if dst == nil {
+			continue
+		}
 		dst.tmpUniforms = dst.tmpUniforms[:0]
 		dst.tmpUniforms = shader.appendUniforms(dst.tmpUniforms, options.Uniforms)
 	}

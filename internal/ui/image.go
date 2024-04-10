@@ -119,6 +119,9 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderSrcImageCount]*Image, vertice
 func DrawTrianglesMRT(dsts [graphics.ShaderDstImageCount]*Image, srcs [graphics.ShaderSrcImageCount]*Image, vertices []float32, indices []uint32, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderSrcImageCount]image.Rectangle, shader *Shader, uniforms []uint32, fillRule graphicsdriver.FillRule, canSkipMipmap bool, antialias bool) {
 	var dstMipmaps [graphics.ShaderDstImageCount]*mipmap.Mipmap
 	for i, dst := range dsts {
+		if dst == nil {
+			continue
+		}
 		if dst.modifyCallback != nil {
 			dst.modifyCallback()
 		}

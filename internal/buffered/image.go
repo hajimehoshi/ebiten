@@ -214,6 +214,9 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderSrcImageCount]*Image, vertice
 func DrawTrianglesMRT(dsts [graphics.ShaderDstImageCount]*Image, srcs [graphics.ShaderSrcImageCount]*Image, vertices []float32, indices []uint32, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderSrcImageCount]image.Rectangle, shader *atlas.Shader, uniforms []uint32, fillRule graphicsdriver.FillRule) {
 	for _, src := range srcs {
 		for _, dst := range dsts {
+			if dst == nil {
+				continue
+			}
 			if dst == src {
 				panic("buffered: DrawTrianglesMRT: source images must be different from the destination")
 			}
@@ -246,6 +249,9 @@ func DrawTrianglesMRT(dsts [graphics.ShaderDstImageCount]*Image, srcs [graphics.
 
 	// After rendering, the pixel cache is no longer valid.
 	for _, dst := range dsts {
+		if dst == nil {
+			continue
+		}
 		dst.pixels = nil
 	}
 }

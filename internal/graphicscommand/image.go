@@ -177,6 +177,9 @@ func DrawTrianglesMRT(dsts [graphics.ShaderDstImageCount]*Image, srcs [graphics.
 		src.flushBufferedWritePixels()
 	}
 	for _, dst := range dsts {
+		if dst == nil {
+			continue
+		}
 		dst.flushBufferedWritePixels()
 	}
 
