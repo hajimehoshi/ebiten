@@ -22,6 +22,7 @@ require (
 )
 
 require (
+	github.com/gen2brain/mpeg v0.2.2 // indirect
 	github.com/jfreymuth/vorbis v1.0.2 // indirect
 	golang.org/x/mod v0.16.0 // indirect
 )
