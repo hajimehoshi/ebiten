@@ -31,17 +31,9 @@ var shibuya_mpg []byte
 
 type Game struct {
 	player *mpegPlayer
-
-	counter int
 }
 
 func (g *Game) Update() error {
-	// Update the video player once per two ticks.
-	// This indicates to play the video in 30 FPS.
-	if g.counter % 2 == 0 {
-		g.player.Update()
-	}
-	g.counter++
 	return nil
 }
 

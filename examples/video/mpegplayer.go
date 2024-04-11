@@ -85,7 +85,8 @@ func newMPEGPlayer(src io.Reader) (*mpegPlayer, error) {
 	return p, nil
 }
 
-func (p *mpegPlayer) Update() {
+// updateFrame upadtes the current video frame.
+func (p *mpegPlayer) updateFrame() {
 	p.m.Lock()
 	defer p.m.Unlock()
 
@@ -118,6 +119,7 @@ func (p *mpegPlayer) Update() {
 
 // Draw draws the current frame onto the given screen.
 func (p *mpegPlayer) Draw(screen *ebiten.Image) {
+	p.updateFrame()
 	frame := p.currentFrame
 	sw, sh := screen.Bounds().Dx(), screen.Bounds().Dy()
 	fw, fh := frame.Bounds().Dx(), frame.Bounds().Dy()
