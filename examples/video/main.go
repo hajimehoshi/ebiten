@@ -88,7 +88,7 @@ func main() {
 	}
 	player.Play()
 
-	ebiten.SetWindowTitle("Video (Ebiten Demo)")
+	ebiten.SetWindowTitle("Video (Ebitengine Demo)")
 	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
 	if err := ebiten.RunGame(g); err != nil {
 		log.Fatal(err)
