@@ -1,13 +1,14 @@
-vec4 F0(in vec4 l0);
+void F0(in vec4 l0, out vec4 l1);
 
-vec4 F0(in vec4 l0) {
-	vec4 l1 = vec4(0);
-	for (float l2 = 0.0; l2 < 4.0; l2++) {
-		(l1).x = ((l1).x) + ((l2) * (1.0000000000e-02));
+void F0(in vec4 l0, out vec4 l1) {
+	vec4 l2 = vec4(0);
+	for (float l3 = 0.0; l3 < 4.0; l3++) {
+		(l2).x = ((l2).x) + ((l3) * (1.0000000000e-02));
 	}
-	return l1;
+	l1 = l2;
+	return;
 }
 
 void main(void) {
-	fragColor = F0(gl_FragCoord);
+	F0(gl_FragCoord, gl_FragData[0]);
 }
