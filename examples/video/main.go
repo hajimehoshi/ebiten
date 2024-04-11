@@ -31,14 +31,23 @@ var shibuya_mpg []byte
 
 type Game struct {
 	player *mpegPlayer
+	err    error
 }
 
 func (g *Game) Update() error {
+	if g.err != nil {
+		return g.err
+	}
 	return nil
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	g.player.Draw(screen)
+	if g.err != nil {
+		return
+	}
+	if err := g.player.Draw(screen); err != nil {
+		g.err = err
+	}
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {

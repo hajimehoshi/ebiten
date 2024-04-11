@@ -16,6 +16,7 @@ package main
 
 import (
 	"fmt"
+	"image"
 	"io"
 	"sync"
 	"time"
@@ -28,8 +29,22 @@ import (
 type mpegPlayer struct {
 	mpg *mpeg.MPEG
 
-	currentFrame *ebiten.Image
-	audioPlayer  *audio.Player
+	// yCbCrImage is the current frame image in YCbCr format.
+	// An MPEG frame is stored in this image first.
+	// Then, this image data is converted to RGB to frameImage.
+	yCbCrImage *ebiten.Image
+
+	// yCbCrBytes is the byte slice to store YCbCr data.
+	// This includes Y, Cb, Cr, and alpha (always 0xff) data for each pixel.
+	yCbCrBytes []byte
+
+	// yCbCrShader is the shader to convert YCbCr to RGB.
+	yCbCrShader *ebiten.Shader
+
+	// frameImage is the current frame image in RGB format.
+	frameImage *ebiten.Image
+
+	audioPlayer *audio.Player
 
 	// These members are used when the video doesn't have an audio stream.
 	refTime time.Time
@@ -50,9 +65,31 @@ func newMPEGPlayer(src io.Reader) (*mpegPlayer, error) {
 	}
 
 	p := &mpegPlayer{
-		mpg:          mpg,
-		currentFrame: ebiten.NewImage(mpg.Width(), mpg.Height()),
+		mpg:        mpg,
+		yCbCrImage: ebiten.NewImage(mpg.Width(), mpg.Height()),
+		yCbCrBytes: make([]byte, 4*mpg.Width()*mpg.Height()),
+		frameImage: ebiten.NewImage(mpg.Width(), mpg.Height()),
 	}
+
+	s, err := ebiten.NewShader([]byte(`package main
+
+//kage:unit pixels
+
+func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+	// For this calculation, see the comment in the standard library color.YCbCrToRGB function.
+	c := imageSrc0UnsafeAt(srcPos)
+	return vec4(
+		c.x + 1.40200 * (c.z-0.5),
+		c.x - 0.34414 * (c.y-0.5) - 0.71414 * (c.z-0.5),
+		c.x + 1.77200 * (c.y-0.5),
+		1,
+	)
+}
+`))
+	if err != nil {
+		return nil, err
+	}
+	p.yCbCrShader = s
 
 	// If the video doesn't have an audio stream, initialization is done.
 	if mpg.NumAudioStreams() == 0 {
@@ -86,7 +123,7 @@ func newMPEGPlayer(src io.Reader) (*mpegPlayer, error) {
 }
 
 // updateFrame upadtes the current video frame.
-func (p *mpegPlayer) updateFrame() {
+func (p *mpegPlayer) updateFrame() error {
 	p.m.Lock()
 	defer p.m.Unlock()
 
@@ -101,8 +138,8 @@ func (p *mpegPlayer) updateFrame() {
 
 	video := p.mpg.Video()
 	if video.HasEnded() {
-		p.currentFrame.Clear()
-		return
+		p.frameImage.Clear()
+		return nil
 	}
 
 	d := 1 / p.mpg.Framerate()
@@ -112,15 +149,43 @@ func (p *mpegPlayer) updateFrame() {
 	}
 
 	if mpegFrame == nil {
-		return
+		return nil
 	}
-	p.currentFrame.WritePixels(mpegFrame.RGBA().Pix)
+
+	img := mpegFrame.YCbCr()
+	if img.SubsampleRatio != image.YCbCrSubsampleRatio420 {
+		return fmt.Errorf("video: subsample ratio must be 4:2:0")
+	}
+	w, h := p.mpg.Width(), p.mpg.Height()
+	for j := 0; j < h; j++ {
+		yi := j * img.YStride
+		ci := j / 2 * img.CStride
+		for i := 0; i < w; i++ {
+			idx := 4 * (i + j*w)
+			p.yCbCrBytes[idx] = img.Y[yi+i]
+			p.yCbCrBytes[idx+1] = img.Cb[ci+i/2]
+			p.yCbCrBytes[idx+2] = img.Cr[ci+i/2]
+			p.yCbCrBytes[idx+3] = 0xff
+		}
+	}
+
+	p.yCbCrImage.WritePixels(p.yCbCrBytes)
+
+	// Converting YCbCr to RGB on CPU is slow. Use a shader instead.
+	op := &ebiten.DrawRectShaderOptions{}
+	op.Images[0] = p.yCbCrImage
+	p.frameImage.DrawRectShader(w, h, p.yCbCrShader, op)
+
+	return nil
 }
 
 // Draw draws the current frame onto the given screen.
-func (p *mpegPlayer) Draw(screen *ebiten.Image) {
-	p.updateFrame()
-	frame := p.currentFrame
+func (p *mpegPlayer) Draw(screen *ebiten.Image) error {
+	if err := p.updateFrame(); err != nil {
+		return err
+	}
+
+	frame := p.frameImage
 	sw, sh := screen.Bounds().Dx(), screen.Bounds().Dy()
 	fw, fh := frame.Bounds().Dx(), frame.Bounds().Dy()
 
@@ -137,6 +202,7 @@ func (p *mpegPlayer) Draw(screen *ebiten.Image) {
 	op.Filter = ebiten.FilterLinear
 
 	screen.DrawImage(frame, &op)
+	return nil
 }
 
 // Play starts playing the video.
