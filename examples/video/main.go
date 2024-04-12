@@ -24,6 +24,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/audio"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 )
 
 //go:embed shibuya.mpg
@@ -48,6 +49,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	if err := g.player.Draw(screen); err != nil {
 		g.err = err
 	}
+	ebitenutil.DebugPrint(screen, fmt.Sprintf("FPS: %0.2f", ebiten.ActualFPS()))
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
