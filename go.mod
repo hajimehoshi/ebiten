@@ -7,6 +7,7 @@ require (
 	github.com/ebitengine/hideconsole v1.0.0
 	github.com/ebitengine/oto/v3 v3.3.0-alpha.1
 	github.com/ebitengine/purego v0.8.0-alpha.1
+	github.com/gen2brain/mpeg v0.3.0
 	github.com/go-text/typesetting v0.1.1-0.20240402181327-ced1d6822703
 	github.com/hajimehoshi/bitmapfont/v3 v3.0.0
 	github.com/hajimehoshi/go-mp3 v0.3.4
@@ -22,7 +23,6 @@ require (
 )
 
 require (
-	github.com/gen2brain/mpeg v0.2.2 // indirect
 	github.com/jfreymuth/vorbis v1.0.2 // indirect
 	golang.org/x/mod v0.16.0 // indirect
 )
