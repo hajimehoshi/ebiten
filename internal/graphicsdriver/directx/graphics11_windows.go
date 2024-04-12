@@ -625,6 +625,7 @@ func (g *graphics11) DrawTriangles(dstIDs [graphics.ShaderDstImageCount]graphics
 	if targetCount > 1 || firstTarget > 0 {
 		targetCount = graphics.ShaderDstImageCount
 	}
+	
 	g.deviceContext.RSSetViewports(viewports[:targetCount])
 
 	if err := g.setAsRenderTargets(dsts[:targetCount], fillRule != graphicsdriver.FillAll); err != nil {
