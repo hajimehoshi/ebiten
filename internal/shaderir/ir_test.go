@@ -1019,8 +1019,8 @@ in vec2 V1;`,
 				FragmentFunc: shaderir.FragmentFunc{
 					Block: block(
 						[]shaderir.Type{
+							{Main: shaderir.Vec4},
 							{Main: shaderir.Float},
-							{Main: shaderir.Vec2},
 						},
 						3,
 						assignStmt(
@@ -1032,7 +1032,12 @@ in vec2 V1;`,
 							localVariableExpr(1),
 						),
 						returnStmt(
-							localVariableExpr(2),
+							callExpr(
+								builtinFuncExpr(shaderir.Vec4F),
+								localVariableExpr(2),
+								localVariableExpr(1),
+								localVariableExpr(1),
+							),
 						),
 					),
 				},
@@ -1058,11 +1063,11 @@ in vec2 V1;
 vec4 F0(in vec4 l0, in float l1, in vec2 l2);
 
 vec4 F0(in vec4 l0, in float l1, in vec2 l2) {
-	float l3 = float(0);
-	vec2 l4 = vec2(0);
+	vec4 l3 = vec4(0);
+	float l4 = float(0);
 	l3 = l0;
 	l4 = l1;
-	return l2;
+	return vec4(l2, l1, l1);
 }
 
 void main(void) {
