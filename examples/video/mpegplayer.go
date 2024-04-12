@@ -159,13 +159,18 @@ func (p *mpegPlayer) updateFrame() error {
 	w, h := p.mpg.Width(), p.mpg.Height()
 	for j := 0; j < h; j++ {
 		yi := j * img.YStride
-		ci := j / 2 * img.CStride
+		ci := (j / 2) * img.CStride
+		// Create temporary slices to encourage BCE (boundary-checking elimination).
+		ys := img.Y[yi : yi+w]
+		cbs := img.Cb[ci : ci+w/2]
+		crs := img.Cr[ci : ci+w/2]
 		for i := 0; i < w; i++ {
-			idx := 4 * (i + j*w)
-			p.yCbCrBytes[idx] = img.Y[yi+i]
-			p.yCbCrBytes[idx+1] = img.Cb[ci+i/2]
-			p.yCbCrBytes[idx+2] = img.Cr[ci+i/2]
-			p.yCbCrBytes[idx+3] = 0xff
+			idx := 4 * (j*w + i)
+			buf := p.yCbCrBytes[idx : idx+3]
+			buf[0] = ys[i]
+			buf[1] = cbs[i/2]
+			buf[2] = crs[i/2]
+			// p.yCbCrBytes[3] = 0xff is not needed as the shader ignores this part.
 		}
 	}
 
@@ -174,6 +179,7 @@ func (p *mpegPlayer) updateFrame() error {
 	// Converting YCbCr to RGB on CPU is slow. Use a shader instead.
 	op := &ebiten.DrawRectShaderOptions{}
 	op.Images[0] = p.yCbCrImage
+	op.Blend = ebiten.BlendCopy
 	p.frameImage.DrawRectShader(w, h, p.yCbCrShader, op)
 
 	return nil
