@@ -31,7 +31,7 @@ const (
 )
 
 var (
-	dsts = [4]*ebiten.Image{
+	dsts = [8]*ebiten.Image{
 		/*ebiten.NewImage(dstSize, dstSize),
 		ebiten.NewImage(dstSize, dstSize),
 		ebiten.NewImage(dstSize, dstSize),

@@ -218,7 +218,7 @@ func DrawTrianglesMRT(dsts [graphics.ShaderDstImageCount]*Image, srcs [graphics.
 				continue
 			}
 			if dst == src {
-				panic("buffered: DrawTrianglesMRT: source images must be different from the destination")
+				panic("buffered: DrawTrianglesMRT: source images must be different from the destination images")
 			}
 		}
 		if src != nil {

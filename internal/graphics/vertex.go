@@ -16,7 +16,11 @@ package graphics
 
 const (
 	ShaderSrcImageCount = 4
-	ShaderDstImageCount = 4
+	// The minimum guaranteed value for the number of target seems to be 8
+	// OpenGL(8): https://www.khronos.org/opengl/wiki/Framebuffer_Object#Framebuffer_Object_Structure
+	// DirectX11(8): https://learn.microsoft.com/en-us/windows/win32/direct3d11/d3d10-graphics-programming-guide-output-merger-stage#multiple-rendertargets-overview
+	// Metal(8): Page 7 of 15: https://developer.apple.com/metal/Metal-Feature-Set-Tables.pdf
+	ShaderDstImageCount = 8
 
 	// PreservedUniformVariablesCount represents the number of preserved uniform variables.
 	// Any shaders in Ebitengine must have these uniform variables.

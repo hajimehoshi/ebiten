@@ -590,7 +590,7 @@ func drawTrianglesMRT(dsts [graphics.ShaderDstImageCount]*Image, srcs [graphics.
 		// i and a source image might share the same atlas even though i != src.
 		for _, dst := range dsts {
 			if src != nil && dst != nil && dst.backend.image == src.backend.image {
-				panic("atlas: Image.DrawTriangles: source must be different from the receiver")
+				panic("atlas: DrawTrianglesMRT: source must be different from the destination images")
 			}
 		}
 	}
