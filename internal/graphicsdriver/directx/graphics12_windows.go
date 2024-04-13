@@ -1177,7 +1177,7 @@ func (g *graphics12) DrawTriangles(dstIDs [graphics.ShaderDstImageCount]graphics
 	var resourceBarriers []_D3D12_RESOURCE_BARRIER_Transition
 
 	var dsts [graphics.ShaderDstImageCount]*image12
-	var viewports [graphics.ShaderDstImageCount]_D3D12_VIEWPORT
+	var vp _D3D12_VIEWPORT
 	var targetCount int
 	firstTarget := -1
 	for i, id := range dstIDs {
@@ -1190,7 +1190,7 @@ func (g *graphics12) DrawTriangles(dstIDs [graphics.ShaderDstImageCount]graphics
 		}
 		dsts[i] = img
 		w, h := img.internalSize()
-		viewports[i] = _D3D12_VIEWPORT{
+		vp = _D3D12_VIEWPORT{
 			TopLeftX: 0,
 			TopLeftY: 0,
 			Width:    float32(w),
@@ -1231,8 +1231,7 @@ func (g *graphics12) DrawTriangles(dstIDs [graphics.ShaderDstImageCount]graphics
 		targetCount = graphics.ShaderDstImageCount
 	}
 
-	g.drawCommandList.RSSetViewports(viewports[:targetCount])
-
+	g.drawCommandList.RSSetViewports([]_D3D12_VIEWPORT{vp})
 	if err := g.setAsRenderTargets(dsts[:targetCount], fillRule != graphicsdriver.FillAll); err != nil {
 		return err
 	}

@@ -36,9 +36,9 @@ var (
 		ebiten.NewImage(dstSize, dstSize),
 		ebiten.NewImage(dstSize, dstSize),
 		ebiten.NewImage(dstSize, dstSize),*/
-		ebiten.NewImageWithOptions(image.Rect(0, 0, dstSize, dstSize), &ebiten.NewImageOptions{
+		nil,/*ebiten.NewImageWithOptions(image.Rect(0, 0, dstSize, dstSize), &ebiten.NewImageOptions{
 			Unmanaged: true,
-		}),
+		}),*/
 		ebiten.NewImageWithOptions(image.Rect(0, 0, dstSize, dstSize), &ebiten.NewImageOptions{
 			Unmanaged: true,
 		}),
@@ -101,7 +101,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	indices := []uint16{0, 1, 2, 1, 2, 3}
 	ebiten.DrawTrianglesShaderMRT(dsts, vertices, indices, s, nil)
 	// Dst 0
-	screen.DrawImage(dsts[0], nil)
+	//screen.DrawImage(dsts[0], nil)
 	// Dst 1
 	opts := &ebiten.DrawImageOptions{}
 	opts.GeoM.Translate(dstSize, 0)

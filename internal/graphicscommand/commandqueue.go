@@ -330,7 +330,14 @@ func (q *commandQueue) prependPreservedUniforms(uniforms []uint32, shader *Shade
 	copy(uniforms[graphics.PreservedUniformUint32Count:], origUniforms)
 
 	// Set the destination texture size.
-	dw, dh := dsts[0].InternalSize()
+	var firstDst *Image
+	for _, dst := range dsts {
+		if dst != nil {
+			firstDst = dst
+			break
+		}
+	}
+	dw, dh := firstDst.InternalSize()
 	uniforms[0] = math.Float32bits(float32(dw))
 	uniforms[1] = math.Float32bits(float32(dh))
 	uniformIndex := 2

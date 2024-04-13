@@ -2652,7 +2652,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) (vec4, vec4, vec4, vec4, vec
 		},
 	}
 	indices := []uint16{0, 1, 2, 1, 2, 3}
-	t.Run("8 slots", func(t *testing.T) {
+	t.Run("8 locations", func(t *testing.T) {
 		wantColors := [8]color.RGBA{
 			{R: 0xff, G: 0, B: 0, A: 0xff},
 			{R: 0, G: 0xff, B: 0, A: 0xff},
@@ -2663,15 +2663,45 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) (vec4, vec4, vec4, vec4, vec
 			{R: 0xff, G: 0xff, B: 0xff, A: 0xff},
 			{R: 0xff, G: 0xff, B: 0xff, A: 0},
 		}
-		dsts := imgs
-		ebiten.DrawTrianglesShaderMRT(dsts, vertices, indices, s, nil)
-		for k, dst := range dsts {
+		ebiten.DrawTrianglesShaderMRT(imgs, vertices, indices, s, nil)
+		for k, dst := range imgs {
 			for j := 0; j < h; j++ {
 				for i := 0; i < w; i++ {
 					got := dst.At(i, j).(color.RGBA)
 					want := wantColors[k]
 					if !sameColors(got, want, 1) {
 						t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
+					}
+				}
+			}
+		}
+	})
+
+	for _, img := range imgs {
+		img.Clear()
+	}
+	t.Run("Empty locations", func(t *testing.T) {
+		wantColors := [8]color.RGBA{
+			{},
+			{R: 0, G: 0xff, B: 0, A: 0xff},
+			{},
+			{R: 0xff, G: 0, B: 0xff, A: 0xff},
+			{},
+			{R: 0, G: 0xff, B: 0xff, A: 0xff},
+			{},
+			{R: 0xff, G: 0xff, B: 0xff, A: 0},
+		}
+		dsts := [8]*ebiten.Image{
+			nil, imgs[1], nil, imgs[3], nil, imgs[5], nil, imgs[7],
+		}
+		ebiten.DrawTrianglesShaderMRT(dsts, vertices, indices, s, nil)
+		for k, dst := range imgs {
+			for j := 0; j < h; j++ {
+				for i := 0; i < w; i++ {
+					got := dst.At(i, j).(color.RGBA)
+					want := wantColors[k]
+					if !sameColors(got, want, 1) {
+						t.Errorf("%d dst.At(%d, %d): got: %v, want: %v", k, i, j, got, want)
 					}
 				}
 			}

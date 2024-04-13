@@ -711,10 +711,8 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 //
 // When the image i is disposed, DrawTrianglesShader does nothing.
 func DrawTrianglesShaderMRT(dsts [graphics.ShaderDstImageCount]*Image, vertices []Vertex, indices []uint16, shader *Shader, options *DrawTrianglesShaderOptions) {
-	if dsts[0] == nil || dsts[0].isDisposed() {
-		panic("ebiten: the first destination image given to DrawTrianglesShaderMRT must not be nil or disposed")
-	}
 	var dstImgs [graphics.ShaderDstImageCount]*ui.Image
+	var firstDst *Image
 	for i, dst := range dsts {
 		if dst == nil {
 			continue
@@ -722,6 +720,9 @@ func DrawTrianglesShaderMRT(dsts [graphics.ShaderDstImageCount]*Image, vertices 
 		dst.copyCheck()
 		if dst.isDisposed() {
 			panic("ebiten: the destination images given to DrawTrianglesShaderMRT must not be disposed")
+		}
+		if firstDst == nil {
+			firstDst = dst
 		}
 		dstImgs[i] = dst.image
 	}
@@ -754,7 +755,7 @@ func DrawTrianglesShaderMRT(dsts [graphics.ShaderDstImageCount]*Image, vertices 
 		blend = options.CompositeMode.blend().internalBlend()
 	}
 
-	dst := dsts[0]
+	dst := firstDst
 	vs := dst.ensureTmpVertices(len(vertices) * graphics.VertexFloatCount)
 	src := options.Images[0]
 	for i, v := range vertices {

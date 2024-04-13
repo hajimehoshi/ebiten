@@ -576,12 +576,14 @@ func drawTrianglesMRT(dsts [graphics.ShaderDstImageCount]*Image, srcs [graphics.
 		src.backend.sourceInThisFrame = true
 	}
 
+	var firstDst *Image
 	var dstImgs [graphics.ShaderDstImageCount]*graphicscommand.Image
 	for i, dst := range dsts {
 		if dst == nil {
 			continue
 		}
 		dst.ensureIsolatedFromSource(backends)
+		firstDst = dst
 		dstImgs[i] = dst.backend.image
 	}
 
@@ -595,7 +597,7 @@ func drawTrianglesMRT(dsts [graphics.ShaderDstImageCount]*Image, srcs [graphics.
 		}
 	}
 
-	r := dsts[0].regionWithPadding()
+	r := firstDst.regionWithPadding()
 	// TODO: Check if dstRegion does not to violate the region.
 	dstRegion = dstRegion.Add(r.Min)
 
