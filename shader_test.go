@@ -2595,3 +2595,86 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 		}
 	}
 }
+
+// Issue #2930
+func TestShaderMRT(t *testing.T) {
+	const w, h = 16, 16
+
+	s, err := ebiten.NewShader([]byte(`//kage:unit pixels
+
+package main
+
+func Fragment(dstPos vec4, srcPos vec2, color vec4) (vec4, vec4, vec4, vec4, vec4, vec4, vec4, vec4) {
+	return vec4(1, 0, 0, 1),
+		vec4(0, 1, 0, 1),
+		vec4(0, 0, 1, 1),
+		vec4(1, 0, 1, 1),
+		vec4(1, 1, 0, 1),
+		vec4(0, 1, 1, 1),
+		vec4(1, 1, 1, 1),
+		vec4(1, 1, 1, 0)
+}
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	bounds := image.Rect(0, 0, w, h)
+	opts := &ebiten.NewImageOptions{
+		Unmanaged: true,
+	}
+	imgs := [8]*ebiten.Image{
+		ebiten.NewImageWithOptions(bounds, opts),
+		ebiten.NewImageWithOptions(bounds, opts),
+		ebiten.NewImageWithOptions(bounds, opts),
+		ebiten.NewImageWithOptions(bounds, opts),
+		ebiten.NewImageWithOptions(bounds, opts),
+		ebiten.NewImageWithOptions(bounds, opts),
+		ebiten.NewImageWithOptions(bounds, opts),
+		ebiten.NewImageWithOptions(bounds, opts),
+	}
+	vertices := []ebiten.Vertex{
+		{
+			DstX: 0,
+			DstY: 0,
+		},
+		{
+			DstX: w,
+			DstY: 0,
+		},
+		{
+			DstX: 0,
+			DstY: h,
+		},
+		{
+			DstX: w,
+			DstY: h,
+		},
+	}
+	indices := []uint16{0, 1, 2, 1, 2, 3}
+	t.Run("8 slots", func(t *testing.T) {
+		wantColors := [8]color.RGBA{
+			{R: 0xff, G: 0, B: 0, A: 0xff},
+			{R: 0, G: 0xff, B: 0, A: 0xff},
+			{R: 0, G: 0, B: 0xff, A: 0xff},
+			{R: 0xff, G: 0, B: 0xff, A: 0xff},
+			{R: 0xff, G: 0xff, B: 0, A: 0xff},
+			{R: 0, G: 0xff, B: 0xff, A: 0xff},
+			{R: 0xff, G: 0xff, B: 0xff, A: 0xff},
+			{R: 0xff, G: 0xff, B: 0xff, A: 0},
+		}
+		dsts := imgs
+		ebiten.DrawTrianglesShaderMRT(dsts, vertices, indices, s, nil)
+		for k, dst := range dsts {
+			for j := 0; j < h; j++ {
+				for i := 0; i < w; i++ {
+					got := dst.At(i, j).(color.RGBA)
+					want := wantColors[k]
+					if !sameColors(got, want, 1) {
+						t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
+					}
+				}
+			}
+		}
+	})
+}
