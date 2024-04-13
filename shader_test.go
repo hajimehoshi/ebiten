@@ -2697,6 +2697,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) (vec4, vec4, vec4, vec4, vec
 		}
 		ebiten.DrawTrianglesShaderMRT(dsts, vertices, indices, s, nil)
 		for k, dst := range imgs {
+			t.Log("image index:", k)
 			for j := 0; j < h; j++ {
 				for i := 0; i < w; i++ {
 					got := dst.At(i, j).(color.RGBA)
