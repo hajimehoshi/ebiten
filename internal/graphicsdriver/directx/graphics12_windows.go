@@ -1084,7 +1084,7 @@ func (g *graphics12) NewShader(program *shaderir.Program) (graphicsdriver.Shader
 
 func (g *graphics12) setAsRenderTargets(dsts []*image12, useStencil bool) error {
 	var rtvs []_D3D12_CPU_DESCRIPTOR_HANDLE
-	var dsvPtr *_D3D12_CPU_DESCRIPTOR_HANDLE
+	var dsv *_D3D12_CPU_DESCRIPTOR_HANDLE
 
 	for i, img := range dsts {
 		// Ignore a nil image in case of MRT
@@ -1127,18 +1127,18 @@ func (g *graphics12) setAsRenderTargets(dsts []*image12, useStencil bool) error 
 		rtv := rtvBase
 		rtvs = append(rtvs, rtv)
 
-		if !useStencil || dsvPtr != nil {
+		if !useStencil || dsv != nil {
 			continue
 		}
 
 		if err := img.ensureDepthStencilView(g.device); err != nil {
 			return err
 		}
-		dsv, err := img.dsvDescriptorHeap.GetCPUDescriptorHandleForHeapStart()
+		sv, err := img.dsvDescriptorHeap.GetCPUDescriptorHandleForHeapStart()
 		if err != nil {
 			return err
 		}
-		dsvPtr = &dsv
+		dsv = &sv
 	}
 
 	if !useStencil {
@@ -1147,8 +1147,8 @@ func (g *graphics12) setAsRenderTargets(dsts []*image12, useStencil bool) error 
 	}
 
 	g.drawCommandList.OMSetStencilRef(0)
-	g.drawCommandList.OMSetRenderTargets(rtvs, false, dsvPtr)
-	g.drawCommandList.ClearDepthStencilView(*dsvPtr, _D3D12_CLEAR_FLAG_STENCIL, 0, 0, nil)
+	g.drawCommandList.OMSetRenderTargets(rtvs, false, dsv)
+	g.drawCommandList.ClearDepthStencilView(*dsv, _D3D12_CLEAR_FLAG_STENCIL, 0, 0, nil)
 
 	return nil
 }

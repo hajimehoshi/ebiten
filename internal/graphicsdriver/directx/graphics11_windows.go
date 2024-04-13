@@ -518,30 +518,30 @@ func (g *graphics11) removeShader(s *shader11) {
 func (g *graphics11) setAsRenderTargets(dsts []*image11, useStencil bool) error {
 	var rtvs []*_ID3D11RenderTargetView
 	var dsv *_ID3D11DepthStencilView
-	for _, i := range dsts {
+	for _, dst := range dsts {
 		// Ignore a nil image in case of MRT
-		if i == nil {
+		if dst == nil {
 			rtvs = append(rtvs, nil)
 			continue
 		}
-		if i.renderTargetView == nil {
-			rtv, err := g.device.CreateRenderTargetView(unsafe.Pointer(i.texture), nil)
+		if dst.renderTargetView == nil {
+			rtv, err := g.device.CreateRenderTargetView(unsafe.Pointer(dst.texture), nil)
 			if err != nil {
 				return err
 			}
-			i.renderTargetView = rtv
+			dst.renderTargetView = rtv
 		}
-		rtvs = append(rtvs, i.renderTargetView)
+		rtvs = append(rtvs, dst.renderTargetView)
 
 		if !useStencil || dsv != nil {
 			continue
 		}
 
-		if i.screen {
+		if dst.screen {
 			return fmt.Errorf("directx: a stencil buffer is not available for a screen image")
 		}
-		if i.stencil == nil {
-			w, h := i.internalSize()
+		if dst.stencil == nil {
+			w, h := dst.internalSize()
 			s, err := g.device.CreateTexture2D(&_D3D11_TEXTURE2D_DESC{
 				Width:     uint32(w),
 				Height:    uint32(h),
@@ -560,16 +560,16 @@ func (g *graphics11) setAsRenderTargets(dsts []*image11, useStencil bool) error 
 			if err != nil {
 				return err
 			}
-			i.stencil = s
+			dst.stencil = s
 		}
-		if i.stencilView == nil {
-			sv, err := g.device.CreateDepthStencilView(unsafe.Pointer(i.stencil), nil)
+		if dst.stencilView == nil {
+			sv, err := g.device.CreateDepthStencilView(unsafe.Pointer(dst.stencil), nil)
 			if err != nil {
 				return err
 			}
-			i.stencilView = sv
-			dsv = sv
+			dst.stencilView = sv
 		}
+		dsv = dst.stencilView
 	}
 
 	g.deviceContext.OMSetRenderTargets(rtvs, dsv)
