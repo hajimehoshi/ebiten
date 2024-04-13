@@ -17,12 +17,6 @@ import (
 )
 
 func checkValidContextConfig(ctxconfig *ctxconfig) error {
-	if ctxconfig.share != nil {
-		if ctxconfig.client == NoAPI || ctxconfig.share.context.client == NoAPI {
-			return NoWindowContext
-		}
-	}
-
 	if ctxconfig.source != NativeContextAPI &&
 		ctxconfig.source != EGLContextAPI &&
 		ctxconfig.source != OSMesaContextAPI {
@@ -33,6 +27,15 @@ func checkValidContextConfig(ctxconfig *ctxconfig) error {
 		ctxconfig.client != OpenGLAPI &&
 		ctxconfig.client != OpenGLESAPI {
 		return fmt.Errorf("glfw: invalid client API 0x%08X: %w", ctxconfig.client, InvalidEnum)
+	}
+
+	if ctxconfig.share != nil {
+		if ctxconfig.client == NoAPI || ctxconfig.share.context.client == NoAPI {
+			return NoWindowContext
+		}
+		if ctxconfig.source != ctxconfig.share.context.source {
+			return fmt.Errorf("glfw: context creation APIs do not match between contexts: %w", InvalidEnum)
+		}
 	}
 
 	if ctxconfig.client == OpenGLAPI {
@@ -249,11 +252,11 @@ func (w *Window) refreshContextAttribs(ctxconfig *ctxconfig) (ferr error) {
 	w.context.source = ctxconfig.source
 	w.context.client = OpenGLAPI
 
-	p, err := _glfw.contextSlot.get()
+	p1, err := _glfw.contextSlot.get()
 	if err != nil {
 		return err
 	}
-	previous := (*Window)(unsafe.Pointer(p))
+	previous := (*Window)(unsafe.Pointer(p1))
 	defer func() {
 		err := previous.MakeContextCurrent()
 		if ferr == nil {
@@ -262,6 +265,14 @@ func (w *Window) refreshContextAttribs(ctxconfig *ctxconfig) (ferr error) {
 	}()
 	if err := w.MakeContextCurrent(); err != nil {
 		return err
+	}
+
+	p2, err := _glfw.contextSlot.get()
+	if err != nil {
+		return err
+	}
+	if (*Window)(unsafe.Pointer(p2)) != w {
+		return nil
 	}
 
 	getIntegerv := w.context.getProcAddress("glGetIntegerv")

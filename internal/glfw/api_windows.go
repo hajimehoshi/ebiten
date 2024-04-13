@@ -121,6 +121,7 @@ const (
 	_PFD_SUPPORT_OPENGL                                        = 0x00000020
 	_PFD_TYPE_RGBA                                             = 0
 	_QS_ALLEVENTS                                              = _QS_INPUT | _QS_POSTMESSAGE | _QS_TIMER | _QS_PAINT | _QS_HOTKEY
+	_QS_ALLINPUT                                               = _QS_INPUT | _QS_POSTMESSAGE | _QS_TIMER | _QS_PAINT | _QS_HOTKEY | _QS_SENDMESSAGE
 	_QS_HOTKEY                                                 = 0x0080
 	_QS_INPUT                                                  = _QS_MOUSE | _QS_KEY | _QS_RAWINPUT
 	_QS_KEY                                                    = 0x0001
@@ -130,6 +131,7 @@ const (
 	_QS_PAINT                                                  = 0x0020
 	_QS_POSTMESSAGE                                            = 0x0008
 	_QS_RAWINPUT                                               = 0x0400
+	_QS_SENDMESSAGE                                            = 0x0040
 	_QS_TIMER                                                  = 0x0010
 	_RID_INPUT                                                 = 0x10000003
 	_RIDEV_REMOVE                                              = 0x00000001

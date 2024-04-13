@@ -127,48 +127,29 @@ func createIcon(image *Image, xhot, yhot int, icon bool) (_HICON, error) {
 	return handle, nil
 }
 
-func getFullWindowSize(style uint32, exStyle uint32, contentWidth, contentHeight int, dpi uint32) (fullWidth, fullHeight int, err error) {
-	if microsoftgdk.IsXbox() {
-		return contentWidth, contentHeight, nil
-	}
+func (w *Window) applyAspectRatio(edge int, area *_RECT) error {
+	var frame _RECT
 
-	rect := _RECT{
-		left:   0,
-		top:    0,
-		right:  int32(contentWidth),
-		bottom: int32(contentHeight),
-	}
+	ratio := float32(w.numer) / float32(w.denom)
+	style := w.getWindowStyle()
+	exStyle := w.getWindowExStyle()
+
 	if winver.IsWindows10AnniversaryUpdateOrGreater() {
-		if err := _AdjustWindowRectExForDpi(&rect, style, false, exStyle, dpi); err != nil {
-			return 0, 0, err
+		if err := _AdjustWindowRectExForDpi(&frame, style, false, exStyle, _GetDpiForWindow(w.platform.handle)); err != nil {
+			return err
 		}
 	} else {
-		if err := _AdjustWindowRectEx(&rect, style, false, exStyle); err != nil {
-			return 0, 0, err
+		if err := _AdjustWindowRectEx(&frame, style, false, exStyle); err != nil {
+			return err
 		}
-	}
-	return int(rect.right - rect.left), int(rect.bottom - rect.top), nil
-}
-
-func (w *Window) applyAspectRatio(edge int, area *_RECT) error {
-	ratio := float32(w.numer) / float32(w.denom)
-
-	var dpi uint32 = _USER_DEFAULT_SCREEN_DPI
-	if winver.IsWindows10AnniversaryUpdateOrGreater() {
-		dpi = _GetDpiForWindow(w.platform.handle)
-	}
-
-	xoff, yoff, err := getFullWindowSize(w.getWindowStyle(), w.getWindowExStyle(), 0, 0, dpi)
-	if err != nil {
-		return err
 	}
 
 	if edge == _WMSZ_LEFT || edge == _WMSZ_BOTTOMLEFT || edge == _WMSZ_RIGHT || edge == _WMSZ_BOTTOMRIGHT {
-		area.bottom = area.top + int32(yoff) + int32(float32(area.right-area.left-int32(xoff))/ratio)
+		area.bottom = area.top + int32(frame.bottom-frame.top) + int32(float32(area.right-area.left-int32(frame.right-frame.left))/ratio)
 	} else if edge == _WMSZ_TOPLEFT || edge == _WMSZ_TOPRIGHT {
-		area.top = area.bottom - int32(yoff) - int32(float32(area.right-area.left-int32(xoff))/ratio)
+		area.top = area.bottom - int32(frame.bottom-frame.top) - int32(float32(area.right-area.left-int32(frame.right-frame.left))/ratio)
 	} else if edge == _WMSZ_TOP || edge == _WMSZ_BOTTOM {
-		area.right = area.left + int32(xoff) + int32(float32(area.bottom-area.top-int32(yoff))*ratio)
+		area.right = area.left + int32(frame.right-frame.left) + int32(float32(area.bottom-area.top-int32(frame.bottom-frame.top))*ratio)
 	}
 
 	return nil
@@ -214,26 +195,27 @@ func (w *Window) clientToScreen(rect _RECT) (_RECT, error) {
 	return rect, nil
 }
 
-func updateClipRect(window *Window) error {
-	if window != nil {
-		clipRect, err := _GetClientRect(window.platform.handle)
-		if err != nil {
-			return err
-		}
-
-		clipRect, err = window.clientToScreen(clipRect)
-		if err != nil {
-			return err
-		}
-
-		if err := _ClipCursor(&clipRect); err != nil {
-			return err
-		}
-	} else {
-		if err := _ClipCursor(nil); err != nil {
-			return err
-		}
+func captureCursor(window *Window) error {
+	clipRect, err := _GetClientRect(window.platform.handle)
+	if err != nil {
+		return err
 	}
+	clipRect, err = window.clientToScreen(clipRect)
+	if err != nil {
+		return err
+	}
+	if err := _ClipCursor(&clipRect); err != nil {
+		return err
+	}
+	_glfw.platformWindow.capturedCursorWindow = window
+	return nil
+}
+
+func releaseCursor() error {
+	if err := _ClipCursor(nil); err != nil {
+		return err
+	}
+	_glfw.platformWindow.capturedCursorWindow = nil
 	return nil
 }
 
@@ -274,7 +256,7 @@ func (w *Window) disableCursor() error {
 	if err := w.centerCursorInContentArea(); err != nil {
 		return err
 	}
-	if err := updateClipRect(w); err != nil {
+	if err := captureCursor(w); err != nil {
 		return err
 	}
 	if w.rawMouseMotion {
@@ -292,7 +274,7 @@ func (w *Window) enableCursor() error {
 		}
 	}
 	_glfw.platformWindow.disabledCursorWindow = nil
-	if err := updateClipRect(nil); err != nil {
+	if err := releaseCursor(); err != nil {
 		return err
 	}
 	if err := w.platformSetCursorPos(_glfw.platformWindow.restoreCursorPosX, _glfw.platformWindow.restoreCursorPosY); err != nil {
@@ -986,8 +968,8 @@ func windowProc(hWnd windows.HWND, uMsg uint32, wParam _WPARAM, lParam _LPARAM) 
 		iconified := wParam == _SIZE_MINIMIZED
 		maximized := wParam == _SIZE_MAXIMIZED || (window.platform.maximized && wParam != _SIZE_RESTORED)
 
-		if _glfw.platformWindow.disabledCursorWindow == window {
-			if err := updateClipRect(window); err != nil {
+		if _glfw.platformWindow.capturedCursorWindow == window {
+			if err := captureCursor(window); err != nil {
 				_glfw.errors = append(_glfw.errors, err)
 				return 0
 			}
@@ -1032,8 +1014,8 @@ func windowProc(hWnd windows.HWND, uMsg uint32, wParam _WPARAM, lParam _LPARAM) 
 		return 0
 
 	case _WM_MOVE:
-		if _glfw.platformWindow.disabledCursorWindow == window {
-			if err := updateClipRect(window); err != nil {
+		if _glfw.platformWindow.capturedCursorWindow == window {
+			if err := captureCursor(window); err != nil {
 				_glfw.errors = append(_glfw.errors, err)
 				return 0
 			}
@@ -1056,31 +1038,35 @@ func windowProc(hWnd windows.HWND, uMsg uint32, wParam _WPARAM, lParam _LPARAM) 
 		return 1
 
 	case _WM_GETMINMAXINFO:
-		var dpi uint32 = _USER_DEFAULT_SCREEN_DPI
+		var frame _RECT
 		mmi := (*_MINMAXINFO)(unsafe.Pointer(lParam))
+		style := window.getWindowStyle()
+		exStyle := window.getWindowExStyle()
 
 		if window.monitor != nil {
 			break
 		}
 
 		if winver.IsWindows10AnniversaryUpdateOrGreater() {
-			dpi = _GetDpiForWindow(window.platform.handle)
-		}
-
-		xoff, yoff, err := getFullWindowSize(window.getWindowStyle(), window.getWindowExStyle(), 0, 0, dpi)
-		if err != nil {
-			_glfw.errors = append(_glfw.errors, err)
-			return 0
+			if err := _AdjustWindowRectExForDpi(&frame, style, false, exStyle, _GetDpiForWindow(window.platform.handle)); err != nil {
+				_glfw.errors = append(_glfw.errors, err)
+				return 0
+			}
+		} else {
+			if err := _AdjustWindowRectEx(&frame, style, false, exStyle); err != nil {
+				_glfw.errors = append(_glfw.errors, err)
+				return 0
+			}
 		}
 
 		if window.minwidth != DontCare && window.minheight != DontCare {
-			mmi.ptMinTrackSize.x = int32(window.minwidth + xoff)
-			mmi.ptMinTrackSize.y = int32(window.minheight + yoff)
+			mmi.ptMinTrackSize.x = int32(window.minwidth) + (frame.right - frame.left)
+			mmi.ptMinTrackSize.y = int32(window.minheight) + (frame.bottom - frame.top)
 		}
 
 		if window.maxwidth != DontCare && window.maxheight != DontCare {
-			mmi.ptMaxTrackSize.x = int32(window.maxwidth + xoff)
-			mmi.ptMaxTrackSize.y = int32(window.maxheight + yoff)
+			mmi.ptMaxTrackSize.x = int32(window.maxwidth) + (frame.right - frame.left)
+			mmi.ptMaxTrackSize.y = int32(window.maxheight) + (frame.bottom - frame.top)
 		}
 
 		if !window.decorated {
@@ -1205,7 +1191,7 @@ func (w *Window) createNativeWindow(wndconfig *wndconfig, fbconfig *fbconfig) er
 	style := w.getWindowStyle()
 	exStyle := w.getWindowExStyle()
 
-	var xpos, ypos, fullWidth, fullHeight int32
+	var frameX, frameY, frameWidth, frameHeight int32
 	if w.monitor != nil {
 		mi, ok := _GetMonitorInfoW(w.monitor.platform.handle)
 		if !ok {
@@ -1214,27 +1200,29 @@ func (w *Window) createNativeWindow(wndconfig *wndconfig, fbconfig *fbconfig) er
 		// NOTE: This window placement is temporary and approximate, as the
 		//       correct position and size cannot be known until the monitor
 		//       video mode has been picked in _glfwSetVideoModeWin32
-		xpos = mi.rcMonitor.left
-		ypos = mi.rcMonitor.top
-		fullWidth = mi.rcMonitor.right - mi.rcMonitor.left
-		fullHeight = mi.rcMonitor.bottom - mi.rcMonitor.top
+		frameX = mi.rcMonitor.left
+		frameY = mi.rcMonitor.top
+		frameWidth = mi.rcMonitor.right - mi.rcMonitor.left
+		frameHeight = mi.rcMonitor.bottom - mi.rcMonitor.top
 	} else {
-		xpos = _CW_USEDEFAULT
-		ypos = _CW_USEDEFAULT
+		rect := _RECT{0, 0, int32(wndconfig.width), int32(wndconfig.height)}
 
 		w.platform.maximized = wndconfig.maximized
 		if wndconfig.maximized {
 			style |= _WS_MAXIMIZE
 		}
 
-		w, h, err := getFullWindowSize(style, exStyle, wndconfig.width, wndconfig.height, _USER_DEFAULT_SCREEN_DPI)
-		if err != nil {
+		if err := _AdjustWindowRectEx(&rect, style, false, exStyle); err != nil {
 			return err
 		}
-		fullWidth, fullHeight = int32(w), int32(h)
+
+		frameX = _CW_USEDEFAULT
+		frameY = _CW_USEDEFAULT
+		frameWidth = rect.right - rect.left
+		frameHeight = rect.bottom - rect.top
 	}
 
-	h, err := _CreateWindowExW(exStyle, _GLFW_WNDCLASSNAME, wndconfig.title, style, xpos, ypos, fullWidth, fullHeight,
+	h, err := _CreateWindowExW(exStyle, _GLFW_WNDCLASSNAME, wndconfig.title, style, frameX, frameY, frameWidth, frameHeight,
 		0, // No parent window
 		0, // No window menu
 		_glfw.platformWindow.instance, unsafe.Pointer(wndconfig))
@@ -1459,7 +1447,15 @@ func (w *Window) platformDestroyWindow() error {
 	}
 
 	if _glfw.platformWindow.disabledCursorWindow == w {
-		_glfw.platformWindow.disabledCursorWindow = nil
+		if err := w.enableCursor(); err != nil {
+			return err
+		}
+	}
+
+	if _glfw.platformWindow.capturedCursorWindow == w {
+		if err := releaseCursor(); err != nil {
+			return err
+		}
 	}
 
 	if w.platform.handle != 0 {
@@ -2184,7 +2180,7 @@ func platformWaitEvents() error {
 }
 
 func platformWaitEventsTimeout(timeout float64) error {
-	if _, err := _MsgWaitForMultipleObjects(0, nil, false, uint32(timeout*1e3), _QS_ALLEVENTS); err != nil {
+	if _, err := _MsgWaitForMultipleObjects(0, nil, false, uint32(timeout*1e3), _QS_ALLINPUT); err != nil {
 		return err
 	}
 	if err := platformPollEvents(); err != nil {
@@ -2235,20 +2231,48 @@ func (w *Window) platformSetCursorPos(xpos, ypos float64) error {
 }
 
 func (w *Window) platformSetCursorMode(mode int) error {
-	if mode == CursorDisabled {
-		if w.platformWindowFocused() {
-			if err := w.disableCursor(); err != nil {
+	if w.platformWindowFocused() {
+		if mode == CursorDisabled {
+			xpos, ypos, err := w.platformGetCursorPos()
+			if err != nil {
+				return err
+			}
+			_glfw.platformWindow.restoreCursorPosX = xpos
+			_glfw.platformWindow.restoreCursorPosY = ypos
+			if err := w.centerCursorInContentArea(); err != nil {
+				return err
+			}
+			if w.rawMouseMotion {
+				if err := w.enableRawMouseMotion(); err != nil {
+					return err
+				}
+			}
+		} else if _glfw.platformWindow.disabledCursorWindow == w {
+			if w.rawMouseMotion {
+				if err := w.disableRawMouseMotion(); err != nil {
+					return err
+				}
+			}
+		}
+
+		if mode == CursorDisabled {
+			if err := captureCursor(w); err != nil {
+				return err
+			}
+		} else {
+			if err := releaseCursor(); err != nil {
 				return err
 			}
 		}
-		return nil
-	}
 
-	if _glfw.platformWindow.disabledCursorWindow == w {
-		if err := w.enableCursor(); err != nil {
-			return err
+		if mode == CursorDisabled {
+			_glfw.platformWindow.disabledCursorWindow = w
+		} else {
+			_glfw.platformWindow.disabledCursorWindow = nil
+			if err := w.platformSetCursorPos(_glfw.platformWindow.restoreCursorPosX, _glfw.platformWindow.restoreCursorPosY); err != nil {
+				return err
+			}
 		}
-		return nil
 	}
 
 	in, err := w.cursorInContentArea()

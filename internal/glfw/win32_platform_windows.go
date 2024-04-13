@@ -72,6 +72,8 @@ type platformLibraryWindowState struct {
 
 	// The window whose disabled cursor mode is active
 	disabledCursorWindow *Window
+	// The window the cursor is captured in
+	capturedCursorWindow *Window
 	rawInput             []byte
 	mouseTrailSize       uint32
 }

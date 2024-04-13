@@ -68,6 +68,9 @@ func (c *defaultContext) init() error {
 	// Try OpenGL first. OpenGL is preferable as this doesn't cause context losses.
 	if !preferES {
 		// Usually libGL.so or libGL.so.1 is used. libGL.so.2 might exist only on NetBSD.
+		// TODO: Should "libOpenGL.so.0" [1] and "libGLX.so.0" [2] be added? These were added as of GLFW 3.3.9.
+		// [1] https://github.com/glfw/glfw/commit/55aad3c37b67f17279378db52da0a3ab81bbf26d
+		// [2] https://github.com/glfw/glfw/commit/c18851f52ec9704eb06464058a600845ec1eada1
 		for _, name := range []string{"libGL.so", "libGL.so.2", "libGL.so.1", "libGL.so.0"} {
 			cname := C.CString(name)
 			lib := C.dlopen(cname, C.RTLD_LAZY|C.RTLD_GLOBAL)

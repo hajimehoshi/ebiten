@@ -99,7 +99,9 @@ extern "C" {
    #include <ApplicationServices/ApplicationServices.h>
    #include <objc/objc.h>
   #endif
- #elif defined(GLFW_EXPOSE_NATIVE_X11) || defined(GLFW_EXPOSE_NATIVE_GLX)
+ #endif
+
+ #if defined(GLFW_EXPOSE_NATIVE_X11) || defined(GLFW_EXPOSE_NATIVE_GLX)
   #include <X11/Xlib.h>
   #include <X11/extensions/Xrandr.h>
  #endif

@@ -794,6 +794,16 @@ func (g *nativeGamepadDesktop) hatState(hat int) int {
 	if g.xinputState.Gamepad.wButtons&_XINPUT_GAMEPAD_DPAD_LEFT != 0 {
 		v |= hatLeft
 	}
+
+	// Treat invalid combinations as neither being pressed
+	// while preserving what data can be preserved
+	if (v&hatRight) != 0 && (v&hatLeft) != 0 {
+		v &^= hatRight | hatLeft
+	}
+	if (v&hatUp) != 0 && (v&hatDown) != 0 {
+		v &^= hatUp | hatDown
+	}
+
 	return v
 }
 

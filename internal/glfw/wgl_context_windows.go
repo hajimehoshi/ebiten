@@ -53,12 +53,13 @@ func (w *Window) choosePixelFormat(ctxconfig *ctxconfig, fbconfig_ *fbconfig) (i
 	var nativeCount int32
 	var attribs []int32
 
-	if _glfw.platformContext.ARB_pixel_format {
-		var attrib int32 = _WGL_NUMBER_PIXEL_FORMATS_ARB
-		if err := wglGetPixelFormatAttribivARB(w.context.platform.dc, 1, 0, 1, &attrib, &nativeCount); err != nil {
-			return 0, err
-		}
+	c, err := _DescribePixelFormat(w.context.platform.dc, 1, uint32(unsafe.Sizeof(_PIXELFORMATDESCRIPTOR{})), nil)
+	if err != nil {
+		return 0, err
+	}
+	nativeCount = c
 
+	if _glfw.platformContext.ARB_pixel_format {
 		attribs = append(attribs,
 			_WGL_SUPPORT_OPENGL_ARB,
 			_WGL_DRAW_TO_WINDOW_ARB,
@@ -96,12 +97,6 @@ func (w *Window) choosePixelFormat(ctxconfig *ctxconfig, fbconfig_ *fbconfig) (i
 				attribs = append(attribs, _WGL_COLORSPACE_EXT)
 			}
 		}
-	} else {
-		c, err := _DescribePixelFormat(w.context.platform.dc, 1, uint32(unsafe.Sizeof(_PIXELFORMATDESCRIPTOR{})), nil)
-		if err != nil {
-			return 0, err
-		}
-		nativeCount = c
 	}
 
 	usableConfigs := make([]*fbconfig, 0, nativeCount)

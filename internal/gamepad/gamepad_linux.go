@@ -140,13 +140,6 @@ func (*nativeGamepadsImpl) openGamepad(gamepads *gamepads, path string) (err err
 		return fmt.Errorf("gamepad: ioctl for an ID failed: %w", err)
 	}
 
-	if !isBitSet(evBits, unix.EV_KEY) {
-		if err := unix.Close(fd); err != nil {
-			return err
-		}
-
-		return nil
-	}
 	if !isBitSet(evBits, unix.EV_ABS) {
 		if err := unix.Close(fd); err != nil {
 			return err
