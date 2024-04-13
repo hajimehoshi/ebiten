@@ -1127,13 +1127,18 @@ func (g *graphics12) setAsRenderTargets(dsts []*image12, useStencil bool) error 
 		rtv := rtvBase
 		rtvs = append(rtvs, rtv)
 
-		if !useStencil || dsv != nil {
+		if !useStencil {
 			continue
 		}
 
 		if err := img.ensureDepthStencilView(g.device); err != nil {
 			return err
 		}
+
+		if dsv != nil {
+			continue
+		}
+
 		sv, err := img.dsvDescriptorHeap.GetCPUDescriptorHandleForHeapStart()
 		if err != nil {
 			return err
@@ -1231,7 +1236,6 @@ func (g *graphics12) DrawTriangles(dstIDs [graphics.ShaderDstImageCount]graphics
 		targetCount = graphics.ShaderDstImageCount
 	}
 
-	g.drawCommandList.RSSetViewports([]_D3D12_VIEWPORT{vp})
 	if err := g.setAsRenderTargets(dsts[:targetCount], fillRule != graphicsdriver.FillAll); err != nil {
 		return err
 	}
@@ -1240,6 +1244,8 @@ func (g *graphics12) DrawTriangles(dstIDs [graphics.ShaderDstImageCount]graphics
 	adjustedUniforms := adjustUniforms(shader.uniformTypes, shader.uniformOffsets, uniforms)
 
 	g.needFlushDrawCommandList = true
+
+	g.drawCommandList.RSSetViewports([]_D3D12_VIEWPORT{vp})
 
 	g.drawCommandList.IASetPrimitiveTopology(_D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST)
 	g.drawCommandList.IASetVertexBuffers(0, []_D3D12_VERTEX_BUFFER_VIEW{

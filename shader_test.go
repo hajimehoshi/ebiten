@@ -2623,16 +2623,6 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) (vec4, vec4, vec4, vec4, vec
 	opts := &ebiten.NewImageOptions{
 		Unmanaged: true,
 	}
-	imgs := [8]*ebiten.Image{
-		ebiten.NewImageWithOptions(bounds, opts),
-		ebiten.NewImageWithOptions(bounds, opts),
-		ebiten.NewImageWithOptions(bounds, opts),
-		ebiten.NewImageWithOptions(bounds, opts),
-		ebiten.NewImageWithOptions(bounds, opts),
-		ebiten.NewImageWithOptions(bounds, opts),
-		ebiten.NewImageWithOptions(bounds, opts),
-		ebiten.NewImageWithOptions(bounds, opts),
-	}
 	vertices := []ebiten.Vertex{
 		{
 			DstX: 0,
@@ -2653,6 +2643,16 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) (vec4, vec4, vec4, vec4, vec
 	}
 	indices := []uint16{0, 1, 2, 1, 2, 3}
 	t.Run("8 locations", func(t *testing.T) {
+		imgs := [8]*ebiten.Image{
+			ebiten.NewImageWithOptions(bounds, opts),
+			ebiten.NewImageWithOptions(bounds, opts),
+			ebiten.NewImageWithOptions(bounds, opts),
+			ebiten.NewImageWithOptions(bounds, opts),
+			ebiten.NewImageWithOptions(bounds, opts),
+			ebiten.NewImageWithOptions(bounds, opts),
+			ebiten.NewImageWithOptions(bounds, opts),
+			ebiten.NewImageWithOptions(bounds, opts),
+		}
 		wantColors := [8]color.RGBA{
 			{R: 0xff, G: 0, B: 0, A: 0xff},
 			{R: 0, G: 0xff, B: 0, A: 0xff},
@@ -2677,11 +2677,17 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) (vec4, vec4, vec4, vec4, vec
 		}
 	})
 
-	// Clear images
-	for _, img := range imgs {
-		img.Clear()
-	}
 	t.Run("Empty locations", func(t *testing.T) {
+		imgs := [8]*ebiten.Image{
+			ebiten.NewImageWithOptions(bounds, opts),
+			ebiten.NewImageWithOptions(bounds, opts),
+			ebiten.NewImageWithOptions(bounds, opts),
+			ebiten.NewImageWithOptions(bounds, opts),
+			ebiten.NewImageWithOptions(bounds, opts),
+			ebiten.NewImageWithOptions(bounds, opts),
+			ebiten.NewImageWithOptions(bounds, opts),
+			ebiten.NewImageWithOptions(bounds, opts),
+		}
 		wantColors := [8]color.RGBA{
 			{},
 			{R: 0, G: 0xff, B: 0, A: 0xff},
@@ -2697,7 +2703,6 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) (vec4, vec4, vec4, vec4, vec
 		}
 		ebiten.DrawTrianglesShaderMRT(dsts, vertices, indices, s, nil)
 		for k, dst := range imgs {
-			t.Log("image index:", k)
 			for j := 0; j < h; j++ {
 				for i := 0; i < w; i++ {
 					got := dst.At(i, j).(color.RGBA)
@@ -2710,11 +2715,17 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) (vec4, vec4, vec4, vec4, vec
 		}
 	})
 
-	// Clear images
-	for _, img := range imgs {
-		img.Clear()
-	}
 	t.Run("1 location (first slot)", func(t *testing.T) {
+		imgs := [8]*ebiten.Image{
+			ebiten.NewImageWithOptions(bounds, opts),
+			ebiten.NewImageWithOptions(bounds, opts),
+			ebiten.NewImageWithOptions(bounds, opts),
+			ebiten.NewImageWithOptions(bounds, opts),
+			ebiten.NewImageWithOptions(bounds, opts),
+			ebiten.NewImageWithOptions(bounds, opts),
+			ebiten.NewImageWithOptions(bounds, opts),
+			ebiten.NewImageWithOptions(bounds, opts),
+		}
 		wantColors := [8]color.RGBA{
 			{R: 0xff, G: 0, B: 0, A: 0xff},
 			{}, {}, {}, {}, {}, {}, {},
