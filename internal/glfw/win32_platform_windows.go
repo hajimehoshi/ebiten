@@ -66,14 +66,18 @@ type platformLibraryWindowState struct {
 	scancodes                [KeyLast + 1]int
 	keynames                 [KeyLast + 1]string
 
-	// Where to place the cursor when re-enabled
+	// restoreCursorPosX and restoreCursorPosY indicates where to place the cursor when re-enabled
 	restoreCursorPosX float64
 	restoreCursorPosY float64
 
-	// The window whose disabled cursor mode is active
+	// disabledCursorWindow is the window whose disabled cursor mode is active
 	disabledCursorWindow *Window
-	// The window the cursor is captured in
+	// capturedCursorWindow is the window the cursor is captured in
 	capturedCursorWindow *Window
 	rawInput             []byte
 	mouseTrailSize       uint32
+	// isRemoteSession indicates if the process was started behind Remote Destop
+	isRemoteSession bool
+	// blankCursor is an invisible cursor, needed for special cases (see WM_INPUT handler)
+	blankCursor _HCURSOR
 }

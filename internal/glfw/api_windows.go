@@ -100,6 +100,7 @@ const (
 	_MAPVK_VSC_TO_VK                                           = 1
 	_MONITOR_DEFAULTTONEAREST                                  = 0x00000002
 	_MOUSE_MOVE_ABSOLUTE                                       = 0x01
+	_MOUSE_VIRTUAL_DESKTOP                                     = 0x02
 	_MSGFLT_ALLOW                                              = 1
 	_OCR_CROSS                                                 = 32515
 	_OCR_HAND                                                  = 32649
@@ -141,11 +142,18 @@ const (
 	_SIZE_MAXIMIZED                                            = 2
 	_SIZE_MINIMIZED                                            = 1
 	_SIZE_RESTORED                                             = 0
+	_SM_CXCURSOR                                               = 13
 	_SM_CXICON                                                 = 11
 	_SM_CXSMICON                                               = 49
 	_SM_CYCAPTION                                              = 4
+	_SM_CYCURSOR                                               = 14
 	_SM_CYICON                                                 = 12
+	_SM_CXSCREEN                                               = 0
+	_SM_CYSCREEN                                               = 1
 	_SM_CYSMICON                                               = 50
+	_SM_CXVIRTUALSCREEN                                        = 78
+	_SM_CYVIRTUALSCREEN                                        = 79
+	_SM_REMOTESESSION                                          = 0x1000
 	_SPI_GETFOREGROUNDLOCKTIMEOUT                              = 0x2000
 	_SPI_GETMOUSETRAILS                                        = 94
 	_SPI_SETFOREGROUNDLOCKTIMEOUT                              = 0x2001
@@ -755,9 +763,11 @@ var (
 	procChangeWindowMessageFilterEx   = user32.NewProc("ChangeWindowMessageFilterEx")
 	procClientToScreen                = user32.NewProc("ClientToScreen")
 	procClipCursor                    = user32.NewProc("ClipCursor")
+	procCreateCursor                  = user32.NewProc("CreateCursor")
 	procCreateIconIndirect            = user32.NewProc("CreateIconIndirect")
 	procCreateWindowExW               = user32.NewProc("CreateWindowExW")
 	procDefWindowProcW                = user32.NewProc("DefWindowProcW")
+	procDestroyCursor                 = user32.NewProc("DestroyCursor")
 	procDestroyIcon                   = user32.NewProc("DestroyIcon")
 	procDestroyWindow                 = user32.NewProc("DestroyWindow")
 	procDispatchMessageW              = user32.NewProc("DispatchMessageW")
@@ -915,6 +925,26 @@ func _ClipCursor(lpRect *_RECT) error {
 	return nil
 }
 
+func _CreateCursor(hInst _HINSTANCE, xHotSpot int32, yHotSpot int32, nWidth int32, nHeight int32, pvANDPlane, pvXORPlane []byte) (_HCURSOR, error) {
+	var andPlane *byte
+	if len(pvANDPlane) > 0 {
+		andPlane = &pvANDPlane[0]
+	}
+	var xorPlane *byte
+	if len(pvXORPlane) > 0 {
+		xorPlane = &pvXORPlane[0]
+	}
+
+	r, _, e := procCreateCursor.Call(uintptr(hInst), uintptr(xHotSpot), uintptr(yHotSpot), uintptr(nWidth), uintptr(nHeight), uintptr(unsafe.Pointer(andPlane)), uintptr(unsafe.Pointer(xorPlane)))
+	runtime.KeepAlive(pvANDPlane)
+	runtime.KeepAlive(pvXORPlane)
+
+	if _HCURSOR(r) == 0 && !errors.Is(e, windows.ERROR_SUCCESS) {
+		return 0, fmt.Errorf("glfw: CreateCursor failed: %w", e)
+	}
+	return _HCURSOR(r), nil
+}
+
 func _CreateBitmap(nWidth int32, nHeight int32, nPlanes uint32, nBitCount uint32, lpBits unsafe.Pointer) (_HBITMAP, error) {
 	r, _, e := procCreateBitmap.Call(uintptr(nWidth), uintptr(nHeight), uintptr(nPlanes), uintptr(nBitCount), uintptr(lpBits))
 	if _HBITMAP(r) == 0 {
@@ -984,6 +1014,14 @@ func _CreateWindowExW(dwExStyle uint32, className string, windowName string, dwS
 func _DefWindowProcW(hWnd windows.HWND, uMsg uint32, wParam _WPARAM, lParam _LPARAM) _LRESULT {
 	r, _, _ := procDefWindowProcW.Call(uintptr(hWnd), uintptr(uMsg), uintptr(wParam), uintptr(lParam))
 	return _LRESULT(r)
+}
+
+func _DestroyCursor(hCursor _HCURSOR) error {
+	r, _, e := procDestroyCursor.Call(uintptr(hCursor))
+	if int32(r) == 0 && !errors.Is(e, windows.ERROR_SUCCESS) {
+		return fmt.Errorf("glfw: DestroyCursor failed: %w", e)
+	}
+	return nil
 }
 
 func _DestroyIcon(hIcon _HICON) error {

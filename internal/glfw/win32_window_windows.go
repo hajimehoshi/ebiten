@@ -167,7 +167,10 @@ func (w *Window) updateCursorImage() error {
 			_SetCursor(cursor)
 		}
 	} else {
-		_SetCursor(0)
+		// Connected via Remote Desktop, nil cursor will present SetCursorPos the move the cursor.
+		// using a blank cursor fix that.
+		// When not via Remote Desktop, platformWindow.blankCursor should be nil.
+		_SetCursor(_glfw.platformWindow.blankCursor)
 	}
 	return nil
 }
@@ -907,8 +910,46 @@ func windowProc(hWnd windows.HWND, uMsg uint32, wParam _WPARAM, lParam _LPARAM) 
 		var dx, dy int
 		data := (*_RAWINPUT)(unsafe.Pointer(&_glfw.platformWindow.rawInput[0]))
 		if data.mouse.usFlags&_MOUSE_MOVE_ABSOLUTE != 0 {
-			dx = int(data.mouse.lLastX) - window.platform.lastCursorPosX
-			dy = int(data.mouse.lLastY) - window.platform.lastCursorPosY
+			if _glfw.platformWindow.isRemoteSession {
+				// Remote Desktop Mode
+				// As per https://github.com/Microsoft/DirectXTK/commit/ef56b63f3739381e451f7a5a5bd2c9779d2a7555
+				// MOUSE_MOVE_ABSOLUTE is a range from 0 through 65535, based on the screen size.
+				// Apparently, absolute mode only occurs over RDP though.
+				var smx int32 = _SM_CXSCREEN
+				var smy int32 = _SM_CYSCREEN
+				if data.mouse.usFlags&_MOUSE_VIRTUAL_DESKTOP != 0 {
+					smx = _SM_CXVIRTUALSCREEN
+					smy = _SM_CYVIRTUALSCREEN
+				}
+
+				width, err := _GetSystemMetrics(smx)
+				if err != nil {
+					_glfw.errors = append(_glfw.errors, err)
+					return 0
+				}
+				height, err := _GetSystemMetrics(smy)
+				if err != nil {
+					_glfw.errors = append(_glfw.errors, err)
+					return 0
+				}
+
+				pos := _POINT{
+					x: int32(float64(data.mouse.lLastX) / 65535.0 * float64(width)),
+					y: int32(float64(data.mouse.lLastY) / 65535.0 * float64(height)),
+				}
+				if err := _ScreenToClient(window.platform.handle, &pos); err != nil {
+					_glfw.errors = append(_glfw.errors, err)
+					return 0
+				}
+
+				dx = int(pos.x) - window.platform.lastCursorPosX
+				dy = int(pos.y) - window.platform.lastCursorPosY
+			} else {
+				// Normal mode
+				// We should have the right absolute coords in data.mouse
+				dx = int(data.mouse.lLastX) - window.platform.lastCursorPosX
+				dy = int(data.mouse.lLastY) - window.platform.lastCursorPosY
+			}
 		} else {
 			dx = int(data.mouse.lLastX)
 			dy = int(data.mouse.lLastY)
@@ -2159,6 +2200,7 @@ func platformPollEvents() error {
 
 		// NOTE: Re-center the cursor only if it has moved since the last call,
 		//       to avoid breaking glfwWaitEvents with WM_MOUSEMOVE
+		// The re-center is required in order to prevent the mouse cursor stopping at the edges of the screen.
 		if window.platform.lastCursorPosX != width/2 || window.platform.lastCursorPosY != height/2 {
 			if err := window.platformSetCursorPos(float64(width/2), float64(height/2)); err != nil {
 				return err

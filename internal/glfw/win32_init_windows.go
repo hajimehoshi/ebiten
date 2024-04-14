@@ -239,6 +239,55 @@ func createHelperWindow() error {
 	return nil
 }
 
+func createBlankCursor() error {
+	// HACK: Create a transparent cursor as using the NULL cursor breaks
+	//       using SetCursorPos when connected over RDP
+	cursorWidth, err := _GetSystemMetrics(_SM_CXCURSOR)
+	if err != nil {
+		return err
+	}
+	cursorHeight, err := _GetSystemMetrics(_SM_CYCURSOR)
+	if err != nil {
+		return err
+	}
+	andMask := make([]byte, cursorWidth*cursorHeight/8)
+	for i := range andMask {
+		andMask[i] = 0xff
+	}
+	xorMask := make([]byte, cursorWidth*cursorHeight/8)
+
+	// Cursor creation might fail, but that's fine as we get NULL in that case,
+	// which serves as an acceptable fallback blank cursor (other than on RDP)
+	c, _ := _CreateCursor(0, 0, 0, cursorWidth, cursorHeight, andMask, xorMask)
+	_glfw.platformWindow.blankCursor = c
+
+	return nil
+}
+
+func initRemoteSession() error {
+	if microsoftgdk.IsXbox() {
+		return nil
+	}
+
+	// Check if the current progress was started with Remote Desktop.
+	r, err := _GetSystemMetrics(_SM_REMOTESESSION)
+	if err != nil {
+		return err
+	}
+	_glfw.platformWindow.isRemoteSession = r > 0
+
+	// With Remote desktop, we need to create a blank cursor because of the cursor is Set to nil
+	// if cannot be moved to center in capture mode. If not Remote Desktop platformWindow.blankCursor stays nil
+	// and will perform has before (normal).
+	if _glfw.platformWindow.isRemoteSession {
+		if err := createBlankCursor(); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func platformInit() error {
 	// Changing the foreground lock timeout was removed from the original code.
 	// See https://github.com/glfw/glfw/commit/58b48a3a00d9c2a5ca10cc23069a71d8773cc7a4
@@ -293,6 +342,10 @@ func platformInit() error {
 			return err
 		}
 	} else {
+		// Some hacks are needed to support Remote Desktop...
+		if err := initRemoteSession(); err != nil {
+			return err
+		}
 		if err := pollMonitorsWin32(); err != nil {
 			return err
 		}
@@ -301,6 +354,12 @@ func platformInit() error {
 }
 
 func platformTerminate() error {
+	if _glfw.platformWindow.blankCursor != 0 {
+		if err := _DestroyCursor(_glfw.platformWindow.blankCursor); err != nil {
+			return err
+		}
+	}
+
 	if _glfw.platformWindow.deviceNotificationHandle != 0 {
 		if err := _UnregisterDeviceNotification(_glfw.platformWindow.deviceNotificationHandle); err != nil {
 			return err
