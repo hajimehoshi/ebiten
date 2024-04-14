@@ -2289,10 +2289,14 @@ func (w *Window) platformSetCursorMode(mode int) error {
 }
 
 func platformGetScancodeName(scancode int) (string, error) {
-	if scancode < 0 || scancode > (_KF_EXTENDED|0xff) || _glfw.platformWindow.keycodes[scancode] == KeyUnknown {
+	if scancode < 0 || scancode > (_KF_EXTENDED|0xff) {
 		return "", fmt.Errorf("glwfwin: invalid scancode %d: %w", scancode, InvalidValue)
 	}
-	return _glfw.platformWindow.keynames[_glfw.platformWindow.keycodes[scancode]], nil
+	key := _glfw.platformWindow.keycodes[scancode]
+	if key == KeyUnknown {
+		return "", nil
+	}
+	return _glfw.platformWindow.keynames[key], nil
 }
 
 func platformGetKeyScancode(key Key) int {

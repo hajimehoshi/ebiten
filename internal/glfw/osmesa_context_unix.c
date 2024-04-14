@@ -5,12 +5,11 @@
 
 //go:build darwin || freebsd || linux || netbsd || openbsd
 
+#include "internal_unix.h"
+
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-
-#include "internal_unix.h"
-
 
 static void makeContextCurrentOSMesa(_GLFWwindow* window)
 {

@@ -60,6 +60,18 @@ func (w *Window) choosePixelFormat(ctxconfig *ctxconfig, fbconfig_ *fbconfig) (i
 	nativeCount = c
 
 	if _glfw.platformContext.ARB_pixel_format {
+		// NOTE: In a Parallels VM WGL_ARB_pixel_format returns fewer pixel formats than
+		//       DescribePixelFormat, violating the guarantees of the extension spec
+		// HACK: Iterate through the minimum of both counts
+		var attrib int32 = _WGL_NUMBER_PIXEL_FORMATS_ARB
+		var extensionCount int32
+		if err := wglGetPixelFormatAttribivARB(w.context.platform.dc, 1, 0, 1, &attrib, &extensionCount); err != nil {
+			return 0, fmt.Errorf("glfw: WGL: failed to retrieve pixel format attribute: %w", err)
+		}
+		if nativeCount > extensionCount {
+			nativeCount = extensionCount
+		}
+
 		attribs = append(attribs,
 			_WGL_SUPPORT_OPENGL_ARB,
 			_WGL_DRAW_TO_WINDOW_ARB,
