@@ -144,11 +144,11 @@ const (
 	_SIZE_RESTORED                                             = 0
 	_SM_CXCURSOR                                               = 13
 	_SM_CXICON                                                 = 11
+	_SM_CXSCREEN                                               = 0
 	_SM_CXSMICON                                               = 49
 	_SM_CYCAPTION                                              = 4
 	_SM_CYCURSOR                                               = 14
 	_SM_CYICON                                                 = 12
-	_SM_CXSCREEN                                               = 0
 	_SM_CYSCREEN                                               = 1
 	_SM_CYSMICON                                               = 50
 	_SM_CXVIRTUALSCREEN                                        = 78
