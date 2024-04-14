@@ -510,7 +510,8 @@ func (p *pipelineStates) newPipelineState(device *_ID3D12Device, vsh, psh *_ID3D
 			AlphaToCoverageEnable:  0,
 			IndependentBlendEnable: 0,
 			RenderTarget: [8]_D3D12_RENDER_TARGET_BLEND_DESC{
-				rtBlendDesc, // TODO: need to fill them all?
+				rtBlendDesc, rtBlendDesc, rtBlendDesc, rtBlendDesc,
+				rtBlendDesc, rtBlendDesc, rtBlendDesc, rtBlendDesc, // TODO: need to fill them all?
 			},
 		},
 		SampleMask: math.MaxUint32,

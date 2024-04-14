@@ -40,13 +40,15 @@ func (r *resourceWithSize) release() {
 }
 
 type graphics12 struct {
-	debug              *_ID3D12Debug
-	device             *_ID3D12Device
-	commandQueue       *_ID3D12CommandQueue
-	rtvDescriptorHeap  *_ID3D12DescriptorHeap
-	rtvDescriptorSize  uint32
-	renderTargets      [frameCount]*_ID3D12Resource
-	framePipelineToken _D3D12XBOX_FRAME_PIPELINE_TOKEN
+	debug                  *_ID3D12Debug
+	device                 *_ID3D12Device
+	commandQueue           *_ID3D12CommandQueue
+	rtvDescriptorHeap      *_ID3D12DescriptorHeap
+	rtvEmptyDescriptorHeap *_ID3D12DescriptorHeap
+	rtvDescriptorSize      uint32
+	emptyRenderTarget      *_ID3D12Resource
+	renderTargets          [frameCount]*_ID3D12Resource
+	framePipelineToken     _D3D12XBOX_FRAME_PIPELINE_TOKEN
 
 	fence          *_ID3D12Fence
 	fenceValues    [frameCount]uint64
@@ -418,6 +420,34 @@ func (g *graphics12) initializeMembers(frameIndex int) (ferr error) {
 			g.rtvDescriptorHeap = nil
 		}
 	}()
+
+	// Create a descriptor heap for empty RTV in case of MRT with empty locations.
+	h, err = g.device.CreateDescriptorHeap(&_D3D12_DESCRIPTOR_HEAP_DESC{
+		Type:           _D3D12_DESCRIPTOR_HEAP_TYPE_RTV,
+		NumDescriptors: frameCount,
+		Flags:          _D3D12_DESCRIPTOR_HEAP_FLAG_NONE,
+		NodeMask:       0,
+	})
+	if err != nil {
+		return err
+	}
+	g.rtvEmptyDescriptorHeap = h
+	defer func() {
+		if ferr != nil {
+			g.rtvEmptyDescriptorHeap.Release()
+			g.rtvEmptyDescriptorHeap = nil
+		}
+	}()
+	hnd, err := g.rtvEmptyDescriptorHeap.GetCPUDescriptorHandleForHeapStart()
+	if err != nil {
+		return err
+	}
+	// Create an empty render target for empty destinations at DrawTriangles
+	g.device.CreateRenderTargetView(nil, &_D3D12_RENDER_TARGET_VIEW_DESC{
+		Format:        _DXGI_FORMAT_R8G8B8A8_UNORM,
+		ViewDimension: _D3D12_RTV_DIMENSION_TEXTURE2D,
+	}, hnd)
+
 	g.rtvDescriptorSize = g.device.GetDescriptorHandleIncrementSize(_D3D12_DESCRIPTOR_HEAP_TYPE_RTV)
 
 	if err := g.pipelineStates.initialize(g.device); err != nil {
@@ -1090,18 +1120,13 @@ func (g *graphics12) setAsRenderTargets(dsts []*image12, useStencil bool) error 
 		// Ignore a nil image in case of MRT
 		if img == nil {
 			_ = i
-			rtvBase, err := g.rtvDescriptorHeap.GetCPUDescriptorHandleForHeapStart()
+			rtv, err := g.rtvEmptyDescriptorHeap.GetCPUDescriptorHandleForHeapStart()
 			if err != nil {
 				return err
 			}
-			rtv := rtvBase
 			rtv.Offset(int32(g.frameIndex), g.rtvDescriptorSize)
 			rtvs = append(rtvs, rtv)
 			continue
-		}
-
-		if err := img.ensureRenderTargetView(g.device); err != nil {
-			return err
 		}
 
 		if img.screen {
@@ -1117,6 +1142,10 @@ func (g *graphics12) setAsRenderTargets(dsts []*image12, useStencil bool) error 
 			rtv.Offset(int32(g.frameIndex), g.rtvDescriptorSize)
 			rtvs = append(rtvs, rtv)
 			continue
+		}
+
+		if err := img.ensureRenderTargetView(g.device); err != nil {
+			return err
 		}
 
 		rtvBase, err := img.rtvDescriptorHeap.GetCPUDescriptorHandleForHeapStart()
