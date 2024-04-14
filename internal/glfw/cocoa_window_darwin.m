@@ -883,9 +883,6 @@ int _glfwPlatformCreateWindow(_GLFWwindow* window,
 {
     @autoreleasepool {
 
-    if (!_glfw.ns.finishedLaunching)
-        [NSApp run];
-
     if (!createNativeWindow(window, wndconfig, fbconfig))
         return GLFW_FALSE;
 
@@ -1477,9 +1474,6 @@ void _glfwPlatformPollEvents(void)
 {
     @autoreleasepool {
 
-    if (!_glfw.ns.finishedLaunching)
-        [NSApp run];
-
     for (;;)
     {
         NSEvent* event = [NSApp nextEventMatchingMask:NSEventMaskAny
@@ -1499,9 +1493,6 @@ void _glfwPlatformWaitEvents(void)
 {
     @autoreleasepool {
 
-    if (!_glfw.ns.finishedLaunching)
-        [NSApp run];
-
     // I wanted to pass NO to dequeue:, and rely on PollEvents to
     // dequeue and send.  For reasons not at all clear to me, passing
     // NO to dequeue: causes this method never to return.
@@ -1520,9 +1511,6 @@ void _glfwPlatformWaitEventsTimeout(double timeout)
 {
     @autoreleasepool {
 
-    if (!_glfw.ns.finishedLaunching)
-        [NSApp run];
-
     NSDate* date = [NSDate dateWithTimeIntervalSinceNow:timeout];
     NSEvent* event = [NSApp nextEventMatchingMask:NSEventMaskAny
                                         untilDate:date
@@ -1539,9 +1527,6 @@ void _glfwPlatformWaitEventsTimeout(double timeout)
 void _glfwPlatformPostEmptyEvent(void)
 {
     @autoreleasepool {
-
-    if (!_glfw.ns.finishedLaunching)
-        [NSApp run];
 
     NSEvent* event = [NSEvent otherEventWithType:NSEventTypeApplicationDefined
                                         location:NSMakePoint(0, 0)
