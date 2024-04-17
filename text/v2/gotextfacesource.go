@@ -71,6 +71,8 @@ type GoTextFaceSource struct {
 
 	addr *GoTextFaceSource
 
+	shaper shaping.HarfbuzzShaper
+
 	m sync.Mutex
 }
 
@@ -203,7 +205,7 @@ func (g *GoTextFaceSource) shape(text string, face *GoTextFace) ([]shaping.Outpu
 	outputs := make([]shaping.Output, len(inputs))
 	var gs []glyph
 	for i, input := range inputs {
-		out := (&shaping.HarfbuzzShaper{}).Shape(input)
+		out := g.shaper.Shape(input)
 		outputs[i] = out
 
 		(shaping.Line{out}).AdjustBaselines()
