@@ -40,35 +40,20 @@ const (
 )
 
 func currentPlatform() platform {
-	if runtime.GOOS == "windows" {
+	switch runtime.GOOS {
+	case "windows":
 		return platformWindows
-	}
-
-	if runtime.GOOS == "aix" ||
-		runtime.GOOS == "dragonfly" ||
-		runtime.GOOS == "freebsd" ||
-		runtime.GOOS == "hurd" ||
-		runtime.GOOS == "illumos" ||
-		runtime.GOOS == "linux" ||
-		runtime.GOOS == "netbsd" ||
-		runtime.GOOS == "openbsd" ||
-		runtime.GOOS == "solaris" {
+	case "aix", "dragonfly", "freebsd", "hurd", "illumos", "linux", "netbsd", "openbsd", "solaris":
 		return platformUnix
-	}
-
-	if runtime.GOOS == "android" {
+	case "android":
 		return platformAndroid
-	}
-
-	if runtime.GOOS == "ios" {
+	case "ios":
 		return platformIOS
-	}
-
-	if runtime.GOOS == "darwin" {
+	case "darwin":
 		return platformMacOS
+	default:
+		return platformUnknown
 	}
-
-	return platformUnknown
 }
 
 type mappingType int
