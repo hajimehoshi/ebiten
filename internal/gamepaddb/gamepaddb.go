@@ -36,12 +36,9 @@ const (
 	platformIOS
 )
 
-var currentPlatform platform
-
-func init() {
+func currentPlatform() platform {
 	if runtime.GOOS == "windows" {
-		currentPlatform = platformWindows
-		return
+		return platformWindows
 	}
 
 	if runtime.GOOS == "aix" ||
@@ -53,24 +50,22 @@ func init() {
 		runtime.GOOS == "netbsd" ||
 		runtime.GOOS == "openbsd" ||
 		runtime.GOOS == "solaris" {
-		currentPlatform = platformUnix
-		return
+		return platformUnix
 	}
 
 	if runtime.GOOS == "android" {
-		currentPlatform = platformAndroid
-		return
+		return platformAndroid
 	}
 
 	if runtime.GOOS == "ios" {
-		currentPlatform = platformIOS
-		return
+		return platformIOS
 	}
 
 	if runtime.GOOS == "darwin" {
-		currentPlatform = platformMacOS
-		return
+		return platformMacOS
 	}
+
+	return platformUnknown
 }
 
 type mappingType int
@@ -333,7 +328,7 @@ func buttonMappings(id string) map[StandardButton]mapping {
 	if m, ok := gamepadButtonMappings[id]; ok {
 		return m
 	}
-	if currentPlatform == platformAndroid {
+	if currentPlatform() == platformAndroid {
 		if addAndroidDefaultMappings(id) {
 			return gamepadButtonMappings[id]
 		}
@@ -345,7 +340,7 @@ func axisMappings(id string) map[StandardAxis]mapping {
 	if m, ok := gamepadAxisMappings[id]; ok {
 		return m
 	}
-	if currentPlatform == platformAndroid {
+	if currentPlatform() == platformAndroid {
 		if addAndroidDefaultMappings(id) {
 			return gamepadAxisMappings[id]
 		}
@@ -541,7 +536,7 @@ func Update(mappingData []byte) error {
 
 	for s.Scan() {
 		line := s.Text()
-		id, name, buttons, axes, err := parseLine(line, currentPlatform)
+		id, name, buttons, axes, err := parseLine(line, currentPlatform())
 		if err != nil {
 			return err
 		}
