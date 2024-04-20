@@ -7,3 +7,6 @@
 .vscode
 go.work
 go.work.sum
+
+*.metallib
+!dummy.metallib

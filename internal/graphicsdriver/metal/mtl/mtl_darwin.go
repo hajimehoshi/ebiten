@@ -493,6 +493,7 @@ var (
 	sel_supportsFeatureSet                                                                                                            = objc.RegisterName("supportsFeatureSet:")
 	sel_newCommandQueue                                                                                                               = objc.RegisterName("newCommandQueue")
 	sel_newLibraryWithSource_options_error                                                                                            = objc.RegisterName("newLibraryWithSource:options:error:")
+	sel_newLibraryWithData_error                                                                                                      = objc.RegisterName("newLibraryWithData:error:")
 	sel_release                                                                                                                       = objc.RegisterName("release")
 	sel_retain                                                                                                                        = objc.RegisterName("retain")
 	sel_new                                                                                                                           = objc.RegisterName("new")
@@ -649,6 +650,27 @@ func (d Device) MakeLibrary(source string, opt CompileOptions) (Library, error) 
 		return Library{}, errors.New(cocoa.NSString{ID: err.Send(sel_localizedDescription)}.String())
 	}
 
+	return Library{l}, nil
+}
+
+// MakeLibraryWithData creates a Metal library instance from a data instance that contains the functions in a precompiled Metal library.
+//
+// Reference: https://developer.apple.com/documentation/metal/mtldevice/1433391-makelibrary
+func (d Device) MakeLibraryWithData(buffer []byte) (Library, error) {
+	defer runtime.KeepAlive(buffer)
+
+	data := dispatchDataCreate(unsafe.Pointer(&buffer[0]), uint(len(buffer)), 0, 0)
+	defer dispatchRelease(data)
+
+	var err cocoa.NSError
+	l := d.device.Send(
+		sel_newLibraryWithData_error,
+		data,
+		unsafe.Pointer(&err),
+	)
+	if l == 0 {
+		return Library{}, errors.New(cocoa.NSString{ID: err.Send(sel_localizedDescription)}.String())
+	}
 	return Library{l}, nil
 }
 

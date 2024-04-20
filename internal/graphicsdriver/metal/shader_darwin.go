@@ -16,12 +16,45 @@ package metal
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/mtl"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/msl"
 )
+
+type precompiledLibraries struct {
+	binaries map[shaderir.SourceHash][]byte
+	m        sync.Mutex
+}
+
+func (c *precompiledLibraries) put(hash shaderir.SourceHash, bin []byte) {
+	c.m.Lock()
+	defer c.m.Unlock()
+
+	if c.binaries == nil {
+		c.binaries = map[shaderir.SourceHash][]byte{}
+	}
+	if _, ok := c.binaries[hash]; ok {
+		panic(fmt.Sprintf("metal: the precompiled library for the hash %s is already registered", hash.String()))
+	}
+	c.binaries[hash] = bin
+}
+
+func (c *precompiledLibraries) get(hash shaderir.SourceHash) ([]byte, bool) {
+	c.m.Lock()
+	defer c.m.Unlock()
+
+	bin, ok := c.binaries[hash]
+	return bin, ok
+}
+
+var thePrecompiledLibraries precompiledLibraries
+
+func RegisterPrecompiledLibrary(hash shaderir.SourceHash, bin []byte) {
+	thePrecompiledLibraries.put(hash, bin)
+}
 
 type shaderRpsKey struct {
 	blend       graphicsdriver.Blend
@@ -37,6 +70,8 @@ type Shader struct {
 	fs   mtl.Function
 	vs   mtl.Function
 	rpss map[shaderRpsKey]mtl.RenderPipelineState
+
+	libraryPrecompiled bool
 }
 
 func newShader(device mtl.Device, id graphicsdriver.ShaderID, program *shaderir.Program) (*Shader, error) {
@@ -61,24 +96,42 @@ func (s *Shader) Dispose() {
 	}
 	s.vs.Release()
 	s.fs.Release()
-	s.lib.Release()
+	// Do not release s.lib if this is precompiled. This is a shared precompiled library.
+	if !s.libraryPrecompiled {
+		s.lib.Release()
+	}
 }
 
 func (s *Shader) init(device mtl.Device) error {
-	src := msl.Compile(s.ir)
-	lib, err := device.MakeLibrary(src, mtl.CompileOptions{})
-	if err != nil {
-		return fmt.Errorf("metal: device.MakeLibrary failed: %w, source: %s", err, src)
+	var src string
+	if libBin, ok := thePrecompiledLibraries.get(s.ir.SourceHash); ok {
+		lib, err := device.MakeLibraryWithData(libBin)
+		if err != nil {
+			return err
+		}
+		s.lib = lib
+	} else {
+		src = msl.Compile(s.ir)
+		lib, err := device.MakeLibrary(src, mtl.CompileOptions{})
+		if err != nil {
+			return fmt.Errorf("metal: device.MakeLibrary failed: %w, source: %s", err, src)
+		}
+		s.lib = lib
 	}
-	s.lib = lib
 
 	vs, err := s.lib.MakeFunction(msl.VertexName)
 	if err != nil {
-		return fmt.Errorf("metal: lib.MakeFunction for vertex failed: %w, source: %s", err, src)
+		if src != "" {
+			return fmt.Errorf("metal: lib.MakeFunction for vertex failed: %w, source: %s", err, src)
+		}
+		return fmt.Errorf("metal: lib.MakeFunction for vertex failed: %w", err)
 	}
 	fs, err := s.lib.MakeFunction(msl.FragmentName)
 	if err != nil {
-		return fmt.Errorf("metal: lib.MakeFunction for fragment failed: %w, source: %s", err, src)
+		if src != "" {
+			return fmt.Errorf("metal: lib.MakeFunction for fragment failed: %w, source: %s", err, src)
+		}
+		return fmt.Errorf("metal: lib.MakeFunction for fragment failed: %w", err)
 	}
 	s.fs = fs
 	s.vs = vs
