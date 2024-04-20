@@ -51,6 +51,9 @@ func runImageImportCheck(pass *analysis.Pass) (any, error) {
 	if strings.HasSuffix(pkgPath, "_test") {
 		return nil, nil
 	}
+	if pkgPath == "github.com/hajimehoshi/ebiten/v2/text/v2" {
+		return nil, nil
+	}
 
 	// TODO: Remove this exception after v3 is released (#2336).
 	if pkgPath == "github.com/hajimehoshi/ebiten/v2/ebitenutil" {

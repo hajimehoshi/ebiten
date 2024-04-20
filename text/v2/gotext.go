@@ -328,18 +328,27 @@ func (g *GoTextFace) appendGlyphsForLine(glyphs []Glyph, line string, indexOffse
 }
 
 func (g *GoTextFace) glyphImage(glyph glyph, origin fixed.Point26_6) (*ebiten.Image, int, int) {
-	if g.direction().isHorizontal() {
-		origin.X = adjustGranularity(origin.X, g)
-		origin.Y &^= ((1 << 6) - 1)
+	if glyph.bitmap != nil {
+		if g.direction().isHorizontal() {
+			origin.X = adjustGranularity(origin.X, g)
+			origin.Y &^= ((1 << 6) - 1)
+		} else {
+			origin.X &^= ((1 << 6) - 1)
+			origin.Y = adjustGranularity(origin.Y, g)
+		}
 	} else {
 		origin.X &^= ((1 << 6) - 1)
-		origin.Y = adjustGranularity(origin.Y, g)
+		origin.Y &^= ((1 << 6) - 1)
 	}
 
 	b := glyph.bounds
-	subpixelOffset := fixed.Point26_6{
-		X: (origin.X + b.Min.X) & ((1 << 6) - 1),
-		Y: (origin.Y + b.Min.Y) & ((1 << 6) - 1),
+
+	var subpixelOffset fixed.Point26_6
+	if glyph.bitmap != nil {
+		subpixelOffset = fixed.Point26_6{
+			X: (origin.X + b.Min.X) & ((1 << 6) - 1),
+			Y: (origin.Y + b.Min.Y) & ((1 << 6) - 1),
+		}
 	}
 	key := goTextGlyphImageCacheKey{
 		gid:        glyph.shapingGlyph.GlyphID,
@@ -348,6 +357,9 @@ func (g *GoTextFace) glyphImage(glyph glyph, origin fixed.Point26_6) (*ebiten.Im
 		variations: g.ensureVariationsString(),
 	}
 	img := g.Source.getOrCreateGlyphImage(g, key, func() *ebiten.Image {
+		if glyph.bitmap != nil {
+			return ebiten.NewImageFromImage(glyph.bitmap)
+		}
 		return segmentsToImage(glyph.scaledSegments, subpixelOffset, b)
 	})
 

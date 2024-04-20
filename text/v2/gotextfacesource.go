@@ -16,6 +16,9 @@ package text
 
 import (
 	"bytes"
+	"image"
+	"image/jpeg"
+	"image/png" // As typesettings/font already imports image/png, it is fine to ignore side effects (#2336).
 	"io"
 	"sync"
 
@@ -26,6 +29,7 @@ import (
 	"github.com/go-text/typesetting/opentype/loader"
 	"github.com/go-text/typesetting/shaping"
 	"golang.org/x/image/math/fixed"
+	"golang.org/x/image/tiff"
 
 	"github.com/hajimehoshi/ebiten/v2"
 )
@@ -46,6 +50,7 @@ type glyph struct {
 	endIndex       int
 	scaledSegments []api.Segment
 	bounds         fixed.Rectangle26_6
+	bitmap         image.Image
 }
 
 type goTextOutputCacheValue struct {
@@ -72,6 +77,9 @@ type GoTextFaceSource struct {
 	addr *GoTextFaceSource
 
 	shaper shaping.HarfbuzzShaper
+
+	bitmapSizesResult []api.BitmapSize
+	bitmapSizesOnce   sync.Once
 
 	m sync.Mutex
 }
@@ -180,6 +188,17 @@ func (g *GoTextFaceSource) shape(text string, face *GoTextFace) ([]shaping.Outpu
 
 	f := face.Source.f
 	f.SetVariations(face.variations)
+	f.XPpem = 0
+	f.YPpem = 0
+	var useBitmap bool
+	for _, bs := range g.bitmapSizes() {
+		if float64(bs.YPpem) == face.Size {
+			f.XPpem = bs.XPpem
+			f.YPpem = bs.YPpem
+			useBitmap = true
+			break
+		}
+	}
 
 	runes := []rune(text)
 	input := shaping.Input{
@@ -219,20 +238,61 @@ func (g *GoTextFaceSource) shape(text string, face *GoTextFace) ([]shaping.Outpu
 		indices = append(indices, len(text))
 
 		for _, gl := range out.Glyphs {
-			gl := gl
+			shapingGlyph := gl
 			var segs []api.Segment
-			switch data := g.f.GlyphData(gl.GlyphID).(type) {
+			var bitmap image.Image
+			switch data := g.f.GlyphData(shapingGlyph.GlyphID).(type) {
 			case api.GlyphOutline:
 				if out.Direction.IsSideways() {
-					data.Sideways(fixed26_6ToFloat32(-gl.YOffset) / fixed26_6ToFloat32(out.Size) * float32(f.Upem()))
+					data.Sideways(fixed26_6ToFloat32(-shapingGlyph.YOffset) / fixed26_6ToFloat32(out.Size) * float32(f.Upem()))
 				}
 				segs = data.Segments
 			case api.GlyphSVG:
 				segs = data.Outline.Segments
 			case api.GlyphBitmap:
+				if useBitmap {
+					switch data.Format {
+					case api.BlackAndWhite:
+						img := image.NewAlpha(image.Rect(0, 0, data.Width, data.Height))
+						for j := 0; j < data.Height; j++ {
+							for i := 0; i < data.Width; i++ {
+								idx := j*data.Width + i
+								if data.Data[idx/8]&(1<<(7-idx%8)) != 0 {
+									img.Pix[j*img.Stride+i] = 0xff
+								}
+							}
+						}
+						bitmap = img
+					case api.PNG:
+						img, err := png.Decode(bytes.NewReader(data.Data))
+						if err != nil {
+							break
+						}
+						bitmap = img
+					case api.JPG:
+						img, err := jpeg.Decode(bytes.NewReader(data.Data))
+						if err != nil {
+							break
+						}
+						bitmap = img
+					case api.TIFF:
+						img, err := tiff.Decode(bytes.NewReader(data.Data))
+						if err != nil {
+							break
+						}
+						bitmap = img
+					}
+				}
+
+				// Use outline segments in any cases for vector rendering.
 				if data.Outline != nil {
 					segs = data.Outline.Segments
 				}
+			}
+
+			gl := glyph{
+				startIndex: indices[shapingGlyph.ClusterIndex],
+				endIndex:   indices[shapingGlyph.ClusterIndex+shapingGlyph.RuneCount],
 			}
 
 			scaledSegs := make([]api.Segment, len(segs))
@@ -245,13 +305,15 @@ func (g *GoTextFaceSource) shape(text string, face *GoTextFace) ([]shaping.Outpu
 				}
 			}
 
-			gs = append(gs, glyph{
-				shapingGlyph:   &gl,
-				startIndex:     indices[gl.ClusterIndex],
-				endIndex:       indices[gl.ClusterIndex+gl.RuneCount],
-				scaledSegments: scaledSegs,
-				bounds:         segmentsToBounds(scaledSegs),
-			})
+			gl.shapingGlyph = &shapingGlyph
+			gl.scaledSegments = scaledSegs
+			gl.bounds = segmentsToBounds(scaledSegs)
+
+			if bitmap != nil {
+				gl.bitmap = bitmap
+			}
+
+			gs = append(gs, gl)
 		}
 	}
 
@@ -290,6 +352,13 @@ func (g *GoTextFaceSource) getOrCreateGlyphImage(goTextFace *GoTextFace, key goT
 		g.glyphImageCache[goTextFace.Size] = &glyphImageCache[goTextGlyphImageCacheKey]{}
 	}
 	return g.glyphImageCache[goTextFace.Size].getOrCreate(goTextFace, key, create)
+}
+
+func (g *GoTextFaceSource) bitmapSizes() []api.BitmapSize {
+	g.bitmapSizesOnce.Do(func() {
+		g.bitmapSizesResult = g.f.BitmapSizes()
+	})
+	return g.bitmapSizesResult
 }
 
 type singleFontmap struct {
