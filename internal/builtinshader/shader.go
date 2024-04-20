@@ -123,10 +123,10 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 `))
 
-// Shader returns the built-in shader based on the given parameters.
+// ShaderSource returns the built-in shader source based on the given parameters.
 //
 // The returned shader always uses a color matrix so far.
-func Shader(filter Filter, address Address, useColorM bool) []byte {
+func ShaderSource(filter Filter, address Address, useColorM bool) []byte {
 	shadersM.Lock()
 	defer shadersM.Unlock()
 
@@ -165,3 +165,26 @@ func Shader(filter Filter, address Address, useColorM bool) []byte {
 	shaders[filter][address][c] = b
 	return b
 }
+
+var ScreenShaderSource = []byte(`//kage:unit pixels
+
+package main
+
+func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+	// Blend source colors in a square region, which size is 1/scale.
+	scale := imageDstSize()/imageSrc0Size()
+	pos := srcPos
+	p0 := pos - 1/2.0/scale
+	p1 := pos + 1/2.0/scale
+
+	// Texels must be in the source rect, so it is not necessary to check.
+	c0 := imageSrc0UnsafeAt(p0)
+	c1 := imageSrc0UnsafeAt(vec2(p1.x, p0.y))
+	c2 := imageSrc0UnsafeAt(vec2(p0.x, p1.y))
+	c3 := imageSrc0UnsafeAt(p1)
+
+	// p is the p1 value in one pixel assuming that the pixel's upper-left is (0, 0) and the lower-right is (1, 1).
+	rate := clamp(fract(p1)*scale, 0, 1)
+	return mix(mix(c0, c1, rate.x), mix(c2, c3, rate.x), rate.y)
+}
+`)

@@ -31,7 +31,7 @@ import (
 var nearestFilterShader *graphicscommand.Shader
 
 func init() {
-	ir, err := graphics.CompileShader([]byte(builtinshader.Shader(builtinshader.FilterNearest, builtinshader.AddressUnsafe, false)))
+	ir, err := graphics.CompileShader([]byte(builtinshader.ShaderSource(builtinshader.FilterNearest, builtinshader.AddressUnsafe, false)))
 	if err != nil {
 		panic(fmt.Sprintf("graphicscommand: compiling the nearest shader failed: %v", err))
 	}

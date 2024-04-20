@@ -107,7 +107,7 @@ func builtinShader(filter builtinshader.Filter, address builtinshader.Address, u
 			shader = &Shader{shader: ui.LinearFilterShader}
 		}
 	} else {
-		src := builtinshader.Shader(filter, address, useColorM)
+		src := builtinshader.ShaderSource(filter, address, useColorM)
 		s, err := NewShader(src)
 		if err != nil {
 			panic(fmt.Sprintf("ebiten: NewShader for a built-in shader failed: %v", err))
