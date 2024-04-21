@@ -17,6 +17,7 @@ package shader
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"fmt"
 	"go/ast"
 	gconstant "go/constant"
@@ -235,7 +236,7 @@ func ParseCompilerDirectives(src []byte) (shaderir.Unit, error) {
 			continue
 		}
 		if unitParsed {
-			return 0, fmt.Errorf("shader: at most one //kage:unit can exist in a shader")
+			return 0, errors.New("shader: at most one //kage:unit can exist in a shader")
 		}
 		switch m[1] {
 		case "pixels":

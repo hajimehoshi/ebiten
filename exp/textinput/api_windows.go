@@ -15,6 +15,7 @@
 package textinput
 
 import (
+	"errors"
 	"fmt"
 	"runtime"
 	"unsafe"
@@ -117,7 +118,7 @@ func _ImmReleaseContext(unnamedParam1 windows.HWND, unnamedParam2 _HIMC) error {
 		if e != nil && e != windows.ERROR_SUCCESS {
 			return fmt.Errorf("textinput: ImmReleaseContext failed: %w", e)
 		}
-		return fmt.Errorf("textinput: ImmReleaseContext returned 0")
+		return errors.New("textinput: ImmReleaseContext returned 0")
 	}
 	return nil
 }
@@ -129,7 +130,7 @@ func _ImmSetCandidateWindow(unnamedParam1 _HIMC, lpCandidate *_CANDIDATEFORM) er
 		if e != nil && e != windows.ERROR_SUCCESS {
 			return fmt.Errorf("textinput: ImmSetCandidateWindow failed: %w", e)
 		}
-		return fmt.Errorf("textinput: ImmSetCandidateWindow returned 0")
+		return errors.New("textinput: ImmSetCandidateWindow returned 0")
 	}
 	return nil
 }
@@ -148,7 +149,7 @@ func _SetWindowLongPtrW(hWnd windows.HWND, nIndex int32, dwNewLong uintptr) (uin
 		if e != nil && e != windows.ERROR_SUCCESS {
 			return 0, fmt.Errorf("textinput: SetWindowLongPtrW failed: %w", e)
 		}
-		return 0, fmt.Errorf("textinput: SetWindowLongPtrW returned 0")
+		return 0, errors.New("textinput: SetWindowLongPtrW returned 0")
 	}
 	return h, nil
 }

@@ -23,6 +23,7 @@ package main
 
 import (
 	_ "embed"
+	"errors"
 	"flag"
 	"fmt"
 	"log"
@@ -177,7 +178,7 @@ func osFromBuildTarget(buildTarget string) (string, error) {
 			os = osarch[0]
 		}
 		if os != osarch[0] {
-			return "", fmt.Errorf("ebitenmobile: cannot target different OSes")
+			return "", errors.New("ebitenmobile: cannot target different OSes")
 		}
 	}
 	if os == "ios" {

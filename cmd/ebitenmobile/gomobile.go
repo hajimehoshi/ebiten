@@ -16,6 +16,7 @@ package main
 
 import (
 	_ "embed"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -209,12 +210,12 @@ import (
 func gomobileHash() (string, error) {
 	info, ok := debug.ReadBuildInfo()
 	if !ok {
-		return "", fmt.Errorf("ebitenmobile: debug.ReadBuildInfo failed")
+		return "", errors.New("ebitenmobile: debug.ReadBuildInfo failed")
 	}
 	for _, m := range info.Deps {
 		if m.Path == "github.com/ebitengine/gomobile" {
 			return m.Version, nil
 		}
 	}
-	return "", fmt.Errorf("ebitenmobile: getting the gomobile version failed")
+	return "", errors.New("ebitenmobile: getting the gomobile version failed")
 }

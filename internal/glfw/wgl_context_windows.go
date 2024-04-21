@@ -228,12 +228,12 @@ func (w *Window) choosePixelFormat(ctxconfig *ctxconfig, fbconfig_ *fbconfig) (i
 	}
 
 	if len(usableConfigs) == 0 {
-		return 0, fmt.Errorf("glfw: the driver does not appear to support OpenGL")
+		return 0, errors.New("glfw: the driver does not appear to support OpenGL")
 	}
 
 	closest := chooseFBConfig(fbconfig_, usableConfigs)
 	if closest == nil {
-		return 0, fmt.Errorf("glfw: failed to find a suitable pixel format")
+		return 0, errors.New("glfw: failed to find a suitable pixel format")
 	}
 
 	return int(closest.handle), nil
@@ -359,7 +359,7 @@ func destroyContextWGL(window *Window) error {
 
 func initWGL() error {
 	if microsoftgdk.IsXbox() {
-		return fmt.Errorf("glfw: WGL is not available in Xbox")
+		return errors.New("glfw: WGL is not available in Xbox")
 	}
 
 	if _glfw.platformContext.inited {

@@ -15,6 +15,7 @@
 package audio
 
 import (
+	"errors"
 	"fmt"
 	"io"
 )
@@ -79,7 +80,7 @@ func (i *InfiniteLoop) ensurePos() error {
 		return err
 	}
 	if pos >= i.length() {
-		return fmt.Errorf("audio: stream position must be less than the specified length")
+		return errors.New("audio: stream position must be less than the specified length")
 	}
 	i.pos = pos
 	return nil
@@ -205,10 +206,10 @@ func (i *InfiniteLoop) Seek(offset int64, whence int) (int64, error) {
 	case io.SeekCurrent:
 		next = i.pos + offset
 	case io.SeekEnd:
-		return 0, fmt.Errorf("audio: whence must be io.SeekStart or io.SeekCurrent for InfiniteLoop")
+		return 0, errors.New("audio: whence must be io.SeekStart or io.SeekCurrent for InfiniteLoop")
 	}
 	if next < 0 {
-		return 0, fmt.Errorf("audio: position must >= 0")
+		return 0, errors.New("audio: position must >= 0")
 	}
 	if next > i.lstart {
 		next = ((next - i.lstart) % i.llength) + i.lstart

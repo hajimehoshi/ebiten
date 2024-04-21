@@ -15,6 +15,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"image"
 	"io"
@@ -58,10 +59,10 @@ func newMPEGPlayer(src io.Reader) (*mpegPlayer, error) {
 		return nil, err
 	}
 	if mpg.NumVideoStreams() == 0 {
-		return nil, fmt.Errorf("video: no video streams")
+		return nil, errors.New("video: no video streams")
 	}
 	if !mpg.HasHeaders() {
-		return nil, fmt.Errorf("video: missing headers")
+		return nil, errors.New("video: missing headers")
 	}
 
 	p := &mpegPlayer{
@@ -99,7 +100,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 	// If the video has an audio stream, initialize an audio player.
 	ctx := audio.CurrentContext()
 	if ctx == nil {
-		return nil, fmt.Errorf("video: audio.Context is not initialized")
+		return nil, errors.New("video: audio.Context is not initialized")
 	}
 	if mpg.Channels() != 2 {
 		return nil, fmt.Errorf("video: mpeg audio stream must be 2 but was %d", mpg.Channels())
@@ -154,7 +155,7 @@ func (p *mpegPlayer) updateFrame() error {
 
 	img := mpegFrame.YCbCr()
 	if img.SubsampleRatio != image.YCbCrSubsampleRatio420 {
-		return fmt.Errorf("video: subsample ratio must be 4:2:0")
+		return errors.New("video: subsample ratio must be 4:2:0")
 	}
 	w, h := p.mpg.Width(), p.mpg.Height()
 	for j := 0; j < h; j++ {

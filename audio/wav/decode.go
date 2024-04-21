@@ -17,6 +17,7 @@ package wav
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 
@@ -91,7 +92,7 @@ func (s *stream) Seek(offset int64, whence int) (int64, error) {
 		return 0, err
 	}
 	if n-s.headerSize < 0 {
-		return 0, fmt.Errorf("wav: invalid offset")
+		return 0, errors.New("wav: invalid offset")
 	}
 	s.remaining = s.dataSize - (n - s.headerSize)
 	// There could be a tail in wav file.
@@ -155,16 +156,16 @@ func decode(src io.Reader) (*Stream, int, error) {
 	buf := make([]byte, 12)
 	n, err := io.ReadFull(src, buf)
 	if n != len(buf) {
-		return nil, 0, fmt.Errorf("wav: invalid header")
+		return nil, 0, errors.New("wav: invalid header")
 	}
 	if err != nil {
 		return nil, 0, err
 	}
 	if !bytes.Equal(buf[0:4], []byte("RIFF")) {
-		return nil, 0, fmt.Errorf("wav: invalid header: 'RIFF' not found")
+		return nil, 0, errors.New("wav: invalid header: 'RIFF' not found")
 	}
 	if !bytes.Equal(buf[8:12], []byte("WAVE")) {
-		return nil, 0, fmt.Errorf("wav: invalid header: 'WAVE' not found")
+		return nil, 0, errors.New("wav: invalid header: 'WAVE' not found")
 	}
 
 	// Read chunks
@@ -178,7 +179,7 @@ chunks:
 		buf := make([]byte, 8)
 		n, err := io.ReadFull(src, buf)
 		if n != len(buf) {
-			return nil, 0, fmt.Errorf("wav: invalid header")
+			return nil, 0, errors.New("wav: invalid header")
 		}
 		if err != nil {
 			return nil, 0, err
@@ -189,19 +190,19 @@ chunks:
 		case bytes.Equal(buf[0:4], []byte("fmt ")):
 			// Size of 'fmt' header is usually 16, but can be more than 16.
 			if size < 16 {
-				return nil, 0, fmt.Errorf("wav: invalid header: maybe non-PCM file?")
+				return nil, 0, errors.New("wav: invalid header: maybe non-PCM file?")
 			}
 			buf := make([]byte, size)
 			n, err := io.ReadFull(src, buf)
 			if n != len(buf) {
-				return nil, 0, fmt.Errorf("wav: invalid header")
+				return nil, 0, errors.New("wav: invalid header")
 			}
 			if err != nil {
 				return nil, 0, err
 			}
 			format := int(buf[0]) | int(buf[1])<<8
 			if format != 1 {
-				return nil, 0, fmt.Errorf("wav: format must be linear PCM")
+				return nil, 0, errors.New("wav: format must be linear PCM")
 			}
 			channelCount := int(buf[2]) | int(buf[3])<<8
 			switch channelCount {
@@ -225,7 +226,7 @@ chunks:
 			buf := make([]byte, size)
 			n, err := io.ReadFull(src, buf)
 			if n != len(buf) {
-				return nil, 0, fmt.Errorf("wav: invalid header")
+				return nil, 0, errors.New("wav: invalid header")
 			}
 			if err != nil {
 				return nil, 0, err

@@ -15,6 +15,7 @@
 package ui
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
@@ -62,7 +63,7 @@ func newGraphicsDriver(creator graphicsDriverCreator, graphicsLibrary GraphicsLi
 			return nil, 0, err
 		}
 		if g == nil {
-			return nil, 0, fmt.Errorf("ui: no graphics library is available")
+			return nil, 0, errors.New("ui: no graphics library is available")
 		}
 		return g, lib, nil
 	case GraphicsLibraryOpenGL:

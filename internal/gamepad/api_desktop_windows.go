@@ -15,6 +15,7 @@
 package gamepad
 
 import (
+	"errors"
 	"fmt"
 	"syscall"
 	"unsafe"
@@ -152,7 +153,7 @@ func _GetModuleHandleW() (uintptr, error) {
 		if e != nil && e != windows.ERROR_SUCCESS {
 			return 0, fmt.Errorf("gamepad: GetModuleHandleW failed: %w", e)
 		}
-		return 0, fmt.Errorf("gamepad: GetModuleHandleW returned 0")
+		return 0, errors.New("gamepad: GetModuleHandleW returned 0")
 	}
 	return m, nil
 }

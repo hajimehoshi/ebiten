@@ -61,7 +61,7 @@ func run() error {
 		return err
 	}
 	if ver < 22 {
-		return fmt.Errorf("png: use Go 1.22 or newer")
+		return errors.New("png: use Go 1.22 or newer")
 	}
 
 	dir, err := pngDir()
