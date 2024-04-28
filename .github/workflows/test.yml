@@ -44,9 +44,9 @@ jobs:
 
       - name: Install wasmbrowsertest
         run: |
-          go install github.com/agnivade/wasmbrowsertest@bb77d443e302d06f0d2462336bc2765942e0e862
+          go install github.com/agnivade/wasmbrowsertest@ee76d31b7b9b1645576c1f51fec4c09fe6cf1bb3
           mv $(go env GOPATH)/bin/wasmbrowsertest${{ runner.os == 'Windows' && '.exe' || '' }} $(go env GOPATH)/bin/go_js_wasm_exec${{ runner.os == 'Windows' && '.exe' || '' }}
-          go install github.com/agnivade/wasmbrowsertest/cmd/cleanenv@bb77d443e302d06f0d2462336bc2765942e0e862
+          go install github.com/agnivade/wasmbrowsertest/cmd/cleanenv@ee76d31b7b9b1645576c1f51fec4c09fe6cf1bb3
 
       - name: Prepare ebitenmobile test
         run: |
@@ -169,8 +169,10 @@ jobs:
           env GOARCH=386 EBITENGINE_DIRECTX=version=12 go test -shuffle=on -v ./...
 
       - name: go test (Wasm)
+        if: runner.os != 'macOS'
         run: |
-          env GOOS=js GOARCH=wasm cleanenv -remove-prefix GITHUB_ -remove-prefix JAVA_ -- go test -shuffle=on -v ./...
+          # Wasm tests don't work on macOS with the headless mode, and the headless mode doesn't work in GitHub Actions (#2973).
+          env GOOS=js GOARCH=wasm cleanenv -remove-prefix GITHUB_ -remove-prefix JAVA_ -remove-prefix PSModulePath -remove-prefix STATS_ -remove-prefix RUNNER_ -- go test -shuffle=on -v ./...
 
       - name: Install ebitenmobile
         run: |
