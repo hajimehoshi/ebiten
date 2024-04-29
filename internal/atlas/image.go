@@ -36,13 +36,6 @@ var (
 	maxSize            = 0
 )
 
-func max(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
-}
-
 func min(a, b int) int {
 	if a < b {
 		return a
@@ -81,7 +74,7 @@ func flushDeferred() {
 // Actual time duration is increased in an exponential way for each usage as a rendering target.
 const baseCountToPutOnSourceBackend = 10
 
-func putImagesOnSourceBackend(graphicsDriver graphicsdriver.Graphics) {
+func putImagesOnSourceBackend() {
 	// The counter usedAsDestinationCount is updated at most once per frame (#2676).
 	imagesUsedAsDestination.forEach(func(i *Image) {
 		// This counter is not updated when the backend is created in this frame.
@@ -97,7 +90,7 @@ func putImagesOnSourceBackend(graphicsDriver graphicsdriver.Graphics) {
 			i.usedAsSourceCount++
 		}
 		if int64(i.usedAsSourceCount) >= int64(baseCountToPutOnSourceBackend*(1<<uint(min(i.usedAsDestinationCount, 31)))) {
-			i.putOnSourceBackend(graphicsDriver)
+			i.putOnSourceBackend()
 			i.usedAsSourceCount = 0
 		}
 	})
@@ -359,7 +352,7 @@ func (i *Image) ensureIsolatedFromSource(backends []*backend) {
 	newI.moveTo(i)
 }
 
-func (i *Image) putOnSourceBackend(graphicsDriver graphicsdriver.Graphics) {
+func (i *Image) putOnSourceBackend() {
 	if i.backend == nil {
 		i.allocate(nil, true)
 		return
@@ -942,7 +935,7 @@ func BeginFrame(graphicsDriver graphicsdriver.Graphics) error {
 	}
 
 	flushDeferred()
-	putImagesOnSourceBackend(graphicsDriver)
+	putImagesOnSourceBackend()
 
 	return nil
 }
