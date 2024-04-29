@@ -25,18 +25,10 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
-var screenFilterEnabled = int32(1)
+var screenFilterEnabled atomic.Bool
 
-func isScreenFilterEnabled() bool {
-	return atomic.LoadInt32(&screenFilterEnabled) != 0
-}
-
-func setScreenFilterEnabled(enabled bool) {
-	v := int32(0)
-	if enabled {
-		v = 1
-	}
-	atomic.StoreInt32(&screenFilterEnabled, v)
+func init() {
+	screenFilterEnabled.Store(true)
 }
 
 type gameForUI struct {
@@ -145,7 +137,7 @@ func (g *gameForUI) DrawFinalScreen(scale, offsetX, offsetY float64) {
 	}
 
 	switch {
-	case !isScreenFilterEnabled(), math.Floor(scale) == scale:
+	case !screenFilterEnabled.Load(), math.Floor(scale) == scale:
 		op := &DrawImageOptions{}
 		op.GeoM = geoM
 		g.screen.DrawImage(g.offscreen, op)

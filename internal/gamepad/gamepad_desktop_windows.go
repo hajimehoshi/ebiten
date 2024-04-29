@@ -113,7 +113,7 @@ type nativeGamepadsDesktop struct {
 	enumObjectsCallback uintptr
 
 	nativeWindow  windows.HWND
-	deviceChanged int32
+	deviceChanged atomic.Bool
 	err           error
 }
 
@@ -537,11 +537,11 @@ func (g *nativeGamepadsDesktop) update(gamepads *gamepads) error {
 		g.origWndProc = h
 	}
 
-	if atomic.LoadInt32(&g.deviceChanged) != 0 {
+	if g.deviceChanged.Load() {
 		if err := g.detectConnection(gamepads); err != nil {
 			g.err = err
 		}
-		atomic.StoreInt32(&g.deviceChanged, 0)
+		g.deviceChanged.Store(false)
 	}
 
 	return nil
@@ -550,7 +550,7 @@ func (g *nativeGamepadsDesktop) update(gamepads *gamepads) error {
 func (g *nativeGamepadsDesktop) wndProc(hWnd uintptr, uMsg uint32, wParam, lParam uintptr) uintptr {
 	switch uMsg {
 	case _WM_DEVICECHANGE:
-		atomic.StoreInt32(&g.deviceChanged, 1)
+		g.deviceChanged.Store(true)
 	}
 	return _CallWindowProcW(g.origWndProc, hWnd, uMsg, wParam, lParam)
 }

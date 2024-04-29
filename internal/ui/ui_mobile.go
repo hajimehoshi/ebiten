@@ -40,7 +40,6 @@ var (
 
 func (u *UserInterface) init() error {
 	u.userInterfaceImpl = userInterfaceImpl{
-		foreground:            1,
 		graphicsLibraryInitCh: make(chan struct{}),
 		errCh:                 make(chan error),
 
@@ -48,6 +47,7 @@ func (u *UserInterface) init() error {
 		outsideWidth:  640,
 		outsideHeight: 480,
 	}
+	u.foreground.Store(true)
 	return nil
 }
 
@@ -89,7 +89,7 @@ type userInterfaceImpl struct {
 	outsideWidth  float64
 	outsideHeight float64
 
-	foreground int32
+	foreground atomic.Bool
 	errCh      chan error
 
 	context *context
@@ -104,11 +104,7 @@ type userInterfaceImpl struct {
 }
 
 func (u *UserInterface) SetForeground(foreground bool) error {
-	var v int32
-	if foreground {
-		v = 1
-	}
-	atomic.StoreInt32(&u.foreground, v)
+	u.foreground.Store(foreground)
 
 	if foreground {
 		return hook.ResumeAudio()
@@ -220,7 +216,7 @@ func (u *UserInterface) SetFullscreen(fullscreen bool) {
 }
 
 func (u *UserInterface) IsFocused() bool {
-	return atomic.LoadInt32(&u.foreground) != 0
+	return u.foreground.Load()
 }
 
 func (u *UserInterface) IsRunnableOnUnfocused() bool {

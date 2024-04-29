@@ -155,16 +155,16 @@ func WindowPosition() (x, y int) {
 //
 // SetWindowPosition is concurrent-safe.
 func SetWindowPosition(x, y int) {
-	atomic.StoreUint32(&windowPositionSetExplicitly, 1)
+	windowPositionSetExplicitly.Store(true)
 	ui.Get().Window().SetPosition(x, y)
 }
 
 var (
-	windowPositionSetExplicitly uint32
+	windowPositionSetExplicitly atomic.Bool
 )
 
 func initializeWindowPositionIfNeeded(width, height int) {
-	if atomic.LoadUint32(&windowPositionSetExplicitly) == 0 {
+	if !windowPositionSetExplicitly.Load() {
 		sw, sh := ui.Get().Monitor().Size()
 		x, y := ui.InitialWindowPosition(sw, sh, width, height)
 		ui.Get().Window().SetPosition(x, y)

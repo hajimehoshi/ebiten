@@ -65,13 +65,13 @@ type monitors struct {
 
 	m sync.Mutex
 
-	updateCalled int32
+	updateCalled atomic.Bool
 }
 
 var theMonitors monitors
 
 func (m *monitors) append(ms []*Monitor) []*Monitor {
-	if atomic.LoadInt32(&m.updateCalled) == 0 {
+	if !m.updateCalled.Load() {
 		panic("ui: (*monitors).update must be called before (*monitors).append is called")
 	}
 
@@ -82,7 +82,7 @@ func (m *monitors) append(ms []*Monitor) []*Monitor {
 }
 
 func (m *monitors) primaryMonitor() *Monitor {
-	if atomic.LoadInt32(&m.updateCalled) == 0 {
+	if !m.updateCalled.Load() {
 		panic("ui: (*monitors).update must be called before (*monitors).primaryMonitor is called")
 	}
 
@@ -179,6 +179,6 @@ func (m *monitors) update() error {
 	m.monitors = newMonitors
 	m.m.Unlock()
 
-	atomic.StoreInt32(&m.updateCalled, 1)
+	m.updateCalled.Store(true)
 	return nil
 }
