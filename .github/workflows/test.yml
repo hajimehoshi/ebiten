@@ -171,7 +171,7 @@ jobs:
       - name: go test (Wasm)
         if: runner.os != 'macOS'
         run: |
-          # Wasm tests don't work on macOS with the headless mode, and the headless mode doesn't work in GitHub Actions (#2973).
+          # Wasm tests don't work on macOS with the headless mode, and the headless mode doesn't work in GitHub Actions (#2972).
           env GOOS=js GOARCH=wasm cleanenv -remove-prefix GITHUB_ -remove-prefix JAVA_ -remove-prefix PSModulePath -remove-prefix STATS_ -remove-prefix RUNNER_ -- go test -shuffle=on -v ./...
 
       - name: Install ebitenmobile
