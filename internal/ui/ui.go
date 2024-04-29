@@ -76,7 +76,7 @@ type UserInterface struct {
 	errM sync.Mutex
 
 	isScreenClearedEveryFrame atomic.Bool
-	graphicsLibrary           int32
+	graphicsLibrary           atomic.Int32
 	running                   atomic.Bool
 	terminated                atomic.Bool
 
@@ -106,10 +106,9 @@ func Get() *UserInterface {
 
 // newUserInterface must be called from the main thread.
 func newUserInterface() (*UserInterface, error) {
-	u := &UserInterface{
-		graphicsLibrary: int32(GraphicsLibraryUnknown),
-	}
+	u := &UserInterface{}
 	u.isScreenClearedEveryFrame.Store(true)
+	u.graphicsLibrary.Store(int32(GraphicsLibraryUnknown))
 
 	u.whiteImage = u.NewImage(3, 3, atlas.ImageTypeRegular)
 	pix := make([]byte, 4*u.whiteImage.width*u.whiteImage.height)
@@ -204,11 +203,11 @@ func (u *UserInterface) SetScreenClearedEveryFrame(cleared bool) {
 }
 
 func (u *UserInterface) setGraphicsLibrary(library GraphicsLibrary) {
-	atomic.StoreInt32(&u.graphicsLibrary, int32(library))
+	u.graphicsLibrary.Store(int32(library))
 }
 
 func (u *UserInterface) GraphicsLibrary() GraphicsLibrary {
-	return GraphicsLibrary(atomic.LoadInt32(&u.graphicsLibrary))
+	return GraphicsLibrary(u.graphicsLibrary.Load())
 }
 
 func (u *UserInterface) isRunning() bool {

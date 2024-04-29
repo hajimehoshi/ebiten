@@ -97,7 +97,7 @@ type userInterfaceImpl struct {
 	inputState InputState
 	touches    []TouchForInput
 
-	fpsMode         int32
+	fpsMode         atomic.Int32
 	renderRequester RenderRequester
 
 	m sync.RWMutex
@@ -228,11 +228,11 @@ func (u *UserInterface) SetRunnableOnUnfocused(runnableOnUnfocused bool) {
 }
 
 func (u *UserInterface) FPSMode() FPSModeType {
-	return FPSModeType(atomic.LoadInt32(&u.fpsMode))
+	return FPSModeType(u.fpsMode.Load())
 }
 
 func (u *UserInterface) SetFPSMode(mode FPSModeType) {
-	atomic.StoreInt32(&u.fpsMode, int32(mode))
+	u.fpsMode.Store(int32(mode))
 	u.updateExplicitRenderingModeIfNeeded(mode)
 }
 
@@ -294,7 +294,7 @@ func (u *UserInterface) Monitor() *Monitor {
 
 func (u *UserInterface) UpdateInput(keys map[Key]struct{}, runes []rune, touches []TouchForInput) {
 	u.updateInputStateFromOutside(keys, runes, touches)
-	if FPSModeType(atomic.LoadInt32(&u.fpsMode)) == FPSModeVsyncOffMinimum {
+	if FPSModeType(u.fpsMode.Load()) == FPSModeVsyncOffMinimum {
 		u.renderRequester.RequestRenderIfNeeded()
 	}
 }
@@ -306,11 +306,11 @@ type RenderRequester interface {
 
 func (u *UserInterface) SetRenderRequester(renderRequester RenderRequester) {
 	u.renderRequester = renderRequester
-	u.updateExplicitRenderingModeIfNeeded(FPSModeType(atomic.LoadInt32(&u.fpsMode)))
+	u.updateExplicitRenderingModeIfNeeded(FPSModeType(u.fpsMode.Load()))
 }
 
 func (u *UserInterface) ScheduleFrame() {
-	if u.renderRequester != nil && FPSModeType(atomic.LoadInt32(&u.fpsMode)) == FPSModeVsyncOffMinimum {
+	if u.renderRequester != nil && FPSModeType(u.fpsMode.Load()) == FPSModeVsyncOffMinimum {
 		u.renderRequester.RequestRenderIfNeeded()
 	}
 }
