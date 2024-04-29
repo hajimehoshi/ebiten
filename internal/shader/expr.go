@@ -199,7 +199,7 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 				return nil, nil, nil, false
 			}
 			for _, expr := range es {
-				if expr.Type == shaderir.FunctionExpr {
+				if expr.Type == shaderir.FunctionExpr || expr.Type == shaderir.BuiltinFuncExpr {
 					cs.addError(e.Pos(), fmt.Sprintf("function name cannot be an argument: %s", e.Fun))
 					return nil, nil, nil, false
 				}
