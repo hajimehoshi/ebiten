@@ -77,9 +77,6 @@ jobs:
           go list ./... | grep -v -x -F -f .github/workflows/govetblock_windows.txt | xargs go vet
 
       - name: go vet (vettool)
-        # Stop vettools for old Go versions. Apparently this is an issue in golang.org/x/tools (golang/go#62519)
-        # TODO: Update golang.org/x/tools and remove this restriction.
-        if: ${{ !startsWith(matrix.go, '1.18.') && !startsWith(matrix.go, '1.19.') }}
         run: |
           go install ./internal/vettools
           go vet -vettool=$(which vettools)${{ runner.os == 'Windows' && '.exe' || '' }} -v ./...
