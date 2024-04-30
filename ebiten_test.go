@@ -12,9 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package ui
+package ebiten_test
 
-func (u *UserInterface) ScreenSizeInFullscreen() (int, int) {
-	// On browsers, ScreenSizeInFullscreen returns the 'window' (global object) size, not 'screen' size for backward compatibility (#2145).
-	return window.Get("innerWidth").Int(), window.Get("innerHeight").Int()
+import (
+	"testing"
+
+	"github.com/hajimehoshi/ebiten/v2"
+)
+
+func TestScreenSizeInFullscreen(t *testing.T) {
+	// Just call ScreenSizeInFullscreen. There was a crash bug on browsers (#2975).
+	w, h := ebiten.ScreenSizeInFullscreen()
+	if w <= 0 {
+		t.Errorf("w must be positive but not: %d", w)
+	}
+	if h <= 0 {
+		t.Errorf("h must be positive but not: %d", h)
+	}
 }
