@@ -126,6 +126,10 @@ func newUserInterface() (*UserInterface, error) {
 }
 
 func (u *UserInterface) readPixels(mipmap *mipmap.Mipmap, pixels []byte, region image.Rectangle) error {
+	if !u.running.Load() {
+		panic("ui: ReadPixels cannot be called before the game starts")
+	}
+
 	ok, err := mipmap.ReadPixels(u.graphicsDriver, pixels, region)
 	if err != nil {
 		return err
