@@ -27,12 +27,12 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"text/template"
 	"unicode"
 
-	exec "golang.org/x/sys/execabs"
 	"golang.org/x/tools/go/packages"
 )
 
