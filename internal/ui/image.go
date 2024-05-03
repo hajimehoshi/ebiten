@@ -98,7 +98,7 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 			i.bigOffscreenBuffer = i.ui.newBigOffscreenImage(i, imageType)
 		}
 
-		i.bigOffscreenBuffer.drawTriangles(srcs, vertices, indices, blend, dstRegion, srcRegions, shader, uniforms, fillRule, canSkipMipmap, false)
+		i.bigOffscreenBuffer.drawTriangles(srcs, vertices, indices, blend, dstRegion, srcRegions, shader, uniforms, fillRule, canSkipMipmap)
 		return
 	}
 
@@ -217,7 +217,7 @@ func (i *bigOffscreenImage) deallocate() {
 	i.dirty = false
 }
 
-func (i *bigOffscreenImage) drawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint32, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderImageCount]image.Rectangle, shader *Shader, uniforms []uint32, fillRule graphicsdriver.FillRule, canSkipMipmap bool, antialias bool) {
+func (i *bigOffscreenImage) drawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint32, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderImageCount]image.Rectangle, shader *Shader, uniforms []uint32, fillRule graphicsdriver.FillRule, canSkipMipmap bool) {
 	if i.blend != blend {
 		i.flush()
 	}

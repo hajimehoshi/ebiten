@@ -97,13 +97,6 @@ func (m *monitors) primaryMonitor() *Monitor {
 	return m.monitors[0]
 }
 
-func (m *monitors) monitorFromID(id int) *Monitor {
-	m.m.Lock()
-	defer m.m.Unlock()
-
-	return m.monitors[id]
-}
-
 // monitorFromPosition returns a monitor for the given position (x, y),
 // or returns nil if monitor is not found.
 // The position is in GLFW pixels.
