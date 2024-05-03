@@ -73,6 +73,21 @@ func (c *context) updateFrame(graphicsDriver graphicsdriver.Graphics, outsideWid
 	return c.updateFrameImpl(graphicsDriver, clock.UpdateFrame(), outsideWidth, outsideHeight, deviceScaleFactor, ui, false)
 }
 
+func (c *context) forceUpdateFrame(graphicsDriver graphicsdriver.Graphics, outsideWidth, outsideHeight float64, deviceScaleFactor float64, ui *UserInterface) error {
+	n := 1
+	if ui.GraphicsLibrary() == GraphicsLibraryDirectX {
+		// On DirectX, both framebuffers in the swap chain should be updated.
+		// Or, the rendering result becomes unexpected when the window is resized.
+		n = 2
+	}
+	for i := 0; i < n; i++ {
+		if err := c.updateFrameImpl(graphicsDriver, 1, outsideWidth, outsideHeight, deviceScaleFactor, ui, true); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, updateCount int, outsideWidth, outsideHeight float64, deviceScaleFactor float64, ui *UserInterface, forceDraw bool) (err error) {
 	// The given outside size can be 0 e.g. just after restoring from the fullscreen mode on Windows (#1589)
 	// Just ignore such cases. Otherwise, creating a zero-sized framebuffer causes a panic.
