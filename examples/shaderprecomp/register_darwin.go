@@ -40,7 +40,7 @@ func registerPrecompiledShaders() error {
 		lib, err := metallibs.ReadFile("metallib/" + name)
 		if err != nil {
 			if errors.Is(err, fs.ErrNotExist) {
-				fmt.Fprintf(os.Stderr, "precompiled Metal library %s was not found. Run 'go generate' for 'metallib' directory to generate them\n", name)
+				fmt.Fprintf(os.Stderr, "precompiled Metal library %s was not found. Run 'go generate' for 'metallib' directory to generate them.\n", name)
 				continue
 			}
 			return err
