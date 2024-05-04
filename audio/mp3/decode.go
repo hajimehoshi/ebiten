@@ -87,6 +87,9 @@ func DecodeWithoutResampling(src io.Reader) (*Stream, error) {
 //
 // A Stream doesn't close src even if src implements io.Closer.
 // Closing the source is src owner's responsibility.
+//
+// Resampling can be a very heavy task. Stream has a cache for resampling, but the size is limited.
+// Do not expect that Stream has a resampling cache even after whole data is played.
 func DecodeWithSampleRate(sampleRate int, src io.Reader) (*Stream, error) {
 	d, err := mp3.NewDecoder(src)
 	if err != nil {
