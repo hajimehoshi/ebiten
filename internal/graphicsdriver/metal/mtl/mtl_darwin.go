@@ -1028,6 +1028,10 @@ func (l Library) MakeFunction(name string) (Function, error) {
 	return Function{f}, nil
 }
 
+func (l Library) Release() {
+	l.library.Send(sel_release)
+}
+
 // Texture is a memory allocation for storing formatted
 // image data that is accessible to the GPU.
 //

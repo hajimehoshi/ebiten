@@ -33,6 +33,7 @@ type Shader struct {
 	id graphicsdriver.ShaderID
 
 	ir   *shaderir.Program
+	lib  mtl.Library
 	fs   mtl.Function
 	vs   mtl.Function
 	rpss map[shaderRpsKey]mtl.RenderPipelineState
@@ -60,6 +61,7 @@ func (s *Shader) Dispose() {
 	}
 	s.vs.Release()
 	s.fs.Release()
+	s.lib.Release()
 }
 
 func (s *Shader) init(device mtl.Device) error {
@@ -68,11 +70,13 @@ func (s *Shader) init(device mtl.Device) error {
 	if err != nil {
 		return fmt.Errorf("metal: device.MakeLibrary failed: %w, source: %s", err, src)
 	}
-	vs, err := lib.MakeFunction(msl.VertexName)
+	s.lib = lib
+
+	vs, err := s.lib.MakeFunction(msl.VertexName)
 	if err != nil {
 		return fmt.Errorf("metal: lib.MakeFunction for vertex failed: %w, source: %s", err, src)
 	}
-	fs, err := lib.MakeFunction(msl.FragmentName)
+	fs, err := s.lib.MakeFunction(msl.FragmentName)
 	if err != nil {
 		return fmt.Errorf("metal: lib.MakeFunction for fragment failed: %w, source: %s", err, src)
 	}
