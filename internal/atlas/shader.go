@@ -104,13 +104,7 @@ func init() {
 		return nil
 	})
 	wg.Go(func() error {
-		ir, err := graphics.CompileShader([]byte(`//kage:unit pixels
-
-package main
-
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
-	return vec4(0)
-}`))
+		ir, err := graphics.CompileShader([]byte(builtinshader.ClearShaderSource))
 		if err != nil {
 			return fmt.Errorf("atlas: compiling the clear shader failed: %w", err)
 		}

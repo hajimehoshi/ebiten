@@ -188,3 +188,12 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 	return mix(mix(c0, c1, rate.x), mix(c2, c3, rate.x), rate.y)
 }
 `)
+
+var ClearShaderSource = []byte(`//kage:unit pixels
+
+package main
+
+func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+	return vec4(0)
+}
+`)
