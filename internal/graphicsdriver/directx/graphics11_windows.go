@@ -24,7 +24,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
-	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/hlsl"
 )
 
 var inputElementDescsForDX11 = []_D3D11_INPUT_ELEMENT_DESC{
@@ -482,8 +481,7 @@ func (g *graphics11) MaxImageSize() int {
 }
 
 func (g *graphics11) NewShader(program *shaderir.Program) (graphicsdriver.Shader, error) {
-	vs, ps, offsets := hlsl.Compile(program)
-	vsh, psh, err := compileShader(vs, ps)
+	vsh, psh, offsets, err := compileShader(program)
 	if err != nil {
 		return nil, err
 	}

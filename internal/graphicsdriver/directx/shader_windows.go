@@ -21,11 +21,13 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
+	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/hlsl"
 )
 
 var vertexShaderCache = map[string]*_ID3DBlob{}
 
-func compileShader(vs, ps string) (vsh, psh *_ID3DBlob, ferr error) {
+func compileShader(program *shaderir.Program) (vsh, psh *_ID3DBlob, uniformOffsets []int, ferr error) {
+	vs, ps, offsets := hlsl.Compile(program)
 	var flag uint32 = uint32(_D3DCOMPILE_OPTIMIZATION_LEVEL3)
 
 	defer func() {
@@ -74,10 +76,10 @@ func compileShader(vs, ps string) (vsh, psh *_ID3DBlob, ferr error) {
 	})
 
 	if err := wg.Wait(); err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
-	return
+	return vsh, psh, offsets, nil
 }
 
 func constantBufferSize(uniformTypes []shaderir.Type, uniformOffsets []int) int {
