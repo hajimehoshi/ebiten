@@ -67,6 +67,7 @@ func main() {
 	if err := registerPrecompiledShaders(); err != nil {
 		log.Fatal(err)
 	}
+	ebiten.SetWindowTitle("Ebitengine Example (Shader Precompilation)")
 	if err := ebiten.RunGame(&Game{}); err != nil {
 		log.Fatal(err)
 	}

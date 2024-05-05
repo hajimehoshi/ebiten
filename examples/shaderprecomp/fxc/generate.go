@@ -12,16 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !darwin && !windows
+//go:generate go run gen.go
 
-package main
-
-import (
-	"fmt"
-	"os"
-)
-
-func registerPrecompiledShaders() error {
-	fmt.Fprintf(os.Stderr, "precompiled shaders are not available in this environment.\n")
-	return nil
-}
+package fxc

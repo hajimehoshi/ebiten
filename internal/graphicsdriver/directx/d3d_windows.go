@@ -71,7 +71,8 @@ const (
 )
 
 var (
-	procD3DCompile *windows.LazyProc
+	procD3DCompile    *windows.LazyProc
+	procD3DCreateBlob *windows.LazyProc
 )
 
 func init() {
@@ -93,6 +94,7 @@ func init() {
 	}
 
 	procD3DCompile = d3dcompiler.NewProc("D3DCompile")
+	procD3DCreateBlob = d3dcompiler.NewProc("D3DCreateBlob")
 }
 
 func isD3DCompilerDLLAvailable() bool {
@@ -133,6 +135,19 @@ func _D3DCompile(srcData []byte, sourceName string, pDefines []_D3D_SHADER_MACRO
 		return nil, fmt.Errorf("directx: D3DCompile failed: %w", handleError(windows.Handle(uint32(r))))
 	}
 	return code, nil
+}
+
+func _D3DCreateBlob(size uint) (*_ID3DBlob, error) {
+	if !isD3DCompilerDLLAvailable() {
+		return nil, fmt.Errorf("directx: d3dcompiler_*.dll is missing in this environment")
+	}
+
+	var blob *_ID3DBlob
+	r, _, _ := procD3DCreateBlob.Call(uintptr(size), uintptr(unsafe.Pointer(&blob)))
+	if uint32(r) != uint32(windows.S_OK) {
+		return nil, fmt.Errorf("directx: D3DCreateBlob failed: %w", handleError(windows.Handle(uint32(r))))
+	}
+	return blob, nil
 }
 
 type _D3D_SHADER_MACRO struct {
