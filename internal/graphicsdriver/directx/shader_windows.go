@@ -26,8 +26,8 @@ import (
 
 var vertexShaderCache = map[string]*_ID3DBlob{}
 
-func compileShader(program *shaderir.Program) (vsh, psh *_ID3DBlob, uniformOffsets []int, ferr error) {
-	vs, ps, offsets := hlsl.Compile(program)
+func compileShader(program *shaderir.Program) (vsh, psh *_ID3DBlob, ferr error) {
+	vs, ps := hlsl.Compile(program)
 	var flag uint32 = uint32(_D3DCOMPILE_OPTIMIZATION_LEVEL3)
 
 	defer func() {
@@ -76,10 +76,10 @@ func compileShader(program *shaderir.Program) (vsh, psh *_ID3DBlob, uniformOffse
 	})
 
 	if err := wg.Wait(); err != nil {
-		return nil, nil, nil, err
+		return nil, nil, err
 	}
 
-	return vsh, psh, offsets, nil
+	return vsh, psh, nil
 }
 
 func constantBufferSize(uniformTypes []shaderir.Type, uniformOffsets []int) int {

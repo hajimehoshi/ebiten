@@ -25,6 +25,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/microsoftgdk"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
+	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/hlsl"
 )
 
 type resourceWithSize struct {
@@ -1063,7 +1064,7 @@ func (g *graphics12) MaxImageSize() int {
 }
 
 func (g *graphics12) NewShader(program *shaderir.Program) (graphicsdriver.Shader, error) {
-	vsh, psh, offsets, err := compileShader(program)
+	vsh, psh, err := compileShader(program)
 	if err != nil {
 		return nil, err
 	}
@@ -1072,7 +1073,7 @@ func (g *graphics12) NewShader(program *shaderir.Program) (graphicsdriver.Shader
 		graphics:       g,
 		id:             g.genNextShaderID(),
 		uniformTypes:   program.Uniforms,
-		uniformOffsets: offsets,
+		uniformOffsets: hlsl.CalcUniformMemoryOffsets(program),
 		vertexShader:   vsh,
 		pixelShader:    psh,
 	}
