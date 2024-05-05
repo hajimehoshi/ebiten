@@ -42,12 +42,11 @@ func (c *precompiledLibraries) put(hash shaderir.SourceHash, bin []byte) {
 	c.binaries[hash] = bin
 }
 
-func (c *precompiledLibraries) get(hash shaderir.SourceHash) ([]byte, bool) {
+func (c *precompiledLibraries) get(hash shaderir.SourceHash) []byte {
 	c.m.Lock()
 	defer c.m.Unlock()
 
-	bin, ok := c.binaries[hash]
-	return bin, ok
+	return c.binaries[hash]
 }
 
 var thePrecompiledLibraries precompiledLibraries
@@ -104,7 +103,7 @@ func (s *Shader) Dispose() {
 
 func (s *Shader) init(device mtl.Device) error {
 	var src string
-	if libBin, ok := thePrecompiledLibraries.get(s.ir.SourceHash); ok {
+	if libBin := thePrecompiledLibraries.get(s.ir.SourceHash); len(libBin) > 0 {
 		lib, err := device.MakeLibraryWithData(libBin)
 		if err != nil {
 			return err
