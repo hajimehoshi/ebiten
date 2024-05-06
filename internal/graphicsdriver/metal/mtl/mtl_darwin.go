@@ -1003,6 +1003,9 @@ func (bce BlitCommandEncoder) Synchronize(resource Resource) {
 	bce.commandEncoder.Send(sel_synchronizeResource, resource.resource())
 }
 
+// SynchronizeTexture encodes a command that synchronizes a part of the CPU’s copy of a texture so that it matches the GPU’s copy.
+//
+// Reference: https://developer.apple.com/documentation/metal/mtlblitcommandencoder/1400757-synchronizetexture?language=objc.
 func (bce BlitCommandEncoder) SynchronizeTexture(texture Texture, slice int, level int) {
 	if runtime.GOOS == "ios" {
 		return
@@ -1010,6 +1013,9 @@ func (bce BlitCommandEncoder) SynchronizeTexture(texture Texture, slice int, lev
 	bce.commandEncoder.Send(sel_synchronizeTexture_slice_level, texture.texture, slice, level)
 }
 
+// CopyFromTexture encodes a command that copies image data from a texture’s slice into another slice.
+//
+// Reference: https://developer.apple.com/documentation/metal/mtlblitcommandencoder/1400754-copyfromtexture?language=objc.
 func (bce BlitCommandEncoder) CopyFromTexture(sourceTexture Texture, sourceSlice int, sourceLevel int, sourceOrigin Origin, sourceSize Size, destinationTexture Texture, destinationSlice int, destinationLevel int, destinationOrigin Origin) {
 	inv := cocoa.NSInvocation_invocationWithMethodSignature(cocoa.NSMethodSignature_signatureWithObjCTypes("v@:@QQ{MTLOrigin=qqq}{MTLSize=qqq}@QQ{MTLOrigin=qqq}"))
 	inv.SetTarget(bce.commandEncoder)
@@ -1064,7 +1070,9 @@ func NewTexture(texture objc.ID) Texture {
 }
 
 // resource implements the Resource interface.
-func (t Texture) resource() unsafe.Pointer { return *(*unsafe.Pointer)(unsafe.Pointer(&t.texture)) }
+func (t Texture) resource() unsafe.Pointer {
+	return *(*unsafe.Pointer)(unsafe.Pointer(&t.texture))
+}
 
 func (t Texture) Release() {
 	t.texture.Send(sel_release)
@@ -1121,8 +1129,14 @@ type Buffer struct {
 	buffer objc.ID
 }
 
-func (b Buffer) resource() unsafe.Pointer { return *(*unsafe.Pointer)(unsafe.Pointer(&b.buffer)) }
+// resource implements the Resource interface.
+func (b Buffer) resource() unsafe.Pointer {
+	return *(*unsafe.Pointer)(unsafe.Pointer(&b.buffer))
+}
 
+// Length returns the logical size of the buffer, in bytes.
+//
+// Reference: https://developer.apple.com/documentation/metal/mtlbuffer/1515373-length?language=objc.
 func (b Buffer) Length() uintptr {
 	return uintptr(b.buffer.Send(sel_length))
 }
@@ -1141,10 +1155,6 @@ func (b Buffer) Retain() {
 
 func (b Buffer) Release() {
 	b.buffer.Send(sel_release)
-}
-
-func (b Buffer) Native() unsafe.Pointer {
-	return *(*unsafe.Pointer)(unsafe.Pointer(&b.buffer))
 }
 
 // Function represents a programmable graphics or compute function executed by the GPU.
@@ -1183,24 +1193,35 @@ type Region struct {
 // to the upper-left corner, whose coordinates are (0, 0).
 //
 // Reference: https://developer.apple.com/documentation/metal/mtlorigin?language=objc.
-type Origin struct{ X, Y, Z int }
+type Origin struct {
+	X int
+	Y int
+	Z int
+}
 
 // Size represents the set of dimensions that declare the size of an object,
 // such as an image, texture, threadgroup, or grid.
 //
 // Reference: https://developer.apple.com/documentation/metal/mtlsize?language=objc.
-type Size struct{ Width, Height, Depth int }
+type Size struct {
+	Width  int
+	Height int
+	Depth  int
+}
 
 // RegionMake2D returns a 2D, rectangular region for image or texture data.
 //
 // Reference: https://developer.apple.com/documentation/metal/1515675-mtlregionmake2d?language=objc.
 func RegionMake2D(x, y, width, height int) Region {
 	return Region{
-		Origin: Origin{x, y, 0},
-		Size:   Size{width, height, 1},
+		Origin: Origin{X: x, Y: y, Z: 0},
+		Size:   Size{Width: width, Height: height, Depth: 1},
 	}
 }
 
+// Viewport is a 3D rectangular region for the viewport clipping.
+//
+// Reference: https://developer.apple.com/documentation/metal/mtlviewport?language=objc.
 type Viewport struct {
 	OriginX float64
 	OriginY float64
@@ -1210,7 +1231,7 @@ type Viewport struct {
 	ZFar    float64
 }
 
-// ScissorRect represents a rectangle for the scissor fragment test.
+// ScissorRect is a rectangle for the scissor fragment test.
 //
 // Reference: https://developer.apple.com/documentation/metal/mtlscissorrect?language=objc.
 type ScissorRect struct {
