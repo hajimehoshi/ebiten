@@ -61,7 +61,7 @@ func (v *view) colorPixelFormat() mtl.PixelFormat {
 func (v *view) initialize(device mtl.Device) error {
 	v.device = device
 
-	ml, err := ca.MakeMetalLayer()
+	ml, err := ca.NewMetalLayer()
 	if err != nil {
 		return err
 	}
