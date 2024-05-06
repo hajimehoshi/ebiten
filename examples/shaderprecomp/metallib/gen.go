@@ -24,8 +24,6 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"golang.org/x/sync/errgroup"
-
 	"github.com/hajimehoshi/ebiten/v2/shaderprecomp"
 )
 
@@ -54,15 +52,12 @@ func run() error {
 	}
 	srcs = append(srcs, defaultSrc)
 
-	var wg errgroup.Group
 	for _, src := range srcs {
-		source := src
-		wg.Go(func() error {
-			return compile(source, tmpdir)
-		})
-	}
-	if err := wg.Wait(); err != nil {
-		return err
+		// Avoid using errgroup.Group.
+		// Compiling sources in parallel causes a mixed error message on the console.
+		if err := compile(src, tmpdir); err != nil {
+			return err
+		}
 	}
 	return nil
 }

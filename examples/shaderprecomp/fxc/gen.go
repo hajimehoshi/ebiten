@@ -68,6 +68,7 @@ func run() error {
 	srcs = append(srcs, defaultSrc)
 
 	for _, src := range srcs {
+		// Avoid using errgroup.Group.
 		// Compiling sources in parallel causes a mixed error message on the console.
 		if err := compile(src, tmpdir); err != nil {
 			return err
