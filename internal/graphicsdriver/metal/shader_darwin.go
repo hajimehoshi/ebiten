@@ -104,28 +104,28 @@ func (s *Shader) Dispose() {
 func (s *Shader) init(device mtl.Device) error {
 	var src string
 	if libBin := thePrecompiledLibraries.get(s.ir.SourceHash); len(libBin) > 0 {
-		lib, err := device.MakeLibraryWithData(libBin)
+		lib, err := device.NewLibraryWithData(libBin)
 		if err != nil {
 			return err
 		}
 		s.lib = lib
 	} else {
 		src = msl.Compile(s.ir)
-		lib, err := device.MakeLibrary(src, mtl.CompileOptions{})
+		lib, err := device.NewLibraryWithSource(src, mtl.CompileOptions{})
 		if err != nil {
 			return fmt.Errorf("metal: device.MakeLibrary failed: %w, source: %s", err, src)
 		}
 		s.lib = lib
 	}
 
-	vs, err := s.lib.MakeFunction(msl.VertexName)
+	vs, err := s.lib.NewFunctionWithName(msl.VertexName)
 	if err != nil {
 		if src != "" {
 			return fmt.Errorf("metal: lib.MakeFunction for vertex failed: %w, source: %s", err, src)
 		}
 		return fmt.Errorf("metal: lib.MakeFunction for vertex failed: %w", err)
 	}
-	fs, err := s.lib.MakeFunction(msl.FragmentName)
+	fs, err := s.lib.NewFunctionWithName(msl.FragmentName)
 	if err != nil {
 		if src != "" {
 			return fmt.Errorf("metal: lib.MakeFunction for fragment failed: %w, source: %s", err, src)
@@ -176,7 +176,7 @@ func (s *Shader) RenderPipelineState(view *view, blend graphicsdriver.Blend, ste
 		rpld.ColorAttachments[0].WriteMask = mtl.ColorWriteMaskNone
 	}
 
-	rps, err := view.getMTLDevice().MakeRenderPipelineState(rpld)
+	rps, err := view.getMTLDevice().NewRenderPipelineStateWithDescriptor(rpld)
 	if err != nil {
 		return mtl.RenderPipelineState{}, err
 	}
