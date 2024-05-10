@@ -64,7 +64,8 @@ type Game interface {
 	Draw(screen *Image)
 
 	// Layout accepts a native outside size in device-independent pixels and returns the game's logical screen
-	// size.
+	// size in pixels. The logical size is used for 1) the screen size given at Draw and 2) calculation of the
+	// scale from the screen to the final screen size.
 	//
 	// On desktops, the outside is a window or a monitor (fullscreen mode). On browsers, the outside is a body
 	// element. On mobiles, the outside is the view's size.
@@ -90,6 +91,11 @@ type LayoutFer interface {
 	// LayoutF is the float version of Game.Layout.
 	//
 	// If the game implements this interface, Layout is never called and LayoutF is called instead.
+	//
+	// LayoutF accepts a native outside size in device-independent pixels and returns the game's logical screen
+	// size in pixels. The logical size is used for 1) the screen size given at Draw and 2) calculation of the
+	// scale from the screen to the final screen size. For 1), the actual screen size is a rounded up of the
+	// logical size.
 	LayoutF(outsideWidth, outsideHeight float64) (screenWidth, screenHeight float64)
 }
 
