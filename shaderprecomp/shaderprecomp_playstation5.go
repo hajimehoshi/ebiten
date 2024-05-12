@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !playstation5
+//go:build playstation5
 
 package shaderprecomp
 
@@ -20,30 +20,32 @@ import (
 	"io"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
-	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/playstation5"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
-	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/msl"
+	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/pssl"
 )
 
-// CompileToMSL compiles the shader source to Metal Shader Language, and writes the result to w.
+// CompileToPSSL compiles the shader source to PlayStaton Shader Language to writers.
 //
-// CompileToMSL is concurrent-safe.
-func CompileToMSL(w io.Writer, source *ShaderSource) error {
+// CompileToPSSL is concurrent-safe.
+func CompileToPSSL(vertexWriter, pixelWriter io.Writer, source *ShaderSource) error {
 	ir, err := graphics.CompileShader(source.source)
 	if err != nil {
 		return err
 	}
-	if _, err = w.Write([]byte(msl.Compile(ir))); err != nil {
+	vs, ps := pssl.Compile(ir)
+	if _, err = vertexWriter.Write([]byte(vs)); err != nil {
+		return err
+	}
+	if _, err = pixelWriter.Write([]byte(ps)); err != nil {
 		return err
 	}
 	return nil
 }
 
-// RegisterMetalLibrary registers a precompiled Metal library for a shader source.
-// library must be the content of a .metallib file.
-// For more details, see https://developer.apple.com/documentation/metal/shader_libraries/building_a_shader_library_by_precompiling_source_files.
+// RegisterPlayStationShaders registers a precompiled PlayStation Shader for a shader source.
 //
-// RegisterMetalLibrary is concurrent-safe.
-func RegisterMetalLibrary(source *ShaderSource, library []byte) {
-	metal.RegisterPrecompiledLibrary(shaderir.SourceHash(source.ID()), library)
+// RegisterPlayStationShaders is concurrent-safe.
+func RegisterPlayStationShaders(source *ShaderSource, vertexShader, pixelShader []byte) {
+	playstation5.RegisterPrecompiledShaders(shaderir.SourceHash(source.ID()), vertexShader, pixelShader)
 }

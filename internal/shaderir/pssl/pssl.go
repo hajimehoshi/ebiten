@@ -15,3 +15,11 @@
 // The actual implementation will be provided by -overlay.
 
 package pssl
+
+import (
+	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
+)
+
+func Compile(p *shaderir.Program) (vertexShader, pixelShader string) {
+	panic("not implemented")
+}
