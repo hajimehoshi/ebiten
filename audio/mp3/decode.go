@@ -31,6 +31,7 @@ import (
 type Stream struct {
 	orig       *mp3.Decoder
 	resampling *convert.Resampling
+	sampleRate int
 }
 
 // Read is implementation of io.Reader's Read.
@@ -57,6 +58,11 @@ func (s *Stream) Length() int64 {
 	return s.orig.Length()
 }
 
+// SampleRate returns the sample rate of the decoded stream.
+func (s *Stream) SampleRate() int {
+	return s.sampleRate
+}
+
 // DecodeWithoutResampling decodes an MP3 source and returns a decoded stream.
 //
 // DecodeWithoutResampling returns error when decoding fails or IO error happens.
@@ -73,6 +79,7 @@ func DecodeWithoutResampling(src io.Reader) (*Stream, error) {
 	s := &Stream{
 		orig:       d,
 		resampling: nil,
+		sampleRate: d.SampleRate(),
 	}
 	return s, nil
 }
@@ -103,6 +110,7 @@ func DecodeWithSampleRate(sampleRate int, src io.Reader) (*Stream, error) {
 	s := &Stream{
 		orig:       d,
 		resampling: r,
+		sampleRate: sampleRate,
 	}
 	return s, nil
 }
