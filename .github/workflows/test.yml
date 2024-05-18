@@ -62,17 +62,17 @@ jobs:
           Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
 
       - name: go vet (Linux)
-        if: runner.os == 'Linux'
+        if: ${{ runner.os == 'Linux' && !startsWith(matrix.go, '1.18.') }}
         run: |
           go vet ./...
 
       - name: go vet (macOS)
-        if: runner.os == 'macOS'
+        if: ${{ runner.os == 'macOS' && !startsWith(matrix.go, '1.18.') }}
         run: |
           go list ./... | grep -v -x -F -f .github/workflows/govetblock_darwin.txt | xargs go vet
 
       - name: go vet (Windows)
-        if: runner.os == 'Windows'
+        if: ${{ runner.os == 'Windows' && !startsWith(matrix.go, '1.18.') }}
         run: |
           go list ./... | grep -v -x -F -f .github/workflows/govetblock_windows.txt | xargs go vet
 
