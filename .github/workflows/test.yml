@@ -142,8 +142,6 @@ jobs:
         run: |
           sudo dpkg --add-architecture i386
           sudo apt-get update
-          sudo apt-get install ppa-purge
-          sudo ppa-purge -y ppa:ubuntu-toolchain-r/test # Hack for 32bit Linux (#2667)
           sudo apt-get install gcc-multilib
           sudo apt-get install libasound2-dev:i386 libgl1-mesa-dev:i386 libxcursor-dev:i386 libxi-dev:i386 libxinerama-dev:i386 libxrandr-dev:i386 libxxf86vm-dev:i386
           env CGO_ENABLED=1 GOARCH=386 go test -shuffle=on -v -p=1 ./...
