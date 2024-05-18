@@ -7,7 +7,7 @@ require (
 	github.com/ebitengine/hideconsole v1.0.0
 	github.com/ebitengine/oto/v3 v3.2.0
 	github.com/ebitengine/purego v0.7.0
-	github.com/go-text/typesetting v0.1.1-0.20240325125605-c7936fe59984
+	github.com/go-text/typesetting v0.1.1
 	github.com/hajimehoshi/bitmapfont/v3 v3.0.0
 	github.com/hajimehoshi/go-mp3 v0.3.4
 	github.com/jakecoffman/cp v1.2.1
