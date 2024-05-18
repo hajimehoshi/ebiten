@@ -8,9 +8,9 @@ github.com/ebitengine/purego v0.8.0-alpha.2 h1:+Kyr9n4eXAGMzhtWJxfdQ7AzGn0+6ZWih
 github.com/ebitengine/purego v0.8.0-alpha.2/go.mod h1:w5fARo4H5UrAgQTz0yqDfZ6bjstTQwUFmO+TN+nHlWE=
 github.com/gen2brain/mpeg v0.3.2-0.20240412154320-a2ac4fc8a46f h1:ysqRe+lvUiL0dH5XzkH0Bz68bFMPJ4f5Si4L/HD9SGk=
 github.com/gen2brain/mpeg v0.3.2-0.20240412154320-a2ac4fc8a46f/go.mod h1:i/ebyRRv/IoHixuZ9bElZnXbmfoUVPGQpdsJ4sVuX38=
-github.com/go-text/typesetting v0.1.1-0.20240402181327-ced1d6822703 h1:AqtMl9yw7r319Ah4W2afQm3Ql+PEsQKHds18tGvKhog=
-github.com/go-text/typesetting v0.1.1-0.20240402181327-ced1d6822703/go.mod h1:2+owI/sxa73XA581LAzVuEBZ3WEEV2pXeDswCH/3i1I=
-github.com/go-text/typesetting-utils v0.0.0-20240317173224-1986cbe96c66 h1:GUrm65PQPlhFSKjLPGOZNPNxLCybjzjYBzjfoBGaDUY=
+github.com/go-text/typesetting v0.1.1 h1:bGAesCuo85nXnEN5LmFMVGAGpGkCPtHrZLi//qD7EJo=
+github.com/go-text/typesetting v0.1.1/go.mod h1:d22AnmeKq/on0HNv73UFriMKc4Ez6EqZAofLhAzpSzI=
+github.com/go-text/typesetting-utils v0.0.0-20231211103740-d9332ae51f04 h1:zBx+p/W2aQYtNuyZNcTfinWvXBQwYtDfme051PR/lAY=
 github.com/hajimehoshi/bitmapfont/v3 v3.1.0 h1:JLy/na2e83GewqebpFbS2LHpDVnGdzmyJOpqXtBgLm0=
 github.com/hajimehoshi/bitmapfont/v3 v3.1.0/go.mod h1:VVaVK/4HpV1MHWswCl5miFOuLoRVyIplB3qEJxZK2OA=
 github.com/hajimehoshi/go-mp3 v0.3.4 h1:NUP7pBYH8OguP4diaTZ9wJbUbk3tC0KlfzsEpWmYj68=
