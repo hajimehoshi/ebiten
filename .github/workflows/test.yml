@@ -7,7 +7,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        go: ['1.18.x', '1.19.x', '1.20.x', '1.21.x', '1.22.x']
+        go: ['1.19.x', '1.20.x', '1.21.x', '1.22.x']
     name: Test with Go ${{ matrix.go }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     env:
@@ -62,17 +62,17 @@ jobs:
           Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
 
       - name: go vet (Linux)
-        if: ${{ runner.os == 'Linux' && !startsWith(matrix.go, '1.18.') }}
+        if: runner.os == 'Linux'
         run: |
           go vet ./...
 
       - name: go vet (macOS)
-        if: ${{ runner.os == 'macOS' && !startsWith(matrix.go, '1.18.') }}
+        if: runner.os == 'macOS'
         run: |
           go list ./... | grep -v -x -F -f .github/workflows/govetblock_darwin.txt | xargs go vet
 
       - name: go vet (Windows)
-        if: ${{ runner.os == 'Windows' && !startsWith(matrix.go, '1.18.') }}
+        if: runner.os == 'Windows'
         run: |
           go list ./... | grep -v -x -F -f .github/workflows/govetblock_windows.txt | xargs go vet
 
