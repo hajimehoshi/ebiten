@@ -3,7 +3,7 @@ module github.com/hajimehoshi/ebiten/v2
 go 1.19
 
 require (
-	github.com/ebitengine/gomobile v0.0.0-20240429094902-cf88669c3591
+	github.com/ebitengine/gomobile v0.0.0-20240518074828-e86332849895
 	github.com/ebitengine/hideconsole v1.0.0
 	github.com/ebitengine/oto/v3 v3.3.0-alpha.1
 	github.com/ebitengine/purego v0.8.0-alpha.2
