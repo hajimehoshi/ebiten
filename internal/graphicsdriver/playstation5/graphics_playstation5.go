@@ -153,7 +153,3 @@ func (s *Shader) ID() graphicsdriver.ShaderID {
 func (s *Shader) Dispose() {
 	C.ebitengine_DisposeShader(C.int(s.id))
 }
-
-func RegisterPrecompiledShaders(hash shaderir.SourceHash, vertex, pixel []byte) {
-	// TODO: Implement this.
-}
