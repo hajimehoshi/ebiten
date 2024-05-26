@@ -16,8 +16,10 @@ package main
 
 import (
 	"embed"
+	"encoding/hex"
 	"errors"
 	"fmt"
+	"hash/fnv"
 	"io/fs"
 	"os"
 
@@ -31,14 +33,16 @@ var fxcs embed.FS
 
 func registerPrecompiledShaders() error {
 	srcs := shaderprecomp.AppendBuildinShaderSources(nil)
-	defaultShaderSource, err := shaderprecomp.NewShaderSource(defaultShaderSourceBytes)
-	if err != nil {
-		return err
-	}
-	srcs = append(srcs, defaultShaderSource)
+	srcs = append(srcs, defaultShaderSourceBytes)
 
 	for _, src := range srcs {
-		vsname := src.ID().String() + "_vs.fxc"
+		// Calculate the hash of the source code to identify the Metal library.
+		// FNV is used as it is fast and the hash does not need to be secure.
+		h := fnv.New32()
+		_, _ = h.Write(src)
+		id := hex.EncodeToString(h.Sum(nil))
+
+		vsname := id + "_vs.fxc"
 		vs, err := fxcs.ReadFile("fxc/" + vsname)
 		if err != nil {
 			if errors.Is(err, fs.ErrNotExist) {
@@ -48,7 +52,7 @@ func registerPrecompiledShaders() error {
 			return err
 		}
 
-		psname := src.ID().String() + "_ps.fxc"
+		psname := id + "_ps.fxc"
 		ps, err := fxcs.ReadFile("fxc/" + psname)
 		if err != nil {
 			if errors.Is(err, fs.ErrNotExist) {

@@ -20,6 +20,8 @@
 package main
 
 import (
+	"encoding/hex"
+	"hash/fnv"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -42,11 +44,7 @@ func run() error {
 
 	srcs := shaderprecomp.AppendBuildinShaderSources(nil)
 
-	defaultSrcBytes, err := os.ReadFile(filepath.Join("..", "defaultshader.go"))
-	if err != nil {
-		return err
-	}
-	defaultSrc, err := shaderprecomp.NewShaderSource(defaultSrcBytes)
+	defaultSrc, err := os.ReadFile(filepath.Join("..", "defaultshader.go"))
 	if err != nil {
 		return err
 	}
@@ -62,8 +60,10 @@ func run() error {
 	return nil
 }
 
-func compile(source *shaderprecomp.ShaderSource, tmpdir string) error {
-	id := source.ID().String()
+func compile(kageSource []byte, tmpdir string) error {
+	h := fnv.New32()
+	_, _ = h.Write(kageSource)
+	id := hex.EncodeToString(h.Sum(nil))
 
 	metalFilePath := filepath.Join(tmpdir, id+".metal")
 
@@ -73,7 +73,7 @@ func compile(source *shaderprecomp.ShaderSource, tmpdir string) error {
 	}
 	defer f.Close()
 
-	if err := shaderprecomp.CompileToMSL(f, source); err != nil {
+	if err := shaderprecomp.CompileToMSL(f, kageSource); err != nil {
 		return err
 	}
 	if err := f.Sync(); err != nil {

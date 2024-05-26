@@ -21,15 +21,14 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal"
-	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/msl"
 )
 
 // CompileToMSL compiles the shader source to Metal Shader Language, and writes the result to w.
 //
 // CompileToMSL is concurrent-safe.
-func CompileToMSL(w io.Writer, source *ShaderSource) error {
-	ir, err := graphics.CompileShader(source.source)
+func CompileToMSL(w io.Writer, kageSource []byte) error {
+	ir, err := graphics.CompileShader(kageSource)
 	if err != nil {
 		return err
 	}
@@ -44,6 +43,6 @@ func CompileToMSL(w io.Writer, source *ShaderSource) error {
 // For more details, see https://developer.apple.com/documentation/metal/shader_libraries/building_a_shader_library_by_precompiling_source_files.
 //
 // RegisterMetalLibrary is concurrent-safe.
-func RegisterMetalLibrary(source *ShaderSource, library []byte) {
-	metal.RegisterPrecompiledLibrary(shaderir.SourceHash(source.ID()), library)
+func RegisterMetalLibrary(kageSource []byte, library []byte) {
+	metal.RegisterPrecompiledLibrary(kageSource, library)
 }
