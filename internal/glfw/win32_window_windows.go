@@ -2309,7 +2309,7 @@ func (w *Window) platformSetCursorMode(mode int) error {
 
 		if mode == CursorDisabled {
 			_glfw.platformWindow.disabledCursorWindow = w
-		} else {
+		} else if _glfw.platformWindow.disabledCursorWindow == w {
 			_glfw.platformWindow.disabledCursorWindow = nil
 			if err := w.platformSetCursorPos(_glfw.platformWindow.restoreCursorPosX, _glfw.platformWindow.restoreCursorPosY); err != nil {
 				return err
