@@ -40,7 +40,7 @@ func run() error {
 		if errors.Is(err, exec.ErrNotFound) {
 			fmt.Fprintln(os.Stderr, "fxc.exe not found. Please install Windows SDK.")
 			fmt.Fprintln(os.Stderr, "See https://learn.microsoft.com/en-us/windows/win32/direct3dtools/fxc for more details.")
-			fmt.Fprintln(os.Stderr, "On PowerShell, you can add a path to the PATH environment variable temporarily like:")
+			fmt.Fprintln(os.Stderr, "HINT: On PowerShell, you can add a path to the PATH environment variable temporarily like:")
 			fmt.Fprintln(os.Stderr)
 			fmt.Fprintln(os.Stderr, `    & (Get-Process -Id $PID).Path { $env:PATH="C:\Program Files (x86)\Windows Kits\10\bin\10.0.22621.0\x64;"+$env:PATH; go generate .\examples\shaderprecomp\fxc\ }`)
 			fmt.Fprintln(os.Stderr)
@@ -61,33 +61,27 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	defaultSrc, err := shaderprecomp.NewShaderSource(defaultSrcBytes)
-	if err != nil {
-		return err
-	}
-	srcs = append(srcs, defaultSrc)
+	srcs = append(srcs, shaderprecomp.NewShaderSource(defaultSrcBytes))
 
-	for _, src := range srcs {
+	for i, src := range srcs {
 		// Avoid using errgroup.Group.
 		// Compiling sources in parallel causes a mixed error message on the console.
-		if err := compile(src, tmpdir); err != nil {
+		if err := compile(src, i, tmpdir); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func generateHSLSFiles(source *shaderprecomp.ShaderSource, tmpdir string) (vs, ps string, err error) {
-	id := source.ID().String()
-
-	vsHLSLFilePath := filepath.Join(tmpdir, id+"_vs.hlsl")
+func generateHSLSFiles(source *shaderprecomp.ShaderSource, index int, tmpdir string) (vs, ps string, err error) {
+	vsHLSLFilePath := filepath.Join(tmpdir, fmt.Sprintf("%d_vs.hlsl", index))
 	vsf, err := os.Create(vsHLSLFilePath)
 	if err != nil {
 		return "", "", err
 	}
 	defer vsf.Close()
 
-	psHLSLFilePath := filepath.Join(tmpdir, id+"_ps.hlsl")
+	psHLSLFilePath := filepath.Join(tmpdir, fmt.Sprintf("%d_ps.hlsl", index))
 	psf, err := os.Create(psHLSLFilePath)
 	if err != nil {
 		return "", "", err
@@ -101,17 +95,15 @@ func generateHSLSFiles(source *shaderprecomp.ShaderSource, tmpdir string) (vs, p
 	return vsHLSLFilePath, psHLSLFilePath, nil
 }
 
-func compile(source *shaderprecomp.ShaderSource, tmpdir string) error {
+func compile(source *shaderprecomp.ShaderSource, index int, tmpdir string) error {
 	// Generate HLSL files. Make sure this process doesn't have any handlers of the files.
 	// Without closing the files, fxc.exe cannot access the files.
-	vsHLSLFilePath, psHLSLFilePath, err := generateHSLSFiles(source, tmpdir)
+	vsHLSLFilePath, psHLSLFilePath, err := generateHSLSFiles(source, index, tmpdir)
 	if err != nil {
 		return err
 	}
 
-	id := source.ID().String()
-
-	vsFXCFilePath := id + "_vs.fxc"
+	vsFXCFilePath := fmt.Sprintf("%d_vs.fxc", index)
 	cmd := exec.Command("fxc.exe", "/nologo", "/O3", "/T", shaderprecomp.HLSLVertexShaderProfile, "/E", shaderprecomp.HLSLVertexShaderEntryPoint, "/Fo", vsFXCFilePath, vsHLSLFilePath)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -119,7 +111,7 @@ func compile(source *shaderprecomp.ShaderSource, tmpdir string) error {
 		return err
 	}
 
-	psFXCFilePath := id + "_ps.fxc"
+	psFXCFilePath := fmt.Sprintf("%d_ps.fxc", index)
 	cmd = exec.Command("fxc.exe", "/nologo", "/O3", "/T", shaderprecomp.HLSLPixelShaderProfile, "/E", shaderprecomp.HLSLPixelShaderEntryPoint, "/Fo", psFXCFilePath, psHLSLFilePath)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr

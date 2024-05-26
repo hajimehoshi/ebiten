@@ -20,6 +20,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -46,26 +47,20 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	defaultSrc, err := shaderprecomp.NewShaderSource(defaultSrcBytes)
-	if err != nil {
-		return err
-	}
-	srcs = append(srcs, defaultSrc)
+	srcs = append(srcs, shaderprecomp.NewShaderSource(defaultSrcBytes))
 
-	for _, src := range srcs {
+	for i, src := range srcs {
 		// Avoid using errgroup.Group.
 		// Compiling sources in parallel causes a mixed error message on the console.
-		if err := compile(src, tmpdir); err != nil {
+		if err := compile(src, i, tmpdir); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func compile(source *shaderprecomp.ShaderSource, tmpdir string) error {
-	id := source.ID().String()
-
-	metalFilePath := filepath.Join(tmpdir, id+".metal")
+func compile(source *shaderprecomp.ShaderSource, index int, tmpdir string) error {
+	metalFilePath := filepath.Join(tmpdir, fmt.Sprintf("%d.metal", index))
 
 	f, err := os.Create(metalFilePath)
 	if err != nil {
@@ -80,14 +75,14 @@ func compile(source *shaderprecomp.ShaderSource, tmpdir string) error {
 		return err
 	}
 
-	irFilePath := filepath.Join(tmpdir, id+".ir")
+	irFilePath := filepath.Join(tmpdir, fmt.Sprintf("%d.ir", index))
 	cmd := exec.Command("xcrun", "-sdk", "macosx", "metal", "-o", irFilePath, "-c", metalFilePath)
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
 		return err
 	}
 
-	metallibFilePath := id + ".metallib"
+	metallibFilePath := fmt.Sprintf("%d.metallib", index)
 	cmd = exec.Command("xcrun", "-sdk", "macosx", "metallib", "-o", metallibFilePath, irFilePath)
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {

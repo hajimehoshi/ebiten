@@ -21,7 +21,6 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/directx"
-	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/hlsl"
 )
 
@@ -63,5 +62,5 @@ func CompileToHLSL(vertexWriter, pixelWriter io.Writer, source *ShaderSource) er
 //
 // RegisterFXCs is concurrent-safe.
 func RegisterFXCs(source *ShaderSource, vertexFXC, pixelFXC []byte) {
-	directx.RegisterPrecompiledFXCs(shaderir.SourceHash(source.ID()), vertexFXC, pixelFXC)
+	directx.RegisterPrecompiledFXCs(source.source, vertexFXC, pixelFXC)
 }

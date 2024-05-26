@@ -29,14 +29,10 @@ var metallibs embed.FS
 
 func registerPrecompiledShaders() error {
 	srcs := shaderprecomp.AppendBuildinShaderSources(nil)
-	defaultShaderSource, err := shaderprecomp.NewShaderSource(defaultShaderSourceBytes)
-	if err != nil {
-		return err
-	}
-	srcs = append(srcs, defaultShaderSource)
+	srcs = append(srcs, shaderprecomp.NewShaderSource(defaultShaderSourceBytes))
 
-	for _, src := range srcs {
-		name := src.ID().String() + ".metallib"
+	for i, src := range srcs {
+		name := fmt.Sprintf("%d.metallib", i)
 		lib, err := metallibs.ReadFile("metallib/" + name)
 		if err != nil {
 			if errors.Is(err, fs.ErrNotExist) {

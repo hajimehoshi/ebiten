@@ -21,7 +21,6 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/playstation5"
-	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/pssl"
 )
 
@@ -47,5 +46,5 @@ func CompileToPSSL(vertexWriter, pixelWriter io.Writer, source *ShaderSource) er
 //
 // RegisterPlayStationShaders is concurrent-safe.
 func RegisterPlayStationShaders(source *ShaderSource, vertexShader, pixelShader []byte) {
-	playstation5.RegisterPrecompiledShaders(shaderir.SourceHash(source.ID()), vertexShader, pixelShader)
+	playstation5.RegisterPrecompiledShaders(source.source, vertexShader, pixelShader)
 }

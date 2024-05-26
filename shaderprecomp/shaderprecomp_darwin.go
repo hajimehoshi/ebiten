@@ -21,7 +21,6 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal"
-	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/msl"
 )
 
@@ -45,5 +44,5 @@ func CompileToMSL(w io.Writer, source *ShaderSource) error {
 //
 // RegisterMetalLibrary is concurrent-safe.
 func RegisterMetalLibrary(source *ShaderSource, library []byte) {
-	metal.RegisterPrecompiledLibrary(shaderir.SourceHash(source.ID()), library)
+	metal.RegisterPrecompiledLibrary(source.source, library)
 }

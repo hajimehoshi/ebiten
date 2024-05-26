@@ -31,14 +31,10 @@ var fxcs embed.FS
 
 func registerPrecompiledShaders() error {
 	srcs := shaderprecomp.AppendBuildinShaderSources(nil)
-	defaultShaderSource, err := shaderprecomp.NewShaderSource(defaultShaderSourceBytes)
-	if err != nil {
-		return err
-	}
-	srcs = append(srcs, defaultShaderSource)
+	srcs = append(srcs, shaderprecomp.NewShaderSource(defaultShaderSourceBytes))
 
-	for _, src := range srcs {
-		vsname := src.ID().String() + "_vs.fxc"
+	for i, src := range srcs {
+		vsname := fmt.Sprintf("%d_vs.fxc", i)
 		vs, err := fxcs.ReadFile("fxc/" + vsname)
 		if err != nil {
 			if errors.Is(err, fs.ErrNotExist) {
@@ -48,7 +44,7 @@ func registerPrecompiledShaders() error {
 			return err
 		}
 
-		psname := src.ID().String() + "_ps.fxc"
+		psname := fmt.Sprintf("%d_ps.fxc", i)
 		ps, err := fxcs.ReadFile("fxc/" + psname)
 		if err != nil {
 			if errors.Is(err, fs.ErrNotExist) {

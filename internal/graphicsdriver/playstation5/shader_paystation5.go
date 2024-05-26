@@ -18,10 +18,6 @@
 
 package playstation5
 
-import (
-	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
-)
-
-func RegisterPrecompiledShaders(hash shaderir.SourceHash, vertex, pixel []byte) {
+func RegisterPrecompiledShaders(source []byte, vertex, pixel []byte) {
 	// TODO: Implement this.
 }

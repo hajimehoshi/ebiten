@@ -51,8 +51,8 @@ func (c *precompiledLibraries) get(hash shaderir.SourceHash) []byte {
 
 var thePrecompiledLibraries precompiledLibraries
 
-func RegisterPrecompiledLibrary(hash shaderir.SourceHash, bin []byte) {
-	thePrecompiledLibraries.put(hash, bin)
+func RegisterPrecompiledLibrary(source []byte, bin []byte) {
+	thePrecompiledLibraries.put(shaderir.CalcSourceHash(source), bin)
 }
 
 type shaderRpsKey struct {
