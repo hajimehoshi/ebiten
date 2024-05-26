@@ -16,9 +16,10 @@ package main
 
 import (
 	"embed"
+	"errors"
 	"fmt"
+	"io/fs"
 	"os"
-	"strings"
 
 	"github.com/hajimehoshi/ebiten/v2/shaderprecomp"
 )
@@ -29,44 +30,35 @@ import (
 var fxcs embed.FS
 
 func registerPrecompiledShaders() error {
-	ents, err := fxcs.ReadDir("fxc")
+	srcs := shaderprecomp.AppendBuildinShaderSources(nil)
+	defaultShaderSource, err := shaderprecomp.NewShaderSource(defaultShaderSourceBytes)
 	if err != nil {
 		return err
 	}
+	srcs = append(srcs, defaultShaderSource)
 
-	var registered bool
-	for _, ent := range ents {
-		if ent.IsDir() {
-			continue
-		}
-
-		const suffix = "_vs.fxc"
-		name := ent.Name()
-		if !strings.HasSuffix(name, suffix) {
-			continue
-		}
-
-		id := name[:len(name)-len(suffix)]
-		srcID, err := shaderprecomp.ParseSourceID(id)
+	for _, src := range srcs {
+		vsname := src.ID().String() + "_vs.fxc"
+		vs, err := fxcs.ReadFile("fxc/" + vsname)
 		if err != nil {
-			continue
-		}
-
-		vs, err := fxcs.ReadFile("fxc/" + id + "_vs.fxc")
-		if err != nil {
-			return err
-		}
-		ps, err := fxcs.ReadFile("fxc/" + id + "_ps.fxc")
-		if err != nil {
+			if errors.Is(err, fs.ErrNotExist) {
+				fmt.Fprintf(os.Stderr, "precompiled HLSL library %s was not found. Run 'go generate' for 'fxc' directory to generate them.\n", vsname)
+				continue
+			}
 			return err
 		}
 
-		shaderprecomp.RegisterFXCs(srcID, vs, ps)
-		registered = true
-	}
+		psname := src.ID().String() + "_ps.fxc"
+		ps, err := fxcs.ReadFile("fxc/" + psname)
+		if err != nil {
+			if errors.Is(err, fs.ErrNotExist) {
+				fmt.Fprintf(os.Stderr, "precompiled HLSL library %s was not found. Run 'go generate' for 'fxc' directory to generate them.\n", psname)
+				continue
+			}
+			return err
+		}
 
-	if !registered {
-		fmt.Fprintln(os.Stderr, "precompiled HLSL libraries were not found. Run 'go generate' for 'fxc' directory to generate them.")
+		shaderprecomp.RegisterFXCs(src, vs, ps)
 	}
 
 	return nil

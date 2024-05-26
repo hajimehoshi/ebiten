@@ -39,11 +39,11 @@ func CompileToMSL(w io.Writer, source *ShaderSource) error {
 	return nil
 }
 
-// RegisterMetalLibrary registers a precompiled Metal library for a shader source ID.
+// RegisterMetalLibrary registers a precompiled Metal library for a shader source.
 // library must be the content of a .metallib file.
 // For more details, see https://developer.apple.com/documentation/metal/shader_libraries/building_a_shader_library_by_precompiling_source_files.
 //
 // RegisterMetalLibrary is concurrent-safe.
-func RegisterMetalLibrary(id ShaderSourceID, library []byte) {
-	metal.RegisterPrecompiledLibrary(shaderir.SourceHash(id), library)
+func RegisterMetalLibrary(source *ShaderSource, library []byte) {
+	metal.RegisterPrecompiledLibrary(shaderir.SourceHash(source.ID()), library)
 }

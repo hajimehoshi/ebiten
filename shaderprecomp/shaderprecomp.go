@@ -64,15 +64,6 @@ func (s *ShaderSource) ID() ShaderSourceID {
 // ShaderSourceID is a uniuqe identifier for a shader source.
 type ShaderSourceID [16]byte
 
-// ParseSourceID parses a string representation of the shader source ID.
-func ParseSourceID(s string) (ShaderSourceID, error) {
-	h, err := shaderir.ParseSourceHash(s)
-	if err != nil {
-		return ShaderSourceID{}, err
-	}
-	return ShaderSourceID(h), nil
-}
-
 // String returns a string representation of the shader source ID.
 func (s ShaderSourceID) String() string {
 	return shaderir.SourceHash(s).String()
