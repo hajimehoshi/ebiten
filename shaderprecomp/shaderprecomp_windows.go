@@ -21,6 +21,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/directx"
+	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/hlsl"
 )
 
@@ -41,8 +42,8 @@ const (
 // CompileToHLSL compiles the shader source to High-Level Shader Language to writers.
 //
 // CompileToHLSL is concurrent-safe.
-func CompileToHLSL(vertexWriter, pixelWriter io.Writer, kageSource []byte) error {
-	ir, err := graphics.CompileShader(kageSource)
+func CompileToHLSL(vertexWriter, pixelWriter io.Writer, source *ShaderSource) error {
+	ir, err := graphics.CompileShader(source.source)
 	if err != nil {
 		return err
 	}
@@ -61,6 +62,6 @@ func CompileToHLSL(vertexWriter, pixelWriter io.Writer, kageSource []byte) error
 // For more details, see https://learn.microsoft.com/en-us/windows/win32/direct3dtools/dx-graphics-tools-fxc-using.
 //
 // RegisterFXCs is concurrent-safe.
-func RegisterFXCs(kageSource []byte, vertexFXC, pixelFXC []byte) {
-	directx.RegisterPrecompiledFXCs(kageSource, vertexFXC, pixelFXC)
+func RegisterFXCs(source *ShaderSource, vertexFXC, pixelFXC []byte) {
+	directx.RegisterPrecompiledFXCs(shaderir.SourceHash(source.ID()), vertexFXC, pixelFXC)
 }

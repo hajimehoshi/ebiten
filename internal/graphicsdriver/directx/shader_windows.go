@@ -70,8 +70,8 @@ func (c *precompiledFXCs) get(hash shaderir.SourceHash) ([]byte, []byte) {
 
 var thePrecompiledFXCs precompiledFXCs
 
-func RegisterPrecompiledFXCs(kageSource []byte, vertex, pixel []byte) {
-	thePrecompiledFXCs.put(shaderir.CalcSourceHash(kageSource), vertex, pixel)
+func RegisterPrecompiledFXCs(hash shaderir.SourceHash, vertex, pixel []byte) {
+	thePrecompiledFXCs.put(hash, vertex, pixel)
 }
 
 var vertexShaderCache = map[string]*_ID3DBlob{}

@@ -16,10 +16,8 @@ package main
 
 import (
 	"embed"
-	"encoding/hex"
 	"errors"
 	"fmt"
-	"hash/fnv"
 	"io/fs"
 	"os"
 
@@ -31,16 +29,14 @@ var metallibs embed.FS
 
 func registerPrecompiledShaders() error {
 	srcs := shaderprecomp.AppendBuildinShaderSources(nil)
-	srcs = append(srcs, defaultShaderSourceBytes)
+	defaultShaderSource, err := shaderprecomp.NewShaderSource(defaultShaderSourceBytes)
+	if err != nil {
+		return err
+	}
+	srcs = append(srcs, defaultShaderSource)
 
 	for _, src := range srcs {
-		// Calculate the hash of the source code to identify the Metal library.
-		// FNV is used as it is fast and the hash does not need to be secure.
-		h := fnv.New32()
-		_, _ = h.Write(src)
-		id := hex.EncodeToString(h.Sum(nil))
-
-		name := id + ".metallib"
+		name := src.ID().String() + ".metallib"
 		lib, err := metallibs.ReadFile("metallib/" + name)
 		if err != nil {
 			if errors.Is(err, fs.ErrNotExist) {

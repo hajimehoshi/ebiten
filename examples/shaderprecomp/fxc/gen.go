@@ -20,10 +20,8 @@
 package main
 
 import (
-	"encoding/hex"
 	"errors"
 	"fmt"
-	"hash/fnv"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -59,7 +57,11 @@ func run() error {
 
 	srcs := shaderprecomp.AppendBuildinShaderSources(nil)
 
-	defaultSrc, err := os.ReadFile(filepath.Join("..", "defaultshader.go"))
+	defaultSrcBytes, err := os.ReadFile(filepath.Join("..", "defaultshader.go"))
+	if err != nil {
+		return err
+	}
+	defaultSrc, err := shaderprecomp.NewShaderSource(defaultSrcBytes)
 	if err != nil {
 		return err
 	}
@@ -75,7 +77,9 @@ func run() error {
 	return nil
 }
 
-func generateHSLSFiles(source []byte, id string, tmpdir string) (vs, ps string, err error) {
+func generateHSLSFiles(source *shaderprecomp.ShaderSource, tmpdir string) (vs, ps string, err error) {
+	id := source.ID().String()
+
 	vsHLSLFilePath := filepath.Join(tmpdir, id+"_vs.hlsl")
 	vsf, err := os.Create(vsHLSLFilePath)
 	if err != nil {
@@ -97,17 +101,15 @@ func generateHSLSFiles(source []byte, id string, tmpdir string) (vs, ps string, 
 	return vsHLSLFilePath, psHLSLFilePath, nil
 }
 
-func compile(kageSource []byte, tmpdir string) error {
-	h := fnv.New32()
-	_, _ = h.Write(kageSource)
-	id := hex.EncodeToString(h.Sum(nil))
-
+func compile(source *shaderprecomp.ShaderSource, tmpdir string) error {
 	// Generate HLSL files. Make sure this process doesn't have any handlers of the files.
 	// Without closing the files, fxc.exe cannot access the files.
-	vsHLSLFilePath, psHLSLFilePath, err := generateHSLSFiles(kageSource, id, tmpdir)
+	vsHLSLFilePath, psHLSLFilePath, err := generateHSLSFiles(source, tmpdir)
 	if err != nil {
 		return err
 	}
+
+	id := source.ID().String()
 
 	vsFXCFilePath := id + "_vs.fxc"
 	cmd := exec.Command("fxc.exe", "/nologo", "/O3", "/T", shaderprecomp.HLSLVertexShaderProfile, "/E", shaderprecomp.HLSLVertexShaderEntryPoint, "/Fo", vsFXCFilePath, vsHLSLFilePath)
