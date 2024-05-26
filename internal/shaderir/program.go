@@ -17,6 +17,7 @@ package shaderir
 
 import (
 	"encoding/hex"
+	"fmt"
 	"go/constant"
 	"go/token"
 	"hash/fnv"
@@ -40,6 +41,19 @@ func CalcSourceHash(source []byte) SourceHash {
 	var hash SourceHash
 	h.Sum(hash[:0])
 	return hash
+}
+
+func ParseSourceHash(s string) (SourceHash, error) {
+	bs, err := hex.DecodeString(s)
+	if err != nil {
+		return SourceHash{}, err
+	}
+	var hash SourceHash
+	if len(bs) != len(hash) {
+		return SourceHash{}, fmt.Errorf("shaderir: invalid size hash: %s", s)
+	}
+	copy(hash[:], bs)
+	return hash, nil
 }
 
 func (s SourceHash) String() string {

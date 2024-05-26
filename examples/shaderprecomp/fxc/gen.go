@@ -40,7 +40,7 @@ func run() error {
 		if errors.Is(err, exec.ErrNotFound) {
 			fmt.Fprintln(os.Stderr, "fxc.exe not found. Please install Windows SDK.")
 			fmt.Fprintln(os.Stderr, "See https://learn.microsoft.com/en-us/windows/win32/direct3dtools/fxc for more details.")
-			fmt.Fprintln(os.Stderr, "On PowerShell, you can add a path to the PATH environment variable temporarily like:")
+			fmt.Fprintln(os.Stderr, "HINT: On PowerShell, you can add a path to the PATH environment variable temporarily like:")
 			fmt.Fprintln(os.Stderr)
 			fmt.Fprintln(os.Stderr, `    & (Get-Process -Id $PID).Path { $env:PATH="C:\Program Files (x86)\Windows Kits\10\bin\10.0.22621.0\x64;"+$env:PATH; go generate .\examples\shaderprecomp\fxc\ }`)
 			fmt.Fprintln(os.Stderr)

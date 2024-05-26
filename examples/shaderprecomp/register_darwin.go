@@ -16,10 +16,9 @@ package main
 
 import (
 	"embed"
-	"errors"
 	"fmt"
-	"io/fs"
 	"os"
+	"strings"
 
 	"github.com/hajimehoshi/ebiten/v2/shaderprecomp"
 )
@@ -28,24 +27,40 @@ import (
 var metallibs embed.FS
 
 func registerPrecompiledShaders() error {
-	srcs := shaderprecomp.AppendBuildinShaderSources(nil)
-	defaultShaderSource, err := shaderprecomp.NewShaderSource(defaultShaderSourceBytes)
+	ents, err := metallibs.ReadDir("metallib")
 	if err != nil {
 		return err
 	}
-	srcs = append(srcs, defaultShaderSource)
 
-	for _, src := range srcs {
-		name := src.ID().String() + ".metallib"
+	var registered bool
+	for _, ent := range ents {
+		if ent.IsDir() {
+			continue
+		}
+
+		const suffix = ".metallib"
+		name := ent.Name()
+		if !strings.HasSuffix(name, suffix) {
+			continue
+		}
+
+		id := name[:len(name)-len(suffix)]
+		srcID, err := shaderprecomp.ParseSourceID(id)
+		if err != nil {
+			continue
+		}
+
 		lib, err := metallibs.ReadFile("metallib/" + name)
 		if err != nil {
-			if errors.Is(err, fs.ErrNotExist) {
-				fmt.Fprintf(os.Stderr, "precompiled Metal library %s was not found. Run 'go generate' for 'metallib' directory to generate them.\n", name)
-				continue
-			}
 			return err
 		}
-		shaderprecomp.RegisterMetalLibrary(src, lib)
+
+		shaderprecomp.RegisterMetalLibrary(srcID, lib)
+		registered = true
+	}
+
+	if !registered {
+		fmt.Fprintln(os.Stderr, "precompiled Metal libraries were not found. Run 'go generate' for 'metallib' directory to generate them.")
 	}
 
 	return nil
