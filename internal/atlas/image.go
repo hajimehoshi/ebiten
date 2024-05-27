@@ -256,6 +256,9 @@ type Image struct {
 	//
 	// usedAsDestinationCount is never reset.
 	usedAsDestinationCount int
+
+	// tmpBackends is a temporary slice for ensureIsolatedFromSource.
+	tmpBackends []*backend
 }
 
 // moveTo moves its content to the given image dst.
@@ -436,7 +439,7 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 		return
 	}
 
-	backends := make([]*backend, 0, len(srcs))
+	i.tmpBackends = i.tmpBackends[:0]
 	for _, src := range srcs {
 		if src == nil {
 			continue
@@ -446,11 +449,16 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 			// If the backend becomes the same as i's, i's backend will be changed at ensureIsolatedFromSource.
 			src.allocate(nil, true)
 		}
-		backends = append(backends, src.backend)
+		i.tmpBackends = append(i.tmpBackends, src.backend)
 		src.backend.sourceInThisFrame = true
 	}
 
-	i.ensureIsolatedFromSource(backends)
+	i.ensureIsolatedFromSource(i.tmpBackends)
+
+	for idx := range i.tmpBackends {
+		i.tmpBackends[idx] = nil
+	}
+	i.tmpBackends = i.tmpBackends[:0]
 
 	for _, src := range srcs {
 		// Compare i and source images after ensuring i is not on an atlas, or
