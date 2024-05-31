@@ -17,7 +17,6 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"image"
 	_ "image/jpeg"
 	"log"
 	"math"
@@ -138,12 +137,12 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 }
 
 func main() {
-	// Decode an image from the image file's byte slice.
-	img, _, err := image.Decode(bytes.NewReader(images.Gophers_jpg))
+	var err error
+
+	gophersImage, _, err = ebitenutil.NewImageFromReader(bytes.NewReader(images.Gophers_jpg))
 	if err != nil {
 		log.Fatal(err)
 	}
-	gophersImage = ebiten.NewImageFromImage(img)
 
 	ebiten.SetWindowSize(screenWidth, screenHeight)
 	ebiten.SetWindowTitle("HSV (Ebitengine Demo)")

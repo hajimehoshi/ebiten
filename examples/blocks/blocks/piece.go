@@ -21,18 +21,19 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/colorm"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	rblocks "github.com/hajimehoshi/ebiten/v2/examples/resources/images/blocks"
 )
 
 var imageBlocks *ebiten.Image
 
 func init() {
-	img, _, err := image.Decode(bytes.NewReader(rblocks.Blocks_png))
+	var err error
+
+	imageBlocks, _, err = ebitenutil.NewImageFromReader(bytes.NewReader(rblocks.Blocks_png))
 	if err != nil {
 		panic(err)
 	}
-	imageBlocks = ebiten.NewImageFromImage(img)
-
 }
 
 type Angle int

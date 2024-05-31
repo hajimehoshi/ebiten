@@ -17,7 +17,6 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"image"
 	"image/color"
 	_ "image/jpeg"
 	"log"
@@ -25,6 +24,7 @@ import (
 	"runtime"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/examples/resources/fonts"
 	"github.com/hajimehoshi/ebiten/v2/examples/resources/images"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
@@ -37,12 +37,14 @@ var (
 )
 
 func init() {
-	// Decode an image from the image file's byte slice.
-	img, _, err := image.Decode(bytes.NewReader(images.Gophers_jpg))
+
+	var err error
+
+	gophersImage, _, err = ebitenutil.NewImageFromReader(bytes.NewReader(images.Gophers_jpg))
 	if err != nil {
 		log.Fatal(err)
 	}
-	gophersImage = ebiten.NewImageFromImage(img)
+
 }
 
 func init() {

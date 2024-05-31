@@ -25,6 +25,7 @@ import (
 	"golang.org/x/image/font/gofont/goregular"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/examples/resources/images"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
@@ -41,12 +42,12 @@ var (
 )
 
 func init() {
-	// Decode an image from the image file's byte slice.
-	img, _, err := image.Decode(bytes.NewReader(images.UI_png))
+	var err error
+
+	uiImage, _, err = ebitenutil.NewImageFromReader(bytes.NewReader(images.UI_png))
 	if err != nil {
 		log.Fatal(err)
 	}
-	uiImage = ebiten.NewImageFromImage(img)
 }
 
 func init() {

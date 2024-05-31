@@ -16,11 +16,11 @@ package blocks
 
 import (
 	"bytes"
-	"image"
 	"image/color"
 	_ "image/png"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	rblocks "github.com/hajimehoshi/ebiten/v2/examples/resources/images/blocks"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
@@ -29,11 +29,12 @@ import (
 var imageBackground *ebiten.Image
 
 func init() {
-	img, _, err := image.Decode(bytes.NewReader(rblocks.Background_png))
+	var err error
+
+	imageBackground, _, err = ebitenutil.NewImageFromReader(bytes.NewReader(rblocks.Background_png))
 	if err != nil {
 		panic(err)
 	}
-	imageBackground = ebiten.NewImageFromImage(img)
 }
 
 type TitleScene struct {

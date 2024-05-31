@@ -20,6 +20,7 @@ import (
 	_ "image/png"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/examples/resources/images"
 )
 
@@ -35,12 +36,12 @@ type SpriteSheet struct {
 
 // LoadSpriteSheet loads the embedded SpriteSheet.
 func LoadSpriteSheet(tileSize int) (*SpriteSheet, error) {
-	img, _, err := image.Decode(bytes.NewReader(images.Spritesheet_png))
+	var err error
+
+	sheet, _, err := ebitenutil.NewImageFromReader(bytes.NewReader(images.Spritesheet_png))
 	if err != nil {
 		return nil, err
 	}
-
-	sheet := ebiten.NewImageFromImage(img)
 
 	// spriteAt returns a sprite at the provided coordinates.
 	spriteAt := func(x, y int) *ebiten.Image {

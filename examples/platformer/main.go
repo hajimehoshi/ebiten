@@ -17,7 +17,6 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"image"
 	_ "image/png"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -41,29 +40,26 @@ var (
 
 func init() {
 	// Preload images
-	img, _, err := image.Decode(bytes.NewReader(rplatformer.Right_png))
+	var err error
+	rightSprite, _, err = ebitenutil.NewImageFromReader(bytes.NewReader(rplatformer.Right_png))
 	if err != nil {
 		panic(err)
 	}
-	rightSprite = ebiten.NewImageFromImage(img)
 
-	img, _, err = image.Decode(bytes.NewReader(rplatformer.Left_png))
+	leftSprite, _, err = ebitenutil.NewImageFromReader(bytes.NewReader(rplatformer.Left_png))
 	if err != nil {
 		panic(err)
 	}
-	leftSprite = ebiten.NewImageFromImage(img)
 
-	img, _, err = image.Decode(bytes.NewReader(rplatformer.MainChar_png))
+	idleSprite, _, err = ebitenutil.NewImageFromReader(bytes.NewReader(rplatformer.MainChar_png))
 	if err != nil {
 		panic(err)
 	}
-	idleSprite = ebiten.NewImageFromImage(img)
 
-	img, _, err = image.Decode(bytes.NewReader(rplatformer.Background_png))
+	backgroundImage, _, err = ebitenutil.NewImageFromReader(bytes.NewReader(rplatformer.Background_png))
 	if err != nil {
 		panic(err)
 	}
-	backgroundImage = ebiten.NewImageFromImage(img)
 }
 
 const (

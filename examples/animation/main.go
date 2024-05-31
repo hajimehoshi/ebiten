@@ -21,6 +21,7 @@ import (
 	"log"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/examples/resources/images"
 )
 
@@ -62,12 +63,12 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 }
 
 func main() {
-	// Decode an image from the image file's byte slice.
-	img, _, err := image.Decode(bytes.NewReader(images.Runner_png))
+	var err error
+
+	runnerImage, _, err = ebitenutil.NewImageFromReader(bytes.NewReader(images.Runner_png))
 	if err != nil {
 		log.Fatal(err)
 	}
-	runnerImage = ebiten.NewImageFromImage(img)
 
 	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
 	ebiten.SetWindowTitle("Animation (Ebitengine Demo)")

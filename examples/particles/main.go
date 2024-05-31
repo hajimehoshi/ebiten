@@ -18,7 +18,6 @@ import (
 	"bytes"
 	"container/list"
 	"fmt"
-	"image"
 	"image/color"
 	_ "image/png"
 	"log"
@@ -43,12 +42,12 @@ const (
 var smokeImage *ebiten.Image
 
 func init() {
-	// Decode an image from the image file's byte slice.
-	img, _, err := image.Decode(bytes.NewReader(images.Smoke_png))
+	var err error
+
+	smokeImage, _, err = ebitenutil.NewImageFromReader(bytes.NewReader(images.Smoke_png))
 	if err != nil {
 		log.Fatal(err)
 	}
-	smokeImage = ebiten.NewImageFromImage(img)
 }
 
 type sprite struct {

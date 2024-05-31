@@ -16,7 +16,6 @@ package main
 
 import (
 	"bytes"
-	"image"
 	_ "image/png"
 	"log"
 
@@ -63,13 +62,12 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 }
 
 func main() {
-	// Decode an image from the image file's byte slice.
-	img, _, err := image.Decode(bytes.NewReader(images.Ebiten_png))
+	var err error
+
+	ebitenImage, _, err = ebitenutil.NewImageFromReader(bytes.NewReader(images.Ebiten_png))
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	ebitenImage = ebiten.NewImageFromImage(img)
 
 	ebiten.SetWindowSize(screenWidth, screenHeight)
 	ebiten.SetWindowTitle("Filter (Ebitengine Demo)")

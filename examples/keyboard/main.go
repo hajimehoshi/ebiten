@@ -16,7 +16,6 @@ package main
 
 import (
 	"bytes"
-	"image"
 	_ "image/png"
 	"log"
 	"strings"
@@ -24,6 +23,7 @@ import (
 	"github.com/hajimehoshi/bitmapfont/v3"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/examples/keyboard/keyboard"
 	rkeyboard "github.com/hajimehoshi/ebiten/v2/examples/resources/images/keyboard"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
@@ -40,12 +40,12 @@ var fontFace = text.NewGoXFace(bitmapfont.Face)
 var keyboardImage *ebiten.Image
 
 func init() {
-	img, _, err := image.Decode(bytes.NewReader(rkeyboard.Keyboard_png))
+	var err error
+
+	keyboardImage, _, err = ebitenutil.NewImageFromReader(bytes.NewReader(rkeyboard.Keyboard_png))
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	keyboardImage = ebiten.NewImageFromImage(img)
 }
 
 type Game struct {

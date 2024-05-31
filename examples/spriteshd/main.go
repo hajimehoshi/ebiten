@@ -17,7 +17,6 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"image"
 	_ "image/png"
 	"log"
 	"math"
@@ -40,12 +39,12 @@ var (
 )
 
 func init() {
-	// Decode an image from the image file's byte slice.
-	img, _, err := image.Decode(bytes.NewReader(images.Ebiten_png))
+	var err error
+
+	origEbitenImage, _, err := ebitenutil.NewImageFromReader(bytes.NewReader(images.Ebiten_png))
 	if err != nil {
 		log.Fatal(err)
 	}
-	origEbitenImage := ebiten.NewImageFromImage(img)
 
 	s := origEbitenImage.Bounds().Size()
 	ebitenImage = ebiten.NewImage(s.X, s.Y)

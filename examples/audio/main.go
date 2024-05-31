@@ -58,23 +58,22 @@ var (
 )
 
 func init() {
-	img, _, err := image.Decode(bytes.NewReader(riaudio.Play_png))
-	if err != nil {
-		panic(err)
-	}
-	playButtonImage = ebiten.NewImageFromImage(img)
+	var err error
 
-	img, _, err = image.Decode(bytes.NewReader(riaudio.Pause_png))
+	playButtonImage, _, err = ebitenutil.NewImageFromReader(bytes.NewReader(riaudio.Play_png))
 	if err != nil {
 		panic(err)
 	}
-	pauseButtonImage = ebiten.NewImageFromImage(img)
 
-	img, _, err = image.Decode(bytes.NewReader(riaudio.Alert_png))
+	pauseButtonImage, _, err = ebitenutil.NewImageFromReader(bytes.NewReader(riaudio.Pause_png))
 	if err != nil {
 		panic(err)
 	}
-	alertButtonImage = ebiten.NewImageFromImage(img)
+
+	alertButtonImage, _, err = ebitenutil.NewImageFromReader(bytes.NewReader(riaudio.Alert_png))
+	if err != nil {
+		panic(err)
+	}
 }
 
 type musicType int

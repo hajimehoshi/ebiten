@@ -43,12 +43,12 @@ var (
 )
 
 func init() {
-	// Decode an image from the image file's byte slice.
-	img, _, err := image.Decode(bytes.NewReader(images.Gophers_jpg))
+	var err error
+
+	gophersImage, _, err = ebitenutil.NewImageFromReader(bytes.NewReader(images.Gophers_jpg))
 	if err != nil {
 		log.Fatal(err)
 	}
-	gophersImage = ebiten.NewImageFromImage(img)
 
 	const (
 		xrepeat = 7

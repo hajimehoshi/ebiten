@@ -18,7 +18,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"image"
 	"image/color"
 	_ "image/png"
 	"log"
@@ -45,12 +44,13 @@ var (
 )
 
 func init() {
-	// Decode an image from the image file's byte slice.
-	img, _, err := image.Decode(bytes.NewReader(images.Tile_png))
+	var err error
+
+	bgImage, _, err = ebitenutil.NewImageFromReader(bytes.NewReader(images.Tile_png))
 	if err != nil {
 		log.Fatal(err)
 	}
-	bgImage = ebiten.NewImageFromImage(img)
+
 	triangleImage.Fill(color.White)
 }
 

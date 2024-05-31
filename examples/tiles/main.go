@@ -40,12 +40,12 @@ var (
 )
 
 func init() {
-	// Decode an image from the image file's byte slice.
-	img, _, err := image.Decode(bytes.NewReader(images.Tiles_png))
+	var err error
+
+	tilesImage, _, err = ebitenutil.NewImageFromReader(bytes.NewReader(images.Tiles_png))
 	if err != nil {
 		log.Fatal(err)
 	}
-	tilesImage = ebiten.NewImageFromImage(img)
 }
 
 type Game struct {

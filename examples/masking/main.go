@@ -23,6 +23,7 @@ import (
 	"math"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/examples/resources/images"
 )
 
@@ -39,18 +40,17 @@ var (
 )
 
 func init() {
-	// Decode an image from the image file's byte slice.
-	img, _, err := image.Decode(bytes.NewReader(images.Gophers_jpg))
-	if err != nil {
-		log.Fatal(err)
-	}
-	bgImage = ebiten.NewImageFromImage(img)
+	var err error
 
-	img, _, err = image.Decode(bytes.NewReader(images.FiveYears_jpg))
+	bgImage, _, err = ebitenutil.NewImageFromReader(bytes.NewReader(images.Gophers_jpg))
 	if err != nil {
 		log.Fatal(err)
 	}
-	fgImage = ebiten.NewImageFromImage(img)
+
+	fgImage, _, err = ebitenutil.NewImageFromReader(bytes.NewReader(images.FiveYears_jpg))
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	// Initialize the spot light image.
 	const r = 64

@@ -17,7 +17,6 @@ package main
 import (
 	"bytes"
 	_ "embed"
-	"image"
 	_ "image/png"
 	"log"
 
@@ -60,39 +59,36 @@ var (
 	gopherBgImage *ebiten.Image
 	normalImage   *ebiten.Image
 	noiseImage    *ebiten.Image
+	err           error
 )
 
 func init() {
-	// Decode an image from the image file's byte slice.
-	img, _, err := image.Decode(bytes.NewReader(resources.Gopher_png))
+	gopherImage, _, err = ebitenutil.NewImageFromReader(bytes.NewReader(resources.Gopher_png))
 	if err != nil {
 		log.Fatal(err)
 	}
-	gopherImage = ebiten.NewImageFromImage(img)
 }
 
 func init() {
-	img, _, err := image.Decode(bytes.NewReader(resources.GopherBg_png))
+	gopherBgImage, _, err = ebitenutil.NewImageFromReader(bytes.NewReader(resources.GopherBg_png))
 	if err != nil {
 		log.Fatal(err)
 	}
-	gopherBgImage = ebiten.NewImageFromImage(img)
 }
 
 func init() {
-	img, _, err := image.Decode(bytes.NewReader(resources.Normal_png))
+	normalImage, _, err = ebitenutil.NewImageFromReader(bytes.NewReader(resources.Normal_png))
 	if err != nil {
 		log.Fatal(err)
 	}
-	normalImage = ebiten.NewImageFromImage(img)
 }
 
 func init() {
-	img, _, err := image.Decode(bytes.NewReader(resources.Noise_png))
+
+	noiseImage, _, err = ebitenutil.NewImageFromReader(bytes.NewReader(resources.Noise_png))
 	if err != nil {
 		log.Fatal(err)
 	}
-	noiseImage = ebiten.NewImageFromImage(img)
 }
 
 var shaderSrcs = [][]byte{

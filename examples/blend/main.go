@@ -17,7 +17,6 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"image"
 	"image/color"
 	_ "image/png"
 	"log"
@@ -25,6 +24,7 @@ import (
 	"golang.org/x/image/font/inconsolata"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/examples/resources/images/blend"
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
 )
@@ -155,11 +155,13 @@ func (g *Game) drawBlendMode(screen *ebiten.Image, x, y float64, mode ebiten.Ble
 
 // loadImage is a util function for loading embedded images.
 func loadImage(data []byte) (*ebiten.Image, error) {
-	m, _, err := image.Decode(bytes.NewReader(data))
+	var err error
+
+	newImage, _, err := ebitenutil.NewImageFromReader(bytes.NewReader(data))
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode image: %w", err)
 	}
-	return ebiten.NewImageFromImage(m), nil
+	return newImage, nil
 }
 
 // max returns the largest of x or y.

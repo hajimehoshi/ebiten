@@ -80,17 +80,17 @@ var (
 )
 
 func init() {
-	img, _, err := image.Decode(bytes.NewReader(resources.Gopher_png))
-	if err != nil {
-		log.Fatal(err)
-	}
-	gopherImage = ebiten.NewImageFromImage(img)
+	var err error
 
-	img, _, err = image.Decode(bytes.NewReader(resources.Tiles_png))
+	gopherImage, _, err = ebitenutil.NewImageFromReader(bytes.NewReader(resources.Gopher_png))
 	if err != nil {
 		log.Fatal(err)
 	}
-	tilesImage = ebiten.NewImageFromImage(img)
+
+	tilesImage, _, err = ebitenutil.NewImageFromReader(bytes.NewReader(resources.Tiles_png))
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 func init() {

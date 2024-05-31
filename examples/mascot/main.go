@@ -18,13 +18,13 @@ package main
 
 import (
 	"bytes"
-	"image"
 	_ "image/png"
 	"log"
 	"math/rand"
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	rmascot "github.com/hajimehoshi/ebiten/v2/examples/resources/images/mascot"
 )
 
@@ -40,24 +40,22 @@ var (
 )
 
 func init() {
-	// Decode an image from the image file's byte slice.
-	img1, _, err := image.Decode(bytes.NewReader(rmascot.Out01_png))
-	if err != nil {
-		log.Fatal(err)
-	}
-	gopher1 = ebiten.NewImageFromImage(img1)
+	var err error
 
-	img2, _, err := image.Decode(bytes.NewReader(rmascot.Out02_png))
+	gopher1, _, err = ebitenutil.NewImageFromReader(bytes.NewReader(rmascot.Out01_png))
 	if err != nil {
 		log.Fatal(err)
 	}
-	gopher2 = ebiten.NewImageFromImage(img2)
 
-	img3, _, err := image.Decode(bytes.NewReader(rmascot.Out03_png))
+	gopher2, _, err = ebitenutil.NewImageFromReader(bytes.NewReader(rmascot.Out02_png))
 	if err != nil {
 		log.Fatal(err)
 	}
-	gopher3 = ebiten.NewImageFromImage(img3)
+
+	gopher3, _, err = ebitenutil.NewImageFromReader(bytes.NewReader(rmascot.Out03_png))
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 func init() {

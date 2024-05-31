@@ -16,7 +16,6 @@ package blocks
 
 import (
 	"bytes"
-	"image"
 	"image/color"
 	_ "image/jpeg"
 	_ "image/png"
@@ -26,6 +25,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/colorm"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/examples/resources/images"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
@@ -36,6 +36,7 @@ var (
 	imageGameBG   *ebiten.Image
 	imageWindows  = ebiten.NewImage(ScreenWidth, ScreenHeight)
 	imageGameover = ebiten.NewImage(ScreenWidth, ScreenHeight)
+	err           error
 )
 
 func fieldWindowPosition() (x, y int) {
@@ -74,11 +75,10 @@ func linesTextBoxPosition() (x, y int) {
 
 func init() {
 	// Background
-	img, _, err := image.Decode(bytes.NewReader(images.Gophers_jpg))
+	imageGameBG, _, err = ebitenutil.NewImageFromReader(bytes.NewReader(images.Gophers_jpg))
 	if err != nil {
 		panic(err)
 	}
-	imageGameBG = ebiten.NewImageFromImage(img)
 
 	// Windows: Field
 	x, y := fieldWindowPosition()
