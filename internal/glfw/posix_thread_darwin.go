@@ -19,8 +19,9 @@ func _glfwPlatformCreateTls(tls *C._GLFWtls) C.GLFWbool {
 		panic("glfw: TLS must not be allocated")
 	}
 	if pthread_key_create(&tls.posix.key, 0) != 0 {
-		_glfwInputError(int32(PlatformError),
-			C.CString("POSIX: Failed to create context TLS"))
+		errstr := C.CString("POSIX: Failed to create context TLS")
+		defer C.free(unsafe.Pointer(errstr))
+		_glfwInputError(int32(PlatformError), errstr)
 		return False
 	}
 	tls.posix.allocated = True
@@ -58,7 +59,9 @@ func _glfwPlatformCreateMutex(mutex *C._GLFWmutex) C.GLFWbool {
 		panic("glfw: mutex must not be allocated")
 	}
 	if pthread_mutex_init(&mutex.posix.handle, nil) != 0 {
-		_glfwInputError(int32(PlatformError), C.CString("POSIX: Failed to create mutex"))
+		errstr := C.CString("POSIX: Failed to create mutex")
+		defer C.free(unsafe.Pointer(errstr))
+		_glfwInputError(int32(PlatformError), errstr)
 		return False
 	}
 	mutex.posix.allocated = True
