@@ -261,18 +261,23 @@ func makeContextCurrentWGL(window *Window) error {
 }
 
 func swapBuffersWGL(window *Window) error {
-	if window.monitor == nil {
-		// HACK: Use DwmFlush when desktop composition is enabled on Windows Vista and 7
-		if !winver.IsWindows8OrGreater() && winver.IsWindowsVistaOrGreater() {
-			enabled, err := _DwmIsCompositionEnabled()
+	if window.monitor == nil && winver.IsWindowsVistaOrGreater() {
+		// DWM Composition is always enabled on Win8+
+		enabled := winver.IsWindows8OrGreater()
+
+		if !enabled {
+			var err error
+			enabled, err = _DwmIsCompositionEnabled()
 			if err != nil {
 				return err
 			}
-			if enabled {
-				for i := 0; i < window.context.platform.interval; i++ {
-					// Ignore an error from DWM functions as they might not be implemented e.g. on Proton (#2113).
-					_ = _DwmFlush()
-				}
+		}
+
+		// HACK: Use DwmFlush when desktop composition is enabled
+		if enabled {
+			for i := 0; i < window.context.platform.interval; i++ {
+				// Ignore an error from DWM functions as they might not be implemented e.g. on Proton (#2113).
+				_ = _DwmFlush()
 			}
 		}
 	}
@@ -292,18 +297,22 @@ func swapIntervalWGL(interval int) error {
 
 	window.context.platform.interval = interval
 
-	if window.monitor == nil {
-		// HACK: Disable WGL swap interval when desktop composition is enabled on Windows
-		//       Vista and 7 to avoid interfering with DWM vsync
-		if !winver.IsWindows8OrGreater() && winver.IsWindowsVistaOrGreater() {
-			enabled, err := _DwmIsCompositionEnabled()
+	if window.monitor == nil && winver.IsWindowsVistaOrGreater() {
+		// DWM Composition is always enabled on Win8+
+		enabled := winver.IsWindows8OrGreater()
+
+		if !enabled {
+			e, err := _DwmIsCompositionEnabled()
 			// Ignore an error from DWM functions as they might not be implemented e.g. on Proton (#2113).
 			if err == nil {
-				enabled = false
+				enabled = e
 			}
-			if enabled {
-				interval = 0
-			}
+		}
+
+		// HACK: Disable WGL swap interval when desktop composition is enabled to
+		//       avoid interfering with DWM vsync
+		if enabled {
+			interval = 0
 		}
 	}
 
