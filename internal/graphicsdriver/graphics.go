@@ -30,19 +30,19 @@ type DstRegion struct {
 type FillRule int
 
 const (
-	FillAll FillRule = iota
-	NonZero
-	EvenOdd
+	FillRuleFillAll FillRule = iota
+	FillRuleNonZero
+	FillRuleEvenOdd
 )
 
 func (f FillRule) String() string {
 	switch f {
-	case FillAll:
-		return "FillAll"
-	case NonZero:
-		return "NonZero"
-	case EvenOdd:
-		return "EvenOdd"
+	case FillRuleFillAll:
+		return "FillRuleFillAll"
+	case FillRuleNonZero:
+		return "FillRuleNonZero"
+	case FillRuleEvenOdd:
+		return "FillRuleEvenOdd"
 	default:
 		return fmt.Sprintf("FillRule(%d)", f)
 	}

@@ -542,7 +542,7 @@ func (g *graphics11) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphic
 		},
 	})
 
-	if err := dst.setAsRenderTarget(fillRule != graphicsdriver.FillAll); err != nil {
+	if err := dst.setAsRenderTarget(fillRule != graphicsdriver.FillRuleFillAll); err != nil {
 		return err
 	}
 
@@ -552,7 +552,7 @@ func (g *graphics11) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphic
 		return err
 	}
 
-	if fillRule == graphicsdriver.FillAll {
+	if fillRule == graphicsdriver.FillRuleFillAll {
 		bs, err := g.blendState(blend, noStencil)
 		if err != nil {
 			return err
@@ -577,9 +577,9 @@ func (g *graphics11) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphic
 		})
 
 		switch fillRule {
-		case graphicsdriver.FillAll:
+		case graphicsdriver.FillRuleFillAll:
 			g.deviceContext.DrawIndexed(uint32(dstRegion.IndexCount), uint32(indexOffset), 0)
-		case graphicsdriver.NonZero:
+		case graphicsdriver.FillRuleNonZero:
 			bs, err := g.blendState(blend, incrementStencil)
 			if err != nil {
 				return err
@@ -591,7 +591,7 @@ func (g *graphics11) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphic
 			}
 			g.deviceContext.OMSetDepthStencilState(dss, 0)
 			g.deviceContext.DrawIndexed(uint32(dstRegion.IndexCount), uint32(indexOffset), 0)
-		case graphicsdriver.EvenOdd:
+		case graphicsdriver.FillRuleEvenOdd:
 			bs, err := g.blendState(blend, invertStencil)
 			if err != nil {
 				return err
@@ -605,7 +605,7 @@ func (g *graphics11) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphic
 			g.deviceContext.DrawIndexed(uint32(dstRegion.IndexCount), uint32(indexOffset), 0)
 		}
 
-		if fillRule != graphicsdriver.FillAll {
+		if fillRule != graphicsdriver.FillRuleFillAll {
 			bs, err := g.blendState(blend, drawWithStencil)
 			if err != nil {
 				return err

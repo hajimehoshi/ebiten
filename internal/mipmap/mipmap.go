@@ -187,7 +187,7 @@ func (m *Mipmap) level(level int) *buffered.Image {
 	s := buffered.NewImage(w2, h2, m.imageType)
 
 	dstRegion := image.Rect(0, 0, w2, h2)
-	s.DrawTriangles([graphics.ShaderImageCount]*buffered.Image{src}, vs, is, graphicsdriver.BlendCopy, dstRegion, [graphics.ShaderImageCount]image.Rectangle{}, shader, nil, graphicsdriver.FillAll)
+	s.DrawTriangles([graphics.ShaderImageCount]*buffered.Image{src}, vs, is, graphicsdriver.BlendCopy, dstRegion, [graphics.ShaderImageCount]image.Rectangle{}, shader, nil, graphicsdriver.FillRuleFillAll)
 	m.setImg(level, s)
 
 	return m.imgs[level]

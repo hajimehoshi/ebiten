@@ -1092,7 +1092,7 @@ func (g *graphics12) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.
 
 	// Release constant buffers when too many ones will be created.
 	numPipelines := 1
-	if fillRule != graphicsdriver.FillAll {
+	if fillRule != graphicsdriver.FillRuleFillAll {
 		numPipelines = 2
 	}
 	if len(g.pipelineStates.constantBuffers[g.frameIndex])+numPipelines > numDescriptorsPerFrame {
@@ -1124,7 +1124,7 @@ func (g *graphics12) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.
 		g.drawCommandList.ResourceBarrier(resourceBarriers)
 	}
 
-	if err := dst.setAsRenderTarget(g.drawCommandList, g.device, fillRule != graphicsdriver.FillAll); err != nil {
+	if err := dst.setAsRenderTarget(g.drawCommandList, g.device, fillRule != graphicsdriver.FillRuleFillAll); err != nil {
 		return err
 	}
 

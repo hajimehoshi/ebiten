@@ -289,7 +289,7 @@ func (p *pipelineStates) drawTriangles(device *_ID3D12Device, commandList *_ID3D
 	}
 	commandList.SetGraphicsRootDescriptorTable(2, sh)
 
-	if fillRule == graphicsdriver.FillAll {
+	if fillRule == graphicsdriver.FillRuleFillAll {
 		s, err := shader.pipelineState(blend, noStencil, screen)
 		if err != nil {
 			return err
@@ -307,16 +307,16 @@ func (p *pipelineStates) drawTriangles(device *_ID3D12Device, commandList *_ID3D
 			},
 		})
 		switch fillRule {
-		case graphicsdriver.FillAll:
+		case graphicsdriver.FillRuleFillAll:
 			commandList.DrawIndexedInstanced(uint32(dstRegion.IndexCount), 1, uint32(indexOffset), 0, 0)
-		case graphicsdriver.NonZero:
+		case graphicsdriver.FillRuleNonZero:
 			s, err := shader.pipelineState(blend, incrementStencil, screen)
 			if err != nil {
 				return err
 			}
 			commandList.SetPipelineState(s)
 			commandList.DrawIndexedInstanced(uint32(dstRegion.IndexCount), 1, uint32(indexOffset), 0, 0)
-		case graphicsdriver.EvenOdd:
+		case graphicsdriver.FillRuleEvenOdd:
 			s, err := shader.pipelineState(blend, invertStencil, screen)
 			if err != nil {
 				return err
@@ -325,7 +325,7 @@ func (p *pipelineStates) drawTriangles(device *_ID3D12Device, commandList *_ID3D
 			commandList.DrawIndexedInstanced(uint32(dstRegion.IndexCount), 1, uint32(indexOffset), 0, 0)
 		}
 
-		if fillRule != graphicsdriver.FillAll {
+		if fillRule != graphicsdriver.FillRuleFillAll {
 			s, err := shader.pipelineState(blend, drawWithStencil, screen)
 			if err != nil {
 				return err
