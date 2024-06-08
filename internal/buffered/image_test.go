@@ -56,7 +56,7 @@ func TestUnsyncedPixels(t *testing.T) {
 	is := graphics.QuadIndices()
 	dr := image.Rect(0, 0, 16, 16)
 	sr := [graphics.ShaderImageCount]image.Rectangle{image.Rect(0, 0, 16, 16)}
-	dst.DrawTriangles([graphics.ShaderImageCount]*buffered.Image{src}, vs, is, graphicsdriver.BlendSourceOver, dr, sr, atlas.NearestFilterShader, nil, graphicsdriver.FillAll)
+	dst.DrawTriangles([graphics.ShaderImageCount]*buffered.Image{src}, vs, is, graphicsdriver.BlendSourceOver, dr, sr, atlas.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll)
 
 	// Check the result is correct.
 	var got [4]byte

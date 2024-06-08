@@ -262,7 +262,7 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) {
 		})
 	}
 
-	i.image.DrawTriangles(srcs, vs, is, blend, i.adjustedBounds(), [graphics.ShaderImageCount]image.Rectangle{img.adjustedBounds()}, shader.shader, i.tmpUniforms, graphicsdriver.FillAll, canSkipMipmap(geoM, filter), false)
+	i.image.DrawTriangles(srcs, vs, is, blend, i.adjustedBounds(), [graphics.ShaderImageCount]image.Rectangle{img.adjustedBounds()}, shader.shader, i.tmpUniforms, graphicsdriver.FillRuleFillAll, canSkipMipmap(geoM, filter), false)
 }
 
 // Vertex represents a vertex passed to DrawTriangles.
@@ -312,15 +312,15 @@ type FillRule int
 
 const (
 	// FillAll indicates all the triangles are rendered regardless of overlaps.
-	FillAll FillRule = FillRule(graphicsdriver.FillAll)
+	FillAll FillRule = FillRule(graphicsdriver.FillRuleFillAll)
 
 	// NonZero means that triangles are rendered based on the non-zero rule.
 	// If and only if the number of overlaps is not 0, the region is rendered.
-	NonZero FillRule = FillRule(graphicsdriver.NonZero)
+	NonZero FillRule = FillRule(graphicsdriver.FillRuleNonZero)
 
 	// EvenOdd means that triangles are rendered based on the even-odd rule.
 	// If and only if the number of overlaps is odd, the region is rendered.
-	EvenOdd FillRule = FillRule(graphicsdriver.EvenOdd)
+	EvenOdd FillRule = FillRule(graphicsdriver.FillRuleEvenOdd)
 )
 
 // ColorScaleMode is the mode of color scales in vertices.
@@ -816,7 +816,7 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 	i.tmpUniforms = i.tmpUniforms[:0]
 	i.tmpUniforms = shader.appendUniforms(i.tmpUniforms, options.Uniforms)
 
-	i.image.DrawTriangles(imgs, vs, is, blend, i.adjustedBounds(), srcRegions, shader.shader, i.tmpUniforms, graphicsdriver.FillAll, true, false)
+	i.image.DrawTriangles(imgs, vs, is, blend, i.adjustedBounds(), srcRegions, shader.shader, i.tmpUniforms, graphicsdriver.FillRuleFillAll, true, false)
 }
 
 // SubImage returns an image representing the portion of the image p visible through r.
