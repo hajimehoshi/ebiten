@@ -471,7 +471,7 @@ func (g *Graphics) draw(dst *Image, dstRegions []graphicsdriver.DstRegion, srcs 
 	// When preparing a stencil buffer, flush the current render command encoder
 	// to make sure the stencil buffer is cleared when loading.
 	// TODO: What about clearing the stencil buffer by vertices?
-	if g.lastDst != dst || g.lastFillRule != fillRule || fillRule != graphicsdriver.FillRuleFillAll {
+	if g.lastDst != dst || g.lastFillRule != fillRule || fillRule != graphicsdriver.FillAll {
 		g.flushRenderCommandEncoderIfNeeded()
 	}
 	g.lastDst = dst
@@ -497,7 +497,7 @@ func (g *Graphics) draw(dst *Image, dstRegions []graphicsdriver.DstRegion, srcs 
 		rpd.ColorAttachments[0].Texture = t
 		rpd.ColorAttachments[0].ClearColor = mtl.ClearColor{}
 
-		if fillRule != graphicsdriver.FillRuleFillAll {
+		if fillRule != graphicsdriver.FillAll {
 			dst.ensureStencil()
 			rpd.StencilAttachment.LoadAction = mtl.LoadActionClear
 			rpd.StencilAttachment.StoreAction = mtl.StoreActionDontCare
@@ -544,26 +544,26 @@ func (g *Graphics) draw(dst *Image, dstRegions []graphicsdriver.DstRegion, srcs 
 		drawWithStencilRpss  mtl.RenderPipelineState
 	)
 	switch fillRule {
-	case graphicsdriver.FillRuleFillAll:
+	case graphicsdriver.FillAll:
 		s, err := shader.RenderPipelineState(&g.view, blend, noStencil, dst.screen)
 		if err != nil {
 			return err
 		}
 		noStencilRpss = s
-	case graphicsdriver.FillRuleNonZero:
+	case graphicsdriver.NonZero:
 		s, err := shader.RenderPipelineState(&g.view, blend, incrementStencil, dst.screen)
 		if err != nil {
 			return err
 		}
 		incrementStencilRpss = s
-	case graphicsdriver.FillRuleEvenOdd:
+	case graphicsdriver.EvenOdd:
 		s, err := shader.RenderPipelineState(&g.view, blend, invertStencil, dst.screen)
 		if err != nil {
 			return err
 		}
 		invertStencilRpss = s
 	}
-	if fillRule != graphicsdriver.FillRuleFillAll {
+	if fillRule != graphicsdriver.FillAll {
 		s, err := shader.RenderPipelineState(&g.view, blend, drawWithStencil, dst.screen)
 		if err != nil {
 			return err
@@ -580,20 +580,20 @@ func (g *Graphics) draw(dst *Image, dstRegions []graphicsdriver.DstRegion, srcs 
 		})
 
 		switch fillRule {
-		case graphicsdriver.FillRuleFillAll:
+		case graphicsdriver.FillAll:
 			g.rce.SetDepthStencilState(g.dsss[noStencil])
 			g.rce.SetRenderPipelineState(noStencilRpss)
 			g.rce.DrawIndexedPrimitives(mtl.PrimitiveTypeTriangle, dstRegion.IndexCount, mtl.IndexTypeUInt32, g.ib, indexOffset*int(unsafe.Sizeof(uint32(0))))
-		case graphicsdriver.FillRuleNonZero:
+		case graphicsdriver.NonZero:
 			g.rce.SetDepthStencilState(g.dsss[incrementStencil])
 			g.rce.SetRenderPipelineState(incrementStencilRpss)
 			g.rce.DrawIndexedPrimitives(mtl.PrimitiveTypeTriangle, dstRegion.IndexCount, mtl.IndexTypeUInt32, g.ib, indexOffset*int(unsafe.Sizeof(uint32(0))))
-		case graphicsdriver.FillRuleEvenOdd:
+		case graphicsdriver.EvenOdd:
 			g.rce.SetDepthStencilState(g.dsss[invertStencil])
 			g.rce.SetRenderPipelineState(invertStencilRpss)
 			g.rce.DrawIndexedPrimitives(mtl.PrimitiveTypeTriangle, dstRegion.IndexCount, mtl.IndexTypeUInt32, g.ib, indexOffset*int(unsafe.Sizeof(uint32(0))))
 		}
-		if fillRule != graphicsdriver.FillRuleFillAll {
+		if fillRule != graphicsdriver.FillAll {
 			g.rce.SetDepthStencilState(g.dsss[drawWithStencil])
 			g.rce.SetRenderPipelineState(drawWithStencilRpss)
 			g.rce.DrawIndexedPrimitives(mtl.PrimitiveTypeTriangle, dstRegion.IndexCount, mtl.IndexTypeUInt32, g.ib, indexOffset*int(unsafe.Sizeof(uint32(0))))
