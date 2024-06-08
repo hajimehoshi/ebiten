@@ -59,7 +59,7 @@ func (g *Game) Update() error {
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	// Before the fix, some complex renderings with EvenOdd might cause a DirectX error like this (#2138):
+	// Before the fix, some complex renderings with FillRuleEvenOdd might cause a DirectX error like this (#2138):
 	//     panic: directx: IDXGISwapChain4::Present failed: HRESULT(2289696773)
 
 	screen.DrawImage(debugCircleImage, nil)
@@ -74,7 +74,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	p.Arc(100, 100, 6, 0, 2*math.Pi, vector.Clockwise)
 	filling, indicies := p.AppendVerticesAndIndicesForFilling(nil, nil)
 	screen.DrawTriangles(filling, indicies, whiteTextureImage, &ebiten.DrawTrianglesOptions{
-		FillRule: ebiten.EvenOdd,
+		FillRule: ebiten.FillRuleEvenOdd,
 	})
 }
 

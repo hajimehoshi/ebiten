@@ -311,16 +311,35 @@ const (
 type FillRule int
 
 const (
+	// FillRuleFillAll indicates all the triangles are rendered regardless of overlaps.
+	FillRuleFillAll FillRule = FillRule(graphicsdriver.FillRuleFillAll)
+
+	// FillRuleNonZero means that triangles are rendered based on the non-zero rule.
+	// If and only if the number of overlaps is not 0, the region is rendered.
+	FillRuleNonZero FillRule = FillRule(graphicsdriver.FillRuleNonZero)
+
+	// FillRuleEvenOdd means that triangles are rendered based on the even-odd rule.
+	// If and only if the number of overlaps is odd, the region is rendered.
+	FillRuleEvenOdd FillRule = FillRule(graphicsdriver.FillRuleEvenOdd)
+)
+
+const (
 	// FillAll indicates all the triangles are rendered regardless of overlaps.
-	FillAll FillRule = FillRule(graphicsdriver.FillRuleFillAll)
+	//
+	// Deprecated: as of v2.8. Use FillRuleFillAll instead.
+	FillAll = FillRuleFillAll
 
 	// NonZero means that triangles are rendered based on the non-zero rule.
 	// If and only if the number of overlaps is not 0, the region is rendered.
-	NonZero FillRule = FillRule(graphicsdriver.FillRuleNonZero)
+	//
+	// Deprecated: as of v2.8. Use FillRuleNonZero instead.
+	NonZero = FillRuleNonZero
 
 	// EvenOdd means that triangles are rendered based on the even-odd rule.
 	// If and only if the number of overlaps is odd, the region is rendered.
-	EvenOdd FillRule = FillRule(graphicsdriver.FillRuleEvenOdd)
+	//
+	// Deprecated: as of v2.8. Use FillRuleEvenOdd instead.
+	EvenOdd = FillRuleEvenOdd
 )
 
 // ColorScaleMode is the mode of color scales in vertices.
@@ -371,11 +390,11 @@ type DrawTrianglesOptions struct {
 
 	// FillRule indicates the rule how an overlapped region is rendered.
 	//
-	// The rules NonZero and EvenOdd are useful when you want to render a complex polygon.
+	// The rules FillRuleNonZero and FillRuleEvenOdd are useful when you want to render a complex polygon.
 	// A complex polygon is a non-convex polygon like a concave polygon, a polygon with holes, or a self-intersecting polygon.
 	// See examples/vector for actual usages.
 	//
-	// The default (zero) value is FillAll.
+	// The default (zero) value is FillRuleFillAll.
 	FillRule FillRule
 
 	// AntiAlias indicates whether the rendering uses anti-alias or not.
@@ -547,11 +566,11 @@ type DrawTrianglesShaderOptions struct {
 
 	// FillRule indicates the rule how an overlapped region is rendered.
 	//
-	// The rules NonZero and EvenOdd are useful when you want to render a complex polygon.
+	// The rules FillRuleNonZero and FillRuleEvenOdd are useful when you want to render a complex polygon.
 	// A complex polygon is a non-convex polygon like a concave polygon, a polygon with holes, or a self-intersecting polygon.
 	// See examples/vector for actual usages.
 	//
-	// The default (zero) value is FillAll.
+	// The default (zero) value is FillRuleFillAll.
 	FillRule FillRule
 
 	// AntiAlias indicates whether the rendering uses anti-alias or not.
