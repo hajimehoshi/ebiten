@@ -247,7 +247,7 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) {
 	graphics.QuadVertices(vs, float32(sx0), float32(sy0), float32(sx1), float32(sy1), a, b, c, d, tx, ty, cr, cg, cb, ca)
 	is := graphics.QuadIndices()
 
-	srcs := [graphics.ShaderImageCount]*ui.Image{img.image}
+	srcs := [graphics.ShaderSrcImageCount]*ui.Image{img.image}
 
 	useColorM := !colorm.IsIdentity()
 	shader := builtinShader(filter, builtinshader.AddressUnsafe, useColorM)
@@ -262,7 +262,7 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) {
 		})
 	}
 
-	i.image.DrawTriangles(srcs, vs, is, blend, i.adjustedBounds(), [graphics.ShaderImageCount]image.Rectangle{img.adjustedBounds()}, shader.shader, i.tmpUniforms, graphicsdriver.FillRuleFillAll, canSkipMipmap(geoM, filter), false)
+	i.image.DrawTriangles(srcs, vs, is, blend, i.adjustedBounds(), [graphics.ShaderSrcImageCount]image.Rectangle{img.adjustedBounds()}, shader.shader, i.tmpUniforms, graphicsdriver.FillRuleFillAll, canSkipMipmap(geoM, filter), false)
 }
 
 // Vertex represents a vertex passed to DrawTriangles.
@@ -519,7 +519,7 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 		is[i] = uint32(indices[i])
 	}
 
-	srcs := [graphics.ShaderImageCount]*ui.Image{img.image}
+	srcs := [graphics.ShaderSrcImageCount]*ui.Image{img.image}
 
 	useColorM := !colorm.IsIdentity()
 	shader := builtinShader(filter, address, useColorM)
@@ -534,7 +534,7 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 		})
 	}
 
-	i.image.DrawTriangles(srcs, vs, is, blend, i.adjustedBounds(), [graphics.ShaderImageCount]image.Rectangle{img.adjustedBounds()}, shader.shader, i.tmpUniforms, graphicsdriver.FillRule(options.FillRule), filter != builtinshader.FilterLinear, options.AntiAlias)
+	i.image.DrawTriangles(srcs, vs, is, blend, i.adjustedBounds(), [graphics.ShaderSrcImageCount]image.Rectangle{img.adjustedBounds()}, shader.shader, i.tmpUniforms, graphicsdriver.FillRule(options.FillRule), filter != builtinshader.FilterLinear, options.AntiAlias)
 }
 
 // DrawTrianglesShaderOptions represents options for DrawTrianglesShader.
@@ -584,7 +584,7 @@ type DrawTrianglesShaderOptions struct {
 }
 
 // Check the number of images.
-var _ [len(DrawTrianglesShaderOptions{}.Images) - graphics.ShaderImageCount]struct{} = [0]struct{}{}
+var _ [len(DrawTrianglesShaderOptions{}.Images) - graphics.ShaderSrcImageCount]struct{} = [0]struct{}{}
 
 // DrawTrianglesShader draws triangles with the specified vertices and their indices with the specified shader.
 //
@@ -669,7 +669,7 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 		is[i] = uint32(indices[i])
 	}
 
-	var imgs [graphics.ShaderImageCount]*ui.Image
+	var imgs [graphics.ShaderSrcImageCount]*ui.Image
 	var imgSize image.Point
 	for i, img := range options.Images {
 		if img == nil {
@@ -691,7 +691,7 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 		imgs[i] = img.image
 	}
 
-	var srcRegions [graphics.ShaderImageCount]image.Rectangle
+	var srcRegions [graphics.ShaderSrcImageCount]image.Rectangle
 	for i, img := range options.Images {
 		if img == nil {
 			continue
@@ -743,7 +743,7 @@ type DrawRectShaderOptions struct {
 }
 
 // Check the number of images.
-var _ [len(DrawRectShaderOptions{}.Images)]struct{} = [graphics.ShaderImageCount]struct{}{}
+var _ [len(DrawRectShaderOptions{}.Images)]struct{} = [graphics.ShaderSrcImageCount]struct{}{}
 
 // DrawRectShader draws a rectangle with the specified width and height with the specified shader.
 //
@@ -790,7 +790,7 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 		blend = options.CompositeMode.blend().internalBlend()
 	}
 
-	var imgs [graphics.ShaderImageCount]*ui.Image
+	var imgs [graphics.ShaderSrcImageCount]*ui.Image
 	for i, img := range options.Images {
 		if img == nil {
 			continue
@@ -804,7 +804,7 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 		imgs[i] = img.image
 	}
 
-	var srcRegions [graphics.ShaderImageCount]image.Rectangle
+	var srcRegions [graphics.ShaderSrcImageCount]image.Rectangle
 	for i, img := range options.Images {
 		if img == nil {
 			if shader.unit == shaderir.Pixels && i == 0 {
