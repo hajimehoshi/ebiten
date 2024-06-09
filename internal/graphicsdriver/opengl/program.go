@@ -259,7 +259,7 @@ func (g *Graphics) textureVariableName(idx int) string {
 }
 
 // useProgram uses the program (programTexture).
-func (g *Graphics) useProgram(program program, uniforms []uniformVariable, textures [graphics.ShaderImageCount]textureVariable) error {
+func (g *Graphics) useProgram(program program, uniforms []uniformVariable, textures [graphics.ShaderSrcImageCount]textureVariable) error {
 	if g.state.lastProgram != program {
 		g.context.ctx.UseProgram(uint32(program))
 

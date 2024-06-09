@@ -78,7 +78,7 @@ func (s *shader11) disposeImpl() {
 	}
 }
 
-func (s *shader11) use(uniforms []uint32, srcs [graphics.ShaderImageCount]*image11) error {
+func (s *shader11) use(uniforms []uint32, srcs [graphics.ShaderSrcImageCount]*image11) error {
 	vs, err := s.ensureVertexShader()
 	if err != nil {
 		return err
@@ -114,7 +114,7 @@ func (s *shader11) use(uniforms []uint32, srcs [graphics.ShaderImageCount]*image
 	s.graphics.deviceContext.Unmap(unsafe.Pointer(cb), 0)
 
 	// Set the render sources.
-	var srvs [graphics.ShaderImageCount]*_ID3D11ShaderResourceView
+	var srvs [graphics.ShaderSrcImageCount]*_ID3D11ShaderResourceView
 	for i, src := range srcs {
 		if src == nil {
 			continue
