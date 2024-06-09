@@ -46,7 +46,6 @@ type graphics12 struct {
 	rtvDescriptorHeap      *_ID3D12DescriptorHeap
 	rtvEmptyDescriptorHeap *_ID3D12DescriptorHeap
 	rtvDescriptorSize      uint32
-	emptyRenderTarget      *_ID3D12Resource
 	renderTargets          [frameCount]*_ID3D12Resource
 	framePipelineToken     _D3D12XBOX_FRAME_PIPELINE_TOKEN
 
