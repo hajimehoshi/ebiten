@@ -802,14 +802,14 @@ func TestDestinationCountOverflow(t *testing.T) {
 	// Use dst0 as a destination for a while.
 	for i := 0; i < 31; i++ {
 		dst0.DrawTriangles([graphics.ShaderSrcImageCount]*atlas.Image{src}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, atlas.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll)
-		atlas.PutImagesOnSourceBackendForTesting(ui.Get().GraphicsDriverForTesting())
+		atlas.PutImagesOnSourceBackendForTesting()
 	}
 
 	// Use dst0 as a source for a while.
 	// As dst0 is used as a destination too many times (31 is a maximum), dst0's backend should never be a source backend.
 	for i := 0; i < 100; i++ {
 		dst1.DrawTriangles([graphics.ShaderSrcImageCount]*atlas.Image{dst0}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, atlas.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll)
-		atlas.PutImagesOnSourceBackendForTesting(ui.Get().GraphicsDriverForTesting())
+		atlas.PutImagesOnSourceBackendForTesting()
 		if dst0.IsOnSourceBackendForTesting() {
 			t.Errorf("dst0 cannot be on a source backend: %d", i)
 		}
