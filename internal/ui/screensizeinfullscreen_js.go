@@ -16,5 +16,5 @@ package ui
 
 func (u *UserInterface) ScreenSizeInFullscreen() (int, int) {
 	// On browsers, ScreenSizeInFullscreen returns the 'window' (global object) size, not 'screen' size for backward compatibility (#2145).
-	return window.Get("width").Int(), window.Get("height").Int()
+	return window.Get("innerWidth").Int(), window.Get("innerHeight").Int()
 }

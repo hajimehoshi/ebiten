@@ -16,18 +16,67 @@ package directx
 
 import (
 	"fmt"
+	"sync"
+	"unsafe"
 
 	"golang.org/x/sync/errgroup"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
+	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/hlsl"
 )
+
+const (
+	VertexShaderProfile = "vs_4_0"
+	PixelShaderProfile  = "ps_4_0"
+
+	VertexShaderEntryPoint = "VSMain"
+	PixelShaderEntryPoint  = "PSMain"
+)
+
+type fxcPair struct {
+	vertex []byte
+	pixel  []byte
+}
+
+type precompiledFXCs struct {
+	binaries map[shaderir.SourceHash]fxcPair
+	m        sync.Mutex
+}
+
+func (c *precompiledFXCs) put(hash shaderir.SourceHash, vertex, pixel []byte) {
+	c.m.Lock()
+	defer c.m.Unlock()
+
+	if c.binaries == nil {
+		c.binaries = map[shaderir.SourceHash]fxcPair{}
+	}
+	if _, ok := c.binaries[hash]; ok {
+		panic(fmt.Sprintf("directx: the precompiled library for the hash %s is already registered", hash.String()))
+	}
+	c.binaries[hash] = fxcPair{
+		vertex: vertex,
+		pixel:  pixel,
+	}
+}
+
+func (c *precompiledFXCs) get(hash shaderir.SourceHash) ([]byte, []byte) {
+	c.m.Lock()
+	defer c.m.Unlock()
+
+	f := c.binaries[hash]
+	return f.vertex, f.pixel
+}
+
+var thePrecompiledFXCs precompiledFXCs
+
+func RegisterPrecompiledFXCs(source []byte, vertex, pixel []byte) {
+	thePrecompiledFXCs.put(shaderir.CalcSourceHash(source), vertex, pixel)
+}
 
 var vertexShaderCache = map[string]*_ID3DBlob{}
 
-func compileShader(vs, ps string) (vsh, psh *_ID3DBlob, ferr error) {
-	var flag uint32 = uint32(_D3DCOMPILE_OPTIMIZATION_LEVEL3)
-
+func compileShader(program *shaderir.Program) (vsh, psh *_ID3DBlob, ferr error) {
 	defer func() {
 		if ferr == nil {
 			return
@@ -39,6 +88,22 @@ func compileShader(vs, ps string) (vsh, psh *_ID3DBlob, ferr error) {
 			psh.Release()
 		}
 	}()
+
+	if vshBin, pshBin := thePrecompiledFXCs.get(program.SourceHash); vshBin != nil && pshBin != nil {
+		var err error
+		if vsh, err = _D3DCreateBlob(uint(len(vshBin))); err != nil {
+			return nil, nil, err
+		}
+		if psh, err = _D3DCreateBlob(uint(len(pshBin))); err != nil {
+			return nil, nil, err
+		}
+		copy(unsafe.Slice((*byte)(vsh.GetBufferPointer()), vsh.GetBufferSize()), vshBin)
+		copy(unsafe.Slice((*byte)(psh.GetBufferPointer()), psh.GetBufferSize()), pshBin)
+		return vsh, psh, nil
+	}
+
+	vs, ps := hlsl.Compile(program)
+	var flag uint32 = uint32(_D3DCOMPILE_OPTIMIZATION_LEVEL3)
 
 	var wg errgroup.Group
 
@@ -56,7 +121,7 @@ func compileShader(vs, ps string) (vsh, psh *_ID3DBlob, ferr error) {
 			}
 		}()
 		wg.Go(func() error {
-			v, err := _D3DCompile([]byte(vs), "shader", nil, nil, "VSMain", "vs_4_0", flag, 0)
+			v, err := _D3DCompile([]byte(vs), "shader", nil, nil, VertexShaderEntryPoint, VertexShaderProfile, flag, 0)
 			if err != nil {
 				return fmt.Errorf("directx: D3DCompile for VSMain failed, original source: %s, %w", vs, err)
 			}
@@ -65,7 +130,7 @@ func compileShader(vs, ps string) (vsh, psh *_ID3DBlob, ferr error) {
 		})
 	}
 	wg.Go(func() error {
-		p, err := _D3DCompile([]byte(ps), "shader", nil, nil, "PSMain", "ps_4_0", flag, 0)
+		p, err := _D3DCompile([]byte(ps), "shader", nil, nil, PixelShaderEntryPoint, PixelShaderProfile, flag, 0)
 		if err != nil {
 			return fmt.Errorf("directx: D3DCompile for PSMain failed, original source: %s, %w", ps, err)
 		}
@@ -77,7 +142,7 @@ func compileShader(vs, ps string) (vsh, psh *_ID3DBlob, ferr error) {
 		return nil, nil, err
 	}
 
-	return
+	return vsh, psh, nil
 }
 
 func constantBufferSize(uniformTypes []shaderir.Type, uniformOffsets []int) int {

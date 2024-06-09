@@ -51,7 +51,7 @@ type GoTextFace struct {
 	// Size is the font size in pixels.
 	Size float64
 
-	// Language is a hiint for a language (BCP 47).
+	// Language is a hint for a language (BCP 47).
 	Language language.Tag
 
 	// Script is a hint for a script code hint of (ISO 15924).

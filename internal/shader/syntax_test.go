@@ -1900,6 +1900,16 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 `)); err == nil {
 		t.Errorf("error must be non-nil but was nil")
 	}
+	// Issue #2965
+	if _, err := compileToIR([]byte(`package main
+
+func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+	abs(sign)
+	return color
+}
+`)); err == nil {
+		t.Errorf("error must be non-nil but was nil")
+	}
 }
 
 // Issue #2184

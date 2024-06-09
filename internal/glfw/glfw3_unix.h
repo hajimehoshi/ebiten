@@ -249,7 +249,7 @@ extern "C" {
  *  release is made that does not contain any API changes.
  *  @ingroup init
  */
-#define GLFW_VERSION_REVISION       8
+#define GLFW_VERSION_REVISION       10
 /*! @} */
 
 /*! @brief One.
@@ -296,8 +296,12 @@ extern "C" {
 #define GLFW_REPEAT                 2
 /*! @} */
 
-/*! @defgroup keys Keyboard keys
- *  @brief Keyboard key IDs.
+/*! @ingroup input
+ */
+#define GLFW_KEY_UNKNOWN            -1
+
+/*! @defgroup keys Keyboard key tokens
+ *  @brief Keyboard key tokens.
  *
  *  See [key input](@ref input_key) for how these are used.
  *
@@ -320,8 +324,6 @@ extern "C" {
  *  @{
  */
 
-/* The unknown key */
-#define GLFW_KEY_UNKNOWN            -1
 
 /* Printable keys */
 #define GLFW_KEY_SPACE              32
@@ -1590,6 +1592,14 @@ typedef struct GLFWimage
  *  bundle, if present.  This can be disabled with the @ref
  *  GLFW_COCOA_CHDIR_RESOURCES init hint.
  *
+ *  @remark @macos This function will create the main menu and dock icon for the
+ *  application.  If GLFW finds a `MainMenu.nib` it is loaded and assumed to
+ *  contain a menu bar.  Otherwise a minimal menu bar is created manually with
+ *  common commands like Hide, Quit and About.  The About entry opens a minimal
+ *  about dialog with information from the application's bundle.  The menu bar
+ *  and dock icon can be disabled entirely with the @ref GLFW_COCOA_MENUBAR init
+ *  hint.
+ *
  *  @remark @x11 This function will set the `LC_CTYPE` category of the
  *  application locale according to the current environment if that category is
  *  still "C".  This is because the "C" locale breaks Unicode text input.
@@ -2410,8 +2420,8 @@ GLFWAPI void glfwWindowHintString(int hint, const char* value);
  *
  *  @errors Possible errors include @ref GLFW_NOT_INITIALIZED, @ref
  *  GLFW_INVALID_ENUM, @ref GLFW_INVALID_VALUE, @ref GLFW_API_UNAVAILABLE, @ref
- *  GLFW_VERSION_UNAVAILABLE, @ref GLFW_FORMAT_UNAVAILABLE and @ref
- *  GLFW_PLATFORM_ERROR.
+ *  GLFW_VERSION_UNAVAILABLE, @ref GLFW_FORMAT_UNAVAILABLE, @ref
+ *  GLFW_NO_WINDOW_CONTEXT and @ref GLFW_PLATFORM_ERROR.
  *
  *  @remark @win32 Window creation will fail if the Microsoft GDI software
  *  OpenGL implementation is the only one available.
@@ -2436,13 +2446,6 @@ GLFWAPI void glfwWindowHintString(int hint, const char* value);
  *  For more information on bundles, see the
  *  [Bundle Programming Guide](https://developer.apple.com/library/mac/documentation/CoreFoundation/Conceptual/CFBundles/)
  *  in the Mac Developer Library.
- *
- *  @remark @macos The first time a window is created the menu bar is created.
- *  If GLFW finds a `MainMenu.nib` it is loaded and assumed to contain a menu
- *  bar.  Otherwise a minimal menu bar is created manually with common commands
- *  like Hide, Quit and About.  The About entry opens a minimal about dialog
- *  with information from the application's bundle.  Menu bar creation can be
- *  disabled entirely with the @ref GLFW_COCOA_MENUBAR init hint.
  *
  *  @remark @macos On OS X 10.10 and later the window frame will not be rendered
  *  at full resolution on Retina displays unless the
@@ -3360,10 +3363,14 @@ GLFWAPI int glfwGetWindowAttrib(GLFWwindow* window, int attrib);
  *  @param[in] value `GLFW_TRUE` or `GLFW_FALSE`.
  *
  *  @errors Possible errors include @ref GLFW_NOT_INITIALIZED, @ref
- *  GLFW_INVALID_ENUM, @ref GLFW_INVALID_VALUE and @ref GLFW_PLATFORM_ERROR.
+ *  GLFW_INVALID_ENUM, @ref GLFW_INVALID_VALUE, @ref GLFW_PLATFORM_ERROR.
  *
  *  @remark Calling @ref glfwGetWindowAttrib will always return the latest
  *  value, even if that value is ignored by the current mode of the window.
+ *
+ *  @remark @wayland The [GLFW_FLOATING](@ref GLFW_FLOATING_attrib) window
+ *  attribute is not supported.  Setting this will emit @ref
+ *  GLFW_PLATFORM_ERROR.
  *
  *  @thread_safety This function must only be called from the main thread.
  *
@@ -4039,8 +4046,8 @@ GLFWAPI int glfwRawMouseMotionSupported(void);
  *  @param[in] scancode The scancode of the key to query.
  *  @return The UTF-8 encoded, layout-specific name of the key, or `NULL`.
  *
- *  @errors Possible errors include @ref GLFW_NOT_INITIALIZED and @ref
- *  GLFW_PLATFORM_ERROR.
+ *  @errors Possible errors include @ref GLFW_NOT_INITIALIZED, @ref
+ *  GLFW_INVALID_VALUE, @ref GLFW_INVALID_ENUM and @ref GLFW_PLATFORM_ERROR.
  *
  *  @remark The contents of the returned string may change when a keyboard
  *  layout change event is received.
@@ -4062,15 +4069,18 @@ GLFWAPI const char* glfwGetKeyName(int key, int scancode);
  *
  *  This function returns the platform-specific scancode of the specified key.
  *
- *  If the key is `GLFW_KEY_UNKNOWN` or does not exist on the keyboard this
- *  method will return `-1`.
+ *  If the specified [key token](@ref keys) corresponds to a physical key not
+ *  supported on the current platform then this method will return `-1`.
+ *  Calling this function with anything other than a key token will return `-1`
+ *  and generate a @ref GLFW_INVALID_ENUM error.
  *
- *  @param[in] key Any [named key](@ref keys).
- *  @return The platform-specific scancode for the key, or `-1` if an
- *  [error](@ref error_handling) occurred.
+ *  @param[in] key Any [key token](@ref keys).
+ *  @return The platform-specific scancode for the key, or `-1` if the key is
+ *  not supported on the current platform or an [error](@ref error_handling)
+ *  occurred.
  *
- *  @errors Possible errors include @ref GLFW_NOT_INITIALIZED, @ref
- *  GLFW_INVALID_ENUM and @ref GLFW_PLATFORM_ERROR.
+ *  @errors Possible errors include @ref GLFW_NOT_INITIALIZED and @ref
+ *  GLFW_INVALID_ENUM.
  *
  *  @thread_safety This function may be called from any thread.
  *
@@ -4354,10 +4364,9 @@ GLFWAPI void glfwSetCursor(GLFWwindow* window, GLFWcursor* cursor);
  *  [character callback](@ref glfwSetCharCallback) instead.
  *
  *  When a window loses input focus, it will generate synthetic key release
- *  events for all pressed keys.  You can tell these events from user-generated
- *  events by the fact that the synthetic ones are generated after the focus
- *  loss event has been processed, i.e. after the
- *  [window focus callback](@ref glfwSetWindowFocusCallback) has been called.
+ *  events for all pressed keys with associated key tokens.  You can tell these
+ *  events from user-generated events by the fact that the synthetic ones are
+ *  generated after the focus loss event has been processed, i.e. after the
  *
  *  The scancode of a key is specific to that platform or sometimes even to that
  *  machine.  Scancodes are intended to allow users to bind keys that don't have
@@ -4708,12 +4717,15 @@ GLFWAPI const char* glfwGetClipboardString(GLFWwindow* window);
  *  thread.
  *
  *  This function makes the OpenGL or OpenGL ES context of the specified window
- *  current on the calling thread.  A context must only be made current on
- *  a single thread at a time and each thread can have only a single current
- *  context at a time.
+ *  current on the calling thread.  It can also detach the current context from
+ *  the calling thread without making a new one current by passing in `NULL`.
  *
- *  When moving a context between threads, you must make it non-current on the
- *  old thread before making it current on the new one.
+ *  A context must only be made current on a single thread at a time and each
+ *  thread can have only a single current context at a time.  Making a context
+ *  current detaches any previously current context on the calling thread.
+ *
+ *  When moving a context between threads, you must detach it (make it
+ *  non-current) on the old thread before making it current on the new one.
  *
  *  By default, making a context non-current implicitly forces a pipeline flush.
  *  On machines that support `GL_KHR_context_flush_control`, you can control
@@ -4727,6 +4739,10 @@ GLFWAPI const char* glfwGetClipboardString(GLFWwindow* window);
  *
  *  @param[in] window The window whose context to make current, or `NULL` to
  *  detach the current context.
+ *
+ *  @remarks If the previously current context was created via a different
+ *  context creation API than the one passed to this function, GLFW will still
+ *  detach the previous one from its API before making the new one current.
  *
  *  @errors Possible errors include @ref GLFW_NOT_INITIALIZED, @ref
  *  GLFW_NO_WINDOW_CONTEXT and @ref GLFW_PLATFORM_ERROR.

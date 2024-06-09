@@ -43,14 +43,14 @@ const (
 	maxVertexFloatCount = MaxVertexCount * graphics.VertexFloatCount
 )
 
-var vsyncEnabled int32 = 1
+var vsyncEnabled atomic.Bool
+
+func init() {
+	vsyncEnabled.Store(true)
+}
 
 func SetVsyncEnabled(enabled bool, graphicsDriver graphicsdriver.Graphics) {
-	if enabled {
-		atomic.StoreInt32(&vsyncEnabled, 1)
-	} else {
-		atomic.StoreInt32(&vsyncEnabled, 0)
-	}
+	vsyncEnabled.Store(enabled)
 
 	runOnRenderThread(func() {
 		graphicsDriver.SetVsyncEnabled(enabled)
@@ -185,7 +185,7 @@ func (q *commandQueue) Flush(graphicsDriver graphicsdriver.Graphics, endFrame bo
 
 	var sync bool
 	// Disable asynchronous rendering when vsync is on, as this causes a rendering delay (#2822).
-	if endFrame && atomic.LoadInt32(&vsyncEnabled) != 0 {
+	if endFrame && vsyncEnabled.Load() {
 		sync = true
 	}
 	if !sync {

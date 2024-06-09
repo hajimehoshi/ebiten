@@ -36,13 +36,6 @@ var (
 	maxSize            = 0
 )
 
-func max(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
-}
-
 func min(a, b int) int {
 	if a < b {
 		return a
@@ -81,7 +74,7 @@ func flushDeferred() {
 // Actual time duration is increased in an exponential way for each usage as a rendering target.
 const baseCountToPutOnSourceBackend = 10
 
-func putImagesOnSourceBackend(graphicsDriver graphicsdriver.Graphics) {
+func putImagesOnSourceBackend() {
 	// The counter usedAsDestinationCount is updated at most once per frame (#2676).
 	imagesUsedAsDestination.forEach(func(i *Image) {
 		// This counter is not updated when the backend is created in this frame.
@@ -97,7 +90,7 @@ func putImagesOnSourceBackend(graphicsDriver graphicsdriver.Graphics) {
 			i.usedAsSourceCount++
 		}
 		if int64(i.usedAsSourceCount) >= int64(baseCountToPutOnSourceBackend*(1<<uint(min(i.usedAsDestinationCount, 31)))) {
-			i.putOnSourceBackend(graphicsDriver)
+			i.putOnSourceBackend()
 			i.usedAsSourceCount = 0
 		}
 	})
@@ -158,7 +151,7 @@ func (b *backend) extendIfNeeded(width, height int) {
 	vs := quadVertices(0, 0, float32(sw), float32(sh), 0, 0, float32(sw), float32(sh), 1, 1, 1, 1)
 	is := graphics.QuadIndices()
 	dr := image.Rect(0, 0, sw, sh)
-	newImg.DrawTriangles(srcs, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, NearestFilterShader.ensureShader(), nil, graphicsdriver.FillAll)
+	newImg.DrawTriangles(srcs, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, NearestFilterShader.ensureShader(), nil, graphicsdriver.FillRuleFillAll)
 	b.image.Dispose()
 
 	b.image = newImg
@@ -182,7 +175,7 @@ func newClearedImage(width, height int, screen bool) *graphicscommand.Image {
 func clearImage(i *graphicscommand.Image, region image.Rectangle) {
 	vs := quadVertices(float32(region.Min.X), float32(region.Min.Y), float32(region.Max.X), float32(region.Max.Y), 0, 0, 0, 0, 0, 0, 0, 0)
 	is := graphics.QuadIndices()
-	i.DrawTriangles([graphics.ShaderSrcImageCount]*graphicscommand.Image{}, vs, is, graphicsdriver.BlendClear, region, [graphics.ShaderSrcImageCount]image.Rectangle{}, clearShader.ensureShader(), nil, graphicsdriver.FillAll)
+	i.DrawTriangles([graphics.ShaderSrcImageCount]*graphicscommand.Image{}, vs, is, graphicsdriver.BlendClear, region, [graphics.ShaderSrcImageCount]image.Rectangle{}, clearShader.ensureShader(), nil, graphicsdriver.FillRuleFillAll)
 }
 
 func (b *backend) clearPixels(region image.Rectangle) {
@@ -355,11 +348,11 @@ func (i *Image) ensureIsolatedFromSource(backends []*backend) {
 	is := graphics.QuadIndices()
 	dr := image.Rect(0, 0, i.width, i.height)
 
-	newI.drawTriangles([graphics.ShaderSrcImageCount]*Image{i}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, NearestFilterShader, nil, graphicsdriver.FillAll)
+	newI.drawTriangles([graphics.ShaderSrcImageCount]*Image{i}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, NearestFilterShader, nil, graphicsdriver.FillRuleFillAll)
 	newI.moveTo(i)
 }
 
-func (i *Image) putOnSourceBackend(graphicsDriver graphicsdriver.Graphics) {
+func (i *Image) putOnSourceBackend() {
 	if i.backend == nil {
 		i.allocate(nil, true)
 		return
@@ -385,7 +378,7 @@ func (i *Image) putOnSourceBackend(graphicsDriver graphicsdriver.Graphics) {
 	graphics.QuadVertices(vs, 0, 0, w, h, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
 	is := graphics.QuadIndices()
 	dr := image.Rect(0, 0, i.width, i.height)
-	newI.drawTriangles([graphics.ShaderSrcImageCount]*Image{i}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, NearestFilterShader, nil, graphicsdriver.FillAll)
+	newI.drawTriangles([graphics.ShaderSrcImageCount]*Image{i}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, NearestFilterShader, nil, graphicsdriver.FillRuleFillAll)
 
 	newI.moveTo(i)
 	i.usedAsSourceCount = 0
@@ -464,6 +457,7 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderSrcImageCount]*Image, vertice
 		return
 	}
 
+	// This slice is not escaped to the heap. This can be checked by `go build -gcflags=-m`.
 	backends := make([]*backend, 0, len(srcs))
 	for _, src := range srcs {
 		if src == nil {
@@ -1072,7 +1066,7 @@ func BeginFrame(graphicsDriver graphicsdriver.Graphics) error {
 	}
 
 	flushDeferred()
-	putImagesOnSourceBackend(graphicsDriver)
+	putImagesOnSourceBackend()
 
 	return nil
 }

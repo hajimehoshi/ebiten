@@ -184,7 +184,7 @@ func (g *Graphics) gcBuffers() {
 
 func (g *Graphics) availableBuffer(length uintptr) mtl.Buffer {
 	if g.cb == (mtl.CommandBuffer{}) {
-		g.cb = g.cq.MakeCommandBuffer()
+		g.cb = g.cq.CommandBuffer()
 	}
 
 	var newBuf mtl.Buffer
@@ -197,7 +197,7 @@ func (g *Graphics) availableBuffer(length uintptr) mtl.Buffer {
 	}
 
 	if newBuf == (mtl.Buffer{}) {
-		newBuf = g.view.getMTLDevice().MakeBufferWithLength(pow2(length), resourceStorageMode)
+		newBuf = g.view.getMTLDevice().NewBufferWithLength(pow2(length), resourceStorageMode)
 	}
 
 	if g.buffers == nil {
@@ -286,7 +286,7 @@ func (g *Graphics) NewImage(width, height int) (graphicsdriver.Image, error) {
 		StorageMode: storageMode,
 		Usage:       mtl.TextureUsageShaderRead | mtl.TextureUsageRenderTarget,
 	}
-	t := g.view.getMTLDevice().MakeTexture(td)
+	t := g.view.getMTLDevice().NewTextureWithDescriptor(td)
 	i := &Image{
 		id:       g.genNextImageID(),
 		graphics: g,
@@ -397,7 +397,7 @@ func (g *Graphics) Initialize() error {
 	}
 
 	// The stencil reference value is always 0 (default).
-	g.dsss[noStencil] = g.view.getMTLDevice().MakeDepthStencilState(mtl.DepthStencilDescriptor{
+	g.dsss[noStencil] = g.view.getMTLDevice().NewDepthStencilStateWithDescriptor(mtl.DepthStencilDescriptor{
 		BackFaceStencil: mtl.StencilDescriptor{
 			StencilFailureOperation:   mtl.StencilOperationKeep,
 			DepthFailureOperation:     mtl.StencilOperationKeep,
@@ -411,7 +411,7 @@ func (g *Graphics) Initialize() error {
 			StencilCompareFunction:    mtl.CompareFunctionAlways,
 		},
 	})
-	g.dsss[incrementStencil] = g.view.getMTLDevice().MakeDepthStencilState(mtl.DepthStencilDescriptor{
+	g.dsss[incrementStencil] = g.view.getMTLDevice().NewDepthStencilStateWithDescriptor(mtl.DepthStencilDescriptor{
 		BackFaceStencil: mtl.StencilDescriptor{
 			StencilFailureOperation:   mtl.StencilOperationKeep,
 			DepthFailureOperation:     mtl.StencilOperationKeep,
@@ -425,7 +425,7 @@ func (g *Graphics) Initialize() error {
 			StencilCompareFunction:    mtl.CompareFunctionAlways,
 		},
 	})
-	g.dsss[invertStencil] = g.view.getMTLDevice().MakeDepthStencilState(mtl.DepthStencilDescriptor{
+	g.dsss[invertStencil] = g.view.getMTLDevice().NewDepthStencilStateWithDescriptor(mtl.DepthStencilDescriptor{
 		BackFaceStencil: mtl.StencilDescriptor{
 			StencilFailureOperation:   mtl.StencilOperationKeep,
 			DepthFailureOperation:     mtl.StencilOperationKeep,
@@ -439,7 +439,7 @@ func (g *Graphics) Initialize() error {
 			StencilCompareFunction:    mtl.CompareFunctionAlways,
 		},
 	})
-	g.dsss[drawWithStencil] = g.view.getMTLDevice().MakeDepthStencilState(mtl.DepthStencilDescriptor{
+	g.dsss[drawWithStencil] = g.view.getMTLDevice().NewDepthStencilStateWithDescriptor(mtl.DepthStencilDescriptor{
 		BackFaceStencil: mtl.StencilDescriptor{
 			StencilFailureOperation:   mtl.StencilOperationKeep,
 			DepthFailureOperation:     mtl.StencilOperationKeep,
@@ -454,7 +454,7 @@ func (g *Graphics) Initialize() error {
 		},
 	})
 
-	g.cq = g.view.getMTLDevice().MakeCommandQueue()
+	g.cq = g.view.getMTLDevice().NewCommandQueue()
 	return nil
 }
 
@@ -471,7 +471,7 @@ func (g *Graphics) draw(dst *Image, dstRegions []graphicsdriver.DstRegion, srcs 
 	// When preparing a stencil buffer, flush the current render command encoder
 	// to make sure the stencil buffer is cleared when loading.
 	// TODO: What about clearing the stencil buffer by vertices?
-	if g.lastDst != dst || g.lastFillRule != fillRule || fillRule != graphicsdriver.FillAll {
+	if g.lastDst != dst || g.lastFillRule != fillRule || fillRule != graphicsdriver.FillRuleFillAll {
 		g.flushRenderCommandEncoderIfNeeded()
 	}
 	g.lastDst = dst
@@ -497,7 +497,7 @@ func (g *Graphics) draw(dst *Image, dstRegions []graphicsdriver.DstRegion, srcs 
 		rpd.ColorAttachments[0].Texture = t
 		rpd.ColorAttachments[0].ClearColor = mtl.ClearColor{}
 
-		if fillRule != graphicsdriver.FillAll {
+		if fillRule != graphicsdriver.FillRuleFillAll {
 			dst.ensureStencil()
 			rpd.StencilAttachment.LoadAction = mtl.LoadActionClear
 			rpd.StencilAttachment.StoreAction = mtl.StoreActionDontCare
@@ -505,9 +505,9 @@ func (g *Graphics) draw(dst *Image, dstRegions []graphicsdriver.DstRegion, srcs 
 		}
 
 		if g.cb == (mtl.CommandBuffer{}) {
-			g.cb = g.cq.MakeCommandBuffer()
+			g.cb = g.cq.CommandBuffer()
 		}
-		g.rce = g.cb.MakeRenderCommandEncoder(rpd)
+		g.rce = g.cb.RenderCommandEncoderWithDescriptor(rpd)
 	}
 
 	w, h := dst.internalSize()
@@ -544,26 +544,26 @@ func (g *Graphics) draw(dst *Image, dstRegions []graphicsdriver.DstRegion, srcs 
 		drawWithStencilRpss  mtl.RenderPipelineState
 	)
 	switch fillRule {
-	case graphicsdriver.FillAll:
+	case graphicsdriver.FillRuleFillAll:
 		s, err := shader.RenderPipelineState(&g.view, blend, noStencil, dst.screen)
 		if err != nil {
 			return err
 		}
 		noStencilRpss = s
-	case graphicsdriver.NonZero:
+	case graphicsdriver.FillRuleNonZero:
 		s, err := shader.RenderPipelineState(&g.view, blend, incrementStencil, dst.screen)
 		if err != nil {
 			return err
 		}
 		incrementStencilRpss = s
-	case graphicsdriver.EvenOdd:
+	case graphicsdriver.FillRuleEvenOdd:
 		s, err := shader.RenderPipelineState(&g.view, blend, invertStencil, dst.screen)
 		if err != nil {
 			return err
 		}
 		invertStencilRpss = s
 	}
-	if fillRule != graphicsdriver.FillAll {
+	if fillRule != graphicsdriver.FillRuleFillAll {
 		s, err := shader.RenderPipelineState(&g.view, blend, drawWithStencil, dst.screen)
 		if err != nil {
 			return err
@@ -580,20 +580,20 @@ func (g *Graphics) draw(dst *Image, dstRegions []graphicsdriver.DstRegion, srcs 
 		})
 
 		switch fillRule {
-		case graphicsdriver.FillAll:
+		case graphicsdriver.FillRuleFillAll:
 			g.rce.SetDepthStencilState(g.dsss[noStencil])
 			g.rce.SetRenderPipelineState(noStencilRpss)
 			g.rce.DrawIndexedPrimitives(mtl.PrimitiveTypeTriangle, dstRegion.IndexCount, mtl.IndexTypeUInt32, g.ib, indexOffset*int(unsafe.Sizeof(uint32(0))))
-		case graphicsdriver.NonZero:
+		case graphicsdriver.FillRuleNonZero:
 			g.rce.SetDepthStencilState(g.dsss[incrementStencil])
 			g.rce.SetRenderPipelineState(incrementStencilRpss)
 			g.rce.DrawIndexedPrimitives(mtl.PrimitiveTypeTriangle, dstRegion.IndexCount, mtl.IndexTypeUInt32, g.ib, indexOffset*int(unsafe.Sizeof(uint32(0))))
-		case graphicsdriver.EvenOdd:
+		case graphicsdriver.FillRuleEvenOdd:
 			g.rce.SetDepthStencilState(g.dsss[invertStencil])
 			g.rce.SetRenderPipelineState(invertStencilRpss)
 			g.rce.DrawIndexedPrimitives(mtl.PrimitiveTypeTriangle, dstRegion.IndexCount, mtl.IndexTypeUInt32, g.ib, indexOffset*int(unsafe.Sizeof(uint32(0))))
 		}
-		if fillRule != graphicsdriver.FillAll {
+		if fillRule != graphicsdriver.FillRuleFillAll {
 			g.rce.SetDepthStencilState(g.dsss[drawWithStencil])
 			g.rce.SetRenderPipelineState(drawWithStencilRpss)
 			g.rce.DrawIndexedPrimitives(mtl.PrimitiveTypeTriangle, dstRegion.IndexCount, mtl.IndexTypeUInt32, g.ib, indexOffset*int(unsafe.Sizeof(uint32(0))))
@@ -810,8 +810,8 @@ func (i *Image) syncTexture() {
 		panic("metal: command buffer must be empty at syncTexture: flushIfNeeded is not called yet?")
 	}
 
-	cb := i.graphics.cq.MakeCommandBuffer()
-	bce := cb.MakeBlitCommandEncoder()
+	cb := i.graphics.cq.CommandBuffer()
+	bce := cb.BlitCommandEncoder()
 	bce.SynchronizeTexture(i.texture, 0, 0)
 	bce.EndEncoding()
 
@@ -859,7 +859,7 @@ func (i *Image) WritePixels(args []graphicsdriver.PixelsArgs) error {
 		StorageMode: storageMode,
 		Usage:       mtl.TextureUsageShaderRead | mtl.TextureUsageRenderTarget,
 	}
-	t := g.view.getMTLDevice().MakeTexture(td)
+	t := g.view.getMTLDevice().NewTextureWithDescriptor(td)
 	g.tmpTextures = append(g.tmpTextures, t)
 
 	for _, a := range args {
@@ -870,9 +870,9 @@ func (i *Image) WritePixels(args []graphicsdriver.PixelsArgs) error {
 	}
 
 	if g.cb == (mtl.CommandBuffer{}) {
-		g.cb = i.graphics.cq.MakeCommandBuffer()
+		g.cb = i.graphics.cq.CommandBuffer()
 	}
-	bce := g.cb.MakeBlitCommandEncoder()
+	bce := g.cb.BlitCommandEncoder()
 	for _, a := range args {
 		so := mtl.Origin{X: a.Region.Min.X - region.Min.X, Y: a.Region.Min.Y - region.Min.Y, Z: 0}
 		ss := mtl.Size{Width: a.Region.Dx(), Height: a.Region.Dy(), Depth: 1}
@@ -914,5 +914,5 @@ func (i *Image) ensureStencil() {
 		StorageMode: mtl.StorageModePrivate,
 		Usage:       mtl.TextureUsageRenderTarget,
 	}
-	i.stencil = i.graphics.view.getMTLDevice().MakeTexture(td)
+	i.stencil = i.graphics.view.getMTLDevice().NewTextureWithDescriptor(td)
 }

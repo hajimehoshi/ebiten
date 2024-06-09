@@ -329,7 +329,7 @@ func (g *Graphics) DrawTriangles(dstIDs [graphics.ShaderDstImageCount]graphicsdr
 	}
 	g.uniformVars = g.uniformVars[:0]
 
-	if fillRule != graphicsdriver.FillAll {
+	if fillRule != graphicsdriver.FillRuleFillAll {
 		if err := dsts[firstTarget].ensureStencilBuffer(framebufferNative(f)); err != nil {
 			return err
 		}
@@ -345,7 +345,7 @@ func (g *Graphics) DrawTriangles(dstIDs [graphics.ShaderDstImageCount]graphicsdr
 		)
 
 		switch fillRule {
-		case graphicsdriver.NonZero:
+		case graphicsdriver.FillRuleNonZero:
 			g.context.ctx.Clear(gl.STENCIL_BUFFER_BIT)
 			g.context.ctx.StencilFunc(gl.ALWAYS, 0x00, 0xff)
 			g.context.ctx.StencilOpSeparate(gl.FRONT, gl.KEEP, gl.KEEP, gl.INCR_WRAP)
@@ -353,7 +353,7 @@ func (g *Graphics) DrawTriangles(dstIDs [graphics.ShaderDstImageCount]graphicsdr
 			g.context.ctx.ColorMask(false, false, false, false)
 
 			g.context.ctx.DrawElements(gl.TRIANGLES, int32(dstRegion.IndexCount), gl.UNSIGNED_INT, indexOffset*int(unsafe.Sizeof(uint32(0))))
-		case graphicsdriver.EvenOdd:
+		case graphicsdriver.FillRuleEvenOdd:
 			g.context.ctx.Clear(gl.STENCIL_BUFFER_BIT)
 			g.context.ctx.StencilFunc(gl.ALWAYS, 0x00, 0xff)
 			g.context.ctx.StencilOpSeparate(gl.FRONT_AND_BACK, gl.KEEP, gl.KEEP, gl.INVERT)
@@ -361,7 +361,7 @@ func (g *Graphics) DrawTriangles(dstIDs [graphics.ShaderDstImageCount]graphicsdr
 
 			g.context.ctx.DrawElements(gl.TRIANGLES, int32(dstRegion.IndexCount), gl.UNSIGNED_INT, indexOffset*int(unsafe.Sizeof(uint32(0))))
 		}
-		if fillRule != graphicsdriver.FillAll {
+		if fillRule != graphicsdriver.FillRuleFillAll {
 			g.context.ctx.StencilFunc(gl.NOTEQUAL, 0x00, 0xff)
 			g.context.ctx.StencilOpSeparate(gl.FRONT_AND_BACK, gl.KEEP, gl.KEEP, gl.KEEP)
 			g.context.ctx.ColorMask(true, true, true, true)
@@ -370,7 +370,7 @@ func (g *Graphics) DrawTriangles(dstIDs [graphics.ShaderDstImageCount]graphicsdr
 		indexOffset += dstRegion.IndexCount
 	}
 
-	if fillRule != graphicsdriver.FillAll {
+	if fillRule != graphicsdriver.FillRuleFillAll {
 		g.context.ctx.Disable(gl.STENCIL_TEST)
 	}
 

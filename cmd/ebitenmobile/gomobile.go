@@ -18,13 +18,13 @@ import (
 	_ "embed"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"runtime/debug"
 
 	// Add a dependency on gomobile in order to get the version via debug.ReadBuildInfo().
 	_ "github.com/ebitengine/gomobile/geom"
-	exec "golang.org/x/sys/execabs"
 )
 
 //go:embed gobind.go

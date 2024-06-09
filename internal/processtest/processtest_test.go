@@ -20,14 +20,13 @@ import (
 	"bytes"
 	"context"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"sync"
 	"testing"
 	"time"
-
-	exec "golang.org/x/sys/execabs"
 )
 
 func isWSL() (bool, error) {

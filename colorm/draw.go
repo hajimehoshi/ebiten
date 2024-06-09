@@ -72,11 +72,11 @@ type DrawTrianglesOptions struct {
 
 	// FillRule indicates the rule how an overlapped region is rendered.
 	//
-	// The rules NonZero and EvenOdd are useful when you want to render a complex polygon.
+	// The rules FileRuleNonZero and FillRuleEvenOdd are useful when you want to render a complex polygon.
 	// A complex polygon is a non-convex polygon like a concave polygon, a polygon with holes, or a self-intersecting polygon.
 	// See examples/vector for actual usages.
 	//
-	// The default (zero) value is ebiten.FillAll.
+	// The default (zero) value is ebiten.FillRuleFillAll.
 	FillRule ebiten.FillRule
 
 	// AntiAlias indicates whether the rendering uses anti-alias or not.

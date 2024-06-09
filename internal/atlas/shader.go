@@ -88,7 +88,7 @@ var (
 func init() {
 	var wg errgroup.Group
 	wg.Go(func() error {
-		ir, err := graphics.CompileShader([]byte(builtinshader.Shader(builtinshader.FilterNearest, builtinshader.AddressUnsafe, false)))
+		ir, err := graphics.CompileShader([]byte(builtinshader.ShaderSource(builtinshader.FilterNearest, builtinshader.AddressUnsafe, false)))
 		if err != nil {
 			return fmt.Errorf("atlas: compiling the nearest shader failed: %w", err)
 		}
@@ -96,7 +96,7 @@ func init() {
 		return nil
 	})
 	wg.Go(func() error {
-		ir, err := graphics.CompileShader([]byte(builtinshader.Shader(builtinshader.FilterLinear, builtinshader.AddressUnsafe, false)))
+		ir, err := graphics.CompileShader([]byte(builtinshader.ShaderSource(builtinshader.FilterLinear, builtinshader.AddressUnsafe, false)))
 		if err != nil {
 			return fmt.Errorf("atlas: compiling the linear shader failed: %w", err)
 		}
@@ -104,13 +104,7 @@ func init() {
 		return nil
 	})
 	wg.Go(func() error {
-		ir, err := graphics.CompileShader([]byte(`//kage:unit pixels
-
-package main
-
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
-	return vec4(0)
-}`))
+		ir, err := graphics.CompileShader([]byte(builtinshader.ClearShaderSource))
 		if err != nil {
 			return fmt.Errorf("atlas: compiling the clear shader failed: %w", err)
 		}

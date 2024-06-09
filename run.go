@@ -64,7 +64,8 @@ type Game interface {
 	Draw(screen *Image)
 
 	// Layout accepts a native outside size in device-independent pixels and returns the game's logical screen
-	// size.
+	// size in pixels. The logical size is used for 1) the screen size given at Draw and 2) calculation of the
+	// scale from the screen to the final screen size.
 	//
 	// On desktops, the outside is a window or a monitor (fullscreen mode). On browsers, the outside is a body
 	// element. On mobiles, the outside is the view's size.
@@ -90,6 +91,11 @@ type LayoutFer interface {
 	// LayoutF is the float version of Game.Layout.
 	//
 	// If the game implements this interface, Layout is never called and LayoutF is called instead.
+	//
+	// LayoutF accepts a native outside size in device-independent pixels and returns the game's logical screen
+	// size in pixels. The logical size is used for 1) the screen size given at Draw and 2) calculation of the
+	// scale from the screen to the final screen size. For 1), the actual screen size is a rounded up of the
+	// logical size.
 	LayoutF(outsideWidth, outsideHeight float64) (screenWidth, screenHeight float64)
 }
 
@@ -149,7 +155,7 @@ func CurrentFPS() float64 {
 }
 
 var (
-	isRunGameEnded_ = int32(0)
+	isRunGameEnded_ atomic.Bool
 )
 
 // SetScreenClearedEveryFrame enables or disables the clearing of the screen at the beginning of each frame.
@@ -179,7 +185,7 @@ func IsScreenClearedEveryFrame() bool {
 //
 // Deprecated: as of v2.5. Use FinalScreenDrawer instead.
 func SetScreenFilterEnabled(enabled bool) {
-	setScreenFilterEnabled(enabled)
+	screenFilterEnabled.Store(enabled)
 }
 
 // IsScreenFilterEnabled returns true if Ebitengine's "screen" filter is enabled.
@@ -188,7 +194,7 @@ func SetScreenFilterEnabled(enabled bool) {
 //
 // Deprecated: as of v2.5.
 func IsScreenFilterEnabled() bool {
-	return isScreenFilterEnabled()
+	return screenFilterEnabled.Load()
 }
 
 // Termination is a special error which indicates Game termination without error.
@@ -309,17 +315,13 @@ type RunGameOptions struct {
 //
 // Don't call RunGame or RunGameWithOptions twice or more in one process.
 func RunGameWithOptions(game Game, options *RunGameOptions) error {
-	defer atomic.StoreInt32(&isRunGameEnded_, 1)
+	defer isRunGameEnded_.Store(true)
 
 	initializeWindowPositionIfNeeded(WindowSize())
 
 	op := toUIRunOptions(options)
 	// This is necessary to change the result of IsScreenTransparent.
-	if op.ScreenTransparent {
-		atomic.StoreInt32(&screenTransparent, 1)
-	} else {
-		atomic.StoreInt32(&screenTransparent, 0)
-	}
+	screenTransparent.Store(op.ScreenTransparent)
 	g := newGameForUI(game, op.ScreenTransparent)
 
 	if err := ui.Get().Run(g, op); err != nil {
@@ -333,7 +335,7 @@ func RunGameWithOptions(game Game, options *RunGameOptions) error {
 }
 
 func isRunGameEnded() bool {
-	return atomic.LoadInt32(&isRunGameEnded_) != 0
+	return isRunGameEnded_.Load()
 }
 
 // ScreenSizeInFullscreen returns the size in device-independent pixels when the game is fullscreen.
@@ -640,7 +642,7 @@ func IsScreenTransparent() bool {
 	if !ui.IsScreenTransparentAvailable() {
 		return false
 	}
-	return atomic.LoadInt32(&screenTransparent) != 0
+	return screenTransparent.Load()
 }
 
 // SetScreenTransparent sets the state if the window is transparent.
@@ -653,14 +655,10 @@ func IsScreenTransparent() bool {
 //
 // Deprecated: as of v2.5. Use RunGameWithOptions instead.
 func SetScreenTransparent(transparent bool) {
-	if transparent {
-		atomic.StoreInt32(&screenTransparent, 1)
-	} else {
-		atomic.StoreInt32(&screenTransparent, 0)
-	}
+	screenTransparent.Store(transparent)
 }
 
-var screenTransparent int32 = 0
+var screenTransparent atomic.Bool
 
 // SetInitFocused sets whether the application is focused on show.
 // The default value is true, i.e., the application is focused.
@@ -673,14 +671,10 @@ var screenTransparent int32 = 0
 //
 // Deprecated: as of v2.5. Use RunGameWithOptions instead.
 func SetInitFocused(focused bool) {
-	if focused {
-		atomic.StoreInt32(&initUnfocused, 0)
-	} else {
-		atomic.StoreInt32(&initUnfocused, 1)
-	}
+	initUnfocused.Store(!focused)
 }
 
-var initUnfocused int32 = 0
+var initUnfocused atomic.Bool
 
 func toUIRunOptions(options *RunGameOptions) *ui.RunOptions {
 	const (
@@ -690,8 +684,8 @@ func toUIRunOptions(options *RunGameOptions) *ui.RunOptions {
 
 	if options == nil {
 		return &ui.RunOptions{
-			InitUnfocused:     atomic.LoadInt32(&initUnfocused) != 0,
-			ScreenTransparent: atomic.LoadInt32(&screenTransparent) != 0,
+			InitUnfocused:     initUnfocused.Load(),
+			ScreenTransparent: screenTransparent.Load(),
 			X11ClassName:      defaultX11ClassName,
 			X11InstanceName:   defaultX11InstanceName,
 		}

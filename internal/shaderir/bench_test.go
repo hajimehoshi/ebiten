@@ -22,7 +22,7 @@ import (
 )
 
 func BenchmarkFilter(b *testing.B) {
-	src := builtinshader.Shader(builtinshader.FilterNearest, builtinshader.AddressUnsafe, false)
+	src := builtinshader.ShaderSource(builtinshader.FilterNearest, builtinshader.AddressUnsafe, false)
 	s, err := graphics.CompileShader(src)
 	if err != nil {
 		b.Fatal(err)

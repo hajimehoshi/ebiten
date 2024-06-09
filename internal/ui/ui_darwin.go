@@ -242,7 +242,6 @@ var (
 	sel_setOrigResizable              = objc.RegisterName("setOrigResizable:")
 	sel_toggleFullScreen              = objc.RegisterName("toggleFullScreen:")
 	sel_windowDidBecomeKey            = objc.RegisterName("windowDidBecomeKey:")
-	sel_windowDidDeminiaturize        = objc.RegisterName("windowDidDeminiaturize:")
 	sel_windowDidEnterFullScreen      = objc.RegisterName("windowDidEnterFullScreen:")
 	sel_windowDidExitFullScreen       = objc.RegisterName("windowDidExitFullScreen:")
 	sel_windowDidMiniaturize          = objc.RegisterName("windowDidMiniaturize:")

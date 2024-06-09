@@ -16,38 +16,18 @@
 
 package gl
 
-// #cgo LDFLAGS: -ldl
-//
-// #include <dlfcn.h>
-// #include <stdlib.h>
-//
-// static void* getProcAddressGL(void* libGL, const char* name) {
-//   static void*(*glXGetProcAddress)(const char*);
-//   if (!glXGetProcAddress) {
-//     glXGetProcAddress = dlsym(libGL, "glXGetProcAddress");
-//     if (!glXGetProcAddress) {
-//       glXGetProcAddress = dlsym(libGL, "glXGetProcAddressARB");
-//     }
-//   }
-//   return glXGetProcAddress(name);
-// }
-//
-// static void* getProcAddressGLES(void* libGLES, const char* name) {
-//   return dlsym(libGLES, name);
-// }
-import "C"
-
 import (
 	"fmt"
 	"os"
 	"runtime"
 	"strings"
-	"unsafe"
+
+	"github.com/ebitengine/purego"
 )
 
 var (
-	libGL   unsafe.Pointer
-	libGLES unsafe.Pointer
+	libGL   uintptr
+	libGLES uintptr
 )
 
 func (c *defaultContext) init() error {
@@ -68,11 +48,12 @@ func (c *defaultContext) init() error {
 	// Try OpenGL first. OpenGL is preferable as this doesn't cause context losses.
 	if !preferES {
 		// Usually libGL.so or libGL.so.1 is used. libGL.so.2 might exist only on NetBSD.
+		// TODO: Should "libOpenGL.so.0" [1] and "libGLX.so.0" [2] be added? These were added as of GLFW 3.3.9.
+		// [1] https://github.com/glfw/glfw/commit/55aad3c37b67f17279378db52da0a3ab81bbf26d
+		// [2] https://github.com/glfw/glfw/commit/c18851f52ec9704eb06464058a600845ec1eada1
 		for _, name := range []string{"libGL.so", "libGL.so.2", "libGL.so.1", "libGL.so.0"} {
-			cname := C.CString(name)
-			lib := C.dlopen(cname, C.RTLD_LAZY|C.RTLD_GLOBAL)
-			C.free(unsafe.Pointer(cname))
-			if lib != nil {
+			lib, err := purego.Dlopen(name, purego.RTLD_LAZY|purego.RTLD_GLOBAL)
+			if err == nil {
 				libGL = lib
 				return nil
 			}
@@ -81,10 +62,8 @@ func (c *defaultContext) init() error {
 
 	// Try OpenGL ES.
 	for _, name := range []string{"libGLESv2.so", "libGLESv2.so.2", "libGLESv2.so.1", "libGLESv2.so.0"} {
-		cname := C.CString(name)
-		lib := C.dlopen(cname, C.RTLD_LAZY|C.RTLD_GLOBAL)
-		C.free(unsafe.Pointer(cname))
-		if lib != nil {
+		lib, err := purego.Dlopen(name, purego.RTLD_LAZY|purego.RTLD_GLOBAL)
+		if err == nil {
 			libGLES = lib
 			c.isES = true
 			return nil
@@ -96,19 +75,32 @@ func (c *defaultContext) init() error {
 
 func (c *defaultContext) getProcAddress(name string) (uintptr, error) {
 	if c.isES {
-		return getProcAddressGLES(name), nil
+		return getProcAddressGLES(name)
 	}
-	return getProcAddressGL(name), nil
+	return getProcAddressGL(name)
 }
 
-func getProcAddressGL(name string) uintptr {
-	cname := C.CString(name)
-	defer C.free(unsafe.Pointer(cname))
-	return uintptr(C.getProcAddressGL(libGL, cname))
+var glXGetProcAddress func(name string) uintptr
+
+func getProcAddressGL(name string) (uintptr, error) {
+	if glXGetProcAddress == nil {
+		if _, err := purego.Dlsym(libGL, "glXGetProcAddress"); err == nil {
+			purego.RegisterLibFunc(&glXGetProcAddress, libGL, "glXGetProcAddress")
+		} else if _, err := purego.Dlsym(libGL, "glXGetProcAddressARB"); err == nil {
+			purego.RegisterLibFunc(&glXGetProcAddress, libGL, "glXGetProcAddressARB")
+		}
+	}
+	if glXGetProcAddress == nil {
+		return 0, fmt.Errorf("gl: failed to find glXGetProcAddress or glXGetProcAddressARB in libGL.so")
+	}
+
+	return glXGetProcAddress(name), nil
 }
 
-func getProcAddressGLES(name string) uintptr {
-	cname := C.CString(name)
-	defer C.free(unsafe.Pointer(cname))
-	return uintptr(C.getProcAddressGLES(libGLES, cname))
+func getProcAddressGLES(name string) (uintptr, error) {
+	proc, err := purego.Dlsym(libGLES, name)
+	if err != nil {
+		return 0, err
+	}
+	return proc, nil
 }

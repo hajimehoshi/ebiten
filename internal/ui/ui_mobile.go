@@ -40,7 +40,6 @@ var (
 
 func (u *UserInterface) init() error {
 	u.userInterfaceImpl = userInterfaceImpl{
-		foreground:            1,
 		graphicsLibraryInitCh: make(chan struct{}),
 		errCh:                 make(chan error),
 
@@ -48,6 +47,7 @@ func (u *UserInterface) init() error {
 		outsideWidth:  640,
 		outsideHeight: 480,
 	}
+	u.foreground.Store(true)
 	return nil
 }
 
@@ -89,7 +89,7 @@ type userInterfaceImpl struct {
 	outsideWidth  float64
 	outsideHeight float64
 
-	foreground int32
+	foreground atomic.Bool
 	errCh      chan error
 
 	context *context
@@ -97,18 +97,14 @@ type userInterfaceImpl struct {
 	inputState InputState
 	touches    []TouchForInput
 
-	fpsMode         int32
+	fpsMode         atomic.Int32
 	renderRequester RenderRequester
 
 	m sync.RWMutex
 }
 
 func (u *UserInterface) SetForeground(foreground bool) error {
-	var v int32
-	if foreground {
-		v = 1
-	}
-	atomic.StoreInt32(&u.foreground, v)
+	u.foreground.Store(foreground)
 
 	if foreground {
 		return hook.ResumeAudio()
@@ -220,7 +216,7 @@ func (u *UserInterface) SetFullscreen(fullscreen bool) {
 }
 
 func (u *UserInterface) IsFocused() bool {
-	return atomic.LoadInt32(&u.foreground) != 0
+	return u.foreground.Load()
 }
 
 func (u *UserInterface) IsRunnableOnUnfocused() bool {
@@ -232,11 +228,11 @@ func (u *UserInterface) SetRunnableOnUnfocused(runnableOnUnfocused bool) {
 }
 
 func (u *UserInterface) FPSMode() FPSModeType {
-	return FPSModeType(atomic.LoadInt32(&u.fpsMode))
+	return FPSModeType(u.fpsMode.Load())
 }
 
 func (u *UserInterface) SetFPSMode(mode FPSModeType) {
-	atomic.StoreInt32(&u.fpsMode, int32(mode))
+	u.fpsMode.Store(int32(mode))
 	u.updateExplicitRenderingModeIfNeeded(mode)
 }
 
@@ -298,7 +294,7 @@ func (u *UserInterface) Monitor() *Monitor {
 
 func (u *UserInterface) UpdateInput(keys map[Key]struct{}, runes []rune, touches []TouchForInput) {
 	u.updateInputStateFromOutside(keys, runes, touches)
-	if FPSModeType(atomic.LoadInt32(&u.fpsMode)) == FPSModeVsyncOffMinimum {
+	if FPSModeType(u.fpsMode.Load()) == FPSModeVsyncOffMinimum {
 		u.renderRequester.RequestRenderIfNeeded()
 	}
 }
@@ -310,11 +306,11 @@ type RenderRequester interface {
 
 func (u *UserInterface) SetRenderRequester(renderRequester RenderRequester) {
 	u.renderRequester = renderRequester
-	u.updateExplicitRenderingModeIfNeeded(FPSModeType(atomic.LoadInt32(&u.fpsMode)))
+	u.updateExplicitRenderingModeIfNeeded(FPSModeType(u.fpsMode.Load()))
 }
 
 func (u *UserInterface) ScheduleFrame() {
-	if u.renderRequester != nil && FPSModeType(atomic.LoadInt32(&u.fpsMode)) == FPSModeVsyncOffMinimum {
+	if u.renderRequester != nil && FPSModeType(u.fpsMode.Load()) == FPSModeVsyncOffMinimum {
 		u.renderRequester.RequestRenderIfNeeded()
 	}
 }

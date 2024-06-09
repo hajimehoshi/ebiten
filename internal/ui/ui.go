@@ -75,10 +75,10 @@ type UserInterface struct {
 	err  error
 	errM sync.Mutex
 
-	isScreenClearedEveryFrame int32
-	graphicsLibrary           int32
-	running                   int32
-	terminated                int32
+	isScreenClearedEveryFrame atomic.Bool
+	graphicsLibrary           atomic.Int32
+	running                   atomic.Bool
+	terminated                atomic.Bool
 
 	whiteImage *Image
 
@@ -106,10 +106,9 @@ func Get() *UserInterface {
 
 // newUserInterface must be called from the main thread.
 func newUserInterface() (*UserInterface, error) {
-	u := &UserInterface{
-		isScreenClearedEveryFrame: 1,
-		graphicsLibrary:           int32(GraphicsLibraryUnknown),
-	}
+	u := &UserInterface{}
+	u.isScreenClearedEveryFrame.Store(true)
+	u.graphicsLibrary.Store(int32(GraphicsLibraryUnknown))
 
 	u.whiteImage = u.NewImage(3, 3, atlas.ImageTypeRegular)
 	pix := make([]byte, 4*u.whiteImage.width*u.whiteImage.height)
@@ -127,6 +126,10 @@ func newUserInterface() (*UserInterface, error) {
 }
 
 func (u *UserInterface) readPixels(mipmap *mipmap.Mipmap, pixels []byte, region image.Rectangle) error {
+	if !u.running.Load() {
+		panic("ui: ReadPixels cannot be called before the game starts")
+	}
+
 	ok, err := mipmap.ReadPixels(u.graphicsDriver, pixels, region)
 	if err != nil {
 		return err
@@ -196,41 +199,33 @@ func (u *UserInterface) setError(err error) {
 }
 
 func (u *UserInterface) IsScreenClearedEveryFrame() bool {
-	return atomic.LoadInt32(&u.isScreenClearedEveryFrame) != 0
+	return u.isScreenClearedEveryFrame.Load()
 }
 
 func (u *UserInterface) SetScreenClearedEveryFrame(cleared bool) {
-	v := int32(0)
-	if cleared {
-		v = 1
-	}
-	atomic.StoreInt32(&u.isScreenClearedEveryFrame, v)
+	u.isScreenClearedEveryFrame.Store(cleared)
 }
 
 func (u *UserInterface) setGraphicsLibrary(library GraphicsLibrary) {
-	atomic.StoreInt32(&u.graphicsLibrary, int32(library))
+	u.graphicsLibrary.Store(int32(library))
 }
 
 func (u *UserInterface) GraphicsLibrary() GraphicsLibrary {
-	return GraphicsLibrary(atomic.LoadInt32(&u.graphicsLibrary))
+	return GraphicsLibrary(u.graphicsLibrary.Load())
 }
 
 func (u *UserInterface) isRunning() bool {
-	return atomic.LoadInt32(&u.running) != 0 && !u.isTerminated()
+	return u.running.Load() && !u.isTerminated()
 }
 
 func (u *UserInterface) setRunning(running bool) {
-	if running {
-		atomic.StoreInt32(&u.running, 1)
-	} else {
-		atomic.StoreInt32(&u.running, 0)
-	}
+	u.running.Store(running)
 }
 
 func (u *UserInterface) isTerminated() bool {
-	return atomic.LoadInt32(&u.terminated) != 0
+	return u.terminated.Load()
 }
 
 func (u *UserInterface) setTerminated() {
-	atomic.StoreInt32(&u.terminated, 1)
+	u.terminated.Store(true)
 }

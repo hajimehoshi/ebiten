@@ -171,7 +171,7 @@ func NewPlayer(game *Game, audioContext *audio.Context, musicType musicType) (*P
 
 	player.audioPlayer.Play()
 	go func() {
-		s, err := wav.DecodeWithSampleRate(sampleRate, bytes.NewReader(raudio.Jab_wav))
+		s, err := wav.DecodeWithoutResampling(bytes.NewReader(raudio.Jab_wav))
 		if err != nil {
 			log.Fatal(err)
 			return

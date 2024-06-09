@@ -246,6 +246,9 @@ func GetKeyName(key Key, scancode int) (string, error) {
 	}
 
 	if key != KeyUnknown {
+		if key < KeySpace || key > KeyLast {
+			return "", fmt.Errorf("glfw: invalid key %d: %w", key, InvalidEnum)
+		}
 		if key != KeyKPEqual && (key < KeyKP0 || key > KeyKPAdd) && (key < KeyApostrophe || key > KeyWorld2) {
 			return "", nil
 		}

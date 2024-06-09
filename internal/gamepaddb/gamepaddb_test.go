@@ -15,6 +15,7 @@
 package gamepaddb_test
 
 import (
+	"runtime"
 	"testing"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepaddb"
@@ -63,5 +64,19 @@ func TestUpdate(t *testing.T) {
 		if err != nil && !c.Err {
 			t.Errorf("Update(%q) should not return an error but returned %v", c.Input, err)
 		}
+	}
+}
+
+func TestGLFWGamepadMappings(t *testing.T) {
+	if runtime.GOOS != "windows" {
+		t.Skip("the current platform doesn't use GLFW gamepad mappings")
+	}
+
+	const id = "78696e70757401000000000000000000"
+	if got, want := gamepaddb.HasStandardLayoutMapping(id), true; got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+	if got, want := gamepaddb.Name(id), "XInput Gamepad (GLFW)"; got != want {
+		t.Errorf("got: %q, want: %q", got, want)
 	}
 }

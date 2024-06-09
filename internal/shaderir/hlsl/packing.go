@@ -22,7 +22,7 @@ import (
 
 const boundaryInBytes = 16
 
-func calculateMemoryOffsets(uniforms []shaderir.Type) []int {
+func CalcUniformMemoryOffsets(program *shaderir.Program) []int {
 	// https://docs.microsoft.com/en-us/windows/win32/direct3dhlsl/dx-graphics-hlsl-packing-rules
 	// https://github.com/microsoft/DirectXShaderCompiler/wiki/Buffer-Packing
 
@@ -38,7 +38,7 @@ func calculateMemoryOffsets(uniforms []shaderir.Type) []int {
 
 	// TODO: Reorder the variables with packoffset.
 	// See https://docs.microsoft.com/en-us/windows/win32/direct3dhlsl/dx-graphics-hlsl-variable-packoffset
-	for _, u := range uniforms {
+	for _, u := range program.Uniforms {
 		switch u.Main {
 		case shaderir.Float:
 			offsets = append(offsets, head)

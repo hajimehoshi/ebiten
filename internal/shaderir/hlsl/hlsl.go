@@ -86,8 +86,8 @@ float4x4 float4x4FromScalar(float x) {
 	return float4x4(x, 0, 0, 0, 0, x, 0, 0, 0, 0, x, 0, 0, 0, 0, x);
 }`
 
-func Compile(p *shaderir.Program) (vertexShader, pixelShader string, offsets []int) {
-	offsets = calculateMemoryOffsets(p.Uniforms)
+func Compile(p *shaderir.Program) (vertexShader, pixelShader string) {
+	offsets := CalcUniformMemoryOffsets(p)
 	p = adjustProgram(p)
 
 	c := &compileContext{

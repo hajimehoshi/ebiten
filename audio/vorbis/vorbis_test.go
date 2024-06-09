@@ -50,15 +50,15 @@ func TestMono(t *testing.T) {
 	}
 
 	// Stream decoded by audio/vorbis.DecodeWithSampleRate() is always 16bit stereo.
-	got := s.Length()
-
 	// On the other hand, the original vorbis package is monoral.
 	// As Length() represents the number of samples,
 	// this needs to be doubled by 2 (= bytes in 16bits).
-	want := r.Length() * 2 * 2
-
-	if got != want {
+	if got, want := s.Length(), r.Length()*2*2; got != want {
 		t.Errorf("s.Length(): got: %d, want: %d", got, want)
+	}
+
+	if got, want := s.SampleRate(), audioContext.SampleRate(); got != want {
+		t.Errorf("s.SampleRate(): got: %d, want: %d", got, want)
 	}
 }
 
@@ -70,10 +70,12 @@ func TestTooShort(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	got := s.Length()
-	want := int64(79424)
-	if got != want {
+	if got, want := s.Length(), int64(79424); got != want {
 		t.Errorf("s.Length(): got: %d, want: %d", got, want)
+	}
+
+	if got, want := s.SampleRate(), audioContext.SampleRate(); got != want {
+		t.Errorf("s.SampleRate(): got: %d, want: %d", got, want)
 	}
 }
 
@@ -93,9 +95,11 @@ func TestNonSeeker(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	got := s.Length()
-	want := int64(0)
-	if got != want {
+	if got, want := s.Length(), int64(0); got != want {
 		t.Errorf("s.Length(): got: %d, want: %d", got, want)
+	}
+
+	if got, want := s.SampleRate(), audioContext.SampleRate(); got != want {
+		t.Errorf("s.SampleRate(): got: %d, want: %d", got, want)
 	}
 }

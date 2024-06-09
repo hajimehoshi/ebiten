@@ -53,10 +53,23 @@ func (w *Window) choosePixelFormat(ctxconfig *ctxconfig, fbconfig_ *fbconfig) (i
 	var nativeCount int32
 	var attribs []int32
 
+	c, err := _DescribePixelFormat(w.context.platform.dc, 1, uint32(unsafe.Sizeof(_PIXELFORMATDESCRIPTOR{})), nil)
+	if err != nil {
+		return 0, err
+	}
+	nativeCount = c
+
 	if _glfw.platformContext.ARB_pixel_format {
+		// NOTE: In a Parallels VM WGL_ARB_pixel_format returns fewer pixel formats than
+		//       DescribePixelFormat, violating the guarantees of the extension spec
+		// HACK: Iterate through the minimum of both counts
 		var attrib int32 = _WGL_NUMBER_PIXEL_FORMATS_ARB
-		if err := wglGetPixelFormatAttribivARB(w.context.platform.dc, 1, 0, 1, &attrib, &nativeCount); err != nil {
-			return 0, err
+		var extensionCount int32
+		if err := wglGetPixelFormatAttribivARB(w.context.platform.dc, 1, 0, 1, &attrib, &extensionCount); err != nil {
+			return 0, fmt.Errorf("glfw: WGL: failed to retrieve pixel format attribute: %w", err)
+		}
+		if nativeCount > extensionCount {
+			nativeCount = extensionCount
 		}
 
 		attribs = append(attribs,
@@ -96,12 +109,6 @@ func (w *Window) choosePixelFormat(ctxconfig *ctxconfig, fbconfig_ *fbconfig) (i
 				attribs = append(attribs, _WGL_COLORSPACE_EXT)
 			}
 		}
-	} else {
-		c, err := _DescribePixelFormat(w.context.platform.dc, 1, uint32(unsafe.Sizeof(_PIXELFORMATDESCRIPTOR{})), nil)
-		if err != nil {
-			return 0, err
-		}
-		nativeCount = c
 	}
 
 	usableConfigs := make([]*fbconfig, 0, nativeCount)

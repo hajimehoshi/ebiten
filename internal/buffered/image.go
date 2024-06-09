@@ -337,7 +337,7 @@ func (i *Image) syncPixelsIfNeeded() {
 	srcs := [graphics.ShaderSrcImageCount]*atlas.Image{whiteImage.img}
 	dr := image.Rect(0, 0, i.width, i.height)
 	blend := graphicsdriver.BlendCopy
-	i.img.DrawTriangles(srcs, vs, is, blend, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, atlas.NearestFilterShader, nil, graphicsdriver.FillAll)
+	i.img.DrawTriangles(srcs, vs, is, blend, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, atlas.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll)
 
 	// TODO: Use clear if Go 1.21 is available.
 	for pos := range i.dotsBuffer {

@@ -1093,8 +1093,7 @@ func (g *graphics12) MaxImageSize() int {
 }
 
 func (g *graphics12) NewShader(program *shaderir.Program) (graphicsdriver.Shader, error) {
-	vs, ps, offsets := hlsl.Compile(program)
-	vsh, psh, err := compileShader(vs, ps)
+	vsh, psh, err := compileShader(program)
 	if err != nil {
 		return nil, err
 	}
@@ -1103,7 +1102,7 @@ func (g *graphics12) NewShader(program *shaderir.Program) (graphicsdriver.Shader
 		graphics:       g,
 		id:             g.genNextShaderID(),
 		uniformTypes:   program.Uniforms,
-		uniformOffsets: offsets,
+		uniformOffsets: hlsl.CalcUniformMemoryOffsets(program),
 		vertexShader:   vsh,
 		pixelShader:    psh,
 	}
@@ -1197,7 +1196,7 @@ func (g *graphics12) DrawTriangles(dstIDs [graphics.ShaderDstImageCount]graphics
 
 	// Release constant buffers when too many ones will be created.
 	numPipelines := 1
-	if fillRule != graphicsdriver.FillAll {
+	if fillRule != graphicsdriver.FillRuleFillAll {
 		numPipelines = 2
 	}
 	if len(g.pipelineStates.constantBuffers[g.frameIndex])+numPipelines > numDescriptorsPerFrame {
@@ -1264,7 +1263,7 @@ func (g *graphics12) DrawTriangles(dstIDs [graphics.ShaderDstImageCount]graphics
 		targetCount = graphics.ShaderDstImageCount
 	}
 
-	if err := g.setAsRenderTargets(dsts[:targetCount], fillRule != graphicsdriver.FillAll); err != nil {
+	if err := g.setAsRenderTargets(dsts[:targetCount], fillRule != graphicsdriver.FillRuleFillAll); err != nil {
 		return err
 	}
 

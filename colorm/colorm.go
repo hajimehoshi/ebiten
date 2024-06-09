@@ -179,7 +179,7 @@ func builtinShader(filter builtinshader.Filter, address builtinshader.Address) *
 		return s
 	}
 
-	src := builtinshader.Shader(filter, address, true)
+	src := builtinshader.ShaderSource(filter, address, true)
 	s, err := ebiten.NewShader(src)
 	if err != nil {
 		panic(fmt.Sprintf("colorm: NewShader for a built-in shader failed: %v", err))

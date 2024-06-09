@@ -16,8 +16,10 @@
 package shaderir
 
 import (
+	"encoding/hex"
 	"go/constant"
 	"go/token"
+	"hash/fnv"
 	"sort"
 	"strings"
 )
@@ -28,6 +30,21 @@ const (
 	Texels Unit = iota
 	Pixels
 )
+
+type SourceHash [16]byte
+
+func CalcSourceHash(source []byte) SourceHash {
+	h := fnv.New128a()
+	_, _ = h.Write(source)
+
+	var hash SourceHash
+	h.Sum(hash[:0])
+	return hash
+}
+
+func (s SourceHash) String() string {
+	return hex.EncodeToString(s[:])
+}
 
 type Program struct {
 	UniformNames   []string
@@ -40,6 +57,8 @@ type Program struct {
 	VertexFunc     VertexFunc
 	FragmentFunc   FragmentFunc
 	Unit           Unit
+
+	SourceHash SourceHash
 
 	uniformFactors []uint32
 }

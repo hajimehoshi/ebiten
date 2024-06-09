@@ -152,6 +152,14 @@ func (g *nativeGamepadsImpl) addDevice(device _IOHIDDeviceRef, gamepads *gamepad
 		return
 	}
 
+	elements := _IOHIDDeviceCopyMatchingElements(device, 0, kIOHIDOptionsTypeNone)
+	// It is reportedly possible for this to fail on macOS 13 Ventura
+	// if the application does not have input monitoring permissions
+	if elements == 0 {
+		return
+	}
+	defer _CFRelease(_CFTypeRef(elements))
+
 	name := "Unknown"
 	if prop := _IOHIDDeviceGetProperty(device, _CFStringCreateWithCString(kCFAllocatorDefault, kIOHIDProductKey, kCFStringEncodingUTF8)); prop != 0 {
 		var cstr [256]byte
@@ -188,9 +196,6 @@ func (g *nativeGamepadsImpl) addDevice(device _IOHIDDeviceRef, gamepads *gamepad
 		sdlID = fmt.Sprintf("05000000%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x",
 			bs[0], bs[1], bs[2], bs[3], bs[4], bs[5], bs[6], bs[7], bs[8], bs[9], bs[10], bs[11])
 	}
-
-	elements := _IOHIDDeviceCopyMatchingElements(device, 0, kIOHIDOptionsTypeNone)
-	defer _CFRelease(_CFTypeRef(elements))
 
 	n := &nativeGamepadImpl{
 		device: device,

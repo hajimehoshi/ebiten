@@ -2696,7 +2696,7 @@ func TestImageEvenOdd(t *testing.T) {
 	// Draw all the vertices once. The even-odd rule is applied for all the vertices once.
 	dst := ebiten.NewImage(16, 16)
 	op := &ebiten.DrawTrianglesOptions{
-		FillRule: ebiten.EvenOdd,
+		FillRule: ebiten.FillRuleEvenOdd,
 	}
 	dst.DrawTriangles(append(append(vs0, vs1...), vs2...), append(append(is0, is1...), is2...), emptySubImage, op)
 	for j := 0; j < 16; j++ {
@@ -2794,15 +2794,15 @@ func TestImageEvenOdd(t *testing.T) {
 }
 
 func TestImageFillRule(t *testing.T) {
-	for _, fillRule := range []ebiten.FillRule{ebiten.FillAll, ebiten.NonZero, ebiten.EvenOdd} {
+	for _, fillRule := range []ebiten.FillRule{ebiten.FillRuleFillAll, ebiten.FillRuleNonZero, ebiten.FillRuleEvenOdd} {
 		fillRule := fillRule
 		var name string
 		switch fillRule {
-		case ebiten.FillAll:
+		case ebiten.FillRuleFillAll:
 			name = "FillAll"
-		case ebiten.NonZero:
+		case ebiten.FillRuleNonZero:
 			name = "NonZero"
-		case ebiten.EvenOdd:
+		case ebiten.FillRuleEvenOdd:
 			name = "EvenOdd"
 		}
 		t.Run(name, func(t *testing.T) {
@@ -2885,11 +2885,11 @@ func TestImageFillRule(t *testing.T) {
 					var want color.RGBA
 					switch {
 					case 2 <= i && i < 7 && 2 <= j && j < 7:
-						if fillRule != ebiten.EvenOdd {
+						if fillRule != ebiten.FillRuleEvenOdd {
 							want = color.RGBA{G: 0xff, A: 0xff}
 						}
 					case 9 <= i && i < 14 && 9 <= j && j < 14:
-						if fillRule == ebiten.FillAll {
+						if fillRule == ebiten.FillRuleFillAll {
 							want = color.RGBA{B: 0xff, A: 0xff}
 						}
 					case 1 <= i && i < 15 && 1 <= j && j < 15:
@@ -2922,11 +2922,11 @@ func TestImageFillRule(t *testing.T) {
 					var want color.RGBA
 					switch {
 					case 3 <= i && i < 8 && 3 <= j && j < 8:
-						if fillRule != ebiten.EvenOdd {
+						if fillRule != ebiten.FillRuleEvenOdd {
 							want = color.RGBA{G: 0xff, A: 0xff}
 						}
 					case 10 <= i && i < 15 && 10 <= j && j < 15:
-						if fillRule == ebiten.FillAll {
+						if fillRule == ebiten.FillRuleFillAll {
 							want = color.RGBA{B: 0xff, A: 0xff}
 						}
 					case 2 <= i && i < 16 && 2 <= j && j < 16:
@@ -3726,7 +3726,7 @@ func TestImageTooManyConstantBuffersInDirectX(t *testing.T) {
 	dst0 := ebiten.NewImage(16, 16)
 	dst1 := ebiten.NewImage(16, 16)
 	op := &ebiten.DrawTrianglesOptions{
-		FillRule: ebiten.EvenOdd,
+		FillRule: ebiten.FillRuleEvenOdd,
 	}
 	for i := 0; i < 100; i++ {
 		dst0.DrawTriangles(vs, is, src, op)

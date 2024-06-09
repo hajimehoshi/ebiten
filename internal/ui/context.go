@@ -308,7 +308,6 @@ func (c *context) runInFrame(f func()) {
 		f()
 	}
 	<-ch
-	return
 }
 
 func (c *context) processFuncsInFrame(ui *UserInterface) error {

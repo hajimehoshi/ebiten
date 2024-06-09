@@ -14,16 +14,12 @@
 
 package atlas
 
-import (
-	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
-)
-
 const (
 	BaseCountToPutOnSourceBackend = baseCountToPutOnSourceBackend
 )
 
-func PutImagesOnSourceBackendForTesting(graphicsDriver graphicsdriver.Graphics) {
-	putImagesOnSourceBackend(graphicsDriver)
+func PutImagesOnSourceBackendForTesting() {
+	putImagesOnSourceBackend()
 }
 
 var (

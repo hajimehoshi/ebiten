@@ -71,6 +71,8 @@ type GoTextFaceSource struct {
 
 	addr *GoTextFaceSource
 
+	shaper shaping.HarfbuzzShaper
+
 	m sync.Mutex
 }
 
@@ -176,14 +178,16 @@ func (g *GoTextFaceSource) shape(text string, face *GoTextFace) ([]shaping.Outpu
 		return out.outputs, out.glyphs
 	}
 
-	g.f.SetVariations(face.variations)
+	f := face.Source.f
+	f.SetVariations(face.variations)
+
 	runes := []rune(text)
 	input := shaping.Input{
 		Text:         runes,
 		RunStart:     0,
 		RunEnd:       len(runes),
 		Direction:    face.diDirection(),
-		Face:         face.Source.f,
+		Face:         f,
 		FontFeatures: face.features,
 		Size:         float64ToFixed26_6(face.Size),
 		Script:       face.gScript(),
@@ -191,7 +195,7 @@ func (g *GoTextFaceSource) shape(text string, face *GoTextFace) ([]shaping.Outpu
 	}
 
 	var seg shaping.Segmenter
-	inputs := seg.Split(input, &singleFontmap{face: face.Source.f})
+	inputs := seg.Split(input, &singleFontmap{face: f})
 
 	if face.Direction == DirectionRightToLeft {
 		// Reverse the input for RTL texts.
@@ -203,7 +207,7 @@ func (g *GoTextFaceSource) shape(text string, face *GoTextFace) ([]shaping.Outpu
 	outputs := make([]shaping.Output, len(inputs))
 	var gs []glyph
 	for i, input := range inputs {
-		out := (&shaping.HarfbuzzShaper{}).Shape(input)
+		out := g.shaper.Shape(input)
 		outputs[i] = out
 
 		(shaping.Line{out}).AdjustBaselines()
@@ -220,7 +224,7 @@ func (g *GoTextFaceSource) shape(text string, face *GoTextFace) ([]shaping.Outpu
 			switch data := g.f.GlyphData(gl.GlyphID).(type) {
 			case api.GlyphOutline:
 				if out.Direction.IsSideways() {
-					data.Sideways(fixed26_6ToFloat32(-gl.YOffset) / fixed26_6ToFloat32(out.Size) * float32(face.Source.f.Upem()))
+					data.Sideways(fixed26_6ToFloat32(-gl.YOffset) / fixed26_6ToFloat32(out.Size) * float32(f.Upem()))
 				}
 				segs = data.Segments
 			case api.GlyphSVG:
