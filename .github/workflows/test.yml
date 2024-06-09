@@ -167,7 +167,7 @@ jobs:
       - name: go test (Wasm)
         if: ${{ runner.os != 'macOS' && runner.os != 'Windows' }}
         run: |
-          # Wasm tests don't work on macOS with the headless mode, and the headless mode doesn't work in GitHub Actions (#2972).
+          # Wasm tests don't work on macOS with the headless mode enabled, but the headless mode cannot be disabled in GitHub Actions (#2972).
           # Wasm tests don't work on Windows well due to mysterious timeouts (#2982).
           env GOOS=js GOARCH=wasm cleanenv -remove-prefix GITHUB_ -remove-prefix JAVA_ -remove-prefix PSModulePath -remove-prefix STATS_ -remove-prefix RUNNER_ -- go test -shuffle=on -v ./...
 
