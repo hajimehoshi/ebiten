@@ -108,16 +108,19 @@ func (c *drawTrianglesCommand) Exec(commandQueue *commandQueue, graphicsDriver g
 		return nil
 	}
 
-	var imgs [graphics.ShaderSrcImageCount]graphicsdriver.ImageID
+	var srcs [graphics.ShaderSrcImageCount]graphicsdriver.ImageID
 	for i, src := range c.srcs {
 		if src == nil {
-			imgs[i] = graphicsdriver.InvalidImageID
+			srcs[i] = graphicsdriver.InvalidImageID
 			continue
 		}
-		imgs[i] = src.image.ID()
+		srcs[i] = src.image.ID()
+	}
+	dsts := [graphics.ShaderDstImageCount]graphicsdriver.ImageID{
+		c.dst.image.ID(),
 	}
 
-	return graphicsDriver.DrawTriangles(c.dst.image.ID(), imgs, c.shader.shader.ID(), c.dstRegions, indexOffset, c.blend, c.uniforms, c.fillRule)
+	return graphicsDriver.DrawTriangles(dsts, srcs, c.shader.shader.ID(), c.dstRegions, indexOffset, c.blend, c.uniforms, c.fillRule)
 }
 
 func (c *drawTrianglesCommand) NeedsSync() bool {

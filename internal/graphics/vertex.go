@@ -16,6 +16,7 @@ package graphics
 
 const (
 	ShaderSrcImageCount = 4
+	ShaderDstImageCount = 1
 
 	// PreservedUniformVariablesCount represents the number of preserved uniform variables.
 	// Any shaders in Ebitengine must have these uniform variables.
