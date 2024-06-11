@@ -16,6 +16,7 @@ package textinput
 
 import (
 	"fmt"
+	"strings"
 	"syscall/js"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
@@ -79,7 +80,10 @@ func (t *textInput) init() {
 			e.Call("preventDefault")
 		}
 		if e.Get("code").String() == "Enter" || e.Get("key").String() == "Enter" {
-			// Ignore Enter key to avoid ebiten.IsKeyPressed(ebiten.KeyEnter) unexpectedly becomes true, especially for iOS Safari.
+			// Ignore Enter key to avoid ebiten.IsKeyPressed(ebiten.KeyEnter) unexpectedly becomes true.
+			e.Call("preventDefault")
+			ui.Get().UpdateInputFromEvent(e)
+			t.trySend(true)
 			return nil
 		}
 		if !e.Get("isComposing").Bool() {
@@ -96,6 +100,11 @@ func (t *textInput) init() {
 	}))
 	t.textareaElement.Call("addEventListener", "input", js.FuncOf(func(this js.Value, args []js.Value) any {
 		e := args[0]
+		// On iOS Safari, `isComposing` can be undefined.
+		if e.Get("isComposing").IsUndefined() {
+			t.trySend(false)
+			return nil
+		}
 		if e.Get("isComposing").Bool() {
 			t.trySend(false)
 			return nil
@@ -109,8 +118,12 @@ func (t *textInput) init() {
 			t.trySend(true)
 			return nil
 		}
-		// Though `isComposing` is false, send the text as being not committed for text completion on mobile browsers.
-		t.trySend(false)
+		// Though `isComposing` is false, send the text as being not committed for text completion with a virtual keyboard.
+		if isVirtualKeyboard() {
+			t.trySend(false)
+			return nil
+		}
+		t.trySend(true)
 		return nil
 	}))
 	t.textareaElement.Call("addEventListener", "change", js.FuncOf(func(this js.Value, args []js.Value) any {
@@ -172,7 +185,13 @@ func (t *textInput) Start(x, y int) (chan State, func()) {
 			s := newSession()
 			t.session = s
 		}
-		return t.session.ch, t.session.end
+		return t.session.ch, func() {
+			if t.session != nil {
+				t.session.end()
+				// Reset the session explictly, or a new session cannot be created above.
+				t.session = nil
+			}
+		}
 	}
 
 	if t.session != nil {
@@ -193,6 +212,10 @@ func (t *textInput) trySend(committed bool) {
 	}
 
 	textareaValue := t.textareaElement.Get("value").String()
+	if textareaValue == "" {
+		return
+	}
+
 	start := t.textareaElement.Get("selectionStart").Int()
 	end := t.textareaElement.Get("selectionEnd").Int()
 	startInBytes := convertUTF16CountToByteCount(textareaValue, start)
@@ -212,4 +235,16 @@ func (t *textInput) trySend(committed bool) {
 		}
 		t.textareaElement.Set("value", "")
 	}
+}
+
+func isVirtualKeyboard() bool {
+	// Detect a virtual keyboard by the user agent.
+	// Note that this is not a correct way to detect a virtual keyboard.
+	// In the future, we should use the `navigator.virtualKeyboard` API.
+	// https://developer.mozilla.org/en-US/docs/Web/API/Navigator/virtualKeyboard
+	ua := js.Global().Get("navigator").Get("userAgent").String()
+	if strings.Contains(ua, "Android") || strings.Contains(ua, "iPhone") || strings.Contains(ua, "iPad") || strings.Contains(ua, "iPod") {
+		return true
+	}
+	return false
 }
