@@ -16,7 +16,6 @@ package textinput
 
 import (
 	"fmt"
-	"strings"
 	"syscall/js"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
@@ -119,7 +118,7 @@ func (t *textInput) init() {
 			return nil
 		}
 		// Though `isComposing` is false, send the text as being not committed for text completion with a virtual keyboard.
-		if isVirtualKeyboard() {
+		if ui.IsVirtualKeyboard() {
 			t.trySend(false)
 			return nil
 		}
@@ -235,16 +234,4 @@ func (t *textInput) trySend(committed bool) {
 		}
 		t.textareaElement.Set("value", "")
 	}
-}
-
-func isVirtualKeyboard() bool {
-	// Detect a virtual keyboard by the user agent.
-	// Note that this is not a correct way to detect a virtual keyboard.
-	// In the future, we should use the `navigator.virtualKeyboard` API.
-	// https://developer.mozilla.org/en-US/docs/Web/API/Navigator/virtualKeyboard
-	ua := js.Global().Get("navigator").Get("userAgent").String()
-	if strings.Contains(ua, "Android") || strings.Contains(ua, "iPhone") || strings.Contains(ua, "iPad") || strings.Contains(ua, "iPod") {
-		return true
-	}
-	return false
 }

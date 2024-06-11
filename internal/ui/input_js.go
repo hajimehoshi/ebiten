@@ -16,6 +16,7 @@ package ui
 
 import (
 	"math"
+	"strings"
 	"syscall/js"
 	"unicode"
 )
@@ -64,6 +65,11 @@ var codeToMouseButton = map[int]MouseButton{
 
 func eventToKeys(e js.Value) (key0, key1 Key, fromKeyProperty bool) {
 	id := jsCodeToID(e.Get("code"))
+
+	// On mobile browsers, treat enter key as if this is from a `key` property.
+	if IsVirtualKeyboard() && id == KeyEnter {
+		return KeyEnter, -1, true
+	}
 	if id >= 0 {
 		return id, -1, false
 	}
@@ -425,4 +431,16 @@ func (i *InputState) resetForBlur() {
 		i.MouseButtonPressed[j] = false
 	}
 	i.Touches = i.Touches[:0]
+}
+
+func IsVirtualKeyboard() bool {
+	// Detect a virtual keyboard by the user agent.
+	// Note that this is not a correct way to detect a virtual keyboard.
+	// In the future, we should use the `navigator.virtualKeyboard` API.
+	// https://developer.mozilla.org/en-US/docs/Web/API/Navigator/virtualKeyboard
+	ua := js.Global().Get("navigator").Get("userAgent").String()
+	if strings.Contains(ua, "Android") || strings.Contains(ua, "iPhone") || strings.Contains(ua, "iPad") || strings.Contains(ua, "iPod") {
+		return true
+	}
+	return false
 }
