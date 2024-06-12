@@ -489,11 +489,12 @@ func (u *UserInterface) init() error {
 	meta.Set("content", "width=device-width, initial-scale=1")
 	document.Get("head").Call("appendChild", meta)
 
-	// Select the first available canvas, otherwise create one.
+	// Select the first available canvas with id "gocanvas", otherwise create one.
 	// https://developer.mozilla.org/en-US/docs/Web/API/Document/querySelector
-	canvas = document.Call("querySelector", "canvas")
+	canvas = document.Call("querySelector", "#gocanvas")
 	if canvas.Equal(js.Null()) {
 		canvas = document.Call("createElement", "canvas")
+		canvas.Call("setAttribute", "id", "gocanvas")
 	}
 	canvas.Set("width", 16)
 	canvas.Set("height", 16)
