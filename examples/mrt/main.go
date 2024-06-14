@@ -1,4 +1,4 @@
-// Copyright 2024 The Ebiten Authors
+// Copyright 2024 The Ebitengine Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -32,10 +32,6 @@ const (
 
 var (
 	dsts = [8]*ebiten.Image{
-		/*ebiten.NewImage(dstSize, dstSize),
-		ebiten.NewImage(dstSize, dstSize),
-		ebiten.NewImage(dstSize, dstSize),
-		ebiten.NewImage(dstSize, dstSize),*/
 		ebiten.NewImageWithOptions(image.Rect(0, 0, dstSize, dstSize), &ebiten.NewImageOptions{
 			Unmanaged: true,
 		}),
