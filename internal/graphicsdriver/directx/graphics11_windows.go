@@ -619,7 +619,7 @@ func (g *graphics11) DrawTriangles(dstIDs [graphics.ShaderDstImageCount]graphics
 		srcs[i] = img
 	}
 
-	// If the number of targets is more than one, or if the only target is the first one, then
+	// If the number of targets is more than one, or if the only target is not the first one, then
 	// it is safe to assume that MRT is used.
 	// Also, it only matters in order to specify empty targets/viewports when not all slots are
 	// being filled, even though it's not a MRT scenario.
