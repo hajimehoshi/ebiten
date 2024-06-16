@@ -36,8 +36,8 @@ type playstation5Error struct {
 func newPlaystation5Error(name string, err C.ebitengine_Error) *playstation5Error {
 	return &playstation5Error{
 		name:    name,
-		code:    int(err.code),
-		message: C.GoString(err.message),
+		code:    int(err.Code),
+		message: C.GoString(err.Message),
 	}
 }
 
