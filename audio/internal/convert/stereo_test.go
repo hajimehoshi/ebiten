@@ -71,8 +71,6 @@ func genTestCases() []testCase {
 		{16, false, nil, res16},
 		{24, true, nil, res16},
 		{24, false, nil, res16},
-		{32, true, nil, res16},
-		{32, false, nil, res16},
 	}
 	for i, test := range cases {
 		cases[i].input = genSin(10, test.resolution, test.mono)
@@ -90,7 +88,7 @@ func TestIsValidResolution(t *testing.T) {
 		{8, true},
 		{16, true},
 		{24, true},
-		{32, true},
+		{32, false},
 	}
 
 	for _, test := range tests {

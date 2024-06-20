@@ -19,7 +19,7 @@ import (
 	"io"
 )
 
-// Setero objects convert little-endian audio mono or stereo audio streams into
+// Stereo objects convert little-endian audio mono or stereo audio streams into
 // 16-bit stereo stereo streams.
 type Stereo struct {
 	source io.ReadSeeker
@@ -31,7 +31,7 @@ type Stereo struct {
 // IsValidResolution returns true if the given bit resolution is supported.
 func IsValidResolution(r int) bool {
 	switch r {
-	case 8, 16, 32, 24:
+	case 8, 16, 24:
 		return true
 	}
 	return false
@@ -41,7 +41,7 @@ func IsValidResolution(r int) bool {
 // stream, subsequent calls to Stereo.Read will return 16-bit little-endian stereo
 // audio samples.
 //
-// Valid values for resolution are: [8,16,24,32]. Any invalid input will panic.
+// Valid values for resolution are: [8,16,24]. Any invalid input will panic.
 func NewStereo(source io.ReadSeeker, mono bool, resolution int) *Stereo {
 	if !IsValidResolution(resolution) {
 		panic(fmt.Errorf("unsupported resolution: %d", resolution))
