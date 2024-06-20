@@ -215,16 +215,14 @@ chunks:
 			}
 			channelCount := int(buf[2]) | int(buf[3])<<8
 			switch channelCount {
-			case 1:
-				mono = true
-			case 2:
-				mono = false
+			case 1, 2:
+				mono = channelCount == 1
 			default:
 				return nil, fmt.Errorf("wav: number of channels must be 1 or 2 but was %d", channelCount)
 			}
 			bitsPerSample = int(buf[14]) | int(buf[15])<<8
-			if bitsPerSample != 8 && bitsPerSample != 16 {
-				return nil, fmt.Errorf("wav: bits per sample must be 8 or 16 but was %d", bitsPerSample)
+			if !convert.IsValidResolution(bitsPerSample) {
+				return nil, fmt.Errorf("wav: invalid bits per sample must be [8,16,24,32] but was %d", bitsPerSample)
 			}
 			sampleRate = int(buf[4]) | int(buf[5])<<8 | int(buf[6])<<16 | int(buf[7])<<24
 			headerSize += size
@@ -250,17 +248,14 @@ chunks:
 		remaining:  dataSize,
 	}
 
-	if mono || bitsPerSample != 16 {
-		s = convert.NewStereo16(s, mono, bitsPerSample != 16)
-		if mono {
-			dataSize *= 2
-		}
-		if bitsPerSample != 16 {
-			dataSize *= 2
-		}
+	// Fixup the dataSize so calls to the stream's size return the size in 16-bit stereo
+	// samples.
+	dataSize = (dataSize * 16) / int64(bitsPerSample)
+	if mono {
+		dataSize *= 2
 	}
 	return &Stream{
-		inner:      s,
+		inner:      convert.NewStereo(s, mono, bitsPerSample),
 		size:       dataSize,
 		sampleRate: sampleRate,
 	}, nil

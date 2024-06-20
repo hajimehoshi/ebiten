@@ -162,7 +162,7 @@ func DecodeWithoutResampling(src io.Reader) (*Stream, error) {
 	var s io.ReadSeeker = i16Stream
 	length := i16Stream.Length()
 	if channelCount == 1 {
-		s = convert.NewStereo16(s, true, false)
+		s = convert.NewStereo(s, true, 16)
 		length *= 2
 	}
 
@@ -196,7 +196,7 @@ func DecodeWithSampleRate(sampleRate int, src io.Reader) (*Stream, error) {
 	var s io.ReadSeeker = i16Stream
 	length := i16Stream.Length()
 	if channelCount == 1 {
-		s = convert.NewStereo16(s, true, false)
+		s = convert.NewStereo(s, true, 16)
 		length *= 2
 	}
 	if origSampleRate != sampleRate {
