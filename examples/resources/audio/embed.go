@@ -22,6 +22,9 @@ var (
 	//go:embed jab.wav
 	Jab_wav []byte
 
+	//go:embed jab8.wav
+	Jab8_wav []byte
+
 	//go:embed jump.ogg
 	Jump_ogg []byte
 
