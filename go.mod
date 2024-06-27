@@ -15,7 +15,7 @@ require (
 	github.com/jezek/xgb v1.1.1
 	github.com/jfreymuth/oggvorbis v1.0.5
 	github.com/kisielk/errcheck v1.7.0
-	golang.org/x/image v0.17.0
+	golang.org/x/image v0.18.0
 	golang.org/x/sync v0.7.0
 	golang.org/x/sys v0.21.0
 	golang.org/x/text v0.16.0
