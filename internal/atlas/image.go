@@ -97,6 +97,8 @@ func putImagesOnSourceBackend() {
 	imagesToPutOnSourceBackend.clear()
 }
 
+// backend is a big texture atlas that can have multiple images.
+// backend is a texture in GPU.
 type backend struct {
 	// image is an atlas on which there might be multiple images.
 	image *graphicscommand.Image
@@ -109,6 +111,7 @@ type backend struct {
 	page *packing.Page
 
 	// source reports whether this backend is mainly used a rendering source, but this is not 100%.
+	//
 	// If a non-source (destination) image is used as a source many times,
 	// the image's backend might be turned into a source backend to optimize draw calls.
 	source bool
@@ -220,11 +223,18 @@ var (
 	deferredM sync.Mutex
 )
 
+// ImageType represents the type of an image.
 type ImageType int
 
 const (
+	// ImageTypeRegular is a regular image, that can be on a big texture atlas (backend).
 	ImageTypeRegular ImageType = iota
+
+	// ImageTypeScreen is a screen image that is not on an atlas.
+	// A screen image is also unmanaged.
 	ImageTypeScreen
+
+	// ImageTypeUnmanaged is an unmanaged image that is not on an atlas.
 	ImageTypeUnmanaged
 )
 
