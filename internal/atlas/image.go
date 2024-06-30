@@ -747,20 +747,6 @@ func (i *Image) allocate(forbiddenBackends []*backend, asSource bool) {
 
 	runtime.SetFinalizer(i, (*Image).finalize)
 
-	if i.imageType == ImageTypeScreen {
-		if asSource {
-			panic("atlas: a screen image cannot be created as a source")
-		}
-		// A screen image doesn't have a padding.
-		i.backend = &backend{
-			image:  newClearedImage(i.width, i.height, true),
-			width:  i.width,
-			height: i.height,
-		}
-		theBackends = append(theBackends, i.backend)
-		return
-	}
-
 	wp := i.width + i.paddingSize()
 	hp := i.height + i.paddingSize()
 
@@ -770,7 +756,7 @@ func (i *Image) allocate(forbiddenBackends []*backend, asSource bool) {
 		}
 
 		i.backend = &backend{
-			image:  newClearedImage(wp, hp, false),
+			image:  newClearedImage(wp, hp, i.imageType == ImageTypeScreen),
 			width:  wp,
 			height: hp,
 			source: asSource && i.imageType == ImageTypeRegular,
