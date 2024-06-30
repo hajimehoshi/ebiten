@@ -686,18 +686,14 @@ func (i *Image) deallocate() {
 		return
 	}
 
-	if !i.isOnAtlas() {
-		i.backend.image.Dispose()
-		i.backend.image = nil
-		return
-	}
-
-	i.backend.page.Free(i.node)
-	if !i.backend.page.IsEmpty() {
-		// As this part can be reused, this should be cleared explicitly.
-		r := i.regionWithPadding()
-		i.backend.clearPixels(r)
-		return
+	if i.isOnAtlas() {
+		i.backend.page.Free(i.node)
+		if !i.backend.page.IsEmpty() {
+			// As this part can be reused, this should be cleared explicitly.
+			r := i.regionWithPadding()
+			i.backend.clearPixels(r)
+			return
+		}
 	}
 
 	i.backend.image.Dispose()

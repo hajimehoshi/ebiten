@@ -73,3 +73,9 @@ func DeferredFuncCountForTesting() int {
 	defer deferredM.Unlock()
 	return len(deferred)
 }
+
+func BackendCountForTesting() int {
+	backendsM.Lock()
+	defer backendsM.Unlock()
+	return len(theBackends)
+}
