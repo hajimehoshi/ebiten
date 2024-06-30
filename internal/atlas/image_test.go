@@ -296,7 +296,7 @@ func TestReputOnSourceBackend(t *testing.T) {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
 
-	// Use img3 as a render source. As img3 is volatile, img3 is never on an atlas.
+	// Use img3 as a render source. As img3 is unmanaged, img3 is never on an atlas.
 	for i := 0; i < atlas.BaseCountToPutOnSourceBackend*2; i++ {
 		atlas.PutImagesOnSourceBackendForTesting()
 		vs := quadVertices(size, size, 0, 0, 1)

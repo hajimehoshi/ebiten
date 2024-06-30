@@ -71,7 +71,6 @@ func (m *Mipmap) DrawTriangles(srcs [graphics.ShaderSrcImageCount]*Mipmap, verti
 	}
 
 	level := 0
-	// TODO: Do we need to check all the sources' states of being volatile?
 	if !canSkipMipmap && srcs[0] != nil && canUseMipmap(srcs[0].imageType) {
 		level = math.MaxInt32
 		for i := 0; i < len(indices)/3; i++ {
@@ -140,7 +139,7 @@ func (m *Mipmap) level(level int) *buffered.Image {
 	}
 
 	if !canUseMipmap(m.imageType) {
-		panic("mipmap: mipmap images for a volatile or a screen image is not implemented yet")
+		panic("mipmap: mipmap images for a screen image is not implemented yet")
 	}
 
 	if img, ok := m.imgs[level]; ok {
