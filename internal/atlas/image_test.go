@@ -881,4 +881,26 @@ func TestGC(t *testing.T) {
 	}
 }
 
+func TestDallocateUnmanagedImageBackends(t *testing.T) {
+	const w, h = 16, 16
+	img0 := atlas.NewImage(w, h, atlas.ImageTypeUnmanaged)
+	img1 := atlas.NewImage(w, h, atlas.ImageTypeUnmanaged)
+
+	// Call DrawTriangles to ensure the images are on backends.
+	vs := quadVertices(w, h, 0, 0, 1)
+	is := graphics.QuadIndices()
+	dr := image.Rect(0, 0, w, h)
+	img0.DrawTriangles([graphics.ShaderSrcImageCount]*atlas.Image{img1}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, atlas.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll)
+
+	// Get the difference of the number of backends before and after the images are deallocated.
+	c := atlas.BackendCountForTesting()
+	img0.Deallocate()
+	img1.Deallocate()
+
+	diff := c - atlas.BackendCountForTesting()
+	if got, want := diff, 2; got != want {
+		t.Errorf("got: %d, want: %d", got, want)
+	}
+}
+
 // TODO: Add tests to extend image on an atlas out of the main loop
