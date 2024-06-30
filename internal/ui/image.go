@@ -15,7 +15,6 @@
 package ui
 
 import (
-	"fmt"
 	"image"
 	"math"
 
@@ -86,16 +85,7 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderSrcImageCount]*Image, vertice
 
 	if antialias {
 		if i.bigOffscreenBuffer == nil {
-			var imageType atlas.ImageType
-			switch i.imageType {
-			case atlas.ImageTypeRegular, atlas.ImageTypeUnmanaged:
-				imageType = atlas.ImageTypeUnmanaged
-			case atlas.ImageTypeScreen, atlas.ImageTypeVolatile:
-				imageType = atlas.ImageTypeVolatile
-			default:
-				panic(fmt.Sprintf("ui: unexpected image type: %d", imageType))
-			}
-			i.bigOffscreenBuffer = i.ui.newBigOffscreenImage(i, imageType)
+			i.bigOffscreenBuffer = i.ui.newBigOffscreenImage(i, atlas.ImageTypeUnmanaged)
 		}
 
 		i.bigOffscreenBuffer.drawTriangles(srcs, vertices, indices, blend, dstRegion, srcRegions, shader, uniforms, fillRule, canSkipMipmap)

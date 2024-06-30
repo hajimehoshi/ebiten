@@ -225,7 +225,6 @@ type ImageType int
 const (
 	ImageTypeRegular ImageType = iota
 	ImageTypeScreen
-	ImageTypeVolatile
 	ImageTypeUnmanaged
 )
 
