@@ -89,7 +89,7 @@ func putImagesOnSourceBackend() {
 		if i.usedAsSourceCount < math.MaxInt {
 			i.usedAsSourceCount++
 		}
-		if int64(i.usedAsSourceCount) >= int64(baseCountToPutOnSourceBackend*(1<<uint(min(i.usedAsDestinationCount, 31)))) {
+		if i.usedAsSourceCount >= baseCountToPutOnSourceBackend*(1<<uint(min(i.usedAsDestinationCount, 31))) {
 			i.putOnSourceBackend()
 			i.usedAsSourceCount = 0
 		}
@@ -147,8 +147,6 @@ func (b *backend) extendIfNeeded(width, height int) {
 	// Assume that the screen image is never extended.
 	newImg := newClearedImage(width, height, false)
 
-	// Use DrawTriangles instead of WritePixels because the image i might be stale and not have its pixels
-	// information.
 	srcs := [graphics.ShaderSrcImageCount]*graphicscommand.Image{b.image}
 	sw, sh := b.image.InternalSize()
 	vs := quadVertices(0, 0, float32(sw), float32(sh), 0, 0, float32(sw), float32(sh), 1, 1, 1, 1)
@@ -254,11 +252,13 @@ type Image struct {
 	// In the current implementation, if an image is being modified by DrawTriangles, the image is separated from
 	// a graphicscommand.Image on an atlas by ensureIsolatedFromSource.
 	//
+	// The type is int64 instead of int to avoid overflow when comparing the limitation.
+	//
 	// usedAsSourceCount is increased if the image is used as a rendering source, or set to 0 if the image is
 	// modified.
 	//
 	// WritePixels doesn't affect this value since WritePixels can be done on images on an atlas.
-	usedAsSourceCount int
+	usedAsSourceCount int64
 
 	// usedAsDestinationCount represents how many times an image is used as a rendering destination at DrawTriangles.
 	// usedAsDestinationCount affects the calculation when to put the image onto a texture atlas again.
