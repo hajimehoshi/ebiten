@@ -890,7 +890,7 @@ func TestDallocateUnmanagedImageBackends(t *testing.T) {
 	vs := quadVertices(w, h, 0, 0, 1)
 	is := graphics.QuadIndices()
 	dr := image.Rect(0, 0, w, h)
-	img0.DrawTriangles([graphics.ShaderSrcImageCount]*atlas.Image{img1}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, atlas.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll)
+	img0.DrawTriangles([graphics.ShaderImageCount]*atlas.Image{img1}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderImageCount]image.Rectangle{}, atlas.NearestFilterShader, nil, graphicsdriver.FillAll)
 
 	// Get the difference of the number of backends before and after the images are deallocated.
 	c := atlas.BackendCountForTesting()
