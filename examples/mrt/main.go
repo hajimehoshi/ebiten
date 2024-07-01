@@ -123,7 +123,7 @@ func main() {
 	ebiten.SetVsyncEnabled(false)
 	ebiten.SetWindowTitle("MRT (Ebitengine Demo)")
 	if err := ebiten.RunGameWithOptions(&Game{}, &ebiten.RunGameOptions{
-		GraphicsLibrary: ebiten.GraphicsLibraryDirectX,
+		GraphicsLibrary: ebiten.GraphicsLibraryOpenGL,
 	}); err != nil {
 		log.Fatal(err)
 	}

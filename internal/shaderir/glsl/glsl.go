@@ -659,7 +659,6 @@ func adjustProgram(p *shaderir.Program) *shaderir.Program {
 			Main: shaderir.Vec4,
 		}
 	}
-	newP.FragmentFunc.Block.LocalVarIndexOffset += (p.ColorsOutCount - 1)
 
 	newP.Funcs = append(newP.Funcs, shaderir.Func{
 		Index:     funcIdx,
@@ -696,6 +695,7 @@ func adjustProgram(p *shaderir.Program) *shaderir.Program {
 			},
 		},
 	}
+
 	newP.FragmentFunc = shaderir.FragmentFunc{
 		Block: &shaderir.Block{
 			LocalVars:           nil,

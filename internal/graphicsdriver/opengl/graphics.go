@@ -232,6 +232,7 @@ func (g *Graphics) DrawTriangles(dstIDs [graphics.ShaderDstImageCount]graphicsdr
 	// being filled.
 	usesMRT := firstTarget > 0 || targetCount > 1
 	if usesMRT {
+
 		f = uint32(g.context.mrtFramebuffer)
 		// Create the initial MRT framebuffer
 		if f == 0 {
@@ -245,9 +246,6 @@ func (g *Graphics) DrawTriangles(dstIDs [graphics.ShaderDstImageCount]graphicsdr
 		g.context.bindFramebuffer(framebufferNative(f))
 
 		// Reset color attachments
-		if s := g.context.ctx.CheckFramebufferStatus(gl.FRAMEBUFFER); s == gl.FRAMEBUFFER_COMPLETE {
-			g.context.ctx.Clear(gl.COLOR_BUFFER_BIT | gl.STENCIL_BUFFER_BIT)
-		}
 		for i, dst := range dsts {
 			if dst == nil {
 				continue
@@ -375,7 +373,7 @@ func (g *Graphics) DrawTriangles(dstIDs [graphics.ShaderDstImageCount]graphicsdr
 	}
 
 	// Detach existing color attachments
-	//g.context.bindFramebuffer(fb)
+	//g.context.bindFramebuffer()
 	//TODO:
 
 	return nil
