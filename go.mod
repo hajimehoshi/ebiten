@@ -5,7 +5,7 @@ go 1.19
 require (
 	github.com/ebitengine/gomobile v0.0.0-20240518074828-e86332849895
 	github.com/ebitengine/hideconsole v1.0.0
-	github.com/ebitengine/oto/v3 v3.3.0-alpha.1.0.20240629064540-d586bcb56190
+	github.com/ebitengine/oto/v3 v3.3.0-alpha.2
 	github.com/ebitengine/purego v0.8.0-alpha.3
 	github.com/gen2brain/mpeg v0.3.2-0.20240412154320-a2ac4fc8a46f
 	github.com/go-text/typesetting v0.1.1
