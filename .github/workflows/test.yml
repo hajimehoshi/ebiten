@@ -98,7 +98,7 @@ jobs:
       - name: go build (macOS)
         if: runner.os == 'macOS'
         run: |
-          env CGO_ENABLED=1 GOOS=darwin GOARCH=arm64 go build -v ./...
+          env CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 go build -v ./...
           env CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 go build -o flappy_amd64 -v ./examples/flappy
           env CGO_ENABLED=1 GOOS=darwin GOARCH=arm64 go build -o flappy_arm64 -v ./examples/flappy
           lipo -create flappy_amd64 flappy_arm64 -output flappy
