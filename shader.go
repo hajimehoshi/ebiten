@@ -16,7 +16,6 @@ package ebiten
 
 import (
 	"fmt"
-	"sync"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/builtinshader"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
@@ -82,14 +81,10 @@ func (s *Shader) appendUniforms(dst []uint32, uniforms map[string]any) []uint32 
 }
 
 var (
-	builtinShaders  [builtinshader.FilterCount][builtinshader.AddressCount][2]*Shader
-	builtinShadersM sync.Mutex
+	builtinShaders [builtinshader.FilterCount][builtinshader.AddressCount][2]*Shader
 )
 
-func builtinShader(filter builtinshader.Filter, address builtinshader.Address, useColorM bool) *Shader {
-	builtinShadersM.Lock()
-	defer builtinShadersM.Unlock()
-
+func getBuiltinShader(filter builtinshader.Filter, address builtinshader.Address, useColorM bool) *Shader {
 	var c int
 	if useColorM {
 		c = 1
