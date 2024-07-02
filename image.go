@@ -43,6 +43,9 @@ type Image struct {
 	// tmpVertices must not be reused until ui.Image.Draw* is called.
 	tmpVertices []float32
 
+	// tmpIndices must not be reused until ui.Image.Draw* is called.
+	tmpIndices []uint32
+
 	// tmpUniforms must not be reused until ui.Image.Draw* is called.
 	tmpUniforms []uint32
 
@@ -514,7 +517,7 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 			vs[i*graphics.VertexFloatCount+7] = v.ColorA * ca
 		}
 	}
-	is := make([]uint32, len(indices))
+	is := i.ensureTmpIndices(len(indices))
 	for i := range is {
 		is[i] = uint32(indices[i])
 	}
@@ -664,7 +667,7 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 		vs[i*graphics.VertexFloatCount+7] = v.ColorA
 	}
 
-	is := make([]uint32, len(indices))
+	is := i.ensureTmpIndices(len(indices))
 	for i := range is {
 		is[i] = uint32(indices[i])
 	}
@@ -1263,6 +1266,13 @@ func (i *Image) ensureTmpVertices(n int) []float32 {
 		i.tmpVertices = make([]float32, n)
 	}
 	return i.tmpVertices[:n]
+}
+
+func (i *Image) ensureTmpIndices(n int) []uint32 {
+	if cap(i.tmpIndices) < n {
+		i.tmpIndices = make([]uint32, n)
+	}
+	return i.tmpIndices[:n]
 }
 
 // private implements FinalScreen.
