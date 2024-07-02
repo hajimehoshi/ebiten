@@ -40,13 +40,14 @@ func (r *resourceWithSize) release() {
 }
 
 type graphics12 struct {
-	debug              *_ID3D12Debug
-	device             *_ID3D12Device
-	commandQueue       *_ID3D12CommandQueue
-	rtvDescriptorHeap  *_ID3D12DescriptorHeap
-	rtvDescriptorSize  uint32
-	renderTargets      [frameCount]*_ID3D12Resource
-	framePipelineToken _D3D12XBOX_FRAME_PIPELINE_TOKEN
+	debug                  *_ID3D12Debug
+	device                 *_ID3D12Device
+	commandQueue           *_ID3D12CommandQueue
+	rtvDescriptorHeap      *_ID3D12DescriptorHeap
+	rtvEmptyDescriptorHeap *_ID3D12DescriptorHeap
+	rtvDescriptorSize      uint32
+	renderTargets          [frameCount]*_ID3D12Resource
+	framePipelineToken     _D3D12XBOX_FRAME_PIPELINE_TOKEN
 
 	fence          *_ID3D12Fence
 	fenceValues    [frameCount]uint64
@@ -418,6 +419,34 @@ func (g *graphics12) initializeMembers(frameIndex int) (ferr error) {
 			g.rtvDescriptorHeap = nil
 		}
 	}()
+
+	// Create a descriptor heap for empty RTV in case of MRT with empty locations.
+	h, err = g.device.CreateDescriptorHeap(&_D3D12_DESCRIPTOR_HEAP_DESC{
+		Type:           _D3D12_DESCRIPTOR_HEAP_TYPE_RTV,
+		NumDescriptors: frameCount,
+		Flags:          _D3D12_DESCRIPTOR_HEAP_FLAG_NONE,
+		NodeMask:       0,
+	})
+	if err != nil {
+		return err
+	}
+	g.rtvEmptyDescriptorHeap = h
+	defer func() {
+		if ferr != nil {
+			g.rtvEmptyDescriptorHeap.Release()
+			g.rtvEmptyDescriptorHeap = nil
+		}
+	}()
+	hnd, err := g.rtvEmptyDescriptorHeap.GetCPUDescriptorHandleForHeapStart()
+	if err != nil {
+		return err
+	}
+	// Create an empty render target for empty destinations at DrawTriangles
+	g.device.CreateRenderTargetView(nil, &_D3D12_RENDER_TARGET_VIEW_DESC{
+		Format:        _DXGI_FORMAT_R8G8B8A8_UNORM,
+		ViewDimension: _D3D12_RTV_DIMENSION_TEXTURE2D,
+	}, hnd)
+
 	g.rtvDescriptorSize = g.device.GetDescriptorHandleIncrementSize(_D3D12_DESCRIPTOR_HEAP_TYPE_RTV)
 
 	if err := g.pipelineStates.initialize(g.device); err != nil {
@@ -1081,7 +1110,82 @@ func (g *graphics12) NewShader(program *shaderir.Program) (graphicsdriver.Shader
 	return s, nil
 }
 
-func (g *graphics12) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.ShaderSrcImageCount]graphicsdriver.ImageID, shaderID graphicsdriver.ShaderID, dstRegions []graphicsdriver.DstRegion, indexOffset int, blend graphicsdriver.Blend, uniforms []uint32, fillRule graphicsdriver.FillRule) error {
+func (g *graphics12) setAsRenderTargets(dsts []*image12, useStencil bool) error {
+	var rtvs []_D3D12_CPU_DESCRIPTOR_HANDLE
+	var dsv *_D3D12_CPU_DESCRIPTOR_HANDLE
+
+	for i, img := range dsts {
+		// Ignore a nil image in case of MRT
+		if img == nil {
+			_ = i
+			rtv, err := g.rtvEmptyDescriptorHeap.GetCPUDescriptorHandleForHeapStart()
+			if err != nil {
+				return err
+			}
+			rtv.Offset(int32(g.frameIndex), g.rtvDescriptorSize)
+			rtvs = append(rtvs, rtv)
+			continue
+		}
+
+		if img.screen {
+			if useStencil {
+				return fmt.Errorf("directx: stencils are not available on the screen framebuffer")
+			}
+
+			rtvBase, err := g.rtvDescriptorHeap.GetCPUDescriptorHandleForHeapStart()
+			if err != nil {
+				return err
+			}
+			rtv := rtvBase
+			rtv.Offset(int32(g.frameIndex), g.rtvDescriptorSize)
+			rtvs = append(rtvs, rtv)
+			continue
+		}
+
+		if err := img.ensureRenderTargetView(g.device); err != nil {
+			return err
+		}
+
+		rtvBase, err := img.rtvDescriptorHeap.GetCPUDescriptorHandleForHeapStart()
+		if err != nil {
+			return err
+		}
+
+		rtv := rtvBase
+		rtvs = append(rtvs, rtv)
+
+		if !useStencil {
+			continue
+		}
+
+		if err := img.ensureDepthStencilView(g.device); err != nil {
+			return err
+		}
+
+		if dsv != nil {
+			continue
+		}
+
+		sv, err := img.dsvDescriptorHeap.GetCPUDescriptorHandleForHeapStart()
+		if err != nil {
+			return err
+		}
+		dsv = &sv
+	}
+
+	if !useStencil {
+		g.drawCommandList.OMSetRenderTargets(rtvs, false, nil)
+		return nil
+	}
+
+	g.drawCommandList.OMSetStencilRef(0)
+	g.drawCommandList.OMSetRenderTargets(rtvs, false, dsv)
+	g.drawCommandList.ClearDepthStencilView(*dsv, _D3D12_CLEAR_FLAG_STENCIL, 0, 0, nil)
+
+	return nil
+}
+
+func (g *graphics12) DrawTriangles(dstIDs [graphics.ShaderDstImageCount]graphicsdriver.ImageID, srcIDs [graphics.ShaderSrcImageCount]graphicsdriver.ImageID, shaderID graphicsdriver.ShaderID, dstRegions []graphicsdriver.DstRegion, indexOffset int, blend graphicsdriver.Blend, uniforms []uint32, fillRule graphicsdriver.FillRule) error {
 	if shaderID == graphicsdriver.InvalidShaderID {
 		return fmt.Errorf("directx: shader ID is invalid")
 	}
@@ -1102,20 +1206,46 @@ func (g *graphics12) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.
 		g.pipelineStates.releaseConstantBuffers(g.frameIndex)
 	}
 
-	dst := g.images[dstID]
 	var resourceBarriers []_D3D12_RESOURCE_BARRIER_Transition
-	if rb, ok := dst.transiteState(_D3D12_RESOURCE_STATE_RENDER_TARGET); ok {
-		resourceBarriers = append(resourceBarriers, rb)
-	}
 
-	var srcImages [graphics.ShaderSrcImageCount]*image12
-	for i, srcID := range srcs {
-		src := g.images[srcID]
-		if src == nil {
+	var dsts [graphics.ShaderDstImageCount]*image12
+	var vp _D3D12_VIEWPORT
+	var targetCount int
+	firstTarget := -1
+	for i, id := range dstIDs {
+		img := g.images[id]
+		if img == nil {
 			continue
 		}
-		srcImages[i] = src
-		if rb, ok := src.transiteState(_D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE); ok {
+		if firstTarget == -1 {
+			firstTarget = i
+		}
+		dsts[i] = img
+		w, h := img.internalSize()
+		vp = _D3D12_VIEWPORT{
+			TopLeftX: 0,
+			TopLeftY: 0,
+			Width:    float32(w),
+			Height:   float32(h),
+			MinDepth: _D3D12_MIN_DEPTH,
+			MaxDepth: _D3D12_MAX_DEPTH,
+		}
+
+		if rb, ok := img.transiteState(_D3D12_RESOURCE_STATE_RENDER_TARGET); ok {
+			resourceBarriers = append(resourceBarriers, rb)
+		}
+
+		targetCount++
+	}
+
+	var srcs [graphics.ShaderSrcImageCount]*image12
+	for i, srcID := range srcIDs {
+		img := g.images[srcID]
+		if img == nil {
+			continue
+		}
+		srcs[i] = img
+		if rb, ok := img.transiteState(_D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE); ok {
 			resourceBarriers = append(resourceBarriers, rb)
 		}
 	}
@@ -1124,25 +1254,26 @@ func (g *graphics12) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.
 		g.drawCommandList.ResourceBarrier(resourceBarriers)
 	}
 
-	if err := dst.setAsRenderTarget(g.drawCommandList, g.device, fillRule != graphicsdriver.FillRuleFillAll); err != nil {
+	// If the number of targets is more than one, or if the only target is not the first one, then
+	// it is safe to assume that MRT is used.
+	// Also, it only matters in order to specify empty targets/viewports when not all slots are
+	// being filled, even though it's not a MRT scenario.
+	usesMRT := targetCount > 1 || firstTarget > 0
+	if usesMRT {
+		targetCount = graphics.ShaderDstImageCount
+	}
+
+	if err := g.setAsRenderTargets(dsts[:targetCount], fillRule != graphicsdriver.FillRuleFillAll); err != nil {
 		return err
 	}
 
 	shader := g.shaders[shaderID]
 	adjustedUniforms := adjustUniforms(shader.uniformTypes, shader.uniformOffsets, uniforms)
 
-	w, h := dst.internalSize()
 	g.needFlushDrawCommandList = true
-	g.drawCommandList.RSSetViewports([]_D3D12_VIEWPORT{
-		{
-			TopLeftX: 0,
-			TopLeftY: 0,
-			Width:    float32(w),
-			Height:   float32(h),
-			MinDepth: _D3D12_MIN_DEPTH,
-			MaxDepth: _D3D12_MAX_DEPTH,
-		},
-	})
+
+	g.drawCommandList.RSSetViewports([]_D3D12_VIEWPORT{vp})
+
 	g.drawCommandList.IASetPrimitiveTopology(_D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST)
 	g.drawCommandList.IASetVertexBuffers(0, []_D3D12_VERTEX_BUFFER_VIEW{
 		{
@@ -1157,7 +1288,7 @@ func (g *graphics12) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.
 		Format:         _DXGI_FORMAT_R32_UINT,
 	})
 
-	if err := g.pipelineStates.drawTriangles(g.device, g.drawCommandList, g.frameIndex, dst.screen, srcImages, shader, dstRegions, adjustedUniforms, blend, indexOffset, fillRule); err != nil {
+	if err := g.pipelineStates.drawTriangles(g.device, g.drawCommandList, g.frameIndex, !usesMRT && dsts[firstTarget].screen, srcs, shader, dstRegions, adjustedUniforms, blend, indexOffset, fillRule); err != nil {
 		return err
 	}
 

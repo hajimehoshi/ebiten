@@ -334,7 +334,8 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 
 	case *ast.ReturnStmt:
 		if len(stmt.Results) != len(outParams) && len(stmt.Results) != 1 {
-			if !(len(stmt.Results) == 0 && len(outParams) > 0 && outParams[0].name != "") {
+			// Fragment function does not have to return a value due to discard
+			if fname != cs.fragmentEntry && !(len(stmt.Results) == 0 && len(outParams) > 0 && outParams[0].name != "") {
 				// TODO: Check variable shadowings.
 				// https://go.dev/ref/spec#Return_statements
 				cs.addError(stmt.Pos(), fmt.Sprintf("the number of returning variables must be %d but %d", len(outParams), len(stmt.Results)))

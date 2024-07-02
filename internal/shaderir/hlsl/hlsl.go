@@ -88,6 +88,7 @@ float4x4 float4x4FromScalar(float x) {
 
 func Compile(p *shaderir.Program) (vertexShader, pixelShader string) {
 	offsets := CalcUniformMemoryOffsets(p)
+	p = adjustProgram(p)
 
 	c := &compileContext{
 		unit: p.Unit,
@@ -190,7 +191,15 @@ func Compile(p *shaderir.Program) (vertexShader, pixelShader string) {
 	}
 	if p.FragmentFunc.Block != nil && len(p.FragmentFunc.Block.Stmts) > 0 {
 		pslines = append(pslines, "")
-		pslines = append(pslines, fmt.Sprintf("float4 PSMain(Varyings %s) : SV_TARGET {", vsOut))
+		pslines = append(pslines, "struct PS_OUTPUT")
+		pslines = append(pslines, "{")
+		for i := 0; i < p.ColorsOutCount; i++ {
+			pslines = append(pslines, fmt.Sprintf("\tfloat4 Color%d: SV_Target%d;", i, i))
+		}
+		pslines = append(pslines, "};")
+		pslines = append(pslines, "")
+		pslines = append(pslines, fmt.Sprintf("PS_OUTPUT PSMain(Varyings %s) {", vsOut))
+		pslines = append(pslines, "\tPS_OUTPUT output;")
 		pslines = append(pslines, c.block(p, p.FragmentFunc.Block, p.FragmentFunc.Block, 0)...)
 		pslines = append(pslines, "}")
 	}
@@ -353,7 +362,7 @@ func (c *compileContext) localVariableName(p *shaderir.Program, topBlock *shader
 		case idx < nv+1:
 			return fmt.Sprintf("%s.M%d", vsOut, idx-1)
 		default:
-			return fmt.Sprintf("l%d", idx-(nv+1))
+			return fmt.Sprintf("output.Color%d", idx-(nv+1))
 		}
 	default:
 		return fmt.Sprintf("l%d", idx)
@@ -563,6 +572,10 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 			switch {
 			case topBlock == p.VertexFunc.Block:
 				lines = append(lines, fmt.Sprintf("%sreturn %s;", idt, vsOut))
+			case topBlock == p.FragmentFunc.Block:
+				// Call to the pseudo fragment func based on out parameters
+				lines = append(lines, idt+expr(&s.Exprs[0])+";")
+				lines = append(lines, idt+"return output;")
 			case len(s.Exprs) == 0:
 				lines = append(lines, idt+"return;")
 			default:
@@ -570,11 +583,93 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 			}
 		case shaderir.Discard:
 			// 'discard' is invoked only in the fragment shader entry point.
-			lines = append(lines, idt+"discard;", idt+"return float4(0.0, 0.0, 0.0, 0.0);")
+			lines = append(lines, idt+"discard;")
 		default:
 			lines = append(lines, fmt.Sprintf("%s?(unexpected stmt: %d)", idt, s.Type))
 		}
 	}
 
 	return lines
+}
+
+func adjustProgram(p *shaderir.Program) *shaderir.Program {
+	if p.FragmentFunc.Block == nil {
+		return p
+	}
+
+	// Shallow-clone the program in order not to modify p itself.
+	newP := *p
+
+	// Create a new slice not to affect the original p.
+	newP.Funcs = make([]shaderir.Func, len(p.Funcs))
+	copy(newP.Funcs, p.Funcs)
+
+	// Create a new function whose body is the same is the fragment shader's entry point.
+	// Determine a unique index of the new function.
+	var funcIdx int
+	for _, f := range newP.Funcs {
+		if funcIdx <= f.Index {
+			funcIdx = f.Index + 1
+		}
+	}
+
+	// For parameters of a fragment func, see the comment in internal/shaderir/program.go.
+	inParams := make([]shaderir.Type, 1+len(newP.Varyings))
+	inParams[0] = shaderir.Type{
+		Main: shaderir.Vec4, // gl_FragCoord
+	}
+	copy(inParams[1:], newP.Varyings)
+	// Out parameters of a fragment func are colors
+	outParams := make([]shaderir.Type, p.ColorsOutCount)
+	for i := range outParams {
+		outParams[i] = shaderir.Type{
+			Main: shaderir.Vec4,
+		}
+	}
+
+	newP.Funcs = append(newP.Funcs, shaderir.Func{
+		Index:     funcIdx,
+		InParams:  inParams,
+		OutParams: outParams,
+		Block:     newP.FragmentFunc.Block,
+	})
+
+	// Create an AST to call the new function.
+	call := []shaderir.Expr{
+		{
+			Type:  shaderir.FunctionExpr,
+			Index: funcIdx,
+		},
+	}
+	for i := 0; i < 1+len(newP.Varyings)+p.ColorsOutCount; i++ {
+		call = append(call, shaderir.Expr{
+			Type:  shaderir.LocalVariable,
+			Index: i,
+		})
+	}
+
+	// Replace the entry point with just calling the new function.
+	stmts := []shaderir.Stmt{
+		{
+			// Return: This will be replaced with a call to the new function.
+			// Then the output structure containing colors will be returned.
+			Type: shaderir.Return,
+			Exprs: []shaderir.Expr{
+				// The function call
+				{
+					Type:  shaderir.Call,
+					Exprs: call,
+				},
+			},
+		},
+	}
+	newP.FragmentFunc = shaderir.FragmentFunc{
+		Block: &shaderir.Block{
+			LocalVars:           nil,
+			LocalVarIndexOffset: 1 + len(newP.Varyings) + 1,
+			Stmts:               stmts,
+		},
+	}
+
+	return &newP
 }

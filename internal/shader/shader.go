@@ -216,6 +216,7 @@ func Compile(src []byte, vertexEntry, fragmentEntry string, textureCount int) (*
 	// TODO: Make a call graph and reorder the elements.
 
 	s.ir.TextureCount = textureCount
+
 	return &s.ir, nil
 }
 
@@ -742,8 +743,9 @@ func (cs *compileState) parseFuncParams(block *block, fname string, d *ast.FuncD
 	}
 
 	// If there is only one returning value, it is treated as a returning value.
+	// Only if not the fragment entrypoint.
 	// An array cannot be a returning value, especially for HLSL (#2923).
-	if len(out) == 1 && out[0].name == "" && out[0].typ.Main != shaderir.Array {
+	if fname != cs.fragmentEntry && len(out) == 1 && out[0].name == "" && out[0].typ.Main != shaderir.Array {
 		ret = out[0].typ
 		out = nil
 	}
@@ -821,10 +823,15 @@ func (cs *compileState) parseFunc(block *block, d *ast.FuncDecl) (function, bool
 				return function{}, false
 			}
 
-			if len(outParams) != 0 || returnType.Main != shaderir.Vec4 {
-				cs.addError(d.Pos(), "fragment entry point must have one returning vec4 value for a color")
-				return function{}, false
+			// The first out-param is treated as fragColor0 in GLSL.
+			for i := range outParams {
+				if outParams[i].typ.Main != shaderir.Vec4 {
+					cs.addError(d.Pos(), "fragment entry point must only have vec4 return values for colors")
+					return function{}, false
+				}
 			}
+			// Adjust the number of textures to write to
+			cs.ir.ColorsOutCount = len(outParams)
 
 			if cs.varyingParsed {
 				checkVaryings(inParams[1:])

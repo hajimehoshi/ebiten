@@ -102,6 +102,7 @@ type context struct {
 
 	locationCache      *locationCache
 	screenFramebuffer  framebufferNative // This might not be the default frame buffer '0' (e.g. iOS).
+	mrtFramebuffer     framebufferNative // The dynamic framebuffer used for MRT operations
 	lastFramebuffer    framebufferNative
 	lastTexture        textureNative
 	lastRenderbuffer   renderbufferNative
@@ -110,8 +111,6 @@ type context struct {
 	lastBlend          graphicsdriver.Blend
 	maxTextureSize     int
 	maxTextureSizeOnce sync.Once
-	highp              bool
-	highpOnce          sync.Once
 	initOnce           sync.Once
 }
 
@@ -139,26 +138,25 @@ func (c *context) bindFramebuffer(f framebufferNative) {
 	c.lastFramebuffer = f
 }
 
-func (c *context) setViewport(f *framebuffer) {
-	c.bindFramebuffer(f.native)
-	if c.lastViewportWidth == f.viewportWidth && c.lastViewportHeight == f.viewportHeight {
+func (c *context) setViewport(width, height int, screen bool) {
+	if c.lastViewportWidth == width && c.lastViewportHeight == height {
 		return
 	}
 
 	// On some environments, viewport size must be within the framebuffer size.
 	// e.g. Edge (#71), Chrome on GPD Pocket (#420), macOS Mojave (#691).
 	// Use the same size of the framebuffer here.
-	c.ctx.Viewport(0, 0, int32(f.viewportWidth), int32(f.viewportHeight))
+	c.ctx.Viewport(0, 0, int32(width), int32(height))
 
 	// glViewport must be called at least at every frame on iOS.
 	// As the screen framebuffer is the last render target, next SetViewport should be
 	// the first call at a frame.
-	if f.native == c.screenFramebuffer {
+	if screen {
 		c.lastViewportWidth = 0
 		c.lastViewportHeight = 0
 	} else {
-		c.lastViewportWidth = f.viewportWidth
-		c.lastViewportHeight = f.viewportHeight
+		c.lastViewportWidth = width
+		c.lastViewportHeight = height
 	}
 }
 
@@ -264,16 +262,6 @@ func (c *context) framebufferPixels(buf []byte, f *framebuffer, region image.Rec
 	return nil
 }
 
-func (c *context) framebufferPixelsToBuffer(f *framebuffer, buffer buffer, width, height int) {
-	c.ctx.Flush()
-
-	c.bindFramebuffer(f.native)
-
-	c.ctx.BindBuffer(gl.PIXEL_PACK_BUFFER, uint32(buffer))
-	c.ctx.ReadPixels(nil, 0, 0, int32(width), int32(height), gl.RGBA, gl.UNSIGNED_BYTE)
-	c.ctx.BindBuffer(gl.PIXEL_PACK_BUFFER, 0)
-}
-
 func (c *context) deleteTexture(t textureNative) {
 	if c.lastTexture == t {
 		c.lastTexture = 0
@@ -357,7 +345,7 @@ func (c *context) bindStencilBuffer(f framebufferNative, r renderbufferNative) e
 
 	c.ctx.FramebufferRenderbuffer(gl.FRAMEBUFFER, gl.STENCIL_ATTACHMENT, gl.RENDERBUFFER, uint32(r))
 	if s := c.ctx.CheckFramebufferStatus(gl.FRAMEBUFFER); s != gl.FRAMEBUFFER_COMPLETE {
-		return errors.New(fmt.Sprintf("opengl: glFramebufferRenderbuffer failed: %d", s))
+		return fmt.Errorf("opengl: glFramebufferRenderbuffer failed: %d", s)
 	}
 	return nil
 }

@@ -51,6 +51,7 @@ type defaultContext struct {
 	gpDeleteVertexArrays       uintptr
 	gpDisable                  uintptr
 	gpDisableVertexAttribArray uintptr
+	gpDrawBuffers              uintptr
 	gpDrawElements             uintptr
 	gpEnable                   uintptr
 	gpEnableVertexAttribArray  uintptr
@@ -267,6 +268,10 @@ func (c *defaultContext) DisableVertexAttribArray(index uint32) {
 
 func (c *defaultContext) DrawElements(mode uint32, count int32, xtype uint32, offset int) {
 	purego.SyscallN(c.gpDrawElements, uintptr(mode), uintptr(count), uintptr(xtype), uintptr(offset))
+}
+
+func (c *defaultContext) DrawBuffers(buffers []uint32) {
+	purego.SyscallN(c.gpDrawBuffers, uintptr(len(buffers)), uintptr(unsafe.Pointer(&buffers[0])))
 }
 
 func (c *defaultContext) Enable(cap uint32) {
@@ -501,6 +506,7 @@ func (c *defaultContext) LoadFunctions() error {
 	c.gpDeleteVertexArrays = g.get("glDeleteVertexArrays")
 	c.gpDisable = g.get("glDisable")
 	c.gpDisableVertexAttribArray = g.get("glDisableVertexAttribArray")
+	c.gpDrawBuffers = g.get("glDrawBuffers")
 	c.gpDrawElements = g.get("glDrawElements")
 	c.gpEnable = g.get("glEnable")
 	c.gpEnableVertexAttribArray = g.get("glEnableVertexAttribArray")

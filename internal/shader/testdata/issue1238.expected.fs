@@ -1,12 +1,14 @@
-vec4 F0(in vec4 l0);
+void F0(in vec4 l0, out vec4 l1);
 
-vec4 F0(in vec4 l0) {
+void F0(in vec4 l0, out vec4 l1) {
 	if (true) {
-		return l0;
+		l1 = l0;
+		return;
 	}
-	return l0;
+	l1 = l0;
+	return;
 }
 
 void main(void) {
-	fragColor = F0(gl_FragCoord);
+	F0(gl_FragCoord, gl_FragData[0]);
 }

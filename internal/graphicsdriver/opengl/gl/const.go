@@ -23,6 +23,7 @@ const (
 	BLEND                 = 0x0BE2
 	CLAMP_TO_EDGE         = 0x812F
 	COLOR_ATTACHMENT0     = 0x8CE0
+	COLOR_BUFFER_BIT      = 0x4000
 	COMPILE_STATUS        = 0x8B81
 	DECR_WRAP             = 0x8508
 	DEPTH24_STENCIL8      = 0x88F0
@@ -52,6 +53,7 @@ const (
 	MIN                   = 0x8007
 	NEAREST               = 0x2600
 	NO_ERROR              = 0
+	NONE                  = 0
 	NOTEQUAL              = 0x0205
 	ONE                   = 1
 	ONE_MINUS_DST_ALPHA   = 0x0305

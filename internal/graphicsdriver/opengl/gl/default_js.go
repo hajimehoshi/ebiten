@@ -54,6 +54,7 @@ type defaultContext struct {
 	fnDeleteVertexArray        js.Value
 	fnDisable                  js.Value
 	fnDisableVertexAttribArray js.Value
+	fnDrawBuffers              js.Value
 	fnDrawElements             js.Value
 	fnEnable                   js.Value
 	fnEnableVertexAttribArray  js.Value
@@ -184,6 +185,7 @@ func NewDefaultContext(v js.Value) (Context, error) {
 		fnDeleteVertexArray:        v.Get("deleteVertexArray").Call("bind", v),
 		fnDisable:                  v.Get("disable").Call("bind", v),
 		fnDisableVertexAttribArray: v.Get("disableVertexAttribArray").Call("bind", v),
+		fnDrawBuffers:              v.Get("drawBuffers").Call("bind", v),
 		fnDrawElements:             v.Get("drawElements").Call("bind", v),
 		fnEnable:                   v.Get("enable").Call("bind", v),
 		fnEnableVertexAttribArray:  v.Get("enableVertexAttribArray").Call("bind", v),
@@ -382,6 +384,11 @@ func (c *defaultContext) Disable(cap uint32) {
 
 func (c *defaultContext) DisableVertexAttribArray(index uint32) {
 	c.fnDisableVertexAttribArray.Invoke(index)
+}
+
+func (c *defaultContext) DrawBuffers(bufs []uint32) {
+	arr := jsutil.NewUint32Array(bufs)
+	c.fnDrawBuffers.Invoke(arr)
 }
 
 func (c *defaultContext) DrawElements(mode uint32, count int32, xtype uint32, offset int) {

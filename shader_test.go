@@ -2595,3 +2595,155 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 		}
 	}
 }
+
+// Issue #2930
+func TestShaderMRT(t *testing.T) {
+	const w, h = 16, 16
+
+	s, err := ebiten.NewShader([]byte(`//kage:unit pixels
+
+package main
+
+func Fragment(dstPos vec4, srcPos vec2, color vec4) (vec4, vec4, vec4, vec4, vec4, vec4, vec4, vec4) {
+	return vec4(1, 0, 0, 1),
+		vec4(0, 1, 0, 1),
+		vec4(0, 0, 1, 1),
+		vec4(1, 0, 1, 1),
+		vec4(1, 1, 0, 1),
+		vec4(0, 1, 1, 1),
+		vec4(1, 1, 1, 1),
+		vec4(1, 1, 1, 0)
+}
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	bounds := image.Rect(0, 0, w, h)
+	opts := &ebiten.NewImageOptions{
+		Unmanaged: true,
+	}
+	vertices := []ebiten.Vertex{
+		{
+			DstX: 0,
+			DstY: 0,
+		},
+		{
+			DstX: w,
+			DstY: 0,
+		},
+		{
+			DstX: 0,
+			DstY: h,
+		},
+		{
+			DstX: w,
+			DstY: h,
+		},
+	}
+	indices := []uint16{0, 1, 2, 1, 2, 3}
+	t.Run("8 locations", func(t *testing.T) {
+		imgs := [8]*ebiten.Image{
+			ebiten.NewImageWithOptions(bounds, opts),
+			ebiten.NewImageWithOptions(bounds, opts),
+			ebiten.NewImageWithOptions(bounds, opts),
+			ebiten.NewImageWithOptions(bounds, opts),
+			ebiten.NewImageWithOptions(bounds, opts),
+			ebiten.NewImageWithOptions(bounds, opts),
+			ebiten.NewImageWithOptions(bounds, opts),
+			ebiten.NewImageWithOptions(bounds, opts),
+		}
+		wantColors := [8]color.RGBA{
+			{R: 0xff, G: 0, B: 0, A: 0xff},
+			{R: 0, G: 0xff, B: 0, A: 0xff},
+			{R: 0, G: 0, B: 0xff, A: 0xff},
+			{R: 0xff, G: 0, B: 0xff, A: 0xff},
+			{R: 0xff, G: 0xff, B: 0, A: 0xff},
+			{R: 0, G: 0xff, B: 0xff, A: 0xff},
+			{R: 0xff, G: 0xff, B: 0xff, A: 0xff},
+			{R: 0xff, G: 0xff, B: 0xff, A: 0},
+		}
+		ebiten.DrawTrianglesShaderMRT(imgs, vertices, indices, s, nil)
+		for k, dst := range imgs {
+			for j := 0; j < h; j++ {
+				for i := 0; i < w; i++ {
+					got := dst.At(i, j).(color.RGBA)
+					want := wantColors[k]
+					if !sameColors(got, want, 1) {
+						t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
+					}
+				}
+			}
+		}
+	})
+
+	t.Run("Empty locations", func(t *testing.T) {
+		imgs := [8]*ebiten.Image{
+			ebiten.NewImageWithOptions(bounds, opts),
+			ebiten.NewImageWithOptions(bounds, opts),
+			ebiten.NewImageWithOptions(bounds, opts),
+			ebiten.NewImageWithOptions(bounds, opts),
+			ebiten.NewImageWithOptions(bounds, opts),
+			ebiten.NewImageWithOptions(bounds, opts),
+			ebiten.NewImageWithOptions(bounds, opts),
+			ebiten.NewImageWithOptions(bounds, opts),
+		}
+		wantColors := [8]color.RGBA{
+			{},
+			{R: 0, G: 0xff, B: 0, A: 0xff},
+			{},
+			{R: 0xff, G: 0, B: 0xff, A: 0xff},
+			{},
+			{R: 0, G: 0xff, B: 0xff, A: 0xff},
+			{},
+			{R: 0xff, G: 0xff, B: 0xff, A: 0},
+		}
+		dsts := [8]*ebiten.Image{
+			nil, imgs[1], nil, imgs[3], nil, imgs[5], nil, imgs[7],
+		}
+		ebiten.DrawTrianglesShaderMRT(dsts, vertices, indices, s, nil)
+		for k, dst := range imgs {
+			for j := 0; j < h; j++ {
+				for i := 0; i < w; i++ {
+					got := dst.At(i, j).(color.RGBA)
+					want := wantColors[k]
+					if !sameColors(got, want, 1) {
+						t.Errorf("%d dst.At(%d, %d): got: %v, want: %v", k, i, j, got, want)
+					}
+				}
+			}
+		}
+	})
+
+	t.Run("1 location (first slot)", func(t *testing.T) {
+		imgs := [8]*ebiten.Image{
+			ebiten.NewImageWithOptions(bounds, opts),
+			ebiten.NewImageWithOptions(bounds, opts),
+			ebiten.NewImageWithOptions(bounds, opts),
+			ebiten.NewImageWithOptions(bounds, opts),
+			ebiten.NewImageWithOptions(bounds, opts),
+			ebiten.NewImageWithOptions(bounds, opts),
+			ebiten.NewImageWithOptions(bounds, opts),
+			ebiten.NewImageWithOptions(bounds, opts),
+		}
+		wantColors := [8]color.RGBA{
+			{R: 0xff, G: 0, B: 0, A: 0xff},
+			{}, {}, {}, {}, {}, {}, {},
+		}
+		dsts := [8]*ebiten.Image{
+			imgs[0], nil, nil, nil, nil, nil, nil, nil,
+		}
+		ebiten.DrawTrianglesShaderMRT(dsts, vertices, indices, s, nil)
+		for k, dst := range imgs {
+			for j := 0; j < h; j++ {
+				for i := 0; i < w; i++ {
+					got := dst.At(i, j).(color.RGBA)
+					want := wantColors[k]
+					if !sameColors(got, want, 1) {
+						t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
+					}
+				}
+			}
+		}
+	})
+}

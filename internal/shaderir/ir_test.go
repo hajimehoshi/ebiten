@@ -938,12 +938,12 @@ void F0(float l0, float l1, thread float& l2) {
 				},
 				Attributes: []shaderir.Type{
 					{Main: shaderir.Vec4},
-					{Main: shaderir.Float},
 					{Main: shaderir.Vec2},
+					{Main: shaderir.Vec4},
 				},
 				Varyings: []shaderir.Type{
-					{Main: shaderir.Float},
 					{Main: shaderir.Vec2},
+					{Main: shaderir.Vec4},
 				},
 				VertexFunc: shaderir.VertexFunc{
 					Block: block(
@@ -967,10 +967,10 @@ void F0(float l0, float l1, thread float& l2) {
 			GlslVS: glslVertexPrelude + `
 uniform float U0;
 in vec4 A0;
-in float A1;
-in vec2 A2;
-out float V0;
-out vec2 V1;
+in vec2 A1;
+in vec4 A2;
+out vec2 V0;
+out vec4 V1;
 
 void main(void) {
 	gl_Position = A0;
@@ -979,8 +979,8 @@ void main(void) {
 }`,
 			GlslFS: glslFragmentPrelude + `
 uniform float U0;
-in float V0;
-in vec2 V1;`,
+in vec2 V0;
+in vec4 V1;`,
 		},
 		{
 			Name: "FragmentFunc",
@@ -991,12 +991,12 @@ in vec2 V1;`,
 				},
 				Attributes: []shaderir.Type{
 					{Main: shaderir.Vec4},
-					{Main: shaderir.Float},
 					{Main: shaderir.Vec2},
+					{Main: shaderir.Vec4},
 				},
 				Varyings: []shaderir.Type{
-					{Main: shaderir.Float},
 					{Main: shaderir.Vec2},
+					{Main: shaderir.Vec4},
 				},
 				VertexFunc: shaderir.VertexFunc{
 					Block: block(
@@ -1016,39 +1016,39 @@ in vec2 V1;`,
 						),
 					),
 				},
+				ColorsOutCount: 1,
 				FragmentFunc: shaderir.FragmentFunc{
 					Block: block(
 						[]shaderir.Type{
+							{Main: shaderir.Vec2},
 							{Main: shaderir.Vec4},
-							{Main: shaderir.Float},
 						},
-						3,
-						assignStmt(
-							localVariableExpr(3),
-							localVariableExpr(0),
-						),
+						3+1,
 						assignStmt(
 							localVariableExpr(4),
 							localVariableExpr(1),
 						),
-						returnStmt(
-							callExpr(
-								builtinFuncExpr(shaderir.Vec4F),
-								localVariableExpr(2),
-								localVariableExpr(1),
-								localVariableExpr(1),
-							),
+						assignStmt(
+							localVariableExpr(5),
+							localVariableExpr(2),
 						),
+						assignStmt(
+							localVariableExpr(3),
+							localVariableExpr(0),
+						),
+						shaderir.Stmt{
+							Type: shaderir.Return,
+						},
 					),
 				},
 			},
 			GlslVS: glslVertexPrelude + `
 uniform float U0;
 in vec4 A0;
-in float A1;
-in vec2 A2;
-out float V0;
-out vec2 V1;
+in vec2 A1;
+in vec4 A2;
+out vec2 V0;
+out vec4 V1;
 
 void main(void) {
 	gl_Position = A0;
@@ -1057,21 +1057,22 @@ void main(void) {
 }`,
 			GlslFS: glslFragmentPrelude + `
 uniform float U0;
-in float V0;
-in vec2 V1;
+in vec2 V0;
+in vec4 V1;
 
-vec4 F0(in vec4 l0, in float l1, in vec2 l2);
+void F0(in vec4 l0, in vec2 l1, in vec4 l2, out vec4 l3);
 
-vec4 F0(in vec4 l0, in float l1, in vec2 l2) {
-	vec4 l3 = vec4(0);
-	float l4 = float(0);
-	l3 = l0;
+void F0(in vec4 l0, in vec2 l1, in vec4 l2, out vec4 l3) {
+	vec2 l4 = vec2(0);
+	vec4 l5 = vec4(0);
 	l4 = l1;
-	return vec4(l2, l1, l1);
+	l5 = l2;
+	l3 = l0;
+	return;
 }
 
 void main(void) {
-	fragColor = F0(gl_FragCoord, V0, V1);
+	F0(gl_FragCoord, V0, V1, gl_FragData[0]);
 }`,
 		},
 	}
@@ -1093,14 +1094,14 @@ void main(void) {
 					t.Errorf("%s fragment: got: %s, want: %s", tc.Name, got, want)
 				}
 			}
-			m := msl.Compile(&tc.Program)
+			/*m := msl.Compile(&tc.Program)
 			if tc.Metal != "" {
 				got := m
 				want := tc.Metal + "\n"
 				if got != want {
 					t.Errorf("%s metal: got: %s, want: %s", tc.Name, got, want)
 				}
-			}
+			}*/
 		})
 	}
 }

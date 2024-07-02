@@ -70,7 +70,7 @@ func (i *image12) disposeImpl() {
 
 func (i *image12) ReadPixels(args []graphicsdriver.PixelsArgs) error {
 	if i.screen {
-		return errors.New("directx: Pixels cannot be called on the screen")
+		return errors.New("directx: ReadPixels cannot be called on the screen")
 	}
 
 	if err := i.graphics.flushCommandList(i.graphics.drawCommandList); err != nil {

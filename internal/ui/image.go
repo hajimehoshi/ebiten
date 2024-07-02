@@ -106,6 +106,33 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderSrcImageCount]*Image, vertice
 	i.mipmap.DrawTriangles(srcMipmaps, vertices, indices, blend, dstRegion, srcRegions, shader.shader, uniforms, fillRule, canSkipMipmap)
 }
 
+func DrawTrianglesMRT(dsts [graphics.ShaderDstImageCount]*Image, srcs [graphics.ShaderSrcImageCount]*Image, vertices []float32, indices []uint32, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderSrcImageCount]image.Rectangle, shader *Shader, uniforms []uint32, fillRule graphicsdriver.FillRule, canSkipMipmap bool, antialias bool) {
+	var dstMipmaps [graphics.ShaderDstImageCount]*mipmap.Mipmap
+	for i, dst := range dsts {
+		if dst == nil {
+			continue
+		}
+		if dst.modifyCallback != nil {
+			dst.modifyCallback()
+		}
+
+		dst.lastBlend = blend
+		dst.flushBufferIfNeeded()
+		dstMipmaps[i] = dst.mipmap
+	}
+
+	var srcMipmaps [graphics.ShaderSrcImageCount]*mipmap.Mipmap
+	for i, src := range srcs {
+		if src == nil {
+			continue
+		}
+		src.flushBufferIfNeeded()
+		srcMipmaps[i] = src.mipmap
+	}
+
+	mipmap.DrawTrianglesMRT(dstMipmaps, srcMipmaps, vertices, indices, blend, dstRegion, srcRegions, shader.shader, uniforms, fillRule, canSkipMipmap)
+}
+
 func (i *Image) WritePixels(pix []byte, region image.Rectangle) {
 	if i.modifyCallback != nil {
 		i.modifyCallback()

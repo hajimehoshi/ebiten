@@ -440,6 +440,27 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderSrcImageCount]*Image, vertice
 	i.drawTriangles(srcs, vertices, indices, blend, dstRegion, srcRegions, shader, uniforms, fillRule)
 }
 
+func DrawTrianglesMRT(dsts [graphics.ShaderDstImageCount]*Image, srcs [graphics.ShaderSrcImageCount]*Image, vertices []float32, indices []uint32, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderSrcImageCount]image.Rectangle, shader *Shader, uniforms []uint32, fillRule graphicsdriver.FillRule) {
+	backendsM.Lock()
+	defer backendsM.Unlock()
+
+	if !inFrame {
+		vs := make([]float32, len(vertices))
+		copy(vs, vertices)
+		is := make([]uint32, len(indices))
+		copy(is, indices)
+		us := make([]uint32, len(uniforms))
+		copy(us, uniforms)
+
+		appendDeferred(func() {
+			drawTrianglesMRT(dsts, srcs, vs, is, blend, dstRegion, srcRegions, shader, us, fillRule)
+		})
+		return
+	}
+
+	drawTrianglesMRT(dsts, srcs, vertices, indices, blend, dstRegion, srcRegions, shader, uniforms, fillRule)
+}
+
 func (i *Image) drawTriangles(srcs [graphics.ShaderSrcImageCount]*Image, vertices []float32, indices []uint32, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderSrcImageCount]image.Rectangle, shader *Shader, uniforms []uint32, fillRule graphicsdriver.FillRule) {
 	if len(vertices) == 0 {
 		return
@@ -527,6 +548,115 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderSrcImageCount]*Image, vertice
 	}
 
 	i.backend.image.DrawTriangles(imgs, vertices, indices, blend, dstRegion, srcRegions, shader.ensureShader(), uniforms, fillRule)
+
+	for _, src := range srcs {
+		if src == nil {
+			continue
+		}
+		if !src.isOnSourceBackend() && src.canBePutOnAtlas() {
+			// src might already registered, but assigning it again is not harmful.
+			imagesToPutOnSourceBackend.add(src)
+		}
+	}
+}
+
+func drawTrianglesMRT(dsts [graphics.ShaderDstImageCount]*Image, srcs [graphics.ShaderSrcImageCount]*Image, vertices []float32, indices []uint32, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderSrcImageCount]image.Rectangle, shader *Shader, uniforms []uint32, fillRule graphicsdriver.FillRule) {
+	if len(vertices) == 0 {
+		return
+	}
+
+	backends := make([]*backend, 0, len(srcs))
+	for _, src := range srcs {
+		if src == nil {
+			continue
+		}
+		if src.backend == nil {
+			// It is possible to spcify i.backend as a forbidden backend, but this might prevent a good allocation for a source image.
+			// If the backend becomes the same as i's, i's backend will be changed at ensureIsolatedFromSource.
+			src.allocate(nil, true)
+		}
+		backends = append(backends, src.backend)
+		src.backend.sourceInThisFrame = true
+	}
+
+	var firstDst *Image
+	var dstImgs [graphics.ShaderDstImageCount]*graphicscommand.Image
+	for i, dst := range dsts {
+		if dst == nil {
+			continue
+		}
+		dst.ensureIsolatedFromSource(backends)
+		firstDst = dst
+		dstImgs[i] = dst.backend.image
+	}
+
+	for _, src := range srcs {
+		// Compare i and source images after ensuring i is not on an atlas, or
+		// i and a source image might share the same atlas even though i != src.
+		for _, dst := range dsts {
+			if src != nil && dst != nil && dst.backend.image == src.backend.image {
+				panic("atlas: DrawTrianglesMRT: source must be different from the destination images")
+			}
+		}
+	}
+
+	r := firstDst.regionWithPadding()
+	// TODO: Check if dstRegion does not to violate the region.
+	dstRegion = dstRegion.Add(r.Min)
+
+	dx, dy := float32(r.Min.X), float32(r.Min.Y)
+
+	var oxf, oyf float32
+	if srcs[0] != nil {
+		r := srcs[0].regionWithPadding()
+		oxf, oyf = float32(r.Min.X), float32(r.Min.Y)
+		n := len(vertices)
+		for i := 0; i < n; i += graphics.VertexFloatCount {
+			vertices[i] += dx
+			vertices[i+1] += dy
+			vertices[i+2] += oxf
+			vertices[i+3] += oyf
+		}
+		if shader.ir.Unit == shaderir.Texels {
+			sw, sh := srcs[0].backend.image.InternalSize()
+			swf, shf := float32(sw), float32(sh)
+			for i := 0; i < n; i += graphics.VertexFloatCount {
+				vertices[i+2] /= swf
+				vertices[i+3] /= shf
+			}
+		}
+	} else {
+		n := len(vertices)
+		for i := 0; i < n; i += graphics.VertexFloatCount {
+			vertices[i] += dx
+			vertices[i+1] += dy
+		}
+	}
+
+	for i, src := range srcs {
+		if src == nil {
+			continue
+		}
+
+		// A source region can be deliberately empty when this is not needed in order to avoid unexpected
+		// performance issue (#1293).
+		if srcRegions[i].Empty() {
+			continue
+		}
+
+		r := src.regionWithPadding()
+		srcRegions[i] = srcRegions[i].Add(r.Min)
+	}
+
+	var srcImgs [graphics.ShaderSrcImageCount]*graphicscommand.Image
+	for i, src := range srcs {
+		if src == nil {
+			continue
+		}
+		srcImgs[i] = src.backend.image
+	}
+
+	graphicscommand.DrawTrianglesMRT(dstImgs, srcImgs, vertices, indices, blend, dstRegion, srcRegions, shader.ensureShader(), uniforms, fillRule)
 
 	for _, src := range srcs {
 		if src == nil {

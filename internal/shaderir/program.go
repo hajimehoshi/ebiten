@@ -47,15 +47,16 @@ func (s SourceHash) String() string {
 }
 
 type Program struct {
-	UniformNames []string
-	Uniforms     []Type
-	TextureCount int
-	Attributes   []Type
-	Varyings     []Type
-	Funcs        []Func
-	VertexFunc   VertexFunc
-	FragmentFunc FragmentFunc
-	Unit         Unit
+	UniformNames   []string
+	Uniforms       []Type
+	TextureCount   int
+	ColorsOutCount int
+	Attributes     []Type
+	Varyings       []Type
+	Funcs          []Func
+	VertexFunc     VertexFunc
+	FragmentFunc   FragmentFunc
+	Unit           Unit
 
 	SourceHash SourceHash
 

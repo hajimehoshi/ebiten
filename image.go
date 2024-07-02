@@ -708,6 +708,139 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 	i.image.DrawTriangles(imgs, vs, is, blend, i.adjustedBounds(), srcRegions, shader.shader, i.tmpUniforms, graphicsdriver.FillRule(options.FillRule), true, options.AntiAlias)
 }
 
+// DrawTrianglesShader draws triangles with the specified vertices and their indices with the specified shader.
+//
+// Vertex contains color values, which can be interpreted for any purpose by the shader.
+//
+// For the details about the shader, see https://ebitengine.org/en/documents/shader.html.
+//
+// If the shader unit is texels, one of the specified image is non-nil and its size is different from (width, height),
+// DrawTrianglesShader panics.
+// If one of the specified image is non-nil and is disposed, DrawTrianglesShader panics.
+//
+// If len(vertices) is more than MaxVertexCount, the exceeding part is ignored.
+//
+// If len(indices) is not multiple of 3, DrawTrianglesShader panics.
+//
+// If a value in indices is out of range of vertices, or not less than MaxVertexCount, DrawTrianglesShader panics.
+//
+// When a specified image is non-nil and is disposed, DrawTrianglesShader panics.
+//
+// If a specified uniform variable's length or type doesn't match with an expected one, DrawTrianglesShader panics.
+//
+// Even if a result is an invalid color as a premultiplied-alpha color, i.e. an alpha value exceeds other color values,
+// the value is kept and is not clamped.
+//
+// When the image i is disposed, DrawTrianglesShader does nothing.
+func DrawTrianglesShaderMRT(dsts [graphics.ShaderDstImageCount]*Image, vertices []Vertex, indices []uint16, shader *Shader, options *DrawTrianglesShaderOptions) {
+	var dstImgs [graphics.ShaderDstImageCount]*ui.Image
+	var firstDst *Image
+	for i, dst := range dsts {
+		if dst == nil {
+			continue
+		}
+		dst.copyCheck()
+		if dst.isDisposed() {
+			panic("ebiten: the destination images given to DrawTrianglesShaderMRT must not be disposed")
+		}
+		if firstDst == nil {
+			firstDst = dst
+		}
+		dstImgs[i] = dst.image
+	}
+
+	if shader.isDisposed() {
+		panic("ebiten: the given shader to DrawTrianglesShaderMRT must not be disposed")
+	}
+
+	if len(vertices) > graphicscommand.MaxVertexCount {
+		// The last part cannot be specified by indices. Just omit them.
+		vertices = vertices[:graphicscommand.MaxVertexCount]
+	}
+	if len(indices)%3 != 0 {
+		panic("ebiten: len(indices) % 3 must be 0")
+	}
+	for i, idx := range indices {
+		if int(idx) >= len(vertices) {
+			panic(fmt.Sprintf("ebiten: indices[%d] must be less than len(vertices) (%d) but was %d", i, len(vertices), idx))
+		}
+	}
+
+	if options == nil {
+		options = &DrawTrianglesShaderOptions{}
+	}
+
+	var blend graphicsdriver.Blend
+	if options.CompositeMode == CompositeModeCustom {
+		blend = options.Blend.internalBlend()
+	} else {
+		blend = options.CompositeMode.blend().internalBlend()
+	}
+
+	dst := firstDst
+	vs := dst.ensureTmpVertices(len(vertices) * graphics.VertexFloatCount)
+	src := options.Images[0]
+	for i, v := range vertices {
+		dx, dy := dst.adjustPositionF32(v.DstX, v.DstY)
+		vs[i*graphics.VertexFloatCount] = dx
+		vs[i*graphics.VertexFloatCount+1] = dy
+		sx, sy := v.SrcX, v.SrcY
+		if src != nil {
+			sx, sy = src.adjustPositionF32(sx, sy)
+		}
+		vs[i*graphics.VertexFloatCount+2] = sx
+		vs[i*graphics.VertexFloatCount+3] = sy
+		vs[i*graphics.VertexFloatCount+4] = v.ColorR
+		vs[i*graphics.VertexFloatCount+5] = v.ColorG
+		vs[i*graphics.VertexFloatCount+6] = v.ColorB
+		vs[i*graphics.VertexFloatCount+7] = v.ColorA
+	}
+
+	is := make([]uint32, len(indices))
+	for i := range is {
+		is[i] = uint32(indices[i])
+	}
+
+	var srcImgs [graphics.ShaderSrcImageCount]*ui.Image
+	var imgSize image.Point
+	for i, img := range options.Images {
+		if img == nil {
+			continue
+		}
+		if img.isDisposed() {
+			panic("ebiten: the given image to DrawTrianglesShader must not be disposed")
+		}
+		if shader.unit == shaderir.Texels {
+			if i == 0 {
+				imgSize = img.Bounds().Size()
+			} else {
+				// TODO: Check imgw > 0 && imgh > 0
+				if img.Bounds().Size() != imgSize {
+					panic("ebiten: all the source images must be the same size with the rectangle")
+				}
+			}
+		}
+		srcImgs[i] = img.image
+	}
+
+	var srcRegions [graphics.ShaderSrcImageCount]image.Rectangle
+	for i, img := range options.Images {
+		if img == nil {
+			continue
+		}
+		srcRegions[i] = img.adjustedBounds()
+	}
+
+	for _, dst := range dsts {
+		if dst == nil {
+			continue
+		}
+		dst.tmpUniforms = dst.tmpUniforms[:0]
+		dst.tmpUniforms = shader.appendUniforms(dst.tmpUniforms, options.Uniforms)
+	}
+	ui.DrawTrianglesMRT(dstImgs, srcImgs, vs, is, blend, dst.adjustedBounds(), srcRegions, shader.shader, dst.tmpUniforms, graphicsdriver.FillRule(options.FillRule), true, options.AntiAlias)
+}
+
 // DrawRectShaderOptions represents options for DrawRectShader.
 type DrawRectShaderOptions struct {
 	// GeoM is a geometry matrix to draw.

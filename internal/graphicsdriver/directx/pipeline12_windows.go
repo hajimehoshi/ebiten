@@ -484,6 +484,18 @@ func (p *pipelineStates) newPipelineState(device *_ID3D12Device, vsh, psh *_ID3D
 	}
 
 	// Create a pipeline state.
+	rtBlendDesc := _D3D12_RENDER_TARGET_BLEND_DESC{
+		BlendEnable:           1,
+		LogicOpEnable:         0,
+		SrcBlend:              blendFactorToBlend12(blend.BlendFactorSourceRGB, false),
+		DestBlend:             blendFactorToBlend12(blend.BlendFactorDestinationRGB, false),
+		BlendOp:               blendOperationToBlendOp12(blend.BlendOperationRGB),
+		SrcBlendAlpha:         blendFactorToBlend12(blend.BlendFactorSourceAlpha, true),
+		DestBlendAlpha:        blendFactorToBlend12(blend.BlendFactorDestinationAlpha, true),
+		BlendOpAlpha:          blendOperationToBlendOp12(blend.BlendOperationAlpha),
+		LogicOp:               _D3D12_LOGIC_OP_NOOP,
+		RenderTargetWriteMask: writeMask,
+	}
 	psoDesc := _D3D12_GRAPHICS_PIPELINE_STATE_DESC{
 		pRootSignature: rootSignature,
 		VS: _D3D12_SHADER_BYTECODE{
@@ -498,18 +510,8 @@ func (p *pipelineStates) newPipelineState(device *_ID3D12Device, vsh, psh *_ID3D
 			AlphaToCoverageEnable:  0,
 			IndependentBlendEnable: 0,
 			RenderTarget: [8]_D3D12_RENDER_TARGET_BLEND_DESC{
-				{
-					BlendEnable:           1,
-					LogicOpEnable:         0,
-					SrcBlend:              blendFactorToBlend12(blend.BlendFactorSourceRGB, false),
-					DestBlend:             blendFactorToBlend12(blend.BlendFactorDestinationRGB, false),
-					BlendOp:               blendOperationToBlendOp12(blend.BlendOperationRGB),
-					SrcBlendAlpha:         blendFactorToBlend12(blend.BlendFactorSourceAlpha, true),
-					DestBlendAlpha:        blendFactorToBlend12(blend.BlendFactorDestinationAlpha, true),
-					BlendOpAlpha:          blendOperationToBlendOp12(blend.BlendOperationAlpha),
-					LogicOp:               _D3D12_LOGIC_OP_NOOP,
-					RenderTargetWriteMask: writeMask,
-				},
+				rtBlendDesc, rtBlendDesc, rtBlendDesc, rtBlendDesc,
+				rtBlendDesc, rtBlendDesc, rtBlendDesc, rtBlendDesc, // TODO: need to fill them all?
 			},
 		},
 		SampleMask: math.MaxUint32,
@@ -532,9 +534,10 @@ func (p *pipelineStates) newPipelineState(device *_ID3D12Device, vsh, psh *_ID3D
 			NumElements:        uint32(len(inputElementDescsForDX12)),
 		},
 		PrimitiveTopologyType: _D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE,
-		NumRenderTargets:      1,
+		NumRenderTargets:      graphics.ShaderDstImageCount,
 		RTVFormats: [8]_DXGI_FORMAT{
-			rtvFormat,
+			rtvFormat, rtvFormat, rtvFormat, rtvFormat,
+			rtvFormat, rtvFormat, rtvFormat, rtvFormat,
 		},
 		DSVFormat: dsvFormat,
 		SampleDesc: _DXGI_SAMPLE_DESC{

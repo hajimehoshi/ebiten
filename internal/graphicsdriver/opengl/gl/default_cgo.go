@@ -128,6 +128,10 @@ package gl
 //   typedef void (*fn)(GLuint index);
 //   ((fn)(fnptr))(index);
 // }
+// static void glowDrawBuffers(uintptr_t fnptr, GLsizei n, const GLenum* bufs) {
+//   typedef void (*fn)(GLsizei n, const GLenum* bufs);
+//   ((fn)(fnptr))(n, bufs);
+// }
 // static void glowDrawElements(uintptr_t fnptr, GLenum mode, GLsizei count, GLenum type, const uintptr_t indices) {
 //   typedef void (*fn)(GLenum mode, GLsizei count, GLenum type, const uintptr_t indices);
 //   ((fn)(fnptr))(mode, count, type, indices);
@@ -351,6 +355,7 @@ type defaultContext struct {
 	gpDeleteVertexArrays       C.uintptr_t
 	gpDisable                  C.uintptr_t
 	gpDisableVertexAttribArray C.uintptr_t
+	gpDrawBuffers              C.uintptr_t
 	gpDrawElements             C.uintptr_t
 	gpEnable                   C.uintptr_t
 	gpEnableVertexAttribArray  C.uintptr_t
@@ -563,6 +568,10 @@ func (c *defaultContext) Disable(cap uint32) {
 
 func (c *defaultContext) DisableVertexAttribArray(index uint32) {
 	C.glowDisableVertexAttribArray(c.gpDisableVertexAttribArray, C.GLuint(index))
+}
+
+func (c *defaultContext) DrawBuffers(bufs []uint32) {
+	C.glowDrawBuffers(c.gpDrawBuffers, C.GLsizei(len(bufs)), (*C.GLenum)(unsafe.Pointer(&bufs[0])))
 }
 
 func (c *defaultContext) DrawElements(mode uint32, count int32, xtype uint32, offset int) {
@@ -801,6 +810,7 @@ func (c *defaultContext) LoadFunctions() error {
 	c.gpDeleteVertexArrays = C.uintptr_t(g.get("glDeleteVertexArrays"))
 	c.gpDisable = C.uintptr_t(g.get("glDisable"))
 	c.gpDisableVertexAttribArray = C.uintptr_t(g.get("glDisableVertexAttribArray"))
+	c.gpDrawBuffers = C.uintptr_t(g.get("glDrawBuffers"))
 	c.gpDrawElements = C.uintptr_t(g.get("glDrawElements"))
 	c.gpEnable = C.uintptr_t(g.get("glEnable"))
 	c.gpEnableVertexAttribArray = C.uintptr_t(g.get("glEnableVertexAttribArray"))
