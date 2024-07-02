@@ -556,17 +556,14 @@ func drawTrianglesMRT(dsts [graphics.ShaderDstImageCount]*Image, srcs [graphics.
 		return
 	}
 
-	backends := make([]*backend, 0, len(srcs))
 	for _, src := range srcs {
 		if src == nil {
 			continue
 		}
 		if src.backend == nil {
 			// It is possible to spcify i.backend as a forbidden backend, but this might prevent a good allocation for a source image.
-			// If the backend becomes the same as i's, i's backend will be changed at ensureIsolatedFromSource.
 			src.allocate(nil, true)
 		}
-		backends = append(backends, src.backend)
 		src.backend.sourceInThisFrame = true
 	}
 
@@ -576,19 +573,11 @@ func drawTrianglesMRT(dsts [graphics.ShaderDstImageCount]*Image, srcs [graphics.
 		if dst == nil {
 			continue
 		}
-		dst.ensureIsolatedFromSource(backends)
+		// TODO: I commented this, because dsts should be unmanaged so they'll never
+		// require to be isolated from source
+		//dst.ensureIsolatedFromSource(backends)
 		firstDst = dst
 		dstImgs[i] = dst.backend.image
-	}
-
-	for _, src := range srcs {
-		// Compare i and source images after ensuring i is not on an atlas, or
-		// i and a source image might share the same atlas even though i != src.
-		for _, dst := range dsts {
-			if src != nil && dst != nil && dst.backend.image == src.backend.image {
-				panic("atlas: DrawTrianglesMRT: source must be different from the destination images")
-			}
-		}
 	}
 
 	r := firstDst.regionWithPadding()
