@@ -16,6 +16,8 @@ package main
 
 import (
 	"bytes"
+	"flag"
+	"io"
 	"log"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -30,6 +32,10 @@ const (
 	screenWidth  = 640
 	screenHeight = 480
 	sampleRate   = 48000
+)
+
+var (
+	flagBitsPerSample = flag.Int("bits", 16, "bits per sample")
 )
 
 type Game struct {
@@ -59,7 +65,14 @@ func NewGame() (*Game, error) {
 	//     ...
 
 	// Decode wav-formatted data and retrieve decoded PCM stream.
-	d, err := wav.DecodeWithoutResampling(bytes.NewReader(raudio.Jab_wav))
+	var r io.Reader
+	switch *flagBitsPerSample {
+	case 8:
+		r = bytes.NewReader(raudio.Jab8_wav)
+	default:
+		r = bytes.NewReader(raudio.Jab_wav)
+	}
+	d, err := wav.DecodeWithoutResampling(r)
 	if err != nil {
 		return nil, err
 	}
@@ -99,6 +112,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 }
 
 func main() {
+	flag.Parse()
 	g, err := NewGame()
 	if err != nil {
 		log.Fatal(err)

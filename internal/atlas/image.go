@@ -89,7 +89,7 @@ func putImagesOnSourceBackend() {
 		if i.usedAsSourceCount < math.MaxInt {
 			i.usedAsSourceCount++
 		}
-		if int64(i.usedAsSourceCount) >= int64(baseCountToPutOnSourceBackend*(1<<uint(min(i.usedAsDestinationCount, 31)))) {
+		if i.usedAsSourceCount >= baseCountToPutOnSourceBackend*(1<<uint(min(i.usedAsDestinationCount, 31))) {
 			i.putOnSourceBackend()
 			i.usedAsSourceCount = 0
 		}
@@ -97,6 +97,8 @@ func putImagesOnSourceBackend() {
 	imagesToPutOnSourceBackend.clear()
 }
 
+// backend is a big texture atlas that can have multiple images.
+// backend is a texture in GPU.
 type backend struct {
 	// image is an atlas on which there might be multiple images.
 	image *graphicscommand.Image
@@ -109,6 +111,7 @@ type backend struct {
 	page *packing.Page
 
 	// source reports whether this backend is mainly used a rendering source, but this is not 100%.
+	//
 	// If a non-source (destination) image is used as a source many times,
 	// the image's backend might be turned into a source backend to optimize draw calls.
 	source bool
@@ -144,8 +147,6 @@ func (b *backend) extendIfNeeded(width, height int) {
 	// Assume that the screen image is never extended.
 	newImg := newClearedImage(width, height, false)
 
-	// Use DrawTriangles instead of WritePixels because the image i might be stale and not have its pixels
-	// information.
 	srcs := [graphics.ShaderSrcImageCount]*graphicscommand.Image{b.image}
 	sw, sh := b.image.InternalSize()
 	vs := quadVertices(0, 0, float32(sw), float32(sh), 0, 0, float32(sw), float32(sh), 1, 1, 1, 1)
@@ -220,12 +221,18 @@ var (
 	deferredM sync.Mutex
 )
 
+// ImageType represents the type of an image.
 type ImageType int
 
 const (
+	// ImageTypeRegular is a regular image, that can be on a big texture atlas (backend).
 	ImageTypeRegular ImageType = iota
+
+	// ImageTypeScreen is a screen image that is not on an atlas.
+	// A screen image is also unmanaged.
 	ImageTypeScreen
-	ImageTypeVolatile
+
+	// ImageTypeUnmanaged is an unmanaged image that is not on an atlas.
 	ImageTypeUnmanaged
 )
 
@@ -245,11 +252,13 @@ type Image struct {
 	// In the current implementation, if an image is being modified by DrawTriangles, the image is separated from
 	// a graphicscommand.Image on an atlas by ensureIsolatedFromSource.
 	//
+	// The type is int64 instead of int to avoid overflow when comparing the limitation.
+	//
 	// usedAsSourceCount is increased if the image is used as a rendering source, or set to 0 if the image is
 	// modified.
 	//
 	// WritePixels doesn't affect this value since WritePixels can be done on images on an atlas.
-	usedAsSourceCount int
+	usedAsSourceCount int64
 
 	// usedAsDestinationCount represents how many times an image is used as a rendering destination at DrawTriangles.
 	// usedAsDestinationCount affects the calculation when to put the image onto a texture atlas again.
@@ -799,18 +808,14 @@ func (i *Image) deallocate() {
 		return
 	}
 
-	if !i.isOnAtlas() {
-		i.backend.image.Dispose()
-		i.backend.image = nil
-		return
-	}
-
-	i.backend.page.Free(i.node)
-	if !i.backend.page.IsEmpty() {
-		// As this part can be reused, this should be cleared explicitly.
-		r := i.regionWithPadding()
-		i.backend.clearPixels(r)
-		return
+	if i.isOnAtlas() {
+		i.backend.page.Free(i.node)
+		if !i.backend.page.IsEmpty() {
+			// As this part can be reused, this should be cleared explicitly.
+			r := i.regionWithPadding()
+			i.backend.clearPixels(r)
+			return
+		}
 	}
 
 	i.backend.image.Dispose()
@@ -867,20 +872,6 @@ func (i *Image) allocate(forbiddenBackends []*backend, asSource bool) {
 
 	runtime.SetFinalizer(i, (*Image).finalize)
 
-	if i.imageType == ImageTypeScreen {
-		if asSource {
-			panic("atlas: a screen image cannot be created as a source")
-		}
-		// A screen image doesn't have a padding.
-		i.backend = &backend{
-			image:  newClearedImage(i.width, i.height, true),
-			width:  i.width,
-			height: i.height,
-		}
-		theBackends = append(theBackends, i.backend)
-		return
-	}
-
 	wp := i.width + i.paddingSize()
 	hp := i.height + i.paddingSize()
 
@@ -890,7 +881,7 @@ func (i *Image) allocate(forbiddenBackends []*backend, asSource bool) {
 		}
 
 		i.backend = &backend{
-			image:  newClearedImage(wp, hp, false),
+			image:  newClearedImage(wp, hp, i.imageType == ImageTypeScreen),
 			width:  wp,
 			height: hp,
 			source: asSource && i.imageType == ImageTypeRegular,

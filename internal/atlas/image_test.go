@@ -177,8 +177,8 @@ func TestReputOnSourceBackend(t *testing.T) {
 	}
 	img2.WritePixels(pix, image.Rect(0, 0, size, size))
 
-	// Create a volatile image. This should always be on a non-source backend.
-	img3 := atlas.NewImage(size, size, atlas.ImageTypeVolatile)
+	// Create an unmanaged image. This should always be on a non-source backend.
+	img3 := atlas.NewImage(size, size, atlas.ImageTypeUnmanaged)
 	defer img3.Deallocate()
 	img3.WritePixels(make([]byte, 4*size*size), image.Rect(0, 0, size, size))
 	if got, want := img3.IsOnSourceBackendForTesting(), false; got != want {
@@ -296,7 +296,7 @@ func TestReputOnSourceBackend(t *testing.T) {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
 
-	// Use img3 as a render source. As img3 is volatile, img3 is never on an atlas.
+	// Use img3 as a render source. As img3 is unmanaged, img3 is never on an atlas.
 	for i := 0; i < atlas.BaseCountToPutOnSourceBackend*2; i++ {
 		atlas.PutImagesOnSourceBackendForTesting()
 		vs := quadVertices(size, size, 0, 0, 1)
@@ -688,7 +688,7 @@ func TestImageIsNotReputOnSourceBackendWithoutUsingAsSource(t *testing.T) {
 }
 
 func TestImageWritePixelsModify(t *testing.T) {
-	for _, typ := range []atlas.ImageType{atlas.ImageTypeRegular, atlas.ImageTypeVolatile, atlas.ImageTypeUnmanaged} {
+	for _, typ := range []atlas.ImageType{atlas.ImageTypeRegular, atlas.ImageTypeRegular, atlas.ImageTypeUnmanaged} {
 		const size = 16
 		img := atlas.NewImage(size, size, typ)
 		defer img.Deallocate()
@@ -877,6 +877,28 @@ func TestGC(t *testing.T) {
 
 	diff := atlas.DeferredFuncCountForTesting() - c
 	if got, want := diff, 1; got != want {
+		t.Errorf("got: %d, want: %d", got, want)
+	}
+}
+
+func TestDallocateUnmanagedImageBackends(t *testing.T) {
+	const w, h = 16, 16
+	img0 := atlas.NewImage(w, h, atlas.ImageTypeUnmanaged)
+	img1 := atlas.NewImage(w, h, atlas.ImageTypeUnmanaged)
+
+	// Call DrawTriangles to ensure the images are on backends.
+	vs := quadVertices(w, h, 0, 0, 1)
+	is := graphics.QuadIndices()
+	dr := image.Rect(0, 0, w, h)
+	img0.DrawTriangles([graphics.ShaderSrcImageCount]*atlas.Image{img1}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, atlas.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll)
+
+	// Get the difference of the number of backends before and after the images are deallocated.
+	c := atlas.BackendCountForTesting()
+	img0.Deallocate()
+	img1.Deallocate()
+
+	diff := c - atlas.BackendCountForTesting()
+	if got, want := diff, 2; got != want {
 		t.Errorf("got: %d, want: %d", got, want)
 	}
 }

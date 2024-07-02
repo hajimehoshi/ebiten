@@ -47,7 +47,7 @@ var (
 	flagAutoRestore         = flag.Bool("autorestore", false, "restore the window automatically")
 	flagInitFocused         = flag.Bool("initfocused", true, "whether the window is focused on start")
 	flagMinWindowSize       = flag.String("minwindowsize", "", "minimum window size (e.g., 100x200)")
-	flagMaxWindowSize       = flag.String("maxwindowsize", "", "maximium window size (e.g., 1920x1080)")
+	flagMaxWindowSize       = flag.String("maxwindowsize", "", "maximum window size (e.g., 1920x1080)")
 	flagGraphicsLibrary     = flag.String("graphicslibrary", "", "graphics library (e.g. opengl)")
 	flagRunnableOnUnfocused = flag.Bool("runnableonunfocused", true, "whether the app is runnable even on unfocused")
 )

@@ -3,24 +3,35 @@
 ## ebiten.png
 
 ```
-http://www.sozai-page.com/02_sozai/b/b04/b04_002/b04_002.html
+https://web.archive.org/web/20200110174435/http://www.sozai-page.com/02_sozai/b/b04/b04_002/b04_002.html
+https://web.archive.org/web/20191229033100/http://www.sozai-page.com/rule/rule1.html
+
+● 商用・個人使用を問わず自由に使用できます。
+● 画像の内容、画質、状態などにより生じた結果に当方は一切責任を負いません。
+● 全ての画像は自由に加工・修正できます。
+　 ただし、加工により生じた結果に当方は一切責任を負いません。
+● 加工・修正に関わらず、許可無く画像として再配布・販売することを禁止します。
+
+これはあくまで「お願い」なのですが、出版・放送等メディア関係の方は使用の際にご連絡いただけると助かります。印刷物やテレビ放送での使用に制限はありませんが、書名、雑誌名、番組名、また発売日・放送日が決まっているようでしたらお知らせいただけないでしょうか。
+当サイトの画像がどのように利用されたのか、今後の参考にいたします。
 ```
 
 ## fiveyears.jpg
 
 ```
 The Go gopher was designed by Renee French. (http://reneefrench.blogspot.com/)
-The design is licensed under the Creative Commons 3.0 Attributions license.
+The design is licensed under the Creative Commons 4.0 Attributions license.
 Read this article for more details: https://blog.golang.org/gopher
 ```
 
 ## gophers.jpg
 
 ```
-http://blog.golang.org/go-programming-language-turns-two
+https://go.dev/blog/2years
+https://go.dev/copyright
 
 Photograph by Chris Nokleberg
-the Creative Commons Attribution 3.0 License
+The Creative Commons Attribution 4.0 License
 ```
 
 ## runner.png
@@ -106,7 +117,7 @@ CC0 1.0
 
 ```
 The Go gopher was designed by Renee French. (http://reneefrench.blogspot.com/)
-The design is licensed under the Creative Commons 3.0 Attributions license.
+The design is licensed under the Creative Commons 4.0 Attributions license.
 Read this article for more details: https://blog.golang.org/gopher
 ```
 
@@ -128,7 +139,7 @@ MIT License
 
 ```
 The Go gopher was designed by Renee French. (http://reneefrench.blogspot.com/)
-The design is licensed under the Creative Commons 3.0 Attributions license.
+The design is licensed under the Creative Commons 4.0 Attributions license.
 Read this article for more details: https://blog.golang.org/gopher
 ```
 
@@ -136,7 +147,7 @@ Read this article for more details: https://blog.golang.org/gopher
 
 ```
 The Go gopher was designed by Renee French. (http://reneefrench.blogspot.com/)
-The design is licensed under the Creative Commons 3.0 Attributions license.
+The design is licensed under the Creative Commons 4.0 Attributions license.
 Read this article for more details: https://blog.golang.org/gopher
 ```
 
@@ -150,7 +161,7 @@ https://corvussg.itch.io/2d-game-backgrounds
 
 ```
 The Go gopher was designed by Renee French. (http://reneefrench.blogspot.com/)
-The design is licensed under the Creative Commons 3.0 Attributions license.
+The design is licensed under the Creative Commons 4.0 Attributions license.
 Read this article for more details: https://blog.golang.org/gopher
 ```
 
@@ -175,5 +186,5 @@ MIT License
 
 ```
 Copyright 2014 Hajime Hoshi
-the Creative Commons Attribution 3.0 License
+The Creative Commons Attribution 4.0 License
 ```

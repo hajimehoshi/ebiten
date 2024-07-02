@@ -25,12 +25,12 @@ extern "C" {
 #endif
 
 typedef struct ebitengine_Error {
-  const char* message;
-  int         code;
+  const char* Message;
+  int         Code;
 } ebitengine_Error;
 
 static bool ebitengine_IsErrorNil(ebitengine_Error* err) {
-  return err->message == NULL && err->code == 0;
+  return err->Message == NULL && err->Code == 0;
 }
 
 ebitengine_Error ebitengine_InitializeGraphics(void);

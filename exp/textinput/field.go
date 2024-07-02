@@ -106,7 +106,7 @@ func (f *Field) HandleInput(x, y int) (handled bool, err error) {
 			f.ch, f.end = Start(x, y)
 			// Start returns nil for non-supported envrionments.
 			if f.ch == nil {
-				return true, nil
+				return false, nil
 			}
 		}
 
