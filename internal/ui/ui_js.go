@@ -729,14 +729,28 @@ func (u *UserInterface) forceUpdateOnMinimumFPSMode() {
 	}()
 }
 
+func (u *UserInterface) shouldFocusFirst(options *RunOptions) bool {
+	if options.InitUnfocused {
+		return false
+	}
+	if !window.Truthy() {
+		return false
+	}
+
+	// Do not focus the canvas when the current document is in an iframe.
+	// Otherwise, the parent page tries to focus the iframe on every loading, which is annoying (#1373).
+	parent := window.Get("parent")
+	isInIframe := !window.Get("location").Equal(parent.Get("location"))
+	if !isInIframe {
+		return true
+	}
+
+	return false
+}
+
 func (u *UserInterface) initOnMainThread(options *RunOptions) error {
-	if !options.InitUnfocused && window.Truthy() {
-		// Do not focus the canvas when the current document is in an iframe.
-		// Otherwise, the parent page tries to focus the iframe on every loading, which is annoying (#1373).
-		isInIframe := !window.Get("location").Equal(window.Get("parent").Get("location"))
-		if !isInIframe {
-			canvas.Call("focus")
-		}
+	if u.shouldFocusFirst(options) {
+		canvas.Call("focus")
 	}
 
 	g, lib, err := newGraphicsDriver(&graphicsDriverCreatorImpl{
