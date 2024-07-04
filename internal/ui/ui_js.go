@@ -337,10 +337,6 @@ func (u *UserInterface) updateImpl(force bool) error {
 		return err
 	}
 
-	if !u.onceUpdateCalled {
-		u.updateScreenSize()
-	}
-
 	// TODO: If DeviceScaleFactor changes, call updateScreenSize.
 	// Now there is not a good way to detect the change.
 	// See also https://crbug.com/123694.
@@ -373,6 +369,11 @@ func (u *UserInterface) needsUpdate() bool {
 }
 
 func (u *UserInterface) loopGame() error {
+	// Initialize the screen size first (#3033).
+	// If ebiten.SetRunnableOnUnfocused(false) and the canvas is not focused,
+	// suspended() returns true and the update routine cannot start.
+	u.updateScreenSize()
+
 	errCh := make(chan error, 1)
 	reqStopAudioCh := make(chan struct{})
 	resStopAudioCh := make(chan struct{})
