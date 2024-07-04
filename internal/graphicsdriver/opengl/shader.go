@@ -59,19 +59,29 @@ func (s *Shader) compile() error {
 
 	vs, err := s.graphics.context.newShader(gl.VERTEX_SHADER, vssrc)
 	if err != nil {
-		return fmt.Errorf("opengl: vertex shader compile error: %v, source:\n%s", err, vssrc)
+		return err
 	}
 	defer s.graphics.context.ctx.DeleteShader(uint32(vs))
 
 	fs, err := s.graphics.context.newShader(gl.FRAGMENT_SHADER, fssrc)
 	if err != nil {
-		return fmt.Errorf("opengl: fragment shader compile error: %v, source:\n%s", err, fssrc)
+		return err
 	}
 	defer s.graphics.context.ctx.DeleteShader(uint32(fs))
 
 	p, err := s.graphics.context.newProgram([]shader{vs, fs}, theArrayBufferLayout.names())
 	if err != nil {
 		return err
+	}
+
+	// Check errors only after linking fails.
+	// See https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/WebGL_best_practices#dont_check_shader_compile_status_unless_linking_fails
+	if s.graphics.context.ctx.GetProgrami(uint32(p), gl.LINK_STATUS) == gl.FALSE {
+		programInfo := s.graphics.context.ctx.GetProgramInfoLog(uint32(p))
+		vertexShaderInfo := s.graphics.context.ctx.GetShaderInfoLog(uint32(vs))
+		fragmentShaderInfo := s.graphics.context.ctx.GetShaderInfoLog(uint32(fs))
+		return fmt.Errorf("opengl: program error: %s\nvertex shader error: %s\nvertex shader source: %s\nfragment shader error: %s\nfragment shader source: %s",
+			programInfo, vertexShaderInfo, vssrc, fragmentShaderInfo, fssrc)
 	}
 
 	s.p = p
