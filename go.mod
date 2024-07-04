@@ -9,7 +9,7 @@ require (
 	github.com/ebitengine/purego v0.8.0-alpha.3
 	github.com/gen2brain/mpeg v0.3.2-0.20240412154320-a2ac4fc8a46f
 	github.com/go-text/typesetting v0.1.1
-	github.com/hajimehoshi/bitmapfont/v3 v3.2.0-alpha.2.0.20240704035340-d7c04dcf7b17
+	github.com/hajimehoshi/bitmapfont/v3 v3.2.0-alpha.2.0.20240704045351-0624a5c7e36e
 	github.com/hajimehoshi/go-mp3 v0.3.4
 	github.com/jakecoffman/cp v1.2.1
 	github.com/jezek/xgb v1.1.1
@@ -23,7 +23,7 @@ require (
 )
 
 require (
-	github.com/andybalholm/brotli v1.1.0 // indirect
 	github.com/jfreymuth/vorbis v1.0.2 // indirect
+	github.com/pierrec/lz4/v4 v4.1.21 // indirect
 	golang.org/x/mod v0.18.0 // indirect
 )
