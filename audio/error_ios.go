@@ -20,11 +20,14 @@ package audio
 // #import <UIKit/UIKit.h>
 //
 // static UIApplicationState applicationState() {
-//   // Actually this method should be called on the main thread,
-//   // but there is no way to do that in the current Ebitengine implementation.
-//   // dispatch_(a)sync causes a deadlock.
-//   // As this is for an invetigation of iOS errors, that's OK to leave this issue so far.
-//   return [[UIApplication sharedApplication] applicationState];
+//   if ([NSThread isMainThread]) {
+//     return [[UIApplication sharedApplication] applicationState];
+//   }
+//   __block UIApplicationState state;
+//   dispatch_sync(dispatch_get_main_queue(), ^{
+//     state = [[UIApplication sharedApplication] applicationState];
+//   });
+//   return state;
 // }
 import "C"
 
