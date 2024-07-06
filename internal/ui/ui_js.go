@@ -369,7 +369,7 @@ func (u *UserInterface) needsUpdate() bool {
 }
 
 func (u *UserInterface) loopGame() error {
-	// Initialize the screen size first (#3033).
+	// Initialize the screen size first (#3034).
 	// If ebiten.SetRunnableOnUnfocused(false) and the canvas is not focused,
 	// suspended() returns true and the update routine cannot start.
 	u.updateScreenSize()
