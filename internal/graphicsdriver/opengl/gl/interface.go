@@ -72,9 +72,7 @@ type Context interface {
 	GetShaderInfoLog(shader uint32) string
 	GetShaderi(shader uint32, pname uint32) int
 	GetUniformLocation(program uint32, name string) int32
-	IsFramebuffer(framebuffer uint32) bool
 	IsProgram(program uint32) bool
-	IsRenderbuffer(renderbuffer uint32) bool
 	LinkProgram(program uint32)
 	PixelStorei(pname uint32, param int32)
 	ReadPixels(dst []byte, x int32, y int32, width int32, height int32, format uint32, xtype uint32)

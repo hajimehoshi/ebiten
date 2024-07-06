@@ -320,9 +320,6 @@ func (c *context) newRenderbuffer(width, height int) (renderbufferNative, error)
 }
 
 func (c *context) deleteRenderbuffer(r renderbufferNative) {
-	if !c.ctx.IsRenderbuffer(uint32(r)) {
-		return
-	}
 	if c.lastRenderbuffer == r {
 		c.lastRenderbuffer = 0
 	}
@@ -373,9 +370,6 @@ func (c *context) bindStencilBuffer(f framebufferNative, r renderbufferNative) e
 
 func (c *context) deleteFramebuffer(f framebufferNative) {
 	if f == c.screenFramebuffer {
-		return
-	}
-	if !c.ctx.IsFramebuffer(uint32(f)) {
 		return
 	}
 	// If a framebuffer to be deleted is bound, a newly bound framebuffer

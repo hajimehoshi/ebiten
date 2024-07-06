@@ -200,17 +200,9 @@ package gl
 //   typedef GLint (*fn)(GLuint program, const GLchar* name);
 //   return ((fn)(fnptr))(program, name);
 // }
-// static GLboolean glowIsFramebuffer(uintptr_t fnptr, GLuint framebuffer) {
-//   typedef GLboolean (*fn)(GLuint framebuffer);
-//   return ((fn)(fnptr))(framebuffer);
-// }
 // static GLboolean glowIsProgram(uintptr_t fnptr, GLuint program) {
 //   typedef GLboolean (*fn)(GLuint program);
 //   return ((fn)(fnptr))(program);
-// }
-// static GLboolean glowIsRenderbuffer(uintptr_t fnptr, GLuint renderbuffer) {
-//   typedef GLboolean (*fn)(GLuint renderbuffer);
-//   return ((fn)(fnptr))(renderbuffer);
 // }
 // static void glowLinkProgram(uintptr_t fnptr, GLuint program) {
 //   typedef void (*fn)(GLuint program);
@@ -369,9 +361,7 @@ type defaultContext struct {
 	gpGetShaderInfoLog         C.uintptr_t
 	gpGetShaderiv              C.uintptr_t
 	gpGetUniformLocation       C.uintptr_t
-	gpIsFramebuffer            C.uintptr_t
 	gpIsProgram                C.uintptr_t
-	gpIsRenderbuffer           C.uintptr_t
 	gpLinkProgram              C.uintptr_t
 	gpPixelStorei              C.uintptr_t
 	gpReadPixels               C.uintptr_t
@@ -633,18 +623,8 @@ func (c *defaultContext) GetUniformLocation(program uint32, name string) int32 {
 	return int32(ret)
 }
 
-func (c *defaultContext) IsFramebuffer(framebuffer uint32) bool {
-	ret := C.glowIsFramebuffer(c.gpIsFramebuffer, C.GLuint(framebuffer))
-	return ret == TRUE
-}
-
 func (c *defaultContext) IsProgram(program uint32) bool {
 	ret := C.glowIsProgram(c.gpIsProgram, C.GLuint(program))
-	return ret == TRUE
-}
-
-func (c *defaultContext) IsRenderbuffer(renderbuffer uint32) bool {
-	ret := C.glowIsRenderbuffer(c.gpIsRenderbuffer, C.GLuint(renderbuffer))
 	return ret == TRUE
 }
 
@@ -819,9 +799,7 @@ func (c *defaultContext) LoadFunctions() error {
 	c.gpGetShaderInfoLog = C.uintptr_t(g.get("glGetShaderInfoLog"))
 	c.gpGetShaderiv = C.uintptr_t(g.get("glGetShaderiv"))
 	c.gpGetUniformLocation = C.uintptr_t(g.get("glGetUniformLocation"))
-	c.gpIsFramebuffer = C.uintptr_t(g.get("glIsFramebuffer"))
 	c.gpIsProgram = C.uintptr_t(g.get("glIsProgram"))
-	c.gpIsRenderbuffer = C.uintptr_t(g.get("glIsRenderbuffer"))
 	c.gpLinkProgram = C.uintptr_t(g.get("glLinkProgram"))
 	c.gpPixelStorei = C.uintptr_t(g.get("glPixelStorei"))
 	c.gpReadPixels = C.uintptr_t(g.get("glReadPixels"))

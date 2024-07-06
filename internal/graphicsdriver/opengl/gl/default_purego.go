@@ -69,9 +69,7 @@ type defaultContext struct {
 	gpGetShaderInfoLog         uintptr
 	gpGetShaderiv              uintptr
 	gpGetUniformLocation       uintptr
-	gpIsFramebuffer            uintptr
 	gpIsProgram                uintptr
-	gpIsRenderbuffer           uintptr
 	gpLinkProgram              uintptr
 	gpPixelStorei              uintptr
 	gpReadPixels               uintptr
@@ -333,18 +331,8 @@ func (c *defaultContext) GetUniformLocation(program uint32, name string) int32 {
 	return int32(ret)
 }
 
-func (c *defaultContext) IsFramebuffer(framebuffer uint32) bool {
-	ret, _, _ := purego.SyscallN(c.gpIsFramebuffer, uintptr(framebuffer))
-	return byte(ret) != 0
-}
-
 func (c *defaultContext) IsProgram(program uint32) bool {
 	ret, _, _ := purego.SyscallN(c.gpIsProgram, uintptr(program))
-	return byte(ret) != 0
-}
-
-func (c *defaultContext) IsRenderbuffer(renderbuffer uint32) bool {
-	ret, _, _ := purego.SyscallN(c.gpIsRenderbuffer, uintptr(renderbuffer))
 	return byte(ret) != 0
 }
 
@@ -519,9 +507,7 @@ func (c *defaultContext) LoadFunctions() error {
 	c.gpGetShaderInfoLog = g.get("glGetShaderInfoLog")
 	c.gpGetShaderiv = g.get("glGetShaderiv")
 	c.gpGetUniformLocation = g.get("glGetUniformLocation")
-	c.gpIsFramebuffer = g.get("glIsFramebuffer")
 	c.gpIsProgram = g.get("glIsProgram")
-	c.gpIsRenderbuffer = g.get("glIsRenderbuffer")
 	c.gpLinkProgram = g.get("glLinkProgram")
 	c.gpPixelStorei = g.get("glPixelStorei")
 	c.gpReadPixels = g.get("glReadPixels")
