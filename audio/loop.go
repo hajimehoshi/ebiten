@@ -21,12 +21,14 @@ import (
 
 // InfiniteLoop represents a looped stream which never ends.
 type InfiniteLoop struct {
-	src     io.ReadSeeker
-	lstart  int64
-	llength int64
-	pos     int64
+	src             io.ReadSeeker
+	lstart          int64
+	llength         int64
+	pos             int64
+	bitDepthInBytes int
+	bytesPerSample  int
 
-	// extra is the remainder in the case when the read byte sizes are not multiple of bitDepthInBytesInt16.
+	// extra is the remainder in the case when the read byte sizes are not multiple of the bit depth.
 	extra []byte
 
 	// afterLoop is data after the loop.
@@ -58,11 +60,18 @@ func NewInfiniteLoop(src io.ReadSeeker, length int64) *InfiniteLoop {
 // If src has data after the loop end, an InfiniteLoop uses part of the data to blend with the loop start
 // to make the loop joint smooth.
 func NewInfiniteLoopWithIntro(src io.ReadSeeker, introLength int64, loopLength int64) *InfiniteLoop {
+	return newInfiniteLoopWithIntro(src, introLength, loopLength, bitDepthInBytesInt16)
+}
+
+func newInfiniteLoopWithIntro(src io.ReadSeeker, introLength int64, loopLength int64, bitDepthInBytes int) *InfiniteLoop {
+	bytesPerSample := bitDepthInBytes * channelCount
 	return &InfiniteLoop{
-		src:     src,
-		lstart:  introLength / bytesPerSampleInt16 * bytesPerSampleInt16,
-		llength: loopLength / bytesPerSampleInt16 * bytesPerSampleInt16,
-		pos:     -1,
+		src:             src,
+		lstart:          introLength / int64(bytesPerSample) * int64(bytesPerSample),
+		llength:         loopLength / int64(bytesPerSample) * int64(bytesPerSample),
+		pos:             -1,
+		bitDepthInBytes: bitDepthInBytes,
+		bytesPerSample:  bytesPerSample,
 	}
 }
 
@@ -92,8 +101,8 @@ func (i *InfiniteLoop) blendRate(pos int64) float64 {
 	if pos >= i.lstart+int64(len(i.afterLoop)) {
 		return 0
 	}
-	p := (pos - i.lstart) / bytesPerSampleInt16
-	l := len(i.afterLoop) / bytesPerSampleInt16
+	p := (pos - i.lstart) / int64(i.bytesPerSample)
+	l := len(i.afterLoop) / i.bytesPerSample
 	return 1 - float64(p)/float64(l)
 }
 
@@ -119,7 +128,7 @@ func (i *InfiniteLoop) Read(b []byte) (int, error) {
 	}
 
 	// Save the remainder part to extra. This will be used at the next Read.
-	if rem := n % bitDepthInBytesInt16; rem != 0 {
+	if rem := n % i.bitDepthInBytes; rem != 0 {
 		i.extra = append(i.extra, b[n-rem:n]...)
 		b = b[:n-rem]
 		n = n - rem
@@ -128,24 +137,27 @@ func (i *InfiniteLoop) Read(b []byte) (int, error) {
 	// Blend afterLoop and the loop start to reduce noises (#1888).
 	// Ideally, afterLoop and the loop start should be identical, but they can have very slight differences.
 	if !i.noBlendForTesting && i.blending && i.pos >= i.lstart && i.pos-int64(n) < i.lstart+int64(len(i.afterLoop)) {
-		if n%bitDepthInBytesInt16 != 0 {
-			panic(fmt.Sprintf("audio: n must be a multiple of bitDepthInBytesInt16 but not: %d", n))
+		if n%i.bitDepthInBytes != 0 {
+			panic(fmt.Sprintf("audio: n must be a multiple of bit depth %d [bytes] but not: %d", i.bitDepthInBytes, n))
 		}
-		for idx := 0; idx < n/bitDepthInBytesInt16; idx++ {
-			abspos := i.pos - int64(n) + int64(idx)*bitDepthInBytesInt16
+		for idx := 0; idx < n/i.bitDepthInBytes; idx++ {
+			abspos := i.pos - int64(n) + int64(idx)*int64(i.bitDepthInBytes)
 			rate := i.blendRate(abspos)
 			if rate == 0 {
 				continue
 			}
 
-			// This assumes that bitDepthInBytesInt16 is 2.
 			relpos := abspos - i.lstart
-			afterLoop := int16(i.afterLoop[relpos]) | (int16(i.afterLoop[relpos+1]) << 8)
-			orig := int16(b[2*idx]) | (int16(b[2*idx+1]) << 8)
-
-			newval := int16(float64(afterLoop)*rate + float64(orig)*(1-rate))
-			b[2*idx] = byte(newval)
-			b[2*idx+1] = byte(newval >> 8)
+			switch i.bitDepthInBytes {
+			case 2:
+				afterLoop := int16(i.afterLoop[relpos]) | (int16(i.afterLoop[relpos+1]) << 8)
+				orig := int16(b[2*idx]) | (int16(b[2*idx+1]) << 8)
+				newval := int16(float64(afterLoop)*rate + float64(orig)*(1-rate))
+				b[2*idx] = byte(newval)
+				b[2*idx+1] = byte(newval >> 8)
+			default:
+				panic("not reached")
+			}
 		}
 	}
 
@@ -156,7 +168,7 @@ func (i *InfiniteLoop) Read(b []byte) (int, error) {
 	// Read the afterLoop part if necessary.
 	if i.pos == i.length() && err == nil {
 		if i.afterLoop == nil {
-			buflen := int64(256 * bytesPerSampleInt16)
+			buflen := int64(256 * i.bytesPerSample)
 			if buflen > i.length() {
 				buflen = i.length()
 			}
