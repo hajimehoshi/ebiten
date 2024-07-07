@@ -46,8 +46,9 @@ import (
 )
 
 const (
-	channelCount         = 2
-	bitDepthInBytesInt16 = 2
+	channelCount           = 2
+	bitDepthInBytesInt16   = 2
+	bitDepthInBytesFloat32 = 4
 )
 
 // A Context represents a current state of audio.
@@ -188,13 +189,13 @@ func (c *Context) addPlayingPlayer(p *playerImpl) {
 	c.playingPlayers[p] = struct{}{}
 
 	// Check the source duplication
-	srcs := map[io.Reader]struct{}{}
+	srcs := map[any]struct{}{}
 	for p := range c.playingPlayers {
-		if _, ok := srcs[p.source()]; ok {
+		if _, ok := srcs[p.sourceIdent()]; ok {
 			c.err = errors.New("audio: a same source is used by multiple Player")
 			return
 		}
-		srcs[p.source()] = struct{}{}
+		srcs[p.sourceIdent()] = struct{}{}
 	}
 }
 
@@ -323,7 +324,9 @@ type Player struct {
 // A Player doesn't close src even if src implements io.Closer.
 // Closing the source is src owner's responsibility.
 func (c *Context) NewPlayer(src io.Reader) (*Player, error) {
-	pi, err := c.playerFactory.newPlayer(c, src, bitDepthInBytesInt16)
+	_, seekable := src.(io.Seeker)
+	f32Src := convert.NewFloat32BytesReaderFromInt16BytesReader(src)
+	pi, err := c.playerFactory.newPlayer(c, f32Src, seekable, src, bitDepthInBytesFloat32)
 	if err != nil {
 		return nil, err
 	}

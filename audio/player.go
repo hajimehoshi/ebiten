@@ -66,6 +66,8 @@ type playerImpl struct {
 	context        *Context
 	player         player
 	src            io.Reader
+	seekable       bool
+	srcIdent       any
 	stream         *timeStream
 	factory        *playerFactory
 	initBufferSize int
@@ -86,12 +88,14 @@ type playerImpl struct {
 	m sync.Mutex
 }
 
-func (f *playerFactory) newPlayer(context *Context, src io.Reader, bitDepthInBytes int) (*playerImpl, error) {
+func (f *playerFactory) newPlayer(context *Context, src io.Reader, seekable bool, srcIdent any, bitDepthInBytes int) (*playerImpl, error) {
 	f.m.Lock()
 	defer f.m.Unlock()
 
 	p := &playerImpl{
 		src:            src,
+		seekable:       seekable,
+		srcIdent:       srcIdent,
 		context:        context,
 		factory:        f,
 		lastSamples:    -1,
@@ -165,7 +169,7 @@ func (p *playerImpl) ensurePlayer() error {
 	}
 
 	if p.stream == nil {
-		s, err := newTimeStream(p.src, p.factory.sampleRate, p.bytesPerSample/channelCount)
+		s, err := newTimeStream(p.src, p.seekable, p.factory.sampleRate, p.bytesPerSample/channelCount)
 		if err != nil {
 			return err
 		}
@@ -324,8 +328,8 @@ func (p *playerImpl) SetBufferSize(bufferSize time.Duration) {
 	p.player.SetBufferSize(bufferSizeInBytes)
 }
 
-func (p *playerImpl) source() io.Reader {
-	return p.src
+func (p *playerImpl) sourceIdent() any {
+	return p.srcIdent
 }
 
 func (p *playerImpl) onContextSuspended() {
@@ -384,6 +388,7 @@ func (p *playerImpl) updatePosition() {
 
 type timeStream struct {
 	r              io.Reader
+	seekable       bool
 	sampleRate     int
 	pos            int64
 	bytesPerSample int
@@ -393,15 +398,16 @@ type timeStream struct {
 	m sync.Mutex
 }
 
-func newTimeStream(r io.Reader, sampleRate int, bitDepthInBytes int) (*timeStream, error) {
+func newTimeStream(r io.Reader, seekable bool, sampleRate int, bitDepthInBytes int) (*timeStream, error) {
 	s := &timeStream{
 		r:              r,
+		seekable:       seekable,
 		sampleRate:     sampleRate,
 		bytesPerSample: bitDepthInBytes * channelCount,
 	}
-	if seeker, ok := s.r.(io.Seeker); ok {
+	if seekable {
 		// Get the current position of the source.
-		pos, err := seeker.Seek(0, io.SeekCurrent)
+		pos, err := s.r.(io.Seeker).Seek(0, io.SeekCurrent)
 		if err != nil {
 			return nil, err
 		}
@@ -423,12 +429,11 @@ func (s *timeStream) Seek(offset int64, whence int) (int64, error) {
 	s.m.Lock()
 	defer s.m.Unlock()
 
-	seeker, ok := s.r.(io.Seeker)
-	if !ok {
+	if !s.seekable {
 		// TODO: Should this return an error?
 		panic("audio: the source must be io.Seeker when seeking but not")
 	}
-	pos, err := seeker.Seek(offset, whence)
+	pos, err := s.r.(io.Seeker).Seek(offset, whence)
 	if err != nil {
 		return pos, err
 	}

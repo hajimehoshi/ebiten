@@ -116,3 +116,21 @@ func TestPauseBeforeInit(t *testing.T) {
 		t.Error(err)
 	}
 }
+
+type emptySource struct{}
+
+func (emptySource) Read(buf []byte) (int, error) {
+	return len(buf), nil
+}
+
+func TestNonSeekableSource(t *testing.T) {
+	setup()
+	defer teardown()
+
+	p, err := context.NewPlayer(emptySource{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	p.Play()
+}

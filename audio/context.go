@@ -24,7 +24,7 @@ func newContext(sampleRate int) (context, chan struct{}, error) {
 	ctx, ready, err := oto.NewContext(&oto.NewContextOptions{
 		SampleRate:   sampleRate,
 		ChannelCount: channelCount,
-		Format:       oto.FormatSignedInt16LE,
+		Format:       oto.FormatFloat32LE,
 	})
 	err = addErrorInfoForContextCreation(err)
 	return &contextProxy{ctx}, ready, err
