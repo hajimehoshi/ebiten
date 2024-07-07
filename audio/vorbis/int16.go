@@ -12,22 +12,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package convert
+package vorbis
 
 import (
 	"io"
 )
 
-type Float32Reader interface {
+type float32Reader interface {
 	Read([]float32) (int, error)
 }
 
-func NewReaderFromFloat32Reader(r Float32Reader) io.Reader {
-	return &f32Reader{r: r}
+func newInt16BytesReaderFromFloat32Reader(r float32Reader) io.Reader {
+	return &int16BytesReader{r: r}
 }
 
-type f32Reader struct {
-	r         Float32Reader
+type int16BytesReader struct {
+	r         float32Reader
 	eof       bool
 	hasRemain bool
 	remain    byte
@@ -41,30 +41,30 @@ func max(a, b int) int {
 	return a
 }
 
-func (f *f32Reader) Read(buf []byte) (int, error) {
-	if f.eof {
+func (r *int16BytesReader) Read(buf []byte) (int, error) {
+	if r.eof {
 		return 0, io.EOF
 	}
 	if len(buf) == 0 {
 		return 0, nil
 	}
-	if f.hasRemain {
-		buf[0] = f.remain
-		f.hasRemain = false
+	if r.hasRemain {
+		buf[0] = r.remain
+		r.hasRemain = false
 		return 1, nil
 	}
 
 	l := max(len(buf)/2, 1)
-	if cap(f.fbuf) < l {
-		f.fbuf = make([]float32, l)
+	if cap(r.fbuf) < l {
+		r.fbuf = make([]float32, l)
 	}
 
-	n, err := f.r.Read(f.fbuf[:l])
+	n, err := r.r.Read(r.fbuf[:l])
 	if err != nil && err != io.EOF {
 		return 0, err
 	}
 	if err == io.EOF {
-		f.eof = true
+		r.eof = true
 	}
 
 	b := buf
@@ -72,7 +72,7 @@ func (f *f32Reader) Read(buf []byte) (int, error) {
 		b = make([]byte, 2)
 	}
 	for i := 0; i < n; i++ {
-		f := f.fbuf[i]
+		f := r.fbuf[i]
 		s := int16(f * (1<<15 - 1))
 		b[2*i] = byte(s)
 		b[2*i+1] = byte(s >> 8)
@@ -80,8 +80,8 @@ func (f *f32Reader) Read(buf []byte) (int, error) {
 
 	if len(buf) == 1 && len(b) == 2 {
 		buf[0] = b[0]
-		f.remain = b[1]
-		f.hasRemain = true
+		r.remain = b[1]
+		r.hasRemain = true
 		return 1, err
 	}
 	return n * 2, err
