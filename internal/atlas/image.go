@@ -582,9 +582,9 @@ func drawTrianglesMRT(dsts [graphics.ShaderDstImageCount]*Image, srcs [graphics.
 		if dst == nil {
 			continue
 		}
-		// TODO: I commented this, because dsts should be unmanaged so they'll never
-		// require to be isolated from source
-		//dst.ensureIsolatedFromSource(backends)
+		// This is only responsible of backend allocation of the unmanaged image
+		// if not already.
+		dst.ensureIsolatedFromSource(nil)
 		firstDst = dst
 		dstImgs[i] = dst.backend.image
 	}
