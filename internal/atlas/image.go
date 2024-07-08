@@ -757,7 +757,7 @@ func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte
 }
 
 func (i *Image) readPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte, region image.Rectangle) error {
-	if i.backend == nil || i.backend.image == nil {
+	if i.backend == nil {
 		for i := range pixels {
 			pixels[i] = 0
 		}
@@ -988,9 +988,6 @@ func SwapBuffers(graphicsDriver graphicsdriver.Graphics) error {
 		debug.Logf("Internal image sizes:\n")
 		imgs := make([]*graphicscommand.Image, 0, len(theBackends))
 		for _, backend := range theBackends {
-			if backend.image == nil {
-				continue
-			}
 			imgs = append(imgs, backend.image)
 		}
 		graphicscommand.LogImagesInfo(imgs)
@@ -1061,9 +1058,6 @@ func DumpImages(graphicsDriver graphicsdriver.Graphics, dir string) (string, err
 
 	images := make([]*graphicscommand.Image, 0, len(theBackends))
 	for _, backend := range theBackends {
-		if backend.image == nil {
-			continue
-		}
 		images = append(images, backend.image)
 	}
 	return graphicscommand.DumpImages(images, graphicsDriver, dir)

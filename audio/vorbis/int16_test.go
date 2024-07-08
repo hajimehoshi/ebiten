@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package convert_test
+package vorbis_test
 
 import (
 	"bytes"
@@ -20,7 +20,7 @@ import (
 	"math"
 	"testing"
 
-	"github.com/hajimehoshi/ebiten/v2/audio/internal/convert"
+	"github.com/hajimehoshi/ebiten/v2/audio/vorbis"
 )
 
 type f32reader struct {
@@ -37,11 +37,7 @@ func (f *f32reader) Read(buf []float32) (int, error) {
 	return n, nil
 }
 
-func newFloat32Reader(data []float32) convert.Float32Reader {
-	return &f32reader{data: data}
-}
-
-func TestFloat32Reader(t *testing.T) {
+func TestInt16BytesReader(t *testing.T) {
 	in1 := make([]float32, 256)
 	for i := range in1 {
 		in1[i] = float32(math.Sin(float64(i)))
@@ -82,7 +78,7 @@ func TestFloat32Reader(t *testing.T) {
 	}
 
 	for i, c := range cases {
-		r := convert.NewReaderFromFloat32Reader(newFloat32Reader(c.In))
+		r := vorbis.NewInt16BytesReaderFromFloat32Reader(&f32reader{data: c.In})
 
 		got := []byte{}
 		for {

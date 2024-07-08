@@ -69,6 +69,7 @@ type playerImpl struct {
 	stream         *timeStream
 	factory        *playerFactory
 	initBufferSize int
+	bytesPerSample int
 
 	// adjustedPosition is the player's more accurate position.
 	// The underlying buffer might not be changed even if the player is playing.
@@ -85,15 +86,16 @@ type playerImpl struct {
 	m sync.Mutex
 }
 
-func (f *playerFactory) newPlayer(context *Context, src io.Reader) (*playerImpl, error) {
+func (f *playerFactory) newPlayer(context *Context, src io.Reader, bitDepthInBytes int) (*playerImpl, error) {
 	f.m.Lock()
 	defer f.m.Unlock()
 
 	p := &playerImpl{
-		src:         src,
-		context:     context,
-		factory:     f,
-		lastSamples: -1,
+		src:            src,
+		context:        context,
+		factory:        f,
+		lastSamples:    -1,
+		bytesPerSample: bitDepthInBytes * channelCount,
 	}
 	runtime.SetFinalizer(p, (*playerImpl).Close)
 	return p, nil
@@ -163,7 +165,7 @@ func (p *playerImpl) ensurePlayer() error {
 	}
 
 	if p.stream == nil {
-		s, err := newTimeStream(p.src, p.factory.sampleRate)
+		s, err := newTimeStream(p.src, p.factory.sampleRate, p.bytesPerSample/channelCount)
 		if err != nil {
 			return err
 		}
@@ -313,8 +315,8 @@ func (p *playerImpl) SetBufferSize(bufferSize time.Duration) {
 	p.m.Lock()
 	defer p.m.Unlock()
 
-	bufferSizeInBytes := int(bufferSize * bytesPerSampleInt16 * time.Duration(p.factory.sampleRate) / time.Second)
-	bufferSizeInBytes = bufferSizeInBytes / bytesPerSampleInt16 * bytesPerSampleInt16
+	bufferSizeInBytes := int(bufferSize * time.Duration(p.bytesPerSample) * time.Duration(p.factory.sampleRate) / time.Second)
+	bufferSizeInBytes = bufferSizeInBytes / p.bytesPerSample * p.bytesPerSample
 	if p.player == nil {
 		p.initBufferSize = bufferSizeInBytes
 		return
@@ -361,7 +363,7 @@ func (p *playerImpl) updatePosition() {
 		return
 	}
 
-	samples := (p.stream.position() - int64(p.player.BufferedSize())) / bytesPerSampleInt16
+	samples := (p.stream.position() - int64(p.player.BufferedSize())) / int64(p.bytesPerSample)
 
 	var adjustingTime time.Duration
 	if p.lastSamples >= 0 && p.lastSamples == samples {
@@ -381,19 +383,21 @@ func (p *playerImpl) updatePosition() {
 }
 
 type timeStream struct {
-	r          io.Reader
-	sampleRate int
-	pos        int64
+	r              io.Reader
+	sampleRate     int
+	pos            int64
+	bytesPerSample int
 
 	// m is a mutex for this stream.
 	// All the exported functions are protected by this mutex as Read can be read from a different goroutine than Seek.
 	m sync.Mutex
 }
 
-func newTimeStream(r io.Reader, sampleRate int) (*timeStream, error) {
+func newTimeStream(r io.Reader, sampleRate int, bitDepthInBytes int) (*timeStream, error) {
 	s := &timeStream{
-		r:          r,
-		sampleRate: sampleRate,
+		r:              r,
+		sampleRate:     sampleRate,
+		bytesPerSample: bitDepthInBytes * channelCount,
 	}
 	if seeker, ok := s.r.(io.Seeker); ok {
 		// Get the current position of the source.
@@ -437,11 +441,11 @@ func (s *timeStream) timeDurationToPos(offset time.Duration) int64 {
 	s.m.Lock()
 	defer s.m.Unlock()
 
-	o := int64(offset) * bytesPerSampleInt16 * int64(s.sampleRate) / int64(time.Second)
+	o := int64(offset) * int64(s.bytesPerSample) * int64(s.sampleRate) / int64(time.Second)
 
 	// Align the byte position with the samples.
-	o -= o % bytesPerSampleInt16
-	o += s.pos % bytesPerSampleInt16
+	o -= o % int64(s.bytesPerSample)
+	o += s.pos % int64(s.bytesPerSample)
 
 	return o
 }
@@ -457,5 +461,5 @@ func (s *timeStream) positionInTimeDuration() time.Duration {
 	s.m.Lock()
 	defer s.m.Unlock()
 
-	return time.Duration(s.pos) * time.Second / (time.Duration(s.sampleRate) * bytesPerSampleInt16)
+	return time.Duration(s.pos) * time.Second / (time.Duration(s.sampleRate * s.bytesPerSample))
 }

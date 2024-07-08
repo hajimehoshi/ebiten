@@ -48,7 +48,6 @@ import (
 const (
 	channelCount         = 2
 	bitDepthInBytesInt16 = 2
-	bytesPerSampleInt16  = bitDepthInBytesInt16 * channelCount
 )
 
 // A Context represents a current state of audio.
@@ -324,7 +323,7 @@ type Player struct {
 // A Player doesn't close src even if src implements io.Closer.
 // Closing the source is src owner's responsibility.
 func (c *Context) NewPlayer(src io.Reader) (*Player, error) {
-	pi, err := c.playerFactory.newPlayer(c, src)
+	pi, err := c.playerFactory.newPlayer(c, src, bitDepthInBytesInt16)
 	if err != nil {
 		return nil, err
 	}

@@ -68,9 +68,7 @@ type defaultContext struct {
 	fnGetShaderInfoLog         js.Value
 	fnGetShaderParameter       js.Value
 	fnGetUniformLocation       js.Value
-	fnIsFramebuffer            js.Value
 	fnIsProgram                js.Value
-	fnIsRenderbuffer           js.Value
 	fnLinkProgram              js.Value
 	fnPixelStorei              js.Value
 	fnReadPixels               js.Value
@@ -199,9 +197,7 @@ func NewDefaultContext(v js.Value) (Context, error) {
 		fnGetShaderInfoLog:         v.Get("getShaderInfoLog").Call("bind", v),
 		fnGetShaderParameter:       v.Get("getShaderParameter").Call("bind", v),
 		fnGetUniformLocation:       v.Get("getUniformLocation").Call("bind", v),
-		fnIsFramebuffer:            v.Get("isFramebuffer").Call("bind", v),
 		fnIsProgram:                v.Get("isProgram").Call("bind", v),
-		fnIsRenderbuffer:           v.Get("isRenderbuffer").Call("bind", v),
 		fnLinkProgram:              v.Get("linkProgram").Call("bind", v),
 		fnPixelStorei:              v.Get("pixelStorei").Call("bind", v),
 		fnReadPixels:               v.Get("readPixels").Call("bind", v),
@@ -488,16 +484,8 @@ func (c *defaultContext) GetUniformLocation(program uint32, name string) int32 {
 	return int32((program << 5) | idx)
 }
 
-func (c *defaultContext) IsFramebuffer(framebuffer uint32) bool {
-	return c.fnIsFramebuffer.Invoke(c.framebuffers.get(framebuffer)).Bool()
-}
-
 func (c *defaultContext) IsProgram(program uint32) bool {
 	return c.fnIsProgram.Invoke(c.programs.get(program)).Bool()
-}
-
-func (c *defaultContext) IsRenderbuffer(renderbuffer uint32) bool {
-	return c.fnIsRenderbuffer.Invoke(c.renderbuffers.get(renderbuffer)).Bool()
 }
 
 func (c *defaultContext) LinkProgram(program uint32) {

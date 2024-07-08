@@ -44,6 +44,7 @@ type glyphImageCacheEntry struct {
 
 type glyphImageCache[Key comparable] struct {
 	cache map[Key]*glyphImageCacheEntry
+	atime int64
 	m     sync.Mutex
 }
 
@@ -51,9 +52,11 @@ func (g *glyphImageCache[Key]) getOrCreate(face Face, key Key, create func() *eb
 	g.m.Lock()
 	defer g.m.Unlock()
 
+	n := now()
+
 	e, ok := g.cache[key]
 	if ok {
-		e.atime = now()
+		e.atime = n
 		return e.image
 	}
 
@@ -66,7 +69,7 @@ func (g *glyphImageCache[Key]) getOrCreate(face Face, key Key, create func() *eb
 		image: img,
 	}
 	if img != nil {
-		e.atime = now()
+		e.atime = n
 	} else {
 		// If the glyph image is nil, the entry doesn't have to be removed.
 		// Keep this until the face is GCed.
@@ -75,21 +78,24 @@ func (g *glyphImageCache[Key]) getOrCreate(face Face, key Key, create func() *eb
 	g.cache[key] = e
 
 	// Clean up old entries.
-
-	// cacheSoftLimit indicates the soft limit of the number of glyphs in the cache.
-	// If the number of glyphs exceeds this soft limits, old glyphs are removed.
-	// Even after cleaning up the cache, the number of glyphs might still exceed the soft limit, but
-	// this is fine.
-	cacheSoftLimit := 128 * glyphVariationCount(face)
-	if len(g.cache) > cacheSoftLimit {
-		for key, e := range g.cache {
-			// 60 is an arbitrary number.
-			if e.atime >= now()-60 {
-				continue
+	if g.atime < n {
+		// cacheSoftLimit indicates the soft limit of the number of glyphs in the cache.
+		// If the number of glyphs exceeds this soft limits, old glyphs are removed.
+		// Even after cleaning up the cache, the number of glyphs might still exceed the soft limit, but
+		// this is fine.
+		cacheSoftLimit := 128 * glyphVariationCount(face)
+		if len(g.cache) > cacheSoftLimit {
+			for key, e := range g.cache {
+				// 60 is an arbitrary number.
+				if e.atime >= now()-60 {
+					continue
+				}
+				delete(g.cache, key)
 			}
-			delete(g.cache, key)
 		}
 	}
+
+	g.atime = n
 
 	return img
 }

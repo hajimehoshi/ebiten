@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"image"
+	"runtime"
 	"sync"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
@@ -307,9 +308,6 @@ func (c *context) newRenderbuffer(width, height int) (renderbufferNative, error)
 }
 
 func (c *context) deleteRenderbuffer(r renderbufferNative) {
-	if !c.ctx.IsRenderbuffer(uint32(r)) {
-		return
-	}
 	if c.lastRenderbuffer == r {
 		c.lastRenderbuffer = 0
 	}
@@ -324,15 +322,19 @@ func (c *context) newFramebuffer(texture textureNative, width, height int) (*fra
 	c.bindFramebuffer(framebufferNative(f))
 
 	c.ctx.FramebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, uint32(texture), 0)
-	if s := c.ctx.CheckFramebufferStatus(gl.FRAMEBUFFER); s != gl.FRAMEBUFFER_COMPLETE {
-		if s != 0 {
-			return nil, fmt.Errorf("opengl: creating framebuffer failed: %v", s)
+
+	if shouldCheckFramebufferStatus() {
+		if s := c.ctx.CheckFramebufferStatus(gl.FRAMEBUFFER); s != gl.FRAMEBUFFER_COMPLETE {
+			if s != 0 {
+				return nil, fmt.Errorf("opengl: creating framebuffer failed: %v", s)
+			}
+			if e := c.ctx.GetError(); e != gl.NO_ERROR {
+				return nil, fmt.Errorf("opengl: creating framebuffer failed: (glGetError) %d", e)
+			}
+			return nil, fmt.Errorf("opengl: creating framebuffer failed: unknown error")
 		}
-		if e := c.ctx.GetError(); e != gl.NO_ERROR {
-			return nil, fmt.Errorf("opengl: creating framebuffer failed: (glGetError) %d", e)
-		}
-		return nil, fmt.Errorf("opengl: creating framebuffer failed: unknown error")
 	}
+
 	return &framebuffer{
 		native:         framebufferNative(f),
 		viewportWidth:  width,
@@ -344,17 +346,18 @@ func (c *context) bindStencilBuffer(f framebufferNative, r renderbufferNative) e
 	c.bindFramebuffer(f)
 
 	c.ctx.FramebufferRenderbuffer(gl.FRAMEBUFFER, gl.STENCIL_ATTACHMENT, gl.RENDERBUFFER, uint32(r))
-	if s := c.ctx.CheckFramebufferStatus(gl.FRAMEBUFFER); s != gl.FRAMEBUFFER_COMPLETE {
-		return fmt.Errorf("opengl: glFramebufferRenderbuffer failed: %d", s)
+
+	if shouldCheckFramebufferStatus() {
+		if s := c.ctx.CheckFramebufferStatus(gl.FRAMEBUFFER); s != gl.FRAMEBUFFER_COMPLETE {
+			return fmt.Errorf("opengl: glFramebufferRenderbuffer failed: %d", s)
+		}
 	}
+
 	return nil
 }
 
 func (c *context) deleteFramebuffer(f framebufferNative) {
 	if f == c.screenFramebuffer {
-		return
-	}
-	if !c.ctx.IsFramebuffer(uint32(f)) {
 		return
 	}
 	// If a framebuffer to be deleted is bound, a newly bound framebuffer
@@ -377,10 +380,6 @@ func (c *context) newShader(shaderType uint32, source string) (shader, error) {
 	c.ctx.ShaderSource(s, source)
 	c.ctx.CompileShader(s)
 
-	if c.ctx.GetShaderi(s, gl.COMPILE_STATUS) == gl.FALSE {
-		log := c.ctx.GetShaderInfoLog(s)
-		return 0, fmt.Errorf("opengl: shader compile failed: %s", log)
-	}
 	return shader(s), nil
 }
 
@@ -399,10 +398,6 @@ func (c *context) newProgram(shaders []shader, attributes []string) (program, er
 	}
 
 	c.ctx.LinkProgram(p)
-	if c.ctx.GetProgrami(p, gl.LINK_STATUS) == gl.FALSE {
-		info := c.ctx.GetProgramInfoLog(p)
-		return 0, fmt.Errorf("opengl: program error: %s", info)
-	}
 	return program(p), nil
 }
 
@@ -483,4 +478,12 @@ func (c *context) glslVersion() glsl.GLSLVersion {
 		return glsl.GLSLVersionES300
 	}
 	return glsl.GLSLVersionDefault
+}
+
+func shouldCheckFramebufferStatus() bool {
+	// CheckFramebufferStatus is slow and should be avoided especially in browsers.
+	// See https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/WebGL_best_practices#avoid_blocking_api_calls_in_production
+	//
+	// TODO: Should this be avoided in all environments?
+	return runtime.GOOS != "js"
 }

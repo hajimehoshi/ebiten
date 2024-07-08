@@ -145,7 +145,7 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderSrcImageCount]*Image, vertice
 	theCommandQueueManager.enqueueDrawTrianglesCommand([graphics.ShaderDstImageCount]*Image{i}, srcs, vertices, indices, blend, dstRegion, srcRegions, shader, uniforms, fillRule)
 }
 
-// DrawTriangles draws triangles with the given image.
+// DrawTrianglesMRT draws triangles with the given image.
 //
 // The vertex floats are:
 //
@@ -255,6 +255,10 @@ func LogImagesInfo(images []*Image) {
 	})
 	for _, i := range images {
 		w, h := i.InternalSize()
-		debug.Logf("  %d: (%d, %d)\n", i.id, w, h)
+		var screen string
+		if i.screen {
+			screen = " (screen)"
+		}
+		debug.Logf("  %d: (%d, %d)%s\n", i.id, w, h, screen)
 	}
 }

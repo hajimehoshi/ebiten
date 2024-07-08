@@ -1114,10 +1114,9 @@ func (g *graphics12) setAsRenderTargets(dsts []*image12, useStencil bool) error 
 	var rtvs []_D3D12_CPU_DESCRIPTOR_HANDLE
 	var dsv *_D3D12_CPU_DESCRIPTOR_HANDLE
 
-	for i, img := range dsts {
+	for _, img := range dsts {
 		// Ignore a nil image in case of MRT
 		if img == nil {
-			_ = i
 			rtv, err := g.rtvEmptyDescriptorHeap.GetCPUDescriptorHandleForHeapStart()
 			if err != nil {
 				return err
