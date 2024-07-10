@@ -60,8 +60,8 @@ func Fragment(dst vec4, src vec2, color vec4) vec4 {
 
 package main
 
-func Fragment(dst vec4, src vec2, color vec4) (vec4, vec4) {
-	return imageSrc0UnsafeAt(src), imageSrc1UnsafeAt(src)
+func Fragment(dst vec4, src vec2, color vec4) (vec4, vec4, vec4) {
+	return imageSrc0UnsafeAt(src), imageSrc1UnsafeAt(src), imageSrc2UnsafeAt(src)
 }
 `)
 
@@ -76,15 +76,16 @@ var Cursor vec2
 func Fragment(dst vec4, src vec2, color vec4) vec4 {
 	pos := dst.xy - imageDstOrigin()
 
-	lightpos := vec3(Cursor, 50)
+	lightpos := vec3(Cursor, 150)
 	lightdir := normalize(lightpos - vec3(pos, 0))
 	normal := normalize(imageSrc1UnsafeAt(src) - 0.5).xyz
-	const ambient = 0.1
-	diffuse := imageSrc0UnsafeAt(src).rgb * max(0.0, dot(normal, lightdir))
+	clr := imageSrc0UnsafeAt(src)
+	ambient := 0.1*clr.rgb
+	diffuse := 0.9*clr.rgb * max(0.0, dot(normal, lightdir))
 	reflectDir := reflect(-lightdir, normal)
-    spec := pow(max(dot(vec3(0), reflectDir), 0.0), imageSrc2UnsafeAt(src).x*32)
+    spec := 0.25*pow(max(1-dot(reflectDir, reflectDir), 0.0), imageSrc2UnsafeAt(src).x*16)
 
-	return vec4(vec3(ambient + diffuse + spec), 1)
+	return vec4(vec3(ambient + diffuse + spec), 1)*clr.a
 }
 `)
 
@@ -221,6 +222,7 @@ func (g *Game) Update() error {
 func (g *Game) Draw(screen *ebiten.Image) {
 	g.color.Clear()
 	g.normal.Clear()
+	g.specular.Clear()
 
 	if g.mrt {
 		ebiten.DrawTrianglesShaderMRT([8]*ebiten.Image{
