@@ -30,4 +30,7 @@ var (
 
 	//go:embed noise.png
 	Noise_png []byte
+
+	//go:embed specular.png
+	Specular_png []byte
 )

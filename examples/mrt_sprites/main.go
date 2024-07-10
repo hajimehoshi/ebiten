@@ -78,11 +78,13 @@ func Fragment(dst vec4, src vec2, color vec4) vec4 {
 
 	lightpos := vec3(Cursor, 50)
 	lightdir := normalize(lightpos - vec3(pos, 0))
-	normal := normalize(imageSrc1UnsafeAt(src) - 0.5)
-	const ambient = 0.25
-	diffuse := 0.75 * max(0.0, dot(normal.xyz, lightdir))
+	normal := normalize(imageSrc1UnsafeAt(src) - 0.5).xyz
+	const ambient = 0.1
+	diffuse := imageSrc0UnsafeAt(src).rgb * max(0.0, dot(normal, lightdir))
+	reflectDir := reflect(-lightdir, normal)
+    spec := pow(max(dot(vec3(0), reflectDir), 0.0), imageSrc2UnsafeAt(src).x*32)
 
-	return imageSrc0UnsafeAt(src) * (ambient + diffuse)
+	return vec4(vec3(ambient + diffuse + spec), 1)
 }
 `)
 
@@ -92,8 +94,9 @@ func Fragment(dst vec4, src vec2, color vec4) vec4 {
 )
 
 var (
-	gopherImage *ebiten.Image
-	normalImage *ebiten.Image
+	gopherImage   *ebiten.Image
+	normalImage   *ebiten.Image
+	specularImage *ebiten.Image
 )
 
 func init() {
@@ -125,6 +128,12 @@ func init() {
 	}
 	tmpNormal := ebiten.NewImageFromImage(img)
 
+	img, _, err = image.Decode(bytes.NewReader(resources.Specular_png))
+	if err != nil {
+		log.Fatal(err)
+	}
+	specularImage = ebiten.NewImageFromImage(img)
+
 	// Fixing the normal background
 	normalImage = ebiten.NewImage(tmpNormal.Bounds().Dx(), tmpNormal.Bounds().Dy())
 	normalImage.DrawImage(gopherImage, nil)
@@ -146,8 +155,9 @@ type Game struct {
 	vertices []ebiten.Vertex
 	indices  []uint16
 
-	color  *ebiten.Image
-	normal *ebiten.Image
+	color    *ebiten.Image
+	normal   *ebiten.Image
+	specular *ebiten.Image
 }
 
 var quadIndices = []uint16{0, 1, 2, 1, 2, 3}
@@ -214,10 +224,10 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 	if g.mrt {
 		ebiten.DrawTrianglesShaderMRT([8]*ebiten.Image{
-			g.color, g.normal,
+			g.color, g.normal, g.specular,
 		}, g.vertices, g.indices, spriteMRTShader, &ebiten.DrawTrianglesShaderOptions{
 			Images: [4]*ebiten.Image{
-				gopherImage, normalImage,
+				gopherImage, normalImage, specularImage,
 			},
 		})
 	} else {
@@ -230,6 +240,12 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		g.normal.DrawTrianglesShader(g.vertices, g.indices, spriteShader, &ebiten.DrawTrianglesShaderOptions{
 			Images: [4]*ebiten.Image{
 				normalImage,
+			},
+		})
+		// Note: Here too
+		g.specular.DrawTrianglesShader(g.vertices, g.indices, spriteShader, &ebiten.DrawTrianglesShaderOptions{
+			Images: [4]*ebiten.Image{
+				specularImage,
 			},
 		})
 	}
@@ -253,7 +269,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		},
 	}, quadIndices, finalShader, &ebiten.DrawTrianglesShaderOptions{
 		Images: [4]*ebiten.Image{
-			g.color, g.normal,
+			g.color, g.normal, g.specular,
 		},
 		Uniforms: map[string]any{
 			"Cursor": []float32{
@@ -288,7 +304,15 @@ func main() {
 				Unmanaged: true,
 			},
 		),
-	}, &ebiten.RunGameOptions{}); err != nil {
+		specular: ebiten.NewImageWithOptions(
+			image.Rect(0, 0, screenWidth, screenHeight),
+			&ebiten.NewImageOptions{
+				Unmanaged: true,
+			},
+		),
+	}, &ebiten.RunGameOptions{
+		GraphicsLibrary: ebiten.GraphicsLibraryOpenGL,
+	}); err != nil {
 		log.Fatal(err)
 	}
 }
