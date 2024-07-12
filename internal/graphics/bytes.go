@@ -59,6 +59,15 @@ func (m *ManagedBytes) GetAndRelease() ([]byte, func()) {
 	}
 }
 
+// Release releases the underlying byte slice.
+//
+// After Release is called, the underlying byte slice is no longer available.
+func (m *ManagedBytes) Release() {
+	m.pool.put(m.bytes)
+	m.bytes = nil
+	runtime.SetFinalizer(m, nil)
+}
+
 // NewManagedBytes returns a managed byte slice initialized by the given constructor f.
 //
 // The byte slice is not zero-cleared at the constructor.

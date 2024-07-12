@@ -135,3 +135,54 @@ func TestShader(t *testing.T) {
 		}
 	}
 }
+
+// Issue #3036
+func TestSuccessiveWritePixels(t *testing.T) {
+	const w, h = 32, 32
+	dst := graphicscommand.NewImage(w, h, false)
+
+	dst.WritePixels(graphics.NewManagedBytes(4, func(bs []byte) {
+		for i := range bs {
+			bs[i] = 0
+		}
+	}), image.Rect(0, 0, 1, 1))
+	if got, want := len(dst.BufferedWritePixelsArgsForTesting()), 1; got != want {
+		t.Errorf("len(dst.BufferedWritePixelsArgsForTesting()): got %d, want: %d", got, want)
+	}
+
+	dst.WritePixels(graphics.NewManagedBytes(4, func(bs []byte) {
+		for i := range bs {
+			bs[i] = 0
+		}
+	}), image.Rect(1, 1, 2, 2))
+	if got, want := len(dst.BufferedWritePixelsArgsForTesting()), 2; got != want {
+		t.Errorf("len(dst.BufferedWritePixelsArgsForTesting()): got %d, want: %d", got, want)
+	}
+
+	dst.WritePixels(graphics.NewManagedBytes(4, func(bs []byte) {
+		for i := range bs {
+			bs[i] = 0
+		}
+	}), image.Rect(0, 0, 1, 1))
+	if got, want := len(dst.BufferedWritePixelsArgsForTesting()), 2; got != want {
+		t.Errorf("len(dst.BufferedWritePixelsArgsForTesting()): got %d, want: %d", got, want)
+	}
+
+	dst.WritePixels(graphics.NewManagedBytes(4, func(bs []byte) {
+		for i := range bs {
+			bs[i] = 0
+		}
+	}), image.Rect(0, 0, 1, 1))
+	if got, want := len(dst.BufferedWritePixelsArgsForTesting()), 2; got != want {
+		t.Errorf("len(dst.BufferedWritePixelsArgsForTesting()): got %d, want: %d", got, want)
+	}
+
+	dst.WritePixels(graphics.NewManagedBytes(4, func(bs []byte) {
+		for i := range bs {
+			bs[i] = 0
+		}
+	}), image.Rect(0, 0, 2, 2))
+	if got, want := len(dst.BufferedWritePixelsArgsForTesting()), 1; got != want {
+		t.Errorf("len(dst.BufferedWritePixelsArgsForTesting()): got %d, want: %d", got, want)
+	}
+}

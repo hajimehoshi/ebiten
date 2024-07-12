@@ -161,7 +161,23 @@ func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, args []graphi
 }
 
 func (i *Image) WritePixels(pixels *graphics.ManagedBytes, region image.Rectangle) {
-	i.bufferedWritePixelsArgs = append(i.bufferedWritePixelsArgs, writePixelsCommandArgs{
+	// Release the previous pixels if the region is included by the new region.
+	// Successive WritePixels calls might accumulate the pixels and never release,
+	// especially when the image is unmanaged (#3036).
+	var cur int
+	for idx := 0; idx < len(i.bufferedWritePixelsArgs); idx++ {
+		arg := i.bufferedWritePixelsArgs[idx]
+		if arg.region.In(region) {
+			arg.pixels.Release()
+			continue
+		}
+		i.bufferedWritePixelsArgs[cur] = arg
+		cur++
+	}
+	for idx := cur; idx < len(i.bufferedWritePixelsArgs); idx++ {
+		i.bufferedWritePixelsArgs[idx] = writePixelsCommandArgs{}
+	}
+	i.bufferedWritePixelsArgs = append(i.bufferedWritePixelsArgs[:cur], writePixelsCommandArgs{
 		pixels: pixels,
 		region: region,
 	})
