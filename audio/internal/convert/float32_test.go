@@ -18,6 +18,7 @@ import (
 	"bytes"
 	"crypto/rand"
 	"io"
+	"runtime"
 	"testing"
 	"unsafe"
 
@@ -34,7 +35,8 @@ func randInt16s(n int) []int16 {
 
 func TestFloat32(t *testing.T) {
 	cases := []struct {
-		In []int16
+		In                  []int16
+		SkipOnBrowserReason string
 	}{
 		{
 			In: nil,
@@ -49,10 +51,14 @@ func TestFloat32(t *testing.T) {
 			In: randInt16s(256),
 		},
 		{
-			In: randInt16s(65536),
+			In:                  randInt16s(65536),
+			SkipOnBrowserReason: "entropy is not enough on browser to generate random numbers",
 		},
 	}
 	for _, c := range cases {
+		if runtime.GOOS == "js" && c.SkipOnBrowserReason != "" {
+			t.Skip(c.SkipOnBrowserReason)
+		}
 		// Note that unsafe.SliceData is available as of Go 1.20.
 		var in, out []byte
 		if len(c.In) > 0 {
