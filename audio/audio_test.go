@@ -133,4 +133,5 @@ func TestNonSeekableSource(t *testing.T) {
 	}
 
 	p.Play()
+	p.Pause()
 }
