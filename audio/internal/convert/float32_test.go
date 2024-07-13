@@ -66,32 +66,49 @@ func TestFloat32(t *testing.T) {
 	for _, c := range cases {
 		c := c
 		t.Run(c.Name, func(t *testing.T) {
-			// Note that unsafe.SliceData is available as of Go 1.20.
-			var in, out []byte
-			if len(c.In) > 0 {
-				outF32 := make([]float32, len(c.In))
-				for i := range c.In {
-					outF32[i] = float32(c.In[i]) / (1 << 15)
+			for _, seek := range []bool{false, true} {
+				seek := seek
+				name := "nonseek"
+				if seek {
+					name = "seek"
 				}
-				in = unsafe.Slice((*byte)(unsafe.Pointer(&c.In[0])), len(c.In)*2)
-				out = unsafe.Slice((*byte)(unsafe.Pointer(&outF32[0])), len(outF32)*4)
-			}
-			r := convert.NewFloat32BytesReaderFromInt16BytesReader(bytes.NewReader(in))
-			var got []byte
-			for {
-				var buf [97]byte
-				n, err := r.Read(buf[:])
-				got = append(got, buf[:n]...)
-				if err != nil {
-					if err != io.EOF {
-						t.Fatal(err)
+				t.Run(name, func(t *testing.T) {
+					// Note that unsafe.SliceData is available as of Go 1.20.
+					var in, out []byte
+					if len(c.In) > 0 {
+						outF32 := make([]float32, len(c.In))
+						for i := range c.In {
+							outF32[i] = float32(c.In[i]) / (1 << 15)
+						}
+						in = unsafe.Slice((*byte)(unsafe.Pointer(&c.In[0])), len(c.In)*2)
+						out = unsafe.Slice((*byte)(unsafe.Pointer(&outF32[0])), len(outF32)*4)
 					}
-					break
-				}
-			}
-			want := out
-			if !bytes.Equal(got, want) {
-				t.Errorf("got: %v, want: %v", got, want)
+					r := convert.NewFloat32BytesReaderFromInt16BytesReader(bytes.NewReader(in)).(io.ReadSeeker)
+					var got []byte
+					for {
+						var buf [97]byte
+						n, err := r.Read(buf[:])
+						got = append(got, buf[:n]...)
+						if err != nil {
+							if err != io.EOF {
+								t.Fatal(err)
+							}
+							break
+						}
+						if seek {
+							if _, err := r.Seek(0, io.SeekCurrent); err != nil {
+								if err != io.EOF {
+									t.Fatal(err)
+								}
+								break
+							}
+						}
+					}
+					want := out
+					if !bytes.Equal(got, want) {
+						t.Errorf("got: %v, want: %v", got, want)
+					}
+				})
 			}
 		})
 	}

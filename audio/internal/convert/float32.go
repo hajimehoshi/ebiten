@@ -68,7 +68,11 @@ func (r *float32BytesReader) Read(buf []byte) (int, error) {
 	copy(r.i16Buf, r.i16Buf[samplesToFill*2:])
 	r.i16Buf = r.i16Buf[:len(r.i16Buf)-samplesToFill*2]
 
-	return samplesToFill * 4, nil
+	n := samplesToFill * 4
+	if r.eof {
+		return n, io.EOF
+	}
+	return n, nil
 }
 
 func (r *float32BytesReader) Seek(offset int64, whence int) (int64, error) {
