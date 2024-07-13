@@ -17,6 +17,7 @@ package audio
 import (
 	"io"
 	"sync"
+	"time"
 )
 
 type (
@@ -63,8 +64,16 @@ func (p *dummyPlayer) Play() {
 	p.playing = true
 	p.m.Unlock()
 	go func() {
-		if _, err := io.ReadAll(p.r); err != nil {
-			panic(err)
+		var buf [4096]byte
+		for {
+			_, err := p.r.Read(buf[:])
+			if err != nil {
+				if err != io.EOF {
+					panic(err)
+				}
+				break
+			}
+			time.Sleep(time.Millisecond)
 		}
 		p.m.Lock()
 		p.playing = false
