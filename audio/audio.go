@@ -497,5 +497,5 @@ func Resample(source io.ReadSeeker, size int64, from, to int) io.ReadSeeker {
 	if from == to {
 		return source
 	}
-	return convert.NewResampling(source, size, from, to)
+	return convert.NewResampling(source, size, from, to, bitDepthInBytesInt16)
 }

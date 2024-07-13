@@ -24,6 +24,10 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/audio/internal/convert"
 )
 
+const (
+	bitDepthInBytesInt16 = 2
+)
+
 // Stream is a decoded audio stream.
 type Stream struct {
 	inner      io.ReadSeeker
@@ -153,7 +157,7 @@ func DecodeWithSampleRate(sampleRate int, src io.Reader) (*Stream, error) {
 		return s, nil
 	}
 
-	r := convert.NewResampling(s.inner, s.size, s.sampleRate, sampleRate)
+	r := convert.NewResampling(s.inner, s.size, s.sampleRate, sampleRate, bitDepthInBytesInt16)
 	return &Stream{
 		inner:      r,
 		size:       r.Length(),

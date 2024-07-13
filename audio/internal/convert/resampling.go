@@ -78,33 +78,40 @@ func sinc01(x float64) float64 {
 }
 
 type Resampling struct {
-	source       io.ReadSeeker
-	size         int64
-	from         int
-	to           int
-	pos          int64
-	srcBlock     int64
-	srcBufL      map[int64][]float64
-	srcBufR      map[int64][]float64
-	lruSrcBlocks []int64
+	source          io.ReadSeeker
+	size            int64
+	from            int
+	to              int
+	bitDepthInBytes int
+	pos             int64
+	srcBlock        int64
+	srcBufL         map[int64][]float64
+	srcBufR         map[int64][]float64
+	lruSrcBlocks    []int64
 }
 
-func NewResampling(source io.ReadSeeker, size int64, from, to int) *Resampling {
+func NewResampling(source io.ReadSeeker, size int64, from, to int, bitDepthInBytes int) *Resampling {
 	r := &Resampling{
-		source:   source,
-		size:     size,
-		from:     from,
-		to:       to,
-		srcBlock: -1,
-		srcBufL:  map[int64][]float64{},
-		srcBufR:  map[int64][]float64{},
+		source:          source,
+		size:            size,
+		from:            from,
+		bitDepthInBytes: bitDepthInBytes,
+		to:              to,
+		srcBlock:        -1,
+		srcBufL:         map[int64][]float64{},
+		srcBufR:         map[int64][]float64{},
 	}
 	return r
 }
 
+func (r *Resampling) bytesPerSample() int {
+	const channelNum = 2
+	return r.bitDepthInBytes * channelNum
+}
+
 func (r *Resampling) Length() int64 {
 	s := int64(float64(r.size) * float64(r.to) / float64(r.from))
-	return s / 4 * 4
+	return s / int64(r.bytesPerSample()) * int64(r.bytesPerSample())
 }
 
 func (r *Resampling) src(i int64) (float64, float64, error) {
@@ -113,17 +120,18 @@ func (r *Resampling) src(i int64) (float64, float64, error) {
 	if i < 0 {
 		return 0, 0, nil
 	}
-	if r.size/4 <= i {
+	sizePerSample := int64(r.bytesPerSample())
+	if r.size/sizePerSample <= i {
 		return 0, 0, nil
 	}
 	nextPos := int64(i) / resamplingBufferSize
 	if _, ok := r.srcBufL[nextPos]; !ok {
 		if r.srcBlock+1 != nextPos {
-			if _, err := r.source.Seek(nextPos*resamplingBufferSize*4, io.SeekStart); err != nil {
+			if _, err := r.source.Seek(nextPos*resamplingBufferSize*sizePerSample, io.SeekStart); err != nil {
 				return 0, 0, err
 			}
 		}
-		buf := make([]byte, resamplingBufferSize*4)
+		buf := make([]byte, resamplingBufferSize*sizePerSample)
 		c := 0
 		for c < len(buf) {
 			n, err := r.source.Read(buf[c:])
@@ -138,9 +146,19 @@ func (r *Resampling) src(i int64) (float64, float64, error) {
 		buf = buf[:c]
 		sl := make([]float64, resamplingBufferSize)
 		sr := make([]float64, resamplingBufferSize)
-		for i := 0; i < len(buf)/4; i++ {
-			sl[i] = float64(int16(buf[4*i])|(int16(buf[4*i+1])<<8)) / (1<<15 - 1)
-			sr[i] = float64(int16(buf[4*i+2])|(int16(buf[4*i+3])<<8)) / (1<<15 - 1)
+		switch r.bitDepthInBytes {
+		case 2:
+			for i := 0; i < len(buf)/int(sizePerSample); i++ {
+				sl[i] = float64(int16(buf[4*i])|(int16(buf[4*i+1])<<8)) / (1<<15 - 1)
+				sr[i] = float64(int16(buf[4*i+2])|(int16(buf[4*i+3])<<8)) / (1<<15 - 1)
+			}
+		case 4:
+			for i := 0; i < len(buf)/int(sizePerSample); i++ {
+				sl[i] = float64(math.Float32frombits(uint32(buf[8*i]) | uint32(buf[8*i+1])<<8 | uint32(buf[8*i+2])<<16 | uint32(buf[8*i+3])<<24))
+				sr[i] = float64(math.Float32frombits(uint32(buf[8*i+4]) | uint32(buf[8*i+5])<<8 | uint32(buf[8*i+6])<<16 | uint32(buf[8*i+7])<<24))
+			}
+		default:
+			panic("not reached")
 		}
 		r.srcBlock = nextPos
 		r.srcBufL[r.srcBlock] = sl
@@ -180,12 +198,13 @@ func (r *Resampling) at(t int64) (float64, float64, error) {
 	if startN < 0 {
 		startN = 0
 	}
-	if r.size/4 <= startN {
-		startN = r.size/4 - 1
+	sizePerSample := int64(r.bytesPerSample())
+	if r.size/sizePerSample <= startN {
+		startN = r.size/sizePerSample - 1
 	}
 	endN := int64(tInSrc + windowSize)
-	if r.size/4 <= endN {
-		endN = r.size/4 - 1
+	if r.size/sizePerSample <= endN {
+		endN = r.size/sizePerSample - 1
 	}
 	lv := 0.0
 	rv := 0.0
@@ -219,21 +238,46 @@ func (r *Resampling) Read(b []byte) (int, error) {
 	if r.pos == r.Length() {
 		return 0, io.EOF
 	}
-	n := len(b) / 4 * 4
+	size := r.bytesPerSample()
+	n := len(b) / size * size
 	if r.Length()-r.pos <= int64(n) {
 		n = int(r.Length() - r.pos)
 	}
-	for i := 0; i < n/4; i++ {
-		l, r, err := r.at(r.pos/4 + int64(i))
-		if err != nil {
-			return 0, err
+	switch r.bitDepthInBytes {
+	case 2:
+		for i := 0; i < n/size; i++ {
+			l, r, err := r.at(r.pos/int64(size) + int64(i))
+			if err != nil {
+				return 0, err
+			}
+			l16 := int16(l * (1<<15 - 1))
+			r16 := int16(r * (1<<15 - 1))
+			b[4*i] = byte(l16)
+			b[4*i+1] = byte(l16 >> 8)
+			b[4*i+2] = byte(r16)
+			b[4*i+3] = byte(r16 >> 8)
 		}
-		l16 := int16(l * (1<<15 - 1))
-		r16 := int16(r * (1<<15 - 1))
-		b[4*i] = byte(l16)
-		b[4*i+1] = byte(l16 >> 8)
-		b[4*i+2] = byte(r16)
-		b[4*i+3] = byte(r16 >> 8)
+	case 4:
+		for i := 0; i < n/size; i++ {
+			l, r, err := r.at(r.pos/int64(size) + int64(i))
+			if err != nil {
+				return 0, err
+			}
+			l32 := float32(l)
+			r32 := float32(r)
+			l32b := math.Float32bits(l32)
+			r32b := math.Float32bits(r32)
+			b[8*i] = byte(l32b)
+			b[8*i+1] = byte(l32b >> 8)
+			b[8*i+2] = byte(l32b >> 16)
+			b[8*i+3] = byte(l32b >> 24)
+			b[8*i+4] = byte(r32b)
+			b[8*i+5] = byte(r32b >> 8)
+			b[8*i+6] = byte(r32b >> 16)
+			b[8*i+7] = byte(r32b >> 24)
+		}
+	default:
+		panic("not reached")
 	}
 	r.pos += int64(n)
 	return n, nil
