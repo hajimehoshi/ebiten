@@ -124,6 +124,10 @@ func (emptySource) Read(buf []byte) (int, error) {
 }
 
 func TestNonSeekableSource(t *testing.T) {
+	if runtime.GOOS == "js" {
+		t.Skip("infinite steams in tests cannot be treated well on browsers")
+	}
+
 	setup()
 	defer teardown()
 
@@ -134,8 +138,6 @@ func TestNonSeekableSource(t *testing.T) {
 
 	p.Play()
 	p.Pause()
-	p = nil
-	runtime.GC()
 
 	// 200[ms] should be enough all the bytes are consumed.
 	// TODO: This is a dirty hack. Would it be possible to use virtual time?
