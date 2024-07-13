@@ -35,56 +35,65 @@ func randInt16s(n int) []int16 {
 
 func TestFloat32(t *testing.T) {
 	cases := []struct {
+		Name                string
 		In                  []int16
 		SkipOnBrowserReason string
 	}{
 		{
-			In: nil,
+			Name: "empty",
+			In:   nil,
 		},
 		{
-			In: []int16{-32768, 0, 32767},
+			Name: "-1, 0, 1",
+			In:   []int16{-32768, 0, 32767},
 		},
 		{
-			In: []int16{0, 0, 0, 0, 0, 0, 0, 0},
+			Name: "8 0s",
+			In:   []int16{0, 0, 0, 0, 0, 0, 0, 0},
 		},
 		{
-			In: randInt16s(256),
+			Name: "random 256 values",
+			In:   randInt16s(256),
 		},
 		{
+			Name:                "random 65536 values",
 			In:                  randInt16s(65536),
 			SkipOnBrowserReason: "entropy is not enough on browser to generate random numbers",
 		},
 	}
 	for _, c := range cases {
-		if runtime.GOOS == "js" && c.SkipOnBrowserReason != "" {
-			t.Skip(c.SkipOnBrowserReason)
-		}
-		// Note that unsafe.SliceData is available as of Go 1.20.
-		var in, out []byte
-		if len(c.In) > 0 {
-			outF32 := make([]float32, len(c.In))
-			for i := range c.In {
-				outF32[i] = float32(c.In[i]) / (1 << 15)
+		c := c
+		t.Run(c.Name, func(t *testing.T) {
+			if runtime.GOOS == "js" && c.SkipOnBrowserReason != "" {
+				t.Skip(c.SkipOnBrowserReason)
 			}
-			in = unsafe.Slice((*byte)(unsafe.Pointer(&c.In[0])), len(c.In)*2)
-			out = unsafe.Slice((*byte)(unsafe.Pointer(&outF32[0])), len(outF32)*4)
-		}
-		r := convert.NewFloat32BytesReaderFromInt16BytesReader(bytes.NewReader(in))
-		var got []byte
-		for {
-			var buf [97]byte
-			n, err := r.Read(buf[:])
-			got = append(got, buf[:n]...)
-			if err != nil {
-				if err != io.EOF {
-					t.Fatal(err)
+			// Note that unsafe.SliceData is available as of Go 1.20.
+			var in, out []byte
+			if len(c.In) > 0 {
+				outF32 := make([]float32, len(c.In))
+				for i := range c.In {
+					outF32[i] = float32(c.In[i]) / (1 << 15)
 				}
-				break
+				in = unsafe.Slice((*byte)(unsafe.Pointer(&c.In[0])), len(c.In)*2)
+				out = unsafe.Slice((*byte)(unsafe.Pointer(&outF32[0])), len(outF32)*4)
 			}
-		}
-		want := out
-		if !bytes.Equal(got, want) {
-			t.Errorf("got: %v, want: %v", got, want)
-		}
+			r := convert.NewFloat32BytesReaderFromInt16BytesReader(bytes.NewReader(in))
+			var got []byte
+			for {
+				var buf [97]byte
+				n, err := r.Read(buf[:])
+				got = append(got, buf[:n]...)
+				if err != nil {
+					if err != io.EOF {
+						t.Fatal(err)
+					}
+					break
+				}
+			}
+			want := out
+			if !bytes.Equal(got, want) {
+				t.Errorf("got: %v, want: %v", got, want)
+			}
+		})
 	}
 }
