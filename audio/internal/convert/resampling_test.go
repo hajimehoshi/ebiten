@@ -89,9 +89,31 @@ func TestResampling(t *testing.T) {
 				t.Run(fmt.Sprintf("bitDepthInBytes=%d", bitDepthInBytes), func(t *testing.T) {
 					inB := newSoundBytes(c.In, bitDepthInBytes)
 					outS := convert.NewResampling(bytes.NewReader(inB), int64(len(inB)), c.In, c.Out, bitDepthInBytes)
-					gotB, err := io.ReadAll(outS)
-					if err != nil {
-						t.Fatal(err)
+					var gotB []byte
+					for {
+						var buf [97]byte
+						n, err := outS.Read(buf[:])
+						gotB = append(gotB, buf[:n]...)
+						if err != nil {
+							if err != io.EOF {
+								t.Fatal(err)
+							}
+							break
+						}
+						cur, err := outS.Seek(0, io.SeekCurrent)
+						if err != nil {
+							t.Fatal(err)
+						}
+						// Shifting by incomplete bytes should not affect the result.
+						for i := 0; i < bitDepthInBytes*2-1; i++ {
+							pos, err := outS.Seek(int64(i), io.SeekCurrent)
+							if err != nil {
+								t.Fatal(err)
+							}
+							if cur != pos {
+								t.Errorf("cur: %d, pos: %d", cur, pos)
+							}
+						}
 					}
 					wantB := newSoundBytes(c.Out, bitDepthInBytes)
 					if len(gotB) != len(wantB) {

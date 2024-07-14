@@ -298,5 +298,7 @@ func (r *Resampling) Seek(offset int64, whence int) (int64, error) {
 	if r.Length() <= r.pos {
 		r.pos = r.Length()
 	}
+	size := r.bytesPerSample()
+	r.pos = r.pos / int64(size) * int64(size)
 	return r.pos, nil
 }
