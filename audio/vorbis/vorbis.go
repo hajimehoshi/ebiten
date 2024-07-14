@@ -26,7 +26,8 @@ import (
 )
 
 const (
-	bitDepthInBytesInt16 = 2
+	bitDepthInBytesInt16   = 2
+	bitDepthInBytesFloat32 = 4
 )
 
 // Stream is a decoded audio stream.
@@ -58,6 +59,47 @@ func (s *Stream) Length() int64 {
 // SampleRate returns the sample rate of the decoded stream.
 func (s *Stream) SampleRate() int {
 	return s.sampleRate
+}
+
+// DecodeF32 decodes Ogg/Vorbis data to playable stream in 32bit float, little endian, 2 channels (stereo) format.
+//
+// DecodeF32 returns error when decoding fails or IO error happens.
+//
+// The returned Stream's Seek is available only when src is an io.Seeker.
+//
+// A Stream doesn't close src even if src implements io.Closer.
+// Closing the source is src owner's responsibility.
+func DecodeF32(src io.Reader) (*Stream, error) {
+	r, err := oggvorbis.NewReader(src)
+	if err != nil {
+		return nil, err
+	}
+	if r.Channels() != 1 && r.Channels() != 2 {
+		return nil, fmt.Errorf("vorbis: number of channels must be 1 or 2 but was %d", r.Channels())
+	}
+
+	var s io.ReadSeeker = newFloat32BytesReadSeeker(r)
+	length := r.Length() * int64(r.Channels()) * bitDepthInBytesFloat32
+	if r.Channels() == 1 {
+		s = convert.NewStereoF32(s, true)
+		length *= 2
+	}
+
+	stream := &Stream{
+		readSeeker: s,
+		length:     length,
+		sampleRate: r.SampleRate(),
+	}
+	// Read some data for performance (#297).
+	if _, ok := src.(io.Seeker); ok {
+		if _, err := stream.Read(make([]byte, 65536)); err != nil && err != io.EOF {
+			return nil, err
+		}
+		if _, err := stream.Seek(0, io.SeekStart); err != nil {
+			return nil, err
+		}
+	}
+	return stream, nil
 }
 
 type i16Stream struct {
@@ -147,7 +189,7 @@ func decodeI16(in io.Reader) (*i16Stream, error) {
 	return s, nil
 }
 
-// DecodeWithoutResampling decodes Ogg/Vorbis data to playable stream.
+// DecodeWithoutResampling decodes Ogg/Vorbis data to playable stream in signed 16bit integer, little endian, 2 channels (stereo) format.
 //
 // DecodeWithoutResampling returns error when decoding fails or IO error happens.
 //
@@ -176,7 +218,7 @@ func DecodeWithoutResampling(src io.Reader) (*Stream, error) {
 	return stream, nil
 }
 
-// DecodeWithSampleRate decodes Ogg/Vorbis data to playable stream.
+// DecodeWithSampleRate decodes Ogg/Vorbis data to playable stream in signed 16bit integer, little endian, 2 channels (stereo) format.
 //
 // DecodeWithSampleRate returns error when decoding fails or IO error happens.
 //
@@ -214,7 +256,7 @@ func DecodeWithSampleRate(sampleRate int, src io.Reader) (*Stream, error) {
 	return stream, nil
 }
 
-// Decode decodes Ogg/Vorbis data to playable stream.
+// Decode decodes Ogg/Vorbis data to playable stream in signed 16bit integer, little endian, 2 channels (stereo) format.
 //
 // Decode returns error when decoding fails or IO error happens.
 //

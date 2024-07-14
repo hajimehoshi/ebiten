@@ -28,7 +28,8 @@ import (
 )
 
 const (
-	bitDepthInBytesInt16 = 2
+	bitDepthInBytesInt16   = 2
+	bitDepthInBytesFloat32 = 4
 )
 
 // Stream is a decoded stream.
@@ -58,7 +59,29 @@ func (s *Stream) SampleRate() int {
 	return s.sampleRate
 }
 
-// DecodeWithoutResampling decodes an MP3 source and returns a decoded stream.
+// DecodeF32 decodes an MP3 source and returns a decoded stream in 32bit float, little endian, 2 channels (stereo) format.
+//
+// DecodeF32 returns error when decoding fails or IO error happens.
+//
+// The returned Stream's Seek is available only when src is an io.Seeker.
+//
+// A Stream doesn't close src even if src implements io.Closer.
+// Closing the source is src owner's responsibility.
+func DecodeF32(src io.Reader) (*Stream, error) {
+	d, err := mp3.NewDecoder(src)
+	if err != nil {
+		return nil, err
+	}
+	r := convert.NewFloat32BytesReadSeekerFromInt16BytesReadSeeker(d)
+	s := &Stream{
+		readSeeker: r,
+		length:     d.Length() / bitDepthInBytesInt16 * bitDepthInBytesFloat32,
+		sampleRate: d.SampleRate(),
+	}
+	return s, nil
+}
+
+// DecodeWithoutResampling decodes an MP3 source and returns a decoded stream in signed 16bit integer, little endian, 2 channels (stereo) format.
 //
 // DecodeWithoutResampling returns error when decoding fails or IO error happens.
 //
@@ -79,7 +102,7 @@ func DecodeWithoutResampling(src io.Reader) (*Stream, error) {
 	return s, nil
 }
 
-// DecodeWithSampleRate decodes an MP3 source and returns a decoded stream.
+// DecodeWithSampleRate decodes an MP3 source and returns a decoded stream in signed 16bit integer, little endian, 2 channels (stereo) format.
 //
 // DecodeWithSampleRate returns error when decoding fails or IO error happens.
 //
@@ -113,7 +136,7 @@ func DecodeWithSampleRate(sampleRate int, src io.Reader) (*Stream, error) {
 	return s, nil
 }
 
-// Decode decodes MP3 source and returns a decoded stream.
+// Decode decodes MP3 source and returns a decoded stream in signed 16bit integer, little endian, 2 channels (stereo) format.
 //
 // Decode returns error when decoding fails or IO error happens.
 //

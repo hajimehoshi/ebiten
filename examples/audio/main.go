@@ -124,27 +124,28 @@ func NewPlayer(game *Game, audioContext *audio.Context, musicType musicType) (*P
 		Length() int64
 	}
 
-	const bytesPerSample = 4 // TODO: This should be defined in audio package
-
+	// bytesPerSample is the byte size for one sample (8 [bytes] = 2 [channels] * 4 [bytes] (32bit float)).
+	// TODO: This should be defined in audio package.
+	const bytesPerSample = 8
 	var s audioStream
 
 	switch musicType {
 	case typeOgg:
 		var err error
-		s, err = vorbis.DecodeWithoutResampling(bytes.NewReader(raudio.Ragtime_ogg))
+		s, err = vorbis.DecodeF32(bytes.NewReader(raudio.Ragtime_ogg))
 		if err != nil {
 			return nil, err
 		}
 	case typeMP3:
 		var err error
-		s, err = mp3.DecodeWithoutResampling(bytes.NewReader(raudio.Ragtime_mp3))
+		s, err = mp3.DecodeF32(bytes.NewReader(raudio.Ragtime_mp3))
 		if err != nil {
 			return nil, err
 		}
 	default:
 		panic("not reached")
 	}
-	p, err := audioContext.NewPlayer(s)
+	p, err := audioContext.NewPlayerF32(s)
 	if err != nil {
 		return nil, err
 	}
@@ -171,7 +172,7 @@ func NewPlayer(game *Game, audioContext *audio.Context, musicType musicType) (*P
 
 	player.audioPlayer.Play()
 	go func() {
-		s, err := wav.DecodeWithoutResampling(bytes.NewReader(raudio.Jab_wav))
+		s, err := wav.DecodeF32(bytes.NewReader(raudio.Jab_wav))
 		if err != nil {
 			log.Fatal(err)
 			return
@@ -245,7 +246,7 @@ func (p *Player) playSEIfNeeded() {
 	if !p.shouldPlaySE() {
 		return
 	}
-	sePlayer := p.audioContext.NewPlayerFromBytes(p.seBytes)
+	sePlayer := p.audioContext.NewPlayerF32FromBytes(p.seBytes)
 	sePlayer.Play()
 }
 

@@ -61,7 +61,7 @@ func NewGame() (*Game, error) {
 	//         return err
 	//     }
 	//
-	//     d, err := wav.DecodeWithoutResampling(f)
+	//     d, err := wav.DecodeF32(f)
 	//     ...
 
 	// Decode wav-formatted data and retrieve decoded PCM stream.
@@ -72,13 +72,13 @@ func NewGame() (*Game, error) {
 	default:
 		r = bytes.NewReader(raudio.Jab_wav)
 	}
-	d, err := wav.DecodeWithoutResampling(r)
+	d, err := wav.DecodeF32(r)
 	if err != nil {
 		return nil, err
 	}
 
 	// Create an audio.Player that has one stream.
-	g.audioPlayer, err = g.audioContext.NewPlayer(d)
+	g.audioPlayer, err = g.audioContext.NewPlayerF32(d)
 	if err != nil {
 		return nil, err
 	}

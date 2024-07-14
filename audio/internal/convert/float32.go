@@ -24,6 +24,10 @@ func NewFloat32BytesReaderFromInt16BytesReader(r io.Reader) io.Reader {
 	return &float32BytesReader{r: r}
 }
 
+func NewFloat32BytesReadSeekerFromInt16BytesReadSeeker(r io.ReadSeeker) io.ReadSeeker {
+	return &float32BytesReader{r: r}
+}
+
 type float32BytesReader struct {
 	r      io.Reader
 	eof    bool

@@ -67,7 +67,7 @@ func (g *Game) initAudioIfNeeded() {
 
 	// Decode an Ogg file.
 	// oggS is a decoded io.ReadCloser and io.Seeker.
-	oggS, err := vorbis.DecodeWithoutResampling(bytes.NewReader(raudio.Ragtime_ogg))
+	oggS, err := vorbis.DecodeF32(bytes.NewReader(raudio.Ragtime_ogg))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -76,7 +76,7 @@ func (g *Game) initAudioIfNeeded() {
 	g.panstream = NewStereoPanStream(audio.NewInfiniteLoop(oggS, oggS.Length()))
 	g.panstream.SetPan(g.panning)
 
-	g.player, err = g.audioContext.NewPlayer(g.panstream)
+	g.player, err = g.audioContext.NewPlayerF32(g.panstream)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -162,7 +162,7 @@ func (s *StereoPanStream) Read(p []byte) (int, error) {
 	// Align the buffer size in multiples of 4. The extra part is pushed to the buffer for the
 	// next time.
 	totalN := bufN + readN
-	extra := totalN - totalN/4*4
+	extra := totalN - totalN/8*8
 	s.buf = append(s.buf, p[totalN-extra:totalN]...)
 	alignedN := totalN - extra
 
@@ -171,16 +171,22 @@ func (s *StereoPanStream) Read(p []byte) (int, error) {
 	// When pan is -1.0, only the left channel of the stereo sound is audible, when pan is 1.0,
 	// only the right channel of the stereo sound is audible.
 	// https://docs.unity3d.com/ScriptReference/AudioSource-panStereo.html
-	ls := math.Min(s.pan*-1+1, 1)
-	rs := math.Min(s.pan+1, 1)
-	for i := 0; i < alignedN; i += 4 {
-		lc := int16(float64(int16(p[i])|int16(p[i+1])<<8) * ls)
-		rc := int16(float64(int16(p[i+2])|int16(p[i+3])<<8) * rs)
+	ls := float32(math.Min(s.pan*-1+1, 1))
+	rs := float32(math.Min(s.pan+1, 1))
+	for i := 0; i < alignedN; i += 8 {
+		lc := math.Float32frombits(uint32(p[i])|(uint32(p[i+1])<<8)|(uint32(p[i+2])<<16)|(uint32(p[i+3])<<24)) * ls
+		rc := math.Float32frombits(uint32(p[i+4])|(uint32(p[i+5])<<8)|(uint32(p[i+6])<<16)|(uint32(p[i+7])<<24)) * rs
+		lcBits := math.Float32bits(lc)
+		rcBits := math.Float32bits(rc)
 
-		p[i] = byte(lc)
-		p[i+1] = byte(lc >> 8)
-		p[i+2] = byte(rc)
-		p[i+3] = byte(rc >> 8)
+		p[i] = byte(lcBits)
+		p[i+1] = byte(lcBits >> 8)
+		p[i+2] = byte(lcBits >> 16)
+		p[i+3] = byte(lcBits >> 24)
+		p[i+4] = byte(rcBits)
+		p[i+5] = byte(rcBits >> 8)
+		p[i+6] = byte(rcBits >> 16)
+		p[i+7] = byte(rcBits >> 24)
 	}
 	return alignedN, err
 }

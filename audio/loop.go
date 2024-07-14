@@ -17,6 +17,7 @@ package audio
 import (
 	"fmt"
 	"io"
+	"math"
 )
 
 // InfiniteLoop represents a looped stream which never ends.
@@ -42,17 +43,34 @@ type InfiniteLoop struct {
 
 // NewInfiniteLoop creates a new infinite loop stream with a source stream and length in bytes.
 //
+// src is a signed 16bit integer little endian stream, 2 channels (stereo).
+//
 // If the loop's total length is exactly the same as src's length, you might hear noises around the loop joint.
 // This noise can be heard especially when src is decoded from a lossy compression format like Ogg/Vorbis and MP3.
 // In this case, try to add more (about 0.1[s]) data to src after the loop end.
 // If src has data after the loop end, an InfiniteLoop uses part of the data to blend with the loop start
 // to make the loop joint smooth.
 func NewInfiniteLoop(src io.ReadSeeker, length int64) *InfiniteLoop {
-	return NewInfiniteLoopWithIntro(src, 0, length)
+	return newInfiniteLoopWithIntro(src, 0, length, bitDepthInBytesInt16)
+}
+
+// NewInfiniteLoopF32 creates a new infinite loop stream with a source stream and length in bytes.
+//
+// src is a 32bit float little endian stream, 2 channels (stereo).
+//
+// If the loop's total length is exactly the same as src's length, you might hear noises around the loop joint.
+// This noise can be heard especially when src is decoded from a lossy compression format like Ogg/Vorbis and MP3.
+// In this case, try to add more (about 0.1[s]) data to src after the loop end.
+// If src has data after the loop end, an InfiniteLoop uses part of the data to blend with the loop start
+// to make the loop joint smooth.
+func NewInfiniteLoopF32(src io.ReadSeeker, length int64) *InfiniteLoop {
+	return newInfiniteLoopWithIntro(src, 0, length, bitDepthInBytesFloat32)
 }
 
 // NewInfiniteLoopWithIntro creates a new infinite loop stream with an intro part.
 // NewInfiniteLoopWithIntro accepts a source stream src, introLength in bytes and loopLength in bytes.
+//
+// src is a signed 16bit integer little endian stream, 2 channels (stereo).
 //
 // If the loop's total length is exactly the same as src's length, you might hear noises around the loop joint.
 // This noise can be heard especially when src is decoded from a lossy compression format like Ogg/Vorbis and MP3.
@@ -61,6 +79,20 @@ func NewInfiniteLoop(src io.ReadSeeker, length int64) *InfiniteLoop {
 // to make the loop joint smooth.
 func NewInfiniteLoopWithIntro(src io.ReadSeeker, introLength int64, loopLength int64) *InfiniteLoop {
 	return newInfiniteLoopWithIntro(src, introLength, loopLength, bitDepthInBytesInt16)
+}
+
+// NewInfiniteLoopWithIntroF32 creates a new infinite loop stream with an intro part.
+// NewInfiniteLoopWithIntroF32 accepts a source stream src, introLength in bytes and loopLength in bytes.
+//
+// src is a 32bit float little endian stream, 2 channels (stereo).
+//
+// If the loop's total length is exactly the same as src's length, you might hear noises around the loop joint.
+// This noise can be heard especially when src is decoded from a lossy compression format like Ogg/Vorbis and MP3.
+// In this case, try to add more (about 0.1[s]) data to src after the loop end.
+// If src has data after the loop end, an InfiniteLoop uses part of the data to blend with the loop start
+// to make the loop joint smooth.
+func NewInfiniteLoopWithIntroF32(src io.ReadSeeker, introLength int64, loopLength int64) *InfiniteLoop {
+	return newInfiniteLoopWithIntro(src, introLength, loopLength, bitDepthInBytesFloat32)
 }
 
 func newInfiniteLoopWithIntro(src io.ReadSeeker, introLength int64, loopLength int64, bitDepthInBytes int) *InfiniteLoop {
@@ -152,9 +184,18 @@ func (i *InfiniteLoop) Read(b []byte) (int, error) {
 			case 2:
 				afterLoop := int16(i.afterLoop[relpos]) | (int16(i.afterLoop[relpos+1]) << 8)
 				orig := int16(b[2*idx]) | (int16(b[2*idx+1]) << 8)
-				newval := int16(float32(afterLoop)*rate + float32(orig)*(1-rate))
-				b[2*idx] = byte(newval)
-				b[2*idx+1] = byte(newval >> 8)
+				newVal := int16(float32(afterLoop)*rate + float32(orig)*(1-rate))
+				b[2*idx] = byte(newVal)
+				b[2*idx+1] = byte(newVal >> 8)
+			case 4:
+				afterLoop := math.Float32frombits(uint32(i.afterLoop[relpos]) | (uint32(i.afterLoop[relpos+1]) << 8) | (uint32(i.afterLoop[relpos+2]) << 16) | (uint32(i.afterLoop[relpos+3]) << 24))
+				orig := math.Float32frombits(uint32(b[4*idx]) | (uint32(b[4*idx+1]) << 8) | (uint32(b[4*idx+2]) << 16) | (uint32(b[4*idx+3]) << 24))
+				newVal := float32(afterLoop*rate + orig*(1-rate))
+				newValBits := math.Float32bits(newVal)
+				b[4*idx] = byte(newValBits)
+				b[4*idx+1] = byte(newValBits >> 8)
+				b[4*idx+2] = byte(newValBits >> 16)
+				b[4*idx+3] = byte(newValBits >> 24)
 			default:
 				panic("not reached")
 			}

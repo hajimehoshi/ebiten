@@ -31,7 +31,7 @@ const (
 	screenWidth    = 640
 	screenHeight   = 480
 	sampleRate     = 48000
-	bytesPerSample = 4 // 2 channels * 2 bytes (16 bit)
+	bytesPerSample = 8 // 2 channels * 4 bytes (32 bit float)
 
 	introLengthInSecond = 5
 	loopLengthInSecond  = 4
@@ -53,16 +53,16 @@ func (g *Game) Update() error {
 
 	// Decode an Ogg file.
 	// oggS is a decoded io.ReadCloser and io.Seeker.
-	oggS, err := vorbis.DecodeWithoutResampling(bytes.NewReader(raudio.Ragtime_ogg))
+	oggS, err := vorbis.DecodeF32(bytes.NewReader(raudio.Ragtime_ogg))
 	if err != nil {
 		return err
 	}
 
 	// Create an infinite loop stream from the decoded bytes.
 	// s is still an io.ReadCloser and io.Seeker.
-	s := audio.NewInfiniteLoopWithIntro(oggS, introLengthInSecond*bytesPerSample*sampleRate, loopLengthInSecond*bytesPerSample*sampleRate)
+	s := audio.NewInfiniteLoopWithIntroF32(oggS, introLengthInSecond*bytesPerSample*sampleRate, loopLengthInSecond*bytesPerSample*sampleRate)
 
-	g.player, err = g.audioContext.NewPlayer(s)
+	g.player, err = g.audioContext.NewPlayerF32(s)
 	if err != nil {
 		return err
 	}
@@ -79,7 +79,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	}
 	msg := fmt.Sprintf(`TPS: %0.2f
 This is an example using
-audio.NewInfiniteLoopWithIntro.
+audio.NewInfiniteLoopWithIntroF32.
 
 Intro:   0[s] - %[2]d[s]
 Loop:    %[2]d[s] - %[3]d[s]

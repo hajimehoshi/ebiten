@@ -350,6 +350,36 @@ func (c *Context) NewPlayer(src io.Reader) (*Player, error) {
 	return p, nil
 }
 
+// NewPlayerF32 creates a new player with the given stream.
+//
+// src's format must be linear PCM (32bit float, little endian, 2 channel stereo)
+// without a header (e.g. RIFF header).
+// The sample rate must be same as that of the audio context.
+//
+// The player is seekable when src is io.Seeker.
+// Attempt to seek the player that is not io.Seeker causes panic.
+//
+// Note that the given src can't be shared with other Player objects.
+//
+// NewPlayer tries to call Seek of src to get the current position.
+// NewPlayer returns error when the Seek returns error.
+//
+// A Player doesn't close src even if src implements io.Closer.
+// Closing the source is src owner's responsibility.
+func (c *Context) NewPlayerF32(src io.Reader) (*Player, error) {
+	_, seekable := src.(io.Seeker)
+	pi, err := c.playerFactory.newPlayer(c, src, seekable, src, bitDepthInBytesFloat32)
+	if err != nil {
+		return nil, err
+	}
+
+	p := &Player{pi}
+
+	runtime.SetFinalizer(p, (*Player).finalize)
+
+	return p, nil
+}
+
 // NewPlayer creates a new player with the given stream.
 //
 // Deprecated: as of v2.2. Use (*Context).NewPlayer instead.
@@ -368,6 +398,21 @@ func (c *Context) NewPlayerFromBytes(src []byte) *Player {
 	if err != nil {
 		// Errors should never happen.
 		panic(fmt.Sprintf("audio: %v at NewPlayerFromBytes", err))
+	}
+	return p
+}
+
+// NewPlayerF32FromBytes creates a new player with the given bytes.
+//
+// As opposed to NewPlayerF32, you don't have to care if src is already used by another player or not.
+// src can be shared by multiple players.
+//
+// The format of src should be same as noted at NewPlayerF32.
+func (c *Context) NewPlayerF32FromBytes(src []byte) *Player {
+	p, err := c.NewPlayerF32(bytes.NewReader(src))
+	if err != nil {
+		// Errors should never happen.
+		panic(fmt.Sprintf("audio: %v at NewPlayerFromBytesF32", err))
 	}
 	return p
 }
@@ -499,7 +544,7 @@ func (h *hookerImpl) AppendHookOnBeforeUpdate(f func() error) {
 	hook.AppendHookOnBeforeUpdate(f)
 }
 
-// Resample converts the sample rate of the given stream.
+// Resample converts the sample rate of the given singed 16bit integer, little-endian, 2 channels (stereo) stream.
 // size is the length of the source stream in bytes.
 // from is the original sample rate.
 // to is the target sample rate.
@@ -510,4 +555,17 @@ func Resample(source io.ReadSeeker, size int64, from, to int) io.ReadSeeker {
 		return source
 	}
 	return convert.NewResampling(source, size, from, to, bitDepthInBytesInt16)
+}
+
+// ResampleF32 converts the sample rate of the given 32bit float, little-endian, 2 channels (stereo) stream.
+// size is the length of the source stream in bytes.
+// from is the original sample rate.
+// to is the target sample rate.
+//
+// If the original sample rate equals to the new one, Resample returns source as it is.
+func ResampleF32(source io.ReadSeeker, size int64, from, to int) io.ReadSeeker {
+	if from == to {
+		return source
+	}
+	return convert.NewResampling(source, size, from, to, bitDepthInBytesFloat32)
 }
