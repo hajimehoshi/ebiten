@@ -15,6 +15,7 @@
 package convert
 
 import (
+	"fmt"
 	"io"
 	"math"
 )
@@ -78,7 +79,7 @@ func (r *float32BytesReader) Read(buf []byte) (int, error) {
 func (r *float32BytesReader) Seek(offset int64, whence int) (int64, error) {
 	s, ok := r.r.(io.Seeker)
 	if !ok {
-		panic("float32: the source must be io.Seeker when seeking but not")
+		return 0, fmt.Errorf("float32: the source must be io.Seeker when seeking but not")
 	}
 	r.i16Buf = r.i16Buf[:0]
 	r.eof = false
