@@ -64,7 +64,7 @@ func (s *Stream) SampleRate() int {
 // The format must be 1 or 2 channels, 8bit or 16bit little endian PCM.
 // The format is converted into 2 channels and 16bit.
 //
-// DecodeWithSampleRate returns error when decoding fails or IO error happens.
+// DecodeWithoutSampleRate returns error when decoding fails or IO error happens.
 //
 // The returned Stream's Seek is available only when src is an io.Seeker.
 //
