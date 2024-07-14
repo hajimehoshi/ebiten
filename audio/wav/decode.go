@@ -59,59 +59,6 @@ func (s *Stream) SampleRate() int {
 	return s.sampleRate
 }
 
-type stream struct {
-	src        io.Reader
-	headerSize int64
-	dataSize   int64
-	remaining  int64
-}
-
-// Read is implementation of io.Reader's Read.
-func (s *stream) Read(p []byte) (int, error) {
-	if s.remaining <= 0 {
-		return 0, io.EOF
-	}
-	if s.remaining < int64(len(p)) {
-		p = p[0:s.remaining]
-	}
-	n, err := s.src.Read(p)
-	s.remaining -= int64(n)
-	return n, err
-}
-
-// Seek is implementation of io.Seeker's Seek.
-//
-// If the underlying source is not an io.Seeker, Seek panics.
-func (s *stream) Seek(offset int64, whence int) (int64, error) {
-	seeker, ok := s.src.(io.Seeker)
-	if !ok {
-		panic("wav: s.src must be io.Seeker but not")
-	}
-
-	switch whence {
-	case io.SeekStart:
-		offset = offset + s.headerSize
-	case io.SeekCurrent:
-	case io.SeekEnd:
-		offset = s.headerSize + s.dataSize + offset
-		whence = io.SeekStart
-	}
-	n, err := seeker.Seek(offset, whence)
-	if err != nil {
-		return 0, err
-	}
-	if n-s.headerSize < 0 {
-		return 0, fmt.Errorf("wav: invalid offset")
-	}
-	s.remaining = s.dataSize - (n - s.headerSize)
-	// There could be a tail in wav file.
-	if s.remaining < 0 {
-		s.remaining = 0
-		return s.dataSize, nil
-	}
-	return n - s.headerSize, nil
-}
-
 // DecodeWithoutResampling decodes WAV (RIFF) data to playable stream.
 //
 // The format must be 1 or 2 channels, 8bit or 16bit little endian PCM.
@@ -189,8 +136,8 @@ func decode(src io.Reader) (*Stream, error) {
 	var sampleRate int
 chunks:
 	for {
-		buf := make([]byte, 8)
-		n, err := io.ReadFull(src, buf)
+		var buf [8]byte
+		n, err := io.ReadFull(src, buf[:])
 		if n != len(buf) {
 			return nil, fmt.Errorf("wav: invalid header")
 		}
@@ -247,12 +194,8 @@ chunks:
 			headerSize += size
 		}
 	}
-	var s io.ReadSeeker = &stream{
-		src:        src,
-		headerSize: headerSize,
-		dataSize:   dataSize,
-		remaining:  dataSize,
-	}
+
+	var s io.ReadSeeker = newSectionReader(src, headerSize, dataSize)
 
 	if mono || bitsPerSample != 16 {
 		s = convert.NewStereo16(s, mono, bitsPerSample != 16)
