@@ -79,7 +79,7 @@ func (t *textInput) init() {
 		if e.Get("code").String() == "Tab" {
 			e.Call("preventDefault")
 		}
-		if ui.IsVirtualKeyboard() && (e.Get("code").String() == "Enter" || e.Get("key").String() == "Enter") {
+		if isVirtualKeyboard() && (e.Get("code").String() == "Enter" || e.Get("key").String() == "Enter") {
 			// Ignore Enter key to avoid ebiten.IsKeyPressed(ebiten.KeyEnter) unexpectedly becomes true.
 			e.Call("preventDefault")
 			ui.Get().UpdateInputFromEvent(e)
