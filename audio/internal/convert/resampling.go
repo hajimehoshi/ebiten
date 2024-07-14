@@ -23,7 +23,7 @@ import (
 var (
 	// cosTable contains values of cosine applied to the range [0, π/2).
 	// It must be initialised the first time it is referenced
-	// in a function via its lazy load wrapper getCosTable().
+	// in a function via its lazy load wrapper ensureCosTable().
 	cosTable     []float64
 	cosTableOnce sync.Once
 )
