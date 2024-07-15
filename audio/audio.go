@@ -37,7 +37,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"reflect"
 	"runtime"
 	"sync"
 	"time"
@@ -189,15 +188,11 @@ func (c *Context) addPlayingPlayer(p *playerImpl) {
 	defer c.m.Unlock()
 	c.playingPlayers[p] = struct{}{}
 
-	if !reflect.ValueOf(p.sourceIdent()).Comparable() {
-		return
-	}
-
 	// Check the source duplication
 	srcs := map[any]struct{}{}
 	for p := range c.playingPlayers {
 		if _, ok := srcs[p.sourceIdent()]; ok {
-			c.err = errors.New("audio: the same source must not be used by multiple Player objects")
+			c.err = errors.New("audio: a same source is used by multiple Player")
 			return
 		}
 		srcs[p.sourceIdent()] = struct{}{}
