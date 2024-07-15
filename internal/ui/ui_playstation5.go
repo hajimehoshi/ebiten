@@ -69,6 +69,8 @@ func (u *UserInterface) init() error {
 }
 
 func (u *UserInterface) initOnMainThread(options *RunOptions) error {
+	u.setRunning(true)
+
 	g, lib, err := newGraphicsDriver(&graphicsDriverCreatorImpl{}, options.GraphicsLibrary)
 	if err != nil {
 		return err

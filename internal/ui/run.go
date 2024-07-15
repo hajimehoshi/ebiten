@@ -55,12 +55,6 @@ func (u *UserInterface) runMultiThread(game Game, options *RunOptions) error {
 	wg.Go(func() error {
 		defer cancel()
 
-		// Set the running state true after the main thread is set, and before initOnMainThread is called (#2742).
-		// TODO: As the existence of the main thread is the same as the value of `running`, this is redundant.
-		// Make `mainThread` atomic and remove `running` if possible.
-		u.setRunning(true)
-		defer u.setRunning(false)
-
 		var err error
 		u.mainThread.Call(func() {
 			if err1 := u.initOnMainThread(options); err1 != nil {
@@ -70,6 +64,9 @@ func (u *UserInterface) runMultiThread(game Game, options *RunOptions) error {
 		if err != nil {
 			return err
 		}
+
+		// setRunning(true) should be called in initOnMainThread for each platform.
+		defer u.setRunning(false)
 
 		return u.loopGame()
 	})

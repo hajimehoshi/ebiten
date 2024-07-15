@@ -749,6 +749,8 @@ func (u *UserInterface) shouldFocusFirst(options *RunOptions) bool {
 }
 
 func (u *UserInterface) initOnMainThread(options *RunOptions) error {
+	u.setRunning(true)
+
 	if u.shouldFocusFirst(options) {
 		canvas.Call("focus")
 	}

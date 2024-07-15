@@ -73,6 +73,8 @@ func (u *UserInterface) init() error {
 }
 
 func (u *UserInterface) initOnMainThread(options *RunOptions) error {
+	u.setRunning(true)
+
 	n := C.ebitengine_Initialize()
 	g, lib, err := newGraphicsDriver(&graphicsDriverCreatorImpl{
 		nativeWindow: n,

@@ -821,6 +821,8 @@ func (u *UserInterface) createWindow() error {
 		return err
 	}
 	u.window = window
+	// Set the running state true just a window is set (#2742).
+	u.setRunning(true)
 
 	// The position must be set before the size is set (#1982).
 	// setWindowSizeInDIP refers the current monitor's device scale.
