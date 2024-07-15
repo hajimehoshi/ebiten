@@ -16,6 +16,7 @@ package audio_test
 
 import (
 	"bytes"
+	"io"
 	"os"
 	"runtime"
 	"testing"
@@ -147,4 +148,32 @@ func TestNonSeekableSource(t *testing.T) {
 
 	p.Play()
 	p.Pause()
+
+	if err := audio.UpdateForTesting(); err != nil {
+		t.Error(err)
+	}
+}
+
+type uncomparableSource []int
+
+func (uncomparableSource) Read(buf []byte) (int, error) {
+	return 0, io.EOF
+}
+
+// Issue #3039
+func TestUncomparableSource(t *testing.T) {
+	setup()
+	defer teardown()
+
+	p, err := context.NewPlayer(uncomparableSource{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	p.Play()
+	p.Pause()
+
+	if err := audio.UpdateForTesting(); err != nil {
+		t.Error(err)
+	}
 }
