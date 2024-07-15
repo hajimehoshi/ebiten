@@ -45,10 +45,6 @@ func (u *UserInterface) runMultiThread(game Game, options *RunOptions) error {
 
 	u.context = newContext(game)
 
-	if err := u.initOnMainThread(options); err != nil {
-		return err
-	}
-
 	ctx, cancel := stdcontext.WithCancel(stdcontext.Background())
 	defer cancel()
 
@@ -64,6 +60,17 @@ func (u *UserInterface) runMultiThread(game Game, options *RunOptions) error {
 	// Run the game thread.
 	wg.Go(func() error {
 		defer cancel()
+
+		var err error
+		u.mainThread.Call(func() {
+			if err1 := u.initOnMainThread(options); err1 != nil {
+				err = err1
+			}
+		})
+		if err != nil {
+			return err
+		}
+
 		return u.loopGame()
 	})
 
