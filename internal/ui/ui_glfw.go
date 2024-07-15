@@ -96,7 +96,6 @@ type userInterfaceImpl struct {
 	savedCursorX float64
 	savedCursorY float64
 
-	sizeCallback                   glfw.SizeCallback
 	closeCallback                  glfw.CloseCallback
 	framebufferSizeCallback        glfw.FramebufferSizeCallback
 	defaultFramebufferSizeCallback glfw.FramebufferSizeCallback
