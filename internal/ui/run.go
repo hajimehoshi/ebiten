@@ -37,12 +37,6 @@ func (u *UserInterface) runMultiThread(game Game, options *RunOptions) error {
 	u.mainThread = thread.NewOSThread()
 	graphicscommand.SetOSThreadAsRenderThread()
 
-	// Set the running state true after the main thread is set, and before initOnMainThread is called (#2742).
-	// TODO: As the existence of the main thread is the same as the value of `running`, this is redundant.
-	// Make `mainThread` atomic and remove `running` if possible.
-	u.setRunning(true)
-	defer u.setRunning(false)
-
 	u.context = newContext(game)
 
 	ctx, cancel := stdcontext.WithCancel(stdcontext.Background())
@@ -60,6 +54,12 @@ func (u *UserInterface) runMultiThread(game Game, options *RunOptions) error {
 	// Run the game thread.
 	wg.Go(func() error {
 		defer cancel()
+
+		// Set the running state true after the main thread is set, and before initOnMainThread is called (#2742).
+		// TODO: As the existence of the main thread is the same as the value of `running`, this is redundant.
+		// Make `mainThread` atomic and remove `running` if possible.
+		u.setRunning(true)
+		defer u.setRunning(false)
 
 		var err error
 		u.mainThread.Call(func() {
