@@ -37,6 +37,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"reflect"
 	"runtime"
 	"sync"
 	"time"
@@ -188,11 +189,22 @@ func (c *Context) addPlayingPlayer(p *playerImpl) {
 	defer c.m.Unlock()
 	c.playingPlayers[p] = struct{}{}
 
+	// (reflect.Type).Comparable() is enough here, as reflect.TypeOf should always return a dynamic (non-interface) type.
+	// If reflect.TypeOf returned an interface type, this check would be meaningless.
+	// See these for more details:
+	// * https://pkg.go.dev/reflect#TypeOf
+	// * https://pkg.go.dev/reflect#Type.Comparable
+	//
+	// (*reflect.Value).Comparable() is more intuitive but this was introduced in Go 1.20.
+	if !reflect.TypeOf(p.sourceIdent()).Comparable() {
+		return
+	}
+
 	// Check the source duplication
 	srcs := map[any]struct{}{}
 	for p := range c.playingPlayers {
 		if _, ok := srcs[p.sourceIdent()]; ok {
-			c.err = errors.New("audio: a same source is used by multiple Player")
+			c.err = errors.New("audio: the same source must not be used by multiple Player objects")
 			return
 		}
 		srcs[p.sourceIdent()] = struct{}{}
