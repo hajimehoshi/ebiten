@@ -61,7 +61,7 @@ func (p *drawTrianglesCommandPool) put(v *drawTrianglesCommand) {
 
 // drawTrianglesCommand represents a drawing command to draw an image on another image.
 type drawTrianglesCommand struct {
-	dsts       [graphics.ShaderDstImageCount]*Image
+	dst        *Image
 	srcs       [graphics.ShaderSrcImageCount]*Image
 	vertices   []float32
 	blend      graphicsdriver.Blend
@@ -81,16 +81,9 @@ func (c *drawTrianglesCommand) String() string {
 		c.blend.BlendOperationRGB,
 		c.blend.BlendOperationAlpha)
 
-	var dststrs [graphics.ShaderDstImageCount]string
-	for i, dst := range c.dsts {
-		if dst == nil {
-			dststrs[i] = "(nil)"
-			continue
-		}
-		dststrs[i] = fmt.Sprintf("%d", dst.id)
-		if dst.screen {
-			dststrs[i] += " (screen)"
-		}
+	dst := fmt.Sprintf("%d", c.dst.id)
+	if c.dst.screen {
+		dst += " (screen)"
 	}
 
 	var srcstrs [graphics.ShaderSrcImageCount]string
@@ -105,7 +98,7 @@ func (c *drawTrianglesCommand) String() string {
 		}
 	}
 
-	return fmt.Sprintf("draw-triangles: dst: [%s] <- src: [%s], num of dst regions: %d, num of indices: %d, blend: %s, fill rule: %s, shader id: %d", strings.Join(dststrs[:], ", "), strings.Join(srcstrs[:], ", "), len(c.dstRegions), c.numIndices(), blend, c.fillRule, c.shader.id)
+	return fmt.Sprintf("draw-triangles: dst: %s <- src: [%s], num of dst regions: %d, num of indices: %d, blend: %s, fill rule: %s, shader id: %d", dst, strings.Join(srcstrs[:], ", "), len(c.dstRegions), c.numIndices(), blend, c.fillRule, c.shader.id)
 }
 
 // Exec executes the drawTrianglesCommand.
@@ -115,25 +108,16 @@ func (c *drawTrianglesCommand) Exec(commandQueue *commandQueue, graphicsDriver g
 		return nil
 	}
 
-	var dsts [graphics.ShaderDstImageCount]graphicsdriver.ImageID
-	for i, dst := range c.dsts {
-		if dst == nil {
-			dsts[i] = graphicsdriver.InvalidImageID
-			continue
-		}
-		dsts[i] = dst.image.ID()
-	}
-
-	var srcs [graphics.ShaderSrcImageCount]graphicsdriver.ImageID
+	var imgs [graphics.ShaderSrcImageCount]graphicsdriver.ImageID
 	for i, src := range c.srcs {
 		if src == nil {
-			srcs[i] = graphicsdriver.InvalidImageID
+			imgs[i] = graphicsdriver.InvalidImageID
 			continue
 		}
-		srcs[i] = src.image.ID()
+		imgs[i] = src.image.ID()
 	}
 
-	return graphicsDriver.DrawTriangles(dsts, srcs, c.shader.shader.ID(), c.dstRegions, indexOffset, c.blend, c.uniforms, c.fillRule)
+	return graphicsDriver.DrawTriangles(c.dst.image.ID(), imgs, c.shader.shader.ID(), c.dstRegions, indexOffset, c.blend, c.uniforms, c.fillRule)
 }
 
 func (c *drawTrianglesCommand) NeedsSync() bool {
@@ -158,7 +142,7 @@ func (c *drawTrianglesCommand) setVertices(vertices []float32) {
 
 // CanMergeWithDrawTrianglesCommand returns a boolean value indicating whether the other drawTrianglesCommand can be merged
 // with the drawTrianglesCommand c.
-func (c *drawTrianglesCommand) CanMergeWithDrawTrianglesCommand(dsts [graphics.ShaderDstImageCount]*Image, srcs [graphics.ShaderSrcImageCount]*Image, vertices []float32, blend graphicsdriver.Blend, shader *Shader, uniforms []uint32, fillRule graphicsdriver.FillRule) bool {
+func (c *drawTrianglesCommand) CanMergeWithDrawTrianglesCommand(dst *Image, srcs [graphics.ShaderSrcImageCount]*Image, vertices []float32, blend graphicsdriver.Blend, shader *Shader, uniforms []uint32, fillRule graphicsdriver.FillRule) bool {
 	if c.shader != shader {
 		return false
 	}
@@ -170,7 +154,7 @@ func (c *drawTrianglesCommand) CanMergeWithDrawTrianglesCommand(dsts [graphics.S
 			return false
 		}
 	}
-	if c.dsts != dsts {
+	if c.dst != dst {
 		return false
 	}
 	if c.srcs != srcs {
