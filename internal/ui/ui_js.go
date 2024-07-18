@@ -702,7 +702,6 @@ func (u *UserInterface) setCanvasEventHandlers(v js.Value) {
 	}))
 }
 
-// appendDroppedFiles will only take the first file, all other files that was drop will get thrown
 func (u *UserInterface) appendDroppedFiles(data js.Value) {
 	u.dropFileM.Lock()
 	defer u.dropFileM.Unlock()
@@ -712,21 +711,16 @@ func (u *UserInterface) appendDroppedFiles(data js.Value) {
 		return
 	}
 
-	var files []*file.FileEntryFS
+loop:
 	for i := 0; i < items.Length(); i++ {
 		kind := items.Index(i).Get("kind").String()
 		switch kind {
 		case "file":
 			fs := items.Index(i).Call("webkitGetAsEntry").Get("filesystem").Get("root")
-			files = append(files, file.NewFileEntryFS(fs))
+			u.inputState.DroppedFiles = file.NewFileEntryFS(fs)
+			break loop
 		}
 	}
-
-	if len(files) <= 0 {
-		return
-	}
-
-	u.inputState.DroppedFiles = files[0]
 }
 
 func (u *UserInterface) forceUpdateOnMinimumFPSMode() {
