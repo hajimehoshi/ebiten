@@ -711,14 +711,13 @@ func (u *UserInterface) appendDroppedFiles(data js.Value) {
 		return
 	}
 
-loop:
 	for i := 0; i < items.Length(); i++ {
 		kind := items.Index(i).Get("kind").String()
 		switch kind {
 		case "file":
 			fs := items.Index(i).Call("webkitGetAsEntry").Get("filesystem").Get("root")
 			u.inputState.DroppedFiles = file.NewFileEntryFS(fs)
-			break loop
+			return
 		}
 	}
 }
