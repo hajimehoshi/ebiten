@@ -705,11 +705,7 @@ func (u *UserInterface) setCanvasEventHandlers(v js.Value) {
 func (u *UserInterface) appendDroppedFiles(data js.Value) {
 	u.dropFileM.Lock()
 	defer u.dropFileM.Unlock()
-
 	items := data.Get("items")
-	if items.Length() <= 0 {
-		return
-	}
 
 	for i := 0; i < items.Length(); i++ {
 		kind := items.Index(i).Get("kind").String()
