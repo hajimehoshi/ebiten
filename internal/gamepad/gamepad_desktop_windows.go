@@ -309,7 +309,7 @@ func (g *nativeGamepadsDesktop) dinput8EnumDevicesCallback(lpddi *_DIDEVICEINSTA
 		return _DIENUM_STOP
 	}
 
-	// lpddi.guidInstance is not relialable as a unique identity when the same multiple devices are connected (#3046).
+	// lpddi.guidInstance is not reliable as a unique identity when the same multiple devices are connected (#3046).
 	// Use HID Path instead.
 	getDInputPath := func(device *_IDirectInputDevice8W) (string, error) {
 		var prop _DIPROPGUIDANDPATH
