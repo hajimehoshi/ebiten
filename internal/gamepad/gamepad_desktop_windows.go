@@ -294,12 +294,6 @@ func (g *nativeGamepadsDesktop) dinput8EnumDevicesCallback(lpddi *_DIDEVICEINSTA
 		return _DIENUM_STOP
 	}
 
-	if gamepads.find(func(g *Gamepad) bool {
-		return g.native.(*nativeGamepadDesktop).dinputGUID == lpddi.guidInstance
-	}) != nil {
-		return _DIENUM_CONTINUE
-	}
-
 	s, err := supportsXInput(lpddi.guidProduct)
 	if err != nil {
 		g.err = err
@@ -313,6 +307,42 @@ func (g *nativeGamepadsDesktop) dinput8EnumDevicesCallback(lpddi *_DIDEVICEINSTA
 	if err := g.dinput8API.CreateDevice(&lpddi.guidInstance, &device, nil); err != nil {
 		g.err = err
 		return _DIENUM_STOP
+	}
+
+	// lpddi.guidInstance is not relialable as a unique identity when the same multiple devices are connected (#3046).
+	// Use HID Path instead.
+	getDInputPath := func(device *_IDirectInputDevice8W) (string, error) {
+		var prop _DIPROPGUIDANDPATH
+		prop.diph.dwHeaderSize = uint32(unsafe.Sizeof(_DIPROPHEADER{}))
+		prop.diph.dwSize = uint32(unsafe.Sizeof(_DIPROPGUIDANDPATH{}))
+		if err := device.GetProperty(_DIPROP_GUIDANDPATH, &prop.diph); err != nil {
+			return "", err
+		}
+		return windows.UTF16ToString(prop.wszPath[:]), nil
+	}
+	dinputPath, err := getDInputPath(device)
+	if err != nil {
+		g.err = err
+		device.Release()
+		return _DIENUM_STOP
+	}
+
+	var findErr error
+	if gamepads.find(func(g *Gamepad) bool {
+		path, err := getDInputPath(g.native.(*nativeGamepadDesktop).dinputDevice)
+		if err != nil {
+			findErr = err
+			return true
+		}
+		return path == dinputPath
+	}) != nil {
+		if findErr != nil {
+			g.err = findErr
+			device.Release()
+			return _DIENUM_STOP
+		}
+		device.Release()
+		return _DIENUM_CONTINUE
 	}
 
 	dataFormat := _DIDATAFORMAT{
@@ -395,7 +425,7 @@ func (g *nativeGamepadsDesktop) dinput8EnumDevicesCallback(lpddi *_DIDEVICEINSTA
 	gp.native = &nativeGamepadDesktop{
 		dinputDevice:  device,
 		dinputObjects: ctx.objects,
-		dinputGUID:    lpddi.guidInstance,
+		dinputPath:    dinputPath,
 		dinputAxes:    make([]float64, ctx.axisCount+ctx.sliderCount),
 		dinputButtons: make([]bool, ctx.buttonCount),
 		dinputHats:    make([]int, ctx.povCount),
@@ -562,7 +592,7 @@ func (g *nativeGamepadsDesktop) setNativeWindow(nativeWindow uintptr) {
 type nativeGamepadDesktop struct {
 	dinputDevice  *_IDirectInputDevice8W
 	dinputObjects []dinputObject
-	dinputGUID    windows.GUID
+	dinputPath    string
 	dinputAxes    []float64
 	dinputButtons []bool
 	dinputHats    []int
