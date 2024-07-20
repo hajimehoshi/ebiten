@@ -329,7 +329,12 @@ func (g *nativeGamepadsDesktop) dinput8EnumDevicesCallback(lpddi *_DIDEVICEINSTA
 
 	var findErr error
 	if gamepads.find(func(g *Gamepad) bool {
-		path, err := getDInputPath(g.native.(*nativeGamepadDesktop).dinputDevice)
+		// A DInput device can be nil when the device is an XInput device (#3047).
+		d := g.native.(*nativeGamepadDesktop).dinputDevice
+		if d == nil {
+			return false
+		}
+		path, err := getDInputPath(d)
 		if err != nil {
 			findErr = err
 			return true
