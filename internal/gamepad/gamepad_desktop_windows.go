@@ -315,6 +315,7 @@ func (g *nativeGamepadsDesktop) dinput8EnumDevicesCallback(lpddi *_DIDEVICEINSTA
 		var prop _DIPROPGUIDANDPATH
 		prop.diph.dwHeaderSize = uint32(unsafe.Sizeof(_DIPROPHEADER{}))
 		prop.diph.dwSize = uint32(unsafe.Sizeof(_DIPROPGUIDANDPATH{}))
+		prop.diph.dwHow = _DIPH_DEVICE
 		if err := device.GetProperty(_DIPROP_GUIDANDPATH, &prop.diph); err != nil {
 			return "", err
 		}
