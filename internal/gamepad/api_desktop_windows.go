@@ -58,8 +58,9 @@ const (
 	_DIPH_DEVICE = 0
 	_DIPH_BYID   = 2
 
-	_DIPROP_AXISMODE = 2
-	_DIPROP_RANGE    = 4
+	_DIPROP_AXISMODE    = 2
+	_DIPROP_GUIDANDPATH = 12
+	_DIPROP_RANGE       = 4
 
 	_DIPROPAXISMODE_ABS = 0
 
@@ -280,6 +281,12 @@ type _DIPROPDWORD struct {
 	dwData uint32
 }
 
+type _DIPROPGUIDANDPATH struct {
+	diph      _DIPROPHEADER
+	guidClass windows.GUID
+	wszPath   [_MAX_PATH]uint16
+}
+
 type _DIPROPHEADER struct {
 	dwSize       uint32
 	dwHeaderSize uint32
@@ -405,6 +412,14 @@ func (d *_IDirectInputDevice8W) GetDeviceState(cbData uint32, lpvData unsafe.Poi
 	r, _, _ := syscall.Syscall(d.vtbl.GetDeviceState, 3, uintptr(unsafe.Pointer(d)), uintptr(cbData), uintptr(lpvData))
 	if uint32(r) != _DI_OK {
 		return fmt.Errorf("gamepad: IDirectInputDevice8::GetDeviceState failed: %w", handleError(windows.Handle(uint32(r))))
+	}
+	return nil
+}
+
+func (d *_IDirectInputDevice8W) GetProperty(rguidProp uintptr, pdiph *_DIPROPHEADER) error {
+	r, _, _ := syscall.Syscall(d.vtbl.GetProperty, 3, uintptr(unsafe.Pointer(d)), rguidProp, uintptr(unsafe.Pointer(pdiph)))
+	if uint32(r) != _DI_OK {
+		return fmt.Errorf("gamepad: IDirectInputDevice8::GetProperty failed: %w", handleError(windows.Handle(uint32(r))))
 	}
 	return nil
 }
