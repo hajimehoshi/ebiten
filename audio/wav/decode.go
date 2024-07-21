@@ -198,7 +198,7 @@ chunks:
 	var s io.ReadSeeker = newSectionReader(src, headerSize, dataSize)
 
 	if mono || bitsPerSample != 16 {
-		s = convert.NewStereo16(s, mono, bitsPerSample != 16)
+		s = convert.NewStereoI16(s, mono, bitsPerSample != 16)
 		if mono {
 			dataSize *= 2
 		}

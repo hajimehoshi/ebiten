@@ -18,22 +18,22 @@ import (
 	"io"
 )
 
-type Stereo16 struct {
+type StereoI16 struct {
 	source io.ReadSeeker
 	mono   bool
 	eight  bool
 	buf    []byte
 }
 
-func NewStereo16(source io.ReadSeeker, mono, eight bool) *Stereo16 {
-	return &Stereo16{
+func NewStereoI16(source io.ReadSeeker, mono, eight bool) *StereoI16 {
+	return &StereoI16{
 		source: source,
 		mono:   mono,
 		eight:  eight,
 	}
 }
 
-func (s *Stereo16) Read(b []byte) (int, error) {
+func (s *StereoI16) Read(b []byte) (int, error) {
 	l := len(b)
 	if s.mono {
 		l /= 2
@@ -85,7 +85,7 @@ func (s *Stereo16) Read(b []byte) (int, error) {
 	return n, err
 }
 
-func (s *Stereo16) Seek(offset int64, whence int) (int64, error) {
+func (s *StereoI16) Seek(offset int64, whence int) (int64, error) {
 	if s.mono {
 		offset /= 2
 	}

@@ -121,14 +121,14 @@ func (s *i16Stream) Length() int64 {
 	return int64(s.totalBytes)
 }
 
-// decode accepts an ogg stream and returns a decorded stream.
-func decode(in io.Reader) (*i16Stream, int, int, error) {
+// decodeI16 accepts an ogg stream and returns a decorded stream.
+func decodeI16(in io.Reader) (*i16Stream, error) {
 	r, err := oggvorbis.NewReader(in)
 	if err != nil {
-		return nil, 0, 0, err
+		return nil, err
 	}
 	if r.Channels() != 1 && r.Channels() != 2 {
-		return nil, 0, 0, fmt.Errorf("vorbis: number of channels must be 1 or 2 but was %d", r.Channels())
+		return nil, fmt.Errorf("vorbis: number of channels must be 1 or 2 but was %d", r.Channels())
 	}
 
 	s := &i16Stream{
@@ -138,15 +138,16 @@ func decode(in io.Reader) (*i16Stream, int, int, error) {
 		posInBytes:   0,
 		vorbisReader: r,
 	}
+	// Read some data for performance (#297).
 	if _, ok := in.(io.Seeker); ok {
 		if _, err := s.Read(make([]byte, 65536)); err != nil && err != io.EOF {
-			return nil, 0, 0, err
+			return nil, err
 		}
 		if _, err := s.Seek(0, io.SeekStart); err != nil {
-			return nil, 0, 0, err
+			return nil, err
 		}
 	}
-	return s, r.Channels(), r.SampleRate(), nil
+	return s, nil
 }
 
 // DecodeWithoutResampling decodes Ogg/Vorbis data to playable stream.
@@ -158,22 +159,22 @@ func decode(in io.Reader) (*i16Stream, int, int, error) {
 // A Stream doesn't close src even if src implements io.Closer.
 // Closing the source is src owner's responsibility.
 func DecodeWithoutResampling(src io.Reader) (*Stream, error) {
-	i16Stream, channelCount, sampleRate, err := decode(src)
+	i16Stream, err := decodeI16(src)
 	if err != nil {
 		return nil, err
 	}
 
 	var s io.ReadSeeker = i16Stream
 	length := i16Stream.Length()
-	if channelCount == 1 {
-		s = convert.NewStereo16(s, true, false)
+	if i16Stream.vorbisReader.Channels() == 1 {
+		s = convert.NewStereoI16(s, true, false)
 		length *= 2
 	}
 
 	stream := &Stream{
 		readSeeker: s,
 		length:     length,
-		sampleRate: sampleRate,
+		sampleRate: i16Stream.vorbisReader.SampleRate(),
 	}
 	return stream, nil
 }
@@ -192,19 +193,19 @@ func DecodeWithoutResampling(src io.Reader) (*Stream, error) {
 // Resampling can be a very heavy task. Stream has a cache for resampling, but the size is limited.
 // Do not expect that Stream has a resampling cache even after whole data is played.
 func DecodeWithSampleRate(sampleRate int, src io.Reader) (*Stream, error) {
-	i16Stream, channelCount, origSampleRate, err := decode(src)
+	i16Stream, err := decodeI16(src)
 	if err != nil {
 		return nil, err
 	}
 
 	var s io.ReadSeeker = i16Stream
 	length := i16Stream.Length()
-	if channelCount == 1 {
-		s = convert.NewStereo16(s, true, false)
+	if i16Stream.vorbisReader.Channels() == 1 {
+		s = convert.NewStereoI16(s, true, false)
 		length *= 2
 	}
-	if origSampleRate != sampleRate {
-		r := convert.NewResampling(s, length, origSampleRate, sampleRate, bitDepthInBytesInt16)
+	if i16Stream.vorbisReader.SampleRate() != sampleRate {
+		r := convert.NewResampling(s, length, i16Stream.vorbisReader.SampleRate(), sampleRate, bitDepthInBytesInt16)
 		s = r
 		length = r.Length()
 	}
