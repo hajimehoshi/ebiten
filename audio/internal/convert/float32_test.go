@@ -16,9 +16,8 @@ package convert_test
 
 import (
 	"bytes"
-	"crypto/rand"
 	"io"
-	"runtime"
+	"math/rand" // TODO: Use math/rand/v2 when the minimum supported version becomes Go 1.22.
 	"testing"
 	"unsafe"
 
@@ -27,8 +26,8 @@ import (
 
 func randInt16s(n int) []int16 {
 	r := make([]int16, n)
-	if _, err := rand.Read(unsafe.Slice((*byte)(unsafe.Pointer(&r[0])), len(r)*2)); err != nil {
-		panic(err)
+	for i := range r {
+		r[i] = int16(rand.Intn(1<<16) - (1 << 15))
 	}
 	return r
 }
@@ -55,13 +54,10 @@ func TestFloat32(t *testing.T) {
 			Name: "random 256 values",
 			In:   randInt16s(256),
 		},
-	}
-	// On browsers, entropy might not be enough.
-	if runtime.GOOS != "js" {
-		cases = append(cases, testCase{
+		{
 			Name: "random 65536 values",
 			In:   randInt16s(65536),
-		})
+		},
 	}
 	for _, c := range cases {
 		c := c
