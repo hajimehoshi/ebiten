@@ -33,33 +33,24 @@ const (
 
 // Stream is a decoded stream.
 type Stream struct {
-	orig       *mp3.Decoder
-	resampling *convert.Resampling
+	readSeeker io.ReadSeeker
+	length     int64
 	sampleRate int
 }
 
 // Read is implementation of io.Reader's Read.
 func (s *Stream) Read(buf []byte) (int, error) {
-	if s.resampling != nil {
-		return s.resampling.Read(buf)
-	}
-	return s.orig.Read(buf)
+	return s.readSeeker.Read(buf)
 }
 
 // Seek is implementation of io.Seeker's Seek.
 func (s *Stream) Seek(offset int64, whence int) (int64, error) {
-	if s.resampling != nil {
-		return s.resampling.Seek(offset, whence)
-	}
-	return s.orig.Seek(offset, whence)
+	return s.readSeeker.Seek(offset, whence)
 }
 
 // Length returns the size of decoded stream in bytes.
 func (s *Stream) Length() int64 {
-	if s.resampling != nil {
-		return s.resampling.Length()
-	}
-	return s.orig.Length()
+	return s.length
 }
 
 // SampleRate returns the sample rate of the decoded stream.
@@ -81,8 +72,8 @@ func DecodeWithoutResampling(src io.Reader) (*Stream, error) {
 		return nil, err
 	}
 	s := &Stream{
-		orig:       d,
-		resampling: nil,
+		readSeeker: d,
+		length:     d.Length(),
 		sampleRate: d.SampleRate(),
 	}
 	return s, nil
@@ -107,13 +98,16 @@ func DecodeWithSampleRate(sampleRate int, src io.Reader) (*Stream, error) {
 		return nil, err
 	}
 
-	var r *convert.Resampling
+	var r io.ReadSeeker = d
+	length := d.Length()
 	if d.SampleRate() != sampleRate {
-		r = convert.NewResampling(d, d.Length(), d.SampleRate(), sampleRate, bitDepthInBytesInt16)
+		r2 := convert.NewResampling(d, d.Length(), d.SampleRate(), sampleRate, bitDepthInBytesInt16)
+		r = r2
+		length = r2.Length()
 	}
 	s := &Stream{
-		orig:       d,
-		resampling: r,
+		readSeeker: r,
+		length:     length,
 		sampleRate: sampleRate,
 	}
 	return s, nil
