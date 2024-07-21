@@ -335,6 +335,10 @@ type Player struct {
 //
 // A Player doesn't close src even if src implements io.Closer.
 // Closing the source is src owner's responsibility.
+//
+// For new code, NewPlayerF32 is preferrable to NewPlayer, since Ebitengine will treat only 32bit float audio internally in the future.
+//
+// A Player for 16bit integer must be used with 16bit integer version of audio APIs, like NewInfiniteLoop, not NewInfiniteLoopF32.
 func (c *Context) NewPlayer(src io.Reader) (*Player, error) {
 	_, seekable := src.(io.Seeker)
 	f32Src := convert.NewFloat32BytesReaderFromInt16BytesReader(src)
@@ -361,11 +365,15 @@ func (c *Context) NewPlayer(src io.Reader) (*Player, error) {
 //
 // Note that the given src can't be shared with other Player objects.
 //
-// NewPlayer tries to call Seek of src to get the current position.
-// NewPlayer returns error when the Seek returns error.
+// NewPlayerF32 tries to call Seek of src to get the current position.
+// NewPlayerF32 returns error when the Seek returns error.
 //
 // A Player doesn't close src even if src implements io.Closer.
 // Closing the source is src owner's responsibility.
+//
+// For new code, NewPlayerF32 is preferrable to NewPlayer, since Ebitengine will treat only 32bit float audio internally in the future.
+//
+// A Player for 32bit float must be used with 32bit float version of audio APIs, like NewInfiniteLoopF32, not NewInfiniteLoop.
 func (c *Context) NewPlayerF32(src io.Reader) (*Player, error) {
 	_, seekable := src.(io.Seeker)
 	pi, err := c.playerFactory.newPlayer(c, src, seekable, src, bitDepthInBytesFloat32)
