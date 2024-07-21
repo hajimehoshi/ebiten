@@ -338,7 +338,7 @@ type Player struct {
 //
 // For new code, NewPlayerF32 is preferrable to NewPlayer, since Ebitengine will treat only 32bit float audio internally in the future.
 //
-// A Player for 16bit integer must be used with 16bit integer version of audio APIs, like NewInfiniteLoop, not NewInfiniteLoopF32.
+// A Player for 16bit integer must be used with 16bit integer version of audio APIs, like vorbis.DecodeWithoutResampling or audio.NewInfiniteLoop, not or vorbis.DecodeF32 or audio.NewInfiniteLoopF32.
 func (c *Context) NewPlayer(src io.Reader) (*Player, error) {
 	_, seekable := src.(io.Seeker)
 	f32Src := convert.NewFloat32BytesReaderFromInt16BytesReader(src)
@@ -373,7 +373,7 @@ func (c *Context) NewPlayer(src io.Reader) (*Player, error) {
 //
 // For new code, NewPlayerF32 is preferrable to NewPlayer, since Ebitengine will treat only 32bit float audio internally in the future.
 //
-// A Player for 32bit float must be used with 32bit float version of audio APIs, like NewInfiniteLoopF32, not NewInfiniteLoop.
+// A Player for 32bit float must be used with 32bit float version of audio APIs, like vorbis.DecodeF32 or audio.NewInfiniteLoopF32, not vorbis.DecodeWithoutResampling or audio.NewInfiniteLoop.
 func (c *Context) NewPlayerF32(src io.Reader) (*Player, error) {
 	_, seekable := src.(io.Seeker)
 	pi, err := c.playerFactory.newPlayer(c, src, seekable, src, bitDepthInBytesFloat32)
