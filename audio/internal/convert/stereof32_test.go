@@ -43,8 +43,8 @@ func TestStereoF32(t *testing.T) {
 			In:   nil,
 		},
 		{
-			Name: "-1, 0, 1",
-			In:   []float32{-1, 0, 1},
+			Name: "-1, 0, 1, 0",
+			In:   []float32{-1, 0, 1, 0},
 		},
 		{
 			Name: "8 0s",
