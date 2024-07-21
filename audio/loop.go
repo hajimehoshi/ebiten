@@ -94,7 +94,7 @@ func (i *InfiniteLoop) ensurePos() error {
 	return nil
 }
 
-func (i *InfiniteLoop) blendRate(pos int64) float64 {
+func (i *InfiniteLoop) blendRate(pos int64) float32 {
 	if pos < i.lstart {
 		return 0
 	}
@@ -103,7 +103,7 @@ func (i *InfiniteLoop) blendRate(pos int64) float64 {
 	}
 	p := (pos - i.lstart) / int64(i.bytesPerSample)
 	l := len(i.afterLoop) / i.bytesPerSample
-	return 1 - float64(p)/float64(l)
+	return 1 - float32(p)/float32(l)
 }
 
 // Read is implementation of ReadSeeker's Read.
@@ -152,7 +152,7 @@ func (i *InfiniteLoop) Read(b []byte) (int, error) {
 			case 2:
 				afterLoop := int16(i.afterLoop[relpos]) | (int16(i.afterLoop[relpos+1]) << 8)
 				orig := int16(b[2*idx]) | (int16(b[2*idx+1]) << 8)
-				newval := int16(float64(afterLoop)*rate + float64(orig)*(1-rate))
+				newval := int16(float32(afterLoop)*rate + float32(orig)*(1-rate))
 				b[2*idx] = byte(newval)
 				b[2*idx+1] = byte(newval >> 8)
 			default:
