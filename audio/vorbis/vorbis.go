@@ -61,8 +61,7 @@ func (s *Stream) SampleRate() int {
 }
 
 type i16Stream struct {
-	totalBytes   int
-	posInBytes   int
+	posInBytes   int64
 	vorbisReader *oggvorbis.Reader
 	i16Reader    io.Reader
 }
@@ -72,9 +71,9 @@ func (s *i16Stream) Read(b []byte) (int, error) {
 		s.i16Reader = newInt16BytesReaderFromFloat32Reader(s.vorbisReader)
 	}
 
-	l := s.totalBytes - s.posInBytes
-	if l > len(b) {
-		l = len(b)
+	l := s.totalBytes() - s.posInBytes
+	if l > int64(len(b)) {
+		l = int64(len(b))
 	}
 	if l < 0 {
 		return 0, io.EOF
@@ -90,8 +89,8 @@ retry:
 		goto retry
 	}
 
-	s.posInBytes += n
-	if s.posInBytes == s.totalBytes || err == io.EOF {
+	s.posInBytes += int64(n)
+	if s.posInBytes == s.totalBytes() || err == io.EOF {
 		return n, io.EOF
 	}
 	return n, nil
@@ -105,20 +104,21 @@ func (s *i16Stream) Seek(offset int64, whence int) (int64, error) {
 	case io.SeekCurrent:
 		next = int64(s.posInBytes) + offset
 	case io.SeekEnd:
-		next = int64(s.totalBytes) + offset
+		next = int64(s.totalBytes()) + offset
 	}
-	// pos should be always even
-	next = next / 2 * 2
-	s.posInBytes = int(next)
-	if err := s.vorbisReader.SetPosition(next / int64(s.vorbisReader.Channels()) / 2); err != nil {
+	sampleSize := int64(s.vorbisReader.Channels()) * bitDepthInBytesInt16
+	s.posInBytes = next / sampleSize * sampleSize
+	if err := s.vorbisReader.SetPosition(next / sampleSize); err != nil {
 		return 0, err
 	}
 	s.i16Reader = nil
 	return next, nil
 }
 
-func (s *i16Stream) Length() int64 {
-	return int64(s.totalBytes)
+func (s *i16Stream) totalBytes() int64 {
+	// TODO: r.Length() returns 0 when the format is unknown.
+	// Should we check that?
+	return s.vorbisReader.Length() * int64(s.vorbisReader.Channels()) * bitDepthInBytesInt16
 }
 
 // decodeI16 accepts an ogg stream and returns a decorded stream.
@@ -132,9 +132,6 @@ func decodeI16(in io.Reader) (*i16Stream, error) {
 	}
 
 	s := &i16Stream{
-		// TODO: r.Length() returns 0 when the format is unknown.
-		// Should we check that?
-		totalBytes:   int(r.Length()) * r.Channels() * 2, // 2 means 16bit per sample.
 		posInBytes:   0,
 		vorbisReader: r,
 	}
@@ -165,7 +162,7 @@ func DecodeWithoutResampling(src io.Reader) (*Stream, error) {
 	}
 
 	var s io.ReadSeeker = i16Stream
-	length := i16Stream.Length()
+	length := i16Stream.totalBytes()
 	if i16Stream.vorbisReader.Channels() == 1 {
 		s = convert.NewStereoI16(s, true, false)
 		length *= 2
@@ -199,7 +196,7 @@ func DecodeWithSampleRate(sampleRate int, src io.Reader) (*Stream, error) {
 	}
 
 	var s io.ReadSeeker = i16Stream
-	length := i16Stream.Length()
+	length := i16Stream.totalBytes()
 	if i16Stream.vorbisReader.Channels() == 1 {
 		s = convert.NewStereoI16(s, true, false)
 		length *= 2
