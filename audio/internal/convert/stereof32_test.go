@@ -61,47 +61,49 @@ func TestStereoF32(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		tc := tc
-		for _, mono := range []bool{false, true} {
-			mono := mono
-			t.Run(fmt.Sprintf("%s (mono=%t)", tc.Name, mono), func(t *testing.T) {
-				var inBytes, outBytes []byte
-				for _, v := range tc.In {
-					b := math.Float32bits(v)
-					inBytes = append(inBytes, byte(b), byte(b>>8), byte(b>>16), byte(b>>24))
-					if mono {
-						// As the source is mono, the output should be stereo.
-						outBytes = append(outBytes, byte(b), byte(b>>8), byte(b>>16), byte(b>>24), byte(b), byte(b>>8), byte(b>>16), byte(b>>24))
-					} else {
-						outBytes = append(outBytes, byte(b), byte(b>>8), byte(b>>16), byte(b>>24))
-					}
-				}
-				s := convert.NewStereoF32(bytes.NewReader(inBytes), mono)
-				var got []byte
-				for {
-					var buf [97]byte
-					n, err := s.Read(buf[:])
-					got = append(got, buf[:n]...)
-					if err != nil {
-						if err != io.EOF {
-							t.Fatal(err)
+		t.Run(tc.Name, func(t *testing.T) {
+			for _, mono := range []bool{false, true} {
+				mono := mono
+				t.Run(fmt.Sprintf("mono=%t", mono), func(t *testing.T) {
+					var inBytes, outBytes []byte
+					for _, v := range tc.In {
+						b := math.Float32bits(v)
+						inBytes = append(inBytes, byte(b), byte(b>>8), byte(b>>16), byte(b>>24))
+						if mono {
+							// As the source is mono, the output should be stereo.
+							outBytes = append(outBytes, byte(b), byte(b>>8), byte(b>>16), byte(b>>24), byte(b), byte(b>>8), byte(b>>16), byte(b>>24))
+						} else {
+							outBytes = append(outBytes, byte(b), byte(b>>8), byte(b>>16), byte(b>>24))
 						}
-						break
 					}
-					// Shifting by incomplete bytes should not affect the result.
-					for i := 0; i < 4*2; i++ {
-						if _, err := s.Seek(int64(i), io.SeekCurrent); err != nil {
+					s := convert.NewStereoF32(bytes.NewReader(inBytes), mono)
+					var got []byte
+					for {
+						var buf [97]byte
+						n, err := s.Read(buf[:])
+						got = append(got, buf[:n]...)
+						if err != nil {
 							if err != io.EOF {
 								t.Fatal(err)
 							}
 							break
 						}
+						// Shifting by incomplete bytes should not affect the result.
+						for i := 0; i < 4*2; i++ {
+							if _, err := s.Seek(int64(i), io.SeekCurrent); err != nil {
+								if err != io.EOF {
+									t.Fatal(err)
+								}
+								break
+							}
+						}
 					}
-				}
-				want := outBytes
-				if !bytes.Equal(got, want) {
-					t.Errorf("got: %v, want: %v", got, want)
-				}
-			})
-		}
+					want := outBytes
+					if !bytes.Equal(got, want) {
+						t.Errorf("got: %v, want: %v", got, want)
+					}
+				})
+			}
+		})
 	}
 }
