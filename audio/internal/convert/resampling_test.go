@@ -105,7 +105,7 @@ func TestResampling(t *testing.T) {
 							t.Fatal(err)
 						}
 						// Shifting by incomplete bytes should not affect the result.
-						for i := 0; i < bitDepthInBytes*2-1; i++ {
+						for i := 0; i < bitDepthInBytes*2; i++ {
 							pos, err := outS.Seek(int64(i), io.SeekCurrent)
 							if err != nil {
 								t.Fatal(err)
