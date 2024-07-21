@@ -18,11 +18,21 @@ import (
 	"bytes"
 	"io"
 	"math/rand" // TODO: Use math/rand/v2 when the minimum supported version becomes Go 1.22.
+	"os"
 	"testing"
+	"time"
 	"unsafe"
 
 	"github.com/hajimehoshi/ebiten/v2/audio/internal/convert"
 )
+
+func TestMain(m *testing.M) {
+	code := m.Run()
+	// Tests in this package often fails on GitHub Actions due to unfinished goroutines.
+	// That's mysterious, but to avoid this, sleep for a while before exiting.
+	time.Sleep(200 * time.Millisecond)
+	os.Exit(code)
+}
 
 func randInt16s(n int) []int16 {
 	r := make([]int16, n)
