@@ -48,25 +48,28 @@ func (s *stream) Read(buf []byte) (int, error) {
 	}
 
 	var origBuf []byte
-	if len(buf)%4 > 0 {
+	if len(buf)%8 > 0 {
 		origBuf = buf
-		buf = make([]byte, len(origBuf)+4-len(origBuf)%4)
+		buf = make([]byte, len(origBuf)+8-len(origBuf)%8)
 	}
 
 	const length = int64(sampleRate / frequency)
-	p := s.position / 4
-	for i := 0; i < len(buf)/4; i++ {
-		const max = 32767
-		b := int16(math.Sin(2*math.Pi*float64(p)/float64(length)) * max)
-		buf[4*i] = byte(b)
-		buf[4*i+1] = byte(b >> 8)
-		buf[4*i+2] = byte(b)
-		buf[4*i+3] = byte(b >> 8)
+	p := s.position / 8
+	for i := 0; i < len(buf)/8; i++ {
+		v := math.Float32bits(float32(math.Sin(2 * math.Pi * float64(p) / float64(length))))
+		buf[8*i] = byte(v)
+		buf[8*i+1] = byte(v >> 8)
+		buf[8*i+2] = byte(v >> 16)
+		buf[8*i+3] = byte(v >> 24)
+		buf[8*i+4] = byte(v)
+		buf[8*i+5] = byte(v >> 8)
+		buf[8*i+6] = byte(v >> 16)
+		buf[8*i+7] = byte(v >> 24)
 		p++
 	}
 
 	s.position += int64(len(buf))
-	s.position %= length * 4
+	s.position %= length * 8
 
 	if origBuf != nil {
 		n := copy(origBuf, buf)
@@ -94,7 +97,7 @@ func (g *Game) Update() error {
 		// Pass the (infinite) stream to NewPlayer.
 		// After calling Play, the stream never ends as long as the player object lives.
 		var err error
-		g.player, err = g.audioContext.NewPlayer(&stream{})
+		g.player, err = g.audioContext.NewPlayerF32(&stream{})
 		if err != nil {
 			return err
 		}
