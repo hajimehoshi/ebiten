@@ -33,30 +33,20 @@ const (
 
 // stream is an infinite stream of 440 Hz sine wave.
 type stream struct {
-	position  int64
-	remaining []byte
+	pos int64
 }
 
 // Read is io.Reader's Read.
 //
 // Read fills the data with sine wave samples.
 func (s *stream) Read(buf []byte) (int, error) {
-	if len(s.remaining) > 0 {
-		n := copy(buf, s.remaining)
-		s.remaining = s.remaining[n:]
-		return n, nil
-	}
+	const bytesPerSample = 8
 
-	var origBuf []byte
-	if len(buf)%8 > 0 {
-		origBuf = buf
-		buf = make([]byte, len(origBuf)+8-len(origBuf)%8)
-	}
+	n := len(buf) / bytesPerSample * bytesPerSample
 
-	const length = int64(sampleRate / frequency)
-	p := s.position / 8
-	for i := 0; i < len(buf)/8; i++ {
-		v := math.Float32bits(float32(math.Sin(2 * math.Pi * float64(p) / float64(length))))
+	const length = sampleRate / frequency
+	for i := 0; i < n/bytesPerSample; i++ {
+		v := math.Float32bits(float32(math.Sin(2 * math.Pi * float64(s.pos/bytesPerSample+int64(i)) / length)))
 		buf[8*i] = byte(v)
 		buf[8*i+1] = byte(v >> 8)
 		buf[8*i+2] = byte(v >> 16)
@@ -65,18 +55,12 @@ func (s *stream) Read(buf []byte) (int, error) {
 		buf[8*i+5] = byte(v >> 8)
 		buf[8*i+6] = byte(v >> 16)
 		buf[8*i+7] = byte(v >> 24)
-		p++
 	}
 
-	s.position += int64(len(buf))
-	s.position %= length * 8
+	s.pos += int64(n)
+	s.pos %= length * bytesPerSample
 
-	if origBuf != nil {
-		n := copy(origBuf, buf)
-		s.remaining = buf[n:]
-		return n, nil
-	}
-	return len(buf), nil
+	return n, nil
 }
 
 // Close is io.Closer's Close.
