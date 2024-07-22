@@ -75,23 +75,27 @@ func (s *SineWave) Read(buf []byte) (int, error) {
 	s.m.Lock()
 	defer s.m.Unlock()
 
-	n := len(buf) / 4 * 4
+	const bytesPerSample = 8
+
+	n := len(buf) / bytesPerSample * bytesPerSample
 	buf = buf[:n]
 
 	length := sampleRate / float64(s.frequency)
-	p := int64(length * s.pos)
-	for i := 0; i < len(buf)/4; i++ {
-		const max = 32767
-		b := int16(math.Sin(2*math.Pi*float64(p)/float64(length)) * max)
-		buf[4*i] = byte(b)
-		buf[4*i+1] = byte(b >> 8)
-		buf[4*i+2] = byte(b)
-		buf[4*i+3] = byte(b >> 8)
+	p := float64(length * s.pos)
+	for i := 0; i < n/bytesPerSample; i++ {
+		v := math.Float32bits(float32(math.Sin(2 * math.Pi * p / length)))
+		buf[8*i] = byte(v)
+		buf[8*i+1] = byte(v >> 8)
+		buf[8*i+2] = byte(v >> 16)
+		buf[8*i+3] = byte(v >> 24)
+		buf[8*i+4] = byte(v)
+		buf[8*i+5] = byte(v >> 8)
+		buf[8*i+6] = byte(v >> 16)
+		buf[8*i+7] = byte(v >> 24)
 		p++
 	}
 
-	s.pos = float64(p) / float64(length)
-	s.pos = s.pos - math.Floor(s.pos)
+	_, s.pos = math.Modf(p / length)
 
 	return n, nil
 }
@@ -108,7 +112,7 @@ func (g *Game) Update() error {
 	}
 	if g.player == nil {
 		g.sineWave = NewSineWave()
-		p, err := g.audioContext.NewPlayer(g.sineWave)
+		p, err := g.audioContext.NewPlayerF32(g.sineWave)
 		if err != nil {
 			return err
 		}
