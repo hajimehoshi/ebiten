@@ -54,30 +54,36 @@ const (
 )
 
 // pianoAt returns an i-th sample of piano with the given frequency.
-func pianoAt(i int, freq float64) float64 {
+func pianoAt(i int, freq float32) float32 {
 	// Create piano-like waves with multiple sin waves.
-	amp := []float64{1.0, 0.8, 0.6, 0.4, 0.2}
-	x := []float64{4.0, 2.0, 1.0, 0.5, 0.25}
-	v := 0.0
+	amp := []float32{1.0, 0.8, 0.6, 0.4, 0.2}
+	x := []float32{4.0, 2.0, 1.0, 0.5, 0.25}
+	var v float32
 	for j := 0; j < len(amp); j++ {
 		// Decay
-		a := amp[j] * math.Exp(-5*float64(i)*freq/baseFreq/(x[j]*sampleRate))
-		v += a * math.Sin(2.0*math.Pi*float64(i)*freq*float64(j+1)/sampleRate)
+		a := amp[j] * float32(math.Exp(float64(-5*float32(i)*freq/baseFreq/(x[j]*sampleRate))))
+		v += a * float32(math.Sin(2.0*math.Pi*float64(i)*float64(freq)*float64(j+1)/sampleRate))
 	}
 	return v / 5.0
 }
 
 // toBytes returns the 2ch little endian 16bit byte sequence with the given left/right sequence.
-func toBytes(l, r []int16) []byte {
+func toBytes(l, r []float32) []byte {
 	if len(l) != len(r) {
 		panic("len(l) must equal to len(r)")
 	}
-	b := make([]byte, len(l)*4)
+	b := make([]byte, len(l)*8)
 	for i := range l {
-		b[4*i] = byte(l[i])
-		b[4*i+1] = byte(l[i] >> 8)
-		b[4*i+2] = byte(r[i])
-		b[4*i+3] = byte(r[i] >> 8)
+		lv := math.Float32bits(l[i])
+		rv := math.Float32bits(r[i])
+		b[8*i] = byte(lv)
+		b[8*i+1] = byte(lv >> 8)
+		b[8*i+2] = byte(lv >> 16)
+		b[8*i+3] = byte(lv >> 24)
+		b[8*i+4] = byte(rv)
+		b[8*i+5] = byte(rv >> 8)
+		b[8*i+6] = byte(rv >> 16)
+		b[8*i+7] = byte(rv >> 24)
 	}
 	return b
 }
@@ -96,9 +102,9 @@ func init() {
 		// Create a reference data and use this for other frequency.
 		const refFreq = 110
 		length := 4 * sampleRate * baseFreq / refFreq
-		refData := make([]int16, length)
+		refData := make([]float32, length)
 		for i := 0; i < length; i++ {
-			refData[i] = int16(pianoAt(i, refFreq) * math.MaxInt16)
+			refData[i] = pianoAt(i, refFreq)
 		}
 
 		for i := range keys {
@@ -106,8 +112,8 @@ func init() {
 
 			// Calculate the wave data for the freq.
 			length := 4 * sampleRate * baseFreq / int(freq)
-			l := make([]int16, length)
-			r := make([]int16, length)
+			l := make([]float32, length)
+			r := make([]float32, length)
 			for i := 0; i < length; i++ {
 				idx := int(float64(i) * freq / refFreq)
 				if len(refData) <= idx {
@@ -214,16 +220,16 @@ func (g *Game) Update() error {
 			if !inpututil.IsKeyJustPressed(key) {
 				continue
 			}
-			g.playNote(baseFreq * math.Exp2(float64(i-1)/12.0))
+			g.playNote(baseFreq * float32(math.Exp2(float64(i-1)/12.0)))
 		}
 	}
 	return nil
 }
 
 // playNote plays piano sound with the given frequency.
-func (g *Game) playNote(freq float64) {
+func (g *Game) playNote(freq float32) {
 	f := int(freq)
-	p := g.audioContext.NewPlayerFromBytes(pianoNoteSamples[f])
+	p := g.audioContext.NewPlayerF32FromBytes(pianoNoteSamples[f])
 	p.Play()
 }
 
