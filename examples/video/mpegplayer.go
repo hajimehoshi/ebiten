@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"image"
 	"io"
+	"math"
 	"sync"
 	"time"
 
@@ -108,9 +109,9 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 		return nil, fmt.Errorf("video: mpeg audio stream sample rate %d doesn't match with audio context sample rate %d", mpg.Samplerate(), ctx.SampleRate())
 	}
 
-	mpg.SetAudioFormat(mpeg.AudioS16)
+	mpg.SetAudioFormat(mpeg.AudioF32N)
 
-	audioPlayer, err := ctx.NewPlayer(&mpegAudio{
+	audioPlayer, err := ctx.NewPlayerF32(&mpegAudio{
 		audio: mpg.Audio(),
 		m:     &p.m,
 	})
@@ -269,10 +270,13 @@ func (a *mpegAudio) Read(buf []byte) (int, error) {
 			break
 		}
 
-		bs := make([]byte, len(mpegSamples.S16)*2)
-		for i, s := range mpegSamples.S16 {
-			bs[i*2] = byte(s)
-			bs[i*2+1] = byte(s >> 8)
+		bs := make([]byte, len(mpegSamples.Interleaved)*4)
+		for i, s := range mpegSamples.Interleaved {
+			v := math.Float32bits(s)
+			bs[4*i] = byte(v)
+			bs[4*i+1] = byte(v >> 8)
+			bs[4*i+2] = byte(v >> 16)
+			bs[4*i+3] = byte(v >> 24)
 		}
 
 		n := copy(buf, bs)
