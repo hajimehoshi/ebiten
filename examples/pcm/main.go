@@ -51,20 +51,20 @@ var score = strings.Replace(
 	" ", "", -1)
 
 // square fills out with square wave values with the specified volume, frequency and sequence.
-func square(out []int16, volume float64, freq float64, sequence float64) {
+func square(out []float32, volume float32, freq float32, sequence float32) {
 	if freq == 0 {
 		for i := 0; i < len(out); i++ {
 			out[i] = 0
 		}
 		return
 	}
-	length := int(float64(sampleRate) / freq)
+	length := int(sampleRate / freq)
 	if length == 0 {
 		panic("invalid freq")
 	}
 	for i := 0; i < len(out); i++ {
-		a := int16(volume * math.MaxInt16)
-		if i%length < int(float64(length)*sequence) {
+		a := volume
+		if i%length < int(float32(length)*sequence) {
 			a = -a
 		}
 		out[i] = a
@@ -72,16 +72,22 @@ func square(out []int16, volume float64, freq float64, sequence float64) {
 }
 
 // toBytes returns the 2ch little endian 16bit byte sequence with the given left/right sequence.
-func toBytes(l, r []int16) []byte {
+func toBytes(l, r []float32) []byte {
 	if len(l) != len(r) {
 		panic("len(l) must equal to len(r)")
 	}
-	b := make([]byte, len(l)*4)
+	b := make([]byte, len(l)*8)
 	for i := range l {
-		b[4*i] = byte(l[i])
-		b[4*i+1] = byte(l[i] >> 8)
-		b[4*i+2] = byte(r[i])
-		b[4*i+3] = byte(r[i] >> 8)
+		lv := math.Float32bits(l[i])
+		rv := math.Float32bits(r[i])
+		b[8*i] = byte(lv)
+		b[8*i+1] = byte(lv >> 8)
+		b[8*i+2] = byte(lv >> 16)
+		b[8*i+3] = byte(lv >> 24)
+		b[8*i+4] = byte(rv)
+		b[8*i+5] = byte(rv >> 8)
+		b[8*i+6] = byte(rv >> 16)
+		b[8*i+7] = byte(rv >> 24)
 	}
 	return b
 }
@@ -109,8 +115,8 @@ func (g *Game) playNote(scoreIndex int) rune {
 		return rune(note)
 	}
 
-	freqs := []float64{freqC, freqD, freqE, freqF, freqG, freqA * 2, freqB * 2}
-	freq := 0.0
+	freqs := []float32{freqC, freqD, freqE, freqF, freqG, freqA * 2, freqB * 2}
+	var freq float32
 	switch {
 	case 'A' <= note && note <= 'B':
 		freq = freqs[int(note)+len(freqs)-int('C')]
@@ -122,12 +128,12 @@ func (g *Game) playNote(scoreIndex int) rune {
 
 	const vol = 1.0 / 16.0
 	size := (ebiten.TPS()/2 - 2) * sampleRate / ebiten.TPS()
-	l := make([]int16, size)
-	r := make([]int16, size)
+	l := make([]float32, size)
+	r := make([]float32, size)
 	square(l, vol, freq, 0.25)
 	square(r, vol, freq, 0.25)
 
-	p := g.audioContext.NewPlayerFromBytes(toBytes(l, r))
+	p := g.audioContext.NewPlayerF32FromBytes(toBytes(l, r))
 	p.Play()
 
 	return rune(note)
