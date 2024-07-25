@@ -88,6 +88,10 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 			return nil, nil, nil, false
 		}
 		stmts = append(stmts, ss...)
+		if len(ts) == 0 {
+			cs.addError(e.Pos(), fmt.Sprintf("unexpected binary operator: %s", e.Y))
+			return nil, nil, nil, false
+		}
 		rhst := ts[0]
 
 		op := e.Op

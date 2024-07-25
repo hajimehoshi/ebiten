@@ -4277,7 +4277,7 @@ func Bar() (int, int) {
 	}
 }
 
-// Issue #2926
+// Issue #2926, #2989
 func TestSyntaxNonTypeExpression(t *testing.T) {
 	if _, err := compileToIR([]byte(`package main
 
@@ -4297,6 +4297,17 @@ func Foo() {
 
 func Bar() float {
 	return Foo + 1.0
+}
+`)); err == nil {
+		t.Error("compileToIR must return an error but did not")
+	}
+	if _, err := compileToIR([]byte(`package main
+
+func Foo() {
+}
+
+func Bar() float {
+	return 1.0 + Foo
 }
 `)); err == nil {
 		t.Error("compileToIR must return an error but did not")
