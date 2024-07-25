@@ -4335,3 +4335,31 @@ func Bar() float {
 		t.Error("compileToIR must return an error but did not")
 	}
 }
+
+// Issue #2993
+func TestSyntaxIfAndConstBool(t *testing.T) {
+	if _, err := compileToIR([]byte(`package main
+
+func Foo() int {
+	const X = true
+	if X {
+		return 1
+	}
+	return 0
+}
+`)); err != nil {
+		t.Error(err)
+	}
+	if _, err := compileToIR([]byte(`package main
+
+func Foo() int {
+	const X bool = true
+	if X {
+		return 1
+	}
+	return 0
+}
+`)); err != nil {
+		t.Error(err)
+	}
+}

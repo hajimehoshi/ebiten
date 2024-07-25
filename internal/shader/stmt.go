@@ -251,12 +251,16 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 		if !ok {
 			return nil, false
 		}
-		if len(ts) != 1 || ts[0].Main != shaderir.Bool {
+		if len(ts) != 1 {
 			var tss []string
 			for _, t := range ts {
 				tss = append(tss, t.String())
 			}
 			cs.addError(stmt.Pos(), fmt.Sprintf("if-condition must be bool but: %s", strings.Join(tss, ", ")))
+			return nil, false
+		}
+		if !(ts[0].Main == shaderir.Bool || (ts[0].Main == shaderir.None && exprs[0].Const != nil && exprs[0].Const.Kind() == gconstant.Bool)) {
+			cs.addError(stmt.Pos(), fmt.Sprintf("if-condition must be bool but: %s", ts[0].String()))
 			return nil, false
 		}
 		stmts = append(stmts, ss...)
