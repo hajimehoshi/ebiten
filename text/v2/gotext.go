@@ -19,6 +19,7 @@ import (
 	"encoding/binary"
 	"fmt"
 
+	"github.com/Zyko0/Ebiary/atlas"
 	"github.com/go-text/typesetting/di"
 	glanguage "github.com/go-text/typesetting/language"
 	"github.com/go-text/typesetting/opentype/api/font"
@@ -310,11 +311,16 @@ func (g *GoTextFace) appendGlyphsForLine(glyphs []Glyph, line string, indexOffse
 		}))
 		// Append a glyph even if img is nil.
 		// This is necessary to return index information for control characters.
+		var ebitenImage *ebiten.Image
+		if img != nil {
+			ebitenImage = img.Image()
+		}
 		glyphs = append(glyphs, Glyph{
+			img:               img,
 			StartIndexInBytes: indexOffset + glyph.startIndex,
 			EndIndexInBytes:   indexOffset + glyph.endIndex,
 			GID:               uint32(glyph.shapingGlyph.GlyphID),
-			Image:             img,
+			Image:             ebitenImage,
 			X:                 float64(imgX),
 			Y:                 float64(imgY),
 		})
@@ -327,7 +333,7 @@ func (g *GoTextFace) appendGlyphsForLine(glyphs []Glyph, line string, indexOffse
 	return glyphs
 }
 
-func (g *GoTextFace) glyphImage(glyph glyph, origin fixed.Point26_6) (*ebiten.Image, int, int) {
+func (g *GoTextFace) glyphImage(glyph glyph, origin fixed.Point26_6) (*atlas.Image, int, int) {
 	if g.direction().isHorizontal() {
 		origin.X = adjustGranularity(origin.X, g)
 		origin.Y &^= ((1 << 6) - 1)
@@ -347,8 +353,8 @@ func (g *GoTextFace) glyphImage(glyph glyph, origin fixed.Point26_6) (*ebiten.Im
 		yoffset:    subpixelOffset.Y,
 		variations: g.ensureVariationsString(),
 	}
-	img := g.Source.getOrCreateGlyphImage(g, key, func() *ebiten.Image {
-		return segmentsToImage(glyph.scaledSegments, subpixelOffset, b)
+	img := g.Source.getOrCreateGlyphImage(g, key, func(a *glyphAtlas) *atlas.Image {
+		return segmentsToImage(a, glyph.scaledSegments, subpixelOffset, b)
 	})
 
 	imgX := (origin.X + b.Min.X).Floor()

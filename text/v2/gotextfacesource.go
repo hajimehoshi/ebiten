@@ -19,6 +19,7 @@ import (
 	"io"
 	"sync"
 
+	"github.com/Zyko0/Ebiary/atlas"
 	"github.com/go-text/typesetting/font"
 	"github.com/go-text/typesetting/language"
 	"github.com/go-text/typesetting/opentype/api"
@@ -26,8 +27,6 @@ import (
 	"github.com/go-text/typesetting/opentype/loader"
 	"github.com/go-text/typesetting/shaping"
 	"golang.org/x/image/math/fixed"
-
-	"github.com/hajimehoshi/ebiten/v2"
 )
 
 type goTextOutputCacheKey struct {
@@ -282,7 +281,7 @@ func (g *GoTextFaceSource) scale(size float64) float64 {
 	return size / float64(g.f.Upem())
 }
 
-func (g *GoTextFaceSource) getOrCreateGlyphImage(goTextFace *GoTextFace, key goTextGlyphImageCacheKey, create func() *ebiten.Image) *ebiten.Image {
+func (g *GoTextFaceSource) getOrCreateGlyphImage(goTextFace *GoTextFace, key goTextGlyphImageCacheKey, create func(a *glyphAtlas) *atlas.Image) *atlas.Image {
 	if g.glyphImageCache == nil {
 		g.glyphImageCache = map[float64]*glyphImageCache[goTextGlyphImageCacheKey]{}
 	}

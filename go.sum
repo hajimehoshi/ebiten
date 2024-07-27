@@ -1,3 +1,13 @@
+github.com/Zyko0/Ebiary/atlas v0.0.0-20240715185308-15c9f3ed18e4 h1:hw0xjh6636KyizJh10Akyym5q+gJT/JZaG5YoOECpCo=
+github.com/Zyko0/Ebiary/atlas v0.0.0-20240715185308-15c9f3ed18e4/go.mod h1:TqaiWLulZjjwPydGAqz6EqHELgtnn/swD/0PlPovCp8=
+github.com/Zyko0/Ebiary/atlas v0.0.0-20240727132256-058f84c22395 h1:4kBG4iBHZD8ZnwzYarhCYhBP3bTwTRXHYqjo/TxAvUI=
+github.com/Zyko0/Ebiary/atlas v0.0.0-20240727132256-058f84c22395/go.mod h1:3Uar+fYP2hzgYiXkoReBociscUtpaBMXvjAEjph13pk=
+github.com/Zyko0/Ebiary/atlas v0.0.0-20240727143531-e678f4f326f6 h1:sRjhOIw0+bqFvKOw+cUmIw0LFkhbo95KlKeIDupVp6c=
+github.com/Zyko0/Ebiary/atlas v0.0.0-20240727143531-e678f4f326f6/go.mod h1:3Uar+fYP2hzgYiXkoReBociscUtpaBMXvjAEjph13pk=
+github.com/Zyko0/Ebiary/atlas v0.0.0-20240727145901-a622e72da2b1 h1:Tv7NzEiyRLfo2PJNo+IQRf0VdCskblash/RGnSZsQJQ=
+github.com/Zyko0/Ebiary/atlas v0.0.0-20240727145901-a622e72da2b1/go.mod h1:3Uar+fYP2hzgYiXkoReBociscUtpaBMXvjAEjph13pk=
+github.com/Zyko0/Ebiary/atlas v0.0.0-20240727152911-c0be754219b9 h1:qfCLi8fCRFO3zVs9c60Ey2xJa+8VfVRKJlgbQVjYfpk=
+github.com/Zyko0/Ebiary/atlas v0.0.0-20240727152911-c0be754219b9/go.mod h1:3Uar+fYP2hzgYiXkoReBociscUtpaBMXvjAEjph13pk=
 github.com/ebitengine/gomobile v0.0.0-20240518074828-e86332849895 h1:48bCqKTuD7Z0UovDfvpCn7wZ0GUZ+yosIteNDthn3FU=
 github.com/ebitengine/gomobile v0.0.0-20240518074828-e86332849895/go.mod h1:XZdLv05c5hOZm3fM2NlJ92FyEZjnslcMcNRrhxs8+8M=
 github.com/ebitengine/hideconsole v1.0.0 h1:5J4U0kXF+pv/DhiXt5/lTz0eO5ogJ1iXb8Yj1yReDqE=
