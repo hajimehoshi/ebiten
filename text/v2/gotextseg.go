@@ -16,7 +16,6 @@ package text
 
 import (
 	"image"
-	"image/color"
 	"image/draw"
 	"math"
 
@@ -26,7 +25,6 @@ import (
 	"github.com/go-text/typesetting/opentype/api"
 	"golang.org/x/image/math/fixed"
 
-	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
@@ -76,13 +74,6 @@ func segmentsToBounds(segs []api.Segment) fixed.Rectangle26_6 {
 			Y: float32ToFixed26_6(maxY),
 		},
 	}
-}
-
-var whiteImage = ebiten.NewImage(3, 3)
-
-func init() {
-	whiteImage.Fill(color.White)
-	//whiteImage.Set(1, 1, color.White)
 }
 
 func segmentsToImage(a *glyphAtlas, segs []api.Segment, subpixelOffset fixed.Point26_6, glyphBounds fixed.Rectangle26_6) *atlas.Image {

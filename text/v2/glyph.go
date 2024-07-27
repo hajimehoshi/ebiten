@@ -93,7 +93,7 @@ func (g *glyphImageCache[Key]) getOrCreate(face Face, key Key, create func(a *gl
 					continue
 				}
 				delete(g.cache, key)
-				g.atlas.atlas.Free(e.image)
+				g.atlas.Free(e.image)
 			}
 		}
 	}

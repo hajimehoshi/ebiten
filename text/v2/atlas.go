@@ -30,3 +30,7 @@ func (g *glyphAtlas) NewImage(w, h int) *atlas.Image {
 
 	return g.NewImage(w, h)
 }
+
+func (g *glyphAtlas) Free(img *atlas.Image) {
+	g.atlas.Free(img)
+}
