@@ -20,6 +20,7 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"os/exec"
@@ -68,10 +69,11 @@ func compile(source *shaderprecomp.ShaderSource, index int, tmpdir string) error
 	}
 	defer f.Close()
 
-	if err := shaderprecomp.CompileToMSL(f, source); err != nil {
+	w := bufio.NewWriter(f)
+	if err := shaderprecomp.CompileToMSL(w, source); err != nil {
 		return err
 	}
-	if err := f.Sync(); err != nil {
+	if err := w.Flush(); err != nil {
 		return err
 	}
 

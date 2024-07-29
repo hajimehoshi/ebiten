@@ -15,6 +15,7 @@
 package main
 
 import (
+	"bufio"
 	"flag"
 	"log"
 	"os"
@@ -33,9 +34,11 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		if err := pprof.StartCPUProfile(f); err != nil {
+		w := bufio.NewWriter(f)
+		if err := pprof.StartCPUProfile(w); err != nil {
 			log.Fatal(err)
 		}
+		defer w.Flush()
 		defer pprof.StopCPUProfile()
 	}
 

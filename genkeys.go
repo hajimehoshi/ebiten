@@ -19,6 +19,7 @@
 package main
 
 import (
+	"bufio"
 	"log"
 	"os"
 	"path/filepath"
@@ -809,7 +810,8 @@ func main() {
 			buildConstraints = "//go:build !android && !ios && !js && !nintendosdk && !playstation5"
 		}
 		// NOTE: According to godoc, maps are automatically sorted by key.
-		if err := tmpl.Execute(f, struct {
+		w := bufio.NewWriter(f)
+		if err := tmpl.Execute(w, struct {
 			License                         string
 			DoNotEdit                       string
 			BuildConstraints                string
@@ -838,6 +840,10 @@ func main() {
 			IOSKeyToUIKeyName:               iosKeyToUIKeyName,
 			OldEbitengineKeyNameToUIKeyName: oldEbitengineKeyNameToUIKeyName,
 		}); err != nil {
+			log.Fatal(err)
+		}
+
+		if err := w.Flush(); err != nil {
 			log.Fatal(err)
 		}
 	}

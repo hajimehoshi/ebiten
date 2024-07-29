@@ -20,6 +20,7 @@
 package main
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"os"
@@ -88,7 +89,15 @@ func generateHSLSFiles(source *shaderprecomp.ShaderSource, index int, tmpdir str
 	}
 	defer psf.Close()
 
-	if err := shaderprecomp.CompileToHLSL(vsf, psf, source); err != nil {
+	vsfw := bufio.NewWriter(vsf)
+	psfw := bufio.NewWriter(psf)
+	if err := shaderprecomp.CompileToHLSL(vsfw, psfw, source); err != nil {
+		return "", "", err
+	}
+	if err := vsfw.Flush(); err != nil {
+		return "", "", err
+	}
+	if err := psfw.Flush(); err != nil {
 		return "", "", err
 	}
 

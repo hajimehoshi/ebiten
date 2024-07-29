@@ -17,6 +17,7 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"image"
 	"image/color"
@@ -77,7 +78,11 @@ func run() error {
 	}
 	defer f.Close()
 
-	if err := png.Encode(f, dst); err != nil {
+	w := bufio.NewWriter(f)
+	if err := png.Encode(w, dst); err != nil {
+		return err
+	}
+	if err := w.Flush(); err != nil {
 		return err
 	}
 

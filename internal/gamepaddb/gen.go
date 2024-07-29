@@ -155,7 +155,8 @@ func run() error {
 		}
 		defer f.Close()
 
-		if err := tmpl.Execute(f, struct {
+		w := bufio.NewWriter(f)
+		if err := tmpl.Execute(w, struct {
 			License          string
 			DoNotEdit        string
 			BuildConstraints string
@@ -168,6 +169,9 @@ func run() error {
 			FileNameSuffix:   platform.filenameSuffix,
 			HasGLFWGamepads:  platform.hasGLFWGamepads,
 		}); err != nil {
+			return err
+		}
+		if err := w.Flush(); err != nil {
 			return err
 		}
 	}

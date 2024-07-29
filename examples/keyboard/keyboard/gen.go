@@ -17,6 +17,7 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"image"
 	"image/png"
@@ -220,7 +221,11 @@ func outputKeyboardImage() (map[ebiten.Key]image.Rectangle, error) {
 	}
 	defer out.Close()
 
-	if err := png.Encode(out, img); err != nil {
+	w := bufio.NewWriter(out)
+	if err := png.Encode(w, img); err != nil {
+		return nil, err
+	}
+	if err := w.Flush(); err != nil {
 		return nil, err
 	}
 
@@ -278,10 +283,17 @@ func outputKeyRectsGo(k map[ebiten.Key]image.Rectangle) error {
 	if err != nil {
 		return err
 	}
-	return tmpl.Execute(f, map[string]any{
+	w := bufio.NewWriter(f)
+	if err := tmpl.Execute(w, map[string]any{
 		"License":     license,
 		"KeyRectsMap": k,
-	})
+	}); err != nil {
+		return err
+	}
+	if err := w.Flush(); err != nil {
+		return err
+	}
+	return nil
 }
 
 type game struct {
