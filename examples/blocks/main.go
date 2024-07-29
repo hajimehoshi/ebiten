@@ -38,7 +38,11 @@ func main() {
 		if err := pprof.StartCPUProfile(w); err != nil {
 			log.Fatal(err)
 		}
-		defer w.Flush()
+		defer func() {
+			if err := w.Flush(); err != nil {
+				log.Fatal(err)
+			}
+		}()
 		defer pprof.StopCPUProfile()
 	}
 
