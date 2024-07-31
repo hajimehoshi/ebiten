@@ -45,6 +45,9 @@ func (c *defaultContext) init() error {
 		}
 	}
 
+	// TODO: Use multiple %w-s as of Go 1.20.
+	var errors []string
+
 	// Try OpenGL first. OpenGL is preferable as this doesn't cause context losses.
 	if !preferES {
 		// Usually libGL.so or libGL.so.1 is used. libGL.so.2 might exist only on NetBSD.
@@ -57,6 +60,7 @@ func (c *defaultContext) init() error {
 				libGL = lib
 				return nil
 			}
+			errors = append(errors, fmt.Sprintf("%s: %v", name, err))
 		}
 	}
 
@@ -68,9 +72,10 @@ func (c *defaultContext) init() error {
 			c.isES = true
 			return nil
 		}
+		errors = append(errors, fmt.Sprintf("%s: %v", name, err))
 	}
 
-	return fmt.Errorf("gl: failed to load libGL.so and libGLESv2.so")
+	return fmt.Errorf("gl: failed to load libGL.so and libGLESv2.so: %s", strings.Join(errors, ", "))
 }
 
 func (c *defaultContext) getProcAddress(name string) (uintptr, error) {
