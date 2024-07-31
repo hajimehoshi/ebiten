@@ -43,7 +43,7 @@ func (f *FileEntryFS) Open(name string) (fs.File, error) {
 	}
 
 	if name == "." {
-		return &dir{entry: f.rootEntry}, nil
+		return &dir{dirEntry: f.rootEntry}, nil
 	}
 
 	var chEntry chan js.Value
@@ -69,7 +69,7 @@ func (f *FileEntryFS) Open(name string) (fs.File, error) {
 	chEntry = make(chan js.Value)
 	f.rootEntry.Call("getDirectory", name, nil, cbSuccess, cbFailure)
 	if entry := <-chEntry; entry.Truthy() {
-		return &dir{entry: entry}, nil
+		return &dir{dirEntry: entry}, nil
 	}
 
 	return nil, &fs.PathError{
@@ -109,8 +109,8 @@ func (f *file) ensureFile() js.Value {
 
 func (f *file) Stat() (fs.FileInfo, error) {
 	return &fileInfo{
-		entry: f.entry,
-		file:  f.ensureFile(),
+		name: f.entry.Get("name").String(),
+		file: f.ensureFile(),
 	}, nil
 }
 
@@ -163,21 +163,21 @@ func (f *file) Close() error {
 }
 
 type dir struct {
-	entry   js.Value
-	entries []js.Value
-	offset  int
+	dirEntry    js.Value
+	fileEntries []js.Value
+	offset      int
 }
 
 func (d *dir) Stat() (fs.FileInfo, error) {
 	return &fileInfo{
-		entry: d.entry,
+		name: d.dirEntry.Get("name").String(),
 	}, nil
 }
 
 func (d *dir) Read(buf []byte) (int, error) {
 	return 0, &fs.PathError{
 		Op:   "read",
-		Path: d.entry.Get("name").String(),
+		Path: d.dirEntry.Get("name").String(),
 		Err:  errors.New("is a directory"),
 	}
 }
@@ -187,7 +187,7 @@ func (d *dir) Close() error {
 }
 
 func (d *dir) ReadDir(count int) ([]fs.DirEntry, error) {
-	if d.entries == nil {
+	if d.fileEntries == nil {
 		ch := make(chan struct{})
 		var rec js.Func
 		cb := js.FuncOf(func(this js.Value, args []js.Value) any {
@@ -205,14 +205,14 @@ func (d *dir) ReadDir(count int) ([]fs.DirEntry, error) {
 				if !ent.Get("isFile").Bool() && !ent.Get("isDirectory").Bool() {
 					continue
 				}
-				d.entries = append(d.entries, ent)
+				d.fileEntries = append(d.fileEntries, ent)
 			}
 			rec.Value.Call("call")
 			return nil
 		})
 		defer cb.Release()
 
-		reader := d.entry.Call("createReader")
+		reader := d.dirEntry.Call("createReader")
 		rec = js.FuncOf(func(this js.Value, args []js.Value) any {
 			reader.Call("readEntries", cb)
 			return nil
@@ -223,7 +223,7 @@ func (d *dir) ReadDir(count int) ([]fs.DirEntry, error) {
 		<-ch
 	}
 
-	n := len(d.entries) - d.offset
+	n := len(d.fileEntries) - d.offset
 
 	if n == 0 {
 		if count <= 0 {
@@ -238,11 +238,12 @@ func (d *dir) ReadDir(count int) ([]fs.DirEntry, error) {
 
 	ents := make([]fs.DirEntry, n)
 	for i := range ents {
+		entry := d.fileEntries[d.offset+i]
 		fi := &fileInfo{
-			entry: d.entries[d.offset+i],
+			name: entry.Get("name").String(),
 		}
-		if fi.entry.Get("isFile").Bool() {
-			fi.file = getFile(fi.entry)
+		if entry.Get("isFile").Bool() {
+			fi.file = getFile(entry)
 		}
 		ents[i] = fs.FileInfoToDirEntry(fi)
 	}
@@ -252,12 +253,12 @@ func (d *dir) ReadDir(count int) ([]fs.DirEntry, error) {
 }
 
 type fileInfo struct {
-	entry js.Value
-	file  js.Value
+	name string
+	file js.Value
 }
 
 func (f *fileInfo) Name() string {
-	return f.entry.Get("name").String()
+	return f.name
 }
 
 func (f *fileInfo) Size() int64 {
