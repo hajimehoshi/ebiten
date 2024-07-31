@@ -238,6 +238,7 @@ var (
 	sel_origResizable                 = objc.RegisterName("isOrigResizable")
 	sel_setCollectionBehavior         = objc.RegisterName("setCollectionBehavior:")
 	sel_setDelegate                   = objc.RegisterName("setDelegate:")
+	sel_setDocumentEdited             = objc.RegisterName("setDocumentEdited:")
 	sel_setOrigDelegate               = objc.RegisterName("setOrigDelegate:")
 	sel_setOrigResizable              = objc.RegisterName("setOrigResizable:")
 	sel_toggleFullScreen              = objc.RegisterName("toggleFullScreen:")
@@ -431,5 +432,15 @@ func initializeWindowAfterCreation(w *glfw.Window) error {
 }
 
 func (u *UserInterface) skipTaskbar() error {
+	return nil
+}
+
+// setDocumentEdited must be called from the main thread.
+func (u *UserInterface) setDocumentEdited(edited bool) error {
+	w, err := u.window.GetCocoaWindow()
+	if err != nil {
+		return err
+	}
+	objc.ID(w).Send(sel_setDocumentEdited, edited)
 	return nil
 }

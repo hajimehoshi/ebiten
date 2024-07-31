@@ -568,6 +568,22 @@ func (u *UserInterface) setWindowClosingHandled(handled bool) {
 	u.m.Lock()
 	u.windowClosingHandled = handled
 	u.m.Unlock()
+
+	if !u.isRunning() {
+		return
+	}
+	if u.isTerminated() {
+		return
+	}
+	u.mainThread.Call(func() {
+		if u.isTerminated() {
+			return
+		}
+		if err := u.setDocumentEdited(handled); err != nil {
+			u.setError(err)
+			return
+		}
+	})
 }
 
 // isFullscreen must be called from the main thread.
@@ -871,6 +887,13 @@ func (u *UserInterface) createWindow() error {
 	// Icons are set after every frame. They don't have to be cared here.
 
 	if err := u.updateWindowSizeLimits(); err != nil {
+		return err
+	}
+
+	u.m.Lock()
+	closingHandled := u.windowClosingHandled
+	u.m.Unlock()
+	if err := u.setDocumentEdited(closingHandled); err != nil {
 		return err
 	}
 

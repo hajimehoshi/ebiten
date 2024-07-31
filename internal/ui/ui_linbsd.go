@@ -200,3 +200,7 @@ func initializeWindowAfterCreation(w *glfw.Window) error {
 func (u *UserInterface) skipTaskbar() error {
 	return nil
 }
+
+func (u *UserInterface) setDocumentEdited(edited bool) error {
+	return nil
+}

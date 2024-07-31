@@ -242,6 +242,10 @@ func (u *UserInterface) skipTaskbar() error {
 	return nil
 }
 
+func (u *UserInterface) setDocumentEdited(edited bool) error {
+	return nil
+}
+
 func init() {
 	if microsoftgdk.IsXbox() {
 		// TimeBeginPeriod might not be defined in Xbox.
