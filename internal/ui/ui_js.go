@@ -707,14 +707,21 @@ func (u *UserInterface) appendDroppedFiles(data js.Value) {
 	defer u.dropFileM.Unlock()
 	items := data.Get("items")
 
+	var entries []js.Value
 	for i := 0; i < items.Length(); i++ {
 		kind := items.Index(i).Get("kind").String()
 		switch kind {
 		case "file":
-			fs := items.Index(i).Call("webkitGetAsEntry").Get("filesystem").Get("root")
-			u.inputState.DroppedFiles = file.NewFileEntryFS(fs)
+			entries = append(entries, items.Index(i).Call("webkitGetAsEntry").Get("filesystem").Get("root"))
+		}
+	}
+	if len(entries) > 0 {
+		fs, err := file.NewFileEntryFS(entries)
+		if err != nil {
+			u.setError(err)
 			return
 		}
+		u.inputState.DroppedFiles = fs
 	}
 }
 
