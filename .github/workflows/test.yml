@@ -44,7 +44,7 @@ jobs:
 
       - name: Install wasmbrowsertest
         run: |
-          wasmbrowsertest_version=6e494bb3a5ddfe6cccb449250dbdcaa5777b593d
+          wasmbrowsertest_version=2c08e5b313d11223b7d68e14ec280b00e7341ac3
           go install github.com/agnivade/wasmbrowsertest@${wasmbrowsertest_version}
           mv $(go env GOPATH)/bin/wasmbrowsertest${{ runner.os == 'Windows' && '.exe' || '' }} $(go env GOPATH)/bin/go_js_wasm_exec${{ runner.os == 'Windows' && '.exe' || '' }}
           go install github.com/agnivade/wasmbrowsertest/cmd/cleanenv@${wasmbrowsertest_version}
