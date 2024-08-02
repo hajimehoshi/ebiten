@@ -21,7 +21,6 @@ import (
 	"runtime"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/shader"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
@@ -29,13 +28,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/hlsl"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/msl"
 )
-
-func TestMain(m *testing.M) {
-	code := m.Run()
-	// The Wasm tests on GitHub CI often fail due to some remaining functions. Wait for a while to finish them.
-	time.Sleep(100 * time.Millisecond)
-	os.Exit(code)
-}
 
 func glslVertexNormalize(str string) string {
 	p := glsl.VertexPrelude(glsl.GLSLVersionDefault)
