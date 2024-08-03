@@ -1150,6 +1150,11 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 		x := exprs[0]
 		t := ts[0]
 
+		if (t.IsFloatVector() || t.IsIntVector()) && idx.Const == nil {
+			cs.addError(e.Pos(), fmt.Sprintf("index must be a constant for the type %s", t.String()))
+			return nil, nil, nil, false
+		}
+
 		var typ shaderir.Type
 		switch t.Main {
 		case shaderir.Vec2, shaderir.Vec3, shaderir.Vec4:
