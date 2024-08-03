@@ -4368,6 +4368,16 @@ func TestSyntaxIndex(t *testing.T) {
 	// Issue #3011
 	if _, err := compileToIR([]byte(`package main
 
+func Foo() float {
+	var a int
+	var b vec4
+	return b[a]
+}
+`)); err == nil {
+		t.Error("compileToIR must return an error but did not")
+	}
+	if _, err := compileToIR([]byte(`package main
+
 func Foo() int {
 	var a int
 	var b ivec4
@@ -4382,6 +4392,16 @@ func Foo() float {
 	var a int
 	var b mat4
 	return b[a][0]
+}
+`)); err != nil {
+		t.Error(err)
+	}
+	if _, err := compileToIR([]byte(`package main
+
+func Foo() float {
+	const a = 0
+	var b vec4
+	return b[a]
 }
 `)); err != nil {
 		t.Error(err)
