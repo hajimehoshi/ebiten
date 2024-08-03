@@ -192,7 +192,7 @@ func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics, ui *UserInter
 		return err
 	}
 
-	const maxSkipCount = 3
+	const maxSkipCount = 4
 
 	if !forceDraw && !c.isOffscreenModified {
 		if c.skipCount < maxSkipCount {
