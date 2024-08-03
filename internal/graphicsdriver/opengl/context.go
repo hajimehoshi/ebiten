@@ -90,7 +90,6 @@ type (
 
 type (
 	uniformLocation int32
-	attribLocation  int32
 )
 
 const (
@@ -111,8 +110,6 @@ type context struct {
 	lastBlend          graphicsdriver.Blend
 	maxTextureSize     int
 	maxTextureSizeOnce sync.Once
-	highp              bool
-	highpOnce          sync.Once
 	initOnce           sync.Once
 }
 
