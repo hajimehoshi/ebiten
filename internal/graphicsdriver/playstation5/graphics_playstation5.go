@@ -21,6 +21,7 @@ import "C"
 
 import (
 	"fmt"
+	"runtime"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
@@ -117,6 +118,52 @@ func (g *Graphics) NewShader(program *shaderir.Program) (graphicsdriver.Shader, 
 }
 
 func (g *Graphics) DrawTriangles(dst graphicsdriver.ImageID, srcs [graphics.ShaderSrcImageCount]graphicsdriver.ImageID, shader graphicsdriver.ShaderID, dstRegions []graphicsdriver.DstRegion, indexOffset int, blend graphicsdriver.Blend, uniforms []uint32, fillRule graphicsdriver.FillRule) error {
+	csrcs := make([]C.int, len(srcs))
+	for i, src := range srcs {
+		csrcs[i] = C.int(src)
+	}
+	cDstRegions := make([]C.ebitengine_DstRegion, len(dstRegions))
+	for i, r := range dstRegions {
+		cDstRegions[i] = C.ebitengine_DstRegion{
+			Region: C.ebitengine_Rectangle{
+				MinX: C.int(r.Region.Min.X),
+				MinY: C.int(r.Region.Min.Y),
+				MaxX: C.int(r.Region.Max.X),
+				MaxY: C.int(r.Region.Max.Y),
+			},
+			IndexCount: C.int(r.IndexCount),
+		}
+	}
+	cUniforms := make([]C.uint32_t, len(uniforms))
+	for i, u := range uniforms {
+		cUniforms[i] = C.uint32_t(u)
+	}
+	cBlend := C.ebitengine_Blend{
+		BlendFactorSourceRGB:        C.uint8_t(blend.BlendFactorSourceRGB),
+		BlendFactorSourceAlpha:      C.uint8_t(blend.BlendFactorSourceAlpha),
+		BlendFactorDestinationRGB:   C.uint8_t(blend.BlendFactorDestinationRGB),
+		BlendFactorDestinationAlpha: C.uint8_t(blend.BlendFactorDestinationAlpha),
+		BlendOperationRGB:           C.uint8_t(blend.BlendOperationRGB),
+		BlendOperationAlpha:         C.uint8_t(blend.BlendOperationAlpha),
+	}
+
+	args := C.ebitengine_DrawTrianglesArgs{
+		Dst:            C.int(dst),
+		Srcs:           &csrcs[0],
+		SrcCount:       C.int(len(csrcs)),
+		Shader:         C.int(shader),
+		DstRegions:     &cDstRegions[0],
+		DstRegionCount: C.int(len(cDstRegions)),
+		IndexOffset:    C.int(indexOffset),
+		Blend:          cBlend,
+		Uniforms:       &cUniforms[0],
+		UniformCount:   C.int(len(cUniforms)),
+		FillRule:       C.int(fillRule),
+	}
+	if err := C.ebitengine_DrawTriangles(&args); !C.ebitengine_IsErrorNil(&err) {
+		return newPlaystation5Error("(*playstation5.Graphics).DrawTriangles", err)
+	}
+	runtime.KeepAlive(args)
 	return nil
 }
 

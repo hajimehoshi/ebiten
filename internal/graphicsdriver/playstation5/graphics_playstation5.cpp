@@ -18,24 +18,28 @@
 
 #include "graphics_playstation5.h"
 
-extern "C" ebitengine_Error ebitengine_InitializeGraphics(void) {
+extern "C" ebitengine_Error ebitengine_InitializeGraphics(void) { return {}; }
+
+extern "C" ebitengine_Error ebitengine_NewImage(int *image, int width,
+                                                int height) {
   return {};
 }
 
-extern "C" ebitengine_Error ebitengine_NewImage(int* image, int width, int height) {
+extern "C" ebitengine_Error
+ebitengine_NewScreenFramebufferImage(int *image, int width, int height) {
   return {};
 }
 
-extern "C" ebitengine_Error ebitengine_NewScreenFramebufferImage(int* image, int width, int height) {
+extern "C" void ebitengine_DisposeImage(int id) {}
+
+extern "C" ebitengine_Error
+ebitengine_DrawTriangles(ebitengine_DrawTrianglesArgs *args) {
   return {};
 }
 
-extern "C" void ebitengine_DisposeImage(int id) {
-}
-
-extern "C" ebitengine_Error ebitengine_NewShader(int* shader, const char* source) {
+extern "C" ebitengine_Error ebitengine_NewShader(int *shader,
+                                                 const char *source) {
   return {};
 }
 
-extern "C" void ebitengine_DisposeShader(int id) {
-}
+extern "C" void ebitengine_DisposeShader(int id) {}
