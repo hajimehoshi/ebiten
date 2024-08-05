@@ -125,8 +125,9 @@ func Draw(dst *ebiten.Image, text string, face Face, options *DrawOptions) {
 		dl.Add(dc)
 	}
 	dl.Flush(dst, &drawOptions{
-		Blend:  drawOp.Blend,
-		Filter: drawOp.Filter,
+		Blend:          drawOp.Blend,
+		Filter:         drawOp.Filter,
+		ColorScaleMode: ebiten.ColorScaleModePremultipliedAlpha,
 	})
 }
 
