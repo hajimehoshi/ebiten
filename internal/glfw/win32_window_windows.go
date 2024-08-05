@@ -8,6 +8,7 @@ package glfw
 import (
 	"errors"
 	"fmt"
+	"github.com/hajimehoshi/ebiten/v2/internal/glfw/win32"
 	"math"
 	"runtime"
 	"unsafe"
@@ -2408,11 +2409,13 @@ func (w *Window) platformSetCursor(cursor *Cursor) error {
 }
 
 func platformSetClipboardString(str string) error {
-	panic("glfw: platformSetClipboardString is not implemented")
+	win32.SetClipboardText(str)
+	return nil
 }
 
-func platformGetClipboardString() (string, error) {
-	panic("glfw: platformGetClipboardString is not implemented")
+func platformGetClipboardString() string {
+	text, _ := win32.GetClipboardText()
+	return text
 }
 
 func (w *Window) GetWin32Window() (windows.HWND, error) {
