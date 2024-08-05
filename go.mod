@@ -1,6 +1,6 @@
 module github.com/hajimehoshi/ebiten/v2
 
-go 1.21.1
+go 1.19
 
 require (
 	github.com/ebitengine/gomobile v0.0.0-20240518074828-e86332849895
