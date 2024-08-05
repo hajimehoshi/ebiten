@@ -12,13 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build (freebsd || (linux && !android) || netbsd || openbsd) && !nintendosdk && !playstation5
+//go:build (freebsd || linux || netbsd || openbsd) && !nintendosdk && !playstation5
 
 package gl
 
 import (
 	"fmt"
 	"os"
+	"runtime"
 	"strings"
 
 	"github.com/ebitengine/purego"
@@ -31,11 +32,16 @@ var (
 
 func (c *defaultContext) init() error {
 	var preferES bool
-	for _, t := range strings.Split(os.Getenv("EBITENGINE_OPENGL"), ",") {
-		switch strings.TrimSpace(t) {
-		case "es":
-			preferES = true
-			break
+	if runtime.GOOS == "android" {
+		preferES = true
+	}
+	if !preferES {
+		for _, t := range strings.Split(os.Getenv("EBITENGINE_OPENGL"), ",") {
+			switch strings.TrimSpace(t) {
+			case "es":
+				preferES = true
+				break
+			}
 		}
 	}
 

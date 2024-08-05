@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: 2014 Eric Woroshow
 // SPDX-FileCopyrightText: 2022 The Ebitengine Authors
 
-//go:build android || nintendosdk
+//go:build nintendosdk
 
 package gl
 
