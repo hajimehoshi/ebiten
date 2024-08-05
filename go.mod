@@ -23,7 +23,6 @@ require (
 )
 
 require (
-	github.com/Zyko0/Ebiary/atlas v0.0.0-20240727152911-c0be754219b9 // indirect
 	github.com/jfreymuth/vorbis v1.0.2 // indirect
 	github.com/pierrec/lz4/v4 v4.1.21 // indirect
 	golang.org/x/mod v0.19.0 // indirect

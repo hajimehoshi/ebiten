@@ -17,7 +17,6 @@ package text
 import (
 	"strings"
 
-	"github.com/Zyko0/Ebiary/atlas"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
@@ -112,8 +111,8 @@ func Draw(dst *ebiten.Image, text string, face Face, options *DrawOptions) {
 
 	geoM := drawOp.GeoM
 
-	dl := &atlas.DrawList{}
-	dc := &atlas.DrawCommand{}
+	dl := &drawList{}
+	dc := &drawCommand{}
 	for _, g := range AppendGlyphs(nil, text, face, &layoutOp) {
 		if g.Image == nil {
 			continue
@@ -125,7 +124,7 @@ func Draw(dst *ebiten.Image, text string, face Face, options *DrawOptions) {
 		dc.Image = g.img
 		dl.Add(dc)
 	}
-	dl.Flush(dst, &atlas.DrawOptions{
+	dl.Flush(dst, &drawOptions{
 		Blend:  drawOp.Blend,
 		Filter: drawOp.Filter,
 	})

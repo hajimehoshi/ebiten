@@ -19,7 +19,6 @@ import (
 	"image/draw"
 	"math"
 
-	"github.com/Zyko0/Ebiary/atlas"
 	gvector "golang.org/x/image/vector"
 
 	"github.com/go-text/typesetting/opentype/api"
@@ -76,7 +75,7 @@ func segmentsToBounds(segs []api.Segment) fixed.Rectangle26_6 {
 	}
 }
 
-func segmentsToImage(a *glyphAtlas, segs []api.Segment, subpixelOffset fixed.Point26_6, glyphBounds fixed.Rectangle26_6) *atlas.Image {
+func segmentsToImage(a *glyphAtlas, segs []api.Segment, subpixelOffset fixed.Point26_6, glyphBounds fixed.Rectangle26_6) *glyphImage {
 	if len(segs) == 0 {
 		return nil
 	}

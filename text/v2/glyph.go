@@ -18,7 +18,6 @@ import (
 	"math"
 	"sync"
 
-	"github.com/Zyko0/Ebiary/atlas"
 	"github.com/hajimehoshi/ebiten/v2/internal/hook"
 )
 
@@ -38,7 +37,7 @@ func init() {
 }
 
 type glyphImageCacheEntry struct {
-	image *atlas.Image
+	image *glyphImage
 	atime int64
 }
 
@@ -49,7 +48,7 @@ type glyphImageCache[Key comparable] struct {
 	m     sync.Mutex
 }
 
-func (g *glyphImageCache[Key]) getOrCreate(face Face, key Key, create func(a *glyphAtlas) *atlas.Image) *atlas.Image {
+func (g *glyphImageCache[Key]) getOrCreate(face Face, key Key, create func(a *glyphAtlas) *glyphImage) *glyphImage {
 	g.m.Lock()
 	defer g.m.Unlock()
 

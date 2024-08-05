@@ -21,7 +21,6 @@ import (
 	"golang.org/x/image/font"
 	"golang.org/x/image/math/fixed"
 
-	"github.com/Zyko0/Ebiary/atlas"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
@@ -133,7 +132,7 @@ func (s *GoXFace) appendGlyphsForLine(glyphs []Glyph, line string, indexOffset i
 	return glyphs
 }
 
-func (s *GoXFace) glyphImage(r rune, origin fixed.Point26_6) (*atlas.Image, int, int, fixed.Int26_6) {
+func (s *GoXFace) glyphImage(r rune, origin fixed.Point26_6) (*glyphImage, int, int, fixed.Int26_6) {
 	// Assume that GoXFace's direction is always horizontal.
 	origin.X = adjustGranularity(origin.X, s)
 	origin.Y &^= ((1 << 6) - 1)
@@ -147,7 +146,7 @@ func (s *GoXFace) glyphImage(r rune, origin fixed.Point26_6) (*atlas.Image, int,
 		rune:    r,
 		xoffset: subpixelOffset.X,
 	}
-	img := s.glyphImageCache.getOrCreate(s, key, func(a *glyphAtlas) *atlas.Image {
+	img := s.glyphImageCache.getOrCreate(s, key, func(a *glyphAtlas) *glyphImage {
 		return s.glyphImageImpl(a, r, subpixelOffset, b)
 	})
 	imgX := (origin.X + b.Min.X).Floor()
@@ -155,7 +154,7 @@ func (s *GoXFace) glyphImage(r rune, origin fixed.Point26_6) (*atlas.Image, int,
 	return img, imgX, imgY, a
 }
 
-func (s *GoXFace) glyphImageImpl(a *glyphAtlas, r rune, subpixelOffset fixed.Point26_6, glyphBounds fixed.Rectangle26_6) *atlas.Image {
+func (s *GoXFace) glyphImageImpl(a *glyphAtlas, r rune, subpixelOffset fixed.Point26_6, glyphBounds fixed.Rectangle26_6) *glyphImage {
 	w, h := (glyphBounds.Max.X - glyphBounds.Min.X).Ceil(), (glyphBounds.Max.Y - glyphBounds.Min.Y).Ceil()
 	if w == 0 || h == 0 {
 		return nil

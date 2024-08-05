@@ -19,7 +19,6 @@ import (
 	"io"
 	"sync"
 
-	"github.com/Zyko0/Ebiary/atlas"
 	"github.com/go-text/typesetting/font"
 	"github.com/go-text/typesetting/language"
 	"github.com/go-text/typesetting/opentype/api"
@@ -281,7 +280,7 @@ func (g *GoTextFaceSource) scale(size float64) float64 {
 	return size / float64(g.f.Upem())
 }
 
-func (g *GoTextFaceSource) getOrCreateGlyphImage(goTextFace *GoTextFace, key goTextGlyphImageCacheKey, create func(a *glyphAtlas) *atlas.Image) *atlas.Image {
+func (g *GoTextFaceSource) getOrCreateGlyphImage(goTextFace *GoTextFace, key goTextGlyphImageCacheKey, create func(a *glyphAtlas) *glyphImage) *glyphImage {
 	if g.glyphImageCache == nil {
 		g.glyphImageCache = map[float64]*glyphImageCache[goTextGlyphImageCacheKey]{}
 	}

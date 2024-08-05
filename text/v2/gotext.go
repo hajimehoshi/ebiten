@@ -19,7 +19,6 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	"github.com/Zyko0/Ebiary/atlas"
 	"github.com/go-text/typesetting/di"
 	glanguage "github.com/go-text/typesetting/language"
 	"github.com/go-text/typesetting/opentype/api/font"
@@ -333,7 +332,7 @@ func (g *GoTextFace) appendGlyphsForLine(glyphs []Glyph, line string, indexOffse
 	return glyphs
 }
 
-func (g *GoTextFace) glyphImage(glyph glyph, origin fixed.Point26_6) (*atlas.Image, int, int) {
+func (g *GoTextFace) glyphImage(glyph glyph, origin fixed.Point26_6) (*glyphImage, int, int) {
 	if g.direction().isHorizontal() {
 		origin.X = adjustGranularity(origin.X, g)
 		origin.Y &^= ((1 << 6) - 1)
@@ -353,7 +352,7 @@ func (g *GoTextFace) glyphImage(glyph glyph, origin fixed.Point26_6) (*atlas.Ima
 		yoffset:    subpixelOffset.Y,
 		variations: g.ensureVariationsString(),
 	}
-	img := g.Source.getOrCreateGlyphImage(g, key, func(a *glyphAtlas) *atlas.Image {
+	img := g.Source.getOrCreateGlyphImage(g, key, func(a *glyphAtlas) *glyphImage {
 		return segmentsToImage(a, glyph.scaledSegments, subpixelOffset, b)
 	})
 

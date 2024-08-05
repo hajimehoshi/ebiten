@@ -22,7 +22,6 @@ import (
 
 	"golang.org/x/image/math/fixed"
 
-	"github.com/Zyko0/Ebiary/atlas"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
@@ -119,7 +118,7 @@ type Glyph struct {
 	// Image is a rasterized glyph image.
 	// Image is a grayscale image i.e. RGBA values are the same.
 	// Image should be used as a render source and should not be modified.
-	img *atlas.Image
+	img *glyphImage
 
 	// StartIndexInBytes is the start index in bytes for the given string at AppendGlyphs.
 	StartIndexInBytes int
