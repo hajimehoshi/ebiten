@@ -2409,8 +2409,7 @@ func (w *Window) platformSetCursor(cursor *Cursor) error {
 }
 
 func platformSetClipboardString(str string) error {
-	win32.SetClipboardText(str)
-	return nil
+	return win32.SetClipboardText(str)
 }
 
 func platformGetClipboardString() string {
