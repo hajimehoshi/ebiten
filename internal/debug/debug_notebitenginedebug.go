@@ -18,17 +18,17 @@ package debug
 
 const IsDebug = false
 
-func FrameLogf(format string, args ...any) {
+func Logf(format string, args ...any) {
 }
 
-func SwitchFrameLogger() FrameLogger {
-	return dummyFrameLogger{}
+func SwitchLogger() Logger {
+	return dummyLogger{}
 }
 
-type dummyFrameLogger struct{}
+type dummyLogger struct{}
 
-func (dummyFrameLogger) FrameLogf(format string, args ...any) {
+func (dummyLogger) Logf(format string, args ...any) {
 }
 
-func (dummyFrameLogger) Flush() {
+func (dummyLogger) Flush() {
 }

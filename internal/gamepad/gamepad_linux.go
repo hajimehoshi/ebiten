@@ -54,9 +54,6 @@ func (g *nativeGamepadsImpl) init(gamepads *gamepads) error {
 		if err == unix.ENOENT {
 			return nil
 		}
-		if err == unix.EPERM {
-			return nil
-		}
 		return fmt.Errorf("gamepad: Stat failed: %w", err)
 	}
 	if stat.Mode&unix.S_IFDIR == 0 {

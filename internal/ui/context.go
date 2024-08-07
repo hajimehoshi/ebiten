@@ -95,7 +95,7 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 		return nil
 	}
 
-	debug.FrameLogf("----\n")
+	debug.Logf("----\n")
 
 	if err := atlas.BeginFrame(graphicsDriver); err != nil {
 		return err
@@ -133,7 +133,7 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 		updateCount = 1
 		c.updateCalled = true
 	}
-	debug.FrameLogf("Update count per frame: %d\n", updateCount)
+	debug.Logf("Update count per frame: %d\n", updateCount)
 
 	// Update the game.
 	for i := 0; i < updateCount; i++ {
