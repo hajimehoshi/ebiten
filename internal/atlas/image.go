@@ -866,7 +866,7 @@ func SwapBuffers(graphicsDriver graphicsdriver.Graphics) error {
 	}()
 
 	if debug.IsDebug {
-		debug.Logf("Internal image sizes:\n")
+		debug.FrameLogf("Internal image sizes:\n")
 		imgs := make([]*graphicscommand.Image, 0, len(theBackends))
 		for _, backend := range theBackends {
 			imgs = append(imgs, backend.image)
