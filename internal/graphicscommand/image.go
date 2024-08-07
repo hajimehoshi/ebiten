@@ -234,6 +234,6 @@ func LogImagesInfo(images []*Image) {
 		if i.screen {
 			screen = " (screen)"
 		}
-		debug.Logf("  %d: (%d, %d)%s\n", i.id, w, h, screen)
+		debug.FrameLogf("  %d: (%d, %d)%s\n", i.id, w, h, screen)
 	}
 }
