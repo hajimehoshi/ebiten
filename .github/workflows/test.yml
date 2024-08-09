@@ -42,11 +42,15 @@ jobs:
           sudo apt-get update
           sudo apt-get install libasound2-dev libgl1-mesa-dev libxcursor-dev libxi-dev libxinerama-dev libxrandr-dev libxxf86vm-dev
 
+      - name: Install Chrome
+        uses: browser-actions/setup-chrome@latest
+
       - name: Install wasmbrowsertest
         run: |
-          go install github.com/agnivade/wasmbrowsertest@ee76d31b7b9b1645576c1f51fec4c09fe6cf1bb3
+          wasmbrowsertest_version=06679196c7e76f227e71456cdc16fccd6cc33601
+          go install github.com/agnivade/wasmbrowsertest@${wasmbrowsertest_version}
           mv $(go env GOPATH)/bin/wasmbrowsertest${{ runner.os == 'Windows' && '.exe' || '' }} $(go env GOPATH)/bin/go_js_wasm_exec${{ runner.os == 'Windows' && '.exe' || '' }}
-          go install github.com/agnivade/wasmbrowsertest/cmd/cleanenv@ee76d31b7b9b1645576c1f51fec4c09fe6cf1bb3
+          go install github.com/agnivade/wasmbrowsertest/cmd/cleanenv@${wasmbrowsertest_version}
 
       - name: Prepare ebitenmobile test
         run: |
