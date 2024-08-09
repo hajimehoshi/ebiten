@@ -31,6 +31,23 @@ const (
 	CounterClockwise
 )
 
+type opType int
+
+const (
+	opTypeMoveTo opType = iota
+	opTypeLineTo
+	opTypeQuadTo
+	opTypeCubicTo
+	opTypeClose
+)
+
+type op struct {
+	typ opType
+	p1  point
+	p2  point
+	p3  point
+}
+
 func abs(x float32) float32 {
 	if x < 0 {
 		return -x
@@ -46,16 +63,6 @@ type point struct {
 type subpath struct {
 	points []point
 	closed bool
-}
-
-func (s *subpath) currentPosition() (point, bool) {
-	if len(s.points) == 0 {
-		return point{}, false
-	}
-	if s.closed {
-		return point{}, false
-	}
-	return s.points[len(s.points)-1], true
 }
 
 func (s *subpath) pointCount() int {
@@ -91,15 +98,51 @@ func (s *subpath) close() {
 
 // Path represents a collection of path subpathments.
 type Path struct {
+	ops []op
+
 	subpaths []*subpath
+}
+
+func (p *Path) ensureSubpaths() []*subpath {
+	// TODO: Probably it is better to avoid returning a slice since allocation is heavy.
+	// What about walkSubpaths(func(*subpath))?
+
+	if len(p.subpaths) > 0 || len(p.ops) == 0 {
+		return p.subpaths
+	}
+
+	var cur point
+	for _, op := range p.ops {
+		switch op.typ {
+		case opTypeMoveTo:
+			p.subpaths = append(p.subpaths, &subpath{
+				points: []point{op.p1},
+			})
+			cur = op.p1
+		case opTypeLineTo:
+			p.lineTo(op.p1)
+			cur = op.p1
+		case opTypeQuadTo:
+			p.quadTo(cur, op.p1, op.p2, 0)
+			cur = op.p2
+		case opTypeCubicTo:
+			p.cubicTo(cur, op.p1, op.p2, op.p3, 0)
+			cur = op.p3
+		case opTypeClose:
+			p.close()
+			cur = point{}
+		}
+	}
+
+	return p.subpaths
 }
 
 // MoveTo starts a new subpath with the given position (x, y) without adding a subpath,
 func (p *Path) MoveTo(x, y float32) {
-	p.subpaths = append(p.subpaths, &subpath{
-		points: []point{
-			{x: x, y: y},
-		},
+	p.subpaths = p.subpaths[:0]
+	p.ops = append(p.ops, op{
+		typ: opTypeMoveTo,
+		p1:  point{x: x, y: y},
 	})
 }
 
@@ -107,22 +150,54 @@ func (p *Path) MoveTo(x, y float32) {
 // and ends to the given position (x, y).
 // If p doesn't have any subpaths or the last subpath is closed, LineTo sets (x, y) as the start position of a new subpath.
 func (p *Path) LineTo(x, y float32) {
-	if len(p.subpaths) == 0 || p.subpaths[len(p.subpaths)-1].closed {
-		p.subpaths = append(p.subpaths, &subpath{
-			points: []point{
-				{x: x, y: y},
-			},
-		})
-		return
-	}
-
-	p.subpaths[len(p.subpaths)-1].appendPoint(point{x: x, y: y})
+	p.subpaths = p.subpaths[:0]
+	p.ops = append(p.ops, op{
+		typ: opTypeLineTo,
+		p1:  point{x: x, y: y},
+	})
 }
 
 // QuadTo adds a quadratic Bézier curve to the path.
 // (x1, y1) is the control point, and (x2, y2) is the destination.
 func (p *Path) QuadTo(x1, y1, x2, y2 float32) {
-	p.quadTo(point{x: x1, y: y1}, point{x: x2, y: y2}, 0)
+	p.subpaths = p.subpaths[:0]
+	p.ops = append(p.ops, op{
+		typ: opTypeQuadTo,
+		p1:  point{x: x1, y: y1},
+		p2:  point{x: x2, y: y2},
+	})
+}
+
+// CubicTo adds a cubic Bézier curve to the path.
+// (x1, y1) and (x2, y2) are the control points, and (x3, y3) is the destination.
+func (p *Path) CubicTo(x1, y1, x2, y2, x3, y3 float32) {
+	p.subpaths = p.subpaths[:0]
+	p.ops = append(p.ops, op{
+		typ: opTypeCubicTo,
+		p1:  point{x: x1, y: y1},
+		p2:  point{x: x2, y: y2},
+		p3:  point{x: x3, y: y3},
+	})
+}
+
+// Close adds a new line from the last position of the current subpath to the first position of the current subpath,
+// and marks the current subpath closed.
+// Following operations for this path will start with a new subpath.
+func (p *Path) Close() {
+	p.subpaths = p.subpaths[:0]
+	p.ops = append(p.ops, op{
+		typ: opTypeClose,
+	})
+}
+
+func (p *Path) lineTo(pt point) {
+	if len(p.subpaths) == 0 || p.subpaths[len(p.subpaths)-1].closed {
+		p.subpaths = append(p.subpaths, &subpath{
+			points: []point{pt},
+		})
+		return
+	}
+	p.subpaths[len(p.subpaths)-1].appendPoint(pt)
 }
 
 // lineForTwoPoints returns parameters for a line passing through p0 and p1.
@@ -154,24 +229,13 @@ func crossingPointForTwoLines(p00, p01, p10, p11 point) point {
 	}
 }
 
-func (p *Path) currentPosition() (point, bool) {
-	if len(p.subpaths) == 0 {
-		return point{}, false
-	}
-	return p.subpaths[len(p.subpaths)-1].currentPosition()
-}
-
-func (p *Path) quadTo(p1, p2 point, level int) {
+func (p *Path) quadTo(p0, p1, p2 point, level int) {
 	if level > 10 {
 		return
 	}
 
-	p0, ok := p.currentPosition()
-	if !ok {
-		p0 = p1
-	}
 	if isPointCloseToSegment(p1, p0, p2, 0.5) {
-		p.LineTo(p2.x, p2.y)
+		p.lineTo(p2)
 		return
 	}
 
@@ -187,27 +251,17 @@ func (p *Path) quadTo(p1, p2 point, level int) {
 		x: (p01.x + p12.x) / 2,
 		y: (p01.y + p12.y) / 2,
 	}
-	p.quadTo(p01, p012, level+1)
-	p.quadTo(p12, p2, level+1)
+	p.quadTo(p0, p01, p012, level+1)
+	p.quadTo(p012, p12, p2, level+1)
 }
 
-// CubicTo adds a cubic Bézier curve to the path.
-// (x1, y1) and (x2, y2) are the control points, and (x3, y3) is the destination.
-func (p *Path) CubicTo(x1, y1, x2, y2, x3, y3 float32) {
-	p.cubicTo(point{x: x1, y: y1}, point{x: x2, y: y2}, point{x: x3, y: y3}, 0)
-}
-
-func (p *Path) cubicTo(p1, p2, p3 point, level int) {
+func (p *Path) cubicTo(p0, p1, p2, p3 point, level int) {
 	if level > 10 {
 		return
 	}
 
-	p0, ok := p.currentPosition()
-	if !ok {
-		p0 = p1
-	}
 	if isPointCloseToSegment(p1, p0, p3, 0.5) && isPointCloseToSegment(p2, p0, p3, 0.5) {
-		p.LineTo(p3.x, p3.y)
+		p.lineTo(p3)
 		return
 	}
 
@@ -235,8 +289,8 @@ func (p *Path) cubicTo(p1, p2, p3 point, level int) {
 		x: (p012.x + p123.x) / 2,
 		y: (p012.y + p123.y) / 2,
 	}
-	p.cubicTo(p01, p012, p0123, level+1)
-	p.cubicTo(p123, p23, p3, level+1)
+	p.cubicTo(p0, p01, p012, p0123, level+1)
+	p.cubicTo(p0123, p123, p23, p3, level+1)
 }
 
 func normalize(p point) point {
@@ -246,6 +300,26 @@ func normalize(p point) point {
 
 func cross(p0, p1 point) float32 {
 	return p0.x*p1.y - p1.x*p0.y
+}
+
+func (p *Path) currentPosition() (point, bool) {
+	if len(p.ops) == 0 {
+		return point{}, false
+	}
+	op := p.ops[len(p.ops)-1]
+	switch op.typ {
+	case opTypeMoveTo:
+		return op.p1, true
+	case opTypeLineTo:
+		return op.p1, true
+	case opTypeQuadTo:
+		return op.p2, true
+	case opTypeCubicTo:
+		return op.p3, true
+	case opTypeClose:
+		return point{}, false
+	}
+	return point{}, false
 }
 
 // ArcTo adds an arc curve to the path.
@@ -362,7 +436,7 @@ func (p *Path) Arc(x, y, radius, startAngle, endAngle float32, dir Direction) {
 	p.LineTo(x0, y0)
 
 	// Calculate the control points for an approximated Bézier curve.
-	// See https://docs.microsoft.com/en-us/xamarin/xamarin-forms/user-interface/graphics/skiasharp/curves/beziers.
+	// See https://learn.microsoft.com/en-us/previous-versions/xamarin/xamarin-forms/user-interface/graphics/skiasharp/curves/beziers.
 	l := radius * float32(math.Tan(da/4)*4/3)
 	var cx0, cy0, cx1, cy1 float32
 	if dir == Clockwise {
@@ -379,10 +453,7 @@ func (p *Path) Arc(x, y, radius, startAngle, endAngle float32, dir Direction) {
 	p.CubicTo(cx0, cy0, cx1, cy1, x1, y1)
 }
 
-// Close adds a new line from the last position of the current subpath to the first position of the current subpath,
-// and marks the current subpath closed.
-// Following operations for this path will start with a new subpath.
-func (p *Path) Close() {
+func (p *Path) close() {
 	if len(p.subpaths) == 0 {
 		return
 	}
@@ -405,7 +476,7 @@ func (p *Path) AppendVerticesAndIndicesForFilling(vertices []ebiten.Vertex, indi
 	// TODO: Add tests.
 
 	base := uint16(len(vertices))
-	for _, subpath := range p.subpaths {
+	for _, subpath := range p.ensureSubpaths() {
 		if subpath.pointCount() < 3 {
 			continue
 		}
@@ -486,7 +557,7 @@ func (p *Path) AppendVerticesAndIndicesForStroke(vertices []ebiten.Vertex, indic
 		return vertices, indices
 	}
 
-	for _, subpath := range p.subpaths {
+	for _, subpath := range p.ensureSubpaths() {
 		if subpath.pointCount() < 2 {
 			continue
 		}
