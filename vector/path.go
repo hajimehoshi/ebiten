@@ -557,12 +557,13 @@ func (p *Path) AppendVerticesAndIndicesForStroke(vertices []ebiten.Vertex, indic
 		return vertices, indices
 	}
 
+	var rects [][4]point
 	for _, subpath := range p.ensureSubpaths() {
 		if subpath.pointCount() < 2 {
 			continue
 		}
 
-		var rects [][4]point
+		rects = rects[:0]
 		for i := 0; i < subpath.pointCount()-1; i++ {
 			pt := subpath.points[i]
 
