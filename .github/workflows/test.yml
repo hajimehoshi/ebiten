@@ -153,7 +153,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get install libgles2-mesa-dev
-          env EBITENGINE_GRAPHICS_LIBRARY=opengl EBITENGINE_OPENGL=es go test -shuffle=on -v -p=1 ./...
+          env EBITENGINE_GRAPHICS_LIBRARY=opengl go test -shuffle=on -v -p=1 ./...
 
       - name: go test (Windows)
         if: runner.os == 'Windows'
@@ -168,7 +168,7 @@ jobs:
           env GOARCH=386 EBITENGINE_DIRECTX=version=12 go test -shuffle=on -v ./...
 
       - name: go test (Wasm)
-        if: ${{ runner.os != 'macOS' }}
+        if: runner.os != 'macOS'
         run: |
           # Wasm tests don't work on macOS with the headless mode enabled, but the headless mode cannot be disabled in GitHub Actions (#2972).
           env GOOS=js GOARCH=wasm cleanenv -remove-prefix GITHUB_ -remove-prefix JAVA_ -remove-prefix PSModulePath -remove-prefix STATS_ -remove-prefix RUNNER_ -- go test -shuffle=on -v ./...
