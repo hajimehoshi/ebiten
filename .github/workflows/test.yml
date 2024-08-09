@@ -42,9 +42,12 @@ jobs:
           sudo apt-get update
           sudo apt-get install libasound2-dev libgl1-mesa-dev libxcursor-dev libxi-dev libxinerama-dev libxrandr-dev libxxf86vm-dev
 
+      - name: Install Chrome
+        uses: browser-actions/setup-chrome@latest
+
       - name: Install wasmbrowsertest
         run: |
-          wasmbrowsertest_version=6e5bbb88049c42eb62e19d10e5be9940b9271aab
+          wasmbrowsertest_version=06679196c7e76f227e71456cdc16fccd6cc33601
           go install github.com/agnivade/wasmbrowsertest@${wasmbrowsertest_version}
           mv $(go env GOPATH)/bin/wasmbrowsertest${{ runner.os == 'Windows' && '.exe' || '' }} $(go env GOPATH)/bin/go_js_wasm_exec${{ runner.os == 'Windows' && '.exe' || '' }}
           go install github.com/agnivade/wasmbrowsertest/cmd/cleanenv@${wasmbrowsertest_version}
@@ -165,10 +168,9 @@ jobs:
           env GOARCH=386 EBITENGINE_DIRECTX=version=12 go test -shuffle=on -v ./...
 
       - name: go test (Wasm)
-        if: ${{ runner.os != 'macOS' && runner.os != 'Windows' }}
+        if: ${{ runner.os != 'macOS' }}
         run: |
           # Wasm tests don't work on macOS with the headless mode enabled, but the headless mode cannot be disabled in GitHub Actions (#2972).
-          # Wasm tests don't work on Windows well due to mysterious timeouts (#2982).
           env GOOS=js GOARCH=wasm cleanenv -remove-prefix GITHUB_ -remove-prefix JAVA_ -remove-prefix PSModulePath -remove-prefix STATS_ -remove-prefix RUNNER_ -- go test -shuffle=on -v ./...
 
       - name: Install ebitenmobile
