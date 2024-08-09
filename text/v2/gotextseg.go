@@ -19,11 +19,11 @@ import (
 	"image/draw"
 	"math"
 
-	"github.com/go-text/typesetting/opentype/api"
-	"golang.org/x/image/math/fixed"
 	gvector "golang.org/x/image/vector"
 
-	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/go-text/typesetting/opentype/api"
+	"golang.org/x/image/math/fixed"
+
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
@@ -75,7 +75,7 @@ func segmentsToBounds(segs []api.Segment) fixed.Rectangle26_6 {
 	}
 }
 
-func segmentsToImage(segs []api.Segment, subpixelOffset fixed.Point26_6, glyphBounds fixed.Rectangle26_6) *ebiten.Image {
+func segmentsToImage(a *glyphAtlas, segs []api.Segment, subpixelOffset fixed.Point26_6, glyphBounds fixed.Rectangle26_6) *glyphImage {
 	if len(segs) == 0 {
 		return nil
 	}
@@ -122,7 +122,10 @@ func segmentsToImage(segs []api.Segment, subpixelOffset fixed.Point26_6, glyphBo
 
 	dst := image.NewRGBA(image.Rect(0, 0, w, h))
 	rast.Draw(dst, dst.Bounds(), image.Opaque, image.Point{})
-	return ebiten.NewImageFromImage(dst)
+	img := a.NewImage(w, h)
+	img.Image().WritePixels(dst.Pix)
+
+	return img
 }
 
 func appendVectorPathFromSegments(path *vector.Path, segs []api.Segment, x, y float32) {
