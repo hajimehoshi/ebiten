@@ -93,11 +93,6 @@
 // The option "featurelevel" is valid only for DirectX 12.
 // The possible values are "11_0", "11_1", "12_0", "12_1", and "12_2". The default value is "11_0".
 //
-// `EBITENGINE_OPENGL` environment variable specifies various parameters for OpenGL.
-// You can specify multiple values separated by a comma. The default value is empty (i.e. no parameters).
-//
-//	"es": Use OpenGL ES. Without this, OpenGL and OpenGL ES are automatically chosen.
-//
 // # Build tags
 //
 // `ebitenginedebug` outputs a log of graphics commands. This is useful to know what happens in Ebitengine. In general, the
