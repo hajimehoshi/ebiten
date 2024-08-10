@@ -103,6 +103,11 @@ type Path struct {
 	subpaths []*subpath
 }
 
+func (p *Path) reset() {
+	p.ops = p.ops[:0]
+	p.subpaths = p.subpaths[:0]
+}
+
 func (p *Path) ensureSubpaths() []*subpath {
 	// TODO: Probably it is better to avoid returning a slice since allocation is heavy.
 	// What about walkSubpaths(func(*subpath))?
@@ -558,6 +563,7 @@ func (p *Path) AppendVerticesAndIndicesForStroke(vertices []ebiten.Vertex, indic
 	}
 
 	var rects [][4]point
+	var tmpPath Path
 	for _, subpath := range p.ensureSubpaths() {
 		if subpath.pointCount() < 2 {
 			continue
@@ -643,46 +649,49 @@ func (p *Path) AppendVerticesAndIndicesForStroke(vertices []ebiten.Vertex, indic
 				delta := math.Pi - da
 				exceed := float32(math.Abs(1/math.Sin(float64(delta/2)))) > op.MiterLimit
 
-				var quad Path
-				quad.MoveTo(c.x, c.y)
+				// Quadrilateral
+				tmpPath.reset()
+				tmpPath.MoveTo(c.x, c.y)
 				if da < math.Pi {
-					quad.LineTo(rect[1].x, rect[1].y)
+					tmpPath.LineTo(rect[1].x, rect[1].y)
 					if !exceed {
 						pt := crossingPointForTwoLines(rect[0], rect[1], nextRect[0], nextRect[1])
-						quad.LineTo(pt.x, pt.y)
+						tmpPath.LineTo(pt.x, pt.y)
 					}
-					quad.LineTo(nextRect[0].x, nextRect[0].y)
+					tmpPath.LineTo(nextRect[0].x, nextRect[0].y)
 				} else {
-					quad.LineTo(rect[3].x, rect[3].y)
+					tmpPath.LineTo(rect[3].x, rect[3].y)
 					if !exceed {
 						pt := crossingPointForTwoLines(rect[2], rect[3], nextRect[2], nextRect[3])
-						quad.LineTo(pt.x, pt.y)
+						tmpPath.LineTo(pt.x, pt.y)
 					}
-					quad.LineTo(nextRect[2].x, nextRect[2].y)
+					tmpPath.LineTo(nextRect[2].x, nextRect[2].y)
 				}
-				vertices, indices = quad.AppendVerticesAndIndicesForFilling(vertices, indices)
+				vertices, indices = tmpPath.AppendVerticesAndIndicesForFilling(vertices, indices)
 
 			case LineJoinBevel:
-				var tri Path
-				tri.MoveTo(c.x, c.y)
+				// Triangle
+				tmpPath.reset()
+				tmpPath.MoveTo(c.x, c.y)
 				if da < math.Pi {
-					tri.LineTo(rect[1].x, rect[1].y)
-					tri.LineTo(nextRect[0].x, nextRect[0].y)
+					tmpPath.LineTo(rect[1].x, rect[1].y)
+					tmpPath.LineTo(nextRect[0].x, nextRect[0].y)
 				} else {
-					tri.LineTo(rect[3].x, rect[3].y)
-					tri.LineTo(nextRect[2].x, nextRect[2].y)
+					tmpPath.LineTo(rect[3].x, rect[3].y)
+					tmpPath.LineTo(nextRect[2].x, nextRect[2].y)
 				}
-				vertices, indices = tri.AppendVerticesAndIndicesForFilling(vertices, indices)
+				vertices, indices = tmpPath.AppendVerticesAndIndicesForFilling(vertices, indices)
 
 			case LineJoinRound:
-				var arc Path
-				arc.MoveTo(c.x, c.y)
+				// Arc
+				tmpPath.reset()
+				tmpPath.MoveTo(c.x, c.y)
 				if da < math.Pi {
-					arc.Arc(c.x, c.y, op.Width/2, a0, a1, Clockwise)
+					tmpPath.Arc(c.x, c.y, op.Width/2, a0, a1, Clockwise)
 				} else {
-					arc.Arc(c.x, c.y, op.Width/2, a0+math.Pi, a1+math.Pi, CounterClockwise)
+					tmpPath.Arc(c.x, c.y, op.Width/2, a0+math.Pi, a1+math.Pi, CounterClockwise)
 				}
-				vertices, indices = arc.AppendVerticesAndIndicesForFilling(vertices, indices)
+				vertices, indices = tmpPath.AppendVerticesAndIndicesForFilling(vertices, indices)
 			}
 		}
 
@@ -707,10 +716,11 @@ func (p *Path) AppendVerticesAndIndicesForStroke(vertices []ebiten.Vertex, indic
 					y: (startR[0].y + startR[2].y) / 2,
 				}
 				a := float32(math.Atan2(float64(startR[0].y-startR[2].y), float64(startR[0].x-startR[2].x)))
-				var arc Path
-				arc.MoveTo(startR[0].x, startR[0].y)
-				arc.Arc(c.x, c.y, op.Width/2, a, a+math.Pi, CounterClockwise)
-				vertices, indices = arc.AppendVerticesAndIndicesForFilling(vertices, indices)
+				// Arc
+				tmpPath.reset()
+				tmpPath.MoveTo(startR[0].x, startR[0].y)
+				tmpPath.Arc(c.x, c.y, op.Width/2, a, a+math.Pi, CounterClockwise)
+				vertices, indices = tmpPath.AppendVerticesAndIndicesForFilling(vertices, indices)
 			}
 			{
 				c := point{
@@ -718,10 +728,11 @@ func (p *Path) AppendVerticesAndIndicesForStroke(vertices []ebiten.Vertex, indic
 					y: (endR[1].y + endR[3].y) / 2,
 				}
 				a := float32(math.Atan2(float64(endR[1].y-endR[3].y), float64(endR[1].x-endR[3].x)))
-				var arc Path
-				arc.MoveTo(endR[1].x, endR[1].y)
-				arc.Arc(c.x, c.y, op.Width/2, a, a+math.Pi, Clockwise)
-				vertices, indices = arc.AppendVerticesAndIndicesForFilling(vertices, indices)
+				// Arc
+				tmpPath.reset()
+				tmpPath.MoveTo(endR[1].x, endR[1].y)
+				tmpPath.Arc(c.x, c.y, op.Width/2, a, a+math.Pi, Clockwise)
+				vertices, indices = tmpPath.AppendVerticesAndIndicesForFilling(vertices, indices)
 			}
 
 		case LineCapSquare:
@@ -731,24 +742,26 @@ func (p *Path) AppendVerticesAndIndicesForStroke(vertices []ebiten.Vertex, indic
 				s, c := math.Sincos(a)
 				dx, dy := float32(c)*op.Width/2, float32(s)*op.Width/2
 
-				var quad Path
-				quad.MoveTo(startR[0].x, startR[0].y)
-				quad.LineTo(startR[0].x+dx, startR[0].y+dy)
-				quad.LineTo(startR[2].x+dx, startR[2].y+dy)
-				quad.LineTo(startR[2].x, startR[2].y)
-				vertices, indices = quad.AppendVerticesAndIndicesForFilling(vertices, indices)
+				// Quadrilateral
+				tmpPath.reset()
+				tmpPath.MoveTo(startR[0].x, startR[0].y)
+				tmpPath.LineTo(startR[0].x+dx, startR[0].y+dy)
+				tmpPath.LineTo(startR[2].x+dx, startR[2].y+dy)
+				tmpPath.LineTo(startR[2].x, startR[2].y)
+				vertices, indices = tmpPath.AppendVerticesAndIndicesForFilling(vertices, indices)
 			}
 			{
 				a := math.Atan2(float64(endR[1].y-endR[0].y), float64(endR[1].x-endR[0].x))
 				s, c := math.Sincos(a)
 				dx, dy := float32(c)*op.Width/2, float32(s)*op.Width/2
 
-				var quad Path
-				quad.MoveTo(endR[1].x, endR[1].y)
-				quad.LineTo(endR[1].x+dx, endR[1].y+dy)
-				quad.LineTo(endR[3].x+dx, endR[3].y+dy)
-				quad.LineTo(endR[3].x, endR[3].y)
-				vertices, indices = quad.AppendVerticesAndIndicesForFilling(vertices, indices)
+				// Quadrilateral
+				tmpPath.reset()
+				tmpPath.MoveTo(endR[1].x, endR[1].y)
+				tmpPath.LineTo(endR[1].x+dx, endR[1].y+dy)
+				tmpPath.LineTo(endR[3].x+dx, endR[3].y+dy)
+				tmpPath.LineTo(endR[3].x, endR[3].y)
+				vertices, indices = tmpPath.AppendVerticesAndIndicesForFilling(vertices, indices)
 			}
 		}
 	}
