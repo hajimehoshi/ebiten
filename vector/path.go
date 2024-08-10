@@ -65,11 +65,11 @@ type subpath struct {
 	closed bool
 }
 
-func (s *subpath) pointCount() int {
+func (s subpath) pointCount() int {
 	return len(s.points)
 }
 
-func (s *subpath) lastPoint() point {
+func (s subpath) lastPoint() point {
 	return s.points[len(s.points)-1]
 }
 
@@ -100,7 +100,7 @@ func (s *subpath) close() {
 type Path struct {
 	ops []op
 
-	subpaths []*subpath
+	subpaths []subpath
 }
 
 func (p *Path) reset() {
@@ -108,10 +108,7 @@ func (p *Path) reset() {
 	p.subpaths = p.subpaths[:0]
 }
 
-func (p *Path) ensureSubpaths() []*subpath {
-	// TODO: Probably it is better to avoid returning a slice since allocation is heavy.
-	// What about walkSubpaths(func(*subpath))?
-
+func (p *Path) ensureSubpaths() []subpath {
 	if len(p.subpaths) > 0 || len(p.ops) == 0 {
 		return p.subpaths
 	}
@@ -120,7 +117,7 @@ func (p *Path) ensureSubpaths() []*subpath {
 	for _, op := range p.ops {
 		switch op.typ {
 		case opTypeMoveTo:
-			p.subpaths = append(p.subpaths, &subpath{
+			p.subpaths = append(p.subpaths, subpath{
 				points: []point{op.p1},
 			})
 			cur = op.p1
@@ -197,7 +194,7 @@ func (p *Path) Close() {
 
 func (p *Path) lineTo(pt point) {
 	if len(p.subpaths) == 0 || p.subpaths[len(p.subpaths)-1].closed {
-		p.subpaths = append(p.subpaths, &subpath{
+		p.subpaths = append(p.subpaths, subpath{
 			points: []point{pt},
 		})
 		return
@@ -462,8 +459,7 @@ func (p *Path) close() {
 	if len(p.subpaths) == 0 {
 		return
 	}
-	subpath := p.subpaths[len(p.subpaths)-1]
-	subpath.close()
+	p.subpaths[len(p.subpaths)-1].close()
 }
 
 // AppendVerticesAndIndicesForFilling appends vertices and indices to fill this path and returns them.
