@@ -34,15 +34,11 @@ static bool ebitengine_IsErrorNil(ebitengine_Error *err) {
   return err->Message == NULL && err->Code == 0;
 }
 
-typedef struct ebitengine_Rectangle {
+typedef struct ebitengine_DstRegion {
   int MinX;
   int MinY;
   int MaxX;
   int MaxY;
-} ebitengine_Rectangle;
-
-typedef struct ebitengine_DstRegion {
-  ebitengine_Rectangle Region;
   int IndexCount;
 } ebitengine_DstRegion;
 
@@ -55,26 +51,17 @@ typedef struct ebitengine_Blend {
   uint8_t BlendOperationAlpha;
 } ebitengine_Blend;
 
-typedef struct ebitengine_DrawTrianglesArgs {
-  int Dst;
-  int *Srcs;
-  int SrcCount;
-  int Shader;
-  ebitengine_DstRegion *DstRegions;
-  int DstRegionCount;
-  int IndexOffset;
-  ebitengine_Blend Blend;
-  uint32_t *Uniforms;
-  int UniformCount;
-  int FillRule;
-} ebitengine_DrawTrianglesArgs;
-
 ebitengine_Error ebitengine_InitializeGraphics(void);
 ebitengine_Error ebitengine_NewImage(int *image, int width, int height);
 ebitengine_Error ebitengine_NewScreenFramebufferImage(int *image, int width,
                                                       int height);
 void ebitengine_DisposeImage(int id);
-ebitengine_Error ebitengine_DrawTriangles(ebitengine_DrawTrianglesArgs *args);
+
+ebitengine_Error
+ebitengine_DrawTriangles(int dst, int *srcs, int srcCount, int shader,
+                         ebitengine_DstRegion *dstRegions, int dstRegionCount,
+                         int indexOffset, ebitengine_Blend blend,
+                         uint32_t *uniforms, int uniformCount, int fillRule);
 
 ebitengine_Error ebitengine_NewShader(int *shader, const char *source);
 void ebitengine_DisposeShader(int id);

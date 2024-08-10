@@ -118,26 +118,24 @@ func (g *Graphics) NewShader(program *shaderir.Program) (graphicsdriver.Shader, 
 }
 
 func (g *Graphics) DrawTriangles(dst graphicsdriver.ImageID, srcs [graphics.ShaderSrcImageCount]graphicsdriver.ImageID, shader graphicsdriver.ShaderID, dstRegions []graphicsdriver.DstRegion, indexOffset int, blend graphicsdriver.Blend, uniforms []uint32, fillRule graphicsdriver.FillRule) error {
-	csrcs := make([]C.int, len(srcs))
+	cSrcs := make([]C.int, len(srcs))
 	for i, src := range srcs {
-		csrcs[i] = C.int(src)
+		cSrcs[i] = C.int(src)
 	}
+	defer runtime.KeepAlive(cSrcs)
+
 	cDstRegions := make([]C.ebitengine_DstRegion, len(dstRegions))
+	defer runtime.KeepAlive(cDstRegions)
 	for i, r := range dstRegions {
 		cDstRegions[i] = C.ebitengine_DstRegion{
-			Region: C.ebitengine_Rectangle{
-				MinX: C.int(r.Region.Min.X),
-				MinY: C.int(r.Region.Min.Y),
-				MaxX: C.int(r.Region.Max.X),
-				MaxY: C.int(r.Region.Max.Y),
-			},
+			MinX:       C.int(r.Region.Min.X),
+			MinY:       C.int(r.Region.Min.Y),
+			MaxX:       C.int(r.Region.Max.X),
+			MaxY:       C.int(r.Region.Max.Y),
 			IndexCount: C.int(r.IndexCount),
 		}
 	}
-	cUniforms := make([]C.uint32_t, len(uniforms))
-	for i, u := range uniforms {
-		cUniforms[i] = C.uint32_t(u)
-	}
+
 	cBlend := C.ebitengine_Blend{
 		BlendFactorSourceRGB:        C.uint8_t(blend.BlendFactorSourceRGB),
 		BlendFactorSourceAlpha:      C.uint8_t(blend.BlendFactorSourceAlpha),
@@ -147,23 +145,15 @@ func (g *Graphics) DrawTriangles(dst graphicsdriver.ImageID, srcs [graphics.Shad
 		BlendOperationAlpha:         C.uint8_t(blend.BlendOperationAlpha),
 	}
 
-	args := C.ebitengine_DrawTrianglesArgs{
-		Dst:            C.int(dst),
-		Srcs:           &csrcs[0],
-		SrcCount:       C.int(len(csrcs)),
-		Shader:         C.int(shader),
-		DstRegions:     &cDstRegions[0],
-		DstRegionCount: C.int(len(cDstRegions)),
-		IndexOffset:    C.int(indexOffset),
-		Blend:          cBlend,
-		Uniforms:       &cUniforms[0],
-		UniformCount:   C.int(len(cUniforms)),
-		FillRule:       C.int(fillRule),
+	cUniforms := make([]C.uint32_t, len(uniforms))
+	defer runtime.KeepAlive(cUniforms)
+	for i, u := range uniforms {
+		cUniforms[i] = C.uint32_t(u)
 	}
-	if err := C.ebitengine_DrawTriangles(&args); !C.ebitengine_IsErrorNil(&err) {
+
+	if err := C.ebitengine_DrawTriangles(C.int(dst), &cSrcs[0], C.int(len(cSrcs)), C.int(shader), &cDstRegions[0], C.int(len(cDstRegions)), C.int(indexOffset), cBlend, &cUniforms[0], C.int(len(cUniforms)), C.int(fillRule)); !C.ebitengine_IsErrorNil(&err) {
 		return newPlaystation5Error("(*playstation5.Graphics).DrawTriangles", err)
 	}
-	runtime.KeepAlive(args)
 	return nil
 }
 
