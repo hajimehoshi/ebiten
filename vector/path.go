@@ -65,6 +65,13 @@ type subpath struct {
 	closed bool
 }
 
+// reset resets the subpath.
+// reset doesn't release the allocated memory so that the memory can be reused.
+func (s *subpath) reset() {
+	s.points = s.points[:0]
+	s.closed = false
+}
+
 func (s subpath) pointCount() int {
 	return len(s.points)
 }
@@ -78,10 +85,12 @@ func (s *subpath) appendPoint(pt point) {
 		panic("vector: a closed subpathment cannot append a new point")
 	}
 
-	// Do not add a too close point to the last point.
-	// This can cause unexpected rendering results.
-	if lp := s.lastPoint(); abs(lp.x-pt.x) < 1e-2 && abs(lp.y-pt.y) < 1e-2 {
-		return
+	if len(s.points) > 0 {
+		// Do not add a too close point to the last point.
+		// This can cause unexpected rendering results.
+		if lp := s.lastPoint(); abs(lp.x-pt.x) < 1e-2 && abs(lp.y-pt.y) < 1e-2 {
+			return
+		}
 	}
 
 	s.points = append(s.points, pt)
@@ -103,9 +112,24 @@ type Path struct {
 	subpaths []subpath
 }
 
+// reset resets the path.
+// reset doesn't release the allocated memory so that the memory can be reused.
 func (p *Path) reset() {
 	p.ops = p.ops[:0]
 	p.subpaths = p.subpaths[:0]
+}
+
+func (p *Path) appendNewSubpath(pt point) {
+	if cap(p.subpaths) > len(p.subpaths) {
+		// Reuse the last subpath since the last subpath might have an already allocated slice.
+		p.subpaths = p.subpaths[:len(p.subpaths)+1]
+		p.subpaths[len(p.subpaths)-1].reset()
+		p.subpaths[len(p.subpaths)-1].appendPoint(pt)
+		return
+	}
+	p.subpaths = append(p.subpaths, subpath{
+		points: []point{pt},
+	})
 }
 
 func (p *Path) ensureSubpaths() []subpath {
@@ -117,9 +141,7 @@ func (p *Path) ensureSubpaths() []subpath {
 	for _, op := range p.ops {
 		switch op.typ {
 		case opTypeMoveTo:
-			p.subpaths = append(p.subpaths, subpath{
-				points: []point{op.p1},
-			})
+			p.appendNewSubpath(op.p1)
 			cur = op.p1
 		case opTypeLineTo:
 			p.lineTo(op.p1)
@@ -194,9 +216,7 @@ func (p *Path) Close() {
 
 func (p *Path) lineTo(pt point) {
 	if len(p.subpaths) == 0 || p.subpaths[len(p.subpaths)-1].closed {
-		p.subpaths = append(p.subpaths, subpath{
-			points: []point{pt},
-		})
+		p.appendNewSubpath(pt)
 		return
 	}
 	p.subpaths[len(p.subpaths)-1].appendPoint(pt)
