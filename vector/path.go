@@ -232,12 +232,17 @@ func lineForTwoPoints(p0, p1 point) (a, b, c float32) {
 }
 
 // isPointCloseToSegment detects the distance between a segment (x0, y0)-(x1, y1) and a point (x, y) is less than allow.
+// If p0 and p1 are the same, isPointCloseToSegment returns true when the distance between p0 and p is less than allow.
 func isPointCloseToSegment(p, p0, p1 point, allow float32) bool {
+	if p0 == p1 {
+		return allow*allow >= (p0.x-p.x)*(p0.x-p.x)+(p0.y-p.y)*(p0.y-p.y)
+	}
+
 	a, b, c := lineForTwoPoints(p0, p1)
 
 	// The distance between a line ax+by+c=0 and (x0, y0) is
 	//     |ax0 + by0 + c| / √(a² + b²)
-	return allow*allow*(a*a+b*b) > (a*p.x+b*p.y+c)*(a*p.x+b*p.y+c)
+	return allow*allow*(a*a+b*b) >= (a*p.x+b*p.y+c)*(a*p.x+b*p.y+c)
 }
 
 // crossingPointForTwoLines returns a crossing point for two lines.
