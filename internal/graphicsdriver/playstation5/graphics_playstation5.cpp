@@ -32,8 +32,11 @@ ebitengine_NewScreenFramebufferImage(int *image, int width, int height) {
 
 extern "C" void ebitengine_DisposeImage(int id) {}
 
-extern "C" ebitengine_Error
-ebitengine_DrawTriangles(ebitengine_DrawTrianglesArgs *args) {
+ebitengine_Error
+ebitengine_DrawTriangles(int dst, int *srcs, int srcCount, int shader,
+                         ebitengine_DstRegion *dstRegions, int dstRegionCount,
+                         int indexOffset, ebitengine_Blend blend,
+                         uint32_t *uniforms, int uniformCount, int fillRule) {
   return {};
 }
 
