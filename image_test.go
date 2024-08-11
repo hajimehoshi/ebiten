@@ -662,6 +662,59 @@ func BenchmarkDrawImage(b *testing.B) {
 	}
 }
 
+func BenchmarkDrawTriangles(b *testing.B) {
+	const w, h = 16, 16
+	img0 := ebiten.NewImage(w, h)
+	img1 := ebiten.NewImage(w, h)
+	op := &ebiten.DrawTrianglesOptions{}
+	vs := []ebiten.Vertex{
+		{
+			DstX:   0,
+			DstY:   0,
+			SrcX:   0,
+			SrcY:   0,
+			ColorR: 1,
+			ColorG: 1,
+			ColorB: 1,
+			ColorA: 1,
+		},
+		{
+			DstX:   w,
+			DstY:   0,
+			SrcX:   w,
+			SrcY:   0,
+			ColorR: 1,
+			ColorG: 1,
+			ColorB: 1,
+			ColorA: 1,
+		},
+		{
+			DstX:   0,
+			DstY:   h,
+			SrcX:   0,
+			SrcY:   h,
+			ColorR: 1,
+			ColorG: 1,
+			ColorB: 1,
+			ColorA: 1,
+		},
+		{
+			DstX:   w,
+			DstY:   h,
+			SrcX:   w,
+			SrcY:   h,
+			ColorR: 1,
+			ColorG: 1,
+			ColorB: 1,
+			ColorA: 1,
+		},
+	}
+	is := []uint16{0, 1, 2, 1, 2, 3}
+	for i := 0; i < b.N; i++ {
+		img0.DrawTriangles(vs, is, img1, op)
+	}
+}
+
 func TestImageLinearGraduation(t *testing.T) {
 	img0 := ebiten.NewImage(2, 2)
 	img0.WritePixels([]byte{
