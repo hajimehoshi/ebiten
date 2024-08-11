@@ -183,9 +183,9 @@ func dstRegionFromVertices(vertices []float32) (minX, minY, maxX, maxY float32) 
 	maxX = negInf32
 	maxY = negInf32
 
-	for i := 0; i < len(vertices)/graphics.VertexFloatCount; i++ {
-		x := vertices[graphics.VertexFloatCount*i]
-		y := vertices[graphics.VertexFloatCount*i+1]
+	for i := 0; i < len(vertices); i += graphics.VertexFloatCount {
+		x := vertices[i]
+		y := vertices[i+1]
 		if x < minX {
 			minX = x
 		}

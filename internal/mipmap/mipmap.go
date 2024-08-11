@@ -73,20 +73,20 @@ func (m *Mipmap) DrawTriangles(srcs [graphics.ShaderSrcImageCount]*Mipmap, verti
 	level := 0
 	if !canSkipMipmap && srcs[0] != nil && canUseMipmap(srcs[0].imageType) {
 		level = math.MaxInt32
-		for i := 0; i < len(indices)/3; i++ {
+		for i := 0; i < len(indices); i += 3 {
 			const n = graphics.VertexFloatCount
-			dx0 := vertices[n*indices[3*i]+0]
-			dy0 := vertices[n*indices[3*i]+1]
-			sx0 := vertices[n*indices[3*i]+2]
-			sy0 := vertices[n*indices[3*i]+3]
-			dx1 := vertices[n*indices[3*i+1]+0]
-			dy1 := vertices[n*indices[3*i+1]+1]
-			sx1 := vertices[n*indices[3*i+1]+2]
-			sy1 := vertices[n*indices[3*i+1]+3]
-			dx2 := vertices[n*indices[3*i+2]+0]
-			dy2 := vertices[n*indices[3*i+2]+1]
-			sx2 := vertices[n*indices[3*i+2]+2]
-			sy2 := vertices[n*indices[3*i+2]+3]
+			dx0 := vertices[n*indices[i]+0]
+			dy0 := vertices[n*indices[i]+1]
+			sx0 := vertices[n*indices[i]+2]
+			sy0 := vertices[n*indices[i]+3]
+			dx1 := vertices[n*indices[i+1]+0]
+			dy1 := vertices[n*indices[i+1]+1]
+			sx1 := vertices[n*indices[i+1]+2]
+			sy1 := vertices[n*indices[i+1]+3]
+			dx2 := vertices[n*indices[i+2]+0]
+			dy2 := vertices[n*indices[i+2]+1]
+			sx2 := vertices[n*indices[i+2]+2]
+			sy2 := vertices[n*indices[i+2]+3]
 			if l := mipmapLevelFromDistance(dx0, dy0, dx1, dy1, sx0, sy0, sx1, sy1); level > l {
 				level = l
 			}

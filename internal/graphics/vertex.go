@@ -71,32 +71,32 @@ func QuadVertices(dst []float32, sx0, sy0, sx1, sy1 float32, a, b, c, d, tx, ty 
 	dst[6] = cb
 	dst[7] = ca
 
-	dst[8] = adjustDestinationPixel(ax + tx)
-	dst[9] = adjustDestinationPixel(cx + ty)
-	dst[10] = u1
-	dst[11] = v0
-	dst[12] = cr
-	dst[13] = cg
-	dst[14] = cb
-	dst[15] = ca
+	dst[VertexFloatCount] = adjustDestinationPixel(ax + tx)
+	dst[VertexFloatCount+1] = adjustDestinationPixel(cx + ty)
+	dst[VertexFloatCount+2] = u1
+	dst[VertexFloatCount+3] = v0
+	dst[VertexFloatCount+4] = cr
+	dst[VertexFloatCount+5] = cg
+	dst[VertexFloatCount+6] = cb
+	dst[VertexFloatCount+7] = ca
 
-	dst[16] = adjustDestinationPixel(by + tx)
-	dst[17] = adjustDestinationPixel(dy + ty)
-	dst[18] = u0
-	dst[19] = v1
-	dst[20] = cr
-	dst[21] = cg
-	dst[22] = cb
-	dst[23] = ca
+	dst[2*VertexFloatCount] = adjustDestinationPixel(by + tx)
+	dst[2*VertexFloatCount+1] = adjustDestinationPixel(dy + ty)
+	dst[2*VertexFloatCount+2] = u0
+	dst[2*VertexFloatCount+3] = v1
+	dst[2*VertexFloatCount+4] = cr
+	dst[2*VertexFloatCount+5] = cg
+	dst[2*VertexFloatCount+6] = cb
+	dst[2*VertexFloatCount+7] = ca
 
-	dst[24] = adjustDestinationPixel(ax + by + tx)
-	dst[25] = adjustDestinationPixel(cx + dy + ty)
-	dst[26] = u1
-	dst[27] = v1
-	dst[28] = cr
-	dst[29] = cg
-	dst[30] = cb
-	dst[31] = ca
+	dst[3*VertexFloatCount] = adjustDestinationPixel(ax + by + tx)
+	dst[3*VertexFloatCount+1] = adjustDestinationPixel(cx + dy + ty)
+	dst[3*VertexFloatCount+2] = u1
+	dst[3*VertexFloatCount+3] = v1
+	dst[3*VertexFloatCount+4] = cr
+	dst[3*VertexFloatCount+5] = cg
+	dst[3*VertexFloatCount+6] = cb
+	dst[3*VertexFloatCount+7] = ca
 }
 
 func adjustDestinationPixel(x float32) float32 {
