@@ -43,12 +43,9 @@ func TestMain(m *testing.M) {
 }
 
 func quadVertices(w, h float32) []float32 {
-	return []float32{
-		0, 0, 0, 0, 1, 1, 1, 1,
-		w, 0, w, 0, 1, 1, 1, 1,
-		0, w, 0, h, 1, 1, 1, 1,
-		w, h, w, h, 1, 1, 1, 1,
-	}
+	vs := make([]float32, 8*graphics.VertexFloatCount)
+	graphics.QuadVerticesFromDstAndSrc(vs, 0, 0, w, h, 0, 0, w, h, 1, 1, 1, 1)
+	return vs
 }
 
 func TestClear(t *testing.T) {

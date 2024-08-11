@@ -247,7 +247,7 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) {
 	colorm, cr, cg, cb, ca := colorMToScale(options.ColorM.affineColorM())
 	cr, cg, cb, ca = options.ColorScale.apply(cr, cg, cb, ca)
 	vs := i.ensureTmpVertices(4 * graphics.VertexFloatCount)
-	graphics.QuadVertices(vs, float32(sx0), float32(sy0), float32(sx1), float32(sy1), a, b, c, d, tx, ty, cr, cg, cb, ca)
+	graphics.QuadVerticesFromSrcAndMatrix(vs, float32(sx0), float32(sy0), float32(sx1), float32(sy1), a, b, c, d, tx, ty, cr, cg, cb, ca)
 	is := graphics.QuadIndices()
 
 	srcs := [graphics.ShaderSrcImageCount]*ui.Image{img.image}
@@ -829,7 +829,7 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 	vs := i.ensureTmpVertices(4 * graphics.VertexFloatCount)
 
 	// Do not use srcRegions[0].Dx() and srcRegions[0].Dy() as these might be empty.
-	graphics.QuadVertices(vs,
+	graphics.QuadVerticesFromSrcAndMatrix(vs,
 		float32(srcRegions[0].Min.X), float32(srcRegions[0].Min.Y),
 		float32(srcRegions[0].Min.X+width), float32(srcRegions[0].Min.Y+height),
 		a, b, c, d, tx, ty, cr, cg, cb, ca)

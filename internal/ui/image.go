@@ -158,7 +158,7 @@ func (i *Image) Fill(r, g, b, a float32, region image.Rectangle) {
 		i.tmpVerticesForFill = make([]float32, 4*graphics.VertexFloatCount)
 	}
 	// i.tmpVerticesForFill can be reused as this is sent to DrawTriangles immediately.
-	graphics.QuadVertices(
+	graphics.QuadVerticesFromSrcAndMatrix(
 		i.tmpVerticesForFill,
 		1, 1, float32(i.ui.whiteImage.width-1), float32(i.ui.whiteImage.height-1),
 		float32(i.width), 0, 0, float32(i.height), 0, 0,
@@ -235,7 +235,7 @@ func (i *bigOffscreenImage) drawTriangles(srcs [graphics.ShaderSrcImageCount]*Im
 			i.tmpVerticesForCopying = make([]float32, 4*graphics.VertexFloatCount)
 		}
 		// i.tmpVerticesForCopying can be reused as this is sent to DrawTriangles immediately.
-		graphics.QuadVertices(
+		graphics.QuadVerticesFromSrcAndMatrix(
 			i.tmpVerticesForCopying,
 			float32(i.region.Min.X), float32(i.region.Min.Y), float32(i.region.Max.X), float32(i.region.Max.Y),
 			bigOffscreenScale, 0, 0, bigOffscreenScale, 0, 0,
@@ -279,7 +279,7 @@ func (i *bigOffscreenImage) flush() {
 		i.tmpVerticesForFlushing = make([]float32, 4*graphics.VertexFloatCount)
 	}
 	// i.tmpVerticesForFlushing can be reused as this is sent to DrawTriangles in this function.
-	graphics.QuadVertices(
+	graphics.QuadVerticesFromSrcAndMatrix(
 		i.tmpVerticesForFlushing,
 		0, 0, float32(i.region.Dx()*bigOffscreenScale), float32(i.region.Dy()*bigOffscreenScale),
 		1.0/bigOffscreenScale, 0, 0, 1.0/bigOffscreenScale, float32(i.region.Min.X), float32(i.region.Min.Y),

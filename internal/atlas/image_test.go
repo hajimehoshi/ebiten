@@ -50,12 +50,9 @@ func quadVertices(sw, sh, x, y int, scalex float32) []float32 {
 	sy0 := float32(0)
 	sx1 := float32(sw)
 	sy1 := float32(sh)
-	return []float32{
-		dx0, dy0, sx0, sy0, 1, 1, 1, 1,
-		dx1, dy0, sx1, sy0, 1, 1, 1, 1,
-		dx0, dy1, sx0, sy1, 1, 1, 1, 1,
-		dx1, dy1, sx1, sy1, 1, 1, 1, 1,
-	}
+	vs := make([]float32, 4*graphics.VertexFloatCount)
+	graphics.QuadVerticesFromDstAndSrc(vs, dx0, dy0, dx1, dy1, sx0, sy0, sx1, sy1, 1, 1, 1, 1)
+	return vs
 }
 
 const bigSize = 2049

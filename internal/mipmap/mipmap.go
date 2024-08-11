@@ -152,7 +152,7 @@ func (m *Mipmap) level(level int) *buffered.Image {
 	switch {
 	case level == 1:
 		src = m.orig
-		graphics.QuadVertices(vs, 0, 0, float32(m.width), float32(m.height), 0.5, 0, 0, 0.5, 0, 0, 1, 1, 1, 1)
+		graphics.QuadVerticesFromSrcAndMatrix(vs, 0, 0, float32(m.width), float32(m.height), 0.5, 0, 0, 0.5, 0, 0, 1, 1, 1, 1)
 	case level > 1:
 		src = m.level(level - 1)
 		if src == nil {
@@ -161,7 +161,7 @@ func (m *Mipmap) level(level int) *buffered.Image {
 		}
 		w := sizeForLevel(m.width, level-1)
 		h := sizeForLevel(m.height, level-1)
-		graphics.QuadVertices(vs, 0, 0, float32(w), float32(h), 0.5, 0, 0, 0.5, 0, 0, 1, 1, 1, 1)
+		graphics.QuadVerticesFromSrcAndMatrix(vs, 0, 0, float32(w), float32(h), 0.5, 0, 0, 0.5, 0, 0, 1, 1, 1, 1)
 	default:
 		panic(fmt.Sprintf("mipmap: invalid level: %d", level))
 	}

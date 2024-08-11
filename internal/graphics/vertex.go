@@ -50,16 +50,16 @@ func QuadIndices() []uint32 {
 	return quadIndices
 }
 
-// QuadVertices sets a float32 slice for a quadrangle.
-// QuadVertices sets a slice that never overlaps with other slices returned this function,
-// and users can do optimization based on this fact.
-func QuadVertices(dst []float32, sx0, sy0, sx1, sy1 float32, a, b, c, d, tx, ty float32, cr, cg, cb, ca float32) {
+// QuadVerticesFromSrcAndMatrix sets a float32 slice for a quadrangle.
+func QuadVerticesFromSrcAndMatrix(dst []float32, sx0, sy0, sx1, sy1 float32, a, b, c, d, tx, ty float32, cr, cg, cb, ca float32) {
 	x := sx1 - sx0
 	y := sy1 - sy0
 	ax, by, cx, dy := a*x, b*y, c*x, d*y
 	u0, v0, u1, v1 := sx0, sy0, sx1, sy1
 
 	// This function is very performance-sensitive and implement in a very dumb way.
+
+	// Remove the boundary check.
 	dst = dst[:4*VertexFloatCount]
 
 	dst[0] = adjustDestinationPixel(tx)
@@ -93,6 +93,53 @@ func QuadVertices(dst []float32, sx0, sy0, sx1, sy1 float32, a, b, c, d, tx, ty 
 	dst[3*VertexFloatCount+1] = adjustDestinationPixel(cx + dy + ty)
 	dst[3*VertexFloatCount+2] = u1
 	dst[3*VertexFloatCount+3] = v1
+	dst[3*VertexFloatCount+4] = cr
+	dst[3*VertexFloatCount+5] = cg
+	dst[3*VertexFloatCount+6] = cb
+	dst[3*VertexFloatCount+7] = ca
+}
+
+// QuadVerticesFromDstAndSrc sets a float32 slice for a quadrangle.
+func QuadVerticesFromDstAndSrc(dst []float32, dx0, dy0, dx1, dy1, sx0, sy0, sx1, sy1, cr, cg, cb, ca float32) {
+	dx0 = adjustDestinationPixel(dx0)
+	dy0 = adjustDestinationPixel(dy0)
+	dx1 = adjustDestinationPixel(dx1)
+	dy1 = adjustDestinationPixel(dy1)
+
+	// Remove the boundary check.
+	dst = dst[:4*VertexFloatCount]
+
+	dst[0] = dx0
+	dst[1] = dy0
+	dst[2] = sx0
+	dst[3] = sy0
+	dst[4] = cr
+	dst[5] = cg
+	dst[6] = cb
+	dst[7] = ca
+
+	dst[VertexFloatCount] = dx1
+	dst[VertexFloatCount+1] = dy0
+	dst[VertexFloatCount+2] = sx1
+	dst[VertexFloatCount+3] = sy0
+	dst[VertexFloatCount+4] = cr
+	dst[VertexFloatCount+5] = cg
+	dst[VertexFloatCount+6] = cb
+	dst[VertexFloatCount+7] = ca
+
+	dst[2*VertexFloatCount] = dx0
+	dst[2*VertexFloatCount+1] = dy1
+	dst[2*VertexFloatCount+2] = sx0
+	dst[2*VertexFloatCount+3] = sy1
+	dst[2*VertexFloatCount+4] = cr
+	dst[2*VertexFloatCount+5] = cg
+	dst[2*VertexFloatCount+6] = cb
+	dst[2*VertexFloatCount+7] = ca
+
+	dst[3*VertexFloatCount] = dx1
+	dst[3*VertexFloatCount+1] = dy1
+	dst[3*VertexFloatCount+2] = sx1
+	dst[3*VertexFloatCount+3] = sy1
 	dst[3*VertexFloatCount+4] = cr
 	dst[3*VertexFloatCount+5] = cg
 	dst[3*VertexFloatCount+6] = cb
