@@ -53,14 +53,14 @@ func (a *arrayBufferLayout) names() []string {
 	return ns
 }
 
-// totalBytes returns the size in bytes for one element of the array buffer.
-func (a *arrayBufferLayout) totalBytes() int {
+// float32Count returns the total float32 count for one element of the array buffer.
+func (a *arrayBufferLayout) float32Count() int {
 	if a.total != 0 {
 		return a.total
 	}
 	t := 0
 	for _, p := range a.parts {
-		t += floatSizeInBytes * p.num
+		t += p.num
 	}
 	a.total = t
 	return a.total
@@ -71,10 +71,10 @@ func (a *arrayBufferLayout) enable(context *context) {
 	for i := range a.parts {
 		context.ctx.EnableVertexAttribArray(uint32(i))
 	}
-	total := a.totalBytes()
+	total := a.float32Count()
 	offset := 0
 	for i, p := range a.parts {
-		context.ctx.VertexAttribPointer(uint32(i), int32(p.num), gl.FLOAT, false, int32(total), offset)
+		context.ctx.VertexAttribPointer(uint32(i), int32(p.num), gl.FLOAT, false, int32(floatSizeInBytes*total), offset)
 		offset += floatSizeInBytes * p.num
 	}
 }
@@ -88,28 +88,39 @@ func (a *arrayBufferLayout) disable(context *context) {
 }
 
 // theArrayBufferLayout is the array buffer layout for Ebitengine.
-var theArrayBufferLayout = arrayBufferLayout{
-	// Note that GL_MAX_VERTEX_ATTRIBS is at least 16.
-	parts: []arrayBufferLayoutPart{
-		{
-			name: "A0",
-			num:  2,
-		},
-		{
-			name: "A1",
-			num:  2,
-		},
-		{
-			name: "A2",
-			num:  4,
-		},
-	},
-}
+var theArrayBufferLayout arrayBufferLayout
 
 func init() {
-	vertexFloatCount := theArrayBufferLayout.totalBytes() / floatSizeInBytes
-	if graphics.VertexFloatCount != vertexFloatCount {
-		panic(fmt.Sprintf("vertex float num must be %d but %d", graphics.VertexFloatCount, vertexFloatCount))
+	theArrayBufferLayout = arrayBufferLayout{
+		// Note that GL_MAX_VERTEX_ATTRIBS is at least 16.
+		parts: []arrayBufferLayoutPart{
+			{
+				name: "A0",
+				num:  2,
+			},
+			{
+				name: "A1",
+				num:  2,
+			},
+			{
+				name: "A2",
+				num:  4,
+			},
+		},
+	}
+	n := theArrayBufferLayout.float32Count()
+	if n > graphics.VertexFloatCount {
+		panic("opengl: the array buffer layout is too large")
+	}
+	if n < graphics.VertexFloatCount {
+		d := graphics.VertexFloatCount - n
+		if d > 4 {
+			panic("opengl: the array buffer layout is too small")
+		}
+		theArrayBufferLayout.parts = append(theArrayBufferLayout.parts, arrayBufferLayoutPart{
+			name: "A3",
+			num:  d,
+		})
 	}
 }
 
