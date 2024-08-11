@@ -246,45 +246,51 @@ func (i *Image) syncPixelsIfNeeded() {
 		cbf := float32(c[2]) / 0xff
 		caf := float32(c[3]) / 0xff
 
-		vs[graphics.VertexFloatCount*4*idx] = dx
-		vs[graphics.VertexFloatCount*4*idx+1] = dy
-		vs[graphics.VertexFloatCount*4*idx+2] = sx
-		vs[graphics.VertexFloatCount*4*idx+3] = sy
-		vs[graphics.VertexFloatCount*4*idx+4] = crf
-		vs[graphics.VertexFloatCount*4*idx+5] = cgf
-		vs[graphics.VertexFloatCount*4*idx+6] = cbf
-		vs[graphics.VertexFloatCount*4*idx+7] = caf
-		vs[graphics.VertexFloatCount*4*idx+8] = dx + 1
-		vs[graphics.VertexFloatCount*4*idx+9] = dy
-		vs[graphics.VertexFloatCount*4*idx+10] = sx + 1
-		vs[graphics.VertexFloatCount*4*idx+11] = sy
-		vs[graphics.VertexFloatCount*4*idx+12] = crf
-		vs[graphics.VertexFloatCount*4*idx+13] = cgf
-		vs[graphics.VertexFloatCount*4*idx+14] = cbf
-		vs[graphics.VertexFloatCount*4*idx+15] = caf
-		vs[graphics.VertexFloatCount*4*idx+16] = dx
-		vs[graphics.VertexFloatCount*4*idx+17] = dy + 1
-		vs[graphics.VertexFloatCount*4*idx+18] = sx
-		vs[graphics.VertexFloatCount*4*idx+19] = sy + 1
-		vs[graphics.VertexFloatCount*4*idx+20] = crf
-		vs[graphics.VertexFloatCount*4*idx+21] = cgf
-		vs[graphics.VertexFloatCount*4*idx+22] = cbf
-		vs[graphics.VertexFloatCount*4*idx+23] = caf
-		vs[graphics.VertexFloatCount*4*idx+24] = dx + 1
-		vs[graphics.VertexFloatCount*4*idx+25] = dy + 1
-		vs[graphics.VertexFloatCount*4*idx+26] = sx + 1
-		vs[graphics.VertexFloatCount*4*idx+27] = sy + 1
-		vs[graphics.VertexFloatCount*4*idx+28] = crf
-		vs[graphics.VertexFloatCount*4*idx+29] = cgf
-		vs[graphics.VertexFloatCount*4*idx+30] = cbf
-		vs[graphics.VertexFloatCount*4*idx+31] = caf
+		vidx := 4 * idx
+		iidx := 6 * idx
 
-		is[6*idx] = uint32(4 * idx)
-		is[6*idx+1] = uint32(4*idx + 1)
-		is[6*idx+2] = uint32(4*idx + 2)
-		is[6*idx+3] = uint32(4*idx + 1)
-		is[6*idx+4] = uint32(4*idx + 2)
-		is[6*idx+5] = uint32(4*idx + 3)
+		vs[graphics.VertexFloatCount*vidx] = dx
+		vs[graphics.VertexFloatCount*vidx+1] = dy
+		vs[graphics.VertexFloatCount*vidx+2] = sx
+		vs[graphics.VertexFloatCount*vidx+3] = sy
+		vs[graphics.VertexFloatCount*vidx+4] = crf
+		vs[graphics.VertexFloatCount*vidx+5] = cgf
+		vs[graphics.VertexFloatCount*vidx+6] = cbf
+		vs[graphics.VertexFloatCount*vidx+7] = caf
+
+		vs[graphics.VertexFloatCount*(vidx+1)] = dx + 1
+		vs[graphics.VertexFloatCount*(vidx+1)+1] = dy
+		vs[graphics.VertexFloatCount*(vidx+1)+2] = sx + 1
+		vs[graphics.VertexFloatCount*(vidx+1)+3] = sy
+		vs[graphics.VertexFloatCount*(vidx+1)+4] = crf
+		vs[graphics.VertexFloatCount*(vidx+1)+5] = cgf
+		vs[graphics.VertexFloatCount*(vidx+1)+6] = cbf
+		vs[graphics.VertexFloatCount*(vidx+1)+7] = caf
+
+		vs[graphics.VertexFloatCount*(vidx+2)] = dx
+		vs[graphics.VertexFloatCount*(vidx+2)+1] = dy + 1
+		vs[graphics.VertexFloatCount*(vidx+2)+2] = sx
+		vs[graphics.VertexFloatCount*(vidx+2)+3] = sy + 1
+		vs[graphics.VertexFloatCount*(vidx+2)+4] = crf
+		vs[graphics.VertexFloatCount*(vidx+2)+5] = cgf
+		vs[graphics.VertexFloatCount*(vidx+2)+6] = cbf
+		vs[graphics.VertexFloatCount*(vidx+2)+7] = caf
+
+		vs[graphics.VertexFloatCount*(vidx+3)] = dx + 1
+		vs[graphics.VertexFloatCount*(vidx+3)+1] = dy + 1
+		vs[graphics.VertexFloatCount*(vidx+3)+2] = sx + 1
+		vs[graphics.VertexFloatCount*(vidx+3)+3] = sy + 1
+		vs[graphics.VertexFloatCount*(vidx+3)+4] = crf
+		vs[graphics.VertexFloatCount*(vidx+3)+5] = cgf
+		vs[graphics.VertexFloatCount*(vidx+3)+6] = cbf
+		vs[graphics.VertexFloatCount*(vidx+3)+7] = caf
+
+		is[iidx] = uint32(vidx)
+		is[iidx+1] = uint32(vidx + 1)
+		is[iidx+2] = uint32(vidx + 2)
+		is[iidx+3] = uint32(vidx + 1)
+		is[iidx+4] = uint32(vidx + 2)
+		is[iidx+5] = uint32(vidx + 3)
 
 		idx++
 	}
