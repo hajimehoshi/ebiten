@@ -52,7 +52,7 @@ func TestUnsyncedPixels(t *testing.T) {
 	// Flush unsynced pixel cache.
 	src := buffered.NewImage(16, 16, atlas.ImageTypeRegular)
 	vs := make([]float32, 4*graphics.VertexFloatCount)
-	graphics.QuadVerticesFromSrcAndMatrix(vs, 0, 0, 16, 16, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
+	graphics.QuadVerticesFromDstAndSrc(vs, 0, 0, 16, 16, 0, 0, 16, 16, 1, 1, 1, 1)
 	is := graphics.QuadIndices()
 	dr := image.Rect(0, 0, 16, 16)
 	sr := [graphics.ShaderSrcImageCount]image.Rectangle{image.Rect(0, 0, 16, 16)}

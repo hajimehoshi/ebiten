@@ -345,7 +345,7 @@ func (i *Image) ensureIsolatedFromSource(backends []*backend) {
 
 	w, h := float32(i.width), float32(i.height)
 	vs := make([]float32, 4*graphics.VertexFloatCount)
-	graphics.QuadVerticesFromSrcAndMatrix(vs, 0, 0, w, h, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
+	graphics.QuadVerticesFromDstAndSrc(vs, 0, 0, w, h, 0, 0, w, h, 1, 1, 1, 1)
 	is := graphics.QuadIndices()
 	dr := image.Rect(0, 0, i.width, i.height)
 
@@ -376,7 +376,7 @@ func (i *Image) putOnSourceBackend() {
 
 	w, h := float32(i.width), float32(i.height)
 	vs := make([]float32, 4*graphics.VertexFloatCount)
-	graphics.QuadVerticesFromSrcAndMatrix(vs, 0, 0, w, h, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
+	graphics.QuadVerticesFromDstAndSrc(vs, 0, 0, w, h, 0, 0, w, h, 1, 1, 1, 1)
 	is := graphics.QuadIndices()
 	dr := image.Rect(0, 0, i.width, i.height)
 	newI.drawTriangles([graphics.ShaderSrcImageCount]*Image{i}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, NearestFilterShader, nil, graphicsdriver.FillRuleFillAll)
