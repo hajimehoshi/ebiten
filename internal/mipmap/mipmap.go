@@ -111,11 +111,10 @@ func (m *Mipmap) DrawTriangles(srcs [graphics.ShaderSrcImageCount]*Mipmap, verti
 		}
 		if level != 0 {
 			if img := src.level(level); img != nil {
-				const n = graphics.VertexFloatCount
 				s := float32(pow2(level))
-				for i := 0; i < len(vertices)/n; i++ {
-					vertices[i*n+2] /= s
-					vertices[i*n+3] /= s
+				for i := 0; i < len(vertices); i += graphics.VertexFloatCount {
+					vertices[i+2] /= s
+					vertices[i+3] /= s
 				}
 				imgs[i] = img
 				continue
@@ -150,12 +149,10 @@ func (m *Mipmap) level(level int) *buffered.Image {
 
 	var src *buffered.Image
 	vs := make([]float32, 4*graphics.VertexFloatCount)
-	shader := atlas.NearestFilterShader
 	switch {
 	case level == 1:
 		src = m.orig
 		graphics.QuadVertices(vs, 0, 0, float32(m.width), float32(m.height), 0.5, 0, 0, 0.5, 0, 0, 1, 1, 1, 1)
-		shader = atlas.LinearFilterShader
 	case level > 1:
 		src = m.level(level - 1)
 		if src == nil {
@@ -165,7 +162,6 @@ func (m *Mipmap) level(level int) *buffered.Image {
 		w := sizeForLevel(m.width, level-1)
 		h := sizeForLevel(m.height, level-1)
 		graphics.QuadVertices(vs, 0, 0, float32(w), float32(h), 0.5, 0, 0, 0.5, 0, 0, 1, 1, 1, 1)
-		shader = atlas.LinearFilterShader
 	default:
 		panic(fmt.Sprintf("mipmap: invalid level: %d", level))
 	}
@@ -188,7 +184,7 @@ func (m *Mipmap) level(level int) *buffered.Image {
 	s := buffered.NewImage(w2, h2, m.imageType)
 
 	dstRegion := image.Rect(0, 0, w2, h2)
-	s.DrawTriangles([graphics.ShaderSrcImageCount]*buffered.Image{src}, vs, is, graphicsdriver.BlendCopy, dstRegion, [graphics.ShaderSrcImageCount]image.Rectangle{}, shader, nil, graphicsdriver.FillRuleFillAll)
+	s.DrawTriangles([graphics.ShaderSrcImageCount]*buffered.Image{src}, vs, is, graphicsdriver.BlendCopy, dstRegion, [graphics.ShaderSrcImageCount]image.Rectangle{}, atlas.LinearFilterShader, nil, graphicsdriver.FillRuleFillAll)
 	m.setImg(level, s)
 
 	return m.imgs[level]
