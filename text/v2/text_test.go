@@ -15,6 +15,7 @@
 package text_test
 
 import (
+	"bytes"
 	"image"
 	"image/color"
 	"regexp"
@@ -23,6 +24,7 @@ import (
 
 	"github.com/hajimehoshi/bitmapfont/v3"
 	"golang.org/x/image/font"
+	"golang.org/x/image/font/gofont/goregular"
 	"golang.org/x/image/math/fixed"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -369,5 +371,25 @@ func TestDrawOptionsNotModified(t *testing.T) {
 	}
 	if got, want := op.ColorScale, (ebiten.ColorScale{}); got != want {
 		t.Errorf("got: %v, want: %v", got, want)
+	}
+}
+
+func BenchmarkDrawText(b *testing.B) {
+	var txt string
+	for i := 0; i < 32; i++ {
+		txt += "The quick brown fox jumps over the lazy dog.\n"
+	}
+	screen := ebiten.NewImage(16, 16)
+	source, err := text.NewGoTextFaceSource(bytes.NewReader(goregular.TTF))
+	if err != nil {
+		b.Fatal(err)
+	}
+	f := &text.GoTextFace{
+		Source: source,
+		Size:   10,
+	}
+	op := &text.DrawOptions{}
+	for i := 0; i < b.N; i++ {
+		text.Draw(screen, txt, f, op)
 	}
 }

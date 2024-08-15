@@ -27,10 +27,11 @@ type glyphAtlas struct {
 type glyphImage struct {
 	atlas *glyphAtlas
 	node  *packing.Node
+	img   *ebiten.Image
 }
 
 func (i *glyphImage) Image() *ebiten.Image {
-	return i.atlas.image.SubImage(i.node.Region()).(*ebiten.Image)
+	return i.img
 }
 
 func newGlyphAtlas() *glyphAtlas {
@@ -54,6 +55,7 @@ func (g *glyphAtlas) NewImage(w, h int) *glyphImage {
 	return &glyphImage{
 		atlas: g,
 		node:  n,
+		img:   g.image.SubImage(n.Region()).(*ebiten.Image),
 	}
 }
 
