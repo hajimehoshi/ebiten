@@ -512,6 +512,7 @@ func (u *UserInterface) init() error {
 	canvasStyle.Set("height", "100%")
 	canvasStyle.Set("margin", "0")
 	canvasStyle.Set("padding", "0")
+	canvasStyle.Set("display", "block")
 
 	// Make the canvas focusable.
 	canvas.Call("setAttribute", "tabindex", 1)
