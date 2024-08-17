@@ -99,7 +99,7 @@ func (g *Graphics) SetVsyncEnabled(enabled bool) {
 }
 
 func (g *Graphics) NeedsClearingScreen() bool {
-	return false
+	return true
 }
 
 func (g *Graphics) MaxImageSize() int {
