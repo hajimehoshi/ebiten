@@ -20,7 +20,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/affine"
 )
 
-// ColorMDim is a dimension of a ColorM.
+// ColorMDim is the dimension of a ColorM.
 //
 // Deprecated: as of v2.5. Use the colorm package instead.
 const ColorMDim = affine.ColorMDim

@@ -24,7 +24,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/builtinshader"
 )
 
-// Dim is a dimension of a ColorM.
+// Dim is the dimension of a ColorM.
 const Dim = affine.ColorMDim
 
 // ColorM represents a matrix to transform coloring when rendering an image.
