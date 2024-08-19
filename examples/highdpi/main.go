@@ -15,9 +15,11 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	_ "image/jpeg"
 	"log"
+	"runtime"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
@@ -93,7 +95,16 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	op.Filter = ebiten.FilterLinear
 	screen.DrawImage(g.highDPIImage, op)
 
-	ebitenutil.DebugPrint(screen, fmt.Sprintf("(Init) Device Scale Ratio: %0.2f", scale))
+	msg := fmt.Sprintf("Device Scale Ratio: %0.2f", scale)
+	if runtime.GOOS == "js" {
+		if !*flagDisable {
+			msg += "\nHiDPI rendering is enabled. You can disable HiDPI by -disable flag."
+		} else {
+			msg += "\nHiDPI rendering is disabled."
+		}
+	}
+	// TODO: The texts might be too small. Improve legibility.
+	ebitenutil.DebugPrint(screen, msg)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
@@ -103,10 +114,16 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 	return int(float64(outsideWidth) * s), int(float64(outsideHeight) * s)
 }
 
+var flagDisable = flag.Bool("disable", false, "disables HiDPI rendering (only on browsers)")
+
 func main() {
+	flag.Parse()
+
 	ebiten.SetWindowSize(640, 480)
 	ebiten.SetWindowTitle("High DPI (Ebitengine Demo)")
-	if err := ebiten.RunGame(NewGame()); err != nil {
+	op := &ebiten.RunGameOptions{}
+	op.DisableHiDPI = *flagDisable
+	if err := ebiten.RunGameWithOptions(NewGame(), op); err != nil {
 		log.Fatal(err)
 	}
 }

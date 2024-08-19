@@ -175,6 +175,7 @@ type RunOptions struct {
 	ScreenTransparent bool
 	SkipTaskbar       bool
 	SingleThread      bool
+	DisableHiDPI      bool
 	X11ClassName      string
 	X11InstanceName   string
 }

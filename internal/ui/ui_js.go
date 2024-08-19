@@ -96,6 +96,7 @@ type userInterfaceImpl struct {
 	cursorShape         CursorShape
 	onceUpdateCalled    bool
 	lastCaptureExitTime time.Time
+	hiDPIEnabled        bool
 
 	context                   *context
 	inputState                InputState
@@ -465,6 +466,7 @@ func (u *UserInterface) init() error {
 		runnableOnUnfocused: true,
 		savedCursorX:        math.NaN(),
 		savedCursorY:        math.NaN(),
+		hiDPIEnabled:        true,
 	}
 
 	// document is undefined on node.js
@@ -762,6 +764,8 @@ func (u *UserInterface) shouldFocusFirst(options *RunOptions) bool {
 func (u *UserInterface) initOnMainThread(options *RunOptions) error {
 	u.setRunning(true)
 
+	u.hiDPIEnabled = !options.DisableHiDPI
+
 	if u.shouldFocusFirst(options) {
 		canvas.Call("focus")
 	}
@@ -815,6 +819,10 @@ func (m *Monitor) Name() string {
 }
 
 func (m *Monitor) DeviceScaleFactor() float64 {
+	if !theUI.hiDPIEnabled {
+		return 1
+	}
+
 	if m.deviceScaleFactor != 0 {
 		return m.deviceScaleFactor
 	}

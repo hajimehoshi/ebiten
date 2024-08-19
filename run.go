@@ -274,6 +274,15 @@ type RunGameOptions struct {
 	// The default (zero) value is false, which means that the single thread mode is disabled.
 	SingleThread bool
 
+	// DisableHiDPI indicates whether the rendering for HiDPI is disabled or not.
+	// If HiDPI is disabled, the device scale factor is always 1 i.e. Monitor's DeviceScaleFactor always returns 1.
+	// This is useful to get a better performance on HiDPI displays, in the expense of rendering quality.
+	//
+	// DisableHiDPI is available only on browsers.
+	//
+	// The default (zero) value is false, which means that HiDPI is enabled.
+	DisableHiDPI bool
+
 	// X11DisplayName is a class name in the ICCCM WM_CLASS window property.
 	X11ClassName string
 
@@ -703,6 +712,7 @@ func toUIRunOptions(options *RunGameOptions) *ui.RunOptions {
 		ScreenTransparent: options.ScreenTransparent,
 		SkipTaskbar:       options.SkipTaskbar,
 		SingleThread:      options.SingleThread,
+		DisableHiDPI:      options.DisableHiDPI,
 		X11ClassName:      options.X11ClassName,
 		X11InstanceName:   options.X11InstanceName,
 	}
