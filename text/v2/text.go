@@ -126,7 +126,10 @@ type Glyph struct {
 
 	// Image is a rasterized glyph image.
 	// Image is a grayscale image i.e. RGBA values are the same.
-	// Image should be used as a render source and should not be modified.
+	//
+	// Image should be used as a render source and must not be modified.
+	//
+	// Image can be nil.
 	Image *ebiten.Image
 
 	// X is the X position to render this glyph.
