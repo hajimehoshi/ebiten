@@ -147,6 +147,14 @@ type Glyph struct {
 
 	// OriginY is the Y position of the origin of this glyph.
 	OriginY float64
+
+	// OriginOffsetX is the adjustment value to the X position of the origin of this glyph.
+	// OriginOffsetX is usually 0, but can be non-zero for some special glyphs or glyphs in the vertical text layout.
+	OriginOffsetX float64
+
+	// OriginOffsetY is the adjustment value to the Y position of the origin of this glyph.
+	// OriginOffsetY is usually 0, but can be non-zero for some special glyphs or glyphs in the vertical text layout.
+	OriginOffsetY float64
 }
 
 // Advance returns the advanced distance from the origin position when rendering the given text with the given face.

@@ -318,8 +318,10 @@ func (g *GoTextFace) appendGlyphsForLine(glyphs []Glyph, line string, indexOffse
 			Image:             img,
 			X:                 float64(imgX),
 			Y:                 float64(imgY),
-			OriginX:           fixed26_6ToFloat64(o.X),
-			OriginY:           fixed26_6ToFloat64(o.Y),
+			OriginX:           fixed26_6ToFloat64(origin.X),
+			OriginY:           fixed26_6ToFloat64(origin.Y),
+			OriginOffsetX:     fixed26_6ToFloat64(glyph.shapingGlyph.XOffset),
+			OriginOffsetY:     fixed26_6ToFloat64(-glyph.shapingGlyph.YOffset),
 		})
 		origin = origin.Add(fixed.Point26_6{
 			X: glyph.shapingGlyph.XAdvance,
