@@ -23,7 +23,9 @@ import (
 	"golang.org/x/text/language"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/examples/resources/fonts"
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
@@ -109,13 +111,19 @@ const (
 )
 
 type Game struct {
+	showOrigins bool
 }
 
 func (g *Game) Update() error {
+	if inpututil.IsKeyJustPressed(ebiten.KeyO) {
+		g.showOrigins = !g.showOrigins
+	}
 	return nil
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
+	ebitenutil.DebugPrint(screen, "Press O to show/hide origins")
+
 	gray := color.RGBA{0x80, 0x80, 0x80, 0xff}
 
 	{
@@ -133,6 +141,13 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		op := &text.DrawOptions{}
 		op.GeoM.Translate(float64(x), float64(y))
 		text.Draw(screen, arabicText, f, op)
+
+		if g.showOrigins {
+			op := &text.LayoutOptions{}
+			for _, g := range text.AppendGlyphs(nil, arabicText, f, op) {
+				vector.DrawFilledCircle(screen, float32(x)+float32(g.OriginX), float32(y)+float32(g.OriginY), 2, color.RGBA{0xff, 0, 0, 0xff}, true)
+			}
+		}
 	}
 	{
 		const hindiText = "चूंकि मानव परिवार के सभी सदस्यों के जन्मजात गौरव और समान"
@@ -147,6 +162,13 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		op := &text.DrawOptions{}
 		op.GeoM.Translate(float64(x), float64(y))
 		text.Draw(screen, hindiText, f, op)
+
+		if g.showOrigins {
+			op := &text.LayoutOptions{}
+			for _, g := range text.AppendGlyphs(nil, hindiText, f, op) {
+				vector.DrawFilledCircle(screen, float32(x)+float32(g.OriginX), float32(y)+float32(g.OriginY), 2, color.RGBA{0xff, 0, 0, 0xff}, true)
+			}
+		}
 	}
 	{
 		const myanmarText = "လူခပ်သိမ်း၏ မျိုးရိုးဂုဏ်သိက္ခာနှင့်တကွ"
@@ -161,6 +183,13 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		op := &text.DrawOptions{}
 		op.GeoM.Translate(float64(x), float64(y))
 		text.Draw(screen, myanmarText, f, op)
+
+		if g.showOrigins {
+			op := &text.LayoutOptions{}
+			for _, g := range text.AppendGlyphs(nil, myanmarText, f, op) {
+				vector.DrawFilledCircle(screen, float32(x)+float32(g.OriginX), float32(y)+float32(g.OriginY), 2, color.RGBA{0xff, 0, 0, 0xff}, true)
+			}
+		}
 	}
 	{
 		const thaiText = "โดยที่การยอมรับนับถือเกียรติศักดิ์ประจำตัว"
@@ -175,6 +204,13 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		op := &text.DrawOptions{}
 		op.GeoM.Translate(float64(x), float64(y))
 		text.Draw(screen, thaiText, f, op)
+
+		if g.showOrigins {
+			op := &text.LayoutOptions{}
+			for _, g := range text.AppendGlyphs(nil, thaiText, f, op) {
+				vector.DrawFilledCircle(screen, float32(x)+float32(g.OriginX), float32(y)+float32(g.OriginY), 2, color.RGBA{0xff, 0, 0, 0xff}, true)
+			}
+		}
 	}
 	{
 		const mongolianText = "ᠬᠦᠮᠦᠨ ᠪᠦᠷ ᠲᠥᠷᠥᠵᠦ ᠮᠡᠨᠳᠡᠯᠡᠬᠦ\nᠡᠷᠬᠡ ᠴᠢᠯᠥᠭᠡ ᠲᠡᠢ᠂ ᠠᠳᠠᠯᠢᠬᠠᠨ"
@@ -194,6 +230,14 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		op.GeoM.Translate(float64(x), float64(y))
 		op.LineSpacing = lineSpacing
 		text.Draw(screen, mongolianText, f, op)
+
+		if g.showOrigins {
+			op := &text.LayoutOptions{}
+			op.LineSpacing = lineSpacing
+			for _, g := range text.AppendGlyphs(nil, mongolianText, f, op) {
+				vector.DrawFilledCircle(screen, float32(x)+float32(g.OriginX), float32(y)+float32(g.OriginY), 2, color.RGBA{0xff, 0, 0, 0xff}, true)
+			}
+		}
 	}
 	{
 		const japaneseText = "あのイーハトーヴォの\nすきとおった風、\n夏でも底に冷たさを\nもつ青いそら…\nあHello World.あ"
@@ -212,6 +256,14 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		op.GeoM.Translate(float64(x), float64(y))
 		op.LineSpacing = lineSpacing
 		text.Draw(screen, japaneseText, f, op)
+
+		if g.showOrigins {
+			op := &text.LayoutOptions{}
+			op.LineSpacing = lineSpacing
+			for _, g := range text.AppendGlyphs(nil, japaneseText, f, op) {
+				vector.DrawFilledCircle(screen, float32(x)+float32(g.OriginX), float32(y)+float32(g.OriginY), 2, color.RGBA{0xff, 0, 0, 0xff}, true)
+			}
+		}
 	}
 }
 

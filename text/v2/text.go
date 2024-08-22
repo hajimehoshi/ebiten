@@ -141,6 +141,12 @@ type Glyph struct {
 	// The position is determined in a sequence of characters given at AppendGlyphs.
 	// The position's origin is the first character's origin position.
 	Y float64
+
+	// OriginX is the X position of the origin of this glyph.
+	OriginX float64
+
+	// OriginY is the Y position of the origin of this glyph.
+	OriginY float64
 }
 
 // Advance returns the advanced distance from the origin position when rendering the given text with the given face.

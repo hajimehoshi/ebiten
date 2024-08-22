@@ -124,6 +124,8 @@ func (s *GoXFace) appendGlyphsForLine(glyphs []Glyph, line string, indexOffset i
 			Image:             img,
 			X:                 float64(imgX),
 			Y:                 float64(imgY),
+			OriginX:           fixed26_6ToFloat64(origin.X),
+			OriginY:           fixed26_6ToFloat64(origin.Y),
 		})
 		origin.X += a
 		prevR = r

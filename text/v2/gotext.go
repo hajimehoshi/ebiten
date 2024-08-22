@@ -304,10 +304,11 @@ func (g *GoTextFace) appendGlyphsForLine(glyphs []Glyph, line string, indexOffse
 	}
 	_, gs := g.Source.shape(line, g)
 	for _, glyph := range gs {
-		img, imgX, imgY := g.glyphImage(glyph, origin.Add(fixed.Point26_6{
+		o := origin.Add(fixed.Point26_6{
 			X: glyph.shapingGlyph.XOffset,
 			Y: -glyph.shapingGlyph.YOffset,
-		}))
+		})
+		img, imgX, imgY := g.glyphImage(glyph, o)
 		// Append a glyph even if img is nil.
 		// This is necessary to return index information for control characters.
 		glyphs = append(glyphs, Glyph{
@@ -317,6 +318,8 @@ func (g *GoTextFace) appendGlyphsForLine(glyphs []Glyph, line string, indexOffse
 			Image:             img,
 			X:                 float64(imgX),
 			Y:                 float64(imgY),
+			OriginX:           fixed26_6ToFloat64(o.X),
+			OriginY:           fixed26_6ToFloat64(o.Y),
 		})
 		origin = origin.Add(fixed.Point26_6{
 			X: glyph.shapingGlyph.XAdvance,
