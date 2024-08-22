@@ -239,10 +239,7 @@ func Measure(text string, face Face, lineSpacingInPixels float64) (width, height
 // CacheGlyphs creates all such variations for one rune, while Draw and AppendGlyphs create only necessary glyphs.
 //
 // Draw and AppendGlyphs automatically create and cache necessary glyphs, so usually you don't have to call CacheGlyphs explicitly.
-// However, for example, when you call Draw for each rune of one big text, Draw tries to create the glyph cache and render it for each rune.
-// This is very inefficient because creating a glyph image and rendering it are different operations
-// (`(*ebiten.Image).WritePixels` and `(*ebiten.Image).DrawImage`) and can never be merged as one draw call.
-// CacheGlyphs creates necessary glyphs without rendering them so that these operations are likely merged into one draw call regardless of the size of the text.
+// If you really care about the performance, CacheGlyphs might be useful.
 //
 // CacheGlyphs is concurrent-safe.
 func CacheGlyphs(text string, face Face) {
