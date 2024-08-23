@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	"unsafe"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/affine"
 	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
@@ -295,6 +296,8 @@ type Vertex struct {
 	ColorB float32
 	ColorA float32
 }
+
+var _ [0]byte = [unsafe.Sizeof(Vertex{}) - unsafe.Sizeof(float32(0))*graphics.VertexFloatCount]byte{}
 
 // Address represents a sampler address mode.
 type Address int
