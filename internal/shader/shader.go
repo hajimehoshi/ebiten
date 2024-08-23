@@ -363,9 +363,8 @@ func (cs *compileState) parse(f *ast.File) {
 
 	if cs.ir.VertexFunc.Block != nil {
 		// TODO: Check that these params are not arrays or structs
+		// The 0th argument is a special variable for position and is not included in varying variables.
 		cs.ir.Varyings = append(cs.ir.Varyings, cs.vertexOutParams[1:]...)
-	} else if cs.ir.FragmentFunc.Block != nil {
-		cs.ir.Varyings = append(cs.ir.Varyings, cs.fragmentInParams[1:]...)
 	}
 
 	if len(cs.errs) > 0 {
