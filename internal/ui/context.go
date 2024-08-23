@@ -153,6 +153,8 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 		if err := ui.error(); err != nil {
 			return err
 		}
+
+		ui.tick.Add(1)
 	}
 
 	// Update window icons during a frame, since an icon might be *ebiten.Image and
