@@ -55,11 +55,11 @@ type compileState struct {
 
 	ir shaderir.Program
 
-	funcs []function
+	funcs            []function
+	vertexOutParams  []shaderir.Type
+	fragmentInParams []shaderir.Type
 
 	global block
-
-	varyingParsed bool
 
 	errs []string
 }
@@ -348,6 +348,30 @@ func (cs *compileState) parse(f *ast.File) {
 		return
 	}
 
+	// Parse varying veraibles.
+	// In testings, there might not be vertex and fragment entry points.
+	if cs.ir.VertexFunc.Block != nil && cs.ir.FragmentFunc.Block != nil {
+		if len(cs.fragmentInParams) != len(cs.vertexOutParams) {
+			cs.addError(0, "the number of vertex entry point's returning values and the number of fragment entry point's params must be the same")
+		}
+		for i, t := range cs.vertexOutParams {
+			if !t.Equal(&cs.fragmentInParams[i]) {
+				cs.addError(0, "vertex entry point's returning value types and fragment entry point's param types must match")
+			}
+		}
+	}
+
+	if cs.ir.VertexFunc.Block != nil {
+		// TODO: Check that these params are not arrays or structs
+		cs.ir.Varyings = append(cs.ir.Varyings, cs.vertexOutParams[1:]...)
+	} else if cs.ir.FragmentFunc.Block != nil {
+		cs.ir.Varyings = append(cs.ir.Varyings, cs.fragmentInParams[1:]...)
+	}
+
+	if len(cs.errs) > 0 {
+		return
+	}
+
 	for _, f := range cs.funcs {
 		cs.ir.Funcs = append(cs.ir.Funcs, f.ir)
 	}
@@ -460,8 +484,10 @@ func (cs *compileState) parseDecl(b *block, fname string, d ast.Decl) ([]shaderi
 		switch d.Name.Name {
 		case cs.vertexEntry:
 			cs.ir.VertexFunc.Block = f.ir.Block
+			cs.vertexOutParams = f.ir.OutParams
 		case cs.fragmentEntry:
 			cs.ir.FragmentFunc.Block = f.ir.Block
+			cs.fragmentInParams = f.ir.InParams
 		default:
 			// The function is already registered for their names.
 			for i := range cs.funcs {
@@ -767,18 +793,6 @@ func (cs *compileState) parseFunc(block *block, d *ast.FuncDecl) (function, bool
 
 	inParams, outParams, returnType := cs.parseFuncParams(block, d.Name.Name, d)
 
-	checkVaryings := func(vs []variable) {
-		if len(cs.ir.Varyings) != len(vs) {
-			cs.addError(d.Pos(), "the number of vertex entry point's returning values and the number of fragment entry point's params must be the same")
-			return
-		}
-		for i, t := range cs.ir.Varyings {
-			if t.Main != vs[i].typ.Main {
-				cs.addError(d.Pos(), "vertex entry point's returning value types and fragment entry point's param types must match")
-			}
-		}
-	}
-
 	if block == &cs.global {
 		switch d.Name.Name {
 		case cs.vertexEntry:
@@ -802,15 +816,6 @@ func (cs *compileState) parseFunc(block *block, d *ast.FuncDecl) (function, bool
 				return function{}, false
 			}
 
-			if cs.varyingParsed {
-				checkVaryings(outParams[1:])
-			} else {
-				for _, v := range outParams[1:] {
-					// TODO: Check that these params are not arrays or structs
-					cs.ir.Varyings = append(cs.ir.Varyings, v.typ)
-				}
-			}
-			cs.varyingParsed = true
 		case cs.fragmentEntry:
 			if len(inParams) == 0 {
 				cs.addError(d.Pos(), "fragment entry point must have at least one vec4 parameter for a position")
@@ -825,15 +830,6 @@ func (cs *compileState) parseFunc(block *block, d *ast.FuncDecl) (function, bool
 				cs.addError(d.Pos(), "fragment entry point must have one returning vec4 value for a color")
 				return function{}, false
 			}
-
-			if cs.varyingParsed {
-				checkVaryings(inParams[1:])
-			} else {
-				for _, v := range inParams[1:] {
-					cs.ir.Varyings = append(cs.ir.Varyings, v.typ)
-				}
-			}
-			cs.varyingParsed = true
 		}
 	}
 
