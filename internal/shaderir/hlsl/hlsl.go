@@ -52,13 +52,7 @@ func (c *compileContext) structName(p *shaderir.Program, t *shaderir.Type) strin
 	return n
 }
 
-const Prelude = `struct Varyings {
-	float4 Position : SV_POSITION;
-	float2 M0 : TEXCOORD0;
-	float4 M1 : COLOR;
-};
-
-float mod(float x, float y) {
+const Prelude = `float mod(float x, float y) {
 	return x - y * floor(x/y);
 }
 
@@ -95,6 +89,27 @@ func Compile(p *shaderir.Program) (vertexShader, pixelShader string) {
 
 	var lines []string
 	lines = append(lines, strings.Split(Prelude, "\n")...)
+
+	lines = append(lines, "", "struct Varyings {")
+	lines = append(lines, "\tfloat4 Position : SV_POSITION;")
+	if len(p.Varyings) > 0 {
+		for i, v := range p.Varyings {
+			switch i {
+			case 0:
+				lines = append(lines, fmt.Sprintf("\tfloat2 M%d : TEXCOORD0;", i))
+			case 1:
+				lines = append(lines, fmt.Sprintf("\tfloat4 M%d : COLOR0;", i))
+			default:
+				// Use COLOR[n] as a general purpose varying.
+				if v.Main != shaderir.Vec4 {
+					lines = append(lines, fmt.Sprintf("\t?(unexpected type: %s) M%d : COLOR%d;", v, i, i-1))
+				} else {
+					lines = append(lines, fmt.Sprintf("\tfloat4 M%d : COLOR%d;", i, i-1))
+				}
+			}
+		}
+	}
+	lines = append(lines, "};")
 	lines = append(lines, "", "{{.Structs}}")
 
 	if len(p.Uniforms) > 0 {
@@ -156,7 +171,25 @@ func Compile(p *shaderir.Program) (vertexShader, pixelShader string) {
 	}
 	if p.VertexFunc.Block != nil && len(p.VertexFunc.Block.Stmts) > 0 {
 		vslines = append(vslines, "")
-		vslines = append(vslines, "Varyings VSMain(float2 A0 : POSITION, float2 A1 : TEXCOORD, float4 A2 : COLOR) {")
+		var args []string
+		for i, a := range p.Attributes {
+			switch i {
+			case 0:
+				args = append(args, fmt.Sprintf("float2 A%d : POSITION", i))
+			case 1:
+				args = append(args, fmt.Sprintf("float2 A%d : TEXCOORD0", i))
+			case 2:
+				args = append(args, fmt.Sprintf("float4 A%d : COLOR0", i))
+			default:
+				// Use COLOR[n] as a general purpose varying.
+				if a.Main != shaderir.Vec4 {
+					args = append(args, fmt.Sprintf("?(unexpected type: %s) A%d : COLOR%d", a, i, i-2))
+				} else {
+					args = append(args, fmt.Sprintf("float4 A%d : COLOR%d", i, i-2))
+				}
+			}
+		}
+		vslines = append(vslines, "Varyings VSMain("+strings.Join(args, ", ")+") {")
 		vslines = append(vslines, fmt.Sprintf("\tVaryings %s;", vsOut))
 		vslines = append(vslines, c.block(p, p.VertexFunc.Block, p.VertexFunc.Block, 0)...)
 		if last := fmt.Sprintf("\treturn %s;", vsOut); vslines[len(vslines)-1] != last {
