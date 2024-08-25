@@ -114,17 +114,17 @@ func init() {
 		},
 	}
 	n := theArrayBufferLayout.float32Count()
-	if n > graphics.VertexFloatCount {
-		panic("opengl: the array buffer layout is too large")
+	diff := graphics.VertexFloatCount - n
+	if diff == 0 {
+		return
 	}
-	if n < graphics.VertexFloatCount {
-		d := graphics.VertexFloatCount - n
-		if d > 4 {
-			panic("opengl: the array buffer layout is too small")
-		}
+	if diff%4 != 0 {
+		panic("opengl: unexpected attribute layout")
+	}
+	for i := 0; i < diff/4; i++ {
 		theArrayBufferLayout.addPart(arrayBufferLayoutPart{
-			name: "A3",
-			num:  d,
+			name: fmt.Sprintf("A%d", i+3),
+			num:  4,
 		})
 	}
 }
