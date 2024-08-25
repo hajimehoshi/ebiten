@@ -39,7 +39,7 @@ const (
 )
 
 const (
-	VertexFloatCount = 8
+	VertexFloatCount = 12
 )
 
 var (

@@ -345,10 +345,10 @@ func (cs *compileState) parse(f *ast.File) {
 	// Check varying variables.
 	// In testings, there might not be vertex and fragment entry points.
 	if len(vertexOutParams) > 0 && len(fragmentInParams) > 0 {
-		if len(vertexOutParams) != len(fragmentInParams) {
-			cs.addError(0, "the number of vertex entry point's returning values and the number of fragment entry point's params must be the same")
-		}
 		for i, t := range vertexOutParams {
+			if len(fragmentInParams) <= i {
+				break
+			}
 			if !t.Equal(&fragmentInParams[i]) {
 				cs.addError(0, "vertex entry point's returning value types and fragment entry point's param types must match")
 			}
@@ -373,7 +373,7 @@ func (cs *compileState) parse(f *ast.File) {
 		return
 	}
 
-	// Set attribute varying veraibles.
+	// Set attribute and varying veraibles.
 	cs.ir.Attributes = append(cs.ir.Attributes, vertexInParams...)
 	if len(vertexOutParams) > 0 {
 		// TODO: Check that these params are not arrays or structs
@@ -820,6 +820,18 @@ func (cs *compileState) parseFunc(block *block, d *ast.FuncDecl) (function, bool
 	}
 
 	inParams, outParams, returnType := cs.parseFuncParams(block, d.Name.Name, d)
+	if d.Name.Name == cs.fragmentEntry {
+		// The 0th inParams is a special variable for position and is not included in varying variables.
+		if diff := len(cs.ir.Varyings) - (len(inParams) - 1); diff > 0 {
+			// inParams is not enough when the vertex shader has more returning values than the fragment shader's arguments.
+			for i := 0; i < diff; i++ {
+				inParams = append(inParams, variable{
+					name: "_",
+					typ:  cs.ir.Varyings[len(inParams)-1+i],
+				})
+			}
+		}
+	}
 	b, ok := cs.parseBlock(block, d.Name.Name, d.Body.List, inParams, outParams, returnType, true)
 	if !ok {
 		return function{}, false

@@ -295,6 +295,13 @@ type Vertex struct {
 	ColorG float32
 	ColorB float32
 	ColorA float32
+
+	// Custom0/Custom1/Custom2/Custom3 represents general-purpose values passed to the shader.
+	// In order to use them, Fragment must have an additional vec4 argument.
+	Custom0 float32
+	Custom1 float32
+	Custom2 float32
+	Custom3 float32
 }
 
 var _ [0]byte = [unsafe.Sizeof(Vertex{}) - unsafe.Sizeof(float32(0))*graphics.VertexFloatCount]byte{}
@@ -668,6 +675,10 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 		vs[i*graphics.VertexFloatCount+5] = v.ColorG
 		vs[i*graphics.VertexFloatCount+6] = v.ColorB
 		vs[i*graphics.VertexFloatCount+7] = v.ColorA
+		vs[i*graphics.VertexFloatCount+8] = v.Custom0
+		vs[i*graphics.VertexFloatCount+9] = v.Custom1
+		vs[i*graphics.VertexFloatCount+10] = v.Custom2
+		vs[i*graphics.VertexFloatCount+11] = v.Custom3
 	}
 
 	is := i.ensureTmpIndices(len(indices))
