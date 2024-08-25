@@ -66,6 +66,11 @@ func (a *arrayBufferLayout) float32Count() int {
 	return a.total
 }
 
+func (a *arrayBufferLayout) addPart(part arrayBufferLayoutPart) {
+	a.parts = append(a.parts, part)
+	a.total = 0
+}
+
 // enable starts using the array buffer.
 func (a *arrayBufferLayout) enable(context *context) {
 	for i := range a.parts {
@@ -117,7 +122,7 @@ func init() {
 		if d > 4 {
 			panic("opengl: the array buffer layout is too small")
 		}
-		theArrayBufferLayout.parts = append(theArrayBufferLayout.parts, arrayBufferLayoutPart{
+		theArrayBufferLayout.addPart(arrayBufferLayoutPart{
 			name: "A3",
 			num:  d,
 		})
