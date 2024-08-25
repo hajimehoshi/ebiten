@@ -298,6 +298,9 @@ type Vertex struct {
 
 	// Custom0/Custom1/Custom2/Custom3 represents general-purpose values passed to the shader.
 	// In order to use them, Fragment must have an additional vec4 argument.
+	//
+	// These values are valid only when DrawTrianglesShader is used.
+	// In other cases, these values are ignored.
 	Custom0 float32
 	Custom1 float32
 	Custom2 float32
