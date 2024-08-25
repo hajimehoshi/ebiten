@@ -2682,3 +2682,106 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4, custom vec4) vec4 {
 		}
 	}
 }
+
+func TestShaderFragmentLessArguments(t *testing.T) {
+	const w, h = 16, 16
+
+	s0, err := ebiten.NewShader([]byte(`//kage:unit pixels
+
+package main
+
+func Fragment() vec4 {
+	return vec4(1, 0, 0, 1)
+}
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	s1, err := ebiten.NewShader([]byte(`//kage:unit pixels
+
+package main
+
+func Fragment(dstPos vec4) vec4 {
+	return vec4(0, 1, 0, 1)
+}
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	s2, err := ebiten.NewShader([]byte(`//kage:unit pixels
+
+package main
+
+func Fragment(dstPos vec4, srcPos vec2) vec4 {
+	return vec4(0, 0, 1, 1)
+}
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	dst := ebiten.NewImage(w, h)
+	for idx, s := range []*ebiten.Shader{s0, s1, s2} {
+		dst.Clear()
+		dst.DrawTrianglesShader([]ebiten.Vertex{
+			{
+				DstX:   0,
+				DstY:   0,
+				SrcX:   0,
+				SrcY:   0,
+				ColorR: 1,
+				ColorG: 1,
+				ColorB: 1,
+				ColorA: 1,
+			},
+			{
+				DstX:   w,
+				DstY:   0,
+				SrcX:   w,
+				SrcY:   0,
+				ColorR: 1,
+				ColorG: 1,
+				ColorB: 1,
+				ColorA: 1,
+			},
+			{
+				DstX:   0,
+				DstY:   h,
+				SrcX:   0,
+				SrcY:   h,
+				ColorR: 1,
+				ColorG: 1,
+				ColorB: 1,
+				ColorA: 1,
+			},
+			{
+				DstX:   w,
+				DstY:   h,
+				SrcX:   w,
+				SrcY:   h,
+				ColorR: 1,
+				ColorG: 1,
+				ColorB: 1,
+				ColorA: 1,
+			},
+		}, []uint16{0, 1, 2, 1, 2, 3}, s, nil)
+
+		for j := 0; j < h; j++ {
+			for i := 0; i < w; i++ {
+				got := dst.At(i, j).(color.RGBA)
+				var want color.RGBA
+				switch idx {
+				case 0:
+					want = color.RGBA{R: 0xff, A: 0xff}
+				case 1:
+					want = color.RGBA{G: 0xff, A: 0xff}
+				case 2:
+					want = color.RGBA{B: 0xff, A: 0xff}
+				}
+				if !sameColors(got, want, 2) {
+					t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
+				}
+			}
+		}
+	}
+}
