@@ -824,10 +824,11 @@ func (cs *compileState) parseFunc(block *block, d *ast.FuncDecl) (function, bool
 		// The 0th inParams is a special variable for position and is not included in varying variables.
 		if diff := len(cs.ir.Varyings) - (len(inParams) - 1); diff > 0 {
 			// inParams is not enough when the vertex shader has more returning values than the fragment shader's arguments.
+			orig := len(inParams) - 1
 			for i := 0; i < diff; i++ {
 				inParams = append(inParams, variable{
 					name: "_",
-					typ:  cs.ir.Varyings[len(inParams)-1+i],
+					typ:  cs.ir.Varyings[orig+i],
 				})
 			}
 		}
