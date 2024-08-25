@@ -592,6 +592,9 @@ func (c *defaultContext) GetInteger(pname uint32) int {
 
 func (c *defaultContext) GetProgramInfoLog(program uint32) string {
 	bufSize := c.GetProgrami(program, INFO_LOG_LENGTH)
+	if bufSize == 0 {
+		return ""
+	}
 	infoLog := make([]byte, bufSize)
 	C.glowGetProgramInfoLog(c.gpGetProgramInfoLog, C.GLuint(program), C.GLsizei(bufSize), nil, (*C.GLchar)(unsafe.Pointer(&infoLog[0])))
 	return string(infoLog)
@@ -605,6 +608,9 @@ func (c *defaultContext) GetProgrami(program uint32, pname uint32) int {
 
 func (c *defaultContext) GetShaderInfoLog(shader uint32) string {
 	bufSize := c.GetShaderi(shader, INFO_LOG_LENGTH)
+	if bufSize == 0 {
+		return ""
+	}
 	infoLog := make([]byte, bufSize)
 	C.glowGetShaderInfoLog(c.gpGetShaderInfoLog, C.GLuint(shader), C.GLsizei(bufSize), nil, (*C.GLchar)(unsafe.Pointer(&infoLog[0])))
 	return string(infoLog)
