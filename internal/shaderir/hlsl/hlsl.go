@@ -52,7 +52,7 @@ func (c *compileContext) structName(p *shaderir.Program, t *shaderir.Type) strin
 	return n
 }
 
-const Prelude = `float mod(float x, float y) {
+const utilFuncs = `float mod(float x, float y) {
 	return x - y * floor(x/y);
 }
 
@@ -80,7 +80,7 @@ float4x4 float4x4FromScalar(float x) {
 	return float4x4(x, 0, 0, 0, 0, x, 0, 0, 0, 0, x, 0, 0, 0, 0, x);
 }`
 
-func Compile(p *shaderir.Program) (vertexShader, pixelShader string) {
+func Compile(p *shaderir.Program) (vertexShader, pixelShader, prelude string) {
 	offsets := CalcUniformMemoryOffsets(p)
 
 	c := &compileContext{
@@ -88,7 +88,7 @@ func Compile(p *shaderir.Program) (vertexShader, pixelShader string) {
 	}
 
 	var lines []string
-	lines = append(lines, strings.Split(Prelude, "\n")...)
+	lines = append(lines, strings.Split(utilFuncs, "\n")...)
 
 	lines = append(lines, "", "struct Varyings {")
 	lines = append(lines, "\tfloat4 Position : SV_POSITION;")
@@ -96,7 +96,7 @@ func Compile(p *shaderir.Program) (vertexShader, pixelShader string) {
 		for i, v := range p.Varyings {
 			switch i {
 			case 0:
-				lines = append(lines, fmt.Sprintf("\tfloat2 M%d : TEXCOORD0;", i))
+				lines = append(lines, fmt.Sprintf("\tfloat2 M%d : TEXCOORD;", i))
 			case 1:
 				lines = append(lines, fmt.Sprintf("\tfloat4 M%d : COLOR0;", i))
 			default:
@@ -110,6 +110,8 @@ func Compile(p *shaderir.Program) (vertexShader, pixelShader string) {
 		}
 	}
 	lines = append(lines, "};")
+	prelude = strings.Join(lines, "\n")
+
 	lines = append(lines, "", "{{.Structs}}")
 
 	if len(p.Uniforms) > 0 {
@@ -177,7 +179,7 @@ func Compile(p *shaderir.Program) (vertexShader, pixelShader string) {
 			case 0:
 				args = append(args, fmt.Sprintf("float2 A%d : POSITION", i))
 			case 1:
-				args = append(args, fmt.Sprintf("float2 A%d : TEXCOORD0", i))
+				args = append(args, fmt.Sprintf("float2 A%d : TEXCOORD", i))
 			case 2:
 				args = append(args, fmt.Sprintf("float4 A%d : COLOR0", i))
 			default:

@@ -41,8 +41,8 @@ func glslFragmentNormalize(str string) string {
 	return strings.TrimSpace(str)
 }
 
-func hlslNormalize(str string) string {
-	str = strings.TrimPrefix(str, hlsl.Prelude)
+func hlslNormalize(str string, prelude string) string {
+	str = strings.TrimPrefix(str, prelude)
 	return strings.TrimSpace(str)
 }
 
@@ -180,8 +180,8 @@ func TestCompile(t *testing.T) {
 			}
 
 			if tc.HLSL != nil {
-				vs, _ := hlsl.Compile(s)
-				if got, want := hlslNormalize(vs), hlslNormalize(string(tc.HLSL)); got != want {
+				vs, _, prelude := hlsl.Compile(s)
+				if got, want := hlslNormalize(vs, prelude), hlslNormalize(string(tc.HLSL), prelude); got != want {
 					compare(t, "HLSL", got, want)
 				}
 			}

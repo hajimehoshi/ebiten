@@ -2,7 +2,7 @@ cbuffer Uniforms : register(b0) {
 	float2 U0 : packoffset(c0);
 }
 
-Varyings VSMain(float2 A0 : POSITION, float2 A1 : TEXCOORD, float4 A2 : COLOR) {
+Varyings VSMain(float2 A0 : POSITION, float2 A1 : TEXCOORD, float4 A2 : COLOR0) {
 	Varyings varyings;
 	float4x4 l0 = 0.0;
 	varyings.Position = 0.0;
