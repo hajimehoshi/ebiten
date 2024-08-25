@@ -290,10 +290,10 @@ func (cs *compileState) parse(f *ast.File) {
 
 	// Parse function names so that any other function call the others.
 	// The function data is provisional and will be updated soon.
-	var vertexInParams []shaderir.Type
-	var vertexOutParams []shaderir.Type
-	var fragmentInParams []shaderir.Type
-	var fragmentOutParams []shaderir.Type
+	var vertexInParams []variable
+	var vertexOutParams []variable
+	var fragmentInParams []variable
+	var fragmentOutParams []variable
 	var fragmentReturnType shaderir.Type
 	for _, d := range f.Decls {
 		fd, ok := d.(*ast.FuncDecl)
@@ -310,6 +310,19 @@ func (cs *compileState) parse(f *ast.File) {
 		}
 
 		inParams, outParams, ret := cs.parseFuncParams(&cs.global, n, fd)
+
+		if n == cs.vertexEntry {
+			vertexInParams = inParams
+			vertexOutParams = outParams
+			continue
+		}
+		if n == cs.fragmentEntry {
+			fragmentInParams = inParams
+			fragmentOutParams = outParams
+			fragmentReturnType = ret
+			continue
+		}
+
 		var inT, outT []shaderir.Type
 		for _, v := range inParams {
 			inT = append(inT, v.typ)
@@ -317,19 +330,6 @@ func (cs *compileState) parse(f *ast.File) {
 		for _, v := range outParams {
 			outT = append(outT, v.typ)
 		}
-
-		if n == cs.vertexEntry {
-			vertexInParams = inT
-			vertexOutParams = outT
-			continue
-		}
-		if n == cs.fragmentEntry {
-			fragmentInParams = inT
-			fragmentOutParams = outT
-			fragmentReturnType = ret
-			continue
-		}
-
 		cs.funcs = append(cs.funcs, function{
 			name: n,
 			ir: shaderir.Func{
@@ -345,24 +345,20 @@ func (cs *compileState) parse(f *ast.File) {
 	// Check varying variables.
 	// In testings, there might not be vertex and fragment entry points.
 	if len(vertexOutParams) > 0 && len(fragmentInParams) > 0 {
-		for i, t := range vertexOutParams {
+		for i, p := range vertexOutParams {
 			if len(fragmentInParams) <= i {
 				break
 			}
-			if !t.Equal(&fragmentInParams[i]) {
-				cs.addError(0, "vertex entry point's returning value types and fragment entry point's param types must match")
+			t := fragmentInParams[i].typ
+			if !p.typ.Equal(&t) {
+				name := fragmentInParams[i].name
+				cs.addError(0, fmt.Sprintf("fragment argument %s must be %s but was %s", name, p.typ.String(), t.String()))
 			}
 		}
 
 		// The first out-param is treated as gl_Position in GLSL.
-		if vertexOutParams[0].Main != shaderir.Vec4 {
+		if vertexOutParams[0].typ.Main != shaderir.Vec4 {
 			cs.addError(0, "vertex entry point must have at least one returning vec4 value for a position")
-		}
-		if len(fragmentInParams) == 0 {
-			cs.addError(0, "fragment entry point must have at least one vec4 parameter for a position")
-		}
-		if fragmentInParams[0].Main != shaderir.Vec4 {
-			cs.addError(0, "fragment entry point must have at least one vec4 parameter for a position")
 		}
 		if len(fragmentOutParams) != 0 || fragmentReturnType.Main != shaderir.Vec4 {
 			cs.addError(0, "fragment entry point must have one returning vec4 value for a color")
@@ -374,11 +370,15 @@ func (cs *compileState) parse(f *ast.File) {
 	}
 
 	// Set attribute and varying veraibles.
-	cs.ir.Attributes = append(cs.ir.Attributes, vertexInParams...)
+	for _, p := range vertexInParams {
+		cs.ir.Attributes = append(cs.ir.Attributes, p.typ)
+	}
 	if len(vertexOutParams) > 0 {
 		// TODO: Check that these params are not arrays or structs
 		// The 0th argument is a special variable for position and is not included in varying variables.
-		cs.ir.Varyings = append(cs.ir.Varyings, vertexOutParams[1:]...)
+		for _, p := range vertexOutParams[1:] {
+			cs.ir.Varyings = append(cs.ir.Varyings, p.typ)
+		}
 	}
 
 	// Parse functions.
