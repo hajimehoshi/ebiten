@@ -31,32 +31,24 @@ import (
 
 func glslVertexNormalize(str string) string {
 	p := glsl.VertexPrelude(glsl.GLSLVersionDefault)
-	if strings.HasPrefix(str, p) {
-		str = str[len(p):]
-	}
+	str = strings.TrimPrefix(str, p)
 	return strings.TrimSpace(str)
 }
 
 func glslFragmentNormalize(str string) string {
 	p := glsl.FragmentPrelude(glsl.GLSLVersionDefault)
-	if strings.HasPrefix(str, p) {
-		str = str[len(p):]
-	}
+	str = strings.TrimPrefix(str, p)
 	return strings.TrimSpace(str)
 }
 
 func hlslNormalize(str string) string {
-	if strings.HasPrefix(str, hlsl.Prelude) {
-		str = str[len(hlsl.Prelude):]
-	}
+	str = strings.TrimPrefix(str, hlsl.Prelude)
 	return strings.TrimSpace(str)
 }
 
 func metalNormalize(str string) string {
 	prelude := msl.Prelude(shaderir.Texels)
-	if strings.HasPrefix(str, prelude) {
-		str = str[len(prelude):]
-	}
+	str = strings.TrimPrefix(str, prelude)
 	return strings.TrimSpace(str)
 }
 
