@@ -290,8 +290,11 @@ func (cs *compileState) parse(f *ast.File) {
 
 	// Parse function names so that any other function call the others.
 	// The function data is provisional and will be updated soon.
+	var vertexInParams []shaderir.Type
 	var vertexOutParams []shaderir.Type
 	var fragmentInParams []shaderir.Type
+	var fragmentOutParams []shaderir.Type
+	var fragmentReturnType shaderir.Type
 	for _, d := range f.Decls {
 		fd, ok := d.(*ast.FuncDecl)
 		if !ok {
@@ -316,11 +319,14 @@ func (cs *compileState) parse(f *ast.File) {
 		}
 
 		if n == cs.vertexEntry {
+			vertexInParams = inT
 			vertexOutParams = outT
 			continue
 		}
 		if n == cs.fragmentEntry {
 			fragmentInParams = inT
+			fragmentOutParams = outT
+			fragmentReturnType = ret
 			continue
 		}
 
@@ -347,9 +353,28 @@ func (cs *compileState) parse(f *ast.File) {
 				cs.addError(0, "vertex entry point's returning value types and fragment entry point's param types must match")
 			}
 		}
+
+		// The first out-param is treated as gl_Position in GLSL.
+		if vertexOutParams[0].Main != shaderir.Vec4 {
+			cs.addError(0, "vertex entry point must have at least one returning vec4 value for a position")
+		}
+		if len(fragmentInParams) == 0 {
+			cs.addError(0, "fragment entry point must have at least one vec4 parameter for a position")
+		}
+		if fragmentInParams[0].Main != shaderir.Vec4 {
+			cs.addError(0, "fragment entry point must have at least one vec4 parameter for a position")
+		}
+		if len(fragmentOutParams) != 0 || fragmentReturnType.Main != shaderir.Vec4 {
+			cs.addError(0, "fragment entry point must have one returning vec4 value for a color")
+		}
 	}
 
-	// Set varying veraibles.
+	if len(cs.errs) > 0 {
+		return
+	}
+
+	// Set attribute varying veraibles.
+	cs.ir.Attributes = append(cs.ir.Attributes, vertexInParams...)
 	if len(vertexOutParams) > 0 {
 		// TODO: Check that these params are not arrays or structs
 		// The 0th argument is a special variable for position and is not included in varying variables.
@@ -766,7 +791,13 @@ func (cs *compileState) parseFuncParams(block *block, fname string, d *ast.FuncD
 
 	// If there is only one returning value, it is treated as a returning value.
 	// An array cannot be a returning value, especially for HLSL (#2923).
-	if len(out) == 1 && out[0].name == "" && out[0].typ.Main != shaderir.Array {
+	//
+	// For the vertex entry, a parameter (variable) is used as a returning value.
+	// For example, GLSL doesn't treat gl_Position as a returning value.
+	// Thus, the returning value is not set for the vertex entry.
+	// TODO: This can be resolved by having an indirect function like what the fragment entry already does.
+	// See internal/shaderir/glsl.adjustProgram.
+	if len(out) == 1 && out[0].name == "" && out[0].typ.Main != shaderir.Array && fname != cs.vertexEntry {
 		ret = out[0].typ
 		out = nil
 	}
@@ -789,47 +820,6 @@ func (cs *compileState) parseFunc(block *block, d *ast.FuncDecl) (function, bool
 	}
 
 	inParams, outParams, returnType := cs.parseFuncParams(block, d.Name.Name, d)
-
-	if block == &cs.global {
-		switch d.Name.Name {
-		case cs.vertexEntry:
-			for _, v := range inParams {
-				cs.ir.Attributes = append(cs.ir.Attributes, v.typ)
-			}
-
-			// For the vertex entry, a parameter (variable) is used as a returning value.
-			// For example, GLSL doesn't treat gl_Position as a returning value.
-			// TODO: This can be resolved by having an indirect function like what the fragment entry already does.
-			// See internal/shaderir/glsl.adjustProgram.
-			if len(outParams) == 0 {
-				outParams = append(outParams, variable{
-					typ: shaderir.Type{Main: shaderir.Vec4},
-				})
-			}
-
-			// The first out-param is treated as gl_Position in GLSL.
-			if outParams[0].typ.Main != shaderir.Vec4 {
-				cs.addError(d.Pos(), "vertex entry point must have at least one returning vec4 value for a position")
-				return function{}, false
-			}
-
-		case cs.fragmentEntry:
-			if len(inParams) == 0 {
-				cs.addError(d.Pos(), "fragment entry point must have at least one vec4 parameter for a position")
-				return function{}, false
-			}
-			if inParams[0].typ.Main != shaderir.Vec4 {
-				cs.addError(d.Pos(), "fragment entry point must have at least one vec4 parameter for a position")
-				return function{}, false
-			}
-
-			if len(outParams) != 0 || returnType.Main != shaderir.Vec4 {
-				cs.addError(d.Pos(), "fragment entry point must have one returning vec4 value for a color")
-				return function{}, false
-			}
-		}
-	}
-
 	b, ok := cs.parseBlock(block, d.Name.Name, d.Body.List, inParams, outParams, returnType, true)
 	if !ok {
 		return function{}, false
