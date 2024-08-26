@@ -204,3 +204,7 @@ func (u *UserInterface) skipTaskbar() error {
 func (u *UserInterface) setDocumentEdited(edited bool) error {
 	return nil
 }
+
+func (u *UserInterface) afterWindowCreation() error {
+	return nil
+}

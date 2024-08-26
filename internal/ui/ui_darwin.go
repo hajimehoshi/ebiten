@@ -444,3 +444,7 @@ func (u *UserInterface) setDocumentEdited(edited bool) error {
 	objc.ID(w).Send(sel_setDocumentEdited, edited)
 	return nil
 }
+
+func (u *UserInterface) afterWindowCreation() error {
+	return nil
+}

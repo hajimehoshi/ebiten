@@ -106,6 +106,9 @@ type userInterfaceImpl struct {
 	showWindowOnce        sync.Once
 	bufferOnceSwappedOnce sync.Once
 
+	// immContext is used only in Windows.
+	immContext uintptr
+
 	m sync.RWMutex
 }
 
@@ -894,6 +897,10 @@ func (u *UserInterface) createWindow() error {
 	closingHandled := u.windowClosingHandled
 	u.m.Unlock()
 	if err := u.setDocumentEdited(closingHandled); err != nil {
+		return err
+	}
+
+	if err := u.afterWindowCreation(); err != nil {
 		return err
 	}
 
