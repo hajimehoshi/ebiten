@@ -50,6 +50,7 @@ var (
 	flagMaxWindowSize       = flag.String("maxwindowsize", "", "maximum window size (e.g., 1920x1080)")
 	flagGraphicsLibrary     = flag.String("graphicslibrary", "", "graphics library (e.g. opengl)")
 	flagRunnableOnUnfocused = flag.Bool("runnableonunfocused", true, "whether the app is runnable even on unfocused")
+	flagColorSpace          = flag.String("colorspace", "", "color space ('', 'srgb', or 'display-p3')")
 )
 
 func init() {
@@ -472,6 +473,14 @@ func main() {
 		op.GraphicsLibrary = ebiten.GraphicsLibraryMetal
 	default:
 		log.Fatalf("unexpected graphics library: %s", *flagGraphicsLibrary)
+	}
+	switch *flagColorSpace {
+	case "":
+		op.ColorSpace = ebiten.ColorSpaceDefault
+	case "srgb":
+		op.ColorSpace = ebiten.ColorSpaceSRGB
+	case "display-p3":
+		op.ColorSpace = ebiten.ColorSpaceDisplayP3
 	}
 	op.InitUnfocused = !*flagInitFocused
 	op.ScreenTransparent = *flagTransparent

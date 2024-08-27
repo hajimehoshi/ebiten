@@ -29,6 +29,7 @@ import (
 	"github.com/ebitengine/purego/objc"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/cocoa"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/mtl"
 )
 
@@ -51,7 +52,7 @@ type MetalLayer struct {
 // NewMetalLayer creates a new Core Animation Metal layer.
 //
 // Reference: https://developer.apple.com/documentation/quartzcore/cametallayer?language=objc.
-func NewMetalLayer() (MetalLayer, error) {
+func NewMetalLayer(colorSpace graphicsdriver.ColorSpace) (MetalLayer, error) {
 	coreGraphics, err := purego.Dlopen("/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics", purego.RTLD_LAZY|purego.RTLD_GLOBAL)
 	if err != nil {
 		return MetalLayer{}, err
@@ -67,14 +68,31 @@ func NewMetalLayer() (MetalLayer, error) {
 		return MetalLayer{}, err
 	}
 
-	kCGColorSpaceDisplayP3, err := purego.Dlsym(coreGraphics, "kCGColorSpaceDisplayP3")
-	if err != nil {
-		return MetalLayer{}, err
+	var colorSpaceSym uintptr
+	switch colorSpace {
+	case graphicsdriver.ColorSpaceSRGB:
+		kCGColorSpaceSRGB, err := purego.Dlsym(coreGraphics, "kCGColorSpaceSRGB")
+		if err != nil {
+			return MetalLayer{}, err
+		}
+		colorSpaceSym = kCGColorSpaceSRGB
+	default:
+		fallthrough
+	case graphicsdriver.ColorSpaceDisplayP3:
+		kCGColorSpaceDisplayP3, err := purego.Dlsym(coreGraphics, "kCGColorSpaceDisplayP3")
+		if err != nil {
+			return MetalLayer{}, err
+		}
+		colorSpaceSym = kCGColorSpaceDisplayP3
 	}
 
 	layer := objc.ID(objc.GetClass("CAMetalLayer")).Send(objc.RegisterName("new"))
+	// setColorspace: is available from iOS 13.0?
+	// https://github.com/hajimehoshi/ebiten/commit/3af351a2aa31e30affd433429c42130015b302f3
+	// TODO: Enable this on iOS as well.
 	if runtime.GOOS != "ios" {
-		colorspace, _, _ := purego.SyscallN(cgColorSpaceCreateWithName, **(**uintptr)(unsafe.Pointer(&kCGColorSpaceDisplayP3))) // Dlsym returns pointer to symbol so dereference it
+		// Dlsym returns pointer to symbol so dereference it.
+		colorspace, _, _ := purego.SyscallN(cgColorSpaceCreateWithName, **(**uintptr)(unsafe.Pointer(&colorSpaceSym)))
 		layer.Send(objc.RegisterName("setColorspace:"), colorspace)
 		purego.SyscallN(cgColorSpaceRelease, colorspace)
 	}

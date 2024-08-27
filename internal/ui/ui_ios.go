@@ -34,6 +34,7 @@ import (
 )
 
 type graphicsDriverCreatorImpl struct {
+	colorSpace graphicsdriver.ColorSpace
 }
 
 func (g *graphicsDriverCreatorImpl) newAuto() (graphicsdriver.Graphics, GraphicsLibrary, error) {
@@ -57,7 +58,7 @@ func (*graphicsDriverCreatorImpl) newDirectX() (graphicsdriver.Graphics, error) 
 }
 
 func (g *graphicsDriverCreatorImpl) newMetal() (graphicsdriver.Graphics, error) {
-	return metal.NewGraphics()
+	return metal.NewGraphics(g.colorSpace)
 }
 
 func (*graphicsDriverCreatorImpl) newPlayStation5() (graphicsdriver.Graphics, error) {

@@ -35,6 +35,8 @@ import (
 type Graphics struct {
 	view view
 
+	colorSpace graphicsdriver.ColorSpace
+
 	cq   mtl.CommandQueue
 	cb   mtl.CommandBuffer
 	rce  mtl.RenderCommandEncoder
@@ -90,7 +92,7 @@ func init() {
 
 // NewGraphics creates an implementation of graphicsdriver.Graphics for Metal.
 // The returned graphics value is nil iff the error is not nil.
-func NewGraphics() (graphicsdriver.Graphics, error) {
+func NewGraphics(colorSpace graphicsdriver.ColorSpace) (graphicsdriver.Graphics, error) {
 	// On old mac devices like iMac 2011, Metal is not supported (#779).
 	// TODO: Is there a better way to check whether Metal is available or not?
 	// It seems OK to call MTLCreateSystemDefaultDevice multiple times, so this should be fine.
@@ -98,12 +100,14 @@ func NewGraphics() (graphicsdriver.Graphics, error) {
 		return nil, fmt.Errorf("metal: mtl.CreateSystemDefaultDevice failed: %w", systemDefaultDeviceErr)
 	}
 
-	g := &Graphics{}
+	g := &Graphics{
+		colorSpace: colorSpace,
+	}
 
 	if runtime.GOOS != "ios" {
 		// Initializing a Metal device and a layer must be done in the main thread on macOS.
 		// Note that this assumes NewGraphics is called on the main thread on desktops.
-		if err := g.view.initialize(systemDefaultDevice); err != nil {
+		if err := g.view.initialize(systemDefaultDevice, colorSpace); err != nil {
 			return nil, err
 		}
 	}
@@ -388,7 +392,7 @@ func (g *Graphics) Initialize() error {
 
 	if runtime.GOOS == "ios" {
 		// Initializing a Metal device and a layer must be done in the render thread on iOS.
-		if err := g.view.initialize(systemDefaultDevice); err != nil {
+		if err := g.view.initialize(systemDefaultDevice, g.colorSpace); err != nil {
 			return err
 		}
 	}

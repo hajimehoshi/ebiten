@@ -29,7 +29,8 @@ import (
 )
 
 type graphicsDriverCreatorImpl struct {
-	canvas js.Value
+	canvas     js.Value
+	colorSpace graphicsdriver.ColorSpace
 }
 
 func (g *graphicsDriverCreatorImpl) newAuto() (graphicsdriver.Graphics, GraphicsLibrary, error) {
@@ -38,7 +39,7 @@ func (g *graphicsDriverCreatorImpl) newAuto() (graphicsdriver.Graphics, Graphics
 }
 
 func (g *graphicsDriverCreatorImpl) newOpenGL() (graphicsdriver.Graphics, error) {
-	return opengl.NewGraphics(g.canvas)
+	return opengl.NewGraphics(g.canvas, g.colorSpace)
 }
 
 func (*graphicsDriverCreatorImpl) newDirectX() (graphicsdriver.Graphics, error) {
@@ -771,7 +772,8 @@ func (u *UserInterface) initOnMainThread(options *RunOptions) error {
 	}
 
 	g, lib, err := newGraphicsDriver(&graphicsDriverCreatorImpl{
-		canvas: canvas,
+		canvas:     canvas,
+		colorSpace: options.ColorSpace,
 	}, options.GraphicsLibrary)
 	if err != nil {
 		return err

@@ -167,6 +167,7 @@ func (u *UserInterface) initializePlatform() error {
 
 type graphicsDriverCreatorImpl struct {
 	transparent bool
+	colorSpace  graphicsdriver.ColorSpace
 }
 
 func (g *graphicsDriverCreatorImpl) newAuto() (graphicsdriver.Graphics, GraphicsLibrary, error) {
@@ -189,8 +190,8 @@ func (*graphicsDriverCreatorImpl) newDirectX() (graphicsdriver.Graphics, error) 
 	return nil, errors.New("ui: DirectX is not supported in this environment")
 }
 
-func (*graphicsDriverCreatorImpl) newMetal() (graphicsdriver.Graphics, error) {
-	return metal.NewGraphics()
+func (g *graphicsDriverCreatorImpl) newMetal() (graphicsdriver.Graphics, error) {
+	return metal.NewGraphics(g.colorSpace)
 }
 
 func (*graphicsDriverCreatorImpl) newPlayStation5() (graphicsdriver.Graphics, error) {

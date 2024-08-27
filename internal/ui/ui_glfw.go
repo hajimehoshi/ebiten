@@ -1089,6 +1089,7 @@ func (u *UserInterface) initOnMainThread(options *RunOptions) error {
 
 	g, lib, err := newGraphicsDriver(&graphicsDriverCreatorImpl{
 		transparent: options.ScreenTransparent,
+		colorSpace:  options.ColorSpace,
 	}, options.GraphicsLibrary)
 	if err != nil {
 		return err

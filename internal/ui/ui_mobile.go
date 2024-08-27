@@ -143,7 +143,9 @@ func (u *UserInterface) runMobile(game Game, options *RunOptions) (err error) {
 
 	u.context = newContext(game)
 
-	g, lib, err := newGraphicsDriver(&graphicsDriverCreatorImpl{}, options.GraphicsLibrary)
+	g, lib, err := newGraphicsDriver(&graphicsDriverCreatorImpl{
+		colorSpace: options.ColorSpace,
+	}, options.GraphicsLibrary)
 	if err != nil {
 		return err
 	}

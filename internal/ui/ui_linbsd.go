@@ -36,6 +36,7 @@ func (u *UserInterface) initializePlatform() error {
 
 type graphicsDriverCreatorImpl struct {
 	transparent bool
+	colorSpace  graphicsdriver.ColorSpace
 }
 
 func (g *graphicsDriverCreatorImpl) newAuto() (graphicsdriver.Graphics, GraphicsLibrary, error) {

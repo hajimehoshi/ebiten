@@ -22,6 +22,7 @@ import (
 	"sync/atomic"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/clock"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
@@ -282,6 +283,14 @@ type RunGameOptions struct {
 	//
 	// The default (zero) value is false, which means that HiDPI is enabled.
 	DisableHiDPI bool
+
+	// ColorSpace indicates the color space of the screen.
+	//
+	// ColorSpace is available only with some graphics libraries (macOS Metal and WebGL so far).
+	// Otherwise, ColorSpace is ignored.
+	//
+	// The default (zero) value is ColorSpaceDefault, which means that color space depends on the environment.
+	ColorSpace ColorSpace
 
 	// X11DisplayName is a class name in the ICCCM WM_CLASS window property.
 	X11ClassName string
@@ -713,6 +722,7 @@ func toUIRunOptions(options *RunGameOptions) *ui.RunOptions {
 		SkipTaskbar:       options.SkipTaskbar,
 		SingleThread:      options.SingleThread,
 		DisableHiDPI:      options.DisableHiDPI,
+		ColorSpace:        graphicsdriver.ColorSpace(options.ColorSpace),
 		X11ClassName:      options.X11ClassName,
 		X11InstanceName:   options.X11InstanceName,
 	}

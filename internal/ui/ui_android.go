@@ -95,6 +95,7 @@ import (
 )
 
 type graphicsDriverCreatorImpl struct {
+	colorSpace graphicsdriver.ColorSpace
 }
 
 func (g *graphicsDriverCreatorImpl) newAuto() (graphicsdriver.Graphics, GraphicsLibrary, error) {
