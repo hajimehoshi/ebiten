@@ -78,7 +78,9 @@ func TestMain(m *testing.M) {
 		panic(err)
 	}
 
-	os.Exit(<-codeCh)
+	if code := <-codeCh; code != 0 {
+		os.Exit(code)
+	}
 }
 
 type testResult struct {
