@@ -168,9 +168,10 @@ jobs:
           env GOARCH=386 EBITENGINE_DIRECTX=version=12 go test -shuffle=on -v ./...
 
       - name: go test (Wasm)
-        if: runner.os != 'macOS'
+        if: runner.os == 'Linux'
         run: |
           # Wasm tests don't work on macOS with the headless mode enabled, but the headless mode cannot be disabled in GitHub Actions (#2972).
+          # Wasm tests time out on Windows (#3076).
           env GOOS=js GOARCH=wasm cleanenv -remove-prefix GITHUB_ -remove-prefix JAVA_ -remove-prefix PSModulePath -remove-prefix STATS_ -remove-prefix RUNNER_ -- go test -shuffle=on -v ./... -test.paniconexit0=false
 
       - name: Install ebitenmobile
