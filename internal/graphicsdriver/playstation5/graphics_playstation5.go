@@ -72,6 +72,9 @@ func (g *Graphics) SetTransparent(transparent bool) {
 }
 
 func (g *Graphics) SetVertices(vertices []float32, indices []uint32) error {
+	defer runtime.KeepAlive(vertices)
+	defer runtime.KeepAlive(indices)
+	C.ebitengine_SetVertices((*C.float)(&vertices[0]), C.int(len(vertices)), (*C.uint32_t)(&indices[0]), C.int(len(indices)))
 	return nil
 }
 
