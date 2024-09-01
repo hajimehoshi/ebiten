@@ -32,10 +32,10 @@ ebitengine_NewScreenFramebufferImage(int *image, int width, int height) {
 
 extern "C" void ebitengine_DisposeImage(int id) {}
 
-void ebitengine_SetVertices(float *vertices, int vertexCount, uint32_t *indices,
-                            int indexCount) {}
+extern "C" void ebitengine_SetVertices(float *vertices, int vertexCount,
+                                       uint32_t *indices, int indexCount) {}
 
-ebitengine_Error
+extern "C" ebitengine_Error
 ebitengine_DrawTriangles(int dst, int *srcs, int srcCount, int shader,
                          ebitengine_DstRegion *dstRegions, int dstRegionCount,
                          int indexOffset, ebitengine_Blend blend,
