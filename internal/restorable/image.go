@@ -73,8 +73,7 @@ func (i *Image) Extend(width, height int) *Image {
 	is := graphics.QuadIndices()
 	dr := image.Rect(0, 0, sw, sh)
 	newImg.DrawTriangles(srcs, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, NearestFilterShader, nil, graphicsdriver.FillRuleFillAll)
-	i.Image.Dispose()
-	i.Image = nil
+	i.Dispose()
 
 	return newImg
 }
@@ -147,4 +146,20 @@ func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte
 		return err
 	}
 	return nil
+}
+
+// Dispose disposes the image.
+//
+// After disposing, calling the function of the image causes unexpected results.
+func (i *Image) Dispose() {
+	i.Image.Dispose()
+	i.Image = nil
+}
+
+func (i *Image) Dump(graphicsDriver graphicsdriver.Graphics, path string, blackbg bool, rect image.Rectangle) (string, error) {
+	return i.Image.Dump(graphicsDriver, path, blackbg, rect)
+}
+
+func (i *Image) InternalSize() (int, int) {
+	return i.Image.InternalSize()
 }
