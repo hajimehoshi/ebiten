@@ -211,7 +211,7 @@ func (i *Image) makeStale(rect image.Rectangle) {
 	i.stale = true
 
 	// If ReadPixels always reads pixels from GPU, staleRegions are never used.
-	if alwaysReadPixelsFromGPU() {
+	if AlwaysReadPixelsFromGPU() {
 		return
 	}
 
@@ -270,7 +270,36 @@ func (i *Image) WritePixels(pixels *graphics.ManagedBytes, region image.Rectangl
 	}
 
 	// Even if the image is already stale, call makeStale to extend the stale region.
-	i.makeStale(region)
+	if !needsRestoring() || !i.needsRestoring() || i.stale {
+		i.makeStale(region)
+		return
+	}
+
+	if region.Eq(image.Rect(0, 0, w, h)) {
+		if pixels != nil {
+			// Clone a ManagedBytes as the package graphicscommand has a different lifetime management.
+			i.basePixels.AddOrReplace(pixels.Clone(), image.Rect(0, 0, w, h))
+		} else {
+			i.basePixels.Clear(image.Rect(0, 0, w, h))
+		}
+		i.clearDrawTrianglesHistory()
+		i.stale = false
+		i.staleRegions = i.staleRegions[:0]
+		return
+	}
+
+	// Records for DrawTriangles cannot come before records for WritePixels.
+	if len(i.drawTrianglesHistory) > 0 {
+		i.makeStale(region)
+		return
+	}
+
+	if pixels != nil {
+		// Clone a ManagedBytes as the package graphicscommand has a different lifetime management.
+		i.basePixels.AddOrReplace(pixels.Clone(), region)
+	} else {
+		i.basePixels.Clear(region)
+	}
 }
 
 // DrawTriangles draws triangles with the given image.
@@ -291,8 +320,24 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderSrcImageCount]*Image, vertice
 	}
 	theImages.makeStaleIfDependingOn(i)
 
+	// TODO: Add tests to confirm this logic.
+	var srcstale bool
+	for _, src := range srcs {
+		if src == nil {
+			continue
+		}
+		if src.stale || src.imageType == ImageTypeVolatile {
+			srcstale = true
+			break
+		}
+	}
+
 	// Even if the image is already stale, call makeStale to extend the stale region.
-	i.makeStale(dstRegion)
+	if srcstale || !needsRestoring() || !i.needsRestoring() || i.stale {
+		i.makeStale(dstRegion)
+	} else {
+		i.appendDrawTrianglesHistory(srcs, vertices, indices, blend, dstRegion, srcRegions, shader, uniforms, fillRule)
+	}
 
 	var imgs [graphics.ShaderSrcImageCount]*graphicscommand.Image
 	for i, src := range srcs {
@@ -309,7 +354,7 @@ func (i *Image) appendDrawTrianglesHistory(srcs [graphics.ShaderSrcImageCount]*I
 	if i.stale || !i.needsRestoring() {
 		panic("restorable: an image must not be stale or need restoring at appendDrawTrianglesHistory")
 	}
-	if alwaysReadPixelsFromGPU() {
+	if AlwaysReadPixelsFromGPU() {
 		panic("restorable: appendDrawTrianglesHistory must not be called when AlwaysReadPixelsFromGPU() returns true")
 	}
 
@@ -355,7 +400,7 @@ func (i *Image) readPixelsFromGPUIfNeeded(graphicsDriver graphicsdriver.Graphics
 }
 
 func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte, region image.Rectangle) error {
-	if alwaysReadPixelsFromGPU() {
+	if AlwaysReadPixelsFromGPU() {
 		if err := i.image.ReadPixels(graphicsDriver, []graphicsdriver.PixelsArgs{
 			{
 				Pixels: pixels,
@@ -449,6 +494,20 @@ func (i *Image) readPixelsFromGPU(graphicsDriver graphicsdriver.Graphics) error 
 	i.stale = false
 	i.staleRegions = i.staleRegions[:0]
 	return nil
+}
+
+// resolveStale resolves the image's 'stale' state.
+func (i *Image) resolveStale(graphicsDriver graphicsdriver.Graphics) error {
+	if !needsRestoring() {
+		return nil
+	}
+	if !i.needsRestoring() {
+		return nil
+	}
+	if !i.stale {
+		return nil
+	}
+	return i.readPixelsFromGPU(graphicsDriver)
 }
 
 // dependsOn reports whether the image depends on target.

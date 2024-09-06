@@ -21,6 +21,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
+	"github.com/hajimehoshi/ebiten/v2/internal/restorable"
 )
 
 var whiteImage *Image
@@ -46,6 +47,8 @@ type Image struct {
 	// pixels is cached pixels for ReadPixels.
 	// pixels might be out of sync with GPU.
 	// The data of pixels is the secondary data of pixels for ReadPixels.
+	//
+	// pixels is always nil when restorable.AlwaysReadPixelsFromGPU() returns false.
 	pixels []byte
 
 	// pixelsUnsynced represents whether the pixels in CPU and GPU are not synced.
@@ -68,15 +71,25 @@ func (i *Image) Deallocate() {
 }
 
 func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte, region image.Rectangle) (bool, error) {
-	// Do not call flushDotsBufferIfNeeded here. This would slow (image/draw).Draw.
-	// See ebiten.TestImageDrawOver.
-
 	if region.Dx() == 1 && region.Dy() == 1 {
 		if c, ok := i.dotsBuffer[region.Min]; ok {
 			copy(pixels, c[:])
 			return true, nil
 		}
 	}
+
+	// If restorable.AlwaysReadPixelsFromGPU() returns false, the pixel data is cached in the restorable package.
+	if !restorable.AlwaysReadPixelsFromGPU() {
+		i.syncPixelsIfNeeded()
+		ok, err := i.img.ReadPixels(graphicsDriver, pixels, region)
+		if err != nil {
+			return false, err
+		}
+		return ok, nil
+	}
+
+	// Do not call syncPixelsIfNeeded here. This would slow (image/draw).Draw.
+	// See ebiten.TestImageDrawOver.
 
 	if i.pixels == nil {
 		pix := make([]byte, 4*i.width*i.height)
