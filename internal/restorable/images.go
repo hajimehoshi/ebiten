@@ -20,6 +20,10 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 )
 
+func alwaysReadPixelsFromGPU() bool {
+	return true
+}
+
 // images is a set of Image objects.
 type images struct {
 	images     map[*Image]struct{}
