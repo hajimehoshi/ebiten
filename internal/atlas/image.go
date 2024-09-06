@@ -677,9 +677,13 @@ func (i *Image) allocate(forbiddenBackends []*backend, asSource bool) {
 			panic(fmt.Sprintf("atlas: the image being put on an atlas is too big: width: %d, height: %d", i.width, i.height))
 		}
 
+		typ := restorable.ImageTypeRegular
+		if i.imageType == ImageTypeVolatile {
+			typ = restorable.ImageTypeVolatile
+		}
 		i.backend = &backend{
-			restorable: restorable.NewImage(wp, hp, restorable.ImageTypeRegular),
-			source:     asSource && i.imageType == ImageTypeRegular,
+			restorable: restorable.NewImage(wp, hp, typ),
+			source:     asSource && typ == restorable.ImageTypeRegular,
 		}
 		theBackends = append(theBackends, i.backend)
 		return
@@ -723,8 +727,12 @@ loop:
 		height *= 2
 	}
 
+	typ := restorable.ImageTypeRegular
+	if i.imageType == ImageTypeVolatile {
+		typ = restorable.ImageTypeVolatile
+	}
 	b := &backend{
-		restorable: restorable.NewImage(width, height, restorable.ImageTypeRegular),
+		restorable: restorable.NewImage(width, height, typ),
 		page:       packing.NewPage(width, height, maxSize),
 		source:     asSource,
 	}
