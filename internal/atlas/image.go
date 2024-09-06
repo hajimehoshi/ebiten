@@ -141,8 +141,6 @@ var (
 
 	imagesUsedAsDestination smallImageSet
 
-	graphicsDriverInitialized bool
-
 	deferred []func()
 
 	// deferredM is a mutex for the slice operations. This must not be used for other usages.
@@ -655,10 +653,6 @@ func (i *Image) finalize() {
 }
 
 func (i *Image) allocate(forbiddenBackends []*backend, asSource bool) {
-	if !graphicsDriverInitialized {
-		panic("atlas: graphics driver must be ready at allocate but not")
-	}
-
 	if i.backend != nil {
 		panic("atlas: the image is already allocated")
 	}
@@ -821,7 +815,7 @@ func BeginFrame(graphicsDriver graphicsdriver.Graphics) error {
 
 	var err error
 	initOnce.Do(func() {
-		err = graphicscommand.InitializeGraphicsDriverState(graphicsDriver)
+		err = restorable.InitializeGraphicsDriverState(graphicsDriver)
 		if err != nil {
 			return
 		}
@@ -837,10 +831,8 @@ func BeginFrame(graphicsDriver graphicsdriver.Graphics) error {
 			minDestinationSize = 16
 		}
 		if maxSize == 0 {
-			maxSize = floorPowerOf2(graphicscommand.MaxImageSize(graphicsDriver))
+			maxSize = floorPowerOf2(restorable.MaxImageSize(graphicsDriver))
 		}
-
-		graphicsDriverInitialized = true
 	})
 	if err != nil {
 		return err
