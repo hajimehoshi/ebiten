@@ -122,37 +122,12 @@ func (b *backend) tryAlloc(width, height int) (*packing.Node, bool) {
 		return nil, false
 	}
 
-	b.extendIfNeeded(b.page.Size())
+	w, h := b.page.Size()
+	b.restorable = b.restorable.Extend(w, h)
+	b.width = w
+	b.height = h
 
 	return n, true
-}
-
-// extendIfNeeded extends the image by the given size if necessary.
-// extendIfNeeded creates a new image with the given size and copies the pixels of the given source image.
-// extendIfNeeded disposes an old image after its call when a new image is created.
-func (b *backend) extendIfNeeded(width, height int) {
-	if b.width >= width && b.height >= height {
-		return
-	}
-
-	// Assume that the screen image is never extended.
-	newImg := restorable.NewImage(width, height, false)
-
-	// Use DrawTriangles instead of WritePixels because the image i might be stale and not have its pixels
-	// information.
-	srcs := [graphics.ShaderSrcImageCount]*graphicscommand.Image{b.restorable.Image}
-	sw, sh := b.restorable.Image.InternalSize()
-	vs := make([]float32, 4*graphics.VertexFloatCount)
-	graphics.QuadVerticesFromDstAndSrc(vs, 0, 0, float32(sw), float32(sh), 0, 0, float32(sw), float32(sh), 1, 1, 1, 1)
-	is := graphics.QuadIndices()
-	dr := image.Rect(0, 0, sw, sh)
-	newImg.Image.DrawTriangles(srcs, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, NearestFilterShader.ensureShader().Shader, nil, graphicsdriver.FillRuleFillAll)
-	b.restorable.Image.Dispose()
-	b.restorable.Image = nil
-
-	b.restorable = newImg
-	b.width = width
-	b.height = height
 }
 
 var (

@@ -52,6 +52,32 @@ func NewImage(width, height int, screen bool) *Image {
 	return i
 }
 
+// Extend extends the image by the given size.
+// Extend creates a new image with the given size and copies the pixels of the given source image.
+// Extend disposes itself after its call.
+func (i *Image) Extend(width, height int) *Image {
+	if i.width >= width && i.height >= height {
+		return i
+	}
+
+	// Assume that the screen image is never extended.
+	newImg := NewImage(width, height, false)
+
+	// Use DrawTriangles instead of WritePixels because the image i might be stale and not have its pixels
+	// information.
+	srcs := [graphics.ShaderSrcImageCount]*graphicscommand.Image{i.Image}
+	sw, sh := i.Image.InternalSize()
+	vs := make([]float32, 4*graphics.VertexFloatCount)
+	graphics.QuadVerticesFromDstAndSrc(vs, 0, 0, float32(sw), float32(sh), 0, 0, float32(sw), float32(sh), 1, 1, 1, 1)
+	is := graphics.QuadIndices()
+	dr := image.Rect(0, 0, sw, sh)
+	newImg.Image.DrawTriangles(srcs, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, NearestFilterShader.Shader, nil, graphicsdriver.FillRuleFillAll)
+	i.Image.Dispose()
+	i.Image = nil
+
+	return newImg
+}
+
 func clearImage(i *graphicscommand.Image, region image.Rectangle) {
 	vs := make([]float32, 4*graphics.VertexFloatCount)
 	graphics.QuadVerticesFromDstAndSrc(vs, float32(region.Min.X), float32(region.Min.Y), float32(region.Max.X), float32(region.Max.Y), 0, 0, 0, 0, 0, 0, 0, 0)
