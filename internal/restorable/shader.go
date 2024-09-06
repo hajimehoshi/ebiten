@@ -41,7 +41,7 @@ var (
 	NearestFilterShaderIR *shaderir.Program
 	LinearFilterShader    *Shader
 	LinearFilterShaderIR  *shaderir.Program
-	ClearShader           *Shader
+	clearShader           *Shader
 )
 
 func init() {
@@ -78,5 +78,5 @@ func init() {
 	NearestFilterShader = NewShader(nearestIR)
 	LinearFilterShaderIR = linearIR
 	LinearFilterShader = NewShader(linearIR)
-	ClearShader = NewShader(clearIR)
+	clearShader = NewShader(clearIR)
 }

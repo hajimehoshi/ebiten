@@ -136,7 +136,7 @@ func (b *backend) extendIfNeeded(width, height int) {
 	}
 
 	// Assume that the screen image is never extended.
-	newImg := newClearedImage(width, height, false)
+	newImg := restorable.NewImage(width, height, false)
 
 	// Use DrawTriangles instead of WritePixels because the image i might be stale and not have its pixels
 	// information.
@@ -153,45 +153,6 @@ func (b *backend) extendIfNeeded(width, height int) {
 	b.restorable = newImg
 	b.width = width
 	b.height = height
-}
-
-// newClearedImage creates an emtpy image with the given size.
-//
-// Note that Dispose is not called automatically.
-func newClearedImage(width, height int, screen bool) *restorable.Image {
-	i := &restorable.Image{
-		Image: graphicscommand.NewImage(width, height, screen),
-	}
-
-	// This needs to use 'InternalSize' to render the whole region, or edges are unexpectedly cleared on some
-	// devices.
-	iw, ih := i.Image.InternalSize()
-	clearImage(i.Image, image.Rect(0, 0, iw, ih))
-	return i
-}
-
-func clearImage(i *graphicscommand.Image, region image.Rectangle) {
-	vs := make([]float32, 4*graphics.VertexFloatCount)
-	graphics.QuadVerticesFromDstAndSrc(vs, float32(region.Min.X), float32(region.Min.Y), float32(region.Max.X), float32(region.Max.Y), 0, 0, 0, 0, 0, 0, 0, 0)
-	is := graphics.QuadIndices()
-	i.DrawTriangles([graphics.ShaderSrcImageCount]*graphicscommand.Image{}, vs, is, graphicsdriver.BlendClear, region, [graphics.ShaderSrcImageCount]image.Rectangle{}, restorable.ClearShader.Shader, nil, graphicsdriver.FillRuleFillAll)
-}
-
-func (b *backend) clearPixels(region image.Rectangle) {
-	if region.Dx() <= 0 || region.Dy() <= 0 {
-		panic("atlas: width/height must be positive")
-	}
-	clearImage(b.restorable.Image, region.Intersect(image.Rect(0, 0, b.width, b.height)))
-}
-
-func (b *backend) writePixels(pixels *graphics.ManagedBytes, region image.Rectangle) {
-	if region.Dx() <= 0 || region.Dy() <= 0 {
-		panic("atlas: width/height must be positive")
-	}
-	if !region.In(image.Rect(0, 0, b.width, b.height)) {
-		panic(fmt.Sprintf("atlas: out of range %v", region))
-	}
-	b.restorable.Image.WritePixels(pixels, region)
 }
 
 var (
@@ -578,7 +539,7 @@ func (i *Image) writePixels(pix []byte, region image.Rectangle) {
 		region = region.Add(r.Min)
 
 		if pix == nil {
-			i.backend.clearPixels(region)
+			i.backend.restorable.ClearPixels(region)
 			return
 		}
 
@@ -616,6 +577,16 @@ func (i *Image) writePixels(pix []byte, region image.Rectangle) {
 		}
 	})
 	i.backend.writePixels(pixb, r)
+}
+
+func (b *backend) writePixels(pixels *graphics.ManagedBytes, region image.Rectangle) {
+	if region.Dx() <= 0 || region.Dy() <= 0 {
+		panic("atlas: width/height must be positive")
+	}
+	if !region.In(image.Rect(0, 0, b.width, b.height)) {
+		panic(fmt.Sprintf("atlas: out of range %v", region))
+	}
+	b.restorable.Image.WritePixels(pixels, region)
 }
 
 func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte, region image.Rectangle) (ok bool, err error) {
@@ -687,7 +658,7 @@ func (i *Image) deallocate() {
 		if !i.backend.page.IsEmpty() {
 			// As this part can be reused, this should be cleared explicitly.
 			r := i.regionWithPadding()
-			i.backend.clearPixels(r)
+			i.backend.restorable.ClearPixels(r)
 			return
 		}
 	}
@@ -752,7 +723,7 @@ func (i *Image) allocate(forbiddenBackends []*backend, asSource bool) {
 		}
 		// A screen image doesn't have a padding.
 		i.backend = &backend{
-			restorable: newClearedImage(i.width, i.height, true),
+			restorable: restorable.NewImage(i.width, i.height, true),
 			width:      i.width,
 			height:     i.height,
 		}
@@ -769,7 +740,7 @@ func (i *Image) allocate(forbiddenBackends []*backend, asSource bool) {
 		}
 
 		i.backend = &backend{
-			restorable: newClearedImage(wp, hp, false),
+			restorable: restorable.NewImage(wp, hp, false),
 			width:      wp,
 			height:     hp,
 			source:     asSource && i.imageType == ImageTypeRegular,
@@ -817,7 +788,7 @@ loop:
 	}
 
 	b := &backend{
-		restorable: newClearedImage(width, height, false),
+		restorable: restorable.NewImage(width, height, false),
 		width:      width,
 		height:     height,
 		page:       packing.NewPage(width, height, maxSize),
