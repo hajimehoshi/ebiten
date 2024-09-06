@@ -224,6 +224,8 @@ const (
 	// A screen image is also unmanaged.
 	ImageTypeScreen
 
+	ImageTypeVolatile
+
 	// ImageTypeUnmanaged is an unmanaged image that is not on an atlas.
 	ImageTypeUnmanaged
 )

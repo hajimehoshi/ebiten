@@ -174,8 +174,8 @@ func TestReputOnSourceBackend(t *testing.T) {
 	}
 	img2.WritePixels(pix, image.Rect(0, 0, size, size))
 
-	// Create an unmanaged image. This should always be on a non-source backend.
-	img3 := atlas.NewImage(size, size, atlas.ImageTypeUnmanaged)
+	// Create a volatile image. This should always be on a non-source backend.
+	img3 := atlas.NewImage(size, size, atlas.ImageTypeVolatile)
 	defer img3.Deallocate()
 	img3.WritePixels(make([]byte, 4*size*size), image.Rect(0, 0, size, size))
 	if got, want := img3.IsOnSourceBackendForTesting(), false; got != want {
@@ -685,7 +685,7 @@ func TestImageIsNotReputOnSourceBackendWithoutUsingAsSource(t *testing.T) {
 }
 
 func TestImageWritePixelsModify(t *testing.T) {
-	for _, typ := range []atlas.ImageType{atlas.ImageTypeRegular, atlas.ImageTypeRegular, atlas.ImageTypeUnmanaged} {
+	for _, typ := range []atlas.ImageType{atlas.ImageTypeRegular, atlas.ImageTypeVolatile, atlas.ImageTypeUnmanaged} {
 		const size = 16
 		img := atlas.NewImage(size, size, typ)
 		defer img.Deallocate()
