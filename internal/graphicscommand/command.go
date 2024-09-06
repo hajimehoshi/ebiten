@@ -221,7 +221,11 @@ type writePixelsCommandArgs struct {
 }
 
 func (c *writePixelsCommand) String() string {
-	return fmt.Sprintf("write-pixels: dst: %d, len(args): %d", c.dst.id, len(c.args))
+	var args []string
+	for _, a := range c.args {
+		args = append(args, fmt.Sprintf("region: %s", a.region.String()))
+	}
+	return fmt.Sprintf("write-pixels: dst: %d, args: %s", c.dst.id, strings.Join(args, ", "))
 }
 
 // Exec executes the writePixelsCommand.
@@ -270,7 +274,11 @@ func (c *readPixelsCommand) NeedsSync() bool {
 }
 
 func (c *readPixelsCommand) String() string {
-	return fmt.Sprintf("read-pixels: image: %d", c.img.id)
+	var args []string
+	for _, a := range c.args {
+		args = append(args, fmt.Sprintf("region: %s", a.Region.String()))
+	}
+	return fmt.Sprintf("read-pixels: image: %d, args: %v", c.img.id, strings.Join(args, ", "))
 }
 
 // disposeImageCommand represents a command to dispose an image.
