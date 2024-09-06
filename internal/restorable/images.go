@@ -35,7 +35,7 @@ func SwapBuffers(graphicsDriver graphicsdriver.Graphics) error {
 		debug.FrameLogf("Internal image sizes:\n")
 		imgs := make([]*graphicscommand.Image, 0, len(theImages.images))
 		for i := range theImages.images {
-			imgs = append(imgs, i.Image)
+			imgs = append(imgs, i.image)
 		}
 		graphicscommand.LogImagesInfo(imgs)
 	}
@@ -43,6 +43,18 @@ func SwapBuffers(graphicsDriver graphicsdriver.Graphics) error {
 		return err
 	}
 	return nil
+}
+
+// DumpImages dumps all the current images to the specified directory.
+//
+// This is for testing usage.
+func DumpImages(graphicsDriver graphicsdriver.Graphics, dir string) (string, error) {
+	images := make([]*graphicscommand.Image, 0, len(theImages.images))
+	for img := range theImages.images {
+		images = append(images, img.image)
+	}
+
+	return graphicscommand.DumpImages(images, graphicsDriver, dir)
 }
 
 // add adds img to the images.
