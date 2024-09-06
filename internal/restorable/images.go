@@ -15,9 +15,45 @@
 package restorable
 
 import (
+	"github.com/hajimehoshi/ebiten/v2/internal/debug"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 )
+
+// images is a set of Image objects.
+type images struct {
+	images map[*Image]struct{}
+}
+
+// theImages represents the images for the current process.
+var theImages = &images{
+	images: map[*Image]struct{}{},
+}
+
+func SwapBuffers(graphicsDriver graphicsdriver.Graphics) error {
+	if debug.IsDebug {
+		debug.FrameLogf("Internal image sizes:\n")
+		imgs := make([]*graphicscommand.Image, 0, len(theImages.images))
+		for i := range theImages.images {
+			imgs = append(imgs, i.Image)
+		}
+		graphicscommand.LogImagesInfo(imgs)
+	}
+	if err := graphicscommand.FlushCommands(graphicsDriver, true); err != nil {
+		return err
+	}
+	return nil
+}
+
+// add adds img to the images.
+func (i *images) add(img *Image) {
+	i.images[img] = struct{}{}
+}
+
+// remove removes img from the images.
+func (i *images) remove(img *Image) {
+	delete(i.images, img)
+}
 
 var graphicsDriverInitialized bool
 

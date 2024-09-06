@@ -67,6 +67,7 @@ func NewImage(width, height int, imageType ImageType) *Image {
 	// devices.
 	iw, ih := i.Image.InternalSize()
 	clearImage(i.Image, image.Rect(0, 0, iw, ih))
+	theImages.add(i)
 	return i
 }
 
@@ -168,6 +169,7 @@ func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte
 //
 // After disposing, calling the function of the image causes unexpected results.
 func (i *Image) Dispose() {
+	theImages.remove(i)
 	i.Image.Dispose()
 	i.Image = nil
 }

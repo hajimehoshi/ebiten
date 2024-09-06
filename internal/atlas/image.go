@@ -22,7 +22,6 @@ import (
 	"runtime"
 	"sync"
 
-	"github.com/hajimehoshi/ebiten/v2/internal/debug"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
@@ -779,18 +778,7 @@ func SwapBuffers(graphicsDriver graphicsdriver.Graphics) error {
 		}
 	}()
 
-	if debug.IsDebug {
-		debug.FrameLogf("Internal image sizes:\n")
-		imgs := make([]*graphicscommand.Image, 0, len(theBackends))
-		for _, backend := range theBackends {
-			if backend.restorable == nil {
-				continue
-			}
-			imgs = append(imgs, backend.restorable.Image)
-		}
-		graphicscommand.LogImagesInfo(imgs)
-	}
-	if err := graphicscommand.FlushCommands(graphicsDriver, true); err != nil {
+	if err := restorable.SwapBuffers(graphicsDriver); err != nil {
 		return err
 	}
 	return nil
