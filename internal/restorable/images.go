@@ -22,8 +22,9 @@ import (
 
 // images is a set of Image objects.
 type images struct {
-	images  map[*Image]struct{}
-	shaders map[*Shader]struct{}
+	images     map[*Image]struct{}
+	shaders    map[*Shader]struct{}
+	lastTarget *Image
 }
 
 // theImages represents the images for the current process.
@@ -70,11 +71,40 @@ func (i *images) addShader(shader *Shader) {
 
 // remove removes img from the images.
 func (i *images) remove(img *Image) {
+	i.makeStaleIfDependingOn(img)
 	delete(i.images, img)
 }
 
 func (i *images) removeShader(shader *Shader) {
+	i.makeStaleIfDependingOnShader(shader)
 	delete(i.shaders, shader)
+}
+
+// makeStaleIfDependingOn makes all the images stale that depend on target.
+//
+// When target is modified, all images depending on target can't be restored with target.
+// makeStaleIfDependingOn is called in such situation.
+func (i *images) makeStaleIfDependingOn(target *Image) {
+	if target == nil {
+		panic("restorable: target must not be nil at makeStaleIfDependingOn")
+	}
+	if i.lastTarget == target {
+		return
+	}
+	i.lastTarget = target
+	for img := range i.images {
+		img.makeStaleIfDependingOn(target)
+	}
+}
+
+// makeStaleIfDependingOn makes all the images stale that depend on shader.
+func (i *images) makeStaleIfDependingOnShader(shader *Shader) {
+	if shader == nil {
+		panic("restorable: shader must not be nil at makeStaleIfDependingOnShader")
+	}
+	for img := range i.images {
+		img.makeStaleIfDependingOnShader(shader)
+	}
 }
 
 var graphicsDriverInitialized bool
