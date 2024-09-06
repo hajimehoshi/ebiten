@@ -88,10 +88,7 @@ func clearImage(i *graphicscommand.Image, region image.Rectangle) {
 
 // ClearPixels clears the specified region by WritePixels.
 func (i *Image) ClearPixels(region image.Rectangle) {
-	if region.Dx() <= 0 || region.Dy() <= 0 {
-		panic("restorable: width/height must be positive")
-	}
-	clearImage(i.Image, region.Intersect(image.Rect(0, 0, i.width, i.height)))
+	i.WritePixels(nil, region)
 }
 
 // WritePixels replaces the image pixels with the given pixels slice.
@@ -106,7 +103,11 @@ func (i *Image) WritePixels(pixels *graphics.ManagedBytes, region image.Rectangl
 		panic(fmt.Sprintf("restorable: out of range %v", region))
 	}
 
-	i.Image.WritePixels(pixels, region)
+	if pixels != nil {
+		i.Image.WritePixels(pixels, region)
+	} else {
+		clearImage(i.Image, region)
+	}
 }
 
 // DrawTriangles draws triangles with the given image.
