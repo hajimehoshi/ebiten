@@ -94,9 +94,6 @@ type backend struct {
 	// restorable is an atlas on which there might be multiple images.
 	restorable *restorable.Image
 
-	width  int
-	height int
-
 	// page is an atlas map. Each part is called a node.
 	// If page is nil, the backend's image is isolated and not on an atlas.
 	page *packing.Page
@@ -124,8 +121,6 @@ func (b *backend) tryAlloc(width, height int) (*packing.Node, bool) {
 
 	w, h := b.page.Size()
 	b.restorable = b.restorable.Extend(w, h)
-	b.width = w
-	b.height = h
 
 	return n, true
 }
@@ -522,7 +517,7 @@ func (i *Image) writePixels(pix []byte, region image.Rectangle) {
 		pix2 := graphics.NewManagedBytes(len(pix), func(bs []byte) {
 			copy(bs, pix)
 		})
-		i.backend.writePixels(pix2, region)
+		i.backend.restorable.WritePixels(pix2, region)
 		return
 	}
 
@@ -551,17 +546,7 @@ func (i *Image) writePixels(pix []byte, region image.Rectangle) {
 			copy(bs[4*j*r.Dx():], pix[4*j*region.Dx():4*(j+1)*region.Dx()])
 		}
 	})
-	i.backend.writePixels(pixb, r)
-}
-
-func (b *backend) writePixels(pixels *graphics.ManagedBytes, region image.Rectangle) {
-	if region.Dx() <= 0 || region.Dy() <= 0 {
-		panic("atlas: width/height must be positive")
-	}
-	if !region.In(image.Rect(0, 0, b.width, b.height)) {
-		panic(fmt.Sprintf("atlas: out of range %v", region))
-	}
-	b.restorable.Image.WritePixels(pixels, region)
+	i.backend.restorable.WritePixels(pixb, r)
 }
 
 func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte, region image.Rectangle) (ok bool, err error) {
@@ -699,8 +684,6 @@ func (i *Image) allocate(forbiddenBackends []*backend, asSource bool) {
 		// A screen image doesn't have a padding.
 		i.backend = &backend{
 			restorable: restorable.NewImage(i.width, i.height, true),
-			width:      i.width,
-			height:     i.height,
 		}
 		theBackends = append(theBackends, i.backend)
 		return
@@ -716,8 +699,6 @@ func (i *Image) allocate(forbiddenBackends []*backend, asSource bool) {
 
 		i.backend = &backend{
 			restorable: restorable.NewImage(wp, hp, false),
-			width:      wp,
-			height:     hp,
 			source:     asSource && i.imageType == ImageTypeRegular,
 		}
 		theBackends = append(theBackends, i.backend)
@@ -764,8 +745,6 @@ loop:
 
 	b := &backend{
 		restorable: restorable.NewImage(width, height, false),
-		width:      width,
-		height:     height,
 		page:       packing.NewPage(width, height, maxSize),
 		source:     asSource,
 	}

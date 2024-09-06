@@ -15,6 +15,7 @@
 package restorable
 
 import (
+	"fmt"
 	"image"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
@@ -91,4 +92,19 @@ func (i *Image) ClearPixels(region image.Rectangle) {
 		panic("restorable: width/height must be positive")
 	}
 	clearImage(i.Image, region.Intersect(image.Rect(0, 0, i.width, i.height)))
+}
+
+// WritePixels replaces the image pixels with the given pixels slice.
+//
+// The specified region must not be overlapped with other regions by WritePixels.
+func (i *Image) WritePixels(pixels *graphics.ManagedBytes, region image.Rectangle) {
+	if region.Dx() <= 0 || region.Dy() <= 0 {
+		panic("restorable: width/height must be positive")
+	}
+	w, h := i.width, i.height
+	if !region.In(image.Rect(0, 0, w, h)) {
+		panic(fmt.Sprintf("restorable: out of range %v", region))
+	}
+
+	i.Image.WritePixels(pixels, region)
 }
