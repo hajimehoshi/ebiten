@@ -15,8 +15,6 @@
 package restorable
 
 import (
-	"image"
-
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 )
 
@@ -27,8 +25,4 @@ func EnableRestoringForTesting() {
 
 func ResolveStaleImages(graphicsDriver graphicsdriver.Graphics) error {
 	return resolveStaleImages(graphicsDriver, false)
-}
-
-func AppendRegionRemovingDuplicates(regions *[]image.Rectangle, region image.Rectangle) {
-	appendRegionRemovingDuplicates(regions, region)
 }

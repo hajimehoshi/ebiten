@@ -17,6 +17,7 @@ package restorable
 import (
 	"fmt"
 	"image"
+	"sort"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
@@ -215,20 +216,16 @@ func (i *Image) makeStale(rect image.Rectangle) {
 		return
 	}
 
-	var addedRegions []image.Rectangle
-	i.appendRegionsForDrawTriangles(&addedRegions)
+	origSize := len(i.staleRegions)
+	i.staleRegions = i.appendRegionsForDrawTriangles(i.staleRegions)
 	if !rect.Empty() {
-		appendRegionRemovingDuplicates(&addedRegions, rect)
-	}
-
-	for _, rect := range addedRegions {
-		appendRegionRemovingDuplicates(&i.staleRegions, rect)
+		i.staleRegions = append(i.staleRegions, rect)
 	}
 
 	i.clearDrawTrianglesHistory()
 
 	// Clear pixels to save memory.
-	for _, r := range addedRegions {
+	for _, r := range i.staleRegions[origSize:] {
 		i.basePixels.Clear(r)
 	}
 
@@ -450,12 +447,15 @@ func (i *Image) readPixelsFromGPU(graphicsDriver graphicsdriver.Graphics) error 
 	if i.stale {
 		rs = i.staleRegions
 	} else {
-		i.appendRegionsForDrawTriangles(&i.regionsCache)
+		i.regionsCache = i.appendRegionsForDrawTriangles(i.regionsCache)
 		defer func() {
 			i.regionsCache = i.regionsCache[:0]
 		}()
 		rs = i.regionsCache
 	}
+
+	// Remove duplications. Is this heavy?
+	rs = rs[:removeDuplicatedRegions(rs)]
 
 	args := make([]graphicsdriver.PixelsArgs, 0, len(rs))
 	for _, r := range rs {
@@ -607,7 +607,7 @@ func (i *Image) restore(graphicsDriver graphicsdriver.Graphics) error {
 
 	// In order to clear the draw-triangles history, read pixels from GPU.
 	if len(i.drawTrianglesHistory) > 0 {
-		i.appendRegionsForDrawTriangles(&i.regionsCache)
+		i.regionsCache = i.appendRegionsForDrawTriangles(i.regionsCache)
 		defer func() {
 			i.regionsCache = i.regionsCache[:0]
 		}()
@@ -683,38 +683,54 @@ func (i *Image) InternalSize() (int, int) {
 	return i.image.InternalSize()
 }
 
-func (i *Image) appendRegionsForDrawTriangles(regions *[]image.Rectangle) {
+func (i *Image) appendRegionsForDrawTriangles(regions []image.Rectangle) []image.Rectangle {
 	for _, d := range i.drawTrianglesHistory {
 		if d.dstRegion.Empty() {
 			continue
 		}
-		appendRegionRemovingDuplicates(regions, d.dstRegion)
+		regions = append(regions, d.dstRegion)
 	}
+	return regions
 }
 
-// appendRegionRemovingDuplicates adds a region to a given list of regions,
-// but removes any duplicate between the newly added region and any existing regions.
-//
-// In case the newly added region is fully contained in any pre-existing region, this function does nothing.
-// Otherwise, any pre-existing regions that are fully contained in the newly added region are removed.
-//
-// This is done to avoid unnecessary reading pixels from GPU.
-func appendRegionRemovingDuplicates(regions *[]image.Rectangle, region image.Rectangle) {
-	for _, r := range *regions {
-		if region.In(r) {
-			// The newly added rectangle is fully contained in one of the input regions.
-			// Nothing to add.
-			return
-		}
-	}
-	// Separate loop, as regions must not get mutated before above return.
-	n := 0
-	for _, r := range *regions {
-		if r.In(region) {
+// removeDuplicatedRegions removes duplicated regions and returns a shrunk slice.
+// If a region covers preceding regions, the covered regions are removed.
+func removeDuplicatedRegions(regions []image.Rectangle) int {
+	// Sweep and prune algorithm
+
+	sort.Slice(regions, func(i, j int) bool {
+		return regions[i].Min.X < regions[j].Min.X
+	})
+
+	for i, r := range regions {
+		if r.Empty() {
 			continue
 		}
-		(*regions)[n] = r
+		for j := i + 1; j < len(regions); j++ {
+			rr := regions[j]
+			if rr.Empty() {
+				continue
+			}
+			if r.Max.X <= rr.Min.X {
+				break
+			}
+			if rr.In(r) {
+				regions[j] = image.Rectangle{}
+			} else if r.In(rr) {
+				regions[i] = image.Rectangle{}
+				break
+			}
+		}
+	}
+
+	var n int
+	for _, r := range regions {
+		if r.Empty() {
+			continue
+		}
+		regions[n] = r
 		n++
 	}
-	*regions = append((*regions)[:n], region)
+
+	return n
 }
