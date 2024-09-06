@@ -66,13 +66,13 @@ func (i *Image) Extend(width, height int) *Image {
 
 	// Use DrawTriangles instead of WritePixels because the image i might be stale and not have its pixels
 	// information.
-	srcs := [graphics.ShaderSrcImageCount]*graphicscommand.Image{i.Image}
+	srcs := [graphics.ShaderSrcImageCount]*Image{i}
 	sw, sh := i.Image.InternalSize()
 	vs := make([]float32, 4*graphics.VertexFloatCount)
 	graphics.QuadVerticesFromDstAndSrc(vs, 0, 0, float32(sw), float32(sh), 0, 0, float32(sw), float32(sh), 1, 1, 1, 1)
 	is := graphics.QuadIndices()
 	dr := image.Rect(0, 0, sw, sh)
-	newImg.Image.DrawTriangles(srcs, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, NearestFilterShader.Shader, nil, graphicsdriver.FillRuleFillAll)
+	newImg.DrawTriangles(srcs, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, NearestFilterShader, nil, graphicsdriver.FillRuleFillAll)
 	i.Image.Dispose()
 	i.Image = nil
 
@@ -107,4 +107,31 @@ func (i *Image) WritePixels(pixels *graphics.ManagedBytes, region image.Rectangl
 	}
 
 	i.Image.WritePixels(pixels, region)
+}
+
+// DrawTriangles draws triangles with the given image.
+//
+// The vertex floats are:
+//
+//	0: Destination X in pixels
+//	1: Destination Y in pixels
+//	2: Source X in texels
+//	3: Source Y in texels
+//	4: Color R [0.0-1.0]
+//	5: Color G
+//	6: Color B
+//	7: Color Y
+func (i *Image) DrawTriangles(srcs [graphics.ShaderSrcImageCount]*Image, vertices []float32, indices []uint32, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderSrcImageCount]image.Rectangle, shader *Shader, uniforms []uint32, fillRule graphicsdriver.FillRule) {
+	if len(vertices) == 0 {
+		return
+	}
+
+	var imgs [graphics.ShaderSrcImageCount]*graphicscommand.Image
+	for i, src := range srcs {
+		if src == nil {
+			continue
+		}
+		imgs[i] = src.Image
+	}
+	i.Image.DrawTriangles(imgs, vertices, indices, blend, dstRegion, srcRegions, shader.Shader, uniforms, fillRule)
 }

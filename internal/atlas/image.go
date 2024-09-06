@@ -372,11 +372,6 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderSrcImageCount]*Image, vertice
 }
 
 func (i *Image) drawTriangles(srcs [graphics.ShaderSrcImageCount]*Image, vertices []float32, indices []uint32, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderSrcImageCount]image.Rectangle, shader *Shader, uniforms []uint32, fillRule graphicsdriver.FillRule) {
-	if len(vertices) == 0 {
-		return
-	}
-
-	// This slice is not escaped to the heap. This can be checked by `go build -gcflags=-m`.
 	backends := make([]*backend, 0, len(srcs))
 	for _, src := range srcs {
 		if src == nil {
@@ -449,15 +444,15 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderSrcImageCount]*Image, vertice
 		srcRegions[i] = srcRegions[i].Add(r.Min)
 	}
 
-	var imgs [graphics.ShaderSrcImageCount]*graphicscommand.Image
+	var imgs [graphics.ShaderSrcImageCount]*restorable.Image
 	for i, src := range srcs {
 		if src == nil {
 			continue
 		}
-		imgs[i] = src.backend.restorable.Image
+		imgs[i] = src.backend.restorable
 	}
 
-	i.backend.restorable.Image.DrawTriangles(imgs, vertices, indices, blend, dstRegion, srcRegions, shader.ensureShader().Shader, uniforms, fillRule)
+	i.backend.restorable.DrawTriangles(imgs, vertices, indices, blend, dstRegion, srcRegions, shader.ensureShader(), uniforms, fillRule)
 
 	for _, src := range srcs {
 		if src == nil {
