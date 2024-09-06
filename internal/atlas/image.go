@@ -564,12 +564,7 @@ func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte
 		return true, nil
 	}
 
-	if err := i.backend.restorable.Image.ReadPixels(graphicsDriver, []graphicsdriver.PixelsArgs{
-		{
-			Pixels: pixels,
-			Region: region.Add(i.regionWithPadding().Min),
-		},
-	}); err != nil {
+	if err := i.backend.restorable.ReadPixels(graphicsDriver, pixels, region.Add(i.regionWithPadding().Min)); err != nil {
 		return false, err
 	}
 	return true, nil

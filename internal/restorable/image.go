@@ -136,3 +136,15 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderSrcImageCount]*Image, vertice
 	}
 	i.Image.DrawTriangles(imgs, vertices, indices, blend, dstRegion, srcRegions, shader.shader, uniforms, fillRule)
 }
+
+func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte, region image.Rectangle) error {
+	if err := i.Image.ReadPixels(graphicsDriver, []graphicsdriver.PixelsArgs{
+		{
+			Pixels: pixels,
+			Region: region,
+		},
+	}); err != nil {
+		return err
+	}
+	return nil
+}
