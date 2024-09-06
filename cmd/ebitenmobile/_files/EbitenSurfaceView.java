@@ -25,10 +25,10 @@ import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
 import {{.JavaPkg}}.ebitenmobileview.Ebitenmobileview;
-import {{.JavaPkg}}.ebitenmobileview.RenderRequester;
+import {{.JavaPkg}}.ebitenmobileview.Renderer;
 import {{.JavaPkg}}.{{.PrefixLower}}.EbitenView;
 
-class EbitenSurfaceView extends GLSurfaceView implements RenderRequester {
+class EbitenSurfaceView extends GLSurfaceView implements Renderer {
 
     private class EbitenRenderer implements GLSurfaceView.Renderer {
 
@@ -63,6 +63,10 @@ class EbitenSurfaceView extends GLSurfaceView implements RenderRequester {
                 onceSurfaceCreated_ = true;
                 return;
             }
+            if (hasStrictContextRestoration()) {
+                Ebitenmobileview.onContextLost();
+                return;
+            }
             contextLost_ = true;
             new Handler(Looper.getMainLooper()).post(new Runnable() {
                 @Override
@@ -77,6 +81,8 @@ class EbitenSurfaceView extends GLSurfaceView implements RenderRequester {
         }
     }
 
+    private boolean strictContextRestoration_ = false;
+
     public EbitenSurfaceView(Context context) {
         super(context);
         initialize();
@@ -90,9 +96,11 @@ class EbitenSurfaceView extends GLSurfaceView implements RenderRequester {
     private void initialize() {
         setEGLContextClientVersion(3);
         setEGLConfigChooser(8, 8, 8, 8, 0, 0);
+        // setRenderer must be called before setRenderRequester.
+        // Or, the application crashes.
         setRenderer(new EbitenRenderer());
-        setPreserveEGLContextOnPause(true);
-        Ebitenmobileview.setRenderRequester(this);
+
+        Ebitenmobileview.setRenderer(this);
     }
 
     private void onErrorOnGameUpdate(Exception e) {
@@ -112,6 +120,16 @@ class EbitenSurfaceView extends GLSurfaceView implements RenderRequester {
         } else {
             setRenderMode(RENDERMODE_CONTINUOUSLY);
         }
+    }
+
+    @Override
+    public synchronized void setStrictContextRestoration(boolean strictContextRestoration) {
+        strictContextRestoration_ = strictContextRestoration;
+        setPreserveEGLContextOnPause(!strictContextRestoration);
+    }
+
+    private synchronized boolean hasStrictContextRestoration() {
+        return strictContextRestoration_;
     }
 
     @Override

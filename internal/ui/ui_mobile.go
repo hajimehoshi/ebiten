@@ -28,6 +28,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/hook"
+	"github.com/hajimehoshi/ebiten/v2/internal/restorable"
 )
 
 var (
@@ -97,8 +98,11 @@ type userInterfaceImpl struct {
 	inputState InputState
 	touches    []TouchForInput
 
-	fpsMode         atomic.Int32
-	renderRequester RenderRequester
+	fpsMode  atomic.Int32
+	renderer Renderer
+
+	strictContextRestoration     bool
+	strictContextRestorationOnce sync.Once
 
 	m sync.RWMutex
 }
@@ -152,6 +156,11 @@ func (u *UserInterface) runMobile(game Game, options *RunOptions) (err error) {
 	u.graphicsDriver = g
 	u.setGraphicsLibrary(lib)
 	close(u.graphicsLibraryInitCh)
+	u.strictContextRestoration = options.StrictContextRestoration
+	if !u.strictContextRestoration {
+		restorable.Disable()
+	}
+	u.renderer.SetStrictContextRestoration(u.strictContextRestoration)
 
 	for {
 		if err := u.update(); err != nil {
@@ -239,10 +248,10 @@ func (u *UserInterface) SetFPSMode(mode FPSModeType) {
 }
 
 func (u *UserInterface) updateExplicitRenderingModeIfNeeded(fpsMode FPSModeType) {
-	if u.renderRequester == nil {
+	if u.renderer == nil {
 		return
 	}
-	u.renderRequester.SetExplicitRenderingMode(fpsMode == FPSModeVsyncOffMinimum)
+	u.renderer.SetExplicitRenderingMode(fpsMode == FPSModeVsyncOffMinimum)
 }
 
 func (u *UserInterface) readInputState(inputState *InputState) {
@@ -297,23 +306,24 @@ func (u *UserInterface) Monitor() *Monitor {
 func (u *UserInterface) UpdateInput(keys map[Key]struct{}, runes []rune, touches []TouchForInput) {
 	u.updateInputStateFromOutside(keys, runes, touches)
 	if FPSModeType(u.fpsMode.Load()) == FPSModeVsyncOffMinimum {
-		u.renderRequester.RequestRenderIfNeeded()
+		u.renderer.RequestRenderIfNeeded()
 	}
 }
 
-type RenderRequester interface {
+type Renderer interface {
 	SetExplicitRenderingMode(explicitRendering bool)
+	SetStrictContextRestoration(strictContextRestoration bool)
 	RequestRenderIfNeeded()
 }
 
-func (u *UserInterface) SetRenderRequester(renderRequester RenderRequester) {
-	u.renderRequester = renderRequester
+func (u *UserInterface) SetRenderer(renderer Renderer) {
+	u.renderer = renderer
 	u.updateExplicitRenderingModeIfNeeded(FPSModeType(u.fpsMode.Load()))
 }
 
 func (u *UserInterface) ScheduleFrame() {
-	if u.renderRequester != nil && FPSModeType(u.fpsMode.Load()) == FPSModeVsyncOffMinimum {
-		u.renderRequester.RequestRenderIfNeeded()
+	if u.renderer != nil && FPSModeType(u.fpsMode.Load()) == FPSModeVsyncOffMinimum {
+		u.renderer.RequestRenderIfNeeded()
 	}
 }
 

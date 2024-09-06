@@ -297,6 +297,24 @@ type RunGameOptions struct {
 
 	// X11InstanceName is an instance name in the ICCCM WM_CLASS window property.
 	X11InstanceName string
+
+	// StrictContextRestration indicates whether the context lost should be restored strictly by Ebitengine or not.
+	//
+	// StrictContextRestration is available only on Android. Otherwise, StrictContextRestration is ignored.
+	//
+	// When StrictContextRestration is false, Ebitengine tries to rely on the OS to restore the context.
+	// In Android, Ebitengien uses `GLSurfaceView`'s `setPreserveEGLContextOnPause(true)`.
+	// This works in most cases, but it is still possible that the context is lost in some minor cases.
+	// With StrictContextRestration false, the activity's launch mode should be singleInstance,
+	// or the activity no longer works correctly after the context is lost.
+	//
+	// When StrictContextRestration is true, Ebitengine tries to restore the context more strictly.
+	// This is useful when you want to restore the context in any case.
+	// However, this might cause a performance issue since Ebitengine tries to keep all the information
+	// to restore the context.
+	//
+	// The default (zero) value is false.
+	StrictContextRestration bool
 }
 
 // RunGameWithOptions starts the main loop and runs the game with the specified options.
@@ -716,15 +734,16 @@ func toUIRunOptions(options *RunGameOptions) *ui.RunOptions {
 		options.X11InstanceName = defaultX11InstanceName
 	}
 	return &ui.RunOptions{
-		GraphicsLibrary:   ui.GraphicsLibrary(options.GraphicsLibrary),
-		InitUnfocused:     options.InitUnfocused,
-		ScreenTransparent: options.ScreenTransparent,
-		SkipTaskbar:       options.SkipTaskbar,
-		SingleThread:      options.SingleThread,
-		DisableHiDPI:      options.DisableHiDPI,
-		ColorSpace:        graphicsdriver.ColorSpace(options.ColorSpace),
-		X11ClassName:      options.X11ClassName,
-		X11InstanceName:   options.X11InstanceName,
+		GraphicsLibrary:          ui.GraphicsLibrary(options.GraphicsLibrary),
+		InitUnfocused:            options.InitUnfocused,
+		ScreenTransparent:        options.ScreenTransparent,
+		SkipTaskbar:              options.SkipTaskbar,
+		SingleThread:             options.SingleThread,
+		DisableHiDPI:             options.DisableHiDPI,
+		ColorSpace:               graphicsdriver.ColorSpace(options.ColorSpace),
+		X11ClassName:             options.X11ClassName,
+		X11InstanceName:          options.X11InstanceName,
+		StrictContextRestoration: options.StrictContextRestration,
 	}
 }
 

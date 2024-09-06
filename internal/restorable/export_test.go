@@ -20,6 +20,11 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 )
 
+// EnableRestoringForTesting forces to enable restoring for testing.
+func EnableRestoringForTesting() {
+	forceRestoring = true
+}
+
 func ResolveStaleImages(graphicsDriver graphicsdriver.Graphics) error {
 	return resolveStaleImages(graphicsDriver, false)
 }

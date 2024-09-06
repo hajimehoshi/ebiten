@@ -15,17 +15,42 @@
 package restorable
 
 import (
+	"image"
+	"runtime"
+	"sync"
+	"sync/atomic"
+
 	"github.com/hajimehoshi/ebiten/v2/internal/debug"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 )
 
-// forceRestoring reports whether restoring forcely happens or not.
+// forceRestoring reports whether restoring forcibly happens or not.
+// This is used only for testing.
 var forceRestoring = false
+
+// disabled indicates that restoring is disabled or not.
+// Restoring is enabled by default for some platforms like Android for safety.
+// Before SetGame, it is not possible to determine whether restoring is needed or not.
+var disabled atomic.Bool
+
+var disabledOnce sync.Once
+
+// Disable disables restoring.
+func Disable() {
+	disabled.Store(true)
+}
 
 // needsRestoring reports whether restoring process works or not.
 func needsRestoring() bool {
-	return forceRestoring
+	if forceRestoring {
+		return true
+	}
+	// TODO: If Vulkan is introduced, restoring might not be needed.
+	if runtime.GOOS == "android" {
+		return !disabled.Load()
+	}
+	return false
 }
 
 // AlwaysReadPixelsFromGPU reports whether ReadPixels always reads pixels from GPU or not.
@@ -33,16 +58,12 @@ func AlwaysReadPixelsFromGPU() bool {
 	return !needsRestoring()
 }
 
-// EnableRestoringForTesting forces to enable restoring for testing.
-func EnableRestoringForTesting() {
-	forceRestoring = true
-}
-
 // images is a set of Image objects.
 type images struct {
-	images     map[*Image]struct{}
-	shaders    map[*Shader]struct{}
-	lastTarget *Image
+	images      map[*Image]struct{}
+	shaders     map[*Shader]struct{}
+	lastTarget  *Image
+	contextLost atomic.Bool
 }
 
 // theImages represents the images for the current process.
@@ -66,6 +87,15 @@ func SwapBuffers(graphicsDriver graphicsdriver.Graphics) error {
 // resolveStaleImages flushes the queued draw commands and resolves all stale images.
 // If endFrame is true, the current screen might be used to present when flushing the commands.
 func resolveStaleImages(graphicsDriver graphicsdriver.Graphics, endFrame bool) error {
+	// When Disable is called, all the images data should be evicted once.
+	if disabled.Load() {
+		disabledOnce.Do(func() {
+			for img := range theImages.images {
+				img.makeStale(image.Rectangle{})
+			}
+		})
+	}
+
 	if err := graphicscommand.FlushCommands(graphicsDriver, endFrame); err != nil {
 		return err
 	}
@@ -83,14 +113,8 @@ func RestoreIfNeeded(graphicsDriver graphicsdriver.Graphics) error {
 		return nil
 	}
 
-	if !forceRestoring {
-		var r bool
-
-		// TODO: Detect context lost explicitly on Android.
-
-		if !r {
-			return nil
-		}
+	if !forceRestoring && !theImages.contextLost.Load() {
+		return nil
 	}
 
 	if err := graphicscommand.ResetGraphicsDriverState(graphicsDriver); err != nil {
@@ -243,6 +267,8 @@ func (i *images) restore(graphicsDriver graphicsdriver.Graphics) error {
 		}
 	}
 
+	i.contextLost.Store(false)
+
 	return nil
 }
 
@@ -257,4 +283,9 @@ func InitializeGraphicsDriverState(graphicsDriver graphicsdriver.Graphics) error
 // MaxImageSize returns the maximum size of an image.
 func MaxImageSize(graphicsDriver graphicsdriver.Graphics) int {
 	return graphicscommand.MaxImageSize(graphicsDriver)
+}
+
+// OnContextLost is called when the context lost is detected in an explicit way.
+func OnContextLost() {
+	theImages.contextLost.Store(true)
 }

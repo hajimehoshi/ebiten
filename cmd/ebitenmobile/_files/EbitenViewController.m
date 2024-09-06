@@ -20,7 +20,7 @@
 
 #import "Ebitenmobileview.objc.h"
 
-@interface {{.PrefixUpper}}EbitenViewController : UIViewController<EbitenmobileviewRenderRequester, EbitenmobileviewSetGameNotifier>
+@interface {{.PrefixUpper}}EbitenViewController : UIViewController<EbitenmobileviewRenderer, EbitenmobileviewSetGameNotifier>
 @end
 
 @implementation {{.PrefixUpper}}EbitenViewController {
@@ -149,7 +149,7 @@
 
   displayLink_ = [CADisplayLink displayLinkWithTarget:self selector:@selector(drawFrame)];
   [displayLink_ addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSDefaultRunLoopMode];
-  EbitenmobileviewSetRenderRequester(self);
+  EbitenmobileviewSetRenderer(self);
 
   // Run the loop. This will never return.
   [[NSRunLoop currentRunLoop] run];
@@ -362,6 +362,10 @@
   if (err != nil) {
     [self onErrorOnGameUpdate:err];
   }
+}
+
+- (void)setStrictContextRestoration:(BOOL)strictContextRestoration {
+  // Do nothing.
 }
 
 - (void)setExplicitRenderingMode:(BOOL)explicitRendering {

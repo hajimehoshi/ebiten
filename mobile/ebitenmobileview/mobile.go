@@ -30,6 +30,7 @@ import (
 	"sync"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/internal/restorable"
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
@@ -112,16 +113,20 @@ func Resume() error {
 	return ui.Get().SetForeground(true)
 }
 
+func OnContextLost() {
+	restorable.OnContextLost()
+}
+
 func DeviceScale() float64 {
 	return ui.Get().Monitor().DeviceScaleFactor()
 }
 
-type RenderRequester interface {
-	ui.RenderRequester
+type Renderer interface {
+	ui.Renderer
 }
 
-func SetRenderRequester(renderRequester RenderRequester) {
-	ui.Get().SetRenderRequester(renderRequester)
+func SetRenderer(renderer Renderer) {
+	ui.Get().SetRenderer(renderer)
 }
 
 func SetSetGameNotifier(setGameNotifier SetGameNotifier) {
