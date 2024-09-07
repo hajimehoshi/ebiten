@@ -93,6 +93,8 @@ func (c *drawTrianglesCommand) String() string {
 	dst := fmt.Sprintf("%d", c.dst.id)
 	if c.dst.screen {
 		dst += " (screen)"
+	} else if c.dst.attribute != "" {
+		dst += " (" + c.dst.attribute + ")"
 	}
 
 	var srcstrs [graphics.ShaderSrcImageCount]string
@@ -104,6 +106,8 @@ func (c *drawTrianglesCommand) String() string {
 		srcstrs[i] = fmt.Sprintf("%d", src.id)
 		if src.screen {
 			srcstrs[i] += " (screen)"
+		} else if src.attribute != "" {
+			srcstrs[i] += " (" + src.attribute + ")"
 		}
 	}
 
@@ -335,14 +339,19 @@ func (c *disposeShaderCommand) NeedsSync() bool {
 
 // newImageCommand represents a command to create an empty image with given width and height.
 type newImageCommand struct {
-	result *Image
-	width  int
-	height int
-	screen bool
+	result    *Image
+	width     int
+	height    int
+	screen    bool
+	attribute string
 }
 
 func (c *newImageCommand) String() string {
-	return fmt.Sprintf("new-image: result: %d, width: %d, height: %d, screen: %t", c.result.id, c.width, c.height, c.screen)
+	str := fmt.Sprintf("new-image: result: %d, width: %d, height: %d, screen: %t", c.result.id, c.width, c.height, c.screen)
+	if c.attribute != "" {
+		str += ", attribute: " + c.attribute
+	}
+	return str
 }
 
 // Exec executes a newImageCommand.

@@ -50,8 +50,8 @@ func quadVertices(w, h float32) []float32 {
 
 func TestClear(t *testing.T) {
 	const w, h = 1024, 1024
-	src := graphicscommand.NewImage(w/2, h/2, false)
-	dst := graphicscommand.NewImage(w, h, false)
+	src := graphicscommand.NewImage(w/2, h/2, false, "")
+	dst := graphicscommand.NewImage(w, h, false, "")
 
 	vs := quadVertices(w/2, h/2)
 	is := graphics.QuadIndices()
@@ -81,9 +81,9 @@ func TestClear(t *testing.T) {
 
 func TestWritePixelsPartAfterDrawTriangles(t *testing.T) {
 	const w, h = 32, 32
-	clr := graphicscommand.NewImage(w, h, false)
-	src := graphicscommand.NewImage(w/2, h/2, false)
-	dst := graphicscommand.NewImage(w, h, false)
+	clr := graphicscommand.NewImage(w, h, false, "")
+	src := graphicscommand.NewImage(w/2, h/2, false, "")
+	dst := graphicscommand.NewImage(w, h, false, "")
 	vs := quadVertices(w/2, h/2)
 	is := graphics.QuadIndices()
 	dr := image.Rect(0, 0, w, h)
@@ -101,8 +101,8 @@ func TestWritePixelsPartAfterDrawTriangles(t *testing.T) {
 
 func TestShader(t *testing.T) {
 	const w, h = 16, 16
-	clr := graphicscommand.NewImage(w, h, false)
-	dst := graphicscommand.NewImage(w, h, false)
+	clr := graphicscommand.NewImage(w, h, false, "")
+	dst := graphicscommand.NewImage(w, h, false, "")
 	vs := quadVertices(w, h)
 	is := graphics.QuadIndices()
 	dr := image.Rect(0, 0, w, h)
@@ -136,7 +136,7 @@ func TestShader(t *testing.T) {
 // Issue #3036
 func TestSuccessiveWritePixels(t *testing.T) {
 	const w, h = 32, 32
-	dst := graphicscommand.NewImage(w, h, false)
+	dst := graphicscommand.NewImage(w, h, false, "")
 
 	dst.WritePixels(graphics.NewManagedBytes(4, func(bs []byte) {
 		for i := range bs {

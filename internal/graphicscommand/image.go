@@ -37,6 +37,9 @@ type Image struct {
 	internalHeight int
 	screen         bool
 
+	// attribute is used only for logs.
+	attribute string
+
 	// id is an identifier for the image. This is used only when dumping the information.
 	//
 	// This is duplicated with graphicsdriver.Image's ID, but this id is still necessary because this image might not
@@ -57,18 +60,20 @@ func genNextImageID() int {
 // NewImage returns a new image.
 //
 // Note that the image is not initialized yet.
-func NewImage(width, height int, screenFramebuffer bool) *Image {
+func NewImage(width, height int, screenFramebuffer bool, attribute string) *Image {
 	i := &Image{
-		width:  width,
-		height: height,
-		screen: screenFramebuffer,
-		id:     genNextImageID(),
+		width:     width,
+		height:    height,
+		screen:    screenFramebuffer,
+		id:        genNextImageID(),
+		attribute: attribute,
 	}
 	c := &newImageCommand{
-		result: i,
-		width:  width,
-		height: height,
-		screen: screenFramebuffer,
+		result:    i,
+		width:     width,
+		height:    height,
+		screen:    screenFramebuffer,
+		attribute: attribute,
 	}
 	theCommandQueueManager.enqueueCommand(c)
 	return i

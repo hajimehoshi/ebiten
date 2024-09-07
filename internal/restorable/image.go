@@ -156,8 +156,13 @@ func NewImage(width, height int, imageType ImageType) *Image {
 		panic("restorable: graphics driver must be ready at NewImage but not")
 	}
 
+	var attribute string
+	switch imageType {
+	case ImageTypeVolatile:
+		attribute = "volatile"
+	}
 	i := &Image{
-		image:     graphicscommand.NewImage(width, height, imageType == ImageTypeScreen),
+		image:     graphicscommand.NewImage(width, height, imageType == ImageTypeScreen, attribute),
 		width:     width,
 		height:    height,
 		imageType: imageType,
@@ -566,7 +571,7 @@ func (i *Image) restore(graphicsDriver graphicsdriver.Graphics) error {
 	case ImageTypeScreen:
 		// The screen image should also be recreated because framebuffer might
 		// be changed.
-		i.image = graphicscommand.NewImage(w, h, true)
+		i.image = graphicscommand.NewImage(w, h, true, "")
 		i.basePixels.Dispose()
 		i.basePixels = Pixels{}
 		i.clearDrawTrianglesHistory()
@@ -574,7 +579,7 @@ func (i *Image) restore(graphicsDriver graphicsdriver.Graphics) error {
 		i.staleRegions = i.staleRegions[:0]
 		return nil
 	case ImageTypeVolatile:
-		i.image = graphicscommand.NewImage(w, h, false)
+		i.image = graphicscommand.NewImage(w, h, false, "volatile")
 		iw, ih := i.image.InternalSize()
 		clearImage(i.image, image.Rect(0, 0, iw, ih))
 		return nil
@@ -584,7 +589,7 @@ func (i *Image) restore(graphicsDriver graphicsdriver.Graphics) error {
 		panic("restorable: pixels must not be stale when restoring")
 	}
 
-	gimg := graphicscommand.NewImage(w, h, false)
+	gimg := graphicscommand.NewImage(w, h, false, "")
 	// Clear the image explicitly.
 	iw, ih := gimg.InternalSize()
 	clearImage(gimg, image.Rect(0, 0, iw, ih))
