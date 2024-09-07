@@ -156,6 +156,7 @@ const (
 	// A screen image is also unmanaged.
 	ImageTypeScreen
 
+	// ImageTypeVolatile is a volatile image that is cleared every frame.
 	ImageTypeVolatile
 
 	// ImageTypeUnmanaged is an unmanaged image that is not on an atlas.

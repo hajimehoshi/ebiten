@@ -31,7 +31,9 @@ type Shader struct {
 	shader graphicsdriver.Shader
 	ir     *shaderir.Program
 	id     int
-	name   string
+
+	// name is used only for logging.
+	name string
 }
 
 func NewShader(ir *shaderir.Program, name string) *Shader {
