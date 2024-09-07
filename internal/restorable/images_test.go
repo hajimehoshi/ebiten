@@ -27,7 +27,7 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	restorable.EnableRestoringForTesting()
+	restorable.EnableRestorationForTesting()
 	etesting.MainWithRunLoop(m)
 }
 

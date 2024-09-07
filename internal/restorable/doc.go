@@ -16,7 +16,7 @@
 // and restores its pixel data from the commands when context lost happens.
 //
 // When a function like DrawImage or Fill is called, an Image tries to record
-// the information for restoring.
+// the information for restoration.
 //
 // * Context lost
 //
@@ -26,7 +26,7 @@
 // might cause context lost on mobiles.
 // As Ebitengine's image data is on GPU memory, the game can't continue when context lost happens
 // without restoring image information.
-// The package restorable is the package to record information for such restoring.
+// The package restorable is the package to record information for such restoration.
 //
 // * DrawImage
 //

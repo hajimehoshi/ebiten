@@ -28,7 +28,7 @@ type Pixels struct {
 	pixelsRecords *pixelsRecords
 }
 
-// Apply applies the Pixels state to the given image especially for restoring.
+// Apply applies the Pixels state to the given image especially for restoration.
 func (p *Pixels) Apply(img *graphicscommand.Image) {
 	// Pixels doesn't clear the image. This is a caller's responsibility.
 
@@ -230,7 +230,7 @@ func (i *Image) makeStale(rect image.Rectangle) {
 	}
 
 	// Don't have to call makeStale recursively here.
-	// Restoring is done after topological sorting is done.
+	// Restoration is done after topological sorting is done.
 	// If an image depends on another stale image, this means that
 	// the former image can be restored from the latest state of the latter image.
 }
@@ -240,7 +240,7 @@ func (i *Image) ClearPixels(region image.Rectangle) {
 	i.WritePixels(nil, region)
 }
 
-func (i *Image) needsRestoring() bool {
+func (i *Image) needsRestoration() bool {
 	return i.imageType == ImageTypeRegular
 }
 
@@ -267,7 +267,7 @@ func (i *Image) WritePixels(pixels *graphics.ManagedBytes, region image.Rectangl
 	}
 
 	// Even if the image is already stale, call makeStale to extend the stale region.
-	if !needsRestoring() || !i.needsRestoring() || i.stale {
+	if !needsRestoration() || !i.needsRestoration() || i.stale {
 		i.makeStale(region)
 		return
 	}
@@ -330,7 +330,7 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderSrcImageCount]*Image, vertice
 	}
 
 	// Even if the image is already stale, call makeStale to extend the stale region.
-	if srcstale || !needsRestoring() || !i.needsRestoring() || i.stale {
+	if srcstale || !needsRestoration() || !i.needsRestoration() || i.stale {
 		i.makeStale(dstRegion)
 	} else {
 		i.appendDrawTrianglesHistory(srcs, vertices, indices, blend, dstRegion, srcRegions, shader, uniforms, fillRule)
@@ -348,8 +348,8 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderSrcImageCount]*Image, vertice
 
 // appendDrawTrianglesHistory appends a draw-image history item to the image.
 func (i *Image) appendDrawTrianglesHistory(srcs [graphics.ShaderSrcImageCount]*Image, vertices []float32, indices []uint32, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderSrcImageCount]image.Rectangle, shader *Shader, uniforms []uint32, fillRule graphicsdriver.FillRule) {
-	if i.stale || !i.needsRestoring() {
-		panic("restorable: an image must not be stale or need restoring at appendDrawTrianglesHistory")
+	if i.stale || !i.needsRestoration() {
+		panic("restorable: an image must not be stale or need restoration at appendDrawTrianglesHistory")
 	}
 	if AlwaysReadPixelsFromGPU() {
 		panic("restorable: appendDrawTrianglesHistory must not be called when AlwaysReadPixelsFromGPU() returns true")
@@ -498,10 +498,10 @@ func (i *Image) readPixelsFromGPU(graphicsDriver graphicsdriver.Graphics) error 
 
 // resolveStale resolves the image's 'stale' state.
 func (i *Image) resolveStale(graphicsDriver graphicsdriver.Graphics) error {
-	if !needsRestoring() {
+	if !needsRestoration() {
 		return nil
 	}
-	if !i.needsRestoring() {
+	if !i.needsRestoration() {
 		return nil
 	}
 	if !i.stale {

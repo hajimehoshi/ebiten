@@ -25,28 +25,28 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 )
 
-// forceRestoring reports whether restoring forcibly happens or not.
+// forceRestoration reports whether restoration forcibly happens or not.
 // This is used only for testing.
-var forceRestoring = false
+var forceRestoration = false
 
-// disabled indicates that restoring is disabled or not.
-// Restoring is enabled by default for some platforms like Android for safety.
-// Before SetGame, it is not possible to determine whether restoring is needed or not.
+// disabled indicates that restoration is disabled or not.
+// Restoration is enabled by default for some platforms like Android for safety.
+// Before SetGame, it is not possible to determine whether restoration is needed or not.
 var disabled atomic.Bool
 
 var disabledOnce sync.Once
 
-// Disable disables restoring.
+// Disable disables restoration.
 func Disable() {
 	disabled.Store(true)
 }
 
-// needsRestoring reports whether restoring process works or not.
-func needsRestoring() bool {
-	if forceRestoring {
+// needsRestoration reports whether restoration process works or not.
+func needsRestoration() bool {
+	if forceRestoration {
 		return true
 	}
-	// TODO: If Vulkan is introduced, restoring might not be needed.
+	// TODO: If Vulkan is introduced, restoration might not be needed.
 	if runtime.GOOS == "android" {
 		return !disabled.Load()
 	}
@@ -55,7 +55,7 @@ func needsRestoring() bool {
 
 // AlwaysReadPixelsFromGPU reports whether ReadPixels always reads pixels from GPU or not.
 func AlwaysReadPixelsFromGPU() bool {
-	return !needsRestoring()
+	return !needsRestoration()
 }
 
 // images is a set of Image objects.
@@ -99,7 +99,7 @@ func resolveStaleImages(graphicsDriver graphicsdriver.Graphics, endFrame bool) e
 	if err := graphicscommand.FlushCommands(graphicsDriver, endFrame); err != nil {
 		return err
 	}
-	if !needsRestoring() {
+	if !needsRestoration() {
 		return nil
 	}
 	return theImages.resolveStaleImages(graphicsDriver)
@@ -107,13 +107,13 @@ func resolveStaleImages(graphicsDriver graphicsdriver.Graphics, endFrame bool) e
 
 // RestoreIfNeeded restores the images.
 //
-// Restoring means to make all *graphicscommand.Image objects have their textures and framebuffers.
+// Restoration means to make all *graphicscommand.Image objects have their textures and framebuffers.
 func RestoreIfNeeded(graphicsDriver graphicsdriver.Graphics) error {
-	if !needsRestoring() {
+	if !needsRestoration() {
 		return nil
 	}
 
-	if !forceRestoring && !theImages.contextLost.Load() {
+	if !forceRestoration && !theImages.contextLost.Load() {
 		return nil
 	}
 
@@ -195,13 +195,13 @@ func (i *images) makeStaleIfDependingOnShader(shader *Shader) {
 
 // restore restores the images.
 //
-// Restoring means to make all *graphicscommand.Image objects have their textures and framebuffers.
+// Restoration means to make all *graphicscommand.Image objects have their textures and framebuffers.
 func (i *images) restore(graphicsDriver graphicsdriver.Graphics) error {
-	if !needsRestoring() {
-		panic("restorable: restore cannot be called when restoring is disabled")
+	if !needsRestoration() {
+		panic("restorable: restore cannot be called when restoration is disabled")
 	}
 
-	// Dispose all the shaders ahead of restoring. A current shader ID and a new shader ID can be duplicated.
+	// Dispose all the shaders ahead of restoration. A current shader ID and a new shader ID can be duplicated.
 	for s := range i.shaders {
 		s.shader.Dispose()
 		s.shader = nil
@@ -210,7 +210,7 @@ func (i *images) restore(graphicsDriver graphicsdriver.Graphics) error {
 		s.restore()
 	}
 
-	// Dispose all the images ahead of restoring. A current texture ID and a new texture ID can be duplicated.
+	// Dispose all the images ahead of restoration. A current texture ID and a new texture ID can be duplicated.
 	// TODO: Write a test to confirm that ID duplication never happens.
 	for i := range i.images {
 		i.image.Dispose()
