@@ -46,7 +46,7 @@ func newGameForUI(game Game, transparent bool) *gameForUI {
 		transparent: transparent,
 	}
 
-	s, err := NewShader(builtinshader.ScreenShaderSource)
+	s, err := newShader(builtinshader.ScreenShaderSource, "screen")
 	if err != nil {
 		panic(fmt.Sprintf("ebiten: compiling the screen shader failed: %v", err))
 	}

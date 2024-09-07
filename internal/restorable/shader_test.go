@@ -53,7 +53,7 @@ func TestShader(t *testing.T) {
 	img := restorable.NewImage(1, 1, restorable.ImageTypeRegular)
 	defer img.Dispose()
 
-	s := restorable.NewShader(etesting.ShaderProgramFill(0xff, 0, 0, 0xff))
+	s := restorable.NewShader(etesting.ShaderProgramFill(0xff, 0, 0, 0xff), "")
 	dr := image.Rect(0, 0, 1, 1)
 	img.DrawTriangles([graphics.ShaderSrcImageCount]*restorable.Image{}, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, s, nil, graphicsdriver.FillRuleFillAll)
 
@@ -82,7 +82,7 @@ func TestShaderChain(t *testing.T) {
 
 	imgs[0].WritePixels(bytesToManagedBytes([]byte{0xff, 0, 0, 0xff}), image.Rect(0, 0, 1, 1))
 
-	s := restorable.NewShader(etesting.ShaderProgramImages(1))
+	s := restorable.NewShader(etesting.ShaderProgramImages(1), "")
 	for i := 0; i < num-1; i++ {
 		dr := image.Rect(0, 0, 1, 1)
 		imgs[i+1].DrawTriangles([graphics.ShaderSrcImageCount]*restorable.Image{imgs[i]}, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, s, nil, graphicsdriver.FillRuleFillAll)
@@ -115,7 +115,7 @@ func TestShaderMultipleSources(t *testing.T) {
 
 	dst := restorable.NewImage(1, 1, restorable.ImageTypeRegular)
 
-	s := restorable.NewShader(etesting.ShaderProgramImages(3))
+	s := restorable.NewShader(etesting.ShaderProgramImages(3), "")
 	dr := image.Rect(0, 0, 1, 1)
 	dst.DrawTriangles(srcs, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, s, nil, graphicsdriver.FillRuleFillAll)
 
@@ -147,7 +147,7 @@ func TestShaderMultipleSourcesOnOneTexture(t *testing.T) {
 
 	dst := restorable.NewImage(1, 1, restorable.ImageTypeRegular)
 
-	s := restorable.NewShader(etesting.ShaderProgramImages(3))
+	s := restorable.NewShader(etesting.ShaderProgramImages(3), "")
 	dr := image.Rect(0, 0, 1, 1)
 	srcRegions := [graphics.ShaderSrcImageCount]image.Rectangle{
 		image.Rect(0, 0, 1, 1),
@@ -177,7 +177,7 @@ func TestShaderDispose(t *testing.T) {
 	img := restorable.NewImage(1, 1, restorable.ImageTypeRegular)
 	defer img.Dispose()
 
-	s := restorable.NewShader(etesting.ShaderProgramFill(0xff, 0, 0, 0xff))
+	s := restorable.NewShader(etesting.ShaderProgramFill(0xff, 0, 0, 0xff), "")
 	dr := image.Rect(0, 0, 1, 1)
 	img.DrawTriangles([graphics.ShaderSrcImageCount]*restorable.Image{}, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, s, nil, graphicsdriver.FillRuleFillAll)
 

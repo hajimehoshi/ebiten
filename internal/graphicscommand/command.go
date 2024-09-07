@@ -107,7 +107,12 @@ func (c *drawTrianglesCommand) String() string {
 		}
 	}
 
-	return fmt.Sprintf("draw-triangles: dst: %s <- src: [%s], num of dst regions: %d, num of indices: %d, blend: %s, fill rule: %s, shader id: %d", dst, strings.Join(srcstrs[:], ", "), len(c.dstRegions), c.numIndices(), blend, c.fillRule, c.shader.id)
+	shader := fmt.Sprintf("%d", c.shader.id)
+	if c.shader.name != "" {
+		shader += " (" + c.shader.name + ")"
+	}
+
+	return fmt.Sprintf("draw-triangles: dst: %s <- src: [%s], num of dst regions: %d, num of indices: %d, blend: %s, fill rule: %s, shader: %s", dst, strings.Join(srcstrs[:], ", "), len(c.dstRegions), c.numIndices(), blend, c.fillRule, shader)
 }
 
 // Exec executes the drawTrianglesCommand.

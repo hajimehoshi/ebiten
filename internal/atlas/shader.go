@@ -24,12 +24,14 @@ import (
 type Shader struct {
 	ir     *shaderir.Program
 	shader *restorable.Shader
+	name   string
 }
 
-func NewShader(ir *shaderir.Program) *Shader {
+func NewShader(ir *shaderir.Program, name string) *Shader {
 	// A shader is initialized lazily, and the lock is not needed.
 	return &Shader{
-		ir: ir,
+		ir:   ir,
+		name: name,
 	}
 }
 
@@ -45,7 +47,7 @@ func (s *Shader) ensureShader() *restorable.Shader {
 	if s.shader != nil {
 		return s.shader
 	}
-	s.shader = restorable.NewShader(s.ir)
+	s.shader = restorable.NewShader(s.ir, s.name)
 	runtime.SetFinalizer(s, (*Shader).finalize)
 	return s.shader
 }
