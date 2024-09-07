@@ -277,9 +277,7 @@ func (i *Image) WritePixels(pixels *graphics.ManagedBytes, region image.Rectangl
 		panic(fmt.Sprintf("restorable: out of range %v", region))
 	}
 
-	// TODO: Avoid making other images stale if possible. (#514)
-	// For this purpose, images should remember which part of that is used for DrawTriangles.
-	theImages.makeStaleIfDependingOn(i)
+	theImages.makeStaleIfDependingOnAtRegion(i, region)
 
 	if pixels != nil {
 		i.image.WritePixels(pixels, region)
@@ -343,6 +341,9 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderSrcImageCount]*Image, vertice
 	if len(vertices) == 0 {
 		return
 	}
+
+	// makeStaleIfDependingOnAtRegion is not available here.
+	// This might create cyclic dependency.
 	theImages.makeStaleIfDependingOn(i)
 
 	// TODO: Add tests to confirm this logic.
@@ -510,6 +511,17 @@ func (i *Image) makeStaleIfDependingOn(src *Image) {
 	}
 }
 
+// makeStaleIfDependingOnAtRegion makes the image stale if the image depends on src at srcRegion.
+func (i *Image) makeStaleIfDependingOnAtRegion(src *Image, srcRegion image.Rectangle) {
+	if i.stale {
+		return
+	}
+	if i.dependsOnAtRegion(src, srcRegion) {
+		// There is no new region to make stale.
+		i.makeStale(image.Rectangle{})
+	}
+}
+
 // makeStaleIfDependingOnShader makes the image stale if the image depends on shader.
 func (i *Image) makeStaleIfDependingOnShader(shader *Shader) {
 	if i.stale {
@@ -598,6 +610,21 @@ func (i *Image) dependsOn(src *Image) bool {
 				continue
 			}
 			return true
+		}
+	}
+	return false
+}
+
+// dependsOnAtRegion reports whether the image depends on src at srcRegion.
+func (i *Image) dependsOnAtRegion(src *Image, srcRegion image.Rectangle) bool {
+	for _, c := range i.drawTrianglesHistory {
+		for i, img := range c.srcImages {
+			if img != src {
+				continue
+			}
+			if c.srcRegions[i].Overlaps(srcRegion) {
+				return true
+			}
 		}
 	}
 	return false

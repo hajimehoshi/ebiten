@@ -177,6 +177,19 @@ func (i *images) makeStaleIfDependingOn(src *Image) {
 	}
 }
 
+// makeStaleIfDependingOnAtRegion makes all the images stale that depend on src at srcRegion.
+//
+// When src is modified, all images depending on src can't be restored with src at srcRegion.
+// makeStaleIfDependingOnAtRegion is called in such situation.
+func (i *images) makeStaleIfDependingOnAtRegion(src *Image, srcRegion image.Rectangle) {
+	if src == nil {
+		panic("restorable: src must not be nil at makeStaleIfDependingOnAtRegion")
+	}
+	for img := range i.images {
+		img.makeStaleIfDependingOnAtRegion(src, srcRegion)
+	}
+}
+
 // makeStaleIfDependingOn makes all the images stale that depend on shader.
 func (i *images) makeStaleIfDependingOnShader(shader *Shader) {
 	if shader == nil {
