@@ -117,8 +117,7 @@ func DeviceScale() float64 {
 }
 
 type RenderRequester interface {
-	SetExplicitRenderingMode(explicitRendering bool)
-	RequestRenderIfNeeded()
+	ui.RenderRequester
 }
 
 func SetRenderRequester(renderRequester RenderRequester) {
