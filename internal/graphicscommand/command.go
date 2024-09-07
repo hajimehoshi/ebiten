@@ -72,14 +72,23 @@ type drawTrianglesCommand struct {
 }
 
 func (c *drawTrianglesCommand) String() string {
-	// TODO: Improve readability
-	blend := fmt.Sprintf("{src-color: %d, src-alpha: %d, dst-color: %d, dst-alpha: %d, op-color: %d, op-alpha: %d}",
-		c.blend.BlendFactorSourceRGB,
-		c.blend.BlendFactorSourceAlpha,
-		c.blend.BlendFactorDestinationRGB,
-		c.blend.BlendFactorDestinationAlpha,
-		c.blend.BlendOperationRGB,
-		c.blend.BlendOperationAlpha)
+	var blend string
+	switch c.blend {
+	case graphicsdriver.BlendSourceOver:
+		blend = "(source-over)"
+	case graphicsdriver.BlendClear:
+		blend = "(clear)"
+	case graphicsdriver.BlendCopy:
+		blend = "(copy)"
+	default:
+		blend = fmt.Sprintf("{src-rgb: %d, src-alpha: %d, dst-rgb: %d, dst-alpha: %d, op-rgb: %d, op-alpha: %d}",
+			c.blend.BlendFactorSourceRGB,
+			c.blend.BlendFactorSourceAlpha,
+			c.blend.BlendFactorDestinationRGB,
+			c.blend.BlendFactorDestinationAlpha,
+			c.blend.BlendOperationRGB,
+			c.blend.BlendOperationAlpha)
+	}
 
 	dst := fmt.Sprintf("%d", c.dst.id)
 	if c.dst.screen {
