@@ -90,7 +90,7 @@ func resolveStaleImages(graphicsDriver graphicsdriver.Graphics, endFrame bool) e
 	if disabled.Load() {
 		disabledOnce.Do(func() {
 			for img := range theImages.images {
-				img.makeStale(image.Rectangle{})
+				img.makeStale(image.Rect(0, 0, img.width, img.height))
 			}
 		})
 	}
