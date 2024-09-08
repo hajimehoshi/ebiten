@@ -167,7 +167,7 @@ func (i *images) resolveStaleImages(graphicsDriver graphicsdriver.Graphics) erro
 // makeStaleIfDependingOn makes all the images stale that depend on src.
 //
 // When src is modified, all images depending on src can't be restored with src.
-// makeStaleIfDependingOn is called in such situation.src.
+// makeStaleIfDependingOn is called in such situation.
 func (i *images) makeStaleIfDependingOn(src *Image) {
 	if src == nil {
 		panic("restorable: src must not be nil at makeStaleIfDependingOn")
