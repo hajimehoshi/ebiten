@@ -62,7 +62,6 @@ func AlwaysReadPixelsFromGPU() bool {
 type images struct {
 	images      map[*Image]struct{}
 	shaders     map[*Shader]struct{}
-	lastTarget  *Image
 	contextLost atomic.Bool
 }
 
@@ -157,7 +156,6 @@ func (i *images) removeShader(shader *Shader) {
 
 // resolveStaleImages resolves stale images.
 func (i *images) resolveStaleImages(graphicsDriver graphicsdriver.Graphics) error {
-	i.lastTarget = nil
 	for img := range i.images {
 		if err := img.resolveStale(graphicsDriver); err != nil {
 			return err
@@ -174,10 +172,6 @@ func (i *images) makeStaleIfDependingOn(target *Image) {
 	if target == nil {
 		panic("restorable: target must not be nil at makeStaleIfDependingOn")
 	}
-	if i.lastTarget == target {
-		return
-	}
-	i.lastTarget = target
 	for img := range i.images {
 		img.makeStaleIfDependingOn(target)
 	}
