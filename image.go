@@ -278,7 +278,8 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) {
 
 // overwritesDstRegion reports whether the given parameters overwrite the destination region completely.
 func overwritesDstRegion(blend Blend, dstRegion image.Rectangle, geoM GeoM, sx0, sy0, sx1, sy1 int) bool {
-	if blend != BlendCopy {
+	// TODO: More precisely, BlendFactorDestinationRGB, BlendFactorDestinationAlpha, and operations should be checked.
+	if blend != BlendCopy && blend != BlendClear {
 		return false
 	}
 	// Check the result vertices is not a rotated rectangle.
