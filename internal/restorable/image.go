@@ -233,6 +233,10 @@ func (i *Image) makeStale(rect image.Rectangle) {
 		return
 	}
 
+	if !i.needsRestoration() {
+		return
+	}
+
 	origSize := len(i.staleRegions)
 	i.staleRegions = i.appendRegionsForDrawTriangles(i.staleRegions)
 	if !rect.Empty() {
@@ -465,7 +469,7 @@ func (i *Image) readPixelsFromGPUIfNeeded(graphicsDriver graphicsdriver.Graphics
 }
 
 func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte, region image.Rectangle) error {
-	if AlwaysReadPixelsFromGPU() {
+	if AlwaysReadPixelsFromGPU() || !i.needsRestoration() {
 		if err := i.image.ReadPixels(graphicsDriver, []graphicsdriver.PixelsArgs{
 			{
 				Pixels: pixels,
