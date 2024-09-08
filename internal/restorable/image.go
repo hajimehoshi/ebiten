@@ -347,10 +347,25 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderSrcImageCount]*Image, vertice
 	}
 
 	// Even if the image is already stale, call makeStale to extend the stale region.
-	if srcstale || !needsRestoration() || !i.needsRestoration() || i.stale {
+	if srcstale || !needsRestoration() || !i.needsRestoration() {
 		i.makeStale(dstRegion)
-	} else {
-		// TODO: Consider overwritten.
+	} else if i.stale {
+		var overwrite bool
+		if hint == HintOverwriteDstRegion {
+			overwrite = i.areStaleRegionsIncludedIn(dstRegion)
+		}
+		if overwrite {
+			i.basePixels.Clear(dstRegion)
+			i.clearDrawTrianglesHistory()
+			i.stale = false
+			i.staleRegions = i.staleRegions[:0]
+		} else {
+			// Even if the image is already stale, call makeStale to extend the stale region.
+			i.makeStale(dstRegion)
+		}
+	}
+
+	if !i.stale {
 		i.appendDrawTrianglesHistory(srcs, vertices, indices, blend, dstRegion, srcRegions, shader, uniforms, fillRule, hint)
 	}
 
@@ -362,6 +377,18 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderSrcImageCount]*Image, vertice
 		imgs[i] = src.image
 	}
 	i.image.DrawTriangles(imgs, vertices, indices, blend, dstRegion, srcRegions, shader.shader, uniforms, fillRule)
+}
+
+func (i *Image) areStaleRegionsIncludedIn(r image.Rectangle) bool {
+	if !i.stale {
+		return false
+	}
+	for _, sr := range i.staleRegions {
+		if !sr.In(r) {
+			return false
+		}
+	}
+	return true
 }
 
 // appendDrawTrianglesHistory appends a draw-image history item to the image.

@@ -267,7 +267,31 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) {
 		})
 	}
 
-	i.image.DrawTriangles(srcs, vs, is, blend, i.adjustedBounds(), [graphics.ShaderSrcImageCount]image.Rectangle{img.adjustedBounds()}, shader.shader, i.tmpUniforms, graphicsdriver.FillRuleFillAll, canSkipMipmap(geoM, filter), false, restorable.HintNone)
+	dr := i.adjustedBounds()
+	hint := restorable.HintNone
+	if overwritesDstRegion(options.Blend, dr, geoM, sx0, sy0, sx1, sy1) {
+		hint = restorable.HintOverwriteDstRegion
+	}
+
+	i.image.DrawTriangles(srcs, vs, is, blend, dr, [graphics.ShaderSrcImageCount]image.Rectangle{img.adjustedBounds()}, shader.shader, i.tmpUniforms, graphicsdriver.FillRuleFillAll, canSkipMipmap(geoM, filter), false, hint)
+}
+
+// overwritesDstRegion reports whether the given parameters overwrite the destination region completely.
+func overwritesDstRegion(blend Blend, dstRegion image.Rectangle, geoM GeoM, sx0, sy0, sx1, sy1 int) bool {
+	if blend != BlendCopy {
+		return false
+	}
+	// Check the result vertices is not a rotated rectangle.
+	if geoM.b != 0 || geoM.c != 0 {
+		return false
+	}
+	// Check the result vertices completely covers dstRegion.
+	x0, y0 := geoM.Apply(float64(sx0), float64(sy0))
+	x1, y1 := geoM.Apply(float64(sx1), float64(sy1))
+	if float64(dstRegion.Min.X) < x0 || float64(dstRegion.Min.Y) < y0 || float64(dstRegion.Max.X) > x1 || float64(dstRegion.Max.Y) > y1 {
+		return false
+	}
+	return true
 }
 
 // Vertex represents a vertex passed to DrawTriangles.
@@ -856,7 +880,14 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 	i.tmpUniforms = i.tmpUniforms[:0]
 	i.tmpUniforms = shader.appendUniforms(i.tmpUniforms, options.Uniforms)
 
-	i.image.DrawTriangles(imgs, vs, is, blend, i.adjustedBounds(), srcRegions, shader.shader, i.tmpUniforms, graphicsdriver.FillRuleFillAll, true, false, restorable.HintNone)
+	dr := i.adjustedBounds()
+	hint := restorable.HintNone
+	// Do not use srcRegions[0].Dx() and srcRegions[0].Dy() as these might be empty.
+	if overwritesDstRegion(options.Blend, dr, geoM, srcRegions[0].Min.X, srcRegions[0].Min.Y, srcRegions[0].Min.X+width, srcRegions[0].Min.Y+height) {
+		hint = restorable.HintOverwriteDstRegion
+	}
+
+	i.image.DrawTriangles(imgs, vs, is, blend, i.adjustedBounds(), srcRegions, shader.shader, i.tmpUniforms, graphicsdriver.FillRuleFillAll, true, false, hint)
 }
 
 // SubImage returns an image representing the portion of the image p visible through r.
