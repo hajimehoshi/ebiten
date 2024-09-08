@@ -242,9 +242,7 @@ func (i *images) restore(graphicsDriver graphicsdriver.Graphics) error {
 			current[i] = struct{}{}
 		}
 		for e := range edges {
-			if _, ok := current[e.target]; ok {
-				delete(current, e.target)
-			}
+			delete(current, e.target)
 		}
 		for i := range current {
 			delete(images, i)
