@@ -157,6 +157,7 @@ const (
 	ImageTypeScreen
 
 	// ImageTypeVolatile is a volatile image that is cleared every frame.
+	// A volatile image is also unmanaged.
 	ImageTypeVolatile
 
 	// ImageTypeUnmanaged is an unmanaged image that is not on an atlas.
