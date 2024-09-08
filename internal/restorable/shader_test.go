@@ -46,7 +46,8 @@ func clearImage(img *restorable.Image, w, h int) {
 	}
 	is := graphics.QuadIndices()
 	dr := image.Rect(0, 0, w, h)
-	img.DrawTriangles([graphics.ShaderSrcImageCount]*restorable.Image{emptyImage}, vs, is, graphicsdriver.BlendClear, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, restorable.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
+	sr := image.Rect(0, 0, 3, 3)
+	img.DrawTriangles([graphics.ShaderSrcImageCount]*restorable.Image{emptyImage}, vs, is, graphicsdriver.BlendClear, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, restorable.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
 }
 
 func TestShader(t *testing.T) {
@@ -85,7 +86,8 @@ func TestShaderChain(t *testing.T) {
 	s := restorable.NewShader(etesting.ShaderProgramImages(1), "")
 	for i := 0; i < num-1; i++ {
 		dr := image.Rect(0, 0, 1, 1)
-		imgs[i+1].DrawTriangles([graphics.ShaderSrcImageCount]*restorable.Image{imgs[i]}, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, s, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
+		sr := image.Rect(0, 0, 1, 1)
+		imgs[i+1].DrawTriangles([graphics.ShaderSrcImageCount]*restorable.Image{imgs[i]}, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, s, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
 	}
 
 	if err := restorable.ResolveStaleImages(ui.Get().GraphicsDriverForTesting()); err != nil {
@@ -117,7 +119,12 @@ func TestShaderMultipleSources(t *testing.T) {
 
 	s := restorable.NewShader(etesting.ShaderProgramImages(3), "")
 	dr := image.Rect(0, 0, 1, 1)
-	dst.DrawTriangles(srcs, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, s, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
+	srs := [graphics.ShaderSrcImageCount]image.Rectangle{
+		image.Rect(0, 0, 1, 1),
+		image.Rect(0, 0, 1, 1),
+		image.Rect(0, 0, 1, 1),
+	}
+	dst.DrawTriangles(srcs, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), graphicsdriver.BlendCopy, dr, srs, s, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
 
 	// Clear one of the sources after DrawTriangles. dst should not be affected.
 	clearImage(srcs[0], 1, 1)

@@ -183,8 +183,9 @@ func (i *Image) Fill(r, g, b, a float32, region image.Rectangle) {
 	if a == 1 && i.lastBlend == graphicsdriver.BlendSourceOver {
 		blend = graphicsdriver.BlendSourceOver
 	}
+	sr := image.Rect(0, 0, i.ui.whiteImage.width, i.ui.whiteImage.height)
 	// i.lastBlend is updated in DrawTriangles.
-	i.DrawTriangles(srcs, i.tmpVerticesForFill, is, blend, region, [graphics.ShaderSrcImageCount]image.Rectangle{}, NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, true, false, restorable.HintOverwriteDstRegion)
+	i.DrawTriangles(srcs, i.tmpVerticesForFill, is, blend, region, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, true, false, restorable.HintOverwriteDstRegion)
 }
 
 type bigOffscreenImage struct {
@@ -253,7 +254,8 @@ func (i *bigOffscreenImage) drawTriangles(srcs [graphics.ShaderSrcImageCount]*Im
 			1, 1, 1, 1)
 		is := graphics.QuadIndices()
 		dstRegion := image.Rect(0, 0, i.region.Dx()*bigOffscreenScale, i.region.Dy()*bigOffscreenScale)
-		i.image.DrawTriangles(srcs, i.tmpVerticesForCopying, is, graphicsdriver.BlendCopy, dstRegion, [graphics.ShaderSrcImageCount]image.Rectangle{}, NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, true, false, restorable.HintOverwriteDstRegion)
+		srcRegion := i.region
+		i.image.DrawTriangles(srcs, i.tmpVerticesForCopying, is, graphicsdriver.BlendCopy, dstRegion, [graphics.ShaderSrcImageCount]image.Rectangle{srcRegion}, NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, true, false, restorable.HintOverwriteDstRegion)
 	}
 
 	for idx := 0; idx < len(vertices); idx += graphics.VertexFloatCount {
@@ -297,13 +299,14 @@ func (i *bigOffscreenImage) flush() {
 		1, 1, 1, 1)
 	is := graphics.QuadIndices()
 	dstRegion := i.region
+	srcRegion := image.Rect(0, 0, i.region.Dx()*bigOffscreenScale, i.region.Dy()*bigOffscreenScale)
 	blend := graphicsdriver.BlendSourceOver
 	hint := restorable.HintNone
 	if i.blend != graphicsdriver.BlendSourceOver {
 		blend = graphicsdriver.BlendCopy
 		hint = restorable.HintOverwriteDstRegion
 	}
-	i.orig.DrawTriangles(srcs, i.tmpVerticesForFlushing, is, blend, dstRegion, [graphics.ShaderSrcImageCount]image.Rectangle{}, LinearFilterShader, nil, graphicsdriver.FillRuleFillAll, true, false, hint)
+	i.orig.DrawTriangles(srcs, i.tmpVerticesForFlushing, is, blend, dstRegion, [graphics.ShaderSrcImageCount]image.Rectangle{srcRegion}, LinearFilterShader, nil, graphicsdriver.FillRuleFillAll, true, false, hint)
 
 	i.image.clear()
 	i.dirty = false

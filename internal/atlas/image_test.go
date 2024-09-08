@@ -103,7 +103,8 @@ func TestEnsureIsolatedFromSourceBackend(t *testing.T) {
 	vs := quadVertices(size/2, size/2, size/4, size/4, 1)
 	is := graphics.QuadIndices()
 	dr := image.Rect(0, 0, size, size)
-	img4.DrawTriangles([graphics.ShaderSrcImageCount]*atlas.Image{img3}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, atlas.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
+	sr := image.Rect(0, 0, size/2, size/2)
+	img4.DrawTriangles([graphics.ShaderSrcImageCount]*atlas.Image{img3}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, atlas.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
 	if got, want := img4.IsOnSourceBackendForTesting(), false; got != want {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
@@ -111,7 +112,8 @@ func TestEnsureIsolatedFromSourceBackend(t *testing.T) {
 	// img5 is not allocated now, but is allocated at DrawTriangles.
 	vs = quadVertices(0, 0, size/2, size/2, 1)
 	dr = image.Rect(0, 0, size/2, size/2)
-	img3.DrawTriangles([graphics.ShaderSrcImageCount]*atlas.Image{img5}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, atlas.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
+	sr = image.Rect(0, 0, size/2, size/2)
+	img3.DrawTriangles([graphics.ShaderSrcImageCount]*atlas.Image{img5}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, atlas.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
 	if got, want := img3.IsOnSourceBackendForTesting(), false; got != want {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
@@ -145,7 +147,9 @@ func TestEnsureIsolatedFromSourceBackend(t *testing.T) {
 	// Check further drawing doesn't cause panic.
 	// This bug was fixed by 03dcd948.
 	vs = quadVertices(0, 0, size/2, size/2, 1)
-	img4.DrawTriangles([graphics.ShaderSrcImageCount]*atlas.Image{img3}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, atlas.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
+	dr = image.Rect(0, 0, size, size)
+	sr = image.Rect(0, 0, size/2, size/2)
+	img4.DrawTriangles([graphics.ShaderSrcImageCount]*atlas.Image{img3}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, atlas.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
 }
 
 func TestReputOnSourceBackend(t *testing.T) {
@@ -186,10 +190,11 @@ func TestReputOnSourceBackend(t *testing.T) {
 	// Use img1 as a render target.
 	is := graphics.QuadIndices()
 	dr := image.Rect(0, 0, size, size)
+	sr := image.Rect(0, 0, size, size)
 	// Render onto img1. The count should not matter.
 	for i := 0; i < 5; i++ {
 		vs := quadVertices(size, size, 0, 0, 1)
-		img1.DrawTriangles([graphics.ShaderSrcImageCount]*atlas.Image{img2}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, atlas.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
+		img1.DrawTriangles([graphics.ShaderSrcImageCount]*atlas.Image{img2}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, atlas.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
 		if got, want := img1.IsOnSourceBackendForTesting(), false; got != want {
 			t.Errorf("got: %v, want: %v", got, want)
 		}
@@ -201,7 +206,7 @@ func TestReputOnSourceBackend(t *testing.T) {
 	for i := 0; i < atlas.BaseCountToPutOnSourceBackend*2; i++ {
 		atlas.PutImagesOnSourceBackendForTesting()
 		vs := quadVertices(size, size, 0, 0, 1)
-		img0.DrawTriangles([graphics.ShaderSrcImageCount]*atlas.Image{img1}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, atlas.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
+		img0.DrawTriangles([graphics.ShaderSrcImageCount]*atlas.Image{img1}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, atlas.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
 		if got, want := img1.IsOnSourceBackendForTesting(), false; got != want {
 			t.Errorf("got: %v, want: %v", got, want)
 		}
@@ -209,7 +214,7 @@ func TestReputOnSourceBackend(t *testing.T) {
 	// Finally, img1 is on a source backend.
 	atlas.PutImagesOnSourceBackendForTesting()
 	vs := quadVertices(size, size, 0, 0, 1)
-	img0.DrawTriangles([graphics.ShaderSrcImageCount]*atlas.Image{img1}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, atlas.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
+	img0.DrawTriangles([graphics.ShaderSrcImageCount]*atlas.Image{img1}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, atlas.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
 	if got, want := img1.IsOnSourceBackendForTesting(), true; got != want {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
@@ -238,7 +243,7 @@ func TestReputOnSourceBackend(t *testing.T) {
 	}
 
 	vs = quadVertices(size, size, 0, 0, 1)
-	img0.DrawTriangles([graphics.ShaderSrcImageCount]*atlas.Image{img1}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, atlas.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
+	img0.DrawTriangles([graphics.ShaderSrcImageCount]*atlas.Image{img1}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, atlas.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
 	if got, want := img1.IsOnSourceBackendForTesting(), true; got != want {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
@@ -268,7 +273,7 @@ func TestReputOnSourceBackend(t *testing.T) {
 	// Use img1 as a render target again. The count should not matter.
 	for i := 0; i < 5; i++ {
 		vs := quadVertices(size, size, 0, 0, 1)
-		img1.DrawTriangles([graphics.ShaderSrcImageCount]*atlas.Image{img2}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, atlas.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
+		img1.DrawTriangles([graphics.ShaderSrcImageCount]*atlas.Image{img2}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, atlas.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
 		if got, want := img1.IsOnSourceBackendForTesting(), false; got != want {
 			t.Errorf("got: %v, want: %v", got, want)
 		}
@@ -280,7 +285,7 @@ func TestReputOnSourceBackend(t *testing.T) {
 		atlas.PutImagesOnSourceBackendForTesting()
 		img1.WritePixels(make([]byte, 4*size*size), image.Rect(0, 0, size, size))
 		vs := quadVertices(size, size, 0, 0, 1)
-		img0.DrawTriangles([graphics.ShaderSrcImageCount]*atlas.Image{img1}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, atlas.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
+		img0.DrawTriangles([graphics.ShaderSrcImageCount]*atlas.Image{img1}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, atlas.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
 		if got, want := img1.IsOnSourceBackendForTesting(), false; got != want {
 			t.Errorf("got: %v, want: %v", got, want)
 		}
@@ -289,7 +294,7 @@ func TestReputOnSourceBackend(t *testing.T) {
 
 	// img1 is not on an atlas due to WritePixels.
 	vs = quadVertices(size, size, 0, 0, 1)
-	img0.DrawTriangles([graphics.ShaderSrcImageCount]*atlas.Image{img1}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, atlas.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
+	img0.DrawTriangles([graphics.ShaderSrcImageCount]*atlas.Image{img1}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, atlas.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
 	if got, want := img1.IsOnSourceBackendForTesting(), false; got != want {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
@@ -298,7 +303,7 @@ func TestReputOnSourceBackend(t *testing.T) {
 	for i := 0; i < atlas.BaseCountToPutOnSourceBackend*2; i++ {
 		atlas.PutImagesOnSourceBackendForTesting()
 		vs := quadVertices(size, size, 0, 0, 1)
-		img0.DrawTriangles([graphics.ShaderSrcImageCount]*atlas.Image{img3}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, atlas.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
+		img0.DrawTriangles([graphics.ShaderSrcImageCount]*atlas.Image{img3}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, atlas.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
 		if got, want := img3.IsOnSourceBackendForTesting(), false; got != want {
 			t.Errorf("got: %v, want: %v", got, want)
 		}
@@ -401,7 +406,8 @@ func TestWritePixelsAfterDrawTriangles(t *testing.T) {
 	vs := quadVertices(w, h, 0, 0, 1)
 	is := graphics.QuadIndices()
 	dr := image.Rect(0, 0, w, h)
-	dst.DrawTriangles([graphics.ShaderSrcImageCount]*atlas.Image{src}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, atlas.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
+	sr := image.Rect(0, 0, w, h)
+	dst.DrawTriangles([graphics.ShaderSrcImageCount]*atlas.Image{src}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, atlas.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
 	dst.WritePixels(pix, image.Rect(0, 0, w, h))
 
 	pix = make([]byte, 4*w*h)
@@ -448,7 +454,8 @@ func TestSmallImages(t *testing.T) {
 	vs := quadVertices(w, h, 0, 0, 1)
 	is := graphics.QuadIndices()
 	dr := image.Rect(0, 0, w, h)
-	dst.DrawTriangles([graphics.ShaderSrcImageCount]*atlas.Image{src}, vs, is, graphicsdriver.BlendSourceOver, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, atlas.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
+	sr := image.Rect(0, 0, w, h)
+	dst.DrawTriangles([graphics.ShaderSrcImageCount]*atlas.Image{src}, vs, is, graphicsdriver.BlendSourceOver, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, atlas.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
 
 	pix = make([]byte, 4*w*h)
 	ok, err := dst.ReadPixels(ui.Get().GraphicsDriverForTesting(), pix, image.Rect(0, 0, w, h))
@@ -495,7 +502,8 @@ func TestLongImages(t *testing.T) {
 	vs := quadVertices(w, h, 0, 0, scale)
 	is := graphics.QuadIndices()
 	dr := image.Rect(0, 0, dstW, dstH)
-	dst.DrawTriangles([graphics.ShaderSrcImageCount]*atlas.Image{src}, vs, is, graphicsdriver.BlendSourceOver, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, atlas.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
+	sr := image.Rect(0, 0, w, h)
+	dst.DrawTriangles([graphics.ShaderSrcImageCount]*atlas.Image{src}, vs, is, graphicsdriver.BlendSourceOver, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, atlas.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
 
 	pix = make([]byte, 4*dstW*dstH)
 	ok, err := dst.ReadPixels(ui.Get().GraphicsDriverForTesting(), pix, image.Rect(0, 0, dstW, dstH))
@@ -611,7 +619,8 @@ func TestDeallocatedAndReputOnSourceBackend(t *testing.T) {
 	vs := quadVertices(size, size, 0, 0, 1)
 	is := graphics.QuadIndices()
 	dr := image.Rect(0, 0, size, size)
-	src.DrawTriangles([graphics.ShaderSrcImageCount]*atlas.Image{src2}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, atlas.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
+	sr := image.Rect(0, 0, size, size)
+	src.DrawTriangles([graphics.ShaderSrcImageCount]*atlas.Image{src2}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, atlas.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
 	if got, want := src.IsOnSourceBackendForTesting(), false; got != want {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
@@ -620,7 +629,7 @@ func TestDeallocatedAndReputOnSourceBackend(t *testing.T) {
 	for i := 0; i < atlas.BaseCountToPutOnSourceBackend/2; i++ {
 		atlas.PutImagesOnSourceBackendForTesting()
 		vs := quadVertices(size, size, 0, 0, 1)
-		dst.DrawTriangles([graphics.ShaderSrcImageCount]*atlas.Image{src}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, atlas.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
+		dst.DrawTriangles([graphics.ShaderSrcImageCount]*atlas.Image{src}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, atlas.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
 		if got, want := src.IsOnSourceBackendForTesting(), false; got != want {
 			t.Errorf("got: %v, want: %v", got, want)
 		}
@@ -648,13 +657,14 @@ func TestImageIsNotReputOnSourceBackendWithoutUsingAsSource(t *testing.T) {
 	vs := quadVertices(size, size, 0, 0, 1)
 	is := graphics.QuadIndices()
 	dr := image.Rect(0, 0, size, size)
+	sr := image.Rect(0, 0, size, size)
 
 	// Use src2 as a rendering target, and make src2 on a destination backend.
 	//
 	// Call DrawTriangles multiple times.
 	// The number of DrawTriangles doesn't matter as long as these are called in one frame.
 	for i := 0; i < 2; i++ {
-		src2.DrawTriangles([graphics.ShaderSrcImageCount]*atlas.Image{src}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, atlas.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
+		src2.DrawTriangles([graphics.ShaderSrcImageCount]*atlas.Image{src}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, atlas.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
 	}
 	if got, want := src2.IsOnSourceBackendForTesting(), false; got != want {
 		t.Errorf("got: %v, want: %v", got, want)
@@ -673,7 +683,7 @@ func TestImageIsNotReputOnSourceBackendWithoutUsingAsSource(t *testing.T) {
 	for i := 0; i < atlas.BaseCountToPutOnSourceBackend; i++ {
 		atlas.PutImagesOnSourceBackendForTesting()
 		vs := quadVertices(size, size, 0, 0, 1)
-		dst.DrawTriangles([graphics.ShaderSrcImageCount]*atlas.Image{src2}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, atlas.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
+		dst.DrawTriangles([graphics.ShaderSrcImageCount]*atlas.Image{src2}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, atlas.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
 		if got, want := src2.IsOnSourceBackendForTesting(), false; got != want {
 			t.Errorf("got: %v, want: %v", got, want)
 		}
@@ -796,17 +806,18 @@ func TestDestinationCountOverflow(t *testing.T) {
 	vs := quadVertices(w, h, 0, 0, 1)
 	is := graphics.QuadIndices()
 	dr := image.Rect(0, 0, w, h)
+	sr := image.Rect(0, 0, w, h)
 
 	// Use dst0 as a destination for a while.
 	for i := 0; i < 31; i++ {
-		dst0.DrawTriangles([graphics.ShaderSrcImageCount]*atlas.Image{src}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, atlas.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
+		dst0.DrawTriangles([graphics.ShaderSrcImageCount]*atlas.Image{src}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, atlas.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
 		atlas.PutImagesOnSourceBackendForTesting()
 	}
 
 	// Use dst0 as a source for a while.
 	// As dst0 is used as a destination too many times (31 is a maximum), dst0's backend should never be a source backend.
 	for i := 0; i < 100; i++ {
-		dst1.DrawTriangles([graphics.ShaderSrcImageCount]*atlas.Image{dst0}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, atlas.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
+		dst1.DrawTriangles([graphics.ShaderSrcImageCount]*atlas.Image{dst0}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, atlas.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
 		atlas.PutImagesOnSourceBackendForTesting()
 		if dst0.IsOnSourceBackendForTesting() {
 			t.Errorf("dst0 cannot be on a source backend: %d", i)
@@ -831,8 +842,9 @@ func TestIteratingImagesToPutOnSourceBackend(t *testing.T) {
 	vs := quadVertices(w, h, 0, 0, 1)
 	is := graphics.QuadIndices()
 	dr := image.Rect(0, 0, w, h)
+	sr := image.Rect(0, 0, w, h)
 	for _, img := range srcs {
-		img.DrawTriangles([graphics.ShaderSrcImageCount]*atlas.Image{src}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, atlas.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
+		img.DrawTriangles([graphics.ShaderSrcImageCount]*atlas.Image{src}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, atlas.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
 	}
 	atlas.PutImagesOnSourceBackendForTesting()
 
@@ -840,7 +852,7 @@ func TestIteratingImagesToPutOnSourceBackend(t *testing.T) {
 	// Check iterating the registered image works correctly.
 	for i := 0; i < 100; i++ {
 		for _, src := range srcs {
-			dst.DrawTriangles([graphics.ShaderSrcImageCount]*atlas.Image{src}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, atlas.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
+			dst.DrawTriangles([graphics.ShaderSrcImageCount]*atlas.Image{src}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, atlas.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
 		}
 		atlas.PutImagesOnSourceBackendForTesting()
 	}
@@ -888,7 +900,8 @@ func TestDallocateUnmanagedImageBackends(t *testing.T) {
 	vs := quadVertices(w, h, 0, 0, 1)
 	is := graphics.QuadIndices()
 	dr := image.Rect(0, 0, w, h)
-	img0.DrawTriangles([graphics.ShaderSrcImageCount]*atlas.Image{img1}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, atlas.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
+	sr := image.Rect(0, 0, w, h)
+	img0.DrawTriangles([graphics.ShaderSrcImageCount]*atlas.Image{img1}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, atlas.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
 
 	// Get the difference of the number of backends before and after the images are deallocated.
 	c := atlas.BackendCountForTesting()

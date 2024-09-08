@@ -56,7 +56,8 @@ func TestClear(t *testing.T) {
 	vs := quadVertices(w/2, h/2)
 	is := graphics.QuadIndices()
 	dr := image.Rect(0, 0, w, h)
-	dst.DrawTriangles([graphics.ShaderSrcImageCount]*graphicscommand.Image{src}, vs, is, graphicsdriver.BlendClear, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, nearestFilterShader, nil, graphicsdriver.FillRuleFillAll)
+	sr := image.Rect(0, 0, w/2, h/2)
+	dst.DrawTriangles([graphics.ShaderSrcImageCount]*graphicscommand.Image{src}, vs, is, graphicsdriver.BlendClear, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, nearestFilterShader, nil, graphicsdriver.FillRuleFillAll)
 
 	pix := make([]byte, 4*w*h)
 	if err := dst.ReadPixels(ui.Get().GraphicsDriverForTesting(), []graphicsdriver.PixelsArgs{
@@ -87,8 +88,10 @@ func TestWritePixelsPartAfterDrawTriangles(t *testing.T) {
 	vs := quadVertices(w/2, h/2)
 	is := graphics.QuadIndices()
 	dr := image.Rect(0, 0, w, h)
-	dst.DrawTriangles([graphics.ShaderSrcImageCount]*graphicscommand.Image{clr}, vs, is, graphicsdriver.BlendClear, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, nearestFilterShader, nil, graphicsdriver.FillRuleFillAll)
-	dst.DrawTriangles([graphics.ShaderSrcImageCount]*graphicscommand.Image{src}, vs, is, graphicsdriver.BlendSourceOver, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, nearestFilterShader, nil, graphicsdriver.FillRuleFillAll)
+	sr0 := image.Rect(0, 0, w, h)
+	sr1 := image.Rect(0, 0, w/2, h/2)
+	dst.DrawTriangles([graphics.ShaderSrcImageCount]*graphicscommand.Image{clr}, vs, is, graphicsdriver.BlendClear, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr0}, nearestFilterShader, nil, graphicsdriver.FillRuleFillAll)
+	dst.DrawTriangles([graphics.ShaderSrcImageCount]*graphicscommand.Image{src}, vs, is, graphicsdriver.BlendSourceOver, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr1}, nearestFilterShader, nil, graphicsdriver.FillRuleFillAll)
 	bs := graphics.NewManagedBytes(4, func(bs []byte) {
 		for i := range bs {
 			bs[i] = 0
@@ -106,7 +109,8 @@ func TestShader(t *testing.T) {
 	vs := quadVertices(w, h)
 	is := graphics.QuadIndices()
 	dr := image.Rect(0, 0, w, h)
-	dst.DrawTriangles([graphics.ShaderSrcImageCount]*graphicscommand.Image{clr}, vs, is, graphicsdriver.BlendClear, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, nearestFilterShader, nil, graphicsdriver.FillRuleFillAll)
+	sr := image.Rect(0, 0, w, h)
+	dst.DrawTriangles([graphics.ShaderSrcImageCount]*graphicscommand.Image{clr}, vs, is, graphicsdriver.BlendClear, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, nearestFilterShader, nil, graphicsdriver.FillRuleFillAll)
 
 	g := ui.Get().GraphicsDriverForTesting()
 	s := graphicscommand.NewShader(etesting.ShaderProgramFill(0xff, 0, 0, 0xff), "")
