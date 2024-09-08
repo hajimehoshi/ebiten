@@ -283,8 +283,7 @@ func (i *Image) WritePixels(pixels *graphics.ManagedBytes, region image.Rectangl
 		clearImage(i.image, region)
 	}
 
-	// Even if the image is already stale, call makeStale to extend the stale region.
-	if !needsRestoration() || !i.needsRestoration() || i.stale {
+	if !needsRestoration() || !i.needsRestoration() {
 		i.makeStale(region)
 		return
 	}
@@ -299,6 +298,12 @@ func (i *Image) WritePixels(pixels *graphics.ManagedBytes, region image.Rectangl
 		i.clearDrawTrianglesHistory()
 		i.stale = false
 		i.staleRegions = i.staleRegions[:0]
+		return
+	}
+
+	if i.stale {
+		// Even if the image is already stale, call makeStale to extend the stale region.
+		i.makeStale(region)
 		return
 	}
 
