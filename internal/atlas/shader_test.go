@@ -23,6 +23,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
+	"github.com/hajimehoshi/ebiten/v2/internal/restorable"
 	etesting "github.com/hajimehoshi/ebiten/v2/internal/testing"
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
@@ -37,12 +38,12 @@ func TestShaderFillTwice(t *testing.T) {
 	dr := image.Rect(0, 0, w, h)
 	g := ui.Get().GraphicsDriverForTesting()
 	s0 := atlas.NewShader(etesting.ShaderProgramFill(0xff, 0xff, 0xff, 0xff), "")
-	dst.DrawTriangles([graphics.ShaderSrcImageCount]*atlas.Image{}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, s0, nil, graphicsdriver.FillRuleFillAll)
+	dst.DrawTriangles([graphics.ShaderSrcImageCount]*atlas.Image{}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, s0, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
 
 	// Vertices must be recreated (#1755)
 	vs = quadVertices(w, h, 0, 0, 1)
 	s1 := atlas.NewShader(etesting.ShaderProgramFill(0x80, 0x80, 0x80, 0xff), "")
-	dst.DrawTriangles([graphics.ShaderSrcImageCount]*atlas.Image{}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, s1, nil, graphicsdriver.FillRuleFillAll)
+	dst.DrawTriangles([graphics.ShaderSrcImageCount]*atlas.Image{}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, s1, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
 
 	pix := make([]byte, 4*w*h)
 	ok, err := dst.ReadPixels(g, pix, image.Rect(0, 0, w, h))
@@ -69,11 +70,11 @@ func TestImageDrawTwice(t *testing.T) {
 	vs := quadVertices(w, h, 0, 0, 1)
 	is := graphics.QuadIndices()
 	dr := image.Rect(0, 0, w, h)
-	dst.DrawTriangles([graphics.ShaderSrcImageCount]*atlas.Image{src0}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, atlas.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll)
+	dst.DrawTriangles([graphics.ShaderSrcImageCount]*atlas.Image{src0}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, atlas.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
 
 	// Vertices must be recreated (#1755)
 	vs = quadVertices(w, h, 0, 0, 1)
-	dst.DrawTriangles([graphics.ShaderSrcImageCount]*atlas.Image{src1}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, atlas.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll)
+	dst.DrawTriangles([graphics.ShaderSrcImageCount]*atlas.Image{src1}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, atlas.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
 
 	pix := make([]byte, 4*w*h)
 	ok, err := dst.ReadPixels(ui.Get().GraphicsDriverForTesting(), pix, image.Rect(0, 0, w, h))
@@ -97,7 +98,7 @@ func TestGCShader(t *testing.T) {
 	vs := quadVertices(w, h, 0, 0, 1)
 	is := graphics.QuadIndices()
 	dr := image.Rect(0, 0, w, h)
-	dst.DrawTriangles([graphics.ShaderSrcImageCount]*atlas.Image{}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, s, nil, graphicsdriver.FillRuleFillAll)
+	dst.DrawTriangles([graphics.ShaderSrcImageCount]*atlas.Image{}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, s, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
 
 	// Ensure other objects are GCed, as GC appends deferred functions for collected objects.
 	ensureGC()

@@ -196,7 +196,7 @@ func (i *Image) WritePixels(pix []byte, region image.Rectangle) {
 // DrawTriangles draws the src image with the given vertices.
 //
 // Copying vertices and indices is the caller's responsibility.
-func (i *Image) DrawTriangles(srcs [graphics.ShaderSrcImageCount]*Image, vertices []float32, indices []uint32, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderSrcImageCount]image.Rectangle, shader *atlas.Shader, uniforms []uint32, fillRule graphicsdriver.FillRule) {
+func (i *Image) DrawTriangles(srcs [graphics.ShaderSrcImageCount]*Image, vertices []float32, indices []uint32, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderSrcImageCount]image.Rectangle, shader *atlas.Shader, uniforms []uint32, fillRule graphicsdriver.FillRule, hint restorable.Hint) {
 	for _, src := range srcs {
 		if i == src {
 			panic("buffered: Image.DrawTriangles: source images must be different from the receiver")
@@ -218,7 +218,7 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderSrcImageCount]*Image, vertice
 		imgs[i] = img.img
 	}
 
-	i.img.DrawTriangles(imgs, vertices, indices, blend, dstRegion, srcRegions, shader, uniforms, fillRule)
+	i.img.DrawTriangles(imgs, vertices, indices, blend, dstRegion, srcRegions, shader, uniforms, fillRule, hint)
 
 	// After rendering, the pixel cache is no longer valid.
 	i.pixels = nil
@@ -311,7 +311,7 @@ func (i *Image) syncPixelsIfNeeded() {
 	srcs := [graphics.ShaderSrcImageCount]*atlas.Image{whiteImage.img}
 	dr := image.Rect(0, 0, i.width, i.height)
 	blend := graphicsdriver.BlendCopy
-	i.img.DrawTriangles(srcs, vs, is, blend, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, atlas.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll)
+	i.img.DrawTriangles(srcs, vs, is, blend, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, atlas.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
 
 	// TODO: Use clear if Go 1.21 is available.
 	for pos := range i.dotsBuffer {

@@ -22,6 +22,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/buffered"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
+	"github.com/hajimehoshi/ebiten/v2/internal/restorable"
 	t "github.com/hajimehoshi/ebiten/v2/internal/testing"
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
@@ -56,7 +57,7 @@ func TestUnsyncedPixels(t *testing.T) {
 	is := graphics.QuadIndices()
 	dr := image.Rect(0, 0, 16, 16)
 	sr := [graphics.ShaderSrcImageCount]image.Rectangle{image.Rect(0, 0, 16, 16)}
-	dst.DrawTriangles([graphics.ShaderSrcImageCount]*buffered.Image{src}, vs, is, graphicsdriver.BlendSourceOver, dr, sr, atlas.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll)
+	dst.DrawTriangles([graphics.ShaderSrcImageCount]*buffered.Image{src}, vs, is, graphicsdriver.BlendSourceOver, dr, sr, atlas.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
 
 	// Check the result is correct.
 	var got [4]byte

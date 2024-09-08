@@ -109,6 +109,18 @@ const (
 	ImageTypeVolatile
 )
 
+// Hint is a hint to optimize the info to restore the image.
+type Hint int
+
+const (
+	// HintNone indicates that there is no hint.
+	HintNone Hint = iota
+
+	// HintOverwriteDstRegion indicates that the destination region is overwritten.
+	// HintOverwriteDstRegion helps to reduce the size of the draw-image history.
+	HintOverwriteDstRegion
+)
+
 // Image represents an image that can be restored when GL context is lost.
 type Image struct {
 	image *graphicscommand.Image
@@ -194,7 +206,7 @@ func (i *Image) Extend(width, height int) *Image {
 	graphics.QuadVerticesFromDstAndSrc(vs, 0, 0, float32(sw), float32(sh), 0, 0, float32(sw), float32(sh), 1, 1, 1, 1)
 	is := graphics.QuadIndices()
 	dr := image.Rect(0, 0, sw, sh)
-	newImg.DrawTriangles(srcs, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, NearestFilterShader, nil, graphicsdriver.FillRuleFillAll)
+	newImg.DrawTriangles(srcs, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, HintOverwriteDstRegion)
 	i.Dispose()
 
 	return newImg
@@ -316,7 +328,7 @@ func (i *Image) WritePixels(pixels *graphics.ManagedBytes, region image.Rectangl
 //	5: Color G
 //	6: Color B
 //	7: Color Y
-func (i *Image) DrawTriangles(srcs [graphics.ShaderSrcImageCount]*Image, vertices []float32, indices []uint32, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderSrcImageCount]image.Rectangle, shader *Shader, uniforms []uint32, fillRule graphicsdriver.FillRule) {
+func (i *Image) DrawTriangles(srcs [graphics.ShaderSrcImageCount]*Image, vertices []float32, indices []uint32, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderSrcImageCount]image.Rectangle, shader *Shader, uniforms []uint32, fillRule graphicsdriver.FillRule, hint Hint) {
 	if len(vertices) == 0 {
 		return
 	}
@@ -338,7 +350,8 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderSrcImageCount]*Image, vertice
 	if srcstale || !needsRestoration() || !i.needsRestoration() || i.stale {
 		i.makeStale(dstRegion)
 	} else {
-		i.appendDrawTrianglesHistory(srcs, vertices, indices, blend, dstRegion, srcRegions, shader, uniforms, fillRule)
+		// TODO: Consider overwritten.
+		i.appendDrawTrianglesHistory(srcs, vertices, indices, blend, dstRegion, srcRegions, shader, uniforms, fillRule, hint)
 	}
 
 	var imgs [graphics.ShaderSrcImageCount]*graphicscommand.Image
@@ -352,12 +365,30 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderSrcImageCount]*Image, vertice
 }
 
 // appendDrawTrianglesHistory appends a draw-image history item to the image.
-func (i *Image) appendDrawTrianglesHistory(srcs [graphics.ShaderSrcImageCount]*Image, vertices []float32, indices []uint32, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderSrcImageCount]image.Rectangle, shader *Shader, uniforms []uint32, fillRule graphicsdriver.FillRule) {
+func (i *Image) appendDrawTrianglesHistory(srcs [graphics.ShaderSrcImageCount]*Image, vertices []float32, indices []uint32, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderSrcImageCount]image.Rectangle, shader *Shader, uniforms []uint32, fillRule graphicsdriver.FillRule, hint Hint) {
 	if i.stale || !i.needsRestoration() {
 		panic("restorable: an image must not be stale or need restoration at appendDrawTrianglesHistory")
 	}
 	if AlwaysReadPixelsFromGPU() {
 		panic("restorable: appendDrawTrianglesHistory must not be called when AlwaysReadPixelsFromGPU() returns true")
+	}
+
+	// If the command overwrites the destination region, remove the history items that are in the region.
+	if hint == HintOverwriteDstRegion {
+		for idx, c := range i.drawTrianglesHistory {
+			if c.dstRegion.In(dstRegion) {
+				i.drawTrianglesHistory[idx] = nil
+			}
+		}
+		var n int
+		for _, c := range i.drawTrianglesHistory {
+			if c == nil {
+				continue
+			}
+			i.drawTrianglesHistory[n] = c
+			n++
+		}
+		i.drawTrianglesHistory = i.drawTrianglesHistory[:n]
 	}
 
 	// TODO: Would it be possible to merge draw image history items?
