@@ -295,9 +295,9 @@ func (i *Image) WritePixels(pixels *graphics.ManagedBytes, region image.Rectangl
 	if region.Eq(image.Rect(0, 0, w, h)) {
 		if pixels != nil {
 			// Clone a ManagedBytes as the package graphicscommand has a different lifetime management.
-			i.basePixels.AddOrReplace(pixels.Clone(), image.Rect(0, 0, w, h))
+			i.basePixels.AddOrReplace(pixels.Clone(), region)
 		} else {
-			i.basePixels.Clear(image.Rect(0, 0, w, h))
+			i.basePixels.Clear(region)
 		}
 		i.clearDrawTrianglesHistory()
 		i.stale = false
@@ -310,6 +310,8 @@ func (i *Image) WritePixels(pixels *graphics.ManagedBytes, region image.Rectangl
 		i.makeStale(region)
 		return
 	}
+
+	i.removeDrawTrianglesHistoryItems(region)
 
 	// Records for DrawTriangles cannot come before records for WritePixels.
 	if len(i.drawTrianglesHistory) > 0 {
@@ -400,6 +402,25 @@ func (i *Image) areStaleRegionsIncludedIn(r image.Rectangle) bool {
 	return true
 }
 
+// removeDrawTrianglesHistoryItems removes draw-image history items whose destination regions are in the given region.
+// This is useful when the destination region is overwritten soon later.
+func (i *Image) removeDrawTrianglesHistoryItems(region image.Rectangle) {
+	for idx, c := range i.drawTrianglesHistory {
+		if c.dstRegion.In(region) {
+			i.drawTrianglesHistory[idx] = nil
+		}
+	}
+	var n int
+	for _, c := range i.drawTrianglesHistory {
+		if c == nil {
+			continue
+		}
+		i.drawTrianglesHistory[n] = c
+		n++
+	}
+	i.drawTrianglesHistory = i.drawTrianglesHistory[:n]
+}
+
 // appendDrawTrianglesHistory appends a draw-image history item to the image.
 func (i *Image) appendDrawTrianglesHistory(srcs [graphics.ShaderSrcImageCount]*Image, vertices []float32, indices []uint32, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderSrcImageCount]image.Rectangle, shader *Shader, uniforms []uint32, fillRule graphicsdriver.FillRule, hint Hint) {
 	if i.stale || !i.needsRestoration() {
@@ -411,20 +432,7 @@ func (i *Image) appendDrawTrianglesHistory(srcs [graphics.ShaderSrcImageCount]*I
 
 	// If the command overwrites the destination region, remove the history items that are in the region.
 	if hint == HintOverwriteDstRegion {
-		for idx, c := range i.drawTrianglesHistory {
-			if c.dstRegion.In(dstRegion) {
-				i.drawTrianglesHistory[idx] = nil
-			}
-		}
-		var n int
-		for _, c := range i.drawTrianglesHistory {
-			if c == nil {
-				continue
-			}
-			i.drawTrianglesHistory[n] = c
-			n++
-		}
-		i.drawTrianglesHistory = i.drawTrianglesHistory[:n]
+		i.removeDrawTrianglesHistoryItems(dstRegion)
 	}
 
 	// TODO: Would it be possible to merge draw image history items?
