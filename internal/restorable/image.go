@@ -482,12 +482,12 @@ func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte
 	return nil
 }
 
-// makeStaleIfDependingOn makes the image stale if the image depends on target.
-func (i *Image) makeStaleIfDependingOn(target *Image) {
+// makeStaleIfDependingOn makes the image stale if the image depends on src.
+func (i *Image) makeStaleIfDependingOn(src *Image) {
 	if i.stale {
 		return
 	}
-	if i.dependsOn(target) {
+	if i.dependsOn(src) {
 		// There is no new region to make stale.
 		i.makeStale(image.Rectangle{})
 	}
@@ -573,16 +573,14 @@ func (i *Image) resolveStale(graphicsDriver graphicsdriver.Graphics) error {
 	return i.readPixelsFromGPU(graphicsDriver)
 }
 
-// dependsOn reports whether the image depends on target.
-func (i *Image) dependsOn(target *Image) bool {
+// dependsOn reports whether the image depends on src.
+func (i *Image) dependsOn(src *Image) bool {
 	for _, c := range i.drawTrianglesHistory {
 		for _, img := range c.images {
-			if img == nil {
+			if img != src {
 				continue
 			}
-			if img == target {
-				return true
-			}
+			return true
 		}
 	}
 	return false

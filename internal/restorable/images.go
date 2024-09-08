@@ -164,16 +164,16 @@ func (i *images) resolveStaleImages(graphicsDriver graphicsdriver.Graphics) erro
 	return nil
 }
 
-// makeStaleIfDependingOn makes all the images stale that depend on target.
+// makeStaleIfDependingOn makes all the images stale that depend on src.
 //
-// When target is modified, all images depending on target can't be restored with target.
-// makeStaleIfDependingOn is called in such situation.
-func (i *images) makeStaleIfDependingOn(target *Image) {
-	if target == nil {
-		panic("restorable: target must not be nil at makeStaleIfDependingOn")
+// When src is modified, all images depending on src can't be restored with src.
+// makeStaleIfDependingOn is called in such situation.src.
+func (i *images) makeStaleIfDependingOn(src *Image) {
+	if src == nil {
+		panic("restorable: src must not be nil at makeStaleIfDependingOn")
 	}
 	for img := range i.images {
-		img.makeStaleIfDependingOn(target)
+		img.makeStaleIfDependingOn(src)
 	}
 }
 
