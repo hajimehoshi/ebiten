@@ -80,7 +80,7 @@ func (p *Pixels) Dispose() {
 
 // drawTrianglesHistoryItem is an item for history of draw-image commands.
 type drawTrianglesHistoryItem struct {
-	images     [graphics.ShaderSrcImageCount]*Image
+	srcImages  [graphics.ShaderSrcImageCount]*Image
 	vertices   []float32
 	indices    []uint32
 	blend      graphicsdriver.Blend
@@ -454,7 +454,7 @@ func (i *Image) appendDrawTrianglesHistory(srcs [graphics.ShaderSrcImageCount]*I
 	copy(us, uniforms)
 
 	item := &drawTrianglesHistoryItem{
-		images:     srcs,
+		srcImages:  srcs,
 		vertices:   vs,
 		indices:    is,
 		blend:      blend,
@@ -593,7 +593,7 @@ func (i *Image) resolveStale(graphicsDriver graphicsdriver.Graphics) error {
 // dependsOn reports whether the image depends on src.
 func (i *Image) dependsOn(src *Image) bool {
 	for _, c := range i.drawTrianglesHistory {
-		for _, img := range c.images {
+		for _, img := range c.srcImages {
 			if img != src {
 				continue
 			}
@@ -617,7 +617,7 @@ func (i *Image) dependsOnShader(shader *Shader) bool {
 func (i *Image) dependingImages() map[*Image]struct{} {
 	r := map[*Image]struct{}{}
 	for _, c := range i.drawTrianglesHistory {
-		for _, img := range c.images {
+		for _, img := range c.srcImages {
 			if img == nil {
 				continue
 			}
@@ -671,7 +671,7 @@ func (i *Image) restore(graphicsDriver graphicsdriver.Graphics) error {
 
 	for _, c := range i.drawTrianglesHistory {
 		var imgs [graphics.ShaderSrcImageCount]*graphicscommand.Image
-		for i, img := range c.images {
+		for i, img := range c.srcImages {
 			if img == nil {
 				continue
 			}
