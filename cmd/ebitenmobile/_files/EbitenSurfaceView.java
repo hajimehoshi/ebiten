@@ -96,8 +96,7 @@ class EbitenSurfaceView extends GLSurfaceView implements Renderer {
         setEGLContextClientVersion(3);
         setEGLConfigChooser(8, 8, 8, 8, 0, 0);
         setPreserveEGLContextOnPause(true);
-        // setRenderer must be called before setRenderRequester.
-        // Or, the application crashes.
+        // setRenderer must be called before setRenderer. Or, setRenderMode in setExplicitRenderingMode will crash.
         setRenderer(new EbitenRenderer());
 
         Ebitenmobileview.setRenderer(this);
