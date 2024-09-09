@@ -302,16 +302,19 @@ type RunGameOptions struct {
 	//
 	// StrictContextRestration is available only on Android. Otherwise, StrictContextRestration is ignored.
 	//
-	// When StrictContextRestration is false, Ebitengine tries to rely on the OS to restore the context.
 	// In Android, Ebitengien uses `GLSurfaceView`'s `setPreserveEGLContextOnPause(true)`.
 	// This works in most cases, but it is still possible that the context is lost in some minor cases.
-	// With StrictContextRestration false, the activity's launch mode should be singleInstance,
-	// or the activity no longer works correctly after the context is lost.
 	//
-	// When StrictContextRestration is true, Ebitengine tries to restore the context more strictly.
-	// This is useful when you want to restore the context in any case.
+	// When StrictContextRestration is true, Ebitengine tries to restore the context more strictly
+	// for such minor cases.
 	// However, this might cause a performance issue since Ebitengine tries to keep all the information
 	// to restore the context.
+	//
+	// When StrictContextRestration is false, Ebitengine does nothing special to restore the context and
+	// relies on the OS's behavior.
+	//
+	// As a side note, especially when StrictContextRestration is false, the activity's launch mode should
+	// be singleInstance, or the activity no longer works correctly after the context is lost.
 	//
 	// The default (zero) value is false.
 	StrictContextRestration bool

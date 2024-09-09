@@ -96,6 +96,7 @@ class EbitenSurfaceView extends GLSurfaceView implements Renderer {
     private void initialize() {
         setEGLContextClientVersion(3);
         setEGLConfigChooser(8, 8, 8, 8, 0, 0);
+        setPreserveEGLContextOnPause(true);
         // setRenderer must be called before setRenderRequester.
         // Or, the application crashes.
         setRenderer(new EbitenRenderer());
@@ -125,7 +126,6 @@ class EbitenSurfaceView extends GLSurfaceView implements Renderer {
     @Override
     public synchronized void setStrictContextRestoration(boolean strictContextRestoration) {
         strictContextRestoration_ = strictContextRestoration;
-        setPreserveEGLContextOnPause(!strictContextRestoration);
     }
 
     private synchronized boolean hasStrictContextRestoration() {
