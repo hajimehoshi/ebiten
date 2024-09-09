@@ -79,7 +79,7 @@ func KeyName(key Key) string {
 //
 // CursorPosition returns (0, 0) before the main loop on desktops and browsers.
 //
-// CursorPosition always returns (0, 0) on mobiles.
+// CursorPosition always returns (0, 0) on mobile native applications.
 //
 // CursorPosition is concurrent-safe.
 func CursorPosition() (x, y int) {
