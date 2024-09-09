@@ -20,9 +20,8 @@ import (
 	"fmt"
 
 	"github.com/go-text/typesetting/di"
+	"github.com/go-text/typesetting/font"
 	glanguage "github.com/go-text/typesetting/language"
-	"github.com/go-text/typesetting/opentype/api/font"
-	"github.com/go-text/typesetting/opentype/loader"
 	"github.com/go-text/typesetting/shaping"
 	"golang.org/x/image/math/fixed"
 	"golang.org/x/text/language"
@@ -89,7 +88,7 @@ func (g *GoTextFace) SetVariation(tag Tag, value float32) {
 	g.variations = append(g.variations, font.Variation{})
 	copy(g.variations[idx+1:], g.variations[idx:])
 	g.variations[idx] = font.Variation{
-		Tag:   loader.Tag(tag),
+		Tag:   font.Tag(tag),
 		Value: value,
 	}
 	g.variationsString = ""
@@ -136,7 +135,7 @@ func (g *GoTextFace) SetFeature(tag Tag, value uint32) {
 	g.features = append(g.features, shaping.FontFeature{})
 	copy(g.features[idx+1:], g.features[idx:])
 	g.features[idx] = shaping.FontFeature{
-		Tag:   loader.Tag(tag),
+		Tag:   font.Tag(tag),
 		Value: value,
 	}
 	g.featuresString = ""

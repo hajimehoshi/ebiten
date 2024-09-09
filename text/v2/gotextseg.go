@@ -19,7 +19,7 @@ import (
 	"image/draw"
 	"math"
 
-	"github.com/go-text/typesetting/opentype/api"
+	"github.com/go-text/typesetting/font/opentype"
 	"golang.org/x/image/math/fixed"
 	gvector "golang.org/x/image/vector"
 
@@ -27,7 +27,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
-func segmentsToBounds(segs []api.Segment) fixed.Rectangle26_6 {
+func segmentsToBounds(segs []opentype.Segment) fixed.Rectangle26_6 {
 	if len(segs) == 0 {
 		return fixed.Rectangle26_6{}
 	}
@@ -40,9 +40,9 @@ func segmentsToBounds(segs []api.Segment) fixed.Rectangle26_6 {
 	for _, seg := range segs {
 		n := 1
 		switch seg.Op {
-		case api.SegmentOpQuadTo:
+		case opentype.SegmentOpQuadTo:
 			n = 2
-		case api.SegmentOpCubeTo:
+		case opentype.SegmentOpCubeTo:
 			n = 3
 		}
 		for i := 0; i < n; i++ {
@@ -75,7 +75,7 @@ func segmentsToBounds(segs []api.Segment) fixed.Rectangle26_6 {
 	}
 }
 
-func segmentsToImage(segs []api.Segment, subpixelOffset fixed.Point26_6, glyphBounds fixed.Rectangle26_6) *ebiten.Image {
+func segmentsToImage(segs []opentype.Segment, subpixelOffset fixed.Point26_6, glyphBounds fixed.Rectangle26_6) *ebiten.Image {
 	if len(segs) == 0 {
 		return nil
 	}
@@ -97,16 +97,16 @@ func segmentsToImage(segs []api.Segment, subpixelOffset fixed.Point26_6, glyphBo
 	rast.DrawOp = draw.Src
 	for _, seg := range segs {
 		switch seg.Op {
-		case api.SegmentOpMoveTo:
+		case opentype.SegmentOpMoveTo:
 			rast.MoveTo(seg.Args[0].X+biasX, seg.Args[0].Y+biasY)
-		case api.SegmentOpLineTo:
+		case opentype.SegmentOpLineTo:
 			rast.LineTo(seg.Args[0].X+biasX, seg.Args[0].Y+biasY)
-		case api.SegmentOpQuadTo:
+		case opentype.SegmentOpQuadTo:
 			rast.QuadTo(
 				seg.Args[0].X+biasX, seg.Args[0].Y+biasY,
 				seg.Args[1].X+biasX, seg.Args[1].Y+biasY,
 			)
-		case api.SegmentOpCubeTo:
+		case opentype.SegmentOpCubeTo:
 			rast.CubeTo(
 				seg.Args[0].X+biasX, seg.Args[0].Y+biasY,
 				seg.Args[1].X+biasX, seg.Args[1].Y+biasY,
@@ -125,19 +125,19 @@ func segmentsToImage(segs []api.Segment, subpixelOffset fixed.Point26_6, glyphBo
 	return ebiten.NewImageFromImage(dst)
 }
 
-func appendVectorPathFromSegments(path *vector.Path, segs []api.Segment, x, y float32) {
+func appendVectorPathFromSegments(path *vector.Path, segs []opentype.Segment, x, y float32) {
 	for _, seg := range segs {
 		switch seg.Op {
-		case api.SegmentOpMoveTo:
+		case opentype.SegmentOpMoveTo:
 			path.MoveTo(seg.Args[0].X+x, seg.Args[0].Y+y)
-		case api.SegmentOpLineTo:
+		case opentype.SegmentOpLineTo:
 			path.LineTo(seg.Args[0].X+x, seg.Args[0].Y+y)
-		case api.SegmentOpQuadTo:
+		case opentype.SegmentOpQuadTo:
 			path.QuadTo(
 				seg.Args[0].X+x, seg.Args[0].Y+y,
 				seg.Args[1].X+x, seg.Args[1].Y+y,
 			)
-		case api.SegmentOpCubeTo:
+		case opentype.SegmentOpCubeTo:
 			path.CubicTo(
 				seg.Args[0].X+x, seg.Args[0].Y+y,
 				seg.Args[1].X+x, seg.Args[1].Y+y,

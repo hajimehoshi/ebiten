@@ -79,7 +79,9 @@ func (s *GoXFace) Metrics() Metrics {
 
 // UnsafeInternal returns its internal font.Face.
 //
-// This is unsafe since this might make internal cache states out of sync.
+// UnsafeInternal is unsafe since this might make internal cache states out of sync.
+//
+// UnsafeInternal might have breaking changes even in the same major version.
 func (s *GoXFace) UnsafeInternal() font.Face {
 	s.copyCheck()
 	return s.f.f
