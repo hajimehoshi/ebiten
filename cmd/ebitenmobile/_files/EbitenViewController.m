@@ -364,10 +364,6 @@
   }
 }
 
-- (void)setStrictContextRestoration:(BOOL)strictContextRestoration {
-  // Do nothing.
-}
-
 - (void)setExplicitRenderingMode:(BOOL)explicitRendering {
   @synchronized(self) {
     explicitRendering_ = explicitRendering;
