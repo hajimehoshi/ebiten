@@ -301,6 +301,7 @@ type RunGameOptions struct {
 	// StrictContextRestration indicates whether the context lost should be restored strictly by Ebitengine or not.
 	//
 	// StrictContextRestration is available only on Android. Otherwise, StrictContextRestration is ignored.
+	// Thus, StrictContextRestration should be used with mobile.SetGameWithOptions, rather than RunGameWithOptions.
 	//
 	// In Android, Ebitengien uses `GLSurfaceView`'s `setPreserveEGLContextOnPause(true)`.
 	// This works in most cases, but it is still possible that the context is lost in some minor cases.
