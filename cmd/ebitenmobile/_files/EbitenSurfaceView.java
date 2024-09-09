@@ -59,12 +59,13 @@ class EbitenSurfaceView extends GLSurfaceView implements Renderer {
 
         @Override
         public void onSurfaceCreated(GL10 gl, EGLConfig config) {
-            if (!onceSurfaceCreated_) {
-                onceSurfaceCreated_ = true;
+            // As EbitenSurfaceView can be recreated anytime, this flag for strict context restoration must be checked every time.
+            if (Ebitenmobileview.usesStrictContextRestoration()) {
+                Ebitenmobileview.onContextLost();
                 return;
             }
-            if (hasStrictContextRestoration()) {
-                Ebitenmobileview.onContextLost();
+            if (!onceSurfaceCreated_) {
+                onceSurfaceCreated_ = true;
                 return;
             }
             contextLost_ = true;
@@ -80,8 +81,6 @@ class EbitenSurfaceView extends GLSurfaceView implements Renderer {
         public void onSurfaceChanged(GL10 gl, int width, int height) {
         }
     }
-
-    private boolean strictContextRestoration_ = false;
 
     public EbitenSurfaceView(Context context) {
         super(context);
@@ -121,15 +120,6 @@ class EbitenSurfaceView extends GLSurfaceView implements Renderer {
         } else {
             setRenderMode(RENDERMODE_CONTINUOUSLY);
         }
-    }
-
-    @Override
-    public synchronized void setStrictContextRestoration(boolean strictContextRestoration) {
-        strictContextRestoration_ = strictContextRestoration;
-    }
-
-    private synchronized boolean hasStrictContextRestoration() {
-        return strictContextRestoration_;
     }
 
     @Override

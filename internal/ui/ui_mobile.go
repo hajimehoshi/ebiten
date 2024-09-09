@@ -101,7 +101,7 @@ type userInterfaceImpl struct {
 	fpsMode  atomic.Int32
 	renderer Renderer
 
-	strictContextRestoration     bool
+	strictContextRestoration     atomic.Bool
 	strictContextRestorationOnce sync.Once
 
 	m sync.RWMutex
@@ -156,11 +156,11 @@ func (u *UserInterface) runMobile(game Game, options *RunOptions) (err error) {
 	u.graphicsDriver = g
 	u.setGraphicsLibrary(lib)
 	close(u.graphicsLibraryInitCh)
-	u.strictContextRestoration = options.StrictContextRestoration
-	if !u.strictContextRestoration {
+	if options.StrictContextRestoration {
+		u.strictContextRestoration.Store(true)
+	} else {
 		restorable.Disable()
 	}
-	u.renderer.SetStrictContextRestoration(u.strictContextRestoration)
 
 	for {
 		if err := u.update(); err != nil {
@@ -312,7 +312,6 @@ func (u *UserInterface) UpdateInput(keys map[Key]struct{}, runes []rune, touches
 
 type Renderer interface {
 	SetExplicitRenderingMode(explicitRendering bool)
-	SetStrictContextRestoration(strictContextRestoration bool)
 	RequestRenderIfNeeded()
 }
 
@@ -329,6 +328,10 @@ func (u *UserInterface) ScheduleFrame() {
 
 func (u *UserInterface) updateIconIfNeeded() error {
 	return nil
+}
+
+func (u *UserInterface) UsesStrictContextRestoration() bool {
+	return u.strictContextRestoration.Load()
 }
 
 func IsScreenTransparentAvailable() bool {

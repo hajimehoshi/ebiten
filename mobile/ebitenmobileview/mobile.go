@@ -132,3 +132,7 @@ func SetRenderer(renderer Renderer) {
 func SetSetGameNotifier(setGameNotifier SetGameNotifier) {
 	theState.setSetGameNotifier(setGameNotifier)
 }
+
+func UsesStrictContextRestoration() bool {
+	return ui.Get().UsesStrictContextRestoration()
+}
