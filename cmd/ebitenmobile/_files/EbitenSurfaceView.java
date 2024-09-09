@@ -115,6 +115,8 @@ class EbitenSurfaceView extends GLSurfaceView implements Renderer {
 
     @Override
     public synchronized void setExplicitRenderingMode(boolean explicitRendering) {
+        // TODO: Remove this logic when FPSModeVsyncOffMinimum is removed.
+        // This doesn't work when EbitenSurfaceView is recreated anyway.
         if (explicitRendering) {
             setRenderMode(RENDERMODE_WHEN_DIRTY);
         } else {
