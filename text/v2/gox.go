@@ -45,6 +45,8 @@ type GoXFace struct {
 
 	glyphImageCache glyphImageCache[goXFaceGlyphImageCacheKey]
 
+	cachedMetrics Metrics
+
 	addr *GoXFace
 }
 
@@ -69,12 +71,28 @@ func (s *GoXFace) copyCheck() {
 func (s *GoXFace) Metrics() Metrics {
 	s.copyCheck()
 
-	m := s.f.Metrics()
-	return Metrics{
-		HLineGap: fixed26_6ToFloat64(m.Height - m.Ascent - m.Descent),
-		HAscent:  fixed26_6ToFloat64(m.Ascent),
-		HDescent: fixed26_6ToFloat64(m.Descent),
+	if s.cachedMetrics != (Metrics{}) {
+		return s.cachedMetrics
 	}
+
+	fm := s.f.Metrics()
+	m := Metrics{
+		HLineGap:  fixed26_6ToFloat64(fm.Height - fm.Ascent - fm.Descent),
+		HAscent:   fixed26_6ToFloat64(fm.Ascent),
+		HDescent:  fixed26_6ToFloat64(fm.Descent),
+		XHeight:   fixed26_6ToFloat64(fm.XHeight),
+		CapHeight: fixed26_6ToFloat64(fm.CapHeight),
+	}
+
+	// There is an issue that XHeight is negative for some old fonts (golang/go#69378).
+	if fm.XHeight < 0 {
+		m.XHeight *= -1
+	}
+	if fm.CapHeight < 0 {
+		m.CapHeight *= -1
+	}
+	s.cachedMetrics = m
+	return m
 }
 
 // UnsafeInternal returns its internal font.Face.

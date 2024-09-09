@@ -69,6 +69,12 @@ type Metrics struct {
 	// VDescent is the distance in pixels from the top of a line to its baseline for vertical lines.
 	// If the face is GoXFace or the font doesn't support a vertical direction, VDescent is 0.
 	VDescent float64
+
+	// XHeight is the distance in pixels from the baseline to the top of the lower case letters.
+	XHeight float64
+
+	// CapHeight is the distance in pixels from the baseline to the top of the capital letters.
+	CapHeight float64
 }
 
 func fixed26_6ToFloat32(x fixed.Int26_6) float32 {

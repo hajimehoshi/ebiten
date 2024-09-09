@@ -75,6 +75,12 @@ func (m *MultiFace) Metrics() Metrics {
 		if mt1.VDescent > mt.VDescent {
 			mt.VDescent = mt1.VDescent
 		}
+		if mt1.XHeight > mt.XHeight {
+			mt.XHeight = mt1.XHeight
+		}
+		if mt1.CapHeight > mt.CapHeight {
+			mt.CapHeight = mt1.CapHeight
+		}
 	}
 	return mt
 }
