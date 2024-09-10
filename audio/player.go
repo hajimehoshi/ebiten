@@ -112,7 +112,7 @@ func (f *playerFactory) suspend() error {
 	if f.context == nil {
 		return nil
 	}
-	return f.context.Suspend()
+	return addErrorInfo(f.context.Suspend())
 }
 
 func (f *playerFactory) resume() error {
@@ -122,7 +122,7 @@ func (f *playerFactory) resume() error {
 	if f.context == nil {
 		return nil
 	}
-	return f.context.Resume()
+	return addErrorInfo(f.context.Resume())
 }
 
 func (f *playerFactory) error() error {
@@ -132,7 +132,7 @@ func (f *playerFactory) error() error {
 	if f.context == nil {
 		return nil
 	}
-	return f.context.Err()
+	return addErrorInfo(f.context.Err())
 }
 
 func (f *playerFactory) initContextIfNeeded() (<-chan struct{}, error) {
@@ -263,7 +263,7 @@ func (p *playerImpl) Close() error {
 		}()
 		p.player.Pause()
 		p.stopwatch.stop()
-		return p.player.Close()
+		return addErrorInfo(p.player.Close())
 	}
 	return nil
 }
@@ -293,7 +293,7 @@ func (p *playerImpl) SetPosition(offset time.Duration) error {
 
 	pos := p.stream.timeDurationToPos(offset)
 	if _, err := p.player.Seek(pos, io.SeekStart); err != nil {
-		return err
+		return addErrorInfo(err)
 	}
 	p.lastSamples = -1
 	// Just after setting a position, the buffer size should be 0 as no data is sent.
@@ -312,7 +312,7 @@ func (p *playerImpl) Err() error {
 	if p.player == nil {
 		return nil
 	}
-	return p.player.Err()
+	return addErrorInfo(p.player.Err())
 }
 
 func (p *playerImpl) SetBufferSize(bufferSize time.Duration) {

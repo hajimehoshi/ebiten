@@ -16,6 +16,6 @@
 
 package audio
 
-func addErrorInfoForContextCreation(err error) error {
+func addErrorInfo(err error) error {
 	return err
 }

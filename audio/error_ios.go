@@ -35,9 +35,9 @@ import (
 	"fmt"
 )
 
-// addErrorInfoForContextCreation adds an additional information to the error when creating an audio context.
-// See also hajimehoshi/oto#93.
-func addErrorInfoForContextCreation(err error) error {
+// addErrorInfo adds an additional information to the error when creating an audio context.
+// See also ebitengine/oto#93.
+func addErrorInfo(err error) error {
 	if err == nil {
 		return nil
 	}
