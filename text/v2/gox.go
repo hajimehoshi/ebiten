@@ -84,7 +84,7 @@ func (s *GoXFace) Metrics() Metrics {
 		CapHeight: fixed26_6ToFloat64(fm.CapHeight),
 	}
 
-	// There is an issue that XHeight is negative for some old fonts (golang/go#69378).
+	// There is an issue that XHeight and CapHeight are negative for some old fonts (golang/go#69378).
 	if fm.XHeight < 0 {
 		m.XHeight *= -1
 	}
