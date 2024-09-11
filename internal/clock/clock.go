@@ -64,13 +64,6 @@ func ActualTPS() float64 {
 	return actualTPS
 }
 
-func max(a, b int64) int64 {
-	if a < b {
-		return b
-	}
-	return a
-}
-
 func calcCountFromTPS(tps int64, now int64) int {
 	if tps == 0 {
 		return 0

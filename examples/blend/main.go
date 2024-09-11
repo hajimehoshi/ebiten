@@ -163,19 +163,9 @@ func loadImage(data []byte) (*ebiten.Image, error) {
 }
 
 // max returns the largest of x or y.
-func max(x, y int) int {
-	if x > y {
-		return x
-	}
-	return y
-}
-
 // maxSide returns the largest side of a or b images.
 func maxSide(a, b *ebiten.Image) int {
-	return max(
-		max(a.Bounds().Dx(), b.Bounds().Dx()),
-		max(a.Bounds().Dy(), b.Bounds().Dy()),
-	)
+	return max(a.Bounds().Dx(), b.Bounds().Dx(), a.Bounds().Dy(), b.Bounds().Dy())
 }
 
 // drawCenteredText is a util function for drawing blend mode description.

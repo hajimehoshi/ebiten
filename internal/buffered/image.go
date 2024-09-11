@@ -314,8 +314,5 @@ func (i *Image) syncPixelsIfNeeded() {
 	blend := graphicsdriver.BlendCopy
 	i.img.DrawTriangles(srcs, vs, is, blend, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, atlas.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
 
-	// TODO: Use clear if Go 1.21 is available.
-	for pos := range i.dotsBuffer {
-		delete(i.dotsBuffer, pos)
-	}
+	clear(i.dotsBuffer)
 }

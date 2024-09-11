@@ -96,20 +96,6 @@ func (w *World) Draw(pix []byte) {
 	}
 }
 
-func max(a, b int) int {
-	if a < b {
-		return b
-	}
-	return a
-}
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
-
 // neighbourCount calculates the Moore neighborhood of (x, y).
 func neighbourCount(a []bool, width, height, x, y int) int {
 	c := 0

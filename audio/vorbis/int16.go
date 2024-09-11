@@ -34,13 +34,6 @@ type int16BytesReader struct {
 	fbuf      []float32
 }
 
-func max(a, b int) int {
-	if a < b {
-		return b
-	}
-	return a
-}
-
 func (r *int16BytesReader) Read(buf []byte) (int, error) {
 	if r.eof {
 		return 0, io.EOF

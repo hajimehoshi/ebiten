@@ -187,13 +187,6 @@ func (f *Field) Update() {
 	}
 }
 
-func min(a, b float64) float64 {
-	if a > b {
-		return b
-	}
-	return a
-}
-
 func flushingColor(rate float64) colorm.ColorM {
 	var clr colorm.ColorM
 	alpha := min(1, rate*2)

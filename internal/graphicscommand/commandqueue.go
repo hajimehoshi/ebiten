@@ -507,13 +507,6 @@ func roundUpPower2(x int) int {
 	return p2
 }
 
-func max(a, b int) int {
-	if a < b {
-		return b
-	}
-	return a
-}
-
 func (b *uint32sBuffer) alloc(n int) []uint32 {
 	buf := b.buf
 	if len(buf)+n > cap(buf) {

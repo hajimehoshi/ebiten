@@ -35,13 +35,6 @@ var (
 	maxSize            = 0
 )
 
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
-
 func appendDeferred(f func()) {
 	deferredM.Lock()
 	defer deferredM.Unlock()

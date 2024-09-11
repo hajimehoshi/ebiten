@@ -348,26 +348,6 @@ func TestImageDeallocate(t *testing.T) {
 	}
 }
 
-type ordered interface {
-	~int | ~int8 | ~int16 | ~int32 | ~int64 | ~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64 | ~uintptr | ~float32 | ~float64 | ~string
-}
-
-// TODO: Use the built-in function min from Go 1.21.
-func min[T ordered](a, b T) T {
-	if a < b {
-		return a
-	}
-	return b
-}
-
-// TODO: Use the built-in function max from Go 1.21.
-func max[T ordered](a, b T) T {
-	if a < b {
-		return b
-	}
-	return a
-}
-
 func TestImageBlendLighter(t *testing.T) {
 	img0, _, err := openEbitenImage()
 	if err != nil {

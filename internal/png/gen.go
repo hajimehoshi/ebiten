@@ -136,18 +136,6 @@ func run() error {
 		fmt.Fprintln(w)
 		format.Node(w, fset, tree)
 
-		if f == "reader.go" {
-			// The min function was removed as of Go 1.22, but this is needed for old Go.
-			// TODO: Remove this when Go 1.21 is the minimum supported version.
-			fmt.Fprintln(w, `
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}`)
-		}
-
 		if err := w.Flush(); err != nil {
 			return err
 		}
