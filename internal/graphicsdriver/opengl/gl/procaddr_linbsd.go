@@ -17,8 +17,8 @@
 package gl
 
 import (
+	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/ebitengine/purego"
 )
@@ -29,8 +29,7 @@ var (
 )
 
 func (c *defaultContext) init() error {
-	// TODO: Use multiple %w-s as of Go 1.20.
-	var errors []string
+	var errs []error
 
 	// Try OpenGL ES first. Some machines like Android and Raspberry Pi might work only with OpenGL ES.
 	for _, name := range []string{"libGLESv2.so", "libGLESv2.so.2", "libGLESv2.so.1", "libGLESv2.so.0"} {
@@ -40,7 +39,7 @@ func (c *defaultContext) init() error {
 			c.isES = true
 			return nil
 		}
-		errors = append(errors, fmt.Sprintf("%s: %v", name, err))
+		errs = append(errs, fmt.Errorf("gl: Dlopen failed: name: %s: %w", name, err))
 	}
 
 	// Try OpenGL next.
@@ -54,10 +53,11 @@ func (c *defaultContext) init() error {
 			libGL = lib
 			return nil
 		}
-		errors = append(errors, fmt.Sprintf("%s: %v", name, err))
+		errs = append(errs, fmt.Errorf("gl: Dlopen failed: name: %s: %w", name, err))
 	}
 
-	return fmt.Errorf("gl: failed to load libGL.so and libGLESv2.so: %s", strings.Join(errors, ", "))
+	errs = append([]error{fmt.Errorf("gl: failed to load libGL.so and libGLESv2.so: ")}, errs...)
+	return errors.Join(errs...)
 }
 
 func (c *defaultContext) getProcAddress(name string) (uintptr, error) {

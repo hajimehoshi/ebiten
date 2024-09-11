@@ -69,15 +69,14 @@ func TestFloat32(t *testing.T) {
 					name = "seek"
 				}
 				t.Run(name, func(t *testing.T) {
-					// Note that unsafe.SliceData is available as of Go 1.20.
 					var in, out []byte
 					if len(c.In) > 0 {
 						outF32 := make([]float32, len(c.In))
 						for i := range c.In {
 							outF32[i] = float32(c.In[i]) / (1 << 15)
 						}
-						in = unsafe.Slice((*byte)(unsafe.Pointer(&c.In[0])), len(c.In)*2)
-						out = unsafe.Slice((*byte)(unsafe.Pointer(&outF32[0])), len(outF32)*4)
+						in = unsafe.Slice((*byte)(unsafe.Pointer(unsafe.SliceData(c.In))), len(c.In)*2)
+						out = unsafe.Slice((*byte)(unsafe.Pointer(unsafe.SliceData(outF32))), len(outF32)*4)
 					}
 					r := convert.NewFloat32BytesReaderFromInt16BytesReader(bytes.NewReader(in)).(io.ReadSeeker)
 					var got []byte

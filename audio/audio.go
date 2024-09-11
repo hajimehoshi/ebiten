@@ -188,14 +188,7 @@ func (c *Context) addPlayingPlayer(p *playerImpl) {
 	defer c.m.Unlock()
 	c.playingPlayers[p] = struct{}{}
 
-	// (reflect.Type).Comparable() is enough here, as reflect.TypeOf should always return a dynamic (non-interface) type.
-	// If reflect.TypeOf returned an interface type, this check would be meaningless.
-	// See these for more details:
-	// * https://pkg.go.dev/reflect#TypeOf
-	// * https://pkg.go.dev/reflect#Type.Comparable
-	//
-	// (*reflect.Value).Comparable() is more intuitive but this was introduced in Go 1.20.
-	if !reflect.TypeOf(p.sourceIdent()).Comparable() {
+	if !reflect.ValueOf(p.sourceIdent()).Comparable() {
 		return
 	}
 
