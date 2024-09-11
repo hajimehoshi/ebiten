@@ -22,10 +22,9 @@ import (
 	"image/draw"
 	_ "image/png"
 	"math"
-	"math/rand"
+	"math/rand/v2"
 	"runtime"
 	"testing"
-	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/examples/resources/images"
@@ -36,10 +35,6 @@ import (
 
 // maxImageSize is a maximum image size that should work in almost every environment.
 const maxImageSize = 4096 - 2
-
-func init() {
-	rand.Seed(time.Now().UnixNano())
-}
 
 func skipTooSlowTests(t *testing.T) bool {
 	if testing.Short() {
@@ -4272,7 +4267,7 @@ func TestImageAntiAlias(t *testing.T) {
 		ebiten.BlendXor,
 		ebiten.BlendLighter,
 	} {
-		rnd := rand.New(rand.NewSource(0))
+		rnd := rand.New(rand.NewPCG(0, 0))
 		max := func(x, y, z byte) byte {
 			if x >= y && x >= z {
 				return x

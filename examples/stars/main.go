@@ -17,8 +17,7 @@ package main
 import (
 	"image/color"
 	"log"
-	"math/rand"
-	"time"
+	"math/rand/v2"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/vector"
@@ -97,7 +96,6 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 }
 
 func main() {
-	rand.Seed(time.Now().UnixNano())
 	ebiten.SetWindowSize(screenWidth, screenHeight)
 	ebiten.SetWindowTitle("Stars (Ebitengine Demo)")
 	if err := ebiten.RunGame(NewGame()); err != nil {

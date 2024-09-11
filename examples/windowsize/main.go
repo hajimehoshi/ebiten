@@ -22,12 +22,11 @@ import (
 	_ "image/jpeg"
 	"log"
 	"math"
-	"math/rand"
+	"math/rand/v2"
 	"regexp"
 	"strconv"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
@@ -55,7 +54,6 @@ var (
 
 func init() {
 	flag.Parse()
-	rand.Seed(time.Now().UnixNano())
 }
 
 const (
@@ -71,9 +69,9 @@ var (
 func createRandomIconImage() image.Image {
 	const size = 32
 
-	rf := float64(rand.Intn(0x100))
-	gf := float64(rand.Intn(0x100))
-	bf := float64(rand.Intn(0x100))
+	rf := float64(rand.IntN(0x100))
+	gf := float64(rand.IntN(0x100))
+	bf := float64(rand.IntN(0x100))
 	img := ebiten.NewImage(size, size)
 	pix := make([]byte, 4*size*size)
 	for j := 0; j < size; j++ {

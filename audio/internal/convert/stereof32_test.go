@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"io"
 	"math"
-	"math/rand" // TODO: Use math/rand/v2 when the minimum supported version becomes Go 1.22.
+	"math/rand/v2"
 	"testing"
 
 	"github.com/hajimehoshi/ebiten/v2/audio/internal/convert"

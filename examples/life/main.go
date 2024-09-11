@@ -8,15 +8,10 @@ package main
 
 import (
 	"log"
-	"math/rand"
-	"time"
+	"math/rand/v2"
 
 	"github.com/hajimehoshi/ebiten/v2"
 )
-
-func init() {
-	rand.Seed(time.Now().UnixNano())
-}
 
 // World represents the game state.
 type World struct {
@@ -39,8 +34,8 @@ func NewWorld(width, height int, maxInitLiveCells int) *World {
 // init inits world with a random state.
 func (w *World) init(maxLiveCells int) {
 	for i := 0; i < maxLiveCells; i++ {
-		x := rand.Intn(w.width)
-		y := rand.Intn(w.height)
+		x := rand.IntN(w.width)
+		y := rand.IntN(w.height)
 		w.area[y*w.width+x] = true
 	}
 }

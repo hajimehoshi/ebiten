@@ -16,8 +16,7 @@ package main
 
 import (
 	"fmt"
-	"math/rand"
-	"time"
+	"math/rand/v2"
 )
 
 // Level represents a Game level.
@@ -56,9 +55,6 @@ func NewLevel() (*Level, error) {
 		return nil, fmt.Errorf("failed to load embedded spritesheet: %s", err)
 	}
 
-	// Generate a unique permutation each time.
-	r := rand.New(rand.NewSource(time.Now().UTC().UnixNano()))
-
 	// Fill each tile with one or more sprites randomly.
 	l.tiles = make([][]*Tile, l.h)
 	for y := 0; y < l.h; y++ {
@@ -66,7 +62,7 @@ func NewLevel() (*Level, error) {
 		for x := 0; x < l.w; x++ {
 			t := &Tile{}
 			isBorderSpace := x == 0 || y == 0 || x == l.w-1 || y == l.h-1
-			val := r.Intn(1000)
+			val := rand.IntN(1000)
 			switch {
 			case isBorderSpace || val < 275:
 				t.AddSprite(ss.Wall)

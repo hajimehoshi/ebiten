@@ -17,7 +17,7 @@ package convert_test
 import (
 	"bytes"
 	"io"
-	"math/rand" // TODO: Use math/rand/v2 when the minimum supported version becomes Go 1.22.
+	"math/rand/v2"
 	"testing"
 	"unsafe"
 
@@ -27,7 +27,7 @@ import (
 func randInt16s(n int) []int16 {
 	r := make([]int16, n)
 	for i := range r {
-		r[i] = int16(rand.Intn(1<<16) - (1 << 15))
+		r[i] = int16(rand.IntN(1<<16) - (1 << 15))
 	}
 	return r
 }

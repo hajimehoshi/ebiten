@@ -19,7 +19,7 @@ import (
 	"errors"
 	"image/color"
 	"log"
-	"math/rand"
+	"math/rand/v2"
 	"sort"
 	"strconv"
 
@@ -261,9 +261,9 @@ func addRandomTile(tiles map[*Tile]struct{}, size int) error {
 	if len(availableCells) == 0 {
 		return errors.New("twenty48: there is no space to add a new tile")
 	}
-	c := availableCells[rand.Intn(len(availableCells))]
+	c := availableCells[rand.IntN(len(availableCells))]
 	v := 2
-	if rand.Intn(10) == 0 {
+	if rand.IntN(10) == 0 {
 		v = 4
 	}
 	x := c % size

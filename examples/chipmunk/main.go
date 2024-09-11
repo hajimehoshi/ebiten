@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"image/color"
 	"log"
-	"math/rand"
+	"math/rand/v2"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"

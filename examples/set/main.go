@@ -18,8 +18,7 @@ import (
 	"fmt"
 	"image/color"
 	"log"
-	"math/rand"
-	"time"
+	"math/rand/v2"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
@@ -29,10 +28,6 @@ const (
 	screenWidth  = 320
 	screenHeight = 240
 )
-
-func init() {
-	rand.Seed(time.Now().UnixNano())
-}
 
 type Game struct {
 	offscreen *ebiten.Image
@@ -46,12 +41,12 @@ func NewGame() *Game {
 
 func (g *Game) Update() error {
 	s := g.offscreen.Bounds().Size()
-	x := rand.Intn(s.X)
-	y := rand.Intn(s.Y)
+	x := rand.IntN(s.X)
+	y := rand.IntN(s.Y)
 	c := color.RGBA{
-		byte(rand.Intn(256)),
-		byte(rand.Intn(256)),
-		byte(rand.Intn(256)),
+		byte(rand.IntN(256)),
+		byte(rand.IntN(256)),
+		byte(rand.IntN(256)),
 		byte(0xff),
 	}
 	g.offscreen.Set(x, y, c)

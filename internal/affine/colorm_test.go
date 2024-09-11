@@ -16,7 +16,7 @@ package affine_test
 
 import (
 	"math"
-	"math/rand"
+	"math/rand/v2"
 	"testing"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/affine"

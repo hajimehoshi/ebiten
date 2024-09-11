@@ -20,18 +20,13 @@ import (
 	"image/color"
 	_ "image/png"
 	"log"
-	"math/rand"
-	"time"
+	"math/rand/v2"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/examples/resources/images"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
-
-func init() {
-	rand.Seed(time.Now().UnixNano())
-}
 
 const (
 	screenWidth  = 640
@@ -196,8 +191,8 @@ func NewGame() *Game {
 		s := &Sprite{
 			image:      ebitenImage,
 			alphaImage: ebitenAlphaImage,
-			x:          rand.Intn(screenWidth - w),
-			y:          rand.Intn(screenHeight - h),
+			x:          rand.IntN(screenWidth - w),
+			y:          rand.IntN(screenHeight - h),
 		}
 		sprites = append(sprites, s)
 	}

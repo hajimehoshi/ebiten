@@ -18,8 +18,7 @@ import (
 	"fmt"
 	"image/color"
 	"log"
-	"math/rand"
-	"time"
+	"math/rand/v2"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
@@ -57,10 +56,6 @@ type Game struct {
 	score         int
 	bestScore     int
 	level         int
-}
-
-func init() {
-	rand.Seed(time.Now().UnixNano())
 }
 
 func (g *Game) collidesWithApple() bool {
@@ -130,8 +125,8 @@ func (g *Game) Update() error {
 		}
 
 		if g.collidesWithApple() {
-			g.apple.X = rand.Intn(xGridCountInScreen - 1)
-			g.apple.Y = rand.Intn(yGridCountInScreen - 1)
+			g.apple.X = rand.IntN(xGridCountInScreen - 1)
+			g.apple.Y = rand.IntN(yGridCountInScreen - 1)
 			g.snakeBody = append(g.snakeBody, Position{
 				X: g.snakeBody[len(g.snakeBody)-1].X,
 				Y: g.snakeBody[len(g.snakeBody)-1].Y,

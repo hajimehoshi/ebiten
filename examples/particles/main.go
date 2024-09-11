@@ -23,17 +23,12 @@ import (
 	_ "image/png"
 	"log"
 	"math"
-	"math/rand"
-	"time"
+	"math/rand/v2"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/examples/resources/images"
 )
-
-func init() {
-	rand.Seed(time.Now().UnixNano())
-}
 
 const (
 	screenWidth  = 640
@@ -110,7 +105,7 @@ func (s *sprite) draw(screen *ebiten.Image) {
 }
 
 func newSprite(img *ebiten.Image) *sprite {
-	c := rand.Intn(50) + 300
+	c := rand.IntN(50) + 300
 	dir := rand.Float64() * 2 * math.Pi
 	a := rand.Float64() * 2 * math.Pi
 	s := rand.Float64()*0.1 + 0.4
@@ -136,7 +131,7 @@ func (g *Game) Update() error {
 		g.sprites = list.New()
 	}
 
-	if g.sprites.Len() < 500 && rand.Intn(4) < 3 {
+	if g.sprites.Len() < 500 && rand.IntN(4) < 3 {
 		// Emit
 		g.sprites.PushBack(newSprite(smokeImage))
 	}

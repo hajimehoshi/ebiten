@@ -21,7 +21,7 @@ import (
 	_ "image/png"
 	"log"
 	"math"
-	"math/rand"
+	"math/rand/v2"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
@@ -117,9 +117,9 @@ func (g *Game) init() {
 	g.sprites.num = 500
 	for i := range g.sprites.sprites {
 		w, h := ebitenImage.Bounds().Dx(), ebitenImage.Bounds().Dy()
-		x, y := rand.Intn(screenWidth-w), rand.Intn(screenHeight-h)
-		vx, vy := 2*rand.Intn(2)-1, 2*rand.Intn(2)-1
-		a := rand.Intn(maxAngle)
+		x, y := rand.IntN(screenWidth-w), rand.IntN(screenHeight-h)
+		vx, vy := 2*rand.IntN(2)-1, 2*rand.IntN(2)-1
+		a := rand.IntN(maxAngle)
 		g.sprites.sprites[i] = &Sprite{
 			imageWidth:  w,
 			imageHeight: h,
