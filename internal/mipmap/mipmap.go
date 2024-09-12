@@ -41,7 +41,12 @@ type Mipmap struct {
 	height    int
 	imageType atlas.ImageType
 	orig      *buffered.Image
-	imgs      map[int]*buffered.Image
+	imgs      map[int]imageWithDirtyFlag
+}
+
+type imageWithDirtyFlag struct {
+	img   *buffered.Image
+	dirty bool
 }
 
 func New(width, height int, imageType atlas.ImageType) *Mipmap {
@@ -59,7 +64,14 @@ func (m *Mipmap) DumpScreenshot(graphicsDriver graphicsdriver.Graphics, name str
 
 func (m *Mipmap) WritePixels(pix []byte, region image.Rectangle) {
 	m.orig.WritePixels(pix, region)
-	m.deallocateMipmaps()
+	m.markDirty()
+}
+
+func (m *Mipmap) markDirty() {
+	for i, img := range m.imgs {
+		img.dirty = true
+		m.imgs[i] = img
+	}
 }
 
 func (m *Mipmap) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte, region image.Rectangle) (ok bool, err error) {
@@ -125,14 +137,17 @@ func (m *Mipmap) DrawTriangles(srcs [graphics.ShaderSrcImageCount]*Mipmap, verti
 	}
 
 	m.orig.DrawTriangles(imgs, vertices, indices, blend, dstRegion, srcRegions, shader, uniforms, fillRule, hint)
-	m.deallocateMipmaps()
+	m.markDirty()
 }
 
 func (m *Mipmap) setImg(level int, img *buffered.Image) {
 	if m.imgs == nil {
-		m.imgs = map[int]*buffered.Image{}
+		m.imgs = map[int]imageWithDirtyFlag{}
 	}
-	m.imgs[level] = img
+	m.imgs[level] = imageWithDirtyFlag{
+		img:   img,
+		dirty: false,
+	}
 }
 
 func (m *Mipmap) level(level int) *buffered.Image {
@@ -144,8 +159,9 @@ func (m *Mipmap) level(level int) *buffered.Image {
 		panic("mipmap: mipmap images for a screen image is not implemented yet")
 	}
 
-	if img, ok := m.imgs[level]; ok {
-		return img
+	img, ok := m.imgs[level]
+	if ok && !img.dirty {
+		return img.img
 	}
 
 	var src *buffered.Image
@@ -182,7 +198,13 @@ func (m *Mipmap) level(level int) *buffered.Image {
 		return nil
 	}
 
-	s := buffered.NewImage(w2, h2, m.imageType)
+	var s *buffered.Image
+	if img.img != nil {
+		// As s is overwritten, this doesn't have to be cleared.
+		s = img.img
+	} else {
+		s = buffered.NewImage(w2, h2, m.imageType)
+	}
 
 	dstRegion := image.Rect(0, 0, w2, h2)
 	w := sizeForLevel(m.width, level-1)
@@ -191,7 +213,7 @@ func (m *Mipmap) level(level int) *buffered.Image {
 	s.DrawTriangles([graphics.ShaderSrcImageCount]*buffered.Image{src}, vs, is, graphicsdriver.BlendCopy, dstRegion, [graphics.ShaderSrcImageCount]image.Rectangle{srcRegion}, atlas.LinearFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintOverwriteDstRegion)
 	m.setImg(level, s)
 
-	return m.imgs[level]
+	return m.imgs[level].img
 }
 
 func sizeForLevel(x int, level int) int {
@@ -205,19 +227,16 @@ func sizeForLevel(x int, level int) int {
 }
 
 func (m *Mipmap) Deallocate() {
-	m.deallocateMipmaps()
-	m.orig.Deallocate()
-}
-
-func (m *Mipmap) deallocateMipmaps() {
 	for _, img := range m.imgs {
-		if img != nil {
-			img.Deallocate()
+		if img.img == nil {
+			continue
 		}
+		img.img.Deallocate()
 	}
 	for k := range m.imgs {
 		delete(m.imgs, k)
 	}
+	m.orig.Deallocate()
 }
 
 // mipmapLevel returns an appropriate mipmap level for the given distance.
