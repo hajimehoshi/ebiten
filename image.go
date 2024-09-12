@@ -144,6 +144,16 @@ type DrawImageOptions struct {
 	// Filter is a type of texture filter.
 	// The default (zero) value is FilterNearest.
 	Filter Filter
+
+	// DisableMipmaps disables mipmaps.
+	// When Filter is FilterLinear and GeoM shrinks the image, mipmaps are used by default.
+	// Mipmap is useful to render a shrunk image with high quality.
+	// However, mipmaps can be expensive, especially on mobiles.
+	// When DisableMipmaps is true, mipmap is not used.
+	// When Filter is not FilterLinear, DisableMipmaps is ignored.
+	//
+	// The default (zero) value is false.
+	DisableMipmaps bool
 }
 
 // adjustPosition converts the position in the *ebiten.Image coordinate to the *ui.Image coordinate.
@@ -273,7 +283,11 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) {
 		hint = restorable.HintOverwriteDstRegion
 	}
 
-	i.image.DrawTriangles(srcs, vs, is, blend, dr, [graphics.ShaderSrcImageCount]image.Rectangle{img.adjustedBounds()}, shader.shader, i.tmpUniforms, graphicsdriver.FillRuleFillAll, canSkipMipmap(geoM, filter), false, hint)
+	skipMipmap := options.DisableMipmaps
+	if !skipMipmap {
+		skipMipmap = canSkipMipmap(geoM, filter)
+	}
+	i.image.DrawTriangles(srcs, vs, is, blend, dr, [graphics.ShaderSrcImageCount]image.Rectangle{img.adjustedBounds()}, shader.shader, i.tmpUniforms, graphicsdriver.FillRuleFillAll, skipMipmap, false, hint)
 }
 
 // overwritesDstRegion reports whether the given parameters overwrite the destination region completely.
@@ -447,6 +461,16 @@ type DrawTrianglesOptions struct {
 	//
 	// The default (zero) value is false.
 	AntiAlias bool
+
+	// DisableMipmaps disables mipmaps.
+	// When Filter is FilterLinear and GeoM shrinks the image, mipmaps are used by default.
+	// Mipmap is useful to render a shrunk image with high quality.
+	// However, mipmaps can be expensive, especially on mobiles.
+	// When DisableMipmaps is true, mipmap is not used.
+	// When Filter is not FilterLinear, DisableMipmaps is ignored.
+	//
+	// The default (zero) value is false.
+	DisableMipmaps bool
 }
 
 // MaxIndicesCount is the maximum number of indices for DrawTriangles and DrawTrianglesShader.
@@ -576,7 +600,11 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 		})
 	}
 
-	i.image.DrawTriangles(srcs, vs, is, blend, i.adjustedBounds(), [graphics.ShaderSrcImageCount]image.Rectangle{img.adjustedBounds()}, shader.shader, i.tmpUniforms, graphicsdriver.FillRule(options.FillRule), filter != builtinshader.FilterLinear, options.AntiAlias, restorable.HintNone)
+	skipMipmap := options.DisableMipmaps
+	if !skipMipmap {
+		skipMipmap = filter != builtinshader.FilterLinear
+	}
+	i.image.DrawTriangles(srcs, vs, is, blend, i.adjustedBounds(), [graphics.ShaderSrcImageCount]image.Rectangle{img.adjustedBounds()}, shader.shader, i.tmpUniforms, graphicsdriver.FillRule(options.FillRule), skipMipmap, options.AntiAlias, restorable.HintNone)
 }
 
 // DrawTrianglesShaderOptions represents options for DrawTrianglesShader.
