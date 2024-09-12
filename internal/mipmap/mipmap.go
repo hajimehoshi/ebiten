@@ -164,40 +164,40 @@ func (m *Mipmap) level(level int) *buffered.Image {
 		return img.img
 	}
 
-	var w, h int
+	var srcW, srcH int
 	var src *buffered.Image
 	vs := make([]float32, 4*graphics.VertexFloatCount)
 	switch {
 	case level == 1:
 		src = m.orig
-		w = m.width
-		h = m.height
+		srcW = m.width
+		srcH = m.height
 	case level > 1:
 		src = m.level(level - 1)
 		if src == nil {
 			m.setImg(level, nil)
 			return nil
 		}
-		w = sizeForLevel(m.width, level-1)
-		h = sizeForLevel(m.height, level-1)
+		srcW = sizeForLevel(m.width, level-1)
+		srcH = sizeForLevel(m.height, level-1)
 	default:
 		panic(fmt.Sprintf("mipmap: invalid level: %d", level))
 	}
 
-	graphics.QuadVerticesFromSrcAndMatrix(vs, 0, 0, float32(w), float32(h), 0.5, 0, 0, 0.5, 0, 0, 1, 1, 1, 1)
+	graphics.QuadVerticesFromSrcAndMatrix(vs, 0, 0, float32(srcW), float32(srcH), 0.5, 0, 0, 0.5, 0, 0, 1, 1, 1, 1)
 
 	is := graphics.QuadIndices()
 
-	w2 := sizeForLevel(m.width, level)
-	h2 := sizeForLevel(m.height, level)
-	if w2 == 0 || h2 == 0 {
+	dstW := sizeForLevel(m.width, level)
+	dstH := sizeForLevel(m.height, level)
+	if dstW == 0 || dstH == 0 {
 		m.setImg(level, nil)
 		return nil
 	}
 	// buffered.NewImage panics with a too big size when actual allocation happens.
 	// 4096 should be a safe size in most environments (#1399).
 	// Unfortunately a precise max image size cannot be obtained here since this requires GPU access.
-	if w2 > 4096 || h2 > 4096 {
+	if dstW > 4096 || dstH > 4096 {
 		m.setImg(level, nil)
 		return nil
 	}
@@ -207,11 +207,11 @@ func (m *Mipmap) level(level int) *buffered.Image {
 		// As s is overwritten, this doesn't have to be cleared.
 		s = img.img
 	} else {
-		s = buffered.NewImage(w2, h2, m.imageType)
+		s = buffered.NewImage(dstW, dstH, m.imageType)
 	}
 
-	dstRegion := image.Rect(0, 0, w2, h2)
-	srcRegion := image.Rect(0, 0, w, h)
+	dstRegion := image.Rect(0, 0, dstW, dstH)
+	srcRegion := image.Rect(0, 0, srcW, srcH)
 	s.DrawTriangles([graphics.ShaderSrcImageCount]*buffered.Image{src}, vs, is, graphicsdriver.BlendCopy, dstRegion, [graphics.ShaderSrcImageCount]image.Rectangle{srcRegion}, atlas.LinearFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintOverwriteDstRegion)
 	m.setImg(level, s)
 
