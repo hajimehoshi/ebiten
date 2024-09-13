@@ -29,13 +29,12 @@ import {{.JavaPkg}}.ebitenmobileview.RenderRequester;
 import {{.JavaPkg}}.{{.PrefixLower}}.EbitenView;
 
 class EbitenSurfaceView extends GLSurfaceView implements RenderRequester {
+    // As GLSurfaceView can be recreated, the states must be static (#3097).
+    static private boolean errored_ = false;
+    static private boolean onceSurfaceCreated_ = false;
+    static private boolean contextLost_ = false;
 
     private class EbitenRenderer implements GLSurfaceView.Renderer {
-
-        private boolean errored_ = false;
-        private boolean onceSurfaceCreated_ = false;
-        private boolean contextLost_ = false;
-
         @Override
         public void onDrawFrame(GL10 gl) {
             if (errored_) {
@@ -100,7 +99,7 @@ class EbitenSurfaceView extends GLSurfaceView implements RenderRequester {
     }
 
     private void onContextLost() {
-        Log.v("Go", "Kill the application due to a context lost");
+        Log.e("Go", "The application was killed due to context loss");
         // TODO: Relaunch this application for better UX (#805).
         Runtime.getRuntime().exit(0);
     }
