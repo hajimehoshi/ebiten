@@ -314,9 +314,6 @@ type RunGameOptions struct {
 	// When StrictContextRestration is false, Ebitengine does nothing special to restore the context and
 	// relies on the OS's behavior.
 	//
-	// As a side note, especially when StrictContextRestration is false, the activity's launch mode should
-	// be singleInstance, or the activity no longer works correctly after the context is lost.
-	//
 	// The default (zero) value is false.
 	StrictContextRestration bool
 }
