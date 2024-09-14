@@ -81,6 +81,8 @@ type userInterfaceImpl struct {
 	initWindowMaximized        bool
 	initWindowMousePassthrough bool
 
+	initUnfocused bool
+
 	// bufferOnceSwapped must be accessed from the main thread.
 	bufferOnceSwapped bool
 
@@ -1087,6 +1089,7 @@ func (u *UserInterface) initOnMainThread(options *RunOptions) error {
 		return err
 	}
 
+	u.initUnfocused = options.InitUnfocused
 	focused := glfw.True
 	if options.InitUnfocused {
 		focused = glfw.False
@@ -1288,8 +1291,10 @@ func (u *UserInterface) update() (float64, float64, error) {
 			if err = u.window.Show(); err != nil {
 				return
 			}
-			if err = u.window.Focus(); err != nil {
-				return
+			if !u.initUnfocused {
+				if err = u.window.Focus(); err != nil {
+					return
+				}
 			}
 
 			if runtime.GOOS == "darwin" || runtime.GOOS == "windows" {
