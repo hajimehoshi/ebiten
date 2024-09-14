@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package jsutil
+package gl
 
 import (
 	"syscall/js"
@@ -27,77 +27,77 @@ var (
 )
 
 var (
-	temporaryArrayBufferByteLength = 16
+	tmpArrayBufferByteLength = 16
 
-	// temporaryArrayBuffer is a temporary buffer used at gl.readPixels or gl.texSubImage2D.
+	// tmpArrayBuffer is a temporary buffer used at gl.readPixels or gl.texSubImage2D.
 	// The read data is converted to Go's byte slice as soon as possible.
 	// To avoid often allocating ArrayBuffer, reuse the buffer whenever possible.
-	temporaryArrayBuffer = arrayBuffer.New(temporaryArrayBufferByteLength)
+	tmpArrayBuffer = arrayBuffer.New(tmpArrayBufferByteLength)
 
-	// temporaryUint8Array is a Uint8ArrayBuffer whose underlying buffer is always temporaryArrayBuffer.
-	temporaryUint8Array = uint8Array.New(temporaryArrayBuffer)
+	// tmpUint8Array is a Uint8ArrayBuffer whose underlying buffer is always temporaryArrayBuffer.
+	tmpUint8Array = uint8Array.New(tmpArrayBuffer)
 
-	// temporaryFloat32Array is a Float32ArrayBuffer whose underlying buffer is always temporaryArrayBuffer.
-	temporaryFloat32Array = float32Array.New(temporaryArrayBuffer)
+	// tmpFloat32Array is a Float32ArrayBuffer whose underlying buffer is always temporaryArrayBuffer.
+	tmpFloat32Array = float32Array.New(tmpArrayBuffer)
 
-	// temporaryInt32Array is a Float32ArrayBuffer whose underlying buffer is always temporaryArrayBuffer.
-	temporaryInt32Array = int32Array.New(temporaryArrayBuffer)
+	// tmpInt32Array is a Float32ArrayBuffer whose underlying buffer is always temporaryArrayBuffer.
+	tmpInt32Array = int32Array.New(tmpArrayBuffer)
 )
 
 func ensureTemporaryArrayBufferSize(byteLength int) {
-	if bufl := temporaryArrayBufferByteLength; bufl < byteLength {
+	if bufl := tmpArrayBufferByteLength; bufl < byteLength {
 		for bufl < byteLength {
 			bufl *= 2
 		}
-		temporaryArrayBufferByteLength = bufl
-		temporaryArrayBuffer = arrayBuffer.New(bufl)
-		temporaryUint8Array = uint8Array.New(temporaryArrayBuffer)
-		temporaryFloat32Array = float32Array.New(temporaryArrayBuffer)
-		temporaryInt32Array = int32Array.New(temporaryArrayBuffer)
+		tmpArrayBufferByteLength = bufl
+		tmpArrayBuffer = arrayBuffer.New(bufl)
+		tmpUint8Array = uint8Array.New(tmpArrayBuffer)
+		tmpFloat32Array = float32Array.New(tmpArrayBuffer)
+		tmpInt32Array = int32Array.New(tmpArrayBuffer)
 	}
 }
 
-// TemporaryUint8ArrayFromUint8Slice returns a Uint8Array whose length is at least minLength from an uint8 slice.
+// tmpUint8ArrayFromUint8Slice returns a Uint8Array whose length is at least minLength from an uint8 slice.
 // Be careful that the length can exceed the given minLength.
 // data must be a slice of a numeric type for initialization, or nil if you don't need initialization.
-func TemporaryUint8ArrayFromUint8Slice(minLength int, data []uint8) js.Value {
+func tmpUint8ArrayFromUint8Slice(minLength int, data []uint8) js.Value {
 	ensureTemporaryArrayBufferSize(minLength)
 	copyUint8SliceToTemporaryArrayBuffer(data)
-	return temporaryUint8Array
+	return tmpUint8Array
 }
 
-// TemporaryUint8ArrayFromUint16Slice returns a Uint8Array whose length is at least minLength from an uint16 slice.
+// tmpUint8ArrayFromUint16Slice returns a Uint8Array whose length is at least minLength from an uint16 slice.
 // Be careful that the length can exceed the given minLength.
 // data must be a slice of a numeric type for initialization, or nil if you don't need initialization.
-func TemporaryUint8ArrayFromUint16Slice(minLength int, data []uint16) js.Value {
+func tmpUint8ArrayFromUint16Slice(minLength int, data []uint16) js.Value {
 	ensureTemporaryArrayBufferSize(minLength * 2)
 	copySliceToTemporaryArrayBuffer(data)
-	return temporaryUint8Array
+	return tmpUint8Array
 }
 
-// TemporaryUint8ArrayFromFloat32Slice returns a Uint8Array whose length is at least minLength from a float32 slice.
+// tmpUint8ArrayFromFloat32Slice returns a Uint8Array whose length is at least minLength from a float32 slice.
 // Be careful that the length can exceed the given minLength.
 // data must be a slice of a numeric type for initialization, or nil if you don't need initialization.
-func TemporaryUint8ArrayFromFloat32Slice(minLength int, data []float32) js.Value {
+func tmpUint8ArrayFromFloat32Slice(minLength int, data []float32) js.Value {
 	ensureTemporaryArrayBufferSize(minLength * 4)
 	copySliceToTemporaryArrayBuffer(data)
-	return temporaryUint8Array
+	return tmpUint8Array
 }
 
-// TemporaryFloat32Array returns a Float32Array whose length is at least minLength.
+// tmpFloat32ArrayFromFloat32Slice returns a Float32Array whose length is at least minLength.
 // Be careful that the length can exceed the given minLength.
 // data must be a slice of a numeric type for initialization, or nil if you don't need initialization.
-func TemporaryFloat32Array(minLength int, data []float32) js.Value {
+func tmpFloat32ArrayFromFloat32Slice(minLength int, data []float32) js.Value {
 	ensureTemporaryArrayBufferSize(minLength * 4)
 	copySliceToTemporaryArrayBuffer(data)
-	return temporaryFloat32Array
+	return tmpFloat32Array
 }
 
-// TemporaryInt32Array returns a Int32Array whose length is at least minLength.
+// tmpInt32ArrayFromInt32Slice returns a Int32Array whose length is at least minLength.
 // Be careful that the length can exceed the given minLength.
 // data must be a slice of a numeric type for initialization, or nil if you don't need initialization.
-func TemporaryInt32Array(minLength int, data []int32) js.Value {
+func tmpInt32ArrayFromInt32Slice(minLength int, data []int32) js.Value {
 	ensureTemporaryArrayBufferSize(minLength * 4)
 	copySliceToTemporaryArrayBuffer(data)
-	return temporaryInt32Array
+	return tmpInt32Array
 }
