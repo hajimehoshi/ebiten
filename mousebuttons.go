@@ -19,7 +19,7 @@ import (
 )
 
 // A MouseButton represents a mouse button.
-type MouseButton = ui.MouseButton
+type MouseButton int
 
 // MouseButtons
 const (
@@ -27,10 +27,10 @@ const (
 	MouseButtonMiddle MouseButton = MouseButton1
 	MouseButtonRight  MouseButton = MouseButton2
 
-	MouseButton0   MouseButton = ui.MouseButton0
-	MouseButton1   MouseButton = ui.MouseButton1
-	MouseButton2   MouseButton = ui.MouseButton2
-	MouseButton3   MouseButton = ui.MouseButton3
-	MouseButton4   MouseButton = ui.MouseButton4
+	MouseButton0   MouseButton = MouseButton(ui.MouseButton0)
+	MouseButton1   MouseButton = MouseButton(ui.MouseButton1)
+	MouseButton2   MouseButton = MouseButton(ui.MouseButton2)
+	MouseButton3   MouseButton = MouseButton(ui.MouseButton3)
+	MouseButton4   MouseButton = MouseButton(ui.MouseButton4)
 	MouseButtonMax MouseButton = MouseButton4
 )

@@ -384,7 +384,7 @@ func ScreenSizeInFullscreen() (int, int) {
 //
 // CursorMode is concurrent-safe.
 func CursorMode() CursorModeType {
-	return ui.Get().CursorMode()
+	return CursorModeType(ui.Get().CursorMode())
 }
 
 // SetCursorMode sets the render and capture mode of the mouse cursor.
@@ -406,7 +406,7 @@ func CursorMode() CursorModeType {
 //
 // SetCursorMode is concurrent-safe.
 func SetCursorMode(mode CursorModeType) {
-	ui.Get().SetCursorMode(mode)
+	ui.Get().SetCursorMode(ui.CursorMode(mode))
 }
 
 // CursorShape returns the current cursor shape.
@@ -415,7 +415,7 @@ func SetCursorMode(mode CursorModeType) {
 //
 // CursorShape is concurrent-safe.
 func CursorShape() CursorShapeType {
-	return ui.Get().CursorShape()
+	return CursorShapeType(ui.Get().CursorShape())
 }
 
 // SetCursorShape sets the cursor shape.
@@ -424,7 +424,7 @@ func CursorShape() CursorShapeType {
 //
 // SetCursorShape is concurrent-safe.
 func SetCursorShape(shape CursorShapeType) {
-	ui.Get().SetCursorShape(shape)
+	ui.Get().SetCursorShape(ui.CursorShape(shape))
 }
 
 // IsFullscreen reports whether the current mode is fullscreen or not.
@@ -528,14 +528,14 @@ func SetVsyncEnabled(enabled bool) {
 // FPSModeType is a type of FPS modes.
 //
 // Deprecated: as of v2.5. Use SetVsyncEnabled instead.
-type FPSModeType = ui.FPSModeType
+type FPSModeType int
 
 const (
 	// FPSModeVsyncOn indicates that the game tries to sync the display's refresh rate.
 	// FPSModeVsyncOn is the default mode.
 	//
 	// Deprecated: as of v2.5. Use SetVsyncEnabled(true) instead.
-	FPSModeVsyncOn FPSModeType = ui.FPSModeVsyncOn
+	FPSModeVsyncOn FPSModeType = FPSModeType(ui.FPSModeVsyncOn)
 
 	// FPSModeVsyncOffMaximum indicates that the game doesn't sync with vsync, and
 	// the game is updated whenever possible.
@@ -546,7 +546,7 @@ const (
 	// The game's Update is called based on the specified TPS.
 	//
 	// Deprecated: as of v2.5. Use SetVsyncEnabled(false) instead.
-	FPSModeVsyncOffMaximum FPSModeType = ui.FPSModeVsyncOffMaximum
+	FPSModeVsyncOffMaximum FPSModeType = FPSModeType(ui.FPSModeVsyncOffMaximum)
 
 	// FPSModeVsyncOffMinimum indicates that the game doesn't sync with vsync, and
 	// the game is updated only when necessary.
@@ -559,7 +559,7 @@ const (
 	//
 	// Deprecated: as of v2.5. Use SetScreenClearedEveryFrame(false) instead.
 	// See examples/skipdraw for GPU optimization with SetScreenClearedEveryFrame(false).
-	FPSModeVsyncOffMinimum FPSModeType = ui.FPSModeVsyncOffMinimum
+	FPSModeVsyncOffMinimum FPSModeType = FPSModeType(ui.FPSModeVsyncOffMinimum)
 )
 
 // FPSMode returns the current FPS mode.
@@ -568,7 +568,7 @@ const (
 //
 // Deprecated: as of v2.5. Use SetVsyncEnabled instead.
 func FPSMode() FPSModeType {
-	return ui.Get().FPSMode()
+	return FPSModeType(ui.Get().FPSMode())
 }
 
 // SetFPSMode sets the FPS mode.
@@ -578,7 +578,7 @@ func FPSMode() FPSModeType {
 //
 // Deprecated: as of v2.5. Use SetVsyncEnabled instead.
 func SetFPSMode(mode FPSModeType) {
-	ui.Get().SetFPSMode(mode)
+	ui.Get().SetFPSMode(ui.FPSModeType(mode))
 }
 
 // ScheduleFrame schedules a next frame when the current FPS mode is FPSModeVsyncOffMinimum.

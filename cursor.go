@@ -19,17 +19,17 @@ import (
 )
 
 // CursorModeType represents a render and coordinate mode of a mouse cursor.
-type CursorModeType = ui.CursorMode
+type CursorModeType int
 
 // CursorModeTypes
 const (
-	CursorModeVisible  CursorModeType = ui.CursorModeVisible
-	CursorModeHidden   CursorModeType = ui.CursorModeHidden
-	CursorModeCaptured CursorModeType = ui.CursorModeCaptured
+	CursorModeVisible  CursorModeType = CursorModeType(ui.CursorModeVisible)
+	CursorModeHidden   CursorModeType = CursorModeType(ui.CursorModeHidden)
+	CursorModeCaptured CursorModeType = CursorModeType(ui.CursorModeCaptured)
 )
 
 // CursorShapeType represents a shape of a mouse cursor.
-type CursorShapeType = ui.CursorShape
+type CursorShapeType int
 
 // CursorShapeTypes
 const (
