@@ -85,7 +85,6 @@ type userInterfaceImpl struct {
 
 	// bufferOnceSwapped must be accessed from the main thread.
 	bufferOnceSwapped bool
-	updateOnceCalled  bool
 
 	origWindowPosX        int
 	origWindowPosY        int
@@ -1280,10 +1279,6 @@ func (u *UserInterface) setFPSMode(fpsMode FPSModeType) error {
 
 // update must be called from the main thread.
 func (u *UserInterface) update() (float64, float64, error) {
-	defer func() {
-		u.updateOnceCalled = true
-	}()
-
 	if err := u.error(); err != nil {
 		return 0, 0, err
 	}
@@ -1395,7 +1390,7 @@ func (u *UserInterface) update() (float64, float64, error) {
 
 	// If isRunnableOnUnfocused is false and the window is not focused, wait here.
 	// For the first update, skip this check as the window might not be seen yet in some environments like ChromeOS (#3091).
-	for !u.isRunnableOnUnfocused() && u.updateOnceCalled {
+	for !u.isRunnableOnUnfocused() && u.bufferOnceSwapped {
 		// In the initial state on macOS, the window is not shown (#2620).
 		visible, err := u.window.GetAttrib(glfw.Visible)
 		if err != nil {
