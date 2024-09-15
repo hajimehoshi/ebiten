@@ -24,6 +24,7 @@ import (
 	"os"
 	"runtime"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/file"
@@ -72,6 +73,8 @@ type userInterfaceImpl struct {
 	initMonitor                *Monitor
 	initFullscreen             bool
 	initCursorMode             CursorMode
+	initCursorX                int
+	initCursorY                int
 	initWindowDecorated        bool
 	initWindowPositionXInDIP   int
 	initWindowPositionYInDIP   int
@@ -84,7 +87,7 @@ type userInterfaceImpl struct {
 	initUnfocused bool
 
 	// bufferOnceSwapped must be accessed from the main thread.
-	bufferOnceSwapped bool
+	bufferOnceSwapped atomic.Bool
 
 	origWindowPosX        int
 	origWindowPosY        int
@@ -133,6 +136,8 @@ func (u *UserInterface) init() error {
 		maxWindowWidthInDIP:      glfw.DontCare,
 		maxWindowHeightInDIP:     glfw.DontCare,
 		initCursorMode:           CursorModeVisible,
+		initCursorX:              invalidPos,
+		initCursorY:              invalidPos,
 		initWindowDecorated:      true,
 		initWindowPositionXInDIP: invalidPos,
 		initWindowPositionYInDIP: invalidPos,
@@ -407,6 +412,19 @@ func (u *UserInterface) setInitCursorMode(mode CursorMode) {
 	u.m.Lock()
 	u.initCursorMode = mode
 	u.m.Unlock()
+}
+
+func (u *UserInterface) setInitCursorPosition(x, y int) {
+	u.m.Lock()
+	defer u.m.Unlock()
+	u.initCursorX = x
+	u.initCursorY = y
+}
+
+func (u *UserInterface) getInitCursorPosition() (int, int) {
+	u.m.RLock()
+	defer u.m.RUnlock()
+	return u.initCursorX, u.initCursorY
 }
 
 func (u *UserInterface) getCursorShape() CursorShape {
@@ -1292,14 +1310,22 @@ func (u *UserInterface) update() (float64, float64, error) {
 	}
 
 	// On macOS, one swapping buffers seems required before entering fullscreen (#2599).
-	if u.isInitFullscreen() && (u.bufferOnceSwapped || runtime.GOOS != "darwin") {
+	if u.isInitFullscreen() && (u.bufferOnceSwapped.Load() || runtime.GOOS != "darwin") {
 		if err := u.setFullscreen(true); err != nil {
 			return 0, 0, err
 		}
 		u.setInitFullscreen(false)
 	}
 
-	if runtime.GOOS == "darwin" && u.bufferOnceSwapped {
+	if !u.bufferOnceSwapped.Load() {
+		if x, y := u.getInitCursorPosition(); x != invalidPos && y != invalidPos {
+			if err := u.setCursorPosition(x, y); err != nil {
+				return 0, 0, err
+			}
+		}
+	}
+
+	if runtime.GOOS == "darwin" && u.bufferOnceSwapped.Load() {
 		var err error
 		u.darwinInitOnce.Do(func() {
 			// On macOS, window decoration should be initialized once after buffers are swapped (#2600).
@@ -1316,7 +1342,7 @@ func (u *UserInterface) update() (float64, float64, error) {
 		}
 	}
 
-	if u.bufferOnceSwapped {
+	if u.bufferOnceSwapped.Load() {
 		var err error
 		u.showWindowOnce.Do(func() {
 			// Show the window after first buffer swap to avoid flash of white especially on Windows.
@@ -1390,7 +1416,7 @@ func (u *UserInterface) update() (float64, float64, error) {
 
 	// If isRunnableOnUnfocused is false and the window is not focused, wait here.
 	// For the first update, skip this check as the window might not be seen yet in some environments like ChromeOS (#3091).
-	for !u.isRunnableOnUnfocused() && u.bufferOnceSwapped {
+	for !u.isRunnableOnUnfocused() && u.bufferOnceSwapped.Load() {
 		// In the initial state on macOS, the window is not shown (#2620).
 		visible, err := u.window.GetAttrib(glfw.Visible)
 		if err != nil {
@@ -1493,9 +1519,7 @@ func (u *UserInterface) updateGame() error {
 	}
 
 	u.bufferOnceSwappedOnce.Do(func() {
-		u.mainThread.Call(func() {
-			u.bufferOnceSwapped = true
-		})
+		u.bufferOnceSwapped.Store(true)
 	})
 
 	if unfocused {
@@ -2177,4 +2201,52 @@ func (u *UserInterface) RunOnMainThread(f func()) {
 
 func dipToNativePixels(x float64, scale float64) float64 {
 	return dipToGLFWPixel(x, scale)
+}
+
+func (u *UserInterface) CursorPosition() (x, y int) {
+	if !u.isRunning() || !u.bufferOnceSwapped.Load() {
+		x, y := u.getInitCursorPosition()
+		if x == invalidPos || y == invalidPos {
+			return 0, 0
+		}
+		return x, y
+	}
+
+	u.m.Lock()
+	defer u.m.Unlock()
+	return int(u.inputState.CursorX), int(u.inputState.CursorY)
+}
+
+func (u *UserInterface) SetCursorPosition(x, y int) {
+	if !u.isRunning() {
+		u.setInitCursorPosition(x, y)
+		return
+	}
+	u.mainThread.Call(func() {
+		if err := u.setCursorPosition(x, y); err != nil {
+			u.setError(err)
+			return
+		}
+	})
+}
+
+// setCursorPosition must be called from the main thread.
+func (u *UserInterface) setCursorPosition(x, y int) error {
+	m, err := u.currentMonitor()
+	if err != nil {
+		return err
+	}
+
+	s := m.DeviceScaleFactor()
+	cx, cy := u.context.logicalPositionToClientPosition(float64(x), float64(y), s)
+	gx := dipToGLFWPixel(cx, s)
+	gy := dipToGLFWPixel(cy, s)
+	u.window.SetCursorPos(gx, gy)
+
+	u.m.Lock()
+	defer u.m.Unlock()
+	u.inputState.CursorX = float64(x)
+	u.inputState.CursorY = float64(y)
+
+	return nil
 }

@@ -864,3 +864,13 @@ func IsScreenTransparentAvailable() bool {
 func dipToNativePixels(x float64, scale float64) float64 {
 	return x
 }
+
+func (u *UserInterface) CursorPosition() (x, y int) {
+	u.m.Lock()
+	defer u.m.Unlock()
+	return int(u.inputState.CursorX), int(u.inputState.CursorY)
+}
+
+func (u *UserInterface) SetCursorPosition(x, y int) {
+	// Do nothing.
+}

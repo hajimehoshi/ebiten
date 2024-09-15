@@ -74,17 +74,27 @@ func KeyName(key Key) string {
 	return ui.Get().KeyName(ui.Key(key))
 }
 
-// CursorPosition returns a position of a mouse cursor relative to the game screen (window). The cursor position is
-// 'logical' position and this considers the scale of the screen.
+// CursorPosition returns a position of a mouse cursor relative to the game screen (window).
+// The cursor position is 'logical' position and this considers the scale of the screen.
 //
-// CursorPosition returns (0, 0) before the main loop on desktops and browsers.
+// CursorPosition returns (0, 0) or the position set by SetCursorPosition before the main loop on desktops and browsers.
 //
 // CursorPosition always returns (0, 0) on mobile native applications.
 //
 // CursorPosition is concurrent-safe.
 func CursorPosition() (x, y int) {
-	cx, cy := theInputState.cursorPosition()
-	return int(cx), int(cy)
+	// For the cursor position, theInputState is not used since the cursor position can be updated by SetCursorPosition.
+	return ui.Get().CursorPosition()
+}
+
+// SetCursorPosition sets the cursor position.
+// The cursor position is 'logical' position and this considers the scale of the screen.
+//
+// SetCursorPosition works only on desktops. SetCursorPosition does nothing otherwise.
+//
+// SetCursorPosition is concurrent-safe.
+func SetCursorPosition(x, y int) {
+	ui.Get().SetCursorPosition(x, y)
 }
 
 // Wheel returns x and y offsets of the mouse wheel or touchpad scroll.

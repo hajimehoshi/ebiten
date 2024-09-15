@@ -337,3 +337,13 @@ func (u *UserInterface) UsesStrictContextRestoration() bool {
 func IsScreenTransparentAvailable() bool {
 	return false
 }
+
+func (u *UserInterface) CursorPosition() (x, y int) {
+	u.m.Lock()
+	defer u.m.Unlock()
+	return int(u.inputState.CursorX), int(u.inputState.CursorY)
+}
+
+func (u *UserInterface) SetCursorPosition(x, y int) {
+	// Do nothing.
+}
