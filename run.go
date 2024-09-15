@@ -409,24 +409,6 @@ func SetCursorMode(mode CursorModeType) {
 	ui.Get().SetCursorMode(ui.CursorMode(mode))
 }
 
-// CursorShape returns the current cursor shape.
-//
-// CursorShape returns CursorShapeDefault on mobiles.
-//
-// CursorShape is concurrent-safe.
-func CursorShape() CursorShapeType {
-	return CursorShapeType(ui.Get().CursorShape())
-}
-
-// SetCursorShape sets the cursor shape.
-//
-// If the platform doesn't implement the given shape, the default cursor shape is used.
-//
-// SetCursorShape is concurrent-safe.
-func SetCursorShape(shape CursorShapeType) {
-	ui.Get().SetCursorShape(ui.CursorShape(shape))
-}
-
 // IsFullscreen reports whether the current mode is fullscreen or not.
 //
 // IsFullscreen always returns false on mobiles.

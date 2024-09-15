@@ -44,3 +44,21 @@ const (
 	CursorShapeMove       CursorShapeType = CursorShapeType(ui.CursorShapeMove)
 	CursorShapeNotAllowed CursorShapeType = CursorShapeType(ui.CursorShapeNotAllowed)
 )
+
+// CursorShape returns the current cursor shape.
+//
+// CursorShape returns CursorShapeDefault on mobiles.
+//
+// CursorShape is concurrent-safe.
+func CursorShape() CursorShapeType {
+	return CursorShapeType(ui.Get().CursorShape())
+}
+
+// SetCursorShape sets the cursor shape.
+//
+// If the platform doesn't implement the given shape, the default cursor shape is used.
+//
+// SetCursorShape is concurrent-safe.
+func SetCursorShape(shape CursorShapeType) {
+	ui.Get().SetCursorShape(ui.CursorShape(shape))
+}
