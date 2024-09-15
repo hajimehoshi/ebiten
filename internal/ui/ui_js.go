@@ -539,6 +539,10 @@ func (u *UserInterface) init() error {
 	}))
 	document.Call("addEventListener", "pointerlockerror", js.FuncOf(func(this js.Value, args []js.Value) any {
 		js.Global().Get("console").Call("error", "pointerlockerror event is fired. 'sandbox=\"allow-pointer-lock\"' might be required at an iframe. This function on browsers must be called as a result of a gestural interaction or orientation change.")
+		if u.cursorMode == CursorModeCaptured {
+			u.recoverCursorMode()
+		}
+		u.recoverCursorPosition()
 		return nil
 	}))
 	document.Call("addEventListener", "fullscreenerror", js.FuncOf(func(this js.Value, args []js.Value) any {
