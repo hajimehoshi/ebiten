@@ -97,9 +97,33 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 
 	debug.FrameLogf("----\n")
 
+	var needSwapBuffers bool
+
 	if err := atlas.BeginFrame(graphicsDriver); err != nil {
 		return err
 	}
+	defer func() {
+		if err1 := atlas.EndFrame(); err1 != nil && err == nil {
+			err = err1
+			return
+		}
+
+		if needSwapBuffers {
+			if err1 := atlas.SwapBuffers(graphicsDriver); err1 != nil && err == nil {
+				err = err1
+				return
+			}
+		} else {
+			now := time.Now()
+			defer func() {
+				c.lastSwapBufferTime = now
+			}()
+			if delta := time.Second/60 - now.Sub(c.lastSwapBufferTime); delta > 0 {
+				// When swapping buffers is skipped and Draw is called too early, sleep for a while to suppress CPU usages (#2890).
+				time.Sleep(delta)
+			}
+		}
+	}()
 
 	// Flush deferred functions, like reading pixels from GPU.
 	if err := c.processFuncsInFrame(ui); err != nil {
@@ -152,28 +176,9 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 	}
 
 	// Draw the game.
-	needSwapBuffers, err := c.drawGame(graphicsDriver, ui, forceDraw)
+	needSwapBuffers, err = c.drawGame(graphicsDriver, ui, forceDraw)
 	if err != nil {
 		return err
-	}
-
-	if err := atlas.EndFrame(); err != nil {
-		return err
-	}
-
-	if needSwapBuffers {
-		if err := atlas.SwapBuffers(graphicsDriver); err != nil {
-			return err
-		}
-	} else {
-		now := time.Now()
-		defer func() {
-			c.lastSwapBufferTime = now
-		}()
-		if delta := time.Second/60 - now.Sub(c.lastSwapBufferTime); delta > 0 {
-			// When swapping buffers is skipped and Draw is called too early, sleep for a while to suppress CPU usages (#2890).
-			time.Sleep(delta)
-		}
 	}
 
 	return nil
