@@ -246,8 +246,13 @@ func (c *context) layoutGame(outsideWidth, outsideHeight float64, deviceScaleFac
 		panic("ui: Layout must return positive numbers")
 	}
 
-	c.screenWidth = outsideWidth * deviceScaleFactor
-	c.screenHeight = outsideHeight * deviceScaleFactor
+	screenWidth := outsideWidth * deviceScaleFactor
+	screenHeight := outsideHeight * deviceScaleFactor
+	if c.screenWidth != screenWidth || c.screenHeight != screenHeight {
+		c.skipCount = 0
+	}
+	c.screenWidth = screenWidth
+	c.screenHeight = screenHeight
 	c.offscreenWidth = owf
 	c.offscreenHeight = ohf
 
