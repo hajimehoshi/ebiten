@@ -54,7 +54,7 @@ type context struct {
 	offscreenHeight float64
 
 	isOffscreenModified bool
-	lastDrawTime        time.Time
+	lastSwapBufferTime  time.Time
 
 	skipCount int
 
@@ -100,18 +100,6 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 	if err := atlas.BeginFrame(graphicsDriver); err != nil {
 		return err
 	}
-
-	defer func() {
-		if err1 := atlas.EndFrame(); err1 != nil && err == nil {
-			err = err1
-			return
-		}
-
-		if err1 := atlas.SwapBuffers(graphicsDriver); err1 != nil && err == nil {
-			err = err1
-			return
-		}
-	}()
 
 	// Flush deferred functions, like reading pixels from GPU.
 	if err := c.processFuncsInFrame(ui); err != nil {
@@ -164,8 +152,28 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 	}
 
 	// Draw the game.
-	if err := c.drawGame(graphicsDriver, ui, forceDraw); err != nil {
+	needSwapBuffers, err := c.drawGame(graphicsDriver, ui, forceDraw)
+	if err != nil {
 		return err
+	}
+
+	if err := atlas.EndFrame(); err != nil {
+		return err
+	}
+
+	if needSwapBuffers {
+		if err := atlas.SwapBuffers(graphicsDriver); err != nil {
+			return err
+		}
+	} else {
+		now := time.Now()
+		defer func() {
+			c.lastSwapBufferTime = now
+		}()
+		if delta := time.Second/60 - now.Sub(c.lastSwapBufferTime); delta > 0 {
+			// When swapping buffers is skipped and Draw is called too early, sleep for a while to suppress CPU usages (#2890).
+			time.Sleep(delta)
+		}
 	}
 
 	return nil
@@ -179,7 +187,7 @@ func (c *context) newOffscreenImage(w, h int) *Image {
 	return img
 }
 
-func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics, ui *UserInterface, forceDraw bool) error {
+func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics, ui *UserInterface, forceDraw bool) (needSwapBuffers bool, err error) {
 	if (c.offscreen.imageType == atlas.ImageTypeVolatile) != ui.IsScreenClearedEveryFrame() {
 		w, h := c.offscreen.width, c.offscreen.height
 		c.offscreen.Deallocate()
@@ -197,7 +205,7 @@ func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics, ui *UserInter
 	}
 
 	if err := c.game.DrawOffscreen(); err != nil {
-		return err
+		return false, err
 	}
 
 	const maxSkipCount = 4
@@ -210,28 +218,21 @@ func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics, ui *UserInter
 		c.skipCount = 0
 	}
 
-	now := time.Now()
-	defer func() {
-		c.lastDrawTime = now
-	}()
-
-	if c.skipCount < maxSkipCount {
-		if graphicsDriver.NeedsClearingScreen() {
-			// This clear is needed for fullscreen mode or some mobile platforms (#622).
-			c.screen.clear()
-		}
-
-		c.game.DrawFinalScreen(c.screenScaleAndOffsets())
-
-		// The final screen is never used as the rendering source.
-		// Flush its buffer here just in case.
-		c.screen.flushBufferIfNeeded()
-	} else if delta := time.Second/60 - now.Sub(c.lastDrawTime); delta > 0 {
-		// When swapping buffers is skipped and Draw is called too early, sleep for a while to suppress CPU usages (#2890).
-		time.Sleep(delta)
+	if c.skipCount >= maxSkipCount {
+		return false, nil
 	}
 
-	return nil
+	if graphicsDriver.NeedsClearingScreen() {
+		// This clear is needed for fullscreen mode or some mobile platforms (#622).
+		c.screen.clear()
+	}
+
+	c.game.DrawFinalScreen(c.screenScaleAndOffsets())
+
+	// The final screen is never used as the rendering source.
+	// Flush its buffer here just in case.
+	c.screen.flushBufferIfNeeded()
+	return true, nil
 }
 
 func (c *context) layoutGame(outsideWidth, outsideHeight float64, deviceScaleFactor float64) (int, int) {
