@@ -19,8 +19,31 @@ package ui
 //
 // #import <UIKit/UIKit.h>
 //
-// static double devicePixelRatio() {
-//   return [[UIScreen mainScreen] nativeScale];
+// static double devicePixelRatioOnMainThread(UIView* view) {
+//   UIWindow* window = view.window;
+//   if (!window) {
+//     return 1;
+//   }
+//   UIWindowScene* scene = window.windowScene;
+//   if (!scene) {
+//     return 1;
+//   }
+//   return scene.screen.nativeScale;
+// }
+//
+// static double devicePixelRatio(uintptr_t viewPtr) {
+//   if (!viewPtr) {
+//     return 1;
+//   }
+//   UIView* view = (__bridge UIView*)(void*)viewPtr;
+//   if ([NSThread isMainThread]) {
+//     return devicePixelRatioOnMainThread(view);
+//   }
+//   __block double scale;
+//   dispatch_sync(dispatch_get_main_queue(), ^{
+//     scale = devicePixelRatioOnMainThread(view);
+//   });
+//   return scale;
 // }
 import "C"
 
@@ -66,6 +89,7 @@ func (*graphicsDriverCreatorImpl) newPlayStation5() (graphicsdriver.Graphics, er
 }
 
 func (u *UserInterface) SetUIView(uiview uintptr) error {
+	u.uiView.Store(uiview)
 	select {
 	case err := <-u.errCh:
 		return err
@@ -89,9 +113,8 @@ func (u *UserInterface) IsGL() (bool, error) {
 	return u.GraphicsLibrary() == GraphicsLibraryOpenGL, nil
 }
 
-func deviceScaleFactorImpl() float64 {
-	// TODO: Can this be called from non-main threads?
-	return float64(C.devicePixelRatio())
+func (u *UserInterface) deviceScaleFactor() float64 {
+	return float64(C.devicePixelRatio(C.uintptr_t(u.uiView.Load())))
 }
 
 func dipToNativePixels(x float64, scale float64) float64 {

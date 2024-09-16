@@ -104,6 +104,9 @@ type userInterfaceImpl struct {
 	strictContextRestoration     atomic.Bool
 	strictContextRestorationOnce sync.Once
 
+	// uiView is used only on iOS.
+	uiView atomic.Uintptr
+
 	m sync.RWMutex
 }
 
@@ -285,7 +288,7 @@ func (m *Monitor) DeviceScaleFactor() float64 {
 	// Initialize this lazily.
 	m.deviceScaleFactorOnce.Do(func() {
 		// Assume that the device scale factor never changes on mobiles.
-		m.deviceScaleFactor = deviceScaleFactorImpl()
+		m.deviceScaleFactor = theUI.deviceScaleFactor()
 	})
 	return m.deviceScaleFactor
 }
