@@ -121,7 +121,7 @@ func (g *GeoM) Translate(tx, ty float64) {
 	g.ty += ty
 }
 
-// Rotate rotates the matrix by theta.
+// Rotate rotates the matrix by theta (clockwise).
 // The unit is radian.
 func (g *GeoM) Rotate(theta float64) {
 	if theta == 0 {
