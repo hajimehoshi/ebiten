@@ -32,8 +32,7 @@ func (m *MonitorType) Name() string {
 // DeviceScaleFactor returns a meaningful value on high-DPI display environment,
 // otherwise DeviceScaleFactor returns 1.
 //
-// DeviceScaleFactor might panic on init function on some devices like Android.
-// Then, it is not recommended to call DeviceScaleFactor from init functions.
+// On mobiles, DeviceScaleFactor returns 1 before the game starts e.g. in init functions.
 func (m *MonitorType) DeviceScaleFactor() float64 {
 	return (*ui.Monitor)(m).DeviceScaleFactor()
 }
@@ -42,7 +41,7 @@ func (m *MonitorType) DeviceScaleFactor() float64 {
 // This is the same as the screen size in fullscreen mode.
 // The returned value can be given to SetSize function if the perfectly fit fullscreen is needed.
 //
-// On mobiles, Size returns (0, 0) so far.
+// On mobiles, Size returns (0, 0) before the game starts e.g. in init functions.
 //
 // Size's use cases are limited. If you are making a fullscreen application, you can use RunGame and
 // the Game interface's Layout function instead. If you are making a not-fullscreen application but the application's
