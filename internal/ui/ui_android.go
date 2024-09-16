@@ -18,15 +18,19 @@ package ui
 #include <jni.h>
 #include <stdlib.h>
 
-// Basically same as:
+// The following JNI code works as this pseudo Java code:
 //
 //     WindowService windowService = context.getSystemService(Context.WINDOW_SERVICE);
 //     Display display = windowManager.getDefaultDisplay();
 //     DisplayMetrics displayMetrics = new DisplayMetrics();
 //     display.getRealMetrics(displayMetrics);
-//     this.deviceScale = displayMetrics.density;
+//     return displayMetrics.widthPixels, displayMetrics.heightPixels, displayMetrics.density;
 //
-static float deviceScale(uintptr_t java_vm, uintptr_t jni_env, uintptr_t ctx) {
+static void displayInfo(int* width, int* height, float* scale, uintptr_t java_vm, uintptr_t jni_env, uintptr_t ctx) {
+  *width = 0;
+  *height = 0;
+  *scale = 1;
+
   JavaVM* vm = (JavaVM*)java_vm;
   JNIEnv* env = (JNIEnv*)jni_env;
   jobject context = (jobject)ctx;
@@ -64,7 +68,15 @@ static float deviceScale(uintptr_t java_vm, uintptr_t jni_env, uintptr_t ctx) {
       env, display,
       (*env)->GetMethodID(env, android_view_Display, "getRealMetrics", "(Landroid/util/DisplayMetrics;)V"),
       displayMetrics);
-  const float density =
+  *width =
+      (*env)->GetIntField(
+          env, displayMetrics,
+          (*env)->GetFieldID(env, android_util_DisplayMetrics, "widthPixels", "I"));
+  *height =
+      (*env)->GetIntField(
+          env, displayMetrics,
+          (*env)->GetFieldID(env, android_util_DisplayMetrics, "heightPixels", "I"));
+  *scale =
       (*env)->GetFloatField(
           env, displayMetrics,
           (*env)->GetFieldID(env, android_util_DisplayMetrics, "density", "F"));
@@ -78,15 +90,12 @@ static float deviceScale(uintptr_t java_vm, uintptr_t jni_env, uintptr_t ctx) {
   (*env)->DeleteLocalRef(env, windowManager);
   (*env)->DeleteLocalRef(env, display);
   (*env)->DeleteLocalRef(env, displayMetrics);
-
-  return density;
 }
 */
 import "C"
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/ebitengine/gomobile/app"
 
@@ -119,18 +128,27 @@ func (*graphicsDriverCreatorImpl) newPlayStation5() (graphicsdriver.Graphics, er
 	return nil, errors.New("ui: PlayStation 5 is not supported in this environment")
 }
 
-func deviceScaleFactorImpl() float64 {
-	var s float64
-	if err := app.RunOnJVM(func(vm, env, ctx uintptr) error {
-		// TODO: This might be crash when this is called from init(). How can we detect this?
-		s = float64(C.deviceScale(C.uintptr_t(vm), C.uintptr_t(env), C.uintptr_t(ctx)))
-		return nil
-	}); err != nil {
-		panic(fmt.Sprintf("devicescale: error %v", err))
-	}
-	return s
-}
-
 func dipToNativePixels(x float64, scale float64) float64 {
 	return x * scale
+}
+
+func dipFromNativePixels(x float64, scale float64) float64 {
+	return x / scale
+}
+
+func (u *UserInterface) displayInfo() (int, int, float64, bool) {
+	var cWidth, cHeight C.int
+	var cScale C.float
+	if err := app.RunOnJVM(func(vm, env, ctx uintptr) error {
+		C.displayInfo(&cWidth, &cHeight, &cScale, C.uintptr_t(vm), C.uintptr_t(env), C.uintptr_t(ctx))
+		return nil
+	}); err != nil {
+		// JVM is not ready yet.
+		// TODO: Fix gomobile to detect the error type for this case.
+		return 0, 0, 1, false
+	}
+	scale := float64(cScale)
+	width := int(dipFromNativePixels(float64(cWidth), scale))
+	height := int(dipFromNativePixels(float64(cHeight), scale))
+	return width, height, scale, true
 }

@@ -104,6 +104,9 @@ type userInterfaceImpl struct {
 	strictContextRestoration     atomic.Bool
 	strictContextRestorationOnce sync.Once
 
+	// uiView is used only on iOS.
+	uiView atomic.Uintptr
+
 	m sync.RWMutex
 }
 
@@ -265,8 +268,10 @@ func (u *UserInterface) Window() Window {
 }
 
 type Monitor struct {
-	deviceScaleFactor     float64
-	deviceScaleFactorOnce sync.Once
+	width             int
+	height            int
+	deviceScaleFactor float64
+	inited            atomic.Bool
 
 	m sync.Mutex
 }
@@ -277,22 +282,35 @@ func (m *Monitor) Name() string {
 	return ""
 }
 
-func (m *Monitor) DeviceScaleFactor() float64 {
+func (m *Monitor) ensureInit() {
+	if m.inited.Load() {
+		return
+	}
+
 	m.m.Lock()
 	defer m.m.Unlock()
+	// Re-check the state since the state might be changed while locking.
+	if m.inited.Load() {
+		return
+	}
+	width, height, scale, ok := theUI.displayInfo()
+	if !ok {
+		return
+	}
+	m.width = width
+	m.height = height
+	m.deviceScaleFactor = scale
+	m.inited.Store(true)
+}
 
-	// The device scale factor can be obtained after the main function starts, especially on Android.
-	// Initialize this lazily.
-	m.deviceScaleFactorOnce.Do(func() {
-		// Assume that the device scale factor never changes on mobiles.
-		m.deviceScaleFactor = deviceScaleFactorImpl()
-	})
+func (m *Monitor) DeviceScaleFactor() float64 {
+	m.ensureInit()
 	return m.deviceScaleFactor
 }
 
 func (m *Monitor) Size() (int, int) {
-	// TODO: Return a valid value.
-	return 0, 0
+	m.ensureInit()
+	return m.width, m.height
 }
 
 func (u *UserInterface) AppendMonitors(mons []*Monitor) []*Monitor {

@@ -54,7 +54,7 @@ type context struct {
 	offscreenHeight float64
 
 	isOffscreenModified bool
-	lastDrawTime        time.Time
+	lastSwapBufferTime  time.Time
 
 	skipCount int
 
@@ -70,7 +70,14 @@ func newContext(game Game) *context {
 
 func (c *context) updateFrame(graphicsDriver graphicsdriver.Graphics, outsideWidth, outsideHeight float64, deviceScaleFactor float64, ui *UserInterface) error {
 	// TODO: If updateCount is 0 and vsync is disabled, swapping buffers can be skipped.
-	return c.updateFrameImpl(graphicsDriver, clock.UpdateFrame(), outsideWidth, outsideHeight, deviceScaleFactor, ui, false)
+	needsSwapBuffers, err := c.updateFrameImpl(graphicsDriver, clock.UpdateFrame(), outsideWidth, outsideHeight, deviceScaleFactor, ui, false)
+	if err != nil {
+		return err
+	}
+	if err := c.swapBuffersOrWait(needsSwapBuffers, graphicsDriver, ui.FPSMode() == FPSModeVsyncOn); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (c *context) forceUpdateFrame(graphicsDriver graphicsdriver.Graphics, outsideWidth, outsideHeight float64, deviceScaleFactor float64, ui *UserInterface) error {
@@ -81,33 +88,32 @@ func (c *context) forceUpdateFrame(graphicsDriver graphicsdriver.Graphics, outsi
 		n = 2
 	}
 	for i := 0; i < n; i++ {
-		if err := c.updateFrameImpl(graphicsDriver, 1, outsideWidth, outsideHeight, deviceScaleFactor, ui, true); err != nil {
+		needsSwapBuffers, err := c.updateFrameImpl(graphicsDriver, 1, outsideWidth, outsideHeight, deviceScaleFactor, ui, true)
+		if err != nil {
+			return err
+		}
+		if err := c.swapBuffersOrWait(needsSwapBuffers, graphicsDriver, ui.FPSMode() == FPSModeVsyncOn); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, updateCount int, outsideWidth, outsideHeight float64, deviceScaleFactor float64, ui *UserInterface, forceDraw bool) (err error) {
+func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, updateCount int, outsideWidth, outsideHeight float64, deviceScaleFactor float64, ui *UserInterface, forceDraw bool) (needsSwapBuffers bool, err error) {
 	// The given outside size can be 0 e.g. just after restoring from the fullscreen mode on Windows (#1589)
 	// Just ignore such cases. Otherwise, creating a zero-sized framebuffer causes a panic.
 	if outsideWidth == 0 || outsideHeight == 0 {
-		return nil
+		return false, nil
 	}
 
 	debug.FrameLogf("----\n")
 
 	if err := atlas.BeginFrame(graphicsDriver); err != nil {
-		return err
+		return false, err
 	}
-
 	defer func() {
 		if err1 := atlas.EndFrame(); err1 != nil && err == nil {
-			err = err1
-			return
-		}
-
-		if err1 := atlas.SwapBuffers(graphicsDriver); err1 != nil && err == nil {
+			needsSwapBuffers = false
 			err = err1
 			return
 		}
@@ -115,17 +121,17 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 
 	// Flush deferred functions, like reading pixels from GPU.
 	if err := c.processFuncsInFrame(ui); err != nil {
-		return err
+		return false, err
 	}
 
 	// ForceUpdate can be invoked even if the context is not initialized yet (#1591).
 	if w, h := c.layoutGame(outsideWidth, outsideHeight, deviceScaleFactor); w == 0 || h == 0 {
-		return nil
+		return false, nil
 	}
 
 	// Update the input state after the layout is updated as a cursor position is affected by the layout.
 	if err := ui.updateInputState(); err != nil {
-		return err
+		return false, err
 	}
 
 	// Ensure that Update is called once before Draw so that Update can be used for initialization.
@@ -143,15 +149,15 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 		})
 
 		if err := hook.RunBeforeUpdateHooks(); err != nil {
-			return err
+			return false, err
 		}
 		if err := c.game.Update(); err != nil {
-			return err
+			return false, err
 		}
 
 		// Catch the error that happened at (*Image).At.
 		if err := ui.error(); err != nil {
-			return err
+			return false, err
 		}
 
 		ui.tick.Add(1)
@@ -160,12 +166,39 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 	// Update window icons during a frame, since an icon might be *ebiten.Image and
 	// getting pixels from it needs to be in a frame (#1468).
 	if err := ui.updateIconIfNeeded(); err != nil {
-		return err
+		return false, err
 	}
 
 	// Draw the game.
-	if err := c.drawGame(graphicsDriver, ui, forceDraw); err != nil {
-		return err
+	return c.drawGame(graphicsDriver, ui, forceDraw)
+}
+
+func (c *context) swapBuffersOrWait(needsSwapBuffers bool, graphicsDriver graphicsdriver.Graphics, vsyncEnabled bool) error {
+	now := time.Now()
+	defer func() {
+		c.lastSwapBufferTime = now
+	}()
+
+	if needsSwapBuffers {
+		if err := atlas.SwapBuffers(graphicsDriver); err != nil {
+			return err
+		}
+	}
+
+	var waitTime time.Duration
+	if !needsSwapBuffers {
+		// When swapping buffers is skipped and Draw is called too early, sleep for a while to suppress CPU usages (#2890).
+		waitTime = time.Second / 60
+	} else if vsyncEnabled {
+		// In some environments, e.g. Linux on Parallels, SwapBuffers doesn't wait for the vsync (#2952).
+		// In the case when the display has high refresh rates like 240 [Hz], the wait time should be small.
+		waitTime = time.Millisecond
+	}
+	if waitTime > 0 {
+		if delta := waitTime - now.Sub(c.lastSwapBufferTime); delta > 0 {
+			println(waitTime.String(), now.Sub(c.lastSwapBufferTime).String())
+			time.Sleep(delta)
+		}
 	}
 
 	return nil
@@ -179,7 +212,7 @@ func (c *context) newOffscreenImage(w, h int) *Image {
 	return img
 }
 
-func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics, ui *UserInterface, forceDraw bool) error {
+func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics, ui *UserInterface, forceDraw bool) (needSwapBuffers bool, err error) {
 	if (c.offscreen.imageType == atlas.ImageTypeVolatile) != ui.IsScreenClearedEveryFrame() {
 		w, h := c.offscreen.width, c.offscreen.height
 		c.offscreen.Deallocate()
@@ -197,7 +230,7 @@ func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics, ui *UserInter
 	}
 
 	if err := c.game.DrawOffscreen(); err != nil {
-		return err
+		return false, err
 	}
 
 	const maxSkipCount = 4
@@ -210,28 +243,21 @@ func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics, ui *UserInter
 		c.skipCount = 0
 	}
 
-	now := time.Now()
-	defer func() {
-		c.lastDrawTime = now
-	}()
-
-	if c.skipCount < maxSkipCount {
-		if graphicsDriver.NeedsClearingScreen() {
-			// This clear is needed for fullscreen mode or some mobile platforms (#622).
-			c.screen.clear()
-		}
-
-		c.game.DrawFinalScreen(c.screenScaleAndOffsets())
-
-		// The final screen is never used as the rendering source.
-		// Flush its buffer here just in case.
-		c.screen.flushBufferIfNeeded()
-	} else if delta := time.Second/60 - now.Sub(c.lastDrawTime); delta > 0 {
-		// When swapping buffers is skipped and Draw is called too early, sleep for a while to suppress CPU usages (#2890).
-		time.Sleep(delta)
+	if c.skipCount >= maxSkipCount {
+		return false, nil
 	}
 
-	return nil
+	if graphicsDriver.NeedsClearingScreen() {
+		// This clear is needed for fullscreen mode or some mobile platforms (#622).
+		c.screen.clear()
+	}
+
+	c.game.DrawFinalScreen(c.screenScaleAndOffsets())
+
+	// The final screen is never used as the rendering source.
+	// Flush its buffer here just in case.
+	c.screen.flushBufferIfNeeded()
+	return true, nil
 }
 
 func (c *context) layoutGame(outsideWidth, outsideHeight float64, deviceScaleFactor float64) (int, int) {
@@ -240,8 +266,13 @@ func (c *context) layoutGame(outsideWidth, outsideHeight float64, deviceScaleFac
 		panic("ui: Layout must return positive numbers")
 	}
 
-	c.screenWidth = outsideWidth * deviceScaleFactor
-	c.screenHeight = outsideHeight * deviceScaleFactor
+	screenWidth := outsideWidth * deviceScaleFactor
+	screenHeight := outsideHeight * deviceScaleFactor
+	if c.screenWidth != screenWidth || c.screenHeight != screenHeight {
+		c.skipCount = 0
+	}
+	c.screenWidth = screenWidth
+	c.screenHeight = screenHeight
 	c.offscreenWidth = owf
 	c.offscreenHeight = ohf
 

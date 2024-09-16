@@ -19,8 +19,43 @@ package ui
 //
 // #import <UIKit/UIKit.h>
 //
-// static double devicePixelRatio() {
-//   return [[UIScreen mainScreen] nativeScale];
+// static void displayInfoOnMainThread(float* width, float* height, float* scale, UIView* view) {
+//   *width = 0;
+//   *height = 0;
+//   *scale = 1;
+//   UIWindow* window = view.window;
+//   if (!window) {
+//     return;
+//   }
+//   UIWindowScene* scene = window.windowScene;
+//   if (!scene) {
+//     return;
+//   }
+//   CGRect bounds = scene.screen.bounds;
+//   *width = bounds.size.width;
+//   *height = bounds.size.height;
+//   *scale = scene.screen.nativeScale;
+// }
+//
+// static void displayInfo(float* width, float* height, float* scale, uintptr_t viewPtr) {
+//   *width = 0;
+//   *height = 0;
+//   *scale = 1;
+//   if (!viewPtr) {
+//     return;
+//   }
+//   UIView* view = (__bridge UIView*)(void*)viewPtr;
+//   if ([NSThread isMainThread]) {
+//     displayInfoOnMainThread(width, height, scale, view);
+//     return;
+//   }
+//   __block float w, h, s;
+//   dispatch_sync(dispatch_get_main_queue(), ^{
+//     displayInfoOnMainThread(&w, &h, &s, view);
+//   });
+//   *width = w;
+//   *height = h;
+//   *scale = s;
 // }
 import "C"
 
@@ -66,6 +101,7 @@ func (*graphicsDriverCreatorImpl) newPlayStation5() (graphicsdriver.Graphics, er
 }
 
 func (u *UserInterface) SetUIView(uiview uintptr) error {
+	u.uiView.Store(uiview)
 	select {
 	case err := <-u.errCh:
 		return err
@@ -89,11 +125,24 @@ func (u *UserInterface) IsGL() (bool, error) {
 	return u.GraphicsLibrary() == GraphicsLibraryOpenGL, nil
 }
 
-func deviceScaleFactorImpl() float64 {
-	// TODO: Can this be called from non-main threads?
-	return float64(C.devicePixelRatio())
-}
-
 func dipToNativePixels(x float64, scale float64) float64 {
 	return x
+}
+
+func dipFromNativePixels(x float64, scale float64) float64 {
+	return x
+}
+
+func (u *UserInterface) displayInfo() (int, int, float64, bool) {
+	view := u.uiView.Load()
+	if view == 0 {
+		return 0, 0, 1, false
+	}
+
+	var cWidth, cHeight, cScale C.float
+	C.displayInfo(&cWidth, &cHeight, &cScale, C.uintptr_t(view))
+	scale := float64(cScale)
+	width := int(dipFromNativePixels(float64(cWidth), scale))
+	height := int(dipFromNativePixels(float64(cHeight), scale))
+	return width, height, scale, true
 }
