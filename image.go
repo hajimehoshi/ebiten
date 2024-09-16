@@ -554,30 +554,32 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 	vs := i.ensureTmpVertices(len(vertices) * graphics.VertexFloatCount)
 	dst := i
 	if options.ColorScaleMode == ColorScaleModeStraightAlpha {
-		for i, v := range vertices {
-			dx, dy := dst.adjustPositionF32(v.DstX, v.DstY)
+		// Avoid using `for i, v := range vertices` as adding `v` creates a copy from `vertices` unnecessarily on each loop (#3103).
+		for i := range vertices {
+			dx, dy := dst.adjustPositionF32(vertices[i].DstX, vertices[i].DstY)
 			vs[i*graphics.VertexFloatCount] = dx
 			vs[i*graphics.VertexFloatCount+1] = dy
-			sx, sy := img.adjustPositionF32(v.SrcX, v.SrcY)
+			sx, sy := img.adjustPositionF32(vertices[i].SrcX, vertices[i].SrcY)
 			vs[i*graphics.VertexFloatCount+2] = sx
 			vs[i*graphics.VertexFloatCount+3] = sy
-			vs[i*graphics.VertexFloatCount+4] = v.ColorR * v.ColorA * cr
-			vs[i*graphics.VertexFloatCount+5] = v.ColorG * v.ColorA * cg
-			vs[i*graphics.VertexFloatCount+6] = v.ColorB * v.ColorA * cb
-			vs[i*graphics.VertexFloatCount+7] = v.ColorA * ca
+			vs[i*graphics.VertexFloatCount+4] = vertices[i].ColorR * vertices[i].ColorA * cr
+			vs[i*graphics.VertexFloatCount+5] = vertices[i].ColorG * vertices[i].ColorA * cg
+			vs[i*graphics.VertexFloatCount+6] = vertices[i].ColorB * vertices[i].ColorA * cb
+			vs[i*graphics.VertexFloatCount+7] = vertices[i].ColorA * ca
 		}
 	} else {
-		for i, v := range vertices {
-			dx, dy := dst.adjustPositionF32(v.DstX, v.DstY)
+		// See comment above (#3103).
+		for i := range vertices {
+			dx, dy := dst.adjustPositionF32(vertices[i].DstX, vertices[i].DstY)
 			vs[i*graphics.VertexFloatCount] = dx
 			vs[i*graphics.VertexFloatCount+1] = dy
-			sx, sy := img.adjustPositionF32(v.SrcX, v.SrcY)
+			sx, sy := img.adjustPositionF32(vertices[i].SrcX, vertices[i].SrcY)
 			vs[i*graphics.VertexFloatCount+2] = sx
 			vs[i*graphics.VertexFloatCount+3] = sy
-			vs[i*graphics.VertexFloatCount+4] = v.ColorR * cr
-			vs[i*graphics.VertexFloatCount+5] = v.ColorG * cg
-			vs[i*graphics.VertexFloatCount+6] = v.ColorB * cb
-			vs[i*graphics.VertexFloatCount+7] = v.ColorA * ca
+			vs[i*graphics.VertexFloatCount+4] = vertices[i].ColorR * cr
+			vs[i*graphics.VertexFloatCount+5] = vertices[i].ColorG * cg
+			vs[i*graphics.VertexFloatCount+6] = vertices[i].ColorB * cb
+			vs[i*graphics.VertexFloatCount+7] = vertices[i].ColorA * ca
 		}
 	}
 	is := i.ensureTmpIndices(len(indices))
@@ -718,24 +720,25 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 	vs := i.ensureTmpVertices(len(vertices) * graphics.VertexFloatCount)
 	dst := i
 	src := options.Images[0]
-	for i, v := range vertices {
-		dx, dy := dst.adjustPositionF32(v.DstX, v.DstY)
+	// Avoid using `for i, v := range vertices` as adding `v` creates a copy from `vertices` unnecessarily on each loop (#3103).
+	for i := range vertices {
+		dx, dy := dst.adjustPositionF32(vertices[i].DstX, vertices[i].DstY)
 		vs[i*graphics.VertexFloatCount] = dx
 		vs[i*graphics.VertexFloatCount+1] = dy
-		sx, sy := v.SrcX, v.SrcY
+		sx, sy := vertices[i].SrcX, vertices[i].SrcY
 		if src != nil {
 			sx, sy = src.adjustPositionF32(sx, sy)
 		}
 		vs[i*graphics.VertexFloatCount+2] = sx
 		vs[i*graphics.VertexFloatCount+3] = sy
-		vs[i*graphics.VertexFloatCount+4] = v.ColorR
-		vs[i*graphics.VertexFloatCount+5] = v.ColorG
-		vs[i*graphics.VertexFloatCount+6] = v.ColorB
-		vs[i*graphics.VertexFloatCount+7] = v.ColorA
-		vs[i*graphics.VertexFloatCount+8] = v.Custom0
-		vs[i*graphics.VertexFloatCount+9] = v.Custom1
-		vs[i*graphics.VertexFloatCount+10] = v.Custom2
-		vs[i*graphics.VertexFloatCount+11] = v.Custom3
+		vs[i*graphics.VertexFloatCount+4] = vertices[i].ColorR
+		vs[i*graphics.VertexFloatCount+5] = vertices[i].ColorG
+		vs[i*graphics.VertexFloatCount+6] = vertices[i].ColorB
+		vs[i*graphics.VertexFloatCount+7] = vertices[i].ColorA
+		vs[i*graphics.VertexFloatCount+8] = vertices[i].Custom0
+		vs[i*graphics.VertexFloatCount+9] = vertices[i].Custom1
+		vs[i*graphics.VertexFloatCount+10] = vertices[i].Custom2
+		vs[i*graphics.VertexFloatCount+11] = vertices[i].Custom3
 	}
 
 	is := i.ensureTmpIndices(len(indices))
