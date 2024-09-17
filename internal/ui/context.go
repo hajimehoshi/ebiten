@@ -196,7 +196,6 @@ func (c *context) swapBuffersOrWait(needsSwapBuffers bool, graphicsDriver graphi
 	}
 	if waitTime > 0 {
 		if delta := waitTime - now.Sub(c.lastSwapBufferTime); delta > 0 {
-			println(waitTime.String(), now.Sub(c.lastSwapBufferTime).String())
 			time.Sleep(delta)
 		}
 	}
