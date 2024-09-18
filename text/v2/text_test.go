@@ -450,7 +450,6 @@ func TestGoXFaceMetrics(t *testing.T) {
 	}
 }
 
-
 func BenchmarkDrawText(b *testing.B) {
 	var txt string
 	for i := 0; i < 32; i++ {

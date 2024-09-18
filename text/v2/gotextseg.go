@@ -21,6 +21,7 @@ import (
 
 	"github.com/go-text/typesetting/font/opentype"
 	"golang.org/x/image/math/fixed"
+	gvector "golang.org/x/image/vector"
 
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
