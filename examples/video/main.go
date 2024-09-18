@@ -15,6 +15,7 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	_ "embed"
 	"fmt"
@@ -81,7 +82,7 @@ func main() {
 		fmt.Println("Play the default video. You can specify a video file as an argument.")
 	}
 
-	player, err := newMPEGPlayer(in)
+	player, err := newMPEGPlayer(bufio.NewReader(in))
 	if err != nil {
 		log.Fatal(err)
 	}

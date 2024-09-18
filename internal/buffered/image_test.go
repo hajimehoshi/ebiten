@@ -22,6 +22,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/buffered"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
+	"github.com/hajimehoshi/ebiten/v2/internal/restorable"
 	t "github.com/hajimehoshi/ebiten/v2/internal/testing"
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
@@ -52,11 +53,11 @@ func TestUnsyncedPixels(t *testing.T) {
 	// Flush unsynced pixel cache.
 	src := buffered.NewImage(16, 16, atlas.ImageTypeRegular)
 	vs := make([]float32, 4*graphics.VertexFloatCount)
-	graphics.QuadVertices(vs, 0, 0, 16, 16, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
+	graphics.QuadVerticesFromDstAndSrc(vs, 0, 0, 16, 16, 0, 0, 16, 16, 1, 1, 1, 1)
 	is := graphics.QuadIndices()
 	dr := image.Rect(0, 0, 16, 16)
 	sr := [graphics.ShaderSrcImageCount]image.Rectangle{image.Rect(0, 0, 16, 16)}
-	dst.DrawTriangles([graphics.ShaderSrcImageCount]*buffered.Image{src}, vs, is, graphicsdriver.BlendSourceOver, dr, sr, atlas.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll)
+	dst.DrawTriangles([graphics.ShaderSrcImageCount]*buffered.Image{src}, vs, is, graphicsdriver.BlendSourceOver, dr, sr, atlas.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
 
 	// Check the result is correct.
 	var got [4]byte

@@ -27,7 +27,7 @@ type graphicsPlatform struct {
 
 // NewGraphics creates an implementation of graphicsdriver.Graphics for OpenGL.
 // The returned graphics value is nil iff the error is not nil.
-func NewGraphics(canvas js.Value) (graphicsdriver.Graphics, error) {
+func NewGraphics(canvas js.Value, colorSpace graphicsdriver.ColorSpace) (graphicsdriver.Graphics, error) {
 	var glContext js.Value
 
 	attr := js.Global().Get("Object").New()
@@ -39,6 +39,13 @@ func NewGraphics(canvas js.Value) (graphicsdriver.Graphics, error) {
 
 	if !glContext.Truthy() {
 		return nil, fmt.Errorf("opengl: getContext for webgl2 failed")
+	}
+
+	switch colorSpace {
+	case graphicsdriver.ColorSpaceSRGB:
+		glContext.Set("drawingBufferColorSpace", "srgb")
+	case graphicsdriver.ColorSpaceDisplayP3:
+		glContext.Set("drawingBufferColorSpace", "display-p3")
 	}
 
 	ctx, err := gl.NewDefaultContext(glContext)

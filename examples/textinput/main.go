@@ -19,7 +19,6 @@ import (
 	"image/color"
 	"log"
 	"math"
-	"runtime"
 	"strings"
 	"unicode/utf8"
 
@@ -324,10 +323,6 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 }
 
 func main() {
-	if runtime.GOOS != "darwin" && runtime.GOOS != "js" {
-		log.Printf("github.com/hajimehoshi/ebiten/v2/exp/textinput is not supported in this environment (GOOS=%s) yet", runtime.GOOS)
-	}
-
 	ebiten.SetWindowSize(screenWidth, screenHeight)
 	ebiten.SetWindowTitle("Text Input (Ebitengine Demo)")
 	if err := ebiten.RunGame(&Game{}); err != nil {

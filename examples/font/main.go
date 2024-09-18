@@ -19,8 +19,7 @@ import (
 	"fmt"
 	"image/color"
 	"log"
-	"math/rand"
-	"time"
+	"math/rand/v2"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/examples/resources/fonts"
@@ -94,10 +93,6 @@ func init() {
 	mplusFaceSource = s
 }
 
-func init() {
-	rand.Seed(time.Now().UnixNano())
-}
-
 type Game struct {
 	counter        int
 	kanjiText      string
@@ -110,14 +105,14 @@ func (g *Game) Update() error {
 		g.kanjiText = ""
 		for j := 0; j < 6; j++ {
 			for i := 0; i < 12; i++ {
-				g.kanjiText += string(jaKanjis[rand.Intn(len(jaKanjis))])
+				g.kanjiText += string(jaKanjis[rand.IntN(len(jaKanjis))])
 			}
 			g.kanjiText += "\n"
 		}
 
-		g.kanjiTextColor.R = 0x80 + uint8(rand.Intn(0x7f))
-		g.kanjiTextColor.G = 0x80 + uint8(rand.Intn(0x7f))
-		g.kanjiTextColor.B = 0x80 + uint8(rand.Intn(0x7f))
+		g.kanjiTextColor.R = 0x80 + uint8(rand.IntN(0x7f))
+		g.kanjiTextColor.G = 0x80 + uint8(rand.IntN(0x7f))
+		g.kanjiTextColor.B = 0x80 + uint8(rand.IntN(0x7f))
 		g.kanjiTextColor.A = 0xff
 	}
 	g.counter++

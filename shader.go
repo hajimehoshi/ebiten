@@ -38,12 +38,16 @@ type Shader struct {
 //
 // For the details about the shader, see https://ebitengine.org/en/documents/shader.html.
 func NewShader(src []byte) (*Shader, error) {
+	return newShader(src, "")
+}
+
+func newShader(src []byte, name string) (*Shader, error) {
 	ir, err := graphics.CompileShader(src)
 	if err != nil {
 		return nil, err
 	}
 	return &Shader{
-		shader: ui.NewShader(ir),
+		shader: ui.NewShader(ir, name),
 		unit:   ir.Unit,
 	}, nil
 }
@@ -108,7 +112,23 @@ func builtinShader(filter builtinshader.Filter, address builtinshader.Address, u
 		}
 	} else {
 		src := builtinshader.ShaderSource(filter, address, useColorM)
-		s, err := NewShader(src)
+		var name string
+		switch filter {
+		case builtinshader.FilterNearest:
+			name = "nearest"
+		case builtinshader.FilterLinear:
+			name = "linear"
+		}
+		switch address {
+		case builtinshader.AddressClampToZero:
+			name += "-clamptozero"
+		case builtinshader.AddressRepeat:
+			name += "-repeat"
+		}
+		if useColorM {
+			name += "-colorm"
+		}
+		s, err := newShader(src, name)
 		if err != nil {
 			panic(fmt.Sprintf("ebiten: NewShader for a built-in shader failed: %v", err))
 		}

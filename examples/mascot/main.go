@@ -21,8 +21,7 @@ import (
 	"image"
 	_ "image/png"
 	"log"
-	"math/rand"
-	"time"
+	"math/rand/v2"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	rmascot "github.com/hajimehoshi/ebiten/v2/examples/resources/images/mascot"
@@ -58,10 +57,6 @@ func init() {
 		log.Fatal(err)
 	}
 	gopher3 = ebiten.NewImageFromImage(img3)
-}
-
-func init() {
-	rand.Seed(time.Now().UnixNano())
 }
 
 type mascot struct {
@@ -105,8 +100,8 @@ func (m *mascot) Update() error {
 	}
 
 	// If the mascto is on the ground, cause an action in random.
-	if rand.Intn(60) == 0 && m.y16 == 0 {
-		switch rand.Intn(2) {
+	if rand.IntN(60) == 0 && m.y16 == 0 {
+		switch rand.IntN(2) {
 		case 0:
 			// Jump.
 			m.vy16 = -240

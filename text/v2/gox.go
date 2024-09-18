@@ -44,6 +44,8 @@ type GoXFace struct {
 
 	glyphImageCache glyphImageCache[goXFaceGlyphImageCacheKey]
 
+	cachedMetrics Metrics
+
 	addr *GoXFace
 }
 
@@ -68,17 +70,35 @@ func (s *GoXFace) copyCheck() {
 func (s *GoXFace) Metrics() Metrics {
 	s.copyCheck()
 
-	m := s.f.Metrics()
-	return Metrics{
-		HLineGap: fixed26_6ToFloat64(m.Height - m.Ascent - m.Descent),
-		HAscent:  fixed26_6ToFloat64(m.Ascent),
-		HDescent: fixed26_6ToFloat64(m.Descent),
+	if s.cachedMetrics != (Metrics{}) {
+		return s.cachedMetrics
 	}
+
+	fm := s.f.Metrics()
+	m := Metrics{
+		HLineGap:  fixed26_6ToFloat64(fm.Height - fm.Ascent - fm.Descent),
+		HAscent:   fixed26_6ToFloat64(fm.Ascent),
+		HDescent:  fixed26_6ToFloat64(fm.Descent),
+		XHeight:   fixed26_6ToFloat64(fm.XHeight),
+		CapHeight: fixed26_6ToFloat64(fm.CapHeight),
+	}
+
+	// There is an issue that XHeight and CapHeight are negative for some old fonts (golang/go#69378).
+	if fm.XHeight < 0 {
+		m.XHeight *= -1
+	}
+	if fm.CapHeight < 0 {
+		m.CapHeight *= -1
+	}
+	s.cachedMetrics = m
+	return m
 }
 
 // UnsafeInternal returns its internal font.Face.
 //
-// This is unsafe since this might make internal cache states out of sync.
+// UnsafeInternal is unsafe since this might make internal cache states out of sync.
+//
+// UnsafeInternal might have breaking changes even in the same major version.
 func (s *GoXFace) UnsafeInternal() font.Face {
 	s.copyCheck()
 	return s.f.f
@@ -124,6 +144,10 @@ func (s *GoXFace) appendGlyphsForLine(glyphs []Glyph, line string, indexOffset i
 			Image:             img.Image(),
 			X:                 float64(imgX),
 			Y:                 float64(imgY),
+			OriginX:           fixed26_6ToFloat64(origin.X),
+			OriginY:           fixed26_6ToFloat64(origin.Y),
+			OriginOffsetX:     0,
+			OriginOffsetY:     0,
 		})
 		origin.X += a
 		prevR = r

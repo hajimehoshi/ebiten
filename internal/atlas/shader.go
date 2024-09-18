@@ -15,26 +15,23 @@
 package atlas
 
 import (
-	"fmt"
 	"runtime"
 
-	"golang.org/x/sync/errgroup"
-
-	"github.com/hajimehoshi/ebiten/v2/internal/builtinshader"
-	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
-	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
+	"github.com/hajimehoshi/ebiten/v2/internal/restorable"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
 
 type Shader struct {
 	ir     *shaderir.Program
-	shader *graphicscommand.Shader
+	shader *restorable.Shader
+	name   string
 }
 
-func NewShader(ir *shaderir.Program) *Shader {
+func NewShader(ir *shaderir.Program, name string) *Shader {
 	// A shader is initialized lazily, and the lock is not needed.
 	return &Shader{
-		ir: ir,
+		ir:   ir,
+		name: name,
 	}
 }
 
@@ -46,11 +43,11 @@ func (s *Shader) finalize() {
 	})
 }
 
-func (s *Shader) ensureShader() *graphicscommand.Shader {
+func (s *Shader) ensureShader() *restorable.Shader {
 	if s.shader != nil {
 		return s.shader
 	}
-	s.shader = graphicscommand.NewShader(s.ir)
+	s.shader = restorable.NewShader(s.ir, s.name)
 	runtime.SetFinalizer(s, (*Shader).finalize)
 	return s.shader
 }
@@ -80,38 +77,6 @@ func (s *Shader) deallocate() {
 }
 
 var (
-	NearestFilterShader *Shader
-	LinearFilterShader  *Shader
-	clearShader         *Shader
+	NearestFilterShader = &Shader{shader: restorable.NearestFilterShader}
+	LinearFilterShader  = &Shader{shader: restorable.LinearFilterShader}
 )
-
-func init() {
-	var wg errgroup.Group
-	wg.Go(func() error {
-		ir, err := graphics.CompileShader([]byte(builtinshader.ShaderSource(builtinshader.FilterNearest, builtinshader.AddressUnsafe, false)))
-		if err != nil {
-			return fmt.Errorf("atlas: compiling the nearest shader failed: %w", err)
-		}
-		NearestFilterShader = NewShader(ir)
-		return nil
-	})
-	wg.Go(func() error {
-		ir, err := graphics.CompileShader([]byte(builtinshader.ShaderSource(builtinshader.FilterLinear, builtinshader.AddressUnsafe, false)))
-		if err != nil {
-			return fmt.Errorf("atlas: compiling the linear shader failed: %w", err)
-		}
-		LinearFilterShader = NewShader(ir)
-		return nil
-	})
-	wg.Go(func() error {
-		ir, err := graphics.CompileShader([]byte(builtinshader.ClearShaderSource))
-		if err != nil {
-			return fmt.Errorf("atlas: compiling the clear shader failed: %w", err)
-		}
-		clearShader = NewShader(ir)
-		return nil
-	})
-	if err := wg.Wait(); err != nil {
-		panic(err)
-	}
-}

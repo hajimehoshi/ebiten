@@ -20,9 +20,8 @@ import (
 	"image/color"
 	_ "image/jpeg"
 	_ "image/png"
-	"math/rand"
+	"math/rand/v2"
 	"strconv"
-	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/colorm"
@@ -139,10 +138,6 @@ type GameScene struct {
 	gameover           bool
 }
 
-func init() {
-	rand.Seed(time.Now().UnixNano())
-}
-
 func NewGameScene() *GameScene {
 	return &GameScene{
 		field: &Field{},
@@ -194,7 +189,7 @@ const (
 
 func (s *GameScene) choosePiece() *Piece {
 	num := int(BlockTypeMax)
-	blockType := BlockType(rand.Intn(num) + 1)
+	blockType := BlockType(rand.IntN(num) + 1)
 	return Pieces[blockType]
 }
 

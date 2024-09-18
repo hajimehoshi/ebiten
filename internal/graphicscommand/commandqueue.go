@@ -197,7 +197,7 @@ func (q *commandQueue) Flush(graphicsDriver graphicsdriver.Graphics, endFrame bo
 		}
 	}
 
-	logger := debug.SwitchLogger()
+	logger := debug.SwitchFrameLogger()
 
 	var flushErr error
 	runOnRenderThread(func() {
@@ -223,7 +223,7 @@ func (q *commandQueue) Flush(graphicsDriver graphicsdriver.Graphics, endFrame bo
 }
 
 // flush must be called the render thread.
-func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics, endFrame bool, logger debug.Logger) (err error) {
+func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics, endFrame bool, logger debug.FrameLogger) (err error) {
 	// If endFrame is true, Begin/End should be called to ensure the framebuffer is swapped.
 	if len(q.commands) == 0 && !endFrame {
 		return nil
@@ -231,7 +231,7 @@ func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics, endFrame bo
 
 	es := q.indices
 	vs := q.vertices
-	logger.Logf("Graphics commands:\n")
+	logger.FrameLogf("Graphics commands:\n")
 
 	if err := graphicsDriver.Begin(); err != nil {
 		return err
@@ -294,7 +294,7 @@ func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics, endFrame bo
 			if err := c.Exec(q, graphicsDriver, indexOffset); err != nil {
 				return err
 			}
-			logger.Logf("  %s\n", c)
+			logger.FrameLogf("  %s\n", c)
 			// TODO: indexOffset should be reset if the command type is different
 			// from the previous one. This fix is needed when another drawing command is
 			// introduced than drawTrianglesCommand.
@@ -505,13 +505,6 @@ func roundUpPower2(x int) int {
 		p2 *= 2
 	}
 	return p2
-}
-
-func max(a, b int) int {
-	if a < b {
-		return b
-	}
-	return a
 }
 
 func (b *uint32sBuffer) alloc(n int) []uint32 {

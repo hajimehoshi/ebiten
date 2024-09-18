@@ -24,8 +24,7 @@ import (
 	_ "image/png"
 	"log"
 	"math"
-	"math/rand"
-	"time"
+	"math/rand/v2"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/audio"
@@ -43,10 +42,6 @@ var flagCRT = flag.Bool("crt", false, "enable the CRT effect")
 
 //go:embed crt.go
 var crtGo []byte
-
-func init() {
-	rand.Seed(time.Now().UnixNano())
-}
 
 func floorDiv(x, y int) int {
 	d := x / y
@@ -150,7 +145,7 @@ func (g *Game) init() {
 	g.cameraY = 0
 	g.pipeTileYs = make([]int, 256)
 	for i := range g.pipeTileYs {
-		g.pipeTileYs[i] = rand.Intn(6) + 2
+		g.pipeTileYs[i] = rand.IntN(6) + 2
 	}
 
 	if g.audioContext == nil {

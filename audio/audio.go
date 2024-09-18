@@ -14,15 +14,14 @@
 
 // Package audio provides audio players.
 //
-// The stream format must be 16-bit little endian and 2 channels. The format is as follows:
+// The stream format must be 16-bit little endian or 32-bit float little endian, and 2 channels. The format is as follows:
 //
 //	[data]      = [sample 1] [sample 2] [sample 3] ...
 //	[sample *]  = [channel 1] ...
 //	[channel *] = [byte 1] [byte 2] ...
 //
-// An audio context (audio.Context object) has a sample rate you can specify and all streams you want to play must have the same
-// sample rate. However, decoders in e.g. audio/mp3 package adjust sample rate automatically,
-// and you don't have to care about it as long as you use those decoders.
+// An audio context (audio.Context object) has a sample rate you can specify
+// and all streams you want to play must have the same sample rate.
 //
 // An audio context can generate 'players' (audio.Player objects),
 // and you can play sound by calling Play function of players.
@@ -189,14 +188,7 @@ func (c *Context) addPlayingPlayer(p *playerImpl) {
 	defer c.m.Unlock()
 	c.playingPlayers[p] = struct{}{}
 
-	// (reflect.Type).Comparable() is enough here, as reflect.TypeOf should always return a dynamic (non-interface) type.
-	// If reflect.TypeOf returned an interface type, this check would be meaningless.
-	// See these for more details:
-	// * https://pkg.go.dev/reflect#TypeOf
-	// * https://pkg.go.dev/reflect#Type.Comparable
-	//
-	// (*reflect.Value).Comparable() is more intuitive but this was introduced in Go 1.20.
-	if !reflect.TypeOf(p.sourceIdent()).Comparable() {
+	if !reflect.ValueOf(p.sourceIdent()).Comparable() {
 		return
 	}
 

@@ -36,6 +36,7 @@ func (u *UserInterface) initializePlatform() error {
 
 type graphicsDriverCreatorImpl struct {
 	transparent bool
+	colorSpace  graphicsdriver.ColorSpace
 }
 
 func (g *graphicsDriverCreatorImpl) newAuto() (graphicsdriver.Graphics, GraphicsLibrary, error) {
@@ -198,5 +199,13 @@ func initializeWindowAfterCreation(w *glfw.Window) error {
 }
 
 func (u *UserInterface) skipTaskbar() error {
+	return nil
+}
+
+func (u *UserInterface) setDocumentEdited(edited bool) error {
+	return nil
+}
+
+func (u *UserInterface) afterWindowCreation() error {
 	return nil
 }

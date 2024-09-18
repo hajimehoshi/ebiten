@@ -22,6 +22,7 @@ import (
 	"sync/atomic"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/clock"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
@@ -274,6 +275,23 @@ type RunGameOptions struct {
 	// The default (zero) value is false, which means that the single thread mode is disabled.
 	SingleThread bool
 
+	// DisableHiDPI indicates whether the rendering for HiDPI is disabled or not.
+	// If HiDPI is disabled, the device scale factor is always 1 i.e. Monitor's DeviceScaleFactor always returns 1.
+	// This is useful to get a better performance on HiDPI displays, in the expense of rendering quality.
+	//
+	// DisableHiDPI is available only on browsers.
+	//
+	// The default (zero) value is false, which means that HiDPI is enabled.
+	DisableHiDPI bool
+
+	// ColorSpace indicates the color space of the screen.
+	//
+	// ColorSpace is available only with some graphics libraries (macOS Metal and WebGL so far).
+	// Otherwise, ColorSpace is ignored.
+	//
+	// The default (zero) value is ColorSpaceDefault, which means that color space depends on the environment.
+	ColorSpace ColorSpace
+
 	// X11DisplayName is a class name in the ICCCM WM_CLASS window property.
 	X11ClassName string
 
@@ -366,7 +384,7 @@ func ScreenSizeInFullscreen() (int, int) {
 //
 // CursorMode is concurrent-safe.
 func CursorMode() CursorModeType {
-	return ui.Get().CursorMode()
+	return CursorModeType(ui.Get().CursorMode())
 }
 
 // SetCursorMode sets the render and capture mode of the mouse cursor.
@@ -388,25 +406,7 @@ func CursorMode() CursorModeType {
 //
 // SetCursorMode is concurrent-safe.
 func SetCursorMode(mode CursorModeType) {
-	ui.Get().SetCursorMode(mode)
-}
-
-// CursorShape returns the current cursor shape.
-//
-// CursorShape returns CursorShapeDefault on mobiles.
-//
-// CursorShape is concurrent-safe.
-func CursorShape() CursorShapeType {
-	return ui.Get().CursorShape()
-}
-
-// SetCursorShape sets the cursor shape.
-//
-// If the platform doesn't implement the given shape, the default cursor shape is used.
-//
-// SetCursorShape is concurrent-safe.
-func SetCursorShape(shape CursorShapeType) {
-	ui.Get().SetCursorShape(shape)
+	ui.Get().SetCursorMode(ui.CursorMode(mode))
 }
 
 // IsFullscreen reports whether the current mode is fullscreen or not.
@@ -510,14 +510,14 @@ func SetVsyncEnabled(enabled bool) {
 // FPSModeType is a type of FPS modes.
 //
 // Deprecated: as of v2.5. Use SetVsyncEnabled instead.
-type FPSModeType = ui.FPSModeType
+type FPSModeType int
 
 const (
 	// FPSModeVsyncOn indicates that the game tries to sync the display's refresh rate.
 	// FPSModeVsyncOn is the default mode.
 	//
 	// Deprecated: as of v2.5. Use SetVsyncEnabled(true) instead.
-	FPSModeVsyncOn FPSModeType = ui.FPSModeVsyncOn
+	FPSModeVsyncOn FPSModeType = FPSModeType(ui.FPSModeVsyncOn)
 
 	// FPSModeVsyncOffMaximum indicates that the game doesn't sync with vsync, and
 	// the game is updated whenever possible.
@@ -528,7 +528,7 @@ const (
 	// The game's Update is called based on the specified TPS.
 	//
 	// Deprecated: as of v2.5. Use SetVsyncEnabled(false) instead.
-	FPSModeVsyncOffMaximum FPSModeType = ui.FPSModeVsyncOffMaximum
+	FPSModeVsyncOffMaximum FPSModeType = FPSModeType(ui.FPSModeVsyncOffMaximum)
 
 	// FPSModeVsyncOffMinimum indicates that the game doesn't sync with vsync, and
 	// the game is updated only when necessary.
@@ -541,7 +541,7 @@ const (
 	//
 	// Deprecated: as of v2.5. Use SetScreenClearedEveryFrame(false) instead.
 	// See examples/skipdraw for GPU optimization with SetScreenClearedEveryFrame(false).
-	FPSModeVsyncOffMinimum FPSModeType = ui.FPSModeVsyncOffMinimum
+	FPSModeVsyncOffMinimum FPSModeType = FPSModeType(ui.FPSModeVsyncOffMinimum)
 )
 
 // FPSMode returns the current FPS mode.
@@ -550,7 +550,7 @@ const (
 //
 // Deprecated: as of v2.5. Use SetVsyncEnabled instead.
 func FPSMode() FPSModeType {
-	return ui.Get().FPSMode()
+	return FPSModeType(ui.Get().FPSMode())
 }
 
 // SetFPSMode sets the FPS mode.
@@ -560,7 +560,7 @@ func FPSMode() FPSModeType {
 //
 // Deprecated: as of v2.5. Use SetVsyncEnabled instead.
 func SetFPSMode(mode FPSModeType) {
-	ui.Get().SetFPSMode(mode)
+	ui.Get().SetFPSMode(ui.FPSModeType(mode))
 }
 
 // ScheduleFrame schedules a next frame when the current FPS mode is FPSModeVsyncOffMinimum.
@@ -697,12 +697,37 @@ func toUIRunOptions(options *RunGameOptions) *ui.RunOptions {
 	if options.X11InstanceName == "" {
 		options.X11InstanceName = defaultX11InstanceName
 	}
+
+	// ui.RunOptions.StrictContextRestoration is not used so far (#3098).
+	// This might be reused in the future.
+	// The original comment for StrictContextRestration is as follows:
+	//
+	// StrictContextRestration indicates whether the context lost should be restored strictly by Ebitengine or not.
+	//
+	// StrictContextRestration is available only on Android. Otherwise, StrictContextRestration is ignored.
+	// Thus, StrictContextRestration should be used with mobile.SetGameWithOptions, rather than RunGameWithOptions.
+	//
+	// In Android, Ebitengien uses `GLSurfaceView`'s `setPreserveEGLContextOnPause(true)`.
+	// This works in most cases, but it is still possible that the context is lost in some minor cases.
+	//
+	// When StrictContextRestration is true, Ebitengine tries to restore the context more strictly
+	// for such minor cases.
+	// However, this might cause a performance issue since Ebitengine tries to keep all the information
+	// to restore the context.
+	//
+	// When StrictContextRestration is false, Ebitengine does nothing special to restore the context and
+	// relies on the OS's behavior.
+	//
+	// The default (zero) value is false.
+
 	return &ui.RunOptions{
 		GraphicsLibrary:   ui.GraphicsLibrary(options.GraphicsLibrary),
 		InitUnfocused:     options.InitUnfocused,
 		ScreenTransparent: options.ScreenTransparent,
 		SkipTaskbar:       options.SkipTaskbar,
 		SingleThread:      options.SingleThread,
+		DisableHiDPI:      options.DisableHiDPI,
+		ColorSpace:        graphicsdriver.ColorSpace(options.ColorSpace),
 		X11ClassName:      options.X11ClassName,
 		X11InstanceName:   options.X11InstanceName,
 	}

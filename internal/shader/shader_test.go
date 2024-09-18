@@ -21,7 +21,6 @@ import (
 	"runtime"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/shader"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
@@ -30,41 +29,26 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/msl"
 )
 
-func TestMain(m *testing.M) {
-	code := m.Run()
-	// The Wasm tests on GitHub CI often fail due to some remaining functions. Wait for a while to finish them.
-	time.Sleep(100 * time.Millisecond)
-	os.Exit(code)
-}
-
 func glslVertexNormalize(str string) string {
 	p := glsl.VertexPrelude(glsl.GLSLVersionDefault)
-	if strings.HasPrefix(str, p) {
-		str = str[len(p):]
-	}
+	str = strings.TrimPrefix(str, p)
 	return strings.TrimSpace(str)
 }
 
 func glslFragmentNormalize(str string) string {
 	p := glsl.FragmentPrelude(glsl.GLSLVersionDefault)
-	if strings.HasPrefix(str, p) {
-		str = str[len(p):]
-	}
+	str = strings.TrimPrefix(str, p)
 	return strings.TrimSpace(str)
 }
 
-func hlslNormalize(str string) string {
-	if strings.HasPrefix(str, hlsl.Prelude) {
-		str = str[len(hlsl.Prelude):]
-	}
+func hlslNormalize(str string, prelude string) string {
+	str = strings.TrimPrefix(str, prelude)
 	return strings.TrimSpace(str)
 }
 
 func metalNormalize(str string) string {
 	prelude := msl.Prelude(shaderir.Texels)
-	if strings.HasPrefix(str, prelude) {
-		str = str[len(prelude):]
-	}
+	str = strings.TrimPrefix(str, prelude)
 	return strings.TrimSpace(str)
 }
 
@@ -196,8 +180,8 @@ func TestCompile(t *testing.T) {
 			}
 
 			if tc.HLSL != nil {
-				vs, _ := hlsl.Compile(s)
-				if got, want := hlslNormalize(vs), hlslNormalize(string(tc.HLSL)); got != want {
+				vs, _, prelude := hlsl.Compile(s)
+				if got, want := hlslNormalize(vs, prelude), hlslNormalize(string(tc.HLSL), prelude); got != want {
 					compare(t, "HLSL", got, want)
 				}
 			}

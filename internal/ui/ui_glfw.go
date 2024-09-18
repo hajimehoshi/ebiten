@@ -81,6 +81,8 @@ type userInterfaceImpl struct {
 	initWindowMaximized        bool
 	initWindowMousePassthrough bool
 
+	initUnfocused bool
+
 	// bufferOnceSwapped must be accessed from the main thread.
 	bufferOnceSwapped bool
 
@@ -105,6 +107,9 @@ type userInterfaceImpl struct {
 	darwinInitOnce        sync.Once
 	showWindowOnce        sync.Once
 	bufferOnceSwappedOnce sync.Once
+
+	// immContext is used only in Windows.
+	immContext uintptr
 
 	m sync.RWMutex
 }
@@ -568,6 +573,22 @@ func (u *UserInterface) setWindowClosingHandled(handled bool) {
 	u.m.Lock()
 	u.windowClosingHandled = handled
 	u.m.Unlock()
+
+	if !u.isRunning() {
+		return
+	}
+	if u.isTerminated() {
+		return
+	}
+	u.mainThread.Call(func() {
+		if u.isTerminated() {
+			return
+		}
+		if err := u.setDocumentEdited(handled); err != nil {
+			u.setError(err)
+			return
+		}
+	})
 }
 
 // isFullscreen must be called from the main thread.
@@ -874,6 +895,17 @@ func (u *UserInterface) createWindow() error {
 		return err
 	}
 
+	u.m.Lock()
+	closingHandled := u.windowClosingHandled
+	u.m.Unlock()
+	if err := u.setDocumentEdited(closingHandled); err != nil {
+		return err
+	}
+
+	if err := u.afterWindowCreation(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -1059,6 +1091,7 @@ func (u *UserInterface) initOnMainThread(options *RunOptions) error {
 
 	g, lib, err := newGraphicsDriver(&graphicsDriverCreatorImpl{
 		transparent: options.ScreenTransparent,
+		colorSpace:  options.ColorSpace,
 	}, options.GraphicsLibrary)
 	if err != nil {
 		return err
@@ -1088,6 +1121,7 @@ func (u *UserInterface) initOnMainThread(options *RunOptions) error {
 		return err
 	}
 
+	u.initUnfocused = options.InitUnfocused
 	focused := glfw.True
 	if options.InitUnfocused {
 		focused = glfw.False
@@ -1289,8 +1323,10 @@ func (u *UserInterface) update() (float64, float64, error) {
 			if err = u.window.Show(); err != nil {
 				return
 			}
-			if err = u.window.Focus(); err != nil {
-				return
+			if !u.initUnfocused {
+				if err = u.window.Focus(); err != nil {
+					return
+				}
 			}
 
 			if runtime.GOOS == "darwin" || runtime.GOOS == "windows" {
@@ -1352,7 +1388,9 @@ func (u *UserInterface) update() (float64, float64, error) {
 		}
 	}
 
-	for !u.isRunnableOnUnfocused() {
+	// If isRunnableOnUnfocused is false and the window is not focused, wait here.
+	// For the first update, skip this check as the window might not be seen yet in some environments like ChromeOS (#3091).
+	for !u.isRunnableOnUnfocused() && u.bufferOnceSwapped {
 		// In the initial state on macOS, the window is not shown (#2620).
 		visible, err := u.window.GetAttrib(glfw.Visible)
 		if err != nil {

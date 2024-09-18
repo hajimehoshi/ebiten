@@ -25,17 +25,16 @@ import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
 import {{.JavaPkg}}.ebitenmobileview.Ebitenmobileview;
-import {{.JavaPkg}}.ebitenmobileview.RenderRequester;
+import {{.JavaPkg}}.ebitenmobileview.Renderer;
 import {{.JavaPkg}}.{{.PrefixLower}}.EbitenView;
 
-class EbitenSurfaceView extends GLSurfaceView implements RenderRequester {
+class EbitenSurfaceView extends GLSurfaceView implements Renderer {
+    // As GLSurfaceView can be recreated, the states must be static (#3097).
+    static private boolean errored_ = false;
+    static private boolean onceSurfaceCreated_ = false;
+    static private boolean contextLost_ = false;
 
     private class EbitenRenderer implements GLSurfaceView.Renderer {
-
-        private boolean errored_ = false;
-        private boolean onceSurfaceCreated_ = false;
-        private boolean contextLost_ = false;
-
         @Override
         public void onDrawFrame(GL10 gl) {
             if (errored_) {
@@ -59,6 +58,11 @@ class EbitenSurfaceView extends GLSurfaceView implements RenderRequester {
 
         @Override
         public void onSurfaceCreated(GL10 gl, EGLConfig config) {
+            // As EbitenSurfaceView can be recreated anytime, this flag for strict context restoration must be checked every time.
+            if (Ebitenmobileview.usesStrictContextRestoration()) {
+                Ebitenmobileview.onContextLost();
+                return;
+            }
             if (!onceSurfaceCreated_) {
                 onceSurfaceCreated_ = true;
                 return;
@@ -90,9 +94,11 @@ class EbitenSurfaceView extends GLSurfaceView implements RenderRequester {
     private void initialize() {
         setEGLContextClientVersion(3);
         setEGLConfigChooser(8, 8, 8, 8, 0, 0);
-        setRenderer(new EbitenRenderer());
         setPreserveEGLContextOnPause(true);
-        Ebitenmobileview.setRenderRequester(this);
+        // setRenderer must be called before setRenderer. Or, setRenderMode in setExplicitRenderingMode will crash.
+        setRenderer(new EbitenRenderer());
+
+        Ebitenmobileview.setRenderer(this);
     }
 
     private void onErrorOnGameUpdate(Exception e) {
@@ -100,13 +106,15 @@ class EbitenSurfaceView extends GLSurfaceView implements RenderRequester {
     }
 
     private void onContextLost() {
-        Log.v("Go", "Kill the application due to a context lost");
+        Log.e("Go", "The application was killed due to context loss");
         // TODO: Relaunch this application for better UX (#805).
         Runtime.getRuntime().exit(0);
     }
 
     @Override
     public synchronized void setExplicitRenderingMode(boolean explicitRendering) {
+        // TODO: Remove this logic when FPSModeVsyncOffMinimum is removed.
+        // This doesn't work when EbitenSurfaceView is recreated anyway.
         if (explicitRendering) {
             setRenderMode(RENDERMODE_WHEN_DIRTY);
         } else {

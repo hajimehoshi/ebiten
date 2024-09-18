@@ -27,13 +27,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
-func min(x, y int) int {
-	if x < y {
-		return x
-	}
-	return y
-}
-
 var (
 	whiteImage = ebiten.NewImage(3, 3)
 

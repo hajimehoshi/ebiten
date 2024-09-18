@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !ebitenginegldebug
+//go:build !playstation5 && !ebitenginegldebug
 
 package opengl
 

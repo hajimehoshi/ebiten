@@ -36,6 +36,7 @@ func (u *UserInterface) initializePlatform() error {
 
 type graphicsDriverCreatorImpl struct {
 	transparent bool
+	colorSpace  graphicsdriver.ColorSpace
 }
 
 func (g *graphicsDriverCreatorImpl) newAuto() (graphicsdriver.Graphics, GraphicsLibrary, error) {
@@ -239,6 +240,42 @@ func (u *UserInterface) skipTaskbar() error {
 		return err
 	}
 
+	return nil
+}
+
+func (u *UserInterface) setDocumentEdited(edited bool) error {
+	return nil
+}
+
+func (u *UserInterface) afterWindowCreation() error {
+	if microsoftgdk.IsXbox() {
+		return nil
+	}
+
+	// By default, IME should be disabled (#2918).
+	w, err := u.window.GetWin32Window()
+	if err != nil {
+		return err
+	}
+	c, err := _ImmAssociateContext(w, 0)
+	if err != nil {
+		return err
+	}
+	u.immContext = c
+	return nil
+}
+
+// RestoreIMMContextOnMainThread is called from the main thread.
+// The textinput package invokes RestoreIMMContextOnMainThread to enable IME inputting.
+func (u *UserInterface) RestoreIMMContextOnMainThread() error {
+	w, err := u.window.GetWin32Window()
+	if err != nil {
+		return err
+	}
+	if _, err := _ImmAssociateContext(w, u.immContext); err != nil {
+		return err
+	}
+	u.immContext = 0
 	return nil
 }
 

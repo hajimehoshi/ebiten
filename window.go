@@ -25,21 +25,21 @@ import (
 //
 // Regardless of the resizing mode, an Ebitengine application can still change the window size or make
 // the window fullscreen by calling Ebitengine functions.
-type WindowResizingModeType = ui.WindowResizingMode
+type WindowResizingModeType int
 
 // WindowResizingModeTypes
 const (
 	// WindowResizingModeDisabled indicates the mode to disallow resizing the window by a user.
-	WindowResizingModeDisabled WindowResizingModeType = ui.WindowResizingModeDisabled
+	WindowResizingModeDisabled WindowResizingModeType = WindowResizingModeType(ui.WindowResizingModeDisabled)
 
 	// WindowResizingModeOnlyFullscreenEnabled indicates the mode to disallow resizing the window,
 	// but allow to make the window fullscreen by a user.
 	// This works only on macOS so far.
 	// On the other platforms, this is the same as WindowResizingModeDisabled.
-	WindowResizingModeOnlyFullscreenEnabled WindowResizingModeType = ui.WindowResizingModeOnlyFullscreenEnabled
+	WindowResizingModeOnlyFullscreenEnabled WindowResizingModeType = WindowResizingModeType(ui.WindowResizingModeOnlyFullscreenEnabled)
 
 	// WindowResizingModeEnabled indicates the mode to allow resizing the window by a user.
-	WindowResizingModeEnabled WindowResizingModeType = ui.WindowResizingModeEnabled
+	WindowResizingModeEnabled WindowResizingModeType = WindowResizingModeType(ui.WindowResizingModeEnabled)
 )
 
 // IsWindowDecorated reports whether the window is decorated.
@@ -67,14 +67,14 @@ func SetWindowDecorated(decorated bool) {
 //
 // WindowResizingMode is concurrent-safe.
 func WindowResizingMode() WindowResizingModeType {
-	return ui.Get().Window().ResizingMode()
+	return WindowResizingModeType(ui.Get().Window().ResizingMode())
 }
 
 // SetWindowResizingMode sets the mode in which a user resizes the window.
 //
 // SetWindowResizingMode is concurrent-safe.
 func SetWindowResizingMode(mode WindowResizingModeType) {
-	ui.Get().Window().SetResizingMode(mode)
+	ui.Get().Window().SetResizingMode(ui.WindowResizingMode(mode))
 }
 
 // IsWindowResizable reports whether the window is resizable by the user's dragging on desktops.

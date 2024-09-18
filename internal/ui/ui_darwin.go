@@ -167,6 +167,7 @@ func (u *UserInterface) initializePlatform() error {
 
 type graphicsDriverCreatorImpl struct {
 	transparent bool
+	colorSpace  graphicsdriver.ColorSpace
 }
 
 func (g *graphicsDriverCreatorImpl) newAuto() (graphicsdriver.Graphics, GraphicsLibrary, error) {
@@ -189,8 +190,8 @@ func (*graphicsDriverCreatorImpl) newDirectX() (graphicsdriver.Graphics, error) 
 	return nil, errors.New("ui: DirectX is not supported in this environment")
 }
 
-func (*graphicsDriverCreatorImpl) newMetal() (graphicsdriver.Graphics, error) {
-	return metal.NewGraphics()
+func (g *graphicsDriverCreatorImpl) newMetal() (graphicsdriver.Graphics, error) {
+	return metal.NewGraphics(g.colorSpace)
 }
 
 func (*graphicsDriverCreatorImpl) newPlayStation5() (graphicsdriver.Graphics, error) {
@@ -238,6 +239,7 @@ var (
 	sel_origResizable                 = objc.RegisterName("isOrigResizable")
 	sel_setCollectionBehavior         = objc.RegisterName("setCollectionBehavior:")
 	sel_setDelegate                   = objc.RegisterName("setDelegate:")
+	sel_setDocumentEdited             = objc.RegisterName("setDocumentEdited:")
 	sel_setOrigDelegate               = objc.RegisterName("setOrigDelegate:")
 	sel_setOrigResizable              = objc.RegisterName("setOrigResizable:")
 	sel_toggleFullScreen              = objc.RegisterName("toggleFullScreen:")
@@ -431,5 +433,19 @@ func initializeWindowAfterCreation(w *glfw.Window) error {
 }
 
 func (u *UserInterface) skipTaskbar() error {
+	return nil
+}
+
+// setDocumentEdited must be called from the main thread.
+func (u *UserInterface) setDocumentEdited(edited bool) error {
+	w, err := u.window.GetCocoaWindow()
+	if err != nil {
+		return err
+	}
+	objc.ID(w).Send(sel_setDocumentEdited, edited)
+	return nil
+}
+
+func (u *UserInterface) afterWindowCreation() error {
 	return nil
 }

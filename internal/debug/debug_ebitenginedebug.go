@@ -23,30 +23,32 @@ import (
 
 const IsDebug = true
 
-var theLogger = &logger{}
+var theFrameLogger = &frameLogger{}
 
 var flushM sync.Mutex
 
-// Logf calls the current global logger's Logf.
-// Logf buffers the arguments and doesn't dump the log immediately.
+// FrameLogf calls the current global logger's FrameLogf.
+// FrameLogf buffers the arguments and doesn't dump the log immediately.
 // You can dump logs by calling SwitchLogger and Flush.
 //
-// Logf is not concurrent safe.
-func Logf(format string, args ...any) {
-	theLogger.Logf(format, args...)
+// FrameLogf is not concurrent safe.
+// FrameLogf and SwitchFrameLogger must be called from the same goroutine.
+func FrameLogf(format string, args ...any) {
+	theFrameLogger.FrameLogf(format, args...)
 }
 
-// SwitchLogger sets a new logger as the current logger and returns the original global logger.
+// SwitchFrameLogger sets a new logger as the current logger and returns the original global logger.
 // The new global logger and the returned logger have separate statuses, so you can use them for different goroutines.
 //
-// SwitchLogger and a returned Logger are not concurrent safe.
-func SwitchLogger() Logger {
-	current := theLogger
-	theLogger = &logger{}
+// SwitchFrameLogger and a returned Logger are not concurrent safe.
+// FrameLogf and SwitchFrameLogger must be called from the same goroutine.
+func SwitchFrameLogger() FrameLogger {
+	current := theFrameLogger
+	theFrameLogger = &frameLogger{}
 	return current
 }
 
-type logger struct {
+type frameLogger struct {
 	items []logItem
 }
 
@@ -55,14 +57,14 @@ type logItem struct {
 	args   []any
 }
 
-func (l *logger) Logf(format string, args ...any) {
+func (l *frameLogger) FrameLogf(format string, args ...any) {
 	l.items = append(l.items, logItem{
 		format: format,
 		args:   args,
 	})
 }
 
-func (l *logger) Flush() {
+func (l *frameLogger) Flush() {
 	// Flushing is protected by a mutex not to mix another logger's logs.
 	flushM.Lock()
 	defer flushM.Unlock()

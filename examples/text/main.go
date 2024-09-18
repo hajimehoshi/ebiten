@@ -21,7 +21,9 @@ import (
 	"math"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/examples/resources/fonts"
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
@@ -58,10 +60,8 @@ func init() {
 }
 
 type Game struct {
-	counter        int
-	kanjiText      []rune
-	kanjiTextColor color.RGBA
-	glyphs         []text.Glyph
+	glyphs      []text.Glyph
+	showOrigins bool
 }
 
 func (g *Game) Update() error {
@@ -71,10 +71,15 @@ func (g *Game) Update() error {
 		op.LineSpacing = mplusNormalFace.Size * 1.5
 		g.glyphs = text.AppendGlyphs(g.glyphs, sampleText, mplusNormalFace, op)
 	}
+	if inpututil.IsKeyJustPressed(ebiten.KeyO) {
+		g.showOrigins = !g.showOrigins
+	}
 	return nil
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
+	ebitenutil.DebugPrint(screen, "Press O to show/hide origins")
+
 	gray := color.RGBA{0x80, 0x80, 0x80, 0xff}
 
 	{
@@ -146,6 +151,12 @@ func (g *Game) Draw(screen *ebiten.Image) {
 			}
 			op.ColorScale.Scale(r, g, b, 1)
 			screen.DrawImage(gl.Image, op)
+		}
+
+		if g.showOrigins {
+			for _, gl := range g.glyphs {
+				vector.DrawFilledCircle(screen, x+float32(gl.OriginX), y+float32(gl.OriginY), 2, color.RGBA{0xff, 0, 0, 0xff}, true)
+			}
 		}
 	}
 }

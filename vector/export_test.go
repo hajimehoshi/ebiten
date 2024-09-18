@@ -1,4 +1,4 @@
-// Copyright 2023 The Ebitengine Authors
+// Copyright 2024 The Ebitengine Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,14 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build (!darwin && !js && !windows) || ios
+package vector
 
-package textinput
+type Point struct {
+	X, Y float32
+}
 
-type textInput struct{}
-
-var theTextInput textInput
-
-func (t *textInput) Start(x, y int) (chan State, func()) {
-	return nil, nil
+func IsPointCloseToSegment(p, p0, p1 Point, allow float32) bool {
+	return isPointCloseToSegment(point{
+		x: p.X,
+		y: p.Y,
+	}, point{
+		x: p0.X,
+		y: p0.Y,
+	}, point{
+		x: p1.X,
+		y: p1.Y,
+	}, allow)
 }

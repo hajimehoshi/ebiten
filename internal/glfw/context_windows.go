@@ -616,6 +616,5 @@ func bytePtrToString(p *byte) string {
 		ptr = unsafe.Add(ptr, 1)
 	}
 
-	// unsafe.String(p, n) is available as of Go 1.20.
-	return string(unsafe.Slice(p, n))
+	return unsafe.String(p, n)
 }

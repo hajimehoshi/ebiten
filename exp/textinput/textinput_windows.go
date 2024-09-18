@@ -15,6 +15,7 @@
 package textinput
 
 import (
+	"sync"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
@@ -29,8 +30,13 @@ type textInput struct {
 	origWndProc     uintptr
 	wndProcCallback uintptr
 	window          windows.HWND
+	immContext      uintptr
 
 	highSurrogate uint16
+
+	initOnce sync.Once
+
+	err error
 }
 
 var theTextInput textInput
@@ -52,11 +58,29 @@ func (t *textInput) Start(x, y int) (chan State, func()) {
 		session.ch <- State{Error: err}
 		session.end()
 	}
-	return session.ch, session.end
+	return session.ch, func() {
+		ui.Get().RunOnMainThread(func() {
+			// Disable IME again.
+			if t.immContext != 0 {
+				return
+			}
+			c, err := _ImmAssociateContext(t.window, 0)
+			if err != nil {
+				t.err = err
+				return
+			}
+			t.immContext = c
+			t.end()
+		})
+	}
 }
 
 // start must be called from the main thread.
 func (t *textInput) start(x, y int) error {
+	if t.err != nil {
+		return t.err
+	}
+
 	if t.window == 0 {
 		t.window = _GetActiveWindow()
 	}
@@ -72,6 +96,22 @@ func (t *textInput) start(x, y int) error {
 		t.origWndProc = h
 	}
 
+	// By default, IME was disabled by setting 0 as the IMM context.
+	// Restore the context once.
+	var err error
+	t.initOnce.Do(func() {
+		err = ui.Get().RestoreIMMContextOnMainThread()
+	})
+	if err != nil {
+		return err
+	}
+
+	if t.immContext != 0 {
+		if _, err := _ImmAssociateContext(t.window, t.immContext); err != nil {
+			return err
+		}
+		t.immContext = 0
+	}
 	h := _ImmGetContext(t.window)
 	if err := _ImmSetCandidateWindow(h, &_CANDIDATEFORM{
 		dwIndex: 0,
@@ -168,14 +208,20 @@ func (t *textInput) send(text string, startInBytes, endInBytes int, committed bo
 
 // end must be called from the main thread.
 func (t *textInput) end() {
-	if t.session != nil {
-		t.session.end()
-		t.session = nil
+	if t.session == nil {
+		return
 	}
+
+	t.session.end()
+	t.session = nil
 }
 
 // update must be called from the main thread.
 func (t *textInput) update() (ferr error) {
+	if t.err != nil {
+		return t.err
+	}
+
 	hIMC := _ImmGetContext(t.window)
 	defer func() {
 		if err := _ImmReleaseContext(t.window, hIMC); err != nil && ferr != nil {
@@ -236,6 +282,10 @@ func (t *textInput) update() (ferr error) {
 
 // commit must be called from the main thread.
 func (t *textInput) commit() (ferr error) {
+	if t.err != nil {
+		return t.err
+	}
+
 	hIMC := _ImmGetContext(t.window)
 	defer func() {
 		if err := _ImmReleaseContext(t.window, hIMC); err != nil && ferr != nil {

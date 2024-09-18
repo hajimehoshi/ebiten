@@ -17,8 +17,8 @@ package convert_test
 import (
 	"bytes"
 	"fmt"
-	"io" // TODO: Use math/rand/v2 when the minimum supported version becomes Go 1.22.
-	"math/rand"
+	"io"
+	"math/rand/v2"
 	"testing"
 
 	"github.com/hajimehoshi/ebiten/v2/audio/internal/convert"
@@ -101,7 +101,7 @@ func TestStereoI16(t *testing.T) {
 func randBytes(n int) []byte {
 	r := make([]byte, n)
 	for i := range r {
-		r[i] = byte(rand.Intn(256))
+		r[i] = byte(rand.IntN(256))
 	}
 	return r
 }

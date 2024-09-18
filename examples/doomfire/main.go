@@ -17,8 +17,7 @@ package main
 import (
 	"image/color"
 	"log"
-	"math/rand"
-	"time"
+	"math/rand/v2"
 
 	"github.com/hajimehoshi/ebiten/v2"
 )
@@ -102,7 +101,7 @@ func (g *Game) updateFireIntensityPerPixel(currentPixelIndex int) {
 		return
 	}
 
-	d := rand.Intn(3)
+	d := rand.IntN(3)
 	newI := int(g.indices[below]) - d
 	if newI < 0 {
 		newI = 0
@@ -139,8 +138,6 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 }
 
 func main() {
-	rand.Seed(time.Now().UnixNano())
-
 	ebiten.SetWindowSize(screenWidth*6, screenHeight*6)
 	ebiten.SetWindowTitle("Doom Fire (Ebitengine Demo)")
 	if err := ebiten.RunGame(NewGame()); err != nil {

@@ -15,8 +15,8 @@
 package text
 
 import (
-	"github.com/go-text/typesetting/opentype/api/metadata"
-	"github.com/go-text/typesetting/opentype/loader"
+	"github.com/go-text/typesetting/font"
+	"github.com/go-text/typesetting/font/opentype"
 )
 
 // Metadata represents a font face's metadata.
@@ -27,47 +27,47 @@ type Metadata struct {
 	Stretch Stretch
 }
 
-func metadataFromLoader(l *loader.Loader) Metadata {
-	f, a, _ := metadata.Describe(l, nil)
+func metadataFromLoader(l *opentype.Loader) Metadata {
+	d, _ := font.Describe(l, nil)
 	return Metadata{
-		Family:  f,
-		Style:   Style(a.Style),
-		Weight:  Weight(a.Weight),
-		Stretch: Stretch(a.Stretch),
+		Family:  d.Family,
+		Style:   Style(d.Aspect.Style),
+		Weight:  Weight(d.Aspect.Weight),
+		Stretch: Stretch(d.Aspect.Stretch),
 	}
 }
 
 type Style uint8
 
 const (
-	StyleNormal Style = Style(metadata.StyleNormal)
-	StyleItalic Style = Style(metadata.StyleItalic)
+	StyleNormal Style = Style(font.StyleNormal)
+	StyleItalic Style = Style(font.StyleItalic)
 )
 
 type Weight float32
 
 const (
-	WeightThin       Weight = Weight(metadata.WeightThin)
-	WeightExtraLight Weight = Weight(metadata.WeightExtraLight)
-	WeightLight      Weight = Weight(metadata.WeightLight)
-	WeightNormal     Weight = Weight(metadata.WeightNormal)
-	WeightMedium     Weight = Weight(metadata.WeightMedium)
-	WeightSemibold   Weight = Weight(metadata.WeightSemibold)
-	WeightBold       Weight = Weight(metadata.WeightBold)
-	WeightExtraBold  Weight = Weight(metadata.WeightExtraBold)
-	WeightBlack      Weight = Weight(metadata.WeightBlack)
+	WeightThin       Weight = Weight(font.WeightThin)
+	WeightExtraLight Weight = Weight(font.WeightExtraLight)
+	WeightLight      Weight = Weight(font.WeightLight)
+	WeightNormal     Weight = Weight(font.WeightNormal)
+	WeightMedium     Weight = Weight(font.WeightMedium)
+	WeightSemibold   Weight = Weight(font.WeightSemibold)
+	WeightBold       Weight = Weight(font.WeightBold)
+	WeightExtraBold  Weight = Weight(font.WeightExtraBold)
+	WeightBlack      Weight = Weight(font.WeightBlack)
 )
 
 type Stretch float32
 
 const (
-	StretchUltraCondensed Stretch = Stretch(metadata.StretchUltraCondensed)
-	StretchExtraCondensed Stretch = Stretch(metadata.StretchExtraCondensed)
-	StretchCondensed      Stretch = Stretch(metadata.StretchCondensed)
-	StretchSemiCondensed  Stretch = Stretch(metadata.StretchSemiCondensed)
-	StretchNormal         Stretch = Stretch(metadata.StretchNormal)
-	StretchSemiExpanded   Stretch = Stretch(metadata.StretchSemiExpanded)
-	StretchExpanded       Stretch = Stretch(metadata.StretchExpanded)
-	StretchExtraExpanded  Stretch = Stretch(metadata.StretchExtraExpanded)
-	StretchUltraExpanded  Stretch = Stretch(metadata.StretchUltraExpanded)
+	StretchUltraCondensed Stretch = Stretch(font.StretchUltraCondensed)
+	StretchExtraCondensed Stretch = Stretch(font.StretchExtraCondensed)
+	StretchCondensed      Stretch = Stretch(font.StretchCondensed)
+	StretchSemiCondensed  Stretch = Stretch(font.StretchSemiCondensed)
+	StretchNormal         Stretch = Stretch(font.StretchNormal)
+	StretchSemiExpanded   Stretch = Stretch(font.StretchSemiExpanded)
+	StretchExpanded       Stretch = Stretch(font.StretchExpanded)
+	StretchExtraExpanded  Stretch = Stretch(font.StretchExtraExpanded)
+	StretchUltraExpanded  Stretch = Stretch(font.StretchUltraExpanded)
 )

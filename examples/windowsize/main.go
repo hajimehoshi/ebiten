@@ -22,12 +22,11 @@ import (
 	_ "image/jpeg"
 	"log"
 	"math"
-	"math/rand"
+	"math/rand/v2"
 	"regexp"
 	"strconv"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
@@ -50,11 +49,11 @@ var (
 	flagMaxWindowSize       = flag.String("maxwindowsize", "", "maximum window size (e.g., 1920x1080)")
 	flagGraphicsLibrary     = flag.String("graphicslibrary", "", "graphics library (e.g. opengl)")
 	flagRunnableOnUnfocused = flag.Bool("runnableonunfocused", true, "whether the app is runnable even on unfocused")
+	flagColorSpace          = flag.String("colorspace", "", "color space ('', 'srgb', or 'display-p3')")
 )
 
 func init() {
 	flag.Parse()
-	rand.Seed(time.Now().UnixNano())
 }
 
 const (
@@ -70,9 +69,9 @@ var (
 func createRandomIconImage() image.Image {
 	const size = 32
 
-	rf := float64(rand.Intn(0x100))
-	gf := float64(rand.Intn(0x100))
-	bf := float64(rand.Intn(0x100))
+	rf := float64(rand.IntN(0x100))
+	gf := float64(rand.IntN(0x100))
+	bf := float64(rand.IntN(0x100))
 	img := ebiten.NewImage(size, size)
 	pix := make([]byte, 4*size*size)
 	for j := 0; j < size; j++ {
@@ -472,6 +471,14 @@ func main() {
 		op.GraphicsLibrary = ebiten.GraphicsLibraryMetal
 	default:
 		log.Fatalf("unexpected graphics library: %s", *flagGraphicsLibrary)
+	}
+	switch *flagColorSpace {
+	case "":
+		op.ColorSpace = ebiten.ColorSpaceDefault
+	case "srgb":
+		op.ColorSpace = ebiten.ColorSpaceSRGB
+	case "display-p3":
+		op.ColorSpace = ebiten.ColorSpaceDisplayP3
 	}
 	op.InitUnfocused = !*flagInitFocused
 	op.ScreenTransparent = *flagTransparent

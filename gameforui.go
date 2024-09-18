@@ -46,7 +46,7 @@ func newGameForUI(game Game, transparent bool) *gameForUI {
 		transparent: transparent,
 	}
 
-	s, err := NewShader(builtinshader.ScreenShaderSource)
+	s, err := newShader(builtinshader.ScreenShaderSource, "screen")
 	if err != nil {
 		panic(fmt.Sprintf("ebiten: compiling the screen shader failed: %v", err))
 	}
@@ -66,6 +66,10 @@ func (g *gameForUI) NewOffscreenImage(width, height int) *ui.Image {
 	// An image on an atlas is surrounded by a transparent edge,
 	// and the shader program unexpectedly picks the pixel on the edges.
 	imageType := atlas.ImageTypeUnmanaged
+	if ui.Get().IsScreenClearedEveryFrame() {
+		// A volatile image is also always isolated.
+		imageType = atlas.ImageTypeVolatile
+	}
 	g.offscreen = newImage(image.Rect(0, 0, width, height), imageType)
 	return g.offscreen.image
 }

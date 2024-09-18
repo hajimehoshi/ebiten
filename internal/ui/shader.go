@@ -32,9 +32,9 @@ type Shader struct {
 	uniformUint32Count int
 }
 
-func NewShader(ir *shaderir.Program) *Shader {
+func NewShader(ir *shaderir.Program, name string) *Shader {
 	return &Shader{
-		shader:       atlas.NewShader(ir),
+		shader:       atlas.NewShader(ir, name),
 		uniformNames: ir.UniformNames[graphics.PreservedUniformVariablesCount:],
 		uniformTypes: ir.Uniforms[graphics.PreservedUniformVariablesCount:],
 	}

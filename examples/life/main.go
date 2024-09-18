@@ -8,15 +8,10 @@ package main
 
 import (
 	"log"
-	"math/rand"
-	"time"
+	"math/rand/v2"
 
 	"github.com/hajimehoshi/ebiten/v2"
 )
-
-func init() {
-	rand.Seed(time.Now().UnixNano())
-}
 
 // World represents the game state.
 type World struct {
@@ -39,8 +34,8 @@ func NewWorld(width, height int, maxInitLiveCells int) *World {
 // init inits world with a random state.
 func (w *World) init(maxLiveCells int) {
 	for i := 0; i < maxLiveCells; i++ {
-		x := rand.Intn(w.width)
-		y := rand.Intn(w.height)
+		x := rand.IntN(w.width)
+		y := rand.IntN(w.height)
 		w.area[y*w.width+x] = true
 	}
 }
@@ -94,20 +89,6 @@ func (w *World) Draw(pix []byte) {
 			pix[4*i+3] = 0
 		}
 	}
-}
-
-func max(a, b int) int {
-	if a < b {
-		return b
-	}
-	return a
-}
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
 }
 
 // neighbourCount calculates the Moore neighborhood of (x, y).

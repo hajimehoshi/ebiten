@@ -54,6 +54,10 @@ func (g *nativeGamepadsImpl) init(gamepads *gamepads) error {
 		if err == unix.ENOENT {
 			return nil
 		}
+		// `/dev/input` might not be accessible in some environments (#3057).
+		if err == unix.EACCES {
+			return nil
+		}
 		return fmt.Errorf("gamepad: Stat failed: %w", err)
 	}
 	if stat.Mode&unix.S_IFDIR == 0 {

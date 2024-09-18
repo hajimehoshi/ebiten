@@ -12,8 +12,29 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// This can be compiled in non-JS environments to avoid a mysterious error: 'no Go source files'
-// See https://travis-ci.org/hajimehoshi/ebiten/builds/603539948
+package gl
 
-// Package jsutil offers utility functions for Wasm.
-package jsutil
+import (
+	"runtime"
+	"syscall/js"
+	"unsafe"
+)
+
+func copyUint8SliceToTemporaryArrayBuffer(src []uint8) {
+	if len(src) == 0 {
+		return
+	}
+	js.CopyBytesToJS(tmpUint8Array, src)
+}
+
+type numeric interface {
+	~int | ~int8 | ~int16 | ~int32 | ~int64 | ~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64 | ~uintptr | ~float32 | ~float64
+}
+
+func copySliceToTemporaryArrayBuffer[T numeric](src []T) {
+	if len(src) == 0 {
+		return
+	}
+	js.CopyBytesToJS(tmpUint8Array, unsafe.Slice((*byte)(unsafe.Pointer(&src[0])), len(src)*int(unsafe.Sizeof(T(0)))))
+	runtime.KeepAlive(src)
+}

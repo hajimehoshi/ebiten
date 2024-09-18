@@ -93,10 +93,3 @@ func (r *float32BytesReader) Seek(offset int64, whence int) (int64, error) {
 	}
 	return n / 2 * 4, nil
 }
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}

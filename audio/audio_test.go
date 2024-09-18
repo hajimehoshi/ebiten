@@ -17,7 +17,6 @@ package audio_test
 import (
 	"bytes"
 	"io"
-	"os"
 	"runtime"
 	"testing"
 	"time"
@@ -34,14 +33,6 @@ func setup() {
 func teardown() {
 	audio.ResetContextForTesting()
 	context = nil
-}
-
-func TestMain(m *testing.M) {
-	code := m.Run()
-	// 200[ms] should be enough all the players are consumed.
-	// TODO: This is a dirty hack. Would it be possible to use virtual time?
-	time.Sleep(200 * time.Millisecond)
-	os.Exit(code)
 }
 
 // Issue #746

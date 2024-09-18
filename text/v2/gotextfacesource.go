@@ -20,10 +20,8 @@ import (
 	"sync"
 
 	"github.com/go-text/typesetting/font"
+	"github.com/go-text/typesetting/font/opentype"
 	"github.com/go-text/typesetting/language"
-	"github.com/go-text/typesetting/opentype/api"
-	ofont "github.com/go-text/typesetting/opentype/api/font"
-	"github.com/go-text/typesetting/opentype/loader"
 	"github.com/go-text/typesetting/shaping"
 	"golang.org/x/image/math/fixed"
 )
@@ -42,7 +40,7 @@ type glyph struct {
 	shapingGlyph   *shaping.Glyph
 	startIndex     int
 	endIndex       int
-	scaledSegments []api.Segment
+	scaledSegments []opentype.Segment
 	bounds         fixed.Rectangle26_6
 }
 
@@ -53,7 +51,7 @@ type goTextOutputCacheValue struct {
 }
 
 type goTextGlyphImageCacheKey struct {
-	gid        api.GID
+	gid        opentype.GID
 	xoffset    fixed.Int26_6
 	yoffset    fixed.Int26_6
 	variations string
@@ -61,7 +59,7 @@ type goTextGlyphImageCacheKey struct {
 
 // GoTextFaceSource is a source of a GoTextFace. This can be shared by multiple GoTextFace objects.
 type GoTextFaceSource struct {
-	f        font.Face
+	f        *font.Face
 	metadata Metadata
 
 	outputCache     map[goTextOutputCacheKey]*goTextOutputCacheValue
@@ -99,18 +97,18 @@ func NewGoTextFaceSource(source io.Reader) (*GoTextFaceSource, error) {
 		return nil, err
 	}
 
-	l, err := loader.NewLoader(src)
+	l, err := opentype.NewLoader(src)
 	if err != nil {
 		return nil, err
 	}
 
-	f, err := ofont.NewFont(l)
+	f, err := font.NewFont(l)
 	if err != nil {
 		return nil, err
 	}
 
 	s := &GoTextFaceSource{
-		f: &ofont.Face{Font: f},
+		f: font.NewFace(f),
 	}
 	s.addr = s
 	s.metadata = metadataFromLoader(l)
@@ -125,19 +123,19 @@ func NewGoTextFaceSourcesFromCollection(source io.Reader) ([]*GoTextFaceSource, 
 		return nil, err
 	}
 
-	ls, err := loader.NewLoaders(src)
+	ls, err := opentype.NewLoaders(src)
 	if err != nil {
 		return nil, err
 	}
 
 	sources := make([]*GoTextFaceSource, len(ls))
 	for i, l := range ls {
-		f, err := ofont.NewFont(l)
+		f, err := font.NewFont(l)
 		if err != nil {
 			return nil, err
 		}
 		s := &GoTextFaceSource{
-			f: &ofont.Face{Font: f},
+			f: &font.Face{Font: f},
 		}
 		s.addr = s
 		s.metadata = metadataFromLoader(l)
@@ -158,9 +156,12 @@ func (g *GoTextFaceSource) Metadata() Metadata {
 }
 
 // UnsafeInternal returns its font.Face.
+// The return value type is any since github.com/go-text/typesettings's API is now unstable.
 //
-// This is unsafe since this might make internal cache states out of sync.
-func (g *GoTextFaceSource) UnsafeInternal() font.Face {
+// UnsafeInternal is unsafe since this might make internal cache states out of sync.
+//
+// UnsafeInternal might have breaking changes even in the same major version.
+func (g *GoTextFaceSource) UnsafeInternal() any {
 	return g.f
 }
 
@@ -218,22 +219,22 @@ func (g *GoTextFaceSource) shape(text string, face *GoTextFace) ([]shaping.Outpu
 
 		for _, gl := range out.Glyphs {
 			gl := gl
-			var segs []api.Segment
+			var segs []opentype.Segment
 			switch data := g.f.GlyphData(gl.GlyphID).(type) {
-			case api.GlyphOutline:
+			case font.GlyphOutline:
 				if out.Direction.IsSideways() {
 					data.Sideways(fixed26_6ToFloat32(-gl.YOffset) / fixed26_6ToFloat32(out.Size) * float32(f.Upem()))
 				}
 				segs = data.Segments
-			case api.GlyphSVG:
+			case font.GlyphSVG:
 				segs = data.Outline.Segments
-			case api.GlyphBitmap:
+			case font.GlyphBitmap:
 				if data.Outline != nil {
 					segs = data.Outline.Segments
 				}
 			}
 
-			scaledSegs := make([]api.Segment, len(segs))
+			scaledSegs := make([]opentype.Segment, len(segs))
 			scale := float32(g.scale(fixed26_6ToFloat64(out.Size)))
 			for i, seg := range segs {
 				scaledSegs[i] = seg
@@ -291,9 +292,9 @@ func (g *GoTextFaceSource) getOrCreateGlyphImage(goTextFace *GoTextFace, key goT
 }
 
 type singleFontmap struct {
-	face font.Face
+	face *font.Face
 }
 
-func (s *singleFontmap) ResolveFace(r rune) font.Face {
+func (s *singleFontmap) ResolveFace(r rune) *font.Face {
 	return s.face
 }

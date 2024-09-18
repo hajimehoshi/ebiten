@@ -18,24 +18,34 @@
 
 #include "graphics_playstation5.h"
 
-extern "C" ebitengine_Error ebitengine_InitializeGraphics(void) {
+extern "C" ebitengine_Error ebitengine_InitializeGraphics(void) { return {}; }
+
+extern "C" ebitengine_Error ebitengine_NewImage(int *image, int width,
+                                                int height) {
   return {};
 }
 
-extern "C" ebitengine_Error ebitengine_NewImage(int* image, int width, int height) {
+extern "C" ebitengine_Error
+ebitengine_NewScreenFramebufferImage(int *image, int width, int height) {
   return {};
 }
 
-extern "C" ebitengine_Error ebitengine_NewScreenFramebufferImage(int* image, int width, int height) {
+extern "C" void ebitengine_DisposeImage(int id) {}
+
+extern "C" void ebitengine_SetVertices(float *vertices, int vertexCount,
+                                       uint32_t *indices, int indexCount) {}
+
+extern "C" ebitengine_Error
+ebitengine_DrawTriangles(int dst, int *srcs, int srcCount, int shader,
+                         ebitengine_DstRegion *dstRegions, int dstRegionCount,
+                         int indexOffset, ebitengine_Blend blend,
+                         uint32_t *uniforms, int uniformCount, int fillRule) {
   return {};
 }
 
-extern "C" void ebitengine_DisposeImage(int id) {
-}
-
-extern "C" ebitengine_Error ebitengine_NewShader(int* shader, const char* source) {
+extern "C" ebitengine_Error ebitengine_NewShader(int *shader,
+                                                 const char *source) {
   return {};
 }
 
-extern "C" void ebitengine_DisposeShader(int id) {
-}
+extern "C" void ebitengine_DisposeShader(int id) {}

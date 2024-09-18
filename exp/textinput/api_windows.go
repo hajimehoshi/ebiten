@@ -15,6 +15,7 @@
 package textinput
 
 import (
+	"errors"
 	"fmt"
 	"runtime"
 	"unsafe"
@@ -73,6 +74,7 @@ var (
 	imm32  = windows.NewLazySystemDLL("imm32.dll")
 	user32 = windows.NewLazySystemDLL("user32.dll")
 
+	procImmAssociateContext      = imm32.NewProc("ImmAssociateContext")
 	procImmGetCompositionStringW = imm32.NewProc("ImmGetCompositionStringW")
 	procImmGetContext            = imm32.NewProc("ImmGetContext")
 	procImmReleaseContext        = imm32.NewProc("ImmReleaseContext")
@@ -92,6 +94,14 @@ func _CallWindowProcW(lpPrevWndFunc uintptr, hWnd uintptr, msg uint32, wParam, l
 func _GetActiveWindow() windows.HWND {
 	r, _, _ := procGetActiveWindow.Call()
 	return windows.HWND(r)
+}
+
+func _ImmAssociateContext(hwnd windows.HWND, hIMC uintptr) (uintptr, error) {
+	r, _, e := procImmAssociateContext.Call(uintptr(hwnd), hIMC)
+	if e != nil && !errors.Is(e, windows.ERROR_SUCCESS) {
+		return 0, fmt.Errorf("textinput: ImmAssociateContext failed: error code: %w", e)
+	}
+	return r, nil
 }
 
 func _ImmGetCompositionStringW(unnamedParam1 _HIMC, unnamedParam2 uint32, lpBuf unsafe.Pointer, dwBufLen uint32) (uint32, error) {

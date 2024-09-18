@@ -22,10 +22,9 @@ import (
 	"image/draw"
 	_ "image/png"
 	"math"
-	"math/rand"
+	"math/rand/v2"
 	"runtime"
 	"testing"
-	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/examples/resources/images"
@@ -36,10 +35,6 @@ import (
 
 // maxImageSize is a maximum image size that should work in almost every environment.
 const maxImageSize = 4096 - 2
-
-func init() {
-	rand.Seed(time.Now().UnixNano())
-}
 
 func skipTooSlowTests(t *testing.T) bool {
 	if testing.Short() {
@@ -348,26 +343,6 @@ func TestImageDeallocate(t *testing.T) {
 	}
 }
 
-type ordered interface {
-	~int | ~int8 | ~int16 | ~int32 | ~int64 | ~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64 | ~uintptr | ~float32 | ~float64 | ~string
-}
-
-// TODO: Use the built-in function min from Go 1.21.
-func min[T ordered](a, b T) T {
-	if a < b {
-		return a
-	}
-	return b
-}
-
-// TODO: Use the built-in function max from Go 1.21.
-func max[T ordered](a, b T) T {
-	if a < b {
-		return b
-	}
-	return a
-}
-
 func TestImageBlendLighter(t *testing.T) {
 	img0, _, err := openEbitenImage()
 	if err != nil {
@@ -659,6 +634,59 @@ func BenchmarkDrawImage(b *testing.B) {
 	op := &ebiten.DrawImageOptions{}
 	for i := 0; i < b.N; i++ {
 		img0.DrawImage(img1, op)
+	}
+}
+
+func BenchmarkDrawTriangles(b *testing.B) {
+	const w, h = 16, 16
+	img0 := ebiten.NewImage(w, h)
+	img1 := ebiten.NewImage(w, h)
+	op := &ebiten.DrawTrianglesOptions{}
+	vs := []ebiten.Vertex{
+		{
+			DstX:   0,
+			DstY:   0,
+			SrcX:   0,
+			SrcY:   0,
+			ColorR: 1,
+			ColorG: 1,
+			ColorB: 1,
+			ColorA: 1,
+		},
+		{
+			DstX:   w,
+			DstY:   0,
+			SrcX:   w,
+			SrcY:   0,
+			ColorR: 1,
+			ColorG: 1,
+			ColorB: 1,
+			ColorA: 1,
+		},
+		{
+			DstX:   0,
+			DstY:   h,
+			SrcX:   0,
+			SrcY:   h,
+			ColorR: 1,
+			ColorG: 1,
+			ColorB: 1,
+			ColorA: 1,
+		},
+		{
+			DstX:   w,
+			DstY:   h,
+			SrcX:   w,
+			SrcY:   h,
+			ColorR: 1,
+			ColorG: 1,
+			ColorB: 1,
+			ColorA: 1,
+		},
+	}
+	is := []uint16{0, 1, 2, 1, 2, 3}
+	for i := 0; i < b.N; i++ {
+		img0.DrawTriangles(vs, is, img1, op)
 	}
 }
 
@@ -4239,7 +4267,7 @@ func TestImageAntiAlias(t *testing.T) {
 		ebiten.BlendXor,
 		ebiten.BlendLighter,
 	} {
-		rnd := rand.New(rand.NewSource(0))
+		rnd := rand.New(rand.NewPCG(0, 0))
 		max := func(x, y, z byte) byte {
 			if x >= y && x >= z {
 				return x

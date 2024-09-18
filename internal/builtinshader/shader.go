@@ -170,7 +170,7 @@ var ScreenShaderSource = []byte(`//kage:unit pixels
 
 package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, srcPos vec2) vec4 {
 	// Blend source colors in a square region, which size is 1/scale.
 	scale := imageDstSize()/imageSrc0Size()
 	pos := srcPos
@@ -193,7 +193,7 @@ var ClearShaderSource = []byte(`//kage:unit pixels
 
 package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment() vec4 {
 	return vec4(0)
 }
 `)

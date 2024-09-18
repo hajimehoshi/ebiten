@@ -12,8 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build windows
+//go:build playstation5
 
-//go:generate go run gen.go
+// Package playstation5 provides utilities for PlayStation 5.
+package playstation5
 
-package fxc
+// The actual implementation will be provided by another repository using the -overlay option.

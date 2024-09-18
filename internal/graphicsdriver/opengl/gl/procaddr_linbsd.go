@@ -17,10 +17,8 @@
 package gl
 
 import (
+	"errors"
 	"fmt"
-	"os"
-	"runtime"
-	"strings"
 
 	"github.com/ebitengine/purego"
 )
@@ -31,36 +29,9 @@ var (
 )
 
 func (c *defaultContext) init() error {
-	var preferES bool
-	if runtime.GOOS == "android" {
-		preferES = true
-	}
-	if !preferES {
-		for _, t := range strings.Split(os.Getenv("EBITENGINE_OPENGL"), ",") {
-			switch strings.TrimSpace(t) {
-			case "es":
-				preferES = true
-				break
-			}
-		}
-	}
+	var errs []error
 
-	// Try OpenGL first. OpenGL is preferable as this doesn't cause context losses.
-	if !preferES {
-		// Usually libGL.so or libGL.so.1 is used. libGL.so.2 might exist only on NetBSD.
-		// TODO: Should "libOpenGL.so.0" [1] and "libGLX.so.0" [2] be added? These were added as of GLFW 3.3.9.
-		// [1] https://github.com/glfw/glfw/commit/55aad3c37b67f17279378db52da0a3ab81bbf26d
-		// [2] https://github.com/glfw/glfw/commit/c18851f52ec9704eb06464058a600845ec1eada1
-		for _, name := range []string{"libGL.so", "libGL.so.2", "libGL.so.1", "libGL.so.0"} {
-			lib, err := purego.Dlopen(name, purego.RTLD_LAZY|purego.RTLD_GLOBAL)
-			if err == nil {
-				libGL = lib
-				return nil
-			}
-		}
-	}
-
-	// Try OpenGL ES.
+	// Try OpenGL ES first. Some machines like Android and Raspberry Pi might work only with OpenGL ES.
 	for _, name := range []string{"libGLESv2.so", "libGLESv2.so.2", "libGLESv2.so.1", "libGLESv2.so.0"} {
 		lib, err := purego.Dlopen(name, purego.RTLD_LAZY|purego.RTLD_GLOBAL)
 		if err == nil {
@@ -68,9 +39,25 @@ func (c *defaultContext) init() error {
 			c.isES = true
 			return nil
 		}
+		errs = append(errs, fmt.Errorf("gl: Dlopen failed: name: %s: %w", name, err))
 	}
 
-	return fmt.Errorf("gl: failed to load libGL.so and libGLESv2.so")
+	// Try OpenGL next.
+	// Usually libGL.so or libGL.so.1 is used. libGL.so.2 might exist only on NetBSD.
+	// TODO: Should "libOpenGL.so.0" [1] and "libGLX.so.0" [2] be added? These were added as of GLFW 3.3.9.
+	// [1] https://github.com/glfw/glfw/commit/55aad3c37b67f17279378db52da0a3ab81bbf26d
+	// [2] https://github.com/glfw/glfw/commit/c18851f52ec9704eb06464058a600845ec1eada1
+	for _, name := range []string{"libGL.so", "libGL.so.2", "libGL.so.1", "libGL.so.0"} {
+		lib, err := purego.Dlopen(name, purego.RTLD_LAZY|purego.RTLD_GLOBAL)
+		if err == nil {
+			libGL = lib
+			return nil
+		}
+		errs = append(errs, fmt.Errorf("gl: Dlopen failed: name: %s: %w", name, err))
+	}
+
+	errs = append([]error{fmt.Errorf("gl: failed to load libGL.so and libGLESv2.so: ")}, errs...)
+	return errors.Join(errs...)
 }
 
 func (c *defaultContext) getProcAddress(name string) (uintptr, error) {

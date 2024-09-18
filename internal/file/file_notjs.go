@@ -29,13 +29,20 @@ import (
 )
 
 type VirtualFS struct {
-	root virtualFSRoot
+	paths []string
 }
 
 func NewVirtualFS(paths []string) *VirtualFS {
 	fs := &VirtualFS{}
-	fs.root.addRealPaths(paths)
+	fs.paths = make([]string, len(paths))
+	copy(fs.paths, paths)
 	return fs
+}
+
+func (v *VirtualFS) newRootFS() *virtualFSRoot {
+	var root virtualFSRoot
+	root.addRealPaths(v.paths)
+	return &root
 }
 
 func (v *VirtualFS) Open(name string) (fs.File, error) {
@@ -48,15 +55,17 @@ func (v *VirtualFS) Open(name string) (fs.File, error) {
 	}
 
 	if name == "." {
-		return &v.root, nil
+		return v.newRootFS(), nil
 	}
 
 	// A valid path must not include a token "." or "..", except for "." itself.
 	es := strings.Split(name, "/")
-	for _, realPath := range v.root.realPaths {
+	for _, realPath := range v.paths {
 		if filepath.Base(realPath) != es[0] {
 			continue
 		}
+		// os.File should implement fs.File interface, so this should be fine even on Windows.
+		// See https://cs.opensource.google/go/go/+/refs/tags/go1.23.0:src/os/file.go;l=695-710
 		return os.Open(filepath.Join(append([]string{realPath}, es[1:]...)...))
 	}
 

@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	"unsafe"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/affine"
 	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
@@ -25,6 +26,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
+	"github.com/hajimehoshi/ebiten/v2/internal/restorable"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
@@ -142,6 +144,16 @@ type DrawImageOptions struct {
 	// Filter is a type of texture filter.
 	// The default (zero) value is FilterNearest.
 	Filter Filter
+
+	// DisableMipmaps disables mipmaps.
+	// When Filter is FilterLinear and GeoM shrinks the image, mipmaps are used by default.
+	// Mipmap is useful to render a shrunk image with high quality.
+	// However, mipmaps can be expensive, especially on mobiles.
+	// When DisableMipmaps is true, mipmap is not used.
+	// When Filter is not FilterLinear, DisableMipmaps is ignored.
+	//
+	// The default (zero) value is false.
+	DisableMipmaps bool
 }
 
 // adjustPosition converts the position in the *ebiten.Image coordinate to the *ui.Image coordinate.
@@ -247,7 +259,7 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) {
 	colorm, cr, cg, cb, ca := colorMToScale(options.ColorM.affineColorM())
 	cr, cg, cb, ca = options.ColorScale.apply(cr, cg, cb, ca)
 	vs := i.ensureTmpVertices(4 * graphics.VertexFloatCount)
-	graphics.QuadVertices(vs, float32(sx0), float32(sy0), float32(sx1), float32(sy1), a, b, c, d, tx, ty, cr, cg, cb, ca)
+	graphics.QuadVerticesFromSrcAndMatrix(vs, float32(sx0), float32(sy0), float32(sx1), float32(sy1), a, b, c, d, tx, ty, cr, cg, cb, ca)
 	is := graphics.QuadIndices()
 
 	srcs := [graphics.ShaderSrcImageCount]*ui.Image{img.image}
@@ -265,7 +277,36 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) {
 		})
 	}
 
-	i.image.DrawTriangles(srcs, vs, is, blend, i.adjustedBounds(), [graphics.ShaderSrcImageCount]image.Rectangle{img.adjustedBounds()}, shader.shader, i.tmpUniforms, graphicsdriver.FillRuleFillAll, canSkipMipmap(geoM, filter), false)
+	dr := i.adjustedBounds()
+	hint := restorable.HintNone
+	if overwritesDstRegion(options.Blend, dr, geoM, sx0, sy0, sx1, sy1) {
+		hint = restorable.HintOverwriteDstRegion
+	}
+
+	skipMipmap := options.DisableMipmaps
+	if !skipMipmap {
+		skipMipmap = canSkipMipmap(geoM, filter)
+	}
+	i.image.DrawTriangles(srcs, vs, is, blend, dr, [graphics.ShaderSrcImageCount]image.Rectangle{img.adjustedBounds()}, shader.shader, i.tmpUniforms, graphicsdriver.FillRuleFillAll, skipMipmap, false, hint)
+}
+
+// overwritesDstRegion reports whether the given parameters overwrite the destination region completely.
+func overwritesDstRegion(blend Blend, dstRegion image.Rectangle, geoM GeoM, sx0, sy0, sx1, sy1 int) bool {
+	// TODO: More precisely, BlendFactorDestinationRGB, BlendFactorDestinationAlpha, and operations should be checked.
+	if blend != BlendCopy && blend != BlendClear {
+		return false
+	}
+	// Check the result vertices is not a rotated rectangle.
+	if geoM.b != 0 || geoM.c != 0 {
+		return false
+	}
+	// Check the result vertices completely covers dstRegion.
+	x0, y0 := geoM.Apply(float64(sx0), float64(sy0))
+	x1, y1 := geoM.Apply(float64(sx1), float64(sy1))
+	if float64(dstRegion.Min.X) < x0 || float64(dstRegion.Min.Y) < y0 || float64(dstRegion.Max.X) > x1 || float64(dstRegion.Max.Y) > y1 {
+		return false
+	}
+	return true
 }
 
 // Vertex represents a vertex passed to DrawTriangles.
@@ -294,7 +335,19 @@ type Vertex struct {
 	ColorG float32
 	ColorB float32
 	ColorA float32
+
+	// Custom0/Custom1/Custom2/Custom3 represents general-purpose values passed to the shader.
+	// In order to use them, Fragment must have an additional vec4 argument.
+	//
+	// These values are valid only when DrawTrianglesShader is used.
+	// In other cases, these values are ignored.
+	Custom0 float32
+	Custom1 float32
+	Custom2 float32
+	Custom3 float32
 }
+
+var _ [0]byte = [unsafe.Sizeof(Vertex{}) - unsafe.Sizeof(float32(0))*graphics.VertexFloatCount]byte{}
 
 // Address represents a sampler address mode.
 type Address int
@@ -408,6 +461,16 @@ type DrawTrianglesOptions struct {
 	//
 	// The default (zero) value is false.
 	AntiAlias bool
+
+	// DisableMipmaps disables mipmaps.
+	// When Filter is FilterLinear and GeoM shrinks the image, mipmaps are used by default.
+	// Mipmap is useful to render a shrunk image with high quality.
+	// However, mipmaps can be expensive, especially on mobiles.
+	// When DisableMipmaps is true, mipmap is not used.
+	// When Filter is not FilterLinear, DisableMipmaps is ignored.
+	//
+	// The default (zero) value is false.
+	DisableMipmaps bool
 }
 
 // MaxIndicesCount is the maximum number of indices for DrawTriangles and DrawTrianglesShader.
@@ -491,30 +554,32 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 	vs := i.ensureTmpVertices(len(vertices) * graphics.VertexFloatCount)
 	dst := i
 	if options.ColorScaleMode == ColorScaleModeStraightAlpha {
-		for i, v := range vertices {
-			dx, dy := dst.adjustPositionF32(v.DstX, v.DstY)
+		// Avoid using `for i, v := range vertices` as adding `v` creates a copy from `vertices` unnecessarily on each loop (#3103).
+		for i := range vertices {
+			dx, dy := dst.adjustPositionF32(vertices[i].DstX, vertices[i].DstY)
 			vs[i*graphics.VertexFloatCount] = dx
 			vs[i*graphics.VertexFloatCount+1] = dy
-			sx, sy := img.adjustPositionF32(v.SrcX, v.SrcY)
+			sx, sy := img.adjustPositionF32(vertices[i].SrcX, vertices[i].SrcY)
 			vs[i*graphics.VertexFloatCount+2] = sx
 			vs[i*graphics.VertexFloatCount+3] = sy
-			vs[i*graphics.VertexFloatCount+4] = v.ColorR * v.ColorA * cr
-			vs[i*graphics.VertexFloatCount+5] = v.ColorG * v.ColorA * cg
-			vs[i*graphics.VertexFloatCount+6] = v.ColorB * v.ColorA * cb
-			vs[i*graphics.VertexFloatCount+7] = v.ColorA * ca
+			vs[i*graphics.VertexFloatCount+4] = vertices[i].ColorR * vertices[i].ColorA * cr
+			vs[i*graphics.VertexFloatCount+5] = vertices[i].ColorG * vertices[i].ColorA * cg
+			vs[i*graphics.VertexFloatCount+6] = vertices[i].ColorB * vertices[i].ColorA * cb
+			vs[i*graphics.VertexFloatCount+7] = vertices[i].ColorA * ca
 		}
 	} else {
-		for i, v := range vertices {
-			dx, dy := dst.adjustPositionF32(v.DstX, v.DstY)
+		// See comment above (#3103).
+		for i := range vertices {
+			dx, dy := dst.adjustPositionF32(vertices[i].DstX, vertices[i].DstY)
 			vs[i*graphics.VertexFloatCount] = dx
 			vs[i*graphics.VertexFloatCount+1] = dy
-			sx, sy := img.adjustPositionF32(v.SrcX, v.SrcY)
+			sx, sy := img.adjustPositionF32(vertices[i].SrcX, vertices[i].SrcY)
 			vs[i*graphics.VertexFloatCount+2] = sx
 			vs[i*graphics.VertexFloatCount+3] = sy
-			vs[i*graphics.VertexFloatCount+4] = v.ColorR * cr
-			vs[i*graphics.VertexFloatCount+5] = v.ColorG * cg
-			vs[i*graphics.VertexFloatCount+6] = v.ColorB * cb
-			vs[i*graphics.VertexFloatCount+7] = v.ColorA * ca
+			vs[i*graphics.VertexFloatCount+4] = vertices[i].ColorR * cr
+			vs[i*graphics.VertexFloatCount+5] = vertices[i].ColorG * cg
+			vs[i*graphics.VertexFloatCount+6] = vertices[i].ColorB * cb
+			vs[i*graphics.VertexFloatCount+7] = vertices[i].ColorA * ca
 		}
 	}
 	is := i.ensureTmpIndices(len(indices))
@@ -537,7 +602,11 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 		})
 	}
 
-	i.image.DrawTriangles(srcs, vs, is, blend, i.adjustedBounds(), [graphics.ShaderSrcImageCount]image.Rectangle{img.adjustedBounds()}, shader.shader, i.tmpUniforms, graphicsdriver.FillRule(options.FillRule), filter != builtinshader.FilterLinear, options.AntiAlias)
+	skipMipmap := options.DisableMipmaps
+	if !skipMipmap {
+		skipMipmap = filter != builtinshader.FilterLinear
+	}
+	i.image.DrawTriangles(srcs, vs, is, blend, i.adjustedBounds(), [graphics.ShaderSrcImageCount]image.Rectangle{img.adjustedBounds()}, shader.shader, i.tmpUniforms, graphicsdriver.FillRule(options.FillRule), skipMipmap, options.AntiAlias, restorable.HintNone)
 }
 
 // DrawTrianglesShaderOptions represents options for DrawTrianglesShader.
@@ -651,20 +720,25 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 	vs := i.ensureTmpVertices(len(vertices) * graphics.VertexFloatCount)
 	dst := i
 	src := options.Images[0]
-	for i, v := range vertices {
-		dx, dy := dst.adjustPositionF32(v.DstX, v.DstY)
+	// Avoid using `for i, v := range vertices` as adding `v` creates a copy from `vertices` unnecessarily on each loop (#3103).
+	for i := range vertices {
+		dx, dy := dst.adjustPositionF32(vertices[i].DstX, vertices[i].DstY)
 		vs[i*graphics.VertexFloatCount] = dx
 		vs[i*graphics.VertexFloatCount+1] = dy
-		sx, sy := v.SrcX, v.SrcY
+		sx, sy := vertices[i].SrcX, vertices[i].SrcY
 		if src != nil {
 			sx, sy = src.adjustPositionF32(sx, sy)
 		}
 		vs[i*graphics.VertexFloatCount+2] = sx
 		vs[i*graphics.VertexFloatCount+3] = sy
-		vs[i*graphics.VertexFloatCount+4] = v.ColorR
-		vs[i*graphics.VertexFloatCount+5] = v.ColorG
-		vs[i*graphics.VertexFloatCount+6] = v.ColorB
-		vs[i*graphics.VertexFloatCount+7] = v.ColorA
+		vs[i*graphics.VertexFloatCount+4] = vertices[i].ColorR
+		vs[i*graphics.VertexFloatCount+5] = vertices[i].ColorG
+		vs[i*graphics.VertexFloatCount+6] = vertices[i].ColorB
+		vs[i*graphics.VertexFloatCount+7] = vertices[i].ColorA
+		vs[i*graphics.VertexFloatCount+8] = vertices[i].Custom0
+		vs[i*graphics.VertexFloatCount+9] = vertices[i].Custom1
+		vs[i*graphics.VertexFloatCount+10] = vertices[i].Custom2
+		vs[i*graphics.VertexFloatCount+11] = vertices[i].Custom3
 	}
 
 	is := i.ensureTmpIndices(len(indices))
@@ -705,7 +779,7 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 	i.tmpUniforms = i.tmpUniforms[:0]
 	i.tmpUniforms = shader.appendUniforms(i.tmpUniforms, options.Uniforms)
 
-	i.image.DrawTriangles(imgs, vs, is, blend, i.adjustedBounds(), srcRegions, shader.shader, i.tmpUniforms, graphicsdriver.FillRule(options.FillRule), true, options.AntiAlias)
+	i.image.DrawTriangles(imgs, vs, is, blend, i.adjustedBounds(), srcRegions, shader.shader, i.tmpUniforms, graphicsdriver.FillRule(options.FillRule), true, options.AntiAlias, restorable.HintNone)
 }
 
 // DrawRectShaderOptions represents options for DrawRectShader.
@@ -829,7 +903,7 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 	vs := i.ensureTmpVertices(4 * graphics.VertexFloatCount)
 
 	// Do not use srcRegions[0].Dx() and srcRegions[0].Dy() as these might be empty.
-	graphics.QuadVertices(vs,
+	graphics.QuadVerticesFromSrcAndMatrix(vs,
 		float32(srcRegions[0].Min.X), float32(srcRegions[0].Min.Y),
 		float32(srcRegions[0].Min.X+width), float32(srcRegions[0].Min.Y+height),
 		a, b, c, d, tx, ty, cr, cg, cb, ca)
@@ -838,7 +912,14 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 	i.tmpUniforms = i.tmpUniforms[:0]
 	i.tmpUniforms = shader.appendUniforms(i.tmpUniforms, options.Uniforms)
 
-	i.image.DrawTriangles(imgs, vs, is, blend, i.adjustedBounds(), srcRegions, shader.shader, i.tmpUniforms, graphicsdriver.FillRuleFillAll, true, false)
+	dr := i.adjustedBounds()
+	hint := restorable.HintNone
+	// Do not use srcRegions[0].Dx() and srcRegions[0].Dy() as these might be empty.
+	if overwritesDstRegion(options.Blend, dr, geoM, srcRegions[0].Min.X, srcRegions[0].Min.Y, srcRegions[0].Min.X+width, srcRegions[0].Min.Y+height) {
+		hint = restorable.HintOverwriteDstRegion
+	}
+
+	i.image.DrawTriangles(imgs, vs, is, blend, i.adjustedBounds(), srcRegions, shader.shader, i.tmpUniforms, graphicsdriver.FillRuleFillAll, true, false, hint)
 }
 
 // SubImage returns an image representing the portion of the image p visible through r.

@@ -15,6 +15,7 @@
 package mtl_test
 
 import (
+	"bufio"
 	"fmt"
 	"image"
 	"image/color"
@@ -147,7 +148,7 @@ func readPNG(name string) (image.Image, error) {
 	defer func() {
 		_ = f.Close()
 	}()
-	return png.Decode(f)
+	return png.Decode(bufio.NewReader(f))
 }
 
 // imageEq reports whether images m, n are considered equivalent. Two images are considered

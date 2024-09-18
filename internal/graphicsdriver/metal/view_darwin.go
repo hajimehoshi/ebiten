@@ -17,6 +17,7 @@ package metal
 import (
 	"sync"
 
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/ca"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/mtl"
 )
@@ -58,10 +59,10 @@ func (v *view) colorPixelFormat() mtl.PixelFormat {
 	return v.ml.PixelFormat()
 }
 
-func (v *view) initialize(device mtl.Device) error {
+func (v *view) initialize(device mtl.Device, colorSpace graphicsdriver.ColorSpace) error {
 	v.device = device
 
-	ml, err := ca.NewMetalLayer()
+	ml, err := ca.NewMetalLayer(colorSpace)
 	if err != nil {
 		return err
 	}

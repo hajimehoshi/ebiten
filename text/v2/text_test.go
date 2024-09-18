@@ -18,6 +18,9 @@ import (
 	"bytes"
 	"image"
 	"image/color"
+	"math"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"testing"
@@ -25,6 +28,7 @@ import (
 	"github.com/hajimehoshi/bitmapfont/v3"
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/gofont/goregular"
+	"golang.org/x/image/font/opentype"
 	"golang.org/x/image/math/fixed"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -373,6 +377,79 @@ func TestDrawOptionsNotModified(t *testing.T) {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
 }
+
+func TestGoXFaceMetrics(t *testing.T) {
+	const size = 100
+
+	fontFiles := []string{
+		// MPLUS1p-Regular.ttf is an old version of M+ 1p font, and this doesn't have metadata.
+		"MPLUS1p-Regular.ttf",
+		"Roboto-Regular.ttf",
+	}
+
+	for _, fontFile := range fontFiles {
+		fontFile := fontFile
+		t.Run(fontFile, func(t *testing.T) {
+			fontdata, err := os.ReadFile(filepath.Join("testdata", fontFile))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			sfntFont, err := opentype.Parse(fontdata)
+			if err != nil {
+				t.Fatal(err)
+			}
+			opentypeFace, err := opentype.NewFace(sfntFont, &opentype.FaceOptions{
+				Size: size,
+				DPI:  72,
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			goXFace := text.NewGoXFace(opentypeFace)
+			goXMetrics := goXFace.Metrics()
+			if goXMetrics.XHeight <= 0 {
+				t.Errorf("GoXFace's XHeight must be positive but not: %f", goXMetrics.XHeight)
+			}
+			if goXMetrics.CapHeight <= 0 {
+				t.Errorf("GoXFace's CapHeight must be positive but not: %f", goXMetrics.CapHeight)
+			}
+
+			goTextFaceSource, err := text.NewGoTextFaceSource(bytes.NewBuffer(fontdata))
+			if err != nil {
+				t.Fatal(err)
+			}
+			goTextFace := &text.GoTextFace{
+				Source: goTextFaceSource,
+				Size:   size,
+			}
+			goTextMetrics := goTextFace.Metrics()
+			if goTextMetrics.XHeight <= 0 {
+				t.Errorf("GoTextFace's XHeight must be positive but not: %f", goTextMetrics.XHeight)
+			}
+			if goTextMetrics.CapHeight <= 0 {
+				t.Errorf("GoTextFace's CapHeight must be positive but not: %f", goTextMetrics.CapHeight)
+			}
+
+			if math.Abs(goXMetrics.XHeight-goTextMetrics.XHeight) >= 0.1 {
+				t.Errorf("XHeight values don't match: %f (GoXFace) vs %f (GoTextFace)", goXMetrics.XHeight, goTextMetrics.XHeight)
+			}
+			if math.Abs(goXMetrics.CapHeight-goTextMetrics.CapHeight) >= 0.1 {
+				t.Errorf("CapHeight values don't match: %f (GoXFace) vs %f (GoTextFace)", goXMetrics.CapHeight, goTextMetrics.CapHeight)
+			}
+
+			// Check that a MultiFace should have the same metrics.
+			multiFace, err := text.NewMultiFace(goTextFace)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got := multiFace.Metrics(); got != goTextMetrics {
+				t.Errorf("got: %v, want: %v", got, goTextMetrics)
+			}
+		})
+	}
+}
+
 
 func BenchmarkDrawText(b *testing.B) {
 	var txt string

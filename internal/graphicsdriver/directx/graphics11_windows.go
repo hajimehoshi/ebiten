@@ -27,34 +27,56 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/hlsl"
 )
 
-var inputElementDescsForDX11 = []_D3D11_INPUT_ELEMENT_DESC{
-	{
-		SemanticName:         &([]byte("POSITION\000"))[0],
-		SemanticIndex:        0,
-		Format:               _DXGI_FORMAT_R32G32_FLOAT,
-		InputSlot:            0,
-		AlignedByteOffset:    _D3D11_APPEND_ALIGNED_ELEMENT,
-		InputSlotClass:       _D3D11_INPUT_PER_VERTEX_DATA,
-		InstanceDataStepRate: 0,
-	},
-	{
-		SemanticName:         &([]byte("TEXCOORD\000"))[0],
-		SemanticIndex:        0,
-		Format:               _DXGI_FORMAT_R32G32_FLOAT,
-		InputSlot:            0,
-		AlignedByteOffset:    _D3D11_APPEND_ALIGNED_ELEMENT,
-		InputSlotClass:       _D3D11_INPUT_PER_VERTEX_DATA,
-		InstanceDataStepRate: 0,
-	},
-	{
-		SemanticName:         &([]byte("COLOR\000"))[0],
-		SemanticIndex:        0,
-		Format:               _DXGI_FORMAT_R32G32B32A32_FLOAT,
-		InputSlot:            0,
-		AlignedByteOffset:    _D3D11_APPEND_ALIGNED_ELEMENT,
-		InputSlotClass:       _D3D11_INPUT_PER_VERTEX_DATA,
-		InstanceDataStepRate: 0,
-	},
+var inputElementDescsForDX11 []_D3D11_INPUT_ELEMENT_DESC
+
+func init() {
+	inputElementDescsForDX11 = []_D3D11_INPUT_ELEMENT_DESC{
+		{
+			SemanticName:         &([]byte("POSITION\000"))[0],
+			SemanticIndex:        0,
+			Format:               _DXGI_FORMAT_R32G32_FLOAT,
+			InputSlot:            0,
+			AlignedByteOffset:    _D3D11_APPEND_ALIGNED_ELEMENT,
+			InputSlotClass:       _D3D11_INPUT_PER_VERTEX_DATA,
+			InstanceDataStepRate: 0,
+		},
+		{
+			SemanticName:         &([]byte("TEXCOORD\000"))[0],
+			SemanticIndex:        0,
+			Format:               _DXGI_FORMAT_R32G32_FLOAT,
+			InputSlot:            0,
+			AlignedByteOffset:    _D3D11_APPEND_ALIGNED_ELEMENT,
+			InputSlotClass:       _D3D11_INPUT_PER_VERTEX_DATA,
+			InstanceDataStepRate: 0,
+		},
+		{
+			SemanticName:         &([]byte("COLOR\000"))[0],
+			SemanticIndex:        0,
+			Format:               _DXGI_FORMAT_R32G32B32A32_FLOAT,
+			InputSlot:            0,
+			AlignedByteOffset:    _D3D11_APPEND_ALIGNED_ELEMENT,
+			InputSlotClass:       _D3D11_INPUT_PER_VERTEX_DATA,
+			InstanceDataStepRate: 0,
+		},
+	}
+	diff := graphics.VertexFloatCount - 8
+	if diff == 0 {
+		return
+	}
+	if diff%4 != 0 {
+		panic("directx: unexpected attribute layout")
+	}
+	for i := 0; i < diff/4; i++ {
+		inputElementDescsForDX11 = append(inputElementDescsForDX11, _D3D11_INPUT_ELEMENT_DESC{
+			SemanticName:         &([]byte("COLOR\000"))[0],
+			SemanticIndex:        uint32(i) + 1,
+			Format:               _DXGI_FORMAT_R32G32B32A32_FLOAT,
+			InputSlot:            0,
+			AlignedByteOffset:    _D3D11_APPEND_ALIGNED_ELEMENT,
+			InputSlotClass:       _D3D11_INPUT_PER_VERTEX_DATA,
+			InstanceDataStepRate: 0,
+		})
+	}
 }
 
 func blendFactorToBlend11(f graphicsdriver.BlendFactor, alpha bool) _D3D11_BLEND {

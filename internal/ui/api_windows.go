@@ -68,8 +68,11 @@ type _POINT struct {
 }
 
 var (
+	imm32  = windows.NewLazySystemDLL("imm32.dll")
 	ole32  = windows.NewLazySystemDLL("ole32.dll")
 	user32 = windows.NewLazySystemDLL("user32.dll")
+
+	procImmAssociateContext = imm32.NewProc("ImmAssociateContext")
 
 	procCoCreateInstance = ole32.NewProc("CoCreateInstance")
 
@@ -78,6 +81,14 @@ var (
 	procGetMonitorInfoW   = user32.NewProc("GetMonitorInfoW")
 	procGetCursorPos      = user32.NewProc("GetCursorPos")
 )
+
+func _ImmAssociateContext(hwnd windows.HWND, hIMC uintptr) (uintptr, error) {
+	r, _, e := procImmAssociateContext.Call(uintptr(hwnd), hIMC)
+	if e != nil && !errors.Is(e, windows.ERROR_SUCCESS) {
+		return 0, fmt.Errorf("ui: ImmAssociateContext failed: error code: %w", e)
+	}
+	return r, nil
+}
 
 func _CoCreateInstance(rclsid *windows.GUID, pUnkOuter unsafe.Pointer, dwClsContext uint32, riid *windows.GUID) (unsafe.Pointer, error) {
 	var ptr unsafe.Pointer

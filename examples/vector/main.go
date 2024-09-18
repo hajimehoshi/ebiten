@@ -44,7 +44,17 @@ const (
 	screenHeight = 480
 )
 
-func drawEbitenText(screen *ebiten.Image, x, y int, aa bool, line bool) {
+type Game struct {
+	counter int
+
+	aa   bool
+	line bool
+
+	vertices []ebiten.Vertex
+	indices  []uint16
+}
+
+func (g *Game) drawEbitenText(screen *ebiten.Image, x, y int, aa bool, line bool) {
 	var path vector.Path
 
 	// E
@@ -116,26 +126,24 @@ func drawEbitenText(screen *ebiten.Image, x, y int, aa bool, line bool) {
 	path.LineTo(290, 20)
 	path.Close()
 
-	var vs []ebiten.Vertex
-	var is []uint16
 	if line {
 		op := &vector.StrokeOptions{}
 		op.Width = 5
 		op.LineJoin = vector.LineJoinRound
-		vs, is = path.AppendVerticesAndIndicesForStroke(nil, nil, op)
+		g.vertices, g.indices = path.AppendVerticesAndIndicesForStroke(g.vertices[:0], g.indices[:0], op)
 	} else {
-		vs, is = path.AppendVerticesAndIndicesForFilling(nil, nil)
+		g.vertices, g.indices = path.AppendVerticesAndIndicesForFilling(g.vertices[:0], g.indices[:0])
 	}
 
-	for i := range vs {
-		vs[i].DstX = (vs[i].DstX + float32(x))
-		vs[i].DstY = (vs[i].DstY + float32(y))
-		vs[i].SrcX = 1
-		vs[i].SrcY = 1
-		vs[i].ColorR = 0xdb / float32(0xff)
-		vs[i].ColorG = 0x56 / float32(0xff)
-		vs[i].ColorB = 0x20 / float32(0xff)
-		vs[i].ColorA = 1
+	for i := range g.vertices {
+		g.vertices[i].DstX = (g.vertices[i].DstX + float32(x))
+		g.vertices[i].DstY = (g.vertices[i].DstY + float32(y))
+		g.vertices[i].SrcX = 1
+		g.vertices[i].SrcY = 1
+		g.vertices[i].ColorR = 0xdb / float32(0xff)
+		g.vertices[i].ColorG = 0x56 / float32(0xff)
+		g.vertices[i].ColorB = 0x20 / float32(0xff)
+		g.vertices[i].ColorA = 1
 	}
 
 	op := &ebiten.DrawTrianglesOptions{}
@@ -150,10 +158,10 @@ func drawEbitenText(screen *ebiten.Image, x, y int, aa bool, line bool) {
 	// For simplicity, this example always uses FillRuleNonZero, whichever strokes or filling is done.
 	op.FillRule = ebiten.FillRuleNonZero
 
-	screen.DrawTriangles(vs, is, whiteSubImage, op)
+	screen.DrawTriangles(g.vertices, g.indices, whiteSubImage, op)
 }
 
-func drawEbitenLogo(screen *ebiten.Image, x, y int, aa bool, line bool) {
+func (g *Game) drawEbitenLogo(screen *ebiten.Image, x, y int, aa bool, line bool) {
 	const unit = 16
 
 	var path vector.Path
@@ -179,35 +187,33 @@ func drawEbitenLogo(screen *ebiten.Image, x, y int, aa bool, line bool) {
 	path.LineTo(unit, 4*unit)
 	path.Close()
 
-	var vs []ebiten.Vertex
-	var is []uint16
 	if line {
 		op := &vector.StrokeOptions{}
 		op.Width = 5
 		op.LineJoin = vector.LineJoinRound
-		vs, is = path.AppendVerticesAndIndicesForStroke(nil, nil, op)
+		g.vertices, g.indices = path.AppendVerticesAndIndicesForStroke(g.vertices[:0], g.indices[:0], op)
 	} else {
-		vs, is = path.AppendVerticesAndIndicesForFilling(nil, nil)
+		g.vertices, g.indices = path.AppendVerticesAndIndicesForFilling(g.vertices[:0], g.indices[:0])
 	}
 
-	for i := range vs {
-		vs[i].DstX = (vs[i].DstX + float32(x))
-		vs[i].DstY = (vs[i].DstY + float32(y))
-		vs[i].SrcX = 1
-		vs[i].SrcY = 1
-		vs[i].ColorR = 0xdb / float32(0xff)
-		vs[i].ColorG = 0x56 / float32(0xff)
-		vs[i].ColorB = 0x20 / float32(0xff)
-		vs[i].ColorA = 1
+	for i := range g.vertices {
+		g.vertices[i].DstX = (g.vertices[i].DstX + float32(x))
+		g.vertices[i].DstY = (g.vertices[i].DstY + float32(y))
+		g.vertices[i].SrcX = 1
+		g.vertices[i].SrcY = 1
+		g.vertices[i].ColorR = 0xdb / float32(0xff)
+		g.vertices[i].ColorG = 0x56 / float32(0xff)
+		g.vertices[i].ColorB = 0x20 / float32(0xff)
+		g.vertices[i].ColorA = 1
 	}
 
 	op := &ebiten.DrawTrianglesOptions{}
 	op.AntiAlias = aa
 	op.FillRule = ebiten.FillRuleNonZero
-	screen.DrawTriangles(vs, is, whiteSubImage, op)
+	screen.DrawTriangles(g.vertices, g.indices, whiteSubImage, op)
 }
 
-func drawArc(screen *ebiten.Image, count int, aa bool, line bool) {
+func (g *Game) drawArc(screen *ebiten.Image, count int, aa bool, line bool) {
 	var path vector.Path
 
 	path.MoveTo(350, 100)
@@ -223,37 +229,35 @@ func drawArc(screen *ebiten.Image, count int, aa bool, line bool) {
 	path.Arc(550, 100, 50, float32(theta1), float32(theta2), vector.Clockwise)
 	path.Close()
 
-	var vs []ebiten.Vertex
-	var is []uint16
 	if line {
 		op := &vector.StrokeOptions{}
 		op.Width = 5
 		op.LineJoin = vector.LineJoinRound
-		vs, is = path.AppendVerticesAndIndicesForStroke(nil, nil, op)
+		g.vertices, g.indices = path.AppendVerticesAndIndicesForStroke(g.vertices[:0], g.indices[:0], op)
 	} else {
-		vs, is = path.AppendVerticesAndIndicesForFilling(nil, nil)
+		g.vertices, g.indices = path.AppendVerticesAndIndicesForFilling(g.vertices[:0], g.indices[:0])
 	}
 
-	for i := range vs {
-		vs[i].SrcX = 1
-		vs[i].SrcY = 1
-		vs[i].ColorR = 0x33 / float32(0xff)
-		vs[i].ColorG = 0xcc / float32(0xff)
-		vs[i].ColorB = 0x66 / float32(0xff)
-		vs[i].ColorA = 1
+	for i := range g.vertices {
+		g.vertices[i].SrcX = 1
+		g.vertices[i].SrcY = 1
+		g.vertices[i].ColorR = 0x33 / float32(0xff)
+		g.vertices[i].ColorG = 0xcc / float32(0xff)
+		g.vertices[i].ColorB = 0x66 / float32(0xff)
+		g.vertices[i].ColorA = 1
 	}
 
 	op := &ebiten.DrawTrianglesOptions{}
 	op.AntiAlias = aa
 	op.FillRule = ebiten.FillRuleNonZero
-	screen.DrawTriangles(vs, is, whiteSubImage, op)
+	screen.DrawTriangles(g.vertices, g.indices, whiteSubImage, op)
 }
 
 func maxCounter(index int) int {
 	return 128 + (17*index+32)%64
 }
 
-func drawWave(screen *ebiten.Image, counter int, aa bool, line bool) {
+func (g *Game) drawWave(screen *ebiten.Image, counter int, aa bool, line bool) {
 	var path vector.Path
 
 	const npoints = 8
@@ -278,37 +282,28 @@ func drawWave(screen *ebiten.Image, counter int, aa bool, line bool) {
 	path.LineTo(screenWidth, screenHeight)
 	path.LineTo(0, screenHeight)
 
-	var vs []ebiten.Vertex
-	var is []uint16
 	if line {
 		op := &vector.StrokeOptions{}
 		op.Width = 5
 		op.LineJoin = vector.LineJoinRound
-		vs, is = path.AppendVerticesAndIndicesForStroke(nil, nil, op)
+		g.vertices, g.indices = path.AppendVerticesAndIndicesForStroke(g.vertices[:0], g.indices[:0], op)
 	} else {
-		vs, is = path.AppendVerticesAndIndicesForFilling(nil, nil)
+		g.vertices, g.indices = path.AppendVerticesAndIndicesForFilling(g.vertices[:0], g.indices[:0])
 	}
 
-	for i := range vs {
-		vs[i].SrcX = 1
-		vs[i].SrcY = 1
-		vs[i].ColorR = 0x33 / float32(0xff)
-		vs[i].ColorG = 0x66 / float32(0xff)
-		vs[i].ColorB = 0xff / float32(0xff)
-		vs[i].ColorA = 1
+	for i := range g.vertices {
+		g.vertices[i].SrcX = 1
+		g.vertices[i].SrcY = 1
+		g.vertices[i].ColorR = 0x33 / float32(0xff)
+		g.vertices[i].ColorG = 0x66 / float32(0xff)
+		g.vertices[i].ColorB = 0xff / float32(0xff)
+		g.vertices[i].ColorA = 1
 	}
 
 	op := &ebiten.DrawTrianglesOptions{}
 	op.AntiAlias = aa
 	op.FillRule = ebiten.FillRuleNonZero
-	screen.DrawTriangles(vs, is, whiteSubImage, op)
-}
-
-type Game struct {
-	counter int
-
-	aa   bool
-	line bool
+	screen.DrawTriangles(g.vertices, g.indices, whiteSubImage, op)
 }
 
 func (g *Game) Update() error {
@@ -331,10 +326,10 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	dst := screen
 
 	dst.Fill(color.RGBA{0xe0, 0xe0, 0xe0, 0xff})
-	drawEbitenText(dst, 0, 50, g.aa, g.line)
-	drawEbitenLogo(dst, 20, 150, g.aa, g.line)
-	drawArc(dst, g.counter, g.aa, g.line)
-	drawWave(dst, g.counter, g.aa, g.line)
+	g.drawEbitenText(dst, 0, 50, g.aa, g.line)
+	g.drawEbitenLogo(dst, 20, 150, g.aa, g.line)
+	g.drawArc(dst, g.counter, g.aa, g.line)
+	g.drawWave(dst, g.counter, g.aa, g.line)
 
 	msg := fmt.Sprintf("TPS: %0.2f\nFPS: %0.2f", ebiten.ActualTPS(), ebiten.ActualFPS())
 	msg += "\nPress A to switch anti-alias."

@@ -20,8 +20,7 @@ import (
 	"fmt"
 	"image/color"
 	"log"
-	"math/rand"
-	"time"
+	"math/rand/v2"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
@@ -127,8 +126,8 @@ type squiral struct {
 func (s *squiral) spawn(game *Game) {
 	s.dead = false
 
-	rx := rand.Intn(width-4) + 2
-	ry := rand.Intn(height-4) + 2
+	rx := rand.IntN(width-4) + 2
+	ry := rand.IntN(height-4) + 2
 
 	for dx := -2; dx <= 2; dx++ {
 		for dy := -2; dy <= 2; dy++ {
@@ -140,15 +139,15 @@ func (s *squiral) spawn(game *Game) {
 		}
 	}
 
-	s.speed = rand.Intn(5) + 1
+	s.speed = rand.IntN(5) + 1
 	s.pos.x = rx
 	s.pos.y = ry
-	s.dir = rand.Intn(4)
+	s.dir = rand.IntN(4)
 
 	game.colorCycle = (game.colorCycle + 1) % len(palettes[game.selectedPalette].colors)
 	s.col = palettes[game.selectedPalette].colors[game.colorCycle]
 
-	s.rot = rand.Intn(2)
+	s.rot = rand.IntN(2)
 }
 
 func (s *squiral) step(game *Game) {
@@ -157,7 +156,7 @@ func (s *squiral) step(game *Game) {
 	}
 	x, y := s.pos.x, s.pos.y // shorthands
 
-	change := rand.Intn(1000)
+	change := rand.IntN(1000)
 	if change < 2 {
 		// On 0.2% of iterations, switch rotation direction.
 		s.rot = (s.rot + 1) % 2
@@ -265,10 +264,6 @@ func (a *automaton) step(game *Game) {
 			}
 		}
 	}
-}
-
-func init() {
-	rand.Seed(time.Now().UnixNano())
 }
 
 type Game struct {

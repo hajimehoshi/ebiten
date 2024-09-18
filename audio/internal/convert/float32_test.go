@@ -17,27 +17,17 @@ package convert_test
 import (
 	"bytes"
 	"io"
-	"math/rand" // TODO: Use math/rand/v2 when the minimum supported version becomes Go 1.22.
-	"os"
+	"math/rand/v2"
 	"testing"
-	"time"
 	"unsafe"
 
 	"github.com/hajimehoshi/ebiten/v2/audio/internal/convert"
 )
 
-func TestMain(m *testing.M) {
-	code := m.Run()
-	// Tests in this package often fails on GitHub Actions due to unfinished goroutines.
-	// That's mysterious, but to avoid this, sleep for a while before exiting.
-	time.Sleep(200 * time.Millisecond)
-	os.Exit(code)
-}
-
 func randInt16s(n int) []int16 {
 	r := make([]int16, n)
 	for i := range r {
-		r[i] = int16(rand.Intn(1<<16) - (1 << 15))
+		r[i] = int16(rand.IntN(1<<16) - (1 << 15))
 	}
 	return r
 }
@@ -79,15 +69,14 @@ func TestFloat32(t *testing.T) {
 					name = "seek"
 				}
 				t.Run(name, func(t *testing.T) {
-					// Note that unsafe.SliceData is available as of Go 1.20.
 					var in, out []byte
 					if len(c.In) > 0 {
 						outF32 := make([]float32, len(c.In))
 						for i := range c.In {
 							outF32[i] = float32(c.In[i]) / (1 << 15)
 						}
-						in = unsafe.Slice((*byte)(unsafe.Pointer(&c.In[0])), len(c.In)*2)
-						out = unsafe.Slice((*byte)(unsafe.Pointer(&outF32[0])), len(outF32)*4)
+						in = unsafe.Slice((*byte)(unsafe.Pointer(unsafe.SliceData(c.In))), len(c.In)*2)
+						out = unsafe.Slice((*byte)(unsafe.Pointer(unsafe.SliceData(outF32))), len(outF32)*4)
 					}
 					r := convert.NewFloat32BytesReaderFromInt16BytesReader(bytes.NewReader(in)).(io.ReadSeeker)
 					var got []byte

@@ -72,3 +72,17 @@ type DebugInfo struct {
 func ReadDebugInfo(d *DebugInfo) {
 	d.GraphicsLibrary = GraphicsLibrary(ui.Get().GraphicsLibrary())
 }
+
+// ColorSpace represents the color space of the screen.
+type ColorSpace int
+
+const (
+	// ColorSpaceDefault represents the default color space.
+	ColorSpaceDefault ColorSpace = iota
+
+	// ColorSpaceSRGB represents the sRGB color space (https://en.wikipedia.org/wiki/SRGB).
+	ColorSpaceSRGB
+
+	// ColorSpaceDisplayP3 represents the Display P3 color space (https://en.wikipedia.org/wiki/DCI-P3).
+	ColorSpaceDisplayP3
+)

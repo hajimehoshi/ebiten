@@ -69,6 +69,12 @@ type Metrics struct {
 	// VDescent is the distance in pixels from the top of a line to its baseline for vertical lines.
 	// If the face is GoXFace or the font doesn't support a vertical direction, VDescent is 0.
 	VDescent float64
+
+	// XHeight is the distance in pixels from the baseline to the top of the lower case letters.
+	XHeight float64
+
+	// CapHeight is the distance in pixels from the baseline to the top of the capital letters.
+	CapHeight float64
 }
 
 func fixed26_6ToFloat32(x fixed.Int26_6) float32 {
@@ -131,7 +137,10 @@ type Glyph struct {
 
 	// Image is a rasterized glyph image.
 	// Image is a grayscale image i.e. RGBA values are the same.
-	// Image should be used as a render source and should not be modified.
+	//
+	// Image should be used as a render source and must not be modified.
+	//
+	// Image can be nil.
 	Image *ebiten.Image
 
 	// X is the X position to render this glyph.
@@ -143,6 +152,20 @@ type Glyph struct {
 	// The position is determined in a sequence of characters given at AppendGlyphs.
 	// The position's origin is the first character's origin position.
 	Y float64
+
+	// OriginX is the X position of the origin of this glyph.
+	OriginX float64
+
+	// OriginY is the Y position of the origin of this glyph.
+	OriginY float64
+
+	// OriginOffsetX is the adjustment value to the X position of the origin of this glyph.
+	// OriginOffsetX is usually 0, but can be non-zero for some special glyphs or glyphs in the vertical text layout.
+	OriginOffsetX float64
+
+	// OriginOffsetY is the adjustment value to the Y position of the origin of this glyph.
+	// OriginOffsetY is usually 0, but can be non-zero for some special glyphs or glyphs in the vertical text layout.
+	OriginOffsetY float64
 }
 
 // Advance returns the advanced distance from the origin position when rendering the given text with the given face.
@@ -235,10 +258,7 @@ func Measure(text string, face Face, lineSpacingInPixels float64) (width, height
 // CacheGlyphs creates all such variations for one rune, while Draw and AppendGlyphs create only necessary glyphs.
 //
 // Draw and AppendGlyphs automatically create and cache necessary glyphs, so usually you don't have to call CacheGlyphs explicitly.
-// However, for example, when you call Draw for each rune of one big text, Draw tries to create the glyph cache and render it for each rune.
-// This is very inefficient because creating a glyph image and rendering it are different operations
-// (`(*ebiten.Image).WritePixels` and `(*ebiten.Image).DrawImage`) and can never be merged as one draw call.
-// CacheGlyphs creates necessary glyphs without rendering them so that these operations are likely merged into one draw call regardless of the size of the text.
+// If you really care about the performance, CacheGlyphs might be useful.
 //
 // CacheGlyphs is concurrent-safe.
 func CacheGlyphs(text string, face Face) {

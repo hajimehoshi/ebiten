@@ -47,5 +47,7 @@ func MainWithRunLoop(m *testing.M) {
 	if err := ebiten.RunGame(g); err != nil {
 		panic(err)
 	}
-	os.Exit(g.code)
+	if g.code != 0 {
+		os.Exit(g.code)
+	}
 }

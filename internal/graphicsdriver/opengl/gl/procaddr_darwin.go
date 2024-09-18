@@ -38,8 +38,7 @@ func (c *defaultContext) init() error {
 		return nil
 	}
 
-	// TODO: Use multiple %w-s as of Go 1.20
-	return fmt.Errorf("gl: failed to load: OpenGL.framework: %v, OpenGLES.framework: %v", errGL, errGLES)
+	return fmt.Errorf("gl: failed to load: OpenGL.framework: %w, OpenGLES.framework: %w", errGL, errGLES)
 }
 
 func (c *defaultContext) getProcAddress(name string) (uintptr, error) {

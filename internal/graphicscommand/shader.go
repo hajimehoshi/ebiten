@@ -31,12 +31,16 @@ type Shader struct {
 	shader graphicsdriver.Shader
 	ir     *shaderir.Program
 	id     int
+
+	// name is used only for logging.
+	name string
 }
 
-func NewShader(ir *shaderir.Program) *Shader {
+func NewShader(ir *shaderir.Program, name string) *Shader {
 	s := &Shader{
-		ir: ir,
-		id: genNextShaderID(),
+		ir:   ir,
+		id:   genNextShaderID(),
+		name: name,
 	}
 	c := &newShaderCommand{
 		result: s,

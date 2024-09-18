@@ -23,6 +23,7 @@ import (
 	_ "github.com/ebitengine/hideconsole"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/mipmap"
 	"github.com/hajimehoshi/ebiten/v2/internal/thread"
 )
@@ -79,6 +80,7 @@ type UserInterface struct {
 	graphicsLibrary           atomic.Int32
 	running                   atomic.Bool
 	terminated                atomic.Bool
+	tick                      atomic.Uint64
 
 	whiteImage *Image
 
@@ -170,13 +172,16 @@ func (u *UserInterface) dumpImages(dir string) (string, error) {
 }
 
 type RunOptions struct {
-	GraphicsLibrary   GraphicsLibrary
-	InitUnfocused     bool
-	ScreenTransparent bool
-	SkipTaskbar       bool
-	SingleThread      bool
-	X11ClassName      string
-	X11InstanceName   string
+	GraphicsLibrary          GraphicsLibrary
+	InitUnfocused            bool
+	ScreenTransparent        bool
+	SkipTaskbar              bool
+	SingleThread             bool
+	DisableHiDPI             bool
+	ColorSpace               graphicsdriver.ColorSpace
+	X11ClassName             string
+	X11InstanceName          string
+	StrictContextRestoration bool
 }
 
 // InitialWindowPosition returns the position for centering the given second width/height pair within the first width/height pair.
@@ -228,4 +233,8 @@ func (u *UserInterface) isTerminated() bool {
 
 func (u *UserInterface) setTerminated() {
 	u.terminated.Store(true)
+}
+
+func (u *UserInterface) Tick() uint64 {
+	return u.tick.Load()
 }

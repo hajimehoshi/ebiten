@@ -18,6 +18,7 @@ import (
 	"image"
 	"image/color"
 	"math"
+	"sync"
 
 	"github.com/hajimehoshi/ebiten/v2"
 )
@@ -26,6 +27,18 @@ var (
 	whiteImage    = ebiten.NewImage(3, 3)
 	whiteSubImage = whiteImage.SubImage(image.Rect(1, 1, 2, 2)).(*ebiten.Image)
 )
+
+var (
+	cachedVertices []ebiten.Vertex
+	cachedIndices  []uint16
+	cacheM         sync.Mutex
+)
+
+func useCachedVerticesAndIndices(fn func([]ebiten.Vertex, []uint16) (vs []ebiten.Vertex, is []uint16)) {
+	cacheM.Lock()
+	defer cacheM.Unlock()
+	cachedVertices, cachedIndices = fn(cachedVertices[:0], cachedIndices[:0])
+}
 
 func init() {
 	b := whiteImage.Bounds()
@@ -63,9 +76,12 @@ func StrokeLine(dst *ebiten.Image, x0, y0, x1, y1 float32, strokeWidth float32, 
 	path.LineTo(x1, y1)
 	strokeOp := &StrokeOptions{}
 	strokeOp.Width = strokeWidth
-	vs, is := path.AppendVerticesAndIndicesForStroke(nil, nil, strokeOp)
 
-	drawVerticesForUtil(dst, vs, is, clr, antialias)
+	useCachedVerticesAndIndices(func(vs []ebiten.Vertex, is []uint16) ([]ebiten.Vertex, []uint16) {
+		vs, is = path.AppendVerticesAndIndicesForStroke(vs, is, strokeOp)
+		drawVerticesForUtil(dst, vs, is, clr, antialias)
+		return vs, is
+	})
 }
 
 // DrawFilledRect fills a rectangle with the specified width and color.
@@ -75,9 +91,12 @@ func DrawFilledRect(dst *ebiten.Image, x, y, width, height float32, clr color.Co
 	path.LineTo(x, y+height)
 	path.LineTo(x+width, y+height)
 	path.LineTo(x+width, y)
-	vs, is := path.AppendVerticesAndIndicesForFilling(nil, nil)
 
-	drawVerticesForUtil(dst, vs, is, clr, antialias)
+	useCachedVerticesAndIndices(func(vs []ebiten.Vertex, is []uint16) ([]ebiten.Vertex, []uint16) {
+		vs, is = path.AppendVerticesAndIndicesForFilling(vs, is)
+		drawVerticesForUtil(dst, vs, is, clr, antialias)
+		return vs, is
+	})
 }
 
 // StrokeRect strokes a rectangle with the specified width and color.
@@ -94,18 +113,24 @@ func StrokeRect(dst *ebiten.Image, x, y, width, height float32, strokeWidth floa
 	strokeOp := &StrokeOptions{}
 	strokeOp.Width = strokeWidth
 	strokeOp.MiterLimit = 10
-	vs, is := path.AppendVerticesAndIndicesForStroke(nil, nil, strokeOp)
 
-	drawVerticesForUtil(dst, vs, is, clr, antialias)
+	useCachedVerticesAndIndices(func(vs []ebiten.Vertex, is []uint16) ([]ebiten.Vertex, []uint16) {
+		vs, is = path.AppendVerticesAndIndicesForStroke(vs, is, strokeOp)
+		drawVerticesForUtil(dst, vs, is, clr, antialias)
+		return vs, is
+	})
 }
 
 // DrawFilledCircle fills a circle with the specified center position (cx, cy), the radius (r), width and color.
 func DrawFilledCircle(dst *ebiten.Image, cx, cy, r float32, clr color.Color, antialias bool) {
 	var path Path
 	path.Arc(cx, cy, r, 0, 2*math.Pi, Clockwise)
-	vs, is := path.AppendVerticesAndIndicesForFilling(nil, nil)
 
-	drawVerticesForUtil(dst, vs, is, clr, antialias)
+	useCachedVerticesAndIndices(func(vs []ebiten.Vertex, is []uint16) ([]ebiten.Vertex, []uint16) {
+		vs, is = path.AppendVerticesAndIndicesForFilling(vs, is)
+		drawVerticesForUtil(dst, vs, is, clr, antialias)
+		return vs, is
+	})
 }
 
 // StrokeCircle strokes a circle with the specified center position (cx, cy), the radius (r), width and color.
@@ -118,7 +143,10 @@ func StrokeCircle(dst *ebiten.Image, cx, cy, r float32, strokeWidth float32, clr
 
 	strokeOp := &StrokeOptions{}
 	strokeOp.Width = strokeWidth
-	vs, is := path.AppendVerticesAndIndicesForStroke(nil, nil, strokeOp)
 
-	drawVerticesForUtil(dst, vs, is, clr, antialias)
+	useCachedVerticesAndIndices(func(vs []ebiten.Vertex, is []uint16) ([]ebiten.Vertex, []uint16) {
+		vs, is = path.AppendVerticesAndIndicesForStroke(vs, is, strokeOp)
+		drawVerticesForUtil(dst, vs, is, clr, antialias)
+		return vs, is
+	})
 }
