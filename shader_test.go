@@ -2785,3 +2785,36 @@ func Fragment(dstPos vec4, srcPos vec2) vec4 {
 		}
 	}
 }
+
+func TestShaderArray(t *testing.T) {
+	const w, h = 16, 16
+
+	dst := ebiten.NewImage(w, h)
+	s, err := ebiten.NewShader([]byte(`//kage:unit pixels
+
+package main
+
+func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+	a := [4]float{1}
+	b := [4]float{1, 1}
+	c := [4]float{1, 1, 1}
+	d := [4]float{1, 1, 1, 1}
+	return vec4(a[3], b[3], c[3], d[3])
+}
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	dst.DrawRectShader(w, h, s, nil)
+
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			got := dst.At(i, j).(color.RGBA)
+			want := color.RGBA{R: 0x00, G: 0x00, B: 0x00, A: 0xff}
+			if !sameColors(got, want, 2) {
+				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+}
