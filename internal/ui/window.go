@@ -43,6 +43,7 @@ type Window interface {
 	IsClosingHandled() bool
 	SetMousePassthrough(enabled bool)
 	IsMousePassthrough() bool
+	RequestAttention()
 }
 
 type nullWindow struct{}
@@ -127,4 +128,7 @@ func (*nullWindow) SetMousePassthrough(enabled bool) {
 
 func (*nullWindow) IsMousePassthrough() bool {
 	return false
+}
+
+func (*nullWindow) RequestAttention() {
 }
