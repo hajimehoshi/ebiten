@@ -81,6 +81,10 @@ func (cs *compileState) parseType(block *block, fname string, expr ast.Expr) (sh
 				cs.addError(t.Pos(), "length of array must be an integer")
 				return shaderir.Type{}, false
 			}
+			if l < 0 {
+				cs.addError(t.Pos(), fmt.Sprintf("invalid length array %d", l))
+				return shaderir.Type{}, false
+			}
 			length = int(l)
 		}
 

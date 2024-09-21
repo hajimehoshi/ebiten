@@ -4363,3 +4363,44 @@ func Foo() int {
 		t.Error(err)
 	}
 }
+
+// Issue #3111
+func TestSyntaxTooManyElementsAtInitialization(t *testing.T) {
+	cases := []struct {
+		stmt string
+		err  bool
+	}{
+		{stmt: "_ = [-1]int{}", err: true},
+		{stmt: "_ = [-1]int{0}", err: true},
+		{stmt: "_ = [-1]int{0, 0}", err: true},
+		{stmt: "_ = [-1]int{0, 0, 0}", err: true},
+		{stmt: "_ = [0]int{}", err: false},
+		{stmt: "_ = [0]int{0}", err: true},
+		{stmt: "_ = [0]int{0, 0}", err: true},
+		{stmt: "_ = [0]int{0, 0, 0}", err: true},
+		{stmt: "_ = [1]int{}", err: false},
+		{stmt: "_ = [1]int{0}", err: false},
+		{stmt: "_ = [1]int{0, 0}", err: true},
+		{stmt: "_ = [1]int{0, 0, 0}", err: true},
+		{stmt: "_ = [2]int{}", err: false},
+		{stmt: "_ = [2]int{0}", err: false},
+		{stmt: "_ = [2]int{0, 0}", err: false},
+		{stmt: "_ = [2]int{0, 0, 0}", err: true},
+	}
+
+	for _, c := range cases {
+		stmt := c.stmt
+		src := fmt.Sprintf(`package main
+
+func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+	%s
+	return dstPos
+}`, stmt)
+		_, err := compileToIR([]byte(src))
+		if err == nil && c.err {
+			t.Errorf("%s must return an error but does not", stmt)
+		} else if err != nil && !c.err {
+			t.Errorf("%s must not return nil but returned %v", stmt, err)
+		}
+	}
+}
