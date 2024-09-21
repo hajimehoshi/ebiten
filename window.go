@@ -341,7 +341,3 @@ func SetWindowMousePassthrough(enabled bool) {
 func IsWindowMousePassthrough() bool {
 	return ui.Get().Window().IsMousePassthrough()
 }
-
-func RequestWindowAttention() {
-	ui.Get().Window().RequestAttention()
-}
