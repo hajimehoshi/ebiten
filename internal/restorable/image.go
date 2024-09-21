@@ -169,9 +169,11 @@ func NewImage(width, height int, imageType ImageType) *Image {
 	}
 
 	var attribute string
-	switch imageType {
-	case ImageTypeVolatile:
-		attribute = "volatile"
+	if needsRestoration() {
+		switch imageType {
+		case ImageTypeVolatile:
+			attribute = "volatile"
+		}
 	}
 	i := &Image{
 		image:     graphicscommand.NewImage(width, height, imageType == ImageTypeScreen, attribute),
