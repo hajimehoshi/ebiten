@@ -341,3 +341,13 @@ func SetWindowMousePassthrough(enabled bool) {
 func IsWindowMousePassthrough() bool {
 	return ui.Get().Window().IsMousePassthrough()
 }
+
+// RequestAttention requests user attention to the current window and/or the current application.
+//
+// RequestAttention works only on desktops.
+// RequestAttention does nothing if the platform is not a desktop.
+//
+// RequestAttention is concurrent-safe.
+func RequestAttention() {
+	ui.Get().Window().RequestAttention()
+}

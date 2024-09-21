@@ -506,3 +506,22 @@ func (w *glfwWindow) IsMousePassthrough() bool {
 	})
 	return v
 }
+
+func (w *glfwWindow) RequestAttention() {
+	if w.ui.isTerminated() {
+		return
+	}
+	if !w.ui.isRunning() {
+		// Do nothing
+		return
+	}
+	w.ui.mainThread.Call(func() {
+		if w.ui.isTerminated() {
+			return
+		}
+		if err := w.ui.window.RequestAttention(); err != nil {
+			w.ui.setError(err)
+			return
+		}
+	})
+}

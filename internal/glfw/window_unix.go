@@ -546,8 +546,9 @@ func (w *Window) SetOpacity(opacity float32) {
 // application, the system will end the request automatically.
 //
 // This function must only be called from the main thread.
-func (w *Window) RequestAttention() {
+func (w *Window) RequestAttention() error {
 	C.glfwRequestWindowAttention(w.data)
+	return nil
 }
 
 // Focus brings the specified window to front and sets input focus.
