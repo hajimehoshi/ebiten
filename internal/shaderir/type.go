@@ -161,6 +161,19 @@ func (t Type) IsMatrix() bool {
 	return false
 }
 
+func (t Type) MatrixSize() int {
+	switch t.Main {
+	case Mat2:
+		return 2
+	case Mat3:
+		return 3
+	case Mat4:
+		return 4
+	default:
+		return -1
+	}
+}
+
 type BasicType int
 
 const (

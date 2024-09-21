@@ -1156,6 +1156,31 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 		x := exprs[0]
 		t := ts[0]
 
+		// Check the length only when the index is a constant.
+		if idx.Const != nil {
+			var length int
+			switch {
+			case t.Main == shaderir.Array:
+				length = t.Length
+			case t.IsFloatVector() || t.IsIntVector():
+				length = t.VectorElementCount()
+			case t.IsMatrix():
+				length = t.MatrixSize()
+			default:
+				cs.addError(e.Pos(), fmt.Sprintf("index operator cannot be applied to the type %s", t.String()))
+				return nil, nil, nil, false
+			}
+			v, ok := gconstant.Int64Val(gconstant.ToInt(idx.Const))
+			if !ok {
+				cs.addError(e.Pos(), fmt.Sprintf("constant %s cannot be used as an index", idx.Const.String()))
+				return nil, nil, nil, false
+			}
+			if v < 0 || int(v) >= length {
+				cs.addError(e.Pos(), fmt.Sprintf("index out of range: %d", v))
+				return nil, nil, nil, false
+			}
+		}
+
 		var typ shaderir.Type
 		switch t.Main {
 		case shaderir.Vec2, shaderir.Vec3, shaderir.Vec4:

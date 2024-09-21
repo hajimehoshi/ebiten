@@ -4404,3 +4404,81 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 		}
 	}
 }
+
+func TestSyntaxArrayOutOfBounds(t *testing.T) {
+	cases := []struct {
+		stmt string
+		err  bool
+	}{
+		{stmt: "a := [0]int{}; _ = a[-1]", err: true},
+		{stmt: "a := [0]int{}; _ = a[0]", err: true},
+		{stmt: "a := [0]int{}; _ = a[1]", err: true},
+		{stmt: "a := [0]int{}; _ = a[2]", err: true},
+		{stmt: "a := [0]int{}; _ = a[3]", err: true},
+		{stmt: "a := [0]int{}; b := -1; _ = a[b]", err: false},
+		{stmt: "a := [0]int{}; b := 0; _ = a[b]", err: false},
+		{stmt: "a := [0]int{}; b := 1; _ = a[b]", err: false},
+		{stmt: "a := [0]int{}; b := 2; _ = a[b]", err: false},
+		{stmt: "a := [0]int{}; b := 3; _ = a[b]", err: false},
+
+		{stmt: "a := [1]int{}; _ = a[-1]", err: true},
+		{stmt: "a := [1]int{}; _ = a[0]", err: false},
+		{stmt: "a := [1]int{}; _ = a[1]", err: true},
+		{stmt: "a := [1]int{}; _ = a[2]", err: true},
+		{stmt: "a := [1]int{}; _ = a[3]", err: true},
+		{stmt: "a := [1]int{}; b := -1; _ = a[b]", err: false},
+		{stmt: "a := [1]int{}; b := 0; _ = a[b]", err: false},
+		{stmt: "a := [1]int{}; b := 1; _ = a[b]", err: false},
+		{stmt: "a := [1]int{}; b := 2; _ = a[b]", err: false},
+		{stmt: "a := [1]int{}; b := 3; _ = a[b]", err: false},
+
+		{stmt: "a := [2]int{}; _ = a[-1]", err: true},
+		{stmt: "a := [2]int{}; _ = a[0]", err: false},
+		{stmt: "a := [2]int{}; _ = a[1]", err: false},
+		{stmt: "a := [2]int{}; _ = a[2]", err: true},
+		{stmt: "a := [2]int{}; _ = a[3]", err: true},
+		{stmt: "a := [2]int{}; b := -1; _ = a[b]", err: false},
+		{stmt: "a := [2]int{}; b := 0; _ = a[b]", err: false},
+		{stmt: "a := [2]int{}; b := 1; _ = a[b]", err: false},
+		{stmt: "a := [2]int{}; b := 2; _ = a[b]", err: false},
+		{stmt: "a := [2]int{}; b := 3; _ = a[b]", err: false},
+
+		{stmt: "a := vec2(0); _ = a[-1]", err: true},
+		{stmt: "a := vec2(0); _ = a[0]", err: false},
+		{stmt: "a := vec2(0); _ = a[1]", err: false},
+		{stmt: "a := vec2(0); _ = a[2]", err: true},
+		{stmt: "a := vec2(0); _ = a[3]", err: true},
+		{stmt: "a := vec2(0); b := -1; _ = a[b]", err: false},
+		{stmt: "a := vec2(0); b := 0; _ = a[b]", err: false},
+		{stmt: "a := vec2(0); b := 1; _ = a[b]", err: false},
+		{stmt: "a := vec2(0); b := 2; _ = a[b]", err: false},
+		{stmt: "a := vec2(0); b := 3; _ = a[b]", err: false},
+
+		{stmt: "a := mat3(0); _ = a[-1]", err: true},
+		{stmt: "a := mat3(0); _ = a[0]", err: false},
+		{stmt: "a := mat3(0); _ = a[1]", err: false},
+		{stmt: "a := mat3(0); _ = a[2]", err: false},
+		{stmt: "a := mat3(0); _ = a[3]", err: true},
+		{stmt: "a := mat3(0); b := -1; _ = a[b]", err: false},
+		{stmt: "a := mat3(0); b := 0; _ = a[b]", err: false},
+		{stmt: "a := mat3(0); b := 1; _ = a[b]", err: false},
+		{stmt: "a := mat3(0); b := 2; _ = a[b]", err: false},
+		{stmt: "a := mat3(0); b := 3; _ = a[b]", err: false},
+	}
+
+	for _, c := range cases {
+		stmt := c.stmt
+		src := fmt.Sprintf(`package main
+
+func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+	%s
+	return dstPos
+}`, stmt)
+		_, err := compileToIR([]byte(src))
+		if err == nil && c.err {
+			t.Errorf("%s must return an error but does not", stmt)
+		} else if err != nil && !c.err {
+			t.Errorf("%s must not return nil but returned %v", stmt, err)
+		}
+	}
+}
