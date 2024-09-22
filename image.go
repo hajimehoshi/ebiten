@@ -919,7 +919,7 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 		hint = restorable.HintOverwriteDstRegion
 	}
 
-	i.image.DrawTriangles(imgs, vs, is, blend, i.adjustedBounds(), srcRegions, shader.shader, i.tmpUniforms, graphicsdriver.FillRuleFillAll, true, false, hint)
+	i.image.DrawTriangles(imgs, vs, is, blend, dr, srcRegions, shader.shader, i.tmpUniforms, graphicsdriver.FillRuleFillAll, true, false, hint)
 }
 
 // SubImage returns an image representing the portion of the image p visible through r.
