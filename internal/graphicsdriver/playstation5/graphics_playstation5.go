@@ -61,10 +61,16 @@ func (g *Graphics) Initialize() error {
 }
 
 func (g *Graphics) Begin() error {
+	C.ebitengine_Begin()
 	return nil
 }
 
 func (g *Graphics) End(present bool) error {
+	var cPresent C.int
+	if present {
+		cPresent = 1
+	}
+	C.ebitengine_End(cPresent)
 	return nil
 }
 
