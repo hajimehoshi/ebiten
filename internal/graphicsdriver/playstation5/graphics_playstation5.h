@@ -26,29 +26,29 @@ extern "C" {
 #endif
 
 typedef struct ebitengine_Error {
-  const char *Message;
-  int Code;
+  const char *message;
+  int code;
 } ebitengine_Error;
 
 static bool ebitengine_IsErrorNil(ebitengine_Error *err) {
-  return err->Message == NULL && err->Code == 0;
+  return err->message == NULL && err->code == 0;
 }
 
 typedef struct ebitengine_DstRegion {
-  int MinX;
-  int MinY;
-  int MaxX;
-  int MaxY;
-  int IndexCount;
+  int min_x;
+  int min_y;
+  int max_x;
+  int max_y;
+  int index_count;
 } ebitengine_DstRegion;
 
 typedef struct ebitengine_Blend {
-  uint8_t BlendFactorSourceRGB;
-  uint8_t BlendFactorSourceAlpha;
-  uint8_t BlendFactorDestinationRGB;
-  uint8_t BlendFactorDestinationAlpha;
-  uint8_t BlendOperationRGB;
-  uint8_t BlendOperationAlpha;
+  uint8_t factor_src_rgb;
+  uint8_t factor_src_alpha;
+  uint8_t factor_dst_rgb;
+  uint8_t factor_dst_alpha;
+  uint8_t operation_rgb;
+  uint8_t operation_alpha;
 } ebitengine_Blend;
 
 ebitengine_Error ebitengine_InitializeGraphics(void);
@@ -59,15 +59,15 @@ void ebitengine_DisposeImage(int id);
 
 void ebitengine_Begin();
 void ebitengine_End(int present);
-void ebitengine_SetVertices(const float *vertices, int vertexCount,
-                            const uint32_t *indices, int indexCount);
+void ebitengine_SetVertices(const float *vertices, int vertex_count,
+                            const uint32_t *indices, int index_count);
 
 ebitengine_Error
-ebitengine_DrawTriangles(int dst, const int *srcs, int srcCount, int shader,
-                         const ebitengine_DstRegion *dstRegions,
-                         int dstRegionCount, int indexOffset,
+ebitengine_DrawTriangles(int dst, const int *srcs, int src_count, int shader,
+                         const ebitengine_DstRegion *dst_regions,
+                         int dst_region_count, int indexOffset,
                          ebitengine_Blend blend, const uint32_t *uniforms,
-                         int uniformCount, int fillRule);
+                         int uniform_count, int fill_rule);
 
 ebitengine_Error ebitengine_NewShader(int *shader, const char *source);
 void ebitengine_DisposeShader(int id);

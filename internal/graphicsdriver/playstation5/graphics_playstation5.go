@@ -37,8 +37,8 @@ type playstation5Error struct {
 func newPlaystation5Error(name string, err C.ebitengine_Error) *playstation5Error {
 	return &playstation5Error{
 		name:    name,
-		code:    int(err.Code),
-		message: C.GoString(err.Message),
+		code:    int(err.code),
+		message: C.GoString(err.message),
 	}
 }
 
@@ -137,21 +137,21 @@ func (g *Graphics) DrawTriangles(dst graphicsdriver.ImageID, srcs [graphics.Shad
 	defer runtime.KeepAlive(cDstRegions)
 	for i, r := range dstRegions {
 		cDstRegions[i] = C.ebitengine_DstRegion{
-			MinX:       C.int(r.Region.Min.X),
-			MinY:       C.int(r.Region.Min.Y),
-			MaxX:       C.int(r.Region.Max.X),
-			MaxY:       C.int(r.Region.Max.Y),
-			IndexCount: C.int(r.IndexCount),
+			min_x:       C.int(r.Region.Min.X),
+			min_y:       C.int(r.Region.Min.Y),
+			max_x:       C.int(r.Region.Max.X),
+			max_y:       C.int(r.Region.Max.Y),
+			index_count: C.int(r.IndexCount),
 		}
 	}
 
 	cBlend := C.ebitengine_Blend{
-		BlendFactorSourceRGB:        C.uint8_t(blend.BlendFactorSourceRGB),
-		BlendFactorSourceAlpha:      C.uint8_t(blend.BlendFactorSourceAlpha),
-		BlendFactorDestinationRGB:   C.uint8_t(blend.BlendFactorDestinationRGB),
-		BlendFactorDestinationAlpha: C.uint8_t(blend.BlendFactorDestinationAlpha),
-		BlendOperationRGB:           C.uint8_t(blend.BlendOperationRGB),
-		BlendOperationAlpha:         C.uint8_t(blend.BlendOperationAlpha),
+		factor_src_rgb:   C.uint8_t(blend.BlendFactorSourceRGB),
+		factor_src_alpha: C.uint8_t(blend.BlendFactorSourceAlpha),
+		factor_dst_rgb:   C.uint8_t(blend.BlendFactorDestinationRGB),
+		factor_dst_alpha: C.uint8_t(blend.BlendFactorDestinationAlpha),
+		operation_rgb:    C.uint8_t(blend.BlendOperationRGB),
+		operation_alpha:  C.uint8_t(blend.BlendOperationAlpha),
 	}
 
 	cUniforms := make([]C.uint32_t, len(uniforms))
