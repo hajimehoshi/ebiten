@@ -36,14 +36,16 @@ extern "C" void ebitengine_Begin() {}
 
 extern "C" void ebitengine_End(int present) {}
 
-extern "C" void ebitengine_SetVertices(float *vertices, int vertexCount,
-                                       uint32_t *indices, int indexCount) {}
+extern "C" void ebitengine_SetVertices(const float *vertices, int vertexCount,
+                                       const uint32_t *indices,
+                                       int indexCount) {}
 
 extern "C" ebitengine_Error
-ebitengine_DrawTriangles(int dst, int *srcs, int srcCount, int shader,
-                         ebitengine_DstRegion *dstRegions, int dstRegionCount,
-                         int indexOffset, ebitengine_Blend blend,
-                         uint32_t *uniforms, int uniformCount, int fillRule) {
+ebitengine_DrawTriangles(int dst, const int *srcs, int srcCount, int shader,
+                         const ebitengine_DstRegion *dstRegions,
+                         int dstRegionCount, int indexOffset,
+                         ebitengine_Blend blend, const uint32_t *uniforms,
+                         int uniformCount, int fillRule) {
   return {};
 }
 

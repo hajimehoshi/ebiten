@@ -59,14 +59,15 @@ void ebitengine_DisposeImage(int id);
 
 void ebitengine_Begin();
 void ebitengine_End(int present);
-void ebitengine_SetVertices(float *vertices, int vertexCount, uint32_t *indices,
-                            int indexCount);
+void ebitengine_SetVertices(const float *vertices, int vertexCount,
+                            const uint32_t *indices, int indexCount);
 
 ebitengine_Error
-ebitengine_DrawTriangles(int dst, int *srcs, int srcCount, int shader,
-                         ebitengine_DstRegion *dstRegions, int dstRegionCount,
-                         int indexOffset, ebitengine_Blend blend,
-                         uint32_t *uniforms, int uniformCount, int fillRule);
+ebitengine_DrawTriangles(int dst, const int *srcs, int srcCount, int shader,
+                         const ebitengine_DstRegion *dstRegions,
+                         int dstRegionCount, int indexOffset,
+                         ebitengine_Blend blend, const uint32_t *uniforms,
+                         int uniformCount, int fillRule);
 
 ebitengine_Error ebitengine_NewShader(int *shader, const char *source);
 void ebitengine_DisposeShader(int id);
