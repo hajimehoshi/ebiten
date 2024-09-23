@@ -32,6 +32,10 @@ ebitengine_NewScreenFramebufferImage(int *image, int width, int height) {
 
 extern "C" void ebitengine_DisposeImage(int id) {}
 
+extern "C" void ebitengine_Begin() {}
+
+extern "C" void ebitengine_End(int present) {}
+
 extern "C" void ebitengine_SetVertices(float *vertices, int vertexCount,
                                        uint32_t *indices, int indexCount) {}
 

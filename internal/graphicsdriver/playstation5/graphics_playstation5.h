@@ -57,6 +57,8 @@ ebitengine_Error ebitengine_NewScreenFramebufferImage(int *image, int width,
                                                       int height);
 void ebitengine_DisposeImage(int id);
 
+void ebitengine_Begin();
+void ebitengine_End(int present);
 void ebitengine_SetVertices(float *vertices, int vertexCount, uint32_t *indices,
                             int indexCount);
 
