@@ -8,8 +8,8 @@ github.com/ebitengine/purego v0.9.0-alpha h1:612hSxNv9pS9rsRapZ82G6rbECYOOY4mVtM
 github.com/ebitengine/purego v0.9.0-alpha/go.mod h1:iIjxzd6CiRiOG0UyXP+V1+jWqUXVjPKLAI0mRfJZTmQ=
 github.com/gen2brain/mpeg v0.3.2-0.20240412154320-a2ac4fc8a46f h1:ysqRe+lvUiL0dH5XzkH0Bz68bFMPJ4f5Si4L/HD9SGk=
 github.com/gen2brain/mpeg v0.3.2-0.20240412154320-a2ac4fc8a46f/go.mod h1:i/ebyRRv/IoHixuZ9bElZnXbmfoUVPGQpdsJ4sVuX38=
-github.com/go-text/typesetting v0.1.1-0.20240522210117-2c045476f496 h1:zgx3rOyOdRoA2GXWpfJkH7Zg248ookseRifdn9VSp5g=
-github.com/go-text/typesetting v0.1.1-0.20240522210117-2c045476f496/go.mod h1:2+owI/sxa73XA581LAzVuEBZ3WEEV2pXeDswCH/3i1I=
+github.com/go-text/typesetting v0.2.0 h1:fbzsgbmk04KiWtE+c3ZD4W2nmCRzBqrqQOvYlwAOdho=
+github.com/go-text/typesetting v0.2.0/go.mod h1:2+owI/sxa73XA581LAzVuEBZ3WEEV2pXeDswCH/3i1I=
 github.com/go-text/typesetting-utils v0.0.0-20240317173224-1986cbe96c66 h1:GUrm65PQPlhFSKjLPGOZNPNxLCybjzjYBzjfoBGaDUY=
 github.com/go-text/typesetting-utils v0.0.0-20240317173224-1986cbe96c66/go.mod h1:DDxDdQEnB70R8owOx3LVpEFvpMK9eeH1o2r0yZhFI9o=
 github.com/google/go-cmp v0.6.0 h1:ofyhxvXcZhMsU5ulbFiLKl/XBFqE1GSq7atu8tAmTRI=
