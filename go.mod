@@ -8,7 +8,7 @@ require (
 	github.com/ebitengine/oto/v3 v3.3.0
 	github.com/ebitengine/purego v0.8.0
 	github.com/gen2brain/mpeg v0.3.2-0.20240412154320-a2ac4fc8a46f
-	github.com/go-text/typesetting v0.1.1-0.20240522210117-2c045476f496
+	github.com/go-text/typesetting v0.2.0
 	github.com/hajimehoshi/bitmapfont/v3 v3.2.0
 	github.com/hajimehoshi/go-mp3 v0.3.4
 	github.com/jakecoffman/cp v1.2.1
