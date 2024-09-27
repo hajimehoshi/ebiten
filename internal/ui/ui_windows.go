@@ -122,12 +122,18 @@ func (u *UserInterface) adjustWindowPosition(x, y int, monitor *Monitor) (int, i
 	if x < mx {
 		x = mx
 	}
-	t, err := _GetSystemMetrics(_SM_CYCAPTION)
-	if err != nil {
-		panic(err)
+
+	yOffset := 0
+	decorated, err := u.window.GetAttrib(glfw.Decorated)
+	if err != nil || decorated != glfw.False {
+		captionHeight, err := _GetSystemMetrics(_SM_CYCAPTION)
+		if err != nil {
+			panic(err)
+		}
+		yOffset = int(captionHeight)
 	}
-	if y < my+int(t) {
-		y = my + int(t)
+	if y < my+yOffset {
+		y = my + yOffset
 	}
 	return x, y
 }
