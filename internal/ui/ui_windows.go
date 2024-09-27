@@ -110,9 +110,9 @@ func dipToGLFWPixel(x float64, deviceScaleFactor float64) float64 {
 	return x * deviceScaleFactor
 }
 
-func (u *UserInterface) adjustWindowPosition(x, y int, monitor *Monitor) (int, int) {
+func (u *UserInterface) adjustWindowPosition(x, y int, monitor *Monitor) (int, int, error) {
 	if microsoftgdk.IsXbox() {
-		return x, y
+		return x, y, nil
 	}
 
 	mx := monitor.boundsInGLFWPixels.Min.X
@@ -124,12 +124,12 @@ func (u *UserInterface) adjustWindowPosition(x, y int, monitor *Monitor) (int, i
 	}
 	t, err := _GetSystemMetrics(_SM_CYCAPTION)
 	if err != nil {
-		panic(err)
+		return 0, 0, err
 	}
 	if y < my+int(t) {
 		y = my + int(t)
 	}
-	return x, y
+	return x, y, nil
 }
 
 func initialMonitorByOS() (*Monitor, error) {

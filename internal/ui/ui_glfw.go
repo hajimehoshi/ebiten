@@ -2113,7 +2113,12 @@ func (u *UserInterface) setWindowPositionInDIP(x, y int, monitor *Monitor) error
 	s := monitor.DeviceScaleFactor()
 	xf := dipToGLFWPixel(float64(x), s)
 	yf := dipToGLFWPixel(float64(y), s)
-	if x, y := u.adjustWindowPosition(mx+int(xf), my+int(yf), monitor); f {
+
+	x, y, err = u.adjustWindowPosition(mx+int(xf), my+int(yf), monitor)
+	if err != nil {
+		return err
+	}
+	if f {
 		u.setOrigWindowPos(x, y)
 	} else {
 		if err := u.window.SetPos(x, y); err != nil {
