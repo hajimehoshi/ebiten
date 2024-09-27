@@ -1,6 +1,6 @@
 # License
 
-## `shibuya.mpg`, `shibuya_noaudio.mpg`
+## `shibuya.mpg`
 
 https://commons.wikimedia.org/wiki/File:Shibuya_Crossing,_Tokyo,_Japan_(video).webm
 
