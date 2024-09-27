@@ -115,6 +115,15 @@ func (u *UserInterface) adjustWindowPosition(x, y int, monitor *Monitor) (int, i
 		return x, y
 	}
 
+	// If a window is not decorated, the window should be able to reach the top of the screen (#3118).
+	d, err := u.window.GetAttrib(glfw.Decorated)
+	if err != nil {
+		return 0, 0, err
+	}
+	if d == glfw.False {
+		return x, y, nil
+	}
+
 	mx := monitor.boundsInGLFWPixels.Min.X
 	my := monitor.boundsInGLFWPixels.Min.Y
 	// As the video width/height might be wrong,
