@@ -48,6 +48,9 @@ type GoTextFace struct {
 	Direction Direction
 
 	// Size is the font size in pixels.
+	//
+	// This package creates glyph images for each size. Thus, gradual change of font size is not efficient.
+	// If you want to change the font size gradually, draw the text on an offscreen with a larger size and scale it down.
 	Size float64
 
 	// Language is a hint for a language (BCP 47).
