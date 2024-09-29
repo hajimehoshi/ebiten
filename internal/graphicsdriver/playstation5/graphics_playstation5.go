@@ -180,38 +180,32 @@ func (i *Image) Dispose() {
 }
 
 func (i *Image) ReadPixels(args []graphicsdriver.PixelsArgs) error {
-	cArgs := make([]C.ebitengine_PixelsArgs, 0, len(args))
 	for _, a := range args {
-		cArgs = append(cArgs, C.ebitengine_PixelsArgs{
-			min_x:  C.int(a.Region.Min.X),
-			min_y:  C.int(a.Region.Min.Y),
-			max_x:  C.int(a.Region.Max.X),
-			max_y:  C.int(a.Region.Max.Y),
-			pixels: (*C.uint8_t)(unsafe.Pointer(unsafe.SliceData(a.Pixels))),
-		})
+		region := C.ebitengine_Region{
+			min_x: C.int(a.Region.Min.X),
+			min_y: C.int(a.Region.Min.Y),
+			max_x: C.int(a.Region.Max.X),
+			max_y: C.int(a.Region.Max.Y),
+		}
+		C.ebitengine_ReadPixels(C.int(i.id), (*C.uint8_t)(unsafe.Pointer(unsafe.SliceData(a.Pixels))), region)
 	}
-	defer runtime.KeepAlive(cArgs)
-
-	if err := C.ebitengine_ReadPixels(C.int(i.id), unsafe.SliceData(cArgs), C.int(len(cArgs))); !C.ebitengine_IsErrorNil(&err) {
+	if err := C.ebitengine_FlushReadPixels(C.int(i.id)); !C.ebitengine_IsErrorNil(&err) {
 		return newPlaystation5Error("(*playstation5.Image).ReadPixels", err)
 	}
 	return nil
 }
 
 func (i *Image) WritePixels(args []graphicsdriver.PixelsArgs) error {
-	cArgs := make([]C.ebitengine_PixelsArgs, 0, len(args))
 	for _, a := range args {
-		cArgs = append(cArgs, C.ebitengine_PixelsArgs{
-			min_x:  C.int(a.Region.Min.X),
-			min_y:  C.int(a.Region.Min.Y),
-			max_x:  C.int(a.Region.Max.X),
-			max_y:  C.int(a.Region.Max.Y),
-			pixels: (*C.uint8_t)(unsafe.Pointer(unsafe.SliceData(a.Pixels))),
-		})
+		region := C.ebitengine_Region{
+			min_x: C.int(a.Region.Min.X),
+			min_y: C.int(a.Region.Min.Y),
+			max_x: C.int(a.Region.Max.X),
+			max_y: C.int(a.Region.Max.Y),
+		}
+		C.ebitengine_WritePixels(C.int(i.id), (*C.uint8_t)(unsafe.Pointer(unsafe.SliceData(a.Pixels))), region)
 	}
-	defer runtime.KeepAlive(cArgs)
-
-	if err := C.ebitengine_WritePixels(C.int(i.id), unsafe.SliceData(cArgs), C.int(len(cArgs))); !C.ebitengine_IsErrorNil(&err) {
+	if err := C.ebitengine_FlushWritePixels(C.int(i.id)); !C.ebitengine_IsErrorNil(&err) {
 		return newPlaystation5Error("(*playstation5.Image).WritePixels", err)
 	}
 	return nil

@@ -25,14 +25,15 @@ extern "C" ebitengine_Error ebitengine_NewImage(int *image, int width,
   return {};
 }
 
-extern "C" ebitengine_Error
-ebitengine_ReadPixels(int image, ebitengine_PixelsArgs *args, int arg_count) {
-  return {};
-}
+extern "C" void ebitengine_ReadPixels(int image, uint8_t *pixels,
+                                      ebitengine_Region region) {}
 
-extern "C" ebitengine_Error
-ebitengine_WritePixels(int image, const ebitengine_PixelsArgs *args,
-                       int arg_count) {
+extern "C" ebitengine_Error ebitengine_FlushReadPixels(int image) { return {}; }
+
+extern "C" void ebitengine_WritePixels(int image, const uint8_t *pixels,
+                                       ebitengine_Region region) {}
+
+extern "C" ebitengine_Error ebitengine_FlushWritePixels(int image) {
   return {};
 }
 
