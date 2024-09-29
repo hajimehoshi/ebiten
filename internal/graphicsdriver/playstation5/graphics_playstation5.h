@@ -34,6 +34,14 @@ static bool ebitengine_IsErrorNil(ebitengine_Error *err) {
   return err->message == NULL && err->code == 0;
 }
 
+typedef struct ebitengine_PixelsArgs {
+  uint8_t *pixels;
+  int min_x;
+  int min_y;
+  int max_x;
+  int max_y;
+} ebitengine_PixelsArgs;
+
 typedef struct ebitengine_DstRegion {
   int min_x;
   int min_y;
@@ -55,6 +63,11 @@ ebitengine_Error ebitengine_InitializeGraphics(void);
 ebitengine_Error ebitengine_NewImage(int *image, int width, int height);
 ebitengine_Error ebitengine_NewScreenFramebufferImage(int *image, int width,
                                                       int height);
+ebitengine_Error ebitengine_ReadPixels(int image, ebitengine_PixelsArgs *args,
+                                       int arg_count);
+ebitengine_Error ebitengine_WritePixels(int image,
+                                        const ebitengine_PixelsArgs *args,
+                                        int arg_count);
 void ebitengine_DisposeImage(int id);
 
 void ebitengine_Begin();

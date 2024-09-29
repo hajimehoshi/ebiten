@@ -26,6 +26,17 @@ extern "C" ebitengine_Error ebitengine_NewImage(int *image, int width,
 }
 
 extern "C" ebitengine_Error
+ebitengine_ReadPixels(int image, ebitengine_PixelsArgs *args, int arg_count) {
+  return {};
+}
+
+extern "C" ebitengine_Error
+ebitengine_WritePixels(int image, const ebitengine_PixelsArgs *args,
+                       int arg_count) {
+  return {};
+}
+
+extern "C" ebitengine_Error
 ebitengine_NewScreenFramebufferImage(int *image, int width, int height) {
   return {};
 }
