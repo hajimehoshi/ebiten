@@ -65,9 +65,9 @@ type subpath struct {
 	closed bool
 }
 
-// Reset resets the subpath.
-// Reset doesn't release the allocated memory so that the memory can be reused.
-func (s *subpath) Reset() {
+// reset resets the subpath.
+// reset doesn't release the allocated memory so that the memory can be reused.
+func (s *subpath) reset() {
 	s.points = s.points[:0]
 	s.closed = false
 }
@@ -123,7 +123,7 @@ func (p *Path) appendNewSubpath(pt point) {
 	if cap(p.subpaths) > len(p.subpaths) {
 		// Reuse the last subpath since the last subpath might have an already allocated slice.
 		p.subpaths = p.subpaths[:len(p.subpaths)+1]
-		p.subpaths[len(p.subpaths)-1].Reset()
+		p.subpaths[len(p.subpaths)-1].reset()
 		p.subpaths[len(p.subpaths)-1].appendPoint(pt)
 		return
 	}
