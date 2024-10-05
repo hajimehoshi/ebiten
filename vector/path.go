@@ -112,9 +112,9 @@ type Path struct {
 	subpaths []subpath
 }
 
-// reset resets the path.
-// reset doesn't release the allocated memory so that the memory can be reused.
-func (p *Path) reset() {
+// Reset resets the path.
+// Reset doesn't release the allocated memory so that the memory can be reused.
+func (p *Path) Reset() {
 	p.ops = p.ops[:0]
 	p.subpaths = p.subpaths[:0]
 }
@@ -671,7 +671,7 @@ func (p *Path) AppendVerticesAndIndicesForStroke(vertices []ebiten.Vertex, indic
 				exceed := float32(math.Abs(1/math.Sin(float64(delta/2)))) > op.MiterLimit
 
 				// Quadrilateral
-				tmpPath.reset()
+				tmpPath.Reset()
 				tmpPath.MoveTo(c.x, c.y)
 				if da < math.Pi {
 					tmpPath.LineTo(rect[1].x, rect[1].y)
@@ -692,7 +692,7 @@ func (p *Path) AppendVerticesAndIndicesForStroke(vertices []ebiten.Vertex, indic
 
 			case LineJoinBevel:
 				// Triangle
-				tmpPath.reset()
+				tmpPath.Reset()
 				tmpPath.MoveTo(c.x, c.y)
 				if da < math.Pi {
 					tmpPath.LineTo(rect[1].x, rect[1].y)
@@ -705,7 +705,7 @@ func (p *Path) AppendVerticesAndIndicesForStroke(vertices []ebiten.Vertex, indic
 
 			case LineJoinRound:
 				// Arc
-				tmpPath.reset()
+				tmpPath.Reset()
 				tmpPath.MoveTo(c.x, c.y)
 				if da < math.Pi {
 					tmpPath.Arc(c.x, c.y, op.Width/2, a0, a1, Clockwise)
@@ -738,7 +738,7 @@ func (p *Path) AppendVerticesAndIndicesForStroke(vertices []ebiten.Vertex, indic
 				}
 				a := float32(math.Atan2(float64(startR[0].y-startR[2].y), float64(startR[0].x-startR[2].x)))
 				// Arc
-				tmpPath.reset()
+				tmpPath.Reset()
 				tmpPath.MoveTo(startR[0].x, startR[0].y)
 				tmpPath.Arc(c.x, c.y, op.Width/2, a, a+math.Pi, CounterClockwise)
 				vertices, indices = tmpPath.AppendVerticesAndIndicesForFilling(vertices, indices)
@@ -750,7 +750,7 @@ func (p *Path) AppendVerticesAndIndicesForStroke(vertices []ebiten.Vertex, indic
 				}
 				a := float32(math.Atan2(float64(endR[1].y-endR[3].y), float64(endR[1].x-endR[3].x)))
 				// Arc
-				tmpPath.reset()
+				tmpPath.Reset()
 				tmpPath.MoveTo(endR[1].x, endR[1].y)
 				tmpPath.Arc(c.x, c.y, op.Width/2, a, a+math.Pi, Clockwise)
 				vertices, indices = tmpPath.AppendVerticesAndIndicesForFilling(vertices, indices)
@@ -764,7 +764,7 @@ func (p *Path) AppendVerticesAndIndicesForStroke(vertices []ebiten.Vertex, indic
 				dx, dy := float32(c)*op.Width/2, float32(s)*op.Width/2
 
 				// Quadrilateral
-				tmpPath.reset()
+				tmpPath.Reset()
 				tmpPath.MoveTo(startR[0].x, startR[0].y)
 				tmpPath.LineTo(startR[0].x+dx, startR[0].y+dy)
 				tmpPath.LineTo(startR[2].x+dx, startR[2].y+dy)
@@ -777,7 +777,7 @@ func (p *Path) AppendVerticesAndIndicesForStroke(vertices []ebiten.Vertex, indic
 				dx, dy := float32(c)*op.Width/2, float32(s)*op.Width/2
 
 				// Quadrilateral
-				tmpPath.reset()
+				tmpPath.Reset()
 				tmpPath.MoveTo(endR[1].x, endR[1].y)
 				tmpPath.LineTo(endR[1].x+dx, endR[1].y+dy)
 				tmpPath.LineTo(endR[3].x+dx, endR[3].y+dy)
