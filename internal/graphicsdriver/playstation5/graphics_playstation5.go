@@ -87,6 +87,8 @@ func (g *Graphics) SetVertices(vertices []float32, indices []uint32) error {
 
 func (g *Graphics) NewImage(width, height int) (graphicsdriver.Image, error) {
 	var id C.int
+	width = graphics.InternalImageSize(width)
+	height = graphics.InternalImageSize(height)
 	if err := C.ebitengine_NewImage(&id, C.int(width), C.int(height)); !C.ebitengine_IsErrorNil(&err) {
 		return nil, newPlaystation5Error("(*playstation5.Graphics).NewImage", err)
 	}
