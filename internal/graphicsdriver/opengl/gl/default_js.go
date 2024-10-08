@@ -367,7 +367,7 @@ func (c *defaultContext) DeleteTexture(texture uint32) {
 
 func (c *defaultContext) DeleteVertexArray(array uint32) {
 	c.fnDeleteVertexArray.Invoke(c.vertexArrays.get(array))
-	c.textures.delete(array)
+	c.vertexArrays.delete(array)
 }
 
 func (c *defaultContext) Disable(cap uint32) {
