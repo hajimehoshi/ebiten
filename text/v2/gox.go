@@ -21,7 +21,6 @@ import (
 	"golang.org/x/image/font"
 	"golang.org/x/image/math/fixed"
 
-	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
@@ -139,9 +138,10 @@ func (s *GoXFace) appendGlyphsForLine(glyphs []Glyph, line string, indexOffset i
 		// Append a glyph even if img is nil.
 		// This is necessary to return index information for control characters.
 		glyphs = append(glyphs, Glyph{
+			img:               img,
 			StartIndexInBytes: indexOffset + i,
 			EndIndexInBytes:   indexOffset + i + size,
-			Image:             img,
+			Image:             img.Image(),
 			X:                 float64(imgX),
 			Y:                 float64(imgY),
 			OriginX:           fixed26_6ToFloat64(origin.X),
@@ -156,7 +156,7 @@ func (s *GoXFace) appendGlyphsForLine(glyphs []Glyph, line string, indexOffset i
 	return glyphs
 }
 
-func (s *GoXFace) glyphImage(r rune, origin fixed.Point26_6) (*ebiten.Image, int, int, fixed.Int26_6) {
+func (s *GoXFace) glyphImage(r rune, origin fixed.Point26_6) (*glyphImage, int, int, fixed.Int26_6) {
 	// Assume that GoXFace's direction is always horizontal.
 	origin.X = adjustGranularity(origin.X, s)
 	origin.Y &^= ((1 << 6) - 1)
@@ -170,15 +170,15 @@ func (s *GoXFace) glyphImage(r rune, origin fixed.Point26_6) (*ebiten.Image, int
 		rune:    r,
 		xoffset: subpixelOffset.X,
 	}
-	img := s.glyphImageCache.getOrCreate(s, key, func() *ebiten.Image {
-		return s.glyphImageImpl(r, subpixelOffset, b)
+	img := s.glyphImageCache.getOrCreate(s, key, func(a *glyphAtlas) *glyphImage {
+		return s.glyphImageImpl(a, r, subpixelOffset, b)
 	})
 	imgX := (origin.X + b.Min.X).Floor()
 	imgY := (origin.Y + b.Min.Y).Floor()
 	return img, imgX, imgY, a
 }
 
-func (s *GoXFace) glyphImageImpl(r rune, subpixelOffset fixed.Point26_6, glyphBounds fixed.Rectangle26_6) *ebiten.Image {
+func (s *GoXFace) glyphImageImpl(a *glyphAtlas, r rune, subpixelOffset fixed.Point26_6, glyphBounds fixed.Rectangle26_6) *glyphImage {
 	w, h := (glyphBounds.Max.X - glyphBounds.Min.X).Ceil(), (glyphBounds.Max.Y - glyphBounds.Min.Y).Ceil()
 	if w == 0 || h == 0 {
 		return nil
@@ -202,7 +202,10 @@ func (s *GoXFace) glyphImageImpl(r rune, subpixelOffset fixed.Point26_6, glyphBo
 	}
 	d.DrawString(string(r))
 
-	return ebiten.NewImageFromImage(rgba)
+	img := a.NewImage(w, h)
+	img.Image().WritePixels(rgba.Pix)
+
+	return img
 }
 
 // direction implements Face.
