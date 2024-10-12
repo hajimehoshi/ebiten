@@ -252,27 +252,16 @@ func (w *Window) refreshContextAttribs(ctxconfig *ctxconfig) (ferr error) {
 	w.context.source = ctxconfig.source
 	w.context.client = OpenGLAPI
 
-	p1, err := _glfw.contextSlot.get()
-	if err != nil {
-		return err
-	}
-	previous := (*Window)(unsafe.Pointer(p1))
+	// In Ebitengine, only one window is created.
+	// Always assume that the current context is not set.
 	defer func() {
-		err := previous.MakeContextCurrent()
+		err := (*Window)(nil).MakeContextCurrent()
 		if ferr == nil {
 			ferr = err
 		}
 	}()
 	if err := w.MakeContextCurrent(); err != nil {
 		return err
-	}
-
-	p2, err := _glfw.contextSlot.get()
-	if err != nil {
-		return err
-	}
-	if (*Window)(unsafe.Pointer(p2)) != w {
-		return nil
 	}
 
 	getIntegerv := w.context.getProcAddress("glGetIntegerv")

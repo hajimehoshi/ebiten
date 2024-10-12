@@ -326,7 +326,6 @@ GLFWbool _glfwRefreshContextAttribs(_GLFWwindow* window,
                                     const _GLFWctxconfig* ctxconfig)
 {
     int i;
-    _GLFWwindow* previous;
     const char* version;
     const char* prefixes[] =
     {
@@ -339,10 +338,9 @@ GLFWbool _glfwRefreshContextAttribs(_GLFWwindow* window,
     window->context.source = ctxconfig->source;
     window->context.client = GLFW_OPENGL_API;
 
-    previous = _glfwPlatformGetTls(&_glfw.contextSlot);
+    // In Ebitengine, only one window is created.
+    // Always assume that the current context is not set.
     glfwMakeContextCurrent((GLFWwindow*) window);
-    if (_glfwPlatformGetTls(&_glfw.contextSlot) != window)
-        return GLFW_FALSE;
 
     window->context.GetIntegerv = (PFNGLGETINTEGERVPROC)
         window->context.getProcAddress("glGetIntegerv");
@@ -351,7 +349,7 @@ GLFWbool _glfwRefreshContextAttribs(_GLFWwindow* window,
     if (!window->context.GetIntegerv || !window->context.GetString)
     {
         _glfwInputError(GLFW_PLATFORM_ERROR, "Entry point retrieval is broken");
-        glfwMakeContextCurrent((GLFWwindow*) previous);
+        glfwMakeContextCurrent(NULL);
         return GLFW_FALSE;
     }
 
@@ -369,7 +367,7 @@ GLFWbool _glfwRefreshContextAttribs(_GLFWwindow* window,
                             "OpenGL ES version string retrieval is broken");
         }
 
-        glfwMakeContextCurrent((GLFWwindow*) previous);
+        glfwMakeContextCurrent(NULL);
         return GLFW_FALSE;
     }
 
@@ -401,7 +399,7 @@ GLFWbool _glfwRefreshContextAttribs(_GLFWwindow* window,
                             "No version found in OpenGL ES version string");
         }
 
-        glfwMakeContextCurrent((GLFWwindow*) previous);
+        glfwMakeContextCurrent(NULL);
         return GLFW_FALSE;
     }
 
@@ -431,7 +429,7 @@ GLFWbool _glfwRefreshContextAttribs(_GLFWwindow* window,
                             window->context.major, window->context.minor);
         }
 
-        glfwMakeContextCurrent((GLFWwindow*) previous);
+        glfwMakeContextCurrent(NULL);
         return GLFW_FALSE;
     }
 
@@ -447,7 +445,7 @@ GLFWbool _glfwRefreshContextAttribs(_GLFWwindow* window,
         {
             _glfwInputError(GLFW_PLATFORM_ERROR,
                             "Entry point retrieval is broken");
-            glfwMakeContextCurrent((GLFWwindow*) previous);
+            glfwMakeContextCurrent(NULL);
             return GLFW_FALSE;
         }
     }
@@ -556,7 +554,7 @@ GLFWbool _glfwRefreshContextAttribs(_GLFWwindow* window,
             window->context.swapBuffers(window);
     }
 
-    glfwMakeContextCurrent((GLFWwindow*) previous);
+    glfwMakeContextCurrent(NULL);
     return GLFW_TRUE;
 }
 
