@@ -68,11 +68,11 @@ func (g *Graphics) swapBuffers() error {
 	// This needs to be called at least after SetMonitor.
 	// Without SwapInterval after SetMonitor, vsynch doesn't work (#375).
 	if g.vsync {
-		if err := glfw.SwapInterval(1); err != nil {
+		if err := g.window.SwapInterval(1); err != nil {
 			return err
 		}
 	} else {
-		if err := glfw.SwapInterval(0); err != nil {
+		if err := g.window.SwapInterval(0); err != nil {
 			return err
 		}
 	}

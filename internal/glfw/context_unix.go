@@ -73,8 +73,8 @@ func (w *Window) SwapBuffers() error {
 //
 // Some GPU drivers do not honor the requested swap interval, either because of
 // user settings that override the request or due to bugs in the driver.
-func SwapInterval(interval int) error {
-	C.glfwSwapInterval(C.int(interval))
+func (w *Window) SwapInterval(interval int) error {
+	C.glfwSwapInterval(w.data, C.int(interval))
 	if err := fetchErrorIgnoringPlatformError(); err != nil {
 		return err
 	}
@@ -89,10 +89,10 @@ func SwapInterval(interval int) error {
 // recommended that you cache its results if it's going to be used frequently.
 // The extension strings will not change during the lifetime of a context, so
 // there is no danger in doing this.
-func ExtensionSupported(extension string) (bool, error) {
+func (w *Window) ExtensionSupported(extension string) (bool, error) {
 	e := C.CString(extension)
 	defer C.free(unsafe.Pointer(e))
-	ret := C.glfwExtensionSupported(e) != 0
+	ret := C.glfwExtensionSupported(w.data, e) != 0
 	if err := fetchErrorIgnoringPlatformError(); err != nil {
 		return false, err
 	}
