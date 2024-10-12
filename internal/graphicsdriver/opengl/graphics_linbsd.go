@@ -12,17 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !android && !darwin && !js && !nintendosdk && !playstation5
+//go:build (freebsd || linux || netbsd || openbsd) && !android && !nintendosdk && !playstation5
 
 package opengl
 
 import (
-	"fmt"
-
 	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl/gl"
-	"github.com/hajimehoshi/ebiten/v2/internal/microsoftgdk"
 )
 
 type graphicsPlatform struct {
@@ -32,10 +29,6 @@ type graphicsPlatform struct {
 // NewGraphics creates an implementation of graphicsdriver.Graphics for OpenGL.
 // The returned graphics value is nil iff the error is not nil.
 func NewGraphics() (graphicsdriver.Graphics, error) {
-	if microsoftgdk.IsXbox() {
-		return nil, fmt.Errorf("opengl: OpenGL is not supported on Xbox")
-	}
-
 	ctx, err := gl.NewDefaultContext()
 	if err != nil {
 		return nil, err
