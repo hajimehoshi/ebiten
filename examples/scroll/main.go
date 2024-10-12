@@ -135,12 +135,12 @@ func (g *Game) Update() error {
 
 func (g *Game) setOffsetY(offsetY int) {
 	g.offsetY = offsetY
-	if g.offsetY > 0 {
-		g.offsetY = 0
-	}
 	h := g.contentHeight()
 	if g.offsetY < -h+g.contentArea.Dy() {
 		g.offsetY = -h + g.contentArea.Dy()
+	}
+	if g.offsetY > 0 {
+		g.offsetY = 0
 	}
 }
 
