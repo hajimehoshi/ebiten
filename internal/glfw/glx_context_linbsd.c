@@ -165,11 +165,8 @@ static void swapBuffersGLX(_GLFWwindow* window)
     glXSwapBuffers(_glfw.x11.display, window->context.glx.window);
 }
 
-static void swapIntervalGLX(int interval)
+static void swapIntervalGLX(_GLFWwindow* window, int interval)
 {
-    _GLFWwindow* window = _glfwPlatformGetTls(&_glfw.contextSlot);
-    assert(window != NULL);
-
     if (_glfw.glx.EXT_swap_control)
     {
         _glfw.glx.SwapIntervalEXT(_glfw.x11.display,

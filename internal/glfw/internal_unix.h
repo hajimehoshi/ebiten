@@ -55,7 +55,7 @@ typedef struct _GLFWmutex       _GLFWmutex;
 
 typedef void (* _GLFWmakecontextcurrentfun)(_GLFWwindow*);
 typedef void (* _GLFWswapbuffersfun)(_GLFWwindow*);
-typedef void (* _GLFWswapintervalfun)(int);
+typedef void (* _GLFWswapintervalfun)(_GLFWwindow*, int);
 typedef int (* _GLFWextensionsupportedfun)(const char*);
 typedef GLFWglproc (* _GLFWgetprocaddressfun)(const char*);
 typedef void (* _GLFWdestroycontextfun)(_GLFWwindow*);

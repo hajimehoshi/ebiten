@@ -513,7 +513,7 @@ func (w *Window) SwapInterval(interval int) error {
 		return NotInitialized
 	}
 
-	if err := w.context.swapInterval(interval); err != nil {
+	if err := w.context.swapInterval(w, interval); err != nil {
 		return err
 	}
 	return nil

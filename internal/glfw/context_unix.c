@@ -647,7 +647,7 @@ GLFWAPI void glfwSwapInterval(GLFWwindow* handle, int interval)
 
     _GLFW_REQUIRE_INIT();
 
-    window->context.swapInterval(interval);
+    window->context.swapInterval(window, interval);
 }
 
 GLFWAPI int glfwExtensionSupported(GLFWwindow* handle, const char* extension)
