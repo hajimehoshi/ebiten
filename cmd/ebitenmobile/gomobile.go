@@ -20,9 +20,9 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"runtime/debug"
-	"strings"
 
 	// Add a dependency on gomobile in order to get the version via debug.ReadBuildInfo().
 	_ "github.com/ebitengine/gomobile/geom"
@@ -165,7 +165,7 @@ import (
 	// runtime.Version() is the current executing Go version. For example, this is the version of the toolchain directive in go.mod.
 	// This might differ from the Go command version under the temporary directory.
 	// To avoid the version mismatch, set the toolchain explicitly (#3086).
-	toolchainVersion, _, _ := strings.Cut(runtime.Version(), " ")
+	toolchainVersion := getToolchainParameter()
 	if err := runGo("mod", "edit", "-toolchain="+toolchainVersion); err != nil {
 		return tmp, err
 	}
@@ -212,6 +212,19 @@ import (
 	}
 
 	return tmp, nil
+}
+
+func getToolchainParameter() string {
+	pattern := regexp.MustCompile("\\bgo\\d+\\.\\d+(\\.\\d+)?")
+	rawVersion := runtime.Version()
+	allIndexes := pattern.FindAllSubmatchIndex([]byte(rawVersion), -1)
+	if len(allIndexes) < 1 {
+		panic("runtime.Version() did not match expected format!")
+	}
+	if len(allIndexes[0]) < 2 {
+		panic("runtime.Version() did not match expected format!")
+	}
+	return rawVersion[allIndexes[0][0]:allIndexes[0][1]]
 }
 
 func gomobileHash() (string, error) {

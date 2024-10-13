@@ -2,6 +2,7 @@
 *~
 *.aar
 *.apk
+*.exe
 *.tar.gz
 .idea
 .vscode
