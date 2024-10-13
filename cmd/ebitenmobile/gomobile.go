@@ -219,7 +219,7 @@ import (
 }
 
 func toolchainParameter() (string, error) {
-	pattern := regexp.MustCompile("\\bgo\\d+\\.\\d+(\\.\\d+)?")
+	pattern := regexp.MustCompile(`\bgo\d+\.\d+(\.\d+)?`)
 	rawVersion := runtime.Version()
 	results := pattern.FindStringSubmatch(rawVersion)
 	if len(results ) < 1 {
