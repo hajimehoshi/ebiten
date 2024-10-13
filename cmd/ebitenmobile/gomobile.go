@@ -16,6 +16,7 @@ package main
 
 import (
 	_ "embed"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -165,7 +166,10 @@ import (
 	// runtime.Version() is the current executing Go version. For example, this is the version of the toolchain directive in go.mod.
 	// This might differ from the Go command version under the temporary directory.
 	// To avoid the version mismatch, set the toolchain explicitly (#3086).
-	toolchainVersion := getToolchainParameter()
+	toolchainVersion, err := toolchainParameter()
+	if err != nil {
+		return tmp, err
+	}
 	if err := runGo("mod", "edit", "-toolchain="+toolchainVersion); err != nil {
 		return tmp, err
 	}
@@ -214,17 +218,14 @@ import (
 	return tmp, nil
 }
 
-func getToolchainParameter() string {
+func toolchainParameter() (string, error) {
 	pattern := regexp.MustCompile("\\bgo\\d+\\.\\d+(\\.\\d+)?")
 	rawVersion := runtime.Version()
-	allIndexes := pattern.FindAllSubmatchIndex([]byte(rawVersion), -1)
-	if len(allIndexes) < 1 {
-		panic("runtime.Version() regex did not capture any results!")
+	results := pattern.FindStringSubmatch(rawVersion)
+	if len(results ) < 1 {
+		return "", errors.New("runtime.Version() regex did not capture any results!")
 	}
-	if len(allIndexes[0]) < 2 {
-		panic("runtime.Version() regex captured a result but didn't return 2 indexes!")
-	}
-	return rawVersion[allIndexes[0][0]:allIndexes[0][1]]
+	return results[0], nil
 }
 
 func gomobileHash() (string, error) {
