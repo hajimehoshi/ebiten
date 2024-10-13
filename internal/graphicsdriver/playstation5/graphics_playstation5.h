@@ -49,6 +49,27 @@ typedef struct ebitengine_DstRegion {
   int index_count;
 } ebitengine_DstRegion;
 
+// kBlendFactor* and kBlendOperation* must be synced with
+// internal/graphicsdriver/blend.go.
+
+const uint8_t kBlendFactorZero = 0;
+const uint8_t kBlendFactorOne = 1;
+const uint8_t kBlendFactorSourceColor = 2;
+const uint8_t kBlendFactorOneMinusSourceColor = 3;
+const uint8_t kBlendFactorSourceAlpha = 4;
+const uint8_t kBlendFactorOneMinusSourceAlpha = 5;
+const uint8_t kBlendFactorDestinationColor = 6;
+const uint8_t kBlendFactorOneMinusDestinationColor = 7;
+const uint8_t kBlendFactorDestinationAlpha = 8;
+const uint8_t kBlendFactorOneMinusDestinationAlpha = 9;
+const uint8_t kBlendFactorSourceAlphaSaturated = 10;
+
+const uint8_t kBlendOperationAdd = 0;
+const uint8_t kBlendOperationSubtract = 1;
+const uint8_t kBlendOperationReverseSubtract = 2;
+const uint8_t kBlendOperationMin = 3;
+const uint8_t kBlendOperationMax = 4;
+
 typedef struct ebitengine_Blend {
   uint8_t factor_src_rgb;
   uint8_t factor_src_alpha;

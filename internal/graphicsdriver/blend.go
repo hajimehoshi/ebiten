@@ -23,6 +23,8 @@ type Blend struct {
 	BlendOperationAlpha         BlendOperation
 }
 
+// BlendFactor and BlendOperation must be synced with internal/graphicsdriver/playstation5/graphics_playstation5.h.
+
 type BlendFactor byte
 
 const (
