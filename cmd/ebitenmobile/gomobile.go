@@ -165,7 +165,7 @@ import (
 	// runtime.Version() is the current executing Go version. For example, this is the version of the toolchain directive in go.mod.
 	// This might differ from the Go command version under the temporary directory.
 	// To avoid the version mismatch, set the toolchain explicitly (#3086).
-	toolchainVersion := strings.Split(runtime.Version(), " ")[0]
+	toolchainVersion, _, _ := strings.Cut(runtime.Version(), " ")
 	if err := runGo("mod", "edit", "-toolchain="+toolchainVersion); err != nil {
 		return tmp, err
 	}
