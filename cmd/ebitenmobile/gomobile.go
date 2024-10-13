@@ -219,10 +219,10 @@ func getToolchainParameter() string {
 	rawVersion := runtime.Version()
 	allIndexes := pattern.FindAllSubmatchIndex([]byte(rawVersion), -1)
 	if len(allIndexes) < 1 {
-		panic("runtime.Version() did not match expected format!")
+		panic("runtime.Version() regex did not capture any results!")
 	}
 	if len(allIndexes[0]) < 2 {
-		panic("runtime.Version() did not match expected format!")
+		panic("runtime.Version() regex captured a result but didn't return 2 indexes!")
 	}
 	return rawVersion[allIndexes[0][0]:allIndexes[0][1]]
 }
