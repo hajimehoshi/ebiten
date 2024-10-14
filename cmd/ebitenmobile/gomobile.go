@@ -16,7 +16,6 @@ package main
 
 import (
 	_ "embed"
-	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -222,8 +221,8 @@ func toolchainParameter() (string, error) {
 	pattern := regexp.MustCompile(`\bgo\d+\.\d+(\.\d+)?`)
 	rawVersion := runtime.Version()
 	m := pattern.FindStringSubmatch(rawVersion)
-	if len(m) < 1 {
-		return "", errors.New("runtime.Version() regex did not capture any results!")
+	if len(m) == 0 {
+		return "", fmt.Errorf("ebitenmobile: unexpected version: %s", rawVersion)
 	}
 	return m[0], nil
 }
