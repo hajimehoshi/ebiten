@@ -81,6 +81,24 @@ func (c *drawTrianglesCommand) String() string {
 		blend = "(clear)"
 	case graphicsdriver.BlendCopy:
 		blend = "(copy)"
+	case graphicsdriver.BlendDestination:
+		blend = "(destination)"
+	case graphicsdriver.BlendSourceIn:
+		blend = "(source-in)"
+	case graphicsdriver.BlendDestinationIn:
+		blend = "(destination-in)"
+	case graphicsdriver.BlendSourceOut:
+		blend = "(source-out)"
+	case graphicsdriver.BlendDestinationOut:
+		blend = "(destination-out)"
+	case graphicsdriver.BlendSourceAtop:
+		blend = "(source-atop)"
+	case graphicsdriver.BlendDestinationAtop:
+		blend = "(destination-atop)"
+	case graphicsdriver.BlendXor:
+		blend = "(xor)"
+	case graphicsdriver.BlendLighter:
+		blend = "(lighter)"
 	default:
 		blend = fmt.Sprintf("{src-rgb: %d, src-alpha: %d, dst-rgb: %d, dst-alpha: %d, op-rgb: %d, op-alpha: %d}",
 			c.blend.BlendFactorSourceRGB,

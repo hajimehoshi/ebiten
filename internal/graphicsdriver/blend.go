@@ -51,29 +51,121 @@ const (
 	BlendOperationMax
 )
 
-var BlendSourceOver = Blend{
-	BlendFactorSourceRGB:        BlendFactorOne,
-	BlendFactorSourceAlpha:      BlendFactorOne,
-	BlendFactorDestinationRGB:   BlendFactorOneMinusSourceAlpha,
-	BlendFactorDestinationAlpha: BlendFactorOneMinusSourceAlpha,
-	BlendOperationRGB:           BlendOperationAdd,
-	BlendOperationAlpha:         BlendOperationAdd,
-}
+var (
+	BlendSourceOver = Blend{
+		BlendFactorSourceRGB:        BlendFactorOne,
+		BlendFactorSourceAlpha:      BlendFactorOne,
+		BlendFactorDestinationRGB:   BlendFactorOneMinusSourceAlpha,
+		BlendFactorDestinationAlpha: BlendFactorOneMinusSourceAlpha,
+		BlendOperationRGB:           BlendOperationAdd,
+		BlendOperationAlpha:         BlendOperationAdd,
+	}
 
-var BlendClear = Blend{
-	BlendFactorSourceRGB:        BlendFactorZero,
-	BlendFactorSourceAlpha:      BlendFactorZero,
-	BlendFactorDestinationRGB:   BlendFactorZero,
-	BlendFactorDestinationAlpha: BlendFactorZero,
-	BlendOperationRGB:           BlendOperationAdd,
-	BlendOperationAlpha:         BlendOperationAdd,
-}
+	BlendClear = Blend{
+		BlendFactorSourceRGB:        BlendFactorZero,
+		BlendFactorSourceAlpha:      BlendFactorZero,
+		BlendFactorDestinationRGB:   BlendFactorZero,
+		BlendFactorDestinationAlpha: BlendFactorZero,
+		BlendOperationRGB:           BlendOperationAdd,
+		BlendOperationAlpha:         BlendOperationAdd,
+	}
 
-var BlendCopy = Blend{
-	BlendFactorSourceRGB:        BlendFactorOne,
-	BlendFactorSourceAlpha:      BlendFactorOne,
-	BlendFactorDestinationRGB:   BlendFactorZero,
-	BlendFactorDestinationAlpha: BlendFactorZero,
-	BlendOperationRGB:           BlendOperationAdd,
-	BlendOperationAlpha:         BlendOperationAdd,
-}
+	BlendCopy = Blend{
+		BlendFactorSourceRGB:        BlendFactorOne,
+		BlendFactorSourceAlpha:      BlendFactorOne,
+		BlendFactorDestinationRGB:   BlendFactorZero,
+		BlendFactorDestinationAlpha: BlendFactorZero,
+		BlendOperationRGB:           BlendOperationAdd,
+		BlendOperationAlpha:         BlendOperationAdd,
+	}
+
+	BlendDestination = Blend{
+		BlendFactorSourceRGB:        BlendFactorZero,
+		BlendFactorSourceAlpha:      BlendFactorZero,
+		BlendFactorDestinationRGB:   BlendFactorOne,
+		BlendFactorDestinationAlpha: BlendFactorOne,
+		BlendOperationRGB:           BlendOperationAdd,
+		BlendOperationAlpha:         BlendOperationAdd,
+	}
+
+	BlendDestinationOver = Blend{
+		BlendFactorSourceRGB:        BlendFactorOneMinusDestinationAlpha,
+		BlendFactorSourceAlpha:      BlendFactorOneMinusDestinationAlpha,
+		BlendFactorDestinationRGB:   BlendFactorOne,
+		BlendFactorDestinationAlpha: BlendFactorOne,
+		BlendOperationRGB:           BlendOperationAdd,
+		BlendOperationAlpha:         BlendOperationAdd,
+	}
+
+	BlendSourceIn = Blend{
+		BlendFactorSourceRGB:        BlendFactorDestinationAlpha,
+		BlendFactorSourceAlpha:      BlendFactorDestinationAlpha,
+		BlendFactorDestinationRGB:   BlendFactorZero,
+		BlendFactorDestinationAlpha: BlendFactorZero,
+		BlendOperationRGB:           BlendOperationAdd,
+		BlendOperationAlpha:         BlendOperationAdd,
+	}
+
+	BlendDestinationIn = Blend{
+		BlendFactorSourceRGB:        BlendFactorZero,
+		BlendFactorSourceAlpha:      BlendFactorZero,
+		BlendFactorDestinationRGB:   BlendFactorSourceAlpha,
+		BlendFactorDestinationAlpha: BlendFactorSourceAlpha,
+		BlendOperationRGB:           BlendOperationAdd,
+		BlendOperationAlpha:         BlendOperationAdd,
+	}
+
+	BlendSourceOut = Blend{
+		BlendFactorSourceRGB:        BlendFactorOneMinusDestinationAlpha,
+		BlendFactorSourceAlpha:      BlendFactorOneMinusDestinationAlpha,
+		BlendFactorDestinationRGB:   BlendFactorZero,
+		BlendFactorDestinationAlpha: BlendFactorZero,
+		BlendOperationRGB:           BlendOperationAdd,
+		BlendOperationAlpha:         BlendOperationAdd,
+	}
+
+	BlendDestinationOut = Blend{
+		BlendFactorSourceRGB:        BlendFactorZero,
+		BlendFactorSourceAlpha:      BlendFactorZero,
+		BlendFactorDestinationRGB:   BlendFactorOneMinusSourceAlpha,
+		BlendFactorDestinationAlpha: BlendFactorOneMinusSourceAlpha,
+		BlendOperationRGB:           BlendOperationAdd,
+		BlendOperationAlpha:         BlendOperationAdd,
+	}
+
+	BlendSourceAtop = Blend{
+		BlendFactorSourceRGB:        BlendFactorDestinationAlpha,
+		BlendFactorSourceAlpha:      BlendFactorDestinationAlpha,
+		BlendFactorDestinationRGB:   BlendFactorOneMinusSourceAlpha,
+		BlendFactorDestinationAlpha: BlendFactorOneMinusSourceAlpha,
+		BlendOperationRGB:           BlendOperationAdd,
+		BlendOperationAlpha:         BlendOperationAdd,
+	}
+
+	BlendDestinationAtop = Blend{
+		BlendFactorSourceRGB:        BlendFactorOneMinusDestinationAlpha,
+		BlendFactorSourceAlpha:      BlendFactorOneMinusDestinationAlpha,
+		BlendFactorDestinationRGB:   BlendFactorSourceAlpha,
+		BlendFactorDestinationAlpha: BlendFactorSourceAlpha,
+		BlendOperationRGB:           BlendOperationAdd,
+		BlendOperationAlpha:         BlendOperationAdd,
+	}
+
+	BlendXor = Blend{
+		BlendFactorSourceRGB:        BlendFactorOneMinusDestinationAlpha,
+		BlendFactorSourceAlpha:      BlendFactorOneMinusDestinationAlpha,
+		BlendFactorDestinationRGB:   BlendFactorOneMinusSourceAlpha,
+		BlendFactorDestinationAlpha: BlendFactorOneMinusSourceAlpha,
+		BlendOperationRGB:           BlendOperationAdd,
+		BlendOperationAlpha:         BlendOperationAdd,
+	}
+
+	BlendLighter = Blend{
+		BlendFactorSourceRGB:        BlendFactorOne,
+		BlendFactorSourceAlpha:      BlendFactorOne,
+		BlendFactorDestinationRGB:   BlendFactorOne,
+		BlendFactorDestinationAlpha: BlendFactorOne,
+		BlendOperationRGB:           BlendOperationAdd,
+		BlendOperationAlpha:         BlendOperationAdd,
+	}
+)
