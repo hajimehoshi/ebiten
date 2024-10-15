@@ -61,14 +61,15 @@ func (p *drawTrianglesCommandPool) put(v *drawTrianglesCommand) {
 
 // drawTrianglesCommand represents a drawing command to draw an image on another image.
 type drawTrianglesCommand struct {
-	dst        *Image
-	srcs       [graphics.ShaderSrcImageCount]*Image
-	vertices   []float32
-	blend      graphicsdriver.Blend
-	dstRegions []graphicsdriver.DstRegion
-	shader     *Shader
-	uniforms   []uint32
-	fillRule   graphicsdriver.FillRule
+	dst         *Image
+	srcs        [graphics.ShaderSrcImageCount]*Image
+	vertices    []float32
+	blend       graphicsdriver.Blend
+	dstRegions  []graphicsdriver.DstRegion
+	shader      *Shader
+	uniforms    []uint32
+	fillRule    graphicsdriver.FillRule
+	firstCaller string
 }
 
 func (c *drawTrianglesCommand) String() string {
@@ -116,7 +117,11 @@ func (c *drawTrianglesCommand) String() string {
 		shader += " (" + c.shader.name + ")"
 	}
 
-	return fmt.Sprintf("draw-triangles: dst: %s <- src: [%s], num of dst regions: %d, num of indices: %d, blend: %s, fill rule: %s, shader: %s", dst, strings.Join(srcstrs[:], ", "), len(c.dstRegions), c.numIndices(), blend, c.fillRule, shader)
+	str := fmt.Sprintf("draw-triangles: dst: %s <- src: [%s], num of dst regions: %d, num of indices: %d, blend: %s, fill rule: %s, shader: %s", dst, strings.Join(srcstrs[:], ", "), len(c.dstRegions), c.numIndices(), blend, c.fillRule, shader)
+	if c.firstCaller != "" {
+		str += "\n  first-caller: " + c.firstCaller
+	}
+	return str
 }
 
 // Exec executes the drawTrianglesCommand.

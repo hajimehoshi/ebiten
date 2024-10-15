@@ -18,6 +18,8 @@ import (
 	"fmt"
 	"image"
 	"math"
+	"runtime"
+	"strings"
 	"sync"
 	"sync/atomic"
 
@@ -162,6 +164,23 @@ func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.Sh
 	c.shader = shader
 	c.uniforms = uniforms
 	c.fillRule = fillRule
+	if debug.IsDebug {
+		// Get the root caller of this function.
+		// Relying on a caller stacktrace is very fragile, but this is fine as this is only for debugging.
+		for i := 0; ; i++ {
+			_, file, _, ok := runtime.Caller(i)
+			if !ok {
+				break
+			}
+			if !strings.HasSuffix(file, "/ebiten/image.go") {
+				continue
+			}
+			if _, file, line, ok := runtime.Caller(i + 1); ok {
+				c.firstCaller = fmt.Sprintf("%s:%d", file, line)
+			}
+			break
+		}
+	}
 	q.commands = append(q.commands, c)
 }
 
@@ -294,7 +313,15 @@ func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics, endFrame bo
 			if err := c.Exec(q, graphicsDriver, indexOffset); err != nil {
 				return err
 			}
-			logger.FrameLogf("  %s\n", c)
+			str := c.String()
+			for {
+				head, tail, ok := strings.Cut(str, "\n")
+				logger.FrameLogf("  %s\n", head)
+				if !ok {
+					break
+				}
+				str = tail
+			}
 			// TODO: indexOffset should be reset if the command type is different
 			// from the previous one. This fix is needed when another drawing command is
 			// introduced than drawTrianglesCommand.
