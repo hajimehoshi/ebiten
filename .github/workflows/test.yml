@@ -170,6 +170,9 @@ jobs:
       - name: go test (Wasm)
         if: runner.os == 'Linux'
         run: |
+          # Disable AppArmor for Ubuntu 23.10+.
+          # https://chromium.googlesource.com/chromium/src/+/main/docs/security/apparmor-userns-restrictions.md
+          echo 0 | sudo tee /proc/sys/kernel/apparmor_restrict_unprivileged_userns
           # Wasm tests don't work on macOS with the headless mode enabled, but the headless mode cannot be disabled in GitHub Actions (#2972).
           # Wasm tests time out on Windows (#3076).
           env GOOS=js GOARCH=wasm cleanenv -remove-prefix GITHUB_ -remove-prefix JAVA_ -remove-prefix PSModulePath -remove-prefix STATS_ -remove-prefix RUNNER_ -- go test -shuffle=on -v ./... -test.paniconexit0=false
