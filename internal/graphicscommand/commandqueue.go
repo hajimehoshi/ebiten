@@ -166,8 +166,6 @@ func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.Sh
 	if debug.IsDebug {
 		if file, line, ok := debug.FirstCaller(); ok {
 			c.firstCaller = fmt.Sprintf("%s:%d", file, line)
-		} else {
-			c.firstCaller = "(internal)"
 		}
 	}
 	q.commands = append(q.commands, c)

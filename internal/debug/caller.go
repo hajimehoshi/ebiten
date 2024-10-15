@@ -15,6 +15,7 @@
 package debug
 
 import (
+	"errors"
 	"fmt"
 	"os/exec"
 	"path"
@@ -34,11 +35,19 @@ func FirstCaller() (file string, line int, ok bool) {
 	ebitengineFileDirOnce.Do(func() {
 		cmd := exec.Command("go", "list", "-f", "{{.Dir}}", "github.com/hajimehoshi/ebiten/v2")
 		out, err := cmd.Output()
+		if errors.Is(err, exec.ErrNotFound) {
+			return
+		}
 		if err != nil {
 			panic(fmt.Sprintf("debug: go list -f {{.Dir}} failed: %v", err))
 		}
 		ebitengineFileDir = filepath.ToSlash(strings.TrimSpace(string(out)))
 	})
+
+	// Go command is not found.
+	if ebitengineFileDir == "" {
+		return "", 0, false
+	}
 
 	// Relying on a caller stacktrace is very fragile, but this is fine as this is only for debugging.
 	var ebitenPackageReached bool
