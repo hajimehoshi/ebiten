@@ -18,7 +18,6 @@ import (
 	"fmt"
 	"image"
 	"math"
-	"runtime"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -165,20 +164,10 @@ func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.Sh
 	c.uniforms = uniforms
 	c.fillRule = fillRule
 	if debug.IsDebug {
-		// Get the root caller of this function.
-		// Relying on a caller stacktrace is very fragile, but this is fine as this is only for debugging.
-		for i := 0; ; i++ {
-			_, file, _, ok := runtime.Caller(i)
-			if !ok {
-				break
-			}
-			if !strings.HasSuffix(file, "/ebiten/image.go") {
-				continue
-			}
-			if _, file, line, ok := runtime.Caller(i + 1); ok {
-				c.firstCaller = fmt.Sprintf("%s:%d", file, line)
-			}
-			break
+		if file, line, ok := debug.FirstCaller(); ok {
+			c.firstCaller = fmt.Sprintf("%s:%d", file, line)
+		} else {
+			c.firstCaller = "(internal)"
 		}
 	}
 	q.commands = append(q.commands, c)
