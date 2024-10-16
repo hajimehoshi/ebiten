@@ -30,8 +30,16 @@ var (
 	ebitengineFileDirOnce sync.Once
 )
 
+type CallerType int
+
+const (
+	CallerTypeNone CallerType = iota
+	CallerTypeRegular
+	CallerTypeInternal
+)
+
 // FirstCaller returns the file and line number of the first caller outside of Ebitengine.
-func FirstCaller() (file string, line int, ok bool) {
+func FirstCaller() (file string, line int, callerType CallerType) {
 	ebitengineFileDirOnce.Do(func() {
 		cmd := exec.Command("go", "list", "-f", "{{.Dir}}", "github.com/hajimehoshi/ebiten/v2")
 		out, err := cmd.Output()
@@ -46,7 +54,7 @@ func FirstCaller() (file string, line int, ok bool) {
 
 	// Go command is not found.
 	if ebitengineFileDir == "" {
-		return "", 0, false
+		return "", 0, CallerTypeNone
 	}
 
 	// Relying on a caller stacktrace is very fragile, but this is fine as this is only for debugging.
@@ -66,11 +74,17 @@ func FirstCaller() (file string, line int, ok bool) {
 			continue
 		}
 
-		if path.Dir(file) == ebitengineFileDir || path.Dir(file) == ebitengineFileDir+"/colorm" || path.Dir(file) == ebitengineFileDir+"/text" || path.Dir(file) == ebitengineFileDir+"/text/v2" {
+		if path.Dir(file) == ebitengineFileDir {
 			continue
 		}
-		return file, line, true
+		if strings.HasPrefix(path.Dir(file), ebitengineFileDir+"/") && !strings.HasPrefix(path.Dir(file), ebitengineFileDir+"/examples/") {
+			if strings.HasPrefix(path.Dir(file), ebitengineFileDir+"/internal/") {
+				return file, line, CallerTypeInternal
+			}
+			continue
+		}
+		return file, line, CallerTypeRegular
 	}
 
-	return "", 0, false
+	return "", 0, CallerTypeNone
 }
