@@ -1,5 +1,5 @@
-github.com/ebitengine/gomobile v0.0.0-20241016022004-957bd3215dd8 h1:yYHc35wOVNU7CTaTYCy7xa4ugndqYmTJspdZF8we6uE=
-github.com/ebitengine/gomobile v0.0.0-20241016022004-957bd3215dd8/go.mod h1:ZDIonJlTRW7gahIn5dEXZtN4cM8Qwtlduob8cOCflmg=
+github.com/ebitengine/gomobile v0.0.0-20241016134836-cc2e38a7c0ee h1:YoNt0DHeZ92kjR78SfyUn1yEf7KnBypOFlFZO14cJ6w=
+github.com/ebitengine/gomobile v0.0.0-20241016134836-cc2e38a7c0ee/go.mod h1:ZDIonJlTRW7gahIn5dEXZtN4cM8Qwtlduob8cOCflmg=
 github.com/ebitengine/hideconsole v1.0.0 h1:5J4U0kXF+pv/DhiXt5/lTz0eO5ogJ1iXb8Yj1yReDqE=
 github.com/ebitengine/hideconsole v1.0.0/go.mod h1:hTTBTvVYWKBuxPr7peweneWdkUwEuHuB3C1R/ielR1A=
 github.com/ebitengine/oto/v3 v3.4.0-alpha.1 h1:XBpUG6bG6t2oEiiso+zIPLtvYjpxIlXv/rzW+ljj15I=
