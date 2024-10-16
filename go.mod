@@ -11,7 +11,7 @@ require (
 	github.com/go-text/typesetting v0.2.0
 	github.com/hajimehoshi/bitmapfont/v3 v3.3.0-alpha
 	github.com/hajimehoshi/go-mp3 v0.3.4
-	github.com/jakecoffman/cp v1.2.1
+	github.com/jakecoffman/cp/v2 v2.1.0
 	github.com/jezek/xgb v1.1.1
 	github.com/jfreymuth/oggvorbis v1.0.5
 	github.com/kisielk/errcheck v1.7.0

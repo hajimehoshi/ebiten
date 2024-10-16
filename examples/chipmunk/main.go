@@ -22,7 +22,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
-	"github.com/jakecoffman/cp"
+	"github.com/jakecoffman/cp/v2"
 )
 
 const (
