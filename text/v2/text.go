@@ -121,6 +121,11 @@ func adjustGranularity(x fixed.Int26_6, face Face) fixed.Int26_6 {
 
 // Glyph represents one glyph to render.
 type Glyph struct {
+	// Image is a rasterized glyph image.
+	// Image is a grayscale image i.e. RGBA values are the same.
+	// Image should be used as a render source and should not be modified.
+	img *glyphImage
+
 	// StartIndexInBytes is the start index in bytes for the given string at AppendGlyphs.
 	StartIndexInBytes int
 
