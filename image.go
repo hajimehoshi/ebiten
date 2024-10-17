@@ -103,11 +103,11 @@ func (i *Image) Fill(clr color.Color) {
 	i.image.Fill(crf, cgf, cbf, caf, i.adjustedBounds())
 }
 
-func canSkipMipmap(geom GeoM, filter builtinshader.Filter) bool {
+func canSkipMipmap(det float32, filter builtinshader.Filter) bool {
 	if filter != builtinshader.FilterLinear {
 		return true
 	}
-	return math.Abs(geom.det2x2()) >= 0.999
+	return math.Abs(float64(det)) >= 0.999
 }
 
 // DrawImageOptions represents options for DrawImage.
@@ -253,6 +253,10 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) {
 		geoM.Translate(float64(offsetX), float64(offsetY))
 	}
 	a, b, c, d, tx, ty := geoM.elements32()
+	det := a*d - b*c
+	if det == 0 {
+		return
+	}
 
 	bounds := img.Bounds()
 	sx0, sy0 := img.adjustPosition(bounds.Min.X, bounds.Min.Y)
@@ -286,7 +290,7 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) {
 
 	skipMipmap := options.DisableMipmaps
 	if !skipMipmap {
-		skipMipmap = canSkipMipmap(geoM, filter)
+		skipMipmap = canSkipMipmap(det, filter)
 	}
 	i.image.DrawTriangles(srcs, vs, is, blend, dr, [graphics.ShaderSrcImageCount]image.Rectangle{img.adjustedBounds()}, shader.shader, i.tmpUniforms, graphicsdriver.FillRuleFillAll, skipMipmap, false, hint)
 }
@@ -900,6 +904,9 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 		geoM.Translate(float64(offsetX), float64(offsetY))
 	}
 	a, b, c, d, tx, ty := geoM.elements32()
+	if det := a*d - b*c; det == 0 {
+		return
+	}
 	cr, cg, cb, ca := options.ColorScale.elements()
 	vs := i.ensureTmpVertices(4 * graphics.VertexFloatCount)
 
