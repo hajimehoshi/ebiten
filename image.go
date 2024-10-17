@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	"math"
 	"unsafe"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/affine"
@@ -106,7 +107,7 @@ func canSkipMipmap(geom GeoM, filter builtinshader.Filter) bool {
 	if filter != builtinshader.FilterLinear {
 		return true
 	}
-	return geom.det2x2() >= 0.999
+	return math.Abs(geom.det2x2()) >= 0.999
 }
 
 // DrawImageOptions represents options for DrawImage.
