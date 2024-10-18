@@ -18,7 +18,6 @@ import (
 	"fmt"
 	"image"
 	"math"
-
 	"strings"
 	"sync"
 	"sync/atomic"
