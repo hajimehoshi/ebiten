@@ -305,14 +305,16 @@ func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics, endFrame bo
 			if err := c.Exec(q, graphicsDriver, indexOffset); err != nil {
 				return err
 			}
-			str := c.String()
-			for {
-				head, tail, ok := strings.Cut(str, "\n")
-				logger.FrameLogf("  %s\n", head)
-				if !ok {
-					break
+			if debug.IsDebug {
+				str := c.String()
+				for {
+					head, tail, ok := strings.Cut(str, "\n")
+					logger.FrameLogf("  %s\n", head)
+					if !ok {
+						break
+					}
+					str = tail
 				}
-				str = tail
 			}
 			// TODO: indexOffset should be reset if the command type is different
 			// from the previous one. This fix is needed when another drawing command is
