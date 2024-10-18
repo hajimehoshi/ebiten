@@ -15,11 +15,7 @@
 package debug
 
 import (
-	"bytes"
-	"errors"
-	"fmt"
-	"os"
-	"os/exec"
+	"go/build"
 	"path"
 	"path/filepath"
 	"runtime"
@@ -43,22 +39,13 @@ const (
 // FirstCaller returns the file and line number of the first caller outside of Ebitengine.
 func FirstCaller() (file string, line int, callerType CallerType) {
 	ebitengineFileDirOnce.Do(func() {
-		var stderr bytes.Buffer
-		cmd := exec.Command("go", "list", "-f", "{{.Dir}}", "github.com/hajimehoshi/ebiten/v2")
-		cmd.Stderr = &stderr
-		out, err := cmd.Output()
-		if errors.Is(err, exec.ErrNotFound) {
-			return
-		}
+		pkg, err := build.Default.Import("github.com/hajimehoshi/ebiten/v2", "", build.FindOnly)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "debug: go list -f {{.Dir}} failed: %v\n", err)
-			fmt.Fprintf(os.Stderr, "%s\n", stderr.String())
 			return
 		}
-		ebitengineFileDir = filepath.ToSlash(strings.TrimSpace(string(out)))
+		ebitengineFileDir = filepath.ToSlash(pkg.Dir)
 	})
 
-	// Go command is not found.
 	if ebitengineFileDir == "" {
 		return "", 0, CallerTypeNone
 	}
