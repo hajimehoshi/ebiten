@@ -18,7 +18,6 @@ import (
 	"math"
 	"sync"
 
-	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/internal/hook"
 )
 
@@ -38,17 +37,18 @@ func init() {
 }
 
 type glyphImageCacheEntry struct {
-	image *ebiten.Image
+	image *glyphImage
 	atime int64
 }
 
 type glyphImageCache[Key comparable] struct {
+	atlas *glyphAtlas
 	cache map[Key]*glyphImageCacheEntry
 	atime int64
 	m     sync.Mutex
 }
 
-func (g *glyphImageCache[Key]) getOrCreate(face Face, key Key, create func() *ebiten.Image) *ebiten.Image {
+func (g *glyphImageCache[Key]) getOrCreate(face Face, key Key, create func(a *glyphAtlas) *glyphImage) *glyphImage {
 	g.m.Lock()
 	defer g.m.Unlock()
 
@@ -61,10 +61,11 @@ func (g *glyphImageCache[Key]) getOrCreate(face Face, key Key, create func() *eb
 	}
 
 	if g.cache == nil {
+		g.atlas = newGlyphAtlas()
 		g.cache = map[Key]*glyphImageCacheEntry{}
 	}
 
-	img := create()
+	img := create(g.atlas)
 	e = &glyphImageCacheEntry{
 		image: img,
 	}
@@ -91,6 +92,7 @@ func (g *glyphImageCache[Key]) getOrCreate(face Face, key Key, create func() *eb
 					continue
 				}
 				delete(g.cache, key)
+				g.atlas.Free(e.image)
 			}
 		}
 	}
