@@ -484,7 +484,6 @@ var (
 )
 
 var (
-	sel_class                                                                                                                         = objc.RegisterName("class")
 	sel_length                                                                                                                        = objc.RegisterName("length")
 	sel_isHeadless                                                                                                                    = objc.RegisterName("isHeadless")
 	sel_isLowPower                                                                                                                    = objc.RegisterName("isLowPower")
@@ -853,12 +852,7 @@ func (cb CommandBuffer) RenderCommandEncoderWithDescriptor(rpd RenderPassDescrip
 	colorAttachments0.Send(sel_setLoadAction, int(rpd.ColorAttachments[0].LoadAction))
 	colorAttachments0.Send(sel_setStoreAction, int(rpd.ColorAttachments[0].StoreAction))
 	colorAttachments0.Send(sel_setTexture, rpd.ColorAttachments[0].Texture.texture)
-	sig := cocoa.NSMethodSignature_instanceMethodSignatureForSelector(colorAttachments0.Send(sel_class), sel_setClearColor)
-	inv := cocoa.NSInvocation_invocationWithMethodSignature(sig)
-	inv.SetTarget(colorAttachments0)
-	inv.SetSelector(sel_setClearColor)
-	inv.SetArgumentAtIndex(unsafe.Pointer(&rpd.ColorAttachments[0].ClearColor), 2)
-	inv.Invoke()
+	colorAttachments0.Send(sel_setClearColor, rpd.ColorAttachments[0].ClearColor)
 	var stencilAttachment = renderPassDescriptor.Send(sel_stencilAttachment)
 	stencilAttachment.Send(sel_setLoadAction, int(rpd.StencilAttachment.LoadAction))
 	stencilAttachment.Send(sel_setStoreAction, int(rpd.StencilAttachment.StoreAction))
@@ -912,11 +906,7 @@ func (rce RenderCommandEncoder) SetRenderPipelineState(rps RenderPipelineState) 
 }
 
 func (rce RenderCommandEncoder) SetViewport(viewport Viewport) {
-	inv := cocoa.NSInvocation_invocationWithMethodSignature(cocoa.NSMethodSignature_signatureWithObjCTypes("v@:{MTLViewport=dddddd}"))
-	inv.SetTarget(rce.commandEncoder)
-	inv.SetSelector(sel_setViewport)
-	inv.SetArgumentAtIndex(unsafe.Pointer(&viewport), 2)
-	inv.Invoke()
+	rce.commandEncoder.Send(sel_setViewport, viewport)
 }
 
 // SetScissorRect sets the scissor rectangle for a fragment scissor test.

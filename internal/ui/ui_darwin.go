@@ -20,7 +20,6 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
-	"unsafe"
 
 	"github.com/ebitengine/purego/objc"
 
@@ -257,13 +256,7 @@ var (
 )
 
 func currentMouseLocation() (x, y int) {
-	sig := cocoa.NSMethodSignature_signatureWithObjCTypes("{NSPoint=dd}@:")
-	inv := cocoa.NSInvocation_invocationWithMethodSignature(sig)
-	inv.SetTarget(objc.ID(class_NSEvent))
-	inv.SetSelector(sel_mouseLocation)
-	inv.Invoke()
-	var point cocoa.NSPoint
-	inv.GetReturnValue(unsafe.Pointer(&point))
+	point := objc.Send[cocoa.NSPoint](objc.ID(class_NSEvent), sel_mouseLocation)
 
 	x, y = int(point.X), int(point.Y)
 
