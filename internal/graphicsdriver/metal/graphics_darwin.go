@@ -32,6 +32,8 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
 
+var sel_supportsFamily = objc.RegisterName("supportsFamily:")
+
 type Graphics struct {
 	view view
 
@@ -709,7 +711,7 @@ func (g *Graphics) MaxImageSize() int {
 
 	// supportsFamily is available as of macOS 10.15+ and iOS 13.0+.
 	// https://developer.apple.com/documentation/metal/mtldevice/3143473-supportsfamily
-	if d.RespondsToSelector(objc.RegisterName("supportsFamily:")) {
+	if d.RespondsToSelector(sel_supportsFamily) {
 		// https://developer.apple.com/metal/Metal-Feature-Set-Tables.pdf
 		g.maxImageSize = 8192
 		switch {
