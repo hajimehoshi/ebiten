@@ -14,7 +14,7 @@ require (
 	github.com/jakecoffman/cp/v2 v2.1.0
 	github.com/jezek/xgb v1.1.1
 	github.com/jfreymuth/oggvorbis v1.0.5
-	github.com/kisielk/errcheck v1.7.0
+	github.com/kisielk/errcheck v1.8.0
 	golang.org/x/image v0.21.0
 	golang.org/x/sync v0.8.0
 	golang.org/x/sys v0.26.0
