@@ -63,6 +63,8 @@ var (
 	sel_deviceDescription                  = objc.RegisterName("deviceDescription")
 	sel_objectForKey                       = objc.RegisterName("objectForKey:")
 	sel_unsignedIntValue                   = objc.RegisterName("unsignedIntValue")
+	sel_setLayer                           = objc.RegisterName("setLayer:")
+	sel_setWantsLayer                      = objc.RegisterName("setWantsLayer:")
 )
 
 const (
@@ -147,14 +149,7 @@ func (w NSWindow) Screen() NSScreen {
 }
 
 func (w NSWindow) Frame() NSRect {
-	sig := NSMethodSignature_instanceMethodSignatureForSelector(objc.ID(class_NSWindow), sel_frame)
-	inv := NSInvocation_invocationWithMethodSignature(sig)
-	inv.SetTarget(w.ID)
-	inv.SetSelector(sel_frame)
-	inv.Invoke()
-	var rect NSRect
-	inv.GetReturnValue(unsafe.Pointer(&rect))
-	return rect
+	return objc.Send[NSRect](w.ID, sel_frame)
 }
 
 func (w NSWindow) ContentView() NSView {
@@ -166,29 +161,19 @@ type NSView struct {
 }
 
 func (v NSView) SetFrameSize(size CGSize) {
-	sig := NSMethodSignature_instanceMethodSignatureForSelector(objc.ID(class_NSView), sel_setFrameSize)
-	inv := NSInvocation_invocationWithMethodSignature(sig)
-	inv.SetSelector(sel_setFrameSize)
-	inv.SetArgumentAtIndex(unsafe.Pointer(&size), 2)
-	inv.InvokeWithTarget(v.ID)
+	v.ID.Send(sel_setFrameSize, size)
 }
 
 func (v NSView) Frame() NSRect {
-	sig := NSMethodSignature_instanceMethodSignatureForSelector(objc.ID(class_NSView), sel_frame)
-	inv := NSInvocation_invocationWithMethodSignature(sig)
-	inv.SetSelector(sel_frame)
-	inv.InvokeWithTarget(v.ID)
-	var rect NSRect
-	inv.GetReturnValue(unsafe.Pointer(&rect))
-	return rect
+	return objc.Send[NSRect](v.ID, sel_frame)
 }
 
 func (v NSView) SetLayer(layer uintptr) {
-	v.Send(objc.RegisterName("setLayer:"), layer)
+	v.Send(sel_setLayer, layer)
 }
 
 func (v NSView) SetWantsLayer(wantsLayer bool) {
-	v.Send(objc.RegisterName("setWantsLayer:"), wantsLayer)
+	v.Send(sel_setWantsLayer, wantsLayer)
 }
 
 // NSInvocation is being used to call functions that can't be called directly with purego.SyscallN.
@@ -227,10 +212,6 @@ func (i NSInvocation) InvokeWithTarget(target objc.ID) {
 
 type NSMethodSignature struct {
 	objc.ID
-}
-
-func NSMethodSignature_instanceMethodSignatureForSelector(self objc.ID, cmd objc.SEL) NSMethodSignature {
-	return NSMethodSignature{self.Send(sel_instanceMethodSignatureForSelector, cmd)}
 }
 
 // NSMethodSignature_signatureWithObjCTypes takes a string that represents the type signature of a method.
