@@ -1003,6 +1003,7 @@ func (bce BlitCommandEncoder) SynchronizeTexture(texture Texture, slice int, lev
 //
 // Reference: https://developer.apple.com/documentation/metal/mtlblitcommandencoder/1400754-copyfromtexture?language=objc.
 func (bce BlitCommandEncoder) CopyFromTexture(sourceTexture Texture, sourceSlice int, sourceLevel int, sourceOrigin Origin, sourceSize Size, destinationTexture Texture, destinationSlice int, destinationLevel int, destinationOrigin Origin) {
+	// copyFromTexture requires so many arguments that Send doesn't work (#3135).
 	inv := cocoa.NSInvocation_invocationWithMethodSignature(cocoa.NSMethodSignature_signatureWithObjCTypes("v@:@QQ{MTLOrigin=qqq}{MTLSize=qqq}@QQ{MTLOrigin=qqq}"))
 	inv.SetTarget(bce.commandEncoder)
 	inv.SetSelector(sel_copyFromTexture_sourceSlice_sourceLevel_sourceOrigin_sourceSize_toTexture_destinationSlice_destinationLevel_destinationOrigin)
