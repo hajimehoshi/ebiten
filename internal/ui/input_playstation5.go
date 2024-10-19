@@ -16,8 +16,23 @@
 
 package ui
 
+import (
+	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
+)
+
 func (u *UserInterface) updateInputState() error {
-	// TODO: Implement this
+	var err error
+	u.mainThread.Call(func() {
+		err = u.updateInputStateImpl()
+	})
+	return err
+}
+
+// updateInputStateImpl must be called from the main thread.
+func (u *UserInterface) updateInputStateImpl() error {
+	if err := gamepad.Update(); err != nil {
+		return err
+	}
 	return nil
 }
 
