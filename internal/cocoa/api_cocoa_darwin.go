@@ -21,50 +21,37 @@ import (
 )
 
 var (
-	class_NSInvocation      = objc.GetClass("NSInvocation")
-	class_NSMethodSignature = objc.GetClass("NSMethodSignature")
 	class_NSAutoreleasePool = objc.GetClass("NSAutoreleasePool")
 	class_NSString          = objc.GetClass("NSString")
 	class_NSProcessInfo     = objc.GetClass("NSProcessInfo")
 	class_NSColor           = objc.GetClass("NSColor")
-	class_NSWindow          = objc.GetClass("NSWindow")
-	class_NSView            = objc.GetClass("NSView")
 	class_NSScreen          = objc.GetClass("NSScreen")
 )
 
 var (
-	sel_alloc                              = objc.RegisterName("alloc")
-	sel_new                                = objc.RegisterName("new")
-	sel_release                            = objc.RegisterName("release")
-	sel_invocationWithMethodSignature      = objc.RegisterName("invocationWithMethodSignature:")
-	sel_setSelector                        = objc.RegisterName("setSelector:")
-	sel_setTarget                          = objc.RegisterName("setTarget:")
-	sel_setArgumentAtIndex                 = objc.RegisterName("setArgument:atIndex:")
-	sel_getReturnValue                     = objc.RegisterName("getReturnValue:")
-	sel_invoke                             = objc.RegisterName("invoke")
-	sel_invokeWithTarget                   = objc.RegisterName("invokeWithTarget:")
-	sel_instanceMethodSignatureForSelector = objc.RegisterName("instanceMethodSignatureForSelector:")
-	sel_signatureWithObjCTypes             = objc.RegisterName("signatureWithObjCTypes:")
-	sel_initWithUTF8String                 = objc.RegisterName("initWithUTF8String:")
-	sel_UTF8String                         = objc.RegisterName("UTF8String")
-	sel_length                             = objc.RegisterName("length")
-	sel_processInfo                        = objc.RegisterName("processInfo")
-	sel_frame                              = objc.RegisterName("frame")
-	sel_contentView                        = objc.RegisterName("contentView")
-	sel_setBackgroundColor                 = objc.RegisterName("setBackgroundColor:")
-	sel_colorWithSRGBRedGreenBlueAlpha     = objc.RegisterName("colorWithSRGBRed:green:blue:alpha:")
-	sel_setFrameSize                       = objc.RegisterName("setFrameSize:")
-	sel_object                             = objc.RegisterName("object")
-	sel_styleMask                          = objc.RegisterName("styleMask")
-	sel_setStyleMask                       = objc.RegisterName("setStyleMask:")
-	sel_mainScreen                         = objc.RegisterName("mainScreen")
-	sel_screen                             = objc.RegisterName("screen")
-	sel_isVisible                          = objc.RegisterName("isVisible")
-	sel_deviceDescription                  = objc.RegisterName("deviceDescription")
-	sel_objectForKey                       = objc.RegisterName("objectForKey:")
-	sel_unsignedIntValue                   = objc.RegisterName("unsignedIntValue")
-	sel_setLayer                           = objc.RegisterName("setLayer:")
-	sel_setWantsLayer                      = objc.RegisterName("setWantsLayer:")
+	sel_alloc                          = objc.RegisterName("alloc")
+	sel_new                            = objc.RegisterName("new")
+	sel_release                        = objc.RegisterName("release")
+	sel_initWithUTF8String             = objc.RegisterName("initWithUTF8String:")
+	sel_UTF8String                     = objc.RegisterName("UTF8String")
+	sel_length                         = objc.RegisterName("length")
+	sel_processInfo                    = objc.RegisterName("processInfo")
+	sel_frame                          = objc.RegisterName("frame")
+	sel_contentView                    = objc.RegisterName("contentView")
+	sel_setBackgroundColor             = objc.RegisterName("setBackgroundColor:")
+	sel_colorWithSRGBRedGreenBlueAlpha = objc.RegisterName("colorWithSRGBRed:green:blue:alpha:")
+	sel_setFrameSize                   = objc.RegisterName("setFrameSize:")
+	sel_object                         = objc.RegisterName("object")
+	sel_styleMask                      = objc.RegisterName("styleMask")
+	sel_setStyleMask                   = objc.RegisterName("setStyleMask:")
+	sel_mainScreen                     = objc.RegisterName("mainScreen")
+	sel_screen                         = objc.RegisterName("screen")
+	sel_isVisible                      = objc.RegisterName("isVisible")
+	sel_deviceDescription              = objc.RegisterName("deviceDescription")
+	sel_objectForKey                   = objc.RegisterName("objectForKey:")
+	sel_unsignedIntValue               = objc.RegisterName("unsignedIntValue")
+	sel_setLayer                       = objc.RegisterName("setLayer:")
+	sel_setWantsLayer                  = objc.RegisterName("setWantsLayer:")
 )
 
 const (
@@ -174,52 +161,6 @@ func (v NSView) SetLayer(layer uintptr) {
 
 func (v NSView) SetWantsLayer(wantsLayer bool) {
 	v.Send(sel_setWantsLayer, wantsLayer)
-}
-
-// NSInvocation is being used to call functions that can't be called directly with purego.SyscallN.
-// See the downsides of that function for what it cannot do.
-type NSInvocation struct {
-	objc.ID
-}
-
-func NSInvocation_invocationWithMethodSignature(sig NSMethodSignature) NSInvocation {
-	return NSInvocation{objc.ID(class_NSInvocation).Send(sel_invocationWithMethodSignature, sig.ID)}
-}
-
-func (i NSInvocation) SetSelector(cmd objc.SEL) {
-	i.Send(sel_setSelector, cmd)
-}
-
-func (i NSInvocation) SetTarget(target objc.ID) {
-	i.Send(sel_setTarget, target)
-}
-
-func (i NSInvocation) SetArgumentAtIndex(arg unsafe.Pointer, idx int) {
-	i.Send(sel_setArgumentAtIndex, arg, idx)
-}
-
-func (i NSInvocation) GetReturnValue(ret unsafe.Pointer) {
-	i.Send(sel_getReturnValue, ret)
-}
-
-func (i NSInvocation) Invoke() {
-	i.Send(sel_invoke)
-}
-
-func (i NSInvocation) InvokeWithTarget(target objc.ID) {
-	i.Send(sel_invokeWithTarget, target)
-}
-
-type NSMethodSignature struct {
-	objc.ID
-}
-
-// NSMethodSignature_signatureWithObjCTypes takes a string that represents the type signature of a method.
-// It follows the encoding specified in the Apple Docs.
-//
-// [Apple Docs]: https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/ObjCRuntimeGuide/Articles/ocrtTypeEncodings.html#//apple_ref/doc/uid/TP40008048-CH100
-func NSMethodSignature_signatureWithObjCTypes(types string) NSMethodSignature {
-	return NSMethodSignature{objc.ID(class_NSMethodSignature).Send(sel_signatureWithObjCTypes, types)}
 }
 
 type NSAutoreleasePool struct {
