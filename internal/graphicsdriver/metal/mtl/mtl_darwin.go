@@ -1003,10 +1003,19 @@ func (bce BlitCommandEncoder) SynchronizeTexture(texture Texture, slice int, lev
 //
 // Reference: https://developer.apple.com/documentation/metal/mtlblitcommandencoder/1400754-copyfromtexture?language=objc.
 func (bce BlitCommandEncoder) CopyFromTexture(sourceTexture Texture, sourceSlice int, sourceLevel int, sourceOrigin Origin, sourceSize Size, destinationTexture Texture, destinationSlice int, destinationLevel int, destinationOrigin Origin) {
-	sel := sel_copyFromTexture_sourceSlice_sourceLevel_sourceOrigin_sourceSize_toTexture_destinationSlice_destinationLevel_destinationOrigin
-	bce.commandEncoder.Send(sel,
-		sourceTexture.texture, sourceSlice, sourceLevel, sourceOrigin, sourceSize,
-		destinationTexture.texture, destinationSlice, destinationLevel, destinationOrigin)
+	inv := cocoa.NSInvocation_invocationWithMethodSignature(cocoa.NSMethodSignature_signatureWithObjCTypes("v@:@QQ{MTLOrigin=qqq}{MTLSize=qqq}@QQ{MTLOrigin=qqq}"))
+	inv.SetTarget(bce.commandEncoder)
+	inv.SetSelector(sel_copyFromTexture_sourceSlice_sourceLevel_sourceOrigin_sourceSize_toTexture_destinationSlice_destinationLevel_destinationOrigin)
+	inv.SetArgumentAtIndex(unsafe.Pointer(&sourceTexture), 2)
+	inv.SetArgumentAtIndex(unsafe.Pointer(&sourceSlice), 3)
+	inv.SetArgumentAtIndex(unsafe.Pointer(&sourceLevel), 4)
+	inv.SetArgumentAtIndex(unsafe.Pointer(&sourceOrigin), 5)
+	inv.SetArgumentAtIndex(unsafe.Pointer(&sourceSize), 6)
+	inv.SetArgumentAtIndex(unsafe.Pointer(&destinationTexture), 7)
+	inv.SetArgumentAtIndex(unsafe.Pointer(&destinationSlice), 8)
+	inv.SetArgumentAtIndex(unsafe.Pointer(&destinationLevel), 9)
+	inv.SetArgumentAtIndex(unsafe.Pointer(&destinationOrigin), 10)
+	inv.Invoke()
 }
 
 // Library is a collection of compiled graphics or compute functions.
