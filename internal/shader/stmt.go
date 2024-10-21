@@ -117,11 +117,12 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 				if op == shaderir.And || op == shaderir.Or || op == shaderir.Xor || op == shaderir.LeftShift || op == shaderir.RightShift {
 					if lts[0].Main != shaderir.Int && !lts[0].IsIntVector() {
 						cs.addError(stmt.Pos(), fmt.Sprintf("invalid operation: operator %s not defined on %s", stmt.Tok, lts[0].String()))
+						return nil, false
 					}
 					if rts[0].Main != shaderir.Int && !rts[0].IsIntVector() {
 						cs.addError(stmt.Pos(), fmt.Sprintf("invalid operation: operator %s not defined on %s", stmt.Tok, rts[0].String()))
+						return nil, false
 					}
-					return nil, false
 				}
 				if lts[0].Main == shaderir.Int && rhs[0].Const != nil {
 					if !cs.forceToInt(stmt, &rhs[0]) {
