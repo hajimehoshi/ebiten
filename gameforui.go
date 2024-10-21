@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"image"
 	"math"
+	"sync"
 	"sync/atomic"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
@@ -32,12 +33,11 @@ func init() {
 }
 
 type gameForUI struct {
-	game         Game
-	offscreen    *Image
-	screen       *Image
-	screenShader *Shader
-	imageDumper  imageDumper
-	transparent  bool
+	game        Game
+	offscreen   *Image
+	screen      *Image
+	imageDumper imageDumper
+	transparent bool
 }
 
 func newGameForUI(game Game, transparent bool) *gameForUI {
@@ -45,13 +45,6 @@ func newGameForUI(game Game, transparent bool) *gameForUI {
 		game:        game,
 		transparent: transparent,
 	}
-
-	s, err := newShader(builtinshader.ScreenShaderSource, "screen")
-	if err != nil {
-		panic(fmt.Sprintf("ebiten: compiling the screen shader failed: %v", err))
-	}
-	g.screenShader = s
-
 	return g
 }
 
@@ -136,21 +129,44 @@ func (g *gameForUI) DrawFinalScreen(scale, offsetX, offsetY float64) {
 		return
 	}
 
+	DefaultDrawFinalsScreen(g.screen, g.offscreen, geoM)
+}
+
+var (
+	theScreenShader     *Shader
+	theScreenShaderOnce sync.Once
+)
+
+// DefaultDrawFinalsScreen is the default implementation of [FinalScreenDrawer.DrawFinalScreen],
+// used when a [Game] doesn't implement [FinalScreenDrawer].
+//
+// DefaultDrawFinalsScreen is used when you need the default implementation of [FinalScreenDrawer.DrawFinalScreen]
+// in your implementation of [FinalScreenDrawer], for example.
+func DefaultDrawFinalsScreen(screen *Image, offscreen *Image, geoM GeoM) {
+	theScreenShaderOnce.Do(func() {
+		s, err := newShader(builtinshader.ScreenShaderSource, "screen")
+		if err != nil {
+			panic(fmt.Sprintf("ebiten: compiling the screen shader failed: %v", err))
+		}
+		theScreenShader = s
+	})
+
+	scale := geoM.Element(0, 0)
 	switch {
 	case !screenFilterEnabled.Load(), math.Floor(scale) == scale:
 		op := &DrawImageOptions{}
 		op.GeoM = geoM
-		g.screen.DrawImage(g.offscreen, op)
+		screen.DrawImage(offscreen, op)
 	case scale < 1:
 		op := &DrawImageOptions{}
 		op.GeoM = geoM
 		op.Filter = FilterLinear
-		g.screen.DrawImage(g.offscreen, op)
+		screen.DrawImage(offscreen, op)
 	default:
 		op := &DrawRectShaderOptions{}
-		op.Images[0] = g.offscreen
+		op.Images[0] = offscreen
 		op.GeoM = geoM
-		w, h := g.offscreen.Bounds().Dx(), g.offscreen.Bounds().Dy()
-		g.screen.DrawRectShader(w, h, g.screenShader, op)
+		w, h := offscreen.Bounds().Dx(), offscreen.Bounds().Dy()
+		screen.DrawRectShader(w, h, theScreenShader, op)
 	}
 }
