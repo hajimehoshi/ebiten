@@ -60,7 +60,7 @@ var ColorMTranslation vec4
 {{end}}
 
 {{if eq .Address .AddressRepeat}}
-func adjustTexelForAddressRepeat(p vec2) vec2 {
+func adjustSrcPosForAddressRepeat(p vec2) vec2 {
 	origin := imageSrc0Origin()
 	size := imageSrc0Size()
 	return mod(p - origin, size) + origin
@@ -74,15 +74,15 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 {{else if eq .Address .AddressClampToZero}}
 	clr := imageSrc0At(srcPos)
 {{else if eq .Address .AddressRepeat}}
-	clr := imageSrc0At(adjustTexelForAddressRepeat(srcPos))
+	clr := imageSrc0At(adjustSrcPosForAddressRepeat(srcPos))
 {{end}}
 {{else if eq .Filter .FilterLinear}}
 	p0 := srcPos - 1/2.0
 	p1 := srcPos + 1/2.0
 
 {{if eq .Address .AddressRepeat}}
-	p0 = adjustTexelForAddressRepeat(p0)
-	p1 = adjustTexelForAddressRepeat(p1)
+	p0 = adjustSrcPosForAddressRepeat(p0)
+	p1 = adjustSrcPosForAddressRepeat(p1)
 {{end}}
 
 {{if eq .Address .AddressUnsafe}}
