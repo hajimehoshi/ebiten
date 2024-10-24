@@ -129,7 +129,7 @@ func (g *gameForUI) DrawFinalScreen(scale, offsetX, offsetY float64) {
 		return
 	}
 
-	DefaultDrawFinalsScreen(g.screen, g.offscreen, geoM)
+	DefaultDrawFinalScreen(g.screen, g.offscreen, geoM)
 }
 
 var (
@@ -137,12 +137,12 @@ var (
 	theScreenShaderOnce sync.Once
 )
 
-// DefaultDrawFinalsScreen is the default implementation of [FinalScreenDrawer.DrawFinalScreen],
+// DefaultDrawFinalScreen is the default implementation of [FinalScreenDrawer.DrawFinalScreen],
 // used when a [Game] doesn't implement [FinalScreenDrawer].
 //
-// You can use DefaultDrawFinalsScreen when you need the default implementation of [FinalScreenDrawer.DrawFinalScreen]
+// You can use DefaultDrawFinalScreen when you need the default implementation of [FinalScreenDrawer.DrawFinalScreen]
 // in your implementation of [FinalScreenDrawer], for example.
-func DefaultDrawFinalsScreen(screen *Image, offscreen *Image, geoM GeoM) {
+func DefaultDrawFinalScreen(screen *Image, offscreen *Image, geoM GeoM) {
 	theScreenShaderOnce.Do(func() {
 		s, err := newShader(builtinshader.ScreenShaderSource, "screen")
 		if err != nil {
