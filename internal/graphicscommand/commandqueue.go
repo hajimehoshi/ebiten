@@ -349,7 +349,10 @@ func (q *commandQueue) prependPreservedUniforms(uniforms []uint32, shader *Shade
 	origUniforms := uniforms
 	uniforms = q.uint32sBuffer.alloc(len(origUniforms) + graphics.PreservedUniformUint32Count)
 	copy(uniforms[graphics.PreservedUniformUint32Count:], origUniforms)
+	return prependPreservedUniforms(uniforms, shader, dst, srcs, dstRegion, srcRegions)
+}
 
+func prependPreservedUniforms(uniforms []uint32, shader *Shader, dst *Image, srcs [graphics.ShaderSrcImageCount]*Image, dstRegion image.Rectangle, srcRegions [graphics.ShaderSrcImageCount]image.Rectangle) []uint32 {
 	// Set the destination texture size.
 	dw, dh := dst.InternalSize()
 	uniforms[0] = math.Float32bits(float32(dw))

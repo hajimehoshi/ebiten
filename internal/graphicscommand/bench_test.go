@@ -12,20 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package graphicscommand
+package graphicscommand_test
 
 import (
 	"image"
+	"testing"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 )
 
-type WritePixelsCommandArgs = writePixelsCommandArgs
-
-func (i *Image) BufferedWritePixelsArgsForTesting() []WritePixelsCommandArgs {
-	return i.bufferedWritePixelsArgs
-}
-
-func PrependPreservedUniforms(uniforms []uint32, shader *Shader, dst *Image, srcs [graphics.ShaderSrcImageCount]*Image, dstRegion image.Rectangle, srcRegions [graphics.ShaderSrcImageCount]image.Rectangle) []uint32 {
-	return prependPreservedUniforms(uniforms, shader, dst, srcs, dstRegion, srcRegions)
+func BenchmarkPrependPreservedUniforms(b *testing.B) {
+	var uniforms [graphics.PreservedUniformUint32Count]uint32
+	dst := graphicscommand.NewImage(16, 16, false, "")
+	src := graphicscommand.NewImage(16, 16, false, "")
+	dr := image.Rect(0, 0, 16, 16)
+	sr := image.Rect(0, 0, 16, 16)
+	for i := 0; i < b.N; i++ {
+		graphicscommand.PrependPreservedUniforms(uniforms[:], nearestFilterShader, dst, [graphics.ShaderSrcImageCount]*graphicscommand.Image{src}, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr})
+	}
 }
