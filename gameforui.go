@@ -142,7 +142,7 @@ var (
 //
 // You can use DefaultDrawFinalScreen when you need the default implementation of [FinalScreenDrawer.DrawFinalScreen]
 // in your implementation of [FinalScreenDrawer], for example.
-func DefaultDrawFinalScreen(screen *Image, offscreen *Image, geoM GeoM) {
+func DefaultDrawFinalScreen(screen FinalScreen, offscreen *Image, geoM GeoM) {
 	theScreenShaderOnce.Do(func() {
 		s, err := newShader(builtinshader.ScreenShaderSource, "screen")
 		if err != nil {
