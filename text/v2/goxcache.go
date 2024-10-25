@@ -16,7 +16,6 @@ package text
 
 import (
 	"image"
-	"sync"
 
 	"golang.org/x/image/font"
 	"golang.org/x/image/math/fixed"
@@ -44,17 +43,12 @@ type faceWithCache struct {
 	glyphBoundsCache  map[rune]glyphBoundsCacheValue
 	glyphAdvanceCache map[rune]glyphAdvanceCacheValue
 	kernCache         map[kernCacheKey]fixed.Int26_6
-
-	m sync.Mutex
 }
 
 func (f *faceWithCache) Close() error {
 	if err := f.f.Close(); err != nil {
 		return err
 	}
-
-	f.m.Lock()
-	defer f.m.Unlock()
 
 	f.glyphBoundsCache = nil
 	f.glyphAdvanceCache = nil
@@ -67,9 +61,6 @@ func (f *faceWithCache) Glyph(dot fixed.Point26_6, r rune) (dr image.Rectangle, 
 }
 
 func (f *faceWithCache) GlyphBounds(r rune) (bounds fixed.Rectangle26_6, advance fixed.Int26_6, ok bool) {
-	f.m.Lock()
-	defer f.m.Unlock()
-
 	if v, ok := f.glyphBoundsCache[r]; ok {
 		return v.bounds, v.advance, v.ok
 	}
@@ -87,9 +78,6 @@ func (f *faceWithCache) GlyphBounds(r rune) (bounds fixed.Rectangle26_6, advance
 }
 
 func (f *faceWithCache) GlyphAdvance(r rune) (advance fixed.Int26_6, ok bool) {
-	f.m.Lock()
-	defer f.m.Unlock()
-
 	if v, ok := f.glyphAdvanceCache[r]; ok {
 		return v.advance, v.ok
 	}
@@ -106,9 +94,6 @@ func (f *faceWithCache) GlyphAdvance(r rune) (advance fixed.Int26_6, ok bool) {
 }
 
 func (f *faceWithCache) Kern(r0, r1 rune) fixed.Int26_6 {
-	f.m.Lock()
-	defer f.m.Unlock()
-
 	key := kernCacheKey{r0: r0, r1: r1}
 	if v, ok := f.kernCache[key]; ok {
 		return v
