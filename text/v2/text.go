@@ -255,6 +255,9 @@ func Measure(text string, face Face, lineSpacingInPixels float64) (width, height
 // Draw and AppendGlyphs automatically create and cache necessary glyphs, so usually you don't have to call CacheGlyphs explicitly.
 // If you really care about the performance, CacheGlyphs might be useful.
 //
+// CacheGlyphs is pretty heavy since it creates all the possible variations of glyphs.
+// Call CacheGlyphs only when you really need it.
+//
 // CacheGlyphs is concurrent-safe.
 func CacheGlyphs(text string, face Face) {
 	var x, y float64
