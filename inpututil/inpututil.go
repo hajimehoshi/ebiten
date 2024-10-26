@@ -640,6 +640,7 @@ func AppendJustReleasedTouchIDs(touchIDs []ebiten.TouchID) []ebiten.TouchID {
 	defer theInputState.m.RUnlock()
 
 	origLen := len(touchIDs)
+	// Iterate prevTouchStates instead of touchStates since touchStates doesn't have released touches.
 	for id, state := range theInputState.prevTouchStates {
 		if state.duration == 0 {
 			continue
