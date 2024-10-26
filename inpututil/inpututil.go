@@ -107,31 +107,23 @@ func (i *inputState) update() {
 	// Gamepads
 
 	// Copy the gamepad IDs.
-	for id := range i.prevGamepadIDs {
-		delete(i.prevGamepadIDs, id)
-	}
+	clear(i.prevGamepadIDs)
 	for id := range i.gamepadIDs {
 		i.prevGamepadIDs[id] = struct{}{}
 	}
 
 	// Copy the gamepad button durations.
-	for id := range i.prevGamepadButtonDurations {
-		delete(i.prevGamepadButtonDurations, id)
-	}
+	clear(i.prevGamepadButtonDurations)
 	for id, ds := range i.gamepadButtonDurations {
 		i.prevGamepadButtonDurations[id] = append([]int{}, ds...)
 	}
 
-	for id := range i.prevStandardGamepadButtonDurations {
-		delete(i.prevStandardGamepadButtonDurations, id)
-	}
+	clear(i.prevStandardGamepadButtonDurations)
 	for id, ds := range i.standardGamepadButtonDurations {
 		i.prevStandardGamepadButtonDurations[id] = append([]int{}, ds...)
 	}
 
-	for id := range i.gamepadIDs {
-		delete(i.gamepadIDs, id)
-	}
+	clear(i.gamepadIDs)
 	i.gamepadIDsBuf = ebiten.AppendGamepadIDs(i.gamepadIDsBuf[:0])
 	for _, id := range i.gamepadIDsBuf {
 		i.gamepadIDs[id] = struct{}{}
@@ -172,22 +164,16 @@ func (i *inputState) update() {
 	// Touches
 
 	// Copy the touch durations and positions.
-	for id := range i.prevTouchDurations {
-		delete(i.prevTouchDurations, id)
-	}
+	clear(i.prevTouchPositions)
 	for id := range i.touchDurations {
 		i.prevTouchDurations[id] = i.touchDurations[id]
 	}
-	for id := range i.prevTouchPositions {
-		delete(i.prevTouchPositions, id)
-	}
+	clear(i.prevTouchPositions)
 	for id := range i.touchPositions {
 		i.prevTouchPositions[id] = i.touchPositions[id]
 	}
 
-	for id := range i.touchIDs {
-		delete(i.touchIDs, id)
-	}
+	clear(i.touchIDs)
 	i.touchIDsBuf = ebiten.AppendTouchIDs(i.touchIDsBuf[:0])
 	for _, id := range i.touchIDsBuf {
 		i.touchIDs[id] = struct{}{}
