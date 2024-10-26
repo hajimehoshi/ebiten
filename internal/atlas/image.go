@@ -421,6 +421,7 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderSrcImageCount]*Image, vertice
 		}
 	}
 
+	var imgs [graphics.ShaderSrcImageCount]*restorable.Image
 	for i, src := range srcs {
 		if src == nil {
 			continue
@@ -429,33 +430,18 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderSrcImageCount]*Image, vertice
 		// A source region can be deliberately empty when this is not needed in order to avoid unexpected
 		// performance issue (#1293).
 		// TODO: This should no longer be needed but is kept just in case. Remove this later.
-		if srcRegions[i].Empty() {
-			continue
-		}
-
-		r := src.regionWithPadding()
-		srcRegions[i] = srcRegions[i].Add(r.Min)
-	}
-
-	var imgs [graphics.ShaderSrcImageCount]*restorable.Image
-	for i, src := range srcs {
-		if src == nil {
-			continue
+		if !srcRegions[i].Empty() {
+			r := src.regionWithPadding()
+			srcRegions[i] = srcRegions[i].Add(r.Min)
 		}
 		imgs[i] = src.backend.restorable
-	}
-
-	i.backend.restorable.DrawTriangles(imgs, vertices, indices, blend, dstRegion, srcRegions, shader.ensureShader(), uniforms, fillRule, hint)
-
-	for _, src := range srcs {
-		if src == nil {
-			continue
-		}
 		if !src.isOnSourceBackend() && src.canBePutOnAtlas() {
 			// src might already registered, but assigning it again is not harmful.
 			imagesToPutOnSourceBackend.add(src)
 		}
 	}
+
+	i.backend.restorable.DrawTriangles(imgs, vertices, indices, blend, dstRegion, srcRegions, shader.ensureShader(), uniforms, fillRule, hint)
 }
 
 // WritePixels replaces the pixels on the image.
