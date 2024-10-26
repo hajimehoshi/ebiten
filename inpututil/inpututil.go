@@ -461,14 +461,12 @@ func AppendJustReleasedGamepadButtons(id ebiten.GamepadID, buttons []ebiten.Game
 	}
 
 	for b := ebiten.GamepadButton(0); b <= ebiten.GamepadButtonMax; b++ {
-		if theInputState.gamepadButtonDurations[id][b] == 0 {
+		if theInputState.gamepadButtonDurations[id][b] != 0 {
 			continue
 		}
-
-		if theInputState.prevGamepadButtonDurations[id][b] > 0 {
+		if theInputState.prevGamepadButtonDurations[id][b] == 0 {
 			continue
 		}
-
 		buttons = append(buttons, b)
 	}
 
@@ -586,14 +584,12 @@ func AppendJustReleasedStandardGamepadButtons(id ebiten.GamepadID, buttons []ebi
 	}
 
 	for b := ebiten.StandardGamepadButton(0); b <= ebiten.StandardGamepadButtonMax; b++ {
-		if theInputState.standardGamepadButtonDurations[id][b] == 0 {
+		if theInputState.standardGamepadButtonDurations[id][b] != 0 {
 			continue
 		}
-
-		if theInputState.prevStandardGamepadButtonDurations[id][b] > 0 {
+		if theInputState.prevStandardGamepadButtonDurations[id][b] == 0 {
 			continue
 		}
-
 		buttons = append(buttons, b)
 	}
 
