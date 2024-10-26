@@ -38,7 +38,7 @@ type goXFaceGlyphImageCacheKey struct {
 // GoXFace is useful to transit from existing codebase with text v1, or to use some bitmap fonts defined as font.Face.
 // GoXFace must not be copied by value.
 //
-// Unlike GoFontFace, one GoXFace instance has its own glyph image cache.
+// Unlike GoTextFace, one GoXFace instance has its own glyph image cache.
 // You should reuse the same GoXFace instance as much as possible.
 type GoXFace struct {
 	f *faceWithCache
