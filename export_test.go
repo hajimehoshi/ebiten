@@ -14,6 +14,12 @@
 
 package ebiten
 
+import "github.com/hajimehoshi/ebiten/v2/internal/builtinshader"
+
 var (
 	ImageToBytes = imageToBytes
 )
+
+func BuiltinShader(filter builtinshader.Filter, address builtinshader.Address, useColorM bool) *Shader {
+	return builtinShader(filter, address, useColorM)
+}

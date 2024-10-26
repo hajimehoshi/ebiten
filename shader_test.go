@@ -22,6 +22,7 @@ import (
 	"testing"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/internal/builtinshader"
 )
 
 func TestShaderFill(t *testing.T) {
@@ -2816,5 +2817,13 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
 			}
 		}
+	}
+}
+
+func BenchmarkBuiltinShader(b *testing.B) {
+	// Create a shader to cache the shader compilation result.
+	_ = ebiten.BuiltinShader(builtinshader.FilterNearest, builtinshader.AddressUnsafe, false)
+	for i := 0; i < b.N; i++ {
+		_ = ebiten.BuiltinShader(builtinshader.FilterNearest, builtinshader.AddressUnsafe, false)
 	}
 }
