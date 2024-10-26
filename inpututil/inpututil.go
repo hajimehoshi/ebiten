@@ -107,23 +107,31 @@ func (i *inputState) update() {
 	// Gamepads
 
 	// Copy the gamepad IDs.
-	clear(i.prevGamepadIDs)
+	for id := range i.prevGamepadIDs {
+		delete(i.prevGamepadIDs, id)
+	}
 	for id := range i.gamepadIDs {
 		i.prevGamepadIDs[id] = struct{}{}
 	}
 
 	// Copy the gamepad button durations.
-	clear(i.prevGamepadButtonDurations)
+	for id := range i.prevGamepadButtonDurations {
+		delete(i.prevGamepadButtonDurations, id)
+	}
 	for id, ds := range i.gamepadButtonDurations {
 		i.prevGamepadButtonDurations[id] = append([]int{}, ds...)
 	}
 
-	clear(i.prevStandardGamepadButtonDurations)
+	for id := range i.prevStandardGamepadButtonDurations {
+		delete(i.prevStandardGamepadButtonDurations, id)
+	}
 	for id, ds := range i.standardGamepadButtonDurations {
 		i.prevStandardGamepadButtonDurations[id] = append([]int{}, ds...)
 	}
 
-	clear(i.gamepadIDs)
+	for id := range i.gamepadIDs {
+		delete(i.gamepadIDs, id)
+	}
 	i.gamepadIDsBuf = ebiten.AppendGamepadIDs(i.gamepadIDsBuf[:0])
 	for _, id := range i.gamepadIDsBuf {
 		i.gamepadIDs[id] = struct{}{}
@@ -151,25 +159,35 @@ func (i *inputState) update() {
 		}
 	}
 	for id := range i.gamepadButtonDurations {
-		clear(i.gamepadButtonDurations[id])
+		if _, ok := i.gamepadIDs[id]; !ok {
+			delete(i.gamepadButtonDurations, id)
+		}
 	}
 	for id := range i.standardGamepadButtonDurations {
-		clear(i.standardGamepadButtonDurations[id])
+		if _, ok := i.gamepadIDs[id]; !ok {
+			delete(i.standardGamepadButtonDurations, id)
+		}
 	}
 
 	// Touches
 
 	// Copy the touch durations and positions.
-	clear(i.prevTouchDurations)
+	for id := range i.prevTouchDurations {
+		delete(i.prevTouchDurations, id)
+	}
 	for id := range i.touchDurations {
 		i.prevTouchDurations[id] = i.touchDurations[id]
 	}
-	clear(i.prevTouchPositions)
+	for id := range i.prevTouchPositions {
+		delete(i.prevTouchPositions, id)
+	}
 	for id := range i.touchPositions {
 		i.prevTouchPositions[id] = i.touchPositions[id]
 	}
 
-	clear(i.touchIDs)
+	for id := range i.touchIDs {
+		delete(i.touchIDs, id)
+	}
 	i.touchIDsBuf = ebiten.AppendTouchIDs(i.touchIDsBuf[:0])
 	for _, id := range i.touchIDsBuf {
 		i.touchIDs[id] = struct{}{}
