@@ -23,14 +23,15 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/hook"
 )
 
-type pos struct {
-	x int
-	y int
-}
-
 type gamepadState struct {
 	buttonDurations         [ebiten.GamepadButtonMax + 1]int
 	standardButtonDurations [ebiten.StandardGamepadButtonMax + 1]int
+}
+
+type touchState struct {
+	duration int
+	x        int
+	y        int
 }
 
 type inputState struct {
@@ -43,11 +44,8 @@ type inputState struct {
 	gamepadStates     map[ebiten.GamepadID]gamepadState
 	prevGamepadStates map[ebiten.GamepadID]gamepadState
 
-	touchIDs           map[ebiten.TouchID]struct{}
-	touchDurations     map[ebiten.TouchID]int
-	touchPositions     map[ebiten.TouchID]pos
-	prevTouchDurations map[ebiten.TouchID]int
-	prevTouchPositions map[ebiten.TouchID]pos
+	touchStates     map[ebiten.TouchID]touchState
+	prevTouchStates map[ebiten.TouchID]touchState
 
 	gamepadIDsBuf []ebiten.GamepadID
 	touchIDsBuf   []ebiten.TouchID
@@ -58,12 +56,8 @@ type inputState struct {
 var theInputState = &inputState{
 	gamepadStates:     map[ebiten.GamepadID]gamepadState{},
 	prevGamepadStates: map[ebiten.GamepadID]gamepadState{},
-
-	touchIDs:           map[ebiten.TouchID]struct{}{},
-	touchDurations:     map[ebiten.TouchID]int{},
-	touchPositions:     map[ebiten.TouchID]pos{},
-	prevTouchDurations: map[ebiten.TouchID]int{},
-	prevTouchPositions: map[ebiten.TouchID]pos{},
+	touchStates:       map[ebiten.TouchID]touchState{},
+	prevTouchStates:   map[ebiten.TouchID]touchState{},
 }
 
 func init() {
@@ -130,14 +124,7 @@ func (i *inputState) update() {
 
 	// Remove disconnected gamepads.
 	for id := range i.gamepadStates {
-		var found bool
-		for _, id2 := range i.gamepadIDsBuf {
-			if id == id2 {
-				found = true
-				break
-			}
-		}
-		if !found {
+		if !slices.Contains(i.gamepadIDsBuf, id) {
 			delete(i.gamepadStates, id)
 		}
 	}
@@ -145,27 +132,23 @@ func (i *inputState) update() {
 	// Touches
 
 	// Copy the touch durations and positions.
-	clear(i.prevTouchPositions)
-	for id := range i.touchDurations {
-		i.prevTouchDurations[id] = i.touchDurations[id]
-	}
-	clear(i.prevTouchPositions)
-	for id := range i.touchPositions {
-		i.prevTouchPositions[id] = i.touchPositions[id]
+	clear(i.prevTouchStates)
+	for id, state := range i.touchStates {
+		i.prevTouchStates[id] = state
 	}
 
-	clear(i.touchIDs)
 	i.touchIDsBuf = ebiten.AppendTouchIDs(i.touchIDsBuf[:0])
 	for _, id := range i.touchIDsBuf {
-		i.touchIDs[id] = struct{}{}
-		i.touchDurations[id]++
-		x, y := ebiten.TouchPosition(id)
-		i.touchPositions[id] = pos{x: x, y: y}
+		state := i.touchStates[id]
+		state.duration++
+		state.x, state.y = ebiten.TouchPosition(id)
+		i.touchStates[id] = state
 	}
-	for id := range i.touchDurations {
-		if _, ok := i.touchIDs[id]; !ok {
-			delete(i.touchDurations, id)
-			delete(i.touchPositions, id)
+
+	// Remove released touches.
+	for id := range i.touchStates {
+		if !slices.Contains(i.touchIDsBuf, id) {
+			delete(i.touchStates, id)
 		}
 	}
 }
@@ -625,10 +608,11 @@ func AppendJustPressedTouchIDs(touchIDs []ebiten.TouchID) []ebiten.TouchID {
 	defer theInputState.m.RUnlock()
 
 	origLen := len(touchIDs)
-	for id, s := range theInputState.touchDurations {
-		if s == 1 {
-			touchIDs = append(touchIDs, id)
+	for id, state := range theInputState.touchStates {
+		if state.duration != 1 {
+			continue
 		}
+		touchIDs = append(touchIDs, id)
 	}
 
 	slices.Sort(touchIDs[origLen:])
@@ -656,10 +640,14 @@ func AppendJustReleasedTouchIDs(touchIDs []ebiten.TouchID) []ebiten.TouchID {
 	defer theInputState.m.RUnlock()
 
 	origLen := len(touchIDs)
-	for id := range theInputState.prevTouchDurations {
-		if theInputState.touchDurations[id] == 0 && theInputState.prevTouchDurations[id] > 0 {
-			touchIDs = append(touchIDs, id)
+	for id, state := range theInputState.prevTouchStates {
+		if state.duration == 0 {
+			continue
 		}
+		if theInputState.touchStates[id].duration != 0 {
+			continue
+		}
+		touchIDs = append(touchIDs, id)
 	}
 
 	slices.Sort(touchIDs[origLen:])
@@ -676,7 +664,9 @@ func IsTouchJustReleased(id ebiten.TouchID) bool {
 	theInputState.m.RLock()
 	defer theInputState.m.RUnlock()
 
-	return theInputState.touchDurations[id] == 0 && theInputState.prevTouchDurations[id] > 0
+	current := theInputState.touchStates[id]
+	prev := theInputState.prevTouchStates[id]
+	return current.duration == 0 && prev.duration > 0
 }
 
 // TouchPressDuration returns how long the touch remains in ticks (Update).
@@ -687,7 +677,7 @@ func IsTouchJustReleased(id ebiten.TouchID) bool {
 func TouchPressDuration(id ebiten.TouchID) int {
 	theInputState.m.RLock()
 	defer theInputState.m.RUnlock()
-	return theInputState.touchDurations[id]
+	return theInputState.touchStates[id].duration
 }
 
 // TouchPositionInPreviousTick returns the position in the previous tick.
@@ -700,6 +690,6 @@ func TouchPositionInPreviousTick(id ebiten.TouchID) (int, int) {
 	theInputState.m.RLock()
 	defer theInputState.m.RUnlock()
 
-	p := theInputState.prevTouchPositions[id]
-	return p.x, p.y
+	state := theInputState.prevTouchStates[id]
+	return state.x, state.y
 }
