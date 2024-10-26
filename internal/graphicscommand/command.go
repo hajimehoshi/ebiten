@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"image"
 	"math"
+	"slices"
 	"strings"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
@@ -187,13 +188,8 @@ func (c *drawTrianglesCommand) CanMergeWithDrawTrianglesCommand(dst *Image, srcs
 	if c.shader != shader {
 		return false
 	}
-	if len(c.uniforms) != len(uniforms) {
+	if !slices.Equal(c.uniforms, uniforms) {
 		return false
-	}
-	for i := range c.uniforms {
-		if c.uniforms[i] != uniforms[i] {
-			return false
-		}
 	}
 	if c.dst != dst {
 		return false
