@@ -28,6 +28,11 @@ type pos struct {
 	y int
 }
 
+type gamepadState struct {
+	buttonDurations         [ebiten.GamepadButtonMax + 1]int
+	standardButtonDurations [ebiten.StandardGamepadButtonMax + 1]int
+}
+
 type inputState struct {
 	keyDurations     [ebiten.KeyMax + 1]int
 	prevKeyDurations [ebiten.KeyMax + 1]int
@@ -35,14 +40,8 @@ type inputState struct {
 	mouseButtonDurations     [ebiten.MouseButtonMax + 1]int
 	prevMouseButtonDurations [ebiten.MouseButtonMax + 1]int
 
-	gamepadIDs     map[ebiten.GamepadID]struct{}
-	prevGamepadIDs map[ebiten.GamepadID]struct{}
-
-	gamepadButtonDurations     map[ebiten.GamepadID][]int
-	prevGamepadButtonDurations map[ebiten.GamepadID][]int
-
-	standardGamepadButtonDurations     map[ebiten.GamepadID][]int
-	prevStandardGamepadButtonDurations map[ebiten.GamepadID][]int
+	gamepadStates     map[ebiten.GamepadID]gamepadState
+	prevGamepadStates map[ebiten.GamepadID]gamepadState
 
 	touchIDs           map[ebiten.TouchID]struct{}
 	touchDurations     map[ebiten.TouchID]int
@@ -57,14 +56,8 @@ type inputState struct {
 }
 
 var theInputState = &inputState{
-	gamepadIDs:     map[ebiten.GamepadID]struct{}{},
-	prevGamepadIDs: map[ebiten.GamepadID]struct{}{},
-
-	gamepadButtonDurations:     map[ebiten.GamepadID][]int{},
-	prevGamepadButtonDurations: map[ebiten.GamepadID][]int{},
-
-	standardGamepadButtonDurations:     map[ebiten.GamepadID][]int{},
-	prevStandardGamepadButtonDurations: map[ebiten.GamepadID][]int{},
+	gamepadStates:     map[ebiten.GamepadID]gamepadState{},
+	prevGamepadStates: map[ebiten.GamepadID]gamepadState{},
 
 	touchIDs:           map[ebiten.TouchID]struct{}{},
 	touchDurations:     map[ebiten.TouchID]int{},
@@ -106,58 +99,46 @@ func (i *inputState) update() {
 
 	// Gamepads
 
-	// Copy the gamepad IDs.
-	clear(i.prevGamepadIDs)
-	for id := range i.gamepadIDs {
-		i.prevGamepadIDs[id] = struct{}{}
+	// Copy the gamepad states.
+	clear(i.prevGamepadStates)
+	for id, s := range i.gamepadStates {
+		i.prevGamepadStates[id] = s
 	}
 
-	// Copy the gamepad button durations.
-	clear(i.prevGamepadButtonDurations)
-	for id, ds := range i.gamepadButtonDurations {
-		i.prevGamepadButtonDurations[id] = append([]int{}, ds...)
-	}
-
-	clear(i.prevStandardGamepadButtonDurations)
-	for id, ds := range i.standardGamepadButtonDurations {
-		i.prevStandardGamepadButtonDurations[id] = append([]int{}, ds...)
-	}
-
-	clear(i.gamepadIDs)
 	i.gamepadIDsBuf = ebiten.AppendGamepadIDs(i.gamepadIDsBuf[:0])
 	for _, id := range i.gamepadIDsBuf {
-		i.gamepadIDs[id] = struct{}{}
+		state := i.gamepadStates[id]
 
-		if _, ok := i.gamepadButtonDurations[id]; !ok {
-			i.gamepadButtonDurations[id] = make([]int, ebiten.GamepadButtonMax+1)
-		}
-		for b := ebiten.GamepadButton(0); b <= ebiten.GamepadButtonMax; b++ {
-			if ebiten.IsGamepadButtonPressed(id, b) {
-				i.gamepadButtonDurations[id][b]++
+		for b := range i.gamepadStates[id].buttonDurations {
+			if ebiten.IsGamepadButtonPressed(id, ebiten.GamepadButton(b)) {
+				state.buttonDurations[b]++
 			} else {
-				i.gamepadButtonDurations[id][b] = 0
+				state.buttonDurations[b] = 0
 			}
 		}
 
-		if _, ok := i.standardGamepadButtonDurations[id]; !ok {
-			i.standardGamepadButtonDurations[id] = make([]int, ebiten.StandardGamepadButtonMax+1)
-		}
-		for b := ebiten.StandardGamepadButton(0); b <= ebiten.StandardGamepadButtonMax; b++ {
-			if ebiten.IsStandardGamepadButtonPressed(id, b) {
-				i.standardGamepadButtonDurations[id][b]++
+		for b := range i.gamepadStates[id].standardButtonDurations {
+			if ebiten.IsStandardGamepadButtonPressed(id, ebiten.StandardGamepadButton(b)) {
+				state.standardButtonDurations[b]++
 			} else {
-				i.standardGamepadButtonDurations[id][b] = 0
+				state.standardButtonDurations[b] = 0
 			}
 		}
+
+		i.gamepadStates[id] = state
 	}
-	for id := range i.gamepadButtonDurations {
-		if _, ok := i.gamepadIDs[id]; !ok {
-			delete(i.gamepadButtonDurations, id)
+
+	// Remove disconnected gamepads.
+	for id := range i.gamepadStates {
+		var found bool
+		for _, id2 := range i.gamepadIDsBuf {
+			if id == id2 {
+				found = true
+				break
+			}
 		}
-	}
-	for id := range i.standardGamepadButtonDurations {
-		if _, ok := i.gamepadIDs[id]; !ok {
-			delete(i.standardGamepadButtonDurations, id)
+		if !found {
+			delete(i.gamepadStates, id)
 		}
 	}
 
@@ -336,8 +317,8 @@ func AppendJustConnectedGamepadIDs(gamepadIDs []ebiten.GamepadID) []ebiten.Gamep
 	defer theInputState.m.RUnlock()
 
 	origLen := len(gamepadIDs)
-	for id := range theInputState.gamepadIDs {
-		if _, ok := theInputState.prevGamepadIDs[id]; !ok {
+	for id := range theInputState.gamepadStates {
+		if _, ok := theInputState.prevGamepadStates[id]; !ok {
 			gamepadIDs = append(gamepadIDs, id)
 		}
 	}
@@ -365,9 +346,9 @@ func IsGamepadJustDisconnected(id ebiten.GamepadID) bool {
 	theInputState.m.RLock()
 	defer theInputState.m.RUnlock()
 
-	_, prev := theInputState.prevGamepadIDs[id]
-	_, current := theInputState.gamepadIDs[id]
-	return prev && !current
+	_, current := theInputState.gamepadStates[id]
+	_, prev := theInputState.prevGamepadStates[id]
+	return !current && prev
 }
 
 // AppendPressedGamepadButtons append currently pressed gamepad buttons to buttons and returns the extended buffer.
@@ -380,11 +361,12 @@ func AppendPressedGamepadButtons(id ebiten.GamepadID, buttons []ebiten.GamepadBu
 	theInputState.m.RLock()
 	defer theInputState.m.RUnlock()
 
-	if _, ok := theInputState.gamepadButtonDurations[id]; !ok {
+	state, ok := theInputState.gamepadStates[id]
+	if !ok {
 		return buttons
 	}
 
-	for b, d := range theInputState.gamepadButtonDurations[id] {
+	for b, d := range state.buttonDurations {
 		if d == 0 {
 			continue
 		}
@@ -404,11 +386,12 @@ func AppendJustPressedGamepadButtons(id ebiten.GamepadID, buttons []ebiten.Gamep
 	theInputState.m.RLock()
 	defer theInputState.m.RUnlock()
 
-	if _, ok := theInputState.gamepadButtonDurations[id]; !ok {
+	state, ok := theInputState.gamepadStates[id]
+	if !ok {
 		return buttons
 	}
 
-	for b, d := range theInputState.gamepadButtonDurations[id] {
+	for b, d := range state.buttonDurations {
 		if d != 1 {
 			continue
 		}
@@ -428,21 +411,23 @@ func AppendJustReleasedGamepadButtons(id ebiten.GamepadID, buttons []ebiten.Game
 	theInputState.m.RLock()
 	defer theInputState.m.RUnlock()
 
-	if _, ok := theInputState.gamepadButtonDurations[id]; !ok {
+	state, ok := theInputState.gamepadStates[id]
+	if !ok {
 		return buttons
 	}
-	if _, ok := theInputState.prevGamepadButtonDurations[id]; !ok {
+	prevState, ok := theInputState.prevGamepadStates[id]
+	if !ok {
 		return buttons
 	}
 
-	for b := ebiten.GamepadButton(0); b <= ebiten.GamepadButtonMax; b++ {
-		if theInputState.gamepadButtonDurations[id][b] != 0 {
+	for b := range state.buttonDurations {
+		if state.buttonDurations[b] != 0 {
 			continue
 		}
-		if theInputState.prevGamepadButtonDurations[id][b] == 0 {
+		if prevState.buttonDurations[b] == 0 {
 			continue
 		}
-		buttons = append(buttons, b)
+		buttons = append(buttons, ebiten.GamepadButton(b))
 	}
 
 	return buttons
@@ -468,15 +453,16 @@ func IsGamepadButtonJustReleased(id ebiten.GamepadID, button ebiten.GamepadButto
 	theInputState.m.RLock()
 	defer theInputState.m.RUnlock()
 
-	var prev int
-	if _, ok := theInputState.prevGamepadButtonDurations[id]; ok {
-		prev = theInputState.prevGamepadButtonDurations[id][button]
+	state, ok := theInputState.gamepadStates[id]
+	if !ok {
+		return false
 	}
-	var current int
-	if _, ok := theInputState.gamepadButtonDurations[id]; ok {
-		current = theInputState.gamepadButtonDurations[id][button]
+	prevState, ok := theInputState.prevGamepadStates[id]
+	if !ok {
+		return false
 	}
-	return current == 0 && prev > 0
+
+	return state.buttonDurations[button] == 0 && prevState.buttonDurations[button] > 0
 }
 
 // GamepadButtonPressDuration returns how long the gamepad button of the gamepad id is pressed in ticks (Update).
@@ -488,11 +474,12 @@ func GamepadButtonPressDuration(id ebiten.GamepadID, button ebiten.GamepadButton
 	theInputState.m.RLock()
 	defer theInputState.m.RUnlock()
 
-	var s int
-	if _, ok := theInputState.gamepadButtonDurations[id]; ok {
-		s = theInputState.gamepadButtonDurations[id][button]
+	state, ok := theInputState.gamepadStates[id]
+	if !ok {
+		return 0
 	}
-	return s
+
+	return state.buttonDurations[button]
 }
 
 // AppendPressedStandardGamepadButtons append currently pressed standard gamepad buttons to buttons and returns the extended buffer.
@@ -505,15 +492,16 @@ func AppendPressedStandardGamepadButtons(id ebiten.GamepadID, buttons []ebiten.S
 	theInputState.m.RLock()
 	defer theInputState.m.RUnlock()
 
-	if _, ok := theInputState.standardGamepadButtonDurations[id]; !ok {
+	state, ok := theInputState.gamepadStates[id]
+	if !ok {
 		return buttons
 	}
 
-	for b, d := range theInputState.standardGamepadButtonDurations[id] {
+	for i, d := range state.standardButtonDurations {
 		if d == 0 {
 			continue
 		}
-		buttons = append(buttons, ebiten.StandardGamepadButton(b))
+		buttons = append(buttons, ebiten.StandardGamepadButton(i))
 	}
 
 	return buttons
@@ -529,11 +517,12 @@ func AppendJustPressedStandardGamepadButtons(id ebiten.GamepadID, buttons []ebit
 	theInputState.m.RLock()
 	defer theInputState.m.RUnlock()
 
-	if _, ok := theInputState.gamepadButtonDurations[id]; !ok {
+	state, ok := theInputState.gamepadStates[id]
+	if !ok {
 		return buttons
 	}
 
-	for b, d := range theInputState.standardGamepadButtonDurations[id] {
+	for b, d := range state.standardButtonDurations {
 		if d != 1 {
 			continue
 		}
@@ -553,21 +542,23 @@ func AppendJustReleasedStandardGamepadButtons(id ebiten.GamepadID, buttons []ebi
 	theInputState.m.RLock()
 	defer theInputState.m.RUnlock()
 
-	if _, ok := theInputState.gamepadButtonDurations[id]; !ok {
+	state, ok := theInputState.gamepadStates[id]
+	if !ok {
 		return buttons
 	}
-	if _, ok := theInputState.prevGamepadButtonDurations[id]; !ok {
+	prevState, ok := theInputState.prevGamepadStates[id]
+	if !ok {
 		return buttons
 	}
 
-	for b := ebiten.StandardGamepadButton(0); b <= ebiten.StandardGamepadButtonMax; b++ {
-		if theInputState.standardGamepadButtonDurations[id][b] != 0 {
+	for b := range state.standardButtonDurations {
+		if state.standardButtonDurations[b] != 0 {
 			continue
 		}
-		if theInputState.prevStandardGamepadButtonDurations[id][b] == 0 {
+		if prevState.standardButtonDurations[b] == 0 {
 			continue
 		}
-		buttons = append(buttons, b)
+		buttons = append(buttons, ebiten.StandardGamepadButton(b))
 	}
 
 	return buttons
@@ -593,15 +584,16 @@ func IsStandardGamepadButtonJustReleased(id ebiten.GamepadID, button ebiten.Stan
 	theInputState.m.RLock()
 	defer theInputState.m.RUnlock()
 
-	var prev int
-	if _, ok := theInputState.prevStandardGamepadButtonDurations[id]; ok {
-		prev = theInputState.prevStandardGamepadButtonDurations[id][button]
+	state, ok := theInputState.gamepadStates[id]
+	if !ok {
+		return false
 	}
-	var current int
-	if _, ok := theInputState.standardGamepadButtonDurations[id]; ok {
-		current = theInputState.standardGamepadButtonDurations[id][button]
+	prevState, ok := theInputState.prevGamepadStates[id]
+	if !ok {
+		return false
 	}
-	return current == 0 && prev > 0
+
+	return state.standardButtonDurations[button] == 0 && prevState.standardButtonDurations[button] > 0
 }
 
 // StandardGamepadButtonPressDuration returns how long the standard gamepad button of the gamepad id is pressed in ticks (Update).
@@ -613,10 +605,12 @@ func StandardGamepadButtonPressDuration(id ebiten.GamepadID, button ebiten.Stand
 	theInputState.m.RLock()
 	defer theInputState.m.RUnlock()
 
-	if _, ok := theInputState.standardGamepadButtonDurations[id]; ok {
-		return theInputState.standardGamepadButtonDurations[id][button]
+	state, ok := theInputState.gamepadStates[id]
+	if !ok {
+		return 0
 	}
-	return 0
+
+	return state.standardButtonDurations[button]
 }
 
 // AppendJustPressedTouchIDs append touch IDs that are created just in the current tick to touchIDs,
