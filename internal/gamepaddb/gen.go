@@ -113,7 +113,7 @@ func run() error {
 		},
 		"Mac OS X": {
 			filenameSuffix:   "macos",
-			buildConstraints: "//go:build darwing && !ios",
+			buildConstraints: "//go:build darwin && !ios",
 		},
 		"Linux": {
 			filenameSuffix:   "linbsd",
