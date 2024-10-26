@@ -17,6 +17,7 @@ package ebiten
 import (
 	"fmt"
 	"sync"
+	"sync/atomic"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/builtinshader"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
@@ -86,20 +87,29 @@ func (s *Shader) appendUniforms(dst []uint32, uniforms map[string]any) []uint32 
 }
 
 var (
-	builtinShaders  [builtinshader.FilterCount][builtinshader.AddressCount][2]*Shader
-	builtinShadersM sync.Mutex
+	builtinShadersForRead atomic.Pointer[[builtinshader.FilterCount][builtinshader.AddressCount][2]*Shader]
+	builtinShadersM       sync.Mutex
 )
 
 func builtinShader(filter builtinshader.Filter, address builtinshader.Address, useColorM bool) *Shader {
-	builtinShadersM.Lock()
-	defer builtinShadersM.Unlock()
-
 	var c int
 	if useColorM {
 		c = 1
 	}
-	if s := builtinShaders[filter][address][c]; s != nil {
-		return s
+	if read := builtinShadersForRead.Load(); read != nil {
+		if s := (*read)[filter][address][c]; s != nil {
+			return s
+		}
+	}
+
+	builtinShadersM.Lock()
+	defer builtinShadersM.Unlock()
+
+	// Double check in case another goroutine already created a shader.
+	if read := builtinShadersForRead.Load(); read != nil {
+		if s := (*read)[filter][address][c]; s != nil {
+			return s
+		}
 	}
 
 	var shader *Shader
@@ -135,6 +145,11 @@ func builtinShader(filter builtinshader.Filter, address builtinshader.Address, u
 		shader = s
 	}
 
-	builtinShaders[filter][address][c] = shader
+	var shaders [builtinshader.FilterCount][builtinshader.AddressCount][2]*Shader
+	if ptr := builtinShadersForRead.Load(); ptr != nil {
+		shaders = *ptr
+	}
+	shaders[filter][address][c] = shader
+	builtinShadersForRead.Store(&shaders)
 	return shader
 }
