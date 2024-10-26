@@ -465,11 +465,11 @@ func prependPreservedUniforms(uniforms []uint32, shader *Shader, dst *Image, src
 	uniforms[44] = 0
 	uniforms[45] = math.Float32bits(1)
 
-	// Confirm the concrete value of graphics.PreservedUniformUint32Count.
-	var _ [0]struct{} = [graphics.PreservedUniformUint32Count - 46]struct{}{}
-
 	return uniforms
 }
+
+// Confirm the concrete value of graphics.PreservedUniformUint32Count.
+var _ [0]struct{} = [graphics.PreservedUniformUint32Count - 46]struct{}{}
 
 type commandQueuePool struct {
 	cache []*commandQueue
