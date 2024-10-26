@@ -24,6 +24,7 @@ import (
 type Shader struct {
 	ir     *shaderir.Program
 	shader *restorable.Shader
+	unit   shaderir.Unit
 	name   string
 }
 
@@ -32,6 +33,7 @@ func NewShader(ir *shaderir.Program, name string) *Shader {
 	return &Shader{
 		ir:   ir,
 		name: name,
+		unit: ir.Unit,
 	}
 }
 
@@ -77,6 +79,12 @@ func (s *Shader) deallocate() {
 }
 
 var (
-	NearestFilterShader = &Shader{shader: restorable.NearestFilterShader}
-	LinearFilterShader  = &Shader{shader: restorable.LinearFilterShader}
+	NearestFilterShader = &Shader{
+		shader: restorable.NearestFilterShader,
+		unit:   restorable.NearestFilterShader.Unit(),
+	}
+	LinearFilterShader = &Shader{
+		shader: restorable.LinearFilterShader,
+		unit:   restorable.LinearFilterShader.Unit(),
+	}
 )

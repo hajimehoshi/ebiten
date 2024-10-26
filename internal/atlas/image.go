@@ -405,7 +405,7 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderSrcImageCount]*Image, vertice
 			vertices[i+2] += oxf
 			vertices[i+3] += oyf
 		}
-		if shader.ensureShader().Unit() == shaderir.Texels {
+		if shader.unit == shaderir.Texels {
 			sw, sh := srcs[0].backend.restorable.InternalSize()
 			swf, shf := float32(sw), float32(sh)
 			for i := 0; i < n; i += graphics.VertexFloatCount {
