@@ -83,38 +83,49 @@ func (m *Mipmap) DrawTriangles(srcs [graphics.ShaderSrcImageCount]*Mipmap, verti
 		return
 	}
 
-	level := 0
-	if !canSkipMipmap && srcs[0] != nil && canUseMipmap(srcs[0].imageType) {
-		level = math.MaxInt32
-		for i := 0; i < len(indices); i += 3 {
-			idx0 := indices[i]
-			idx1 := indices[i+1]
-			idx2 := indices[i+2]
-			dx0 := vertices[graphics.VertexFloatCount*idx0]
-			dy0 := vertices[graphics.VertexFloatCount*idx0+1]
-			sx0 := vertices[graphics.VertexFloatCount*idx0+2]
-			sy0 := vertices[graphics.VertexFloatCount*idx0+3]
-			dx1 := vertices[graphics.VertexFloatCount*idx1]
-			dy1 := vertices[graphics.VertexFloatCount*idx1+1]
-			sx1 := vertices[graphics.VertexFloatCount*idx1+2]
-			sy1 := vertices[graphics.VertexFloatCount*idx1+3]
-			dx2 := vertices[graphics.VertexFloatCount*idx2]
-			dy2 := vertices[graphics.VertexFloatCount*idx2+1]
-			sx2 := vertices[graphics.VertexFloatCount*idx2+2]
-			sy2 := vertices[graphics.VertexFloatCount*idx2+3]
-			if l := mipmapLevelFromDistance(dx0, dy0, dx1, dy1, sx0, sy0, sx1, sy1); level > l {
-				level = l
+	// Use the fast path if mipmap is not used.
+	if canSkipMipmap || srcs[0] == nil || !canUseMipmap(srcs[0].imageType) {
+		var imgs [graphics.ShaderSrcImageCount]*buffered.Image
+		for i, src := range srcs {
+			if src == nil {
+				continue
 			}
-			if l := mipmapLevelFromDistance(dx1, dy1, dx2, dy2, sx1, sy1, sx2, sy2); level > l {
-				level = l
-			}
-			if l := mipmapLevelFromDistance(dx2, dy2, dx0, dy0, sx2, sy2, sx0, sy0); level > l {
-				level = l
-			}
+			imgs[i] = src.orig
 		}
-		if level == math.MaxInt32 {
-			panic("mipmap: level must be calculated at least once but not")
+		m.orig.DrawTriangles(imgs, vertices, indices, blend, dstRegion, srcRegions, shader, uniforms, fillRule, hint)
+		m.markDirty()
+		return
+	}
+
+	level := math.MaxInt32
+	for i := 0; i < len(indices); i += 3 {
+		idx0 := indices[i]
+		idx1 := indices[i+1]
+		idx2 := indices[i+2]
+		dx0 := vertices[graphics.VertexFloatCount*idx0]
+		dy0 := vertices[graphics.VertexFloatCount*idx0+1]
+		sx0 := vertices[graphics.VertexFloatCount*idx0+2]
+		sy0 := vertices[graphics.VertexFloatCount*idx0+3]
+		dx1 := vertices[graphics.VertexFloatCount*idx1]
+		dy1 := vertices[graphics.VertexFloatCount*idx1+1]
+		sx1 := vertices[graphics.VertexFloatCount*idx1+2]
+		sy1 := vertices[graphics.VertexFloatCount*idx1+3]
+		dx2 := vertices[graphics.VertexFloatCount*idx2]
+		dy2 := vertices[graphics.VertexFloatCount*idx2+1]
+		sx2 := vertices[graphics.VertexFloatCount*idx2+2]
+		sy2 := vertices[graphics.VertexFloatCount*idx2+3]
+		if l := mipmapLevelFromDistance(dx0, dy0, dx1, dy1, sx0, sy0, sx1, sy1); level > l {
+			level = l
 		}
+		if l := mipmapLevelFromDistance(dx1, dy1, dx2, dy2, sx1, sy1, sx2, sy2); level > l {
+			level = l
+		}
+		if l := mipmapLevelFromDistance(dx2, dy2, dx0, dy0, sx2, sy2, sx0, sy0); level > l {
+			level = l
+		}
+	}
+	if level == math.MaxInt32 {
+		panic("mipmap: level must be calculated at least once but not")
 	}
 
 	var imgs [graphics.ShaderSrcImageCount]*buffered.Image
