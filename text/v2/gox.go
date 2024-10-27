@@ -43,7 +43,7 @@ type goXFaceGlyphImageCacheKey struct {
 type GoXFace struct {
 	f *faceWithCache
 
-	glyphImageCache *glyphImageCache[goXFaceGlyphImageCacheKey]
+	glyphImageCache *cache[goXFaceGlyphImageCacheKey, *ebiten.Image]
 
 	cachedMetrics Metrics
 
@@ -59,9 +59,7 @@ func NewGoXFace(face font.Face) *GoXFace {
 	}
 	// Set addr as early as possible. This is necessary for glyphVariationCount.
 	s.addr = s
-	s.glyphImageCache = &glyphImageCache[goXFaceGlyphImageCacheKey]{
-		glyphVariationCount: glyphVariationCount(s),
-	}
+	s.glyphImageCache = newCache[goXFaceGlyphImageCacheKey, *ebiten.Image](128 * glyphVariationCount(s))
 	return s
 }
 
@@ -174,8 +172,9 @@ func (s *GoXFace) glyphImage(r rune, origin fixed.Point26_6) (*ebiten.Image, int
 		rune:    r,
 		xoffset: subpixelOffset.X,
 	}
-	img := s.glyphImageCache.getOrCreate(key, func() *ebiten.Image {
-		return s.glyphImageImpl(r, subpixelOffset, b)
+	img := s.glyphImageCache.getOrCreate(key, func() (*ebiten.Image, bool) {
+		img := s.glyphImageImpl(r, subpixelOffset, b)
+		return img, img != nil
 	})
 	imgX := (origin.X + b.Min.X).Floor()
 	imgY := (origin.Y + b.Min.Y).Floor()

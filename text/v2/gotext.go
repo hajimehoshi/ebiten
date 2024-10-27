@@ -369,8 +369,9 @@ func (g *GoTextFace) glyphImage(glyph glyph, origin fixed.Point26_6) (*ebiten.Im
 		yoffset:    subpixelOffset.Y,
 		variations: g.ensureVariationsString(),
 	}
-	img := g.Source.getOrCreateGlyphImage(g, key, func() *ebiten.Image {
-		return segmentsToImage(glyph.scaledSegments, subpixelOffset, b)
+	img := g.Source.getOrCreateGlyphImage(g, key, func() (*ebiten.Image, bool) {
+		img := segmentsToImage(glyph.scaledSegments, subpixelOffset, b)
+		return img, img != nil
 	})
 
 	imgX := (origin.X + b.Min.X).Floor()

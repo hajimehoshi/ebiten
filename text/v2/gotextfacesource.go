@@ -18,7 +18,6 @@ import (
 	"bytes"
 	"io"
 	"slices"
-	"sync"
 
 	"github.com/go-text/typesetting/font"
 	"github.com/go-text/typesetting/font/opentype"
@@ -50,7 +49,6 @@ type glyph struct {
 type goTextOutputCacheValue struct {
 	outputs []shaping.Output
 	glyphs  []glyph
-	atime   int64
 }
 
 type goTextGlyphImageCacheKey struct {
@@ -65,14 +63,12 @@ type GoTextFaceSource struct {
 	f        *font.Face
 	metadata Metadata
 
-	outputCache     map[goTextOutputCacheKey]*goTextOutputCacheValue
-	glyphImageCache map[float64]*glyphImageCache[goTextGlyphImageCacheKey]
+	outputCache     *cache[goTextOutputCacheKey, goTextOutputCacheValue]
+	glyphImageCache map[float64]*cache[goTextGlyphImageCacheKey, *ebiten.Image]
 
 	addr *GoTextFaceSource
 
 	shaper shaping.HarfbuzzShaper
-
-	m sync.Mutex
 }
 
 func toFontResource(source io.Reader) (font.Resource, error) {
@@ -115,6 +111,7 @@ func NewGoTextFaceSource(source io.Reader) (*GoTextFaceSource, error) {
 	}
 	s.addr = s
 	s.metadata = metadataFromLoader(l)
+	s.outputCache = newCache[goTextOutputCacheKey, goTextOutputCacheValue](512)
 
 	return s, nil
 }
@@ -171,15 +168,18 @@ func (g *GoTextFaceSource) UnsafeInternal() any {
 func (g *GoTextFaceSource) shape(text string, face *GoTextFace) ([]shaping.Output, []glyph) {
 	g.copyCheck()
 
-	g.m.Lock()
-	defer g.m.Unlock()
-
 	key := face.outputCacheKey(text)
-	if out, ok := g.outputCache[key]; ok {
-		out.atime = now()
-		return out.outputs, out.glyphs
-	}
+	e := g.outputCache.getOrCreate(key, func() (goTextOutputCacheValue, bool) {
+		outputs, gs := g.shapeImpl(text, face)
+		return goTextOutputCacheValue{
+			outputs: outputs,
+			glyphs:  gs,
+		}, true
+	})
+	return e.outputs, e.glyphs
+}
 
+func (g *GoTextFaceSource) shapeImpl(text string, face *GoTextFace) ([]shaping.Output, []glyph) {
 	f := face.Source.f
 	f.SetVariations(face.variations)
 
@@ -254,27 +254,6 @@ func (g *GoTextFaceSource) shape(text string, face *GoTextFace) ([]shaping.Outpu
 			})
 		}
 	}
-
-	if g.outputCache == nil {
-		g.outputCache = map[goTextOutputCacheKey]*goTextOutputCacheValue{}
-	}
-	g.outputCache[key] = &goTextOutputCacheValue{
-		outputs: outputs,
-		glyphs:  gs,
-		atime:   now(),
-	}
-
-	const cacheSoftLimit = 512
-	if len(g.outputCache) > cacheSoftLimit {
-		for key, e := range g.outputCache {
-			// 60 is an arbitrary number.
-			if e.atime >= now()-60 {
-				continue
-			}
-			delete(g.outputCache, key)
-		}
-	}
-
 	return outputs, gs
 }
 
@@ -282,14 +261,12 @@ func (g *GoTextFaceSource) scale(size float64) float64 {
 	return size / float64(g.f.Upem())
 }
 
-func (g *GoTextFaceSource) getOrCreateGlyphImage(goTextFace *GoTextFace, key goTextGlyphImageCacheKey, create func() *ebiten.Image) *ebiten.Image {
+func (g *GoTextFaceSource) getOrCreateGlyphImage(goTextFace *GoTextFace, key goTextGlyphImageCacheKey, create func() (*ebiten.Image, bool)) *ebiten.Image {
 	if g.glyphImageCache == nil {
-		g.glyphImageCache = map[float64]*glyphImageCache[goTextGlyphImageCacheKey]{}
+		g.glyphImageCache = map[float64]*cache[goTextGlyphImageCacheKey, *ebiten.Image]{}
 	}
 	if _, ok := g.glyphImageCache[goTextFace.Size]; !ok {
-		g.glyphImageCache[goTextFace.Size] = &glyphImageCache[goTextGlyphImageCacheKey]{
-			glyphVariationCount: glyphVariationCount(goTextFace),
-		}
+		g.glyphImageCache[goTextFace.Size] = newCache[goTextGlyphImageCacheKey, *ebiten.Image](128 * glyphVariationCount(goTextFace))
 	}
 	return g.glyphImageCache[goTextFace.Size].getOrCreate(key, create)
 }
