@@ -17,6 +17,7 @@ package text
 import (
 	"bytes"
 	"io"
+	"slices"
 	"sync"
 
 	"github.com/go-text/typesetting/font"
@@ -198,11 +199,9 @@ func (g *GoTextFaceSource) shape(text string, face *GoTextFace) ([]shaping.Outpu
 	var seg shaping.Segmenter
 	inputs := seg.Split(input, &singleFontmap{face: f})
 
+	// Reverse the input for RTL texts.
 	if face.Direction == DirectionRightToLeft {
-		// Reverse the input for RTL texts.
-		for i, j := 0, len(inputs)-1; i < j; i, j = i+1, j-1 {
-			inputs[i], inputs[j] = inputs[j], inputs[i]
-		}
+		slices.Reverse(inputs)
 	}
 
 	outputs := make([]shaping.Output, len(inputs))
