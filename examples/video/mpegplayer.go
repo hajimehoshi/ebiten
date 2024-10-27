@@ -50,10 +50,14 @@ type mpegPlayer struct {
 	// These members are used when the video doesn't have an audio stream.
 	refTime time.Time
 
+	src io.ReadCloser
+
+	closeOnce sync.Once
+
 	m sync.Mutex
 }
 
-func newMPEGPlayer(src io.Reader) (*mpegPlayer, error) {
+func newMPEGPlayer(src io.ReadCloser) (*mpegPlayer, error) {
 	mpg, err := mpeg.New(src)
 	if err != nil {
 		return nil, err
@@ -70,6 +74,7 @@ func newMPEGPlayer(src io.Reader) (*mpegPlayer, error) {
 		yCbCrImage: ebiten.NewImage(mpg.Width(), mpg.Height()),
 		yCbCrBytes: make([]byte, 4*mpg.Width()*mpg.Height()),
 		frameImage: ebiten.NewImage(mpg.Width(), mpg.Height()),
+		src:        src,
 	}
 
 	s, err := ebiten.NewShader([]byte(`package main
@@ -140,7 +145,14 @@ func (p *mpegPlayer) updateFrame() error {
 	video := p.mpg.Video()
 	if video.HasEnded() {
 		p.frameImage.Clear()
-		return nil
+		var err error
+		p.closeOnce.Do(func() {
+			fmt.Println("The video has ended.")
+			if err1 := p.src.Close(); err1 != nil {
+				err = err1
+			}
+		})
+		return err
 	}
 
 	d := 1 / p.mpg.Framerate()
