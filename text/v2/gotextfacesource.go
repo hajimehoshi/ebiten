@@ -287,9 +287,11 @@ func (g *GoTextFaceSource) getOrCreateGlyphImage(goTextFace *GoTextFace, key goT
 		g.glyphImageCache = map[float64]*glyphImageCache[goTextGlyphImageCacheKey]{}
 	}
 	if _, ok := g.glyphImageCache[goTextFace.Size]; !ok {
-		g.glyphImageCache[goTextFace.Size] = &glyphImageCache[goTextGlyphImageCacheKey]{}
+		g.glyphImageCache[goTextFace.Size] = &glyphImageCache[goTextGlyphImageCacheKey]{
+			glyphVariationCount: glyphVariationCount(goTextFace),
+		}
 	}
-	return g.glyphImageCache[goTextFace.Size].getOrCreate(goTextFace, key, create)
+	return g.glyphImageCache[goTextFace.Size].getOrCreate(key, create)
 }
 
 type singleFontmap struct {
