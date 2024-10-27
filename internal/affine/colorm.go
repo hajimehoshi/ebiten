@@ -783,12 +783,3 @@ func ChangeHSV(c ColorM, hueTheta float64, saturationScale float32, valueScale f
 	c = c.Concat(yCbCrToRgb)
 	return c
 }
-
-type cachedScalingColorMKey struct {
-	r, g, b, a float32
-}
-
-type cachedScalingColorMValue struct {
-	c     *colorMImplScale
-	atime uint64
-}
