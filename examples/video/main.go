@@ -15,12 +15,11 @@
 package main
 
 import (
-	"bufio"
-	"bytes"
 	_ "embed"
 	"fmt"
 	"io"
 	"log"
+	"net/http"
 	"os"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -28,8 +27,12 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 )
 
-//go:embed shibuya.mpg
-var shibuya_mpg []byte
+// mpgURL is a URL of an example MPEG-1 video. The license is the following:
+//
+// https://commons.wikimedia.org/wiki/File:Shibuya_Crossing,_Tokyo,_Japan_(video).webm
+// "Shibuya Crossing, Tokyo, Japan (video).webm" by Basile Morin
+// The Creative Commons Attribution-Share Alike 4.0 International license
+const mpgURL = "https://example-resources.ebitengine.org/shibuya.mpg"
 
 type Game struct {
 	player *mpegPlayer
@@ -67,22 +70,23 @@ func main() {
 	//     ffmpeg -i YOUR_VIDEO -c:v mpeg1video -q:v 8 -c:a mp2 -format mpeg -ar 48000 output.mpg
 	//
 	// You can adjust quality by changing -q:v value. A lower value indicates better quality.
-	var in io.ReadSeeker
+	var in io.ReadCloser
 	if len(os.Args) > 1 {
 		f, err := os.Open(os.Args[1])
 		if err != nil {
 			log.Fatal(err)
 		}
-		defer func() {
-			_ = f.Close()
-		}()
 		in = f
 	} else {
-		in = bytes.NewReader(shibuya_mpg)
+		res, err := http.Get(mpgURL)
+		if err != nil {
+			log.Fatal(err)
+		}
+		in = res.Body
 		fmt.Println("Play the default video. You can specify a video file as an argument.")
 	}
 
-	player, err := newMPEGPlayer(bufio.NewReader(in))
+	player, err := newMPEGPlayer(in)
 	if err != nil {
 		log.Fatal(err)
 	}
