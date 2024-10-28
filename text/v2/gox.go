@@ -47,6 +47,8 @@ type GoXFace struct {
 
 	cachedMetrics Metrics
 
+	originXCache *cache[string, []fixed.Int26_6]
+
 	addr *GoXFace
 }
 
@@ -60,6 +62,7 @@ func NewGoXFace(face font.Face) *GoXFace {
 	// Set addr as early as possible. This is necessary for glyphVariationCount.
 	g.addr = g
 	g.glyphImageCache = newCache[goXFaceGlyphImageCacheKey, *ebiten.Image](128 * glyphVariationCount(g))
+	g.originXCache = newCache[string, []fixed.Int26_6](512)
 	return g
 }
 
@@ -109,7 +112,34 @@ func (g *GoXFace) UnsafeInternal() font.Face {
 
 // advance implements Face.
 func (g *GoXFace) advance(text string) float64 {
-	return fixed26_6ToFloat64(font.MeasureString(g.f, text))
+	xs := g.originXs(text)
+	if len(xs) == 0 {
+		return 0
+	}
+	return fixed26_6ToFloat64(xs[len(xs)-1])
+}
+
+func (g *GoXFace) originXs(text string) []fixed.Int26_6 {
+	return g.originXCache.getOrCreate(text, func() ([]fixed.Int26_6, bool) {
+		if len(text) == 0 {
+			return nil, false
+		}
+
+		var originXs []fixed.Int26_6
+		prevR := rune(-1)
+		var originX fixed.Int26_6
+		for _, r := range text {
+			if prevR >= 0 {
+				originX += g.f.Kern(prevR, r)
+				originXs = append(originXs, originX)
+			}
+			a, _ := g.f.GlyphAdvance(r)
+			originX += a
+			prevR = r
+		}
+		originXs = append(originXs, originX)
+		return originXs, true
+	})
 }
 
 // hasGlyph implements Face.
@@ -126,15 +156,18 @@ func (g *GoXFace) appendGlyphsForLine(glyphs []Glyph, line string, indexOffset i
 		X: float64ToFixed26_6(originX),
 		Y: float64ToFixed26_6(originY),
 	}
-	prevR := rune(-1)
+	ox := origin.X
 
+	originXs := g.originXs(line)
+	var advanceIndex int
 	for i, r := range line {
-		if prevR >= 0 {
-			origin.X += g.f.Kern(prevR, r)
+		if i > 0 {
+			origin.X = ox + originXs[advanceIndex]
+			advanceIndex++
 		}
 
 		// imgX and imgY are integers so that the nearest filter can be used.
-		img, imgX, imgY, a := g.glyphImage(r, origin)
+		img, imgX, imgY := g.glyphImage(r, origin)
 
 		// Adjust the position to the integers.
 		// The current glyph images assume that they are rendered on integer positions so far.
@@ -153,19 +186,17 @@ func (g *GoXFace) appendGlyphsForLine(glyphs []Glyph, line string, indexOffset i
 			OriginOffsetX:     0,
 			OriginOffsetY:     0,
 		})
-		origin.X += a
-		prevR = r
 	}
 
 	return glyphs
 }
 
-func (g *GoXFace) glyphImage(r rune, origin fixed.Point26_6) (*ebiten.Image, int, int, fixed.Int26_6) {
+func (g *GoXFace) glyphImage(r rune, origin fixed.Point26_6) (*ebiten.Image, int, int) {
 	// Assume that GoXFace's direction is always horizontal.
 	origin.X = adjustGranularity(origin.X, g)
 	origin.Y &^= ((1 << 6) - 1)
 
-	b, a, _ := g.f.GlyphBounds(r)
+	b, _, _ := g.f.GlyphBounds(r)
 	subpixelOffset := fixed.Point26_6{
 		X: (origin.X + b.Min.X) & ((1 << 6) - 1),
 		Y: (origin.Y + b.Min.Y) & ((1 << 6) - 1),
@@ -180,7 +211,7 @@ func (g *GoXFace) glyphImage(r rune, origin fixed.Point26_6) (*ebiten.Image, int
 	})
 	imgX := (origin.X + b.Min.X).Floor()
 	imgY := (origin.Y + b.Min.Y).Floor()
-	return img, imgX, imgY, a
+	return img, imgX, imgY
 }
 
 func (g *GoXFace) glyphImageImpl(r rune, subpixelOffset fixed.Point26_6, glyphBounds fixed.Rectangle26_6) *ebiten.Image {
