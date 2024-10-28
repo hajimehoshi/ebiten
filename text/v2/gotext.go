@@ -325,7 +325,10 @@ func (g *GoTextFace) appendGlyphsForLine(glyphs []Glyph, line string, indexOffse
 			X: glyph.shapingGlyph.XOffset,
 			Y: -glyph.shapingGlyph.YOffset,
 		})
+
+		// imgX and imgY are integers so that the nearest filter can be used.
 		img, imgX, imgY := g.glyphImage(glyph, o)
+
 		// Append a glyph even if img is nil.
 		// This is necessary to return index information for control characters.
 		glyphs = append(glyphs, Glyph{

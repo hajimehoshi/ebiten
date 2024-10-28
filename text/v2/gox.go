@@ -132,6 +132,8 @@ func (g *GoXFace) appendGlyphsForLine(glyphs []Glyph, line string, indexOffset i
 		if prevR >= 0 {
 			origin.X += g.f.Kern(prevR, r)
 		}
+
+		// imgX and imgY are integers so that the nearest filter can be used.
 		img, imgX, imgY, a := g.glyphImage(r, origin)
 
 		// Adjust the position to the integers.
