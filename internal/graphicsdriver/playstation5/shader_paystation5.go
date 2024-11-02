@@ -21,23 +21,14 @@ import (
 )
 
 var (
-	// precompiledShaders is initialized by an automatically generated Go file.
-	precompiledShaders []*shader
+	// precompiledShaders is a map to store precompiled shaders.
+	// precompiledShaders is initialized by a separate tool.
+	precompiledShaders map[shaderir.SourceHash]*shaderSource
 )
 
-type shader struct {
-	hash         shaderir.SourceHash
+type shaderSource struct {
 	vertexHeader []byte
 	vertexText   []byte
 	pixelHeader  []byte
 	pixelText    []byte
-}
-
-func findShaderIndex(hash shaderir.SourceHash) (int, bool) {
-	for i, s := range precompiledShaders {
-		if s.hash == hash {
-			return i, true
-		}
-	}
-	return 0, false
 }
