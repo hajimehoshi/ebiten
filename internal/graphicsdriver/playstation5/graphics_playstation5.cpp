@@ -62,7 +62,7 @@ ebitengine_DrawTriangles(int dst, const int *srcs, int src_count, int shader,
 }
 
 extern "C" ebitengine_Error
-ebitengine_NewShader(int *shader, const ebitengine_ShaderSource *source) {
+ebitengine_NewShader(int *shader, const ebitengine_PrecompiledShader *source) {
   return {};
 }
 
