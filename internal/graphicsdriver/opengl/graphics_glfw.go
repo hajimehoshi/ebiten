@@ -17,14 +17,62 @@
 package opengl
 
 import (
+	"bufio"
+	"bytes"
 	"fmt"
+	"os/exec"
 	"runtime"
+	"strings"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl/gl"
 	"github.com/hajimehoshi/ebiten/v2/internal/microsoftgdk"
 )
+
+func isGLXExtensionForGL2Available() bool {
+	if runtime.GOOS == "windows" || runtime.GOOS == "darwin" {
+		return false
+	}
+
+	var buf bytes.Buffer
+	cmd := exec.Command("glxinfo")
+	cmd.Stdout = &buf
+	if err := cmd.Run(); err != nil {
+		return false
+	}
+
+	const (
+		indent = "    "
+		ext    = "GLX_EXT_create_context_es2_profile"
+	)
+
+	var listingExtensions bool
+	s := bufio.NewScanner(&buf)
+	for s.Scan() {
+		if !listingExtensions {
+			if s.Text() == "GLX extensions:" {
+				listingExtensions = true
+			}
+			continue
+		}
+
+		if !strings.HasPrefix(s.Text(), indent) {
+			listingExtensions = false
+			break
+		}
+
+		line := s.Text()
+		for len(line) > 0 {
+			head, tail, _ := strings.Cut(line, ",")
+			if strings.TrimSpace(head) == ext {
+				return true
+			}
+			line = tail
+		}
+	}
+	return false
+}
 
 type graphicsPlatform struct {
 	window *glfw.Window
@@ -60,8 +108,12 @@ func setGLFWClientAPI(isES bool) error {
 		if err := glfw.WindowHint(glfw.ContextVersionMinor, 0); err != nil {
 			return err
 		}
-		if err := glfw.WindowHint(glfw.ContextCreationAPI, glfw.EGLContextAPI); err != nil {
-			return err
+		// Use GLX if the extension allows, or use EGL otherwise.
+		// Prefer GLX since EGL might not work well on Wayland (#3152).
+		if !isGLXExtensionForGL2Available() {
+			if err := glfw.WindowHint(glfw.ContextCreationAPI, glfw.EGLContextAPI); err != nil {
+				return err
+			}
 		}
 		return nil
 	}
