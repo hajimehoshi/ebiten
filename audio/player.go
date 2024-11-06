@@ -389,7 +389,7 @@ type timeStream struct {
 	r              io.Reader
 	seekable       bool
 	sampleRate     int
-	pos            int64
+	pos            atomic.Int64
 	bytesPerSample int
 
 	// m is a mutex for this stream.
@@ -410,7 +410,7 @@ func newTimeStream(r io.Reader, seekable bool, sampleRate int, bitDepthInBytes i
 		if err != nil {
 			return nil, err
 		}
-		s.pos = pos
+		s.pos.Store(pos)
 	}
 	return s, nil
 }
@@ -420,7 +420,7 @@ func (s *timeStream) Read(buf []byte) (int, error) {
 	defer s.m.Unlock()
 
 	n, err := s.r.Read(buf)
-	s.pos += int64(n)
+	s.pos.Add(int64(n))
 	return n, err
 }
 
@@ -437,33 +437,24 @@ func (s *timeStream) Seek(offset int64, whence int) (int64, error) {
 		return pos, err
 	}
 
-	s.pos = pos
+	s.pos.Store(pos)
 	return pos, nil
 }
 
 func (s *timeStream) timeDurationToPos(offset time.Duration) int64 {
-	s.m.Lock()
-	defer s.m.Unlock()
-
 	o := int64(offset) * int64(s.bytesPerSample) * int64(s.sampleRate) / int64(time.Second)
 
 	// Align the byte position with the samples.
 	o -= o % int64(s.bytesPerSample)
-	o += s.pos % int64(s.bytesPerSample)
+	o += s.pos.Load() % int64(s.bytesPerSample)
 
 	return o
 }
 
 func (s *timeStream) position() int64 {
-	s.m.Lock()
-	defer s.m.Unlock()
-
-	return s.pos
+	return s.pos.Load()
 }
 
 func (s *timeStream) positionInTimeDuration() time.Duration {
-	s.m.Lock()
-	defer s.m.Unlock()
-
-	return time.Duration(s.pos) * time.Second / (time.Duration(s.sampleRate * s.bytesPerSample))
+	return time.Duration(s.pos.Load()) * time.Second / (time.Duration(s.sampleRate * s.bytesPerSample))
 }
