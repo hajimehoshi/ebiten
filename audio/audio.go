@@ -143,12 +143,21 @@ func NewContext(sampleRate int) *Context {
 				c.setReady()
 			}()
 		}
-
-		if err := c.updatePlayers(); err != nil {
-			return err
-		}
 		return nil
 	})
+
+	// In the current Ebitengine implementation, update might not be called when the window is in background (#3154).
+	// In this case, an audio player position is not updated correctly with AppendHookOnBeforeUpdate.
+	// Use a distinct goroutine to update the player states.
+	go func() {
+		for {
+			if err := c.updatePlayers(); err != nil {
+				c.setError(err)
+				return
+			}
+			time.Sleep(time.Second / 100)
+		}
+	}()
 
 	return c
 }
