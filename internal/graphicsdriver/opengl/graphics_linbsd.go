@@ -43,19 +43,19 @@ func isGLXExtensionForGL2Available() bool {
 	var listingExtensions bool
 	s := bufio.NewScanner(&buf)
 	for s.Scan() {
+		line := s.Text()
 		if !listingExtensions {
-			if s.Text() == "GLX extensions:" {
+			if line == "GLX extensions:" {
 				listingExtensions = true
 			}
 			continue
 		}
 
-		if !strings.HasPrefix(s.Text(), indent) {
+		if !strings.HasPrefix(line, indent) {
 			listingExtensions = false
 			break
 		}
 
-		line := s.Text()
 		for len(line) > 0 {
 			head, tail, _ := strings.Cut(line, ",")
 			if strings.TrimSpace(head) == ext {
