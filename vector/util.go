@@ -50,7 +50,7 @@ func init() {
 	whiteImage.WritePixels(pix)
 }
 
-func drawVerticesForUtil(dst *ebiten.Image, vs []ebiten.Vertex, is []uint16, clr color.Color, antialias bool) {
+func drawVerticesForUtil(dst *ebiten.Image, vs []ebiten.Vertex, is []uint16, clr color.Color, antialias bool, fillRule ebiten.FillRule) {
 	r, g, b, a := clr.RGBA()
 	for i := range vs {
 		vs[i].SrcX = 1
@@ -64,6 +64,7 @@ func drawVerticesForUtil(dst *ebiten.Image, vs []ebiten.Vertex, is []uint16, clr
 	op := &ebiten.DrawTrianglesOptions{}
 	op.ColorScaleMode = ebiten.ColorScaleModePremultipliedAlpha
 	op.AntiAlias = antialias
+	op.FillRule = fillRule
 	dst.DrawTriangles(vs, is, whiteSubImage, op)
 }
 
@@ -79,7 +80,7 @@ func StrokeLine(dst *ebiten.Image, x0, y0, x1, y1 float32, strokeWidth float32, 
 
 	useCachedVerticesAndIndices(func(vs []ebiten.Vertex, is []uint16) ([]ebiten.Vertex, []uint16) {
 		vs, is = path.AppendVerticesAndIndicesForStroke(vs, is, strokeOp)
-		drawVerticesForUtil(dst, vs, is, clr, antialias)
+		drawVerticesForUtil(dst, vs, is, clr, antialias, ebiten.FillRuleFillAll)
 		return vs, is
 	})
 }
@@ -94,7 +95,7 @@ func DrawFilledRect(dst *ebiten.Image, x, y, width, height float32, clr color.Co
 
 	useCachedVerticesAndIndices(func(vs []ebiten.Vertex, is []uint16) ([]ebiten.Vertex, []uint16) {
 		vs, is = path.AppendVerticesAndIndicesForFilling(vs, is)
-		drawVerticesForUtil(dst, vs, is, clr, antialias)
+		drawVerticesForUtil(dst, vs, is, clr, antialias, ebiten.FillRuleFillAll)
 		return vs, is
 	})
 }
@@ -116,7 +117,7 @@ func StrokeRect(dst *ebiten.Image, x, y, width, height float32, strokeWidth floa
 
 	useCachedVerticesAndIndices(func(vs []ebiten.Vertex, is []uint16) ([]ebiten.Vertex, []uint16) {
 		vs, is = path.AppendVerticesAndIndicesForStroke(vs, is, strokeOp)
-		drawVerticesForUtil(dst, vs, is, clr, antialias)
+		drawVerticesForUtil(dst, vs, is, clr, antialias, ebiten.FillRuleFillAll)
 		return vs, is
 	})
 }
@@ -128,7 +129,7 @@ func DrawFilledCircle(dst *ebiten.Image, cx, cy, r float32, clr color.Color, ant
 
 	useCachedVerticesAndIndices(func(vs []ebiten.Vertex, is []uint16) ([]ebiten.Vertex, []uint16) {
 		vs, is = path.AppendVerticesAndIndicesForFilling(vs, is)
-		drawVerticesForUtil(dst, vs, is, clr, antialias)
+		drawVerticesForUtil(dst, vs, is, clr, antialias, ebiten.FillRuleFillAll)
 		return vs, is
 	})
 }
@@ -146,7 +147,40 @@ func StrokeCircle(dst *ebiten.Image, cx, cy, r float32, strokeWidth float32, clr
 
 	useCachedVerticesAndIndices(func(vs []ebiten.Vertex, is []uint16) ([]ebiten.Vertex, []uint16) {
 		vs, is = path.AppendVerticesAndIndicesForStroke(vs, is, strokeOp)
-		drawVerticesForUtil(dst, vs, is, clr, antialias)
+		drawVerticesForUtil(dst, vs, is, clr, antialias, ebiten.FillRuleFillAll)
+		return vs, is
+	})
+}
+
+// FillRule is the rule whether an overlapped region is rendered or not.
+type FillRule int
+
+const (
+	// FillRuleNonZero means that triangles are rendered based on the non-zero rule.
+	// If and only if the number of overlaps is not 0, the region is rendered.
+	FillRuleNonZero FillRule = FillRule(ebiten.FillRuleNonZero)
+
+	// FillRuleEvenOdd means that triangles are rendered based on the even-odd rule.
+	// If and only if the number of overlaps is odd, the region is rendered.
+	FillRuleEvenOdd FillRule = FillRule(ebiten.FillRuleEvenOdd)
+)
+
+// DrawFilledRect fills the specified path with the specified color.
+func DrawFilledPath(dst *ebiten.Image, path *Path, clr color.Color, antialias bool, fillRule FillRule) {
+	useCachedVerticesAndIndices(func(vs []ebiten.Vertex, is []uint16) ([]ebiten.Vertex, []uint16) {
+		vs, is = path.AppendVerticesAndIndicesForFilling(vs, is)
+		drawVerticesForUtil(dst, vs, is, clr, antialias, ebiten.FillRule(fillRule))
+		return vs, is
+	})
+}
+
+// StrokeCircle strokes the specified path with the specified color and stroke options.
+//
+// clr has be to be a solid (non-transparent) color.
+func StrokePath(dst *ebiten.Image, path *Path, clr color.Color, antialias bool, options *StrokeOptions) {
+	useCachedVerticesAndIndices(func(vs []ebiten.Vertex, is []uint16) ([]ebiten.Vertex, []uint16) {
+		vs, is = path.AppendVerticesAndIndicesForStroke(vs, is, options)
+		drawVerticesForUtil(dst, vs, is, clr, antialias, ebiten.FillRuleFillAll)
 		return vs, is
 	})
 }

@@ -125,34 +125,12 @@ func (g *Game) drawLine(screen *ebiten.Image, region image.Rectangle, cap vector
 	op.LineJoin = join
 	op.MiterLimit = miterLimit
 	op.Width = float32(r / 2)
-	vs, is := path.AppendVerticesAndIndicesForStroke(g.vertices[:0], g.indices[:0], op)
-	for i := range vs {
-		vs[i].SrcX = 1
-		vs[i].SrcY = 1
-		vs[i].ColorR = 1
-		vs[i].ColorG = 1
-		vs[i].ColorB = 1
-		vs[i].ColorA = 1
-	}
-	screen.DrawTriangles(vs, is, whiteSubImage, &ebiten.DrawTrianglesOptions{
-		AntiAlias: g.aa,
-	})
+	vector.StrokePath(screen, &path, color.White, g.aa, op)
 
 	// Draw the center line in red.
 	if g.showCenter {
 		op.Width = 1
-		vs, is := path.AppendVerticesAndIndicesForStroke(g.vertices[:0], g.indices[:0], op)
-		for i := range vs {
-			vs[i].SrcX = 1
-			vs[i].SrcY = 1
-			vs[i].ColorR = 1
-			vs[i].ColorG = 0
-			vs[i].ColorB = 0
-			vs[i].ColorA = 1
-		}
-		screen.DrawTriangles(vs, is, whiteSubImage, &ebiten.DrawTrianglesOptions{
-			AntiAlias: g.aa,
-		})
+		vector.StrokePath(screen, &path, color.RGBA{0xff, 0, 0, 0xff}, g.aa, op)
 	}
 }
 

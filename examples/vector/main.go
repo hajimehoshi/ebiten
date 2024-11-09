@@ -130,35 +130,10 @@ func (g *Game) drawEbitenText(screen *ebiten.Image, x, y int, aa bool, line bool
 		op := &vector.StrokeOptions{}
 		op.Width = 5
 		op.LineJoin = vector.LineJoinRound
-		g.vertices, g.indices = path.AppendVerticesAndIndicesForStroke(g.vertices[:0], g.indices[:0], op)
+		vector.StrokePath(screen, &path, color.RGBA{0xdb, 0x56, 0x20, 0xff}, aa, op)
 	} else {
-		g.vertices, g.indices = path.AppendVerticesAndIndicesForFilling(g.vertices[:0], g.indices[:0])
+		vector.DrawFilledPath(screen, &path, color.RGBA{0xdb, 0x56, 0x20, 0xff}, aa, vector.FillRuleNonZero)
 	}
-
-	for i := range g.vertices {
-		g.vertices[i].DstX = (g.vertices[i].DstX + float32(x))
-		g.vertices[i].DstY = (g.vertices[i].DstY + float32(y))
-		g.vertices[i].SrcX = 1
-		g.vertices[i].SrcY = 1
-		g.vertices[i].ColorR = 0xdb / float32(0xff)
-		g.vertices[i].ColorG = 0x56 / float32(0xff)
-		g.vertices[i].ColorB = 0x20 / float32(0xff)
-		g.vertices[i].ColorA = 1
-	}
-
-	op := &ebiten.DrawTrianglesOptions{}
-	op.AntiAlias = aa
-
-	// For strokes (AppendVerticesAndIndicesForStroke), FillRuleFillAll and FillRuleNonZero work.
-	//
-	// For filling (AppendVerticesAndIndicesForFilling), FillRuleNonZero and FillRuleEvenOdd work.
-	// FillRuleNonZero and FillRuleEvenOdd differ when rendering a complex polygons with self-intersections and/or holes.
-	// See https://en.wikipedia.org/wiki/Nonzero-rule and https://en.wikipedia.org/wiki/Even%E2%80%93odd_rule .
-	//
-	// For simplicity, this example always uses FillRuleNonZero, whichever strokes or filling is done.
-	op.FillRule = ebiten.FillRuleNonZero
-
-	screen.DrawTriangles(g.vertices, g.indices, whiteSubImage, op)
 }
 
 func (g *Game) drawEbitenLogo(screen *ebiten.Image, x, y int, aa bool, line bool) {
@@ -191,8 +166,10 @@ func (g *Game) drawEbitenLogo(screen *ebiten.Image, x, y int, aa bool, line bool
 		op := &vector.StrokeOptions{}
 		op.Width = 5
 		op.LineJoin = vector.LineJoinRound
+		// TODO: Use vector.StrokePath, but this requries to 'shift' the path by (x, y).
 		g.vertices, g.indices = path.AppendVerticesAndIndicesForStroke(g.vertices[:0], g.indices[:0], op)
 	} else {
+		// TODO: Use vector.DrawFilledPath, but this requries to 'shift' the path by (x, y).
 		g.vertices, g.indices = path.AppendVerticesAndIndicesForFilling(g.vertices[:0], g.indices[:0])
 	}
 
@@ -233,24 +210,10 @@ func (g *Game) drawArc(screen *ebiten.Image, count int, aa bool, line bool) {
 		op := &vector.StrokeOptions{}
 		op.Width = 5
 		op.LineJoin = vector.LineJoinRound
-		g.vertices, g.indices = path.AppendVerticesAndIndicesForStroke(g.vertices[:0], g.indices[:0], op)
+		vector.StrokePath(screen, &path, color.RGBA{0x33, 0xcc, 0x66, 0xff}, aa, op)
 	} else {
-		g.vertices, g.indices = path.AppendVerticesAndIndicesForFilling(g.vertices[:0], g.indices[:0])
+		vector.DrawFilledPath(screen, &path, color.RGBA{0x33, 0xcc, 0x66, 0xff}, aa, vector.FillRuleNonZero)
 	}
-
-	for i := range g.vertices {
-		g.vertices[i].SrcX = 1
-		g.vertices[i].SrcY = 1
-		g.vertices[i].ColorR = 0x33 / float32(0xff)
-		g.vertices[i].ColorG = 0xcc / float32(0xff)
-		g.vertices[i].ColorB = 0x66 / float32(0xff)
-		g.vertices[i].ColorA = 1
-	}
-
-	op := &ebiten.DrawTrianglesOptions{}
-	op.AntiAlias = aa
-	op.FillRule = ebiten.FillRuleNonZero
-	screen.DrawTriangles(g.vertices, g.indices, whiteSubImage, op)
 }
 
 func maxCounter(index int) int {
@@ -286,24 +249,10 @@ func (g *Game) drawWave(screen *ebiten.Image, counter int, aa bool, line bool) {
 		op := &vector.StrokeOptions{}
 		op.Width = 5
 		op.LineJoin = vector.LineJoinRound
-		g.vertices, g.indices = path.AppendVerticesAndIndicesForStroke(g.vertices[:0], g.indices[:0], op)
+		vector.StrokePath(screen, &path, color.RGBA{0x33, 0x66, 0xff, 0xff}, aa, op)
 	} else {
-		g.vertices, g.indices = path.AppendVerticesAndIndicesForFilling(g.vertices[:0], g.indices[:0])
+		vector.DrawFilledPath(screen, &path, color.RGBA{0x33, 0x66, 0xff, 0xff}, aa, vector.FillRuleNonZero)
 	}
-
-	for i := range g.vertices {
-		g.vertices[i].SrcX = 1
-		g.vertices[i].SrcY = 1
-		g.vertices[i].ColorR = 0x33 / float32(0xff)
-		g.vertices[i].ColorG = 0x66 / float32(0xff)
-		g.vertices[i].ColorB = 0xff / float32(0xff)
-		g.vertices[i].ColorA = 1
-	}
-
-	op := &ebiten.DrawTrianglesOptions{}
-	op.AntiAlias = aa
-	op.FillRule = ebiten.FillRuleNonZero
-	screen.DrawTriangles(g.vertices, g.indices, whiteSubImage, op)
 }
 
 func (g *Game) Update() error {
