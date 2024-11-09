@@ -109,6 +109,7 @@ func (s *subpath) close() {
 type Path struct {
 	ops []op
 
+	// subpaths is a cached actual rendering positions.
 	subpaths []subpath
 }
 
@@ -525,6 +526,26 @@ func (p *Path) AppendVerticesAndIndicesForFilling(vertices []ebiten.Vertex, indi
 		base += uint16(subpath.pointCount())
 	}
 	return vertices, indices
+}
+
+// ApplyGeoM applies the given GeoM to the path and returns a new path.
+func (p *Path) ApplyGeoM(geoM ebiten.GeoM) *Path {
+	// subpaths are not copied.
+	np := &Path{
+		ops: make([]op, len(p.ops)),
+	}
+	for i, o := range p.ops {
+		x1, y1 := geoM.Apply(float64(o.p1.x), float64(o.p1.y))
+		x2, y2 := geoM.Apply(float64(o.p2.x), float64(o.p2.y))
+		x3, y3 := geoM.Apply(float64(o.p3.x), float64(o.p3.y))
+		np.ops[i] = op{
+			typ: o.typ,
+			p1:  point{x: float32(x1), y: float32(y1)},
+			p2:  point{x: float32(x2), y: float32(y2)},
+			p3:  point{x: float32(x3), y: float32(y3)},
+		}
+	}
+	return np
 }
 
 // LineCap represents the way in which how the ends of the stroke are rendered.

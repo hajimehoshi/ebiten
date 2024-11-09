@@ -16,7 +16,6 @@ package main
 
 import (
 	"bytes"
-	"image"
 	"image/color"
 	"log"
 	"math"
@@ -27,28 +26,13 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
-var (
-	whiteImage = ebiten.NewImage(3, 3)
-
-	// whiteSubImage is an internal sub image of whiteImage.
-	// Use whiteSubImage at DrawTriangles instead of whiteImage in order to avoid bleeding edges.
-	whiteSubImage = whiteImage.SubImage(image.Rect(1, 1, 2, 2)).(*ebiten.Image)
-)
-
-func init() {
-	whiteImage.Fill(color.White)
-}
-
 const (
 	screenWidth  = 640
 	screenHeight = 480
 )
 
 type Game struct {
-	path     vector.Path
-	vertices []ebiten.Vertex
-	indices  []uint16
-
+	path vector.Path
 	tick int
 }
 
@@ -72,25 +56,13 @@ func (g *Game) Update() error {
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	g.vertices = g.vertices[:0]
-	g.indices = g.indices[:0]
-
 	op := &vector.StrokeOptions{}
 	op.Width = 2*(float32(math.Sin(float64(g.tick)*2*math.Pi/180))+1) + 1
 	op.LineJoin = vector.LineJoinRound
 	op.LineCap = vector.LineCapRound
-	g.vertices, g.indices = g.path.AppendVerticesAndIndicesForStroke(g.vertices, g.indices, op)
-
-	for i := range g.vertices {
-		g.vertices[i].DstX += 50
-		g.vertices[i].DstY += 0
-		g.vertices[i].SrcX = 1
-		g.vertices[i].SrcY = 1
-	}
-
-	screen.DrawTriangles(g.vertices, g.indices, whiteSubImage, &ebiten.DrawTrianglesOptions{
-		AntiAlias: true,
-	})
+	var geoM ebiten.GeoM
+	geoM.Translate(50, 0)
+	vector.StrokePath(screen, g.path.ApplyGeoM(geoM), color.White, true, op)
 }
 
 func (*Game) Layout(width, height int) (int, int) {

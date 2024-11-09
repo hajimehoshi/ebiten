@@ -16,7 +16,6 @@ package main
 
 import (
 	"fmt"
-	"image"
 	"image/color"
 	"log"
 	"math"
@@ -26,18 +25,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
-
-var (
-	whiteImage = ebiten.NewImage(3, 3)
-
-	// whiteSubImage is an internal sub image of whiteImage.
-	// Use whiteSubImage at DrawTriangles instead of whiteImage in order to avoid bleeding edges.
-	whiteSubImage = whiteImage.SubImage(image.Rect(1, 1, 2, 2)).(*ebiten.Image)
-)
-
-func init() {
-	whiteImage.Fill(color.White)
-}
 
 const (
 	screenWidth  = 640
@@ -49,9 +36,6 @@ type Game struct {
 
 	aa   bool
 	line bool
-
-	vertices []ebiten.Vertex
-	indices  []uint16
 }
 
 func (g *Game) drawEbitenText(screen *ebiten.Image, x, y int, aa bool, line bool) {
@@ -162,32 +146,16 @@ func (g *Game) drawEbitenLogo(screen *ebiten.Image, x, y int, aa bool, line bool
 	path.LineTo(unit, 4*unit)
 	path.Close()
 
+	var geoM ebiten.GeoM
+	geoM.Translate(float64(x), float64(y))
 	if line {
 		op := &vector.StrokeOptions{}
 		op.Width = 5
 		op.LineJoin = vector.LineJoinRound
-		// TODO: Use vector.StrokePath, but this requries to 'shift' the path by (x, y).
-		g.vertices, g.indices = path.AppendVerticesAndIndicesForStroke(g.vertices[:0], g.indices[:0], op)
+		vector.StrokePath(screen, path.ApplyGeoM(geoM), color.RGBA{0xdb, 0x56, 0x20, 0xff}, aa, op)
 	} else {
-		// TODO: Use vector.DrawFilledPath, but this requries to 'shift' the path by (x, y).
-		g.vertices, g.indices = path.AppendVerticesAndIndicesForFilling(g.vertices[:0], g.indices[:0])
+		vector.DrawFilledPath(screen, path.ApplyGeoM(geoM), color.RGBA{0xdb, 0x56, 0x20, 0xff}, aa, vector.FillRuleNonZero)
 	}
-
-	for i := range g.vertices {
-		g.vertices[i].DstX = (g.vertices[i].DstX + float32(x))
-		g.vertices[i].DstY = (g.vertices[i].DstY + float32(y))
-		g.vertices[i].SrcX = 1
-		g.vertices[i].SrcY = 1
-		g.vertices[i].ColorR = 0xdb / float32(0xff)
-		g.vertices[i].ColorG = 0x56 / float32(0xff)
-		g.vertices[i].ColorB = 0x20 / float32(0xff)
-		g.vertices[i].ColorA = 1
-	}
-
-	op := &ebiten.DrawTrianglesOptions{}
-	op.AntiAlias = aa
-	op.FillRule = ebiten.FillRuleNonZero
-	screen.DrawTriangles(g.vertices, g.indices, whiteSubImage, op)
 }
 
 func (g *Game) drawArc(screen *ebiten.Image, count int, aa bool, line bool) {
