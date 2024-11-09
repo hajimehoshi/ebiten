@@ -27,18 +27,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
-var (
-	whiteImage = ebiten.NewImage(3, 3)
-
-	// whiteSubImage is an internal sub image of whiteImage.
-	// Use whiteSubImage at DrawTriangles instead of whiteImage in order to avoid bleeding edges.
-	whiteSubImage = whiteImage.SubImage(image.Rect(1, 1, 2, 2)).(*ebiten.Image)
-)
-
-func init() {
-	whiteImage.Fill(color.White)
-}
-
 const (
 	screenWidth  = 640
 	screenHeight = 480
@@ -46,9 +34,6 @@ const (
 
 type Game struct {
 	counter int
-
-	vertices []ebiten.Vertex
-	indices  []uint16
 
 	aa         bool
 	showCenter bool
