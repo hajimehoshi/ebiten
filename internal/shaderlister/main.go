@@ -25,9 +25,7 @@ import (
 	"go/types"
 	"log/slog"
 	"os"
-	"os/exec"
 	"regexp"
-	"slices"
 	"strings"
 
 	"golang.org/x/tools/go/ast/inspector"
@@ -57,34 +55,28 @@ func xmain() error {
 		flag.Usage()
 	}
 
-	pkg := flag.Arg(0)
-	deps, err := listDeps(pkg)
-	if err != nil {
-		return err
-	}
-	deps = slices.DeleteFunc(deps, func(name string) bool {
-		// A standard library should not have a directive for shaders. Skip them.
-		if isStandardImportPath(name) {
-			return true
-		}
-		// A semi-standard library should not have a directive for shaders. Skip them.
-		if strings.HasPrefix(name, "golang.org/x/") {
-			return true
-		}
-		return false
-	})
 	pkgs, err := packages.Load(&packages.Config{
-		Mode: packages.NeedName | packages.NeedTypes | packages.NeedSyntax | packages.NeedTypesInfo,
-	}, append([]string{pkg}, deps...)...)
+		Mode: packages.NeedName | packages.NeedTypes | packages.NeedImports | packages.NeedDeps | packages.NeedSyntax | packages.NeedTypesInfo,
+	}, flag.Args()...)
 	if err != nil {
 		return err
 	}
 
 	var shaders []Shader
 
-	for _, pkg := range pkgs {
+	packages.Visit(pkgs, func(pkg *packages.Package) bool {
+		path := pkg.PkgPath
+		// A standard library should not have a directive for shaders. Skip them.
+		if isStandardImportPath(path) {
+			return true
+		}
+		// A semi-standard library should not have a directive for shaders. Skip them.
+		if strings.HasPrefix(path, "golang.org/x/") {
+			return true
+		}
 		shaders = appendShaderSources(shaders, pkg)
-	}
+		return true
+	}, nil)
 
 	w := bufio.NewWriter(os.Stdout)
 	enc := json.NewEncoder(w)
@@ -97,18 +89,6 @@ func xmain() error {
 	}
 
 	return nil
-}
-
-func listDeps(pkg string) ([]string, error) {
-	cmd := exec.Command("go", "list", "-f", `{{join .Deps ","}}`, pkg)
-	out, err := cmd.Output()
-	if err != nil {
-		if e, ok := err.(*exec.ExitError); ok {
-			return nil, fmt.Errorf("go list failed: %w\n%s", e, e.Stderr)
-		}
-		return nil, err
-	}
-	return strings.Split(strings.TrimSpace(string(out)), ","), nil
 }
 
 // isStandardImportPath reports whether $GOROOT/src/path should be considered part of the standard distribution.
