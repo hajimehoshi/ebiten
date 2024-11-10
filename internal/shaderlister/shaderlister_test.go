@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"os/exec"
 	"slices"
+	"strings"
 	"testing"
 )
 
@@ -61,5 +62,21 @@ func TestRun(t *testing.T) {
 		if got, want := s.Source, fmt.Sprintf("shader %d", i+1); got != want {
 			t.Errorf("s.Source: got: %q, want: %q", got, want)
 		}
+	}
+}
+
+func TestEmpty(t *testing.T) {
+	cmd := exec.Command("go", "run", "github.com/hajimehoshi/ebiten/v2/internal/shaderlister", "github.com/ebitengine/purego")
+	out, err := cmd.Output()
+	if err != nil {
+		if err, ok := err.(*exec.ExitError); ok {
+			t.Fatalf("Error: %v\n%s", err, err.Stderr)
+		}
+		t.Fatal(err)
+	}
+
+	// Check the output is `[]`, not `null`.
+	if got, want := strings.TrimSpace(string(out)), "[]"; got != want {
+		t.Errorf("output: got: %q, want: %q", got, want)
 	}
 }

@@ -56,13 +56,15 @@ func xmain() error {
 	}
 
 	pkgs, err := packages.Load(&packages.Config{
-		Mode: packages.NeedName | packages.NeedTypes | packages.NeedImports | packages.NeedDeps | packages.NeedSyntax | packages.NeedTypesInfo,
+		Mode: packages.NeedName | packages.NeedImports | packages.NeedDeps | packages.NeedTypes | packages.NeedSyntax | packages.NeedTypesInfo,
 	}, flag.Args()...)
 	if err != nil {
 		return err
 	}
 
-	var shaders []Shader
+	// Collect shader information.
+	// Even if no shader is found, the output should be a JSON array. Start with an empty slice, not nil.
+	shaders := []Shader{}
 
 	packages.Visit(pkgs, func(pkg *packages.Package) bool {
 		path := pkg.PkgPath
