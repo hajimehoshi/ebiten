@@ -30,7 +30,15 @@ import (
 
 	"golang.org/x/tools/go/ast/inspector"
 	"golang.org/x/tools/go/packages"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
+	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/glsl"
+	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/hlsl"
+	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/msl"
+	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/pssl"
 )
+
+var flagTarget = flag.String("target", "", "shader compilation targets separated by comma (e.g. 'glsl,glsles,hlsl,msl')")
 
 func main() {
 	if err := xmain(); err != nil {
@@ -43,11 +51,40 @@ type Shader struct {
 	Package string
 	File    string
 	Source  string
+	GLSL    *GLSL   `json:",omitempty"`
+	GLSLES  *GLSLES `json:",omitempty"`
+	HLSL    *HLSL   `json:",omitempty"`
+	MSL     *MSL    `json:",omitempty"`
+	PSSL    *PSSL   `json:",omitempty"`
+}
+
+type GLSL struct {
+	Vertex   string
+	Fragment string
+}
+
+type GLSLES struct {
+	Vertex   string
+	Fragment string
+}
+
+type HLSL struct {
+	Vertex string
+	Pixel  string
+}
+
+type MSL struct {
+	Shader string
+}
+
+type PSSL struct {
+	Vertex string
+	Pixel  string
 }
 
 func xmain() error {
 	flag.Usage = func() {
-		fmt.Fprintln(os.Stderr, "shaderlister [package]")
+		fmt.Fprintln(os.Stderr, "shaderlister [-target=TARGET] [package]")
 		os.Exit(2)
 	}
 	flag.Parse()
@@ -62,10 +99,18 @@ func xmain() error {
 		return err
 	}
 
+	var targets []string
+	if ft := strings.TrimSpace(*flagTarget); ft != "" {
+		for _, t := range strings.Split(ft, ",") {
+			targets = append(targets, strings.TrimSpace(t))
+		}
+	}
+
 	// Collect shader information.
 	// Even if no shader is found, the output should be a JSON array. Start with an empty slice, not nil.
 	shaders := []Shader{}
 
+	var visitErr error
 	packages.Visit(pkgs, func(pkg *packages.Package) bool {
 		path := pkg.PkgPath
 		// A standard library should not have a directive for shaders. Skip them.
@@ -76,9 +121,26 @@ func xmain() error {
 		if strings.HasPrefix(path, "golang.org/x/") {
 			return true
 		}
+
+		origN := len(shaders)
 		shaders = appendShaderSources(shaders, pkg)
+
+		// Compile shaders.
+		if len(targets) == 0 {
+			return true
+		}
+		for i := range shaders[origN:] {
+			if err := compile(&shaders[i], targets); err != nil {
+				visitErr = err
+				return false
+			}
+		}
+
 		return true
 	}, nil)
+	if visitErr != nil {
+		return visitErr
+	}
 
 	w := bufio.NewWriter(os.Stdout)
 	enc := json.NewEncoder(w)
@@ -278,4 +340,49 @@ func objectTypeString(obj types.Object) string {
 	default:
 		return fmt.Sprintf("objectTypeString(%T)", obj)
 	}
+}
+
+func compile(shader *Shader, targets []string) error {
+	ir, err := graphics.CompileShader([]byte(shader.Source))
+	if err != nil {
+		return fmt.Errorf("compiling shader failed: %w", err)
+	}
+
+	for _, target := range targets {
+		switch target {
+		case "glsl":
+			vs, fs := glsl.Compile(ir, glsl.GLSLVersionDefault)
+			shader.GLSL = &GLSL{
+				Vertex:   vs,
+				Fragment: fs,
+			}
+		case "glsles":
+			vs, fs := glsl.Compile(ir, glsl.GLSLVersionES300)
+			shader.GLSLES = &GLSLES{
+				Vertex:   vs,
+				Fragment: fs,
+			}
+		case "hlsl":
+			vs, ps, _ := hlsl.Compile(ir)
+			shader.HLSL = &HLSL{
+				Vertex: vs,
+				Pixel:  ps,
+			}
+		case "msl":
+			s := msl.Compile(ir)
+			shader.MSL = &MSL{
+				Shader: s,
+			}
+		case "pssl":
+			vs, ps := pssl.Compile(ir)
+			shader.PSSL = &PSSL{
+				Vertex: vs,
+				Pixel:  ps,
+			}
+		default:
+			return fmt.Errorf("unsupported target: %s", target)
+		}
+	}
+
+	return nil
 }
