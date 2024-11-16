@@ -144,7 +144,7 @@ var (
 // in your implementation of [FinalScreenDrawer], for example.
 func DefaultDrawFinalScreen(screen FinalScreen, offscreen *Image, geoM GeoM) {
 	theScreenShaderOnce.Do(func() {
-		s, err := newShader(builtinshader.ScreenShaderSource, "screen")
+		s, err := newShader([]byte(builtinshader.ScreenShaderSource), "screen")
 		if err != nil {
 			panic(fmt.Sprintf("ebiten: compiling the screen shader failed: %v", err))
 		}

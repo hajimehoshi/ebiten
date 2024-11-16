@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:generate go run gen.go
+//go:generate gofmt -s -w .
+
 package builtinshader
 
 import (
@@ -166,7 +169,8 @@ func ShaderSource(filter Filter, address Address, useColorM bool) []byte {
 	return b
 }
 
-var ScreenShaderSource = []byte(`//kage:unit pixels
+//ebitengine:shader
+const ScreenShaderSource = `//kage:unit pixels
 
 package main
 
@@ -185,16 +189,17 @@ func Fragment(dstPos vec4, srcPos vec2) vec4 {
 	rate := clamp(fract(p1)*scale, 0, 1)
 	return mix(mix(c0, c1, rate.x), mix(c2, c3, rate.x), rate.y)
 }
-`)
+`
 
-var ClearShaderSource = []byte(`//kage:unit pixels
+//ebitengine:shader
+const ClearShaderSource = `//kage:unit pixels
 
 package main
 
 func Fragment() vec4 {
 	return vec4(0)
 }
-`)
+`
 
 func AppendShaderSources(sources [][]byte) [][]byte {
 	for filter := Filter(0); filter < FilterCount; filter++ {
@@ -202,6 +207,5 @@ func AppendShaderSources(sources [][]byte) [][]byte {
 			sources = append(sources, ShaderSource(filter, address, false), ShaderSource(filter, address, true))
 		}
 	}
-	sources = append(sources, ScreenShaderSource, ClearShaderSource)
 	return sources
 }
