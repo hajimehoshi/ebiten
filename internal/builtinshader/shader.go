@@ -200,12 +200,3 @@ func Fragment() vec4 {
 	return vec4(0)
 }
 `
-
-func AppendShaderSources(sources [][]byte) [][]byte {
-	for filter := Filter(0); filter < FilterCount; filter++ {
-		for address := Address(0); address < AddressCount; address++ {
-			sources = append(sources, ShaderSource(filter, address, false), ShaderSource(filter, address, true))
-		}
-	}
-	return sources
-}
