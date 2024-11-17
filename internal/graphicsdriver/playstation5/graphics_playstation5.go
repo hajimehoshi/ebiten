@@ -17,6 +17,7 @@
 package playstation5
 
 // #include "graphics_playstation5.h"
+// #include <stdlib.h>
 import "C"
 
 import (
@@ -120,19 +121,14 @@ func (g *Graphics) MaxImageSize() int {
 
 func (g *Graphics) NewShader(program *shaderir.Program) (graphicsdriver.Shader, error) {
 	s := precompiledShaders[program.SourceHash]
-	ps := C.ebitengine_PrecompiledShader{
-		vertex_header:      (*C.char)(unsafe.Pointer(unsafe.SliceData(s.vertexHeader))),
-		vertex_header_size: C.int(len(s.vertexHeader)),
-		vertex_text:        (*C.char)(unsafe.Pointer(unsafe.SliceData(s.vertexText))),
-		vertex_text_size:   C.int(len(s.vertexText)),
-		pixel_header:       (*C.char)(unsafe.Pointer(unsafe.SliceData(s.pixelHeader))),
-		pixel_header_size:  C.int(len(s.pixelHeader)),
-		pixel_text:         (*C.char)(unsafe.Pointer(unsafe.SliceData(s.pixelText))),
-		pixel_text_size:    C.int(len(s.pixelText)),
-	}
+	defer runtime.KeepAlive(s)
 
 	var id C.int
-	if err := C.ebitengine_NewShader(&id, &ps); !C.ebitengine_IsErrorNil(&err) {
+	if err := C.ebitengine_NewShader(&id,
+		(*C.char)(unsafe.Pointer(unsafe.SliceData(s.vertexHeader))), C.int(len(s.vertexHeader)),
+		(*C.char)(unsafe.Pointer(unsafe.SliceData(s.vertexText))), C.int(len(s.vertexText)),
+		(*C.char)(unsafe.Pointer(unsafe.SliceData(s.pixelHeader))), C.int(len(s.pixelHeader)),
+		(*C.char)(unsafe.Pointer(unsafe.SliceData(s.pixelText))), C.int(len(s.pixelText))); !C.ebitengine_IsErrorNil(&err) {
 		return nil, newPlaystation5Error("(*playstation5.Graphics).NewShader", err)
 	}
 	return &Shader{

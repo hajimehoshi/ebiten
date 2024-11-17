@@ -103,20 +103,10 @@ ebitengine_DrawTriangles(int dst, const int *srcs, int src_count, int shader,
                          ebitengine_Blend blend, const uint32_t *uniforms,
                          int uniform_count, int fill_rule);
 
-typedef struct ebitengine_PrecompiledShader {
-  char *vertex_header;
-  int vertex_header_size;
-  char *vertex_text;
-  int vertex_text_size;
-  char *pixel_header;
-  int pixel_header_size;
-  char *pixel_text;
-  int pixel_text_size;
-} ebitengine_PrecompiledShader;
-
-ebitengine_Error
-ebitengine_NewShader(int *shader,
-                     const ebitengine_PrecompiledShader *precompiled_shader);
+ebitengine_Error ebitengine_NewShader(
+    int *shader, const char *vertex_header, int vertex_header_size,
+    const char *vertex_text, int vertex_text_size, const char *pixel_header,
+    int pixel_header_size, const char *pixel_text, int pixel_text_size);
 void ebitengine_DisposeShader(int id);
 
 #ifdef __cplusplus
