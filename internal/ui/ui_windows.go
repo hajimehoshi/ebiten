@@ -118,10 +118,10 @@ func (u *UserInterface) adjustWindowPosition(x, y int, monitor *Monitor) (int, i
 	// If a window is not decorated, the window should be able to reach the top of the screen (#3118).
 	d, err := u.window.GetAttrib(glfw.Decorated)
 	if err != nil {
-		return 0, 0, err
+		panic(err)
 	}
 	if d == glfw.False {
-		return x, y, nil
+		return x, y
 	}
 
 	mx := monitor.boundsInGLFWPixels.Min.X
