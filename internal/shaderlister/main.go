@@ -48,14 +48,15 @@ func main() {
 }
 
 type Shader struct {
-	Package string
-	File    string
-	Source  string
-	GLSL    *GLSL   `json:",omitempty"`
-	GLSLES  *GLSLES `json:",omitempty"`
-	HLSL    *HLSL   `json:",omitempty"`
-	MSL     *MSL    `json:",omitempty"`
-	PSSL    *PSSL   `json:",omitempty"`
+	Package    string
+	File       string
+	Source     string
+	SourceHash string
+	GLSL       *GLSL   `json:",omitempty"`
+	GLSLES     *GLSLES `json:",omitempty"`
+	HLSL       *HLSL   `json:",omitempty"`
+	MSL        *MSL    `json:",omitempty"`
+	PSSL       *PSSL   `json:",omitempty"`
 }
 
 type GLSL struct {
@@ -124,6 +125,17 @@ func xmain() error {
 
 		origN := len(shaders)
 		shaders = appendShaderSources(shaders, pkg)
+
+		// Add source hashes.
+		for i := range shaders[origN:] {
+			shader := &shaders[i]
+			hash, err := graphics.CalcSourceHash([]byte(shader.Source))
+			if err != nil {
+				visitErr = err
+				return false
+			}
+			shader.SourceHash = hash.String()
+		}
 
 		// Compile shaders.
 		if len(targets) == 0 {
