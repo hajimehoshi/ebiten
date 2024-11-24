@@ -59,7 +59,8 @@ type Program struct {
 
 	SourceHash SourceHash
 
-	uniformFactors []uint32
+	uniformFactors  []uint32
+	offsetsInDWords []int
 }
 
 type Func struct {
