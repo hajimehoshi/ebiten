@@ -148,8 +148,8 @@ func compileShader(program *shaderir.Program) (vsh, psh *_ID3DBlob, ferr error) 
 func constantBufferSize(uniformTypes []shaderir.Type, uniformOffsets []int) int {
 	var size int
 	for i, typ := range uniformTypes {
-		if size < uniformOffsets[i]/4 {
-			size = uniformOffsets[i] / 4
+		if size < uniformOffsets[i] {
+			size = uniformOffsets[i]
 		}
 
 		switch typ.Main {
@@ -202,8 +202,8 @@ func adjustUniforms(uniformTypes []shaderir.Type, uniformOffsets []int, uniforms
 	var fs []uint32
 	var idx int
 	for i, typ := range uniformTypes {
-		if len(fs) < uniformOffsets[i]/4 {
-			fs = append(fs, make([]uint32, uniformOffsets[i]/4-len(fs))...)
+		if len(fs) < uniformOffsets[i] {
+			fs = append(fs, make([]uint32, uniformOffsets[i]-len(fs))...)
 		}
 
 		n := typ.Uint32Count()

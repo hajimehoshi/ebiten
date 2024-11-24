@@ -81,7 +81,7 @@ float4x4 float4x4FromScalar(float x) {
 }`
 
 func Compile(p *shaderir.Program) (vertexShader, pixelShader, prelude string) {
-	offsets := CalcUniformMemoryOffsets(p)
+	offsets := CalcUniformMemoryOffsetsInDWords(p)
 
 	c := &compileContext{
 		unit: p.Unit,
@@ -119,13 +119,13 @@ func Compile(p *shaderir.Program) (vertexShader, pixelShader, prelude string) {
 		lines = append(lines, "cbuffer Uniforms : register(b0) {")
 		for i, t := range p.Uniforms {
 			// packingoffset is not mandatory, but this is useful to ensure the correct offset is used.
-			offset := fmt.Sprintf("c%d", offsets[i]/boundaryInBytes)
-			switch offsets[i] % boundaryInBytes {
-			case 4:
+			offset := fmt.Sprintf("c%d", offsets[i]/boundaryInDWords)
+			switch offsets[i] % boundaryInDWords {
+			case 1:
 				offset += ".y"
-			case 8:
+			case 2:
 				offset += ".z"
-			case 12:
+			case 3:
 				offset += ".w"
 			}
 			lines = append(lines, fmt.Sprintf("\t%s : packoffset(%s);", c.varDecl(p, &t, fmt.Sprintf("U%d", i)), offset))

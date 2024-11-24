@@ -20,20 +20,20 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
 
-const boundaryInBytes = 16
+const boundaryInDWords = 4
 
-func CalcUniformMemoryOffsets(program *shaderir.Program) []int {
+func CalcUniformMemoryOffsetsInDWords(program *shaderir.Program) []int {
 	// https://docs.microsoft.com/en-us/windows/win32/direct3dhlsl/dx-graphics-hlsl-packing-rules
 	// https://github.com/microsoft/DirectXShaderCompiler/wiki/Buffer-Packing
 
-	var offsets []int
-	var head int
+	var offsetsInDWords []int
+	var headInDWords int
 
 	align := func(x int) int {
 		if x == 0 {
 			return 0
 		}
-		return ((x-1)/boundaryInBytes + 1) * boundaryInBytes
+		return ((x-1)/boundaryInDWords + 1) * boundaryInDWords
 	}
 
 	// TODO: Reorder the variables with packoffset.
@@ -41,47 +41,47 @@ func CalcUniformMemoryOffsets(program *shaderir.Program) []int {
 	for _, u := range program.Uniforms {
 		switch u.Main {
 		case shaderir.Float:
-			offsets = append(offsets, head)
-			head += 4
+			offsetsInDWords = append(offsetsInDWords, headInDWords)
+			headInDWords += 1
 		case shaderir.Int:
-			offsets = append(offsets, head)
-			head += 4
+			offsetsInDWords = append(offsetsInDWords, headInDWords)
+			headInDWords += 1
 		case shaderir.Vec2, shaderir.IVec2:
-			if head%boundaryInBytes >= 4*3 {
-				head = align(head)
+			if headInDWords%boundaryInDWords >= 3 {
+				headInDWords = align(headInDWords)
 			}
-			offsets = append(offsets, head)
-			head += 4 * 2
+			offsetsInDWords = append(offsetsInDWords, headInDWords)
+			headInDWords += 2
 		case shaderir.Vec3, shaderir.IVec3:
-			if head%boundaryInBytes >= 4*2 {
-				head = align(head)
+			if headInDWords%boundaryInDWords >= 2 {
+				headInDWords = align(headInDWords)
 			}
-			offsets = append(offsets, head)
-			head += 4 * 3
+			offsetsInDWords = append(offsetsInDWords, headInDWords)
+			headInDWords += 3
 		case shaderir.Vec4, shaderir.IVec4:
-			if head%boundaryInBytes >= 4*1 {
-				head = align(head)
+			if headInDWords%boundaryInDWords >= 1 {
+				headInDWords = align(headInDWords)
 			}
-			offsets = append(offsets, head)
-			head += 4 * 4
+			offsetsInDWords = append(offsetsInDWords, headInDWords)
+			headInDWords += 4
 		case shaderir.Mat2:
 			// For matrices, each column is aligned to the boundary.
-			head = align(head)
-			offsets = append(offsets, head)
-			head += 4 * 6
+			headInDWords = align(headInDWords)
+			offsetsInDWords = append(offsetsInDWords, headInDWords)
+			headInDWords += 6
 		case shaderir.Mat3:
-			head = align(head)
-			offsets = append(offsets, head)
-			head += 4 * 11
+			headInDWords = align(headInDWords)
+			offsetsInDWords = append(offsetsInDWords, headInDWords)
+			headInDWords += 11
 		case shaderir.Mat4:
-			head = align(head)
-			offsets = append(offsets, head)
-			head += 4 * 16
+			headInDWords = align(headInDWords)
+			offsetsInDWords = append(offsetsInDWords, headInDWords)
+			headInDWords += 16
 		case shaderir.Array:
 			// Each array is 16-byte aligned.
 			// TODO: What if the array has 2 or more dimensions?
-			head = align(head)
-			offsets = append(offsets, head)
+			headInDWords = align(headInDWords)
+			offsetsInDWords = append(offsetsInDWords, headInDWords)
 			n := u.Sub[0].Uint32Count()
 			switch u.Sub[0].Main {
 			case shaderir.Mat2:
@@ -91,9 +91,9 @@ func CalcUniformMemoryOffsets(program *shaderir.Program) []int {
 			case shaderir.Mat4:
 				n = 16
 			}
-			head += (u.Length - 1) * align(4*n)
+			headInDWords += (u.Length - 1) * align(n)
 			// The last element is not with a padding.
-			head += 4 * n
+			headInDWords += n
 		case shaderir.Struct:
 			// TODO: Implement this
 			panic("hlsl: offset for a struct is not implemented yet")
@@ -102,5 +102,5 @@ func CalcUniformMemoryOffsets(program *shaderir.Program) []int {
 		}
 	}
 
-	return offsets
+	return offsetsInDWords
 }
