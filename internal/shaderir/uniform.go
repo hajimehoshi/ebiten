@@ -99,9 +99,9 @@ func (p *Program) UniformOffsetsInDWords() []int {
 			headInDWords += n
 		case Struct:
 			// TODO: Implement this
-			panic("hlsl: offset for a struct is not implemented yet")
+			panic("shaderir: offset for a struct is not implemented yet")
 		default:
-			panic(fmt.Sprintf("hlsl: unexpected type: %s", u.String()))
+			panic(fmt.Sprintf("shaderir: unexpected type: %s", u.String()))
 		}
 	}
 
