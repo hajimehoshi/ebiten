@@ -199,6 +199,9 @@ func constantBufferSize(uniformTypes []shaderir.Type, uniformOffsets []int) int 
 }
 
 func adjustUniforms(uniformTypes []shaderir.Type, uniformOffsets []int, uniforms []uint32) []uint32 {
+	// Note that HLSL's matrices are row-major, while GLSL and MSL are column-major.
+	// Transpose matrices so that users can access matrix indices in the same way as GLSL and MSL.
+
 	var fs []uint32
 	var idx int
 	for i, typ := range uniformTypes {

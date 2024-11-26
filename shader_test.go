@@ -1097,6 +1097,46 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 	}
 }
 
+func TestShaderUniformMatrixIndexer(t *testing.T) {
+	const w, h = 16, 16
+
+	dst := ebiten.NewImage(w, h)
+	s, err := ebiten.NewShader([]byte(`//kage:unit pixels
+
+package main
+
+var Mat4 mat4
+
+func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+	return Mat4[1][2] * vec4(1)
+}
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	op := &ebiten.DrawRectShaderOptions{}
+	op.Uniforms = map[string]any{
+		"Mat4": []float32{
+			1.0 / 256.0, 2.0 / 256.0, 3.0 / 256.0, 4.0 / 256.0,
+			5.0 / 256.0, 6.0 / 256.0, 7.0 / 256.0, 8.0 / 256.0,
+			9.0 / 256.0, 10.0 / 256.0, 11.0 / 256.0, 12.0 / 256.0,
+			13.0 / 256.0, 14.0 / 256.0, 15.0 / 256.0, 16.0 / 256.0,
+		},
+	}
+	dst.DrawRectShader(w, h, s, op)
+
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			got := dst.At(i, j).(color.RGBA)
+			want := color.RGBA{R: 7, G: 7, B: 7, A: 7}
+			if !sameColors(got, want, 2) {
+				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+}
+
 func TestShaderOptionsNegativeBounds(t *testing.T) {
 	const w, h = 16, 16
 

@@ -909,11 +909,11 @@ func adjustUniformVariablesLayout(uniformTypes []shaderir.Type, uniforms []uint3
 			values = append(values, 0)
 		case shaderir.Mat4:
 			values = fillZerosToFitAlignment(values, 4)
-			u := uniforms[idx : idx+16]
 			if i == graphics.ProjectionMatrixUniformVariableIndex {
 				// In Metal, the NDC's Y direction (upward) and the framebuffer's Y direction (downward) don't
 				// match. Then, the Y direction must be inverted.
 				// Invert the sign bits as float32 values.
+				u := uniforms[idx : idx+16]
 				values = append(values,
 					u[0], u[1]^uint32(1<<31), u[2], u[3],
 					u[4], u[5]^uint32(1<<31), u[6], u[7],
