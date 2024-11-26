@@ -289,11 +289,11 @@ func adjustUniforms(uniformTypes []shaderir.Type, uniformOffsets []int, uniforms
 					u := uniforms[idx+4*j : idx+4*(j+1)]
 					fs = append(fs,
 						u[0], u[2], 0, 0,
-						u[1], u[3], 0, 0,
+						u[1], u[3],
 					)
-				}
-				if typ.Length > 0 {
-					fs = fs[:len(fs)-2]
+					if j < typ.Length-1 {
+						fs = append(fs, 0, 0)
+					}
 				}
 			case shaderir.Mat3:
 				for j := 0; j < typ.Length; j++ {
@@ -301,11 +301,11 @@ func adjustUniforms(uniformTypes []shaderir.Type, uniformOffsets []int, uniforms
 					fs = append(fs,
 						u[0], u[3], u[6], 0,
 						u[1], u[4], u[7], 0,
-						u[2], u[5], u[8], 0,
+						u[2], u[5], u[8],
 					)
-				}
-				if typ.Length > 0 {
-					fs = fs[:len(fs)-1]
+					if j < typ.Length-1 {
+						fs = append(fs, 0)
+					}
 				}
 			case shaderir.Mat4:
 				for j := 0; j < typ.Length; j++ {
