@@ -30,6 +30,11 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
 
+//export ebitengine_ProjectionMatrixUniformDwordIndex
+func ebitengine_ProjectionMatrixUniformDwordIndex() C.int {
+	return C.int(graphics.ProjectionMatrixUniformDwordIndex)
+}
+
 type playstation5Error struct {
 	name    string
 	code    int

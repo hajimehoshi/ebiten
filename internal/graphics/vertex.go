@@ -36,6 +36,13 @@ const (
 		2*ShaderSrcImageCount + // the source image region origins array
 		2*ShaderSrcImageCount + // the source image region sizes array
 		16 // the projection matrix
+
+	ProjectionMatrixUniformDwordIndex = 2 +
+		2*ShaderSrcImageCount +
+		2 +
+		2 +
+		2*ShaderSrcImageCount +
+		2*ShaderSrcImageCount
 )
 
 const (
