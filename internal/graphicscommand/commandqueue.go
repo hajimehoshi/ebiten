@@ -468,7 +468,7 @@ func prependPreservedUniforms(uniforms []uint32, shader *Shader, dst *Image, src
 	return uniforms
 }
 
-// Confirm the concrete value of graphics.PreservedUniformUint32Count.
+// Confirm the concrete value of graphics.PreservedUniformDwordCount.
 var _ [0]struct{} = [graphics.PreservedUniformDwordCount - 46]struct{}{}
 
 type commandQueuePool struct {

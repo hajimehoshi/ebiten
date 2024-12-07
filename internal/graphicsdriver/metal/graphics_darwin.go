@@ -882,7 +882,7 @@ func adjustUniformVariablesLayout(uniformTypes []shaderir.Type, uniforms []uint3
 
 	var idx int
 	for i, typ := range uniformTypes {
-		n := typ.Uint32Count()
+		n := typ.DwordCount()
 		switch typ.Main {
 		case shaderir.Float, shaderir.Int:
 			values = append(values, uniforms[idx:idx+n]...)
