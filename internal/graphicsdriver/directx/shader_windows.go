@@ -209,7 +209,7 @@ func adjustUniforms(uniformTypes []shaderir.Type, uniformOffsets []int, uniforms
 			fs = append(fs, make([]uint32, uniformOffsets[i]-len(fs))...)
 		}
 
-		n := typ.Uint32Count()
+		n := typ.DwordCount()
 		switch typ.Main {
 		case shaderir.Float:
 			fs = append(fs, uniforms[idx:idx+1]...)

@@ -87,7 +87,7 @@ func (t Type) String() string {
 	}
 }
 
-func (t Type) Uint32Count() int {
+func (t Type) DwordCount() int {
 	switch t.Main {
 	case Int:
 		return 1
@@ -112,7 +112,7 @@ func (t Type) Uint32Count() int {
 	case Mat4:
 		return 16
 	case Array:
-		return t.Length * t.Sub[0].Uint32Count()
+		return t.Length * t.Sub[0].DwordCount()
 	default: // TODO: Parse a struct correctly
 		return -1
 	}

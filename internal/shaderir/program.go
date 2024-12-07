@@ -493,7 +493,7 @@ func (p *Program) FilterUniformVariables(uniforms []uint32) {
 		p.uniformFactors = make([]uint32, len(uniforms))
 		var idx int
 		for i, typ := range p.Uniforms {
-			c := typ.Uint32Count()
+			c := typ.DwordCount()
 			if reachableUniforms[i] {
 				for i := idx; i < idx+c; i++ {
 					p.uniformFactors[i] = 1

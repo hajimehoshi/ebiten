@@ -23,7 +23,7 @@ import (
 )
 
 func BenchmarkPrependPreservedUniforms(b *testing.B) {
-	var uniforms [graphics.PreservedUniformUint32Count]uint32
+	var uniforms [graphics.PreservedUniformDwordCount]uint32
 	dst := graphicscommand.NewImage(16, 16, false, "")
 	src := graphicscommand.NewImage(16, 16, false, "")
 	dr := image.Rect(0, 0, 16, 16)

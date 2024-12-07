@@ -347,15 +347,15 @@ func imageRectangleToRectangleF32(r image.Rectangle) rectangleF32 {
 
 func (q *commandQueue) prependPreservedUniforms(uniforms []uint32, shader *Shader, dst *Image, srcs [graphics.ShaderSrcImageCount]*Image, dstRegion image.Rectangle, srcRegions [graphics.ShaderSrcImageCount]image.Rectangle) []uint32 {
 	origUniforms := uniforms
-	uniforms = q.uint32sBuffer.alloc(len(origUniforms) + graphics.PreservedUniformUint32Count)
-	copy(uniforms[graphics.PreservedUniformUint32Count:], origUniforms)
+	uniforms = q.uint32sBuffer.alloc(len(origUniforms) + graphics.PreservedUniformDwordCount)
+	copy(uniforms[graphics.PreservedUniformDwordCount:], origUniforms)
 	return prependPreservedUniforms(uniforms, shader, dst, srcs, dstRegion, srcRegions)
 }
 
 func prependPreservedUniforms(uniforms []uint32, shader *Shader, dst *Image, srcs [graphics.ShaderSrcImageCount]*Image, dstRegion image.Rectangle, srcRegions [graphics.ShaderSrcImageCount]image.Rectangle) []uint32 {
 	// Set the destination texture size.
 	// Hard-code indices for BCE optimization.
-	_ = uniforms[graphics.PreservedUniformUint32Count-1]
+	_ = uniforms[graphics.PreservedUniformDwordCount-1]
 
 	dw, dh := dst.InternalSize()
 	uniforms[0] = math.Float32bits(float32(dw))
@@ -469,7 +469,7 @@ func prependPreservedUniforms(uniforms []uint32, shader *Shader, dst *Image, src
 }
 
 // Confirm the concrete value of graphics.PreservedUniformUint32Count.
-var _ [0]struct{} = [graphics.PreservedUniformUint32Count - 46]struct{}{}
+var _ [0]struct{} = [graphics.PreservedUniformDwordCount - 46]struct{}{}
 
 type commandQueuePool struct {
 	cache []*commandQueue
