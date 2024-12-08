@@ -16,6 +16,7 @@
 package shaderir
 
 import (
+	"bytes"
 	"encoding/hex"
 	"go/constant"
 	"go/token"
@@ -35,7 +36,7 @@ type SourceHash [16]byte
 
 func CalcSourceHash(source []byte) SourceHash {
 	h := fnv.New128a()
-	_, _ = h.Write(source)
+	_, _ = h.Write(bytes.TrimSpace(source))
 
 	var hash SourceHash
 	h.Sum(hash[:0])
