@@ -14,6 +14,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// This file is intended for precompiled shaders that will be introduced in the future.
+// All constant names are underscores and not actually used,
+// so they do not affect the binary file size.
+
 package builtinshader
 
 //ebitengine:shader

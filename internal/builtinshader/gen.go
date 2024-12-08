@@ -46,6 +46,11 @@ const license = `// Copyright 2024 The Ebitengine Authors
 // limitations under the License.
 `
 
+const note = `// This file is intended for precompiled shaders that will be introduced in the future.
+// All constant names are underscores and not actually used,
+// so they do not affect the binary file size.
+`
+
 func xmain() error {
 	f, err := os.Create("defs.go")
 	if err != nil {
@@ -59,6 +64,12 @@ func xmain() error {
 		return err
 	}
 	if _, err := w.WriteString(license); err != nil {
+		return err
+	}
+	if _, err := w.WriteString("\n"); err != nil {
+		return err
+	}
+	if _, err := w.WriteString(note); err != nil {
 		return err
 	}
 	if _, err := w.WriteString("\npackage builtinshader\n"); err != nil {
