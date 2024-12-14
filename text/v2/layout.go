@@ -67,6 +67,8 @@ type LayoutOptions struct {
 // face is the font for text rendering.
 //
 // The '\n' newline character puts the following text on the next line.
+// The next line starts at the position shifted by LayoutOptions.LineSpacing.
+// By default, LayoutOptions.LineSpacing is 0, so you need to specify LineSpacing explicitly if you want to put multiple lines.
 //
 // Glyphs used for rendering are cached in least-recently-used way.
 // Then old glyphs might be evicted from the cache.
