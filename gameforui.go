@@ -92,7 +92,6 @@ func (g *gameForUI) Layout(outsideWidth, outsideHeight float64) (float64, float6
 		outsideHeight = 1
 	}
 
-	// TODO: Add a new Layout function taking float values (#2285).
 	sw, sh := g.game.Layout(int(outsideWidth), int(outsideHeight))
 	return float64(sw), float64(sh)
 }
