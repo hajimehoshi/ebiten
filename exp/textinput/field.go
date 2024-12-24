@@ -118,13 +118,13 @@ func (f *Field) HandleInput(x, y int) (handled bool, err error) {
 					f.err = state.Error
 					return false, f.err
 				}
-				handled = true
 				if !ok {
 					f.ch = nil
 					f.end = nil
 					f.state = State{}
 					break readchar
 				}
+				handled = true
 				if state.Committed {
 					f.text = f.text[:f.selectionStart] + state.Text + f.text[f.selectionEnd:]
 					f.selectionStart += len(state.Text)
