@@ -16,7 +16,6 @@ package text
 
 import (
 	"github.com/go-text/typesetting/font"
-	"github.com/go-text/typesetting/font/opentype"
 )
 
 // Metadata represents a font face's metadata.
@@ -27,8 +26,8 @@ type Metadata struct {
 	Stretch Stretch
 }
 
-func metadataFromLoader(l *opentype.Loader) Metadata {
-	d, _ := font.Describe(l, nil)
+func metadataFromFace(f *font.Face) Metadata {
+	d := f.Describe()
 	return Metadata{
 		Family:  d.Family,
 		Style:   Style(d.Aspect.Style),

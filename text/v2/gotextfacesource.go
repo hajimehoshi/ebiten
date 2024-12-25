@@ -89,6 +89,16 @@ func toFontResource(source io.Reader) (font.Resource, error) {
 	return bytes.NewReader(bs), nil
 }
 
+func newGoTextFaceSource(face *font.Face) *GoTextFaceSource {
+	s := &GoTextFaceSource{
+		f: face,
+	}
+	s.addr = s
+	s.metadata = metadataFromFace(face)
+	s.outputCache = newCache[goTextOutputCacheKey, goTextOutputCacheValue](512)
+	return s
+}
+
 // NewGoTextFaceSource parses an OpenType or TrueType font and returns a GoTextFaceSource object.
 func NewGoTextFaceSource(source io.Reader) (*GoTextFaceSource, error) {
 	src, err := toFontResource(source)
@@ -106,13 +116,7 @@ func NewGoTextFaceSource(source io.Reader) (*GoTextFaceSource, error) {
 		return nil, err
 	}
 
-	s := &GoTextFaceSource{
-		f: font.NewFace(f),
-	}
-	s.addr = s
-	s.metadata = metadataFromLoader(l)
-	s.outputCache = newCache[goTextOutputCacheKey, goTextOutputCacheValue](512)
-
+	s := newGoTextFaceSource(&font.Face{Font: f})
 	return s, nil
 }
 
@@ -134,11 +138,7 @@ func NewGoTextFaceSourcesFromCollection(source io.Reader) ([]*GoTextFaceSource, 
 		if err != nil {
 			return nil, err
 		}
-		s := &GoTextFaceSource{
-			f: &font.Face{Font: f},
-		}
-		s.addr = s
-		s.metadata = metadataFromLoader(l)
+		s := newGoTextFaceSource(&font.Face{Font: f})
 		sources[i] = s
 	}
 	return sources, nil
