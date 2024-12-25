@@ -448,3 +448,30 @@ func TestGoXFaceMetrics(t *testing.T) {
 		})
 	}
 }
+
+func TestCollection(t *testing.T) {
+	fontFilePaths := []string{
+		// If a font file doesn't exist, the test is skipped.
+		"/System/Library/Fonts/Helvetica.ttc",
+	}
+	for _, path := range fontFilePaths {
+		path := path
+		t.Run(path, func(t *testing.T) {
+			bs, err := os.ReadFile(path)
+			if err != nil {
+				t.Skipf("skipping: failed to read %s", path)
+			}
+			fs, err := text.NewGoTextFaceSourcesFromCollection(bytes.NewBuffer(bs))
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, f := range fs {
+				dst := ebiten.NewImage(16, 16)
+				text.Draw(dst, "a", &text.GoTextFace{
+					Source: f,
+					Size:   16,
+				}, nil)
+			}
+		})
+	}
+}
