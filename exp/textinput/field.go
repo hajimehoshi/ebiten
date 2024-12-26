@@ -237,6 +237,16 @@ func (f *Field) TextForRendering() string {
 	return f.text
 }
 
+// UncommittedTextLengthInBytes returns the compositing text length in bytes when the field is focused and the text is editing.
+// The uncommitted text range is from the selection start to the selection start + the uncommitted text length.
+// UncommittedTextLengthInBytes returns 0 otherwise.
+func (f *Field) UncommittedTextLengthInBytes() int {
+	if f.IsFocused() {
+		return len(f.state.Text)
+	}
+	return 0
+}
+
 // SetTextAndSelection sets the text and the selection range.
 func (f *Field) SetTextAndSelection(text string, selectionStartInBytes, selectionEndInBytes int) {
 	f.cleanUp()
