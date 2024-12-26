@@ -71,9 +71,9 @@ func isFieldFocused(f *Field) bool {
 //
 // For an actual usage, see the examples "textinput".
 type Field struct {
-	text           string
-	selectionStart int
-	selectionEnd   int
+	text                  string
+	selectionStartInBytes int
+	selectionEndInBytes   int
 
 	ch    chan State
 	end   func()
@@ -126,9 +126,9 @@ func (f *Field) HandleInput(x, y int) (handled bool, err error) {
 				}
 				handled = true
 				if state.Committed {
-					f.text = f.text[:f.selectionStart] + state.Text + f.text[f.selectionEnd:]
-					f.selectionStart += len(state.Text)
-					f.selectionEnd = f.selectionStart
+					f.text = f.text[:f.selectionStartInBytes] + state.Text + f.text[f.selectionEndInBytes:]
+					f.selectionStartInBytes += len(state.Text)
+					f.selectionEndInBytes = f.selectionStartInBytes
 					f.state = State{}
 					continue
 				}
@@ -181,9 +181,9 @@ func (f *Field) cleanUp() {
 				return
 			}
 			if ok && state.Committed {
-				f.text = f.text[:f.selectionStart] + state.Text + f.text[f.selectionEnd:]
-				f.selectionStart += len(state.Text)
-				f.selectionEnd = f.selectionStart
+				f.text = f.text[:f.selectionStartInBytes] + state.Text + f.text[f.selectionEndInBytes:]
+				f.selectionStartInBytes += len(state.Text)
+				f.selectionEndInBytes = f.selectionStartInBytes
 				f.state = State{}
 			}
 			f.state = state
@@ -201,14 +201,14 @@ func (f *Field) cleanUp() {
 }
 
 // Selection returns the current selection range in bytes.
-func (f *Field) Selection() (start, end int) {
-	return f.selectionStart, f.selectionEnd
+func (f *Field) Selection() (startInBytes, endInBytes int) {
+	return f.selectionStartInBytes, f.selectionEndInBytes
 }
 
 // CompositionSelection returns the current composition selection in bytes if a text is composited.
 // If a text is not composited, this returns 0s and false.
 // The returned values indicate relative positions in bytes where the current composition text's start is 0.
-func (f *Field) CompositionSelection() (start, end int, ok bool) {
+func (f *Field) CompositionSelection() (startInBytes, endInBytes int, ok bool) {
 	if f.IsFocused() && f.state.Text != "" {
 		return f.state.CompositionSelectionStartInBytes, f.state.CompositionSelectionEndInBytes, true
 	}
@@ -216,10 +216,10 @@ func (f *Field) CompositionSelection() (start, end int, ok bool) {
 }
 
 // SetSelection sets the selection range.
-func (f *Field) SetSelection(start, end int) {
+func (f *Field) SetSelection(startInBytes, endInBytes int) {
 	f.cleanUp()
-	f.selectionStart = start
-	f.selectionEnd = end
+	f.selectionStartInBytes = startInBytes
+	f.selectionEndInBytes = endInBytes
 }
 
 // Text returns the current text.
@@ -232,15 +232,15 @@ func (f *Field) Text() string {
 // The returned value includes compositing texts.
 func (f *Field) TextForRendering() string {
 	if f.IsFocused() && f.state.Text != "" {
-		return f.text[:f.selectionStart] + f.state.Text + f.text[f.selectionEnd:]
+		return f.text[:f.selectionStartInBytes] + f.state.Text + f.text[f.selectionEndInBytes:]
 	}
 	return f.text
 }
 
 // SetTextAndSelection sets the text and the selection range.
-func (f *Field) SetTextAndSelection(text string, selectionStart, selectionEnd int) {
+func (f *Field) SetTextAndSelection(text string, selectionStartInBytes, selectionEndInBytes int) {
 	f.cleanUp()
 	f.text = text
-	f.selectionStart = selectionStart
-	f.selectionEnd = selectionEnd
+	f.selectionStartInBytes = selectionStartInBytes
+	f.selectionEndInBytes = selectionEndInBytes
 }
