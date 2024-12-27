@@ -58,6 +58,8 @@ type GoTextFace struct {
 
 	// Script is a hint for a script code hint of (ISO 15924).
 	// If this is empty, the script is guessed from the specified language.
+	//
+	// Deprecated: as of v2.9. Use Language instead.
 	Script language.Script
 
 	variations []font.Variation
