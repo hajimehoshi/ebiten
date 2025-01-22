@@ -15,10 +15,8 @@
 package ebiten
 
 import (
-	"fmt"
 	"image"
 	"math"
-	"sync"
 	"sync/atomic"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
@@ -131,25 +129,12 @@ func (g *gameForUI) DrawFinalScreen(scale, offsetX, offsetY float64) {
 	DefaultDrawFinalScreen(g.screen, g.offscreen, geoM)
 }
 
-var (
-	theScreenShader     *Shader
-	theScreenShaderOnce sync.Once
-)
-
 // DefaultDrawFinalScreen is the default implementation of [FinalScreenDrawer.DrawFinalScreen],
 // used when a [Game] doesn't implement [FinalScreenDrawer].
 //
 // You can use DefaultDrawFinalScreen when you need the default implementation of [FinalScreenDrawer.DrawFinalScreen]
 // in your implementation of [FinalScreenDrawer], for example.
 func DefaultDrawFinalScreen(screen FinalScreen, offscreen *Image, geoM GeoM) {
-	theScreenShaderOnce.Do(func() {
-		s, err := newShader([]byte(builtinshader.ScreenShaderSource), "screen")
-		if err != nil {
-			panic(fmt.Sprintf("ebiten: compiling the screen shader failed: %v", err))
-		}
-		theScreenShader = s
-	})
-
 	scale := geoM.Element(0, 0)
 	switch {
 	case !screenFilterEnabled.Load(), math.Floor(scale) == scale:
@@ -166,6 +151,7 @@ func DefaultDrawFinalScreen(screen FinalScreen, offscreen *Image, geoM GeoM) {
 		op.Images[0] = offscreen
 		op.GeoM = geoM
 		w, h := offscreen.Bounds().Dx(), offscreen.Bounds().Dy()
-		screen.DrawRectShader(w, h, theScreenShader, op)
+		screenShader := builtinShader(builtinshader.FilterPixelated, builtinshader.AddressUnsafe, false)
+		screen.DrawRectShader(w, h, screenShader, op)
 	}
 }

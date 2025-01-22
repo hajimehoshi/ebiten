@@ -19,6 +19,7 @@ import (
 	"image"
 	_ "image/png"
 	"log"
+	"math"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
@@ -35,26 +36,39 @@ var (
 )
 
 type Game struct {
+	counter int
 }
 
 func (g *Game) Update() error {
+	g.counter++
 	return nil
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	ebitenutil.DebugPrint(screen, "Nearest Filter (default) VS Linear Filter")
+	scale := 2*math.Sin(float64(g.counter%360)*math.Pi/180) + 4
+
+	ebitenutil.DebugPrintAt(screen, "Nearest Filter (default) and Linear Filter", 16, 16)
 
 	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Scale(4, 4)
+	op.GeoM.Scale(scale, scale)
 	op.GeoM.Translate(64, 64)
 	// By default, nearest filter is used.
 	screen.DrawImage(ebitenImage, op)
 
 	op = &ebiten.DrawImageOptions{}
-	op.GeoM.Scale(4, 4)
-	op.GeoM.Translate(64, 64+240)
+	op.GeoM.Scale(scale, scale)
+	op.GeoM.Translate(64+240, 64)
 	// Specify linear filter.
 	op.Filter = ebiten.FilterLinear
+	screen.DrawImage(ebitenImage, op)
+
+	ebitenutil.DebugPrintAt(screen, "Pixelated Filter", 16, 16+200)
+
+	op = &ebiten.DrawImageOptions{}
+	op.GeoM.Scale(scale, scale)
+	op.GeoM.Translate(64, 64+200)
+	// Specify pixelated filter.
+	op.Filter = ebiten.FilterPixelated
 	screen.DrawImage(ebitenImage, op)
 }
 

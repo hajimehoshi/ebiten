@@ -113,7 +113,8 @@ func builtinShader(filter builtinshader.Filter, address builtinshader.Address, u
 	}
 
 	var shader *Shader
-	if address == builtinshader.AddressUnsafe && !useColorM {
+	if (filter == builtinshader.FilterNearest || filter == builtinshader.FilterLinear) &&
+		address == builtinshader.AddressUnsafe && !useColorM {
 		switch filter {
 		case builtinshader.FilterNearest:
 			shader = &Shader{shader: ui.NearestFilterShader}
@@ -128,6 +129,8 @@ func builtinShader(filter builtinshader.Filter, address builtinshader.Address, u
 			name = "nearest"
 		case builtinshader.FilterLinear:
 			name = "linear"
+		case builtinshader.FilterPixelated:
+			name = "pixelated"
 		}
 		switch address {
 		case builtinshader.AddressClampToZero:

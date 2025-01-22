@@ -28,6 +28,10 @@ const (
 
 	// FilterLinear represents linear filter
 	FilterLinear Filter = Filter(builtinshader.FilterLinear)
+
+	// FilterPixelated represents a pixelated filter.
+	// FilterPixelated is similar to FilterNearest, but it preserves the pixelated appearance even when scaled to non-integer sizes.
+	FilterPixelated Filter = Filter(builtinshader.FilterPixelated)
 )
 
 // GraphicsLibrary represents graphics libraries supported by the engine.

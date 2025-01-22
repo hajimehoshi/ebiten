@@ -29,9 +29,10 @@ type Filter int
 const (
 	FilterNearest Filter = iota
 	FilterLinear
+	FilterPixelated
 )
 
-const FilterCount = 2
+const FilterCount = 3
 
 type Address int
 
@@ -79,9 +80,19 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 {{else if eq .Address .AddressRepeat}}
 	clr := imageSrc0At(adjustSrcPosForAddressRepeat(srcPos))
 {{end}}
-{{else if eq .Filter .FilterLinear}}
+{{else}}
+{{if eq .Filter .FilterLinear}}
 	p0 := srcPos - 1/2.0
 	p1 := srcPos + 1/2.0
+{{else if eq .Filter .FilterPixelated}}
+	// inversedScale is the size of the region on the source image.
+	// The size is the inverse of the geometry-matrix scale.
+	inversedScale := vec2(abs(dfdx(srcPos.x)), abs(dfdy(srcPos.y)))
+	// Cap the inversedScale to 1 as dfdx/dfdy is not accurate on some machines (#3182).
+	inversedScale = min(inversedScale, vec2(1))
+	p0 := srcPos - inversedScale/2.0
+	p1 := srcPos + inversedScale/2.0
+{{end}}
 
 {{if eq .Address .AddressRepeat}}
 	p0 = adjustSrcPosForAddressRepeat(p0)
@@ -100,7 +111,11 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 	c3 := imageSrc0At(p1)
 {{end}}
 
+{{if eq .Filter .FilterLinear}}
 	rate := fract(p1)
+{{else if eq .Filter .FilterPixelated}}
+	rate := clamp(fract(p1)/inversedScale, 0, 1)
+{{end}}
 	clr := mix(mix(c0, c1, rate.x), mix(c2, c3, rate.x), rate.y)
 {{end}}
 
@@ -146,6 +161,7 @@ func ShaderSource(filter Filter, address Address, useColorM bool) []byte {
 		Filter             Filter
 		FilterNearest      Filter
 		FilterLinear       Filter
+		FilterPixelated    Filter
 		Address            Address
 		AddressUnsafe      Address
 		AddressClampToZero Address
@@ -155,6 +171,7 @@ func ShaderSource(filter Filter, address Address, useColorM bool) []byte {
 		Filter:             filter,
 		FilterNearest:      FilterNearest,
 		FilterLinear:       FilterLinear,
+		FilterPixelated:    FilterPixelated,
 		Address:            address,
 		AddressUnsafe:      AddressUnsafe,
 		AddressClampToZero: AddressClampToZero,
@@ -168,28 +185,6 @@ func ShaderSource(filter Filter, address Address, useColorM bool) []byte {
 	shaders[filter][address][c] = b
 	return b
 }
-
-//ebitengine:shader
-const ScreenShaderSource = `//kage:unit pixels
-
-package main
-
-func Fragment(dstPos vec4, srcPos vec2) vec4 {
-	// Blend source colors in a square region, which size is 1/scale.
-	scale := imageDstSize()/imageSrc0Size()
-	p0 := srcPos - 1/2.0/scale
-	p1 := srcPos + 1/2.0/scale
-
-	// Texels must be in the source rect, so it is not necessary to check.
-	c0 := imageSrc0UnsafeAt(p0)
-	c1 := imageSrc0UnsafeAt(vec2(p1.x, p0.y))
-	c2 := imageSrc0UnsafeAt(vec2(p0.x, p1.y))
-	c3 := imageSrc0UnsafeAt(p1)
-
-	rate := clamp(fract(p1)*scale, 0, 1)
-	return mix(mix(c0, c1, rate.x), mix(c2, c3, rate.x), rate.y)
-}
-`
 
 //ebitengine:shader
 const ClearShaderSource = `//kage:unit pixels
