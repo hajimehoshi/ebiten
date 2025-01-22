@@ -20,7 +20,6 @@ import (
 	"sync/atomic"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
-	"github.com/hajimehoshi/ebiten/v2/internal/builtinshader"
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
@@ -147,11 +146,9 @@ func DefaultDrawFinalScreen(screen FinalScreen, offscreen *Image, geoM GeoM) {
 		op.Filter = FilterLinear
 		screen.DrawImage(offscreen, op)
 	default:
-		op := &DrawRectShaderOptions{}
-		op.Images[0] = offscreen
+		op := &DrawImageOptions{}
 		op.GeoM = geoM
-		w, h := offscreen.Bounds().Dx(), offscreen.Bounds().Dy()
-		screenShader := builtinShader(builtinshader.FilterPixelated, builtinshader.AddressUnsafe, false)
-		screen.DrawRectShader(w, h, screenShader, op)
+		op.Filter = FilterPixelated
+		screen.DrawImage(offscreen, op)
 	}
 }
