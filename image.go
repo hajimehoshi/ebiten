@@ -633,7 +633,8 @@ type DrawTrianglesShaderOptions struct {
 	Uniforms map[string]any
 
 	// Images is a set of the source images.
-	// All the images' sizes must be the same.
+	// In the texel mode, all the image sizes must be the same.
+	// The pixel mode allows images of different sizes.
 	Images [4]*Image
 
 	// FillRule indicates the rule how an overlapped region is rendered.
