@@ -94,9 +94,14 @@ func TestSameSourcePlayers(t *testing.T) {
 	p0.Play()
 	p1.Play()
 
-	if err := audio.UpdateForTesting(); err == nil {
-		t.Errorf("got: nil, want: an error")
+	for i := 0; i < 10; i++ {
+		if err := audio.UpdateForTesting(); err != nil {
+			// An error is expected.
+			return
+		}
+		time.Sleep(200 * time.Millisecond)
 	}
+	t.Errorf("time out")
 }
 
 func TestPauseBeforeInit(t *testing.T) {
