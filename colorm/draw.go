@@ -25,6 +25,15 @@ type DrawImageOptions struct {
 	// The default (zero) value is identity, which draws the image at (0, 0).
 	GeoM ebiten.GeoM
 
+	// ColorScale is a scale of color.
+	//
+	// ColorScale is slightly different from colorm.ColorM's Scale in terms of alphas.
+	// ColorScale is applied to premultiplied-alpha colors, while colorm.ColorM is applied to straight-alpha colors.
+	// Thus, ColorM.Scale(r, g, b, a) equals to ColorScale.Scale(r*a, g*a, b*a, a).
+	//
+	// The default (zero) value is identity, which is (1, 1, 1, 1).
+	ColorScale ebiten.ColorScale
+
 	// Blend is a blending way of the source color and the destination color.
 	// The default (zero) value is the regular alpha blending.
 	Blend ebiten.Blend
@@ -44,6 +53,7 @@ func DrawImage(dst, src *ebiten.Image, colorM ColorM, op *DrawImageOptions) {
 
 	opShader := &ebiten.DrawRectShaderOptions{}
 	opShader.GeoM = op.GeoM
+	opShader.ColorScale = op.ColorScale
 	opShader.CompositeMode = ebiten.CompositeModeCustom
 	opShader.Blend = op.Blend
 	opShader.Uniforms = uniforms(colorM)

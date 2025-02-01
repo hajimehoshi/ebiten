@@ -299,3 +299,18 @@ func TestColorMCopy(t *testing.T) {
 		}
 	}
 }
+
+func TestColorScale(t *testing.T) {
+	dst := ebiten.NewImage(1, 1)
+	src := ebiten.NewImage(1, 1)
+	src.Fill(color.White)
+
+	op := &colorm.DrawImageOptions{}
+	op.ColorScale.Scale(0.25, 0.5, 0.5, 0.5)
+	var cm colorm.ColorM
+	cm.Scale(1, 0.5, 1, 0.5)
+	colorm.DrawImage(dst, src, cm, op)
+	if got, want := dst.At(0, 0).(color.RGBA), (color.RGBA{0x20, 0x20, 0x40, 0x40}); !sameColors(got, want, 1) {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+}
