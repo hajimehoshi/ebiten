@@ -561,13 +561,3 @@ void _glfwPlatformTerminate(void)
 
     } // autoreleasepool
 }
-
-const char* _glfwPlatformGetVersionString(void)
-{
-    return _GLFW_VERSION_NUMBER " Cocoa NSGL EGL OSMesa"
-#if defined(_GLFW_BUILD_DLL)
-        " dynamic"
-#endif
-        ;
-}
-

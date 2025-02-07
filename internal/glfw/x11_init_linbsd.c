@@ -1264,21 +1264,3 @@ void _glfwPlatformTerminate(void)
         close(_glfw.x11.emptyEventPipe[1]);
     }
 }
-
-const char* _glfwPlatformGetVersionString(void)
-{
-    return _GLFW_VERSION_NUMBER " X11 GLX EGL OSMesa"
-#if defined(_POSIX_TIMERS) && defined(_POSIX_MONOTONIC_CLOCK)
-        " clock_gettime"
-#else
-        " gettimeofday"
-#endif
-#if defined(__linux__)
-        " evdev"
-#endif
-#if defined(_GLFW_BUILD_DLL)
-        " shared"
-#endif
-        ;
-}
-

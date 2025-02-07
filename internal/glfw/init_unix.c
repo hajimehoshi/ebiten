@@ -340,21 +340,6 @@ GLFWAPI void glfwInitHint(int hint, int value)
                     "Invalid init hint 0x%08X", hint);
 }
 
-GLFWAPI void glfwGetVersion(int* major, int* minor, int* rev)
-{
-    if (major != NULL)
-        *major = GLFW_VERSION_MAJOR;
-    if (minor != NULL)
-        *minor = GLFW_VERSION_MINOR;
-    if (rev != NULL)
-        *rev = GLFW_VERSION_REVISION;
-}
-
-GLFWAPI const char* glfwGetVersionString(void)
-{
-    return _glfwPlatformGetVersionString();
-}
-
 GLFWAPI int glfwGetError(const char** description)
 {
     _GLFWerror* error;
