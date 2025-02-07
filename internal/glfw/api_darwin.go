@@ -4,7 +4,7 @@
 
 package glfw
 
-// #include "internal_unix.h"
+// #include <pthread.h>
 import "C"
 
 import (
@@ -18,16 +18,18 @@ type mach_timebase_info_data_t struct {
 	denom uint32
 }
 
-var mach_absolute_time func() uint64
-var mach_timebase_info func(*mach_timebase_info_data_t)
-var pthread_key_create func(key *C.pthread_key_t, destructor uintptr) int32
-var pthread_key_delete func(key C.pthread_key_t) int32
-var pthread_getspecific func(key C.pthread_key_t) uintptr
-var pthread_setspecific func(key C.pthread_key_t, value uintptr) int32
-var pthread_mutex_init func(mutex *C.pthread_mutex_t, attr *C.pthread_mutexattr_t) int32
-var pthread_mutex_destroy func(mutex *C.pthread_mutex_t) int32
-var pthread_mutex_lock func(mutex *C.pthread_mutex_t) int32
-var pthread_mutex_unlock func(mutex *C.pthread_mutex_t) int32
+var (
+	mach_absolute_time    func() uint64
+	mach_timebase_info    func(*mach_timebase_info_data_t)
+	pthread_key_create    func(key *C.pthread_key_t, destructor uintptr) int32
+	pthread_key_delete    func(key C.pthread_key_t) int32
+	pthread_getspecific   func(key C.pthread_key_t) uintptr
+	pthread_setspecific   func(key C.pthread_key_t, value uintptr) int32
+	pthread_mutex_init    func(mutex *C.pthread_mutex_t, attr *C.pthread_mutexattr_t) int32
+	pthread_mutex_destroy func(mutex *C.pthread_mutex_t) int32
+	pthread_mutex_lock    func(mutex *C.pthread_mutex_t) int32
+	pthread_mutex_unlock  func(mutex *C.pthread_mutex_t) int32
+)
 
 // TODO: replace with Go error handling
 var _glfwInputError func(code int32, format *C.char)
