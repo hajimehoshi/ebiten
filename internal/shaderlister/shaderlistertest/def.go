@@ -69,7 +69,9 @@ const (
 	_, _ = "ignored", "ignored again" // multiple consts are ignored to avoid confusion.
 )
 
-//ebitengine:shaderfile *_kage.go
-//ebitengine:shaderfile resource
+//ebitengine:shaderfile *_kage.go resource nonexistent.go
+
+// Duplicated files are ignored.
+//ebitengine:shaderfile *_kage.go *_kage.go *_kage.go
 
 //ebitengine:shaderfile nonexistent.go

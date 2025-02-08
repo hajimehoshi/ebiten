@@ -188,7 +188,7 @@ const (
 
 var (
 	reShaderSourceDirective = regexp.MustCompile(`(?m)^\s*//` + regexp.QuoteMeta(shaderSourceDirective) + `$`)
-	reShaderFileDirective   = regexp.MustCompile(`(?m)^\s*//` + regexp.QuoteMeta(shaderFileDirective) + ` (.+)$`)
+	reShaderFileDirective   = regexp.MustCompile(`(?m)^\s*//` + regexp.QuoteMeta(shaderFileDirective) + ` `)
 )
 
 func hasShaderSourceDirectiveInComment(commentGroup *ast.CommentGroup) bool {
@@ -198,6 +198,10 @@ func hasShaderSourceDirectiveInComment(commentGroup *ast.CommentGroup) bool {
 		}
 	}
 	return false
+}
+
+func isAsciiSpace(r rune) bool {
+	return r == ' ' || r == '\t' || r == '\v' || r == '\n' || r == '\r'
 }
 
 func appendShaderSources(shaders []Shader, pkg *packages.Package) ([]Shader, error) {
@@ -213,45 +217,62 @@ func appendShaderSources(shaders []Shader, pkg *packages.Package) ([]Shader, err
 	}
 
 	// Resolve ebitengine:shaderfile directives.
+	visitedPatterns := map[string]struct{}{}
+	visitedPaths := map[string]struct{}{}
 	for _, f := range pkg.Syntax {
 		for _, c := range f.Comments {
 			for _, l := range c.List {
-				m := reShaderFileDirective.FindStringSubmatch(l.Text)
-				if len(m) == 0 {
+				m := reShaderFileDirective.FindString(l.Text)
+				if m == "" {
 					continue
 				}
-				pattern := filepath.Join(pkg.Dir, filepath.FromSlash(m[1]))
-				stat, err := os.Stat(pattern)
-				if err == nil && stat.IsDir() {
-					// If the pattern is a directory, read all files in the directory recursively.
-					if err := filepath.WalkDir(pattern, func(path string, d os.DirEntry, err error) error {
-						if err != nil {
-							return err
-						}
-						if d.IsDir() {
+				patterns := strings.TrimPrefix(l.Text, m)
+				for _, pattern := range strings.FieldsFunc(patterns, isAsciiSpace) {
+					pattern := filepath.Join(pkg.Dir, filepath.FromSlash(pattern))
+					if _, ok := visitedPatterns[pattern]; ok {
+						continue
+					}
+					visitedPatterns[pattern] = struct{}{}
+					stat, err := os.Stat(pattern)
+					if err == nil && stat.IsDir() {
+						// If the pattern is a directory, read all files in the directory recursively.
+						if err := filepath.WalkDir(pattern, func(path string, d os.DirEntry, err error) error {
+							if err != nil {
+								return err
+							}
+							if d.IsDir() {
+								return nil
+							}
+							if _, ok := visitedPaths[path]; ok {
+								return nil
+							}
+							visitedPaths[path] = struct{}{}
+							shaders, err = appendShaderFromFile(shaders, pkg.PkgPath, path)
+							if err != nil {
+								return err
+							}
 							return nil
+						}); err != nil {
+							return nil, err
 						}
-						shaders, err = appendShaderFromFile(shaders, pkg.PkgPath, path)
-						if err != nil {
-							return err
-						}
-						return nil
-					}); err != nil {
+						continue
+					}
+					if err != nil && !errors.Is(err, os.ErrNotExist) {
 						return nil, err
 					}
-					continue
-				}
-				if err != nil && !errors.Is(err, os.ErrNotExist) {
-					return nil, err
-				}
-				paths, err := filepath.Glob(pattern)
-				if err != nil {
-					return nil, err
-				}
-				for _, path := range paths {
-					shaders, err = appendShaderFromFile(shaders, pkg.PkgPath, path)
+					paths, err := filepath.Glob(pattern)
 					if err != nil {
 						return nil, err
+					}
+					for _, path := range paths {
+						if _, ok := visitedPaths[path]; ok {
+							continue
+						}
+						visitedPaths[path] = struct{}{}
+						shaders, err = appendShaderFromFile(shaders, pkg.PkgPath, path)
+						if err != nil {
+							return nil, err
+						}
 					}
 				}
 			}
