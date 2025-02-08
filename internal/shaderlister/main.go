@@ -205,6 +205,12 @@ func isAsciiSpace(r rune) bool {
 	return r == ' ' || r == '\t' || r == '\v' || r == '\n' || r == '\r'
 }
 
+func includesGlobMetaChar(str string) bool {
+	// '-' and '^' are meta characters only when these are in brackets.
+	// So, these don't need to be checked.
+	return strings.ContainsAny(str, "*?[]")
+}
+
 func appendShaderSources(shaders []Shader, pkg *packages.Package) ([]Shader, error) {
 	// Resolve ebitengine:shaderfile directives.
 	visitedPatterns := map[string]struct{}{}
@@ -223,33 +229,35 @@ func appendShaderSources(shaders []Shader, pkg *packages.Package) ([]Shader, err
 						continue
 					}
 					visitedPatterns[pattern] = struct{}{}
-					stat, err := os.Stat(pattern)
-					if err == nil && stat.IsDir() {
-						// If the pattern is a directory, read all files in the directory recursively.
-						if err := filepath.WalkDir(pattern, func(path string, d os.DirEntry, err error) error {
-							if err != nil {
-								return err
-							}
-							if d.IsDir() {
+					if !includesGlobMetaChar(pattern) {
+						stat, err := os.Stat(pattern)
+						if err == nil && stat.IsDir() {
+							// If the pattern is a directory, read all files in the directory recursively.
+							if err := filepath.WalkDir(pattern, func(path string, d os.DirEntry, err error) error {
+								if err != nil {
+									return err
+								}
+								if d.IsDir() {
+									return nil
+								}
+								if _, ok := visitedPaths[path]; ok {
+									return nil
+								}
+								visitedPaths[path] = struct{}{}
+								goFile := pkg.Fset.Position(c.Pos()).Filename
+								shaders, err = appendShaderFromFile(shaders, pkg.PkgPath, goFile, path)
+								if err != nil {
+									return err
+								}
 								return nil
+							}); err != nil {
+								return nil, err
 							}
-							if _, ok := visitedPaths[path]; ok {
-								return nil
-							}
-							visitedPaths[path] = struct{}{}
-							goFile := pkg.Fset.Position(c.Pos()).Filename
-							shaders, err = appendShaderFromFile(shaders, pkg.PkgPath, goFile, path)
-							if err != nil {
-								return err
-							}
-							return nil
-						}); err != nil {
+							continue
+						}
+						if err != nil && !errors.Is(err, os.ErrNotExist) {
 							return nil, err
 						}
-						continue
-					}
-					if err != nil && !errors.Is(err, os.ErrNotExist) {
-						return nil, err
 					}
 					paths, err := filepath.Glob(pattern)
 					if err != nil {
