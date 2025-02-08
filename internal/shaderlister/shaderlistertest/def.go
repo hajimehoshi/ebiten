@@ -72,7 +72,7 @@ const (
 )
 
 //go:embed *kage.go
-var embed_go []byte
+var embed_go embed.FS
 
 //go:embed resource
 var embed2_go embed.FS
