@@ -51,7 +51,8 @@ func main() {
 
 type Shader struct {
 	Package    string
-	File       string
+	GoFile     string `json:",omitempty"`
+	KageFile   string `json:",omitempty"`
 	Source     string
 	SourceHash string
 	GLSL       *GLSL   `json:",omitempty"`
@@ -236,7 +237,8 @@ func appendShaderSources(shaders []Shader, pkg *packages.Package) ([]Shader, err
 								return nil
 							}
 							visitedPaths[path] = struct{}{}
-							shaders, err = appendShaderFromFile(shaders, pkg.PkgPath, path)
+							goFile := pkg.Fset.Position(c.Pos()).Filename
+							shaders, err = appendShaderFromFile(shaders, pkg.PkgPath, goFile, path)
 							if err != nil {
 								return err
 							}
@@ -258,7 +260,8 @@ func appendShaderSources(shaders []Shader, pkg *packages.Package) ([]Shader, err
 							continue
 						}
 						visitedPaths[path] = struct{}{}
-						shaders, err = appendShaderFromFile(shaders, pkg.PkgPath, path)
+						goFile := pkg.Fset.Position(c.Pos()).Filename
+						shaders, err = appendShaderFromFile(shaders, pkg.PkgPath, goFile, path)
 						if err != nil {
 							return nil, err
 						}
@@ -395,7 +398,7 @@ func appendShaderSources(shaders []Shader, pkg *packages.Package) ([]Shader, err
 
 			shaders = append(shaders, Shader{
 				Package: pkg.PkgPath,
-				File:    pkg.Fset.Position(spec.Pos()).Filename,
+				GoFile:  pkg.Fset.Position(spec.Pos()).Filename,
 				Source:  constant.StringVal(val),
 			})
 			return false
@@ -408,15 +411,16 @@ func appendShaderSources(shaders []Shader, pkg *packages.Package) ([]Shader, err
 	return shaders, nil
 }
 
-func appendShaderFromFile(shaders []Shader, pkgPath string, filePath string) ([]Shader, error) {
-	content, err := os.ReadFile(filePath)
+func appendShaderFromFile(shaders []Shader, pkgPath string, goFile string, kageFile string) ([]Shader, error) {
+	content, err := os.ReadFile(kageFile)
 	if err != nil {
 		return nil, err
 	}
 	shaders = append(shaders, Shader{
-		Package: pkgPath,
-		File:    filePath,
-		Source:  string(content),
+		Package:  pkgPath,
+		GoFile:   goFile,
+		KageFile: kageFile,
+		Source:   string(content),
 	})
 	return shaders, nil
 }

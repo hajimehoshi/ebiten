@@ -50,7 +50,8 @@ func TestRun(t *testing.T) {
 
 	type shader struct {
 		Package    string
-		File       string
+		GoFile     string
+		KageFile   string
 		Source     string
 		SourceHash string
 	}
@@ -89,9 +90,10 @@ func TestRun(t *testing.T) {
 		if s.shader.Package == "" {
 			t.Errorf("s.Package is empty: %v", s)
 		}
-		if s.shader.File == "" {
+		if s.shader.GoFile == "" {
 			t.Errorf("s.File is empty: %v", s)
 		}
+		// KageFile can be empty.
 		hash, err := graphics.CalcSourceHash([]byte(s.shader.Source))
 		if err != nil {
 			t.Fatal(err)
