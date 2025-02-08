@@ -20,54 +20,54 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderlister/shaderlistertest2"
 )
 
-//ebitengine:shader
+//ebitengine:shadersource
 const _ = "shader 1"
 
 const (
-	//ebitengine:shader
+	//ebitengine:shadersource
 	_ = "shader 2"
 
-	//ebitengine:shader
+	//ebitengine:shadersource
 	a = "shader 3"
 
 	//ebitengine:invalid
 	b = "not shader"
 
-	//ebitengine:shader
+	//ebitengine:shadersource
 	c = "shader" + " 4"
 )
 
 //ebitengine:invalid
 const _ = "not shader"
 
-//ebitengine:shader
+//ebitengine:shadersource
 const d = shaderlistertest2.S + " 5"
 
 const _ = "not shader"
 
-//ebitengine:shader
+//ebitengine:shadersource
 const (
 	_ = "ignored" // The directive is misplaced.
 )
 
-//ebitengine:shader
+//ebitengine:shadersource
 var _ = "ignored" // The directive doesn't work for var.
 
 func f() {
-	//ebitengine:shader
+	//ebitengine:shadersource
 	const _ = "ignored" // The directive doesn't work for non-top-level const.
 
 	const (
-		//ebitengine:shader
+		//ebitengine:shadersource
 		_ = "ignored" // The directive doesn't work for non-top-level const.
 	)
 }
 
-//ebitengine:shader
+//ebitengine:shadersource
 const _, _ = "ignored", "ignored again" // multiple consts are ignored to avoid confusion.
 
 const (
-	//ebitengine:shader
+	//ebitengine:shadersource
 	_, _ = "ignored", "ignored again" // multiple consts are ignored to avoid confusion.
 )
 

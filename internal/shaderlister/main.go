@@ -180,18 +180,18 @@ func isStandardImportPath(path string) bool {
 }
 
 const (
-	shaderDirective         = "ebitengine:shader"
+	shaderSourceDirective   = "ebitengine:shadersource"
 	embeddedShaderDirective = "ebitengine:embeddedshader"
 )
 
 var (
-	reShaderDirective         = regexp.MustCompile(`(?m)^\s*//` + regexp.QuoteMeta(shaderDirective))
+	reShaderSourceDirective   = regexp.MustCompile(`(?m)^\s*//` + regexp.QuoteMeta(shaderSourceDirective))
 	reEmbeddedShaderDirective = regexp.MustCompile(`(?m)^\s*//` + regexp.QuoteMeta(embeddedShaderDirective))
 )
 
 func hasShaderDirectiveInComment(commentGroup *ast.CommentGroup) bool {
 	for _, line := range commentGroup.List {
-		if reShaderDirective.MatchString(line.Text) {
+		if reShaderSourceDirective.MatchString(line.Text) {
 			return true
 		}
 	}
@@ -230,7 +230,7 @@ func appendShaderSources(shaders []Shader, pkg *packages.Package) ([]Shader, err
 				if genDecl.Lparen != token.NoPos {
 					if genDecl.Doc != nil && hasShaderDirectiveInComment(genDecl.Doc) {
 						pos := pkg.Fset.Position(genDecl.Doc.Pos())
-						slog.Warn(fmt.Sprintf("misplaced %s directive", shaderDirective),
+						slog.Warn(fmt.Sprintf("misplaced %s directive", shaderSourceDirective),
 							"package", pkg.PkgPath,
 							"file", pos.Filename,
 							"line", pos.Line,
@@ -278,7 +278,7 @@ func appendShaderSources(shaders []Shader, pkg *packages.Package) ([]Shader, err
 
 			if !isTopLevelDecl(genDecl) {
 				pos := pkg.Fset.Position(docPos)
-				slog.Warn(fmt.Sprintf("misplaced %s directive", shaderDirective),
+				slog.Warn(fmt.Sprintf("misplaced %s directive", shaderSourceDirective),
 					"package", pkg.PkgPath,
 					"file", pos.Filename,
 					"line", pos.Line,
@@ -289,7 +289,7 @@ func appendShaderSources(shaders []Shader, pkg *packages.Package) ([]Shader, err
 			// Avoid multiple names like `const a, b = "foo", "bar"` to avoid confusions.
 			if len(spec.Names) != 1 {
 				pos := pkg.Fset.Position(docPos)
-				slog.Warn(fmt.Sprintf("%s cannot apply to multiple declarations", shaderDirective),
+				slog.Warn(fmt.Sprintf("%s cannot apply to multiple declarations", shaderSourceDirective),
 					"package", pkg.PkgPath,
 					"file", pos.Filename,
 					"line", pos.Line,
@@ -303,7 +303,7 @@ func appendShaderSources(shaders []Shader, pkg *packages.Package) ([]Shader, err
 			c, ok := def.(*types.Const)
 			if !ok {
 				pos := pkg.Fset.Position(docPos)
-				slog.Warn(fmt.Sprintf("%s cannot apply to %s", shaderDirective, objectTypeString(def)),
+				slog.Warn(fmt.Sprintf("%s cannot apply to %s", shaderSourceDirective, objectTypeString(def)),
 					"package", pkg.PkgPath,
 					"file", pos.Filename,
 					"line", pos.Line,
@@ -315,7 +315,7 @@ func appendShaderSources(shaders []Shader, pkg *packages.Package) ([]Shader, err
 			val := c.Val()
 			if val.Kind() != constant.String {
 				pos := pkg.Fset.Position(docPos)
-				slog.Warn(fmt.Sprintf("%s cannot apply to const type of %s", shaderDirective, val.Kind()),
+				slog.Warn(fmt.Sprintf("%s cannot apply to const type of %s", shaderSourceDirective, val.Kind()),
 					"package", pkg.PkgPath,
 					"file", pos.Filename,
 					"line", pos.Line,

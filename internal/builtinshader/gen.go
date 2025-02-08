@@ -83,7 +83,7 @@ func xmain() error {
 				if _, err := w.WriteString("\n"); err != nil {
 					return err
 				}
-				if _, err := w.WriteString("//ebitengine:shader\n"); err != nil {
+				if _, err := w.WriteString("//ebitengine:shadersource\n"); err != nil {
 					return err
 				}
 				if _, err := fmt.Fprintf(w, "const _ = %q\n", s); err != nil {

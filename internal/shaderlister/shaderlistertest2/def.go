@@ -16,7 +16,7 @@ package shaderlistertest2
 
 const S = "shader"
 
-//ebitengine:shader
+//ebitengine:shadersource
 const _ = "shader 6"
 
 const _ = "not shader"

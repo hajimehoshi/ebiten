@@ -186,7 +186,7 @@ func ShaderSource(filter Filter, address Address, useColorM bool) []byte {
 	return b
 }
 
-//ebitengine:shader
+//ebitengine:shadersource
 const ClearShaderSource = `//kage:unit pixels
 
 package main
