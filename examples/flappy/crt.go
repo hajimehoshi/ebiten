@@ -14,6 +14,8 @@
 
 //go:build ignore
 
+//ebitengine:embeddedshader
+
 //kage:unit pixels
 
 // Reference: a public domain CRT effect

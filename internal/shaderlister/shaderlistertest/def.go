@@ -14,7 +14,11 @@
 
 package shaderlistertest
 
-import "github.com/hajimehoshi/ebiten/v2/internal/shaderlister/shaderlistertest2"
+import (
+	"embed"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/shaderlister/shaderlistertest2"
+)
 
 //ebitengine:shader
 const _ = "shader 1"
@@ -66,3 +70,9 @@ const (
 	//ebitengine:shader
 	_, _ = "ignored", "ignored again" // multiple consts are ignored to avoid confusion.
 )
+
+//go:embed *kage.go
+var embed_go []byte
+
+//go:embed resource
+var embed2_go embed.FS

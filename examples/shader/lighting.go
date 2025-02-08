@@ -14,7 +14,8 @@
 
 //go:build ignore
 
-// Specify the 'pixel' mode.
+//ebitengine:embeddedshader
+
 //kage:unit pixels
 
 package main

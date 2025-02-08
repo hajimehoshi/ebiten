@@ -94,7 +94,7 @@ func xmain() error {
 	}
 
 	pkgs, err := packages.Load(&packages.Config{
-		Mode: packages.NeedName | packages.NeedImports | packages.NeedDeps | packages.NeedTypes | packages.NeedSyntax | packages.NeedTypesInfo,
+		Mode: packages.NeedName | packages.NeedImports | packages.NeedDeps | packages.NeedTypes | packages.NeedSyntax | packages.NeedTypesInfo | packages.NeedEmbedFiles,
 	}, flag.Args()...)
 	if err != nil {
 		return err
@@ -124,7 +124,11 @@ func xmain() error {
 		}
 
 		origN := len(shaders)
-		shaders = appendShaderSources(shaders, pkg)
+		shaders, err = appendShaderSources(shaders, pkg)
+		if err != nil {
+			visitErr = err
+			return false
+		}
 
 		// Add source hashes.
 		for i := range shaders[origN:] {
@@ -175,20 +179,26 @@ func isStandardImportPath(path string) bool {
 	return !strings.Contains(head, ".")
 }
 
-const directive = "ebitengine:shader"
+const (
+	shaderDirective         = "ebitengine:shader"
+	embeddedShaderDirective = "ebitengine:embeddedshader"
+)
 
-var reDirective = regexp.MustCompile(`(?m)^\s*//` + regexp.QuoteMeta(directive))
+var (
+	reShaderDirective         = regexp.MustCompile(`(?m)^\s*//` + regexp.QuoteMeta(shaderDirective))
+	reEmbeddedShaderDirective = regexp.MustCompile(`(?m)^\s*//` + regexp.QuoteMeta(embeddedShaderDirective))
+)
 
 func hasShaderDirectiveInComment(commentGroup *ast.CommentGroup) bool {
 	for _, line := range commentGroup.List {
-		if reDirective.MatchString(line.Text) {
+		if reShaderDirective.MatchString(line.Text) {
 			return true
 		}
 	}
 	return false
 }
 
-func appendShaderSources(shaders []Shader, pkg *packages.Package) []Shader {
+func appendShaderSources(shaders []Shader, pkg *packages.Package) ([]Shader, error) {
 	topLevelDecls := map[ast.Decl]struct{}{}
 	for _, file := range pkg.Syntax {
 		for _, decl := range file.Decls {
@@ -220,7 +230,7 @@ func appendShaderSources(shaders []Shader, pkg *packages.Package) []Shader {
 				if genDecl.Lparen != token.NoPos {
 					if genDecl.Doc != nil && hasShaderDirectiveInComment(genDecl.Doc) {
 						pos := pkg.Fset.Position(genDecl.Doc.Pos())
-						slog.Warn(fmt.Sprintf("misplaced %s directive", directive),
+						slog.Warn(fmt.Sprintf("misplaced %s directive", shaderDirective),
 							"package", pkg.PkgPath,
 							"file", pos.Filename,
 							"line", pos.Line,
@@ -268,7 +278,7 @@ func appendShaderSources(shaders []Shader, pkg *packages.Package) []Shader {
 
 			if !isTopLevelDecl(genDecl) {
 				pos := pkg.Fset.Position(docPos)
-				slog.Warn(fmt.Sprintf("misplaced %s directive", directive),
+				slog.Warn(fmt.Sprintf("misplaced %s directive", shaderDirective),
 					"package", pkg.PkgPath,
 					"file", pos.Filename,
 					"line", pos.Line,
@@ -279,7 +289,7 @@ func appendShaderSources(shaders []Shader, pkg *packages.Package) []Shader {
 			// Avoid multiple names like `const a, b = "foo", "bar"` to avoid confusions.
 			if len(spec.Names) != 1 {
 				pos := pkg.Fset.Position(docPos)
-				slog.Warn(fmt.Sprintf("%s cannot apply to multiple declarations", directive),
+				slog.Warn(fmt.Sprintf("%s cannot apply to multiple declarations", shaderDirective),
 					"package", pkg.PkgPath,
 					"file", pos.Filename,
 					"line", pos.Line,
@@ -293,7 +303,7 @@ func appendShaderSources(shaders []Shader, pkg *packages.Package) []Shader {
 			c, ok := def.(*types.Const)
 			if !ok {
 				pos := pkg.Fset.Position(docPos)
-				slog.Warn(fmt.Sprintf("%s cannot apply to %s", directive, objectTypeString(def)),
+				slog.Warn(fmt.Sprintf("%s cannot apply to %s", shaderDirective, objectTypeString(def)),
 					"package", pkg.PkgPath,
 					"file", pos.Filename,
 					"line", pos.Line,
@@ -305,7 +315,7 @@ func appendShaderSources(shaders []Shader, pkg *packages.Package) []Shader {
 			val := c.Val()
 			if val.Kind() != constant.String {
 				pos := pkg.Fset.Position(docPos)
-				slog.Warn(fmt.Sprintf("%s cannot apply to const type of %s", directive, val.Kind()),
+				slog.Warn(fmt.Sprintf("%s cannot apply to const type of %s", shaderDirective, val.Kind()),
 					"package", pkg.PkgPath,
 					"file", pos.Filename,
 					"line", pos.Line,
@@ -325,7 +335,22 @@ func appendShaderSources(shaders []Shader, pkg *packages.Package) []Shader {
 		}
 	})
 
-	return shaders
+	for _, file := range pkg.EmbedFiles {
+		content, err := os.ReadFile(file)
+		if err != nil {
+			return nil, err
+		}
+		if !reEmbeddedShaderDirective.Match(content) {
+			continue
+		}
+		shaders = append(shaders, Shader{
+			Package: pkg.PkgPath,
+			File:    file,
+			Source:  string(content),
+		})
+	}
+
+	return shaders, nil
 }
 
 func objectTypeString(obj types.Object) string {

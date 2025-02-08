@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os/exec"
+	"regexp"
 	"slices"
 	"strings"
 	"testing"
@@ -58,29 +59,47 @@ func TestRun(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	slices.SortFunc(shaders, func(s1, s2 shader) int {
-		return cmp.Compare(s1.Source, s2.Source)
+	type filteredShader struct {
+		shader         shader
+		filteredSource string
+	}
+
+	re := regexp.MustCompile(`shader \d+`)
+	var filteredShaders []filteredShader
+	for _, s := range shaders {
+		m := re.FindAllString(s.Source, 1)
+		if len(m) != 1 {
+			t.Fatalf("invalid source: %q", s.Source)
+		}
+		filteredShaders = append(filteredShaders, filteredShader{
+			shader:         s,
+			filteredSource: m[0],
+		})
+	}
+
+	slices.SortFunc(filteredShaders, func(s1, s2 filteredShader) int {
+		return cmp.Compare(s1.filteredSource, s2.filteredSource)
 	})
 
-	if got, want := len(shaders), 6; got != want {
+	if got, want := len(filteredShaders), 9; got != want {
 		t.Fatalf("len(shaders): got: %d, want: %d", got, want)
 	}
 
-	for i, s := range shaders {
-		if s.Package == "" {
+	for i, s := range filteredShaders {
+		if s.shader.Package == "" {
 			t.Errorf("s.Package is empty: %v", s)
 		}
-		if s.File == "" {
+		if s.shader.File == "" {
 			t.Errorf("s.File is empty: %v", s)
 		}
-		hash, err := graphics.CalcSourceHash([]byte(s.Source))
+		hash, err := graphics.CalcSourceHash([]byte(s.shader.Source))
 		if err != nil {
 			t.Fatal(err)
 		}
-		if got, want := s.SourceHash, hash.String(); got != want {
+		if got, want := s.shader.SourceHash, hash.String(); got != want {
 			t.Errorf("s.SourceHash: got: %q, want: %q", got, want)
 		}
-		if got, want := s.Source, fmt.Sprintf("shader %d", i+1); got != want {
+		if got, want := s.filteredSource, fmt.Sprintf("shader %d", i+1); got != want {
 			t.Errorf("s.Source: got: %q, want: %q", got, want)
 		}
 	}
