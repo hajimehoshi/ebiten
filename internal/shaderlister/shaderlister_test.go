@@ -22,6 +22,8 @@ import (
 	"slices"
 	"strings"
 	"testing"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 )
 
 func hasGoCommand() bool {
@@ -46,9 +48,10 @@ func TestRun(t *testing.T) {
 	}
 
 	type shader struct {
-		Package string
-		File    string
-		Source  string
+		Package    string
+		File       string
+		Source     string
+		SourceHash string
 	}
 	var shaders []shader
 	if err := json.Unmarshal(out, &shaders); err != nil {
@@ -69,6 +72,13 @@ func TestRun(t *testing.T) {
 		}
 		if s.File == "" {
 			t.Errorf("s.File is empty: %v", s)
+		}
+		hash, err := graphics.CalcSourceHash([]byte(s.Source))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got, want := s.SourceHash, hash.String(); got != want {
+			t.Errorf("s.SourceHash: got: %q, want: %q", got, want)
 		}
 		if got, want := s.Source, fmt.Sprintf("shader %d", i+1); got != want {
 			t.Errorf("s.Source: got: %q, want: %q", got, want)

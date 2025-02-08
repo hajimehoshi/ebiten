@@ -128,7 +128,7 @@ func xmain() error {
 
 		// Add source hashes.
 		for i := range shaders[origN:] {
-			shader := &shaders[i]
+			shader := &shaders[origN+i]
 			hash, err := graphics.CalcSourceHash([]byte(shader.Source))
 			if err != nil {
 				visitErr = err
