@@ -205,17 +205,6 @@ func isAsciiSpace(r rune) bool {
 }
 
 func appendShaderSources(shaders []Shader, pkg *packages.Package) ([]Shader, error) {
-	topLevelDecls := map[ast.Decl]struct{}{}
-	for _, file := range pkg.Syntax {
-		for _, decl := range file.Decls {
-			topLevelDecls[decl] = struct{}{}
-		}
-	}
-	isTopLevelDecl := func(decl ast.Decl) bool {
-		_, ok := topLevelDecls[decl]
-		return ok
-	}
-
 	// Resolve ebitengine:shaderfile directives.
 	visitedPatterns := map[string]struct{}{}
 	visitedPaths := map[string]struct{}{}
@@ -277,6 +266,18 @@ func appendShaderSources(shaders []Shader, pkg *packages.Package) ([]Shader, err
 				}
 			}
 		}
+	}
+
+	topLevelDecls := map[ast.Decl]struct{}{}
+	for _, file := range pkg.Syntax {
+		for _, decl := range file.Decls {
+			topLevelDecls[decl] = struct{}{}
+		}
+	}
+
+	isTopLevelDecl := func(decl ast.Decl) bool {
+		_, ok := topLevelDecls[decl]
+		return ok
 	}
 
 	// Resolve ebitengine:shadersource directives.
