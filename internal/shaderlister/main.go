@@ -28,6 +28,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 
 	"golang.org/x/tools/go/ast/inspector"
@@ -216,8 +217,21 @@ func appendShaderSources(shaders []Shader, pkg *packages.Package) ([]Shader, err
 	visitedPatterns := map[string]struct{}{}
 	visitedPaths := map[string]struct{}{}
 	for _, f := range pkg.Syntax {
+		var funcs []*ast.FuncDecl
+		for _, decl := range f.Decls {
+			if f, ok := decl.(*ast.FuncDecl); ok {
+				funcs = append(funcs, f)
+			}
+		}
 		for _, c := range f.Comments {
 			for _, l := range c.List {
+				// Ignore the line if it is in a function declaration.
+				if slices.ContainsFunc(funcs, func(f *ast.FuncDecl) bool {
+					return f.Pos() <= l.Pos() && l.Pos() < f.End()
+				}) {
+					continue
+				}
+
 				m := reShaderFileDirective.FindString(l.Text)
 				if m == "" {
 					continue
@@ -293,6 +307,7 @@ func appendShaderSources(shaders []Shader, pkg *packages.Package) ([]Shader, err
 
 	// Resolve ebitengine:shadersource directives.
 	var genDeclStack []*ast.GenDecl
+	// inspector.Inspector doesn't iterate comments that are not attached to any other nodes.
 	in := inspector.New(pkg.Syntax)
 	in.Nodes([]ast.Node{
 		(*ast.GenDecl)(nil),

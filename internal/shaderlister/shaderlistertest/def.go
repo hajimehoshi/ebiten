@@ -75,3 +75,9 @@ const (
 //ebitengine:shaderfile *_kage.go *_kage.go *_kage.go
 
 //ebitengine:shaderfile nonexistent.go
+
+func foo() {
+	// Non top-level files are ignored.
+
+	//ebitengine:shaderfile *_notkage.go
+}
