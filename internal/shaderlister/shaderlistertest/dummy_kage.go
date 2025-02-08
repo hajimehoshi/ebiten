@@ -14,8 +14,6 @@
 
 //go:build ignore
 
-// This file lacks the directive `ebitengine:embeddedshader`, so this is not considered as a shader file by shaderlister.
-
 package main
 
-// shader 0
+// shader 7

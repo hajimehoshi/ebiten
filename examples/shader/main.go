@@ -50,6 +50,17 @@ var (
 	water_go []byte
 )
 
+// These directives are used for an shader analyzer in the future.
+// See also #3157.
+
+//ebitengine:shaderfile default.go
+//ebitengine:shaderfile texel.go
+//ebitengine:shaderfile lighting.go
+//ebitengine:shaderfile radialblur.go
+//ebitengine:shaderfile chromaticaberration.go
+//ebitengine:shaderfile dissolve.go
+//ebitengine:shaderfile water.go
+
 const (
 	screenWidth  = 640
 	screenHeight = 480

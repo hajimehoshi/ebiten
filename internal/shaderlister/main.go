@@ -17,6 +17,7 @@ package main
 import (
 	"bufio"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"go/ast"
@@ -25,6 +26,7 @@ import (
 	"go/types"
 	"log/slog"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -94,7 +96,7 @@ func xmain() error {
 	}
 
 	pkgs, err := packages.Load(&packages.Config{
-		Mode: packages.NeedName | packages.NeedImports | packages.NeedDeps | packages.NeedTypes | packages.NeedSyntax | packages.NeedTypesInfo | packages.NeedEmbedFiles,
+		Mode: packages.NeedName | packages.NeedImports | packages.NeedDeps | packages.NeedTypes | packages.NeedSyntax | packages.NeedTypesInfo,
 	}, flag.Args()...)
 	if err != nil {
 		return err
@@ -180,16 +182,16 @@ func isStandardImportPath(path string) bool {
 }
 
 const (
-	shaderSourceDirective   = "ebitengine:shadersource"
-	embeddedShaderDirective = "ebitengine:embeddedshader"
+	shaderSourceDirective = "ebitengine:shadersource"
+	shaderFileDirective   = "ebitengine:shaderfile"
 )
 
 var (
-	reShaderSourceDirective   = regexp.MustCompile(`(?m)^\s*//` + regexp.QuoteMeta(shaderSourceDirective))
-	reEmbeddedShaderDirective = regexp.MustCompile(`(?m)^\s*//` + regexp.QuoteMeta(embeddedShaderDirective))
+	reShaderSourceDirective = regexp.MustCompile(`(?m)^\s*//` + regexp.QuoteMeta(shaderSourceDirective) + `$`)
+	reShaderFileDirective   = regexp.MustCompile(`(?m)^\s*//` + regexp.QuoteMeta(shaderFileDirective) + ` (.+)$`)
 )
 
-func hasShaderDirectiveInComment(commentGroup *ast.CommentGroup) bool {
+func hasShaderSourceDirectiveInComment(commentGroup *ast.CommentGroup) bool {
 	for _, line := range commentGroup.List {
 		if reShaderSourceDirective.MatchString(line.Text) {
 			return true
@@ -210,8 +212,54 @@ func appendShaderSources(shaders []Shader, pkg *packages.Package) ([]Shader, err
 		return ok
 	}
 
-	var genDeclStack []*ast.GenDecl
+	// Resolve ebitengine:shaderfile directives.
+	for _, f := range pkg.Syntax {
+		for _, c := range f.Comments {
+			for _, l := range c.List {
+				m := reShaderFileDirective.FindStringSubmatch(l.Text)
+				if len(m) == 0 {
+					continue
+				}
+				pattern := filepath.Join(pkg.Dir, filepath.FromSlash(m[1]))
+				stat, err := os.Stat(pattern)
+				if err == nil && stat.IsDir() {
+					// If the pattern is a directory, read all files in the directory recursively.
+					if err := filepath.WalkDir(pattern, func(path string, d os.DirEntry, err error) error {
+						if err != nil {
+							return err
+						}
+						if d.IsDir() {
+							return nil
+						}
+						shaders, err = appendShaderFromFile(shaders, pkg.PkgPath, path)
+						if err != nil {
+							return err
+						}
+						return nil
+					}); err != nil {
+						return nil, err
+					}
+					continue
+				}
+				if err != nil && !errors.Is(err, os.ErrNotExist) {
+					return nil, err
+				}
+				paths, err := filepath.Glob(pattern)
+				if err != nil {
+					return nil, err
+				}
+				for _, path := range paths {
+					shaders, err = appendShaderFromFile(shaders, pkg.PkgPath, path)
+					if err != nil {
+						return nil, err
+					}
+				}
+			}
+		}
+	}
 
+	// Resolve ebitengine:shadersource directives.
+	var genDeclStack []*ast.GenDecl
 	in := inspector.New(pkg.Syntax)
 	in.Nodes([]ast.Node{
 		(*ast.GenDecl)(nil),
@@ -228,7 +276,7 @@ func appendShaderSources(shaders []Shader, pkg *packages.Package) ([]Shader, err
 				// If the GenDecl is with parentheses (e.g. `const ( ... )`), check the GenDecl's comment.
 				// The directive doesn't work, so if the directive is found, warn it.
 				if genDecl.Lparen != token.NoPos {
-					if genDecl.Doc != nil && hasShaderDirectiveInComment(genDecl.Doc) {
+					if genDecl.Doc != nil && hasShaderSourceDirectiveInComment(genDecl.Doc) {
 						pos := pkg.Fset.Position(genDecl.Doc.Pos())
 						slog.Warn(fmt.Sprintf("misplaced %s directive", shaderSourceDirective),
 							"package", pkg.PkgPath,
@@ -240,7 +288,7 @@ func appendShaderSources(shaders []Shader, pkg *packages.Package) ([]Shader, err
 					if genDecl.Doc == nil {
 						return false
 					}
-					if !hasShaderDirectiveInComment(genDecl.Doc) {
+					if !hasShaderSourceDirectiveInComment(genDecl.Doc) {
 						return false
 					}
 				}
@@ -264,7 +312,7 @@ func appendShaderSources(shaders []Shader, pkg *packages.Package) ([]Shader, err
 				if spec.Doc == nil {
 					return false
 				}
-				if !hasShaderDirectiveInComment(spec.Doc) {
+				if !hasShaderSourceDirectiveInComment(spec.Doc) {
 					return false
 				}
 			}
@@ -335,21 +383,19 @@ func appendShaderSources(shaders []Shader, pkg *packages.Package) ([]Shader, err
 		}
 	})
 
-	for _, file := range pkg.EmbedFiles {
-		content, err := os.ReadFile(file)
-		if err != nil {
-			return nil, err
-		}
-		if !reEmbeddedShaderDirective.Match(content) {
-			continue
-		}
-		shaders = append(shaders, Shader{
-			Package: pkg.PkgPath,
-			File:    file,
-			Source:  string(content),
-		})
-	}
+	return shaders, nil
+}
 
+func appendShaderFromFile(shaders []Shader, pkgPath string, filePath string) ([]Shader, error) {
+	content, err := os.ReadFile(filePath)
+	if err != nil {
+		return nil, err
+	}
+	shaders = append(shaders, Shader{
+		Package: pkgPath,
+		File:    filePath,
+		Source:  string(content),
+	})
 	return shaders, nil
 }
 

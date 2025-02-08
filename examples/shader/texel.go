@@ -14,8 +14,6 @@
 
 //go:build ignore
 
-//ebitengine:embeddedshader
-
 //kage:unit pixels
 
 package main

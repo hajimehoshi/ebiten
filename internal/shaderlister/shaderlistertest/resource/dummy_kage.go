@@ -14,8 +14,6 @@
 
 //go:build ignore
 
-//ebitengine:embeddedshader
-
 package main
 
-// shader 7
+// shader 9

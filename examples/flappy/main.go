@@ -43,6 +43,8 @@ var flagCRT = flag.Bool("crt", false, "enable the CRT effect")
 //go:embed crt.go
 var crtGo []byte
 
+//ebitengine:shaderfile crt.go
+
 func floorDiv(x, y int) int {
 	d := x / y
 	if d*y == x || x >= 0 {

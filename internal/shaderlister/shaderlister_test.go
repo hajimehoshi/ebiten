@@ -82,7 +82,7 @@ func TestRun(t *testing.T) {
 	})
 
 	if got, want := len(filteredShaders), 9; got != want {
-		t.Fatalf("len(shaders): got: %d, want: %d", got, want)
+		t.Errorf("len(shaders): got: %d, want: %d", got, want)
 	}
 
 	for i, s := range filteredShaders {
