@@ -93,9 +93,6 @@ func xmain() error {
 		os.Exit(2)
 	}
 	flag.Parse()
-	if len(flag.Args()) < 1 {
-		flag.Usage()
-	}
 
 	pkgs, err := packages.Load(&packages.Config{
 		Mode: packages.NeedName | packages.NeedImports | packages.NeedDeps | packages.NeedTypes | packages.NeedSyntax | packages.NeedTypesInfo,
