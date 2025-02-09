@@ -130,10 +130,11 @@ func xmain() error {
 			visitErr = err
 			return false
 		}
+		newShaders := shaders[origN:]
 
 		// Add source hashes.
-		for i := range shaders[origN:] {
-			shader := &shaders[origN+i]
+		for i := range newShaders {
+			shader := &newShaders[i]
 			hash, err := graphics.CalcSourceHash([]byte(shader.Source))
 			if err != nil {
 				visitErr = err
@@ -146,8 +147,8 @@ func xmain() error {
 		if len(targets) == 0 {
 			return true
 		}
-		for i := range shaders[origN:] {
-			if err := compile(&shaders[i], targets); err != nil {
+		for i := range newShaders {
+			if err := compile(&newShaders[i], targets); err != nil {
 				visitErr = err
 				return false
 			}
