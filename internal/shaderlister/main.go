@@ -187,14 +187,16 @@ const (
 )
 
 var (
-	reShaderSourceDirective = regexp.MustCompile(`(?m)^\s*//` + regexp.QuoteMeta(shaderSourceDirective) + `$`)
-	reShaderFileDirective   = regexp.MustCompile(`(?m)^\s*//` + regexp.QuoteMeta(shaderFileDirective) + ` `)
+	reShaderSourceDirective = regexp.MustCompile(`^\s*//` + regexp.QuoteMeta(shaderSourceDirective) + `$`)
+	reShaderFileDirective   = regexp.MustCompile(`^\s*//` + regexp.QuoteMeta(shaderFileDirective) + ` `)
 )
 
 func hasShaderSourceDirectiveInComment(commentGroup *ast.CommentGroup) bool {
-	for _, line := range commentGroup.List {
-		if reShaderSourceDirective.MatchString(line.Text) {
-			return true
+	for _, c := range commentGroup.List {
+		for _, line := range strings.Split(c.Text, "\n") {
+			if reShaderSourceDirective.MatchString(line) {
+				return true
+			}
 		}
 	}
 	return false
@@ -221,69 +223,71 @@ func appendShaderSources(shaders []Shader, pkg *packages.Package) ([]Shader, err
 				funcs = append(funcs, f)
 			}
 		}
-		for _, c := range f.Comments {
-			for _, l := range c.List {
+		for _, cg := range f.Comments {
+			for _, c := range cg.List {
 				// Ignore the line if it is in a function declaration.
 				if slices.ContainsFunc(funcs, func(f *ast.FuncDecl) bool {
-					return f.Pos() <= l.Pos() && l.Pos() < f.End()
+					return f.Pos() <= c.Pos() && c.Pos() < f.End()
 				}) {
 					continue
 				}
 
-				m := reShaderFileDirective.FindString(l.Text)
-				if m == "" {
-					continue
-				}
-				patterns := strings.TrimPrefix(l.Text, m)
-				for _, pattern := range strings.FieldsFunc(patterns, isAsciiSpace) {
-					pattern := filepath.Join(pkg.Dir, filepath.FromSlash(pattern))
-					if _, ok := visitedPatterns[pattern]; ok {
+				for _, line := range strings.Split(c.Text, "\n") {
+					m := reShaderFileDirective.FindString(line)
+					if len(m) == 0 {
 						continue
 					}
-					visitedPatterns[pattern] = struct{}{}
-					if !includesGlobMetaChar(pattern) {
-						stat, err := os.Stat(pattern)
-						if err == nil && stat.IsDir() {
-							// If the pattern is a directory, read all files in the directory recursively.
-							if err := filepath.WalkDir(pattern, func(path string, d os.DirEntry, err error) error {
-								if err != nil {
-									return err
-								}
-								if d.IsDir() {
+					patterns := strings.TrimPrefix(line, m)
+					for _, pattern := range strings.FieldsFunc(patterns, isAsciiSpace) {
+						pattern := filepath.Join(pkg.Dir, filepath.FromSlash(pattern))
+						if _, ok := visitedPatterns[pattern]; ok {
+							continue
+						}
+						visitedPatterns[pattern] = struct{}{}
+						if !includesGlobMetaChar(pattern) {
+							stat, err := os.Stat(pattern)
+							if err == nil && stat.IsDir() {
+								// If the pattern is a directory, read all files in the directory recursively.
+								if err := filepath.WalkDir(pattern, func(path string, d os.DirEntry, err error) error {
+									if err != nil {
+										return err
+									}
+									if d.IsDir() {
+										return nil
+									}
+									if _, ok := visitedPaths[path]; ok {
+										return nil
+									}
+									visitedPaths[path] = struct{}{}
+									goFile := pkg.Fset.Position(cg.Pos()).Filename
+									shaders, err = appendShaderFromFile(shaders, pkg.PkgPath, goFile, path)
+									if err != nil {
+										return err
+									}
 									return nil
+								}); err != nil {
+									return nil, err
 								}
-								if _, ok := visitedPaths[path]; ok {
-									return nil
-								}
-								visitedPaths[path] = struct{}{}
-								goFile := pkg.Fset.Position(c.Pos()).Filename
-								shaders, err = appendShaderFromFile(shaders, pkg.PkgPath, goFile, path)
-								if err != nil {
-									return err
-								}
-								return nil
-							}); err != nil {
+								continue
+							}
+							if err != nil && !errors.Is(err, os.ErrNotExist) {
 								return nil, err
 							}
-							continue
 						}
-						if err != nil && !errors.Is(err, os.ErrNotExist) {
-							return nil, err
-						}
-					}
-					paths, err := filepath.Glob(pattern)
-					if err != nil {
-						return nil, err
-					}
-					for _, path := range paths {
-						if _, ok := visitedPaths[path]; ok {
-							continue
-						}
-						visitedPaths[path] = struct{}{}
-						goFile := pkg.Fset.Position(c.Pos()).Filename
-						shaders, err = appendShaderFromFile(shaders, pkg.PkgPath, goFile, path)
+						paths, err := filepath.Glob(pattern)
 						if err != nil {
 							return nil, err
+						}
+						for _, path := range paths {
+							if _, ok := visitedPaths[path]; ok {
+								continue
+							}
+							visitedPaths[path] = struct{}{}
+							goFile := pkg.Fset.Position(cg.Pos()).Filename
+							shaders, err = appendShaderFromFile(shaders, pkg.PkgPath, goFile, path)
+							if err != nil {
+								return nil, err
+							}
 						}
 					}
 				}

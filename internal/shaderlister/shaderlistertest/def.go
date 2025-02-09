@@ -81,3 +81,8 @@ func foo() {
 
 	//ebitengine:shaderfile *_notkage.go
 }
+
+// A directive in a comment block is not ignored.
+/*
+//ebitengine:shaderfile *_kage.go
+*/
