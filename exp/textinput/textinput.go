@@ -15,7 +15,7 @@
 // Package textinput provides a text-inputting controller.
 // This package is experimental and the API might be changed in the future.
 //
-// This package is supported by macOS and Web browsers so far.
+// This package is supported on Windows, macOS, and Web browsers so far.
 package textinput
 
 import (
