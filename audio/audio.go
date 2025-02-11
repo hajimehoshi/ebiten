@@ -559,6 +559,10 @@ func (h *hookerImpl) AppendHookOnBeforeUpdate(f func() error) {
 // to is the target sample rate.
 //
 // If the original sample rate equals to the new one, ResampleReader returns source as it is.
+//
+// The returned value implements io.Seeker when the source implements io.Seeker.
+// The returned value might implement io.Seeker even when the source doesn't implement io.Seeker, but
+// there is no guarantee that the Seek function works correctly.
 func ResampleReader(source io.Reader, size int64, from, to int) io.Reader {
 	if from == to {
 		return source
@@ -572,6 +576,10 @@ func ResampleReader(source io.Reader, size int64, from, to int) io.Reader {
 // to is the target sample rate.
 //
 // If the original sample rate equals to the new one, ResampleReaderF32 returns source as it is.
+//
+// The returned value implements io.Seeker when the source implements io.Seeker.
+// The returned value might implement io.Seeker even when the source doesn't implement io.Seeker, but
+// there is no guarantee that the Seek function works correctly.
 func ResampleReaderF32(source io.Reader, size int64, from, to int) io.Reader {
 	if from == to {
 		return source
