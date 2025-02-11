@@ -113,14 +113,7 @@ func (s *i16Stream) Read(b []byte) (int, error) {
 		s.i16Reader = newInt16BytesReaderFromFloat32Reader(s.vorbisReader)
 	}
 
-	l := s.totalBytes() - s.posInBytes
-	if l > int64(len(b)) {
-		l = int64(len(b))
-	}
-	if l < 0 {
-		return 0, io.EOF
-	}
-
+	l := int64(len(b))
 retry:
 	n, err := s.i16Reader.Read(b[:l])
 	if err != nil && err != io.EOF {
@@ -130,12 +123,8 @@ retry:
 		// When l is too small, decoder's Read might return 0 for a while. Let's retry.
 		goto retry
 	}
-
 	s.posInBytes += int64(n)
-	if s.posInBytes == s.totalBytes() || err == io.EOF {
-		return n, io.EOF
-	}
-	return n, nil
+	return n, err
 }
 
 func (s *i16Stream) Seek(offset int64, whence int) (int64, error) {

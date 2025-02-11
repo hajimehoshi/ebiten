@@ -138,7 +138,13 @@ func TestNonSeeker(t *testing.T) {
 		t.Errorf("s.SampleRate(): got: %d, want: %d", got, want)
 	}
 
-	// TODO: Check the result of io.ReadAll (#3192).
+	buf, err := io.ReadAll(s)
+	if err != nil {
+		t.Errorf("io.ReadAll: %v", err)
+	}
+	if len(buf) == 0 {
+		t.Errorf("len(buf): got: %d, want: > 0", len(buf))
+	}
 }
 
 func TestNonSeekerF32(t *testing.T) {
