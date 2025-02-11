@@ -15,6 +15,8 @@
 package vorbis
 
 import (
+	"errors"
+	"fmt"
 	"io"
 	"math"
 
@@ -23,14 +25,18 @@ import (
 
 var _ io.ReadSeeker = (*float32BytesReadSeeker)(nil)
 
-func newFloat32BytesReadSeeker(r *oggvorbis.Reader) *float32BytesReadSeeker {
-	return &float32BytesReadSeeker{r: r}
+func newFloat32BytesReadSeeker(r *oggvorbis.Reader, seekable bool) *float32BytesReadSeeker {
+	return &float32BytesReadSeeker{
+		r:        r,
+		seekable: seekable,
+	}
 }
 
 type float32BytesReadSeeker struct {
-	r    *oggvorbis.Reader
-	fbuf []float32
-	pos  int64
+	r        *oggvorbis.Reader
+	seekable bool
+	fbuf     []float32
+	pos      int64
 }
 
 func (r *float32BytesReadSeeker) Read(buf []byte) (int, error) {
@@ -62,6 +68,10 @@ func (r *float32BytesReadSeeker) Read(buf []byte) (int, error) {
 }
 
 func (r *float32BytesReadSeeker) Seek(offset int64, whence int) (int64, error) {
+	if !r.seekable {
+		return 0, fmt.Errorf("vorbis: the source must be io.Seeker but not: %w", errors.ErrUnsupported)
+	}
+
 	sampleSize := int64(r.r.Channels()) * 4
 	offset = offset / sampleSize * sampleSize
 

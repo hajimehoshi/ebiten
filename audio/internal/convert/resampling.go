@@ -15,6 +15,7 @@
 package convert
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"math"
@@ -307,7 +308,7 @@ func (r *Resampling) Read(b []byte) (int, error) {
 
 func (r *Resampling) Seek(offset int64, whence int) (int64, error) {
 	if _, ok := r.source.(io.Seeker); !ok {
-		return 0, fmt.Errorf("convert: source must be io.Seeker")
+		return 0, fmt.Errorf("convert: source must be io.Seeker: %w", errors.ErrUnsupported)
 	}
 
 	r.eof = false

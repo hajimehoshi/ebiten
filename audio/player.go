@@ -15,6 +15,7 @@
 package audio
 
 import (
+	"errors"
 	"io"
 	"runtime"
 	"sync"
@@ -408,6 +409,9 @@ func newTimeStream(r io.Reader, seekable bool, sampleRate int, bitDepthInBytes i
 		// Get the current position of the source.
 		pos, err := s.r.(io.Seeker).Seek(0, io.SeekCurrent)
 		if err != nil {
+			if !errors.Is(err, errors.ErrUnsupported) {
+				return nil, err
+			}
 			// Ignore the error, as the undelrying source might not support Seek (#3192).
 			// This happens when vorbis.Decode* is used, as vorbis.Stream is io.Seeker whichever the underlying source is.
 			pos = 0

@@ -16,6 +16,7 @@
 package vorbis
 
 import (
+	"errors"
 	"fmt"
 	"io"
 
@@ -78,7 +79,8 @@ func DecodeF32(src io.Reader) (*Stream, error) {
 		return nil, fmt.Errorf("vorbis: number of channels must be 1 or 2 but was %d", r.Channels())
 	}
 
-	var s io.ReadSeeker = newFloat32BytesReadSeeker(r)
+	_, seekable := src.(io.Seeker)
+	var s io.ReadSeeker = newFloat32BytesReadSeeker(r, seekable)
 	length := r.Length() * int64(r.Channels()) * bitDepthInBytesFloat32
 	if r.Channels() == 1 {
 		s = convert.NewStereoF32(s, true)
@@ -91,7 +93,7 @@ func DecodeF32(src io.Reader) (*Stream, error) {
 		sampleRate: r.SampleRate(),
 	}
 	// Read some data for performance (#297).
-	if _, ok := src.(io.Seeker); ok {
+	if seekable {
 		if _, err := stream.Read(make([]byte, 65536)); err != nil && err != io.EOF {
 			return nil, err
 		}
@@ -104,6 +106,7 @@ func DecodeF32(src io.Reader) (*Stream, error) {
 
 type i16Stream struct {
 	posInBytes   int64
+	seekable     bool
 	vorbisReader *oggvorbis.Reader
 	i16Reader    io.Reader
 }
@@ -128,6 +131,10 @@ retry:
 }
 
 func (s *i16Stream) Seek(offset int64, whence int) (int64, error) {
+	if !s.seekable {
+		return 0, fmt.Errorf("vorbis: the source must be io.Seeker but not: %w", errors.ErrUnsupported)
+	}
+
 	next := int64(0)
 	switch whence {
 	case io.SeekStart:
@@ -162,12 +169,14 @@ func decodeI16(in io.Reader) (*i16Stream, error) {
 		return nil, fmt.Errorf("vorbis: number of channels must be 1 or 2 but was %d", r.Channels())
 	}
 
+	_, seekable := in.(io.Seeker)
 	s := &i16Stream{
+		seekable:     seekable,
 		posInBytes:   0,
 		vorbisReader: r,
 	}
 	// Read some data for performance (#297).
-	if _, ok := in.(io.Seeker); ok {
+	if seekable {
 		if _, err := s.Read(make([]byte, 65536)); err != nil && err != io.EOF {
 			return nil, err
 		}
