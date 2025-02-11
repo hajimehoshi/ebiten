@@ -553,12 +553,40 @@ func (h *hookerImpl) AppendHookOnBeforeUpdate(f func() error) {
 	hook.AppendHookOnBeforeUpdate(f)
 }
 
+// ResampleReader converts the sample rate of the given singed 16bit integer, little-endian, 2 channels (stereo) stream.
+// size is the length of the source stream in bytes.
+// from is the original sample rate.
+// to is the target sample rate.
+//
+// If the original sample rate equals to the new one, ResampleReader returns source as it is.
+func ResampleReader(source io.Reader, size int64, from, to int) io.Reader {
+	if from == to {
+		return source
+	}
+	return convert.NewResampling(source, size, from, to, bitDepthInBytesInt16)
+}
+
+// ResampleReaderF32 converts the sample rate of the given 32bit float, little-endian, 2 channels (stereo) stream.
+// size is the length of the source stream in bytes.
+// from is the original sample rate.
+// to is the target sample rate.
+//
+// If the original sample rate equals to the new one, ResampleReaderF32 returns source as it is.
+func ResampleReaderF32(source io.Reader, size int64, from, to int) io.Reader {
+	if from == to {
+		return source
+	}
+	return convert.NewResampling(source, size, from, to, bitDepthInBytesFloat32)
+}
+
 // Resample converts the sample rate of the given singed 16bit integer, little-endian, 2 channels (stereo) stream.
 // size is the length of the source stream in bytes.
 // from is the original sample rate.
 // to is the target sample rate.
 //
 // If the original sample rate equals to the new one, Resample returns source as it is.
+//
+// Deprecated: as of v2.9. Use ResampleReader instead.
 func Resample(source io.ReadSeeker, size int64, from, to int) io.ReadSeeker {
 	if from == to {
 		return source
@@ -571,7 +599,9 @@ func Resample(source io.ReadSeeker, size int64, from, to int) io.ReadSeeker {
 // from is the original sample rate.
 // to is the target sample rate.
 //
-// If the original sample rate equals to the new one, Resample returns source as it is.
+// If the original sample rate equals to the new one, ResampleF32 returns source as it is.
+//
+// Deprecated: as of v2.9. Use ResampleReaderF32 instead.
 func ResampleF32(source io.ReadSeeker, size int64, from, to int) io.ReadSeeker {
 	if from == to {
 		return source
