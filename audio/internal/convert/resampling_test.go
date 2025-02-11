@@ -67,6 +67,14 @@ func newSoundBytes(sampleRate int, bitDepthInBytes int) []byte {
 	return b
 }
 
+type reader struct {
+	r io.Reader
+}
+
+func (r *reader) Read(buf []byte) (int, error) {
+	return r.r.Read(buf)
+}
+
 func TestResampling(t *testing.T) {
 	cases := []struct {
 		In  int
@@ -87,51 +95,71 @@ func TestResampling(t *testing.T) {
 			for _, bitDepthInBytes := range []int{2, 4} {
 				bitDepthInBytes := bitDepthInBytes
 				t.Run(fmt.Sprintf("bitDepthInBytes=%d", bitDepthInBytes), func(t *testing.T) {
-					inB := newSoundBytes(c.In, bitDepthInBytes)
-					outS := convert.NewResampling(bytes.NewReader(inB), int64(len(inB)), c.In, c.Out, bitDepthInBytes)
-					var gotB []byte
-					for {
-						var buf [97]byte
-						n, err := outS.Read(buf[:])
-						gotB = append(gotB, buf[:n]...)
-						if err != nil {
-							if err != io.EOF {
-								t.Fatal(err)
+					for _, seek := range []bool{false, true} {
+						t.Run(fmt.Sprintf("seek=%v", seek), func(t *testing.T) {
+							inB := newSoundBytes(c.In, bitDepthInBytes)
+							l := int64(len(inB))
+							if !seek {
+								l = 0
 							}
-							break
-						}
-						cur, err := outS.Seek(0, io.SeekCurrent)
-						if err != nil {
-							t.Fatal(err)
-						}
-						// Shifting by incomplete bytes should not affect the result.
-						for i := 0; i < bitDepthInBytes*2; i++ {
-							pos, err := outS.Seek(int64(i), io.SeekCurrent)
-							if err != nil {
-								t.Fatal(err)
+							var src io.Reader = bytes.NewReader(inB)
+							if !seek {
+								src = &reader{r: src}
 							}
-							if cur != pos {
-								t.Errorf("cur: %d, pos: %d", cur, pos)
+							outS := convert.NewResampling(src, l, c.In, c.Out, bitDepthInBytes)
+							var gotB []byte
+							for {
+								var buf [97]byte
+								n, err := outS.Read(buf[:])
+								gotB = append(gotB, buf[:n]...)
+								if err != nil {
+									if err != io.EOF {
+										t.Fatal(err)
+									}
+									break
+								}
+								if seek {
+									cur, err := outS.Seek(0, io.SeekCurrent)
+									if err != nil {
+										t.Fatal(err)
+									}
+									// Shifting by incomplete bytes should not affect the result.
+									for i := 0; i < bitDepthInBytes*2; i++ {
+										pos, err := outS.Seek(int64(i), io.SeekCurrent)
+										if err != nil {
+											t.Fatal(err)
+										}
+										if cur != pos {
+											t.Errorf("cur: %d, pos: %d", cur, pos)
+										}
+									}
+								}
 							}
-						}
-					}
-					wantB := newSoundBytes(c.Out, bitDepthInBytes)
-					if len(gotB) != len(wantB) {
-						t.Errorf("len(gotB) == %d but len(wantB) == %d", len(gotB), len(wantB))
-					}
-					for i := 0; i < len(gotB)/bitDepthInBytes; i++ {
-						var got, want float64
-						switch bitDepthInBytes {
-						case 2:
-							got = float64(int16(gotB[2*i])|(int16(gotB[2*i+1])<<8)) / (1<<15 - 1)
-							want = float64(int16(wantB[2*i])|(int16(wantB[2*i+1])<<8)) / (1<<15 - 1)
-						case 4:
-							got = float64(math.Float32frombits(uint32(gotB[4*i]) | (uint32(gotB[4*i+1]) << 8) | (uint32(gotB[4*i+2]) << 16) | (uint32(gotB[4*i+3]) << 24)))
-							want = float64(math.Float32frombits(uint32(wantB[4*i]) | (uint32(wantB[4*i+1]) << 8) | (uint32(wantB[4*i+2]) << 16) | (uint32(wantB[4*i+3]) << 24)))
-						}
-						if math.Abs(got-want) > 0.025 {
-							t.Errorf("sample rate: %d, index: %d: got: %f, want: %f", c.Out, i, got, want)
-						}
+							wantB := newSoundBytes(c.Out, bitDepthInBytes)
+							// 256 is an arbitrary number.
+							// In most cases, len(gotB) must >= len(wantB), but there are some numerical errors.
+							if len(gotB) < len(wantB)-256 {
+								t.Errorf("len(gotB) >= len(wantB) - 256, but len(gotB) == %d, len(wantB) == %d", len(gotB), len(wantB))
+							}
+							for i := 0; i < len(gotB)/bitDepthInBytes; i++ {
+								var got, want float64
+								switch bitDepthInBytes {
+								case 2:
+									got = float64(int16(gotB[2*i])|(int16(gotB[2*i+1])<<8)) / (1<<15 - 1)
+									if i < len(wantB)/2 {
+										want = float64(int16(wantB[2*i])|(int16(wantB[2*i+1])<<8)) / (1<<15 - 1)
+									}
+								case 4:
+									got = float64(math.Float32frombits(uint32(gotB[4*i]) | (uint32(gotB[4*i+1]) << 8) | (uint32(gotB[4*i+2]) << 16) | (uint32(gotB[4*i+3]) << 24)))
+									if i < len(wantB)/4 {
+										want = float64(math.Float32frombits(uint32(wantB[4*i]) | (uint32(wantB[4*i+1]) << 8) | (uint32(wantB[4*i+2]) << 16) | (uint32(wantB[4*i+3]) << 24)))
+									}
+								}
+								if math.Abs(got-want) > 0.025 {
+									t.Errorf("sample rate: %d, index: %d: got: %f, want: %f", c.Out, i, got, want)
+								}
+							}
+						})
 					}
 				})
 			}
