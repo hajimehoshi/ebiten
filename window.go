@@ -174,7 +174,7 @@ func initializeWindowPositionIfNeeded(width, height int) {
 // WindowSize returns the window size on desktops.
 // WindowSize returns (0, 0) on other environments.
 //
-// Even if the application is in fullscreen mode, WindowSize returns the original window size
+// Even if the application is in fullscreen mode, WindowSize returns the original window size.
 // If you need the fullscreen dimensions, see Monitor().Size() instead.
 //
 // WindowSize is concurrent-safe.
