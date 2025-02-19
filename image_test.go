@@ -4651,3 +4651,160 @@ func TestImageInvalidPremultipliedAlphaColor(t *testing.T) {
 		}
 	}
 }
+
+func TestImageDrawTriangles32(t *testing.T) {
+	const w, h = 16, 16
+	src := ebiten.NewImage(w, h)
+	dst := ebiten.NewImage(w, h)
+	pix := make([]byte, 4*w*h)
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			idx := 4 * (j*w + i)
+			pix[idx] = byte(i) * 0x10
+			pix[idx+1] = byte(j) * 0x10
+			pix[idx+2] = 0xff
+			pix[idx+3] = 0xff
+		}
+	}
+	src.WritePixels(pix)
+
+	vs := []ebiten.Vertex{
+		{
+			DstX:   0,
+			DstY:   0,
+			SrcX:   0,
+			SrcY:   0,
+			ColorR: 1,
+			ColorG: 1,
+			ColorB: 1,
+			ColorA: 1,
+		},
+		{
+			DstX:   w,
+			DstY:   0,
+			SrcX:   w,
+			SrcY:   0,
+			ColorR: 1,
+			ColorG: 1,
+			ColorB: 1,
+			ColorA: 1,
+		},
+		{
+			DstX:   0,
+			DstY:   h,
+			SrcX:   0,
+			SrcY:   h,
+			ColorR: 1,
+			ColorG: 1,
+			ColorB: 1,
+			ColorA: 1,
+		},
+		{
+			DstX:   w,
+			DstY:   h,
+			SrcX:   w,
+			SrcY:   h,
+			ColorR: 1,
+			ColorG: 1,
+			ColorB: 1,
+			ColorA: 1,
+		},
+	}
+	is := []uint32{0, 1, 2, 1, 2, 3}
+	op := &ebiten.DrawTrianglesOptions{}
+	dst.DrawTriangles32(vs, is, src, op)
+	// Even if the indices are modified, this should not affect the rendering result.
+	for i := range is {
+		is[i] = 0
+	}
+
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			got := dst.At(i, j).(color.RGBA)
+			want := color.RGBA{R: byte(i) * 0x10, G: byte(j) * 0x10, B: 0xff, A: 0xff}
+			if !sameColors(got, want, 1) {
+				t.Errorf("dst.At(%d, %d): got %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+}
+
+func TestImageDrawTrianglesShader32(t *testing.T) {
+	const w, h = 16, 16
+	dst := ebiten.NewImage(w, h)
+
+	vs := []ebiten.Vertex{
+		{
+			DstX:   0,
+			DstY:   0,
+			SrcX:   0,
+			SrcY:   0,
+			ColorR: 1,
+			ColorG: 1,
+			ColorB: 1,
+			ColorA: 1,
+		},
+		{
+			DstX:   w,
+			DstY:   0,
+			SrcX:   w,
+			SrcY:   0,
+			ColorR: 1,
+			ColorG: 1,
+			ColorB: 1,
+			ColorA: 1,
+		},
+		{
+			DstX:   0,
+			DstY:   h,
+			SrcX:   0,
+			SrcY:   h,
+			ColorR: 1,
+			ColorG: 1,
+			ColorB: 1,
+			ColorA: 1,
+		},
+		{
+			DstX:   w,
+			DstY:   h,
+			SrcX:   w,
+			SrcY:   h,
+			ColorR: 1,
+			ColorG: 1,
+			ColorB: 1,
+			ColorA: 1,
+		},
+	}
+	is := []uint32{0, 1, 2, 1, 2, 3}
+	op := &ebiten.DrawTrianglesShaderOptions{}
+	shader, err := ebiten.NewShader([]byte(`//kage:unit pixels
+
+package main
+
+func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+	// imageSrcNOrigin is actually not necessary here.
+	// As no source image is bounded, the source's origin position is (0, 0).
+	// However, let's use this function for readability.
+	p := srcPos - imageSrc0Origin()
+	return vec4(floor(p.x) / 16, floor(p.y) / 16, 1, 1)
+}
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	dst.DrawTrianglesShader32(vs, is, shader, op)
+	// Even if the indices are modified, this should not affect the rendering result.
+	for i := range is {
+		is[i] = 0
+	}
+
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			got := dst.At(i, j).(color.RGBA)
+			want := color.RGBA{R: byte(i) * 0x10, G: byte(j) * 0x10, B: 0xff, A: 0xff}
+			if !sameColors(got, want, 1) {
+				t.Errorf("dst.At(%d, %d): got %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+}

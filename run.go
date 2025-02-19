@@ -107,8 +107,10 @@ type FinalScreen interface {
 
 	DrawImage(img *Image, options *DrawImageOptions)
 	DrawTriangles(vertices []Vertex, indices []uint16, img *Image, options *DrawTrianglesOptions)
+	DrawTriangles32(vertices []Vertex, indices []uint32, img *Image, options *DrawTrianglesOptions)
 	DrawRectShader(width, height int, shader *Shader, options *DrawRectShaderOptions)
 	DrawTrianglesShader(vertices []Vertex, indices []uint16, shader *Shader, options *DrawTrianglesShaderOptions)
+	DrawTrianglesShader32(vertices []Vertex, indices []uint32, shader *Shader, options *DrawTrianglesShaderOptions)
 	Clear()
 	Fill(clr color.Color)
 

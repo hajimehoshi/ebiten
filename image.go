@@ -518,6 +518,36 @@ const MaxVertexCount = graphicscommand.MaxVertexCount
 //
 // When the image i is disposed, DrawTriangles does nothing.
 func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, options *DrawTrianglesOptions) {
+	is := i.ensureTmpIndices(len(indices))
+	for i := range is {
+		is[i] = uint32(indices[i])
+	}
+	i.DrawTriangles32(vertices, is, img, options)
+}
+
+// DrawTriangles32 draws triangles with the specified vertices and their indices.
+// DrawTriangles32 is the version of DrawTriangles with uint32 indices.
+//
+// img is used as a source image. img cannot be nil.
+// If you want to draw triangles with a solid color, use a small white image
+// and adjust the color elements in the vertices. For an actual implementation,
+// see the example 'vector'.
+//
+// Vertex contains color values, which are interpreted as straight-alpha colors by default.
+// This depends on the option's ColorScaleMode.
+//
+// If len(vertices) is more than MaxVertexCount, the exceeding part is ignored.
+//
+// If len(indices) is not multiple of 3, DrawTriangles32 panics.
+//
+// If a value in indices is out of range of vertices, or not less than MaxVertexCount, DrawTriangles32 panics.
+//
+// The rule in which DrawTriangles32 works effectively is same as DrawImage's.
+//
+// When the given image is disposed, DrawTriangles32 panics.
+//
+// When the image i is disposed, DrawTriangles32 does nothing.
+func (i *Image) DrawTriangles32(vertices []Vertex, indices []uint32, img *Image, options *DrawTrianglesOptions) {
 	i.copyCheck()
 
 	if img != nil && img.isDisposed() {
@@ -587,10 +617,6 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 			vs[i*graphics.VertexFloatCount+7] = vertices[i].ColorA * ca
 		}
 	}
-	is := i.ensureTmpIndices(len(indices))
-	for i := range is {
-		is[i] = uint32(indices[i])
-	}
 
 	srcs := [graphics.ShaderSrcImageCount]*ui.Image{img.image}
 
@@ -611,7 +637,7 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 	if !skipMipmap {
 		skipMipmap = filter != builtinshader.FilterLinear
 	}
-	i.image.DrawTriangles(srcs, vs, is, blend, i.adjustedBounds(), [graphics.ShaderSrcImageCount]image.Rectangle{img.adjustedBounds()}, shader.shader, i.tmpUniforms, graphicsdriver.FillRule(options.FillRule), skipMipmap, options.AntiAlias, restorable.HintNone)
+	i.image.DrawTriangles(srcs, vs, indices, blend, i.adjustedBounds(), [graphics.ShaderSrcImageCount]image.Rectangle{img.adjustedBounds()}, shader.shader, i.tmpUniforms, graphicsdriver.FillRule(options.FillRule), skipMipmap, options.AntiAlias, restorable.HintNone)
 }
 
 // DrawTrianglesShaderOptions represents options for DrawTrianglesShader.
@@ -689,6 +715,39 @@ var _ [len(DrawTrianglesShaderOptions{}.Images) - graphics.ShaderSrcImageCount]s
 //
 // When the image i is disposed, DrawTrianglesShader does nothing.
 func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader *Shader, options *DrawTrianglesShaderOptions) {
+	is := i.ensureTmpIndices(len(indices))
+	for i := range is {
+		is[i] = uint32(indices[i])
+	}
+	i.DrawTrianglesShader32(vertices, is, shader, options)
+}
+
+// DrawTrianglesShader32 draws triangles with the specified vertices and their indices with the specified shader.
+// DrawTrianglesShader32 is the version of DrawTrianglesShader with uint32 indices.
+//
+// Vertex contains color values, which can be interpreted for any purpose by the shader.
+//
+// For the details about the shader, see https://ebitengine.org/en/documents/shader.html.
+//
+// If the shader unit is texels, one of the specified image is non-nil and its size is different from (width, height),
+// DrawTrianglesShader32 panics.
+// If one of the specified image is non-nil and is disposed, DrawTrianglesShader32 panics.
+//
+// If len(vertices) is more than MaxVertexCount, the exceeding part is ignored.
+//
+// If len(indices) is not multiple of 3, DrawTrianglesShader32 panics.
+//
+// If a value in indices is out of range of vertices, or not less than MaxVertexCount, DrawTrianglesShader32 panics.
+//
+// When a specified image is non-nil and is disposed, DrawTrianglesShader32 panics.
+//
+// If a specified uniform variable's length or type doesn't match with an expected one, DrawTrianglesShader32 panics.
+//
+// Even if a result is an invalid color as a premultiplied-alpha color, i.e. an alpha value exceeds other color values,
+// the value is kept and is not clamped.
+//
+// When the image i is disposed, DrawTrianglesShader32 does nothing.
+func (i *Image) DrawTrianglesShader32(vertices []Vertex, indices []uint32, shader *Shader, options *DrawTrianglesShaderOptions) {
 	i.copyCheck()
 
 	if i.isDisposed() {
@@ -747,11 +806,6 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 		vs[i*graphics.VertexFloatCount+11] = vertices[i].Custom3
 	}
 
-	is := i.ensureTmpIndices(len(indices))
-	for i := range is {
-		is[i] = uint32(indices[i])
-	}
-
 	var imgs [graphics.ShaderSrcImageCount]*ui.Image
 	var imgSize image.Point
 	for i, img := range options.Images {
@@ -785,7 +839,7 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 	i.tmpUniforms = i.tmpUniforms[:0]
 	i.tmpUniforms = shader.appendUniforms(i.tmpUniforms, options.Uniforms)
 
-	i.image.DrawTriangles(imgs, vs, is, blend, i.adjustedBounds(), srcRegions, shader.shader, i.tmpUniforms, graphicsdriver.FillRule(options.FillRule), true, options.AntiAlias, restorable.HintNone)
+	i.image.DrawTriangles(imgs, vs, indices, blend, i.adjustedBounds(), srcRegions, shader.shader, i.tmpUniforms, graphicsdriver.FillRule(options.FillRule), true, options.AntiAlias, restorable.HintNone)
 }
 
 // DrawRectShaderOptions represents options for DrawRectShader.
