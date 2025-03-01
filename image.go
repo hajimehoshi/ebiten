@@ -1130,6 +1130,8 @@ func (i *Image) at(x, y int) (r, g, b, a byte) {
 // the value is kept and is not clamped.
 //
 // If the image is disposed, Set does nothing.
+//
+// For performance, it is recommended to use WritePixels instead of Set whenever possible.
 func (i *Image) Set(x, y int, clr color.Color) {
 	i.copyCheck()
 	if i.isDisposed() {
