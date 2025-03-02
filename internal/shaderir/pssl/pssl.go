@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// The actual implementation will be provided by -overlay.
+// The actual implementation will be provided by github.com/hajimehoshi/uwagaki.
 
 package pssl
 

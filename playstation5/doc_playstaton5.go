@@ -17,4 +17,4 @@
 // Package playstation5 provides utilities for PlayStation 5.
 package playstation5
 
-// The actual implementation will be provided by another repository using the -overlay option.
+// The actual implementation will be provided by another repository using github.com/hajimehoshi/uwagaki.
