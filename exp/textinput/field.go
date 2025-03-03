@@ -75,7 +75,7 @@ type Field struct {
 	selectionStartInBytes int
 	selectionEndInBytes   int
 
-	ch    chan State
+	ch    <-chan State
 	end   func()
 	state State
 	err   error

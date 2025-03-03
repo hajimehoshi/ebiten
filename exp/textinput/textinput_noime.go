@@ -28,7 +28,7 @@ type textInput struct {
 
 var theTextInput textInput
 
-func (t *textInput) Start(x, y int) (chan State, func()) {
+func (t *textInput) Start(x, y int) (<-chan State, func()) {
 	// AppendInputChars is updated only when the tick is updated.
 	// If the tick is not updated, return nil immediately.
 	tick := ui.Get().Tick()

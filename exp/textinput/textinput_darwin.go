@@ -33,7 +33,7 @@ type textInput struct {
 
 var theTextInput textInput
 
-func (t *textInput) Start(x, y int) (chan State, func()) {
+func (t *textInput) Start(x, y int) (<-chan State, func()) {
 	var session *session
 	ui.Get().RunOnMainThread(func() {
 		t.end()

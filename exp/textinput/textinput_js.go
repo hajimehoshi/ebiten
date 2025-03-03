@@ -156,7 +156,7 @@ body.addEventListener("keyup", handler);`)
 	// TODO: What about other events like wheel?
 }
 
-func (t *textInput) Start(x, y int) (chan State, func()) {
+func (t *textInput) Start(x, y int) (<-chan State, func()) {
 	if !t.textareaElement.Truthy() {
 		return nil, nil
 	}
