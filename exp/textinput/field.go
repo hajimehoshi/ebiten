@@ -104,7 +104,7 @@ func (f *Field) HandleInput(x, y int) (handled bool, err error) {
 			// TODO: On iOS Safari, Start doesn't work as expected (#2898).
 			// Handle a click event and focus the textarea there.
 			f.ch, f.end = Start(x, y)
-			// Start returns nil for non-supported envrionments, or cannot start text inputting for some reasons.
+			// Start returns nil for non-supported envrionments, or when unable to start text inputting for some reasons.
 			if f.ch == nil {
 				return handled, nil
 			}
