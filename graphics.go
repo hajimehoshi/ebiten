@@ -15,6 +15,7 @@
 package ebiten
 
 import (
+	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
 	"github.com/hajimehoshi/ebiten/v2/internal/builtinshader"
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
@@ -70,11 +71,18 @@ var _ [GraphicsLibraryAuto]int = [0]int{}
 type DebugInfo struct {
 	// GraphicsLibrary represents the graphics library currently in use.
 	GraphicsLibrary GraphicsLibrary
+
+	// TotalGPUImageMemoryUsageInBytes is the total image memory usage for GPU in bytes.
+	// TotalGPUImageMemoryUsageInBytes is approximately the total memory usage for GPU.
+	TotalGPUImageMemoryUsageInBytes int64
 }
 
 // ReadDebugInfo writes debug info (e.g. current graphics library) into a provided struct.
+//
+// ReadDebugInfo is concurrent-safe.
 func ReadDebugInfo(d *DebugInfo) {
 	d.GraphicsLibrary = GraphicsLibrary(ui.Get().GraphicsLibrary())
+	d.TotalGPUImageMemoryUsageInBytes = atlas.TotalGPUImageMemoryUsageInBytes()
 }
 
 // ColorSpace represents the color space of the screen.

@@ -353,6 +353,9 @@ func (g *game) Draw(screen *ebiten.Image) {
 		fg = "No"
 	}
 
+	var debug ebiten.DebugInfo
+	ebiten.ReadDebugInfo(&debug)
+
 	msg := fmt.Sprintf(`[Arrow keys] Move the window
 [Shift + Arrow keys] Change the window size
 %s
@@ -375,7 +378,8 @@ Window size limitation: (%d, %d) - (%d, %d)
 Cursor: (%d, %d)
 TPS: Current: %0.2f / Max: %s
 FPS: %0.2f
-Device Scale Factor: %0.2f`, msgM, msgR, fg, wx, wy, ww, wh, minw, minh, maxw, maxh, cx, cy, ebiten.ActualTPS(), tpsStr, ebiten.ActualFPS(), ebiten.Monitor().DeviceScaleFactor())
+Device Scale Factor: %0.2f
+GPU Memory Usage: %d`, msgM, msgR, fg, wx, wy, ww, wh, minw, minh, maxw, maxh, cx, cy, ebiten.ActualTPS(), tpsStr, ebiten.ActualFPS(), ebiten.Monitor().DeviceScaleFactor(), debug.TotalGPUImageMemoryUsageInBytes)
 	ebitenutil.DebugPrint(screen, msg)
 }
 

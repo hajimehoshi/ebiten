@@ -838,3 +838,18 @@ func DumpImages(graphicsDriver graphicsdriver.Graphics, dir string) (string, err
 
 	return restorable.DumpImages(graphicsDriver, dir)
 }
+
+func TotalGPUImageMemoryUsageInBytes() int64 {
+	backendsM.Lock()
+	defer backendsM.Unlock()
+
+	var sum int64
+	for _, b := range theBackends {
+		if b.restorable == nil {
+			continue
+		}
+		w, h := b.restorable.InternalSize()
+		sum += 4 * int64(w) * int64(h)
+	}
+	return sum
+}
