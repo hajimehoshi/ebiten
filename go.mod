@@ -1,6 +1,8 @@
 module github.com/hajimehoshi/ebiten/v2
 
-go 1.22.0
+go 1.23.0
+
+toolchain go1.24.0
 
 require (
 	github.com/ebitengine/gomobile v0.0.0-20250209143333-6071a2a2351c
@@ -16,8 +18,8 @@ require (
 	github.com/jfreymuth/oggvorbis v1.0.5
 	github.com/kisielk/errcheck v1.9.0
 	golang.org/x/image v0.24.0
-	golang.org/x/sync v0.11.0
-	golang.org/x/sys v0.30.0
+	golang.org/x/sync v0.12.0
+	golang.org/x/sys v0.31.0
 	golang.org/x/text v0.22.0
 	golang.org/x/tools v0.30.0
 )
