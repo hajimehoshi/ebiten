@@ -3,28 +3,11 @@ name: Vulnerability Check
 on: [push, pull_request]
 
 jobs:
-  go-versions:
-    name: Get stable Go versions
-    runs-on: ubuntu-latest
-    outputs:
-      version-list: ${{ steps.go-dev-stable-versions.outputs.version-list }}
-    steps:
-      - name: List the latest stable versions of Go
-        id: go-dev-stable-versions
-        run: |
-          versions_json=$(curl -s https://go.dev/dl/?mode=json | jq '.[].version' | sed -e 's/^"go/"/' | jq -s -c '.')
-          echo "version-list=$versions_json" >> $GITHUB_OUTPUT
-
-      - name: Notify on go-dev-stable-versions
-        run: echo "::notice::version-list is ${{ steps.go-dev-stable-versions.outputs.version-list }}"
-
   test:
-    needs: [go-versions]
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        go: ${{ fromJson(needs.go-versions.outputs.version-list) }}
-    name: Vulnerability Check with Go ${{ matrix.go }} on ${{ matrix.os }}
+    name: Vulnerability Check on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     env:
       DISPLAY: ':99.0'
@@ -41,10 +24,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Go version
+        id: go
+        run: |
+          echo "version=$(curl --location https://go.dev/VERSION?m=text | head -n 1 | sed -e s/^go//)" >> $GITHUB_OUTPUT
+
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ matrix.go }}
+          go-version: ${{ steps.go.outputs.version }}
 
       - name: Install govulncheck
         run: |
