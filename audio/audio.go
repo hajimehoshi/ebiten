@@ -181,9 +181,12 @@ func (c *Context) error() error {
 	c.m.Lock()
 	defer c.m.Unlock()
 	if c.err != nil {
-		return c.err
+		return fmt.Errorf("audio: audio error: %w", c.err)
 	}
-	return c.playerFactory.error()
+	if err := c.playerFactory.error(); err != nil {
+		return fmt.Errorf("audio: audio error: %w", err)
+	}
+	return nil
 }
 
 func (c *Context) setReady() {
