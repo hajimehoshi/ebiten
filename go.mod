@@ -2,8 +2,6 @@ module github.com/hajimehoshi/ebiten/v2
 
 go 1.23.0
 
-toolchain go1.24.0
-
 require (
 	github.com/ebitengine/gomobile v0.0.0-20250209143333-6071a2a2351c
 	github.com/ebitengine/hideconsole v1.0.0
