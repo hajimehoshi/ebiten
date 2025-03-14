@@ -168,7 +168,8 @@ jobs:
           env GOARCH=386 EBITENGINE_DIRECTX=version=12 go test -shuffle=on -v ./...
 
       - name: go test (Wasm)
-        if: runner.os == 'Linux'
+        # wasmbrowsertest doesn't work with Go 1.22 (agnivade/wasmbrowsertest#78).
+        if: runner.os == 'Linux' && !startsWith(matrix.go, '1.22.')
         run: |
           # Disable AppArmor for Ubuntu 23.10+.
           # https://chromium.googlesource.com/chromium/src/+/main/docs/security/apparmor-userns-restrictions.md
