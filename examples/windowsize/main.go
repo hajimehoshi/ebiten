@@ -26,10 +26,10 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"sync"
+
+	"github.com/ebitengine/debugui"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/examples/resources/images"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
@@ -39,11 +39,9 @@ var (
 	flagResizable           = flag.Bool("resizable", false, "make the window resizable")
 	flagWindowPosition      = flag.String("windowposition", "", "window position (e.g., 100,200)")
 	flagTransparent         = flag.Bool("transparent", false, "screen transparent")
-	flagAutoAdjusting       = flag.Bool("autoadjusting", false, "make the game screen auto-adjusting")
 	flagFloating            = flag.Bool("floating", false, "make the window floating")
 	flagMaximize            = flag.Bool("maximize", false, "maximize the window")
 	flagVsync               = flag.Bool("vsync", true, "enable vsync")
-	flagAutoRestore         = flag.Bool("autorestore", false, "restore the window automatically")
 	flagInitFocused         = flag.Bool("initfocused", true, "whether the window is focused on start")
 	flagMinWindowSize       = flag.String("minwindowsize", "", "minimum window size (e.g., 100x200)")
 	flagMaxWindowSize       = flag.String("maxwindowsize", "", "maximum window size (e.g., 1920x1080)")
@@ -57,8 +55,8 @@ func init() {
 }
 
 const (
-	initScreenWidth  = 480
-	initScreenHeight = 480
+	initScreenWidth  = 640
+	initScreenHeight = 640
 	initScreenScale  = 1
 )
 
@@ -91,25 +89,26 @@ func createRandomIconImage() image.Image {
 }
 
 type game struct {
-	count       int
-	width       float64
-	height      float64
-	transparent bool
+	debugUI debugui.DebugUI
 
+	count        int
+	screenWidth  float64
+	screenHeight float64
+	positionX    int
+	positionY    int
+
+	autoRestore         bool
+	autoAdjustment      bool
 	fullscreen          bool
 	runnableOnUnfocused bool
 	cursorMode          ebiten.CursorModeType
 	vsyncEnabled        bool
 	tps                 int
 	decorated           bool
-	positionX           int
-	positionY           int
 	floating            bool
 	resizingMode        ebiten.WindowResizingModeType
 	screenCleared       bool
 	mousePassthrough    bool
-
-	initOnce sync.Once
 }
 
 func (g *game) Layout(outsideWidth, outsideHeight int) (int, int) {
@@ -119,175 +118,281 @@ func (g *game) Layout(outsideWidth, outsideHeight int) (int, int) {
 }
 
 func (g *game) LayoutF(outsideWidth, outsideHeight float64) (float64, float64) {
-	if *flagAutoAdjusting {
-		g.width, g.height = outsideWidth, outsideHeight
+	if g.autoAdjustment {
+		g.screenWidth, g.screenHeight = outsideWidth, outsideHeight
 		return outsideWidth, outsideHeight
 	}
 	// Ignore the outside size. This means that the offscreen is not adjusted with the outside world.
-	return g.width, g.height
+	return g.screenWidth, g.screenHeight
+}
+
+func windowResigingModeString(m ebiten.WindowResizingModeType) string {
+	switch m {
+	case ebiten.WindowResizingModeDisabled:
+		return "Disabled"
+	case ebiten.WindowResizingModeOnlyFullscreenEnabled:
+		return "Fullscreen Only"
+	case ebiten.WindowResizingModeEnabled:
+		return "Enabled"
+	default:
+		panic("not reached")
+	}
+}
+
+func cursorModeString(m ebiten.CursorModeType) string {
+	switch m {
+	case ebiten.CursorModeVisible:
+		return "Visible"
+	case ebiten.CursorModeHidden:
+		return "Hidden"
+	case ebiten.CursorModeCaptured:
+		return "Captured"
+	default:
+		panic("not reached")
+	}
 }
 
 func (g *game) Update() error {
-	g.initOnce.Do(func() {
-		var debug ebiten.DebugInfo
-		ebiten.ReadDebugInfo(&debug)
-		fmt.Printf("Graphics library: %s\n", debug.GraphicsLibrary)
+	g.fullscreen = ebiten.IsFullscreen()
+	g.runnableOnUnfocused = ebiten.IsRunnableOnUnfocused()
+	g.cursorMode = ebiten.CursorMode()
+	g.vsyncEnabled = ebiten.IsVsyncEnabled()
+	g.tps = ebiten.TPS()
+	g.decorated = ebiten.IsWindowDecorated()
+	g.positionX, g.positionY = ebiten.WindowPosition()
+	g.floating = ebiten.IsWindowFloating()
+	g.resizingMode = ebiten.WindowResizingMode()
+	g.screenCleared = ebiten.IsScreenClearedEveryFrame()
+	g.mousePassthrough = ebiten.IsWindowMousePassthrough()
 
-		g.fullscreen = ebiten.IsFullscreen()
-		g.runnableOnUnfocused = ebiten.IsRunnableOnUnfocused()
-		g.cursorMode = ebiten.CursorMode()
-		g.vsyncEnabled = ebiten.IsVsyncEnabled()
-		g.tps = ebiten.TPS()
-		g.decorated = ebiten.IsWindowDecorated()
-		g.positionX, g.positionY = ebiten.WindowPosition()
-		g.floating = ebiten.IsWindowFloating()
-		g.resizingMode = ebiten.WindowResizingMode()
-		g.screenCleared = ebiten.IsScreenClearedEveryFrame()
-		g.mousePassthrough = ebiten.IsWindowMousePassthrough()
-	})
-
-	var (
-		screenWidth  float64
-		screenHeight float64
-		screenScale  float64
-	)
-	screenWidth = g.width
-	screenHeight = g.height
+	// ebiten.WindowSize can return (0, 0) on browsers or mobiles.
+	screenScale := 1.0
 	if ww, wh := ebiten.WindowSize(); ww > 0 && wh > 0 {
-		screenScale = math.Min(float64(ww)/g.width, float64(wh)/g.height)
-	} else {
-		// ebiten.WindowSize can return (0, 0) on browsers or mobiles.
-		screenScale = 1
+		screenScale = math.Min(float64(ww)/g.screenWidth, float64(wh)/g.screenHeight)
+	}
+
+	if err := g.debugUI.Update(func(ctx *debugui.Context) error {
+		ctx.Window("Window Size", image.Rect(10, 10, 330, 490), func(layout debugui.ContainerLayout) {
+			ctx.Header("Instructions", false, func() {
+				ctx.SetGridLayout([]int{-1, -1}, nil)
+				ctx.Text("[Arrow keys]")
+				ctx.Text("Move the window")
+				ctx.Text("[Shift + Arrow keys]")
+				ctx.Text("Change the window size")
+				ctx.Text("[E]")
+				ctx.Text("Restore the window (only when the window is maximized or minimized)")
+			})
+			ctx.Header("Settings (Window, Desktop Only)", true, func() {
+				ctx.SetGridLayout([]int{-2, -1}, nil)
+
+				ctx.Text("Resizing Mode")
+				if ctx.Button(windowResigingModeString(g.resizingMode)) {
+					switch g.resizingMode {
+					case ebiten.WindowResizingModeDisabled:
+						g.resizingMode = ebiten.WindowResizingModeOnlyFullscreenEnabled
+					case ebiten.WindowResizingModeOnlyFullscreenEnabled:
+						g.resizingMode = ebiten.WindowResizingModeEnabled
+					case ebiten.WindowResizingModeEnabled:
+						g.resizingMode = ebiten.WindowResizingModeDisabled
+					default:
+						panic("not reached")
+					}
+				}
+
+				if ebiten.WindowResizingMode() == ebiten.WindowResizingModeEnabled {
+					ctx.Text("Maxmize")
+					if ctx.Button("Maximize") {
+						ebiten.MaximizeWindow()
+					}
+				}
+				ctx.Text("Minimize")
+				if ctx.Button("Minimize") {
+					ebiten.MinimizeWindow()
+				}
+				ctx.Text("Auto Restore")
+				ctx.Checkbox(&g.autoRestore, "")
+				if !g.autoAdjustment {
+					ctx.Text("Screen Scale")
+					if ctx.Button(fmt.Sprintf("%0.2f", screenScale)) {
+						switch {
+						case screenScale < 1:
+							screenScale = 1
+						case screenScale < 1.5:
+							screenScale = 1.5
+						case screenScale < 2:
+							screenScale = 2
+						default:
+							screenScale = 0.75
+						}
+					}
+				}
+
+				ctx.Text("Decorated")
+				ctx.Checkbox(&g.decorated, "")
+				ctx.Text("Floating")
+				ctx.Checkbox(&g.floating, "")
+
+				ctx.Text("Update Icon")
+				if ctx.Button("Update") {
+					ebiten.SetWindowIcon([]image.Image{createRandomIconImage()})
+				}
+				ctx.Text("Reset Icon")
+				if ctx.Button("Reset") {
+					ebiten.SetWindowIcon(nil)
+				}
+			})
+			ctx.Header("Settings (Mouse Cursor)", true, func() {
+				ctx.SetGridLayout([]int{-2, -1}, nil)
+
+				ctx.Text("Mode [C]")
+				if ctx.Button(cursorModeString(g.cursorMode)) || inpututil.IsKeyJustPressed(ebiten.KeyC) {
+					switch g.cursorMode {
+					case ebiten.CursorModeVisible:
+						g.cursorMode = ebiten.CursorModeHidden
+					case ebiten.CursorModeHidden:
+						g.cursorMode = ebiten.CursorModeCaptured
+					case ebiten.CursorModeCaptured:
+						g.cursorMode = ebiten.CursorModeVisible
+					}
+				}
+
+				ctx.Text("Passthrough (desktop only) [P]")
+				ctx.Checkbox(&g.mousePassthrough, "")
+				if inpututil.IsKeyJustPressed(ebiten.KeyP) {
+					g.mousePassthrough = !g.mousePassthrough
+				}
+			})
+			ctx.Header("Settings (Rendering)", true, func() {
+				ctx.SetGridLayout([]int{-2, -1}, nil)
+
+				ctx.Text("Auto Size Adjustment")
+				ctx.Checkbox(&g.autoAdjustment, "")
+				ctx.Text("Fullscreen")
+				ctx.Checkbox(&g.fullscreen, "")
+				ctx.Text("Runnable on Unfocused")
+				ctx.Checkbox(&g.runnableOnUnfocused, "")
+				ctx.Text("Vsync")
+				ctx.Checkbox(&g.vsyncEnabled, "")
+				ctx.Text("TPS Mode")
+				tpsStr := "Sync w/ FPS"
+				if t := ebiten.TPS(); t != ebiten.SyncWithFPS {
+					tpsStr = fmt.Sprintf("%d", t)
+				}
+				if ctx.Button(tpsStr) {
+					switch g.tps {
+					case ebiten.SyncWithFPS:
+						g.tps = 30
+					case 30:
+						g.tps = 60
+					case 60:
+						g.tps = 120
+					case 120:
+						g.tps = ebiten.SyncWithFPS
+					default:
+						panic("not reached")
+					}
+				}
+				ctx.Text("Clear Screen Every Frame")
+				ctx.Checkbox(&g.screenCleared, "")
+			})
+			ctx.Header("Info", true, func() {
+				ctx.SetGridLayout([]int{-2, -1}, nil)
+
+				ctx.Text("Window Position:")
+				wx, wy := ebiten.WindowPosition()
+				ctx.Text(fmt.Sprintf("(%d, %d)", wx, wy))
+
+				ctx.Text("Window Size:")
+				ww, wh := ebiten.WindowSize()
+				ctx.Text(fmt.Sprintf("(%d, %d)", ww, wh))
+
+				minw, minh, maxw, maxh := ebiten.WindowSizeLimits()
+				ctx.Text("Minimum Window Size:")
+				ctx.Text(fmt.Sprintf("(%d, %d)", minw, minh))
+				ctx.Text("Maximum Window Size:")
+				ctx.Text(fmt.Sprintf("(%d, %d)", maxw, maxh))
+
+				ctx.Text("Cursor:")
+				cx, cy := ebiten.CursorPosition()
+				ctx.Text(fmt.Sprintf("(%d, %d)", cx, cy))
+
+				ctx.Text("Device Scale Factor:")
+				ctx.Text(fmt.Sprintf("%0.2f", ebiten.Monitor().DeviceScaleFactor()))
+
+				w, h := ebiten.Monitor().Size()
+				ctx.Text("Screen Size in Fullscreen:")
+				ctx.Text(fmt.Sprintf("(%d, %d)", w, h))
+
+				ctx.Text("Focused?")
+				ctx.Text(fmt.Sprintf("%t", ebiten.IsFocused()))
+
+				ctx.Text("TPS:")
+				ctx.Text(fmt.Sprintf("%0.2f", ebiten.ActualTPS()))
+
+				ctx.Text("FPS:")
+				ctx.Text(fmt.Sprintf("%0.2f", ebiten.ActualFPS()))
+			})
+			ctx.Header("Info (Debug)", true, func() {
+				ctx.SetGridLayout([]int{-1, -1}, nil)
+
+				var debug ebiten.DebugInfo
+				ebiten.ReadDebugInfo(&debug)
+
+				ctx.Text("Graphics Lib:")
+				ctx.Text(debug.GraphicsLibrary.String())
+
+				ctx.Text("GPU Memory Usage:")
+				ctx.Text(fmt.Sprintf("%d", debug.TotalGPUImageMemoryUsageInBytes))
+			})
+		})
+		return nil
+	}); err != nil {
+		return err
 	}
 
 	const d = 16
-	toUpdateWindowSize := false
-	toUpdateWindowPosition := false
 	if ebiten.IsKeyPressed(ebiten.KeyShift) {
 		if inpututil.IsKeyJustPressed(ebiten.KeyArrowDown) {
-			screenHeight += d
-			toUpdateWindowSize = true
+			g.screenHeight += d
 		}
 		if inpututil.IsKeyJustPressed(ebiten.KeyArrowUp) {
-			if 16 < screenHeight && d < screenHeight {
-				screenHeight -= d
-				toUpdateWindowSize = true
+			if 16 < g.screenHeight && d < g.screenHeight {
+				g.screenHeight -= d
 			}
 		}
 		if inpututil.IsKeyJustPressed(ebiten.KeyArrowLeft) {
-			if 16 < screenWidth && d < screenWidth {
-				screenWidth -= d
-				toUpdateWindowSize = true
+			if 16 < g.screenWidth && d < g.screenWidth {
+				g.screenWidth -= d
 			}
 		}
 		if inpututil.IsKeyJustPressed(ebiten.KeyArrowRight) {
-			screenWidth += d
-			toUpdateWindowSize = true
+			g.screenWidth += d
 		}
 	} else {
 		if inpututil.IsKeyJustPressed(ebiten.KeyArrowUp) {
 			g.positionY -= d
-			toUpdateWindowPosition = true
 		}
 		if inpututil.IsKeyJustPressed(ebiten.KeyArrowDown) {
 			g.positionY += d
-			toUpdateWindowPosition = true
 		}
 		if inpututil.IsKeyJustPressed(ebiten.KeyArrowLeft) {
 			g.positionX -= d
-			toUpdateWindowPosition = true
 		}
 		if inpututil.IsKeyJustPressed(ebiten.KeyArrowRight) {
 			g.positionX += d
-			toUpdateWindowPosition = true
 		}
 	}
-	if inpututil.IsKeyJustPressed(ebiten.KeyS) && !*flagAutoAdjusting {
-		switch {
-		case screenScale < 1:
-			screenScale = 1
-		case screenScale < 1.5:
-			screenScale = 1.5
-		case screenScale < 2:
-			screenScale = 2
-		default:
-			screenScale = 0.75
-		}
-		toUpdateWindowSize = true
-	}
-	if inpututil.IsKeyJustPressed(ebiten.KeyF) {
-		g.fullscreen = !g.fullscreen
-	}
-	if inpututil.IsKeyJustPressed(ebiten.KeyU) {
-		g.runnableOnUnfocused = !g.runnableOnUnfocused
-	}
-	if inpututil.IsKeyJustPressed(ebiten.KeyC) {
-		switch g.cursorMode {
-		case ebiten.CursorModeVisible:
-			g.cursorMode = ebiten.CursorModeHidden
-		case ebiten.CursorModeHidden:
-			g.cursorMode = ebiten.CursorModeCaptured
-		case ebiten.CursorModeCaptured:
-			g.cursorMode = ebiten.CursorModeVisible
-		}
-	}
-	if inpututil.IsKeyJustPressed(ebiten.KeyV) {
-		g.vsyncEnabled = !g.vsyncEnabled
-	}
-	if inpututil.IsKeyJustPressed(ebiten.KeyT) {
-		switch g.tps {
-		case ebiten.SyncWithFPS:
-			g.tps = 30
-		case 30:
-			g.tps = 60
-		case 60:
-			g.tps = 120
-		case 120:
-			g.tps = ebiten.SyncWithFPS
-		default:
-			panic("not reached")
-		}
-	}
-	if inpututil.IsKeyJustPressed(ebiten.KeyD) {
-		g.decorated = !g.decorated
-	}
-	if inpututil.IsKeyJustPressed(ebiten.KeyL) {
-		g.floating = !g.floating
-	}
-	if inpututil.IsKeyJustPressed(ebiten.KeyR) {
-		switch g.resizingMode {
-		case ebiten.WindowResizingModeDisabled:
-			g.resizingMode = ebiten.WindowResizingModeOnlyFullscreenEnabled
-		case ebiten.WindowResizingModeOnlyFullscreenEnabled:
-			g.resizingMode = ebiten.WindowResizingModeEnabled
-		case ebiten.WindowResizingModeEnabled:
-			g.resizingMode = ebiten.WindowResizingModeDisabled
-		default:
-			panic("not reached")
-		}
-	}
-	if inpututil.IsKeyJustPressed(ebiten.KeyW) {
-		g.screenCleared = !g.screenCleared
-	}
-	maximize := inpututil.IsKeyJustPressed(ebiten.KeyM)
-	minimize := inpututil.IsKeyJustPressed(ebiten.KeyN)
-	restore := false
+
+	var restore bool
 	if ebiten.IsWindowMaximized() || ebiten.IsWindowMinimized() {
-		if *flagAutoRestore {
+		if g.autoRestore {
 			restore = g.count%ebiten.TPS() == 0
 		} else {
 			restore = inpututil.IsKeyJustPressed(ebiten.KeyE)
 		}
 	}
-	if inpututil.IsKeyJustPressed(ebiten.KeyP) {
-		g.mousePassthrough = !g.mousePassthrough
-	}
 
-	if toUpdateWindowSize {
-		g.width = screenWidth
-		g.height = screenHeight
-		ebiten.SetWindowSize(int(float64(screenWidth)*screenScale), int(float64(screenHeight)*screenScale))
-	}
+	ebiten.SetWindowSize(int(g.screenWidth*screenScale), int(g.screenHeight*screenScale))
 	ebiten.SetFullscreen(g.fullscreen)
 	ebiten.SetRunnableOnUnfocused(g.runnableOnUnfocused)
 	ebiten.SetCursorMode(g.cursorMode)
@@ -299,28 +404,13 @@ func (g *game) Update() error {
 	}
 	ebiten.SetTPS(g.tps)
 	ebiten.SetWindowDecorated(g.decorated)
-	if toUpdateWindowPosition {
-		ebiten.SetWindowPosition(g.positionX, g.positionY)
-	}
+	ebiten.SetWindowPosition(g.positionX, g.positionY)
 	ebiten.SetWindowFloating(g.floating)
 	ebiten.SetScreenClearedEveryFrame(g.screenCleared)
-	if maximize && ebiten.WindowResizingMode() == ebiten.WindowResizingModeEnabled {
-		ebiten.MaximizeWindow()
-	}
-	if minimize {
-		ebiten.MinimizeWindow()
-	}
 	if restore {
 		ebiten.RestoreWindow()
 	}
 	ebiten.SetWindowResizingMode(g.resizingMode)
-
-	if inpututil.IsKeyJustPressed(ebiten.KeyI) {
-		ebiten.SetWindowIcon([]image.Image{createRandomIconImage()})
-	}
-	if inpututil.IsKeyJustPressed(ebiten.KeyJ) {
-		ebiten.SetWindowIcon(nil)
-	}
 
 	ebiten.SetWindowMousePassthrough(g.mousePassthrough)
 
@@ -338,61 +428,7 @@ func (g *game) Draw(screen *ebiten.Image) {
 	op.GeoM.Translate(dx, dy)
 	screen.DrawImage(gophersImage, op)
 
-	wx, wy := ebiten.WindowPosition()
-	ww, wh := ebiten.WindowSize()
-	minw, minh, maxw, maxh := ebiten.WindowSizeLimits()
-	cx, cy := ebiten.CursorPosition()
-	tpsStr := "Sync with FPS"
-	if t := ebiten.TPS(); t != ebiten.SyncWithFPS {
-		tpsStr = fmt.Sprintf("%d", t)
-	}
-
-	var lines []string
-	if !ebiten.IsWindowMaximized() && ebiten.WindowResizingMode() == ebiten.WindowResizingModeEnabled {
-		lines = append(lines, "[M] Maximize the window (only for desktops)")
-	}
-	if !ebiten.IsWindowMinimized() {
-		lines = append(lines, "[N] Minimize the window (only for desktops)")
-	}
-	if ebiten.IsWindowMaximized() || ebiten.IsWindowMinimized() {
-		lines = append(lines, "[E] Restore the window from maximized/minimized state (only for desktops)")
-	}
-	msgM := strings.Join(lines, "\n")
-
-	msgR := "[R] Switch the window resizing mode (only for desktops)\n"
-	fg := "Yes"
-	if !ebiten.IsFocused() {
-		fg = "No"
-	}
-
-	var debug ebiten.DebugInfo
-	ebiten.ReadDebugInfo(&debug)
-
-	msg := fmt.Sprintf(`[Arrow keys] Move the window
-[Shift + Arrow keys] Change the window size
-%s
-[F] Switch the fullscreen state
-[U] Switch the runnable-on-unfocused state
-[C] Switch the cursor mode (visible, hidden, or captured)
-[I] Change the window icon (only for desktops)
-[J] Reset the window icon (only for desktops)
-[V] Switch the vsync
-[T] Switch TPS (ticks per second)
-[D] Switch the window decoration (only for desktops)
-[L] Switch the window floating state (only for desktops)
-[W] Switch whether to skip clearing the screen
-[P] Switch whether a mouse cursor passthroughs the window (only for desktops)
-%s
-IsFocused?: %s
-Window Position: (%d, %d)
-Window Size: (%d, %d)
-Window size limitation: (%d, %d) - (%d, %d)
-Cursor: (%d, %d)
-TPS: Current: %0.2f / Max: %s
-FPS: %0.2f
-Device Scale Factor: %0.2f
-GPU Memory Usage: %d`, msgM, msgR, fg, wx, wy, ww, wh, minw, minh, maxw, maxh, cx, cy, ebiten.ActualTPS(), tpsStr, ebiten.ActualFPS(), ebiten.Monitor().DeviceScaleFactor(), debug.TotalGPUImageMemoryUsageInBytes)
-	ebitenutil.DebugPrint(screen, msg)
+	g.debugUI.Draw(screen)
 }
 
 func parseWindowPosition() (int, int, bool) {
@@ -415,10 +451,6 @@ func parseWindowPosition() (int, int, bool) {
 }
 
 func main() {
-	fmt.Printf("Device scale factor: %0.2f\n", ebiten.Monitor().DeviceScaleFactor())
-	w, h := ebiten.Monitor().Size()
-	fmt.Printf("Screen size in fullscreen: %d, %d\n", w, h)
-
 	// Decode an image from the image file's byte slice.
 	img, _, err := image.Decode(bytes.NewReader(images.Gophers_jpg))
 	if err != nil {
@@ -433,8 +465,8 @@ func main() {
 	}
 
 	g := &game{
-		width:  initScreenWidth,
-		height: initScreenHeight,
+		screenWidth:  initScreenWidth,
+		screenHeight: initScreenHeight,
 	}
 
 	if *flagFullscreen {
@@ -452,9 +484,6 @@ func main() {
 	}
 	if !*flagVsync {
 		ebiten.SetVsyncEnabled(false)
-	}
-	if *flagAutoAdjusting {
-		ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
 	}
 	if !*flagRunnableOnUnfocused {
 		ebiten.SetRunnableOnUnfocused(false)
@@ -502,8 +531,8 @@ func main() {
 	op.X11InstanceName = "window-size"
 
 	const title = "Window Size (Ebitengine Demo)"
-	ww := int(float64(g.width) * initScreenScale)
-	wh := int(float64(g.height) * initScreenScale)
+	ww := int(float64(g.screenWidth) * initScreenScale)
+	wh := int(float64(g.screenHeight) * initScreenScale)
 	ebiten.SetWindowSize(ww, wh)
 	ebiten.SetWindowTitle(title)
 	if err := ebiten.RunGameWithOptions(g, op); err != nil {
