@@ -250,27 +250,6 @@ func (g *game) Update() error {
 					ebiten.SetWindowIcon(nil)
 				}
 			})
-			ctx.Header("Settings (Mouse Cursor)", true, func() {
-				ctx.SetGridLayout([]int{-2, -1}, nil)
-
-				ctx.Text("Mode [C]")
-				if ctx.Button(cursorModeString(g.cursorMode)) || inpututil.IsKeyJustPressed(ebiten.KeyC) {
-					switch g.cursorMode {
-					case ebiten.CursorModeVisible:
-						g.cursorMode = ebiten.CursorModeHidden
-					case ebiten.CursorModeHidden:
-						g.cursorMode = ebiten.CursorModeCaptured
-					case ebiten.CursorModeCaptured:
-						g.cursorMode = ebiten.CursorModeVisible
-					}
-				}
-
-				ctx.Text("Passthrough (desktop only) [P]")
-				ctx.Checkbox(&g.mousePassthrough, "")
-				if inpututil.IsKeyJustPressed(ebiten.KeyP) {
-					g.mousePassthrough = !g.mousePassthrough
-				}
-			})
 			ctx.Header("Settings (Rendering)", true, func() {
 				ctx.SetGridLayout([]int{-2, -1}, nil)
 
@@ -303,6 +282,27 @@ func (g *game) Update() error {
 				}
 				ctx.Text("Clear Screen Every Frame")
 				ctx.Checkbox(&g.screenCleared, "")
+			})
+			ctx.Header("Settings (Mouse Cursor)", true, func() {
+				ctx.SetGridLayout([]int{-2, -1}, nil)
+
+				ctx.Text("Mode [C]")
+				if ctx.Button(cursorModeString(g.cursorMode)) || inpututil.IsKeyJustPressed(ebiten.KeyC) {
+					switch g.cursorMode {
+					case ebiten.CursorModeVisible:
+						g.cursorMode = ebiten.CursorModeHidden
+					case ebiten.CursorModeHidden:
+						g.cursorMode = ebiten.CursorModeCaptured
+					case ebiten.CursorModeCaptured:
+						g.cursorMode = ebiten.CursorModeVisible
+					}
+				}
+
+				ctx.Text("Passthrough (desktop only) [P]")
+				ctx.Checkbox(&g.mousePassthrough, "")
+				if inpututil.IsKeyJustPressed(ebiten.KeyP) {
+					g.mousePassthrough = !g.mousePassthrough
+				}
 			})
 			ctx.Header("Info", true, func() {
 				ctx.SetGridLayout([]int{-2, -1}, nil)
