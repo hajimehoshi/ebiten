@@ -3,7 +3,7 @@ module github.com/hajimehoshi/ebiten/v2
 go 1.23.0
 
 require (
-	github.com/ebitengine/debugui v0.0.0-20250322070536-404b47536760
+	github.com/ebitengine/debugui v0.0.0-20250322152216-daeb8ead358d
 	github.com/ebitengine/gomobile v0.0.0-20250209143333-6071a2a2351c
 	github.com/ebitengine/hideconsole v1.0.0
 	github.com/ebitengine/oto/v3 v3.4.0-alpha.5

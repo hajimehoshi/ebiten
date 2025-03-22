@@ -27,12 +27,12 @@ import (
 	"log"
 	"time"
 
+	"github.com/ebitengine/debugui"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/audio"
 	"github.com/hajimehoshi/ebiten/v2/audio/mp3"
 	"github.com/hajimehoshi/ebiten/v2/audio/vorbis"
 	"github.com/hajimehoshi/ebiten/v2/audio/wav"
-	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	raudio "github.com/hajimehoshi/ebiten/v2/examples/resources/audio"
 	riaudio "github.com/hajimehoshi/ebiten/v2/examples/resources/images/audio"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
@@ -207,12 +207,6 @@ func (p *Player) update() error {
 	}
 	p.switchPlayStateIfNeeded()
 	p.playSEIfNeeded()
-	p.updateVolumeIfNeeded()
-
-	if inpututil.IsKeyJustPressed(ebiten.KeyU) {
-		b := ebiten.IsRunnableOnUnfocused()
-		ebiten.SetRunnableOnUnfocused(!b)
-	}
 	return nil
 }
 
@@ -222,9 +216,6 @@ func (p *Player) shouldPlaySE() bool {
 		return false
 	}
 
-	if inpututil.IsKeyJustPressed(ebiten.KeyP) {
-		return true
-	}
 	r := image.Rectangle{
 		Min: p.alertButtonPosition,
 		Max: p.alertButtonPosition.Add(alertButtonImage.Bounds().Size()),
@@ -250,26 +241,7 @@ func (p *Player) playSEIfNeeded() {
 	sePlayer.Play()
 }
 
-func (p *Player) updateVolumeIfNeeded() {
-	if ebiten.IsKeyPressed(ebiten.KeyZ) {
-		p.volume128--
-	}
-	if ebiten.IsKeyPressed(ebiten.KeyX) {
-		p.volume128++
-	}
-	if p.volume128 < 0 {
-		p.volume128 = 0
-	}
-	if 128 < p.volume128 {
-		p.volume128 = 128
-	}
-	p.audioPlayer.SetVolume(float64(p.volume128) / 128)
-}
-
 func (p *Player) shouldSwitchPlayStateIfNeeded() bool {
-	if inpututil.IsKeyJustPressed(ebiten.KeyS) {
-		return true
-	}
 	r := image.Rectangle{
 		Min: p.playButtonPosition,
 		Max: p.playButtonPosition.Add(playButtonImage.Bounds().Size()),
@@ -340,16 +312,9 @@ func (p *Player) draw(screen *ebiten.Image) {
 	vector.DrawFilledRect(screen, float32(x), float32(y), float32(w), float32(h), playerBarColor, true)
 
 	// Draw the cursor on the bar.
-	c := p.current
 	cx := float32(x) + float32(w)*float32(p.current)/float32(p.total)
 	cy := float32(y) + float32(h)/2
 	vector.DrawFilledCircle(screen, cx, cy, 12, playerCurrentColor, true)
-
-	// Compose the current time text.
-	m := (c / time.Minute) % 100
-	s := (c / time.Second) % 60
-	ms := (c / time.Millisecond) % 1000
-	currentTimeStr := fmt.Sprintf("%02d:%02d.%03d", m, s, ms)
 
 	// Draw buttons
 	op := &ebiten.DrawImageOptions{}
@@ -362,35 +327,27 @@ func (p *Player) draw(screen *ebiten.Image) {
 	op.GeoM.Reset()
 	op.GeoM.Translate(float64(p.alertButtonPosition.X), float64(p.alertButtonPosition.Y))
 	screen.DrawImage(alertButtonImage, op)
-
-	// Draw the debug message.
-	msg := fmt.Sprintf(`TPS: %0.2f
-Press S to toggle Play/Pause
-Press P to play SE
-Press Z or X to change volume of the music
-Press U to switch the runnable-on-unfocused state
-Press A to switch Ogg and MP3 (Current: %s)
-Current Time: %s
-Current Volume: %d/128
-Type: %s`, ebiten.ActualTPS(), p.musicType,
-		currentTimeStr, int(p.audioPlayer.Volume()*128), p.musicType)
-	ebitenutil.DebugPrint(screen, msg)
 }
 
 type Game struct {
+	debugUI debugui.DebugUI
+
 	musicPlayer   *Player
 	musicPlayerCh chan *Player
 	errCh         chan error
 
 	justPressedTouchIDs []ebiten.TouchID
+
+	runnableOnUnfocused bool
 }
 
 func NewGame() (*Game, error) {
 	audioContext := audio.NewContext(sampleRate)
 
 	g := &Game{
-		musicPlayerCh: make(chan *Player),
-		errCh:         make(chan error),
+		musicPlayerCh:       make(chan *Player),
+		errCh:               make(chan error),
+		runnableOnUnfocused: ebiten.IsRunnableOnUnfocused(),
 	}
 
 	m, err := NewPlayer(g, audioContext, typeOgg)
@@ -411,32 +368,78 @@ func (g *Game) Update() error {
 	default:
 	}
 
-	g.justPressedTouchIDs = inpututil.AppendJustPressedTouchIDs(g.justPressedTouchIDs[:0])
+	if err := g.debugUI.Update(func(ctx *debugui.Context) error {
+		var uiErr error
+		ctx.Window("Audio", image.Rect(10, 10, 330, 210), func(layout debugui.ContainerLayout) {
+			ctx.Header("Settings", true, func() {
+				ctx.SetGridLayout([]int{-1, -1}, nil)
 
-	if g.musicPlayer != nil && inpututil.IsKeyJustPressed(ebiten.KeyA) {
-		var t musicType
-		switch g.musicPlayer.musicType {
-		case typeOgg:
-			t = typeMP3
-		case typeMP3:
-			t = typeOgg
-		default:
-			panic("not reached")
-		}
+				if g.musicPlayer != nil {
+					ctx.Text("Volume")
+					if ctx.Slider(&g.musicPlayer.volume128, 0, 128, 1) {
+						g.musicPlayer.audioPlayer.SetVolume(float64(g.musicPlayer.volume128) / 128)
+					}
+				}
 
-		if err := g.musicPlayer.Close(); err != nil {
-			return err
-		}
-		g.musicPlayer = nil
+				ctx.Text("Switch Audio Type")
+				typ := "N/A"
+				if g.musicPlayer != nil {
+					typ = fmt.Sprintf("Current: %s", g.musicPlayer.musicType)
+				}
+				if ctx.Button(typ) {
+					if g.musicPlayer == nil {
+						return
+					}
+					var t musicType
+					switch g.musicPlayer.musicType {
+					case typeOgg:
+						t = typeMP3
+					case typeMP3:
+						t = typeOgg
+					default:
+						panic("not reached")
+					}
 
-		go func() {
-			p, err := NewPlayer(g, audio.CurrentContext(), t)
-			if err != nil {
-				g.errCh <- err
-				return
-			}
-			g.musicPlayerCh <- p
-		}()
+					if err := g.musicPlayer.Close(); err != nil {
+						uiErr = err
+						return
+					}
+					g.musicPlayer = nil
+
+					go func() {
+						p, err := NewPlayer(g, audio.CurrentContext(), t)
+						if err != nil {
+							g.errCh <- err
+							return
+						}
+						g.musicPlayerCh <- p
+					}()
+				}
+
+				ctx.Text("Runnable on Unfocused")
+				ctx.Checkbox(&g.runnableOnUnfocused, "")
+			})
+			ctx.Header("Info", true, func() {
+				ctx.SetGridLayout([]int{-1, -1}, nil)
+
+				// Compose the current time text.
+				var c time.Duration
+				if g.musicPlayer != nil {
+					c = g.musicPlayer.current
+				}
+				m := (c / time.Minute) % 100
+				s := (c / time.Second) % 60
+				ms := (c / time.Millisecond) % 1000
+
+				ctx.Text("Time")
+				ctx.Text(fmt.Sprintf("%02d:%02d.%03d", m, s, ms))
+				ctx.Text("TPS")
+				ctx.Text(fmt.Sprintf("%0.2f", ebiten.ActualTPS()))
+			})
+		})
+		return uiErr
+	}); err != nil {
+		return err
 	}
 
 	if g.musicPlayer != nil {
@@ -444,6 +447,9 @@ func (g *Game) Update() error {
 			return err
 		}
 	}
+
+	ebiten.SetRunnableOnUnfocused(g.runnableOnUnfocused)
+
 	return nil
 }
 
@@ -451,6 +457,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	if g.musicPlayer != nil {
 		g.musicPlayer.draw(screen)
 	}
+	g.debugUI.Draw(screen)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
