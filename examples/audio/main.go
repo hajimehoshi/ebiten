@@ -28,6 +28,7 @@ import (
 	"time"
 
 	"github.com/ebitengine/debugui"
+
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/audio"
 	"github.com/hajimehoshi/ebiten/v2/audio/mp3"
