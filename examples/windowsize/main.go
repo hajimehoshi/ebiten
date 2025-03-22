@@ -96,7 +96,20 @@ type game struct {
 	height      float64
 	transparent bool
 
-	logOnce sync.Once
+	fullscreen          bool
+	runnableOnUnfocused bool
+	cursorMode          ebiten.CursorModeType
+	vsyncEnabled        bool
+	tps                 int
+	decorated           bool
+	positionX           int
+	positionY           int
+	floating            bool
+	resizingMode        ebiten.WindowResizingModeType
+	screenCleared       bool
+	mousePassthrough    bool
+
+	initOnce sync.Once
 }
 
 func (g *game) Layout(outsideWidth, outsideHeight int) (int, int) {
@@ -115,10 +128,22 @@ func (g *game) LayoutF(outsideWidth, outsideHeight float64) (float64, float64) {
 }
 
 func (g *game) Update() error {
-	g.logOnce.Do(func() {
+	g.initOnce.Do(func() {
 		var debug ebiten.DebugInfo
 		ebiten.ReadDebugInfo(&debug)
 		fmt.Printf("Graphics library: %s\n", debug.GraphicsLibrary)
+
+		g.fullscreen = ebiten.IsFullscreen()
+		g.runnableOnUnfocused = ebiten.IsRunnableOnUnfocused()
+		g.cursorMode = ebiten.CursorMode()
+		g.vsyncEnabled = ebiten.IsVsyncEnabled()
+		g.tps = ebiten.TPS()
+		g.decorated = ebiten.IsWindowDecorated()
+		g.positionX, g.positionY = ebiten.WindowPosition()
+		g.floating = ebiten.IsWindowFloating()
+		g.resizingMode = ebiten.WindowResizingMode()
+		g.screenCleared = ebiten.IsScreenClearedEveryFrame()
+		g.mousePassthrough = ebiten.IsWindowMousePassthrough()
 	})
 
 	var (
@@ -134,19 +159,6 @@ func (g *game) Update() error {
 		// ebiten.WindowSize can return (0, 0) on browsers or mobiles.
 		screenScale = 1
 	}
-
-	fullscreen := ebiten.IsFullscreen()
-	runnableOnUnfocused := ebiten.IsRunnableOnUnfocused()
-	cursorMode := ebiten.CursorMode()
-	vsyncEnabled := ebiten.IsVsyncEnabled()
-	tps := ebiten.TPS()
-	decorated := ebiten.IsWindowDecorated()
-	positionX, positionY := ebiten.WindowPosition()
-	g.transparent = ebiten.IsScreenTransparent()
-	floating := ebiten.IsWindowFloating()
-	resizingMode := ebiten.WindowResizingMode()
-	screenCleared := ebiten.IsScreenClearedEveryFrame()
-	mousePassthrough := ebiten.IsWindowMousePassthrough()
 
 	const d = 16
 	toUpdateWindowSize := false
@@ -174,19 +186,19 @@ func (g *game) Update() error {
 		}
 	} else {
 		if inpututil.IsKeyJustPressed(ebiten.KeyArrowUp) {
-			positionY -= d
+			g.positionY -= d
 			toUpdateWindowPosition = true
 		}
 		if inpututil.IsKeyJustPressed(ebiten.KeyArrowDown) {
-			positionY += d
+			g.positionY += d
 			toUpdateWindowPosition = true
 		}
 		if inpututil.IsKeyJustPressed(ebiten.KeyArrowLeft) {
-			positionX -= d
+			g.positionX -= d
 			toUpdateWindowPosition = true
 		}
 		if inpututil.IsKeyJustPressed(ebiten.KeyArrowRight) {
-			positionX += d
+			g.positionX += d
 			toUpdateWindowPosition = true
 		}
 	}
@@ -204,58 +216,58 @@ func (g *game) Update() error {
 		toUpdateWindowSize = true
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyF) {
-		fullscreen = !fullscreen
+		g.fullscreen = !g.fullscreen
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyU) {
-		runnableOnUnfocused = !runnableOnUnfocused
+		g.runnableOnUnfocused = !g.runnableOnUnfocused
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyC) {
-		switch cursorMode {
+		switch g.cursorMode {
 		case ebiten.CursorModeVisible:
-			cursorMode = ebiten.CursorModeHidden
+			g.cursorMode = ebiten.CursorModeHidden
 		case ebiten.CursorModeHidden:
-			cursorMode = ebiten.CursorModeCaptured
+			g.cursorMode = ebiten.CursorModeCaptured
 		case ebiten.CursorModeCaptured:
-			cursorMode = ebiten.CursorModeVisible
+			g.cursorMode = ebiten.CursorModeVisible
 		}
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyV) {
-		vsyncEnabled = !vsyncEnabled
+		g.vsyncEnabled = !g.vsyncEnabled
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyT) {
-		switch tps {
+		switch g.tps {
 		case ebiten.SyncWithFPS:
-			tps = 30
+			g.tps = 30
 		case 30:
-			tps = 60
+			g.tps = 60
 		case 60:
-			tps = 120
+			g.tps = 120
 		case 120:
-			tps = ebiten.SyncWithFPS
+			g.tps = ebiten.SyncWithFPS
 		default:
 			panic("not reached")
 		}
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyD) {
-		decorated = !decorated
+		g.decorated = !g.decorated
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyL) {
-		floating = !floating
+		g.floating = !g.floating
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyR) {
-		switch resizingMode {
+		switch g.resizingMode {
 		case ebiten.WindowResizingModeDisabled:
-			resizingMode = ebiten.WindowResizingModeOnlyFullscreenEnabled
+			g.resizingMode = ebiten.WindowResizingModeOnlyFullscreenEnabled
 		case ebiten.WindowResizingModeOnlyFullscreenEnabled:
-			resizingMode = ebiten.WindowResizingModeEnabled
+			g.resizingMode = ebiten.WindowResizingModeEnabled
 		case ebiten.WindowResizingModeEnabled:
-			resizingMode = ebiten.WindowResizingModeDisabled
+			g.resizingMode = ebiten.WindowResizingModeDisabled
 		default:
 			panic("not reached")
 		}
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyW) {
-		screenCleared = !screenCleared
+		g.screenCleared = !g.screenCleared
 	}
 	maximize := inpututil.IsKeyJustPressed(ebiten.KeyM)
 	minimize := inpututil.IsKeyJustPressed(ebiten.KeyN)
@@ -268,7 +280,7 @@ func (g *game) Update() error {
 		}
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyP) {
-		mousePassthrough = !mousePassthrough
+		g.mousePassthrough = !g.mousePassthrough
 	}
 
 	if toUpdateWindowSize {
@@ -276,22 +288,22 @@ func (g *game) Update() error {
 		g.height = screenHeight
 		ebiten.SetWindowSize(int(float64(screenWidth)*screenScale), int(float64(screenHeight)*screenScale))
 	}
-	ebiten.SetFullscreen(fullscreen)
-	ebiten.SetRunnableOnUnfocused(runnableOnUnfocused)
-	ebiten.SetCursorMode(cursorMode)
+	ebiten.SetFullscreen(g.fullscreen)
+	ebiten.SetRunnableOnUnfocused(g.runnableOnUnfocused)
+	ebiten.SetCursorMode(g.cursorMode)
 
 	// Set FPS mode enabled only when this is needed.
 	// This makes a bug around FPS mode initialization more explicit (#1364).
-	if vsyncEnabled != ebiten.IsVsyncEnabled() {
-		ebiten.SetVsyncEnabled(vsyncEnabled)
+	if g.vsyncEnabled != ebiten.IsVsyncEnabled() {
+		ebiten.SetVsyncEnabled(g.vsyncEnabled)
 	}
-	ebiten.SetTPS(tps)
-	ebiten.SetWindowDecorated(decorated)
+	ebiten.SetTPS(g.tps)
+	ebiten.SetWindowDecorated(g.decorated)
 	if toUpdateWindowPosition {
-		ebiten.SetWindowPosition(positionX, positionY)
+		ebiten.SetWindowPosition(g.positionX, g.positionY)
 	}
-	ebiten.SetWindowFloating(floating)
-	ebiten.SetScreenClearedEveryFrame(screenCleared)
+	ebiten.SetWindowFloating(g.floating)
+	ebiten.SetScreenClearedEveryFrame(g.screenCleared)
 	if maximize && ebiten.WindowResizingMode() == ebiten.WindowResizingModeEnabled {
 		ebiten.MaximizeWindow()
 	}
@@ -301,7 +313,7 @@ func (g *game) Update() error {
 	if restore {
 		ebiten.RestoreWindow()
 	}
-	ebiten.SetWindowResizingMode(resizingMode)
+	ebiten.SetWindowResizingMode(g.resizingMode)
 
 	if inpututil.IsKeyJustPressed(ebiten.KeyI) {
 		ebiten.SetWindowIcon([]image.Image{createRandomIconImage()})
@@ -310,7 +322,7 @@ func (g *game) Update() error {
 		ebiten.SetWindowIcon(nil)
 	}
 
-	ebiten.SetWindowMousePassthrough(mousePassthrough)
+	ebiten.SetWindowMousePassthrough(g.mousePassthrough)
 
 	g.count++
 	return nil
