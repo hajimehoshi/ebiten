@@ -171,6 +171,14 @@ func (g *game) Update() error {
 		screenScale = math.Min(float64(ww)/g.screenWidth, float64(wh)/g.screenHeight)
 	}
 
+	// Call SetWindowSize and SetWindowPosition only when necessary.
+	// When a window is maximized, SetWindowSize and SetWindowPosition should not be called.
+	// Otherwise, the restored window size and position are not correct.
+	var (
+		toUpdateWindowSize     bool
+		toUpdateWindowPosition bool
+	)
+
 	if err := g.debugUI.Update(func(ctx *debugui.Context) error {
 		ctx.Window("Window Size", image.Rect(10, 10, 330, 490), func(layout debugui.ContainerLayout) {
 			ctx.Header("Instructions", false, func() {
@@ -203,11 +211,6 @@ func (g *game) Update() error {
 					ctx.Text("Maxmize")
 					if ctx.Button("Maximize") {
 						ebiten.MaximizeWindow()
-						g.positionX, g.positionY = ebiten.WindowPosition()
-						w, h := ebiten.WindowSize()
-						g.screenWidth = float64(w)
-						g.screenHeight = float64(h)
-						screenScale = 1
 					}
 				}
 				ctx.Text("Minimize")
@@ -229,6 +232,7 @@ func (g *game) Update() error {
 						default:
 							screenScale = 0.75
 						}
+						toUpdateWindowSize = true
 					}
 				}
 
@@ -359,32 +363,40 @@ func (g *game) Update() error {
 	if ebiten.IsKeyPressed(ebiten.KeyShift) {
 		if inpututil.IsKeyJustPressed(ebiten.KeyArrowDown) {
 			g.screenHeight += d
+			toUpdateWindowSize = true
 		}
 		if inpututil.IsKeyJustPressed(ebiten.KeyArrowUp) {
 			if 16 < g.screenHeight && d < g.screenHeight {
 				g.screenHeight -= d
+				toUpdateWindowSize = true
 			}
 		}
 		if inpututil.IsKeyJustPressed(ebiten.KeyArrowLeft) {
 			if 16 < g.screenWidth && d < g.screenWidth {
 				g.screenWidth -= d
+				toUpdateWindowSize = true
 			}
 		}
 		if inpututil.IsKeyJustPressed(ebiten.KeyArrowRight) {
 			g.screenWidth += d
+			toUpdateWindowSize = true
 		}
 	} else {
 		if inpututil.IsKeyJustPressed(ebiten.KeyArrowUp) {
 			g.positionY -= d
+			toUpdateWindowPosition = true
 		}
 		if inpututil.IsKeyJustPressed(ebiten.KeyArrowDown) {
 			g.positionY += d
+			toUpdateWindowPosition = true
 		}
 		if inpututil.IsKeyJustPressed(ebiten.KeyArrowLeft) {
 			g.positionX -= d
+			toUpdateWindowPosition = true
 		}
 		if inpututil.IsKeyJustPressed(ebiten.KeyArrowRight) {
 			g.positionX += d
+			toUpdateWindowPosition = true
 		}
 	}
 
@@ -397,7 +409,9 @@ func (g *game) Update() error {
 		}
 	}
 
-	ebiten.SetWindowSize(int(g.screenWidth*screenScale), int(g.screenHeight*screenScale))
+	if toUpdateWindowSize {
+		ebiten.SetWindowSize(int(g.screenWidth*screenScale), int(g.screenHeight*screenScale))
+	}
 	ebiten.SetFullscreen(g.fullscreen)
 	ebiten.SetRunnableOnUnfocused(g.runnableOnUnfocused)
 	ebiten.SetCursorMode(g.cursorMode)
@@ -409,7 +423,9 @@ func (g *game) Update() error {
 	}
 	ebiten.SetTPS(g.tps)
 	ebiten.SetWindowDecorated(g.decorated)
-	ebiten.SetWindowPosition(g.positionX, g.positionY)
+	if toUpdateWindowPosition {
+		ebiten.SetWindowPosition(g.positionX, g.positionY)
+	}
 	ebiten.SetWindowFloating(g.floating)
 	ebiten.SetScreenClearedEveryFrame(g.screenCleared)
 	if restore {
