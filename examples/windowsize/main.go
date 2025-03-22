@@ -307,50 +307,50 @@ func (g *game) Update() error {
 			ctx.Header("Info", true, func() {
 				ctx.SetGridLayout([]int{-2, -1}, nil)
 
-				ctx.Text("Window Position:")
+				ctx.Text("Window Position")
 				wx, wy := ebiten.WindowPosition()
 				ctx.Text(fmt.Sprintf("(%d, %d)", wx, wy))
 
-				ctx.Text("Window Size:")
+				ctx.Text("Window Size")
 				ww, wh := ebiten.WindowSize()
 				ctx.Text(fmt.Sprintf("(%d, %d)", ww, wh))
 
 				minw, minh, maxw, maxh := ebiten.WindowSizeLimits()
-				ctx.Text("Minimum Window Size:")
+				ctx.Text("Minimum Window Size")
 				ctx.Text(fmt.Sprintf("(%d, %d)", minw, minh))
-				ctx.Text("Maximum Window Size:")
+				ctx.Text("Maximum Window Size")
 				ctx.Text(fmt.Sprintf("(%d, %d)", maxw, maxh))
 
-				ctx.Text("Cursor:")
+				ctx.Text("Cursor")
 				cx, cy := ebiten.CursorPosition()
 				ctx.Text(fmt.Sprintf("(%d, %d)", cx, cy))
 
-				ctx.Text("Device Scale Factor:")
+				ctx.Text("Device Scale Factor")
 				ctx.Text(fmt.Sprintf("%0.2f", ebiten.Monitor().DeviceScaleFactor()))
 
 				w, h := ebiten.Monitor().Size()
-				ctx.Text("Screen Size in Fullscreen:")
+				ctx.Text("Screen Size in Fullscreen")
 				ctx.Text(fmt.Sprintf("(%d, %d)", w, h))
 
 				ctx.Text("Focused?")
 				ctx.Text(fmt.Sprintf("%t", ebiten.IsFocused()))
 
-				ctx.Text("TPS:")
+				ctx.Text("TPS")
 				ctx.Text(fmt.Sprintf("%0.2f", ebiten.ActualTPS()))
 
-				ctx.Text("FPS:")
+				ctx.Text("FPS")
 				ctx.Text(fmt.Sprintf("%0.2f", ebiten.ActualFPS()))
 			})
 			ctx.Header("Info (Debug)", true, func() {
-				ctx.SetGridLayout([]int{-1, -1}, nil)
+				ctx.SetGridLayout([]int{-2, -1}, nil)
 
 				var debug ebiten.DebugInfo
 				ebiten.ReadDebugInfo(&debug)
 
-				ctx.Text("Graphics Lib:")
+				ctx.Text("Graphics Lib")
 				ctx.Text(debug.GraphicsLibrary.String())
 
-				ctx.Text("GPU Memory Usage:")
+				ctx.Text("GPU Memory Usage")
 				ctx.Text(fmt.Sprintf("%d", debug.TotalGPUImageMemoryUsageInBytes))
 			})
 		})
