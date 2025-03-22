@@ -203,6 +203,11 @@ func (g *game) Update() error {
 					ctx.Text("Maxmize")
 					if ctx.Button("Maximize") {
 						ebiten.MaximizeWindow()
+						g.positionX, g.positionY = ebiten.WindowPosition()
+						w, h := ebiten.WindowSize()
+						g.screenWidth = float64(w)
+						g.screenHeight = float64(h)
+						screenScale = 1
 					}
 				}
 				ctx.Text("Minimize")
