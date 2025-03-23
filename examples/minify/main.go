@@ -19,7 +19,6 @@ package main
 
 import (
 	"bytes"
-	"fmt"
 	"image"
 	_ "image/jpeg"
 	"log"
@@ -43,30 +42,39 @@ var (
 type Game struct {
 	debugui debugui.DebugUI
 
-	rotate  bool
-	clip    bool
-	counter int
-	pause   bool
+	rotate    bool
+	clip      bool
+	autoScale bool
+	counter   int
+	scale     float64
 }
 
 func (g *Game) Update() error {
-	if !g.pause {
-		g.counter++
-		if g.counter == 480 {
-			g.counter = 0
-		}
+	if g.scale == 0 {
+		g.scale = 1
+	}
+	g.counter++
+	if g.counter == 480 {
+		g.counter = 0
+	}
+	if g.autoScale {
+		g.scale = 1.5 / math.Pow(1.01, float64(g.counter))
 	}
 
 	if err := g.debugui.Update(func(ctx *debugui.Context) error {
-		ctx.Window("Control", image.Rect(10, 10, 210, 170), func(layout debugui.ContainerLayout) {
-			ctx.Checkbox(&g.rotate, "Rotate")
-			ctx.Checkbox(&g.clip, "Clip")
-			ctx.Checkbox(&g.pause, "Pause")
+		ctx.Window("Control", image.Rect(10, 10, 260, 160), func(layout debugui.ContainerLayout) {
+			ctx.SetGridLayout([]int{-1, -2}, nil)
+			ctx.Text("Rotate")
+			ctx.Checkbox(&g.rotate, "")
+			ctx.Text("Clip")
+			ctx.Checkbox(&g.clip, "")
+			ctx.Text("Scale")
+			ctx.SliderF(&g.scale, 0.01, 2, 0.01, 2)
+			ctx.Text("Auto Scale")
+			ctx.Checkbox(&g.autoScale, "")
 		})
-		ctx.Window("Info", image.Rect(220, 10, 470, 170), func(layout debugui.ContainerLayout) {
+		ctx.Window("Info", image.Rect(270, 10, 520, 160), func(layout debugui.ContainerLayout) {
 			ctx.Text("Minifying Images\nLeft:   Nearest filter\nCenter: Linear filter (w/ mipmaps)\nRight:  Linear Filter (w/o mipmaps)")
-			ctx.Text("")
-			ctx.Text(fmt.Sprintf("Scale: %0.2f", g.scale()))
 		})
 		return nil
 	}); err != nil {
@@ -76,12 +84,8 @@ func (g *Game) Update() error {
 	return nil
 }
 
-func (g *Game) scale() float64 {
-	return 1.5 / math.Pow(1.01, float64(g.counter))
-}
-
 func (g *Game) Draw(screen *ebiten.Image) {
-	s := g.scale()
+	s := g.scale
 
 	clippedGophersImage := gophersImage.SubImage(image.Rect(100, 100, 200, 200)).(*ebiten.Image)
 	for i := range 3 {
