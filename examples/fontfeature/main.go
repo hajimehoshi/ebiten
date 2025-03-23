@@ -17,11 +17,12 @@ package main
 import (
 	"bytes"
 	_ "embed"
-	"fmt"
+	"image"
 	"log"
 
+	"github.com/ebitengine/debugui"
+
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
 )
 
@@ -44,6 +45,8 @@ func init() {
 }
 
 type Game struct {
+	debugui debugui.DebugUI
+
 	// liga represents 'Standard Ligatures'.
 	// https://learn.microsoft.com/en-us/typography/opentype/spec/features_ko#tag-liga
 	liga uint32
@@ -62,58 +65,70 @@ type Game struct {
 }
 
 func (g *Game) Update() error {
-	if inpututil.IsKeyJustPressed(ebiten.KeyL) {
-		if g.liga == 0 {
-			g.liga = 1
-		} else {
-			g.liga = 0
-		}
-	}
-	if inpututil.IsKeyJustPressed(ebiten.KeyT) {
-		if g.tnum == 0 {
-			g.tnum = 1
-		} else {
-			g.tnum = 0
-		}
-	}
-	if inpututil.IsKeyJustPressed(ebiten.KeyS) {
-		if g.smcp == 0 {
-			g.smcp = 1
-		} else {
-			g.smcp = 0
-		}
-	}
-	if inpututil.IsKeyJustPressed(ebiten.KeyZ) {
-		if g.zero == 0 {
-			g.zero = 1
-		} else {
-			g.zero = 0
-		}
+	if err := g.debugui.Update(func(ctx *debugui.Context) error {
+		ctx.Window("Font Feature", image.Rect(10, 10, 210, 160), func(layout debugui.ContainerLayout) {
+			var liga bool
+			if g.liga == 1 {
+				liga = true
+			}
+			if ctx.Checkbox(&liga, "'liga' (Standard Ligatures)") {
+				if liga {
+					g.liga = 1
+				} else {
+					g.liga = 0
+				}
+			}
+
+			var tnum bool
+			if g.tnum == 1 {
+				tnum = true
+			}
+			if ctx.Checkbox(&tnum, "'tnum' (Tabular Figures)") {
+				if tnum {
+					g.tnum = 1
+				} else {
+					g.tnum = 0
+				}
+			}
+
+			var smcp bool
+			if g.smcp == 1 {
+				smcp = true
+			}
+			if ctx.Checkbox(&smcp, "'smcp' (Small Capitals)") {
+				if smcp {
+					g.smcp = 1
+				} else {
+					g.smcp = 0
+				}
+			}
+
+			var zero bool
+			if g.zero == 1 {
+				zero = true
+			}
+			if ctx.Checkbox(&zero, "'zero' (Slashed Zero)") {
+				if zero {
+					g.zero = 1
+				} else {
+					g.zero = 0
+				}
+			}
+		})
+		return nil
+	}); err != nil {
+		return err
 	}
 	return nil
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	// Draw the instruction.
-	inst := fmt.Sprintf(`Press keys to toggle font features.
-[L] 'liga' (Standard Ligatures) (%d)
-[T] 'tnum' (Tabular Figures) (%d)
-[S] 'smcp' (Small Capitals) (%d)
-[Z] 'zero' (Slashed Zero) (%d)`, g.liga, g.tnum, g.smcp, g.zero)
-	op := &text.DrawOptions{}
-	op.GeoM.Translate(20, 20)
-	op.LineSpacing = 30
-	text.Draw(screen, inst, &text.GoTextFace{
-		Source: firaSansFaceSource,
-		Size:   20,
-	}, op)
-
 	// Draw the sample text.
 	const sampleText = `0 (Number) / O (Alphabet)
 ffi
 3.14
 2.71`
-	op = &text.DrawOptions{}
+	op := &text.DrawOptions{}
 	op.GeoM.Translate(20, screenHeight/2)
 	op.LineSpacing = 50
 	f := &text.GoTextFace{
@@ -125,6 +140,8 @@ ffi
 	f.SetFeature(text.MustParseTag("smcp"), g.smcp)
 	f.SetFeature(text.MustParseTag("zero"), g.zero)
 	text.Draw(screen, sampleText, f, op)
+
+	g.debugui.Draw(screen)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
