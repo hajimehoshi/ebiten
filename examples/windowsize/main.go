@@ -97,18 +97,9 @@ type game struct {
 	positionX    int
 	positionY    int
 
-	autoRestore         bool
-	autoAdjustment      bool
-	fullscreen          bool
-	runnableOnUnfocused bool
-	cursorMode          ebiten.CursorModeType
-	vsyncEnabled        bool
-	tps                 int
-	decorated           bool
-	floating            bool
-	resizingMode        ebiten.WindowResizingModeType
-	screenCleared       bool
-	mousePassthrough    bool
+	autoRestore    bool
+	autoAdjustment bool
+	tps            int
 }
 
 func (g *game) Layout(outsideWidth, outsideHeight int) (int, int) {
@@ -153,17 +144,8 @@ func cursorModeString(m ebiten.CursorModeType) string {
 }
 
 func (g *game) Update() error {
-	g.fullscreen = ebiten.IsFullscreen()
-	g.runnableOnUnfocused = ebiten.IsRunnableOnUnfocused()
-	g.cursorMode = ebiten.CursorMode()
-	g.vsyncEnabled = ebiten.IsVsyncEnabled()
 	g.tps = ebiten.TPS()
-	g.decorated = ebiten.IsWindowDecorated()
 	g.positionX, g.positionY = ebiten.WindowPosition()
-	g.floating = ebiten.IsWindowFloating()
-	g.resizingMode = ebiten.WindowResizingMode()
-	g.screenCleared = ebiten.IsScreenClearedEveryFrame()
-	g.mousePassthrough = ebiten.IsWindowMousePassthrough()
 
 	// ebiten.WindowSize can return (0, 0) on browsers or mobiles.
 	screenScale := 1.0
@@ -194,14 +176,15 @@ func (g *game) Update() error {
 				ctx.SetGridLayout([]int{-2, -1}, nil)
 
 				ctx.Text("Resizing Mode")
-				if ctx.Button(windowResigingModeString(g.resizingMode)) {
-					switch g.resizingMode {
+				resizingMode := ebiten.WindowResizingMode()
+				if ctx.Button(windowResigingModeString(resizingMode)) {
+					switch resizingMode {
 					case ebiten.WindowResizingModeDisabled:
-						g.resizingMode = ebiten.WindowResizingModeOnlyFullscreenEnabled
+						ebiten.SetWindowResizingMode(ebiten.WindowResizingModeOnlyFullscreenEnabled)
 					case ebiten.WindowResizingModeOnlyFullscreenEnabled:
-						g.resizingMode = ebiten.WindowResizingModeEnabled
+						ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
 					case ebiten.WindowResizingModeEnabled:
-						g.resizingMode = ebiten.WindowResizingModeDisabled
+						ebiten.SetWindowResizingMode(ebiten.WindowResizingModeDisabled)
 					default:
 						panic("not reached")
 					}
@@ -237,9 +220,15 @@ func (g *game) Update() error {
 				}
 
 				ctx.Text("Decorated")
-				ctx.Checkbox(&g.decorated, "")
+				decorated := ebiten.IsWindowDecorated()
+				if ctx.Checkbox(&decorated, "") {
+					ebiten.SetWindowDecorated(decorated)
+				}
 				ctx.Text("Floating")
-				ctx.Checkbox(&g.floating, "")
+				floating := ebiten.IsWindowFloating()
+				if ctx.Checkbox(&floating, "") {
+					ebiten.SetWindowFloating(floating)
+				}
 
 				ctx.Text("Update Icon")
 				if ctx.Button("Update") {
@@ -256,11 +245,20 @@ func (g *game) Update() error {
 				ctx.Text("Auto Size Adjustment")
 				ctx.Checkbox(&g.autoAdjustment, "")
 				ctx.Text("Fullscreen")
-				ctx.Checkbox(&g.fullscreen, "")
+				fullscreen := ebiten.IsFullscreen()
+				if ctx.Checkbox(&fullscreen, "") {
+					ebiten.SetFullscreen(fullscreen)
+				}
 				ctx.Text("Runnable on Unfocused")
-				ctx.Checkbox(&g.runnableOnUnfocused, "")
+				runnableOnUnfocused := ebiten.IsRunnableOnUnfocused()
+				if ctx.Checkbox(&runnableOnUnfocused, "") {
+					ebiten.SetRunnableOnUnfocused(runnableOnUnfocused)
+				}
 				ctx.Text("Vsync")
-				ctx.Checkbox(&g.vsyncEnabled, "")
+				vsyncEnabled := ebiten.IsVsyncEnabled()
+				if ctx.Checkbox(&vsyncEnabled, "") {
+					ebiten.SetVsyncEnabled(vsyncEnabled)
+				}
 				ctx.Text("TPS Mode")
 				tpsStr := "Sync w/ FPS"
 				if t := ebiten.TPS(); t != ebiten.SyncWithFPS {
@@ -281,27 +279,31 @@ func (g *game) Update() error {
 					}
 				}
 				ctx.Text("Clear Screen Every Frame")
-				ctx.Checkbox(&g.screenCleared, "")
+				screenCleared := ebiten.IsScreenClearedEveryFrame()
+				if ctx.Checkbox(&screenCleared, "") {
+					ebiten.SetScreenClearedEveryFrame(screenCleared)
+				}
 			})
 			ctx.Header("Settings (Mouse Cursor)", true, func() {
 				ctx.SetGridLayout([]int{-2, -1}, nil)
 
 				ctx.Text("Mode [C]")
-				if ctx.Button(cursorModeString(g.cursorMode)) || inpututil.IsKeyJustPressed(ebiten.KeyC) {
-					switch g.cursorMode {
+				cursorMode := ebiten.CursorMode()
+				if ctx.Button(cursorModeString(cursorMode)) || inpututil.IsKeyJustPressed(ebiten.KeyC) {
+					switch cursorMode {
 					case ebiten.CursorModeVisible:
-						g.cursorMode = ebiten.CursorModeHidden
+						ebiten.SetCursorMode(ebiten.CursorModeHidden)
 					case ebiten.CursorModeHidden:
-						g.cursorMode = ebiten.CursorModeCaptured
+						ebiten.SetCursorMode(ebiten.CursorModeCaptured)
 					case ebiten.CursorModeCaptured:
-						g.cursorMode = ebiten.CursorModeVisible
+						ebiten.SetCursorMode(ebiten.CursorModeVisible)
 					}
 				}
 
 				ctx.Text("Passthrough (desktop only) [P]")
-				ctx.Checkbox(&g.mousePassthrough, "")
-				if inpututil.IsKeyJustPressed(ebiten.KeyP) {
-					g.mousePassthrough = !g.mousePassthrough
+				mousePassthrough := ebiten.IsWindowMousePassthrough()
+				if ctx.Checkbox(&mousePassthrough, "") || inpututil.IsKeyJustPressed(ebiten.KeyP) {
+					ebiten.SetWindowMousePassthrough(mousePassthrough)
 				}
 			})
 			ctx.Header("Info", true, func() {
@@ -412,28 +414,14 @@ func (g *game) Update() error {
 	if toUpdateWindowSize {
 		ebiten.SetWindowSize(int(g.screenWidth*screenScale), int(g.screenHeight*screenScale))
 	}
-	ebiten.SetFullscreen(g.fullscreen)
-	ebiten.SetRunnableOnUnfocused(g.runnableOnUnfocused)
-	ebiten.SetCursorMode(g.cursorMode)
 
-	// Set FPS mode enabled only when this is needed.
-	// This makes a bug around FPS mode initialization more explicit (#1364).
-	if g.vsyncEnabled != ebiten.IsVsyncEnabled() {
-		ebiten.SetVsyncEnabled(g.vsyncEnabled)
-	}
 	ebiten.SetTPS(g.tps)
-	ebiten.SetWindowDecorated(g.decorated)
 	if toUpdateWindowPosition {
 		ebiten.SetWindowPosition(g.positionX, g.positionY)
 	}
-	ebiten.SetWindowFloating(g.floating)
-	ebiten.SetScreenClearedEveryFrame(g.screenCleared)
 	if restore {
 		ebiten.RestoreWindow()
 	}
-	ebiten.SetWindowResizingMode(g.resizingMode)
-
-	ebiten.SetWindowMousePassthrough(g.mousePassthrough)
 
 	g.count++
 	return nil

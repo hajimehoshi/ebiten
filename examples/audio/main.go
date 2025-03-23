@@ -338,17 +338,14 @@ type Game struct {
 	errCh         chan error
 
 	justPressedTouchIDs []ebiten.TouchID
-
-	runnableOnUnfocused bool
 }
 
 func NewGame() (*Game, error) {
 	audioContext := audio.NewContext(sampleRate)
 
 	g := &Game{
-		musicPlayerCh:       make(chan *Player),
-		errCh:               make(chan error),
-		runnableOnUnfocused: ebiten.IsRunnableOnUnfocused(),
+		musicPlayerCh: make(chan *Player),
+		errCh:         make(chan error),
 	}
 
 	m, err := NewPlayer(g, audioContext, typeOgg)
@@ -418,7 +415,10 @@ func (g *Game) Update() error {
 				}
 
 				ctx.Text("Runnable on Unfocused")
-				ctx.Checkbox(&g.runnableOnUnfocused, "")
+				runnableOnUnfocused := ebiten.IsRunnableOnUnfocused()
+				if ctx.Checkbox(&runnableOnUnfocused, "") {
+					ebiten.SetRunnableOnUnfocused(runnableOnUnfocused)
+				}
 			})
 			ctx.Header("Info", true, func() {
 				ctx.SetGridLayout([]int{-1, -1}, nil)
@@ -448,8 +448,6 @@ func (g *Game) Update() error {
 			return err
 		}
 	}
-
-	ebiten.SetRunnableOnUnfocused(g.runnableOnUnfocused)
 
 	return nil
 }
