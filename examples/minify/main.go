@@ -25,15 +25,15 @@ import (
 	"log"
 	"math"
 
+	"github.com/ebitengine/debugui"
+
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/examples/resources/images"
-	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
 
 const (
 	screenWidth  = 1000
-	screenHeight = 480
+	screenHeight = 640
 )
 
 var (
@@ -41,6 +41,8 @@ var (
 )
 
 type Game struct {
+	debugui debugui.DebugUI
+
 	rotate  bool
 	clip    bool
 	counter int
@@ -48,33 +50,41 @@ type Game struct {
 }
 
 func (g *Game) Update() error {
-	if inpututil.IsKeyJustPressed(ebiten.KeyR) {
-		g.rotate = !g.rotate
-	}
-	if inpututil.IsKeyJustPressed(ebiten.KeyC) {
-		g.clip = !g.clip
-	}
-	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
-		g.pause = !g.pause
+	if !g.pause {
+		g.counter++
+		if g.counter == 480 {
+			g.counter = 0
+		}
 	}
 
-	if g.pause {
+	if err := g.debugui.Update(func(ctx *debugui.Context) error {
+		ctx.Window("Control", image.Rect(10, 10, 210, 170), func(layout debugui.ContainerLayout) {
+			ctx.Checkbox(&g.rotate, "Rotate")
+			ctx.Checkbox(&g.clip, "Clip")
+			ctx.Checkbox(&g.pause, "Pause")
+		})
+		ctx.Window("Info", image.Rect(220, 10, 470, 170), func(layout debugui.ContainerLayout) {
+			ctx.Text("Minifying Images\nLeft:   Nearest filter\nCenter: Linear filter (w/ mipmaps)\nRight:  Linear Filter (w/o mipmaps)")
+			ctx.Text("")
+			ctx.Text(fmt.Sprintf("Scale: %0.2f", g.scale()))
+		})
 		return nil
+	}); err != nil {
+		return err
 	}
 
-	g.counter++
-	if g.counter == 480 {
-		g.counter = 0
-	}
 	return nil
 }
 
+func (g *Game) scale() float64 {
+	return 1.5 / math.Pow(1.01, float64(g.counter))
+}
+
 func (g *Game) Draw(screen *ebiten.Image) {
-	s := 1.5 / math.Pow(1.01, float64(g.counter))
+	s := g.scale()
 
 	clippedGophersImage := gophersImage.SubImage(image.Rect(100, 100, 200, 200)).(*ebiten.Image)
 	for i := range 3 {
-		//for i, f := range []ebiten.Filter{ebiten.FilterNearest, ebiten.FilterLinear} {
 		w, h := gophersImage.Bounds().Dx(), gophersImage.Bounds().Dy()
 
 		op := &ebiten.DrawImageOptions{}
@@ -84,7 +94,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 			op.GeoM.Translate(float64(w)/2, float64(h)/2)
 		}
 		op.GeoM.Scale(s, s)
-		op.GeoM.Translate(32+float64(i*w)*s+float64(i*4), 100)
+		op.GeoM.Translate(32+float64(i*w)*s+float64(i*4), 200)
 		if i == 0 {
 			op.Filter = ebiten.FilterNearest
 		} else {
@@ -100,12 +110,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		}
 	}
 
-	msg := fmt.Sprintf(`Minifying images (Nearest filter, Linear filter (w/ mipmaps), and Linear Filter (w/o mipmaps)):
-Press R to rotate the images.
-Press C to clip the images.
-Click to pause and resume.
-Scale: %0.2f`, s)
-	ebitenutil.DebugPrint(screen, msg)
+	g.debugui.Draw(screen)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
