@@ -21,18 +21,21 @@ import (
 	"log"
 	"math"
 
+	"github.com/ebitengine/debugui"
+
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
 const (
 	screenWidth  = 640
-	screenHeight = 480
+	screenHeight = 640
 )
 
 type Game struct {
+	debugui debugui.DebugUI
+
 	counter int
 
 	aa         bool
@@ -40,6 +43,17 @@ type Game struct {
 }
 
 func (g *Game) Update() error {
+	if err := g.debugui.Update(func(ctx *debugui.Context) error {
+		ctx.Window("Lines", image.Rect(10, 10, 260, 160), func(layout debugui.ContainerLayout) {
+			ctx.Text(fmt.Sprintf("FPS: %0.2f", ebiten.ActualFPS()))
+			ctx.Text(fmt.Sprintf("TPS: %0.2f", ebiten.ActualTPS()))
+			ctx.Checkbox(&g.aa, "Anti-aliasing")
+			ctx.Checkbox(&g.showCenter, "Show center lines")
+		})
+		return nil
+	}); err != nil {
+		return err
+	}
 	g.counter++
 	if inpututil.IsKeyJustPressed(ebiten.KeyA) {
 		g.aa = !g.aa
@@ -67,7 +81,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 	ow, oh := target.Bounds().Dx(), target.Bounds().Dy()
 	size := min(ow/(len(joins)+1), oh/(len(caps)+1))
-	offsetX, offsetY := (ow-size*len(joins))/2, (oh-size*len(caps))/2
+	offsetX, offsetY := (ow-size*len(joins))/2, (oh-size*len(caps))*3/4
 
 	// Render the lines on the target.
 	for j, cap := range caps {
@@ -81,10 +95,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		}
 	}
 
-	msg := fmt.Sprintf(`FPS: %0.2f, TPS: %0.2f
-Press A to switch anti-aliasing.
-Press C to switch to draw the center lines.`, ebiten.ActualFPS(), ebiten.ActualTPS())
-	ebitenutil.DebugPrint(screen, msg)
+	g.debugui.Draw(screen)
 }
 
 func (g *Game) drawLine(screen *ebiten.Image, region image.Rectangle, cap vector.LineCap, join vector.LineJoin, miterLimit float32) {
