@@ -17,11 +17,12 @@ package main
 import (
 	"flag"
 	"fmt"
+	"image"
 	"log"
-	"strings"
+
+	"github.com/ebitengine/debugui"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
 
@@ -31,6 +32,8 @@ const (
 )
 
 type Game struct {
+	debugui debugui.DebugUI
+
 	monitors []*ebiten.MonitorType
 }
 
@@ -49,30 +52,75 @@ func (g *Game) Update() error {
 			}
 		}
 	}
+
+	if err := g.debugui.Update(func(ctx *debugui.Context) error {
+		ctx.Window("Monitors", image.Rect(10, 10, 410, 410), func(layout debugui.ContainerLayout) {
+			fullscreen := ebiten.IsFullscreen()
+			if ctx.Checkbox(&fullscreen, "Fullscreen") {
+				ebiten.SetFullscreen(fullscreen)
+			}
+
+			activeMonitor := ebiten.Monitor()
+			index := -1
+			for i, m := range g.monitors {
+				if m == activeMonitor {
+					index = i
+					break
+				}
+			}
+
+			ctx.Header("Active Monitor Info", true, func() {
+				ctx.SetGridLayout([]int{-1, -2}, nil)
+				ctx.Text("Index")
+				ctx.Text(fmt.Sprintf("%d", index))
+				ctx.Text("Name")
+				ctx.Text(activeMonitor.Name())
+				ctx.Text("Size")
+				w, h := activeMonitor.Size()
+				ctx.Text(fmt.Sprintf("%d x %d", w, h))
+				ctx.Text("Device Scale Factor")
+				ctx.Text(fmt.Sprintf("%0.2f", activeMonitor.DeviceScaleFactor()))
+			})
+
+			ctx.Header("Monitors", true, func() {
+				for i, m := range g.monitors {
+					ctx.IDScope(fmt.Sprintf("%d", i), func() {
+						name := fmt.Sprintf("%d: %s", i, m.Name())
+						if i == index {
+							name += " (Active)"
+						}
+						ctx.TreeNode(name, func() {
+							if index != i {
+								if ctx.Button("Activate") {
+									ebiten.SetMonitor(m)
+								}
+							}
+							ctx.SetGridLayout([]int{-1, -2}, nil)
+							ctx.Text("Name")
+							ctx.Text(m.Name())
+							ctx.Text("Size")
+							w, h := m.Size()
+							ctx.Text(fmt.Sprintf("%d x %d", w, h))
+							ctx.Text("Device Scale Factor")
+							ctx.Text(fmt.Sprintf("%0.2f", m.DeviceScaleFactor()))
+						})
+					})
+				}
+			})
+		})
+		return nil
+	}); err != nil {
+		return err
+	}
 	return nil
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	lines := []string{"F to toggle fullscreen", "0-9 to change monitor"}
-
-	lines = append(lines, "")
-	for i, m := range g.monitors {
-		lines = append(lines, fmt.Sprintf("%d: %s", i, m.Name()))
-	}
-
-	activeMonitor := ebiten.Monitor()
-	lines = append(lines, "")
-	for i, m := range g.monitors {
-		if m == activeMonitor {
-			lines = append(lines, fmt.Sprintf("active: %s (%d)", m.Name(), i))
-		}
-	}
-
-	ebitenutil.DebugPrint(screen, strings.Join(lines, "\n"))
+	g.debugui.Draw(screen)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
-	return windowWidth / 2, windowHeight / 2
+	return outsideWidth, outsideHeight
 }
 
 func main() {
