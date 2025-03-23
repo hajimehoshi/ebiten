@@ -17,11 +17,12 @@ package main
 import (
 	"bytes"
 	_ "embed"
-	"fmt"
+	"image"
 	"log"
 
+	"github.com/ebitengine/debugui"
+
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
 )
 
@@ -44,6 +45,8 @@ func init() {
 }
 
 type Game struct {
+	debugui debugui.DebugUI
+
 	// wght represents 'Weight'.
 	// https://learn.microsoft.com/en-us/typography/opentype/spec/dvaraxistag_wght
 	wght float32
@@ -65,67 +68,47 @@ func NewGame() *Game {
 	}
 }
 
-const (
-	minWght = 100
-	maxWght = 1000
-	minWdth = 30
-	maxWdth = 150
-	minSlnt = -10
-	maxSlnt = 0
-)
-
 func (g *Game) Update() error {
-	if inpututil.IsKeyJustPressed(ebiten.KeyQ) {
-		if g.wght > minWght {
-			g.wght -= 100
-		}
-	}
-	if inpututil.IsKeyJustPressed(ebiten.KeyW) {
-		if g.wght < maxWght {
-			g.wght += 100
-		}
-	}
-	if inpututil.IsKeyJustPressed(ebiten.KeyA) {
-		if g.wdth > minWdth {
-			g.wdth -= 10
-		}
-	}
-	if inpututil.IsKeyJustPressed(ebiten.KeyS) {
-		if g.wdth < maxWdth {
-			g.wdth += 10
-		}
-	}
-	if inpututil.IsKeyJustPressed(ebiten.KeyZ) {
-		if g.slnt > minSlnt {
-			g.slnt -= 1
-		}
-	}
-	if inpututil.IsKeyJustPressed(ebiten.KeyX) {
-		if g.slnt < maxSlnt {
-			g.slnt += 1
-		}
+	const (
+		minWght = 100
+		maxWght = 1000
+		minWdth = 30
+		maxWdth = 150
+		minSlnt = -10
+		maxSlnt = 0
+	)
+
+	if err := g.debugui.Update(func(ctx *debugui.Context) error {
+		ctx.Window("Font Variation", image.Rect(10, 10, 310, 160), func(layout debugui.ContainerLayout) {
+			ctx.SetGridLayout([]int{-1, -2}, nil)
+			ctx.Text("wght (Weight)")
+			wght := float64(g.wght)
+			if ctx.SliderF(&wght, minWght, maxWght, 100, 0) {
+				g.wght = float32(wght)
+			}
+			ctx.Text("wdth (Width)")
+			wdth := float64(g.wdth)
+			if ctx.SliderF(&wdth, minWdth, maxWdth, 10, 0) {
+				g.wdth = float32(wdth)
+			}
+			ctx.Text("slnt (Slant)")
+			slnt := float64(g.slnt)
+			if ctx.SliderF(&slnt, minSlnt, maxSlnt, 1, 0) {
+				g.slnt = float32(slnt)
+			}
+		})
+		return nil
+	}); err != nil {
+		return err
 	}
 	return nil
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	// Draw the instruction.
-	inst := fmt.Sprintf(`Press keys to adjust font variations.
-[Q, W]: wght (Weight): %0.0f [%d-%d]
-[A, S]: wdth (Width): %0.0f [%d-%d]
-[Z, X]: slnt (Slant): %0.0f [%d-%d]`, g.wght, minWght, maxWght, g.wdth, minWdth, maxWdth, g.slnt, minSlnt, maxSlnt)
-	op := &text.DrawOptions{}
-	op.GeoM.Translate(20, 20)
-	op.LineSpacing = 30
-	text.Draw(screen, inst, &text.GoTextFace{
-		Source: robotoFlexFaceSource,
-		Size:   20,
-	}, op)
-
 	// Draw the sample text.
 	const sampleText = `The quick brown fox jumps
 over the lazy dog.`
-	op = &text.DrawOptions{}
+	op := &text.DrawOptions{}
 	op.GeoM.Translate(20, screenHeight/2)
 	op.LineSpacing = 50
 	f := &text.GoTextFace{
@@ -136,6 +119,8 @@ over the lazy dog.`
 	f.SetVariation(text.MustParseTag("wdth"), g.wdth)
 	f.SetVariation(text.MustParseTag("slnt"), g.slnt)
 	text.Draw(screen, sampleText, f, op)
+
+	g.debugui.Draw(screen)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
