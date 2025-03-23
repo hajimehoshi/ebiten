@@ -226,7 +226,7 @@ func (p *Player) shouldPlaySE() bool {
 			return true
 		}
 	}
-	for _, id := range p.game.justPressedTouchIDs {
+	for _, id := range inpututil.AppendJustPressedTouchIDs(nil) {
 		if image.Pt(ebiten.TouchPosition(id)).In(r) {
 			return true
 		}
@@ -252,7 +252,7 @@ func (p *Player) shouldSwitchPlayStateIfNeeded() bool {
 			return true
 		}
 	}
-	for _, id := range p.game.justPressedTouchIDs {
+	for _, id := range inpututil.AppendJustPressedTouchIDs(nil) {
 		if image.Pt(ebiten.TouchPosition(id)).In(r) {
 			return true
 		}
@@ -277,8 +277,8 @@ func (p *Player) justPressedPosition() (int, int, bool) {
 		return x, y, true
 	}
 
-	if len(p.game.justPressedTouchIDs) > 0 {
-		x, y := ebiten.TouchPosition(p.game.justPressedTouchIDs[0])
+	if touches := inpututil.AppendJustPressedTouchIDs(nil); len(touches) > 0 {
+		x, y := ebiten.TouchPosition(touches[0])
 		return x, y, true
 	}
 
@@ -336,8 +336,6 @@ type Game struct {
 	musicPlayer   *Player
 	musicPlayerCh chan *Player
 	errCh         chan error
-
-	justPressedTouchIDs []ebiten.TouchID
 }
 
 func NewGame() (*Game, error) {
