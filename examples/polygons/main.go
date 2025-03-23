@@ -21,9 +21,9 @@ import (
 	"log"
 	"math"
 
+	"github.com/ebitengine/debugui"
+
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
-	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
 
 const (
@@ -91,6 +91,8 @@ func genVertices(num int) []ebiten.Vertex {
 }
 
 type Game struct {
+	debugui debugui.DebugUI
+
 	vertices []ebiten.Vertex
 
 	ngon     int
@@ -98,17 +100,14 @@ type Game struct {
 }
 
 func (g *Game) Update() error {
-	if inpututil.IsKeyJustPressed(ebiten.KeyArrowLeft) {
-		g.ngon--
-		if g.ngon < 1 {
-			g.ngon = 1
-		}
-	}
-	if inpututil.IsKeyJustPressed(ebiten.KeyArrowRight) {
-		g.ngon++
-		if g.ngon > 120 {
-			g.ngon = 120
-		}
+	if err := g.debugui.Update(func(ctx *debugui.Context) error {
+		ctx.Window("Polygons", image.Rect(10, 10, 210, 110), func(layout debugui.ContainerLayout) {
+			ctx.Text(fmt.Sprintf("TPS: %0.2f", ebiten.ActualTPS()))
+			ctx.Slider(&g.ngon, 1, 40, 1)
+		})
+		return nil
+	}); err != nil {
+		return err
 	}
 
 	if g.prevNgon != g.ngon || len(g.vertices) == 0 {
@@ -127,8 +126,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	}
 	screen.DrawTriangles(g.vertices, indices, whiteImage.SubImage(image.Rect(1, 1, 2, 2)).(*ebiten.Image), op)
 
-	msg := fmt.Sprintf("TPS: %0.2f\n%d-gon\nPress <- or -> to change the number of the vertices", ebiten.ActualTPS(), g.ngon)
-	ebitenutil.DebugPrint(screen, msg)
+	g.debugui.Draw(screen)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
