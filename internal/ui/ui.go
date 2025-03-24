@@ -80,7 +80,7 @@ type UserInterface struct {
 	graphicsLibrary           atomic.Int32
 	running                   atomic.Bool
 	terminated                atomic.Bool
-	tick                      atomic.Uint64
+	tick                      atomic.Int64
 
 	whiteImage *Image
 
@@ -235,6 +235,6 @@ func (u *UserInterface) setTerminated() {
 	u.terminated.Store(true)
 }
 
-func (u *UserInterface) Tick() uint64 {
+func (u *UserInterface) Tick() int64 {
 	return u.tick.Load()
 }

@@ -17,21 +17,11 @@ package text
 import (
 	"math"
 	"sync"
-	"sync/atomic"
 
-	"github.com/hajimehoshi/ebiten/v2/internal/hook"
+	"github.com/hajimehoshi/ebiten/v2"
 )
 
-var monotonicClock atomic.Int64
-
-const infTime = math.MaxInt64
-
-func init() {
-	hook.AppendHookOnBeforeUpdate(func() error {
-		monotonicClock.Add(1)
-		return nil
-	})
-}
+const infTick = math.MaxInt64
 
 type cacheValue[Value any] struct {
 	value Value
@@ -59,7 +49,7 @@ func newCache[Key comparable, Value any](softLimit int) *cache[Key, Value] {
 }
 
 func (c *cache[Key, Value]) getOrCreate(key Key, create func() (Value, bool)) Value {
-	n := monotonicClock.Load()
+	n := ebiten.Tick()
 
 	c.m.Lock()
 	defer c.m.Unlock()
@@ -77,7 +67,7 @@ func (c *cache[Key, Value]) getOrCreate(key Key, create func() (Value, bool)) Va
 	ent, canExpire := create()
 	e = &cacheValue[Value]{
 		value: ent,
-		atime: infTime,
+		atime: infTick,
 	}
 	if canExpire {
 		e.atime = n

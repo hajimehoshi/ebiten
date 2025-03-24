@@ -744,3 +744,9 @@ func toUIRunOptions(options *RunGameOptions) *ui.RunOptions {
 func DroppedFiles() fs.FS {
 	return theInputState.droppedFiles()
 }
+
+// Tick returns the current tick count.
+// The tick count starts with 0 and is incremented by one on every Update call.
+func Tick() int64 {
+	return ui.Get().Tick()
+}
