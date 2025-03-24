@@ -747,6 +747,8 @@ func DroppedFiles() fs.FS {
 
 // Tick returns the current tick count.
 // The tick count starts with 0 and is incremented by one on every Update call.
+//
+// Tick is concurrent-safe.
 func Tick() int64 {
 	return ui.Get().Tick()
 }
