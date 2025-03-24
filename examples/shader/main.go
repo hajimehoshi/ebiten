@@ -17,12 +17,14 @@ package main
 import (
 	"bytes"
 	_ "embed"
+	"fmt"
 	"image"
 	_ "image/png"
 	"log"
 
+	"github.com/ebitengine/debugui"
+
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	resources "github.com/hajimehoshi/ebiten/v2/examples/resources/images/shader"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
@@ -117,15 +119,14 @@ var shaderSrcs = [][]byte{
 }
 
 type Game struct {
+	debugui debugui.DebugUI
+
 	shaders   map[int]*ebiten.Shader
 	idx       int
-	time      int
 	gamepadID ebiten.GamepadID
 }
 
 func (g *Game) Update() error {
-	g.time++
-
 	if g.gamepadID < 0 {
 		if ids := inpututil.AppendJustConnectedGamepadIDs(nil); len(ids) > 0 {
 			g.gamepadID = ids[0]
@@ -140,22 +141,22 @@ func (g *Game) Update() error {
 		}
 	}
 
-	down := inpututil.IsKeyJustPressed(ebiten.KeyArrowDown)
-	if g.gamepadID >= 0 {
-		down = down || inpututil.IsStandardGamepadButtonJustPressed(g.gamepadID, ebiten.StandardGamepadButtonLeftBottom)
-	}
-	if down {
-		g.idx++
-		g.idx %= len(shaderSrcs)
-	}
-
-	up := inpututil.IsKeyJustPressed(ebiten.KeyArrowUp)
-	if g.gamepadID >= 0 {
-		up = up || inpututil.IsStandardGamepadButtonJustPressed(g.gamepadID, ebiten.StandardGamepadButtonLeftTop)
-	}
-	if up {
-		g.idx += len(shaderSrcs) - 1
-		g.idx %= len(shaderSrcs)
+	if err := g.debugui.Update(func(ctx *debugui.Context) error {
+		ctx.Window("Shader", image.Rect(10, 10, 210, 110), func(layout debugui.ContainerLayout) {
+			ctx.Text(fmt.Sprintf("%d / %d", g.idx+1, len(shaderSrcs)))
+			ctx.SetGridLayout([]int{-1, -1}, nil)
+			if ctx.Button("Prev") || inpututil.IsStandardGamepadButtonJustPressed(g.gamepadID, ebiten.StandardGamepadButtonLeftTop) {
+				g.idx += len(shaderSrcs) - 1
+				g.idx %= len(shaderSrcs)
+			}
+			if ctx.Button("Next") || inpututil.IsStandardGamepadButtonJustPressed(g.gamepadID, ebiten.StandardGamepadButtonLeftBottom) {
+				g.idx++
+				g.idx %= len(shaderSrcs)
+			}
+		})
+		return nil
+	}); err != nil {
+		return err
 	}
 
 	if g.shaders == nil {
@@ -182,7 +183,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 	op := &ebiten.DrawRectShaderOptions{}
 	op.Uniforms = map[string]any{
-		"Time":   float32(g.time) / float32(ebiten.TPS()),
+		"Time":   float32(ebiten.Tick()) / float32(ebiten.TPS()),
 		"Cursor": []float32{float32(cx), float32(cy)},
 	}
 	op.Images[0] = gopherImage
@@ -191,8 +192,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	op.Images[3] = noiseImage
 	screen.DrawRectShader(w, h, s, op)
 
-	msg := "Press Up/Down to switch the shader."
-	ebitenutil.DebugPrint(screen, msg)
+	g.debugui.Draw(screen)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
