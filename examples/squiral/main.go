@@ -18,13 +18,14 @@ package main
 
 import (
 	"fmt"
+	"image"
 	"image/color"
 	"log"
 	"math/rand/v2"
 
+	"github.com/ebitengine/debugui"
+
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
-	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
 
 const (
@@ -267,10 +268,13 @@ func (a *automaton) step(game *Game) {
 }
 
 type Game struct {
+	debugui debugui.DebugUI
+
 	selectedPalette int
 	colorCycle      int
 	canvas          *ebiten.Image
 	auto            automaton
+	resetDraw       bool
 }
 
 func NewGame() *Game {
@@ -290,22 +294,33 @@ func (g *Game) setpix(xy vec2, col color.Color) {
 func (g *Game) Update() error {
 	reset := false
 
-	if inpututil.IsKeyJustPressed(ebiten.KeyB) {
-		if background == color.White {
-			background = color.Black
-		} else {
-			background = color.White
-		}
-		reset = true
-	} else if inpututil.IsKeyJustPressed(ebiten.KeyT) {
-		g.selectedPalette = (g.selectedPalette + 1) % len(palettes)
-		reset = true
-	} else if inpututil.IsKeyJustPressed(ebiten.KeyR) {
-		reset = true
+	if err := g.debugui.Update(func(ctx *debugui.Context) error {
+		ctx.Window("Squirals", image.Rect(10, 10, 210, 160), func(layout debugui.ContainerLayout) {
+			ctx.Text(fmt.Sprintf("TPS: %0.2f", ebiten.ActualTPS()))
+			ctx.Text(fmt.Sprintf("FPS: %0.2f", ebiten.ActualFPS()))
+			if ctx.Button("Respawn") {
+				reset = true
+			}
+			if ctx.Button("Toggle Background") {
+				if background == color.White {
+					background = color.Black
+				} else {
+					background = color.White
+				}
+				reset = true
+			}
+			if ctx.Button("Cycle Theme") {
+				g.selectedPalette = (g.selectedPalette + 1) % len(palettes)
+				reset = true
+			}
+		})
+		return nil
+	}); err != nil {
+		return err
 	}
 
 	if reset {
-		g.canvas.Fill(background)
+		g.resetDraw = true
 		g.auto.init(g)
 	}
 
@@ -315,27 +330,12 @@ func (g *Game) Update() error {
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
+	if g.resetDraw {
+		g.canvas.Fill(background)
+		g.resetDraw = false
+	}
 	screen.DrawImage(g.canvas, nil)
-	ebitenutil.DebugPrintAt(
-		screen,
-		fmt.Sprintf("TPS: %0.2f, FPS: %0.2f", ebiten.ActualTPS(), ebiten.ActualFPS()),
-		1, 0,
-	)
-	ebitenutil.DebugPrintAt(
-		screen,
-		"[r]: respawn",
-		1, 16,
-	)
-	ebitenutil.DebugPrintAt(
-		screen,
-		"[b]: toggle background (white/black)",
-		1, 32,
-	)
-	ebitenutil.DebugPrintAt(
-		screen,
-		fmt.Sprintf("[t]: cycle theme (current: %s)", palettes[g.selectedPalette].name),
-		1, 48,
-	)
+	g.debugui.Draw(screen)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
