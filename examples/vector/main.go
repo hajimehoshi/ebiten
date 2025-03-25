@@ -16,13 +16,14 @@ package main
 
 import (
 	"fmt"
+	"image"
 	"image/color"
 	"log"
 	"math"
 
+	"github.com/ebitengine/debugui"
+
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
-	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
@@ -32,6 +33,8 @@ const (
 )
 
 type Game struct {
+	debugui debugui.DebugUI
+
 	counter int
 
 	aa   bool
@@ -226,14 +229,16 @@ func (g *Game) drawWave(screen *ebiten.Image, counter int, aa bool, line bool) {
 func (g *Game) Update() error {
 	g.counter++
 
-	// Switch anti-alias.
-	if inpututil.IsKeyJustPressed(ebiten.KeyA) {
-		g.aa = !g.aa
-	}
-
-	// Switch lines.
-	if inpututil.IsKeyJustPressed(ebiten.KeyL) {
-		g.line = !g.line
+	if err := g.debugui.Update(func(ctx *debugui.Context) error {
+		ctx.Window("Vector", image.Rect(10, screenHeight-160, 210, screenHeight-10), func(layout debugui.ContainerLayout) {
+			ctx.Text(fmt.Sprintf("TPS: %0.2f", ebiten.ActualTPS()))
+			ctx.Text(fmt.Sprintf("FPS: %0.2f", ebiten.ActualFPS()))
+			ctx.Checkbox(&g.aa, "Anti-alias")
+			ctx.Checkbox(&g.line, "Line")
+		})
+		return nil
+	}); err != nil {
+		return err
 	}
 
 	return nil
@@ -248,10 +253,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	g.drawArc(dst, g.counter, g.aa, g.line)
 	g.drawWave(dst, g.counter, g.aa, g.line)
 
-	msg := fmt.Sprintf("TPS: %0.2f\nFPS: %0.2f", ebiten.ActualTPS(), ebiten.ActualFPS())
-	msg += "\nPress A to switch anti-alias."
-	msg += "\nPress L to switch the fill mode and the line mode."
-	ebitenutil.DebugPrint(screen, msg)
+	g.debugui.Draw(screen)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
