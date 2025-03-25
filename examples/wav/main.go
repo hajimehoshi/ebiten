@@ -17,13 +17,15 @@ package main
 import (
 	"bytes"
 	"flag"
+	"image"
 	"io"
 	"log"
+
+	"github.com/ebitengine/debugui"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/audio"
 	"github.com/hajimehoshi/ebiten/v2/audio/wav"
-	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	raudio "github.com/hajimehoshi/ebiten/v2/examples/resources/audio"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
@@ -39,6 +41,8 @@ var (
 )
 
 type Game struct {
+	debugui debugui.DebugUI
+
 	audioContext *audio.Context
 	audioPlayer  *audio.Player
 }
@@ -87,24 +91,34 @@ func NewGame() (*Game, error) {
 }
 
 func (g *Game) Update() error {
-	if inpututil.IsKeyJustPressed(ebiten.KeyP) {
-		// As audioPlayer has one stream and remembers the playing position,
-		// rewinding is needed before playing when reusing audioPlayer.
-		if err := g.audioPlayer.Rewind(); err != nil {
-			return err
-		}
+	if err := g.debugui.Update(func(ctx *debugui.Context) error {
+		var outErr error
+		ctx.Window("WAV", image.Rect(10, 10, 210, 110), func(layout debugui.ContainerLayout) {
+			if g.audioPlayer.IsPlaying() {
+				ctx.Text("Bump!")
+			} else {
+				if ctx.Button("Play [P]") || inpututil.IsKeyJustPressed(ebiten.KeyP) {
+					// As audioPlayer has one stream and remembers the playing position,
+					// rewinding is needed before playing when reusing audioPlayer.
+					if err := g.audioPlayer.Rewind(); err != nil {
+						outErr = err
+						return
+					}
 
-		g.audioPlayer.Play()
+					g.audioPlayer.Play()
+				}
+			}
+		})
+		return outErr
+	}); err != nil {
+		return err
 	}
+
 	return nil
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	if g.audioPlayer.IsPlaying() {
-		ebitenutil.DebugPrint(screen, "Bump!")
-	} else {
-		ebitenutil.DebugPrint(screen, "Press P to play the wav")
-	}
+	g.debugui.Draw(screen)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
