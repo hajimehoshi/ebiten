@@ -23,10 +23,9 @@ import (
 	"math"
 	"math/rand/v2"
 
+	"github.com/ebitengine/debugui"
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/examples/resources/images"
-	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
 
 const (
@@ -103,6 +102,8 @@ const (
 )
 
 type Game struct {
+	debugui debugui.DebugUI
+
 	sprites Sprites
 	op      ebiten.DrawImageOptions
 	inited  bool
@@ -137,24 +138,24 @@ func (g *Game) Update() error {
 		g.init()
 	}
 
-	if inpututil.IsKeyJustPressed(ebiten.KeyQ) {
+	var terminated bool
+	if err := g.debugui.Update(func(ctx *debugui.Context) error {
+		ctx.Window("Sprites", image.Rect(10, 10, 210, 160), func(layout debugui.ContainerLayout) {
+			ctx.SetGridLayout([]int{-1}, []int{0, 0, 0, -1, 0})
+			ctx.Text(fmt.Sprintf("TPS: %0.2f", ebiten.ActualTPS()))
+			ctx.Text(fmt.Sprintf("FPS: %0.2f", ebiten.ActualFPS()))
+			ctx.Slider(&g.sprites.num, 0, 50000, 100)
+			ctx.GridCell(func(bounds image.Rectangle) {})
+			if ctx.Button("Quit") {
+				terminated = true
+			}
+		})
+		return nil
+	}); err != nil {
+		return err
+	}
+	if terminated {
 		return ebiten.Termination
-	}
-
-	// Decrease the number of the sprites.
-	if ebiten.IsKeyPressed(ebiten.KeyArrowLeft) {
-		g.sprites.num -= 20
-		if g.sprites.num < MinSprites {
-			g.sprites.num = MinSprites
-		}
-	}
-
-	// Increase the number of the sprites.
-	if ebiten.IsKeyPressed(ebiten.KeyArrowRight) {
-		g.sprites.num += 20
-		if MaxSprites < g.sprites.num {
-			g.sprites.num = MaxSprites
-		}
 	}
 
 	g.sprites.Update()
@@ -178,12 +179,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		g.op.GeoM.Translate(float64(s.x), float64(s.y))
 		screen.DrawImage(ebitenImage, &g.op)
 	}
-	msg := fmt.Sprintf(`TPS: %0.2f
-FPS: %0.2f
-Num of sprites: %d
-Press <- or -> to change the number of sprites
-Press Q to quit`, ebiten.ActualTPS(), ebiten.ActualFPS(), g.sprites.num)
-	ebitenutil.DebugPrint(screen, msg)
+	g.debugui.Draw(screen)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {

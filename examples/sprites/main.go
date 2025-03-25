@@ -145,7 +145,7 @@ func (g *Game) Update() error {
 		ctx.Window("Sprites", image.Rect(10, 10, 210, 110), func(layout debugui.ContainerLayout) {
 			ctx.Text(fmt.Sprintf("TPS: %0.2f", ebiten.ActualTPS()))
 			ctx.Text(fmt.Sprintf("FPS: %0.2f", ebiten.ActualFPS()))
-			ctx.Slider(&g.sprites.num, 0, 50000, 200)
+			ctx.Slider(&g.sprites.num, 0, 50000, 100)
 		})
 		return nil
 	}); err != nil {
