@@ -3,7 +3,7 @@ module github.com/hajimehoshi/ebiten/v2
 go 1.23.0
 
 require (
-	github.com/ebitengine/debugui v0.0.0-20250323070313-5ffbcd713cd4
+	github.com/ebitengine/debugui v0.0.0-20250324151400-ed2a27d811cc
 	github.com/ebitengine/gomobile v0.0.0-20250209143333-6071a2a2351c
 	github.com/ebitengine/hideconsole v1.0.0
 	github.com/ebitengine/oto/v3 v3.4.0-alpha.5.0.20250323160431-07d3c9fdeeb3
@@ -26,5 +26,6 @@ require (
 require (
 	github.com/jfreymuth/vorbis v1.0.2 // indirect
 	github.com/pierrec/lz4/v4 v4.1.21 // indirect
+	github.com/rivo/uniseg v0.4.7 // indirect
 	golang.org/x/mod v0.24.0 // indirect
 )
