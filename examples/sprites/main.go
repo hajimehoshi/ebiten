@@ -23,14 +23,15 @@ import (
 	"math"
 	"math/rand/v2"
 
+	"github.com/ebitengine/debugui"
+
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/examples/resources/images"
 )
 
 const (
-	screenWidth  = 320
-	screenHeight = 240
+	screenWidth  = 640
+	screenHeight = 480
 	maxAngle     = 256
 )
 
@@ -104,10 +105,11 @@ const (
 )
 
 type Game struct {
-	touchIDs []ebiten.TouchID
-	sprites  Sprites
-	op       ebiten.DrawImageOptions
-	inited   bool
+	debugui debugui.DebugUI
+
+	sprites Sprites
+	op      ebiten.DrawImageOptions
+	inited  bool
 }
 
 func (g *Game) init() {
@@ -134,46 +136,20 @@ func (g *Game) init() {
 	}
 }
 
-func (g *Game) leftTouched() bool {
-	for _, id := range g.touchIDs {
-		x, _ := ebiten.TouchPosition(id)
-		if x < screenWidth/2 {
-			return true
-		}
-	}
-	return false
-}
-
-func (g *Game) rightTouched() bool {
-	for _, id := range g.touchIDs {
-		x, _ := ebiten.TouchPosition(id)
-		if x >= screenWidth/2 {
-			return true
-		}
-	}
-	return false
-}
-
 func (g *Game) Update() error {
 	if !g.inited {
 		g.init()
 	}
-	g.touchIDs = ebiten.AppendTouchIDs(g.touchIDs[:0])
 
-	// Decrease the number of the sprites.
-	if ebiten.IsKeyPressed(ebiten.KeyArrowLeft) || g.leftTouched() {
-		g.sprites.num -= 20
-		if g.sprites.num < MinSprites {
-			g.sprites.num = MinSprites
-		}
-	}
-
-	// Increase the number of the sprites.
-	if ebiten.IsKeyPressed(ebiten.KeyArrowRight) || g.rightTouched() {
-		g.sprites.num += 20
-		if MaxSprites < g.sprites.num {
-			g.sprites.num = MaxSprites
-		}
+	if err := g.debugui.Update(func(ctx *debugui.Context) error {
+		ctx.Window("Sprites", image.Rect(10, 10, 210, 110), func(layout debugui.ContainerLayout) {
+			ctx.Text(fmt.Sprintf("TPS: %0.2f", ebiten.ActualTPS()))
+			ctx.Text(fmt.Sprintf("FPS: %0.2f", ebiten.ActualFPS()))
+			ctx.Slider(&g.sprites.num, 0, 50000, 200)
+		})
+		return nil
+	}); err != nil {
+		return err
 	}
 
 	g.sprites.Update()
@@ -197,11 +173,8 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		g.op.GeoM.Translate(float64(s.x), float64(s.y))
 		screen.DrawImage(ebitenImage, &g.op)
 	}
-	msg := fmt.Sprintf(`TPS: %0.2f
-FPS: %0.2f
-Num of sprites: %d
-Press <- or -> to change the number of sprites`, ebiten.ActualTPS(), ebiten.ActualFPS(), g.sprites.num)
-	ebitenutil.DebugPrint(screen, msg)
+
+	g.debugui.Draw(screen)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
@@ -209,9 +182,9 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 }
 
 func main() {
-	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
+	ebiten.SetWindowSize(screenWidth, screenHeight)
 	ebiten.SetWindowTitle("Sprites (Ebitengine Demo)")
-	ebiten.SetWindowResizable(true)
+	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
 	if err := ebiten.RunGame(&Game{}); err != nil {
 		log.Fatal(err)
 	}
