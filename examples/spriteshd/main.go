@@ -24,6 +24,7 @@ import (
 	"math/rand/v2"
 
 	"github.com/ebitengine/debugui"
+
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/examples/resources/images"
 )
@@ -138,8 +139,8 @@ func (g *Game) Update() error {
 		g.init()
 	}
 
-	var terminated bool
 	if err := g.debugui.Update(func(ctx *debugui.Context) error {
+		var terminated bool
 		ctx.Window("Sprites", image.Rect(10, 10, 210, 160), func(layout debugui.ContainerLayout) {
 			ctx.SetGridLayout([]int{-1}, []int{0, 0, 0, -1, 0})
 			ctx.Text(fmt.Sprintf("TPS: %0.2f", ebiten.ActualTPS()))
@@ -150,12 +151,12 @@ func (g *Game) Update() error {
 				terminated = true
 			}
 		})
+		if terminated {
+			return ebiten.Termination
+		}
 		return nil
 	}); err != nil {
 		return err
-	}
-	if terminated {
-		return ebiten.Termination
 	}
 
 	g.sprites.Update()
