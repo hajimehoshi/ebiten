@@ -5,7 +5,7 @@ go 1.22.0
 require (
 	github.com/ebitengine/gomobile v0.0.0-20240911145611-4856209ac325
 	github.com/ebitengine/hideconsole v1.0.0
-	github.com/ebitengine/oto/v3 v3.3.3-0.20250323160605-12990bb647f1
+	github.com/ebitengine/oto/v3 v3.3.3
 	github.com/ebitengine/purego v0.8.0
 	github.com/gen2brain/mpeg v0.3.2-0.20240412154320-a2ac4fc8a46f
 	github.com/go-text/typesetting v0.2.0
