@@ -139,7 +139,7 @@ func (g *Game) Update() error {
 		g.init()
 	}
 
-	if err := g.debugui.Update(func(ctx *debugui.Context) error {
+	if _, err := g.debugui.Update(func(ctx *debugui.Context) error {
 		var terminated bool
 		ctx.Window("Sprites", image.Rect(10, 10, 210, 160), func(layout debugui.ContainerLayout) {
 			ctx.SetGridLayout([]int{-1}, []int{0, 0, 0, -1, 0})

@@ -364,7 +364,7 @@ func (g *Game) Update() error {
 	default:
 	}
 
-	if err := g.debugUI.Update(func(ctx *debugui.Context) error {
+	if _, err := g.debugUI.Update(func(ctx *debugui.Context) error {
 		var uiErr error
 		ctx.Window("Audio", image.Rect(10, 10, 330, 210), func(layout debugui.ContainerLayout) {
 			ctx.Header("Settings", true, func() {

@@ -52,7 +52,7 @@ func NewGame() *Game {
 }
 
 func (g *Game) Update() error {
-	if err := g.debugui.Update(func(ctx *debugui.Context) error {
+	if _, err := g.debugui.Update(func(ctx *debugui.Context) error {
 		ctx.Window("HSV", image.Rect(10, 10, 260, 160), func(layout debugui.ContainerLayout) {
 			ctx.SetGridLayout([]int{-1, -2}, nil)
 			ctx.Text("Hue")

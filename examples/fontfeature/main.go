@@ -65,7 +65,7 @@ type Game struct {
 }
 
 func (g *Game) Update() error {
-	if err := g.debugui.Update(func(ctx *debugui.Context) error {
+	if _, err := g.debugui.Update(func(ctx *debugui.Context) error {
 		ctx.Window("Font Feature", image.Rect(10, 10, 210, 160), func(layout debugui.ContainerLayout) {
 			var liga bool
 			if g.liga == 1 {

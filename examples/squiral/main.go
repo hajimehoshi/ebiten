@@ -294,7 +294,7 @@ func (g *Game) setpix(xy vec2, col color.Color) {
 func (g *Game) Update() error {
 	reset := false
 
-	if err := g.debugui.Update(func(ctx *debugui.Context) error {
+	if _, err := g.debugui.Update(func(ctx *debugui.Context) error {
 		ctx.Window("Squirals", image.Rect(10, 10, 210, 160), func(layout debugui.ContainerLayout) {
 			ctx.Text(fmt.Sprintf("TPS: %0.2f", ebiten.ActualTPS()))
 			ctx.Text(fmt.Sprintf("FPS: %0.2f", ebiten.ActualFPS()))

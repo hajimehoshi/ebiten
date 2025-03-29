@@ -141,7 +141,7 @@ func (g *Game) Update() error {
 		}
 	}
 
-	if err := g.debugui.Update(func(ctx *debugui.Context) error {
+	if _, err := g.debugui.Update(func(ctx *debugui.Context) error {
 		ctx.Window("Shader", image.Rect(10, 10, 210, 110), func(layout debugui.ContainerLayout) {
 			ctx.Text(fmt.Sprintf("%d / %d", g.idx+1, len(shaderSrcs)))
 			ctx.SetGridLayout([]int{-1, -1}, nil)

@@ -91,7 +91,7 @@ func NewGame() (*Game, error) {
 }
 
 func (g *Game) Update() error {
-	if err := g.debugui.Update(func(ctx *debugui.Context) error {
+	if _, err := g.debugui.Update(func(ctx *debugui.Context) error {
 		var outErr error
 		ctx.Window("WAV", image.Rect(10, 10, 210, 110), func(layout debugui.ContainerLayout) {
 			if g.audioPlayer.IsPlaying() {

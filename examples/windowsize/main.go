@@ -161,7 +161,7 @@ func (g *game) Update() error {
 		toUpdateWindowPosition bool
 	)
 
-	if err := g.debugUI.Update(func(ctx *debugui.Context) error {
+	if _, err := g.debugUI.Update(func(ctx *debugui.Context) error {
 		ctx.Window("Window Size", image.Rect(10, 10, 330, 490), func(layout debugui.ContainerLayout) {
 			ctx.Header("Instructions", false, func() {
 				ctx.SetGridLayout([]int{-1, -1}, nil)

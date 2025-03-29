@@ -53,7 +53,7 @@ func (g *Game) Update() error {
 		}
 	}
 
-	if err := g.debugui.Update(func(ctx *debugui.Context) error {
+	if _, err := g.debugui.Update(func(ctx *debugui.Context) error {
 		ctx.Window("Monitors", image.Rect(10, 10, 410, 410), func(layout debugui.ContainerLayout) {
 			fullscreen := ebiten.IsFullscreen()
 			if ctx.Checkbox(&fullscreen, "Fullscreen") {

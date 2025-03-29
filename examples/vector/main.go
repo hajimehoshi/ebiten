@@ -229,7 +229,7 @@ func (g *Game) drawWave(screen *ebiten.Image, counter int, aa bool, line bool) {
 func (g *Game) Update() error {
 	g.counter++
 
-	if err := g.debugui.Update(func(ctx *debugui.Context) error {
+	if _, err := g.debugui.Update(func(ctx *debugui.Context) error {
 		ctx.Window("Vector", image.Rect(10, screenHeight-160, 210, screenHeight-10), func(layout debugui.ContainerLayout) {
 			ctx.Text(fmt.Sprintf("TPS: %0.2f", ebiten.ActualTPS()))
 			ctx.Text(fmt.Sprintf("FPS: %0.2f", ebiten.ActualFPS()))

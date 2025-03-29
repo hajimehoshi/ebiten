@@ -100,7 +100,7 @@ type Game struct {
 }
 
 func (g *Game) Update() error {
-	if err := g.debugui.Update(func(ctx *debugui.Context) error {
+	if _, err := g.debugui.Update(func(ctx *debugui.Context) error {
 		ctx.Window("Polygons", image.Rect(10, 10, 210, 110), func(layout debugui.ContainerLayout) {
 			ctx.Text(fmt.Sprintf("TPS: %0.2f", ebiten.ActualTPS()))
 			ctx.Slider(&g.ngon, 1, 40, 1)

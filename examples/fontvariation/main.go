@@ -78,7 +78,7 @@ func (g *Game) Update() error {
 		maxSlnt = 0
 	)
 
-	if err := g.debugui.Update(func(ctx *debugui.Context) error {
+	if _, err := g.debugui.Update(func(ctx *debugui.Context) error {
 		ctx.Window("Font Variation", image.Rect(10, 10, 310, 160), func(layout debugui.ContainerLayout) {
 			ctx.SetGridLayout([]int{-1, -2}, nil)
 			ctx.Text("wght (Weight)")

@@ -43,7 +43,7 @@ type Game struct {
 }
 
 func (g *Game) Update() error {
-	if err := g.debugui.Update(func(ctx *debugui.Context) error {
+	if _, err := g.debugui.Update(func(ctx *debugui.Context) error {
 		ctx.Window("Lines", image.Rect(10, 10, 260, 160), func(layout debugui.ContainerLayout) {
 			ctx.Text(fmt.Sprintf("FPS: %0.2f", ebiten.ActualFPS()))
 			ctx.Text(fmt.Sprintf("TPS: %0.2f", ebiten.ActualTPS()))
