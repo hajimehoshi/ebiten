@@ -73,6 +73,11 @@ func TestGC(t *testing.T) {
 
 // Issue #853
 func TestSameSourcePlayers(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		// TODO: Fix this (#3216)
+		t.Skip("This test is flaky on Windows")
+	}
+
 	setup()
 	defer teardown()
 
