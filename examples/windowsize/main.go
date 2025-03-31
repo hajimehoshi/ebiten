@@ -311,6 +311,7 @@ func (g *game) Update() error {
 				}
 				ctx.Checkbox(&mousePassthrough, "").On(updateMousePassthrough)
 				if inpututil.IsKeyJustPressed(ebiten.KeyP) {
+					mousePassthrough = !mousePassthrough
 					updateMousePassthrough()
 				}
 			})
