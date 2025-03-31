@@ -83,19 +83,19 @@ func (g *Game) Update() error {
 			ctx.SetGridLayout([]int{-1, -2}, nil)
 			ctx.Text("wght (Weight)")
 			wght := float64(g.wght)
-			if ctx.SliderF(&wght, minWght, maxWght, 100, 0) {
+			ctx.SliderF(&wght, minWght, maxWght, 100, 0).On(func() {
 				g.wght = float32(wght)
-			}
+			})
 			ctx.Text("wdth (Width)")
 			wdth := float64(g.wdth)
-			if ctx.SliderF(&wdth, minWdth, maxWdth, 10, 0) {
+			ctx.SliderF(&wdth, minWdth, maxWdth, 10, 0).On(func() {
 				g.wdth = float32(wdth)
-			}
+			})
 			ctx.Text("slnt (Slant)")
 			slnt := float64(g.slnt)
-			if ctx.SliderF(&slnt, minSlnt, maxSlnt, 1, 0) {
+			ctx.SliderF(&slnt, minSlnt, maxSlnt, 1, 0).On(func() {
 				g.slnt = float32(slnt)
-			}
+			})
 		})
 		return nil
 	}); err != nil {

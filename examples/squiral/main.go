@@ -298,21 +298,21 @@ func (g *Game) Update() error {
 		ctx.Window("Squirals", image.Rect(10, 10, 210, 160), func(layout debugui.ContainerLayout) {
 			ctx.Text(fmt.Sprintf("TPS: %0.2f", ebiten.ActualTPS()))
 			ctx.Text(fmt.Sprintf("FPS: %0.2f", ebiten.ActualFPS()))
-			if ctx.Button("Respawn") {
+			ctx.Button("Respawn").On(func() {
 				reset = true
-			}
-			if ctx.Button("Toggle Background") {
+			})
+			ctx.Button("Toggle Background").On(func() {
 				if background == color.White {
 					background = color.Black
 				} else {
 					background = color.White
 				}
 				reset = true
-			}
-			if ctx.Button("Cycle Theme") {
+			})
+			ctx.Button("Cycle Theme").On(func() {
 				g.selectedPalette = (g.selectedPalette + 1) % len(palettes)
 				reset = true
-			}
+			})
 		})
 		return nil
 	}); err != nil {

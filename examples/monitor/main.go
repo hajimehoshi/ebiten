@@ -56,9 +56,9 @@ func (g *Game) Update() error {
 	if _, err := g.debugui.Update(func(ctx *debugui.Context) error {
 		ctx.Window("Monitors", image.Rect(10, 10, 410, 410), func(layout debugui.ContainerLayout) {
 			fullscreen := ebiten.IsFullscreen()
-			if ctx.Checkbox(&fullscreen, "Fullscreen") {
+			ctx.Checkbox(&fullscreen, "Fullscreen").On(func() {
 				ebiten.SetFullscreen(fullscreen)
-			}
+			})
 
 			activeMonitor := ebiten.Monitor()
 			index := -1
@@ -91,9 +91,9 @@ func (g *Game) Update() error {
 						}
 						ctx.TreeNode(name, func() {
 							if index != i {
-								if ctx.Button("Activate") {
+								ctx.Button("Activate").On(func() {
 									ebiten.SetMonitor(m)
-								}
+								})
 							}
 							ctx.SetGridLayout([]int{-1, -2}, nil)
 							ctx.Text("Name")

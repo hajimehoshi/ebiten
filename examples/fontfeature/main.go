@@ -71,49 +71,49 @@ func (g *Game) Update() error {
 			if g.liga == 1 {
 				liga = true
 			}
-			if ctx.Checkbox(&liga, "'liga' (Standard Ligatures)") {
+			ctx.Checkbox(&liga, "'liga' (Standard Ligatures)").On(func() {
 				if liga {
 					g.liga = 1
 				} else {
 					g.liga = 0
 				}
-			}
+			})
 
 			var tnum bool
 			if g.tnum == 1 {
 				tnum = true
 			}
-			if ctx.Checkbox(&tnum, "'tnum' (Tabular Figures)") {
+			ctx.Checkbox(&tnum, "'tnum' (Tabular Figures)").On(func() {
 				if tnum {
 					g.tnum = 1
 				} else {
 					g.tnum = 0
 				}
-			}
+			})
 
 			var smcp bool
 			if g.smcp == 1 {
 				smcp = true
 			}
-			if ctx.Checkbox(&smcp, "'smcp' (Small Capitals)") {
+			ctx.Checkbox(&smcp, "'smcp' (Small Capitals)").On(func() {
 				if smcp {
 					g.smcp = 1
 				} else {
 					g.smcp = 0
 				}
-			}
+			})
 
 			var zero bool
 			if g.zero == 1 {
 				zero = true
 			}
-			if ctx.Checkbox(&zero, "'zero' (Slashed Zero)") {
+			ctx.Checkbox(&zero, "'zero' (Slashed Zero)").On(func() {
 				if zero {
 					g.zero = 1
 				} else {
 					g.zero = 0
 				}
-			}
+			})
 		})
 		return nil
 	}); err != nil {

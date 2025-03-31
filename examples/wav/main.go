@@ -97,15 +97,18 @@ func (g *Game) Update() error {
 			if g.audioPlayer.IsPlaying() {
 				ctx.Text("Bump!")
 			} else {
-				if ctx.Button("Play [P]") || inpututil.IsKeyJustPressed(ebiten.KeyP) {
+				play := func() {
 					// As audioPlayer has one stream and remembers the playing position,
 					// rewinding is needed before playing when reusing audioPlayer.
 					if err := g.audioPlayer.Rewind(); err != nil {
 						outErr = err
 						return
 					}
-
 					g.audioPlayer.Play()
+				}
+				ctx.Button("Play [P]").On(play)
+				if inpututil.IsKeyJustPressed(ebiten.KeyP) {
+					play()
 				}
 			}
 		})

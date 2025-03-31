@@ -372,9 +372,9 @@ func (g *Game) Update() error {
 
 				if g.musicPlayer != nil {
 					ctx.Text("Volume")
-					if ctx.Slider(&g.musicPlayer.volume128, 0, 128, 1) {
+					ctx.Slider(&g.musicPlayer.volume128, 0, 128, 1).On(func() {
 						g.musicPlayer.audioPlayer.SetVolume(float64(g.musicPlayer.volume128) / 128)
-					}
+					})
 				}
 
 				ctx.Text("Switch Audio Type")
@@ -382,7 +382,7 @@ func (g *Game) Update() error {
 				if g.musicPlayer != nil {
 					typ = fmt.Sprintf("Current: %s", g.musicPlayer.musicType)
 				}
-				if ctx.Button(typ) {
+				ctx.Button(typ).On(func() {
 					if g.musicPlayer == nil {
 						return
 					}
@@ -410,13 +410,13 @@ func (g *Game) Update() error {
 						}
 						g.musicPlayerCh <- p
 					}()
-				}
+				})
 
 				ctx.Text("Runnable on Unfocused")
 				runnableOnUnfocused := ebiten.IsRunnableOnUnfocused()
-				if ctx.Checkbox(&runnableOnUnfocused, "") {
+				ctx.Checkbox(&runnableOnUnfocused, "").On(func() {
 					ebiten.SetRunnableOnUnfocused(runnableOnUnfocused)
-				}
+				})
 			})
 			ctx.Header("Info", true, func() {
 				ctx.SetGridLayout([]int{-1, -1}, nil)

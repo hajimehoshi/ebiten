@@ -145,13 +145,21 @@ func (g *Game) Update() error {
 		ctx.Window("Shader", image.Rect(10, 10, 210, 110), func(layout debugui.ContainerLayout) {
 			ctx.Text(fmt.Sprintf("%d / %d", g.idx+1, len(shaderSrcs)))
 			ctx.SetGridLayout([]int{-1, -1}, nil)
-			if ctx.Button("Prev") || inpututil.IsStandardGamepadButtonJustPressed(g.gamepadID, ebiten.StandardGamepadButtonLeftTop) {
+			dec := func() {
 				g.idx += len(shaderSrcs) - 1
 				g.idx %= len(shaderSrcs)
 			}
-			if ctx.Button("Next") || inpututil.IsStandardGamepadButtonJustPressed(g.gamepadID, ebiten.StandardGamepadButtonLeftBottom) {
+			ctx.Button("Prev").On(dec)
+			if inpututil.IsStandardGamepadButtonJustPressed(g.gamepadID, ebiten.StandardGamepadButtonLeftTop) {
+				dec()
+			}
+			inc := func() {
 				g.idx++
 				g.idx %= len(shaderSrcs)
+			}
+			ctx.Button("Next").On(inc)
+			if inpututil.IsStandardGamepadButtonJustPressed(g.gamepadID, ebiten.StandardGamepadButtonLeftBottom) {
+				inc()
 			}
 		})
 		return nil

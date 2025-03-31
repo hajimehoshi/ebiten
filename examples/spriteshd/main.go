@@ -147,9 +147,9 @@ func (g *Game) Update() error {
 			ctx.Text(fmt.Sprintf("FPS: %0.2f", ebiten.ActualFPS()))
 			ctx.Slider(&g.sprites.num, 0, 50000, 100)
 			ctx.GridCell(func(bounds image.Rectangle) {})
-			if ctx.Button("Quit") {
+			ctx.Button("Quit").On(func() {
 				terminated = true
-			}
+			})
 		})
 		if terminated {
 			return ebiten.Termination

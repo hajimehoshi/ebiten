@@ -177,7 +177,7 @@ func (g *game) Update() error {
 
 				ctx.Text("Resizing Mode")
 				resizingMode := ebiten.WindowResizingMode()
-				if ctx.Button(windowResigingModeString(resizingMode)) {
+				ctx.Button(windowResigingModeString(resizingMode)).On(func() {
 					switch resizingMode {
 					case ebiten.WindowResizingModeDisabled:
 						ebiten.SetWindowResizingMode(ebiten.WindowResizingModeOnlyFullscreenEnabled)
@@ -188,23 +188,23 @@ func (g *game) Update() error {
 					default:
 						panic("not reached")
 					}
-				}
+				})
 
 				if ebiten.WindowResizingMode() == ebiten.WindowResizingModeEnabled {
 					ctx.Text("Maxmize")
-					if ctx.Button("Maximize") {
+					ctx.Button("Maximize").On(func() {
 						ebiten.MaximizeWindow()
-					}
+					})
 				}
 				ctx.Text("Minimize")
-				if ctx.Button("Minimize") {
+				ctx.Button("Minimize").On(func() {
 					ebiten.MinimizeWindow()
-				}
+				})
 				ctx.Text("Auto Restore")
 				ctx.Checkbox(&g.autoRestore, "")
 				if !g.autoAdjustment {
 					ctx.Text("Screen Scale")
-					if ctx.Button(fmt.Sprintf("%0.2f", screenScale)) {
+					ctx.Button(fmt.Sprintf("%0.2f", screenScale)).On(func() {
 						switch {
 						case screenScale < 1:
 							screenScale = 1
@@ -216,28 +216,28 @@ func (g *game) Update() error {
 							screenScale = 0.75
 						}
 						toUpdateWindowSize = true
-					}
+					})
 				}
 
 				ctx.Text("Decorated")
 				decorated := ebiten.IsWindowDecorated()
-				if ctx.Checkbox(&decorated, "") {
+				ctx.Checkbox(&decorated, "").On(func() {
 					ebiten.SetWindowDecorated(decorated)
-				}
+				})
 				ctx.Text("Floating")
 				floating := ebiten.IsWindowFloating()
-				if ctx.Checkbox(&floating, "") {
+				ctx.Checkbox(&floating, "").On(func() {
 					ebiten.SetWindowFloating(floating)
-				}
+				})
 
 				ctx.Text("Update Icon")
-				if ctx.Button("Update") {
+				ctx.Button("Update").On(func() {
 					ebiten.SetWindowIcon([]image.Image{createRandomIconImage()})
-				}
+				})
 				ctx.Text("Reset Icon")
-				if ctx.Button("Reset") {
+				ctx.Button("Reset").On(func() {
 					ebiten.SetWindowIcon(nil)
-				}
+				})
 			})
 			ctx.Header("Settings (Rendering)", true, func() {
 				ctx.SetGridLayout([]int{-2, -1}, nil)
@@ -246,25 +246,25 @@ func (g *game) Update() error {
 				ctx.Checkbox(&g.autoAdjustment, "")
 				ctx.Text("Fullscreen")
 				fullscreen := ebiten.IsFullscreen()
-				if ctx.Checkbox(&fullscreen, "") {
+				ctx.Checkbox(&fullscreen, "").On(func() {
 					ebiten.SetFullscreen(fullscreen)
-				}
+				})
 				ctx.Text("Runnable on Unfocused")
 				runnableOnUnfocused := ebiten.IsRunnableOnUnfocused()
-				if ctx.Checkbox(&runnableOnUnfocused, "") {
+				ctx.Checkbox(&runnableOnUnfocused, "").On(func() {
 					ebiten.SetRunnableOnUnfocused(runnableOnUnfocused)
-				}
+				})
 				ctx.Text("Vsync")
 				vsyncEnabled := ebiten.IsVsyncEnabled()
-				if ctx.Checkbox(&vsyncEnabled, "") {
+				ctx.Checkbox(&vsyncEnabled, "").On(func() {
 					ebiten.SetVsyncEnabled(vsyncEnabled)
-				}
+				})
 				ctx.Text("TPS Mode")
 				tpsStr := "Sync w/ FPS"
 				if t := ebiten.TPS(); t != ebiten.SyncWithFPS {
 					tpsStr = fmt.Sprintf("%d", t)
 				}
-				if ctx.Button(tpsStr) {
+				ctx.Button(tpsStr).On(func() {
 					switch g.tps {
 					case ebiten.SyncWithFPS:
 						g.tps = 30
@@ -277,19 +277,19 @@ func (g *game) Update() error {
 					default:
 						panic("not reached")
 					}
-				}
+				})
 				ctx.Text("Clear Screen Every Frame")
 				screenCleared := ebiten.IsScreenClearedEveryFrame()
-				if ctx.Checkbox(&screenCleared, "") {
+				ctx.Checkbox(&screenCleared, "").On(func() {
 					ebiten.SetScreenClearedEveryFrame(screenCleared)
-				}
+				})
 			})
 			ctx.Header("Settings (Mouse Cursor)", true, func() {
 				ctx.SetGridLayout([]int{-2, -1}, nil)
 
 				ctx.Text("Mode [C]")
 				cursorMode := ebiten.CursorMode()
-				if ctx.Button(cursorModeString(cursorMode)) || inpututil.IsKeyJustPressed(ebiten.KeyC) {
+				updateCursorMode := func() {
 					switch cursorMode {
 					case ebiten.CursorModeVisible:
 						ebiten.SetCursorMode(ebiten.CursorModeHidden)
@@ -299,11 +299,19 @@ func (g *game) Update() error {
 						ebiten.SetCursorMode(ebiten.CursorModeVisible)
 					}
 				}
+				ctx.Button(cursorModeString(cursorMode)).On(updateCursorMode)
+				if inpututil.IsKeyJustPressed(ebiten.KeyC) {
+					updateCursorMode()
+				}
 
 				ctx.Text("Passthrough (desktop only) [P]")
 				mousePassthrough := ebiten.IsWindowMousePassthrough()
-				if ctx.Checkbox(&mousePassthrough, "") || inpututil.IsKeyJustPressed(ebiten.KeyP) {
+				updateMousePassthrough := func() {
 					ebiten.SetWindowMousePassthrough(mousePassthrough)
+				}
+				ctx.Checkbox(&mousePassthrough, "").On(updateMousePassthrough)
+				if inpututil.IsKeyJustPressed(ebiten.KeyP) {
+					updateMousePassthrough()
 				}
 			})
 			ctx.Header("Info", true, func() {

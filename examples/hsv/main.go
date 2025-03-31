@@ -64,12 +64,12 @@ func (g *Game) Update() error {
 			ctx.Text("Inverted")
 			ctx.Checkbox(&g.inverted, "")
 			ctx.Text("Reset")
-			if ctx.Button("Reset") {
+			ctx.Button("Reset").On(func() {
 				g.hue = 0
 				g.saturation = 1
 				g.value = 1
 				g.inverted = false
-			}
+			})
 		})
 		return nil
 	}); err != nil {
