@@ -198,9 +198,8 @@ chunks:
 				return nil, fmt.Errorf("wav: number of channels must be 1 or 2 but was %d", channelCount)
 			}
 			bitsPerSample = int(buf[14]) | int(buf[15])<<8
-			// TODO: Support signed 24bit integer format (#2215).
-			if bitsPerSample != 8 && bitsPerSample != 16 {
-				return nil, fmt.Errorf("wav: bits per sample must be 8 or 16 but was %d", bitsPerSample)
+			if bitsPerSample != 8 && bitsPerSample != 16 && bitsPerSample != 24 {
+				return nil, fmt.Errorf("wav: bits per sample must be 8 or 16 or 24 but was %d", bitsPerSample)
 			}
 			sampleRate = int(buf[4]) | int(buf[5])<<8 | int(buf[6])<<16 | int(buf[7])<<24
 			headerSize += size
@@ -230,8 +229,7 @@ chunks:
 		case 16:
 			format = convert.FormatS16
 		default:
-			// TODO: Support signed 24bit integer format (#2215).
-			return nil, fmt.Errorf("wav: unsupported bits per sample: %d", bitsPerSample)
+			format = convert.FormatS24
 		}
 		s = convert.NewStereoI16ReadSeeker(s, mono, format)
 		if mono {
@@ -240,10 +238,18 @@ chunks:
 		if bitsPerSample != 16 {
 			dataSize *= 2
 		}
+		return &Stream{
+			inner:      s,
+			size:       dataSize,
+			sampleRate: sampleRate,
+		}, nil
 	}
 
-	if bitDepthInBytes == bitDepthInBytesFloat32 {
-		s = convert.NewFloat32BytesReadSeekerFromInt16BytesReadSeeker(s)
+	s = convert.NewFloat32BytesReadSeekerFromVariableIntBytesReadSeeker(s, bitsPerSample/8)
+
+	dataSize *= int64(bitsPerSample) / 8
+	if mono {
+		s = convert.NewStereoF32(s, mono)
 		dataSize *= 2
 	}
 
