@@ -1,3 +1,16 @@
+// Copyright 2025 The Ebitengine Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 package wav_test
 
 import (
@@ -12,7 +25,7 @@ import (
 func makeWav(channelCount int, bitsPerSample int, sampleRate int, data []byte) []byte {
 	var sb bytes.Buffer
 	sb.WriteString("RIFF")
-	sb.Write([]byte{0, 0, 0, 0}) // We don't care about file size, so we leave it blank
+	sb.Write([]byte{0, 0, 0, 0}) // `decode` does not use file size
 	sb.WriteString("WAVE")
 
 	sb.WriteString("fmt ")
@@ -27,7 +40,8 @@ func makeWav(channelCount int, bitsPerSample int, sampleRate int, data []byte) [
 		byte(sampleRate >> 8),
 		byte(sampleRate >> 16),
 		byte(sampleRate >> 24),
-		0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, // `decode` does not use dwAvgBytesPerSec
+		0, 0, // `decdode` does not use wBlockAlign
 		byte(bitsPerSample),
 		byte(bitsPerSample >> 8),
 	}
