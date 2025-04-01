@@ -16,7 +16,6 @@ package convert_test
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"math/rand/v2"
 	"testing"
@@ -68,69 +67,57 @@ func TestFloat32(t *testing.T) {
 			In:   randInt16s(65536),
 		},
 	}
-	functions := []func(*bytes.Reader) io.ReadSeeker{
-		func(r *bytes.Reader) io.ReadSeeker {
-			return convert.NewFloat32BytesReaderFromInt16BytesReader(r).(io.ReadSeeker)
-		},
-		func(r *bytes.Reader) io.ReadSeeker {
-			return convert.NewFloat32BytesReadSeekerFromVariableIntBytesReadSeeker(r, 2).(io.ReadSeeker)
-		},
-	}
-	for factoryNum, factory := range functions {
-		for _, c := range cases {
-			c := c
-			t.Run(c.Name, func(t *testing.T) {
-				for _, seek := range []bool{false, true} {
-					seek := seek
-					name := "nonseek"
-					if seek {
-						name = "seek"
-					}
-					name += fmt.Sprint(factoryNum)
-					t.Run(name, func(t *testing.T) {
-						var in, out []byte
-						if len(c.In) > 0 {
-							outF32 := make([]float32, len(c.In))
-							for i := range c.In {
-								outF32[i] = float32(c.In[i]) / (1 << 15)
-							}
-							in = unsafe.Slice((*byte)(unsafe.Pointer(unsafe.SliceData(c.In))), len(c.In)*2)
-							out = unsafe.Slice((*byte)(unsafe.Pointer(unsafe.SliceData(outF32))), len(outF32)*4)
-						}
-						r := factory(bytes.NewReader(in))
-						var got []byte
-						for {
-							var buf [97]byte
-							n, err := r.Read(buf[:])
-							got = append(got, buf[:n]...)
-							if err != nil {
-								if err != io.EOF {
-									t.Fatal(err)
-								}
-								break
-							}
-							if seek {
-								// Shifting by incomplete bytes should not affect the result.
-								for i := 0; i < 4; i++ {
-									if _, err := r.Seek(int64(i), io.SeekCurrent); err != nil {
-										if err != io.EOF {
-											t.Fatal(err)
-										}
-										break
-									}
-								}
-							}
-						}
-						want := out
-						if !bytes.Equal(got, want) {
-							t.Errorf("got: %v, want: %v", got, want)
-						}
-					})
+	for _, c := range cases {
+		c := c
+		t.Run(c.Name, func(t *testing.T) {
+			for _, seek := range []bool{false, true} {
+				seek := seek
+				name := "nonseek"
+				if seek {
+					name = "seek"
 				}
-			})
-		}
+				t.Run(name, func(t *testing.T) {
+					var in, out []byte
+					if len(c.In) > 0 {
+						outF32 := make([]float32, len(c.In))
+						for i := range c.In {
+							outF32[i] = float32(c.In[i]) / (1 << 15)
+						}
+						in = unsafe.Slice((*byte)(unsafe.Pointer(unsafe.SliceData(c.In))), len(c.In)*2)
+						out = unsafe.Slice((*byte)(unsafe.Pointer(unsafe.SliceData(outF32))), len(outF32)*4)
+					}
+					r := convert.NewFloat32BytesReadSeekerFromVariableIntBytesReadSeeker((bytes.NewReader(in)), 2).(io.ReadSeeker)
+					var got []byte
+					for {
+						var buf [97]byte
+						n, err := r.Read(buf[:])
+						got = append(got, buf[:n]...)
+						if err != nil {
+							if err != io.EOF {
+								t.Fatal(err)
+							}
+							break
+						}
+						if seek {
+							// Shifting by incomplete bytes should not affect the result.
+							for i := 0; i < 4; i++ {
+								if _, err := r.Seek(int64(i), io.SeekCurrent); err != nil {
+									if err != io.EOF {
+										t.Fatal(err)
+									}
+									break
+								}
+							}
+						}
+					}
+					want := out
+					if !bytes.Equal(got, want) {
+						t.Errorf("got: %v, want: %v", got, want)
+					}
+				})
+			}
+		})
 	}
-
 }
 
 func TestVariableIntFloat32(t *testing.T) {
@@ -160,67 +147,60 @@ func TestVariableIntFloat32(t *testing.T) {
 			In:   randInt24s(65536),
 		},
 	}
-	functions := []func(*bytes.Reader) io.ReadSeeker{
-		func(r *bytes.Reader) io.ReadSeeker {
-			return convert.NewFloat32BytesReadSeekerFromVariableIntBytesReadSeeker(r, 3).(io.ReadSeeker)
-		},
-	}
-	for factoryNum, factory := range functions {
-		for _, c := range cases {
-			c := c
-			t.Run(c.Name, func(t *testing.T) {
-				for _, seek := range []bool{false, true} {
-					seek := seek
-					name := "nonseek"
-					if seek {
-						name = "seek"
-					}
-					name += fmt.Sprint(factoryNum)
-					t.Run(name, func(t *testing.T) {
-						var in, out []byte
-						if len(c.In) > 0 {
-							outF32 := make([]float32, len(c.In))
-							for i := range c.In {
-								outF32[i] = float32(c.In[i]) / (1 << 23)
-								v := c.In[i] * 1 << 8
-								in = append(in, byte(v>>8))
-								in = append(in, byte(v>>16))
-								in = append(in, byte(v>>24))
-							}
-							out = unsafe.Slice((*byte)(unsafe.Pointer(unsafe.SliceData(outF32))), len(outF32)*4)
-						}
-						r := factory(bytes.NewReader(in))
-						var got []byte
-						for {
-							var buf [97]byte
-							n, err := r.Read(buf[:])
-							got = append(got, buf[:n]...)
-							if err != nil {
-								if err != io.EOF {
-									t.Fatal(err)
-								}
-								break
-							}
-							if seek {
-								// Shifting by incomplete bytes should not affect the result.
-								for i := 0; i < 4; i++ {
-									if _, err := r.Seek(int64(i), io.SeekCurrent); err != nil {
-										if err != io.EOF {
-											t.Fatal(err)
-										}
-										break
-									}
-								}
-							}
-						}
-						want := out
-						if !bytes.Equal(got, want) {
-							t.Errorf("got: %v, want: %v", got, want)
-						}
-					})
+	for _, c := range cases {
+		c := c
+		t.Run(c.Name, func(t *testing.T) {
+			for _, seek := range []bool{false, true} {
+				seek := seek
+				name := "nonseek"
+				if seek {
+					name = "seek"
 				}
+				t.Run(name, func(t *testing.T) {
+					var in, out []byte
+					if len(c.In) > 0 {
+						outF32 := make([]float32, len(c.In))
+						for i := range c.In {
+							outF32[i] = float32(c.In[i]) / (1 << 23)
+							v := c.In[i] * 1 << 8
+							in = append(in, byte(v>>8))
+							in = append(in, byte(v>>16))
+							in = append(in, byte(v>>24))
+						}
+						out = unsafe.Slice((*byte)(unsafe.Pointer(unsafe.SliceData(outF32))), len(outF32)*4)
+					}
+					r := convert.NewFloat32BytesReadSeekerFromVariableIntBytesReadSeeker((bytes.NewReader(in)), 3).(io.ReadSeeker)
+					var got []byte
+					for {
+						var buf [97]byte
+						n, err := r.Read(buf[:])
+						got = append(got, buf[:n]...)
+						if err != nil {
+							if err != io.EOF {
+								t.Fatal(err)
+							}
+							break
+						}
+						if seek {
+							// Shifting by incomplete bytes should not affect the result.
+							for i := 0; i < 4; i++ {
+								if _, err := r.Seek(int64(i), io.SeekCurrent); err != nil {
+									if err != io.EOF {
+										t.Fatal(err)
+									}
+									break
+								}
+							}
+						}
+					}
+					want := out
+					if !bytes.Equal(got, want) {
+						t.Errorf("got: %v, want: %v", got, want)
+					}
+				})
+			}
 
-			})
-		}
+		})
 	}
+
 }
