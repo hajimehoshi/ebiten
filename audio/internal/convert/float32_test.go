@@ -86,7 +86,7 @@ func TestFloat32(t *testing.T) {
 						in = unsafe.Slice((*byte)(unsafe.Pointer(unsafe.SliceData(c.In))), len(c.In)*2)
 						out = unsafe.Slice((*byte)(unsafe.Pointer(unsafe.SliceData(outF32))), len(outF32)*4)
 					}
-					r := convert.NewFloat32BytesReadSeekerFromVariableIntBytesReadSeeker((bytes.NewReader(in)), 2).(io.ReadSeeker)
+					r := convert.NewFloat32BytesReadSeekerFromIntBytesReadSeeker((bytes.NewReader(in)), 2, true).(io.ReadSeeker)
 					var got []byte
 					for {
 						var buf [97]byte
@@ -169,7 +169,7 @@ func TestVariableIntFloat32(t *testing.T) {
 						}
 						out = unsafe.Slice((*byte)(unsafe.Pointer(unsafe.SliceData(outF32))), len(outF32)*4)
 					}
-					r := convert.NewFloat32BytesReadSeekerFromVariableIntBytesReadSeeker((bytes.NewReader(in)), 3).(io.ReadSeeker)
+					r := convert.NewFloat32BytesReadSeekerFromIntBytesReadSeeker((bytes.NewReader(in)), 3, true).(io.ReadSeeker)
 					var got []byte
 					for {
 						var buf [97]byte

@@ -245,7 +245,10 @@ chunks:
 		}, nil
 	}
 
-	s = convert.NewFloat32BytesReadSeekerFromVariableIntBytesReadSeeker(s, bitsPerSample/8)
+	// The spec has 1-8 bits as unsigned integers, 9 or more as signed
+	numBytes := bitsPerSample / 8
+	signed := numBytes > 1
+	s = convert.NewFloat32BytesReadSeekerFromIntBytesReadSeeker(s, numBytes, signed)
 
 	dataSize *= int64(bitsPerSample) / 8
 	if mono {

@@ -345,7 +345,7 @@ type Player struct {
 // A Player for 16bit integer must be used with 16bit integer version of audio APIs, like vorbis.DecodeWithoutResampling or audio.NewInfiniteLoop, not or vorbis.DecodeF32 or audio.NewInfiniteLoopF32.
 func (c *Context) NewPlayer(src io.Reader) (*Player, error) {
 	_, seekable := src.(io.Seeker)
-	f32Src := convert.NewFloat32BytesReadSeekerFromVariableIntBytesReader(src, 2)
+	f32Src := convert.NewFloat32BytesReadSeekerFromIntBytesReader(src, 2, true)
 	pi, err := c.playerFactory.newPlayer(c, f32Src, seekable, src, bitDepthInBytesFloat32)
 	if err != nil {
 		return nil, err

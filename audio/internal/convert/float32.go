@@ -29,21 +29,19 @@ type float32BytesReaderVariable struct {
 	iBuf     []byte
 }
 
-func NewFloat32BytesReadSeekerFromVariableIntBytesReader(r io.Reader, numBytes int) io.Reader {
+func NewFloat32BytesReadSeekerFromIntBytesReader(r io.Reader, numBytes int, signed bool) io.Reader {
 	return &float32BytesReaderVariable{
 		r:        r,
 		numBytes: numBytes,
-		// The spec has 1-8 bits as unsigned integers, 9 or more as signed
-		signed: numBytes > 1,
+		signed:   signed,
 	}
 }
 
-func NewFloat32BytesReadSeekerFromVariableIntBytesReadSeeker(r io.ReadSeeker, numBytes int) io.ReadSeeker {
+func NewFloat32BytesReadSeekerFromIntBytesReadSeeker(r io.ReadSeeker, numBytes int, signed bool) io.ReadSeeker {
 	return &float32BytesReaderVariable{
 		r:        r,
 		numBytes: numBytes,
-		// The spec has 1-8 bits as unsigned integers, 9 or more as signed
-		signed: numBytes > 1,
+		signed:   signed,
 	}
 }
 
