@@ -21,7 +21,7 @@ import (
 	"math"
 )
 
-type float32BytesReaderVariable struct {
+type float32BytesReader struct {
 	r        io.Reader
 	numBytes int
 	signed   bool
@@ -30,7 +30,7 @@ type float32BytesReaderVariable struct {
 }
 
 func NewFloat32BytesReadSeekerFromIntBytesReader(r io.Reader, numBytes int, signed bool) io.Reader {
-	return &float32BytesReaderVariable{
+	return &float32BytesReader{
 		r:        r,
 		numBytes: numBytes,
 		signed:   signed,
@@ -38,14 +38,14 @@ func NewFloat32BytesReadSeekerFromIntBytesReader(r io.Reader, numBytes int, sign
 }
 
 func NewFloat32BytesReadSeekerFromIntBytesReadSeeker(r io.ReadSeeker, numBytes int, signed bool) io.ReadSeeker {
-	return &float32BytesReaderVariable{
+	return &float32BytesReader{
 		r:        r,
 		numBytes: numBytes,
 		signed:   signed,
 	}
 }
 
-func (r *float32BytesReaderVariable) asFloat32(buf []byte) float32 {
+func (r *float32BytesReader) asFloat32(buf []byte) float32 {
 	if r.signed {
 
 		var rBig int32
@@ -78,7 +78,7 @@ func (r *float32BytesReaderVariable) asFloat32(buf []byte) float32 {
 	return v
 }
 
-func (r *float32BytesReaderVariable) Read(buf []byte) (int, error) {
+func (r *float32BytesReader) Read(buf []byte) (int, error) {
 	if r.eof && len(r.iBuf) == 0 {
 		return 0, io.EOF
 	}
@@ -123,7 +123,7 @@ func (r *float32BytesReaderVariable) Read(buf []byte) (int, error) {
 	return n, nil
 }
 
-func (r *float32BytesReaderVariable) Seek(offset int64, whence int) (int64, error) {
+func (r *float32BytesReader) Seek(offset int64, whence int) (int64, error) {
 	s, ok := r.r.(io.Seeker)
 	if !ok {
 		return 0, fmt.Errorf("float32: the source must be io.Seeker when seeking but not: %w", errors.ErrUnsupported)
