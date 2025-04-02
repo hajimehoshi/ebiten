@@ -188,7 +188,6 @@ func TestDecodeF32(t *testing.T) {
 		},
 	}
 	for _, c := range cases {
-		c := c
 		t.Run(c.Name, func(t *testing.T) {
 			var out []byte
 			if len(c.Data) > 0 {
