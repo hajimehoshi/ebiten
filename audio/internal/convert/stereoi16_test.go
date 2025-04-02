@@ -51,10 +51,8 @@ func TestStereoI16FromSigned16Bits(t *testing.T) {
 		},
 	}
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.Name, func(t *testing.T) {
 			for _, mono := range []bool{false, true} {
-				mono := mono
 				t.Run(fmt.Sprintf("mono=%t", mono), func(t *testing.T) {
 					var inBytes, outBytes []byte
 					for _, v := range tc.In {
@@ -133,10 +131,8 @@ func TestStereoI16FromUnsigned8Bits(t *testing.T) {
 		},
 	}
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.Name, func(t *testing.T) {
 			for _, mono := range []bool{false, true} {
-				mono := mono
 				t.Run(fmt.Sprintf("mono=%t", mono), func(t *testing.T) {
 					inBytes := tc.In
 					var outBytes []byte
@@ -216,10 +212,8 @@ func TestStereoI16FromSigned24Bits(t *testing.T) {
 		},
 	}
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.Name, func(t *testing.T) {
 			for _, mono := range []bool{false, true} {
-				mono := mono
 				t.Run(fmt.Sprintf("mono=%t", mono), func(t *testing.T) {
 					var inBytes, outBytes []byte
 					for _, v := range tc.In {
