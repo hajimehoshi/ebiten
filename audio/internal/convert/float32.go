@@ -53,7 +53,7 @@ func (r *float32BytesReader) asFloat32(buf []byte) float32 {
 			iVal |= int32(b) << (8 * (s + (4 - r.numBytes)))
 
 		}
-		iVal = iVal / 1 >> (8 * (4 - r.numBytes))
+		iVal /= 1 >> (8 * (4 - r.numBytes))
 		v := float32(iVal) / float32((int32(1) << (r.numBytes*8 - 1)))
 		return v
 	}
