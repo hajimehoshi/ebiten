@@ -16,6 +16,7 @@ package wav_test
 
 import (
 	"bytes"
+	"encoding/binary"
 	"io"
 	"testing"
 	"unsafe"
@@ -24,46 +25,31 @@ import (
 )
 
 func makeWav(channelCount int, bitsPerSample int, sampleRate int, data []byte) []byte {
-	var sb bytes.Buffer
+	sb := &bytes.Buffer{}
 	sb.WriteString("RIFF")
 	sb.Write([]byte{0, 0, 0, 0}) // `decode` does not use file size
 	sb.WriteString("WAVE")
 
-	sb.WriteString("fmt ")
+	var format uint16 = 1
+	fmtData := make([]byte, 16)
+	// Construct fmt payload
+	binary.LittleEndian.PutUint16(fmtData[0:2], format)
+	binary.LittleEndian.PutUint16(fmtData[2:4], uint16(channelCount))
+	binary.LittleEndian.PutUint32(fmtData[4:8], uint32(sampleRate))
+	// `decode` does not use dwAvgBytesPerSec in 8-11
+	// `decdode` does not use wBlockAlign in 12-13
+	binary.LittleEndian.PutUint16(fmtData[14:16], uint16(bitsPerSample))
 
-	format := 1
-	fmtData := []byte{
-		byte(format),
-		byte(format >> 8),
-		byte(channelCount),
-		byte(channelCount >> 8),
-		byte(sampleRate),
-		byte(sampleRate >> 8),
-		byte(sampleRate >> 16),
-		byte(sampleRate >> 24),
-		0, 0, 0, 0, // `decode` does not use dwAvgBytesPerSec
-		0, 0, // `decdode` does not use wBlockAlign
-		byte(bitsPerSample),
-		byte(bitsPerSample >> 8),
-	}
+	sb.WriteString("fmt ")
 	lenFmtData := len(fmtData)
-	sb.Write([]byte{
-		byte(lenFmtData),
-		byte(lenFmtData >> 8),
-		byte(lenFmtData >> 16),
-		byte(lenFmtData >> 24),
-	})
+	binary.Write(sb, binary.LittleEndian, int32(lenFmtData))
 	sb.Write(fmtData)
 
 	sb.WriteString("data")
 	lenData := len(data)
-	sb.Write([]byte{
-		byte(lenData),
-		byte(lenData >> 8),
-		byte(lenData >> 16),
-		byte(lenData >> 24),
-	})
+	binary.Write(sb, binary.LittleEndian, int32(lenData))
 	sb.Write(data)
+
 	return sb.Bytes()
 }
 
