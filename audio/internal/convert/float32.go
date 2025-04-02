@@ -47,7 +47,6 @@ func NewFloat32BytesReadSeekerFromIntBytesReadSeeker(r io.ReadSeeker, numBytes i
 
 func (r *float32BytesReader) asFloat32(buf []byte) float32 {
 	if r.signed {
-
 		var iVal int32
 		for s := 0; s < r.numBytes; s++ {
 			b := buf[s]
