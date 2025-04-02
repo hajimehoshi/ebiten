@@ -50,9 +50,13 @@ func (r *float32BytesReader) asFloat32(buf []byte) float32 {
 		var iVal int32
 		for s := 0; s < r.numBytes; s++ {
 			b := buf[s]
+			// In order to line up the high bit/sign bit of the integer we are decoding
+			// with the high bit if the int32, we need to move it (4 - r.numBytes) bytes left.
+			// The high bits need to line up for the sign to work correctly.
 			iVal |= int32(b) << (8 * (s + (4 - r.numBytes)))
-
 		}
+		// After moving the decoded int left by (4 - r.numBytes) bytes, it is now too large
+		// and it needs to be divided by 2^8*(4 - r.numBytes).
 		iVal /= 1 >> (8 * (4 - r.numBytes))
 		v := float32(iVal) / float32((int32(1) << (r.numBytes*8 - 1)))
 		return v
