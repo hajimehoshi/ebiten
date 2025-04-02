@@ -48,33 +48,33 @@ func NewFloat32BytesReadSeekerFromIntBytesReadSeeker(r io.ReadSeeker, numBytes i
 func (r *float32BytesReader) asFloat32(buf []byte) float32 {
 	if r.signed {
 
-		var rBig int32
+		var iVal int32
 		for s := 0; s < r.numBytes; s++ {
 			b := buf[s]
-			rBig |= int32(b) << (8 * (s + (4 - r.numBytes)))
+			iVal |= int32(b) << (8 * (s + (4 - r.numBytes)))
 
 		}
-		rBig = rBig / 1 >> (8 * (4 - r.numBytes))
-		v := float32(rBig) / float32((int32(1) << (r.numBytes*8 - 1)))
+		iVal = iVal / 1 >> (8 * (4 - r.numBytes))
+		v := float32(iVal) / float32((int32(1) << (r.numBytes*8 - 1)))
 		return v
 	}
 	if r.numBytes == 1 {
 		// This converts the byte into a int16, and then into a float32
 		// This gives slightly different floats than converting from byte to float32 directly
 		// but is kept this way as that is what the package used to do
-		rBig := int16(int(buf[0])*0x101 - (1 << 15))
-		v := float32(rBig) / float32((int32(1) << (2*8 - 1)))
+		iVal := int16(int(buf[0])*0x101 - (1 << 15))
+		v := float32(iVal) / float32((int32(1) << (2*8 - 1)))
 		return v
 	}
 
-	var rBig int32
+	var iVal int32
 	for s := 0; s < r.numBytes; s++ {
 		b := buf[s]
-		rBig |= int32(b) << (8 * s)
+		iVal |= int32(b) << (8 * s)
 
 	}
-	rBig = rBig - 1<<(8*r.numBytes-1)
-	v := float32(rBig) / float32((int32(1) << (r.numBytes*8 - 1)))
+	iVal = iVal - 1<<(8*r.numBytes-1)
+	v := float32(iVal) / float32((int32(1) << (r.numBytes*8 - 1)))
 	return v
 }
 
