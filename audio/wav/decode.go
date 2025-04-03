@@ -233,7 +233,7 @@ chunks:
 			// TODO: Support signed 24bit integer format (#2215).
 			return nil, fmt.Errorf("wav: unsupported bits per sample: %d", bitsPerSample)
 		}
-		s = convert.NewStereoI16(s, mono, format)
+		s = convert.NewStereoI16ReadSeeker(s, mono, format)
 		if mono {
 			dataSize *= 2
 		}

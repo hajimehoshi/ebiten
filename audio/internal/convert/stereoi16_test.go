@@ -64,7 +64,7 @@ func TestStereoI16FromSigned16Bits(t *testing.T) {
 							outBytes = append(outBytes, byte(v), byte(v>>8))
 						}
 					}
-					s := convert.NewStereoI16(bytes.NewReader(inBytes), mono, convert.FormatS16)
+					s := convert.NewStereoI16ReadSeeker(bytes.NewReader(inBytes), mono, convert.FormatS16)
 					var got []byte
 					for {
 						var buf [97]byte
@@ -145,7 +145,7 @@ func TestStereoI16FromUnsigned8Bits(t *testing.T) {
 							outBytes = append(outBytes, byte(v16), byte(v16>>8))
 						}
 					}
-					s := convert.NewStereoI16(bytes.NewReader(inBytes), mono, convert.FormatU8)
+					s := convert.NewStereoI16ReadSeeker(bytes.NewReader(inBytes), mono, convert.FormatU8)
 					var got []byte
 					for {
 						var buf [97]byte
@@ -225,7 +225,7 @@ func TestStereoI16FromSigned24Bits(t *testing.T) {
 							outBytes = append(outBytes, byte(v>>8), byte(v>>16))
 						}
 					}
-					s := convert.NewStereoI16(bytes.NewReader(inBytes), mono, convert.FormatS24)
+					s := convert.NewStereoI16ReadSeeker(bytes.NewReader(inBytes), mono, convert.FormatS24)
 					var got []byte
 					for {
 						var buf [97]byte

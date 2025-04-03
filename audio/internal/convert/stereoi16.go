@@ -26,22 +26,22 @@ const (
 	FormatS24
 )
 
-type StereoI16 struct {
+type StereoI16ReadSeeker struct {
 	source io.ReadSeeker
 	mono   bool
 	format Format
 	buf    []byte
 }
 
-func NewStereoI16(source io.ReadSeeker, mono bool, format Format) *StereoI16 {
-	return &StereoI16{
+func NewStereoI16ReadSeeker(source io.ReadSeeker, mono bool, format Format) *StereoI16ReadSeeker {
+	return &StereoI16ReadSeeker{
 		source: source,
 		mono:   mono,
 		format: format,
 	}
 }
 
-func (s *StereoI16) Read(b []byte) (int, error) {
+func (s *StereoI16ReadSeeker) Read(b []byte) (int, error) {
 	l := len(b) / 4 * 4
 	if s.mono {
 		l /= 2
@@ -124,7 +124,7 @@ func (s *StereoI16) Read(b []byte) (int, error) {
 	return n, err
 }
 
-func (s *StereoI16) Seek(offset int64, whence int) (int64, error) {
+func (s *StereoI16ReadSeeker) Seek(offset int64, whence int) (int64, error) {
 	offset = offset / 4 * 4
 	if s.mono {
 		offset /= 2

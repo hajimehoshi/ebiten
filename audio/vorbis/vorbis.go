@@ -204,7 +204,7 @@ func DecodeWithoutResampling(src io.Reader) (*Stream, error) {
 	var s io.ReadSeeker = i16Stream
 	length := i16Stream.totalBytes()
 	if i16Stream.vorbisReader.Channels() == 1 {
-		s = convert.NewStereoI16(s, true, convert.FormatS16)
+		s = convert.NewStereoI16ReadSeeker(s, true, convert.FormatS16)
 		length *= 2
 	}
 
@@ -238,7 +238,7 @@ func DecodeWithSampleRate(sampleRate int, src io.Reader) (*Stream, error) {
 	var s io.ReadSeeker = i16Stream
 	length := i16Stream.totalBytes()
 	if i16Stream.vorbisReader.Channels() == 1 {
-		s = convert.NewStereoI16(s, true, convert.FormatS16)
+		s = convert.NewStereoI16ReadSeeker(s, true, convert.FormatS16)
 		length *= 2
 	}
 	if i16Stream.vorbisReader.SampleRate() != sampleRate {
