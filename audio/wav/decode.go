@@ -230,8 +230,10 @@ chunks:
 			format = convert.FormatU8
 		case 16:
 			format = convert.FormatS16
-		default:
+		case 24:
 			format = convert.FormatS24
+		default:
+			return nil, fmt.Errorf("wav: unsupported bits per sample: %d", bitsPerSample)
 		}
 		s = convert.NewStereoI16ReadSeeker(s, mono, format)
 		if mono {
