@@ -17,6 +17,7 @@ package wav
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 
@@ -221,7 +222,8 @@ chunks:
 
 	var s io.ReadSeeker = newSectionReader(src, headerSize, dataSize)
 
-	if bitDepthInBytes == bitDepthInBytesInt16 {
+	switch bitDepthInBytes {
+	case bitDepthInBytesInt16:
 		var format convert.Format
 		switch bitsPerSample {
 		case 8:
@@ -243,24 +245,27 @@ chunks:
 			size:       dataSize,
 			sampleRate: sampleRate,
 		}, nil
+	case bitDepthInBytesFloat32:
+		// The spec has 1-8 bits as unsigned integers, 9 or more as signed
+		numBytes := bitsPerSample / 8
+		signed := numBytes > 1
+		s = convert.NewFloat32BytesReadSeekerFromIntBytesReadSeeker(s, numBytes, signed)
+
+		dataSize *= int64(bitsPerSample) / 8
+		if mono {
+			s = convert.NewStereoF32(s, mono)
+			dataSize *= 2
+		}
+
+		return &Stream{
+			inner:      s,
+			size:       dataSize,
+			sampleRate: sampleRate,
+		}, nil
+	default:
+		return nil, errors.New("Unsupported bitDepthInBytes")
 	}
 
-	// The spec has 1-8 bits as unsigned integers, 9 or more as signed
-	numBytes := bitsPerSample / 8
-	signed := numBytes > 1
-	s = convert.NewFloat32BytesReadSeekerFromIntBytesReadSeeker(s, numBytes, signed)
-
-	dataSize *= int64(bitsPerSample) / 8
-	if mono {
-		s = convert.NewStereoF32(s, mono)
-		dataSize *= 2
-	}
-
-	return &Stream{
-		inner:      s,
-		size:       dataSize,
-		sampleRate: sampleRate,
-	}, nil
 }
 
 // Decode decodes WAV (RIFF) data to playable stream in signed 16bit integer, little endian, 2 channels (stereo) format.
