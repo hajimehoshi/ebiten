@@ -32,14 +32,6 @@ func randInt16s(n int) []int16 {
 	return r
 }
 
-func randInt24s(n int) []int32 {
-	r := make([]int32, n)
-	for i := range r {
-		r[i] = int32(rand.IntN(1<<24) - (1 << 23))
-	}
-	return r
-}
-
 func TestFloat32(t *testing.T) {
 	type testCase struct {
 		Name string
@@ -123,7 +115,7 @@ func TestFloat32(t *testing.T) {
 func TestVariableIntFloat32(t *testing.T) {
 	type testCase struct {
 		Name string
-		In   []int32
+		In   []int
 	}
 	cases := []testCase{
 		{
@@ -132,19 +124,19 @@ func TestVariableIntFloat32(t *testing.T) {
 		},
 		{
 			Name: "-1, 0, 1",
-			In:   []int32{-8388608, 0, 8388607},
+			In:   []int{-8388608, 0, 8388607},
 		},
 		{
 			Name: "8 0s",
-			In:   []int32{0, 0, 0, 0, 0, 0, 0, 0},
+			In:   []int{0, 0, 0, 0, 0, 0, 0, 0},
 		},
 		{
 			Name: "random 256 values",
-			In:   randInt24s(256),
+			In:   randInts(256),
 		},
 		{
 			Name: "random 65536 values",
-			In:   randInt24s(65536),
+			In:   randInts(65536),
 		},
 	}
 	for _, c := range cases {
@@ -161,11 +153,10 @@ func TestVariableIntFloat32(t *testing.T) {
 					if len(c.In) > 0 {
 						outF32 := make([]float32, len(c.In))
 						for i := range c.In {
-							outF32[i] = float32(c.In[i]) / (1 << 23)
-							v := c.In[i] * 1 << 8
-							in = append(in, byte(v>>8))
-							in = append(in, byte(v>>16))
-							in = append(in, byte(v>>24))
+							// Mask out the top 8 bits, since we need 24 bits
+							v := c.In[i] & 0x00ffff
+							outF32[i] = float32(v) / (1 << 23)
+							in = append(in, byte(v>>0), byte(v>>8), byte(v>>16))
 						}
 						out = unsafe.Slice((*byte)(unsafe.Pointer(unsafe.SliceData(outF32))), len(outF32)*4)
 					}
