@@ -221,7 +221,7 @@ chunks:
 
 	var s io.ReadSeeker = newSectionReader(src, headerSize, dataSize)
 
-	if mono || bitsPerSample != 16 {
+	if bitDepthInBytes == bitDepthInBytesInt16 {
 		var format convert.Format
 		switch bitsPerSample {
 		case 8:
