@@ -18,18 +18,26 @@ import (
 	"io"
 )
 
+type Format int
+
+const (
+	FormatU8 Format = iota
+	FormatS16
+	FormatS24
+)
+
 type StereoI16 struct {
 	source io.ReadSeeker
 	mono   bool
-	eight  bool
+	format Format
 	buf    []byte
 }
 
-func NewStereoI16(source io.ReadSeeker, mono, eight bool) *StereoI16 {
+func NewStereoI16(source io.ReadSeeker, mono bool, format Format) *StereoI16 {
 	return &StereoI16{
 		source: source,
 		mono:   mono,
-		eight:  eight,
+		format: format,
 	}
 }
 
@@ -38,7 +46,12 @@ func (s *StereoI16) Read(b []byte) (int, error) {
 	if s.mono {
 		l /= 2
 	}
-	if s.eight {
+	switch s.format {
+	case FormatU8:
+		l /= 2
+	case FormatS16:
+	case FormatS24:
+		l *= 3
 		l /= 2
 	}
 
@@ -50,39 +63,63 @@ func (s *StereoI16) Read(b []byte) (int, error) {
 	if err != nil && err != io.EOF {
 		return 0, err
 	}
-	switch {
-	case s.mono && s.eight:
-		for i := 0; i < n; i++ {
-			v := int16(int(s.buf[i])*0x101 - (1 << 15))
-			b[4*i] = byte(v)
-			b[4*i+1] = byte(v >> 8)
-			b[4*i+2] = byte(v)
-			b[4*i+3] = byte(v >> 8)
+	if s.mono {
+		switch s.format {
+		case FormatU8:
+			for i := 0; i < n; i++ {
+				v := int16(int(s.buf[i])*0x101 - (1 << 15))
+				b[4*i] = byte(v)
+				b[4*i+1] = byte(v >> 8)
+				b[4*i+2] = byte(v)
+				b[4*i+3] = byte(v >> 8)
+			}
+		case FormatS16:
+			for i := 0; i < n/2; i++ {
+				b[4*i] = s.buf[2*i]
+				b[4*i+1] = s.buf[2*i+1]
+				b[4*i+2] = s.buf[2*i]
+				b[4*i+3] = s.buf[2*i+1]
+			}
+		case FormatS24:
+			for i := 0; i < n/3; i++ {
+				b[4*i] = s.buf[3*i+1]
+				b[4*i+1] = s.buf[3*i+2]
+				b[4*i+2] = s.buf[3*i+1]
+				b[4*i+3] = s.buf[3*i+2]
+			}
 		}
-	case s.mono && !s.eight:
-		for i := 0; i < n/2; i++ {
-			b[4*i] = s.buf[2*i]
-			b[4*i+1] = s.buf[2*i+1]
-			b[4*i+2] = s.buf[2*i]
-			b[4*i+3] = s.buf[2*i+1]
+	} else {
+		switch s.format {
+		case FormatU8:
+			for i := 0; i < n/2; i++ {
+				v0 := int16(int(s.buf[2*i])*0x101 - (1 << 15))
+				v1 := int16(int(s.buf[2*i+1])*0x101 - (1 << 15))
+				b[4*i] = byte(v0)
+				b[4*i+1] = byte(v0 >> 8)
+				b[4*i+2] = byte(v1)
+				b[4*i+3] = byte(v1 >> 8)
+			}
+		case FormatS16:
+			copy(b[:n], s.buf[:n])
+		case FormatS24:
+			for i := 0; i < n/6; i++ {
+				b[4*i] = s.buf[6*i+1]
+				b[4*i+1] = s.buf[6*i+2]
+				b[4*i+2] = s.buf[6*i+4]
+				b[4*i+3] = s.buf[6*i+5]
+			}
 		}
-	case !s.mono && s.eight:
-		for i := 0; i < n/2; i++ {
-			v0 := int16(int(s.buf[2*i])*0x101 - (1 << 15))
-			v1 := int16(int(s.buf[2*i+1])*0x101 - (1 << 15))
-			b[4*i] = byte(v0)
-			b[4*i+1] = byte(v0 >> 8)
-			b[4*i+2] = byte(v1)
-			b[4*i+3] = byte(v1 >> 8)
-		}
-	default:
-		copy(b[:n], s.buf[:n])
 	}
 	if s.mono {
 		n *= 2
 	}
-	if s.eight {
+	switch s.format {
+	case FormatU8:
 		n *= 2
+	case FormatS16:
+	case FormatS24:
+		n *= 2
+		n /= 3
 	}
 	return n, err
 }
@@ -92,7 +129,12 @@ func (s *StereoI16) Seek(offset int64, whence int) (int64, error) {
 	if s.mono {
 		offset /= 2
 	}
-	if s.eight {
+	switch s.format {
+	case FormatU8:
+		offset /= 2
+	case FormatS16:
+	case FormatS24:
+		offset *= 3
 		offset /= 2
 	}
 	return s.source.Seek(offset, whence)

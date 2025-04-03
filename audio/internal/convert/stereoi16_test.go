@@ -24,7 +24,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/audio/internal/convert"
 )
 
-func TestStereoI16(t *testing.T) {
+func TestStereoI16FromSigned16Bits(t *testing.T) {
 	testCases := []struct {
 		Name string
 		In   []int16
@@ -51,10 +51,8 @@ func TestStereoI16(t *testing.T) {
 		},
 	}
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.Name, func(t *testing.T) {
 			for _, mono := range []bool{false, true} {
-				mono := mono
 				t.Run(fmt.Sprintf("mono=%t", mono), func(t *testing.T) {
 					var inBytes, outBytes []byte
 					for _, v := range tc.In {
@@ -66,7 +64,7 @@ func TestStereoI16(t *testing.T) {
 							outBytes = append(outBytes, byte(v), byte(v>>8))
 						}
 					}
-					s := convert.NewStereoI16(bytes.NewReader(inBytes), mono, false)
+					s := convert.NewStereoI16(bytes.NewReader(inBytes), mono, convert.FormatS16)
 					var got []byte
 					for {
 						var buf [97]byte
@@ -106,7 +104,7 @@ func randBytes(n int) []byte {
 	return r
 }
 
-func TestStereoI16EightBits(t *testing.T) {
+func TestStereoI16FromUnsigned8Bits(t *testing.T) {
 	testCases := []struct {
 		Name string
 		In   []byte
@@ -133,10 +131,8 @@ func TestStereoI16EightBits(t *testing.T) {
 		},
 	}
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.Name, func(t *testing.T) {
 			for _, mono := range []bool{false, true} {
-				mono := mono
 				t.Run(fmt.Sprintf("mono=%t", mono), func(t *testing.T) {
 					inBytes := tc.In
 					var outBytes []byte
@@ -149,7 +145,87 @@ func TestStereoI16EightBits(t *testing.T) {
 							outBytes = append(outBytes, byte(v16), byte(v16>>8))
 						}
 					}
-					s := convert.NewStereoI16(bytes.NewReader(inBytes), mono, true)
+					s := convert.NewStereoI16(bytes.NewReader(inBytes), mono, convert.FormatU8)
+					var got []byte
+					for {
+						var buf [97]byte
+						n, err := s.Read(buf[:])
+						got = append(got, buf[:n]...)
+						if err != nil {
+							if err != io.EOF {
+								t.Fatal(err)
+							}
+							break
+						}
+						// Shifting by incomplete bytes should not affect the result.
+						for i := 0; i < 2*2; i++ {
+							if _, err := s.Seek(int64(i), io.SeekCurrent); err != nil {
+								if err != io.EOF {
+									t.Fatal(err)
+								}
+								break
+							}
+						}
+					}
+					want := outBytes
+					if !bytes.Equal(got, want) {
+						t.Errorf("got: %v, want: %v", got, want)
+					}
+				})
+			}
+		})
+	}
+}
+
+func randInts(n int) []int {
+	r := make([]int, n)
+	for i := range r {
+		r[i] = rand.Int()
+	}
+	return r
+}
+
+func TestStereoI16FromSigned24Bits(t *testing.T) {
+	testCases := []struct {
+		Name string
+		In   []int
+	}{
+		{
+			Name: "nil",
+			In:   nil,
+		},
+		{
+			Name: "-1, 0, 1, 0",
+			In:   []int{-1, 0, 1, 0},
+		},
+		{
+			Name: "8 0s",
+			In:   []int{0, 0, 0, 0, 0, 0, 0, 0},
+		},
+		{
+			Name: "random 256 values",
+			In:   randInts(256),
+		},
+		{
+			Name: "random 65536 values",
+			In:   randInts(65536),
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.Name, func(t *testing.T) {
+			for _, mono := range []bool{false, true} {
+				t.Run(fmt.Sprintf("mono=%t", mono), func(t *testing.T) {
+					var inBytes, outBytes []byte
+					for _, v := range tc.In {
+						inBytes = append(inBytes, byte(v), byte(v>>8), byte(v>>16))
+						if mono {
+							// As the source is mono, the output should be stereo.
+							outBytes = append(outBytes, byte(v>>8), byte(v>>16), byte(v>>8), byte(v>>16))
+						} else {
+							outBytes = append(outBytes, byte(v>>8), byte(v>>16))
+						}
+					}
+					s := convert.NewStereoI16(bytes.NewReader(inBytes), mono, convert.FormatS24)
 					var got []byte
 					for {
 						var buf [97]byte

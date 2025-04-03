@@ -198,6 +198,7 @@ chunks:
 				return nil, fmt.Errorf("wav: number of channels must be 1 or 2 but was %d", channelCount)
 			}
 			bitsPerSample = int(buf[14]) | int(buf[15])<<8
+			// TODO: Support signed 24bit integer format (#2215).
 			if bitsPerSample != 8 && bitsPerSample != 16 {
 				return nil, fmt.Errorf("wav: bits per sample must be 8 or 16 but was %d", bitsPerSample)
 			}
@@ -222,7 +223,17 @@ chunks:
 	var s io.ReadSeeker = newSectionReader(src, headerSize, dataSize)
 
 	if mono || bitsPerSample != 16 {
-		s = convert.NewStereoI16(s, mono, bitsPerSample != 16)
+		var format convert.Format
+		switch bitsPerSample {
+		case 8:
+			format = convert.FormatU8
+		case 16:
+			format = convert.FormatS16
+		default:
+			// TODO: Support signed 24bit integer format (#2215).
+			return nil, fmt.Errorf("wav: unsupported bits per sample: %d", bitsPerSample)
+		}
+		s = convert.NewStereoI16(s, mono, format)
 		if mono {
 			dataSize *= 2
 		}
