@@ -16,6 +16,7 @@ package audio
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"runtime"
 	"sync"
@@ -86,6 +87,8 @@ type playerImpl struct {
 
 	// stopwatch is a stopwatch to measure the time duration during the player position doesn't change while its playing.
 	stopwatch stopwatch
+
+	closed bool
 
 	m sync.Mutex
 }
@@ -258,6 +261,11 @@ func (p *playerImpl) Close() error {
 	p.m.Lock()
 	defer p.m.Unlock()
 	runtime.SetFinalizer(p, nil)
+
+	if p.closed {
+		return fmt.Errorf("audio: player is already closed")
+	}
+	p.closed = true
 
 	if p.player != nil {
 		defer func() {
