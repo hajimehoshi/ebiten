@@ -40,6 +40,7 @@ var (
 	flagWindowPosition      = flag.String("windowposition", "", "window position (e.g., 100,200)")
 	flagTransparent         = flag.Bool("transparent", false, "screen transparent")
 	flagFloating            = flag.Bool("floating", false, "make the window floating")
+	flagPassthrough         = flag.Bool("passthrough", false, "make the window mouse passthrough")
 	flagMaximize            = flag.Bool("maximize", false, "maximize the window")
 	flagVsync               = flag.Bool("vsync", true, "enable vsync")
 	flagInitFocused         = flag.Bool("initfocused", true, "whether the window is focused on start")
@@ -495,6 +496,9 @@ func main() {
 	}
 	if *flagFloating {
 		ebiten.SetWindowFloating(true)
+	}
+	if *flagPassthrough {
+		ebiten.SetWindowMousePassthrough(true)
 	}
 	if *flagMaximize {
 		ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
