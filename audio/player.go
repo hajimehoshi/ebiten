@@ -79,7 +79,7 @@ type playerImpl struct {
 	// adjustedPosition is the player's more accurate position as time.Duration.
 	// The underlying buffer might not be changed even if the player is playing.
 	// adjustedPosition is adjusted by the time duration during the player position doesn't change while its playing.
-	adjustedPosition atomic.Int64
+	adjustedPosition int64
 
 	// lastSamples is the last value of the number of samples.
 	// When lastSamples is a negative number, this value is not initialized yet.
@@ -194,6 +194,11 @@ func (p *playerImpl) Play() {
 	p.m.Lock()
 	defer p.m.Unlock()
 
+	if p.closed {
+		p.context.setError(fmt.Errorf("audio: Play for a closed player"))
+		return
+	}
+
 	if err := p.ensurePlayer(); err != nil {
 		p.context.setError(err)
 		return
@@ -210,6 +215,11 @@ func (p *playerImpl) Pause() {
 	p.m.Lock()
 	defer p.m.Unlock()
 
+	if p.closed {
+		p.context.setError(fmt.Errorf("audio: Pause for a closed player"))
+		return
+	}
+
 	if p.player == nil {
 		return
 	}
@@ -225,6 +235,10 @@ func (p *playerImpl) Pause() {
 func (p *playerImpl) IsPlaying() bool {
 	p.m.Lock()
 	defer p.m.Unlock()
+
+	if p.closed {
+		return false
+	}
 	return p.isPlaying()
 }
 
@@ -279,7 +293,13 @@ func (p *playerImpl) Close() error {
 }
 
 func (p *playerImpl) Position() time.Duration {
-	return time.Duration(p.adjustedPosition.Load())
+	p.m.Lock()
+	defer p.m.Unlock()
+
+	if p.closed {
+		return 0
+	}
+	return time.Duration(p.adjustedPosition)
 }
 
 func (p *playerImpl) Rewind() error {
@@ -290,8 +310,12 @@ func (p *playerImpl) SetPosition(offset time.Duration) error {
 	p.m.Lock()
 	defer p.m.Unlock()
 
+	if p.closed {
+		return fmt.Errorf("audio: player is already closed")
+	}
+
 	if offset == 0 && p.player == nil {
-		p.adjustedPosition.Store(0)
+		p.adjustedPosition = 0
 		return nil
 	}
 
@@ -305,7 +329,7 @@ func (p *playerImpl) SetPosition(offset time.Duration) error {
 	}
 	p.lastSamples = -1
 	// Just after setting a position, the buffer size should be 0 as no data is sent.
-	p.adjustedPosition.Store(int64(p.stream.positionInTimeDuration()))
+	p.adjustedPosition = int64(p.stream.positionInTimeDuration())
 	p.stopwatch.reset()
 	if p.isPlaying() {
 		p.stopwatch.start()
@@ -326,6 +350,11 @@ func (p *playerImpl) Err() error {
 func (p *playerImpl) SetBufferSize(bufferSize time.Duration) {
 	p.m.Lock()
 	defer p.m.Unlock()
+
+	if p.closed {
+		p.context.setError(fmt.Errorf("audio: SetBufferSize for a closed player"))
+		return
+	}
 
 	bufferSizeInBytes := int(bufferSize * time.Duration(p.bytesPerSample) * time.Duration(p.factory.sampleRate) / time.Second)
 	bufferSizeInBytes = bufferSizeInBytes / p.bytesPerSample * p.bytesPerSample
@@ -367,11 +396,11 @@ func (p *playerImpl) updatePosition() {
 	defer p.m.Unlock()
 
 	if p.player == nil {
-		p.adjustedPosition.Store(0)
+		p.adjustedPosition = 0
 		return
 	}
 	if !p.context.IsReady() {
-		p.adjustedPosition.Store(0)
+		p.adjustedPosition = 0
 		return
 	}
 
@@ -391,7 +420,7 @@ func (p *playerImpl) updatePosition() {
 	}
 
 	// Update the adjusted position every tick. This is necessary to keep the position accurate.
-	p.adjustedPosition.Store(int64(time.Duration(samples)*time.Second/time.Duration(p.factory.sampleRate) + adjustingTime))
+	p.adjustedPosition = int64(time.Duration(samples)*time.Second/time.Duration(p.factory.sampleRate) + adjustingTime)
 }
 
 type timeStream struct {
