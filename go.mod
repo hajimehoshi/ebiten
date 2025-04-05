@@ -17,8 +17,8 @@ require (
 	github.com/jfreymuth/oggvorbis v1.0.5
 	github.com/kisielk/errcheck v1.9.0
 	golang.org/x/image v0.25.0
-	golang.org/x/sync v0.12.0
-	golang.org/x/sys v0.31.0
+	golang.org/x/sync v0.13.0
+	golang.org/x/sys v0.32.0
 	golang.org/x/text v0.23.0
 	golang.org/x/tools v0.31.0
 )
