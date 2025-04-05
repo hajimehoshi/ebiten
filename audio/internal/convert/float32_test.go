@@ -78,7 +78,7 @@ func TestFloat32(t *testing.T) {
 						in = unsafe.Slice((*byte)(unsafe.Pointer(unsafe.SliceData(c.In))), len(c.In)*2)
 						out = unsafe.Slice((*byte)(unsafe.Pointer(unsafe.SliceData(outF32))), len(outF32)*4)
 					}
-					r := convert.NewFloat32BytesReaderFromInt16BytesReader(bytes.NewReader(in)).(io.ReadSeeker)
+					r := convert.NewFloat32BytesReadSeekerFromIntBytesReadSeeker((bytes.NewReader(in)), 2, true).(io.ReadSeeker)
 					var got []byte
 					for {
 						var buf [97]byte
@@ -110,4 +110,88 @@ func TestFloat32(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestVariableIntFloat32(t *testing.T) {
+	type testCase struct {
+		Name string
+		In   []int
+	}
+	cases := []testCase{
+		{
+			Name: "empty",
+			In:   nil,
+		},
+		{
+			Name: "-1, 0, 1",
+			In:   []int{-8388608, 0, 8388607},
+		},
+		{
+			Name: "8 0s",
+			In:   []int{0, 0, 0, 0, 0, 0, 0, 0},
+		},
+		{
+			Name: "random 256 values",
+			In:   randInts(256),
+		},
+		{
+			Name: "random 65536 values",
+			In:   randInts(65536),
+		},
+	}
+	for _, c := range cases {
+		c := c
+		t.Run(c.Name, func(t *testing.T) {
+			for _, seek := range []bool{false, true} {
+				seek := seek
+				name := "nonseek"
+				if seek {
+					name = "seek"
+				}
+				t.Run(name, func(t *testing.T) {
+					var in, out []byte
+					if len(c.In) > 0 {
+						outF32 := make([]float32, len(c.In))
+						for i := range c.In {
+							// Mask out the top 8 bits, since we need 24 bits
+							v := c.In[i] & 0x00ffff
+							outF32[i] = float32(v) / (1 << 23)
+							in = append(in, byte(v>>0), byte(v>>8), byte(v>>16))
+						}
+						out = unsafe.Slice((*byte)(unsafe.Pointer(unsafe.SliceData(outF32))), len(outF32)*4)
+					}
+					r := convert.NewFloat32BytesReadSeekerFromIntBytesReadSeeker((bytes.NewReader(in)), 3, true).(io.ReadSeeker)
+					var got []byte
+					for {
+						var buf [97]byte
+						n, err := r.Read(buf[:])
+						got = append(got, buf[:n]...)
+						if err != nil {
+							if err != io.EOF {
+								t.Fatal(err)
+							}
+							break
+						}
+						if seek {
+							// Shifting by incomplete bytes should not affect the result.
+							for i := 0; i < 4; i++ {
+								if _, err := r.Seek(int64(i), io.SeekCurrent); err != nil {
+									if err != io.EOF {
+										t.Fatal(err)
+									}
+									break
+								}
+							}
+						}
+					}
+					want := out
+					if !bytes.Equal(got, want) {
+						t.Errorf("got: %v, want: %v", got, want)
+					}
+				})
+			}
+
+		})
+	}
+
 }

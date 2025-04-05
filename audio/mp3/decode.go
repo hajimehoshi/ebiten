@@ -72,7 +72,7 @@ func DecodeF32(src io.Reader) (*Stream, error) {
 	if err != nil {
 		return nil, err
 	}
-	r := convert.NewFloat32BytesReadSeekerFromInt16BytesReadSeeker(d)
+	r := convert.NewFloat32BytesReadSeekerFromIntBytesReadSeeker(d, 2, true)
 	s := &Stream{
 		readSeeker: r,
 		length:     d.Length() / bitDepthInBytesInt16 * bitDepthInBytesFloat32,
