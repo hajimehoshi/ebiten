@@ -110,13 +110,6 @@ func (p *dummyPlayer) Seek(offset int64, whence int) (int64, error) {
 	return 0, nil
 }
 
-func (p *dummyPlayer) Close() error {
-	p.m.Lock()
-	defer p.m.Unlock()
-	p.playing = false
-	return nil
-}
-
 func init() {
 	driverForTesting = &dummyContext{}
 }

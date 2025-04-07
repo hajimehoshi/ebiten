@@ -36,7 +36,8 @@ type player interface {
 	Err() error
 	SetBufferSize(bufferSize int)
 	io.Seeker
-	io.Closer
+
+	// As of Oto v3.4.0-alpha.7, Close does nothing.
 }
 
 type context interface {
@@ -287,7 +288,6 @@ func (p *playerImpl) Close() error {
 		}()
 		p.player.Pause()
 		p.stopwatch.stop()
-		return addErrorInfo(p.player.Close())
 	}
 	return nil
 }
