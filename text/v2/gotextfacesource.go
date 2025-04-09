@@ -180,8 +180,7 @@ func (g *GoTextFaceSource) shape(text string, face *GoTextFace) ([]shaping.Outpu
 }
 
 func (g *GoTextFaceSource) shapeImpl(text string, face *GoTextFace) ([]shaping.Output, []glyph) {
-	f := face.Source.f
-	f.SetVariations(face.variations)
+	g.f.SetVariations(face.variations)
 
 	runes := []rune(text)
 	input := shaping.Input{
@@ -189,7 +188,7 @@ func (g *GoTextFaceSource) shapeImpl(text string, face *GoTextFace) ([]shaping.O
 		RunStart:     0,
 		RunEnd:       len(runes),
 		Direction:    face.diDirection(),
-		Face:         f,
+		Face:         g.f,
 		FontFeatures: face.features,
 		Size:         float64ToFixed26_6(face.Size),
 		Script:       face.gScript(),
@@ -197,7 +196,7 @@ func (g *GoTextFaceSource) shapeImpl(text string, face *GoTextFace) ([]shaping.O
 	}
 
 	var seg shaping.Segmenter
-	inputs := seg.Split(input, &singleFontmap{face: f})
+	inputs := seg.Split(input, &singleFontmap{face: g.f})
 
 	// Reverse the input for RTL texts.
 	if face.Direction == DirectionRightToLeft {
@@ -224,7 +223,7 @@ func (g *GoTextFaceSource) shapeImpl(text string, face *GoTextFace) ([]shaping.O
 			switch data := g.f.GlyphData(gl.GlyphID).(type) {
 			case font.GlyphOutline:
 				if out.Direction.IsSideways() {
-					data.Sideways(fixed26_6ToFloat32(-gl.YOffset) / fixed26_6ToFloat32(out.Size) * float32(f.Upem()))
+					data.Sideways(fixed26_6ToFloat32(-gl.YOffset) / fixed26_6ToFloat32(out.Size) * float32(g.f.Upem()))
 				}
 				segs = data.Segments
 			case font.GlyphSVG:
