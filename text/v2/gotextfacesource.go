@@ -66,6 +66,8 @@ type GoTextFaceSource struct {
 	outputCache     *cache[goTextOutputCacheKey, goTextOutputCacheValue]
 	glyphImageCache map[float64]*cache[goTextGlyphImageCacheKey, *ebiten.Image]
 
+	metricsCache map[float64]Metrics
+
 	addr *GoTextFaceSource
 
 	shaper shaping.HarfbuzzShaper
@@ -268,6 +270,36 @@ func (g *GoTextFaceSource) getOrCreateGlyphImage(goTextFace *GoTextFace, key goT
 		g.glyphImageCache[goTextFace.Size] = newCache[goTextGlyphImageCacheKey, *ebiten.Image](128 * glyphVariationCount(goTextFace))
 	}
 	return g.glyphImageCache[goTextFace.Size].getOrCreate(key, create)
+}
+
+func (g *GoTextFaceSource) metrics(size float64) Metrics {
+	if m, ok := g.metricsCache[size]; ok {
+		return m
+	}
+
+	scale := g.scale(size)
+
+	var m Metrics
+	if h, ok := g.f.FontHExtents(); ok {
+		m.HLineGap = float64(h.LineGap) * scale
+		m.HAscent = float64(h.Ascender) * scale
+		m.HDescent = float64(-h.Descender) * scale
+	}
+	if v, ok := g.f.FontVExtents(); ok {
+		m.VLineGap = float64(v.LineGap) * scale
+		m.VAscent = float64(v.Ascender) * scale
+		m.VDescent = float64(-v.Descender) * scale
+	}
+
+	m.XHeight = float64(g.f.LineMetric(font.XHeight)) * scale
+	m.CapHeight = float64(g.f.LineMetric(font.CapHeight)) * scale
+
+	if g.metricsCache == nil {
+		g.metricsCache = map[float64]Metrics{}
+	}
+	g.metricsCache[size] = m
+
+	return m
 }
 
 type singleFontmap struct {

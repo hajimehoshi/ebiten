@@ -192,24 +192,7 @@ func MustParseTag(str string) Tag {
 
 // Metrics implements Face.
 func (g *GoTextFace) Metrics() Metrics {
-	scale := g.Source.scale(g.Size)
-
-	var m Metrics
-	if h, ok := g.Source.f.FontHExtents(); ok {
-		m.HLineGap = float64(h.LineGap) * scale
-		m.HAscent = float64(h.Ascender) * scale
-		m.HDescent = float64(-h.Descender) * scale
-	}
-	if v, ok := g.Source.f.FontVExtents(); ok {
-		m.VLineGap = float64(v.LineGap) * scale
-		m.VAscent = float64(v.Ascender) * scale
-		m.VDescent = float64(-v.Descender) * scale
-	}
-
-	m.XHeight = float64(g.Source.f.LineMetric(font.XHeight)) * scale
-	m.CapHeight = float64(g.Source.f.LineMetric(font.CapHeight)) * scale
-
-	return m
+	return g.Source.metrics(g.Size)
 }
 
 func (g *GoTextFace) ensureVariationsString() string {
