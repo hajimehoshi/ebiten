@@ -66,7 +66,7 @@ type GoTextFaceSource struct {
 	outputCache     *cache[goTextOutputCacheKey, goTextOutputCacheValue]
 	glyphImageCache map[float64]*cache[goTextGlyphImageCacheKey, *ebiten.Image]
 
-	metricsCache map[float64]Metrics
+	unscaledMetrics Metrics
 
 	addr *GoTextFaceSource
 
@@ -273,33 +273,33 @@ func (g *GoTextFaceSource) getOrCreateGlyphImage(goTextFace *GoTextFace, key goT
 }
 
 func (g *GoTextFaceSource) metrics(size float64) Metrics {
-	if m, ok := g.metricsCache[size]; ok {
-		return m
+	um := g.unscaledMetrics
+	if um.HAscent == 0 && um.HDescent == 0 && um.VAscent == 0 && um.VDescent == 0 {
+		if h, ok := g.f.FontHExtents(); ok {
+			um.HLineGap = float64(h.LineGap)
+			um.HAscent = float64(h.Ascender)
+			um.HDescent = float64(-h.Descender)
+		}
+		if v, ok := g.f.FontVExtents(); ok {
+			um.VLineGap = float64(v.LineGap)
+			um.VAscent = float64(v.Ascender)
+			um.VDescent = float64(-v.Descender)
+		}
+		um.XHeight = float64(g.f.LineMetric(font.XHeight))
+		um.CapHeight = float64(g.f.LineMetric(font.CapHeight))
 	}
 
 	scale := g.scale(size)
-
-	var m Metrics
-	if h, ok := g.f.FontHExtents(); ok {
-		m.HLineGap = float64(h.LineGap) * scale
-		m.HAscent = float64(h.Ascender) * scale
-		m.HDescent = float64(-h.Descender) * scale
+	return Metrics{
+		HLineGap:  um.HLineGap * scale,
+		HAscent:   um.HAscent * scale,
+		HDescent:  um.HDescent * scale,
+		VLineGap:  um.VLineGap * scale,
+		VAscent:   um.VAscent * scale,
+		VDescent:  um.VDescent * scale,
+		XHeight:   um.XHeight * scale,
+		CapHeight: um.CapHeight * scale,
 	}
-	if v, ok := g.f.FontVExtents(); ok {
-		m.VLineGap = float64(v.LineGap) * scale
-		m.VAscent = float64(v.Ascender) * scale
-		m.VDescent = float64(-v.Descender) * scale
-	}
-
-	m.XHeight = float64(g.f.LineMetric(font.XHeight)) * scale
-	m.CapHeight = float64(g.f.LineMetric(font.CapHeight)) * scale
-
-	if g.metricsCache == nil {
-		g.metricsCache = map[float64]Metrics{}
-	}
-	g.metricsCache[size] = m
-
-	return m
 }
 
 type singleFontmap struct {
