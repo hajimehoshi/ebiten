@@ -15,8 +15,6 @@
 package text
 
 import (
-	"strings"
-
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
@@ -66,7 +64,7 @@ type LayoutOptions struct {
 // Draw draws a given text on a given destination image dst.
 // face is the font for text rendering.
 //
-// The '\n' newline character puts the following text on the next line.
+// New line characters like '\n' put the following text on the next line.
 // The next line starts at the position shifted by LayoutOptions.LineSpacing.
 // By default, LayoutOptions.LineSpacing is 0, so you need to specify LineSpacing explicitly if you want to put multiple lines.
 //
@@ -171,18 +169,11 @@ func forEachLine(text string, face Face, options *LayoutOptions, f func(text str
 	var advances []float64
 	var longestAdvance float64
 	var lineCount int
-	for t := text; ; {
+	for line := range lines(text) {
 		lineCount++
-		line, rest, found := strings.Cut(t, "\n")
-		a := face.advance(line)
+		a := face.advance(trimTailingLineBreak(line))
 		advances = append(advances, a)
-		if longestAdvance < a {
-			longestAdvance = a
-		}
-		if !found {
-			break
-		}
-		t = rest
+		longestAdvance = max(longestAdvance, a)
 	}
 
 	d := face.direction()
@@ -237,9 +228,7 @@ func forEachLine(text string, face Face, options *LayoutOptions, f func(text str
 	var indexOffset int
 	var originX, originY float64
 	var i int
-	for t := text; ; {
-		line, rest, found := strings.Cut(t, "\n")
-
+	for line := range lines(text) {
 		// Adjust the origin position based on the primary alignments.
 		switch d {
 		case DirectionLeftToRight, DirectionRightToLeft:
@@ -262,12 +251,9 @@ func forEachLine(text string, face Face, options *LayoutOptions, f func(text str
 			}
 		}
 
+		line = trimTailingLineBreak(line)
 		f(line, indexOffset, originX+offsetX, originY+offsetY)
 
-		if !found {
-			break
-		}
-		t = rest
 		indexOffset += len(line) + 1
 		i++
 

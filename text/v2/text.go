@@ -18,12 +18,15 @@
 package text
 
 import (
+	"iter"
 	"strings"
+	"unicode/utf8"
 
 	"golang.org/x/image/math/fixed"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/vector"
+	"github.com/rivo/uniseg"
 )
 
 // Face is an interface representing a font face.
@@ -217,17 +220,9 @@ func Measure(text string, face Face, lineSpacingInPixels float64) (width, height
 
 	var primary float64
 	var lineCount int
-	for t := text; ; {
+	for line := range lines(text) {
+		primary = max(primary, face.advance(trimTailingLineBreak(line)))
 		lineCount++
-		line, rest, found := strings.Cut(t, "\n")
-		a := face.advance(line)
-		if primary < a {
-			primary = a
-		}
-		if !found {
-			break
-		}
-		t = rest
 	}
 
 	m := face.Metrics()
@@ -276,4 +271,42 @@ func CacheGlyphs(text string, face Face) {
 			y += 1.0 / float64(c)
 		}
 	}
+}
+
+func lines(str string) iter.Seq[string] {
+	return func(yield func(s string) bool) {
+		var line string
+		state := -1
+		for len(str) > 0 {
+			segment, nextStr, mustBreak, nextState := uniseg.FirstLineSegmentInString(str, state)
+			line += segment
+			if mustBreak {
+				if !yield(line) {
+					return
+				}
+				line = ""
+			}
+			state = nextState
+			str = nextStr
+		}
+		if len(line) > 0 {
+			if !yield(line) {
+				return
+			}
+		}
+	}
+}
+
+func trimTailingLineBreak(str string) string {
+	if !uniseg.HasTrailingLineBreakInString(str) {
+		return str
+	}
+
+	// https://en.wikipedia.org/wiki/Newline#Unicode
+	if strings.HasSuffix(str, "\r\n") {
+		return str[:len(str)-2]
+	}
+
+	_, s := utf8.DecodeLastRuneInString(str)
+	return str[:len(str)-s]
 }
