@@ -114,6 +114,8 @@ func NewGoTextFaceSource(source io.Reader) (*GoTextFaceSource, error) {
 	}
 	s.addr = s
 	s.metadata = metadataFromLoader(l)
+	// 4 is an arbitrary number, which should not cause troubles.
+	s.shaper.SetFontCacheSize(4)
 
 	return s, nil
 }
@@ -141,6 +143,8 @@ func NewGoTextFaceSourcesFromCollection(source io.Reader) ([]*GoTextFaceSource, 
 		}
 		s.addr = s
 		s.metadata = metadataFromLoader(l)
+		// 4 is an arbitrary number, which should not cause troubles.
+		s.shaper.SetFontCacheSize(4)
 		sources[i] = s
 	}
 	return sources, nil
