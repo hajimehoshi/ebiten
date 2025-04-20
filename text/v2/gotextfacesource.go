@@ -98,6 +98,8 @@ func newGoTextFaceSource(face *font.Face) *GoTextFaceSource {
 	s.addr = s
 	s.metadata = metadataFromFace(face)
 	s.outputCache = newCache[goTextOutputCacheKey, goTextOutputCacheValue](512)
+	// 4 is an arbitrary number, which should not cause troubles.
+	s.shaper.SetFontCacheSize(4)
 	return s
 }
 
