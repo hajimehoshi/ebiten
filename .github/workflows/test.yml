@@ -182,7 +182,7 @@ jobs:
           go install ./cmd/ebitenmobile
 
       - name: ebitenmobile bind (Android)
-        if: !startsWith(matrix.go, '1.22.')
+        if: ${{ !startsWith(matrix.go, '1.22.') }}
         run: |
           cd /tmp/go-inovation
           ebitenmobile bind -target android -androidapi 23 -javapkg com.hajimehoshi.goinovation -o inovation.aar -v github.com/hajimehoshi/go-inovation/mobile
