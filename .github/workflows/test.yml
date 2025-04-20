@@ -48,7 +48,7 @@ jobs:
       - name: Install wasmbrowsertest
         if: ${{ !startsWith(matrix.go, '1.22.') }}
         run: |
-          wasmbrowsertest_version=06679196c7e76f227e71456cdc16fccd6cc33601
+          wasmbrowsertest_version=5e0f0b9a6cc225f690ec1635d24c8ab624b73f9b
           go install github.com/agnivade/wasmbrowsertest@${wasmbrowsertest_version}
           mv $(go env GOPATH)/bin/wasmbrowsertest${{ runner.os == 'Windows' && '.exe' || '' }} $(go env GOPATH)/bin/go_js_wasm_exec${{ runner.os == 'Windows' && '.exe' || '' }}
           go install github.com/agnivade/wasmbrowsertest/cmd/cleanenv@${wasmbrowsertest_version}
