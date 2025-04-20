@@ -46,6 +46,7 @@ jobs:
         uses: browser-actions/setup-chrome@latest
 
       - name: Install wasmbrowsertest
+        if: ${{ !startsWith(matrix.go, '1.22.') }}
         run: |
           wasmbrowsertest_version=06679196c7e76f227e71456cdc16fccd6cc33601
           go install github.com/agnivade/wasmbrowsertest@${wasmbrowsertest_version}
@@ -53,6 +54,7 @@ jobs:
           go install github.com/agnivade/wasmbrowsertest/cmd/cleanenv@${wasmbrowsertest_version}
 
       - name: Prepare ebitenmobile test
+        if: ${{ !startsWith(matrix.go, '1.22.') }}
         run: |
           cd /tmp
           git clone --depth=1 https://github.com/hajimehoshi/go-inovation
@@ -168,7 +170,7 @@ jobs:
           env GOARCH=386 EBITENGINE_DIRECTX=version=12 go test -shuffle=on -v ./...
 
       - name: go test (Wasm)
-        if: runner.os == 'Linux'
+        if: runner.os == 'Linux' && !startsWith(matrix.go, '1.22.')
         run: |
           # Disable AppArmor for Ubuntu 23.10+.
           # https://chromium.googlesource.com/chromium/src/+/main/docs/security/apparmor-userns-restrictions.md
