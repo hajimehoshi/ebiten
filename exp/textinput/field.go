@@ -124,6 +124,11 @@ func (f *Field) HandleInput(x, y int) (handled bool, err error) {
 					f.state = State{}
 					break readchar
 				}
+				if state.Committed && state.Text == "\x7f" {
+					// DEL should not modify the text (#3212).
+					f.state = State{}
+					continue
+				}
 				handled = true
 				if state.Committed {
 					f.text = f.text[:f.selectionStartInBytes] + state.Text + f.text[f.selectionEndInBytes:]
