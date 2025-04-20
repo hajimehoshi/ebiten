@@ -43,3 +43,13 @@ func Lines(str string) iter.Seq[string] {
 func TrimTailingLineBreak(str string) string {
 	return trimTailingLineBreak(str)
 }
+
+type RuneToBoolMap = runeToBoolMap
+
+func (rtb *RuneToBoolMap) Set(rune rune, value bool) {
+	rtb.set(rune, value)
+}
+
+func (rtb *RuneToBoolMap) Get(rune rune) (bool, bool) {
+	return rtb.get(rune)
+}

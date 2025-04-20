@@ -20,6 +20,7 @@ import (
 	"image"
 	"image/color"
 	"math"
+	"math/rand/v2"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -570,5 +571,24 @@ func TestTrimTailingLineBreak(t *testing.T) {
 				t.Errorf("got: %q, want: %q", got, want)
 			}
 		})
+	}
+}
+
+func TestRuneToBoolMap(t *testing.T) {
+	var rtb text.RuneToBoolMap
+	m := map[rune]bool{}
+	for range 0x100000 {
+		r := rune(rand.IntN(0x10000))
+		gotVal, gotOK := rtb.Get(r)
+		wantVal, wantOK := m[r]
+		if gotVal != wantVal || gotOK != wantOK {
+			t.Fatalf("rune: %c, got: %v, %v; want: %v, %v", r, gotVal, gotOK, wantVal, wantOK)
+		}
+		v := rand.IntN(2)
+		m[r] = v != 0
+		rtb.Set(r, v != 0)
+		if gotVal, gotOK := rtb.Get(r); gotVal != (v != 0) || !gotOK {
+			t.Fatalf("rune: %c, got: %v, %v; want: %v, %v", r, gotVal, gotOK, v != 0, true)
+		}
 	}
 }

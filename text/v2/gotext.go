@@ -282,8 +282,7 @@ func (g *GoTextFace) advance(text string) float64 {
 
 // hasGlyph implements Face.
 func (g *GoTextFace) hasGlyph(r rune) bool {
-	_, ok := g.Source.f.Cmap.Lookup(r)
-	return ok
+	return g.Source.hasGlyph(r)
 }
 
 // appendGlyphsForLine implements Face.

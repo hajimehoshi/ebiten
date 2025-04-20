@@ -58,6 +58,35 @@ type goTextGlyphImageCacheKey struct {
 	variations string
 }
 
+// runeToBoolMap is a map from rune to bool with performance optimizations.
+type runeToBoolMap struct {
+	m []uint64
+}
+
+func (r *runeToBoolMap) get(rune rune) (value bool, ok bool) {
+	index := rune / 32
+	if len(r.m) <= int(index) {
+		return false, false
+	}
+	shift := 2 * (rune % 32)
+	v := r.m[index] >> shift
+	return v&0b10 != 0, v&0b01 != 0
+}
+
+func (r *runeToBoolMap) set(rune rune, value bool) {
+	index := rune / 32
+	if len(r.m) <= int(index) {
+		r.m = slices.Grow(r.m, int(index)+1)[:index+1]
+	}
+	shift := 2 * (rune % 32)
+	if value {
+		r.m[index] |= 0b11 << shift
+	} else {
+		r.m[index] |= 0b01 << shift
+		r.m[index] &^= 0b10 << shift
+	}
+}
+
 // GoTextFaceSource is a source of a GoTextFace. This can be shared by multiple GoTextFace objects.
 type GoTextFaceSource struct {
 	f        *font.Face
@@ -65,6 +94,7 @@ type GoTextFaceSource struct {
 
 	outputCache     *cache[goTextOutputCacheKey, goTextOutputCacheValue]
 	glyphImageCache map[float64]*cache[goTextGlyphImageCacheKey, *ebiten.Image]
+	hasGlyphCache   runeToBoolMap
 
 	unscaledMetrics Metrics
 
@@ -302,6 +332,15 @@ func (g *GoTextFaceSource) metrics(size float64) Metrics {
 		XHeight:   um.XHeight * scale,
 		CapHeight: um.CapHeight * scale,
 	}
+}
+
+func (g *GoTextFaceSource) hasGlyph(r rune) bool {
+	if has, ok := g.hasGlyphCache.get(r); ok {
+		return has
+	}
+	_, ok := g.f.Cmap.Lookup(r)
+	g.hasGlyphCache.set(r, ok)
+	return ok
 }
 
 type singleFontmap struct {
