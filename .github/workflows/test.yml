@@ -7,7 +7,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        go: ['1.22.x', '1.23.x']
+        go: ['1.22.x', '1.23.x', '1.24.x']
     name: Test with Go ${{ matrix.go }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     env:
@@ -182,12 +182,13 @@ jobs:
           go install ./cmd/ebitenmobile
 
       - name: ebitenmobile bind (Android)
+        if: !startsWith(matrix.go, '1.22.')
         run: |
           cd /tmp/go-inovation
           ebitenmobile bind -target android -androidapi 23 -javapkg com.hajimehoshi.goinovation -o inovation.aar -v github.com/hajimehoshi/go-inovation/mobile
 
       - name: ebitenmobile bind (iOS)
-        if: runner.os == 'macOS'
+        if: runner.os == 'macOS' && !startsWith(matrix.go, '1.22.')
         run: |
           cd /tmp/go-inovation
           ebitenmobile bind -target ios -o Inovation.xcframework -v github.com/hajimehoshi/go-inovation/mobile
