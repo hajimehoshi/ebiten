@@ -232,8 +232,8 @@ func (g *GoTextFace) outputCacheKey(text string) goTextOutputCacheKey {
 		text:       text,
 		direction:  g.Direction,
 		size:       g.Size,
-		language:   g.Language.String(),
-		script:     g.Script.String(),
+		language:   g.Language,
+		script:     g.Script,
 		variations: g.ensureVariationsString(),
 		features:   g.ensureFeaturesString(),
 	}

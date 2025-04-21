@@ -24,6 +24,7 @@ import (
 	"github.com/go-text/typesetting/language"
 	"github.com/go-text/typesetting/shaping"
 	"golang.org/x/image/math/fixed"
+	xlanguage "golang.org/x/text/language"
 
 	"github.com/hajimehoshi/ebiten/v2"
 )
@@ -32,8 +33,8 @@ type goTextOutputCacheKey struct {
 	text       string
 	direction  Direction
 	size       float64
-	language   string
-	script     string
+	language   xlanguage.Tag
+	script     xlanguage.Script
 	variations string
 	features   string
 }
