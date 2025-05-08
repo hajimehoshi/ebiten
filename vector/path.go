@@ -404,28 +404,33 @@ func (p *Path) ArcTo(x1, y1, x2, y2, radius float32) {
 	p.Arc(cx, cy, radius, a0, a1, dir)
 }
 
+func euclideanMod(a, b float32) float32 {
+	return a - b*float32(math.Floor(float64(a)/float64(b)))
+}
+
 // Arc adds an arc to the path.
 // (x, y) is the center of the arc.
 func (p *Path) Arc(x, y, radius, startAngle, endAngle float32, dir Direction) {
+	origStartAngle := startAngle
+	origEndAngle := endAngle
+
 	// Adjust the angles.
 	var da float64
 	if dir == Clockwise {
-		for startAngle > endAngle {
-			endAngle += 2 * math.Pi
-		}
+		endAngle = startAngle + float32(euclideanMod(endAngle-startAngle, 2*math.Pi))
 		da = float64(endAngle - startAngle)
 	} else {
-		for startAngle < endAngle {
-			startAngle += 2 * math.Pi
-		}
+		startAngle = endAngle + float32(euclideanMod(startAngle-endAngle, 2*math.Pi))
 		da = float64(startAngle - endAngle)
 	}
 
-	if da >= 2*math.Pi {
+	if da == 0 && origStartAngle != origEndAngle {
 		da = 2 * math.Pi
 		if dir == Clockwise {
+			startAngle = 0
 			endAngle = startAngle + 2*math.Pi
 		} else {
+			endAngle = 0
 			startAngle = endAngle + 2*math.Pi
 		}
 	}
