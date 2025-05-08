@@ -427,10 +427,8 @@ func (p *Path) Arc(x, y, radius, startAngle, endAngle float32, dir Direction) {
 	if da == 0 && origStartAngle != origEndAngle {
 		da = 2 * math.Pi
 		if dir == Clockwise {
-			startAngle = 0
 			endAngle = startAngle + 2*math.Pi
 		} else {
-			endAngle = 0
 			startAngle = endAngle + 2*math.Pi
 		}
 	}
