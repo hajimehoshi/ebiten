@@ -28,7 +28,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hajimehoshi/bitmapfont/v3"
+	"github.com/hajimehoshi/bitmapfont/v4"
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/opentype"
 	"golang.org/x/image/math/fixed"

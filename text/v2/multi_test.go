@@ -18,7 +18,7 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/hajimehoshi/bitmapfont/v3"
+	"github.com/hajimehoshi/bitmapfont/v4"
 	"golang.org/x/image/font/gofont/goregular"
 
 	"github.com/hajimehoshi/ebiten/v2"
