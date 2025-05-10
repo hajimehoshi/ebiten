@@ -34,14 +34,10 @@ type textInput struct {
 var theTextInput textInput
 
 func (t *textInput) Start(x, y int) (<-chan State, func()) {
-	var session *session
 	ui.Get().RunOnMainThread(func() {
-		t.end()
-		start(x, y)
-		session = newSession()
-		t.session = session
+		t.start(x, y)
 	})
-	return session.ch, session.end
+	return t.session.ch, t.session.end
 }
 
 //export ebitengine_textinput_update
@@ -61,20 +57,21 @@ func (t *textInput) update(text string, start, end int, committed bool) {
 		})
 	}
 	if committed {
-		t.end()
+		t.endIfNeeded()
 	}
 }
 
 //export ebitengine_textinput_end
 func ebitengine_textinput_end() {
-	theTextInput.end()
+	theTextInput.endIfNeeded()
 }
 
-func (t *textInput) end() {
-	if t.session != nil {
-		t.session.end()
-		t.session = nil
+func (t *textInput) endIfNeeded() {
+	if t.session == nil {
+		return
 	}
+	t.session.end()
+	t.session = nil
 }
 
 var (
@@ -116,17 +113,22 @@ type nsRect struct {
 	size   nsSize
 }
 
-func start(x, y int) {
-	t := getTextInputClient()
+func (t *textInput) start(x, y int) {
+	t.endIfNeeded()
+
+	tc := getTextInputClient()
 	window := idNSApplication.Send(selSharedApplication).Send(selMainWindow)
 	contentView := window.Send(selContentView)
-	contentView.Send(selAddSubview, t)
-	window.Send(selMakeFirstResponder, t)
+	contentView.Send(selAddSubview, tc)
+	window.Send(selMakeFirstResponder, tc)
 
 	r := objc.Send[nsRect](contentView, selFrame)
 	y = int(r.size.height) - y - 4
-	t.Send(selSetFrame, nsRect{
+	tc.Send(selSetFrame, nsRect{
 		origin: nsPoint{float64(x), float64(y)},
 		size:   nsSize{1, 1},
 	})
+
+	session := newSession()
+	t.session = session
 }
