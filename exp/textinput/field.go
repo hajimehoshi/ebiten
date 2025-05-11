@@ -190,8 +190,9 @@ func (f *Field) cleanUp() {
 				f.selectionStartInBytes += len(state.Text)
 				f.selectionEndInBytes = f.selectionStartInBytes
 				f.state = textInputState{}
+			} else {
+				f.state = state
 			}
-			f.state = state
 		default:
 			break
 		}
