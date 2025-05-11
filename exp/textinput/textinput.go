@@ -24,10 +24,10 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
-// State represents the current state of text inputting.
+// textInputState represents the current state of text inputting.
 //
-// State is the low-level API. For most use cases, Field is easier to use.
-type State struct {
+// textInputState is the low-level API. For most use cases, Field is easier to use.
+type textInputState struct {
 	// Text represents the current inputting text.
 	Text string
 
@@ -44,13 +44,13 @@ type State struct {
 	Error error
 }
 
-// Start starts text inputting.
-// Start returns a channel to send the state repeatedly, and a function to end the text inputting.
+// start starts text inputting.
+// start returns a channel to send the state repeatedly, and a function to end the text inputting.
 //
-// Start is the low-level API. For most use cases, Field is easier to use.
+// start is the low-level API. For most use cases, Field is easier to use.
 //
-// Start returns nil and nil if the current environment doesn't support this package.
-func Start(x, y int) (states <-chan State, close func()) {
+// start returns nil and nil if the current environment doesn't support this package.
+func start(x, y int) (states <-chan textInputState, close func()) {
 	cx, cy := ui.Get().LogicalPositionToClientPositionInNativePixels(float64(x), float64(y))
 	return theTextInput.Start(int(cx), int(cy))
 }
@@ -60,13 +60,13 @@ func convertUTF16CountToByteCount(text string, c int) int {
 }
 
 type session struct {
-	ch   chan State
+	ch   chan textInputState
 	done chan struct{}
 }
 
 func newSession() *session {
 	return &session{
-		ch:   make(chan State, 1),
+		ch:   make(chan textInputState, 1),
 		done: make(chan struct{}),
 	}
 }
@@ -80,7 +80,7 @@ func (s *session) end() {
 	close(s.done)
 }
 
-func (s *session) trySend(state State) {
+func (s *session) trySend(state textInputState) {
 	for {
 		select {
 		case s.ch <- state:

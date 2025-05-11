@@ -156,7 +156,7 @@ body.addEventListener("keyup", handler);`)
 	// TODO: What about other events like wheel?
 }
 
-func (t *textInput) Start(x, y int) (<-chan State, func()) {
+func (t *textInput) Start(x, y int) (<-chan textInputState, func()) {
 	if !t.textareaElement.Truthy() {
 		return nil, nil
 	}
@@ -220,7 +220,7 @@ func (t *textInput) trySend(committed bool) {
 	startInBytes := convertUTF16CountToByteCount(textareaValue, start)
 	endInBytes := convertUTF16CountToByteCount(textareaValue, end)
 
-	t.session.trySend(State{
+	t.session.trySend(textInputState{
 		Text:                             textareaValue,
 		CompositionSelectionStartInBytes: startInBytes,
 		CompositionSelectionEndInBytes:   endInBytes,

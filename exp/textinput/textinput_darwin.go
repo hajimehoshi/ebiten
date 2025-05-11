@@ -33,7 +33,7 @@ type textInput struct {
 
 var theTextInput textInput
 
-func (t *textInput) Start(x, y int) (<-chan State, func()) {
+func (t *textInput) Start(x, y int) (<-chan textInputState, func()) {
 	ui.Get().RunOnMainThread(func() {
 		t.start(x, y)
 	})
@@ -49,7 +49,7 @@ func (t *textInput) update(text string, start, end int, committed bool) {
 	if t.session != nil {
 		startInBytes := convertUTF16CountToByteCount(text, start)
 		endInBytes := convertUTF16CountToByteCount(text, end)
-		t.session.trySend(State{
+		t.session.trySend(textInputState{
 			Text:                             text,
 			CompositionSelectionStartInBytes: startInBytes,
 			CompositionSelectionEndInBytes:   endInBytes,

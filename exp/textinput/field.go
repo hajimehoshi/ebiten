@@ -75,9 +75,9 @@ type Field struct {
 	selectionStartInBytes int
 	selectionEndInBytes   int
 
-	ch    <-chan State
+	ch    <-chan textInputState
 	end   func()
-	state State
+	state textInputState
 	err   error
 }
 
@@ -103,7 +103,7 @@ func (f *Field) HandleInput(x, y int) (handled bool, err error) {
 		if f.ch == nil {
 			// TODO: On iOS Safari, Start doesn't work as expected (#2898).
 			// Handle a click event and focus the textarea there.
-			f.ch, f.end = Start(x, y)
+			f.ch, f.end = start(x, y)
 			// Start returns nil for non-supported envrionments, or when unable to start text inputting for some reasons.
 			if f.ch == nil {
 				return handled, nil
@@ -121,12 +121,12 @@ func (f *Field) HandleInput(x, y int) (handled bool, err error) {
 				if !ok {
 					f.ch = nil
 					f.end = nil
-					f.state = State{}
+					f.state = textInputState{}
 					break readchar
 				}
 				if state.Committed && state.Text == "\x7f" {
 					// DEL should not modify the text (#3212).
-					f.state = State{}
+					f.state = textInputState{}
 					continue
 				}
 				handled = true
@@ -134,7 +134,7 @@ func (f *Field) HandleInput(x, y int) (handled bool, err error) {
 					f.text = f.text[:f.selectionStartInBytes] + state.Text + f.text[f.selectionEndInBytes:]
 					f.selectionStartInBytes += len(state.Text)
 					f.selectionEndInBytes = f.selectionStartInBytes
-					f.state = State{}
+					f.state = textInputState{}
 					continue
 				}
 				f.state = state
@@ -189,7 +189,7 @@ func (f *Field) cleanUp() {
 				f.text = f.text[:f.selectionStartInBytes] + state.Text + f.text[f.selectionEndInBytes:]
 				f.selectionStartInBytes += len(state.Text)
 				f.selectionEndInBytes = f.selectionStartInBytes
-				f.state = State{}
+				f.state = textInputState{}
 			}
 			f.state = state
 		default:
@@ -201,7 +201,7 @@ func (f *Field) cleanUp() {
 		f.end()
 		f.ch = nil
 		f.end = nil
-		f.state = State{}
+		f.state = textInputState{}
 	}
 }
 

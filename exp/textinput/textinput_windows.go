@@ -41,7 +41,7 @@ type textInput struct {
 
 var theTextInput textInput
 
-func (t *textInput) Start(x, y int) (<-chan State, func()) {
+func (t *textInput) Start(x, y int) (<-chan textInputState, func()) {
 	if microsoftgdk.IsXbox() {
 		return nil, nil
 	}
@@ -55,7 +55,7 @@ func (t *textInput) Start(x, y int) (<-chan State, func()) {
 		t.session = session
 	})
 	if err != nil {
-		session.ch <- State{Error: err}
+		session.ch <- textInputState{Error: err}
 		session.end()
 	}
 	return session.ch, func() {
@@ -144,13 +144,13 @@ func (t *textInput) wndProc(hWnd uintptr, uMsg uint32, wParam, lParam uintptr) u
 		if lParam&(_GCS_RESULTSTR|_GCS_COMPSTR) != 0 {
 			if lParam&_GCS_RESULTSTR != 0 {
 				if err := t.commit(); err != nil {
-					t.session.ch <- State{Error: err}
+					t.session.ch <- textInputState{Error: err}
 					t.end()
 				}
 			}
 			if lParam&_GCS_COMPSTR != 0 {
 				if err := t.update(); err != nil {
-					t.session.ch <- State{Error: err}
+					t.session.ch <- textInputState{Error: err}
 					t.end()
 				}
 			}
@@ -194,7 +194,7 @@ func (t *textInput) wndProc(hWnd uintptr, uMsg uint32, wParam, lParam uintptr) u
 // send must be called from the main thread.
 func (t *textInput) send(text string, startInBytes, endInBytes int, committed bool) {
 	if t.session != nil {
-		t.session.trySend(State{
+		t.session.trySend(textInputState{
 			Text:                             text,
 			CompositionSelectionStartInBytes: startInBytes,
 			CompositionSelectionEndInBytes:   endInBytes,
