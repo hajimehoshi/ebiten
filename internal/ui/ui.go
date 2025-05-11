@@ -179,6 +179,7 @@ type RunOptions struct {
 	SingleThread             bool
 	DisableHiDPI             bool
 	ColorSpace               graphicsdriver.ColorSpace
+	ApplePressAndHoldEnabled bool
 	X11ClassName             string
 	X11InstanceName          string
 	StrictContextRestoration bool

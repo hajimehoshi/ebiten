@@ -34,6 +34,10 @@ func (u *UserInterface) initializePlatform() error {
 	return nil
 }
 
+func (u *UserInterface) setApplePressAndHoldEnabled(enabled bool) {
+	// Do nothings.
+}
+
 type graphicsDriverCreatorImpl struct {
 	transparent bool
 	colorSpace  graphicsdriver.ColorSpace

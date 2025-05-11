@@ -325,7 +325,9 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 func main() {
 	ebiten.SetWindowSize(screenWidth, screenHeight)
 	ebiten.SetWindowTitle("Text Input (Ebitengine Demo)")
-	if err := ebiten.RunGame(&Game{}); err != nil {
+	op := &ebiten.RunGameOptions{}
+	op.ApplePressAndHoldEnabled = true
+	if err := ebiten.RunGameWithOptions(&Game{}, op); err != nil {
 		log.Fatal(err)
 	}
 }

@@ -164,6 +164,19 @@ func (u *UserInterface) initializePlatform() error {
 	return nil
 }
 
+func (u *UserInterface) setApplePressAndHoldEnabled(enabled bool) {
+	var val int
+	if enabled {
+		val = 1
+	}
+	defaults := objc.ID(class_NSMutableDictionary).Send(sel_alloc).Send(sel_init)
+	defaults.Send(sel_setObjectForKey,
+		objc.ID(class_NSNumber).Send(sel_alloc).Send(sel_initWithBool, val),
+		cocoa.NSString_alloc().InitWithUTF8String("ApplePressAndHoldEnabled"))
+	ud := objc.ID(class_NSUserDefaults).Send(sel_standardUserDefaults)
+	ud.Send(sel_registerDefaults, defaults)
+}
+
 type graphicsDriverCreatorImpl struct {
 	transparent bool
 	colorSpace  graphicsdriver.ColorSpace
@@ -223,8 +236,11 @@ func (u *UserInterface) adjustWindowPosition(x, y int, monitor *Monitor) (int, i
 }
 
 var (
-	class_NSCursor = objc.GetClass("NSCursor")
-	class_NSEvent  = objc.GetClass("NSEvent")
+	class_NSCursor            = objc.GetClass("NSCursor")
+	class_NSEvent             = objc.GetClass("NSEvent")
+	class_NSMutableDictionary = objc.GetClass("NSMutableDictionary")
+	class_NSNumber            = objc.GetClass("NSNumber")
+	class_NSUserDefaults      = objc.GetClass("NSUserDefaults")
 )
 
 var (
@@ -232,15 +248,19 @@ var (
 	sel_collectionBehavior            = objc.RegisterName("collectionBehavior")
 	sel_delegate                      = objc.RegisterName("delegate")
 	sel_init                          = objc.RegisterName("init")
+	sel_initWithBool                  = objc.RegisterName("initWithBool:")
 	sel_initWithOrigDelegate          = objc.RegisterName("initWithOrigDelegate:")
 	sel_mouseLocation                 = objc.RegisterName("mouseLocation")
 	sel_origDelegate                  = objc.RegisterName("origDelegate")
 	sel_origResizable                 = objc.RegisterName("isOrigResizable")
+	sel_registerDefaults              = objc.RegisterName("registerDefaults:")
 	sel_setCollectionBehavior         = objc.RegisterName("setCollectionBehavior:")
 	sel_setDelegate                   = objc.RegisterName("setDelegate:")
 	sel_setDocumentEdited             = objc.RegisterName("setDocumentEdited:")
+	sel_setObjectForKey               = objc.RegisterName("setObject:forKey:")
 	sel_setOrigDelegate               = objc.RegisterName("setOrigDelegate:")
 	sel_setOrigResizable              = objc.RegisterName("setOrigResizable:")
+	sel_standardUserDefaults          = objc.RegisterName("standardUserDefaults")
 	sel_toggleFullScreen              = objc.RegisterName("toggleFullScreen:")
 	sel_windowDidBecomeKey            = objc.RegisterName("windowDidBecomeKey:")
 	sel_windowDidEnterFullScreen      = objc.RegisterName("windowDidEnterFullScreen:")

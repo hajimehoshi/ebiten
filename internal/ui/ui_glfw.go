@@ -1053,6 +1053,8 @@ event:
 }
 
 func (u *UserInterface) initOnMainThread(options *RunOptions) error {
+	u.setApplePressAndHoldEnabled(options.ApplePressAndHoldEnabled)
+
 	if err := glfw.WindowHint(glfw.AutoIconify, glfw.False); err != nil {
 		return err
 	}

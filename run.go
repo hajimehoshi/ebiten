@@ -294,6 +294,17 @@ type RunGameOptions struct {
 	// The default (zero) value is ColorSpaceDefault, which means that color space depends on the environment.
 	ColorSpace ColorSpace
 
+	// ApplePressAndHoldEnabled indicates whether the press-and-hold feature is enabled or not.
+	// If true, pressing and holding a key might show a menu to select a character glyph variant.
+	// This is useful for GUI applications, but some APIs like [AppendInputChars]'s behavior is changed:
+	// for example, pressing and holding Q key would not repeat 'q' by [AppendInputChars].
+	// If false, pressing and holding a key repeats the key event.
+	//
+	// ApplePressAndHoldEnabled is available only on macOS.
+	//
+	// The default (zero) value is false, which means that the press-and-hold feature is disabled.
+	ApplePressAndHoldEnabled bool
+
 	// X11DisplayName is a class name in the ICCCM WM_CLASS window property.
 	X11ClassName string
 
@@ -723,15 +734,16 @@ func toUIRunOptions(options *RunGameOptions) *ui.RunOptions {
 	// The default (zero) value is false.
 
 	return &ui.RunOptions{
-		GraphicsLibrary:   ui.GraphicsLibrary(options.GraphicsLibrary),
-		InitUnfocused:     options.InitUnfocused,
-		ScreenTransparent: options.ScreenTransparent,
-		SkipTaskbar:       options.SkipTaskbar,
-		SingleThread:      options.SingleThread,
-		DisableHiDPI:      options.DisableHiDPI,
-		ColorSpace:        graphicsdriver.ColorSpace(options.ColorSpace),
-		X11ClassName:      options.X11ClassName,
-		X11InstanceName:   options.X11InstanceName,
+		GraphicsLibrary:          ui.GraphicsLibrary(options.GraphicsLibrary),
+		InitUnfocused:            options.InitUnfocused,
+		ScreenTransparent:        options.ScreenTransparent,
+		SkipTaskbar:              options.SkipTaskbar,
+		SingleThread:             options.SingleThread,
+		DisableHiDPI:             options.DisableHiDPI,
+		ColorSpace:               graphicsdriver.ColorSpace(options.ColorSpace),
+		ApplePressAndHoldEnabled: options.ApplePressAndHoldEnabled,
+		X11ClassName:             options.X11ClassName,
+		X11InstanceName:          options.X11InstanceName,
 	}
 }
 

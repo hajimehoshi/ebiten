@@ -481,10 +481,6 @@ int _glfwPlatformInit(void)
     if (_glfw.hints.init.ns.chdir)
         changeToResourcesDirectory();
 
-    // Press and Hold prevents some keys from emitting repeated characters
-    NSDictionary* defaults = @{@"ApplePressAndHoldEnabled":@NO};
-    [[NSUserDefaults standardUserDefaults] registerDefaults:defaults];
-
     [[NSNotificationCenter defaultCenter]
         addObserver:_glfw.ns.helper
            selector:@selector(selectedKeyboardInputSourceChanged:)
