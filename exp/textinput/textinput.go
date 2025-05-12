@@ -59,6 +59,10 @@ func convertUTF16CountToByteCount(text string, c int) int {
 	return len(string(utf16.Decode(utf16.Encode([]rune(text))[:c])))
 }
 
+func convertByteCountToUTF16Count(text string, c int) int {
+	return len(utf16.Encode([]rune(text[:c])))
+}
+
 type session struct {
 	ch   chan textInputState
 	done chan struct{}

@@ -63,6 +63,16 @@ func isFieldFocused(f *Field) bool {
 	return theFocusedField == f
 }
 
+func currentState() (string, int, int, textInputState, bool) {
+	theFocusedFieldM.Lock()
+	defer theFocusedFieldM.Unlock()
+	if theFocusedField == nil {
+		return "", 0, 0, textInputState{}, false
+	}
+	f := theFocusedField
+	return f.text, f.selectionStartInBytes, f.selectionEndInBytes, f.state, true
+}
+
 // Field is a region accepting text inputting with IME.
 //
 // Field is not focused by default. You have to call Focus when you start text inputting.

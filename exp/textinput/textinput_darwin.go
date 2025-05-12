@@ -28,8 +28,67 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
+//export ebitengine_textinput_hasMarkedText
+func ebitengine_textinput_hasMarkedText() C.int64_t {
+	_, _, _, s, ok := currentState()
+	if !ok {
+		return 0
+	}
+	if s.CompositionSelectionEndInBytes-s.CompositionSelectionStartInBytes > 0 {
+		return 1
+	}
+	return 0
+}
+
+//export ebitengine_textinput_markedRange
+func ebitengine_textinput_markedRange(start, length *C.int64_t) {
+	*start = -1
+	*length = 0
+
+	text, startInBytes, _, state, ok := currentState()
+	if !ok {
+		return
+	}
+
+	if state.CompositionSelectionEndInBytes-state.CompositionSelectionStartInBytes == 0 {
+		return
+	}
+
+	startInUTF16 := convertByteCountToUTF16Count(text, startInBytes)
+	markedTextLenInUTF16 := convertByteCountToUTF16Count(state.Text, len(state.Text))
+	*start = C.int64_t(startInUTF16)
+	*length = C.int64_t(startInUTF16) + C.int64_t(markedTextLenInUTF16)
+}
+
+//export ebitengine_textinput_selectedRange
+func ebitengine_textinput_selectedRange(start, length *C.int64_t) {
+	*start = -1
+	*length = 0
+
+	text, startInBytes, endInBytes, _, ok := currentState()
+	if !ok {
+		return
+	}
+
+	startInUTF16 := convertByteCountToUTF16Count(text, startInBytes)
+	endInUTF16 := convertByteCountToUTF16Count(text, endInBytes)
+	*start = C.int64_t(startInUTF16)
+	*length = C.int64_t(endInUTF16 - startInUTF16)
+}
+
+//export ebitengine_textinput_unmarkText
+func ebitengine_textinput_unmarkText() {
+}
+
 //export ebitengine_textinput_setMarkedText
 func ebitengine_textinput_setMarkedText(text *C.char, selectionStart, selectionLen, replaceStart, replaceLen C.int64_t) {
+	_, _, _, _, ok := currentState()
+	if !ok {
+		return
+	}
+
+	// selectionStart's origin is the beginning of the inserted text.
+	// https://developer.apple.com/documentation/appkit/nstextinputclient/setmarkedtext(_:selectedrange:replacementrange:)?language=objc
 	t := C.GoString(text)
 	startInBytes := convertUTF16CountToByteCount(t, int(selectionStart))
 	endInBytes := convertUTF16CountToByteCount(t, int(selectionStart+selectionLen))

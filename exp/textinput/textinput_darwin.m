@@ -18,33 +18,37 @@
 
 #import <Cocoa/Cocoa.h>
 
+int ebitengine_textinput_hasMarkedText();
+void ebitengine_textinput_markedRange(int64_t* start, int64_t* length);
+void ebitengine_textinput_selectedRange(int64_t* start, int64_t* length);
+void ebitengine_textinput_unmarkText();
 void ebitengine_textinput_setMarkedText(const char* text, int64_t selectionStart, int64_t selectionLen, int64_t replaceStart, int64_t replaceLen);
 void ebitengine_textinput_insertText(const char* text, int64_t replaceStart, int64_t replaceLen);
 void ebitengine_textinput_end();
 
 @interface TextInputClient : NSView<NSTextInputClient>
 {
-  NSString* markedText_;
-  NSRange markedRange_;
-  NSRange selectedRange_;
 }
 @end
 
 @implementation TextInputClient
 
 - (BOOL)hasMarkedText {
-  // TODO: Implement this on the Go side.
-  return markedText_ != nil;
+  return ebitengine_textinput_hasMarkedText() != 0;
 }
 
 - (NSRange)markedRange {
-  // TODO: Implement this on the Go side.
-  return markedRange_;
+  int64_t start = 0;
+  int64_t length = 0;
+  ebitengine_textinput_markedRange(&start, &length);
+  return NSMakeRange(start, length);
 }
 
 - (NSRange)selectedRange {
-  // TODO: Implement this on the Go side.
-  return selectedRange_;
+  int64_t start = 0;
+  int64_t length = 0;
+  ebitengine_textinput_selectedRange(&start, &length);
+  return NSMakeRange(start, length);
 }
 
 - (void)setMarkedText:(id)string 
@@ -53,16 +57,11 @@ void ebitengine_textinput_end();
   if ([string isKindOfClass:[NSAttributedString class]]) {
     string = [string string];
   }
-  // The marked range includes the selected range.
-  markedText_ = string;
-  selectedRange_ = selectedRange;
-  markedRange_ = NSMakeRange(0, [string length]);
   ebitengine_textinput_setMarkedText([string UTF8String], selectedRange.location, selectedRange.length, replacementRange.location, replacementRange.length);
 }
 
 - (void)unmarkText {
-  // TODO: Implement this on the Go side.
-  markedText_ = nil;
+  ebitengine_textinput_unmarkText();
 }
 
 - (NSArray<NSAttributedStringKey> *)validAttributesForMarkedText {
