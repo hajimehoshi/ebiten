@@ -59,7 +59,7 @@ func ebitengine_textinput_markedRange(start, length *C.int64_t) {
 	startInUTF16 := convertByteCountToUTF16Count(text, startInBytes)
 	markedTextLenInUTF16 := convertByteCountToUTF16Count(state.Text, len(state.Text))
 	*start = C.int64_t(startInUTF16)
-	*length = C.int64_t(startInUTF16) + C.int64_t(markedTextLenInUTF16)
+	*length = C.int64_t(markedTextLenInUTF16)
 }
 
 //export ebitengine_textinput_selectedRange
