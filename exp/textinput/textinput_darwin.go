@@ -32,11 +32,11 @@ import (
 
 //export ebitengine_textinput_hasMarkedText
 func ebitengine_textinput_hasMarkedText() C.int64_t {
-	_, _, _, s, ok := currentState()
+	_, _, _, state, ok := currentState()
 	if !ok {
 		return 0
 	}
-	if s.CompositionSelectionEndInBytes-s.CompositionSelectionStartInBytes > 0 {
+	if len(state.Text) > 0 {
 		return 1
 	}
 	return 0
@@ -52,7 +52,7 @@ func ebitengine_textinput_markedRange(start, length *C.int64_t) {
 		return
 	}
 
-	if state.CompositionSelectionEndInBytes-state.CompositionSelectionStartInBytes == 0 {
+	if len(state.Text) == 0 {
 		return
 	}
 
