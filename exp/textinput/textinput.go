@@ -20,6 +20,7 @@ package textinput
 
 import (
 	"unicode/utf16"
+	"unicode/utf8"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
@@ -56,11 +57,31 @@ func start(x, y int) (states <-chan textInputState, close func()) {
 }
 
 func convertUTF16CountToByteCount(text string, c int) int {
-	return len(string(utf16.Decode(utf16.Encode([]rune(text))[:c])))
+	if c == 0 {
+		return 0
+	}
+	var utf16Len int
+	for idx, r := range text {
+		utf16Len += utf16.RuneLen(r)
+		if utf16Len >= c {
+			return idx + utf8.RuneLen(r)
+		}
+	}
+	return -1
 }
 
 func convertByteCountToUTF16Count(text string, c int) int {
-	return len(utf16.Encode([]rune(text[:c])))
+	if c == 0 {
+		return 0
+	}
+	var utf16Len int
+	for idx, r := range text {
+		utf16Len += utf16.RuneLen(r)
+		if idx+utf8.RuneLen(r) >= c {
+			return utf16Len
+		}
+	}
+	return -1
 }
 
 type session struct {
