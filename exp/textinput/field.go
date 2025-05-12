@@ -109,6 +109,8 @@ func (f *Field) HandleInput(x, y int) (handled bool, err error) {
 // HandleInputWithBounds updates the field state.
 // HandleInputWithBounds must be called every tick, i.e., every Update, when Field is focused.
 // HandleInputWithBounds takes a character bounds, which decides the position where an IME window is shown if needed.
+// The bounds width doesn't matter very much as long as it is greater than 0.
+// The bounds height should be the text height like a cursor height.
 //
 // HandleInputWithBounds returns whether the text inputting is handled or not.
 // If HandleInputWithBounds returns true, a Field user should not handle further input events.
