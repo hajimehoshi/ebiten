@@ -26,6 +26,20 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
+//export ebitengine_textinput_setMarkedText
+func ebitengine_textinput_setMarkedText(text *C.char, start, end C.int) {
+	t := C.GoString(text)
+	startInBytes := convertUTF16CountToByteCount(t, int(start))
+	endInBytes := convertUTF16CountToByteCount(t, int(end))
+	theTextInput.update(t, startInBytes, endInBytes, false)
+}
+
+//export ebitengine_textinput_insertText
+func ebitengine_textinput_insertText(text *C.char) {
+	t := C.GoString(text)
+	theTextInput.update(t, 0, len(t), true)
+}
+
 type textInput struct {
 	// session must be accessed from the main thread.
 	session *session
@@ -40,15 +54,8 @@ func (t *textInput) Start(x, y int) (<-chan textInputState, func()) {
 	return t.session.ch, t.session.end
 }
 
-//export ebitengine_textinput_update
-func ebitengine_textinput_update(text *C.char, start, end C.int, committed C.int) {
-	theTextInput.update(C.GoString(text), int(start), int(end), committed != 0)
-}
-
-func (t *textInput) update(text string, start, end int, committed bool) {
+func (t *textInput) update(text string, startInBytes, endInBytes int, committed bool) {
 	if t.session != nil {
-		startInBytes := convertUTF16CountToByteCount(text, start)
-		endInBytes := convertUTF16CountToByteCount(text, end)
 		t.session.trySend(textInputState{
 			Text:                             text,
 			CompositionSelectionStartInBytes: startInBytes,

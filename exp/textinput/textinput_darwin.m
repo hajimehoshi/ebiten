@@ -18,7 +18,8 @@
 
 #import <Cocoa/Cocoa.h>
 
-void ebitengine_textinput_update(const char* text, int start, int end, BOOL committed);
+void ebitengine_textinput_setMarkedText(const char* text, int start, int end);
+void ebitengine_textinput_insertText(const char* text);
 void ebitengine_textinput_end();
 
 @interface TextInputClient : NSView<NSTextInputClient>
@@ -32,14 +33,17 @@ void ebitengine_textinput_end();
 @implementation TextInputClient
 
 - (BOOL)hasMarkedText {
+  // TODO: Implement this on the Go side.
   return markedText_ != nil;
 }
 
 - (NSRange)markedRange {
+  // TODO: Implement this on the Go side.
   return markedRange_;
 }
 
 - (NSRange)selectedRange {
+  // TODO: Implement this on the Go side.
   return selectedRange_;
 }
 
@@ -49,13 +53,15 @@ void ebitengine_textinput_end();
   if ([string isKindOfClass:[NSAttributedString class]]) {
     string = [string string];
   }
+  // The marked range includes the selected range.
   markedText_ = string;
   selectedRange_ = selectedRange;
   markedRange_ = NSMakeRange(0, [string length]);
-  ebitengine_textinput_update([string UTF8String], selectedRange.location, selectedRange.location + selectedRange.length, NO);
+  ebitengine_textinput_setMarkedText([string UTF8String], selectedRange.location, selectedRange.location + selectedRange.length);
 }
 
 - (void)unmarkText {
+  // TODO: Implement this on the Go side.
   markedText_ = nil;
 }
 
@@ -76,7 +82,7 @@ void ebitengine_textinput_end();
   if ([string length] == 1 && [string characterAtIndex:0] < 0x20) {
     return;
   }
-  ebitengine_textinput_update([string UTF8String], 0, [string length], YES);
+  ebitengine_textinput_insertText([string UTF8String]);
 }
 
 - (NSUInteger)characterIndexForPoint:(NSPoint)point {
