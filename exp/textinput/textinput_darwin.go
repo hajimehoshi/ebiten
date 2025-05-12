@@ -207,6 +207,8 @@ func (t *textInput) start(bounds image.Rectangle) {
 	r := objc.Send[nsRect](contentView, selFrame)
 	// The Y dirction is upward in the Cocoa coordinate system.
 	y := int(r.size.height) - bounds.Max.Y
+	// X is shifted a little bit, especially for the accent popup.
+	bounds = bounds.Add(image.Pt(6, 0))
 	tc.Send(selSetFrame, nsRect{
 		origin: nsPoint{float64(bounds.Min.X), float64(y)},
 		size:   nsSize{float64(bounds.Dx()), float64(bounds.Dy())},
