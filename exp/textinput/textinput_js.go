@@ -16,6 +16,7 @@ package textinput
 
 import (
 	"fmt"
+	"image"
 	"syscall/js"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
@@ -156,7 +157,7 @@ body.addEventListener("keyup", handler);`)
 	// TODO: What about other events like wheel?
 }
 
-func (t *textInput) Start(x, y int) (<-chan textInputState, func()) {
+func (t *textInput) Start(bounds image.Rectangle) (<-chan textInputState, func()) {
 	if !t.textareaElement.Truthy() {
 		return nil, nil
 	}
@@ -177,8 +178,12 @@ func (t *textInput) Start(x, y int) (<-chan textInputState, func()) {
 		t.textareaElement.Set("value", "")
 		t.textareaElement.Call("focus")
 		style := t.textareaElement.Get("style")
-		style.Set("left", fmt.Sprintf("%dpx", x))
-		style.Set("top", fmt.Sprintf("%dpx", y))
+		style.Set("left", fmt.Sprintf("%dpx", bounds.Min.X))
+		style.Set("top", fmt.Sprintf("%dpx", bounds.Min.Y))
+		style.Set("width", fmt.Sprintf("%dpx", bounds.Dx()))
+		style.Set("height", fmt.Sprintf("%dpx", bounds.Dy()))
+		style.Set("font-size", fmt.Sprintf("%dpx", bounds.Dy()))
+		style.Set("line-height", fmt.Sprintf("%dpx", bounds.Dy()))
 
 		if t.session == nil {
 			s := newSession()
@@ -200,8 +205,8 @@ func (t *textInput) Start(x, y int) (<-chan textInputState, func()) {
 
 	// On iOS Safari, `focus` works only in user-interaction events (#2898).
 	// Assuming Start is called every tick, defer the starting process to the next user-interaction event.
-	js.Global().Get("window").Set("_ebitengine_textinput_x", x)
-	js.Global().Get("window").Set("_ebitengine_textinput_y", y)
+	js.Global().Get("window").Set("_ebitengine_textinput_x", bounds.Min.X)
+	js.Global().Get("window").Set("_ebitengine_textinput_y", bounds.Max.Y)
 	return nil, nil
 }
 

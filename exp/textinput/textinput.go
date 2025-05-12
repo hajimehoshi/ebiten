@@ -19,6 +19,7 @@
 package textinput
 
 import (
+	"image"
 	"unicode/utf16"
 	"unicode/utf8"
 
@@ -26,8 +27,6 @@ import (
 )
 
 // textInputState represents the current state of text inputting.
-//
-// textInputState is the low-level API. For most use cases, Field is easier to use.
 type textInputState struct {
 	// Text represents the current inputting text.
 	Text string
@@ -58,12 +57,11 @@ type textInputState struct {
 // start starts text inputting.
 // start returns a channel to send the state repeatedly, and a function to end the text inputting.
 //
-// start is the low-level API. For most use cases, Field is easier to use.
-//
 // start returns nil and nil if the current environment doesn't support this package.
-func start(x, y int) (states <-chan textInputState, close func()) {
-	cx, cy := ui.Get().LogicalPositionToClientPositionInNativePixels(float64(x), float64(y))
-	return theTextInput.Start(int(cx), int(cy))
+func start(bounds image.Rectangle) (states <-chan textInputState, close func()) {
+	cMinX, cMinY := ui.Get().LogicalPositionToClientPositionInNativePixels(float64(bounds.Min.X), float64(bounds.Min.Y))
+	cMaxX, cMaxY := ui.Get().LogicalPositionToClientPositionInNativePixels(float64(bounds.Max.X), float64(bounds.Max.Y))
+	return theTextInput.Start(image.Rect(int(cMinX), int(cMinY), int(cMaxX), int(cMaxY)))
 }
 
 func convertUTF16CountToByteCount(text string, c int) int {

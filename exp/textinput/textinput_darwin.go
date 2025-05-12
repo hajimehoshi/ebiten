@@ -23,6 +23,8 @@ package textinput
 import "C"
 
 import (
+	"image"
+
 	"github.com/ebitengine/purego/objc"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
@@ -118,9 +120,9 @@ type textInput struct {
 
 var theTextInput textInput
 
-func (t *textInput) Start(x, y int) (<-chan textInputState, func()) {
+func (t *textInput) Start(bounds image.Rectangle) (<-chan textInputState, func()) {
 	ui.Get().RunOnMainThread(func() {
-		t.start(x, y)
+		t.start(bounds)
 	})
 	return t.session.ch, t.session.end
 }
@@ -193,7 +195,7 @@ type nsRect struct {
 	size   nsSize
 }
 
-func (t *textInput) start(x, y int) {
+func (t *textInput) start(bounds image.Rectangle) {
 	t.endIfNeeded()
 
 	tc := getTextInputClient()
@@ -203,10 +205,11 @@ func (t *textInput) start(x, y int) {
 	window.Send(selMakeFirstResponder, tc)
 
 	r := objc.Send[nsRect](contentView, selFrame)
-	y = int(r.size.height) - y - 4
+	// The Y dirction is upward in the Cocoa coordinate system.
+	y := int(r.size.height) - bounds.Max.Y
 	tc.Send(selSetFrame, nsRect{
-		origin: nsPoint{float64(x), float64(y)},
-		size:   nsSize{1, 1},
+		origin: nsPoint{float64(bounds.Min.X), float64(y)},
+		size:   nsSize{float64(bounds.Dx()), float64(bounds.Dy())},
 	})
 
 	session := newSession()

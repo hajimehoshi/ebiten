@@ -135,9 +135,11 @@ func (t *TextField) Update() error {
 	x, y := t.bounds.Min.X, t.bounds.Min.Y
 	cx, cy := t.cursorPos()
 	px, py := textFieldPadding()
-	x += cx + px
-	y += cy + py + int(fontFace.Metrics().HAscent)
-	handled, err := t.field.HandleInput(x, y)
+	x0 := x + cx + px
+	x1 := x + cx + px + 6 // To be exact, this should be the width of the current character.
+	y0 := y + cy + py
+	y1 := y0 + int(fontFace.Metrics().HLineGap+fontFace.Metrics().HAscent+fontFace.Metrics().HDescent)
+	handled, err := t.field.HandleInputWithBounds(image.Rect(x0, y0, x1, y1))
 	if err != nil {
 		return err
 	}

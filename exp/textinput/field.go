@@ -15,6 +15,7 @@
 package textinput
 
 import (
+	"image"
 	"sync"
 )
 
@@ -99,7 +100,21 @@ type Field struct {
 // If HandleInput returns true, a Field user should not handle further input events.
 //
 // HandleInput returns an error when handling input causes an error.
+//
+// Deprecated: use HandleInputWithBounds instead.
 func (f *Field) HandleInput(x, y int) (handled bool, err error) {
+	return f.HandleInputWithBounds(image.Rect(x, y, x+1, y+1))
+}
+
+// HandleInputWithBounds updates the field state.
+// HandleInputWithBounds must be called every tick, i.e., every Update, when Field is focused.
+// HandleInputWithBounds takes a character bounds, which decides the position where an IME window is shown if needed.
+//
+// HandleInputWithBounds returns whether the text inputting is handled or not.
+// If HandleInputWithBounds returns true, a Field user should not handle further input events.
+//
+// HandleInputWithBounds returns an error when handling input causes an error.
+func (f *Field) HandleInputWithBounds(bounds image.Rectangle) (handled bool, err error) {
 	if f.err != nil {
 		return false, f.err
 	}
@@ -113,7 +128,7 @@ func (f *Field) HandleInput(x, y int) (handled bool, err error) {
 		if f.ch == nil {
 			// TODO: On iOS Safari, Start doesn't work as expected (#2898).
 			// Handle a click event and focus the textarea there.
-			f.ch, f.end = start(x, y)
+			f.ch, f.end = start(bounds)
 			// Start returns nil for non-supported envrionments, or when unable to start text inputting for some reasons.
 			if f.ch == nil {
 				return handled, nil
