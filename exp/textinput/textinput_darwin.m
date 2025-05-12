@@ -18,8 +18,8 @@
 
 #import <Cocoa/Cocoa.h>
 
-void ebitengine_textinput_setMarkedText(const char* text, int selectionStart, int selectionLen, int replaceStart, int replaceLen);
-void ebitengine_textinput_insertText(const char* text, int replaceStart, int replaceLen);
+void ebitengine_textinput_setMarkedText(const char* text, int64_t selectionStart, int64_t selectionLen, int64_t replaceStart, int64_t replaceLen);
+void ebitengine_textinput_insertText(const char* text, int64_t replaceStart, int64_t replaceLen);
 void ebitengine_textinput_end();
 
 @interface TextInputClient : NSView<NSTextInputClient>

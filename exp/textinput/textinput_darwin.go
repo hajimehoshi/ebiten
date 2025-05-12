@@ -18,6 +18,8 @@ package textinput
 
 // #cgo CFLAGS: -x objective-c
 // #cgo LDFLAGS: -framework Cocoa
+//
+// #include <stdint.h>
 import "C"
 
 import (
@@ -27,7 +29,7 @@ import (
 )
 
 //export ebitengine_textinput_setMarkedText
-func ebitengine_textinput_setMarkedText(text *C.char, selectionStart, selectionLen, replaceStart, replaceLen C.int) {
+func ebitengine_textinput_setMarkedText(text *C.char, selectionStart, selectionLen, replaceStart, replaceLen C.int64_t) {
 	t := C.GoString(text)
 	startInBytes := convertUTF16CountToByteCount(t, int(selectionStart))
 	endInBytes := convertUTF16CountToByteCount(t, int(selectionStart+selectionLen))
@@ -35,7 +37,7 @@ func ebitengine_textinput_setMarkedText(text *C.char, selectionStart, selectionL
 }
 
 //export ebitengine_textinput_insertText
-func ebitengine_textinput_insertText(text *C.char, replaceStart, replaceLen C.int) {
+func ebitengine_textinput_insertText(text *C.char, replaceStart, replaceLen C.int64_t) {
 	t := C.GoString(text)
 	theTextInput.update(t, 0, len(t), true)
 }
