@@ -141,10 +141,7 @@ func (f *Field) HandleInput(x, y int) (handled bool, err error) {
 				}
 				handled = true
 				if state.Committed {
-					f.text = f.text[:f.selectionStartInBytes] + state.Text + f.text[f.selectionEndInBytes:]
-					f.selectionStartInBytes += len(state.Text)
-					f.selectionEndInBytes = f.selectionStartInBytes
-					f.state = textInputState{}
+					f.commit(state)
 					continue
 				}
 				f.state = state
@@ -161,6 +158,25 @@ func (f *Field) HandleInput(x, y int) (handled bool, err error) {
 	}
 
 	return
+}
+
+func (f *Field) commit(state textInputState) {
+	if !state.Committed {
+		panic("textinput: commit must be called with committed state")
+	}
+	if state.DeleteEndInBytes-state.DeleteStartInBytes > 0 {
+		if f.selectionStartInBytes > state.DeleteStartInBytes {
+			f.selectionStartInBytes -= state.DeleteEndInBytes - state.DeleteStartInBytes
+		}
+		if f.selectionEndInBytes > state.DeleteStartInBytes {
+			f.selectionEndInBytes -= state.DeleteEndInBytes - state.DeleteStartInBytes
+		}
+		f.text = f.text[:state.DeleteStartInBytes] + f.text[state.DeleteEndInBytes:]
+	}
+	f.text = f.text[:f.selectionStartInBytes] + state.Text + f.text[f.selectionEndInBytes:]
+	f.selectionStartInBytes += len(state.Text)
+	f.selectionEndInBytes = f.selectionStartInBytes
+	f.state = textInputState{}
 }
 
 // Focus focuses the field.
@@ -196,10 +212,7 @@ func (f *Field) cleanUp() {
 				return
 			}
 			if ok && state.Committed {
-				f.text = f.text[:f.selectionStartInBytes] + state.Text + f.text[f.selectionEndInBytes:]
-				f.selectionStartInBytes += len(state.Text)
-				f.selectionEndInBytes = f.selectionStartInBytes
-				f.state = textInputState{}
+				f.commit(state)
 			} else {
 				f.state = state
 			}

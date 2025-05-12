@@ -38,6 +38,16 @@ type textInputState struct {
 	// CompositionSelectionStartInBytes represents the end position of the selection in bytes.
 	CompositionSelectionEndInBytes int
 
+	// DeleteStartInBytes represents the start position of the range to be removed in bytes.
+	//
+	// DeleteStartInBytes is valid only when Committed is true.
+	DeleteStartInBytes int
+
+	// DeleteEndInBytes represents the end position of the range to be removed in bytes.
+	//
+	// DeleteEndInBytes is valid only when Committed is true.
+	DeleteEndInBytes int
+
 	// Committed reports whether the current Text is the settled text.
 	Committed bool
 

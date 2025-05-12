@@ -82,23 +82,33 @@ func ebitengine_textinput_unmarkText() {
 
 //export ebitengine_textinput_setMarkedText
 func ebitengine_textinput_setMarkedText(text *C.char, selectionStart, selectionLen, replaceStart, replaceLen C.int64_t) {
-	_, _, _, _, ok := currentState()
-	if !ok {
-		return
-	}
-
 	// selectionStart's origin is the beginning of the inserted text.
+	// replaceStart's origin is also the beginning of the inserted text (= the marked text in the current implementation).
+	// As the text argument already represents the complete marked text, it seems fine to ignore the replaceStart and replaceLen arguments.
+	//
 	// https://developer.apple.com/documentation/appkit/nstextinputclient/setmarkedtext(_:selectedrange:replacementrange:)?language=objc
+
 	t := C.GoString(text)
 	startInBytes := convertUTF16CountToByteCount(t, int(selectionStart))
 	endInBytes := convertUTF16CountToByteCount(t, int(selectionStart+selectionLen))
-	theTextInput.update(t, startInBytes, endInBytes, false)
+	theTextInput.update(t, startInBytes, endInBytes, 0, 0, false)
 }
 
 //export ebitengine_textinput_insertText
 func ebitengine_textinput_insertText(text *C.char, replaceStart, replaceLen C.int64_t) {
+	// replaceStart's origin is the beginning of the current text.
+	//
+	// https://developer.apple.com/documentation/appkit/nstextinputclient/inserttext(_:replacementrange:)?language=objc
+
 	t := C.GoString(text)
-	theTextInput.update(t, 0, len(t), true)
+	var delStartInBytes, delEndInBytes int
+	if replaceStart >= 0 {
+		if text, _, _, _, ok := currentState(); ok {
+			delStartInBytes = convertUTF16CountToByteCount(text, int(replaceStart))
+			delEndInBytes = convertUTF16CountToByteCount(text, int(replaceStart+replaceLen))
+		}
+	}
+	theTextInput.update(t, 0, len(t), delStartInBytes, delEndInBytes, true)
 }
 
 type textInput struct {
@@ -115,12 +125,14 @@ func (t *textInput) Start(x, y int) (<-chan textInputState, func()) {
 	return t.session.ch, t.session.end
 }
 
-func (t *textInput) update(text string, startInBytes, endInBytes int, committed bool) {
+func (t *textInput) update(text string, startInBytes, endInBytes int, deleteStartInBytes, deleteEndInBytes int, committed bool) {
 	if t.session != nil {
 		t.session.trySend(textInputState{
 			Text:                             text,
 			CompositionSelectionStartInBytes: startInBytes,
 			CompositionSelectionEndInBytes:   endInBytes,
+			DeleteStartInBytes:               deleteStartInBytes,
+			DeleteEndInBytes:                 deleteEndInBytes,
 			Committed:                        committed,
 		})
 	}
