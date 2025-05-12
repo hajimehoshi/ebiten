@@ -27,15 +27,15 @@ import (
 )
 
 //export ebitengine_textinput_setMarkedText
-func ebitengine_textinput_setMarkedText(text *C.char, start, end C.int) {
+func ebitengine_textinput_setMarkedText(text *C.char, selectionStart, selectionLen, replaceStart, replaceLen C.int) {
 	t := C.GoString(text)
-	startInBytes := convertUTF16CountToByteCount(t, int(start))
-	endInBytes := convertUTF16CountToByteCount(t, int(end))
+	startInBytes := convertUTF16CountToByteCount(t, int(selectionStart))
+	endInBytes := convertUTF16CountToByteCount(t, int(selectionStart+selectionLen))
 	theTextInput.update(t, startInBytes, endInBytes, false)
 }
 
 //export ebitengine_textinput_insertText
-func ebitengine_textinput_insertText(text *C.char) {
+func ebitengine_textinput_insertText(text *C.char, replaceStart, replaceLen C.int) {
 	t := C.GoString(text)
 	theTextInput.update(t, 0, len(t), true)
 }

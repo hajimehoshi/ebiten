@@ -18,8 +18,8 @@
 
 #import <Cocoa/Cocoa.h>
 
-void ebitengine_textinput_setMarkedText(const char* text, int start, int end);
-void ebitengine_textinput_insertText(const char* text);
+void ebitengine_textinput_setMarkedText(const char* text, int selectionStart, int selectionLen, int replaceStart, int replaceLen);
+void ebitengine_textinput_insertText(const char* text, int replaceStart, int replaceLen);
 void ebitengine_textinput_end();
 
 @interface TextInputClient : NSView<NSTextInputClient>
@@ -57,7 +57,7 @@ void ebitengine_textinput_end();
   markedText_ = string;
   selectedRange_ = selectedRange;
   markedRange_ = NSMakeRange(0, [string length]);
-  ebitengine_textinput_setMarkedText([string UTF8String], selectedRange.location, selectedRange.location + selectedRange.length);
+  ebitengine_textinput_setMarkedText([string UTF8String], selectedRange.location, selectedRange.length, replacementRange.location, replacementRange.length);
 }
 
 - (void)unmarkText {
@@ -82,7 +82,7 @@ void ebitengine_textinput_end();
   if ([string length] == 1 && [string characterAtIndex:0] < 0x20) {
     return;
   }
-  ebitengine_textinput_insertText([string UTF8String]);
+  ebitengine_textinput_insertText([string UTF8String], replacementRange.location, replacementRange.length);
 }
 
 - (NSUInteger)characterIndexForPoint:(NSPoint)point {
