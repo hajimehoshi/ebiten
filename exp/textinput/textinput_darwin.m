@@ -24,6 +24,7 @@ void ebitengine_textinput_selectedRange(int64_t* start, int64_t* length);
 void ebitengine_textinput_unmarkText();
 void ebitengine_textinput_setMarkedText(const char* text, int64_t selectionStart, int64_t selectionLen, int64_t replaceStart, int64_t replaceLen);
 void ebitengine_textinput_insertText(const char* text, int64_t replaceStart, int64_t replaceLen);
+NSRect ebitengine_textinput_firstRectForCharacterRange(uintptr_t self, NSRange range, NSRangePointer actualRange);
 void ebitengine_textinput_end();
 
 @interface TextInputClient : NSView<NSTextInputClient>
@@ -91,8 +92,7 @@ void ebitengine_textinput_end();
 
 - (NSRect)firstRectForCharacterRange:(NSRange)range 
                          actualRange:(NSRangePointer)actualRange {
-  NSWindow* window = [self window];
-  return [window convertRectToScreen:[self frame]];
+  return ebitengine_textinput_firstRectForCharacterRange((uintptr_t)(self), range, actualRange);
 }
 
 - (void)doCommandBySelector:(SEL)selector {

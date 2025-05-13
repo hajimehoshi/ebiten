@@ -20,6 +20,7 @@ package textinput
 // #cgo LDFLAGS: -framework Cocoa
 //
 // #include <stdint.h>
+// #include <Cocoa/Cocoa.h>
 import "C"
 
 import (
@@ -113,6 +114,25 @@ func ebitengine_textinput_insertText(text *C.char, replaceStart, replaceLen C.in
 	theTextInput.update(t, 0, len(t), delStartInBytes, delEndInBytes, true)
 }
 
+//export ebitengine_textinput_firstRectForCharacterRange
+func ebitengine_textinput_firstRectForCharacterRange(self C.uintptr_t, crange C.NSRange, actualRange C.NSRangePointer) C.NSRect {
+	if actualRange != nil {
+		if text, startInBytes, _, _, ok := currentState(); ok {
+			s := C.NSUInteger(convertUTF16CountToByteCount(text, startInBytes))
+			actualRange.location = s
+			// 0 seems to work correctly.
+			// See https://developer.apple.com/documentation/appkit/nstextinputclient/firstrect(forcharacterrange:actualrange:)?language=objc
+			// > If the length of aRange is 0 (as it would be if there is nothing selected at the insertion point),
+			// > the rectangle coincides with the insertion point, and its width is 0.
+			actualRange.length = 0
+		}
+	}
+
+	window := objc.ID(self).Send(selWindow)
+	frame := objc.Send[C.NSRect](objc.ID(self), selFrame)
+	return objc.Send[C.NSRect](window, selConvertRectToScreen, frame)
+}
+
 type textInput struct {
 	// session must be accessed from the main thread.
 	session *session
@@ -157,15 +177,17 @@ func (t *textInput) endIfNeeded() {
 }
 
 var (
-	selAddSubview         = objc.RegisterName("addSubview:")
-	selAlloc              = objc.RegisterName("alloc")
-	selContentView        = objc.RegisterName("contentView")
-	selFrame              = objc.RegisterName("frame")
-	selInit               = objc.RegisterName("init")
-	selMainWindow         = objc.RegisterName("mainWindow")
-	selMakeFirstResponder = objc.RegisterName("makeFirstResponder:")
-	selSetFrame           = objc.RegisterName("setFrame:")
-	selSharedApplication  = objc.RegisterName("sharedApplication")
+	selAddSubview          = objc.RegisterName("addSubview:")
+	selAlloc               = objc.RegisterName("alloc")
+	selContentView         = objc.RegisterName("contentView")
+	selConvertRectToScreen = objc.RegisterName("convertRectToScreen:")
+	selFrame               = objc.RegisterName("frame")
+	selInit                = objc.RegisterName("init")
+	selMainWindow          = objc.RegisterName("mainWindow")
+	selMakeFirstResponder  = objc.RegisterName("makeFirstResponder:")
+	selSetFrame            = objc.RegisterName("setFrame:")
+	selSharedApplication   = objc.RegisterName("sharedApplication")
+	selWindow              = objc.RegisterName("window")
 
 	idNSApplication = objc.ID(objc.GetClass("NSApplication"))
 )
