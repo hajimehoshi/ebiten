@@ -172,7 +172,7 @@ func (u *UserInterface) setApplePressAndHoldEnabled(enabled bool) {
 	defaults := objc.ID(class_NSMutableDictionary).Send(sel_alloc).Send(sel_init)
 	defaults.Send(sel_setObjectForKey,
 		objc.ID(class_NSNumber).Send(sel_alloc).Send(sel_initWithBool, val),
-		cocoa.NSString_alloc().InitWithUTF8String("ApplePressAndHoldEnabled"))
+		cocoa.NSString_alloc().InitWithUTF8String("ApplePressAndHoldEnabled").ID)
 	ud := objc.ID(class_NSUserDefaults).Send(sel_standardUserDefaults)
 	ud.Send(sel_registerDefaults, defaults)
 }
