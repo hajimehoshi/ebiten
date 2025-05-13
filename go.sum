@@ -1,5 +1,5 @@
-github.com/ebitengine/debugui v0.2.0-alpha.2.0.20250510113306-8835ef6946b7 h1:NueSI9BfYiy0M6+LyGw3o+DoDUcaM7IibFzyyY+F2aE=
-github.com/ebitengine/debugui v0.2.0-alpha.2.0.20250510113306-8835ef6946b7/go.mod h1:1E5IFFkwhK6eiLwcDBihfd41eQnySwmneNHIr0ui4WQ=
+github.com/ebitengine/debugui v0.2.0-alpha.3 h1:nKRsf99KysJFSjW+qJcFPmG8aWhE6yWom8fPtpfVr7E=
+github.com/ebitengine/debugui v0.2.0-alpha.3/go.mod h1:VJOXCHzanETFESupjB7JykgiZLiJ+0WOM8UN3m7KNKQ=
 github.com/ebitengine/gomobile v0.0.0-20250329061421-6d0a8e981e4c h1:Ccgks2VROTr6bIm1FFxG2jT6P1DaCBMj8g/O9xbOQ08=
 github.com/ebitengine/gomobile v0.0.0-20250329061421-6d0a8e981e4c/go.mod h1:M6DDA2RbegvWBVv4Dq482lwyFTtMczT1A7UNm1qOYzY=
 github.com/ebitengine/hideconsole v1.0.0 h1:5J4U0kXF+pv/DhiXt5/lTz0eO5ogJ1iXb8Yj1yReDqE=
@@ -16,8 +16,8 @@ github.com/go-text/typesetting-utils v0.0.0-20241103174707-87a29e9e6066 h1:qCuYC
 github.com/go-text/typesetting-utils v0.0.0-20241103174707-87a29e9e6066/go.mod h1:DDxDdQEnB70R8owOx3LVpEFvpMK9eeH1o2r0yZhFI9o=
 github.com/google/go-cmp v0.6.0 h1:ofyhxvXcZhMsU5ulbFiLKl/XBFqE1GSq7atu8tAmTRI=
 github.com/google/go-cmp v0.6.0/go.mod h1:17dUlkBOakJ0+DkrSSNjCkIjxS6bF9zb3elmeNGIjoY=
-github.com/hajimehoshi/bitmapfont/v4 v4.0.0-alpha.0.20250510180154-1162865bfd31 h1:5fA671aOTn5Ijj4hCOYQmlGUh9LrDJXdhXPKkyX+EuY=
-github.com/hajimehoshi/bitmapfont/v4 v4.0.0-alpha.0.20250510180154-1162865bfd31/go.mod h1:9KdLJljAPdDiSz6KZK6s3iZl0m1HVvBgU68CYw3U2dk=
+github.com/hajimehoshi/bitmapfont/v4 v4.1.0-alpha h1:SctB+HjA7Y/7vFznHrf5h61WbX8wRfbBxQEcHbIEyfQ=
+github.com/hajimehoshi/bitmapfont/v4 v4.1.0-alpha/go.mod h1:9KdLJljAPdDiSz6KZK6s3iZl0m1HVvBgU68CYw3U2dk=
 github.com/hajimehoshi/go-mp3 v0.3.4 h1:NUP7pBYH8OguP4diaTZ9wJbUbk3tC0KlfzsEpWmYj68=
 github.com/hajimehoshi/go-mp3 v0.3.4/go.mod h1:fRtZraRFcWb0pu7ok0LqyFhCUrPeMsGRSVop0eemFmo=
 github.com/hajimehoshi/oto/v2 v2.3.1/go.mod h1:seWLbgHH7AyUMYKfKYT9pg7PhUu9/SisyJvNTT+ASQo=
