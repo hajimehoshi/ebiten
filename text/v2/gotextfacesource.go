@@ -88,11 +88,6 @@ func (r *runeToBoolMap) set(rune rune, value bool) {
 	}
 }
 
-type glyphDataCacheKey struct {
-	gid        font.GID
-	variations string
-}
-
 // GoTextFaceSource is a source of a GoTextFace. This can be shared by multiple GoTextFace objects.
 type GoTextFaceSource struct {
 	f        *font.Face
@@ -108,8 +103,7 @@ type GoTextFaceSource struct {
 
 	shaper shaping.HarfbuzzShaper
 
-	runes          []rune
-	glyphDataCache *cache[glyphDataCacheKey, font.GlyphData]
+	runes []rune
 }
 
 func toFontResource(source io.Reader) (font.Resource, error) {
@@ -266,21 +260,7 @@ func (g *GoTextFaceSource) shapeImpl(text string, face *GoTextFace) ([]shaping.O
 		for _, gl := range out.Glyphs {
 			gl := gl
 			var segs []opentype.Segment
-			if g.glyphDataCache == nil {
-				g.glyphDataCache = newCache[glyphDataCacheKey, font.GlyphData](512)
-			}
-			key := glyphDataCacheKey{
-				gid:        gl.GlyphID,
-				variations: face.ensureVariationsString(),
-			}
-			data := g.glyphDataCache.getOrCreate(key, func() (font.GlyphData, bool) {
-				data := g.f.GlyphData(gl.GlyphID)
-				if data == nil {
-					return nil, false
-				}
-				return data, true
-			})
-			switch data := data.(type) {
+			switch data := g.f.GlyphData(gl.GlyphID).(type) {
 			case font.GlyphOutline:
 				if out.Direction.IsSideways() {
 					data.Sideways(fixed26_6ToFloat32(-gl.YOffset) / fixed26_6ToFloat32(out.Size) * float32(g.f.Upem()))
