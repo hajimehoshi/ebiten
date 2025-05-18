@@ -102,6 +102,8 @@ type GoTextFaceSource struct {
 	addr *GoTextFaceSource
 
 	shaper shaping.HarfbuzzShaper
+
+	runes []rune
 }
 
 func toFontResource(source io.Reader) (font.Resource, error) {
@@ -217,11 +219,14 @@ func (g *GoTextFaceSource) shape(text string, face *GoTextFace) ([]shaping.Outpu
 func (g *GoTextFaceSource) shapeImpl(text string, face *GoTextFace) ([]shaping.Output, []glyph) {
 	g.f.SetVariations(face.variations)
 
-	runes := []rune(text)
+	g.runes = g.runes[:0]
+	for _, r := range text {
+		g.runes = append(g.runes, r)
+	}
 	input := shaping.Input{
-		Text:         runes,
+		Text:         g.runes,
 		RunStart:     0,
-		RunEnd:       len(runes),
+		RunEnd:       len(g.runes),
 		Direction:    face.diDirection(),
 		Face:         g.f,
 		FontFeatures: face.features,
