@@ -103,7 +103,8 @@ type GoTextFaceSource struct {
 
 	shaper shaping.HarfbuzzShaper
 
-	runes []rune
+	runes          []rune
+	glyphDataCache *cache[font.GID, font.GlyphData]
 }
 
 func toFontResource(source io.Reader) (font.Resource, error) {
@@ -260,7 +261,17 @@ func (g *GoTextFaceSource) shapeImpl(text string, face *GoTextFace) ([]shaping.O
 		for _, gl := range out.Glyphs {
 			gl := gl
 			var segs []opentype.Segment
-			switch data := g.f.GlyphData(gl.GlyphID).(type) {
+			if g.glyphDataCache == nil {
+				g.glyphDataCache = newCache[font.GID, font.GlyphData](512)
+			}
+			data := g.glyphDataCache.getOrCreate(gl.GlyphID, func() (font.GlyphData, bool) {
+				data := g.f.GlyphData(gl.GlyphID)
+				if data == nil {
+					return nil, false
+				}
+				return data, true
+			})
+			switch data := data.(type) {
 			case font.GlyphOutline:
 				if out.Direction.IsSideways() {
 					data.Sideways(fixed26_6ToFloat32(-gl.YOffset) / fixed26_6ToFloat32(out.Size) * float32(g.f.Upem()))
