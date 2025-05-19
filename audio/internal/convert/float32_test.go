@@ -92,7 +92,7 @@ func TestFloat32(t *testing.T) {
 						}
 						if seek {
 							// Shifting by incomplete bytes should not affect the result.
-							for i := 0; i < 4; i++ {
+							for i := range 4 {
 								if _, err := r.Seek(int64(i), io.SeekCurrent); err != nil {
 									if err != io.EOF {
 										t.Fatal(err)

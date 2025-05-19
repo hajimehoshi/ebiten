@@ -77,7 +77,7 @@ func TestStereoI16FromSigned16Bits(t *testing.T) {
 							break
 						}
 						// Shifting by incomplete bytes should not affect the result.
-						for i := 0; i < 2*2; i++ {
+						for i := range 2 * 2 {
 							if _, err := s.Seek(int64(i), io.SeekCurrent); err != nil {
 								if err != io.EOF {
 									t.Fatal(err)
@@ -158,7 +158,7 @@ func TestStereoI16FromUnsigned8Bits(t *testing.T) {
 							break
 						}
 						// Shifting by incomplete bytes should not affect the result.
-						for i := 0; i < 2*2; i++ {
+						for i := range 2 * 2 {
 							if _, err := s.Seek(int64(i), io.SeekCurrent); err != nil {
 								if err != io.EOF {
 									t.Fatal(err)
@@ -238,7 +238,7 @@ func TestStereoI16FromSigned24Bits(t *testing.T) {
 							break
 						}
 						// Shifting by incomplete bytes should not affect the result.
-						for i := 0; i < 2*2; i++ {
+						for i := range 2 * 2 {
 							if _, err := s.Seek(int64(i), io.SeekCurrent); err != nil {
 								if err != io.EOF {
 									t.Fatal(err)

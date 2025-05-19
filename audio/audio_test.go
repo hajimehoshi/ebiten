@@ -56,7 +56,7 @@ func TestGC(t *testing.T) {
 	p = nil
 	runtime.GC()
 
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		got = audio.PlayersCountForTesting()
 		if want := 0; got == want {
 			return
@@ -97,7 +97,7 @@ func TestSameSourcePlayers(t *testing.T) {
 	p0.Play()
 	p1.Play()
 
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		if err := audio.UpdateForTesting(); err != nil {
 			// An error is expected.
 			return

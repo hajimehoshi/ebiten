@@ -155,12 +155,12 @@ func (r *Resampling) src(i int64) (float64, float64, error) {
 		sr := make([]float64, resamplingBufferSize)
 		switch r.bitDepthInBytes {
 		case 2:
-			for i := 0; i < len(buf)/int(sizePerSample); i++ {
+			for i := range len(buf) / int(sizePerSample) {
 				sl[i] = float64(int16(buf[4*i])|(int16(buf[4*i+1])<<8)) / (1<<15 - 1)
 				sr[i] = float64(int16(buf[4*i+2])|(int16(buf[4*i+3])<<8)) / (1<<15 - 1)
 			}
 		case 4:
-			for i := 0; i < len(buf)/int(sizePerSample); i++ {
+			for i := range len(buf) / int(sizePerSample) {
 				sl[i] = float64(math.Float32frombits(uint32(buf[8*i]) | uint32(buf[8*i+1])<<8 | uint32(buf[8*i+2])<<16 | uint32(buf[8*i+3])<<24))
 				sr[i] = float64(math.Float32frombits(uint32(buf[8*i+4]) | uint32(buf[8*i+5])<<8 | uint32(buf[8*i+6])<<16 | uint32(buf[8*i+7])<<24))
 			}
@@ -259,7 +259,7 @@ func (r *Resampling) Read(b []byte) (int, error) {
 	n := len(b) / size * size
 	switch r.bitDepthInBytes {
 	case 2:
-		for i := 0; i < n/size; i++ {
+		for i := range n / size {
 			ldata, rdata, err := r.at(r.pos/int64(size) + int64(i))
 			if err != nil && err != io.EOF {
 				return 0, err
@@ -275,7 +275,7 @@ func (r *Resampling) Read(b []byte) (int, error) {
 			b[4*i+3] = byte(r16 >> 8)
 		}
 	case 4:
-		for i := 0; i < n/size; i++ {
+		for i := range n / size {
 			ldata, rdata, err := r.at(r.pos/int64(size) + int64(i))
 			if err != nil && err != io.EOF {
 				return 0, err
