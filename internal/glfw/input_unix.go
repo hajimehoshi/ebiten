@@ -109,7 +109,7 @@ func goCharModsCB(window unsafe.Pointer, character C.uint, mods C.int) {
 func goDropCB(window unsafe.Pointer, count C.int, names **C.char) { // TODO: The types of name can be `**C.char` or `unsafe.Pointer`, use whichever is better.
 	w := windows.get((*C.GLFWwindow)(window))
 	namesSlice := make([]string, int(count)) // TODO: Make this better. This part is unfinished, hacky, probably not correct, and not idiomatic.
-	for i := 0; i < int(count); i++ {        // TODO: Make this better. It should be cleaned up and vetted.
+	for i := range int(count) {              // TODO: Make this better. It should be cleaned up and vetted.
 		var x *C.char                                                                                 // TODO: Make this better.
 		p := (**C.char)(unsafe.Pointer(uintptr(unsafe.Pointer(names)) + uintptr(i)*unsafe.Sizeof(x))) // TODO: Make this better.
 		namesSlice[i] = C.GoString(*p)                                                                // TODO: Make this better.

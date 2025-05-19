@@ -69,7 +69,7 @@ func GetMonitors() ([]*Monitor, error) {
 
 	m := make([]*Monitor, length)
 
-	for i := 0; i < length; i++ {
+	for i := range length {
 		m[i] = &Monitor{C.GetMonitorAtIndex(mC, C.int(i))}
 	}
 
@@ -214,7 +214,7 @@ func (m *Monitor) GetVideoModes() ([]*VidMode, error) {
 
 	v := make([]*VidMode, length)
 
-	for i := 0; i < length; i++ {
+	for i := range length {
 		t := C.GetVidmodeAtIndex(vC, C.int(i))
 		v[i] = &VidMode{int(t.width), int(t.height), int(t.redBits), int(t.greenBits), int(t.blueBits), int(t.refreshRate)}
 	}
@@ -263,7 +263,7 @@ func (m *Monitor) GetGammaRamp() (*GammaRamp, error) {
 	ramp.Green = make([]uint16, length)
 	ramp.Blue = make([]uint16, length)
 
-	for i := 0; i < length; i++ {
+	for i := range length {
 		ramp.Red[i] = uint16(C.GetGammaAtIndex(rampC.red, C.int(i)))
 		ramp.Green[i] = uint16(C.GetGammaAtIndex(rampC.green, C.int(i)))
 		ramp.Blue[i] = uint16(C.GetGammaAtIndex(rampC.blue, C.int(i)))
@@ -278,7 +278,7 @@ func (m *Monitor) SetGammaRamp(ramp *GammaRamp) error {
 
 	length := len(ramp.Red)
 
-	for i := 0; i < length; i++ {
+	for i := range length {
 		C.SetGammaAtIndex(rampC.red, C.int(i), C.ushort(ramp.Red[i]))
 		C.SetGammaAtIndex(rampC.green, C.int(i), C.ushort(ramp.Green[i]))
 		C.SetGammaAtIndex(rampC.blue, C.int(i), C.ushort(ramp.Blue[i]))

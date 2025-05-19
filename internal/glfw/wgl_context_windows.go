@@ -275,7 +275,7 @@ func swapBuffersWGL(window *Window) error {
 
 		// HACK: Use DwmFlush when desktop composition is enabled
 		if enabled {
-			for i := 0; i < window.context.platform.interval; i++ {
+			for range window.context.platform.interval {
 				// Ignore an error from DWM functions as they might not be implemented e.g. on Proton (#2113).
 				_ = _DwmFlush()
 			}

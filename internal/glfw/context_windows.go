@@ -537,7 +537,7 @@ func (w *Window) ExtensionSupported(extension string) (bool, error) {
 		_, _, _ = purego.SyscallN(glGetIntegerv, GL_NUM_EXTENSIONS, uintptr(unsafe.Pointer(&count)))
 
 		glGetStringi := w.context.getProcAddress("glGetStringi")
-		for i := 0; i < int(count); i++ {
+		for i := range int(count) {
 			r, _, _ := purego.SyscallN(glGetStringi, GL_EXTENSIONS, uintptr(i))
 			if r == 0 {
 				return false, fmt.Errorf("glfw: extension string retrieval is broken: %w", PlatformError)
