@@ -61,8 +61,8 @@ func NewGame() *Game {
 }
 
 func (gm *Game) updateOffscreen(centerX, centerY, size float64) {
-	for j := 0; j < screenHeight; j++ {
-		for i := 0; i < screenHeight; i++ {
+	for j := range screenHeight {
+		for i := range screenHeight {
 			x := float64(i)*size/screenWidth - size/2 + centerX
 			y := (screenHeight-float64(j))*size/screenHeight - size/2 + centerY
 			c := complex(x, y)

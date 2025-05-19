@@ -50,7 +50,7 @@ type Game struct {
 func (g *Game) Update() error {
 	// Generate the noise with random RGB values.
 	const l = screenWidth * screenHeight
-	for i := 0; i < l; i++ {
+	for i := range l {
 		x := theRand.next()
 		g.noiseImage.Pix[4*i] = uint8(x >> 24)
 		g.noiseImage.Pix[4*i+1] = uint8(x >> 16)

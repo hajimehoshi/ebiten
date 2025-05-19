@@ -97,7 +97,7 @@ func (s *TitleScene) Draw(r *ebiten.Image) {
 func (s *TitleScene) drawTitleBackground(r *ebiten.Image, c int) {
 	w, h := imageBackground.Bounds().Dx(), imageBackground.Bounds().Dy()
 	op := &ebiten.DrawImageOptions{}
-	for i := 0; i < (ScreenWidth/w+1)*(ScreenHeight/h+2); i++ {
+	for i := range (ScreenWidth/w + 1) * (ScreenHeight/h + 2) {
 		op.GeoM.Reset()
 		dx := -(c / 4) % w
 		dy := (c / 4) % h

@@ -15,7 +15,7 @@
 package twenty48_test
 
 import (
-	"github.com/hajimehoshi/ebiten/v2/examples/2048/2048"
+	twenty48 "github.com/hajimehoshi/ebiten/v2/examples/2048/2048"
 
 	"fmt"
 	"testing"
@@ -23,8 +23,8 @@ import (
 
 func cellsToTiles(cells []int, size int) map[*twenty48.Tile]struct{} {
 	tiles := map[*twenty48.Tile]struct{}{}
-	for j := 0; j < size; j++ {
-		for i := 0; i < size; i++ {
+	for j := range size {
+		for i := range size {
 			c := cells[i+j*size]
 			if c == 0 {
 				continue

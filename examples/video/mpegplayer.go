@@ -170,14 +170,14 @@ func (p *mpegPlayer) updateFrame() error {
 		return fmt.Errorf("video: subsample ratio must be 4:2:0")
 	}
 	w, h := p.mpg.Width(), p.mpg.Height()
-	for j := 0; j < h; j++ {
+	for j := range h {
 		yi := j * img.YStride
 		ci := (j / 2) * img.CStride
 		// Create temporary slices to encourage BCE (boundary-checking elimination).
 		ys := img.Y[yi : yi+w]
 		cbs := img.Cb[ci : ci+w/2]
 		crs := img.Cr[ci : ci+w/2]
-		for i := 0; i < w; i++ {
+		for i := range w {
 			idx := 4 * (j*w + i)
 			buf := p.yCbCrBytes[idx : idx+3]
 			buf[0] = ys[i]

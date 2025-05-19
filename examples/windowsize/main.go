@@ -73,8 +73,8 @@ func createRandomIconImage() image.Image {
 	bf := float64(rand.IntN(0x100))
 	img := ebiten.NewImage(size, size)
 	pix := make([]byte, 4*size*size)
-	for j := 0; j < size; j++ {
-		for i := 0; i < size; i++ {
+	for j := range size {
+		for i := range size {
 			af := float64(i+j) / float64(2*size)
 			if af > 0 {
 				pix[4*(j*size+i)] = byte(rf * af)

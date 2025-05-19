@@ -102,8 +102,8 @@ func drawNinePatches(dst *ebiten.Image, dstRect image.Rectangle, srcRect image.R
 	dstH := dstRect.Dy()
 
 	op := &ebiten.DrawImageOptions{}
-	for j := 0; j < 3; j++ {
-		for i := 0; i < 3; i++ {
+	for j := range 3 {
+		for i := range 3 {
 			op.GeoM.Reset()
 
 			sx := srcX

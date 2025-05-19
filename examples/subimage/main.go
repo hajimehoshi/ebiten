@@ -49,8 +49,8 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	sw, sh := screen.Bounds().Dx(), screen.Bounds().Dy()
 	cw := sw / cx
 	ch := sh / cy
-	for j := 0; j < cy; j++ {
-		for i := 0; i < cx; i++ {
+	for j := range cy {
+		for i := range cx {
 			img := g.subImages[i][j]
 			if img == nil {
 				r := image.Rect(cw*i, ch*j, cw*(i+1), ch*(j+1))

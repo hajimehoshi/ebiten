@@ -45,7 +45,7 @@ func (s *stream) Read(buf []byte) (int, error) {
 	n := len(buf) / bytesPerSample * bytesPerSample
 
 	const length = sampleRate / frequency
-	for i := 0; i < n/bytesPerSample; i++ {
+	for i := range n / bytesPerSample {
 		v := math.Float32bits(float32(math.Sin(2 * math.Pi * float64(s.pos/bytesPerSample+int64(i)) / length)))
 		buf[8*i] = byte(v)
 		buf[8*i+1] = byte(v >> 8)

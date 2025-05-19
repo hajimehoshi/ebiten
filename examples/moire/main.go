@@ -43,8 +43,8 @@ func getDots(width, height int) []byte {
 	dotsWidth = width
 	dotsHeight = height
 	dots = make([]byte, width*height*4)
-	for j := 0; j < height; j++ {
-		for i := 0; i < width; i++ {
+	for j := range height {
+		for i := range width {
 			if (i+j)%2 == 0 {
 				dots[(i+j*width)*4+0] = 0xff
 				dots[(i+j*width)*4+1] = 0xff
