@@ -53,7 +53,7 @@ var score = strings.Replace(
 // square fills out with square wave values with the specified volume, frequency and sequence.
 func square(out []float32, volume float32, freq float32, sequence float32) {
 	if freq == 0 {
-		for i := 0; i < len(out); i++ {
+		for i := range len(out) {
 			out[i] = 0
 		}
 		return
@@ -62,7 +62,7 @@ func square(out []float32, volume float32, freq float32, sequence float32) {
 	if length == 0 {
 		panic("invalid freq")
 	}
-	for i := 0; i < len(out); i++ {
+	for i := range len(out) {
 		a := volume
 		if i%length < int(float32(length)*sequence) {
 			a = -a

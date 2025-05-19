@@ -71,7 +71,7 @@ type Game struct {
 
 func NewGame() *Game {
 	g := &Game{}
-	for i := 0; i < starsCount; i++ {
+	for i := range starsCount {
 		g.stars[i].Init()
 	}
 	return g
@@ -79,14 +79,14 @@ func NewGame() *Game {
 
 func (g *Game) Update() error {
 	x, y := ebiten.CursorPosition()
-	for i := 0; i < starsCount; i++ {
+	for i := range starsCount {
 		g.stars[i].Update(float32(x*scale), float32(y*scale))
 	}
 	return nil
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	for i := 0; i < starsCount; i++ {
+	for i := range starsCount {
 		g.stars[i].Draw(screen)
 	}
 }

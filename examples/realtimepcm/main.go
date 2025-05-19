@@ -82,7 +82,7 @@ func (s *SineWave) Read(buf []byte) (int, error) {
 
 	length := sampleRate / float64(s.frequency)
 	p := float64(length * s.pos)
-	for i := 0; i < n/bytesPerSample; i++ {
+	for i := range n / bytesPerSample {
 		v := math.Float32bits(float32(math.Sin(2 * math.Pi * p / length)))
 		buf[8*i] = byte(v)
 		buf[8*i+1] = byte(v >> 8)

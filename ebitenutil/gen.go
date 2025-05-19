@@ -43,9 +43,9 @@ func run() error {
 	)
 
 	var lines []string
-	for j := 0; j < 8; j++ {
+	for j := range 8 {
 		var line string
-		for i := 0; i < 32; i++ {
+		for i := range 32 {
 			line += string(rune(i + j*32))
 		}
 		lines = append(lines, line)

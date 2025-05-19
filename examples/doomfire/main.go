@@ -87,8 +87,8 @@ func NewGame() *Game {
 }
 
 func (g *Game) updateFirePixels() {
-	for i := 0; i < screenWidth; i++ {
-		for j := 0; j < screenHeight; j++ {
+	for i := range screenWidth {
+		for j := range screenHeight {
 			idx := i + (screenWidth * j)
 			g.updateFireIntensityPerPixel(idx)
 		}
@@ -103,9 +103,7 @@ func (g *Game) updateFireIntensityPerPixel(currentPixelIndex int) {
 
 	d := rand.IntN(3)
 	newI := int(g.indices[below]) - d
-	if newI < 0 {
-		newI = 0
-	}
+	newI = max(newI, 0)
 
 	if currentPixelIndex-d < 0 {
 		return

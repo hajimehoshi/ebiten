@@ -94,7 +94,7 @@ func main() {
 	gophersImage = ebiten.NewImageFromImage(img)
 
 	// Extend the shared backend GL texture on purpose.
-	for i := 0; i < 20; i++ {
+	for range 20 {
 		eimg := ebiten.NewImageFromImage(img)
 		extraImages = append(extraImages, eimg)
 	}

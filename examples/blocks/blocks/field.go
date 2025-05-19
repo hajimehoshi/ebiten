@@ -128,7 +128,7 @@ func (f *Field) flushable() bool {
 // flushableLine returns a boolean value indicating whether
 // the line j is flushable or not.
 func (f *Field) flushableLine(j int) bool {
-	for i := 0; i < fieldBlockCountX; i++ {
+	for i := range fieldBlockCountX {
 		if f.blocks[i][j] == BlockTypeNone {
 			return false
 		}
@@ -156,17 +156,17 @@ func (f *Field) endFlushAnimating() int {
 // flushLine returns a boolean value indicating whether
 // the line is actually flushed.
 func (f *Field) flushLine(j int) bool {
-	for i := 0; i < fieldBlockCountX; i++ {
+	for i := range fieldBlockCountX {
 		if f.blocks[i][j] == BlockTypeNone {
 			return false
 		}
 	}
 	for j2 := j; 1 <= j2; j2-- {
-		for i := 0; i < fieldBlockCountX; i++ {
+		for i := range fieldBlockCountX {
 			f.blocks[i][j2] = f.blocks[i][j2-1]
 		}
 	}
-	for i := 0; i < fieldBlockCountX; i++ {
+	for i := range fieldBlockCountX {
 		f.blocks[i][0] = BlockTypeNone
 	}
 	return true
@@ -200,11 +200,11 @@ func (f *Field) Draw(r *ebiten.Image, x, y int) {
 	fc := flushingColor(float64(f.flushCount) / maxFlushCount)
 	for j := 0; j < fieldBlockCountY; j++ {
 		if f.flushableLine(j) {
-			for i := 0; i < fieldBlockCountX; i++ {
+			for i := range fieldBlockCountX {
 				drawBlock(r, f.blocks[i][j], i*blockWidth+x, j*blockHeight+y, fc)
 			}
 		} else {
-			for i := 0; i < fieldBlockCountX; i++ {
+			for i := range fieldBlockCountX {
 				drawBlock(r, f.blocks[i][j], i*blockWidth+x, j*blockHeight+y, colorm.ColorM{})
 			}
 		}

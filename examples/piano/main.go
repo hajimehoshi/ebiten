@@ -103,7 +103,7 @@ func init() {
 		const refFreq = 110
 		length := 4 * sampleRate * baseFreq / refFreq
 		refData := make([]float32, length)
-		for i := 0; i < length; i++ {
+		for i := range length {
 			refData[i] = pianoAt(i, refFreq)
 		}
 
@@ -114,7 +114,7 @@ func init() {
 			length := 4 * sampleRate * baseFreq / int(freq)
 			l := make([]float32, length)
 			r := make([]float32, length)
-			for i := 0; i < length; i++ {
+			for i := range length {
 				idx := int(float64(i) * freq / refFreq)
 				if len(refData) <= idx {
 					break

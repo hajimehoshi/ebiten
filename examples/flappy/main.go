@@ -398,7 +398,7 @@ func (g *Game) drawTiles(screen *ebiten.Image) {
 
 		// pipe
 		if tileY, ok := g.pipeAt(floorDiv(g.cameraX, tileSize) + i); ok {
-			for j := 0; j < tileY; j++ {
+			for j := range tileY {
 				op.GeoM.Reset()
 				op.GeoM.Scale(1, -1)
 				op.GeoM.Translate(float64(i*tileSize-floorMod(g.cameraX, tileSize)),

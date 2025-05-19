@@ -183,8 +183,8 @@ func (p *Piece) InitialPosition() (int, int) {
 	x := (fieldBlockCountX - size) / 2
 	y := 0
 Loop:
-	for j := 0; j < size; j++ {
-		for i := 0; i < size; i++ {
+	for j := range size {
+		for i := range size {
 			if p.blocks[i][j] {
 				break Loop
 			}
@@ -218,8 +218,8 @@ func (p *Piece) isBlocked(i, j int, angle Angle) bool {
 // the piece at (x, y) with the given angle would collide with the field's blocks.
 func (p *Piece) collides(field *Field, x, y int, angle Angle) bool {
 	size := len(p.blocks)
-	for i := 0; i < size; i++ {
-		for j := 0; j < size; j++ {
+	for i := range size {
+		for j := range size {
 			if field.IsBlocked(x+i, y+j) && p.isBlocked(i, j, angle) {
 				return true
 			}
@@ -230,8 +230,8 @@ func (p *Piece) collides(field *Field, x, y int, angle Angle) bool {
 
 func (p *Piece) AbsorbInto(field *Field, x, y int, angle Angle) {
 	size := len(p.blocks)
-	for i := 0; i < size; i++ {
-		for j := 0; j < size; j++ {
+	for i := range size {
+		for j := range size {
 			if p.isBlocked(i, j, angle) {
 				field.setBlock(x+i, y+j, p.blockType)
 			}

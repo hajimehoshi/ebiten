@@ -227,7 +227,7 @@ func NewGame() *Game {
 		clr.G = uint8(g * a / oa)
 		clr.B = uint8(b * a / oa)
 		clr.A = uint8(a)
-		for i := 0; i < w; i++ {
+		for i := range w {
 			fogRGBA.SetRGBA(i, j, clr)
 		}
 	}

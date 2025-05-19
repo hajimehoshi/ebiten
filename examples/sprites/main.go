@@ -94,7 +94,7 @@ type Sprites struct {
 }
 
 func (s *Sprites) Update() {
-	for i := 0; i < s.num; i++ {
+	for i := range s.num {
 		s.sprites[i].Update()
 	}
 }
@@ -164,7 +164,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	// For more detail, see:
 	// https://pkg.go.dev/github.com/hajimehoshi/ebiten/v2#Image.DrawImage
 	w, h := ebitenImage.Bounds().Dx(), ebitenImage.Bounds().Dy()
-	for i := 0; i < g.sprites.num; i++ {
+	for i := range g.sprites.num {
 		s := g.sprites.sprites[i]
 		g.op.GeoM.Reset()
 		g.op.GeoM.Translate(-float64(w)/2, -float64(h)/2)

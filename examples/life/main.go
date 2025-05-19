@@ -33,7 +33,7 @@ func NewWorld(width, height int, maxInitLiveCells int) *World {
 
 // init inits world with a random state.
 func (w *World) init(maxLiveCells int) {
-	for i := 0; i < maxLiveCells; i++ {
+	for range maxLiveCells {
 		x := rand.IntN(w.width)
 		y := rand.IntN(w.height)
 		w.area[y*w.width+x] = true
@@ -45,8 +45,8 @@ func (w *World) Update() {
 	width := w.width
 	height := w.height
 	next := make([]bool, width*height)
-	for y := 0; y < height; y++ {
-		for x := 0; x < width; x++ {
+	for y := range height {
+		for x := range width {
 			pop := neighbourCount(w.area, width, height, x, y)
 			switch {
 			case pop < 2:

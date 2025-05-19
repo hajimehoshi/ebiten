@@ -251,13 +251,13 @@ func (au *automaton) init(game *Game) {
 		}
 	}
 
-	for i := 0; i < numOfSquirals; i++ {
+	for i := range numOfSquirals {
 		au.squirals[i].spawn(game)
 	}
 }
 
 func (a *automaton) step(game *Game) {
-	for i := 0; i < numOfSquirals; i++ {
+	for i := range numOfSquirals {
 		for s := 0; s < a.squirals[i].speed; s++ {
 			a.squirals[i].step(game)
 			if a.squirals[i].dead {
