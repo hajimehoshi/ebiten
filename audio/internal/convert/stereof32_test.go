@@ -89,7 +89,7 @@ func TestStereoF32(t *testing.T) {
 							break
 						}
 						// Shifting by incomplete bytes should not affect the result.
-						for i := 0; i < 4*2; i++ {
+						for i := range 4 * 2 {
 							if _, err := s.Seek(int64(i), io.SeekCurrent); err != nil {
 								if err != io.EOF {
 									t.Fatal(err)

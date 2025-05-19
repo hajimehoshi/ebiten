@@ -54,7 +54,7 @@ func (r *float32BytesReadSeeker) Read(buf []byte) (int, error) {
 		return 0, err
 	}
 
-	for i := 0; i < n; i++ {
+	for i := range n {
 		v := math.Float32bits(r.fbuf[i])
 		buf[4*i] = byte(v)
 		buf[4*i+1] = byte(v >> 8)

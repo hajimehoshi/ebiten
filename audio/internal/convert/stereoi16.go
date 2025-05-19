@@ -66,7 +66,7 @@ func (s *StereoI16ReadSeeker) Read(b []byte) (int, error) {
 	if s.mono {
 		switch s.format {
 		case FormatU8:
-			for i := 0; i < n; i++ {
+			for i := range n {
 				v := int16(int(s.buf[i])*0x101 - (1 << 15))
 				b[4*i] = byte(v)
 				b[4*i+1] = byte(v >> 8)
@@ -74,14 +74,14 @@ func (s *StereoI16ReadSeeker) Read(b []byte) (int, error) {
 				b[4*i+3] = byte(v >> 8)
 			}
 		case FormatS16:
-			for i := 0; i < n/2; i++ {
+			for i := range n / 2 {
 				b[4*i] = s.buf[2*i]
 				b[4*i+1] = s.buf[2*i+1]
 				b[4*i+2] = s.buf[2*i]
 				b[4*i+3] = s.buf[2*i+1]
 			}
 		case FormatS24:
-			for i := 0; i < n/3; i++ {
+			for i := range n / 3 {
 				b[4*i] = s.buf[3*i+1]
 				b[4*i+1] = s.buf[3*i+2]
 				b[4*i+2] = s.buf[3*i+1]
@@ -91,7 +91,7 @@ func (s *StereoI16ReadSeeker) Read(b []byte) (int, error) {
 	} else {
 		switch s.format {
 		case FormatU8:
-			for i := 0; i < n/2; i++ {
+			for i := range n / 2 {
 				v0 := int16(int(s.buf[2*i])*0x101 - (1 << 15))
 				v1 := int16(int(s.buf[2*i+1])*0x101 - (1 << 15))
 				b[4*i] = byte(v0)
@@ -102,7 +102,7 @@ func (s *StereoI16ReadSeeker) Read(b []byte) (int, error) {
 		case FormatS16:
 			copy(b[:n], s.buf[:n])
 		case FormatS24:
-			for i := 0; i < n/6; i++ {
+			for i := range n / 6 {
 				b[4*i] = s.buf[6*i+1]
 				b[4*i+1] = s.buf[6*i+2]
 				b[4*i+2] = s.buf[6*i+4]
