@@ -25,7 +25,7 @@ import (
 func TestGeoMInit(t *testing.T) {
 	var m ebiten.GeoM
 	for i := range ebiten.GeoMDim - 1 {
-		for j := 0; j < ebiten.GeoMDim; j++ {
+		for j := range ebiten.GeoMDim {
 			got := m.Element(i, j)
 			want := 0.0
 			if i == j {
