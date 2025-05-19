@@ -925,7 +925,7 @@ func TestImageSprites(t *testing.T) {
 	src := ebiten.NewImage(4, 4)
 	src.Fill(color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff})
 	dst := ebiten.NewImage(width, height)
-	for j := 0; j < height/4; j++ {
+	for j := range height / 4 {
 		for i := range width / 4 {
 			op := &ebiten.DrawImageOptions{}
 			op.GeoM.Translate(float64(i*4), float64(j*4))
@@ -933,7 +933,7 @@ func TestImageSprites(t *testing.T) {
 		}
 	}
 
-	for j := 0; j < height/4; j++ {
+	for j := range height / 4 {
 		for i := range width / 4 {
 			got := dst.At(i*4, j*4).(color.RGBA)
 			want := color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff}
