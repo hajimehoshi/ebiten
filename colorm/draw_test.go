@@ -173,8 +173,8 @@ func TestDrawTrianglesWithColorM(t *testing.T) {
 			op.ColorScaleMode = format
 			dst1.DrawTriangles(vs1, is, src, op)
 
-			for j := 0; j < h; j++ {
-				for i := 0; i < w; i++ {
+			for j := range h {
+				for i := range w {
 					got := dst0.At(i, j)
 					want := dst1.At(i, j)
 					if got != want {
@@ -288,8 +288,8 @@ func TestColorMCopy(t *testing.T) {
 		op.Blend = ebiten.BlendCopy
 		colorm.DrawImage(dst, src, cm, op)
 
-		for j := 0; j < h; j++ {
-			for i := 0; i < w; i++ {
+		for j := range h {
+			for i := range w {
 				got := dst.At(i, j).(color.RGBA)
 				want := color.RGBA{R: byte(k), G: byte(k), B: byte(k), A: byte(k)}
 				if !sameColors(got, want, 1) {

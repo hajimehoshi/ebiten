@@ -24,8 +24,8 @@ import (
 
 func TestColorMInit(t *testing.T) {
 	var m colorm.ColorM
-	for i := 0; i < colorm.Dim-1; i++ {
-		for j := 0; j < colorm.Dim; j++ {
+	for i := range colorm.Dim - 1 {
+		for j := range colorm.Dim {
 			got := m.Element(i, j)
 			want := 0.0
 			if i == j {
@@ -38,8 +38,8 @@ func TestColorMInit(t *testing.T) {
 	}
 
 	m.SetElement(0, 0, 1)
-	for i := 0; i < colorm.Dim-1; i++ {
-		for j := 0; j < colorm.Dim; j++ {
+	for i := range colorm.Dim - 1 {
+		for j := range colorm.Dim {
 			got := m.Element(i, j)
 			want := 0.0
 			if i == j {
@@ -73,8 +73,8 @@ func TestColorMTranslate(t *testing.T) {
 	}
 	m := colorm.ColorM{}
 	m.Translate(0.5, 1.5, 2.5, 3.5)
-	for i := 0; i < 4; i++ {
-		for j := 0; j < 5; j++ {
+	for i := range 4 {
+		for j := range 5 {
 			got := m.Element(i, j)
 			want := expected[i][j]
 			if want != got {
@@ -93,8 +93,8 @@ func TestColorMScale(t *testing.T) {
 	}
 	m := colorm.ColorM{}
 	m.Scale(0.5, 1.5, 2.5, 3.5)
-	for i := 0; i < 4; i++ {
-		for j := 0; j < 5; j++ {
+	for i := range 4 {
+		for j := range 5 {
 			got := m.Element(i, j)
 			want := expected[i][j]
 			if want != got {
@@ -114,8 +114,8 @@ func TestColorMTranslateAndScale(t *testing.T) {
 	m := colorm.ColorM{}
 	m.Translate(0, 0, 0, 1)
 	m.Scale(1, 1, 1, 0.5)
-	for i := 0; i < 4; i++ {
-		for j := 0; j < 5; j++ {
+	for i := range 4 {
+		for j := range 5 {
 			got := m.Element(i, j)
 			want := expected[i][j]
 			if want != got {
@@ -134,8 +134,8 @@ func TestColorMMonochrome(t *testing.T) {
 	}
 	m := colorm.ColorM{}
 	m.ChangeHSV(0, 0, 1)
-	for i := 0; i < 4; i++ {
-		for j := 0; j < 5; j++ {
+	for i := range 4 {
+		for j := range 5 {
 			got := m.Element(i, j)
 			want := expected[i][j]
 			if math.Abs(want-got) > 0.0001 {
@@ -153,14 +153,14 @@ func TestColorMConcatSelf(t *testing.T) {
 		{25, 37, 39, 46, 36},
 	}
 	m := colorm.ColorM{}
-	for i := 0; i < 4; i++ {
-		for j := 0; j < 5; j++ {
+	for i := range 4 {
+		for j := range 5 {
 			m.SetElement(i, j, float64((i+j)%5+1))
 		}
 	}
 	m.Concat(m)
-	for i := 0; i < 4; i++ {
-		for j := 0; j < 5; j++ {
+	for i := range 4 {
+		for j := range 5 {
 			got := m.Element(i, j)
 			want := expected[i][j]
 			if want != got {
