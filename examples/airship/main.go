@@ -56,8 +56,8 @@ func init() {
 	)
 	w, h := gophersImage.Bounds().Dx(), gophersImage.Bounds().Dy()
 	repeatedGophersImage = ebiten.NewImage(w*xrepeat, h*yrepeat)
-	for j := 0; j < yrepeat; j++ {
-		for i := 0; i < xrepeat; i++ {
+	for j := range yrepeat {
+		for i := range xrepeat {
 			op := &ebiten.DrawImageOptions{}
 			op.GeoM.Translate(float64(w*i), float64(h*j))
 			repeatedGophersImage.DrawImage(gophersImage, op)
