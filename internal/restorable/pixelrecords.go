@@ -39,15 +39,15 @@ func (p *pixelsRecord) readPixels(pixels []byte, region image.Rectangle, imageWi
 	if p.pix != nil {
 		srcBaseX := r.Min.X - p.rect.Min.X
 		srcBaseY := r.Min.Y - p.rect.Min.Y
-		for j := 0; j < r.Dy(); j++ {
+		for j := range r.Dy() {
 			dstX := 4 * ((dstBaseY+j)*region.Dx() + dstBaseX)
 			srcX := 4 * ((srcBaseY+j)*p.rect.Dx() + srcBaseX)
 			p.pix.Read(pixels[dstX:dstX+lineWidth], srcX, srcX+lineWidth)
 		}
 	} else {
-		for j := 0; j < r.Dy(); j++ {
+		for j := range r.Dy() {
 			dstX := 4 * ((dstBaseY+j)*region.Dx() + dstBaseX)
-			for i := 0; i < lineWidth; i++ {
+			for i := range lineWidth {
 				pixels[i+dstX] = 0
 			}
 		}

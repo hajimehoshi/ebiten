@@ -45,7 +45,7 @@ func segmentsToBounds(segs []opentype.Segment) fixed.Rectangle26_6 {
 		case opentype.SegmentOpCubeTo:
 			n = 3
 		}
-		for i := 0; i < n; i++ {
+		for i := range n {
 			x := seg.Args[i].X
 			y := seg.Args[i].Y
 			if minX > x {

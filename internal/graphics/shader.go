@@ -91,7 +91,7 @@ func imageSrcRegionOnTexture() (vec2, vec2) {
 }
 `, ShaderSrcImageCount)
 
-	for i := 0; i < ShaderSrcImageCount; i++ {
+	for i := range ShaderSrcImageCount {
 		shaderSuffix += fmt.Sprintf(`
 // imageSrc%[1]dOrigin returns the source image's region origin on its texture.
 // The unit is the source texture's pixel or texel.

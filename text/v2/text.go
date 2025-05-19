@@ -261,7 +261,7 @@ func CacheGlyphs(text string, face Face) {
 
 	var buf []Glyph
 	// Create all the possible variations (#2528).
-	for i := 0; i < c; i++ {
+	for range c {
 		buf = appendGlyphs(buf, text, face, x, y, nil)
 		buf = buf[:0]
 

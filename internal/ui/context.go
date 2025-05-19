@@ -87,7 +87,7 @@ func (c *context) forceUpdateFrame(graphicsDriver graphicsdriver.Graphics, outsi
 		// Or, the rendering result becomes unexpected when the window is resized.
 		n = 2
 	}
-	for i := 0; i < n; i++ {
+	for range n {
 		needsSwapBuffers, err := c.updateFrameImpl(graphicsDriver, 1, outsideWidth, outsideHeight, deviceScaleFactor, ui, true)
 		if err != nil {
 			return err
@@ -142,7 +142,7 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 	debug.FrameLogf("Update count per frame: %d\n", updateCount)
 
 	// Update the game.
-	for i := 0; i < updateCount; i++ {
+	for range updateCount {
 		// Read the input state and use it for one tick to give a consistent result for one tick (#2496, #2501).
 		c.game.UpdateInputState(func(inputState *InputState) {
 			ui.readInputState(inputState)

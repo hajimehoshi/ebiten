@@ -135,7 +135,7 @@ func Compile(p *shaderir.Program, version GLSLVersion) (vertexShader, fragmentSh
 			for i, t := range p.Uniforms {
 				vslines = append(vslines, fmt.Sprintf("uniform %s;", c.varDecl(p, &t, fmt.Sprintf("U%d", i))))
 			}
-			for i := 0; i < p.TextureCount; i++ {
+			for i := range p.TextureCount {
 				vslines = append(vslines, fmt.Sprintf("uniform sampler2D T%d;", i))
 			}
 			for i, t := range p.Attributes {
@@ -224,7 +224,7 @@ func Compile(p *shaderir.Program, version GLSLVersion) (vertexShader, fragmentSh
 			for i, t := range p.Uniforms {
 				fslines = append(fslines, fmt.Sprintf("uniform %s;", c.varDecl(p, &t, fmt.Sprintf("U%d", i))))
 			}
-			for i := 0; i < p.TextureCount; i++ {
+			for i := range p.TextureCount {
 				fslines = append(fslines, fmt.Sprintf("uniform sampler2D T%d;", i))
 			}
 			for i, t := range p.Varyings {
@@ -325,7 +325,7 @@ func (c *compileContext) varInit(p *shaderir.Program, t *shaderir.Type) string {
 	case shaderir.Array:
 		init := c.varInit(p, &t.Sub[0])
 		es := make([]string, 0, t.Length)
-		for i := 0; i < t.Length; i++ {
+		for range t.Length {
 			es = append(es, init)
 		}
 		t0, t1 := typeString(t)
@@ -439,7 +439,7 @@ func (c *compileContext) initVariable(p *shaderir.Program, topBlock, block *shad
 			lines = append(lines, fmt.Sprintf("%s%s;", idt, c.varDecl(p, &t, name)))
 		}
 		init := c.varInit(p, &t.Sub[0])
-		for i := 0; i < t.Length; i++ {
+		for i := range t.Length {
 			lines = append(lines, fmt.Sprintf("%s%s[%d] = %s;", idt, name, i, init))
 		}
 	case shaderir.None:
@@ -537,7 +537,7 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 			rhs := s.Exprs[1]
 			if lhs.Type == shaderir.LocalVariable {
 				if t := p.LocalVariableType(topBlock, block, lhs.Index); t.Main == shaderir.Array {
-					for i := 0; i < t.Length; i++ {
+					for i := range t.Length {
 						lines = append(lines, fmt.Sprintf("%[1]s%[2]s[%[3]d] = %[4]s[%[3]d];", idt, expr(&lhs), i, expr(&rhs)))
 					}
 					continue
@@ -663,7 +663,7 @@ func adjustProgram(p *shaderir.Program) *shaderir.Program {
 			Index: funcIdx,
 		},
 	}
-	for i := 0; i < 1+len(newP.Varyings); i++ {
+	for i := range 1 + len(newP.Varyings) {
 		call = append(call, shaderir.Expr{
 			Type:  shaderir.LocalVariable,
 			Index: i,

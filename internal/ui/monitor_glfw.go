@@ -132,7 +132,7 @@ func (m *monitors) update() error {
 
 		// Keep calling GetContentScale until the returned scale is 0 (#2051).
 		// Retry this at most 5 times to avoid an infinite loop.
-		for i := 0; i < 5; i++ {
+		for range 5 {
 			// An error can happen e.g. when entering a screensaver on Windows (#2488).
 			sx, _, err := m.GetContentScale()
 			if err != nil {

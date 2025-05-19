@@ -716,7 +716,7 @@ func (u *UserInterface) appendDroppedFiles(data js.Value) {
 	items := data.Get("items")
 
 	var entries []js.Value
-	for i := 0; i < items.Length(); i++ {
+	for i := range items.Length() {
 		kind := items.Index(i).Get("kind").String()
 		switch kind {
 		case "file":

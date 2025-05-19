@@ -67,8 +67,8 @@ func TestTextColor(t *testing.T) {
 
 	w, h := img.Bounds().Dx(), img.Bounds().Dy()
 	allTransparent := true
-	for j := 0; j < h; j++ {
-		for i := 0; i < w; i++ {
+	for j := range h {
+		for i := range w {
 			got := img.At(i, j)
 			want1 := color.RGBA{R: 0x80, G: 0x80, B: 0x80, A: 0x80}
 			want2 := color.RGBA{}
@@ -155,8 +155,8 @@ func TestNegativeKern(t *testing.T) {
 	op := &text.DrawOptions{}
 	op.GeoM.Translate(0, 0)
 	text.Draw(dst, "ab", f, op)
-	for j := 0; j < testGoXFaceSize; j++ {
-		for i := 0; i < testGoXFaceSize; i++ {
+	for j := range testGoXFaceSize {
+		for i := range testGoXFaceSize {
 			got := dst.At(i, j)
 			want := color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff}
 			if got != want {
@@ -169,7 +169,7 @@ func TestNegativeKern(t *testing.T) {
 	op = &text.DrawOptions{}
 	op.GeoM.Translate(testGoXFaceSize, 0)
 	text.Draw(dst, "a", f, op)
-	for j := 0; j < testGoXFaceSize; j++ {
+	for j := range testGoXFaceSize {
 		for i := testGoXFaceSize; i < testGoXFaceSize*2; i++ {
 			got := dst.At(i, j)
 			want := color.RGBA{R: 0x80, G: 0x80, B: 0x80, A: 0x80}

@@ -36,16 +36,16 @@ func (g *Game) Update() error {
 	w, h := 256+g.count, 256+g.count
 	img := ebiten.NewImage(w, h)
 	img.Fill(color.White)
-	for j := 0; j < h; j++ {
-		for i := 0; i < w; i++ {
+	for j := range h {
+		for i := range w {
 			if (i+j)%3 == 0 {
 				img.Set(i, j, color.Black)
 			}
 		}
 	}
 
-	for j := 0; j < h; j++ {
-		for i := 0; i < w; i++ {
+	for j := range h {
+		for i := range w {
 			want := color.RGBA{0xff, 0xff, 0xff, 0xff}
 			if (i+j)%3 == 0 {
 				want = color.RGBA{0, 0, 0, 0xff}

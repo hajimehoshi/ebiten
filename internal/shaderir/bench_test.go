@@ -28,7 +28,7 @@ func BenchmarkFilter(b *testing.B) {
 		b.Fatal(err)
 	}
 	uniforms := make([]uint32, graphics.PreservedUniformDwordCount)
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		s.FilterUniformVariables(uniforms)
 	}
 }

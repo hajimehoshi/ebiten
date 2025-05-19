@@ -213,7 +213,7 @@ func (i *Image) dumpTo(w io.Writer, graphicsDriver graphicsdriver.Graphics, blac
 	}
 
 	if blackbg {
-		for i := 0; i < len(pix)/4; i++ {
+		for i := range len(pix) / 4 {
 			pix[4*i+3] = 0xff
 		}
 	}

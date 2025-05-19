@@ -75,7 +75,7 @@ func TestShader(t *testing.T) {
 func TestShaderChain(t *testing.T) {
 	const num = 10
 	imgs := []*restorable.Image{}
-	for i := 0; i < num; i++ {
+	for range num {
 		img := restorable.NewImage(1, 1, restorable.ImageTypeRegular)
 		defer img.Dispose()
 		imgs = append(imgs, img)
@@ -84,7 +84,7 @@ func TestShaderChain(t *testing.T) {
 	imgs[0].WritePixels(bytesToManagedBytes([]byte{0xff, 0, 0, 0xff}), image.Rect(0, 0, 1, 1))
 
 	s := restorable.NewShader(etesting.ShaderProgramImages(1), "")
-	for i := 0; i < num-1; i++ {
+	for i := range num - 1 {
 		dr := image.Rect(0, 0, 1, 1)
 		sr := image.Rect(0, 0, 1, 1)
 		imgs[i+1].DrawTriangles([graphics.ShaderSrcImageCount]*restorable.Image{imgs[i]}, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, s, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)

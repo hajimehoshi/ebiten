@@ -135,7 +135,7 @@ func Compile(p *shaderir.Program) (vertexShader, pixelShader, prelude string) {
 
 	if p.TextureCount > 0 {
 		lines = append(lines, "")
-		for i := 0; i < p.TextureCount; i++ {
+		for i := range p.TextureCount {
 			lines = append(lines, fmt.Sprintf("Texture2D T%[1]d : register(t%[1]d);", i))
 		}
 		if c.unit == shaderir.Texels {
@@ -295,7 +295,7 @@ func (c *compileContext) varInit(p *shaderir.Program, t *shaderir.Type) string {
 	case shaderir.Array:
 		init := c.varInit(p, &t.Sub[0])
 		es := make([]string, 0, t.Length)
-		for i := 0; i < t.Length; i++ {
+		for range t.Length {
 			es = append(es, init)
 		}
 		t0, t1 := typeString(t)
@@ -407,7 +407,7 @@ func (c *compileContext) initVariable(p *shaderir.Program, topBlock, block *shad
 			lines = append(lines, fmt.Sprintf("%s%s;", idt, c.varDecl(p, &t, name)))
 		}
 		init := c.varInit(p, &t.Sub[0])
-		for i := 0; i < t.Length; i++ {
+		for i := range t.Length {
 			lines = append(lines, fmt.Sprintf("%s%s[%d] = %s;", idt, name, i, init))
 		}
 	case shaderir.None:
@@ -539,7 +539,7 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 			rhs := s.Exprs[1]
 			if lhs.Type == shaderir.LocalVariable {
 				if t := p.LocalVariableType(topBlock, block, lhs.Index); t.Main == shaderir.Array {
-					for i := 0; i < t.Length; i++ {
+					for i := range t.Length {
 						lines = append(lines, fmt.Sprintf("%[1]s%[2]s[%[3]d] = %[4]s[%[3]d];", idt, expr(&lhs), i, expr(&rhs)))
 					}
 					continue

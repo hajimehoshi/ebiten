@@ -45,7 +45,7 @@ func ShaderProgramImages(numImages int) *shaderir.Program {
 	}
 
 	var exprs []string
-	for i := 0; i < numImages; i++ {
+	for i := range numImages {
 		exprs = append(exprs, fmt.Sprintf("imageSrc%dUnsafeAt(srcPos)", i))
 	}
 

@@ -92,15 +92,15 @@ func (s *Shader) AppendUniforms(dst []uint32, uniforms map[string]any) []uint32 
 				}
 				switch t.Elem().Kind() {
 				case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-					for i := 0; i < l; i++ {
+					for i := range l {
 						dst[idx+i] = uint32(v.Index(i).Int())
 					}
 				case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-					for i := 0; i < l; i++ {
+					for i := range l {
 						dst[idx+i] = uint32(v.Index(i).Uint())
 					}
 				case reflect.Float32, reflect.Float64:
-					for i := 0; i < l; i++ {
+					for i := range l {
 						dst[idx+i] = math.Float32bits(float32(v.Index(i).Float()))
 					}
 				default:

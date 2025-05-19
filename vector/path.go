@@ -655,7 +655,7 @@ func appendVerticesAndIndicesForStroke[T ~uint16 | ~uint32](path *Path, vertices
 		}
 
 		rects = rects[:0]
-		for i := 0; i < subpath.pointCount()-1; i++ {
+		for i := range subpath.pointCount() - 1 {
 			pt := subpath.points[i]
 
 			nextPt := subpath.points[i+1]

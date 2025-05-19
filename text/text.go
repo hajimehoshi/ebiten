@@ -366,7 +366,7 @@ func CacheGlyphs(face font.Face, text string) {
 		b, a, _ := fc.GlyphBounds(r)
 
 		// Cache all 4 variations for one rune (#2528).
-		for i := 0; i < 4; i++ {
+		for i := range 4 {
 			offset := fixed.Point26_6{
 				X: (fixed.Int26_6(i*(1<<4)) + b.Min.X) & ((1 << 6) - 1),
 				Y: b.Min.Y & ((1 << 6) - 1),

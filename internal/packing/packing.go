@@ -217,11 +217,11 @@ func (p *Page) extendAndAlloc(width, height int) *Node {
 	for i := 1; ; i++ {
 		for j := 0; j <= i; j++ {
 			newWidth := p.width
-			for k := 0; k < i-j; k++ {
+			for range i - j {
 				newWidth *= 2
 			}
 			newHeight := p.height
-			for k := 0; k < j; k++ {
+			for range j {
 				newHeight *= 2
 			}
 
