@@ -108,8 +108,8 @@ func TestImagePixels(t *testing.T) {
 
 	pix := make([]byte, 4*w*h)
 	img0.ReadPixels(pix)
-	for j := 0; j < h; j++ {
-		for i := 0; i < w; i++ {
+	for j := range h {
+		for i := range w {
 			idx := 4 * (j*w + i)
 			got := color.RGBA{R: pix[idx], G: pix[idx+1], B: pix[idx+2], A: pix[idx+3]}
 			want := color.RGBAModel.Convert(img.At(i, j))
@@ -150,8 +150,8 @@ func TestImageComposition(t *testing.T) {
 	img3.DrawImage(img1, nil)
 	img_1_23.DrawImage(img3, nil)
 
-	for j := 0; j < h; j++ {
-		for i := 0; i < w; i++ {
+	for j := range h {
+		for i := range w {
 			c1 := img_12_3.At(i, j).(color.RGBA)
 			c2 := img_1_23.At(i, j).(color.RGBA)
 			if !sameColors(c1, c2, 1) {
@@ -221,8 +221,8 @@ func TestImage90DegreeRotate(t *testing.T) {
 	op.GeoM.Translate(float64(h), 0)
 	img1.DrawImage(img0, op)
 
-	for j := 0; j < h; j++ {
-		for i := 0; i < w; i++ {
+	for j := range h {
+		for i := range w {
 			c0 := img0.At(i, j).(color.RGBA)
 			c1 := img1.At(h-j-1, i).(color.RGBA)
 			if c0 != c1 {
@@ -245,8 +245,8 @@ func TestImageDotByDotInversion(t *testing.T) {
 	op.GeoM.Translate(float64(w), float64(h))
 	img1.DrawImage(img0, op)
 
-	for j := 0; j < h; j++ {
-		for i := 0; i < w; i++ {
+	for j := range h {
+		for i := range w {
 			c0 := img0.At(i, j).(color.RGBA)
 			c1 := img1.At(w-i-1, h-j-1).(color.RGBA)
 			if c0 != c1 {
@@ -422,8 +422,8 @@ func TestImageFill(t *testing.T) {
 	clr := &mutableRGBA{0x80, 0x80, 0x80, 0x80}
 	img.Fill(clr)
 	clr.r = 0
-	for j := 0; j < h; j++ {
-		for i := 0; i < w; i++ {
+	for j := range h {
+		for i := range w {
 			got := img.At(i, j)
 			want := color.RGBA{R: 0x80, G: 0x80, B: 0x80, A: 0x80}
 			if got != want {
@@ -438,8 +438,8 @@ func TestImageClear(t *testing.T) {
 	const w, h = 128, 256
 	img := ebiten.NewImage(w, h)
 	img.Fill(color.White)
-	for j := 0; j < h; j++ {
-		for i := 0; i < w; i++ {
+	for j := range h {
+		for i := range w {
 			got := img.At(i, j)
 			want := color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff}
 			if got != want {
@@ -448,8 +448,8 @@ func TestImageClear(t *testing.T) {
 		}
 	}
 	img.Clear()
-	for j := 0; j < h; j++ {
-		for i := 0; i < w; i++ {
+	for j := range h {
+		for i := range w {
 			got := img.At(i, j)
 			want := color.RGBA{}
 			if got != want {
@@ -478,8 +478,8 @@ func TestImageEdge(t *testing.T) {
 	)
 	img0 := ebiten.NewImage(img0Width, img0Height)
 	pixels := make([]uint8, 4*img0Width*img0Height)
-	for j := 0; j < img0Height; j++ {
-		for i := 0; i < img0Width; i++ {
+	for j := range img0Height {
+		for i := range img0Width {
 			idx := 4 * (i + j*img0Width)
 			pixels[idx] = 0xff
 			pixels[idx+1] = 0
@@ -610,7 +610,7 @@ func TestImageTooManyFill(t *testing.T) {
 
 	src := ebiten.NewImage(1, 1)
 	dst := ebiten.NewImage(width, 1)
-	for i := 0; i < width; i++ {
+	for i := range width {
 		c := indexToColor(i)
 		src.Fill(color.RGBA{R: c, G: c, B: c, A: 0xff})
 		op := &ebiten.DrawImageOptions{}
@@ -618,7 +618,7 @@ func TestImageTooManyFill(t *testing.T) {
 		dst.DrawImage(src, op)
 	}
 
-	for i := 0; i < width; i++ {
+	for i := range width {
 		c := indexToColor(i)
 		got := dst.At(i, 0).(color.RGBA)
 		want := color.RGBA{R: c, G: c, B: c, A: 0xff}
@@ -685,7 +685,7 @@ func BenchmarkDrawTriangles(b *testing.B) {
 		},
 	}
 	is := []uint16{0, 1, 2, 1, 2, 3}
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		img0.DrawTriangles(vs, is, img1, op)
 	}
 }
@@ -747,8 +747,8 @@ func TestImageOutside(t *testing.T) {
 			Max: image.Pt(c.X+c.Width, c.Y+c.Height),
 		}).(*ebiten.Image), op)
 
-		for j := 0; j < 4; j++ {
-			for i := 0; i < 4; i++ {
+		for j := range 4 {
+			for i := range 4 {
 				got := dst.At(i, j).(color.RGBA)
 				want := color.RGBA{}
 				if got != want {
@@ -773,8 +773,8 @@ func TestImageOutsideUpperLeft(t *testing.T) {
 	op.GeoM.Rotate(math.Pi / 4)
 	dst2.DrawImage(src, op)
 
-	for j := 0; j < 16; j++ {
-		for i := 0; i < 16; i++ {
+	for j := range 16 {
+		for i := range 16 {
 			got := dst1.At(i, j).(color.RGBA)
 			want := dst2.At(i, j).(color.RGBA)
 			if got != want {
@@ -816,7 +816,7 @@ func Skip_TestImageSize4096(t *testing.T) {
 	src := ebiten.NewImage(4096, 4096)
 	dst := ebiten.NewImage(4096, 4096)
 	pix := make([]byte, 4096*4096*4)
-	for i := 0; i < 4096; i++ {
+	for i := range 4096 {
 		j := 4095
 		idx := 4 * (i + j*4096)
 		pix[idx] = uint8(i + j)
@@ -824,7 +824,7 @@ func Skip_TestImageSize4096(t *testing.T) {
 		pix[idx+2] = uint8((i + j) >> 16)
 		pix[idx+3] = 0xff
 	}
-	for j := 0; j < 4096; j++ {
+	for j := range 4096 {
 		i := 4095
 		idx := 4 * (i + j*4096)
 		pix[idx] = uint8(i + j)
@@ -925,16 +925,16 @@ func TestImageSprites(t *testing.T) {
 	src := ebiten.NewImage(4, 4)
 	src.Fill(color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff})
 	dst := ebiten.NewImage(width, height)
-	for j := 0; j < height/4; j++ {
-		for i := 0; i < width/4; i++ {
+	for j := range height / 4 {
+		for i := range width / 4 {
 			op := &ebiten.DrawImageOptions{}
 			op.GeoM.Translate(float64(i*4), float64(j*4))
 			dst.DrawImage(src, op)
 		}
 	}
 
-	for j := 0; j < height/4; j++ {
-		for i := 0; i < width/4; i++ {
+	for j := range height / 4 {
+		for i := range width / 4 {
 			got := dst.At(i*4, j*4).(color.RGBA)
 			want := color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff}
 			if !sameColors(got, want, 1) {
@@ -978,8 +978,8 @@ func Disabled_TestImageMipmap(t *testing.T) {
 	op.Filter = ebiten.FilterLinear
 	wantDst.DrawImage(l2, op)
 
-	for j := 0; j < h; j++ {
-		for i := 0; i < w; i++ {
+	for j := range h {
+		for i := range w {
 			got := gotDst.At(i, j).(color.RGBA)
 			want := wantDst.At(i, j).(color.RGBA)
 			if !sameColors(got, want, 1) {
@@ -1026,8 +1026,8 @@ func Disabled_TestImageMipmapNegativeDet(t *testing.T) {
 	wantDst.DrawImage(l2, op)
 
 	allZero := true
-	for j := 0; j < h; j++ {
-		for i := 0; i < w; i++ {
+	for j := range h {
+		for i := range w {
 			got := gotDst.At(i, j).(color.RGBA)
 			want := wantDst.At(i, j).(color.RGBA)
 			if !sameColors(got, want, 1) {
@@ -1050,7 +1050,7 @@ func TestImageMipmapColor(t *testing.T) {
 	img1 := ebiten.NewImage(128, 128)
 	img1.Fill(color.White)
 
-	for i := 0; i < 8; i++ {
+	for i := range 8 {
 		img0.Clear()
 
 		s := 1 - float64(i)/8
@@ -1141,8 +1141,8 @@ func TestImageMiamapAndDrawTriangle(t *testing.T) {
 	img0.DrawImage(img1, op)
 
 	w, h := img0.Bounds().Dx(), img0.Bounds().Dy()
-	for j := 0; j < h; j++ {
-		for i := 0; i < w; i++ {
+	for j := range h {
+		for i := range w {
 			c := img0.At(i, j).(color.RGBA)
 			if c.R != 0 {
 				t.Errorf("img0.At(%d, %d): red want %d got %d", i, j, 0, c.R)
@@ -1186,8 +1186,8 @@ func TestImageDrawImmediately(t *testing.T) {
 	// Do not manipulate img0 here.
 
 	img0.Fill(color.RGBA{R: 0xff, A: 0xff})
-	for j := 0; j < h; j++ {
-		for i := 0; i < w; i++ {
+	for j := range h {
+		for i := range w {
 			got := img0.At(i, j).(color.RGBA)
 			want := color.RGBA{R: 0xff, A: 0xff}
 			if got != want {
@@ -1198,8 +1198,8 @@ func TestImageDrawImmediately(t *testing.T) {
 
 	img0.DrawImage(img1, nil)
 
-	for j := 0; j < h; j++ {
-		for i := 0; i < w; i++ {
+	for j := range h {
+		for i := range w {
 			got := img0.At(i, j).(color.RGBA)
 			want := color.RGBA{R: 0xff, A: 0xff}
 			if got != want {
@@ -1217,8 +1217,8 @@ func TestImageLinearFilterGlitch(t *testing.T) {
 	dst := ebiten.NewImage(int(math.Floor(w*scale)), h)
 
 	pix := make([]byte, 4*w*h)
-	for j := 0; j < h; j++ {
-		for i := 0; i < w; i++ {
+	for j := range h {
+		for i := range w {
 			idx := i + w*j
 			if j < 3 {
 				pix[4*idx] = 0xff
@@ -1267,8 +1267,8 @@ func TestImageLinearFilterGlitch2(t *testing.T) {
 
 	idx := 0
 	pix := make([]byte, 4*w*h)
-	for j := 0; j < h; j++ {
-		for i := 0; i < w; i++ {
+	for j := range h {
+		for i := range w {
 			if i+j < 100 {
 				pix[4*idx] = 0
 				pix[4*idx+1] = 0
@@ -1289,8 +1289,8 @@ func TestImageLinearFilterGlitch2(t *testing.T) {
 	op.Filter = ebiten.FilterLinear
 	dst.DrawImage(src, op)
 
-	for j := 0; j < h; j++ {
-		for i := 0; i < w; i++ {
+	for j := range h {
+		for i := range w {
 			got := dst.At(i, j).(color.RGBA)
 			var want color.RGBA
 			if i+j < 100 {
@@ -1310,8 +1310,8 @@ func TestImageAddressRepeat(t *testing.T) {
 	src := ebiten.NewImage(w, h)
 	dst := ebiten.NewImage(w, h)
 	pix := make([]byte, 4*w*h)
-	for j := 0; j < h; j++ {
-		for i := 0; i < w; i++ {
+	for j := range h {
+		for i := range w {
 			idx := 4 * (i + j*w)
 			if 4 <= i && i < 8 && 4 <= j && j < 8 {
 				pix[idx] = byte(i-4) * 0x10
@@ -1375,8 +1375,8 @@ func TestImageAddressRepeat(t *testing.T) {
 	op.Address = ebiten.AddressRepeat
 	dst.DrawTriangles(vs, is, src.SubImage(image.Rect(4, 4, 8, 8)).(*ebiten.Image), op)
 
-	for j := 0; j < h; j++ {
-		for i := 0; i < w; i++ {
+	for j := range h {
+		for i := range w {
 			got := dst.At(i, j).(color.RGBA)
 			want := color.RGBA{R: byte(i%4) * 0x10, G: byte(j%4) * 0x10, A: 0xff}
 			if !sameColors(got, want, 1) {
@@ -1391,8 +1391,8 @@ func TestImageAddressRepeatNegativePosition(t *testing.T) {
 	src := ebiten.NewImage(w, h)
 	dst := ebiten.NewImage(w, h)
 	pix := make([]byte, 4*w*h)
-	for j := 0; j < h; j++ {
-		for i := 0; i < w; i++ {
+	for j := range h {
+		for i := range w {
 			idx := 4 * (i + j*w)
 			if 4 <= i && i < 8 && 4 <= j && j < 8 {
 				pix[idx] = byte(i-4) * 0x10
@@ -1456,8 +1456,8 @@ func TestImageAddressRepeatNegativePosition(t *testing.T) {
 	op.Address = ebiten.AddressRepeat
 	dst.DrawTriangles(vs, is, src.SubImage(image.Rect(4, 4, 8, 8)).(*ebiten.Image), op)
 
-	for j := 0; j < h; j++ {
-		for i := 0; i < w; i++ {
+	for j := range h {
+		for i := range w {
 			got := dst.At(i, j).(color.RGBA)
 			want := color.RGBA{R: byte(i%4) * 0x10, G: byte(j%4) * 0x10, A: 0xff}
 			if !sameColors(got, want, 1) {
@@ -1499,8 +1499,8 @@ func TestImageSet(t *testing.T) {
 		img.Set(p.X, p.Y, c)
 	}
 
-	for j := 0; j < h; j++ {
-		for i := 0; i < w; i++ {
+	for j := range h {
+		for i := range w {
 			got := img.At(i, j).(color.RGBA)
 			var want color.RGBA
 			if c, ok := colors[Pt{i, j}]; ok {
@@ -1532,8 +1532,8 @@ func TestImageSetAndDraw(t *testing.T) {
 	}
 
 	dst.DrawImage(src, nil)
-	for j := 0; j < h; j++ {
-		for i := 0; i < w; i++ {
+	for j := range h {
+		for i := range w {
 			got := dst.At(i, j).(color.RGBA)
 			var want color.RGBA
 			if c, ok := colors[Pt{i, j}]; ok {
@@ -1557,8 +1557,8 @@ func TestImageSetAndDraw(t *testing.T) {
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(2, 2)
 	dst.DrawImage(src.SubImage(image.Rect(2, 2, w-2, h-2)).(*ebiten.Image), op)
-	for j := 0; j < h; j++ {
-		for i := 0; i < w; i++ {
+	for j := range h {
+		for i := range w {
 			got := dst.At(i, j).(color.RGBA)
 			var want color.RGBA
 			if 2 <= i && 2 <= j && i < w-2 && j < h-2 {
@@ -1584,8 +1584,8 @@ func TestImageAlphaOnBlack(t *testing.T) {
 	dst1 := ebiten.NewImage(w, h)
 
 	pix0 := make([]byte, 4*w*h)
-	for j := 0; j < h; j++ {
-		for i := 0; i < w; i++ {
+	for j := range h {
+		for i := range w {
 			if (i/3)%2 == (j/3)%2 {
 				pix0[4*(i+j*w)] = 0xff
 				pix0[4*(i+j*w)+1] = 0xff
@@ -1597,8 +1597,8 @@ func TestImageAlphaOnBlack(t *testing.T) {
 	src0.WritePixels(pix0)
 
 	pix1 := make([]byte, 4*w*h)
-	for j := 0; j < h; j++ {
-		for i := 0; i < w; i++ {
+	for j := range h {
+		for i := range w {
 			if (i/3)%2 == (j/3)%2 {
 				pix1[4*(i+j*w)] = 0xff
 				pix1[4*(i+j*w)+1] = 0xff
@@ -1624,8 +1624,8 @@ func TestImageAlphaOnBlack(t *testing.T) {
 	dst1.DrawImage(src1, op)
 
 	gray := false
-	for j := 0; j < h; j++ {
-		for i := 0; i < w; i++ {
+	for j := range h {
+		for i := range w {
 			got := dst0.At(i, j)
 			want := dst1.At(i, j)
 			if got != want {
@@ -1647,8 +1647,8 @@ func TestImageDrawTrianglesWithSubImage(t *testing.T) {
 	dst := ebiten.NewImage(w, h)
 
 	pix := make([]byte, 4*w*h)
-	for j := 0; j < h; j++ {
-		for i := 0; i < w; i++ {
+	for j := range h {
+		for i := range w {
 			if 4 <= i && i < 8 && 4 <= j && j < 8 {
 				pix[4*(i+j*w)] = 0xff
 				pix[4*(i+j*w)+1] = 0
@@ -1711,8 +1711,8 @@ func TestImageDrawTrianglesWithSubImage(t *testing.T) {
 	op.Address = ebiten.AddressClampToZero
 	dst.DrawTriangles(vs, is, src.SubImage(image.Rect(4, 4, 8, 8)).(*ebiten.Image), op)
 
-	for j := 0; j < h; j++ {
-		for i := 0; i < w; i++ {
+	for j := range h {
+		for i := range w {
 			got := dst.At(i, j).(color.RGBA)
 			var want color.RGBA
 			if 4 <= i && i < 8 && 4 <= j && j < 8 {
@@ -1869,8 +1869,8 @@ func TestImageFillingAndEdges(t *testing.T) {
 	op.GeoM.Translate(1, 1)
 	dst.DrawImage(src, op)
 
-	for j := 0; j < dsth; j++ {
-		for i := 0; i < dstw; i++ {
+	for j := range dsth {
+		for i := range dstw {
 			got := dst.At(i, j).(color.RGBA)
 			want := color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff}
 			if i == 0 || i == dstw-1 || j == 0 || j == dsth-1 {
@@ -1938,8 +1938,8 @@ func TestImageDrawTrianglesAndMutateArgs(t *testing.T) {
 	vs[0].SrcY = h
 	is[5] = 0
 
-	for j := 0; j < w; j++ {
-		for i := 0; i < w; i++ {
+	for j := range w {
+		for i := range w {
 			got := dst.At(i, j)
 			want := clr
 			if got != want {
@@ -1955,8 +1955,8 @@ func TestImageWritePixelsOnSubImage(t *testing.T) {
 
 	pix0 := make([]byte, 4*5*3)
 	idx := 0
-	for j := 0; j < 3; j++ {
-		for i := 0; i < 5; i++ {
+	for range 3 {
+		for range 5 {
 			pix0[4*idx] = 0
 			pix0[4*idx+1] = 0xff
 			pix0[4*idx+2] = 0
@@ -1969,8 +1969,8 @@ func TestImageWritePixelsOnSubImage(t *testing.T) {
 
 	pix1 := make([]byte, 4*5*3)
 	idx = 0
-	for j := 0; j < 3; j++ {
-		for i := 0; i < 5; i++ {
+	for range 3 {
+		for range 5 {
 			pix1[4*idx] = 0
 			pix1[4*idx+1] = 0
 			pix1[4*idx+2] = 0xff
@@ -1983,8 +1983,8 @@ func TestImageWritePixelsOnSubImage(t *testing.T) {
 
 	// Clear the pixels. This should not affect the result.
 	idx = 0
-	for j := 0; j < 3; j++ {
-		for i := 0; i < 5; i++ {
+	for range 3 {
+		for range 5 {
 			pix1[4*idx] = 0
 			pix1[4*idx+1] = 0
 			pix1[4*idx+2] = 0
@@ -1993,8 +1993,8 @@ func TestImageWritePixelsOnSubImage(t *testing.T) {
 		}
 	}
 
-	for j := 0; j < 31; j++ {
-		for i := 0; i < 17; i++ {
+	for j := range 31 {
+		for i := range 17 {
 			got := dst.At(i, j).(color.RGBA)
 			want := color.RGBA{R: 0xff, A: 0xff}
 			p := image.Pt(i, j)
@@ -2132,8 +2132,8 @@ func TestImageDrawTrianglesWithColorM(t *testing.T) {
 			op.ColorScaleMode = format
 			dst1.DrawTriangles(vs1, is, src, op)
 
-			for j := 0; j < h; j++ {
-				for i := 0; i < w; i++ {
+			for j := range h {
+				for i := range w {
 					got := dst0.At(i, j)
 					want := dst1.At(i, j)
 					if got != want {
@@ -2311,8 +2311,8 @@ func TestImageDrawOver(t *testing.T) {
 	src := image.NewUniform(color.RGBA{R: 0xff, A: 0xff})
 	// This must not cause infinite-loop.
 	draw.Draw(dst, dst.Bounds(), src, image.ZP, draw.Over)
-	for j := 0; j < h; j++ {
-		for i := 0; i < w; i++ {
+	for j := range h {
+		for i := range w {
 			got := dst.At(i, j)
 			want := color.RGBA{R: 0xff, A: 0xff}
 			if got != want {
@@ -2393,8 +2393,8 @@ func TestImageFloatTranslate(t *testing.T) {
 				op.GeoM.Translate(0, 0.501)
 				dst.DrawImage(src, op)
 
-				for j := 0; j < h*s+1; j++ {
-					for i := 0; i < w*s; i++ {
+				for j := range h*s + 1 {
+					for i := range w * s {
 						got := dst.At(i, j)
 						x := byte(0xff)
 						if j > 0 {
@@ -2411,8 +2411,8 @@ func TestImageFloatTranslate(t *testing.T) {
 			t.Run("image", func(t *testing.T) {
 				src := ebiten.NewImage(w, h)
 				pix := make([]byte, 4*w*h)
-				for j := 0; j < h; j++ {
-					for i := 0; i < w; i++ {
+				for j := range h {
+					for i := range w {
 						pix[4*(j*w+i)] = byte(j)
 						pix[4*(j*w+i)+3] = 0xff
 					}
@@ -2424,8 +2424,8 @@ func TestImageFloatTranslate(t *testing.T) {
 			t.Run("subimage", func(t *testing.T) {
 				src := ebiten.NewImage(w*s, h*s)
 				pix := make([]byte, 4*(w*s)*(h*s))
-				for j := 0; j < h*s; j++ {
-					for i := 0; i < w*s; i++ {
+				for j := range h * s {
+					for i := range w * s {
 						pix[4*(j*(w*s)+i)] = byte(j)
 						pix[4*(j*(w*s)+i)+3] = 0xff
 					}
@@ -2449,8 +2449,8 @@ func TestImageColorMCopy(t *testing.T) {
 		op.Blend = ebiten.BlendCopy
 		dst.DrawImage(src, op)
 
-		for j := 0; j < h; j++ {
-			for i := 0; i < w; i++ {
+		for j := range h {
+			for i := range w {
 				got := dst.At(i, j).(color.RGBA)
 				want := color.RGBA{R: byte(k), G: byte(k), B: byte(k), A: byte(k)}
 				if !sameColors(got, want, 1) {
@@ -2468,8 +2468,8 @@ func TestImageWritePixelsAndModifyPixels(t *testing.T) {
 	src := ebiten.NewImage(w, h)
 
 	pix := make([]byte, 4*w*h)
-	for j := 0; j < h; j++ {
-		for i := 0; i < w; i++ {
+	for j := range h {
+		for i := range w {
 			idx := 4 * (i + j*w)
 			pix[idx] = 0xff
 			pix[idx+1] = 0
@@ -2481,8 +2481,8 @@ func TestImageWritePixelsAndModifyPixels(t *testing.T) {
 	src.WritePixels(pix)
 
 	// Modify pix after WritePixels
-	for j := 0; j < h; j++ {
-		for i := 0; i < w; i++ {
+	for j := range h {
+		for i := range w {
 			idx := 4 * (i + j*w)
 			pix[idx] = 0
 			pix[idx+1] = 0xff
@@ -2494,8 +2494,8 @@ func TestImageWritePixelsAndModifyPixels(t *testing.T) {
 	// Ensure that src's pixels are actually used
 	dst.DrawImage(src, nil)
 
-	for j := 0; j < h; j++ {
-		for i := 0; i < w; i++ {
+	for j := range h {
+		for i := range w {
 			got := src.At(i, j).(color.RGBA)
 			want := color.RGBA{R: 0xff, A: 0xff}
 			if got != want {
@@ -2517,8 +2517,8 @@ func TestImageCompositeModeMultiply(t *testing.T) {
 	op.CompositeMode = ebiten.CompositeModeMultiply
 	dst.DrawImage(src, op)
 
-	for j := 0; j < h; j++ {
-		for i := 0; i < w; i++ {
+	for j := range h {
+		for i := range w {
 			got := dst.At(i, j).(color.RGBA)
 			want := color.RGBA{
 				R: byte(math.Floor((0x10 / 255.0) * (0x50 / 255.0) * 255)),
@@ -2609,8 +2609,8 @@ func TestImageClip(t *testing.T) {
 	src.Fill(color.RGBA{G: 0xff, A: 0xff})
 
 	dst.SubImage(image.Rect(4, 5, 12, 14)).(*ebiten.Image).DrawImage(src, nil)
-	for j := 0; j < h; j++ {
-		for i := 0; i < w; i++ {
+	for j := range h {
+		for i := range w {
 			got := dst.At(i, j).(color.RGBA)
 			want := color.RGBA{R: 0xff, A: 0xff}
 			if 4 <= i && i < 12 && 5 <= j && j < 14 {
@@ -2627,8 +2627,8 @@ func TestImageClip(t *testing.T) {
 func TestImageSubImageFill(t *testing.T) {
 	dst := ebiten.NewImage(3, 3).SubImage(image.Rect(1, 1, 2, 2)).(*ebiten.Image)
 	dst.Fill(color.White)
-	for j := 0; j < 3; j++ {
-		for i := 0; i < 3; i++ {
+	for j := range 3 {
+		for i := range 3 {
 			got := dst.At(i, j)
 			var want color.RGBA
 			if i == 1 && j == 1 {
@@ -2642,8 +2642,8 @@ func TestImageSubImageFill(t *testing.T) {
 
 	dst = ebiten.NewImage(17, 31).SubImage(image.Rect(3, 4, 8, 10)).(*ebiten.Image)
 	dst.Fill(color.White)
-	for j := 0; j < 31; j++ {
-		for i := 0; i < 17; i++ {
+	for j := range 31 {
+		for i := range 17 {
 			got := dst.At(i, j)
 			var want color.RGBA
 			if 3 <= i && i < 8 && 4 <= j && j < 10 {
@@ -2727,8 +2727,8 @@ func TestImageEvenOdd(t *testing.T) {
 		FillRule: ebiten.FillRuleEvenOdd,
 	}
 	dst.DrawTriangles(append(append(vs0, vs1...), vs2...), append(append(is0, is1...), is2...), emptySubImage, op)
-	for j := 0; j < 16; j++ {
-		for i := 0; i < 16; i++ {
+	for j := range 16 {
+		for i := range 16 {
 			got := dst.At(i, j)
 			var want color.RGBA
 			switch {
@@ -2762,8 +2762,8 @@ func TestImageEvenOdd(t *testing.T) {
 	}
 	dst.Clear()
 	dst.DrawTriangles(append(append(vs0, vs1...), vs2...), append(append(is0, is1...), is2...), emptySubImage, op)
-	for j := 0; j < 16; j++ {
-		for i := 0; i < 16; i++ {
+	for j := range 16 {
+		for i := range 16 {
 			got := dst.At(i, j)
 			var want color.RGBA
 			switch {
@@ -2800,8 +2800,8 @@ func TestImageEvenOdd(t *testing.T) {
 	dst.DrawTriangles(vs0, is0, emptySubImage, op)
 	dst.DrawTriangles(vs1, is0, emptySubImage, op)
 	dst.DrawTriangles(vs2, is0, emptySubImage, op)
-	for j := 0; j < 16; j++ {
-		for i := 0; i < 16; i++ {
+	for j := range 16 {
+		for i := range 16 {
 			got := dst.At(i, j)
 			var want color.RGBA
 			switch {
@@ -2907,8 +2907,8 @@ func TestImageFillRule(t *testing.T) {
 				FillRule: fillRule,
 			}
 			dst.DrawTriangles(append(append(vs0, vs1...), vs2...), append(append(is0, is1...), is2...), emptySubImage, op)
-			for j := 0; j < 16; j++ {
-				for i := 0; i < 16; i++ {
+			for j := range 16 {
+				for i := range 16 {
 					got := dst.At(i, j)
 					var want color.RGBA
 					switch {
@@ -2944,8 +2944,8 @@ func TestImageFillRule(t *testing.T) {
 			}
 			dst.Clear()
 			dst.DrawTriangles(append(append(vs0, vs1...), vs2...), append(append(is0, is1...), is2...), emptySubImage, op)
-			for j := 0; j < 16; j++ {
-				for i := 0; i < 16; i++ {
+			for j := range 16 {
+				for i := range 16 {
 					got := dst.At(i, j)
 					var want color.RGBA
 					switch {
@@ -2983,8 +2983,8 @@ func TestImageFillRule(t *testing.T) {
 			dst.DrawTriangles(vs0, []uint16{0, 1, 2, 2, 3, 0}, emptySubImage, op)
 			dst.DrawTriangles(vs1, []uint16{0, 1, 2, 2, 3, 0}, emptySubImage, op)
 			dst.DrawTriangles(vs2, []uint16{0, 3, 2, 2, 1, 0}, emptySubImage, op)
-			for j := 0; j < 16; j++ {
-				for i := 0; i < 16; i++ {
+			for j := range 16 {
+				for i := range 16 {
 					got := dst.At(i, j)
 					var want color.RGBA
 					switch {
@@ -3077,8 +3077,8 @@ func TestImageMoreIndicesThanMaxUint16(t *testing.T) {
 	is = []uint16{0, 1, 2, 1, 2, 3}
 	dst.DrawTriangles(vs, is, src, op)
 
-	for j := 0; j < h; j++ {
-		for i := 0; i < w; i++ {
+	for j := range h {
+		for i := range w {
 			got := dst.At(i, j)
 			want := color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff}
 			if got != want {
@@ -3149,8 +3149,8 @@ func TestImageMoreVerticesThanMaxUint16(t *testing.T) {
 	is = []uint16{0, 1, 2, 1, 2, 3}
 	dst.DrawTriangles(vs, is, src, op)
 
-	for j := 0; j < h; j++ {
-		for i := 0; i < w; i++ {
+	for j := range h {
+		for i := range w {
 			got := dst.At(i, j)
 			want := color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff}
 			if got != want {
@@ -3167,8 +3167,8 @@ func TestImageNewImageFromEbitenImage(t *testing.T) {
 	)
 
 	pix := make([]byte, 4*w*h)
-	for j := 0; j < h; j++ {
-		for i := 0; i < w; i++ {
+	for j := range h {
+		for i := range w {
 			idx := 4 * (i + j*w)
 			pix[idx] = byte(i)
 			pix[idx+1] = byte(j)
@@ -3181,8 +3181,8 @@ func TestImageNewImageFromEbitenImage(t *testing.T) {
 	img0.WritePixels(pix)
 	img1 := ebiten.NewImageFromImage(img0)
 
-	for j := 0; j < h; j++ {
-		for i := 0; i < w; i++ {
+	for j := range h {
+		for i := range w {
 			got := img1.At(i, j)
 			want := color.RGBA{R: byte(i), G: byte(j), A: 0xff}
 			if got != want {
@@ -3192,8 +3192,8 @@ func TestImageNewImageFromEbitenImage(t *testing.T) {
 	}
 
 	img2 := ebiten.NewImageFromImage(img0.SubImage(image.Rect(4, 4, 12, 12)))
-	for j := 0; j < h/2; j++ {
-		for i := 0; i < w/2; i++ {
+	for j := range h / 2 {
+		for i := range w / 2 {
 			got := img2.At(i, j)
 			want := color.RGBA{R: byte(i + 4), G: byte(j + 4), A: 0xff}
 			if got != want {
@@ -3210,8 +3210,8 @@ func TestImageOptionsUnmanaged(t *testing.T) {
 	)
 
 	pix := make([]byte, 4*w*h)
-	for j := 0; j < h; j++ {
-		for i := 0; i < w; i++ {
+	for j := range h {
+		for i := range w {
 			idx := 4 * (i + j*w)
 			pix[idx] = byte(i)
 			pix[idx+1] = byte(j)
@@ -3226,8 +3226,8 @@ func TestImageOptionsUnmanaged(t *testing.T) {
 	img := ebiten.NewImageWithOptions(image.Rect(0, 0, w, h), op)
 	img.WritePixels(pix)
 
-	for j := 0; j < h; j++ {
-		for i := 0; i < w; i++ {
+	for j := range h {
+		for i := range w {
 			got := img.At(i, j)
 			want := color.RGBA{R: byte(i), G: byte(j), A: 0xff}
 			if got != want {
@@ -3244,8 +3244,8 @@ func TestImageOptionsNegativeBoundsWritePixels(t *testing.T) {
 	)
 
 	pix0 := make([]byte, 4*w*h)
-	for j := 0; j < h; j++ {
-		for i := 0; i < w; i++ {
+	for j := range h {
+		for i := range w {
 			idx := 4 * (i + j*w)
 			pix0[idx] = byte(i)
 			pix0[idx+1] = byte(j)
@@ -3269,8 +3269,8 @@ func TestImageOptionsNegativeBoundsWritePixels(t *testing.T) {
 	}
 
 	pix1 := make([]byte, 4*(w/2)*(h/2))
-	for j := 0; j < h/2; j++ {
-		for i := 0; i < w/2; i++ {
+	for j := range h / 2 {
+		for i := range w / 2 {
 			idx := 4 * (i + j*w/2)
 			pix1[idx] = 0
 			pix1[idx+1] = 0
@@ -3303,8 +3303,8 @@ func TestImageOptionsNegativeBoundsSet(t *testing.T) {
 	)
 
 	pix0 := make([]byte, 4*w*h)
-	for j := 0; j < h; j++ {
-		for i := 0; i < w; i++ {
+	for j := range h {
+		for i := range w {
 			idx := 4 * (i + j*w)
 			pix0[idx] = byte(i)
 			pix0[idx+1] = byte(j)
@@ -3570,16 +3570,16 @@ func TestImageTooManyDrawImage(t *testing.T) {
 	dst := ebiten.NewImage(w, h)
 
 	op := &ebiten.DrawImageOptions{}
-	for j := 0; j < h; j++ {
-		for i := 0; i < w; i++ {
+	for j := range h {
+		for i := range w {
 			op.GeoM.Reset()
 			op.GeoM.Translate(float64(i), float64(j))
 			dst.DrawImage(src, op)
 		}
 	}
 
-	for j := 0; j < h; j++ {
-		for i := 0; i < w; i++ {
+	for j := range h {
+		for i := range w {
 			if got, want := dst.At(i, j), (color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff}); got != want {
 				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
 			}
@@ -3607,8 +3607,8 @@ func TestImageTooManyDrawImage2(t *testing.T) {
 	}
 
 	op := &ebiten.DrawImageOptions{}
-	for j := 0; j < h; j++ {
-		for i := 0; i < w; i++ {
+	for j := range h {
+		for i := range w {
 			op.GeoM.Reset()
 			op.GeoM.Translate(float64(i), float64(j))
 			op.ColorScale.Reset()
@@ -3617,8 +3617,8 @@ func TestImageTooManyDrawImage2(t *testing.T) {
 		}
 	}
 
-	for j := 0; j < h; j++ {
-		for i := 0; i < w; i++ {
+	for j := range h {
+		for i := range w {
 			if got, want := dst.At(i, j).(color.RGBA), posToColor(i, j); !sameColors(got, want, 1) {
 				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
 			}
@@ -3640,8 +3640,8 @@ func TestImageTooManyDrawTriangles(t *testing.T) {
 
 	var vertices []ebiten.Vertex
 	var indices []uint16
-	for j := 0; j < h; j++ {
-		for i := 0; i < w; i++ {
+	for j := range h {
+		for i := range w {
 			n := uint16(len(vertices))
 			vertices = append(vertices,
 				ebiten.Vertex{
@@ -3690,8 +3690,8 @@ func TestImageTooManyDrawTriangles(t *testing.T) {
 	}
 	dst.DrawTriangles(vertices, indices, src, nil)
 
-	for j := 0; j < h; j++ {
-		for i := 0; i < w; i++ {
+	for j := range h {
+		for i := range w {
 			if got, want := dst.At(i, j), (color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff}); got != want {
 				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
 			}
@@ -3756,7 +3756,7 @@ func TestImageTooManyConstantBuffersInDirectX(t *testing.T) {
 	op := &ebiten.DrawTrianglesOptions{
 		FillRule: ebiten.FillRuleEvenOdd,
 	}
-	for i := 0; i < 100; i++ {
+	for range 100 {
 		dst0.DrawTriangles(vs, is, src, op)
 		dst1.DrawTriangles(vs, is, src, op)
 	}
@@ -3879,7 +3879,7 @@ func TestImageBlendOperation(t *testing.T) {
 	}
 
 	dstPix := make([]byte, 4*w*h)
-	for i := 0; i < w; i++ {
+	for i := range w {
 		r, g, b, a := dstColor(i)
 		dstPix[4*i] = r
 		dstPix[4*i+1] = g
@@ -3887,7 +3887,7 @@ func TestImageBlendOperation(t *testing.T) {
 		dstPix[4*i+3] = a
 	}
 	srcPix := make([]byte, 4*w*h)
-	for i := 0; i < w; i++ {
+	for i := range w {
 		r, g, b, a := srcColor(i)
 		srcPix[4*i] = r
 		srcPix[4*i+1] = g
@@ -3915,7 +3915,7 @@ func TestImageBlendOperation(t *testing.T) {
 				BlendOperationAlpha:         alphaOp,
 			}
 			dst.DrawImage(src, op)
-			for i := 0; i < w; i++ {
+			for i := range w {
 				got := dst.At(i, 0).(color.RGBA)
 
 				sr, sg, sb, sa := srcColor(i)
@@ -3966,7 +3966,7 @@ func TestImageBlendOperationMinAndMax(t *testing.T) {
 	}
 
 	dstPix := make([]byte, 4*w*h)
-	for i := 0; i < w; i++ {
+	for i := range w {
 		r, g, b, a := dstColor(i)
 		dstPix[4*i] = r
 		dstPix[4*i+1] = g
@@ -3974,7 +3974,7 @@ func TestImageBlendOperationMinAndMax(t *testing.T) {
 		dstPix[4*i+3] = a
 	}
 	srcPix := make([]byte, 4*w*h)
-	for i := 0; i < w; i++ {
+	for i := range w {
 		r, g, b, a := srcColor(i)
 		srcPix[4*i] = r
 		srcPix[4*i+1] = g
@@ -4002,7 +4002,7 @@ func TestImageBlendOperationMinAndMax(t *testing.T) {
 				BlendOperationAlpha:         alphaOp,
 			}
 			dst.DrawImage(src, op)
-			for i := 0; i < w; i++ {
+			for i := range w {
 				got := dst.At(i, 0).(color.RGBA)
 
 				sr, sg, sb, sa := srcColor(i)
@@ -4063,7 +4063,7 @@ func TestImageBlendFactor(t *testing.T) {
 	}
 
 	dstPix := make([]byte, 4*w*h)
-	for i := 0; i < w; i++ {
+	for i := range w {
 		r, g, b, a := dstColor(i)
 		dstPix[4*i] = r
 		dstPix[4*i+1] = g
@@ -4071,7 +4071,7 @@ func TestImageBlendFactor(t *testing.T) {
 		dstPix[4*i+3] = a
 	}
 	srcPix := make([]byte, 4*w*h)
-	for i := 0; i < w; i++ {
+	for i := range w {
 		r, g, b, a := srcColor(i)
 		srcPix[4*i] = r
 		srcPix[4*i+1] = g
@@ -4108,7 +4108,7 @@ func TestImageBlendFactor(t *testing.T) {
 						BlendOperationAlpha:         ebiten.BlendOperationAdd,
 					}
 					dst.DrawImage(src, op)
-					for i := 0; i < w; i++ {
+					for i := range w {
 						got := dst.At(i, 0).(color.RGBA)
 
 						sr, sg, sb, sa := colorToFloats(srcColor(i))
@@ -4279,7 +4279,7 @@ func TestImageAntiAlias(t *testing.T) {
 		}
 
 		dstPix := make([]byte, 4*w*h)
-		for i := 0; i < w*h; i++ {
+		for i := range w * h {
 			n := rnd.Int()
 			r, g, b := byte(n), byte(n>>8), byte(n>>16)
 			a := max(r, g, b)
@@ -4394,8 +4394,8 @@ func TestImageAntiAlias(t *testing.T) {
 		opShrink.Blend = ebiten.BlendCopy
 		dst1.DrawImage(tmp, opShrink)
 
-		for j := 0; j < h; j++ {
-			for i := 0; i < w; i++ {
+		for j := range h {
+			for i := range w {
 				got := dst0.At(i, j).(color.RGBA)
 				want := dst1.At(i, j).(color.RGBA)
 				if !sameColors(got, want, 2) {
@@ -4586,8 +4586,8 @@ func TestImageDrawImageAfterDeallocation(t *testing.T) {
 	dst := ebiten.NewImage(w, h)
 
 	dst.DrawImage(src, nil)
-	for j := 0; j < h; j++ {
-		for i := 0; i < w; i++ {
+	for j := range h {
+		for i := range w {
 			got := dst.At(i, j)
 			want := src.At(i, j)
 			if got != want {
@@ -4600,8 +4600,8 @@ func TestImageDrawImageAfterDeallocation(t *testing.T) {
 	dst.Deallocate()
 
 	dst.DrawImage(src, nil)
-	for j := 0; j < h; j++ {
-		for i := 0; i < w; i++ {
+	for j := range h {
+		for i := range w {
 			got := dst.At(i, j)
 			want := src.At(i, j)
 			if got != want {
@@ -4632,8 +4632,8 @@ func TestImageInvalidPremultipliedAlphaColor(t *testing.T) {
 	}
 
 	pix := make([]byte, 4*w*h)
-	for j := 0; j < h; j++ {
-		for i := 0; i < w; i++ {
+	for j := range h {
+		for i := range w {
 			pix[4*(j*16+i)] = byte(i)
 			pix[4*(j*16+i)+1] = byte(j)
 			pix[4*(j*16+i)+2] = 0x80
@@ -4641,8 +4641,8 @@ func TestImageInvalidPremultipliedAlphaColor(t *testing.T) {
 		}
 	}
 	dst.WritePixels(pix)
-	for j := 0; j < h; j++ {
-		for i := 0; i < w; i++ {
+	for j := range h {
+		for i := range w {
 			got := dst.At(i, j)
 			want := color.RGBA{R: byte(i), G: byte(j), B: 0x80, A: byte(i - j)}
 			if got != want {
@@ -4657,8 +4657,8 @@ func TestImageDrawTriangles32(t *testing.T) {
 	src := ebiten.NewImage(w, h)
 	dst := ebiten.NewImage(w, h)
 	pix := make([]byte, 4*w*h)
-	for j := 0; j < h; j++ {
-		for i := 0; i < w; i++ {
+	for j := range h {
+		for i := range w {
 			idx := 4 * (j*w + i)
 			pix[idx] = byte(i) * 0x10
 			pix[idx+1] = byte(j) * 0x10
@@ -4718,8 +4718,8 @@ func TestImageDrawTriangles32(t *testing.T) {
 		is[i] = 0
 	}
 
-	for j := 0; j < h; j++ {
-		for i := 0; i < w; i++ {
+	for j := range h {
+		for i := range w {
 			got := dst.At(i, j).(color.RGBA)
 			want := color.RGBA{R: byte(i) * 0x10, G: byte(j) * 0x10, B: 0xff, A: 0xff}
 			if !sameColors(got, want, 1) {
@@ -4798,8 +4798,8 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 		is[i] = 0
 	}
 
-	for j := 0; j < h; j++ {
-		for i := 0; i < w; i++ {
+	for j := range h {
+		for i := range w {
 			got := dst.At(i, j).(color.RGBA)
 			want := color.RGBA{R: byte(i) * 0x10, G: byte(j) * 0x10, B: 0xff, A: 0xff}
 			if !sameColors(got, want, 1) {

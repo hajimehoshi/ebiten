@@ -62,7 +62,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	v := g.offset()
 	op := &ebiten.DrawImageOptions{}
 	op.ColorScale.ScaleAlpha(0.5)
-	for i := 0; i < 10*10; i++ {
+	for i := range 10 * 10 {
 		op.GeoM.Reset()
 		x := float64(i%10)*v + 15
 		y := float64(i/10)*v + 20
