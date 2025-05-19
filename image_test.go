@@ -2424,7 +2424,7 @@ func TestImageFloatTranslate(t *testing.T) {
 			t.Run("subimage", func(t *testing.T) {
 				src := ebiten.NewImage(w*s, h*s)
 				pix := make([]byte, 4*(w*s)*(h*s))
-				for j := 0; j < h*s; j++ {
+				for j := range h * s {
 					for i := range w * s {
 						pix[4*(j*(w*s)+i)] = byte(j)
 						pix[4*(j*(w*s)+i)+3] = 0xff
