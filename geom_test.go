@@ -24,8 +24,8 @@ import (
 
 func TestGeoMInit(t *testing.T) {
 	var m ebiten.GeoM
-	for i := 0; i < ebiten.GeoMDim-1; i++ {
-		for j := 0; j < ebiten.GeoMDim; j++ {
+	for i := range ebiten.GeoMDim - 1 {
+		for j := range ebiten.GeoMDim {
 			got := m.Element(i, j)
 			want := 0.0
 			if i == j {
@@ -62,8 +62,8 @@ func TestGeoMConcat(t *testing.T) {
 		{2, 0, 1},
 		{0, 2, 1},
 	}
-	for i := 0; i < 2; i++ {
-		for j := 0; j < 3; j++ {
+	for i := range 2 {
+		for j := range 3 {
 			got := matrix3.Element(i, j)
 			want := expected[i][j]
 			if want != got {
@@ -80,8 +80,8 @@ func TestGeoMConcat(t *testing.T) {
 		{2, 0, 2},
 		{0, 2, 2},
 	}
-	for i := 0; i < 2; i++ {
-		for j := 0; j < 3; j++ {
+	for i := range 2 {
+		for j := range 3 {
 			got := matrix4.Element(i, j)
 			want := expected[i][j]
 			if want != got {
@@ -105,8 +105,8 @@ func TestGeoMConcatSelf(t *testing.T) {
 		{9, 12, 18},
 		{24, 33, 48},
 	}
-	for i := 0; i < 2; i++ {
-		for j := 0; j < 3; j++ {
+	for i := range 2 {
+		for j := range 3 {
 			got := m.Element(i, j)
 			want := expected[i][j]
 			if want != got {
@@ -300,8 +300,8 @@ func newGeoM(a, b, c, d, tx, ty float64) ebiten.GeoM {
 func TestGeomSkew(t *testing.T) {
 	testSkew := func(skewX, skewY float64, input, expected ebiten.GeoM) {
 		input.Skew(skewX, skewY)
-		for i := 0; i < 2; i++ {
-			for j := 0; j < 3; j++ {
+		for i := range 2 {
+			for j := range 3 {
 				got := input.Element(i, j)
 				want := expected.Element(i, j)
 				if want != got {
@@ -367,7 +367,7 @@ func TestGeoMEquals(t *testing.T) {
 
 func BenchmarkGeoM(b *testing.B) {
 	var m ebiten.GeoM
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		m = ebiten.GeoM{}
 		m.Translate(10, 20)
 		m.Scale(2, 3)

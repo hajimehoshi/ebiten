@@ -45,10 +45,6 @@ func NewBoard(size int) (*Board, error) {
 	return b, nil
 }
 
-func (b *Board) tileAt(x, y int) *Tile {
-	return tileAt(b.tiles, x, y)
-}
-
 // Update updates the board state.
 func (b *Board) Update(input *Input) error {
 	for t := range b.tiles {
