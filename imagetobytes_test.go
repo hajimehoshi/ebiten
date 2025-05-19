@@ -104,7 +104,7 @@ func TestImageToBytes(t *testing.T) {
 func BenchmarkImageToBytesRGBA(b *testing.B) {
 	img := image.NewRGBA(image.Rect(0, 0, 4096, 4096))
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		ebiten.ImageToBytes(img)
 	}
 }
@@ -112,7 +112,7 @@ func BenchmarkImageToBytesRGBA(b *testing.B) {
 func BenchmarkImageToBytesNRGBA(b *testing.B) {
 	img := image.NewNRGBA(image.Rect(0, 0, 4096, 4096))
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		ebiten.ImageToBytes(img)
 	}
 }
@@ -120,7 +120,7 @@ func BenchmarkImageToBytesNRGBA(b *testing.B) {
 func BenchmarkImageToBytesPaletted(b *testing.B) {
 	img := image.NewPaletted(image.Rect(0, 0, 4096, 4096), palette.Plan9)
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		ebiten.ImageToBytes(img)
 	}
 }

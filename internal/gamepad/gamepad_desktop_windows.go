@@ -239,7 +239,7 @@ func (g *nativeGamepadsDesktop) detectConnection(gamepads *gamepads) error {
 	if g.xinput != 0 {
 		const xuserMaxCount = 4
 
-		for i := 0; i < xuserMaxCount; i++ {
+		for i := range xuserMaxCount {
 			if gamepads.find(func(g *Gamepad) bool {
 				n := g.native.(*nativeGamepadDesktop)
 				return n.dinputDevice == nil && n.xinputIndex == i
@@ -460,7 +460,7 @@ func supportsXInput(guid windows.GUID) (bool, error) {
 		return false, err
 	}
 
-	for i := 0; i < int(count); i++ {
+	for i := range int(count) {
 		if ridl[i].dwType != _RIM_TYPEHID {
 			continue
 		}

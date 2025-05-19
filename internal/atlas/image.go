@@ -505,7 +505,7 @@ func (i *Image) writePixels(pix []byte, region image.Rectangle) {
 	pixb := graphics.NewManagedBytes(4*r.Dx()*r.Dy(), func(bs []byte) {
 		// Clear the edges. bs might not be zero-cleared.
 		rowPixels := 4 * r.Dx()
-		for i := 0; i < rowPixels; i++ {
+		for i := range rowPixels {
 			bs[rowPixels*(r.Dy()-1)+i] = 0
 		}
 		for j := 1; j < r.Dy(); j++ {
