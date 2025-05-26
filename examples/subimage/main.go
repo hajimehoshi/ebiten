@@ -31,7 +31,6 @@ const (
 
 type Game struct {
 	offscreen *ebiten.Image
-	subImages [cx][cy]*ebiten.Image
 }
 
 func (g *Game) Update() error {
@@ -51,12 +50,8 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	ch := sh / cy
 	for j := 0; j < cy; j++ {
 		for i := 0; i < cx; i++ {
-			img := g.subImages[i][j]
-			if img == nil {
-				r := image.Rect(cw*i, ch*j, cw*(i+1), ch*(j+1))
-				img = g.offscreen.SubImage(r).(*ebiten.Image)
-				g.subImages[i][j] = img
-			}
+			r := image.Rect(cw*i, ch*j, cw*(i+1), ch*(j+1))
+			img := g.offscreen.SubImage(r).(*ebiten.Image)
 
 			// Rendering onto a sub image should be efficient.
 			clr := color.RGBA{byte(0xff * float64(i) / cx), byte(0xff * float64(j) / cx), 0, 0xff}

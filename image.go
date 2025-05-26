@@ -32,6 +32,11 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
+type subImageCacheEntry struct {
+	image *Image
+	atime int64
+}
+
 // Image represents a rectangle set of pixels.
 // The pixel format is alpha-premultiplied RGBA.
 // Image implements the standard image.Image and draw.Image interfaces.
@@ -52,6 +57,9 @@ type Image struct {
 	// tmpUniforms must not be reused until ui.Image.Draw* is called.
 	tmpUniforms []uint32
 
+	// subImageCache is a cache for sub-images.
+	subImageCache map[image.Rectangle]*subImageCacheEntry
+
 	// Do not add a 'buffering' member that are resolved lazily.
 	// This tends to forget resolving the buffer easily (#2362).
 }
@@ -59,6 +67,15 @@ type Image struct {
 func (i *Image) copyCheck() {
 	if i.addr != i {
 		panic("ebiten: illegal use of non-zero Image copied by value")
+	}
+}
+
+func (i *Image) updateAccessTimeForSubImage() {
+	if !i.isSubImage() {
+		return
+	}
+	if s, ok := i.original.subImageCache[i.bounds]; ok {
+		s.atime = Tick()
 	}
 }
 
@@ -93,6 +110,7 @@ func (i *Image) Fill(clr color.Color) {
 	if i.isDisposed() {
 		return
 	}
+	i.updateAccessTimeForSubImage()
 
 	var crf, cgf, cbf, caf float32
 	cr, cg, cb, ca := clr.RGBA()
@@ -235,6 +253,9 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) {
 	if i.isDisposed() {
 		return
 	}
+
+	img.updateAccessTimeForSubImage()
+	i.updateAccessTimeForSubImage()
 
 	if options == nil {
 		options = &DrawImageOptions{}
@@ -557,6 +578,9 @@ func (i *Image) DrawTriangles32(vertices []Vertex, indices []uint32, img *Image,
 		return
 	}
 
+	img.updateAccessTimeForSubImage()
+	i.updateAccessTimeForSubImage()
+
 	if len(vertices) > graphicscommand.MaxVertexCount {
 		// The last part cannot be specified by indices. Just omit them.
 		vertices = vertices[:graphicscommand.MaxVertexCount]
@@ -758,6 +782,16 @@ func (i *Image) DrawTrianglesShader32(vertices []Vertex, indices []uint32, shade
 		panic("ebiten: the given shader to DrawTrianglesShader must not be disposed")
 	}
 
+	if options != nil {
+		for _, img := range options.Images {
+			if img == nil {
+				continue
+			}
+			img.updateAccessTimeForSubImage()
+		}
+	}
+	i.updateAccessTimeForSubImage()
+
 	if len(vertices) > graphicscommand.MaxVertexCount {
 		// The last part cannot be specified by indices. Just omit them.
 		vertices = vertices[:graphicscommand.MaxVertexCount]
@@ -916,6 +950,16 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 		panic("ebiten: the given shader to DrawRectShader must not be disposed")
 	}
 
+	if options != nil {
+		for _, img := range options.Images {
+			if img == nil {
+				continue
+			}
+			img.updateAccessTimeForSubImage()
+		}
+	}
+	i.updateAccessTimeForSubImage()
+
 	if options == nil {
 		options = &DrawRectShaderOptions{}
 	}
@@ -1004,23 +1048,40 @@ func (i *Image) SubImage(r image.Rectangle) image.Image {
 		return nil
 	}
 
+	if i.isSubImage() {
+		return i.original.SubImage(r.Intersect(i.Bounds()))
+	}
+
+	if s, ok := i.subImageCache[r]; ok {
+		s.atime = Tick()
+		return s.image
+	}
+	for _, s := range i.subImageCache {
+		if s.atime+60 < Tick() {
+			delete(i.subImageCache, s.image.bounds)
+		}
+	}
+
 	r = r.Intersect(i.Bounds())
 	// Need to check Empty explicitly. See the standard image package implementations.
 	if r.Empty() {
-		r = image.ZR
-	}
-
-	var orig = i
-	if i.isSubImage() {
-		orig = i.original
+		r = image.Rectangle{}
 	}
 
 	img := &Image{
 		image:    i.image,
 		bounds:   r,
-		original: orig,
+		original: i,
 	}
 	img.addr = img
+
+	if i.subImageCache == nil {
+		i.subImageCache = map[image.Rectangle]*subImageCacheEntry{}
+	}
+	i.subImageCache[r] = &subImageCacheEntry{
+		image: img,
+		atime: Tick(),
+	}
 
 	return img
 }
@@ -1137,6 +1198,9 @@ func (i *Image) Set(x, y int, clr color.Color) {
 	if i.isDisposed() {
 		return
 	}
+
+	i.updateAccessTimeForSubImage()
+
 	if !image.Pt(x, y).In(i.Bounds()) {
 		return
 	}
@@ -1171,6 +1235,8 @@ func (i *Image) Dispose() {
 	}
 	i.image.Deallocate()
 	i.image = nil
+
+	i.subImageCache = nil
 }
 
 // Deallocate clears the image and deallocates the internal state of the image.
