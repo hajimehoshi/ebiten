@@ -305,7 +305,7 @@ type RunGameOptions struct {
 	// The default (zero) value is false, which means that the press-and-hold feature is disabled.
 	ApplePressAndHoldEnabled bool
 
-	// X11DisplayName is a class name in the ICCCM WM_CLASS window property.
+	// X11ClassName is a class name in the ICCCM WM_CLASS window property.
 	X11ClassName string
 
 	// X11InstanceName is an instance name in the ICCCM WM_CLASS window property.
