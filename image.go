@@ -1052,6 +1052,12 @@ func (i *Image) SubImage(r image.Rectangle) image.Image {
 		return i.original.SubImage(r.Intersect(i.Bounds()))
 	}
 
+	r = r.Intersect(i.Bounds())
+	// Need to check Empty explicitly. See the standard image package implementations.
+	if r.Empty() {
+		r = image.Rectangle{}
+	}
+
 	if s, ok := i.subImageCache[r]; ok {
 		s.atime = Tick()
 		return s.image
@@ -1060,12 +1066,6 @@ func (i *Image) SubImage(r image.Rectangle) image.Image {
 		if s.atime+60 < Tick() {
 			delete(i.subImageCache, s.image.bounds)
 		}
-	}
-
-	r = r.Intersect(i.Bounds())
-	// Need to check Empty explicitly. See the standard image package implementations.
-	if r.Empty() {
-		r = image.Rectangle{}
 	}
 
 	img := &Image{
