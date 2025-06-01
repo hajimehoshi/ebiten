@@ -18,9 +18,7 @@ package ui
 
 import (
 	stdcontext "context"
-	"fmt"
 	"runtime"
-	"runtime/debug"
 
 	"golang.org/x/sync/errgroup"
 
@@ -50,14 +48,6 @@ func (u *UserInterface) runMultiThread(game Game, options *RunOptions) error {
 	wg.Go(func() error {
 		defer cancel()
 
-		// Show the panic as golang.org/x/sync/errgroup v0.14.0 might hide it (#3240).
-		// This is a workaround for the issue. Remove this when the issue is fixed.
-		defer func() {
-			if r := recover(); r != nil {
-				panic(fmt.Sprintf("%v\n%s", r, debug.Stack()))
-			}
-		}()
-
 		graphicscommand.LoopRenderThread(ctx)
 		return nil
 	})
@@ -78,14 +68,6 @@ func (u *UserInterface) runMultiThread(game Game, options *RunOptions) error {
 
 		// setRunning(true) should be called in initOnMainThread for each platform.
 		defer u.setRunning(false)
-
-		// Show the panic as golang.org/x/sync/errgroup v0.14.0 might hide it (#3240).
-		// This is a workaround for the issue. Remove this when the issue is fixed.
-		defer func() {
-			if r := recover(); r != nil {
-				panic(fmt.Sprintf("%v\n%s", r, debug.Stack()))
-			}
-		}()
 
 		return u.loopGame()
 	})
