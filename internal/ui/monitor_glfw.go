@@ -89,7 +89,7 @@ func (m *monitors) primaryMonitor() *Monitor {
 	m.m.Lock()
 	defer m.m.Unlock()
 
-	// GetMonitors might return nil in theory (#1878, #1887).
+	// GetMonitors might return nil in theory (#1878, #1887, #3241).
 	// primaryMonitor can be called at the initialization, so monitors can be nil.
 	if len(m.monitors) == 0 {
 		return nil
