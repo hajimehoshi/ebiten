@@ -1904,7 +1904,11 @@ func (u *UserInterface) currentMonitor() (*Monitor, error) {
 		return m, nil
 	}
 
-	return theMonitors.primaryMonitor(), nil
+	if m := theMonitors.primaryMonitor(); m != nil {
+		return m, nil
+	}
+
+	return u.getInitMonitor(), nil
 }
 
 func (u *UserInterface) readInputState(inputState *InputState) {
