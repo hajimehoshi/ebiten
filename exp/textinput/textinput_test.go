@@ -42,6 +42,10 @@ func TestConvertUTF16CountToByteCount(t *testing.T) {
 		{"寿司🍣食べたい", 4, 10},
 		{"寿司🍣食べたい", 5, 13},
 		{"寿司🍣食べたい", 100, -1},
+		{"\xff\xff\xff\xff", 0, -1},
+		{"\xff\xff\xff\xff", 1, -1},
+		{"\xff\xff\xff\xff", 2, -1},
+		{"\xff\xff\xff\xff", 100, -1},
 	}
 	for _, tc := range testCases {
 		if got := textinput.ConvertUTF16CountToByteCount(tc.text, tc.c); got != tc.want {
@@ -72,6 +76,10 @@ func TestConvertByteCountToUTF16Count(t *testing.T) {
 		{"寿司🍣食べたい", 10, 4},
 		{"寿司🍣食べたい", 13, 5},
 		{"寿司🍣食べたい", 100, -1},
+		{"\xff\xff\xff\xff", 0, -1},
+		{"\xff\xff\xff\xff", 3, -1},
+		{"\xff\xff\xff\xff", 6, -1},
+		{"\xff\xff\xff\xff", 100, -1},
 	}
 	for _, tc := range testCases {
 		if got := textinput.ConvertByteCountToUTF16Count(tc.text, tc.c); got != tc.want {

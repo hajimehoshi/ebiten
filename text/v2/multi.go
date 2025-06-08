@@ -168,7 +168,6 @@ func (m *MultiFace) splitText(text string) iter.Seq[textChunk] {
 		var chunk textChunk
 		for _, r := range text {
 			fi := -1
-			l := utf8.RuneLen(r)
 			for i, f := range m.faces {
 				if !f.hasGlyph(r) && i < len(m.faces)-1 {
 					continue
@@ -178,6 +177,12 @@ func (m *MultiFace) splitText(text string) iter.Seq[textChunk] {
 			}
 			if fi == -1 {
 				panic("text: a face was not selected correctly")
+			}
+
+			l := utf8.RuneLen(r)
+			if l < 0 {
+				// Treat an error as 1, following DecodeRuneInString.
+				l = 1
 			}
 
 			var s int

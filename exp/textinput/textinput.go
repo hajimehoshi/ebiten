@@ -19,6 +19,7 @@
 package textinput
 
 import (
+	"fmt"
 	"image"
 	"unicode/utf16"
 	"unicode/utf8"
@@ -65,27 +66,49 @@ func start(bounds image.Rectangle) (states <-chan textInputState, close func()) 
 }
 
 func convertUTF16CountToByteCount(text string, c int) int {
+	if !utf8.ValidString(text) {
+		return -1
+	}
 	if c == 0 {
 		return 0
 	}
 	var utf16Len int
 	for idx, r := range text {
-		utf16Len += utf16.RuneLen(r)
+		l16 := utf16.RuneLen(r)
+		if l16 < 0 {
+			panic(fmt.Sprintf("textinput: invalid rune: %c", r))
+		}
+		utf16Len += l16
 		if utf16Len >= c {
-			return idx + utf8.RuneLen(r)
+			l8 := utf8.RuneLen(r)
+			if l8 < 0 {
+				panic(fmt.Sprintf("textinput: invalid rune: %c", r))
+			}
+			return idx + l8
 		}
 	}
 	return -1
 }
 
 func convertByteCountToUTF16Count(text string, c int) int {
+	if !utf8.ValidString(text) {
+		return -1
+	}
 	if c == 0 {
 		return 0
 	}
 	var utf16Len int
 	for idx, r := range text {
-		utf16Len += utf16.RuneLen(r)
-		if idx+utf8.RuneLen(r) >= c {
+		l16 := utf16.RuneLen(r)
+		if l16 < 0 {
+			panic(fmt.Sprintf("textinput: invalid rune length for rune %c", r))
+		}
+		utf16Len += l16
+		l8 := utf8.RuneLen(r)
+		if l8 < 0 {
+			panic(fmt.Sprintf("textinput: invalid rune length for rune %c", r))
+		}
+		if idx+l8 >= c {
 			return utf16Len
 		}
 	}
