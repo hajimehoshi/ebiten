@@ -126,7 +126,8 @@ func Draw(dst *ebiten.Image, text string, face Face, options *DrawOptions) {
 	defer func() {
 		theDrawGlyphsPool.Put(glyphs)
 	}()
-	for _, g := range AppendGlyphs((*glyphs)[:0], text, face, &layoutOp) {
+	*glyphs = AppendGlyphs((*glyphs)[:0], text, face, &layoutOp)
+	for _, g := range *glyphs {
 		if g.Image == nil {
 			continue
 		}
