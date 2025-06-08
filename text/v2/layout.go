@@ -15,6 +15,7 @@
 package text
 
 import (
+	"slices"
 	"sync"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -125,6 +126,9 @@ func Draw(dst *ebiten.Image, text string, face Face, options *DrawOptions) {
 
 	glyphs := theDrawGlyphsPool.Get().(*[]Glyph)
 	defer func() {
+		// Clear the content to avoid memory leaks.
+		// The capacity is kept so that the next call to Draw can reuse it.
+		*glyphs = slices.Delete(*glyphs, 0, len(*glyphs))
 		theDrawGlyphsPool.Put(glyphs)
 	}()
 	*glyphs = AppendGlyphs((*glyphs)[:0], text, face, &layoutOp)
