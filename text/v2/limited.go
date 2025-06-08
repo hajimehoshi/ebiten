@@ -15,6 +15,7 @@
 package text
 
 import (
+	"github.com/hajimehoshi/ebiten/v2/text/v2/internal/textutil"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
@@ -23,7 +24,7 @@ var _ Face = (*LimitedFace)(nil)
 // LimitedFace is a Face with glyph limitations.
 type LimitedFace struct {
 	face          Face
-	unicodeRanges unicodeRanges
+	unicodeRanges textutil.UnicodeRanges
 }
 
 // NewLimitedFace creates a new LimitedFace from the given face.
@@ -38,7 +39,7 @@ func NewLimitedFace(face Face) *LimitedFace {
 // AddUnicodeRange adds a rune range for rendered glyphs.
 // A range is inclusive, which means that a range contains the specified rune end.
 func (l *LimitedFace) AddUnicodeRange(start, end rune) {
-	l.unicodeRanges.add(start, end)
+	l.unicodeRanges.Add(start, end)
 }
 
 // Metrics implements Face.
@@ -48,22 +49,22 @@ func (l *LimitedFace) Metrics() Metrics {
 
 // advance implements Face.
 func (l *LimitedFace) advance(text string) float64 {
-	return l.face.advance(l.unicodeRanges.filter(text))
+	return l.face.advance(l.unicodeRanges.Filter(text))
 }
 
 // hasGlyph implements Face.
 func (l *LimitedFace) hasGlyph(r rune) bool {
-	return l.unicodeRanges.contains(r) && l.face.hasGlyph(r)
+	return l.unicodeRanges.Contains(r) && l.face.hasGlyph(r)
 }
 
 // appendGlyphsForLine implements Face.
 func (l *LimitedFace) appendGlyphsForLine(glyphs []Glyph, line string, indexOffset int, originX, originY float64) []Glyph {
-	return l.face.appendGlyphsForLine(glyphs, l.unicodeRanges.filter(line), indexOffset, originX, originY)
+	return l.face.appendGlyphsForLine(glyphs, l.unicodeRanges.Filter(line), indexOffset, originX, originY)
 }
 
 // appendVectorPathForLine implements Face.
 func (l *LimitedFace) appendVectorPathForLine(path *vector.Path, line string, originX, originY float64) {
-	l.face.appendVectorPathForLine(path, l.unicodeRanges.filter(line), originX, originY)
+	l.face.appendVectorPathForLine(path, l.unicodeRanges.Filter(line), originX, originY)
 }
 
 // direction implements Face.
@@ -73,41 +74,4 @@ func (l *LimitedFace) direction() Direction {
 
 // private implements Face.
 func (l *LimitedFace) private() {
-}
-
-type unicodeRange struct {
-	start rune
-	end   rune
-}
-
-type unicodeRanges struct {
-	ranges []unicodeRange
-}
-
-func (u *unicodeRanges) add(start, end rune) {
-	u.ranges = append(u.ranges, unicodeRange{
-		start: start,
-		end:   end,
-	})
-}
-
-func (u *unicodeRanges) contains(r rune) bool {
-	for _, rg := range u.ranges {
-		if rg.start <= r && r <= rg.end {
-			return true
-		}
-	}
-	return false
-}
-
-func (u *unicodeRanges) filter(str string) string {
-	var rs []rune
-	for _, r := range str {
-		if !u.contains(r) {
-			// U+FFFD is "REPLACEMENT CHARACTER".
-			r = '\ufffd'
-		}
-		rs = append(rs, r)
-	}
-	return string(rs)
 }
