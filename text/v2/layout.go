@@ -18,6 +18,7 @@ import (
 	"sync"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/text/v2/internal/textutil"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
@@ -185,9 +186,9 @@ func forEachLine(text string, face Face, options *LayoutOptions, f func(text str
 	var advances []float64
 	var longestAdvance float64
 	var lineCount int
-	for line := range lines(text) {
+	for line := range textutil.Lines(text) {
 		lineCount++
-		a := face.advance(trimTailingLineBreak(line))
+		a := face.advance(textutil.TrimTailingLineBreak(line))
 		advances = append(advances, a)
 		longestAdvance = max(longestAdvance, a)
 	}
@@ -244,7 +245,7 @@ func forEachLine(text string, face Face, options *LayoutOptions, f func(text str
 	var indexOffset int
 	var originX, originY float64
 	var i int
-	for line := range lines(text) {
+	for line := range textutil.Lines(text) {
 		// Adjust the origin position based on the primary alignments.
 		switch d {
 		case DirectionLeftToRight, DirectionRightToLeft:
@@ -267,7 +268,7 @@ func forEachLine(text string, face Face, options *LayoutOptions, f func(text str
 			}
 		}
 
-		line = trimTailingLineBreak(line)
+		line = textutil.TrimTailingLineBreak(line)
 		f(line, indexOffset, originX+offsetX, originY+offsetY)
 
 		indexOffset += len(line) + 1

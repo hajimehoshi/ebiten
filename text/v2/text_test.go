@@ -16,7 +16,6 @@ package text_test
 
 import (
 	"bytes"
-	"fmt"
 	"image"
 	"image/color"
 	"math"
@@ -24,7 +23,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"slices"
 	"strings"
 	"testing"
 
@@ -474,101 +472,6 @@ func TestCollection(t *testing.T) {
 					Source: f,
 					Size:   16,
 				}, nil)
-			}
-		})
-	}
-}
-
-func TestLines(t *testing.T) {
-	testCases := []struct {
-		In  string
-		Out []string
-	}{
-		{
-			In:  "",
-			Out: nil,
-		},
-		{
-			In:  "\n",
-			Out: []string{"\n"},
-		},
-		{
-			In:  "aaa\nbbb\nccc",
-			Out: []string{"aaa\n", "bbb\n", "ccc"},
-		},
-		{
-			In:  "aaa\nbbb\nccc\n",
-			Out: []string{"aaa\n", "bbb\n", "ccc\n"},
-		},
-		{
-			In:  "aaa\u0085bbb\r\nccc\rddd\u2028eee",
-			Out: []string{"aaa\u0085", "bbb\r\n", "ccc\r", "ddd\u2028", "eee"},
-		},
-	}
-	for _, tc := range testCases {
-		t.Run(fmt.Sprintf("%q", tc.In), func(t *testing.T) {
-			got := slices.Collect(text.Lines(tc.In))
-			want := tc.Out
-			if len(got) != len(want) {
-				t.Errorf("len(got): %d, len(want): %d", len(got), len(want))
-			}
-			for i := range got {
-				if got[i] != want[i] {
-					t.Errorf("got[%d]: %q, want[%d]: %q", i, got[i], i, want[i])
-				}
-			}
-		})
-	}
-}
-
-func TestTrimTailingLineBreak(t *testing.T) {
-	testCases := []struct {
-		In  string
-		Out string
-	}{
-		{
-			In:  "",
-			Out: "",
-		},
-		{
-			In:  "aaa",
-			Out: "aaa",
-		},
-		{
-			In:  "aaa\n",
-			Out: "aaa",
-		},
-		{
-			In:  "aaa\n\n",
-			Out: "aaa\n",
-		},
-		{
-			In:  "aaa\r\n",
-			Out: "aaa",
-		},
-		{
-			In:  "aaa\r",
-			Out: "aaa",
-		},
-		{
-			In:  "aaa\u0085",
-			Out: "aaa",
-		},
-		{
-			In:  "aaa\u0085\u2028",
-			Out: "aaa\u0085",
-		},
-		{
-			In:  "aaa\nbbb\n",
-			Out: "aaa\nbbb",
-		},
-	}
-	for _, tc := range testCases {
-		t.Run(fmt.Sprintf("%q", tc.In), func(t *testing.T) {
-			got := text.TrimTailingLineBreak(tc.In)
-			want := tc.Out
-			if got != want {
-				t.Errorf("got: %q, want: %q", got, want)
 			}
 		})
 	}

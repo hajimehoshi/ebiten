@@ -15,8 +15,6 @@
 package text
 
 import (
-	"iter"
-
 	"golang.org/x/image/math/fixed"
 )
 
@@ -34,14 +32,6 @@ func Float32ToFixed26_6(x float32) fixed.Int26_6 {
 
 func Float64ToFixed26_6(x float64) fixed.Int26_6 {
 	return float64ToFixed26_6(x)
-}
-
-func Lines(str string) iter.Seq[string] {
-	return lines(str)
-}
-
-func TrimTailingLineBreak(str string) string {
-	return trimTailingLineBreak(str)
 }
 
 type RuneToBoolMap = runeToBoolMap
