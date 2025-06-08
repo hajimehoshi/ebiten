@@ -166,9 +166,9 @@ type textChunk struct {
 func (m *MultiFace) splitText(text string) iter.Seq[textChunk] {
 	return func(yield func(textChunk) bool) {
 		var chunk textChunk
-		for ri, r := range text {
+		for _, r := range text {
 			fi := -1
-			_, l := utf8.DecodeRuneInString(text[ri:])
+			l := utf8.RuneLen(r)
 			for i, f := range m.faces {
 				if !f.hasGlyph(r) && i < len(m.faces)-1 {
 					continue

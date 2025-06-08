@@ -171,7 +171,7 @@ func (g *GoXFace) appendGlyphsForLine(glyphs []Glyph, line string, indexOffset i
 
 		// Adjust the position to the integers.
 		// The current glyph images assume that they are rendered on integer positions so far.
-		_, size := utf8.DecodeRuneInString(line[i:])
+		size := utf8.RuneLen(r)
 
 		// Append a glyph even if img is nil.
 		// This is necessary to return index information for control characters.
