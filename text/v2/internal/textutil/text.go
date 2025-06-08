@@ -23,23 +23,24 @@ import (
 )
 
 func Lines(str string) iter.Seq[string] {
+	origStr := str
 	return func(yield func(s string) bool) {
-		var line string
+		var startIdx, endIdx int
 		state := -1
 		for len(str) > 0 {
 			segment, nextStr, mustBreak, nextState := uniseg.FirstLineSegmentInString(str, state)
-			line += segment
+			endIdx += len(segment)
 			if mustBreak {
-				if !yield(line) {
+				if !yield(origStr[startIdx:endIdx]) {
 					return
 				}
-				line = ""
+				startIdx = endIdx
 			}
 			state = nextState
 			str = nextStr
 		}
-		if len(line) > 0 {
-			if !yield(line) {
+		if startIdx < endIdx {
+			if !yield(origStr[startIdx:endIdx]) {
 				return
 			}
 		}
