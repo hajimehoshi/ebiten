@@ -498,6 +498,8 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 	allblank := true
 
 	if len(lhs) == len(rhs) {
+		var localVariablIndicesToAssignLater []int
+		var leftExprsToAssignLater []shaderir.Expr
 		for i, e := range lhs {
 			// Prase RHS first for the order of the statements.
 			r, rts, ss, ok := cs.parseExpr(block, fname, rhs[i], true)
@@ -620,18 +622,22 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 							},
 							r[0],
 						},
-					},
-					shaderir.Stmt{
-						Type: shaderir.Assign,
-						Exprs: []shaderir.Expr{
-							l[0],
-							{
-								Type:  shaderir.LocalVariable,
-								Index: idx,
-							},
-						},
 					})
+				localVariablIndicesToAssignLater = append(localVariablIndicesToAssignLater, idx)
+				leftExprsToAssignLater = append(leftExprsToAssignLater, l[0])
 			}
+		}
+		for i, idx := range localVariablIndicesToAssignLater {
+			stmts = append(stmts, shaderir.Stmt{
+				Type: shaderir.Assign,
+				Exprs: []shaderir.Expr{
+					leftExprsToAssignLater[i],
+					{
+						Type:  shaderir.LocalVariable,
+						Index: idx,
+					},
+				},
+			})
 		}
 	} else {
 		var ss []shaderir.Stmt

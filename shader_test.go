@@ -2867,3 +2867,36 @@ func BenchmarkBuiltinShader(b *testing.B) {
 		_ = ebiten.BuiltinShader(builtinshader.FilterNearest, builtinshader.AddressUnsafe, false)
 	}
 }
+
+// Issue #3251
+func TestShaderSwap(t *testing.T) {
+	const w, h = 16, 16
+
+	dst := ebiten.NewImage(w, h)
+	s, err := ebiten.NewShader([]byte(`//kage:unit pixels
+
+package main
+
+func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+	a := 0.25
+	b := 0.5
+	a, b = b, a
+	return vec4(a, b, 0.75, 1)
+}
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	dst.DrawRectShader(w, h, s, nil)
+
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			got := dst.At(i, j).(color.RGBA)
+			want := color.RGBA{R: 0x80, G: 0x40, B: 0xc0, A: 0xff}
+			if !sameColors(got, want, 2) {
+				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+}

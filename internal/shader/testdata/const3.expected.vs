@@ -15,8 +15,8 @@ void F0(void) {
 	l2 = 1.0;
 	l3 = 1;
 	l5 = 1;
-	l4 = l5;
 	l7 = 1.0;
+	l4 = l5;
 	l6 = l7;
 	l8 = false;
 }

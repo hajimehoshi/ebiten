@@ -17,8 +17,8 @@ void F1(out float l0, out vec2 l1) {
 		float l4 = float(0);
 		vec2 l5 = vec2(0);
 		l4 = 0.0;
-		l2 = l4;
 		l5 = vec2(0.0);
+		l2 = l4;
 		l3 = l5;
 	}
 	l0 = l2;
@@ -33,8 +33,8 @@ void F2(in bool l0, out float l1, out vec2 l2) {
 		float l5 = float(0);
 		vec2 l6 = vec2(0);
 		l5 = 0.0;
-		l3 = l5;
 		l6 = vec2(0.0);
+		l3 = l5;
 		l4 = l6;
 	}
 	l1 = l3;
