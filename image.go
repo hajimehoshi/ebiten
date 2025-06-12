@@ -344,6 +344,10 @@ type Vertex struct {
 	// SrcX and SrcY represents a point on a source image.
 	// Be careful that SrcX/SrcY coordinates are on the image's bounds.
 	// This means that an upper-left point of a sub-image might not be (0, 0).
+	//
+	// Before passing vertices to a Kage shader, SrcX/SrcY are converted to texture coordinates of the first image,
+	// which is DrawRectShaderOptions.Image[0] or DrawTrianglesShaderOptions.Images[0].
+	// If the image is nil, SrcX/SrcY are not converted and used as-is.
 	SrcX float32
 	SrcY float32
 
