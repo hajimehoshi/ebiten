@@ -224,8 +224,6 @@ func (g *graphics12) initializeDesktop(useWARP bool, useDebugLayer bool, feature
 }
 
 func (g *graphics12) initializeXbox(useWARP bool, useDebugLayer bool) (ferr error) {
-	g = &graphics12{}
-
 	if err := d3d12x.Load(); err != nil {
 		return err
 	}
