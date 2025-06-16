@@ -48,7 +48,7 @@ type graphics12 struct {
 	renderTargets      [frameCount]*_ID3D12Resource
 	framePipelineToken _D3D12XBOX_FRAME_PIPELINE_TOKEN
 
-	fence          *_ID3D12Fence
+	fences         [frameCount]*_ID3D12Fence
 	fenceValues    [frameCount]uint64
 	fenceWaitEvent windows.Handle
 
@@ -353,17 +353,19 @@ func (g *graphics12) initializeMembers(frameIndex int) (ferr error) {
 	}
 
 	// Create a frame fence.
-	f, err := g.device.CreateFence(0, _D3D12_FENCE_FLAG_NONE)
-	if err != nil {
-		return err
-	}
-	g.fence = f
-	defer func() {
-		if ferr != nil {
-			g.fence.Release()
-			g.fence = nil
+	for i := range frameCount {
+		f, err := g.device.CreateFence(0, _D3D12_FENCE_FLAG_NONE)
+		if err != nil {
+			return err
 		}
-	}()
+		g.fences[i] = f
+		defer func() {
+			if ferr != nil {
+				g.fences[i].Release()
+				g.fences[i] = nil
+			}
+		}()
+	}
 	g.fenceValues[frameIndex]++
 
 	// Create command lists.
@@ -745,7 +747,7 @@ func (g *graphics12) presentXbox() error {
 
 func (g *graphics12) moveToNextFrame() error {
 	fv := g.fenceValues[g.frameIndex]
-	if err := g.commandQueue.Signal(g.fence, fv); err != nil {
+	if err := g.commandQueue.Signal(g.fences[g.frameIndex], fv); err != nil {
 		return err
 	}
 
@@ -760,8 +762,8 @@ func (g *graphics12) moveToNextFrame() error {
 		g.frameIndex = idx
 	}
 
-	if g.fence.GetCompletedValue() < g.fenceValues[g.frameIndex] {
-		if err := g.fence.SetEventOnCompletion(g.fenceValues[g.frameIndex], g.fenceWaitEvent); err != nil {
+	if g.fences[g.frameIndex].GetCompletedValue() < g.fenceValues[g.frameIndex] {
+		if err := g.fences[g.frameIndex].SetEventOnCompletion(g.fenceValues[g.frameIndex], g.fenceWaitEvent); err != nil {
 			return err
 		}
 		if _, err := windows.WaitForSingleObject(g.fenceWaitEvent, windows.INFINITE); err != nil {
@@ -857,10 +859,10 @@ func (g *graphics12) flushCommandList(commandList *_ID3D12GraphicsCommandList) e
 
 func (g *graphics12) waitForCommandQueue() error {
 	fv := g.fenceValues[g.frameIndex]
-	if err := g.commandQueue.Signal(g.fence, fv); err != nil {
+	if err := g.commandQueue.Signal(g.fences[g.frameIndex], fv); err != nil {
 		return err
 	}
-	if err := g.fence.SetEventOnCompletion(fv, g.fenceWaitEvent); err != nil {
+	if err := g.fences[g.frameIndex].SetEventOnCompletion(fv, g.fenceWaitEvent); err != nil {
 		return err
 	}
 	if _, err := windows.WaitForSingleObject(g.fenceWaitEvent, windows.INFINITE); err != nil {
