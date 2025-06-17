@@ -1066,33 +1066,24 @@ type _ID3D12CommandQueue_Vtbl struct {
 	Wait                    uintptr
 	GetTimestampFrequency   uintptr
 	GetClockCalibration     uintptr
-	GetDesc                 uintptr // Is this another function for Xbox?
-
-	// These members are for Xbox.
-	_        uintptr
-	_        uintptr
-	SuspendX uintptr
-	ResumeX  uintptr
-	_        uintptr
-	_        uintptr
-	_        uintptr
-	_        uintptr // Is this GetDesc for Xbox?
-	_        uintptr
-	_        uintptr
-	_        uintptr
-	PresentX uintptr
-	_        uintptr
-	_        uintptr
+	GetDesc                 uintptr
 }
 
 func (i *_ID3D12CommandQueue) ExecuteCommandLists(ppCommandLists []*_ID3D12GraphicsCommandList) {
-	_, _, _ = syscall.Syscall(i.vtbl.ExecuteCommandLists, 3, uintptr(unsafe.Pointer(i)),
-		uintptr(len(ppCommandLists)), uintptr(unsafe.Pointer(&ppCommandLists[0])))
+	if microsoftgdk.IsXbox() {
+		_ID3D12CommandQueue_ExecuteCommandLists(i, ppCommandLists)
+	} else {
+		_, _, _ = syscall.Syscall(i.vtbl.ExecuteCommandLists, 3, uintptr(unsafe.Pointer(i)),
+			uintptr(len(ppCommandLists)), uintptr(unsafe.Pointer(&ppCommandLists[0])))
+	}
 	runtime.KeepAlive(ppCommandLists)
 }
 
 func (i *_ID3D12CommandQueue) PresentX(planeCount uint32, pPlaneParameters *_D3D12XBOX_PRESENT_PLANE_PARAMETERS, pPresentParameters *_D3D12XBOX_PRESENT_PARAMETERS) error {
-	r, _, _ := syscall.Syscall6(i.vtbl.PresentX, 4, uintptr(unsafe.Pointer(i)), uintptr(planeCount), uintptr(unsafe.Pointer(pPlaneParameters)), uintptr(unsafe.Pointer(pPresentParameters)), 0, 0)
+	if !microsoftgdk.IsXbox() {
+		panic("directx: ID3D12CommandQueue::PresentX is only available on Xbox")
+	}
+	r := _ID3D12CommandQueue_PresentX(i, planeCount, pPlaneParameters, pPresentParameters)
 	runtime.KeepAlive(pPlaneParameters)
 	runtime.KeepAlive(pPresentParameters)
 	if uint32(r) != uint32(windows.S_OK) {
@@ -1102,12 +1093,18 @@ func (i *_ID3D12CommandQueue) PresentX(planeCount uint32, pPlaneParameters *_D3D
 }
 
 func (i *_ID3D12CommandQueue) Release() uint32 {
+	if microsoftgdk.IsXbox() {
+		return _ID3D12CommandQueue_Release(i)
+	}
 	r, _, _ := syscall.Syscall(i.vtbl.Release, 1, uintptr(unsafe.Pointer(i)), 0, 0)
 	return uint32(r)
 }
 
 func (i *_ID3D12CommandQueue) ResumeX() error {
-	if r, _, _ := syscall.Syscall(i.vtbl.ResumeX, 1, uintptr(unsafe.Pointer(i)), 0, 0); uint32(r) != uint32(windows.S_OK) {
+	if !microsoftgdk.IsXbox() {
+		panic("directx: ID3D12CommandQueue::ResumeX is only available on Xbox")
+	}
+	if r := _ID3D12CommandQueue_ResumeX(i); uint32(r) != uint32(windows.S_OK) {
 		return fmt.Errorf("directx: ID3D12CommandQueue::ResumeX failed: %w", handleError(windows.Handle(uint32(r))))
 	}
 	return nil
@@ -1115,7 +1112,9 @@ func (i *_ID3D12CommandQueue) ResumeX() error {
 
 func (i *_ID3D12CommandQueue) Signal(signal *_ID3D12Fence, value uint64) error {
 	var r uintptr
-	if is64bit {
+	if microsoftgdk.IsXbox() {
+		r = _ID3D12CommandQueue_Signal(i, signal, value)
+	} else if is64bit {
 		r, _, _ = syscall.Syscall(i.vtbl.Signal, 3, uintptr(unsafe.Pointer(i)),
 			uintptr(unsafe.Pointer(signal)), uintptr(value))
 	} else {
@@ -1130,7 +1129,10 @@ func (i *_ID3D12CommandQueue) Signal(signal *_ID3D12Fence, value uint64) error {
 }
 
 func (i *_ID3D12CommandQueue) SuspendX(flags uint32) error {
-	if r, _, _ := syscall.Syscall(i.vtbl.SuspendX, 2, uintptr(unsafe.Pointer(i)), uintptr(flags), 0); uint32(r) != uint32(windows.S_OK) {
+	if !microsoftgdk.IsXbox() {
+		panic("directx: ID3D12CommandQueue::SuspendX is only available on Xbox")
+	}
+	if r := _ID3D12CommandQueue_SuspendX(i, flags); uint32(r) != uint32(windows.S_OK) {
 		return fmt.Errorf("directx: ID3D12CommandQueue::SuspendX failed: %w", handleError(windows.Handle(uint32(r))))
 	}
 	return nil

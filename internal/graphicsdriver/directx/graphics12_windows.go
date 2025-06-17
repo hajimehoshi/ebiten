@@ -17,6 +17,7 @@ package directx
 import (
 	"errors"
 	"fmt"
+	"runtime"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
@@ -734,6 +735,9 @@ func (g *graphics12) presentDesktop() error {
 }
 
 func (g *graphics12) presentXbox() error {
+	var pinner runtime.Pinner
+	pinner.Pin(&g.renderTargets[g.frameIndex])
+	defer pinner.Unpin()
 	return g.commandQueue.PresentX(1, &_D3D12XBOX_PRESENT_PLANE_PARAMETERS{
 		Token:         g.framePipelineToken,
 		ResourceCount: 1,

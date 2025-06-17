@@ -20,6 +20,30 @@ import (
 	"unsafe"
 )
 
+func _ID3D12CommandQueue_ExecuteCommandLists(i *_ID3D12CommandQueue, ppCommandLists []*_ID3D12GraphicsCommandList) {
+	panic("not implemented")
+}
+
+func _ID3D12CommandQueue_PresentX(i *_ID3D12CommandQueue, planeCount uint32, pPlaneParameters *_D3D12XBOX_PRESENT_PLANE_PARAMETERS, pPresentParameters *_D3D12XBOX_PRESENT_PARAMETERS) uintptr {
+	panic("not implemented")
+}
+
+func _ID3D12CommandQueue_Release(i *_ID3D12CommandQueue) uint32 {
+	panic("not implemented")
+}
+
+func _ID3D12CommandQueue_ResumeX(i *_ID3D12CommandQueue) uintptr {
+	panic("not implemented")
+}
+
+func _ID3D12CommandQueue_Signal(i *_ID3D12CommandQueue, pFence *_ID3D12Fence, value uint64) uintptr {
+	panic("not implemented")
+}
+
+func _ID3D12CommandQueue_SuspendX(i *_ID3D12CommandQueue, flags uint32) uintptr {
+	panic("not implemented")
+}
+
 func _ID3D12GraphicsCommandList_ClearDepthStencilView(i *_ID3D12GraphicsCommandList, depthStencilView _D3D12_CPU_DESCRIPTOR_HANDLE, clearFlags _D3D12_CLEAR_FLAGS, depth float32, stencil uint8, rects []_D3D12_RECT) {
 	panic("not implemented")
 }
