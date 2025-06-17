@@ -569,10 +569,6 @@ func (g *graphics12) resizeSwapChainDesktop(width, height int) error {
 	}
 	g.releaseResources(g.frameIndex)
 
-	for i := 0; i < frameCount; i++ {
-		g.fenceValues[i] = g.fenceValues[g.frameIndex]
-	}
-
 	for _, r := range g.renderTargets {
 		r.Release()
 	}
