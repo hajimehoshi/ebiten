@@ -208,7 +208,7 @@ func (g *graphics12) initializeDesktop(useWARP bool, useDebugLayer bool, feature
 	}
 	g.device = (*_ID3D12Device)(d)
 
-	if err := g.initializeMembers(g.frameIndex); err != nil {
+	if err := g.initializeMembers(); err != nil {
 		return err
 	}
 
@@ -243,7 +243,7 @@ func (g *graphics12) initializeXbox(useWARP bool, useDebugLayer bool) (ferr erro
 	}
 	g.device = (*_ID3D12Device)(d)
 
-	if err := g.initializeMembers(g.frameIndex); err != nil {
+	if err := g.initializeMembers(); err != nil {
 		return err
 	}
 
@@ -300,7 +300,7 @@ func (g *graphics12) registerFrameEventForXbox() error {
 	return nil
 }
 
-func (g *graphics12) initializeMembers(frameIndex int) (ferr error) {
+func (g *graphics12) initializeMembers() (ferr error) {
 	// Create an event for a fence.
 	e, err := windows.CreateEventEx(nil, nil, 0, windows.EVENT_MODIFY_STATE|windows.SYNCHRONIZE)
 	if err != nil {
@@ -365,8 +365,8 @@ func (g *graphics12) initializeMembers(frameIndex int) (ferr error) {
 				g.fences[i] = nil
 			}
 		}()
+		g.fenceValues[i]++
 	}
-	g.fenceValues[frameIndex]++
 
 	// Create command lists.
 	dcl, err := g.device.CreateCommandList(0, _D3D12_COMMAND_LIST_TYPE_DIRECT, g.drawCommandAllocators[0], nil)
