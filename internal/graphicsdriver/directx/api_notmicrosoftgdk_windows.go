@@ -20,7 +20,7 @@ import (
 	"unsafe"
 )
 
-func _D3D12_RESOURCE_STATE_PRESENT() int32 {
+func _D3D12_RESOURCE_STATE_PRESENT() _D3D12_RESOURCE_STATES {
 	return 0
 }
 

@@ -24,8 +24,8 @@ package directx
 /*
 extern "C" {
 
-int Ebitengine_D3D12_RESOURCE_STATE_PRESENT() {
-	return D3D12_RESOURCE_STATE_PRESENT;
+int32_t Ebitengine_D3D12_RESOURCE_STATE_PRESENT() {
+	return static_cast<int32_t>(D3D12_RESOURCE_STATE_PRESENT);
 }
 
 void Ebitengine_ID3D12CommandQueue_ExecuteCommandLists(void* i, uint32_t numCommandLists, void* ppCommandLists) {
@@ -140,7 +140,7 @@ void Ebitengine_ID3D12GraphicsCommandList_SetPipelineState(void* i, void* pPipel
 
 // #include <stdint.h>
 //
-// int Ebitengine_D3D12_RESOURCE_STATE_PRESENT();
+// int32_t Ebitengine_D3D12_RESOURCE_STATE_PRESENT();
 //
 // void Ebitengine_ID3D12CommandQueue_ExecuteCommandLists(void* i, uint32_t numCommandLists, void* ppCommandLists);
 // uintptr_t Ebitengine_ID3D12CommandQueue_PresentX(void* i, uint32_t planeCount, void* pPlaneParameters, void* pPresentParameters);
@@ -174,9 +174,9 @@ import (
 	"unsafe"
 )
 
-func _D3D12_RESOURCE_STATE_PRESENT() int32 {
+func _D3D12_RESOURCE_STATE_PRESENT() _D3D12_RESOURCE_STATES {
 	// This value depends on the environment.
-	return int32(C.Ebitengine_D3D12_RESOURCE_STATE_PRESENT())
+	return _D3D12_RESOURCE_STATES(C.Ebitengine_D3D12_RESOURCE_STATE_PRESENT())
 }
 
 func _ID3D12CommandQueue_ExecuteCommandLists(i *_ID3D12CommandQueue, ppCommandLists []*_ID3D12GraphicsCommandList) {

@@ -537,7 +537,7 @@ func (g *graphics12) initSwapChainXbox(width, height int) (ferr error) {
 			},
 			Layout: _D3D12_TEXTURE_LAYOUT_UNKNOWN,
 			Flags:  _D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET,
-		}, _D3D12_RESOURCE_STATES(_D3D12_RESOURCE_STATE_PRESENT()), &_D3D12_CLEAR_VALUE{
+		}, _D3D12_RESOURCE_STATE_PRESENT(), &_D3D12_CLEAR_VALUE{
 			Format: _DXGI_FORMAT_B8G8R8A8_UNORM,
 		})
 		if err != nil {
@@ -672,7 +672,7 @@ func (g *graphics12) End(present bool) error {
 
 	// screenImage can be nil in tests.
 	if present && g.screenImage != nil {
-		if rb, ok := g.screenImage.transiteState(_D3D12_RESOURCE_STATES(_D3D12_RESOURCE_STATE_PRESENT())); ok {
+		if rb, ok := g.screenImage.transiteState(_D3D12_RESOURCE_STATE_PRESENT()); ok {
 			g.drawCommandList.ResourceBarrier([]_D3D12_RESOURCE_BARRIER_Transition{rb})
 		}
 	}
