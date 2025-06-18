@@ -20,6 +20,10 @@ import (
 	"unsafe"
 )
 
+func _D3D12_RESOURCE_STATE_PRESENT() int32 {
+	return 0
+}
+
 func _ID3D12CommandQueue_ExecuteCommandLists(i *_ID3D12CommandQueue, ppCommandLists []*_ID3D12GraphicsCommandList) {
 	panic("not implemented")
 }
