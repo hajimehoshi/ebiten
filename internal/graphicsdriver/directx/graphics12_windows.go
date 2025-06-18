@@ -209,7 +209,7 @@ func (g *graphics12) initializeDesktop(useWARP bool, useDebugLayer bool, feature
 	}
 	g.device = (*_ID3D12Device)(d)
 
-	if err := g.initializeMembers(g.frameIndex); err != nil {
+	if err := g.initializeMembers(); err != nil {
 		return err
 	}
 
@@ -244,7 +244,7 @@ func (g *graphics12) initializeXbox(useWARP bool, useDebugLayer bool) (ferr erro
 	}
 	g.device = (*_ID3D12Device)(d)
 
-	if err := g.initializeMembers(g.frameIndex); err != nil {
+	if err := g.initializeMembers(); err != nil {
 		return err
 	}
 
@@ -301,7 +301,7 @@ func (g *graphics12) registerFrameEventForXbox() error {
 	return nil
 }
 
-func (g *graphics12) initializeMembers(frameIndex int) (ferr error) {
+func (g *graphics12) initializeMembers() (ferr error) {
 	// Create an event for a fence.
 	e, err := windows.CreateEventEx(nil, nil, 0, windows.EVENT_MODIFY_STATE|windows.SYNCHRONIZE)
 	if err != nil {
@@ -367,7 +367,6 @@ func (g *graphics12) initializeMembers(frameIndex int) (ferr error) {
 			}
 		}()
 	}
-	g.fenceValues[frameIndex]++
 
 	// Create command lists.
 	dcl, err := g.device.CreateCommandList(0, _D3D12_COMMAND_LIST_TYPE_DIRECT, g.drawCommandAllocators[0], nil)
@@ -746,6 +745,7 @@ func (g *graphics12) presentXbox() error {
 }
 
 func (g *graphics12) moveToNextFrame() error {
+	g.fenceValues[g.frameIndex]++
 	fv := g.fenceValues[g.frameIndex]
 	if err := g.commandQueue.Signal(g.fences[g.frameIndex], fv); err != nil {
 		return err
@@ -770,7 +770,6 @@ func (g *graphics12) moveToNextFrame() error {
 			return err
 		}
 	}
-	g.fenceValues[g.frameIndex] = fv + 1
 	return nil
 }
 
@@ -858,6 +857,7 @@ func (g *graphics12) flushCommandList(commandList *_ID3D12GraphicsCommandList) e
 }
 
 func (g *graphics12) waitForCommandQueue() error {
+	g.fenceValues[g.frameIndex]++
 	fv := g.fenceValues[g.frameIndex]
 	if err := g.commandQueue.Signal(g.fences[g.frameIndex], fv); err != nil {
 		return err
@@ -868,7 +868,6 @@ func (g *graphics12) waitForCommandQueue() error {
 	if _, err := windows.WaitForSingleObject(g.fenceWaitEvent, windows.INFINITE); err != nil {
 		return err
 	}
-	g.fenceValues[g.frameIndex]++
 	return nil
 }
 
