@@ -199,6 +199,10 @@ func (w *Window) clientToScreen(rect _RECT) (_RECT, error) {
 }
 
 func captureCursor(window *Window) error {
+	if microsoftgdk.IsXbox() {
+		return nil
+	}
+
 	clipRect, err := _GetClientRect(window.platform.handle)
 	if err != nil {
 		return err
@@ -215,6 +219,10 @@ func captureCursor(window *Window) error {
 }
 
 func releaseCursor() error {
+	if microsoftgdk.IsXbox() {
+		return nil
+	}
+
 	if err := _ClipCursor(nil); err != nil {
 		return err
 	}
