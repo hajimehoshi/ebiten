@@ -2498,7 +2498,7 @@ func TestSyntaxBuiltinFuncArgsMinMax(t *testing.T) {
 		err  bool
 	}{
 		{stmt: "a := {{.Func}}(); _ = a", err: true},
-		{stmt: "a := {{.Func}}(1); _ = a", err: true}, // TODO: Allow this (#2677).
+		{stmt: "a := {{.Func}}(1); _ = a", err: false},
 		{stmt: "a := {{.Func}}(false, false); _ = a", err: true},
 		{stmt: "a := {{.Func}}(1, 1); var _ int = a", err: false},
 		{stmt: "a := {{.Func}}(1.0, 1); var _ float = a", err: false},
@@ -2567,7 +2567,11 @@ func TestSyntaxBuiltinFuncArgsMinMax(t *testing.T) {
 		{stmt: "a := {{.Func}}(ivec4(1), ivec2(1)); _ = a", err: true},
 		{stmt: "a := {{.Func}}(ivec4(1), ivec3(1)); _ = a", err: true},
 		{stmt: "a := {{.Func}}(ivec4(1), ivec4(1)); _ = a", err: false},
-		{stmt: "a := {{.Func}}(1, 1, 1); _ = a", err: true}, // TODO: Allow this (#2677).
+		{stmt: "a := {{.Func}}(1, 1, 1); _ = a", err: false},
+		{stmt: "a := {{.Func}}(1, 1, 1, 1, 1); _ = a", err: false},
+		{stmt: "a := {{.Func}}(1.0, 2.0, 3.0); _ = a", err: false},
+		{stmt: "a := {{.Func}}(vec2(1), vec2(2), vec2(3)); _ = a", err: false},
+		{stmt: "a := {{.Func}}(vec2(1), 1, 1); _ = a", err: true},
 	}
 
 	funcs := []string{

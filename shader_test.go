@@ -2900,3 +2900,61 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 		}
 	}
 }
+
+func TestShaderVectorAndScalarMinMax(t *testing.T) {
+	const w, h = 16, 16
+
+	dst := ebiten.NewImage(w, h)
+	s, err := ebiten.NewShader([]byte(`//kage:unit pixels
+package main
+func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+	a := min(vec2(0.375, 0.5), 0.25)
+	b := max(vec2(0.625, 0.5), 0.75)
+	return vec4(a, b)
+}
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	dst.DrawRectShader(w, h, s, nil)
+
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			got := dst.At(i, j).(color.RGBA)
+			want := color.RGBA{R: 0x40, G: 0x40, B: 0xc0, A: 0xc0}
+			if !sameColors(got, want, 2) {
+				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+}
+
+func TestShaderVariadicMinMax(t *testing.T) {
+	const w, h = 16, 16
+
+	dst := ebiten.NewImage(w, h)
+	s, err := ebiten.NewShader([]byte(`//kage:unit pixels
+package main
+func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+	a := min(0.25, 0.375, 0.5, 0.625, 0.75)
+	b := max(0.75, 0.625, 0.5, 0.375, 0.25)
+	return vec4(float(a), float(b), 0.75, 1)
+}
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	dst.DrawRectShader(w, h, s, nil)
+
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			got := dst.At(i, j).(color.RGBA)
+			want := color.RGBA{R: 0x40, G: 0xc0, B: 0xc0, A: 0xff}
+			if !sameColors(got, want, 2) {
+				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+}

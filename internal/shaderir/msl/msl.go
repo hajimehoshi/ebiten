@@ -418,6 +418,13 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 					panic(fmt.Sprintf("msl: unexpected unit: %d", p.Unit))
 				}
 			}
+			if callee.Type == shaderir.BuiltinFuncExpr && (callee.BuiltinFunc == shaderir.Min || callee.BuiltinFunc == shaderir.Max) {
+				result := args[0]
+				for i := 1; i < len(args); i++ {
+					result = fmt.Sprintf("%s(%s, %s)", expr(&callee), result, args[i])
+				}
+				return result
+			}
 			return fmt.Sprintf("%s(%s)", expr(&callee), strings.Join(args, ", "))
 		case shaderir.FieldSelector:
 			return fmt.Sprintf("(%s).%s", expr(&e.Exprs[0]), expr(&e.Exprs[1]))
