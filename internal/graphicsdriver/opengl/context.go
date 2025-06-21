@@ -440,6 +440,8 @@ func (c *context) uniforms(p program, location string, v []uint32, typ shaderir.
 	}
 
 	switch base {
+	case shaderir.Bool:
+		c.ctx.Uniform1iv(int32(l), uint32sToInt32s(v))
 	case shaderir.Float:
 		c.ctx.Uniform1fv(int32(l), uint32sToFloat32s(v))
 	case shaderir.Int:

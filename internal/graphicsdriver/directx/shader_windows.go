@@ -153,6 +153,9 @@ func constantBufferSize(uniformTypes []shaderir.Type, uniformOffsets []int) int 
 		}
 
 		switch typ.Main {
+		case shaderir.Bool:
+			// Bool is 4 bytes in HLSL.
+			size += 1
 		case shaderir.Float:
 			size += 1
 		case shaderir.Int:
@@ -172,6 +175,8 @@ func constantBufferSize(uniformTypes []shaderir.Type, uniformOffsets []int) int 
 		case shaderir.Array:
 			// Each element is aligned to the boundary.
 			switch typ.Sub[0].Main {
+			case shaderir.Bool:
+				size += 4*(typ.Length-1) + 1
 			case shaderir.Float:
 				size += 4*(typ.Length-1) + 1
 			case shaderir.Int:
@@ -201,6 +206,7 @@ func constantBufferSize(uniformTypes []shaderir.Type, uniformOffsets []int) int 
 func adjustUniforms(uniformTypes []shaderir.Type, uniformOffsets []int, uniforms []uint32) []uint32 {
 	// Note that HLSL's matrices are row-major, while GLSL and MSL are column-major.
 	// Transpose matrices so that users can access matrix indices in the same way as GLSL and MSL.
+	// For packing rule, see https://github.com/microsoft/DirectXShaderCompiler/wiki/Buffer-Packing
 
 	var fs []uint32
 	var idx int
@@ -211,6 +217,9 @@ func adjustUniforms(uniformTypes []shaderir.Type, uniformOffsets []int, uniforms
 
 		n := typ.DwordCount()
 		switch typ.Main {
+		case shaderir.Bool:
+			// Bool is 4 bytes in HLSL.
+			fs = append(fs, uniforms[idx:idx+1]...)
 		case shaderir.Float:
 			fs = append(fs, uniforms[idx:idx+1]...)
 		case shaderir.Int:
@@ -254,6 +263,13 @@ func adjustUniforms(uniformTypes []shaderir.Type, uniformOffsets []int, uniforms
 		case shaderir.Array:
 			// Each element is aligned to the boundary.
 			switch typ.Sub[0].Main {
+			case shaderir.Bool:
+				for j := 0; j < typ.Length; j++ {
+					fs = append(fs, uniforms[idx+j])
+					if j < typ.Length-1 {
+						fs = append(fs, 0, 0, 0)
+					}
+				}
 			case shaderir.Float:
 				for j := 0; j < typ.Length; j++ {
 					fs = append(fs, uniforms[idx+j])

@@ -89,6 +89,9 @@ func (t Type) String() string {
 
 func (t Type) DwordCount() int {
 	switch t.Main {
+	case Bool:
+		// The size of a bool varies by the shader language, but use 1 for simplicity.
+		return 1
 	case Int:
 		return 1
 	case Float:

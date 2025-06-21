@@ -41,6 +41,9 @@ func UniformVariableOffsetsInDwords(program *shaderir.Program) []int {
 	// See https://docs.microsoft.com/en-us/windows/win32/direct3dhlsl/dx-graphics-hlsl-variable-packoffset
 	for _, u := range program.Uniforms {
 		switch u.Main {
+		case shaderir.Bool:
+			offsetsInDwords = append(offsetsInDwords, headInDwords)
+			headInDwords += 1
 		case shaderir.Float:
 			offsetsInDwords = append(offsetsInDwords, headInDwords)
 			headInDwords += 1

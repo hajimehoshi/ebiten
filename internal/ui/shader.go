@@ -70,6 +70,15 @@ func (s *Shader) AppendUniforms(dst []uint32, uniforms map[string]any) []uint32 
 			v := reflect.ValueOf(uv)
 			t := v.Type()
 			switch t.Kind() {
+			case reflect.Bool:
+				if typ.DwordCount() != 1 {
+					panic(fmt.Sprintf("ui: unexpected uniform value for %s (%s)", name, typ.String()))
+				}
+				if v.Bool() {
+					dst[idx] = 1
+				} else {
+					dst[idx] = 0
+				}
 			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 				if typ.DwordCount() != 1 {
 					panic(fmt.Sprintf("ui: unexpected uniform value for %s (%s)", name, typ.String()))
@@ -91,6 +100,14 @@ func (s *Shader) AppendUniforms(dst []uint32, uniforms map[string]any) []uint32 
 					panic(fmt.Sprintf("ui: unexpected uniform value for %s (%s)", name, typ.String()))
 				}
 				switch t.Elem().Kind() {
+				case reflect.Bool:
+					for i := 0; i < l; i++ {
+						if v.Index(i).Bool() {
+							dst[idx+i] = 1
+						} else {
+							dst[idx+i] = 0
+						}
+					}
 				case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 					for i := 0; i < l; i++ {
 						dst[idx+i] = uint32(v.Index(i).Int())

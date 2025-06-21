@@ -683,7 +683,7 @@ type DrawTrianglesShaderOptions struct {
 
 	// Uniforms is a set of uniform variables for the shader.
 	// The keys are the names of the uniform variables.
-	// The values must be a numeric type, or a slice or an array of a numeric type.
+	// The values must be a numeric/boolean type, or a slice or an array of a numeric/boolean type.
 	// If the uniform variable type is an array, a vector or a matrix,
 	// you have to specify linearly flattened values as a slice or an array.
 	// For example, if the uniform variable type is [4]vec4, the length will be 16.
@@ -904,7 +904,7 @@ type DrawRectShaderOptions struct {
 
 	// Uniforms is a set of uniform variables for the shader.
 	// The keys are the names of the uniform variables.
-	// The values must be a numeric type, or a slice or an array of a numeric type.
+	// The values must be a numeric/boolean type, or a slice or an array of a numeric/boolean type.
 	// If the uniform variable type is an array, a vector or a matrix,
 	// you have to specify linearly flattened values as a slice or an array.
 	// For example, if the uniform variable type is [4]vec4, the length will be 16.

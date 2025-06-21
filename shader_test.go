@@ -2958,3 +2958,55 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 		}
 	}
 }
+
+func TestShaderUniformBool(t *testing.T) {
+	const w, h = 16, 16
+
+	dst := ebiten.NewImage(w, h)
+	s, err := ebiten.NewShader([]byte(`//kage:unit pixels
+
+package main
+
+var B1 bool
+var B2 [2]bool
+var B3 bool
+
+func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+	var r, g, b, a float
+	if B1 {
+		r = 1.0
+	}
+	if B2[0] {
+		g = 1.0
+	}
+	if B2[1] {
+		b = 1.0
+	}
+	if B3 {
+		a = 1.0
+	}
+	return vec4(r, g, b, a)
+}
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	op := &ebiten.DrawRectShaderOptions{}
+	op.Uniforms = map[string]any{
+		"B1": true,
+		"B2": [2]bool{false, true},
+		"B3": true,
+	}
+	dst.DrawRectShader(w, h, s, op)
+
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			got := dst.At(i, j).(color.RGBA)
+			want := color.RGBA{R: 0xff, G: 0, B: 0xff, A: 0xff}
+			if !sameColors(got, want, 2) {
+				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+}
