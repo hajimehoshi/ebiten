@@ -68,6 +68,29 @@ func (s *subPath) reset() {
 	s.closed = false
 }
 
+func isRegularF32(x float32) bool {
+	return !math.IsNaN(float64(x)) && !math.IsInf(float64(x), 0)
+}
+
+func (s *subPath) isValid() bool {
+	if !isRegularF32(s.start.x) || !isRegularF32(s.start.y) {
+		return false
+	}
+	for _, op := range s.ops {
+		switch op.typ {
+		case opTypeLineTo:
+			if !isRegularF32(op.p1.x) || !isRegularF32(op.p1.y) {
+				return false
+			}
+		case opTypeQuadTo:
+			if !isRegularF32(op.p1.x) || !isRegularF32(op.p1.y) || !isRegularF32(op.p2.x) || !isRegularF32(op.p2.y) {
+				return false
+			}
+		}
+	}
+	return true
+}
+
 // flatPath is a flattened sub-path of a path.
 // A flatPath consists of points for line segments.
 type flatPath struct {
@@ -205,6 +228,11 @@ func (p *Path) LineTo(x, y float32) {
 			start: p.subPaths[len(p.subPaths)-1].start,
 		})
 	}
+	if cur, ok := p.currentPosition(); ok {
+		if cur.x == x && cur.y == y {
+			return
+		}
+	}
 	p.subPaths[len(p.subPaths)-1].ops = append(p.subPaths[len(p.subPaths)-1].ops, op{
 		typ: opTypeLineTo,
 		p1:  point{x: x, y: y},
@@ -224,6 +252,11 @@ func (p *Path) QuadTo(x1, y1, x2, y2 float32) {
 		p.subPaths = append(p.subPaths, subPath{
 			start: p.subPaths[len(p.subPaths)-1].start,
 		})
+	}
+	if cur, ok := p.currentPosition(); ok {
+		if cur.x == x2 && cur.y == y2 {
+			return
+		}
 	}
 	p.subPaths[len(p.subPaths)-1].ops = append(p.subPaths[len(p.subPaths)-1].ops, op{
 		typ: opTypeQuadTo,
@@ -256,6 +289,12 @@ func (p *Path) cubicTo(x1, y1, x2, y2, x3, y3 float32, level int) {
 		y: -0.25*p0.y + 0.75*p1.y + 0.75*p2.y - 0.25*p3.y,
 	}
 	if level > 5 || isQuadraticCloseEnoughToCubic(p0, p3, m, p1, p2) {
+		p.QuadTo(m.x, m.y, p3.x, p3.y)
+		return
+	}
+
+	// If any of the points is not a regular float32, do not call this function recursively.
+	if !isRegularF32(cur.x) || !isRegularF32(cur.y) || !isRegularF32(x1) || !isRegularF32(y1) || !isRegularF32(x2) || !isRegularF32(y2) || !isRegularF32(x3) || !isRegularF32(y3) {
 		p.QuadTo(m.x, m.y, p3.x, p3.y)
 		return
 	}
@@ -300,11 +339,16 @@ func isQuadraticCloseEnoughToCubic(start, end, qc1, cc1, cc2 point) bool {
 			y: (1-t)*(1-t)*(1-t)*start.y + 3*(1-t)*(1-t)*t*cc1.y + 3*(1-t)*t*t*cc2.y + t*t*t*end.y,
 		}
 		// 1.0/16.0 is an arbitrary threshold.
-		if (q.x-c.x)*(q.x-c.x)+(q.y-c.y)*(q.y-c.y) >= (1.0/16.0)*(1.0/16.0) {
+		if !arePointsCloseEnough(q, c, 0, 1.0/16.0) {
 			return false
 		}
 	}
 	return true
+}
+
+func arePointsCloseEnough(p0, p1 point, allowanceMin, allowanceMax float32) bool {
+	d := (p0.x-p1.x)*(p0.x-p1.x) + (p0.y-p1.y)*(p0.y-p1.y)
+	return d >= allowanceMin*allowanceMin && d <= allowanceMax*allowanceMax
 }
 
 // Close adds a new line from the last position of the current sub-path to the first position of the current sub-path,
@@ -391,15 +435,6 @@ func (p *Path) appendFlatPathPointsForQuad(p0, p1, p2 point, level int) {
 	p.appendFlatPathPointsForQuad(p012, p12, p2, level+1)
 }
 
-func normalize(p point) point {
-	len := float32(math.Hypot(float64(p.x), float64(p.y)))
-	return point{x: p.x / len, y: p.y / len}
-}
-
-func cross(p0, p1 point) float32 {
-	return p0.x*p1.y - p1.x*p0.y
-}
-
 func (p *Path) currentPosition() (point, bool) {
 	if len(p.subPaths) == 0 {
 		return point{}, false
@@ -425,25 +460,29 @@ func (p *Path) ArcTo(x1, y1, x2, y2, radius float32) {
 	if !ok {
 		p0 = point{x: x1, y: y1}
 	}
-	d0 := point{
+	d0 := vec2{
 		x: p0.x - x1,
 		y: p0.y - y1,
 	}
-	d1 := point{
+	d1 := vec2{
 		x: x2 - x1,
 		y: y2 - y1,
 	}
-	if d0 == (point{}) || d1 == (point{}) {
+	if d0 == (vec2{}) || d1 == (vec2{}) {
 		p.LineTo(x1, y1)
 		return
 	}
 
-	d0 = normalize(d0)
-	d1 = normalize(d1)
+	d0 = d0.norm()
+	d1 = d1.norm()
 
 	// theta is the angle between two vectors d0 and d1.
 	theta := math.Acos(float64(d0.x*d1.x + d0.y*d1.y))
 	// TODO: When theta is bigger than π/2, the arc should be split into two.
+	if theta == 0 {
+		p.LineTo(x2, y2)
+		return
+	}
 
 	// dist is the distance between the control point and the arc's beginning and ending points.
 	dist := radius / float32(math.Tan(theta/2))
@@ -456,7 +495,7 @@ func (p *Path) ArcTo(x1, y1, x2, y2, radius float32) {
 
 	var cx, cy, a0, a1 float32
 	var dir Direction
-	if cross(d0, d1) >= 0 {
+	if d0.cross(d1) >= 0 {
 		cx = ax0 - d0.y*radius
 		cy = ay0 + d0.x*radius
 		a0 = float32(math.Atan2(float64(-d0.x), float64(d0.y)))
@@ -472,7 +511,7 @@ func (p *Path) ArcTo(x1, y1, x2, y2, radius float32) {
 	p.Arc(cx, cy, radius, a0, a1, dir)
 }
 
-func euclideanMod(a, b float32) float32 {
+func euclideanModF32(a, b float32) float32 {
 	return a - b*float32(math.Floor(float64(a)/float64(b)))
 }
 
@@ -485,10 +524,10 @@ func (p *Path) Arc(x, y, radius, startAngle, endAngle float32, dir Direction) {
 	// Adjust the angles.
 	var da float64
 	if dir == Clockwise {
-		endAngle = startAngle + float32(euclideanMod(endAngle-startAngle, 2*math.Pi))
+		endAngle = startAngle + float32(euclideanModF32(endAngle-startAngle, 2*math.Pi))
 		da = float64(endAngle - startAngle)
 	} else {
-		startAngle = endAngle + float32(euclideanMod(startAngle-endAngle, 2*math.Pi))
+		startAngle = endAngle + float32(euclideanModF32(startAngle-endAngle, 2*math.Pi))
 		da = float64(startAngle - endAngle)
 	}
 
@@ -635,7 +674,7 @@ func (p *Path) ApplyGeoM(geoM ebiten.GeoM) *Path {
 
 // AddPathOptions is options for [Path.AddPath].
 type AddPathOptions struct {
-	// GeoM is a transformation matrix to apply to the path.
+	// GeoM is a geometry matrix to apply to the path.
 	//
 	// The default (zero) value is an identity matrix.
 	GeoM ebiten.GeoM
@@ -649,11 +688,11 @@ func (p *Path) AddPath(src *Path, options *AddPathOptions) {
 		options = &AddPathOptions{}
 	}
 
-	origN := len(src.subPaths)
+	srcN := len(src.subPaths)
 	n := len(p.subPaths)
 	p.subPaths = append(p.subPaths, make([]subPath, len(src.subPaths))...)
 	// Note that p and src might be the same.
-	for i, origSubPath := range src.subPaths[:origN] {
+	for i, origSubPath := range src.subPaths[:srcN] {
 		sx, sy := options.GeoM.Apply(float64(origSubPath.start.x), float64(origSubPath.start.y))
 		p.subPaths[n+i] = subPath{
 			ops:    make([]op, len(origSubPath.ops)),
@@ -680,49 +719,6 @@ func (p *Path) AddPath(src *Path, options *AddPathOptions) {
 			}
 		}
 	}
-}
-
-// LineCap represents the way in which how the ends of the stroke are rendered.
-type LineCap int
-
-const (
-	LineCapButt LineCap = iota
-	LineCapRound
-	LineCapSquare
-)
-
-// LineJoin represents the way in which how two segments are joined.
-type LineJoin int
-
-const (
-	LineJoinMiter LineJoin = iota
-	LineJoinBevel
-	LineJoinRound
-)
-
-// StrokeOptions is options to render a stroke.
-type StrokeOptions struct {
-	// Width is the stroke width in pixels.
-	//
-	// The default (zero) value is 0.
-	Width float32
-
-	// LineCap is the way in which how the ends of the stroke are rendered.
-	// Line caps are not rendered when the sub-path is marked as closed.
-	//
-	// The default (zero) value is LineCapButt.
-	LineCap LineCap
-
-	// LineJoin is the way in which how two segments are joined.
-	//
-	// The default (zero) value is LineJoiMiter.
-	LineJoin LineJoin
-
-	// MiterLimit is the miter limit for LineJoinMiter.
-	// For details, see https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/stroke-miterlimit.
-	//
-	// The default (zero) value is 0.
-	MiterLimit float32
 }
 
 // AppendVerticesAndIndicesForStroke appends vertices and indices to render a stroke of this path and returns them.

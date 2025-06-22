@@ -39,9 +39,12 @@ type Game struct {
 
 	aa   bool
 	line bool
+
+	paths      []*vector.Path
+	pathColors []color.Color
 }
 
-func (g *Game) drawEbitenText(screen *ebiten.Image, x, y int, aa bool, line bool) {
+func (g *Game) appendPathsForEbitenText(paths []*vector.Path, pathColors []color.Color, x, y int, line bool) ([]*vector.Path, []color.Color) {
 	var path vector.Path
 
 	// E
@@ -113,17 +116,22 @@ func (g *Game) drawEbitenText(screen *ebiten.Image, x, y int, aa bool, line bool
 	path.LineTo(290, 20)
 	path.Close()
 
+	var newPath *vector.Path
 	if line {
-		op := &vector.StrokeOptions{}
+		op := &vector.AddPathStrokeOptions{}
 		op.Width = 5
 		op.LineJoin = vector.LineJoinRound
-		vector.StrokePath(screen, &path, color.RGBA{0xdb, 0x56, 0x20, 0xff}, aa, op)
+		newPath = &vector.Path{}
+		newPath.AddPathStroke(&path, op)
 	} else {
-		vector.DrawFilledPath(screen, &path, color.RGBA{0xdb, 0x56, 0x20, 0xff}, aa, vector.FillRuleNonZero)
+		newPath = &path
 	}
+	paths = append(paths, newPath)
+	pathColors = append(pathColors, color.RGBA{0xdb, 0x56, 0x20, 0xff})
+	return paths, pathColors
 }
 
-func (g *Game) drawEbitenLogo(screen *ebiten.Image, x, y int, aa bool, line bool) {
+func (g *Game) appendPathsForEbitenLogo(paths []*vector.Path, pathColors []color.Color, x, y int, line bool) ([]*vector.Path, []color.Color) {
 	const unit = 16
 
 	var path vector.Path
@@ -149,21 +157,27 @@ func (g *Game) drawEbitenLogo(screen *ebiten.Image, x, y int, aa bool, line bool
 	path.LineTo(unit, 4*unit)
 	path.Close()
 
+	var geoM ebiten.GeoM
+	geoM.Translate(float64(x), float64(y))
+
 	var newPath vector.Path
-	op := &vector.AddPathOptions{}
-	op.GeoM.Translate(float64(x), float64(y))
-	newPath.AddPath(&path, op)
 	if line {
-		op := &vector.StrokeOptions{}
+		op := &vector.AddPathStrokeOptions{}
 		op.Width = 5
 		op.LineJoin = vector.LineJoinRound
-		vector.StrokePath(screen, &newPath, color.RGBA{0xdb, 0x56, 0x20, 0xff}, aa, op)
+		op.GeoM = geoM
+		newPath.AddPathStroke(&path, op)
 	} else {
-		vector.DrawFilledPath(screen, &newPath, color.RGBA{0xdb, 0x56, 0x20, 0xff}, aa, vector.FillRuleNonZero)
+		op := &vector.AddPathOptions{}
+		op.GeoM = geoM
+		newPath.AddPath(&path, op)
 	}
+	paths = append(paths, &newPath)
+	pathColors = append(pathColors, color.RGBA{0xdb, 0x56, 0x20, 0xff})
+	return paths, pathColors
 }
 
-func (g *Game) drawArc(screen *ebiten.Image, count int, aa bool, line bool) {
+func (g *Game) appendPathsForArc(paths []*vector.Path, pathColors []color.Color, count int, line bool) ([]*vector.Path, []color.Color) {
 	var path vector.Path
 
 	path.MoveTo(350, 100)
@@ -179,21 +193,26 @@ func (g *Game) drawArc(screen *ebiten.Image, count int, aa bool, line bool) {
 	path.Arc(550, 100, 50, float32(theta1), float32(theta2), vector.Clockwise)
 	path.Close()
 
+	var newPath *vector.Path
 	if line {
-		op := &vector.StrokeOptions{}
+		op := &vector.AddPathStrokeOptions{}
 		op.Width = 5
 		op.LineJoin = vector.LineJoinRound
-		vector.StrokePath(screen, &path, color.RGBA{0x33, 0xcc, 0x66, 0xff}, aa, op)
+		newPath = &vector.Path{}
+		newPath.AddPathStroke(&path, op)
 	} else {
-		vector.DrawFilledPath(screen, &path, color.RGBA{0x33, 0xcc, 0x66, 0xff}, aa, vector.FillRuleNonZero)
+		newPath = &path
 	}
+	paths = append(paths, newPath)
+	pathColors = append(pathColors, color.RGBA{0x33, 0xcc, 0x66, 0xff})
+	return paths, pathColors
 }
 
 func maxCounter(index int) int {
 	return 128 + (17*index+32)%64
 }
 
-func (g *Game) drawWave(screen *ebiten.Image, counter int, aa bool, line bool) {
+func (g *Game) appendPathsForWave(paths []*vector.Path, pathColors []color.Color, counter int, line bool) ([]*vector.Path, []color.Color) {
 	var path vector.Path
 
 	const npoints = 8
@@ -218,14 +237,19 @@ func (g *Game) drawWave(screen *ebiten.Image, counter int, aa bool, line bool) {
 	path.LineTo(screenWidth, screenHeight)
 	path.LineTo(0, screenHeight)
 
+	var newPath *vector.Path
 	if line {
-		op := &vector.StrokeOptions{}
+		op := &vector.AddPathStrokeOptions{}
 		op.Width = 5
 		op.LineJoin = vector.LineJoinRound
-		vector.StrokePath(screen, &path, color.RGBA{0x33, 0x66, 0xff, 0xff}, aa, op)
+		newPath = &vector.Path{}
+		newPath.AddPathStroke(&path, op)
 	} else {
-		vector.DrawFilledPath(screen, &path, color.RGBA{0x33, 0x66, 0xff, 0xff}, aa, vector.FillRuleNonZero)
+		newPath = &path
 	}
+	paths = append(paths, newPath)
+	pathColors = append(pathColors, color.RGBA{0x33, 0x66, 0xff, 0xff})
+	return paths, pathColors
 }
 
 func (g *Game) Update() error {
@@ -250,10 +274,15 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	dst := screen
 
 	dst.Fill(color.RGBA{0xe0, 0xe0, 0xe0, 0xff})
-	g.drawEbitenText(dst, 0, 50, g.aa, g.line)
-	g.drawEbitenLogo(dst, 20, 150, g.aa, g.line)
-	g.drawArc(dst, g.counter, g.aa, g.line)
-	g.drawWave(dst, g.counter, g.aa, g.line)
+
+	g.paths = g.paths[:0]
+	g.pathColors = g.pathColors[:0]
+	g.paths, g.pathColors = g.appendPathsForEbitenText(g.paths, g.pathColors, 0, 50, g.line)
+	g.paths, g.pathColors = g.appendPathsForEbitenLogo(g.paths, g.pathColors, 20, 150, g.line)
+	g.paths, g.pathColors = g.appendPathsForArc(g.paths, g.pathColors, g.counter, g.line)
+	g.paths, g.pathColors = g.appendPathsForWave(g.paths, g.pathColors, g.counter, g.line)
+
+	vector.FillPaths(screen, g.paths, g.pathColors, g.aa, vector.FillRuleNonZero)
 
 	g.debugui.Draw(screen)
 }

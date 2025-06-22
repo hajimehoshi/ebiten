@@ -84,6 +84,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	offsetX, offsetY := (ow-size*len(joins))/2, (oh-size*len(caps))*3/4
 
 	// Render the lines on the target.
+	var paths []*vector.Path
 	for j, cap := range caps {
 		for i, join := range joins {
 			r := image.Rect(i*size+offsetX, j*size+offsetY, (i+1)*size+offsetX, (j+1)*size+offsetY)
@@ -91,14 +92,23 @@ func (g *Game) Draw(screen *ebiten.Image) {
 			if i == 1 {
 				miterLimit = 10
 			}
-			g.drawLine(target, r, cap, join, miterLimit)
+			paths = g.appendLineVectors(paths, r, cap, join, miterLimit)
 		}
 	}
+	colors := make([]color.Color, len(paths))
+	for i := range paths {
+		if g.showCenter && i%2 == 1 {
+			colors[i] = color.RGBA{0xff, 0, 0, 0xff}
+		} else {
+			colors[i] = color.White
+		}
+	}
+	vector.FillPaths(screen, paths, colors, g.aa, vector.FillRuleNonZero)
 
 	g.debugui.Draw(screen)
 }
 
-func (g *Game) drawLine(screen *ebiten.Image, region image.Rectangle, cap vector.LineCap, join vector.LineJoin, miterLimit float32) {
+func (g *Game) appendLineVectors(paths []*vector.Path, region image.Rectangle, cap vector.LineCap, join vector.LineJoin, miterLimit float32) []*vector.Path {
 	c0x := float64(region.Min.X + region.Dx()/4)
 	c0y := float64(region.Min.Y + region.Dy()/4)
 	c1x := float64(region.Max.X - region.Dx()/4)
@@ -121,13 +131,15 @@ func (g *Game) drawLine(screen *ebiten.Image, region image.Rectangle, cap vector
 	op.LineJoin = join
 	op.MiterLimit = miterLimit
 	op.Width = float32(r / 2)
-	vector.StrokePath(screen, &path, color.White, g.aa, op)
+	paths = append(paths, path.Stroke(op))
 
 	// Draw the center line in red.
 	if g.showCenter {
 		op.Width = 1
-		vector.StrokePath(screen, &path, color.RGBA{0xff, 0, 0, 0xff}, g.aa, op)
+		paths = append(paths, path.Stroke(op))
 	}
+
+	return paths
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
