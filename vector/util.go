@@ -19,6 +19,7 @@ import (
 	"image/color"
 	"math"
 	"sync"
+	_ "unsafe"
 
 	"github.com/hajimehoshi/ebiten/v2"
 )
@@ -50,27 +51,7 @@ func init() {
 	whiteImage.WritePixels(pix)
 }
 
-func drawVerticesForUtil(dst *ebiten.Image, vs []ebiten.Vertex, is []uint32, clr color.Color, antialias bool, fillRule ebiten.FillRule) {
-	r, g, b, a := clr.RGBA()
-	for i := range vs {
-		vs[i].SrcX = 1
-		vs[i].SrcY = 1
-		vs[i].ColorR = float32(r) / 0xffff
-		vs[i].ColorG = float32(g) / 0xffff
-		vs[i].ColorB = float32(b) / 0xffff
-		vs[i].ColorA = float32(a) / 0xffff
-	}
-
-	op := &ebiten.DrawTrianglesOptions{}
-	op.ColorScaleMode = ebiten.ColorScaleModePremultipliedAlpha
-	op.AntiAlias = antialias
-	op.FillRule = fillRule
-	dst.DrawTriangles32(vs, is, whiteSubImage, op)
-}
-
 // StrokeLine strokes a line (x0, y0)-(x1, y1) with the specified width and color.
-//
-// clr has be to be a solid (non-transparent) color.
 func StrokeLine(dst *ebiten.Image, x0, y0, x1, y1 float32, strokeWidth float32, clr color.Color, antialias bool) {
 	if antialias {
 		var path Path
@@ -113,8 +94,6 @@ func DrawFilledRect(dst *ebiten.Image, x, y, width, height float32, clr color.Co
 }
 
 // StrokeRect strokes a rectangle with the specified width and color.
-//
-// clr has be to be a solid (non-transparent) color.
 func StrokeRect(dst *ebiten.Image, x, y, width, height float32, strokeWidth float32, clr color.Color, antialias bool) {
 	if antialias {
 		var path Path
@@ -219,8 +198,6 @@ func DrawFilledCircle(dst *ebiten.Image, cx, cy, r float32, clr color.Color, ant
 }
 
 // StrokeCircle strokes a circle with the specified center position (cx, cy), the radius (r), width and color.
-//
-// clr has be to be a solid (non-transparent) color.
 func StrokeCircle(dst *ebiten.Image, cx, cy, r float32, strokeWidth float32, clr color.Color, antialias bool) {
 	if antialias {
 		var path Path
@@ -301,22 +278,69 @@ const (
 	FillRuleEvenOdd FillRule = FillRule(ebiten.FillRuleEvenOdd)
 )
 
+var (
+	theCallbackTokens      = map[*ebiten.Image]int64{}
+	theFillPathsStates     = map[*ebiten.Image]*fillPathsState{}
+	theFillPathsStatesPool = sync.Pool{
+		New: func() any {
+			return &fillPathsState{}
+		},
+	}
+	theFillPathM sync.Mutex
+)
+
 // DrawFilledRect fills the specified path with the specified color.
 func DrawFilledPath(dst *ebiten.Image, path *Path, clr color.Color, antialias bool, fillRule FillRule) {
-	useCachedVerticesAndIndicesForUtil(func(vs []ebiten.Vertex, is []uint32) ([]ebiten.Vertex, []uint32) {
-		vs, is = path.AppendVerticesAndIndicesForFilling32(vs, is)
-		drawVerticesForUtil(dst, vs, is, clr, antialias, ebiten.FillRule(fillRule))
-		return vs, is
+	theFillPathM.Lock()
+	defer theFillPathM.Unlock()
+
+	// Remove the previous registered callbacks.
+	if token, ok := theCallbackTokens[dst]; ok {
+		removeUsageCallback(dst, token)
+	}
+	delete(theCallbackTokens, dst)
+
+	if _, ok := theFillPathsStates[dst]; !ok {
+		theFillPathsStates[dst] = theFillPathsStatesPool.Get().(*fillPathsState)
+	}
+	s := theFillPathsStates[dst]
+	if s.antialias != antialias || s.fillRule != fillRule {
+		s.fillPaths(dst)
+		s.reset()
+	}
+	s.antialias = antialias
+	s.fillRule = fillRule
+	s.addPath(path, clr)
+
+	token := addUsageCallback(dst, func() {
+		// Remove the callback not to call this twice.
+		if token, ok := theCallbackTokens[dst]; ok {
+			removeUsageCallback(dst, token)
+		}
+		delete(theCallbackTokens, dst)
+
+		s := theFillPathsStates[dst]
+		s.fillPaths(dst)
+
+		delete(theFillPathsStates, dst)
+		s.reset()
+		theFillPathsStatesPool.Put(s)
 	})
+	theCallbackTokens[dst] = token
+
 }
 
 // StrokePath strokes the specified path with the specified color and stroke options.
-//
-// clr has be to be a solid (non-transparent) color.
 func StrokePath(dst *ebiten.Image, path *Path, clr color.Color, antialias bool, options *StrokeOptions) {
-	useCachedVerticesAndIndicesForUtil(func(vs []ebiten.Vertex, is []uint32) ([]ebiten.Vertex, []uint32) {
-		vs, is = path.AppendVerticesAndIndicesForStroke32(vs, is, options)
-		drawVerticesForUtil(dst, vs, is, clr, antialias, ebiten.FillRuleFillAll)
-		return vs, is
-	})
+	var stroke Path
+	op := &AddPathStrokeOptions{}
+	op.StrokeOptions = *options
+	stroke.AddPathStroke(path, op)
+	DrawFilledPath(dst, &stroke, clr, antialias, FillRuleNonZero)
 }
+
+//go:linkname addUsageCallback github.com/hajimehoshi/ebiten/v2.addUsageCallback
+func addUsageCallback(img *ebiten.Image, fn func()) int64
+
+//go:linkname removeUsageCallback github.com/hajimehoshi/ebiten/v2.removeUsageCallback
+func removeUsageCallback(img *ebiten.Image, token int64)

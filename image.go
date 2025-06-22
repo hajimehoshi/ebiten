@@ -67,6 +67,12 @@ type Image struct {
 	// atime needs to be an atomic value since a sub-image atime can be accessed from its original image.
 	atime atomic.Int64
 
+	// usageCallbacks are callbacks that are invoked when the image is used.
+	usageCallbacks map[int64]func()
+
+	// inUsageCallbacks reports whether the image is in usageCallbacks.
+	inUsageCallbacks bool
+
 	// Do not add a 'buffering' member that are resolved lazily.
 	// This tends to forget resolving the buffer easily (#2362).
 }
@@ -112,6 +118,9 @@ func (i *Image) Fill(clr color.Color) {
 	if i.isDisposed() {
 		return
 	}
+
+	i.invokeUsageCallbacks()
+
 	i.updateAccessTime()
 
 	var crf, cgf, cbf, caf float32
@@ -256,8 +265,11 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) {
 		return
 	}
 
-	img.updateAccessTime()
+	i.invokeUsageCallbacks()
+	img.invokeUsageCallbacks()
+
 	i.updateAccessTime()
+	img.updateAccessTime()
 
 	if options == nil {
 		options = &DrawImageOptions{}
@@ -396,18 +408,26 @@ const (
 )
 
 // FillRule is the rule whether an overlapped region is rendered with DrawTriangles(Shader).
+//
+// Deprecated: as of v2.9.
 type FillRule int
 
 const (
 	// FillRuleFillAll indicates all the triangles are rendered regardless of overlaps.
+	//
+	// Deprecated: as of v2.9.
 	FillRuleFillAll FillRule = FillRule(graphicsdriver.FillRuleFillAll)
 
 	// FillRuleNonZero means that triangles are rendered based on the non-zero rule.
 	// If and only if the number of overlaps is not 0, the region is rendered.
+	//
+	// Deprecated: as of v2.9.
 	FillRuleNonZero FillRule = FillRule(graphicsdriver.FillRuleNonZero)
 
 	// FillRuleEvenOdd means that triangles are rendered based on the even-odd rule.
 	// If and only if the number of overlaps is odd, the region is rendered.
+	//
+	// Deprecated: as of v2.9.
 	FillRuleEvenOdd FillRule = FillRule(graphicsdriver.FillRuleEvenOdd)
 )
 
@@ -483,6 +503,8 @@ type DrawTrianglesOptions struct {
 	// See examples/vector for actual usages.
 	//
 	// The default (zero) value is FillRuleFillAll.
+	//
+	// Deprecated: as of v2.9. Use [github.com/hajimehoshi/ebiten/v2/vector.DrawFilledPath] instead.
 	FillRule FillRule
 
 	// AntiAlias indicates whether the rendering uses anti-alias or not.
@@ -491,7 +513,9 @@ type DrawTrianglesOptions struct {
 	// AntiAlias increases internal draw calls and might affect performance.
 	// Use the build tag `ebitenginedebug` to check the number of draw calls if you care.
 	//
-	// The default (zero) value is false.
+	// The default (zero) value is false.//
+	//
+	// Deprecated: as of v2.9. Use [github.com/hajimehoshi/ebiten/v2/vector.DrawFilledPath] instead.
 	AntiAlias bool
 
 	// DisableMipmaps disables mipmaps.
@@ -583,6 +607,9 @@ func (i *Image) DrawTriangles32(vertices []Vertex, indices []uint32, img *Image,
 	if i.isDisposed() {
 		return
 	}
+
+	i.invokeUsageCallbacks()
+	img.invokeUsageCallbacks()
 
 	img.updateAccessTime()
 	i.updateAccessTime()
@@ -705,6 +732,8 @@ type DrawTrianglesShaderOptions struct {
 	// See examples/vector for actual usages.
 	//
 	// The default (zero) value is FillRuleFillAll.
+	//
+	// Deprecated: as of v2.9. Use [github.com/hajimehoshi/ebiten/v2/vector.DrawFilledPath] instead.
 	FillRule FillRule
 
 	// AntiAlias indicates whether the rendering uses anti-alias or not.
@@ -714,6 +743,8 @@ type DrawTrianglesShaderOptions struct {
 	// Use the build tag `ebitenginedebug` to check the number of draw calls if you care.
 	//
 	// The default (zero) value is false.
+	//
+	// Deprecated: as of v2.9. Use [github.com/hajimehoshi/ebiten/v2/vector.DrawFilledPath] instead.
 	AntiAlias bool
 }
 
@@ -786,6 +817,16 @@ func (i *Image) DrawTrianglesShader32(vertices []Vertex, indices []uint32, shade
 
 	if shader.isDisposed() {
 		panic("ebiten: the given shader to DrawTrianglesShader must not be disposed")
+	}
+
+	i.invokeUsageCallbacks()
+	if options != nil {
+		for _, img := range options.Images {
+			if img == nil {
+				continue
+			}
+			img.invokeUsageCallbacks()
+		}
 	}
 
 	if options != nil {
@@ -955,6 +996,16 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 	if shader.isDisposed() {
 		panic("ebiten: the given shader to DrawRectShader must not be disposed")
 	}
+
+	if options != nil {
+		for _, img := range options.Images {
+			if img == nil {
+				continue
+			}
+			img.invokeUsageCallbacks()
+		}
+	}
+	i.invokeUsageCallbacks()
 
 	if options != nil {
 		for _, img := range options.Images {
@@ -1146,6 +1197,8 @@ func (i *Image) ReadPixels(pixels []byte) {
 		return
 	}
 
+	i.invokeUsageCallbacks()
+
 	i.image.ReadPixels(pixels, i.adjustedBounds())
 }
 
@@ -1190,6 +1243,8 @@ func (i *Image) at(x, y int) (r, g, b, a byte) {
 		return 0, 0, 0, 0
 	}
 
+	i.invokeUsageCallbacks()
+
 	x, y = i.adjustPosition(x, y)
 	var pix [4]byte
 	i.image.ReadPixels(pix[:], image.Rect(x, y, x+1, y+1))
@@ -1211,6 +1266,8 @@ func (i *Image) Set(x, y int, clr color.Color) {
 	if i.isDisposed() {
 		return
 	}
+
+	i.invokeUsageCallbacks()
 
 	i.updateAccessTime()
 
@@ -1251,6 +1308,7 @@ func (i *Image) Dispose() {
 	i.subImageCacheM.Lock()
 	i.subImageCache = nil
 	i.subImageCacheM.Unlock()
+	i.usageCallbacks = nil
 }
 
 // Deallocate clears the image and deallocates the internal state of the image.
@@ -1274,6 +1332,7 @@ func (i *Image) Deallocate() {
 		return
 	}
 	i.image.Deallocate()
+	i.usageCallbacks = nil
 }
 
 // WritePixels replaces the pixels of the image.
@@ -1295,6 +1354,8 @@ func (i *Image) WritePixels(pixels []byte) {
 	if i.isDisposed() {
 		return
 	}
+
+	i.invokeUsageCallbacks()
 
 	// Do not need to copy pixels here.
 	// * In internal/mipmap, pixels are copied when necessary.
@@ -1503,4 +1564,47 @@ func (i *Image) ensureTmpIndices(n int) []uint32 {
 
 // private implements FinalScreen.
 func (*Image) private() {
+}
+
+// Do not use usage callbacks except for Ebitengine packages.
+// There is no guarantee for compatibility of this function.
+
+var currentCallbackToken atomic.Int64
+
+//go:linkname addUsageCallback
+func addUsageCallback(img *Image, callback func()) int64 {
+	return img.addUsageCallback(callback)
+}
+
+func (i *Image) addUsageCallback(callback func()) int64 {
+	if i.usageCallbacks == nil {
+		i.usageCallbacks = map[int64]func(){}
+	}
+	token := currentCallbackToken.Add(1)
+	i.usageCallbacks[token] = callback
+	return token
+}
+
+//go:linkname removeUsageCallback
+func removeUsageCallback(img *Image, token int64) {
+	img.removeUsageCallback(token)
+}
+
+func (i *Image) removeUsageCallback(token int64) {
+	delete(i.usageCallbacks, token)
+}
+
+func (i *Image) invokeUsageCallbacks() {
+	if i.inUsageCallbacks {
+		return
+	}
+
+	i.inUsageCallbacks = true
+	defer func() {
+		i.inUsageCallbacks = false
+	}()
+
+	for _, cb := range i.usageCallbacks {
+		cb()
+	}
 }

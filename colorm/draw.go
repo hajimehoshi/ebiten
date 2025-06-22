@@ -87,6 +87,8 @@ type DrawTrianglesOptions struct {
 	// See examples/vector for actual usages.
 	//
 	// The default (zero) value is ebiten.FillRuleFillAll.
+	//
+	// Deprecated: as of v2.9.
 	FillRule ebiten.FillRule
 
 	// AntiAlias indicates whether the rendering uses anti-alias or not.
@@ -96,6 +98,8 @@ type DrawTrianglesOptions struct {
 	// Use the build tag `ebitenginedebug` to check the number of draw calls if you care.
 	//
 	// The default (zero) value is false.
+	//
+	// Deprecated: as of v2.9.
 	AntiAlias bool
 }
 
