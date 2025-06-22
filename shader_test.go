@@ -3010,3 +3010,56 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 		}
 	}
 }
+
+func TestShaderFrontFacing(t *testing.T) {
+	const w, h = 16, 16
+
+	dst := ebiten.NewImage(w, h)
+	s, err := ebiten.NewShader([]byte(`//kage:unit pixels
+
+package main
+
+func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+	if frontfacing() {
+		return vec4(0.5, 0, 0, 1)
+	}
+	return vec4(0, 0.5, 0, 1)
+}
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	vs := []ebiten.Vertex{
+		{
+			DstX: 0,
+			DstY: 0,
+		},
+		{
+			DstX: w,
+			DstY: 0,
+		},
+		{
+			DstX: 0,
+			DstY: h,
+		},
+		{
+			DstX: w,
+			DstY: h,
+		},
+	}
+	op := &ebiten.DrawTrianglesShaderOptions{}
+	op.Blend = ebiten.BlendLighter
+	dst.DrawTrianglesShader32(vs, []uint32{0, 1, 2, 1, 2, 3}, s, op)
+	dst.DrawTrianglesShader32(vs, []uint32{2, 1, 0, 3, 2, 1}, s, op)
+
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			got := dst.At(i, j).(color.RGBA)
+			want := color.RGBA{R: 0x80, G: 0x80, B: 0x00, A: 0xff}
+			if !sameColors(got, want, 2) {
+				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+}

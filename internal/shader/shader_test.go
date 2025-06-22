@@ -180,8 +180,8 @@ func TestCompile(t *testing.T) {
 			}
 
 			if tc.HLSL != nil {
-				vs, _, prelude := hlsl.Compile(s)
-				if got, want := hlslNormalize(vs, prelude), hlslNormalize(string(tc.HLSL), prelude); got != want {
+				vs, _, vertexPrelude, _ := hlsl.Compile(s)
+				if got, want := hlslNormalize(vs, vertexPrelude), hlslNormalize(string(tc.HLSL), vertexPrelude); got != want {
 					compare(t, "HLSL", got, want)
 				}
 			}

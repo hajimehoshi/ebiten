@@ -819,9 +819,9 @@ void F0(in float l0, in float l1, out float l2) {
 }`,
 			Metal: msl.Prelude(shaderir.Pixels) + `
 
-void F0(float l0, float l1, thread float& l2);
+void F0(bool front_facing, float l0, float l1, thread float& l2);
 
-void F0(float l0, float l1, thread float& l2) {
+void F0(bool front_facing, float l0, float l1, thread float& l2) {
 	for (int l3 = 0; l3 < 100; l3++) {
 		int l4 = 0;
 		l2 = l4;
@@ -916,9 +916,9 @@ void F0(in float l0, in float l1, out float l2) {
 }`,
 			Metal: msl.Prelude(shaderir.Pixels) + `
 
-void F0(float l0, float l1, thread float& l2);
+void F0(bool front_facing, float l0, float l1, thread float& l2);
 
-void F0(float l0, float l1, thread float& l2) {
+void F0(bool front_facing, float l0, float l1, thread float& l2) {
 	for (int l3 = 0; l3 < 100; l3++) {
 		int l4 = 0;
 		l2 = l4;

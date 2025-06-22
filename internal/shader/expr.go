@@ -421,6 +421,16 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 					return nil, nil, nil, false
 				}
 				finalType = shaderir.Type{Main: shaderir.Vec4}
+			case shaderir.FrontFacing:
+				if len(args) != 0 {
+					cs.addError(e.Pos(), fmt.Sprintf("number of %s's arguments must be 0 but %d", callee.BuiltinFunc, len(args)))
+					return nil, nil, nil, false
+				}
+				if fname != cs.fragmentEntry {
+					cs.addError(e.Pos(), fmt.Sprintf("frontfacing is available only in %s", cs.fragmentEntry))
+					return nil, nil, nil, false
+				}
+				finalType = shaderir.Type{Main: shaderir.Bool}
 			case shaderir.DiscardF:
 				if len(args) != 0 {
 					cs.addError(e.Pos(), fmt.Sprintf("number of %s's arguments must be 0 but %d", callee.BuiltinFunc, len(args)))
@@ -434,7 +444,6 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 					Type: shaderir.Discard,
 				})
 				return nil, nil, stmts, true
-
 			case shaderir.Clamp, shaderir.Mix, shaderir.Smoothstep, shaderir.Faceforward, shaderir.Refract:
 				// 3 arguments
 				if len(args) != 3 {

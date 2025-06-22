@@ -294,6 +294,7 @@ const (
 	Fwidth      BuiltinFunc = "fwidth"
 	DiscardF    BuiltinFunc = "discard"
 	TexelAt     BuiltinFunc = "__texelAt"
+	FrontFacing BuiltinFunc = "frontfacing"
 )
 
 func ParseBuiltinFunc(str string) (BuiltinFunc, bool) {
@@ -351,7 +352,8 @@ func ParseBuiltinFunc(str string) (BuiltinFunc, bool) {
 		Dfdy,
 		Fwidth,
 		DiscardF,
-		TexelAt:
+		TexelAt,
+		FrontFacing:
 		return BuiltinFunc(str), true
 	}
 	return "", false

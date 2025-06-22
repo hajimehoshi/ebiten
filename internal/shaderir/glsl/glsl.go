@@ -520,6 +520,9 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 					}
 					return result
 				}
+				if callee.BuiltinFunc == shaderir.FrontFacing {
+					return "gl_FrontFacing"
+				}
 			}
 			// Using parentheses at the callee is illegal.
 			return fmt.Sprintf("%s(%s)", expr(&callee), strings.Join(args, ", "))

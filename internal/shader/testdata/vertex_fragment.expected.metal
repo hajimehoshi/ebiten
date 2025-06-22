@@ -29,6 +29,7 @@ vertex Varyings Vertex(
 
 fragment float4 Fragment(
 	Varyings varyings [[stage_in]],
-	constant Uniforms& uniforms [[buffer(0)]]) {
+	constant Uniforms& uniforms [[buffer(0)]],
+	bool front_facing [[front_facing]]) {
 	return float4((varyings.Position).x, (varyings.M0).y, (varyings.M1).z, 1.0);
 }

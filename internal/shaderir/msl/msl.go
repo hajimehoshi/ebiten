@@ -156,6 +156,8 @@ func Compile(p *shaderir.Program) (shader string) {
 			lines[len(lines)-1] += ","
 			lines = append(lines, fmt.Sprintf("\ttexture2d<float> T%[1]d [[texture(%[1]d)]]", i))
 		}
+		lines[len(lines)-1] += ","
+		lines = append(lines, "\tbool front_facing [[front_facing]]")
 		lines[len(lines)-1] += ") {"
 		lines = append(lines, c.block(p, p.FragmentFunc.Block, p.FragmentFunc.Block, 0)...)
 		lines = append(lines, "}")
@@ -244,6 +246,7 @@ func (c *compileContext) function(p *shaderir.Program, f *shaderir.Func, prototy
 	for i := 0; i < p.TextureCount; i++ {
 		args = append(args, fmt.Sprintf("texture2d<float> T%d", i))
 	}
+	args = append(args, "bool front_facing")
 
 	var idx int
 	for _, t := range f.InParams {
@@ -404,6 +407,7 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 				for i := 0; i < p.TextureCount; i++ {
 					args = append(args, fmt.Sprintf("T%d", i))
 				}
+				args = append(args, "front_facing")
 			}
 			for _, exp := range e.Exprs[1:] {
 				args = append(args, expr(&exp))
@@ -424,6 +428,9 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 					result = fmt.Sprintf("%s(%s, %s)", expr(&callee), result, args[i])
 				}
 				return result
+			}
+			if callee.Type == shaderir.BuiltinFuncExpr && callee.BuiltinFunc == shaderir.FrontFacing {
+				return "(front_facing)"
 			}
 			return fmt.Sprintf("%s(%s)", expr(&callee), strings.Join(args, ", "))
 		case shaderir.FieldSelector:

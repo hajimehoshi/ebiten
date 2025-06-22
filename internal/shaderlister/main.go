@@ -497,7 +497,7 @@ func compile(shader *Shader, targets []string) error {
 				Fragment: fs,
 			}
 		case "hlsl":
-			vs, ps, _ := hlsl.Compile(ir)
+			vs, ps, _, _ := hlsl.Compile(ir)
 			shader.HLSL = &HLSL{
 				Vertex: vs,
 				Pixel:  ps,

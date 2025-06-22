@@ -102,7 +102,7 @@ func compileShader(program *shaderir.Program) (vsh, psh *_ID3DBlob, ferr error) 
 		return vsh, psh, nil
 	}
 
-	vs, ps, _ := hlsl.Compile(program)
+	vs, ps, _, _ := hlsl.Compile(program)
 	var flag uint32 = uint32(_D3DCOMPILE_OPTIMIZATION_LEVEL3)
 
 	var wg errgroup.Group
