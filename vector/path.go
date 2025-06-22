@@ -57,8 +57,20 @@ type point struct {
 	y float32
 }
 
+func (p point) add(v vec2) point {
+	return point{x: p.x + v.x, y: p.y + v.y}
+}
+
 type vec2 struct {
 	x, y float32
+}
+
+func (v vec2) perp() vec2 {
+	return vec2{x: -v.y, y: v.x}
+}
+
+func (v vec2) inv() vec2 {
+	return vec2{x: -v.x, y: -v.y}
 }
 
 func (v vec2) len() float32 {
@@ -77,6 +89,10 @@ func (v vec2) cross(u vec2) float32 {
 	return v.x*u.y - u.x*v.y
 }
 
+func (v vec2) mul(s float32) vec2 {
+	return vec2{x: s * v.x, y: s * v.y}
+}
+
 type subPath struct {
 	ops    []op
 	start  point
@@ -91,6 +107,59 @@ func (s *subPath) reset() {
 
 func isRegularF32(x float32) bool {
 	return !math.IsNaN(float64(x)) && !math.IsInf(float64(x), 0)
+}
+
+func (s *subPath) isValid() bool {
+	if !isRegularF32(s.start.x) || !isRegularF32(s.start.y) {
+		return false
+	}
+	for _, op := range s.ops {
+		switch op.typ {
+		case opTypeLineTo:
+			if !isRegularF32(op.p1.x) || !isRegularF32(op.p1.y) {
+				return false
+			}
+		case opTypeQuadTo:
+			if !isRegularF32(op.p1.x) || !isRegularF32(op.p1.y) || !isRegularF32(op.p2.x) || !isRegularF32(op.p2.y) {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+func (s *subPath) startAtOp(index int) point {
+	if index == 0 {
+		return s.start
+	}
+	return s.endAtOp(index - 1)
+}
+
+func (s *subPath) endAtOp(index int) point {
+	op := s.ops[index]
+	switch op.typ {
+	case opTypeLineTo:
+		return op.p1
+	case opTypeQuadTo:
+		return op.p2
+	}
+	panic("not reached")
+}
+
+func (s *subPath) startDir(index int) vec2 {
+	p := s.startAtOp(index)
+	op := s.ops[index]
+	return vec2{x: op.p1.x - p.x, y: op.p1.y - p.y}
+}
+
+func (s *subPath) endDir(index int) vec2 {
+	switch op := s.ops[index]; op.typ {
+	case opTypeLineTo:
+		return s.startDir(index)
+	case opTypeQuadTo:
+		return vec2{x: op.p2.x - op.p1.x, y: op.p2.y - op.p1.y}
+	}
+	panic("not reached")
 }
 
 // flatPath is a flattened sub-path of a path.
@@ -140,6 +209,7 @@ type Path struct {
 	subPaths []subPath
 
 	// flatPaths is a cached actual rendering positions.
+	// flatPaths is used only for deprecated functions. Do not use this for new functions.
 	flatPaths []flatPath
 }
 
@@ -342,11 +412,16 @@ func isQuadraticCloseEnoughToCubic(start, end, qc1, cc1, cc2 point) bool {
 			y: (1-t)*(1-t)*(1-t)*start.y + 3*(1-t)*(1-t)*t*cc1.y + 3*(1-t)*t*t*cc2.y + t*t*t*end.y,
 		}
 		// 1.0/16.0 is an arbitrary threshold.
-		if (q.x-c.x)*(q.x-c.x)+(q.y-c.y)*(q.y-c.y) >= (1.0/16.0)*(1.0/16.0) {
+		if !arePointsCloseEnough(q, c, 0, 1.0/16.0) {
 			return false
 		}
 	}
 	return true
+}
+
+func arePointsCloseEnough(p0, p1 point, allowanceMin, allowanceMax float32) bool {
+	d := (p0.x-p1.x)*(p0.x-p1.x) + (p0.y-p1.y)*(p0.y-p1.y)
+	return d >= allowanceMin*allowanceMin && d <= allowanceMax*allowanceMax
 }
 
 // Close adds a new line from the last position of the current sub-path to the first position of the current sub-path,
@@ -715,6 +790,55 @@ func (p *Path) AddPath(src *Path, options *AddPathOptions) {
 			}
 		}
 	}
+}
+
+// normalize normalizes the path by removing unnecessary sub-paths and points.
+func (p *Path) normalize() {
+	for i, subPath := range p.subPaths {
+		cur := subPath.start
+		var n int
+		for _, op := range subPath.ops {
+			switch op.typ {
+			case opTypeLineTo:
+				if cur == op.p1 {
+					continue
+				}
+				cur = op.p1
+			case opTypeQuadTo:
+				switch {
+				case cur == op.p2:
+					continue
+				case cur == op.p1, op.p1 == op.p2:
+					op.typ = opTypeLineTo
+					op.p1 = op.p2
+					op.p2 = point{}
+					cur = op.p1
+				case (op.p1.x-cur.x)*(op.p2.y-cur.y)-(op.p2.x-cur.x)*(op.p1.y-cur.y) == 0:
+					op.typ = opTypeLineTo
+					op.p1 = op.p2
+					op.p2 = point{}
+					cur = op.p1
+				default:
+					cur = op.p2
+				}
+			}
+			p.subPaths[i].ops[n] = op
+			n++
+		}
+		p.subPaths[i].ops = slices.Delete(p.subPaths[i].ops, n, len(subPath.ops))
+	}
+
+	// Do not use slices.DeleteFunc as sub-paths's slices should be reused.
+	var n int
+	for i := range p.subPaths {
+		if len(p.subPaths[i].ops) == 0 {
+			p.subPaths[i].reset()
+			continue
+		}
+		p.subPaths[n] = p.subPaths[i]
+		n++
+	}
+	p.subPaths = p.subPaths[:n]
 }
 
 // AppendVerticesAndIndicesForStroke appends vertices and indices to render a stroke of this path and returns them.
