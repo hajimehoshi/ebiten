@@ -191,12 +191,11 @@ func (p *Path) QuadTo(x1, y1, x2, y2 float32) {
 // CubicTo adds a cubic Bézier curve to the path.
 // (x1, y1) and (x2, y2) are the control points, and (x3, y3) is the destination.
 func (p *Path) CubicTo(x1, y1, x2, y2, x3, y3 float32) {
+	p.subpaths = p.subpaths[:0]
 	p.cubicTo(x1, y1, x2, y2, x3, y3, 0)
 }
 
 func (p *Path) cubicTo(x1, y1, x2, y2, x3, y3 float32, level int) {
-	p.subpaths = p.subpaths[:0]
-
 	cur, ok := p.currentPosition()
 	if !ok {
 		cur = point{x: x1, y: y1}
