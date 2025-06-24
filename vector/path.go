@@ -37,7 +37,6 @@ const (
 	opTypeMoveTo opType = iota
 	opTypeLineTo
 	opTypeQuadTo
-	opTypeCubicTo
 	opTypeClose
 )
 
@@ -45,7 +44,6 @@ type op struct {
 	typ opType
 	p1  point
 	p2  point
-	p3  point
 }
 
 func abs(x float32) float32 {
@@ -150,9 +148,6 @@ func (p *Path) ensureSubpaths() []subpath {
 		case opTypeQuadTo:
 			p.quadTo(cur, op.p1, op.p2, 0)
 			cur = op.p2
-		case opTypeCubicTo:
-			p.cubicTo(cur, op.p1, op.p2, op.p3, 0)
-			cur = op.p3
 		case opTypeClose:
 			p.close()
 			cur = point{}
@@ -196,13 +191,77 @@ func (p *Path) QuadTo(x1, y1, x2, y2 float32) {
 // CubicTo adds a cubic Bézier curve to the path.
 // (x1, y1) and (x2, y2) are the control points, and (x3, y3) is the destination.
 func (p *Path) CubicTo(x1, y1, x2, y2, x3, y3 float32) {
+	p.cubicTo(x1, y1, x2, y2, x3, y3, 0)
+}
+
+func (p *Path) cubicTo(x1, y1, x2, y2, x3, y3 float32, level int) {
 	p.subpaths = p.subpaths[:0]
-	p.ops = append(p.ops, op{
-		typ: opTypeCubicTo,
-		p1:  point{x: x1, y: y1},
-		p2:  point{x: x2, y: y2},
-		p3:  point{x: x3, y: y3},
-	})
+
+	cur, ok := p.currentPosition()
+	if !ok {
+		cur = point{x: x1, y: y1}
+	}
+
+	// Approximate a cubic Bézier curve to a quadratic Bézier curve.
+	// https://stackoverflow.com/questions/2009160/how-do-i-convert-the-2-control-points-of-a-cubic-curve-to-the-single-control-poi/14514491
+	p0 := cur
+	p1 := point{x: x1, y: y1}
+	p2 := point{x: x2, y: y2}
+	p3 := point{x: x3, y: y3}
+	m := point{
+		x: -0.25*p0.x + 0.75*p1.x + 0.75*p2.x - 0.25*p3.x,
+		y: -0.25*p0.y + 0.75*p1.y + 0.75*p2.y - 0.25*p3.y,
+	}
+	if level > 5 || isQuadraticCloseEnoughToCubic(p0, p3, m, p1, p2) {
+		p.QuadTo(m.x, m.y, p3.x, p3.y)
+		return
+	}
+
+	// Split the cubic Bézier curve into two by De Casteljau's algorithm.
+	p01 := point{
+		x: (p0.x + p1.x) / 2,
+		y: (p0.y + p1.y) / 2,
+	}
+	p12 := point{
+		x: (p1.x + p2.x) / 2,
+		y: (p1.y + p2.y) / 2,
+	}
+	p23 := point{
+		x: (p2.x + p3.x) / 2,
+		y: (p2.y + p3.y) / 2,
+	}
+	p012 := point{
+		x: (p01.x + p12.x) / 2,
+		y: (p01.y + p12.y) / 2,
+	}
+	p123 := point{
+		x: (p12.x + p23.x) / 2,
+		y: (p12.y + p23.y) / 2,
+	}
+	p0123 := point{
+		x: (p012.x + p123.x) / 2,
+		y: (p012.y + p123.y) / 2,
+	}
+	p.cubicTo(p01.x, p01.y, p012.x, p012.y, p0123.x, p0123.y, level+1)
+	p.cubicTo(p123.x, p123.y, p23.x, p23.y, p3.x, p3.y, level+1)
+}
+
+func isQuadraticCloseEnoughToCubic(start, end, qc1, cc1, cc2 point) bool {
+	for _, t := range []float32{0.25, 0.5, 0.75} {
+		q := point{
+			x: (1-t)*(1-t)*start.x + 2*(1-t)*t*qc1.x + t*t*end.x,
+			y: (1-t)*(1-t)*start.y + 2*(1-t)*t*qc1.y + t*t*end.y,
+		}
+		c := point{
+			x: (1-t)*(1-t)*(1-t)*start.x + 3*(1-t)*(1-t)*t*cc1.x + 3*(1-t)*t*t*cc2.x + t*t*t*end.x,
+			y: (1-t)*(1-t)*(1-t)*start.y + 3*(1-t)*(1-t)*t*cc1.y + 3*(1-t)*t*t*cc2.y + t*t*t*end.y,
+		}
+		// 1.0/64.0 is an arbitrary threshold.
+		if abs(q.x-c.x) >= 1.0/64.0 || abs(q.y-c.y) >= 1.0/64.0 {
+			return false
+		}
+	}
+	return true
 }
 
 // Close adds a new line from the last position of the current subpath to the first position of the current subpath,
@@ -283,44 +342,6 @@ func (p *Path) quadTo(p0, p1, p2 point, level int) {
 	p.quadTo(p012, p12, p2, level+1)
 }
 
-func (p *Path) cubicTo(p0, p1, p2, p3 point, level int) {
-	if level > 10 {
-		return
-	}
-
-	if isPointCloseToSegment(p1, p0, p3, 0.5) && isPointCloseToSegment(p2, p0, p3, 0.5) {
-		p.lineTo(p3)
-		return
-	}
-
-	p01 := point{
-		x: (p0.x + p1.x) / 2,
-		y: (p0.y + p1.y) / 2,
-	}
-	p12 := point{
-		x: (p1.x + p2.x) / 2,
-		y: (p1.y + p2.y) / 2,
-	}
-	p23 := point{
-		x: (p2.x + p3.x) / 2,
-		y: (p2.y + p3.y) / 2,
-	}
-	p012 := point{
-		x: (p01.x + p12.x) / 2,
-		y: (p01.y + p12.y) / 2,
-	}
-	p123 := point{
-		x: (p12.x + p23.x) / 2,
-		y: (p12.y + p23.y) / 2,
-	}
-	p0123 := point{
-		x: (p012.x + p123.x) / 2,
-		y: (p012.y + p123.y) / 2,
-	}
-	p.cubicTo(p0, p01, p012, p0123, level+1)
-	p.cubicTo(p0123, p123, p23, p3, level+1)
-}
-
 func normalize(p point) point {
 	len := float32(math.Hypot(float64(p.x), float64(p.y)))
 	return point{x: p.x / len, y: p.y / len}
@@ -342,8 +363,6 @@ func (p *Path) currentPosition() (point, bool) {
 		return op.p1, true
 	case opTypeQuadTo:
 		return op.p2, true
-	case opTypeCubicTo:
-		return op.p3, true
 	case opTypeClose:
 		return point{}, false
 	}
@@ -562,12 +581,10 @@ func (p *Path) ApplyGeoM(geoM ebiten.GeoM) *Path {
 	for i, o := range p.ops {
 		x1, y1 := geoM.Apply(float64(o.p1.x), float64(o.p1.y))
 		x2, y2 := geoM.Apply(float64(o.p2.x), float64(o.p2.y))
-		x3, y3 := geoM.Apply(float64(o.p3.x), float64(o.p3.y))
 		np.ops[i] = op{
 			typ: o.typ,
 			p1:  point{x: float32(x1), y: float32(y1)},
 			p2:  point{x: float32(x2), y: float32(y2)},
-			p3:  point{x: float32(x3), y: float32(y3)},
 		}
 	}
 	return np
