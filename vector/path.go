@@ -255,8 +255,8 @@ func isQuadraticCloseEnoughToCubic(start, end, qc1, cc1, cc2 point) bool {
 			x: (1-t)*(1-t)*(1-t)*start.x + 3*(1-t)*(1-t)*t*cc1.x + 3*(1-t)*t*t*cc2.x + t*t*t*end.x,
 			y: (1-t)*(1-t)*(1-t)*start.y + 3*(1-t)*(1-t)*t*cc1.y + 3*(1-t)*t*t*cc2.y + t*t*t*end.y,
 		}
-		// 1.0/64.0 is an arbitrary threshold.
-		if abs(q.x-c.x) >= 1.0/64.0 || abs(q.y-c.y) >= 1.0/64.0 {
+		// 1.0/16.0 is an arbitrary threshold.
+		if (q.x-c.x)*(q.x-c.x)+(q.y-c.y)*(q.y-c.y) >= (1.0/16.0)*(1.0/16.0) {
 			return false
 		}
 	}
