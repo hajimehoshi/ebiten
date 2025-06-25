@@ -143,10 +143,10 @@ func (p *Path) ensureSubpaths() []subpath {
 			p.appendNewSubpath(op.p1)
 			cur = op.p1
 		case opTypeLineTo:
-			p.lineTo(op.p1)
+			p.appendSubpathPointsForLine(op.p1)
 			cur = op.p1
 		case opTypeQuadTo:
-			p.quadTo(cur, op.p1, op.p2, 0)
+			p.appendSubpathPointsForQuad(cur, op.p1, op.p2, 0)
 			cur = op.p2
 		case opTypeClose:
 			p.close()
@@ -273,7 +273,7 @@ func (p *Path) Close() {
 	})
 }
 
-func (p *Path) lineTo(pt point) {
+func (p *Path) appendSubpathPointsForLine(pt point) {
 	if len(p.subpaths) == 0 || p.subpaths[len(p.subpaths)-1].closed {
 		p.appendNewSubpath(pt)
 		return
@@ -315,13 +315,13 @@ func crossingPointForTwoLines(p00, p01, p10, p11 point) point {
 	}
 }
 
-func (p *Path) quadTo(p0, p1, p2 point, level int) {
+func (p *Path) appendSubpathPointsForQuad(p0, p1, p2 point, level int) {
 	if level > 10 {
 		return
 	}
 
 	if isPointCloseToSegment(p1, p0, p2, 0.5) {
-		p.lineTo(p2)
+		p.appendSubpathPointsForLine(p2)
 		return
 	}
 
@@ -337,8 +337,8 @@ func (p *Path) quadTo(p0, p1, p2 point, level int) {
 		x: (p01.x + p12.x) / 2,
 		y: (p01.y + p12.y) / 2,
 	}
-	p.quadTo(p0, p01, p012, level+1)
-	p.quadTo(p012, p12, p2, level+1)
+	p.appendSubpathPointsForQuad(p0, p01, p012, level+1)
+	p.appendSubpathPointsForQuad(p012, p12, p2, level+1)
 }
 
 func normalize(p point) point {
