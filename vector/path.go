@@ -58,29 +58,31 @@ type point struct {
 	y float32
 }
 
-type subpath struct {
+// flatPath is a flattened sub-path of a path.
+// A flatPath consists of points for line segments.
+type flatPath struct {
 	points []point
 	closed bool
 }
 
-// reset resets the subpath.
+// reset resets the flatPath.
 // reset doesn't release the allocated memory so that the memory can be reused.
-func (s *subpath) reset() {
+func (s *flatPath) reset() {
 	s.points = s.points[:0]
 	s.closed = false
 }
 
-func (s subpath) pointCount() int {
+func (s flatPath) pointCount() int {
 	return len(s.points)
 }
 
-func (s subpath) lastPoint() point {
+func (s flatPath) lastPoint() point {
 	return s.points[len(s.points)-1]
 }
 
-func (s *subpath) appendPoint(pt point) {
+func (s *flatPath) appendPoint(pt point) {
 	if s.closed {
-		panic("vector: a closed subpathment cannot append a new point")
+		panic("vector: a closed flatPath cannot append a new point")
 	}
 
 	if len(s.points) > 0 {
@@ -94,7 +96,7 @@ func (s *subpath) appendPoint(pt point) {
 	s.points = append(s.points, pt)
 }
 
-func (s *subpath) close() {
+func (s *flatPath) close() {
 	if s.closed {
 		return
 	}
@@ -103,50 +105,50 @@ func (s *subpath) close() {
 	s.closed = true
 }
 
-// Path represents a collection of path subpathments.
+// Path represents a collection of vector graphics operations.
 type Path struct {
 	ops []op
 
-	// subpaths is a cached actual rendering positions.
-	subpaths []subpath
+	// flatPaths is a cached actual rendering positions.
+	flatPaths []flatPath
 }
 
 // Reset resets the path.
 // Reset doesn't release the allocated memory so that the memory can be reused.
 func (p *Path) Reset() {
 	p.ops = p.ops[:0]
-	p.subpaths = p.subpaths[:0]
+	p.flatPaths = p.flatPaths[:0]
 }
 
-func (p *Path) appendNewSubpath(pt point) {
-	if cap(p.subpaths) > len(p.subpaths) {
-		// Reuse the last subpath since the last subpath might have an already allocated slice.
-		p.subpaths = p.subpaths[:len(p.subpaths)+1]
-		p.subpaths[len(p.subpaths)-1].reset()
-		p.subpaths[len(p.subpaths)-1].appendPoint(pt)
+func (p *Path) appendNewFlatPath(pt point) {
+	if cap(p.flatPaths) > len(p.flatPaths) {
+		// Reuse the last flat path since the last flat path might have an already allocated slice.
+		p.flatPaths = p.flatPaths[:len(p.flatPaths)+1]
+		p.flatPaths[len(p.flatPaths)-1].reset()
+		p.flatPaths[len(p.flatPaths)-1].appendPoint(pt)
 		return
 	}
-	p.subpaths = append(p.subpaths, subpath{
+	p.flatPaths = append(p.flatPaths, flatPath{
 		points: []point{pt},
 	})
 }
 
-func (p *Path) ensureSubpaths() []subpath {
-	if len(p.subpaths) > 0 || len(p.ops) == 0 {
-		return p.subpaths
+func (p *Path) ensureFlatPaths() []flatPath {
+	if len(p.flatPaths) > 0 || len(p.ops) == 0 {
+		return p.flatPaths
 	}
 
 	var cur point
 	for _, op := range p.ops {
 		switch op.typ {
 		case opTypeMoveTo:
-			p.appendNewSubpath(op.p1)
+			p.appendNewFlatPath(op.p1)
 			cur = op.p1
 		case opTypeLineTo:
-			p.appendSubpathPointsForLine(op.p1)
+			p.appendFlatPathPointsForLine(op.p1)
 			cur = op.p1
 		case opTypeQuadTo:
-			p.appendSubpathPointsForQuad(cur, op.p1, op.p2, 0)
+			p.appendFlatPathPointsForQuad(cur, op.p1, op.p2, 0)
 			cur = op.p2
 		case opTypeClose:
 			p.close()
@@ -154,23 +156,23 @@ func (p *Path) ensureSubpaths() []subpath {
 		}
 	}
 
-	return p.subpaths
+	return p.flatPaths
 }
 
-// MoveTo starts a new subpath with the given position (x, y) without adding a subpath,
+// MoveTo starts a new sub-path with the given position (x, y) without adding a sub-path,
 func (p *Path) MoveTo(x, y float32) {
-	p.subpaths = p.subpaths[:0]
+	p.flatPaths = p.flatPaths[:0]
 	p.ops = append(p.ops, op{
 		typ: opTypeMoveTo,
 		p1:  point{x: x, y: y},
 	})
 }
 
-// LineTo adds a line segment to the path, which starts from the last position of the current subpath
+// LineTo adds a line segment to the path, which starts from the last position of the current sub-path
 // and ends to the given position (x, y).
-// If p doesn't have any subpaths or the last subpath is closed, LineTo sets (x, y) as the start position of a new subpath.
+// If p doesn't have any sub-paths or the last sub-path is closed, LineTo sets (x, y) as the start position of a new sub-path.
 func (p *Path) LineTo(x, y float32) {
-	p.subpaths = p.subpaths[:0]
+	p.flatPaths = p.flatPaths[:0]
 	p.ops = append(p.ops, op{
 		typ: opTypeLineTo,
 		p1:  point{x: x, y: y},
@@ -180,7 +182,7 @@ func (p *Path) LineTo(x, y float32) {
 // QuadTo adds a quadratic Bézier curve to the path.
 // (x1, y1) is the control point, and (x2, y2) is the destination.
 func (p *Path) QuadTo(x1, y1, x2, y2 float32) {
-	p.subpaths = p.subpaths[:0]
+	p.flatPaths = p.flatPaths[:0]
 	p.ops = append(p.ops, op{
 		typ: opTypeQuadTo,
 		p1:  point{x: x1, y: y1},
@@ -191,7 +193,7 @@ func (p *Path) QuadTo(x1, y1, x2, y2 float32) {
 // CubicTo adds a cubic Bézier curve to the path.
 // (x1, y1) and (x2, y2) are the control points, and (x3, y3) is the destination.
 func (p *Path) CubicTo(x1, y1, x2, y2, x3, y3 float32) {
-	p.subpaths = p.subpaths[:0]
+	p.flatPaths = p.flatPaths[:0]
 	p.cubicTo(x1, y1, x2, y2, x3, y3, 0)
 }
 
@@ -263,22 +265,22 @@ func isQuadraticCloseEnoughToCubic(start, end, qc1, cc1, cc2 point) bool {
 	return true
 }
 
-// Close adds a new line from the last position of the current subpath to the first position of the current subpath,
-// and marks the current subpath closed.
-// Following operations for this path will start with a new subpath.
+// Close adds a new line from the last position of the current sub-path to the first position of the current sub-path,
+// and marks the current sub-path closed.
+// Following operations for this path will start with a new sub-path.
 func (p *Path) Close() {
-	p.subpaths = p.subpaths[:0]
+	p.flatPaths = p.flatPaths[:0]
 	p.ops = append(p.ops, op{
 		typ: opTypeClose,
 	})
 }
 
-func (p *Path) appendSubpathPointsForLine(pt point) {
-	if len(p.subpaths) == 0 || p.subpaths[len(p.subpaths)-1].closed {
-		p.appendNewSubpath(pt)
+func (p *Path) appendFlatPathPointsForLine(pt point) {
+	if len(p.flatPaths) == 0 || p.flatPaths[len(p.flatPaths)-1].closed {
+		p.appendNewFlatPath(pt)
 		return
 	}
-	p.subpaths[len(p.subpaths)-1].appendPoint(pt)
+	p.flatPaths[len(p.flatPaths)-1].appendPoint(pt)
 }
 
 // lineForTwoPoints returns parameters for a line passing through p0 and p1.
@@ -315,13 +317,13 @@ func crossingPointForTwoLines(p00, p01, p10, p11 point) point {
 	}
 }
 
-func (p *Path) appendSubpathPointsForQuad(p0, p1, p2 point, level int) {
+func (p *Path) appendFlatPathPointsForQuad(p0, p1, p2 point, level int) {
 	if level > 10 {
 		return
 	}
 
 	if isPointCloseToSegment(p1, p0, p2, 0.5) {
-		p.appendSubpathPointsForLine(p2)
+		p.appendFlatPathPointsForLine(p2)
 		return
 	}
 
@@ -337,8 +339,8 @@ func (p *Path) appendSubpathPointsForQuad(p0, p1, p2 point, level int) {
 		x: (p01.x + p12.x) / 2,
 		y: (p01.y + p12.y) / 2,
 	}
-	p.appendSubpathPointsForQuad(p0, p01, p012, level+1)
-	p.appendSubpathPointsForQuad(p012, p12, p2, level+1)
+	p.appendFlatPathPointsForQuad(p0, p01, p012, level+1)
+	p.appendFlatPathPointsForQuad(p012, p12, p2, level+1)
 }
 
 func normalize(p point) point {
@@ -503,10 +505,10 @@ func (p *Path) Arc(x, y, radius, startAngle, endAngle float32, dir Direction) {
 }
 
 func (p *Path) close() {
-	if len(p.subpaths) == 0 {
+	if len(p.flatPaths) == 0 {
 		return
 	}
-	p.subpaths[len(p.subpaths)-1].close()
+	p.flatPaths[len(p.flatPaths)-1].close()
 }
 
 // AppendVerticesAndIndicesForFilling appends vertices and indices to fill this path and returns them.
@@ -546,11 +548,11 @@ func appendVerticesAndIndicesForFilling[T ~uint16 | ~uint32](path *Path, vertice
 	// TODO: Add tests.
 
 	base := T(len(vertices))
-	for _, subpath := range path.ensureSubpaths() {
-		if subpath.pointCount() < 3 {
+	for _, flatPath := range path.ensureFlatPaths() {
+		if flatPath.pointCount() < 3 {
 			continue
 		}
-		for i, pt := range subpath.points {
+		for i, pt := range flatPath.points {
 			vertices = append(vertices, ebiten.Vertex{
 				DstX:   pt.x,
 				DstY:   pt.y,
@@ -566,14 +568,14 @@ func appendVerticesAndIndicesForFilling[T ~uint16 | ~uint32](path *Path, vertice
 			}
 			indices = append(indices, base, base+T(i-1), base+T(i))
 		}
-		base += T(subpath.pointCount())
+		base += T(flatPath.pointCount())
 	}
 	return vertices, indices
 }
 
 // ApplyGeoM applies the given GeoM to the path and returns a new path.
 func (p *Path) ApplyGeoM(geoM ebiten.GeoM) *Path {
-	// subpaths are not copied.
+	// Flat paths (sub-paths) are not copied.
 	np := &Path{
 		ops: make([]op, len(p.ops)),
 	}
@@ -615,7 +617,7 @@ type StrokeOptions struct {
 	Width float32
 
 	// LineCap is the way in which how the ends of the stroke are rendered.
-	// Line caps are not rendered when the subpath is marked as closed.
+	// Line caps are not rendered when the sub-path is marked as closed.
 	//
 	// The default (zero) value is LineCapButt.
 	LineCap LineCap
@@ -665,16 +667,16 @@ func appendVerticesAndIndicesForStroke[T ~uint16 | ~uint32](path *Path, vertices
 
 	var rects [][4]point
 	var tmpPath Path
-	for _, subpath := range path.ensureSubpaths() {
-		if subpath.pointCount() < 2 {
+	for _, flatPath := range path.ensureFlatPaths() {
+		if flatPath.pointCount() < 2 {
 			continue
 		}
 
 		rects = rects[:0]
-		for i := 0; i < subpath.pointCount()-1; i++ {
-			pt := subpath.points[i]
+		for i := 0; i < flatPath.pointCount()-1; i++ {
+			pt := flatPath.points[i]
 
-			nextPt := subpath.points[i+1]
+			nextPt := flatPath.points[i+1]
 			dx := nextPt.x - pt.x
 			dy := nextPt.y - pt.y
 			dist := float32(math.Sqrt(float64(dx*dx + dy*dy)))
@@ -722,7 +724,7 @@ func appendVerticesAndIndicesForStroke[T ~uint16 | ~uint32](path *Path, vertices
 			var nextRect [4]point
 			if i < len(rects)-1 {
 				nextRect = rects[i+1]
-			} else if subpath.closed {
+			} else if flatPath.closed {
 				nextRect = rects[0]
 			} else {
 				continue
@@ -800,8 +802,8 @@ func appendVerticesAndIndicesForStroke[T ~uint16 | ~uint32](path *Path, vertices
 			continue
 		}
 
-		// If the subpath is closed, do not render line caps.
-		if subpath.closed {
+		// If the flat path is closed, do not render line caps.
+		if flatPath.closed {
 			continue
 		}
 
