@@ -115,9 +115,16 @@ type Path struct {
 // Reset doesn't release the allocated memory so that the memory can be reused.
 func (p *Path) Reset() {
 	p.ops = p.ops[:0]
-	p.flatPaths = p.flatPaths[:0]
+	p.resetFlatPaths()
 	p.start = point{}
 	p.hasStart = false
+}
+
+func (p *Path) resetFlatPaths() {
+	for _, fp := range p.flatPaths {
+		fp.reset()
+	}
+	p.flatPaths = p.flatPaths[:0]
 }
 
 func (p *Path) appendNewFlatPath(pt point) {
@@ -161,7 +168,7 @@ func (p *Path) ensureFlatPaths() []flatPath {
 
 // MoveTo starts a new sub-path with the given position (x, y) without adding a sub-path,
 func (p *Path) MoveTo(x, y float32) {
-	p.flatPaths = p.flatPaths[:0]
+	p.resetFlatPaths()
 
 	// Always update the start position.
 	p.start = point{x: x, y: y}
@@ -181,7 +188,7 @@ func (p *Path) MoveTo(x, y float32) {
 // and ends to the given position (x, y).
 // If p doesn't have any sub-paths or the last sub-path is closed, LineTo sets (x, y) as the start position of a new sub-path.
 func (p *Path) LineTo(x, y float32) {
-	p.flatPaths = p.flatPaths[:0]
+	p.resetFlatPaths()
 
 	if !p.hasStart {
 		p.start = point{x: x, y: y}
@@ -196,7 +203,7 @@ func (p *Path) LineTo(x, y float32) {
 // QuadTo adds a quadratic Bézier curve to the path.
 // (x1, y1) is the control point, and (x2, y2) is the destination.
 func (p *Path) QuadTo(x1, y1, x2, y2 float32) {
-	p.flatPaths = p.flatPaths[:0]
+	p.resetFlatPaths()
 
 	if !p.hasStart {
 		p.start = point{x: x1, y: y1}
@@ -212,7 +219,7 @@ func (p *Path) QuadTo(x1, y1, x2, y2 float32) {
 // CubicTo adds a cubic Bézier curve to the path.
 // (x1, y1) and (x2, y2) are the control points, and (x3, y3) is the destination.
 func (p *Path) CubicTo(x1, y1, x2, y2, x3, y3 float32) {
-	p.flatPaths = p.flatPaths[:0]
+	p.resetFlatPaths()
 
 	if !p.hasStart {
 		p.start = point{x: x1, y: y1}
@@ -293,7 +300,7 @@ func isQuadraticCloseEnoughToCubic(start, end, qc1, cc1, cc2 point) bool {
 // and marks the current sub-path closed.
 // Following operations for this path will start with a new sub-path.
 func (p *Path) Close() {
-	p.flatPaths = p.flatPaths[:0]
+	p.resetFlatPaths()
 
 	if p.hasStart {
 		p.LineTo(p.start.x, p.start.y)
