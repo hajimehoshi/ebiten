@@ -30,3 +30,21 @@ func IsPointCloseToSegment(p, p0, p1 Point, allow float32) bool {
 		y: p1.Y,
 	}, allow)
 }
+
+func LastPosition(path *Path) (x, y float32) {
+	if len(path.ops) == 0 {
+		return 0, 0
+	}
+	for i := len(path.ops) - 1; i >= 0; i-- {
+		op := path.ops[i]
+		switch op.typ {
+		case opTypeMoveTo:
+			return op.p1.x, op.p1.y
+		case opTypeLineTo:
+			return op.p1.x, op.p1.y
+		case opTypeQuadTo:
+			return op.p2.x, op.p2.y
+		}
+	}
+	return 0, 0
+}

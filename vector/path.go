@@ -97,11 +97,6 @@ func (s *flatPath) appendPoint(pt point) {
 }
 
 func (s *flatPath) close() {
-	if s.closed {
-		return
-	}
-
-	s.appendPoint(s.points[0])
 	s.closed = true
 }
 
@@ -111,6 +106,9 @@ type Path struct {
 
 	// flatPaths is a cached actual rendering positions.
 	flatPaths []flatPath
+
+	start    point
+	hasStart bool
 }
 
 // Reset resets the path.
@@ -118,6 +116,8 @@ type Path struct {
 func (p *Path) Reset() {
 	p.ops = p.ops[:0]
 	p.flatPaths = p.flatPaths[:0]
+	p.start = point{}
+	p.hasStart = false
 }
 
 func (p *Path) appendNewFlatPath(pt point) {
@@ -151,7 +151,7 @@ func (p *Path) ensureFlatPaths() []flatPath {
 			p.appendFlatPathPointsForQuad(cur, op.p1, op.p2, 0)
 			cur = op.p2
 		case opTypeClose:
-			p.close()
+			p.closeFlatPath()
 			cur = point{}
 		}
 	}
@@ -162,6 +162,16 @@ func (p *Path) ensureFlatPaths() []flatPath {
 // MoveTo starts a new sub-path with the given position (x, y) without adding a sub-path,
 func (p *Path) MoveTo(x, y float32) {
 	p.flatPaths = p.flatPaths[:0]
+
+	// Always close the current sub-path and start a new sub-path.
+	p.Close()
+	p.start = point{x: x, y: y}
+	p.hasStart = true
+	// Overwrite the last move.
+	if len(p.ops) > 0 && p.ops[len(p.ops)-1].typ == opTypeMoveTo {
+		p.ops[len(p.ops)-1].p1 = point{x: x, y: y}
+		return
+	}
 	p.ops = append(p.ops, op{
 		typ: opTypeMoveTo,
 		p1:  point{x: x, y: y},
@@ -173,6 +183,11 @@ func (p *Path) MoveTo(x, y float32) {
 // If p doesn't have any sub-paths or the last sub-path is closed, LineTo sets (x, y) as the start position of a new sub-path.
 func (p *Path) LineTo(x, y float32) {
 	p.flatPaths = p.flatPaths[:0]
+
+	if !p.hasStart {
+		p.start = point{x: x, y: y}
+		p.hasStart = true
+	}
 	p.ops = append(p.ops, op{
 		typ: opTypeLineTo,
 		p1:  point{x: x, y: y},
@@ -183,6 +198,11 @@ func (p *Path) LineTo(x, y float32) {
 // (x1, y1) is the control point, and (x2, y2) is the destination.
 func (p *Path) QuadTo(x1, y1, x2, y2 float32) {
 	p.flatPaths = p.flatPaths[:0]
+
+	if !p.hasStart {
+		p.start = point{x: x1, y: y1}
+		p.hasStart = true
+	}
 	p.ops = append(p.ops, op{
 		typ: opTypeQuadTo,
 		p1:  point{x: x1, y: y1},
@@ -194,6 +214,11 @@ func (p *Path) QuadTo(x1, y1, x2, y2 float32) {
 // (x1, y1) and (x2, y2) are the control points, and (x3, y3) is the destination.
 func (p *Path) CubicTo(x1, y1, x2, y2, x3, y3 float32) {
 	p.flatPaths = p.flatPaths[:0]
+
+	if !p.hasStart {
+		p.start = point{x: x1, y: y1}
+		p.hasStart = true
+	}
 	p.cubicTo(x1, y1, x2, y2, x3, y3, 0)
 }
 
@@ -270,6 +295,14 @@ func isQuadraticCloseEnoughToCubic(start, end, qc1, cc1, cc2 point) bool {
 // Following operations for this path will start with a new sub-path.
 func (p *Path) Close() {
 	p.flatPaths = p.flatPaths[:0]
+
+	if p.hasStart {
+		p.LineTo(p.start.x, p.start.y)
+	}
+	p.hasStart = false
+	if len(p.ops) == 0 || p.ops[len(p.ops)-1].typ == opTypeClose {
+		return
+	}
 	p.ops = append(p.ops, op{
 		typ: opTypeClose,
 	})
@@ -504,7 +537,7 @@ func (p *Path) Arc(x, y, radius, startAngle, endAngle float32, dir Direction) {
 	p.CubicTo(cx0, cy0, cx1, cy1, x1, y1)
 }
 
-func (p *Path) close() {
+func (p *Path) closeFlatPath() {
 	if len(p.flatPaths) == 0 {
 		return
 	}
