@@ -89,50 +89,68 @@ func TestIsPointCloseToSegment(t *testing.T) {
 
 func TestMoveToAndClose(t *testing.T) {
 	var path vector.Path
-	if x, y := vector.LastPosition(&path); x != 0 || y != 0 {
-		t.Errorf("expected last position to be (0, 0), got (%f, %f)", x, y)
+	if _, ok := vector.CurrentPosition(&path); ok != false {
+		t.Errorf("expected no last position, got one")
 	}
-	if got, want := vector.CloseCount(&path), 0; got != want {
+	if got, want := vector.SubPathCount(&path), 0; got != want {
 		t.Errorf("expected close count to be %d, got %d", want, got)
 	}
 
 	path.MoveTo(10, 20)
-	if x, y := vector.LastPosition(&path); x != 10 || y != 20 {
-		t.Errorf("expected last position to be (10, 20), got (%f, %f)", x, y)
+	if p, ok := vector.CurrentPosition(&path); p != (vector.Point{10, 20}) || !ok {
+		t.Errorf("expected last position to be (10, 20), got %v", p)
 	}
-	if got, want := vector.CloseCount(&path), 0; got != want {
+	if got, want := vector.SubPathCount(&path), 1; got != want {
 		t.Errorf("expected close count to be %d, got %d", want, got)
 	}
 
 	path.MoveTo(30, 40)
-	if x, y := vector.LastPosition(&path); x != 30 || y != 40 {
-		t.Errorf("expected last position to be (30, 40), got (%f, %f)", x, y)
+	if p, ok := vector.CurrentPosition(&path); p != (vector.Point{30, 40}) || !ok {
+		t.Errorf("expected last position to be (30, 40), got %v", p)
 	}
-	if got, want := vector.CloseCount(&path), 0; got != want {
+	if got, want := vector.SubPathCount(&path), 1; got != want {
 		t.Errorf("expected close count to be %d, got %d", want, got)
 	}
 
 	path.LineTo(50, 60)
-	if x, y := vector.LastPosition(&path); x != 50 || y != 60 {
-		t.Errorf("expected last position to be (50, 60), got (%f, %f)", x, y)
+	if p, ok := vector.CurrentPosition(&path); p != (vector.Point{50, 60}) || !ok {
+		t.Errorf("expected last position to be (50, 60), got %v", p)
 	}
-	if got, want := vector.CloseCount(&path), 0; got != want {
+	if got, want := vector.SubPathCount(&path), 1; got != want {
 		t.Errorf("expected close count to be %d, got %d", want, got)
 	}
 
 	path.Close()
-	if x, y := vector.LastPosition(&path); x != 30 || y != 40 {
-		t.Errorf("expected last position to be (30, 40) after close, got (%f, %f)", x, y)
+	if p, ok := vector.CurrentPosition(&path); p != (vector.Point{30, 40}) || !ok {
+		t.Errorf("expected last position to be (30, 40) after close, got %v", p)
 	}
-	if got, want := vector.CloseCount(&path), 1; got != want {
+	if got, want := vector.SubPathCount(&path), 1; got != want {
 		t.Errorf("expected close count to be %d, got %d", want, got)
 	}
 
 	path.MoveTo(70, 80)
-	if x, y := vector.LastPosition(&path); x != 70 || y != 80 {
-		t.Errorf("expected last position to be (70, 80), got (%f, %f)", x, y)
+	if p, ok := vector.CurrentPosition(&path); p != (vector.Point{70, 80}) || !ok {
+		t.Errorf("expected last position to be (70, 80), got %v", p)
 	}
-	if got, want := vector.CloseCount(&path), 1; got != want {
+	if got, want := vector.SubPathCount(&path), 2; got != want {
+		t.Errorf("expected close count to be %d, got %d", want, got)
+	}
+
+	path.LineTo(90, 100)
+	if p, ok := vector.CurrentPosition(&path); p != (vector.Point{90, 100}) || !ok {
+		t.Errorf("expected last position to be (50, 60), got %v", p)
+	}
+	if got, want := vector.SubPathCount(&path), 2; got != want {
+		t.Errorf("expected close count to be %d, got %d", want, got)
+	}
+
+	// MoveTo without closing forces to create a new sub-path.
+	// The previous sub-path is left unclosed.
+	path.MoveTo(110, 120)
+	if p, ok := vector.CurrentPosition(&path); p != (vector.Point{110, 120}) || !ok {
+		t.Errorf("expected last position to be (70, 80), got %v", p)
+	}
+	if got, want := vector.SubPathCount(&path), 3; got != want {
 		t.Errorf("expected close count to be %d, got %d", want, got)
 	}
 }

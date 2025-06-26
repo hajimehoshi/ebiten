@@ -34,10 +34,8 @@ const (
 type opType int
 
 const (
-	opTypeMoveTo opType = iota
-	opTypeLineTo
+	opTypeLineTo opType = iota
 	opTypeQuadTo
-	opTypeClose
 )
 
 type op struct {
@@ -58,6 +56,18 @@ type point struct {
 	y float32
 }
 
+type subPath struct {
+	ops    []op
+	start  point
+	closed bool
+}
+
+func (s *subPath) reset() {
+	s.ops = s.ops[:0]
+	s.start = point{}
+	s.closed = false
+}
+
 // flatPath is a flattened sub-path of a path.
 // A flatPath consists of points for line segments.
 type flatPath struct {
@@ -67,57 +77,59 @@ type flatPath struct {
 
 // reset resets the flatPath.
 // reset doesn't release the allocated memory so that the memory can be reused.
-func (s *flatPath) reset() {
-	s.points = s.points[:0]
-	s.closed = false
+func (f *flatPath) reset() {
+	f.points = f.points[:0]
+	f.closed = false
 }
 
-func (s flatPath) pointCount() int {
-	return len(s.points)
+func (f flatPath) pointCount() int {
+	return len(f.points)
 }
 
-func (s flatPath) lastPoint() point {
-	return s.points[len(s.points)-1]
+func (f flatPath) lastPoint() point {
+	return f.points[len(f.points)-1]
 }
 
-func (s *flatPath) appendPoint(pt point) {
-	if s.closed {
+func (f *flatPath) appendPoint(pt point) {
+	if f.closed {
 		panic("vector: a closed flatPath cannot append a new point")
 	}
 
-	if len(s.points) > 0 {
+	if len(f.points) > 0 {
 		// Do not add a too close point to the last point.
 		// This can cause unexpected rendering results.
-		if lp := s.lastPoint(); abs(lp.x-pt.x) < 1e-2 && abs(lp.y-pt.y) < 1e-2 {
+		if lp := f.lastPoint(); abs(lp.x-pt.x) < 1e-2 && abs(lp.y-pt.y) < 1e-2 {
 			return
 		}
 	}
 
-	s.points = append(s.points, pt)
+	f.points = append(f.points, pt)
 }
 
-func (s *flatPath) close() {
-	s.closed = true
+func (f *flatPath) close() {
+	f.closed = true
 }
 
 // Path represents a collection of vector graphics operations.
 type Path struct {
-	ops []op
+	subPaths []subPath
 
 	// flatPaths is a cached actual rendering positions.
 	flatPaths []flatPath
-
-	start    point
-	hasStart bool
 }
 
 // Reset resets the path.
 // Reset doesn't release the allocated memory so that the memory can be reused.
 func (p *Path) Reset() {
-	p.ops = p.ops[:0]
+	p.resetSubPaths()
 	p.resetFlatPaths()
-	p.start = point{}
-	p.hasStart = false
+}
+
+func (p *Path) resetSubPaths() {
+	for i := range p.subPaths {
+		p.subPaths[i].reset()
+	}
+	p.subPaths = p.subPaths[:0]
 }
 
 func (p *Path) resetFlatPaths() {
@@ -141,25 +153,25 @@ func (p *Path) appendNewFlatPath(pt point) {
 }
 
 func (p *Path) ensureFlatPaths() []flatPath {
-	if len(p.flatPaths) > 0 || len(p.ops) == 0 {
+	if len(p.flatPaths) > 0 || len(p.subPaths) == 0 {
 		return p.flatPaths
 	}
 
-	var cur point
-	for _, op := range p.ops {
-		switch op.typ {
-		case opTypeMoveTo:
-			p.appendNewFlatPath(op.p1)
-			cur = op.p1
-		case opTypeLineTo:
-			p.appendFlatPathPointsForLine(op.p1)
-			cur = op.p1
-		case opTypeQuadTo:
-			p.appendFlatPathPointsForQuad(cur, op.p1, op.p2, 0)
-			cur = op.p2
-		case opTypeClose:
+	for _, subPath := range p.subPaths {
+		p.appendNewFlatPath(subPath.start)
+		cur := subPath.start
+		for _, op := range subPath.ops {
+			switch op.typ {
+			case opTypeLineTo:
+				p.appendFlatPathPointsForLine(op.p1)
+				cur = op.p1
+			case opTypeQuadTo:
+				p.appendFlatPathPointsForQuad(cur, op.p1, op.p2, 0)
+				cur = op.p2
+			}
+		}
+		if subPath.closed {
 			p.closeFlatPath()
-			cur = point{}
 		}
 	}
 
@@ -171,17 +183,11 @@ func (p *Path) MoveTo(x, y float32) {
 	p.resetFlatPaths()
 
 	// Always update the start position.
-	p.start = point{x: x, y: y}
-	p.hasStart = true
-	// Overwrite the last move.
-	if len(p.ops) > 0 && p.ops[len(p.ops)-1].typ == opTypeMoveTo {
-		p.ops[len(p.ops)-1].p1 = point{x: x, y: y}
-		return
+	if len(p.subPaths) == 0 || len(p.subPaths[len(p.subPaths)-1].ops) > 0 {
+		p.subPaths = append(p.subPaths, subPath{})
 	}
-	p.ops = append(p.ops, op{
-		typ: opTypeMoveTo,
-		p1:  point{x: x, y: y},
-	})
+	p.subPaths[len(p.subPaths)-1].start = point{x: x, y: y}
+	p.subPaths[len(p.subPaths)-1].closed = false
 }
 
 // LineTo adds a line segment to the path, which starts from the last position of the current sub-path
@@ -190,11 +196,16 @@ func (p *Path) MoveTo(x, y float32) {
 func (p *Path) LineTo(x, y float32) {
 	p.resetFlatPaths()
 
-	if !p.hasStart {
-		p.start = point{x: x, y: y}
-		p.hasStart = true
+	if len(p.subPaths) == 0 {
+		p.subPaths = append(p.subPaths, subPath{
+			start: point{x: x, y: y},
+		})
+	} else if p.subPaths[len(p.subPaths)-1].closed {
+		p.subPaths = append(p.subPaths, subPath{
+			start: p.subPaths[len(p.subPaths)-1].start,
+		})
 	}
-	p.ops = append(p.ops, op{
+	p.subPaths[len(p.subPaths)-1].ops = append(p.subPaths[len(p.subPaths)-1].ops, op{
 		typ: opTypeLineTo,
 		p1:  point{x: x, y: y},
 	})
@@ -205,11 +216,16 @@ func (p *Path) LineTo(x, y float32) {
 func (p *Path) QuadTo(x1, y1, x2, y2 float32) {
 	p.resetFlatPaths()
 
-	if !p.hasStart {
-		p.start = point{x: x1, y: y1}
-		p.hasStart = true
+	if len(p.subPaths) == 0 {
+		p.subPaths = append(p.subPaths, subPath{
+			start: point{x: x1, y: y1},
+		})
+	} else if p.subPaths[len(p.subPaths)-1].closed {
+		p.subPaths = append(p.subPaths, subPath{
+			start: p.subPaths[len(p.subPaths)-1].start,
+		})
 	}
-	p.ops = append(p.ops, op{
+	p.subPaths[len(p.subPaths)-1].ops = append(p.subPaths[len(p.subPaths)-1].ops, op{
 		typ: opTypeQuadTo,
 		p1:  point{x: x1, y: y1},
 		p2:  point{x: x2, y: y2},
@@ -220,11 +236,6 @@ func (p *Path) QuadTo(x1, y1, x2, y2 float32) {
 // (x1, y1) and (x2, y2) are the control points, and (x3, y3) is the destination.
 func (p *Path) CubicTo(x1, y1, x2, y2, x3, y3 float32) {
 	p.resetFlatPaths()
-
-	if !p.hasStart {
-		p.start = point{x: x1, y: y1}
-		p.hasStart = true
-	}
 	p.cubicTo(x1, y1, x2, y2, x3, y3, 0)
 }
 
@@ -302,16 +313,14 @@ func isQuadraticCloseEnoughToCubic(start, end, qc1, cc1, cc2 point) bool {
 func (p *Path) Close() {
 	p.resetFlatPaths()
 
-	if p.hasStart {
-		p.LineTo(p.start.x, p.start.y)
-	}
-	p.hasStart = false
-	if len(p.ops) == 0 || p.ops[len(p.ops)-1].typ == opTypeClose {
+	if len(p.subPaths) == 0 {
 		return
 	}
-	p.ops = append(p.ops, op{
-		typ: opTypeClose,
-	})
+	if len(p.subPaths[len(p.subPaths)-1].ops) > 0 {
+		start := p.subPaths[len(p.subPaths)-1].start
+		p.LineTo(start.x, start.y)
+	}
+	p.subPaths[len(p.subPaths)-1].closed = true
 }
 
 func (p *Path) appendFlatPathPointsForLine(pt point) {
@@ -392,19 +401,19 @@ func cross(p0, p1 point) float32 {
 }
 
 func (p *Path) currentPosition() (point, bool) {
-	if len(p.ops) == 0 {
+	if len(p.subPaths) == 0 {
 		return point{}, false
 	}
-	op := p.ops[len(p.ops)-1]
+	ops := p.subPaths[len(p.subPaths)-1].ops
+	if len(ops) == 0 {
+		return p.subPaths[len(p.subPaths)-1].start, true
+	}
+	op := ops[len(ops)-1]
 	switch op.typ {
-	case opTypeMoveTo:
-		return op.p1, true
 	case opTypeLineTo:
 		return op.p1, true
 	case opTypeQuadTo:
 		return op.p2, true
-	case opTypeClose:
-		return point{}, false
 	}
 	return point{}, false
 }
@@ -614,18 +623,26 @@ func appendVerticesAndIndicesForFilling[T ~uint16 | ~uint32](path *Path, vertice
 
 // ApplyGeoM applies the given GeoM to the path and returns a new path.
 func (p *Path) ApplyGeoM(geoM ebiten.GeoM) *Path {
-	// Flat paths (sub-paths) are not copied.
+	// Flat paths are not copied.
 	np := &Path{
-		ops: make([]op, len(p.ops)),
+		subPaths: make([]subPath, len(p.subPaths)),
 	}
-	for i, o := range p.ops {
-		x1, y1 := geoM.Apply(float64(o.p1.x), float64(o.p1.y))
-		x2, y2 := geoM.Apply(float64(o.p2.x), float64(o.p2.y))
-		np.ops[i] = op{
-			typ: o.typ,
-			p1:  point{x: float32(x1), y: float32(y1)},
-			p2:  point{x: float32(x2), y: float32(y2)},
+	for i, subPath := range p.subPaths {
+		sx, sy := geoM.Apply(float64(subPath.start.x), float64(subPath.start.y))
+		np.subPaths[i].start = point{x: float32(sx), y: float32(sy)}
+		np.subPaths[i].closed = subPath.closed
+		np.subPaths[i].ops = make([]op, len(subPath.ops))
+
+		for j, o := range subPath.ops {
+			x1, y1 := geoM.Apply(float64(o.p1.x), float64(o.p1.y))
+			x2, y2 := geoM.Apply(float64(o.p2.x), float64(o.p2.y))
+			np.subPaths[i].ops[j] = op{
+				typ: o.typ,
+				p1:  point{x: float32(x1), y: float32(y1)},
+				p2:  point{x: float32(x2), y: float32(y2)},
+			}
 		}
+
 	}
 	return np
 }

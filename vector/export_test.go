@@ -14,8 +14,14 @@
 
 package vector
 
+import "fmt"
+
 type Point struct {
 	X, Y float32
+}
+
+func (p Point) String() string {
+	return fmt.Sprintf("(%f, %f)", p.X, p.Y)
 }
 
 func IsPointCloseToSegment(p, p0, p1 Point, allow float32) bool {
@@ -31,30 +37,14 @@ func IsPointCloseToSegment(p, p0, p1 Point, allow float32) bool {
 	}, allow)
 }
 
-func LastPosition(path *Path) (x, y float32) {
-	if len(path.ops) == 0 {
-		return 0, 0
+func CurrentPosition(path *Path) (Point, bool) {
+	p, ok := path.currentPosition()
+	if !ok {
+		return Point{}, false
 	}
-	for i := len(path.ops) - 1; i >= 0; i-- {
-		op := path.ops[i]
-		switch op.typ {
-		case opTypeMoveTo:
-			return op.p1.x, op.p1.y
-		case opTypeLineTo:
-			return op.p1.x, op.p1.y
-		case opTypeQuadTo:
-			return op.p2.x, op.p2.y
-		}
-	}
-	return 0, 0
+	return Point{X: p.x, Y: p.y}, true
 }
 
-func CloseCount(path *Path) int {
-	count := 0
-	for _, op := range path.ops {
-		if op.typ == opTypeClose {
-			count++
-		}
-	}
-	return count
+func SubPathCount(path *Path) int {
+	return len(path.subPaths)
 }
