@@ -163,8 +163,7 @@ func (p *Path) ensureFlatPaths() []flatPath {
 func (p *Path) MoveTo(x, y float32) {
 	p.flatPaths = p.flatPaths[:0]
 
-	// Always close the current sub-path and start a new sub-path.
-	p.Close()
+	// Always update the start position.
 	p.start = point{x: x, y: y}
 	p.hasStart = true
 	// Overwrite the last move.

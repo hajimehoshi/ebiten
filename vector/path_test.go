@@ -92,20 +92,47 @@ func TestMoveToAndClose(t *testing.T) {
 	if x, y := vector.LastPosition(&path); x != 0 || y != 0 {
 		t.Errorf("expected last position to be (0, 0), got (%f, %f)", x, y)
 	}
+	if got, want := vector.CloseCount(&path), 0; got != want {
+		t.Errorf("expected close count to be %d, got %d", want, got)
+	}
+
 	path.MoveTo(10, 20)
 	if x, y := vector.LastPosition(&path); x != 10 || y != 20 {
 		t.Errorf("expected last position to be (10, 20), got (%f, %f)", x, y)
 	}
+	if got, want := vector.CloseCount(&path), 0; got != want {
+		t.Errorf("expected close count to be %d, got %d", want, got)
+	}
+
 	path.MoveTo(30, 40)
 	if x, y := vector.LastPosition(&path); x != 30 || y != 40 {
 		t.Errorf("expected last position to be (30, 40), got (%f, %f)", x, y)
 	}
+	if got, want := vector.CloseCount(&path), 0; got != want {
+		t.Errorf("expected close count to be %d, got %d", want, got)
+	}
+
 	path.LineTo(50, 60)
 	if x, y := vector.LastPosition(&path); x != 50 || y != 60 {
 		t.Errorf("expected last position to be (50, 60), got (%f, %f)", x, y)
 	}
+	if got, want := vector.CloseCount(&path), 0; got != want {
+		t.Errorf("expected close count to be %d, got %d", want, got)
+	}
+
 	path.Close()
 	if x, y := vector.LastPosition(&path); x != 30 || y != 40 {
 		t.Errorf("expected last position to be (30, 40) after close, got (%f, %f)", x, y)
+	}
+	if got, want := vector.CloseCount(&path), 1; got != want {
+		t.Errorf("expected close count to be %d, got %d", want, got)
+	}
+
+	path.MoveTo(70, 80)
+	if x, y := vector.LastPosition(&path); x != 70 || y != 80 {
+		t.Errorf("expected last position to be (70, 80), got (%f, %f)", x, y)
+	}
+	if got, want := vector.CloseCount(&path), 1; got != want {
+		t.Errorf("expected close count to be %d, got %d", want, got)
 	}
 }

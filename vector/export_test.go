@@ -48,3 +48,13 @@ func LastPosition(path *Path) (x, y float32) {
 	}
 	return 0, 0
 }
+
+func CloseCount(path *Path) int {
+	count := 0
+	for _, op := range path.ops {
+		if op.typ == opTypeClose {
+			count++
+		}
+	}
+	return count
+}
