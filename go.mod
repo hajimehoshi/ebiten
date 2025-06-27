@@ -6,9 +6,9 @@ require (
 	github.com/ebitengine/debugui v0.2.0-alpha.4
 	github.com/ebitengine/gomobile v0.0.0-20250329061421-6d0a8e981e4c
 	github.com/ebitengine/hideconsole v1.0.0
-	github.com/ebitengine/oto/v3 v3.4.0-alpha.7.0.20250627124707-398da3ce35dd
-	github.com/ebitengine/purego v0.9.0-alpha.7
-	github.com/gen2brain/mpeg v0.3.2-0.20240412154320-a2ac4fc8a46f
+	github.com/ebitengine/oto/v3 v3.4.0-alpha.7.0.20250627125157-19ccb1d14eb8
+	github.com/ebitengine/purego v0.9.0-alpha.8
+	github.com/gen2brain/mpeg v0.4.0
 	github.com/go-text/typesetting v0.3.0
 	github.com/hajimehoshi/bitmapfont/v4 v4.1.0-alpha
 	github.com/hajimehoshi/go-mp3 v0.3.4
