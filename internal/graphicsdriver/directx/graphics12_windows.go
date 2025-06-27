@@ -94,6 +94,7 @@ type graphics12 struct {
 	shaders         map[graphicsdriver.ShaderID]*shader12
 	nextShaderID    graphicsdriver.ShaderID
 	disposedShaders [frameCount][]*shader12
+	tmpUniforms     []uint32
 
 	vsyncEnabled bool
 
@@ -1128,7 +1129,7 @@ func (g *graphics12) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.
 	}
 
 	shader := g.shaders[shaderID]
-	adjustedUniforms := adjustUniforms(shader.uniformTypes, shader.uniformOffsets, uniforms)
+	g.tmpUniforms = appendAdjustedUniforms(g.tmpUniforms[:0], shader.uniformTypes, shader.uniformOffsets, uniforms)
 
 	w, h := dst.internalSize()
 	g.needFlushDrawCommandList = true
@@ -1156,7 +1157,7 @@ func (g *graphics12) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.
 		Format:         _DXGI_FORMAT_R32_UINT,
 	})
 
-	if err := g.pipelineStates.drawTriangles(g.device, g.drawCommandList, g.frameIndex, dst.screen, srcImages, shader, dstRegions, adjustedUniforms, blend, indexOffset, fillRule); err != nil {
+	if err := g.pipelineStates.drawTriangles(g.device, g.drawCommandList, g.frameIndex, dst.screen, srcImages, shader, dstRegions, g.tmpUniforms, blend, indexOffset, fillRule); err != nil {
 		return err
 	}
 
