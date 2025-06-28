@@ -622,29 +622,64 @@ func appendVerticesAndIndicesForFilling[T ~uint16 | ~uint32](path *Path, vertice
 }
 
 // ApplyGeoM applies the given GeoM to the path and returns a new path.
+//
+// Deprecated: as of v2.9. Use [Path.AddPath] instead.
 func (p *Path) ApplyGeoM(geoM ebiten.GeoM) *Path {
 	// Flat paths are not copied.
-	np := &Path{
-		subPaths: make([]subPath, len(p.subPaths)),
-	}
-	for i, subPath := range p.subPaths {
-		sx, sy := geoM.Apply(float64(subPath.start.x), float64(subPath.start.y))
-		np.subPaths[i].start = point{x: float32(sx), y: float32(sy)}
-		np.subPaths[i].closed = subPath.closed
-		np.subPaths[i].ops = make([]op, len(subPath.ops))
+	var np Path
+	op := &AddPathOptions{}
+	op.GeoM = geoM
+	np.AddPath(p, op)
+	return &np
+}
 
-		for j, o := range subPath.ops {
-			x1, y1 := geoM.Apply(float64(o.p1.x), float64(o.p1.y))
-			x2, y2 := geoM.Apply(float64(o.p2.x), float64(o.p2.y))
-			np.subPaths[i].ops[j] = op{
-				typ: o.typ,
-				p1:  point{x: float32(x1), y: float32(y1)},
-				p2:  point{x: float32(x2), y: float32(y2)},
-			}
+// AddPathOptions is options for [Path.AddPath].
+type AddPathOptions struct {
+	// GeoM is a transformation matrix to apply to the path.
+	//
+	// The default (zero) value is an identity matrix.
+	GeoM ebiten.GeoM
+}
+
+// AddPath adds the given path src to this path p as a sub-path.
+func (p *Path) AddPath(src *Path, options *AddPathOptions) {
+	p.resetFlatPaths()
+
+	if options == nil {
+		options = &AddPathOptions{}
+	}
+
+	origN := len(src.subPaths)
+	n := len(p.subPaths)
+	p.subPaths = append(p.subPaths, make([]subPath, len(src.subPaths))...)
+	// Note that p and src might be the same.
+	for i, origSubPath := range src.subPaths[:origN] {
+		sx, sy := options.GeoM.Apply(float64(origSubPath.start.x), float64(origSubPath.start.y))
+		p.subPaths[n+i] = subPath{
+			ops:    make([]op, len(origSubPath.ops)),
+			start:  point{x: float32(sx), y: float32(sy)},
+			closed: origSubPath.closed,
 		}
 
+		for j, o := range origSubPath.ops {
+			switch o.typ {
+			case opTypeLineTo:
+				x1, y1 := options.GeoM.Apply(float64(o.p1.x), float64(o.p1.y))
+				p.subPaths[n+i].ops[j] = op{
+					typ: o.typ,
+					p1:  point{x: float32(x1), y: float32(y1)},
+				}
+			case opTypeQuadTo:
+				x1, y1 := options.GeoM.Apply(float64(o.p1.x), float64(o.p1.y))
+				x2, y2 := options.GeoM.Apply(float64(o.p2.x), float64(o.p2.y))
+				p.subPaths[n+i].ops[j] = op{
+					typ: o.typ,
+					p1:  point{x: float32(x1), y: float32(y1)},
+					p2:  point{x: float32(x2), y: float32(y2)},
+				}
+			}
+		}
 	}
-	return np
 }
 
 // LineCap represents the way in which how the ends of the stroke are rendered.

@@ -154,3 +154,46 @@ func TestMoveToAndClose(t *testing.T) {
 		t.Errorf("expected close count to be %d, got %d", want, got)
 	}
 }
+
+func TestAddPath(t *testing.T) {
+	var path vector.Path
+	path.MoveTo(10, 20)
+	path.LineTo(30, 40)
+	path.Close()
+
+	op := &vector.AddPathOptions{}
+	op.GeoM.Translate(100, 100)
+	var path2 vector.Path
+	path2.AddPath(&path, op)
+
+	if p, ok := vector.CurrentPosition(&path); p != (vector.Point{10, 20}) || !ok {
+		t.Errorf("expected last position to be (10, 20), got %v", p)
+	}
+	if got, want := vector.SubPathCount(&path), 1; got != want {
+		t.Errorf("expected close count to be %d, got %d", want, got)
+	}
+	if p, ok := vector.CurrentPosition(&path2); p != (vector.Point{110, 120}) || !ok {
+		t.Errorf("expected last position to be (110, 120), got %v", p)
+	}
+	if got, want := vector.SubPathCount(&path2), 1; got != want {
+		t.Errorf("expected close count to be %d, got %d", want, got)
+	}
+}
+
+func TestAddPathSelf(t *testing.T) {
+	var path vector.Path
+	path.MoveTo(10, 20)
+	path.LineTo(30, 40)
+	path.Close()
+
+	op := &vector.AddPathOptions{}
+	op.GeoM.Translate(100, 100)
+	path.AddPath(&path, op)
+
+	if p, ok := vector.CurrentPosition(&path); p != (vector.Point{110, 120}) || !ok {
+		t.Errorf("expected last position to be (110, 120), got %v", p)
+	}
+	if got, want := vector.SubPathCount(&path), 2; got != want {
+		t.Errorf("expected close count to be %d, got %d", want, got)
+	}
+}

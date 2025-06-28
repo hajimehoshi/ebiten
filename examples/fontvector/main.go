@@ -60,9 +60,13 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	op.Width = 2*(float32(math.Sin(float64(g.tick)*2*math.Pi/180))+1) + 1
 	op.LineJoin = vector.LineJoinRound
 	op.LineCap = vector.LineCapRound
-	var geoM ebiten.GeoM
-	geoM.Translate(50, 0)
-	vector.StrokePath(screen, g.path.ApplyGeoM(geoM), color.White, true, op)
+
+	op2 := &vector.AddPathOptions{}
+	op2.GeoM.Translate(50, 0)
+	var newPath vector.Path
+	newPath.AddPath(&g.path, op2)
+
+	vector.StrokePath(screen, &newPath, color.White, true, op)
 }
 
 func (*Game) Layout(width, height int) (int, int) {

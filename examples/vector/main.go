@@ -149,15 +149,17 @@ func (g *Game) drawEbitenLogo(screen *ebiten.Image, x, y int, aa bool, line bool
 	path.LineTo(unit, 4*unit)
 	path.Close()
 
-	var geoM ebiten.GeoM
-	geoM.Translate(float64(x), float64(y))
+	var newPath vector.Path
+	op := &vector.AddPathOptions{}
+	op.GeoM.Translate(float64(x), float64(y))
+	newPath.AddPath(&path, op)
 	if line {
 		op := &vector.StrokeOptions{}
 		op.Width = 5
 		op.LineJoin = vector.LineJoinRound
-		vector.StrokePath(screen, path.ApplyGeoM(geoM), color.RGBA{0xdb, 0x56, 0x20, 0xff}, aa, op)
+		vector.StrokePath(screen, &newPath, color.RGBA{0xdb, 0x56, 0x20, 0xff}, aa, op)
 	} else {
-		vector.DrawFilledPath(screen, path.ApplyGeoM(geoM), color.RGBA{0xdb, 0x56, 0x20, 0xff}, aa, vector.FillRuleNonZero)
+		vector.DrawFilledPath(screen, &newPath, color.RGBA{0xdb, 0x56, 0x20, 0xff}, aa, vector.FillRuleNonZero)
 	}
 }
 
