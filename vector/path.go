@@ -19,6 +19,7 @@ package vector
 
 import (
 	"math"
+	"slices"
 
 	"github.com/hajimehoshi/ebiten/v2"
 )
@@ -178,13 +179,18 @@ func (p *Path) ensureFlatPaths() []flatPath {
 	return p.flatPaths
 }
 
+func (p *Path) addSubPaths(n int) {
+	// Use slices.Grow instead of append to reuse the underlying sub path object.
+	p.subPaths = slices.Grow(p.subPaths, n)[:len(p.subPaths)+n]
+}
+
 // MoveTo starts a new sub-path with the given position (x, y) without adding a sub-path,
 func (p *Path) MoveTo(x, y float32) {
 	p.resetFlatPaths()
 
 	// Always update the start position.
 	if len(p.subPaths) == 0 || len(p.subPaths[len(p.subPaths)-1].ops) > 0 {
-		p.subPaths = append(p.subPaths, subPath{})
+		p.addSubPaths(1)
 	}
 	p.subPaths[len(p.subPaths)-1].start = point{x: x, y: y}
 	p.subPaths[len(p.subPaths)-1].closed = false
@@ -197,13 +203,11 @@ func (p *Path) LineTo(x, y float32) {
 	p.resetFlatPaths()
 
 	if len(p.subPaths) == 0 {
-		p.subPaths = append(p.subPaths, subPath{
-			start: point{x: x, y: y},
-		})
+		p.addSubPaths(1)
+		p.subPaths[len(p.subPaths)-1].start = point{x: x, y: y}
 	} else if p.subPaths[len(p.subPaths)-1].closed {
-		p.subPaths = append(p.subPaths, subPath{
-			start: p.subPaths[len(p.subPaths)-1].start,
-		})
+		p.addSubPaths(1)
+		p.subPaths[len(p.subPaths)-1].start = p.subPaths[len(p.subPaths)-2].start
 	}
 	p.subPaths[len(p.subPaths)-1].ops = append(p.subPaths[len(p.subPaths)-1].ops, op{
 		typ: opTypeLineTo,
@@ -217,13 +221,11 @@ func (p *Path) QuadTo(x1, y1, x2, y2 float32) {
 	p.resetFlatPaths()
 
 	if len(p.subPaths) == 0 {
-		p.subPaths = append(p.subPaths, subPath{
-			start: point{x: x1, y: y1},
-		})
+		p.addSubPaths(1)
+		p.subPaths[len(p.subPaths)-1].start = point{x: x1, y: y1}
 	} else if p.subPaths[len(p.subPaths)-1].closed {
-		p.subPaths = append(p.subPaths, subPath{
-			start: p.subPaths[len(p.subPaths)-1].start,
-		})
+		p.addSubPaths(1)
+		p.subPaths[len(p.subPaths)-1].start = p.subPaths[len(p.subPaths)-2].start
 	}
 	p.subPaths[len(p.subPaths)-1].ops = append(p.subPaths[len(p.subPaths)-1].ops, op{
 		typ: opTypeQuadTo,
@@ -649,17 +651,15 @@ func (p *Path) AddPath(src *Path, options *AddPathOptions) {
 		options = &AddPathOptions{}
 	}
 
-	origN := len(src.subPaths)
+	srcN := len(src.subPaths)
 	n := len(p.subPaths)
-	p.subPaths = append(p.subPaths, make([]subPath, len(src.subPaths))...)
+	p.addSubPaths(srcN)
 	// Note that p and src might be the same.
-	for i, origSubPath := range src.subPaths[:origN] {
+	for i, origSubPath := range src.subPaths[:srcN] {
 		sx, sy := options.GeoM.Apply(float64(origSubPath.start.x), float64(origSubPath.start.y))
-		p.subPaths[n+i] = subPath{
-			ops:    make([]op, len(origSubPath.ops)),
-			start:  point{x: float32(sx), y: float32(sy)},
-			closed: origSubPath.closed,
-		}
+		p.subPaths[n+i].ops = slices.Grow(origSubPath.ops, len(origSubPath.ops))[:len(origSubPath.ops)]
+		p.subPaths[n+i].start = point{x: float32(sx), y: float32(sy)}
+		p.subPaths[n+i].closed = origSubPath.closed
 
 		for j, o := range origSubPath.ops {
 			switch o.typ {
