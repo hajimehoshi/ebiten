@@ -89,6 +89,10 @@ func (s *subPath) reset() {
 	s.closed = false
 }
 
+func isRegularF32(x float32) bool {
+	return !math.IsNaN(float64(x)) && !math.IsInf(float64(x), 0)
+}
+
 // flatPath is a flattened sub-path of a path.
 // A flatPath consists of points for line segments.
 type flatPath struct {
@@ -229,6 +233,11 @@ func (p *Path) LineTo(x, y float32) {
 		p.addSubPaths(1)
 		p.subPaths[len(p.subPaths)-1].start = p.subPaths[len(p.subPaths)-2].start
 	}
+	if cur, ok := p.currentPosition(); ok {
+		if cur.x == x && cur.y == y {
+			return
+		}
+	}
 	p.subPaths[len(p.subPaths)-1].ops = append(p.subPaths[len(p.subPaths)-1].ops, op{
 		typ: opTypeLineTo,
 		p1:  point{x: x, y: y},
@@ -246,6 +255,11 @@ func (p *Path) QuadTo(x1, y1, x2, y2 float32) {
 	} else if p.subPaths[len(p.subPaths)-1].closed {
 		p.addSubPaths(1)
 		p.subPaths[len(p.subPaths)-1].start = p.subPaths[len(p.subPaths)-2].start
+	}
+	if cur, ok := p.currentPosition(); ok {
+		if cur.x == x2 && cur.y == y2 {
+			return
+		}
 	}
 	p.subPaths[len(p.subPaths)-1].ops = append(p.subPaths[len(p.subPaths)-1].ops, op{
 		typ: opTypeQuadTo,
@@ -278,6 +292,12 @@ func (p *Path) cubicTo(x1, y1, x2, y2, x3, y3 float32, level int) {
 		y: -0.25*p0.y + 0.75*p1.y + 0.75*p2.y - 0.25*p3.y,
 	}
 	if level > 5 || isQuadraticCloseEnoughToCubic(p0, p3, m, p1, p2) {
+		p.QuadTo(m.x, m.y, p3.x, p3.y)
+		return
+	}
+
+	// If any of the points is not a regular float32, do not call this function recursively.
+	if !isRegularF32(cur.x) || !isRegularF32(cur.y) || !isRegularF32(x1) || !isRegularF32(y1) || !isRegularF32(x2) || !isRegularF32(y2) || !isRegularF32(x3) || !isRegularF32(y3) {
 		p.QuadTo(m.x, m.y, p3.x, p3.y)
 		return
 	}
@@ -457,6 +477,10 @@ func (p *Path) ArcTo(x1, y1, x2, y2, radius float32) {
 	// theta is the angle between two vectors d0 and d1.
 	theta := math.Acos(float64(d0.x*d1.x + d0.y*d1.y))
 	// TODO: When theta is bigger than π/2, the arc should be split into two.
+	if theta == 0 {
+		p.LineTo(x2, y2)
+		return
+	}
 
 	// dist is the distance between the control point and the arc's beginning and ending points.
 	dist := radius / float32(math.Tan(theta/2))
@@ -648,7 +672,7 @@ func (p *Path) ApplyGeoM(geoM ebiten.GeoM) *Path {
 
 // AddPathOptions is options for [Path.AddPath].
 type AddPathOptions struct {
-	// GeoM is a transformation matrix to apply to the path.
+	// GeoM is a geometry matrix to apply to the path.
 	//
 	// The default (zero) value is an identity matrix.
 	GeoM ebiten.GeoM
