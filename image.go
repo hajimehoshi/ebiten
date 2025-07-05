@@ -19,6 +19,7 @@ import (
 	"image"
 	"image/color"
 	"math"
+	"sync"
 	"unsafe"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/affine"
@@ -58,7 +59,13 @@ type Image struct {
 	tmpUniforms []uint32
 
 	// subImageCache is a cache for sub-images.
+	// subImageCache is valid only when the image is not a sub-image.
 	subImageCache map[image.Rectangle]*subImageCacheEntry
+
+	// subImageCacheM is a mutex for subImageCache.
+	// subImageCacheM can be touched from multiple images (a sub-image and its original image),
+	// so this map needs to be protected with a mutex.
+	subImageCacheM sync.Mutex
 
 	// Do not add a 'buffering' member that are resolved lazily.
 	// This tends to forget resolving the buffer easily (#2362).
@@ -74,7 +81,13 @@ func (i *Image) updateAccessTimeForSubImage() {
 	if !i.isSubImage() {
 		return
 	}
-	if s, ok := i.original.subImageCache[i.bounds]; ok {
+	i.original.doUdateAccessTimeForSubImage(i.Bounds())
+}
+
+func (i *Image) doUdateAccessTimeForSubImage(bounds image.Rectangle) {
+	i.subImageCacheM.Lock()
+	defer i.subImageCacheM.Unlock()
+	if s, ok := i.subImageCache[bounds]; ok {
 		s.atime = Tick()
 	}
 }
@@ -1062,6 +1075,9 @@ func (i *Image) SubImage(r image.Rectangle) image.Image {
 		r = image.Rectangle{}
 	}
 
+	i.subImageCacheM.Lock()
+	defer i.subImageCacheM.Unlock()
+
 	if s, ok := i.subImageCache[r]; ok {
 		s.atime = Tick()
 		return s.image
@@ -1240,6 +1256,8 @@ func (i *Image) Dispose() {
 	i.image.Deallocate()
 	i.image = nil
 
+	i.subImageCacheM.Lock()
+	defer i.subImageCacheM.Unlock()
 	i.subImageCache = nil
 }
 
