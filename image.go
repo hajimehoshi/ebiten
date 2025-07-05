@@ -19,6 +19,7 @@ import (
 	"image"
 	"image/color"
 	"math"
+	"sync"
 	"sync/atomic"
 	"unsafe"
 
@@ -56,6 +57,11 @@ type Image struct {
 	// subImageCache is a cache for sub-images.
 	// subImageCache is valid only when the image is not a sub-image.
 	subImageCache map[image.Rectangle]*Image
+
+	// subImageCacheM is a mutex for subImageCache.
+	// subImageCache can be accessed from the image and its sub-images at the same time,
+	// so the map must be protected by a mutex.
+	subImageCacheM sync.Mutex
 
 	// atime is the last access time.
 	// atime needs to be an atomic value since a sub-image atime can be accessed from its original image.
@@ -1058,6 +1064,15 @@ func (i *Image) SubImage(r image.Rectangle) image.Image {
 		r = image.Rectangle{}
 	}
 
+	i.subImageCacheM.Lock()
+	defer i.subImageCacheM.Unlock()
+
+	// The image might already be disposed in another goroutine.
+	// Recheck this.
+	if i.isDisposed() {
+		return nil
+	}
+
 	if img, ok := i.subImageCache[r]; ok {
 		img.atime.Store(Tick())
 		return img
@@ -1233,7 +1248,9 @@ func (i *Image) Dispose() {
 	}
 	i.image.Deallocate()
 	i.image = nil
+	i.subImageCacheM.Lock()
 	i.subImageCache = nil
+	i.subImageCacheM.Unlock()
 }
 
 // Deallocate clears the image and deallocates the internal state of the image.

@@ -4816,7 +4816,40 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 }
 
 // Issue #3267
-func TestSubImageRaceCondition(t *testing.T) {
+func TestSubImageRaceConditionWithFill(t *testing.T) {
+	const w, h = 16, 16
+	img := ebiten.NewImage(w, h)
+
+	subImages := make(chan *ebiten.Image)
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	// Create a goroutine to create sub-images.
+	go func() {
+		for i := 0; i < h; i++ {
+			for j := 0; j < w; j++ {
+				subImages <- img.SubImage(image.Rect(i, j, i+1, j+1)).(*ebiten.Image)
+			}
+		}
+		close(subImages)
+		wg.Done()
+	}()
+
+	// Create goroutines to use the sub-images.
+	for img := range subImages {
+		wg.Add(1)
+		go func() {
+			for j := 0; j < 1000; j++ {
+				img.Fill(color.RGBA{0xff, 0xff, 0xff, 0xff})
+			}
+			wg.Done()
+		}()
+	}
+	wg.Wait()
+}
+
+// Issue #3267
+func TestSubImageRaceConditionWithSubImage(t *testing.T) {
 	const w, h = 16, 16
 	img := ebiten.NewImage(w, h)
 	subImages := make(chan *ebiten.Image)
@@ -4839,7 +4872,7 @@ func TestSubImageRaceCondition(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			for j := 0; j < 1000; j++ {
-				img.Fill(color.RGBA{0xff, 0xff, 0xff, 0xff})
+				img.SubImage(img.Bounds())
 			}
 			wg.Done()
 		}()
