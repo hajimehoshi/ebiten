@@ -57,6 +57,26 @@ type point struct {
 	y float32
 }
 
+type vec2 struct {
+	x, y float32
+}
+
+func (v vec2) len() float32 {
+	return float32(math.Hypot(float64(v.x), float64(v.y)))
+}
+
+func (v vec2) norm() vec2 {
+	len := v.len()
+	if len == 0 {
+		return vec2{float32(math.NaN()), float32(math.NaN())}
+	}
+	return vec2{v.x / len, v.y / len}
+}
+
+func (v vec2) cross(u vec2) float32 {
+	return v.x*u.y - u.x*v.y
+}
+
 type subPath struct {
 	ops    []op
 	start  point
@@ -393,15 +413,6 @@ func (p *Path) appendFlatPathPointsForQuad(p0, p1, p2 point, level int) {
 	p.appendFlatPathPointsForQuad(p012, p12, p2, level+1)
 }
 
-func normalize(p point) point {
-	len := float32(math.Hypot(float64(p.x), float64(p.y)))
-	return point{x: p.x / len, y: p.y / len}
-}
-
-func cross(p0, p1 point) float32 {
-	return p0.x*p1.y - p1.x*p0.y
-}
-
 func (p *Path) currentPosition() (point, bool) {
 	if len(p.subPaths) == 0 {
 		return point{}, false
@@ -427,21 +438,21 @@ func (p *Path) ArcTo(x1, y1, x2, y2, radius float32) {
 	if !ok {
 		p0 = point{x: x1, y: y1}
 	}
-	d0 := point{
+	d0 := vec2{
 		x: p0.x - x1,
 		y: p0.y - y1,
 	}
-	d1 := point{
+	d1 := vec2{
 		x: x2 - x1,
 		y: y2 - y1,
 	}
-	if d0 == (point{}) || d1 == (point{}) {
+	if d0 == (vec2{}) || d1 == (vec2{}) {
 		p.LineTo(x1, y1)
 		return
 	}
 
-	d0 = normalize(d0)
-	d1 = normalize(d1)
+	d0 = d0.norm()
+	d1 = d1.norm()
 
 	// theta is the angle between two vectors d0 and d1.
 	theta := math.Acos(float64(d0.x*d1.x + d0.y*d1.y))
@@ -458,7 +469,7 @@ func (p *Path) ArcTo(x1, y1, x2, y2, radius float32) {
 
 	var cx, cy, a0, a1 float32
 	var dir Direction
-	if cross(d0, d1) >= 0 {
+	if d0.cross(d1) >= 0 {
 		cx = ax0 - d0.y*radius
 		cy = ay0 + d0.x*radius
 		a0 = float32(math.Atan2(float64(-d0.x), float64(d0.y)))
