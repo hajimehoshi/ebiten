@@ -717,49 +717,6 @@ func (p *Path) AddPath(src *Path, options *AddPathOptions) {
 	}
 }
 
-// LineCap represents the way in which how the ends of the stroke are rendered.
-type LineCap int
-
-const (
-	LineCapButt LineCap = iota
-	LineCapRound
-	LineCapSquare
-)
-
-// LineJoin represents the way in which how two segments are joined.
-type LineJoin int
-
-const (
-	LineJoinMiter LineJoin = iota
-	LineJoinBevel
-	LineJoinRound
-)
-
-// StrokeOptions is options to render a stroke.
-type StrokeOptions struct {
-	// Width is the stroke width in pixels.
-	//
-	// The default (zero) value is 0.
-	Width float32
-
-	// LineCap is the way in which how the ends of the stroke are rendered.
-	// Line caps are not rendered when the sub-path is marked as closed.
-	//
-	// The default (zero) value is LineCapButt.
-	LineCap LineCap
-
-	// LineJoin is the way in which how two segments are joined.
-	//
-	// The default (zero) value is LineJoiMiter.
-	LineJoin LineJoin
-
-	// MiterLimit is the miter limit for LineJoinMiter.
-	// For details, see https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/stroke-miterlimit.
-	//
-	// The default (zero) value is 0.
-	MiterLimit float32
-}
-
 // AppendVerticesAndIndicesForStroke appends vertices and indices to render a stroke of this path and returns them.
 // AppendVerticesAndIndicesForStroke works in a similar way to the built-in append function.
 // If the arguments are nils, AppendVerticesAndIndicesForStroke returns new slices.
