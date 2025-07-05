@@ -19,7 +19,7 @@ import (
 	"image"
 	"image/color"
 	"math"
-	"sync"
+	"sync/atomic"
 	"unsafe"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/affine"
@@ -32,11 +32,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
-
-type subImageCacheEntry struct {
-	image *Image
-	atime int64
-}
 
 // Image represents a rectangle set of pixels.
 // The pixel format is alpha-premultiplied RGBA.
@@ -60,12 +55,10 @@ type Image struct {
 
 	// subImageCache is a cache for sub-images.
 	// subImageCache is valid only when the image is not a sub-image.
-	subImageCache map[image.Rectangle]*subImageCacheEntry
+	subImageCache map[image.Rectangle]*Image
 
-	// subImageCacheM is a mutex for subImageCache.
-	// [subImageCache] can be touched from multiple images (a sub-image and its original image),
-	// so this map needs to be protected with a mutex.
-	subImageCacheM sync.Mutex
+	// atime is the last access time.
+	atime atomic.Int64
 
 	// Do not add a 'buffering' member that are resolved lazily.
 	// This tends to forget resolving the buffer easily (#2362).
@@ -77,21 +70,8 @@ func (i *Image) copyCheck() {
 	}
 }
 
-func (i *Image) updateAccessTimeForSubImage() {
-	if !i.isSubImage() {
-		return
-	}
-	i.original.doUdateAccessTimeForSubImage(i.Bounds())
-}
-
-func (i *Image) doUdateAccessTimeForSubImage(bounds image.Rectangle) {
-	// [subImageCache] can be touched from multiple images (a sub-image and its original image),
-	// so this map needs to be protected with a mutex.
-	i.subImageCacheM.Lock()
-	defer i.subImageCacheM.Unlock()
-	if s, ok := i.subImageCache[bounds]; ok {
-		s.atime = Tick()
-	}
+func (i *Image) updateAccessTime() {
+	i.atime.Store(Tick())
 }
 
 // Size returns the size of the image.
@@ -125,7 +105,7 @@ func (i *Image) Fill(clr color.Color) {
 	if i.isDisposed() {
 		return
 	}
-	i.updateAccessTimeForSubImage()
+	i.updateAccessTime()
 
 	var crf, cgf, cbf, caf float32
 	cr, cg, cb, ca := clr.RGBA()
@@ -269,8 +249,8 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) {
 		return
 	}
 
-	img.updateAccessTimeForSubImage()
-	i.updateAccessTimeForSubImage()
+	img.updateAccessTime()
+	i.updateAccessTime()
 
 	if options == nil {
 		options = &DrawImageOptions{}
@@ -597,8 +577,8 @@ func (i *Image) DrawTriangles32(vertices []Vertex, indices []uint32, img *Image,
 		return
 	}
 
-	img.updateAccessTimeForSubImage()
-	i.updateAccessTimeForSubImage()
+	img.updateAccessTime()
+	i.updateAccessTime()
 
 	if len(vertices) > graphicscommand.MaxVertexCount {
 		// The last part cannot be specified by indices. Just omit them.
@@ -806,10 +786,10 @@ func (i *Image) DrawTrianglesShader32(vertices []Vertex, indices []uint32, shade
 			if img == nil {
 				continue
 			}
-			img.updateAccessTimeForSubImage()
+			img.updateAccessTime()
 		}
 	}
-	i.updateAccessTimeForSubImage()
+	i.updateAccessTime()
 
 	if len(vertices) > graphicscommand.MaxVertexCount {
 		// The last part cannot be specified by indices. Just omit them.
@@ -974,10 +954,10 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 			if img == nil {
 				continue
 			}
-			img.updateAccessTimeForSubImage()
+			img.updateAccessTime()
 		}
 	}
-	i.updateAccessTimeForSubImage()
+	i.updateAccessTime()
 
 	if options == nil {
 		options = &DrawRectShaderOptions{}
@@ -1077,16 +1057,13 @@ func (i *Image) SubImage(r image.Rectangle) image.Image {
 		r = image.Rectangle{}
 	}
 
-	i.subImageCacheM.Lock()
-	defer i.subImageCacheM.Unlock()
-
-	if s, ok := i.subImageCache[r]; ok {
-		s.atime = Tick()
-		return s.image
+	if img, ok := i.subImageCache[r]; ok {
+		img.atime.Store(Tick())
+		return img
 	}
-	for _, s := range i.subImageCache {
-		if s.atime+60 < Tick() {
-			delete(i.subImageCache, s.image.bounds)
+	for _, img := range i.subImageCache {
+		if img.atime.Load()+60 < Tick() {
+			delete(i.subImageCache, img.bounds)
 		}
 	}
 
@@ -1098,12 +1075,10 @@ func (i *Image) SubImage(r image.Rectangle) image.Image {
 	img.addr = img
 
 	if i.subImageCache == nil {
-		i.subImageCache = map[image.Rectangle]*subImageCacheEntry{}
+		i.subImageCache = map[image.Rectangle]*Image{}
 	}
-	i.subImageCache[r] = &subImageCacheEntry{
-		image: img,
-		atime: Tick(),
-	}
+	i.subImageCache[r] = img
+	img.atime.Store(Tick())
 
 	return img
 }
@@ -1221,7 +1196,7 @@ func (i *Image) Set(x, y int, clr color.Color) {
 		return
 	}
 
-	i.updateAccessTimeForSubImage()
+	i.updateAccessTime()
 
 	if !image.Pt(x, y).In(i.Bounds()) {
 		return
@@ -1257,9 +1232,6 @@ func (i *Image) Dispose() {
 	}
 	i.image.Deallocate()
 	i.image = nil
-
-	i.subImageCacheM.Lock()
-	defer i.subImageCacheM.Unlock()
 	i.subImageCache = nil
 }
 
