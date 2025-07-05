@@ -58,6 +58,7 @@ type Image struct {
 	subImageCache map[image.Rectangle]*Image
 
 	// atime is the last access time.
+	// atime needs to be an atomic value since a sub-image atime can be accessed from its original image.
 	atime atomic.Int64
 
 	// Do not add a 'buffering' member that are resolved lazily.
