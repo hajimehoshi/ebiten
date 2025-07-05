@@ -63,7 +63,7 @@ type Image struct {
 	subImageCache map[image.Rectangle]*subImageCacheEntry
 
 	// subImageCacheM is a mutex for subImageCache.
-	// subImageCacheM can be touched from multiple images (a sub-image and its original image),
+	// [subImageCache] can be touched from multiple images (a sub-image and its original image),
 	// so this map needs to be protected with a mutex.
 	subImageCacheM sync.Mutex
 
@@ -85,6 +85,8 @@ func (i *Image) updateAccessTimeForSubImage() {
 }
 
 func (i *Image) doUdateAccessTimeForSubImage(bounds image.Rectangle) {
+	// [subImageCache] can be touched from multiple images (a sub-image and its original image),
+	// so this map needs to be protected with a mutex.
 	i.subImageCacheM.Lock()
 	defer i.subImageCacheM.Unlock()
 	if s, ok := i.subImageCache[bounds]; ok {
