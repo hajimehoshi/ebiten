@@ -42,16 +42,6 @@ jobs:
           sudo apt-get update
           sudo apt-get install libasound2-dev libgl1-mesa-dev libxcursor-dev libxi-dev libxinerama-dev libxrandr-dev libxxf86vm-dev
 
-      - name: Install Chrome
-        uses: browser-actions/setup-chrome@latest
-
-      - name: Install wasmbrowsertest
-        run: |
-          wasmbrowsertest_version=5e0f0b9a6cc225f690ec1635d24c8ab624b73f9b
-          go install github.com/agnivade/wasmbrowsertest@${wasmbrowsertest_version}
-          mv $(go env GOPATH)/bin/wasmbrowsertest${{ runner.os == 'Windows' && '.exe' || '' }} $(go env GOPATH)/bin/go_js_wasm_exec${{ runner.os == 'Windows' && '.exe' || '' }}
-          go install github.com/agnivade/wasmbrowsertest/cmd/cleanenv@${wasmbrowsertest_version}
-
       - name: Prepare ebitenmobile test
         run: |
           cd /tmp
@@ -167,16 +157,6 @@ jobs:
           env GOARCH=386 go test -shuffle=on -v ./...
           env GOARCH=386 EBITENGINE_DIRECTX=version=12 go test -shuffle=on -v ./...
 
-      - name: go test (Wasm)
-        if: runner.os == 'Linux'
-        run: |
-          # Disable AppArmor for Ubuntu 23.10+.
-          # https://chromium.googlesource.com/chromium/src/+/main/docs/security/apparmor-userns-restrictions.md
-          echo 0 | sudo tee /proc/sys/kernel/apparmor_restrict_unprivileged_userns
-          # Wasm tests don't work on macOS with the headless mode enabled, but the headless mode cannot be disabled in GitHub Actions (#2972).
-          # Wasm tests time out on Windows (#3076).
-          env GOOS=js GOARCH=wasm cleanenv -remove-prefix GITHUB_ -remove-prefix JAVA_ -remove-prefix PSModulePath -remove-prefix STATS_ -remove-prefix RUNNER_ -- go test -shuffle=on -v ./... -test.paniconexit0=false
-
       - name: Install ebitenmobile
         run: |
           go install ./cmd/ebitenmobile
@@ -191,3 +171,46 @@ jobs:
         run: |
           cd /tmp/go-inovation
           ebitenmobile bind -target ios -o Inovation.xcframework -v github.com/hajimehoshi/go-inovation/mobile
+
+  wasm:
+    strategy:
+      matrix:
+        go: ['1.23.x', '1.24.x', '1.25.0-rc.1']
+    name: Test WebAssembly with Go ${{ matrix.go }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Git
+        run: |
+          # See actions/checkout#135
+          git config --global core.autocrlf false
+          git config --global core.eol lf
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go }}
+
+      - name: Install Chrome
+        uses: browser-actions/setup-chrome@latest
+
+      - name: Install wasmbrowsertest
+        run: |
+          wasmbrowsertest_version=5e0f0b9a6cc225f690ec1635d24c8ab624b73f9b
+          go install github.com/agnivade/wasmbrowsertest@${wasmbrowsertest_version}
+          mv $(go env GOPATH)/bin/wasmbrowsertest${{ runner.os == 'Windows' && '.exe' || '' }} $(go env GOPATH)/bin/go_js_wasm_exec${{ runner.os == 'Windows' && '.exe' || '' }}
+          go install github.com/agnivade/wasmbrowsertest/cmd/cleanenv@${wasmbrowsertest_version}
+
+      - name: go test (Wasm)
+        run: |
+          # Disable AppArmor for Ubuntu 23.10+.
+          # https://chromium.googlesource.com/chromium/src/+/main/docs/security/apparmor-userns-restrictions.md
+          echo 0 | sudo tee /proc/sys/kernel/apparmor_restrict_unprivileged_userns
+          # Wasm tests don't work on macOS with the headless mode enabled, but the headless mode cannot be disabled in GitHub Actions (#2972).
+          # Wasm tests time out on Windows (#3076).
+          env GOOS=js GOARCH=wasm cleanenv -remove-prefix GITHUB_ -remove-prefix JAVA_ -remove-prefix PSModulePath -remove-prefix STATS_ -remove-prefix RUNNER_ -- go test -shuffle=on -v ./... -test.paniconexit0=false
