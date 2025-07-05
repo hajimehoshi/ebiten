@@ -23,6 +23,7 @@ import (
 	_ "image/png"
 	"math"
 	"math/rand/v2"
+	"reflect"
 	"runtime"
 	"sync"
 	"testing"
@@ -861,7 +862,11 @@ func TestImageCopy(t *testing.T) {
 	}()
 
 	img0 := ebiten.NewImage(256, 256)
-	img1 := *img0
+	var img1 ebiten.Image
+	// This is the same as `img1 = *img0`, but go-vet complains about it.
+	// Use reflect to avoid the go-vet warning.
+	// See also https://cs.opensource.google/go/go/+/refs/tags/go1.24.4:src/sync/cond_test.go;drc=4a3071696ddfb13e1a8f35f76197b7b3143492f4
+	reflect.ValueOf(&img1).Elem().Set(reflect.ValueOf(img0).Elem())
 	img1.Fill(color.Transparent)
 }
 
