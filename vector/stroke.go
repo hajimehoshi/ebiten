@@ -46,15 +46,15 @@ type StrokeOptions struct {
 	// LineCap is the way in which how the ends of the stroke are rendered.
 	// Line caps are not rendered when the sub-path is marked as closed.
 	//
-	// The default (zero) value is LineCapButt.
+	// The default (zero) value is [LineCapButt].
 	LineCap LineCap
 
 	// LineJoin is the way in which how two segments are joined.
 	//
-	// The default (zero) value is LineJoiMiter.
+	// The default (zero) value is [LineJoinMiter].
 	LineJoin LineJoin
 
-	// MiterLimit is the miter limit for LineJoinMiter.
+	// MiterLimit is the miter limit for [LineJoinMiter].
 	// For details, see https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/stroke-miterlimit.
 	//
 	// The default (zero) value is 0.
