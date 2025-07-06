@@ -353,7 +353,10 @@ func (p *Path) cubicTo(x1, y1, x2, y2, x3, y3 float32, level int) {
 	}
 
 	// Approximate a cubic Bézier curve to a quadratic Bézier curve.
-	// https://stackoverflow.com/questions/2009160/how-do-i-convert-the-2-control-points-of-a-cubic-curve-to-the-single-control-poi/14514491
+	// Assume that P0, P1, P2, and P3 are the control points of the cubic Bézier curve C.
+	// mid is the middle control point of the quadratic Bézier curve Q.
+	// mid equals to 2 * Q(0.5) - (1/2)*(P0 + P3).
+	// If Q(0.5) = C(0.5) = (1/8)*(P0 + 3*P1 + 3*P2 + P3), mid will be (1/4)*(-P0 + 3*P1 + 3*P2 + -P3).
 	p0 := cur
 	p1 := point{x: x1, y: y1}
 	p2 := point{x: x2, y: y2}
@@ -403,7 +406,7 @@ func (p *Path) cubicTo(x1, y1, x2, y2, x3, y3 float32, level int) {
 }
 
 func isQuadraticCloseEnoughToCubic(start, end, qc1, cc1, cc2 point) bool {
-	for _, t := range []float32{0.25, 0.5, 0.75} {
+	for _, t := range []float32{0.25, 0.75} {
 		q := point{
 			x: (1-t)*(1-t)*start.x + 2*(1-t)*t*qc1.x + t*t*end.x,
 			y: (1-t)*(1-t)*start.y + 2*(1-t)*t*qc1.y + t*t*end.y,
