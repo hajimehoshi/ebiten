@@ -310,7 +310,7 @@ func DrawFilledPath(dst *ebiten.Image, path *Path, clr color.Color, antialias bo
 	})
 }
 
-// StrokeCircle strokes the specified path with the specified color and stroke options.
+// StrokePath strokes the specified path with the specified color and stroke options.
 //
 // clr has be to be a solid (non-transparent) color.
 func StrokePath(dst *ebiten.Image, path *Path, clr color.Color, antialias bool, options *StrokeOptions) {
