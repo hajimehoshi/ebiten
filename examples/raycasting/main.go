@@ -264,8 +264,8 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	}
 
 	// Draw player as a rect
-	vector.DrawFilledRect(screen, float32(g.px)-2, float32(g.py)-2, 4, 4, color.Black, true)
-	vector.DrawFilledRect(screen, float32(g.px)-1, float32(g.py)-1, 2, 2, color.RGBA{255, 100, 100, 255}, true)
+	vector.FillRect(screen, float32(g.px)-2, float32(g.py)-2, 4, 4, color.Black, true)
+	vector.FillRect(screen, float32(g.px)-1, float32(g.py)-1, 2, 2, color.RGBA{255, 100, 100, 255}, true)
 
 	if g.showRays {
 		ebitenutil.DebugPrintAt(screen, "R: hide rays", padding, 0)

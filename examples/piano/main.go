@@ -143,7 +143,7 @@ func init() {
 	for i, k := range whiteKeys {
 		x := i*keyWidth + 36
 		height := 112
-		vector.DrawFilledRect(pianoImage, float32(x), float32(y), float32(keyWidth-1), float32(height), color.White, false)
+		vector.FillRect(pianoImage, float32(x), float32(y), float32(keyWidth-1), float32(height), color.White, false)
 		op := &text.DrawOptions{}
 		op.GeoM.Translate(float64(x+keyWidth/2), float64(y+height-12))
 		op.ColorScale.ScaleWithColor(color.Black)
@@ -161,7 +161,7 @@ func init() {
 		}
 		x := i*keyWidth + 24
 		height := 64
-		vector.DrawFilledRect(pianoImage, float32(x), float32(y), float32(keyWidth-1), float32(height), color.Black, false)
+		vector.FillRect(pianoImage, float32(x), float32(y), float32(keyWidth-1), float32(height), color.Black, false)
 		op := &text.DrawOptions{}
 		op.GeoM.Translate(float64(x+keyWidth/2), float64(y+height-12))
 		op.ColorScale.ScaleWithColor(color.White)

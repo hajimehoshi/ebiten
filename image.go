@@ -504,7 +504,7 @@ type DrawTrianglesOptions struct {
 	//
 	// The default (zero) value is FillRuleFillAll.
 	//
-	// Deprecated: as of v2.9. Use [github.com/hajimehoshi/ebiten/v2/vector.DrawFilledPath] instead.
+	// Deprecated: as of v2.9. Use [github.com/hajimehoshi/ebiten/v2/vector.FillPath] instead.
 	FillRule FillRule
 
 	// AntiAlias indicates whether the rendering uses anti-alias or not.
@@ -515,7 +515,7 @@ type DrawTrianglesOptions struct {
 	//
 	// The default (zero) value is false.//
 	//
-	// Deprecated: as of v2.9. Use [github.com/hajimehoshi/ebiten/v2/vector.DrawFilledPath] instead.
+	// Deprecated: as of v2.9. Use [github.com/hajimehoshi/ebiten/v2/vector.FillPath] instead.
 	AntiAlias bool
 
 	// DisableMipmaps disables mipmaps.
@@ -733,7 +733,7 @@ type DrawTrianglesShaderOptions struct {
 	//
 	// The default (zero) value is FillRuleFillAll.
 	//
-	// Deprecated: as of v2.9. Use [github.com/hajimehoshi/ebiten/v2/vector.DrawFilledPath] instead.
+	// Deprecated: as of v2.9. Use [github.com/hajimehoshi/ebiten/v2/vector.FillPath] instead.
 	FillRule FillRule
 
 	// AntiAlias indicates whether the rendering uses anti-alias or not.
@@ -744,7 +744,7 @@ type DrawTrianglesShaderOptions struct {
 	//
 	// The default (zero) value is false.
 	//
-	// Deprecated: as of v2.9. Use [github.com/hajimehoshi/ebiten/v2/vector.DrawFilledPath] instead.
+	// Deprecated: as of v2.9. Use [github.com/hajimehoshi/ebiten/v2/vector.FillPath] instead.
 	AntiAlias bool
 }
 

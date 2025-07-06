@@ -73,15 +73,15 @@ func StrokeLine(dst *ebiten.Image, x0, y0, x1, y1 float32, strokeWidth float32, 
 	dst.DrawImage(whiteSubImage, op)
 }
 
-// DrawFilledRect fills a rectangle with the specified width and color.
-func DrawFilledRect(dst *ebiten.Image, x, y, width, height float32, clr color.Color, antialias bool) {
+// FillRect fills a rectangle with the specified width and color.
+func FillRect(dst *ebiten.Image, x, y, width, height float32, clr color.Color, antialias bool) {
 	if antialias {
 		var path Path
 		path.MoveTo(x, y)
 		path.LineTo(x, y+height)
 		path.LineTo(x+width, y+height)
 		path.LineTo(x+width, y)
-		DrawFilledPath(dst, &path, clr, true, FillRuleNonZero)
+		FillPath(dst, &path, clr, true, FillRuleNonZero)
 		return
 	}
 
@@ -91,6 +91,13 @@ func DrawFilledRect(dst *ebiten.Image, x, y, width, height float32, clr color.Co
 	op.GeoM.Translate(float64(x), float64(y))
 	op.ColorScale.ScaleWithColor(clr)
 	dst.DrawImage(whiteSubImage, op)
+}
+
+// DrawFilledRect fills a rectangle with the specified width and color.
+//
+// Deprecated: as of v2.9. Use [FillRect] instead.
+func DrawFilledRect(dst *ebiten.Image, x, y, width, height float32, clr color.Color, antialias bool) {
+	FillRect(dst, x, y, width, height, clr, antialias)
 }
 
 // StrokeRect strokes a rectangle with the specified width and color.
@@ -114,7 +121,7 @@ func StrokeRect(dst *ebiten.Image, x, y, width, height float32, strokeWidth floa
 	}
 
 	if strokeWidth >= width || strokeWidth >= height {
-		DrawFilledRect(dst, x-strokeWidth/2, y-strokeWidth/2, width+strokeWidth, height+strokeWidth, clr, false)
+		FillRect(dst, x-strokeWidth/2, y-strokeWidth/2, width+strokeWidth, height+strokeWidth, clr, false)
 		return
 	}
 
@@ -153,12 +160,12 @@ func StrokeRect(dst *ebiten.Image, x, y, width, height float32, strokeWidth floa
 	}
 }
 
-// DrawFilledCircle fills a circle with the specified center position (cx, cy), the radius (r), width and color.
-func DrawFilledCircle(dst *ebiten.Image, cx, cy, r float32, clr color.Color, antialias bool) {
+// FillCircle fills a circle with the specified center position (cx, cy), the radius (r), width and color.
+func FillCircle(dst *ebiten.Image, cx, cy, r float32, clr color.Color, antialias bool) {
 	if antialias {
 		var path Path
 		path.Arc(cx, cy, r, 0, 2*math.Pi, Clockwise)
-		DrawFilledPath(dst, &path, clr, true, FillRuleNonZero)
+		FillPath(dst, &path, clr, true, FillRuleNonZero)
 		return
 	}
 
@@ -197,6 +204,13 @@ func DrawFilledCircle(dst *ebiten.Image, cx, cy, r float32, clr color.Color, ant
 	})
 }
 
+// DrawFilledCircle fills a circle with the specified center position (cx, cy), the radius (r), width and color.
+//
+// Deprecated: as of v2.9. Use [FillCircle] instead.
+func DrawFilledCircle(dst *ebiten.Image, cx, cy, r float32, clr color.Color, antialias bool) {
+	FillCircle(dst, cx, cy, r, clr, antialias)
+}
+
 // StrokeCircle strokes a circle with the specified center position (cx, cy), the radius (r), width and color.
 func StrokeCircle(dst *ebiten.Image, cx, cy, r float32, strokeWidth float32, clr color.Color, antialias bool) {
 	if antialias {
@@ -215,7 +229,7 @@ func StrokeCircle(dst *ebiten.Image, cx, cy, r float32, strokeWidth float32, clr
 	}
 
 	if strokeWidth >= r {
-		DrawFilledCircle(dst, cx, cy, r+strokeWidth/2, clr, false)
+		FillCircle(dst, cx, cy, r+strokeWidth/2, clr, false)
 		return
 	}
 
@@ -289,8 +303,8 @@ var (
 	theFillPathM sync.Mutex
 )
 
-// DrawFilledRect fills the specified path with the specified color.
-func DrawFilledPath(dst *ebiten.Image, path *Path, clr color.Color, antialias bool, fillRule FillRule) {
+// FillPath fills the specified path with the specified color.
+func FillPath(dst *ebiten.Image, path *Path, clr color.Color, antialias bool, fillRule FillRule) {
 	theFillPathM.Lock()
 	defer theFillPathM.Unlock()
 
@@ -336,7 +350,7 @@ func StrokePath(dst *ebiten.Image, path *Path, clr color.Color, antialias bool, 
 	op := &AddPathStrokeOptions{}
 	op.StrokeOptions = *options
 	stroke.AddPathStroke(path, op)
-	DrawFilledPath(dst, &stroke, clr, antialias, FillRuleNonZero)
+	FillPath(dst, &stroke, clr, antialias, FillRuleNonZero)
 }
 
 //go:linkname addUsageCallback github.com/hajimehoshi/ebiten/v2.addUsageCallback

@@ -137,7 +137,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		x, y := screenWidth-20, 50
 		w, h := text.Measure(arabicText, f, 0)
 		// The left upper point is not x but x-w, since the text runs in the rigth-to-left direction.
-		vector.DrawFilledRect(screen, float32(x)-float32(w), float32(y), float32(w), float32(h), gray, false)
+		vector.FillRect(screen, float32(x)-float32(w), float32(y), float32(w), float32(h), gray, false)
 		op := &text.DrawOptions{}
 		op.GeoM.Translate(float64(x), float64(y))
 		text.Draw(screen, arabicText, f, op)
@@ -145,8 +145,8 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		if g.showOrigins {
 			op := &text.LayoutOptions{}
 			for _, g := range text.AppendGlyphs(nil, arabicText, f, op) {
-				vector.DrawFilledCircle(screen, float32(x)+float32(g.OriginX+g.OriginOffsetX), float32(y)+float32(g.OriginY+g.OriginOffsetY), 2, color.RGBA{0, 0xff, 0, 0xff}, true)
-				vector.DrawFilledCircle(screen, float32(x)+float32(g.OriginX), float32(y)+float32(g.OriginY), 2, color.RGBA{0xff, 0, 0, 0xff}, true)
+				vector.FillCircle(screen, float32(x)+float32(g.OriginX+g.OriginOffsetX), float32(y)+float32(g.OriginY+g.OriginOffsetY), 2, color.RGBA{0, 0xff, 0, 0xff}, true)
+				vector.FillCircle(screen, float32(x)+float32(g.OriginX), float32(y)+float32(g.OriginY), 2, color.RGBA{0xff, 0, 0, 0xff}, true)
 			}
 		}
 	}
@@ -159,7 +159,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		}
 		x, y := 20, 110
 		w, h := text.Measure(hindiText, f, 0)
-		vector.DrawFilledRect(screen, float32(x), float32(y), float32(w), float32(h), gray, false)
+		vector.FillRect(screen, float32(x), float32(y), float32(w), float32(h), gray, false)
 		op := &text.DrawOptions{}
 		op.GeoM.Translate(float64(x), float64(y))
 		text.Draw(screen, hindiText, f, op)
@@ -167,8 +167,8 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		if g.showOrigins {
 			op := &text.LayoutOptions{}
 			for _, g := range text.AppendGlyphs(nil, hindiText, f, op) {
-				vector.DrawFilledCircle(screen, float32(x)+float32(g.OriginX+g.OriginOffsetX), float32(y)+float32(g.OriginY+g.OriginOffsetY), 2, color.RGBA{0, 0xff, 0, 0xff}, true)
-				vector.DrawFilledCircle(screen, float32(x)+float32(g.OriginX), float32(y)+float32(g.OriginY), 2, color.RGBA{0xff, 0, 0, 0xff}, true)
+				vector.FillCircle(screen, float32(x)+float32(g.OriginX+g.OriginOffsetX), float32(y)+float32(g.OriginY+g.OriginOffsetY), 2, color.RGBA{0, 0xff, 0, 0xff}, true)
+				vector.FillCircle(screen, float32(x)+float32(g.OriginX), float32(y)+float32(g.OriginY), 2, color.RGBA{0xff, 0, 0, 0xff}, true)
 			}
 		}
 	}
@@ -181,7 +181,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		}
 		x, y := 20, 170
 		w, h := text.Measure(myanmarText, f, 0)
-		vector.DrawFilledRect(screen, float32(x), float32(y), float32(w), float32(h), gray, false)
+		vector.FillRect(screen, float32(x), float32(y), float32(w), float32(h), gray, false)
 		op := &text.DrawOptions{}
 		op.GeoM.Translate(float64(x), float64(y))
 		text.Draw(screen, myanmarText, f, op)
@@ -189,8 +189,8 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		if g.showOrigins {
 			op := &text.LayoutOptions{}
 			for _, g := range text.AppendGlyphs(nil, myanmarText, f, op) {
-				vector.DrawFilledCircle(screen, float32(x)+float32(g.OriginX+g.OriginOffsetX), float32(y)+float32(g.OriginY+g.OriginOffsetY), 2, color.RGBA{0, 0xff, 0, 0xff}, true)
-				vector.DrawFilledCircle(screen, float32(x)+float32(g.OriginX), float32(y)+float32(g.OriginY), 2, color.RGBA{0xff, 0, 0, 0xff}, true)
+				vector.FillCircle(screen, float32(x)+float32(g.OriginX+g.OriginOffsetX), float32(y)+float32(g.OriginY+g.OriginOffsetY), 2, color.RGBA{0, 0xff, 0, 0xff}, true)
+				vector.FillCircle(screen, float32(x)+float32(g.OriginX), float32(y)+float32(g.OriginY), 2, color.RGBA{0xff, 0, 0, 0xff}, true)
 			}
 		}
 	}
@@ -203,7 +203,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		}
 		x, y := 20, 230
 		w, h := text.Measure(thaiText, f, 0)
-		vector.DrawFilledRect(screen, float32(x), float32(y), float32(w), float32(h), gray, false)
+		vector.FillRect(screen, float32(x), float32(y), float32(w), float32(h), gray, false)
 		op := &text.DrawOptions{}
 		op.GeoM.Translate(float64(x), float64(y))
 		text.Draw(screen, thaiText, f, op)
@@ -211,8 +211,8 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		if g.showOrigins {
 			op := &text.LayoutOptions{}
 			for _, g := range text.AppendGlyphs(nil, thaiText, f, op) {
-				vector.DrawFilledCircle(screen, float32(x)+float32(g.OriginX+g.OriginOffsetX), float32(y)+float32(g.OriginY+g.OriginOffsetY), 2, color.RGBA{0, 0xff, 0, 0xff}, true)
-				vector.DrawFilledCircle(screen, float32(x)+float32(g.OriginX), float32(y)+float32(g.OriginY), 2, color.RGBA{0xff, 0, 0, 0xff}, true)
+				vector.FillCircle(screen, float32(x)+float32(g.OriginX+g.OriginOffsetX), float32(y)+float32(g.OriginY+g.OriginOffsetY), 2, color.RGBA{0, 0xff, 0, 0xff}, true)
+				vector.FillCircle(screen, float32(x)+float32(g.OriginX), float32(y)+float32(g.OriginY), 2, color.RGBA{0xff, 0, 0, 0xff}, true)
 			}
 		}
 	}
@@ -229,7 +229,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		const lineSpacing = 48
 		x, y := 20, 290
 		w, h := text.Measure(mongolianText, f, lineSpacing)
-		vector.DrawFilledRect(screen, float32(x), float32(y), float32(w), float32(h), gray, false)
+		vector.FillRect(screen, float32(x), float32(y), float32(w), float32(h), gray, false)
 		op := &text.DrawOptions{}
 		op.GeoM.Translate(float64(x), float64(y))
 		op.LineSpacing = lineSpacing
@@ -239,8 +239,8 @@ func (g *Game) Draw(screen *ebiten.Image) {
 			op := &text.LayoutOptions{}
 			op.LineSpacing = lineSpacing
 			for _, g := range text.AppendGlyphs(nil, mongolianText, f, op) {
-				vector.DrawFilledCircle(screen, float32(x)+float32(g.OriginX+g.OriginOffsetX), float32(y)+float32(g.OriginY+g.OriginOffsetY), 2, color.RGBA{0, 0xff, 0, 0xff}, true)
-				vector.DrawFilledCircle(screen, float32(x)+float32(g.OriginX), float32(y)+float32(g.OriginY), 2, color.RGBA{0xff, 0, 0, 0xff}, true)
+				vector.FillCircle(screen, float32(x)+float32(g.OriginX+g.OriginOffsetX), float32(y)+float32(g.OriginY+g.OriginOffsetY), 2, color.RGBA{0, 0xff, 0, 0xff}, true)
+				vector.FillCircle(screen, float32(x)+float32(g.OriginX), float32(y)+float32(g.OriginY), 2, color.RGBA{0xff, 0, 0, 0xff}, true)
 			}
 		}
 	}
@@ -256,7 +256,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		x, y := screenWidth-20, 290
 		w, h := text.Measure(japaneseText, f, lineSpacing)
 		// The left upper point is not x but x-w, since the text runs in the rigth-to-left direction as the secondary direction.
-		vector.DrawFilledRect(screen, float32(x)-float32(w), float32(y), float32(w), float32(h), gray, false)
+		vector.FillRect(screen, float32(x)-float32(w), float32(y), float32(w), float32(h), gray, false)
 		op := &text.DrawOptions{}
 		op.GeoM.Translate(float64(x), float64(y))
 		op.LineSpacing = lineSpacing
@@ -266,8 +266,8 @@ func (g *Game) Draw(screen *ebiten.Image) {
 			op := &text.LayoutOptions{}
 			op.LineSpacing = lineSpacing
 			for _, g := range text.AppendGlyphs(nil, japaneseText, f, op) {
-				vector.DrawFilledCircle(screen, float32(x)+float32(g.OriginX), float32(y)+float32(g.OriginY), 2, color.RGBA{0xff, 0, 0, 0xff}, true)
-				vector.DrawFilledCircle(screen, float32(x)+float32(g.OriginX+g.OriginOffsetX), float32(y)+float32(g.OriginY+g.OriginOffsetY), 2, color.RGBA{0, 0xff, 0, 0xff}, true)
+				vector.FillCircle(screen, float32(x)+float32(g.OriginX), float32(y)+float32(g.OriginY), 2, color.RGBA{0xff, 0, 0, 0xff}, true)
+				vector.FillCircle(screen, float32(x)+float32(g.OriginX+g.OriginOffsetX), float32(y)+float32(g.OriginY+g.OriginOffsetY), 2, color.RGBA{0, 0xff, 0, 0xff}, true)
 			}
 		}
 	}

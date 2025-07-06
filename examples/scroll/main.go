@@ -162,7 +162,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 			continue
 		}
 
-		vector.DrawFilledRect(screenContentArea, float32(itemRegion.Min.X), float32(itemRegion.Min.Y), float32(itemRegion.Dx()), float32(itemRegion.Dy()), color.RGBA{byte(i), byte(i), byte(i), 0xff}, false)
+		vector.FillRect(screenContentArea, float32(itemRegion.Min.X), float32(itemRegion.Min.Y), float32(itemRegion.Dx()), float32(itemRegion.Dy()), color.RGBA{byte(i), byte(i), byte(i), 0xff}, false)
 		text := fmt.Sprintf("Item %d", i)
 		if i == 0 {
 			text += " (drag or touch to scroll)"

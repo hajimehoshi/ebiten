@@ -108,7 +108,7 @@ func init() {
 }
 
 func drawWindow(r *ebiten.Image, x, y, width, height int) {
-	vector.DrawFilledRect(r, float32(x), float32(y), float32(width), float32(height), color.RGBA{0, 0, 0, 0xc0}, false)
+	vector.FillRect(r, float32(x), float32(y), float32(width), float32(height), color.RGBA{0, 0, 0, 0xc0}, false)
 }
 
 var fontColor = color.RGBA{0x40, 0x40, 0xff, 0xff}

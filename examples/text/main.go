@@ -85,7 +85,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	{
 		const x, y = 20, 20
 		w, h := text.Measure(sampleText, mplusNormalFace, mplusNormalFace.Size*1.5)
-		vector.DrawFilledRect(screen, x, y, float32(w), float32(h), gray, false)
+		vector.FillRect(screen, x, y, float32(w), float32(h), gray, false)
 		op := &text.DrawOptions{}
 		op.GeoM.Translate(x, y)
 		op.LineSpacing = mplusNormalFace.Size * 1.5
@@ -94,7 +94,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	{
 		const x, y = 20, 120
 		w, h := text.Measure(sampleText, mplusBigFace, mplusBigFace.Size*1.5)
-		vector.DrawFilledRect(screen, x, y, float32(w), float32(h), gray, false)
+		vector.FillRect(screen, x, y, float32(w), float32(h), gray, false)
 		op := &text.DrawOptions{}
 		op.GeoM.Translate(x, y)
 		op.LineSpacing = mplusBigFace.Size * 1.5
@@ -113,7 +113,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		const x, y = 160, 220
 		const lineSpacingInPixels = 80
 		w, h := text.Measure(sampleText, mplusBigFace, lineSpacingInPixels)
-		vector.DrawFilledRect(screen, x, y, float32(w), float32(h), gray, false)
+		vector.FillRect(screen, x, y, float32(w), float32(h), gray, false)
 		op := &text.DrawOptions{}
 		// Add the width as the text rendering region's upper-right position comes to (0, 0)
 		// when the horizontal alignment is right. The alignment is specified later (PrimaryAlign).
@@ -155,7 +155,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 		if g.showOrigins {
 			for _, gl := range g.glyphs {
-				vector.DrawFilledCircle(screen, x+float32(gl.OriginX), y+float32(gl.OriginY), 2, color.RGBA{0xff, 0, 0, 0xff}, true)
+				vector.FillCircle(screen, x+float32(gl.OriginX), y+float32(gl.OriginY), 2, color.RGBA{0xff, 0, 0, 0xff}, true)
 			}
 		}
 	}

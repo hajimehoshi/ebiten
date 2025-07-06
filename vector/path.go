@@ -705,7 +705,7 @@ func (p *Path) closeFlatPath() {
 // The returned vertices and indices should be rendered with a solid (non-transparent) color with the default Blend (source-over).
 // Otherwise, there is no guarantee about the rendering result.
 //
-// Deprecated: as of v2.9. Use [DrawFilledPath] instead.
+// Deprecated: as of v2.9. Use [FillPath] instead.
 func (p *Path) AppendVerticesAndIndicesForFilling(vertices []ebiten.Vertex, indices []uint16) ([]ebiten.Vertex, []uint16) {
 	return appendVerticesAndIndicesForFilling(p, vertices, indices)
 }
@@ -724,7 +724,7 @@ func (p *Path) AppendVerticesAndIndicesForFilling(vertices []ebiten.Vertex, indi
 // The returned vertices and indices should be rendered with a solid (non-transparent) color with the default Blend (source-over).
 // Otherwise, there is no guarantee about the rendering result.
 //
-// Deprecated: as of v2.9. Use [DrawFilledPath] instead.
+// Deprecated: as of v2.9. Use [FillPath] instead.
 func (p *Path) AppendVerticesAndIndicesForFilling32(vertices []ebiten.Vertex, indices []uint32) ([]ebiten.Vertex, []uint32) {
 	return appendVerticesAndIndicesForFilling(p, vertices, indices)
 }

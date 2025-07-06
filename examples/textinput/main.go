@@ -227,7 +227,7 @@ func (t *TextField) cursorPos() (int, int) {
 }
 
 func (t *TextField) Draw(screen *ebiten.Image) {
-	vector.DrawFilledRect(screen, float32(t.bounds.Min.X), float32(t.bounds.Min.Y), float32(t.bounds.Dx()), float32(t.bounds.Dy()), color.White, false)
+	vector.FillRect(screen, float32(t.bounds.Min.X), float32(t.bounds.Min.Y), float32(t.bounds.Dx()), float32(t.bounds.Dy()), color.White, false)
 	var clr color.Color = color.Black
 	if t.field.IsFocused() {
 		clr = color.RGBA{0, 0, 0xff, 0xff}

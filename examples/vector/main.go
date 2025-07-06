@@ -119,7 +119,7 @@ func (g *Game) drawEbitenText(screen *ebiten.Image, x, y int, aa bool, line bool
 		op.LineJoin = vector.LineJoinRound
 		vector.StrokePath(screen, &path, color.RGBA{0xdb, 0x56, 0x20, 0xff}, aa, op)
 	} else {
-		vector.DrawFilledPath(screen, &path, color.RGBA{0xdb, 0x56, 0x20, 0xff}, aa, vector.FillRuleNonZero)
+		vector.FillPath(screen, &path, color.RGBA{0xdb, 0x56, 0x20, 0xff}, aa, vector.FillRuleNonZero)
 	}
 }
 
@@ -159,7 +159,7 @@ func (g *Game) drawEbitenLogo(screen *ebiten.Image, x, y int, aa bool, line bool
 		op.LineJoin = vector.LineJoinRound
 		vector.StrokePath(screen, &newPath, color.RGBA{0xdb, 0x56, 0x20, 0xff}, aa, op)
 	} else {
-		vector.DrawFilledPath(screen, &newPath, color.RGBA{0xdb, 0x56, 0x20, 0xff}, aa, vector.FillRuleNonZero)
+		vector.FillPath(screen, &newPath, color.RGBA{0xdb, 0x56, 0x20, 0xff}, aa, vector.FillRuleNonZero)
 	}
 }
 
@@ -185,7 +185,7 @@ func (g *Game) drawArc(screen *ebiten.Image, count int, aa bool, line bool) {
 		op.LineJoin = vector.LineJoinRound
 		vector.StrokePath(screen, &path, color.RGBA{0x33, 0xcc, 0x66, 0xff}, aa, op)
 	} else {
-		vector.DrawFilledPath(screen, &path, color.RGBA{0x33, 0xcc, 0x66, 0xff}, aa, vector.FillRuleNonZero)
+		vector.FillPath(screen, &path, color.RGBA{0x33, 0xcc, 0x66, 0xff}, aa, vector.FillRuleNonZero)
 	}
 }
 
@@ -224,7 +224,7 @@ func (g *Game) drawWave(screen *ebiten.Image, counter int, aa bool, line bool) {
 		op.LineJoin = vector.LineJoinRound
 		vector.StrokePath(screen, &path, color.RGBA{0x33, 0x66, 0xff, 0xff}, aa, op)
 	} else {
-		vector.DrawFilledPath(screen, &path, color.RGBA{0x33, 0x66, 0xff, 0xff}, aa, vector.FillRuleNonZero)
+		vector.FillPath(screen, &path, color.RGBA{0x33, 0x66, 0xff, 0xff}, aa, vector.FillRuleNonZero)
 	}
 }
 

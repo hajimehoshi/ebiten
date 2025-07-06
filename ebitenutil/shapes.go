@@ -25,7 +25,7 @@ import (
 //
 // DrawLine is intended to be used mainly for debugging or prototyping purpose.
 //
-// Deprecated: as of v2.5. Use vector.StrokeLine without anti-aliasing instead.
+// Deprecated: as of v2.5. Use [github.com/hajimehoshi/ebiten/v2/vector.StrokeLine] without anti-aliasing instead.
 func DrawLine(dst *ebiten.Image, x1, y1, x2, y2 float64, clr color.Color) {
 	vector.StrokeLine(dst, float32(x1), float32(y1), float32(x2), float32(y2), 1, clr, false)
 }
@@ -34,16 +34,16 @@ func DrawLine(dst *ebiten.Image, x1, y1, x2, y2 float64, clr color.Color) {
 //
 // DrawRect is intended to be used mainly for debugging or prototyping purpose.
 //
-// Deprecated: as of v2.5. Use vector.DrawFilledRect without anti-aliasing instead.
+// Deprecated: as of v2.5. Use [github.com/hajimehoshi/ebiten/v2/vector.FillRect] without anti-aliasing instead.
 func DrawRect(dst *ebiten.Image, x, y, width, height float64, clr color.Color) {
-	vector.DrawFilledRect(dst, float32(x), float32(y), float32(width), float32(height), clr, false)
+	vector.FillRect(dst, float32(x), float32(y), float32(width), float32(height), clr, false)
 }
 
 // DrawCircle draws a circle on given destination dst.
 //
 // DrawCircle is intended to be used mainly for debugging or prototyping purpose.
 //
-// Deprecated: as of v2.5. Use vector.DrawFilledCircle without anti-aliasing instead.
+// Deprecated: as of v2.5. Use [github.com/hajimehoshi/ebiten/v2/vector.FillCircle] without anti-aliasing instead.
 func DrawCircle(dst *ebiten.Image, cx, cy, r float64, clr color.Color) {
-	vector.DrawFilledCircle(dst, float32(cx), float32(cy), float32(r), clr, false)
+	vector.FillCircle(dst, float32(cx), float32(cy), float32(r), clr, false)
 }
