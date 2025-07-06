@@ -34,7 +34,7 @@ var (
 	theCacheForUtilM         sync.Mutex
 )
 
-func useCachedVerticesAndIndices(fn func([]ebiten.Vertex, []uint32) (vs []ebiten.Vertex, is []uint32)) {
+func useCachedVerticesAndIndicesForUtil(fn func([]ebiten.Vertex, []uint32) (vs []ebiten.Vertex, is []uint32)) {
 	theCacheForUtilM.Lock()
 	defer theCacheForUtilM.Unlock()
 	theCachedVerticesForUtil, theCachedIndicesForUtil = fn(theCachedVerticesForUtil[:0], theCachedIndicesForUtil[:0])
@@ -189,7 +189,7 @@ func DrawFilledCircle(dst *ebiten.Image, cx, cy, r float32, clr color.Color, ant
 	cgf := float32(cg) / 0xffff
 	cbf := float32(cb) / 0xffff
 	caf := float32(ca) / 0xffff
-	useCachedVerticesAndIndices(func(vs []ebiten.Vertex, is []uint32) ([]ebiten.Vertex, []uint32) {
+	useCachedVerticesAndIndicesForUtil(func(vs []ebiten.Vertex, is []uint32) ([]ebiten.Vertex, []uint32) {
 		count := int(math.Ceil(math.Pi * float64(r)))
 		for i := range count {
 			angle := float64(i) * (2 * math.Pi / float64(count))
@@ -248,7 +248,7 @@ func StrokeCircle(dst *ebiten.Image, cx, cy, r float32, strokeWidth float32, clr
 	cgf := float32(cg) / 0xffff
 	cbf := float32(cb) / 0xffff
 	caf := float32(ca) / 0xffff
-	useCachedVerticesAndIndices(func(vs []ebiten.Vertex, is []uint32) ([]ebiten.Vertex, []uint32) {
+	useCachedVerticesAndIndicesForUtil(func(vs []ebiten.Vertex, is []uint32) ([]ebiten.Vertex, []uint32) {
 		count := int(math.Ceil(math.Pi * float64(r+strokeWidth/2)))
 		for i := range count {
 			angle := float64(i) * (2 * math.Pi / float64(count))
@@ -303,7 +303,7 @@ const (
 
 // DrawFilledRect fills the specified path with the specified color.
 func DrawFilledPath(dst *ebiten.Image, path *Path, clr color.Color, antialias bool, fillRule FillRule) {
-	useCachedVerticesAndIndices(func(vs []ebiten.Vertex, is []uint32) ([]ebiten.Vertex, []uint32) {
+	useCachedVerticesAndIndicesForUtil(func(vs []ebiten.Vertex, is []uint32) ([]ebiten.Vertex, []uint32) {
 		vs, is = path.AppendVerticesAndIndicesForFilling32(vs, is)
 		drawVerticesForUtil(dst, vs, is, clr, antialias, ebiten.FillRule(fillRule))
 		return vs, is
@@ -314,7 +314,7 @@ func DrawFilledPath(dst *ebiten.Image, path *Path, clr color.Color, antialias bo
 //
 // clr has be to be a solid (non-transparent) color.
 func StrokePath(dst *ebiten.Image, path *Path, clr color.Color, antialias bool, options *StrokeOptions) {
-	useCachedVerticesAndIndices(func(vs []ebiten.Vertex, is []uint32) ([]ebiten.Vertex, []uint32) {
+	useCachedVerticesAndIndicesForUtil(func(vs []ebiten.Vertex, is []uint32) ([]ebiten.Vertex, []uint32) {
 		vs, is = path.AppendVerticesAndIndicesForStroke32(vs, is, options)
 		drawVerticesForUtil(dst, vs, is, clr, antialias, ebiten.FillRuleFillAll)
 		return vs, is
