@@ -131,7 +131,7 @@ type input_id struct {
 
 func ioctl(fd int, request uint, ptr unsafe.Pointer) error {
 	r, _, e := unix.Syscall(unix.SYS_IOCTL, uintptr(fd), uintptr(request), uintptr(ptr))
-	if r < 0 {
+	if int32(r) != 0 {
 		return unix.Errno(e)
 	}
 	return nil
