@@ -591,6 +591,13 @@ func (p *Path) ArcTo(x1, y1, x2, y2, radius float32) {
 	// A cross product can be calculated by d0.x*d1.y - d0.y*d1.x,
 	// but this can cause a floating-point precision issue due to FMSUBS.
 	// Avoid this subtraction.
+	//
+	// a*b - c*d can be translated into
+	//     (1) x := c*d
+	//     (2) y := a*b-x
+	// One rounding happens at (1). The number of rounding is not determined at (2).
+	// If FMSUBS is used for (2), only one rounding happens at (2) for the multiplying and the subtraction.
+	// Thus, even if a*b == c*d, y can be non-zero.
 	if d0.x*d1.y >= d0.y*d1.x {
 		cx = ax0 - d0.y*radius
 		cy = ay0 + d0.x*radius
