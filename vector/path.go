@@ -85,11 +85,6 @@ func (v vec2) norm() vec2 {
 	return vec2{v.x / len, v.y / len}
 }
 
-func (v vec2) cross(u vec2) float32 {
-	// Even if u == v, v.x*u.y - u.x*v.y might not be 0 due to floating-point precision, especially on Arm.
-	return v.x*u.y - u.x*v.y
-}
-
 func (v vec2) mul(s float32) vec2 {
 	return vec2{x: s * v.x, y: s * v.y}
 }
@@ -592,7 +587,11 @@ func (p *Path) ArcTo(x1, y1, x2, y2, radius float32) {
 
 	var cx, cy, a0, a1 float32
 	var dir Direction
-	if d0.cross(d1) >= 0 {
+
+	// A cross product can be calculated by d0.x*d1.y - d0.y*d1.x,
+	// but this can cause a floating-point precision issue due to FMSUBS.
+	// Avoid this subtraction.
+	if d0.x*d1.y >= d0.y*d1.x {
 		cx = ax0 - d0.y*radius
 		cy = ay0 + d0.x*radius
 		a0 = float32(math.Atan2(float64(-d0.x), float64(d0.y)))
