@@ -34,9 +34,9 @@ type Game struct {
 
 func (g *Game) Update() error {
 	if !g.init {
-		g.end0 = make(chan struct{})
-		g.end1 = make(chan struct{})
-		g.errCh = make(chan error)
+		end0 := make(chan struct{})
+		end1 := make(chan struct{})
+		errCh := make(chan error)
 		src := ebiten.NewImage(1, 2)
 		src.WritePixels([]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff})
 		img := ebiten.NewImage(1, 2)
@@ -51,16 +51,19 @@ func (g *Game) Update() error {
 					got := img.At(0, 0).(color.RGBA)
 					want := color.RGBA{0xff, 0xff, 0xff, 0xff}
 					if got != want {
-						g.errCh <- fmt.Errorf("got: %v, want: %v", got, want)
-						close(g.errCh)
+						errCh <- fmt.Errorf("got: %v, want: %v", got, want)
+						close(errCh)
 						return
 					}
-				case <-g.end0:
-					close(g.end1)
+				case <-end0:
+					close(end1)
 					break loop
 				}
 			}
 		}()
+		g.end0 = end0
+		g.end1 = end1
+		g.errCh = errCh
 		g.init = true
 	}
 
@@ -72,9 +75,15 @@ func (g *Game) Update() error {
 
 	g.count++
 	if g.count >= 60 {
-		close(g.end0)
-		<-g.end1
-		return ebiten.Termination
+		if g.end0 != nil {
+			close(g.end0)
+			g.end0 = nil
+		}
+		select {
+		case <-g.end1:
+			return ebiten.Termination
+		default:
+		}
 	}
 	return nil
 }
