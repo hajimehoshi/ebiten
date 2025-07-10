@@ -234,10 +234,38 @@ func pathBounds(path *Path) image.Rectangle {
 				maxY = max(maxY, cur.y, op.p1.y)
 				cur = op.p1
 			case opTypeQuadTo:
-				minX = min(minX, cur.x, op.p1.x, op.p2.x)
-				minY = min(minY, cur.y, op.p1.y, op.p2.y)
-				maxX = max(maxX, cur.x, op.p1.x, op.p2.x)
-				maxY = max(maxY, cur.y, op.p1.y, op.p2.y)
+				// The candidates are the two control points on the edges (cur and op.p2), and an extremum point.
+				// B(t) = (1-t)*(1-t)*p0 + 2*(1-t)*t*p1 + t*t*p2
+				// B'(t) = 2*(1-t)*(p1-p0) + 2*t*(p2-p1)
+				// B'(t) = 0 <=> t = (p0-p1) / (p0-2*p1+p2)
+				// Avoid an extreme denominator for precision.
+				if denom := cur.x - 2*op.p1.x + op.p2.x; abs(denom) >= 1.0/16.0 {
+					if t := (cur.x - op.p1.x) / denom; t > 0 && t < 1 {
+						ex := (1-t)*(1-t)*cur.x + 2*t*(1-t)*op.p1.x + t*t*op.p2.x
+						minX = min(minX, cur.x, ex, op.p2.x)
+						maxX = max(maxX, cur.x, ex, op.p2.x)
+					} else {
+						minX = min(minX, cur.x, op.p2.x)
+						maxX = max(maxX, cur.x, op.p2.x)
+					}
+				} else {
+					// The curve is almost linear. Include all the points for safety.
+					minX = min(minX, cur.x, op.p1.x, op.p2.x)
+					maxX = max(maxX, cur.x, op.p1.x, op.p2.x)
+				}
+				if denom := cur.y - 2*op.p1.y + op.p2.y; abs(denom) >= 1.0/16.0 {
+					if t := (cur.y - op.p1.y) / denom; t > 0 && t < 1 {
+						ex := (1-t)*(1-t)*cur.y + 2*t*(1-t)*op.p1.y + t*t*op.p2.y
+						minY = min(minY, cur.y, ex, op.p2.y)
+						maxY = max(maxY, cur.y, ex, op.p2.y)
+					} else {
+						minY = min(minY, cur.y, op.p2.y)
+						maxY = max(maxY, cur.y, op.p2.y)
+					}
+				} else {
+					minY = min(minY, cur.y, op.p1.y, op.p2.y)
+					maxY = max(maxY, cur.y, op.p1.y, op.p2.y)
+				}
 				cur = op.p2
 			}
 		}
