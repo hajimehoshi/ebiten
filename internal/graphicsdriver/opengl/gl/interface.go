@@ -66,6 +66,7 @@ type Context interface {
 	FramebufferRenderbuffer(target uint32, attachment uint32, renderbuffertarget uint32, renderbuffer uint32)
 	FramebufferTexture2D(target uint32, attachment uint32, textarget uint32, texture uint32, level int32)
 	GetError() uint32
+	GetExtension(name string) any
 	GetInteger(pname uint32) int
 	GetProgramInfoLog(program uint32) string
 	GetProgrami(program uint32, pname uint32) int

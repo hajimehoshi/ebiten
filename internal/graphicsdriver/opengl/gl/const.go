@@ -23,6 +23,7 @@ const (
 	BLEND                 = 0x0BE2
 	CLAMP_TO_EDGE         = 0x812F
 	COLOR_ATTACHMENT0     = 0x8CE0
+	COMPLETION_STATUS_KHR = 0x91B1
 	COMPILE_STATUS        = 0x8B81
 	DECR_WRAP             = 0x8508
 	DEPTH24_STENCIL8      = 0x88F0

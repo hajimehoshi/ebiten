@@ -18,6 +18,7 @@ package opengl
 
 import (
 	"fmt"
+	"runtime"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl/gl"
@@ -72,6 +73,16 @@ func (s *Shader) compile() error {
 	p, err := s.graphics.context.newProgram([]shader{vs, fs}, theArrayBufferLayout.names())
 	if err != nil {
 		return err
+	}
+
+	// Check the shader compile status asynchronously if possible.
+	// The function 'compile' itself is still blocking, but at least this gives a chance to other goroutines to run
+	// while waiting for the shader compilation.
+	if s.graphics.context.hasParallelShaderCompile() {
+		for s.graphics.context.ctx.GetShaderi(uint32(vs), gl.COMPLETION_STATUS_KHR) != gl.TRUE ||
+			s.graphics.context.ctx.GetShaderi(uint32(fs), gl.COMPLETION_STATUS_KHR) != gl.TRUE {
+			runtime.Gosched()
+		}
 	}
 
 	// Check errors only after linking fails.

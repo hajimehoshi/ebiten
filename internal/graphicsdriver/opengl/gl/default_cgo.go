@@ -584,6 +584,10 @@ func (c *defaultContext) GetError() uint32 {
 	return uint32(ret)
 }
 
+func (c *defaultContext) GetExtension(name string) any {
+	return nil
+}
+
 func (c *defaultContext) GetInteger(pname uint32) int {
 	var dst int32
 	C.glowGetIntegerv(c.gpGetIntegerv, C.GLenum(pname), (*C.GLint)(unsafe.Pointer(&dst)))

@@ -347,6 +347,15 @@ func (d *DebugContext) GetError() uint32 {
 	return out0
 }
 
+func (d *DebugContext) GetExtension(arg0 string) any {
+	result := d.Context.GetExtension(arg0)
+	fmt.Fprintln(os.Stderr, "GetExtension")
+	if e := d.Context.GetError(); e != NO_ERROR {
+		panic(fmt.Sprintf("gl: GetError() returned %d at GetExtension", e))
+	}
+	return result
+}
+
 func (d *DebugContext) GetInteger(arg0 uint32) int {
 	out0 := d.Context.GetInteger(arg0)
 	fmt.Fprintln(os.Stderr, "GetInteger")
