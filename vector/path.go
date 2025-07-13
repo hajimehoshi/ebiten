@@ -716,33 +716,8 @@ func (p *Path) closeFlatPath() {
 //
 // Deprecated: as of v2.9. Use [FillPath] instead.
 func (p *Path) AppendVerticesAndIndicesForFilling(vertices []ebiten.Vertex, indices []uint16) ([]ebiten.Vertex, []uint16) {
-	return appendVerticesAndIndicesForFilling(p, vertices, indices)
-}
-
-// AppendVerticesAndIndicesForFilling32 appends vertices and indices to fill this path and returns them.
-// AppendVerticesAndIndicesForFilling32 is the version of AppendVerticesAndIndicesForFilling with uint32 indices.
-//
-// AppendVerticesAndIndicesForFilling32 works in a similar way to the built-in append function.
-// If the arguments are nils, AppendVerticesAndIndicesForFilling32 returns new slices.
-//
-// The returned vertice's SrcX and SrcY are 0, and ColorR, ColorG, ColorB, and ColorA are 1.
-//
-// The returned values are intended to be passed to DrawTriangles or DrawTrianglesShader with FileRuleNonZero or FillRuleEvenOdd
-// in order to render a complex polygon like a concave polygon, a polygon with holes, or a self-intersecting polygon.
-//
-// The returned vertices and indices should be rendered with a solid (non-transparent) color with the default Blend (source-over).
-// Otherwise, there is no guarantee about the rendering result.
-//
-// Deprecated: as of v2.9. Use [FillPath] instead.
-func (p *Path) AppendVerticesAndIndicesForFilling32(vertices []ebiten.Vertex, indices []uint32) ([]ebiten.Vertex, []uint32) {
-	return appendVerticesAndIndicesForFilling(p, vertices, indices)
-}
-
-func appendVerticesAndIndicesForFilling[T ~uint16 | ~uint32](path *Path, vertices []ebiten.Vertex, indices []T) ([]ebiten.Vertex, []T) {
-	// TODO: Add tests.
-
-	base := T(len(vertices))
-	for _, flatPath := range path.ensureFlatPaths() {
+	base := uint16(len(vertices))
+	for _, flatPath := range p.ensureFlatPaths() {
 		if flatPath.pointCount() < 3 {
 			continue
 		}
@@ -760,9 +735,9 @@ func appendVerticesAndIndicesForFilling[T ~uint16 | ~uint32](path *Path, vertice
 			if i < 2 {
 				continue
 			}
-			indices = append(indices, base, base+T(i-1), base+T(i))
+			indices = append(indices, base, base+uint16(i-1), base+uint16(i))
 		}
-		base += T(flatPath.pointCount())
+		base += uint16(flatPath.pointCount())
 	}
 	return vertices, indices
 }
@@ -886,33 +861,13 @@ func (p *Path) normalize() {
 //
 // Deprecated: as of v2.9. Use [StrokePath] or [Path.AddPathStroke] instead.
 func (p *Path) AppendVerticesAndIndicesForStroke(vertices []ebiten.Vertex, indices []uint16, op *StrokeOptions) ([]ebiten.Vertex, []uint16) {
-	return appendVerticesAndIndicesForStroke(p, vertices, indices, op)
-}
-
-// AppendVerticesAndIndicesForStroke32 appends vertices and indices to render a stroke of this path and returns them.
-// AppendVerticesAndIndicesForStroke32 is the version of AppendVerticesAndIndicesForStroke with uint32 indices.
-//
-// AppendVerticesAndIndicesForStroke32 works in a similar way to the built-in append function.
-// If the arguments are nils, AppendVerticesAndIndicesForStroke32 returns new slices.
-//
-// The returned vertice's SrcX and SrcY are 0, and ColorR, ColorG, ColorB, and ColorA are 1.
-//
-// The returned values are intended to be passed to DrawTriangles or DrawTrianglesShader with a solid (non-transparent) color
-// with FillRuleFillAll or FillRuleNonZero, not FileRuleEvenOdd.
-//
-// Deprecated: as of v2.9. Use [StrokePath] or [Path.AddPathStroke] instead.
-func (p *Path) AppendVerticesAndIndicesForStroke32(vertices []ebiten.Vertex, indices []uint32, op *StrokeOptions) ([]ebiten.Vertex, []uint32) {
-	return appendVerticesAndIndicesForStroke(p, vertices, indices, op)
-}
-
-func appendVerticesAndIndicesForStroke[T ~uint16 | ~uint32](path *Path, vertices []ebiten.Vertex, indices []T, op *StrokeOptions) ([]ebiten.Vertex, []T) {
 	if op == nil {
 		return vertices, indices
 	}
 
 	var rects [][4]point
 	var tmpPath Path
-	for _, flatPath := range path.ensureFlatPaths() {
+	for _, flatPath := range p.ensureFlatPaths() {
 		if flatPath.pointCount() < 2 {
 			continue
 		}
@@ -949,7 +904,7 @@ func appendVerticesAndIndicesForStroke[T ~uint16 | ~uint32](path *Path, vertices
 		}
 
 		for i, rect := range rects {
-			idx := T(len(vertices))
+			idx := uint16(len(vertices))
 			for _, pt := range rect {
 				vertices = append(vertices, ebiten.Vertex{
 					DstX:   pt.x,
@@ -1015,7 +970,7 @@ func appendVerticesAndIndicesForStroke[T ~uint16 | ~uint32](path *Path, vertices
 					}
 					tmpPath.LineTo(nextRect[2].x, nextRect[2].y)
 				}
-				vertices, indices = appendVerticesAndIndicesForFilling(&tmpPath, vertices, indices)
+				vertices, indices = tmpPath.AppendVerticesAndIndicesForFilling(vertices, indices)
 
 			case LineJoinBevel:
 				// Triangle
@@ -1028,7 +983,7 @@ func appendVerticesAndIndicesForStroke[T ~uint16 | ~uint32](path *Path, vertices
 					tmpPath.LineTo(rect[3].x, rect[3].y)
 					tmpPath.LineTo(nextRect[2].x, nextRect[2].y)
 				}
-				vertices, indices = appendVerticesAndIndicesForFilling(&tmpPath, vertices, indices)
+				vertices, indices = tmpPath.AppendVerticesAndIndicesForFilling(vertices, indices)
 
 			case LineJoinRound:
 				// Arc
@@ -1039,7 +994,7 @@ func appendVerticesAndIndicesForStroke[T ~uint16 | ~uint32](path *Path, vertices
 				} else {
 					tmpPath.Arc(c.x, c.y, op.Width/2, a0+math.Pi, a1+math.Pi, CounterClockwise)
 				}
-				vertices, indices = appendVerticesAndIndicesForFilling(&tmpPath, vertices, indices)
+				vertices, indices = tmpPath.AppendVerticesAndIndicesForFilling(vertices, indices)
 			}
 		}
 
@@ -1068,7 +1023,7 @@ func appendVerticesAndIndicesForStroke[T ~uint16 | ~uint32](path *Path, vertices
 				tmpPath.Reset()
 				tmpPath.MoveTo(startR[0].x, startR[0].y)
 				tmpPath.Arc(c.x, c.y, op.Width/2, a, a+math.Pi, CounterClockwise)
-				vertices, indices = appendVerticesAndIndicesForFilling(&tmpPath, vertices, indices)
+				vertices, indices = tmpPath.AppendVerticesAndIndicesForFilling(vertices, indices)
 			}
 			{
 				c := point{
@@ -1080,7 +1035,7 @@ func appendVerticesAndIndicesForStroke[T ~uint16 | ~uint32](path *Path, vertices
 				tmpPath.Reset()
 				tmpPath.MoveTo(endR[1].x, endR[1].y)
 				tmpPath.Arc(c.x, c.y, op.Width/2, a, a+math.Pi, Clockwise)
-				vertices, indices = appendVerticesAndIndicesForFilling(&tmpPath, vertices, indices)
+				vertices, indices = tmpPath.AppendVerticesAndIndicesForFilling(vertices, indices)
 			}
 
 		case LineCapSquare:
@@ -1096,7 +1051,7 @@ func appendVerticesAndIndicesForStroke[T ~uint16 | ~uint32](path *Path, vertices
 				tmpPath.LineTo(startR[0].x+dx, startR[0].y+dy)
 				tmpPath.LineTo(startR[2].x+dx, startR[2].y+dy)
 				tmpPath.LineTo(startR[2].x, startR[2].y)
-				vertices, indices = appendVerticesAndIndicesForFilling(&tmpPath, vertices, indices)
+				vertices, indices = tmpPath.AppendVerticesAndIndicesForFilling(vertices, indices)
 			}
 			{
 				a := math.Atan2(float64(endR[1].y-endR[0].y), float64(endR[1].x-endR[0].x))
@@ -1109,7 +1064,7 @@ func appendVerticesAndIndicesForStroke[T ~uint16 | ~uint32](path *Path, vertices
 				tmpPath.LineTo(endR[1].x+dx, endR[1].y+dy)
 				tmpPath.LineTo(endR[3].x+dx, endR[3].y+dy)
 				tmpPath.LineTo(endR[3].x, endR[3].y)
-				vertices, indices = appendVerticesAndIndicesForFilling(&tmpPath, vertices, indices)
+				vertices, indices = tmpPath.AppendVerticesAndIndicesForFilling(vertices, indices)
 			}
 		}
 	}
