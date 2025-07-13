@@ -45,6 +45,8 @@ func segmentsToBounds(segs []opentype.Segment) fixed.Rectangle26_6 {
 		case opentype.SegmentOpCubeTo:
 			n = 3
 		}
+		// TODO: There is a better way to calculate the bounds. See #3269.
+		// The issue is this is quite complicated especially for cubic Bezier curves.
 		for i := 0; i < n; i++ {
 			x := seg.Args[i].X
 			y := seg.Args[i].Y
