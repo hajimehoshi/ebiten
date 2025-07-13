@@ -20,7 +20,6 @@ import (
 )
 
 type defaultContext struct {
-	gl                         js.Value
 	fnActiveTexture            js.Value
 	fnAttachShader             js.Value
 	fnBindAttribLocation       js.Value
@@ -150,7 +149,6 @@ func NewDefaultContext(v js.Value) (Context, error) {
 	// Passing a Go string to the JS world is expensive. This causes conversion to UTF-16 (#1438).
 	// In order to reduce the cost when calling functions, create the function objects by bind and use them.
 	g := &defaultContext{
-		gl:                         v,
 		fnActiveTexture:            v.Get("activeTexture").Call("bind", v),
 		fnAttachShader:             v.Get("attachShader").Call("bind", v),
 		fnBindAttribLocation:       v.Get("bindAttribLocation").Call("bind", v),
