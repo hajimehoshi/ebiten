@@ -39,8 +39,6 @@ package main
 
 func Fragment(dstPos vec4, srcPos vec2, color vec4, custom vec4) vec4 {
 	v := 1.0 / 255.0
-	// The red part indicates positive winding number, while the green part indicates negative winding number.
-	// This matters especially for the non-zero fill rule.
 	if frontfacing() {
 		v *= 16
 	}
