@@ -73,7 +73,7 @@ package main
 
 func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 	c := imageSrc0UnsafeAt(srcPos)
-	r := int(floor(c.r*255))
+	r := int(c.r*255)
 	w := abs((r >> 4) - (r & 0x0F))
 	v := min(float(w), 1)
 	return v * color
@@ -92,8 +92,8 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4, custom vec4) vec4 {
 	// imageSrc1UnsafeAt uses the offset info, which would prevent batching.
 	// Use a custom offset instead.
 	c1 := imageSrc0UnsafeAt(srcPos + custom.xy)
-	ci0 := ivec4(floor(c0*255))
-	ci1 := ivec4(floor(c1*255))
+	ci0 := ivec4(c0*255)
+	ci1 := ivec4(c1*255)
 	w0 := abs((ci0 >> 4) - (ci0 & 0x0F))
 	w1 := abs((ci1 >> 4) - (ci1 & 0x0F))
 	v0 := min(vec4(w0), 1)
@@ -109,7 +109,7 @@ package main
 
 func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 	c := imageSrc0UnsafeAt(srcPos)
-	r := int(floor(c.r*255))
+	r := int(c.r*255)
 	v := abs((r >> 4) - (r & 0x0F))
 	return float(v % 2) * color
 }
@@ -125,8 +125,8 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4, custom vec4) vec4 {
 	// imageSrc1UnsafeAt uses the offset info, which would prevent batching.
 	// Use a custom offset instead.
 	c1 := imageSrc0UnsafeAt(srcPos + custom.xy)
-	ci0 := ivec4(floor(c0*255))
-	ci1 := ivec4(floor(c1*255))
+	ci0 := ivec4(c0*255)
+	ci1 := ivec4(c1*255)
 	w0 := abs((ci0 >> 4) - (ci0 & 0x0F))
 	w1 := abs((ci1 >> 4) - (ci1 & 0x0F))
 	v0 := vec4(w0 % 2)
