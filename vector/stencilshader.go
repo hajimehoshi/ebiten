@@ -83,8 +83,6 @@ const stencilBufferNonZeroAAShaderSrc = `//kage:unit pixels
 
 package main
 
-var OffsetX float
-
 func Fragment(dstPos vec4, srcPos vec2, color vec4, custom vec4) vec4 {
 	c0 := imageSrc0UnsafeAt(srcPos)
 	// imageSrc1UnsafeAt uses the offset info, which would prevent batching.
