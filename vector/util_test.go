@@ -35,3 +35,12 @@ func TestLine0(t *testing.T) {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
 }
+
+// Issue #3270
+func TestStrokeRectAntiAlias(t *testing.T) {
+	dst := ebiten.NewImage(16, 16)
+	vector.StrokeRect(dst, 0, 0, 16, 16, 2, color.White, true)
+	if got, want := dst.At(5, 5), (color.RGBA{}); got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+}
