@@ -18,6 +18,7 @@
 package vector
 
 import (
+	"image"
 	"math"
 	"slices"
 
@@ -1070,4 +1071,85 @@ func (p *Path) AppendVerticesAndIndicesForStroke(vertices []ebiten.Vertex, indic
 	}
 
 	return vertices, indices
+}
+
+func floor(x float32) int {
+	return int(math.Floor(float64(x)))
+}
+
+func ceil(x float32) int {
+	return int(math.Ceil(float64(x)))
+}
+
+// Bounds returns the minimum bounding rectangle of the path.
+func (p *Path) Bounds() image.Rectangle {
+	// Note that (image.Rectangle).Union doesn't work well with empty rectangles.
+	totalMinX := float32(math.Inf(1))
+	totalMinY := float32(math.Inf(1))
+	totalMaxX := float32(math.Inf(-1))
+	totalMaxY := float32(math.Inf(-1))
+
+	for _, subPath := range p.subPaths {
+		if !subPath.isValid() {
+			continue
+		}
+
+		minX := float32(math.Inf(1))
+		minY := float32(math.Inf(1))
+		maxX := float32(math.Inf(-1))
+		maxY := float32(math.Inf(-1))
+		cur := subPath.start
+		for _, op := range subPath.ops {
+			switch op.typ {
+			case opTypeLineTo:
+				minX = min(minX, cur.x, op.p1.x)
+				minY = min(minY, cur.y, op.p1.y)
+				maxX = max(maxX, cur.x, op.p1.x)
+				maxY = max(maxY, cur.y, op.p1.y)
+				cur = op.p1
+			case opTypeQuadTo:
+				// The candidates are the two control points on the edges (cur and op.p2), and an extremum point.
+				// B(t) = (1-t)*(1-t)*p0 + 2*(1-t)*t*p1 + t*t*p2
+				// B'(t) = 2*(1-t)*(p1-p0) + 2*t*(p2-p1)
+				// B'(t) = 0 <=> t = (p0-p1) / (p0-2*p1+p2)
+				// Avoid an extreme denominator for precision.
+				if denom := cur.x - 2*op.p1.x + op.p2.x; abs(denom) >= 1.0/16.0 {
+					if t := (cur.x - op.p1.x) / denom; t > 0 && t < 1 {
+						ex := (1-t)*(1-t)*cur.x + 2*t*(1-t)*op.p1.x + t*t*op.p2.x
+						minX = min(minX, cur.x, ex, op.p2.x)
+						maxX = max(maxX, cur.x, ex, op.p2.x)
+					} else {
+						minX = min(minX, cur.x, op.p2.x)
+						maxX = max(maxX, cur.x, op.p2.x)
+					}
+				} else {
+					// The curve is almost linear. Include all the points for safety.
+					minX = min(minX, cur.x, op.p1.x, op.p2.x)
+					maxX = max(maxX, cur.x, op.p1.x, op.p2.x)
+				}
+				if denom := cur.y - 2*op.p1.y + op.p2.y; abs(denom) >= 1.0/16.0 {
+					if t := (cur.y - op.p1.y) / denom; t > 0 && t < 1 {
+						ex := (1-t)*(1-t)*cur.y + 2*t*(1-t)*op.p1.y + t*t*op.p2.y
+						minY = min(minY, cur.y, ex, op.p2.y)
+						maxY = max(maxY, cur.y, ex, op.p2.y)
+					} else {
+						minY = min(minY, cur.y, op.p2.y)
+						maxY = max(maxY, cur.y, op.p2.y)
+					}
+				} else {
+					minY = min(minY, cur.y, op.p1.y, op.p2.y)
+					maxY = max(maxY, cur.y, op.p1.y, op.p2.y)
+				}
+				cur = op.p2
+			}
+		}
+		totalMinX = min(totalMinX, minX)
+		totalMinY = min(totalMinY, minY)
+		totalMaxX = max(totalMaxX, maxX)
+		totalMaxY = max(totalMaxY, maxY)
+	}
+	if totalMinX >= totalMaxX || totalMinY >= totalMaxY {
+		return image.Rectangle{}
+	}
+	return image.Rect(floor(totalMinX), floor(totalMinY), ceil(totalMaxX), ceil(totalMaxY))
 }
