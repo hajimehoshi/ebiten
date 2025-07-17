@@ -175,7 +175,7 @@ jobs:
   wasm:
     strategy:
       matrix:
-        go: ['1.23.x', '1.24.x', '1.25.0-rc.1']
+        go: ['1.23.x', '1.24.x', '1.25.0-rc.2']
     name: Test WebAssembly with Go ${{ matrix.go }}
     runs-on: ubuntu-latest
     defaults:
