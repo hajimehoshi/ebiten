@@ -15,9 +15,7 @@
 package vector
 
 import (
-	"image"
 	"image/color"
-	"math"
 	"slices"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -122,82 +120,19 @@ var (
 	}
 )
 
-// theStencilBufferAtlasImage is an atlas image for stencil buffer images.
-// Stencil buffer images are integrated into this image for batching.
-var theStencilBufferAtlasImage *ebiten.Image
+// theAtlas manages the atlas for stencil buffer images.
+// theAtlas is a singleton to avoid unnecessary texture allocations.
+var theAtlas atlas
 
 type fillPathsState struct {
 	paths  []*Path
 	colors []color.Color
-
-	stencilBufferImages      []*ebiten.Image
-	pathBounds               []image.Rectangle
-	stencilBufferImageBounds []image.Rectangle
 
 	vertices []ebiten.Vertex
 	indices  []uint32
 
 	antialias bool
 	fillRule  FillRule
-}
-
-func roundUpAtlasSize(size int) int {
-	if size < 16 {
-		return 16
-	}
-	return int(math.Ceil(math.Pow(1.5, math.Ceil(math.Log(float64(size))/math.Log(1.5)))))
-}
-
-func (f *fillPathsState) appendStencilBufferImages(images []*ebiten.Image, dstBounds image.Rectangle) []*ebiten.Image {
-	if len(f.pathBounds) == 0 {
-		return images
-	}
-
-	boundsCount := len(f.pathBounds)
-	if f.antialias {
-		boundsCount *= 2
-	}
-	f.stencilBufferImageBounds = f.stencilBufferImageBounds[:0]
-	f.stencilBufferImageBounds = slices.Grow(f.stencilBufferImageBounds, boundsCount)
-
-	var atlasWidth int
-	var atlasHeight int
-	for _, pb := range f.pathBounds {
-		pb = pb.Intersect(dstBounds)
-		// Extend the bounds a little bit to avoid creating an image too often.
-		w := roundUpAtlasSize(pb.Dx())
-		h := roundUpAtlasSize(pb.Dy())
-		imageSize := image.Pt(w, h)
-		imageBounds := image.Rect(0, atlasHeight, imageSize.X, atlasHeight+imageSize.Y)
-		f.stencilBufferImageBounds = append(f.stencilBufferImageBounds, imageBounds)
-		if f.antialias {
-			f.stencilBufferImageBounds = append(f.stencilBufferImageBounds, imageBounds.Add(image.Pt(imageSize.X, 0)))
-		}
-
-		atlasWidth = max(atlasWidth, imageSize.X)
-		if f.antialias {
-			atlasWidth = max(atlasWidth, imageSize.X*2)
-		}
-		atlasHeight += imageSize.Y
-	}
-	if theStencilBufferAtlasImage != nil {
-		if theStencilBufferAtlasImage.Bounds().Dx() < atlasWidth || theStencilBufferAtlasImage.Bounds().Dy() < atlasHeight {
-			atlasWidth = max(atlasWidth, theStencilBufferAtlasImage.Bounds().Dx())
-			atlasHeight = max(atlasHeight, theStencilBufferAtlasImage.Bounds().Dy())
-			theStencilBufferAtlasImage.Deallocate()
-			theStencilBufferAtlasImage = nil
-		}
-	}
-	if theStencilBufferAtlasImage == nil {
-		theStencilBufferAtlasImage = ebiten.NewImage(atlasWidth, atlasHeight)
-	} else {
-		theStencilBufferAtlasImage.Clear()
-	}
-
-	for _, b := range f.stencilBufferImageBounds {
-		images = append(images, theStencilBufferAtlasImage.SubImage(b).(*ebiten.Image))
-	}
-	return images
 }
 
 func (f *fillPathsState) reset() {
@@ -291,11 +226,7 @@ func (f *fillPathsState) fillPaths(dst *ebiten.Image) {
 		f.indices = is
 	}()
 
-	f.pathBounds = f.pathBounds[:0]
-	for _, path := range f.paths {
-		f.pathBounds = append(f.pathBounds, path.Bounds())
-	}
-	f.stencilBufferImages = f.appendStencilBufferImages(f.stencilBufferImages[:0], dst.Bounds())
+	theAtlas.setPaths(dst.Bounds(), f.paths, f.antialias)
 
 	offsetAndColors := offsetAndColorsNonAA
 	if f.antialias {
@@ -317,9 +248,12 @@ func (f *fillPathsState) fillPaths(dst *ebiten.Image) {
 				stencilBufferImageIndex *= 2
 			}
 
-			stencilBufferImage := f.stencilBufferImages[stencilBufferImageIndex+oac.imageIndex]
-			dstOffsetX := float32(-f.pathBounds[i].Min.X + stencilBufferImage.Bounds().Min.X - max(0, dst.Bounds().Min.X-f.pathBounds[i].Min.X))
-			dstOffsetY := float32(-f.pathBounds[i].Min.Y + stencilBufferImage.Bounds().Min.Y - max(0, dst.Bounds().Min.Y-f.pathBounds[i].Min.Y))
+			stencilBufferImage := theAtlas.stencilBufferImageAt(stencilBufferImageIndex + oac.imageIndex)
+			if stencilBufferImage == nil {
+				continue
+			}
+			dstOffsetX := float32(-theAtlas.pathBoundsAt(i).Min.X + stencilBufferImage.Bounds().Min.X - max(0, dst.Bounds().Min.X-theAtlas.pathBoundsAt(i).Min.X))
+			dstOffsetY := float32(-theAtlas.pathBoundsAt(i).Min.Y + stencilBufferImage.Bounds().Min.Y - max(0, dst.Bounds().Min.Y-theAtlas.pathBoundsAt(i).Min.Y))
 
 			for _, subPath := range path.subPaths {
 				if !subPath.isValid() {
@@ -430,9 +364,12 @@ func (f *fillPathsState) fillPaths(dst *ebiten.Image) {
 			if f.antialias {
 				stencilBufferImageIndex *= 2
 			}
-			stencilBufferImage := f.stencilBufferImages[stencilBufferImageIndex+oac.imageIndex]
-			dstOffsetX := float32(-f.pathBounds[i].Min.X + stencilBufferImage.Bounds().Min.X - max(0, dst.Bounds().Min.X-f.pathBounds[i].Min.X))
-			dstOffsetY := float32(-f.pathBounds[i].Min.Y + stencilBufferImage.Bounds().Min.Y - max(0, dst.Bounds().Min.Y-f.pathBounds[i].Min.Y))
+			stencilBufferImage := theAtlas.stencilBufferImageAt(stencilBufferImageIndex + oac.imageIndex)
+			if stencilBufferImage == nil {
+				continue
+			}
+			dstOffsetX := float32(-theAtlas.pathBoundsAt(i).Min.X + stencilBufferImage.Bounds().Min.X - max(0, dst.Bounds().Min.X-theAtlas.pathBoundsAt(i).Min.X))
+			dstOffsetY := float32(-theAtlas.pathBoundsAt(i).Min.Y + stencilBufferImage.Bounds().Min.Y - max(0, dst.Bounds().Min.Y-theAtlas.pathBoundsAt(i).Min.Y))
 			for _, subPath := range path.subPaths {
 				if !subPath.isValid() {
 					continue
@@ -493,17 +430,29 @@ func (f *fillPathsState) fillPaths(dst *ebiten.Image) {
 			continue
 		}
 
-		stencilBufferImageIndex := i
+		var stencilImage *ebiten.Image
+		var offsetX, offsetY float32
 		if f.antialias {
-			stencilBufferImageIndex *= 2
+			stencilImage = theAtlas.stencilBufferImageAt(i * 2)
+			if stencilImage == nil {
+				continue
+			}
+			stencilImage2 := theAtlas.stencilBufferImageAt(i*2 + 1)
+			offsetX = float32(stencilImage2.Bounds().Min.X - stencilImage.Bounds().Min.X)
+			offsetY = float32(stencilImage2.Bounds().Min.Y - stencilImage.Bounds().Min.Y)
+			// Use the first image as the main image.
+		} else {
+			stencilImage = theAtlas.stencilBufferImageAt(i)
+			if stencilImage == nil {
+				continue
+			}
 		}
-		stencilImage := f.stencilBufferImages[stencilBufferImageIndex]
-		pathBounds := f.pathBounds[i]
+		pathBounds := theAtlas.pathBoundsAt(i)
 
 		vs = vs[:0]
 		is = is[:0]
-		dstOffsetX := max(0, dst.Bounds().Min.X-f.pathBounds[i].Min.X)
-		dstOffsetY := max(0, dst.Bounds().Min.Y-f.pathBounds[i].Min.Y)
+		dstOffsetX := max(0, dst.Bounds().Min.X-pathBounds.Min.X)
+		dstOffsetY := max(0, dst.Bounds().Min.Y-pathBounds.Min.Y)
 		var clrR, clrG, clrB, clrA float32
 		r, g, b, a := f.colors[i].RGBA()
 		clrR = float32(r) / 0xffff
@@ -520,8 +469,8 @@ func (f *fillPathsState) fillPaths(dst *ebiten.Image) {
 				ColorG:  clrG,
 				ColorB:  clrB,
 				ColorA:  clrA,
-				Custom0: float32(stencilImage.Bounds().Dx()),
-				Custom1: 0,
+				Custom0: offsetX,
+				Custom1: offsetY,
 			},
 			ebiten.Vertex{
 				DstX:    float32(pathBounds.Min.X + stencilImage.Bounds().Dx() + dstOffsetX),
@@ -532,8 +481,8 @@ func (f *fillPathsState) fillPaths(dst *ebiten.Image) {
 				ColorG:  clrG,
 				ColorB:  clrB,
 				ColorA:  clrA,
-				Custom0: float32(stencilImage.Bounds().Dx()),
-				Custom1: 0,
+				Custom0: offsetX,
+				Custom1: offsetY,
 			},
 			ebiten.Vertex{
 				DstX:    float32(pathBounds.Min.X + dstOffsetX),
@@ -544,8 +493,8 @@ func (f *fillPathsState) fillPaths(dst *ebiten.Image) {
 				ColorG:  clrG,
 				ColorB:  clrB,
 				ColorA:  clrA,
-				Custom0: float32(stencilImage.Bounds().Dx()),
-				Custom1: 0,
+				Custom0: offsetX,
+				Custom1: offsetY,
 			},
 			ebiten.Vertex{
 				DstX:    float32(pathBounds.Min.X + stencilImage.Bounds().Dx() + dstOffsetX),
@@ -556,8 +505,8 @@ func (f *fillPathsState) fillPaths(dst *ebiten.Image) {
 				ColorG:  clrG,
 				ColorB:  clrB,
 				ColorA:  clrA,
-				Custom0: float32(stencilImage.Bounds().Dx()),
-				Custom1: 0,
+				Custom0: offsetX,
+				Custom1: offsetY,
 			})
 		is = append(is, 0, 1, 2, 1, 2, 3)
 
