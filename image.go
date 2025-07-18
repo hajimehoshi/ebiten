@@ -58,6 +58,9 @@ type Image struct {
 	// subImageCache is valid only when the image is not a sub-image.
 	subImageCache map[image.Rectangle]*Image
 
+	// subImageGCLastTick is the last tick when old sub images are removed from the cache.
+	subImageGCLastTick int64
+
 	// subImageCacheM is a mutex for subImageCache.
 	// subImageCache can be accessed from the image and its sub-images at the same time,
 	// so the map must be protected by a mutex.
@@ -1125,12 +1128,18 @@ func (i *Image) SubImage(r image.Rectangle) image.Image {
 	}
 
 	if img, ok := i.subImageCache[r]; ok {
-		img.atime.Store(Tick())
+		img.updateAccessTime()
 		return img
 	}
-	for _, img := range i.subImageCache {
-		if img.atime.Load()+60 < Tick() {
-			delete(i.subImageCache, img.bounds)
+
+	tick := Tick()
+	if i.subImageGCLastTick != tick {
+		i.subImageGCLastTick = tick
+
+		for _, img := range i.subImageCache {
+			if img.atime.Load()+60 < tick {
+				delete(i.subImageCache, img.bounds)
+			}
 		}
 	}
 
@@ -1145,7 +1154,7 @@ func (i *Image) SubImage(r image.Rectangle) image.Image {
 		i.subImageCache = map[image.Rectangle]*Image{}
 	}
 	i.subImageCache[r] = img
-	img.atime.Store(Tick())
+	img.updateAccessTime()
 
 	return img
 }
