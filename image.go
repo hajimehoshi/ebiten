@@ -1146,8 +1146,7 @@ func (i *Image) SubImage(r image.Rectangle) image.Image {
 		return img
 	}
 
-	tick := Tick()
-	if i.subImageGCLastTick != tick {
+	if tick := Tick(); i.subImageGCLastTick < tick {
 		i.subImageGCLastTick = tick
 
 		for _, img := range i.subImageCache {
