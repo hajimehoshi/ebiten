@@ -1269,6 +1269,8 @@ func (i *Image) at(x, y int) (r, g, b, a byte) {
 //
 // If the image is disposed, Set does nothing.
 //
+// If (x, y) is outside the image bounds, Set does nothing.
+//
 // For performance, it is recommended to use WritePixels instead of Set whenever possible.
 func (i *Image) Set(x, y int, clr color.Color) {
 	i.copyCheck()
