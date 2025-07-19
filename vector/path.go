@@ -91,15 +91,19 @@ func (v vec2) mul(s float32) vec2 {
 }
 
 type subPath struct {
-	ops    []op
-	start  point
-	closed bool
+	ops                []op
+	start              point
+	closed             bool
+	cachedValid        bool
+	isCachedValidValid bool
 }
 
 func (s *subPath) reset() {
 	s.ops = s.ops[:0]
 	s.start = point{}
 	s.closed = false
+	s.cachedValid = false
+	s.isCachedValidValid = false
 }
 
 func isRegularF32(x float32) bool {
@@ -107,21 +111,33 @@ func isRegularF32(x float32) bool {
 }
 
 func (s *subPath) isValid() bool {
+	if s.isCachedValidValid {
+		return s.cachedValid
+	}
+
 	if !isRegularF32(s.start.x) || !isRegularF32(s.start.y) {
+		s.cachedValid = false
+		s.isCachedValidValid = true
 		return false
 	}
 	for _, op := range s.ops {
 		switch op.typ {
 		case opTypeLineTo:
 			if !isRegularF32(op.p1.x) || !isRegularF32(op.p1.y) {
+				s.cachedValid = false
+				s.isCachedValidValid = true
 				return false
 			}
 		case opTypeQuadTo:
 			if !isRegularF32(op.p1.x) || !isRegularF32(op.p1.y) || !isRegularF32(op.p2.x) || !isRegularF32(op.p2.y) {
+				s.cachedValid = false
+				s.isCachedValidValid = true
 				return false
 			}
 		}
 	}
+	s.cachedValid = true
+	s.isCachedValidValid = true
 	return true
 }
 
@@ -231,6 +247,15 @@ func (p *Path) resetFlatPaths() {
 	p.flatPaths = p.flatPaths[:0]
 }
 
+func (p *Path) resetLastSubPathCacheStates() {
+	if len(p.subPaths) == 0 {
+		return
+	}
+	s := &p.subPaths[len(p.subPaths)-1]
+	s.cachedValid = false
+	s.isCachedValidValid = false
+}
+
 func (p *Path) appendNewFlatPath(pt point) {
 	if cap(p.flatPaths) > len(p.flatPaths) {
 		// Reuse the last flat path since the last flat path might have an already allocated slice.
@@ -283,6 +308,7 @@ func (p *Path) MoveTo(x, y float32) {
 	if len(p.subPaths) == 0 || len(p.subPaths[len(p.subPaths)-1].ops) > 0 {
 		p.addSubPaths(1)
 	}
+	p.resetLastSubPathCacheStates()
 	p.subPaths[len(p.subPaths)-1].start = point{x: x, y: y}
 	p.subPaths[len(p.subPaths)-1].closed = false
 }
@@ -300,6 +326,7 @@ func (p *Path) LineTo(x, y float32) {
 		p.addSubPaths(1)
 		p.subPaths[len(p.subPaths)-1].start = p.subPaths[len(p.subPaths)-2].start
 	}
+	p.resetLastSubPathCacheStates()
 	if cur, ok := p.currentPosition(); ok {
 		if cur.x == x && cur.y == y {
 			return
@@ -323,6 +350,7 @@ func (p *Path) QuadTo(x1, y1, x2, y2 float32) {
 		p.addSubPaths(1)
 		p.subPaths[len(p.subPaths)-1].start = p.subPaths[len(p.subPaths)-2].start
 	}
+	p.resetLastSubPathCacheStates()
 	if cur, ok := p.currentPosition(); ok {
 		if cur.x == x2 && cur.y == y2 {
 			return
@@ -338,7 +366,6 @@ func (p *Path) QuadTo(x1, y1, x2, y2 float32) {
 // CubicTo adds a cubic Bézier curve to the path.
 // (x1, y1) and (x2, y2) are the control points, and (x3, y3) is the destination.
 func (p *Path) CubicTo(x1, y1, x2, y2, x3, y3 float32) {
-	p.resetFlatPaths()
 	p.cubicTo(x1, y1, x2, y2, x3, y3, 0)
 }
 
@@ -1089,7 +1116,8 @@ func (p *Path) Bounds() image.Rectangle {
 	totalMaxX := math.MinInt
 	totalMaxY := math.MinInt
 
-	for _, subPath := range p.subPaths {
+	for i := range p.subPaths {
+		subPath := &p.subPaths[i]
 		if !subPath.isValid() {
 			continue
 		}

@@ -251,7 +251,8 @@ func (f *fillPathsState) fillPaths(dst *ebiten.Image) {
 			dstOffsetX := float32(-pp.X + stencilBufferImage.Bounds().Min.X - max(0, dst.Bounds().Min.X-pp.X))
 			dstOffsetY := float32(-pp.Y + stencilBufferImage.Bounds().Min.Y - max(0, dst.Bounds().Min.Y-pp.Y))
 
-			for _, subPath := range path.subPaths {
+			for i := range path.subPaths {
+				subPath := &path.subPaths[i]
 				if !subPath.isValid() {
 					continue
 				}
@@ -363,7 +364,8 @@ func (f *fillPathsState) fillPaths(dst *ebiten.Image) {
 			pp := theAtlas.pathRenderingPositionAt(i)
 			dstOffsetX := float32(-pp.X + stencilBufferImage.Bounds().Min.X - max(0, dst.Bounds().Min.X-pp.X))
 			dstOffsetY := float32(-pp.Y + stencilBufferImage.Bounds().Min.Y - max(0, dst.Bounds().Min.Y-pp.Y))
-			for _, subPath := range path.subPaths {
+			for i := range path.subPaths {
+				subPath := &path.subPaths[i]
 				if !subPath.isValid() {
 					continue
 				}
