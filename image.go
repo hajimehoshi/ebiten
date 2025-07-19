@@ -1264,12 +1264,12 @@ func (i *Image) at(x, y int) (r, g, b, a byte) {
 //
 // Set implements the standard draw.Image's Set.
 //
+// If (x, y) is outside the image bounds, Set does nothing.
+//
 // Even if a result is an invalid color as a premultiplied-alpha color, i.e. an alpha value exceeds other color values,
 // the value is kept and is not clamped.
 //
 // If the image is disposed, Set does nothing.
-//
-// If (x, y) is outside the image bounds, Set does nothing.
 //
 // For performance, it is recommended to use WritePixels instead of Set whenever possible.
 func (i *Image) Set(x, y int, clr color.Color) {
