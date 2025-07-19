@@ -91,10 +91,9 @@ func (v vec2) mul(s float32) vec2 {
 }
 
 type subPath struct {
-	ops     []op
-	start   point
-	closed  bool
-	invalid bool
+	ops    []op
+	start  point
+	closed bool
 }
 
 func (s *subPath) reset() {
@@ -108,7 +107,22 @@ func isRegularF32(x float32) bool {
 }
 
 func (s *subPath) isValid() bool {
-	return !s.invalid
+	if !isRegularF32(s.start.x) || !isRegularF32(s.start.y) {
+		return false
+	}
+	for _, op := range s.ops {
+		switch op.typ {
+		case opTypeLineTo:
+			if !isRegularF32(op.p1.x) || !isRegularF32(op.p1.y) {
+				return false
+			}
+		case opTypeQuadTo:
+			if !isRegularF32(op.p1.x) || !isRegularF32(op.p1.y) || !isRegularF32(op.p2.x) || !isRegularF32(op.p2.y) {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 func (s *subPath) startAtOp(index int) point {
@@ -271,10 +285,6 @@ func (p *Path) MoveTo(x, y float32) {
 	}
 	p.subPaths[len(p.subPaths)-1].start = point{x: x, y: y}
 	p.subPaths[len(p.subPaths)-1].closed = false
-
-	if !isRegularF32(x) || !isRegularF32(y) {
-		p.subPaths[len(p.subPaths)-1].invalid = true
-	}
 }
 
 // LineTo adds a line segment to the path, which starts from the last position of the current sub-path
@@ -290,11 +300,6 @@ func (p *Path) LineTo(x, y float32) {
 		p.addSubPaths(1)
 		p.subPaths[len(p.subPaths)-1].start = p.subPaths[len(p.subPaths)-2].start
 	}
-
-	if !p.subPaths[len(p.subPaths)-1].invalid && (!isRegularF32(x) || !isRegularF32(y)) {
-		p.subPaths[len(p.subPaths)-1].invalid = true
-	}
-
 	if cur, ok := p.currentPosition(); ok {
 		if cur.x == x && cur.y == y {
 			return
@@ -318,11 +323,6 @@ func (p *Path) QuadTo(x1, y1, x2, y2 float32) {
 		p.addSubPaths(1)
 		p.subPaths[len(p.subPaths)-1].start = p.subPaths[len(p.subPaths)-2].start
 	}
-
-	if !p.subPaths[len(p.subPaths)-1].invalid && (!isRegularF32(x1) || !isRegularF32(y1) || !isRegularF32(x2) || !isRegularF32(y2)) {
-		p.subPaths[len(p.subPaths)-1].invalid = true
-	}
-
 	if cur, ok := p.currentPosition(); ok {
 		if cur.x == x2 && cur.y == y2 {
 			return
