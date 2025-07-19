@@ -805,8 +805,9 @@ func (p *Path) AddPath(src *Path, options *AddPathOptions) {
 	for i, origSubPath := range src.subPaths[:srcN] {
 		sx, sy := options.GeoM.Apply(float64(origSubPath.start.x), float64(origSubPath.start.y))
 		if m := len(origSubPath.ops) - len(p.subPaths[n+i].ops); m > 0 {
-			p.subPaths[n+i].ops = slices.Grow(p.subPaths[n+i].ops, m)[:len(origSubPath.ops)]
+			p.subPaths[n+i].ops = slices.Grow(p.subPaths[n+i].ops, m)
 		}
+		p.subPaths[n+i].ops = p.subPaths[n+i].ops[:len(origSubPath.ops)]
 		p.subPaths[n+i].start = point{x: float32(sx), y: float32(sy)}
 		p.subPaths[n+i].closed = origSubPath.closed
 
