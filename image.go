@@ -611,6 +611,10 @@ func (i *Image) DrawTriangles32(vertices []Vertex, indices []uint32, img *Image,
 		return
 	}
 
+	if len(indices) == 0 {
+		return
+	}
+
 	i.invokeUsageCallbacks()
 	img.invokeUsageCallbacks()
 
@@ -820,6 +824,10 @@ func (i *Image) DrawTrianglesShader32(vertices []Vertex, indices []uint32, shade
 
 	if shader.isDisposed() {
 		panic("ebiten: the given shader to DrawTrianglesShader must not be disposed")
+	}
+
+	if len(indices) == 0 {
+		return
 	}
 
 	i.invokeUsageCallbacks()
