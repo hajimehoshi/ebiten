@@ -42,11 +42,13 @@ func imageToBytes(img image.Image) []byte {
 
 		palette := make([]uint8, len(img.Palette)*4)
 		for i, c := range img.Palette {
+			// Create a temporary slice to reduce boundary checks.
+			pl := palette[4*i : 4*i+4]
 			rgba := color.RGBAModel.Convert(c).(color.RGBA)
-			palette[4*i] = rgba.R
-			palette[4*i+1] = rgba.G
-			palette[4*i+2] = rgba.B
-			palette[4*i+3] = rgba.A
+			pl[0] = rgba.R
+			pl[1] = rgba.G
+			pl[2] = rgba.B
+			pl[3] = rgba.A
 		}
 		// Even img is a subimage of another image, Pix starts with 0-th index.
 		idx0 := 0
@@ -55,10 +57,7 @@ func imageToBytes(img image.Image) []byte {
 		for j := 0; j < y1-y0; j++ {
 			for i := 0; i < x1-x0; i++ {
 				p := int(img.Pix[idx0])
-				bs[idx1] = palette[4*p]
-				bs[idx1+1] = palette[4*p+1]
-				bs[idx1+2] = palette[4*p+2]
-				bs[idx1+3] = palette[4*p+3]
+				copy(bs[idx1:idx1+4], palette[4*p:4*p+4])
 				idx0++
 				idx1 += 4
 			}

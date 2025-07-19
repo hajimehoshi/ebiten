@@ -655,30 +655,34 @@ func (i *Image) DrawTriangles32(vertices []Vertex, indices []uint32, img *Image,
 	if options.ColorScaleMode == ColorScaleModeStraightAlpha {
 		// Avoid using `for i, v := range vertices` as adding `v` creates a copy from `vertices` unnecessarily on each loop (#3103).
 		for i := range vertices {
+			// Create a temporary slice to reduce boundary checks.
+			vs := vs[i*graphics.VertexFloatCount : i*graphics.VertexFloatCount+8]
 			dx, dy := dst.adjustPositionF32(vertices[i].DstX, vertices[i].DstY)
-			vs[i*graphics.VertexFloatCount] = dx
-			vs[i*graphics.VertexFloatCount+1] = dy
+			vs[0] = dx
+			vs[1] = dy
 			sx, sy := img.adjustPositionF32(vertices[i].SrcX, vertices[i].SrcY)
-			vs[i*graphics.VertexFloatCount+2] = sx
-			vs[i*graphics.VertexFloatCount+3] = sy
-			vs[i*graphics.VertexFloatCount+4] = vertices[i].ColorR * vertices[i].ColorA * cr
-			vs[i*graphics.VertexFloatCount+5] = vertices[i].ColorG * vertices[i].ColorA * cg
-			vs[i*graphics.VertexFloatCount+6] = vertices[i].ColorB * vertices[i].ColorA * cb
-			vs[i*graphics.VertexFloatCount+7] = vertices[i].ColorA * ca
+			vs[2] = sx
+			vs[3] = sy
+			vs[4] = vertices[i].ColorR * vertices[i].ColorA * cr
+			vs[5] = vertices[i].ColorG * vertices[i].ColorA * cg
+			vs[6] = vertices[i].ColorB * vertices[i].ColorA * cb
+			vs[7] = vertices[i].ColorA * ca
 		}
 	} else {
 		// See comment above (#3103).
 		for i := range vertices {
+			// Create a temporary slice to reduce boundary checks.
+			vs := vs[i*graphics.VertexFloatCount : i*graphics.VertexFloatCount+8]
 			dx, dy := dst.adjustPositionF32(vertices[i].DstX, vertices[i].DstY)
-			vs[i*graphics.VertexFloatCount] = dx
-			vs[i*graphics.VertexFloatCount+1] = dy
+			vs[0] = dx
+			vs[1] = dy
 			sx, sy := img.adjustPositionF32(vertices[i].SrcX, vertices[i].SrcY)
-			vs[i*graphics.VertexFloatCount+2] = sx
-			vs[i*graphics.VertexFloatCount+3] = sy
-			vs[i*graphics.VertexFloatCount+4] = vertices[i].ColorR * cr
-			vs[i*graphics.VertexFloatCount+5] = vertices[i].ColorG * cg
-			vs[i*graphics.VertexFloatCount+6] = vertices[i].ColorB * cb
-			vs[i*graphics.VertexFloatCount+7] = vertices[i].ColorA * ca
+			vs[2] = sx
+			vs[3] = sy
+			vs[4] = vertices[i].ColorR * cr
+			vs[5] = vertices[i].ColorG * cg
+			vs[6] = vertices[i].ColorB * cb
+			vs[7] = vertices[i].ColorA * ca
 		}
 	}
 
@@ -879,23 +883,25 @@ func (i *Image) DrawTrianglesShader32(vertices []Vertex, indices []uint32, shade
 	src := options.Images[0]
 	// Avoid using `for i, v := range vertices` as adding `v` creates a copy from `vertices` unnecessarily on each loop (#3103).
 	for i := range vertices {
+		// Create a temporary slice to reduce boundary checks.
+		vs := vs[i*graphics.VertexFloatCount : i*graphics.VertexFloatCount+12]
 		dx, dy := dst.adjustPositionF32(vertices[i].DstX, vertices[i].DstY)
-		vs[i*graphics.VertexFloatCount] = dx
-		vs[i*graphics.VertexFloatCount+1] = dy
+		vs[0] = dx
+		vs[1] = dy
 		sx, sy := vertices[i].SrcX, vertices[i].SrcY
 		if src != nil {
 			sx, sy = src.adjustPositionF32(sx, sy)
 		}
-		vs[i*graphics.VertexFloatCount+2] = sx
-		vs[i*graphics.VertexFloatCount+3] = sy
-		vs[i*graphics.VertexFloatCount+4] = vertices[i].ColorR
-		vs[i*graphics.VertexFloatCount+5] = vertices[i].ColorG
-		vs[i*graphics.VertexFloatCount+6] = vertices[i].ColorB
-		vs[i*graphics.VertexFloatCount+7] = vertices[i].ColorA
-		vs[i*graphics.VertexFloatCount+8] = vertices[i].Custom0
-		vs[i*graphics.VertexFloatCount+9] = vertices[i].Custom1
-		vs[i*graphics.VertexFloatCount+10] = vertices[i].Custom2
-		vs[i*graphics.VertexFloatCount+11] = vertices[i].Custom3
+		vs[2] = sx
+		vs[3] = sy
+		vs[4] = vertices[i].ColorR
+		vs[5] = vertices[i].ColorG
+		vs[6] = vertices[i].ColorB
+		vs[7] = vertices[i].ColorA
+		vs[8] = vertices[i].Custom0
+		vs[9] = vertices[i].Custom1
+		vs[10] = vertices[i].Custom2
+		vs[11] = vertices[i].Custom3
 	}
 
 	var imgs [graphics.ShaderSrcImageCount]*ui.Image
