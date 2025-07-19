@@ -247,8 +247,9 @@ func (f *fillPathsState) fillPaths(dst *ebiten.Image) {
 			if stencilBufferImage == nil {
 				continue
 			}
-			dstOffsetX := float32(-theAtlas.pathBoundsAt(i).Min.X + stencilBufferImage.Bounds().Min.X - max(0, dst.Bounds().Min.X-theAtlas.pathBoundsAt(i).Min.X))
-			dstOffsetY := float32(-theAtlas.pathBoundsAt(i).Min.Y + stencilBufferImage.Bounds().Min.Y - max(0, dst.Bounds().Min.Y-theAtlas.pathBoundsAt(i).Min.Y))
+			pb := theAtlas.pathRenderingBoundsAt(i)
+			dstOffsetX := float32(-pb.Min.X + stencilBufferImage.Bounds().Min.X - max(0, dst.Bounds().Min.X-pb.Min.X))
+			dstOffsetY := float32(-pb.Min.Y + stencilBufferImage.Bounds().Min.Y - max(0, dst.Bounds().Min.Y-pb.Min.Y))
 
 			for _, subPath := range path.subPaths {
 				if !subPath.isValid() {
@@ -359,8 +360,9 @@ func (f *fillPathsState) fillPaths(dst *ebiten.Image) {
 			if stencilBufferImage == nil {
 				continue
 			}
-			dstOffsetX := float32(-theAtlas.pathBoundsAt(i).Min.X + stencilBufferImage.Bounds().Min.X - max(0, dst.Bounds().Min.X-theAtlas.pathBoundsAt(i).Min.X))
-			dstOffsetY := float32(-theAtlas.pathBoundsAt(i).Min.Y + stencilBufferImage.Bounds().Min.Y - max(0, dst.Bounds().Min.Y-theAtlas.pathBoundsAt(i).Min.Y))
+			pb := theAtlas.pathRenderingBoundsAt(i)
+			dstOffsetX := float32(-pb.Min.X + stencilBufferImage.Bounds().Min.X - max(0, dst.Bounds().Min.X-pb.Min.X))
+			dstOffsetY := float32(-pb.Min.Y + stencilBufferImage.Bounds().Min.Y - max(0, dst.Bounds().Min.Y-pb.Min.Y))
 			for _, subPath := range path.subPaths {
 				if !subPath.isValid() {
 					continue
@@ -434,12 +436,12 @@ func (f *fillPathsState) fillPaths(dst *ebiten.Image) {
 			offsetY = float32(stencilImage1.Bounds().Min.Y - stencilImage.Bounds().Min.Y)
 		}
 
-		pathBounds := theAtlas.pathBoundsAt(i)
+		pb := theAtlas.pathRenderingBoundsAt(i)
 
 		vs = vs[:0]
 		is = is[:0]
-		dstOffsetX := max(0, dst.Bounds().Min.X-pathBounds.Min.X)
-		dstOffsetY := max(0, dst.Bounds().Min.Y-pathBounds.Min.Y)
+		dstOffsetX := max(0, dst.Bounds().Min.X-pb.Min.X)
+		dstOffsetY := max(0, dst.Bounds().Min.Y-pb.Min.Y)
 		var clrR, clrG, clrB, clrA float32
 		r, g, b, a := f.colors[i].RGBA()
 		clrR = float32(r) / 0xffff
@@ -448,8 +450,8 @@ func (f *fillPathsState) fillPaths(dst *ebiten.Image) {
 		clrA = float32(a) / 0xffff
 		vs = append(vs,
 			ebiten.Vertex{
-				DstX:    float32(pathBounds.Min.X + dstOffsetX),
-				DstY:    float32(pathBounds.Min.Y + dstOffsetY),
+				DstX:    float32(pb.Min.X + dstOffsetX),
+				DstY:    float32(pb.Min.Y + dstOffsetY),
 				SrcX:    float32(srcRegion.Min.X),
 				SrcY:    float32(srcRegion.Min.Y),
 				ColorR:  clrR,
@@ -460,8 +462,8 @@ func (f *fillPathsState) fillPaths(dst *ebiten.Image) {
 				Custom1: offsetY,
 			},
 			ebiten.Vertex{
-				DstX:    float32(pathBounds.Min.X + srcRegion.Dx() + dstOffsetX),
-				DstY:    float32(pathBounds.Min.Y + dstOffsetY),
+				DstX:    float32(pb.Min.X + srcRegion.Dx() + dstOffsetX),
+				DstY:    float32(pb.Min.Y + dstOffsetY),
 				SrcX:    float32(srcRegion.Max.X),
 				SrcY:    float32(srcRegion.Min.Y),
 				ColorR:  clrR,
@@ -472,8 +474,8 @@ func (f *fillPathsState) fillPaths(dst *ebiten.Image) {
 				Custom1: offsetY,
 			},
 			ebiten.Vertex{
-				DstX:    float32(pathBounds.Min.X + dstOffsetX),
-				DstY:    float32(pathBounds.Min.Y + srcRegion.Dy() + dstOffsetY),
+				DstX:    float32(pb.Min.X + dstOffsetX),
+				DstY:    float32(pb.Min.Y + srcRegion.Dy() + dstOffsetY),
 				SrcX:    float32(srcRegion.Min.X),
 				SrcY:    float32(srcRegion.Max.Y),
 				ColorR:  clrR,
@@ -484,8 +486,8 @@ func (f *fillPathsState) fillPaths(dst *ebiten.Image) {
 				Custom1: offsetY,
 			},
 			ebiten.Vertex{
-				DstX:    float32(pathBounds.Min.X + srcRegion.Dx() + dstOffsetX),
-				DstY:    float32(pathBounds.Min.Y + srcRegion.Dy() + dstOffsetY),
+				DstX:    float32(pb.Min.X + srcRegion.Dx() + dstOffsetX),
+				DstY:    float32(pb.Min.Y + srcRegion.Dy() + dstOffsetY),
 				SrcX:    float32(srcRegion.Max.X),
 				SrcY:    float32(srcRegion.Max.Y),
 				ColorR:  clrR,

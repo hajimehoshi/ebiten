@@ -29,10 +29,10 @@ type atlasRegion struct {
 }
 
 type atlas struct {
-	pathBounds   []image.Rectangle
-	atlasRegions []atlasRegion
-	atlasImages  []*ebiten.Image
-	pages        []*packing.Page
+	pathRenderingBounds []image.Rectangle
+	atlasRegions        []atlasRegion
+	atlasImages         []*ebiten.Image
+	pages               []*packing.Page
 }
 
 func roundUpAtlasSize(size int) int {
@@ -44,7 +44,7 @@ func roundUpAtlasSize(size int) int {
 
 func (a *atlas) setPaths(dstBounds image.Rectangle, paths []*Path, antialias bool) {
 	// Reset the members.
-	a.pathBounds = slices.Delete(a.pathBounds, 0, len(a.pathBounds))
+	a.pathRenderingBounds = slices.Delete(a.pathRenderingBounds, 0, len(a.pathRenderingBounds))
 	a.atlasRegions = slices.Delete(a.atlasRegions, 0, len(a.atlasRegions))
 	a.pages = slices.Delete(a.pages, 0, len(a.pages))
 
@@ -53,9 +53,8 @@ func (a *atlas) setPaths(dstBounds image.Rectangle, paths []*Path, antialias boo
 	}
 
 	for _, p := range paths {
-		pb := p.Bounds()
-		a.pathBounds = append(a.pathBounds, pb)
-		pb = pb.Intersect(dstBounds)
+		pb := p.Bounds().Intersect(dstBounds)
+		a.pathRenderingBounds = append(a.pathRenderingBounds, pb)
 		// An additional image for antialiasing must be on the same image.
 		// Extend the width and use the half parts.
 		if antialias {
@@ -158,6 +157,6 @@ func (a *atlas) stencilBufferImageAt(i int, antialias bool, antialiasIndex int) 
 	return atlas.SubImage(b).(*ebiten.Image)
 }
 
-func (a *atlas) pathBoundsAt(i int) image.Rectangle {
-	return a.pathBounds[i]
+func (a *atlas) pathRenderingBoundsAt(i int) image.Rectangle {
+	return a.pathRenderingBounds[i]
 }
