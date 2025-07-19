@@ -243,12 +243,7 @@ func (f *fillPathsState) fillPaths(dst *ebiten.Image) {
 			vs = vs[:0]
 			is = is[:0]
 
-			stencilBufferImageIndex := i
-			if f.antialias {
-				stencilBufferImageIndex *= 2
-			}
-
-			stencilBufferImage := theAtlas.stencilBufferImageAt(stencilBufferImageIndex + oac.imageIndex)
+			stencilBufferImage := theAtlas.stencilBufferImageAt(i, f.antialias, oac.imageIndex)
 			if stencilBufferImage == nil {
 				continue
 			}
@@ -360,11 +355,7 @@ func (f *fillPathsState) fillPaths(dst *ebiten.Image) {
 			vs = vs[:0]
 			is = is[:0]
 
-			stencilBufferImageIndex := i
-			if f.antialias {
-				stencilBufferImageIndex *= 2
-			}
-			stencilBufferImage := theAtlas.stencilBufferImageAt(stencilBufferImageIndex + oac.imageIndex)
+			stencilBufferImage := theAtlas.stencilBufferImageAt(i, f.antialias, oac.imageIndex)
 			if stencilBufferImage == nil {
 				continue
 			}
@@ -430,23 +421,19 @@ func (f *fillPathsState) fillPaths(dst *ebiten.Image) {
 			continue
 		}
 
-		var stencilImage *ebiten.Image
+		stencilImage := theAtlas.stencilBufferImageAt(i, f.antialias, 0)
+		if stencilImage == nil {
+			continue
+		}
+		srcRegion := stencilImage.Bounds()
+
 		var offsetX, offsetY float32
 		if f.antialias {
-			stencilImage = theAtlas.stencilBufferImageAt(i * 2)
-			if stencilImage == nil {
-				continue
-			}
-			stencilImage2 := theAtlas.stencilBufferImageAt(i*2 + 1)
-			offsetX = float32(stencilImage2.Bounds().Min.X - stencilImage.Bounds().Min.X)
-			offsetY = float32(stencilImage2.Bounds().Min.Y - stencilImage.Bounds().Min.Y)
-			// Use the first image as the main image.
-		} else {
-			stencilImage = theAtlas.stencilBufferImageAt(i)
-			if stencilImage == nil {
-				continue
-			}
+			stencilImage1 := theAtlas.stencilBufferImageAt(i, f.antialias, 1)
+			offsetX = float32(stencilImage1.Bounds().Min.X - stencilImage.Bounds().Min.X)
+			offsetY = float32(stencilImage1.Bounds().Min.Y - stencilImage.Bounds().Min.Y)
 		}
+
 		pathBounds := theAtlas.pathBoundsAt(i)
 
 		vs = vs[:0]
@@ -463,8 +450,8 @@ func (f *fillPathsState) fillPaths(dst *ebiten.Image) {
 			ebiten.Vertex{
 				DstX:    float32(pathBounds.Min.X + dstOffsetX),
 				DstY:    float32(pathBounds.Min.Y + dstOffsetY),
-				SrcX:    float32(stencilImage.Bounds().Min.X),
-				SrcY:    float32(stencilImage.Bounds().Min.Y),
+				SrcX:    float32(srcRegion.Min.X),
+				SrcY:    float32(srcRegion.Min.Y),
 				ColorR:  clrR,
 				ColorG:  clrG,
 				ColorB:  clrB,
@@ -473,10 +460,10 @@ func (f *fillPathsState) fillPaths(dst *ebiten.Image) {
 				Custom1: offsetY,
 			},
 			ebiten.Vertex{
-				DstX:    float32(pathBounds.Min.X + stencilImage.Bounds().Dx() + dstOffsetX),
+				DstX:    float32(pathBounds.Min.X + srcRegion.Dx() + dstOffsetX),
 				DstY:    float32(pathBounds.Min.Y + dstOffsetY),
-				SrcX:    float32(stencilImage.Bounds().Max.X),
-				SrcY:    float32(stencilImage.Bounds().Min.Y),
+				SrcX:    float32(srcRegion.Max.X),
+				SrcY:    float32(srcRegion.Min.Y),
 				ColorR:  clrR,
 				ColorG:  clrG,
 				ColorB:  clrB,
@@ -486,9 +473,9 @@ func (f *fillPathsState) fillPaths(dst *ebiten.Image) {
 			},
 			ebiten.Vertex{
 				DstX:    float32(pathBounds.Min.X + dstOffsetX),
-				DstY:    float32(pathBounds.Min.Y + stencilImage.Bounds().Dy() + dstOffsetY),
-				SrcX:    float32(stencilImage.Bounds().Min.X),
-				SrcY:    float32(stencilImage.Bounds().Max.Y),
+				DstY:    float32(pathBounds.Min.Y + srcRegion.Dy() + dstOffsetY),
+				SrcX:    float32(srcRegion.Min.X),
+				SrcY:    float32(srcRegion.Max.Y),
 				ColorR:  clrR,
 				ColorG:  clrG,
 				ColorB:  clrB,
@@ -497,10 +484,10 @@ func (f *fillPathsState) fillPaths(dst *ebiten.Image) {
 				Custom1: offsetY,
 			},
 			ebiten.Vertex{
-				DstX:    float32(pathBounds.Min.X + stencilImage.Bounds().Dx() + dstOffsetX),
-				DstY:    float32(pathBounds.Min.Y + stencilImage.Bounds().Dy() + dstOffsetY),
-				SrcX:    float32(stencilImage.Bounds().Max.X),
-				SrcY:    float32(stencilImage.Bounds().Max.Y),
+				DstX:    float32(pathBounds.Min.X + srcRegion.Dx() + dstOffsetX),
+				DstY:    float32(pathBounds.Min.Y + srcRegion.Dy() + dstOffsetY),
+				SrcX:    float32(srcRegion.Max.X),
+				SrcY:    float32(srcRegion.Max.Y),
 				ColorR:  clrR,
 				ColorG:  clrG,
 				ColorB:  clrB,

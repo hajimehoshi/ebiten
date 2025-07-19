@@ -56,11 +56,13 @@ func (a *atlas) setPaths(dstBounds image.Rectangle, paths []*Path, antialias boo
 		pb := p.Bounds()
 		a.pathBounds = append(a.pathBounds, pb)
 		pb = pb.Intersect(dstBounds)
+		// An additional image for antialiasing must be on the same image.
+		// Extend the width and use the half parts.
+		if antialias {
+			pb.Max.X += pb.Dx()
+		}
 		if pb.Dx() == 0 || pb.Dy() == 0 {
 			a.atlasRegions = append(a.atlasRegions, atlasRegion{})
-			if antialias {
-				a.atlasRegions = append(a.atlasRegions, atlasRegion{})
-			}
 			continue
 		}
 		index, node := a.allocNode(dstBounds, pb.Dx(), pb.Dy())
@@ -68,13 +70,6 @@ func (a *atlas) setPaths(dstBounds image.Rectangle, paths []*Path, antialias boo
 			index:  index,
 			bounds: node.Region(),
 		})
-		if antialias {
-			index, node := a.allocNode(dstBounds, pb.Dx(), pb.Dy())
-			a.atlasRegions = append(a.atlasRegions, atlasRegion{
-				index:  index,
-				bounds: node.Region(),
-			})
-		}
 	}
 
 	a.atlasImages = slices.Grow(a.atlasImages, len(a.pages))[:len(a.pages)]
@@ -137,12 +132,30 @@ func (a *atlas) allocNode(dstBounds image.Rectangle, width, height int) (int, *p
 	panic("vector: failed to allocate a node for a path")
 }
 
-func (a *atlas) stencilBufferImageAt(i int) *ebiten.Image {
+func (a *atlas) stencilBufferImageAt(i int, antialias bool, antialiasIndex int) *ebiten.Image {
 	r := a.atlasRegions[i]
 	if r.bounds.Empty() {
 		return nil
 	}
-	return a.atlasImages[r.index].SubImage(r.bounds).(*ebiten.Image)
+	atlas := a.atlasImages[r.index]
+	b := r.bounds
+	if antialias {
+		switch antialiasIndex {
+		case 0:
+			b = image.Rectangle{
+				Min: b.Min,
+				Max: image.Point{X: b.Min.X + b.Dx()/2, Y: b.Max.Y},
+			}
+		case 1:
+			b = image.Rectangle{
+				Min: image.Point{X: b.Min.X + b.Dx()/2, Y: b.Min.Y},
+				Max: b.Max,
+			}
+		default:
+			panic("not reached")
+		}
+	}
+	return atlas.SubImage(b).(*ebiten.Image)
 }
 
 func (a *atlas) pathBoundsAt(i int) image.Rectangle {
