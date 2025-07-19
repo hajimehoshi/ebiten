@@ -1430,7 +1430,7 @@ func NewImageWithOptions(bounds image.Rectangle, options *NewImageOptions) *Imag
 
 func newImage(bounds image.Rectangle, imageType atlas.ImageType) *Image {
 	if isRunGameEnded() {
-		panic(fmt.Sprintf("ebiten: NewImage cannot be called after RunGame finishes"))
+		panic("ebiten: NewImage cannot be called after RunGame finishes")
 	}
 
 	width, height := bounds.Dx(), bounds.Dy()
