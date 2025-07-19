@@ -43,6 +43,10 @@ func roundUpAtlasSize(size int) int {
 	return int(math.Ceil(math.Pow(1.5, math.Ceil(math.Log(float64(size))/math.Log(1.5)))))
 }
 
+func roundUp16(x int) int {
+	return (x + 15) &^ 15
+}
+
 func (a *atlas) setPaths(dstBounds image.Rectangle, paths []*Path, antialias bool) {
 	// Reset the members.
 	a.pathRenderingBounds = slices.Delete(a.pathRenderingBounds, 0, len(a.pathRenderingBounds))
@@ -56,7 +60,12 @@ func (a *atlas) setPaths(dstBounds image.Rectangle, paths []*Path, antialias boo
 
 	a.pathRenderingBounds = slices.Grow(a.pathRenderingBounds, len(paths))[:len(paths)]
 	for i, p := range paths {
-		a.pathRenderingBounds[i] = p.Bounds().Intersect(dstBounds)
+		b := p.Bounds().Intersect(dstBounds)
+		// Round up the size to 16px in order to encourage reusing sub image cache.
+		a.pathRenderingBounds[i] = image.Rectangle{
+			Min: b.Min,
+			Max: b.Min.Add(image.Pt(roundUp16(b.Dx()), roundUp16(b.Dy()))),
+		}
 		a.atlasRegions = append(a.atlasRegions, atlasRegion{
 			pathIndex: i,
 		})
