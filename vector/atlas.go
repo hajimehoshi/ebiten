@@ -20,19 +20,20 @@ import (
 	"slices"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/internal/packing"
 )
 
 type atlasRegion struct {
-	index  int
-	bounds image.Rectangle
+	pathIndex   int
+	imageIndex  int
+	imageBounds image.Rectangle
 }
 
 type atlas struct {
-	pathRenderingBounds []image.Rectangle
-	atlasRegions        []atlasRegion
-	atlasImages         []*ebiten.Image
-	pages               []*packing.Page
+	pathRenderingBounds         []image.Rectangle
+	atlasRegions                []atlasRegion
+	pathIndexToAtlasRegionIndex map[int]int
+	atlasSizes                  []image.Point
+	atlasImages                 []*ebiten.Image
 }
 
 func roundUpAtlasSize(size int) int {
@@ -46,39 +47,95 @@ func (a *atlas) setPaths(dstBounds image.Rectangle, paths []*Path, antialias boo
 	// Reset the members.
 	a.pathRenderingBounds = slices.Delete(a.pathRenderingBounds, 0, len(a.pathRenderingBounds))
 	a.atlasRegions = slices.Delete(a.atlasRegions, 0, len(a.atlasRegions))
-	a.pages = slices.Delete(a.pages, 0, len(a.pages))
+	clear(a.pathIndexToAtlasRegionIndex)
+	a.atlasSizes = slices.Delete(a.atlasSizes, 0, len(a.atlasSizes))
 
 	if len(paths) == 0 {
 		return
 	}
 
-	for _, p := range paths {
-		pb := p.Bounds().Intersect(dstBounds)
-		a.pathRenderingBounds = append(a.pathRenderingBounds, pb)
-		// An additional image for antialiasing must be on the same image.
-		// Extend the width and use the half parts.
-		if antialias {
-			pb.Max.X += pb.Dx()
-		}
-		if pb.Dx() == 0 || pb.Dy() == 0 {
-			a.atlasRegions = append(a.atlasRegions, atlasRegion{})
-			continue
-		}
-		index, node := a.allocNode(dstBounds, pb.Dx(), pb.Dy())
+	a.pathRenderingBounds = slices.Grow(a.pathRenderingBounds, len(paths))[:len(paths)]
+	for i, p := range paths {
+		a.pathRenderingBounds[i] = p.Bounds().Intersect(dstBounds)
 		a.atlasRegions = append(a.atlasRegions, atlasRegion{
-			index:  index,
-			bounds: node.Region(),
+			pathIndex: i,
 		})
 	}
 
-	a.atlasImages = slices.Grow(a.atlasImages, len(a.pages))[:len(a.pages)]
-	for i := range a.pages {
-		r := a.pages[i].AllocatedRegion()
+	slices.SortFunc(a.atlasRegions, func(ra, rb atlasRegion) int {
+		ba := a.pathRenderingBounds[ra.pathIndex]
+		bb := a.pathRenderingBounds[rb.pathIndex]
+		if ba.Dy() != bb.Dy() {
+			return bb.Dy() - ba.Dy()
+		}
+		if ba.Dx() != bb.Dx() {
+			return ba.Dx() - bb.Dx()
+		}
+		return ra.pathIndex - rb.pathIndex
+	})
+
+	if a.pathIndexToAtlasRegionIndex == nil {
+		a.pathIndexToAtlasRegionIndex = make(map[int]int, len(a.atlasRegions))
+	}
+	for i, r := range a.atlasRegions {
+		a.pathIndexToAtlasRegionIndex[r.pathIndex] = i
+	}
+
+	// Use 2^n - 1, as a region in internal/atlas has 1px padding.
+	maxImageSize := max(4093, dstBounds.Dx(), dstBounds.Dy())
+
+	// Pack the regions into an atlas with a very simple algorithm:
+	// Order the regions by height and then place them in a row.
+	var atlasImageCount int
+	{
+		a.atlasSizes = append(a.atlasSizes, image.Point{})
+
+		var atlasImageIndex int
+		var currentRowHeight int
+		var currentPosition image.Point
+		for i := range a.atlasRegions {
+			pb := a.pathRenderingBounds[a.atlasRegions[i].pathIndex]
+			s := pb.Size()
+			// An additional image for antialiasing must be on the same atlas,
+			// so extend the width and use it as a sub image.
+			if antialias {
+				s.X *= 2
+			}
+			if i == 0 {
+				currentRowHeight = s.Y
+			} else if currentPosition.X+s.X > maxImageSize {
+				currentPosition.X = 0
+				if currentPosition.Y+s.Y > maxImageSize {
+					atlasImageIndex++
+					a.atlasSizes = append(a.atlasSizes, image.Point{})
+					currentPosition.Y = 0
+				} else {
+					currentPosition.Y += currentRowHeight
+				}
+				currentRowHeight = s.Y
+			}
+			a.atlasRegions[i].imageIndex = atlasImageIndex
+			a.atlasRegions[i].imageBounds = image.Rectangle{
+				Min: currentPosition,
+				Max: currentPosition.Add(s),
+			}
+			a.atlasSizes[atlasImageIndex] = image.Point{
+				X: max(a.atlasSizes[atlasImageIndex].X, a.atlasRegions[i].imageBounds.Max.X),
+				Y: max(a.atlasSizes[atlasImageIndex].Y, a.atlasRegions[i].imageBounds.Max.Y),
+			}
+			currentPosition.X += s.X
+		}
+		atlasImageCount = atlasImageIndex + 1
+	}
+
+	a.atlasImages = slices.Grow(a.atlasImages, atlasImageCount)[:atlasImageCount]
+	for i := range a.atlasImages {
+		s := a.atlasSizes[i]
 		var origWidth, origHeight int
 		if a.atlasImages[i] != nil {
 			origWidth = a.atlasImages[i].Bounds().Dx()
 			origHeight = a.atlasImages[i].Bounds().Dy()
-			if origWidth < r.Max.X || origHeight < r.Max.Y {
+			if origWidth < s.X || origHeight < s.Y {
 				a.atlasImages[i].Deallocate()
 				a.atlasImages[i] = nil
 			}
@@ -86,68 +143,36 @@ func (a *atlas) setPaths(dstBounds image.Rectangle, paths []*Path, antialias boo
 		if a.atlasImages[i] != nil {
 			a.atlasImages[i].Clear()
 		} else {
-			maxPageSize := a.maxPageSize(dstBounds)
 			// Extend the bounds a little bit by roundUpAtlasSize to avoid creating an image too often.
-			w := min(maxPageSize, max(roundUpAtlasSize(r.Max.X), origWidth))
-			h := min(maxPageSize, max(roundUpAtlasSize(r.Max.Y), origHeight))
+			w := min(maxImageSize, max(roundUpAtlasSize(s.X), origWidth))
+			h := min(maxImageSize, max(roundUpAtlasSize(s.Y), origHeight))
 			a.atlasImages[i] = ebiten.NewImage(w, h)
 		}
 	}
 }
 
-func roundUpPowerOf2(n int) int {
-	if n <= 0 {
-		return 1
-	}
-	p := 1
-	for p < n {
-		p *= 2
-	}
-	return p
-}
-
-func (a *atlas) maxPageSize(dstBounds image.Rectangle) int {
-	// 4096 is a very conservative value, but before the game starts, there is no way to know the maximum size of an image.
-	return max(4096, roundUpPowerOf2(dstBounds.Dx()), roundUpPowerOf2(dstBounds.Dy()))
-}
-
-func (a *atlas) allocNode(dstBounds image.Rectangle, width, height int) (int, *packing.Node) {
-	minSize := max(1024, roundUpPowerOf2(width), roundUpPowerOf2(height))
-	if len(a.pages) == 0 {
-		a.pages = append(a.pages, packing.NewPage(minSize, minSize, a.maxPageSize(dstBounds)))
-	}
-
-	node := a.pages[len(a.pages)-1].Alloc(width, height)
-	if node != nil {
-		return len(a.pages) - 1, node
-	}
-
-	a.pages = append(a.pages, packing.NewPage(minSize, minSize, a.maxPageSize(dstBounds)))
-	node = a.pages[len(a.pages)-1].Alloc(width, height)
-	if node != nil {
-		return len(a.pages) - 1, node
-	}
-
-	panic("vector: failed to allocate a node for a path")
-}
-
 func (a *atlas) stencilBufferImageAt(i int, antialias bool, antialiasIndex int) *ebiten.Image {
-	r := a.atlasRegions[i]
-	if r.bounds.Empty() {
+	idx, ok := a.pathIndexToAtlasRegionIndex[i]
+	if !ok {
 		return nil
 	}
-	atlas := a.atlasImages[r.index]
-	b := r.bounds
+	ar := a.atlasRegions[idx]
+	if ar.imageBounds.Empty() {
+		return nil
+	}
+
+	atlas := a.atlasImages[ar.imageIndex]
+	b := ar.imageBounds
 	if antialias {
 		switch antialiasIndex {
 		case 0:
 			b = image.Rectangle{
 				Min: b.Min,
-				Max: image.Point{X: b.Min.X + b.Dx()/2, Y: b.Max.Y},
+				Max: image.Pt(b.Min.X+b.Dx()/2, b.Max.Y),
 			}
 		case 1:
 			b = image.Rectangle{
-				Min: image.Point{X: b.Min.X + b.Dx()/2, Y: b.Min.Y},
+				Min: image.Pt(b.Min.X+b.Dx()/2, b.Min.Y),
 				Max: b.Max,
 			}
 		default:

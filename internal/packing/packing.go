@@ -342,35 +342,3 @@ func (p *Page) extend(newWidth int, newHeight int) func() {
 
 	return rollback
 }
-
-func (p *Page) AllocatedRegion() image.Rectangle {
-	if p.root == nil {
-		return image.Rectangle{}
-	}
-	minX, minY := p.width, p.height
-	maxX, maxY := 0, 0
-	var used bool
-	_ = walk(p.root, func(n *Node) error {
-		if !n.used {
-			return nil
-		}
-		used = true
-		if n.region.Min.X < minX {
-			minX = n.region.Min.X
-		}
-		if n.region.Min.Y < minY {
-			minY = n.region.Min.Y
-		}
-		if n.region.Max.X > maxX {
-			maxX = n.region.Max.X
-		}
-		if n.region.Max.Y > maxY {
-			maxY = n.region.Max.Y
-		}
-		return nil
-	})
-	if !used {
-		return image.Rectangle{}
-	}
-	return image.Rect(minX, minY, maxX, maxY)
-}
