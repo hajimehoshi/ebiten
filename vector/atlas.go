@@ -182,6 +182,6 @@ func (a *atlas) stencilBufferImageAt(i int, antialias bool, antialiasIndex int) 
 	return atlas.SubImage(b).(*ebiten.Image)
 }
 
-func (a *atlas) pathRenderingBoundsAt(i int) image.Rectangle {
-	return a.pathRenderingBounds[i]
+func (a *atlas) pathRenderingPositionAt(i int) image.Point {
+	return a.pathRenderingBounds[i].Min
 }
