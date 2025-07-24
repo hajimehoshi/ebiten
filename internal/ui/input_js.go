@@ -171,8 +171,16 @@ func (u *UserInterface) updateInputFromEvent(e js.Value) error {
 		// TODO: What if e.deltaMode is not DOM_DELTA_PIXEL?
 		u.inputState.WheelX = -e.Get("deltaX").Float()
 		u.inputState.WheelY = -e.Get("deltaY").Float()
-	case t.Equal(stringTouchstart) || t.Equal(stringTouchend) || t.Equal(stringTouchmove):
+	case t.Equal(stringTouchstart):
+		u.mouseDown(0)
 		u.updateTouchesFromEvent(e)
+		u.setMouseCursorFromEvent(e.Get("changedTouches").Call("item", 0))
+	case t.Equal(stringTouchend):
+		u.mouseUp(0)
+		u.updateTouchesFromEvent(e)
+	case t.Equal(stringTouchmove):
+		u.updateTouchesFromEvent(e)
+		u.setMouseCursorFromEvent(e.Get("changedTouches").Call("item", 0))
 	}
 
 	u.forceUpdateOnMinimumFPSMode()
