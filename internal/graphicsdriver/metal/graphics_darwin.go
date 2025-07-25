@@ -247,7 +247,6 @@ func (g *Graphics) flushIfNeeded(present bool) {
 	}
 
 	g.cb.Commit()
-	g.cb.WaitUntilScheduled()
 
 	for _, t := range g.tmpTextures {
 		t.Release()
