@@ -15,6 +15,7 @@
 package shaderir_test
 
 import (
+	"slices"
 	"sort"
 	"testing"
 
@@ -24,18 +25,6 @@ import (
 
 func compileToIR(src []byte) (*shaderir.Program, error) {
 	return shader.Compile(src, "Vertex", "Fragment", 0)
-}
-
-func areIntSlicesEqual(a, b []int) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i := range a {
-		if a[i] != b[i] {
-			return false
-		}
-	}
-	return true
 }
 
 func TestReachableUniformVariablesFromBlock(t *testing.T) {
@@ -109,7 +98,7 @@ func neverCalled() float {
 		got := ir.AppendReachableUniformVariablesFromBlock(nil, ir.Funcs[c.index].Block)
 		sort.Ints(got)
 		want := c.expected
-		if !areIntSlicesEqual(got, want) {
+		if !slices.Equal(got, want) {
 			t.Errorf("test: %v, got: %v, want: %v", c, got, want)
 		}
 	}
