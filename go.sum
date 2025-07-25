@@ -16,8 +16,8 @@ github.com/go-text/typesetting-utils v0.0.0-20241103174707-87a29e9e6066 h1:qCuYC
 github.com/go-text/typesetting-utils v0.0.0-20241103174707-87a29e9e6066/go.mod h1:DDxDdQEnB70R8owOx3LVpEFvpMK9eeH1o2r0yZhFI9o=
 github.com/google/go-cmp v0.6.0 h1:ofyhxvXcZhMsU5ulbFiLKl/XBFqE1GSq7atu8tAmTRI=
 github.com/google/go-cmp v0.6.0/go.mod h1:17dUlkBOakJ0+DkrSSNjCkIjxS6bF9zb3elmeNGIjoY=
-github.com/hajimehoshi/bitmapfont/v4 v4.1.0-alpha.1.0.20250721093300-3abd37f101a8 h1:70YfcGW4FW604EEEd01B7H0jhqCqUqs9qEFMG9GraC4=
-github.com/hajimehoshi/bitmapfont/v4 v4.1.0-alpha.1.0.20250721093300-3abd37f101a8/go.mod h1:/PD+aLjAJ0F2UoQx6hkOfXqWN7BkroDUMr5W+IT1dpE=
+github.com/hajimehoshi/bitmapfont/v4 v4.1.0-alpha.2 h1:sEbCb3oJ68M8yd1vlOHstNUDBV8J3sfkhsY1BK7slEI=
+github.com/hajimehoshi/bitmapfont/v4 v4.1.0-alpha.2/go.mod h1:/PD+aLjAJ0F2UoQx6hkOfXqWN7BkroDUMr5W+IT1dpE=
 github.com/hajimehoshi/go-mp3 v0.3.4 h1:NUP7pBYH8OguP4diaTZ9wJbUbk3tC0KlfzsEpWmYj68=
 github.com/hajimehoshi/go-mp3 v0.3.4/go.mod h1:fRtZraRFcWb0pu7ok0LqyFhCUrPeMsGRSVop0eemFmo=
 github.com/hajimehoshi/oto/v2 v2.3.1/go.mod h1:seWLbgHH7AyUMYKfKYT9pg7PhUu9/SisyJvNTT+ASQo=
