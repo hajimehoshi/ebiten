@@ -17,8 +17,6 @@
 package metal
 
 import (
-	"runtime"
-
 	"github.com/ebitengine/purego/objc"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/cocoa"
@@ -56,24 +54,7 @@ const (
 )
 
 func (v *view) maximumDrawableCount() int {
-	// Note that the architecture might not be the true reason of the issues (#2880, #2883).
-	// Hajime tested only MacBook Pro 2020 (Intel) and MacBook Pro 2023 (M3).
-
-	// Use 3 for Intel Mac and iOS. With 2, There are some situations that the FPS becomes half, or the FPS becomes too low (#2880).
-	if runtime.GOARCH == "amd64" {
-		return 3
-	}
-
-	// Use 3 in fullscren.
-	// Though this might degrade FPS, this is necessary to avoid mysterious rendering delays.
-	if v.isFullscreen() {
-		return 3
-	}
-
-	// Use 2 for a Wnidow to avoid mysterious blinking (#2883).
-	return 2
-}
-
-func (v *view) isFullscreen() bool {
-	return cocoa.NSWindow{ID: objc.ID(v.window)}.StyleMask()&cocoa.NSWindowStyleMaskFullScreen != 0
+	// Always use 3 for macOS (#2880, #2883, #3278).
+	// At least, this should work with MacBook Pro 2020 (Intel) and MacBook Pro 2023 (M3).
+	return 3
 }
