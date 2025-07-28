@@ -43,17 +43,6 @@ const (
 //go:embed _files/EbitenViewController.h
 var objcH string
 
-func goEnv(name string) string {
-	if val := os.Getenv(name); val != "" {
-		return val
-	}
-	val, err := exec.Command("go", "env", name).Output()
-	if err != nil {
-		panic(err)
-	}
-	return strings.TrimSpace(string(val))
-}
-
 var (
 	buildA          bool   // -a
 	buildI          bool   // -i
