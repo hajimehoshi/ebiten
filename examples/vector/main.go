@@ -41,7 +41,7 @@ type Game struct {
 	line bool
 }
 
-func (g *Game) drawEbitenText(screen *ebiten.Image, x, y int, aa bool, line bool) {
+func (g *Game) drawEbitenText(screen *ebiten.Image, aa bool, line bool) {
 	var path vector.Path
 
 	// E
@@ -250,7 +250,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	dst := screen
 
 	dst.Fill(color.RGBA{0xe0, 0xe0, 0xe0, 0xff})
-	g.drawEbitenText(dst, 0, 50, g.aa, g.line)
+	g.drawEbitenText(dst, g.aa, g.line)
 	g.drawEbitenLogo(dst, 20, 150, g.aa, g.line)
 	g.drawArc(dst, g.counter, g.aa, g.line)
 	g.drawWave(dst, g.counter, g.aa, g.line)
