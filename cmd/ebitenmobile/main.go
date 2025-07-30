@@ -207,11 +207,7 @@ func doBind(args []string, flagset *flag.FlagSet, buildOS string) error {
 	}
 
 	if buildN {
-		fmt.Print("gomobile")
-		for _, arg := range args {
-			fmt.Print(" ", arg)
-		}
-		fmt.Println()
+		fmt.Println("gomobile " + strings.Join(args, " "))
 		return nil
 	}
 
