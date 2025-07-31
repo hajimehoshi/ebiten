@@ -237,10 +237,6 @@ func (g *Graphics) flushIfNeeded(present bool) {
 	g.flushRenderCommandEncoderIfNeeded()
 
 	if present {
-		// This check is necessary when skipping to render the screen (SetScreenClearedEveryFrame(false)).
-		if g.screenDrawable == (ca.MetalDrawable{}) && g.cb != (mtl.CommandBuffer{}) {
-			g.screenDrawable = g.view.nextDrawable()
-		}
 		if g.screenDrawable != (ca.MetalDrawable{}) {
 			g.cb.PresentDrawable(g.screenDrawable)
 		}
