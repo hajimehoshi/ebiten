@@ -15,6 +15,7 @@
 package text_test
 
 import (
+	"bufio"
 	"bytes"
 	"image"
 	"image/color"
@@ -498,28 +499,59 @@ func TestRuneToBoolMap(t *testing.T) {
 
 // Issue #3284
 func TestAppendGlyphsWithInvalidSequence(t *testing.T) {
-	f := text.NewGoXFace(bitmapfont.Face)
-	var glyphs []text.Glyph
-	glyphs = text.AppendGlyphs(glyphs, "a\x80b", f, nil)
-	if len(glyphs) != 3 {
-		t.Fatalf("got: %d, want: 3", len(glyphs))
+	goxFace := text.NewGoXFace(bitmapfont.Face)
+
+	f, err := os.Open(filepath.Join("testdata", "Roboto-Regular.ttf"))
+	if err != nil {
+		t.Fatal(err)
 	}
-	if got, want := glyphs[0].StartIndexInBytes, 0; got != want {
-		t.Errorf("got: %d, want: %d", got, want)
+	defer f.Close()
+	fs, err := text.NewGoTextFaceSource(bufio.NewReader(f))
+	if err != nil {
+		t.Fatal(err)
 	}
-	if got, want := glyphs[0].EndIndexInBytes, 1; got != want {
-		t.Errorf("got: %d, want: %d", got, want)
+	goTextFace := &text.GoTextFace{
+		Source: fs,
+		Size:   32,
 	}
-	if got, want := glyphs[1].StartIndexInBytes, 1; got != want {
-		t.Errorf("got: %d, want: %d", got, want)
-	}
-	if got, want := glyphs[1].EndIndexInBytes, 2; got != want {
-		t.Errorf("got: %d, want: %d", got, want)
-	}
-	if got, want := glyphs[2].StartIndexInBytes, 2; got != want {
-		t.Errorf("got: %d, want: %d", got, want)
-	}
-	if got, want := glyphs[2].EndIndexInBytes, 3; got != want {
-		t.Errorf("got: %d, want: %d", got, want)
+
+	for _, tc := range []struct {
+		name string
+		face text.Face
+	}{
+		{
+			name: "GoXFace",
+			face: goxFace,
+		},
+		{
+			name: "GoTextFace",
+			face: goTextFace,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var glyphs []text.Glyph
+			glyphs = text.AppendGlyphs(glyphs, "a\x80b", tc.face, nil)
+			if len(glyphs) != 3 {
+				t.Fatalf("got: %d, want: 3", len(glyphs))
+			}
+			if got, want := glyphs[0].StartIndexInBytes, 0; got != want {
+				t.Errorf("got: %d, want: %d", got, want)
+			}
+			if got, want := glyphs[0].EndIndexInBytes, 1; got != want {
+				t.Errorf("got: %d, want: %d", got, want)
+			}
+			if got, want := glyphs[1].StartIndexInBytes, 1; got != want {
+				t.Errorf("got: %d, want: %d", got, want)
+			}
+			if got, want := glyphs[1].EndIndexInBytes, 2; got != want {
+				t.Errorf("got: %d, want: %d", got, want)
+			}
+			if got, want := glyphs[2].StartIndexInBytes, 2; got != want {
+				t.Errorf("got: %d, want: %d", got, want)
+			}
+			if got, want := glyphs[2].EndIndexInBytes, 3; got != want {
+				t.Errorf("got: %d, want: %d", got, want)
+			}
+		})
 	}
 }
