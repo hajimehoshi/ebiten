@@ -16,6 +16,7 @@ package text_test
 
 import (
 	"bytes"
+	"fmt"
 	"testing"
 
 	"github.com/hajimehoshi/bitmapfont/v4"
@@ -59,5 +60,36 @@ func TestMultiFaceFallback(t *testing.T) {
 	want := text.AppendGlyphs(nil, str, enFace, nil)
 	if len(got) != len(want) {
 		t.Errorf("got: %d, want: %d", len(got), len(want))
+	}
+}
+
+// Issue #3284
+func TestMultiFaceAdvance(t *testing.T) {
+	f := text.NewGoXFace(bitmapfont.Face)
+	f1 := text.NewLimitedFace(f)
+	f1.AddUnicodeRange(0x0000, 0x007F)
+	f2 := text.NewLimitedFace(f)
+	f2.AddUnicodeRange(0x0080, 0xFFFF)
+	m, err := text.NewMultiFace(f1, f2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, str := range []string{
+		"",
+		"abc",
+		"aあb",
+		"\x80",
+		"a\x80b",
+		"a\x80\x80b",
+		"a\x80b\x80",
+		"a\x80b\x80c",
+	} {
+		t.Run(fmt.Sprintf("str=%q", str), func(t *testing.T) {
+			got := text.Advance(str, m)
+			want := text.Advance(str, f)
+			if got != want {
+				t.Errorf("got: %f, want: %f", got, want)
+			}
+		})
 	}
 }

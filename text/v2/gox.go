@@ -171,9 +171,11 @@ func (g *GoXFace) appendGlyphsForLine(glyphs []Glyph, line string, indexOffset i
 
 		// Adjust the position to the integers.
 		// The current glyph images assume that they are rendered on integer positions so far.
-		size := utf8.RuneLen(r)
+		// Do not use utf8.RuneLen here, as r may be U+FFFD (replacement character)
+		// when the line contains invalid UTF-8 sequences (#3284).
+		_, size := utf8.DecodeRuneInString(line[i:])
 		if size < 0 {
-			// Treat an error as 1, following DecodeRuneInString.
+			// A string for-loop iterator advances by 1 byte when it encounters an invalid UTF-8 sequence.
 			size = 1
 		}
 

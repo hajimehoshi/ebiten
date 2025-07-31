@@ -495,3 +495,31 @@ func TestRuneToBoolMap(t *testing.T) {
 		}
 	}
 }
+
+// Issue #3284
+func TestAppendGlyphsWithInvalidSequence(t *testing.T) {
+	f := text.NewGoXFace(bitmapfont.Face)
+	var glyphs []text.Glyph
+	glyphs = text.AppendGlyphs(glyphs, "a\x80b", f, nil)
+	if len(glyphs) != 3 {
+		t.Fatalf("got: %d, want: 3", len(glyphs))
+	}
+	if got, want := glyphs[0].StartIndexInBytes, 0; got != want {
+		t.Errorf("got: %d, want: %d", got, want)
+	}
+	if got, want := glyphs[0].EndIndexInBytes, 1; got != want {
+		t.Errorf("got: %d, want: %d", got, want)
+	}
+	if got, want := glyphs[1].StartIndexInBytes, 1; got != want {
+		t.Errorf("got: %d, want: %d", got, want)
+	}
+	if got, want := glyphs[1].EndIndexInBytes, 2; got != want {
+		t.Errorf("got: %d, want: %d", got, want)
+	}
+	if got, want := glyphs[2].StartIndexInBytes, 2; got != want {
+		t.Errorf("got: %d, want: %d", got, want)
+	}
+	if got, want := glyphs[2].EndIndexInBytes, 3; got != want {
+		t.Errorf("got: %d, want: %d", got, want)
+	}
+}

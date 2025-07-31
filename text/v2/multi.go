@@ -166,7 +166,7 @@ type textChunk struct {
 func (m *MultiFace) splitText(text string) iter.Seq[textChunk] {
 	return func(yield func(textChunk) bool) {
 		var chunk textChunk
-		for _, r := range text {
+		for i, r := range text {
 			fi := -1
 			for i, f := range m.faces {
 				if !f.hasGlyph(r) && i < len(m.faces)-1 {
@@ -179,9 +179,11 @@ func (m *MultiFace) splitText(text string) iter.Seq[textChunk] {
 				panic("text: a face was not selected correctly")
 			}
 
-			l := utf8.RuneLen(r)
+			// Do not use utf8.RuneLen here, as r may be U+FFFD (replacement character)
+			// when the line contains invalid UTF-8 sequences (#3284).
+			_, l := utf8.DecodeRuneInString(text[i:])
 			if l < 0 {
-				// Treat an error as 1, following DecodeRuneInString.
+				// A string for-loop iterator advances by 1 byte when it encounters an invalid UTF-8 sequence.
 				l = 1
 			}
 
