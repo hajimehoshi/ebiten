@@ -97,13 +97,10 @@ func (v *view) waitForDisplayLinkOutputCallback() {
 	}
 
 	v.fenceCond.L.Lock()
-	for {
-		if f := v.fence.Load(); v.lastFence < f {
-			v.lastFence = f
-			break
-		}
+	for v.lastFence >= v.fence {
 		v.fenceCond.Wait()
 	}
+	v.lastFence = v.fence
 	v.fenceCond.L.Unlock()
 }
 
@@ -115,6 +112,8 @@ func ebitengine_DisplayLinkOutputCallback(displayLinkRef C.CVDisplayLinkRef, inN
 }
 
 func (v *view) advanceFence() {
-	v.fence.Add(1)
+	v.fenceCond.L.Lock()
+	defer v.fenceCond.L.Unlock()
+	v.fence++
 	v.fenceCond.Signal()
 }

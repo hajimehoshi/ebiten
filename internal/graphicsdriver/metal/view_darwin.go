@@ -17,7 +17,6 @@ package metal
 import (
 	"runtime/cgo"
 	"sync"
-	"sync/atomic"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/ca"
@@ -38,7 +37,7 @@ type view struct {
 
 	displayLink  uintptr
 	handleToSelf cgo.Handle
-	fence        atomic.Uint64
+	fence        uint64
 	fenceCond    *sync.Cond
 	lastFence    uint64
 }
