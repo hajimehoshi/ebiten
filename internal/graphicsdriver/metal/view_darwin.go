@@ -15,7 +15,9 @@
 package metal
 
 import (
+	"runtime/cgo"
 	"sync"
+	"sync/atomic"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/ca"
@@ -33,6 +35,12 @@ type view struct {
 	ml     ca.MetalLayer
 
 	once sync.Once
+
+	displayLink  uintptr
+	handleToSelf cgo.Handle
+	fence        atomic.Uint64
+	fenceCond    *sync.Cond
+	lastFence    uint64
 }
 
 func (v *view) setDrawableSize(width, height int) {
@@ -85,6 +93,8 @@ func (v *view) initialize(device mtl.Device, colorSpace graphicsdriver.ColorSpac
 	v.ml.SetPresentsWithTransaction(false)
 
 	v.ml.SetMaximumDrawableCount(v.maximumDrawableCount())
+
+	v.initializeDisplayLink()
 
 	return nil
 }
