@@ -23,12 +23,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/mtl"
 )
 
-// maximumDrawableCount is the maximum number of drawable objects.
-//
-// Always use 3 for macOS (#2880, #2883, #3278).
-// At least, this should work with MacBook Pro 2020 (Intel) and MacBook Pro 2023 (M3).
-const maximumDrawableCount = 3
-
 type view struct {
 	window uintptr
 	uiview uintptr
@@ -95,7 +89,7 @@ func (v *view) initialize(device mtl.Device, colorSpace graphicsdriver.ColorSpac
 	// nextDrawable took more than one second if the window has other controls like NSTextView (#1029).
 	v.ml.SetPresentsWithTransaction(false)
 
-	v.ml.SetMaximumDrawableCount(maximumDrawableCount)
+	v.ml.SetMaximumDrawableCount(v.maximumDrawableCount())
 
 	v.initializeDisplayLink()
 

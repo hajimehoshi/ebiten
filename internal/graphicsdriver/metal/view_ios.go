@@ -65,6 +65,11 @@ const (
 	resourceStorageMode = mtl.ResourceStorageModeShared
 )
 
+func (v *view) maximumDrawableCount() int {
+	// TODO: Is 2 available for iOS?
+	return 3
+}
+
 func (v *view) initializeDisplayLink() {
 	// Do nothing.
 }

@@ -15,17 +15,14 @@
 package metal
 
 import (
-	"context"
 	"fmt"
 	"image"
 	"math"
 	"runtime"
 	"sort"
-	"sync"
 	"unsafe"
 
 	"github.com/ebitengine/purego/objc"
-	"golang.org/x/sync/semaphore"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/cocoa"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
@@ -46,10 +43,6 @@ type Graphics struct {
 	cb   mtl.CommandBuffer
 	rce  mtl.RenderCommandEncoder
 	dsss map[stencilMode]mtl.DepthStencilState
-
-	cbCompletedBlock     objc.Block
-	cbCompletedBlockOnce sync.Once
-	cbSemaphore          *semaphore.Weighted
 
 	screenDrawable ca.MetalDrawable
 
@@ -110,8 +103,7 @@ func NewGraphics(colorSpace graphicsdriver.ColorSpace) (graphicsdriver.Graphics,
 	}
 
 	g := &Graphics{
-		colorSpace:  colorSpace,
-		cbSemaphore: semaphore.NewWeighted(2),
+		colorSpace: colorSpace,
 	}
 
 	if runtime.GOOS != "ios" {
@@ -121,7 +113,6 @@ func NewGraphics(colorSpace graphicsdriver.ColorSpace) (graphicsdriver.Graphics,
 			return nil, err
 		}
 	}
-
 	return g, nil
 }
 
@@ -248,12 +239,6 @@ func (g *Graphics) flushIfNeeded(present bool) {
 	if present {
 		if g.screenDrawable != (ca.MetalDrawable{}) {
 			g.cb.PresentDrawable(g.screenDrawable)
-			g.cbCompletedBlockOnce.Do(func() {
-				g.cbCompletedBlock = objc.NewBlock(func(self objc.Block, _ objc.ID) {
-					g.cbSemaphore.Release(1)
-				})
-			})
-			g.cb.AddCompletedHeader(g.cbCompletedBlock)
 		}
 	}
 
@@ -844,11 +829,9 @@ func (i *Image) mtlTexture() mtl.Texture {
 	if i.screen {
 		g := i.graphics
 		if g.screenDrawable == (ca.MetalDrawable{}) {
-			_ = g.cbSemaphore.Acquire(context.Background(), 1)
 			i.graphics.view.waitForDisplayLinkOutputCallback()
 			drawable := g.view.nextDrawable()
 			if drawable == (ca.MetalDrawable{}) {
-				g.cbSemaphore.Release(1)
 				return mtl.Texture{}
 			}
 			g.screenDrawable = drawable
