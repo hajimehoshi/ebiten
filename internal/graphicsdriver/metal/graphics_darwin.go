@@ -15,6 +15,7 @@
 package metal
 
 import (
+	"context"
 	"fmt"
 	"image"
 	"math"
@@ -23,6 +24,7 @@ import (
 	"unsafe"
 
 	"github.com/ebitengine/purego/objc"
+	"golang.org/x/sync/semaphore"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/cocoa"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
@@ -43,6 +45,9 @@ type Graphics struct {
 	cb   mtl.CommandBuffer
 	rce  mtl.RenderCommandEncoder
 	dsss map[stencilMode]mtl.DepthStencilState
+
+	cbCompletedBlock  objc.Block
+	inFlightSemaphore *semaphore.Weighted
 
 	screenDrawable ca.MetalDrawable
 
@@ -103,7 +108,8 @@ func NewGraphics(colorSpace graphicsdriver.ColorSpace) (graphicsdriver.Graphics,
 	}
 
 	g := &Graphics{
-		colorSpace: colorSpace,
+		colorSpace:        colorSpace,
+		inFlightSemaphore: semaphore.NewWeighted(maximumDrawableCount),
 	}
 
 	if runtime.GOOS != "ios" {
@@ -113,6 +119,11 @@ func NewGraphics(colorSpace graphicsdriver.ColorSpace) (graphicsdriver.Graphics,
 			return nil, err
 		}
 	}
+
+	g.cbCompletedBlock = objc.NewBlock(func(self objc.Block, _ objc.ID) {
+		g.inFlightSemaphore.Release(1)
+	})
+
 	return g, nil
 }
 
@@ -828,14 +839,25 @@ func (i *Image) mtlTexture() mtl.Texture {
 	if i.screen {
 		g := i.graphics
 		if g.screenDrawable == (ca.MetalDrawable{}) {
+			// Wait for the inflight semaphore to be available.
+			_ = g.inFlightSemaphore.Acquire(context.Background(), 1)
+
 			i.graphics.view.waitForDisplayLinkOutputCallback()
 			drawable := g.view.nextDrawable()
 			if drawable == (ca.MetalDrawable{}) {
+				g.inFlightSemaphore.Release(1)
 				return mtl.Texture{}
 			}
 			g.screenDrawable = drawable
+
 			// After nextDrawable, it is expected some command buffers are completed.
 			g.gcBuffers()
+
+			// Set the completed handler to release the semaphore when the command buffer is completed.
+			if g.cb == (mtl.CommandBuffer{}) {
+				g.cb = g.cq.CommandBuffer()
+			}
+			g.cb.AddCompletedHandler(g.cbCompletedBlock)
 		}
 		return g.screenDrawable.Texture()
 	}

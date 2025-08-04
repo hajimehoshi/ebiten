@@ -563,6 +563,7 @@ var (
 	sel_replaceRegion_mipmapLevel_withBytes_bytesPerRow                                                                               = objc.RegisterName("replaceRegion:mipmapLevel:withBytes:bytesPerRow:")
 	sel_getBytes_bytesPerRow_fromRegion_mipmapLevel                                                                                   = objc.RegisterName("getBytes:bytesPerRow:fromRegion:mipmapLevel:")
 	sel_respondsToSelector                                                                                                            = objc.RegisterName("respondsToSelector:")
+	sel_addCompletedHandler                                                                                                           = objc.RegisterName("addCompletedHandler:")
 )
 
 // CreateSystemDefaultDevice returns the preferred system default Metal device.
@@ -841,6 +842,13 @@ func (cb CommandBuffer) WaitUntilCompleted() {
 // Reference: https://developer.apple.com/documentation/metal/mtlcommandbuffer/1443036-waituntilscheduled?language=objc.
 func (cb CommandBuffer) WaitUntilScheduled() {
 	cb.commandBuffer.Send(sel_waitUntilScheduled)
+}
+
+// AddCompletedHandler registers a completion handler the GPU device calls immediately after the GPU finishes running the commands in the command buffer.
+//
+// Reference: https://developer.apple.com/documentation/metal/mtlcommandbuffer/addcompletedhandler(_:)
+func (cb CommandBuffer) AddCompletedHandler(block objc.Block) {
+	cb.commandBuffer.Send(sel_addCompletedHandler, block)
 }
 
 // RenderCommandEncoderWithDescriptor creates a render command encoder from a descriptor.
