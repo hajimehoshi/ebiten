@@ -23,7 +23,6 @@ import "C"
 
 import (
 	"runtime/cgo"
-	"sync"
 	"unsafe"
 
 	"github.com/ebitengine/purego/objc"
@@ -71,7 +70,7 @@ func (v *view) maximumDrawableCount() int {
 }
 
 func (v *view) initializeDisplayLink() {
-	v.fenceCond = sync.NewCond(&sync.Mutex{})
+	v.fence = newFence()
 
 	// TODO: CVDisplayLink APIs are deprecated in macOS 10.15 and later.
 	// Use new APIs like NSView.displayLink(target:selector:).
@@ -96,24 +95,13 @@ func (v *view) waitForDisplayLinkOutputCallback() {
 		return
 	}
 
-	v.fenceCond.L.Lock()
-	for v.lastFence >= v.fence {
-		v.fenceCond.Wait()
-	}
-	v.lastFence = v.fence
-	v.fenceCond.L.Unlock()
+	v.fence.wait()
 }
 
 //export ebitengine_DisplayLinkOutputCallback
 func ebitengine_DisplayLinkOutputCallback(displayLinkRef C.CVDisplayLinkRef, inNow, inOutputTime C.CVTimeStamp, flagsIn C.uint64_t, flagsOut *C.uint64_t, displayLinkContext unsafe.Pointer) C.int {
 	cgoHandle := (*cgo.Handle)(displayLinkContext)
-	cgoHandle.Value().(*view).advanceFence()
+	view := cgoHandle.Value().(*view)
+	view.fence.advance()
 	return 0
-}
-
-func (v *view) advanceFence() {
-	v.fenceCond.L.Lock()
-	defer v.fenceCond.L.Unlock()
-	v.fence++
-	v.fenceCond.Signal()
 }

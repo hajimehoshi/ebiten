@@ -37,9 +37,7 @@ type view struct {
 
 	displayLink  uintptr
 	handleToSelf cgo.Handle
-	fence        uint64
-	fenceCond    *sync.Cond
-	lastFence    uint64
+	fence        *fence
 }
 
 func (v *view) setDrawableSize(width, height int) {
@@ -105,4 +103,32 @@ func (v *view) nextDrawable() ca.MetalDrawable {
 		return ca.MetalDrawable{}
 	}
 	return d
+}
+
+type fence struct {
+	value     uint64
+	lastValue uint64
+	cond      *sync.Cond
+}
+
+func newFence() *fence {
+	return &fence{
+		cond: sync.NewCond(&sync.Mutex{}),
+	}
+}
+
+func (f *fence) wait() {
+	f.cond.L.Lock()
+	defer f.cond.L.Unlock()
+	for f.lastValue >= f.value {
+		f.cond.Wait()
+	}
+	f.lastValue = f.value
+}
+
+func (f *fence) advance() {
+	f.cond.L.Lock()
+	defer f.cond.L.Unlock()
+	f.value++
+	f.cond.Broadcast()
 }
