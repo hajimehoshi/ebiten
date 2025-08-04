@@ -125,9 +125,6 @@ func (g *Graphics) Begin() error {
 
 func (g *Graphics) End(present bool) error {
 	g.flushIfNeeded(present)
-	if present {
-		g.screenDrawable = ca.MetalDrawable{}
-	}
 	g.pool.Release()
 	g.pool.ID = 0
 	return nil
@@ -238,10 +235,9 @@ func (g *Graphics) flushIfNeeded(present bool) {
 
 	g.flushRenderCommandEncoderIfNeeded()
 
-	if present {
-		if g.screenDrawable != (ca.MetalDrawable{}) {
-			g.cb.PresentDrawable(g.screenDrawable)
-		}
+	if present && g.screenDrawable != (ca.MetalDrawable{}) {
+		g.cb.PresentDrawable(g.screenDrawable)
+		g.screenDrawable = ca.MetalDrawable{}
 	}
 
 	g.cb.Commit()
