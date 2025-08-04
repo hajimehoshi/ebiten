@@ -44,7 +44,7 @@ func (v *view) setUIView(uiview uintptr) {
 }
 
 func (v *view) update() {
-	v.ml.SetMaximumDrawableCount(v.maximumDrawableCount())
+	v.ml.SetMaximumDrawableCount(maximumDrawableCount)
 
 	if !v.windowChanged {
 		return
@@ -62,12 +62,6 @@ const (
 	storageMode         = mtl.StorageModeManaged
 	resourceStorageMode = mtl.ResourceStorageModeManaged
 )
-
-func (v *view) maximumDrawableCount() int {
-	// Always use 3 for macOS (#2880, #2883, #3278).
-	// At least, this should work with MacBook Pro 2020 (Intel) and MacBook Pro 2023 (M3).
-	return 3
-}
 
 func (v *view) initializeDisplayLink() {
 	v.fence = newFence()
