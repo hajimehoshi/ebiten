@@ -18,7 +18,7 @@ package metal
 
 // #include <CoreVideo/CVDisplayLink.h>
 //
-// int ebitengine_DisplayLinkOutputCallback(CVDisplayLinkRef displayLinkRef, CVTimeStamp inNow, CVTimeStamp inOutputTime, uint64_t flagsIn, uint64_t* flagsOut, void* displayLinkContext);
+// int ebitengine_DisplayLinkOutputCallback(CVDisplayLinkRef displayLinkRef, CVTimeStamp* inNow, CVTimeStamp* inOutputTime, uint64_t flagsIn, uint64_t* flagsOut, void* displayLinkContext);
 import "C"
 
 import (
@@ -93,7 +93,7 @@ func (v *view) waitForDisplayLinkOutputCallback() {
 }
 
 //export ebitengine_DisplayLinkOutputCallback
-func ebitengine_DisplayLinkOutputCallback(displayLinkRef C.CVDisplayLinkRef, inNow, inOutputTime C.CVTimeStamp, flagsIn C.uint64_t, flagsOut *C.uint64_t, displayLinkContext unsafe.Pointer) C.int {
+func ebitengine_DisplayLinkOutputCallback(displayLinkRef C.CVDisplayLinkRef, inNow, inOutputTime *C.CVTimeStamp, flagsIn C.uint64_t, flagsOut *C.uint64_t, displayLinkContext unsafe.Pointer) C.int {
 	cgoHandle := (*cgo.Handle)(displayLinkContext)
 	view := cgoHandle.Value().(*view)
 	view.fence.advance()
