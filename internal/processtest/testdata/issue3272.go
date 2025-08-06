@@ -17,8 +17,6 @@
 package main
 
 import (
-	"image/color"
-
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
@@ -42,7 +40,9 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		paths[i].LineTo(500, 500)
 		paths[i].LineTo(0, 500)
 		paths[i].Close()
-		vector.FillPath(screen, &paths[i], color.White, true, vector.FillRuleNonZero)
+		op := &vector.DrawPathOptions{}
+		op.AntiAlias = true
+		vector.FillPath(screen, &paths[i], nil, op)
 	}
 	g.onceRendered = true
 }
