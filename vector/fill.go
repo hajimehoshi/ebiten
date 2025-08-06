@@ -15,7 +15,6 @@
 package vector
 
 import (
-	"image/color"
 	"slices"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -126,12 +125,13 @@ var theAtlas atlas
 
 type fillPathsState struct {
 	paths  []*Path
-	colors []color.Color
+	colors []ebiten.ColorScale
 
 	vertices []ebiten.Vertex
 	indices  []uint32
 
 	antialias bool
+	blend     ebiten.Blend
 	fillRule  FillRule
 }
 
@@ -143,7 +143,7 @@ func (f *fillPathsState) reset() {
 	f.colors = slices.Delete(f.colors, 0, len(f.colors))
 }
 
-func (f *fillPathsState) addPath(path *Path, clr color.Color) {
+func (f *fillPathsState) addPath(path *Path, clr ebiten.ColorScale) {
 	if path == nil {
 		return
 	}
@@ -445,11 +445,10 @@ func (f *fillPathsState) fillPaths(dst *ebiten.Image) {
 		dstOffsetX := max(0, dst.Bounds().Min.X-pp.X)
 		dstOffsetY := max(0, dst.Bounds().Min.Y-pp.Y)
 		var clrR, clrG, clrB, clrA float32
-		r, g, b, a := f.colors[i].RGBA()
-		clrR = float32(r) / 0xffff
-		clrG = float32(g) / 0xffff
-		clrB = float32(b) / 0xffff
-		clrA = float32(a) / 0xffff
+		clrR = f.colors[i].R()
+		clrG = f.colors[i].G()
+		clrB = f.colors[i].B()
+		clrA = f.colors[i].A()
 		vs = append(vs,
 			ebiten.Vertex{
 				DstX:    float32(pp.X + dstOffsetX),
@@ -502,6 +501,7 @@ func (f *fillPathsState) fillPaths(dst *ebiten.Image) {
 		is = append(is, 0, 1, 2, 1, 2, 3)
 
 		op := &ebiten.DrawTrianglesShaderOptions{}
+		op.Blend = f.blend
 		op.Images[0] = stencilImage
 		var shader *ebiten.Shader
 		switch f.fillRule {

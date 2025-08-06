@@ -16,7 +16,6 @@ package main
 
 import (
 	"bytes"
-	"image/color"
 	"log"
 	"math"
 
@@ -56,17 +55,19 @@ func (g *Game) Update() error {
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	op := &vector.StrokeOptions{}
-	op.Width = 2*(float32(math.Sin(float64(g.tick)*2*math.Pi/180))+1) + 1
-	op.LineJoin = vector.LineJoinRound
-	op.LineCap = vector.LineCapRound
-
-	op2 := &vector.AddPathOptions{}
-	op2.GeoM.Translate(50, 0)
+	op := &vector.AddPathOptions{}
+	op.GeoM.Translate(50, 0)
 	var newPath vector.Path
-	newPath.AddPath(&g.path, op2)
+	newPath.AddPath(&g.path, op)
 
-	vector.StrokePath(screen, &newPath, color.White, true, op)
+	strokeOp := &vector.StrokeOptions{}
+	strokeOp.Width = 2*(float32(math.Sin(float64(g.tick)*2*math.Pi/180))+1) + 1
+	strokeOp.LineJoin = vector.LineJoinRound
+	strokeOp.LineCap = vector.LineCapRound
+	drawOp := &vector.DrawPathOptions{}
+	drawOp.AntiAlias = true
+
+	vector.StrokePath(screen, &newPath, strokeOp, drawOp)
 }
 
 func (*Game) Layout(width, height int) (int, int) {

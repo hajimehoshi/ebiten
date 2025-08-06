@@ -116,17 +116,20 @@ func (g *Game) drawLine(screen *ebiten.Image, region image.Rectangle, cap vector
 	path.LineTo(float32(-r*cos1+c1x), float32(-r*sin1+c1y))
 
 	// Draw the main line in white.
-	op := &vector.StrokeOptions{}
-	op.LineCap = cap
-	op.LineJoin = join
-	op.MiterLimit = miterLimit
-	op.Width = float32(r / 2)
-	vector.StrokePath(screen, &path, color.White, g.aa, op)
+	strokeOp := &vector.StrokeOptions{}
+	strokeOp.LineCap = cap
+	strokeOp.LineJoin = join
+	strokeOp.MiterLimit = miterLimit
+	strokeOp.Width = float32(r / 2)
+	drawOp := &vector.DrawPathOptions{}
+	drawOp.AntiAlias = g.aa
+	vector.StrokePath(screen, &path, strokeOp, drawOp)
 
 	// Draw the center line in red.
 	if g.showCenter {
-		op.Width = 1
-		vector.StrokePath(screen, &path, color.RGBA{0xff, 0, 0, 0xff}, g.aa, op)
+		strokeOp.Width = 1
+		drawOp.ColorScale.ScaleWithColor(color.RGBA{0xff, 0, 0, 0xff})
+		vector.StrokePath(screen, &path, strokeOp, drawOp)
 	}
 }
 

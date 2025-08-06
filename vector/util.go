@@ -57,9 +57,12 @@ func StrokeLine(dst *ebiten.Image, x0, y0, x1, y1 float32, strokeWidth float32, 
 		var path Path
 		path.MoveTo(x0, y0)
 		path.LineTo(x1, y1)
-		op := &StrokeOptions{}
-		op.Width = strokeWidth
-		StrokePath(dst, &path, clr, true, op)
+		strokeOp := &StrokeOptions{}
+		strokeOp.Width = strokeWidth
+		drawOp := &DrawPathOptions{}
+		drawOp.AntiAlias = true
+		drawOp.ColorScale.ScaleWithColor(clr)
+		StrokePath(dst, &path, strokeOp, drawOp)
 		return
 	}
 
@@ -81,7 +84,10 @@ func FillRect(dst *ebiten.Image, x, y, width, height float32, clr color.Color, a
 		path.LineTo(x, y+height)
 		path.LineTo(x+width, y+height)
 		path.LineTo(x+width, y)
-		FillPath(dst, &path, clr, true, FillRuleNonZero)
+		drawOp := &DrawPathOptions{}
+		drawOp.AntiAlias = true
+		drawOp.ColorScale.ScaleWithColor(clr)
+		FillPath(dst, &path, nil, drawOp)
 		return
 	}
 
@@ -109,10 +115,13 @@ func StrokeRect(dst *ebiten.Image, x, y, width, height float32, strokeWidth floa
 		path.LineTo(x+width, y+height)
 		path.LineTo(x+width, y)
 		path.Close()
-		op := &StrokeOptions{}
-		op.Width = strokeWidth
-		op.MiterLimit = 10
-		StrokePath(dst, &path, clr, true, op)
+		strokeOp := &StrokeOptions{}
+		strokeOp.Width = strokeWidth
+		strokeOp.MiterLimit = 10
+		drawOp := &DrawPathOptions{}
+		drawOp.AntiAlias = true
+		drawOp.ColorScale.ScaleWithColor(clr)
+		StrokePath(dst, &path, strokeOp, drawOp)
 		return
 	}
 
@@ -165,7 +174,10 @@ func FillCircle(dst *ebiten.Image, cx, cy, r float32, clr color.Color, antialias
 	if antialias {
 		var path Path
 		path.Arc(cx, cy, r, 0, 2*math.Pi, Clockwise)
-		FillPath(dst, &path, clr, true, FillRuleNonZero)
+		drawOp := &DrawPathOptions{}
+		drawOp.AntiAlias = true
+		drawOp.ColorScale.ScaleWithColor(clr)
+		FillPath(dst, &path, nil, drawOp)
 		return
 	}
 
@@ -217,10 +229,13 @@ func StrokeCircle(dst *ebiten.Image, cx, cy, r float32, strokeWidth float32, clr
 		var path Path
 		path.Arc(cx, cy, r, 0, 2*math.Pi, Clockwise)
 		path.Close()
-		op := &StrokeOptions{}
-		op.Width = strokeWidth
-		op.LineJoin = LineJoinRound
-		StrokePath(dst, &path, clr, true, op)
+		strokeOp := &StrokeOptions{}
+		strokeOp.Width = strokeWidth
+		strokeOp.LineJoin = LineJoinRound
+		drawOp := &DrawPathOptions{}
+		drawOp.AntiAlias = true
+		drawOp.ColorScale.ScaleWithColor(clr)
+		StrokePath(dst, &path, strokeOp, drawOp)
 		return
 	}
 
@@ -285,11 +300,11 @@ type FillRule int
 const (
 	// FillRuleNonZero means that triangles are rendered based on the non-zero rule.
 	// If and only if the number of overlaps is not 0, the region is rendered.
-	FillRuleNonZero FillRule = FillRule(ebiten.FillRuleNonZero)
+	FillRuleNonZero FillRule = iota
 
 	// FillRuleEvenOdd means that triangles are rendered based on the even-odd rule.
 	// If and only if the number of overlaps is odd, the region is rendered.
-	FillRuleEvenOdd FillRule = FillRule(ebiten.FillRuleEvenOdd)
+	FillRuleEvenOdd
 )
 
 var (
@@ -303,8 +318,37 @@ var (
 	theFillPathM sync.Mutex
 )
 
-// FillPath fills the specified path with the specified color.
-func FillPath(dst *ebiten.Image, path *Path, clr color.Color, antialias bool, fillRule FillRule) {
+// FillOptions is options to fill a path.
+type FillOptions struct {
+	// FillRule is the rule whether an overlapped region is rendered or not.
+	// The default (zero) value is FillRuleNonZero.
+	FillRule FillRule
+}
+
+// DrawPathOptions is options to draw a path.
+type DrawPathOptions struct {
+	// AntiAlias is whether the path is drawn with anti-aliasing.
+	// The default (zero) value is false.
+	AntiAlias bool
+
+	// ColorScale is the color scale to apply to the path.
+	// The default (zero) value is identity, which is (1, 1, 1, 1) (white).
+	ColorScale ebiten.ColorScale
+
+	// Blend is the blend mode to apply to the path.
+	// The default (zero) value is ebiten.BlendSourceOver.
+	Blend ebiten.Blend
+}
+
+// FillPath fills the specified path with the specified options.
+func FillPath(dst *ebiten.Image, path *Path, fillOptions *FillOptions, drawPathOptions *DrawPathOptions) {
+	if drawPathOptions == nil {
+		drawPathOptions = &DrawPathOptions{}
+	}
+	if fillOptions == nil {
+		fillOptions = &FillOptions{}
+	}
+
 	theFillPathM.Lock()
 	defer theFillPathM.Unlock()
 
@@ -318,13 +362,14 @@ func FillPath(dst *ebiten.Image, path *Path, clr color.Color, antialias bool, fi
 		theFillPathsStates[dst] = theFillPathsStatesPool.Get().(*fillPathsState)
 	}
 	s := theFillPathsStates[dst]
-	if s.antialias != antialias || s.fillRule != fillRule {
+	if s.antialias != drawPathOptions.AntiAlias || s.blend != drawPathOptions.Blend || s.fillRule != fillOptions.FillRule {
 		s.fillPaths(dst)
 		s.reset()
 	}
-	s.antialias = antialias
-	s.fillRule = fillRule
-	s.addPath(path, clr)
+	s.antialias = drawPathOptions.AntiAlias
+	s.blend = drawPathOptions.Blend
+	s.fillRule = fillOptions.FillRule
+	s.addPath(path, drawPathOptions.ColorScale)
 
 	token := addUsageCallback(dst, func() {
 		// Remove the callback not to call this twice.
@@ -344,13 +389,13 @@ func FillPath(dst *ebiten.Image, path *Path, clr color.Color, antialias bool, fi
 
 }
 
-// StrokePath strokes the specified path with the specified color and stroke options.
-func StrokePath(dst *ebiten.Image, path *Path, clr color.Color, antialias bool, options *StrokeOptions) {
+// StrokePath strokes the specified path with the specified options.
+func StrokePath(dst *ebiten.Image, path *Path, strokeOptions *StrokeOptions, drawPathOptions *DrawPathOptions) {
 	var stroke Path
 	op := &AddPathStrokeOptions{}
-	op.StrokeOptions = *options
+	op.StrokeOptions = *strokeOptions
 	stroke.AddPathStroke(path, op)
-	FillPath(dst, &stroke, clr, antialias, FillRuleNonZero)
+	FillPath(dst, &stroke, nil, drawPathOptions)
 }
 
 //go:linkname addUsageCallback github.com/hajimehoshi/ebiten/v2.addUsageCallback
