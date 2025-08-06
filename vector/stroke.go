@@ -63,8 +63,8 @@ type StrokeOptions struct {
 	MiterLimit float32
 }
 
-// AddPathStrokeOptions is options for [Path.AddPathStroke].
-type AddPathStrokeOptions struct {
+// AddStrokeOptions is options for [Path.AddPathStroke].
+type AddStrokeOptions struct {
 	// StrokeOptions is options for the stroke.
 	StrokeOptions
 
@@ -74,10 +74,10 @@ type AddPathStrokeOptions struct {
 	GeoM ebiten.GeoM
 }
 
-// AddPathStroke adds a stroke path to the path p.
+// AddStroke adds a stroke path to the path p.
 //
 // The added stroke path must be rendered with FileRuleNonZero.
-func (p *Path) AddPathStroke(src *Path, options *AddPathStrokeOptions) {
+func (p *Path) AddStroke(src *Path, options *AddStrokeOptions) {
 	if options == nil {
 		return
 	}

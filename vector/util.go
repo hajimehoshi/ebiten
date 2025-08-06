@@ -392,9 +392,9 @@ func FillPath(dst *ebiten.Image, path *Path, fillOptions *FillOptions, drawPathO
 // StrokePath strokes the specified path with the specified options.
 func StrokePath(dst *ebiten.Image, path *Path, strokeOptions *StrokeOptions, drawPathOptions *DrawPathOptions) {
 	var stroke Path
-	op := &AddPathStrokeOptions{}
+	op := &AddStrokeOptions{}
 	op.StrokeOptions = *strokeOptions
-	stroke.AddPathStroke(path, op)
+	stroke.AddStroke(path, op)
 	FillPath(dst, &stroke, nil, drawPathOptions)
 }
 
