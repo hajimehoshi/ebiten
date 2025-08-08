@@ -33,6 +33,8 @@ func NewWorld(width, height int, maxInitLiveCells int) *World {
 
 // init inits world with a random state.
 func (w *World) init(maxLiveCells int) {
+    ebiten.SetMaxTPS(20)
+
 	for i := 0; i < maxLiveCells; i++ {
 		x := rand.IntN(w.width)
 		y := rand.IntN(w.height)
@@ -141,7 +143,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 
 func main() {
 	g := &Game{
-		world: NewWorld(screenWidth, screenHeight, int((screenWidth*screenHeight)/10)),
+		world: NewWorld(screenWidth, screenHeight, int((screenWidth*screenHeight)/5)),
 	}
 
 	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
