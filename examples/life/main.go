@@ -28,12 +28,12 @@ func NewWorld(width, height int, maxInitLiveCells int) *World {
 		height: height,
 	}
 	w.init(maxInitLiveCells)
+    ebiten.SetMaxTPS(20)
 	return w
 }
 
 // init inits world with a random state.
 func (w *World) init(maxLiveCells int) {
-    ebiten.SetMaxTPS(20)
 
 	for i := 0; i < maxLiveCells; i++ {
 		x := rand.IntN(w.width)

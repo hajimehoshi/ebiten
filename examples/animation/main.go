@@ -10,14 +10,14 @@ import (
 )
 
 const (
-	screenWidth  = 320
-	screenHeight = 240
+	screenWidth  = 90
+	screenHeight = 90
 
 	frameOX     = 0
-	frameOY     = 32
-	frameWidth  = 32
-	frameHeight = 32
-	frameCount  = 8
+	frameOY     = 0
+	frameWidth  = 55
+	frameHeight = 71
+	frameCount  = 3
 )
 
 var (
@@ -47,7 +47,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 }
 
 func main() {
-	file, err := os.Open("../resources/images/runner.png")
+	file, err := os.Open("kw1.png")
         if err != nil {
             log.Fatal(err)
         }
