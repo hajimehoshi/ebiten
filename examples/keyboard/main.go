@@ -15,7 +15,7 @@
 package main
 
 import (
-	"bytes"
+	"os"
 	"image"
 	_ "image/png"
 	"log"
@@ -25,7 +25,6 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/examples/keyboard/keyboard"
-	rkeyboard "github.com/hajimehoshi/ebiten/v2/examples/resources/images/keyboard"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
 )
@@ -40,7 +39,16 @@ var fontFace = text.NewGoXFace(bitmapfont.Face)
 var keyboardImage *ebiten.Image
 
 func init() {
-	img, _, err := image.Decode(bytes.NewReader(rkeyboard.Keyboard_png))
+	file, err := os.Open("../resources/images/keyboard/keyboard.png")
+        if err != nil {
+            log.Fatal(err)
+        }
+        defer file.Close()
+
+    img, _, err := image.Decode(file)
+    if err != nil {
+    	log.Fatal(err)
+    }
 	if err != nil {
 		log.Fatal(err)
 	}

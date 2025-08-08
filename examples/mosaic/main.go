@@ -21,13 +21,13 @@ var (
 )
 
 func init() {
-		file, err := os.Open("../resources/images/gophers.jpg")
-            if err != nil {
-                log.Fatal(err)
-            }
-            defer file.Close()
+	file, err := os.Open("../resources/images/gophers.jpg")
+        if err != nil {
+            log.Fatal(err)
+        }
+        defer file.Close()
 
-    	img, _, err := image.Decode(file)
+    img, _, err := image.Decode(file)
 	if err != nil {
 		log.Fatal(err)
 	}
