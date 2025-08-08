@@ -3,6 +3,7 @@ package main
 import (
 	"image"
 	_ "image/png"
+	"image/color"
 	"log"
 	"os"
 
@@ -34,6 +35,7 @@ func (g *Game) Update() error {
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
+    screen.Fill(color.RGBA{R: 211, G: 211, B: 211, A: 255})
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(-float64(frameWidth)/2, -float64(frameHeight)/2)
 	op.GeoM.Translate(screenWidth/2, screenHeight/2)
@@ -47,6 +49,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 }
 
 func main() {
+    ebiten.SetMaxTPS(20)
 	file, err := os.Open("kw1.png")
         if err != nil {
             log.Fatal(err)
