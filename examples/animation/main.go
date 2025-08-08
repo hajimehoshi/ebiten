@@ -1,38 +1,24 @@
-// Copyright 2018 The Ebiten Authors
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 package main
 
 import (
-	"bytes"
 	"image"
 	_ "image/png"
+	"image/color"
 	"log"
+	"os"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/examples/resources/images"
 )
 
 const (
-	screenWidth  = 320
-	screenHeight = 240
+	screenWidth  = 90
+	screenHeight = 90
 
 	frameOX     = 0
-	frameOY     = 32
-	frameWidth  = 32
-	frameHeight = 32
-	frameCount  = 8
+	frameOY     = 0
+	frameWidth  = 55
+	frameHeight = 71
+	frameCount  = 3
 )
 
 var (
@@ -49,6 +35,7 @@ func (g *Game) Update() error {
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
+    screen.Fill(color.RGBA{R: 211, G: 211, B: 211, A: 255})
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(-float64(frameWidth)/2, -float64(frameHeight)/2)
 	op.GeoM.Translate(screenWidth/2, screenHeight/2)
@@ -62,8 +49,14 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 }
 
 func main() {
-	// Decode an image from the image file's byte slice.
-	img, _, err := image.Decode(bytes.NewReader(images.Runner_png))
+    ebiten.SetMaxTPS(20)
+	file, err := os.Open("kw1.png")
+        if err != nil {
+            log.Fatal(err)
+        }
+        defer file.Close()
+
+	img, _, err := image.Decode(file)
 	if err != nil {
 		log.Fatal(err)
 	}
