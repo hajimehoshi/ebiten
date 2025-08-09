@@ -392,9 +392,10 @@ func (g *Graphics) Initialize() error {
 			return err
 		}
 	}
-	if g.transparent {
-		g.view.ml.SetOpaque(false)
-	}
+	// The default value is false [1], but transparinting doesn't work without calling this.
+	// To avoid confusion, let's call this explicitly.
+	// [1] https://developer.apple.com/documentation/quartzcore/calayer/isopaque?language=objc
+	g.view.ml.SetOpaque(!g.transparent)
 
 	// The stencil reference value is always 0 (default).
 	g.dsss[noStencil] = g.view.getMTLDevice().NewDepthStencilStateWithDescriptor(mtl.DepthStencilDescriptor{
