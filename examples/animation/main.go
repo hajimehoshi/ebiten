@@ -25,10 +25,11 @@ const (
 
 var (
 	runnerImage *ebiten.Image
-	backgroundImage *ebiten.Image
+	backgroundImage1 *ebiten.Image
+	backgroundImage2 *ebiten.Image
 
     posX = float64(screenWidth) * 0.4
-    posY = float64(screenHeight) * 0.85
+    posY = float64(220 - frameHeight/2)
 )
 
 type Game struct {
@@ -39,9 +40,9 @@ func (g *Game) Update() error {
 	g.count++
 
 	if ebiten.IsKeyPressed(ebiten.KeyA) || ebiten.IsKeyPressed(ebiten.KeyArrowLeft) {
-    		posX -= 2
+    		posX -= 4
     	} else if ebiten.IsKeyPressed(ebiten.KeyD) || ebiten.IsKeyPressed(ebiten.KeyArrowRight) {
-    		posX += 2
+    		posX += 4
     	}
 
 	return nil
@@ -52,7 +53,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
     screen.Fill(color.RGBA{R: 211, G: 211, B: 211, A: 255})
 
     // Draw background image
-    bgSubImage := backgroundImage.SubImage(image.Rect(0, 0, screenWidth, screenHeight)).(*ebiten.Image)
+    bgSubImage := backgroundImage1.SubImage(image.Rect(0, 0, screenWidth, screenHeight)).(*ebiten.Image)
     screen.DrawImage(bgSubImage, &ebiten.DrawImageOptions{})
 
     // Calculate current frame index
@@ -77,6 +78,9 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
     // Draw sprite at the position
     screen.DrawImage(spriteSubImage, op)
+
+    bgSubImage = backgroundImage2.SubImage(image.Rect(0, 0, screenWidth, screenHeight)).(*ebiten.Image)
+    screen.DrawImage(bgSubImage, &ebiten.DrawImageOptions{})
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
@@ -107,7 +111,11 @@ func main() {
         log.Fatal(err)
     }
 
-    backgroundImage, err = loadImage("background.jpg")
+    backgroundImage1, err = loadImage("background.png")
+    if err != nil {
+        log.Fatal(err)
+    }
+    backgroundImage2, err = loadImage("background2.png")
     if err != nil {
         log.Fatal(err)
     }
