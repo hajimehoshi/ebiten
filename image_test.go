@@ -270,7 +270,7 @@ func TestImageWritePixels(t *testing.T) {
 	}
 	// Convert to *image.RGBA just in case.
 	img := image.NewRGBA(origImg.Bounds())
-	draw.Draw(img, img.Bounds(), origImg, image.ZP, draw.Src)
+	draw.Draw(img, img.Bounds(), origImg, image.Point{}, draw.Src)
 
 	size := img.Bounds().Size()
 	img0 := ebiten.NewImage(size.X, size.Y)
@@ -1854,7 +1854,7 @@ func TestImageZeroSizedMipmap(t *testing.T) {
 
 	op := &ebiten.DrawImageOptions{}
 	op.Filter = ebiten.FilterLinear
-	dst.DrawImage(src.SubImage(image.ZR).(*ebiten.Image), op)
+	dst.DrawImage(src.SubImage(image.Rectangle{}).(*ebiten.Image), op)
 }
 
 // Issue #898
@@ -2316,7 +2316,7 @@ func TestImageDrawOver(t *testing.T) {
 	dst := ebiten.NewImage(w, h)
 	src := image.NewUniform(color.RGBA{R: 0xff, A: 0xff})
 	// This must not cause infinite-loop.
-	draw.Draw(dst, dst.Bounds(), src, image.ZP, draw.Over)
+	draw.Draw(dst, dst.Bounds(), src, image.Point{}, draw.Over)
 	for j := range h {
 		for i := range w {
 			got := dst.At(i, j)
@@ -2379,7 +2379,7 @@ func BenchmarkImageDrawOver(b *testing.B) {
 	dst := ebiten.NewImage(16, 16)
 	src := image.NewUniform(color.Black)
 	for n := 0; n < b.N; n++ {
-		draw.Draw(dst, dst.Bounds(), src, image.ZP, draw.Over)
+		draw.Draw(dst, dst.Bounds(), src, image.Point{}, draw.Over)
 	}
 }
 
