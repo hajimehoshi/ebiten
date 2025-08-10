@@ -168,7 +168,7 @@ func strokeEndControlPositions(subPath *subPath, dist float32) (point, point, po
 
 func appendParalleledPathFromSubPath(strokePath *Path, subPath *subPath, options *StrokeOptions) {
 	if len(subPath.ops) == 0 {
-		panic("not reached")
+		panic("vector: not reached")
 	}
 
 	// As the source path is normalized, every operation is guaranteed to be valid.
@@ -192,7 +192,7 @@ func appendParalleledPathFromSubPath(strokePath *Path, subPath *subPath, options
 
 func appendParalleledPathFromSubPathReversed(strokePath *Path, subPath *subPath, options *StrokeOptions) {
 	if len(subPath.ops) == 0 {
-		panic("not reached")
+		panic("vector: not reached")
 	}
 
 	// As the source path is normalized, every operation is guaranteed to be valid.
@@ -214,7 +214,7 @@ func appendParalleledPathFromSubPathReversed(strokePath *Path, subPath *subPath,
 
 func appendParalleledLine(path *Path, p0, p1 point, dist float32) {
 	if p0 == p1 {
-		panic("not reached")
+		panic("vector: not reached")
 	}
 
 	dir := vec2{x: p1.x - p0.x, y: p1.y - p0.y}
@@ -226,7 +226,7 @@ func appendParalleledLine(path *Path, p0, p1 point, dist float32) {
 // appendParalleledLineForQuadIfNeeded appends a paralleled line for a quadratic curve if the quadratic curve is just a line.
 func appendParalleledLineForQuadIfNeeded(path *Path, p0, p1, p2 point, dist float32) bool {
 	if p0 == p1 && p0 == p2 {
-		panic("not reached")
+		panic("vector: not reached")
 	}
 	// This curve is empty as the start and the end points are the same.
 	if p0 == p2 {

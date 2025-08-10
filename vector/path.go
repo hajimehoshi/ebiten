@@ -158,7 +158,7 @@ func (s *subPath) endAtOp(index int) point {
 	case opTypeQuadTo:
 		return op.p2
 	}
-	panic("not reached")
+	panic("vector: not reached")
 }
 
 func (s *subPath) startDir(index int) vec2 {
@@ -174,7 +174,7 @@ func (s *subPath) endDir(index int) vec2 {
 	case opTypeQuadTo:
 		return vec2{x: op.p2.x - op.p1.x, y: op.p2.y - op.p1.y}
 	}
-	panic("not reached")
+	panic("vector: not reached")
 }
 
 // flatPath is a flattened sub-path of a path.
