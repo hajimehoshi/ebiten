@@ -137,7 +137,7 @@ import "C"`); err != nil {
 		case "go":
 			// Do nothing.
 		default:
-			panic(fmt.Sprintf("unsupported language: %s", lang))
+			panic(fmt.Sprintf("ebitenmobile: unsupported language: %s", lang))
 		}
 	}
 
