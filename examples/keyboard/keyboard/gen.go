@@ -120,8 +120,8 @@ func drawKey(dst *ebiten.Image, name string, x, y, width int) {
 	const height = 16
 	width--
 	p := make([]byte, width*height*4)
-	for j := 0; j < height; j++ {
-		for i := 0; i < width; i++ {
+	for j := range height {
+		for i := range width {
 			x := (i + j*width) * 4
 			switch j {
 			case 0, height - 1:
