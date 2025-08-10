@@ -165,7 +165,7 @@ func (r *Resampling) src(i int64) (float64, float64, error) {
 				sr[i] = float64(math.Float32frombits(uint32(buf[8*i+4]) | uint32(buf[8*i+5])<<8 | uint32(buf[8*i+6])<<16 | uint32(buf[8*i+7])<<24))
 			}
 		default:
-			panic("not reached")
+			panic("convert: not reached")
 		}
 		r.srcBlock = nextPos
 		r.srcBufL[r.srcBlock] = sl
@@ -189,7 +189,7 @@ func (r *Resampling) src(i int64) (float64, float64, error) {
 			}
 		}
 		if idx == -1 {
-			panic("not reach")
+			panic("convert: not reach")
 		}
 		r.lruSrcBlocks = append(r.lruSrcBlocks[:idx], r.lruSrcBlocks[idx+1:]...)
 		r.lruSrcBlocks = append(r.lruSrcBlocks, r.srcBlock)
@@ -297,7 +297,7 @@ func (r *Resampling) Read(b []byte) (int, error) {
 			b[8*i+7] = byte(r32b >> 24)
 		}
 	default:
-		panic("not reached")
+		panic("convert: not reached")
 	}
 	r.pos += int64(n)
 	if r.eof {
