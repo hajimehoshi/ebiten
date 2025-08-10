@@ -53,6 +53,8 @@ func abs(x float32) float32 {
 	return x
 }
 
+const epsilon = 1e-6
+
 type point struct {
 	x float32
 	y float32
@@ -516,6 +518,15 @@ func crossingPointForTwoLines(p00, p01, p10, p11 point) point {
 	a0, b0, c0 := lineForTwoPoints(p00, p01)
 	a1, b1, c1 := lineForTwoPoints(p10, p11)
 	det := a0*b1 - a1*b0
+
+	// If det is close to 0, the two lines are almost parallel.
+	if abs(det) < epsilon {
+		return point{
+			x: float32(math.NaN()),
+			y: float32(math.NaN()),
+		}
+	}
+
 	return point{
 		x: (b0*c1 - b1*c0) / det,
 		y: (a1*c0 - a0*c1) / det,
