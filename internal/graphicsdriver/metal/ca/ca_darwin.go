@@ -154,7 +154,7 @@ func (ml MetalLayer) SetPixelFormat(pf mtl.PixelFormat) {
 	switch pf {
 	case mtl.PixelFormatRGBA8UNorm, mtl.PixelFormatRGBA8UNormSRGB, mtl.PixelFormatBGRA8UNorm, mtl.PixelFormatBGRA8UNormSRGB, mtl.PixelFormatStencil8:
 	default:
-		panic(errors.New(fmt.Sprintf("invalid pixel format %d", pf)))
+		panic((fmt.Errorf("invalid pixel format %d", pf)))
 	}
 	ml.metalLayer.Send(sel_setPixelFormat, uint(pf))
 }
@@ -167,7 +167,7 @@ func (ml MetalLayer) SetPixelFormat(pf mtl.PixelFormat) {
 // Reference: https://developer.apple.com/documentation/quartzcore/cametallayer/2938720-maximumdrawablecount?language=objc.
 func (ml MetalLayer) SetMaximumDrawableCount(count int) {
 	if count < 2 || count > 3 {
-		panic(errors.New(fmt.Sprintf("failed trying to set maximumDrawableCount to %d outside of the valid range of [2, 3]", count)))
+		panic((fmt.Errorf("failed trying to set maximumDrawableCount to %d outside of the valid range of [2, 3]", count)))
 	}
 	ml.metalLayer.Send(sel_setMaximumDrawableCount, count)
 }
