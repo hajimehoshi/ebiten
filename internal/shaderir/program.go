@@ -373,21 +373,21 @@ func IsValidSwizzling(s string) bool {
 	switch {
 	case strings.IndexByte(xyzw, s[0]) >= 0:
 		for _, c := range s {
-			if strings.IndexRune(xyzw, c) == -1 {
+			if !strings.ContainsRune(xyzw, c) {
 				return false
 			}
 		}
 		return true
 	case strings.IndexByte(rgba, s[0]) >= 0:
 		for _, c := range s {
-			if strings.IndexRune(rgba, c) == -1 {
+			if !strings.ContainsRune(rgba, c) {
 				return false
 			}
 		}
 		return true
 	case strings.IndexByte(strq, s[0]) >= 0:
 		for _, c := range s {
-			if strings.IndexRune(strq, c) == -1 {
+			if !strings.ContainsRune(strq, c) {
 				return false
 			}
 		}
