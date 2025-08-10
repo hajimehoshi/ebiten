@@ -7,7 +7,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        go: ['1.23.x', '1.24.x', '1.25.0-rc.2']
+        go: ['1.23.x', '1.24.x', '1.25.0-rc.3']
     name: Test with Go ${{ matrix.go }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     env:
@@ -175,7 +175,7 @@ jobs:
   wasm:
     strategy:
       matrix:
-        go: ['1.23.x', '1.24.x', '1.25.0-rc.2']
+        go: ['1.23.x', '1.24.x', '1.25.0-rc.3']
     name: Test WebAssembly with Go ${{ matrix.go }}
     runs-on: ubuntu-latest
     defaults:
