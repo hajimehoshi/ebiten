@@ -58,9 +58,9 @@ type Game interface {
 
 	// Draw draws the game screen by one frame.
 	//
-	// The give argument represents a screen image. The updated content is adopted as the game screen.
+	// The provided argument represents a screen image. The updated content is adopted as the game screen.
 	//
-	// The frequency of Draw calls depends on the user's environment, especially the monitors refresh rate.
+	// The frequency of Draw calls depends on the user's environment, especially the monitor's refresh rate.
 	// For portability, you should not put your game logic in Draw in general.
 	Draw(screen *Image)
 
@@ -72,15 +72,15 @@ type Game interface {
 	// element. On mobiles, the outside is the view's size.
 	//
 	// Even though the outside size and the screen size differ, the rendering scale is automatically adjusted to
-	// fit with the outside.
+	// fit with the outside dimensions.
 	//
 	// Layout is called almost every frame.
 	//
 	// It is ensured that Layout is invoked before Update is called in the first frame.
 	//
-	// If Layout returns non-positive numbers, the caller can panic.
+	// If Layout returns non-positive numbers, the caller may panic.
 	//
-	// You can return a fixed screen size if you don't care, or you can also return a calculated screen size
+	// You can return a fixed screen size if desired, or you can also return a calculated screen size
 	// adjusted with the given outside size.
 	//
 	// If the game implements the interface LayoutFer, Layout is never called and LayoutF is called instead.
@@ -223,7 +223,7 @@ var Termination = ui.RegularTermination
 // TPS (ticks per second) is 60 by default.
 // This is not related to framerate (display's refresh rate).
 //
-// RunGame returns error when 1) an error happens in the underlying graphics driver, 2) an audio error happens
+// RunGame returns an error when 1) an error happens in the underlying graphics driver, 2) an audio error happens
 // or 3) Update returns an error. In the case of 3), RunGame returns the same error so far, but it is recommended to
 // use errors.Is when you check the returned error is the error you want, rather than comparing the values
 // with == or != directly.
@@ -413,7 +413,7 @@ func CursorMode() CursorModeType {
 //
 // On browsers, capturing a cursor requires a user gesture, otherwise SetCursorMode does nothing but leave an error message in console.
 // This behavior varies across browser implementations.
-// Check a user interaction before calling capturing a cursor e.g. by IsMouseButtonPressed or IsKeyPressed.
+// Check for user interaction before calling capturing a cursor e.g. by IsMouseButtonPressed or IsKeyPressed.
 //
 // SetCursorMode does nothing on mobiles.
 //
@@ -441,7 +441,7 @@ func IsFullscreen() bool {
 //
 // On browsers, triggering fullscreen requires a user gesture, otherwise SetFullscreen does nothing but leave an error message in console.
 // This behavior varies across browser implementations.
-// Check a user interaction before triggering fullscreen e.g. by IsMouseButtonPressed or IsKeyPressed.
+// Check for user interaction before triggering fullscreen e.g. by IsMouseButtonPressed or IsKeyPressed.
 //
 // SetFullscreen does nothing on mobiles.
 //
