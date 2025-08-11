@@ -12,14 +12,6 @@ type Scene4 struct {
     tDir  float64
 }
 
-func (s *Scene4) GetT() float64 { return s.t }
-func (s *Scene4) SetT(val float64) { s.t = val }
-
-func (s *Scene4) GetTDir() float64 { return s.tDir }
-func (s *Scene4) SetTDir(val float64) { s.tDir = val }
-
-func (s *Scene4) GetCount() int { return s.count }
-
 func (s *Scene4) Update() error {
     s.count++
     moveSprite()
@@ -29,6 +21,12 @@ func (s *Scene4) Update() error {
          currentScene = &Scene3{}
          log.Println("Scene3 loaded")
          posX = float64(screenWidth - 3)
+     } else if posX > screenWidth {
+         spiderX = float64(2*screenWidth)
+         currentScene = &Scene5{
+            }
+         log.Println("Scene5 loaded")
+         posX = float64(3)
      }
     return nil
 }
