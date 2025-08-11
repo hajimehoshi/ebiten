@@ -27,6 +27,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 	"golang.org/x/tools/go/packages"
 )
 
@@ -98,13 +100,14 @@ func run() error {
 
 	// Add additional files.
 	langs := strings.Split(*lang, ",")
+	caser := cases.Title(language.Und)
 	for _, lang := range langs {
 		pkgName, err := invokeOriginalGobind(lang)
 		if err != nil {
 			return err
 		}
 		prefixLower := *prefix + pkgName
-		prefixUpper := strings.Title(*prefix) + strings.Title(pkgName)
+		prefixUpper := caser.String(*prefix) + caser.String(pkgName)
 		replacePrefixes := func(content string) string {
 			content = strings.ReplaceAll(content, "{{.PrefixUpper}}", prefixUpper)
 			content = strings.ReplaceAll(content, "{{.PrefixLower}}", prefixLower)
