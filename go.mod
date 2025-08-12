@@ -8,7 +8,7 @@ require (
 	github.com/ebitengine/hideconsole v1.0.0
 	github.com/ebitengine/oto/v3 v3.4.0-alpha.9.0.20250811111621-7c2f94bdb072
 	github.com/ebitengine/purego v0.9.0-alpha.10
-	github.com/gen2brain/mpeg v0.4.0
+	github.com/gen2brain/mpeg v0.5.0
 	github.com/go-text/typesetting v0.3.0
 	github.com/hajimehoshi/bitmapfont/v4 v4.1.0-alpha.3.0.20250811041355-e5a3b154e507
 	github.com/hajimehoshi/go-mp3 v0.3.4
