@@ -44,7 +44,7 @@ import (
 //         v.vibrate(effect, attrs);
 //       } else {
 //         AudioAttributes attrs = new AudioAttributes.Builder()
-//           .setUsage(AudioAttributes.USAGE_MEDIA)
+//           .setUsage(AudioAttributes.USAGE_GAME)
 //           .build();
 //         v.vibrate(effect, attrs);
 //       }
