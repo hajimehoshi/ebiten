@@ -27,13 +27,29 @@ import (
 
 #include <android/log.h>
 
-// Basically same as:
+// Basically the following code is equivalent to the following Java code:
 //
-//     Vibrator v = (Vibrator)getSystemService(Context.VIBRATOR_SERVICE);
-//     if (Build.VERSION.SDK_INT >= 26) {
-//       v.vibrate(VibrationEffect.createOneShot(milliseconds, magnitude * 255))
+//     Vibrator v;
+//     if (Build.VERSION.SDK_INT >= 31) {
+//       v = getSystemService(Context.VIBRATOR_MANAGER_SERVICE).getDefaultVibrator();
 //     } else {
-//       v.vibrate(millisecond)
+//       v = (Vibrator)getSystemService(Context.VIBRATOR_SERVICE);
+//     }
+//     if (Build.VERSION.SDK_INT >= 26) {
+//       VibrationEffect effect = VibrationEffect.createOneShot(milliseconds, magnitude * 255);
+//       if (Build.VERSION.SDK_INT >= 33) {
+//         VibrationAttributes attrs = new VibrationAttributes.Builder()
+//           .setUsage(VibrationAttributes.USAGE_MEDIA)
+//           .build();
+//         v.vibrate(effect, attrs);
+//       } else {
+//         AudioAttributes attrs = new AudioAttributes.Builder()
+//           .setUsage(AudioAttributes.USAGE_MEDIA)
+//           .build();
+//         v.vibrate(effect, attrs);
+//       }
+//     } else {
+//       v.vibrate(millisecond);
 //     }
 //
 // Note that this requires a manifest setting:
@@ -59,16 +75,43 @@ static void vibrateOneShot(uintptr_t java_vm, uintptr_t jni_env, uintptr_t ctx, 
   const jclass android_content_Context = (*env)->FindClass(env, "android/content/Context");
   const jclass android_os_Vibrator = (*env)->FindClass(env, "android/os/Vibrator");
 
-  const jobject android_context_Context_VIBRATOR_SERVICE =
-      (*env)->GetStaticObjectField(
-          env, android_content_Context,
-          (*env)->GetStaticFieldID(env, android_content_Context, "VIBRATOR_SERVICE", "Ljava/lang/String;"));
+  jobject vibrator = NULL;
+  if (apiLevel >= 31) {
+    const jclass android_os_VibratorManager = (*env)->FindClass(env, "android/os/VibratorManager");
 
-  const jobject vibrator =
-      (*env)->CallObjectMethod(
-          env, context,
-          (*env)->GetMethodID(env, android_content_Context, "getSystemService", "(Ljava/lang/String;)Ljava/lang/Object;"),
-          android_context_Context_VIBRATOR_SERVICE);
+    const jobject android_context_Context_VIBRATOR_MANAGER_SERVICE =
+        (*env)->GetStaticObjectField(
+            env, android_content_Context,
+            (*env)->GetStaticFieldID(env, android_content_Context, "VIBRATOR_MANAGER_SERVICE", "Ljava/lang/String;"));
+
+    const jobject vibratorManager =
+        (*env)->CallObjectMethod(
+            env, context,
+            (*env)->GetMethodID(env, android_content_Context, "getSystemService", "(Ljava/lang/String;)Ljava/lang/Object;"),
+            android_context_Context_VIBRATOR_MANAGER_SERVICE);
+
+    vibrator =
+        (*env)->CallObjectMethod(
+            env, vibratorManager,
+            (*env)->GetMethodID(env, android_os_VibratorManager, "getDefaultVibrator", "()Landroid/os/Vibrator;"));
+
+    (*env)->DeleteLocalRef(env, vibratorManager);
+    (*env)->DeleteLocalRef(env, android_context_Context_VIBRATOR_MANAGER_SERVICE);
+    (*env)->DeleteLocalRef(env, android_os_VibratorManager);
+  } else {
+    const jobject android_context_Context_VIBRATOR_SERVICE =
+        (*env)->GetStaticObjectField(
+            env, android_content_Context,
+            (*env)->GetStaticFieldID(env, android_content_Context, "VIBRATOR_SERVICE", "Ljava/lang/String;"));
+
+    vibrator =
+        (*env)->CallObjectMethod(
+            env, context,
+            (*env)->GetMethodID(env, android_content_Context, "getSystemService", "(Ljava/lang/String;)Ljava/lang/Object;"),
+            android_context_Context_VIBRATOR_SERVICE);
+
+    (*env)->DeleteLocalRef(env, android_context_Context_VIBRATOR_SERVICE);
+  }
 
   if (apiLevel >= 26) {
     const jclass android_os_VibrationEffect = (*env)->FindClass(env, "android/os/VibrationEffect");
@@ -79,14 +122,70 @@ static void vibrateOneShot(uintptr_t java_vm, uintptr_t jni_env, uintptr_t ctx, 
             (*env)->GetStaticMethodID(env, android_os_VibrationEffect, "createOneShot", "(JI)Landroid/os/VibrationEffect;"),
             milliseconds, (int)(magnitude * 255));
 
-    (*env)->CallVoidMethod(
-        env, vibrator,
-        (*env)->GetMethodID(env, android_os_Vibrator, "vibrate", "(Landroid/os/VibrationEffect;)V"),
-        vibrationEffect);
+    if (apiLevel >= 33) {
+      const jclass android_os_VibrationAttributes = (*env)->FindClass(env, "android/os/VibrationAttributes");
+      const jclass android_os_VibrationAttributes_Builder = (*env)->FindClass(env, "android/os/VibrationAttributes$Builder");
 
-    (*env)->DeleteLocalRef(env, android_os_VibrationEffect);
+      const jobject attributesBuilder =
+          (*env)->NewObject(
+              env, android_os_VibrationAttributes_Builder,
+              (*env)->GetMethodID(env, android_os_VibrationAttributes_Builder, "<init>", "()V"));
+
+      // A purpose for games and media are integrated into VibrationAttributes.USAGE_MEDIA.
+      const jint USAGE_MEDIA = 19;
+      (*env)->CallObjectMethod(
+          env, attributesBuilder,
+          (*env)->GetMethodID(env, android_os_VibrationAttributes_Builder, "setUsage", "(I)Landroid/os/VibrationAttributes$Builder;"),
+          USAGE_MEDIA);
+
+      const jobject vibrationAttributes =
+          (*env)->CallObjectMethod(
+              env, attributesBuilder,
+              (*env)->GetMethodID(env, android_os_VibrationAttributes_Builder, "build", "()Landroid/os/VibrationAttributes;"));
+
+      (*env)->CallVoidMethod(
+          env, vibrator,
+          (*env)->GetMethodID(env, android_os_Vibrator, "vibrate", "(Landroid/os/VibrationEffect;Landroid/os/VibrationAttributes;)V"),
+          vibrationEffect, vibrationAttributes);
+
+      (*env)->DeleteLocalRef(env, vibrationAttributes);
+      (*env)->DeleteLocalRef(env, attributesBuilder);
+      (*env)->DeleteLocalRef(env, android_os_VibrationAttributes_Builder);
+      (*env)->DeleteLocalRef(env, android_os_VibrationAttributes);
+    } else {
+      const jclass android_media_AudioAttributes = (*env)->FindClass(env, "android/media/AudioAttributes");
+      const jclass android_media_AudioAttributes_Builder = (*env)->FindClass(env, "android/media/AudioAttributes$Builder");
+
+      const jobject attributesBuilder =
+          (*env)->NewObject(
+              env, android_media_AudioAttributes_Builder,
+              (*env)->GetMethodID(env, android_media_AudioAttributes_Builder, "<init>", "()V"));
+
+      // Use AudioAttributes.USAGE_GAME as most applications with Ebitengine are games.
+      const jint USAGE_GAME = 14;
+      (*env)->CallObjectMethod(
+          env, attributesBuilder,
+          (*env)->GetMethodID(env, android_media_AudioAttributes_Builder, "setUsage", "(I)Landroid/media/AudioAttributes$Builder;"),
+          USAGE_GAME);
+
+      const jobject audioAttributes =
+          (*env)->CallObjectMethod(
+              env, attributesBuilder,
+              (*env)->GetMethodID(env, android_media_AudioAttributes_Builder, "build", "()Landroid/media/AudioAttributes;"));
+
+      (*env)->CallVoidMethod(
+          env, vibrator,
+          (*env)->GetMethodID(env, android_os_Vibrator, "vibrate", "(Landroid/os/VibrationEffect;Landroid/media/AudioAttributes;)V"),
+          vibrationEffect, audioAttributes);
+
+      (*env)->DeleteLocalRef(env, audioAttributes);
+      (*env)->DeleteLocalRef(env, attributesBuilder);
+      (*env)->DeleteLocalRef(env, android_media_AudioAttributes_Builder);
+      (*env)->DeleteLocalRef(env, android_media_AudioAttributes);
+    }
 
     (*env)->DeleteLocalRef(env, vibrationEffect);
+    (*env)->DeleteLocalRef(env, android_os_VibrationEffect);
   } else {
     (*env)->CallVoidMethod(
         env, vibrator,
@@ -94,11 +193,9 @@ static void vibrateOneShot(uintptr_t java_vm, uintptr_t jni_env, uintptr_t ctx, 
         milliseconds);
   }
 
+  (*env)->DeleteLocalRef(env, vibrator);
   (*env)->DeleteLocalRef(env, android_content_Context);
   (*env)->DeleteLocalRef(env, android_os_Vibrator);
-
-  (*env)->DeleteLocalRef(env, android_context_Context_VIBRATOR_SERVICE);
-  (*env)->DeleteLocalRef(env, vibrator);
 }
 
 */
