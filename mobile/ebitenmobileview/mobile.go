@@ -26,6 +26,8 @@ package ebitenmobileview
 import "C"
 
 import (
+	"errors"
+	"os"
 	"runtime"
 	"sync"
 
@@ -102,7 +104,17 @@ func Update() error {
 		return nil
 	}
 
-	return ui.Get().Update()
+	if err := ui.Get().Update(); err != nil {
+		// On Java and Objective-C, an error is treated just an error or an exception, even if it is ebiten.Termination.
+		// There is no way to distinguish it from other errors.
+		// Just terminate the application if the error is ebiten.Termination (#3288).
+		if errors.Is(err, ebiten.Termination) {
+			os.Exit(0)
+			return nil
+		}
+		return err
+	}
+	return nil
 }
 
 func Suspend() error {
