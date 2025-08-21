@@ -24,7 +24,6 @@ var (
 	mplusFaceSource *text.GoTextFaceSource
     context *audio.Context
     player  *audio.Player
-    localPlayer  *audio.Player
     counter float64
 )
 
@@ -43,9 +42,9 @@ func init() {
 	mplusFaceSource = s
 }
 
-func initAudio() (*audio.Player, error) {
+func initAudio(path string) (*audio.Player, error) {
     context = audio.NewContext(44100)
-    f, err := os.Open("audio/Boards dont hit back.wav")
+    f, err := os.Open(path)
     if err != nil {
         return nil, err
     }
@@ -54,7 +53,7 @@ func initAudio() (*audio.Player, error) {
         return nil, err
     }
 
-    localPlayer, err = audio.NewPlayer(context, stream)
+    localPlayer, err := audio.NewPlayer(context, stream)
     if err != nil {
         return nil, err
     }
@@ -74,7 +73,9 @@ func (g *Game) Update() error {
 		}
 	}
     playbackDone := player == nil || !player.IsPlaying()
-	if runtime.GOOS != "js" && (ebiten.IsKeyPressed(ebiten.KeyQ) || playbackDone ) {
+
+
+	if runtime.GOOS != "js" && (ebiten.IsKeyPressed(ebiten.KeyQ) || playbackDone) {
 		return ebiten.Termination
 	}
 	return nil
@@ -132,7 +133,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 }
 
 func main() {
-    player, err = initAudio()
+    player, err = initAudio("audio/Boards dont hit back.wav")
     player.Play()
 
 	ebiten.SetFullscreen(true)
