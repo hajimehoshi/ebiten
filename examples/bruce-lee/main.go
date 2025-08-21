@@ -24,6 +24,7 @@ var (
 	mplusFaceSource *text.GoTextFaceSource
     context *audio.Context
     player  *audio.Player
+    localPlayer  *audio.Player
     counter float64
 )
 
@@ -42,21 +43,22 @@ func init() {
 	mplusFaceSource = s
 }
 
-func initAudio() error {
+func initAudio() (*audio.Player, error) {
     context = audio.NewContext(44100)
     f, err := os.Open("audio/Boards dont hit back.wav")
     if err != nil {
-        return err
+        return nil, err
     }
     stream, err := wav.Decode(context, f)
     if err != nil {
-        return err
+        return nil, err
     }
-    player, err = audio.NewPlayer(context, stream)
+
+    localPlayer, err = audio.NewPlayer(context, stream)
     if err != nil {
-        return err
+        return nil, err
     }
-    return nil
+    return localPlayer, nil
 }
 
 type Game struct {
@@ -112,8 +114,8 @@ func (g *Game) Draw(screen *ebiten.Image) {
     msg = story()
 
 
-	textOp.GeoM.Translate(500*scale, (400-counter)*scale)
-	textOp.LineSpacing = 30 * ebiten.Monitor().DeviceScaleFactor() * 1.2
+	textOp.GeoM.Translate(610*scale, (400-counter)*scale)
+	textOp.LineSpacing = 30 * ebiten.Monitor().DeviceScaleFactor() * 2
 	text.Draw(screen, msg, &text.GoTextFace{
 		Source: mplusFaceSource,
 		Size:   30 * ebiten.Monitor().DeviceScaleFactor(),
@@ -130,7 +132,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 }
 
 func main() {
-    initAudio()
+    player, err = initAudio()
     player.Play()
 
 	ebiten.SetFullscreen(true)
@@ -141,9 +143,9 @@ func main() {
 }
 
 func drawBackground(screen *ebiten.Image, bg *ebiten.Image) {
-    subImg := bg.SubImage(image.Rect(0, 0, 512, 512)).(*ebiten.Image)
+    subImg := bg.SubImage(image.Rect(0, 0, 410, 371)).(*ebiten.Image)
     op := &ebiten.DrawImageOptions{}
-    //op.GeoM.Scale(2, 2)
+    op.GeoM.Scale(2, 2)
     screen.DrawImage(subImg, op)
 }
 
