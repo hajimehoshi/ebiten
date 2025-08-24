@@ -34,7 +34,7 @@ const Dim = affine.ColorMDim
 // while an Image's pixels' format is alpha premultiplied.
 // Before applying a matrix, a color is un-multiplied, and after applying the matrix,
 // the color is multiplied again.
-// The pixel input and output are expected to be r,g,b,a values in the range 0 to 1 (rather than 0 to 255).
+// The pixel input and output are expected to be r,g,b,a values in the range 0 to 1.
 
 // The initial value is identity.
 type ColorM struct {
