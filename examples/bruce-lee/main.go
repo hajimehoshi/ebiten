@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"fmt"
 	"image"
 	_ "image/jpeg"
 	"log"
@@ -138,7 +137,7 @@ func (g *Game) Update() error {
     playbackDone := player == nil || !player.IsPlaying()
 
 	if runtime.GOOS != "js" && (ebiten.IsKeyPressed(ebiten.KeyQ) || playbackDone) {
-	    fmt.Print(counter)
+	    //fmt.Print(counter)
 		return nil
 	}
 	return nil

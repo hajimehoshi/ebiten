@@ -17,6 +17,7 @@ type projectile struct {
     velocity float64
 }
 
+
 var (
     projectiles = []projectile{
         {minX: 195, x: 205, y: 265, maxX: 222, velocity: 0.3},
@@ -37,20 +38,25 @@ var (
         {minX: 975, x: 975, y: 698, maxX: 1224, velocity: 2.7},
     }
 
-    gifAnimator *GIFAnimator
-    dragonX float64
-    dragonY float64
+    dragons = []projectile{
+        {minX: -200, x: 1800, y: 265, maxX: 1800, velocity: 1},
+        {minX: -530, x: 2300, y: 290, maxX: 3300, velocity: 2.2},
+        {minX: -530, x: 3300, y: 290, maxX: 3800, velocity: 3.2},
+    }
+
+    gifAnimator [3]*GIFAnimator
 )
 
 func initStage3(){
     var err error
-    gifAnimator, err = NewGIFAnimator("pics/drag-on.gif")
-    if err != nil {
-        log.Fatal(err)
+
+    for i := range gifAnimator{
+        gifAnimator[i], err = NewGIFAnimator("pics/drag-on.gif")
+        if err != nil {
+            log.Fatal(err)
+        }
     }
 
-    dragonX = float64(1800)
-    dragonY = float64(300)
 }
 
 func stage3(screen *ebiten.Image, counter float64){
@@ -61,7 +67,6 @@ func stage3(screen *ebiten.Image, counter float64){
         bgPic = background2
     }
     drawBackground(screen, bgPic, shiftX, shiftY, 2555, 705)
-
     drawProjectiles(screen, projectileImg, projectiles)
 
     rectImg := ebiten.NewImage(8, 2)
@@ -82,8 +87,11 @@ func stage3(screen *ebiten.Image, counter float64){
     moveProjectiles()
     moveDragon()
 
-    gifAnimator.Update()
-    gifAnimator.Draw(screen, dragonX, dragonY)
+    for i := range gifAnimator {
+        gifAnimator[i].Update()
+        gifAnimator[i].Draw(screen, dragons[i].x, dragons[i].y)
+        //log.Printf("%f, %f, %f \t", dragons[i].x, dragons[i].y, dragons[i].minX)
+    }
 }
 
 func drawProjectiles(screen *ebiten.Image, projectilePic *ebiten.Image, projectiles []projectile){
@@ -107,7 +115,6 @@ func moveBackground() {
     } else if ebiten.IsKeyPressed(ebiten.KeyS) || ebiten.IsKeyPressed(ebiten.KeyArrowDown) {
         shiftY += moveSpeed
     }
-    //fmt.Println(" [", shiftX, shiftY, "] ")
 }
 
 func moveProjectiles() {
@@ -128,10 +135,12 @@ func moveProjectiles() {
 }
 
 func moveDragon(){
-    if (dragonX > -200){
-        dragonX--
-    } else {
-        dragonX = float64(1800)
+    for i := range dragons {
+        if (dragons[i].x > dragons[i].minX){
+            dragons[i].x -= dragons[i].velocity
+        } else {
+            dragons[i].x = dragons[i].maxX
+        }
+        dragons[i].y = 300*math.Sin(dragons[i].x/float64(400) + float64(i)*math.Pi) + 300
     }
-        dragonY = 300*math.Sin(dragonX/float64(400)) + 300
 }
