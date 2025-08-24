@@ -21,6 +21,7 @@ var (
     err         error
 	logo        *ebiten.Image
 	background  *ebiten.Image
+	background2 *ebiten.Image
 	pic1nun     *ebiten.Image
 	pic2nun     *ebiten.Image
 	pic3nun     *ebiten.Image
@@ -61,7 +62,11 @@ func init() {
         log.Fatal(err)
     }
 
-    background, err = loadImage("pics/brusli2.png")
+    background2, err = loadImage("pics/brusli2.png")
+    if err != nil {
+        log.Fatal(err)
+    }
+    background, err = loadImage("pics/brusli.png")
     if err != nil {
         log.Fatal(err)
     }
@@ -91,6 +96,8 @@ func init() {
 		log.Fatal(err)
 	}
 	mplusFaceSource = s
+
+	initStage3()
 }
 
 func initAudio(path string) (*audio.Player, error) {
@@ -144,7 +151,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
     }else if (counter < stage2Timeout) {
         stage2(screen)
     } else if (counter < stage3Timeout) {
-        stage3(screen)
+        stage3(screen, counter)
     }
 }
 
