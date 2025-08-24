@@ -28,14 +28,14 @@ import (
 const Dim = affine.ColorMDim
 
 // ColorM represents a matrix to transform coloring when rendering an image. The matrix
-// is applied by a fragment shader to each pixel during the rendering process. The pixel input
-// and output are expected to be r,g,b,a values in the range 0 to 1 (rather than 0 to 255).
+// is applied by a fragment shader to each pixel during the rendering process.
 //
 // ColorM is applied to the straight alpha color
 // while an Image's pixels' format is alpha premultiplied.
 // Before applying a matrix, a color is un-multiplied, and after applying the matrix,
 // the color is multiplied again.
-//
+// The pixel input and output are expected to be r,g,b,a values in the range 0 to 1 (rather than 0 to 255).
+
 // The initial value is identity.
 type ColorM struct {
 	impl affine.ColorM
