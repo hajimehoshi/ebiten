@@ -742,12 +742,12 @@ func (i *Image) Dispose() {
 }
 
 func (i *Image) syncTexture() {
-	i.graphics.flushRenderCommandEncoderIfNeeded()
+	i.graphics.flushIfNeeded(false)
 
 	// Calling SynchronizeTexture is ignored on iOS (see mtl.m), but it looks like committing BlitCommandEncoder
 	// is necessary (#1337).
 	if i.graphics.cb != (mtl.CommandBuffer{}) {
-		panic("metal: command buffer must be empty at syncTexture: flushIfNeeded is not called yet?")
+		panic("metal: command buffer must be empty at syncTexture")
 	}
 
 	cb := i.graphics.cq.CommandBuffer()
@@ -761,7 +761,6 @@ func (i *Image) syncTexture() {
 }
 
 func (i *Image) ReadPixels(args []graphicsdriver.PixelsArgs) error {
-	i.graphics.flushIfNeeded(false)
 	i.syncTexture()
 
 	for _, arg := range args {
