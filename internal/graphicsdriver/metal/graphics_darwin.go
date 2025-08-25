@@ -231,7 +231,10 @@ func (g *Graphics) SetVertices(vertices []float32, indices []uint32) error {
 func (g *Graphics) flushIfNeeded(present bool) {
 	if g.cb == (mtl.CommandBuffer{}) {
 		if g.rce != (mtl.RenderCommandEncoder{}) {
-			panic("metal: command buffer is empty but render command encoder is not empty")
+			panic("metal: render command encoder must be empty if command buffer is empty")
+		}
+		if present && g.screenDrawable != (ca.MetalDrawable{}) {
+			panic("metal: screen drawable must be empty if command buffer is empty")
 		}
 		return
 	}
