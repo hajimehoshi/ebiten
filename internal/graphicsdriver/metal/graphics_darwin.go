@@ -233,12 +233,6 @@ func (g *Graphics) flushIfNeeded(present bool) {
 		if g.rce != (mtl.RenderCommandEncoder{}) {
 			panic("metal: render command encoder must be empty if command buffer is empty")
 		}
-		if !present {
-			return
-		}
-		if g.screenDrawable != (ca.MetalDrawable{}) {
-			panic("metal: screen drawable must be empty if command buffer is empty")
-		}
 		return
 	}
 
