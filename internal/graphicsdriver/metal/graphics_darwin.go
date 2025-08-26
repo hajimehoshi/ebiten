@@ -46,7 +46,15 @@ type Graphics struct {
 
 	screenDrawable ca.MetalDrawable
 
-	buffers       map[mtl.CommandBuffer][]mtl.Buffer
+	// frame is the current frame number.
+	// frame is incremented when the screen is presented.
+	frame int64
+
+	// frameToCB maps a frame number to command buffers used in the frame.
+	// frameToCB keeps command buffers not to be released until the command buffers are completed.
+	frameToCB map[int64][]mtl.CommandBuffer
+
+	buffers       map[int64][]mtl.Buffer
 	unusedBuffers map[mtl.Buffer]struct{}
 
 	lastDst      *Image
@@ -124,9 +132,12 @@ func (g *Graphics) Begin() error {
 }
 
 func (g *Graphics) End(present bool) error {
-	g.flushIfNeeded(present)
+	g.flushCommandBufferIfNeeded(present)
 	g.pool.Release()
 	g.pool.ID = 0
+	if present {
+		g.frame++
+	}
 	return nil
 }
 
@@ -154,12 +165,22 @@ func pow2(x uintptr) uintptr {
 }
 
 func (g *Graphics) gcBuffers() {
-	for cb, bs := range g.buffers {
-		// If the command buffer still lives, the buffer must not be updated.
-		// TODO: Handle an error?
-		if cb.Status() != mtl.CommandBufferStatusCompleted {
+loop:
+	for frame, bs := range g.buffers {
+		if frame == g.frame {
 			continue
 		}
+
+		// Check if all command buffers for the frame are completed.
+		for _, cb := range g.frameToCB[frame] {
+			if cb.Status() != mtl.CommandBufferStatusCompleted {
+				continue loop
+			}
+		}
+		for _, cb := range g.frameToCB[frame] {
+			cb.Release()
+		}
+		delete(g.frameToCB, frame)
 
 		for _, b := range bs {
 			if g.unusedBuffers == nil {
@@ -167,8 +188,7 @@ func (g *Graphics) gcBuffers() {
 			}
 			g.unusedBuffers[b] = struct{}{}
 		}
-		delete(g.buffers, cb)
-		cb.Release()
+		delete(g.buffers, frame)
 	}
 
 	const maxUnusedBuffers = 10
@@ -187,10 +207,20 @@ func (g *Graphics) gcBuffers() {
 	}
 }
 
-func (g *Graphics) availableBuffer(length uintptr) mtl.Buffer {
-	if g.cb == (mtl.CommandBuffer{}) {
-		g.cb = g.cq.CommandBuffer()
+func (g *Graphics) ensureCommandBuffer() {
+	if g.cb != (mtl.CommandBuffer{}) {
+		return
 	}
+	g.cb = g.cq.CommandBuffer()
+	if g.frameToCB == nil {
+		g.frameToCB = map[int64][]mtl.CommandBuffer{}
+	}
+	g.frameToCB[g.frame] = append(g.frameToCB[g.frame], g.cb)
+	g.cb.Retain()
+}
+
+func (g *Graphics) availableBuffer(length uintptr) mtl.Buffer {
+	g.ensureCommandBuffer()
 
 	var newBuf mtl.Buffer
 	for b := range g.unusedBuffers {
@@ -206,12 +236,9 @@ func (g *Graphics) availableBuffer(length uintptr) mtl.Buffer {
 	}
 
 	if g.buffers == nil {
-		g.buffers = map[mtl.CommandBuffer][]mtl.Buffer{}
+		g.buffers = map[int64][]mtl.Buffer{}
 	}
-	if _, ok := g.buffers[g.cb]; !ok {
-		g.cb.Retain()
-	}
-	g.buffers[g.cb] = append(g.buffers[g.cb], newBuf)
+	g.buffers[g.frame] = append(g.buffers[g.frame], newBuf)
 	return newBuf
 }
 
@@ -228,7 +255,7 @@ func (g *Graphics) SetVertices(vertices []float32, indices []uint32) error {
 	return nil
 }
 
-func (g *Graphics) flushIfNeeded(present bool) {
+func (g *Graphics) flushCommandBufferIfNeeded(present bool) {
 	if g.cb == (mtl.CommandBuffer{}) {
 		if g.rce != (mtl.RenderCommandEncoder{}) {
 			panic("metal: render command encoder must be empty if command buffer is empty")
@@ -472,6 +499,13 @@ func (g *Graphics) flushRenderCommandEncoderIfNeeded() {
 }
 
 func (g *Graphics) draw(dst *Image, dstRegions []graphicsdriver.DstRegion, srcs [graphics.ShaderSrcImageCount]*Image, indexOffset int, shader *Shader, uniforms []uint32, blend graphicsdriver.Blend, fillRule graphicsdriver.FillRule) error {
+	// In order to create a separate command buffer for the screen, flush the current command buffer.
+	// It's because a drawable will not be released as long as the CommandBuffer referencing it is alive,
+	// it is more efficient to separate CommandBuffers that use the drawable from those that do not.
+	if (g.lastDst != nil && g.lastDst.screen) != dst.screen {
+		g.flushCommandBufferIfNeeded(false)
+	}
+
 	// When preparing a stencil buffer, flush the current render command encoder
 	// to make sure the stencil buffer is cleared when loading.
 	// TODO: What about clearing the stencil buffer by vertices?
@@ -508,9 +542,7 @@ func (g *Graphics) draw(dst *Image, dstRegions []graphicsdriver.DstRegion, srcs 
 			rpd.StencilAttachment.Texture = dst.stencil
 		}
 
-		if g.cb == (mtl.CommandBuffer{}) {
-			g.cb = g.cq.CommandBuffer()
-		}
+		g.ensureCommandBuffer()
 		g.rce = g.cb.RenderCommandEncoderWithDescriptor(rpd)
 	}
 
@@ -745,7 +777,7 @@ func (i *Image) Dispose() {
 }
 
 func (i *Image) syncTexture() {
-	i.graphics.flushIfNeeded(false)
+	i.graphics.flushCommandBufferIfNeeded(false)
 
 	// Calling SynchronizeTexture is ignored on iOS (see mtl.m), but it looks like committing BlitCommandEncoder
 	// is necessary (#1337).
@@ -811,9 +843,7 @@ func (i *Image) WritePixels(args []graphicsdriver.PixelsArgs) error {
 		}, 0, unsafe.Pointer(&a.Pixels[0]), 4*a.Region.Dx())
 	}
 
-	if g.cb == (mtl.CommandBuffer{}) {
-		g.cb = i.graphics.cq.CommandBuffer()
-	}
+	g.ensureCommandBuffer()
 	bce := g.cb.BlitCommandEncoder()
 	for _, a := range args {
 		so := mtl.Origin{X: a.Region.Min.X - region.Min.X, Y: a.Region.Min.Y - region.Min.Y, Z: 0}
