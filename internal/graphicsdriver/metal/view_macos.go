@@ -44,8 +44,6 @@ func (v *view) setUIView(uiview uintptr) {
 }
 
 func (v *view) update() {
-	v.ml.SetMaximumDrawableCount(maximumDrawableCount)
-
 	if !v.windowChanged {
 		return
 	}
