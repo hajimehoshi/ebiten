@@ -78,8 +78,8 @@ func (u *UserInterface) initializePlatform() error {
 			// See cocoa_window.m in GLFW.
 			{
 				Cmd: sel_windowShouldClose,
-				Fn: func(id objc.ID, cmd objc.SEL, notification objc.ID) bool {
-					return id.Send(sel_origDelegate).Send(cmd, notification) != 0
+				Fn: func(id objc.ID, cmd objc.SEL, sender objc.ID) bool {
+					return id.Send(sel_origDelegate).Send(cmd, sender) != 0
 				},
 			},
 			{
