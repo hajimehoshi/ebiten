@@ -39,6 +39,7 @@ import "C"
 import (
 	"unsafe"
 
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/ca"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/mtl"
 )
 
@@ -65,10 +66,15 @@ const (
 	resourceStorageMode = mtl.ResourceStorageModeShared
 )
 
-func (v *view) initializeDisplayLink() {
-	// Do nothing.
+func (v *view) nextDrawable() ca.MetalDrawable {
+	d, err := v.ml.NextDrawable()
+	if err != nil {
+		// Drawable is nil. This can happen at the initial state. Let's wait and see.
+		return ca.MetalDrawable{}
+	}
+	return d
 }
 
-func (v *view) waitForDisplayLinkOutputCallback() {
+func (v *view) initializeOS() {
 	// Do nothing.
 }

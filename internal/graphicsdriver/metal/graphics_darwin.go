@@ -860,7 +860,6 @@ func (i *Image) mtlTexture() mtl.Texture {
 	if i.screen {
 		g := i.graphics
 		if g.screenDrawable == (ca.MetalDrawable{}) {
-			i.graphics.view.waitForDisplayLinkOutputCallback()
 			drawable := g.view.nextDrawable()
 			if drawable == (ca.MetalDrawable{}) {
 				return mtl.Texture{}

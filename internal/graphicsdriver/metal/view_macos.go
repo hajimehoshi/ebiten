@@ -28,6 +28,7 @@ import (
 	"github.com/ebitengine/purego/objc"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/cocoa"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/ca"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/mtl"
 )
 
@@ -61,7 +62,7 @@ const (
 	resourceStorageMode = mtl.ResourceStorageModeManaged
 )
 
-func (v *view) initializeDisplayLink() {
+func (v *view) initializeOS() {
 	v.fence = newFence()
 
 	// TODO: CVDisplayLink APIs are deprecated in macOS 10.15 and later.
@@ -96,4 +97,17 @@ func ebitengine_DisplayLinkOutputCallback(displayLinkRef C.CVDisplayLinkRef, inN
 	view := cgoHandle.Value().(*view)
 	view.fence.advance()
 	return 0
+}
+
+func (v *view) nextDrawable() ca.MetalDrawable {
+	// TODO: Use CAMetalDisplayLink if available.
+
+	v.waitForDisplayLinkOutputCallback()
+
+	d, err := v.ml.NextDrawable()
+	if err != nil {
+		// Drawable is nil. This can happen at the initial state. Let's wait and see.
+		return ca.MetalDrawable{}
+	}
+	return d
 }

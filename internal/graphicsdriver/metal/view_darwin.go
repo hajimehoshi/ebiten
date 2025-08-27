@@ -97,18 +97,9 @@ func (v *view) initialize(device mtl.Device, colorSpace graphicsdriver.ColorSpac
 
 	v.ml.SetMaximumDrawableCount(maximumDrawableCount)
 
-	v.initializeDisplayLink()
+	v.initializeOS()
 
 	return nil
-}
-
-func (v *view) nextDrawable() ca.MetalDrawable {
-	d, err := v.ml.NextDrawable()
-	if err != nil {
-		// Drawable is nil. This can happen at the initial state. Let's wait and see.
-		return ca.MetalDrawable{}
-	}
-	return d
 }
 
 type fence struct {
