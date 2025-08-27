@@ -25,46 +25,41 @@ var (
 	class_NSMethodSignature = objc.GetClass("NSMethodSignature")
 	class_NSAutoreleasePool = objc.GetClass("NSAutoreleasePool")
 	class_NSString          = objc.GetClass("NSString")
-	class_NSProcessInfo     = objc.GetClass("NSProcessInfo")
 	class_NSColor           = objc.GetClass("NSColor")
-	class_NSWindow          = objc.GetClass("NSWindow")
-	class_NSView            = objc.GetClass("NSView")
 	class_NSScreen          = objc.GetClass("NSScreen")
 )
 
 var (
-	sel_alloc                              = objc.RegisterName("alloc")
-	sel_new                                = objc.RegisterName("new")
-	sel_release                            = objc.RegisterName("release")
-	sel_invocationWithMethodSignature      = objc.RegisterName("invocationWithMethodSignature:")
-	sel_setSelector                        = objc.RegisterName("setSelector:")
-	sel_setTarget                          = objc.RegisterName("setTarget:")
-	sel_setArgumentAtIndex                 = objc.RegisterName("setArgument:atIndex:")
-	sel_getReturnValue                     = objc.RegisterName("getReturnValue:")
-	sel_invoke                             = objc.RegisterName("invoke")
-	sel_invokeWithTarget                   = objc.RegisterName("invokeWithTarget:")
-	sel_instanceMethodSignatureForSelector = objc.RegisterName("instanceMethodSignatureForSelector:")
-	sel_signatureWithObjCTypes             = objc.RegisterName("signatureWithObjCTypes:")
-	sel_initWithUTF8String                 = objc.RegisterName("initWithUTF8String:")
-	sel_UTF8String                         = objc.RegisterName("UTF8String")
-	sel_length                             = objc.RegisterName("length")
-	sel_processInfo                        = objc.RegisterName("processInfo")
-	sel_frame                              = objc.RegisterName("frame")
-	sel_contentView                        = objc.RegisterName("contentView")
-	sel_setBackgroundColor                 = objc.RegisterName("setBackgroundColor:")
-	sel_colorWithSRGBRedGreenBlueAlpha     = objc.RegisterName("colorWithSRGBRed:green:blue:alpha:")
-	sel_setFrameSize                       = objc.RegisterName("setFrameSize:")
-	sel_object                             = objc.RegisterName("object")
-	sel_styleMask                          = objc.RegisterName("styleMask")
-	sel_setStyleMask                       = objc.RegisterName("setStyleMask:")
-	sel_mainScreen                         = objc.RegisterName("mainScreen")
-	sel_screen                             = objc.RegisterName("screen")
-	sel_isVisible                          = objc.RegisterName("isVisible")
-	sel_deviceDescription                  = objc.RegisterName("deviceDescription")
-	sel_objectForKey                       = objc.RegisterName("objectForKey:")
-	sel_unsignedIntValue                   = objc.RegisterName("unsignedIntValue")
-	sel_setLayer                           = objc.RegisterName("setLayer:")
-	sel_setWantsLayer                      = objc.RegisterName("setWantsLayer:")
+	sel_alloc                          = objc.RegisterName("alloc")
+	sel_new                            = objc.RegisterName("new")
+	sel_release                        = objc.RegisterName("release")
+	sel_invocationWithMethodSignature  = objc.RegisterName("invocationWithMethodSignature:")
+	sel_setSelector                    = objc.RegisterName("setSelector:")
+	sel_setTarget                      = objc.RegisterName("setTarget:")
+	sel_setArgumentAtIndex             = objc.RegisterName("setArgument:atIndex:")
+	sel_getReturnValue                 = objc.RegisterName("getReturnValue:")
+	sel_invoke                         = objc.RegisterName("invoke")
+	sel_invokeWithTarget               = objc.RegisterName("invokeWithTarget:")
+	sel_signatureWithObjCTypes         = objc.RegisterName("signatureWithObjCTypes:")
+	sel_initWithUTF8String             = objc.RegisterName("initWithUTF8String:")
+	sel_UTF8String                     = objc.RegisterName("UTF8String")
+	sel_length                         = objc.RegisterName("length")
+	sel_frame                          = objc.RegisterName("frame")
+	sel_contentView                    = objc.RegisterName("contentView")
+	sel_setBackgroundColor             = objc.RegisterName("setBackgroundColor:")
+	sel_colorWithSRGBRedGreenBlueAlpha = objc.RegisterName("colorWithSRGBRed:green:blue:alpha:")
+	sel_setFrameSize                   = objc.RegisterName("setFrameSize:")
+	sel_object                         = objc.RegisterName("object")
+	sel_styleMask                      = objc.RegisterName("styleMask")
+	sel_setStyleMask                   = objc.RegisterName("setStyleMask:")
+	sel_mainScreen                     = objc.RegisterName("mainScreen")
+	sel_screen                         = objc.RegisterName("screen")
+	sel_isVisible                      = objc.RegisterName("isVisible")
+	sel_deviceDescription              = objc.RegisterName("deviceDescription")
+	sel_objectForKey                   = objc.RegisterName("objectForKey:")
+	sel_unsignedIntValue               = objc.RegisterName("unsignedIntValue")
+	sel_setLayer                       = objc.RegisterName("setLayer:")
+	sel_setWantsLayer                  = objc.RegisterName("setWantsLayer:")
 )
 
 const (
@@ -110,18 +105,6 @@ type NSColor struct {
 
 func NSColor_colorWithSRGBRedGreenBlueAlpha(red, green, blue, alpha CGFloat) (color NSColor) {
 	return NSColor{objc.ID(class_NSColor).Send(sel_colorWithSRGBRedGreenBlueAlpha, red, green, blue, alpha)}
-}
-
-type NSOperatingSystemVersion struct {
-	Major, Minor, Patch NSInteger
-}
-
-type NSProcessInfo struct {
-	objc.ID
-}
-
-func NSProcessInfo_processInfo() NSProcessInfo {
-	return NSProcessInfo{objc.ID(class_NSProcessInfo).Send(sel_processInfo)}
 }
 
 type NSWindow struct {
