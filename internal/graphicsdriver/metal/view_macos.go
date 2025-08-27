@@ -16,19 +16,10 @@
 
 package metal
 
-// #include <CoreVideo/CVDisplayLink.h>
-//
-// int ebitengine_DisplayLinkOutputCallback(CVDisplayLinkRef displayLinkRef, CVTimeStamp* inNow, CVTimeStamp* inOutputTime, uint64_t flagsIn, uint64_t* flagsOut, void* displayLinkContext);
-import "C"
-
 import (
-	"runtime/cgo"
-	"unsafe"
-
 	"github.com/ebitengine/purego/objc"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/cocoa"
-	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/ca"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/mtl"
 )
 
@@ -62,52 +53,20 @@ const (
 	resourceStorageMode = mtl.ResourceStorageModeManaged
 )
 
-func (v *view) initializeOS() {
-	v.fence = newFence()
-
-	// TODO: CVDisplayLink APIs are deprecated in macOS 10.15 and later.
-	// Use new APIs like NSView.displayLink(target:selector:).
-	var displayLinkRef C.CVDisplayLinkRef
-	if ret := C.CVDisplayLinkCreateWithActiveCGDisplays(&displayLinkRef); ret != kCVReturnSuccess {
-		// Failed to get the display link, so proceed without it.
-		return
+func (v *view) initializeOS() error {
+	if err := v.initDisplayLink(); err != nil {
+		return err
 	}
-	v.handleToSelf = cgo.NewHandle(v)
-	C.CVDisplayLinkSetOutputCallback(displayLinkRef, C.CVDisplayLinkOutputCallback(C.ebitengine_DisplayLinkOutputCallback), unsafe.Pointer(&v.handleToSelf))
-	C.CVDisplayLinkStart(displayLinkRef)
-
-	v.displayLink = uintptr(displayLinkRef)
+	return nil
 }
 
 func (v *view) waitForDisplayLinkOutputCallback() {
-	if v.displayLink == 0 {
+	if v.caDisplayLink == 0 && v.metalDisplayLink == 0 {
 		return
 	}
-	if v.vsyncDisabled {
+	if v.caDisplayLink == 0 && v.vsyncDisabled {
 		// TODO: nextDrawable still waits for the next drawable available, so this should be fixed not to wait.
 		return
 	}
-
 	v.fence.wait()
-}
-
-//export ebitengine_DisplayLinkOutputCallback
-func ebitengine_DisplayLinkOutputCallback(displayLinkRef C.CVDisplayLinkRef, inNow, inOutputTime *C.CVTimeStamp, flagsIn C.uint64_t, flagsOut *C.uint64_t, displayLinkContext unsafe.Pointer) C.int {
-	cgoHandle := (*cgo.Handle)(displayLinkContext)
-	view := cgoHandle.Value().(*view)
-	view.fence.advance()
-	return 0
-}
-
-func (v *view) nextDrawable() ca.MetalDrawable {
-	// TODO: Use CAMetalDisplayLink if available.
-
-	v.waitForDisplayLinkOutputCallback()
-
-	d, err := v.ml.NextDrawable()
-	if err != nil {
-		// Drawable is nil. This can happen at the initial state. Let's wait and see.
-		return ca.MetalDrawable{}
-	}
-	return d
 }

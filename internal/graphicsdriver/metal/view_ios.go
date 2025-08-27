@@ -75,6 +75,11 @@ func (v *view) nextDrawable() ca.MetalDrawable {
 	return d
 }
 
-func (v *view) initializeOS() {
+func (v *view) finishDrawableUsage() {
 	// Do nothing.
+}
+
+func (v *view) initializeOS() error {
+	// Do nothing.
+	return nil
 }

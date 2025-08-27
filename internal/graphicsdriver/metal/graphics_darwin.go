@@ -265,9 +265,11 @@ func (g *Graphics) flushCommandBufferIfNeeded(present bool) {
 
 	g.flushRenderCommandEncoderIfNeeded()
 
+	var presented bool
 	if present && g.screenDrawable != (ca.MetalDrawable{}) {
 		g.cb.PresentDrawable(g.screenDrawable)
 		g.screenDrawable = ca.MetalDrawable{}
+		presented = true
 	}
 
 	g.cb.Commit()
@@ -278,6 +280,10 @@ func (g *Graphics) flushCommandBufferIfNeeded(present bool) {
 	g.tmpTextures = g.tmpTextures[:0]
 
 	g.cb = mtl.CommandBuffer{}
+
+	if presented {
+		g.view.finishDrawableUsage()
+	}
 }
 
 func (g *Graphics) checkSize(width, height int) {
@@ -867,6 +873,9 @@ func (i *Image) mtlTexture() mtl.Texture {
 			g.screenDrawable = drawable
 			// After nextDrawable, it is expected some command buffers are completed.
 			g.gcBuffers()
+		}
+		if g.screenDrawable == (ca.MetalDrawable{}) {
+			return mtl.Texture{}
 		}
 		return g.screenDrawable.Texture()
 	}

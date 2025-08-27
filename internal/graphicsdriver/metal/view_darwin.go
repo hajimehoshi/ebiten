@@ -17,7 +17,10 @@ package metal
 import (
 	"runtime/cgo"
 	"sync"
+	"time"
 
+	"github.com/ebitengine/purego/objc"
+	"github.com/hajimehoshi/ebiten/v2/internal/cocoa"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/ca"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/mtl"
@@ -41,7 +44,20 @@ type view struct {
 
 	once sync.Once
 
-	displayLink  uintptr
+	caDisplayLink    uintptr
+	metalDisplayLink uintptr
+
+	// The following members are used only with CAMetalDisplayLink.
+	drawableCh                    chan ca.MetalDrawable
+	drawableDoneCh                chan struct{}
+	drawableTimer                 *time.Timer
+	prevMetalDisplayLink          chan uintptr
+	notificatioObserver           objc.ID
+	metalDisplayLinkRunLoop       cocoa.NSRunLoop
+	metalDisplayLinkReleaseBlock  objc.Block
+	meltaDisplayLinkRecreateBlock objc.Block
+
+	// The following members are used only with CADisplayLink.
 	handleToSelf cgo.Handle
 	fence        *fence
 }
@@ -97,7 +113,9 @@ func (v *view) initialize(device mtl.Device, colorSpace graphicsdriver.ColorSpac
 
 	v.ml.SetMaximumDrawableCount(maximumDrawableCount)
 
-	v.initializeOS()
+	if err := v.initializeOS(); err != nil {
+		return err
+	}
 
 	return nil
 }
