@@ -27,6 +27,7 @@ var (
 	class_NSString          = objc.GetClass("NSString")
 	class_NSColor           = objc.GetClass("NSColor")
 	class_NSScreen          = objc.GetClass("NSScreen")
+	class_NSRunLoop         = objc.GetClass("NSRunLoop")
 )
 
 var (
@@ -60,6 +61,7 @@ var (
 	sel_unsignedIntValue               = objc.RegisterName("unsignedIntValue")
 	sel_setLayer                       = objc.RegisterName("setLayer:")
 	sel_setWantsLayer                  = objc.RegisterName("setWantsLayer:")
+	sel_mainRunLoop                    = objc.RegisterName("mainRunLoop")
 )
 
 const (
@@ -268,3 +270,18 @@ type NSNumber struct {
 func (n NSNumber) UnsignedIntValue() uint {
 	return uint(n.Send(sel_unsignedIntValue))
 }
+
+type NSRunLoop struct {
+	objc.ID
+}
+
+func NSRunLoop_mainRunLoop() NSRunLoop {
+	return NSRunLoop{objc.ID(class_NSRunLoop).Send(sel_mainRunLoop)}
+}
+
+type NSRunLoopMode NSString
+
+var (
+	NSRunLoopCommonModes = NSRunLoopMode(NSString_alloc().InitWithUTF8String("kCFRunLoopCommonModes"))
+	NSDefaultRunLoopMode = NSRunLoopMode(NSString_alloc().InitWithUTF8String("kCFRunLoopDefaultMode"))
+)

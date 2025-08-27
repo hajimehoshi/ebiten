@@ -41,9 +41,11 @@ type view struct {
 
 	once sync.Once
 
-	displayLink  uintptr
-	handleToSelf cgo.Handle
-	fence        *fence
+	caDisplayLink    uintptr
+	metalDisplayLink uintptr
+	drawableCh       chan ca.MetalDrawable // drawableCh is used only with CAMetalDisplayLink.
+	handleToSelf     cgo.Handle            // handleToSelf is used only with CADisplayLink.
+	fence            *fence                // fence is used only with CVDisplayLink.
 }
 
 func (v *view) setDrawableSize(width, height int) {
@@ -97,7 +99,9 @@ func (v *view) initialize(device mtl.Device, colorSpace graphicsdriver.ColorSpac
 
 	v.ml.SetMaximumDrawableCount(maximumDrawableCount)
 
-	v.initializeOS()
+	if err := v.initializeOS(); err != nil {
+		return err
+	}
 
 	return nil
 }
