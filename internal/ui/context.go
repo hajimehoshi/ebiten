@@ -246,6 +246,11 @@ func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics, ui *UserInter
 		return false, nil
 	}
 
+	// screen can be nil for some edge cases (#3121).
+	if c.screen == nil {
+		return false, nil
+	}
+
 	if graphicsDriver.NeedsClearingScreen() {
 		// This clear is needed for fullscreen mode or some mobile platforms (#622).
 		c.screen.clear()
@@ -284,7 +289,7 @@ func (c *context) layoutGame(outsideWidth, outsideHeight float64, deviceScaleFac
 		c.screen.Deallocate()
 		c.screen = nil
 	}
-	if c.screen == nil {
+	if c.screen == nil && sw > 0 && sh > 0 {
 		c.screen = c.game.NewScreenImage(sw, sh)
 	}
 
