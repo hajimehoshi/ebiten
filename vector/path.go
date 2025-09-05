@@ -465,19 +465,7 @@ func (p *Path) Close() {
 	if len(p.subPaths[len(p.subPaths)-1].ops) > 0 {
 		subPath := &p.subPaths[len(p.subPaths)-1]
 		start := subPath.start
-		end := subPath.endAtOp(len(subPath.ops) - 1)
-		if arePointsInRange(start, end, 0, 1.0/16.0) {
-			// Overwrite the last operation to avoid a too short line segment.
-			// The last operation matters especially when creating a stroke.
-			switch op := subPath.ops[len(subPath.ops)-1]; op.typ {
-			case opTypeLineTo:
-				op.p1 = start
-			case opTypeQuadTo:
-				op.p2 = start
-			}
-		} else {
-			p.LineTo(start.x, start.y)
-		}
+		p.LineTo(start.x, start.y)
 	}
 	p.subPaths[len(p.subPaths)-1].closed = true
 }
