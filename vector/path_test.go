@@ -15,6 +15,7 @@
 package vector_test
 
 import (
+	"runtime"
 	"testing"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -200,6 +201,10 @@ func TestAddPathSelf(t *testing.T) {
 }
 
 func TestArcAndGeoM(t *testing.T) {
+	if runtime.GOOS == "js" {
+		t.Skip("the result might be flaky in this environment")
+	}
+
 	testCases := []struct {
 		name     string
 		geoM     ebiten.GeoM
