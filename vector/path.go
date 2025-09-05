@@ -456,15 +456,6 @@ func isQuadraticCloseEnoughToCubic(start, end, qc1, cc1, cc2 point, allowance fl
 	return true
 }
 
-func allowanceFromPoints(p0, p1, p2, p3 point) float32 {
-	minX := min(p0.x, p1.x, p2.x, p3.x)
-	maxX := max(p0.x, p1.x, p2.x, p3.x)
-	minY := min(p0.y, p1.y, p2.y, p3.y)
-	maxY := max(p0.y, p1.y, p2.y, p3.y)
-	// 1024 is an arbitrary value which is small enough.
-	return max(maxX-minX, maxY-minY) / 1024
-}
-
 func arePointsInRange(p0, p1 point, allowanceMin, allowanceMax float32) bool {
 	d := (p0.x-p1.x)*(p0.x-p1.x) + (p0.y-p1.y)*(p0.y-p1.y)
 	return d >= allowanceMin*allowanceMin && d <= allowanceMax*allowanceMax
