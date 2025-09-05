@@ -901,7 +901,7 @@ func (p *Path) normalize() {
 // The returned values are intended to be passed to DrawTriangles or DrawTrianglesShader with a solid (non-transparent) color
 // with FillRuleFillAll or FillRuleNonZero, not FileRuleEvenOdd.
 //
-// Deprecated: as of v2.9. Use [StrokePath] or [Path.AddPathStroke] instead.
+// Deprecated: as of v2.9. Use [StrokePath] or [Path.AddStroke] instead.
 func (p *Path) AppendVerticesAndIndicesForStroke(vertices []ebiten.Vertex, indices []uint16, op *StrokeOptions) ([]ebiten.Vertex, []uint16) {
 	if op == nil {
 		return vertices, indices

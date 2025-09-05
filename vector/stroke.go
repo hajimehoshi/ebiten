@@ -63,7 +63,7 @@ type StrokeOptions struct {
 	MiterLimit float32
 }
 
-// AddStrokeOptions is options for [Path.AddPathStroke].
+// AddStrokeOptions is options for [Path.AddStroke].
 type AddStrokeOptions struct {
 	// StrokeOptions is options for the stroke.
 	StrokeOptions
