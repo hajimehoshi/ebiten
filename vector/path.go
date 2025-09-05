@@ -368,10 +368,19 @@ func (p *Path) QuadTo(x1, y1, x2, y2 float32) {
 // CubicTo adds a cubic Bézier curve to the path.
 // (x1, y1) and (x2, y2) are the control points, and (x3, y3) is the destination.
 func (p *Path) CubicTo(x1, y1, x2, y2, x3, y3 float32) {
-	p.cubicTo(x1, y1, x2, y2, x3, y3, 0)
+	cur, ok := p.currentPosition()
+	if !ok {
+		cur = point{x: x1, y: y1}
+	}
+	minX := min(cur.x, x1, x2, x3)
+	maxX := max(cur.x, x1, x2, x3)
+	minY := min(cur.y, y1, y2, y3)
+	maxY := max(cur.y, y1, y2, y3)
+	allowance := max(maxX-minX, maxY-minY) / 1024
+	p.cubicTo(x1, y1, x2, y2, x3, y3, 0, allowance)
 }
 
-func (p *Path) cubicTo(x1, y1, x2, y2, x3, y3 float32, level int) {
+func (p *Path) cubicTo(x1, y1, x2, y2, x3, y3 float32, level int, allowance float32) {
 	cur, ok := p.currentPosition()
 	if !ok {
 		cur = point{x: x1, y: y1}
@@ -390,7 +399,7 @@ func (p *Path) cubicTo(x1, y1, x2, y2, x3, y3 float32, level int) {
 		x: -0.25*p0.x + 0.75*p1.x + 0.75*p2.x - 0.25*p3.x,
 		y: -0.25*p0.y + 0.75*p1.y + 0.75*p2.y - 0.25*p3.y,
 	}
-	if level > 5 || isQuadraticCloseEnoughToCubic(p0, p3, m, p1, p2) {
+	if level > 5 || isQuadraticCloseEnoughToCubic(p0, p3, m, p1, p2, allowance) {
 		p.QuadTo(m.x, m.y, p3.x, p3.y)
 		return
 	}
@@ -426,11 +435,11 @@ func (p *Path) cubicTo(x1, y1, x2, y2, x3, y3 float32, level int) {
 		x: (p012.x + p123.x) / 2,
 		y: (p012.y + p123.y) / 2,
 	}
-	p.cubicTo(p01.x, p01.y, p012.x, p012.y, p0123.x, p0123.y, level+1)
-	p.cubicTo(p123.x, p123.y, p23.x, p23.y, p3.x, p3.y, level+1)
+	p.cubicTo(p01.x, p01.y, p012.x, p012.y, p0123.x, p0123.y, level+1, allowance)
+	p.cubicTo(p123.x, p123.y, p23.x, p23.y, p3.x, p3.y, level+1, allowance)
 }
 
-func isQuadraticCloseEnoughToCubic(start, end, qc1, cc1, cc2 point) bool {
+func isQuadraticCloseEnoughToCubic(start, end, qc1, cc1, cc2 point, allowance float32) bool {
 	for _, t := range []float32{0.25, 0.75} {
 		q := point{
 			x: (1-t)*(1-t)*start.x + 2*(1-t)*t*qc1.x + t*t*end.x,
@@ -440,12 +449,20 @@ func isQuadraticCloseEnoughToCubic(start, end, qc1, cc1, cc2 point) bool {
 			x: (1-t)*(1-t)*(1-t)*start.x + 3*(1-t)*(1-t)*t*cc1.x + 3*(1-t)*t*t*cc2.x + t*t*t*end.x,
 			y: (1-t)*(1-t)*(1-t)*start.y + 3*(1-t)*(1-t)*t*cc1.y + 3*(1-t)*t*t*cc2.y + t*t*t*end.y,
 		}
-		// 1.0/16.0 is an arbitrary threshold.
-		if !arePointsInRange(q, c, 0, 1.0/16.0) {
+		if !arePointsInRange(q, c, 0, allowance) {
 			return false
 		}
 	}
 	return true
+}
+
+func allowanceFromPoints(p0, p1, p2, p3 point) float32 {
+	minX := min(p0.x, p1.x, p2.x, p3.x)
+	maxX := max(p0.x, p1.x, p2.x, p3.x)
+	minY := min(p0.y, p1.y, p2.y, p3.y)
+	maxY := max(p0.y, p1.y, p2.y, p3.y)
+	// 1024 is an arbitrary value which is small enough.
+	return max(maxX-minX, maxY-minY) / 1024
 }
 
 func arePointsInRange(p0, p1 point, allowanceMin, allowanceMax float32) bool {

@@ -301,6 +301,9 @@ func doAppendParalleledQuad(path *Path, p0, p1, p2 point, dist float32, level in
 		return
 	}
 
+	minAllowance := max(dist*63/64, 0)
+	maxAllowance := dist * 65 / 64
+
 	var needSplit bool
 	for _, t := range []float32{0.25, 0.75} {
 		gotP := point{
@@ -319,7 +322,7 @@ func doAppendParalleledQuad(path *Path, p0, p1, p2 point, dist float32, level in
 		}
 		expectedP := p.add(v)
 
-		if !arePointsInRange(gotP, expectedP, max(dist-1.0/16.0, 0), dist+1.0/16.0) {
+		if !arePointsInRange(gotP, expectedP, minAllowance, maxAllowance) {
 			needSplit = true
 			break
 		}
