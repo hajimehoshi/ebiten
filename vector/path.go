@@ -586,7 +586,7 @@ func (p *Path) ArcTo(x1, y1, x2, y2, radius float32) {
 	}
 
 	// If the start and end points are too close, just add a line segment to avoid strange rendering results.
-	if arePointsInRange(p0, point{x: x2, y: y2}, 0, 1.0/2.0) {
+	if arePointsInRange(p0, point{x: x2, y: y2}, 0, radius) {
 		p.LineTo(x2, y2)
 		return
 	}
