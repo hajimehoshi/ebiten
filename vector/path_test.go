@@ -17,6 +17,7 @@ package vector_test
 import (
 	"testing"
 
+	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
@@ -195,5 +196,94 @@ func TestAddPathSelf(t *testing.T) {
 	}
 	if got, want := vector.SubPathCount(&path), 2; got != want {
 		t.Errorf("expected close count to be %d, got %d", want, got)
+	}
+}
+
+func TestArcAndGeoM(t *testing.T) {
+	testCases := []struct {
+		name     string
+		geoM     ebiten.GeoM
+		origPath vector.Path
+		refPath  vector.Path
+	}{
+		{
+			name: "identity",
+			geoM: ebiten.GeoM{},
+			origPath: func() (p vector.Path) {
+				p.MoveTo(0, 0)
+				p.ArcTo(16, 0, 16, 16, 16)
+				return p
+			}(),
+			refPath: func() (p vector.Path) {
+				p.MoveTo(0, 0)
+				p.ArcTo(16, 0, 16, 16, 16)
+				return p
+			}(),
+		},
+		{
+			name: "scale 2x",
+			geoM: func() (geoM ebiten.GeoM) {
+				geoM.Scale(2, 2)
+				return geoM
+			}(),
+			origPath: func() (p vector.Path) {
+				p.MoveTo(0, 0)
+				p.ArcTo(8, 0, 8, 8, 8)
+				return p
+			}(),
+			refPath: func() (p vector.Path) {
+				p.MoveTo(0, 0)
+				p.ArcTo(16, 0, 16, 16, 16)
+				return p
+			}(),
+		},
+		{
+			name: "scale 256x",
+			geoM: func() (geoM ebiten.GeoM) {
+				geoM.Scale(256, 256)
+				return geoM
+			}(),
+			origPath: func() (p vector.Path) {
+				p.MoveTo(0, 0)
+				p.ArcTo(1.0/16.0, 0, 1.0/16.0, 1.0/16.0, 1.0/16.0)
+				return p
+			}(),
+			refPath: func() (p vector.Path) {
+				p.MoveTo(0, 0)
+				p.ArcTo(16, 0, 16, 16, 16)
+				return p
+			}(),
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			origDst := ebiten.NewImage(16, 16)
+			defer origDst.Deallocate()
+			refDst := ebiten.NewImage(16, 16)
+			defer refDst.Deallocate()
+
+			var path vector.Path
+			op := &vector.AddPathOptions{}
+			op.GeoM = tc.geoM
+			path.AddPath(&tc.origPath, op)
+
+			strokeOp := &vector.StrokeOptions{
+				Width: 1,
+			}
+			// Do not use alpha blending, which can cause non-deterministic results.
+			vector.StrokePath(origDst, &path, strokeOp, nil)
+			vector.StrokePath(refDst, &tc.refPath, strokeOp, nil)
+
+			for j := 0; j < 16; j++ {
+				for i := 0; i < 16; i++ {
+					got := origDst.At(i, j)
+					want := refDst.At(i, j)
+					if got != want {
+						t.Errorf("At(%d, %d): got: %v, want: %v", i, j, got, want)
+					}
+				}
+			}
+		})
 	}
 }
