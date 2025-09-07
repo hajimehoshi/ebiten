@@ -1,3 +1,4 @@
+// Deprecated: use github.com/hajimehoshi/ebiten/v2 instead.
 module github.com/hajimehoshi/ebiten
 
 go 1.12
