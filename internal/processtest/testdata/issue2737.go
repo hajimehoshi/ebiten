@@ -20,7 +20,6 @@ import (
 	"errors"
 	"io"
 	"os"
-	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -97,9 +96,9 @@ func (g *Game) Layout(width, height int) (int, int) {
 }
 
 func main() {
-	// Drivers might not be available, especially on Linux on GitHub Actions.
+	// Drivers might not be available, especially on GitHub Actions.
 	// TODO: Enable this by install a dummy driver.
-	if strings.TrimSpace(os.Getenv("GITHUB_ACTIONS")) == "true" && runtime.GOOS == "linux" {
+	if strings.TrimSpace(os.Getenv("GITHUB_ACTIONS")) == "true" {
 		return
 	}
 
