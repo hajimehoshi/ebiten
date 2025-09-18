@@ -26,6 +26,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/hajimehoshi/ebiten/v2/internal/clock"
 	"github.com/hajimehoshi/ebiten/v2/internal/file"
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
 	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
@@ -103,6 +104,9 @@ type userInterfaceImpl struct {
 	defaultFramebufferSizeCallback glfw.FramebufferSizeCallback
 	dropCallback                   glfw.DropCallback
 	framebufferSizeCallbackCh      chan struct{}
+
+	cachedCurrentMonitor     *Monitor
+	cachedCurrentMonitorTime int64
 
 	darwinInitOnce        sync.Once
 	showWindowOnce        sync.Once
@@ -1871,6 +1875,21 @@ func (u *UserInterface) minimumWindowWidth() (int, error) {
 //
 // currentMonitor must be called on the main thread.
 func (u *UserInterface) currentMonitor() (*Monitor, error) {
+	if u.cachedCurrentMonitor != nil && u.cachedCurrentMonitorTime > u.Tick()-int64(clock.TPS()) && theMonitors.contains(u.cachedCurrentMonitor) {
+		return u.cachedCurrentMonitor, nil
+	}
+
+	m, err := u.currentMonitorImpl()
+	if err != nil {
+		return nil, err
+	}
+	u.cachedCurrentMonitor = m
+	u.cachedCurrentMonitorTime = u.Tick()
+	return m, nil
+}
+
+// currentMonitorImpl must be called from the main thread.
+func (u *UserInterface) currentMonitorImpl() (*Monitor, error) {
 	if u.window == nil {
 		return u.getInitMonitor(), nil
 	}

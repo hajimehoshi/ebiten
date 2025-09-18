@@ -18,6 +18,7 @@ package ui
 
 import (
 	"image"
+	"slices"
 	"sync"
 	"sync/atomic"
 
@@ -79,6 +80,15 @@ func (m *monitors) append(ms []*Monitor) []*Monitor {
 	defer m.m.Unlock()
 
 	return append(ms, m.monitors...)
+}
+
+func (m *monitors) contains(monitor *Monitor) bool {
+	if !m.updateCalled.Load() {
+		return false
+	}
+	m.m.Lock()
+	defer m.m.Unlock()
+	return slices.Contains(m.monitors, monitor)
 }
 
 func (m *monitors) primaryMonitor() *Monitor {
