@@ -17,7 +17,7 @@ package main
 import (
 	"image/png"
 	"io/fs"
-	"log"
+	"log/slog"
 	"sync"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -51,7 +51,7 @@ func (g *Game) Update() error {
 				if err != nil {
 					return err
 				}
-				log.Printf("Name: %s, Size: %d, IsDir: %t, ModTime: %v", fi.Name(), fi.Size(), fi.IsDir(), fi.ModTime())
+				slog.Info("Entry", "path", path, "name", fi.Name(), "size", fi.Size(), "isDir", fi.IsDir(), "modTime", fi.ModTime())
 
 				f, err := files.Open(path)
 				if err != nil {
@@ -124,9 +124,9 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 }
 
 func main() {
-	ebiten.SetWindowResizable(true)
+	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
 	ebiten.SetWindowTitle("Dropping Files (Ebitengine Demo)")
 	if err := ebiten.RunGame(&Game{}); err != nil {
-		log.Fatal(err)
+		slog.Error("ebiten.RunGame failed", "err", err)
 	}
 }
