@@ -72,14 +72,22 @@ func (u *UserInterface) updateInputStateImpl() error {
 		if err != nil {
 			return err
 		}
-		u.inputState.KeyPressed[uk] = s == glfw.Press
+		if s == glfw.Press {
+			u.inputState.KeyPressedTicksPlus1[uk] = u.Tick() + 1
+		} else {
+			u.inputState.KeyReleasedTicksPlus1[uk] = u.Tick() + 1
+		}
 	}
 	for gb, ub := range glfwMouseButtonToMouseButton {
 		s, err := u.window.GetMouseButton(gb)
 		if err != nil {
 			return err
 		}
-		u.inputState.MouseButtonPressed[ub] = s == glfw.Press
+		if s == glfw.Press {
+			u.inputState.MouseButtonPressedTicksPlus1[ub] = u.Tick() + 1
+		} else {
+			u.inputState.MouseButtonReleasedTicksPlus1[ub] = u.Tick() + 1
+		}
 	}
 
 	m, err := u.currentMonitor()

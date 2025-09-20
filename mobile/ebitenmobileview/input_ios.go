@@ -64,7 +64,7 @@ func UpdatePressesOnIOS(phase int, keyCode int, keyString string) {
 	switch phase {
 	case C.UITouchPhaseBegan, C.UITouchPhaseMoved, C.UITouchPhaseStationary:
 		if key, ok := iosKeyToUIKey[keyCode]; ok {
-			keys[key] = struct{}{}
+			keyPressedTicksPlus1[key] = ui.Get().Tick() + 1
 		}
 		var runes []rune
 		if phase == C.UITouchPhaseBegan {
@@ -78,7 +78,7 @@ func UpdatePressesOnIOS(phase int, keyCode int, keyString string) {
 		updateInput(runes)
 	case C.UITouchPhaseEnded, C.UITouchPhaseCancelled:
 		if key, ok := iosKeyToUIKey[keyCode]; ok {
-			delete(keys, key)
+			keyReleasedTicksPlus1[key] = ui.Get().Tick() + 1
 		}
 		updateInput(nil)
 	default:

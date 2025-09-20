@@ -26,8 +26,9 @@ type position struct {
 }
 
 var (
-	keys    = map[ui.Key]struct{}{}
-	touches = map[ui.TouchID]position{}
+	keyPressedTicksPlus1  [ui.KeyMax + 1]int64
+	keyReleasedTicksPlus1 [ui.KeyMax + 1]int64
+	touches               = map[ui.TouchID]position{}
 )
 
 var (
@@ -44,5 +45,5 @@ func updateInput(runes []rune) {
 		})
 	}
 
-	ui.Get().UpdateInput(keys, runes, touchSlice)
+	ui.Get().UpdateInput(keyPressedTicksPlus1, keyReleasedTicksPlus1, runes, touchSlice)
 }

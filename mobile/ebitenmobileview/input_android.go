@@ -141,7 +141,7 @@ func OnKeyDownOnAndroid(keyCode int, unicodeChar int, source int, deviceID int) 
 		// DPAD keys can come here, but they are also treated as an axis at a motion event. Ignore them.
 	case source&sourceKeyboard == sourceKeyboard:
 		if key, ok := androidKeyToUIKey[keyCode]; ok {
-			keys[key] = struct{}{}
+			keyPressedTicksPlus1[key] = ui.Get().Tick() + 1
 		}
 		var runes []rune
 		if r := rune(unicodeChar); r != 0 && unicode.IsPrint(r) {
@@ -162,7 +162,7 @@ func OnKeyUpOnAndroid(keyCode int, source int, deviceID int) {
 		// DPAD keys can come here, but they are also treated as an axis at a motion event. Ignore them.
 	case source&sourceKeyboard == sourceKeyboard:
 		if key, ok := androidKeyToUIKey[keyCode]; ok {
-			delete(keys, key)
+			keyReleasedTicksPlus1[key] = ui.Get().Tick() + 1
 		}
 		updateInput(nil)
 	}

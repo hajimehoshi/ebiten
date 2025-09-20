@@ -411,15 +411,19 @@ func (i *inputState) isKeyPressed(key Key) bool {
 
 	switch key {
 	case KeyAlt:
-		return i.state.KeyPressed[ui.KeyAltLeft] || i.state.KeyPressed[ui.KeyAltRight]
+		return inputPressed(i.state.KeyPressedTicksPlus1[ui.KeyAltLeft], i.state.KeyReleasedTicksPlus1[ui.KeyAltRight]) ||
+			inputPressed(i.state.KeyPressedTicksPlus1[ui.KeyAltRight], i.state.KeyReleasedTicksPlus1[ui.KeyAltRight])
 	case KeyControl:
-		return i.state.KeyPressed[ui.KeyControlLeft] || i.state.KeyPressed[ui.KeyControlRight]
+		return inputPressed(i.state.KeyPressedTicksPlus1[ui.KeyControlLeft], i.state.KeyReleasedTicksPlus1[ui.KeyControlLeft]) ||
+			inputPressed(i.state.KeyPressedTicksPlus1[ui.KeyControlRight], i.state.KeyReleasedTicksPlus1[ui.KeyControlRight])
 	case KeyShift:
-		return i.state.KeyPressed[ui.KeyShiftLeft] || i.state.KeyPressed[ui.KeyShiftRight]
+		return inputPressed(i.state.KeyPressedTicksPlus1[ui.KeyShiftLeft], i.state.KeyReleasedTicksPlus1[ui.KeyShiftLeft]) ||
+			inputPressed(i.state.KeyPressedTicksPlus1[ui.KeyShiftRight], i.state.KeyReleasedTicksPlus1[ui.KeyShiftRight])
 	case KeyMeta:
-		return i.state.KeyPressed[ui.KeyMetaLeft] || i.state.KeyPressed[ui.KeyMetaRight]
+		return inputPressed(i.state.KeyPressedTicksPlus1[ui.KeyMetaLeft], i.state.KeyReleasedTicksPlus1[ui.KeyMetaLeft]) ||
+			inputPressed(i.state.KeyPressedTicksPlus1[ui.KeyMetaRight], i.state.KeyReleasedTicksPlus1[ui.KeyMetaRight])
 	default:
-		return i.state.KeyPressed[key]
+		return inputPressed(i.state.KeyPressedTicksPlus1[key], i.state.KeyReleasedTicksPlus1[key])
 	}
 }
 
@@ -438,7 +442,7 @@ func (i *inputState) wheel() (float64, float64) {
 func (i *inputState) isMouseButtonPressed(mouseButton MouseButton) bool {
 	i.m.Lock()
 	defer i.m.Unlock()
-	return i.state.MouseButtonPressed[mouseButton]
+	return inputPressed(i.state.MouseButtonPressedTicksPlus1[mouseButton], i.state.MouseButtonReleasedTicksPlus1[mouseButton])
 }
 
 func (i *inputState) appendTouchIDs(touches []TouchID) []TouchID {
@@ -474,4 +478,14 @@ func (i *inputState) droppedFiles() fs.FS {
 	i.m.Lock()
 	defer i.m.Unlock()
 	return i.state.DroppedFiles
+}
+
+func inputPressed(pressedTickPlus1, releasedTickPlus1 int64) bool {
+	if pressedTickPlus1 > releasedTickPlus1 {
+		return true
+	}
+	if pressedTickPlus1 == releasedTickPlus1 && pressedTickPlus1 == Tick()+1 {
+		return true
+	}
+	return false
 }

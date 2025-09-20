@@ -39,21 +39,30 @@ type Touch struct {
 }
 
 type InputState struct {
-	KeyPressed         [KeyMax + 1]bool
-	MouseButtonPressed [MouseButtonMax + 1]bool
-	CursorX            float64
-	CursorY            float64
-	WheelX             float64
-	WheelY             float64
-	Touches            []Touch
-	Runes              []rune
-	WindowBeingClosed  bool
-	DroppedFiles       fs.FS
+	// KeyPressedTicksPlus1 and KeyReleased represent time when the key was last pressed or released.
+	// The time is represented in ticks plus one so that zero indicates the initial state.
+	KeyPressedTicksPlus1  [KeyMax + 1]int64
+	KeyReleasedTicksPlus1 [KeyMax + 1]int64
+
+	// MouseButtonPressedTicksPlus1 and MouseButtonReleased represent time when the mouse button was last pressed or released.
+	MouseButtonPressedTicksPlus1  [MouseButtonMax + 1]int64
+	MouseButtonReleasedTicksPlus1 [MouseButtonMax + 1]int64
+
+	CursorX           float64
+	CursorY           float64
+	WheelX            float64
+	WheelY            float64
+	Touches           []Touch
+	Runes             []rune
+	WindowBeingClosed bool
+	DroppedFiles      fs.FS
 }
 
 func (i *InputState) copyAndReset(dst *InputState) {
-	dst.KeyPressed = i.KeyPressed
-	dst.MouseButtonPressed = i.MouseButtonPressed
+	dst.KeyPressedTicksPlus1 = i.KeyPressedTicksPlus1
+	dst.KeyReleasedTicksPlus1 = i.KeyReleasedTicksPlus1
+	dst.MouseButtonPressedTicksPlus1 = i.MouseButtonPressedTicksPlus1
+	dst.MouseButtonReleasedTicksPlus1 = i.MouseButtonReleasedTicksPlus1
 	dst.CursorX = i.CursorX
 	dst.CursorY = i.CursorY
 	dst.WheelX = i.WheelX
