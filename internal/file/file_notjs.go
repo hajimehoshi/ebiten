@@ -54,6 +54,12 @@ func (v *VirtualFS) Open(name string) (fs.File, error) {
 		}
 	}
 
+	// It is implicitly assumed that all the real paths are under the same directory.
+	// For name == ".", return a special virtual root directory.
+	// Unfortunately it is not possible to return a real directory here because
+	// v.paths might not include some files in the same directory.
+	// TODO: Calculate the common ancestor directory of v.paths and use it.
+
 	if name == "." {
 		return v.newRootFS(), nil
 	}
@@ -71,6 +77,42 @@ func (v *VirtualFS) Open(name string) (fs.File, error) {
 
 	return nil, &fs.PathError{
 		Op:   "open",
+		Path: name,
+		Err:  fs.ErrNotExist,
+	}
+}
+
+func (v *VirtualFS) ReadDir(name string) ([]fs.DirEntry, error) {
+	if !fs.ValidPath(name) {
+		return nil, &fs.PathError{
+			Op:   "readdir",
+			Path: name,
+			Err:  fs.ErrNotExist,
+		}
+	}
+
+	if name == "." {
+		root := v.newRootFS()
+		return root.ReadDir(-1)
+	}
+
+	es := strings.Split(name, "/")
+	for _, realPath := range v.paths {
+		if filepath.Base(realPath) != es[0] {
+			continue
+		}
+		f, err := os.Open(filepath.Join(append([]string{realPath}, es[1:]...)...))
+		if err != nil {
+			return nil, err
+		}
+		defer func() {
+			_ = f.Close
+		}()
+		return f.ReadDir(-1)
+	}
+
+	return nil, &fs.PathError{
+		Op:   "readdir",
 		Path: name,
 		Err:  fs.ErrNotExist,
 	}

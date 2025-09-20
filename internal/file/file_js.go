@@ -112,6 +112,33 @@ func (f *FileEntryFS) Open(name string) (fs.File, error) {
 	}
 }
 
+func (f *FileEntryFS) ReadDir(name string) ([]fs.DirEntry, error) {
+	if !fs.ValidPath(name) {
+		return nil, &fs.PathError{
+			Op:   "readdir",
+			Path: name,
+			Err:  fs.ErrNotExist,
+		}
+	}
+
+	ent, err := f.Open(name)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		_ = ent.Close()
+	}()
+	d, ok := ent.(*dir)
+	if !ok {
+		return nil, &fs.PathError{
+			Op:   "readdir",
+			Path: name,
+			Err:  fs.ErrInvalid,
+		}
+	}
+	return d.ReadDir(-1)
+}
+
 type file struct {
 	entry      js.Value
 	file       js.Value
