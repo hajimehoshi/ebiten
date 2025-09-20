@@ -41,7 +41,11 @@ func (u *UserInterface) registerInputCallbacks() error {
 		if !ok {
 			return
 		}
-		u.inputState.KeyPressed[uk] = action == glfw.Press
+		if action == glfw.Press {
+			u.inputState.setKeyPressed(uk, u.InputTime())
+		} else {
+			u.inputState.setKeyReleased(uk, u.InputTime())
+		}
 	}); err != nil {
 		return err
 	}
@@ -55,7 +59,11 @@ func (u *UserInterface) registerInputCallbacks() error {
 		if !ok {
 			return
 		}
-		u.inputState.MouseButtonPressed[ub] = action == glfw.Press
+		if action == glfw.Press {
+			u.inputState.setMouseButtonPressed(ub, u.InputTime())
+		} else {
+			u.inputState.setMouseButtonReleased(ub, u.InputTime())
+		}
 	}); err != nil {
 		return err
 	}
@@ -82,16 +90,16 @@ func (u *UserInterface) registerInputCallbacks() error {
 	return nil
 }
 
-func (u *UserInterface) updateInputState() error {
+func (u *UserInterface) updateInputStateForFrame() error {
 	var err error
 	u.mainThread.Call(func() {
-		err = u.updateInputStateImpl()
+		err = u.updateInputStateForFrameImpl()
 	})
 	return err
 }
 
-// updateInputStateImpl must be called from the main thread.
-func (u *UserInterface) updateInputStateImpl() error {
+// updateInputStateForFrameImpl must be called from the main thread.
+func (u *UserInterface) updateInputStateForFrameImpl() error {
 	u.m.Lock()
 	defer u.m.Unlock()
 

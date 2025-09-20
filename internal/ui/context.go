@@ -130,7 +130,7 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 	}
 
 	// Update the input state after the layout is updated as a cursor position is affected by the layout.
-	if err := ui.updateInputState(); err != nil {
+	if err := ui.updateInputStateForFrame(); err != nil {
 		return false, err
 	}
 
@@ -160,7 +160,7 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 			return false, err
 		}
 
-		ui.tick.Add(1)
+		ui.incrementTick()
 	}
 
 	// Update window icons during a frame, since an icon might be *ebiten.Image and

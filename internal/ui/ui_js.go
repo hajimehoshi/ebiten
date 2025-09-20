@@ -99,14 +99,13 @@ type userInterfaceImpl struct {
 	lastCaptureExitTime time.Time
 	hiDPIEnabled        bool
 
-	context                   *context
-	inputState                InputState
-	keyDurationsByKeyProperty map[Key]int
-	cursorXInClient           float64
-	cursorYInClient           float64
-	origCursorXInClient       float64
-	origCursorYInClient       float64
-	touchesInClient           []touchInClient
+	context             *context
+	inputState          InputState
+	cursorXInClient     float64
+	cursorYInClient     float64
+	origCursorXInClient float64
+	origCursorYInClient float64
+	touchesInClient     []touchInClient
 
 	savedCursorX              float64
 	savedCursorY              float64
@@ -705,7 +704,7 @@ func (u *UserInterface) setCanvasEventHandlers(v js.Value) {
 
 	// Blur
 	v.Call("addEventListener", "blur", js.FuncOf(func(this js.Value, args []js.Value) any {
-		u.inputState.resetForBlur()
+		u.inputState.releaseAllButtons(u.InputTime())
 		return nil
 	}))
 }

@@ -49,25 +49,106 @@ func (i *inputState) AppendInputChars(runes []rune) []rune {
 }
 
 func (i *inputState) IsKeyPressed(key ui.Key) bool {
-	if key < 0 || key > ui.KeyMax {
-		return false
-	}
-
 	i.m.Lock()
 	defer i.m.Unlock()
 
+	tick := ui.Get().Tick()
 	switch key {
 	case ui.KeyAlt:
-		return i.state.KeyPressed[ui.KeyAltLeft] || i.state.KeyPressed[ui.KeyAltRight]
+		return i.state.IsKeyPressed(ui.KeyAltLeft, tick) || i.state.IsKeyPressed(ui.KeyAltRight, tick)
 	case ui.KeyControl:
-		return i.state.KeyPressed[ui.KeyControlLeft] || i.state.KeyPressed[ui.KeyControlRight]
+		return i.state.IsKeyPressed(ui.KeyControlLeft, tick) || i.state.IsKeyPressed(ui.KeyControlRight, tick)
 	case ui.KeyShift:
-		return i.state.KeyPressed[ui.KeyShiftLeft] || i.state.KeyPressed[ui.KeyShiftRight]
+		return i.state.IsKeyPressed(ui.KeyShiftLeft, tick) || i.state.IsKeyPressed(ui.KeyShiftRight, tick)
 	case ui.KeyMeta:
-		return i.state.KeyPressed[ui.KeyMetaLeft] || i.state.KeyPressed[ui.KeyMetaRight]
+		return i.state.IsKeyPressed(ui.KeyMetaLeft, tick) || i.state.IsKeyPressed(ui.KeyMetaRight, tick)
 	default:
-		return i.state.KeyPressed[key]
+		return i.state.IsKeyPressed(key, tick)
 	}
+}
+
+func (i *inputState) IsKeyJustPressed(key ui.Key) bool {
+	i.m.Lock()
+	defer i.m.Unlock()
+	return i.state.IsKeyJustPressed(key, ui.Get().Tick())
+}
+
+func (i *inputState) IsKeyJustReleased(key ui.Key) bool {
+	i.m.Lock()
+	defer i.m.Unlock()
+	return i.state.IsKeyJustReleased(key, ui.Get().Tick())
+}
+
+func (i *inputState) KeyPressDuration(key ui.Key) int64 {
+	i.m.Lock()
+	defer i.m.Unlock()
+	return i.state.KeyPressDuration(key, ui.Get().Tick())
+}
+
+func AppendPressedKeys[T ~int](keys []T) []T {
+	theInputState.m.Lock()
+	defer theInputState.m.Unlock()
+
+	tick := ui.Get().Tick()
+	for k := ui.Key(0); k <= ui.KeyMax; k++ {
+		if !theInputState.state.IsKeyPressed(k, tick) {
+			continue
+		}
+		keys = append(keys, T(k))
+	}
+	return keys
+}
+
+func AppendJustPressedKeys[T ~int](keys []T) []T {
+	theInputState.m.Lock()
+	defer theInputState.m.Unlock()
+
+	tick := ui.Get().Tick()
+	for k := ui.Key(0); k <= ui.KeyMax; k++ {
+		if !theInputState.state.IsKeyJustPressed(k, tick) {
+			continue
+		}
+		keys = append(keys, T(k))
+	}
+	return keys
+}
+
+func AppendJustReleasedKeys[T ~int](keys []T) []T {
+	theInputState.m.Lock()
+	defer theInputState.m.Unlock()
+
+	tick := ui.Get().Tick()
+	for k := ui.Key(0); k <= ui.KeyMax; k++ {
+		if !theInputState.state.IsKeyJustReleased(k, tick) {
+			continue
+		}
+		keys = append(keys, T(k))
+	}
+	return keys
+}
+
+func (i *inputState) IsMouseButtonPressed(mouseButton ui.MouseButton) bool {
+	i.m.Lock()
+	defer i.m.Unlock()
+	return i.state.IsMouseButtonPressed(mouseButton, ui.Get().Tick())
+}
+
+func (i *inputState) IsMouseButtonJustPressed(mouseButton ui.MouseButton) bool {
+	i.m.Lock()
+	defer i.m.Unlock()
+	return i.state.IsMouseButtonJustPressed(mouseButton, ui.Get().Tick())
+}
+
+func (i *inputState) IsMouseButtonJustReleased(mouseButton ui.MouseButton) bool {
+	i.m.Lock()
+	defer i.m.Unlock()
+	return i.state.IsMouseButtonJustReleased(mouseButton, ui.Get().Tick())
+}
+
+func (i *inputState) MouseButtonPressDuration(mouseButton ui.MouseButton) int64 {
+	i.m.Lock()
+	defer i.m.Unlock()
+	return i.state.MouseButtonPressDuration(mouseButton, ui.Get().Tick())
 }
 
 func (i *inputState) CursorPosition() (float64, float64) {
@@ -80,12 +161,6 @@ func (i *inputState) Wheel() (float64, float64) {
 	i.m.Lock()
 	defer i.m.Unlock()
 	return i.state.WheelX, i.state.WheelY
-}
-
-func (i *inputState) IsMouseButtonPressed(mouseButton ui.MouseButton) bool {
-	i.m.Lock()
-	defer i.m.Unlock()
-	return i.state.MouseButtonPressed[mouseButton]
 }
 
 func AppendTouchIDs[T ~int](touches []T) []T {

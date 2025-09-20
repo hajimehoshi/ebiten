@@ -321,8 +321,8 @@ func (u *UserInterface) Monitor() *Monitor {
 	return theMonitor
 }
 
-func (u *UserInterface) UpdateInput(keys map[Key]struct{}, runes []rune, touches []TouchForInput) {
-	u.updateInputStateFromOutside(keys, runes, touches)
+func (u *UserInterface) UpdateInput(keyPressedTimes, keyReleasedTimes [KeyMax + 1]InputTime, runes []rune, touches []TouchForInput) {
+	u.updateInputStateFromOutside(keyPressedTimes, keyReleasedTimes, runes, touches)
 	if FPSModeType(u.fpsMode.Load()) == FPSModeVsyncOffMinimum {
 		u.renderer.RequestRenderIfNeeded()
 	}

@@ -63,15 +63,15 @@ var codeToMouseButton = map[int]MouseButton{
 	4: MouseButton4,
 }
 
-func eventToKeys(e js.Value) (key0, key1 Key, fromKeyProperty bool) {
+func eventToKeys(e js.Value) (key0, key1 Key) {
 	id := jsCodeToID(e.Get("code"))
 
 	// On mobile browsers, treat enter key as if this is from a `key` property.
 	if IsVirtualKeyboard() && id == KeyEnter {
-		return KeyEnter, -1, true
+		return KeyEnter, -1
 	}
 	if id >= 0 {
-		return id, -1, false
+		return id, -1
 	}
 
 	// With a virtual keyboard on mobile devices, e.code is empty. Use a 'key' property instead (#2898).
@@ -81,69 +81,52 @@ func eventToKeys(e js.Value) (key0, key1 Key, fromKeyProperty bool) {
 	// Let's assume both keys are pressed.
 	switch {
 	case key.Equal(stringAlt):
-		return KeyAltLeft, KeyAltRight, true
+		return KeyAltLeft, KeyAltRight
 	case key.Equal(stringControl):
-		return KeyControlLeft, KeyControlRight, true
+		return KeyControlLeft, KeyControlRight
 	case key.Equal(stringMeta):
-		return KeyMetaLeft, KeyMetaRight, true
+		return KeyMetaLeft, KeyMetaRight
 	case key.Equal(stringShift):
-		return KeyShiftLeft, KeyShiftRight, true
+		return KeyShiftLeft, KeyShiftRight
 	}
 
 	for uiKey, jsKey := range uiKeyToJSKey {
 		if key.Equal(jsKey) {
-			return uiKey, -1, true
+			return uiKey, -1
 		}
 	}
 
-	return -1, -1, false
+	return -1, -1
 }
 
 func (u *UserInterface) keyDown(event js.Value) {
-	key0, key1, fromKeyProperty := eventToKeys(event)
+	now := u.InputTime()
+	key0, key1 := eventToKeys(event)
 	if key0 >= 0 {
-		// If the key value comes from a 'key' property, a 'keydown' and 'keyup' event might be fired too quickly.
-		// Record the key duration to prevent immediate resetting a key state by a 'keyup' event.
-		// Resetting a key state is delayed until the next tick. See updateInputState.
-		if fromKeyProperty && !u.inputState.KeyPressed[key0] {
-			if u.keyDurationsByKeyProperty == nil {
-				u.keyDurationsByKeyProperty = map[Key]int{}
-			}
-			u.keyDurationsByKeyProperty[key0] = 1
-		}
-		u.inputState.KeyPressed[key0] = true
+		u.inputState.setKeyPressed(key0, now)
 	}
 	if key1 >= 0 {
-		if fromKeyProperty && !u.inputState.KeyPressed[key1] {
-			if u.keyDurationsByKeyProperty == nil {
-				u.keyDurationsByKeyProperty = map[Key]int{}
-			}
-			u.keyDurationsByKeyProperty[key1] = 1
-		}
-		u.inputState.KeyPressed[key1] = true
+		u.inputState.setKeyPressed(key1, now)
 	}
 }
 
 func (u *UserInterface) keyUp(event js.Value) {
-	key0, key1, fromKeyProperty := eventToKeys(event)
+	now := u.InputTime()
+	key0, key1 := eventToKeys(event)
 	if key0 >= 0 {
-		if !fromKeyProperty || u.keyDurationsByKeyProperty[key0] == 0 {
-			u.inputState.KeyPressed[key0] = false
-		}
+		u.inputState.setKeyReleased(key0, now)
 	}
 	if key1 >= 0 {
-		if !fromKeyProperty || u.keyDurationsByKeyProperty[key1] == 0 {
-			u.inputState.KeyPressed[key1] = false
-		}
+		u.inputState.setKeyReleased(key1, now)
 	}
 }
 
 func (u *UserInterface) mouseDown(code int) {
-	u.inputState.MouseButtonPressed[codeToMouseButton[code]] = true
+	u.inputState.setMouseButtonPressed(codeToMouseButton[code], u.InputTime())
 }
 
 func (u *UserInterface) mouseUp(code int) {
-	u.inputState.MouseButtonPressed[codeToMouseButton[code]] = false
+	u.inputState.setMouseButtonReleased(codeToMouseButton[code], u.InputTime())
 }
 
 func (u *UserInterface) updateInputFromEvent(e js.Value) error {
@@ -300,17 +283,7 @@ func (u *UserInterface) saveCursorPosition() {
 	u.savedOutsideHeight = h
 }
 
-func (u *UserInterface) updateInputState() error {
-	// Reset the key state if a key is pressed by a 'key' property and the key's duration is big enough.
-	for key, duration := range u.keyDurationsByKeyProperty {
-		if duration >= 2 {
-			delete(u.keyDurationsByKeyProperty, key)
-			u.inputState.KeyPressed[key] = false
-			continue
-		}
-		u.keyDurationsByKeyProperty[key]++
-	}
-
+func (u *UserInterface) updateInputStateForFrame() error {
 	s := theMonitor.DeviceScaleFactor()
 
 	if !math.IsNaN(u.savedCursorX) && !math.IsNaN(u.savedCursorY) {
@@ -421,16 +394,6 @@ var uiKeyToJSKey = map[Key]js.Value{
 	KeyNumpad7:        js.ValueOf("7"),
 	KeyNumpad8:        js.ValueOf("8"),
 	KeyNumpad9:        js.ValueOf("9"),
-}
-
-func (i *InputState) resetForBlur() {
-	for j := range i.KeyPressed {
-		i.KeyPressed[j] = false
-	}
-	for j := range i.MouseButtonPressed {
-		i.MouseButtonPressed[j] = false
-	}
-	i.Touches = i.Touches[:0]
 }
 
 func IsVirtualKeyboard() bool {

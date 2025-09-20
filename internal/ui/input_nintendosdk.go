@@ -29,16 +29,16 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
 )
 
-func (u *UserInterface) updateInputState() error {
+func (u *UserInterface) updateInputStateForFrame() error {
 	var err error
 	u.mainThread.Call(func() {
-		err = u.updateInputStateImpl()
+		err = u.updateInputStateForFrameImpl()
 	})
 	return err
 }
 
-// updateInputStateImpl must be called from the main thread.
-func (u *UserInterface) updateInputStateImpl() error {
+// updateInputStateForFrameImpl must be called from the main thread.
+func (u *UserInterface) updateInputStateForFrameImpl() error {
 	if err := gamepad.Update(); err != nil {
 		return err
 	}

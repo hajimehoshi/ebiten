@@ -39,21 +39,153 @@ type Touch struct {
 }
 
 type InputState struct {
-	KeyPressed         [KeyMax + 1]bool
-	MouseButtonPressed [MouseButtonMax + 1]bool
-	CursorX            float64
-	CursorY            float64
-	WheelX             float64
-	WheelY             float64
-	Touches            []Touch
-	Runes              []rune
-	WindowBeingClosed  bool
-	DroppedFiles       fs.FS
+	KeyPressedTimes  [KeyMax + 1]InputTime
+	KeyReleasedTimes [KeyMax + 1]InputTime
+
+	MouseButtonPressedTimes  [MouseButtonMax + 1]InputTime
+	MouseButtonReleasedTimes [MouseButtonMax + 1]InputTime
+
+	CursorX           float64
+	CursorY           float64
+	WheelX            float64
+	WheelY            float64
+	Touches           []Touch
+	Runes             []rune
+	WindowBeingClosed bool
+	DroppedFiles      fs.FS
+}
+
+func (i *InputState) setKeyPressed(key Key, t InputTime) {
+	if key < 0 || KeyMax < key {
+		return
+	}
+	i.KeyPressedTimes[key] = t
+}
+
+func (i *InputState) setKeyReleased(key Key, t InputTime) {
+	if key < 0 || KeyMax < key {
+		return
+	}
+	i.KeyReleasedTimes[key] = t
+}
+
+func (i *InputState) setMouseButtonPressed(button MouseButton, t InputTime) {
+	if button < 0 || MouseButtonMax < button {
+		return
+	}
+	i.MouseButtonPressedTimes[button] = t
+}
+
+func (i *InputState) setMouseButtonReleased(button MouseButton, t InputTime) {
+	if button < 0 || MouseButtonMax < button {
+		return
+	}
+	i.MouseButtonReleasedTimes[button] = t
+}
+
+// releaseAllButtons is called when the browser window loses focus.
+func (i *InputState) releaseAllButtons(t InputTime) {
+	for j := range i.KeyPressedTimes {
+		i.KeyReleasedTimes[Key(j)] = t
+	}
+	for j := range i.MouseButtonPressedTimes {
+		i.MouseButtonReleasedTimes[j] = t
+	}
+	i.Touches = i.Touches[:0]
+}
+
+func (i *InputState) IsKeyPressed(key Key, tick int64) bool {
+	if key < 0 || KeyMax < key {
+		return false
+	}
+	p := i.KeyPressedTimes[key]
+	r := i.KeyReleasedTimes[key]
+	return inputStatePressed(p, r, tick)
+}
+
+func (i *InputState) IsKeyJustPressed(key Key, tick int64) bool {
+	if key < 0 || KeyMax < key {
+		return false
+	}
+	p := i.KeyPressedTimes[key]
+	return inputStateJustPressed(p, tick)
+}
+
+func (i *InputState) IsKeyJustReleased(key Key, tick int64) bool {
+	if key < 0 || KeyMax < key {
+		return false
+	}
+	r := i.KeyReleasedTimes[key]
+	return inputStateJustReleased(r, tick)
+}
+
+func (i *InputState) KeyPressDuration(key Key, tick int64) int64 {
+	if key < 0 || KeyMax < key {
+		return 0
+	}
+	p := i.KeyPressedTimes[key]
+	r := i.KeyReleasedTimes[key]
+	return inputStateDuration(p, r, tick)
+}
+
+func (i *InputState) IsMouseButtonPressed(button MouseButton, tick int64) bool {
+	if button < 0 || MouseButtonMax < button {
+		return false
+	}
+	p := i.MouseButtonPressedTimes[button]
+	r := i.MouseButtonReleasedTimes[button]
+	return inputStatePressed(p, r, tick)
+}
+
+func (i *InputState) IsMouseButtonJustPressed(button MouseButton, tick int64) bool {
+	if button < 0 || MouseButtonMax < button {
+		return false
+	}
+	p := i.MouseButtonPressedTimes[button]
+	return inputStateJustPressed(p, tick)
+}
+
+func (i *InputState) IsMouseButtonJustReleased(button MouseButton, tick int64) bool {
+	if button < 0 || MouseButtonMax < button {
+		return false
+	}
+	r := i.MouseButtonReleasedTimes[button]
+	return inputStateJustReleased(r, tick)
+}
+
+func (i *InputState) MouseButtonPressDuration(button MouseButton, tick int64) int64 {
+	if button < 0 || MouseButtonMax < button {
+		return 0
+	}
+	p := i.MouseButtonPressedTimes[button]
+	r := i.MouseButtonReleasedTimes[button]
+	return inputStateDuration(p, r, tick)
+}
+
+func inputStatePressed(pressed, released InputTime, tick int64) bool {
+	return released < pressed || inputStateJustPressed(pressed, tick)
+}
+
+func inputStateJustPressed(pressed InputTime, tick int64) bool {
+	return pressed > 0 && pressed.Tick() == tick
+}
+
+func inputStateJustReleased(released InputTime, tick int64) bool {
+	return released > 0 && released.Tick() == tick
+}
+
+func inputStateDuration(pressed, released InputTime, tick int64) int64 {
+	if pressed < released {
+		return 0
+	}
+	return tick - pressed.Tick() + 1
 }
 
 func (i *InputState) copyAndReset(dst *InputState) {
-	dst.KeyPressed = i.KeyPressed
-	dst.MouseButtonPressed = i.MouseButtonPressed
+	dst.KeyPressedTimes = i.KeyPressedTimes
+	dst.KeyReleasedTimes = i.KeyReleasedTimes
+	dst.MouseButtonPressedTimes = i.MouseButtonPressedTimes
+	dst.MouseButtonReleasedTimes = i.MouseButtonReleasedTimes
 	dst.CursorX = i.CursorX
 	dst.CursorY = i.CursorY
 	dst.WheelX = i.WheelX
