@@ -6,8 +6,6 @@
 
 package glfw
 
-import "C"
-
 // #cgo pkg-config: x11 xau xcb xdmcp
 // #cgo CFLAGS: -D_GLFW_HAS_DLOPEN -D_GLFW_X11 -D_GLFW_HAS_GLXGETPROCADDRESSARB
 // #cgo LDFLAGS: -lm

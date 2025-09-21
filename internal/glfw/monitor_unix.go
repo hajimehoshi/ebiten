@@ -11,22 +11,31 @@ package glfw
 //
 // void goMonitorCB(void* monitor, int event);
 //
+// #cgo noescape GetMonitorAtIndex
+// #cgo nocallback GetMonitorAtIndex
 // static GLFWmonitor *GetMonitorAtIndex(GLFWmonitor **monitors, int index) {
 //   return monitors[index];
 // }
 //
+// #cgo noescape GetVidmodeAtIndex
+// #cgo nocallback GetVidmodeAtIndex
 // static GLFWvidmode GetVidmodeAtIndex(GLFWvidmode *vidmodes, int index) {
 //   return vidmodes[index];
 // }
 //
+// #cgo noescape glfwSetMonitorCallbackCB
 // static void glfwSetMonitorCallbackCB() {
 //   glfwSetMonitorCallback((GLFWmonitorfun)goMonitorCB);
 // }
 //
+// #cgo noescape GetGammaAtIndex
+// #cgo nocallback GetGammaAtIndex
 // static unsigned int GetGammaAtIndex(unsigned short *color, int i) {
 //   return color[i];
 // }
 //
+// #cgo noescape SetGammaAtIndex
+// #cgo nocallback SetGammaAtIndex
 // static void SetGammaAtIndex(unsigned short *color, int i, unsigned short value) {
 //   color[i] = value;
 // }

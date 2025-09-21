@@ -293,6 +293,8 @@ package gamepad
 //   return hat;
 // }
 //
+// #cgo noescape getControllerState
+// #cgo nocallback getControllerState
 // static void getControllerState(uintptr_t controller_ptr, struct ControllerState* controllerState,
 //                                uint16_t buttonMask, uint8_t nHats,
 //                                bool hasDualshockTouchpad, bool hasXboxPaddles, bool hasXboxShareButton) {
@@ -365,6 +367,7 @@ package gamepad
 //   }
 // }
 //
+// #cgo noescape initializeGamepads
 // static void initializeGamepads(void) {
 //   @autoreleasepool {
 //     for (GCController* controller in [GCController controllers]) {

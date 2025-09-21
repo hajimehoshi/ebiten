@@ -21,6 +21,8 @@ package gl
 // #include <stdlib.h>
 // #include <EGL/egl.h>
 //
+// #cgo noescape getProcAddress
+// #cgo nocallback getProcAddress
 // static void* getProcAddress(const char* name) {
 //   return eglGetProcAddress(name);
 // }

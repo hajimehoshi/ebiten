@@ -56,6 +56,8 @@ import (
 //
 //     <uses-permission android:name="android.permission.VIBRATE"/>
 //
+#cgo noescape vibrateOneShot
+#cgo nocallback vibrateOneShot
 static void vibrateOneShot(uintptr_t java_vm, uintptr_t jni_env, uintptr_t ctx, int64_t milliseconds, double magnitude) {
   JavaVM* vm = (JavaVM*)java_vm;
   JNIEnv* env = (JNIEnv*)jni_env;

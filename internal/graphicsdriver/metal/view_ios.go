@@ -22,11 +22,15 @@ package metal
 //
 // #import <UIKit/UIKit.h>
 //
+// #cgo noescape addSublayer
+// #cgo nocallback addSublayer
 // static void addSublayer(void* view, void* sublayer) {
 //   CALayer* layer = ((UIView*)view).layer;
 //   [layer addSublayer:(CALayer*)sublayer];
 // }
 //
+// #cgo noescape setFrame
+// #cgo nocallback setFrame
 // static void setFrame(void* cametal, void* uiview) {
 //   __block CGSize size;
 //   dispatch_sync(dispatch_get_main_queue(), ^{

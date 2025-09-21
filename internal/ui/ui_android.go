@@ -26,6 +26,8 @@ package ui
 //     display.getRealMetrics(displayMetrics);
 //     return displayMetrics.widthPixels, displayMetrics.heightPixels, displayMetrics.density;
 //
+#cgo noescape displayInfo
+#cgo nocallback displayInfo
 static void displayInfo(int* width, int* height, float* scale, uintptr_t java_vm, uintptr_t jni_env, uintptr_t ctx) {
   *width = 0;
   *height = 0;

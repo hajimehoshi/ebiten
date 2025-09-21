@@ -20,290 +20,505 @@ package gl
 // typedef ptrdiff_t GLintptr;
 // typedef ptrdiff_t GLsizeiptr;
 //
+// #cgo noescape glowActiveTexture
+// #cgo nocallback glowActiveTexture
 // static void glowActiveTexture(uintptr_t fnptr, GLenum texture) {
 //   typedef void (*fn)(GLenum texture);
 //   ((fn)(fnptr))(texture);
 // }
+//
+// #cgo noescape glowAttachShader
+// #cgo nocallback glowAttachShader
 // static void glowAttachShader(uintptr_t fnptr, GLuint program, GLuint shader) {
 //   typedef void (*fn)(GLuint program, GLuint shader);
 //   ((fn)(fnptr))(program, shader);
 // }
+//
+// #cgo noescape glowBindAttribLocation
+// #cgo nocallback glowBindAttribLocation
 // static void glowBindAttribLocation(uintptr_t fnptr, GLuint program, GLuint index, const GLchar* name) {
 //   typedef void (*fn)(GLuint program, GLuint index, const GLchar* name);
 //   ((fn)(fnptr))(program, index, name);
 // }
+//
+// #cgo noescape glowBindBuffer
+// #cgo nocallback glowBindBuffer
 // static void glowBindBuffer(uintptr_t fnptr, GLenum target, GLuint buffer) {
 //   typedef void (*fn)(GLenum target, GLuint buffer);
 //   ((fn)(fnptr))(target, buffer);
 // }
+//
+// #cgo noescape glowBindFramebuffer
+// #cgo nocallback glowBindFramebuffer
 // static void glowBindFramebuffer(uintptr_t fnptr, GLenum target, GLuint framebuffer) {
 //   typedef void (*fn)(GLenum target, GLuint framebuffer);
 //   ((fn)(fnptr))(target, framebuffer);
 // }
+//
+// #cgo noescape glowBindRenderbuffer
+// #cgo nocallback glowBindRenderbuffer
 // static void glowBindRenderbuffer(uintptr_t fnptr, GLenum target, GLuint renderbuffer) {
 //   typedef void (*fn)(GLenum target, GLuint renderbuffer);
 //   ((fn)(fnptr))(target, renderbuffer);
 // }
+//
+// #cgo noescape glowBindTexture
+// #cgo nocallback glowBindTexture
 // static void glowBindTexture(uintptr_t fnptr, GLenum target, GLuint texture) {
 //   typedef void (*fn)(GLenum target, GLuint texture);
 //   ((fn)(fnptr))(target, texture);
 // }
+//
+// #cgo noescape glowBindVertexArray
+// #cgo nocallback glowBindVertexArray
 // static void glowBindVertexArray(uintptr_t fnptr, GLuint array) {
 //   typedef void (*fn)(GLuint array);
 //   ((fn)(fnptr))(array);
 // }
+//
+// #cgo noescape glowBlendEquationSeparate
+// #cgo nocallback glowBlendEquationSeparate
 // static void glowBlendEquationSeparate(uintptr_t fnptr, GLenum modeRGB, GLenum modeAlpha) {
 //   typedef void (*fn)(GLenum modeRGB, GLenum modeAlpha);
 //   ((fn)(fnptr))(modeRGB, modeAlpha);
 // }
+//
+// #cgo noescape glowBlendFuncSeparate
+// #cgo nocallback glowBlendFuncSeparate
 // static void glowBlendFuncSeparate(uintptr_t fnptr, GLenum srcRGB, GLenum dstRGB, GLenum srcAlpha, GLenum dstAlpha) {
 //   typedef void (*fn)(GLenum srcRGB, GLenum dstRGB, GLenum srcAlpha, GLenum dstAlpha);
 //   ((fn)(fnptr))(srcRGB, dstRGB, srcAlpha, dstAlpha);
 // }
+//
+// #cgo noescape glowBufferData
+// #cgo nocallback glowBufferData
 // static void glowBufferData(uintptr_t fnptr, GLenum target, GLsizeiptr size, const void* data, GLenum usage) {
 //   typedef void (*fn)(GLenum target, GLsizeiptr size, const void* data, GLenum usage);
 //   ((fn)(fnptr))(target, size, data, usage);
 // }
+//
+// #cgo noescape glowBufferSubData
+// #cgo nocallback glowBufferSubData
 // static void glowBufferSubData(uintptr_t fnptr, GLenum target, GLintptr  offset, GLsizeiptr size, const void* data) {
 //   typedef void (*fn)(GLenum target, GLintptr  offset, GLsizeiptr size, const void* data);
 //   ((fn)(fnptr))(target, offset, size, data);
 // }
+//
+// #cgo noescape glowCheckFramebufferStatus
+// #cgo nocallback glowCheckFramebufferStatus
 // static GLenum glowCheckFramebufferStatus(uintptr_t fnptr, GLenum target) {
 //   typedef GLenum (*fn)(GLenum target);
 //   return ((fn)(fnptr))(target);
 // }
+//
+// #cgo noescape glowClear
+// #cgo nocallback glowClear
 // static void glowClear(uintptr_t fnptr, GLbitfield mask) {
 //   typedef void (*fn)(GLbitfield mask);
 //   ((fn)(fnptr))(mask);
 // }
+//
+// #cgo noescape glowColorMask
+// #cgo nocallback glowColorMask
 // static void glowColorMask(uintptr_t fnptr, GLboolean red, GLboolean green, GLboolean blue, GLboolean alpha) {
 //   typedef void (*fn)(GLboolean red, GLboolean green, GLboolean blue, GLboolean alpha);
 //   ((fn)(fnptr))(red, green, blue, alpha);
 // }
+//
+// #cgo noescape glowCompileShader
+// #cgo nocallback glowCompileShader
 // static void glowCompileShader(uintptr_t fnptr, GLuint shader) {
 //   typedef void (*fn)(GLuint shader);
 //   ((fn)(fnptr))(shader);
 // }
+//
+// #cgo noescape glowCreateProgram
+// #cgo nocallback glowCreateProgram
 // static GLuint glowCreateProgram(uintptr_t fnptr) {
 //   typedef GLuint (*fn)();
 //   return ((fn)(fnptr))();
 // }
+//
+// #cgo noescape glowCreateShader
+// #cgo nocallback glowCreateShader
 // static GLuint glowCreateShader(uintptr_t fnptr, GLenum type) {
 //   typedef GLuint (*fn)(GLenum type);
 //   return ((fn)(fnptr))(type);
 // }
+//
+// #cgo noescape glowDeleteBuffers
+// #cgo nocallback glowDeleteBuffers
 // static void glowDeleteBuffers(uintptr_t fnptr, GLsizei n, const GLuint* buffers) {
 //   typedef void (*fn)(GLsizei n, const GLuint* buffers);
 //   ((fn)(fnptr))(n, buffers);
 // }
+//
+// #cgo noescape glowDeleteFramebuffers
+// #cgo nocallback glowDeleteFramebuffers
 // static void glowDeleteFramebuffers(uintptr_t fnptr, GLsizei n, const GLuint* framebuffers) {
 //   typedef void (*fn)(GLsizei n, const GLuint* framebuffers);
 //   ((fn)(fnptr))(n, framebuffers);
 // }
+//
+// #cgo noescape glowDeleteProgram
+// #cgo nocallback glowDeleteProgram
 // static void glowDeleteProgram(uintptr_t fnptr, GLuint program) {
 //   typedef void (*fn)(GLuint program);
 //   ((fn)(fnptr))(program);
 // }
+//
+// #cgo noescape glowDeleteRenderbuffers
+// #cgo nocallback glowDeleteRenderbuffers
 // static void glowDeleteRenderbuffers(uintptr_t fnptr, GLsizei n, const GLuint* renderbuffers) {
 //   typedef void (*fn)(GLsizei n, const GLuint* renderbuffers);
 //   ((fn)(fnptr))(n, renderbuffers);
 // }
+//
+// #cgo noescape glowDeleteShader
+// #cgo nocallback glowDeleteShader
 // static void glowDeleteShader(uintptr_t fnptr, GLuint shader) {
 //   typedef void (*fn)(GLuint shader);
 //   ((fn)(fnptr))(shader);
 // }
+//
+// #cgo noescape glowDeleteTextures
+// #cgo nocallback glowDeleteTextures
 // static void glowDeleteTextures(uintptr_t fnptr, GLsizei n, const GLuint* textures) {
 //   typedef void (*fn)(GLsizei n, const GLuint* textures);
 //   ((fn)(fnptr))(n, textures);
 // }
+//
+// #cgo noescape glowDeleteVertexArrays
+// #cgo nocallback glowDeleteVertexArrays
 // static void glowDeleteVertexArrays(uintptr_t fnptr, GLsizei n, const GLuint* arrays) {
 //   typedef void (*fn)(GLsizei n, const GLuint* arrays);
 //   ((fn)(fnptr))(n, arrays);
 // }
+//
+// #cgo noescape glowDisable
+// #cgo nocallback glowDisable
 // static void glowDisable(uintptr_t fnptr, GLenum cap) {
 //   typedef void (*fn)(GLenum cap);
 //   ((fn)(fnptr))(cap);
 // }
+//
+// #cgo noescape glowDisableVertexAttribArray
+// #cgo nocallback glowDisableVertexAttribArray
 // static void glowDisableVertexAttribArray(uintptr_t fnptr, GLuint index) {
 //   typedef void (*fn)(GLuint index);
 //   ((fn)(fnptr))(index);
 // }
+//
+// #cgo noescape glowDrawElements
+// #cgo nocallback glowDrawElements
 // static void glowDrawElements(uintptr_t fnptr, GLenum mode, GLsizei count, GLenum type, const uintptr_t indices) {
 //   typedef void (*fn)(GLenum mode, GLsizei count, GLenum type, const uintptr_t indices);
 //   ((fn)(fnptr))(mode, count, type, indices);
 // }
+//
+// #cgo noescape glowEnable
+// #cgo nocallback glowEnable
 // static void glowEnable(uintptr_t fnptr, GLenum cap) {
 //   typedef void (*fn)(GLenum cap);
 //   ((fn)(fnptr))(cap);
 // }
+//
+// #cgo noescape glowEnableVertexAttribArray
+// #cgo nocallback glowEnableVertexAttribArray
 // static void glowEnableVertexAttribArray(uintptr_t fnptr, GLuint index) {
 //   typedef void (*fn)(GLuint index);
 //   ((fn)(fnptr))(index);
 // }
+//
+// #cgo noescape glowFlush
+// #cgo nocallback glowFlush
 // static void glowFlush(uintptr_t fnptr) {
 //   typedef void (*fn)();
 //   ((fn)(fnptr))();
 // }
+//
+// #cgo noescape glowFramebufferRenderbuffer
+// #cgo nocallback glowFramebufferRenderbuffer
 // static void glowFramebufferRenderbuffer(uintptr_t fnptr, GLenum target, GLenum attachment, GLenum renderbuffertarget, GLuint renderbuffer) {
 //   typedef void (*fn)(GLenum target, GLenum attachment, GLenum renderbuffertarget, GLuint renderbuffer);
 //   ((fn)(fnptr))(target, attachment, renderbuffertarget, renderbuffer);
 // }
+//
+// #cgo noescape glowFramebufferTexture2D
+// #cgo nocallback glowFramebufferTexture2D
 // static void glowFramebufferTexture2D(uintptr_t fnptr, GLenum target, GLenum attachment, GLenum textarget, GLuint texture, GLint level) {
 //   typedef void (*fn)(GLenum target, GLenum attachment, GLenum textarget, GLuint texture, GLint level);
 //   ((fn)(fnptr))(target, attachment, textarget, texture, level);
 // }
+//
+// #cgo noescape glowGenBuffers
+// #cgo nocallback glowGenBuffers
 // static void glowGenBuffers(uintptr_t fnptr, GLsizei n, GLuint* buffers) {
 //   typedef void (*fn)(GLsizei n, GLuint* buffers);
 //   ((fn)(fnptr))(n, buffers);
 // }
+//
+// #cgo noescape glowGenFramebuffers
+// #cgo nocallback glowGenFramebuffers
 // static void glowGenFramebuffers(uintptr_t fnptr, GLsizei n, GLuint* framebuffers) {
 //   typedef void (*fn)(GLsizei n, GLuint* framebuffers);
 //   ((fn)(fnptr))(n, framebuffers);
 // }
+//
+// #cgo noescape glowGenRenderbuffers
+// #cgo nocallback glowGenRenderbuffers
 // static void glowGenRenderbuffers(uintptr_t fnptr, GLsizei n, GLuint* renderbuffers) {
 //   typedef void (*fn)(GLsizei n, GLuint* renderbuffers);
 //   ((fn)(fnptr))(n, renderbuffers);
 // }
+//
+// #cgo noescape glowGenTextures
+// #cgo nocallback glowGenTextures
 // static void glowGenTextures(uintptr_t fnptr, GLsizei n, GLuint* textures) {
 //   typedef void (*fn)(GLsizei n, GLuint* textures);
 //   ((fn)(fnptr))(n, textures);
 // }
+//
+// #cgo noescape glowGenVertexArrays
+// #cgo nocallback glowGenVertexArrays
 // static void glowGenVertexArrays(uintptr_t fnptr, GLsizei n, GLuint* arrays) {
 //   typedef void (*fn)(GLsizei n, GLuint* arrays);
 //   ((fn)(fnptr))(n, arrays);
 // }
+//
+// #cgo noescape glowGetError
+// #cgo nocallback glowGetError
 // static GLenum glowGetError(uintptr_t fnptr) {
 //   typedef GLenum (*fn)();
 //   return ((fn)(fnptr))();
 // }
+//
+// #cgo noescape glowGetIntegerv
+// #cgo nocallback glowGetIntegerv
 // static void glowGetIntegerv(uintptr_t fnptr, GLenum pname, GLint* data) {
 //   typedef void (*fn)(GLenum pname, GLint* data);
 //   ((fn)(fnptr))(pname, data);
 // }
+//
+// #cgo noescape glowGetProgramInfoLog
+// #cgo nocallback glowGetProgramInfoLog
 // static void glowGetProgramInfoLog(uintptr_t fnptr, GLuint program, GLsizei bufSize, GLsizei* length, GLchar* infoLog) {
 //   typedef void (*fn)(GLuint program, GLsizei bufSize, GLsizei* length, GLchar* infoLog);
 //   ((fn)(fnptr))(program, bufSize, length, infoLog);
 // }
+//
+// #cgo noescape glowGetProgramiv
+// #cgo nocallback glowGetProgramiv
 // static void glowGetProgramiv(uintptr_t fnptr, GLuint program, GLenum pname, GLint* params) {
 //   typedef void (*fn)(GLuint program, GLenum pname, GLint* params);
 //   ((fn)(fnptr))(program, pname, params);
 // }
+//
+// #cgo noescape glowGetShaderInfoLog
+// #cgo nocallback glowGetShaderInfoLog
 // static void glowGetShaderInfoLog(uintptr_t fnptr, GLuint shader, GLsizei bufSize, GLsizei* length, GLchar* infoLog) {
 //   typedef void (*fn)(GLuint shader, GLsizei bufSize, GLsizei* length, GLchar* infoLog);
 //   ((fn)(fnptr))(shader, bufSize, length, infoLog);
 // }
+//
+// #cgo noescape glowGetShaderiv
+// #cgo nocallback glowGetShaderiv
 // static void glowGetShaderiv(uintptr_t fnptr, GLuint shader, GLenum pname, GLint* params) {
 //   typedef void (*fn)(GLuint shader, GLenum pname, GLint* params);
 //   ((fn)(fnptr))(shader, pname, params);
 // }
+//
+// #cgo noescape glowGetUniformLocation
+// #cgo nocallback glowGetUniformLocation
 // static GLint glowGetUniformLocation(uintptr_t fnptr, GLuint program, const GLchar* name) {
 //   typedef GLint (*fn)(GLuint program, const GLchar* name);
 //   return ((fn)(fnptr))(program, name);
 // }
+//
+// #cgo noescape glowIsProgram
+// #cgo nocallback glowIsProgram
 // static GLboolean glowIsProgram(uintptr_t fnptr, GLuint program) {
 //   typedef GLboolean (*fn)(GLuint program);
 //   return ((fn)(fnptr))(program);
 // }
+//
+// #cgo noescape glowLinkProgram
+// #cgo nocallback glowLinkProgram
 // static void glowLinkProgram(uintptr_t fnptr, GLuint program) {
 //   typedef void (*fn)(GLuint program);
 //   ((fn)(fnptr))(program);
 // }
+//
+// #cgo noescape glowPixelStorei
+// #cgo nocallback glowPixelStorei
 // static void glowPixelStorei(uintptr_t fnptr, GLenum pname, GLint param) {
 //   typedef void (*fn)(GLenum pname, GLint param);
 //   ((fn)(fnptr))(pname, param);
 // }
+//
+// #cgo noescape glowReadPixels
+// #cgo nocallback glowReadPixels
 // static void glowReadPixels(uintptr_t fnptr, GLint x, GLint y, GLsizei width, GLsizei height, GLenum format, GLenum type, void* pixels) {
 //   typedef void (*fn)(GLint x, GLint y, GLsizei width, GLsizei height, GLenum format, GLenum type, void* pixels);
 //   ((fn)(fnptr))(x, y, width, height, format, type, pixels);
 // }
+//
+// #cgo noescape glowRenderbufferStorage
+// #cgo nocallback glowRenderbufferStorage
 // static void glowRenderbufferStorage(uintptr_t fnptr, GLenum target, GLenum internalformat, GLsizei width, GLsizei height) {
 //   typedef void (*fn)(GLenum target, GLenum internalformat, GLsizei width, GLsizei height);
 //   ((fn)(fnptr))(target, internalformat, width, height);
 // }
+//
+// #cgo noescape glowScissor
+// #cgo nocallback glowScissor
 // static void glowScissor(uintptr_t fnptr, GLint x, GLint y, GLsizei width, GLsizei height) {
 //   typedef void (*fn)(GLint x, GLint y, GLsizei width, GLsizei height);
 //   ((fn)(fnptr))(x, y, width, height);
 // }
+//
+// #cgo noescape glowShaderSource
+// #cgo nocallback glowShaderSource
 // static void glowShaderSource(uintptr_t fnptr, GLuint shader, GLsizei count, const GLchar*const* string, const GLint* length) {
 //   typedef void (*fn)(GLuint shader, GLsizei count, const GLchar*const* string, const GLint* length);
 //   ((fn)(fnptr))(shader, count, string, length);
 // }
+//
+// #cgo noescape glowStencilFunc
+// #cgo nocallback glowStencilFunc
 // static void glowStencilFunc(uintptr_t fnptr, GLenum func, GLint ref, GLuint mask) {
 //   typedef void (*fn)(GLenum func, GLint ref, GLuint mask);
 //   ((fn)(fnptr))(func, ref, mask);
 // }
+//
+// #cgo noescape glowStencilOpSeparate
+// #cgo nocallback glowStencilOpSeparate
 // static void glowStencilOpSeparate(uintptr_t fnptr, GLenum face, GLenum fail, GLenum zfail, GLenum zpass) {
 //   typedef void (*fn)(GLenum face, GLenum fail, GLenum zfail, GLenum zpass);
 //   ((fn)(fnptr))(face, fail, zfail, zpass);
 // }
+//
+// #cgo noescape glowTexImage2D
+// #cgo nocallback glowTexImage2D
 // static void glowTexImage2D(uintptr_t fnptr, GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const void* pixels) {
 //   typedef void (*fn)(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const void* pixels);
 //   ((fn)(fnptr))(target, level, internalformat, width, height, border, format, type, pixels);
 // }
+//
+// #cgo noescape glowTexParameteri
+// #cgo nocallback glowTexParameteri
 // static void glowTexParameteri(uintptr_t fnptr, GLenum target, GLenum pname, GLint param) {
 //   typedef void (*fn)(GLenum target, GLenum pname, GLint param);
 //   ((fn)(fnptr))(target, pname, param);
 // }
+//
+// #cgo noescape glowTexSubImage2D
+// #cgo nocallback glowTexSubImage2D
 // static void glowTexSubImage2D(uintptr_t fnptr, GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const void* pixels) {
 //   typedef void (*fn)(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const void* pixels);
 //   ((fn)(fnptr))(target, level, xoffset, yoffset, width, height, format, type, pixels);
 // }
+//
+// #cgo noescape glowUniform1fv
+// #cgo nocallback glowUniform1fv
 // static void glowUniform1fv(uintptr_t fnptr, GLint location, GLsizei count, const GLfloat* value) {
 //   typedef void (*fn)(GLint location, GLsizei count, const GLfloat* value);
 //   ((fn)(fnptr))(location, count, value);
 // }
+//
+// #cgo noescape glowUniform1i
+// #cgo nocallback glowUniform1i
 // static void glowUniform1i(uintptr_t fnptr, GLint location, GLint v0) {
 //   typedef void (*fn)(GLint location, GLint v0);
 //   ((fn)(fnptr))(location, v0);
 // }
+//
+// #cgo noescape glowUniform1iv
+// #cgo nocallback glowUniform1iv
 // static void glowUniform1iv(uintptr_t fnptr, GLint location, GLsizei count, const GLint* value) {
 //   typedef void (*fn)(GLint location, GLsizei count, const GLint* value);
 //   ((fn)(fnptr))(location, count, value);
 // }
+//
+// #cgo noescape glowUniform2fv
+// #cgo nocallback glowUniform2fv
 // static void glowUniform2fv(uintptr_t fnptr, GLint location, GLsizei count, const GLfloat* value) {
 //   typedef void (*fn)(GLint location, GLsizei count, const GLfloat* value);
 //   ((fn)(fnptr))(location, count, value);
 // }
+//
+// #cgo noescape glowUniform2iv
+// #cgo nocallback glowUniform2iv
 // static void glowUniform2iv(uintptr_t fnptr, GLint location, GLsizei count, const GLint* value) {
 //   typedef void (*fn)(GLint location, GLsizei count, const GLint* value);
 //   ((fn)(fnptr))(location, count, value);
 // }
+//
+// #cgo noescape glowUniform3fv
+// #cgo nocallback glowUniform3fv
 // static void glowUniform3fv(uintptr_t fnptr, GLint location, GLsizei count, const GLfloat* value) {
 //   typedef void (*fn)(GLint location, GLsizei count, const GLfloat* value);
 //   ((fn)(fnptr))(location, count, value);
 // }
+//
+// #cgo noescape glowUniform3iv
+// #cgo nocallback glowUniform3iv
 // static void glowUniform3iv(uintptr_t fnptr, GLint location, GLsizei count, const GLint* value) {
 //   typedef void (*fn)(GLint location, GLsizei count, const GLint* value);
 //   ((fn)(fnptr))(location, count, value);
 // }
+//
+// #cgo noescape glowUniform4fv
+// #cgo nocallback glowUniform4fv
 // static void glowUniform4fv(uintptr_t fnptr, GLint location, GLsizei count, const GLfloat* value) {
 //   typedef void (*fn)(GLint location, GLsizei count, const GLfloat* value);
 //   ((fn)(fnptr))(location, count, value);
 // }
+//
+// #cgo noescape glowUniform4iv
+// #cgo nocallback glowUniform4iv
 // static void glowUniform4iv(uintptr_t fnptr, GLint location, GLsizei count, const GLint* value) {
 //   typedef void (*fn)(GLint location, GLsizei count, const GLint* value);
 //   ((fn)(fnptr))(location, count, value);
 // }
+//
+// #cgo noescape glowUniformMatrix2fv
+// #cgo nocallback glowUniformMatrix2fv
 // static void glowUniformMatrix2fv(uintptr_t fnptr, GLint location, GLsizei count, GLboolean transpose, const GLfloat* value) {
 //   typedef void (*fn)(GLint location, GLsizei count, GLboolean transpose, const GLfloat* value);
 //   ((fn)(fnptr))(location, count, transpose, value);
 // }
+//
+// #cgo noescape glowUniformMatrix3fv
+// #cgo nocallback glowUniformMatrix3fv
 // static void glowUniformMatrix3fv(uintptr_t fnptr, GLint location, GLsizei count, GLboolean transpose, const GLfloat* value) {
 //   typedef void (*fn)(GLint location, GLsizei count, GLboolean transpose, const GLfloat* value);
 //   ((fn)(fnptr))(location, count, transpose, value);
 // }
+//
+// #cgo noescape glowUniformMatrix4fv
+// #cgo nocallback glowUniformMatrix4fv
 // static void glowUniformMatrix4fv(uintptr_t fnptr, GLint location, GLsizei count, GLboolean transpose, const GLfloat* value) {
 //   typedef void (*fn)(GLint location, GLsizei count, GLboolean transpose, const GLfloat* value);
 //   ((fn)(fnptr))(location, count, transpose, value);
 // }
+//
+// #cgo noescape glowUseProgram
+// #cgo nocallback glowUseProgram
 // static void glowUseProgram(uintptr_t fnptr, GLuint program) {
 //   typedef void (*fn)(GLuint program);
 //   ((fn)(fnptr))(program);
 // }
+//
+// #cgo noescape glowVertexAttribPointer
+// #cgo nocallback glowVertexAttribPointer
 // static void glowVertexAttribPointer(uintptr_t fnptr, GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const uintptr_t pointer) {
 //   typedef void (*fn)(GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const uintptr_t pointer);
 //   ((fn)(fnptr))(index, size, type, normalized, stride, pointer);
 // }
+//
+// #cgo noescape glowViewport
+// #cgo nocallback glowViewport
 // static void glowViewport(uintptr_t fnptr, GLint x, GLint y, GLsizei width, GLsizei height) {
 //   typedef void (*fn)(GLint x, GLint y, GLsizei width, GLsizei height);
 //   ((fn)(fnptr))(x, y, width, height);

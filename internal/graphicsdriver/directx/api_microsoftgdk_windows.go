@@ -140,33 +140,108 @@ void Ebitengine_ID3D12GraphicsCommandList_SetPipelineState(void* i, void* pPipel
 
 // #include <stdint.h>
 //
+// #cgo noescape D3D12_RESOURCE_STATE_PRESENT
+// #cgo nocallback D3D12_RESOURCE_STATE_PRESENT
 // int32_t Ebitengine_D3D12_RESOURCE_STATE_PRESENT();
 //
+// #cgo noescape ID3D12CommandQueue_ExecuteCommandLists
+// #cgo nocallback ID3D12CommandQueue_ExecuteCommandLists
 // void Ebitengine_ID3D12CommandQueue_ExecuteCommandLists(void* i, uint32_t numCommandLists, void* ppCommandLists);
+//
+// #cgo noescape ID3D12CommandQueue_PresentX
+// #cgo nocallback ID3D12CommandQueue_PresentX
 // uintptr_t Ebitengine_ID3D12CommandQueue_PresentX(void* i, uint32_t planeCount, void* pPlaneParameters, void* pPresentParameters);
+//
+// #cgo noescape ID3D12CommandQueue_Release
+// #cgo nocallback ID3D12CommandQueue_Release
 // uint32_t Ebitengine_ID3D12CommandQueue_Release(void* i);
+//
+// #cgo noescape ID3D12CommandQueue_ResumeX
+// #cgo nocallback ID3D12CommandQueue_ResumeX
 // uintptr_t Ebitengine_ID3D12CommandQueue_ResumeX(void* i);
+//
+// #cgo noescape ID3D12CommandQueue_Signal
+// #cgo nocallback ID3D12CommandQueue_Signal
 // uintptr_t Ebitengine_ID3D12CommandQueue_Signal(void* i, void* pFence, uint64_t value);
+//
+// #cgo noescape ID3D12CommandQueue_SuspendX
+// #cgo nocallback ID3D12CommandQueue_SuspendX
 // uintptr_t Ebitengine_ID3D12CommandQueue_SuspendX(void* i, uint32_t flags);
 //
+// #cgo noescape ID3D12GraphicsCommandList_ClearDepthStencilView
+// #cgo nocallback ID3D12GraphicsCommandList_ClearDepthStencilView
 // void Ebitengine_ID3D12GraphicsCommandList_ClearDepthStencilView(void* i, uintptr_t depthStencilView, int32_t clearFlags, float depth, uint8_t stencil, uint32_t numRects, void* pRects);
+//
+// #cgo noescape ID3D12GraphicsCommandList_ClearRenderTargetView
+// #cgo nocallback ID3D12GraphicsCommandList_ClearRenderTargetView
 // void Ebitengine_ID3D12GraphicsCommandList_ClearRenderTargetView(void* i, uintptr_t pRenderTargetView, void* colorRGBA, uint32_t numRects, void* pRects);
+//
+// #cgo noescape ID3D12GraphicsCommandList_Close
+// #cgo nocallback ID3D12GraphicsCommandList_Close
 // uintptr_t Ebitengine_ID3D12GraphicsCommandList_Close(void* i);
+//
+// #cgo noescape ID3D12GraphicsCommandList_CopyTextureRegion
+// #cgo nocallback ID3D12GraphicsCommandList_CopyTextureRegion
 // void Ebitengine_ID3D12GraphicsCommandList_CopyTextureRegion(void* i, void* pDst, uint32_t dstX, uint32_t dstY, uint32_t dstZ, void* pSrc, void* pSrcBox);
+//
+// #cgo noescape ID3D12GraphicsCommandList_DrawIndexedInstanced
+// #cgo nocallback ID3D12GraphicsCommandList_DrawIndexedInstanced
 // void Ebitengine_ID3D12GraphicsCommandList_DrawIndexedInstanced(void* i, uint32_t indexCountPerInstance, uint32_t instanceCount, uint32_t startIndexLocation, int32_t baseVertexLocation, uint32_t startInstanceLocation);
+//
+// #cgo noescape ID3D12GraphicsCommandList_IASetIndexBuffer
+// #cgo nocallback ID3D12GraphicsCommandList_IASetIndexBuffer
 // void Ebitengine_ID3D12GraphicsCommandList_IASetIndexBuffer(void* i, void* pView);
+//
+// #cgo noescape ID3D12GraphicsCommandList_IASetPrimitiveTopology
+// #cgo nocallback ID3D12GraphicsCommandList_IASetPrimitiveTopology
 // void Ebitengine_ID3D12GraphicsCommandList_IASetPrimitiveTopology(void* i, int32_t primitiveTopology);
+//
+// #cgo noescape ID3D12GraphicsCommandList_IASetVertexBuffers
+// #cgo nocallback ID3D12GraphicsCommandList_IASetVertexBuffers
 // void Ebitengine_ID3D12GraphicsCommandList_IASetVertexBuffers(void* i, uint32_t startSlot, uint32_t numViews, void* pViews);
+//
+// #cgo noescape ID3D12GraphicsCommandList_OMSetRenderTargets
+// #cgo nocallback ID3D12GraphicsCommandList_OMSetRenderTargets
 // void Ebitengine_ID3D12GraphicsCommandList_OMSetRenderTargets(void* i, uint32_t numRenderTargetDescriptors, void* pRenderTargetDescriptors, int rtsSingleHandleToDescriptorRange, void* pDepthStencilDescriptor);
+//
+// #cgo noescape ID3D12GraphicsCommandList_OMSetStencilRef
+// #cgo nocallback ID3D12GraphicsCommandList_OMSetStencilRef
 // void Ebitengine_ID3D12GraphicsCommandList_OMSetStencilRef(void* i, uint32_t stencilRef);
+//
+// #cgo noescape ID3D12GraphicsCommandList_Release
+// #cgo nocallback ID3D12GraphicsCommandList_Release
 // uint32_t Ebitengine_ID3D12GraphicsCommandList_Release(void* i);
+//
+// #cgo noescape ID3D12GraphicsCommandList_Reset
+// #cgo nocallback ID3D12GraphicsCommandList_Reset
 // uintptr_t Ebitengine_ID3D12GraphicsCommandList_Reset(void* i, void* pAllocator, void* pInitialState);
+//
+// #cgo noescape ID3D12GraphicsCommandList_ResourceBarrier
+// #cgo nocallback ID3D12GraphicsCommandList_ResourceBarrier
 // void Ebitengine_ID3D12GraphicsCommandList_ResourceBarrier(void* i, uint32_t numBarriers, void* pBarriers);
+//
+// #cgo noescape ID3D12GraphicsCommandList_RSSetViewports
+// #cgo nocallback ID3D12GraphicsCommandList_RSSetViewports
 // void Ebitengine_ID3D12GraphicsCommandList_RSSetViewports(void* i, uint32_t numViewports, void* pViewports);
+//
+// #cgo noescape ID3D12GraphicsCommandList_RSSetScissorRects
+// #cgo nocallback ID3D12GraphicsCommandList_RSSetScissorRects
 // void Ebitengine_ID3D12GraphicsCommandList_RSSetScissorRects(void* i, uint32_t numRects, void* pRects);
+//
+// #cgo noescape ID3D12GraphicsCommandList_SetDescriptorHeaps
+// #cgo nocallback ID3D12GraphicsCommandList_SetDescriptorHeaps
 // void Ebitengine_ID3D12GraphicsCommandList_SetDescriptorHeaps(void* i, uint32_t numDescriptorHeaps, void* ppDescriptorHeaps);
+//
+// #cgo noescape ID3D12GraphicsCommandList_SetGraphicsRootDescriptorTable
+// #cgo nocallback ID3D12GraphicsCommandList_SetGraphicsRootDescriptorTable
 // void Ebitengine_ID3D12GraphicsCommandList_SetGraphicsRootDescriptorTable(void* i, uint32_t rootParameterIndex, uint64_t baseDescriptorPtr);
+//
+// #cgo noescape ID3D12GraphicsCommandList_SetGraphicsRootSignature
+// #cgo nocallback ID3D12GraphicsCommandList_SetGraphicsRootSignature
 // void Ebitengine_ID3D12GraphicsCommandList_SetGraphicsRootSignature(void* i, void* pRootSignature);
+//
+// #cgo noescape ID3D12GraphicsCommandList_SetPipelineState
+// #cgo nocallback ID3D12GraphicsCommandList_SetPipelineState
 // void Ebitengine_ID3D12GraphicsCommandList_SetPipelineState(void* i, void* pPipelineState);
 import "C"
 

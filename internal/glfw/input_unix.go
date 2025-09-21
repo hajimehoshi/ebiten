@@ -19,34 +19,42 @@ package glfw
 // void goScrollCB(void* window, double xoff, double yoff);
 // void goDropCB(void* window, int count, char** names);
 //
+// #cgo noescape glfwSetKeyCallbackCB
 // static void glfwSetKeyCallbackCB(GLFWwindow *window) {
 //   glfwSetKeyCallback(window, (GLFWkeyfun)goKeyCB);
 // }
 //
+// #cgo noescape glfwSetCharCallbackCB
 // static void glfwSetCharCallbackCB(GLFWwindow *window) {
 //    glfwSetCharCallback(window, (GLFWcharfun)goCharCB);
 // }
 //
+// #cgo noescape glfwSetCharModsCallbackCB
 // static void glfwSetCharModsCallbackCB(GLFWwindow *window) {
 //   glfwSetCharModsCallback(window, (GLFWcharmodsfun)goCharModsCB);
 // }
 //
+// #cgo noescape glfwSetMouseButtonCallbackCB
 // static void glfwSetMouseButtonCallbackCB(GLFWwindow *window) {
 //   glfwSetMouseButtonCallback(window, (GLFWmousebuttonfun)goMouseButtonCB);
 // }
 //
+// #cgo noescape glfwSetCursorPosCallbackCB
 // static void glfwSetCursorPosCallbackCB(GLFWwindow *window) {
 //   glfwSetCursorPosCallback(window, (GLFWcursorposfun)goCursorPosCB);
 // }
 //
+// #cgo noescape glfwSetCursorEnterCallbackCB
 // static void glfwSetCursorEnterCallbackCB(GLFWwindow *window) {
 //   glfwSetCursorEnterCallback(window, (GLFWcursorenterfun)goCursorEnterCB);
 // }
 //
+// #cgo noescape glfwSetScrollCallbackCB
 // static void glfwSetScrollCallbackCB(GLFWwindow *window) {
 //   glfwSetScrollCallback(window, (GLFWscrollfun)goScrollCB);
 // }
 //
+// #cgo noescape glfwSetDropCallbackCB
 // static void glfwSetDropCallbackCB(GLFWwindow *window) {
 //   glfwSetDropCallback(window, (GLFWdropfun)goDropCB);
 // }

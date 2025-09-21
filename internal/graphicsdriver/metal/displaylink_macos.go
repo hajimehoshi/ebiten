@@ -24,6 +24,8 @@ package metal
 //   #include <QuartzCore/CAMetalLayer.h>
 // #endif
 //
+// #cgo noescape isCAMetalDisplayLinkAvailable
+// #cgo nocallback isCAMetalDisplayLinkAvailable
 // static bool isCAMetalDisplayLinkAvailable() {
 //   // TODO: Use PureGo if returning a struct is supported (ebitengine/purego#225).
 //   // As operatingSystemVersion returns a struct, this cannot be written with PureGo.

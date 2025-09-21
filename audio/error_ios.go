@@ -19,6 +19,8 @@ package audio
 //
 // #import <UIKit/UIKit.h>
 //
+// #cgo noescape applicationState
+// #cgo nocallback applicationState
 // static UIApplicationState applicationState() {
 //   if ([NSThread isMainThread]) {
 //     return [[UIApplication sharedApplication] applicationState];

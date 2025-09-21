@@ -100,6 +100,8 @@ package vibrate
 //   }
 // }
 //
+// #cgo noescape vibrate
+// #cgo nocallback vibrate
 // static void vibrate(double duration, double intensity) {
 //   dispatch_async(dispatch_get_main_queue(), ^{
 //     vibrateOnMainThread(duration, intensity);

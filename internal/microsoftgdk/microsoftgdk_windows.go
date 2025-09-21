@@ -21,7 +21,12 @@ package microsoftgdk
 
 // #include <stdint.h>
 //
+// #cgo noescape XGameRuntimeInitialize
+// #cgo nocallback XGameRuntimeInitialize
 // uint32_t XGameRuntimeInitialize(void);
+//
+// #cgo noescape XSystemGetDeviceType
+// #cgo nocallback XSystemGetDeviceType
 // uint32_t XSystemGetDeviceType(void);
 import "C"
 

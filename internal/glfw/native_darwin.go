@@ -12,9 +12,14 @@ package glfw
 
 // workaround wrappers needed due to a cgo and/or LLVM bug.
 // See: https://github.com/go-gl/glfw/issues/136
+#cgo noescape workaround_glfwGetCocoaWindow
+#cgo nocallback workaround_glfwGetCocoaWindow
 static void *workaround_glfwGetCocoaWindow(GLFWwindow *w) {
 	return (void *)glfwGetCocoaWindow(w);
 }
+
+#cgo noescape workaround_glfwGetNSGLContext
+#cgo nocallback workaround_glfwGetNSGLContext
 static void *workaround_glfwGetNSGLContext(GLFWwindow *w) {
 	return (void *)glfwGetNSGLContext(w);
 }
