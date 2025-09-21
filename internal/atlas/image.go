@@ -59,6 +59,11 @@ const baseCountToPutOnSourceBackend = 10
 func putImagesOnSourceBackend() {
 	// The counter usedAsDestinationCount is updated at most once per frame (#2676).
 	imagesUsedAsDestination.forEach(func(i *Image) {
+		// i.backend can be nil after deallocate is called.
+		if i.backend == nil {
+			i.usedAsDestinationCount = 0
+			return
+		}
 		// This counter is not updated when the backend is created in this frame.
 		if !i.backendCreatedInThisFrame && i.usedAsDestinationCount < math.MaxInt {
 			i.usedAsDestinationCount++
@@ -68,6 +73,11 @@ func putImagesOnSourceBackend() {
 	imagesUsedAsDestination.clear()
 
 	imagesToPutOnSourceBackend.forEach(func(i *Image) {
+		// i.backend can be nil after deallocate is called.
+		if i.backend == nil {
+			i.usedAsSourceCount = 0
+			return
+		}
 		if i.usedAsSourceCount < math.MaxInt {
 			i.usedAsSourceCount++
 		}
@@ -573,9 +583,8 @@ func (i *Image) deallocate() {
 		i.node = nil
 	}()
 
-	i.resetUsedAsSourceCount()
+	i.usedAsSourceCount = 0
 	i.usedAsDestinationCount = 0
-	imagesUsedAsDestination.remove(i)
 
 	if i.backend == nil {
 		// Not allocated yet.
