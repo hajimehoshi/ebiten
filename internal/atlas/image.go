@@ -169,6 +169,12 @@ const (
 
 // Image is a rectangle pixel set that might be on an atlas.
 type Image struct {
+	*imageImpl
+
+	cleanup runtime.Cleanup
+}
+
+type imageImpl struct {
 	width     int
 	height    int
 	imageType ImageType
@@ -203,15 +209,21 @@ type Image struct {
 //
 // moveTo is similar to C++'s move semantics.
 func (i *Image) moveTo(dst *Image) {
-	dst.deallocate()
-	*dst = *i
+	dst.deallocateImpl()
+	dst.cleanup.Stop()
+
+	impl := *i.imageImpl
+	dst.imageImpl = &impl
+	if dst.backend != nil {
+		dst.cleanup = runtime.AddCleanup(dst, (*imageImpl).cleanup, dst.imageImpl)
+	}
 
 	// i is no longer available but the finalizer must not be called
 	// since i and dst share the same backend and the same node.
-	runtime.SetFinalizer(i, nil)
+	i.cleanup.Stop()
 }
 
-func (i *Image) isOnAtlas() bool {
+func (i *imageImpl) isOnAtlas() bool {
 	return i.node != nil
 }
 
@@ -227,7 +239,7 @@ func (i *Image) resetUsedAsSourceCount() {
 	imagesToPutOnSourceBackend.remove(i)
 }
 
-func (i *Image) paddingSize() int {
+func (i *imageImpl) paddingSize() int {
 	if i.imageType == ImageTypeRegular {
 		return 1
 	}
@@ -330,7 +342,7 @@ func (i *Image) putOnSourceBackend() {
 	}
 }
 
-func (i *Image) regionWithPadding() image.Rectangle {
+func (i *imageImpl) regionWithPadding() image.Rectangle {
 	if i.backend == nil {
 		panic("atlas: backend must not be nil: not allocated yet?")
 	}
@@ -562,22 +574,22 @@ func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte
 // Deallocate deallocates the internal state.
 // Even after this call, the image is still available as a new cleared image.
 func (i *Image) Deallocate() {
+	i.cleanup.Stop()
+
 	backendsM.Lock()
 	defer backendsM.Unlock()
 
 	if !inFrame {
 		appendDeferred(func() {
-			i.deallocate()
-			runtime.SetFinalizer(i, nil)
+			i.deallocateImpl()
 		})
 		return
 	}
 
-	i.deallocate()
-	runtime.SetFinalizer(i, nil)
+	i.deallocateImpl()
 }
 
-func (i *Image) deallocate() {
+func (i *imageImpl) deallocateImpl() {
 	defer func() {
 		i.backend = nil
 		i.node = nil
@@ -618,9 +630,11 @@ func (i *Image) deallocate() {
 func NewImage(width, height int, imageType ImageType) *Image {
 	// Actual allocation is done lazily, and the lock is not needed.
 	return &Image{
-		width:     width,
-		height:    height,
-		imageType: imageType,
+		imageImpl: &imageImpl{
+			width:     width,
+			height:    height,
+			imageType: imageType,
+		},
 	}
 }
 
@@ -634,12 +648,11 @@ func (i *Image) canBePutOnAtlas() bool {
 	return i.width+i.paddingSize() <= maxSize && i.height+i.paddingSize() <= maxSize
 }
 
-func (i *Image) finalize() {
+func (i *imageImpl) cleanup() {
 	// A function from finalizer must not be blocked, but disposing operation can be blocked.
 	// Defer this operation until it becomes safe. (#913)
 	appendDeferred(func() {
-		i.deallocate()
-		runtime.SetFinalizer(i, nil)
+		i.deallocateImpl()
 	})
 }
 
@@ -648,7 +661,7 @@ func (i *Image) allocate(forbiddenBackends []*backend, asSource bool) {
 		panic("atlas: the image is already allocated")
 	}
 
-	runtime.SetFinalizer(i, (*Image).finalize)
+	i.cleanup = runtime.AddCleanup(i, (*imageImpl).cleanup, i.imageImpl)
 
 	if i.imageType == ImageTypeScreen {
 		if asSource {
