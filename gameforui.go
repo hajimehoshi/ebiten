@@ -20,6 +20,7 @@ import (
 	"sync/atomic"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
+	"github.com/hajimehoshi/ebiten/v2/internal/inputstate"
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
@@ -94,7 +95,7 @@ func (g *gameForUI) Layout(outsideWidth, outsideHeight float64) (float64, float6
 }
 
 func (g *gameForUI) UpdateInputState(fn func(*ui.InputState)) {
-	theInputState.update(fn)
+	inputstate.Get().Update(fn)
 }
 
 func (g *gameForUI) Update() error {

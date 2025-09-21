@@ -141,11 +141,11 @@ const (
 	KeySlash
 	KeySpace
 	KeyTab
-	KeyReserved0
-	KeyReserved1
-	KeyReserved2
-	KeyReserved3
-	KeyMax = KeyReserved3
+	KeyAlt
+	KeyControl
+	KeyShift
+	KeyMeta
+	KeyMax = KeyMeta
 )
 
 func (k Key) String() string {

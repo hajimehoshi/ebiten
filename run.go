@@ -23,6 +23,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2/internal/clock"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
+	"github.com/hajimehoshi/ebiten/v2/internal/inputstate"
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
@@ -754,7 +755,7 @@ func toUIRunOptions(options *RunGameOptions) *ui.RunOptions {
 //
 // DroppedFiles is concurrent-safe.
 func DroppedFiles() fs.FS {
-	return theInputState.droppedFiles()
+	return inputstate.Get().DroppedFiles()
 }
 
 // Tick returns the current tick count.
