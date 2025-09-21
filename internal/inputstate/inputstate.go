@@ -88,12 +88,12 @@ func (i *inputState) IsMouseButtonPressed(mouseButton ui.MouseButton) bool {
 	return i.state.MouseButtonPressed[mouseButton]
 }
 
-func (i *inputState) AppendTouchIDs(touches []ui.TouchID) []ui.TouchID {
-	i.m.Lock()
-	defer i.m.Unlock()
+func AppendTouchIDs[T ~int](touches []T) []T {
+	theInputState.m.Lock()
+	defer theInputState.m.Unlock()
 
-	for _, t := range i.state.Touches {
-		touches = append(touches, ui.TouchID(t.ID))
+	for _, t := range theInputState.state.Touches {
+		touches = append(touches, T(t.ID))
 	}
 	return touches
 }

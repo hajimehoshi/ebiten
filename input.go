@@ -348,7 +348,7 @@ func UpdateStandardGamepadLayoutMappings(mappings string) (bool, error) {
 }
 
 // TouchID represents a touch's identifier.
-type TouchID = ui.TouchID
+type TouchID int
 
 // AppendTouchIDs appends the current touch states to touches, and returns the extended buffer.
 // Giving a slice that already has enough capacity works efficiently.
@@ -361,7 +361,7 @@ type TouchID = ui.TouchID
 //
 // AppendTouchIDs is concurrent-safe.
 func AppendTouchIDs(touches []TouchID) []TouchID {
-	return inputstate.Get().AppendTouchIDs(touches)
+	return inputstate.AppendTouchIDs(touches)
 }
 
 // TouchIDs returns the current touch states.
