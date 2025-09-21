@@ -128,9 +128,9 @@ var (
 	// theBackends is a set of atlases.
 	theBackends []*backend
 
-	imagesToPutOnSourceBackend smallImageSet
+	imagesToPutOnSourceBackend imageSmallSet
 
-	imagesUsedAsDestination smallImageSet
+	imagesUsedAsDestination imageSmallSet
 
 	deferred []func()
 

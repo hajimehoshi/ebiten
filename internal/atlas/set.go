@@ -14,16 +14,18 @@
 
 package atlas
 
-// smallImageSet is a set for images.
-// smallImageSet uses a slice assuming the number of items is not so big (smaller than 100 or so).
+import "slices"
+
+// imageSmallSet is a small set for images.
+// imageSmallSet uses a slice assuming the number of items is not so big (smaller than 100 or so).
 // If the number of items is big, a map might be better than a slice.
-type smallImageSet struct {
+type imageSmallSet struct {
 	s []*Image
 
 	tmp []*Image
 }
 
-func (s *smallImageSet) add(image *Image) {
+func (s *imageSmallSet) add(image *Image) {
 	if image == nil {
 		panic("atlas: nil image cannot be added")
 	}
@@ -35,7 +37,7 @@ func (s *smallImageSet) add(image *Image) {
 	s.s = append(s.s, image)
 }
 
-func (s *smallImageSet) remove(image *Image) {
+func (s *imageSmallSet) remove(image *Image) {
 	for i, img := range s.s {
 		if img == image {
 			copy(s.s[i:], s.s[i+1:])
@@ -46,24 +48,15 @@ func (s *smallImageSet) remove(image *Image) {
 	}
 }
 
-func (s *smallImageSet) forEach(f func(*Image)) {
+func (s *imageSmallSet) forEach(f func(*Image)) {
 	// Copy images to a temporary buffer since f might modify the original slice s.s (#2729).
 	s.tmp = append(s.tmp, s.s...)
-
 	for _, img := range s.tmp {
 		f(img)
 	}
-
-	// Clear the temporary buffer.
-	for i := range s.tmp {
-		s.tmp[i] = nil
-	}
-	s.tmp = s.tmp[:0]
+	s.tmp = slices.Delete(s.tmp, 0, len(s.tmp))
 }
 
-func (s *smallImageSet) clear() {
-	for i := range s.s {
-		s.s[i] = nil
-	}
-	s.s = s.s[:0]
+func (s *imageSmallSet) clear() {
+	s.s = slices.Delete(s.s, 0, len(s.s))
 }
