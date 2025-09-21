@@ -18,7 +18,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"runtime"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -107,7 +106,7 @@ func (f *playerFactory) newPlayer(context *Context, src io.Reader, seekable bool
 		lastSamples:    -1,
 		bytesPerSample: bitDepthInBytes * channelCount,
 	}
-	runtime.SetFinalizer(p, (*playerImpl).Close)
+	// AddCleanup is not set for p. The caller of newPlayer should set a finalizer for p's wrapper.
 	return p, nil
 }
 
@@ -275,7 +274,6 @@ func (p *playerImpl) SetVolume(volume float64) {
 func (p *playerImpl) Close() error {
 	p.m.Lock()
 	defer p.m.Unlock()
-	runtime.SetFinalizer(p, nil)
 
 	if p.closed {
 		return fmt.Errorf("audio: player is already closed")

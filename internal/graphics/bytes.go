@@ -24,8 +24,9 @@ import (
 // ManagedBytes is useful when its lifetime is explicit, as the underlying byte slice can be reused for another ManagedBytes later.
 // This can reduce allocations and GCs.
 type ManagedBytes struct {
-	bytes []byte
-	pool  *bytesPool
+	bytes   []byte
+	pool    *bytesPool
+	cleanup runtime.Cleanup
 }
 
 // Len returns the length of the slice.
@@ -55,7 +56,7 @@ func (m *ManagedBytes) GetAndRelease() ([]byte, func()) {
 	m.bytes = nil
 	return bs, func() {
 		m.pool.put(bs)
-		runtime.SetFinalizer(m, nil)
+		m.cleanup.Stop()
 	}
 }
 
@@ -65,7 +66,7 @@ func (m *ManagedBytes) GetAndRelease() ([]byte, func()) {
 func (m *ManagedBytes) Release() {
 	m.pool.put(m.bytes)
 	m.bytes = nil
-	runtime.SetFinalizer(m, nil)
+	m.cleanup.Stop()
 }
 
 // NewManagedBytes returns a managed byte slice initialized by the given constructor f.
@@ -94,9 +95,9 @@ func (b *bytesPool) get(size int) *ManagedBytes {
 		bytes: bs,
 		pool:  b,
 	}
-	runtime.SetFinalizer(m, func(m *ManagedBytes) {
-		b.put(m.bytes)
-	})
+	m.cleanup = runtime.AddCleanup(m, func(bytes []byte) {
+		b.put(bytes)
+	}, m.bytes)
 	return m
 }
 

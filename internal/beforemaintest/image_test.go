@@ -314,9 +314,9 @@ var imageGCedCh = make(chan struct{})
 
 func init() {
 	img := buffered.NewImage(1, 1, atlas.ImageTypeRegular)
-	runtime.SetFinalizer(img, func(*buffered.Image) {
-		close(imageGCedCh)
-	})
+	runtime.AddCleanup(img, func(ch chan struct{}) {
+		close(ch)
+	}, imageGCedCh)
 }
 
 func TestGC(t *testing.T) {

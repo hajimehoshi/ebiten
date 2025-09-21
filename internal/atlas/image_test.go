@@ -863,7 +863,7 @@ func ensureGC() {
 	// See runtime/mfinal_test.go.
 	x := new(unsafe.Pointer)
 	ch := make(chan struct{})
-	runtime.SetFinalizer(x, func(*unsafe.Pointer) { close(ch) })
+	runtime.AddCleanup(x, func(_ struct{}) { close(ch) }, struct{}{})
 	runtime.KeepAlive(x)
 	runtime.GC()
 	<-ch

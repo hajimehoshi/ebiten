@@ -182,9 +182,9 @@ func (*nativeGamepadsImpl) openGamepad(gamepads *gamepads, path string) (err err
 	}
 	gp := gamepads.add(name, sdlID)
 	gp.native = n
-	runtime.SetFinalizer(gp, func(gp *Gamepad) {
+	runtime.AddCleanup(gp, func(n *nativeGamepadImpl) {
 		n.close()
-	})
+	}, n)
 
 	var axisCount int
 	var buttonCount int

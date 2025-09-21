@@ -320,7 +320,8 @@ func (c *Context) SampleRate() int {
 // This means that if a Player plays an infinite stream,
 // the object is never GCed unless Close is called.
 type Player struct {
-	p *playerImpl
+	p       *playerImpl
+	cleanup runtime.Cleanup
 }
 
 // NewPlayer creates a new player with the given stream.
@@ -351,9 +352,9 @@ func (c *Context) NewPlayer(src io.Reader) (*Player, error) {
 		return nil, err
 	}
 
-	p := &Player{pi}
+	p := &Player{p: pi}
 
-	runtime.SetFinalizer(p, (*Player).finalize)
+	p.cleanup = runtime.AddCleanup(p, (*playerImpl).finalize, p.p)
 
 	return p, nil
 }
@@ -385,9 +386,8 @@ func (c *Context) NewPlayerF32(src io.Reader) (*Player, error) {
 		return nil, err
 	}
 
-	p := &Player{pi}
-
-	runtime.SetFinalizer(p, (*Player).finalize)
+	p := &Player{p: pi}
+	p.cleanup = runtime.AddCleanup(p, (*playerImpl).finalize, p.p)
 
 	return p, nil
 }
@@ -436,8 +436,7 @@ func NewPlayerFromBytes(context *Context, src []byte) *Player {
 	return context.NewPlayerFromBytes(src)
 }
 
-func (p *Player) finalize() {
-	runtime.SetFinalizer(p, nil)
+func (p *playerImpl) finalize() {
 	if !p.IsPlaying() {
 		_ = p.Close()
 	}
