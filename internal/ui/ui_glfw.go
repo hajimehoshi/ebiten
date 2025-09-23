@@ -1136,14 +1136,6 @@ func (u *UserInterface) initOnMainThread(options *RunOptions) error {
 		return err
 	}
 
-	mousePassthrough := glfw.False
-	if u.isInitWindowMousePassthrough() {
-		mousePassthrough = glfw.True
-	}
-	if err := glfw.WindowHint(glfw.MousePassthrough, mousePassthrough); err != nil {
-		return err
-	}
-
 	// Set the window visible explicitly or the application freezes on Wayland (#974).
 	if os.Getenv("WAYLAND_DISPLAY") != "" {
 		if err := glfw.WindowHint(glfw.Visible, glfw.True); err != nil {
@@ -1152,6 +1144,16 @@ func (u *UserInterface) initOnMainThread(options *RunOptions) error {
 	}
 
 	if err := u.createWindow(); err != nil {
+		return err
+	}
+
+	// glfw.WindowHint(glfw.MousePassthrough, ...) doesn't work on some Linux machine (#3222).
+	// Set this attribute after creating a window.
+	mousePassthrough := glfw.False
+	if u.isInitWindowMousePassthrough() {
+		mousePassthrough = glfw.True
+	}
+	if err := u.window.SetAttrib(glfw.MousePassthrough, mousePassthrough); err != nil {
 		return err
 	}
 
