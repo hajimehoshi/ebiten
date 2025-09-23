@@ -1,7 +1,7 @@
 github.com/ebitengine/debugui v0.2.0-alpha.6 h1:pXjR6IuNKt6LqkZYZut8OmbWox9/WxMr0EBtwk+xTvA=
 github.com/ebitengine/debugui v0.2.0-alpha.6/go.mod h1:9sJAf0xB5bg8z+IOz6tdKF4WyQZzZrFDhQbR6gZ1+9s=
-github.com/ebitengine/gomobile v0.0.0-20250329061421-6d0a8e981e4c h1:Ccgks2VROTr6bIm1FFxG2jT6P1DaCBMj8g/O9xbOQ08=
-github.com/ebitengine/gomobile v0.0.0-20250329061421-6d0a8e981e4c/go.mod h1:M6DDA2RbegvWBVv4Dq482lwyFTtMczT1A7UNm1qOYzY=
+github.com/ebitengine/gomobile v0.0.0-20250923094054-ea854a63cce1 h1:+kz5iTT3L7uU+VhlMfTb8hHcxLO3TlaELlX8wa4XjA0=
+github.com/ebitengine/gomobile v0.0.0-20250923094054-ea854a63cce1/go.mod h1:lKJoeixeJwnFmYsBny4vvCJGVFc3aYDalhuDsfZzWHI=
 github.com/ebitengine/hideconsole v1.0.0 h1:5J4U0kXF+pv/DhiXt5/lTz0eO5ogJ1iXb8Yj1yReDqE=
 github.com/ebitengine/hideconsole v1.0.0/go.mod h1:hTTBTvVYWKBuxPr7peweneWdkUwEuHuB3C1R/ielR1A=
 github.com/ebitengine/oto/v3 v3.4.0-alpha.11 h1:gLvT6a6qcBYWr7ZZueiQtZAAsdPN8hP//ujGtKfpNxI=
