@@ -32,6 +32,34 @@ var glfwMouseButtonToMouseButton = map[glfw.MouseButton]MouseButton{
 }
 
 func (u *UserInterface) registerInputCallbacks() error {
+	if _, err := u.window.SetKeyCallback(func(w *glfw.Window, key glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {
+		// As this function is called from GLFW callbacks, the current thread is main.
+		u.m.Lock()
+		defer u.m.Unlock()
+
+		uk, ok := glfwKeyToUIKey[key]
+		if !ok {
+			return
+		}
+		u.inputState.KeyPressed[uk] = action == glfw.Press
+	}); err != nil {
+		return err
+	}
+
+	if _, err := u.window.SetMouseButtonCallback(func(w *glfw.Window, button glfw.MouseButton, action glfw.Action, mods glfw.ModifierKey) {
+		// As this function is called from GLFW callbacks, the current thread is main.
+		u.m.Lock()
+		defer u.m.Unlock()
+
+		ub, ok := glfwMouseButtonToMouseButton[button]
+		if !ok {
+			return
+		}
+		u.inputState.MouseButtonPressed[ub] = action == glfw.Press
+	}); err != nil {
+		return err
+	}
+
 	if _, err := u.window.SetCharModsCallback(func(w *glfw.Window, char rune, mods glfw.ModifierKey) {
 		// As this function is called from GLFW callbacks, the current thread is main.
 		u.m.Lock()
@@ -66,21 +94,6 @@ func (u *UserInterface) updateInputState() error {
 func (u *UserInterface) updateInputStateImpl() error {
 	u.m.Lock()
 	defer u.m.Unlock()
-
-	for uk, gk := range uiKeyToGLFWKey {
-		s, err := u.window.GetKey(gk)
-		if err != nil {
-			return err
-		}
-		u.inputState.KeyPressed[uk] = s == glfw.Press
-	}
-	for gb, ub := range glfwMouseButtonToMouseButton {
-		s, err := u.window.GetMouseButton(gb)
-		if err != nil {
-			return err
-		}
-		u.inputState.MouseButtonPressed[ub] = s == glfw.Press
-	}
 
 	m, err := u.currentMonitor()
 	if err != nil {

@@ -579,6 +579,11 @@ var uiKeyToGLFWKey = map[Key]glfw.Key{
 {{range $dname, $gname := .UIKeyNameToGLFWKeyName}}Key{{$dname}}: glfw.Key{{$gname}},
 {{end}}
 }
+
+var glfwKeyToUIKey = map[glfw.Key]Key{
+{{range $dname, $gname := .UIKeyNameToGLFWKeyName}}glfw.Key{{$gname}}: Key{{$dname}},
+{{end}}
+}
 `
 
 const uiJSKeysTmpl = `{{.License}}
