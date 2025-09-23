@@ -51,20 +51,7 @@ func (i *inputState) AppendInputChars(runes []rune) []rune {
 func (i *inputState) IsKeyPressed(key ui.Key) bool {
 	i.m.Lock()
 	defer i.m.Unlock()
-
-	tick := ui.Get().Tick()
-	switch key {
-	case ui.KeyAlt:
-		return i.state.IsKeyPressed(ui.KeyAltLeft, tick) || i.state.IsKeyPressed(ui.KeyAltRight, tick)
-	case ui.KeyControl:
-		return i.state.IsKeyPressed(ui.KeyControlLeft, tick) || i.state.IsKeyPressed(ui.KeyControlRight, tick)
-	case ui.KeyShift:
-		return i.state.IsKeyPressed(ui.KeyShiftLeft, tick) || i.state.IsKeyPressed(ui.KeyShiftRight, tick)
-	case ui.KeyMeta:
-		return i.state.IsKeyPressed(ui.KeyMetaLeft, tick) || i.state.IsKeyPressed(ui.KeyMetaRight, tick)
-	default:
-		return i.state.IsKeyPressed(key, tick)
-	}
+	return i.state.IsKeyPressed(key, ui.Get().Tick())
 }
 
 func (i *inputState) IsKeyJustPressed(key ui.Key) bool {

@@ -95,6 +95,17 @@ func (i *InputState) releaseAllButtons(t InputTime) {
 }
 
 func (i *InputState) IsKeyPressed(key Key, tick int64) bool {
+	switch key {
+	case KeyAlt:
+		return i.IsKeyPressed(KeyAltLeft, tick) || i.IsKeyPressed(KeyAltRight, tick)
+	case KeyControl:
+		return i.IsKeyPressed(KeyControlLeft, tick) || i.IsKeyPressed(KeyControlRight, tick)
+	case KeyShift:
+		return i.IsKeyPressed(KeyShiftLeft, tick) || i.IsKeyPressed(KeyShiftRight, tick)
+	case KeyMeta:
+		return i.IsKeyPressed(KeyMetaLeft, tick) || i.IsKeyPressed(KeyMetaRight, tick)
+	}
+
 	if key < 0 || KeyMax < key {
 		return false
 	}
