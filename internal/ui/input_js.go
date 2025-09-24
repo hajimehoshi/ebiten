@@ -228,10 +228,12 @@ func isKeyString(str string) bool {
 }
 
 var (
-	jsKeyboard                     = js.Global().Get("navigator").Get("keyboard")
-	jsKeyboardGetLayoutMap         js.Value
-	jsKeyboardGetLayoutMapCh       chan js.Value
-	jsKeyboardGetLayoutMapCallback js.Func
+	jsKeyboard                          = js.Global().Get("navigator").Get("keyboard")
+	jsKeyboardLayoutAvailable           bool
+	jsKeyboardGetLayoutMap              js.Value
+	jsKeyboardGetLayoutMapCh            chan js.Value
+	jsKeyboardGetLayoutMapThenCallback  js.Func
+	jsKeyboardGetLayoutMapCatchCallback js.Func
 )
 
 func init() {
@@ -241,10 +243,18 @@ func init() {
 
 	jsKeyboardGetLayoutMap = jsKeyboard.Get("getLayoutMap").Call("bind", jsKeyboard)
 	jsKeyboardGetLayoutMapCh = make(chan js.Value, 1)
-	jsKeyboardGetLayoutMapCallback = js.FuncOf(func(this js.Value, args []js.Value) any {
+	jsKeyboardGetLayoutMapThenCallback = js.FuncOf(func(this js.Value, args []js.Value) any {
 		jsKeyboardGetLayoutMapCh <- args[0]
 		return nil
 	})
+	jsKeyboardGetLayoutMapCatchCallback = js.FuncOf(func(this js.Value, args []js.Value) any {
+		err := args[0]
+		js.Global().Get("console").Call("error", "ui: navigator.keyboard.getLayoutMap() failed:", err)
+		jsKeyboardLayoutAvailable = false
+		jsKeyboardGetLayoutMapCh <- js.Undefined()
+		return nil
+	})
+	jsKeyboardLayoutAvailable = true
 }
 
 func (u *UserInterface) KeyName(key Key) string {
@@ -252,16 +262,19 @@ func (u *UserInterface) KeyName(key Key) string {
 		return ""
 	}
 
+	if !jsKeyboardLayoutAvailable {
+		return ""
+	}
+
 	// keyboardLayoutMap is reset every tick.
 	if u.keyboardLayoutMap.IsUndefined() {
-		if !jsKeyboard.Truthy() {
-			return ""
-		}
-
 		// Invoke getLayoutMap every tick to detect the keyboard change.
 		// TODO: Calling this every tick might be inefficient. Is there a way to detect a keyboard change?
-		jsKeyboardGetLayoutMap.Invoke().Call("then", jsKeyboardGetLayoutMapCallback)
+		jsKeyboardGetLayoutMap.Invoke().Call("then", jsKeyboardGetLayoutMapThenCallback).Call("catch", jsKeyboardGetLayoutMapCatchCallback)
 		u.keyboardLayoutMap = <-jsKeyboardGetLayoutMapCh
+	}
+	if u.keyboardLayoutMap.IsUndefined() {
+		return ""
 	}
 
 	n := u.keyboardLayoutMap.Call("get", uiKeyToJSCode[key])
