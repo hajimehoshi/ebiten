@@ -62,7 +62,7 @@ func UpdateTouchesOnIOS(phase int, ptr int64, x, y int) {
 
 func UpdatePressesOnIOS(phase int, keyCode int, keyString string) {
 	switch phase {
-	case C.UITouchPhaseBegan, C.UITouchPhaseMoved, C.UITouchPhaseStationary:
+	case C.UIPressPhaseBegan, C.UIPressPhaseMoved, C.UIPressPhaseStationary:
 		if key, ok := iosKeyToUIKey[keyCode]; ok {
 			keyPressedTimes[key] = ui.Get().InputTime()
 		}
@@ -76,7 +76,7 @@ func UpdatePressesOnIOS(phase int, keyCode int, keyString string) {
 			}
 		}
 		updateInput(runes)
-	case C.UITouchPhaseEnded, C.UITouchPhaseCancelled:
+	case C.UIPressPhaseEnded, C.UIPressPhaseCancelled:
 		if key, ok := iosKeyToUIKey[keyCode]; ok {
 			keyReleasedTimes[key] = ui.Get().InputTime()
 		}
