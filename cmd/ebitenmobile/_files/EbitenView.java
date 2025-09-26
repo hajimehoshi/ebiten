@@ -134,6 +134,10 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
 
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
+        // Ignore key repeat events.
+        if (event.getRepeatCount() > 0) {
+            return super.onKeyDown(keyCode, event);
+        }
         Ebitenmobileview.onKeyDownOnAndroid(keyCode, event.getUnicodeChar(), event.getSource(), event.getDeviceId());
         return true;
     }

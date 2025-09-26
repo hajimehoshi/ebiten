@@ -100,6 +100,10 @@ func eventToKeys(e js.Value) (key0, key1 Key) {
 }
 
 func (u *UserInterface) keyDown(event js.Value) {
+	// Ignore key repeats for now.
+	if event.Get("repeat").Bool() {
+		return
+	}
 	now := u.InputTime()
 	key0, key1 := eventToKeys(event)
 	if key0 >= 0 {
