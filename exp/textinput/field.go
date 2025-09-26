@@ -264,8 +264,8 @@ func (f *Field) CompositionSelection() (startInBytes, endInBytes int, ok bool) {
 // SetSelection sets the selection range.
 func (f *Field) SetSelection(startInBytes, endInBytes int) {
 	f.cleanUp()
-	f.selectionStartInBytes = startInBytes
-	f.selectionEndInBytes = endInBytes
+	f.selectionStartInBytes = min(max(startInBytes, 0), len(f.text))
+	f.selectionEndInBytes = min(max(endInBytes, 0), len(f.text))
 }
 
 // Text returns the current text.
@@ -297,6 +297,6 @@ func (f *Field) UncommittedTextLengthInBytes() int {
 func (f *Field) SetTextAndSelection(text string, selectionStartInBytes, selectionEndInBytes int) {
 	f.cleanUp()
 	f.text = text
-	f.selectionStartInBytes = selectionStartInBytes
-	f.selectionEndInBytes = selectionEndInBytes
+	f.selectionStartInBytes = min(max(selectionStartInBytes, 0), len(f.text))
+	f.selectionEndInBytes = min(max(selectionEndInBytes, 0), len(f.text))
 }
