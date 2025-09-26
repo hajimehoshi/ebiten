@@ -33,6 +33,11 @@ var glfwMouseButtonToMouseButton = map[glfw.MouseButton]MouseButton{
 
 func (u *UserInterface) registerInputCallbacks() error {
 	if _, err := u.window.SetKeyCallback(func(w *glfw.Window, key glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {
+		// Ignore key repeats for now.
+		if action == glfw.Repeat {
+			return
+		}
+
 		// As this function is called from GLFW callbacks, the current thread is main.
 		u.m.Lock()
 		defer u.m.Unlock()
@@ -51,6 +56,11 @@ func (u *UserInterface) registerInputCallbacks() error {
 	}
 
 	if _, err := u.window.SetMouseButtonCallback(func(w *glfw.Window, button glfw.MouseButton, action glfw.Action, mods glfw.ModifierKey) {
+		// Ignore key repeats for now.
+		if action == glfw.Repeat {
+			return
+		}
+
 		// As this function is called from GLFW callbacks, the current thread is main.
 		u.m.Lock()
 		defer u.m.Unlock()

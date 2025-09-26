@@ -186,6 +186,9 @@ func inputStateJustReleased(released InputTime, tick int64) bool {
 }
 
 func inputStateDuration(pressed, released InputTime, tick int64) int64 {
+	if pressed == 0 {
+		return 0
+	}
 	if pressed < released {
 		return 0
 	}
