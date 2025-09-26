@@ -61,8 +61,13 @@ func UpdateTouchesOnIOS(phase int, ptr int64, x, y int) {
 }
 
 func UpdatePressesOnIOS(phase int, keyCode int, keyString string) {
+	// TODO: If a key is kept pressed, ignore the repeated key events.
+	// There seems no way to check whether a key event is a repeated event or not so far.
 	switch phase {
-	case C.UIPressPhaseBegan, C.UIPressPhaseMoved, C.UIPressPhaseStationary:
+	case C.UIPressPhaseStationary:
+		// keyPressedTimes represents the time when a key is first pressed.
+		// Do nothing here.
+	case C.UIPressPhaseBegan:
 		if key, ok := iosKeyToUIKey[keyCode]; ok {
 			keyPressedTimes[key] = ui.Get().InputTime()
 		}
