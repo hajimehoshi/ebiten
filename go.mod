@@ -3,7 +3,7 @@ module github.com/hajimehoshi/ebiten/v2
 go 1.22.0
 
 require (
-	github.com/ebitengine/gomobile v0.0.0-20240911145611-4856209ac325
+	github.com/ebitengine/gomobile v0.0.0-20241016022004-957bd3215dd8
 	github.com/ebitengine/hideconsole v1.0.0
 	github.com/ebitengine/oto/v3 v3.3.3
 	github.com/ebitengine/purego v0.8.0
@@ -15,11 +15,11 @@ require (
 	github.com/jezek/xgb v1.1.1
 	github.com/jfreymuth/oggvorbis v1.0.5
 	github.com/kisielk/errcheck v1.7.0
-	golang.org/x/image v0.20.0
+	golang.org/x/image v0.21.0
 	golang.org/x/sync v0.8.0
-	golang.org/x/sys v0.25.0
-	golang.org/x/text v0.18.0
-	golang.org/x/tools v0.25.1
+	golang.org/x/sys v0.26.0
+	golang.org/x/text v0.19.0
+	golang.org/x/tools v0.26.0
 )
 
 require (
