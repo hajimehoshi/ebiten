@@ -150,5 +150,12 @@ func typeName(t reflect.Type) string {
 	if t.Kind() == reflect.Slice {
 		return "[]" + typeName(t.Elem())
 	}
-	return t.Name()
+	if name := t.Name(); name != "" {
+		return name
+	}
+	name := t.String()
+	if name == "interface {}" {
+		return "any"
+	}
+	return name
 }
