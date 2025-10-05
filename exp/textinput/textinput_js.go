@@ -216,6 +216,7 @@ func (t *textInput) trySend(committed bool) {
 	}
 
 	textareaValue := t.textareaElement.Get("value").String()
+	// textareaValue can be an empty value, but this should be sent especially for a compositing text (#3324).
 
 	start := t.textareaElement.Get("selectionStart").Int()
 	end := t.textareaElement.Get("selectionEnd").Int()
