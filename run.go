@@ -753,6 +753,8 @@ func toUIRunOptions(options *RunGameOptions) *ui.RunOptions {
 //
 // DroppedFiles works on desktops and browsers.
 //
+// As of Ebitengine 2.9, the returned value also implements [io/fs.ReadDirFS].
+//
 // DroppedFiles is concurrent-safe.
 func DroppedFiles() fs.FS {
 	return inputstate.Get().DroppedFiles()
