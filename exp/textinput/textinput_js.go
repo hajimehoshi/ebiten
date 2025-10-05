@@ -216,9 +216,6 @@ func (t *textInput) trySend(committed bool) {
 	}
 
 	textareaValue := t.textareaElement.Get("value").String()
-	if textareaValue == "" {
-		return
-	}
 
 	start := t.textareaElement.Get("selectionStart").Int()
 	end := t.textareaElement.Get("selectionEnd").Int()
