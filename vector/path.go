@@ -777,18 +777,6 @@ func (p *Path) AppendVerticesAndIndicesForFilling(vertices []ebiten.Vertex, indi
 	return vertices, indices
 }
 
-// ApplyGeoM applies the given GeoM to the path and returns a new path.
-//
-// Deprecated: as of v2.9. Use [Path.AddPath] instead.
-func (p *Path) ApplyGeoM(geoM ebiten.GeoM) *Path {
-	// Flat paths are not copied.
-	var np Path
-	op := &AddPathOptions{}
-	op.GeoM = geoM
-	np.AddPath(p, op)
-	return &np
-}
-
 // AddPathOptions is options for [Path.AddPath].
 type AddPathOptions struct {
 	// GeoM is a geometry matrix to apply to the path.
