@@ -32,15 +32,11 @@ class EbitenSurfaceView extends GLSurfaceView implements Renderer {
     // As GLSurfaceView can be recreated, the states must be static (#3097).
     static private boolean errored_ = false;
     static private boolean onceSurfaceCreated_ = false;
-    static private boolean contextLost_ = false;
 
     private class EbitenRenderer implements GLSurfaceView.Renderer {
         @Override
         public void onDrawFrame(GL10 gl) {
             if (errored_) {
-                return;
-            }
-            if (contextLost_) {
                 return;
             }
             try {
@@ -67,13 +63,12 @@ class EbitenSurfaceView extends GLSurfaceView implements Renderer {
                 onceSurfaceCreated_ = true;
                 return;
             }
-            contextLost_ = true;
-            new Handler(Looper.getMainLooper()).post(new Runnable() {
-                @Override
-                public void run() {
-                    onContextLost();
-                }
-            });
+            if (Ebitenmobileview.onContextLost()) {
+                Log.i("Go", "The OpenGL context was lost and restored");
+                return;
+            }
+            Log.e("Go", "The application was killed due to context loss");
+            Runtime.getRuntime().exit(0);
         }
 
         @Override
@@ -106,12 +101,6 @@ class EbitenSurfaceView extends GLSurfaceView implements Renderer {
         ((EbitenView)getParent()).onErrorOnGameUpdate(e);
     }
 
-    private void onContextLost() {
-        Log.e("Go", "The application was killed due to context loss");
-        // TODO: Relaunch this application for better UX (#805).
-        Runtime.getRuntime().exit(0);
-    }
-
     @Override
     public synchronized void setExplicitRenderingMode(boolean explicitRendering) {
         // TODO: Remove this logic when FPSModeVsyncOffMinimum is removed.
@@ -128,5 +117,16 @@ class EbitenSurfaceView extends GLSurfaceView implements Renderer {
         if (getRenderMode() == RENDERMODE_WHEN_DIRTY) {
             requestRender();
         }
+    }
+
+    @Override
+    public void onPause() {
+        Ebitenmobileview.saveGPUResources();
+        // Saving GPU resources is done in onDrawFrame.
+        // In the next onDrawFrame, Ebitengine restores GPU resources automatically.
+        // In theory, it is possible that onDrawFrame is invoked between saveGPUResources and super.onPause,
+        // and in thie case, GPU resources are restored before the context is actually lost.
+        // This is pretty unlikely, and even if it happens, the process is gracefully killed at Ebitenmobileview.onContextLost.
+        super.onPause();
     }
 }

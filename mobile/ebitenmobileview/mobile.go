@@ -32,6 +32,7 @@ import (
 	"sync"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
 	"github.com/hajimehoshi/ebiten/v2/internal/restorable"
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
@@ -125,8 +126,13 @@ func Resume() error {
 	return ui.Get().SetForeground(true)
 }
 
-func OnContextLost() {
-	restorable.OnContextLost()
+func OnContextLost() bool {
+	// TODO: Remove restorable package itself after removing RunOptions.StrictContextRestoration.
+	if ui.Get().UsesStrictContextRestoration() {
+		restorable.OnContextLost()
+		return true
+	}
+	return atlas.RestoreGPUResources()
 }
 
 func DeviceScale() float64 {
@@ -147,4 +153,8 @@ func SetSetGameNotifier(setGameNotifier SetGameNotifier) {
 
 func UsesStrictContextRestoration() bool {
 	return ui.Get().UsesStrictContextRestoration()
+}
+
+func SaveGPUResources() {
+	atlas.SaveGPUResources()
 }

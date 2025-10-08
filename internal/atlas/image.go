@@ -23,6 +23,7 @@ import (
 	"sync"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/packing"
 	"github.com/hajimehoshi/ebiten/v2/internal/restorable"
@@ -92,6 +93,9 @@ func putImagesOnSourceBackend() {
 // backend is a big texture atlas that can have multiple images.
 // backend is a texture in GPU.
 type backend struct {
+	width  int
+	height int
+
 	// restorable is an atlas on which there might be multiple images.
 	restorable *restorable.Image
 
@@ -108,6 +112,15 @@ type backend struct {
 	// sourceInThisFrame reports whether this backend is used as a source in this frame.
 	// sourceInThisFrame is reset every frame.
 	sourceInThisFrame bool
+
+	// restoreInfo is information for restoration from a context loss.
+	restoreInfo restoreInfo
+}
+
+type restoreInfo struct {
+	valid     bool
+	imageType restorable.ImageType
+	pixels    *graphics.ManagedBytes
 }
 
 func (b *backend) tryAlloc(width, height int) (*packing.Node, bool) {
@@ -137,6 +150,8 @@ func (b *backend) tryAlloc(width, height int) (*packing.Node, bool) {
 	newImg.DrawTriangles(srcs, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{dr}, restorable.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintOverwriteDstRegion)
 	src.Dispose()
 	b.restorable = newImg
+	b.width = pageW
+	b.height = pageH
 
 	return n, true
 }
@@ -162,6 +177,10 @@ var (
 
 	// deferredM is a mutex for the slice operations. This must not be used for other usages.
 	deferredM sync.Mutex
+
+	saveGPUResourcesCh        = make(chan struct{}, 1)
+	saveGPUResourcesDoneCh    = make(chan struct{}, 1)
+	needToRestoreGPUResources bool
 )
 
 // ImageType represents the type of an image.
@@ -630,6 +649,8 @@ func (i *imageImpl) deallocateImpl() {
 	}
 
 	i.backend.restorable.Dispose()
+	i.backend.restorable = nil
+	i.backend.restoreInfo = restoreInfo{}
 
 	for idx, sh := range theBackends {
 		if sh == i.backend {
@@ -685,6 +706,8 @@ func (i *Image) allocate(forbiddenBackends []*backend, asSource bool) {
 		}
 		// A screen image doesn't have a padding.
 		i.backend = &backend{
+			width:      i.width,
+			height:     i.height,
 			restorable: restorable.NewImage(i.width, i.height, restorable.ImageTypeScreen),
 		}
 		theBackends = append(theBackends, i.backend)
@@ -704,6 +727,8 @@ func (i *Image) allocate(forbiddenBackends []*backend, asSource bool) {
 			typ = restorable.ImageTypeVolatile
 		}
 		i.backend = &backend{
+			width:      wp,
+			height:     hp,
 			restorable: restorable.NewImage(wp, hp, typ),
 			source:     asSource && typ == restorable.ImageTypeRegular,
 		}
@@ -754,6 +779,8 @@ loop:
 		typ = restorable.ImageTypeVolatile
 	}
 	b := &backend{
+		width:      width,
+		height:     height,
 		restorable: restorable.NewImage(width, height, typ),
 		page:       packing.NewPage(width, height, maxSize),
 		source:     asSource,
@@ -779,7 +806,7 @@ func (i *Image) DumpScreenshot(graphicsDriver graphicsdriver.Graphics, path stri
 	return i.backend.restorable.Dump(graphicsDriver, path, blackbg, image.Rect(0, 0, i.width, i.height))
 }
 
-func EndFrame() error {
+func EndFrame(graphicsDriver graphicsdriver.Graphics) error {
 	backendsM.Lock()
 	defer backendsM.Unlock()
 	defer func() {
@@ -792,6 +819,33 @@ func EndFrame() error {
 
 	for _, b := range theBackends {
 		b.sourceInThisFrame = false
+	}
+
+	select {
+	case <-saveGPUResourcesCh:
+		flushDeferred()
+		for _, b := range theBackends {
+			if b.restorable == nil {
+				continue
+			}
+			var pixels *graphics.ManagedBytes
+			if b.restorable.ImageType() == restorable.ImageTypeRegular {
+				var err error
+				pixels = graphics.NewManagedBytes(4*b.width*b.height, func(bytes []byte) {
+					err = b.restorable.ReadPixels(graphicsDriver, bytes, image.Rect(0, 0, b.width, b.height))
+				})
+				if err != nil {
+					return err
+				}
+			}
+			b.restoreInfo = restoreInfo{
+				valid:     true,
+				imageType: b.restorable.ImageType(),
+				pixels:    pixels,
+			}
+		}
+		saveGPUResourcesDoneCh <- struct{}{}
+	default:
 	}
 
 	return nil
@@ -855,7 +909,43 @@ func BeginFrame(graphicsDriver graphicsdriver.Graphics) error {
 		return err
 	}
 
+	if needToRestoreGPUResources {
+		if err := graphicscommand.ResetGraphicsDriverState(graphicsDriver); err != nil {
+			return err
+		}
+
+		// Dispose all the internal shaders.
+		// The current internal shader objects might have references to old GPU resources.
+		theShadersWithInternalShader.deallocateInternalShaders()
+		restorable.DisposeAndRestoreInternalShaders()
+
+		// Dispose all the images.
+		// The current internal image objects might have references to old GPU resources.
+		for _, b := range theBackends {
+			b.restorable.Dispose()
+			b.restorable = nil
+		}
+
+		// Restore all the images.
+		for _, b := range theBackends {
+			if !b.restoreInfo.valid {
+				continue
+			}
+			b.restorable = restorable.NewImage(b.width, b.height, b.restoreInfo.imageType)
+			if b.restoreInfo.pixels == nil {
+				continue
+			}
+			b.restorable.WritePixels(b.restoreInfo.pixels, image.Rect(0, 0, b.width, b.height))
+		}
+		needToRestoreGPUResources = false
+	}
+	for _, b := range theBackends {
+		// Do not release pixels here, as the command buffer might not be flushed yet.
+		b.restoreInfo = restoreInfo{}
+	}
+
 	// Restore images first before other image manipulations (#2075).
+	// TODO: Remove restorable package itself after removing RunOptions.StrictContextRestoration.
 	if err := restorable.RestoreIfNeeded(graphicsDriver); err != nil {
 		return err
 	}
@@ -890,4 +980,30 @@ func TotalGPUImageMemoryUsageInBytes() int64 {
 		sum += 4 * int64(w) * int64(h)
 	}
 	return sum
+}
+
+// SaveGPUResources saves GPU resources (textures and shaders) in CPU memory.
+// SaveGPUResources must be called from a different goroutine to the one calling BeginFrame/EndFrame.
+//
+// The saved resources can be restored by RestoreGPUResources in the next frame.
+// If RestoreGPUResources is not called, the saved resources are just discarded.
+func SaveGPUResources() {
+	saveGPUResourcesCh <- struct{}{}
+	<-saveGPUResourcesDoneCh
+}
+
+// RestoreGPUResources restores GPU resources in the next frame if needed.
+// RestoreGPUResources reports whether there are GPU resources to be restored or not.
+func RestoreGPUResources() bool {
+	backendsM.Lock()
+	defer backendsM.Unlock()
+
+	for _, b := range theBackends {
+		if !b.restoreInfo.valid {
+			continue
+		}
+		needToRestoreGPUResources = true
+		return true
+	}
+	return false
 }

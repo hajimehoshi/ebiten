@@ -112,7 +112,7 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 		return false, err
 	}
 	defer func() {
-		if err1 := atlas.EndFrame(); err1 != nil && err == nil {
+		if err1 := atlas.EndFrame(graphicsDriver); err1 != nil && err == nil {
 			needsSwapBuffers = false
 			err = err1
 			return

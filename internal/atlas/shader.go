@@ -16,10 +16,58 @@ package atlas
 
 import (
 	"runtime"
+	"sync"
+	"weak"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/restorable"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
+
+// shadersWithInternalShader keeps track of shaders that have internal restorable.Shader.
+//
+// Note that NearestFilterShader and LinearFilterShader are not tracked here.
+// TODO: When the restorable package is removed, we might add them here.
+type shadersWithInternalShader struct {
+	shaders map[weak.Pointer[Shader]]struct{}
+	m       sync.Mutex
+}
+
+func (s *shadersWithInternalShader) add(shader *Shader) {
+	s.m.Lock()
+	defer s.m.Unlock()
+	if s.shaders == nil {
+		s.shaders = map[weak.Pointer[Shader]]struct{}{}
+	}
+	s.shaders[weak.Make(shader)] = struct{}{}
+}
+
+func (s *shadersWithInternalShader) remove(shader *Shader) {
+	s.m.Lock()
+	defer s.m.Unlock()
+	delete(s.shaders, weak.Make(shader))
+}
+
+func (s *shadersWithInternalShader) deallocateInternalShaders() {
+	s.m.Lock()
+	shaders := make([]weak.Pointer[Shader], 0, len(s.shaders))
+	for shader := range s.shaders {
+		shaders = append(shaders, shader)
+	}
+	s.m.Unlock()
+
+	for _, shader := range shaders {
+		// deallocate invokes the internal shader's Dispose method.
+		if shader := shader.Value(); shader != nil {
+			shader.deallocate()
+		}
+	}
+
+	s.m.Lock()
+	clear(s.shaders)
+	s.m.Unlock()
+}
+
+var theShadersWithInternalShader shadersWithInternalShader
 
 type Shader struct {
 	ir      *shaderir.Program
@@ -50,6 +98,7 @@ func (s *Shader) ensureShader() *restorable.Shader {
 			shader.Dispose()
 		})
 	}, s.shader)
+	theShadersWithInternalShader.add(s)
 	return s.shader
 }
 
@@ -75,6 +124,7 @@ func (s *Shader) deallocate() {
 	}
 	s.shader.Dispose()
 	s.shader = nil
+	theShadersWithInternalShader.remove(s)
 }
 
 var (
