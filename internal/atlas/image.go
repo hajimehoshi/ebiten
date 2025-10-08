@@ -120,7 +120,23 @@ func (b *backend) tryAlloc(width, height int) (*packing.Node, bool) {
 		return nil, false
 	}
 
-	b.restorable = b.restorable.Extend(b.page.Size())
+	pageW, pageH := b.page.Size()
+	if w, h := b.restorable.InternalSize(); pageW <= w && pageH <= h {
+		return n, true
+	}
+
+	// Extend the image.
+	newImg := restorable.NewImage(pageW, pageH, b.restorable.ImageType())
+	src := b.restorable
+	srcs := [graphics.ShaderSrcImageCount]*restorable.Image{src}
+	sw, sh := src.InternalSize()
+	vs := make([]float32, 4*graphics.VertexFloatCount)
+	graphics.QuadVerticesFromDstAndSrc(vs, 0, 0, float32(sw), float32(sh), 0, 0, float32(sw), float32(sh), 1, 1, 1, 1)
+	is := graphics.QuadIndices()
+	dr := image.Rect(0, 0, sw, sh)
+	newImg.DrawTriangles(srcs, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{dr}, restorable.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintOverwriteDstRegion)
+	src.Dispose()
+	b.restorable = newImg
 
 	return n, true
 }

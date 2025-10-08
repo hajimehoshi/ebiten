@@ -183,28 +183,8 @@ func NewImage(width, height int, imageType ImageType) *Image {
 	return i
 }
 
-// Extend extends the image by the given size.
-// Extend creates a new image with the given size and copies the pixels of the given source image.
-// Extend disposes itself after its call.
-func (i *Image) Extend(width, height int) *Image {
-	if i.width >= width && i.height >= height {
-		return i
-	}
-
-	newImg := NewImage(width, height, i.imageType)
-
-	// Use DrawTriangles instead of WritePixels because the image i might be stale and not have its pixels
-	// information.
-	srcs := [graphics.ShaderSrcImageCount]*Image{i}
-	sw, sh := i.image.InternalSize()
-	vs := make([]float32, 4*graphics.VertexFloatCount)
-	graphics.QuadVerticesFromDstAndSrc(vs, 0, 0, float32(sw), float32(sh), 0, 0, float32(sw), float32(sh), 1, 1, 1, 1)
-	is := graphics.QuadIndices()
-	dr := image.Rect(0, 0, sw, sh)
-	newImg.DrawTriangles(srcs, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, HintOverwriteDstRegion)
-	i.Dispose()
-
-	return newImg
+func (i *Image) ImageType() ImageType {
+	return i.imageType
 }
 
 func clearImage(i *graphicscommand.Image, region image.Rectangle) {
