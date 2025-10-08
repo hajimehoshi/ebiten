@@ -66,6 +66,10 @@ func (i *InputState) setKeyReleased(key Key, t InputTime) {
 	if key < 0 || KeyMax < key {
 		return
 	}
+	// Ignore duplicated key releases (#3326).
+	if i.KeyPressedTimes[key] <= i.KeyReleasedTimes[key] {
+		return
+	}
 	i.KeyReleasedTimes[key] = t
 }
 
@@ -80,15 +84,24 @@ func (i *InputState) setMouseButtonReleased(button MouseButton, t InputTime) {
 	if button < 0 || MouseButtonMax < button {
 		return
 	}
+	if i.MouseButtonPressedTimes[button] <= i.MouseButtonReleasedTimes[button] {
+		return
+	}
 	i.MouseButtonReleasedTimes[button] = t
 }
 
 // releaseAllButtons is called when the browser window loses focus.
 func (i *InputState) releaseAllButtons(t InputTime) {
 	for j := range i.KeyPressedTimes {
+		if i.KeyPressedTimes[Key(j)] <= i.KeyReleasedTimes[Key(j)] {
+			continue
+		}
 		i.KeyReleasedTimes[Key(j)] = t
 	}
 	for j := range i.MouseButtonPressedTimes {
+		if i.MouseButtonPressedTimes[MouseButton(j)] <= i.MouseButtonReleasedTimes[MouseButton(j)] {
+			continue
+		}
 		i.MouseButtonReleasedTimes[j] = t
 	}
 	i.Touches = i.Touches[:0]
