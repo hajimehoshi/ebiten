@@ -990,6 +990,19 @@ func isInited() bool {
 	return inited
 }
 
+func isGPUResourcesSaved() bool {
+	backendsM.Lock()
+	defer backendsM.Unlock()
+
+	// At least, there is one backend for the screen image.
+	for _, b := range theBackends {
+		if b.restoreInfo.valid {
+			return true
+		}
+	}
+	return false
+}
+
 // SaveGPUResources saves GPU resources (textures and shaders) in CPU memory.
 // SaveGPUResources must be called from a different goroutine to the one calling BeginFrame/EndFrame.
 //
@@ -997,6 +1010,9 @@ func isInited() bool {
 // If RestoreGPUResources is not called, the saved resources are just discarded.
 func SaveGPUResources() {
 	if !isInited() {
+		return
+	}
+	if isGPUResourcesSaved() {
 		return
 	}
 
@@ -1010,10 +1026,7 @@ func RestoreGPUResources() bool {
 	backendsM.Lock()
 	defer backendsM.Unlock()
 
-	for _, b := range theBackends {
-		if !b.restoreInfo.valid {
-			continue
-		}
+	if isGPUResourcesSaved() {
 		needToRestoreGPUResources = true
 		return true
 	}
