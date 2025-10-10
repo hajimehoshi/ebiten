@@ -165,6 +165,7 @@ var (
 	inFrame bool
 
 	initOnce sync.Once
+	inited   bool
 
 	// theBackends is a set of atlases.
 	theBackends []*backend
@@ -904,6 +905,7 @@ func BeginFrame(graphicsDriver graphicsdriver.Graphics) error {
 		if maxSize == 0 {
 			maxSize = floorPowerOf2(restorable.MaxImageSize(graphicsDriver))
 		}
+		inited = true
 	})
 	if err != nil {
 		return err
@@ -982,12 +984,22 @@ func TotalGPUImageMemoryUsageInBytes() int64 {
 	return sum
 }
 
+func isInited() bool {
+	backendsM.Lock()
+	defer backendsM.Unlock()
+	return inited
+}
+
 // SaveGPUResources saves GPU resources (textures and shaders) in CPU memory.
 // SaveGPUResources must be called from a different goroutine to the one calling BeginFrame/EndFrame.
 //
 // The saved resources can be restored by RestoreGPUResources in the next frame.
 // If RestoreGPUResources is not called, the saved resources are just discarded.
 func SaveGPUResources() {
+	if !isInited() {
+		return
+	}
+
 	saveGPUResourcesCh <- struct{}{}
 	<-saveGPUResourcesDoneCh
 }
