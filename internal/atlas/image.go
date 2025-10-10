@@ -1023,9 +1023,6 @@ func SaveGPUResources() {
 // RestoreGPUResources restores GPU resources in the next frame if needed.
 // RestoreGPUResources reports whether there are GPU resources to be restored or not.
 func RestoreGPUResources() bool {
-	backendsM.Lock()
-	defer backendsM.Unlock()
-
 	if isGPUResourcesSaved() {
 		needToRestoreGPUResources = true
 		return true
