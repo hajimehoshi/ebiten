@@ -93,9 +93,15 @@ func (t *textInput) init() {
 	}))
 	t.textareaElement.Call("addEventListener", "keyup", js.FuncOf(func(this js.Value, args []js.Value) any {
 		e := args[0]
-		if !e.Get("isComposing").Bool() {
-			ui.Get().UpdateInputFromEvent(e)
-		}
+		// Call UpdateInputFromEvent even if isComposing is true, in order to make sure the key is released (#3328).
+		// When an IME starts, the events can be fired in this order:
+		//
+		//   1. `keydown` code=KeyA isComposing=false
+		//   2. `compositionstart`
+		//   3. `keyup` code=KeyA isComposing=true
+		//
+		// and if `keyup` is ignored, the key A is considered to be pressed forever.
+		ui.Get().UpdateInputFromEvent(e)
 		return nil
 	}))
 	t.textareaElement.Call("addEventListener", "input", js.FuncOf(func(this js.Value, args []js.Value) any {
