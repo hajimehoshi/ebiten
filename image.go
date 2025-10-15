@@ -71,6 +71,7 @@ type Image struct {
 	atime atomic.Int64
 
 	// usageCallbacks are callbacks that are invoked when the image is used.
+	// usageCallbacks is valid only when the image is not a sub-image.
 	usageCallbacks map[int64]func()
 
 	// inUsageCallbacks reports whether the image is in usageCallbacks.
@@ -1601,6 +1602,9 @@ func addUsageCallback(img *Image, callback func()) int64 {
 }
 
 func (i *Image) addUsageCallback(callback func()) int64 {
+	if i.isSubImage() {
+		return i.original.addUsageCallback(callback)
+	}
 	if i.usageCallbacks == nil {
 		i.usageCallbacks = map[int64]func(){}
 	}
@@ -1615,10 +1619,19 @@ func removeUsageCallback(img *Image, token int64) {
 }
 
 func (i *Image) removeUsageCallback(token int64) {
+	if i.isSubImage() {
+		i.original.removeUsageCallback(token)
+		return
+	}
 	delete(i.usageCallbacks, token)
 }
 
 func (i *Image) invokeUsageCallbacks() {
+	if i.isSubImage() {
+		i.original.invokeUsageCallbacks()
+		return
+	}
+
 	if i.inUsageCallbacks {
 		return
 	}
