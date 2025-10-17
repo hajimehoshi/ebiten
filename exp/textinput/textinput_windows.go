@@ -15,6 +15,7 @@
 package textinput
 
 import (
+	"errors"
 	"image"
 	"sync"
 	"unsafe"
@@ -224,15 +225,15 @@ func (t *textInput) end() {
 }
 
 // update must be called from the main thread.
-func (t *textInput) update() (ferr error) {
+func (t *textInput) update() (err error) {
 	if t.err != nil {
 		return t.err
 	}
 
 	hIMC := _ImmGetContext(t.window)
 	defer func() {
-		if err := _ImmReleaseContext(t.window, hIMC); err != nil && ferr != nil {
-			ferr = err
+		if winErr := _ImmReleaseContext(t.window, hIMC); winErr != nil {
+			err = errors.Join(err, winErr)
 		}
 	}()
 
@@ -288,15 +289,15 @@ func (t *textInput) update() (ferr error) {
 }
 
 // commit must be called from the main thread.
-func (t *textInput) commit() (ferr error) {
+func (t *textInput) commit() (err error) {
 	if t.err != nil {
 		return t.err
 	}
 
 	hIMC := _ImmGetContext(t.window)
 	defer func() {
-		if err := _ImmReleaseContext(t.window, hIMC); err != nil && ferr != nil {
-			ferr = err
+		if winErr := _ImmReleaseContext(t.window, hIMC); winErr != nil {
+			err = errors.Join(err, winErr)
 		}
 	}()
 

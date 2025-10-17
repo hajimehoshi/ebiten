@@ -15,6 +15,7 @@
 package graphicscommand
 
 import (
+	"errors"
 	"fmt"
 	"image"
 	"math"
@@ -250,8 +251,8 @@ func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics, endFrame bo
 
 	defer func() {
 		// Call End even if an error causes, or the graphics driver's state might be stale (#2388).
-		if err1 := graphicsDriver.End(endFrame); err1 != nil && err == nil {
-			err = err1
+		if graphicsErr := graphicsDriver.End(endFrame); graphicsErr != nil {
+			err = errors.Join(err, graphicsErr)
 		}
 
 		// Release the commands explicitly (#1803).

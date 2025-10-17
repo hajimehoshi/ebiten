@@ -1439,12 +1439,12 @@ func (u *UserInterface) update() (float64, float64, error) {
 	return u.outsideSize()
 }
 
-func (u *UserInterface) loopGame() (ferr error) {
+func (u *UserInterface) loopGame() (err error) {
 	defer func() {
 		graphicscommand.Terminate()
 		u.mainThread.Call(func() {
-			if err := glfw.Terminate(); err != nil {
-				ferr = err
+			if glfwErr := glfw.Terminate(); glfwErr != nil {
+				err = errors.Join(err, glfwErr)
 			}
 			u.setTerminated()
 		})

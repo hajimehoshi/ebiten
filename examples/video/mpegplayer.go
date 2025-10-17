@@ -148,8 +148,8 @@ func (p *mpegPlayer) updateFrame() error {
 		var err error
 		p.closeOnce.Do(func() {
 			fmt.Println("The video has ended.")
-			if err1 := p.src.Close(); err1 != nil {
-				err = err1
+			if closeErr := p.src.Close(); closeErr != nil {
+				err = closeErr
 			}
 		})
 		return err

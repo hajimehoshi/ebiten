@@ -178,16 +178,16 @@ func (c *context) getMaxTextureSize() int {
 }
 
 func (c *context) reset() error {
-	var err1 error
+	var err error
 	c.initOnce.Do(func() {
 		// Load OpenGL functions after WGL is initialized especially for Windows (#2452).
-		if err := c.ctx.LoadFunctions(); err != nil {
-			err1 = err
+		if contextErr := c.ctx.LoadFunctions(); contextErr != nil {
+			err = contextErr
 			return
 		}
 	})
-	if err1 != nil {
-		return err1
+	if err != nil {
+		return err
 	}
 
 	c.locationCache = newLocationCache()

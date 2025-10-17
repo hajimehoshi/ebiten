@@ -146,11 +146,11 @@ func (u *UserInterface) readPixels(mipmap *mipmap.Mipmap, pixels []byte, region 
 		// This never happens so far, but if handling inputs after EndFrame is implemented,
 		// this might be possible (#1704).
 
-		var err1 error
+		var err error
 		u.context.runInFrame(func() {
-			ok, err := mipmap.ReadPixels(u.graphicsDriver, pixels, region)
-			if err != nil {
-				err1 = err
+			ok, mipmapErr := mipmap.ReadPixels(u.graphicsDriver, pixels, region)
+			if mipmapErr != nil {
+				err = mipmapErr
 				return
 			}
 			if !ok {
@@ -158,7 +158,7 @@ func (u *UserInterface) readPixels(mipmap *mipmap.Mipmap, pixels []byte, region 
 				panic("ui: ReadPixels unexpectedly failed")
 			}
 		})
-		return err1
+		return err
 	}
 
 	return nil

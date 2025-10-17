@@ -6,6 +6,7 @@
 package glfw
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"regexp"
@@ -230,7 +231,7 @@ func chooseFBConfig(desired *fbconfig, alternatives []*fbconfig) *fbconfig {
 	return closest
 }
 
-func (w *Window) refreshContextAttribs(ctxconfig *ctxconfig) (ferr error) {
+func (w *Window) refreshContextAttribs(ctxconfig *ctxconfig) (err error) {
 	const (
 		GL_COLOR_BUFFER_BIT                    = 0x00004000
 		GL_CONTEXT_COMPATIBILITY_PROFILE_BIT   = 0x00000002
@@ -255,9 +256,8 @@ func (w *Window) refreshContextAttribs(ctxconfig *ctxconfig) (ferr error) {
 	// In Ebitengine, only one window is created.
 	// Always assume that the current context is not set.
 	defer func() {
-		err := (*Window)(nil).MakeContextCurrent()
-		if ferr == nil {
-			ferr = err
+		if winErr := (*Window)(nil).MakeContextCurrent(); winErr != nil {
+			err = errors.Join(err, winErr)
 		}
 	}()
 	if err := w.MakeContextCurrent(); err != nil {
