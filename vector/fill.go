@@ -15,6 +15,7 @@
 package vector
 
 import (
+	"fmt"
 	"slices"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -121,6 +122,8 @@ var (
 
 // theAtlas manages the atlas for stencil buffer images.
 // theAtlas is a singleton to avoid unnecessary texture allocations.
+//
+// theAtlas methods are used only at fillPathsState.fillPaths, and should be protected by theFillPathM.
 var theAtlas atlas
 
 type fillPathsState struct {
@@ -147,6 +150,7 @@ func (f *fillPathsState) addPath(path *Path, clr ebiten.ColorScale) {
 	if path == nil {
 		return
 	}
+
 	f.paths = slices.Grow(f.paths, 1)[:len(f.paths)+1]
 	if f.paths[len(f.paths)-1] == nil {
 		f.paths[len(f.paths)-1] = &Path{}
@@ -163,60 +167,11 @@ func (f *fillPathsState) addPath(path *Path, clr ebiten.ColorScale) {
 }
 
 // fillPaths fills the specified path with the specified color.
+//
+// fillPaths callers must be protected by theFillPathM.
 func (f *fillPathsState) fillPaths(dst *ebiten.Image) {
 	if len(f.paths) != len(f.colors) {
 		panic("vector: the number of paths and colors must be the same")
-	}
-
-	if stencilBufferFillShader == nil {
-		s, err := ebiten.NewShader([]byte(stencilBufferFillShaderSrc))
-		if err != nil {
-			panic(err)
-		}
-		stencilBufferFillShader = s
-	}
-	if stencilBufferBezierShader == nil {
-		s, err := ebiten.NewShader([]byte(stencilBufferBezierShaderSrc))
-		if err != nil {
-			panic(err)
-		}
-		stencilBufferBezierShader = s
-	}
-	if !f.antialias && f.fillRule == FillRuleNonZero {
-		if stencilBufferNonZeroShader == nil {
-			s, err := ebiten.NewShader([]byte(stencilBufferNonZeroShaderSrc))
-			if err != nil {
-				panic(err)
-			}
-			stencilBufferNonZeroShader = s
-		}
-	}
-	if f.antialias && f.fillRule == FillRuleNonZero {
-		if stencilBufferNonZeroAAShader == nil {
-			s, err := ebiten.NewShader([]byte(stencilBufferNonZeroAAShaderSrc))
-			if err != nil {
-				panic(err)
-			}
-			stencilBufferNonZeroAAShader = s
-		}
-	}
-	if !f.antialias && f.fillRule == FillRuleEvenOdd {
-		if stencilBufferEvenOddShader == nil {
-			s, err := ebiten.NewShader([]byte(stencilBufferEvenOddShaderSrc))
-			if err != nil {
-				panic(err)
-			}
-			stencilBufferEvenOddShader = s
-		}
-	}
-	if f.antialias && f.fillRule == FillRuleEvenOdd {
-		if stencilBufferEvenOddAAShader == nil {
-			s, err := ebiten.NewShader([]byte(stencilBufferEvenOddAAShaderSrc))
-			if err != nil {
-				panic(err)
-			}
-			stencilBufferEvenOddAAShader = s
-		}
 	}
 
 	vs := f.vertices[:0]
@@ -343,7 +298,11 @@ func (f *fillPathsState) fillPaths(dst *ebiten.Image) {
 			}
 			op := &ebiten.DrawTrianglesShaderOptions{}
 			op.Blend = ebiten.BlendLighter
-			stencilBufferImage.DrawTrianglesShader32(vs, is, stencilBufferFillShader, op)
+			shader, err := ensureStencilBufferShaders()
+			if err != nil {
+				panic(fmt.Sprintf("vector: failed to create stencil buffer shader: %v", err))
+			}
+			stencilBufferImage.DrawTrianglesShader32(vs, is, shader, op)
 		}
 	}
 
@@ -415,7 +374,11 @@ func (f *fillPathsState) fillPaths(dst *ebiten.Image) {
 			}
 			op := &ebiten.DrawTrianglesShaderOptions{}
 			op.Blend = ebiten.BlendLighter
-			stencilBufferImage.DrawTrianglesShader32(vs, is, stencilBufferBezierShader, op)
+			shader, err := ensureStencilBufferBezierShader()
+			if err != nil {
+				panic(fmt.Sprintf("vector: failed to create stencil buffer bezier shader: %v", err))
+			}
+			stencilBufferImage.DrawTrianglesShader32(vs, is, shader, op)
 		}
 	}
 
@@ -506,16 +469,16 @@ func (f *fillPathsState) fillPaths(dst *ebiten.Image) {
 		var shader *ebiten.Shader
 		switch f.fillRule {
 		case FillRuleNonZero:
-			if f.antialias {
-				shader = stencilBufferNonZeroAAShader
-			} else {
-				shader = stencilBufferNonZeroShader
+			var err error
+			shader, err = ensureStencilBufferNonZeroShader(f.antialias)
+			if err != nil {
+				panic(fmt.Sprintf("vector: failed to create stencil buffer non-zero shader: %v", err))
 			}
 		case FillRuleEvenOdd:
-			if f.antialias {
-				shader = stencilBufferEvenOddAAShader
-			} else {
-				shader = stencilBufferEvenOddShader
+			var err error
+			shader, err = ensureStencilBufferEvenOddShader(f.antialias)
+			if err != nil {
+				panic(fmt.Sprintf("vector: failed to create stencil buffer even-odd shader: %v", err))
 			}
 		}
 		dst.DrawTrianglesShader32(vs, is, shader, op)

@@ -371,22 +371,28 @@ func FillPath(dst *ebiten.Image, path *Path, fillOptions *FillOptions, drawPathO
 	s.fillRule = fillOptions.FillRule
 	s.addPath(path, drawPathOptions.ColorScale)
 
-	token := addUsageCallback(dst, func() {
-		// Remove the callback not to call this twice.
-		if token, ok := theCallbackTokens[dst]; ok {
-			removeUsageCallback(dst, token)
-		}
-		delete(theCallbackTokens, dst)
+	// Use an independent callback function to avoid unexpected captures.
+	theCallbackTokens[dst] = addUsageCallback(dst, fillPathCallback)
+}
 
-		s := theFillPathsStates[dst]
-		s.fillPaths(dst)
+func fillPathCallback(dst *ebiten.Image) {
+	theFillPathM.Lock()
+	defer theFillPathM.Unlock()
 
-		delete(theFillPathsStates, dst)
-		s.reset()
-		theFillPathsStatesPool.Put(s)
-	})
-	theCallbackTokens[dst] = token
+	// Remove the callback not to call this twice.
+	if token, ok := theCallbackTokens[dst]; ok {
+		removeUsageCallback(dst, token)
+	}
+	delete(theCallbackTokens, dst)
 
+	s, ok := theFillPathsStates[dst]
+	if !ok {
+		panic("vector: fillPathsState must exist here")
+	}
+	s.fillPaths(dst)
+
+	s.reset()
+	theFillPathsStatesPool.Put(s)
 }
 
 // StrokePath strokes the specified path with the specified options.
@@ -399,7 +405,7 @@ func StrokePath(dst *ebiten.Image, path *Path, strokeOptions *StrokeOptions, dra
 }
 
 //go:linkname addUsageCallback github.com/hajimehoshi/ebiten/v2.addUsageCallback
-func addUsageCallback(img *ebiten.Image, fn func()) int64
+func addUsageCallback(img *ebiten.Image, fn func(img *ebiten.Image)) int64
 
 //go:linkname removeUsageCallback github.com/hajimehoshi/ebiten/v2.removeUsageCallback
 func removeUsageCallback(img *ebiten.Image, token int64)

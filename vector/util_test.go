@@ -17,6 +17,7 @@ package vector_test
 import (
 	"image"
 	"image/color"
+	"sync"
 	"testing"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -139,4 +140,33 @@ func TestFillPathSubImage(t *testing.T) {
 	if got, want := dst3.At(5, 5), (color.RGBA{0x00, 0x00, 0x00, 0xff}); got != want {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
+}
+
+func TestRaceConditionWithSubImage(t *testing.T) {
+	const w, h = 16, 16
+	src := ebiten.NewImage(w, h)
+
+	var wg sync.WaitGroup
+	for i := range h {
+		for j := range w {
+			wg.Add(1)
+			go func() {
+				subImg := src.SubImage(image.Rect(i, j, i+1, j+1)).(*ebiten.Image)
+				var p vector.Path
+				p.MoveTo(0, 0)
+				p.LineTo(w, 0)
+				p.LineTo(w, h)
+				p.LineTo(0, h)
+				p.Close()
+				op := &vector.DrawPathOptions{}
+				op.ColorScale.ScaleWithColor(color.White)
+				op.AntiAlias = true
+				vector.FillPath(subImg, &p, nil, op)
+				dst := ebiten.NewImage(w, h)
+				dst.DrawImage(subImg, nil)
+				wg.Done()
+			}()
+		}
+	}
+	wg.Wait()
 }

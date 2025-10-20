@@ -15,6 +15,8 @@
 package vector
 
 import (
+	"sync"
+
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
@@ -30,7 +32,93 @@ var (
 	stencilBufferNonZeroAAShader *ebiten.Shader
 	stencilBufferEvenOddShader   *ebiten.Shader
 	stencilBufferEvenOddAAShader *ebiten.Shader
+
+	stencilBufferM sync.Mutex
 )
+
+func ensureStencilBufferShaders() (*ebiten.Shader, error) {
+	stencilBufferM.Lock()
+	defer stencilBufferM.Unlock()
+
+	if stencilBufferFillShader != nil {
+		return stencilBufferFillShader, nil
+	}
+	s, err := ebiten.NewShader([]byte(stencilBufferFillShaderSrc))
+	if err != nil {
+		return nil, err
+	}
+	stencilBufferFillShader = s
+	return stencilBufferFillShader, err
+}
+
+func ensureStencilBufferBezierShader() (*ebiten.Shader, error) {
+	stencilBufferM.Lock()
+	defer stencilBufferM.Unlock()
+
+	if stencilBufferBezierShader != nil {
+		return stencilBufferBezierShader, nil
+	}
+	s, err := ebiten.NewShader([]byte(stencilBufferBezierShaderSrc))
+	if err != nil {
+		return nil, err
+	}
+	stencilBufferBezierShader = s
+	return stencilBufferBezierShader, nil
+}
+
+func ensureStencilBufferNonZeroShader(antialias bool) (*ebiten.Shader, error) {
+	stencilBufferM.Lock()
+	defer stencilBufferM.Unlock()
+
+	if antialias {
+		if stencilBufferNonZeroAAShader != nil {
+			return stencilBufferNonZeroAAShader, nil
+		}
+		s, err := ebiten.NewShader([]byte(stencilBufferNonZeroAAShaderSrc))
+		if err != nil {
+			return nil, err
+		}
+		stencilBufferNonZeroAAShader = s
+		return stencilBufferNonZeroAAShader, nil
+	}
+
+	if stencilBufferNonZeroShader != nil {
+		return stencilBufferNonZeroShader, nil
+	}
+	s, err := ebiten.NewShader([]byte(stencilBufferNonZeroShaderSrc))
+	if err != nil {
+		return nil, err
+	}
+	stencilBufferNonZeroShader = s
+	return stencilBufferNonZeroShader, nil
+}
+
+func ensureStencilBufferEvenOddShader(antialias bool) (*ebiten.Shader, error) {
+	stencilBufferM.Lock()
+	defer stencilBufferM.Unlock()
+
+	if antialias {
+		if stencilBufferEvenOddAAShader != nil {
+			return stencilBufferEvenOddAAShader, nil
+		}
+		s, err := ebiten.NewShader([]byte(stencilBufferEvenOddAAShaderSrc))
+		if err != nil {
+			return nil, err
+		}
+		stencilBufferEvenOddAAShader = s
+		return stencilBufferEvenOddAAShader, nil
+	}
+
+	if stencilBufferEvenOddShader != nil {
+		return stencilBufferEvenOddShader, nil
+	}
+	s, err := ebiten.NewShader([]byte(stencilBufferEvenOddShaderSrc))
+	if err != nil {
+		return nil, err
+	}
+	stencilBufferEvenOddShader = s
+	return stencilBufferEvenOddShader, nil
+}
 
 //ebitengine:shadersource
 const stencilBufferFillShaderSrc = `//kage:unit pixels
