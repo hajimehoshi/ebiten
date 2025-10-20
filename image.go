@@ -19,6 +19,7 @@ import (
 	"image"
 	"image/color"
 	"math"
+	"slices"
 	"sync"
 	"sync/atomic"
 	"unsafe"
@@ -72,13 +73,21 @@ type Image struct {
 
 	// usageCallbacks are callbacks that are invoked when the image is used.
 	// usageCallbacks is valid only when the image is not a sub-image.
-	usageCallbacks map[int64]func()
+	usageCallbacks map[int64]usageCallback
 
 	// inUsageCallbacks reports whether the image is in usageCallbacks.
-	inUsageCallbacks bool
+	inUsageCallbacks atomic.Bool
+
+	// usageCallbacksM is a mutex for usageCallbacks.
+	usageCallbacksM sync.Mutex
 
 	// Do not add a 'buffering' member that are resolved lazily.
 	// This tends to forget resolving the buffer easily (#2362).
+}
+
+type usageCallback struct {
+	image *Image
+	fn    func(image *Image)
 }
 
 func (i *Image) copyCheck() {
@@ -1597,19 +1606,26 @@ func (*Image) private() {
 var currentCallbackToken atomic.Int64
 
 //go:linkname addUsageCallback
-func addUsageCallback(img *Image, callback func()) int64 {
-	return img.addUsageCallback(callback)
+func addUsageCallback(img *Image, callback func(image *Image)) int64 {
+	return img.addUsageCallback(img, callback)
 }
 
-func (i *Image) addUsageCallback(callback func()) int64 {
+func (i *Image) addUsageCallback(image *Image, callback func(image *Image)) int64 {
 	if i.isSubImage() {
-		return i.original.addUsageCallback(callback)
-	}
-	if i.usageCallbacks == nil {
-		i.usageCallbacks = map[int64]func(){}
+		return i.original.addUsageCallback(image, callback)
 	}
 	token := currentCallbackToken.Add(1)
-	i.usageCallbacks[token] = callback
+
+	i.usageCallbacksM.Lock()
+	defer i.usageCallbacksM.Unlock()
+
+	if i.usageCallbacks == nil {
+		i.usageCallbacks = map[int64]usageCallback{}
+	}
+	i.usageCallbacks[token] = usageCallback{
+		image: image,
+		fn:    callback,
+	}
 	return token
 }
 
@@ -1623,7 +1639,17 @@ func (i *Image) removeUsageCallback(token int64) {
 		i.original.removeUsageCallback(token)
 		return
 	}
+
+	i.usageCallbacksM.Lock()
+	defer i.usageCallbacksM.Unlock()
 	delete(i.usageCallbacks, token)
+}
+
+var theTmpUsageCallbackSlicePool = sync.Pool{
+	New: func() any {
+		slice := make([]usageCallback, 0, 16)
+		return &slice
+	},
 }
 
 func (i *Image) invokeUsageCallbacks() {
@@ -1632,16 +1658,26 @@ func (i *Image) invokeUsageCallbacks() {
 		return
 	}
 
-	if i.inUsageCallbacks {
+	// Do not allow recursive calls.
+	if !i.inUsageCallbacks.CompareAndSwap(false, true) {
 		return
 	}
+	defer i.inUsageCallbacks.Store(false)
 
-	i.inUsageCallbacks = true
-	defer func() {
-		i.inUsageCallbacks = false
+	tmpUsageCallbackSlice := theTmpUsageCallbackSlicePool.Get().(*[]usageCallback)
+
+	func() {
+		i.usageCallbacksM.Lock()
+		defer i.usageCallbacksM.Unlock()
+		for _, cb := range i.usageCallbacks {
+			*tmpUsageCallbackSlice = append(*tmpUsageCallbackSlice, cb)
+		}
 	}()
 
-	for _, cb := range i.usageCallbacks {
-		cb()
+	for _, cb := range *tmpUsageCallbackSlice {
+		cb.fn(cb.image)
 	}
+
+	*tmpUsageCallbackSlice = slices.Delete(*tmpUsageCallbackSlice, 0, len(*tmpUsageCallbackSlice))
+	theTmpUsageCallbackSlicePool.Put(tmpUsageCallbackSlice)
 }
