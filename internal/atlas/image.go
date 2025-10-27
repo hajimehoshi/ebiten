@@ -180,7 +180,7 @@ var (
 	deferredM sync.Mutex
 
 	saveGPUResourcesCh        = make(chan struct{}, 1)
-	saveGPUResourcesDoneCh    = make(chan struct{}, 1)
+	saveGPUResourcesStartedCh = make(chan struct{}, 1)
 	needToRestoreGPUResources bool
 )
 
@@ -824,6 +824,8 @@ func EndFrame(graphicsDriver graphicsdriver.Graphics) error {
 
 	select {
 	case <-saveGPUResourcesCh:
+		saveGPUResourcesStartedCh <- struct{}{}
+
 		flushDeferred()
 		for _, b := range theBackends {
 			if b.restorable == nil {
@@ -845,7 +847,6 @@ func EndFrame(graphicsDriver graphicsdriver.Graphics) error {
 				pixels:    pixels,
 			}
 		}
-		saveGPUResourcesDoneCh <- struct{}{}
 	default:
 	}
 
@@ -1016,8 +1017,11 @@ func SaveGPUResources() {
 		return
 	}
 
+	// Confirm reading pixels from GPU to be started.
+	// It is not necessary to wait for the reading to be finished, as
+	// the rendering thread should not be suspended until the current frame ends.
 	saveGPUResourcesCh <- struct{}{}
-	<-saveGPUResourcesDoneCh
+	<-saveGPUResourcesStartedCh
 }
 
 // RestoreGPUResources restores GPU resources in the next frame if needed.
