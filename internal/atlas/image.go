@@ -21,6 +21,7 @@ import (
 	"math/bits"
 	"runtime"
 	"sync"
+	"sync/atomic"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
@@ -181,7 +182,7 @@ var (
 
 	saveGPUResourcesCh        = make(chan struct{}, 1)
 	saveGPUResourcesStartedCh = make(chan struct{}, 1)
-	needToRestoreGPUResources bool
+	needToRestoreGPUResources atomic.Bool
 )
 
 // ImageType represents the type of an image.
@@ -912,7 +913,7 @@ func BeginFrame(graphicsDriver graphicsdriver.Graphics) error {
 		return err
 	}
 
-	if needToRestoreGPUResources {
+	if needToRestoreGPUResources.Load() {
 		if err := graphicscommand.ResetGraphicsDriverState(graphicsDriver); err != nil {
 			return err
 		}
@@ -940,7 +941,7 @@ func BeginFrame(graphicsDriver graphicsdriver.Graphics) error {
 			}
 			b.restorable.WritePixels(b.restoreInfo.pixels, image.Rect(0, 0, b.width, b.height))
 		}
-		needToRestoreGPUResources = false
+		needToRestoreGPUResources.Store(false)
 	}
 	for _, b := range theBackends {
 		// Do not release pixels here, as the command buffer might not be flushed yet.
@@ -1028,7 +1029,7 @@ func SaveGPUResources() {
 // RestoreGPUResources reports whether there are GPU resources to be restored or not.
 func RestoreGPUResources() bool {
 	if isGPUResourcesSaved() {
-		needToRestoreGPUResources = true
+		needToRestoreGPUResources.Store(true)
 		return true
 	}
 	return false
