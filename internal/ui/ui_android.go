@@ -17,6 +17,7 @@ package ui
 /*
 #include <jni.h>
 #include <stdlib.h>
+#include <stdint.h>
 
 // The following JNI code works as this pseudo Java code:
 //
@@ -93,11 +94,142 @@ static void displayInfo(int* width, int* height, float* scale, uintptr_t java_vm
   (*env)->DeleteLocalRef(env, display);
   (*env)->DeleteLocalRef(env, displayMetrics);
 }
+
+#cgo noescape safeArea
+#cgo nocallback safeArea
+static void safeArea(int* left, int* top, int* right, int* bottom, uintptr_t java_vm, uintptr_t jni_env, uintptr_t ctx) {
+  *left = 0;
+  *top = 0;
+  *right = 0;
+  *bottom = 0;
+
+  JavaVM* jvm = (JavaVM*)java_vm;
+  JNIEnv* env = (JNIEnv*)jni_env;
+  jobject context = (jobject)ctx;
+
+  if (!env || !context) {
+      return;
+  }
+
+  const jclass android_os_Build_VERSION =
+      (*env)->FindClass(env, "android/os/Build$VERSION");
+  const jfieldID sdkIntField =
+      (*env)->GetStaticFieldID(env, android_os_Build_VERSION, "SDK_INT", "I");
+  const jint apiLevel =
+      (*env)->GetStaticIntField(env, android_os_Build_VERSION, sdkIntField);
+
+  (*env)->DeleteLocalRef(env, android_os_Build_VERSION);
+
+  // Android P (9) DisplayCutout support
+  if (apiLevel < 28) {
+      return;
+  }
+
+  const jclass android_content_Context =
+      (*env)->FindClass(env, "android/content/Context");
+  const jclass android_view_WindowManager =
+      (*env)->FindClass(env, "android/view/WindowManager");
+
+  const jobject android_context_Context_WINDOW_SERVICE =
+      (*env)->GetStaticObjectField(
+          env, android_content_Context,
+          (*env)->GetStaticFieldID(env, android_content_Context, "WINDOW_SERVICE", "Ljava/lang/String;"));
+
+  const jobject windowManager =
+      (*env)->CallObjectMethod(
+          env, context,
+          (*env)->GetMethodID(env, android_content_Context, "getSystemService", "(Ljava/lang/String;)Ljava/lang/Object;"),
+          android_context_Context_WINDOW_SERVICE);
+
+  (*env)->DeleteLocalRef(env, android_context_Context_WINDOW_SERVICE);
+
+
+
+  if (!windowManager) {
+      (*env)->DeleteLocalRef(env, android_content_Context);
+      (*env)->DeleteLocalRef(env, android_view_WindowManager);
+      return;
+  }
+
+  // TODO(safearea): add support for api 28-30
+
+  if (apiLevel < 30) {
+      (*env)->DeleteLocalRef(env, android_content_Context);
+      (*env)->DeleteLocalRef(env, android_view_WindowManager);
+      (*env)->DeleteLocalRef(env, windowManager);
+      return;
+  }
+
+  const jmethodID getCurrentWindowMetrics =
+      (*env)->GetMethodID(env, android_view_WindowManager, "getCurrentWindowMetrics", "()Landroid/view/WindowMetrics;");
+  const jobject windowMetrics =
+      (*env)->CallObjectMethod(env, windowManager, getCurrentWindowMetrics);
+
+  (*env)->DeleteLocalRef(env, android_view_WindowManager);
+  (*env)->DeleteLocalRef(env, windowManager);
+
+  if (!windowMetrics) {
+      (*env)->DeleteLocalRef(env, android_content_Context);
+      return;
+  }
+
+  const jclass android_view_WindowMetrics =
+      (*env)->GetObjectClass(env, windowMetrics);
+  const jmethodID getInsetsMethod =
+      (*env)->GetMethodID(env, android_view_WindowMetrics, "getWindowInsets", "()Landroid/view/WindowInsets;");
+  const jobject windowInsets =
+      (*env)->CallObjectMethod(env, windowMetrics, getInsetsMethod);
+
+  (*env)->DeleteLocalRef(env, android_view_WindowMetrics);
+  (*env)->DeleteLocalRef(env, windowMetrics);
+
+  if (!windowInsets) {
+      (*env)->DeleteLocalRef(env, android_content_Context);
+      return;
+  }
+
+  const jclass android_view_WindowInsets =
+      (*env)->GetObjectClass(env, windowInsets);
+  const jmethodID getDisplayCutoutMethod =
+      (*env)->GetMethodID(env, android_view_WindowInsets, "getDisplayCutout", "()Landroid/view/DisplayCutout;");
+  const jobject displayCutout =
+      (*env)->CallObjectMethod(env, windowInsets, getDisplayCutoutMethod);
+
+  (*env)->DeleteLocalRef(env, android_view_WindowInsets);
+  (*env)->DeleteLocalRef(env, windowInsets);
+
+  if (!displayCutout) {
+      (*env)->DeleteLocalRef(env, android_content_Context);
+      return;
+  }
+
+  const jclass android_view_DisplayCutout =
+      (*env)->GetObjectClass(env, displayCutout);
+  const jmethodID getSafeInsetLeft =
+      (*env)->GetMethodID(env, android_view_DisplayCutout, "getSafeInsetLeft", "()I");
+  const jmethodID getSafeInsetTop =
+      (*env)->GetMethodID(env, android_view_DisplayCutout, "getSafeInsetTop", "()I");
+  const jmethodID getSafeInsetRight =
+      (*env)->GetMethodID(env, android_view_DisplayCutout, "getSafeInsetRight", "()I");
+  const jmethodID getSafeInsetBottom =
+      (*env)->GetMethodID(env, android_view_DisplayCutout, "getSafeInsetBottom", "()I");
+
+
+  *left = (*env)->CallIntMethod(env, displayCutout, getSafeInsetLeft);
+  *top = (*env)->CallIntMethod(env, displayCutout, getSafeInsetTop);
+  *right = (*env)->CallIntMethod(env, displayCutout, getSafeInsetRight);
+  *bottom = (*env)->CallIntMethod(env, displayCutout, getSafeInsetBottom);
+
+  (*env)->DeleteLocalRef(env, android_view_DisplayCutout);
+  (*env)->DeleteLocalRef(env, displayCutout);
+  (*env)->DeleteLocalRef(env, android_content_Context);
+}
 */
 import "C"
 
 import (
 	"errors"
+	"image"
 
 	"github.com/ebitengine/gomobile/app"
 
@@ -153,4 +285,34 @@ func (u *UserInterface) displayInfo() (int, int, float64, bool) {
 	width := int(dipFromNativePixels(float64(cWidth), scale))
 	height := int(dipFromNativePixels(float64(cHeight), scale))
 	return width, height, scale, true
+}
+
+func (u *UserInterface) safeArea() (image.Rectangle, bool) {
+	var cWidth, cHeight C.int
+	var cScale C.float
+	if err := app.RunOnJVM(func(vm, env, ctx uintptr) error {
+		C.displayInfo(&cWidth, &cHeight, &cScale, C.uintptr_t(vm), C.uintptr_t(env), C.uintptr_t(ctx))
+		return nil
+	}); err != nil {
+		// JVM is not ready yet.
+		// TODO: Fix gomobile to detect the error type for this case.
+		return image.Rectangle{}, false
+	}
+
+	var cLeft, cTop, cRight, cBottom C.int
+	if err := app.RunOnJVM(func(vm, env, ctx uintptr) error {
+		C.safeArea(&cLeft, &cTop, &cRight, &cBottom, C.uintptr_t(vm), C.uintptr_t(env), C.uintptr_t(ctx))
+		return nil
+	}); err != nil {
+		// JVM is not ready yet.
+		// TODO: Fix gomobile to detect the error type for this case.
+		return image.Rectangle{}, false
+	}
+	scale := float64(cScale)
+
+	x0 := int(dipFromNativePixels(float64(cLeft), scale))
+	y0 := int(dipFromNativePixels(float64(cTop), scale))
+	x1 := int(dipFromNativePixels(float64(cWidth-cRight), scale))
+	y1 := int(dipFromNativePixels(float64(cHeight-cBottom), scale))
+	return image.Rect(x0, y0, x1, y1), true
 }

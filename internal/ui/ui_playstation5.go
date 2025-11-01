@@ -165,6 +165,10 @@ func (m *Monitor) Size() (int, int) {
 	return screenWidth, screenHeight
 }
 
+func (m *Monitor) SafeArea() image.Rectangle {
+	return image.Rectangle{}
+}
+
 func (u *UserInterface) AppendMonitors(mons []*Monitor) []*Monitor {
 	return append(mons, theMonitor)
 }

@@ -22,6 +22,7 @@ import "C"
 
 import (
 	"errors"
+	"image"
 	"runtime"
 	"sync"
 
@@ -170,6 +171,10 @@ func (m *Monitor) DeviceScaleFactor() float64 {
 
 func (m *Monitor) Size() (int, int) {
 	return int(C.kScreenWidth), int(C.kScreenHeight)
+}
+
+func (m *Monitor) SafeArea() image.Rectangle {
+	return image.Rectangle{}
 }
 
 func (u *UserInterface) AppendMonitors(mons []*Monitor) []*Monitor {
