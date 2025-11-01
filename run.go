@@ -505,6 +505,10 @@ func DeviceScaleFactor() float64 {
 	return Monitor().DeviceScaleFactor()
 }
 
+func SafeArea() image.Rectangle {
+	return Monitor().SafeArea()
+}
+
 // IsVsyncEnabled returns a boolean value indicating whether
 // the game uses the display's vsync.
 func IsVsyncEnabled() bool {
