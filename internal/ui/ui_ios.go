@@ -14,56 +14,102 @@
 
 package ui
 
-// #cgo CFLAGS: -x objective-c
-// #cgo LDFLAGS: -framework Foundation -framework UIKit
-//
-// #import <UIKit/UIKit.h>
-//
-// static void displayInfoOnMainThread(float* width, float* height, float* scale, UIView* view) {
-//   *width = 0;
-//   *height = 0;
-//   *scale = 1;
-//   UIWindow* window = view.window;
-//   if (!window) {
-//     return;
-//   }
-//   UIWindowScene* scene = window.windowScene;
-//   if (!scene) {
-//     return;
-//   }
-//   CGRect bounds = scene.screen.bounds;
-//   *width = bounds.size.width;
-//   *height = bounds.size.height;
-//   *scale = scene.screen.nativeScale;
-// }
-//
-// #cgo noescape displayInfo
-// #cgo nocallback displayInfo
-// static void displayInfo(float* width, float* height, float* scale, uintptr_t viewPtr) {
-//   *width = 0;
-//   *height = 0;
-//   *scale = 1;
-//   if (!viewPtr) {
-//     return;
-//   }
-//   UIView* view = (__bridge UIView*)(void*)viewPtr;
-//   if ([NSThread isMainThread]) {
-//     displayInfoOnMainThread(width, height, scale, view);
-//     return;
-//   }
-//   __block float w, h, s;
-//   dispatch_sync(dispatch_get_main_queue(), ^{
-//     displayInfoOnMainThread(&w, &h, &s, view);
-//   });
-//   *width = w;
-//   *height = h;
-//   *scale = s;
-// }
+/*
+#cgo CFLAGS: -x objective-c
+#cgo LDFLAGS: -framework Foundation -framework UIKit
+
+#import <UIKit/UIKit.h>
+
+static void displayInfoOnMainThread(float* width, float* height, float* scale, UIView* view) {
+  *width = 0;
+  *height = 0;
+  *scale = 1;
+  UIWindow* window = view.window;
+  if (!window) {
+    return;
+  }
+  UIWindowScene* scene = window.windowScene;
+  if (!scene) {
+    return;
+  }
+  CGRect bounds = scene.screen.bounds;
+  *width = bounds.size.width;
+  *height = bounds.size.height;
+  *scale = scene.screen.nativeScale;
+}
+
+#cgo noescape displayInfo
+#cgo nocallback displayInfo
+static void displayInfo(float* width, float* height, float* scale, uintptr_t viewPtr) {
+  *width = 0;
+  *height = 0;
+  *scale = 1;
+  if (!viewPtr) {
+    return;
+  }
+  UIView* view = (__bridge UIView*)(void*)viewPtr;
+  if ([NSThread isMainThread]) {
+    displayInfoOnMainThread(width, height, scale, view);
+    return;
+  }
+  __block float w, h, s;
+  dispatch_sync(dispatch_get_main_queue(), ^{
+    displayInfoOnMainThread(&w, &h, &s, view);
+  });
+  *width = w;
+  *height = h;
+  *scale = s;
+}
+
+static void safeAreaOnMainThread(int *left, int *top, int *right, int *bottom, UIView* view) {
+  *left = 0;
+  *top = 0;
+  *right = 0;
+  *bottom = 0;
+
+  UIWindow* window = view.window;
+  if (!window) {
+    return;
+  }
+
+  UIEdgeInsets insets = window.safeAreaInsets;
+  *left = insets.left;
+  *top = insets.top;
+  *right = insets.right;
+  *bottom = insets.bottom;
+}
+
+#cgo noescape safeArea
+#cgo nocallback safeArea
+static void safeArea(int *left, int *top, int *right, int *bottom, uintptr_t viewPtr) {
+  *left = 0;
+  *top = 0;
+  *right = 0;
+  *bottom = 0;
+  if (!viewPtr) {
+    return;
+  }
+  UIView* view = (__bridge UIView*)(void*)viewPtr;
+  if ([NSThread isMainThread]) {
+    safeAreaOnMainThread(left, top, right, bottom, view);
+    return;
+  }
+  __block int l, t, r, b;
+  dispatch_sync(dispatch_get_main_queue(), ^{
+    safeAreaOnMainThread(&l, &t, &r, &b, view);
+  });
+  *left = l;
+  *top = t;
+  *right = r;
+  *bottom = b;
+}
+*/
 import "C"
 
 import (
 	"errors"
 	"fmt"
+	"image"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal"
@@ -147,4 +193,24 @@ func (u *UserInterface) displayInfo() (int, int, float64, bool) {
 	width := int(dipFromNativePixels(float64(cWidth), scale))
 	height := int(dipFromNativePixels(float64(cHeight), scale))
 	return width, height, scale, true
+}
+
+func (u *UserInterface) safeArea() (image.Rectangle, bool) {
+	view := u.uiView.Load()
+	if view == 0 {
+		return image.Rectangle{}, false
+	}
+
+	var cWidth, cHeight, cScale C.float
+	C.displayInfo(&cWidth, &cHeight, &cScale, C.uintptr_t(view))
+	scale := float64(cScale)
+
+	var cLeft, cTop, cRight, cBottom C.int
+	C.safeArea(&cLeft, &cTop, &cRight, &cBottom, C.uintptr_t(view))
+
+	x0 := int(dipFromNativePixels(float64(cLeft), scale))
+	y0 := int(dipFromNativePixels(float64(cTop), scale))
+	x1 := int(dipFromNativePixels(float64(cWidth)-float64(cRight), scale))
+	y1 := int(dipFromNativePixels(float64(cHeight)-float64(cBottom), scale))
+	return image.Rect(x0, y0, x1, y1), true
 }
