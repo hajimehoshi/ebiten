@@ -23,7 +23,6 @@ import android.util.Log;
 
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
-import javax.swing.Renderer;
 
 import {{.JavaPkg}}.ebitenmobileview.Ebitenmobileview;
 import {{.JavaPkg}}.ebitenmobileview.Renderer;
