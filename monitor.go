@@ -15,8 +15,6 @@
 package ebiten
 
 import (
-	"image"
-
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
@@ -50,10 +48,6 @@ func (m *MonitorType) DeviceScaleFactor() float64 {
 // behavior depends on the monitor size, Size is useful.
 func (m *MonitorType) Size() (int, int) {
 	return (*ui.Monitor)(m).Size()
-}
-
-func (m *MonitorType) SafeArea() image.Rectangle {
-	return (*ui.Monitor)(m).SafeArea()
 }
 
 // Monitor returns the current monitor.

@@ -165,7 +165,7 @@ func (m *Monitor) Size() (int, int) {
 	return screenWidth, screenHeight
 }
 
-func (m *Monitor) SafeArea() image.Rectangle {
+func (m *UserInterface) SafeArea() image.Rectangle {
 	return image.Rectangle{}
 }
 

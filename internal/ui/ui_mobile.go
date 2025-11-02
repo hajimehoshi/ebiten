@@ -274,8 +274,6 @@ type Monitor struct {
 	deviceScaleFactor float64
 	inited            atomic.Bool
 
-	safeArea image.Rectangle
-
 	m sync.Mutex
 }
 
@@ -304,11 +302,6 @@ func (m *Monitor) ensureInit() {
 	m.height = height
 	m.deviceScaleFactor = scale
 
-	safeArea, ok := theUI.safeArea()
-	if ok {
-		m.safeArea = safeArea
-	}
-
 	m.inited.Store(true)
 }
 
@@ -322,9 +315,8 @@ func (m *Monitor) Size() (int, int) {
 	return m.width, m.height
 }
 
-func (m *Monitor) SafeArea() image.Rectangle {
-	m.ensureInit()
-	return m.safeArea
+func (u *UserInterface) SafeArea() image.Rectangle {
+	return theUI.safeArea()
 }
 
 func (u *UserInterface) AppendMonitors(mons []*Monitor) []*Monitor {

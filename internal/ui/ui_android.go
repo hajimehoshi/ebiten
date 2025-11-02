@@ -287,7 +287,7 @@ func (u *UserInterface) displayInfo() (int, int, float64, bool) {
 	return width, height, scale, true
 }
 
-func (u *UserInterface) safeArea() (image.Rectangle, bool) {
+func (u *UserInterface) safeArea() image.Rectangle {
 	var cWidth, cHeight C.int
 	var cScale C.float
 	if err := app.RunOnJVM(func(vm, env, ctx uintptr) error {
@@ -296,7 +296,7 @@ func (u *UserInterface) safeArea() (image.Rectangle, bool) {
 	}); err != nil {
 		// JVM is not ready yet.
 		// TODO: Fix gomobile to detect the error type for this case.
-		return image.Rectangle{}, false
+		return image.Rectangle{}
 	}
 
 	var cLeft, cTop, cRight, cBottom C.int
@@ -306,7 +306,7 @@ func (u *UserInterface) safeArea() (image.Rectangle, bool) {
 	}); err != nil {
 		// JVM is not ready yet.
 		// TODO: Fix gomobile to detect the error type for this case.
-		return image.Rectangle{}, false
+		return image.Rectangle{}
 	}
 	scale := float64(cScale)
 
@@ -314,5 +314,5 @@ func (u *UserInterface) safeArea() (image.Rectangle, bool) {
 	y0 := int(dipFromNativePixels(float64(cTop), scale))
 	x1 := int(dipFromNativePixels(float64(cWidth-cRight), scale))
 	y1 := int(dipFromNativePixels(float64(cHeight-cBottom), scale))
-	return image.Rect(x0, y0, x1, y1), true
+	return image.Rect(x0, y0, x1, y1)
 }

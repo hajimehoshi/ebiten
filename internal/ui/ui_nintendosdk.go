@@ -173,7 +173,7 @@ func (m *Monitor) Size() (int, int) {
 	return int(C.kScreenWidth), int(C.kScreenHeight)
 }
 
-func (m *Monitor) SafeArea() image.Rectangle {
+func (m *UserInterface) SafeArea() image.Rectangle {
 	return image.Rectangle{}
 }
 

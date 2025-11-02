@@ -195,10 +195,10 @@ func (u *UserInterface) displayInfo() (int, int, float64, bool) {
 	return width, height, scale, true
 }
 
-func (u *UserInterface) safeArea() (image.Rectangle, bool) {
+func (u *UserInterface) safeArea() image.Rectangle {
 	view := u.uiView.Load()
 	if view == 0 {
-		return image.Rectangle{}, false
+		return image.Rectangle{}
 	}
 
 	var cWidth, cHeight, cScale C.float
@@ -212,5 +212,5 @@ func (u *UserInterface) safeArea() (image.Rectangle, bool) {
 	y0 := int(dipFromNativePixels(float64(cTop), scale))
 	x1 := int(dipFromNativePixels(float64(cWidth)-float64(cRight), scale))
 	y1 := int(dipFromNativePixels(float64(cHeight)-float64(cBottom), scale))
-	return image.Rect(x0, y0, x1, y1), true
+	return image.Rect(x0, y0, x1, y1)
 }
