@@ -190,7 +190,7 @@ func (i *images) makeStaleIfDependingOnAtRegion(src *Image, srcRegion image.Rect
 	}
 }
 
-// makeStaleIfDependingOn makes all the images stale that depend on shader.
+// makeStaleIfDependingOnShader makes all the images stale that depend on shader.
 func (i *images) makeStaleIfDependingOnShader(shader *Shader) {
 	if shader == nil {
 		panic("restorable: shader must not be nil at makeStaleIfDependingOnShader")
