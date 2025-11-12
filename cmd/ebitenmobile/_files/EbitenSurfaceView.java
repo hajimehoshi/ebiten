@@ -123,7 +123,11 @@ class EbitenSurfaceView extends GLSurfaceView implements Renderer {
 
     @Override
     public void onPause() {
-        if (!this.paused) {
+        onPause(false);
+    }
+
+    public void onPause(boolean saveGPUResources) {
+        if (saveGPUResources && !this.paused) {
             Ebitenmobileview.saveGPUResources();
             // Saving GPU resources is done in onDrawFrame.
             // In the next onDrawFrame, Ebitengine restores GPU resources automatically.
