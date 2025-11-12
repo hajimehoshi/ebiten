@@ -271,7 +271,11 @@ type Monitor struct {
 	width             int
 	height            int
 	deviceScaleFactor float64
-	inited            atomic.Bool
+
+	// expireAt is a tick when the cached values expire.
+	// As there is no commmon way to detect monitor changes in Android and iOS,
+	// the values are invalidated regularly.
+	expireAt atomic.Int64
 
 	m sync.Mutex
 }
@@ -282,15 +286,15 @@ func (m *Monitor) Name() string {
 	return ""
 }
 
-func (m *Monitor) ensureInit() {
-	if m.inited.Load() {
+func (m *Monitor) ensureValues() {
+	if m.expireAt.Load() > theUI.Tick() {
 		return
 	}
 
 	m.m.Lock()
 	defer m.m.Unlock()
 	// Re-check the state since the state might be changed while locking.
-	if m.inited.Load() {
+	if m.expireAt.Load() > theUI.Tick() {
 		return
 	}
 	width, height, scale, ok := theUI.displayInfo()
@@ -300,16 +304,16 @@ func (m *Monitor) ensureInit() {
 	m.width = width
 	m.height = height
 	m.deviceScaleFactor = scale
-	m.inited.Store(true)
+	m.expireAt.Store(theUI.Tick() + 1)
 }
 
 func (m *Monitor) DeviceScaleFactor() float64 {
-	m.ensureInit()
+	m.ensureValues()
 	return m.deviceScaleFactor
 }
 
 func (m *Monitor) Size() (int, int) {
-	m.ensureInit()
+	m.ensureValues()
 	return m.width, m.height
 }
 
