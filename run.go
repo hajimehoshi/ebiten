@@ -392,6 +392,10 @@ func ScreenSizeInFullscreen() (int, int) {
 	return ui.Get().ScreenSizeInFullscreen()
 }
 
+func SafeArea() image.Rectangle {
+	return ui.Get().SafeArea()
+}
+
 // CursorMode returns the current cursor mode.
 //
 // CursorMode returns CursorModeHidden on mobiles.
