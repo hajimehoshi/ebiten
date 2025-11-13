@@ -286,35 +286,37 @@ func (m *Monitor) Name() string {
 	return ""
 }
 
-func (m *Monitor) ensureValues() {
+func (m *Monitor) ensureValues() (width, height int, deviceScaleFactor float64) {
 	if m.expireAt.Load() > theUI.Tick() {
-		return
+		return m.width, m.height, m.deviceScaleFactor
 	}
 
 	m.m.Lock()
 	defer m.m.Unlock()
 	// Re-check the state since the state might be changed while locking.
 	if m.expireAt.Load() > theUI.Tick() {
-		return
+		return m.width, m.height, m.deviceScaleFactor
 	}
 	width, height, scale, ok := theUI.displayInfo()
 	if !ok {
-		return
+		// This can happen e.g. when JVM is not ready.
+		return 0, 0, 1
 	}
 	m.width = width
 	m.height = height
 	m.deviceScaleFactor = scale
 	m.expireAt.Store(theUI.Tick() + 1)
+	return m.width, m.height, m.deviceScaleFactor
 }
 
 func (m *Monitor) DeviceScaleFactor() float64 {
-	m.ensureValues()
-	return m.deviceScaleFactor
+	_, _, scale := m.ensureValues()
+	return scale
 }
 
 func (m *Monitor) Size() (int, int) {
-	m.ensureValues()
-	return m.width, m.height
+	width, height, _ := m.ensureValues()
+	return width, height
 }
 
 func (u *UserInterface) AppendMonitors(mons []*Monitor) []*Monitor {
