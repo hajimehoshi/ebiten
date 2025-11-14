@@ -32,6 +32,7 @@ var (
 	class_NSWorkspace          = objc.GetClass("NSWorkspace")
 	class_NSNotificationCenter = objc.GetClass("NSNotificationCenter")
 	class_NSOperationQueue     = objc.GetClass("NSOperationQueue")
+	class_CADisplayLink        = objc.GetClass("CADisplayLink")
 )
 
 var (
@@ -77,6 +78,10 @@ var (
 	sel_addObserver                    = objc.RegisterName("addObserver:selector:name:object:")
 	sel_addObserverForName             = objc.RegisterName("addObserverForName:object:queue:usingBlock:")
 	sel_mainQueue                      = objc.RegisterName("mainQueue")
+	sel_displayLinkWithTargetSelector = objc.RegisterName("displayLinkWithTarget:selector:")
+	sel_addToRunLoop                   = objc.RegisterName("addToRunLoop:forMode:")
+	sel_invalidate                     = objc.RegisterName("invalidate")
+	sel_setPaused                      = objc.RegisterName("setPaused:")
 )
 
 const (
@@ -182,6 +187,10 @@ func (v NSView) SetLayer(layer uintptr) {
 
 func (v NSView) SetWantsLayer(wantsLayer bool) {
 	v.Send(sel_setWantsLayer, wantsLayer)
+}
+
+func (v NSView) DisplayLink(target objc.ID, selector objc.SEL) CADisplayLink {
+	return CADisplayLink{v.Send(sel_displayLinkWithTargetSelector, target, selector)}
 }
 
 // NSInvocation is being used to call functions that can't be called directly with purego.SyscallN.
@@ -364,4 +373,20 @@ type NSOperationQueue struct {
 
 func NSOperationQueue_mainQueue() NSOperationQueue {
 	return NSOperationQueue{objc.ID(class_NSOperationQueue).Send(sel_mainQueue)}
+}
+
+type CADisplayLink struct {
+	objc.ID
+}
+
+func (d CADisplayLink) AddToRunLoop(runLoop NSRunLoop, mode NSRunLoopMode) {
+	d.Send(sel_addToRunLoop, runLoop.ID, mode)
+}
+
+func (d CADisplayLink) Invalidate() {
+	d.Send(sel_invalidate)
+}
+
+func (d CADisplayLink) SetPaused(paused bool) {
+	d.Send(sel_setPaused, paused)
 }

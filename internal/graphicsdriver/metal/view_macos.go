@@ -23,12 +23,12 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/mtl"
 )
 
-const kCVReturnSuccess = 0
-
 func (v *view) setWindow(window uintptr) {
 	// NSView can be updated e.g., fullscreen-state is switched.
 	v.window = window
 	v.windowChanged = true
+	// Try to create the CADisplayLink if it hasn't been created yet.
+	v.createCADisplayLinkIfNeeded()
 }
 
 func (v *view) setUIView(uiview uintptr) {

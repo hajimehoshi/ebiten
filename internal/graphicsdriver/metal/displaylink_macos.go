@@ -19,7 +19,6 @@ package metal
 // #cgo CFLAGS: -x objective-c
 //
 // #include <Foundation/Foundation.h>
-// #include <CoreVideo/CVDisplayLink.h>
 // #if __has_include(<QuartzCore/CAMetalLayer.h>)
 //   #include <QuartzCore/CAMetalLayer.h>
 // #endif
@@ -36,14 +35,11 @@ package metal
 //   }
 //   return false;
 // }
-//
-// int ebitengine_DisplayLinkOutputCallback(CVDisplayLinkRef displayLinkRef, CVTimeStamp* inNow, CVTimeStamp* inOutputTime, uint64_t flagsIn, uint64_t* flagsOut, void* displayLinkContext);
 import "C"
 import (
 	"runtime"
-	"runtime/cgo"
+	"sync"
 	"time"
-	"unsafe"
 
 	"github.com/ebitengine/purego/objc"
 
@@ -64,7 +60,11 @@ func (v *view) initDisplayLink() error {
 	return nil
 }
 
-var class_EbitengineCAMetalDisplayLinkDelegate objc.Class
+var (
+	class_EbitengineCAMetalDisplayLinkDelegate objc.Class
+	class_EbitengineCADisplayLinkDelegate      objc.Class
+	caDisplayLinkDelegateToView                sync.Map // map[objc.ID]*view
+)
 
 func (v *view) initCAMetalDisplayLink() error {
 	v.drawableCh = make(chan ca.MetalDrawable)
@@ -163,27 +163,75 @@ func createThreadWithRunLoop() cocoa.NSRunLoop {
 func (v *view) initCADisplayLink() error {
 	v.fence = newFence()
 
-	// TODO: CVDisplayLink APIs are deprecated in macOS 10.15 and later.
-	// Use new APIs like NSView.displayLink(target:selector:).
-	var displayLinkRef C.CVDisplayLinkRef
-	if ret := C.CVDisplayLinkCreateWithActiveCGDisplays(&displayLinkRef); ret != kCVReturnSuccess {
-		// Failed to get the display link, so proceed without it.
-		return nil
+	// Register the delegate class for CADisplayLink callback.
+	// The window might not be available yet, so we'll create the display link lazily.
+	if class_EbitengineCADisplayLinkDelegate == 0 {
+		c, err := objc.RegisterClass(
+			"EbitengineCADisplayLinkDelegate",
+			objc.GetClass("NSObject"),
+			nil,
+			nil,
+			[]objc.MethodDef{
+				{
+					Cmd: objc.RegisterName("displayLinkCallback:"),
+					Fn: func(id objc.ID, cmd objc.SEL, displayLink objc.ID) {
+						// Get the view from the map
+						viewPtr, ok := caDisplayLinkDelegateToView.Load(id)
+						if !ok {
+							return
+						}
+						view := viewPtr.(*view)
+						view.fence.advance()
+					},
+				},
+			},
+		)
+		if err != nil {
+			return err
+		}
+		class_EbitengineCADisplayLinkDelegate = c
 	}
-	v.handleToSelf = cgo.NewHandle(v)
-	C.CVDisplayLinkSetOutputCallback(displayLinkRef, C.CVDisplayLinkOutputCallback(C.ebitengine_DisplayLinkOutputCallback), unsafe.Pointer(&v.handleToSelf))
-	C.CVDisplayLinkStart(displayLinkRef)
 
-	v.caDisplayLink = uintptr(displayLinkRef)
+	// Try to create the display link if the window is available.
+	// If not, it will be created when the window is set.
+	v.createCADisplayLinkIfNeeded()
+
 	return nil
 }
 
-//export ebitengine_DisplayLinkOutputCallback
-func ebitengine_DisplayLinkOutputCallback(displayLinkRef C.CVDisplayLinkRef, inNow, inOutputTime *C.CVTimeStamp, flagsIn C.uint64_t, flagsOut *C.uint64_t, displayLinkContext unsafe.Pointer) C.int {
-	cgoHandle := (*cgo.Handle)(displayLinkContext)
-	view := cgoHandle.Value().(*view)
-	view.fence.advance()
-	return 0
+func (v *view) createCADisplayLinkIfNeeded() {
+	if v.window == 0 {
+		// Window not available yet, will be created when window is set.
+		return
+	}
+	if v.caDisplayLink != 0 {
+		// Already created.
+		return
+	}
+
+	cocoaWindow := cocoa.NSWindow{ID: objc.ID(v.window)}
+	contentView := cocoaWindow.ContentView()
+	if contentView.ID == 0 {
+		return
+	}
+
+	// Create delegate instance
+	delegate := objc.ID(class_EbitengineCADisplayLinkDelegate).Send(objc.RegisterName("new"))
+	// Store the view pointer in the map so we can access it in the callback
+	caDisplayLinkDelegateToView.Store(delegate, v)
+
+	// Create display link using NSView.displayLink(target:selector:)
+	displayLink := contentView.DisplayLink(delegate, objc.RegisterName("displayLinkCallback:"))
+	if displayLink.ID == 0 {
+		return
+	}
+
+	// Add to main run loop
+	mainRunLoop := cocoa.NSRunLoop_mainRunLoop()
+	displayLink.AddToRunLoop(mainRunLoop, cocoa.NSDefaultRunLoopMode)
+	displayLink.SetPaused(false)
+
+	v.caDisplayLink = uintptr(displayLink.ID)
 }
 
 func (v *view) nextDrawable() ca.MetalDrawable {
