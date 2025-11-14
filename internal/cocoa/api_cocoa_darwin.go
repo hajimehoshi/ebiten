@@ -32,7 +32,6 @@ var (
 	class_NSWorkspace          = objc.GetClass("NSWorkspace")
 	class_NSNotificationCenter = objc.GetClass("NSNotificationCenter")
 	class_NSOperationQueue     = objc.GetClass("NSOperationQueue")
-	class_CADisplayLink        = objc.GetClass("CADisplayLink")
 )
 
 var (
@@ -78,7 +77,7 @@ var (
 	sel_addObserver                    = objc.RegisterName("addObserver:selector:name:object:")
 	sel_addObserverForName             = objc.RegisterName("addObserverForName:object:queue:usingBlock:")
 	sel_mainQueue                      = objc.RegisterName("mainQueue")
-	sel_displayLinkWithTargetSelector = objc.RegisterName("displayLinkWithTarget:selector:")
+	sel_displayLinkWithTargetSelector  = objc.RegisterName("displayLinkWithTarget:selector:")
 	sel_addToRunLoop                   = objc.RegisterName("addToRunLoop:forMode:")
 	sel_invalidate                     = objc.RegisterName("invalidate")
 	sel_setPaused                      = objc.RegisterName("setPaused:")
