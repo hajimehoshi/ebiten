@@ -19,6 +19,7 @@ package metal
 // #cgo CFLAGS: -x objective-c
 //
 // #include <Foundation/Foundation.h>
+// #include <CoreVideo/CVDisplayLink.h>
 // #if __has_include(<QuartzCore/CAMetalLayer.h>)
 //   #include <QuartzCore/CAMetalLayer.h>
 // #endif
@@ -35,11 +36,45 @@ package metal
 //   }
 //   return false;
 // }
+//
+// #cgo noescape isNSViewDisplayLinkAvailable
+// #cgo nocallback isNSViewDisplayLinkAvailable
+// static bool isNSViewDisplayLinkAvailable() {
+//   NSOperatingSystemVersion version = [[NSProcessInfo processInfo] operatingSystemVersion];
+//   return version.majorVersion >= 14;
+// }
+//
+// #pragma clang diagnostic push
+// #pragma clang diagnostic ignored "-Wdeprecated-declarations"
+//
+// #cgo noescape createCVDisplayLink
+// #cgo nocallback createCVDisplayLink
+// static int createCVDisplayLink(CVDisplayLinkRef* displayLinkRef) {
+//   return CVDisplayLinkCreateWithActiveCGDisplays(displayLinkRef);
+// }
+//
+// #cgo noescape setCVDisplayLinkOutputCallback
+// #cgo nocallback setCVDisplayLinkOutputCallback
+// static void setCVDisplayLinkOutputCallback(CVDisplayLinkRef displayLinkRef, CVDisplayLinkOutputCallback callback, void* context) {
+//   CVDisplayLinkSetOutputCallback(displayLinkRef, callback, context);
+// }
+//
+// #cgo noescape startCVDisplayLink
+// #cgo nocallback startCVDisplayLink
+// static int startCVDisplayLink(CVDisplayLinkRef displayLinkRef) {
+//   return CVDisplayLinkStart(displayLinkRef);
+// }
+//
+// #pragma clang diagnostic pop
+//
+// int ebitengine_DisplayLinkOutputCallback(CVDisplayLinkRef displayLinkRef, CVTimeStamp* inNow, CVTimeStamp* inOutputTime, uint64_t flagsIn, uint64_t* flagsOut, void* displayLinkContext);
 import "C"
 import (
 	"runtime"
+	"runtime/cgo"
 	"sync"
 	"time"
+	"unsafe"
 
 	"github.com/ebitengine/purego/objc"
 
@@ -163,6 +198,16 @@ func createThreadWithRunLoop() cocoa.NSRunLoop {
 func (v *view) initCADisplayLink() error {
 	v.fence = newFence()
 
+	// Check macOS version at runtime to determine which API to use.
+	if C.isNSViewDisplayLinkAvailable() {
+		// Use new NSView.displayLink API (macOS 14.0+)
+		return v.initCADisplayLinkNew()
+	}
+	// Fallback to deprecated CVDisplayLink API (macOS < 14.0)
+	return v.initCADisplayLinkOld()
+}
+
+func (v *view) initCADisplayLinkNew() error {
 	// Register the delegate class for CADisplayLink callback.
 	// The window might not be available yet, so we'll create the display link lazily.
 	if class_EbitengineCADisplayLinkDelegate == 0 {
@@ -199,6 +244,24 @@ func (v *view) initCADisplayLink() error {
 	return nil
 }
 
+func (v *view) initCADisplayLinkOld() error {
+	// Use deprecated CVDisplayLink API for macOS < 14.0
+	// kCVReturnSuccess is 0, defined in CoreVideo/CVReturn.h
+	var displayLinkRef C.CVDisplayLinkRef
+	if ret := C.createCVDisplayLink(&displayLinkRef); ret != 0 {
+		// Failed to get the display link, so proceed without it.
+		return nil
+	}
+	v.handleToSelf = cgo.NewHandle(v)
+	C.setCVDisplayLinkOutputCallback(displayLinkRef, C.CVDisplayLinkOutputCallback(C.ebitengine_DisplayLinkOutputCallback), unsafe.Pointer(&v.handleToSelf))
+	if ret := C.startCVDisplayLink(displayLinkRef); ret != 0 {
+		return nil
+	}
+
+	v.caDisplayLink = uintptr(displayLinkRef)
+	return nil
+}
+
 func (v *view) createCADisplayLinkIfNeeded() {
 	if v.window == 0 {
 		// Window not available yet, will be created when window is set.
@@ -232,6 +295,14 @@ func (v *view) createCADisplayLinkIfNeeded() {
 	displayLink.SetPaused(false)
 
 	v.caDisplayLink = uintptr(displayLink.ID)
+}
+
+//export ebitengine_DisplayLinkOutputCallback
+func ebitengine_DisplayLinkOutputCallback(displayLinkRef C.CVDisplayLinkRef, inNow, inOutputTime *C.CVTimeStamp, flagsIn C.uint64_t, flagsOut *C.uint64_t, displayLinkContext unsafe.Pointer) C.int {
+	cgoHandle := (*cgo.Handle)(displayLinkContext)
+	view := cgoHandle.Value().(*view)
+	view.fence.advance()
+	return 0
 }
 
 func (v *view) nextDrawable() ca.MetalDrawable {
