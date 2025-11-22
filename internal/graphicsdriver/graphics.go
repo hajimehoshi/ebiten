@@ -99,7 +99,6 @@ type ShaderID int
 type ColorSpace int
 
 const (
-	ColorSpaceDefault ColorSpace = iota
-	ColorSpaceSRGB
+	ColorSpaceSRGB ColorSpace = iota + 1
 	ColorSpaceDisplayP3
 )
