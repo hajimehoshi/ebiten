@@ -23,7 +23,7 @@ import (
 	_ "github.com/ebitengine/hideconsole"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
-	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
+	"github.com/hajimehoshi/ebiten/v2/internal/color"
 	"github.com/hajimehoshi/ebiten/v2/internal/mipmap"
 	"github.com/hajimehoshi/ebiten/v2/internal/thread"
 )
@@ -179,7 +179,7 @@ type RunOptions struct {
 	SkipTaskbar              bool
 	SingleThread             bool
 	DisableHiDPI             bool
-	ColorSpace               graphicsdriver.ColorSpace
+	ColorSpace               color.ColorSpace
 	ApplePressAndHoldEnabled bool
 	X11ClassName             string
 	X11InstanceName          string

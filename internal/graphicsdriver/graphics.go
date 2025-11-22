@@ -95,10 +95,3 @@ type Shader interface {
 }
 
 type ShaderID int
-
-type ColorSpace int
-
-const (
-	ColorSpaceSRGB ColorSpace = iota + 1
-	ColorSpaceDisplayP3
-)

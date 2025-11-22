@@ -19,10 +19,11 @@ import (
 	"image"
 	"image/color"
 	"io/fs"
+	"runtime"
 	"sync/atomic"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/clock"
-	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
+	ecolor "github.com/hajimehoshi/ebiten/v2/internal/color"
 	"github.com/hajimehoshi/ebiten/v2/internal/inputstate"
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
@@ -352,6 +353,7 @@ func RunGameWithOptions(game Game, options *RunGameOptions) error {
 	initializeWindowPositionIfNeeded(WindowSize())
 
 	op := toUIRunOptions(options)
+
 	// This is necessary to change the result of IsScreenTransparent.
 	screenTransparent.Store(op.ScreenTransparent)
 	g := newGameForUI(game, op.ScreenTransparent)
@@ -696,10 +698,20 @@ func toUIRunOptions(options *RunGameOptions) *ui.RunOptions {
 		defaultX11InstanceName = "ebitengine-application"
 	)
 
+	colorSpace := ecolor.ColorSpaceSRGB
+	if options != nil && options.ColorSpace != ColorSpaceDefault {
+		colorSpace = ecolor.ColorSpace(options.ColorSpace)
+	} else if runtime.GOOS == "darwin" || runtime.GOOS == "ios" {
+		// On macOS or iOS, the default color space is Display P3.
+		// TODO: Remove this logic at v3. sRGB should be the default in the future (#3349).
+		colorSpace = ecolor.ColorSpaceDisplayP3
+	}
+
 	if options == nil {
 		return &ui.RunOptions{
 			InitUnfocused:     initUnfocused.Load(),
 			ScreenTransparent: screenTransparent.Load(),
+			ColorSpace:        colorSpace,
 			X11ClassName:      defaultX11ClassName,
 			X11InstanceName:   defaultX11InstanceName,
 		}
@@ -741,7 +753,7 @@ func toUIRunOptions(options *RunGameOptions) *ui.RunOptions {
 		SkipTaskbar:              options.SkipTaskbar,
 		SingleThread:             options.SingleThread,
 		DisableHiDPI:             options.DisableHiDPI,
-		ColorSpace:               graphicsdriver.ColorSpace(options.ColorSpace),
+		ColorSpace:               colorSpace,
 		ApplePressAndHoldEnabled: options.ApplePressAndHoldEnabled,
 		X11ClassName:             options.X11ClassName,
 		X11InstanceName:          options.X11InstanceName,

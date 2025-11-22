@@ -24,6 +24,7 @@ import (
 	"github.com/ebitengine/purego/objc"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/cocoa"
+	"github.com/hajimehoshi/ebiten/v2/internal/color"
 	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal"
@@ -179,7 +180,7 @@ func (u *UserInterface) setApplePressAndHoldEnabled(enabled bool) {
 
 type graphicsDriverCreatorImpl struct {
 	transparent bool
-	colorSpace  graphicsdriver.ColorSpace
+	colorSpace  color.ColorSpace
 }
 
 func (g *graphicsDriverCreatorImpl) newAuto() (graphicsdriver.Graphics, GraphicsLibrary, error) {

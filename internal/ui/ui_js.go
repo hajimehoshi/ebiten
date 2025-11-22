@@ -21,6 +21,7 @@ import (
 	"syscall/js"
 	"time"
 
+	"github.com/hajimehoshi/ebiten/v2/internal/color"
 	"github.com/hajimehoshi/ebiten/v2/internal/file"
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
@@ -30,7 +31,7 @@ import (
 
 type graphicsDriverCreatorImpl struct {
 	canvas     js.Value
-	colorSpace graphicsdriver.ColorSpace
+	colorSpace color.ColorSpace
 }
 
 func (g *graphicsDriverCreatorImpl) newAuto() (graphicsdriver.Graphics, GraphicsLibrary, error) {
