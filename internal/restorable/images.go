@@ -16,7 +16,6 @@ package restorable
 
 import (
 	"image"
-	"sync"
 	"sync/atomic"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/debug"
@@ -27,8 +26,6 @@ import (
 // forceRestoration reports whether restoration forcibly happens or not.
 // This is used only for testing.
 var forceRestoration = false
-
-var disabledOnce sync.Once
 
 // needsRestoration reports whether restoration process works or not.
 func needsRestoration() bool {
