@@ -108,6 +108,8 @@ type backend struct {
 	//
 	// If a non-source (destination) image is used as a source many times,
 	// the image's backend might be turned into a source backend to optimize draw calls.
+	//
+	// source is always false when the image type is not ImageTypeRegular.
 	source bool
 
 	// sourceInThisFrame reports whether this backend is used as a source in this frame.
@@ -195,10 +197,6 @@ const (
 	// ImageTypeScreen is a screen image that is not on an atlas.
 	// A screen image is also unmanaged.
 	ImageTypeScreen
-
-	// ImageTypeVolatile is a volatile image that is cleared every frame.
-	// A volatile image is also unmanaged.
-	ImageTypeVolatile
 
 	// ImageTypeUnmanaged is an unmanaged image that is not on an atlas.
 	ImageTypeUnmanaged
@@ -431,7 +429,7 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderSrcImageCount]*Image, vertice
 		if src.backend == nil {
 			// It is possible to spcify i.backend as a forbidden backend, but this might prevent a good allocation for a source image.
 			// If the backend becomes the same as i's, i's backend will be changed at ensureIsolatedFromSource.
-			src.allocate(nil, true)
+			src.allocate(nil, i.imageType == ImageTypeRegular)
 		}
 		backends = append(backends, src.backend)
 		src.backend.sourceInThisFrame = true
@@ -533,7 +531,7 @@ func (i *Image) writePixels(pix []byte, region image.Rectangle) {
 			return
 		}
 		// Allocate as a source as this image will likely be used as a source.
-		i.allocate(nil, true)
+		i.allocate(nil, i.imageType == ImageTypeRegular)
 	}
 
 	r := i.regionWithPadding()
@@ -724,15 +722,11 @@ func (i *Image) allocate(forbiddenBackends []*backend, asSource bool) {
 			panic(fmt.Sprintf("atlas: the image being put on an atlas is too big: width: %d, height: %d", i.width, i.height))
 		}
 
-		typ := restorable.ImageTypeRegular
-		if i.imageType == ImageTypeVolatile {
-			typ = restorable.ImageTypeVolatile
-		}
 		i.backend = &backend{
 			width:      wp,
 			height:     hp,
-			restorable: restorable.NewImage(wp, hp, typ),
-			source:     asSource && typ == restorable.ImageTypeRegular,
+			restorable: restorable.NewImage(wp, hp, restorable.ImageTypeRegular),
+			source:     asSource,
 		}
 		theBackends = append(theBackends, i.backend)
 		return
@@ -776,14 +770,10 @@ loop:
 		height *= 2
 	}
 
-	typ := restorable.ImageTypeRegular
-	if i.imageType == ImageTypeVolatile {
-		typ = restorable.ImageTypeVolatile
-	}
 	b := &backend{
 		width:      width,
 		height:     height,
-		restorable: restorable.NewImage(width, height, typ),
+		restorable: restorable.NewImage(width, height, restorable.ImageTypeRegular),
 		page:       packing.NewPage(width, height, maxSize),
 		source:     asSource,
 	}

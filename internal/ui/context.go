@@ -213,12 +213,6 @@ func (c *context) newOffscreenImage(w, h int) *Image {
 }
 
 func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics, ui *UserInterface, forceDraw bool) (needSwapBuffers bool, err error) {
-	if (c.offscreen.imageType == atlas.ImageTypeVolatile) != ui.IsScreenClearedEveryFrame() {
-		w, h := c.offscreen.width, c.offscreen.height
-		c.offscreen.Deallocate()
-		c.offscreen = c.newOffscreenImage(w, h)
-	}
-
 	// isOffscreenModified is updated when an offscreen's modifyCallback.
 	c.isOffscreenModified = false
 

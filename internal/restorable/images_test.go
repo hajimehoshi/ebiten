@@ -711,41 +711,6 @@ func TestWritePixelsOnly(t *testing.T) {
 
 // TODO: How about volatile/screen images?
 
-// Issue #793
-func TestReadPixelsFromVolatileImage(t *testing.T) {
-	const w, h = 16, 16
-	dst := restorable.NewImage(w, h, restorable.ImageTypeVolatile)
-	src := restorable.NewImage(w, h, restorable.ImageTypeRegular)
-
-	// First, make sure that dst has pixels
-	dst.WritePixels(bytesToManagedBytes(make([]byte, 4*w*h)), image.Rect(0, 0, w, h))
-
-	// Second, draw src to dst. If the implementation is correct, dst becomes stale.
-	pix := make([]byte, 4*w*h)
-	for i := range pix {
-		pix[i] = 0xff
-	}
-	src.WritePixels(bytesToManagedBytes(pix), image.Rect(0, 0, w, h))
-	vs := quadVertices(1, 1, 0, 0)
-	is := graphics.QuadIndices()
-	dr := image.Rect(0, 0, w, h)
-	sr := image.Rect(0, 0, w, h)
-	dst.DrawTriangles([graphics.ShaderSrcImageCount]*restorable.Image{src}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, restorable.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll)
-
-	// Read the pixels. If the implementation is correct, dst tries to read its pixels from GPU due to being
-	// stale.
-	want := byte(0xff)
-
-	var result [4]byte
-	if err := dst.ReadPixels(ui.Get().GraphicsDriverForTesting(), result[:], image.Rect(0, 0, 1, 1)); err != nil {
-		t.Fatal(err)
-	}
-	got := result[0]
-	if got != want {
-		t.Errorf("got: %v, want: %v", got, want)
-	}
-}
-
 func TestAllowWritePixelsAfterDrawTriangles(t *testing.T) {
 	const w, h = 16, 16
 	src := restorable.NewImage(w, h, restorable.ImageTypeRegular)

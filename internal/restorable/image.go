@@ -99,14 +99,6 @@ const (
 
 	// ImageTypeScreen indicates the image is used as an actual screen.
 	ImageTypeScreen
-
-	// ImageTypeVolatile indicates the image is cleared whenever a frame starts.
-	//
-	// Regular non-volatile images need to record drawing history or read its pixels from GPU if necessary so that all
-	// the images can be restored automatically from the context lost. However, such recording the drawing history or
-	// reading pixels from GPU are expensive operations. Volatile images can skip such operations, but the image content
-	// is cleared every frame instead.
-	ImageTypeVolatile
 )
 
 // Image represents an image that can be restored when GL context is lost.
@@ -622,11 +614,6 @@ func (i *Image) restore(graphicsDriver graphicsdriver.Graphics) error {
 		i.clearDrawTrianglesHistory()
 		i.stale = false
 		i.staleRegions = i.staleRegions[:0]
-		return nil
-	case ImageTypeVolatile:
-		i.image = graphicscommand.NewImage(w, h, false, "volatile")
-		iw, ih := i.image.InternalSize()
-		clearImage(i.image, image.Rect(0, 0, iw, ih))
 		return nil
 	}
 
