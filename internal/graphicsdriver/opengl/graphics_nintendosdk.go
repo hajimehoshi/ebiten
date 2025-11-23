@@ -17,6 +17,7 @@
 package opengl
 
 import (
+	"github.com/hajimehoshi/ebiten/v2/internal/color"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl/gl"
 )
@@ -30,7 +31,7 @@ func NewGraphics(nativeWindowType uintptr) (graphicsdriver.Graphics, error) {
 	if err != nil {
 		return nil, err
 	}
-	g := newGraphics(ctx)
+	g := newGraphics(ctx, color.ColorSpaceSRGB)
 	e, err := newEGL(nativeWindowType)
 	if err != nil {
 		return nil, err

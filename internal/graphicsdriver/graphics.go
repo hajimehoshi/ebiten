@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"image"
 
+	"github.com/hajimehoshi/ebiten/v2/internal/color"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
@@ -55,6 +56,7 @@ const (
 
 type Graphics interface {
 	Initialize() error
+	ColorSpace() color.ColorSpace
 	Begin() error
 	End(present bool) error
 	SetTransparent(transparent bool)

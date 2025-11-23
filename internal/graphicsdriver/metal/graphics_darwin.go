@@ -125,6 +125,10 @@ func NewGraphics(colorSpace color.ColorSpace) (graphicsdriver.Graphics, error) {
 	return g, nil
 }
 
+func (g *Graphics) ColorSpace() color.ColorSpace {
+	return g.colorSpace
+}
+
 func (g *Graphics) Begin() error {
 	// NSAutoreleasePool is required to release drawable correctly (#847).
 	// https://developer.apple.com/library/archive/documentation/3DDrawing/Conceptual/MTLBestPracticesGuide/Drawables.html

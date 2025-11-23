@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"unsafe"
 
+	"github.com/hajimehoshi/ebiten/v2/internal/color"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl/gl"
@@ -32,9 +33,10 @@ type activatedTexture struct {
 }
 
 type Graphics struct {
-	state   openGLState
-	context context
-	vsync   bool
+	state      openGLState
+	context    context
+	vsync      bool
+	colorSpace color.ColorSpace
 
 	nextImageID graphicsdriver.ImageID
 	images      map[graphicsdriver.ImageID]*Image
@@ -57,9 +59,10 @@ type Graphics struct {
 	graphicsPlatform
 }
 
-func newGraphics(ctx gl.Context) *Graphics {
+func newGraphics(ctx gl.Context, colorSpace color.ColorSpace) *Graphics {
 	g := &Graphics{
-		vsync: true,
+		vsync:      true,
+		colorSpace: colorSpace,
 	}
 	if isDebug {
 		g.context.ctx = &gl.DebugContext{Context: ctx}
@@ -67,6 +70,10 @@ func newGraphics(ctx gl.Context) *Graphics {
 		g.context.ctx = ctx
 	}
 	return g
+}
+
+func (g *Graphics) ColorSpace() color.ColorSpace {
+	return g.colorSpace
 }
 
 func (g *Graphics) Begin() error {

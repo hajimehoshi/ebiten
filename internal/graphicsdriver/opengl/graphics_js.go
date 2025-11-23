@@ -56,7 +56,7 @@ func NewGraphics(canvas js.Value, colorSpace color.ColorSpace) (graphicsdriver.G
 		return nil, err
 	}
 
-	return newGraphics(ctx), nil
+	return newGraphics(ctx, colorSpace), nil
 }
 
 func (g *Graphics) makeContextCurrent() error {

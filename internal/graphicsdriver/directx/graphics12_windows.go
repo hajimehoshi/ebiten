@@ -22,6 +22,7 @@ import (
 
 	"golang.org/x/sys/windows"
 
+	"github.com/hajimehoshi/ebiten/v2/internal/color"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/microsoftgdk"
@@ -614,6 +615,10 @@ func (g *graphics12) createRenderTargetViewsDesktop() (ferr error) {
 func (g *graphics12) SetWindow(window uintptr) {
 	g.window = windows.HWND(window)
 	// TODO: need to update the swap chain?
+}
+
+func (g *graphics12) ColorSpace() color.ColorSpace {
+	return color.ColorSpaceSRGB
 }
 
 func (g *graphics12) Begin() error {
