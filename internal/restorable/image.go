@@ -191,8 +191,7 @@ func (i *Image) BasePixelsForTesting() *Pixels {
 func (i *Image) makeStale(rect image.Rectangle) {
 	i.stale = true
 
-	// If ReadPixels always reads pixels from GPU, staleRegions are never used.
-	if AlwaysReadPixelsFromGPU() {
+	if !needsRestoration() {
 		return
 	}
 
@@ -378,8 +377,8 @@ func (i *Image) appendDrawTrianglesHistory(srcs [graphics.ShaderSrcImageCount]*I
 	if i.stale || !i.needsRestoration() {
 		panic("restorable: an image must not be stale or need restoration at appendDrawTrianglesHistory")
 	}
-	if AlwaysReadPixelsFromGPU() {
-		panic("restorable: appendDrawTrianglesHistory must not be called when AlwaysReadPixelsFromGPU() returns true")
+	if !needsRestoration() {
+		panic("restorable: appendDrawTrianglesHistory must not be called when needRestoration() returns false")
 	}
 
 	// TODO: Would it be possible to merge draw image history items?
@@ -424,7 +423,7 @@ func (i *Image) readPixelsFromGPUIfNeeded(graphicsDriver graphicsdriver.Graphics
 }
 
 func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte, region image.Rectangle) error {
-	if AlwaysReadPixelsFromGPU() || !i.needsRestoration() {
+	if !needsRestoration() || !i.needsRestoration() {
 		if err := i.image.ReadPixels(graphicsDriver, []graphicsdriver.PixelsArgs{
 			{
 				Pixels: pixels,

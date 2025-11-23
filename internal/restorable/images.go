@@ -35,11 +35,6 @@ func needsRestoration() bool {
 	return forceRestoration
 }
 
-// AlwaysReadPixelsFromGPU reports whether ReadPixels always reads pixels from GPU or not.
-func AlwaysReadPixelsFromGPU() bool {
-	return !needsRestoration()
-}
-
 // images is a set of Image objects.
 type images struct {
 	images      map[*Image]struct{}
