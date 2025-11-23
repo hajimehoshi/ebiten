@@ -104,6 +104,9 @@ type backend struct {
 	// If page is nil, the backend's image is isolated and not on an atlas.
 	page *packing.Page
 
+	// screen indicates whether this backend is used as a screen image or not.
+	screen bool
+
 	// source reports whether this backend is mainly used a rendering source, but this is not 100%.
 	//
 	// If a non-source (destination) image is used as a source many times,
@@ -121,9 +124,9 @@ type backend struct {
 }
 
 type restoreInfo struct {
-	valid     bool
-	imageType restorable.ImageType
-	pixels    *graphics.ManagedBytes
+	valid  bool
+	screen bool
+	pixels *graphics.ManagedBytes
 }
 
 func (b *backend) tryAlloc(width, height int) (*packing.Node, bool) {
@@ -142,7 +145,11 @@ func (b *backend) tryAlloc(width, height int) (*packing.Node, bool) {
 	}
 
 	// Extend the image.
-	newImg := restorable.NewImage(pageW, pageH, b.backendImage.ImageType())
+	typ := restorable.ImageTypeRegular
+	if b.screen {
+		typ = restorable.ImageTypeScreen
+	}
+	newImg := restorable.NewImage(pageW, pageH, typ)
 	src := b.backendImage
 	srcs := [graphics.ShaderSrcImageCount]*restorable.Image{src}
 	sw, sh := src.InternalSize()
@@ -709,6 +716,7 @@ func (i *Image) allocate(forbiddenBackends []*backend, asSource bool) {
 			width:        i.width,
 			height:       i.height,
 			backendImage: restorable.NewImage(i.width, i.height, restorable.ImageTypeScreen),
+			screen:       true,
 		}
 		theBackends = append(theBackends, i.backend)
 		return
@@ -823,7 +831,7 @@ func EndFrame(graphicsDriver graphicsdriver.Graphics) error {
 				continue
 			}
 			var pixels *graphics.ManagedBytes
-			if b.backendImage.ImageType() == restorable.ImageTypeRegular {
+			if !b.screen {
 				var err error
 				pixels = graphics.NewManagedBytes(4*b.width*b.height, func(bytes []byte) {
 					err = b.backendImage.ReadPixels(graphicsDriver, bytes, image.Rect(0, 0, b.width, b.height))
@@ -833,9 +841,9 @@ func EndFrame(graphicsDriver graphicsdriver.Graphics) error {
 				}
 			}
 			b.restoreInfo = restoreInfo{
-				valid:     true,
-				imageType: b.backendImage.ImageType(),
-				pixels:    pixels,
+				valid:  true,
+				screen: b.screen,
+				pixels: pixels,
 			}
 		}
 	default:
@@ -925,7 +933,11 @@ func BeginFrame(graphicsDriver graphicsdriver.Graphics) error {
 			if !b.restoreInfo.valid {
 				continue
 			}
-			b.backendImage = restorable.NewImage(b.width, b.height, b.restoreInfo.imageType)
+			typ := restorable.ImageTypeRegular
+			if b.restoreInfo.screen {
+				typ = restorable.ImageTypeScreen
+			}
+			b.backendImage = restorable.NewImage(b.width, b.height, typ)
 			if b.restoreInfo.pixels == nil {
 				continue
 			}

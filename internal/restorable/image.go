@@ -163,10 +163,6 @@ func NewImage(width, height int, imageType ImageType) *Image {
 	return i
 }
 
-func (i *Image) ImageType() ImageType {
-	return i.imageType
-}
-
 func clearImage(i *graphicscommand.Image, region image.Rectangle) {
 	vs := make([]float32, 4*graphics.VertexFloatCount)
 	graphics.QuadVerticesFromDstAndSrc(vs, float32(region.Min.X), float32(region.Min.Y), float32(region.Max.X), float32(region.Max.Y), 0, 0, 0, 0, 0, 0, 0, 0)
