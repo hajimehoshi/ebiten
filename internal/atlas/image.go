@@ -229,7 +229,7 @@ type imageImpl struct {
 	// usedAsSourceCount represents how long the image is used as a rendering source and kept not modified with
 	// DrawTriangles.
 	// In the current implementation, if an image is being modified by DrawTriangles, the image is separated from
-	// a restorable image on an atlas by ensureIsolatedFromSource.
+	// a backend image for an atlas by ensureIsolatedFromSource.
 	//
 	// The type is int64 instead of int to avoid overflow when comparing the limitation.
 	//
