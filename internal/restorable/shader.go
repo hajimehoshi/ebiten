@@ -100,7 +100,7 @@ func init() {
 // DisposeAndRestoreInternalShaders disposes all the internal shaders and restores them.
 // DisposeAndRestoreInternalShaders is called when the OpenGL context is lost.
 //
-// TODO: Remove restorable package itself after removing RunOptions.StrictContextRestoration.
+// TODO: Remove restorable package (#3090).
 func DisposeAndRestoreInternalShaders() {
 	NearestFilterShader.shader.Dispose()
 	LinearFilterShader.shader.Dispose()

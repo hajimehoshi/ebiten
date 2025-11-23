@@ -54,11 +54,6 @@ class EbitenSurfaceView extends GLSurfaceView implements Renderer {
 
         @Override
         public void onSurfaceCreated(GL10 gl, EGLConfig config) {
-            // As EbitenSurfaceView can be recreated anytime, this flag for strict context restoration must be checked every time.
-            if (Ebitenmobileview.usesStrictContextRestoration()) {
-                Ebitenmobileview.onContextLost();
-                return;
-            }
             if (!onceSurfaceCreated_) {
                 onceSurfaceCreated_ = true;
                 return;

@@ -101,9 +101,6 @@ type userInterfaceImpl struct {
 	fpsMode  atomic.Int32
 	renderer Renderer
 
-	strictContextRestoration     atomic.Bool
-	strictContextRestorationOnce sync.Once
-
 	// uiView is used only on iOS.
 	uiView atomic.Uintptr
 
@@ -159,11 +156,7 @@ func (u *UserInterface) runMobile(game Game, options *RunOptions) (err error) {
 	u.graphicsDriver = g
 	u.setGraphicsLibrary(lib)
 	close(u.graphicsLibraryInitCh)
-	if options.StrictContextRestoration {
-		u.strictContextRestoration.Store(true)
-	} else {
-		restorable.Disable()
-	}
+	restorable.Disable()
 
 	for {
 		if err := u.update(); err != nil {
@@ -361,10 +354,6 @@ func (u *UserInterface) ScheduleFrame() {
 
 func (u *UserInterface) updateIconIfNeeded() error {
 	return nil
-}
-
-func (u *UserInterface) UsesStrictContextRestoration() bool {
-	return u.strictContextRestoration.Load()
 }
 
 func IsScreenTransparentAvailable() bool {

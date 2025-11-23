@@ -949,7 +949,7 @@ func BeginFrame(graphicsDriver graphicsdriver.Graphics) error {
 	}
 
 	// Restore images first before other image manipulations (#2075).
-	// TODO: Remove restorable package itself after removing RunOptions.StrictContextRestoration.
+	// TODO: Remove restorable package (#3090).
 	if err := restorable.RestoreIfNeeded(graphicsDriver); err != nil {
 		return err
 	}

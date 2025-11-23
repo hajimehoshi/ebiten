@@ -724,28 +724,6 @@ func toUIRunOptions(options *RunGameOptions) *ui.RunOptions {
 		options.X11InstanceName = defaultX11InstanceName
 	}
 
-	// ui.RunOptions.StrictContextRestoration is not used so far (#3098).
-	// This might be reused in the future.
-	// The original comment for StrictContextRestration is as follows:
-	//
-	// StrictContextRestration indicates whether the context lost should be restored strictly by Ebitengine or not.
-	//
-	// StrictContextRestration is available only on Android. Otherwise, StrictContextRestration is ignored.
-	// Thus, StrictContextRestration should be used with mobile.SetGameWithOptions, rather than RunGameWithOptions.
-	//
-	// In Android, Ebitengien uses `GLSurfaceView`'s `setPreserveEGLContextOnPause(true)`.
-	// This works in most cases, but it is still possible that the context is lost in some minor cases.
-	//
-	// When StrictContextRestration is true, Ebitengine tries to restore the context more strictly
-	// for such minor cases.
-	// However, this might cause a performance issue since Ebitengine tries to keep all the information
-	// to restore the context.
-	//
-	// When StrictContextRestration is false, Ebitengine does nothing special to restore the context and
-	// relies on the OS's behavior.
-	//
-	// The default (zero) value is false.
-
 	return &ui.RunOptions{
 		GraphicsLibrary:          ui.GraphicsLibrary(options.GraphicsLibrary),
 		InitUnfocused:            options.InitUnfocused,
