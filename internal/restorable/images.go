@@ -63,13 +63,6 @@ func SwapBuffers(graphicsDriver graphicsdriver.Graphics) error {
 // resolveStaleImages flushes the queued draw commands and resolves all stale images.
 // If endFrame is true, the current screen might be used to present when flushing the commands.
 func resolveStaleImages(graphicsDriver graphicsdriver.Graphics, endFrame bool) error {
-	// When Disable is called, all the images data should be evicted once.
-	disabledOnce.Do(func() {
-		for img := range theImages.images {
-			img.makeStale(image.Rect(0, 0, img.width, img.height))
-		}
-	})
-
 	if err := graphicscommand.FlushCommands(graphicsDriver, endFrame); err != nil {
 		return err
 	}
