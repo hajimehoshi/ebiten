@@ -15,6 +15,7 @@
 package metal
 
 import (
+	"fmt"
 	"runtime/cgo"
 	"sync"
 	"time"
@@ -91,7 +92,7 @@ func (v *view) initialize(device mtl.Device, colorSpace color.ColorSpace) error 
 
 	ml, err := ca.NewMetalLayer(colorSpace)
 	if err != nil {
-		return err
+		return fmt.Errorf("metal: ca.NewMetalLayer failed: %w", err)
 	}
 	v.ml = ml
 	v.ml.SetDevice(v.device)

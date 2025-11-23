@@ -178,7 +178,7 @@ func (s *Shader) RenderPipelineState(view *view, blend graphicsdriver.Blend, ste
 
 	rps, err := view.getMTLDevice().NewRenderPipelineStateWithDescriptor(rpld)
 	if err != nil {
-		return mtl.RenderPipelineState{}, err
+		return mtl.RenderPipelineState{}, fmt.Errorf("metal: device.NewRenderPipelineStateWithDescriptor failed: %w", err)
 	}
 
 	s.rpss[key] = rps
