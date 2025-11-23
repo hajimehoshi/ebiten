@@ -28,7 +28,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/hook"
-	"github.com/hajimehoshi/ebiten/v2/internal/restorable"
 )
 
 var (
@@ -156,7 +155,6 @@ func (u *UserInterface) runMobile(game Game, options *RunOptions) (err error) {
 	u.graphicsDriver = g
 	u.setGraphicsLibrary(lib)
 	close(u.graphicsLibraryInitCh)
-	restorable.Disable()
 
 	for {
 		if err := u.update(); err != nil {

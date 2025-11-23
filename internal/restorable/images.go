@@ -16,7 +16,6 @@ package restorable
 
 import (
 	"image"
-	"runtime"
 	"sync"
 	"sync/atomic"
 
@@ -29,28 +28,11 @@ import (
 // This is used only for testing.
 var forceRestoration = false
 
-// disabled indicates that restoration is disabled or not.
-// Restoration is enabled by default for some platforms like Android for safety.
-// Before SetGame, it is not possible to determine whether restoration is needed or not.
-var disabled atomic.Bool
-
 var disabledOnce sync.Once
-
-// Disable disables restoration.
-func Disable() {
-	disabled.Store(true)
-}
 
 // needsRestoration reports whether restoration process works or not.
 func needsRestoration() bool {
-	if forceRestoration {
-		return true
-	}
-	// TODO: If Vulkan is introduced, restoration might not be needed.
-	if runtime.GOOS == "android" {
-		return !disabled.Load()
-	}
-	return false
+	return forceRestoration
 }
 
 // AlwaysReadPixelsFromGPU reports whether ReadPixels always reads pixels from GPU or not.
@@ -87,13 +69,11 @@ func SwapBuffers(graphicsDriver graphicsdriver.Graphics) error {
 // If endFrame is true, the current screen might be used to present when flushing the commands.
 func resolveStaleImages(graphicsDriver graphicsdriver.Graphics, endFrame bool) error {
 	// When Disable is called, all the images data should be evicted once.
-	if disabled.Load() {
-		disabledOnce.Do(func() {
-			for img := range theImages.images {
-				img.makeStale(image.Rect(0, 0, img.width, img.height))
-			}
-		})
-	}
+	disabledOnce.Do(func() {
+		for img := range theImages.images {
+			img.makeStale(image.Rect(0, 0, img.width, img.height))
+		}
+	})
 
 	if err := graphicscommand.FlushCommands(graphicsDriver, endFrame); err != nil {
 		return err
