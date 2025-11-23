@@ -141,7 +141,7 @@ func TestRestoreChain(t *testing.T) {
 		is := graphics.QuadIndices()
 		dr := image.Rect(0, 0, 1, 1)
 		sr := image.Rect(0, 0, 1, 1)
-		imgs[i+1].DrawTriangles([graphics.ShaderSrcImageCount]*restorable.Image{imgs[i]}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, restorable.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
+		imgs[i+1].DrawTriangles([graphics.ShaderSrcImageCount]*restorable.Image{imgs[i]}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, restorable.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll)
 	}
 	if err := restorable.ResolveStaleImages(ui.Get().GraphicsDriverForTesting()); err != nil {
 		t.Fatal(err)
@@ -185,10 +185,10 @@ func TestRestoreChain2(t *testing.T) {
 	is := graphics.QuadIndices()
 	dr := image.Rect(0, 0, w, h)
 	sr := image.Rect(0, 0, w, h)
-	imgs[8].DrawTriangles([graphics.ShaderSrcImageCount]*restorable.Image{imgs[7]}, quadVertices(w, h, 0, 0), is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, restorable.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
-	imgs[9].DrawTriangles([graphics.ShaderSrcImageCount]*restorable.Image{imgs[8]}, quadVertices(w, h, 0, 0), is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, restorable.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
+	imgs[8].DrawTriangles([graphics.ShaderSrcImageCount]*restorable.Image{imgs[7]}, quadVertices(w, h, 0, 0), is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, restorable.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll)
+	imgs[9].DrawTriangles([graphics.ShaderSrcImageCount]*restorable.Image{imgs[8]}, quadVertices(w, h, 0, 0), is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, restorable.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll)
 	for i := 0; i < 7; i++ {
-		imgs[i+1].DrawTriangles([graphics.ShaderSrcImageCount]*restorable.Image{imgs[i]}, quadVertices(w, h, 0, 0), is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, restorable.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
+		imgs[i+1].DrawTriangles([graphics.ShaderSrcImageCount]*restorable.Image{imgs[i]}, quadVertices(w, h, 0, 0), is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, restorable.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll)
 	}
 
 	if err := restorable.ResolveStaleImages(ui.Get().GraphicsDriverForTesting()); err != nil {
@@ -230,10 +230,10 @@ func TestRestoreOverrideSource(t *testing.T) {
 	is := graphics.QuadIndices()
 	dr := image.Rect(0, 0, w, h)
 	sr := image.Rect(0, 0, w, h)
-	img2.DrawTriangles([graphics.ShaderSrcImageCount]*restorable.Image{img1}, quadVertices(w, h, 0, 0), is, graphicsdriver.BlendSourceOver, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, restorable.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
-	img3.DrawTriangles([graphics.ShaderSrcImageCount]*restorable.Image{img2}, quadVertices(w, h, 0, 0), is, graphicsdriver.BlendSourceOver, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, restorable.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
+	img2.DrawTriangles([graphics.ShaderSrcImageCount]*restorable.Image{img1}, quadVertices(w, h, 0, 0), is, graphicsdriver.BlendSourceOver, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, restorable.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll)
+	img3.DrawTriangles([graphics.ShaderSrcImageCount]*restorable.Image{img2}, quadVertices(w, h, 0, 0), is, graphicsdriver.BlendSourceOver, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, restorable.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll)
 	img0.WritePixels(bytesToManagedBytes([]byte{clr1.R, clr1.G, clr1.B, clr1.A}), image.Rect(0, 0, w, h))
-	img1.DrawTriangles([graphics.ShaderSrcImageCount]*restorable.Image{img0}, quadVertices(w, h, 0, 0), is, graphicsdriver.BlendSourceOver, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, restorable.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
+	img1.DrawTriangles([graphics.ShaderSrcImageCount]*restorable.Image{img0}, quadVertices(w, h, 0, 0), is, graphicsdriver.BlendSourceOver, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, restorable.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll)
 	if err := restorable.ResolveStaleImages(ui.Get().GraphicsDriverForTesting()); err != nil {
 		t.Fatal(err)
 	}
@@ -314,23 +314,23 @@ func TestRestoreComplexGraph(t *testing.T) {
 	dr := image.Rect(0, 0, w, h)
 	sr := image.Rect(0, 0, w, h)
 	vs := quadVertices(w, h, 0, 0)
-	img3.DrawTriangles([graphics.ShaderSrcImageCount]*restorable.Image{img0}, vs, is, graphicsdriver.BlendSourceOver, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, restorable.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
+	img3.DrawTriangles([graphics.ShaderSrcImageCount]*restorable.Image{img0}, vs, is, graphicsdriver.BlendSourceOver, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, restorable.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll)
 	vs = quadVertices(w, h, 1, 0)
-	img3.DrawTriangles([graphics.ShaderSrcImageCount]*restorable.Image{img1}, vs, is, graphicsdriver.BlendSourceOver, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, restorable.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
+	img3.DrawTriangles([graphics.ShaderSrcImageCount]*restorable.Image{img1}, vs, is, graphicsdriver.BlendSourceOver, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, restorable.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll)
 	vs = quadVertices(w, h, 1, 0)
-	img4.DrawTriangles([graphics.ShaderSrcImageCount]*restorable.Image{img1}, vs, is, graphicsdriver.BlendSourceOver, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, restorable.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
+	img4.DrawTriangles([graphics.ShaderSrcImageCount]*restorable.Image{img1}, vs, is, graphicsdriver.BlendSourceOver, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, restorable.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll)
 	vs = quadVertices(w, h, 2, 0)
-	img4.DrawTriangles([graphics.ShaderSrcImageCount]*restorable.Image{img2}, vs, is, graphicsdriver.BlendSourceOver, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, restorable.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
+	img4.DrawTriangles([graphics.ShaderSrcImageCount]*restorable.Image{img2}, vs, is, graphicsdriver.BlendSourceOver, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, restorable.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll)
 	vs = quadVertices(w, h, 0, 0)
-	img5.DrawTriangles([graphics.ShaderSrcImageCount]*restorable.Image{img3}, vs, is, graphicsdriver.BlendSourceOver, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, restorable.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
+	img5.DrawTriangles([graphics.ShaderSrcImageCount]*restorable.Image{img3}, vs, is, graphicsdriver.BlendSourceOver, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, restorable.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll)
 	vs = quadVertices(w, h, 0, 0)
-	img6.DrawTriangles([graphics.ShaderSrcImageCount]*restorable.Image{img3}, vs, is, graphicsdriver.BlendSourceOver, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, restorable.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
+	img6.DrawTriangles([graphics.ShaderSrcImageCount]*restorable.Image{img3}, vs, is, graphicsdriver.BlendSourceOver, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, restorable.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll)
 	vs = quadVertices(w, h, 1, 0)
-	img6.DrawTriangles([graphics.ShaderSrcImageCount]*restorable.Image{img4}, vs, is, graphicsdriver.BlendSourceOver, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, restorable.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
+	img6.DrawTriangles([graphics.ShaderSrcImageCount]*restorable.Image{img4}, vs, is, graphicsdriver.BlendSourceOver, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, restorable.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll)
 	vs = quadVertices(w, h, 0, 0)
-	img7.DrawTriangles([graphics.ShaderSrcImageCount]*restorable.Image{img2}, vs, is, graphicsdriver.BlendSourceOver, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, restorable.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
+	img7.DrawTriangles([graphics.ShaderSrcImageCount]*restorable.Image{img2}, vs, is, graphicsdriver.BlendSourceOver, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, restorable.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll)
 	vs = quadVertices(w, h, 2, 0)
-	img7.DrawTriangles([graphics.ShaderSrcImageCount]*restorable.Image{img3}, vs, is, graphicsdriver.BlendSourceOver, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, restorable.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
+	img7.DrawTriangles([graphics.ShaderSrcImageCount]*restorable.Image{img3}, vs, is, graphicsdriver.BlendSourceOver, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, restorable.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll)
 	if err := restorable.ResolveStaleImages(ui.Get().GraphicsDriverForTesting()); err != nil {
 		t.Fatal(err)
 	}
@@ -424,8 +424,8 @@ func TestRestoreRecursive(t *testing.T) {
 	is := graphics.QuadIndices()
 	dr := image.Rect(0, 0, w, h)
 	sr := image.Rect(0, 0, w, h)
-	img1.DrawTriangles([graphics.ShaderSrcImageCount]*restorable.Image{img0}, quadVertices(w, h, 1, 0), is, graphicsdriver.BlendSourceOver, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, restorable.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
-	img0.DrawTriangles([graphics.ShaderSrcImageCount]*restorable.Image{img1}, quadVertices(w, h, 1, 0), is, graphicsdriver.BlendSourceOver, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, restorable.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
+	img1.DrawTriangles([graphics.ShaderSrcImageCount]*restorable.Image{img0}, quadVertices(w, h, 1, 0), is, graphicsdriver.BlendSourceOver, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, restorable.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll)
+	img0.DrawTriangles([graphics.ShaderSrcImageCount]*restorable.Image{img1}, quadVertices(w, h, 1, 0), is, graphicsdriver.BlendSourceOver, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, restorable.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll)
 	if err := restorable.ResolveStaleImages(ui.Get().GraphicsDriverForTesting()); err != nil {
 		t.Fatal(err)
 	}
@@ -525,7 +525,7 @@ func TestDrawTrianglesAndWritePixels(t *testing.T) {
 	is := graphics.QuadIndices()
 	dr := image.Rect(0, 0, 2, 1)
 	sr := image.Rect(0, 0, 1, 1)
-	img1.DrawTriangles([graphics.ShaderSrcImageCount]*restorable.Image{img0}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, restorable.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
+	img1.DrawTriangles([graphics.ShaderSrcImageCount]*restorable.Image{img0}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, restorable.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll)
 	img1.WritePixels(bytesToManagedBytes([]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}), image.Rect(0, 0, 2, 1))
 
 	if err := restorable.ResolveStaleImages(ui.Get().GraphicsDriverForTesting()); err != nil {
@@ -564,8 +564,8 @@ func TestDispose(t *testing.T) {
 	is := graphics.QuadIndices()
 	dr := image.Rect(0, 0, 1, 1)
 	sr := image.Rect(0, 0, 1, 1)
-	img1.DrawTriangles([graphics.ShaderSrcImageCount]*restorable.Image{img2}, quadVertices(1, 1, 0, 0), is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, restorable.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
-	img0.DrawTriangles([graphics.ShaderSrcImageCount]*restorable.Image{img1}, quadVertices(1, 1, 0, 0), is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, restorable.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
+	img1.DrawTriangles([graphics.ShaderSrcImageCount]*restorable.Image{img2}, quadVertices(1, 1, 0, 0), is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, restorable.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll)
+	img0.DrawTriangles([graphics.ShaderSrcImageCount]*restorable.Image{img1}, quadVertices(1, 1, 0, 0), is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, restorable.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll)
 	img1.Dispose()
 
 	if err := restorable.ResolveStaleImages(ui.Get().GraphicsDriverForTesting()); err != nil {
@@ -675,7 +675,7 @@ func TestWritePixelsOnly(t *testing.T) {
 	is := graphics.QuadIndices()
 	dr := image.Rect(0, 0, 1, 1)
 	sr := image.Rect(0, 0, w, h)
-	img1.DrawTriangles([graphics.ShaderSrcImageCount]*restorable.Image{img0}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, restorable.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
+	img1.DrawTriangles([graphics.ShaderSrcImageCount]*restorable.Image{img0}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, restorable.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll)
 	img0.WritePixels(bytesToManagedBytes([]byte{5, 6, 7, 8}), image.Rect(0, 0, 1, 1))
 
 	// BasePixelsForTesting is available without GPU accessing.
@@ -730,7 +730,7 @@ func TestReadPixelsFromVolatileImage(t *testing.T) {
 	is := graphics.QuadIndices()
 	dr := image.Rect(0, 0, w, h)
 	sr := image.Rect(0, 0, w, h)
-	dst.DrawTriangles([graphics.ShaderSrcImageCount]*restorable.Image{src}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, restorable.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
+	dst.DrawTriangles([graphics.ShaderSrcImageCount]*restorable.Image{src}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, restorable.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll)
 
 	// Read the pixels. If the implementation is correct, dst tries to read its pixels from GPU due to being
 	// stale.
@@ -755,7 +755,7 @@ func TestAllowWritePixelsAfterDrawTriangles(t *testing.T) {
 	is := graphics.QuadIndices()
 	dr := image.Rect(0, 0, w, h)
 	sr := image.Rect(0, 0, w, h)
-	dst.DrawTriangles([graphics.ShaderSrcImageCount]*restorable.Image{src}, vs, is, graphicsdriver.BlendSourceOver, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, restorable.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
+	dst.DrawTriangles([graphics.ShaderSrcImageCount]*restorable.Image{src}, vs, is, graphicsdriver.BlendSourceOver, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, restorable.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll)
 	dst.WritePixels(bytesToManagedBytes(make([]byte, 4*w*h)), image.Rect(0, 0, w, h))
 	// WritePixels for a whole image doesn't panic.
 }
@@ -775,7 +775,7 @@ func TestAllowWritePixelsForPartAfterDrawTriangles(t *testing.T) {
 	is := graphics.QuadIndices()
 	dr := image.Rect(0, 0, w, h)
 	sr := image.Rect(0, 0, w, h)
-	dst.DrawTriangles([graphics.ShaderSrcImageCount]*restorable.Image{src}, vs, is, graphicsdriver.BlendSourceOver, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, restorable.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
+	dst.DrawTriangles([graphics.ShaderSrcImageCount]*restorable.Image{src}, vs, is, graphicsdriver.BlendSourceOver, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, restorable.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll)
 	dst.WritePixels(bytesToManagedBytes(make([]byte, 4*2*2)), image.Rect(0, 0, 2, 2))
 	// WritePixels for a part of image doesn't panic.
 
@@ -834,7 +834,7 @@ func TestMutateSlices(t *testing.T) {
 	copy(is, graphics.QuadIndices())
 	dr := image.Rect(0, 0, w, h)
 	sr := image.Rect(0, 0, w, h)
-	dst.DrawTriangles([graphics.ShaderSrcImageCount]*restorable.Image{src}, vs, is, graphicsdriver.BlendSourceOver, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, restorable.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
+	dst.DrawTriangles([graphics.ShaderSrcImageCount]*restorable.Image{src}, vs, is, graphicsdriver.BlendSourceOver, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, restorable.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll)
 	for i := range vs {
 		vs[i] = 0
 	}
@@ -1027,7 +1027,7 @@ func TestDrawTrianglesAndReadPixels(t *testing.T) {
 	is := graphics.QuadIndices()
 	dr := image.Rect(0, 0, w, h)
 	sr := image.Rect(0, 0, w, h)
-	dst.DrawTriangles([graphics.ShaderSrcImageCount]*restorable.Image{src}, vs, is, graphicsdriver.BlendSourceOver, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, restorable.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
+	dst.DrawTriangles([graphics.ShaderSrcImageCount]*restorable.Image{src}, vs, is, graphicsdriver.BlendSourceOver, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, restorable.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll)
 
 	pix := make([]byte, 4*w*h)
 	if err := dst.ReadPixels(ui.Get().GraphicsDriverForTesting(), pix, image.Rect(0, 0, w, h)); err != nil {
@@ -1052,7 +1052,7 @@ func TestWritePixelsAndDrawTriangles(t *testing.T) {
 	is := graphics.QuadIndices()
 	dr := image.Rect(1, 0, 2, 1)
 	sr := image.Rect(0, 0, 1, 1)
-	dst.DrawTriangles([graphics.ShaderSrcImageCount]*restorable.Image{src}, vs, is, graphicsdriver.BlendSourceOver, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, restorable.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
+	dst.DrawTriangles([graphics.ShaderSrcImageCount]*restorable.Image{src}, vs, is, graphicsdriver.BlendSourceOver, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, restorable.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll)
 
 	// Get the pixels.
 	pix := make([]byte, 4*2*1)
@@ -1063,40 +1063,6 @@ func TestWritePixelsAndDrawTriangles(t *testing.T) {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
 	if got, want := (color.RGBA{R: pix[4], G: pix[5], B: pix[6], A: pix[7]}), (color.RGBA{R: 0x80, G: 0x80, B: 0x80, A: 0x80}); !sameColors(got, want, 1) {
-		t.Errorf("got: %v, want: %v", got, want)
-	}
-}
-
-func TestOverwriteDstRegion(t *testing.T) {
-	const w, h = 1, 1
-	src0 := restorable.NewImage(w, h, restorable.ImageTypeRegular)
-	src1 := restorable.NewImage(w, h, restorable.ImageTypeRegular)
-	dst := restorable.NewImage(w, h, restorable.ImageTypeRegular)
-
-	src0.WritePixels(bytesToManagedBytes([]byte{0x40, 0x40, 0x40, 0x40}), image.Rect(0, 0, 1, 1))
-	src1.WritePixels(bytesToManagedBytes([]byte{0x80, 0x80, 0x80, 0x80}), image.Rect(0, 0, 1, 1))
-
-	vs := quadVertices(w, h, 0, 0)
-	is := graphics.QuadIndices()
-	dr := image.Rect(0, 0, w, h)
-	sr := image.Rect(0, 0, w, h)
-	dst.DrawTriangles([graphics.ShaderSrcImageCount]*restorable.Image{src0}, vs, is, graphicsdriver.BlendSourceOver, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, restorable.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
-	// This tests that HintOverwriteDstRegion removes the previous DrawTriangles.
-	// In practice, BlendCopy should be used instead of BlendSourceOver in this case.
-	dst.DrawTriangles([graphics.ShaderSrcImageCount]*restorable.Image{src1}, vs, is, graphicsdriver.BlendSourceOver, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, restorable.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintOverwriteDstRegion)
-
-	if err := restorable.ResolveStaleImages(ui.Get().GraphicsDriverForTesting()); err != nil {
-		t.Fatal(err)
-	}
-	if err := restorable.RestoreIfNeeded(ui.Get().GraphicsDriverForTesting()); err != nil {
-		t.Fatal(err)
-	}
-
-	pix := make([]byte, 4*w*h)
-	if err := dst.ReadPixels(ui.Get().GraphicsDriverForTesting(), pix, image.Rect(0, 0, w, h)); err != nil {
-		t.Fatal(err)
-	}
-	if got, want := (color.RGBA{R: pix[0], G: pix[1], B: pix[2], A: pix[3]}), (color.RGBA{R: 0x80, G: 0x80, B: 0x80, A: 0x80}); !sameColors(got, want, 1) {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
 }

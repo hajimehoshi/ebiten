@@ -47,7 +47,7 @@ func clearImage(img *restorable.Image, w, h int) {
 	is := graphics.QuadIndices()
 	dr := image.Rect(0, 0, w, h)
 	sr := image.Rect(0, 0, 3, 3)
-	img.DrawTriangles([graphics.ShaderSrcImageCount]*restorable.Image{emptyImage}, vs, is, graphicsdriver.BlendClear, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, restorable.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
+	img.DrawTriangles([graphics.ShaderSrcImageCount]*restorable.Image{emptyImage}, vs, is, graphicsdriver.BlendClear, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, restorable.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll)
 }
 
 func TestShader(t *testing.T) {
@@ -56,7 +56,7 @@ func TestShader(t *testing.T) {
 
 	s := restorable.NewShader(etesting.ShaderProgramFill(0xff, 0, 0, 0xff), "")
 	dr := image.Rect(0, 0, 1, 1)
-	img.DrawTriangles([graphics.ShaderSrcImageCount]*restorable.Image{}, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, s, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
+	img.DrawTriangles([graphics.ShaderSrcImageCount]*restorable.Image{}, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, s, nil, graphicsdriver.FillRuleFillAll)
 
 	if err := restorable.ResolveStaleImages(ui.Get().GraphicsDriverForTesting()); err != nil {
 		t.Fatal(err)
@@ -87,7 +87,7 @@ func TestShaderChain(t *testing.T) {
 	for i := 0; i < num-1; i++ {
 		dr := image.Rect(0, 0, 1, 1)
 		sr := image.Rect(0, 0, 1, 1)
-		imgs[i+1].DrawTriangles([graphics.ShaderSrcImageCount]*restorable.Image{imgs[i]}, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, s, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
+		imgs[i+1].DrawTriangles([graphics.ShaderSrcImageCount]*restorable.Image{imgs[i]}, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, s, nil, graphicsdriver.FillRuleFillAll)
 	}
 
 	if err := restorable.ResolveStaleImages(ui.Get().GraphicsDriverForTesting()); err != nil {
@@ -124,7 +124,7 @@ func TestShaderMultipleSources(t *testing.T) {
 		image.Rect(0, 0, 1, 1),
 		image.Rect(0, 0, 1, 1),
 	}
-	dst.DrawTriangles(srcs, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), graphicsdriver.BlendCopy, dr, srs, s, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
+	dst.DrawTriangles(srcs, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), graphicsdriver.BlendCopy, dr, srs, s, nil, graphicsdriver.FillRuleFillAll)
 
 	// Clear one of the sources after DrawTriangles. dst should not be affected.
 	clearImage(srcs[0], 1, 1)
@@ -161,7 +161,7 @@ func TestShaderMultipleSourcesOnOneTexture(t *testing.T) {
 		image.Rect(1, 0, 2, 1),
 		image.Rect(2, 0, 3, 1),
 	}
-	dst.DrawTriangles(srcs, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), graphicsdriver.BlendCopy, dr, srcRegions, s, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
+	dst.DrawTriangles(srcs, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), graphicsdriver.BlendCopy, dr, srcRegions, s, nil, graphicsdriver.FillRuleFillAll)
 
 	// Clear one of the sources after DrawTriangles. dst should not be affected.
 	clearImage(srcs[0], 3, 1)
@@ -186,7 +186,7 @@ func TestShaderDispose(t *testing.T) {
 
 	s := restorable.NewShader(etesting.ShaderProgramFill(0xff, 0, 0, 0xff), "")
 	dr := image.Rect(0, 0, 1, 1)
-	img.DrawTriangles([graphics.ShaderSrcImageCount]*restorable.Image{}, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, s, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
+	img.DrawTriangles([graphics.ShaderSrcImageCount]*restorable.Image{}, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, s, nil, graphicsdriver.FillRuleFillAll)
 
 	// Dispose the shader. This should invalidate all the images using this shader i.e., all the images become
 	// stale.

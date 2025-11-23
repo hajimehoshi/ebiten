@@ -109,18 +109,6 @@ const (
 	ImageTypeVolatile
 )
 
-// Hint is a hint to optimize the info to restore the image.
-type Hint int
-
-const (
-	// HintNone indicates that there is no hint.
-	HintNone Hint = iota
-
-	// HintOverwriteDstRegion indicates that the destination region is overwritten.
-	// HintOverwriteDstRegion helps to reduce the size of the draw-image history.
-	HintOverwriteDstRegion
-)
-
 // Image represents an image that can be restored when GL context is lost.
 type Image struct {
 	image *graphicscommand.Image
@@ -312,7 +300,7 @@ func (i *Image) WritePixels(pixels *graphics.ManagedBytes, region image.Rectangl
 //	5: Color G
 //	6: Color B
 //	7: Color Y
-func (i *Image) DrawTriangles(srcs [graphics.ShaderSrcImageCount]*Image, vertices []float32, indices []uint32, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderSrcImageCount]image.Rectangle, shader *Shader, uniforms []uint32, fillRule graphicsdriver.FillRule, hint Hint) {
+func (i *Image) DrawTriangles(srcs [graphics.ShaderSrcImageCount]*Image, vertices []float32, indices []uint32, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderSrcImageCount]image.Rectangle, shader *Shader, uniforms []uint32, fillRule graphicsdriver.FillRule) {
 	if len(vertices) == 0 {
 		return
 	}
@@ -336,39 +324,19 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderSrcImageCount]*Image, vertice
 	theImages.makeStaleIfDependingOn(i)
 
 	// TODO: Add tests to confirm this logic.
-	var srcstale bool
 	var srcImages [graphics.ShaderSrcImageCount]*graphicscommand.Image
 	for i, src := range srcs {
 		if src == nil {
 			continue
 		}
 		srcImages[i] = src.image
-		if src.stale || src.imageType == ImageTypeVolatile {
-			srcstale = true
-		}
 	}
 
 	// Even if the image is already stale, call makeStale to extend the stale region.
-	if srcstale {
-		i.makeStale(dstRegion)
-	} else if i.stale {
-		var overwrite bool
-		if hint == HintOverwriteDstRegion {
-			overwrite = i.areStaleRegionsIncludedIn(dstRegion)
-		}
-		if overwrite {
-			i.basePixels.Clear(dstRegion)
-			i.clearDrawTrianglesHistory()
-			i.stale = false
-			i.staleRegions = i.staleRegions[:0]
-		} else {
-			// Even if the image is already stale, call makeStale to extend the stale region.
-			i.makeStale(dstRegion)
-		}
-	}
+	i.makeStale(dstRegion)
 
 	if !i.stale {
-		i.appendDrawTrianglesHistory(srcs, vertices, indices, blend, dstRegion, srcRegions, shader, uniforms, fillRule, hint)
+		i.appendDrawTrianglesHistory(srcs, vertices, indices, blend, dstRegion, srcRegions, shader, uniforms, fillRule)
 	}
 
 	i.image.DrawTriangles(srcImages, vertices, indices, blend, dstRegion, srcRegions, shader.shader, uniforms, fillRule)
@@ -406,17 +374,12 @@ func (i *Image) removeDrawTrianglesHistoryItems(region image.Rectangle) {
 }
 
 // appendDrawTrianglesHistory appends a draw-image history item to the image.
-func (i *Image) appendDrawTrianglesHistory(srcs [graphics.ShaderSrcImageCount]*Image, vertices []float32, indices []uint32, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderSrcImageCount]image.Rectangle, shader *Shader, uniforms []uint32, fillRule graphicsdriver.FillRule, hint Hint) {
+func (i *Image) appendDrawTrianglesHistory(srcs [graphics.ShaderSrcImageCount]*Image, vertices []float32, indices []uint32, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderSrcImageCount]image.Rectangle, shader *Shader, uniforms []uint32, fillRule graphicsdriver.FillRule) {
 	if i.stale || !i.needsRestoration() {
 		panic("restorable: an image must not be stale or need restoration at appendDrawTrianglesHistory")
 	}
 	if AlwaysReadPixelsFromGPU() {
 		panic("restorable: appendDrawTrianglesHistory must not be called when AlwaysReadPixelsFromGPU() returns true")
-	}
-
-	// If the command overwrites the destination region, remove the history items that are in the region.
-	if hint == HintOverwriteDstRegion {
-		i.removeDrawTrianglesHistoryItems(dstRegion)
 	}
 
 	// TODO: Would it be possible to merge draw image history items?
