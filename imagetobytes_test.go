@@ -39,61 +39,123 @@ func TestImageToBytes(t *testing.T) {
 	}
 	bigPalette := color.Palette(p)
 	cases := []struct {
-		In  image.Image
-		Out []uint8
+		Image  image.Image
+		Premul bool
+		Out    []uint8
 	}{
 		{
-			In: &image.Paletted{
-				Pix:    []uint8{0, 1, 1, 0},
+			Image: &image.Paletted{
+				Pix:    []uint8{0, 1, 1, 2},
 				Stride: 2,
 				Rect:   image.Rect(0, 0, 2, 2),
 				Palette: color.Palette([]color.Color{
-					color.Transparent, color.White,
+					color.Transparent, color.White, color.RGBA{0x80, 0x80, 0x80, 0x80},
 				}),
 			},
-			Out: []uint8{0, 0, 0, 0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0, 0, 0, 0},
+			Premul: true,
+			Out:    []uint8{0, 0, 0, 0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x80, 0x80, 0x80, 0x80},
 		},
 		{
-			In:  image.NewPaletted(image.Rect(0, 0, 240, 160), pal).SubImage(image.Rect(238, 158, 240, 160)),
-			Out: []uint8{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
+			Image: &image.Paletted{
+				Pix:    []uint8{0, 1, 1, 2},
+				Stride: 2,
+				Rect:   image.Rect(0, 0, 2, 2),
+				Palette: color.Palette([]color.Color{
+					color.Transparent, color.White, color.RGBA{0x80, 0x80, 0x80, 0x80},
+				}),
+			},
+			Premul: false,
+			Out:    []uint8{0, 0, 0, 0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x80},
 		},
 		{
-			In: &image.RGBA{
+			Image:  image.NewPaletted(image.Rect(0, 0, 240, 160), pal).SubImage(image.Rect(238, 158, 240, 160)),
+			Premul: true,
+			Out:    []uint8{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
+		},
+		{
+			Image:  image.NewPaletted(image.Rect(0, 0, 240, 160), pal).SubImage(image.Rect(238, 158, 240, 160)),
+			Premul: false,
+			Out:    []uint8{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
+		},
+		{
+			Image: &image.RGBA{
 				Pix:    []uint8{0, 0, 0, 0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0, 0, 0, 0},
 				Stride: 8,
 				Rect:   image.Rect(0, 0, 2, 2),
 			},
-			Out: []uint8{0, 0, 0, 0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0, 0, 0, 0},
+			Premul: true,
+			Out:    []uint8{0, 0, 0, 0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0, 0, 0, 0},
 		},
 		{
-			In: &image.NRGBA{
+			Image: &image.RGBA{
+				Pix:    []uint8{0, 0, 0, 0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0, 0, 0, 0},
+				Stride: 8,
+				Rect:   image.Rect(0, 0, 2, 2),
+			},
+			Premul: false,
+			Out:    []uint8{0, 0, 0, 0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0, 0, 0, 0},
+		},
+		{
+			Image: &image.NRGBA{
 				Pix:    []uint8{0, 0, 0, 0, 0xff, 0xff, 0xff, 0x80, 0x80, 0x80, 0x80, 0x80, 0, 0, 0, 0},
 				Stride: 8,
 				Rect:   image.Rect(0, 0, 2, 2),
 			},
-			Out: []uint8{0, 0, 0, 0, 0x80, 0x80, 0x80, 0x80, 0x40, 0x40, 0x40, 0x80, 0, 0, 0, 0},
+			Premul: true,
+			Out:    []uint8{0, 0, 0, 0, 0x80, 0x80, 0x80, 0x80, 0x40, 0x40, 0x40, 0x80, 0, 0, 0, 0},
 		},
 		{
-			In: &image.Paletted{
+			Image: &image.NRGBA{
+				Pix:    []uint8{0, 0, 0, 0, 0xff, 0xff, 0xff, 0x80, 0x80, 0x80, 0x80, 0x80, 0, 0, 0, 0},
+				Stride: 8,
+				Rect:   image.Rect(0, 0, 2, 2),
+			},
+			Premul: false,
+			Out:    []uint8{0, 0, 0, 0, 0xff, 0xff, 0xff, 0x80, 0x80, 0x80, 0x80, 0x80, 0, 0, 0, 0},
+		},
+		{
+			Image: &image.Paletted{
 				Pix:     []uint8{0, 64, 0, 0},
 				Stride:  2,
 				Rect:    image.Rect(0, 0, 2, 2),
 				Palette: bigPalette,
 			},
-			Out: []uint8{0, 0, 0, 0, 0xff, 0xff, 0xff, 0xff, 0, 0, 0, 0, 0, 0, 0, 0},
+			Premul: true,
+			Out:    []uint8{0, 0, 0, 0, 0xff, 0xff, 0xff, 0xff, 0, 0, 0, 0, 0, 0, 0, 0},
 		},
 		{
-			In: (&image.Paletted{
+			Image: &image.Paletted{
+				Pix:     []uint8{0, 64, 0, 0},
+				Stride:  2,
+				Rect:    image.Rect(0, 0, 2, 2),
+				Palette: bigPalette,
+			},
+			Premul: false,
+			Out:    []uint8{0, 0, 0, 0, 0xff, 0xff, 0xff, 0xff, 0, 0, 0, 0, 0, 0, 0, 0},
+		},
+		{
+			Image: (&image.Paletted{
 				Pix:     []uint8{0, 64, 0, 0},
 				Stride:  2,
 				Rect:    image.Rect(0, 0, 2, 2),
 				Palette: bigPalette,
 			}).SubImage(image.Rect(1, 0, 2, 1)),
-			Out: []uint8{0xff, 0xff, 0xff, 0xff},
+			Premul: true,
+			Out:    []uint8{0xff, 0xff, 0xff, 0xff},
+		},
+		{
+			Image: (&image.Paletted{
+				Pix:     []uint8{0, 64, 0, 0},
+				Stride:  2,
+				Rect:    image.Rect(0, 0, 2, 2),
+				Palette: bigPalette,
+			}).SubImage(image.Rect(1, 0, 2, 1)),
+			Premul: false,
+			Out:    []uint8{0xff, 0xff, 0xff, 0xff},
 		},
 	}
 	for i, c := range cases {
-		got := ebiten.ImageToBytes(c.In)
+		got := ebiten.ImageToBytes(c.Image, c.Premul)
 		want := c.Out
 		if !bytes.Equal(got, want) {
 			t.Errorf("Test %d: got: %v, want: %v", i, got, want)
@@ -104,23 +166,23 @@ func TestImageToBytes(t *testing.T) {
 func BenchmarkImageToBytesRGBA(b *testing.B) {
 	img := image.NewRGBA(image.Rect(0, 0, 4096, 4096))
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		ebiten.ImageToBytes(img)
+	for range b.N {
+		ebiten.ImageToBytes(img, true)
 	}
 }
 
 func BenchmarkImageToBytesNRGBA(b *testing.B) {
 	img := image.NewNRGBA(image.Rect(0, 0, 4096, 4096))
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		ebiten.ImageToBytes(img)
+	for range b.N {
+		ebiten.ImageToBytes(img, true)
 	}
 }
 
 func BenchmarkImageToBytesPaletted(b *testing.B) {
 	img := image.NewPaletted(image.Rect(0, 0, 4096, 4096), palette.Plan9)
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		ebiten.ImageToBytes(img)
+	for range b.N {
+		ebiten.ImageToBytes(img, true)
 	}
 }

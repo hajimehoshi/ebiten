@@ -1511,7 +1511,7 @@ func NewImageFromImageWithOptions(source image.Image, options *NewImageFromImage
 		return i
 	}
 
-	i.WritePixels(imageToBytes(source))
+	i.WritePixels(imageToBytes(source, true))
 	return i
 }
 

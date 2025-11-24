@@ -21,12 +21,13 @@ import (
 )
 
 // imageToBytes gets RGBA bytes from img.
+// premultipliedAlpha specifies whether the returned bytes are in premultiplied alpha format or not.
 //
 // Basically imageToBytes just calls draw.Draw.
 // If img is a paletted image, an optimized copying method is used.
 //
-// If img is *image.RGBA and its length is same as 4*width*height, imageToBytes returns its Pix.
-func imageToBytes(img image.Image) []byte {
+// imageToBytes might return img.Pix directly without copying when possible.
+func imageToBytes(img image.Image, premultipliedAlpha bool) []byte {
 	size := img.Bounds().Size()
 	w, h := size.X, size.Y
 
@@ -41,48 +42,70 @@ func imageToBytes(img image.Image) []byte {
 		y1 := b.Max.Y
 
 		palette := make([]uint8, len(img.Palette)*4)
-		for i, c := range img.Palette {
-			// Create a temporary slice to reduce boundary checks.
-			pl := palette[4*i : 4*i+4]
-			rgba := color.RGBAModel.Convert(c).(color.RGBA)
-			pl[0] = rgba.R
-			pl[1] = rgba.G
-			pl[2] = rgba.B
-			pl[3] = rgba.A
+		if premultipliedAlpha {
+			for i, c := range img.Palette {
+				// Create a temporary slice to reduce boundary checks.
+				pl := palette[4*i : 4*i+4]
+				rgba := color.RGBAModel.Convert(c).(color.RGBA)
+				pl[0] = rgba.R
+				pl[1] = rgba.G
+				pl[2] = rgba.B
+				pl[3] = rgba.A
+			}
+		} else {
+			for i, c := range img.Palette {
+				// Create a temporary slice to reduce boundary checks.
+				pl := palette[4*i : 4*i+4]
+				nrgba := color.NRGBAModel.Convert(c).(color.NRGBA)
+				pl[0] = nrgba.R
+				pl[1] = nrgba.G
+				pl[2] = nrgba.B
+				pl[3] = nrgba.A
+			}
 		}
 		// Even img is a subimage of another image, Pix starts with 0-th index.
-		idx0 := 0
-		idx1 := 0
+		var srcIdx, dstIdx int
 		d := img.Stride - (x1 - x0)
-		for j := 0; j < y1-y0; j++ {
-			for i := 0; i < x1-x0; i++ {
-				p := int(img.Pix[idx0])
-				copy(bs[idx1:idx1+4], palette[4*p:4*p+4])
-				idx0++
-				idx1 += 4
+		for range y1 - y0 {
+			for range x1 - x0 {
+				p := int(img.Pix[srcIdx])
+				copy(bs[dstIdx:dstIdx+4], palette[4*p:4*p+4])
+				srcIdx++
+				dstIdx += 4
 			}
-			idx0 += d
+			srcIdx += d
 		}
 		return bs
 	case *image.RGBA:
-		if len(img.Pix) == 4*w*h {
+		if premultipliedAlpha && len(img.Pix) == 4*w*h {
 			return img.Pix
 		}
-		return imageToBytesSlow(img)
-	default:
-		return imageToBytesSlow(img)
+	case *image.NRGBA:
+		if !premultipliedAlpha && len(img.Pix) == 4*w*h {
+			return img.Pix
+		}
 	}
+	return imageToBytesSlow(img, premultipliedAlpha)
 }
 
-func imageToBytesSlow(img image.Image) []byte {
+func imageToBytesSlow(img image.Image, premultipliedAlpha bool) []byte {
 	size := img.Bounds().Size()
 	w, h := size.X, size.Y
 	bs := make([]byte, 4*w*h)
 
-	dstImg := &image.RGBA{
-		Pix:    bs,
-		Stride: 4 * w,
-		Rect:   image.Rect(0, 0, w, h),
+	var dstImg draw.Image
+	if premultipliedAlpha {
+		dstImg = &image.RGBA{
+			Pix:    bs,
+			Stride: 4 * w,
+			Rect:   image.Rect(0, 0, w, h),
+		}
+	} else {
+		dstImg = &image.NRGBA{
+			Pix:    bs,
+			Stride: 4 * w,
+			Rect:   image.Rect(0, 0, w, h),
+		}
 	}
 	draw.Draw(dstImg, image.Rect(0, 0, w, h), img, img.Bounds().Min, draw.Src)
 	return bs
