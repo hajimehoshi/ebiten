@@ -15,13 +15,14 @@
 package metal
 
 import (
+	"fmt"
 	"runtime/cgo"
 	"sync"
 	"time"
 
 	"github.com/ebitengine/purego/objc"
 	"github.com/hajimehoshi/ebiten/v2/internal/cocoa"
-	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
+	"github.com/hajimehoshi/ebiten/v2/internal/color"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/ca"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/mtl"
 )
@@ -86,12 +87,12 @@ func (v *view) colorPixelFormat() mtl.PixelFormat {
 	return v.ml.PixelFormat()
 }
 
-func (v *view) initialize(device mtl.Device, colorSpace graphicsdriver.ColorSpace) error {
+func (v *view) initialize(device mtl.Device, colorSpace color.ColorSpace) error {
 	v.device = device
 
 	ml, err := ca.NewMetalLayer(colorSpace)
 	if err != nil {
-		return err
+		return fmt.Errorf("metal: ca.NewMetalLayer failed: %w", err)
 	}
 	v.ml = ml
 	v.ml.SetDevice(v.device)

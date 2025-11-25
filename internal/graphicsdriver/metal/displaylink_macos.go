@@ -40,6 +40,7 @@ package metal
 // int ebitengine_DisplayLinkOutputCallback(CVDisplayLinkRef displayLinkRef, CVTimeStamp* inNow, CVTimeStamp* inOutputTime, uint64_t flagsIn, uint64_t* flagsOut, void* displayLinkContext);
 import "C"
 import (
+	"fmt"
 	"runtime"
 	"runtime/cgo"
 	"time"
@@ -92,7 +93,7 @@ func (v *view) initCAMetalDisplayLink() error {
 		},
 	)
 	if err != nil {
-		return err
+		return fmt.Errorf("metal: objc.RegisterClass for EbitengineCAMetalDisplayLinkDelegate failed: %w", err)
 	}
 	class_EbitengineCAMetalDisplayLinkDelegate = c
 

@@ -29,7 +29,7 @@ import (
 	"github.com/ebitengine/purego/objc"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/cocoa"
-	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
+	"github.com/hajimehoshi/ebiten/v2/internal/color"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/mtl"
 )
 
@@ -84,7 +84,7 @@ type MetalLayer struct {
 // NewMetalLayer creates a new Core Animation Metal layer.
 //
 // Reference: https://developer.apple.com/documentation/quartzcore/cametallayer?language=objc.
-func NewMetalLayer(colorSpace graphicsdriver.ColorSpace) (MetalLayer, error) {
+func NewMetalLayer(colorSpace color.ColorSpace) (MetalLayer, error) {
 	coreGraphics, err := purego.Dlopen("/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics", purego.RTLD_LAZY|purego.RTLD_GLOBAL)
 	if err != nil {
 		return MetalLayer{}, err
@@ -102,20 +102,20 @@ func NewMetalLayer(colorSpace graphicsdriver.ColorSpace) (MetalLayer, error) {
 
 	var colorSpaceSym uintptr
 	switch colorSpace {
-	case graphicsdriver.ColorSpaceSRGB:
+	case color.ColorSpaceSRGB:
 		kCGColorSpaceSRGB, err := purego.Dlsym(coreGraphics, "kCGColorSpaceSRGB")
 		if err != nil {
 			return MetalLayer{}, err
 		}
 		colorSpaceSym = kCGColorSpaceSRGB
-	default:
-		fallthrough
-	case graphicsdriver.ColorSpaceDisplayP3:
+	case color.ColorSpaceDisplayP3:
 		kCGColorSpaceDisplayP3, err := purego.Dlsym(coreGraphics, "kCGColorSpaceDisplayP3")
 		if err != nil {
 			return MetalLayer{}, err
 		}
 		colorSpaceSym = kCGColorSpaceDisplayP3
+	default:
+		return MetalLayer{}, fmt.Errorf("ca: unsupported color space: %d", colorSpace)
 	}
 
 	layer := objc.ID(class_CAMetalLayer).Send(sel_new)

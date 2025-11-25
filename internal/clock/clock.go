@@ -17,6 +17,7 @@ package clock
 
 import (
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -25,9 +26,13 @@ const (
 	SyncWithFPS = -1
 )
 
+func init() {
+	theTPS.Store(DefaultTPS)
+}
+
 var (
-	// tps represents TPS (ticks per second).
-	tps = DefaultTPS
+	// theTPS represents TPS (ticks per second).
+	theTPS atomic.Int64
 
 	lastNow int64
 
@@ -145,10 +150,11 @@ func UpdateFrame() int {
 	lastNow = n
 
 	c := 0
+	tps := theTPS.Load()
 	if tps == SyncWithFPS {
 		c = 1
 	} else if tps > 0 {
-		c = calcCountFromTPS(int64(tps), n)
+		c = calcCountFromTPS(tps, n)
 	}
 	updateFPSAndTPS(n, c)
 
@@ -156,13 +162,9 @@ func UpdateFrame() int {
 }
 
 func SetTPS(newTPS int) {
-	m.Lock()
-	defer m.Unlock()
-	tps = newTPS
+	theTPS.Store(int64(newTPS))
 }
 
 func TPS() int {
-	m.Lock()
-	defer m.Unlock()
-	return tps
+	return int(theTPS.Load())
 }

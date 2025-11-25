@@ -29,7 +29,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/hook"
-	"github.com/hajimehoshi/ebiten/v2/internal/restorable"
 )
 
 var (
@@ -102,9 +101,6 @@ type userInterfaceImpl struct {
 	fpsMode  atomic.Int32
 	renderer Renderer
 
-	strictContextRestoration     atomic.Bool
-	strictContextRestorationOnce sync.Once
-
 	// uiView is used only on iOS.
 	uiView atomic.Uintptr
 
@@ -160,11 +156,6 @@ func (u *UserInterface) runMobile(game Game, options *RunOptions) (err error) {
 	u.graphicsDriver = g
 	u.setGraphicsLibrary(lib)
 	close(u.graphicsLibraryInitCh)
-	if options.StrictContextRestoration {
-		u.strictContextRestoration.Store(true)
-	} else {
-		restorable.Disable()
-	}
 
 	for {
 		if err := u.update(); err != nil {
@@ -269,12 +260,20 @@ func (u *UserInterface) Window() Window {
 }
 
 type Monitor struct {
+	monitor monitor
+
+	// expireAt is a tick when the cached values expire.
+	// As there is no commmon way to detect monitor changes in Android and iOS,
+	// the values are invalidated regularly.
+	expireAt atomic.Int64
+
+	m sync.Mutex
+}
+
+type monitor struct {
 	width             int
 	height            int
 	deviceScaleFactor float64
-	inited            atomic.Bool
-
-	m sync.Mutex
 }
 
 var theMonitor = &Monitor{}
@@ -283,36 +282,42 @@ func (m *Monitor) Name() string {
 	return ""
 }
 
-func (m *Monitor) ensureInit() {
-	if m.inited.Load() {
-		return
+func (m *Monitor) ensureValues() monitor {
+	if m.expireAt.Load() > theUI.Tick() {
+		return m.monitor
 	}
 
 	m.m.Lock()
 	defer m.m.Unlock()
 	// Re-check the state since the state might be changed while locking.
-	if m.inited.Load() {
-		return
+	if m.expireAt.Load() > theUI.Tick() {
+		return m.monitor
 	}
 	width, height, scale, ok := theUI.displayInfo()
 	if !ok {
-		return
+		// This can happen e.g. when JVM is not ready.
+		return monitor{
+			width:             0,
+			height:            0,
+			deviceScaleFactor: 1,
+		}
 	}
-	m.width = width
-	m.height = height
-	m.deviceScaleFactor = scale
-
-	m.inited.Store(true)
+	m.monitor = monitor{
+		width:             width,
+		height:            height,
+		deviceScaleFactor: scale,
+	}
+	m.expireAt.Store(theUI.Tick() + 1)
+	return m.monitor
 }
 
 func (m *Monitor) DeviceScaleFactor() float64 {
-	m.ensureInit()
-	return m.deviceScaleFactor
+	return m.ensureValues().deviceScaleFactor
 }
 
 func (m *Monitor) Size() (int, int) {
-	m.ensureInit()
-	return m.width, m.height
+	mon := m.ensureValues()
+	return mon.width, mon.height
 }
 
 func (u *UserInterface) SafeArea() image.Rectangle {
@@ -352,10 +357,6 @@ func (u *UserInterface) ScheduleFrame() {
 
 func (u *UserInterface) updateIconIfNeeded() error {
 	return nil
-}
-
-func (u *UserInterface) UsesStrictContextRestoration() bool {
-	return u.strictContextRestoration.Load()
 }
 
 func IsScreenTransparentAvailable() bool {

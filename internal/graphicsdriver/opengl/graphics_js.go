@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"syscall/js"
 
+	"github.com/hajimehoshi/ebiten/v2/internal/color"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl/gl"
 )
@@ -27,7 +28,7 @@ type graphicsPlatform struct {
 
 // NewGraphics creates an implementation of graphicsdriver.Graphics for OpenGL.
 // The returned graphics value is nil iff the error is not nil.
-func NewGraphics(canvas js.Value, colorSpace graphicsdriver.ColorSpace) (graphicsdriver.Graphics, error) {
+func NewGraphics(canvas js.Value, colorSpace color.ColorSpace) (graphicsdriver.Graphics, error) {
 	var glContext js.Value
 
 	attr := js.Global().Get("Object").New()
@@ -42,10 +43,12 @@ func NewGraphics(canvas js.Value, colorSpace graphicsdriver.ColorSpace) (graphic
 	}
 
 	switch colorSpace {
-	case graphicsdriver.ColorSpaceSRGB:
+	case color.ColorSpaceSRGB:
 		glContext.Set("drawingBufferColorSpace", "srgb")
-	case graphicsdriver.ColorSpaceDisplayP3:
+	case color.ColorSpaceDisplayP3:
 		glContext.Set("drawingBufferColorSpace", "display-p3")
+	default:
+		return nil, fmt.Errorf("opengl: unsupported color space: %d", colorSpace)
 	}
 
 	ctx, err := gl.NewDefaultContext(glContext)
@@ -53,7 +56,7 @@ func NewGraphics(canvas js.Value, colorSpace graphicsdriver.ColorSpace) (graphic
 		return nil, err
 	}
 
-	return newGraphics(ctx), nil
+	return newGraphics(ctx, colorSpace), nil
 }
 
 func (g *Graphics) makeContextCurrent() error {

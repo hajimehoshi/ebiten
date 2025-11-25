@@ -19,10 +19,11 @@ import (
 	"image"
 	"image/color"
 	"io/fs"
+	"runtime"
 	"sync/atomic"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/clock"
-	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
+	ecolor "github.com/hajimehoshi/ebiten/v2/internal/color"
 	"github.com/hajimehoshi/ebiten/v2/internal/inputstate"
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
@@ -352,6 +353,7 @@ func RunGameWithOptions(game Game, options *RunGameOptions) error {
 	initializeWindowPositionIfNeeded(WindowSize())
 
 	op := toUIRunOptions(options)
+
 	// This is necessary to change the result of IsScreenTransparent.
 	screenTransparent.Store(op.ScreenTransparent)
 	g := newGameForUI(game, op.ScreenTransparent)
@@ -700,10 +702,20 @@ func toUIRunOptions(options *RunGameOptions) *ui.RunOptions {
 		defaultX11InstanceName = "ebitengine-application"
 	)
 
+	colorSpace := ecolor.ColorSpaceSRGB
+	if options != nil && options.ColorSpace != ColorSpaceDefault {
+		colorSpace = ecolor.ColorSpace(options.ColorSpace)
+	} else if runtime.GOOS == "darwin" || runtime.GOOS == "ios" {
+		// On macOS or iOS, the default color space is Display P3.
+		// TODO: Remove this logic at v3. sRGB should be the default in the future (#3349).
+		colorSpace = ecolor.ColorSpaceDisplayP3
+	}
+
 	if options == nil {
 		return &ui.RunOptions{
 			InitUnfocused:     initUnfocused.Load(),
 			ScreenTransparent: screenTransparent.Load(),
+			ColorSpace:        colorSpace,
 			X11ClassName:      defaultX11ClassName,
 			X11InstanceName:   defaultX11InstanceName,
 		}
@@ -716,28 +728,6 @@ func toUIRunOptions(options *RunGameOptions) *ui.RunOptions {
 		options.X11InstanceName = defaultX11InstanceName
 	}
 
-	// ui.RunOptions.StrictContextRestoration is not used so far (#3098).
-	// This might be reused in the future.
-	// The original comment for StrictContextRestration is as follows:
-	//
-	// StrictContextRestration indicates whether the context lost should be restored strictly by Ebitengine or not.
-	//
-	// StrictContextRestration is available only on Android. Otherwise, StrictContextRestration is ignored.
-	// Thus, StrictContextRestration should be used with mobile.SetGameWithOptions, rather than RunGameWithOptions.
-	//
-	// In Android, Ebitengien uses `GLSurfaceView`'s `setPreserveEGLContextOnPause(true)`.
-	// This works in most cases, but it is still possible that the context is lost in some minor cases.
-	//
-	// When StrictContextRestration is true, Ebitengine tries to restore the context more strictly
-	// for such minor cases.
-	// However, this might cause a performance issue since Ebitengine tries to keep all the information
-	// to restore the context.
-	//
-	// When StrictContextRestration is false, Ebitengine does nothing special to restore the context and
-	// relies on the OS's behavior.
-	//
-	// The default (zero) value is false.
-
 	return &ui.RunOptions{
 		GraphicsLibrary:          ui.GraphicsLibrary(options.GraphicsLibrary),
 		InitUnfocused:            options.InitUnfocused,
@@ -745,7 +735,7 @@ func toUIRunOptions(options *RunGameOptions) *ui.RunOptions {
 		SkipTaskbar:              options.SkipTaskbar,
 		SingleThread:             options.SingleThread,
 		DisableHiDPI:             options.DisableHiDPI,
-		ColorSpace:               graphicsdriver.ColorSpace(options.ColorSpace),
+		ColorSpace:               colorSpace,
 		ApplePressAndHoldEnabled: options.ApplePressAndHoldEnabled,
 		X11ClassName:             options.X11ClassName,
 		X11InstanceName:          options.X11InstanceName,

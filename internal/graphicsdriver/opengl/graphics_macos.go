@@ -17,6 +17,7 @@
 package opengl
 
 import (
+	"github.com/hajimehoshi/ebiten/v2/internal/color"
 	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl/gl"
@@ -51,7 +52,7 @@ func NewGraphics() (graphicsdriver.Graphics, error) {
 		return nil, err
 	}
 
-	return newGraphics(ctx), nil
+	return newGraphics(ctx, color.ColorSpaceSRGB), nil
 }
 
 func (g *Graphics) SetGLFWWindow(window *glfw.Window) {

@@ -25,6 +25,7 @@ import (
 	"github.com/ebitengine/purego/objc"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/cocoa"
+	"github.com/hajimehoshi/ebiten/v2/internal/color"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/ca"
@@ -37,7 +38,7 @@ var sel_supportsFamily = objc.RegisterName("supportsFamily:")
 type Graphics struct {
 	view view
 
-	colorSpace graphicsdriver.ColorSpace
+	colorSpace color.ColorSpace
 
 	cq   mtl.CommandQueue
 	cb   mtl.CommandBuffer
@@ -102,7 +103,7 @@ func init() {
 
 // NewGraphics creates an implementation of graphicsdriver.Graphics for Metal.
 // The returned graphics value is nil iff the error is not nil.
-func NewGraphics(colorSpace graphicsdriver.ColorSpace) (graphicsdriver.Graphics, error) {
+func NewGraphics(colorSpace color.ColorSpace) (graphicsdriver.Graphics, error) {
 	// On old mac devices like iMac 2011, Metal is not supported (#779).
 	// TODO: Is there a better way to check whether Metal is available or not?
 	// It seems OK to call MTLCreateSystemDefaultDevice multiple times, so this should be fine.
@@ -122,6 +123,10 @@ func NewGraphics(colorSpace graphicsdriver.ColorSpace) (graphicsdriver.Graphics,
 		}
 	}
 	return g, nil
+}
+
+func (g *Graphics) ColorSpace() color.ColorSpace {
+	return g.colorSpace
 }
 
 func (g *Graphics) Begin() error {

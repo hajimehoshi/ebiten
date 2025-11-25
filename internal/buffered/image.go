@@ -21,7 +21,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
-	"github.com/hajimehoshi/ebiten/v2/internal/restorable"
 )
 
 var whiteImage *Image
@@ -47,8 +46,6 @@ type Image struct {
 	// pixels is cached pixels for ReadPixels.
 	// pixels might be out of sync with GPU.
 	// The data of pixels is the secondary data of pixels for ReadPixels.
-	//
-	// pixels is always nil when restorable.AlwaysReadPixelsFromGPU() returns false.
 	pixels []byte
 
 	// pixelsUnsynced represents whether the pixels in CPU and GPU are not synced.
@@ -76,16 +73,6 @@ func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte
 			copy(pixels, c[:])
 			return true, nil
 		}
-	}
-
-	// If restorable.AlwaysReadPixelsFromGPU() returns false, the pixel data is cached in the restorable package.
-	if !restorable.AlwaysReadPixelsFromGPU() {
-		i.syncPixelsIfNeeded()
-		ok, err := i.img.ReadPixels(graphicsDriver, pixels, region)
-		if err != nil {
-			return false, err
-		}
-		return ok, nil
 	}
 
 	// Do not call syncPixelsIfNeeded here. This would slow (image/draw).Draw.
@@ -196,7 +183,7 @@ func (i *Image) WritePixels(pix []byte, region image.Rectangle) {
 // DrawTriangles draws the src image with the given vertices.
 //
 // Copying vertices and indices is the caller's responsibility.
-func (i *Image) DrawTriangles(srcs [graphics.ShaderSrcImageCount]*Image, vertices []float32, indices []uint32, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderSrcImageCount]image.Rectangle, shader *atlas.Shader, uniforms []uint32, fillRule graphicsdriver.FillRule, hint restorable.Hint) {
+func (i *Image) DrawTriangles(srcs [graphics.ShaderSrcImageCount]*Image, vertices []float32, indices []uint32, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderSrcImageCount]image.Rectangle, shader *atlas.Shader, uniforms []uint32, fillRule graphicsdriver.FillRule) {
 	for _, src := range srcs {
 		if i == src {
 			panic("buffered: Image.DrawTriangles: source images must be different from the receiver")
@@ -218,7 +205,7 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderSrcImageCount]*Image, vertice
 		imgs[i] = img.img
 	}
 
-	i.img.DrawTriangles(imgs, vertices, indices, blend, dstRegion, srcRegions, shader, uniforms, fillRule, hint)
+	i.img.DrawTriangles(imgs, vertices, indices, blend, dstRegion, srcRegions, shader, uniforms, fillRule)
 
 	// After rendering, the pixel cache is no longer valid.
 	i.pixels = nil
@@ -312,7 +299,7 @@ func (i *Image) syncPixelsIfNeeded() {
 	dr := image.Rect(0, 0, i.width, i.height)
 	sr := image.Rect(0, 0, whiteImage.width, whiteImage.height)
 	blend := graphicsdriver.BlendCopy
-	i.img.DrawTriangles(srcs, vs, is, blend, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, atlas.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll, restorable.HintNone)
+	i.img.DrawTriangles(srcs, vs, is, blend, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, atlas.NearestFilterShader, nil, graphicsdriver.FillRuleFillAll)
 
 	clear(i.dotsBuffer)
 }

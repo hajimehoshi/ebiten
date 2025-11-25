@@ -25,6 +25,7 @@ import (
 	"runtime"
 	"unsafe"
 
+	"github.com/hajimehoshi/ebiten/v2/internal/color"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
@@ -65,6 +66,10 @@ func (g *Graphics) Initialize() error {
 		return newPlaystation5Error("(*playstation5.Graphics).Initialize", err)
 	}
 	return nil
+}
+
+func (g *Graphics) ColorSpace() color.ColorSpace {
+	return color.ColorSpaceSRGB
 }
 
 func (g *Graphics) Begin() error {

@@ -19,6 +19,7 @@ package gl
 import (
 	"errors"
 	"fmt"
+	"os"
 
 	"github.com/ebitengine/purego"
 )
@@ -32,14 +33,19 @@ func (c *defaultContext) init() error {
 	var errs []error
 
 	// Try OpenGL ES first. Some machines like Android and Raspberry Pi might work only with OpenGL ES.
-	for _, name := range []string{"libGLESv2.so", "libGLESv2.so.2", "libGLESv2.so.1", "libGLESv2.so.0"} {
-		lib, err := purego.Dlopen(name, purego.RTLD_LAZY|purego.RTLD_GLOBAL)
-		if err == nil {
-			libGLES = lib
-			c.isES = true
-			return nil
+	//
+	// Do not use OpenGL ES for Steam, as overlays might not work properly (#3338).
+	// With Steam, OpenGL (not ES) should be available anyway.
+	if os.Getenv("SteamEnv") != "1" {
+		for _, name := range []string{"libGLESv2.so", "libGLESv2.so.2", "libGLESv2.so.1", "libGLESv2.so.0"} {
+			lib, err := purego.Dlopen(name, purego.RTLD_LAZY|purego.RTLD_GLOBAL)
+			if err == nil {
+				libGLES = lib
+				c.isES = true
+				return nil
+			}
+			errs = append(errs, fmt.Errorf("gl: Dlopen failed: name: %s: %w", name, err))
 		}
-		errs = append(errs, fmt.Errorf("gl: Dlopen failed: name: %s: %w", name, err))
 	}
 
 	// Try OpenGL next.

@@ -21,6 +21,7 @@ import (
 
 	"golang.org/x/sys/windows"
 
+	"github.com/hajimehoshi/ebiten/v2/internal/color"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
@@ -287,6 +288,10 @@ func newGraphics11(useWARP bool, useDebugLayer bool) (gr11 *graphics11, ferr err
 
 func (g *graphics11) Initialize() error {
 	return nil
+}
+
+func (g *graphics11) ColorSpace() color.ColorSpace {
+	return color.ColorSpaceSRGB
 }
 
 func (g *graphics11) Begin() error {

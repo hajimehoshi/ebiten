@@ -1,4 +1,4 @@
-// Copyright 2023 The Ebitengine Authors
+// Copyright 2025 The Ebitengine Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,17 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package restorable
+package color
 
-import (
-	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
+type ColorSpace int
+
+const (
+	// ColorSpaceSRGB value starts from 1 to avoid conflict with ebiten.ColorSpaceDefault.
+	// TODO: Remove +1 at v3. (#3349)
+	ColorSpaceSRGB ColorSpace = iota + 1
+	ColorSpaceDisplayP3
 )
-
-// EnableRestorationForTesting forces to enable restoration for testing.
-func EnableRestorationForTesting() {
-	forceRestoration = true
-}
-
-func ResolveStaleImages(graphicsDriver graphicsdriver.Graphics) error {
-	return resolveStaleImages(graphicsDriver, false)
-}
