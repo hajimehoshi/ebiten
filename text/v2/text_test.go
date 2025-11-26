@@ -389,7 +389,6 @@ func TestGoXFaceMetrics(t *testing.T) {
 	}
 
 	for _, fontFile := range fontFiles {
-		fontFile := fontFile
 		t.Run(fontFile, func(t *testing.T) {
 			fontdata, err := os.ReadFile(filepath.Join("testdata", fontFile))
 			if err != nil {
@@ -457,7 +456,6 @@ func TestCollection(t *testing.T) {
 		"/System/Library/Fonts/Helvetica.ttc",
 	}
 	for _, path := range fontFilePaths {
-		path := path
 		t.Run(path, func(t *testing.T) {
 			bs, err := os.ReadFile(path)
 			if err != nil {

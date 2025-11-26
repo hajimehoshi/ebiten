@@ -166,7 +166,6 @@ func Compile(p *shaderir.Program) (vertexShader, pixelShader, vertexPrelude, pix
 		// Use all the functions for testing.
 		vsfuncs = make([]*shaderir.Func, 0, len(p.Funcs))
 		for _, f := range p.Funcs {
-			f := f
 			vsfuncs = append(vsfuncs, &f)
 		}
 	}
@@ -218,7 +217,6 @@ func Compile(p *shaderir.Program) (vertexShader, pixelShader, vertexPrelude, pix
 		// Use all the functions for testing.
 		psfuncs = make([]*shaderir.Func, 0, len(p.Funcs))
 		for _, f := range p.Funcs {
-			f := f
 			psfuncs = append(psfuncs, &f)
 		}
 	}

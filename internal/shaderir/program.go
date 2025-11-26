@@ -399,7 +399,6 @@ func IsValidSwizzling(s string) bool {
 func (p *Program) ReachableFuncsFromBlock(block *Block) []*Func {
 	indexToFunc := map[int]*Func{}
 	for _, f := range p.Funcs {
-		f := f
 		indexToFunc[f.Index] = &f
 	}
 
@@ -455,7 +454,6 @@ func walkExprsInExpr(f func(expr *Expr), expr *Expr) {
 func (p *Program) appendReachableUniformVariablesFromBlock(indices []int, block *Block) []int {
 	indexToFunc := map[int]*Func{}
 	for _, f := range p.Funcs {
-		f := f
 		indexToFunc[f.Index] = &f
 	}
 

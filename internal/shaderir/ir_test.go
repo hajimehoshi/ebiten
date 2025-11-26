@@ -1076,7 +1076,6 @@ void main(void) {
 		},
 	}
 	for _, tc := range tests {
-		tc := tc
 		t.Run(tc.Name, func(t *testing.T) {
 			vs, fs := glsl.Compile(&tc.Program, glsl.GLSLVersionDefault)
 			{

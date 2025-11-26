@@ -60,10 +60,8 @@ func TestFloat32(t *testing.T) {
 		},
 	}
 	for _, c := range cases {
-		c := c
 		t.Run(c.Name, func(t *testing.T) {
 			for _, seek := range []bool{false, true} {
-				seek := seek
 				name := "nonseek"
 				if seek {
 					name = "seek"
