@@ -265,7 +265,6 @@ func (g *GoTextFaceSource) shapeImpl(text string, face *GoTextFace) ([]shaping.O
 		indices = append(indices, len(text))
 
 		for _, gl := range out.Glyphs {
-			gl := gl
 			var segs []opentype.Segment
 			if g.glyphDataCache == nil {
 				g.glyphDataCache = newCache[glyphDataCacheKey, font.GlyphData](512)

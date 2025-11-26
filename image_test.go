@@ -2074,7 +2074,6 @@ func TestImageDrawTrianglesWithColorM(t *testing.T) {
 		ebiten.ColorScaleModeStraightAlpha,
 		ebiten.ColorScaleModePremultipliedAlpha,
 	} {
-		format := format
 		t.Run(fmt.Sprintf("format%d", format), func(t *testing.T) {
 			var cr, cg, cb, ca float32
 			switch format {
@@ -2203,7 +2202,6 @@ func TestImageDrawTrianglesInterpolatesColors(t *testing.T) {
 		ebiten.ColorScaleModeStraightAlpha,
 		ebiten.ColorScaleModePremultipliedAlpha,
 	} {
-		format := format
 		t.Run(fmt.Sprintf("format%d", format), func(t *testing.T) {
 			dst := ebiten.NewImage(w, h)
 			dst.Fill(color.RGBA{B: 0xff, A: 0xff})
@@ -2829,7 +2827,6 @@ func TestImageEvenOdd(t *testing.T) {
 
 func TestImageFillRule(t *testing.T) {
 	for _, fillRule := range []ebiten.FillRule{ebiten.FillRuleFillAll, ebiten.FillRuleNonZero, ebiten.FillRuleEvenOdd} {
-		fillRule := fillRule
 		var name string
 		switch fillRule {
 		case ebiten.FillRuleFillAll:
@@ -3828,7 +3825,6 @@ func TestImageColorMAndScale(t *testing.T) {
 		ebiten.ColorScaleModeStraightAlpha,
 		ebiten.ColorScaleModePremultipliedAlpha,
 	} {
-		format := format
 		t.Run(fmt.Sprintf("format%d", format), func(t *testing.T) {
 			dst := ebiten.NewImage(w, h)
 

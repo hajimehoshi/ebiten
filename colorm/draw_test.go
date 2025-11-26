@@ -109,7 +109,6 @@ func TestDrawTrianglesWithColorM(t *testing.T) {
 		ebiten.ColorScaleModeStraightAlpha,
 		ebiten.ColorScaleModePremultipliedAlpha,
 	} {
-		format := format
 		t.Run(fmt.Sprintf("format%d", format), func(t *testing.T) {
 			var cr, cg, cb, ca float32
 			switch format {
@@ -239,7 +238,6 @@ func TestColorMAndScale(t *testing.T) {
 		ebiten.ColorScaleModeStraightAlpha,
 		ebiten.ColorScaleModePremultipliedAlpha,
 	} {
-		format := format
 		t.Run(fmt.Sprintf("format%d", format), func(t *testing.T) {
 			dst := ebiten.NewImage(w, h)
 

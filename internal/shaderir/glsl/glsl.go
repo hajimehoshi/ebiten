@@ -153,7 +153,6 @@ func Compile(p *shaderir.Program, version GLSLVersion) (vertexShader, fragmentSh
 			// When a vertex entry point is not defined, allow to put all the functions. This is useful for testing.
 			funcs = make([]*shaderir.Func, 0, len(p.Funcs))
 			for _, f := range p.Funcs {
-				f := f
 				funcs = append(funcs, &f)
 			}
 		}
@@ -239,7 +238,6 @@ func Compile(p *shaderir.Program, version GLSLVersion) (vertexShader, fragmentSh
 			// When a fragment entry point is not defined, allow to put all the functions. This is useful for testing.
 			funcs = make([]*shaderir.Func, 0, len(p.Funcs))
 			for _, f := range p.Funcs {
-				f := f
 				funcs = append(funcs, &f)
 			}
 		}

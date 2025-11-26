@@ -60,10 +60,8 @@ func TestStereoF32(t *testing.T) {
 		},
 	}
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.Name, func(t *testing.T) {
 			for _, mono := range []bool{false, true} {
-				mono := mono
 				t.Run(fmt.Sprintf("mono=%t", mono), func(t *testing.T) {
 					var inBytes, outBytes []byte
 					for _, v := range tc.In {

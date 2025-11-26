@@ -90,10 +90,8 @@ func TestResampling(t *testing.T) {
 		},
 	}
 	for _, c := range cases {
-		c := c
 		t.Run(fmt.Sprintf("%d to %d", c.In, c.Out), func(t *testing.T) {
 			for _, bitDepthInBytes := range []int{2, 4} {
-				bitDepthInBytes := bitDepthInBytes
 				t.Run(fmt.Sprintf("bitDepthInBytes=%d", bitDepthInBytes), func(t *testing.T) {
 					for _, seek := range []bool{false, true} {
 						t.Run(fmt.Sprintf("seek=%v", seek), func(t *testing.T) {

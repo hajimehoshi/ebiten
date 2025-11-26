@@ -645,7 +645,6 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 	}
 
 	for _, shader := range shaders {
-		shader := shader
 		t.Run(shader.Name, func(t *testing.T) {
 			const w, h = 1, 1
 
@@ -1624,7 +1623,6 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 		},
 	}
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.Name, func(t *testing.T) {
 			const w, h = 1, 1
 
@@ -1815,7 +1813,6 @@ func TestShaderDifferentTextureSizes(t *testing.T) {
 	src1.Fill(color.RGBA{0x30, 0x20, 0x10, 0xff})
 
 	for _, unit := range []string{"texels", "pixels"} {
-		unit := unit
 		t.Run(fmt.Sprintf("unit %s", unit), func(t *testing.T) {
 			shader, err := ebiten.NewShader([]byte(fmt.Sprintf(`//kage:unit %s
 
@@ -1981,7 +1978,6 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 		},
 	}
 	for _, tc := range tests {
-		tc := tc
 		t.Run(fmt.Sprintf("%v", tc.uniforms), func(t *testing.T) {
 			defer func() {
 				r := recover()
@@ -2096,7 +2092,6 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 		}
 
 		for _, withSrc := range []bool{false, true} {
-			withSrc := withSrc
 			title := "WithSrc,unit=" + unit
 			if !withSrc {
 				title = "WithoutSrc,unit=" + unit
@@ -2189,7 +2184,6 @@ func TestShaderDifferentSourceSizes(t *testing.T) {
 	src1.Fill(color.RGBA{0x30, 0x20, 0x10, 0xff})
 
 	for _, unit := range []string{"texels", "pixels"} {
-		unit := unit
 		t.Run(fmt.Sprintf("unit %s", unit), func(t *testing.T) {
 			if unit == "texels" {
 				defer func() {
@@ -2292,7 +2286,6 @@ func TestShaderBitwiseOperator(t *testing.T) {
 	src.Fill(color.RGBA{R: 0x24, G: 0x3f, B: 0x6a, A: 0xff})
 
 	for _, assign := range []bool{false, true} {
-		assign := assign
 		name := "op"
 		if assign {
 			name = "op+assign"
