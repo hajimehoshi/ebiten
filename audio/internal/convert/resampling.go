@@ -80,8 +80,11 @@ func sinc01(x float64) float64 {
 }
 
 type Resampling struct {
-	source          io.Reader
-	size            int64
+	source io.Reader
+
+	// size is the length of the source stream in bytes. 0 indicates the length is unknown.
+	size int64
+
 	from            int
 	to              int
 	bitDepthInBytes int
@@ -199,10 +202,8 @@ func (r *Resampling) src(i int64) (float64, float64, error) {
 	if r.eofBufIndex == r.srcBlock && ii >= int64(len(r.srcBufL[r.srcBlock])-1) {
 		err = io.EOF
 	}
-	if _, ok := r.source.(io.Seeker); ok {
-		if r.size/sizePerSample <= i {
-			err = io.EOF
-		}
+	if r.size > 0 && r.size/sizePerSample <= i {
+		err = io.EOF
 	}
 	return r.srcBufL[r.srcBlock][ii], r.srcBufR[r.srcBlock][ii], err
 }
@@ -215,8 +216,7 @@ func (r *Resampling) at(t int64) (float64, float64, error) {
 		startN = 0
 	}
 	endN := int64(tInSrc + windowSize)
-	lv := 0.0
-	rv := 0.0
+	var lv, rv float64
 	var eof bool
 	for n := startN; n <= endN; n++ {
 		srcL, srcR, err := r.src(n)
@@ -259,11 +259,13 @@ func (r *Resampling) Read(b []byte) (int, error) {
 	n := len(b) / size * size
 	switch r.bitDepthInBytes {
 	case 2:
-		for i := 0; i < n/size; i++ {
+		for i := range n / size {
 			ldata, rdata, err := r.at(r.pos/int64(size) + int64(i))
 			if err != nil && err != io.EOF {
 				return 0, err
 			}
+			// EOF from the at method indicates that the source reaches the end, and doesn't indicate the resampled data ends.
+			// Continue the loop even if EOF is returned.
 			if err == io.EOF {
 				r.eof = true
 			}
@@ -273,9 +275,14 @@ func (r *Resampling) Read(b []byte) (int, error) {
 			b[4*i+1] = byte(l16 >> 8)
 			b[4*i+2] = byte(r16)
 			b[4*i+3] = byte(r16 >> 8)
+			// If the source is an io.Seeker and the length is known, check whether the resampled data ends (#3352).
+			if r.size > 0 && r.pos+int64(size*i) >= r.Length() {
+				n = size * i
+				break
+			}
 		}
 	case 4:
-		for i := 0; i < n/size; i++ {
+		for i := range n / size {
 			ldata, rdata, err := r.at(r.pos/int64(size) + int64(i))
 			if err != nil && err != io.EOF {
 				return 0, err
@@ -295,6 +302,10 @@ func (r *Resampling) Read(b []byte) (int, error) {
 			b[8*i+5] = byte(r32b >> 8)
 			b[8*i+6] = byte(r32b >> 16)
 			b[8*i+7] = byte(r32b >> 24)
+			if r.size > 0 && r.pos+int64(size*i) >= r.Length() {
+				n = size * i
+				break
+			}
 		}
 	default:
 		panic("not reached")

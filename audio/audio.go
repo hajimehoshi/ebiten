@@ -556,7 +556,7 @@ func (h *hookerImpl) AppendHookOnBeforeUpdate(f func() error) {
 }
 
 // ResampleReader converts the sample rate of the given singed 16bit integer, little-endian, 2 channels (stereo) stream.
-// size is the length of the source stream in bytes.
+// size is the length of the source stream in bytes. 0 indicates the length is unknown.
 // from is the original sample rate.
 // to is the target sample rate.
 //
@@ -573,7 +573,7 @@ func ResampleReader(source io.Reader, size int64, from, to int) io.Reader {
 }
 
 // ResampleReaderF32 converts the sample rate of the given 32bit float, little-endian, 2 channels (stereo) stream.
-// size is the length of the source stream in bytes.
+// size is the length of the source stream in bytes. 0 indicates the length is unknown.
 // from is the original sample rate.
 // to is the target sample rate.
 //
@@ -590,7 +590,7 @@ func ResampleReaderF32(source io.Reader, size int64, from, to int) io.Reader {
 }
 
 // Resample converts the sample rate of the given singed 16bit integer, little-endian, 2 channels (stereo) stream.
-// size is the length of the source stream in bytes.
+// size is the length of the source stream in bytes. 0 indicates the length is unknown.
 // from is the original sample rate.
 // to is the target sample rate.
 //
@@ -605,7 +605,7 @@ func Resample(source io.ReadSeeker, size int64, from, to int) io.ReadSeeker {
 }
 
 // ResampleF32 converts the sample rate of the given 32bit float, little-endian, 2 channels (stereo) stream.
-// size is the length of the source stream in bytes.
+// size is the length of the source stream in bytes. 0 indicates the length is unknown.
 // from is the original sample rate.
 // to is the target sample rate.
 //

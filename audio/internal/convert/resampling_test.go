@@ -164,3 +164,20 @@ func TestResampling(t *testing.T) {
 		})
 	}
 }
+
+// Issue #3352
+func TestResamplingLen(t *testing.T) {
+	buf := make([]byte, 8*48000)
+	src := bytes.NewReader(buf)
+	resampled := convert.NewResampling(src, int64(len(buf)), 48000, 96000, 4)
+	if got, want := resampled.Length(), int64(len(buf)*2); got != want {
+		t.Errorf("got: %d, want: %d", got, want)
+	}
+	decodedBuf, err := io.ReadAll(resampled)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := len(decodedBuf), int(len(buf)*2); got != want {
+		t.Errorf("got: %d, want: %d", got, want)
+	}
+}
