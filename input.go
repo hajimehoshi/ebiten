@@ -171,8 +171,7 @@ func GamepadAxisNum(id GamepadID) int {
 }
 
 // GamepadAxisValue returns a float value [-1.0 - 1.0] of the given gamepad (id)'s axis (axis).
-// For a horizontal axis, -1.0 means left and 1.0 means right.
-// For a vertical axis, -1.0 means up and 1.0 means down.
+// The value depends on the gamepad layout.
 //
 // GamepadAxisValue is concurrent-safe.
 func GamepadAxisValue(id GamepadID, axis GamepadAxisType) float64 {
@@ -240,6 +239,8 @@ func IsGamepadButtonPressed(id GamepadID, button GamepadButton) bool {
 }
 
 // StandardGamepadAxisValue returns a float value [-1.0 - 1.0] of the given gamepad (id)'s standard axis (axis).
+// For a horizontal axis, -1.0 means left and 1.0 means right.
+// For a vertical axis, -1.0 means up and 1.0 means down.
 //
 // StandardGamepadAxisValue returns 0 when the gamepad doesn't have a standard gamepad layout mapping.
 //
