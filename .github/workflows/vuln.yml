@@ -22,7 +22,7 @@ jobs:
           git config --global core.eol lf
 
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Go version
         id: go
@@ -30,7 +30,7 @@ jobs:
           echo "version=$(curl --location https://go.dev/VERSION?m=text | head -n 1 | sed -e s/^go//)" >> $GITHUB_OUTPUT
 
       - name: Setup Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version: ${{ steps.go.outputs.version }}
 
