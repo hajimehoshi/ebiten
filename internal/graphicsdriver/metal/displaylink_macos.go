@@ -40,6 +40,7 @@ package metal
 // int ebitengine_DisplayLinkOutputCallback(CVDisplayLinkRef displayLinkRef, CVTimeStamp* inNow, CVTimeStamp* inOutputTime, uint64_t flagsIn, uint64_t* flagsOut, void* displayLinkContext);
 import "C"
 import (
+	"log/slog"
 	"runtime"
 	"runtime/cgo"
 	"time"
@@ -80,6 +81,13 @@ func (v *view) initCAMetalDisplayLink() error {
 			{
 				Cmd: objc.RegisterName("metalDisplayLink:needsUpdate:"),
 				Fn: func(id objc.ID, cmd objc.SEL, metalDisplayLink objc.ID, needsUpdate objc.ID) {
+					// There is a case where this callback is invoked from the main run loop (#3353).
+					// This is very mysterious, but this causes a deadlock.
+					// As a workaround, return this immediately when the current run loop is the main run loop.
+					if cocoa.NSRunLoop_currentRunLoop() == cocoa.NSRunLoop_mainRunLoop() {
+						slog.Debug("metal: metalDisplayLink:needsUpdate: is unexpectedly called from the main run loop")
+						return
+					}
 					drawable := ca.MetalDisplayLinkUpdate{ID: needsUpdate}.Drawable()
 					if drawable == (ca.MetalDrawable{}) {
 						return
