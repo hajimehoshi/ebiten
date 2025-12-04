@@ -20,7 +20,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ebitengine/purego/objc"
 	"github.com/hajimehoshi/ebiten/v2/internal/cocoa"
 	"github.com/hajimehoshi/ebiten/v2/internal/color"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/ca"
@@ -49,14 +48,10 @@ type view struct {
 	metalDisplayLink uintptr
 
 	// The following members are used only with CAMetalDisplayLink.
-	drawableCh                    chan ca.MetalDrawable
-	drawableDoneCh                chan struct{}
-	drawableTimer                 *time.Timer
-	prevMetalDisplayLink          chan uintptr
-	notificatioObserver           objc.ID
-	metalDisplayLinkRunLoop       cocoa.NSRunLoop
-	metalDisplayLinkReleaseBlock  objc.Block
-	meltaDisplayLinkRecreateBlock objc.Block
+	drawableCh              chan ca.MetalDrawable
+	drawableDoneCh          chan struct{}
+	drawableTimer           *time.Timer
+	metalDisplayLinkRunLoop cocoa.NSRunLoop
 
 	// The following members are used only with CADisplayLink.
 	handleToSelf cgo.Handle

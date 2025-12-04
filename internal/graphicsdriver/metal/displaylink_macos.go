@@ -71,7 +71,6 @@ func (v *view) initCAMetalDisplayLink() error {
 	v.drawableCh = make(chan ca.MetalDrawable)
 	v.drawableDoneCh = make(chan struct{})
 	v.metalDisplayLinkRunLoop = createThreadWithRunLoop()
-	v.prevMetalDisplayLink = make(chan uintptr, 1)
 
 	c, err := objc.RegisterClass(
 		"EbitengineCAMetalDisplayLinkDelegate",
@@ -99,37 +98,10 @@ func (v *view) initCAMetalDisplayLink() error {
 
 	v.createCAMetalDisplayLink()
 
-	// Recreate the display link when the app is recovered from sleep.
-	// TODO: Recreation might be needed when the display is changed.
-	nc := cocoa.NSWorkspace_sharedWorkspace().NotificationCenter()
-	if v.meltaDisplayLinkRecreateBlock == 0 {
-		v.meltaDisplayLinkRecreateBlock = objc.NewBlock(func(block objc.Block) {
-			v.createCAMetalDisplayLink()
-		})
-	}
-	mainQueue := cocoa.NSOperationQueue_mainQueue()
-	v.notificatioObserver = nc.AddObserverForName(cocoa.NSWorkspaceDidWakeNotification, 0, mainQueue, v.meltaDisplayLinkRecreateBlock)
-	cocoa.NSObject{ID: v.notificatioObserver}.Retain()
-
 	return nil
 }
 
 func (v *view) createCAMetalDisplayLink() {
-	// Release the previous display link if any.
-	// This is done in the thread for the display link, so that the callback is not called during releasing.
-	if v.metalDisplayLink != 0 {
-		// Unfortunately, there is no blocking 'performBlock' for NSRunLoop, so use a channel to wait.
-		if v.metalDisplayLinkReleaseBlock == 0 {
-			v.metalDisplayLinkReleaseBlock = objc.NewBlock(func(block objc.Block) {
-				dl := ca.MetalDisplayLink{ID: objc.ID(<-v.prevMetalDisplayLink)}
-				dl.RemoveFromRunLoop(v.metalDisplayLinkRunLoop, cocoa.NSDefaultRunLoopMode)
-				dl.Release()
-			})
-		}
-		v.prevMetalDisplayLink <- v.metalDisplayLink
-		v.metalDisplayLinkRunLoop.PerformBlock(v.metalDisplayLinkReleaseBlock)
-	}
-
 	ch := make(chan uintptr)
 	v.metalDisplayLinkRunLoop.PerformBlock(objc.NewBlock(func(block objc.Block) {
 		dl := ca.NewMetalDisplayLink(v.ml)
