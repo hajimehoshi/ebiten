@@ -1605,6 +1605,14 @@ func (*Image) private() {
 
 var currentCallbackToken atomic.Int64
 
+//go:linkname originalImage
+func originalImage(img *Image) *Image {
+	if img.isSubImage() {
+		return img.original
+	}
+	return img
+}
+
 //go:linkname addUsageCallback
 func addUsageCallback(img *Image, callback func(image *Image)) int64 {
 	return img.addUsageCallback(img, callback)
