@@ -130,16 +130,16 @@ func (v *view) createCAMetalDisplayLink() {
 		v.metalDisplayLinkRunLoop.PerformBlock(v.metalDisplayLinkReleaseBlock)
 	}
 
-	ch := make(chan struct{})
+	ch := make(chan uintptr)
 	v.metalDisplayLinkRunLoop.PerformBlock(objc.NewBlock(func(block objc.Block) {
 		dl := ca.NewMetalDisplayLink(v.ml)
 		dl.SetDelegate(objc.ID(class_EbitengineCAMetalDisplayLinkDelegate).Send(objc.RegisterName("new")))
 		dl.AddToRunLoop(v.metalDisplayLinkRunLoop, cocoa.NSDefaultRunLoopMode)
 		dl.SetPaused(false)
-		v.metalDisplayLink = uintptr(dl.ID)
+		ch <- uintptr(dl.ID)
 		close(ch)
 	}))
-	<-ch
+	v.metalDisplayLink = <-ch
 }
 
 func createThreadWithRunLoop() cocoa.NSRunLoop {
