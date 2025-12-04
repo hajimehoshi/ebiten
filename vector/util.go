@@ -349,6 +349,11 @@ func FillPath(dst *ebiten.Image, path *Path, fillOptions *FillOptions, drawPathO
 		fillOptions = &FillOptions{}
 	}
 
+	bounds := dst.Bounds()
+
+	// Get the original image if dst is a sub-image to integrate the callbacks.
+	dst = originalImage(dst)
+
 	theFillPathM.Lock()
 	defer theFillPathM.Unlock()
 
@@ -369,13 +374,17 @@ func FillPath(dst *ebiten.Image, path *Path, fillOptions *FillOptions, drawPathO
 	s.antialias = drawPathOptions.AntiAlias
 	s.blend = drawPathOptions.Blend
 	s.fillRule = fillOptions.FillRule
-	s.addPath(path, drawPathOptions.ColorScale)
+	s.addPath(path, bounds, drawPathOptions.ColorScale)
 
 	// Use an independent callback function to avoid unexpected captures.
 	theCallbackTokens[dst] = addUsageCallback(dst, fillPathCallback)
 }
 
 func fillPathCallback(dst *ebiten.Image) {
+	if originalImage(dst) != dst {
+		panic("vector: dst must be the original image")
+	}
+
 	theFillPathM.Lock()
 	defer theFillPathM.Unlock()
 
@@ -390,8 +399,8 @@ func fillPathCallback(dst *ebiten.Image) {
 		panic("vector: fillPathsState must exist here")
 	}
 	s.fillPaths(dst)
-
 	s.reset()
+	delete(theFillPathsStates, dst)
 	theFillPathsStatesPool.Put(s)
 }
 
@@ -403,6 +412,9 @@ func StrokePath(dst *ebiten.Image, path *Path, strokeOptions *StrokeOptions, dra
 	stroke.AddStroke(path, op)
 	FillPath(dst, &stroke, nil, drawPathOptions)
 }
+
+//go:linkname originalImage github.com/hajimehoshi/ebiten/v2.originalImage
+func originalImage(img *ebiten.Image) *ebiten.Image
 
 //go:linkname addUsageCallback github.com/hajimehoshi/ebiten/v2.addUsageCallback
 func addUsageCallback(img *ebiten.Image, fn func(img *ebiten.Image)) int64

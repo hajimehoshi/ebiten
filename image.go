@@ -86,8 +86,7 @@ type Image struct {
 }
 
 type usageCallback struct {
-	image *Image
-	fn    func(image *Image)
+	fn func(image *Image)
 }
 
 func (i *Image) copyCheck() {
@@ -1605,14 +1604,22 @@ func (*Image) private() {
 
 var currentCallbackToken atomic.Int64
 
-//go:linkname addUsageCallback
-func addUsageCallback(img *Image, callback func(image *Image)) int64 {
-	return img.addUsageCallback(img, callback)
+//go:linkname originalImage
+func originalImage(img *Image) *Image {
+	if img.isSubImage() {
+		return img.original
+	}
+	return img
 }
 
-func (i *Image) addUsageCallback(image *Image, callback func(image *Image)) int64 {
+//go:linkname addUsageCallback
+func addUsageCallback(img *Image, callback func(image *Image)) int64 {
+	return img.addUsageCallback(callback)
+}
+
+func (i *Image) addUsageCallback(callback func(image *Image)) int64 {
 	if i.isSubImage() {
-		return i.original.addUsageCallback(image, callback)
+		return i.original.addUsageCallback(callback)
 	}
 	token := currentCallbackToken.Add(1)
 
@@ -1623,8 +1630,7 @@ func (i *Image) addUsageCallback(image *Image, callback func(image *Image)) int6
 		i.usageCallbacks = map[int64]usageCallback{}
 	}
 	i.usageCallbacks[token] = usageCallback{
-		image: image,
-		fn:    callback,
+		fn: callback,
 	}
 	return token
 }
@@ -1675,7 +1681,7 @@ func (i *Image) invokeUsageCallbacks() {
 	}()
 
 	for _, cb := range *tmpUsageCallbackSlice {
-		cb.fn(cb.image)
+		cb.fn(i)
 	}
 
 	*tmpUsageCallbackSlice = slices.Delete(*tmpUsageCallbackSlice, 0, len(*tmpUsageCallbackSlice))

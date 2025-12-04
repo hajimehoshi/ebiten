@@ -170,3 +170,29 @@ func TestRaceConditionWithSubImage(t *testing.T) {
 	}
 	wg.Wait()
 }
+
+// Issue #3355
+func TestFillPathSubImageAndImage(t *testing.T) {
+	dst := ebiten.NewImage(200, 200)
+	defer dst.Deallocate()
+	for i := range 100 {
+		var path vector.Path
+		path.LineTo(0, 0)
+		path.LineTo(0, 100)
+		path.LineTo(100, 100)
+		path.LineTo(100, 0)
+		path.LineTo(0, 0)
+		path.Close()
+		drawOp := &vector.DrawPathOptions{}
+		drawOp.ColorScale.ScaleWithColor(color.RGBA{255, 0, 0, 255})
+		subDst := dst.SubImage(image.Rect(0, 0, 100, 100)).(*ebiten.Image)
+		vector.FillPath(subDst, &path, nil, drawOp)
+		drawOp.ColorScale.Reset()
+		drawOp.ColorScale.ScaleWithColor(color.RGBA{0, 255, 0, 255})
+		vector.FillPath(dst, &path, nil, drawOp)
+
+		if got, want := dst.At(50, 50), (color.RGBA{0, 255, 0, 255}); got != want {
+			t.Errorf("%d: got: %v, want: %v", i, got, want)
+		}
+	}
+}
