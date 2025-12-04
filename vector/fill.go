@@ -16,7 +16,6 @@ package vector
 
 import (
 	"fmt"
-	"image"
 	"slices"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -130,7 +129,6 @@ var theAtlas atlas
 type fillPathsState struct {
 	paths  []*Path
 	colors []ebiten.ColorScale
-	bounds []image.Rectangle
 
 	vertices []ebiten.Vertex
 	indices  []uint32
@@ -145,11 +143,10 @@ func (f *fillPathsState) reset() {
 		p.Reset()
 	}
 	f.paths = f.paths[:0]
-	f.bounds = f.bounds[:0]
 	f.colors = slices.Delete(f.colors, 0, len(f.colors))
 }
 
-func (f *fillPathsState) addPath(path *Path, bounds image.Rectangle, clr ebiten.ColorScale) {
+func (f *fillPathsState) addPath(path *Path, clr ebiten.ColorScale) {
 	if path == nil {
 		return
 	}
@@ -166,7 +163,6 @@ func (f *fillPathsState) addPath(path *Path, bounds image.Rectangle, clr ebiten.
 		dst.subPaths[i].ops = slices.Grow(dst.subPaths[i].ops, len(subPath.ops))[:len(subPath.ops)]
 		copy(dst.subPaths[i].ops, subPath.ops)
 	}
-	f.bounds = append(f.bounds, bounds)
 	f.colors = append(f.colors, clr)
 }
 
@@ -485,10 +481,6 @@ func (f *fillPathsState) fillPaths(dst *ebiten.Image) {
 				panic(fmt.Sprintf("vector: failed to create stencil buffer even-odd shader: %v", err))
 			}
 		}
-		dst2 := dst
-		if dst.Bounds() != f.bounds[i] {
-			dst2 = dst.SubImage(f.bounds[i]).(*ebiten.Image)
-		}
-		dst2.DrawTrianglesShader32(vs, is, shader, op)
+		dst.DrawTrianglesShader32(vs, is, shader, op)
 	}
 }
