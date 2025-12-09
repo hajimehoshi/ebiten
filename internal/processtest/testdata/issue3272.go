@@ -17,6 +17,8 @@
 package main
 
 import (
+	"runtime"
+
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
@@ -52,6 +54,14 @@ func (g *Game) Layout(width, height int) (int, int) {
 }
 
 func main() {
+	// On 32bit Windows, this test fails with this error:
+	//
+	//     ID3D12Device::CreateCommittedResource failed: HANDLE(2147942414)
+	//
+	// This indicates out of memory. Skip this test.
+	if runtime.GOOS == "windows" && runtime.GOARCH == "386" {
+		return
+	}
 	if err := ebiten.RunGame(&Game{}); err != nil {
 		panic(err)
 	}
