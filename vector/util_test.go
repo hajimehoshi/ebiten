@@ -196,3 +196,32 @@ func TestFillPathSubImageAndImage(t *testing.T) {
 		}
 	}
 }
+
+// Issue #3357
+func TestFillRects(t *testing.T) {
+	dsts := []*ebiten.Image{
+		ebiten.NewImage(1920, 1080),
+		ebiten.NewImage(1920, 1080),
+	}
+	for _, dst := range dsts {
+		defer dst.Deallocate()
+	}
+
+	for i, antialias := range []bool{true, false} {
+		dst := dsts[i]
+		vector.FillRect(dst, 593, -609, 1144, 1969, color.RGBA{0x10, 0x00, 0x00, 0x10}, antialias)
+		vector.FillRect(dst, 613, -146, 1124, 446, color.RGBA{0x10, 0x00, 0x00, 0x10}, antialias)
+		vector.FillRect(dst, 634, -80, 1103, 190, color.RGBA{0x10, 0x00, 0x00, 0x10}, antialias)
+		vector.FillRect(dst, 634, 110, 1103, 190, color.RGBA{0x10, 0x00, 0x00, 0x10}, antialias)
+		vector.FillRect(dst, 613, 300, 1124, 998, color.RGBA{0x10, 0x00, 0x00, 0x10}, antialias)
+		vector.FillRect(dst, 634, 433, 1104, 865, color.RGBA{0x10, 0x00, 0x00, 0x10}, antialias)
+		vector.FillRect(dst, 654, 495, 1084, 741, color.RGBA{0x10, 0x00, 0x00, 0x10}, antialias)
+		vector.FillRect(dst, 674, 592, 1063, 644, color.RGBA{0x10, 0x00, 0x00, 0x10}, antialias)
+	}
+
+	got := dsts[0].At(800, 0)
+	want := dsts[1].At(800, 0)
+	if got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+}
