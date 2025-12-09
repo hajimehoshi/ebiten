@@ -104,6 +104,7 @@ func (a *atlas) setPaths(dstBounds image.Rectangle, paths []*Path, antialias boo
 		var currentPosition image.Point
 		for i := range a.atlasRegions {
 			pb := a.pathRenderingBounds[a.atlasRegions[i].pathIndex]
+			// TODO: What if s already exceeds maxImageSize (#3357)?
 			s := pb.Size()
 			// An additional image for antialiasing must be on the same atlas,
 			// so extend the width and use it as a sub image.
@@ -113,15 +114,14 @@ func (a *atlas) setPaths(dstBounds image.Rectangle, paths []*Path, antialias boo
 			if i == 0 {
 				currentRowHeight = s.Y
 			} else if currentPosition.X+s.X > maxImageSize {
+				// Try the next row.
 				currentPosition.X = 0
+				currentPosition.Y += currentRowHeight
 				if currentPosition.Y+s.Y > maxImageSize {
 					atlasImageIndex++
 					a.atlasSizes = append(a.atlasSizes, image.Point{})
 					currentPosition.Y = 0
-				} else {
-					currentPosition.Y += currentRowHeight
 				}
-				currentRowHeight = s.Y
 			}
 			a.atlasRegions[i].imageIndex = atlasImageIndex
 			a.atlasRegions[i].imageBounds = image.Rectangle{
