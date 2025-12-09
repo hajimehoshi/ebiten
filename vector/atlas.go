@@ -121,6 +121,9 @@ func (a *atlas) setPaths(dstBounds image.Rectangle, paths []*Path, antialias boo
 					atlasImageIndex++
 					a.atlasSizes = append(a.atlasSizes, image.Point{})
 					currentPosition.Y = 0
+					currentRowHeight = s.Y
+				} else {
+					currentRowHeight = max(currentRowHeight, s.Y)
 				}
 			}
 			a.atlasRegions[i].imageIndex = atlasImageIndex
