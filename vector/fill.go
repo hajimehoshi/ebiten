@@ -185,7 +185,7 @@ func (f *fillPathsState) fillPaths(dst *ebiten.Image) {
 		f.indices = is
 	}()
 
-	theAtlas.setPaths(dst.Bounds(), f.paths, f.antialias)
+	theAtlas.setPaths(dst.Bounds(), f.paths, f.bounds, f.antialias)
 
 	offsetAndColors := offsetAndColorsNonAA
 	if f.antialias {
