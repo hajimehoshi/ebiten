@@ -16,6 +16,7 @@ package ui
 
 import (
 	"errors"
+	"image"
 	"math"
 	"sync"
 	"syscall/js"
@@ -843,6 +844,10 @@ func (m *Monitor) DeviceScaleFactor() float64 {
 
 func (m *Monitor) Size() (int, int) {
 	return screen.Get("width").Int(), screen.Get("height").Int()
+}
+
+func (m *UserInterface) SafeArea() image.Rectangle {
+	return image.Rectangle{}
 }
 
 func (u *UserInterface) AppendMonitors(mons []*Monitor) []*Monitor {

@@ -19,6 +19,7 @@ package ui
 import (
 	stdcontext "context"
 	"fmt"
+	"image"
 	"runtime"
 	"runtime/debug"
 	"sync"
@@ -317,6 +318,10 @@ func (m *Monitor) DeviceScaleFactor() float64 {
 func (m *Monitor) Size() (int, int) {
 	mon := m.ensureValues()
 	return mon.width, mon.height
+}
+
+func (u *UserInterface) SafeArea() image.Rectangle {
+	return theUI.safeArea()
 }
 
 func (u *UserInterface) AppendMonitors(mons []*Monitor) []*Monitor {
