@@ -173,17 +173,19 @@ func ebitengine_DisplayLinkOutputCallback(displayLinkRef C.CVDisplayLinkRef, inN
 
 func (v *view) nextDrawable() ca.MetalDrawable {
 	if v.metalDisplayLink != 0 {
+		const wait = 100 * time.Millisecond
 		if v.drawableTimer == nil {
-			v.drawableTimer = time.NewTimer(time.Second)
+			v.drawableTimer = time.NewTimer(wait)
 		} else {
-			v.drawableTimer.Reset(time.Second)
+			v.drawableTimer.Reset(wait)
 		}
 		defer v.drawableTimer.Stop()
 		select {
 		case d := <-v.drawableCh:
 			return d
 		case <-v.drawableTimer.C:
-			// This happens when the main thread needs to execute the notification observer callback.
+			// This happens when the main thread needs to execute the notification observer callback,
+			// or when the appliation goes to full screen (#3354).
 			return ca.MetalDrawable{}
 		}
 	}
