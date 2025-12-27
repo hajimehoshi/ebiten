@@ -19,7 +19,6 @@ import (
 	"image/color"
 	"math"
 	"sync"
-	_ "unsafe"
 
 	"github.com/hajimehoshi/ebiten/v2"
 )
@@ -294,116 +293,6 @@ func StrokeCircle(dst *ebiten.Image, cx, cy, r float32, strokeWidth float32, clr
 	})
 }
 
-// FillRule is the rule whether an overlapped region is rendered or not.
-type FillRule int
-
-const (
-	// FillRuleNonZero means that triangles are rendered based on the non-zero rule.
-	// If and only if the number of overlaps is not 0, the region is rendered.
-	FillRuleNonZero FillRule = iota
-
-	// FillRuleEvenOdd means that triangles are rendered based on the even-odd rule.
-	// If and only if the number of overlaps is odd, the region is rendered.
-	FillRuleEvenOdd
-)
-
-var (
-	theCallbackTokens      = map[*ebiten.Image]int64{}
-	theFillPathsStates     = map[*ebiten.Image]*fillPathsState{}
-	theFillPathsStatesPool = sync.Pool{
-		New: func() any {
-			return &fillPathsState{}
-		},
-	}
-	theFillPathM sync.Mutex
-)
-
-// FillOptions is options to fill a path.
-type FillOptions struct {
-	// FillRule is the rule whether an overlapped region is rendered or not.
-	// The default (zero) value is FillRuleNonZero.
-	FillRule FillRule
-}
-
-// DrawPathOptions is options to draw a path.
-type DrawPathOptions struct {
-	// AntiAlias is whether the path is drawn with anti-aliasing.
-	// The default (zero) value is false.
-	AntiAlias bool
-
-	// ColorScale is the color scale to apply to the path.
-	// The default (zero) value is identity, which is (1, 1, 1, 1) (white).
-	ColorScale ebiten.ColorScale
-
-	// Blend is the blend mode to apply to the path.
-	// The default (zero) value is ebiten.BlendSourceOver.
-	Blend ebiten.Blend
-}
-
-// FillPath fills the specified path with the specified options.
-func FillPath(dst *ebiten.Image, path *Path, fillOptions *FillOptions, drawPathOptions *DrawPathOptions) {
-	if drawPathOptions == nil {
-		drawPathOptions = &DrawPathOptions{}
-	}
-	if fillOptions == nil {
-		fillOptions = &FillOptions{}
-	}
-
-	bounds := dst.Bounds()
-
-	// Get the original image if dst is a sub-image to integrate the callbacks.
-	dst = originalImage(dst)
-
-	theFillPathM.Lock()
-	defer theFillPathM.Unlock()
-
-	// Remove the previous registered callbacks.
-	if token, ok := theCallbackTokens[dst]; ok {
-		removeUsageCallback(dst, token)
-	}
-	delete(theCallbackTokens, dst)
-
-	if _, ok := theFillPathsStates[dst]; !ok {
-		theFillPathsStates[dst] = theFillPathsStatesPool.Get().(*fillPathsState)
-	}
-	s := theFillPathsStates[dst]
-	if s.antialias != drawPathOptions.AntiAlias || s.blend != drawPathOptions.Blend || s.fillRule != fillOptions.FillRule {
-		s.fillPaths(dst)
-		s.reset()
-	}
-	s.antialias = drawPathOptions.AntiAlias
-	s.blend = drawPathOptions.Blend
-	s.fillRule = fillOptions.FillRule
-	s.addPath(path, bounds, drawPathOptions.ColorScale)
-
-	// Use an independent callback function to avoid unexpected captures.
-	theCallbackTokens[dst] = addUsageCallback(dst, fillPathCallback)
-}
-
-func fillPathCallback(dst *ebiten.Image) {
-	if originalImage(dst) != dst {
-		panic("vector: dst must be the original image")
-	}
-
-	theFillPathM.Lock()
-	defer theFillPathM.Unlock()
-
-	// Remove the callback not to call this twice.
-	if token, ok := theCallbackTokens[dst]; ok {
-		removeUsageCallback(dst, token)
-	}
-	delete(theCallbackTokens, dst)
-
-	s, ok := theFillPathsStates[dst]
-	if !ok {
-		panic("vector: fillPathsState must exist here")
-	}
-	s.fillPaths(dst)
-	s.reset()
-	delete(theFillPathsStates, dst)
-	theFillPathsStatesPool.Put(s)
-}
-
 // StrokePath strokes the specified path with the specified options.
 func StrokePath(dst *ebiten.Image, path *Path, strokeOptions *StrokeOptions, drawPathOptions *DrawPathOptions) {
 	var stroke Path
@@ -412,12 +301,3 @@ func StrokePath(dst *ebiten.Image, path *Path, strokeOptions *StrokeOptions, dra
 	stroke.AddStroke(path, op)
 	FillPath(dst, &stroke, nil, drawPathOptions)
 }
-
-//go:linkname originalImage github.com/hajimehoshi/ebiten/v2.originalImage
-func originalImage(img *ebiten.Image) *ebiten.Image
-
-//go:linkname addUsageCallback github.com/hajimehoshi/ebiten/v2.addUsageCallback
-func addUsageCallback(img *ebiten.Image, fn func(img *ebiten.Image)) int64
-
-//go:linkname removeUsageCallback github.com/hajimehoshi/ebiten/v2.removeUsageCallback
-func removeUsageCallback(img *ebiten.Image, token int64)
