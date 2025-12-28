@@ -56,9 +56,8 @@ func RegisterPrecompiledLibrary(source []byte, bin []byte) {
 }
 
 type shaderRpsKey struct {
-	blend       graphicsdriver.Blend
-	stencilMode stencilMode
-	screen      bool
+	blend  graphicsdriver.Blend
+	screen bool
 }
 
 type Shader struct {
@@ -137,11 +136,10 @@ func (s *Shader) init(device mtl.Device) error {
 	return nil
 }
 
-func (s *Shader) RenderPipelineState(view *view, blend graphicsdriver.Blend, stencilMode stencilMode, screen bool) (mtl.RenderPipelineState, error) {
+func (s *Shader) RenderPipelineState(view *view, blend graphicsdriver.Blend, screen bool) (mtl.RenderPipelineState, error) {
 	key := shaderRpsKey{
-		blend:       blend,
-		stencilMode: stencilMode,
-		screen:      screen,
+		blend:  blend,
+		screen: screen,
 	}
 	if rps, ok := s.rpss[key]; ok {
 		return rps, nil
@@ -150,9 +148,6 @@ func (s *Shader) RenderPipelineState(view *view, blend graphicsdriver.Blend, ste
 	rpld := mtl.RenderPipelineDescriptor{
 		VertexFunction:   s.vs,
 		FragmentFunction: s.fs,
-	}
-	if stencilMode != noStencil {
-		rpld.StencilAttachmentPixelFormat = mtl.PixelFormatStencil8
 	}
 
 	// TODO: For the precise pixel format, whether the render target is the screen or not must be considered.
@@ -169,12 +164,7 @@ func (s *Shader) RenderPipelineState(view *view, blend graphicsdriver.Blend, ste
 	rpld.ColorAttachments[0].SourceRGBBlendFactor = blendFactorToMetalBlendFactor(blend.BlendFactorSourceRGB)
 	rpld.ColorAttachments[0].AlphaBlendOperation = blendOperationToMetalBlendOperation(blend.BlendOperationAlpha)
 	rpld.ColorAttachments[0].RGBBlendOperation = blendOperationToMetalBlendOperation(blend.BlendOperationRGB)
-
-	if stencilMode == noStencil || stencilMode == drawWithStencil {
-		rpld.ColorAttachments[0].WriteMask = mtl.ColorWriteMaskAll
-	} else {
-		rpld.ColorAttachments[0].WriteMask = mtl.ColorWriteMaskNone
-	}
+	rpld.ColorAttachments[0].WriteMask = mtl.ColorWriteMaskAll
 
 	rps, err := view.getMTLDevice().NewRenderPipelineStateWithDescriptor(rpld)
 	if err != nil {

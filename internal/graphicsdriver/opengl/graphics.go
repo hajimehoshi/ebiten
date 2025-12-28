@@ -205,7 +205,7 @@ func (g *Graphics) uniformVariableName(idx int) string {
 	return name
 }
 
-func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.ShaderSrcImageCount]graphicsdriver.ImageID, shaderID graphicsdriver.ShaderID, dstRegions []graphicsdriver.DstRegion, indexOffset int, blend graphicsdriver.Blend, uniforms []uint32, fillRule graphicsdriver.FillRule) error {
+func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.ShaderSrcImageCount]graphicsdriver.ImageID, shaderID graphicsdriver.ShaderID, dstRegions []graphicsdriver.DstRegion, indexOffset int, blend graphicsdriver.Blend, uniforms []uint32) error {
 	if shaderID == graphicsdriver.InvalidShaderID {
 		return fmt.Errorf("opengl: shader ID is invalid")
 	}
@@ -266,13 +266,6 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 	}
 	g.uniformVars = g.uniformVars[:0]
 
-	if fillRule != graphicsdriver.FillRuleFillAll {
-		if err := destination.ensureStencilBuffer(); err != nil {
-			return err
-		}
-		g.context.ctx.Enable(gl.STENCIL_TEST)
-	}
-
 	for _, dstRegion := range dstRegions {
 		g.context.ctx.Scissor(
 			int32(dstRegion.Region.Min.X),
@@ -280,33 +273,8 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 			int32(dstRegion.Region.Dx()),
 			int32(dstRegion.Region.Dy()),
 		)
-		switch fillRule {
-		case graphicsdriver.FillRuleNonZero:
-			g.context.ctx.Clear(gl.STENCIL_BUFFER_BIT)
-			g.context.ctx.StencilFunc(gl.ALWAYS, 0x00, 0xff)
-			g.context.ctx.StencilOpSeparate(gl.FRONT, gl.KEEP, gl.KEEP, gl.INCR_WRAP)
-			g.context.ctx.StencilOpSeparate(gl.BACK, gl.KEEP, gl.KEEP, gl.DECR_WRAP)
-			g.context.ctx.ColorMask(false, false, false, false)
-			g.context.ctx.DrawElements(gl.TRIANGLES, int32(dstRegion.IndexCount), gl.UNSIGNED_INT, indexOffset*int(unsafe.Sizeof(uint32(0))))
-		case graphicsdriver.FillRuleEvenOdd:
-			g.context.ctx.Clear(gl.STENCIL_BUFFER_BIT)
-			g.context.ctx.StencilFunc(gl.ALWAYS, 0x00, 0xff)
-			g.context.ctx.StencilOpSeparate(gl.FRONT_AND_BACK, gl.KEEP, gl.KEEP, gl.INVERT)
-			g.context.ctx.ColorMask(false, false, false, false)
-
-			g.context.ctx.DrawElements(gl.TRIANGLES, int32(dstRegion.IndexCount), gl.UNSIGNED_INT, indexOffset*int(unsafe.Sizeof(uint32(0))))
-		}
-		if fillRule != graphicsdriver.FillRuleFillAll {
-			g.context.ctx.StencilFunc(gl.NOTEQUAL, 0x00, 0xff)
-			g.context.ctx.StencilOpSeparate(gl.FRONT_AND_BACK, gl.KEEP, gl.KEEP, gl.KEEP)
-			g.context.ctx.ColorMask(true, true, true, true)
-		}
 		g.context.ctx.DrawElements(gl.TRIANGLES, int32(dstRegion.IndexCount), gl.UNSIGNED_INT, indexOffset*int(unsafe.Sizeof(uint32(0))))
 		indexOffset += dstRegion.IndexCount
-	}
-
-	if fillRule != graphicsdriver.FillRuleFillAll {
-		g.context.ctx.Disable(gl.STENCIL_TEST)
 	}
 
 	return nil

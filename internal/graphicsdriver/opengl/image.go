@@ -28,7 +28,6 @@ type Image struct {
 	id          graphicsdriver.ImageID
 	graphics    *Graphics
 	texture     textureNative
-	stencil     renderbufferNative
 	framebuffer *framebuffer
 	width       int
 	height      int
@@ -52,9 +51,6 @@ func (i *Image) Dispose() {
 	}
 	if i.texture != 0 {
 		i.graphics.context.deleteTexture(i.texture)
-	}
-	if i.stencil != 0 {
-		i.graphics.context.deleteRenderbuffer(i.stencil)
 	}
 
 	i.graphics.removeImage(i)
@@ -106,27 +102,6 @@ func (i *Image) ensureFramebuffer() error {
 		return err
 	}
 	i.framebuffer = f
-	return nil
-}
-
-func (i *Image) ensureStencilBuffer() error {
-	if i.stencil != 0 {
-		return nil
-	}
-
-	if err := i.ensureFramebuffer(); err != nil {
-		return err
-	}
-
-	r, err := i.graphics.context.newRenderbuffer(i.viewportSize())
-	if err != nil {
-		return err
-	}
-	i.stencil = r
-
-	if err := i.graphics.context.bindStencilBuffer(i.framebuffer.native, i.stencil); err != nil {
-		return err
-	}
 	return nil
 }
 

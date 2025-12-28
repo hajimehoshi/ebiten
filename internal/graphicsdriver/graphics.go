@@ -15,7 +15,6 @@
 package graphicsdriver
 
 import (
-	"fmt"
 	"image"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/color"
@@ -26,27 +25,6 @@ import (
 type DstRegion struct {
 	Region     image.Rectangle
 	IndexCount int
-}
-
-type FillRule int
-
-const (
-	FillRuleFillAll FillRule = iota
-	FillRuleNonZero
-	FillRuleEvenOdd
-)
-
-func (f FillRule) String() string {
-	switch f {
-	case FillRuleFillAll:
-		return "FillRuleFillAll"
-	case FillRuleNonZero:
-		return "FillRuleNonZero"
-	case FillRuleEvenOdd:
-		return "FillRuleEvenOdd"
-	default:
-		return fmt.Sprintf("FillRule(%d)", f)
-	}
 }
 
 const (
@@ -70,7 +48,7 @@ type Graphics interface {
 	NewShader(program *shaderir.Program) (Shader, error)
 
 	// DrawTriangles draws an image onto another image with the given parameters.
-	DrawTriangles(dst ImageID, srcs [graphics.ShaderSrcImageCount]ImageID, shader ShaderID, dstRegions []DstRegion, indexOffset int, blend Blend, uniforms []uint32, fillRule FillRule) error
+	DrawTriangles(dst ImageID, srcs [graphics.ShaderSrcImageCount]ImageID, shader ShaderID, dstRegions []DstRegion, indexOffset int, blend Blend, uniforms []uint32) error
 }
 
 type Resetter interface {

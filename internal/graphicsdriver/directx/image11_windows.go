@@ -15,7 +15,6 @@
 package directx
 
 import (
-	"fmt"
 	"image"
 	"unsafe"
 
@@ -31,9 +30,7 @@ type image11 struct {
 	screen   bool
 
 	texture            *_ID3D11Texture2D
-	stencil            *_ID3D11Texture2D
 	renderTargetView   *_ID3D11RenderTargetView
-	stencilView        *_ID3D11DepthStencilView
 	shaderResourceView *_ID3D11ShaderResourceView
 }
 
@@ -58,17 +55,9 @@ func (i *image11) disposeBuffers() {
 		i.texture.Release()
 		i.texture = nil
 	}
-	if i.stencil != nil {
-		i.stencil.Release()
-		i.stencil = nil
-	}
 	if i.renderTargetView != nil {
 		i.renderTargetView.Release()
 		i.renderTargetView = nil
-	}
-	if i.stencilView != nil {
-		i.stencilView.Release()
-		i.stencilView = nil
 	}
 	if i.shaderResourceView != nil {
 		i.shaderResourceView.Release()
@@ -149,7 +138,7 @@ func (i *image11) WritePixels(args []graphicsdriver.PixelsArgs) error {
 	return nil
 }
 
-func (i *image11) setAsRenderTarget(useStencil bool) error {
+func (i *image11) setAsRenderTarget() error {
 	if i.renderTargetView == nil {
 		rtv, err := i.graphics.device.CreateRenderTargetView(unsafe.Pointer(i.texture), nil)
 		if err != nil {
@@ -158,49 +147,7 @@ func (i *image11) setAsRenderTarget(useStencil bool) error {
 		i.renderTargetView = rtv
 	}
 
-	if !useStencil {
-		i.graphics.deviceContext.OMSetRenderTargets([]*_ID3D11RenderTargetView{i.renderTargetView}, nil)
-		return nil
-	}
-
-	if i.screen {
-		return fmt.Errorf("directx: a stencil buffer is not available for a screen image")
-	}
-
-	if i.stencil == nil {
-		w, h := i.internalSize()
-		s, err := i.graphics.device.CreateTexture2D(&_D3D11_TEXTURE2D_DESC{
-			Width:     uint32(w),
-			Height:    uint32(h),
-			MipLevels: 0,
-			ArraySize: 1,
-			Format:    _DXGI_FORMAT_D24_UNORM_S8_UINT,
-			SampleDesc: _DXGI_SAMPLE_DESC{
-				Count:   1,
-				Quality: 0,
-			},
-			Usage:          _D3D11_USAGE_DEFAULT,
-			BindFlags:      uint32(_D3D11_BIND_DEPTH_STENCIL),
-			CPUAccessFlags: 0,
-			MiscFlags:      0,
-		}, nil)
-		if err != nil {
-			return err
-		}
-		i.stencil = s
-	}
-
-	if i.stencilView == nil {
-		sv, err := i.graphics.device.CreateDepthStencilView(unsafe.Pointer(i.stencil), nil)
-		if err != nil {
-			return err
-		}
-		i.stencilView = sv
-	}
-
-	i.graphics.deviceContext.OMSetRenderTargets([]*_ID3D11RenderTargetView{i.renderTargetView}, i.stencilView)
-	i.graphics.deviceContext.ClearDepthStencilView(i.stencilView, uint8(_D3D11_CLEAR_STENCIL), 0, 0)
-
+	i.graphics.deviceContext.OMSetRenderTargets([]*_ID3D11RenderTargetView{i.renderTargetView}, nil)
 	return nil
 }
 

@@ -164,10 +164,9 @@ type graphics11 struct {
 	indexBuffer            *_ID3D11Buffer
 	indexBufferSizeInBytes uint32
 
-	rasterizerState    *_ID3D11RasterizerState
-	samplerState       *_ID3D11SamplerState
-	blendStates        map[blendStateKey]*_ID3D11BlendState
-	depthStencilStates map[stencilMode]*_ID3D11DepthStencilState
+	rasterizerState *_ID3D11RasterizerState
+	samplerState    *_ID3D11SamplerState
+	blendStates     map[blendStateKey]*_ID3D11BlendState
 
 	vsyncEnabled bool
 	window       windows.HWND
@@ -541,7 +540,7 @@ func (g *graphics11) removeShader(s *shader11) {
 	delete(g.shaders, s.id)
 }
 
-func (g *graphics11) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.ShaderSrcImageCount]graphicsdriver.ImageID, shaderID graphicsdriver.ShaderID, dstRegions []graphicsdriver.DstRegion, indexOffset int, blend graphicsdriver.Blend, uniforms []uint32, fillRule graphicsdriver.FillRule) error {
+func (g *graphics11) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.ShaderSrcImageCount]graphicsdriver.ImageID, shaderID graphicsdriver.ShaderID, dstRegions []graphicsdriver.DstRegion, indexOffset int, blend graphicsdriver.Blend, uniforms []uint32) error {
 	// Remove bound textures first. This is needed to avoid warnings on the debugger.
 	g.deviceContext.OMSetRenderTargets([]*_ID3D11RenderTargetView{nil}, nil)
 	srvs := [graphics.ShaderSrcImageCount]*_ID3D11ShaderResourceView{}
@@ -569,7 +568,7 @@ func (g *graphics11) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphic
 		},
 	})
 
-	if err := dst.setAsRenderTarget(fillRule != graphicsdriver.FillRuleFillAll); err != nil {
+	if err := dst.setAsRenderTarget(); err != nil {
 		return err
 	}
 
@@ -579,19 +578,11 @@ func (g *graphics11) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphic
 		return err
 	}
 
-	if fillRule == graphicsdriver.FillRuleFillAll {
-		bs, err := g.blendState(blend, noStencil)
-		if err != nil {
-			return err
-		}
-		g.deviceContext.OMSetBlendState(bs, nil, 0xffffffff)
-
-		dss, err := g.depthStencilState(noStencil)
-		if err != nil {
-			return err
-		}
-		g.deviceContext.OMSetDepthStencilState(dss, 0)
+	bs, err := g.blendState(blend)
+	if err != nil {
+		return err
 	}
+	g.deviceContext.OMSetBlendState(bs, nil, 0xffffffff)
 
 	for _, dstRegion := range dstRegions {
 		g.deviceContext.RSSetScissorRects([]_D3D11_RECT{
@@ -602,50 +593,7 @@ func (g *graphics11) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphic
 				bottom: int32(dstRegion.Region.Max.Y),
 			},
 		})
-
-		switch fillRule {
-		case graphicsdriver.FillRuleFillAll:
-			g.deviceContext.DrawIndexed(uint32(dstRegion.IndexCount), uint32(indexOffset), 0)
-		case graphicsdriver.FillRuleNonZero:
-			bs, err := g.blendState(blend, incrementStencil)
-			if err != nil {
-				return err
-			}
-			g.deviceContext.OMSetBlendState(bs, nil, 0xffffffff)
-			dss, err := g.depthStencilState(incrementStencil)
-			if err != nil {
-				return err
-			}
-			g.deviceContext.OMSetDepthStencilState(dss, 0)
-			g.deviceContext.DrawIndexed(uint32(dstRegion.IndexCount), uint32(indexOffset), 0)
-		case graphicsdriver.FillRuleEvenOdd:
-			bs, err := g.blendState(blend, invertStencil)
-			if err != nil {
-				return err
-			}
-			g.deviceContext.OMSetBlendState(bs, nil, 0xffffffff)
-			dss, err := g.depthStencilState(invertStencil)
-			if err != nil {
-				return err
-			}
-			g.deviceContext.OMSetDepthStencilState(dss, 0)
-			g.deviceContext.DrawIndexed(uint32(dstRegion.IndexCount), uint32(indexOffset), 0)
-		}
-
-		if fillRule != graphicsdriver.FillRuleFillAll {
-			bs, err := g.blendState(blend, drawWithStencil)
-			if err != nil {
-				return err
-			}
-			g.deviceContext.OMSetBlendState(bs, nil, 0xffffffff)
-			dss, err := g.depthStencilState(drawWithStencil)
-			if err != nil {
-				return err
-			}
-			g.deviceContext.OMSetDepthStencilState(dss, 0)
-			g.deviceContext.DrawIndexed(uint32(dstRegion.IndexCount), uint32(indexOffset), 0)
-		}
-
+		g.deviceContext.DrawIndexed(uint32(dstRegion.IndexCount), uint32(indexOffset), 0)
 		indexOffset += dstRegion.IndexCount
 	}
 
@@ -662,12 +610,8 @@ func (g *graphics11) genNextShaderID() graphicsdriver.ShaderID {
 	return g.nextShaderID
 }
 
-func (g *graphics11) blendState(blend graphicsdriver.Blend, stencilMode stencilMode) (*_ID3D11BlendState, error) {
-	var writeMask uint8
-	if stencilMode == noStencil || stencilMode == drawWithStencil {
-		writeMask = uint8(_D3D11_COLOR_WRITE_ENABLE_ALL)
-	}
-
+func (g *graphics11) blendState(blend graphicsdriver.Blend) (*_ID3D11BlendState, error) {
+	writeMask := uint8(_D3D11_COLOR_WRITE_ENABLE_ALL)
 	key := blendStateKey{
 		blend:     blend,
 		writeMask: writeMask,
@@ -701,56 +645,4 @@ func (g *graphics11) blendState(blend graphicsdriver.Blend, stencilMode stencilM
 	}
 	g.blendStates[key] = bs
 	return bs, nil
-}
-
-func (g *graphics11) depthStencilState(mode stencilMode) (*_ID3D11DepthStencilState, error) {
-	if s, ok := g.depthStencilStates[mode]; ok {
-		return s, nil
-	}
-
-	desc := &_D3D11_DEPTH_STENCIL_DESC{
-		DepthEnable:      0,
-		DepthWriteMask:   _D3D11_DEPTH_WRITE_MASK_ALL,
-		DepthFunc:        _D3D11_COMPARISON_LESS,
-		StencilEnable:    0,
-		StencilReadMask:  _D3D11_DEFAULT_STENCIL_READ_MASK,
-		StencilWriteMask: _D3D11_DEFAULT_STENCIL_WRITE_MASK,
-		FrontFace: _D3D11_DEPTH_STENCILOP_DESC{
-			StencilFailOp:      _D3D11_STENCIL_OP_KEEP,
-			StencilDepthFailOp: _D3D11_STENCIL_OP_KEEP,
-			StencilPassOp:      _D3D11_STENCIL_OP_KEEP,
-			StencilFunc:        _D3D11_COMPARISON_ALWAYS,
-		},
-		BackFace: _D3D11_DEPTH_STENCILOP_DESC{
-			StencilFailOp:      _D3D11_STENCIL_OP_KEEP,
-			StencilDepthFailOp: _D3D11_STENCIL_OP_KEEP,
-			StencilPassOp:      _D3D11_STENCIL_OP_KEEP,
-			StencilFunc:        _D3D11_COMPARISON_ALWAYS,
-		},
-	}
-	switch mode {
-	case incrementStencil:
-		desc.StencilEnable = 1
-		desc.FrontFace.StencilPassOp = _D3D11_STENCIL_OP_INCR
-		desc.BackFace.StencilPassOp = _D3D11_STENCIL_OP_DECR
-	case invertStencil:
-		desc.StencilEnable = 1
-		desc.FrontFace.StencilPassOp = _D3D11_STENCIL_OP_INVERT
-		desc.BackFace.StencilPassOp = _D3D11_STENCIL_OP_INVERT
-	case drawWithStencil:
-		desc.StencilEnable = 1
-		desc.FrontFace.StencilFunc = _D3D11_COMPARISON_NOT_EQUAL
-		desc.BackFace.StencilFunc = _D3D11_COMPARISON_NOT_EQUAL
-	}
-
-	s, err := g.device.CreateDepthStencilState(desc)
-	if err != nil {
-		return nil, err
-	}
-
-	if g.depthStencilStates == nil {
-		g.depthStencilStates = map[stencilMode]*_ID3D11DepthStencilState{}
-	}
-	g.depthStencilStates[mode] = s
-	return s, nil
 }

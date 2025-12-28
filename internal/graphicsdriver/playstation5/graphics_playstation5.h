@@ -107,7 +107,7 @@ ebitengine_DrawTriangles(int dst, const int *srcs, int src_count, int shader,
                          const ebitengine_DstRegion *dst_regions,
                          int dst_region_count, int indexOffset,
                          ebitengine_Blend blend, const uint32_t *uniforms,
-                         int uniform_count, int fill_rule);
+                         int uniform_count);
 
 ebitengine_Error ebitengine_NewShader(
     int *shader, const char *vertex_header, int vertex_header_size,

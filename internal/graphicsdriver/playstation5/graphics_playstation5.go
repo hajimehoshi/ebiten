@@ -146,7 +146,7 @@ func (g *Graphics) NewShader(program *shaderir.Program) (graphicsdriver.Shader, 
 	}, nil
 }
 
-func (g *Graphics) DrawTriangles(dst graphicsdriver.ImageID, srcs [graphics.ShaderSrcImageCount]graphicsdriver.ImageID, shader graphicsdriver.ShaderID, dstRegions []graphicsdriver.DstRegion, indexOffset int, blend graphicsdriver.Blend, uniforms []uint32, fillRule graphicsdriver.FillRule) error {
+func (g *Graphics) DrawTriangles(dst graphicsdriver.ImageID, srcs [graphics.ShaderSrcImageCount]graphicsdriver.ImageID, shader graphicsdriver.ShaderID, dstRegions []graphicsdriver.DstRegion, indexOffset int, blend graphicsdriver.Blend, uniforms []uint32) error {
 	cSrcs := make([]C.int, len(srcs))
 	for i, src := range srcs {
 		cSrcs[i] = C.int(src)
@@ -180,7 +180,7 @@ func (g *Graphics) DrawTriangles(dst graphicsdriver.ImageID, srcs [graphics.Shad
 		cUniforms[i] = C.uint32_t(u)
 	}
 
-	if err := C.ebitengine_DrawTriangles(C.int(dst), unsafe.SliceData(cSrcs), C.int(len(cSrcs)), C.int(shader), unsafe.SliceData(cDstRegions), C.int(len(cDstRegions)), C.int(indexOffset), cBlend, unsafe.SliceData(cUniforms), C.int(len(cUniforms)), C.int(fillRule)); !C.ebitengine_IsErrorNil(&err) {
+	if err := C.ebitengine_DrawTriangles(C.int(dst), unsafe.SliceData(cSrcs), C.int(len(cSrcs)), C.int(shader), unsafe.SliceData(cDstRegions), C.int(len(cDstRegions)), C.int(indexOffset), cBlend, unsafe.SliceData(cUniforms), C.int(len(cUniforms))); !C.ebitengine_IsErrorNil(&err) {
 		return newPlaystation5Error("(*playstation5.Graphics).DrawTriangles", err)
 	}
 	return nil

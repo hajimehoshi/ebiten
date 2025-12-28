@@ -32,15 +32,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/winver"
 )
 
-type stencilMode int
-
-const (
-	noStencil stencilMode = iota
-	incrementStencil
-	invertStencil
-	drawWithStencil
-)
-
 const frameCount = 2
 
 func pow2(x uint32) uint32 {
