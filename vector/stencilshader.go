@@ -206,8 +206,9 @@ func round(x float) float {
 func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 	c := imageSrc0UnsafeAt(srcPos)
 	r := int(round(c.r*255))
-	v := abs((r >> 4) - (r & 0x0F))
-	return float(v % 2) * color
+	w := abs((r >> 4) - (r & 0x0F))
+	v := float(v % 2)
+	return v * color
 }
 `
 
