@@ -226,6 +226,25 @@ func MouseButtonPressDuration(button ebiten.MouseButton) int {
 	return int(inputstate.Get().MouseButtonPressDuration(ui.MouseButton(button)))
 }
 
+
+// AppendGamepadIDs appends currently connected gamepad IDs to gamepadIDs,
+// and returns the extended buffer.
+// Giving a slice that already has enough capacity works efficiently.
+//
+// AppendGamepadIDs is concurrent safe.
+func AppendGamepadIDs(gamepadIDs []ebiten.GamepadID) []ebiten.GamepadID {
+    theInputState.m.RLock()
+	defer theInputState.m.RUnlock()
+
+	origLen := len(gamepadIDs)
+	for id := range theInputState.gamepadStates {
+        gamepadIDs = append(gamepadIDs, id)
+	}
+
+	slices.Sort(gamepadIDs[origLen:])
+	return gamepadIDs
+}
+
 // AppendJustConnectedGamepadIDs appends gamepad IDs that are connected just in the current tick to gamepadIDs,
 // and returns the extended buffer.
 // Giving a slice that already has enough capacity works efficiently.
