@@ -393,3 +393,49 @@ func TestFillPathSubImageAndImage(t *testing.T) {
 		}
 	}
 }
+
+// Issue #3366
+func TestFillPathFillRule(t *testing.T) {
+	testCases := []struct {
+		name     string
+		fillRule vector.FillRule
+		expected color.RGBA
+	}{
+		{
+			name:     "evenOdd",
+			fillRule: vector.FillRuleEvenOdd,
+			expected: color.RGBA{0, 0, 0, 0},
+		},
+		{
+			name:     "nonZero",
+			fillRule: vector.FillRuleNonZero,
+			expected: color.RGBA{0xff, 0xff, 0xff, 0xff},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			dst := ebiten.NewImage(16, 16)
+			defer dst.Deallocate()
+
+			var p vector.Path
+			p.MoveTo(0, 0)
+			p.LineTo(16, 0)
+			p.LineTo(16, 16)
+			p.LineTo(0, 16)
+			p.Close()
+			p.MoveTo(4, 4)
+			p.LineTo(12, 4)
+			p.LineTo(12, 12)
+			p.LineTo(4, 12)
+			p.Close()
+			fillOp := &vector.FillOptions{}
+			fillOp.FillRule = tc.fillRule
+			vector.FillPath(dst, &p, fillOp, nil)
+
+			if got, want := dst.At(8, 8), tc.expected; got != want {
+				t.Errorf("got: %v, want: %v", got, want)
+			}
+		})
+	}
+}

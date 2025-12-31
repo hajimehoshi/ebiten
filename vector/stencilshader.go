@@ -207,7 +207,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 	c := imageSrc0UnsafeAt(srcPos)
 	r := int(round(c.r*255))
 	w := abs((r >> 4) - (r & 0x0F))
-	v := float(v % 2)
+	v := float(w % 2)
 	return v * color
 }
 `
