@@ -120,7 +120,9 @@ func TestPieceTableReplace(t *testing.T) {
 				p.Replace(r.text, r.start, r.end)
 			}
 			var b strings.Builder
-			p.WriteTo(&b)
+			if _, err := p.WriteTo(&b); err != nil {
+				t.Fatalf("WriteTo failed: %v", err)
+			}
 			if got := b.String(); got != tc.want {
 				t.Errorf("got %q, want %q", got, tc.want)
 			}
@@ -217,7 +219,9 @@ func TestPieceTableWriteToWithInsertion(t *testing.T) {
 
 			// Verify piece table itself is not modified
 			var b2 strings.Builder
-			p.WriteTo(&b2)
+			if _, err := p.WriteTo(&b2); err != nil {
+				t.Fatalf("WriteTo failed: %v", err)
+			}
 			if got := b2.String(); got != tc.init {
 				t.Errorf("piece table modified: got %q, want %q", got, tc.init)
 			}
