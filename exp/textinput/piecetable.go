@@ -114,6 +114,10 @@ func (p *pieceTable) Len() int {
 }
 
 func (p *pieceTable) replace(text string, start, end int) {
+	p.doReplace(text, start, end)
+}
+
+func (p *pieceTable) doReplace(text string, start, end int) {
 	// Append the new text to the table.
 	newTextStart := len(p.table)
 	p.table = append(p.table, text...)
@@ -208,15 +212,15 @@ func (p *pieceTable) replace(text string, start, end int) {
 }
 
 func (p *pieceTable) addState(state textInputState, start, end int) int {
-	if state.DeleteEndInBytes-state.DeleteStartInBytes > 0 {
+	if delta := state.DeleteEndInBytes - state.DeleteStartInBytes; delta > 0 {
 		if start > state.DeleteStartInBytes {
-			start -= state.DeleteEndInBytes - state.DeleteStartInBytes
+			start -= delta
 		}
 		if end > state.DeleteStartInBytes {
-			end -= state.DeleteEndInBytes - state.DeleteStartInBytes
+			end -= delta
 		}
-		p.replace("", state.DeleteStartInBytes, state.DeleteEndInBytes)
+		p.doReplace("", state.DeleteStartInBytes, state.DeleteEndInBytes)
 	}
-	p.replace(state.Text, start, end)
+	p.doReplace(state.Text, start, end)
 	return start
 }
