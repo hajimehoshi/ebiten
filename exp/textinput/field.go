@@ -16,6 +16,7 @@ package textinput
 
 import (
 	"image"
+	"io"
 	"strings"
 	"sync"
 )
@@ -267,7 +268,7 @@ func (f *Field) SetSelection(startInBytes, endInBytes int) {
 // The returned value doesn't include compositing texts.
 func (f *Field) Text() string {
 	var b strings.Builder
-	_, _ = f.pieceTable.WriteTo(&b)
+	_ = f.WriteText(&b)
 	return b.String()
 }
 
@@ -275,12 +276,31 @@ func (f *Field) Text() string {
 // The returned value includes compositing texts.
 func (f *Field) TextForRendering() string {
 	var b strings.Builder
-	if f.IsFocused() && f.state.Text != "" {
-		_, _ = f.pieceTable.writeToWithInsertion(&b, f.state.Text, f.selectionStartInBytes, f.selectionEndInBytes)
-	} else {
-		_, _ = f.pieceTable.WriteTo(&b)
-	}
+	_ = f.WriteTextForRendering(&b)
 	return b.String()
+}
+
+// TextLengthInBytes returns the length of the current text in bytes.
+func (f *Field) TextLengthInBytes() int {
+	return f.pieceTable.Len()
+}
+
+// WriteText writes the current text to w.
+// The written text doesn't include compositing texts.
+func (f *Field) WriteText(w io.Writer) error {
+	_, err := f.pieceTable.WriteTo(w)
+	return err
+}
+
+// WriteTextForRendering writes the text for rendering to w.
+// The written text includes compositing texts.
+func (f *Field) WriteTextForRendering(w io.Writer) error {
+	if f.IsFocused() && f.state.Text != "" {
+		_, _ = f.pieceTable.writeToWithInsertion(w, f.state.Text, f.selectionStartInBytes, f.selectionEndInBytes)
+	} else {
+		_, _ = f.pieceTable.WriteTo(w)
+	}
+	return nil
 }
 
 // UncommittedTextLengthInBytes returns the compositing text length in bytes when the field is focused and the text is editing.
