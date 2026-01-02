@@ -320,3 +320,16 @@ func (f *Field) SetTextAndSelection(text string, selectionStartInBytes, selectio
 	f.selectionStartInBytes = min(max(selectionStartInBytes, 0), f.pieceTable.Len())
 	f.selectionEndInBytes = min(max(selectionEndInBytes, 0), f.pieceTable.Len())
 }
+
+// ReplaceText replaces the text at the specified range and updates the selection range.
+func (f *Field) ReplaceText(text string, startInBytes, endInBytes int) {
+	f.cleanUp()
+	f.pieceTable.replace(text, startInBytes, endInBytes)
+	f.selectionStartInBytes = startInBytes + len(text)
+	f.selectionEndInBytes = f.selectionStartInBytes
+}
+
+// ReplaceTextAtSelection replaces the text at the selection range and updates the selection range.
+func (f *Field) ReplaceTextAtSelection(text string) {
+	f.ReplaceText(text, f.selectionStartInBytes, f.selectionEndInBytes)
+}
