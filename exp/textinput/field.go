@@ -16,6 +16,7 @@ package textinput
 
 import (
 	"image"
+	"strings"
 	"sync"
 )
 
@@ -64,6 +65,7 @@ func isFieldFocused(f *Field) bool {
 	return theFocusedField == f
 }
 
+// currentState is for testing.
 func currentState() (string, int, int, textInputState, bool) {
 	theFocusedFieldM.Lock()
 	defer theFocusedFieldM.Unlock()
@@ -71,7 +73,9 @@ func currentState() (string, int, int, textInputState, bool) {
 		return "", 0, 0, textInputState{}, false
 	}
 	f := theFocusedField
-	return f.text, f.selectionStartInBytes, f.selectionEndInBytes, f.state, true
+	var b strings.Builder
+	_, _ = f.pieceTable.WriteTo(&b)
+	return b.String(), f.selectionStartInBytes, f.selectionEndInBytes, f.state, true
 }
 
 // Field is a region accepting text inputting with IME.
@@ -82,7 +86,7 @@ func currentState() (string, int, int, textInputState, bool) {
 //
 // For an actual usage, see the examples "textinput".
 type Field struct {
-	text                  string
+	pieceTable            pieceTable
 	selectionStartInBytes int
 	selectionEndInBytes   int
 
@@ -181,17 +185,8 @@ func (f *Field) commit(state textInputState) {
 	if !state.Committed {
 		panic("textinput: commit must be called with committed state")
 	}
-	if state.DeleteEndInBytes-state.DeleteStartInBytes > 0 {
-		if f.selectionStartInBytes > state.DeleteStartInBytes {
-			f.selectionStartInBytes -= state.DeleteEndInBytes - state.DeleteStartInBytes
-		}
-		if f.selectionEndInBytes > state.DeleteStartInBytes {
-			f.selectionEndInBytes -= state.DeleteEndInBytes - state.DeleteStartInBytes
-		}
-		f.text = f.text[:state.DeleteStartInBytes] + f.text[state.DeleteEndInBytes:]
-	}
-	f.text = f.text[:f.selectionStartInBytes] + state.Text + f.text[f.selectionEndInBytes:]
-	f.selectionStartInBytes += len(state.Text)
+	start := f.pieceTable.addState(state, f.selectionStartInBytes, f.selectionEndInBytes)
+	f.selectionStartInBytes = start + len(state.Text)
 	f.selectionEndInBytes = f.selectionStartInBytes
 	f.state = textInputState{}
 }
@@ -264,23 +259,28 @@ func (f *Field) CompositionSelection() (startInBytes, endInBytes int, ok bool) {
 // SetSelection sets the selection range.
 func (f *Field) SetSelection(startInBytes, endInBytes int) {
 	f.cleanUp()
-	f.selectionStartInBytes = min(max(startInBytes, 0), len(f.text))
-	f.selectionEndInBytes = min(max(endInBytes, 0), len(f.text))
+	f.selectionStartInBytes = min(max(startInBytes, 0), f.pieceTable.Len())
+	f.selectionEndInBytes = min(max(endInBytes, 0), f.pieceTable.Len())
 }
 
 // Text returns the current text.
 // The returned value doesn't include compositing texts.
 func (f *Field) Text() string {
-	return f.text
+	var b strings.Builder
+	_, _ = f.pieceTable.WriteTo(&b)
+	return b.String()
 }
 
 // TextForRendering returns the text for rendering.
 // The returned value includes compositing texts.
 func (f *Field) TextForRendering() string {
+	var b strings.Builder
 	if f.IsFocused() && f.state.Text != "" {
-		return f.text[:f.selectionStartInBytes] + f.state.Text + f.text[f.selectionEndInBytes:]
+		_, _ = f.pieceTable.writeToWithInsertion(&b, f.state.Text, f.selectionStartInBytes, f.selectionEndInBytes)
+	} else {
+		_, _ = f.pieceTable.WriteTo(&b)
 	}
-	return f.text
+	return b.String()
 }
 
 // UncommittedTextLengthInBytes returns the compositing text length in bytes when the field is focused and the text is editing.
@@ -296,7 +296,7 @@ func (f *Field) UncommittedTextLengthInBytes() int {
 // SetTextAndSelection sets the text and the selection range.
 func (f *Field) SetTextAndSelection(text string, selectionStartInBytes, selectionEndInBytes int) {
 	f.cleanUp()
-	f.text = text
-	f.selectionStartInBytes = min(max(selectionStartInBytes, 0), len(f.text))
-	f.selectionEndInBytes = min(max(selectionEndInBytes, 0), len(f.text))
+	f.pieceTable.replace(text, 0, f.pieceTable.Len())
+	f.selectionStartInBytes = min(max(selectionStartInBytes, 0), f.pieceTable.Len())
+	f.selectionEndInBytes = min(max(selectionEndInBytes, 0), f.pieceTable.Len())
 }
