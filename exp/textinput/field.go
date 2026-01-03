@@ -260,8 +260,9 @@ func (f *Field) CompositionSelection() (startInBytes, endInBytes int, ok bool) {
 // SetSelection sets the selection range.
 func (f *Field) SetSelection(startInBytes, endInBytes int) {
 	f.cleanUp()
-	f.selectionStartInBytes = min(max(startInBytes, 0), f.pieceTable.Len())
-	f.selectionEndInBytes = min(max(endInBytes, 0), f.pieceTable.Len())
+	l := f.pieceTable.Len()
+	f.selectionStartInBytes = min(max(startInBytes, 0), l)
+	f.selectionEndInBytes = min(max(endInBytes, 0), l)
 }
 
 // Text returns the current text.
@@ -316,9 +317,10 @@ func (f *Field) UncommittedTextLengthInBytes() int {
 // SetTextAndSelection sets the text and the selection range.
 func (f *Field) SetTextAndSelection(text string, selectionStartInBytes, selectionEndInBytes int) {
 	f.cleanUp()
-	f.pieceTable.replace(text, 0, f.pieceTable.Len())
-	f.selectionStartInBytes = min(max(selectionStartInBytes, 0), f.pieceTable.Len())
-	f.selectionEndInBytes = min(max(selectionEndInBytes, 0), f.pieceTable.Len())
+	l := f.pieceTable.Len()
+	f.pieceTable.replace(text, 0, l)
+	f.selectionStartInBytes = min(max(selectionStartInBytes, 0), l)
+	f.selectionEndInBytes = min(max(selectionEndInBytes, 0), l)
 }
 
 // ReplaceText replaces the text at the specified range and updates the selection range.
@@ -332,4 +334,30 @@ func (f *Field) ReplaceText(text string, startInBytes, endInBytes int) {
 // ReplaceTextAtSelection replaces the text at the selection range and updates the selection range.
 func (f *Field) ReplaceTextAtSelection(text string) {
 	f.ReplaceText(text, f.selectionStartInBytes, f.selectionEndInBytes)
+}
+
+// CanUndo reports whether the field can undo or not.
+func (f *Field) CanUndo() bool {
+	return f.pieceTable.canUndo()
+}
+
+// CanRedo reports whether the field can redo or not.
+func (f *Field) CanRedo() bool {
+	return f.pieceTable.canRedo()
+}
+
+// Undo undoes the last operation.
+func (f *Field) Undo() {
+	f.pieceTable.undo()
+	l := f.pieceTable.Len()
+	f.selectionStartInBytes = min(max(f.selectionStartInBytes, 0), l)
+	f.selectionEndInBytes = min(max(f.selectionEndInBytes, 0), l)
+}
+
+// Redo redoes the last undone operation.
+func (f *Field) Redo() {
+	f.pieceTable.redo()
+	l := f.pieceTable.Len()
+	f.selectionStartInBytes = min(max(f.selectionStartInBytes, 0), l)
+	f.selectionEndInBytes = min(max(f.selectionEndInBytes, 0), l)
 }

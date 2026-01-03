@@ -35,3 +35,17 @@ func (p *PieceTable) Replace(text string, start, end int) {
 func (p *PieceTable) WriteToWithInsertion(w io.Writer, text string, start, end int) (int64, error) {
 	return p.writeToWithInsertion(w, text, start, end)
 }
+
+func (p *PieceTable) Undo() {
+	p.undo()
+}
+
+func (p *PieceTable) Redo() {
+	p.redo()
+}
+
+type TextInputState = textInputState
+
+func (p *PieceTable) AddState(state TextInputState, start, end int) int {
+	return p.addState(state, start, end)
+}

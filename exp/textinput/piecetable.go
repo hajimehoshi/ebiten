@@ -20,7 +20,9 @@ import (
 
 type pieceTable struct {
 	table []byte
-	items []pieceTableItem
+
+	history      [][]pieceTableItem
+	historyIndex int
 }
 
 type pieceTableItem struct {
@@ -28,10 +30,18 @@ type pieceTableItem struct {
 	end   int
 }
 
+func (p *pieceTable) items() []pieceTableItem {
+	if len(p.history) == 0 {
+		return nil
+	}
+	return p.history[p.historyIndex]
+}
+
 func (p *pieceTable) WriteTo(w io.Writer) (int64, error) {
 	var n int64
-	for i := range p.items {
-		item := &p.items[i]
+	items := p.items()
+	for i := range items {
+		item := &items[i]
 		nn, err := w.Write(p.table[item.start:item.end])
 		n += int64(nn)
 		if err != nil {
@@ -55,8 +65,9 @@ func (p *pieceTable) writeToWithInsertion(w io.Writer, text string, start, end i
 		insertedTextWritten = true
 	}
 
-	for i := range p.items {
-		item := &p.items[i]
+	items := p.items()
+	for i := range items {
+		item := &items[i]
 		itemLen := item.end - item.start
 
 		// Part before the replaced range
@@ -106,18 +117,22 @@ func (p *pieceTable) writeToWithInsertion(w io.Writer, text string, start, end i
 
 func (p *pieceTable) Len() int {
 	var n int
-	for i := range p.items {
-		item := &p.items[i]
+	items := p.items()
+	for i := range items {
+		item := &items[i]
 		n += item.end - item.start
 	}
 	return n
 }
 
 func (p *pieceTable) replace(text string, start, end int) {
+	p.appendHistory()
 	p.doReplace(text, start, end)
 }
 
 func (p *pieceTable) doReplace(text string, start, end int) {
+	items := p.history[p.historyIndex]
+
 	// Append the new text to the table.
 	newTextStart := len(p.table)
 	p.table = append(p.table, text...)
@@ -128,8 +143,8 @@ func (p *pieceTable) doReplace(text string, start, end int) {
 
 	// Find the first intersecting item.
 	var offset int
-	for startItemIndex < len(p.items) {
-		item := &p.items[startItemIndex]
+	for startItemIndex < len(items) {
+		item := &items[startItemIndex]
 		itemLen := item.end - item.start
 		if offset+itemLen > start {
 			break
@@ -141,8 +156,8 @@ func (p *pieceTable) doReplace(text string, start, end int) {
 
 	// Find the last intersecting item.
 	endItemIndex = startItemIndex
-	for endItemIndex < len(p.items) {
-		item := p.items[endItemIndex]
+	for endItemIndex < len(items) {
+		item := items[endItemIndex]
 		itemLen := item.end - item.start
 		if offset+itemLen >= end {
 			break
@@ -157,9 +172,9 @@ func (p *pieceTable) doReplace(text string, start, end int) {
 	var newItemsCount int
 
 	// 1. Prefix of the first affected item.
-	if startItemIndex < len(p.items) {
+	if startItemIndex < len(items) {
 		if s := start - startItemOffset; s > 0 {
-			item := &p.items[startItemIndex]
+			item := &items[startItemIndex]
 			newItems[newItemsCount] = pieceTableItem{
 				start: item.start,
 				end:   item.start + s,
@@ -178,8 +193,8 @@ func (p *pieceTable) doReplace(text string, start, end int) {
 	}
 
 	// 3. Suffix of the last affected item.
-	if endItemIndex < len(p.items) {
-		item := &p.items[endItemIndex]
+	if endItemIndex < len(items) {
+		item := &items[endItemIndex]
 		if e := end - endItemOffset; e < item.end-item.start {
 			newItems[newItemsCount] = pieceTableItem{
 				start: item.start + e,
@@ -191,27 +206,36 @@ func (p *pieceTable) doReplace(text string, start, end int) {
 
 	// Determine the number of items currently occupying the range to be replaced.
 	var oldItemsCount int
-	if endItemIndex < len(p.items) {
+	if endItemIndex < len(items) {
 		oldItemsCount = endItemIndex - startItemIndex + 1
 	} else {
-		oldItemsCount = len(p.items) - startItemIndex
+		oldItemsCount = len(items) - startItemIndex
 	}
 
 	// Adjust the slice.
-	if delta := newItemsCount - oldItemsCount; delta != 0 {
-		if delta > 0 {
-			p.items = append(p.items, make([]pieceTableItem, delta)...)
+	newLen := len(items) - oldItemsCount + newItemsCount
+	if newLen > cap(items) {
+		newSlice := make([]pieceTableItem, newLen)
+		copy(newSlice, items[:startItemIndex])
+		copy(newSlice[startItemIndex+newItemsCount:], items[startItemIndex+oldItemsCount:])
+		items = newSlice
+	} else {
+		if newLen > len(items) {
+			items = items[:newLen]
 		}
-		copy(p.items[startItemIndex+newItemsCount:], p.items[startItemIndex+oldItemsCount:])
-		if delta < 0 {
-			p.items = p.items[:len(p.items)+delta]
+		copy(items[startItemIndex+newItemsCount:], items[startItemIndex+oldItemsCount:])
+		if newLen < len(items) {
+			items = items[:newLen]
 		}
 	}
 
-	copy(p.items[startItemIndex:], newItems[:newItemsCount])
+	copy(items[startItemIndex:], newItems[:newItemsCount])
+	p.history[p.historyIndex] = items
 }
 
 func (p *pieceTable) addState(state textInputState, start, end int) int {
+	p.appendHistory()
+
 	if delta := state.DeleteEndInBytes - state.DeleteStartInBytes; delta > 0 {
 		if start > state.DeleteStartInBytes {
 			start -= delta
@@ -223,4 +247,42 @@ func (p *pieceTable) addState(state textInputState, start, end int) int {
 	}
 	p.doReplace(state.Text, start, end)
 	return start
+}
+
+func (p *pieceTable) canUndo() bool {
+	return p.historyIndex > 0
+}
+
+func (p *pieceTable) undo() {
+	if !p.canUndo() {
+		return
+	}
+	p.historyIndex--
+}
+
+func (p *pieceTable) canRedo() bool {
+	return p.historyIndex < len(p.history)-1
+}
+
+func (p *pieceTable) redo() {
+	if !p.canRedo() {
+		return
+	}
+	p.historyIndex++
+}
+
+func (p *pieceTable) appendHistory() {
+	if p.history == nil {
+		p.history = [][]pieceTableItem{{}}
+	}
+
+	// Truncate the history.
+	if p.historyIndex < len(p.history)-1 {
+		p.history = p.history[:p.historyIndex+1]
+	}
+
+	// Append the current items (cloned) to the history.
+	// As doReplace might reuse the underlying array, duplicate the items here.
+	p.history = append(p.history, append([]pieceTableItem(nil), p.history[p.historyIndex]...))
+	p.historyIndex++
 }

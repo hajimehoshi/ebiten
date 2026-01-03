@@ -228,3 +228,206 @@ func TestPieceTableWriteToWithInsertion(t *testing.T) {
 		})
 	}
 }
+
+func TestPieceTableUndoRedo(t *testing.T) {
+	var p textinput.PieceTable
+
+	check := func(want string) {
+		t.Helper()
+		var b strings.Builder
+		if _, err := p.WriteTo(&b); err != nil {
+			t.Fatalf("WriteTo failed: %v", err)
+		}
+		if got := b.String(); got != want {
+			t.Errorf("got %q, want %q", got, want)
+		}
+	}
+
+	// Initial state
+	check("")
+
+	// Op 1: Insert "Hello"
+	p.Replace("Hello", 0, 0)
+	check("Hello")
+
+	// Op 2: Insert " World"
+	p.Replace(" World", 5, 5)
+	check("Hello World")
+
+	// Undo Op 2
+	p.Undo()
+	check("Hello")
+
+	// Undo Op 1
+	p.Undo()
+	check("")
+
+	// Undo Op 0 (No effect)
+	p.Undo()
+	check("")
+
+	// Redo Op 1
+	p.Redo()
+	check("Hello")
+
+	// Redo Op 2
+	p.Redo()
+	check("Hello World")
+
+	// Redo Op 3 (No effect)
+	p.Redo()
+	check("Hello World")
+
+	// Undo Op 2 again
+	p.Undo()
+	check("Hello")
+
+	// New Op 3: Insert " Gopher" (Should clear redo stack for Op 2)
+	p.Replace(" Gopher", 5, 5)
+	check("Hello Gopher")
+
+	// Undo Op 3
+	p.Undo()
+	check("Hello")
+
+	// Redo Op 3
+	p.Redo()
+	check("Hello Gopher")
+
+	// Undo Op 3
+	p.Undo()
+	check("Hello")
+
+	// Undo Op 1
+	p.Undo()
+	check("")
+}
+
+func TestPieceTableUndoRedoMultiline(t *testing.T) {
+	var p textinput.PieceTable
+
+	check := func(want string) {
+		t.Helper()
+		var b strings.Builder
+		if _, err := p.WriteTo(&b); err != nil {
+			t.Fatalf("WriteTo failed: %v", err)
+		}
+		if got := b.String(); got != want {
+			t.Errorf("got %q, want %q", got, want)
+		}
+	}
+
+	// Initial state
+	check("")
+
+	// Op 1: Insert "Hello\nWorld"
+	p.Replace("Hello\nWorld", 0, 0)
+	check("Hello\nWorld")
+
+	// Op 2: Insert "Go\n" at the beginning
+	p.Replace("Go\n", 0, 0)
+	check("Go\nHello\nWorld")
+
+	// Op 3: Replace "Hello\n" with "Hi "
+	// "Go\n" (0-3) "Hello\n" (3-9) "World" (9-14)
+	p.Replace("Hi ", 3, 9)
+	check("Go\nHi World")
+
+	// Undo Op 3
+	p.Undo()
+	check("Go\nHello\nWorld")
+
+	// Undo Op 2
+	p.Undo()
+	check("Hello\nWorld")
+
+	// Undo Op 1
+	p.Undo()
+	check("")
+
+	// Redo Op 1
+	p.Redo()
+	check("Hello\nWorld")
+
+	// Redo Op 2
+	p.Redo()
+	check("Go\nHello\nWorld")
+
+	// Redo Op 3
+	p.Redo()
+	check("Go\nHi World")
+}
+
+func TestPieceTableAddState(t *testing.T) {
+	var p textinput.PieceTable
+
+	check := func(want string) {
+		t.Helper()
+		var b strings.Builder
+		if _, err := p.WriteTo(&b); err != nil {
+			t.Fatalf("WriteTo failed: %v", err)
+		}
+		if got := b.String(); got != want {
+			t.Errorf("got %q, want %q", got, want)
+		}
+	}
+
+	// Initial state
+	check("")
+
+	// State 1: Type "Hello"
+	// addState(Text: "Hello", DeleteStart: 0, DeleteEnd: 0)
+	p.AddState(textinput.TextInputState{
+		Text: "Hello",
+	}, 0, 0)
+	check("Hello")
+
+	// State 2: Replace "e" with "é" via composition
+	// Current text: "Hello"
+	// delete range: 1-2 (bytes) -> "Hllo"
+	// insert text: "é" -> "Héllo"
+	p.AddState(textinput.TextInputState{
+		Text:               "é",
+		DeleteStartInBytes: 1,
+		DeleteEndInBytes:   2,
+	}, 1, 2)
+	check("Héllo")
+
+	// Undo State 2
+	p.Undo()
+	check("Hello")
+
+	// Redo State 2
+	p.Redo()
+	check("Héllo")
+
+	// State 3: Replace "Héllo" with "World" completely.
+	// delete range: 0-6
+	// insert text: "World"
+	p.AddState(textinput.TextInputState{
+		Text:               "World",
+		DeleteStartInBytes: 0,
+		DeleteEndInBytes:   6,
+	}, 0, 6)
+	check("World")
+
+	// Undo State 3
+	p.Undo()
+	check("Héllo")
+
+	// Undo State 2
+	p.Undo()
+	check("Hello")
+
+	// Undo State 1
+	p.Undo()
+	check("")
+
+	// Redo all
+	p.Redo()
+	check("Hello")
+	p.Redo()
+	check("Héllo")
+	p.Redo()
+	check("World")
+}
