@@ -186,7 +186,7 @@ func (f *Field) commit(state textInputState) {
 	if !state.Committed {
 		panic("textinput: commit must be called with committed state")
 	}
-	start := f.pieceTable.addState(state, f.selectionStartInBytes, f.selectionEndInBytes)
+	start := f.pieceTable.updateByIME(state, f.selectionStartInBytes, f.selectionEndInBytes)
 	f.selectionStartInBytes = start + len(state.Text)
 	f.selectionEndInBytes = f.selectionStartInBytes
 	f.state = textInputState{}
@@ -348,16 +348,20 @@ func (f *Field) CanRedo() bool {
 
 // Undo undoes the last operation.
 func (f *Field) Undo() {
-	f.pieceTable.undo()
-	l := f.pieceTable.Len()
-	f.selectionStartInBytes = min(max(f.selectionStartInBytes, 0), l)
-	f.selectionEndInBytes = min(max(f.selectionEndInBytes, 0), l)
+	start, end, ok := f.pieceTable.undo()
+	if !ok {
+		return
+	}
+	f.selectionStartInBytes = start
+	f.selectionEndInBytes = end
 }
 
 // Redo redoes the last undone operation.
 func (f *Field) Redo() {
-	f.pieceTable.redo()
-	l := f.pieceTable.Len()
-	f.selectionStartInBytes = min(max(f.selectionStartInBytes, 0), l)
-	f.selectionEndInBytes = min(max(f.selectionEndInBytes, 0), l)
+	start, end, ok := f.pieceTable.redo()
+	if !ok {
+		return
+	}
+	f.selectionStartInBytes = start
+	f.selectionEndInBytes = end
 }

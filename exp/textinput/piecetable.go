@@ -18,11 +18,35 @@ import (
 	"io"
 )
 
+type opType int
+
+const (
+	opTypeIME opType = iota
+	opTypeOneNewLine
+	opTypeDelete
+	opTypeOther
+)
+
+type lastOp struct {
+	valid bool
+	typ   opType
+}
+
 type pieceTable struct {
 	table []byte
 
-	history      [][]pieceTableItem
+	history      []historyItem
 	historyIndex int
+	lastOp       lastOp
+}
+
+type historyItem struct {
+	items []pieceTableItem
+
+	undoSelectionStart int
+	undoSelectionEnd   int
+	redoSelectionStart int
+	redoSelectionEnd   int
 }
 
 type pieceTableItem struct {
@@ -34,7 +58,7 @@ func (p *pieceTable) items() []pieceTableItem {
 	if len(p.history) == 0 {
 		return nil
 	}
-	return p.history[p.historyIndex]
+	return p.history[p.historyIndex].items
 }
 
 func (p *pieceTable) WriteTo(w io.Writer) (int64, error) {
@@ -126,12 +150,12 @@ func (p *pieceTable) Len() int {
 }
 
 func (p *pieceTable) replace(text string, start, end int) {
-	p.appendHistory()
+	p.maybeAppendHistory(text, start, end, 0, 0, 1, false)
 	p.doReplace(text, start, end)
 }
 
 func (p *pieceTable) doReplace(text string, start, end int) {
-	items := p.history[p.historyIndex]
+	items := p.history[p.historyIndex].items
 
 	// Append the new text to the table.
 	newTextStart := len(p.table)
@@ -230,12 +254,10 @@ func (p *pieceTable) doReplace(text string, start, end int) {
 	}
 
 	copy(items[startItemIndex:], newItems[:newItemsCount])
-	p.history[p.historyIndex] = items
+	p.history[p.historyIndex].items = items
 }
 
-func (p *pieceTable) addState(state textInputState, start, end int) int {
-	p.appendHistory()
-
+func (p *pieceTable) updateByIME(state textInputState, start, end int) int {
 	if delta := state.DeleteEndInBytes - state.DeleteStartInBytes; delta > 0 {
 		if start > state.DeleteStartInBytes {
 			start -= delta
@@ -243,6 +265,12 @@ func (p *pieceTable) addState(state textInputState, start, end int) int {
 		if end > state.DeleteStartInBytes {
 			end -= delta
 		}
+		p.maybeAppendHistory(state.Text, state.DeleteStartInBytes, state.DeleteEndInBytes, start, end, 2, true)
+	} else {
+		p.maybeAppendHistory(state.Text, start, end, 0, 0, 1, true)
+	}
+
+	if state.DeleteEndInBytes-state.DeleteStartInBytes > 0 {
 		p.doReplace("", state.DeleteStartInBytes, state.DeleteEndInBytes)
 	}
 	p.doReplace(state.Text, start, end)
@@ -253,27 +281,102 @@ func (p *pieceTable) canUndo() bool {
 	return p.historyIndex > 0
 }
 
-func (p *pieceTable) undo() {
-	if !p.canUndo() {
-		return
-	}
-	p.historyIndex--
-}
-
 func (p *pieceTable) canRedo() bool {
 	return p.historyIndex < len(p.history)-1
 }
 
-func (p *pieceTable) redo() {
-	if !p.canRedo() {
-		return
+func (p *pieceTable) undo() (int, int, bool) {
+	if !p.canUndo() {
+		return 0, 0, false
 	}
-	p.historyIndex++
+	item := p.history[p.historyIndex]
+	p.historyIndex--
+	p.lastOp.valid = false
+	return item.undoSelectionStart, item.undoSelectionEnd, true
 }
 
-func (p *pieceTable) appendHistory() {
+func (p *pieceTable) redo() (int, int, bool) {
+	if !p.canRedo() {
+		return 0, 0, false
+	}
+	p.historyIndex++
+	p.lastOp.valid = false
+	item := p.history[p.historyIndex]
+	return item.redoSelectionStart, item.redoSelectionEnd, true
+}
+
+func (p *pieceTable) maybeAppendHistory(text string, start1, end1 int, start2, end2 int, rangeCount int, fromIME bool) {
+	// If the history is empty, initialize it.
 	if p.history == nil {
-		p.history = [][]pieceTableItem{{}}
+		p.history = []historyItem{{}}
+	}
+
+	var opType opType
+	switch {
+	case text == "\n":
+		opType = opTypeOneNewLine
+	case fromIME:
+		opType = opTypeIME
+	case text == "":
+		opType = opTypeDelete
+	default:
+		opType = opTypeOther
+	}
+
+	// Check if the piece table can merge this operation with the last one.
+	var merge bool
+	if len(p.history) > 0 &&
+		p.lastOp.valid &&
+		((p.lastOp.typ == opTypeIME && (opType == opTypeIME || opType == opTypeOneNewLine)) ||
+			(p.lastOp.typ == opTypeDelete && opType == opTypeDelete)) {
+		item := &p.history[p.historyIndex]
+		if start1 == item.redoSelectionStart || start1 == item.redoSelectionEnd ||
+			end1 == item.redoSelectionStart || end1 == item.redoSelectionEnd {
+			merge = true
+		}
+	}
+
+	p.lastOp.valid = true
+	p.lastOp.typ = opType
+
+	if !merge {
+		if start2 != end2 {
+			p.appendHistory(start1, end1, start2, start2+len(text))
+		} else {
+			p.appendHistory(start1, end1, start1, start1+len(text))
+		}
+		return
+	}
+
+	item := &p.history[p.historyIndex]
+	if opType == opTypeDelete {
+		if end1 == item.redoSelectionStart {
+			item.undoSelectionStart = start1
+		} else if start1 == item.redoSelectionStart {
+			item.undoSelectionEnd += end1 - start1
+		}
+	}
+
+	if rangeCount == 2 {
+		item.redoSelectionStart = min(item.redoSelectionStart, start2)
+		if opType != opTypeDelete {
+			item.redoSelectionEnd = max(item.redoSelectionEnd, start2+len(text))
+		} else {
+			item.redoSelectionEnd = item.redoSelectionStart
+		}
+	} else {
+		item.redoSelectionStart = min(item.redoSelectionStart, start1)
+		if opType != opTypeDelete {
+			item.redoSelectionEnd = max(item.redoSelectionEnd, start1+len(text))
+		} else {
+			item.redoSelectionEnd = item.redoSelectionStart
+		}
+	}
+}
+
+func (p *pieceTable) appendHistory(undoStart, undoEnd, redoStart, redoEnd int) {
+	if p.history == nil {
+		p.history = []historyItem{{}}
 	}
 
 	// Truncate the history.
@@ -282,7 +385,14 @@ func (p *pieceTable) appendHistory() {
 	}
 
 	// Append the current items (cloned) to the history.
-	// As doReplace might reuse the underlying array, duplicate the items here.
-	p.history = append(p.history, append([]pieceTableItem(nil), p.history[p.historyIndex]...))
+	// As doReplace modifies the underlying array, duplicate the items here.
+	newItems := append([]pieceTableItem(nil), p.history[p.historyIndex].items...)
+	p.history = append(p.history, historyItem{
+		items:              newItems,
+		undoSelectionStart: undoStart,
+		undoSelectionEnd:   undoEnd,
+		redoSelectionStart: redoStart,
+		redoSelectionEnd:   redoEnd,
+	})
 	p.historyIndex++
 }

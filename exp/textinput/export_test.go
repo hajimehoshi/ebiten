@@ -36,16 +36,16 @@ func (p *PieceTable) WriteToWithInsertion(w io.Writer, text string, start, end i
 	return p.writeToWithInsertion(w, text, start, end)
 }
 
-func (p *PieceTable) Undo() {
-	p.undo()
+func (p *PieceTable) Undo() (int, int, bool) {
+	return p.undo()
 }
 
-func (p *PieceTable) Redo() {
-	p.redo()
+func (p *PieceTable) Redo() (int, int, bool) {
+	return p.redo()
 }
 
 type TextInputState = textInputState
 
-func (p *PieceTable) AddState(state TextInputState, start, end int) int {
-	return p.addState(state, start, end)
+func (p *PieceTable) UpdateByIME(state TextInputState, start, end int) int {
+	return p.updateByIME(state, start, end)
 }
