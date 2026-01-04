@@ -347,6 +347,8 @@ func (f *Field) CanRedo() bool {
 }
 
 // Undo undoes the last operation.
+//
+// History granularity may vary depending on the internal implementation. Do not write code that depends on the granularity.
 func (f *Field) Undo() {
 	start, end, ok := f.pieceTable.undo()
 	if !ok {
@@ -357,6 +359,8 @@ func (f *Field) Undo() {
 }
 
 // Redo redoes the last undone operation.
+//
+// History granularity may vary depending on the internal implementation. Do not write code that depends on the granularity.
 func (f *Field) Redo() {
 	start, end, ok := f.pieceTable.redo()
 	if !ok {
