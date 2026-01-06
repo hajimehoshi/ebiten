@@ -150,44 +150,33 @@ func (t *TextField) Update() error {
 	switch {
 	case inpututil.IsKeyJustPressed(ebiten.KeyEnter):
 		if t.multilines {
-			text := t.field.Text()
-			selectionStart, selectionEnd := t.field.Selection()
-			text = text[:selectionStart] + "\n" + text[selectionEnd:]
-			selectionStart += len("\n")
-			selectionEnd = selectionStart
-			t.field.SetTextAndSelection(text, selectionStart, selectionEnd)
+			t.field.ReplaceTextAtSelection("\n")
 		}
 	case inpututil.IsKeyJustPressed(ebiten.KeyBackspace):
-		text := t.field.Text()
 		selectionStart, selectionEnd := t.field.Selection()
 		if selectionStart != selectionEnd {
-			text = text[:selectionStart] + text[selectionEnd:]
+			t.field.ReplaceTextAtSelection("")
 		} else if selectionStart > 0 {
 			// TODO: Remove a grapheme instead of a code point.
-			_, l := utf8.DecodeLastRuneInString(text[:selectionStart])
-			text = text[:selectionStart-l] + text[selectionEnd:]
-			selectionStart -= l
+			_, l := utf8.DecodeLastRuneInString(t.field.Text()[:selectionStart])
+			t.field.ReplaceText("", selectionStart-l, selectionStart)
 		}
-		selectionEnd = selectionStart
-		t.field.SetTextAndSelection(text, selectionStart, selectionEnd)
 	case inpututil.IsKeyJustPressed(ebiten.KeyLeft):
-		text := t.field.Text()
 		selectionStart, _ := t.field.Selection()
 		if selectionStart > 0 {
 			// TODO: Remove a grapheme instead of a code point.
-			_, l := utf8.DecodeLastRuneInString(text[:selectionStart])
+			_, l := utf8.DecodeLastRuneInString(t.field.Text()[:selectionStart])
 			selectionStart -= l
 		}
-		t.field.SetTextAndSelection(text, selectionStart, selectionStart)
+		t.field.SetSelection(selectionStart, selectionStart)
 	case inpututil.IsKeyJustPressed(ebiten.KeyRight):
-		text := t.field.Text()
 		_, selectionEnd := t.field.Selection()
-		if selectionEnd < len(text) {
+		if selectionEnd < len(t.field.Text()) {
 			// TODO: Remove a grapheme instead of a code point.
-			_, l := utf8.DecodeRuneInString(text[selectionEnd:])
+			_, l := utf8.DecodeRuneInString(t.field.Text()[selectionEnd:])
 			selectionEnd += l
 		}
-		t.field.SetTextAndSelection(text, selectionEnd, selectionEnd)
+		t.field.SetSelection(selectionEnd, selectionEnd)
 	}
 
 	if !t.multilines {
