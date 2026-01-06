@@ -150,37 +150,8 @@ func (p *pieceTable) Len() int {
 }
 
 func (p *pieceTable) replace(text string, start, end int) {
-	// If the first operation is 'replace', initialize the table.
-	if len(p.history) == 0 {
-		p.init(text)
-		return
-	}
-
 	p.maybeAppendHistory(text, start, end, 0, 0, 1, false)
 	p.doReplace(text, start, end)
-}
-
-func (p *pieceTable) init(text string) {
-	if len(p.history) > 0 {
-		panic("textinput: init should be called when history is empty")
-	}
-	if len(p.table) > 0 {
-		panic("textinput: init should be called when table is empty")
-	}
-
-	p.table = append(p.table, text...)
-	p.history = append(p.history, historyItem{
-		items: []pieceTableItem{
-			{
-				start: 0,
-				end:   len(text),
-			},
-		},
-		undoSelectionStart: 0,
-		undoSelectionEnd:   0,
-		redoSelectionStart: 0,
-		redoSelectionEnd:   len(text),
-	})
 }
 
 func (p *pieceTable) doReplace(text string, start, end int) {
