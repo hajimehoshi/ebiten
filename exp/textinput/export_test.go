@@ -28,6 +28,10 @@ func ConvertByteCountToUTF16Count(text string, c int) int {
 
 type PieceTable = pieceTable
 
+func (p *PieceTable) Reset(text string) {
+	p.reset(text)
+}
+
 func (p *PieceTable) Replace(text string, start, end int) {
 	p.replace(text, start, end)
 }

@@ -304,6 +304,15 @@ func (f *Field) WriteTextForRendering(w io.Writer) error {
 	return nil
 }
 
+// ResetText resets the text.
+// ResetText clears the undo history and initializes it with the specified text.
+func (f *Field) ResetText(text string) {
+	f.cleanUp()
+	f.pieceTable.reset(text)
+	f.selectionStartInBytes = 0
+	f.selectionEndInBytes = 0
+}
+
 // UncommittedTextLengthInBytes returns the compositing text length in bytes when the field is focused and the text is editing.
 // The uncommitted text range is from the selection start to the selection start + the uncommitted text length.
 // UncommittedTextLengthInBytes returns 0 otherwise.
@@ -315,6 +324,7 @@ func (f *Field) UncommittedTextLengthInBytes() int {
 }
 
 // SetTextAndSelection sets the text and the selection range.
+// This operation is added to the undo history.
 func (f *Field) SetTextAndSelection(text string, selectionStartInBytes, selectionEndInBytes int) {
 	f.cleanUp()
 	l := f.pieceTable.Len()
@@ -324,6 +334,7 @@ func (f *Field) SetTextAndSelection(text string, selectionStartInBytes, selectio
 }
 
 // ReplaceText replaces the text at the specified range and updates the selection range.
+// This operation is added to the undo history.
 func (f *Field) ReplaceText(text string, startInBytes, endInBytes int) {
 	f.cleanUp()
 	f.pieceTable.replace(text, startInBytes, endInBytes)
@@ -332,6 +343,7 @@ func (f *Field) ReplaceText(text string, startInBytes, endInBytes int) {
 }
 
 // ReplaceTextAtSelection replaces the text at the selection range and updates the selection range.
+// This operation is added to the undo history.
 func (f *Field) ReplaceTextAtSelection(text string) {
 	f.ReplaceText(text, f.selectionStartInBytes, f.selectionEndInBytes)
 }

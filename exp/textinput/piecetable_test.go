@@ -545,7 +545,7 @@ func TestPieceTableHistoryMergingApplePressHold(t *testing.T) {
 	check("")
 
 	// Op 1: Start with "foo"
-	p.Replace("foo", 0, 0)
+	p.Reset("foo")
 	check("foo")
 
 	// Op 2: Add "a"
@@ -574,23 +574,10 @@ func TestPieceTableHistoryMergingApplePressHold(t *testing.T) {
 	}
 	check("foo")
 
-	// Undo Op 1
+	// Undo Op 1 fails, as the initial state is determined by Replace.
 	start, end, ok = p.Undo()
-	if !ok {
-		t.Fatal("Undo failed")
-	}
-	if start != 0 || end != 0 {
-		t.Errorf("Undo: got (%d, %d), want (0, 0)", start, end)
-	}
-	check("")
-
-	// Redo Op 1
-	start, end, ok = p.Redo()
-	if !ok {
-		t.Fatal("Redo failed")
-	}
-	if start != 0 || end != 3 {
-		t.Errorf("Redo: got (%d, %d), want (0, 3)", start, end)
+	if ok {
+		t.Fatal("Undo should fail")
 	}
 	check("foo")
 
@@ -603,4 +590,160 @@ func TestPieceTableHistoryMergingApplePressHold(t *testing.T) {
 		t.Errorf("Redo: got (%d, %d), want (3, 7)", start, end)
 	}
 	check("fooàà")
+}
+
+func TestPieceTableReset(t *testing.T) {
+	var p textinput.PieceTable
+
+	check := func(want string) {
+		t.Helper()
+		var b strings.Builder
+		if _, err := p.WriteTo(&b); err != nil {
+			t.Fatalf("WriteTo failed: %v", err)
+		}
+		if got := b.String(); got != want {
+			t.Errorf("got %q, want %q", got, want)
+		}
+	}
+
+	check("")
+
+	// Op 1
+	p.Reset("foo")
+	check("foo")
+
+	// Op 2
+	p.Replace("bar", 0, 3)
+	check("bar")
+
+	// Op 3
+	p.Replace("baz", 0, 3)
+	check("baz")
+
+	// Undo Op 3
+	start, end, ok := p.Undo()
+	if !ok {
+		t.Fatal("Undo failed")
+	}
+	if start != 0 || end != 3 {
+		t.Errorf("Undo: got (%d, %d), want (0, 3)", start, end)
+	}
+	check("bar")
+
+	// Undo Op 2
+	start, end, ok = p.Undo()
+	if !ok {
+		t.Fatal("Undo failed")
+	}
+	if start != 0 || end != 3 {
+		t.Errorf("Undo: got (%d, %d), want (0, 3)", start, end)
+	}
+	check("foo")
+
+	// Undo Op 1 fails, as the initial state is determined by Replace.
+	start, end, ok = p.Undo()
+	if ok {
+		t.Fatal("Undo should fail")
+	}
+	check("foo")
+
+	// Redo Op 2
+	start, end, ok = p.Redo()
+	if !ok {
+		t.Fatal("Redo failed")
+	}
+	if start != 0 || end != 3 {
+		t.Errorf("Redo: got (%d, %d), want (0, 3)", start, end)
+	}
+	check("bar")
+
+	// Redo Op 3
+	start, end, ok = p.Redo()
+	if !ok {
+		t.Fatal("Redo failed")
+	}
+	if start != 0 || end != 3 {
+		t.Errorf("Redo: got (%d, %d), want (0, 3)", start, end)
+	}
+	check("baz")
+}
+
+func TestPieceTableResetInMiddle(t *testing.T) {
+	var p textinput.PieceTable
+
+	check := func(want string) {
+		t.Helper()
+		var b strings.Builder
+		if _, err := p.WriteTo(&b); err != nil {
+			t.Fatalf("WriteTo failed: %v", err)
+		}
+		if got := b.String(); got != want {
+			t.Errorf("got %q, want %q", got, want)
+		}
+	}
+
+	check("")
+
+	// Op 1
+	p.Replace("foo", 0, 0)
+	check("foo")
+
+	// Op 2
+	p.Reset("bar")
+	check("bar")
+
+	// Op 3
+	p.Replace("baz", 0, 3)
+	check("baz")
+
+	// Op 4
+	p.Replace("qux", 0, 3)
+	check("qux")
+
+	// Undo Op 4
+	start, end, ok := p.Undo()
+	if !ok {
+		t.Fatal("Undo failed")
+	}
+	if start != 0 || end != 3 {
+		t.Errorf("Undo: got (%d, %d), want (0, 3)", start, end)
+	}
+	check("baz")
+
+	// Undo Op 3
+	start, end, ok = p.Undo()
+	if !ok {
+		t.Fatal("Undo failed")
+	}
+	if start != 0 || end != 3 {
+		t.Errorf("Undo: got (%d, %d), want (0, 3)", start, end)
+	}
+	check("bar")
+
+	// Undo Op 2 fails
+	start, end, ok = p.Undo()
+	if ok {
+		t.Fatal("Undo should fail")
+	}
+	check("bar")
+
+	// Redo Op 3
+	start, end, ok = p.Redo()
+	if !ok {
+		t.Fatal("Redo failed")
+	}
+	if start != 0 || end != 3 {
+		t.Errorf("Redo: got (%d, %d), want (0, 3)", start, end)
+	}
+	check("baz")
+
+	// Redo Op 4
+	start, end, ok = p.Redo()
+	if !ok {
+		t.Fatal("Redo failed")
+	}
+	if start != 0 || end != 3 {
+		t.Errorf("Redo: got (%d, %d), want (0, 3)", start, end)
+	}
+	check("qux")
 }

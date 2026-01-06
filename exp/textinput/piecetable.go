@@ -149,6 +149,26 @@ func (p *pieceTable) Len() int {
 	return n
 }
 
+func (p *pieceTable) reset(text string) {
+	p.table = p.table[:0]
+	p.table = append(p.table, text...)
+	p.history = p.history[:0]
+	p.history = append(p.history, historyItem{
+		items: []pieceTableItem{
+			{
+				start: 0,
+				end:   len(p.table),
+			},
+		},
+		undoSelectionStart: 0,
+		undoSelectionEnd:   len(p.table),
+		redoSelectionStart: 0,
+		redoSelectionEnd:   len(p.table),
+	})
+	p.historyIndex = 0
+	p.lastOp = lastOp{}
+}
+
 func (p *pieceTable) replace(text string, start, end int) {
 	p.maybeAppendHistory(text, start, end, 0, 0, 1, false)
 	p.doReplace(text, start, end)
