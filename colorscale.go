@@ -66,6 +66,14 @@ func (c *ColorScale) elements() (float32, float32, float32, float32) {
 	return c.r_1 + 1, c.g_1 + 1, c.b_1 + 1, c.a_1 + 1
 }
 
+// Set overwrites the current scale with r, g, b, a.
+func (c *ColorScale) Set(r, g, b, a float32) {
+	c.r_1 = r - 1
+	c.g_1 = g - 1
+	c.b_1 = b - 1
+	c.a_1 = a - 1
+}
+
 // SetR overwrites the current red value with r.
 func (c *ColorScale) SetR(r float32) {
 	c.r_1 = r - 1
@@ -84,6 +92,12 @@ func (c *ColorScale) SetB(b float32) {
 // SetA overwrites the current alpha value with a.
 func (c *ColorScale) SetA(a float32) {
 	c.a_1 = a - 1
+}
+
+// SetWithColor overwrites the current scale with the given color.
+func (c *ColorScale) SetWithColor(clr color.Color) {
+	cr, cg, cb, ca := clr.RGBA()
+	c.Set(float32(cr)/0xffff, float32(cg)/0xffff, float32(cb)/0xffff, float32(ca)/0xffff)
 }
 
 // Scale multiplies the given values to the current scale.
