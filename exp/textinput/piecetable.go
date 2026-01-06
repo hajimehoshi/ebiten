@@ -375,10 +375,6 @@ func (p *pieceTable) maybeAppendHistory(text string, start1, end1 int, start2, e
 }
 
 func (p *pieceTable) appendHistory(undoStart, undoEnd, redoStart, redoEnd int) {
-	if p.history == nil {
-		p.history = []historyItem{{}}
-	}
-
 	// Truncate the history.
 	if p.historyIndex < len(p.history)-1 {
 		p.history = p.history[:p.historyIndex+1]
