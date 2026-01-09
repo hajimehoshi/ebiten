@@ -187,6 +187,10 @@ func (p *Page) Free(node *Node) {
 	}
 }
 
+var (
+	skipAll = errors.New("skip all")
+)
+
 func walk(n *Node, f func(n *Node) error) error {
 	if err := f(n); err != nil {
 		return err
@@ -247,17 +251,16 @@ func (p *Page) extendAndAlloc(width, height int) *Node {
 }
 
 func (p *Page) extend(newWidth int, newHeight int) func() {
-	edgeNodes := []*Node{}
-	abort := errors.New("abort")
-	aborted := false
+	var edgeNodes []*Node
+	var edgeAllocated bool
 	if p.root != nil {
 		_ = walk(p.root, func(n *Node) error {
 			if n.region.Max.X < p.width && n.region.Max.Y < p.height {
 				return nil
 			}
 			if n.used {
-				aborted = true
-				return abort
+				edgeAllocated = true
+				return skipAll
 			}
 			edgeNodes = append(edgeNodes, n)
 			return nil
@@ -266,7 +269,10 @@ func (p *Page) extend(newWidth int, newHeight int) func() {
 
 	var rollback func()
 
-	if aborted {
+	if edgeAllocated {
+		// As there is at least one allocated on the edge.
+		// Extend the page by simply adding a region.
+
 		origRoot := p.root
 		origRootCloned := *p.root
 
@@ -310,6 +316,8 @@ func (p *Page) extend(newWidth int, newHeight int) func() {
 			*p.root = origRootCloned
 		}
 	} else {
+		// Extend the page by extending edge nodes.
+
 		origWidth, origHeight := p.width, p.height
 		origMaxXs := map[*Node]int{}
 		origMaxYs := map[*Node]int{}
