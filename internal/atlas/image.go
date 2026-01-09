@@ -127,6 +127,7 @@ type restoreInfo struct {
 	valid  bool
 	screen bool
 	pixels *graphics.ManagedBytes
+	region image.Rectangle
 }
 
 func (b *backend) tryAlloc(width, height int) (*packing.Node, bool) {
@@ -851,25 +852,30 @@ func EndFrame(graphicsDriver graphicsdriver.Graphics) error {
 				continue
 			}
 			var pixels *graphics.ManagedBytes
-			if !b.screen {
-				var err error
-				pixels = graphics.NewManagedBytes(4*b.width*b.height, func(bytes []byte) {
-					args := []graphicsdriver.PixelsArgs{
-						{
-							Pixels: bytes,
-							Region: image.Rect(0, 0, b.width, b.height),
-						},
+			var region image.Rectangle
+			if !b.screen && b.page != nil {
+				region = b.page.AllocatedRegion()
+				if !region.Empty() {
+					var err error
+					pixels = graphics.NewManagedBytes(4*region.Dx()*region.Dy(), func(bytes []byte) {
+						args := []graphicsdriver.PixelsArgs{
+							{
+								Pixels: bytes,
+								Region: region,
+							},
+						}
+						err = b.backendImage.ReadPixels(graphicsDriver, args)
+					})
+					if err != nil {
+						return err
 					}
-					err = b.backendImage.ReadPixels(graphicsDriver, args)
-				})
-				if err != nil {
-					return err
 				}
 			}
 			b.restoreInfo = restoreInfo{
 				valid:  true,
 				screen: b.screen,
 				pixels: pixels,
+				region: region,
 			}
 		}
 	default:
@@ -970,10 +976,11 @@ func BeginFrame(graphicsDriver graphicsdriver.Graphics) error {
 				continue
 			}
 			b.backendImage = graphicscommand.NewImage(b.width, b.height, b.restoreInfo.screen, "")
-			if b.restoreInfo.pixels == nil {
+			if b.restoreInfo.region != image.Rect(0, 0, b.width, b.height) {
 				b.clear(image.Rect(0, 0, b.width, b.height))
-			} else {
-				b.backendImage.WritePixels(b.restoreInfo.pixels, image.Rect(0, 0, b.width, b.height))
+			}
+			if b.restoreInfo.pixels != nil {
+				b.backendImage.WritePixels(b.restoreInfo.pixels, b.restoreInfo.region)
 			}
 		}
 		needToRestoreGPUResources.Store(false)
