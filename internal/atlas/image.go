@@ -853,8 +853,13 @@ func EndFrame(graphicsDriver graphicsdriver.Graphics) error {
 			}
 			var pixels *graphics.ManagedBytes
 			var region image.Rectangle
-			if !b.screen && b.page != nil {
-				region = b.page.AllocatedRegion()
+			if !b.screen {
+				if b.page != nil {
+					region = b.page.AllocatedRegion()
+				} else {
+					// If a page doesn't exist, the image is not on an atlas.
+					region = image.Rect(0, 0, b.width, b.height)
+				}
 				if !region.Empty() {
 					var err error
 					pixels = graphics.NewManagedBytes(4*region.Dx()*region.Dy(), func(bytes []byte) {
