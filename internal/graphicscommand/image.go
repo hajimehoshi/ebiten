@@ -59,7 +59,7 @@ func genNextImageID() int {
 
 // NewImage returns a new image.
 //
-// Note that the image is not initialized yet.
+// The pixel data just after NewImage is undetermined.
 func NewImage(width, height int, screenFramebuffer bool, attribute string) *Image {
 	i := &Image{
 		width:     width,
