@@ -71,8 +71,6 @@ class EbitenSurfaceView extends GLSurfaceView implements Renderer {
         }
     }
 
-    private boolean paused = false;
-
     public EbitenSurfaceView(Context context) {
         super(context);
         initialize();
@@ -114,31 +112,5 @@ class EbitenSurfaceView extends GLSurfaceView implements Renderer {
         if (getRenderMode() == RENDERMODE_WHEN_DIRTY) {
             requestRender();
         }
-    }
-
-    @Override
-    public void onPause() {
-        onPause(false);
-    }
-
-    public void onPause(boolean saveGPUResources) {
-        if (saveGPUResources && !this.paused) {
-            Ebitenmobileview.saveGPUResources();
-            // Saving GPU resources is done in onDrawFrame.
-            // In the next onDrawFrame, Ebitengine restores GPU resources automatically.
-            // In theory, it is possible that onDrawFrame is invoked between saveGPUResources and super.onPause,
-            // and in thie case, GPU resources are restored before the context is actually lost.
-            // This is pretty unlikely, and even if it happens, the process is gracefully killed at Ebitenmobileview.onContextLost.
-        }
-        // onPause should be safe to call multiple times.
-        super.onPause();
-        this.paused = true;
-    }
-
-    @Override
-    public void onResume() {
-        // onResume should be safe to call multiple times.
-        super.onResume();
-        this.paused = false;
     }
 }

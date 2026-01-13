@@ -122,6 +122,7 @@ func Suspend() error {
 }
 
 func Resume() error {
+	atlas.ResumeApp()
 	return ui.Get().SetForeground(true)
 }
 
@@ -147,4 +148,8 @@ func SetSetGameNotifier(setGameNotifier SetGameNotifier) {
 
 func SaveGPUResources() {
 	atlas.SaveGPUResources()
+}
+
+func AreGPUResourcesSaved() bool {
+	return atlas.AreGPUResourcesSaved()
 }
