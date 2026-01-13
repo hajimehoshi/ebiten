@@ -157,7 +157,7 @@ func (i *Input) Update() {
 			i.touchInitPosX = x
 			i.touchInitPosY = y
 			i.touchLastPosX = x
-			i.touchLastPosX = y
+			i.touchLastPosY = y
 			i.touchState = touchStatePressing
 		}
 	case touchStatePressing:
