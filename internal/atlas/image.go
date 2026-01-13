@@ -20,6 +20,7 @@ import (
 	"math"
 	"math/bits"
 	"runtime"
+	"slices"
 	"sync"
 	"sync/atomic"
 
@@ -325,14 +326,9 @@ func (i *Image) ensureIsolatedFromSource(backends []*backend) {
 	}
 
 	// Check if i has the same backend as the given backends.
-	var needsIsolation bool
-	for _, b := range backends {
-		if i.backend == b {
-			needsIsolation = true
-			break
-		}
-	}
-	if !needsIsolation {
+	if !slices.ContainsFunc(backends, func(b *backend) bool {
+		return i.backend == b
+	}) {
 		return
 	}
 
