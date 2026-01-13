@@ -107,6 +107,12 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 		return false, nil
 	}
 
+	// On Android, GPU resources might be saved until the app is resumed.
+	// Skip updating and drawing until then.
+	if atlas.IsSuspended() {
+		return true, nil
+	}
+
 	debug.FrameLogf("----\n")
 
 	if err := atlas.BeginFrame(graphicsDriver); err != nil {

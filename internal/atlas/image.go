@@ -187,8 +187,9 @@ var (
 	// If inFrame is false, function calls on an image should be deferred until the next BeginFrame.
 	inFrame bool
 
-	initOnce sync.Once
-	inited   atomic.Bool
+	initOnce  sync.Once
+	inited    atomic.Bool
+	suspended atomic.Bool
 
 	// theBackends is a set of atlases.
 	theBackends []*backend
@@ -201,10 +202,6 @@ var (
 
 	// deferredM is a mutex for the slice operations. This must not be used for other usages.
 	deferredM sync.Mutex
-
-	saveGPUResourcesCh        = make(chan struct{}, 1)
-	saveGPUResourcesStartedCh = make(chan struct{}, 1)
-	needToRestoreGPUResources atomic.Bool
 )
 
 // ImageType represents the type of an image.
@@ -838,9 +835,8 @@ func EndFrame(graphicsDriver graphicsdriver.Graphics) error {
 		b.sourceInThisFrame = false
 	}
 
-	select {
-	case <-saveGPUResourcesCh:
-		saveGPUResourcesStartedCh <- struct{}{}
+	if theGPUResourcesState.isSavingGPUResourcesRequested() {
+		defer theGPUResourcesState.finishSavingGPUResources()
 
 		flushDeferred()
 		for _, b := range theBackends {
@@ -879,7 +875,6 @@ func EndFrame(graphicsDriver graphicsdriver.Graphics) error {
 				region: region,
 			}
 		}
-	default:
 	}
 
 	return nil
@@ -955,7 +950,7 @@ func BeginFrame(graphicsDriver graphicsdriver.Graphics) error {
 		return err
 	}
 
-	if needToRestoreGPUResources.Load() {
+	if theGPUResourcesState.startRestoringGPUResourcesIfNeeded() {
 		if err := graphicscommand.ResetGraphicsDriverState(graphicsDriver); err != nil {
 			return err
 		}
@@ -984,8 +979,9 @@ func BeginFrame(graphicsDriver graphicsdriver.Graphics) error {
 				b.backendImage.WritePixels(b.restoreInfo.pixels, b.restoreInfo.region)
 			}
 		}
-		needToRestoreGPUResources.Store(false)
 	}
+
+	// Discard restore info whichever restoration is done or not.
 	for _, b := range theBackends {
 		// Do not release pixels here, as the command buffer might not be flushed yet.
 		b.restoreInfo = restoreInfo{}
@@ -1030,45 +1026,40 @@ func TotalGPUImageMemoryUsageInBytes() int64 {
 	return sum
 }
 
-func isGPUResourcesSaved() bool {
-	backendsM.Lock()
-	defer backendsM.Unlock()
-
-	// At least, there is one backend for the screen image.
-	for _, b := range theBackends {
-		if b.restoreInfo.valid {
-			return true
-		}
-	}
-	return false
-}
-
 // SaveGPUResources saves GPU resources (textures and shaders) in CPU memory.
-// SaveGPUResources must be called from a different goroutine to the one calling BeginFrame/EndFrame.
 //
-// The saved resources can be restored by RestoreGPUResources in the next frame.
-// If RestoreGPUResources is not called, the saved resources are just discarded.
+// Until GPU resources are saved, the app becomes suspended
+// until [RestoreGPUResources] or [ResumeApp] is called.
+//
+// If [RestoreGPUResources] is called, the saved resources are restored in the next frame.
+// If [ResumeApp] is called but not [RestoreGPUResources], the saved resources are discarded.
 func SaveGPUResources() {
 	if !inited.Load() {
 		return
 	}
-	if isGPUResourcesSaved() {
-		return
-	}
+	// Suspend the app. [IsSuspended] will return true after the GPU resources are actually saved.
+	suspended.Store(true)
+	theGPUResourcesState.requestToSaveGPUResources()
+}
 
-	// Confirm reading pixels from GPU to be started.
-	// It is not necessary to wait for the reading to be finished, as
-	// the rendering thread should not be suspended until the current frame ends.
-	saveGPUResourcesCh <- struct{}{}
-	<-saveGPUResourcesStartedCh
+// IsSuspended reports whether the app is currently suspended.
+func IsSuspended() bool {
+	return suspended.Load() && theGPUResourcesState.areGPUResourcesSaved()
+}
+
+// AreGPUResourcesSaved reports whether GPU resources are currently saved.
+func AreGPUResourcesSaved() bool {
+	return theGPUResourcesState.areGPUResourcesSaved()
+}
+
+// ResumeApp unfreezes the app previously frozen by [SaveGPUResources].
+func ResumeApp() {
+	suspended.Store(false)
 }
 
 // RestoreGPUResources restores GPU resources in the next frame if needed.
 // RestoreGPUResources reports whether there are GPU resources to be restored or not.
 func RestoreGPUResources() bool {
-	if isGPUResourcesSaved() {
-		needToRestoreGPUResources.Store(true)
-		return true
-	}
-	return false
+	suspended.Store(false)
+	return theGPUResourcesState.requestToRestoreGPUResources()
 }

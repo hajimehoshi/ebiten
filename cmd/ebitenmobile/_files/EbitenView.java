@@ -412,22 +412,8 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
     // It is recommended to call this when the application is being suspended e.g.,
     // Activity's onPause is called.
     public void suspendGame() {
-        suspendGame(false);
-    }
-
-    // suspendGame suspends the game.
-    // It is recommended to call this when the application is being suspended e.g.,
-    // Activity's onPause is called.
-    //
-    // saveGPUResources indicates whether GPU resources should be saved by Ebitengine.
-    // Even if saveGPUResources is false, the GPU resources can be reclaimed by Android OS,
-    // but this is not 100% guaranteed.
-    // If saveGPUResources is true, Ebitengine saves GPU resources here and restores them
-    // in the case they are lost. However, saving GPU resources might take time and cause ANR.
-    // It is recommended to set saveGPUResources to true only when necessary e.g. showing a reward ad.
-    public void suspendGame(boolean saveGPUResources) {
         this.inputManager.unregisterInputDeviceListener(this);
-        this.ebitenSurfaceView.onPause(saveGPUResources);
+        this.ebitenSurfaceView.onPause();
         try {
             Ebitenmobileview.suspend();
         } catch (final Exception e) {
@@ -452,6 +438,28 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
     // You can define your own error handler, e.g., using Crashlytics, by overriding this method.
     protected void onErrorOnGameUpdate(Exception e) {
         Log.e("Go", e.toString());
+    }
+
+    // saveGPUResources starts to save GPU resources.
+    // saveGPUResources is non-blocking.
+    // You can check whether the GPU resources are being saved by areGPUResourcesSaved.
+    //
+    // Even without saveGPUResources, the GPU resources can be reclaimed by Android OS,
+    // but this is not 100% guaranteed.
+    // If saveGPUResources is called, Ebitengine saves GPU resources and restores them
+    // in the case they are lost.
+    //
+    // It is recommended to call saveGPUResources to true only when necessary e.g. showing a reward ad.
+    //
+    // After GPU resources are saved, rendering is suspended until resumeGame is called or
+    // GLSurfaceView is recreated by an actual context loss.
+    public void saveGPUResources() {
+        Ebitenmobileview.saveGPUResources();
+    }
+
+    // areGPUResourcesSaved reports whether GPU resources are being saved.
+    public boolean areGPUResourcesSaved() {
+        return Ebitenmobileview.areGPUResourcesSaved();
     }
 
     private EbitenSurfaceView ebitenSurfaceView;
