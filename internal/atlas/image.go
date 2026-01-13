@@ -187,7 +187,7 @@ var (
 	inFrame bool
 
 	initOnce sync.Once
-	inited   bool
+	inited   atomic.Bool
 
 	// theBackends is a set of atlases.
 	theBackends []*backend
@@ -953,7 +953,7 @@ func BeginFrame(graphicsDriver graphicsdriver.Graphics) error {
 		if maxSize == 0 {
 			maxSize = floorPowerOf2(graphicscommand.MaxImageSize(graphicsDriver))
 		}
-		inited = true
+		inited.Store(true)
 	})
 	if err != nil {
 		return err
@@ -1034,12 +1034,6 @@ func TotalGPUImageMemoryUsageInBytes() int64 {
 	return sum
 }
 
-func isInited() bool {
-	backendsM.Lock()
-	defer backendsM.Unlock()
-	return inited
-}
-
 func isGPUResourcesSaved() bool {
 	backendsM.Lock()
 	defer backendsM.Unlock()
@@ -1059,7 +1053,7 @@ func isGPUResourcesSaved() bool {
 // The saved resources can be restored by RestoreGPUResources in the next frame.
 // If RestoreGPUResources is not called, the saved resources are just discarded.
 func SaveGPUResources() {
-	if !isInited() {
+	if !inited.Load() {
 		return
 	}
 	if isGPUResourcesSaved() {
