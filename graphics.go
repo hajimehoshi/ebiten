@@ -55,7 +55,7 @@ const (
 	// GraphicsLibraryMetal represents the graphics library Apple's Metal.
 	GraphicsLibraryMetal GraphicsLibrary = GraphicsLibrary(ui.GraphicsLibraryMetal)
 
-	// GraphicsLibraryMetal represents the graphics library PlayStation 5.
+	// GraphicsLibraryPlayStation5 represents the graphics library PlayStation 5.
 	GraphicsLibraryPlayStation5 GraphicsLibrary = GraphicsLibrary(ui.GraphicsLibraryPlayStation5)
 )
 
