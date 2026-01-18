@@ -227,42 +227,48 @@ func doDrawTrianglesShaderWithStencilBuffer(dst *Image, vertices []Vertex, indic
 	}
 
 	// Create an offscreen image to render the vertices as they are, without blendings.
+	os1 := ensureOffscreenImage1(bounds).SubImage(bounds).(*Image)
 	if dtOptions != nil {
-		offscreen1Op := &DrawTrianglesOptions{}
-		offscreen1Op.ColorM = dtOptions.ColorM
-		offscreen1Op.ColorScaleMode = dtOptions.ColorScaleMode
-		offscreen1Op.Filter = dtOptions.Filter
-		offscreen1Op.Address = dtOptions.Address
-		offscreen1Op.DisableMipmaps = dtOptions.DisableMipmaps
-		ensureOffscreenImage1(bounds).SubImage(bounds).(*Image).DrawTriangles32(vs, indices, img, offscreen1Op)
+		op := &DrawTrianglesOptions{}
+		op.ColorM = dtOptions.ColorM
+		op.ColorScaleMode = dtOptions.ColorScaleMode
+		op.Filter = dtOptions.Filter
+		op.Address = dtOptions.Address
+		op.DisableMipmaps = dtOptions.DisableMipmaps
+		os1.DrawTriangles32(vs, indices, img, op)
 	} else if dtsOptions != nil {
-		offscreen1Op := &DrawTrianglesShaderOptions{}
-		offscreen1Op.Uniforms = dtsOptions.Uniforms
-		offscreen1Op.Images = dtsOptions.Images
-		ensureOffscreenImage1(bounds).SubImage(bounds).(*Image).DrawTrianglesShader32(vs, indices, shader, offscreen1Op)
+		op := &DrawTrianglesShaderOptions{}
+		op.Uniforms = dtsOptions.Uniforms
+		op.Images = dtsOptions.Images
+		os1.DrawTrianglesShader32(vs, indices, shader, op)
 	}
-
-	// Create a stencil buffer image.
-	stencilBufferShader, err := ensureStencilBufferShaders()
-	if err != nil {
-		panic(err)
-	}
-	stencilOp := &DrawTrianglesShaderOptions{}
-	stencilOp.Blend = BlendLighter
-	ensureStencilBufferImage(bounds).SubImage(bounds).(*Image).DrawTrianglesShader32(vs, indices, stencilBufferShader, stencilOp)
 
 	// Create an offscreen image with the stencil buffer.
-	offscreen2Op := &DrawRectShaderOptions{}
-	offscreen2Op.Images[0] = stencilBufferImage.SubImage(bounds).(*Image)
-	offscreen2Op.Images[1] = offscreenImage1.SubImage(bounds).(*Image)
-	off2 := ensureOffscreenImage2(bounds).SubImage(bounds).(*Image)
-	var fillRule FillRule
-	if dtOptions != nil {
-		fillRule = dtOptions.FillRule
-	} else if dtsOptions != nil {
-		fillRule = dtsOptions.FillRule
+	var finalOS *Image
+	{
+		// Create a stencil buffer image.
+		stencilBufferShader, err := ensureStencilBufferShaders()
+		if err != nil {
+			panic(err)
+		}
+		stencilImg := ensureStencilBufferImage(bounds).SubImage(bounds).(*Image)
+		stencilOp := &DrawTrianglesShaderOptions{}
+		stencilOp.Blend = BlendLighter
+		stencilImg.DrawTrianglesShader32(vs, indices, stencilBufferShader, stencilOp)
+
+		op := &DrawRectShaderOptions{}
+		op.Images[0] = stencilImg
+		op.Images[1] = os1
+		os2 := ensureOffscreenImage2(bounds).SubImage(bounds).(*Image)
+		var fillRule FillRule
+		if dtOptions != nil {
+			fillRule = dtOptions.FillRule
+		} else if dtsOptions != nil {
+			fillRule = dtsOptions.FillRule
+		}
+		os2.DrawRectShader(bounds.Dx(), bounds.Dy(), shaderFromFillRule(fillRule), op)
+		finalOS = os2
 	}
-	off2.DrawRectShader(bounds.Dx(), bounds.Dy(), shaderFromFillRule(fillRule), offscreen2Op)
 
 	// Render the offscreen image onto dst.
 	op := &DrawImageOptions{}
@@ -281,5 +287,5 @@ func doDrawTrianglesShaderWithStencilBuffer(dst *Image, vertices []Vertex, indic
 			op.Filter = FilterLinear
 		}
 	}
-	dst.DrawImage(off2, op)
+	dst.DrawImage(finalOS, op)
 }
