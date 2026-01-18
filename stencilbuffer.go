@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// This file emulates the deprecated APIs (FillRule) with the non-deprecated APIs.
+// This file emulates the deprecated APIs (FillRule and AntiAlias) with the non-deprecated APIs.
 //
 // The pseudo stencil buffer implementation is based on the following article:
 // https://medium.com/@evanwallace/easy-scalable-text-rendering-on-the-gpu-c3f4d782c5ac
@@ -189,14 +189,22 @@ func shaderFromFillRule(fillRule FillRule) *Shader {
 
 func drawTrianglesWithStencilBuffer(dst *Image, vertices []Vertex, indices []uint32, img *Image, options *DrawTrianglesOptions) {
 	if options.FillRule == FillRuleFillAll {
-		panic("ebiten: FillRule must be FillRuleNonZero or FillRuleEvenOdd at drawTrianglesWithStencilBuffer")
+		if !options.AntiAlias {
+			panic("not reached")
+		}
+		doDrawTrianglesWithAntialias(dst, vertices, indices, img, options, nil, nil)
+		return
 	}
 	doDrawTrianglesShaderWithStencilBuffer(dst, vertices, indices, img, options, nil, nil)
 }
 
 func drawTrianglesShaderWithStencilBuffer(dst *Image, vertices []Vertex, indices []uint32, shader *Shader, options *DrawTrianglesShaderOptions) {
 	if options.FillRule == FillRuleFillAll {
-		panic("ebiten: FillRule must be FillRuleNonZero or FillRuleEvenOdd at drawTrianglesShaderWithStencilBuffer")
+		if !options.AntiAlias {
+			panic("not reached")
+		}
+		doDrawTrianglesWithAntialias(dst, vertices, indices, nil, nil, shader, options)
+		return
 	}
 	doDrawTrianglesShaderWithStencilBuffer(dst, vertices, indices, nil, nil, shader, options)
 }
@@ -205,6 +213,86 @@ var (
 	tmpVerticesForStencilBuffer []Vertex
 )
 
+// doDrawTrianglesWithAntialias draw triangles with antialiasing.
+//
+// doDrawTrianglesWithAntialias doesn't batch draw calls, so this might not be efficient.
+// This is different from Ebitengine v2.9's behavior.
+// However, this function is for the legacy API and its usage is expected to be minimal.
+func doDrawTrianglesWithAntialias(dst *Image, vertices []Vertex, indices []uint32, img *Image, dtOptions *DrawTrianglesOptions, shader *Shader, dtsOptions *DrawTrianglesShaderOptions) {
+	stencilBufferM.Lock()
+	defer stencilBufferM.Unlock()
+
+	bounds := dst.Bounds()
+	bounds.Min.X *= 2
+	bounds.Max.X *= 2
+	bounds.Min.Y *= 2
+	bounds.Max.Y *= 2
+
+	tmpVerticesForStencilBuffer = slices.Grow(tmpVerticesForStencilBuffer, len(vertices))
+	vs := tmpVerticesForStencilBuffer[:len(vertices)]
+	copy(vs, vertices)
+	for i := range vs {
+		vs[i].DstX *= 2
+		vs[i].DstY *= 2
+	}
+
+	var uncommonBlend bool
+	if dtOptions != nil {
+		if dtOptions.CompositeMode != CompositeModeCustom {
+			uncommonBlend = dtOptions.CompositeMode != CompositeModeSourceOver
+		} else {
+			uncommonBlend = dtOptions.Blend != BlendSourceOver
+		}
+	} else if dtsOptions != nil {
+		if dtsOptions.CompositeMode != CompositeModeCustom {
+			uncommonBlend = dtsOptions.CompositeMode != CompositeModeSourceOver
+		} else {
+			uncommonBlend = dtsOptions.Blend != BlendSourceOver
+		}
+	}
+
+	// Copy the current destination image for the blending, if the blend mode is not the regular alpha blending.
+	os1 := ensureOffscreenImage1(bounds).SubImage(bounds).(*Image)
+	if uncommonBlend {
+		op := &DrawImageOptions{}
+		op.GeoM.Scale(2, 2)
+		op.Blend = BlendCopy
+		os1.DrawImage(dst, op)
+	}
+
+	if dtOptions != nil {
+		op := &DrawTrianglesOptions{}
+		op.ColorM = dtOptions.ColorM
+		op.ColorScaleMode = dtOptions.ColorScaleMode
+		op.CompositeMode = dtOptions.CompositeMode
+		op.Blend = dtOptions.Blend
+		op.Filter = dtOptions.Filter
+		op.Address = dtOptions.Address
+		op.DisableMipmaps = dtOptions.DisableMipmaps
+		os1.DrawTriangles32(vs, indices, img, op)
+	} else if dtsOptions != nil {
+		op := &DrawTrianglesShaderOptions{}
+		op.Uniforms = dtsOptions.Uniforms
+		op.Images = dtsOptions.Images
+		op.CompositeMode = dtsOptions.CompositeMode
+		op.Blend = dtsOptions.Blend
+		os1.DrawTrianglesShader32(vs, indices, shader, op)
+	}
+
+	op := &DrawImageOptions{}
+	op.GeoM.Scale(0.5, 0.5)
+	op.Filter = FilterLinear
+	if uncommonBlend {
+		op.Blend = BlendCopy
+	}
+	dst.DrawImage(os1, op)
+}
+
+// doDrawTrianglesShaderWithStencilBuffer draw triangles with stencil buffer.
+//
+// doDrawTrianglesShaderWithStencilBuffer doesn't batch draw calls, so this might not be efficient.
+// This is different from Ebitengine v2.9's behavior.
+// However, this function is for the legacy API and its usage is expected to be minimal.
 func doDrawTrianglesShaderWithStencilBuffer(dst *Image, vertices []Vertex, indices []uint32, img *Image, dtOptions *DrawTrianglesOptions, shader *Shader, dtsOptions *DrawTrianglesShaderOptions) {
 	stencilBufferM.Lock()
 	defer stencilBufferM.Unlock()
@@ -271,6 +359,8 @@ func doDrawTrianglesShaderWithStencilBuffer(dst *Image, vertices []Vertex, indic
 	}
 
 	// Render the offscreen image onto dst.
+	// Note that some blends like BlendXor might not work correctly, but this is expected,
+	// as this logic is for the legacy API.
 	op := &DrawImageOptions{}
 	if dtOptions != nil {
 		op.CompositeMode = dtOptions.CompositeMode

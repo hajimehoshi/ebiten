@@ -259,9 +259,6 @@ func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics, ui *UserInter
 
 	c.game.DrawFinalScreen(c.screenScaleAndOffsets())
 
-	// The final screen is never used as the rendering source.
-	// Flush its buffer here just in case.
-	c.screen.flushBufferIfNeeded()
 	return true, nil
 }
 

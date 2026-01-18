@@ -333,7 +333,7 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) {
 	if !skipMipmap {
 		skipMipmap = canSkipMipmap(det, filter)
 	}
-	i.image.DrawTriangles(srcs, vs, is, blend, dr, [graphics.ShaderSrcImageCount]image.Rectangle{img.adjustedBounds()}, shader.shader, i.tmpUniforms, skipMipmap, false)
+	i.image.DrawTriangles(srcs, vs, is, blend, dr, [graphics.ShaderSrcImageCount]image.Rectangle{img.adjustedBounds()}, shader.shader, i.tmpUniforms, skipMipmap)
 }
 
 // Vertex represents a vertex passed to DrawTriangles.
@@ -586,7 +586,7 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 //
 // When the image i is disposed, DrawTriangles32 does nothing.
 func (i *Image) DrawTriangles32(vertices []Vertex, indices []uint32, img *Image, options *DrawTrianglesOptions) {
-	if options != nil && options.FillRule != FillRuleFillAll {
+	if options != nil && (options.FillRule != FillRuleFillAll || options.AntiAlias) {
 		drawTrianglesWithStencilBuffer(i, vertices, indices, img, options)
 		return
 	}
@@ -694,7 +694,7 @@ func (i *Image) DrawTriangles32(vertices []Vertex, indices []uint32, img *Image,
 	if !skipMipmap {
 		skipMipmap = filter != builtinshader.FilterLinear
 	}
-	i.image.DrawTriangles(srcs, vs, indices, blend, i.adjustedBounds(), [graphics.ShaderSrcImageCount]image.Rectangle{img.adjustedBounds()}, shader.shader, i.tmpUniforms, skipMipmap, options.AntiAlias)
+	i.image.DrawTriangles(srcs, vs, indices, blend, i.adjustedBounds(), [graphics.ShaderSrcImageCount]image.Rectangle{img.adjustedBounds()}, shader.shader, i.tmpUniforms, skipMipmap)
 }
 
 // DrawTrianglesShaderOptions represents options for DrawTrianglesShader.
@@ -809,7 +809,7 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 //
 // When the image i is disposed, DrawTrianglesShader32 does nothing.
 func (i *Image) DrawTrianglesShader32(vertices []Vertex, indices []uint32, shader *Shader, options *DrawTrianglesShaderOptions) {
-	if options != nil && options.FillRule != FillRuleFillAll {
+	if options != nil && (options.FillRule != FillRuleFillAll || options.AntiAlias) {
 		drawTrianglesShaderWithStencilBuffer(i, vertices, indices, shader, options)
 		return
 	}
@@ -931,7 +931,7 @@ func (i *Image) DrawTrianglesShader32(vertices []Vertex, indices []uint32, shade
 	i.tmpUniforms = i.tmpUniforms[:0]
 	i.tmpUniforms = shader.appendUniforms(i.tmpUniforms, options.Uniforms)
 
-	i.image.DrawTriangles(imgs, vs, indices, blend, i.adjustedBounds(), srcRegions, shader.shader, i.tmpUniforms, true, options.AntiAlias)
+	i.image.DrawTriangles(imgs, vs, indices, blend, i.adjustedBounds(), srcRegions, shader.shader, i.tmpUniforms, true)
 }
 
 // DrawRectShaderOptions represents options for DrawRectShader.
@@ -1089,7 +1089,7 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 
 	dr := i.adjustedBounds()
 
-	i.image.DrawTriangles(imgs, vs, is, blend, dr, srcRegions, shader.shader, i.tmpUniforms, true, false)
+	i.image.DrawTriangles(imgs, vs, is, blend, dr, srcRegions, shader.shader, i.tmpUniforms, true)
 }
 
 // SubImage returns an image representing the portion of the image p visible through r.
