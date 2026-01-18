@@ -20,10 +20,10 @@
 
 #import "Ebitenmobileview.objc.h"
 
-@interface {{.PrefixUpper}}EbitenViewController : UIViewController<EbitenmobileviewRenderer, EbitenmobileviewSetGameNotifier>
+@interface $Placeholder_PrefixUpper$EbitenViewController : UIViewController<EbitenmobileviewRenderer, EbitenmobileviewSetGameNotifier>
 @end
 
-@implementation {{.PrefixUpper}}EbitenViewController {
+@implementation $Placeholder_PrefixUpper$EbitenViewController {
   UIView*        metalView_;
   GLKView*       glkView_;
   bool           started_;

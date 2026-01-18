@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package {{.JavaPkg}}.{{.PrefixLower}};
+package $Placeholder_JavaPkg$.$Placeholder_PrefixLower$;
 
 import android.content.Context;
 import android.opengl.GLSurfaceView;
@@ -24,9 +24,9 @@ import android.util.Log;
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
-import {{.JavaPkg}}.ebitenmobileview.Ebitenmobileview;
-import {{.JavaPkg}}.ebitenmobileview.Renderer;
-import {{.JavaPkg}}.{{.PrefixLower}}.EbitenView;
+import $Placeholder_JavaPkg$.ebitenmobileview.Ebitenmobileview;
+import $Placeholder_JavaPkg$.ebitenmobileview.Renderer;
+import $Placeholder_JavaPkg$.$Placeholder_PrefixLower$.EbitenView;
 
 class EbitenSurfaceView extends GLSurfaceView implements Renderer {
     // As GLSurfaceView can be recreated, the states must be static (#3097).

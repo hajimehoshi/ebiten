@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package {{.JavaPkg}}.{{.PrefixLower}};
+package $Placeholder_JavaPkg$.$Placeholder_PrefixLower$;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -33,7 +33,7 @@ import android.view.MotionEvent;
 import android.view.ViewGroup;
 import android.view.WindowManager;
 
-import {{.JavaPkg}}.ebitenmobileview.Ebitenmobileview;
+import $Placeholder_JavaPkg$.ebitenmobileview.Ebitenmobileview;
 
 public class EbitenView extends ViewGroup implements InputManager.InputDeviceListener {
     static class Gamepad {

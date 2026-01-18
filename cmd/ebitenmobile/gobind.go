@@ -106,9 +106,9 @@ func run() error {
 		prefixLower := *prefix + pkgName
 		prefixUpper := strings.Title(*prefix) + strings.Title(pkgName)
 		replacePrefixes := func(content string) string {
-			content = strings.ReplaceAll(content, "{{.PrefixUpper}}", prefixUpper)
-			content = strings.ReplaceAll(content, "{{.PrefixLower}}", prefixLower)
-			content = strings.ReplaceAll(content, "{{.JavaPkg}}", *javaPkg)
+			content = strings.ReplaceAll(content, "$Placeholder_PrefixUpper$", prefixUpper)
+			content = strings.ReplaceAll(content, "$Placeholder_PrefixLower$", prefixLower)
+			content = strings.ReplaceAll(content, "$Placeholder_JavaPkg$", *javaPkg)
 			return content
 		}
 
