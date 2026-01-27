@@ -90,8 +90,13 @@ func (a *atlas) setPaths(dstBounds image.Rectangle, paths []*Path, antialias boo
 		a.pathIndexToAtlasRegionIndex[r.pathIndex] = i
 	}
 
+	w, h := dstBounds.Dx(), dstBounds.Dy()
+	// For antialiasing, doubled regions in the X direction are used.
+	if antialias {
+		w *= 2
+	}
 	// Use 2^n - 1, as a region in internal/atlas has 1px padding.
-	maxImageSize := max(4093, dstBounds.Dx(), dstBounds.Dy())
+	maxImageSize := max(4093, w, h)
 
 	// Pack the regions into an atlas with a very simple algorithm:
 	// Order the regions by height and then place them in a row.
