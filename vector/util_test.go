@@ -126,3 +126,23 @@ func TestFillRects(t *testing.T) {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
 }
+
+// Issue #3377
+func TestFillRectOnBigImage(t *testing.T) {
+	dst := ebiten.NewImage(3000, 3000)
+	defer dst.Deallocate()
+
+	vector.FillRect(dst, 0, 0, 3000, 3000, color.White, true)
+	if got, want := dst.At(0, 0), (color.RGBA{0xff, 0xff, 0xff, 0xff}); got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+	if got, want := dst.At(2980, 0), (color.RGBA{0xff, 0xff, 0xff, 0xff}); got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+	if got, want := dst.At(0, 2980), (color.RGBA{0xff, 0xff, 0xff, 0xff}); got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+	if got, want := dst.At(2980, 2980), (color.RGBA{0xff, 0xff, 0xff, 0xff}); got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+}
