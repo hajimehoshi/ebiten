@@ -291,6 +291,7 @@ func (g *GoTextFace) appendGlyphsForLine(glyphs []Glyph, line string, indexOffse
 		X: float64ToFixed26_6(originX),
 		Y: float64ToFixed26_6(originY),
 	}
+	horizontal := g.direction().isHorizontal()
 	_, gs := g.Source.shape(line, g)
 	for _, glyph := range gs {
 		o := origin.Add(fixed.Point26_6{
@@ -315,10 +316,17 @@ func (g *GoTextFace) appendGlyphsForLine(glyphs []Glyph, line string, indexOffse
 			OriginOffsetX:     fixed26_6ToFloat64(glyph.shapingGlyph.XOffset),
 			OriginOffsetY:     fixed26_6ToFloat64(-glyph.shapingGlyph.YOffset),
 		})
-		origin = origin.Add(fixed.Point26_6{
-			X: glyph.shapingGlyph.XAdvance,
-			Y: -glyph.shapingGlyph.YAdvance,
-		})
+		if horizontal {
+			origin = origin.Add(fixed.Point26_6{
+				X: glyph.shapingGlyph.Advance,
+				Y: 0,
+			})
+		} else {
+			origin = origin.Add(fixed.Point26_6{
+				X: 0,
+				Y: -glyph.shapingGlyph.Advance,
+			})
+		}
 	}
 
 	return glyphs
@@ -360,13 +368,21 @@ func (g *GoTextFace) appendVectorPathForLine(path *vector.Path, line string, ori
 		X: float64ToFixed26_6(originX),
 		Y: float64ToFixed26_6(originY),
 	}
+	horizontal := g.direction().isHorizontal()
 	_, gs := g.Source.shape(line, g)
 	for _, glyph := range gs {
 		appendVectorPathFromSegments(path, glyph.scaledSegments, fixed26_6ToFloat32(origin.X), fixed26_6ToFloat32(origin.Y))
-		origin = origin.Add(fixed.Point26_6{
-			X: glyph.shapingGlyph.XAdvance,
-			Y: -glyph.shapingGlyph.YAdvance,
-		})
+		if horizontal {
+			origin = origin.Add(fixed.Point26_6{
+				X: glyph.shapingGlyph.Advance,
+				Y: 0,
+			})
+		} else {
+			origin = origin.Add(fixed.Point26_6{
+				X: 0,
+				Y: -glyph.shapingGlyph.Advance,
+			})
+		}
 	}
 }
 

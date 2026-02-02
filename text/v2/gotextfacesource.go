@@ -307,8 +307,8 @@ func (g *GoTextFaceSource) shapeImpl(text string, face *GoTextFace) ([]shaping.O
 
 			gs = append(gs, glyph{
 				shapingGlyph:   &gl,
-				startIndex:     indices[gl.ClusterIndex],
-				endIndex:       indices[gl.ClusterIndex+gl.RuneCount],
+				startIndex:     indices[gl.TextIndex()],
+				endIndex:       indices[gl.TextIndex()+gl.RunesCount()],
 				scaledSegments: scaledSegs,
 				bounds:         segmentsToBounds(scaledSegs),
 			})
