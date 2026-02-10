@@ -122,7 +122,9 @@ type session struct {
 
 func newSession() *session {
 	return &session{
-		ch:   make(chan textInputState, 1),
+		// 10 should be enough for most cases.
+		// Typical keyboards can send less than 10 events at the same time.
+		ch:   make(chan textInputState, 10),
 		done: make(chan struct{}),
 	}
 }
@@ -142,7 +144,7 @@ func (s *session) trySend(state textInputState) {
 		case s.ch <- state:
 			return
 		default:
-			// Only the last value matters.
+			// Ignore the first value.
 			select {
 			case <-s.ch:
 			case <-s.done:

@@ -25,6 +25,7 @@ import "C"
 
 import (
 	"image"
+	"slices"
 
 	"github.com/ebitengine/purego/objc"
 
@@ -136,6 +137,8 @@ func ebitengine_textinput_firstRectForCharacterRange(self C.uintptr_t, crange C.
 type textInput struct {
 	// session must be accessed from the main thread.
 	session *session
+
+	queuedStates []textInputState
 }
 
 var theTextInput textInput
@@ -148,19 +151,30 @@ func (t *textInput) Start(bounds image.Rectangle) (<-chan textInputState, func()
 }
 
 func (t *textInput) update(text string, startInBytes, endInBytes int, deleteStartInBytes, deleteEndInBytes int, committed bool) {
+	s := textInputState{
+		Text:                             text,
+		CompositionSelectionStartInBytes: startInBytes,
+		CompositionSelectionEndInBytes:   endInBytes,
+		DeleteStartInBytes:               deleteStartInBytes,
+		DeleteEndInBytes:                 deleteEndInBytes,
+		Committed:                        committed,
+	}
 	if t.session != nil {
-		t.session.trySend(textInputState{
-			Text:                             text,
-			CompositionSelectionStartInBytes: startInBytes,
-			CompositionSelectionEndInBytes:   endInBytes,
-			DeleteStartInBytes:               deleteStartInBytes,
-			DeleteEndInBytes:                 deleteEndInBytes,
-			Committed:                        committed,
-		})
+		t.flushStateQueue()
+		t.session.trySend(s)
+	} else {
+		t.queuedStates = append(t.queuedStates, s)
 	}
 	if committed {
 		t.endIfNeeded()
 	}
+}
+
+func (t *textInput) flushStateQueue() {
+	for _, s := range t.queuedStates {
+		t.session.trySend(s)
+	}
+	t.queuedStates = slices.Delete(t.queuedStates, 0, len(t.queuedStates))
 }
 
 //export ebitengine_textinput_end
@@ -238,4 +252,5 @@ func (t *textInput) start(bounds image.Rectangle) {
 
 	session := newSession()
 	t.session = session
+	t.flushStateQueue()
 }
