@@ -207,6 +207,10 @@ func (u *UserInterface) skipTaskbar() error {
 	return nil
 }
 
+func (u *UserInterface) setDWMWindowAttributes(options *RunOptions) error {
+	return nil
+}
+
 func (u *UserInterface) setDocumentEdited(edited bool) error {
 	return nil
 }

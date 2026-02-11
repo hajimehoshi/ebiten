@@ -312,6 +312,18 @@ type RunGameOptions struct {
 
 	// X11InstanceName is an instance name in the ICCCM WM_CLASS window property.
 	X11InstanceName string
+
+	// WindowsUseDarkMode indicates whether the window uses dark mode on Windows.
+	// WindowsUseDarkMode requires Windows 11 or later. On older Windows, this option is ignored.
+	//
+	// The default (zero) value is false.
+	WindowsUseDarkMode bool
+
+	// WindowsSystemBackdropType specifies the system backdrop type on Windows.
+	// WindowsSystemBackdropType requires Windows 11 22H2 or later. On older Windows, this option is ignored.
+	//
+	// The default (zero) value is WindowsSystemBackdropTypeNone.
+	WindowsSystemBackdropType WindowsSystemBackdropType
 }
 
 // RunGameWithOptions starts the main loop and runs the game with the specified options.
@@ -725,16 +737,18 @@ func toUIRunOptions(options *RunGameOptions) *ui.RunOptions {
 	}
 
 	return &ui.RunOptions{
-		GraphicsLibrary:          ui.GraphicsLibrary(options.GraphicsLibrary),
-		InitUnfocused:            options.InitUnfocused,
-		ScreenTransparent:        options.ScreenTransparent,
-		SkipTaskbar:              options.SkipTaskbar,
-		SingleThread:             options.SingleThread,
-		DisableHiDPI:             options.DisableHiDPI,
-		ColorSpace:               colorSpace,
-		ApplePressAndHoldEnabled: options.ApplePressAndHoldEnabled,
-		X11ClassName:             options.X11ClassName,
-		X11InstanceName:          options.X11InstanceName,
+		GraphicsLibrary:           ui.GraphicsLibrary(options.GraphicsLibrary),
+		InitUnfocused:             options.InitUnfocused,
+		ScreenTransparent:         options.ScreenTransparent,
+		SkipTaskbar:               options.SkipTaskbar,
+		SingleThread:              options.SingleThread,
+		DisableHiDPI:              options.DisableHiDPI,
+		ColorSpace:                colorSpace,
+		ApplePressAndHoldEnabled:  options.ApplePressAndHoldEnabled,
+		X11ClassName:              options.X11ClassName,
+		X11InstanceName:           options.X11InstanceName,
+		WindowsUseDarkMode:        options.WindowsUseDarkMode,
+		WindowsSystemBackdropType: int(options.WindowsSystemBackdropType),
 	}
 }
 

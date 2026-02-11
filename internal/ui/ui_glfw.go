@@ -1171,6 +1171,10 @@ func (u *UserInterface) initOnMainThread(options *RunOptions) error {
 		_ = u.skipTaskbar()
 	}
 
+	if err := u.setDWMWindowAttributes(options); err != nil {
+		return err
+	}
+
 	switch g := u.graphicsDriver.(type) {
 	case interface{ SetGLFWWindow(window *glfw.Window) }:
 		g.SetGLFWWindow(u.window)

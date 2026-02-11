@@ -450,6 +450,10 @@ func (u *UserInterface) skipTaskbar() error {
 	return nil
 }
 
+func (u *UserInterface) setDWMWindowAttributes(options *RunOptions) error {
+	return nil
+}
+
 // setDocumentEdited must be called from the main thread.
 func (u *UserInterface) setDocumentEdited(edited bool) error {
 	w, err := u.window.GetCocoaWindow()

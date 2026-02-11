@@ -173,16 +173,18 @@ func (u *UserInterface) dumpImages(dir string) (string, error) {
 }
 
 type RunOptions struct {
-	GraphicsLibrary          GraphicsLibrary
-	InitUnfocused            bool
-	ScreenTransparent        bool
-	SkipTaskbar              bool
-	SingleThread             bool
-	DisableHiDPI             bool
-	ColorSpace               color.ColorSpace
-	ApplePressAndHoldEnabled bool
-	X11ClassName             string
-	X11InstanceName          string
+	GraphicsLibrary           GraphicsLibrary
+	InitUnfocused             bool
+	ScreenTransparent         bool
+	SkipTaskbar               bool
+	SingleThread              bool
+	DisableHiDPI              bool
+	ColorSpace                color.ColorSpace
+	ApplePressAndHoldEnabled  bool
+	X11ClassName              string
+	X11InstanceName           string
+	WindowsUseDarkMode        bool
+	WindowsSystemBackdropType int
 }
 
 // InitialWindowPosition returns the position for centering the given second width/height pair within the first width/height pair.
