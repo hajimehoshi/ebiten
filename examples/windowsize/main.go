@@ -144,6 +144,19 @@ func cursorModeString(m ebiten.CursorModeType) string {
 	}
 }
 
+func colorModeString(c ebiten.ColorMode) string {
+	switch c {
+	case ebiten.ColorModeUnknown:
+		return "Unknown"
+	case ebiten.ColorModeLight:
+		return "Light"
+	case ebiten.ColorModeDark:
+		return "Dark"
+	default:
+		panic("not reached")
+	}
+}
+
 func (g *game) Update() error {
 	g.tps = ebiten.TPS()
 	g.positionX, g.positionY = ebiten.WindowPosition()
@@ -352,6 +365,9 @@ func (g *game) Update() error {
 
 				ctx.Text("FPS")
 				ctx.Text(fmt.Sprintf("%0.2f", ebiten.ActualFPS()))
+
+				ctx.Text("Color Mode")
+				ctx.Text(colorModeString(ebiten.SystemColorMode()))
 			})
 			ctx.Header("Info (Debug)", true, func() {
 				ctx.SetGridLayout([]int{-2, -1}, nil)
