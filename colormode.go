@@ -48,25 +48,26 @@ func SystemColorMode() ColorMode {
 var theSystemColorCache systemColorCache
 
 type systemColorCache struct {
-	mode    atomic.Int32
-	updated atomic.Int64
-	m       sync.Mutex
+	mode        atomic.Int32
+	lastUpdated atomic.Pointer[time.Time]
+	m           sync.Mutex
 }
 
 func (s *systemColorCache) get() ColorMode {
-	if time.Now().Unix()-s.updated.Load() < 1 {
+	if t := s.lastUpdated.Load(); t != nil && time.Since(*t) < time.Second {
 		return ColorMode(s.mode.Load())
 	}
 
 	s.m.Lock()
 	defer s.m.Unlock()
 
-	if time.Now().Unix()-s.updated.Load() < 1 {
+	now := time.Now()
+	if t := s.lastUpdated.Load(); t != nil && now.Sub(*t) < time.Second {
 		return ColorMode(s.mode.Load())
 	}
 
 	clr := colormode.SystemColorMode()
 	s.mode.Store(int32(clr))
-	s.updated.Store(time.Now().Unix())
+	s.lastUpdated.Store(&now)
 	return ColorMode(clr)
 }
