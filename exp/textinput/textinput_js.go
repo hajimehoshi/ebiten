@@ -37,7 +37,7 @@ func init() {
 type textInput struct {
 	textareaElement js.Value
 
-	session *session
+	session session
 }
 
 var theTextInput textInput
@@ -68,10 +68,7 @@ func (t *textInput) init() {
 		return nil
 	}))
 	t.textareaElement.Call("addEventListener", "focusout", js.FuncOf(func(this js.Value, args []js.Value) any {
-		if t.session != nil {
-			t.session.end()
-			t.session = nil
-		}
+		t.session.end()
 		return nil
 	}))
 	t.textareaElement.Call("addEventListener", "keydown", js.FuncOf(func(this js.Value, args []js.Value) any {
@@ -169,13 +166,10 @@ func (t *textInput) Start(bounds image.Rectangle) (<-chan textInputState, func()
 	}
 
 	if js.Global().Get("_ebitengine_textinput_ready").Truthy() {
-		if t.session != nil {
-			t.session.end()
-		}
-		s := newSession()
-		t.session = s
+		t.session.end()
+		ch, end := t.session.start()
 		js.Global().Get("window").Set("_ebitengine_textinput_ready", js.Undefined())
-		return s.ch, s.end
+		return ch, end
 	}
 
 	// If a textarea is focused, create a session immediately.
@@ -191,23 +185,14 @@ func (t *textInput) Start(bounds image.Rectangle) (<-chan textInputState, func()
 		style.Set("font-size", fmt.Sprintf("%dpx", bounds.Dy()))
 		style.Set("line-height", fmt.Sprintf("%dpx", bounds.Dy()))
 
-		if t.session == nil {
-			s := newSession()
-			t.session = s
-		}
+		t.session.start()
 		return t.session.ch, func() {
-			if t.session != nil {
-				t.session.end()
-				// Reset the session explictly, or a new session cannot be created above.
-				t.session = nil
-			}
+			t.session.end()
+			// Reset the session explictly, or a new session cannot be created above.
 		}
 	}
 
-	if t.session != nil {
-		t.session.end()
-		t.session = nil
-	}
+	t.session.end()
 
 	// On iOS Safari, `focus` works only in user-interaction events (#2898).
 	// Assuming Start is called every tick, defer the starting process to the next user-interaction event.
@@ -217,10 +202,6 @@ func (t *textInput) Start(bounds image.Rectangle) (<-chan textInputState, func()
 }
 
 func (t *textInput) trySend(committed bool) {
-	if t.session == nil {
-		return
-	}
-
 	textareaValue := t.textareaElement.Get("value").String()
 	// textareaValue can be an empty value, but this should be sent especially for a compositing text (#3324).
 
@@ -229,7 +210,7 @@ func (t *textInput) trySend(committed bool) {
 	startInBytes := convertUTF16CountToByteCount(textareaValue, start)
 	endInBytes := convertUTF16CountToByteCount(textareaValue, end)
 
-	t.session.trySend(textInputState{
+	t.session.send(textInputState{
 		Text:                             textareaValue,
 		CompositionSelectionStartInBytes: startInBytes,
 		CompositionSelectionEndInBytes:   endInBytes,
@@ -237,10 +218,7 @@ func (t *textInput) trySend(committed bool) {
 	})
 
 	if committed {
-		if t.session != nil {
-			t.session.end()
-			t.session = nil
-		}
+		t.session.end()
 		t.textareaElement.Set("value", "")
 	}
 }

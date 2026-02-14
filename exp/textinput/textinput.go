@@ -21,6 +21,8 @@ package textinput
 import (
 	"fmt"
 	"image"
+	"slices"
+	"sync"
 	"unicode/utf16"
 	"unicode/utf8"
 
@@ -118,27 +120,55 @@ func convertByteCountToUTF16Count(text string, c int) int {
 type session struct {
 	ch   chan textInputState
 	done chan struct{}
+
+	queuedStates []textInputState
+
+	m sync.Mutex
 }
 
-func newSession() *session {
-	return &session{
+func (s *session) start() (ch chan textInputState, endFunc func()) {
+	s.m.Lock()
+	defer s.m.Unlock()
+
+	if s.ch == nil {
 		// 10 should be enough for most cases.
 		// Typical keyboards can send less than 10 events at the same time.
-		ch:   make(chan textInputState, 10),
-		done: make(chan struct{}),
+		s.ch = make(chan textInputState, 10)
+		s.done = make(chan struct{})
 	}
+	s.flushStateQueue()
+	return s.ch, s.end
 }
 
 func (s *session) end() {
+	s.m.Lock()
+	defer s.m.Unlock()
+
 	if s.ch == nil {
 		return
 	}
 	close(s.ch)
 	s.ch = nil
 	close(s.done)
+	s.done = nil
 }
 
-func (s *session) trySend(state textInputState) {
+func (s *session) send(state textInputState) {
+	s.m.Lock()
+	defer s.m.Unlock()
+
+	if s.ch != nil {
+		s.flushStateQueue()
+		s.doSend(state)
+	} else {
+		s.queuedStates = append(s.queuedStates, state)
+	}
+}
+
+func (s *session) doSend(state textInputState) {
+	if s.ch == nil {
+		panic("textinput: session is not started")
+	}
 	for {
 		select {
 		case s.ch <- state:
@@ -152,4 +182,11 @@ func (s *session) trySend(state textInputState) {
 			}
 		}
 	}
+}
+
+func (s *session) flushStateQueue() {
+	for _, st := range s.queuedStates {
+		s.doSend(st)
+	}
+	s.queuedStates = slices.Delete(s.queuedStates, 0, len(s.queuedStates))
 }

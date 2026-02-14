@@ -23,6 +23,7 @@ import (
 )
 
 type textInput struct {
+	session  session
 	rs       []rune
 	lastTick int64
 }
@@ -40,7 +41,7 @@ func (t *textInput) Start(bounds image.Rectangle) (<-chan textInputState, func()
 		t.lastTick = tick
 	}()
 
-	s := newSession()
+	ch, _ := t.session.start()
 
 	// This is a pseudo implementation with AppendInputChars without IME.
 	// This is tentative and should be replaced with IME in the future.
@@ -48,12 +49,10 @@ func (t *textInput) Start(bounds image.Rectangle) (<-chan textInputState, func()
 	if len(t.rs) == 0 {
 		return nil, nil
 	}
-	s.ch <- textInputState{
+	t.session.send(textInputState{
 		Text:      string(t.rs),
 		Committed: true,
-	}
-	// Keep the channel as end() resets s.ch.
-	ch := s.ch
-	s.end()
-	return ch, nil
+	})
+	t.session.end()
+	return ch, func() {}
 }

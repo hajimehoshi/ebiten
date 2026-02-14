@@ -25,7 +25,6 @@ import "C"
 
 import (
 	"image"
-	"slices"
 
 	"github.com/ebitengine/purego/objc"
 
@@ -136,45 +135,32 @@ func ebitengine_textinput_firstRectForCharacterRange(self C.uintptr_t, crange C.
 
 type textInput struct {
 	// session must be accessed from the main thread.
-	session *session
-
-	queuedStates []textInputState
+	session session
 }
 
 var theTextInput textInput
 
 func (t *textInput) Start(bounds image.Rectangle) (<-chan textInputState, func()) {
+	var ch <-chan textInputState
+	var end func()
 	ui.Get().RunOnMainThread(func() {
-		t.start(bounds)
+		ch, end = t.start(bounds)
 	})
-	return t.session.ch, t.session.end
+	return ch, end
 }
 
 func (t *textInput) update(text string, startInBytes, endInBytes int, deleteStartInBytes, deleteEndInBytes int, committed bool) {
-	s := textInputState{
+	t.session.send(textInputState{
 		Text:                             text,
 		CompositionSelectionStartInBytes: startInBytes,
 		CompositionSelectionEndInBytes:   endInBytes,
 		DeleteStartInBytes:               deleteStartInBytes,
 		DeleteEndInBytes:                 deleteEndInBytes,
 		Committed:                        committed,
-	}
-	if t.session != nil {
-		t.flushStateQueue()
-		t.session.trySend(s)
-	} else {
-		t.queuedStates = append(t.queuedStates, s)
-	}
+	})
 	if committed {
 		t.endIfNeeded()
 	}
-}
-
-func (t *textInput) flushStateQueue() {
-	for _, s := range t.queuedStates {
-		t.session.trySend(s)
-	}
-	t.queuedStates = slices.Delete(t.queuedStates, 0, len(t.queuedStates))
 }
 
 //export ebitengine_textinput_end
@@ -183,11 +169,7 @@ func ebitengine_textinput_end() {
 }
 
 func (t *textInput) endIfNeeded() {
-	if t.session == nil {
-		return
-	}
 	t.session.end()
-	t.session = nil
 }
 
 var (
@@ -231,7 +213,7 @@ type nsRect struct {
 	size   nsSize
 }
 
-func (t *textInput) start(bounds image.Rectangle) {
+func (t *textInput) start(bounds image.Rectangle) (<-chan textInputState, func()) {
 	t.endIfNeeded()
 
 	tc := getTextInputClient()
@@ -250,7 +232,5 @@ func (t *textInput) start(bounds image.Rectangle) {
 		size:   nsSize{float64(bounds.Dx()), float64(bounds.Dy())},
 	})
 
-	session := newSession()
-	t.session = session
-	t.flushStateQueue()
+	return t.session.start()
 }
