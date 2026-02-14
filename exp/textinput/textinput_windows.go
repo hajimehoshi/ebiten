@@ -164,6 +164,9 @@ func (t *textInput) wndProc(hWnd uintptr, uMsg uint32, wParam, lParam uintptr) u
 			}
 			return 1
 		}
+	case _WM_IME_ENDCOMPOSITION:
+		t.send("", 0, 0, false)
+		return 1
 	case _WM_CHAR, _WM_SYSCHAR:
 		if wParam >= 0xd800 && wParam <= 0xdbff {
 			t.highSurrogate = uint16(wParam)

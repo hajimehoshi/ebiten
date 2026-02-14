@@ -40,11 +40,12 @@ const (
 
 	_UNICODE_NOCHAR = 0xffff
 
-	_WM_CHAR            = 0x0102
-	_WM_IME_COMPOSITION = 0x010F
-	_WM_IME_SETCONTEXT  = 0x0281
-	_WM_SYSCHAR         = 0x0106
-	_WM_UNICHAR         = 0x0109
+	_WM_CHAR               = 0x0102
+	_WM_IME_COMPOSITION    = 0x010F
+	_WM_IME_ENDCOMPOSITION = 0x010e
+	_WM_IME_SETCONTEXT     = 0x0281
+	_WM_SYSCHAR            = 0x0106
+	_WM_UNICHAR            = 0x0109
 )
 
 type (
