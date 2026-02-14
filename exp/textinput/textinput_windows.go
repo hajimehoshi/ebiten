@@ -254,8 +254,8 @@ func (t *textInput) update() (err error) {
 		return err
 	}
 
-	var start16 int
-	var end16 int
+	start16 := len(buffer16)
+	end16 := len(buffer16)
 	if len(clause) > 0 {
 		for i, c := range clause[:len(clause)-1] {
 			if int(c) == len(attr) {
