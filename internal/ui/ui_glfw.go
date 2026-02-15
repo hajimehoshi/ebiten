@@ -94,10 +94,13 @@ type userInterfaceImpl struct {
 
 	fpsModeInited bool
 
-	inputState   InputState
-	iwindow      glfwWindow
-	savedCursorX float64
-	savedCursorY float64
+	inputState       InputState
+	iwindow          glfwWindow
+	savedCursorX     float64
+	savedCursorY     float64
+	lastWheelOffsetX float64
+	lastWheelOffsetY float64
+	lastWheelTime    time.Time
 
 	closeCallback                  glfw.CloseCallback
 	framebufferSizeCallback        glfw.FramebufferSizeCallback

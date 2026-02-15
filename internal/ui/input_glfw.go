@@ -18,6 +18,7 @@ package ui
 
 import (
 	"math"
+	"time"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
 	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
@@ -91,6 +92,43 @@ func (u *UserInterface) registerInputCallbacks() error {
 		// As this function is called from GLFW callbacks, the current thread is main.
 		u.m.Lock()
 		defer u.m.Unlock()
+
+		now := time.Now()
+
+		// Sometimes the wheel event accepts anomalous values like sudden spikes and rapid reversals (#3390).
+		// Such values should be ignored.
+		if now.Sub(u.lastWheelTime) < 100*time.Millisecond {
+			// Thresholds are determined in a heuristic way.
+			const (
+				rapidReversalThreshold = 0.75
+				spikeThreshold         = 50
+			)
+			if math.Abs(xoff) >= 1 && u.lastWheelOffsetX != 0 {
+				rate := math.Abs(xoff) / math.Abs(u.lastWheelOffsetX)
+				sb := u.lastWheelOffsetX*xoff > 0
+				if rate >= spikeThreshold && sb {
+					xoff = 0
+				}
+				if rate >= rapidReversalThreshold && !sb {
+					xoff = 0
+				}
+			}
+			if math.Abs(yoff) >= 1 && u.lastWheelOffsetY != 0 {
+				rate := math.Abs(yoff) / math.Abs(u.lastWheelOffsetY)
+				sb := u.lastWheelOffsetY*yoff > 0
+				if rate >= spikeThreshold && sb {
+					yoff = 0
+				}
+				if rate >= rapidReversalThreshold && !sb {
+					yoff = 0
+				}
+			}
+		}
+
+		u.lastWheelOffsetX = xoff
+		u.lastWheelOffsetY = yoff
+		u.lastWheelTime = now
+
 		u.inputState.WheelX += xoff
 		u.inputState.WheelY += yoff
 	}); err != nil {
