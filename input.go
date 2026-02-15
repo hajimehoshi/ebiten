@@ -89,8 +89,26 @@ func CursorPosition() (x, y int) {
 // It returns 0 if the wheel isn't being rolled.
 //
 // Wheel is concurrent-safe.
+//
+// Deprecated: as of v2.9. Use [RawWheel] instead.
 func Wheel() (xoff, yoff float64) {
-	return inputstate.Get().Wheel()
+	return RawWheel()
+}
+
+// RawWheel returns x and y offsets of the mouse wheel or touchpad scroll.
+// It returns 0 if the wheel isn't being rolled.
+//
+// RawWheel is concurrent-safe.
+func RawWheel() (xoff, yoff float64) {
+	return inputstate.Get().RawWheel()
+}
+
+// SmoothedWheel returns x and y offsets of the mouse wheel or touchpad scroll.
+// The returned values are smoothed.
+//
+// SmoothedWheel is concurrent-safe.
+func SmoothedWheel() (xoff, yoff float64) {
+	return inputstate.Get().SmoothedWheel()
 }
 
 // IsMouseButtonPressed returns a boolean indicating whether mouseButton is pressed.

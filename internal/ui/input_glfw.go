@@ -93,6 +93,8 @@ func (u *UserInterface) registerInputCallbacks() error {
 		u.m.Lock()
 		defer u.m.Unlock()
 
+		rawXOff := xoff
+		rawYOff := yoff
 		now := time.Now()
 
 		// Sometimes the wheel event accepts anomalous values like sudden spikes and rapid reversals (#3390).
@@ -127,10 +129,11 @@ func (u *UserInterface) registerInputCallbacks() error {
 
 		u.lastWheelOffsetX = xoff
 		u.lastWheelOffsetY = yoff
+		u.inputState.cleanWheelX += xoff
+		u.inputState.cleanWheelY += yoff
+		u.inputState.RawWheelX += rawXOff
+		u.inputState.RawWheelY += rawYOff
 		u.lastWheelTime = now
-
-		u.inputState.WheelX += xoff
-		u.inputState.WheelY += yoff
 	}); err != nil {
 		return err
 	}

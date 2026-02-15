@@ -144,10 +144,16 @@ func (i *inputState) CursorPosition() (float64, float64) {
 	return i.state.CursorX, i.state.CursorY
 }
 
-func (i *inputState) Wheel() (float64, float64) {
+func (i *inputState) RawWheel() (float64, float64) {
 	i.m.Lock()
 	defer i.m.Unlock()
-	return i.state.WheelX, i.state.WheelY
+	return i.state.RawWheelX, i.state.RawWheelY
+}
+
+func (i *inputState) SmoothedWheel() (float64, float64) {
+	i.m.Lock()
+	defer i.m.Unlock()
+	return i.state.SmoothedWheelX, i.state.SmoothedWheelY
 }
 
 func AppendTouchIDs[T ~int](touches []T) []T {

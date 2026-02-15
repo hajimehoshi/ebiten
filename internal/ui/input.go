@@ -17,6 +17,8 @@ package ui
 import (
 	"io/fs"
 	"unicode"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/clock"
 )
 
 type MouseButton int
@@ -45,14 +47,28 @@ type InputState struct {
 	MouseButtonPressedTimes  [MouseButtonMax + 1]InputTime
 	MouseButtonReleasedTimes [MouseButtonMax + 1]InputTime
 
-	CursorX           float64
-	CursorY           float64
-	WheelX            float64
-	WheelY            float64
+	CursorX float64
+	CursorY float64
+
+	// RawWheelX and RawWheelY are the raw accumulated wheel values since the last frame.
+	RawWheelX float64
+	RawWheelY float64
+
+	SmoothedWheelX float64
+	SmoothedWheelY float64
+
 	Touches           []Touch
 	Runes             []rune
 	WindowBeingClosed bool
 	DroppedFiles      fs.FS
+
+	// cleanWheelX and cleanWheelY are the accumulated wheel values since the last frame.
+	// cleanWheelX and cleanWheelY don't include jank values like sudden spikes.
+	cleanWheelX float64
+	cleanWheelY float64
+
+	smoothedWheelCountX int
+	smoothedWheelCountY int
 }
 
 func (i *InputState) setKeyPressed(key Key, t InputTime) {
@@ -209,27 +225,73 @@ func inputStateDuration(pressed, released InputTime, tick int64) int64 {
 }
 
 func (i *InputState) copyAndReset(dst *InputState) {
+	maxWheelCount := clock.TPS() / 2
+	if i.cleanWheelX > 0 {
+		if i.smoothedWheelCountX < 0 {
+			i.smoothedWheelCountX = 0
+		} else if i.cleanWheelX >= 0.5 {
+			i.smoothedWheelCountX = max(i.smoothedWheelCountX, int(float64(maxWheelCount)*min(i.cleanWheelX, 1)))
+		}
+	}
+	if i.cleanWheelX < 0 {
+		if i.smoothedWheelCountX > 0 {
+			i.smoothedWheelCountX = 0
+		} else if i.cleanWheelX <= -0.5 {
+			i.smoothedWheelCountX = min(i.smoothedWheelCountX, int(float64(maxWheelCount)*max(i.cleanWheelX, -1)))
+		}
+	}
+
+	if i.cleanWheelY > 0 {
+		if i.smoothedWheelCountY < 0 {
+			i.smoothedWheelCountY = 0
+		} else if i.cleanWheelY >= 0.5 {
+			i.smoothedWheelCountY = max(i.smoothedWheelCountY, int(float64(maxWheelCount)*min(i.cleanWheelY, 1)))
+		}
+	}
+	if i.cleanWheelY < 0 {
+		if i.smoothedWheelCountY > 0 {
+			i.smoothedWheelCountY = 0
+		} else if i.cleanWheelY <= -0.5 {
+			i.smoothedWheelCountY = min(i.smoothedWheelCountY, int(float64(maxWheelCount)*max(i.cleanWheelY, -1)))
+		}
+	}
+
 	dst.KeyPressedTimes = i.KeyPressedTimes
 	dst.KeyReleasedTimes = i.KeyReleasedTimes
 	dst.MouseButtonPressedTimes = i.MouseButtonPressedTimes
 	dst.MouseButtonReleasedTimes = i.MouseButtonReleasedTimes
 	dst.CursorX = i.CursorX
 	dst.CursorY = i.CursorY
-	dst.WheelX = i.WheelX
-	dst.WheelY = i.WheelY
+	dst.RawWheelX = i.RawWheelX
+	dst.RawWheelY = i.RawWheelY
+	dst.SmoothedWheelX = countToWheelValue(i.smoothedWheelCountX, maxWheelCount)
+	dst.SmoothedWheelY = countToWheelValue(i.smoothedWheelCountY, maxWheelCount)
 	dst.Touches = append(dst.Touches[:0], i.Touches...)
 	dst.Runes = append(dst.Runes[:0], i.Runes...)
 	dst.WindowBeingClosed = i.WindowBeingClosed
 	dst.DroppedFiles = i.DroppedFiles
 
 	// Reset the members that are updated by deltas, rather than absolute values.
-	i.WheelX = 0
-	i.WheelY = 0
+	i.cleanWheelX = 0
+	i.cleanWheelY = 0
+	i.RawWheelX = 0
+	i.RawWheelY = 0
+	if i.smoothedWheelCountX > 0 {
+		i.smoothedWheelCountX--
+	} else if i.smoothedWheelCountX < 0 {
+		i.smoothedWheelCountX++
+	}
+	if i.smoothedWheelCountY > 0 {
+		i.smoothedWheelCountY--
+	} else if i.smoothedWheelCountY < 0 {
+		i.smoothedWheelCountY++
+	}
 	i.Runes = i.Runes[:0]
 
 	// Reset the members that are never reset until they are explicitly done.
 	i.WindowBeingClosed = false
 	i.DroppedFiles = nil
+
 }
 
 func (i *InputState) appendRune(r rune) {
@@ -237,4 +299,21 @@ func (i *InputState) appendRune(r rune) {
 		return
 	}
 	i.Runes = append(i.Runes, r)
+}
+
+func countToWheelValue(rate int, maxRate int) float64 {
+	if rate == 0 {
+		return 0
+	}
+	x := float64(rate) / float64(maxRate)
+	neg := x < 0
+	if neg {
+		x = -x
+	}
+	// Cubic ease-out.
+	v := x * x * x * 200 / float64(maxRate)
+	if neg {
+		return -v
+	}
+	return v
 }

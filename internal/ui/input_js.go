@@ -156,8 +156,12 @@ func (u *UserInterface) updateInputFromEvent(e js.Value) error {
 		u.setMouseCursorFromEvent(e)
 	case t.Equal(stringWheel):
 		// TODO: What if e.deltaMode is not DOM_DELTA_PIXEL?
-		u.inputState.WheelX += -e.Get("deltaX").Float()
-		u.inputState.WheelY += -e.Get("deltaY").Float()
+		deltaX := -e.Get("deltaX").Float()
+		deltaY := -e.Get("deltaY").Float()
+		u.inputState.cleanWheelX += deltaX
+		u.inputState.cleanWheelY += deltaY
+		u.inputState.RawWheelX += deltaX
+		u.inputState.RawWheelY += deltaY
 	case t.Equal(stringTouchstart) || t.Equal(stringTouchend) || t.Equal(stringTouchmove):
 		u.updateTouchesFromEvent(e)
 	}
