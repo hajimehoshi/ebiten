@@ -12,11 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package mp3 provides MP3 decoder.
-//
-// On desktops and mobiles, a pure Go decoder is used.
-// On browsers, a native decoder on the browser is used.
-package mp3
+// Package opus provides Opus decoder.
+package opus
 
 import (
 	"io"

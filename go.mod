@@ -15,6 +15,7 @@ require (
 	github.com/jakecoffman/cp/v2 v2.4.0
 	github.com/jezek/xgb v1.3.0
 	github.com/jfreymuth/oggvorbis v1.0.5
+	github.com/kazzmir/opus-go v1.2.1
 	github.com/kisielk/errcheck v1.9.0
 	github.com/rivo/uniseg v0.4.7
 	golang.org/x/image v0.36.0
