@@ -1,4 +1,4 @@
-// Copyright 2017 The Ebiten Authors
+// Copyright 2026 The Ebitengine Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -77,15 +77,15 @@ func DecodeF32(src io.Reader) (*Stream, error) {
 	return s, nil
 }
 
-// DecodeWithoutResampling decodes an Opus source and returns a decoded stream in signed 16bit integer, little endian, 2 channels (stereo) format.
+// Decode decodes an Opus source and returns a decoded stream in signed 16bit integer, little endian, 2 channels (stereo) format.
 //
-// DecodeWithoutResampling returns error when decoding fails or IO error happens.
+// Decode returns error when decoding fails or IO error happens.
 //
 // The returned Stream's Seek is available only when src is an io.Seeker.
 //
 // A Stream doesn't close src even if src implements io.Closer.
 // Closing the source is src owner's responsibility.
-func DecodeWithoutResampling(src io.Reader) (*Stream, error) {
+func Decode(src io.Reader) (*Stream, error) {
 	d, err := opus.NewPlayerFromReader(src)
 	if err != nil {
 		return nil, err
@@ -94,40 +94,6 @@ func DecodeWithoutResampling(src io.Reader) (*Stream, error) {
 		readSeeker: d,
 		length:     d.Length(),
 		sampleRate: d.SampleRate(),
-	}
-	return s, nil
-}
-
-// DecodeWithSampleRate decodes an Opus source and returns a decoded stream in signed 16bit integer, little endian, 2 channels (stereo) format.
-//
-// DecodeWithSampleRate returns error when decoding fails or IO error happens.
-//
-// DecodeWithSampleRate automatically resamples the stream to fit with sampleRate if necessary.
-//
-// The returned Stream's Seek is available only when src is an io.Seeker.
-//
-// A Stream doesn't close src even if src implements io.Closer.
-// Closing the source is src owner's responsibility.
-//
-// Resampling can be a very heavy task. Stream has a cache for resampling, but the size is limited.
-// Do not expect that Stream has a resampling cache even after whole data is played.
-func DecodeWithSampleRate(sampleRate int, src io.Reader) (*Stream, error) {
-	d, err := opus.NewPlayerFromReader(src)
-	if err != nil {
-		return nil, err
-	}
-
-	var r io.ReadSeeker = d
-	length := d.Length()
-	if d.SampleRate() != sampleRate {
-		r2 := convert.NewResampling(d, d.Length(), d.SampleRate(), sampleRate, bitDepthInBytesInt16)
-		r = r2
-		length = r2.Length()
-	}
-	s := &Stream{
-		readSeeker: r,
-		length:     length,
-		sampleRate: sampleRate,
 	}
 	return s, nil
 }
