@@ -19,8 +19,6 @@ import (
 	"io"
 
 	opus "github.com/kazzmir/opus-go/player"
-
-	"github.com/hajimehoshi/ebiten/v2/audio/internal/convert"
 )
 
 const (
@@ -64,14 +62,13 @@ func (s *Stream) SampleRate() int {
 // A Stream doesn't close src even if src implements io.Closer.
 // Closing the source is src owner's responsibility.
 func DecodeF32(src io.Reader) (*Stream, error) {
-	d, err := opus.NewPlayerFromReader(src)
+	d, err := opus.NewPlayerF32FromReader(src)
 	if err != nil {
 		return nil, err
 	}
-	r := convert.NewFloat32BytesReadSeekerFromInt16BytesReadSeeker(d)
 	s := &Stream{
-		readSeeker: r,
-		length:     d.Length() / bitDepthInBytesInt16 * bitDepthInBytesFloat32,
+		readSeeker: d,
+		length:     d.Length(),
 		sampleRate: d.SampleRate(),
 	}
 	return s, nil
