@@ -66,9 +66,16 @@ func DecodeF32(src io.Reader) (*Stream, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	var length int64 = -1
+	_, ok := src.(io.Seeker)
+	if ok {
+		length = d.Length()
+	}
+
 	s := &Stream{
 		readSeeker: d,
-		length:     d.Length(),
+		length:     length,
 		sampleRate: d.SampleRate(),
 	}
 	return s, nil
@@ -87,9 +94,16 @@ func Decode(src io.Reader) (*Stream, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	var length int64 = -1
+	_, ok := src.(io.Seeker)
+	if ok {
+		length = d.Length()
+	}
+
 	s := &Stream{
 		readSeeker: d,
-		length:     d.Length(),
+		length:     length,
 		sampleRate: d.SampleRate(),
 	}
 	return s, nil

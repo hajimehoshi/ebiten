@@ -25,8 +25,6 @@ require (
 	golang.org/x/tools v0.42.0
 )
 
-replace github.com/kazzmir/opus-go => /home/jon/svn/opus-go
-
 require (
 	github.com/jfreymuth/vorbis v1.0.2 // indirect
 	github.com/pierrec/lz4/v4 v4.1.22 // indirect
