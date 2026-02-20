@@ -21,11 +21,6 @@ import (
 	opus "github.com/kazzmir/opus-go/player"
 )
 
-const (
-	bitDepthInBytesInt16   = 2
-	bitDepthInBytesFloat32 = 4
-)
-
 // Stream is a decoded stream.
 type Stream struct {
 	readSeeker io.ReadSeeker
