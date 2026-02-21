@@ -18,7 +18,7 @@ package opus
 import (
 	"io"
 
-	opus "github.com/kazzmir/opus-go/player"
+	opus "github.com/kazzmir/opus-go"
 )
 
 // Stream is a decoded stream.
@@ -66,8 +66,7 @@ func DecodeF32(src io.Reader) (*Stream, error) {
 	_, ok := src.(io.Seeker)
 	if ok {
 		length = d.Length()
-		_, err := d.Seek(0, io.SeekStart)
-		if err != nil {
+		if _, err := d.Seek(0, io.SeekStart); err != nil {
 			return nil, err
 		}
 	}
@@ -98,8 +97,7 @@ func Decode(src io.Reader) (*Stream, error) {
 	_, ok := src.(io.Seeker)
 	if ok {
 		length = d.Length()
-		_, err := d.Seek(0, io.SeekStart)
-		if err != nil {
+		if _, err := d.Seek(0, io.SeekStart); err != nil {
 			return nil, err
 		}
 	}
