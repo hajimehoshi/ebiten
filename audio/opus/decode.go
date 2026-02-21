@@ -18,7 +18,7 @@ package opus
 import (
 	"io"
 
-	opus "github.com/kazzmir/opus-go"
+	"github.com/kazzmir/opus-go"
 )
 
 // Stream is a decoded stream.
@@ -57,7 +57,7 @@ func (s *Stream) SampleRate() int {
 // A Stream doesn't close src even if src implements io.Closer.
 // Closing the source is src owner's responsibility.
 func DecodeF32(src io.Reader) (*Stream, error) {
-	d, err := opus.NewPlayerF32FromReader(src)
+	d, err := opusgo.NewPlayerF32FromReader(src)
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +88,7 @@ func DecodeF32(src io.Reader) (*Stream, error) {
 // A Stream doesn't close src even if src implements io.Closer.
 // Closing the source is src owner's responsibility.
 func Decode(src io.Reader) (*Stream, error) {
-	d, err := opus.NewPlayerFromReader(src)
+	d, err := opusgo.NewPlayerFromReader(src)
 	if err != nil {
 		return nil, err
 	}
