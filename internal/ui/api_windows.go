@@ -31,6 +31,9 @@ const (
 	_CLSCTX_SERVER            = _CLSCTX_INPROC_SERVER | _CLSCTX_LOCAL_SERVER | _CLSCTX_REMOTE_SERVER
 	_MONITOR_DEFAULTTONEAREST = 2
 	_SM_CYCAPTION             = 4
+
+	_DWMWA_USE_IMMERSIVE_DARK_MODE = 20
+	_DWMWA_SYSTEMBACKDROP_TYPE     = 38
 )
 
 var (
@@ -68,9 +71,12 @@ type _POINT struct {
 }
 
 var (
+	dwmapi = windows.NewLazySystemDLL("dwmapi.dll")
 	imm32  = windows.NewLazySystemDLL("imm32.dll")
 	ole32  = windows.NewLazySystemDLL("ole32.dll")
 	user32 = windows.NewLazySystemDLL("user32.dll")
+
+	procDwmSetWindowAttribute = dwmapi.NewProc("DwmSetWindowAttribute")
 
 	procImmAssociateContext = imm32.NewProc("ImmAssociateContext")
 
@@ -81,6 +87,14 @@ var (
 	procGetMonitorInfoW   = user32.NewProc("GetMonitorInfoW")
 	procGetCursorPos      = user32.NewProc("GetCursorPos")
 )
+
+func _DwmSetWindowAttribute(hwnd windows.HWND, dwAttribute uint32, pvAttribute unsafe.Pointer, cbAttribute uint32) error {
+	r, _, _ := procDwmSetWindowAttribute.Call(uintptr(hwnd), uintptr(dwAttribute), uintptr(pvAttribute), uintptr(cbAttribute))
+	if uint32(r) != uint32(windows.S_OK) {
+		return fmt.Errorf("ui: DwmSetWindowAttribute failed: HRESULT(%d)", uint32(r))
+	}
+	return nil
+}
 
 func _ImmAssociateContext(hwnd windows.HWND, hIMC uintptr) (uintptr, error) {
 	r, _, e := procImmAssociateContext.Call(uintptr(hwnd), hIMC)

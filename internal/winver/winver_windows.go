@@ -85,3 +85,11 @@ func IsWindows10AnniversaryUpdateOrGreater() bool {
 func IsWindows10CreatorsUpdateOrGreater() bool {
 	return isWindows10BuildOrGreater(15063)
 }
+
+func IsWindows11Build22000OrGreater() bool {
+	return isWindows10BuildOrGreater(22000)
+}
+
+func IsWindows11Build22621OrGreater() bool {
+	return isWindows10BuildOrGreater(22621)
+}

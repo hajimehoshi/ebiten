@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"runtime"
 	"syscall"
+	"unsafe"
 
 	"golang.org/x/sys/windows"
 
@@ -254,6 +255,28 @@ func (u *UserInterface) skipTaskbar() error {
 		return err
 	}
 
+	return nil
+}
+
+func (u *UserInterface) setDWMWindowAttributes(options *RunOptions) error {
+	if options.WindowsUseDarkMode && winver.IsWindows11Build22000OrGreater() {
+		w, err := u.window.GetWin32Window()
+		if err != nil {
+			return err
+		}
+		var useDarkMode int32 = 1
+		// Ignore the error. DWM functions can fail on some environments like Proton (#2113).
+		_ = _DwmSetWindowAttribute(w, _DWMWA_USE_IMMERSIVE_DARK_MODE, unsafe.Pointer(&useDarkMode), uint32(unsafe.Sizeof(useDarkMode)))
+	}
+	if options.WindowsSystemBackdropType != 0 && winver.IsWindows11Build22621OrGreater() {
+		w, err := u.window.GetWin32Window()
+		if err != nil {
+			return err
+		}
+		backdropType := int32(options.WindowsSystemBackdropType)
+		// Ignore the error. DWM functions can fail on some environments like Proton (#2113).
+		_ = _DwmSetWindowAttribute(w, _DWMWA_SYSTEMBACKDROP_TYPE, unsafe.Pointer(&backdropType), uint32(unsafe.Sizeof(backdropType)))
+	}
 	return nil
 }
 
