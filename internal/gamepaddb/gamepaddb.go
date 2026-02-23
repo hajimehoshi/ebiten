@@ -36,6 +36,7 @@ const (
 	platformUnix
 	platformAndroid
 	platformIOS
+	platformDarwin
 )
 
 func currentPlatform() platform {
@@ -49,7 +50,7 @@ func currentPlatform() platform {
 	case "ios":
 		return platformIOS
 	case "darwin":
-		return platformiOS
+		return platformDarwin
 	default:
 		return platformUnknown
 	}
@@ -122,8 +123,9 @@ func parseLine(line string, platform platform) (id string, name string, buttons 
 				if platform != platformAndroid {
 					return "", "", nil, nil, nil
 				}
+			case "Darwin":
 			case "iOS":
-				if platform != platformIOS {
+				if platform != platformIOS && platform != platformDarwin {
 					return "", "", nil, nil, nil
 				}
 			case "":
