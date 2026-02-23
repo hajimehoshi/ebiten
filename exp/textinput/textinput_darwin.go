@@ -27,8 +27,7 @@ import (
 	"image"
 
 	"github.com/ebitengine/purego/objc"
-
-	"github.com/hajimehoshi/ebiten/v2/internal/ui"
+	"github.com/hajimehoshi/ebiten/v2"
 )
 
 //export ebitengine_textinput_hasMarkedText
@@ -143,7 +142,7 @@ var theTextInput textInput
 func (t *textInput) Start(bounds image.Rectangle) (<-chan textInputState, func()) {
 	var ch <-chan textInputState
 	var end func()
-	ui.Get().RunOnMainThread(func() {
+	ebiten.RunOnMainThread(func() {
 		ch, end = t.start(bounds)
 	})
 	return ch, end

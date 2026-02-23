@@ -757,3 +757,14 @@ func DroppedFiles() fs.FS {
 func Tick() int64 {
 	return ui.Get().Tick()
 }
+
+// RunOnMainThread runs the given function on the main thread.
+// RunOnMainThread executes the function synchronously and returns after the function completes.
+//
+// If RunOnMainThread is called on the main thread, RunOnMainThread blocks forever.
+// Especially, RunOnMainThread can block forever if [RunGame] is not called yet.
+//
+// RunOnMainThread is useful to access platform-specific APIs in a safe way.
+func RunOnMainThread(f func()) {
+	ui.Get().RunOnMainThread(f)
+}

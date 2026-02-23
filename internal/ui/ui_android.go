@@ -155,3 +155,7 @@ func (u *UserInterface) displayInfo() (int, int, float64, bool) {
 	height := int(dipFromNativePixels(float64(cHeight), scale))
 	return width, height, scale, true
 }
+
+func (u *UserInterface) RunOnMainThread(f func()) {
+	panic("ui: RunOnMainThread is not supported for this platform")
+}

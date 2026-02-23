@@ -22,6 +22,7 @@ import (
 
 	"golang.org/x/sys/windows"
 
+	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/internal/microsoftgdk"
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
@@ -50,7 +51,7 @@ func (t *textInput) Start(bounds image.Rectangle) (<-chan textInputState, func()
 
 	var ch chan textInputState
 	var err error
-	ui.Get().RunOnMainThread(func() {
+	ebiten.RunOnMainThread(func() {
 		t.session.end()
 		err = t.start(bounds)
 		ch, _ = t.session.start()
@@ -60,7 +61,7 @@ func (t *textInput) Start(bounds image.Rectangle) (<-chan textInputState, func()
 		t.session.end()
 	}
 	return ch, func() {
-		ui.Get().RunOnMainThread(func() {
+		ebiten.RunOnMainThread(func() {
 			// Disable IME again.
 			if t.immContext != 0 {
 				return

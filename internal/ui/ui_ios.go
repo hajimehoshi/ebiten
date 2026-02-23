@@ -65,6 +65,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/ebitengine/purego/objc"
+
 	"github.com/hajimehoshi/ebiten/v2/internal/color"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal"
@@ -148,4 +150,12 @@ func (u *UserInterface) displayInfo() (int, int, float64, bool) {
 	width := int(dipFromNativePixels(float64(cWidth), scale))
 	height := int(dipFromNativePixels(float64(cHeight), scale))
 	return width, height, scale, true
+}
+
+func (u *UserInterface) RunOnMainThread(f func()) {
+	b := objc.NewBlock(func(_ objc.Block) {
+		f()
+	})
+	defer b.Release()
+	dispatchSync(dispatchMainQ, b)
 }

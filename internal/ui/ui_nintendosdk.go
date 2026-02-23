@@ -187,3 +187,7 @@ func IsScreenTransparentAvailable() bool {
 func dipToNativePixels(x float64, scale float64) float64 {
 	return x
 }
+
+func (u *UserInterface) RunOnMainThread(f func()) {
+	panic("ui: RunOnMainThread is not implemented for this platform")
+}
