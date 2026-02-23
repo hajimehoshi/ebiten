@@ -765,6 +765,8 @@ func Tick() int64 {
 // Especially, RunOnMainThread can block forever if [RunGame] is not called yet.
 //
 // RunOnMainThread is useful to access platform-specific APIs in a safe way.
+//
+// RunOnMainThread panics if the platform doesn't support it.
 func RunOnMainThread(f func()) {
 	ui.Get().RunOnMainThread(f)
 }
