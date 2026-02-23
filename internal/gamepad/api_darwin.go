@@ -387,6 +387,10 @@ package gamepad
 //                                  removeController(notification.object);
 //                                }];
 //   }
+//
+//  #cogo vibrateController
+//  static void vibrateController(uintptr_t controller) {
+//  }
 // }
 import "C"
 
@@ -397,15 +401,15 @@ import (
 
 //export ebitenAddGamepad
 func ebitenAddGamepad(controller C.uintptr_t, prop *C.struct_ControllerProperty) {
-	theGamepads.addIOSGamepad(controller, prop)
+	theGamepads.addDarwinGamepad(controller, prop)
 }
 
 //export ebitenRemoveGamepad
 func ebitenRemoveGamepad(controller C.uintptr_t) {
-	theGamepads.removeIOSGamepad(controller)
+	theGamepads.removeDarwinGamepad(controller)
 }
 
-func (g *gamepads) addIOSGamepad(controller C.uintptr_t, prop *C.struct_ControllerProperty) {
+func (g *gamepads) addDarwinGamepad(controller C.uintptr_t, prop *C.struct_ControllerProperty) {
 	g.m.Lock()
 	defer g.m.Unlock()
 
@@ -424,7 +428,7 @@ func (g *gamepads) addIOSGamepad(controller C.uintptr_t, prop *C.struct_Controll
 	}
 }
 
-func (g *gamepads) removeIOSGamepad(controller C.uintptr_t) {
+func (g *gamepads) removeDarwinGamepad(controller C.uintptr_t) {
 	g.m.Lock()
 	defer g.m.Unlock()
 
@@ -433,11 +437,11 @@ func (g *gamepads) removeIOSGamepad(controller C.uintptr_t) {
 	})
 }
 
-func initializeIOSGamepads() {
+func initializeDarwinGamepads() {
 	C.initializeGamepads()
 }
 
-func (g *nativeGamepadImpl) updateIOSGamepad() {
+func (g *nativeGamepadImpl) updateDarwinGamepad() {
 	var state C.struct_ControllerState
 	C.getControllerState(C.uintptr_t(g.controller), &state, C.uint16_t(g.buttonMask), C.uint8_t(len(g.hats)),
 		C.bool(g.hasDualshockTouchpad), C.bool(g.hasXboxPaddles), C.bool(g.hasXboxShareButton))
