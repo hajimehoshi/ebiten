@@ -27,6 +27,7 @@ import (
 	"image"
 
 	"github.com/ebitengine/purego/objc"
+
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
