@@ -41,6 +41,10 @@ type nativeGamepadImpl struct {
 	hasDualshockTouchpad bool
 	hasXboxPaddles       bool
 	hasXboxShareButton   bool
+	hapticLeft           uintptr
+	hapticRight          uintptr
+	vib                  bool
+	vibEnd               time.Time
 
 	axes    []float64
 	buttons []bool
@@ -49,6 +53,10 @@ type nativeGamepadImpl struct {
 
 func (g *nativeGamepadImpl) update(gamepad *gamepads) error {
 	g.updateDarwinGamepad()
+	if g.vib && time.Now().Sub(g.vibEnd) >= 0 {
+		vibrateDarwinGamepad(g.hapticLeft, g.hapticRight, 0, 0)
+		g.vib = false
+	}
 	return nil
 }
 
@@ -109,5 +117,15 @@ func (g *nativeGamepadImpl) hatState(hat int) int {
 }
 
 func (g *nativeGamepadImpl) vibrate(duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
-	// TODO: Implement this (#1452)
+	if g.hapticLeft == 0 && g.hapticRight == 0 {
+		return
+	}
+	if strongMagnitude <= 0 && weakMagnitude <= 0 {
+		g.vib = false
+		vibrateDarwinGamepad(g.hapticLeft, g.hapticRight, 0, 0)
+		return
+	}
+	g.vib = true
+	g.vibEnd = time.Now().Add(duration)
+	vibrateDarwinGamepad(g.hapticLeft, g.hapticRight, strongMagnitude, weakMagnitude)
 }

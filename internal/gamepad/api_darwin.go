@@ -387,10 +387,6 @@ package gamepad
 //                                  removeController(notification.object);
 //                                }];
 //   }
-//
-//  #cogo vibrateController
-//  static void vibrateController(uintptr_t controller) {
-//  }
 // }
 import "C"
 
@@ -425,6 +421,8 @@ func (g *gamepads) addDarwinGamepad(controller C.uintptr_t, prop *C.struct_Contr
 		hasDualshockTouchpad: bool(prop.hasDualshockTouchpad),
 		hasXboxPaddles:       bool(prop.hasXboxPaddles),
 		hasXboxShareButton:   bool(prop.hasXboxShareButton),
+		hapticLeft:           createDarwinRumbleMotor(uintptr(controller), 0),
+		hapticRight:          createDarwinRumbleMotor(uintptr(controller), 1),
 	}
 }
 
@@ -433,7 +431,13 @@ func (g *gamepads) removeDarwinGamepad(controller C.uintptr_t) {
 	defer g.m.Unlock()
 
 	g.remove(func(gamepad *Gamepad) bool {
-		return gamepad.native.(*nativeGamepadImpl).controller == uintptr(controller)
+		native := gamepad.native.(*nativeGamepadImpl)
+		if native.controller == uintptr(controller) {
+			releaseDarwinRumbleMotor(native.hapticLeft)
+			releaseDarwinRumbleMotor(native.hapticRight)
+			return true
+		}
+		return false
 	})
 }
 
