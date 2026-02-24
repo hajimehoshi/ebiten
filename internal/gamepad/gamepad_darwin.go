@@ -1,4 +1,4 @@
-// Copyright 2025 The Ebiten Authors
+// Copyright 2026 The Ebitengine Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
