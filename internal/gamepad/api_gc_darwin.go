@@ -397,22 +397,22 @@ import (
 
 //export ebitenAddGamepad
 func ebitenAddGamepad(controller C.uintptr_t, prop *C.struct_ControllerProperty) {
-	theGamepads.addIOSGamepad(controller, prop)
+	theGamepads.addGCGamepad(controller, prop)
 }
 
 //export ebitenRemoveGamepad
 func ebitenRemoveGamepad(controller C.uintptr_t) {
-	theGamepads.removeIOSGamepad(controller)
+	theGamepads.removeGCGamepad(controller)
 }
 
-func (g *gamepads) addIOSGamepad(controller C.uintptr_t, prop *C.struct_ControllerProperty) {
+func (g *gamepads) addGCGamepad(controller C.uintptr_t, prop *C.struct_ControllerProperty) {
 	g.m.Lock()
 	defer g.m.Unlock()
 
 	name := C.GoString(&prop.name[0])
 	sdlID := hex.EncodeToString(C.GoBytes(unsafe.Pointer(&prop.guid[0]), 16))
 	gp := g.add(name, sdlID)
-	gp.native = &nativeGamepadImpl{
+	gp.native = &nativeGamepadGC{
 		controller:           uintptr(controller),
 		axes:                 make([]float64, prop.nAxes),
 		buttons:              make([]bool, prop.nButtons+prop.nHats*4),
@@ -424,20 +424,20 @@ func (g *gamepads) addIOSGamepad(controller C.uintptr_t, prop *C.struct_Controll
 	}
 }
 
-func (g *gamepads) removeIOSGamepad(controller C.uintptr_t) {
+func (g *gamepads) removeGCGamepad(controller C.uintptr_t) {
 	g.m.Lock()
 	defer g.m.Unlock()
 
 	g.remove(func(gamepad *Gamepad) bool {
-		return gamepad.native.(*nativeGamepadImpl).controller == uintptr(controller)
+		return gamepad.native.(*nativeGamepadGC).controller == uintptr(controller)
 	})
 }
 
-func initializeIOSGamepads() {
+func initializeGCGamepads() {
 	C.initializeGamepads()
 }
 
-func (g *nativeGamepadImpl) updateIOSGamepad() {
+func (g *nativeGamepadGC) updateGCGamepad() {
 	var state C.struct_ControllerState
 	C.getControllerState(C.uintptr_t(g.controller), &state, C.uint16_t(g.buttonMask), C.uint8_t(len(g.hats)),
 		C.bool(g.hasDualshockTouchpad), C.bool(g.hasXboxPaddles), C.bool(g.hasXboxShareButton))

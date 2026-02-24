@@ -20,22 +20,22 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepaddb"
 )
 
-type nativeGamepadsImpl struct{}
+type nativeGamepadsGC struct{}
 
-func newNativeGamepadsImpl() nativeGamepads {
-	return &nativeGamepadsImpl{}
+func newNativeGamepadsGC() nativeGamepads {
+	return &nativeGamepadsGC{}
 }
 
-func (*nativeGamepadsImpl) init(gamepads *gamepads) error {
-	initializeIOSGamepads()
+func (*nativeGamepadsGC) init(gamepads *gamepads) error {
+	initializeGCGamepads()
 	return nil
 }
 
-func (*nativeGamepadsImpl) update(gamepads *gamepads) error {
+func (*nativeGamepadsGC) update(gamepads *gamepads) error {
 	return nil
 }
 
-type nativeGamepadImpl struct {
+type nativeGamepadGC struct {
 	controller           uintptr
 	buttonMask           uint16
 	hasDualshockTouchpad bool
@@ -47,67 +47,67 @@ type nativeGamepadImpl struct {
 	hats    []int
 }
 
-func (g *nativeGamepadImpl) update(gamepad *gamepads) error {
-	g.updateIOSGamepad()
+func (g *nativeGamepadGC) update(gamepad *gamepads) error {
+	g.updateGCGamepad()
 	return nil
 }
 
-func (*nativeGamepadImpl) hasOwnStandardLayoutMapping() bool {
+func (*nativeGamepadGC) hasOwnStandardLayoutMapping() bool {
 	return false
 }
 
-func (*nativeGamepadImpl) standardAxisInOwnMapping(axis gamepaddb.StandardAxis) mappingInput {
+func (*nativeGamepadGC) standardAxisInOwnMapping(axis gamepaddb.StandardAxis) mappingInput {
 	return nil
 }
 
-func (*nativeGamepadImpl) standardButtonInOwnMapping(button gamepaddb.StandardButton) mappingInput {
+func (*nativeGamepadGC) standardButtonInOwnMapping(button gamepaddb.StandardButton) mappingInput {
 	return nil
 }
 
-func (g *nativeGamepadImpl) axisCount() int {
+func (g *nativeGamepadGC) axisCount() int {
 	return len(g.axes)
 }
 
-func (g *nativeGamepadImpl) buttonCount() int {
+func (g *nativeGamepadGC) buttonCount() int {
 	return len(g.buttons)
 }
 
-func (g *nativeGamepadImpl) hatCount() int {
+func (g *nativeGamepadGC) hatCount() int {
 	return len(g.hats)
 }
 
-func (g *nativeGamepadImpl) isAxisReady(axis int) bool {
+func (g *nativeGamepadGC) isAxisReady(axis int) bool {
 	return axis >= 0 && axis < g.axisCount()
 }
 
-func (g *nativeGamepadImpl) axisValue(axis int) float64 {
+func (g *nativeGamepadGC) axisValue(axis int) float64 {
 	if axis < 0 || axis >= len(g.axes) {
 		return 0
 	}
 	return g.axes[axis]
 }
 
-func (g *nativeGamepadImpl) isButtonPressed(button int) bool {
+func (g *nativeGamepadGC) isButtonPressed(button int) bool {
 	if button < 0 || button >= len(g.buttons) {
 		return false
 	}
 	return g.buttons[button]
 }
 
-func (g *nativeGamepadImpl) buttonValue(button int) float64 {
+func (g *nativeGamepadGC) buttonValue(button int) float64 {
 	if g.isButtonPressed(button) {
 		return 1
 	}
 	return 0
 }
 
-func (g *nativeGamepadImpl) hatState(hat int) int {
+func (g *nativeGamepadGC) hatState(hat int) int {
 	if hat < 0 || hat >= len(g.hats) {
 		return 0
 	}
 	return g.hats[hat]
 }
 
-func (g *nativeGamepadImpl) vibrate(duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
+func (g *nativeGamepadGC) vibrate(duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
 	// TODO: Implement this (#1452)
 }
