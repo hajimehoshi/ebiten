@@ -41,6 +41,8 @@ type nativeGamepadGC struct {
 	hasDualshockTouchpad bool
 	hasXboxPaddles       bool
 	hasXboxShareButton   bool
+	leftMotor            uintptr
+	rightMotor           uintptr
 
 	axes    []float64
 	buttons []bool
@@ -109,5 +111,5 @@ func (g *nativeGamepadGC) hatState(hat int) int {
 }
 
 func (g *nativeGamepadGC) vibrate(duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
-	// TODO: Implement this (#1452)
+	vibrateGCGamepad(g.leftMotor, g.rightMotor, strongMagnitude, weakMagnitude)
 }
