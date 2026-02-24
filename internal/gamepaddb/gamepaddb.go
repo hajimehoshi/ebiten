@@ -35,7 +35,6 @@ const (
 	platformWindows
 	platformUnix
 	platformAndroid
-	platformIOS
 	platformDarwin
 )
 
@@ -47,9 +46,7 @@ func currentPlatform() platform {
 		return platformUnix
 	case "android":
 		return platformAndroid
-	case "ios":
-		return platformIOS
-	case "darwin":
+	case "darwin", "ios":
 		return platformDarwin
 	default:
 		return platformUnknown
@@ -128,7 +125,7 @@ func parseLine(line string, platform platform) (id string, name string, buttons 
 				// for both macOS and iOS because they are using the same API for
 				// gamepad support. The "Mac OS X" entires in the master gamepaddb.txt
 				// are for the IOKit API and won't match anything on macOS.
-				if platform != platformIOS && platform != platformDarwin {
+				if platform != platformDarwin {
 					return "", "", nil, nil, nil
 				}
 			case "":
