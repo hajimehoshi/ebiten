@@ -18,45 +18,40 @@ import (
 	"iter"
 	"strings"
 	"unicode/utf8"
-
-	"github.com/rivo/uniseg"
 )
 
 func Lines(str string) iter.Seq[string] {
-	origStr := str
 	return func(yield func(s string) bool) {
-		var startIdx, endIdx int
-		state := -1
 		for len(str) > 0 {
-			segment, nextStr, mustBreak, nextState := uniseg.FirstLineSegmentInString(str, state)
-			endIdx += len(segment)
-			if mustBreak {
-				if !yield(origStr[startIdx:endIdx]) {
-					return
+			idx := strings.IndexAny(str, "\n\v\f\r\u0085\u2028\u2029")
+			var length int
+			if idx < 0 {
+				length = len(str)
+			} else {
+				_, size := utf8.DecodeRuneInString(str[idx:])
+				length = idx + size
+				if str[idx] == '\r' && length < len(str) && str[length] == '\n' {
+					length++
 				}
-				startIdx = endIdx
 			}
-			state = nextState
-			str = nextStr
-		}
-		if startIdx < endIdx {
-			if !yield(origStr[startIdx:endIdx]) {
+			if !yield(str[:length]) {
 				return
 			}
+			str = str[length:]
 		}
 	}
 }
 
 func TrimTailingLineBreak(str string) string {
-	if !uniseg.HasTrailingLineBreakInString(str) {
-		return str
-	}
-
 	// https://en.wikipedia.org/wiki/Newline#Unicode
+
 	if strings.HasSuffix(str, "\r\n") {
 		return str[:len(str)-2]
 	}
 
-	_, s := utf8.DecodeLastRuneInString(str)
-	return str[:len(str)-s]
+	r, s := utf8.DecodeLastRuneInString(str)
+	if r == '\n' || r == '\v' || r == '\f' || r == '\r' || r == '\u0085' || r == '\u2028' || r == '\u2029' {
+		return str[:len(str)-s]
+	}
+	return str
 }
