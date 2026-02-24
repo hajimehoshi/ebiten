@@ -20,7 +20,7 @@ import (
 	_ "embed"
 )
 
-//go:embed gamecontrollerdb_ios.txt
+//go:embed gamecontrollerdb_darwin.txt
 var controllerBytes []byte
 
 func init() {

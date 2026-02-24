@@ -111,16 +111,12 @@ func run() error {
 			buildConstraints: "//go:build !microsoftgdk",
 			hasGLFWGamepads:  true,
 		},
-		"Mac OS X": {
-			filenameSuffix:   "macos",
-			buildConstraints: "//go:build darwin && !ios",
-		},
 		"Linux": {
 			filenameSuffix:   "linbsd",
 			buildConstraints: "//go:build (freebsd || (linux && !android) || netbsd || openbsd) && !nintendosdk && !playstation5",
 		},
 		"iOS": {
-			filenameSuffix: "ios",
+			filenameSuffix: "darwin",
 		},
 		"Android": {
 			filenameSuffix: "android",
