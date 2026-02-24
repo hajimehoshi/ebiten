@@ -123,8 +123,11 @@ func parseLine(line string, platform platform) (id string, name string, buttons 
 				if platform != platformAndroid {
 					return "", "", nil, nil, nil
 				}
-			case "Darwin":
 			case "iOS":
+				// iOS entires are for GCContoller based mappings. This is used
+				// for both macOS and iOS because they are using the same API for
+				// gamepad support. The "Mac OS X" entires in the master gamepaddb.txt
+				// are for the IOKit API and won't match anything on macOS.
 				if platform != platformIOS && platform != platformDarwin {
 					return "", "", nil, nil, nil
 				}
