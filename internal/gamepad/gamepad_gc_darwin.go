@@ -43,6 +43,8 @@ type nativeGamepadGC struct {
 	hasXboxShareButton   bool
 	leftMotor            uintptr
 	rightMotor           uintptr
+	vib                  bool
+	vibEnd               time.Time
 
 	axes    []float64
 	buttons []bool
@@ -51,6 +53,10 @@ type nativeGamepadGC struct {
 
 func (g *nativeGamepadGC) update(gamepad *gamepads) error {
 	g.updateGCGamepad()
+	if g.vib && time.Now().Sub(g.vibEnd) >= 0 {
+		vibrateGCGamepad(g.rightMotor, g.leftMotor, 0, 0)
+		g.vib = false
+	}
 	return nil
 }
 
@@ -111,5 +117,13 @@ func (g *nativeGamepadGC) hatState(hat int) int {
 }
 
 func (g *nativeGamepadGC) vibrate(duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
+	if strongMagnitude <= 0 && weakMagnitude <= 0 {
+		g.vib = false
+		vibrateGCGamepad(g.leftMotor, g.rightMotor, 0, 0)
+		return
+
+	}
+	g.vib = true
+	g.vibEnd = time.Now().Add(duration)
 	vibrateGCGamepad(g.leftMotor, g.rightMotor, strongMagnitude, weakMagnitude)
 }

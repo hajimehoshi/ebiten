@@ -137,7 +137,9 @@ package gamepad
 // }
 //
 // static void releaseRumbleMotor(uintptr_t motorPtr) {
-//   if (motorPtr == 0) return;
+//   if (motorPtr == 0) {
+//     return;
+//   }
 //   if (@available(macOS 11.0, iOS 14.0, *)) {
 //     @autoreleasepool {
 //       [(RumbleMotor *)motorPtr release];
@@ -145,8 +147,10 @@ package gamepad
 //   }
 // }
 //
-// static void vibrateMotor(uintptr_t motorPtr, float intensity) {
-//   if (motorPtr == 0) return;
+// static void vibrateRunbleMotor(uintptr_t motorPtr, float intensity) {
+//   if (motorPtr == 0) {
+//     return;
+//   }
 //   if (@available(macOS 11.0, iOS 14.0, *)) {
 //     @autoreleasepool {
 //       [(RumbleMotor *)motorPtr setIntensity:intensity];
@@ -166,15 +170,15 @@ func releaseGCRumbleMotor(motor uintptr) {
 	C.releaseRumbleMotor(C.uintptr_t(motor))
 }
 
-func vibrateGCMotor(motor uintptr, intensity float64) {
-	C.vibrateMotor(C.uintptr_t(motor), C.float(intensity))
+func vibrateGCRunbleMotor(motor uintptr, intensity float64) {
+	C.vibrateRunbleMotor(C.uintptr_t(motor), C.float(intensity))
 }
 
 func vibrateGCGamepad(left, right uintptr, strong, weak float64) {
-	if left != 0 {
-		vibrateGCMotor(left, strong)
+	if left >= 0 {
+		vibrateGCRunbleMotor(left, strong)
 	}
-	if right != 0 {
-		vibrateGCMotor(right, weak)
+	if right >= 0 {
+		vibrateGCRunbleMotor(right, weak)
 	}
 }
