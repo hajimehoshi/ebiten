@@ -33,10 +33,9 @@ type platform int
 const (
 	platformUnknown platform = iota
 	platformWindows
-	platformMacOS
+	platformDarwin
 	platformUnix
 	platformAndroid
-	platformIOS
 )
 
 func currentPlatform() platform {
@@ -48,9 +47,9 @@ func currentPlatform() platform {
 	case "android":
 		return platformAndroid
 	case "ios":
-		return platformIOS
+		return platformDarwin
 	case "darwin":
-		return platformMacOS
+		return platformDarwin
 	default:
 		return platformUnknown
 	}
@@ -116,7 +115,7 @@ func parseLine(line string, platform platform) (id string, name string, buttons 
 					return "", "", nil, nil, nil
 				}
 			case "Mac OS X":
-				if platform != platformMacOS {
+				if platform != platformDarwin {
 					return "", "", nil, nil, nil
 				}
 			case "Linux":
@@ -128,7 +127,7 @@ func parseLine(line string, platform platform) (id string, name string, buttons 
 					return "", "", nil, nil, nil
 				}
 			case "iOS":
-				if platform != platformIOS {
+				if platform != platformDarwin {
 					return "", "", nil, nil, nil
 				}
 			case "":

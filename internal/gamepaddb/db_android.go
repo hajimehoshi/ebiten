@@ -21,10 +21,10 @@ import (
 )
 
 //go:embed gamecontrollerdb_android.txt
-var controllerBytes []byte
+var controllerBytes_android []byte
 
 func init() {
-	if err := Update(controllerBytes); err != nil {
+	if err := Update(controllerBytes_android); err != nil {
 		panic(err)
 	}
 }
