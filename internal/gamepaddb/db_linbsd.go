@@ -23,10 +23,10 @@ import (
 )
 
 //go:embed gamecontrollerdb_linbsd.txt
-var controllerBytes []byte
+var controllerBytes_linbsd []byte
 
 func init() {
-	if err := Update(controllerBytes); err != nil {
+	if err := Update(controllerBytes_linbsd); err != nil {
 		panic(err)
 	}
 }

@@ -64,7 +64,7 @@ import (
 )
 
 //go:embed gamecontrollerdb_{{.FileNameSuffix}}.txt
-var controllerBytes []byte
+var controllerBytes_{{.FileNameSuffix}} []byte
 
 {{if .HasGLFWGamepads}}
 var additionalGLFWGamepads = []byte(` + "`" + `
@@ -79,7 +79,7 @@ var additionalGLFWGamepads = []byte(` + "`" + `
 {{end}}
 
 func init() {
-	if err := Update(controllerBytes); err != nil {
+	if err := Update(controllerBytes_{{.FileNameSuffix}}); err != nil {
 		panic(err)
 	}{{if .HasGLFWGamepads}}
 	if err := Update(additionalGLFWGamepads); err != nil {
@@ -112,15 +112,14 @@ func run() error {
 			hasGLFWGamepads:  true,
 		},
 		"Mac OS X": {
-			filenameSuffix:   "macos",
-			buildConstraints: "//go:build darwin && !ios",
+			filenameSuffix: "hid_darwin",
 		},
 		"Linux": {
 			filenameSuffix:   "linbsd",
 			buildConstraints: "//go:build (freebsd || (linux && !android) || netbsd || openbsd) && !nintendosdk && !playstation5",
 		},
 		"iOS": {
-			filenameSuffix: "ios",
+			filenameSuffix: "gc_darwin",
 		},
 		"Android": {
 			filenameSuffix: "android",
