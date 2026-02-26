@@ -121,7 +121,6 @@ func (g *nativeGamepadGC) vibrate(duration time.Duration, strongMagnitude float6
 		g.vib = false
 		vibrateGCGamepad(g.leftMotor, g.rightMotor, 0, 0)
 		return
-
 	}
 	g.vib = true
 	g.vibEnd = time.Now().Add(duration)

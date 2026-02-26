@@ -1,4 +1,4 @@
-// Copyright 2026 The Ebiten Authors
+// Copyright 2026 The Ebitengine Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -147,7 +147,7 @@ package gamepad
 //   }
 // }
 //
-// static void vibrateRunbleMotor(uintptr_t motorPtr, float intensity) {
+// static void vibrateRumbleMotor(uintptr_t motorPtr, float intensity) {
 //   if (motorPtr == 0) {
 //     return;
 //   }
@@ -170,15 +170,15 @@ func releaseGCRumbleMotor(motor uintptr) {
 	C.releaseRumbleMotor(C.uintptr_t(motor))
 }
 
-func vibrateGCRunbleMotor(motor uintptr, intensity float64) {
-	C.vibrateRunbleMotor(C.uintptr_t(motor), C.float(intensity))
+func vibrateGCRumbleMotor(motor uintptr, intensity float64) {
+	C.vibrateRumbleMotor(C.uintptr_t(motor), C.float(intensity))
 }
 
 func vibrateGCGamepad(left, right uintptr, strong, weak float64) {
 	if left >= 0 {
-		vibrateGCRunbleMotor(left, strong)
+		vibrateGCRumbleMotor(left, strong)
 	}
 	if right >= 0 {
-		vibrateGCRunbleMotor(right, weak)
+		vibrateGCRumbleMotor(right, weak)
 	}
 }
