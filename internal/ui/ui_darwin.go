@@ -25,6 +25,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2/internal/cocoa"
 	"github.com/hajimehoshi/ebiten/v2/internal/color"
+	"github.com/hajimehoshi/ebiten/v2/internal/colormode"
 	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal"
@@ -237,6 +238,7 @@ func (u *UserInterface) adjustWindowPosition(x, y int, monitor *Monitor) (int, i
 }
 
 var (
+	class_NSAppearance        = objc.GetClass("NSAppearance")
 	class_NSCursor            = objc.GetClass("NSCursor")
 	class_NSEvent             = objc.GetClass("NSEvent")
 	class_NSMutableDictionary = objc.GetClass("NSMutableDictionary")
@@ -246,6 +248,7 @@ var (
 
 var (
 	sel_alloc                         = objc.RegisterName("alloc")
+	sel_appearanceNamed               = objc.RegisterName("appearanceNamed:")
 	sel_collectionBehavior            = objc.RegisterName("collectionBehavior")
 	sel_delegate                      = objc.RegisterName("delegate")
 	sel_init                          = objc.RegisterName("init")
@@ -255,6 +258,7 @@ var (
 	sel_origDelegate                  = objc.RegisterName("origDelegate")
 	sel_origResizable                 = objc.RegisterName("isOrigResizable")
 	sel_registerDefaults              = objc.RegisterName("registerDefaults:")
+	sel_setAppearance                 = objc.RegisterName("setAppearance:")
 	sel_setCollectionBehavior         = objc.RegisterName("setCollectionBehavior:")
 	sel_setDelegate                   = objc.RegisterName("setDelegate:")
 	sel_setDocumentEdited             = objc.RegisterName("setDocumentEdited:")
@@ -461,5 +465,31 @@ func (u *UserInterface) setDocumentEdited(edited bool) error {
 }
 
 func (u *UserInterface) afterWindowCreation() error {
+	return nil
+}
+
+var (
+	nsStringAqua     = cocoa.NSString_alloc().InitWithUTF8String("NSAppearanceNameAqua")
+	nsStringDarkAqua = cocoa.NSString_alloc().InitWithUTF8String("NSAppearanceNameDarkAqua")
+)
+
+// setWindowColorMode must be called from the main thread.
+func (u *UserInterface) setWindowColorMode(mode colormode.ColorMode) error {
+	w, err := u.window.GetCocoaWindow()
+	if err != nil {
+		return err
+	}
+
+	var appearance objc.ID
+	switch mode {
+	case colormode.Light:
+		appearance = objc.ID(class_NSAppearance).Send(sel_appearanceNamed, nsStringAqua.ID)
+	case colormode.Dark:
+		appearance = objc.ID(class_NSAppearance).Send(sel_appearanceNamed, nsStringDarkAqua.ID)
+	case colormode.Unknown:
+		appearance = 0
+	}
+
+	objc.ID(w).Send(sel_setAppearance, appearance)
 	return nil
 }

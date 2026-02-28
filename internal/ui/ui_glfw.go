@@ -27,6 +27,7 @@ import (
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/clock"
+	"github.com/hajimehoshi/ebiten/v2/internal/colormode"
 	"github.com/hajimehoshi/ebiten/v2/internal/file"
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
 	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
@@ -67,6 +68,7 @@ type userInterfaceImpl struct {
 	cursorShape          CursorShape
 	windowClosingHandled bool
 	windowResizingMode   WindowResizingMode
+	colorMode            colormode.ColorMode
 
 	lastDeviceScaleFactor float64
 
@@ -1156,6 +1158,12 @@ func (u *UserInterface) initOnMainThread(options *RunOptions) error {
 
 	if err := u.createWindow(); err != nil {
 		return err
+	}
+
+	if u.colorMode != colormode.Unknown {
+		if err := u.setWindowColorMode(u.colorMode); err != nil {
+			return err
+		}
 	}
 
 	// Maximizing a window requires a proper size and position. Call Maximize here (#1117).

@@ -20,6 +20,7 @@ import (
 	"image"
 	"runtime"
 
+	"github.com/hajimehoshi/ebiten/v2/internal/colormode"
 	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
 )
 
@@ -75,8 +76,8 @@ func (w *glfwWindow) ResizingMode() WindowResizingMode {
 	}
 	if !w.ui.isRunning() {
 		w.ui.m.Lock()
+		defer w.ui.m.Unlock()
 		mode := w.ui.windowResizingMode
-		w.ui.m.Unlock()
 		return mode
 	}
 	var mode WindowResizingMode
@@ -95,8 +96,8 @@ func (w *glfwWindow) SetResizingMode(mode WindowResizingMode) {
 	}
 	if !w.ui.isRunning() {
 		w.ui.m.Lock()
+		defer w.ui.m.Unlock()
 		w.ui.windowResizingMode = mode
-		w.ui.m.Unlock()
 		return
 	}
 	w.ui.mainThread.Call(func() {
@@ -442,8 +443,8 @@ func (w *glfwWindow) SetTitle(title string) {
 	}
 	if !w.ui.isRunning() {
 		w.ui.m.Lock()
+		defer w.ui.m.Unlock()
 		w.ui.title = title
-		w.ui.m.Unlock()
 		return
 	}
 	w.ui.mainThread.Call(func() {
@@ -452,6 +453,47 @@ func (w *glfwWindow) SetTitle(title string) {
 		}
 		w.ui.title = title
 		if err := w.ui.setWindowTitle(title); err != nil {
+			w.ui.setError(err)
+			return
+		}
+	})
+}
+
+func (w *glfwWindow) ColorMode() colormode.ColorMode {
+	if w.ui.isTerminated() {
+		return colormode.Unknown
+	}
+	if !w.ui.isRunning() {
+		w.ui.m.RLock()
+		defer w.ui.m.RUnlock()
+		return w.ui.colorMode
+	}
+	var mode colormode.ColorMode
+	w.ui.mainThread.Call(func() {
+		if w.ui.isTerminated() {
+			return
+		}
+		mode = w.ui.colorMode
+	})
+	return mode
+}
+
+func (w *glfwWindow) SetColorMode(mode colormode.ColorMode) {
+	if w.ui.isTerminated() {
+		return
+	}
+	if !w.ui.isRunning() {
+		w.ui.m.Lock()
+		defer w.ui.m.Unlock()
+		w.ui.colorMode = mode
+		return
+	}
+	w.ui.mainThread.Call(func() {
+		if w.ui.isTerminated() {
+			return
+		}
+		w.ui.colorMode = mode
+		if err := w.ui.setWindowColorMode(mode); err != nil {
 			w.ui.setError(err)
 			return
 		}

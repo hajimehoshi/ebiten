@@ -26,6 +26,7 @@ import (
 	"github.com/jezek/xgb/xproto"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/color"
+	"github.com/hajimehoshi/ebiten/v2/internal/colormode"
 	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl"
@@ -212,5 +213,52 @@ func (u *UserInterface) setDocumentEdited(edited bool) error {
 }
 
 func (u *UserInterface) afterWindowCreation() error {
+	return nil
+}
+
+// setWindowColorMode must be called from the main thread.
+func (u *UserInterface) setWindowColorMode(mode colormode.ColorMode) error {
+	xconn, err := xgb.NewConn()
+	if err != nil {
+		// Assume we're on pure Wayland then.
+		return nil
+	}
+	defer xconn.Close()
+
+	// Get the X11 window ID from GLFW
+	window, err := u.window.GetX11Window()
+	if err != nil {
+		return err
+	}
+
+	var themeVariant string
+	switch mode {
+	case colormode.Light:
+		themeVariant = "light"
+	case colormode.Dark:
+		themeVariant = "dark"
+	case colormode.Unknown:
+		// Keep themeVariant empty.
+	}
+
+	gtkThemeVariantStr := "_GTK_THEME_VARIANT"
+	r, err := xproto.InternAtom(xconn, false, uint16(len(gtkThemeVariantStr)), gtkThemeVariantStr).Reply()
+	if err != nil {
+		return err
+	}
+	gtkThemeVariantAtom := r.Atom
+
+	utf8Str := "UTF8_STRING"
+	r, err = xproto.InternAtom(xconn, false, uint16(len(utf8Str)), utf8Str).Reply()
+	if err != nil {
+		return err
+	}
+	utf8StringAtom := r.Atom
+
+	if themeVariant == "" {
+		_ = xproto.DeleteProperty(xconn, xproto.Window(window), gtkThemeVariantAtom)
+		return nil
+	}
+	_ = xproto.ChangeProperty(xconn, xproto.PropModeReplace, xproto.Window(window), gtkThemeVariantAtom, utf8StringAtom, 8, uint32(len(themeVariant)), []byte(themeVariant))
 	return nil
 }

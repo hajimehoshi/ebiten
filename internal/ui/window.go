@@ -16,6 +16,8 @@ package ui
 
 import (
 	"image"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/colormode"
 )
 
 type Window interface {
@@ -38,6 +40,8 @@ type Window interface {
 	IsMinimized() bool
 	SetIcon(iconImages []image.Image)
 	SetTitle(title string)
+	ColorMode() colormode.ColorMode
+	SetColorMode(mode colormode.ColorMode)
 	Restore()
 	SetClosingHandled(handled bool)
 	IsClosingHandled() bool
@@ -111,6 +115,13 @@ func (*nullWindow) SetIcon(iconImages []image.Image) {
 }
 
 func (*nullWindow) SetTitle(title string) {
+}
+
+func (*nullWindow) ColorMode() colormode.ColorMode {
+	return colormode.Unknown
+}
+
+func (*nullWindow) SetColorMode(mode colormode.ColorMode) {
 }
 
 func (*nullWindow) Restore() {

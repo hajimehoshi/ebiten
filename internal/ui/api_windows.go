@@ -25,12 +25,13 @@ import (
 )
 
 const (
-	_CLSCTX_INPROC_SERVER     = 0x1
-	_CLSCTX_LOCAL_SERVER      = 0x4
-	_CLSCTX_REMOTE_SERVER     = 0x10
-	_CLSCTX_SERVER            = _CLSCTX_INPROC_SERVER | _CLSCTX_LOCAL_SERVER | _CLSCTX_REMOTE_SERVER
-	_MONITOR_DEFAULTTONEAREST = 2
-	_SM_CYCAPTION             = 4
+	_CLSCTX_INPROC_SERVER          = 0x1
+	_CLSCTX_LOCAL_SERVER           = 0x4
+	_CLSCTX_REMOTE_SERVER          = 0x10
+	_CLSCTX_SERVER                 = _CLSCTX_INPROC_SERVER | _CLSCTX_LOCAL_SERVER | _CLSCTX_REMOTE_SERVER
+	_DWMWA_USE_IMMERSIVE_DARK_MODE = 20
+	_MONITOR_DEFAULTTONEAREST      = 2
+	_SM_CYCAPTION                  = 4
 )
 
 var (
@@ -68,9 +69,12 @@ type _POINT struct {
 }
 
 var (
+	dwmapi = windows.NewLazySystemDLL("dwmapi.dll")
 	imm32  = windows.NewLazySystemDLL("imm32.dll")
 	ole32  = windows.NewLazySystemDLL("ole32.dll")
 	user32 = windows.NewLazySystemDLL("user32.dll")
+
+	procDwmSetWindowAttribute = dwmapi.NewProc("DwmSetWindowAttribute")
 
 	procImmAssociateContext = imm32.NewProc("ImmAssociateContext")
 
@@ -140,6 +144,17 @@ func _GetCursorPos() (int32, int32, error) {
 		return 0, 0, fmt.Errorf("ui: GetCursorPos failed: returned 0")
 	}
 	return pt.x, pt.y, nil
+}
+
+func _DwmSetWindowAttribute(hwnd windows.HWND, dwAttribute uint32, pvAttribute unsafe.Pointer, cbAttribute uint32) error {
+	r, _, e := procDwmSetWindowAttribute.Call(uintptr(hwnd), uintptr(dwAttribute), uintptr(pvAttribute), uintptr(cbAttribute))
+	if uint32(r) != uint32(windows.S_OK) {
+		if e != nil && !errors.Is(e, windows.ERROR_SUCCESS) {
+			return fmt.Errorf("ui: DwmSetWindowAttribute failed: error code: %w", e)
+		}
+		return fmt.Errorf("ui: DwmSetWindowAttribute failed: HRESULT(%d)", uint32(r))
+	}
+	return nil
 }
 
 type _ITaskbarList struct {
