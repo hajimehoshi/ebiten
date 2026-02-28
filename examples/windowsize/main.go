@@ -330,7 +330,7 @@ func (g *game) Update() error {
 				}
 			})
 			ctx.Header("Info", true, func() {
-				ctx.SetGridLayout([]int{-2, -1}, nil)
+				ctx.SetGridLayout([]int{-3, -2}, nil)
 
 				ctx.Text("Window Position")
 				wx, wy := ebiten.WindowPosition()
@@ -349,6 +349,10 @@ func (g *game) Update() error {
 				ctx.Text("Cursor")
 				cx, cy := ebiten.CursorPosition()
 				ctx.Text(fmt.Sprintf("(%d, %d)", cx, cy))
+
+				ctx.Text("Cursor (float)")
+				cxf, cyf := ebiten.CursorPositionF()
+				ctx.Text(fmt.Sprintf("(%0.2f, %0.2f)", cxf, cyf))
 
 				ctx.Text("Device Scale Factor")
 				ctx.Text(fmt.Sprintf("%0.2f", ebiten.Monitor().DeviceScaleFactor()))
