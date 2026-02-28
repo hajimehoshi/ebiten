@@ -18,15 +18,9 @@ package colormode
 
 import (
 	"golang.org/x/sys/windows/registry"
-
-	"github.com/hajimehoshi/ebiten/v2/internal/microsoftgdk"
 )
 
 func systemColorMode() ColorMode {
-	if microsoftgdk.IsXbox() {
-		return Unknown
-	}
-
 	k, err := registry.OpenKey(registry.CURRENT_USER,
 		`Software\Microsoft\Windows\CurrentVersion\Themes\Personalize`,
 		registry.QUERY_VALUE)
