@@ -306,8 +306,8 @@ func init() {
 	_ = windows.TimeBeginPeriod(1)
 }
 
-// setWindowColorMode must be called from the main thread.
-func (u *UserInterface) setWindowColorMode(mode colormode.ColorMode) error {
+// setWindowColorModeImpl must be called from the main thread.
+func (u *UserInterface) setWindowColorModeImpl(mode colormode.ColorMode) error {
 	if microsoftgdk.IsXbox() {
 		return nil
 	}

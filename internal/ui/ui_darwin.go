@@ -473,8 +473,8 @@ var (
 	nsStringDarkAqua = cocoa.NSString_alloc().InitWithUTF8String("NSAppearanceNameDarkAqua")
 )
 
-// setWindowColorMode must be called from the main thread.
-func (u *UserInterface) setWindowColorMode(mode colormode.ColorMode) error {
+// setWindowColorModeImpl must be called from the main thread.
+func (u *UserInterface) setWindowColorModeImpl(mode colormode.ColorMode) error {
 	w, err := u.window.GetCocoaWindow()
 	if err != nil {
 		return err

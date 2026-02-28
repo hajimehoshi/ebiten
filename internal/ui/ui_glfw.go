@@ -1161,7 +1161,7 @@ func (u *UserInterface) initOnMainThread(options *RunOptions) error {
 	}
 
 	if u.colorMode != colormode.Unknown {
-		if err := u.setWindowColorMode(u.colorMode); err != nil {
+		if err := u.setWindowColorModeImpl(u.colorMode); err != nil {
 			return err
 		}
 	}
@@ -2170,6 +2170,18 @@ func (u *UserInterface) setWindowPositionInDIP(x, y int, monitor *Monitor) error
 // setWindowTitle must be called from the main thread.
 func (u *UserInterface) setWindowTitle(title string) error {
 	return u.window.SetTitle(title)
+}
+
+// setWindowColorMode must be called from the main thread.
+func (u *UserInterface) setWindowColorMode(mode colormode.ColorMode) error {
+	if u.colorMode == mode {
+		return nil
+	}
+	u.colorMode = mode
+	if err := u.setWindowColorModeImpl(mode); err != nil {
+		return err
+	}
+	return nil
 }
 
 // isWindowMaximized must be called from the main thread.

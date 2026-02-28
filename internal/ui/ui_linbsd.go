@@ -216,8 +216,8 @@ func (u *UserInterface) afterWindowCreation() error {
 	return nil
 }
 
-// setWindowColorMode must be called from the main thread.
-func (u *UserInterface) setWindowColorMode(mode colormode.ColorMode) error {
+// setWindowColorModeImpl must be called from the main thread.
+func (u *UserInterface) setWindowColorModeImpl(mode colormode.ColorMode) error {
 	xconn, err := xgb.NewConn()
 	if err != nil {
 		// Assume we're on pure Wayland then.
