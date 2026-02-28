@@ -446,11 +446,11 @@ func (w *glfwWindow) SetTitle(title string) {
 		w.ui.m.Unlock()
 		return
 	}
-	w.ui.title = title
 	w.ui.mainThread.Call(func() {
 		if w.ui.isTerminated() {
 			return
 		}
+		w.ui.title = title
 		if err := w.ui.setWindowTitle(title); err != nil {
 			w.ui.setError(err)
 			return
