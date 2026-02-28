@@ -255,7 +255,7 @@ func (g *game) Update() error {
 				})
 
 				ctx.Text("Window Color Mode")
-				mode := ebiten.WindowolorMode()
+				mode := ebiten.WindowColorMode()
 				ctx.Button(colorModeString(mode)).On(func() {
 					switch mode {
 					case ebiten.ColorModeLight:

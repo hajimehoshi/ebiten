@@ -108,12 +108,12 @@ func SetWindowTitle(title string) {
 	ui.Get().Window().SetTitle(title)
 }
 
-// WindowolorMode returns the current color mode of the window title bar.
+// WindowColorMode returns the current color mode of the window title bar.
 //
-// WindowolorMode returns ColorModeUnknown if the platform is not a desktop.
+// WindowColorMode returns ColorModeUnknown if the platform is not a desktop.
 //
-// WindowolorMode is concurrent-safe.
-func WindowolorMode() ColorMode {
+// WindowColorMode is concurrent-safe.
+func WindowColorMode() ColorMode {
 	return ColorMode(ui.Get().Window().ColorMode())
 }
 
