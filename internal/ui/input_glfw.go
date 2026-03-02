@@ -215,11 +215,3 @@ func (u *UserInterface) KeyName(key Key) string {
 	})
 	return name
 }
-
-func (u *UserInterface) saveCursorPosition() {
-	u.m.Lock()
-	defer u.m.Unlock()
-
-	u.savedCursorX = u.inputState.CursorX
-	u.savedCursorY = u.inputState.CursorY
-}

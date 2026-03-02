@@ -74,30 +74,17 @@ func (w *glfwWindow) ResizingMode() WindowResizingMode {
 	if w.ui.isTerminated() {
 		return 0
 	}
-	if !w.ui.isRunning() {
-		w.ui.m.Lock()
-		defer w.ui.m.Unlock()
-		mode := w.ui.windowResizingMode
-		return mode
-	}
-	var mode WindowResizingMode
-	w.ui.mainThread.Call(func() {
-		if w.ui.isTerminated() {
-			return
-		}
-		mode = w.ui.windowResizingMode
-	})
-	return mode
+	return WindowResizingMode(w.ui.windowResizingMode.Load())
 }
 
 func (w *glfwWindow) SetResizingMode(mode WindowResizingMode) {
 	if w.ui.isTerminated() {
 		return
 	}
+	if WindowResizingMode(w.ui.windowResizingMode.Swap(int32(mode))) == mode {
+		return
+	}
 	if !w.ui.isRunning() {
-		w.ui.m.Lock()
-		defer w.ui.m.Unlock()
-		w.ui.windowResizingMode = mode
 		return
 	}
 	w.ui.mainThread.Call(func() {
@@ -441,17 +428,16 @@ func (w *glfwWindow) SetTitle(title string) {
 	if w.ui.isTerminated() {
 		return
 	}
+	if w.ui.title.Swap(title) == title {
+		return
+	}
 	if !w.ui.isRunning() {
-		w.ui.m.Lock()
-		defer w.ui.m.Unlock()
-		w.ui.title = title
 		return
 	}
 	w.ui.mainThread.Call(func() {
 		if w.ui.isTerminated() {
 			return
 		}
-		w.ui.title = title
 		if err := w.ui.setWindowTitle(title); err != nil {
 			w.ui.setError(err)
 			return

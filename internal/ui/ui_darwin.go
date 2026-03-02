@@ -409,7 +409,8 @@ func (u *UserInterface) adjustViewSizeAfterFullscreen() error {
 }
 
 func (u *UserInterface) isFullscreenAllowedFromUI(mode WindowResizingMode) bool {
-	if u.maxWindowWidthInDIP != glfw.DontCare || u.maxWindowHeightInDIP != glfw.DontCare {
+	s := u.windowSizeLimit.Load().(windowSizeRange)
+	if s.maxWidthInDIP != glfw.DontCare || s.maxHeightInDIP != glfw.DontCare {
 		return false
 	}
 	if mode == WindowResizingModeOnlyFullscreenEnabled {
