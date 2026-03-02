@@ -74,16 +74,14 @@ type userInterfaceImpl struct {
 	lastDeviceScaleFactor float64
 
 	initMonitor                atomic.Pointer[Monitor]
-	initFullscreen             bool
-	initCursorMode             CursorMode
-	initWindowDecorated        bool
-	initWindowPositionXInDIP   int
-	initWindowPositionYInDIP   int
-	initWindowWidthInDIP       int
-	initWindowHeightInDIP      int
-	initWindowFloating         bool
-	initWindowMaximized        bool
-	initWindowMousePassthrough bool
+	initFullscreen             atomic.Bool
+	initCursorMode             atomic.Int32
+	initWindowDecorated        atomic.Bool
+	initWindowPositionInDIP    atomic.Value
+	initWindowSizeInDIP        atomic.Value
+	initWindowFloating         atomic.Bool
+	initWindowMaximized        atomic.Bool
+	initWindowMousePassthrough atomic.Bool
 
 	initUnfocused bool
 
@@ -137,22 +135,21 @@ func init() {
 
 func (u *UserInterface) init() error {
 	u.userInterfaceImpl = userInterfaceImpl{
-		runnableOnUnfocused:      true,
-		minWindowWidthInDIP:      glfw.DontCare,
-		minWindowHeightInDIP:     glfw.DontCare,
-		maxWindowWidthInDIP:      glfw.DontCare,
-		maxWindowHeightInDIP:     glfw.DontCare,
-		initCursorMode:           CursorModeVisible,
-		initWindowDecorated:      true,
-		initWindowPositionXInDIP: invalidPos,
-		initWindowPositionYInDIP: invalidPos,
-		initWindowWidthInDIP:     640,
-		initWindowHeightInDIP:    480,
-		origWindowPosX:           invalidPos,
-		origWindowPosY:           invalidPos,
-		savedCursorX:             math.NaN(),
-		savedCursorY:             math.NaN(),
+		runnableOnUnfocused:  true,
+		minWindowWidthInDIP:  glfw.DontCare,
+		minWindowHeightInDIP: glfw.DontCare,
+		maxWindowWidthInDIP:  glfw.DontCare,
+		maxWindowHeightInDIP: glfw.DontCare,
+		origWindowPosX:       invalidPos,
+		origWindowPosY:       invalidPos,
+		savedCursorX:         math.NaN(),
+		savedCursorY:         math.NaN(),
 	}
+	u.userInterfaceImpl.initCursorMode.Store(int32(CursorModeVisible))
+	u.userInterfaceImpl.initWindowDecorated.Store(true)
+	u.userInterfaceImpl.initWindowPositionInDIP.Store(image.Pt(invalidPos, invalidPos))
+	u.userInterfaceImpl.initWindowSizeInDIP.Store(image.Pt(640, 480))
+
 	u.iwindow.ui = u
 
 	if err := u.initializePlatform(); err != nil {
@@ -390,29 +387,19 @@ func (u *UserInterface) isWindowMaximizable() bool {
 }
 
 func (u *UserInterface) isInitFullscreen() bool {
-	u.m.RLock()
-	v := u.initFullscreen
-	u.m.RUnlock()
-	return v
+	return u.initFullscreen.Load()
 }
 
 func (u *UserInterface) setInitFullscreen(initFullscreen bool) {
-	u.m.Lock()
-	u.initFullscreen = initFullscreen
-	u.m.Unlock()
+	u.initFullscreen.Store(initFullscreen)
 }
 
 func (u *UserInterface) getInitCursorMode() CursorMode {
-	u.m.RLock()
-	v := u.initCursorMode
-	u.m.RUnlock()
-	return v
+	return CursorMode(u.initCursorMode.Load())
 }
 
 func (u *UserInterface) setInitCursorMode(mode CursorMode) {
-	u.m.Lock()
-	u.initCursorMode = mode
-	u.m.Unlock()
+	u.initCursorMode.Store(int32(mode))
 }
 
 func (u *UserInterface) getCursorShape() CursorShape {
@@ -431,16 +418,11 @@ func (u *UserInterface) setCursorShape(shape CursorShape) CursorShape {
 }
 
 func (u *UserInterface) isInitWindowDecorated() bool {
-	u.m.RLock()
-	v := u.initWindowDecorated
-	u.m.RUnlock()
-	return v
+	return u.initWindowDecorated.Load()
 }
 
 func (u *UserInterface) setInitWindowDecorated(decorated bool) {
-	u.m.Lock()
-	u.initWindowDecorated = decorated
-	u.m.Unlock()
+	u.initWindowDecorated.Store(decorated)
 }
 
 func (u *UserInterface) isRunnableOnUnfocused() bool {
@@ -480,10 +462,9 @@ func (u *UserInterface) getInitWindowPositionInDIP() (int, int) {
 		return 0, 0
 	}
 
-	u.m.RLock()
-	defer u.m.RUnlock()
-	if u.initWindowPositionXInDIP != invalidPos && u.initWindowPositionYInDIP != invalidPos {
-		return u.initWindowPositionXInDIP, u.initWindowPositionYInDIP
+	pt := u.initWindowPositionInDIP.Load().(image.Point)
+	if pt.X != invalidPos && pt.Y != invalidPos {
+		return pt.X, pt.Y
 	}
 	return invalidPos, invalidPos
 }
@@ -493,12 +474,8 @@ func (u *UserInterface) setInitWindowPositionInDIP(x, y int) {
 		return
 	}
 
-	u.m.Lock()
-	defer u.m.Unlock()
-
 	// TODO: Update initMonitor if necessary (#1575).
-	u.initWindowPositionXInDIP = x
-	u.initWindowPositionYInDIP = y
+	u.initWindowPositionInDIP.Store(image.Pt(x, y))
 }
 
 func (u *UserInterface) getInitWindowSizeInDIP() (int, int) {
@@ -506,9 +483,8 @@ func (u *UserInterface) getInitWindowSizeInDIP() (int, int) {
 		return microsoftgdk.MonitorResolution()
 	}
 
-	u.m.RLock()
-	defer u.m.RUnlock()
-	return u.initWindowWidthInDIP, u.initWindowHeightInDIP
+	pt := u.initWindowSizeInDIP.Load().(image.Point)
+	return pt.X, pt.Y
 }
 
 func (u *UserInterface) setInitWindowSizeInDIP(width, height int) {
@@ -516,20 +492,14 @@ func (u *UserInterface) setInitWindowSizeInDIP(width, height int) {
 		return
 	}
 
-	u.m.Lock()
-	u.initWindowWidthInDIP, u.initWindowHeightInDIP = width, height
-	u.m.Unlock()
+	u.initWindowSizeInDIP.Store(image.Pt(width, height))
 }
 
 func (u *UserInterface) isInitWindowFloating() bool {
 	if microsoftgdk.IsXbox() {
 		return false
 	}
-
-	u.m.RLock()
-	f := u.initWindowFloating
-	u.m.RUnlock()
-	return f
+	return u.initWindowFloating.Load()
 }
 
 func (u *UserInterface) setInitWindowFloating(floating bool) {
@@ -537,35 +507,24 @@ func (u *UserInterface) setInitWindowFloating(floating bool) {
 		return
 	}
 
-	u.m.Lock()
-	u.initWindowFloating = floating
-	u.m.Unlock()
+	u.initWindowFloating.Store(floating)
 }
 
 func (u *UserInterface) isInitWindowMaximized() bool {
 	// TODO: Is this always true on Xbox?
-	u.m.RLock()
-	m := u.initWindowMaximized
-	u.m.RUnlock()
-	return m
+	return u.initWindowMaximized.Load()
 }
 
 func (u *UserInterface) setInitWindowMaximized(maximized bool) {
-	u.m.Lock()
-	u.initWindowMaximized = maximized
-	u.m.Unlock()
+	u.initWindowMaximized.Store(maximized)
 }
 
 func (u *UserInterface) isInitWindowMousePassthrough() bool {
-	u.m.RLock()
-	defer u.m.RUnlock()
-	return u.initWindowMousePassthrough
+	return u.initWindowMousePassthrough.Load()
 }
 
 func (u *UserInterface) setInitWindowMousePassthrough(enabled bool) {
-	u.m.Lock()
-	defer u.m.Unlock()
-	u.initWindowMousePassthrough = enabled
+	u.initWindowMousePassthrough.Store(enabled)
 }
 
 func (u *UserInterface) isWindowClosingHandled() bool {
