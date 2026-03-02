@@ -17,7 +17,6 @@ package ui
 import (
 	"errors"
 	"image"
-	"sync"
 	"sync/atomic"
 
 	_ "github.com/ebitengine/hideconsole"
@@ -73,8 +72,7 @@ const (
 )
 
 type UserInterface struct {
-	err  error
-	errM sync.Mutex
+	err atomic.Pointer[error]
 
 	isScreenClearedEveryFrame atomic.Bool
 	graphicsLibrary           atomic.Int32
@@ -191,15 +189,28 @@ func InitialWindowPosition(mw, mh, ww, wh int) (x, y int) {
 }
 
 func (u *UserInterface) error() error {
-	u.errM.Lock()
-	defer u.errM.Unlock()
-	return u.err
+	if err := u.err.Load(); err != nil {
+		return *err
+	}
+	return nil
 }
 
 func (u *UserInterface) setError(err error) {
-	u.errM.Lock()
-	defer u.errM.Unlock()
-	u.err = errors.Join(u.err, err)
+	if err == nil {
+		return
+	}
+	for {
+		oldErr := u.err.Load()
+		var newErr error
+		if oldErr != nil {
+			newErr = errors.Join(*oldErr, err)
+		} else {
+			newErr = err
+		}
+		if u.err.CompareAndSwap(oldErr, &newErr) {
+			break
+		}
+	}
 }
 
 func (u *UserInterface) IsScreenClearedEveryFrame() bool {
