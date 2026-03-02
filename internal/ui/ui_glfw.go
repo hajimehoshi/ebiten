@@ -24,6 +24,7 @@ import (
 	"os"
 	"runtime"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/clock"
@@ -72,7 +73,7 @@ type userInterfaceImpl struct {
 
 	lastDeviceScaleFactor float64
 
-	initMonitor                *Monitor
+	initMonitor                atomic.Pointer[Monitor]
 	initFullscreen             bool
 	initCursorMode             CursorMode
 	initWindowDecorated        bool
@@ -259,15 +260,11 @@ func (u *UserInterface) initializeGLFW() error {
 }
 
 func (u *UserInterface) setInitMonitor(m *Monitor) {
-	u.m.Lock()
-	defer u.m.Unlock()
-	u.initMonitor = m
+	u.initMonitor.Store(m)
 }
 
 func (u *UserInterface) getInitMonitor() *Monitor {
-	u.m.RLock()
-	defer u.m.RUnlock()
-	return u.initMonitor
+	return u.initMonitor.Load()
 }
 
 // AppendMonitors appends the current monitors to the passed in mons slice and returns it.
