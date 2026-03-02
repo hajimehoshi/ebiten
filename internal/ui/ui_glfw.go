@@ -69,7 +69,7 @@ type userInterfaceImpl struct {
 	cursorShape          CursorShape
 	windowClosingHandled bool
 	windowResizingMode   WindowResizingMode
-	colorMode            colormode.ColorMode
+	colorMode            atomic.Int32
 
 	lastDeviceScaleFactor float64
 
@@ -1157,8 +1157,8 @@ func (u *UserInterface) initOnMainThread(options *RunOptions) error {
 		return err
 	}
 
-	if u.colorMode != colormode.Unknown {
-		if err := u.setWindowColorModeImpl(u.colorMode); err != nil {
+	if m := colormode.ColorMode(u.colorMode.Load()); m != colormode.Unknown {
+		if err := u.setWindowColorModeImpl(m); err != nil {
 			return err
 		}
 	}
@@ -2169,16 +2169,19 @@ func (u *UserInterface) setWindowTitle(title string) error {
 	return u.window.SetTitle(title)
 }
 
-// setWindowColorMode must be called from the main thread.
 func (u *UserInterface) setWindowColorMode(mode colormode.ColorMode) error {
-	if u.colorMode == mode {
+	if colormode.ColorMode(u.colorMode.Swap(int32(mode))) == mode {
 		return nil
 	}
-	u.colorMode = mode
-	if err := u.setWindowColorModeImpl(mode); err != nil {
-		return err
-	}
-	return nil
+
+	var err error
+	u.mainThread.Call(func() {
+		if u.isTerminated() {
+			return
+		}
+		err = u.setWindowColorModeImpl(mode)
+	})
+	return err
 }
 
 // isWindowMaximized must be called from the main thread.

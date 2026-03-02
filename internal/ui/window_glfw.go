@@ -463,40 +463,16 @@ func (w *glfwWindow) ColorMode() colormode.ColorMode {
 	if w.ui.isTerminated() {
 		return colormode.Unknown
 	}
-	if !w.ui.isRunning() {
-		w.ui.m.RLock()
-		defer w.ui.m.RUnlock()
-		return w.ui.colorMode
-	}
-	var mode colormode.ColorMode
-	w.ui.mainThread.Call(func() {
-		if w.ui.isTerminated() {
-			return
-		}
-		mode = w.ui.colorMode
-	})
-	return mode
+	return colormode.ColorMode(w.ui.colorMode.Load())
 }
 
 func (w *glfwWindow) SetColorMode(mode colormode.ColorMode) {
 	if w.ui.isTerminated() {
 		return
 	}
-	if !w.ui.isRunning() {
-		w.ui.m.Lock()
-		defer w.ui.m.Unlock()
-		w.ui.colorMode = mode
-		return
+	if err := w.ui.setWindowColorMode(mode); err != nil {
+		w.ui.setError(err)
 	}
-	w.ui.mainThread.Call(func() {
-		if w.ui.isTerminated() {
-			return
-		}
-		if err := w.ui.setWindowColorMode(mode); err != nil {
-			w.ui.setError(err)
-			return
-		}
-	})
 }
 
 func (w *glfwWindow) SetClosingHandled(handled bool) {
