@@ -123,7 +123,7 @@ type userInterfaceImpl struct {
 	// immContext is used only in Windows.
 	immContext uintptr
 
-	m sync.RWMutex
+	m sync.Mutex
 }
 
 const (

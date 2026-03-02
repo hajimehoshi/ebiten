@@ -42,11 +42,9 @@ func (u *UserInterface) init() error {
 	u.userInterfaceImpl = userInterfaceImpl{
 		graphicsLibraryInitCh: make(chan struct{}),
 		errCh:                 make(chan error),
-
-		// Give a default outside size so that the game can start without initializing them.
-		outsideWidth:  640,
-		outsideHeight: 480,
 	}
+	// Give a default outside size so that the game can start without initializing them.
+	u.userInterfaceImpl.outsideSize.Store(pointF{x: 640, y: 480})
 	u.foreground.Store(true)
 	return nil
 }
@@ -82,12 +80,16 @@ func (u *UserInterface) Update() error {
 	return nil
 }
 
+type pointF struct {
+	x float64
+	y float64
+}
+
 type userInterfaceImpl struct {
 	graphicsDriver        graphicsdriver.Graphics
 	graphicsLibraryInitCh chan struct{}
 
-	outsideWidth  float64
-	outsideHeight float64
+	outsideSize atomic.Value
 
 	foreground atomic.Bool
 	errCh      chan error
@@ -103,7 +105,7 @@ type userInterfaceImpl struct {
 	// uiView is used only on iOS.
 	uiView atomic.Uintptr
 
-	m sync.RWMutex
+	m sync.Mutex
 }
 
 func (u *UserInterface) SetForeground(foreground bool) error {
@@ -165,10 +167,8 @@ func (u *UserInterface) runMobile(game Game, options *RunOptions) (err error) {
 
 // outsideSize must be called on the same goroutine as update().
 func (u *UserInterface) outsideSize() (float64, float64) {
-	u.m.RLock()
-	defer u.m.RUnlock()
-
-	return u.outsideWidth, u.outsideHeight
+	s := u.userInterfaceImpl.outsideSize.Load().(pointF)
+	return s.x, s.y
 }
 
 func (u *UserInterface) update() error {
@@ -188,12 +188,7 @@ func (u *UserInterface) update() error {
 //
 // SetOutsideSize is concurrent safe.
 func (u *UserInterface) SetOutsideSize(outsideWidth, outsideHeight float64) {
-	u.m.Lock()
-	defer u.m.Unlock()
-	if u.outsideWidth != outsideWidth || u.outsideHeight != outsideHeight {
-		u.outsideWidth = outsideWidth
-		u.outsideHeight = outsideHeight
-	}
+	u.userInterfaceImpl.outsideSize.Store(pointF{x: outsideWidth, y: outsideHeight})
 }
 
 func (u *UserInterface) CursorMode() CursorMode {
