@@ -199,9 +199,7 @@ func (u *UserInterface) error() error {
 func (u *UserInterface) setError(err error) {
 	u.errM.Lock()
 	defer u.errM.Unlock()
-	if u.err == nil {
-		u.err = err
-	}
+	u.err = errors.Join(u.err, err)
 }
 
 func (u *UserInterface) IsScreenClearedEveryFrame() bool {
