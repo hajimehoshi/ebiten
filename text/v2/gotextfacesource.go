@@ -160,7 +160,7 @@ func NewGoTextFaceSource(source io.Reader) (*GoTextFaceSource, error) {
 		return nil, err
 	}
 
-	s := newGoTextFaceSource(&font.Face{Font: f})
+	s := newGoTextFaceSource(font.NewFace(f))
 	return s, nil
 }
 
@@ -182,7 +182,7 @@ func NewGoTextFaceSourcesFromCollection(source io.Reader) ([]*GoTextFaceSource, 
 		if err != nil {
 			return nil, err
 		}
-		s := newGoTextFaceSource(&font.Face{Font: f})
+		s := newGoTextFaceSource(font.NewFace(f))
 		sources[i] = s
 	}
 	return sources, nil
