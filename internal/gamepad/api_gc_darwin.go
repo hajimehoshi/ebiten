@@ -412,8 +412,9 @@ func (g *gamepads) addGCGamepad(controller C.uintptr_t, prop *C.struct_Controlle
 	name := C.GoString(&prop.name[0])
 	sdlID := hex.EncodeToString(C.GoBytes(unsafe.Pointer(&prop.guid[0]), 16))
 	gp := g.add(name, sdlID)
+	controllerPtr := uintptr(controller)
 	gp.native = &nativeGamepadGC{
-		controller:           uintptr(controller),
+		controller:           controllerPtr,
 		axes:                 make([]float64, prop.nAxes),
 		buttons:              make([]bool, prop.nButtons+prop.nHats*4),
 		hats:                 make([]int, prop.nHats),
@@ -421,6 +422,8 @@ func (g *gamepads) addGCGamepad(controller C.uintptr_t, prop *C.struct_Controlle
 		hasDualshockTouchpad: bool(prop.hasDualshockTouchpad),
 		hasXboxPaddles:       bool(prop.hasXboxPaddles),
 		hasXboxShareButton:   bool(prop.hasXboxShareButton),
+		leftMotor:            createGCRumbleMotor(controllerPtr, 0),
+		rightMotor:           createGCRumbleMotor(controllerPtr, 1),
 	}
 }
 
@@ -429,7 +432,13 @@ func (g *gamepads) removeGCGamepad(controller C.uintptr_t) {
 	defer g.m.Unlock()
 
 	g.remove(func(gamepad *Gamepad) bool {
-		return gamepad.native.(*nativeGamepadGC).controller == uintptr(controller)
+		gc := gamepad.native.(*nativeGamepadGC)
+		if gc.controller == uintptr(controller) {
+			releaseGCRumbleMotor(gc.leftMotor)
+			releaseGCRumbleMotor(gc.rightMotor)
+			return true
+		}
+		return false
 	})
 }
 
