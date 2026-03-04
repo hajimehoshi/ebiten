@@ -53,7 +53,7 @@ type nativeGamepadGC struct {
 func (g *nativeGamepadGC) update(gamepad *gamepads) error {
 	g.updateGCGamepad()
 	if !g.vibEnd.IsZero() && time.Since(g.vibEnd) >= 0 {
-		vibrateGCGamepad(g.rightMotor, g.leftMotor, 0, 0)
+		vibrateGCGamepad(g.leftMotor, g.rightMotor, 0, 0)
 		g.vibEnd = time.Time{}
 	}
 	return nil
