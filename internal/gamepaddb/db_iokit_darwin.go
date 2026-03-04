@@ -20,11 +20,11 @@ import (
 	_ "embed"
 )
 
-//go:embed gamecontrollerdb_hid_darwin.txt
-var controllerBytes_hid_darwin []byte
+//go:embed gamecontrollerdb_iokit_darwin.txt
+var controllerBytes_iokit_darwin []byte
 
 func init() {
-	if err := Update(controllerBytes_hid_darwin); err != nil {
+	if err := Update(controllerBytes_iokit_darwin); err != nil {
 		panic(err)
 	}
 }

@@ -26,18 +26,18 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepaddb"
 )
 
-type nativeGamepadsHID struct {
+type nativeGamepadsIOKit struct {
 	hidManager      _IOHIDManagerRef
 	devicesToAdd    []_IOHIDDeviceRef
 	devicesToRemove []_IOHIDDeviceRef
 	devicesM        sync.Mutex
 }
 
-func newNativeGamepadsHID() nativeGamepads {
-	return &nativeGamepadsHID{}
+func newNativeGamepadsIOKit() nativeGamepads {
+	return &nativeGamepadsIOKit{}
 }
 
-func (g *nativeGamepadsHID) init(gamepads *gamepads) error {
+func (g *nativeGamepadsIOKit) init(gamepads *gamepads) error {
 	if err := initializeCF(); err != nil {
 		return err
 	}
@@ -112,21 +112,21 @@ func (g *nativeGamepadsHID) init(gamepads *gamepads) error {
 }
 
 func ebitenGamepadMatchingCallback(ctx unsafe.Pointer, res _IOReturn, sender unsafe.Pointer, device _IOHIDDeviceRef) {
-	n := theGamepads.native.(*nativeGamepadsHID)
+	n := theGamepads.native.(*nativeGamepadsIOKit)
 	n.devicesM.Lock()
 	defer n.devicesM.Unlock()
 	n.devicesToAdd = append(n.devicesToAdd, device)
 }
 
 func ebitenGamepadRemovalCallback(ctx unsafe.Pointer, res _IOReturn, sender unsafe.Pointer, device _IOHIDDeviceRef) {
-	n := theGamepads.native.(*nativeGamepadsHID)
+	n := theGamepads.native.(*nativeGamepadsIOKit)
 	n.devicesM.Lock()
 	defer n.devicesM.Unlock()
 	n.devicesToRemove = append(n.devicesToRemove, device)
 }
 
-func (g *nativeGamepadsHID) update(gamepads *gamepads) error {
-	n := theGamepads.native.(*nativeGamepadsHID)
+func (g *nativeGamepadsIOKit) update(gamepads *gamepads) error {
+	n := theGamepads.native.(*nativeGamepadsIOKit)
 	n.devicesM.Lock()
 	defer n.devicesM.Unlock()
 
@@ -143,7 +143,7 @@ func (g *nativeGamepadsHID) update(gamepads *gamepads) error {
 	return nil
 }
 
-func (g *nativeGamepadsHID) addDevice(device _IOHIDDeviceRef, gamepads *gamepads) {
+func (g *nativeGamepadsIOKit) addDevice(device _IOHIDDeviceRef, gamepads *gamepads) {
 	if gamepads.find(func(g *Gamepad) bool {
 		return g.native.(*nativeGamepadHID).device == device
 	}) != nil {

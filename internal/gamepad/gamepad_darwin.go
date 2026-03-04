@@ -21,7 +21,7 @@ func newNativeGamepadsImpl() nativeGamepads {
 		return newNativeGamepadsGC()
 	}
 	// TODO: Use GC for macOS too.
-	// In the ideal world, HID can be used as a fallback, but this seems pretty hacky in the current state.
-	// When GC is ready, add an environment variable to switch between HID and GC.
-	return newNativeGamepadsHID()
+	// In the ideal world, IOKit can be used as a fallback, but this seems pretty hacky in the current state.
+	// When GC is ready, add an environment variable to switch between IOKit and GC.
+	return newNativeGamepadsIOKit()
 }

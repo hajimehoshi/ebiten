@@ -112,7 +112,7 @@ func run() error {
 			hasGLFWGamepads:  true,
 		},
 		"Mac OS X": {
-			filenameSuffix: "hid_darwin",
+			filenameSuffix: "iokit_darwin",
 		},
 		"Linux": {
 			filenameSuffix:   "linbsd",
