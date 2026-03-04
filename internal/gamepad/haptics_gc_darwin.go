@@ -170,11 +170,11 @@ func releaseGCRumbleMotor(motor uintptr) {
 	C.releaseRumbleMotor(C.uintptr_t(motor))
 }
 
-func vibrateGCRumbleMotor(motor uintptr, intensity float64) {
-	C.vibrateRumbleMotor(C.uintptr_t(motor), C.float(intensity))
-}
-
 func vibrateGCGamepad(left, right uintptr, strong, weak float64) {
-	vibrateGCRumbleMotor(left, strong)
-	vibrateGCRumbleMotor(right, weak)
+	// In common gamepads, the left motor emits low-frequency vibrations and the right motor emits high-frequency vibrations.
+	// See also:
+	// * https://learn.microsoft.com/en-us/windows/uwp/gaming/gamepad-and-vibration#using-the-vibration-motors
+	// * https://docs.unity3d.com/Packages/com.unity.inputsystem@1.19/manual/Gamepad.html#rumble
+	C.vibrateRumbleMotor(C.uintptr_t(left), C.float(strong))
+	C.vibrateRumbleMotor(C.uintptr_t(right), C.float(weak))
 }
