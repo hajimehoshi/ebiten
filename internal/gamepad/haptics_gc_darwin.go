@@ -175,10 +175,6 @@ func vibrateGCRumbleMotor(motor uintptr, intensity float64) {
 }
 
 func vibrateGCGamepad(left, right uintptr, strong, weak float64) {
-	if left >= 0 {
-		vibrateGCRumbleMotor(left, strong)
-	}
-	if right >= 0 {
-		vibrateGCRumbleMotor(right, weak)
-	}
+	vibrateGCRumbleMotor(left, strong)
+	vibrateGCRumbleMotor(right, weak)
 }
