@@ -456,6 +456,10 @@ func (w *glfwWindow) SetColorMode(mode colormode.ColorMode) {
 	if w.ui.isTerminated() {
 		return
 	}
+	if !w.ui.isRunning() {
+		w.ui.colorMode.Store(int32(mode))
+		return
+	}
 	if err := w.ui.setWindowColorMode(mode); err != nil {
 		w.ui.setError(err)
 	}
