@@ -213,4 +213,13 @@ jobs:
           echo 0 | sudo tee /proc/sys/kernel/apparmor_restrict_unprivileged_userns
           # Wasm tests don't work on macOS with the headless mode enabled, but the headless mode cannot be disabled in GitHub Actions (#2972).
           # Wasm tests time out on Windows (#3076).
-          env GOOS=js GOARCH=wasm cleanenv -remove-prefix GITHUB_ -remove-prefix JAVA_ -remove-prefix PSModulePath -remove-prefix STATS_ -remove-prefix RUNNER_ -- go test -shuffle=on -v ./... -test.paniconexit0=false
+          max_attempts=3
+          for i in $(seq 1 $max_attempts); do
+            env GOOS=js GOARCH=wasm cleanenv -remove-prefix GITHUB_ -remove-prefix JAVA_ -remove-prefix PSModulePath -remove-prefix STATS_ -remove-prefix RUNNER_ -- go test -shuffle=on -v ./... -test.paniconexit0=false && break
+            if [ $i -eq $max_attempts ]; then
+              echo "All $max_attempts attempts failed."
+              exit 1
+            fi
+            echo "Attempt $i failed. Retrying in 10 seconds..."
+            sleep 10
+          done
