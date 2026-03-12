@@ -118,7 +118,7 @@ func ebitengine_textinput_insertText(text *C.char, replaceStart, replaceLen C.in
 func ebitengine_textinput_firstRectForCharacterRange(self C.uintptr_t, crange C.NSRange, actualRange C.NSRangePointer) C.NSRect {
 	if actualRange != nil {
 		if text, startInBytes, _, _, ok := currentState(); ok {
-			s := C.NSUInteger(convertUTF16CountToByteCount(text, startInBytes))
+			s := C.NSUInteger(convertByteCountToUTF16Count(text, startInBytes))
 			actualRange.location = s
 			// 0 seems to work correctly.
 			// See https://developer.apple.com/documentation/appkit/nstextinputclient/firstrect(forcharacterrange:actualrange:)?language=objc
