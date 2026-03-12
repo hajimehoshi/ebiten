@@ -161,12 +161,10 @@ jobs:
           go install ./cmd/ebitenmobile
 
       - name: ebitenmobile bind (Android)
-        # With Windows and Go 1.26, ebitenmobile bind fails with "The command line is too long." (#3362).
-        # TODO: Fix this error.
-        if: ${{ runner.os != 'Windows' || startsWith(matrix.go, '1.25.') }}
         run: |
+          go install github.com/agnivade/wasmbrowsertest/cmd/cleanenv@latest
           cd /tmp/go-inovation
-          ebitenmobile bind -target android -androidapi 23 -javapkg com.hajimehoshi.goinovation -o inovation.aar -v github.com/hajimehoshi/go-inovation/mobile
+          cleanenv -remove-prefix GITHUB_ ebitenmobile bind -target android -androidapi 23 -javapkg com.hajimehoshi.goinovation -o inovation.aar -v github.com/hajimehoshi/go-inovation/mobile
 
       - name: ebitenmobile bind (iOS)
         if: runner.os == 'macOS'
