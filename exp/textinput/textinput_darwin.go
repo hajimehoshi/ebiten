@@ -16,122 +16,14 @@
 
 package textinput
 
-// #cgo CFLAGS: -x objective-c
-// #cgo LDFLAGS: -framework Cocoa
-//
-// #include <stdint.h>
-// #include <Cocoa/Cocoa.h>
-import "C"
-
 import (
 	"image"
+	"unsafe"
 
 	"github.com/ebitengine/purego/objc"
 
 	"github.com/hajimehoshi/ebiten/v2"
 )
-
-//export ebitengine_textinput_hasMarkedText
-func ebitengine_textinput_hasMarkedText() C.int64_t {
-	_, _, _, state, ok := currentState()
-	if !ok {
-		return 0
-	}
-	if len(state.Text) > 0 {
-		return 1
-	}
-	return 0
-}
-
-//export ebitengine_textinput_markedRange
-func ebitengine_textinput_markedRange(start, length *C.int64_t) {
-	*start = -1
-	*length = 0
-
-	text, startInBytes, _, state, ok := currentState()
-	if !ok {
-		return
-	}
-
-	if len(state.Text) == 0 {
-		return
-	}
-
-	startInUTF16 := convertByteCountToUTF16Count(text, startInBytes)
-	markedTextLenInUTF16 := convertByteCountToUTF16Count(state.Text, len(state.Text))
-	*start = C.int64_t(startInUTF16)
-	*length = C.int64_t(markedTextLenInUTF16)
-}
-
-//export ebitengine_textinput_selectedRange
-func ebitengine_textinput_selectedRange(start, length *C.int64_t) {
-	*start = -1
-	*length = 0
-
-	text, startInBytes, endInBytes, _, ok := currentState()
-	if !ok {
-		return
-	}
-
-	startInUTF16 := convertByteCountToUTF16Count(text, startInBytes)
-	endInUTF16 := convertByteCountToUTF16Count(text, endInBytes)
-	*start = C.int64_t(startInUTF16)
-	*length = C.int64_t(endInUTF16 - startInUTF16)
-}
-
-//export ebitengine_textinput_unmarkText
-func ebitengine_textinput_unmarkText() {
-}
-
-//export ebitengine_textinput_setMarkedText
-func ebitengine_textinput_setMarkedText(text *C.char, selectionStart, selectionLen, replaceStart, replaceLen C.int64_t) {
-	// selectionStart's origin is the beginning of the inserted text.
-	// replaceStart's origin is also the beginning of the inserted text (= the marked text in the current implementation).
-	// As the text argument already represents the complete marked text, it seems fine to ignore the replaceStart and replaceLen arguments.
-	//
-	// https://developer.apple.com/documentation/appkit/nstextinputclient/setmarkedtext(_:selectedrange:replacementrange:)?language=objc
-
-	t := C.GoString(text)
-	startInBytes := convertUTF16CountToByteCount(t, int(selectionStart))
-	endInBytes := convertUTF16CountToByteCount(t, int(selectionStart+selectionLen))
-	theTextInput.update(t, startInBytes, endInBytes, 0, 0, false)
-}
-
-//export ebitengine_textinput_insertText
-func ebitengine_textinput_insertText(text *C.char, replaceStart, replaceLen C.int64_t) {
-	// replaceStart's origin is the beginning of the current text.
-	//
-	// https://developer.apple.com/documentation/appkit/nstextinputclient/inserttext(_:replacementrange:)?language=objc
-
-	t := C.GoString(text)
-	var delStartInBytes, delEndInBytes int
-	if replaceStart >= 0 {
-		if text, _, _, _, ok := currentState(); ok {
-			delStartInBytes = convertUTF16CountToByteCount(text, int(replaceStart))
-			delEndInBytes = convertUTF16CountToByteCount(text, int(replaceStart+replaceLen))
-		}
-	}
-	theTextInput.update(t, 0, len(t), delStartInBytes, delEndInBytes, true)
-}
-
-//export ebitengine_textinput_firstRectForCharacterRange
-func ebitengine_textinput_firstRectForCharacterRange(self C.uintptr_t, crange C.NSRange, actualRange C.NSRangePointer) C.NSRect {
-	if actualRange != nil {
-		if text, startInBytes, _, _, ok := currentState(); ok {
-			s := C.NSUInteger(convertByteCountToUTF16Count(text, startInBytes))
-			actualRange.location = s
-			// 0 seems to work correctly.
-			// See https://developer.apple.com/documentation/appkit/nstextinputclient/firstrect(forcharacterrange:actualrange:)?language=objc
-			// > If the length of aRange is 0 (as it would be if there is nothing selected at the insertion point),
-			// > the rectangle coincides with the insertion point, and its width is 0.
-			actualRange.length = 0
-		}
-	}
-
-	window := objc.ID(self).Send(selWindow)
-	frame := objc.Send[C.NSRect](objc.ID(self), selFrame)
-	return objc.Send[C.NSRect](window, selConvertRectToScreen, frame)
-}
 
 type textInput struct {
 	// session must be accessed from the main thread.
@@ -163,40 +55,48 @@ func (t *textInput) update(text string, startInBytes, endInBytes int, deleteStar
 	}
 }
 
-//export ebitengine_textinput_end
-func ebitengine_textinput_end() {
-	theTextInput.endIfNeeded()
-}
-
 func (t *textInput) endIfNeeded() {
 	t.session.end()
 }
 
 var (
-	selAddSubview          = objc.RegisterName("addSubview:")
-	selAlloc               = objc.RegisterName("alloc")
-	selContentView         = objc.RegisterName("contentView")
-	selConvertRectToScreen = objc.RegisterName("convertRectToScreen:")
-	selFrame               = objc.RegisterName("frame")
-	selInit                = objc.RegisterName("init")
-	selMainWindow          = objc.RegisterName("mainWindow")
-	selMakeFirstResponder  = objc.RegisterName("makeFirstResponder:")
-	selSetFrame            = objc.RegisterName("setFrame:")
-	selSharedApplication   = objc.RegisterName("sharedApplication")
-	selWindow              = objc.RegisterName("window")
+	selAddSubview                 = objc.RegisterName("addSubview:")
+	selAlloc                      = objc.RegisterName("alloc")
+	selContentView                = objc.RegisterName("contentView")
+	selConvertRectToScreen        = objc.RegisterName("convertRectToScreen:")
+	selFrame                      = objc.RegisterName("frame")
+	selInit                       = objc.RegisterName("init")
+	selMainWindow                 = objc.RegisterName("mainWindow")
+	selMakeFirstResponder         = objc.RegisterName("makeFirstResponder:")
+	selSetFrame                   = objc.RegisterName("setFrame:")
+	selSharedApplication          = objc.RegisterName("sharedApplication")
+	selWindow                     = objc.RegisterName("window")
+	selString                     = objc.RegisterName("string")
+	selUTF8String                 = objc.RegisterName("UTF8String")
+	selLength                     = objc.RegisterName("length")
+	selCharacterAtIndex           = objc.RegisterName("characterAtIndex:")
+	selResignFirstResponder       = objc.RegisterName("resignFirstResponder")
+	selIsKindOfClass              = objc.RegisterName("isKindOfClass:")
+	selArray                      = objc.RegisterName("array")
+	selLengthOfBytesUsingEncoding = objc.RegisterName("lengthOfBytesUsingEncoding:")
 
-	idNSApplication = objc.ID(objc.GetClass("NSApplication"))
+	classNSArray            = objc.GetClass("NSArray")
+	classNSView             = objc.GetClass("NSView")
+	classNSAttributedString = objc.GetClass("NSAttributedString")
+	idNSApplication         = objc.ID(objc.GetClass("NSApplication"))
 )
 
 var theTextInputClient objc.ID
 
 func getTextInputClient() objc.ID {
 	if theTextInputClient == 0 {
-		class := objc.ID(objc.GetClass("TextInputClient"))
+		class := objc.ID(textInputClientClass)
 		theTextInputClient = class.Send(selAlloc).Send(selInit)
 	}
 	return theTextInputClient
 }
+
+const nsUTF8StringEncoding = 4
 
 type nsPoint struct {
 	x float64
@@ -211,6 +111,11 @@ type nsSize struct {
 type nsRect struct {
 	origin nsPoint
 	size   nsSize
+}
+
+type nsRange struct {
+	location uint
+	length   uint
 }
 
 func (t *textInput) start(bounds image.Rectangle) (<-chan textInputState, func()) {
@@ -233,4 +138,190 @@ func (t *textInput) start(bounds image.Rectangle) (<-chan textInputState, func()
 	})
 
 	return t.session.start()
+}
+
+var textInputClientClass objc.Class
+
+func init() {
+	var err error
+	textInputClientClass, err = objc.RegisterClass(
+		"TextInputClient",
+		classNSView,
+		[]*objc.Protocol{objc.GetProtocol("NSTextInputClient")},
+		[]objc.FieldDef{},
+		[]objc.MethodDef{
+			{
+				Cmd: objc.RegisterName("hasMarkedText"),
+				Fn:  hasMarkedText,
+			},
+			{
+				Cmd: objc.RegisterName("markedRange"),
+				Fn:  markedRange,
+			},
+			{
+				Cmd: objc.RegisterName("selectedRange"),
+				Fn:  selectedRange,
+			},
+			{
+				Cmd: objc.RegisterName("setMarkedText:selectedRange:replacementRange:"),
+				Fn:  setMarkedText,
+			},
+			{
+				Cmd: objc.RegisterName("unmarkText"),
+				Fn:  unmarkText,
+			},
+			{
+				Cmd: objc.RegisterName("validAttributesForMarkedText"),
+				Fn:  validAttributesForMarkedText,
+			},
+			{
+				Cmd: objc.RegisterName("attributedSubstringForProposedRange:actualRange:"),
+				Fn:  attributedSubstringForProposedRange,
+			},
+			{
+				Cmd: objc.RegisterName("insertText:replacementRange:"),
+				Fn:  insertText,
+			},
+			{
+				Cmd: objc.RegisterName("characterIndexForPoint:"),
+				Fn:  characterIndexForPoint,
+			},
+			{
+				Cmd: objc.RegisterName("firstRectForCharacterRange:actualRange:"),
+				Fn:  firstRectForCharacterRange,
+			},
+			{
+				Cmd: objc.RegisterName("doCommandBySelector:"),
+				Fn:  doCommandBySelector,
+			},
+			{
+				Cmd: selResignFirstResponder,
+				Fn:  resignFirstResponder,
+			},
+		},
+	)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func hasMarkedText(_ objc.ID, _ objc.SEL) bool {
+	_, _, _, state, ok := currentState()
+	if !ok {
+		return false
+	}
+	return len(state.Text) > 0
+}
+
+func markedRange(_ objc.ID, _ objc.SEL) nsRange {
+	text, startInBytes, _, state, ok := currentState()
+	if !ok {
+		return nsRange{location: ^uint(0), length: 0} // NSNotFound
+	}
+	if len(state.Text) == 0 {
+		return nsRange{location: ^uint(0), length: 0} // NSNotFound
+	}
+	startInUTF16 := convertByteCountToUTF16Count(text, startInBytes)
+	markedTextLenInUTF16 := convertByteCountToUTF16Count(state.Text, len(state.Text))
+	return nsRange{location: uint(startInUTF16), length: uint(markedTextLenInUTF16)}
+}
+
+func selectedRange(_ objc.ID, _ objc.SEL) nsRange {
+	text, startInBytes, endInBytes, _, ok := currentState()
+	if !ok {
+		return nsRange{location: ^uint(0), length: 0} // NSNotFound
+	}
+	startInUTF16 := convertByteCountToUTF16Count(text, startInBytes)
+	endInUTF16 := convertByteCountToUTF16Count(text, endInBytes)
+	return nsRange{location: uint(startInUTF16), length: uint(endInUTF16 - startInUTF16)}
+}
+
+func setMarkedText(_ objc.ID, _ objc.SEL, str objc.ID, selectedRange nsRange, replacementRange nsRange) {
+	// selectionStart's origin is the beginning of the inserted text.
+	// replaceStart's origin is also the beginning of the inserted text (= the marked text in the current implementation).
+	// As the text argument already represents the complete marked text, it seems fine to ignore the replaceStart and replaceLen arguments.
+	//
+	// https://developer.apple.com/documentation/appkit/nstextinputclient/setmarkedtext(_:selectedrange:replacementrange:)?language=objc
+
+	if str.Send(selIsKindOfClass, objc.ID(classNSAttributedString)) != 0 {
+		str = str.Send(selString)
+	}
+
+	utf8Len := str.Send(selLengthOfBytesUsingEncoding, nsUTF8StringEncoding)
+	charPtr := str.Send(selUTF8String)
+	t := string(unsafe.Slice(*(**byte)(unsafe.Pointer(&charPtr)), utf8Len))
+
+	startInBytes := convertUTF16CountToByteCount(t, int(selectedRange.location))
+	endInBytes := convertUTF16CountToByteCount(t, int(selectedRange.location+selectedRange.length))
+	theTextInput.update(t, startInBytes, endInBytes, 0, 0, false)
+}
+
+func unmarkText(_ objc.ID, _ objc.SEL) {
+	// Do nothing
+}
+
+func validAttributesForMarkedText(_ objc.ID, _ objc.SEL) objc.ID {
+	return objc.ID(classNSArray).Send(selArray)
+}
+
+func attributedSubstringForProposedRange(_ objc.ID, _ objc.SEL, _ nsRange, _ unsafe.Pointer) objc.ID {
+	return 0 // nil
+}
+
+func insertText(_ objc.ID, _ objc.SEL, str objc.ID, replacementRange nsRange) {
+	if str.Send(selIsKindOfClass, objc.ID(classNSAttributedString)) != 0 {
+		str = str.Send(selString)
+	}
+
+	if str.Send(selLength) == 1 && str.Send(selCharacterAtIndex, 0) < 0x20 {
+		return
+	}
+
+	// replaceStart's origin is the beginning of the current text.
+	//
+	// https://developer.apple.com/documentation/appkit/nstextinputclient/inserttext(_:replacementrange:)?language=objc
+
+	utf8Len := str.Send(selLengthOfBytesUsingEncoding, nsUTF8StringEncoding)
+	charPtr := str.Send(selUTF8String)
+	t := string(unsafe.Slice(*(**byte)(unsafe.Pointer(&charPtr)), utf8Len))
+
+	var delStartInBytes, delEndInBytes int
+	if int64(replacementRange.location) >= 0 {
+		if text, _, _, _, ok := currentState(); ok {
+			delStartInBytes = convertUTF16CountToByteCount(text, int(replacementRange.location))
+			delEndInBytes = convertUTF16CountToByteCount(text, int(replacementRange.location+replacementRange.length))
+		}
+	}
+	theTextInput.update(t, 0, len(t), delStartInBytes, delEndInBytes, true)
+}
+
+func characterIndexForPoint(_ objc.ID, _ objc.SEL, _ nsPoint) uint64 {
+	return 0
+}
+
+func firstRectForCharacterRange(self objc.ID, _ objc.SEL, rang nsRange, actualRange *nsRange) nsRect {
+	if actualRange != nil {
+		if text, startInBytes, _, _, ok := currentState(); ok {
+			s := uint(convertByteCountToUTF16Count(text, startInBytes))
+			actualRange.location = s
+			// 0 seems to work correctly.
+			// See https://developer.apple.com/documentation/appkit/nstextinputclient/firstrect(forcharacterrange:actualrange:)?language=objc
+			// > If the length of aRange is 0 (as it would be if there is nothing selected at the insertion point),
+			// > the rectangle coincides with the insertion point, and its width is 0.
+			actualRange.length = 0
+		}
+	}
+
+	window := self.Send(selWindow)
+	frame := objc.Send[nsRect](self, selFrame)
+	return objc.Send[nsRect](window, selConvertRectToScreen, frame)
+}
+
+func doCommandBySelector(_ objc.ID, _ objc.SEL, _ objc.SEL) {
+	// Do nothing
+}
+
+func resignFirstResponder(self objc.ID, cmd objc.SEL) bool {
+	theTextInput.endIfNeeded()
+	return objc.SendSuper[bool](self, cmd)
 }
