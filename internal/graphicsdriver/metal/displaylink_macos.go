@@ -16,37 +16,14 @@
 
 package metal
 
-// #cgo CFLAGS: -x objective-c
-//
-// #include <Foundation/Foundation.h>
-// #include <CoreVideo/CVDisplayLink.h>
-// #if __has_include(<QuartzCore/CAMetalLayer.h>)
-//   #include <QuartzCore/CAMetalLayer.h>
-// #endif
-//
-// #cgo noescape isCAMetalDisplayLinkAvailable
-// #cgo nocallback isCAMetalDisplayLinkAvailable
-// static bool isCAMetalDisplayLinkAvailable() {
-//   // TODO: Use PureGo if returning a struct is supported (ebitengine/purego#225).
-//   // As operatingSystemVersion returns a struct, this cannot be written with PureGo.
-//   NSOperatingSystemVersion version = [[NSProcessInfo processInfo] operatingSystemVersion];
-//   if (version.majorVersion >= 14) {
-//     // Also check if the CAMetalDisplayLink class exists
-//     return NSClassFromString(@"CAMetalDisplayLink") != nil;
-//   }
-//   return false;
-// }
-//
-// int ebitengine_DisplayLinkOutputCallback(CVDisplayLinkRef displayLinkRef, CVTimeStamp* inNow, CVTimeStamp* inOutputTime, uint64_t flagsIn, uint64_t* flagsOut, void* displayLinkContext);
-import "C"
 import (
 	"fmt"
 	"log/slog"
 	"runtime"
 	"runtime/cgo"
 	"time"
-	"unsafe"
 
+	"github.com/ebitengine/purego"
 	"github.com/ebitengine/purego/objc"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/cocoa"
@@ -54,7 +31,7 @@ import (
 )
 
 func (v *view) initDisplayLink() error {
-	if C.isCAMetalDisplayLinkAvailable() {
+	if isCAMetalDisplayLinkAvailable() {
 		if err := v.initCAMetalDisplayLink(); err != nil {
 			return err
 		}
@@ -64,6 +41,51 @@ func (v *view) initDisplayLink() error {
 		return err
 	}
 	return nil
+}
+
+var (
+	selProcessInfo            = objc.RegisterName("processInfo")
+	selOperatingSystemVersion = objc.RegisterName("operatingSystemVersion")
+
+	classNSProcessInfo = objc.GetClass("NSProcessInfo")
+)
+
+type nsOperatingSystemVersion struct {
+	majorVersion int
+	minorVersion int
+	patchVersion int
+}
+
+var nsClassFromString func(str cocoa.NSString) objc.Class
+
+var (
+	cvDisplayLinkCreateWithActiveCGDisplays func(displayLinkOut *uintptr) int32
+	cvDisplayLinkSetOutputCallback          func(displayLink uintptr, callback uintptr, userInfo uintptr) int32
+	cvDisplayLinkStart                      func(displayLink uintptr) int32
+)
+
+func init() {
+	foundation, err := purego.Dlopen("/System/Library/Frameworks/Foundation.framework/Foundation", purego.RTLD_LAZY|purego.RTLD_GLOBAL)
+	if err != nil {
+		panic(err)
+	}
+	purego.RegisterLibFunc(&nsClassFromString, foundation, "NSClassFromString")
+
+	coreVideo, err := purego.Dlopen("/System/Library/Frameworks/CoreVideo.framework/CoreVideo", purego.RTLD_LAZY|purego.RTLD_GLOBAL)
+	if err != nil {
+		panic(err)
+	}
+	purego.RegisterLibFunc(&cvDisplayLinkCreateWithActiveCGDisplays, coreVideo, "CVDisplayLinkCreateWithActiveCGDisplays")
+	purego.RegisterLibFunc(&cvDisplayLinkSetOutputCallback, coreVideo, "CVDisplayLinkSetOutputCallback")
+	purego.RegisterLibFunc(&cvDisplayLinkStart, coreVideo, "CVDisplayLinkStart")
+}
+
+func isCAMetalDisplayLinkAvailable() bool {
+	version := objc.Send[nsOperatingSystemVersion](objc.ID(classNSProcessInfo).Send(selProcessInfo), selOperatingSystemVersion)
+	if version.majorVersion >= 14 {
+		return nsClassFromString(cocoa.NSString_alloc().InitWithUTF8String("CAMetalDisplayLink")) != 0
+	}
+	return false
 }
 
 var class_EbitengineCAMetalDisplayLinkDelegate objc.Class
@@ -146,27 +168,31 @@ func createThreadWithRunLoop() cocoa.NSRunLoop {
 	return runLoop
 }
 
+var displayLinkOutputCallbackPtr = purego.NewCallback(displayLinkOutputCallback)
+
 func (v *view) initCADisplayLink() error {
 	v.fence = newFence()
 
 	// TODO: CVDisplayLink APIs are deprecated in macOS 10.15 and later.
 	// Use new APIs like NSView.displayLink(target:selector:).
-	var displayLinkRef C.CVDisplayLinkRef
-	if ret := C.CVDisplayLinkCreateWithActiveCGDisplays(&displayLinkRef); ret != kCVReturnSuccess {
+	var displayLinkRef uintptr
+	if ret := cvDisplayLinkCreateWithActiveCGDisplays(&displayLinkRef); ret != kCVReturnSuccess {
 		// Failed to get the display link, so proceed without it.
 		return nil
 	}
 	v.handleToSelf = cgo.NewHandle(v)
-	C.CVDisplayLinkSetOutputCallback(displayLinkRef, C.CVDisplayLinkOutputCallback(C.ebitengine_DisplayLinkOutputCallback), unsafe.Pointer(&v.handleToSelf))
-	C.CVDisplayLinkStart(displayLinkRef)
+	cvDisplayLinkSetOutputCallback(displayLinkRef, displayLinkOutputCallbackPtr, uintptr(v.handleToSelf))
+	cvDisplayLinkStart(displayLinkRef)
 
-	v.caDisplayLink = uintptr(displayLinkRef)
+	v.caDisplayLink = displayLinkRef
 	return nil
 }
 
-//export ebitengine_DisplayLinkOutputCallback
-func ebitengine_DisplayLinkOutputCallback(displayLinkRef C.CVDisplayLinkRef, inNow, inOutputTime *C.CVTimeStamp, flagsIn C.uint64_t, flagsOut *C.uint64_t, displayLinkContext unsafe.Pointer) C.int {
-	cgoHandle := (*cgo.Handle)(displayLinkContext)
+// displayLinkOutputCallback is the callback function for CVDisplayLink.
+// The signature matches CVDisplayLinkOutputCallback:
+// CVReturn (*CVDisplayLinkOutputCallback)(CVDisplayLinkRef displayLink, const CVTimeStamp *inNow, const CVTimeStamp *inOutputTime, CVOptionFlags flagsIn, CVOptionFlags *flagsOut, void *displayLinkContext)
+func displayLinkOutputCallback(displayLink uintptr, inNow, inOutputTime uintptr, flagsIn uint64, flagsOut *uint64, displayLinkContext uintptr) int32 {
+	cgoHandle := (cgo.Handle)(displayLinkContext)
 	view := cgoHandle.Value().(*view)
 	view.fence.advance()
 	return 0
