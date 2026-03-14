@@ -139,7 +139,7 @@ func init() {
 	var wg errgroup.Group
 	var nearestIR, linearIR, clearIR *shaderir.Program
 	wg.Go(func() error {
-		ir, err := graphics.CompileShader([]byte(builtinshader.ShaderSource(builtinshader.FilterNearest, builtinshader.AddressUnsafe, false)))
+		ir, err := graphics.CompileShader([]byte(builtinshader.ShaderSource(builtinshader.FilterNearest, builtinshader.AddressUnsafe)))
 		if err != nil {
 			return fmt.Errorf("atlas: compiling the nearest shader failed: %w", err)
 		}
@@ -147,7 +147,7 @@ func init() {
 		return nil
 	})
 	wg.Go(func() error {
-		ir, err := graphics.CompileShader([]byte(builtinshader.ShaderSource(builtinshader.FilterLinear, builtinshader.AddressUnsafe, false)))
+		ir, err := graphics.CompileShader([]byte(builtinshader.ShaderSource(builtinshader.FilterLinear, builtinshader.AddressUnsafe)))
 		if err != nil {
 			return fmt.Errorf("atlas: compiling the linear shader failed: %w", err)
 		}

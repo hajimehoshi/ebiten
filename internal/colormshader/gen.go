@@ -1,4 +1,4 @@
-// Copyright 2024 The Ebitengine Authors
+// Copyright 2026 The Ebitengine Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/hajimehoshi/ebiten/v2/internal/builtinshader"
+	"github.com/hajimehoshi/ebiten/v2/internal/colormshader"
 )
 
 func main() {
@@ -31,7 +31,7 @@ func main() {
 	}
 }
 
-const license = `// Copyright 2024 The Ebitengine Authors
+const license = `// Copyright 2026 The Ebitengine Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -72,13 +72,13 @@ func xmain() error {
 	if _, err := w.WriteString(note); err != nil {
 		return err
 	}
-	if _, err := w.WriteString("\npackage builtinshader\n"); err != nil {
+	if _, err := w.WriteString("\npackage colormshader\n"); err != nil {
 		return err
 	}
 
-	for filter := builtinshader.Filter(0); filter < builtinshader.FilterCount; filter++ {
-		for address := builtinshader.Address(0); address < builtinshader.AddressCount; address++ {
-			s := builtinshader.ShaderSource(filter, address)
+	for filter := colormshader.Filter(0); filter < colormshader.FilterCount; filter++ {
+		for address := colormshader.Address(0); address < colormshader.AddressCount; address++ {
+			s := colormshader.ShaderSource(filter, address)
 			if _, err := w.WriteString("\n"); err != nil {
 				return err
 			}
