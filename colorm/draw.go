@@ -16,7 +16,7 @@ package colorm
 
 import (
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/internal/colormshader"
+	"github.com/hajimehoshi/ebiten/v2/internal/builtinshader"
 )
 
 // DrawImageOptions represents options for DrawImage.
@@ -58,7 +58,7 @@ func DrawImage(dst, src *ebiten.Image, colorM ColorM, op *DrawImageOptions) {
 	opShader.Blend = op.Blend
 	opShader.Uniforms = uniforms(colorM)
 	opShader.Images[0] = src
-	s := builtinShader(colormshader.Filter(op.Filter), colormshader.AddressUnsafe)
+	s := builtinShader(builtinshader.Filter(op.Filter), builtinshader.AddressUnsafe)
 	dst.DrawRectShader(src.Bounds().Dx(), src.Bounds().Dy(), s, opShader)
 }
 
@@ -129,6 +129,6 @@ func DrawTriangles(dst *ebiten.Image, vertices []ebiten.Vertex, indices []uint16
 	opShader.AntiAlias = op.AntiAlias
 	opShader.Uniforms = uniforms(colorM)
 	opShader.Images[0] = img
-	s := builtinShader(colormshader.Filter(op.Filter), colormshader.Address(op.Address))
+	s := builtinShader(builtinshader.Filter(op.Filter), builtinshader.Address(op.Address))
 	dst.DrawTrianglesShader(vertices, indices, s, opShader)
 }

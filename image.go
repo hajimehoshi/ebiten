@@ -27,7 +27,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/affine"
 	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
 	"github.com/hajimehoshi/ebiten/v2/internal/builtinshader"
-	"github.com/hajimehoshi/ebiten/v2/internal/colormshader"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
@@ -324,8 +323,8 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) {
 		var translation [4]float32
 		colorm.Elements(body[:], translation[:])
 		i.tmpUniforms = shader.appendUniforms(i.tmpUniforms, map[string]any{
-			colormshader.UniformColorMBody:        body[:],
-			colormshader.UniformColorMTranslation: translation[:],
+			builtinshader.UniformColorMBody:        body[:],
+			builtinshader.UniformColorMTranslation: translation[:],
 		})
 	}
 
@@ -686,8 +685,8 @@ func (i *Image) DrawTriangles32(vertices []Vertex, indices []uint32, img *Image,
 		var translation [4]float32
 		colorm.Elements(body[:], translation[:])
 		i.tmpUniforms = shader.appendUniforms(i.tmpUniforms, map[string]any{
-			colormshader.UniformColorMBody:        body[:],
-			colormshader.UniformColorMTranslation: translation[:],
+			builtinshader.UniformColorMBody:        body[:],
+			builtinshader.UniformColorMTranslation: translation[:],
 		})
 	}
 

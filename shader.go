@@ -20,7 +20,6 @@ import (
 	"sync/atomic"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/builtinshader"
-	"github.com/hajimehoshi/ebiten/v2/internal/colormshader"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
@@ -123,12 +122,7 @@ func builtinShader(filter builtinshader.Filter, address builtinshader.Address, u
 			shader = &Shader{shader: ui.LinearFilterShader}
 		}
 	} else {
-		var src []byte
-		if useColorM {
-			src = colormshader.ShaderSource(colormshader.Filter(filter), colormshader.Address(address))
-		} else {
-			src = builtinshader.ShaderSource(filter, address)
-		}
+		src := builtinshader.ShaderSource(filter, address, useColorM)
 		var name string
 		switch filter {
 		case builtinshader.FilterNearest:
