@@ -1,4 +1,4 @@
-// Copyright 2022 The Ebitengine Authors
+// Copyright 2026 The Ebitengine Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,7 +15,7 @@
 //go:generate go run gen.go
 //go:generate gofmt -s -w .
 
-package builtinshader
+package colormshader
 
 import (
 	"bytes"
@@ -24,6 +24,8 @@ import (
 	"text/template"
 )
 
+// Filter must have the same values as builtinshader.Filter.
+// In v3, colormshader can be moved into the colorm package, making syncing easier.
 type Filter int
 
 const (
@@ -34,6 +36,8 @@ const (
 
 const FilterCount = 3
 
+// Address must have the same values as builtinshader.Address.
+// In v3, colormshader can be moved into the colorm package, making syncing easier.
 type Address int
 
 const (
@@ -44,6 +48,11 @@ const (
 
 const AddressCount = 3
 
+const (
+	UniformColorMBody        = "ColorMBody"
+	UniformColorMTranslation = "ColorMTranslation"
+)
+
 var (
 	shaders  [FilterCount][AddressCount][]byte
 	shadersM sync.Mutex
@@ -52,6 +61,9 @@ var (
 var tmpl = template.Must(template.New("tmpl").Parse(`//kage:unit pixels
 
 package main
+
+var ColorMBody mat4
+var ColorMTranslation vec4
 
 {{if eq .Address .AddressRepeat}}
 func adjustSrcPosForAddressRepeat(p vec2) vec2 {
@@ -109,15 +121,24 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 	clr := mix(mix(c0, c1, rate.x), mix(c2, c3, rate.x), rate.y)
 {{end}}
 
+	// Un-premultiply alpha.
+	// When the alpha is 0, 1-sign(alpha) is 1.0, which means division does nothing.
+	clr.rgb /= clr.a + (1-sign(clr.a))
+	// Apply the clr matrix.
+	clr = (ColorMBody * clr) + ColorMTranslation
+	// Premultiply alpha
+	clr.rgb *= clr.a
 	// Apply the color scale.
 	clr *= color
+	// Clamp the output.
+	clr.rgb = min(clr.rgb, clr.a)
 
 	return clr
 }
 
 `))
 
-// ShaderSource returns the built-in shader source based on the given parameters.
+// ShaderSource returns the ColorM shader source based on the given parameters.
 func ShaderSource(filter Filter, address Address) []byte {
 	shadersM.Lock()
 	defer shadersM.Unlock()
@@ -146,20 +167,10 @@ func ShaderSource(filter Filter, address Address) []byte {
 		AddressClampToZero: AddressClampToZero,
 		AddressRepeat:      AddressRepeat,
 	}); err != nil {
-		panic(fmt.Sprintf("builtinshader: tmpl.Execute failed: %v", err))
+		panic(fmt.Sprintf("colormshader: tmpl.Execute failed: %v", err))
 	}
 
 	b := buf.Bytes()
 	shaders[filter][address] = b
 	return b
 }
-
-//ebitengine:shadersource
-const ClearShaderSource = `//kage:unit pixels
-
-package main
-
-func Fragment() vec4 {
-	return vec4(0)
-}
-`

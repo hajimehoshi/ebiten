@@ -21,7 +21,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/internal/affine"
-	"github.com/hajimehoshi/ebiten/v2/internal/builtinshader"
+	"github.com/hajimehoshi/ebiten/v2/internal/colormshader"
 )
 
 // Dim is the dimension of a ColorM.
@@ -154,14 +154,14 @@ func uniforms(c ColorM) map[string]any {
 	c.affineColorM().Elements(body[:], translation[:])
 
 	uniforms := map[string]any{}
-	uniforms[builtinshader.UniformColorMBody] = body[:]
-	uniforms[builtinshader.UniformColorMTranslation] = translation[:]
+	uniforms[colormshader.UniformColorMBody] = body[:]
+	uniforms[colormshader.UniformColorMTranslation] = translation[:]
 	return uniforms
 }
 
 type builtinShaderKey struct {
-	filter  builtinshader.Filter
-	address builtinshader.Address
+	filter  colormshader.Filter
+	address colormshader.Address
 }
 
 var (
@@ -169,7 +169,7 @@ var (
 	builtinShadersM sync.Mutex
 )
 
-func builtinShader(filter builtinshader.Filter, address builtinshader.Address) *ebiten.Shader {
+func builtinShader(filter colormshader.Filter, address colormshader.Address) *ebiten.Shader {
 	builtinShadersM.Lock()
 	defer builtinShadersM.Unlock()
 
@@ -181,7 +181,7 @@ func builtinShader(filter builtinshader.Filter, address builtinshader.Address) *
 		return s
 	}
 
-	src := builtinshader.ShaderSource(filter, address, true)
+	src := colormshader.ShaderSource(filter, address)
 	s, err := ebiten.NewShader(src)
 	if err != nil {
 		panic(fmt.Sprintf("colorm: NewShader for a built-in shader failed: %v", err))
