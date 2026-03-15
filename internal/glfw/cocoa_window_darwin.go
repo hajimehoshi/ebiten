@@ -134,15 +134,19 @@ func updateCursorImage(window *Window) {
 }
 
 // updateCursorMode applies cursor mode changes.
-func updateCursorMode(window *Window) {
+func updateCursorMode(window *Window) error {
 	if window.cursorMode == CursorDisabled {
 		_glfw.platformWindow.disabledCursorWindow = window
 		_glfw.platformWindow.restoreCursorPosX, _glfw.platformWindow.restoreCursorPosY, _ = window.platformGetCursorPos()
-		window.centerCursorInContentArea()
+		if err := window.centerCursorInContentArea(); err != nil {
+			return err
+		}
 		cgAssociateMouseAndMouseCursorPosition(0)
 	} else if _glfw.platformWindow.disabledCursorWindow == window {
 		_glfw.platformWindow.disabledCursorWindow = nil
-		window.platformSetCursorPos(_glfw.platformWindow.restoreCursorPosX, _glfw.platformWindow.restoreCursorPosY)
+		if err := window.platformSetCursorPos(_glfw.platformWindow.restoreCursorPosX, _glfw.platformWindow.restoreCursorPosY); err != nil {
+			return err
+		}
 		// NOTE: The matching CGAssociateMouseAndMouseCursorPosition call is
 		//       made in platformSetCursorPos as part of a workaround
 	}
@@ -150,6 +154,7 @@ func updateCursorMode(window *Window) {
 	if cursorInContentArea(window) {
 		updateCursorImage(window)
 	}
+	return nil
 }
 
 // windowForEvent finds the Window associated with a native NSWindow ID.
@@ -229,7 +234,7 @@ func registerGLFWClasses() error {
 					}
 
 					if _glfw.platformWindow.disabledCursorWindow == window {
-						window.centerCursorInContentArea()
+						_ = window.centerCursorInContentArea()
 					}
 
 					maximized := objc.Send[bool](window.platform.object, selIsZoomed)
@@ -266,7 +271,7 @@ func registerGLFWClasses() error {
 						return
 					}
 					if window.monitor != nil {
-						window.releaseMonitor()
+						_ = window.releaseMonitor()
 					}
 					window.inputWindowIconify(true)
 				},
@@ -279,7 +284,7 @@ func registerGLFWClasses() error {
 						return
 					}
 					if window.monitor != nil {
-						window.acquireMonitor()
+						_ = window.acquireMonitor()
 					}
 					window.inputWindowIconify(false)
 				},
@@ -292,10 +297,10 @@ func registerGLFWClasses() error {
 						return
 					}
 					if _glfw.platformWindow.disabledCursorWindow == window {
-						window.centerCursorInContentArea()
+						_ = window.centerCursorInContentArea()
 					}
 					window.inputWindowFocus(true)
-					updateCursorMode(window)
+					_ = updateCursorMode(window)
 				},
 			},
 			{
@@ -1644,7 +1649,9 @@ func (w *Window) platformSetCursorMode(mode int) error {
 	defer pool.Release()
 
 	if w.platformWindowFocused() {
-		updateCursorMode(w)
+		if err := updateCursorMode(w); err != nil {
+			return err
+		}
 	}
 
 	if mode == CursorDisabled {
