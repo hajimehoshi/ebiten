@@ -347,6 +347,20 @@ func initializeTIS() {
 		return uint8(r)
 	}
 
+	// Load UCKeyTranslate from the Carbon umbrella framework.
+	carbon, err2 := purego.Dlopen("/System/Library/Frameworks/Carbon.framework/Carbon", purego.RTLD_LAZY|purego.RTLD_GLOBAL)
+	if err2 != nil {
+		panic(fmt.Sprintf("glfw: failed to dlopen Carbon: %v", err2))
+	}
+	ptr4, err2 := purego.Dlsym(carbon, "UCKeyTranslate")
+	if err2 != nil {
+		panic(fmt.Sprintf("glfw: failed to load UCKeyTranslate: %v", err2))
+	}
+	_glfw.platformWindow.tis.UCKeyTranslate = func(keyLayoutPtr uintptr, virtualKeyCode uint16, keyAction uint16, modifierKeyState uint32, keyboardType uint32, keyTranslateOptions uint32, deadKeyState *uint32, maxStringLength int, actualStringLength *int, unicodeString *uint16) int32 {
+		r, _, _ := purego.SyscallN(ptr4, keyLayoutPtr, uintptr(virtualKeyCode), uintptr(keyAction), uintptr(modifierKeyState), uintptr(keyboardType), uintptr(keyTranslateOptions), uintptr(unsafe.Pointer(deadKeyState)), uintptr(maxStringLength), uintptr(unsafe.Pointer(actualStringLength)), uintptr(unsafe.Pointer(unicodeString)))
+		return int32(r)
+	}
+
 	// Load kTISPropertyUnicodeKeyLayoutData string constant
 	dataName := cfString("kTISPropertyUnicodeKeyLayoutData")
 	defer cfRelease(dataName)

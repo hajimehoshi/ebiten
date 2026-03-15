@@ -221,6 +221,10 @@ func registerGLFWClasses() error {
 						return
 					}
 
+					if window.context.client != NoAPI {
+						window.context.platform.object.Send(objc.RegisterName("update"))
+					}
+
 					if _glfw.platformWindow.disabledCursorWindow == window {
 						_ = window.centerCursorInContentArea()
 					}
@@ -244,6 +248,15 @@ func registerGLFWClasses() error {
 					if window.platform.object == 0 {
 						return
 					}
+
+					if window.context.client != NoAPI {
+						window.context.platform.object.Send(objc.RegisterName("update"))
+					}
+
+					if _glfw.platformWindow.disabledCursorWindow == window {
+						_ = window.centerCursorInContentArea()
+					}
+
 					frame := objc.Send[cocoa.NSRect](window.platform.object, selFrame)
 					contentRect := objc.Send[cocoa.NSRect](window.platform.object, selContentRectForFrameRect, frame)
 					xpos := int(contentRect.Origin.X)
@@ -1785,6 +1798,57 @@ func platformGetScancodeName(scancode int) (string, error) {
 	if key == KeyUnknown {
 		return "", nil
 	}
+
+	unicodeData := _glfw.platformWindow.unicodeData
+	if unicodeData == 0 {
+		return "", nil
+	}
+
+	const (
+		kUCKeyActionDisplay          = 3
+		kUCKeyTranslateNoDeadKeysBit = 0
+	)
+
+	var deadKeyState uint32
+	var characters [4]uint16
+	var characterCount int
+
+	layoutPtr := cfDataGetBytePtr(unicodeData)
+	if layoutPtr == 0 {
+		return "", nil
+	}
+
+	if _glfw.platformWindow.tis.UCKeyTranslate(layoutPtr,
+		uint16(scancode),
+		kUCKeyActionDisplay,
+		0,
+		uint32(_glfw.platformWindow.tis.GetKbdType()),
+		kUCKeyTranslateNoDeadKeysBit,
+		&deadKeyState,
+		len(characters),
+		&characterCount,
+		&characters[0]) != 0 {
+		return "", nil
+	}
+
+	if characterCount == 0 {
+		return "", nil
+	}
+
+	str := cfStringCreateWithCharacters(0, &characters[0], characterCount)
+	if str == 0 {
+		return "", nil
+	}
+	defer cfRelease(str)
+
+	length := cfStringGetLength(str)
+	size := cfStringGetMaximumSizeForEncoding(length, kCFStringEncodingUTF8)
+	buf := make([]byte, size+1)
+	cfStringGetCString(str, &buf[0], size+1, kCFStringEncodingUTF8)
+
+	// Find the null terminator.
+	name := cStringToGoString(buf)
+	_glfw.platformWindow.keynames[key] = name
 	return _glfw.platformWindow.keynames[key], nil
 }
 

@@ -16,6 +16,7 @@ package glfw
 
 import (
 	"fmt"
+	"unsafe"
 
 	"github.com/ebitengine/purego"
 	"github.com/ebitengine/purego/objc"
@@ -174,6 +175,13 @@ var (
 	cfArrayGetCount                   func(array uintptr) int
 	cfArrayGetValueAtIndex            func(array uintptr, index int) uintptr
 	cfRelease                         func(cf uintptr)
+	cfDataGetBytePtr                  func(theData uintptr) uintptr
+	cfStringCreateWithCharacters      func(alloc uintptr, chars *uint16, numChars int) uintptr
+	cfStringGetCString                func(theString uintptr, buffer *byte, bufferSize int, encoding uint32) bool
+	cfStringGetMaximumSizeForEncoding func(length int, encoding uint32) int
+	cfStringGetLength                 func(theString uintptr) int
+	cfDictionaryGetValue              func(theDict uintptr, key uintptr) uintptr
+	cfNumberGetValue                  func(number uintptr, theType int, valuePtr unsafe.Pointer) bool
 )
 
 // CoreGraphics function pointers.
@@ -485,6 +493,13 @@ func init() {
 	purego.RegisterLibFunc(&cfArrayGetCount, coreFoundation, "CFArrayGetCount")
 	purego.RegisterLibFunc(&cfArrayGetValueAtIndex, coreFoundation, "CFArrayGetValueAtIndex")
 	purego.RegisterLibFunc(&cfRelease, coreFoundation, "CFRelease")
+	purego.RegisterLibFunc(&cfDataGetBytePtr, coreFoundation, "CFDataGetBytePtr")
+	purego.RegisterLibFunc(&cfStringCreateWithCharacters, coreFoundation, "CFStringCreateWithCharacters")
+	purego.RegisterLibFunc(&cfStringGetCString, coreFoundation, "CFStringGetCString")
+	purego.RegisterLibFunc(&cfStringGetMaximumSizeForEncoding, coreFoundation, "CFStringGetMaximumSizeForEncoding")
+	purego.RegisterLibFunc(&cfStringGetLength, coreFoundation, "CFStringGetLength")
+	purego.RegisterLibFunc(&cfDictionaryGetValue, coreFoundation, "CFDictionaryGetValue")
+	purego.RegisterLibFunc(&cfNumberGetValue, coreFoundation, "CFNumberGetValue")
 
 	// Load CoreGraphics.
 	coreGraphics, err := purego.Dlopen("/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics", purego.RTLD_LAZY|purego.RTLD_GLOBAL)

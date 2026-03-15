@@ -69,6 +69,7 @@ type tisState struct {
 	CopyCurrentKeyboardLayoutInputSource func() uintptr
 	GetInputSourceProperty               func(inputSource uintptr, propertyKey uintptr) uintptr
 	GetKbdType                           func() uint8
+	UCKeyTranslate                       func(keyLayoutPtr uintptr, virtualKeyCode uint16, keyAction uint16, modifierKeyState uint32, keyboardType uint32, keyTranslateOptions uint32, deadKeyState *uint32, maxStringLength int, actualStringLength *int, unicodeString *uint16) int32
 }
 
 type platformContextState struct {

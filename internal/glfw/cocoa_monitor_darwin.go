@@ -278,6 +278,9 @@ func (m *Monitor) GetVideoModes() ([]*VidMode, error) {
 	if !_glfw.initialized {
 		return nil, NotInitialized
 	}
+	if err := m.refreshVideoModes(); err != nil {
+		return nil, err
+	}
 	return m.modes, nil
 }
 
@@ -377,23 +380,22 @@ func getMonitorNameNS(displayID uint32) string {
 	}
 
 	// Fallback: use IOKit to get the display name
-	name := [128]byte{}
 	ioServiceName := []byte("IODisplayConnect\x00")
 	matching := ioServiceMatching(&ioServiceName[0])
 	if matching == 0 {
-		return "Unknown"
+		return "Display"
 	}
 
 	var iterator uint32
 	if ioServiceGetMatchingServices(0, matching, &iterator) != 0 {
-		return "Unknown"
+		return "Display"
 	}
-	defer func() {
-		if iterator != 0 {
-			ioObjectRelease(iterator)
-		}
-	}()
+	defer ioObjectRelease(iterator)
 
+	targetVendor := cgDisplayVendorNumber(displayID)
+	targetModel := cgDisplayModelNumber(displayID)
+
+	var matchedInfo uintptr
 	for {
 		service := ioIteratorNext(iterator)
 		if service == 0 {
@@ -406,14 +408,54 @@ func getMonitorNameNS(displayID uint32) string {
 			continue
 		}
 
+		vendorIDKey := cfString("DisplayVendorID")
+		productIDKey := cfString("DisplayProductID")
+		vendorIDRef := cfDictionaryGetValue(info, vendorIDKey)
+		productIDRef := cfDictionaryGetValue(info, productIDKey)
+		cfRelease(vendorIDKey)
+		cfRelease(productIDKey)
+
+		if vendorIDRef == 0 || productIDRef == 0 {
+			cfRelease(info)
+			continue
+		}
+
+		const kCFNumberIntType = 9
+		var vendorID, productID uint32
+		cfNumberGetValue(vendorIDRef, kCFNumberIntType, unsafe.Pointer(&vendorID))
+		cfNumberGetValue(productIDRef, kCFNumberIntType, unsafe.Pointer(&productID))
+
+		if vendorID == targetVendor && productID == targetModel {
+			matchedInfo = info
+			break
+		}
+
 		cfRelease(info)
 	}
 
-	if ioRegistryEntryGetName(0, &name) == 0 {
-		return cStringToGoString(name[:])
+	if matchedInfo == 0 {
+		return "Display"
+	}
+	defer cfRelease(matchedInfo)
+
+	productNameKey := cfString("DisplayProductName")
+	defer cfRelease(productNameKey)
+	names := cfDictionaryGetValue(matchedInfo, productNameKey)
+	if names == 0 {
+		return "Display"
 	}
 
-	return "Unknown"
+	enUSKey := cfString("en_US")
+	defer cfRelease(enUSKey)
+	nameRef := cfDictionaryGetValue(names, enUSKey)
+	if nameRef == 0 {
+		return "Display"
+	}
+
+	size := cfStringGetMaximumSizeForEncoding(cfStringGetLength(nameRef), kCFStringEncodingUTF8)
+	buf := make([]byte, size+1)
+	cfStringGetCString(nameRef, &buf[0], size+1, kCFStringEncodingUTF8)
+	return cStringToGoString(buf)
 }
 
 // cStringToGoString converts a null-terminated C string in a byte slice to a Go string.
@@ -460,6 +502,11 @@ func pollMonitorsNS() error {
 		return fmt.Errorf("glfw: failed to get online display list: %w", PlatformError)
 	}
 
+	// Reset screen references for all existing monitors.
+	for _, m := range _glfw.monitors {
+		m.platform.screen = 0
+	}
+
 	disconnected := make([]*Monitor, len(_glfw.monitors))
 	copy(disconnected, _glfw.monitors)
 
@@ -480,6 +527,8 @@ func pollMonitorsNS() error {
 			if m != nil && m.platform.unitNumber == unitNumber {
 				disconnected[j] = nil
 				alreadyKnown = true
+				// Update the screen reference for the already-known monitor.
+				m.platform.screen = nsScreenForDisplayID(display)
 				break
 			}
 		}
