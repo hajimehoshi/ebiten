@@ -103,7 +103,7 @@ func xmain() error {
 
 	var targets []string
 	if ft := strings.TrimSpace(*flagTarget); ft != "" {
-		for _, t := range strings.Split(ft, ",") {
+		for t := range strings.SplitSeq(ft, ",") {
 			targets = append(targets, strings.TrimSpace(t))
 		}
 	}
@@ -193,7 +193,7 @@ var (
 
 func hasShaderSourceDirectiveInComment(commentGroup *ast.CommentGroup) bool {
 	for _, c := range commentGroup.List {
-		for _, line := range strings.Split(c.Text, "\n") {
+		for line := range strings.SplitSeq(c.Text, "\n") {
 			if reShaderSourceDirective.MatchString(line) {
 				return true
 			}
@@ -232,13 +232,13 @@ func appendShaderSources(shaders []Shader, pkg *packages.Package) ([]Shader, err
 					continue
 				}
 
-				for _, line := range strings.Split(c.Text, "\n") {
+				for line := range strings.SplitSeq(c.Text, "\n") {
 					m := reShaderFileDirective.FindString(line)
 					if len(m) == 0 {
 						continue
 					}
 					patterns := strings.TrimPrefix(line, m)
-					for _, pattern := range strings.FieldsFunc(patterns, isAsciiSpace) {
+					for pattern := range strings.FieldsFuncSeq(patterns, isAsciiSpace) {
 						pattern := filepath.Join(pkg.Dir, filepath.FromSlash(pattern))
 						if _, ok := visitedPatterns[pattern]; ok {
 							continue
