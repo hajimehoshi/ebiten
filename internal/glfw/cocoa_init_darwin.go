@@ -242,13 +242,13 @@ func createMenuBar() {
 	// Minimize
 	windowMenu.Send(selAddItemWithTitle,
 		cocoa.NSString_alloc().InitWithUTF8String("Minimize").ID,
-		selMiniaturize,
+		objc.RegisterName("performMiniaturize:"),
 		cocoa.NSString_alloc().InitWithUTF8String("m").ID)
 
 	// Zoom
 	windowMenu.Send(selAddItemWithTitle,
 		cocoa.NSString_alloc().InitWithUTF8String("Zoom").ID,
-		selZoom,
+		objc.RegisterName("performZoom:"),
 		cocoa.NSString_alloc().InitWithUTF8String("").ID)
 
 	windowMenu.Send(selAddItem, objc.ID(classNSMenuItem).Send(selSeparatorItem))
@@ -259,7 +259,21 @@ func createMenuBar() {
 		selArrangeInFront,
 		cocoa.NSString_alloc().InitWithUTF8String("").ID)
 
+	// Enter Full Screen
+	windowMenu.Send(selAddItem, objc.ID(classNSMenuItem).Send(selSeparatorItem))
+	fullScreenItem := windowMenu.Send(selAddItemWithTitle,
+		cocoa.NSString_alloc().InitWithUTF8String("Enter Full Screen").ID,
+		selToggleFullScreen,
+		cocoa.NSString_alloc().InitWithUTF8String("f").ID)
+	// NSEventModifierFlagControl | NSEventModifierFlagCommand
+	fullScreenItem.Send(selSetKeyEquivalentModifierMask, uintptr(NSEventModifierFlagControl|NSEventModifierFlagCommand))
+
 	windowMenuItem.Send(selSetSubmenu, windowMenu)
+
+	// Prior to Snow Leopard, we need to use this oddly-named semi-private API
+	// to get the application menu working properly.
+	nsApp.Send(objc.RegisterName("performSelector:withObject:"),
+		objc.RegisterName("setAppleMenu:"), appMenu)
 
 	nsApp.Send(selSetMainMenu, menubar)
 	nsApp.Send(selSetWindowsMenu, windowMenu)
@@ -392,6 +406,11 @@ func platformInit() error {
 			{
 				Cmd: selApplicationDidChangeScreenParameters,
 				Fn: func(_ objc.ID, _ objc.SEL, _ objc.ID) {
+					for _, window := range _glfw.windows {
+						if window.context.client != NoAPI {
+							window.context.platform.object.Send(objc.RegisterName("update"))
+						}
+					}
 					_ = pollMonitorsNS()
 				},
 			},
@@ -465,6 +484,10 @@ func platformInit() error {
 	// Create a CGEventSource for synthesized events.
 	_glfw.platformWindow.eventSource = cgEventSourceCreate(_kCGEventSourceStateHIDSystemState)
 
+	// Set the suppression interval to zero so that synthesized events
+	// are not suppressed after a warp.
+	cgEventSourceSetLocalEventsSuppressionInterval(_glfw.platformWindow.eventSource, 0.0)
+
 	// Initialize TIS (Text Input Source) framework bindings.
 	initializeTIS()
 
@@ -489,10 +512,13 @@ func platformInit() error {
 		nsApp.Send(selSetActivationPolicy, _NSApplicationActivationPolicyRegular)
 	}
 
-	// Run the application to process initial events. The delegate's
-	// applicationDidFinishLaunching: calls stop: and posts an empty event,
-	// so this returns quickly.
-	nsApp.Send(selRun)
+	// Run the application to process initial events, but only if it hasn't
+	// already finished launching. The delegate's applicationDidFinishLaunching:
+	// calls stop: and posts an empty event, so this returns quickly.
+	currentApp := objc.ID(classNSRunningApplication).Send(objc.RegisterName("currentApplication"))
+	if !objc.Send[bool](currentApp, objc.RegisterName("isFinishedLaunching")) {
+		nsApp.Send(selRun)
+	}
 
 	// Initialize NSGL (OpenGL context support).
 	if err := initNSGL(); err != nil {

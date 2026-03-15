@@ -492,8 +492,6 @@ func pollMonitorsNS() error {
 			continue
 		}
 
-		refreshRate := cgDisplayModeGetRefreshRate(mode)
-
 		name := getMonitorNameNS(display)
 
 		monitor := &Monitor{
@@ -501,8 +499,12 @@ func pollMonitorsNS() error {
 		}
 		monitor.platform.displayID = display
 		monitor.platform.unitNumber = cgDisplayUnitNumber(display)
-		monitor.platform.fallbackRefreshRate = refreshRate
 		monitor.platform.screen = nsScreenForDisplayID(display)
+
+		if cgDisplayModeGetRefreshRate(mode) == 0.0 {
+			// TODO: Query IOKit for the actual refresh rate via getFallbackRefreshRate.
+			monitor.platform.fallbackRefreshRate = 60.0
+		}
 
 		cfRelease(mode)
 

@@ -457,6 +457,9 @@ func registerGLFWClasses() error {
 					if window == nil {
 						return
 					}
+					if window.cursorMode == CursorHidden {
+						showCursor(window)
+					}
 					window.inputCursorEnter(false)
 				},
 			},
@@ -466,6 +469,9 @@ func registerGLFWClasses() error {
 					window := getGoWindow(classGLFWContentView, self)
 					if window == nil {
 						return
+					}
+					if window.cursorMode == CursorHidden {
+						hideCursor(window)
 					}
 					window.inputCursorEnter(true)
 				},
@@ -594,6 +600,7 @@ func registerGLFWClasses() error {
 					bounds := objc.Send[cocoa.NSRect](self, selBounds)
 					options := uintptr(NSTrackingMouseEnteredAndExited |
 						NSTrackingActiveInKeyWindow |
+						NSTrackingEnabledDuringMouseDrag |
 						NSTrackingCursorUpdate |
 						NSTrackingInVisibleRect |
 						NSTrackingAssumeInside)
@@ -1414,7 +1421,20 @@ func (w *Window) platformWindowHovered() (bool, error) {
 	pool := cocoa.NSAutoreleasePool_new()
 	defer pool.Release()
 
-	return cursorInContentArea(w), nil
+	pos := objc.Send[cocoa.NSPoint](objc.ID(classNSEvent), objc.RegisterName("mouseLocation"))
+
+	// Check if this window is the topmost window at the cursor position.
+	topWindowNumber := objc.Send[uintptr](objc.ID(classNSWindow), objc.RegisterName("windowNumberAtPoint:belowWindowWithWindowNumber:"), pos, uintptr(0))
+	if topWindowNumber != uintptr(w.platform.object.Send(selWindowNumber)) {
+		return false, nil
+	}
+
+	viewFrame := objc.Send[cocoa.NSRect](w.platform.view, selFrame)
+	screenRect := objc.Send[cocoa.NSRect](w.platform.object, selConvertRectToScreen, viewFrame)
+	return pos.X >= screenRect.Origin.X &&
+		pos.X < screenRect.Origin.X+screenRect.Size.Width &&
+		pos.Y >= screenRect.Origin.Y &&
+		pos.Y < screenRect.Origin.Y+screenRect.Size.Height, nil
 }
 
 func (w *Window) platformFramebufferTransparent() bool {
@@ -1648,12 +1668,6 @@ func (w *Window) platformSetCursorMode(mode int) error {
 		if err := updateCursorMode(w); err != nil {
 			return err
 		}
-	}
-
-	if mode == CursorDisabled {
-		_glfw.platformWindow.restoreCursorPosX, _glfw.platformWindow.restoreCursorPosY, _ = w.platformGetCursorPos()
-	} else if _glfw.platformWindow.disabledCursorWindow == w {
-		// This is handled by updateCursorMode above.
 	}
 
 	return nil

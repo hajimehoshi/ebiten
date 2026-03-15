@@ -93,11 +93,12 @@ const (
 
 // NSTrackingArea options.
 const (
-	NSTrackingMouseEnteredAndExited = 0x01
-	NSTrackingActiveInKeyWindow     = 0x20
-	NSTrackingCursorUpdate          = 0x04
-	NSTrackingInVisibleRect         = 0x200
-	NSTrackingAssumeInside          = 0x100
+	NSTrackingMouseEnteredAndExited  = 0x01
+	NSTrackingActiveInKeyWindow      = 0x20
+	NSTrackingEnabledDuringMouseDrag = 0x400
+	NSTrackingCursorUpdate           = 0x04
+	NSTrackingInVisibleRect          = 0x200
+	NSTrackingAssumeInside           = 0x100
 )
 
 // NSWindow collection behaviors.
@@ -177,32 +178,33 @@ var (
 
 // CoreGraphics function pointers.
 var (
-	cgEventSourceCreate                    func(stateID int32) uintptr
-	cgMainDisplayID                        func() uint32
-	cgWarpMouseCursorPosition              func(point cocoa.CGPoint) int32
-	cgAssociateMouseAndMouseCursorPosition func(connected int32) int32
-	cgDisplayMoveCursorToPoint             func(display uint32, point cocoa.CGPoint) int32
-	cgGetOnlineDisplayList                 func(maxDisplays uint32, onlineDisplays *uint32, displayCount *uint32) int32
-	cgDisplayBounds                        func(display uint32) cgRect
-	cgDisplayCopyAllDisplayModes           func(display uint32, options uintptr) uintptr
-	cgDisplayCopyDisplayMode               func(display uint32) uintptr
-	cgDisplayModeGetWidth                  func(mode uintptr) uintptr
-	cgDisplayModeGetHeight                 func(mode uintptr) uintptr
-	cgDisplayModeGetRefreshRate            func(mode uintptr) float64
-	cgDisplayModeGetPixelWidth             func(mode uintptr) uintptr
-	cgDisplayModeGetPixelHeight            func(mode uintptr) uintptr
-	cgDisplaySetDisplayMode                func(display uint32, mode uintptr, options uintptr) int32
-	cgDisplayIsAsleep                      func(display uint32) uint32
-	cgGetDisplayTransferByTable            func(display uint32, capacity uint32, red *float32, green *float32, blue *float32, sampleCount *uint32) int32
-	cgSetDisplayTransferByTable            func(display uint32, sampleCount uint32, red *float32, green *float32, blue *float32) int32
-	cgDisplayRestoreColorSyncSettings      func()
-	cgAcquireDisplayFadeReservation        func(seconds float32, pNewToken *uint32) int32
-	cgDisplayFade                          func(token uint32, duration float32, startColor float32, endColor float32, redBlend float32, greenBlend float32, blueBlend float32, synchronous uint32) int32
-	cgReleaseDisplayFadeReservation        func(token uint32) int32
-	cgDisplayModelNumber                   func(display uint32) uint32
-	cgDisplayVendorNumber                  func(display uint32) uint32
-	cgDisplayUnitNumber                    func(display uint32) uint32
-	cgDisplayModeGetIOFlags                func(mode uintptr) uint32
+	cgEventSourceCreate                            func(stateID int32) uintptr
+	cgEventSourceSetLocalEventsSuppressionInterval func(source uintptr, seconds float64)
+	cgMainDisplayID                                func() uint32
+	cgWarpMouseCursorPosition                      func(point cocoa.CGPoint) int32
+	cgAssociateMouseAndMouseCursorPosition         func(connected int32) int32
+	cgDisplayMoveCursorToPoint                     func(display uint32, point cocoa.CGPoint) int32
+	cgGetOnlineDisplayList                         func(maxDisplays uint32, onlineDisplays *uint32, displayCount *uint32) int32
+	cgDisplayBounds                                func(display uint32) cgRect
+	cgDisplayCopyAllDisplayModes                   func(display uint32, options uintptr) uintptr
+	cgDisplayCopyDisplayMode                       func(display uint32) uintptr
+	cgDisplayModeGetWidth                          func(mode uintptr) uintptr
+	cgDisplayModeGetHeight                         func(mode uintptr) uintptr
+	cgDisplayModeGetRefreshRate                    func(mode uintptr) float64
+	cgDisplayModeGetPixelWidth                     func(mode uintptr) uintptr
+	cgDisplayModeGetPixelHeight                    func(mode uintptr) uintptr
+	cgDisplaySetDisplayMode                        func(display uint32, mode uintptr, options uintptr) int32
+	cgDisplayIsAsleep                              func(display uint32) uint32
+	cgGetDisplayTransferByTable                    func(display uint32, capacity uint32, red *float32, green *float32, blue *float32, sampleCount *uint32) int32
+	cgSetDisplayTransferByTable                    func(display uint32, sampleCount uint32, red *float32, green *float32, blue *float32) int32
+	cgDisplayRestoreColorSyncSettings              func()
+	cgAcquireDisplayFadeReservation                func(seconds float32, pNewToken *uint32) int32
+	cgDisplayFade                                  func(token uint32, duration float32, startColor float32, endColor float32, redBlend float32, greenBlend float32, blueBlend float32, synchronous uint32) int32
+	cgReleaseDisplayFadeReservation                func(token uint32) int32
+	cgDisplayModelNumber                           func(display uint32) uint32
+	cgDisplayVendorNumber                          func(display uint32) uint32
+	cgDisplayUnitNumber                            func(display uint32) uint32
+	cgDisplayModeGetIOFlags                        func(mode uintptr) uint32
 )
 
 // IOKit function pointers.
@@ -238,6 +240,7 @@ var (
 	classNSURL                objc.Class
 	classNSOpenGLPixelFormat  objc.Class
 	classNSOpenGLContext      objc.Class
+	classNSRunningApplication objc.Class
 )
 
 // ObjC selectors.
@@ -490,6 +493,7 @@ func init() {
 		panic(fmt.Errorf("glfw: failed to dlopen CoreGraphics: %w", err))
 	}
 	purego.RegisterLibFunc(&cgEventSourceCreate, coreGraphics, "CGEventSourceCreate")
+	purego.RegisterLibFunc(&cgEventSourceSetLocalEventsSuppressionInterval, coreGraphics, "CGEventSourceSetLocalEventsSuppressionInterval")
 	purego.RegisterLibFunc(&cgMainDisplayID, coreGraphics, "CGMainDisplayID")
 	purego.RegisterLibFunc(&cgWarpMouseCursorPosition, coreGraphics, "CGWarpMouseCursorPosition")
 	purego.RegisterLibFunc(&cgAssociateMouseAndMouseCursorPosition, coreGraphics, "CGAssociateMouseAndMouseCursorPosition")
@@ -562,4 +566,5 @@ func init() {
 	classNSURL = objc.GetClass("NSURL")
 	classNSOpenGLPixelFormat = objc.GetClass("NSOpenGLPixelFormat")
 	classNSOpenGLContext = objc.GetClass("NSOpenGLContext")
+	classNSRunningApplication = objc.GetClass("NSRunningApplication")
 }

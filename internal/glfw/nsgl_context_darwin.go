@@ -7,6 +7,7 @@ package glfw
 
 import (
 	"fmt"
+	"math"
 	"time"
 	"unsafe"
 
@@ -182,15 +183,18 @@ func swapBuffersNSGL(window *Window) error {
 	pool := cocoa.NSAutoreleasePool_new()
 	defer pool.Release()
 
-	// HACK: When an occluded window has a
-	// non-zero swap interval, the system
-	// sleeps for the interval. Simulate
-	// vsync by sleeping if needed.
+	// HACK: Simulate vsync with usleep as NSGL swap interval does not apply to
+	// windows with a non-visible occlusion state.
 	if window.platform.occluded {
 		var interval int32
 		window.context.platform.object.Send(selGetValuesForParameter, uintptr(unsafe.Pointer(&interval)), uintptr(NSOpenGLCPSwapInterval))
 		if interval > 0 {
-			time.Sleep(time.Second / 60)
+			const framerate = 60.0
+			elapsed := float64(time.Now().UnixNano()) / float64(time.Second)
+			period := 1.0 / framerate
+			delay := period - math.Mod(elapsed, period)
+
+			time.Sleep(time.Duration(delay * float64(time.Second)))
 		}
 	}
 
