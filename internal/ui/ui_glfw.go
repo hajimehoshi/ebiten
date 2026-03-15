@@ -2037,10 +2037,6 @@ func (u *UserInterface) setWindowResizingMode(mode WindowResizingMode) error {
 		return nil
 	}
 
-	if WindowResizingMode(u.windowResizingMode.Swap(int32(mode))) == mode {
-		return nil
-	}
-
 	v := glfw.False
 	if mode == WindowResizingModeEnabled {
 		v = glfw.True
