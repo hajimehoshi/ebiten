@@ -37,7 +37,7 @@ func (*nativeGamepadsGC) update(gamepads *gamepads) error {
 
 type nativeGamepadGC struct {
 	controller           uintptr
-	buttonMask           uint16
+	buttonMask           uint32
 	hasDualshockTouchpad bool
 	hasXboxPaddles       bool
 	hasXboxShareButton   bool
