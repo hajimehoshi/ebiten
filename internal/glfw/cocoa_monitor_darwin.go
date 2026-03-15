@@ -306,10 +306,10 @@ func modeIsGood(mode uintptr) bool {
 	if flags&kDisplayModeValidFlag == 0 || flags&kDisplayModeSafeFlag == 0 {
 		return false
 	}
-	if flags&kCGDisplayModeIsInterlaced != 0 {
+	if flags&kDisplayModeInterlacedFlag != 0 {
 		return false
 	}
-	if flags&kCGDisplayModeIsStretched != 0 {
+	if flags&kDisplayModeStretchedFlag != 0 {
 		return false
 	}
 	return true

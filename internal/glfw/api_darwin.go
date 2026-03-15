@@ -123,8 +123,8 @@ const (
 const (
 	kDisplayModeValidFlag                 = 0x00000001
 	kDisplayModeSafeFlag                  = 0x00000002
-	kCGDisplayModeIsInterlaced            = 0x00100000
-	kCGDisplayModeIsStretched             = 0x00200000
+	kDisplayModeInterlacedFlag            = 0x00000040
+	kDisplayModeStretchedFlag             = 0x00000800
 	kCGDisplayFadeReservationInvalidToken = 0
 	kIODisplayOnlyPreferredName           = 1
 	kCGErrorSuccess                       = 0
