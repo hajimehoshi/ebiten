@@ -630,6 +630,8 @@ func registerGLFWClasses() error {
 						selInitWithRectOptionsOwnerUserInfo,
 						bounds, options, self, 0)
 					self.Send(selAddTrackingArea, trackingArea)
+					// Balance the alloc; the view now holds the only reference.
+					trackingArea.Send(selRelease)
 
 					// Call super.
 					self.SendSuper(objc.RegisterName("updateTrackingAreas"))
@@ -772,8 +774,8 @@ func registerGLFWClasses() error {
 			{
 				Cmd: selValidAttributesForMarkedText,
 				Fn: func(_ objc.ID, _ objc.SEL) objc.ID {
-					// Return an empty NSArray.
-					return objc.ID(classNSArray).Send(selAlloc).Send(selInit)
+					// Return an empty autoreleased NSArray (matching C's [NSArray array]).
+					return objc.ID(classNSArray).Send(objc.RegisterName("array"))
 				},
 			},
 			{
