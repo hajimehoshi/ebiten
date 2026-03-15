@@ -1490,25 +1490,36 @@ func (w *Window) platformSetCursorPos(xpos, ypos float64) error {
 	pool := cocoa.NSAutoreleasePool_new()
 	defer pool.Release()
 
-	windowFrame := objc.Send[cocoa.NSRect](w.platform.object, selFrame)
-	contentRect := objc.Send[cocoa.NSRect](w.platform.object, selContentRectForFrameRect, windowFrame)
+	updateCursorImage(w)
 
-	// Convert from content coordinates to screen coordinates (Cocoa convention).
-	screenX := contentRect.Origin.X + xpos
-	screenY := contentRect.Origin.Y + contentRect.Size.Height - ypos
+	contentRect := objc.Send[cocoa.NSRect](w.platform.view, selFrame)
+	// NOTE: The returned location uses base 0,1 not 0,0
+	pos := objc.Send[cocoa.NSPoint](w.platform.object, selMouseLocationOutsideOfEventStream)
 
-	// Convert from Cocoa screen coordinates to CoreGraphics coordinates (top-left origin).
-	primaryBounds := cgDisplayBounds(cgMainDisplayID())
-	cgPoint := cocoa.CGPoint{
-		X: screenX,
-		Y: primaryBounds.Height - screenY,
+	w.platform.cursorWarpDeltaX += xpos - pos.X
+	w.platform.cursorWarpDeltaY += ypos - contentRect.Size.Height + pos.Y
+
+	if w.monitor != nil {
+		cgDisplayMoveCursorToPoint(w.monitor.platform.displayID, cocoa.CGPoint{X: xpos, Y: ypos})
+	} else {
+		localRect := cocoa.NSRect{
+			Origin: cocoa.NSPoint{X: xpos, Y: contentRect.Size.Height - ypos - 1},
+			Size:   cocoa.NSSize{Width: 0, Height: 0},
+		}
+		globalRect := objc.Send[cocoa.NSRect](w.platform.object, selConvertRectToScreen, localRect)
+		globalPoint := globalRect.Origin
+
+		cgWarpMouseCursorPosition(cocoa.CGPoint{
+			X: globalPoint.X,
+			Y: float64(transformYNS(float32(globalPoint.Y))),
+		})
 	}
 
-	cgWarpMouseCursorPosition(cgPoint)
-
-	// Note the warp delta so we can subtract it from the next mouse moved event.
-	w.platform.cursorWarpDeltaX += xpos - float64(w.platform.width)/2
-	w.platform.cursorWarpDeltaY += ypos - float64(w.platform.height)/2
+	// HACK: Calling this right after setting the cursor position prevents macOS
+	//       from freezing the cursor for a fraction of a second afterwards.
+	if w.cursorMode != CursorDisabled {
+		cgAssociateMouseAndMouseCursorPosition(1)
+	}
 
 	return nil
 }
@@ -1652,7 +1663,17 @@ func (w *Window) acquireMonitor() error {
 	if err := w.monitor.setVideoModeNS(vm); err != nil {
 		return err
 	}
-	w.monitor.window = w
+	bounds := cgDisplayBounds(w.monitor.platform.displayID)
+	frame := cocoa.NSRect{
+		Origin: cocoa.NSPoint{
+			X: bounds.X,
+			Y: float64(transformYNS(float32(bounds.Y + bounds.Height - 1))),
+		},
+		Size: cocoa.NSSize{Width: bounds.Width, Height: bounds.Height},
+	}
+	w.platform.object.Send(objc.RegisterName("setFrame:display:"), frame, true)
+
+	w.monitor.inputMonitorWindow(w)
 	return nil
 }
 
@@ -1660,8 +1681,11 @@ func (w *Window) releaseMonitor() error {
 	if w.monitor == nil {
 		return nil
 	}
+	if w.monitor.window != w {
+		return nil
+	}
+	w.monitor.inputMonitorWindow(nil)
 	w.monitor.restoreVideoModeNS()
-	w.monitor.window = nil
 	return nil
 }
 
