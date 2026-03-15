@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"log/slog"
 	"runtime"
-	"runtime/cgo"
 	"time"
 
 	"github.com/ebitengine/purego"
@@ -180,7 +179,7 @@ func (v *view) initCADisplayLink() error {
 		// Failed to get the display link, so proceed without it.
 		return nil
 	}
-	v.handleToSelf = cgo.NewHandle(v)
+	v.handleToSelf = newViewHandle(v)
 	cvDisplayLinkSetOutputCallback(displayLinkRef, displayLinkOutputCallbackPtr, uintptr(v.handleToSelf))
 	cvDisplayLinkStart(displayLinkRef)
 
@@ -192,8 +191,8 @@ func (v *view) initCADisplayLink() error {
 // The signature matches CVDisplayLinkOutputCallback:
 // CVReturn (*CVDisplayLinkOutputCallback)(CVDisplayLinkRef displayLink, const CVTimeStamp *inNow, const CVTimeStamp *inOutputTime, CVOptionFlags flagsIn, CVOptionFlags *flagsOut, void *displayLinkContext)
 func displayLinkOutputCallback(displayLink uintptr, inNow, inOutputTime uintptr, flagsIn uint64, flagsOut *uint64, displayLinkContext uintptr) int32 {
-	cgoHandle := (cgo.Handle)(displayLinkContext)
-	view := cgoHandle.Value().(*view)
+	h := viewHandle(displayLinkContext)
+	view := h.Value()
 	view.fence.advance()
 	return 0
 }

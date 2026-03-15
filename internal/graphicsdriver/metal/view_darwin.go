@@ -16,7 +16,6 @@ package metal
 
 import (
 	"fmt"
-	"runtime/cgo"
 	"sync"
 	"time"
 
@@ -54,7 +53,7 @@ type view struct {
 	metalDisplayLinkRunLoop cocoa.NSRunLoop
 
 	// The following members are used only with CADisplayLink.
-	handleToSelf cgo.Handle
+	handleToSelf viewHandle
 	fence        *fence
 }
 
@@ -114,6 +113,30 @@ func (v *view) initialize(device mtl.Device, colorSpace color.ColorSpace) error 
 	}
 
 	return nil
+}
+
+// viewHandle is a cgo-free replacement for cgo.Handle to pass *view through C callbacks.
+type viewHandle uintptr
+
+var (
+	viewHandleMu      sync.Mutex
+	viewHandleMap     = map[viewHandle]*view{}
+	viewHandleCounter viewHandle
+)
+
+func newViewHandle(v *view) viewHandle {
+	viewHandleMu.Lock()
+	defer viewHandleMu.Unlock()
+	viewHandleCounter++
+	h := viewHandleCounter
+	viewHandleMap[h] = v
+	return h
+}
+
+func (h viewHandle) Value() *view {
+	viewHandleMu.Lock()
+	defer viewHandleMu.Unlock()
+	return viewHandleMap[h]
 }
 
 type fence struct {
