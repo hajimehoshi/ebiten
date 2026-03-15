@@ -56,6 +56,9 @@ func (v *VidMode) equals(other *VidMode) bool {
 }
 
 func (m *Monitor) refreshVideoModes() error {
+	if len(m.modes) > 0 {
+		return nil
+	}
 	m.modes = m.modes[:0]
 	modes, err := m.platformAppendVideoModes(m.modes)
 	if err != nil {

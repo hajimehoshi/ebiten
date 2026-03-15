@@ -175,6 +175,7 @@ func defaultWindowHints() error {
 		autoIconify:  true,
 		centerCursor: true,
 		focusOnShow:  true,
+		retina:       true,
 	}
 
 	// The default is 24 bits of color, 24 bits of depth and 8 bits of stencil,
@@ -281,6 +282,10 @@ func WindowHint(hint Hint, value int) error {
 		_glfw.hints.context.release = value
 	case RefreshRate:
 		_glfw.hints.refreshRate = value
+	case CocoaRetinaFramebuffer:
+		_glfw.hints.window.retina = intToBool(value)
+	case CocoaGraphicsSwitching:
+		// Handled via context hints; currently not supported in NSGL port.
 	default:
 		return fmt.Errorf("glfw: invalid window hint 0x%08X: %w", hint, InvalidEnum)
 	}

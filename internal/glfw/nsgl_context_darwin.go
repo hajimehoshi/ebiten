@@ -83,15 +83,15 @@ func (w *Window) createContextNSGL(ctxconfig *ctxconfig, fbconfig_ *fbconfig) er
 		addAttribVal(NSOpenGLPFAColorSize, uint32(colorBits))
 	}
 
-	if fbconfig_.alphaBits > 0 {
+	if fbconfig_.alphaBits != DontCare {
 		addAttribVal(NSOpenGLPFAAlphaSize, uint32(fbconfig_.alphaBits))
 	}
 
-	if fbconfig_.depthBits > 0 {
+	if fbconfig_.depthBits != DontCare {
 		addAttribVal(NSOpenGLPFADepthSize, uint32(fbconfig_.depthBits))
 	}
 
-	if fbconfig_.stencilBits > 0 {
+	if fbconfig_.stencilBits != DontCare {
 		addAttribVal(NSOpenGLPFAStencilSize, uint32(fbconfig_.stencilBits))
 	}
 
@@ -148,10 +148,8 @@ func (w *Window) createContextNSGL(ctxconfig *ctxconfig, fbconfig_ *fbconfig) er
 		context.Send(selSetValuesForParameter, uintptr(unsafe.Pointer(&opacity)), uintptr(NSOpenGLCPSurfaceOpacity))
 	}
 
-	// Enable retina support.
-	if w.platform.retina {
-		w.platform.view.Send(selSetWantsBestResolutionOpenGLSurface, true)
-	}
+	// Set retina support. Always call this to explicitly enable or disable.
+	w.platform.view.Send(selSetWantsBestResolutionOpenGLSurface, w.platform.retina)
 
 	// Set the view on the context.
 	context.Send(selSetView, uintptr(w.platform.view))

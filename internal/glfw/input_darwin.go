@@ -120,7 +120,7 @@ func (w *Window) centerCursorInContentArea() error {
 	if err != nil {
 		return err
 	}
-	if err := w.platformSetCursorPos(float64(width/2), float64(height/2)); err != nil {
+	if err := w.platformSetCursorPos(float64(width)/2.0, float64(height)/2.0); err != nil {
 		return err
 	}
 	return nil

@@ -580,6 +580,12 @@ func registerGLFWClasses() error {
 					if window == nil {
 						return
 					}
+
+					if window.platform.retina && window.platform.layer != 0 {
+						scale := objc.Send[float64](window.platform.object.Send(selScreen), selBackingScaleFactor)
+						window.platform.layer.Send(objc.RegisterName("setContentsScale:"), scale)
+					}
+
 					updateWindowSize(window)
 
 					screen := window.platform.object.Send(selScreen)
@@ -766,10 +772,24 @@ func registerGLFWClasses() error {
 						return false
 					}
 
+					// Update the cursor position to the drop location.
+					contentRect := objc.Send[cocoa.NSRect](window.platform.view, selFrame)
+					pos := objc.Send[cocoa.NSPoint](sender, objc.RegisterName("draggingLocation"))
+					window.inputCursorPos(pos.X, contentRect.Size.Height-pos.Y)
+
 					pasteboard := sender.Send(selDraggingPasteboard)
 					urlClass := objc.ID(classNSURL)
 					classes := objc.ID(classNSArray).Send(selArrayWithObject, urlClass)
-					urls := pasteboard.Send(selReadObjectsForClasses, classes, 0)
+
+					// Filter to file URLs only.
+					fileURLsOnlyKey := cocoa.NSString_alloc().InitWithUTF8String("NSPasteboardURLReadingFileURLsOnlyKey")
+					defer fileURLsOnlyKey.ID.Send(selRelease)
+					nsYes := objc.ID(objc.GetClass("NSNumber")).Send(objc.RegisterName("numberWithBool:"), true)
+					options := objc.ID(objc.GetClass("NSDictionary")).Send(
+						objc.RegisterName("dictionaryWithObject:forKey:"),
+						uintptr(nsYes), uintptr(fileURLsOnlyKey.ID))
+
+					urls := pasteboard.Send(selReadObjectsForClasses, classes, uintptr(options))
 					if urls == 0 {
 						return false
 					}
@@ -821,8 +841,6 @@ func handleMouseMoved(window *Window, event objc.ID) {
 
 		dx -= window.platform.cursorWarpDeltaX
 		dy -= window.platform.cursorWarpDeltaY
-		window.platform.cursorWarpDeltaX = 0
-		window.platform.cursorWarpDeltaY = 0
 
 		window.inputCursorPos(
 			window.virtualCursorPosX+dx,
@@ -837,6 +855,9 @@ func handleMouseMoved(window *Window, event objc.ID) {
 
 		window.inputCursorPos(pos.X, pos.Y)
 	}
+
+	window.platform.cursorWarpDeltaX = 0
+	window.platform.cursorWarpDeltaY = 0
 }
 
 // updateWindowSize updates the cached window and framebuffer sizes, invoking callbacks as needed.
@@ -959,11 +980,11 @@ func createNativeWindow(window *Window, wndconfig *wndconfig, fbconfig_ *fbconfi
 
 	// Set up retina/HiDPI support.
 	screen := nsWindow.Send(selScreen)
+	window.platform.retina = wndconfig.retina
 	if screen != 0 {
 		scale := objc.Send[float64](screen, selBackingScaleFactor)
 		window.platform.xscale = float32(scale)
 		window.platform.yscale = float32(scale)
-		window.platform.retina = scale != 1.0
 	} else {
 		window.platform.xscale = 1.0
 		window.platform.yscale = 1.0
@@ -1478,8 +1499,10 @@ func (w *Window) platformSetWindowResizable(enabled bool) error {
 	mask := uintptr(w.platform.object.Send(objc.RegisterName("styleMask")))
 	if enabled {
 		mask |= NSWindowStyleMaskResizable
+		w.platform.object.Send(selSetCollectionBehavior, uintptr(_NSWindowCollectionBehaviorFullScreenPrimary|_NSWindowCollectionBehaviorManaged))
 	} else {
 		mask &^= NSWindowStyleMaskResizable
+		w.platform.object.Send(selSetCollectionBehavior, uintptr(_NSWindowCollectionBehaviorFullScreenNone))
 	}
 	w.platform.object.Send(objc.RegisterName("setStyleMask:"), mask)
 	return nil

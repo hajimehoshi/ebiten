@@ -288,10 +288,14 @@ func createMenuBar() {
 
 // updateUnicodeDataNS updates the cached keyboard layout unicode data.
 func updateUnicodeDataNS() {
-	inputSource := _glfw.platformWindow.tis.CopyCurrentKeyboardLayoutInputSource()
+	// Release the previous input source before acquiring a new one.
+	if _glfw.platformWindow.inputSource != 0 {
+		cfRelease(_glfw.platformWindow.inputSource)
+	}
+
+	_glfw.platformWindow.inputSource = _glfw.platformWindow.tis.CopyCurrentKeyboardLayoutInputSource()
 	_glfw.platformWindow.unicodeData = _glfw.platformWindow.tis.GetInputSourceProperty(
-		inputSource, _glfw.platformWindow.tis.kPropertyUnicodeKeyLayoutData)
-	cfRelease(inputSource)
+		_glfw.platformWindow.inputSource, _glfw.platformWindow.tis.kPropertyUnicodeKeyLayoutData)
 }
 
 // initializeTIS loads TIS (Text Input Source) symbols from the HIToolbox framework.
@@ -502,6 +506,9 @@ func platformInit() error {
 
 	// Create a CGEventSource for synthesized events.
 	_glfw.platformWindow.eventSource = cgEventSourceCreate(_kCGEventSourceStateHIDSystemState)
+	if _glfw.platformWindow.eventSource == 0 {
+		return fmt.Errorf("glfw: failed to create CGEventSource: %w", PlatformError)
+	}
 
 	// Set the suppression interval to zero so that synthesized events
 	// are not suppressed after a warp.

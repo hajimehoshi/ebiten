@@ -110,6 +110,8 @@ const (
 	Stereo                 = Hint(0x0002100C)
 	TransparentFramebuffer = Hint(0x0002000A)
 	Visible                = Hint(0x00020004)
+	CocoaRetinaFramebuffer = Hint(0x00023001)
+	CocoaGraphicsSwitching = Hint(0x00023003)
 	X11ClassName           = Hint(0x00024001)
 	X11InstanceName        = Hint(0x00024002)
 )
