@@ -403,9 +403,7 @@ func platformInit() error {
 				Fn: func(_ objc.ID, _ objc.SEL, sender objc.ID) uintptr {
 					// Post close events to all windows.
 					for _, window := range _glfw.windows {
-						if window.callbacks.close != nil {
-							window.callbacks.close(window)
-						}
+						window.inputWindowCloseRequest()
 					}
 					return _NSApplicationTerminateCancel
 				},
