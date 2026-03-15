@@ -50,6 +50,9 @@ type ctxconfig struct {
 	robustness int
 	release    int
 	share      *Window
+	nsgl       struct {
+		offline bool
+	}
 }
 
 type fbconfig struct {

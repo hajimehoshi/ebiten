@@ -62,6 +62,15 @@ func (w *Window) createContextNSGL(ctxconfig *ctxconfig, fbconfig_ *fbconfig) er
 	addAttrib(NSOpenGLPFAAccelerated)
 	addAttrib(NSOpenGLPFAClosestPolicy)
 
+	if ctxconfig.nsgl.offline {
+		addAttrib(NSOpenGLPFAAllowOfflineRenderers)
+		// NOTE: This replaces the NSSupportsAutomaticGraphicsSwitching key in
+		//       Info.plist for unbundled applications
+		// HACK: This assumes that NSOpenGLPixelFormat will remain
+		//       a straightforward wrapper of its CGL counterpart
+		addAttrib(kCGLPFASupportsAutomaticGraphicsSwitching)
+	}
+
 	if ctxconfig.major >= 4 {
 		addAttribVal(NSOpenGLPFAOpenGLProfile, NSOpenGLProfileVersion4_1Core)
 	} else if ctxconfig.major >= 3 {

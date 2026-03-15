@@ -427,7 +427,9 @@ func getMonitorNameNS(displayID uint32) string {
 			continue
 		}
 		sid := uint32(screenNum.Send(selUnsignedIntValue))
-		if sid == displayID {
+		// HACK: Compare unit numbers instead of display IDs to work around
+		//       display replacement on machines with automatic graphics switching
+		if cgDisplayUnitNumber(sid) == cgDisplayUnitNumber(displayID) {
 			if screen.Send(objc.RegisterName("respondsToSelector:"), selLocalizedName) != 0 {
 				nameID := screen.Send(selLocalizedName)
 				if nameID != 0 {

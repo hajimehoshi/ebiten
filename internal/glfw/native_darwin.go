@@ -4,7 +4,10 @@
 
 package glfw
 
-import "unsafe"
+import (
+	"fmt"
+	"unsafe"
+)
 
 func (m *Monitor) GetCocoaMonitor() (uintptr, error) {
 	return uintptr(m.platform.displayID), nil
@@ -15,5 +18,8 @@ func (w *Window) GetCocoaWindow() (uintptr, error) {
 }
 
 func (w *Window) GetNSGLContext() (unsafe.Pointer, error) {
+	if w.context.source != NativeContextAPI {
+		return nil, fmt.Errorf("glfw: window has no NSGL context: %w", NoWindowContext)
+	}
 	return unsafe.Pointer(w.context.platform.object), nil
 }

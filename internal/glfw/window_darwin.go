@@ -285,7 +285,7 @@ func WindowHint(hint Hint, value int) error {
 	case CocoaRetinaFramebuffer:
 		_glfw.hints.window.retina = intToBool(value)
 	case CocoaGraphicsSwitching:
-		// Handled via context hints; currently not supported in NSGL port.
+		_glfw.hints.context.nsgl.offline = intToBool(value)
 	default:
 		return fmt.Errorf("glfw: invalid window hint 0x%08X: %w", hint, InvalidEnum)
 	}

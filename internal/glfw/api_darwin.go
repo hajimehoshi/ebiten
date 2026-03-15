@@ -132,24 +132,26 @@ const (
 
 // NSOpenGL pixel format attributes.
 const (
-	NSOpenGLPFAAllRenderers       = 1
-	NSOpenGLPFADoubleBuffer       = 5
-	NSOpenGLPFAStereo             = 6
-	NSOpenGLPFAColorSize          = 8
-	NSOpenGLPFAAlphaSize          = 11
-	NSOpenGLPFADepthSize          = 12
-	NSOpenGLPFAStencilSize        = 13
-	NSOpenGLPFAAccumSize          = 14
-	NSOpenGLPFASampleBuffers      = 55
-	NSOpenGLPFASamples            = 56
-	NSOpenGLPFAAuxBuffers         = 7
-	NSOpenGLPFAClosestPolicy      = 74
-	NSOpenGLPFAOpenGLProfile      = 99
-	NSOpenGLPFAAccelerated        = 73
-	NSOpenGLProfileVersion3_2Core = 0x3200
-	NSOpenGLProfileVersion4_1Core = 0x4100
-	NSOpenGLCPSwapInterval        = 222
-	NSOpenGLCPSurfaceOpacity      = 236
+	NSOpenGLPFAAllRenderers                   = 1
+	NSOpenGLPFADoubleBuffer                   = 5
+	NSOpenGLPFAStereo                         = 6
+	NSOpenGLPFAColorSize                      = 8
+	NSOpenGLPFAAlphaSize                      = 11
+	NSOpenGLPFADepthSize                      = 12
+	NSOpenGLPFAStencilSize                    = 13
+	NSOpenGLPFAAccumSize                      = 14
+	NSOpenGLPFASampleBuffers                  = 55
+	NSOpenGLPFASamples                        = 56
+	NSOpenGLPFAAuxBuffers                     = 7
+	NSOpenGLPFAClosestPolicy                  = 74
+	NSOpenGLPFAOpenGLProfile                  = 99
+	NSOpenGLPFAAccelerated                    = 73
+	NSOpenGLPFAAllowOfflineRenderers          = 96
+	kCGLPFASupportsAutomaticGraphicsSwitching = 101
+	NSOpenGLProfileVersion3_2Core             = 0x3200
+	NSOpenGLProfileVersion4_1Core             = 0x4100
+	NSOpenGLCPSwapInterval                    = 222
+	NSOpenGLCPSurfaceOpacity                  = 236
 )
 
 // cgRect matches the CoreGraphics CGRect struct layout.
@@ -254,6 +256,7 @@ var (
 	classNSRunningApplication      objc.Class
 	classNSMutableAttributedString objc.Class
 	classNSAttributedString        objc.Class
+	classNSDictionary              objc.Class
 )
 
 // ObjC selectors.
@@ -416,15 +419,23 @@ var (
 	selResizeDownCursor          = objc.RegisterName("resizeDownCursor")
 	selResizeUpDownCursor        = objc.RegisterName("resizeUpDownCursor")
 	selOperationNotAllowedCursor = objc.RegisterName("operationNotAllowedCursor")
+	selRespondsToSelector        = objc.RegisterName("respondsToSelector:")
+	selPerformSelector           = objc.RegisterName("performSelector:")
 	selSetCursor                 = objc.RegisterName("set")
 	selHideCursor                = objc.RegisterName("hide")
 	selUnhideCursor              = objc.RegisterName("unhide")
 
 	// NSImage / NSBitmapImageRep selectors
-	selInitWithSize             = objc.RegisterName("initWithSize:")
-	selAddRepresentation        = objc.RegisterName("addRepresentation:")
-	selInitWithBitmapDataPlanes = objc.RegisterName("initWithBitmapDataPlanes:pixelsWide:pixelsHigh:bitsPerSample:samplesPerPixel:hasAlpha:isPlanar:colorSpaceName:bitmapFormat:bytesPerRow:bitsPerPixel:")
-	selBitmapData               = objc.RegisterName("bitmapData")
+	selInitWithSize                   = objc.RegisterName("initWithSize:")
+	selAddRepresentation              = objc.RegisterName("addRepresentation:")
+	selInitWithBitmapDataPlanes       = objc.RegisterName("initWithBitmapDataPlanes:pixelsWide:pixelsHigh:bitsPerSample:samplesPerPixel:hasAlpha:isPlanar:colorSpaceName:bitmapFormat:bytesPerRow:bitsPerPixel:")
+	selBitmapData                     = objc.RegisterName("bitmapData")
+	selInitByReferencingFile          = objc.RegisterName("initByReferencingFile:")
+	selInitWithImageHotSpot           = objc.RegisterName("initWithImage:hotSpot:")
+	selStringByAppendingPathComponent = objc.RegisterName("stringByAppendingPathComponent:")
+	selDictionaryWithContentsOfFile   = objc.RegisterName("dictionaryWithContentsOfFile:")
+	selValueForKey                    = objc.RegisterName("valueForKey:")
+	selDoubleValue                    = objc.RegisterName("doubleValue")
 
 	// NSTrackingArea selectors
 	selInitWithRectOptionsOwnerUserInfo = objc.RegisterName("initWithRect:options:owner:userInfo:")
@@ -599,4 +610,5 @@ func init() {
 	classNSRunningApplication = objc.GetClass("NSRunningApplication")
 	classNSMutableAttributedString = objc.GetClass("NSMutableAttributedString")
 	classNSAttributedString = objc.GetClass("NSAttributedString")
+	classNSDictionary = objc.GetClass("NSDictionary")
 }

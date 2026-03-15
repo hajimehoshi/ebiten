@@ -585,24 +585,26 @@ func registerGLFWClasses() error {
 						return
 					}
 
-					if window.platform.retina && window.platform.layer != 0 {
-						scale := objc.Send[float64](window.platform.object.Send(selScreen), selBackingScaleFactor)
-						window.platform.layer.Send(objc.RegisterName("setContentsScale:"), scale)
-					}
+					contentRect := objc.Send[cocoa.NSRect](window.platform.view, selFrame)
+					fbRect := objc.Send[cocoa.NSRect](window.platform.view, selConvertRectToBacking, contentRect)
 
-					updateWindowSize(window)
+					if contentRect.Size.Width != 0 && contentRect.Size.Height != 0 {
+						xscale := float32(fbRect.Size.Width / contentRect.Size.Width)
+						yscale := float32(fbRect.Size.Height / contentRect.Size.Height)
 
-					screen := window.platform.object.Send(selScreen)
-					if screen != 0 {
-						scale := objc.Send[float64](screen, selBackingScaleFactor)
-						xscale := float32(scale)
-						yscale := float32(scale)
 						if xscale != window.platform.xscale || yscale != window.platform.yscale {
+							if window.platform.retina && window.platform.layer != 0 {
+								window.platform.layer.Send(objc.RegisterName("setContentsScale:"),
+									objc.Send[float64](window.platform.object, selBackingScaleFactor))
+							}
+
 							window.platform.xscale = xscale
 							window.platform.yscale = yscale
 							window.inputWindowContentScale(xscale, yscale)
 						}
 					}
+
+					updateWindowSize(window)
 				},
 			},
 			{
@@ -1314,14 +1316,12 @@ func (w *Window) platformGetWindowFrameSize() (left, top, right, bottom int, err
 	defer pool.Release()
 
 	contentRect := objc.Send[cocoa.NSRect](w.platform.view, selFrame)
-	frameRect := objc.Send[cocoa.NSRect](w.platform.object, selFrame)
+	frameRect := objc.Send[cocoa.NSRect](w.platform.object, selFrameRectForContentRect, contentRect)
 
-	contentRectInWindow := objc.Send[cocoa.NSRect](w.platform.object, selContentRectForFrameRect, frameRect)
-
-	left = int(contentRectInWindow.Origin.X - frameRect.Origin.X)
-	top = int((frameRect.Origin.Y + frameRect.Size.Height) - (contentRectInWindow.Origin.Y + contentRectInWindow.Size.Height))
-	right = int((frameRect.Origin.X + frameRect.Size.Width) - (contentRectInWindow.Origin.X + contentRect.Size.Width))
-	bottom = int(contentRectInWindow.Origin.Y - frameRect.Origin.Y)
+	left = int(contentRect.Origin.X - frameRect.Origin.X)
+	top = int((frameRect.Origin.Y + frameRect.Size.Height) - (contentRect.Origin.Y + contentRect.Size.Height))
+	right = int((frameRect.Origin.X + frameRect.Size.Width) - (contentRect.Origin.X + contentRect.Size.Width))
+	bottom = int(contentRect.Origin.Y - frameRect.Origin.Y)
 	return left, top, right, bottom, nil
 }
 
@@ -1329,13 +1329,10 @@ func (w *Window) platformGetWindowContentScale() (xscale, yscale float32, err er
 	pool := cocoa.NSAutoreleasePool_new()
 	defer pool.Release()
 
-	screen := w.platform.object.Send(selScreen)
-	if screen == 0 {
-		screen = objc.ID(classNSScreen).Send(selMainScreen)
-	}
+	points := objc.Send[cocoa.NSRect](w.platform.view, selFrame)
+	pixels := objc.Send[cocoa.NSRect](w.platform.view, selConvertRectToBacking, points)
 
-	scale := objc.Send[float64](screen, selBackingScaleFactor)
-	return float32(scale), float32(scale), nil
+	return float32(pixels.Size.Width / points.Size.Width), float32(pixels.Size.Height / points.Size.Height), nil
 }
 
 func (w *Window) platformIconifyWindow() {
@@ -1831,7 +1828,7 @@ func (c *Cursor) platformCreateCursor(img *image.NRGBA, xhot, yhot int) error {
 	native.Send(selAddRepresentation, rep)
 
 	cursor := objc.ID(classNSCursor).Send(selAlloc).Send(
-		objc.RegisterName("initWithImage:hotSpot:"),
+		selInitWithImageHotSpot,
 		native,
 		cocoa.NSPoint{X: float64(xhot), Y: float64(yhot)})
 
@@ -1850,32 +1847,63 @@ func (c *Cursor) platformCreateStandardCursor(shape StandardCursor) error {
 	pool := cocoa.NSAutoreleasePool_new()
 	defer pool.Release()
 
-	var cursor objc.ID
+	// Try private selectors for resize cursors first.
+	var cursorSelector objc.SEL
 	switch shape {
-	case ArrowCursor:
-		cursor = objc.ID(classNSCursor).Send(selArrowCursor)
-	case IBeamCursor:
-		cursor = objc.ID(classNSCursor).Send(selIBeamCursor)
-	case CrosshairCursor:
-		cursor = objc.ID(classNSCursor).Send(selCrosshairCursor)
-	case HandCursor:
-		cursor = objc.ID(classNSCursor).Send(selPointingHandCursor)
 	case HResizeCursor:
-		cursor = objc.ID(classNSCursor).Send(selResizeLeftRightCursor)
+		cursorSelector = objc.RegisterName("_windowResizeEastWestCursor")
 	case VResizeCursor:
-		cursor = objc.ID(classNSCursor).Send(selResizeUpDownCursor)
+		cursorSelector = objc.RegisterName("_windowResizeNorthSouthCursor")
 	case ResizeNWSECursor:
-		// macOS doesn't have a specific NWSE cursor; use closed hand.
-		cursor = objc.ID(classNSCursor).Send(selClosedHandCursor)
+		cursorSelector = objc.RegisterName("_windowResizeNorthWestSouthEastCursor")
 	case ResizeNESWCursor:
-		// macOS doesn't have a specific NESW cursor; use closed hand.
-		cursor = objc.ID(classNSCursor).Send(selClosedHandCursor)
-	case ResizeAllCursor:
-		cursor = objc.ID(classNSCursor).Send(selOpenHandCursor)
-	case NotAllowedCursor:
-		cursor = objc.ID(classNSCursor).Send(selOperationNotAllowedCursor)
-	default:
-		return fmt.Errorf("glfw: invalid standard cursor 0x%08X: %w", shape, InvalidEnum)
+		cursorSelector = objc.RegisterName("_windowResizeNorthEastSouthWestCursor")
+	}
+
+	var cursor objc.ID
+	if cursorSelector != 0 && objc.Send[bool](objc.ID(classNSCursor), selRespondsToSelector, cursorSelector) {
+		id := objc.ID(classNSCursor).Send(selPerformSelector, cursorSelector)
+		if id != 0 && objc.Send[bool](id, selIsKindOfClass, objc.ID(classNSCursor)) {
+			cursor = id
+		}
+	}
+
+	if cursor == 0 {
+		switch shape {
+		case ArrowCursor:
+			cursor = objc.ID(classNSCursor).Send(selArrowCursor)
+		case IBeamCursor:
+			cursor = objc.ID(classNSCursor).Send(selIBeamCursor)
+		case CrosshairCursor:
+			cursor = objc.ID(classNSCursor).Send(selCrosshairCursor)
+		case HandCursor:
+			cursor = objc.ID(classNSCursor).Send(selPointingHandCursor)
+		case HResizeCursor:
+			cursor = objc.ID(classNSCursor).Send(selResizeLeftRightCursor)
+		case VResizeCursor:
+			cursor = objc.ID(classNSCursor).Send(selResizeUpDownCursor)
+		case ResizeAllCursor:
+			// Use the OS's resource: https://stackoverflow.com/a/21786835/5435443
+			cursorName := cocoa.NSString_alloc().InitWithUTF8String("move")
+			cursorPath := cocoa.NSString_alloc().InitWithUTF8String("/System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/HIServices.framework/Versions/A/Resources/cursors")
+			cursorPath = cocoa.NSString{ID: cursorPath.ID.Send(selStringByAppendingPathComponent, cursorName.ID)}
+			imagePath := cocoa.NSString{ID: cursorPath.ID.Send(selStringByAppendingPathComponent, cocoa.NSString_alloc().InitWithUTF8String("cursor.pdf").ID)}
+			infoPath := cocoa.NSString{ID: cursorPath.ID.Send(selStringByAppendingPathComponent, cocoa.NSString_alloc().InitWithUTF8String("info.plist").ID)}
+			image := objc.ID(classNSImage).Send(selAlloc).Send(selInitByReferencingFile, imagePath.ID)
+			info := objc.ID(classNSDictionary).Send(selDictionaryWithContentsOfFile, infoPath.ID)
+			if image != 0 && info != 0 {
+				hotx := objc.Send[float64](info.Send(selValueForKey, cocoa.NSString_alloc().InitWithUTF8String("hotx").ID), selDoubleValue)
+				hoty := objc.Send[float64](info.Send(selValueForKey, cocoa.NSString_alloc().InitWithUTF8String("hoty").ID), selDoubleValue)
+				cursor = objc.ID(classNSCursor).Send(selAlloc).Send(selInitWithImageHotSpot, image, cocoa.NSPoint{X: hotx, Y: hoty})
+			}
+			if image != 0 {
+				image.Send(selRelease)
+			}
+		case NotAllowedCursor:
+			cursor = objc.ID(classNSCursor).Send(selOperationNotAllowedCursor)
+		default:
+			return fmt.Errorf("glfw: invalid standard cursor 0x%08X: %w", shape, InvalidEnum)
+		}
 	}
 
 	if cursor == 0 {

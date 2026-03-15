@@ -289,15 +289,26 @@ func createMenuBar() {
 }
 
 // updateUnicodeDataNS updates the cached keyboard layout unicode data.
-func updateUnicodeDataNS() {
+func updateUnicodeDataNS() error {
 	// Release the previous input source before acquiring a new one.
 	if _glfw.platformWindow.inputSource != 0 {
 		cfRelease(_glfw.platformWindow.inputSource)
+		_glfw.platformWindow.inputSource = 0
+		_glfw.platformWindow.unicodeData = 0
 	}
 
 	_glfw.platformWindow.inputSource = _glfw.platformWindow.tis.CopyCurrentKeyboardLayoutInputSource()
+	if _glfw.platformWindow.inputSource == 0 {
+		return fmt.Errorf("glfw: failed to retrieve keyboard layout input source: %w", PlatformError)
+	}
+
 	_glfw.platformWindow.unicodeData = _glfw.platformWindow.tis.GetInputSourceProperty(
 		_glfw.platformWindow.inputSource, _glfw.platformWindow.tis.kPropertyUnicodeKeyLayoutData)
+	if _glfw.platformWindow.unicodeData == 0 {
+		return fmt.Errorf("glfw: failed to retrieve keyboard layout Unicode data: %w", PlatformError)
+	}
+
+	return nil
 }
 
 // initializeTIS loads TIS (Text Input Source) symbols from the HIToolbox framework.
@@ -396,7 +407,7 @@ func platformInit() error {
 			{
 				Cmd: selSelectedKeyboardInputSourceChanged,
 				Fn: func(_ objc.ID, _ objc.SEL, _ objc.ID) {
-					updateUnicodeDataNS()
+					_ = updateUnicodeDataNS()
 				},
 			},
 		},
@@ -453,6 +464,9 @@ func platformInit() error {
 				Fn: func(_ objc.ID, _ objc.SEL, _ objc.ID) {
 					nsApp := objc.ID(classNSApplication).Send(selNSApp)
 					postEmptyEvent()
+					// Make us a proper UI application (matching C's menubar hint
+					// behavior, which defaults to true).
+					nsApp.Send(selSetActivationPolicy, _NSApplicationActivationPolicyRegular)
 					nsApp.Send(selStop, 0)
 				},
 			},
@@ -523,7 +537,9 @@ func platformInit() error {
 	createKeyTables()
 
 	// Cache the current keyboard layout unicode data.
-	updateUnicodeDataNS()
+	if err := updateUnicodeDataNS(); err != nil {
+		return err
+	}
 
 	// Initialize the high-resolution timer.
 	initTimerNS()
