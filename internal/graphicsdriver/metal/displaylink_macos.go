@@ -87,7 +87,7 @@ func isCAMetalDisplayLinkAvailable() bool {
 	return false
 }
 
-var class_EbitengineCAMetalDisplayLinkDelegate objc.Class
+var classEbitengineCAMetalDisplayLinkDelegate objc.Class
 
 func (v *view) initCAMetalDisplayLink() error {
 	v.drawableCh = make(chan ca.MetalDrawable)
@@ -123,7 +123,7 @@ func (v *view) initCAMetalDisplayLink() error {
 	if err != nil {
 		return fmt.Errorf("metal: objc.RegisterClass for EbitengineCAMetalDisplayLinkDelegate failed: %w", err)
 	}
-	class_EbitengineCAMetalDisplayLinkDelegate = c
+	classEbitengineCAMetalDisplayLinkDelegate = c
 
 	v.createCAMetalDisplayLink()
 
@@ -134,7 +134,7 @@ func (v *view) createCAMetalDisplayLink() {
 	ch := make(chan uintptr)
 	v.metalDisplayLinkRunLoop.PerformBlock(objc.NewBlock(func(block objc.Block) {
 		dl := ca.NewMetalDisplayLink(v.ml)
-		dl.SetDelegate(objc.ID(class_EbitengineCAMetalDisplayLinkDelegate).Send(objc.RegisterName("new")))
+		dl.SetDelegate(objc.ID(classEbitengineCAMetalDisplayLinkDelegate).Send(objc.RegisterName("new")))
 		dl.AddToRunLoop(v.metalDisplayLinkRunLoop, cocoa.NSDefaultRunLoopMode)
 		dl.SetPaused(false)
 		ch <- uintptr(dl.ID)
