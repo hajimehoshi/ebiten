@@ -509,9 +509,6 @@ func pollMonitorsNS() error {
 		cfRelease(mode)
 
 		typ := _GLFW_INSERT_LAST
-		if i == 0 {
-			typ = _GLFW_INSERT_FIRST
-		}
 
 		if err := inputMonitor(monitor, Connected, typ); err != nil {
 			return err

@@ -263,7 +263,6 @@ var (
 	selStop                                  = objc.RegisterName("stop:")
 	selNextEventMatchingMask                 = objc.RegisterName("nextEventMatchingMask:untilDate:inMode:dequeue:")
 	selSendEvent                             = objc.RegisterName("sendEvent:")
-	selUpdateWindows                         = objc.RegisterName("updateWindows")
 	selActivateIgnoringOtherApps             = objc.RegisterName("activateIgnoringOtherApps:")
 	selKeyWindow                             = objc.RegisterName("keyWindow")
 	selPostEventAtStart                      = objc.RegisterName("postEvent:atStart:")

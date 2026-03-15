@@ -58,9 +58,6 @@ func translateFlags(flags uintptr) ModifierKey {
 	if flags&NSEventModifierFlagCapsLock != 0 {
 		mods |= ModCapsLock
 	}
-	if flags&NSEventModifierFlagNumericPad != 0 {
-		mods |= ModNumLock
-	}
 	return mods
 }
 
@@ -717,8 +714,11 @@ func registerGLFWClasses() error {
 					if window == nil {
 						return cocoa.NSRect{}
 					}
-					frame := objc.Send[cocoa.NSRect](window.platform.object, selFrame)
-					return frame
+					frame := objc.Send[cocoa.NSRect](window.platform.view, selFrame)
+					return cocoa.NSRect{
+						Origin: frame.Origin,
+						Size:   cocoa.CGSize{Width: 0, Height: 0},
+					}
 				},
 			},
 			{
@@ -900,6 +900,13 @@ func createNativeWindow(window *Window, wndconfig *wndconfig, fbconfig_ *fbconfi
 	} else {
 		// Center the window on the screen.
 		nsWindow.Send(objc.RegisterName("center"))
+		cascadeIn := cocoa.NSPoint{
+			X: _glfw.platformWindow.cascadePoint[0],
+			Y: _glfw.platformWindow.cascadePoint[1],
+		}
+		cascadeOut := objc.Send[cocoa.NSPoint](nsWindow, objc.RegisterName("cascadeTopLeftFromPoint:"), cascadeIn)
+		_glfw.platformWindow.cascadePoint[0] = cascadeOut.X
+		_glfw.platformWindow.cascadePoint[1] = cascadeOut.Y
 
 		if wndconfig.resizable {
 			nsWindow.Send(selSetCollectionBehavior, uintptr(_NSWindowCollectionBehaviorFullScreenPrimary|_NSWindowCollectionBehaviorManaged))
@@ -1080,8 +1087,11 @@ func (w *Window) platformSetWindowTitle(title string) error {
 	pool := cocoa.NSAutoreleasePool_new()
 	defer pool.Release()
 
-	w.platform.object.Send(selSetTitle, cocoa.NSString_alloc().InitWithUTF8String(title).ID)
-	// NSWindow.miniwindowTitle is auto-derived from the title.
+	s := cocoa.NSString_alloc().InitWithUTF8String(title)
+	w.platform.object.Send(selSetTitle, s.ID)
+	// HACK: Set the miniwindow title explicitly as setTitle: doesn't update it
+	//       if the window lacks NSWindowStyleMaskTitled
+	w.platform.object.Send(objc.RegisterName("setMiniwindowTitle:"), s.ID)
 	return nil
 }
 
@@ -1414,7 +1424,10 @@ func (w *Window) platformWindowMaximized() bool {
 	pool := cocoa.NSAutoreleasePool_new()
 	defer pool.Release()
 
-	return objc.Send[bool](w.platform.object, selIsZoomed)
+	if w.resizable {
+		return objc.Send[bool](w.platform.object, selIsZoomed)
+	}
+	return false
 }
 
 func (w *Window) platformWindowHovered() (bool, error) {
@@ -1441,7 +1454,8 @@ func (w *Window) platformFramebufferTransparent() bool {
 	pool := cocoa.NSAutoreleasePool_new()
 	defer pool.Release()
 
-	return !objc.Send[bool](w.platform.object, objc.RegisterName("isOpaque"))
+	return !objc.Send[bool](w.platform.object, objc.RegisterName("isOpaque")) &&
+		!objc.Send[bool](w.platform.view, objc.RegisterName("isOpaque"))
 }
 
 func (w *Window) platformSetWindowResizable(enabled bool) error {
@@ -1532,7 +1546,6 @@ func platformPollEvents() error {
 		}
 		nsApp().Send(selSendEvent, event)
 	}
-	nsApp().Send(selUpdateWindows)
 	return nil
 }
 
@@ -1563,7 +1576,6 @@ func platformWaitEvents() error {
 		}
 		nsApp().Send(selSendEvent, event)
 	}
-	nsApp().Send(selUpdateWindows)
 	return nil
 }
 
@@ -1594,7 +1606,6 @@ func platformWaitEventsTimeout(timeout float64) error {
 		}
 		nsApp().Send(selSendEvent, event)
 	}
-	nsApp().Send(selUpdateWindows)
 	return nil
 }
 

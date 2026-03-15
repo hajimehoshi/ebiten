@@ -95,13 +95,18 @@ func (w *Window) createContextNSGL(ctxconfig *ctxconfig, fbconfig_ *fbconfig) er
 		addAttribVal(NSOpenGLPFAStencilSize, uint32(fbconfig_.stencilBits))
 	}
 
-	if fbconfig_.accumRedBits+fbconfig_.accumGreenBits+fbconfig_.accumBlueBits+fbconfig_.accumAlphaBits > 0 {
-		accumBits := fbconfig_.accumRedBits + fbconfig_.accumGreenBits + fbconfig_.accumBlueBits + fbconfig_.accumAlphaBits
-		addAttribVal(NSOpenGLPFAAccumSize, uint32(accumBits))
-	}
+	if ctxconfig.major <= 2 {
+		if fbconfig_.auxBuffers != DontCare {
+			addAttribVal(NSOpenGLPFAAuxBuffers, uint32(fbconfig_.auxBuffers))
+		}
 
-	if fbconfig_.auxBuffers > 0 {
-		addAttribVal(NSOpenGLPFAAuxBuffers, uint32(fbconfig_.auxBuffers))
+		if fbconfig_.accumRedBits != DontCare &&
+			fbconfig_.accumGreenBits != DontCare &&
+			fbconfig_.accumBlueBits != DontCare &&
+			fbconfig_.accumAlphaBits != DontCare {
+			accumBits := fbconfig_.accumRedBits + fbconfig_.accumGreenBits + fbconfig_.accumBlueBits + fbconfig_.accumAlphaBits
+			addAttribVal(NSOpenGLPFAAccumSize, uint32(accumBits))
+		}
 	}
 
 	if fbconfig_.samples > 0 {

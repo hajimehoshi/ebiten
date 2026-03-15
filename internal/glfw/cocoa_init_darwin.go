@@ -149,16 +149,23 @@ func createKeyTables() {
 
 // getAppName returns the application name from NSProcessInfo or the bundle.
 func getAppName() string {
-	// Try to get the name from the bundle's Info.plist first.
+	// Try to figure out what the calling application is called.
 	bundle := objc.ID(classNSBundle).Send(selMainBundle)
 	if bundle != 0 {
 		info := bundle.Send(selInfoDictionary)
 		if info != 0 {
-			name := info.Send(selObjectForKey, cocoa.NSString_alloc().InitWithUTF8String("CFBundleName").ID)
-			if name != 0 {
-				s := cocoa.NSString{ID: name}.String()
-				if len(s) > 0 {
-					return s
+			nameKeys := []string{
+				"CFBundleDisplayName",
+				"CFBundleName",
+				"CFBundleExecutable",
+			}
+			for _, key := range nameKeys {
+				name := info.Send(selObjectForKey, cocoa.NSString_alloc().InitWithUTF8String(key).ID)
+				if name != 0 && objc.Send[bool](name, objc.RegisterName("isKindOfClass:"), objc.ID(objc.GetClass("NSString"))) {
+					s := cocoa.NSString{ID: name}.String()
+					if len(s) > 0 {
+						return s
+					}
 				}
 			}
 		}
@@ -548,9 +555,12 @@ func postEmptyEvent() {
 
 // platformTerminate cleans up macOS platform resources.
 func platformTerminate() error {
-	// Release TIS unicode data reference (if held).
-	// The inputSource obtained from CopyCurrentKeyboardLayoutInputSource
-	// is released in updateUnicodeDataNS, so nothing extra is needed for tis.
+	// Release TIS input source if held.
+	if _glfw.platformWindow.inputSource != 0 {
+		cfRelease(_glfw.platformWindow.inputSource)
+		_glfw.platformWindow.inputSource = 0
+		_glfw.platformWindow.unicodeData = 0
+	}
 
 	// Release the CGEventSource.
 	if _glfw.platformWindow.eventSource != 0 {
@@ -566,8 +576,10 @@ func platformTerminate() error {
 		_glfw.platformWindow.delegate = 0
 	}
 
-	// Release the helper.
+	// Release the helper and remove notification observers.
 	if _glfw.platformWindow.helper != 0 {
+		notificationCenter := objc.ID(objc.GetClass("NSNotificationCenter")).Send(objc.RegisterName("defaultCenter"))
+		notificationCenter.Send(objc.RegisterName("removeObserver:"), _glfw.platformWindow.helper)
 		_glfw.platformWindow.helper.Send(objc.RegisterName("release"))
 		_glfw.platformWindow.helper = 0
 	}
