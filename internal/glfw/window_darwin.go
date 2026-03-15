@@ -678,7 +678,7 @@ func (w *Window) SetAttrib(attrib Hint, value int) error {
 		w.resizable = bValue
 		if w.monitor == nil {
 			if err := w.platformSetWindowResizable(bValue); err != nil {
-				return nil
+				return err
 			}
 		}
 		return nil
