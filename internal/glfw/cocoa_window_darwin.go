@@ -1045,15 +1045,16 @@ func (w *Window) platformSetWindowPos(xpos, ypos int) error {
 	pool := cocoa.NSAutoreleasePool_new()
 	defer pool.Release()
 
-	contentRect := cocoa.NSRect{
+	viewFrame := objc.Send[cocoa.NSRect](w.platform.view, selFrame)
+	dummyRect := cocoa.NSRect{
 		Origin: cocoa.NSPoint{
 			X: float64(xpos),
-			Y: float64(transformYNS(float32(ypos))),
+			Y: float64(transformYNS(float32(float64(ypos) + viewFrame.Size.Height - 1))),
 		},
 		Size: cocoa.NSSize{Width: 0, Height: 0},
 	}
 
-	frameRect := objc.Send[cocoa.NSRect](w.platform.object, selFrameRectForContentRect, contentRect)
+	frameRect := objc.Send[cocoa.NSRect](w.platform.object, selFrameRectForContentRect, dummyRect)
 	w.platform.object.Send(selSetFrameOrigin, frameRect.Origin)
 	return nil
 }
