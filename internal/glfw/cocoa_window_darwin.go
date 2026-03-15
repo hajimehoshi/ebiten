@@ -19,8 +19,7 @@ import (
 
 // NSPasteboardType strings.
 var (
-	nsPasteboardTypeString  = cocoa.NSString_alloc().InitWithUTF8String("public.utf8-plain-text")
-	nsPasteboardTypeFileURL = cocoa.NSString_alloc().InitWithUTF8String("public.file-url")
+	nsPasteboardTypeString = cocoa.NSString_alloc().InitWithUTF8String("public.utf8-plain-text")
 )
 
 // NSDefaultRunLoopMode for event polling.
@@ -637,6 +636,17 @@ func registerGLFWClasses() error {
 				},
 			},
 			{
+				Cmd: objc.RegisterName("dealloc"),
+				Fn: func(self objc.ID, _ objc.SEL) {
+					window := getGoWindow(classGLFWContentView, self)
+					if window != nil && window.platform.markedText != 0 {
+						window.platform.markedText.Send(selRelease)
+						window.platform.markedText = 0
+					}
+					self.SendSuper(objc.RegisterName("dealloc"))
+				},
+			},
+			{
 				Cmd: objc.RegisterName("canBecomeKeyView"),
 				Fn: func(_ objc.ID, _ objc.SEL) bool {
 					return true
@@ -883,8 +893,12 @@ func registerGLFWClasses() error {
 					paths := make([]string, urlCount)
 					for i := range urlCount {
 						url := urls.Send(selObjectAtIndex, i)
-						pathStr := cocoa.NSString{ID: url.Send(selPath)}
-						paths[i] = pathStr.String()
+						// Use fileSystemRepresentation instead of path to handle
+						// HFS+ Unicode normalization correctly.
+						fsRep := url.Send(objc.RegisterName("fileSystemRepresentation"))
+						if fsRep != 0 {
+							paths[i] = goStringFromCString(uintptr(fsRep))
+						}
 					}
 
 					window.inputDrop(paths)
@@ -1060,12 +1074,13 @@ func createNativeWindow(window *Window, wndconfig *wndconfig, fbconfig_ *fbconfi
 	viewID := objc.ID(classGLFWContentView).Send(selAlloc).Send(selInit)
 	setGoWindow(viewID, window)
 	window.platform.view = viewID
+	window.platform.markedText = objc.ID(classNSMutableAttributedString).Send(selAlloc).Send(objc.RegisterName("init"))
 	nsWindow.Send(selSetContentView, viewID)
 	nsWindow.Send(selMakeFirstResponder, viewID)
 
-	// Register for dragged types (file URLs).
-	fileURLType := cocoa.NSString_alloc().InitWithUTF8String("public.file-url")
-	typesArray := objc.ID(classNSArray).Send(selArrayWithObject, fileURLType.ID)
+	// Register for dragged types (URLs).
+	urlType := cocoa.NSString_alloc().InitWithUTF8String("public.url")
+	typesArray := objc.ID(classNSArray).Send(selArrayWithObject, urlType.ID)
 	viewID.Send(selRegisterForDraggedTypes, typesArray)
 
 	// Set up retina/HiDPI support.
@@ -1563,10 +1578,12 @@ func (w *Window) platformWindowHovered() (bool, error) {
 
 	viewFrame := objc.Send[cocoa.NSRect](w.platform.view, selFrame)
 	screenRect := objc.Send[cocoa.NSRect](w.platform.object, selConvertRectToScreen, viewFrame)
+	// Match NSMouseInRect(point, rect, NO) behavior for non-flipped coordinates:
+	// x >= origin.x && x < maxX && y > origin.y && y <= maxY
 	return pos.X >= screenRect.Origin.X &&
 		pos.X < screenRect.Origin.X+screenRect.Size.Width &&
-		pos.Y >= screenRect.Origin.Y &&
-		pos.Y < screenRect.Origin.Y+screenRect.Size.Height, nil
+		pos.Y > screenRect.Origin.Y &&
+		pos.Y <= screenRect.Origin.Y+screenRect.Size.Height, nil
 }
 
 func (w *Window) platformFramebufferTransparent() bool {
@@ -1901,10 +1918,16 @@ func (c *Cursor) platformCreateStandardCursor(shape StandardCursor) error {
 		case ResizeAllCursor:
 			// Use the OS's resource: https://stackoverflow.com/a/21786835/5435443
 			cursorName := cocoa.NSString_alloc().InitWithUTF8String("move")
-			cursorPath := cocoa.NSString_alloc().InitWithUTF8String("/System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/HIServices.framework/Versions/A/Resources/cursors")
-			cursorPath = cocoa.NSString{ID: cursorPath.ID.Send(selStringByAppendingPathComponent, cursorName.ID)}
-			imagePath := cocoa.NSString{ID: cursorPath.ID.Send(selStringByAppendingPathComponent, cocoa.NSString_alloc().InitWithUTF8String("cursor.pdf").ID)}
-			infoPath := cocoa.NSString{ID: cursorPath.ID.Send(selStringByAppendingPathComponent, cocoa.NSString_alloc().InitWithUTF8String("info.plist").ID)}
+			basePath := cocoa.NSString_alloc().InitWithUTF8String("/System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/HIServices.framework/Versions/A/Resources/cursors")
+			cursorPath := cocoa.NSString{ID: basePath.ID.Send(selStringByAppendingPathComponent, cursorName.ID)}
+			cursorName.ID.Send(selRelease)
+			basePath.ID.Send(selRelease)
+			cursorPDF := cocoa.NSString_alloc().InitWithUTF8String("cursor.pdf")
+			imagePath := cocoa.NSString{ID: cursorPath.ID.Send(selStringByAppendingPathComponent, cursorPDF.ID)}
+			cursorPDF.ID.Send(selRelease)
+			infoPlist := cocoa.NSString_alloc().InitWithUTF8String("info.plist")
+			infoPath := cocoa.NSString{ID: cursorPath.ID.Send(selStringByAppendingPathComponent, infoPlist.ID)}
+			infoPlist.ID.Send(selRelease)
 			image := objc.ID(classNSImage).Send(selAlloc).Send(selInitByReferencingFile, imagePath.ID)
 			info := objc.ID(classNSDictionary).Send(selDictionaryWithContentsOfFile, infoPath.ID)
 			if image != 0 && info != 0 {
@@ -2087,6 +2110,22 @@ func (w *Window) releaseMonitor() error {
 	w.monitor.inputMonitorWindow(nil)
 	w.monitor.restoreVideoModeNS()
 	return nil
+}
+
+// goStringFromCString converts a null-terminated C string pointer to a Go string.
+func goStringFromCString(ptr uintptr) string {
+	if ptr == 0 {
+		return ""
+	}
+	p := (*byte)(unsafe.Pointer(ptr))
+	var n int
+	for {
+		if *(*byte)(unsafe.Pointer(uintptr(unsafe.Pointer(p)) + uintptr(n))) == 0 {
+			break
+		}
+		n++
+	}
+	return string(unsafe.Slice(p, n))
 }
 
 // Ensure reflect is used (needed for objc.RegisterClass field definitions).

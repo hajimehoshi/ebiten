@@ -249,7 +249,6 @@ func destroyContextNSGL(window *Window) error {
 	}
 
 	if window.context.platform.object != 0 {
-		window.context.platform.object.Send(selClearDrawable)
 		window.context.platform.object.Send(selRelease)
 		window.context.platform.object = 0
 	}

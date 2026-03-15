@@ -453,9 +453,6 @@ var (
 	selUTF8String       = objc.RegisterName("UTF8String")
 	selLength           = objc.RegisterName("length")
 
-	// NSURL selectors
-	selPath = objc.RegisterName("path")
-
 	// Drag and drop selectors
 	selDraggingPasteboard      = objc.RegisterName("draggingPasteboard")
 	selReadObjectsForClasses   = objc.RegisterName("readObjectsForClasses:options:")
@@ -492,7 +489,6 @@ var (
 	selSetValuesForParameter               = objc.RegisterName("setValues:forParameter:")
 	selGetValuesForParameter               = objc.RegisterName("getValues:forParameter:")
 	selSetView                             = objc.RegisterName("setView:")
-	selClearDrawable                       = objc.RegisterName("clearDrawable")
 	selSetWantsBestResolutionOpenGLSurface = objc.RegisterName("setWantsBestResolutionOpenGLSurface:")
 
 	// NSAttributedString / NSMutableAttributedString selectors

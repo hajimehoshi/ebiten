@@ -141,7 +141,7 @@ func createKeyTables() {
 	_glfw.platformWindow.keycodes[0x7E] = KeyUp
 
 	for scancode := range 256 {
-		if _glfw.platformWindow.keycodes[scancode] > 0 {
+		if _glfw.platformWindow.keycodes[scancode] >= 0 {
 			_glfw.platformWindow.scancodes[_glfw.platformWindow.keycodes[scancode]] = scancode
 		}
 	}
@@ -182,6 +182,8 @@ func createMenuBar() {
 	appName := getAppName()
 
 	menubar := objc.ID(classNSMenu).Send(objc.RegisterName("alloc")).Send(objc.RegisterName("init"))
+	nsApp := objc.ID(classNSApplication).Send(selNSApp)
+	nsApp.Send(selSetMainMenu, menubar)
 
 	// Create the application menu.
 	appMenuItem := objc.ID(classNSMenuItem).Send(objc.RegisterName("alloc")).Send(objc.RegisterName("init"))
@@ -203,9 +205,8 @@ func createMenuBar() {
 		objc.SEL(0),
 		cocoa.NSString_alloc().InitWithUTF8String("").ID)
 	servicesMenu := objc.ID(classNSMenu).Send(objc.RegisterName("alloc")).Send(objc.RegisterName("init"))
-	servicesMenuItem.Send(selSetSubmenu, servicesMenu)
-	nsApp := objc.ID(classNSApplication).Send(selNSApp)
 	nsApp.Send(selSetServicesMenu, servicesMenu)
+	servicesMenuItem.Send(selSetSubmenu, servicesMenu)
 	servicesMenu.Send(selRelease)
 
 	appMenu.Send(selAddItem, objc.ID(classNSMenuItem).Send(selSeparatorItem))
@@ -243,9 +244,12 @@ func createMenuBar() {
 	// Create the Window menu.
 	windowMenuItem := objc.ID(classNSMenuItem).Send(objc.RegisterName("alloc")).Send(objc.RegisterName("init"))
 	menubar.Send(selAddItem, windowMenuItem)
+	menubar.Send(selRelease)
 
 	windowMenu := objc.ID(classNSMenu).Send(objc.RegisterName("alloc")).Send(
 		selInitWithTitle, cocoa.NSString_alloc().InitWithUTF8String("Window").ID)
+	nsApp.Send(selSetWindowsMenu, windowMenu)
+	windowMenuItem.Send(selSetSubmenu, windowMenu)
 
 	// Minimize
 	windowMenu.Send(selAddItemWithTitle,
@@ -276,16 +280,10 @@ func createMenuBar() {
 	// NSEventModifierFlagControl | NSEventModifierFlagCommand
 	fullScreenItem.Send(selSetKeyEquivalentModifierMask, uintptr(NSEventModifierFlagControl|NSEventModifierFlagCommand))
 
-	windowMenuItem.Send(selSetSubmenu, windowMenu)
-
 	// Prior to Snow Leopard, we need to use this oddly-named semi-private API
 	// to get the application menu working properly.
 	nsApp.Send(objc.RegisterName("performSelector:withObject:"),
 		objc.RegisterName("setAppleMenu:"), appMenu)
-
-	nsApp.Send(selSetMainMenu, menubar)
-	menubar.Send(selRelease)
-	nsApp.Send(selSetWindowsMenu, windowMenu)
 }
 
 // updateUnicodeDataNS updates the cached keyboard layout unicode data.
