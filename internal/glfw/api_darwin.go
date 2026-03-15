@@ -102,6 +102,7 @@ const (
 // NSWindow collection behaviors.
 const (
 	_NSWindowCollectionBehaviorFullScreenPrimary = 1 << 7
+	_NSWindowCollectionBehaviorFullScreenNone    = 1 << 9
 	_NSWindowCollectionBehaviorManaged           = 1 << 2
 )
 
@@ -288,6 +289,7 @@ var (
 	selSetKeyEquivalentModifierMask = objc.RegisterName("setKeyEquivalentModifierMask:")
 
 	// NSEvent type/modifier selectors
+	selCurrentEvent                = objc.RegisterName("currentEvent")
 	selOtherEventWithType          = objc.RegisterName("otherEventWithType:location:modifierFlags:timestamp:windowNumber:context:subtype:data1:data2:")
 	selType                        = objc.RegisterName("type")
 	selModifierFlags               = objc.RegisterName("modifierFlags")
@@ -327,7 +329,16 @@ var (
 	selIsZoomed                          = objc.RegisterName("isZoomed")
 	selSetMinSize                        = objc.RegisterName("setMinSize:")
 	selSetMaxSize                        = objc.RegisterName("setMaxSize:")
+	selSetContentMinSize                 = objc.RegisterName("setContentMinSize:")
+	selSetContentMaxSize                 = objc.RegisterName("setContentMaxSize:")
 	selSetContentAspectRatio             = objc.RegisterName("setContentAspectRatio:")
+	selSetResizeIncrements               = objc.RegisterName("setResizeIncrements:")
+	selOrderFront                        = objc.RegisterName("orderFront:")
+	selStyleMask                         = objc.RegisterName("styleMask")
+	selSetStyleMask                      = objc.RegisterName("setStyleMask:")
+	selMiniwindowTitle                   = objc.RegisterName("miniwindowTitle")
+	selSetMiniwindowTitle                = objc.RegisterName("setMiniwindowTitle:")
+	selMakeFirstResponder                = objc.RegisterName("makeFirstResponder:")
 	selSetRestorable                     = objc.RegisterName("setRestorable:")
 	selSetCollectionBehavior             = objc.RegisterName("setCollectionBehavior:")
 	selSetIgnoresMouseEvents             = objc.RegisterName("setIgnoresMouseEvents:")

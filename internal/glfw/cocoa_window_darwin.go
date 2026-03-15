@@ -7,6 +7,7 @@ package glfw
 
 import (
 	"fmt"
+	"math"
 	"reflect"
 	"unsafe"
 
@@ -136,13 +137,17 @@ func updateCursorImage(window *Window) {
 func updateCursorMode(window *Window) {
 	if window.cursorMode == CursorDisabled {
 		_glfw.platformWindow.disabledCursorWindow = window
+		_glfw.platformWindow.restoreCursorPosX, _glfw.platformWindow.restoreCursorPosY, _ = window.platformGetCursorPos()
+		window.centerCursorInContentArea()
 		cgAssociateMouseAndMouseCursorPosition(0)
-		hideCursor(window)
 	} else if _glfw.platformWindow.disabledCursorWindow == window {
 		_glfw.platformWindow.disabledCursorWindow = nil
-		cgAssociateMouseAndMouseCursorPosition(1)
-		updateCursorImage(window)
-	} else {
+		window.platformSetCursorPos(_glfw.platformWindow.restoreCursorPosX, _glfw.platformWindow.restoreCursorPosY)
+		// NOTE: The matching CGAssociateMouseAndMouseCursorPosition call is
+		//       made in platformSetCursorPos as part of a workaround
+	}
+
+	if cursorInContentArea(window) {
 		updateCursorImage(window)
 	}
 }
@@ -657,13 +662,20 @@ func registerGLFWClasses() error {
 					if window == nil {
 						return
 					}
+					nsApp := objc.ID(classNSApplication).Send(selNSApp)
+					event := nsApp.Send(selCurrentEvent)
+					flags := uintptr(objc.Send[uint64](event, selModifierFlags))
+					mods := translateFlags(flags)
+					plain := mods&ModSuper == 0
+
 					// Get the string from the text object.
 					str := cocoa.NSString{ID: text}
 					s := str.String()
 					for _, ch := range s {
-						flags := uintptr(objc.ID(classNSEvent).Send(objc.RegisterName("modifierFlags")))
-						mods := translateFlags(flags)
-						window.inputChar(ch, mods, true)
+						if ch >= 0xf700 && ch <= 0xf7ff {
+							continue
+						}
+						window.inputChar(ch, mods, plain)
 					}
 				},
 			},
@@ -979,6 +991,14 @@ func (w *Window) platformDestroyWindow() error {
 	pool := cocoa.NSAutoreleasePool_new()
 	defer pool.Release()
 
+	if _glfw.platformWindow.disabledCursorWindow == w {
+		_glfw.platformWindow.disabledCursorWindow = nil
+	}
+
+	if w.platform.object != 0 {
+		w.platform.object.Send(selOrderOut, 0)
+	}
+
 	if w.monitor != nil {
 		if err := w.releaseMonitor(); err != nil {
 			return err
@@ -989,11 +1009,6 @@ func (w *Window) platformDestroyWindow() error {
 		if err := w.context.destroy(w); err != nil {
 			return err
 		}
-	}
-
-	if _glfw.platformWindow.disabledCursorWindow == w {
-		_glfw.platformWindow.disabledCursorWindow = nil
-		cgAssociateMouseAndMouseCursorPosition(1)
 	}
 
 	if w.platform.delegate != 0 {
@@ -1010,6 +1025,11 @@ func (w *Window) platformDestroyWindow() error {
 	if w.platform.object != 0 {
 		w.platform.object.Send(objc.RegisterName("close"))
 		w.platform.object = 0
+	}
+
+	// HACK: Allow Cocoa to catch up before returning
+	if err := platformPollEvents(); err != nil {
+		return err
 	}
 
 	return nil
@@ -1089,15 +1109,15 @@ func (w *Window) platformSetWindowSizeLimits(minwidth, minheight, maxwidth, maxh
 	defer pool.Release()
 
 	if minwidth == DontCare || minheight == DontCare {
-		w.platform.object.Send(selSetMinSize, cocoa.NSSize{Width: 0, Height: 0})
+		w.platform.object.Send(selSetContentMinSize, cocoa.NSSize{Width: 0, Height: 0})
 	} else {
-		w.platform.object.Send(selSetMinSize, cocoa.NSSize{Width: float64(minwidth), Height: float64(minheight)})
+		w.platform.object.Send(selSetContentMinSize, cocoa.NSSize{Width: float64(minwidth), Height: float64(minheight)})
 	}
 
 	if maxwidth == DontCare || maxheight == DontCare {
-		w.platform.object.Send(selSetMaxSize, cocoa.NSSize{Width: 0, Height: 0})
+		w.platform.object.Send(selSetContentMaxSize, cocoa.NSSize{Width: math.MaxFloat64, Height: math.MaxFloat64})
 	} else {
-		w.platform.object.Send(selSetMaxSize, cocoa.NSSize{Width: float64(maxwidth), Height: float64(maxheight)})
+		w.platform.object.Send(selSetContentMaxSize, cocoa.NSSize{Width: float64(maxwidth), Height: float64(maxheight)})
 	}
 
 	return nil
@@ -1108,7 +1128,7 @@ func (w *Window) platformSetWindowAspectRatio(numer, denom int) error {
 	defer pool.Release()
 
 	if numer == DontCare || denom == DontCare {
-		w.platform.object.Send(selSetContentAspectRatio, cocoa.NSSize{Width: 0, Height: 0})
+		w.platform.object.Send(selSetResizeIncrements, cocoa.NSSize{Width: 1, Height: 1})
 	} else {
 		w.platform.object.Send(selSetContentAspectRatio, cocoa.NSSize{Width: float64(numer), Height: float64(denom)})
 	}
@@ -1185,7 +1205,7 @@ func (w *Window) platformShowWindow() {
 	pool := cocoa.NSAutoreleasePool_new()
 	defer pool.Release()
 
-	w.platform.object.Send(selMakeKeyAndOrderFront, 0)
+	w.platform.object.Send(selOrderFront, 0)
 }
 
 func (w *Window) platformHideWindow() {
@@ -1245,7 +1265,36 @@ func (w *Window) platformSetWindowMonitor(monitor *Monitor, xpos, ypos, width, h
 
 	w.inputWindowMonitor(monitor)
 
+	// HACK: Allow the state cached in Cocoa to catch up to reality
+	if err := platformPollEvents(); err != nil {
+		return err
+	}
+
+	styleMask := uintptr(objc.Send[uint64](w.platform.object, selStyleMask))
+
 	if w.monitor != nil {
+		styleMask &^= NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | NSWindowStyleMaskResizable
+		styleMask |= NSWindowStyleMaskBorderless
+	} else {
+		if w.decorated {
+			styleMask &^= NSWindowStyleMaskBorderless
+			styleMask |= NSWindowStyleMaskTitled | NSWindowStyleMaskClosable
+		}
+		if w.resizable {
+			styleMask |= NSWindowStyleMaskResizable
+		} else {
+			styleMask &^= NSWindowStyleMaskResizable
+		}
+	}
+
+	w.platform.object.Send(selSetStyleMask, styleMask)
+	// HACK: Changing the style mask can cause the first responder to be cleared
+	w.platform.object.Send(selMakeFirstResponder, w.platform.view)
+
+	if w.monitor != nil {
+		w.platform.object.Send(selSetLevel, uintptr(NSMainMenuWindowLevel+1))
+		w.platform.object.Send(selSetHasShadow, false)
+
 		if err := w.acquireMonitor(); err != nil {
 			return err
 		}
@@ -1259,6 +1308,36 @@ func (w *Window) platformSetWindowMonitor(monitor *Monitor, xpos, ypos, width, h
 		}
 		frameRect := objc.Send[cocoa.NSRect](w.platform.object, selFrameRectForContentRect, contentRect)
 		w.platform.object.Send(objc.RegisterName("setFrame:display:"), frameRect, true)
+
+		if w.numer != DontCare && w.denom != DontCare {
+			w.platform.object.Send(selSetContentAspectRatio, cocoa.NSSize{Width: float64(w.numer), Height: float64(w.denom)})
+		}
+
+		if w.minwidth != DontCare && w.minheight != DontCare {
+			w.platform.object.Send(selSetContentMinSize, cocoa.NSSize{Width: float64(w.minwidth), Height: float64(w.minheight)})
+		}
+
+		if w.maxwidth != DontCare && w.maxheight != DontCare {
+			w.platform.object.Send(selSetContentMaxSize, cocoa.NSSize{Width: float64(w.maxwidth), Height: float64(w.maxheight)})
+		}
+
+		if w.floating {
+			w.platform.object.Send(selSetLevel, uintptr(NSFloatingWindowLevel))
+		} else {
+			w.platform.object.Send(selSetLevel, uintptr(NSNormalWindowLevel))
+		}
+
+		if w.resizable {
+			w.platform.object.Send(selSetCollectionBehavior, uintptr(_NSWindowCollectionBehaviorFullScreenPrimary|_NSWindowCollectionBehaviorManaged))
+		} else {
+			w.platform.object.Send(selSetCollectionBehavior, uintptr(_NSWindowCollectionBehaviorFullScreenNone))
+		}
+
+		w.platform.object.Send(selSetHasShadow, true)
+		// HACK: Clearing NSWindowStyleMaskTitled resets and disables the window
+		//       title property but the miniwindow title property is unaffected
+		miniTitle := w.platform.object.Send(selMiniwindowTitle)
+		w.platform.object.Send(selSetTitle, miniTitle)
 	}
 
 	return nil
@@ -1474,14 +1553,12 @@ func (w *Window) platformGetCursorPos() (xpos, ypos float64, err error) {
 	pool := cocoa.NSAutoreleasePool_new()
 	defer pool.Release()
 
-	pos := objc.Send[cocoa.NSPoint](objc.ID(classNSEvent), objc.RegisterName("mouseLocation"))
+	contentRect := objc.Send[cocoa.NSRect](w.platform.view, selFrame)
+	// NOTE: The returned location uses base 0,1 not 0,0
+	pos := objc.Send[cocoa.NSPoint](w.platform.object, selMouseLocationOutsideOfEventStream)
 
-	// Convert from screen coordinates to window content coordinates.
-	windowFrame := objc.Send[cocoa.NSRect](w.platform.object, selFrame)
-	contentRect := objc.Send[cocoa.NSRect](w.platform.object, selContentRectForFrameRect, windowFrame)
-
-	xpos = pos.X - contentRect.Origin.X
-	ypos = (contentRect.Origin.Y + contentRect.Size.Height) - pos.Y
+	xpos = pos.X
+	ypos = contentRect.Size.Height - pos.Y
 
 	return xpos, ypos, nil
 }
