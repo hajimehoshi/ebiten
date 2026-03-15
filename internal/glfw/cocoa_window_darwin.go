@@ -227,6 +227,17 @@ func registerGLFWClasses() error {
 					if window == nil {
 						return
 					}
+
+					if _glfw.platformWindow.disabledCursorWindow == window {
+						window.centerCursorInContentArea()
+					}
+
+					maximized := objc.Send[bool](window.platform.object, selIsZoomed)
+					if window.platform.maximized != maximized {
+						window.platform.maximized = maximized
+						window.inputWindowMaximize(maximized)
+					}
+
 					updateWindowSize(window)
 				},
 			},
@@ -254,6 +265,9 @@ func registerGLFWClasses() error {
 					if window == nil {
 						return
 					}
+					if window.monitor != nil {
+						window.releaseMonitor()
+					}
 					window.inputWindowIconify(true)
 				},
 			},
@@ -264,6 +278,9 @@ func registerGLFWClasses() error {
 					if window == nil {
 						return
 					}
+					if window.monitor != nil {
+						window.acquireMonitor()
+					}
 					window.inputWindowIconify(false)
 				},
 			},
@@ -273,6 +290,9 @@ func registerGLFWClasses() error {
 					window := getGoWindow(classGLFWWindowDelegate, self)
 					if window == nil {
 						return
+					}
+					if _glfw.platformWindow.disabledCursorWindow == window {
+						window.centerCursorInContentArea()
 					}
 					window.inputWindowFocus(true)
 					updateCursorMode(window)
@@ -285,8 +305,10 @@ func registerGLFWClasses() error {
 					if window == nil {
 						return
 					}
+					if window.monitor != nil && window.autoIconify {
+						window.platformIconifyWindow()
+					}
 					window.inputWindowFocus(false)
-					showCursor(window)
 				},
 			},
 			{
@@ -834,21 +856,31 @@ func createNativeWindow(window *Window, wndconfig *wndconfig, fbconfig_ *fbconfi
 	pool := cocoa.NSAutoreleasePool_new()
 	defer pool.Release()
 
+	// Determine the content rect.
+	var contentRect cocoa.NSRect
+	if window.monitor != nil {
+		mode := window.monitor.platformGetVideoMode()
+		xpos, ypos, _ := window.monitor.platformGetMonitorPos()
+		contentRect = cocoa.NSRect{
+			Origin: cocoa.NSPoint{X: float64(xpos), Y: float64(ypos)},
+			Size:   cocoa.NSSize{Width: float64(mode.Width), Height: float64(mode.Height)},
+		}
+	} else {
+		contentRect = cocoa.NSRect{
+			Origin: cocoa.NSPoint{X: 0, Y: 0},
+			Size:   cocoa.NSSize{Width: float64(wndconfig.width), Height: float64(wndconfig.height)},
+		}
+	}
+
 	// Determine the style mask.
-	var styleMask uintptr
-	if wndconfig.decorated {
-		styleMask = NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | NSWindowStyleMaskMiniaturizable
+	styleMask := uintptr(NSWindowStyleMaskMiniaturizable)
+	if window.monitor != nil || !wndconfig.decorated {
+		styleMask |= NSWindowStyleMaskBorderless
+	} else {
+		styleMask |= NSWindowStyleMaskTitled | NSWindowStyleMaskClosable
 		if wndconfig.resizable {
 			styleMask |= NSWindowStyleMaskResizable
 		}
-	} else {
-		styleMask = NSWindowStyleMaskBorderless
-	}
-
-	// Create the window content rect.
-	contentRect := cocoa.NSRect{
-		Origin: cocoa.NSPoint{X: 0, Y: 0},
-		Size:   cocoa.NSSize{Width: float64(wndconfig.width), Height: float64(wndconfig.height)},
 	}
 
 	// Create the GLFWWindow instance.
@@ -860,24 +892,29 @@ func createNativeWindow(window *Window, wndconfig *wndconfig, fbconfig_ *fbconfi
 
 	window.platform.object = nsWindow
 
-	// Center the window on the screen.
-	nsWindow.Send(objc.RegisterName("center"))
+	if window.monitor != nil {
+		nsWindow.Send(selSetLevel, uintptr(NSMainMenuWindowLevel+1))
+	} else {
+		// Center the window on the screen.
+		nsWindow.Send(objc.RegisterName("center"))
 
-	// Set the window properties.
-	if wndconfig.floating {
-		nsWindow.Send(selSetLevel, uintptr(NSFloatingWindowLevel))
+		if wndconfig.resizable {
+			nsWindow.Send(selSetCollectionBehavior, uintptr(_NSWindowCollectionBehaviorFullScreenPrimary|_NSWindowCollectionBehaviorManaged))
+		} else {
+			nsWindow.Send(selSetCollectionBehavior, uintptr(_NSWindowCollectionBehaviorFullScreenNone))
+		}
+
+		if wndconfig.floating {
+			nsWindow.Send(selSetLevel, uintptr(NSFloatingWindowLevel))
+		}
+
+		if wndconfig.maximized {
+			nsWindow.Send(selZoom, 0)
+		}
 	}
 
 	nsWindow.Send(selSetTitle, cocoa.NSString_alloc().InitWithUTF8String(wndconfig.title).ID)
 	nsWindow.Send(selSetRestorable, false)
-
-	// Set collection behavior.
-	var collectionBehavior uintptr
-	if wndconfig.resizable {
-		collectionBehavior |= _NSWindowCollectionBehaviorFullScreenPrimary
-		collectionBehavior |= _NSWindowCollectionBehaviorManaged
-	}
-	nsWindow.Send(selSetCollectionBehavior, collectionBehavior)
 
 	// Create the delegate.
 	delegateID := objc.ID(classGLFWWindowDelegate).Send(selAlloc).Send(selInit)
@@ -890,6 +927,7 @@ func createNativeWindow(window *Window, wndconfig *wndconfig, fbconfig_ *fbconfi
 	setGoWindow(viewID, window)
 	window.platform.view = viewID
 	nsWindow.Send(selSetContentView, viewID)
+	nsWindow.Send(selMakeFirstResponder, viewID)
 
 	// Register for dragged types (file URLs).
 	fileURLType := cocoa.NSString_alloc().InitWithUTF8String("public.file-url")
@@ -1403,16 +1441,16 @@ func (w *Window) platformSetWindowDecorated(enabled bool) error {
 	pool := cocoa.NSAutoreleasePool_new()
 	defer pool.Release()
 
-	var mask uintptr
+	mask := uintptr(w.platform.object.Send(selStyleMask))
 	if enabled {
-		mask = NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | NSWindowStyleMaskMiniaturizable
-		if w.resizable {
-			mask |= NSWindowStyleMaskResizable
-		}
+		mask |= NSWindowStyleMaskTitled | NSWindowStyleMaskClosable
+		mask &^= NSWindowStyleMaskBorderless
 	} else {
-		mask = NSWindowStyleMaskBorderless
+		mask |= NSWindowStyleMaskBorderless
+		mask &^= (NSWindowStyleMaskTitled | NSWindowStyleMaskClosable)
 	}
-	w.platform.object.Send(objc.RegisterName("setStyleMask:"), mask)
+	w.platform.object.Send(selSetStyleMask, mask)
+	w.platform.object.Send(selMakeFirstResponder, w.platform.view)
 	return nil
 }
 
