@@ -1396,27 +1396,24 @@ func (u *UserInterface) loopGame() (err error) {
 func (u *UserInterface) updateGame() error {
 	var unfocused bool
 
-	// On Windows, the focusing state might be always false (#987).
-	// On Windows, even if a window is in another workspace, vsync seems to work.
-	// Then let's assume the window is always 'focused' as a workaround.
-	if runtime.GOOS != "windows" {
-		a, err := u.window.GetAttrib(glfw.Focused)
-		if err != nil {
-			return err
-		}
-		unfocused = a == glfw.False
-	}
-
 	var t1, t2 time.Time
-
-	if unfocused {
-		t1 = time.Now()
-	}
 
 	var outsideWidth, outsideHeight float64
 	var deviceScaleFactor float64
 	var err error
 	if u.mainThread.Call(func() {
+		// On Windows, the focusing state might be always false (#987).
+		// On Windows, even if a window is in another workspace, vsync seems to work.
+		// Then let's assume the window is always 'focused' as a workaround.
+		if runtime.GOOS != "windows" {
+			a, e := u.window.GetAttrib(glfw.Focused)
+			if e != nil {
+				err = e
+				return
+			}
+			unfocused = a == glfw.False
+		}
+
 		outsideWidth, outsideHeight, err = u.update()
 		if err != nil {
 			return
@@ -1428,6 +1425,10 @@ func (u *UserInterface) updateGame() error {
 		deviceScaleFactor = m.DeviceScaleFactor()
 	}); err != nil {
 		return err
+	}
+
+	if unfocused {
+		t1 = time.Now()
 	}
 
 	if err := u.context.updateFrame(u.graphicsDriver, outsideWidth, outsideHeight, deviceScaleFactor, u); err != nil {
