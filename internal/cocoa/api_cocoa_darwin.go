@@ -17,22 +17,50 @@ package cocoa
 import (
 	"unsafe"
 
+	"github.com/ebitengine/purego"
 	"github.com/ebitengine/purego/objc"
 )
 
 var (
-	class_NSInvocation         = objc.GetClass("NSInvocation")
-	class_NSMethodSignature    = objc.GetClass("NSMethodSignature")
-	class_NSAutoreleasePool    = objc.GetClass("NSAutoreleasePool")
-	class_NSString             = objc.GetClass("NSString")
-	class_NSColor              = objc.GetClass("NSColor")
-	class_NSScreen             = objc.GetClass("NSScreen")
-	class_NSRunLoop            = objc.GetClass("NSRunLoop")
-	class_NSMachPort           = objc.GetClass("NSMachPort")
-	class_NSWorkspace          = objc.GetClass("NSWorkspace")
-	class_NSNotificationCenter = objc.GetClass("NSNotificationCenter")
-	class_NSOperationQueue     = objc.GetClass("NSOperationQueue")
+	class_NSInvocation         objc.Class
+	class_NSMethodSignature    objc.Class
+	class_NSAutoreleasePool    objc.Class
+	class_NSString             objc.Class
+	class_NSColor              objc.Class
+	class_NSScreen             objc.Class
+	class_NSRunLoop            objc.Class
+	class_NSMachPort           objc.Class
+	class_NSWorkspace          objc.Class
+	class_NSNotificationCenter objc.Class
+	class_NSOperationQueue     objc.Class
 )
+
+func init() {
+	// Load Foundation and AppKit frameworks to ensure ObjC classes are available.
+	// With CGO_ENABLED=0, frameworks are not loaded automatically by the linker,
+	// so objc.GetClass would return 0 for classes like NSString.
+	purego.Dlopen("/System/Library/Frameworks/Foundation.framework/Foundation", purego.RTLD_LAZY|purego.RTLD_GLOBAL)
+	// AppKit may not be available (e.g. on iOS), so ignore errors.
+	purego.Dlopen("/System/Library/Frameworks/AppKit.framework/AppKit", purego.RTLD_LAZY|purego.RTLD_GLOBAL)
+
+	class_NSInvocation = objc.GetClass("NSInvocation")
+	class_NSMethodSignature = objc.GetClass("NSMethodSignature")
+	class_NSAutoreleasePool = objc.GetClass("NSAutoreleasePool")
+	class_NSString = objc.GetClass("NSString")
+	class_NSColor = objc.GetClass("NSColor")
+	class_NSScreen = objc.GetClass("NSScreen")
+	class_NSRunLoop = objc.GetClass("NSRunLoop")
+	class_NSMachPort = objc.GetClass("NSMachPort")
+	class_NSWorkspace = objc.GetClass("NSWorkspace")
+	class_NSNotificationCenter = objc.GetClass("NSNotificationCenter")
+	class_NSOperationQueue = objc.GetClass("NSOperationQueue")
+
+	NSRunLoopCommonModes = NSRunLoopMode(NSString_alloc().InitWithUTF8String("kCFRunLoopCommonModes"))
+	NSDefaultRunLoopMode = NSRunLoopMode(NSString_alloc().InitWithUTF8String("kCFRunLoopDefaultMode"))
+
+	NSWorkspaceDidWakeNotification = NSString_alloc().InitWithUTF8String("NSWorkspaceDidWakeNotification")
+	NSWorkspaceScreensDidWakeNotification = NSString_alloc().InitWithUTF8String("NSWorkspaceScreensDidWakeNotification")
+}
 
 var (
 	sel_retain                         = objc.RegisterName("retain")
@@ -321,8 +349,8 @@ func (r NSRunLoop) PerformBlock(block objc.Block) {
 type NSRunLoopMode NSString
 
 var (
-	NSRunLoopCommonModes = NSRunLoopMode(NSString_alloc().InitWithUTF8String("kCFRunLoopCommonModes"))
-	NSDefaultRunLoopMode = NSRunLoopMode(NSString_alloc().InitWithUTF8String("kCFRunLoopDefaultMode"))
+	NSRunLoopCommonModes NSRunLoopMode
+	NSDefaultRunLoopMode NSRunLoopMode
 )
 
 type NSMachPort struct {
@@ -346,8 +374,8 @@ func (w NSWorkspace) NotificationCenter() NSNotificationCenter {
 }
 
 var (
-	NSWorkspaceDidWakeNotification        = NSString_alloc().InitWithUTF8String("NSWorkspaceDidWakeNotification")
-	NSWorkspaceScreensDidWakeNotification = NSString_alloc().InitWithUTF8String("NSWorkspaceScreensDidWakeNotification")
+	NSWorkspaceDidWakeNotification        NSString
+	NSWorkspaceScreensDidWakeNotification NSString
 )
 
 type NSNotificationCenter struct {
