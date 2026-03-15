@@ -16,7 +16,6 @@ package gamepad
 
 import (
 	"encoding/hex"
-	"math"
 	"unsafe"
 
 	"github.com/ebitengine/purego"
@@ -448,8 +447,7 @@ func getControllerPropertyFromController(controller objc.ID) controllerProperty 
 
 // getAxisValue reads a float value from an ObjC axis element (returns the raw float32 value from the `value` property).
 func getAxisValue(element objc.ID) float32 {
-	ret := element.Send(selValue)
-	return math.Float32frombits(uint32(ret))
+	return objc.Send[float32](element, selValue)
 }
 
 // getIsPressed reads the boolean isPressed property from an ObjC button element.
@@ -642,11 +640,11 @@ func initializeGCGamepads() {
 	// The notification name symbols are pointers to NSString* — dereference them.
 	if gcControllerDidConnectNotification != 0 {
 		connectName := *(*objc.ID)(unsafe.Pointer(gcControllerDidConnectNotification))
-		center.Send(selAddObserver, uintptr(0), uintptr(0), uintptr(0), connectBlock, uintptr(connectName))
+		center.Send(selAddObserver, connectName, uintptr(0), uintptr(0), connectBlock)
 	}
 	if gcControllerDidDisconnectNotification != 0 {
 		disconnectName := *(*objc.ID)(unsafe.Pointer(gcControllerDidDisconnectNotification))
-		center.Send(selAddObserver, uintptr(0), uintptr(0), uintptr(0), disconnectBlock, uintptr(disconnectName))
+		center.Send(selAddObserver, disconnectName, uintptr(0), uintptr(0), disconnectBlock)
 	}
 }
 
