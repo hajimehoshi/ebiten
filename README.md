@@ -17,7 +17,7 @@ Ebitengine (formerly known as Ebiten) is an open source game engine for the Go p
 ## Platforms
 
 * [Windows](https://ebitengine.org/en/documents/install.html?os=windows) (No Cgo required!)
-* [macOS](https://ebitengine.org/en/documents/install.html?os=darwin)
+* [macOS](https://ebitengine.org/en/documents/install.html?os=darwin) (No Cgo required!)
 * [Linux](https://ebitengine.org/en/documents/install.html?os=linux)
 * [FreeBSD](https://ebitengine.org/en/documents/install.html?os=freebsd)
 * [Android](https://ebitengine.org/en/documents/mobile.html)
