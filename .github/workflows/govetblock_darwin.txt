@@ -1,3 +1,4 @@
 github.com/hajimehoshi/ebiten/v2/internal/cocoa
 github.com/hajimehoshi/ebiten/v2/internal/colormode
+github.com/hajimehoshi/ebiten/v2/internal/glfw
 github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/mtl
