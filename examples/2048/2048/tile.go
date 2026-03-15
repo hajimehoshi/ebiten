@@ -158,7 +158,7 @@ func MoveTiles(tiles map[*Tile]struct{}, size int, dir Dir) bool {
 	vx, vy := dir.Vector()
 	tx := []int{}
 	ty := []int{}
-	for i := 0; i < size; i++ {
+	for i := range size {
 		tx = append(tx, i)
 		ty = append(ty, i)
 	}

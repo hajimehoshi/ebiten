@@ -17,6 +17,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
@@ -64,11 +65,12 @@ func (g *Game) Update() error {
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	msg := "Touch the screen and release your finger from it.\n\nLast Positions:\n"
+	var msg strings.Builder
+	msg.WriteString("Touch the screen and release your finger from it.\n\nLast Positions:\n")
 	for _, p := range g.lastTouchPositions {
-		msg += fmt.Sprintf("  (%d, %d)\n", p.x, p.y)
+		msg.WriteString(fmt.Sprintf("  (%d, %d)\n", p.x, p.y))
 	}
-	ebitenutil.DebugPrint(screen, msg)
+	ebitenutil.DebugPrint(screen, msg.String())
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {

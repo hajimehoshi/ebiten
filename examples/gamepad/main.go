@@ -17,7 +17,7 @@ package main
 import (
 	"fmt"
 	"log"
-	"sort"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -61,13 +61,13 @@ func (g *Game) Update() error {
 	g.pressedButtons = map[ebiten.GamepadID][]string{}
 	for id := range g.gamepadIDs {
 		maxAxis := ebiten.GamepadAxisType(ebiten.GamepadAxisCount(id))
-		for a := ebiten.GamepadAxisType(0); a < maxAxis; a++ {
+		for a := range maxAxis {
 			v := ebiten.GamepadAxisValue(id, a)
 			g.axes[id] = append(g.axes[id], fmt.Sprintf("%d:%+0.2f", a, v))
 		}
 
 		maxButton := ebiten.GamepadButton(ebiten.GamepadButtonCount(id))
-		for b := ebiten.GamepadButton(0); b < maxButton; b++ {
+		for b := range maxButton {
 			if ebiten.IsGamepadButtonPressed(id, b) {
 				g.pressedButtons[id] = append(g.pressedButtons[id], strconv.Itoa(int(b)))
 			}
@@ -178,9 +178,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		for id := range g.gamepadIDs {
 			ids = append(ids, id)
 		}
-		sort.Slice(ids, func(a, b int) bool {
-			return ids[a] < ids[b]
-		})
+		slices.Sort(ids)
 		for _, id := range ids {
 			var standard string
 			if ebiten.IsStandardGamepadLayoutAvailable(id) {

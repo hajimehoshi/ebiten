@@ -59,8 +59,8 @@ func NewGame() *Game {
 	var body *cp.Body
 	var shape *cp.Shape
 
-	for y := 0; y < imageHeight; y++ {
-		for x := 0; x < imageWidth; x++ {
+	for y := range imageHeight {
+		for x := range imageWidth {
 			if getPixel(uint(x), uint(y)) == 0 {
 				continue
 			}

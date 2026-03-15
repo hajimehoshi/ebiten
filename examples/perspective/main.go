@@ -43,7 +43,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	// Split the image into horizontal lines and draw them with different scales.
 	op := &ebiten.DrawImageOptions{}
 	w, h := gophersImage.Bounds().Dx(), gophersImage.Bounds().Dy()
-	for i := 0; i < h; i++ {
+	for i := range h {
 		op.GeoM.Reset()
 
 		// Move the image's center to the upper-left corner.

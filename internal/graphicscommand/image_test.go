@@ -68,8 +68,8 @@ func TestClear(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	for j := 0; j < h/2; j++ {
-		for i := 0; i < w/2; i++ {
+	for j := range h / 2 {
+		for i := range w / 2 {
 			idx := 4 * (i + w*j)
 			got := color.RGBA{R: pix[idx], G: pix[idx+1], B: pix[idx+2], A: pix[idx+3]}
 			want := color.RGBA{}
@@ -125,8 +125,8 @@ func TestShader(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	for j := 0; j < h; j++ {
-		for i := 0; i < w; i++ {
+	for j := range h {
+		for i := range w {
 			idx := 4 * (i + w*j)
 			got := color.RGBA{R: pix[idx], G: pix[idx+1], B: pix[idx+2], A: pix[idx+3]}
 			want := color.RGBA{R: 0xff, A: 0xff}

@@ -29,7 +29,7 @@ func soundAt(timeInSecond float64) float64 {
 
 	amp := []float64{1.0, 0.8, 0.6, 0.4, 0.2}
 	v := 0.0
-	for j := 0; j < len(amp); j++ {
+	for j := range amp {
 		v += amp[j] * math.Sin(2.0*math.Pi*timeInSecond*freq*float64(j+1)) / 2
 	}
 	if v > 1 {

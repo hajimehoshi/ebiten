@@ -241,8 +241,8 @@ func (au *automaton) init(game *Game) {
 	// Init the test grid with color (0,0,0,0) and the borders of
 	// it with color(0,0,0,254) as a blocker color, so the squirals
 	// cannot escape the scene.
-	for x := 0; x < width; x++ {
-		for y := 0; y < height; y++ {
+	for x := range width {
+		for y := range height {
 			if x == 0 || x == width-1 || y == 0 || y == height-1 {
 				au.colorMap[x][y] = blocker
 			} else {
@@ -251,13 +251,13 @@ func (au *automaton) init(game *Game) {
 		}
 	}
 
-	for i := 0; i < numOfSquirals; i++ {
+	for i := range numOfSquirals {
 		au.squirals[i].spawn(game)
 	}
 }
 
 func (a *automaton) step(game *Game) {
-	for i := 0; i < numOfSquirals; i++ {
+	for i := range numOfSquirals {
 		for s := 0; s < a.squirals[i].speed; s++ {
 			a.squirals[i].step(game)
 			if a.squirals[i].dead {

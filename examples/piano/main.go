@@ -59,7 +59,7 @@ func pianoAt(i int, freq float32) float32 {
 	amp := []float32{1.0, 0.8, 0.6, 0.4, 0.2}
 	x := []float32{4.0, 2.0, 1.0, 0.5, 0.25}
 	var v float32
-	for j := 0; j < len(amp); j++ {
+	for j := range amp {
 		// Decay
 		a := amp[j] * float32(math.Exp(float64(-5*float32(i)*freq/baseFreq/(x[j]*sampleRate))))
 		v += a * float32(math.Sin(2.0*math.Pi*float64(i)*float64(freq)*float64(j+1)/sampleRate))
@@ -103,7 +103,7 @@ func init() {
 		const refFreq = 110
 		length := 4 * sampleRate * baseFreq / refFreq
 		refData := make([]float32, length)
-		for i := 0; i < length; i++ {
+		for i := range length {
 			refData[i] = pianoAt(i, refFreq)
 		}
 
@@ -114,7 +114,7 @@ func init() {
 			length := 4 * sampleRate * baseFreq / int(freq)
 			l := make([]float32, length)
 			r := make([]float32, length)
-			for i := 0; i < length; i++ {
+			for i := range length {
 				idx := int(float64(i) * freq / refFreq)
 				if len(refData) <= idx {
 					break

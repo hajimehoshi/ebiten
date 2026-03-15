@@ -59,7 +59,7 @@ func (r *float32BytesReader) Read(buf []byte) (int, error) {
 
 	// Convert int16 bytes to float32 bytes and fill buf.
 	samplesToFill := min(len(r.i16Buf)/2, len(buf)/4)
-	for i := 0; i < samplesToFill; i++ {
+	for i := range samplesToFill {
 		vi16l := r.i16Buf[2*i]
 		vi16h := r.i16Buf[2*i+1]
 		v := float32(int16(vi16l)|int16(vi16h)<<8) / (1 << 15)

@@ -667,7 +667,7 @@ func (c *colorMImplBodyTranslate) Scale(r, g, b, a float32) ColorM {
 	}
 
 	eb := c.body
-	for i := 0; i < ColorMDim-1; i++ {
+	for i := range ColorMDim - 1 {
 		eb[i*(ColorMDim-1)] *= r
 		eb[i*(ColorMDim-1)+1] *= g
 		eb[i*(ColorMDim-1)+2] *= b

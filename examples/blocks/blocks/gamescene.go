@@ -154,8 +154,8 @@ func init() {
 	var mono colorm.ColorM
 	mono.ChangeHSV(0, 0, 1)
 
-	for j := 0; j < colorm.Dim-1; j++ {
-		for i := 0; i < colorm.Dim-1; i++ {
+	for j := range colorm.Dim - 1 {
+		for i := range colorm.Dim - 1 {
 			lightGray.SetElement(i, j, mono.Element(i, j)*0.7+id.Element(i, j)*0.3)
 		}
 	}

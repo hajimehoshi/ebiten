@@ -831,7 +831,7 @@ func (cs *compileState) parseFunc(block *block, d *ast.FuncDecl) (function, bool
 		if diff := len(cs.ir.Varyings) - (len(inParams) - 1); diff > 0 {
 			// inParams is not enough when the vertex shader has more returning values than the fragment shader's arguments.
 			orig := len(inParams) - 1
-			for i := 0; i < diff; i++ {
+			for i := range diff {
 				inParams = append(inParams, variable{
 					name: "_",
 					typ:  cs.ir.Varyings[orig+i],

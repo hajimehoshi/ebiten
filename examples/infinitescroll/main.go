@@ -80,8 +80,8 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	// Draw bgImage on the screen repeatedly.
 	const repeat = 3
 	w, h := bgImage.Bounds().Dx(), bgImage.Bounds().Dy()
-	for j := 0; j < repeat; j++ {
-		for i := 0; i < repeat; i++ {
+	for j := range repeat {
+		for i := range repeat {
 			op := &ebiten.DrawImageOptions{}
 			op.GeoM.Translate(float64(w*i), float64(h*j))
 			op.GeoM.Translate(offsetX, offsetY)

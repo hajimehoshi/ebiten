@@ -187,7 +187,7 @@ func NewGame() *Game {
 	// Initialize the sprites.
 	sprites := []*Sprite{}
 	w, h := ebitenImage.Bounds().Dx(), ebitenImage.Bounds().Dy()
-	for i := 0; i < 50; i++ {
+	for range 50 {
 		s := &Sprite{
 			image:      ebitenImage,
 			alphaImage: ebitenAlphaImage,

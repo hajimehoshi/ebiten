@@ -131,7 +131,7 @@ func prepareGomobileCommands() (string, error) {
 	if err := runGo("mod", "init", modname); err != nil {
 		return tmp, err
 	}
-	if err := os.WriteFile("tools.go", []byte(fmt.Sprintf(`%s
+	if err := os.WriteFile("tools.go", fmt.Appendf(nil, `%s
 
 package %s
 
@@ -139,7 +139,7 @@ import (
 	_ "github.com/ebitengine/gomobile/cmd/gobind"
 	_ "github.com/ebitengine/gomobile/cmd/gomobile"
 )
-`, buildtags, modname)), 0644); err != nil {
+`, buildtags, modname), 0644); err != nil {
 		return tmp, err
 	}
 

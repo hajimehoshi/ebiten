@@ -37,7 +37,7 @@ func NewBoard(size int) (*Board, error) {
 		size:  size,
 		tiles: map[*Tile]struct{}{},
 	}
-	for i := 0; i < 2; i++ {
+	for range 2 {
 		if err := addRandomTile(b.tiles, b.size); err != nil {
 			return nil, err
 		}

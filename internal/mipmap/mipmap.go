@@ -229,7 +229,7 @@ func (m *Mipmap) level(level int) *buffered.Image {
 }
 
 func sizeForLevel(x int, level int) int {
-	for i := 0; i < level; i++ {
+	for range level {
 		x /= 2
 		if x == 0 {
 			return 0

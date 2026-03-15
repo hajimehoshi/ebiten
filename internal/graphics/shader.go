@@ -17,13 +17,15 @@ package graphics
 import (
 	"bytes"
 	"fmt"
+	"strings"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/shader"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
 
 func shaderSuffix(unit shaderir.Unit) (string, error) {
-	shaderSuffix := fmt.Sprintf(`
+	var shaderSuffix strings.Builder
+	shaderSuffix.WriteString(fmt.Sprintf(`
 var __imageDstTextureSize vec2
 
 // imageDstTextureSize returns the destination image's texture size in pixels.
@@ -89,10 +91,10 @@ var __imageSrcRegionSizes [%[1]d]vec2
 func imageSrcRegionOnTexture() (vec2, vec2) {
 	return __imageSrcRegionOrigins[0], __imageSrcRegionSizes[0]
 }
-`, ShaderSrcImageCount)
+`, ShaderSrcImageCount))
 
-	for i := 0; i < ShaderSrcImageCount; i++ {
-		shaderSuffix += fmt.Sprintf(`
+	for i := range ShaderSrcImageCount {
+		shaderSuffix.WriteString(fmt.Sprintf(`
 // imageSrc%[1]dOrigin returns the source image's region origin on its texture.
 // The unit is the source texture's pixel or texel.
 //
@@ -106,7 +108,7 @@ func imageSrc%[1]dOrigin() vec2 {
 func imageSrc%[1]dSize() vec2 {
 	return __imageSrcRegionSizes[%[1]d]
 }
-`, i)
+`, i))
 
 		pos := "pos"
 		if i >= 1 {
@@ -121,24 +123,24 @@ func imageSrc%[1]dSize() vec2 {
 			}
 		}
 		// __t%d is a special variable for a texture variable.
-		shaderSuffix += fmt.Sprintf(`
+		shaderSuffix.WriteString(fmt.Sprintf(`
 func imageSrc%[1]dUnsafeAt(pos vec2) vec4 {
 	// pos is the position in positions of the source texture (= 0th image's texture).
 	return __texelAt(__t%[1]d, %[2]s)
 }
-`, i, pos)
+`, i, pos))
 		switch unit {
 		case shaderir.Pixels:
-			shaderSuffix += fmt.Sprintf(`
+			shaderSuffix.WriteString(fmt.Sprintf(`
 func imageSrc%[1]dAt(pos vec2) vec4 {
 	// pos is the position of the source texture (= 0th image's texture).
 	// If pos is in the region, the result is (1, 1). Otherwise, either element is 0.
 	in := step(__imageSrcRegionOrigins[0], pos) - step(__imageSrcRegionOrigins[0] + __imageSrcRegionSizes[%[1]d], pos)
 	return __texelAt(__t%[1]d, %[2]s) * in.x * in.y
 }
-`, i, pos)
+`, i, pos))
 		case shaderir.Texels:
-			shaderSuffix += fmt.Sprintf(`
+			shaderSuffix.WriteString(fmt.Sprintf(`
 func imageSrc%[1]dAt(pos vec2) vec4 {
 	// pos is the position of the source texture (= 0th image's texture).
 	// If pos is in the region, the result is (1, 1). Otherwise, either element is 0.
@@ -147,18 +149,18 @@ func imageSrc%[1]dAt(pos vec2) vec4 {
 	in := step(__imageSrcRegionOrigins[0], pos) - step(__imageSrcRegionOrigins[0] + __imageSrcRegionSizes[0], pos)
 	return __texelAt(__t%[1]d, %[2]s) * in.x * in.y
 }
-`, i, pos)
+`, i, pos))
 		}
 	}
 
-	shaderSuffix += `
+	shaderSuffix.WriteString(`
 var __projectionMatrix mat4
 
 func __vertex(dstPos vec2, srcPos vec2, color vec4, custom vec4) (vec4, vec2, vec4, vec4) {
 	return __projectionMatrix * vec4(dstPos, 0, 1), srcPos, color, custom
 }
-`
-	return shaderSuffix, nil
+`)
+	return shaderSuffix.String(), nil
 }
 
 func completeShaderSource(fragmentSrc []byte) ([]byte, error) {

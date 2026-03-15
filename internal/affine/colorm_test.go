@@ -151,8 +151,8 @@ func TestColorMIsInvertible(t *testing.T) {
 
 func arrayToColorM(es [4][5]float32) affine.ColorM {
 	var a affine.ColorM = affine.ColorMIdentity{}
-	for j := 0; j < 5; j++ {
-		for i := 0; i < 4; i++ {
+	for j := range 5 {
+		for i := range 4 {
 			a = affine.ColorMSetElement(a, i, j, es[i][j])
 		}
 	}
@@ -167,8 +167,8 @@ func abs(x float32) float32 {
 }
 
 func equalWithDelta(a, b affine.ColorM, delta float32) bool {
-	for j := 0; j < 5; j++ {
-		for i := 0; i < 4; i++ {
+	for j := range 5 {
+		for i := range 4 {
 			ea := a.At(i, j)
 			eb := b.At(i, j)
 			if abs(ea-eb) > delta {

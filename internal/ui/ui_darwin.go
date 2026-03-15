@@ -56,12 +56,12 @@ func (u *UserInterface) initializePlatform() error {
 		[]objc.FieldDef{
 			{
 				Name:      "origDelegate",
-				Type:      reflect.TypeOf(objc.ID(0)),
+				Type:      reflect.TypeFor[objc.ID](),
 				Attribute: objc.ReadWrite,
 			},
 			{
 				Name:      "origResizable",
-				Type:      reflect.TypeOf(true),
+				Type:      reflect.TypeFor[bool](),
 				Attribute: objc.ReadWrite,
 			},
 		},

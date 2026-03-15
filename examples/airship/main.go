@@ -172,7 +172,7 @@ func (g *Game) drawGroundImage(screen *ebiten.Image, ground *ebiten.Image) {
 	g.perspectiveGroundImage.Clear()
 	gw := ground.Bounds().Dx()
 	pw, ph := g.perspectiveGroundImage.Bounds().Dx(), g.perspectiveGroundImage.Bounds().Dy()
-	for j := 0; j < ph; j++ {
+	for j := range ph {
 		// z is in [2, -1]
 		rate := float64(j) / float64(ph)
 		z := (1-rate)*2 + rate*-1
@@ -219,7 +219,7 @@ func NewGame() *Game {
 	const fogHeight = 16
 	w := g.perspectiveGroundImage.Bounds().Dx()
 	fogRGBA := image.NewRGBA(image.Rect(0, 0, w, fogHeight))
-	for j := 0; j < fogHeight; j++ {
+	for j := range fogHeight {
 		a := uint32(float64(fogHeight-1-j) * 0xff / (fogHeight - 1))
 		clr := skyColor
 		r, g, b, oa := uint32(clr.R), uint32(clr.G), uint32(clr.B), uint32(clr.A)
@@ -227,7 +227,7 @@ func NewGame() *Game {
 		clr.G = uint8(g * a / oa)
 		clr.B = uint8(b * a / oa)
 		clr.A = uint8(a)
-		for i := 0; i < w; i++ {
+		for i := range w {
 			fogRGBA.SetRGBA(i, j, clr)
 		}
 	}

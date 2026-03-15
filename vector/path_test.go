@@ -283,8 +283,8 @@ func TestArcAndGeoM(t *testing.T) {
 			vector.StrokePath(origDst, &path, strokeOp, nil)
 			vector.StrokePath(refDst, &tc.refPath, strokeOp, nil)
 
-			for j := 0; j < 16; j++ {
-				for i := 0; i < 16; i++ {
+			for j := range 16 {
+				for i := range 16 {
 					got := origDst.At(i, j)
 					want := refDst.At(i, j)
 					if got != want {
@@ -346,8 +346,7 @@ func TestRaceConditionWithSubImage(t *testing.T) {
 	var wg sync.WaitGroup
 	for i := range h {
 		for j := range w {
-			wg.Add(1)
-			go func() {
+			wg.Go(func() {
 				subImg := src.SubImage(image.Rect(i, j, i+1, j+1)).(*ebiten.Image)
 				var p vector.Path
 				p.MoveTo(0, 0)
@@ -361,8 +360,7 @@ func TestRaceConditionWithSubImage(t *testing.T) {
 				vector.FillPath(subImg, &p, nil, op)
 				dst := ebiten.NewImage(w, h)
 				dst.DrawImage(subImg, nil)
-				wg.Done()
-			}()
+			})
 		}
 	}
 	wg.Wait()

@@ -103,8 +103,8 @@ func (g *Game) Update() error {
 	// Change the text color for each second.
 	if g.counter%ebiten.TPS() == 0 {
 		g.kanjiText = ""
-		for j := 0; j < 6; j++ {
-			for i := 0; i < 12; i++ {
+		for range 6 {
+			for range 12 {
 				g.kanjiText += string(jaKanjis[rand.IntN(len(jaKanjis))])
 			}
 			g.kanjiText += "\n"

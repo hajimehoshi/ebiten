@@ -102,8 +102,8 @@ func drawNinePatches(dst *ebiten.Image, dstRect image.Rectangle, srcRect image.R
 	dstH := dstRect.Dy()
 
 	op := &ebiten.DrawImageOptions{}
-	for j := 0; j < 3; j++ {
-		for i := 0; i < 3; i++ {
+	for j := range 3 {
+		for i := range 3 {
 			op.GeoM.Reset()
 
 			sx := srcX
@@ -254,13 +254,7 @@ func (v *VScrollBar) Update(contentHeight int) {
 	if v.dragging {
 		if ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
 			_, y := ebiten.CursorPosition()
-			v.thumbOffset = v.draggingStartOffset + (y - v.draggingStartY)
-			if v.thumbOffset < 0 {
-				v.thumbOffset = 0
-			}
-			if v.thumbOffset > v.maxThumbOffset() {
-				v.thumbOffset = v.maxThumbOffset()
-			}
+			v.thumbOffset = min(max(v.draggingStartOffset+(y-v.draggingStartY), 0), v.maxThumbOffset())
 		} else {
 			v.dragging = false
 		}

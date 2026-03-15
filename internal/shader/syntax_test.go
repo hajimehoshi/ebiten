@@ -1300,12 +1300,12 @@ func TestSyntaxOperatorMultiply(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		_, err := compileToIR([]byte(fmt.Sprintf(`package main
+		_, err := compileToIR(fmt.Appendf(nil, `package main
 
 func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 	%s
 	return dstPos
-}`, c.stmt)))
+}`, c.stmt))
 		if err == nil && c.err {
 			t.Errorf("%s must return an error but does not", c.stmt)
 		} else if err != nil && !c.err {
@@ -1382,12 +1382,12 @@ func TestSyntaxOperatorShift(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		_, err := compileToIR([]byte(fmt.Sprintf(`package main
+		_, err := compileToIR(fmt.Appendf(nil, `package main
 
 func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 	%s
 	return dstPos
-}`, c.stmt)))
+}`, c.stmt))
 		if err == nil && c.err {
 			t.Errorf("%s must return an error but does not", c.stmt)
 		} else if err != nil && !c.err {
@@ -1463,12 +1463,12 @@ func TestSyntaxOperatorShiftAssign(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		_, err := compileToIR([]byte(fmt.Sprintf(`package main
+		_, err := compileToIR(fmt.Appendf(nil, `package main
 
 func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 	%s
 	return dstPos
-}`, c.stmt)))
+}`, c.stmt))
 		if err == nil && c.err {
 			t.Errorf("%s must return an error but does not", c.stmt)
 		} else if err != nil && !c.err {
@@ -1585,12 +1585,12 @@ func TestSyntaxOperatorMultiplyAssign(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		_, err := compileToIR([]byte(fmt.Sprintf(`package main
+		_, err := compileToIR(fmt.Appendf(nil, `package main
 
 func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 	%s
 	return dstPos
-}`, c.stmt)))
+}`, c.stmt))
 		if err == nil && c.err {
 			t.Errorf("%s must return an error but does not", c.stmt)
 		} else if err != nil && !c.err {
@@ -1691,12 +1691,12 @@ func TestSyntaxBitwiseOperatorAssign(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		_, err := compileToIR([]byte(fmt.Sprintf(`package main
+		_, err := compileToIR(fmt.Appendf(nil, `package main
 
 func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 	%s
 	return dstPos
-}`, c.stmt)))
+}`, c.stmt))
 		if err == nil && c.err {
 			t.Errorf("%s must return an error but does not", c.stmt)
 		} else if err != nil && !c.err {
@@ -1720,12 +1720,12 @@ func TestSyntaxAtan(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		_, err := compileToIR([]byte(fmt.Sprintf(`package main
+		_, err := compileToIR(fmt.Appendf(nil, `package main
 
 func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 	%s
 	return dstPos
-}`, c.stmt)))
+}`, c.stmt))
 		if err == nil && c.err {
 			t.Errorf("%s must return an error but does not", c.stmt)
 		} else if err != nil && !c.err {
@@ -2187,12 +2187,12 @@ func TestSyntaxConstructorFuncType(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		_, err := compileToIR([]byte(fmt.Sprintf(`package main
+		_, err := compileToIR(fmt.Appendf(nil, `package main
 
 func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 	%s
 	return dstPos
-}`, c.stmt)))
+}`, c.stmt))
 		if err == nil && c.err {
 			t.Errorf("%s must return an error but does not", c.stmt)
 		} else if err != nil && !c.err {

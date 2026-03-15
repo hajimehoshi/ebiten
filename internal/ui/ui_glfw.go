@@ -326,7 +326,7 @@ func (u *UserInterface) setWindowMonitor(monitor *Monitor) error {
 		// Just after exiting fullscreen, the window state seems very unstable (#2758).
 		// Wait for a while with polling events.
 		if runtime.GOOS == "darwin" {
-			for i := 0; i < 60; i++ {
+			for range 60 {
 				if err := glfw.PollEvents(); err != nil {
 					return err
 				}

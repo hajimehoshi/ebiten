@@ -20,6 +20,7 @@ import (
 	"image/color"
 	"log"
 	"math"
+	"strings"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/colorm"
@@ -130,11 +131,12 @@ func (g *Game) paint(canvas *ebiten.Image, x, y int) {
 func (g *Game) Draw(screen *ebiten.Image) {
 	screen.DrawImage(g.canvasImage, nil)
 
-	msg := fmt.Sprintf("(%d, %d)", g.cursor.x, g.cursor.y)
+	var msg strings.Builder
+	msg.WriteString(fmt.Sprintf("(%d, %d)", g.cursor.x, g.cursor.y))
 	for _, t := range g.touches {
-		msg += fmt.Sprintf("\n(%d, %d) touch %d", t.pos.x, t.pos.y, t.id)
+		msg.WriteString(fmt.Sprintf("\n(%d, %d) touch %d", t.pos.x, t.pos.y, t.id))
 	}
-	ebitenutil.DebugPrint(screen, msg)
+	ebitenutil.DebugPrint(screen, msg.String())
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {

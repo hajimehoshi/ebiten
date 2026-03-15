@@ -309,7 +309,7 @@ func isValidJavaPackageName(name string) bool {
 		return false
 	}
 	// A Java package name consists of one or more Java identifiers separated by dots.
-	for _, token := range strings.Split(name, ".") {
+	for token := range strings.SplitSeq(name, ".") {
 		if !isValidJavaIdentifier(token) {
 			return false
 		}

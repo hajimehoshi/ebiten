@@ -29,10 +29,8 @@ func (s *imageSmallSet) add(image *Image) {
 	if image == nil {
 		panic("atlas: nil image cannot be added")
 	}
-	for _, img := range s.s {
-		if img == image {
-			return
-		}
+	if slices.Contains(s.s, image) {
+		return
 	}
 	s.s = append(s.s, image)
 }

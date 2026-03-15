@@ -39,8 +39,8 @@ func TestTextColor(t *testing.T) {
 
 	w, h := img.Bounds().Dx(), img.Bounds().Dy()
 	allTransparent := true
-	for j := 0; j < h; j++ {
-		for i := 0; i < w; i++ {
+	for j := range h {
+		for i := range w {
 			got := img.At(i, j)
 			want1 := color.RGBA{R: 0x80, G: 0x80, B: 0x80, A: 0x80}
 			want2 := color.RGBA{}
@@ -125,8 +125,8 @@ func TestNegativeKern(t *testing.T) {
 	// With testFace, 'b' is rendered at the previous position as 0xff.
 	// 'a' is rendered at the current position as 0x80.
 	text.Draw(dst, "ab", f, 0, 0, color.White)
-	for j := 0; j < testFaceSize; j++ {
-		for i := 0; i < testFaceSize; i++ {
+	for j := range testFaceSize {
+		for i := range testFaceSize {
 			got := dst.At(i, j)
 			want := color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff}
 			if got != want {
@@ -137,7 +137,7 @@ func TestNegativeKern(t *testing.T) {
 
 	// The glyph 'a' should be treated correctly.
 	text.Draw(dst, "a", f, testFaceSize, 0, color.White)
-	for j := 0; j < testFaceSize; j++ {
+	for j := range testFaceSize {
 		for i := testFaceSize; i < testFaceSize*2; i++ {
 			got := dst.At(i, j)
 			want := color.RGBA{R: 0x80, G: 0x80, B: 0x80, A: 0x80}

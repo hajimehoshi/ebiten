@@ -31,7 +31,7 @@ var imageImportCheckAnalyzer = &analysis.Analyzer{
 	Name:       "imageimportcheck",
 	Doc:        "check importing image/gif, image/jpeg, and image/png packages",
 	Run:        runImageImportCheck,
-	ResultType: reflect.TypeOf(imageImportCheckResult{}),
+	ResultType: reflect.TypeFor[imageImportCheckResult](),
 }
 
 type imageImportCheckResult struct {

@@ -209,10 +209,7 @@ func (i *InfiniteLoop) Read(b []byte) (int, error) {
 	// Read the afterLoop part if necessary.
 	if i.pos == i.length() && err == nil {
 		if i.afterLoop == nil {
-			buflen := int64(256 * i.bytesPerSample)
-			if buflen > i.length() {
-				buflen = i.length()
-			}
+			buflen := min(int64(256*i.bytesPerSample), i.length())
 
 			buf := make([]byte, buflen)
 			pos := 0

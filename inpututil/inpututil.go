@@ -16,6 +16,7 @@
 package inpututil
 
 import (
+	"maps"
 	"slices"
 	"sync"
 
@@ -71,9 +72,7 @@ func (i *inputState) update() {
 
 	// Copy the gamepad states.
 	clear(i.prevGamepadStates)
-	for id, s := range i.gamepadStates {
-		i.prevGamepadStates[id] = s
-	}
+	maps.Copy(i.prevGamepadStates, i.gamepadStates)
 
 	i.gamepadIDsBuf = ebiten.AppendGamepadIDs(i.gamepadIDsBuf[:0])
 	for _, id := range i.gamepadIDsBuf {
@@ -109,9 +108,7 @@ func (i *inputState) update() {
 
 	// Copy the touch durations and positions.
 	clear(i.prevTouchStates)
-	for id, state := range i.touchStates {
-		i.prevTouchStates[id] = state
-	}
+	maps.Copy(i.prevTouchStates, i.touchStates)
 
 	i.touchIDsBuf = ebiten.AppendTouchIDs(i.touchIDsBuf[:0])
 	for _, id := range i.touchIDsBuf {

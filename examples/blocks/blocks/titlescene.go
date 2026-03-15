@@ -19,6 +19,7 @@ import (
 	"image"
 	"image/color"
 	_ "image/png"
+	"slices"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	rblocks "github.com/hajimehoshi/ebiten/v2/examples/resources/images/blocks"
@@ -45,12 +46,7 @@ func anyGamepadVirtualButtonJustPressed(i *Input) bool {
 		return false
 	}
 
-	for _, b := range virtualGamepadButtons {
-		if i.gamepadConfig.IsButtonJustPressed(b) {
-			return true
-		}
-	}
-	return false
+	return slices.ContainsFunc(virtualGamepadButtons, i.gamepadConfig.IsButtonJustPressed)
 }
 
 func (s *TitleScene) Update(state *GameState) error {

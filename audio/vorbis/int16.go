@@ -64,7 +64,7 @@ func (r *int16BytesReader) Read(buf []byte) (int, error) {
 	if len(buf) == 1 && n > 0 {
 		b = make([]byte, 2)
 	}
-	for i := 0; i < n; i++ {
+	for i := range n {
 		f := r.fbuf[i]
 		s := int16(f * (1<<15 - 1))
 		b[2*i] = byte(s)

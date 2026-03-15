@@ -399,8 +399,8 @@ func TestNewImageFromSubImage(t *testing.T) {
 	if h2 != sh {
 		t.Errorf("eimg Width: got %v; want %v", h2, sh)
 	}
-	for j := 0; j < h2; j++ {
-		for i := 0; i < w2; i++ {
+	for j := range h2 {
+		for i := range w2 {
 			got := eimg.At(i, j)
 			want := color.RGBAModel.Convert(img.At(i+1, j+1))
 			if got != want {
@@ -495,7 +495,7 @@ func TestImageEdge(t *testing.T) {
 	transparent := color.RGBA{}
 
 	angles := []float64{}
-	for a := 0; a < 1440; a++ {
+	for a := range 1440 {
 		angles = append(angles, float64(a)/1440*2*math.Pi)
 	}
 	for a := 0; a < 4096; a += 3 {
@@ -573,8 +573,8 @@ func TestImageEdge(t *testing.T) {
 						img1.DrawTriangles(vs, is, img0, op)
 					}
 					allTransparent := true
-					for j := 0; j < img1Height; j++ {
-						for i := 0; i < img1Width; i++ {
+					for j := range img1Height {
+						for i := range img1Width {
 							c := img1.At(i, j)
 							if c == transparent {
 								continue
@@ -2447,7 +2447,7 @@ func TestImageColorMCopy(t *testing.T) {
 	dst := ebiten.NewImage(w, h)
 	src := ebiten.NewImage(w, h)
 
-	for k := 0; k < 256; k++ {
+	for k := range 256 {
 		op := &ebiten.DrawImageOptions{}
 		op.ColorM.Translate(1, 1, 1, float64(k)/0xff)
 		op.Blend = ebiten.BlendCopy
@@ -4819,27 +4819,23 @@ func TestSubImageRaceConditionWithFill(t *testing.T) {
 	subImages := make(chan *ebiten.Image)
 
 	var wg sync.WaitGroup
-	wg.Add(1)
 	// Create a goroutine to create sub-images.
-	go func() {
-		for i := 0; i < h; i++ {
-			for j := 0; j < w; j++ {
+	wg.Go(func() {
+		for i := range h {
+			for j := range w {
 				subImages <- img.SubImage(image.Rect(i, j, i+1, j+1)).(*ebiten.Image)
 			}
 		}
 		close(subImages)
-		wg.Done()
-	}()
+	})
 
 	// Create goroutines to use the sub-images.
 	for img := range subImages {
-		wg.Add(1)
-		go func() {
-			for j := 0; j < 1000; j++ {
+		wg.Go(func() {
+			for range 1000 {
 				img.Fill(color.RGBA{0xff, 0xff, 0xff, 0xff})
 			}
-			wg.Done()
-		}()
+		})
 	}
 	wg.Wait()
 }
@@ -4851,27 +4847,23 @@ func TestSubImageRaceConditionWithSubImage(t *testing.T) {
 	subImages := make(chan *ebiten.Image)
 
 	var wg sync.WaitGroup
-	wg.Add(1)
 	// Create a goroutine to create sub-images.
-	go func() {
-		for i := 0; i < h; i++ {
-			for j := 0; j < w; j++ {
+	wg.Go(func() {
+		for i := range h {
+			for j := range w {
 				subImages <- img.SubImage(image.Rect(i, j, i+1, j+1)).(*ebiten.Image)
 			}
 		}
 		close(subImages)
-		wg.Done()
-	}()
+	})
 
 	// Create goroutines to use the sub-images.
 	for img := range subImages {
-		wg.Add(1)
-		go func() {
-			for j := 0; j < 1000; j++ {
+		wg.Go(func() {
+			for range 1000 {
 				img.SubImage(img.Bounds())
 			}
-			wg.Done()
-		}()
+		})
 	}
 	wg.Wait()
 }

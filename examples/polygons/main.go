@@ -47,7 +47,7 @@ func genVertices(num int) []ebiten.Vertex {
 	)
 
 	vs := []ebiten.Vertex{}
-	for i := 0; i < num; i++ {
+	for i := range num {
 		rate := float64(i) / float64(num)
 		cr := 0.0
 		cg := 0.0

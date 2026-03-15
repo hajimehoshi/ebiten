@@ -124,7 +124,7 @@ func (c *gamepadConfig) initializeIfNeeded() {
 	if c.defaultAxesValues == nil {
 		c.defaultAxesValues = map[ebiten.GamepadAxisType]float64{}
 		na := ebiten.GamepadAxisType(ebiten.GamepadAxisCount(c.gamepadID))
-		for a := ebiten.GamepadAxisType(0); a < na; a++ {
+		for a := range na {
 			c.defaultAxesValues[a] = ebiten.GamepadAxisValue(c.gamepadID, a)
 		}
 	}
@@ -150,7 +150,7 @@ func (c *gamepadConfig) Scan(b virtualGamepadButton) bool {
 	delete(c.axes, b)
 
 	ebn := ebiten.GamepadButton(ebiten.GamepadButtonCount(c.gamepadID))
-	for eb := ebiten.GamepadButton(0); eb < ebn; eb++ {
+	for eb := range ebn {
 		if _, ok := c.assignedButtons[eb]; ok {
 			continue
 		}
@@ -162,7 +162,7 @@ func (c *gamepadConfig) Scan(b virtualGamepadButton) bool {
 	}
 
 	na := ebiten.GamepadAxisType(ebiten.GamepadAxisCount(c.gamepadID))
-	for a := ebiten.GamepadAxisType(0); a < na; a++ {
+	for a := range na {
 		v := ebiten.GamepadAxisValue(c.gamepadID, a)
 		const delta = 0.25
 
