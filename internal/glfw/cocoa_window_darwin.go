@@ -533,9 +533,6 @@ func registerGLFWClasses() error {
 					}
 					keyCode := uint16(event.Send(selKeyCode))
 					key := translateKey(keyCode)
-					if key == KeyUnknown {
-						return
-					}
 					flags := uintptr(event.Send(selModifierFlags)) & NSEventModifierFlagDeviceIndependentFlagsMask
 					mods := translateFlags(flags)
 
@@ -603,7 +600,12 @@ func registerGLFWClasses() error {
 						}
 					}
 
-					updateWindowSize(window)
+					if int(fbRect.Size.Width) != window.platform.fbWidth ||
+						int(fbRect.Size.Height) != window.platform.fbHeight {
+						window.platform.fbWidth = int(fbRect.Size.Width)
+						window.platform.fbHeight = int(fbRect.Size.Height)
+						window.inputFramebufferSize(int(fbRect.Size.Width), int(fbRect.Size.Height))
+					}
 				},
 			},
 			{
@@ -883,27 +885,26 @@ func registerGLFWClasses() error {
 						uintptr(nsYes), uintptr(fileURLsOnlyKey.ID))
 
 					urls := pasteboard.Send(selReadObjectsForClasses, classes, uintptr(options))
-					if urls == 0 {
-						return false
+					urlCount := 0
+					if urls != 0 {
+						urlCount = int(urls.Send(selCount))
 					}
 
-					urlCount := int(urls.Send(selCount))
-					if urlCount == 0 {
-						return false
-					}
-
-					paths := make([]string, urlCount)
-					for i := range urlCount {
-						url := urls.Send(selObjectAtIndex, i)
-						// Use fileSystemRepresentation instead of path to handle
-						// HFS+ Unicode normalization correctly.
-						fsRep := url.Send(objc.RegisterName("fileSystemRepresentation"))
-						if fsRep != 0 {
-							paths[i] = goStringFromCString(uintptr(fsRep))
+					if urlCount > 0 {
+						paths := make([]string, urlCount)
+						for i := range urlCount {
+							url := urls.Send(selObjectAtIndex, i)
+							// Use fileSystemRepresentation instead of path to handle
+							// HFS+ Unicode normalization correctly.
+							fsRep := url.Send(objc.RegisterName("fileSystemRepresentation"))
+							if fsRep != 0 {
+								paths[i] = goStringFromCString(uintptr(fsRep))
+							}
 						}
+
+						window.inputDrop(paths)
 					}
 
-					window.inputDrop(paths)
 					return true
 				},
 			},
@@ -966,15 +967,6 @@ func updateWindowSize(window *Window) {
 	contentRect := objc.Send[cocoa.NSRect](window.platform.view, selFrame)
 	fbRect := objc.Send[cocoa.NSRect](window.platform.view, selConvertRectToBacking, contentRect)
 
-	width := int(contentRect.Size.Width)
-	height := int(contentRect.Size.Height)
-
-	if width != window.platform.width || height != window.platform.height {
-		window.platform.width = width
-		window.platform.height = height
-		window.inputWindowSize(width, height)
-	}
-
 	fbWidth := int(fbRect.Size.Width)
 	fbHeight := int(fbRect.Size.Height)
 
@@ -982,6 +974,15 @@ func updateWindowSize(window *Window) {
 		window.platform.fbWidth = fbWidth
 		window.platform.fbHeight = fbHeight
 		window.inputFramebufferSize(fbWidth, fbHeight)
+	}
+
+	width := int(contentRect.Size.Width)
+	height := int(contentRect.Size.Height)
+
+	if width != window.platform.width || height != window.platform.height {
+		window.platform.width = width
+		window.platform.height = height
+		window.inputWindowSize(width, height)
 	}
 }
 
@@ -1079,6 +1080,8 @@ func createNativeWindow(window *Window, wndconfig *wndconfig, fbconfig_ *fbconfi
 	window.platform.markedText = objc.ID(classNSMutableAttributedString).Send(selAlloc).Send(objc.RegisterName("init"))
 	nsWindow.Send(selSetContentView, viewID)
 	nsWindow.Send(selMakeFirstResponder, viewID)
+
+	viewID.Send(objc.RegisterName("updateTrackingAreas"))
 
 	// Register for dragged types (URLs).
 	urlType := cocoa.NSString_alloc().InitWithUTF8String("public.url")
@@ -1656,7 +1659,7 @@ func (w *Window) platformGetWindowOpacity() (float32, error) {
 	pool := cocoa.NSAutoreleasePool_new()
 	defer pool.Release()
 
-	return objc.Send[float32](w.platform.object, selAlphaValue), nil
+	return float32(objc.Send[float64](w.platform.object, selAlphaValue)), nil
 }
 
 func (w *Window) platformSetWindowOpacity(opacity float32) error {

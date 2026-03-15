@@ -341,7 +341,7 @@ func getFallbackRefreshRate(displayID uint32) float64 {
 		}
 
 		var index uint32
-		cfNumberGetValue(indexRef, 3 /* kCFNumberIntType */, unsafe.Pointer(&index))
+		cfNumberGetValue(indexRef, kCFNumberIntType, unsafe.Pointer(&index))
 		cfRelease(indexRef)
 
 		if cgOpenGLDisplayMaskToDisplayID(1<<index) != displayID {
@@ -358,11 +358,11 @@ func getFallbackRefreshRate(displayID uint32) float64 {
 
 		var clock, count uint32
 		if clockRef != 0 {
-			cfNumberGetValue(clockRef, 3 /* kCFNumberIntType */, unsafe.Pointer(&clock))
+			cfNumberGetValue(clockRef, kCFNumberIntType, unsafe.Pointer(&clock))
 			cfRelease(clockRef)
 		}
 		if countRef != 0 {
-			cfNumberGetValue(countRef, 3 /* kCFNumberIntType */, unsafe.Pointer(&count))
+			cfNumberGetValue(countRef, kCFNumberIntType, unsafe.Pointer(&count))
 			cfRelease(countRef)
 		}
 
@@ -490,7 +490,6 @@ func getMonitorNameNS(displayID uint32) string {
 			continue
 		}
 
-		const kCFNumberIntType = 9
 		var vendorID, productID uint32
 		cfNumberGetValue(vendorIDRef, kCFNumberIntType, unsafe.Pointer(&vendorID))
 		cfNumberGetValue(productIDRef, kCFNumberIntType, unsafe.Pointer(&productID))
@@ -680,20 +679,18 @@ func (m *Monitor) setVideoModeNS(desired *VidMode) error {
 		}
 	}
 
-	if native == 0 {
-		return fmt.Errorf("glfw: failed to find a suitable video mode: %w", PlatformError)
-	}
+	if native != 0 {
+		if m.platform.previousMode == 0 {
+			m.platform.previousMode = cgDisplayCopyDisplayMode(m.platform.displayID)
+		}
 
-	if m.platform.previousMode == 0 {
-		m.platform.previousMode = cgDisplayCopyDisplayMode(m.platform.displayID)
-	}
+		token, hasFade := beginFadeReservation()
 
-	token, hasFade := beginFadeReservation()
+		cgDisplaySetDisplayMode(m.platform.displayID, native, 0)
 
-	cgDisplaySetDisplayMode(m.platform.displayID, native, 0)
-
-	if hasFade {
-		endFadeReservation(token)
+		if hasFade {
+			endFadeReservation(token)
+		}
 	}
 
 	return nil

@@ -27,6 +27,7 @@ import (
 // CoreFoundation constants.
 const (
 	kCFStringEncodingUTF8 uint32 = 0x08000100
+	kCFNumberIntType             = 9
 )
 
 // NSApplication constants.
