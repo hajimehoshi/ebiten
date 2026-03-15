@@ -19,7 +19,7 @@ var nsScreenNumberKey objc.ID
 
 func init() {
 	classNSString := objc.GetClass("NSString")
-	nsScreenNumberKey = objc.ID(classNSString).Send(sel_alloc)
+	nsScreenNumberKey = objc.ID(classNSString).Send(selAlloc)
 	nsScreenNumberKey = nsScreenNumberKey.Send(objc.RegisterName("initWithUTF8String:"), "NSScreenNumber\x00")
 }
 
@@ -346,23 +346,23 @@ func endFadeReservation(token uint32) {
 // getMonitorNameNS retrieves the name of a monitor.
 // It tries NSScreen.localizedName first (macOS 10.15+), then falls back to IOKit.
 func getMonitorNameNS(displayID uint32) string {
-	screens := objc.ID(class_NSScreen).Send(sel_screens)
-	count := int(screens.Send(sel_count))
+	screens := objc.ID(classNSScreen).Send(selScreens)
+	count := int(screens.Send(selCount))
 	for i := range count {
-		screen := screens.Send(sel_objectAtIndex, i)
-		dict := screen.Send(sel_deviceDescription)
-		screenNum := dict.Send(sel_objectForKey, nsScreenNumberKey)
+		screen := screens.Send(selObjectAtIndex, i)
+		dict := screen.Send(selDeviceDescription)
+		screenNum := dict.Send(selObjectForKey, nsScreenNumberKey)
 		if screenNum == 0 {
 			continue
 		}
-		sid := uint32(screenNum.Send(sel_unsignedIntValue))
+		sid := uint32(screenNum.Send(selUnsignedIntValue))
 		if sid == displayID {
-			if screen.Send(objc.RegisterName("respondsToSelector:"), sel_localizedName) != 0 {
-				nameID := screen.Send(sel_localizedName)
+			if screen.Send(objc.RegisterName("respondsToSelector:"), selLocalizedName) != 0 {
+				nameID := screen.Send(selLocalizedName)
 				if nameID != 0 {
-					length := int(nameID.Send(sel_length))
+					length := int(nameID.Send(selLength))
 					if length > 0 {
-						utf8Ptr := nameID.Send(sel_UTF8String)
+						utf8Ptr := nameID.Send(selUTF8String)
 						if utf8Ptr != 0 {
 							return unsafe.String((*byte)(unsafe.Pointer(utf8Ptr)), length)
 						}
@@ -425,16 +425,16 @@ func cStringToGoString(b []byte) string {
 
 // nsScreenForDisplayID finds the NSScreen (as objc.ID) for a given CGDirectDisplayID.
 func nsScreenForDisplayID(displayID uint32) objc.ID {
-	screens := objc.ID(class_NSScreen).Send(sel_screens)
-	count := int(screens.Send(sel_count))
+	screens := objc.ID(classNSScreen).Send(selScreens)
+	count := int(screens.Send(selCount))
 	for i := range count {
-		screen := screens.Send(sel_objectAtIndex, i)
-		dict := screen.Send(sel_deviceDescription)
-		screenNum := dict.Send(sel_objectForKey, nsScreenNumberKey)
+		screen := screens.Send(selObjectAtIndex, i)
+		dict := screen.Send(selDeviceDescription)
+		screenNum := dict.Send(selObjectForKey, nsScreenNumberKey)
 		if screenNum == 0 {
 			continue
 		}
-		sid := uint32(screenNum.Send(sel_unsignedIntValue))
+		sid := uint32(screenNum.Send(selUnsignedIntValue))
 		if sid == displayID {
 			return screen
 		}
@@ -616,7 +616,7 @@ func (m *Monitor) platformGetMonitorContentScale() (xscale, yscale float32, err 
 		return 1.0, 1.0, nil
 	}
 
-	scale := objc.Send[float64](screen, sel_backingScaleFactor)
+	scale := objc.Send[float64](screen, selBackingScaleFactor)
 	return float32(scale), float32(scale), nil
 }
 
@@ -630,7 +630,7 @@ func (m *Monitor) platformGetMonitorWorkarea() (xpos, ypos, width, height int) {
 		return int(bounds.X), int(bounds.Y), int(bounds.Width), int(bounds.Height)
 	}
 
-	visibleFrame := objc.Send[cgRect](screen, sel_visibleFrame)
+	visibleFrame := objc.Send[cgRect](screen, selVisibleFrame)
 	primaryBounds := cgDisplayBounds(0)
 
 	xpos = int(visibleFrame.X)

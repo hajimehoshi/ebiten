@@ -214,241 +214,241 @@ var (
 
 // ObjC classes (initialized in init after loading AppKit).
 var (
-	class_NSApplication        objc.Class
-	class_NSMenu               objc.Class
-	class_NSMenuItem           objc.Class
-	class_NSEvent              objc.Class
-	class_NSProcessInfo        objc.Class
-	class_NSNotificationCenter objc.Class
-	class_NSBundle             objc.Class
-	class_NSScreen             objc.Class
-	class_NSWindow             objc.Class
-	class_NSView               objc.Class
-	class_NSPasteboard         objc.Class
-	class_NSCursor             objc.Class
-	class_NSImage              objc.Class
-	class_NSBitmapImageRep     objc.Class
-	class_NSTrackingArea       objc.Class
-	class_NSColor              objc.Class
-	class_NSArray              objc.Class
-	class_NSURL                objc.Class
-	class_NSOpenGLPixelFormat  objc.Class
-	class_NSOpenGLContext      objc.Class
+	classNSApplication        objc.Class
+	classNSMenu               objc.Class
+	classNSMenuItem           objc.Class
+	classNSEvent              objc.Class
+	classNSProcessInfo        objc.Class
+	classNSNotificationCenter objc.Class
+	classNSBundle             objc.Class
+	classNSScreen             objc.Class
+	classNSWindow             objc.Class
+	classNSView               objc.Class
+	classNSPasteboard         objc.Class
+	classNSCursor             objc.Class
+	classNSImage              objc.Class
+	classNSBitmapImageRep     objc.Class
+	classNSTrackingArea       objc.Class
+	classNSColor              objc.Class
+	classNSArray              objc.Class
+	classNSURL                objc.Class
+	classNSOpenGLPixelFormat  objc.Class
+	classNSOpenGLContext      objc.Class
 )
 
 // ObjC selectors.
 var (
 	// General
-	sel_alloc   = objc.RegisterName("alloc")
-	sel_init    = objc.RegisterName("init")
-	sel_release = objc.RegisterName("release")
-	sel_retain  = objc.RegisterName("retain")
+	selAlloc   = objc.RegisterName("alloc")
+	selInit    = objc.RegisterName("init")
+	selRelease = objc.RegisterName("release")
+	selRetain  = objc.RegisterName("retain")
 
 	// NSApplication
-	sel_NSApp                                 = objc.RegisterName("sharedApplication")
-	sel_sharedApplication                     = objc.RegisterName("sharedApplication")
-	sel_setActivationPolicy                   = objc.RegisterName("setActivationPolicy:")
-	sel_setMainMenu                           = objc.RegisterName("setMainMenu:")
-	sel_mainMenu                              = objc.RegisterName("mainMenu")
-	sel_setWindowsMenu                        = objc.RegisterName("setWindowsMenu:")
-	sel_setServicesMenu                       = objc.RegisterName("setServicesMenu:")
-	sel_run                                   = objc.RegisterName("run")
-	sel_stop                                  = objc.RegisterName("stop:")
-	sel_nextEventMatchingMask                 = objc.RegisterName("nextEventMatchingMask:untilDate:inMode:dequeue:")
-	sel_sendEvent                             = objc.RegisterName("sendEvent:")
-	sel_updateWindows                         = objc.RegisterName("updateWindows")
-	sel_activateIgnoringOtherApps             = objc.RegisterName("activateIgnoringOtherApps:")
-	sel_postEventAtStart                      = objc.RegisterName("postEvent:atStart:")
-	sel_hide                                  = objc.RegisterName("hide:")
-	sel_unhideAllApplications                 = objc.RegisterName("unhideAllApplications:")
-	sel_hideOtherApplications                 = objc.RegisterName("hideOtherApplications:")
-	sel_terminate                             = objc.RegisterName("terminate:")
-	sel_orderFrontStandardAboutPanel          = objc.RegisterName("orderFrontStandardAboutPanel:")
-	sel_addGlobalMonitorForEventsMatchingMask = objc.RegisterName("addGlobalMonitorForEventsMatchingMask:handler:")
+	selNSApp                                 = objc.RegisterName("sharedApplication")
+	selSharedApplication                     = objc.RegisterName("sharedApplication")
+	selSetActivationPolicy                   = objc.RegisterName("setActivationPolicy:")
+	selSetMainMenu                           = objc.RegisterName("setMainMenu:")
+	selMainMenu                              = objc.RegisterName("mainMenu")
+	selSetWindowsMenu                        = objc.RegisterName("setWindowsMenu:")
+	selSetServicesMenu                       = objc.RegisterName("setServicesMenu:")
+	selRun                                   = objc.RegisterName("run")
+	selStop                                  = objc.RegisterName("stop:")
+	selNextEventMatchingMask                 = objc.RegisterName("nextEventMatchingMask:untilDate:inMode:dequeue:")
+	selSendEvent                             = objc.RegisterName("sendEvent:")
+	selUpdateWindows                         = objc.RegisterName("updateWindows")
+	selActivateIgnoringOtherApps             = objc.RegisterName("activateIgnoringOtherApps:")
+	selPostEventAtStart                      = objc.RegisterName("postEvent:atStart:")
+	selHide                                  = objc.RegisterName("hide:")
+	selUnhideAllApplications                 = objc.RegisterName("unhideAllApplications:")
+	selHideOtherApplications                 = objc.RegisterName("hideOtherApplications:")
+	selTerminate                             = objc.RegisterName("terminate:")
+	selOrderFrontStandardAboutPanel          = objc.RegisterName("orderFrontStandardAboutPanel:")
+	selAddGlobalMonitorForEventsMatchingMask = objc.RegisterName("addGlobalMonitorForEventsMatchingMask:handler:")
 
 	// NSProcessInfo
-	sel_processInfo = objc.RegisterName("processInfo")
-	sel_processName = objc.RegisterName("processName")
+	selProcessInfo = objc.RegisterName("processInfo")
+	selProcessName = objc.RegisterName("processName")
 
 	// NSBundle
-	sel_bundleIdentifier = objc.RegisterName("bundleIdentifier")
-	sel_mainBundle       = objc.RegisterName("mainBundle")
-	sel_infoDictionary   = objc.RegisterName("infoDictionary")
+	selBundleIdentifier = objc.RegisterName("bundleIdentifier")
+	selMainBundle       = objc.RegisterName("mainBundle")
+	selInfoDictionary   = objc.RegisterName("infoDictionary")
 
 	// NSNotificationCenter
-	sel_defaultCenter                 = objc.RegisterName("defaultCenter")
-	sel_addObserverSelectorNameObject = objc.RegisterName("addObserver:selector:name:object:")
+	selDefaultCenter                 = objc.RegisterName("defaultCenter")
+	selAddObserverSelectorNameObject = objc.RegisterName("addObserver:selector:name:object:")
 
 	// NSMenu / NSMenuItem
-	sel_initWithTitle                = objc.RegisterName("initWithTitle:")
-	sel_addItem                      = objc.RegisterName("addItem:")
-	sel_addItemWithTitle             = objc.RegisterName("addItemWithTitle:action:keyEquivalent:")
-	sel_setSubmenu                   = objc.RegisterName("setSubmenu:")
-	sel_separatorItem                = objc.RegisterName("separatorItem")
-	sel_setKeyEquivalentModifierMask = objc.RegisterName("setKeyEquivalentModifierMask:")
+	selInitWithTitle                = objc.RegisterName("initWithTitle:")
+	selAddItem                      = objc.RegisterName("addItem:")
+	selAddItemWithTitle             = objc.RegisterName("addItemWithTitle:action:keyEquivalent:")
+	selSetSubmenu                   = objc.RegisterName("setSubmenu:")
+	selSeparatorItem                = objc.RegisterName("separatorItem")
+	selSetKeyEquivalentModifierMask = objc.RegisterName("setKeyEquivalentModifierMask:")
 
 	// NSEvent type/modifier selectors
-	sel_otherEventWithType          = objc.RegisterName("otherEventWithType:location:modifierFlags:timestamp:windowNumber:context:subtype:data1:data2:")
-	sel_type                        = objc.RegisterName("type")
-	sel_modifierFlags               = objc.RegisterName("modifierFlags")
-	sel_keyCode                     = objc.RegisterName("keyCode")
-	sel_characters                  = objc.RegisterName("characters")
-	sel_charactersIgnoringModifiers = objc.RegisterName("charactersIgnoringModifiers")
-	sel_locationInWindow            = objc.RegisterName("locationInWindow")
-	sel_scrollingDeltaX             = objc.RegisterName("scrollingDeltaX")
-	sel_scrollingDeltaY             = objc.RegisterName("scrollingDeltaY")
-	sel_hasPreciseScrollingDeltas   = objc.RegisterName("hasPreciseScrollingDeltas")
-	sel_buttonNumber                = objc.RegisterName("buttonNumber")
-	sel_deltaX                      = objc.RegisterName("deltaX")
-	sel_deltaY                      = objc.RegisterName("deltaY")
+	selOtherEventWithType          = objc.RegisterName("otherEventWithType:location:modifierFlags:timestamp:windowNumber:context:subtype:data1:data2:")
+	selType                        = objc.RegisterName("type")
+	selModifierFlags               = objc.RegisterName("modifierFlags")
+	selKeyCode                     = objc.RegisterName("keyCode")
+	selCharacters                  = objc.RegisterName("characters")
+	selCharactersIgnoringModifiers = objc.RegisterName("charactersIgnoringModifiers")
+	selLocationInWindow            = objc.RegisterName("locationInWindow")
+	selScrollingDeltaX             = objc.RegisterName("scrollingDeltaX")
+	selScrollingDeltaY             = objc.RegisterName("scrollingDeltaY")
+	selHasPreciseScrollingDeltas   = objc.RegisterName("hasPreciseScrollingDeltas")
+	selButtonNumber                = objc.RegisterName("buttonNumber")
+	selDeltaX                      = objc.RegisterName("deltaX")
+	selDeltaY                      = objc.RegisterName("deltaY")
 
 	// NSWindow selectors
-	sel_setTitle                = objc.RegisterName("setTitle:")
-	sel_setContentSize          = objc.RegisterName("setContentSize:")
-	sel_setFrameOrigin          = objc.RegisterName("setFrameOrigin:")
-	sel_makeKeyAndOrderFront    = objc.RegisterName("makeKeyAndOrderFront:")
-	sel_orderOut                = objc.RegisterName("orderOut:")
-	sel_miniaturize             = objc.RegisterName("miniaturize:")
-	sel_deminiaturize           = objc.RegisterName("deminiaturize:")
-	sel_zoom                    = objc.RegisterName("zoom:")
-	sel_toggleFullScreen        = objc.RegisterName("toggleFullScreen:")
-	sel_setOpaque               = objc.RegisterName("setOpaque:")
-	sel_setHasShadow            = objc.RegisterName("setHasShadow:")
-	sel_setBackgroundColor      = objc.RegisterName("setBackgroundColor:")
-	sel_setLevel                = objc.RegisterName("setLevel:")
-	sel_level                   = objc.RegisterName("level")
-	sel_setContentView          = objc.RegisterName("setContentView:")
-	sel_contentView             = objc.RegisterName("contentView")
-	sel_setDelegate             = objc.RegisterName("setDelegate:")
-	sel_delegate                = objc.RegisterName("delegate")
-	sel_isKeyWindow             = objc.RegisterName("isKeyWindow")
-	sel_isMiniaturized          = objc.RegisterName("isMiniaturized")
-	sel_isVisible               = objc.RegisterName("isVisible")
-	sel_isZoomed                = objc.RegisterName("isZoomed")
-	sel_setMinSize              = objc.RegisterName("setMinSize:")
-	sel_setMaxSize              = objc.RegisterName("setMaxSize:")
-	sel_setContentAspectRatio   = objc.RegisterName("setContentAspectRatio:")
-	sel_setRestorable           = objc.RegisterName("setRestorable:")
-	sel_setCollectionBehavior   = objc.RegisterName("setCollectionBehavior:")
-	sel_setIgnoresMouseEvents   = objc.RegisterName("setIgnoresMouseEvents:")
-	sel_alphaValue              = objc.RegisterName("alphaValue")
-	sel_setAlphaValue           = objc.RegisterName("setAlphaValue:")
-	sel_occlusionState          = objc.RegisterName("occlusionState")
-	sel_windowNumber            = objc.RegisterName("windowNumber")
-	sel_convertRectToBacking    = objc.RegisterName("convertRectToBacking:")
-	sel_convertRectFromBacking  = objc.RegisterName("convertRectFromBacking:")
-	sel_convertPointToBacking   = objc.RegisterName("convertPointToBacking:")
-	sel_convertPointFromBacking = objc.RegisterName("convertPointFromBacking:")
-	sel_initWithContentRect     = objc.RegisterName("initWithContentRect:styleMask:backing:defer:")
-	sel_contentRectForFrameRect = objc.RegisterName("contentRectForFrameRect:")
-	sel_frameRectForContentRect = objc.RegisterName("frameRectForContentRect:")
-	sel_requestUserAttention    = objc.RegisterName("requestUserAttention:")
-	sel_arrangeInFront          = objc.RegisterName("arrangeInFront:")
+	selSetTitle                = objc.RegisterName("setTitle:")
+	selSetContentSize          = objc.RegisterName("setContentSize:")
+	selSetFrameOrigin          = objc.RegisterName("setFrameOrigin:")
+	selMakeKeyAndOrderFront    = objc.RegisterName("makeKeyAndOrderFront:")
+	selOrderOut                = objc.RegisterName("orderOut:")
+	selMiniaturize             = objc.RegisterName("miniaturize:")
+	selDeminiaturize           = objc.RegisterName("deminiaturize:")
+	selZoom                    = objc.RegisterName("zoom:")
+	selToggleFullScreen        = objc.RegisterName("toggleFullScreen:")
+	selSetOpaque               = objc.RegisterName("setOpaque:")
+	selSetHasShadow            = objc.RegisterName("setHasShadow:")
+	selSetBackgroundColor      = objc.RegisterName("setBackgroundColor:")
+	selSetLevel                = objc.RegisterName("setLevel:")
+	selLevel                   = objc.RegisterName("level")
+	selSetContentView          = objc.RegisterName("setContentView:")
+	selContentView             = objc.RegisterName("contentView")
+	selSetDelegate             = objc.RegisterName("setDelegate:")
+	selDelegate                = objc.RegisterName("delegate")
+	selIsKeyWindow             = objc.RegisterName("isKeyWindow")
+	selIsMiniaturized          = objc.RegisterName("isMiniaturized")
+	selIsVisible               = objc.RegisterName("isVisible")
+	selIsZoomed                = objc.RegisterName("isZoomed")
+	selSetMinSize              = objc.RegisterName("setMinSize:")
+	selSetMaxSize              = objc.RegisterName("setMaxSize:")
+	selSetContentAspectRatio   = objc.RegisterName("setContentAspectRatio:")
+	selSetRestorable           = objc.RegisterName("setRestorable:")
+	selSetCollectionBehavior   = objc.RegisterName("setCollectionBehavior:")
+	selSetIgnoresMouseEvents   = objc.RegisterName("setIgnoresMouseEvents:")
+	selAlphaValue              = objc.RegisterName("alphaValue")
+	selSetAlphaValue           = objc.RegisterName("setAlphaValue:")
+	selOcclusionState          = objc.RegisterName("occlusionState")
+	selWindowNumber            = objc.RegisterName("windowNumber")
+	selConvertRectToBacking    = objc.RegisterName("convertRectToBacking:")
+	selConvertRectFromBacking  = objc.RegisterName("convertRectFromBacking:")
+	selConvertPointToBacking   = objc.RegisterName("convertPointToBacking:")
+	selConvertPointFromBacking = objc.RegisterName("convertPointFromBacking:")
+	selInitWithContentRect     = objc.RegisterName("initWithContentRect:styleMask:backing:defer:")
+	selContentRectForFrameRect = objc.RegisterName("contentRectForFrameRect:")
+	selFrameRectForContentRect = objc.RegisterName("frameRectForContentRect:")
+	selRequestUserAttention    = objc.RegisterName("requestUserAttention:")
+	selArrangeInFront          = objc.RegisterName("arrangeInFront:")
 
 	// NSView selectors
-	sel_frame              = objc.RegisterName("frame")
-	sel_bounds             = objc.RegisterName("bounds")
-	sel_window             = objc.RegisterName("window")
-	sel_addTrackingArea    = objc.RegisterName("addTrackingArea:")
-	sel_removeTrackingArea = objc.RegisterName("removeTrackingArea:")
-	sel_trackingAreas      = objc.RegisterName("trackingAreas")
-	sel_setNeedsDisplay    = objc.RegisterName("setNeedsDisplay:")
+	selFrame              = objc.RegisterName("frame")
+	selBounds             = objc.RegisterName("bounds")
+	selWindow             = objc.RegisterName("window")
+	selAddTrackingArea    = objc.RegisterName("addTrackingArea:")
+	selRemoveTrackingArea = objc.RegisterName("removeTrackingArea:")
+	selTrackingAreas      = objc.RegisterName("trackingAreas")
+	selSetNeedsDisplay    = objc.RegisterName("setNeedsDisplay:")
 
 	// NSScreen selectors
-	sel_screens            = objc.RegisterName("screens")
-	sel_mainScreen         = objc.RegisterName("mainScreen")
-	sel_screen             = objc.RegisterName("screen")
-	sel_deviceDescription  = objc.RegisterName("deviceDescription")
-	sel_backingScaleFactor = objc.RegisterName("backingScaleFactor")
-	sel_visibleFrame       = objc.RegisterName("visibleFrame")
+	selScreens            = objc.RegisterName("screens")
+	selMainScreen         = objc.RegisterName("mainScreen")
+	selScreen             = objc.RegisterName("screen")
+	selDeviceDescription  = objc.RegisterName("deviceDescription")
+	selBackingScaleFactor = objc.RegisterName("backingScaleFactor")
+	selVisibleFrame       = objc.RegisterName("visibleFrame")
 
 	// NSPasteboard selectors
-	sel_generalPasteboard = objc.RegisterName("generalPasteboard")
-	sel_declareTypes      = objc.RegisterName("declareTypes:owner:")
-	sel_setStringForType  = objc.RegisterName("setString:forType:")
-	sel_stringForType     = objc.RegisterName("stringForType:")
+	selGeneralPasteboard = objc.RegisterName("generalPasteboard")
+	selDeclareTypes      = objc.RegisterName("declareTypes:owner:")
+	selSetStringForType  = objc.RegisterName("setString:forType:")
+	selStringForType     = objc.RegisterName("stringForType:")
 
 	// NSCursor selectors
-	sel_arrowCursor               = objc.RegisterName("arrowCursor")
-	sel_IBeamCursor               = objc.RegisterName("IBeamCursor")
-	sel_crosshairCursor           = objc.RegisterName("crosshairCursor")
-	sel_closedHandCursor          = objc.RegisterName("closedHandCursor")
-	sel_openHandCursor            = objc.RegisterName("openHandCursor")
-	sel_pointingHandCursor        = objc.RegisterName("pointingHandCursor")
-	sel_resizeLeftCursor          = objc.RegisterName("resizeLeftCursor")
-	sel_resizeRightCursor         = objc.RegisterName("resizeRightCursor")
-	sel_resizeLeftRightCursor     = objc.RegisterName("resizeLeftRightCursor")
-	sel_resizeUpCursor            = objc.RegisterName("resizeUpCursor")
-	sel_resizeDownCursor          = objc.RegisterName("resizeDownCursor")
-	sel_resizeUpDownCursor        = objc.RegisterName("resizeUpDownCursor")
-	sel_operationNotAllowedCursor = objc.RegisterName("operationNotAllowedCursor")
-	sel_set_cursor                = objc.RegisterName("set")
-	sel_hide_cursor               = objc.RegisterName("hide")
-	sel_unhide_cursor             = objc.RegisterName("unhide")
+	selArrowCursor               = objc.RegisterName("arrowCursor")
+	selIBeamCursor               = objc.RegisterName("IBeamCursor")
+	selCrosshairCursor           = objc.RegisterName("crosshairCursor")
+	selClosedHandCursor          = objc.RegisterName("closedHandCursor")
+	selOpenHandCursor            = objc.RegisterName("openHandCursor")
+	selPointingHandCursor        = objc.RegisterName("pointingHandCursor")
+	selResizeLeftCursor          = objc.RegisterName("resizeLeftCursor")
+	selResizeRightCursor         = objc.RegisterName("resizeRightCursor")
+	selResizeLeftRightCursor     = objc.RegisterName("resizeLeftRightCursor")
+	selResizeUpCursor            = objc.RegisterName("resizeUpCursor")
+	selResizeDownCursor          = objc.RegisterName("resizeDownCursor")
+	selResizeUpDownCursor        = objc.RegisterName("resizeUpDownCursor")
+	selOperationNotAllowedCursor = objc.RegisterName("operationNotAllowedCursor")
+	selSetCursor                 = objc.RegisterName("set")
+	selHideCursor                = objc.RegisterName("hide")
+	selUnhideCursor              = objc.RegisterName("unhide")
 
 	// NSImage / NSBitmapImageRep selectors
-	sel_initWithSize             = objc.RegisterName("initWithSize:")
-	sel_addRepresentation        = objc.RegisterName("addRepresentation:")
-	sel_initWithBitmapDataPlanes = objc.RegisterName("initWithBitmapDataPlanes:pixelsWide:pixelsHigh:bitsPerSample:samplesPerPixel:hasAlpha:isPlanar:colorSpaceName:bitmapFormat:bytesPerRow:bitsPerPixel:")
-	sel_bitmapData               = objc.RegisterName("bitmapData")
+	selInitWithSize             = objc.RegisterName("initWithSize:")
+	selAddRepresentation        = objc.RegisterName("addRepresentation:")
+	selInitWithBitmapDataPlanes = objc.RegisterName("initWithBitmapDataPlanes:pixelsWide:pixelsHigh:bitsPerSample:samplesPerPixel:hasAlpha:isPlanar:colorSpaceName:bitmapFormat:bytesPerRow:bitsPerPixel:")
+	selBitmapData               = objc.RegisterName("bitmapData")
 
 	// NSTrackingArea selectors
-	sel_initWithRect_options_owner_userInfo = objc.RegisterName("initWithRect:options:owner:userInfo:")
+	selInitWithRectOptionsOwnerUserInfo = objc.RegisterName("initWithRect:options:owner:userInfo:")
 
 	// NSColor selectors
-	sel_clearColor = objc.RegisterName("clearColor")
+	selClearColor = objc.RegisterName("clearColor")
 
 	// NSArray selectors
-	sel_arrayWithObject  = objc.RegisterName("arrayWithObject:")
-	sel_count            = objc.RegisterName("count")
-	sel_objectAtIndex    = objc.RegisterName("objectAtIndex:")
-	sel_objectForKey     = objc.RegisterName("objectForKey:")
-	sel_unsignedIntValue = objc.RegisterName("unsignedIntValue")
-	sel_localizedName    = objc.RegisterName("localizedName")
-	sel_UTF8String       = objc.RegisterName("UTF8String")
-	sel_length           = objc.RegisterName("length")
+	selArrayWithObject  = objc.RegisterName("arrayWithObject:")
+	selCount            = objc.RegisterName("count")
+	selObjectAtIndex    = objc.RegisterName("objectAtIndex:")
+	selObjectForKey     = objc.RegisterName("objectForKey:")
+	selUnsignedIntValue = objc.RegisterName("unsignedIntValue")
+	selLocalizedName    = objc.RegisterName("localizedName")
+	selUTF8String       = objc.RegisterName("UTF8String")
+	selLength           = objc.RegisterName("length")
 
 	// NSURL selectors
-	sel_path = objc.RegisterName("path")
+	selPath = objc.RegisterName("path")
 
 	// Drag and drop selectors
-	sel_draggingPasteboard      = objc.RegisterName("draggingPasteboard")
-	sel_readObjectsForClasses   = objc.RegisterName("readObjectsForClasses:options:")
-	sel_registerForDraggedTypes = objc.RegisterName("registerForDraggedTypes:")
+	selDraggingPasteboard      = objc.RegisterName("draggingPasteboard")
+	selReadObjectsForClasses   = objc.RegisterName("readObjectsForClasses:options:")
+	selRegisterForDraggedTypes = objc.RegisterName("registerForDraggedTypes:")
 
 	// Text input selectors
-	sel_interpretKeyEvents                  = objc.RegisterName("interpretKeyEvents:")
-	sel_hasMarkedText                       = objc.RegisterName("hasMarkedText")
-	sel_markedRange                         = objc.RegisterName("markedRange")
-	sel_selectedRange                       = objc.RegisterName("selectedRange")
-	sel_setMarkedText                       = objc.RegisterName("setMarkedText:selectedRange:replacementRange:")
-	sel_unmarkText                          = objc.RegisterName("unmarkText")
-	sel_validAttributesForMarkedText        = objc.RegisterName("validAttributesForMarkedText")
-	sel_attributedSubstringForProposedRange = objc.RegisterName("attributedSubstringForProposedRange:actualRange:")
-	sel_insertText                          = objc.RegisterName("insertText:replacementRange:")
-	sel_characterIndexForPoint              = objc.RegisterName("characterIndexForPoint:")
-	sel_firstRectForCharacterRange          = objc.RegisterName("firstRectForCharacterRange:actualRange:")
-	sel_doCommandBySelector                 = objc.RegisterName("doCommandBySelector:")
+	selInterpretKeyEvents                  = objc.RegisterName("interpretKeyEvents:")
+	selHasMarkedText                       = objc.RegisterName("hasMarkedText")
+	selMarkedRange                         = objc.RegisterName("markedRange")
+	selSelectedRange                       = objc.RegisterName("selectedRange")
+	selSetMarkedText                       = objc.RegisterName("setMarkedText:selectedRange:replacementRange:")
+	selUnmarkText                          = objc.RegisterName("unmarkText")
+	selValidAttributesForMarkedText        = objc.RegisterName("validAttributesForMarkedText")
+	selAttributedSubstringForProposedRange = objc.RegisterName("attributedSubstringForProposedRange:actualRange:")
+	selInsertText                          = objc.RegisterName("insertText:replacementRange:")
+	selCharacterIndexForPoint              = objc.RegisterName("characterIndexForPoint:")
+	selFirstRectForCharacterRange          = objc.RegisterName("firstRectForCharacterRange:actualRange:")
+	selDoCommandBySelector                 = objc.RegisterName("doCommandBySelector:")
 
 	// GLFWApplicationDelegate selectors
-	sel_selectedKeyboardInputSourceChanged   = objc.RegisterName("selectedKeyboardInputSourceChanged:")
-	sel_applicationShouldTerminate           = objc.RegisterName("applicationShouldTerminate:")
-	sel_applicationDidChangeScreenParameters = objc.RegisterName("applicationDidChangeScreenParameters:")
-	sel_applicationWillFinishLaunching       = objc.RegisterName("applicationWillFinishLaunching:")
-	sel_applicationDidFinishLaunching        = objc.RegisterName("applicationDidFinishLaunching:")
-	sel_applicationDidHide                   = objc.RegisterName("applicationDidHide:")
+	selSelectedKeyboardInputSourceChanged   = objc.RegisterName("selectedKeyboardInputSourceChanged:")
+	selApplicationShouldTerminate           = objc.RegisterName("applicationShouldTerminate:")
+	selApplicationDidChangeScreenParameters = objc.RegisterName("applicationDidChangeScreenParameters:")
+	selApplicationWillFinishLaunching       = objc.RegisterName("applicationWillFinishLaunching:")
+	selApplicationDidFinishLaunching        = objc.RegisterName("applicationDidFinishLaunching:")
+	selApplicationDidHide                   = objc.RegisterName("applicationDidHide:")
 
 	// NSOpenGL selectors
-	sel_initWithAttributes                  = objc.RegisterName("initWithAttributes:")
-	sel_initWithFormat_shareContext         = objc.RegisterName("initWithFormat:shareContext:")
-	sel_makeCurrentContext                  = objc.RegisterName("makeCurrentContext")
-	sel_clearCurrentContext                 = objc.RegisterName("clearCurrentContext")
-	sel_flushBuffer                         = objc.RegisterName("flushBuffer")
-	sel_setValues_forParameter              = objc.RegisterName("setValues:forParameter:")
-	sel_getValues_forParameter              = objc.RegisterName("getValues:forParameter:")
-	sel_setView                             = objc.RegisterName("setView:")
-	sel_clearDrawable                       = objc.RegisterName("clearDrawable")
-	sel_setWantsBestResolutionOpenGLSurface = objc.RegisterName("setWantsBestResolutionOpenGLSurface:")
+	selInitWithAttributes                  = objc.RegisterName("initWithAttributes:")
+	selInitWithFormatShareContext          = objc.RegisterName("initWithFormat:shareContext:")
+	selMakeCurrentContext                  = objc.RegisterName("makeCurrentContext")
+	selClearCurrentContext                 = objc.RegisterName("clearCurrentContext")
+	selFlushBuffer                         = objc.RegisterName("flushBuffer")
+	selSetValuesForParameter               = objc.RegisterName("setValues:forParameter:")
+	selGetValuesForParameter               = objc.RegisterName("getValues:forParameter:")
+	selSetView                             = objc.RegisterName("setView:")
+	selClearDrawable                       = objc.RegisterName("clearDrawable")
+	selSetWantsBestResolutionOpenGLSurface = objc.RegisterName("setWantsBestResolutionOpenGLSurface:")
 )
 
 func init() {
@@ -523,24 +523,24 @@ func init() {
 	}
 
 	// Look up ObjC classes (must be after loading AppKit).
-	class_NSApplication = objc.GetClass("NSApplication")
-	class_NSMenu = objc.GetClass("NSMenu")
-	class_NSMenuItem = objc.GetClass("NSMenuItem")
-	class_NSEvent = objc.GetClass("NSEvent")
-	class_NSProcessInfo = objc.GetClass("NSProcessInfo")
-	class_NSNotificationCenter = objc.GetClass("NSNotificationCenter")
-	class_NSBundle = objc.GetClass("NSBundle")
-	class_NSScreen = objc.GetClass("NSScreen")
-	class_NSWindow = objc.GetClass("NSWindow")
-	class_NSView = objc.GetClass("NSView")
-	class_NSPasteboard = objc.GetClass("NSPasteboard")
-	class_NSCursor = objc.GetClass("NSCursor")
-	class_NSImage = objc.GetClass("NSImage")
-	class_NSBitmapImageRep = objc.GetClass("NSBitmapImageRep")
-	class_NSTrackingArea = objc.GetClass("NSTrackingArea")
-	class_NSColor = objc.GetClass("NSColor")
-	class_NSArray = objc.GetClass("NSArray")
-	class_NSURL = objc.GetClass("NSURL")
-	class_NSOpenGLPixelFormat = objc.GetClass("NSOpenGLPixelFormat")
-	class_NSOpenGLContext = objc.GetClass("NSOpenGLContext")
+	classNSApplication = objc.GetClass("NSApplication")
+	classNSMenu = objc.GetClass("NSMenu")
+	classNSMenuItem = objc.GetClass("NSMenuItem")
+	classNSEvent = objc.GetClass("NSEvent")
+	classNSProcessInfo = objc.GetClass("NSProcessInfo")
+	classNSNotificationCenter = objc.GetClass("NSNotificationCenter")
+	classNSBundle = objc.GetClass("NSBundle")
+	classNSScreen = objc.GetClass("NSScreen")
+	classNSWindow = objc.GetClass("NSWindow")
+	classNSView = objc.GetClass("NSView")
+	classNSPasteboard = objc.GetClass("NSPasteboard")
+	classNSCursor = objc.GetClass("NSCursor")
+	classNSImage = objc.GetClass("NSImage")
+	classNSBitmapImageRep = objc.GetClass("NSBitmapImageRep")
+	classNSTrackingArea = objc.GetClass("NSTrackingArea")
+	classNSColor = objc.GetClass("NSColor")
+	classNSArray = objc.GetClass("NSArray")
+	classNSURL = objc.GetClass("NSURL")
+	classNSOpenGLPixelFormat = objc.GetClass("NSOpenGLPixelFormat")
+	classNSOpenGLContext = objc.GetClass("NSOpenGLContext")
 }
