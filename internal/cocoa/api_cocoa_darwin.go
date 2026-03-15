@@ -15,6 +15,7 @@
 package cocoa
 
 import (
+	"fmt"
 	"unsafe"
 
 	"github.com/ebitengine/purego"
@@ -39,9 +40,14 @@ func init() {
 	// Load Foundation and AppKit frameworks to ensure ObjC classes are available.
 	// With CGO_ENABLED=0, frameworks are not loaded automatically by the linker,
 	// so objc.GetClass would return 0 for classes like NSString.
-	purego.Dlopen("/System/Library/Frameworks/Foundation.framework/Foundation", purego.RTLD_LAZY|purego.RTLD_GLOBAL)
+	if _, err := purego.Dlopen("/System/Library/Frameworks/Foundation.framework/Foundation", purego.RTLD_LAZY|purego.RTLD_GLOBAL); err != nil {
+		panic(fmt.Errorf("cocoa: failed to dlopen Foundation: %w", err))
+	}
+
 	// AppKit may not be available (e.g. on iOS), so ignore errors.
-	purego.Dlopen("/System/Library/Frameworks/AppKit.framework/AppKit", purego.RTLD_LAZY|purego.RTLD_GLOBAL)
+	if _, err := purego.Dlopen("/System/Library/Frameworks/AppKit.framework/AppKit", purego.RTLD_LAZY|purego.RTLD_GLOBAL); err != nil {
+		panic(fmt.Errorf("cocoa: failed to dlopen AppKit: %w", err))
+	}
 
 	classNSInvocation = objc.GetClass("NSInvocation")
 	classNSMethodSignature = objc.GetClass("NSMethodSignature")
