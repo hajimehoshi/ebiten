@@ -464,8 +464,10 @@ func platformInit() error {
 				Fn: func(_ objc.ID, _ objc.SEL, _ objc.ID) {
 					nsApp := objc.ID(classNSApplication).Send(selNSApp)
 					postEmptyEvent()
-					// Make us a proper UI application (matching C's menubar hint
-					// behavior, which defaults to true).
+					// In case we are unbundled, make us a proper UI application.
+					// The C code gates this on _glfw.hints.init.ns.menubar which
+					// defaults to true. Since Ebitengine always wants a menubar,
+					// this is called unconditionally.
 					nsApp.Send(selSetActivationPolicy, _NSApplicationActivationPolicyRegular)
 					nsApp.Send(selStop, 0)
 				},
@@ -496,15 +498,6 @@ func platformInit() error {
 	// Create GLFWHelper instance and register for keyboard input source change notifications.
 	_glfw.platformWindow.helper = objc.ID(classGLFWHelper).Send(
 		objc.RegisterName("alloc")).Send(objc.RegisterName("init"))
-
-	// Press and Hold prevents some keys from emitting repeated characters.
-	pressAndHoldKey := cocoa.NSString_alloc().InitWithUTF8String("ApplePressAndHoldEnabled")
-	noValue := objc.ID(objc.GetClass("NSNumber")).Send(objc.RegisterName("numberWithBool:"), false)
-	defaults := objc.ID(classNSDictionary).Send(
-		objc.RegisterName("dictionaryWithObject:forKey:"), noValue, pressAndHoldKey.ID)
-	objc.ID(objc.GetClass("NSUserDefaults")).Send(
-		objc.RegisterName("standardUserDefaults")).Send(
-		objc.RegisterName("registerDefaults:"), defaults)
 
 	notificationCenter := objc.ID(classNSNotificationCenter).Send(selDefaultCenter)
 	nsTextInputContextKeyboardSelectionDidChangeNotification := cocoa.NSString_alloc().InitWithUTF8String(

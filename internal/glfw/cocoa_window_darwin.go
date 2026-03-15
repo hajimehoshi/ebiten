@@ -643,6 +643,16 @@ func registerGLFWClasses() error {
 				},
 			},
 			{
+				Cmd: objc.RegisterName("isOpaque"),
+				Fn: func(self objc.ID, _ objc.SEL) bool {
+					window := getGoWindow(classGLFWContentView, self)
+					if window == nil {
+						return false
+					}
+					return objc.Send[bool](window.platform.object, objc.RegisterName("isOpaque"))
+				},
+			},
+			{
 				Cmd: objc.RegisterName("acceptsFirstResponder"),
 				Fn: func(_ objc.ID, _ objc.SEL) bool {
 					return true
@@ -1574,12 +1584,15 @@ func (w *Window) platformSetWindowResizable(enabled bool) error {
 	mask := uintptr(w.platform.object.Send(objc.RegisterName("styleMask")))
 	if enabled {
 		mask |= NSWindowStyleMaskResizable
-		w.platform.object.Send(selSetCollectionBehavior, uintptr(_NSWindowCollectionBehaviorFullScreenPrimary|_NSWindowCollectionBehaviorManaged))
 	} else {
 		mask &^= NSWindowStyleMaskResizable
-		w.platform.object.Send(selSetCollectionBehavior, uintptr(_NSWindowCollectionBehaviorFullScreenNone))
 	}
 	w.platform.object.Send(objc.RegisterName("setStyleMask:"), mask)
+	if enabled {
+		w.platform.object.Send(selSetCollectionBehavior, uintptr(_NSWindowCollectionBehaviorFullScreenPrimary|_NSWindowCollectionBehaviorManaged))
+	} else {
+		w.platform.object.Send(selSetCollectionBehavior, uintptr(_NSWindowCollectionBehaviorFullScreenNone))
+	}
 	return nil
 }
 
