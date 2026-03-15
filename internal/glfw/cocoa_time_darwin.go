@@ -4,22 +4,15 @@
 
 package glfw
 
-// #include "internal_unix.h"
-import "C"
+import "time"
 
-//export _glfwInitTimerNS
-func _glfwInitTimerNS() {
-	var info mach_timebase_info_data_t
-	mach_timebase_info(&info)
-	C._glfw.timer.ns.frequency = C.ulonglong(info.denom*1e9) / C.ulonglong(info.numer)
+func initTimerNS() {
 }
 
-//export _glfwPlatformGetTimerValue
-func _glfwPlatformGetTimerValue() uint64 {
-	return mach_absolute_time()
+func platformGetTimerValue() uint64 {
+	return uint64(time.Now().UnixNano())
 }
 
-//export _glfwPlatformGetTimerFrequency
-func _glfwPlatformGetTimerFrequency() uint64 {
-	return uint64(C._glfw.timer.ns.frequency)
+func platformGetTimerFrequency() uint64 {
+	return 1_000_000_000
 }

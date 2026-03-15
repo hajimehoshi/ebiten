@@ -1,0 +1,737 @@
+// SPDX-License-Identifier: Apache-2.0
+// SPDX-FileCopyrightText: 2002-2006 Marcus Geelnard
+// SPDX-FileCopyrightText: 2006-2019 Camilla Löwy <elmindreda@glfw.org>
+// SPDX-FileCopyrightText: 2022 The Ebitengine Authors
+
+package glfw
+
+import (
+	"fmt"
+	"math"
+	"sort"
+	"unsafe"
+
+	"github.com/ebitengine/purego/objc"
+)
+
+// NSScreenNumber key string for device description dictionary.
+var nsScreenNumberKey objc.ID
+
+func init() {
+	classNSString := objc.GetClass("NSString")
+	nsScreenNumberKey = objc.ID(classNSString).Send(sel_alloc)
+	nsScreenNumberKey = nsScreenNumberKey.Send(objc.RegisterName("initWithUTF8String:"), "NSScreenNumber\x00")
+}
+
+// GammaRamp describes the gamma ramp for a monitor.
+type GammaRamp struct {
+	Red   []uint16 // A slice of value describing the response of the red channel.
+	Green []uint16 // A slice of value describing the response of the green channel.
+	Blue  []uint16 // A slice of value describing the response of the blue channel.
+}
+
+// Shared utility functions
+
+func abs(x int) uint {
+	if x < 0 {
+		return uint(-x)
+	}
+	return uint(x)
+}
+
+func (v *VidMode) equals(other *VidMode) bool {
+	if v.RedBits+v.GreenBits+v.BlueBits != other.RedBits+other.GreenBits+other.BlueBits {
+		return false
+	}
+	if v.Width != other.Width {
+		return false
+	}
+	if v.Height != other.Height {
+		return false
+	}
+	if v.RefreshRate != other.RefreshRate {
+		return false
+	}
+	return true
+}
+
+func (m *Monitor) refreshVideoModes() error {
+	m.modes = m.modes[:0]
+	modes, err := m.platformAppendVideoModes(m.modes)
+	if err != nil {
+		return err
+	}
+	sort.Slice(modes, func(i, j int) bool {
+		a := modes[i]
+		b := modes[j]
+		abpp := a.RedBits + a.GreenBits + a.BlueBits
+		bbpp := b.RedBits + b.GreenBits + b.BlueBits
+		if abpp != bbpp {
+			return abpp < bbpp
+		}
+		aarea := a.Width * a.Height
+		barea := b.Width * b.Height
+		if aarea != barea {
+			return aarea < barea
+		}
+		if a.Width != b.Width {
+			return a.Width < b.Width
+		}
+		return a.RefreshRate < b.RefreshRate
+	})
+	m.modes = modes
+	return nil
+}
+
+func inputMonitor(monitor *Monitor, action PeripheralEvent, placement int) error {
+	switch action {
+	case Connected:
+		switch placement {
+		case _GLFW_INSERT_FIRST:
+			_glfw.monitors = append(_glfw.monitors, nil)
+			copy(_glfw.monitors[1:], _glfw.monitors)
+			_glfw.monitors[0] = monitor
+		case _GLFW_INSERT_LAST:
+			_glfw.monitors = append(_glfw.monitors, monitor)
+		}
+	case Disconnected:
+		for _, window := range _glfw.windows {
+			if window.monitor == monitor {
+				width, height, err := window.platformGetWindowSize()
+				if err != nil {
+					return err
+				}
+				if err := window.platformSetWindowMonitor(nil, 0, 0, width, height, 0); err != nil {
+					return err
+				}
+				xoff, yoff, _, _, err := window.platformGetWindowFrameSize()
+				if err != nil {
+					return err
+				}
+				if err := window.platformSetWindowPos(xoff, yoff); err != nil {
+					return err
+				}
+			}
+		}
+		for i, m := range _glfw.monitors {
+			if m == monitor {
+				copy(_glfw.monitors[i:], _glfw.monitors[i+1:])
+				_glfw.monitors[len(_glfw.monitors)-1] = nil
+				_glfw.monitors = _glfw.monitors[:len(_glfw.monitors)-1]
+				break
+			}
+		}
+	}
+
+	if _glfw.callbacks.monitor != nil {
+		_glfw.callbacks.monitor(monitor, action)
+	}
+
+	return nil
+}
+
+func (m *Monitor) inputMonitorWindow(window *Window) {
+	m.window = window
+}
+
+func (m *Monitor) chooseVideoMode(desired *VidMode) (*VidMode, error) {
+	if err := m.refreshVideoModes(); err != nil {
+		return nil, err
+	}
+
+	// math.MaxUint was added at Go 1.17. See https://github.com/golang/go/issues/28538
+	const (
+		intSize = 32 << (^uint(0) >> 63)
+		maxUint = 1<<intSize - 1
+	)
+
+	var (
+		leastColorDiff uint = maxUint
+		leastSizeDiff  uint = maxUint
+		leastRateDiff  uint = maxUint
+	)
+
+	var closest *VidMode
+	for _, v := range m.modes {
+		var colorDiff uint
+		if desired.RedBits != DontCare {
+			colorDiff += abs(v.RedBits - desired.RedBits)
+		}
+		if desired.GreenBits != DontCare {
+			colorDiff += abs(v.GreenBits - desired.GreenBits)
+		}
+		if desired.BlueBits != DontCare {
+			colorDiff += abs(v.BlueBits - desired.BlueBits)
+		}
+
+		sizeDiff := abs((v.Width-desired.Width)*(v.Width-desired.Width) +
+			(v.Height-desired.Height)*(v.Height-desired.Height))
+
+		var rateDiff uint
+		if desired.RefreshRate != DontCare {
+			rateDiff = abs(v.RefreshRate - desired.RefreshRate)
+		} else {
+			rateDiff = maxUint - uint(v.RefreshRate)
+		}
+
+		if colorDiff < leastColorDiff ||
+			colorDiff == leastColorDiff && sizeDiff < leastSizeDiff ||
+			colorDiff == leastColorDiff && sizeDiff == leastSizeDiff && rateDiff < leastRateDiff {
+			closest = v
+			leastColorDiff = colorDiff
+			leastSizeDiff = sizeDiff
+			leastRateDiff = rateDiff
+		}
+	}
+
+	return closest, nil
+}
+
+func splitBPP(bpp int) (red, green, blue int) {
+	// We assume that by 32 the user really meant 24
+	if bpp == 32 {
+		bpp = 24
+	}
+
+	// Convert "bits per pixel" to red, green & blue sizes
+	red = bpp / 3
+	green = bpp / 3
+	blue = bpp / 3
+	delta := bpp - (red * 3)
+	if delta >= 1 {
+		green++
+	}
+	if delta == 2 {
+		red++
+	}
+	return
+}
+
+// GLFW public APIs
+
+func GetMonitors() ([]*Monitor, error) {
+	if !_glfw.initialized {
+		return nil, NotInitialized
+	}
+	return _glfw.monitors, nil
+}
+
+func GetPrimaryMonitor() (*Monitor, error) {
+	if !_glfw.initialized {
+		return nil, NotInitialized
+	}
+	if len(_glfw.monitors) == 0 {
+		return nil, nil
+	}
+	return _glfw.monitors[0], nil
+}
+
+func (m *Monitor) GetPos() (xpos, ypos int, err error) {
+	if !_glfw.initialized {
+		return 0, 0, NotInitialized
+	}
+	xpos, ypos, ok := m.platformGetMonitorPos()
+	if !ok {
+		return 0, 0, nil
+	}
+	return xpos, ypos, nil
+}
+
+func (m *Monitor) GetWorkarea() (xpos, ypos, width, height int, err error) {
+	if !_glfw.initialized {
+		return 0, 0, 0, 0, NotInitialized
+	}
+	xpos, ypos, width, height = m.platformGetMonitorWorkarea()
+	return
+}
+
+// GetPhysicalSize is not implemented.
+
+func (m *Monitor) GetContentScale() (xscale, yscale float32, err error) {
+	if !_glfw.initialized {
+		return 0, 0, NotInitialized
+	}
+	xscale, yscale, err = m.platformGetMonitorContentScale()
+	return
+}
+
+func (m *Monitor) GetName() (string, error) {
+	if !_glfw.initialized {
+		return "", NotInitialized
+	}
+	return m.name, nil
+}
+
+// SetUserPointer is not implemented.
+// GetUserPointer is not implemented.
+
+func SetMonitorCallback(cbfun MonitorCallback) (MonitorCallback, error) {
+	if !_glfw.initialized {
+		return nil, NotInitialized
+	}
+	old := _glfw.callbacks.monitor
+	_glfw.callbacks.monitor = cbfun
+	return old, nil
+}
+
+func (m *Monitor) GetVideoModes() ([]*VidMode, error) {
+	if !_glfw.initialized {
+		return nil, NotInitialized
+	}
+	return m.modes, nil
+}
+
+func (m *Monitor) GetVideoMode() (*VidMode, error) {
+	if !_glfw.initialized {
+		return nil, NotInitialized
+	}
+	return m.platformGetVideoMode(), nil
+}
+
+// SetGamma is not implemented.
+// GetGammaRamp is not implemented.
+// SetGammaRamp is not implemented.
+
+// macOS-specific helper functions
+
+// modeIsGood checks if a display mode is suitable for use.
+func modeIsGood(mode uintptr) bool {
+	flags := cgDisplayModeGetIOFlags(mode)
+	if flags&kCGDisplayModeIsInterlaced != 0 {
+		return false
+	}
+	if flags&kCGDisplayModeIsStretched != 0 {
+		return false
+	}
+	return true
+}
+
+// vidmodeFromCGDisplayMode converts a CGDisplayMode to a VidMode.
+func vidmodeFromCGDisplayMode(mode uintptr, fallbackRefreshRate float64) VidMode {
+	w := int(cgDisplayModeGetWidth(mode))
+	h := int(cgDisplayModeGetHeight(mode))
+	rate := cgDisplayModeGetRefreshRate(mode)
+	if rate == 0 {
+		rate = fallbackRefreshRate
+	}
+
+	return VidMode{
+		Width:       w,
+		Height:      h,
+		RedBits:     8,
+		GreenBits:   8,
+		BlueBits:    8,
+		RefreshRate: int(math.Round(rate)),
+	}
+}
+
+// beginFadeReservation acquires a display fade reservation.
+func beginFadeReservation() (uint32, bool) {
+	var token uint32
+	if cgAcquireDisplayFadeReservation(5.0, &token) == kCGErrorSuccess {
+		cgDisplayFade(token, 0.3, 0.0, 1.0, 1)
+		return token, true
+	}
+	return kCGDisplayFadeReservationInvalidToken, false
+}
+
+// endFadeReservation fades back in and releases a fade reservation.
+func endFadeReservation(token uint32) {
+	if token != kCGDisplayFadeReservationInvalidToken {
+		cgDisplayFade(token, 0.5, 1.0, 0.0, 0)
+		cgReleaseDisplayFadeReservation(token)
+	}
+}
+
+// getMonitorNameNS retrieves the name of a monitor.
+// It tries NSScreen.localizedName first (macOS 10.15+), then falls back to IOKit.
+func getMonitorNameNS(displayID uint32) string {
+	screens := objc.ID(class_NSScreen).Send(sel_screens)
+	count := int(screens.Send(sel_count))
+	for i := range count {
+		screen := screens.Send(sel_objectAtIndex, i)
+		dict := screen.Send(sel_deviceDescription)
+		screenNum := dict.Send(sel_objectForKey, nsScreenNumberKey)
+		if screenNum == 0 {
+			continue
+		}
+		sid := uint32(screenNum.Send(sel_unsignedIntValue))
+		if sid == displayID {
+			if screen.Send(objc.RegisterName("respondsToSelector:"), sel_localizedName) != 0 {
+				nameID := screen.Send(sel_localizedName)
+				if nameID != 0 {
+					length := int(nameID.Send(sel_length))
+					if length > 0 {
+						utf8Ptr := nameID.Send(sel_UTF8String)
+						if utf8Ptr != 0 {
+							return unsafe.String((*byte)(unsafe.Pointer(utf8Ptr)), length)
+						}
+					}
+				}
+			}
+			break
+		}
+	}
+
+	// Fallback: use IOKit to get the display name
+	name := [128]byte{}
+	ioServiceName := []byte("IODisplayConnect\x00")
+	matching := ioServiceMatching(&ioServiceName[0])
+	if matching == 0 {
+		return "Unknown"
+	}
+
+	var iterator uint32
+	if ioServiceGetMatchingServices(0, matching, &iterator) != 0 {
+		return "Unknown"
+	}
+	defer func() {
+		if iterator != 0 {
+			ioObjectRelease(iterator)
+		}
+	}()
+
+	for {
+		service := ioIteratorNext(iterator)
+		if service == 0 {
+			break
+		}
+
+		info := ioDisplayCreateInfoDictionary(service, kIODisplayOnlyPreferredName)
+		ioObjectRelease(service)
+		if info == 0 {
+			continue
+		}
+
+		cfRelease(info)
+	}
+
+	if ioRegistryEntryGetName(0, &name) == 0 {
+		return cStringToGoString(name[:])
+	}
+
+	return "Unknown"
+}
+
+// cStringToGoString converts a null-terminated C string in a byte slice to a Go string.
+func cStringToGoString(b []byte) string {
+	for i, c := range b {
+		if c == 0 {
+			return string(b[:i])
+		}
+	}
+	return string(b)
+}
+
+// nsScreenForDisplayID finds the NSScreen (as objc.ID) for a given CGDirectDisplayID.
+func nsScreenForDisplayID(displayID uint32) objc.ID {
+	screens := objc.ID(class_NSScreen).Send(sel_screens)
+	count := int(screens.Send(sel_count))
+	for i := range count {
+		screen := screens.Send(sel_objectAtIndex, i)
+		dict := screen.Send(sel_deviceDescription)
+		screenNum := dict.Send(sel_objectForKey, nsScreenNumberKey)
+		if screenNum == 0 {
+			continue
+		}
+		sid := uint32(screenNum.Send(sel_unsignedIntValue))
+		if sid == displayID {
+			return screen
+		}
+	}
+	return 0
+}
+
+// pollMonitorsNS enumerates displays and updates the global monitor list.
+func pollMonitorsNS() error {
+	var displayCount uint32
+	if cgGetOnlineDisplayList(0, nil, &displayCount) != kCGErrorSuccess {
+		return fmt.Errorf("glfw: failed to get online display list: %w", PlatformError)
+	}
+	if displayCount == 0 {
+		return nil
+	}
+
+	displays := make([]uint32, displayCount)
+	if cgGetOnlineDisplayList(displayCount, &displays[0], &displayCount) != kCGErrorSuccess {
+		return fmt.Errorf("glfw: failed to get online display list: %w", PlatformError)
+	}
+
+	disconnected := make([]*Monitor, len(_glfw.monitors))
+	copy(disconnected, _glfw.monitors)
+
+	for i := uint32(0); i < displayCount; i++ {
+		display := displays[i]
+
+		if cgDisplayIsAsleep(display) != 0 {
+			continue
+		}
+
+		var alreadyKnown bool
+		for j, m := range disconnected {
+			if m != nil && m.platform.displayID == display {
+				disconnected[j] = nil
+				alreadyKnown = true
+				break
+			}
+		}
+		if alreadyKnown {
+			continue
+		}
+
+		mode := cgDisplayCopyDisplayMode(display)
+		if mode == 0 {
+			continue
+		}
+
+		refreshRate := cgDisplayModeGetRefreshRate(mode)
+
+		name := getMonitorNameNS(display)
+
+		monitor := &Monitor{
+			name: name,
+		}
+		monitor.platform.displayID = display
+		monitor.platform.unitNumber = cgDisplayUnitNumber(display)
+		monitor.platform.fallbackRefreshRate = refreshRate
+		monitor.platform.screen = nsScreenForDisplayID(display)
+
+		cfRelease(mode)
+
+		typ := _GLFW_INSERT_LAST
+		if i == 0 {
+			typ = _GLFW_INSERT_FIRST
+		}
+
+		if err := inputMonitor(monitor, Connected, typ); err != nil {
+			return err
+		}
+	}
+
+	for _, m := range disconnected {
+		if m != nil {
+			if err := inputMonitor(m, Disconnected, 0); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+// setVideoModeNS finds the closest video mode and switches to it.
+func (m *Monitor) setVideoModeNS(desired *VidMode) error {
+	best, err := m.chooseVideoMode(desired)
+	if err != nil {
+		return err
+	}
+	current := m.platformGetVideoMode()
+	if best.equals(current) {
+		return nil
+	}
+
+	modes := cgDisplayCopyAllDisplayModes(m.platform.displayID, 0)
+	if modes == 0 {
+		return fmt.Errorf("glfw: failed to copy display modes: %w", PlatformError)
+	}
+	defer cfRelease(modes)
+
+	count := cfArrayGetCount(modes)
+	var bestMode uintptr
+	leastDiff := math.MaxInt
+
+	for i := range count {
+		mode := cfArrayGetValueAtIndex(modes, i)
+		if !modeIsGood(mode) {
+			continue
+		}
+
+		vm := vidmodeFromCGDisplayMode(mode, m.platform.fallbackRefreshRate)
+
+		diff := (vm.Width-best.Width)*(vm.Width-best.Width) +
+			(vm.Height-best.Height)*(vm.Height-best.Height) +
+			int(abs(vm.RefreshRate-best.RefreshRate))
+		if diff < leastDiff {
+			bestMode = mode
+			leastDiff = diff
+		}
+	}
+
+	if bestMode == 0 {
+		return fmt.Errorf("glfw: failed to find a suitable video mode: %w", PlatformError)
+	}
+
+	if m.platform.previousMode == 0 {
+		m.platform.previousMode = cgDisplayCopyDisplayMode(m.platform.displayID)
+	}
+
+	token, hasFade := beginFadeReservation()
+
+	cgDisplaySetDisplayMode(m.platform.displayID, bestMode, 0)
+
+	if hasFade {
+		endFadeReservation(token)
+	}
+
+	return nil
+}
+
+// restoreVideoModeNS restores the previous display mode.
+func (m *Monitor) restoreVideoModeNS() {
+	if m.platform.previousMode == 0 {
+		return
+	}
+
+	token, hasFade := beginFadeReservation()
+
+	cgDisplaySetDisplayMode(m.platform.displayID, m.platform.previousMode, 0)
+	cfRelease(m.platform.previousMode)
+	m.platform.previousMode = 0
+
+	if hasFade {
+		endFadeReservation(token)
+	}
+}
+
+// transformYNS transforms a Y coordinate from Cocoa (bottom-left origin)
+// to GLFW (top-left origin) coordinate space.
+func transformYNS(y float32) float32 {
+	bounds := cgDisplayBounds(0) // CGMainDisplayID() returns 0
+	return float32(bounds.Height) - y - 1
+}
+
+// Platform functions
+
+func (m *Monitor) platformGetMonitorPos() (xpos, ypos int, ok bool) {
+	bounds := cgDisplayBounds(m.platform.displayID)
+	return int(bounds.X), int(bounds.Y), true
+}
+
+func (m *Monitor) platformGetMonitorContentScale() (xscale, yscale float32, err error) {
+	screen := m.platform.screen
+	if screen == 0 {
+		screen = nsScreenForDisplayID(m.platform.displayID)
+	}
+	if screen == 0 {
+		return 1.0, 1.0, nil
+	}
+
+	scale := objc.Send[float64](screen, sel_backingScaleFactor)
+	return float32(scale), float32(scale), nil
+}
+
+func (m *Monitor) platformGetMonitorWorkarea() (xpos, ypos, width, height int) {
+	screen := m.platform.screen
+	if screen == 0 {
+		screen = nsScreenForDisplayID(m.platform.displayID)
+	}
+	if screen == 0 {
+		bounds := cgDisplayBounds(m.platform.displayID)
+		return int(bounds.X), int(bounds.Y), int(bounds.Width), int(bounds.Height)
+	}
+
+	visibleFrame := objc.Send[cgRect](screen, sel_visibleFrame)
+	primaryBounds := cgDisplayBounds(0)
+
+	xpos = int(visibleFrame.X)
+	ypos = int(primaryBounds.Height - visibleFrame.Y - visibleFrame.Height)
+	width = int(visibleFrame.Width)
+	height = int(visibleFrame.Height)
+	return
+}
+
+func (m *Monitor) platformAppendVideoModes(monitors []*VidMode) ([]*VidMode, error) {
+	origLen := len(monitors)
+
+	modes := cgDisplayCopyAllDisplayModes(m.platform.displayID, 0)
+	if modes == 0 {
+		return monitors, nil
+	}
+	defer cfRelease(modes)
+
+	count := cfArrayGetCount(modes)
+	for i := range count {
+		mode := cfArrayGetValueAtIndex(modes, i)
+		if !modeIsGood(mode) {
+			continue
+		}
+
+		vm := vidmodeFromCGDisplayMode(mode, m.platform.fallbackRefreshRate)
+		vmPtr := &vm
+
+		duplicate := false
+		for _, existing := range monitors[origLen:] {
+			if existing.equals(vmPtr) {
+				duplicate = true
+				break
+			}
+		}
+		if duplicate {
+			continue
+		}
+
+		monitors = append(monitors, vmPtr)
+	}
+
+	if len(monitors) == origLen {
+		monitors = append(monitors, m.platformGetVideoMode())
+	}
+
+	return monitors, nil
+}
+
+func (m *Monitor) platformGetVideoMode() *VidMode {
+	mode := cgDisplayCopyDisplayMode(m.platform.displayID)
+	if mode == 0 {
+		return &VidMode{}
+	}
+	defer cfRelease(mode)
+
+	vm := vidmodeFromCGDisplayMode(mode, m.platform.fallbackRefreshRate)
+	return &vm
+}
+
+func (m *Monitor) platformGetGammaRamp() (GammaRamp, error) {
+	var sampleCount uint32
+	if cgGetDisplayTransferByTable(m.platform.displayID, 0, nil, nil, nil, &sampleCount) != kCGErrorSuccess {
+		return GammaRamp{}, fmt.Errorf("glfw: failed to get gamma ramp size: %w", PlatformError)
+	}
+
+	red := make([]float32, sampleCount)
+	green := make([]float32, sampleCount)
+	blue := make([]float32, sampleCount)
+	if cgGetDisplayTransferByTable(m.platform.displayID, sampleCount, &red[0], &green[0], &blue[0], &sampleCount) != kCGErrorSuccess {
+		return GammaRamp{}, fmt.Errorf("glfw: failed to get gamma ramp: %w", PlatformError)
+	}
+
+	ramp := GammaRamp{
+		Red:   make([]uint16, sampleCount),
+		Green: make([]uint16, sampleCount),
+		Blue:  make([]uint16, sampleCount),
+	}
+	for i := uint32(0); i < sampleCount; i++ {
+		ramp.Red[i] = uint16(red[i] * 65535.0)
+		ramp.Green[i] = uint16(green[i] * 65535.0)
+		ramp.Blue[i] = uint16(blue[i] * 65535.0)
+	}
+
+	return ramp, nil
+}
+
+func (m *Monitor) platformSetGammaRamp(ramp *GammaRamp) error {
+	size := len(ramp.Red)
+	red := make([]float32, size)
+	green := make([]float32, size)
+	blue := make([]float32, size)
+	for i := range size {
+		red[i] = float32(ramp.Red[i]) / 65535.0
+		green[i] = float32(ramp.Green[i]) / 65535.0
+		blue[i] = float32(ramp.Blue[i]) / 65535.0
+	}
+
+	if cgSetDisplayTransferByTable(m.platform.displayID, uint32(size), &red[0], &green[0], &blue[0]) != kCGErrorSuccess {
+		return fmt.Errorf("glfw: failed to set gamma ramp: %w", PlatformError)
+	}
+
+	return nil
+}

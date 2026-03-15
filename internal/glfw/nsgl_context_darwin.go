@@ -1,0 +1,236 @@
+// SPDX-License-Identifier: Apache-2.0
+// SPDX-FileCopyrightText: 2002-2006 Marcus Geelnard
+// SPDX-FileCopyrightText: 2006-2019 Camilla Löwy <elmindreda@glfw.org>
+// SPDX-FileCopyrightText: 2022 The Ebitengine Authors
+
+package glfw
+
+import (
+	"fmt"
+	"time"
+	"unsafe"
+
+	"github.com/ebitengine/purego"
+	"github.com/ebitengine/purego/objc"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/cocoa"
+)
+
+func initNSGL() error {
+	return nil
+}
+
+func terminateNSGL() {
+}
+
+func (w *Window) createContextNSGL(ctxconfig *ctxconfig, fbconfig_ *fbconfig) error {
+	pool := cocoa.NSAutoreleasePool_new()
+	defer pool.Release()
+
+	if ctxconfig.client == OpenGLESAPI {
+		return fmt.Errorf("glfw: NSGL does not support OpenGL ES: %w", APIUnavailable)
+	}
+
+	if ctxconfig.major == 3 && ctxconfig.minor < 2 {
+		return fmt.Errorf("glfw: NSGL does not support OpenGL version 3.0 or 3.1: %w", VersionUnavailable)
+	}
+
+	if ctxconfig.major >= 3 && !ctxconfig.forward {
+		return fmt.Errorf("glfw: NSGL OpenGL 3.2+ requires a forward-compatible core profile: %w", VersionUnavailable)
+	}
+
+	if ctxconfig.major >= 3 && ctxconfig.profile != OpenGLCoreProfile {
+		return fmt.Errorf("glfw: NSGL OpenGL 3.2+ requires a core profile: %w", VersionUnavailable)
+	}
+
+	// Build the pixel format attributes array.
+	var attribs [40]uint32
+	idx := 0
+
+	addAttrib := func(a uint32) {
+		attribs[idx] = a
+		idx++
+	}
+	addAttribVal := func(a, v uint32) {
+		attribs[idx] = a
+		idx++
+		attribs[idx] = v
+		idx++
+	}
+
+	addAttrib(NSOpenGLPFAAccelerated)
+	addAttrib(NSOpenGLPFAClosestPolicy)
+
+	if ctxconfig.major >= 4 {
+		addAttribVal(NSOpenGLPFAOpenGLProfile, NSOpenGLProfileVersion4_1Core)
+	} else if ctxconfig.major >= 3 {
+		addAttribVal(NSOpenGLPFAOpenGLProfile, NSOpenGLProfileVersion3_2Core)
+	}
+
+	if fbconfig_.doublebuffer {
+		addAttrib(NSOpenGLPFADoubleBuffer)
+	}
+
+	colorBits := fbconfig_.redBits + fbconfig_.greenBits + fbconfig_.blueBits
+	if colorBits > 0 {
+		// macOS needs non-zero
+		if colorBits < 4 {
+			colorBits = 4
+		}
+		addAttribVal(NSOpenGLPFAColorSize, uint32(colorBits))
+	}
+
+	if fbconfig_.alphaBits > 0 {
+		addAttribVal(NSOpenGLPFAAlphaSize, uint32(fbconfig_.alphaBits))
+	}
+
+	if fbconfig_.depthBits > 0 {
+		addAttribVal(NSOpenGLPFADepthSize, uint32(fbconfig_.depthBits))
+	}
+
+	if fbconfig_.stencilBits > 0 {
+		addAttribVal(NSOpenGLPFAStencilSize, uint32(fbconfig_.stencilBits))
+	}
+
+	if fbconfig_.accumRedBits+fbconfig_.accumGreenBits+fbconfig_.accumBlueBits+fbconfig_.accumAlphaBits > 0 {
+		accumBits := fbconfig_.accumRedBits + fbconfig_.accumGreenBits + fbconfig_.accumBlueBits + fbconfig_.accumAlphaBits
+		addAttribVal(NSOpenGLPFAAccumSize, uint32(accumBits))
+	}
+
+	if fbconfig_.auxBuffers > 0 {
+		addAttribVal(NSOpenGLPFAAuxBuffers, uint32(fbconfig_.auxBuffers))
+	}
+
+	if fbconfig_.samples > 0 {
+		addAttribVal(NSOpenGLPFASampleBuffers, 1)
+		addAttribVal(NSOpenGLPFASamples, uint32(fbconfig_.samples))
+	}
+
+	if fbconfig_.stereo {
+		return fmt.Errorf("glfw: NSGL stereo rendering is deprecated: %w", FormatUnavailable)
+	}
+
+	// Terminate the attributes list.
+	addAttrib(0)
+
+	// Create the pixel format.
+	pixelFormat := objc.ID(class_NSOpenGLPixelFormat).Send(sel_alloc).Send(sel_initWithAttributes, uintptr(unsafe.Pointer(&attribs[0])))
+	if pixelFormat == 0 {
+		return fmt.Errorf("glfw: NSGL: failed to find a suitable pixel format: %w", FormatUnavailable)
+	}
+
+	// Create the OpenGL context.
+	var share objc.ID
+	if ctxconfig.share != nil {
+		share = ctxconfig.share.context.platform.object
+	}
+
+	context := objc.ID(class_NSOpenGLContext).Send(sel_alloc).Send(sel_initWithFormat_shareContext, uintptr(pixelFormat), uintptr(share))
+	if context == 0 {
+		pixelFormat.Send(sel_release)
+		return fmt.Errorf("glfw: NSGL: failed to create OpenGL context: %w", VersionUnavailable)
+	}
+
+	w.context.platform.object = context
+	w.context.platform.pixelFormat = pixelFormat
+
+	// Set surface opacity for transparent windows.
+	if fbconfig_.transparent {
+		var opacity int32 = 0
+		context.Send(sel_setValues_forParameter, uintptr(unsafe.Pointer(&opacity)), uintptr(NSOpenGLCPSurfaceOpacity))
+	}
+
+	// Enable retina support.
+	if w.platform.retina {
+		w.platform.view.Send(sel_setWantsBestResolutionOpenGLSurface, true)
+	}
+
+	// Set the view on the context.
+	context.Send(sel_setView, uintptr(w.platform.view))
+
+	w.context.makeCurrent = makeContextCurrentNSGL
+	w.context.swapBuffers = swapBuffersNSGL
+	w.context.swapInterval = swapIntervalNSGL
+	w.context.extensionSupported = extensionSupportedNSGL
+	w.context.getProcAddress = getProcAddressNSGL
+	w.context.destroy = destroyContextNSGL
+
+	return nil
+}
+
+func makeContextCurrentNSGL(window *Window) error {
+	pool := cocoa.NSAutoreleasePool_new()
+	defer pool.Release()
+
+	if window != nil {
+		window.context.platform.object.Send(sel_makeCurrentContext)
+		if err := _glfw.contextSlot.set(uintptr(unsafe.Pointer(window))); err != nil {
+			return err
+		}
+	} else {
+		objc.ID(class_NSOpenGLContext).Send(sel_clearCurrentContext)
+		if err := _glfw.contextSlot.set(0); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func swapBuffersNSGL(window *Window) error {
+	pool := cocoa.NSAutoreleasePool_new()
+	defer pool.Release()
+
+	// HACK: When an occluded window has a
+	// non-zero swap interval, the system
+	// sleeps for the interval. Simulate
+	// vsync by sleeping if needed.
+	if window.platform.occluded {
+		var interval int32
+		window.context.platform.object.Send(sel_getValues_forParameter, uintptr(unsafe.Pointer(&interval)), uintptr(NSOpenGLCPSwapInterval))
+		if interval > 0 {
+			time.Sleep(time.Second / 60)
+		}
+	}
+
+	window.context.platform.object.Send(sel_flushBuffer)
+	return nil
+}
+
+func swapIntervalNSGL(window *Window, interval int) error {
+	pool := cocoa.NSAutoreleasePool_new()
+	defer pool.Release()
+
+	value := int32(interval)
+	window.context.platform.object.Send(sel_setValues_forParameter, uintptr(unsafe.Pointer(&value)), uintptr(NSOpenGLCPSwapInterval))
+	return nil
+}
+
+func extensionSupportedNSGL(extension string) bool {
+	return false
+}
+
+func getProcAddressNSGL(procname string) uintptr {
+	proc, err := purego.Dlsym(openGLFramework, procname)
+	if err != nil {
+		return 0
+	}
+	return proc
+}
+
+func destroyContextNSGL(window *Window) error {
+	pool := cocoa.NSAutoreleasePool_new()
+	defer pool.Release()
+
+	if window.context.platform.pixelFormat != 0 {
+		window.context.platform.pixelFormat.Send(sel_release)
+		window.context.platform.pixelFormat = 0
+	}
+
+	if window.context.platform.object != 0 {
+		window.context.platform.object.Send(sel_clearDrawable)
+		window.context.platform.object.Send(sel_release)
+		window.context.platform.object = 0
+	}
+
+	return nil
+}

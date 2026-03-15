@@ -4,43 +4,16 @@
 
 package glfw
 
-/*
-#define GLFW_EXPOSE_NATIVE_COCOA
-#define GLFW_EXPOSE_NATIVE_NSGL
-#include "glfw3_unix.h"
-#include "glfw3native_unix.h"
-
-// workaround wrappers needed due to a cgo and/or LLVM bug.
-// See: https://github.com/go-gl/glfw/issues/136
-#cgo noescape workaround_glfwGetCocoaWindow
-#cgo nocallback workaround_glfwGetCocoaWindow
-static void *workaround_glfwGetCocoaWindow(GLFWwindow *w) {
-	return (void *)glfwGetCocoaWindow(w);
-}
-
-#cgo noescape workaround_glfwGetNSGLContext
-#cgo nocallback workaround_glfwGetNSGLContext
-static void *workaround_glfwGetNSGLContext(GLFWwindow *w) {
-	return (void *)glfwGetNSGLContext(w);
-}
-*/
-import "C"
 import "unsafe"
 
-// GetCocoaMonitor returns the CGDirectDisplayID of the monitor.
 func (m *Monitor) GetCocoaMonitor() (uintptr, error) {
-	ret := uintptr(C.glfwGetCocoaMonitor(m.data))
-	return ret, fetchErrorIgnoringPlatformError()
+	return uintptr(m.platform.displayID), nil
 }
 
-// GetCocoaWindow returns the NSWindow of the window.
 func (w *Window) GetCocoaWindow() (uintptr, error) {
-	ret := uintptr(C.workaround_glfwGetCocoaWindow(w.data))
-	return ret, fetchErrorIgnoringPlatformError()
+	return uintptr(w.platform.object), nil
 }
 
-// GetNSGLContext returns the NSOpenGLContext of the window.
 func (w *Window) GetNSGLContext() (unsafe.Pointer, error) {
-	ret := C.workaround_glfwGetNSGLContext(w.data)
-	return ret, fetchErrorIgnoringPlatformError()
+	return unsafe.Pointer(w.context.platform.object), nil
 }

@@ -4,7 +4,7 @@
 // SPDX-FileCopyrightText: 2012 Torsten Walluhn <tw@mad-cad.net>
 // SPDX-FileCopyrightText: 2023 The Ebitengine Authors
 
-//go:build darwin || freebsd || linux || netbsd || openbsd
+//go:build freebsd || linux || netbsd || openbsd
 
 #include "internal_unix.h"
 
