@@ -7,6 +7,7 @@
 
 package glfw
 
+// #undef GLFW_INCLUDE_NONE
 // #include "internal_unix.h"
 import "C"
 
