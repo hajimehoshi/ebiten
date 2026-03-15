@@ -7,6 +7,7 @@ package glfw
 
 import (
 	"fmt"
+	"image"
 	"math"
 	"reflect"
 	"unsafe"
@@ -24,6 +25,9 @@ var (
 
 // NSDefaultRunLoopMode for event polling.
 var nsDefaultRunLoopMode = cocoa.NSString_alloc().InitWithUTF8String("kCFRunLoopDefaultMode")
+
+// Color space name for custom cursor creation.
+var nsCalibratedRGBColorSpace = cocoa.NSString_alloc().InitWithUTF8String("NSCalibratedRGBColorSpace")
 
 // Registered ObjC class references.
 var (
@@ -221,7 +225,7 @@ func registerGLFWClasses() error {
 						return
 					}
 
-					if window.context.client != NoAPI {
+					if window.context.source == NativeContextAPI {
 						window.context.platform.object.Send(objc.RegisterName("update"))
 					}
 
@@ -249,7 +253,7 @@ func registerGLFWClasses() error {
 						return
 					}
 
-					if window.context.client != NoAPI {
+					if window.context.source == NativeContextAPI {
 						window.context.platform.object.Send(objc.RegisterName("update"))
 					}
 
@@ -682,13 +686,27 @@ func registerGLFWClasses() error {
 			// NSTextInputClient methods.
 			{
 				Cmd: selHasMarkedText,
-				Fn: func(_ objc.ID, _ objc.SEL) bool {
+				Fn: func(self objc.ID, _ objc.SEL) bool {
+					window := getGoWindow(classGLFWContentView, self)
+					if window == nil {
+						return false
+					}
+					if window.platform.markedText != 0 {
+						return objc.Send[uintptr](window.platform.markedText, selLength) > 0
+					}
 					return false
 				},
 			},
 			{
 				Cmd: selMarkedRange,
-				Fn: func(_ objc.ID, _ objc.SEL) nsRange {
+				Fn: func(self objc.ID, _ objc.SEL) nsRange {
+					window := getGoWindow(classGLFWContentView, self)
+					if window != nil && window.platform.markedText != 0 {
+						length := objc.Send[uintptr](window.platform.markedText, selLength)
+						if length > 0 {
+							return nsRange{Location: 0, Length: length - 1}
+						}
+					}
 					return nsRange{Location: ^uintptr(0), Length: 0} // NSNotFound
 				},
 			},
@@ -700,12 +718,33 @@ func registerGLFWClasses() error {
 			},
 			{
 				Cmd: selSetMarkedText,
-				Fn: func(_ objc.ID, _ objc.SEL, _ objc.ID, _ nsRange, _ nsRange) {
+				Fn: func(self objc.ID, _ objc.SEL, str objc.ID, _ nsRange, _ nsRange) {
+					window := getGoWindow(classGLFWContentView, self)
+					if window == nil {
+						return
+					}
+					if window.platform.markedText != 0 {
+						window.platform.markedText.Send(selRelease)
+					}
+					if str.Send(selIsKindOfClass, objc.ID(classNSAttributedString)) != 0 {
+						window.platform.markedText = objc.ID(classNSMutableAttributedString).Send(selAlloc).Send(selInitWithAttributedString, str)
+					} else {
+						window.platform.markedText = objc.ID(classNSMutableAttributedString).Send(selAlloc).Send(selInitWithString, str)
+					}
 				},
 			},
 			{
 				Cmd: selUnmarkText,
-				Fn: func(_ objc.ID, _ objc.SEL) {
+				Fn: func(self objc.ID, _ objc.SEL) {
+					window := getGoWindow(classGLFWContentView, self)
+					if window == nil {
+						return
+					}
+					if window.platform.markedText != 0 {
+						ms := window.platform.markedText.Send(selMutableString)
+						emptyStr := cocoa.NSString_alloc().InitWithUTF8String("")
+						ms.Send(selSetStringValue, emptyStr.ID)
+					}
 				},
 			},
 			{
@@ -735,7 +774,12 @@ func registerGLFWClasses() error {
 					plain := mods&ModSuper == 0
 
 					// Get the string from the text object.
-					str := cocoa.NSString{ID: text}
+					// The text parameter can be either NSString or NSAttributedString.
+					characters := text
+					if text.Send(selIsKindOfClass, objc.ID(classNSAttributedString)) != 0 {
+						characters = text.Send(selString)
+					}
+					str := cocoa.NSString{ID: characters}
 					s := str.String()
 					for _, ch := range s {
 						if ch >= 0xf700 && ch <= 0xf7ff {
@@ -1748,6 +1792,57 @@ func (w *Window) platformSetCursorMode(mode int) error {
 		}
 	}
 
+	return nil
+}
+
+func (c *Cursor) platformCreateCursor(img *image.NRGBA, xhot, yhot int) error {
+	pool := cocoa.NSAutoreleasePool_new()
+	defer pool.Release()
+
+	w := img.Bounds().Dx()
+	h := img.Bounds().Dy()
+
+	rep := objc.ID(classNSBitmapImageRep).Send(selAlloc).Send(selInitWithBitmapDataPlanes,
+		uintptr(0),                   // planes (NULL = allocate)
+		uintptr(w),                   // pixelsWide
+		uintptr(h),                   // pixelsHigh
+		uintptr(8),                   // bitsPerSample
+		uintptr(4),                   // samplesPerPixel
+		true,                         // hasAlpha
+		false,                        // isPlanar
+		nsCalibratedRGBColorSpace.ID, // colorSpaceName
+		uintptr(1<<0),                // bitmapFormat: NSBitmapFormatAlphaNonpremultiplied = 1 << 0
+		uintptr(w*4),                 // bytesPerRow
+		uintptr(32),                  // bitsPerPixel
+	)
+	if rep == 0 {
+		return fmt.Errorf("glfw: failed to create NSBitmapImageRep: %w", PlatformError)
+	}
+
+	// Copy pixel data into the bitmap.
+	bitmapData := rep.Send(selBitmapData)
+	if bitmapData != 0 {
+		dst := unsafe.Slice((*byte)(unsafe.Pointer(bitmapData)), w*h*4)
+		copy(dst, img.Pix)
+	}
+
+	native := objc.ID(classNSImage).Send(selAlloc).Send(selInitWithSize,
+		cocoa.CGSize{Width: float64(w), Height: float64(h)})
+	native.Send(selAddRepresentation, rep)
+
+	cursor := objc.ID(classNSCursor).Send(selAlloc).Send(
+		objc.RegisterName("initWithImage:hotSpot:"),
+		native,
+		cocoa.NSPoint{X: float64(xhot), Y: float64(yhot)})
+
+	native.Send(selRelease)
+	rep.Send(selRelease)
+
+	if cursor == 0 {
+		return fmt.Errorf("glfw: failed to create custom cursor: %w", PlatformError)
+	}
+
+	c.platform.object = cursor
 	return nil
 }
 

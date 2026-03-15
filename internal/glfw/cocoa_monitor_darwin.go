@@ -315,6 +315,68 @@ func modeIsGood(mode uintptr) bool {
 	return true
 }
 
+// getFallbackRefreshRate queries the I/O registry for the display refresh rate.
+// This is needed when CGDisplayModeGetRefreshRate returns 0 (e.g. on ProMotion displays).
+func getFallbackRefreshRate(displayID uint32) float64 {
+	refreshRate := 60.0
+
+	var it uint32
+	if ioServiceGetMatchingServices(0, ioServiceMatching(unsafe.StringData("IOFramebuffer\x00")), &it) != 0 {
+		return refreshRate
+	}
+	defer ioObjectRelease(it)
+
+	for {
+		service := ioIteratorNext(it)
+		if service == 0 {
+			break
+		}
+
+		indexRef := ioRegistryEntryCreateCFProperty(service,
+			cfStringCreateWithCString(0, "IOFramebufferOpenGLIndex", kCFStringEncodingUTF8),
+			0, 0)
+		if indexRef == 0 {
+			ioObjectRelease(service)
+			continue
+		}
+
+		var index uint32
+		cfNumberGetValue(indexRef, 3 /* kCFNumberIntType */, unsafe.Pointer(&index))
+		cfRelease(indexRef)
+
+		if cgOpenGLDisplayMaskToDisplayID(1<<index) != displayID {
+			ioObjectRelease(service)
+			continue
+		}
+
+		clockRef := ioRegistryEntryCreateCFProperty(service,
+			cfStringCreateWithCString(0, "IOFBCurrentPixelClock", kCFStringEncodingUTF8),
+			0, 0)
+		countRef := ioRegistryEntryCreateCFProperty(service,
+			cfStringCreateWithCString(0, "IOFBCurrentPixelCount", kCFStringEncodingUTF8),
+			0, 0)
+
+		var clock, count uint32
+		if clockRef != 0 {
+			cfNumberGetValue(clockRef, 3 /* kCFNumberIntType */, unsafe.Pointer(&clock))
+			cfRelease(clockRef)
+		}
+		if countRef != 0 {
+			cfNumberGetValue(countRef, 3 /* kCFNumberIntType */, unsafe.Pointer(&count))
+			cfRelease(countRef)
+		}
+
+		if clock > 0 && count > 0 {
+			refreshRate = float64(clock) / float64(count)
+		}
+
+		ioObjectRelease(service)
+		break
+	}
+
+	return refreshRate
+}
+
 // vidmodeFromCGDisplayMode converts a CGDisplayMode to a VidMode.
 func vidmodeFromCGDisplayMode(mode uintptr, fallbackRefreshRate float64) VidMode {
 	w := int(cgDisplayModeGetWidth(mode))
@@ -557,8 +619,7 @@ func pollMonitorsNS() error {
 		monitor.platform.screen = nsScreenForDisplayID(display)
 
 		if cgDisplayModeGetRefreshRate(mode) == 0.0 {
-			// TODO: Query IOKit for the actual refresh rate via getFallbackRefreshRate.
-			monitor.platform.fallbackRefreshRate = 60.0
+			monitor.platform.fallbackRefreshRate = getFallbackRefreshRate(display)
 		}
 
 		cfRelease(mode)

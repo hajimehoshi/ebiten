@@ -22,6 +22,8 @@ type platformWindowState struct {
 	xscale, yscale    float32
 
 	cursorWarpDeltaX, cursorWarpDeltaY float64
+
+	markedText objc.ID // NSMutableAttributedString for IME composition
 }
 
 type platformMonitorState struct {

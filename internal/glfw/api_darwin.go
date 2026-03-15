@@ -221,34 +221,39 @@ var (
 	ioIteratorNext                    func(iterator uint32) uint32
 	ioRegistryEntryGetName            func(entry uint32, name *[128]byte) int32
 	ioRegistryEntryCreateCFProperties func(entry uint32, properties *uintptr, allocator uintptr, options uint32) int32
+	ioRegistryEntryCreateCFProperty   func(entry uint32, key uintptr, allocator uintptr, options uint32) uintptr
 	ioDisplayCreateInfoDictionary     func(framebuffer uint32, options uint32) uintptr
 	ioServiceMatching                 func(name *byte) uintptr
 	ioObjectRelease                   func(object uint32) int32
+	cgOpenGLDisplayMaskToDisplayID    func(mask uint32) uint32
+	cgDisplayScreenSize               func(display uint32) cocoa.CGSize
 )
 
 // ObjC classes (initialized in init after loading AppKit).
 var (
-	classNSApplication        objc.Class
-	classNSMenu               objc.Class
-	classNSMenuItem           objc.Class
-	classNSEvent              objc.Class
-	classNSProcessInfo        objc.Class
-	classNSNotificationCenter objc.Class
-	classNSBundle             objc.Class
-	classNSScreen             objc.Class
-	classNSWindow             objc.Class
-	classNSView               objc.Class
-	classNSPasteboard         objc.Class
-	classNSCursor             objc.Class
-	classNSImage              objc.Class
-	classNSBitmapImageRep     objc.Class
-	classNSTrackingArea       objc.Class
-	classNSColor              objc.Class
-	classNSArray              objc.Class
-	classNSURL                objc.Class
-	classNSOpenGLPixelFormat  objc.Class
-	classNSOpenGLContext      objc.Class
-	classNSRunningApplication objc.Class
+	classNSApplication             objc.Class
+	classNSMenu                    objc.Class
+	classNSMenuItem                objc.Class
+	classNSEvent                   objc.Class
+	classNSProcessInfo             objc.Class
+	classNSNotificationCenter      objc.Class
+	classNSBundle                  objc.Class
+	classNSScreen                  objc.Class
+	classNSWindow                  objc.Class
+	classNSView                    objc.Class
+	classNSPasteboard              objc.Class
+	classNSCursor                  objc.Class
+	classNSImage                   objc.Class
+	classNSBitmapImageRep          objc.Class
+	classNSTrackingArea            objc.Class
+	classNSColor                   objc.Class
+	classNSArray                   objc.Class
+	classNSURL                     objc.Class
+	classNSOpenGLPixelFormat       objc.Class
+	classNSOpenGLContext           objc.Class
+	classNSRunningApplication      objc.Class
+	classNSMutableAttributedString objc.Class
+	classNSAttributedString        objc.Class
 )
 
 // ObjC selectors.
@@ -478,6 +483,14 @@ var (
 	selSetView                             = objc.RegisterName("setView:")
 	selClearDrawable                       = objc.RegisterName("clearDrawable")
 	selSetWantsBestResolutionOpenGLSurface = objc.RegisterName("setWantsBestResolutionOpenGLSurface:")
+
+	// NSAttributedString / NSMutableAttributedString selectors
+	selIsKindOfClass            = objc.RegisterName("isKindOfClass:")
+	selString                   = objc.RegisterName("string")
+	selInitWithAttributedString = objc.RegisterName("initWithAttributedString:")
+	selInitWithString           = objc.RegisterName("initWithString:")
+	selMutableString            = objc.RegisterName("mutableString")
+	selSetStringValue           = objc.RegisterName("setString:")
 )
 
 func init() {
@@ -533,6 +546,8 @@ func init() {
 	purego.RegisterLibFunc(&cgDisplayVendorNumber, coreGraphics, "CGDisplayVendorNumber")
 	purego.RegisterLibFunc(&cgDisplayUnitNumber, coreGraphics, "CGDisplayUnitNumber")
 	purego.RegisterLibFunc(&cgDisplayModeGetIOFlags, coreGraphics, "CGDisplayModeGetIOFlags")
+	purego.RegisterLibFunc(&cgOpenGLDisplayMaskToDisplayID, coreGraphics, "CGOpenGLDisplayMaskToDisplayID")
+	purego.RegisterLibFunc(&cgDisplayScreenSize, coreGraphics, "CGDisplayScreenSize")
 
 	// Load IOKit.
 	ioKit, err := purego.Dlopen("/System/Library/Frameworks/IOKit.framework/IOKit", purego.RTLD_LAZY|purego.RTLD_GLOBAL)
@@ -543,6 +558,7 @@ func init() {
 	purego.RegisterLibFunc(&ioIteratorNext, ioKit, "IOIteratorNext")
 	purego.RegisterLibFunc(&ioRegistryEntryGetName, ioKit, "IORegistryEntryGetName")
 	purego.RegisterLibFunc(&ioRegistryEntryCreateCFProperties, ioKit, "IORegistryEntryCreateCFProperties")
+	purego.RegisterLibFunc(&ioRegistryEntryCreateCFProperty, ioKit, "IORegistryEntryCreateCFProperty")
 	purego.RegisterLibFunc(&ioDisplayCreateInfoDictionary, ioKit, "IODisplayCreateInfoDictionary")
 	purego.RegisterLibFunc(&ioServiceMatching, ioKit, "IOServiceMatching")
 	purego.RegisterLibFunc(&ioObjectRelease, ioKit, "IOObjectRelease")
@@ -581,4 +597,6 @@ func init() {
 	classNSOpenGLPixelFormat = objc.GetClass("NSOpenGLPixelFormat")
 	classNSOpenGLContext = objc.GetClass("NSOpenGLContext")
 	classNSRunningApplication = objc.GetClass("NSRunningApplication")
+	classNSMutableAttributedString = objc.GetClass("NSMutableAttributedString")
+	classNSAttributedString = objc.GetClass("NSAttributedString")
 }

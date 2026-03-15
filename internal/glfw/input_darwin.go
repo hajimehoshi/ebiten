@@ -7,6 +7,8 @@ package glfw
 
 import (
 	"fmt"
+	"image"
+	"image/draw"
 	"math"
 )
 
@@ -340,6 +342,29 @@ func (w *Window) SetCursorPos(xpos, ypos float64) error {
 		// Update system cursor position
 		return w.platformSetCursorPos(xpos, ypos)
 	}
+}
+
+func CreateCursor(img image.Image, xhot, yhot int) (*Cursor, error) {
+	if !_glfw.initialized {
+		return nil, NotInitialized
+	}
+
+	// Convert image to NRGBA.
+	nrgba, ok := img.(*image.NRGBA)
+	if !ok {
+		nrgba = image.NewNRGBA(img.Bounds())
+		draw.Draw(nrgba, nrgba.Bounds(), img, img.Bounds().Min, draw.Src)
+	}
+
+	cursor := &Cursor{}
+	_glfw.cursors = append(_glfw.cursors, cursor)
+
+	if err := cursor.platformCreateCursor(nrgba, xhot, yhot); err != nil {
+		_ = cursor.Destroy()
+		return nil, err
+	}
+
+	return cursor, nil
 }
 
 func CreateStandardCursor(shape StandardCursor) (*Cursor, error) {
