@@ -497,6 +497,15 @@ func platformInit() error {
 	_glfw.platformWindow.helper = objc.ID(classGLFWHelper).Send(
 		objc.RegisterName("alloc")).Send(objc.RegisterName("init"))
 
+	// Press and Hold prevents some keys from emitting repeated characters.
+	pressAndHoldKey := cocoa.NSString_alloc().InitWithUTF8String("ApplePressAndHoldEnabled")
+	noValue := objc.ID(objc.GetClass("NSNumber")).Send(objc.RegisterName("numberWithBool:"), false)
+	defaults := objc.ID(classNSDictionary).Send(
+		objc.RegisterName("dictionaryWithObject:forKey:"), noValue, pressAndHoldKey.ID)
+	objc.ID(objc.GetClass("NSUserDefaults")).Send(
+		objc.RegisterName("standardUserDefaults")).Send(
+		objc.RegisterName("registerDefaults:"), defaults)
+
 	notificationCenter := objc.ID(classNSNotificationCenter).Send(selDefaultCenter)
 	nsTextInputContextKeyboardSelectionDidChangeNotification := cocoa.NSString_alloc().InitWithUTF8String(
 		"NSTextInputContextKeyboardSelectionDidChangeNotification")

@@ -437,7 +437,10 @@ func getMonitorNameNS(displayID uint32) string {
 					if length > 0 {
 						utf8Ptr := nameID.Send(selUTF8String)
 						if utf8Ptr != 0 {
-							return unsafe.String((*byte)(unsafe.Pointer(utf8Ptr)), length)
+							// Copy the string to avoid dangling pointer
+							// when the NSString is released.
+							src := unsafe.String((*byte)(unsafe.Pointer(utf8Ptr)), length)
+							return string([]byte(src))
 						}
 					}
 				}

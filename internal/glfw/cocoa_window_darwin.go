@@ -1039,6 +1039,9 @@ func createNativeWindow(window *Window, wndconfig *wndconfig, fbconfig_ *fbconfi
 
 	// Create the delegate.
 	delegateID := objc.ID(classGLFWWindowDelegate).Send(selAlloc).Send(selInit)
+	if delegateID == 0 {
+		return fmt.Errorf("glfw: failed to create window delegate: %w", PlatformError)
+	}
 	setGoWindow(delegateID, window)
 	window.platform.delegate = delegateID
 	nsWindow.Send(selSetDelegate, delegateID)
