@@ -56,6 +56,7 @@ func Init() (err error) {
 		return nil
 	}
 
+	_glfw = library{}
 	_glfw.hints.init.hatButtons = true
 
 	if err := platformInit(); err != nil {

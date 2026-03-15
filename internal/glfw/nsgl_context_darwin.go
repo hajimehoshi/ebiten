@@ -109,9 +109,13 @@ func (w *Window) createContextNSGL(ctxconfig *ctxconfig, fbconfig_ *fbconfig) er
 		}
 	}
 
-	if fbconfig_.samples > 0 {
-		addAttribVal(NSOpenGLPFASampleBuffers, 1)
-		addAttribVal(NSOpenGLPFASamples, uint32(fbconfig_.samples))
+	if fbconfig_.samples != DontCare {
+		if fbconfig_.samples == 0 {
+			addAttribVal(NSOpenGLPFASampleBuffers, 0)
+		} else {
+			addAttribVal(NSOpenGLPFASampleBuffers, 1)
+			addAttribVal(NSOpenGLPFASamples, uint32(fbconfig_.samples))
+		}
 	}
 
 	if fbconfig_.stereo {

@@ -472,7 +472,10 @@ func cStringToGoString(b []byte) string {
 }
 
 // nsScreenForDisplayID finds the NSScreen (as objc.ID) for a given CGDirectDisplayID.
+// It compares unit numbers instead of display IDs to work around display replacement
+// on machines with automatic graphics switching.
 func nsScreenForDisplayID(displayID uint32) objc.ID {
+	unitNumber := cgDisplayUnitNumber(displayID)
 	screens := objc.ID(classNSScreen).Send(selScreens)
 	count := int(screens.Send(selCount))
 	for i := range count {
@@ -483,7 +486,7 @@ func nsScreenForDisplayID(displayID uint32) objc.ID {
 			continue
 		}
 		sid := uint32(screenNum.Send(selUnsignedIntValue))
-		if sid == displayID {
+		if cgDisplayUnitNumber(sid) == unitNumber {
 			return screen
 		}
 	}
@@ -596,27 +599,22 @@ func (m *Monitor) setVideoModeNS(desired *VidMode) error {
 	defer cfRelease(modes)
 
 	count := cfArrayGetCount(modes)
-	var bestMode uintptr
-	leastDiff := math.MaxInt
+	var native uintptr
 
 	for i := range count {
-		mode := cfArrayGetValueAtIndex(modes, i)
-		if !modeIsGood(mode) {
+		dm := cfArrayGetValueAtIndex(modes, i)
+		if !modeIsGood(dm) {
 			continue
 		}
 
-		vm := vidmodeFromCGDisplayMode(mode, m.platform.fallbackRefreshRate)
-
-		diff := (vm.Width-best.Width)*(vm.Width-best.Width) +
-			(vm.Height-best.Height)*(vm.Height-best.Height) +
-			int(abs(vm.RefreshRate-best.RefreshRate))
-		if diff < leastDiff {
-			bestMode = mode
-			leastDiff = diff
+		vm := vidmodeFromCGDisplayMode(dm, m.platform.fallbackRefreshRate)
+		if best.equals(&vm) {
+			native = dm
+			break
 		}
 	}
 
-	if bestMode == 0 {
+	if native == 0 {
 		return fmt.Errorf("glfw: failed to find a suitable video mode: %w", PlatformError)
 	}
 
@@ -626,7 +624,7 @@ func (m *Monitor) setVideoModeNS(desired *VidMode) error {
 
 	token, hasFade := beginFadeReservation()
 
-	cgDisplaySetDisplayMode(m.platform.displayID, bestMode, 0)
+	cgDisplaySetDisplayMode(m.platform.displayID, native, 0)
 
 	if hasFade {
 		endFadeReservation(token)

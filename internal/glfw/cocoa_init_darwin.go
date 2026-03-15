@@ -206,6 +206,7 @@ func createMenuBar() {
 	servicesMenuItem.Send(selSetSubmenu, servicesMenu)
 	nsApp := objc.ID(classNSApplication).Send(selNSApp)
 	nsApp.Send(selSetServicesMenu, servicesMenu)
+	servicesMenu.Send(selRelease)
 
 	appMenu.Send(selAddItem, objc.ID(classNSMenuItem).Send(selSeparatorItem))
 
@@ -283,6 +284,7 @@ func createMenuBar() {
 		objc.RegisterName("setAppleMenu:"), appMenu)
 
 	nsApp.Send(selSetMainMenu, menubar)
+	menubar.Send(selRelease)
 	nsApp.Send(selSetWindowsMenu, windowMenu)
 }
 

@@ -649,6 +649,31 @@ func registerGLFWClasses() error {
 				},
 			},
 			{
+				Cmd: objc.RegisterName("updateLayer"),
+				Fn: func(self objc.ID, _ objc.SEL) {
+					window := getGoWindow(classGLFWContentView, self)
+					if window == nil {
+						return
+					}
+
+					if window.context.source == NativeContextAPI {
+						window.context.platform.object.Send(objc.RegisterName("update"))
+					}
+
+					window.inputWindowDamage()
+				},
+			},
+			{
+				Cmd: objc.RegisterName("cursorUpdate:"),
+				Fn: func(self objc.ID, _ objc.SEL, _ objc.ID) {
+					window := getGoWindow(classGLFWContentView, self)
+					if window == nil {
+						return
+					}
+					updateCursorImage(window)
+				},
+			},
+			{
 				Cmd: objc.RegisterName("acceptsFirstMouse:"),
 				Fn: func(_ objc.ID, _ objc.SEL, _ objc.ID) bool {
 					return true
@@ -959,6 +984,12 @@ func createNativeWindow(window *Window, wndconfig *wndconfig, fbconfig_ *fbconfi
 
 	nsWindow.Send(selSetTitle, cocoa.NSString_alloc().InitWithUTF8String(wndconfig.title).ID)
 	nsWindow.Send(selSetRestorable, false)
+
+	// Disable window tabbing (macOS 10.12+).
+	selSetTabbingMode := objc.RegisterName("setTabbingMode:")
+	if nsWindow.Send(objc.RegisterName("respondsToSelector:"), selSetTabbingMode) != 0 {
+		nsWindow.Send(selSetTabbingMode, uintptr(2)) // NSWindowTabbingModeDisallowed = 2
+	}
 
 	// Create the delegate.
 	delegateID := objc.ID(classGLFWWindowDelegate).Send(selAlloc).Send(selInit)
