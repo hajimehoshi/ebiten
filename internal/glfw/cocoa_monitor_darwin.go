@@ -297,6 +297,9 @@ func (m *Monitor) GetVideoMode() (*VidMode, error) {
 // modeIsGood checks if a display mode is suitable for use.
 func modeIsGood(mode uintptr) bool {
 	flags := cgDisplayModeGetIOFlags(mode)
+	if flags&kDisplayModeValidFlag == 0 || flags&kDisplayModeSafeFlag == 0 {
+		return false
+	}
 	if flags&kCGDisplayModeIsInterlaced != 0 {
 		return false
 	}
@@ -467,9 +470,14 @@ func pollMonitorsNS() error {
 			continue
 		}
 
+		// HACK: Compare unit numbers instead of display IDs to work around
+		//       display replacement on machines with automatic graphics
+		//       switching
+		unitNumber := cgDisplayUnitNumber(display)
+
 		var alreadyKnown bool
 		for j, m := range disconnected {
-			if m != nil && m.platform.displayID == display {
+			if m != nil && m.platform.unitNumber == unitNumber {
 				disconnected[j] = nil
 				alreadyKnown = true
 				break

@@ -71,11 +71,13 @@ func (w *Window) createContextNSGL(ctxconfig *ctxconfig, fbconfig_ *fbconfig) er
 		addAttrib(NSOpenGLPFADoubleBuffer)
 	}
 
-	colorBits := fbconfig_.redBits + fbconfig_.greenBits + fbconfig_.blueBits
-	if colorBits > 0 {
-		// macOS needs non-zero
-		if colorBits < 4 {
-			colorBits = 4
+	if fbconfig_.redBits != DontCare && fbconfig_.greenBits != DontCare && fbconfig_.blueBits != DontCare {
+		colorBits := fbconfig_.redBits + fbconfig_.greenBits + fbconfig_.blueBits
+		// macOS needs non-zero color size, so set reasonable values
+		if colorBits == 0 {
+			colorBits = 24
+		} else if colorBits < 15 {
+			colorBits = 15
 		}
 		addAttribVal(NSOpenGLPFAColorSize, uint32(colorBits))
 	}

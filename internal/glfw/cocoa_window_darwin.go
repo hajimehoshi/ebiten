@@ -88,17 +88,8 @@ func cursorInContentArea(window *Window) bool {
 		return false
 	}
 
-	// Get cursor location in screen coordinates.
-	pos := objc.Send[cocoa.NSPoint](objc.ID(classNSEvent), objc.RegisterName("mouseLocation"))
-
-	// Convert to window coordinates.
-	windowFrame := objc.Send[cocoa.NSRect](window.platform.object, selFrame)
-	contentRect := objc.Send[cocoa.NSRect](window.platform.object, selContentRectForFrameRect, windowFrame)
-
-	return pos.X >= contentRect.Origin.X &&
-		pos.X < contentRect.Origin.X+contentRect.Size.Width &&
-		pos.Y >= contentRect.Origin.Y &&
-		pos.Y < contentRect.Origin.Y+contentRect.Size.Height
+	pos := objc.Send[cocoa.NSPoint](window.platform.object, selMouseLocationOutsideOfEventStream)
+	return objc.Send[bool](window.platform.view, selMouseInRect, pos, objc.Send[cocoa.NSRect](window.platform.view, selFrame))
 }
 
 // hideCursor hides the system cursor and optionally disables mouse/cursor association.
@@ -526,7 +517,7 @@ func registerGLFWClasses() error {
 					if key == KeyUnknown {
 						return
 					}
-					flags := uintptr(event.Send(selModifierFlags))
+					flags := uintptr(event.Send(selModifierFlags)) & NSEventModifierFlagDeviceIndependentFlagsMask
 					mods := translateFlags(flags)
 
 					modFlag := translateKeyToModifierFlag(key)
@@ -1143,7 +1134,12 @@ func (w *Window) platformSetWindowSize(width, height int) error {
 		return nil
 	}
 
-	w.platform.object.Send(selSetContentSize, cocoa.NSSize{Width: float64(width), Height: float64(height)})
+	contentRect := objc.Send[cocoa.NSRect](w.platform.object, selContentRectForFrameRect,
+		objc.Send[cocoa.NSRect](w.platform.object, selFrame))
+	contentRect.Origin.Y += contentRect.Size.Height - float64(height)
+	contentRect.Size = cocoa.NSSize{Width: float64(width), Height: float64(height)}
+	frameRect := objc.Send[cocoa.NSRect](w.platform.object, selFrameRectForContentRect, contentRect)
+	w.platform.object.Send(objc.RegisterName("setFrame:display:"), frameRect, true)
 	return nil
 }
 

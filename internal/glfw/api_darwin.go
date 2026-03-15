@@ -119,6 +119,8 @@ const (
 
 // CoreGraphics / IOKit constants.
 const (
+	kDisplayModeValidFlag                 = 0x00000001
+	kDisplayModeSafeFlag                  = 0x00000002
 	kCGDisplayModeIsInterlaced            = 0x00100000
 	kCGDisplayModeIsStretched             = 0x00200000
 	kCGDisplayFadeReservationInvalidToken = 0
@@ -369,6 +371,7 @@ var (
 	selRemoveTrackingArea = objc.RegisterName("removeTrackingArea:")
 	selTrackingAreas      = objc.RegisterName("trackingAreas")
 	selSetNeedsDisplay    = objc.RegisterName("setNeedsDisplay:")
+	selMouseInRect        = objc.RegisterName("mouse:inRect:")
 
 	// NSScreen selectors
 	selScreens            = objc.RegisterName("screens")
