@@ -42,6 +42,7 @@ const (
 // CGEventSource state IDs.
 const (
 	_kCGEventSourceStateCombinedSessionState int32 = -1
+	_kCGEventSourceStateHIDSystemState       int32 = 1
 )
 
 // NSEvent modifier flags.
@@ -194,7 +195,7 @@ var (
 	cgSetDisplayTransferByTable            func(display uint32, sampleCount uint32, red *float32, green *float32, blue *float32) int32
 	cgDisplayRestoreColorSyncSettings      func()
 	cgAcquireDisplayFadeReservation        func(seconds float32, pNewToken *uint32) int32
-	cgDisplayFade                          func(token uint32, duration float32, startColor float32, endColor float32, synchronous uint32) int32
+	cgDisplayFade                          func(token uint32, duration float32, startColor float32, endColor float32, redBlend float32, greenBlend float32, blueBlend float32, synchronous uint32) int32
 	cgReleaseDisplayFadeReservation        func(token uint32) int32
 	cgDisplayModelNumber                   func(display uint32) uint32
 	cgDisplayVendorNumber                  func(display uint32) uint32
@@ -259,12 +260,14 @@ var (
 	selSendEvent                             = objc.RegisterName("sendEvent:")
 	selUpdateWindows                         = objc.RegisterName("updateWindows")
 	selActivateIgnoringOtherApps             = objc.RegisterName("activateIgnoringOtherApps:")
+	selKeyWindow                             = objc.RegisterName("keyWindow")
 	selPostEventAtStart                      = objc.RegisterName("postEvent:atStart:")
 	selHide                                  = objc.RegisterName("hide:")
 	selUnhideAllApplications                 = objc.RegisterName("unhideAllApplications:")
 	selHideOtherApplications                 = objc.RegisterName("hideOtherApplications:")
 	selTerminate                             = objc.RegisterName("terminate:")
 	selOrderFrontStandardAboutPanel          = objc.RegisterName("orderFrontStandardAboutPanel:")
+	selAddLocalMonitorForEventsMatchingMask  = objc.RegisterName("addLocalMonitorForEventsMatchingMask:handler:")
 	selAddGlobalMonitorForEventsMatchingMask = objc.RegisterName("addGlobalMonitorForEventsMatchingMask:handler:")
 
 	// NSProcessInfo

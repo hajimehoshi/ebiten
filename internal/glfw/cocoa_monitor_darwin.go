@@ -329,7 +329,7 @@ func vidmodeFromCGDisplayMode(mode uintptr, fallbackRefreshRate float64) VidMode
 func beginFadeReservation() (uint32, bool) {
 	var token uint32
 	if cgAcquireDisplayFadeReservation(5.0, &token) == kCGErrorSuccess {
-		cgDisplayFade(token, 0.3, 0.0, 1.0, 1)
+		cgDisplayFade(token, 0.3, 0.0, 1.0, 0.0, 0.0, 0.0, 1)
 		return token, true
 	}
 	return kCGDisplayFadeReservationInvalidToken, false
@@ -338,7 +338,7 @@ func beginFadeReservation() (uint32, bool) {
 // endFadeReservation fades back in and releases a fade reservation.
 func endFadeReservation(token uint32) {
 	if token != kCGDisplayFadeReservationInvalidToken {
-		cgDisplayFade(token, 0.5, 1.0, 0.0, 0)
+		cgDisplayFade(token, 0.5, 1.0, 0.0, 0.0, 0.0, 0.0, 0)
 		cgReleaseDisplayFadeReservation(token)
 	}
 }

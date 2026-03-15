@@ -38,6 +38,7 @@ func createKeyTables() {
 	_glfw.platformWindow.keycodes[0x07] = KeyX
 	_glfw.platformWindow.keycodes[0x08] = KeyC
 	_glfw.platformWindow.keycodes[0x09] = KeyV
+	_glfw.platformWindow.keycodes[0x0A] = KeyWorld1
 	_glfw.platformWindow.keycodes[0x0B] = KeyB
 	_glfw.platformWindow.keycodes[0x0C] = KeyQ
 	_glfw.platformWindow.keycodes[0x0D] = KeyW
@@ -87,13 +88,13 @@ func createKeyTables() {
 	_glfw.platformWindow.keycodes[0x3B] = KeyLeftControl
 	_glfw.platformWindow.keycodes[0x3C] = KeyRightShift
 	_glfw.platformWindow.keycodes[0x3D] = KeyRightAlt
+	_glfw.platformWindow.keycodes[0x36] = KeyRightSuper
 	_glfw.platformWindow.keycodes[0x3E] = KeyRightControl
-	_glfw.platformWindow.keycodes[0x3F] = KeyRightSuper
 	_glfw.platformWindow.keycodes[0x40] = KeyF17
-	_glfw.platformWindow.keycodes[0x43] = KeyKPDecimal
-	_glfw.platformWindow.keycodes[0x45] = KeyKPMultiply
+	_glfw.platformWindow.keycodes[0x41] = KeyKPDecimal
+	_glfw.platformWindow.keycodes[0x43] = KeyKPMultiply
+	_glfw.platformWindow.keycodes[0x45] = KeyKPAdd
 	_glfw.platformWindow.keycodes[0x47] = KeyNumLock
-	_glfw.platformWindow.keycodes[0x48] = KeyKPAdd
 	_glfw.platformWindow.keycodes[0x4B] = KeyKPDivide
 	_glfw.platformWindow.keycodes[0x4C] = KeyKPEnter
 	_glfw.platformWindow.keycodes[0x4E] = KeyKPSubtract
@@ -118,7 +119,7 @@ func createKeyTables() {
 	_glfw.platformWindow.keycodes[0x64] = KeyF8
 	_glfw.platformWindow.keycodes[0x65] = KeyF9
 	_glfw.platformWindow.keycodes[0x67] = KeyF11
-	_glfw.platformWindow.keycodes[0x69] = KeyF13
+	_glfw.platformWindow.keycodes[0x69] = KeyPrintScreen
 	_glfw.platformWindow.keycodes[0x6A] = KeyF16
 	_glfw.platformWindow.keycodes[0x6B] = KeyF14
 	_glfw.platformWindow.keycodes[0x6D] = KeyF10
@@ -407,16 +408,15 @@ func platformInit() error {
 				Cmd: selApplicationDidFinishLaunching,
 				Fn: func(_ objc.ID, _ objc.SEL, _ objc.ID) {
 					nsApp := objc.ID(classNSApplication).Send(selNSApp)
-					nsApp.Send(selStop, 0)
-					// Post an empty event to ensure the run loop processes the stop.
 					postEmptyEvent()
+					nsApp.Send(selStop, 0)
 				},
 			},
 			{
 				Cmd: selApplicationDidHide,
 				Fn: func(_ objc.ID, _ objc.SEL, _ objc.ID) {
-					for _, window := range _glfw.windows {
-						window.platform.occluded = false
+					for _, monitor := range _glfw.monitors {
+						monitor.restoreVideoModeNS()
 					}
 				},
 			},
@@ -448,20 +448,22 @@ func platformInit() error {
 		nsTextInputContextKeyboardSelectionDidChangeNotification.ID,
 		0)
 
-	// Add a global monitor for keyUp events to work around Cocoa swallowing
+	// Add a local monitor for keyUp events to work around Cocoa swallowing
 	// key-up events when the menu bar is active.
-	keyUpBlock := objc.NewBlock(func(_ objc.Block, event objc.ID) {
-		// Re-dispatch keyUp events to the application.
-		app := objc.ID(classNSApplication).Send(selNSApp)
-		app.Send(selSendEvent, event)
+	keyUpBlock := objc.NewBlock(func(_ objc.Block, event objc.ID) objc.ID {
+		if uintptr(event.Send(selModifierFlags))&NSEventModifierFlagCommand != 0 {
+			app := objc.ID(classNSApplication).Send(selNSApp)
+			app.Send(selKeyWindow).Send(selSendEvent, event)
+		}
+		return event
 	})
 	_glfw.platformWindow.keyUpMonitor = objc.ID(classNSEvent).Send(
-		selAddGlobalMonitorForEventsMatchingMask,
+		selAddLocalMonitorForEventsMatchingMask,
 		_NSEventMaskKeyUp,
 		keyUpBlock)
 
 	// Create a CGEventSource for synthesized events.
-	_glfw.platformWindow.eventSource = cgEventSourceCreate(_kCGEventSourceStateCombinedSessionState)
+	_glfw.platformWindow.eventSource = cgEventSourceCreate(_kCGEventSourceStateHIDSystemState)
 
 	// Initialize TIS (Text Input Source) framework bindings.
 	initializeTIS()
