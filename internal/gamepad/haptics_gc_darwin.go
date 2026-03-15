@@ -193,7 +193,7 @@ func createGCRumbleMotor(controller uintptr, which int) uintptr {
 	intensityParam := objc.ID(classCHHapticEventParameter).Send(selCHAlloc).Send(
 		selCHInitWithParameterID,
 		chHapticEventParameterIDHapticIntensity,
-		math.Float64frombits(uint64(math.Float32bits(1.0))<<32), // float -> double for objc.Send
+		float32(1.0),
 	)
 
 	// Create an NSArray with the parameter.
@@ -203,8 +203,8 @@ func createGCRumbleMotor(controller uintptr, which int) uintptr {
 		selCHInitWithEventType,
 		chHapticEventTypeHapticContinuous,
 		paramArray,
-		float64(0), // relativeTime
-		math.Float64frombits(uint64(math.Float32bits(gcHapticDurationInfinite))<<32), // duration (float → double)
+		float64(0),                        // relativeTime
+		float64(gcHapticDurationInfinite), // duration (NSTimeInterval)
 	)
 	intensityParam.Send(selCHRelease)
 
@@ -297,7 +297,7 @@ func vibrateMotor(motorPtr uintptr, intensity float64) {
 		param := objc.ID(classCHHapticDynamicParam).Send(selCHAlloc).Send(
 			selCHInitDynParam,
 			chHapticDynamicParameterIDHapticIntensityCtrl,
-			math.Float64frombits(uint64(math.Float32bits(float32(intensity)))<<32), // float → double
+			float32(intensity),
 			float64(0), // relativeTime
 		)
 		paramArray := makeNSArray(param)

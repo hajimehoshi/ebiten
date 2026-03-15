@@ -291,142 +291,140 @@ func getControllerPropertyFromController(controller objc.ID) controllerProperty 
 		prop.name = "MFi Gamepad"
 	}
 
-	extGamepad := controller.Send(selExtendedGamepad)
-	if extGamepad == 0 {
-		return prop
-	}
-
 	var vendor, product, subtype uint16
 
-	// Detect controller type via productCategory (macOS 10.15+) or vendorName.
-	isXbox := false
-	isPS4 := false
-	isPS5 := false
+	extGamepad := controller.Send(selExtendedGamepad)
+	if extGamepad != 0 {
+		// Detect controller type via productCategory (macOS 10.15+) or vendorName.
+		isXbox := false
+		isPS4 := false
+		isPS5 := false
 
-	productCategory := controller.Send(selProductCategory)
-	if productCategory != 0 {
-		if nsStringEquals(productCategory, "DualShock 4") {
-			isPS4 = true
-		} else if nsStringEquals(productCategory, "DualSense") {
-			isPS5 = true
-		} else if nsStringEquals(productCategory, "Xbox One") {
-			isXbox = true
-		}
-	}
-	if !isXbox && !isPS4 && !isPS5 {
-		vendorName := controller.Send(selVendorName)
-		if vendorName != 0 {
-			if nsStringEquals(vendorName, "DUALSHOCK") {
+		productCategory := controller.Send(selProductCategory)
+		if productCategory != 0 {
+			if nsStringEquals(productCategory, "DualShock 4") {
 				isPS4 = true
-			} else if nsStringEquals(vendorName, "DualSense") {
+			} else if nsStringEquals(productCategory, "DualSense") {
 				isPS5 = true
-			} else if nsStringEquals(vendorName, "Xbox") {
+			} else if nsStringEquals(productCategory, "Xbox One") {
 				isXbox = true
 			}
 		}
-	}
-
-	// Standard buttons.
-	prop.buttonMask |= (1 << kControllerButtonA)
-	prop.buttonMask |= (1 << kControllerButtonB)
-	prop.buttonMask |= (1 << kControllerButtonX)
-	prop.buttonMask |= (1 << kControllerButtonY)
-	prop.buttonMask |= (1 << kControllerButtonLeftShoulder)
-	prop.buttonMask |= (1 << kControllerButtonRightShoulder)
-	prop.nButtons += 6
-
-	// Optional buttons (check availability via respondsToSelector:).
-	if extGamepad.Send(selRespondsToSelector, selLeftThumbstickButton) != 0 && extGamepad.Send(selLeftThumbstickButton) != 0 {
-		prop.buttonMask |= (1 << kControllerButtonLeftStick)
-		prop.nButtons++
-	}
-	if extGamepad.Send(selRespondsToSelector, selRightThumbstickButton) != 0 && extGamepad.Send(selRightThumbstickButton) != 0 {
-		prop.buttonMask |= (1 << kControllerButtonRightStick)
-		prop.nButtons++
-	}
-	if extGamepad.Send(selRespondsToSelector, selButtonOptions) != 0 && extGamepad.Send(selButtonOptions) != 0 {
-		prop.buttonMask |= (1 << kControllerButtonBack)
-		prop.nButtons++
-	}
-	if extGamepad.Send(selRespondsToSelector, selButtonHome) != 0 && extGamepad.Send(selButtonHome) != 0 {
-		prop.buttonMask |= (1 << kControllerButtonGuide)
-		prop.nButtons++
-	}
-
-	prop.buttonMask |= (1 << kControllerButtonStart)
-	prop.nButtons++
-
-	// Physical input profile buttons (GCInputDualShockTouchpad, Xbox paddles, etc.).
-	if controller.Send(selRespondsToSelector, selPhysicalInputProfile) != 0 {
-		profile := controller.Send(selPhysicalInputProfile)
-		if profile != 0 {
-			profileButtons := profile.Send(selButtons)
-			if profileButtons != 0 {
-				if gcInputDualShockTouchpadButton != 0 && profileButtons.Send(selObjectForKeyedSubscript, gcInputDualShockTouchpadButton) != 0 {
-					prop.hasDualshockTouchpad = true
-					prop.buttonMask |= (1 << kControllerButtonMisc1)
-					prop.nButtons++
-				}
-				if gcInputXboxPaddleOne != 0 && profileButtons.Send(selObjectForKeyedSubscript, gcInputXboxPaddleOne) != 0 {
-					prop.hasXboxPaddles = true
-					prop.buttonMask |= (1 << kControllerButtonPaddle1)
-					prop.nButtons++
-				}
-				if gcInputXboxPaddleTwo != 0 && profileButtons.Send(selObjectForKeyedSubscript, gcInputXboxPaddleTwo) != 0 {
-					prop.hasXboxPaddles = true
-					prop.buttonMask |= (1 << kControllerButtonPaddle2)
-					prop.nButtons++
-				}
-				if gcInputXboxPaddleThree != 0 && profileButtons.Send(selObjectForKeyedSubscript, gcInputXboxPaddleThree) != 0 {
-					prop.hasXboxPaddles = true
-					prop.buttonMask |= (1 << kControllerButtonPaddle3)
-					prop.nButtons++
-				}
-				if gcInputXboxPaddleFour != 0 && profileButtons.Send(selObjectForKeyedSubscript, gcInputXboxPaddleFour) != 0 {
-					prop.hasXboxPaddles = true
-					prop.buttonMask |= (1 << kControllerButtonPaddle4)
-					prop.nButtons++
-				}
-				if gcInputXboxShareButton != 0 && profileButtons.Send(selObjectForKeyedSubscript, gcInputXboxShareButton) != 0 {
-					prop.hasXboxShareButton = true
-					prop.buttonMask |= (1 << kControllerButtonMisc1)
-					prop.nButtons++
+		if !isXbox && !isPS4 && !isPS5 {
+			vendorName := controller.Send(selVendorName)
+			if vendorName != 0 {
+				if nsStringEquals(vendorName, "DUALSHOCK") {
+					isPS4 = true
+				} else if nsStringEquals(vendorName, "DualSense") {
+					isPS5 = true
+				} else if nsStringEquals(vendorName, "Xbox") {
+					isXbox = true
 				}
 			}
 		}
-	}
 
-	// Determine vendor/product/subtype for GUID.
-	if isXbox {
-		vendor = kUSBVendorMicrosoft
-		if prop.hasXboxPaddles {
-			product = kUSBProductXboxOneEliteSeries2Bluetooth
-			subtype = 1
-		} else if prop.hasXboxShareButton {
-			product = kUSBProductXboxSeriesXBluetooth
-			subtype = 1
-		} else {
-			product = kUSBProductXboxOneSRev1Bluetooth
+		// Standard buttons.
+		prop.buttonMask |= (1 << kControllerButtonA)
+		prop.buttonMask |= (1 << kControllerButtonB)
+		prop.buttonMask |= (1 << kControllerButtonX)
+		prop.buttonMask |= (1 << kControllerButtonY)
+		prop.buttonMask |= (1 << kControllerButtonLeftShoulder)
+		prop.buttonMask |= (1 << kControllerButtonRightShoulder)
+		prop.nButtons += 6
+
+		// Optional buttons (check availability via respondsToSelector:).
+		if extGamepad.Send(selRespondsToSelector, selLeftThumbstickButton) != 0 && extGamepad.Send(selLeftThumbstickButton) != 0 {
+			prop.buttonMask |= (1 << kControllerButtonLeftStick)
+			prop.nButtons++
+		}
+		if extGamepad.Send(selRespondsToSelector, selRightThumbstickButton) != 0 && extGamepad.Send(selRightThumbstickButton) != 0 {
+			prop.buttonMask |= (1 << kControllerButtonRightStick)
+			prop.nButtons++
+		}
+		if extGamepad.Send(selRespondsToSelector, selButtonOptions) != 0 && extGamepad.Send(selButtonOptions) != 0 {
+			prop.buttonMask |= (1 << kControllerButtonBack)
+			prop.nButtons++
+		}
+		if extGamepad.Send(selRespondsToSelector, selButtonHome) != 0 && extGamepad.Send(selButtonHome) != 0 {
+			prop.buttonMask |= (1 << kControllerButtonGuide)
+			prop.nButtons++
+		}
+
+		prop.buttonMask |= (1 << kControllerButtonStart)
+		prop.nButtons++
+
+		// Physical input profile buttons (GCInputDualShockTouchpad, Xbox paddles, etc.).
+		if controller.Send(selRespondsToSelector, selPhysicalInputProfile) != 0 {
+			profile := controller.Send(selPhysicalInputProfile)
+			if profile != 0 {
+				profileButtons := profile.Send(selButtons)
+				if profileButtons != 0 {
+					if gcInputDualShockTouchpadButton != 0 && profileButtons.Send(selObjectForKeyedSubscript, gcInputDualShockTouchpadButton) != 0 {
+						prop.hasDualshockTouchpad = true
+						prop.buttonMask |= (1 << kControllerButtonMisc1)
+						prop.nButtons++
+					}
+					if gcInputXboxPaddleOne != 0 && profileButtons.Send(selObjectForKeyedSubscript, gcInputXboxPaddleOne) != 0 {
+						prop.hasXboxPaddles = true
+						prop.buttonMask |= (1 << kControllerButtonPaddle1)
+						prop.nButtons++
+					}
+					if gcInputXboxPaddleTwo != 0 && profileButtons.Send(selObjectForKeyedSubscript, gcInputXboxPaddleTwo) != 0 {
+						prop.hasXboxPaddles = true
+						prop.buttonMask |= (1 << kControllerButtonPaddle2)
+						prop.nButtons++
+					}
+					if gcInputXboxPaddleThree != 0 && profileButtons.Send(selObjectForKeyedSubscript, gcInputXboxPaddleThree) != 0 {
+						prop.hasXboxPaddles = true
+						prop.buttonMask |= (1 << kControllerButtonPaddle3)
+						prop.nButtons++
+					}
+					if gcInputXboxPaddleFour != 0 && profileButtons.Send(selObjectForKeyedSubscript, gcInputXboxPaddleFour) != 0 {
+						prop.hasXboxPaddles = true
+						prop.buttonMask |= (1 << kControllerButtonPaddle4)
+						prop.nButtons++
+					}
+					if gcInputXboxShareButton != 0 && profileButtons.Send(selObjectForKeyedSubscript, gcInputXboxShareButton) != 0 {
+						prop.hasXboxShareButton = true
+						prop.buttonMask |= (1 << kControllerButtonMisc1)
+						prop.nButtons++
+					}
+				}
+			}
+		}
+
+		// Determine vendor/product/subtype for GUID.
+		if isXbox {
+			vendor = kUSBVendorMicrosoft
+			if prop.hasXboxPaddles {
+				product = kUSBProductXboxOneEliteSeries2Bluetooth
+				subtype = 1
+			} else if prop.hasXboxShareButton {
+				product = kUSBProductXboxSeriesXBluetooth
+				subtype = 1
+			} else {
+				product = kUSBProductXboxOneSRev1Bluetooth
+				subtype = 0
+			}
+		} else if isPS4 {
+			vendor = kUSBVendorSony
+			product = kUSBProductSonyDS4Slim
+			if prop.hasDualshockTouchpad {
+				subtype = 1
+			}
+		} else if isPS5 {
+			vendor = kUSBVendorSony
+			product = kUSBProductSonyDS5
 			subtype = 0
-		}
-	} else if isPS4 {
-		vendor = kUSBVendorSony
-		product = kUSBProductSonyDS4Slim
-		if prop.hasDualshockTouchpad {
+		} else {
+			vendor = kUSBVendorApple
+			product = 1
 			subtype = 1
 		}
-	} else if isPS5 {
-		vendor = kUSBVendorSony
-		product = kUSBProductSonyDS5
-		subtype = 0
-	} else {
-		vendor = kUSBVendorApple
-		product = 1
-		subtype = 1
-	}
 
-	prop.nAxes = 6
-	prop.nHats = 1
+		prop.nAxes = 6
+		prop.nHats = 1
+	}
 
 	// Build GUID (SDL-compatible format).
 	prop.guid[0] = byte(kSDLHardwareBusBluetooth)
