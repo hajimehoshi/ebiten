@@ -186,10 +186,10 @@ func createMenuBar() {
 	nsApp.Send(selSetMainMenu, menubar)
 
 	// Create the application menu.
-	appMenuItem := objc.ID(classNSMenuItem).Send(objc.RegisterName("alloc")).Send(objc.RegisterName("init"))
-	menubar.Send(selAddItem, appMenuItem)
-
+	emptyStr := cocoa.NSString_alloc().InitWithUTF8String("")
+	appMenuItem := menubar.Send(selAddItemWithTitle, emptyStr.ID, objc.SEL(0), emptyStr.ID)
 	appMenu := objc.ID(classNSMenu).Send(objc.RegisterName("alloc")).Send(objc.RegisterName("init"))
+	appMenuItem.Send(selSetSubmenu, appMenu)
 
 	// About <AppName>
 	appMenu.Send(selAddItemWithTitle,
@@ -200,12 +200,12 @@ func createMenuBar() {
 	appMenu.Send(selAddItem, objc.ID(classNSMenuItem).Send(selSeparatorItem))
 
 	// Services submenu
+	servicesMenu := objc.ID(classNSMenu).Send(objc.RegisterName("alloc")).Send(objc.RegisterName("init"))
+	nsApp.Send(selSetServicesMenu, servicesMenu)
 	servicesMenuItem := appMenu.Send(selAddItemWithTitle,
 		cocoa.NSString_alloc().InitWithUTF8String("Services").ID,
 		objc.SEL(0),
 		cocoa.NSString_alloc().InitWithUTF8String("").ID)
-	servicesMenu := objc.ID(classNSMenu).Send(objc.RegisterName("alloc")).Send(objc.RegisterName("init"))
-	nsApp.Send(selSetServicesMenu, servicesMenu)
 	servicesMenuItem.Send(selSetSubmenu, servicesMenu)
 	servicesMenu.Send(selRelease)
 
@@ -239,11 +239,8 @@ func createMenuBar() {
 		selTerminate,
 		cocoa.NSString_alloc().InitWithUTF8String("q").ID)
 
-	appMenuItem.Send(selSetSubmenu, appMenu)
-
 	// Create the Window menu.
-	windowMenuItem := objc.ID(classNSMenuItem).Send(objc.RegisterName("alloc")).Send(objc.RegisterName("init"))
-	menubar.Send(selAddItem, windowMenuItem)
+	windowMenuItem := menubar.Send(selAddItemWithTitle, emptyStr.ID, objc.SEL(0), emptyStr.ID)
 	menubar.Send(selRelease)
 
 	windowMenu := objc.ID(classNSMenu).Send(objc.RegisterName("alloc")).Send(

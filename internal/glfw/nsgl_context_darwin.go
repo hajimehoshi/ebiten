@@ -77,8 +77,18 @@ func (w *Window) createContextNSGL(ctxconfig *ctxconfig, fbconfig_ *fbconfig) er
 		addAttribVal(NSOpenGLPFAOpenGLProfile, NSOpenGLProfileVersion3_2Core)
 	}
 
-	if fbconfig_.doublebuffer {
-		addAttrib(NSOpenGLPFADoubleBuffer)
+	if ctxconfig.major <= 2 {
+		if fbconfig_.auxBuffers != DontCare {
+			addAttribVal(NSOpenGLPFAAuxBuffers, uint32(fbconfig_.auxBuffers))
+		}
+
+		if fbconfig_.accumRedBits != DontCare &&
+			fbconfig_.accumGreenBits != DontCare &&
+			fbconfig_.accumBlueBits != DontCare &&
+			fbconfig_.accumAlphaBits != DontCare {
+			accumBits := fbconfig_.accumRedBits + fbconfig_.accumGreenBits + fbconfig_.accumBlueBits + fbconfig_.accumAlphaBits
+			addAttribVal(NSOpenGLPFAAccumSize, uint32(accumBits))
+		}
 	}
 
 	if fbconfig_.redBits != DontCare && fbconfig_.greenBits != DontCare && fbconfig_.blueBits != DontCare {
@@ -104,18 +114,12 @@ func (w *Window) createContextNSGL(ctxconfig *ctxconfig, fbconfig_ *fbconfig) er
 		addAttribVal(NSOpenGLPFAStencilSize, uint32(fbconfig_.stencilBits))
 	}
 
-	if ctxconfig.major <= 2 {
-		if fbconfig_.auxBuffers != DontCare {
-			addAttribVal(NSOpenGLPFAAuxBuffers, uint32(fbconfig_.auxBuffers))
-		}
+	if fbconfig_.stereo {
+		return fmt.Errorf("glfw: NSGL stereo rendering is deprecated: %w", FormatUnavailable)
+	}
 
-		if fbconfig_.accumRedBits != DontCare &&
-			fbconfig_.accumGreenBits != DontCare &&
-			fbconfig_.accumBlueBits != DontCare &&
-			fbconfig_.accumAlphaBits != DontCare {
-			accumBits := fbconfig_.accumRedBits + fbconfig_.accumGreenBits + fbconfig_.accumBlueBits + fbconfig_.accumAlphaBits
-			addAttribVal(NSOpenGLPFAAccumSize, uint32(accumBits))
-		}
+	if fbconfig_.doublebuffer {
+		addAttrib(NSOpenGLPFADoubleBuffer)
 	}
 
 	if fbconfig_.samples != DontCare {
@@ -125,10 +129,6 @@ func (w *Window) createContextNSGL(ctxconfig *ctxconfig, fbconfig_ *fbconfig) er
 			addAttribVal(NSOpenGLPFASampleBuffers, 1)
 			addAttribVal(NSOpenGLPFASamples, uint32(fbconfig_.samples))
 		}
-	}
-
-	if fbconfig_.stereo {
-		return fmt.Errorf("glfw: NSGL stereo rendering is deprecated: %w", FormatUnavailable)
 	}
 
 	// Terminate the attributes list.
