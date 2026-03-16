@@ -451,8 +451,18 @@ func platformInit() error {
 			{
 				Cmd: selApplicationWillFinishLaunching,
 				Fn: func(_ objc.ID, _ objc.SEL, _ objc.ID) {
-					nsApp := objc.ID(classNSApplication).Send(selNSApp)
-					if nsApp.Send(selMainMenu) == 0 {
+					// In the C original, this first tries to load MainMenu.nib from
+					// the bundle, and only falls back to createMenuBar() if no nib exists.
+					bundle := objc.ID(classNSBundle).Send(selMainBundle)
+					mainMenuNib := cocoa.NSString_alloc().InitWithUTF8String("MainMenu")
+					nibType := cocoa.NSString_alloc().InitWithUTF8String("nib")
+					nibPath := bundle.Send(objc.RegisterName("pathForResource:ofType:"), mainMenuNib.ID, nibType.ID)
+					if nibPath != 0 {
+						bundle.Send(objc.RegisterName("loadNibNamed:owner:topLevelObjects:"),
+							mainMenuNib.ID,
+							objc.ID(classNSApplication).Send(selNSApp),
+							0)
+					} else {
 						createMenuBar()
 					}
 				},
@@ -547,13 +557,6 @@ func platformInit() error {
 	// Detect and register connected monitors.
 	if err := pollMonitorsNS(); err != nil {
 		return err
-	}
-
-	// If not running from a bundle (e.g., launched from terminal),
-	// set the activation policy so we get a dock icon and menu bar.
-	bundle := objc.ID(classNSBundle).Send(selMainBundle)
-	if bundle == 0 || bundle.Send(selBundleIdentifier) == 0 {
-		nsApp.Send(selSetActivationPolicy, _NSApplicationActivationPolicyRegular)
 	}
 
 	// Run the application to process initial events, but only if it hasn't

@@ -349,6 +349,11 @@ func CreateCursor(img image.Image, xhot, yhot int) (*Cursor, error) {
 		return nil, NotInitialized
 	}
 
+	b := img.Bounds()
+	if b.Dx() <= 0 || b.Dy() <= 0 {
+		return nil, fmt.Errorf("glfw: invalid image dimensions for cursor: %w", InvalidValue)
+	}
+
 	// Convert image to NRGBA.
 	nrgba, ok := img.(*image.NRGBA)
 	if !ok {

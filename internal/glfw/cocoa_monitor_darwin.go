@@ -383,9 +383,9 @@ func getFallbackRefreshRate(displayID uint32) float64 {
 func vidmodeFromCGDisplayMode(mode uintptr, fallbackRefreshRate float64) VidMode {
 	w := int(cgDisplayModeGetWidth(mode))
 	h := int(cgDisplayModeGetHeight(mode))
-	rate := cgDisplayModeGetRefreshRate(mode)
-	if rate == 0 {
-		rate = fallbackRefreshRate
+	refreshRate := int(math.Round(cgDisplayModeGetRefreshRate(mode)))
+	if refreshRate == 0 {
+		refreshRate = int(math.Round(fallbackRefreshRate))
 	}
 
 	return VidMode{
@@ -394,7 +394,7 @@ func vidmodeFromCGDisplayMode(mode uintptr, fallbackRefreshRate float64) VidMode
 		RedBits:     8,
 		GreenBits:   8,
 		BlueBits:    8,
-		RefreshRate: int(math.Round(rate)),
+		RefreshRate: refreshRate,
 	}
 }
 
@@ -525,7 +525,7 @@ func getMonitorNameNS(displayID uint32) string {
 
 	size := cfStringGetMaximumSizeForEncoding(cfStringGetLength(nameRef), kCFStringEncodingUTF8)
 	buf := make([]byte, size+1)
-	cfStringGetCString(nameRef, &buf[0], size+1, kCFStringEncodingUTF8)
+	cfStringGetCString(nameRef, &buf[0], size, kCFStringEncodingUTF8)
 	return cStringToGoString(buf)
 }
 

@@ -309,7 +309,23 @@ func (w *Window) Destroy() error {
 	}
 
 	// Clear all callbacks to avoid exposing a half torn-down w object
-	// TODO: Clear w.callbacks
+	w.callbacks.pos = nil
+	w.callbacks.size = nil
+	w.callbacks.close = nil
+	w.callbacks.refresh = nil
+	w.callbacks.focus = nil
+	w.callbacks.iconify = nil
+	w.callbacks.maximize = nil
+	w.callbacks.fbsize = nil
+	w.callbacks.scale = nil
+	w.callbacks.mouseButton = nil
+	w.callbacks.cursorPos = nil
+	w.callbacks.cursorEnter = nil
+	w.callbacks.scroll = nil
+	w.callbacks.key = nil
+	w.callbacks.character = nil
+	w.callbacks.charmods = nil
+	w.callbacks.drop = nil
 
 	// The w's context must not be current on another thread when the
 	// w is destroyed
@@ -372,6 +388,9 @@ func (w *Window) SetIcon(images []image.Image) error {
 	gimgs := make([]*Image, len(images))
 	for i, img := range images {
 		b := img.Bounds()
+		if b.Dx() <= 0 || b.Dy() <= 0 {
+			return fmt.Errorf("glfw: invalid image dimensions for window icon: %w", InvalidValue)
+		}
 		m := image.NewNRGBA(image.Rect(0, 0, b.Dx(), b.Dy()))
 		draw.Draw(m, m.Bounds(), img, b.Min, draw.Src)
 		gimgs[i] = &Image{

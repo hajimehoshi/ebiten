@@ -10,6 +10,10 @@ import (
 )
 
 func terminate() error {
+	// Clear global callbacks before destroying windows to prevent
+	// callbacks from firing during teardown.
+	_glfw.callbacks.monitor = nil
+
 	for _, w := range _glfw.windows {
 		if err := w.Destroy(); err != nil {
 			return err

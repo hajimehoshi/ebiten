@@ -1090,7 +1090,7 @@ func createNativeWindow(window *Window, wndconfig *wndconfig, fbconfig_ *fbconfi
 	viewID.Send(objc.RegisterName("updateTrackingAreas"))
 
 	// Register for dragged types (URLs).
-	urlType := cocoa.NSString_alloc().InitWithUTF8String("public.url")
+	urlType := cocoa.NSString_alloc().InitWithUTF8String("public.file-url")
 	typesArray := objc.ID(classNSArray).Send(selArrayWithObject, urlType.ID)
 	viewID.Send(selRegisterForDraggedTypes, typesArray)
 
@@ -1666,10 +1666,11 @@ func platformPollEvents() error {
 	pool := cocoa.NSAutoreleasePool_new()
 	defer pool.Release()
 
+	distantPast := objc.ID(objc.GetClass("NSDate")).Send(objc.RegisterName("distantPast"))
 	for {
 		event := objc.Send[objc.ID](nsApp(), selNextEventMatchingMask,
 			uintptr(NSEventMaskAny),
-			uintptr(0), // distantPast (nil = no wait)
+			distantPast,
 			nsDefaultRunLoopMode.ID,
 			true)
 		if event == 0 {
