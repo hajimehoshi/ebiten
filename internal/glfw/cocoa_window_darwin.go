@@ -1919,8 +1919,6 @@ func (c *Cursor) platformCreateStandardCursor(shape StandardCursor) error {
 			}
 		case NotAllowedCursor:
 			cursor = objc.ID(classNSCursor).Send(selOperationNotAllowedCursor)
-		default:
-			return fmt.Errorf("glfw: invalid standard cursor 0x%08X: %w", shape, InvalidEnum)
 		}
 	}
 

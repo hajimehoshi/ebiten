@@ -327,12 +327,12 @@ func updateUnicodeDataNS() error {
 }
 
 // initializeTIS loads TIS (Text Input Source) symbols from the HIToolbox framework.
-func initializeTIS() {
+func initializeTIS() error {
 	// When using Cgo, HIToolbox is loaded implicitly by linking against Cocoa.
 	// With purego, we must load it explicitly so CFBundleGetBundleWithIdentifier can find it.
 	_, err := purego.Dlopen("/System/Library/Frameworks/Carbon.framework/Versions/A/Frameworks/HIToolbox.framework/HIToolbox", purego.RTLD_LAZY|purego.RTLD_GLOBAL)
 	if err != nil {
-		panic(fmt.Sprintf("glfw: failed to dlopen HIToolbox: %v", err))
+		return fmt.Errorf("glfw: failed to dlopen HIToolbox: %w", err)
 	}
 
 	bundleID := cfString("com.apple.HIToolbox")
@@ -340,7 +340,7 @@ func initializeTIS() {
 
 	bundle := cfBundleGetBundleWithIdentifier(bundleID)
 	if bundle == 0 {
-		panic("glfw: failed to get HIToolbox bundle")
+		return fmt.Errorf("glfw: failed to load HIToolbox.framework: %w", PlatformError)
 	}
 
 	// Load TISCopyCurrentKeyboardLayoutInputSource
@@ -348,7 +348,7 @@ func initializeTIS() {
 	defer cfRelease(fnName1)
 	ptr1 := cfBundleGetFunctionPointerForName(bundle, fnName1)
 	if ptr1 == 0 {
-		panic("glfw: failed to load TISCopyCurrentKeyboardLayoutInputSource")
+		return fmt.Errorf("glfw: failed to load TIS API symbols: %w", PlatformError)
 	}
 	_glfw.platformWindow.tis.CopyCurrentKeyboardLayoutInputSource = func() uintptr {
 		r, _, _ := purego.SyscallN(ptr1)
@@ -360,7 +360,7 @@ func initializeTIS() {
 	defer cfRelease(fnName2)
 	ptr2 := cfBundleGetFunctionPointerForName(bundle, fnName2)
 	if ptr2 == 0 {
-		panic("glfw: failed to load TISGetInputSourceProperty")
+		return fmt.Errorf("glfw: failed to load TIS API symbols: %w", PlatformError)
 	}
 	_glfw.platformWindow.tis.GetInputSourceProperty = func(inputSource uintptr, propertyKey uintptr) uintptr {
 		r, _, _ := purego.SyscallN(ptr2, inputSource, propertyKey)
@@ -372,7 +372,7 @@ func initializeTIS() {
 	defer cfRelease(fnName3)
 	ptr3 := cfBundleGetFunctionPointerForName(bundle, fnName3)
 	if ptr3 == 0 {
-		panic("glfw: failed to load LMGetKbdType")
+		return fmt.Errorf("glfw: failed to load TIS API symbols: %w", PlatformError)
 	}
 	_glfw.platformWindow.tis.GetKbdType = func() uint8 {
 		r, _, _ := purego.SyscallN(ptr3)
@@ -382,11 +382,11 @@ func initializeTIS() {
 	// Load UCKeyTranslate from the Carbon umbrella framework.
 	carbon, err2 := purego.Dlopen("/System/Library/Frameworks/Carbon.framework/Carbon", purego.RTLD_LAZY|purego.RTLD_GLOBAL)
 	if err2 != nil {
-		panic(fmt.Sprintf("glfw: failed to dlopen Carbon: %v", err2))
+		return fmt.Errorf("glfw: failed to dlopen Carbon: %w", err2)
 	}
 	ptr4, err2 := purego.Dlsym(carbon, "UCKeyTranslate")
 	if err2 != nil {
-		panic(fmt.Sprintf("glfw: failed to load UCKeyTranslate: %v", err2))
+		return fmt.Errorf("glfw: failed to load UCKeyTranslate: %w", err2)
 	}
 	_glfw.platformWindow.tis.UCKeyTranslate = func(keyLayoutPtr uintptr, virtualKeyCode uint16, keyAction uint16, modifierKeyState uint32, keyboardType uint32, keyTranslateOptions uint32, deadKeyState *uint32, maxStringLength int, actualStringLength *int, unicodeString *uint16) int32 {
 		r, _, _ := purego.SyscallN(ptr4, keyLayoutPtr, uintptr(virtualKeyCode), uintptr(keyAction), uintptr(modifierKeyState), uintptr(keyboardType), uintptr(keyTranslateOptions), uintptr(unsafe.Pointer(deadKeyState)), uintptr(maxStringLength), uintptr(unsafe.Pointer(actualStringLength)), uintptr(unsafe.Pointer(unicodeString)))
@@ -398,9 +398,11 @@ func initializeTIS() {
 	defer cfRelease(dataName)
 	dataPtr := cfBundleGetDataPointerForName(bundle, dataName)
 	if dataPtr == 0 {
-		panic("glfw: failed to load kTISPropertyUnicodeKeyLayoutData")
+		return fmt.Errorf("glfw: failed to load TIS API symbols: %w", PlatformError)
 	}
 	_glfw.platformWindow.tis.kPropertyUnicodeKeyLayoutData = *(*uintptr)(unsafe.Pointer(dataPtr))
+
+	return nil
 }
 
 // GLFWHelper and GLFWApplicationDelegate class references.
@@ -411,6 +413,9 @@ var (
 
 // platformInit performs the full macOS platform initialization.
 func platformInit() error {
+	pool := cocoa.NSAutoreleasePool_new()
+	defer pool.Release()
+
 	// Register GLFWHelper class — an NSObject subclass with a method to handle
 	// keyboard input source change notifications.
 	helper, err := objc.RegisterClass(
@@ -561,7 +566,9 @@ func platformInit() error {
 	cgEventSourceSetLocalEventsSuppressionInterval(_glfw.platformWindow.eventSource, 0.0)
 
 	// Initialize TIS (Text Input Source) framework bindings.
-	initializeTIS()
+	if err := initializeTIS(); err != nil {
+		return err
+	}
 
 	// Build key code translation tables.
 	createKeyTables()
@@ -615,6 +622,9 @@ func postEmptyEvent() {
 
 // platformTerminate cleans up macOS platform resources.
 func platformTerminate() error {
+	pool := cocoa.NSAutoreleasePool_new()
+	defer pool.Release()
+
 	// Release TIS input source if held.
 	if _glfw.platformWindow.inputSource != 0 {
 		cfRelease(_glfw.platformWindow.inputSource)
