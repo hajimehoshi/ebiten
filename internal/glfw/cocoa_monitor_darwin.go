@@ -612,11 +612,6 @@ func pollMonitorsNS() error {
 			continue
 		}
 
-		mode := cgDisplayCopyDisplayMode(display)
-		if mode == 0 {
-			continue
-		}
-
 		name := getMonitorNameNS(display)
 
 		monitor := &Monitor{
@@ -626,10 +621,10 @@ func pollMonitorsNS() error {
 		monitor.platform.unitNumber = cgDisplayUnitNumber(display)
 		monitor.platform.screen = nsScreenForDisplayID(display)
 
+		mode := cgDisplayCopyDisplayMode(display)
 		if cgDisplayModeGetRefreshRate(mode) == 0.0 {
 			monitor.platform.fallbackRefreshRate = getFallbackRefreshRate(display)
 		}
-
 		cfRelease(mode)
 
 		typ := _GLFW_INSERT_LAST

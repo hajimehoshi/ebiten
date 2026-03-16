@@ -117,9 +117,7 @@ func updateCursorImage(window *Window) {
 		} else {
 			objc.ID(classNSCursor).Send(selArrowCursor).Send(selSetCursor)
 		}
-	} else if window.cursorMode == CursorHidden {
-		hideCursor(window)
-	} else if window.cursorMode == CursorDisabled {
+	} else {
 		hideCursor(window)
 	}
 }
@@ -987,6 +985,15 @@ func createNativeWindow(window *Window, wndconfig *wndconfig, fbconfig_ *fbconfi
 	pool := cocoa.NSAutoreleasePool_new()
 	defer pool.Release()
 
+	// Create the delegate first (before the window, to avoid leaking the
+	// window if delegate creation fails).
+	delegateID := objc.ID(classGLFWWindowDelegate).Send(selAlloc).Send(selInit)
+	if delegateID == 0 {
+		return fmt.Errorf("glfw: failed to create window delegate: %w", PlatformError)
+	}
+	setGoWindow(delegateID, window)
+	window.platform.delegate = delegateID
+
 	// Determine the content rect.
 	var contentRect cocoa.NSRect
 	if window.monitor != nil {
@@ -1056,14 +1063,6 @@ func createNativeWindow(window *Window, wndconfig *wndconfig, fbconfig_ *fbconfi
 		nsWindow.Send(selSetFrameAutosaveName, name.ID)
 		name.ID.Send(selRelease)
 	}
-
-	// Create the delegate.
-	delegateID := objc.ID(classGLFWWindowDelegate).Send(selAlloc).Send(selInit)
-	if delegateID == 0 {
-		return fmt.Errorf("glfw: failed to create window delegate: %w", PlatformError)
-	}
-	setGoWindow(delegateID, window)
-	window.platform.delegate = delegateID
 
 	// Create the content view.
 	viewID := objc.ID(classGLFWContentView).Send(selAlloc).Send(selInit)
