@@ -1216,7 +1216,7 @@ func (w *Window) platformSetWindowTitle(title string) error {
 	w.platform.object.Send(selSetTitle, s.ID)
 	// HACK: Set the miniwindow title explicitly as setTitle: doesn't update it
 	//       if the window lacks NSWindowStyleMaskTitled
-	w.platform.object.Send(objc.RegisterName("setMiniwindowTitle:"), s.ID)
+	w.platform.object.Send(selSetMiniwindowTitle, s.ID)
 	return nil
 }
 
