@@ -43,7 +43,7 @@ const (
 
 // CGEventSource state IDs.
 const (
-	_kCGEventSourceStateCombinedSessionState int32 = -1
+	_kCGEventSourceStateCombinedSessionState int32 = 0
 	_kCGEventSourceStateHIDSystemState       int32 = 1
 )
 
@@ -127,7 +127,7 @@ const (
 	kDisplayModeInterlacedFlag            = 0x00000040
 	kDisplayModeStretchedFlag             = 0x00000800
 	kCGDisplayFadeReservationInvalidToken = 0
-	kIODisplayOnlyPreferredName           = 1
+	kIODisplayOnlyPreferredName           = 0x00000200
 	kCGErrorSuccess                       = 0
 )
 

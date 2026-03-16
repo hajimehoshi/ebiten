@@ -1919,8 +1919,12 @@ func (c *Cursor) platformCreateStandardCursor(shape StandardCursor) error {
 			image := objc.ID(classNSImage).Send(selAlloc).Send(selInitByReferencingFile, imagePath.ID)
 			info := objc.ID(classNSDictionary).Send(selDictionaryWithContentsOfFile, infoPath.ID)
 			if image != 0 && info != 0 {
-				hotx := objc.Send[float64](info.Send(selValueForKey, cocoa.NSString_alloc().InitWithUTF8String("hotx").ID), selDoubleValue)
-				hoty := objc.Send[float64](info.Send(selValueForKey, cocoa.NSString_alloc().InitWithUTF8String("hoty").ID), selDoubleValue)
+				hotxKey := cocoa.NSString_alloc().InitWithUTF8String("hotx")
+				hotx := objc.Send[float64](info.Send(selValueForKey, hotxKey.ID), selDoubleValue)
+				hotxKey.ID.Send(selRelease)
+				hotyKey := cocoa.NSString_alloc().InitWithUTF8String("hoty")
+				hoty := objc.Send[float64](info.Send(selValueForKey, hotyKey.ID), selDoubleValue)
+				hotyKey.ID.Send(selRelease)
 				cursor = objc.ID(classNSCursor).Send(selAlloc).Send(selInitWithImageHotSpot, image, cocoa.NSPoint{X: hotx, Y: hoty})
 			}
 			if image != 0 {

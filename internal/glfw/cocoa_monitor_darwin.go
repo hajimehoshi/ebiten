@@ -334,9 +334,9 @@ func getFallbackRefreshRate(displayID uint32) float64 {
 			break
 		}
 
-		indexRef := ioRegistryEntryCreateCFProperty(service,
-			cfStringCreateWithCString(0, "IOFramebufferOpenGLIndex", kCFStringEncodingUTF8),
-			0, 0)
+		indexKey := cfStringCreateWithCString(0, "IOFramebufferOpenGLIndex", kCFStringEncodingUTF8)
+		indexRef := ioRegistryEntryCreateCFProperty(service, indexKey, 0, 0)
+		cfRelease(indexKey)
 		if indexRef == 0 {
 			ioObjectRelease(service)
 			continue
@@ -351,12 +351,12 @@ func getFallbackRefreshRate(displayID uint32) float64 {
 			continue
 		}
 
-		clockRef := ioRegistryEntryCreateCFProperty(service,
-			cfStringCreateWithCString(0, "IOFBCurrentPixelClock", kCFStringEncodingUTF8),
-			0, 0)
-		countRef := ioRegistryEntryCreateCFProperty(service,
-			cfStringCreateWithCString(0, "IOFBCurrentPixelCount", kCFStringEncodingUTF8),
-			0, 0)
+		clockKey := cfStringCreateWithCString(0, "IOFBCurrentPixelClock", kCFStringEncodingUTF8)
+		clockRef := ioRegistryEntryCreateCFProperty(service, clockKey, 0, 0)
+		cfRelease(clockKey)
+		countKey := cfStringCreateWithCString(0, "IOFBCurrentPixelCount", kCFStringEncodingUTF8)
+		countRef := ioRegistryEntryCreateCFProperty(service, countKey, 0, 0)
+		cfRelease(countKey)
 
 		var clock, count uint32
 		if clockRef != 0 {
