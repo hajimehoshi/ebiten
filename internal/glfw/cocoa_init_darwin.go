@@ -187,17 +187,31 @@ func createMenuBar() {
 	nsApp := objc.ID(classNSApplication).Send(selNSApp)
 	nsApp.Send(selSetMainMenu, menubar)
 
+	// nsStr creates an NSString and schedules it for release.
+	// This mirrors the behavior of @"..." literals in Objective-C which are
+	// compile-time constants; here we use alloc/init and defer release.
+	var nsStrings []cocoa.NSString
+	nsStr := func(s string) objc.ID {
+		str := cocoa.NSString_alloc().InitWithUTF8String(s)
+		nsStrings = append(nsStrings, str)
+		return str.ID
+	}
+	defer func() {
+		for _, s := range nsStrings {
+			s.ID.Send(selRelease)
+		}
+	}()
+
 	// Create the application menu.
-	emptyStr := cocoa.NSString_alloc().InitWithUTF8String("")
-	appMenuItem := menubar.Send(selAddItemWithTitle, emptyStr.ID, objc.SEL(0), emptyStr.ID)
+	appMenuItem := menubar.Send(selAddItemWithTitle, nsStr(""), objc.SEL(0), nsStr(""))
 	appMenu := objc.ID(classNSMenu).Send(objc.RegisterName("alloc")).Send(objc.RegisterName("init"))
 	appMenuItem.Send(selSetSubmenu, appMenu)
 
 	// About <AppName>
 	appMenu.Send(selAddItemWithTitle,
-		cocoa.NSString_alloc().InitWithUTF8String("About "+appName).ID,
+		nsStr("About "+appName),
 		selOrderFrontStandardAboutPanel,
-		cocoa.NSString_alloc().InitWithUTF8String("").ID)
+		nsStr(""))
 
 	appMenu.Send(selAddItem, objc.ID(classNSMenuItem).Send(selSeparatorItem))
 
@@ -205,9 +219,9 @@ func createMenuBar() {
 	servicesMenu := objc.ID(classNSMenu).Send(objc.RegisterName("alloc")).Send(objc.RegisterName("init"))
 	nsApp.Send(selSetServicesMenu, servicesMenu)
 	servicesMenuItem := appMenu.Send(selAddItemWithTitle,
-		cocoa.NSString_alloc().InitWithUTF8String("Services").ID,
+		nsStr("Services"),
 		objc.SEL(0),
-		cocoa.NSString_alloc().InitWithUTF8String("").ID)
+		nsStr(""))
 	servicesMenuItem.Send(selSetSubmenu, servicesMenu)
 	servicesMenu.Send(selRelease)
 
@@ -215,67 +229,67 @@ func createMenuBar() {
 
 	// Hide <AppName>
 	appMenu.Send(selAddItemWithTitle,
-		cocoa.NSString_alloc().InitWithUTF8String("Hide "+appName).ID,
+		nsStr("Hide "+appName),
 		selHide,
-		cocoa.NSString_alloc().InitWithUTF8String("h").ID)
+		nsStr("h"))
 
 	// Hide Others
 	hideOthersItem := appMenu.Send(selAddItemWithTitle,
-		cocoa.NSString_alloc().InitWithUTF8String("Hide Others").ID,
+		nsStr("Hide Others"),
 		selHideOtherApplications,
-		cocoa.NSString_alloc().InitWithUTF8String("h").ID)
+		nsStr("h"))
 	// NSEventModifierFlagOption | NSEventModifierFlagCommand
 	hideOthersItem.Send(selSetKeyEquivalentModifierMask, uintptr(1<<19|1<<20))
 
 	// Show All
 	appMenu.Send(selAddItemWithTitle,
-		cocoa.NSString_alloc().InitWithUTF8String("Show All").ID,
+		nsStr("Show All"),
 		selUnhideAllApplications,
-		cocoa.NSString_alloc().InitWithUTF8String("").ID)
+		nsStr(""))
 
 	appMenu.Send(selAddItem, objc.ID(classNSMenuItem).Send(selSeparatorItem))
 
 	// Quit <AppName>
 	appMenu.Send(selAddItemWithTitle,
-		cocoa.NSString_alloc().InitWithUTF8String("Quit "+appName).ID,
+		nsStr("Quit "+appName),
 		selTerminate,
-		cocoa.NSString_alloc().InitWithUTF8String("q").ID)
+		nsStr("q"))
 
 	// Create the Window menu.
-	windowMenuItem := menubar.Send(selAddItemWithTitle, emptyStr.ID, objc.SEL(0), emptyStr.ID)
+	windowMenuItem := menubar.Send(selAddItemWithTitle, nsStr(""), objc.SEL(0), nsStr(""))
 	menubar.Send(selRelease)
 
 	windowMenu := objc.ID(classNSMenu).Send(objc.RegisterName("alloc")).Send(
-		selInitWithTitle, cocoa.NSString_alloc().InitWithUTF8String("Window").ID)
+		selInitWithTitle, nsStr("Window"))
 	nsApp.Send(selSetWindowsMenu, windowMenu)
 	windowMenuItem.Send(selSetSubmenu, windowMenu)
 
 	// Minimize
 	windowMenu.Send(selAddItemWithTitle,
-		cocoa.NSString_alloc().InitWithUTF8String("Minimize").ID,
+		nsStr("Minimize"),
 		objc.RegisterName("performMiniaturize:"),
-		cocoa.NSString_alloc().InitWithUTF8String("m").ID)
+		nsStr("m"))
 
 	// Zoom
 	windowMenu.Send(selAddItemWithTitle,
-		cocoa.NSString_alloc().InitWithUTF8String("Zoom").ID,
+		nsStr("Zoom"),
 		objc.RegisterName("performZoom:"),
-		cocoa.NSString_alloc().InitWithUTF8String("").ID)
+		nsStr(""))
 
 	windowMenu.Send(selAddItem, objc.ID(classNSMenuItem).Send(selSeparatorItem))
 
 	// Bring All to Front
 	windowMenu.Send(selAddItemWithTitle,
-		cocoa.NSString_alloc().InitWithUTF8String("Bring All to Front").ID,
+		nsStr("Bring All to Front"),
 		selArrangeInFront,
-		cocoa.NSString_alloc().InitWithUTF8String("").ID)
+		nsStr(""))
 
 	// Enter Full Screen
 	windowMenu.Send(selAddItem, objc.ID(classNSMenuItem).Send(selSeparatorItem))
 	fullScreenItem := windowMenu.Send(selAddItemWithTitle,
-		cocoa.NSString_alloc().InitWithUTF8String("Enter Full Screen").ID,
+		nsStr("Enter Full Screen"),
 		selToggleFullScreen,
-		cocoa.NSString_alloc().InitWithUTF8String("f").ID)
+		nsStr("f"))
 	// NSEventModifierFlagControl | NSEventModifierFlagCommand
 	fullScreenItem.Send(selSetKeyEquivalentModifierMask, uintptr(NSEventModifierFlagControl|NSEventModifierFlagCommand))
 
