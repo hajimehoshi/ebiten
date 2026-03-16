@@ -35,7 +35,8 @@ type wndconfig struct {
 	focusOnShow      bool
 	mousePassthrough bool
 	scaleToMonitor   bool
-	retina           bool // Cocoa: GLFW_COCOA_RETINA_FRAMEBUFFER
+	retina           bool   // Cocoa: GLFW_COCOA_RETINA_FRAMEBUFFER
+	frameName        string // Cocoa: GLFW_COCOA_FRAME_NAME
 }
 
 type ctxconfig struct {

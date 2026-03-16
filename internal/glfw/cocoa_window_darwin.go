@@ -1051,6 +1051,12 @@ func createNativeWindow(window *Window, wndconfig *wndconfig, fbconfig_ *fbconfi
 		}
 	}
 
+	if len(wndconfig.frameName) > 0 {
+		name := cocoa.NSString_alloc().InitWithUTF8String(wndconfig.frameName)
+		nsWindow.Send(selSetFrameAutosaveName, name.ID)
+		name.ID.Send(selRelease)
+	}
+
 	// Create the delegate.
 	delegateID := objc.ID(classGLFWWindowDelegate).Send(selAlloc).Send(selInit)
 	if delegateID == 0 {
@@ -1885,10 +1891,6 @@ func (c *Cursor) platformCreateStandardCursor(shape StandardCursor) error {
 			cursor = objc.ID(classNSCursor).Send(selCrosshairCursor)
 		case HandCursor:
 			cursor = objc.ID(classNSCursor).Send(selPointingHandCursor)
-		case HResizeCursor:
-			cursor = objc.ID(classNSCursor).Send(selResizeLeftRightCursor)
-		case VResizeCursor:
-			cursor = objc.ID(classNSCursor).Send(selResizeUpDownCursor)
 		case ResizeAllCursor:
 			// Use the OS's resource: https://stackoverflow.com/a/21786835/5435443
 			cursorName := cocoa.NSString_alloc().InitWithUTF8String("move")

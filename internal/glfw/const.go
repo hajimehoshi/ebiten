@@ -111,6 +111,7 @@ const (
 	TransparentFramebuffer = Hint(0x0002000A)
 	Visible                = Hint(0x00020004)
 	CocoaRetinaFramebuffer = Hint(0x00023001)
+	CocoaFrameName         = Hint(0x00023002)
 	CocoaGraphicsSwitching = Hint(0x00023003)
 	X11ClassName           = Hint(0x00024001)
 	X11InstanceName        = Hint(0x00024002)

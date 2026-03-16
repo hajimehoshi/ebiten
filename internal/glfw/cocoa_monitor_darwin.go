@@ -755,7 +755,7 @@ func (m *Monitor) platformGetMonitorWorkarea() (xpos, ypos, width, height int) {
 	}
 
 	visibleFrame := objc.Send[cgRect](screen, selVisibleFrame)
-	primaryBounds := cgDisplayBounds(0)
+	primaryBounds := cgDisplayBounds(cgMainDisplayID())
 
 	xpos = int(visibleFrame.X)
 	ypos = int(primaryBounds.Height - visibleFrame.Y - visibleFrame.Height)

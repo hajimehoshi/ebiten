@@ -292,9 +292,15 @@ func WindowHint(hint Hint, value int) error {
 	return nil
 }
 
-// WindowHintString is not implemented.
 func WindowHintString(hint Hint, value string) error {
-	// Do nothing.
+	if !_glfw.initialized {
+		return NotInitialized
+	}
+
+	switch hint {
+	case CocoaFrameName:
+		_glfw.hints.window.frameName = value
+	}
 	return nil
 }
 

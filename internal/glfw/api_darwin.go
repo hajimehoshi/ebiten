@@ -343,6 +343,7 @@ var (
 
 	// NSWindow selectors
 	selSetTitle                          = objc.RegisterName("setTitle:")
+	selSetFrameAutosaveName              = objc.RegisterName("setFrameAutosaveName:")
 	selSetContentSize                    = objc.RegisterName("setContentSize:")
 	selSetFrameOrigin                    = objc.RegisterName("setFrameOrigin:")
 	selMakeKeyAndOrderFront              = objc.RegisterName("makeKeyAndOrderFront:")
@@ -431,10 +432,8 @@ var (
 	selPointingHandCursor        = objc.RegisterName("pointingHandCursor")
 	selResizeLeftCursor          = objc.RegisterName("resizeLeftCursor")
 	selResizeRightCursor         = objc.RegisterName("resizeRightCursor")
-	selResizeLeftRightCursor     = objc.RegisterName("resizeLeftRightCursor")
 	selResizeUpCursor            = objc.RegisterName("resizeUpCursor")
 	selResizeDownCursor          = objc.RegisterName("resizeDownCursor")
-	selResizeUpDownCursor        = objc.RegisterName("resizeUpDownCursor")
 	selOperationNotAllowedCursor = objc.RegisterName("operationNotAllowedCursor")
 	selRespondsToSelector        = objc.RegisterName("respondsToSelector:")
 	selPerformSelector           = objc.RegisterName("performSelector:")
