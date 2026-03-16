@@ -160,7 +160,9 @@ func getAppName() string {
 				"CFBundleExecutable",
 			}
 			for _, key := range nameKeys {
-				name := info.Send(selObjectForKey, cocoa.NSString_alloc().InitWithUTF8String(key).ID)
+				nsKey := cocoa.NSString_alloc().InitWithUTF8String(key)
+				name := info.Send(selObjectForKey, nsKey.ID)
+				nsKey.ID.Send(selRelease)
 				if name != 0 && objc.Send[bool](name, objc.RegisterName("isKindOfClass:"), objc.ID(objc.GetClass("NSString"))) {
 					s := cocoa.NSString{ID: name}.String()
 					if len(s) > 0 {
@@ -454,6 +456,7 @@ func platformInit() error {
 					mainMenuNib := cocoa.NSString_alloc().InitWithUTF8String("MainMenu")
 					nibType := cocoa.NSString_alloc().InitWithUTF8String("nib")
 					nibPath := bundle.Send(objc.RegisterName("pathForResource:ofType:"), mainMenuNib.ID, nibType.ID)
+					nibType.ID.Send(selRelease)
 					if nibPath != 0 {
 						bundle.Send(objc.RegisterName("loadNibNamed:owner:topLevelObjects:"),
 							mainMenuNib.ID,
@@ -462,6 +465,7 @@ func platformInit() error {
 					} else {
 						createMenuBar()
 					}
+					mainMenuNib.ID.Send(selRelease)
 				},
 			},
 			{
@@ -512,6 +516,7 @@ func platformInit() error {
 		selSelectedKeyboardInputSourceChanged,
 		nsTextInputContextKeyboardSelectionDidChangeNotification.ID,
 		0)
+	nsTextInputContextKeyboardSelectionDidChangeNotification.ID.Send(selRelease)
 
 	// Add a local monitor for keyUp events to work around Cocoa swallowing
 	// key-up events when the menu bar is active.

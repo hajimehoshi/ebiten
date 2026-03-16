@@ -435,10 +435,12 @@ func getMonitorNameNS(displayID uint32) string {
 			if screen.Send(objc.RegisterName("respondsToSelector:"), selLocalizedName) != 0 {
 				nameID := screen.Send(selLocalizedName)
 				if nameID != 0 {
-					length := int(nameID.Send(selLength))
-					if length > 0 {
-						utf8Ptr := nameID.Send(selUTF8String)
-						if utf8Ptr != 0 {
+					utf8Ptr := nameID.Send(selUTF8String)
+					if utf8Ptr != 0 {
+						// Use lengthOfBytesUsingEncoding: to get the UTF-8 byte count.
+						// NSString.length returns UTF-16 code units which differs for non-ASCII.
+						length := int(nameID.Send(selLengthOfBytesUsingEncoding, NSUTF8StringEncoding))
+						if length > 0 {
 							// Copy the string to avoid dangling pointer
 							// when the NSString is released.
 							src := unsafe.String((*byte)(unsafe.Pointer(utf8Ptr)), length)
@@ -719,7 +721,7 @@ func (m *Monitor) restoreVideoModeNS() {
 // transformYNS transforms a Y coordinate from Cocoa (bottom-left origin)
 // to GLFW (top-left origin) coordinate space.
 func transformYNS(y float32) float32 {
-	bounds := cgDisplayBounds(0) // CGMainDisplayID() returns 0
+	bounds := cgDisplayBounds(cgMainDisplayID())
 	return float32(bounds.Height) - y - 1
 }
 

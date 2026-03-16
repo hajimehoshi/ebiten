@@ -767,6 +767,7 @@ func registerGLFWClasses() error {
 						ms := window.platform.markedText.Send(selMutableString)
 						emptyStr := cocoa.NSString_alloc().InitWithUTF8String("")
 						ms.Send(selSetStringValue, emptyStr.ID)
+						emptyStr.ID.Send(selRelease)
 					}
 				},
 			},
@@ -1074,7 +1075,9 @@ func createNativeWindow(window *Window, wndconfig *wndconfig, fbconfig_ *fbconfi
 
 	nsWindow.Send(selSetContentView, viewID)
 	nsWindow.Send(selMakeFirstResponder, viewID)
-	nsWindow.Send(selSetTitle, cocoa.NSString_alloc().InitWithUTF8String(wndconfig.title).ID)
+	titleStr := cocoa.NSString_alloc().InitWithUTF8String(wndconfig.title)
+	nsWindow.Send(selSetTitle, titleStr.ID)
+	titleStr.ID.Send(selRelease)
 	nsWindow.Send(selSetDelegate, delegateID)
 	nsWindow.Send(objc.RegisterName("setAcceptsMouseMovedEvents:"), true)
 	nsWindow.Send(selSetRestorable, false)
@@ -1217,6 +1220,7 @@ func (w *Window) platformSetWindowTitle(title string) error {
 	// HACK: Set the miniwindow title explicitly as setTitle: doesn't update it
 	//       if the window lacks NSWindowStyleMaskTitled
 	w.platform.object.Send(selSetMiniwindowTitle, s.ID)
+	s.ID.Send(selRelease)
 	return nil
 }
 
@@ -1976,9 +1980,11 @@ func platformSetClipboardString(str string) error {
 	pasteboard := objc.ID(classNSPasteboard).Send(selGeneralPasteboard)
 	types := objc.ID(classNSArray).Send(selArrayWithObject, nsPasteboardTypeString.ID)
 	pasteboard.Send(selDeclareTypes, types, 0)
+	clipStr := cocoa.NSString_alloc().InitWithUTF8String(str)
 	pasteboard.Send(selSetStringForType,
-		cocoa.NSString_alloc().InitWithUTF8String(str).ID,
+		clipStr.ID,
 		nsPasteboardTypeString.ID)
+	clipStr.ID.Send(selRelease)
 	return nil
 }
 

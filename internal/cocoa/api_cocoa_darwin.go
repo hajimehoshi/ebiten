@@ -84,6 +84,7 @@ var (
 	selInitWithUTF8String             = objc.RegisterName("initWithUTF8String:")
 	selUTF8String                     = objc.RegisterName("UTF8String")
 	selLength                         = objc.RegisterName("length")
+	selLengthOfBytesUsingEncoding     = objc.RegisterName("lengthOfBytesUsingEncoding:")
 	selFrame                          = objc.RegisterName("frame")
 	selContentView                    = objc.RegisterName("contentView")
 	selSetBackgroundColor             = objc.RegisterName("setBackgroundColor:")
@@ -289,7 +290,11 @@ func (s NSString) InitWithUTF8String(utf8 string) NSString {
 }
 
 func (s NSString) String() string {
-	return string(unsafe.Slice((*byte)(unsafe.Pointer(s.Send(selUTF8String))), s.Send(selLength)))
+	// Use lengthOfBytesUsingEncoding: with NSUTF8StringEncoding (4) to get the
+	// correct UTF-8 byte count. NSString.length returns UTF-16 code units which
+	// differs from UTF-8 byte count for non-ASCII characters.
+	length := s.Send(selLengthOfBytesUsingEncoding, 4)
+	return string(unsafe.Slice((*byte)(unsafe.Pointer(s.Send(selUTF8String))), length))
 }
 
 type NSNotification struct {
