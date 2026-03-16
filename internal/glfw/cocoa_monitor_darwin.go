@@ -618,7 +618,7 @@ func pollMonitorsNS() error {
 			name: name,
 		}
 		monitor.platform.displayID = display
-		monitor.platform.unitNumber = cgDisplayUnitNumber(display)
+		monitor.platform.unitNumber = unitNumber
 		monitor.platform.screen = nsScreenForDisplayID(display)
 
 		mode := cgDisplayCopyDisplayMode(display)
