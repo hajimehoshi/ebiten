@@ -176,7 +176,11 @@ func getAppName() string {
 	// Fall back to process name.
 	pi := objc.ID(classNSProcessInfo).Send(selProcessInfo)
 	name := cocoa.NSString{ID: pi.Send(selProcessName)}
-	return name.String()
+	if s := name.String(); len(s) > 0 {
+		return s
+	}
+
+	return "GLFW Application"
 }
 
 // createMenuBar creates the standard macOS menu bar with app menu and window menu.

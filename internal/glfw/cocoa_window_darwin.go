@@ -1697,17 +1697,8 @@ func platformWaitEvents() error {
 		nsApp().Send(selSendEvent, event)
 	}
 
-	// Process remaining events.
-	for {
-		event := objc.Send[objc.ID](nsApp(), selNextEventMatchingMask,
-			uintptr(NSEventMaskAny),
-			uintptr(0),
-			nsDefaultRunLoopMode.ID,
-			true)
-		if event == 0 {
-			break
-		}
-		nsApp().Send(selSendEvent, event)
+	if err := platformPollEvents(); err != nil {
+		return err
 	}
 	return nil
 }
@@ -1727,17 +1718,8 @@ func platformWaitEventsTimeout(timeout float64) error {
 		nsApp().Send(selSendEvent, event)
 	}
 
-	// Process remaining events.
-	for {
-		event := objc.Send[objc.ID](nsApp(), selNextEventMatchingMask,
-			uintptr(NSEventMaskAny),
-			uintptr(0),
-			nsDefaultRunLoopMode.ID,
-			true)
-		if event == 0 {
-			break
-		}
-		nsApp().Send(selSendEvent, event)
+	if err := platformPollEvents(); err != nil {
+		return err
 	}
 	return nil
 }
