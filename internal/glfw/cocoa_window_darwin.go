@@ -874,12 +874,10 @@ func registerGLFWClasses() error {
 					classes := objc.ID(classNSArray).Send(selArrayWithObject, urlClass)
 
 					// Filter to file URLs only.
-					fileURLsOnlyKey := cocoa.NSString_alloc().InitWithUTF8String("NSPasteboardURLReadingFileURLsOnlyKey")
-					defer fileURLsOnlyKey.ID.Send(selRelease)
 					nsYes := objc.ID(objc.GetClass("NSNumber")).Send(objc.RegisterName("numberWithBool:"), true)
 					options := objc.ID(objc.GetClass("NSDictionary")).Send(
 						objc.RegisterName("dictionaryWithObject:forKey:"),
-						uintptr(nsYes), uintptr(fileURLsOnlyKey.ID))
+						uintptr(nsYes), uintptr(nsPasteboardURLReadingFileURLsOnlyKey))
 
 					urls := pasteboard.Send(selReadObjectsForClasses, classes, uintptr(options))
 					urlCount := 0
@@ -1090,8 +1088,7 @@ func createNativeWindow(window *Window, wndconfig *wndconfig, fbconfig_ *fbconfi
 	viewID.Send(objc.RegisterName("updateTrackingAreas"))
 
 	// Register for dragged types (URLs).
-	urlType := cocoa.NSString_alloc().InitWithUTF8String("public.file-url")
-	typesArray := objc.ID(classNSArray).Send(selArrayWithObject, urlType.ID)
+	typesArray := objc.ID(classNSArray).Send(selArrayWithObject, nsPasteboardTypeURL)
 	viewID.Send(selRegisterForDraggedTypes, typesArray)
 
 	// Update initial size cache.

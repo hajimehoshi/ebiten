@@ -339,6 +339,11 @@ func (w *Window) Destroy() error {
 		}
 	}
 
+	if err := w.platformDestroyWindow(); err != nil {
+		return err
+	}
+
+	// Unlink window from global list (after platform destroy, matching C ordering).
 	for i, window := range _glfw.windows {
 		if window == w {
 			copy(_glfw.windows[i:], _glfw.windows[i+1:])
@@ -346,10 +351,6 @@ func (w *Window) Destroy() error {
 			_glfw.windows = _glfw.windows[:len(_glfw.windows)-1]
 			break
 		}
-	}
-
-	if err := w.platformDestroyWindow(); err != nil {
-		return err
 	}
 
 	return nil

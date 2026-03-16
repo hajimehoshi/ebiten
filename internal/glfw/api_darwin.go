@@ -166,8 +166,9 @@ type nsRange struct {
 	Length   uintptr
 }
 
-// Framework handle for OpenGL.
+// Framework handles.
 var openGLFramework uintptr
+var appKitFramework uintptr
 
 // CoreFoundation function pointers.
 var (
@@ -231,6 +232,12 @@ var (
 	ioObjectRelease                   func(object uint32) int32
 	cgOpenGLDisplayMaskToDisplayID    func(mask uint32) uint32
 	cgDisplayScreenSize               func(display uint32) cocoa.CGSize
+)
+
+// AppKit extern constants (initialized in init after loading AppKit).
+var (
+	nsPasteboardTypeURL                   objc.ID
+	nsPasteboardURLReadingFileURLsOnlyKey objc.ID
 )
 
 // ObjC classes (initialized in init after loading AppKit).
@@ -505,6 +512,14 @@ var (
 	selSetStringValue           = objc.RegisterName("setString:")
 )
 
+func mustDlsym(handle uintptr, name string) uintptr {
+	ptr, err := purego.Dlsym(handle, name)
+	if err != nil {
+		panic(fmt.Errorf("glfw: failed to dlsym %s: %w", name, err))
+	}
+	return ptr
+}
+
 func init() {
 	// Load CoreFoundation.
 	coreFoundation, err := purego.Dlopen("/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation", purego.RTLD_LAZY|purego.RTLD_GLOBAL)
@@ -577,10 +592,14 @@ func init() {
 	purego.RegisterLibFunc(&ioObjectRelease, ioKit, "IOObjectRelease")
 
 	// Load AppKit (required for NSApplication, NSWindow, NSCursor, etc.).
-	_, err = purego.Dlopen("/System/Library/Frameworks/AppKit.framework/AppKit", purego.RTLD_LAZY|purego.RTLD_GLOBAL)
+	appKitFramework, err = purego.Dlopen("/System/Library/Frameworks/AppKit.framework/AppKit", purego.RTLD_LAZY|purego.RTLD_GLOBAL)
 	if err != nil {
 		panic(fmt.Errorf("glfw: failed to dlopen AppKit: %w", err))
 	}
+
+	// Look up AppKit extern constants.
+	nsPasteboardTypeURL = *(*objc.ID)(unsafe.Pointer(mustDlsym(appKitFramework, "NSPasteboardTypeURL")))
+	nsPasteboardURLReadingFileURLsOnlyKey = *(*objc.ID)(unsafe.Pointer(mustDlsym(appKitFramework, "NSPasteboardURLReadingFileURLsOnlyKey")))
 
 	// Load OpenGL.
 	openGLFramework, err = purego.Dlopen("/System/Library/Frameworks/OpenGL.framework/OpenGL", purego.RTLD_LAZY|purego.RTLD_GLOBAL)
