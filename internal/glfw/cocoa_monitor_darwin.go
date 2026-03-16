@@ -12,6 +12,8 @@ import (
 	"unsafe"
 
 	"github.com/ebitengine/purego/objc"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/cocoa"
 )
 
 // NSScreenNumber key string for device description dictionary.
@@ -705,12 +707,13 @@ func (m *Monitor) restoreVideoModeNS() {
 	token, hasFade := beginFadeReservation()
 
 	cgDisplaySetDisplayMode(m.platform.displayID, m.platform.previousMode, 0)
-	cfRelease(m.platform.previousMode)
-	m.platform.previousMode = 0
 
 	if hasFade {
 		endFadeReservation(token)
 	}
+
+	cfRelease(m.platform.previousMode)
+	m.platform.previousMode = 0
 }
 
 // transformYNS transforms a Y coordinate from Cocoa (bottom-left origin)
@@ -728,16 +731,15 @@ func (m *Monitor) platformGetMonitorPos() (xpos, ypos int, ok bool) {
 }
 
 func (m *Monitor) platformGetMonitorContentScale() (xscale, yscale float32, err error) {
-	screen := m.platform.screen
-	if screen == 0 {
-		screen = nsScreenForDisplayID(m.platform.displayID)
-	}
-	if screen == 0 {
-		return 1.0, 1.0, nil
+	if m.platform.screen == 0 {
+		return 0, 0, fmt.Errorf("glfw: cannot query content scale without screen: %w", PlatformError)
 	}
 
-	scale := objc.Send[float64](screen, selBackingScaleFactor)
-	return float32(scale), float32(scale), nil
+	points := objc.Send[cocoa.NSRect](m.platform.screen, selFrame)
+	pixels := objc.Send[cocoa.NSRect](m.platform.screen, selConvertRectToBacking, points)
+
+	return float32(pixels.Size.Width / points.Size.Width),
+		float32(pixels.Size.Height / points.Size.Height), nil
 }
 
 func (m *Monitor) platformGetMonitorWorkarea() (xpos, ypos, width, height int) {
@@ -793,10 +795,6 @@ func (m *Monitor) platformAppendVideoModes(monitors []*VidMode) ([]*VidMode, err
 		monitors = append(monitors, vmPtr)
 	}
 
-	if len(monitors) == origLen {
-		monitors = append(monitors, m.platformGetVideoMode())
-	}
-
 	return monitors, nil
 }
 
@@ -812,10 +810,7 @@ func (m *Monitor) platformGetVideoMode() *VidMode {
 }
 
 func (m *Monitor) platformGetGammaRamp() (GammaRamp, error) {
-	var sampleCount uint32
-	if cgGetDisplayTransferByTable(m.platform.displayID, 0, nil, nil, nil, &sampleCount) != kCGErrorSuccess {
-		return GammaRamp{}, fmt.Errorf("glfw: failed to get gamma ramp size: %w", PlatformError)
-	}
+	sampleCount := cgDisplayGammaTableCapacity(m.platform.displayID)
 
 	red := make([]float32, sampleCount)
 	green := make([]float32, sampleCount)

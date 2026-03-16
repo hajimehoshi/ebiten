@@ -583,21 +583,18 @@ func registerGLFWClasses() error {
 
 					contentRect := objc.Send[cocoa.NSRect](window.platform.view, selFrame)
 					fbRect := objc.Send[cocoa.NSRect](window.platform.view, selConvertRectToBacking, contentRect)
+					xscale := float32(fbRect.Size.Width / contentRect.Size.Width)
+					yscale := float32(fbRect.Size.Height / contentRect.Size.Height)
 
-					if contentRect.Size.Width != 0 && contentRect.Size.Height != 0 {
-						xscale := float32(fbRect.Size.Width / contentRect.Size.Width)
-						yscale := float32(fbRect.Size.Height / contentRect.Size.Height)
-
-						if xscale != window.platform.xscale || yscale != window.platform.yscale {
-							if window.platform.retina && window.platform.layer != 0 {
-								window.platform.layer.Send(objc.RegisterName("setContentsScale:"),
-									objc.Send[float64](window.platform.object, selBackingScaleFactor))
-							}
-
-							window.platform.xscale = xscale
-							window.platform.yscale = yscale
-							window.inputWindowContentScale(xscale, yscale)
+					if xscale != window.platform.xscale || yscale != window.platform.yscale {
+						if window.platform.retina && window.platform.layer != 0 {
+							window.platform.layer.Send(objc.RegisterName("setContentsScale:"),
+								objc.Send[float64](window.platform.object, selBackingScaleFactor))
 						}
+
+						window.platform.xscale = xscale
+						window.platform.yscale = yscale
+						window.inputWindowContentScale(xscale, yscale)
 					}
 
 					if int(fbRect.Size.Width) != window.platform.fbWidth ||
@@ -1055,7 +1052,33 @@ func createNativeWindow(window *Window, wndconfig *wndconfig, fbconfig_ *fbconfi
 		}
 	}
 
+	// Create the delegate.
+	delegateID := objc.ID(classGLFWWindowDelegate).Send(selAlloc).Send(selInit)
+	if delegateID == 0 {
+		return fmt.Errorf("glfw: failed to create window delegate: %w", PlatformError)
+	}
+	setGoWindow(delegateID, window)
+	window.platform.delegate = delegateID
+
+	// Create the content view.
+	viewID := objc.ID(classGLFWContentView).Send(selAlloc).Send(selInit)
+	setGoWindow(viewID, window)
+	window.platform.view = viewID
+	window.platform.retina = wndconfig.retina
+	window.platform.markedText = objc.ID(classNSMutableAttributedString).Send(selAlloc).Send(objc.RegisterName("init"))
+
+	// Handle transparent framebuffer.
+	if fbconfig_.transparent {
+		nsWindow.Send(selSetOpaque, false)
+		nsWindow.Send(selSetHasShadow, false)
+		nsWindow.Send(selSetBackgroundColor, objc.ID(classNSColor).Send(selClearColor))
+	}
+
+	nsWindow.Send(selSetContentView, viewID)
+	nsWindow.Send(selMakeFirstResponder, viewID)
 	nsWindow.Send(selSetTitle, cocoa.NSString_alloc().InitWithUTF8String(wndconfig.title).ID)
+	nsWindow.Send(selSetDelegate, delegateID)
+	nsWindow.Send(objc.RegisterName("setAcceptsMouseMovedEvents:"), true)
 	nsWindow.Send(selSetRestorable, false)
 
 	// Disable window tabbing (macOS 10.12+).
@@ -1064,48 +1087,12 @@ func createNativeWindow(window *Window, wndconfig *wndconfig, fbconfig_ *fbconfi
 		nsWindow.Send(selSetTabbingMode, uintptr(2)) // NSWindowTabbingModeDisallowed = 2
 	}
 
-	// Create the delegate.
-	delegateID := objc.ID(classGLFWWindowDelegate).Send(selAlloc).Send(selInit)
-	if delegateID == 0 {
-		return fmt.Errorf("glfw: failed to create window delegate: %w", PlatformError)
-	}
-	setGoWindow(delegateID, window)
-	window.platform.delegate = delegateID
-	nsWindow.Send(selSetDelegate, delegateID)
-
-	// Create the content view.
-	viewID := objc.ID(classGLFWContentView).Send(selAlloc).Send(selInit)
-	setGoWindow(viewID, window)
-	window.platform.view = viewID
-	window.platform.markedText = objc.ID(classNSMutableAttributedString).Send(selAlloc).Send(objc.RegisterName("init"))
-	nsWindow.Send(selSetContentView, viewID)
-	nsWindow.Send(selMakeFirstResponder, viewID)
-
 	viewID.Send(objc.RegisterName("updateTrackingAreas"))
 
 	// Register for dragged types (URLs).
 	urlType := cocoa.NSString_alloc().InitWithUTF8String("public.url")
 	typesArray := objc.ID(classNSArray).Send(selArrayWithObject, urlType.ID)
 	viewID.Send(selRegisterForDraggedTypes, typesArray)
-
-	// Set up retina/HiDPI support.
-	screen := nsWindow.Send(selScreen)
-	window.platform.retina = wndconfig.retina
-	if screen != 0 {
-		scale := objc.Send[float64](screen, selBackingScaleFactor)
-		window.platform.xscale = float32(scale)
-		window.platform.yscale = float32(scale)
-	} else {
-		window.platform.xscale = 1.0
-		window.platform.yscale = 1.0
-	}
-
-	// Handle transparent framebuffer.
-	if fbconfig_.transparent {
-		nsWindow.Send(selSetOpaque, false)
-		nsWindow.Send(selSetHasShadow, false)
-		nsWindow.Send(selSetBackgroundColor, objc.ID(classNSColor).Send(selClearColor))
-	}
 
 	// Update initial size cache.
 	contentViewRect := objc.Send[cocoa.NSRect](viewID, selFrame)
@@ -1115,9 +1102,6 @@ func createNativeWindow(window *Window, wndconfig *wndconfig, fbconfig_ *fbconfi
 	fbRect := objc.Send[cocoa.NSRect](viewID, selConvertRectToBacking, contentViewRect)
 	window.platform.fbWidth = int(fbRect.Size.Width)
 	window.platform.fbHeight = int(fbRect.Size.Height)
-
-	// Accept mouse-moved events.
-	nsWindow.Send(objc.RegisterName("setAcceptsMouseMovedEvents:"), true)
 
 	return nil
 }
@@ -1446,7 +1430,8 @@ func (w *Window) platformSetWindowMonitor(monitor *Monitor, xpos, ypos, width, h
 				},
 				Size: cocoa.NSSize{Width: float64(width), Height: float64(height)},
 			}
-			frameRect := objc.Send[cocoa.NSRect](w.platform.object, selFrameRectForContentRect, contentRect)
+			styleMask := uintptr(objc.Send[uint64](w.platform.object, selStyleMask))
+			frameRect := objc.Send[cocoa.NSRect](w.platform.object, selFrameRectForContentRectStyleMask, contentRect, styleMask)
 			w.platform.object.Send(objc.RegisterName("setFrame:display:"), frameRect, true)
 		}
 		return nil
@@ -1501,7 +1486,7 @@ func (w *Window) platformSetWindowMonitor(monitor *Monitor, xpos, ypos, width, h
 			},
 			Size: cocoa.NSSize{Width: float64(width), Height: float64(height)},
 		}
-		frameRect := objc.Send[cocoa.NSRect](w.platform.object, selFrameRectForContentRect, contentRect)
+		frameRect := objc.Send[cocoa.NSRect](w.platform.object, selFrameRectForContentRectStyleMask, contentRect, styleMask)
 		w.platform.object.Send(objc.RegisterName("setFrame:display:"), frameRect, true)
 
 		if w.numer != DontCare && w.denom != DontCare {
@@ -2000,9 +1985,15 @@ func platformGetClipboardString() (string, error) {
 	defer pool.Release()
 
 	pasteboard := objc.ID(classNSPasteboard).Send(selGeneralPasteboard)
+
+	types := pasteboard.Send(selTypes)
+	if objc.Send[bool](types, selContainsObject, nsPasteboardTypeString.ID) == false {
+		return "", fmt.Errorf("glfw: failed to retrieve string from pasteboard: %w", FormatUnavailable)
+	}
+
 	strID := pasteboard.Send(selStringForType, nsPasteboardTypeString.ID)
 	if strID == 0 {
-		return "", fmt.Errorf("glfw: pasteboard doesn't contain a string: %w", FormatUnavailable)
+		return "", fmt.Errorf("glfw: failed to retrieve object from pasteboard: %w", PlatformError)
 	}
 
 	str := cocoa.NSString{ID: strID}

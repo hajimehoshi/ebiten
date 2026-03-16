@@ -206,6 +206,7 @@ var (
 	cgDisplayModeGetPixelHeight                    func(mode uintptr) uintptr
 	cgDisplaySetDisplayMode                        func(display uint32, mode uintptr, options uintptr) int32
 	cgDisplayIsAsleep                              func(display uint32) uint32
+	cgDisplayGammaTableCapacity                    func(display uint32) uint32
 	cgGetDisplayTransferByTable                    func(display uint32, capacity uint32, red *float32, green *float32, blue *float32, sampleCount *uint32) int32
 	cgSetDisplayTransferByTable                    func(display uint32, sampleCount uint32, red *float32, green *float32, blue *float32) int32
 	cgDisplayRestoreColorSyncSettings              func()
@@ -377,6 +378,7 @@ var (
 	selInitWithContentRect               = objc.RegisterName("initWithContentRect:styleMask:backing:defer:")
 	selContentRectForFrameRect           = objc.RegisterName("contentRectForFrameRect:")
 	selFrameRectForContentRect           = objc.RegisterName("frameRectForContentRect:")
+	selFrameRectForContentRectStyleMask  = objc.RegisterName("frameRectForContentRect:styleMask:")
 	selRequestUserAttention              = objc.RegisterName("requestUserAttention:")
 	selArrangeInFront                    = objc.RegisterName("arrangeInFront:")
 	selConvertRectToScreen               = objc.RegisterName("convertRectToScreen:")
@@ -405,6 +407,8 @@ var (
 	selDeclareTypes      = objc.RegisterName("declareTypes:owner:")
 	selSetStringForType  = objc.RegisterName("setString:forType:")
 	selStringForType     = objc.RegisterName("stringForType:")
+	selTypes             = objc.RegisterName("types")
+	selContainsObject    = objc.RegisterName("containsObject:")
 
 	// NSCursor selectors
 	selArrowCursor               = objc.RegisterName("arrowCursor")
@@ -544,6 +548,7 @@ func init() {
 	purego.RegisterLibFunc(&cgDisplayModeGetPixelHeight, coreGraphics, "CGDisplayModeGetPixelHeight")
 	purego.RegisterLibFunc(&cgDisplaySetDisplayMode, coreGraphics, "CGDisplaySetDisplayMode")
 	purego.RegisterLibFunc(&cgDisplayIsAsleep, coreGraphics, "CGDisplayIsAsleep")
+	purego.RegisterLibFunc(&cgDisplayGammaTableCapacity, coreGraphics, "CGDisplayGammaTableCapacity")
 	purego.RegisterLibFunc(&cgGetDisplayTransferByTable, coreGraphics, "CGGetDisplayTransferByTable")
 	purego.RegisterLibFunc(&cgSetDisplayTransferByTable, coreGraphics, "CGSetDisplayTransferByTable")
 	purego.RegisterLibFunc(&cgDisplayRestoreColorSyncSettings, coreGraphics, "CGDisplayRestoreColorSyncSettings")
