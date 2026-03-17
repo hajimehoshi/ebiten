@@ -7,7 +7,7 @@ require (
 	github.com/ebitengine/gomobile v0.0.0-20260211053922-3d992dae95d1
 	github.com/ebitengine/hideconsole v1.0.0
 	github.com/ebitengine/oto/v3 v3.5.0-alpha.2
-	github.com/ebitengine/purego v0.11.0-alpha.0.20260311152936-1a798da253eb
+	github.com/ebitengine/purego v0.11.0-alpha.1
 	github.com/gen2brain/mpeg v0.5.0
 	github.com/go-text/typesetting v0.3.4
 	github.com/hajimehoshi/bitmapfont/v4 v4.1.0
