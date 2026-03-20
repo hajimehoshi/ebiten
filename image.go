@@ -85,6 +85,12 @@ type Image struct {
 	// This tends to forget resolving the buffer easily (#2362).
 }
 
+// theImagePool is a global pool of Image structs to reduce allocations.
+// Both [NewImage] and [Image.SubImage] draw from this pool; [Image.Recycle] returns to it.
+var theImagePool = sync.Pool{
+	New: func() any { return &Image{} },
+}
+
 type usageCallback struct {
 	fn func(image *Image)
 }
@@ -1146,11 +1152,10 @@ func (i *Image) SubImage(r image.Rectangle) image.Image {
 		}
 	}
 
-	img := &Image{
-		image:    i.image,
-		bounds:   r,
-		original: i,
-	}
+	img := theImagePool.Get().(*Image)
+	img.image = i.image
+	img.bounds = r
+	img.original = i
 	img.addr = img
 
 	if i.subImageCache == nil {
@@ -1351,6 +1356,39 @@ func (i *Image) Deallocate() {
 	i.usageCallbacks = nil
 }
 
+// Recycle puts the Image struct back into a global pool for reuse, reducing allocations.
+// After Recycle is called, the image must not be used; the behavior is undefined.
+//
+// In most cases, you don't have to call Recycle.
+// Recycle is useful when you need to create many sub-images with different bounds,
+// and want to avoid repeated allocations.
+func (i *Image) Recycle() {
+	i.copyCheck()
+	if i.inUsageCallbacks.Load() {
+		panic("ebiten: Recycle cannot be called from within a usage callback")
+	}
+	i.Deallocate()
+
+	// Clear all fields to release references and reset state.
+	if i.isSubImage() {
+		i.original.subImageCacheM.Lock()
+		delete(i.original.subImageCache, i.bounds)
+		i.original.subImageCacheM.Unlock()
+	}
+	i.image = nil
+	i.original = nil
+	i.bounds = image.Rectangle{}
+	i.tmpVertices = i.tmpVertices[:0]
+	i.tmpIndices = i.tmpIndices[:0]
+	i.tmpUniforms = i.tmpUniforms[:0]
+	clear(i.subImageCache)
+	i.subImageGCLastTick = 0
+	i.atime.Store(0)
+	clear(i.usageCallbacks)
+
+	theImagePool.Put(i)
+}
+
 // WritePixels replaces the pixels of the image.
 //
 // The given pixels are treated as RGBA pre-multiplied alpha values.
@@ -1446,10 +1484,9 @@ func newImage(bounds image.Rectangle, imageType atlas.ImageType) *Image {
 		panic(fmt.Sprintf("ebiten: height at NewImage must be positive but %d", height))
 	}
 
-	i := &Image{
-		image:  ui.Get().NewImage(width, height, imageType),
-		bounds: bounds,
-	}
+	i := theImagePool.Get().(*Image)
+	i.image = ui.Get().NewImage(width, height, imageType)
+	i.bounds = bounds
 	i.addr = i
 	return i
 }
