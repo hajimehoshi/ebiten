@@ -1362,6 +1362,10 @@ func (i *Image) Deallocate() {
 // In most cases, you don't have to call Recycle.
 // Recycle is useful when you need to create many sub-images with different bounds,
 // and want to avoid repeated allocations.
+//
+// Be careful when calling Recycle on a sub-image obtained from [Image.SubImage].
+// If the sub-image's bounds cover the original image's bounds, [Image.SubImage] may return
+// the original image itself, and calling Recycle on it would invalidate the original.
 func (i *Image) Recycle() {
 	i.copyCheck()
 	if i.inUsageCallbacks.Load() {
