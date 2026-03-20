@@ -1317,6 +1317,7 @@ func (i *Image) Dispose() {
 	if i.isSubImage() {
 		return
 	}
+	i.invokeUsageCallbacks()
 	i.image.Deallocate()
 	i.image = nil
 	i.subImageCacheM.Lock()
@@ -1345,6 +1346,7 @@ func (i *Image) Deallocate() {
 	if i.isSubImage() {
 		return
 	}
+	i.invokeUsageCallbacks()
 	i.image.Deallocate()
 	i.usageCallbacks = nil
 }
