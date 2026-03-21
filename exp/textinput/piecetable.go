@@ -139,6 +139,15 @@ func (p *pieceTable) writeToWithInsertion(w io.Writer, text string, start, end i
 	return n, nil
 }
 
+func (p *pieceTable) hasText() bool {
+	for _, item := range p.items() {
+		if item.start < item.end {
+			return true
+		}
+	}
+	return false
+}
+
 func (p *pieceTable) Len() int {
 	var n int
 	items := p.items()

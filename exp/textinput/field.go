@@ -281,6 +281,11 @@ func (f *Field) TextForRendering() string {
 	return b.String()
 }
 
+// HasText reports whether the field has any text.
+func (f *Field) HasText() bool {
+	return f.pieceTable.hasText()
+}
+
 // TextLengthInBytes returns the length of the current text in bytes.
 func (f *Field) TextLengthInBytes() int {
 	return f.pieceTable.Len()
