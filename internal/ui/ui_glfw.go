@@ -103,6 +103,8 @@ type userInterfaceImpl struct {
 	iwindow          glfwWindow
 	savedCursorX     float64
 	savedCursorY     float64
+	rawCursorX       float64
+	rawCursorY       float64
 	lastWheelOffsetX float64
 	lastWheelOffsetY float64
 	lastWheelTime    time.Time
@@ -1423,6 +1425,16 @@ func (u *UserInterface) updateGame() error {
 			return
 		}
 		deviceScaleFactor = m.DeviceScaleFactor()
+
+		// Pre-fetch cursor position and update gamepads to avoid
+		// a second mainThread.Call round-trip in updateInputStateForFrame.
+		u.rawCursorX, u.rawCursorY, err = u.window.GetCursorPos()
+		if err != nil {
+			return
+		}
+		if err = gamepad.Update(); err != nil {
+			return
+		}
 	}); err != nil {
 		return err
 	}

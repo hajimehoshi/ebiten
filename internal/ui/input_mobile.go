@@ -39,11 +39,11 @@ func (u *UserInterface) updateInputStateFromOutside(keyPressedTimes, keyReleased
 	}
 }
 
-func (u *UserInterface) updateInputStateForFrame() error {
+func (u *UserInterface) updateInputStateForFrame(deviceScaleFactor float64) error {
 	u.m.Lock()
 	defer u.m.Unlock()
 
-	s := theMonitor.DeviceScaleFactor()
+	s := deviceScaleFactor
 
 	u.inputState.Touches = u.inputState.Touches[:0]
 	for _, t := range u.touches {

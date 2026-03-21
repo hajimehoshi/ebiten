@@ -300,8 +300,8 @@ func (u *UserInterface) saveCursorPosition() {
 	u.savedOutsideHeight = h
 }
 
-func (u *UserInterface) updateInputStateForFrame() error {
-	s := theMonitor.DeviceScaleFactor()
+func (u *UserInterface) updateInputStateForFrame(deviceScaleFactor float64) error {
+	s := deviceScaleFactor
 
 	if !math.IsNaN(u.savedCursorX) && !math.IsNaN(u.savedCursorY) {
 		// If savedCursorX and savedCursorY are valid values, the cursor is saved just before entering or exiting from fullscreen.

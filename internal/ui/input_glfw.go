@@ -20,7 +20,6 @@ import (
 	"math"
 	"time"
 
-	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
 	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
 )
 
@@ -138,45 +137,36 @@ func (u *UserInterface) registerInputCallbacks() error {
 	return nil
 }
 
-func (u *UserInterface) updateInputStateForFrame() error {
-	var err error
-	u.mainThread.Call(func() {
-		err = u.updateInputStateForFrameImpl()
-	})
-	return err
-}
-
-// updateInputStateForFrameImpl must be called from the main thread.
-func (u *UserInterface) updateInputStateForFrameImpl() error {
+// updateInputStateForFrame updates the input state using pre-fetched cursor position
+// and device scale factor. GetCursorPos and gamepad.Update are already called in
+// the mainThread.Call block of updateGame, so this avoids an extra round-trip.
+func (u *UserInterface) updateInputStateForFrame(deviceScaleFactor float64) error {
 	u.m.Lock()
 	defer u.m.Unlock()
 
-	m, err := u.currentMonitor()
-	if err != nil {
-		return err
-	}
-	s := m.DeviceScaleFactor()
+	s := deviceScaleFactor
 
 	cx, cy := u.savedCursorX, u.savedCursorY
-	defer func() {
-		u.savedCursorX = math.NaN()
-		u.savedCursorY = math.NaN()
-	}()
+	u.savedCursorX = math.NaN()
+	u.savedCursorY = math.NaN()
 
 	if !math.IsNaN(cx) && !math.IsNaN(cy) {
+		// Rare path: cursor position was saved (e.g. fullscreen transition with disabled cursor).
+		// SetCursorPos requires the main thread.
 		cx2, cy2 := u.context.logicalPositionToClientPosition(cx, cy, s)
 		cx2 = dipToGLFWPixel(cx2, s)
 		cy2 = dipToGLFWPixel(cy2, s)
-		if err := u.window.SetCursorPos(cx2, cy2); err != nil {
-			return err
-		}
-	} else {
-		cx2, cy2, err := u.window.GetCursorPos()
+		var err error
+		u.mainThread.Call(func() {
+			err = u.window.SetCursorPos(cx2, cy2)
+		})
 		if err != nil {
 			return err
 		}
-		cx2 = dipFromGLFWPixel(cx2, s)
-		cy2 = dipFromGLFWPixel(cy2, s)
+	} else {
+		// Common path: use the pre-fetched raw cursor position.
+		cx2 := dipFromGLFWPixel(u.rawCursorX, s)
+		cy2 := dipFromGLFWPixel(u.rawCursorY, s)
 		cx, cy = u.context.clientPositionToLogicalPosition(cx2, cy2, s)
 	}
 
@@ -185,9 +175,7 @@ func (u *UserInterface) updateInputStateForFrameImpl() error {
 		u.inputState.CursorX, u.inputState.CursorY = cx, cy
 	}
 
-	if err := gamepad.Update(); err != nil {
-		return err
-	}
+	// gamepad.Update is already called in updateGame's mainThread.Call block.
 	return nil
 }
 
