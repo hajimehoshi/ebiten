@@ -139,11 +139,8 @@ func (t *TextField) Update() error {
 	x1 := x0 + 1
 	y0 := y + cy + py
 	y1 := y0 + int(fontFace.Metrics().HLineGap+fontFace.Metrics().HAscent+fontFace.Metrics().HDescent)
-	handled, err := t.field.HandleInputWithBounds(image.Rect(x0, y0, x1, y1))
-	if err != nil {
-		return err
-	}
-	if handled {
+	t.field.SetBounds(image.Rect(x0, y0, x1, y1))
+	if t.field.Handled() {
 		return nil
 	}
 
