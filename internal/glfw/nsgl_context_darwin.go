@@ -135,7 +135,7 @@ func (w *Window) createContextNSGL(ctxconfig *ctxconfig, fbconfig_ *fbconfig) er
 	addAttrib(0)
 
 	// Create the pixel format.
-	pixelFormat := objc.ID(classNSOpenGLPixelFormat).Send(selAlloc).Send(selInitWithAttributes, uintptr(unsafe.Pointer(&attribs[0])))
+	pixelFormat := objc.ID(classNSOpenGLPixelFormat).Send(sel_alloc).Send(sel_initWithAttributes, uintptr(unsafe.Pointer(&attribs[0])))
 	if pixelFormat == 0 {
 		return fmt.Errorf("glfw: NSGL: failed to find a suitable pixel format: %w", FormatUnavailable)
 	}
@@ -146,9 +146,9 @@ func (w *Window) createContextNSGL(ctxconfig *ctxconfig, fbconfig_ *fbconfig) er
 		share = ctxconfig.share.context.platform.object
 	}
 
-	context := objc.ID(classNSOpenGLContext).Send(selAlloc).Send(selInitWithFormatShareContext, uintptr(pixelFormat), uintptr(share))
+	context := objc.ID(classNSOpenGLContext).Send(sel_alloc).Send(sel_initWithFormat_shareContext, uintptr(pixelFormat), uintptr(share))
 	if context == 0 {
-		pixelFormat.Send(selRelease)
+		pixelFormat.Send(sel_release)
 		return fmt.Errorf("glfw: NSGL: failed to create OpenGL context: %w", VersionUnavailable)
 	}
 
@@ -158,14 +158,14 @@ func (w *Window) createContextNSGL(ctxconfig *ctxconfig, fbconfig_ *fbconfig) er
 	// Set surface opacity for transparent windows.
 	if fbconfig_.transparent {
 		var opacity int32 = 0
-		context.Send(selSetValuesForParameter, uintptr(unsafe.Pointer(&opacity)), uintptr(NSOpenGLCPSurfaceOpacity))
+		context.Send(sel_setValues_forParameter, uintptr(unsafe.Pointer(&opacity)), uintptr(NSOpenGLCPSurfaceOpacity))
 	}
 
 	// Set retina support. Always call this to explicitly enable or disable.
-	w.platform.view.Send(selSetWantsBestResolutionOpenGLSurface, w.platform.retina)
+	w.platform.view.Send(sel_setWantsBestResolutionOpenGLSurface, w.platform.retina)
 
 	// Set the view on the context.
-	context.Send(selSetView, uintptr(w.platform.view))
+	context.Send(sel_setView, uintptr(w.platform.view))
 
 	w.context.makeCurrent = makeContextCurrentNSGL
 	w.context.swapBuffers = swapBuffersNSGL
@@ -182,12 +182,12 @@ func makeContextCurrentNSGL(window *Window) error {
 	defer pool.Release()
 
 	if window != nil {
-		window.context.platform.object.Send(selMakeCurrentContext)
+		window.context.platform.object.Send(sel_makeCurrentContext)
 		if err := _glfw.contextSlot.set(uintptr(unsafe.Pointer(window))); err != nil {
 			return err
 		}
 	} else {
-		objc.ID(classNSOpenGLContext).Send(selClearCurrentContext)
+		objc.ID(classNSOpenGLContext).Send(sel_clearCurrentContext)
 		if err := _glfw.contextSlot.set(0); err != nil {
 			return err
 		}
@@ -203,7 +203,7 @@ func swapBuffersNSGL(window *Window) error {
 	// windows with a non-visible occlusion state.
 	if window.platform.occluded {
 		var interval int32
-		window.context.platform.object.Send(selGetValuesForParameter, uintptr(unsafe.Pointer(&interval)), uintptr(NSOpenGLCPSwapInterval))
+		window.context.platform.object.Send(sel_getValues_forParameter, uintptr(unsafe.Pointer(&interval)), uintptr(NSOpenGLCPSwapInterval))
 		if interval > 0 {
 			const framerate = 60.0
 			elapsed := float64(time.Now().UnixNano()) / float64(time.Second)
@@ -214,7 +214,7 @@ func swapBuffersNSGL(window *Window) error {
 		}
 	}
 
-	window.context.platform.object.Send(selFlushBuffer)
+	window.context.platform.object.Send(sel_flushBuffer)
 	return nil
 }
 
@@ -223,7 +223,7 @@ func swapIntervalNSGL(window *Window, interval int) error {
 	defer pool.Release()
 
 	value := int32(interval)
-	window.context.platform.object.Send(selSetValuesForParameter, uintptr(unsafe.Pointer(&value)), uintptr(NSOpenGLCPSwapInterval))
+	window.context.platform.object.Send(sel_setValues_forParameter, uintptr(unsafe.Pointer(&value)), uintptr(NSOpenGLCPSwapInterval))
 	return nil
 }
 
@@ -244,12 +244,12 @@ func destroyContextNSGL(window *Window) error {
 	defer pool.Release()
 
 	if window.context.platform.pixelFormat != 0 {
-		window.context.platform.pixelFormat.Send(selRelease)
+		window.context.platform.pixelFormat.Send(sel_release)
 		window.context.platform.pixelFormat = 0
 	}
 
 	if window.context.platform.object != 0 {
-		window.context.platform.object.Send(selRelease)
+		window.context.platform.object.Send(sel_release)
 		window.context.platform.object = 0
 	}
 

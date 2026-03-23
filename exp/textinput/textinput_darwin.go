@@ -60,25 +60,25 @@ func (t *textInput) endIfNeeded() {
 }
 
 var (
-	selAddSubview                 = objc.RegisterName("addSubview:")
-	selAlloc                      = objc.RegisterName("alloc")
-	selContentView                = objc.RegisterName("contentView")
-	selConvertRectToScreen        = objc.RegisterName("convertRectToScreen:")
-	selFrame                      = objc.RegisterName("frame")
-	selInit                       = objc.RegisterName("init")
-	selMainWindow                 = objc.RegisterName("mainWindow")
-	selMakeFirstResponder         = objc.RegisterName("makeFirstResponder:")
-	selSetFrame                   = objc.RegisterName("setFrame:")
-	selSharedApplication          = objc.RegisterName("sharedApplication")
-	selWindow                     = objc.RegisterName("window")
-	selString                     = objc.RegisterName("string")
-	selUTF8String                 = objc.RegisterName("UTF8String")
-	selLength                     = objc.RegisterName("length")
-	selCharacterAtIndex           = objc.RegisterName("characterAtIndex:")
-	selResignFirstResponder       = objc.RegisterName("resignFirstResponder")
-	selIsKindOfClass              = objc.RegisterName("isKindOfClass:")
-	selArray                      = objc.RegisterName("array")
-	selLengthOfBytesUsingEncoding = objc.RegisterName("lengthOfBytesUsingEncoding:")
+	sel_addSubview                 = objc.RegisterName("addSubview:")
+	sel_alloc                      = objc.RegisterName("alloc")
+	sel_contentView                = objc.RegisterName("contentView")
+	sel_convertRectToScreen        = objc.RegisterName("convertRectToScreen:")
+	sel_frame                      = objc.RegisterName("frame")
+	sel_init                       = objc.RegisterName("init")
+	sel_mainWindow                 = objc.RegisterName("mainWindow")
+	sel_makeFirstResponder         = objc.RegisterName("makeFirstResponder:")
+	sel_setFrame                   = objc.RegisterName("setFrame:")
+	sel_sharedApplication          = objc.RegisterName("sharedApplication")
+	sel_window                     = objc.RegisterName("window")
+	sel_string                     = objc.RegisterName("string")
+	sel_UTF8String                 = objc.RegisterName("UTF8String")
+	sel_length                     = objc.RegisterName("length")
+	sel_characterAtIndex           = objc.RegisterName("characterAtIndex:")
+	sel_resignFirstResponder       = objc.RegisterName("resignFirstResponder")
+	sel_isKindOfClass              = objc.RegisterName("isKindOfClass:")
+	sel_array                      = objc.RegisterName("array")
+	sel_lengthOfBytesUsingEncoding = objc.RegisterName("lengthOfBytesUsingEncoding:")
 
 	classNSArray            = objc.GetClass("NSArray")
 	classNSView             = objc.GetClass("NSView")
@@ -91,7 +91,7 @@ var theTextInputClient objc.ID
 func getTextInputClient() objc.ID {
 	if theTextInputClient == 0 {
 		class := objc.ID(textInputClientClass)
-		theTextInputClient = class.Send(selAlloc).Send(selInit)
+		theTextInputClient = class.Send(sel_alloc).Send(sel_init)
 	}
 	return theTextInputClient
 }
@@ -122,17 +122,17 @@ func (t *textInput) start(bounds image.Rectangle) (<-chan textInputState, func()
 	t.endIfNeeded()
 
 	tc := getTextInputClient()
-	window := idNSApplication.Send(selSharedApplication).Send(selMainWindow)
-	contentView := window.Send(selContentView)
-	contentView.Send(selAddSubview, tc)
-	window.Send(selMakeFirstResponder, tc)
+	window := idNSApplication.Send(sel_sharedApplication).Send(sel_mainWindow)
+	contentView := window.Send(sel_contentView)
+	contentView.Send(sel_addSubview, tc)
+	window.Send(sel_makeFirstResponder, tc)
 
-	r := objc.Send[nsRect](contentView, selFrame)
+	r := objc.Send[nsRect](contentView, sel_frame)
 	// The Y dirction is upward in the Cocoa coordinate system.
 	y := int(r.size.height) - bounds.Max.Y
 	// X is shifted a little bit, especially for the accent popup.
 	bounds = bounds.Add(image.Pt(6, 0))
-	tc.Send(selSetFrame, nsRect{
+	tc.Send(sel_setFrame, nsRect{
 		origin: nsPoint{float64(bounds.Min.X), float64(y)},
 		size:   nsSize{float64(bounds.Dx()), float64(bounds.Dy())},
 	})
@@ -195,7 +195,7 @@ func init() {
 				Fn:  doCommandBySelector,
 			},
 			{
-				Cmd: selResignFirstResponder,
+				Cmd: sel_resignFirstResponder,
 				Fn:  resignFirstResponder,
 			},
 		},
@@ -243,12 +243,12 @@ func setMarkedText(_ objc.ID, _ objc.SEL, str objc.ID, selectedRange nsRange, re
 	//
 	// https://developer.apple.com/documentation/appkit/nstextinputclient/setmarkedtext(_:selectedrange:replacementrange:)?language=objc
 
-	if str.Send(selIsKindOfClass, objc.ID(classNSAttributedString)) != 0 {
-		str = str.Send(selString)
+	if str.Send(sel_isKindOfClass, objc.ID(classNSAttributedString)) != 0 {
+		str = str.Send(sel_string)
 	}
 
-	utf8Len := str.Send(selLengthOfBytesUsingEncoding, nsUTF8StringEncoding)
-	charPtr := str.Send(selUTF8String)
+	utf8Len := str.Send(sel_lengthOfBytesUsingEncoding, nsUTF8StringEncoding)
+	charPtr := str.Send(sel_UTF8String)
 	t := string(unsafe.Slice(*(**byte)(unsafe.Pointer(&charPtr)), utf8Len))
 
 	startInBytes := convertUTF16CountToByteCount(t, int(selectedRange.location))
@@ -261,7 +261,7 @@ func unmarkText(_ objc.ID, _ objc.SEL) {
 }
 
 func validAttributesForMarkedText(_ objc.ID, _ objc.SEL) objc.ID {
-	return objc.ID(classNSArray).Send(selArray)
+	return objc.ID(classNSArray).Send(sel_array)
 }
 
 func attributedSubstringForProposedRange(_ objc.ID, _ objc.SEL, _ nsRange, _ unsafe.Pointer) objc.ID {
@@ -269,11 +269,11 @@ func attributedSubstringForProposedRange(_ objc.ID, _ objc.SEL, _ nsRange, _ uns
 }
 
 func insertText(_ objc.ID, _ objc.SEL, str objc.ID, replacementRange nsRange) {
-	if str.Send(selIsKindOfClass, objc.ID(classNSAttributedString)) != 0 {
-		str = str.Send(selString)
+	if str.Send(sel_isKindOfClass, objc.ID(classNSAttributedString)) != 0 {
+		str = str.Send(sel_string)
 	}
 
-	if str.Send(selLength) == 1 && str.Send(selCharacterAtIndex, 0) < 0x20 {
+	if str.Send(sel_length) == 1 && str.Send(sel_characterAtIndex, 0) < 0x20 {
 		return
 	}
 
@@ -281,8 +281,8 @@ func insertText(_ objc.ID, _ objc.SEL, str objc.ID, replacementRange nsRange) {
 	//
 	// https://developer.apple.com/documentation/appkit/nstextinputclient/inserttext(_:replacementrange:)?language=objc
 
-	utf8Len := str.Send(selLengthOfBytesUsingEncoding, nsUTF8StringEncoding)
-	charPtr := str.Send(selUTF8String)
+	utf8Len := str.Send(sel_lengthOfBytesUsingEncoding, nsUTF8StringEncoding)
+	charPtr := str.Send(sel_UTF8String)
 	t := string(unsafe.Slice(*(**byte)(unsafe.Pointer(&charPtr)), utf8Len))
 
 	var delStartInBytes, delEndInBytes int
@@ -312,9 +312,9 @@ func firstRectForCharacterRange(self objc.ID, _ objc.SEL, rang nsRange, actualRa
 		}
 	}
 
-	window := self.Send(selWindow)
-	frame := objc.Send[nsRect](self, selFrame)
-	return objc.Send[nsRect](window, selConvertRectToScreen, frame)
+	window := self.Send(sel_window)
+	frame := objc.Send[nsRect](self, sel_frame)
+	return objc.Send[nsRect](window, sel_convertRectToScreen, frame)
 }
 
 func doCommandBySelector(_ objc.ID, _ objc.SEL, _ objc.SEL) {

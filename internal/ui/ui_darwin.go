@@ -37,17 +37,17 @@ var classEbitengineWindowDelegate objc.Class
 func (u *UserInterface) initializePlatform() error {
 	pushResizableState := func(id, win objc.ID) {
 		window := cocoa.NSWindow{ID: win}
-		id.Send(selSetOrigResizable, window.StyleMask()&cocoa.NSWindowStyleMaskResizable != 0)
-		if !objc.Send[bool](id, selOrigResizable) {
+		id.Send(sel_setOrigResizable, window.StyleMask()&cocoa.NSWindowStyleMaskResizable != 0)
+		if !objc.Send[bool](id, sel_isOrigResizable) {
 			window.SetStyleMask(window.StyleMask() | cocoa.NSWindowStyleMaskResizable)
 		}
 	}
 	popResizableState := func(id, win objc.ID) {
-		if !objc.Send[bool](id, selOrigResizable) {
+		if !objc.Send[bool](id, sel_isOrigResizable) {
 			window := cocoa.NSWindow{ID: win}
 			window.SetStyleMask(window.StyleMask() & ^uint(cocoa.NSWindowStyleMaskResizable))
 		}
-		id.Send(selSetOrigResizable, false)
+		id.Send(sel_setOrigResizable, false)
 	}
 	d, err := objc.RegisterClass(
 		"EbitengineWindowDelegate",
@@ -67,11 +67,11 @@ func (u *UserInterface) initializePlatform() error {
 		},
 		[]objc.MethodDef{
 			{
-				Cmd: selInitWithOrigDelegate,
+				Cmd: sel_initWithOrigDelegate,
 				Fn: func(id objc.ID, cmd objc.SEL, origDelegate objc.ID) objc.ID {
-					self := id.SendSuper(selInit)
+					self := id.SendSuper(sel_init)
 					if self != 0 {
-						id.Send(selSetOrigDelegate, origDelegate)
+						id.Send(sel_setOrigDelegate, origDelegate)
 					}
 					return self
 				},
@@ -79,49 +79,49 @@ func (u *UserInterface) initializePlatform() error {
 			// The method set of origDelegate must sync with GLFWWindowDelegate's implementation.
 			// See cocoa_window.m in GLFW.
 			{
-				Cmd: selWindowShouldClose,
+				Cmd: sel_windowShouldClose,
 				Fn: func(id objc.ID, cmd objc.SEL, sender objc.ID) bool {
-					return id.Send(selOrigDelegate).Send(cmd, sender) != 0
+					return id.Send(sel_origDelegate).Send(cmd, sender) != 0
 				},
 			},
 			{
-				Cmd: selWindowDidResize,
+				Cmd: sel_windowDidResize,
 				Fn: func(id objc.ID, cmd objc.SEL, notification objc.ID) {
-					id.Send(selOrigDelegate).Send(cmd, notification)
+					id.Send(sel_origDelegate).Send(cmd, notification)
 				},
 			},
 			{
-				Cmd: selWindowDidMove,
+				Cmd: sel_windowDidMove,
 				Fn: func(id objc.ID, cmd objc.SEL, notification objc.ID) {
-					id.Send(selOrigDelegate).Send(cmd, notification)
+					id.Send(sel_origDelegate).Send(cmd, notification)
 				},
 			},
 			{
-				Cmd: selWindowDidMiniaturize,
+				Cmd: sel_windowDidMiniaturize,
 				Fn: func(id objc.ID, cmd objc.SEL, notification objc.ID) {
-					id.Send(selOrigDelegate).Send(cmd, notification)
+					id.Send(sel_origDelegate).Send(cmd, notification)
 				},
 			},
 			{
-				Cmd: selWindowDidBecomeKey,
+				Cmd: sel_windowDidBecomeKey,
 				Fn: func(id objc.ID, cmd objc.SEL, notification objc.ID) {
-					id.Send(selOrigDelegate).Send(cmd, notification)
+					id.Send(sel_origDelegate).Send(cmd, notification)
 				},
 			},
 			{
-				Cmd: selWindowDidResignKey,
+				Cmd: sel_windowDidResignKey,
 				Fn: func(id objc.ID, cmd objc.SEL, notification objc.ID) {
-					id.Send(selOrigDelegate).Send(cmd, notification)
+					id.Send(sel_origDelegate).Send(cmd, notification)
 				},
 			},
 			{
-				Cmd: selWindowDidChangeOcclusionState,
+				Cmd: sel_windowDidChangeOcclusionState,
 				Fn: func(id objc.ID, cmd objc.SEL, notification objc.ID) {
-					id.Send(selOrigDelegate).Send(cmd, notification)
+					id.Send(sel_origDelegate).Send(cmd, notification)
 				},
 			},
 			{
-				Cmd: selWindowWillEnterFullScreen,
+				Cmd: sel_windowWillEnterFullScreen,
 				Fn: func(id objc.ID, cmd objc.SEL, notification objc.ID) {
 					if err := u.setOrigWindowPosWithCurrentPos(); err != nil {
 						u.setError(err)
@@ -131,13 +131,13 @@ func (u *UserInterface) initializePlatform() error {
 				},
 			},
 			{
-				Cmd: selWindowDidEnterFullScreen,
+				Cmd: sel_windowDidEnterFullScreen,
 				Fn: func(id objc.ID, cmd objc.SEL, notification objc.ID) {
 					popResizableState(id, cocoa.NSNotification{ID: notification}.Object())
 				},
 			},
 			{
-				Cmd: selWindowWillExitFullScreen,
+				Cmd: sel_windowWillExitFullScreen,
 				Fn: func(id objc.ID, cmd objc.SEL, notification objc.ID) {
 					pushResizableState(id, cocoa.NSNotification{ID: notification}.Object())
 					// Even a window has a size limitation, a window can be fullscreen by calling SetFullscreen(true).
@@ -150,7 +150,7 @@ func (u *UserInterface) initializePlatform() error {
 				},
 			},
 			{
-				Cmd: selWindowDidExitFullScreen,
+				Cmd: sel_windowDidExitFullScreen,
 				Fn: func(id objc.ID, cmd objc.SEL, notification objc.ID) {
 					popResizableState(id, cocoa.NSNotification{ID: notification}.Object())
 					// Do not call setFrame here (#2295). setFrame here causes unexpected results.
@@ -171,12 +171,12 @@ func (u *UserInterface) setApplePressAndHoldEnabled(enabled bool) {
 	if enabled {
 		val = 1
 	}
-	defaults := objc.ID(classNSMutableDictionary).Send(selAlloc).Send(selInit)
-	defaults.Send(selSetObjectForKey,
-		objc.ID(classNSNumber).Send(selAlloc).Send(selInitWithBool, val),
+	defaults := objc.ID(classNSMutableDictionary).Send(sel_alloc).Send(sel_init)
+	defaults.Send(sel_setObject_forKey,
+		objc.ID(classNSNumber).Send(sel_alloc).Send(sel_initWithBool, val),
 		cocoa.NSString_alloc().InitWithUTF8String("ApplePressAndHoldEnabled").ID)
-	ud := objc.ID(classNSUserDefaults).Send(selStandardUserDefaults)
-	ud.Send(selRegisterDefaults, defaults)
+	ud := objc.ID(classNSUserDefaults).Send(sel_standardUserDefaults)
+	ud.Send(sel_registerDefaults, defaults)
 }
 
 type graphicsDriverCreatorImpl struct {
@@ -247,41 +247,41 @@ var (
 )
 
 var (
-	selAlloc                         = objc.RegisterName("alloc")
-	selAppearanceNamed               = objc.RegisterName("appearanceNamed:")
-	selCollectionBehavior            = objc.RegisterName("collectionBehavior")
-	selDelegate                      = objc.RegisterName("delegate")
-	selInit                          = objc.RegisterName("init")
-	selInitWithBool                  = objc.RegisterName("initWithBool:")
-	selInitWithOrigDelegate          = objc.RegisterName("initWithOrigDelegate:")
-	selMouseLocation                 = objc.RegisterName("mouseLocation")
-	selOrigDelegate                  = objc.RegisterName("origDelegate")
-	selOrigResizable                 = objc.RegisterName("isOrigResizable")
-	selRegisterDefaults              = objc.RegisterName("registerDefaults:")
-	selSetAppearance                 = objc.RegisterName("setAppearance:")
-	selSetCollectionBehavior         = objc.RegisterName("setCollectionBehavior:")
-	selSetDelegate                   = objc.RegisterName("setDelegate:")
-	selSetDocumentEdited             = objc.RegisterName("setDocumentEdited:")
-	selSetObjectForKey               = objc.RegisterName("setObject:forKey:")
-	selSetOrigDelegate               = objc.RegisterName("setOrigDelegate:")
-	selSetOrigResizable              = objc.RegisterName("setOrigResizable:")
-	selStandardUserDefaults          = objc.RegisterName("standardUserDefaults")
-	selToggleFullScreen              = objc.RegisterName("toggleFullScreen:")
-	selWindowDidBecomeKey            = objc.RegisterName("windowDidBecomeKey:")
-	selWindowDidEnterFullScreen      = objc.RegisterName("windowDidEnterFullScreen:")
-	selWindowDidExitFullScreen       = objc.RegisterName("windowDidExitFullScreen:")
-	selWindowDidMiniaturize          = objc.RegisterName("windowDidMiniaturize:")
-	selWindowDidMove                 = objc.RegisterName("windowDidMove:")
-	selWindowDidResignKey            = objc.RegisterName("windowDidResignKey:")
-	selWindowDidResize               = objc.RegisterName("windowDidResize:")
-	selWindowDidChangeOcclusionState = objc.RegisterName("windowDidChangeOcclusionState:")
-	selWindowShouldClose             = objc.RegisterName("windowShouldClose:")
-	selWindowWillEnterFullScreen     = objc.RegisterName("windowWillEnterFullScreen:")
-	selWindowWillExitFullScreen      = objc.RegisterName("windowWillExitFullScreen:")
+	sel_alloc                         = objc.RegisterName("alloc")
+	sel_appearanceNamed               = objc.RegisterName("appearanceNamed:")
+	sel_collectionBehavior            = objc.RegisterName("collectionBehavior")
+	sel_delegate                      = objc.RegisterName("delegate")
+	sel_init                          = objc.RegisterName("init")
+	sel_initWithBool                  = objc.RegisterName("initWithBool:")
+	sel_initWithOrigDelegate          = objc.RegisterName("initWithOrigDelegate:")
+	sel_mouseLocation                 = objc.RegisterName("mouseLocation")
+	sel_origDelegate                  = objc.RegisterName("origDelegate")
+	sel_isOrigResizable               = objc.RegisterName("isOrigResizable")
+	sel_registerDefaults              = objc.RegisterName("registerDefaults:")
+	sel_setAppearance                 = objc.RegisterName("setAppearance:")
+	sel_setCollectionBehavior         = objc.RegisterName("setCollectionBehavior:")
+	sel_setDelegate                   = objc.RegisterName("setDelegate:")
+	sel_setDocumentEdited             = objc.RegisterName("setDocumentEdited:")
+	sel_setObject_forKey              = objc.RegisterName("setObject:forKey:")
+	sel_setOrigDelegate               = objc.RegisterName("setOrigDelegate:")
+	sel_setOrigResizable              = objc.RegisterName("setOrigResizable:")
+	sel_standardUserDefaults          = objc.RegisterName("standardUserDefaults")
+	sel_toggleFullScreen              = objc.RegisterName("toggleFullScreen:")
+	sel_windowDidBecomeKey            = objc.RegisterName("windowDidBecomeKey:")
+	sel_windowDidEnterFullScreen      = objc.RegisterName("windowDidEnterFullScreen:")
+	sel_windowDidExitFullScreen       = objc.RegisterName("windowDidExitFullScreen:")
+	sel_windowDidMiniaturize          = objc.RegisterName("windowDidMiniaturize:")
+	sel_windowDidMove                 = objc.RegisterName("windowDidMove:")
+	sel_windowDidResignKey            = objc.RegisterName("windowDidResignKey:")
+	sel_windowDidResize               = objc.RegisterName("windowDidResize:")
+	sel_windowDidChangeOcclusionState = objc.RegisterName("windowDidChangeOcclusionState:")
+	sel_windowShouldClose             = objc.RegisterName("windowShouldClose:")
+	sel_windowWillEnterFullScreen     = objc.RegisterName("windowWillEnterFullScreen:")
+	sel_windowWillExitFullScreen      = objc.RegisterName("windowWillExitFullScreen:")
 )
 
 func currentMouseLocation() (x, y int) {
-	point := objc.Send[cocoa.NSPoint](objc.ID(classNSEvent), selMouseLocation)
+	point := objc.Send[cocoa.NSPoint](objc.ID(classNSEvent), sel_mouseLocation)
 
 	x, y = int(point.X), int(point.Y)
 
@@ -361,17 +361,17 @@ func (u *UserInterface) setNativeFullscreen(fullscreen bool) error {
 	}
 	// Even though EbitengineWindowDelegate is used, this hack is still required.
 	// toggleFullscreen doesn't work when the window is not resizable.
-	origCollectionBehavior := window.Send(selCollectionBehavior)
+	origCollectionBehavior := window.Send(sel_collectionBehavior)
 	origFullScreen := origCollectionBehavior&cocoa.NSWindowCollectionBehaviorFullScreenPrimary != 0
 	if !origFullScreen {
 		collectionBehavior := origCollectionBehavior
 		collectionBehavior |= cocoa.NSWindowCollectionBehaviorFullScreenPrimary
 		collectionBehavior &^= cocoa.NSWindowCollectionBehaviorFullScreenNone
-		window.Send(selSetCollectionBehavior, cocoa.NSUInteger(collectionBehavior))
+		window.Send(sel_setCollectionBehavior, cocoa.NSUInteger(collectionBehavior))
 	}
-	window.Send(selToggleFullScreen, 0)
+	window.Send(sel_toggleFullScreen, 0)
 	if !origFullScreen {
-		window.Send(selSetCollectionBehavior, cocoa.NSUInteger(cocoa.NSUInteger(origCollectionBehavior)))
+		window.Send(sel_setCollectionBehavior, cocoa.NSUInteger(cocoa.NSUInteger(origCollectionBehavior)))
 	}
 
 	return nil
@@ -434,7 +434,7 @@ func (u *UserInterface) setWindowResizingModeForOS(mode WindowResizingMode) erro
 	if err != nil {
 		return err
 	}
-	objc.ID(w).Send(selSetCollectionBehavior, collectionBehavior)
+	objc.ID(w).Send(sel_setCollectionBehavior, collectionBehavior)
 	return nil
 }
 
@@ -446,8 +446,8 @@ func initializeWindowAfterCreation(w *glfw.Window) error {
 		return err
 	}
 	nswindow := objc.ID(cocoaWindow)
-	delegate := objc.ID(classEbitengineWindowDelegate).Send(selAlloc).Send(selInitWithOrigDelegate, nswindow.Send(selDelegate))
-	nswindow.Send(selSetDelegate, delegate)
+	delegate := objc.ID(classEbitengineWindowDelegate).Send(sel_alloc).Send(sel_initWithOrigDelegate, nswindow.Send(sel_delegate))
+	nswindow.Send(sel_setDelegate, delegate)
 	return nil
 }
 
@@ -461,7 +461,7 @@ func (u *UserInterface) setDocumentEdited(edited bool) error {
 	if err != nil {
 		return err
 	}
-	objc.ID(w).Send(selSetDocumentEdited, edited)
+	objc.ID(w).Send(sel_setDocumentEdited, edited)
 	return nil
 }
 
@@ -484,13 +484,13 @@ func (u *UserInterface) setWindowColorModeImpl(mode colormode.ColorMode) error {
 	var appearance objc.ID
 	switch mode {
 	case colormode.Light:
-		appearance = objc.ID(classNSAppearance).Send(selAppearanceNamed, nsStringAqua.ID)
+		appearance = objc.ID(classNSAppearance).Send(sel_appearanceNamed, nsStringAqua.ID)
 	case colormode.Dark:
-		appearance = objc.ID(classNSAppearance).Send(selAppearanceNamed, nsStringDarkAqua.ID)
+		appearance = objc.ID(classNSAppearance).Send(sel_appearanceNamed, nsStringDarkAqua.ID)
 	case colormode.Unknown:
 		appearance = 0
 	}
 
-	objc.ID(w).Send(selSetAppearance, appearance)
+	objc.ID(w).Send(sel_setAppearance, appearance)
 	return nil
 }

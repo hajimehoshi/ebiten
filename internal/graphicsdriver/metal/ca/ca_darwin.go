@@ -40,29 +40,29 @@ var (
 )
 
 var (
-	selPixelFormat                = objc.RegisterName("pixelFormat")
-	selSetDevice                  = objc.RegisterName("setDevice:")
-	selSetOpaque                  = objc.RegisterName("setOpaque:")
-	selSetPixelFormat             = objc.RegisterName("setPixelFormat:")
-	selNew                        = objc.RegisterName("new")
-	selSetColorspace              = objc.RegisterName("setColorspace:")
-	selSetMaximumDrawableCount    = objc.RegisterName("setMaximumDrawableCount:")
-	selSetDisplaySyncEnabled      = objc.RegisterName("setDisplaySyncEnabled:")
-	selSetDrawableSize            = objc.RegisterName("setDrawableSize:")
-	selNextDrawable               = objc.RegisterName("nextDrawable")
-	selPresentsWithTransaction    = objc.RegisterName("presentsWithTransaction")
-	selSetPresentsWithTransaction = objc.RegisterName("setPresentsWithTransaction:")
-	selSetFramebufferOnly         = objc.RegisterName("setFramebufferOnly:")
-	selTexture                    = objc.RegisterName("texture")
-	selPresent                    = objc.RegisterName("present")
-	selAlloc                      = objc.RegisterName("alloc")
-	selInitWithMetalLayer         = objc.RegisterName("initWithMetalLayer:")
-	selSetDelegate                = objc.RegisterName("setDelegate:")
-	selAddToOneLoopForMode        = objc.RegisterName("addToRunLoop:forMode:")
-	selRemoveFromRunLoopForMode   = objc.RegisterName("removeFromRunLoop:forMode:")
-	selSetPaused                  = objc.RegisterName("setPaused:")
-	selDrawable                   = objc.RegisterName("drawable")
-	selRelease                    = objc.RegisterName("release")
+	sel_pixelFormat                = objc.RegisterName("pixelFormat")
+	sel_setDevice                  = objc.RegisterName("setDevice:")
+	sel_setOpaque                  = objc.RegisterName("setOpaque:")
+	sel_setPixelFormat             = objc.RegisterName("setPixelFormat:")
+	sel_new                        = objc.RegisterName("new")
+	sel_setColorspace              = objc.RegisterName("setColorspace:")
+	sel_setMaximumDrawableCount    = objc.RegisterName("setMaximumDrawableCount:")
+	sel_setDisplaySyncEnabled      = objc.RegisterName("setDisplaySyncEnabled:")
+	sel_setDrawableSize            = objc.RegisterName("setDrawableSize:")
+	sel_nextDrawable               = objc.RegisterName("nextDrawable")
+	sel_presentsWithTransaction    = objc.RegisterName("presentsWithTransaction")
+	sel_setPresentsWithTransaction = objc.RegisterName("setPresentsWithTransaction:")
+	sel_setFramebufferOnly         = objc.RegisterName("setFramebufferOnly:")
+	sel_texture                    = objc.RegisterName("texture")
+	sel_present                    = objc.RegisterName("present")
+	sel_alloc                      = objc.RegisterName("alloc")
+	sel_initWithMetalLayer         = objc.RegisterName("initWithMetalLayer:")
+	sel_setDelegate                = objc.RegisterName("setDelegate:")
+	sel_addToRunLoop_forMode       = objc.RegisterName("addToRunLoop:forMode:")
+	sel_removeFromRunLoop_forMode  = objc.RegisterName("removeFromRunLoop:forMode:")
+	sel_setPaused                  = objc.RegisterName("setPaused:")
+	sel_drawable                   = objc.RegisterName("drawable")
+	sel_release                    = objc.RegisterName("release")
 )
 
 // Layer is an object that manages image-based content and
@@ -118,14 +118,14 @@ func NewMetalLayer(colorSpace color.ColorSpace) (MetalLayer, error) {
 		return MetalLayer{}, fmt.Errorf("ca: unsupported color space: %d", colorSpace)
 	}
 
-	layer := objc.ID(classCAMetalLayer).Send(selNew)
+	layer := objc.ID(classCAMetalLayer).Send(sel_new)
 	// setColorspace: is available from iOS 13.0?
 	// https://github.com/hajimehoshi/ebiten/commit/3af351a2aa31e30affd433429c42130015b302f3
 	// TODO: Enable this on iOS as well.
 	if runtime.GOOS != "ios" {
 		// Dlsym returns pointer to symbol so dereference it.
 		colorspace, _, _ := purego.SyscallN(cgColorSpaceCreateWithName, **(**uintptr)(unsafe.Pointer(&colorSpaceSym)))
-		layer.Send(selSetColorspace, colorspace)
+		layer.Send(sel_setColorspace, colorspace)
 		purego.SyscallN(cgColorSpaceRelease, colorspace)
 	}
 	return MetalLayer{layer}, nil
@@ -140,19 +140,19 @@ func (ml MetalLayer) Layer() unsafe.Pointer {
 //
 // Reference: https://developer.apple.com/documentation/quartzcore/cametallayer/1478155-pixelformat?language=objc.
 func (ml MetalLayer) PixelFormat() mtl.PixelFormat {
-	return mtl.PixelFormat(ml.metalLayer.Send(selPixelFormat))
+	return mtl.PixelFormat(ml.metalLayer.Send(sel_pixelFormat))
 }
 
 // SetDevice sets the Metal device responsible for the layer's drawable resources.
 //
 // Reference: https://developer.apple.com/documentation/quartzcore/cametallayer/1478163-device?language=objc.
 func (ml MetalLayer) SetDevice(device mtl.Device) {
-	ml.metalLayer.Send(selSetDevice, uintptr(device.Device()))
+	ml.metalLayer.Send(sel_setDevice, uintptr(device.Device()))
 }
 
 // SetOpaque a Boolean value indicating whether the layer contains completely opaque content.
 func (ml MetalLayer) SetOpaque(opaque bool) {
-	ml.metalLayer.Send(selSetOpaque, opaque)
+	ml.metalLayer.Send(sel_setOpaque, opaque)
 }
 
 // SetPixelFormat controls the pixel format of textures for rendering layer content.
@@ -168,7 +168,7 @@ func (ml MetalLayer) SetPixelFormat(pf mtl.PixelFormat) {
 	default:
 		panic(fmt.Sprintf("ca: invalid pixel format %d", pf))
 	}
-	ml.metalLayer.Send(selSetPixelFormat, uint(pf))
+	ml.metalLayer.Send(sel_setPixelFormat, uint(pf))
 }
 
 // SetMaximumDrawableCount controls the number of Metal drawables in the resource pool
@@ -181,7 +181,7 @@ func (ml MetalLayer) SetMaximumDrawableCount(count int) {
 	if count < 2 || count > 3 {
 		panic(fmt.Sprintf("ca: failed trying to set maximumDrawableCount to %d outside of the valid range of [2, 3]", count))
 	}
-	ml.metalLayer.Send(selSetMaximumDrawableCount, count)
+	ml.metalLayer.Send(sel_setMaximumDrawableCount, count)
 }
 
 // SetDisplaySyncEnabled controls whether the Metal layer and its drawables
@@ -192,21 +192,21 @@ func (ml MetalLayer) SetDisplaySyncEnabled(enabled bool) {
 	if runtime.GOOS == "ios" {
 		return
 	}
-	ml.metalLayer.Send(selSetDisplaySyncEnabled, enabled)
+	ml.metalLayer.Send(sel_setDisplaySyncEnabled, enabled)
 }
 
 // SetDrawableSize sets the size, in pixels, of textures for rendering layer content.
 //
 // Reference: https://developer.apple.com/documentation/quartzcore/cametallayer/1478174-drawablesize?language=objc.
 func (ml MetalLayer) SetDrawableSize(width, height int) {
-	ml.metalLayer.Send(selSetDrawableSize, cocoa.CGSize{Width: cocoa.CGFloat(width), Height: cocoa.CGFloat(height)})
+	ml.metalLayer.Send(sel_setDrawableSize, cocoa.CGSize{Width: cocoa.CGFloat(width), Height: cocoa.CGFloat(height)})
 }
 
 // NextDrawable returns a Metal drawable.
 //
 // Reference: https://developer.apple.com/documentation/quartzcore/cametallayer/1478172-nextdrawable?language=objc.
 func (ml MetalLayer) NextDrawable() (MetalDrawable, error) {
-	md := ml.metalLayer.Send(selNextDrawable)
+	md := ml.metalLayer.Send(sel_nextDrawable)
 	if md == 0 {
 		return MetalDrawable{}, errors.New("nextDrawable returned nil")
 	}
@@ -217,21 +217,21 @@ func (ml MetalLayer) NextDrawable() (MetalDrawable, error) {
 //
 // Reference: https://developer.apple.com/documentation/quartzcore/cametallayer/1478157-presentswithtransaction?language=objc
 func (ml MetalLayer) PresentsWithTransaction() bool {
-	return ml.metalLayer.Send(selPresentsWithTransaction) != 0
+	return ml.metalLayer.Send(sel_presentsWithTransaction) != 0
 }
 
 // SetPresentsWithTransaction sets a Boolean value that determines whether the layer presents its content using a Core Animation transaction.
 //
 // Reference: https://developer.apple.com/documentation/quartzcore/cametallayer/1478157-presentswithtransaction?language=objc
 func (ml MetalLayer) SetPresentsWithTransaction(presentsWithTransaction bool) {
-	ml.metalLayer.Send(selSetPresentsWithTransaction, presentsWithTransaction)
+	ml.metalLayer.Send(sel_setPresentsWithTransaction, presentsWithTransaction)
 }
 
 // SetFramebufferOnly sets a Boolean value that determines whether the layer’s textures are used only for rendering.
 //
 // Reference: https://developer.apple.com/documentation/quartzcore/cametallayer/1478168-framebufferonly?language=objc
 func (ml MetalLayer) SetFramebufferOnly(framebufferOnly bool) {
-	ml.metalLayer.Send(selSetFramebufferOnly, framebufferOnly)
+	ml.metalLayer.Send(sel_setFramebufferOnly, framebufferOnly)
 }
 
 // MetalDrawable is a displayable resource that can be rendered or written to by Metal.
@@ -250,14 +250,14 @@ func (md MetalDrawable) Drawable() unsafe.Pointer {
 //
 // Reference: https://developer.apple.com/documentation/quartzcore/cametaldrawable/1478159-texture?language=objc.
 func (md MetalDrawable) Texture() mtl.Texture {
-	return mtl.NewTexture(md.metalDrawable.Send(selTexture))
+	return mtl.NewTexture(md.metalDrawable.Send(sel_texture))
 }
 
 // Present presents the drawable onscreen as soon as possible.
 //
 // Reference: https://developer.apple.com/documentation/metal/mtldrawable/1470284-present?language=objc.
 func (md MetalDrawable) Present() {
-	md.metalDrawable.Send(selPresent)
+	md.metalDrawable.Send(sel_present)
 }
 
 // MetalDisplayLink is a class your Metal app uses to register for callbacks to synchronize its animations for a display.
@@ -271,39 +271,39 @@ type MetalDisplayLink struct {
 //
 // Reference: https://developer.apple.com/documentation/quartzcore/cametaldisplaylink/delegate?language=objc
 func (m MetalDisplayLink) SetDelegate(delegate objc.ID) {
-	m.Send(selSetDelegate, delegate)
+	m.Send(sel_setDelegate, delegate)
 }
 
 // AddToRunLoop registers the display link with a run loop.
 //
 // Reference: https://developer.apple.com/documentation/quartzcore/cametaldisplaylink/add(to:formode:)?language=objc
 func (m MetalDisplayLink) AddToRunLoop(runLoop cocoa.NSRunLoop, mode cocoa.NSRunLoopMode) {
-	m.Send(selAddToOneLoopForMode, runLoop, mode)
+	m.Send(sel_addToRunLoop_forMode, runLoop, mode)
 }
 
 // RemoveFromRunLoop removes a mode’s display link from a run loop.
 //
 // Reference: https://developer.apple.com/documentation/quartzcore/cametaldisplaylink/remove(from:formode:)?language=objc
 func (m MetalDisplayLink) RemoveFromRunLoop(runLoop cocoa.NSRunLoop, mode cocoa.NSRunLoopMode) {
-	m.Send(selRemoveFromRunLoopForMode, runLoop, mode)
+	m.Send(sel_removeFromRunLoop_forMode, runLoop, mode)
 }
 
 // SetPaused sets a Boolean value that indicates whether the system suspends the display link’s notifications to the target.
 //
 // https://developer.apple.com/documentation/quartzcore/cametaldisplaylink/ispaused?language=objc
 func (m MetalDisplayLink) SetPaused(paused bool) {
-	m.Send(selSetPaused, paused)
+	m.Send(sel_setPaused, paused)
 }
 
 func (m MetalDisplayLink) Release() {
-	m.Send(selRelease)
+	m.Send(sel_release)
 }
 
 // NewMetalDisplayLink creates a display link for Metal from a Core Animation layer.
 //
 // Reference: https://developer.apple.com/documentation/quartzcore/cametaldisplaylink/init(metallayer:)?language=objc
 func NewMetalDisplayLink(metalLayer MetalLayer) MetalDisplayLink {
-	displayLink := objc.ID(classCAMetalDisplayLink).Send(selAlloc).Send(selInitWithMetalLayer, metalLayer.metalLayer)
+	displayLink := objc.ID(classCAMetalDisplayLink).Send(sel_alloc).Send(sel_initWithMetalLayer, metalLayer.metalLayer)
 	return MetalDisplayLink{displayLink}
 }
 
@@ -318,5 +318,5 @@ type MetalDisplayLinkUpdate struct {
 //
 // https://developer.apple.com/documentation/quartzcore/cametaldisplaylink/update/drawable?language=objc
 func (m MetalDisplayLinkUpdate) Drawable() MetalDrawable {
-	return MetalDrawable{m.Send(selDrawable)}
+	return MetalDrawable{m.Send(sel_drawable)}
 }

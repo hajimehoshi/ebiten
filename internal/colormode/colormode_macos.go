@@ -26,11 +26,11 @@ import (
 var (
 	idNSApplication = objc.ID(objc.GetClass("NSApplication"))
 
-	selEffectiveAppearance        = objc.RegisterName("effectiveAppearance")
-	selLengthOfBytesUsingEncoding = objc.RegisterName("lengthOfBytesUsingEncoding:")
-	selName                       = objc.RegisterName("name")
-	selSharedApplication          = objc.RegisterName("sharedApplication")
-	selUTF8String                 = objc.RegisterName("UTF8String")
+	sel_effectiveAppearance        = objc.RegisterName("effectiveAppearance")
+	sel_lengthOfBytesUsingEncoding = objc.RegisterName("lengthOfBytesUsingEncoding:")
+	sel_name                       = objc.RegisterName("name")
+	sel_sharedApplication          = objc.RegisterName("sharedApplication")
+	sel_UTF8String                 = objc.RegisterName("UTF8String")
 )
 
 const (
@@ -47,8 +47,8 @@ func systemColorMode() ColorMode {
 	// See also:
 	// * https://developer.apple.com/documentation/appkit/nsapplication/effectiveappearance?language=objc
 	// * https://go.dev/wiki/MinimumRequirements
-	objcName := idNSApplication.Send(selSharedApplication).Send(selEffectiveAppearance).Send(selName)
-	name := unsafe.Slice((*byte)(unsafe.Pointer(objcName.Send(selUTF8String))), objcName.Send(selLengthOfBytesUsingEncoding, nsUTF8StringEncoding))
+	objcName := idNSApplication.Send(sel_sharedApplication).Send(sel_effectiveAppearance).Send(sel_name)
+	name := unsafe.Slice((*byte)(unsafe.Pointer(objcName.Send(sel_UTF8String))), objcName.Send(sel_lengthOfBytesUsingEncoding, nsUTF8StringEncoding))
 	// https://developer.apple.com/documentation/appkit/nsappearance/name-swift.struct?language=objc
 	if bytes.Contains(name, bytesDark) {
 		return Dark
