@@ -102,8 +102,8 @@ type controllerState struct {
 
 // ObjC classes (initialized in init after loading GameController framework).
 var (
-	classGCController      objc.Class
-	classNSNotificationCtr objc.Class
+	class_GCController         objc.Class
+	class_NSNotificationCenter objc.Class
 )
 
 // ObjC selectors for GameController framework.
@@ -172,8 +172,8 @@ func init() {
 		return
 	}
 
-	classGCController = objc.GetClass("GCController")
-	classNSNotificationCtr = objc.GetClass("NSNotificationCenter")
+	class_GCController = objc.GetClass("GCController")
+	class_NSNotificationCenter = objc.GetClass("NSNotificationCenter")
 
 	sel_controllers = objc.RegisterName("controllers")
 	sel_extendedGamepad = objc.RegisterName("extendedGamepad")
@@ -610,12 +610,12 @@ func (g *gamepads) removeGCGamepad(controller uintptr) {
 }
 
 func initializeGCGamepads() {
-	if classGCController == 0 {
+	if class_GCController == 0 {
 		return
 	}
 
 	// Add all currently connected controllers.
-	controllers := objc.ID(classGCController).Send(sel_controllers)
+	controllers := objc.ID(class_GCController).Send(sel_controllers)
 	count := int(controllers.Send(sel_count))
 	for i := range count {
 		controller := controllers.Send(sel_objectAtIndex, i)
@@ -623,7 +623,7 @@ func initializeGCGamepads() {
 	}
 
 	// Register for connect/disconnect notifications.
-	center := objc.ID(classNSNotificationCtr).Send(sel_defaultCenter)
+	center := objc.ID(class_NSNotificationCenter).Send(sel_defaultCenter)
 
 	connectBlock := objc.NewBlock(func(_ objc.Block, notification objc.ID) {
 		controller := notification.Send(sel_object)

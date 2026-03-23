@@ -419,7 +419,7 @@ func endFadeReservation(token uint32) {
 // getMonitorNameNS retrieves the name of a monitor.
 // It tries NSScreen.localizedName first (macOS 10.15+), then falls back to IOKit.
 func getMonitorNameNS(displayID uint32) string {
-	screens := objc.ID(classNSScreen).Send(sel_screens)
+	screens := objc.ID(class_NSScreen).Send(sel_screens)
 	count := int(screens.Send(sel_count))
 	for i := range count {
 		screen := screens.Send(sel_objectAtIndex, i)
@@ -546,7 +546,7 @@ func cStringToGoString(b []byte) string {
 // on machines with automatic graphics switching.
 func nsScreenForDisplayID(displayID uint32) objc.ID {
 	unitNumber := cgDisplayUnitNumber(displayID)
-	screens := objc.ID(classNSScreen).Send(sel_screens)
+	screens := objc.ID(class_NSScreen).Send(sel_screens)
 	count := int(screens.Send(sel_count))
 	for i := range count {
 		screen := screens.Send(sel_objectAtIndex, i)

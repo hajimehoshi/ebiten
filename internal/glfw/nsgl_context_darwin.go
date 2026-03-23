@@ -135,7 +135,7 @@ func (w *Window) createContextNSGL(ctxconfig *ctxconfig, fbconfig_ *fbconfig) er
 	addAttrib(0)
 
 	// Create the pixel format.
-	pixelFormat := objc.ID(classNSOpenGLPixelFormat).Send(sel_alloc).Send(sel_initWithAttributes, uintptr(unsafe.Pointer(&attribs[0])))
+	pixelFormat := objc.ID(class_NSOpenGLPixelFormat).Send(sel_alloc).Send(sel_initWithAttributes, uintptr(unsafe.Pointer(&attribs[0])))
 	if pixelFormat == 0 {
 		return fmt.Errorf("glfw: NSGL: failed to find a suitable pixel format: %w", FormatUnavailable)
 	}
@@ -146,7 +146,7 @@ func (w *Window) createContextNSGL(ctxconfig *ctxconfig, fbconfig_ *fbconfig) er
 		share = ctxconfig.share.context.platform.object
 	}
 
-	context := objc.ID(classNSOpenGLContext).Send(sel_alloc).Send(sel_initWithFormat_shareContext, uintptr(pixelFormat), uintptr(share))
+	context := objc.ID(class_NSOpenGLContext).Send(sel_alloc).Send(sel_initWithFormat_shareContext, uintptr(pixelFormat), uintptr(share))
 	if context == 0 {
 		pixelFormat.Send(sel_release)
 		return fmt.Errorf("glfw: NSGL: failed to create OpenGL context: %w", VersionUnavailable)
@@ -187,7 +187,7 @@ func makeContextCurrentNSGL(window *Window) error {
 			return err
 		}
 	} else {
-		objc.ID(classNSOpenGLContext).Send(sel_clearCurrentContext)
+		objc.ID(class_NSOpenGLContext).Send(sel_clearCurrentContext)
 		if err := _glfw.contextSlot.set(0); err != nil {
 			return err
 		}

@@ -31,12 +31,12 @@ type rumbleMotor struct {
 
 // ObjC classes for CoreHaptics (initialized in init).
 var (
-	classCHHapticEngine         objc.Class
-	classCHHapticEventParameter objc.Class
-	classCHHapticEvent          objc.Class
-	classCHHapticPattern        objc.Class
-	classCHHapticDynamicParam   objc.Class
-	classNSArrayCH              objc.Class
+	class_CHHapticEngine           objc.Class
+	class_CHHapticEventParameter   objc.Class
+	class_CHHapticEvent            objc.Class
+	class_CHHapticPattern          objc.Class
+	class_CHHapticDynamicParameter objc.Class
+	class_NSArray                  objc.Class
 )
 
 // ObjC selectors for CoreHaptics.
@@ -84,17 +84,17 @@ func init() {
 		return
 	}
 
-	classCHHapticEngine = objc.GetClass("CHHapticEngine")
-	if classCHHapticEngine == 0 {
+	class_CHHapticEngine = objc.GetClass("CHHapticEngine")
+	if class_CHHapticEngine == 0 {
 		// CoreHaptics not available (pre-macOS 10.15).
 		return
 	}
 
-	classCHHapticEventParameter = objc.GetClass("CHHapticEventParameter")
-	classCHHapticEvent = objc.GetClass("CHHapticEvent")
-	classCHHapticPattern = objc.GetClass("CHHapticPattern")
-	classCHHapticDynamicParam = objc.GetClass("CHHapticDynamicParameter")
-	classNSArrayCH = objc.GetClass("NSArray")
+	class_CHHapticEventParameter = objc.GetClass("CHHapticEventParameter")
+	class_CHHapticEvent = objc.GetClass("CHHapticEvent")
+	class_CHHapticPattern = objc.GetClass("CHHapticPattern")
+	class_CHHapticDynamicParameter = objc.GetClass("CHHapticDynamicParameter")
+	class_NSArray = objc.GetClass("NSArray")
 
 	sel_haptics = objc.RegisterName("haptics")
 	sel_createEngineWithLocality = objc.RegisterName("createEngineWithLocality:")
@@ -188,7 +188,7 @@ func createGCRumbleMotor(controller uintptr, which int) uintptr {
 	}
 
 	// Create a continuous haptic event with intensity 1.0.
-	intensityParam := objc.ID(classCHHapticEventParameter).Send(sel_alloc).Send(
+	intensityParam := objc.ID(class_CHHapticEventParameter).Send(sel_alloc).Send(
 		sel_initWithParameterID_value,
 		chHapticEventParameterIDHapticIntensity,
 		float32(1.0),
@@ -197,7 +197,7 @@ func createGCRumbleMotor(controller uintptr, which int) uintptr {
 	// Create an NSArray with the parameter.
 	paramArray := makeNSArray(intensityParam)
 
-	event := objc.ID(classCHHapticEvent).Send(sel_alloc).Send(
+	event := objc.ID(class_CHHapticEvent).Send(sel_alloc).Send(
 		sel_initWithEventType_parameters_relativeTime_duration,
 		chHapticEventTypeHapticContinuous,
 		paramArray,
@@ -208,10 +208,10 @@ func createGCRumbleMotor(controller uintptr, which int) uintptr {
 
 	// Create pattern.
 	eventArray := makeNSArray(event)
-	emptyArray := objc.ID(classNSArrayCH).Send(sel_array)
+	emptyArray := objc.ID(class_NSArray).Send(sel_array)
 
 	nsError = 0
-	pattern := objc.ID(classCHHapticPattern).Send(sel_alloc).Send(
+	pattern := objc.ID(class_CHHapticPattern).Send(sel_alloc).Send(
 		sel_initWithEvents_parameters_error,
 		eventArray,
 		emptyArray,
@@ -247,7 +247,7 @@ func createGCRumbleMotor(controller uintptr, which int) uintptr {
 // makeNSArray creates an NSArray containing a single object.
 func makeNSArray(obj objc.ID) objc.ID {
 	objects := [1]uintptr{uintptr(obj)}
-	return objc.ID(classNSArrayCH).Send(sel_arrayWithObjects_count, uintptr(unsafe.Pointer(&objects[0])), 1)
+	return objc.ID(class_NSArray).Send(sel_arrayWithObjects_count, uintptr(unsafe.Pointer(&objects[0])), 1)
 }
 
 func releaseGCRumbleMotor(motorPtr uintptr) {
@@ -292,7 +292,7 @@ func vibrateMotor(motorPtr uintptr, intensity float64) {
 		}
 	} else {
 		// Create a dynamic parameter to control intensity.
-		param := objc.ID(classCHHapticDynamicParam).Send(sel_alloc).Send(
+		param := objc.ID(class_CHHapticDynamicParameter).Send(sel_alloc).Send(
 			sel_initWithParameterID_value_relativeTime,
 			chHapticDynamicParameterIDHapticIntensityCtrl,
 			float32(intensity),

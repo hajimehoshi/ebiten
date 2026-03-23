@@ -477,10 +477,10 @@ type Device struct {
 }
 
 var (
-	classMTLRenderPipelineDescriptor = objc.GetClass("MTLRenderPipelineDescriptor")
-	classMTLTextureDescriptor        = objc.GetClass("MTLTextureDescriptor")
-	classMTLDepthStencilDescriptor   = objc.GetClass("MTLDepthStencilDescriptor")
-	classMTLRenderPassDescriptor     = objc.GetClass("MTLRenderPassDescriptor")
+	class_MTLRenderPipelineDescriptor = objc.GetClass("MTLRenderPipelineDescriptor")
+	class_MTLTextureDescriptor        = objc.GetClass("MTLTextureDescriptor")
+	class_MTLDepthStencilDescriptor   = objc.GetClass("MTLDepthStencilDescriptor")
+	class_MTLRenderPassDescriptor     = objc.GetClass("MTLRenderPassDescriptor")
 )
 
 var (
@@ -676,7 +676,7 @@ func (d Device) NewLibraryWithData(buffer []byte) (Library, error) {
 //
 // Reference: https://developer.apple.com/documentation/metal/mtldevice/1433369-newrenderpipelinestatewithdescri?language=objc.
 func (d Device) NewRenderPipelineStateWithDescriptor(rpd RenderPipelineDescriptor) (RenderPipelineState, error) {
-	renderPipelineDescriptor := objc.ID(classMTLRenderPipelineDescriptor).Send(sel_new)
+	renderPipelineDescriptor := objc.ID(class_MTLRenderPipelineDescriptor).Send(sel_new)
 	renderPipelineDescriptor.Send(sel_setVertexFunction, rpd.VertexFunction.function)
 	renderPipelineDescriptor.Send(sel_setFragmentFunction, rpd.FragmentFunction.function)
 	colorAttachments0 := renderPipelineDescriptor.Send(sel_colorAttachments).Send(sel_objectAtIndexedSubscript, 0)
@@ -721,7 +721,7 @@ func (d Device) NewBufferWithLength(length uintptr, opt ResourceOptions) Buffer 
 //
 // Reference: https://developer.apple.com/documentation/metal/mtldevice/1433425-newtexturewithdescriptor?language=objc.
 func (d Device) NewTextureWithDescriptor(td TextureDescriptor) Texture {
-	textureDescriptor := objc.ID(classMTLTextureDescriptor).Send(sel_new)
+	textureDescriptor := objc.ID(class_MTLTextureDescriptor).Send(sel_new)
 	textureDescriptor.Send(sel_setTextureType, uintptr(td.TextureType))
 	textureDescriptor.Send(sel_setPixelFormat, uintptr(td.PixelFormat))
 	textureDescriptor.Send(sel_setWidth, uintptr(td.Width))
@@ -739,7 +739,7 @@ func (d Device) NewTextureWithDescriptor(td TextureDescriptor) Texture {
 //
 // Reference: https://developer.apple.com/documentation/metal/mtldevice/1433412-newdepthstencilstatewithdescript?language=objc.
 func (d Device) NewDepthStencilStateWithDescriptor(dsd DepthStencilDescriptor) DepthStencilState {
-	depthStencilDescriptor := objc.ID(classMTLDepthStencilDescriptor).Send(sel_new)
+	depthStencilDescriptor := objc.ID(class_MTLDepthStencilDescriptor).Send(sel_new)
 	backFaceStencil := depthStencilDescriptor.Send(sel_backFaceStencil)
 	backFaceStencil.Send(sel_setStencilFailureOperation, uintptr(dsd.BackFaceStencil.StencilFailureOperation))
 	backFaceStencil.Send(sel_setDepthFailureOperation, uintptr(dsd.BackFaceStencil.DepthFailureOperation))
@@ -847,7 +847,7 @@ func (cb CommandBuffer) WaitUntilScheduled() {
 //
 // Reference: https://developer.apple.com/documentation/metal/mtlcommandbuffer/1442999-rendercommandencoderwithdescript?language=objc.
 func (cb CommandBuffer) RenderCommandEncoderWithDescriptor(rpd RenderPassDescriptor) RenderCommandEncoder {
-	var renderPassDescriptor = objc.ID(classMTLRenderPassDescriptor).Send(sel_new)
+	var renderPassDescriptor = objc.ID(class_MTLRenderPassDescriptor).Send(sel_new)
 	var colorAttachments0 = renderPassDescriptor.Send(sel_colorAttachments).Send(sel_objectAtIndexedSubscript, 0)
 	colorAttachments0.Send(sel_setLoadAction, int(rpd.ColorAttachments[0].LoadAction))
 	colorAttachments0.Send(sel_setStoreAction, int(rpd.ColorAttachments[0].StoreAction))

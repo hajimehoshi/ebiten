@@ -23,17 +23,17 @@ import (
 )
 
 var (
-	classNSInvocation         objc.Class
-	classNSMethodSignature    objc.Class
-	classNSAutoreleasePool    objc.Class
-	classNSString             objc.Class
-	classNSColor              objc.Class
-	classNSScreen             objc.Class
-	classNSRunLoop            objc.Class
-	classNSMachPort           objc.Class
-	classNSWorkspace          objc.Class
-	classNSNotificationCenter objc.Class
-	classNSOperationQueue     objc.Class
+	class_NSInvocation         objc.Class
+	class_NSMethodSignature    objc.Class
+	class_NSAutoreleasePool    objc.Class
+	class_NSString             objc.Class
+	class_NSColor              objc.Class
+	class_NSScreen             objc.Class
+	class_NSRunLoop            objc.Class
+	class_NSMachPort           objc.Class
+	class_NSWorkspace          objc.Class
+	class_NSNotificationCenter objc.Class
+	class_NSOperationQueue     objc.Class
 )
 
 func init() {
@@ -49,17 +49,17 @@ func init() {
 		panic(fmt.Errorf("cocoa: failed to dlopen AppKit: %w", err))
 	}
 
-	classNSInvocation = objc.GetClass("NSInvocation")
-	classNSMethodSignature = objc.GetClass("NSMethodSignature")
-	classNSAutoreleasePool = objc.GetClass("NSAutoreleasePool")
-	classNSString = objc.GetClass("NSString")
-	classNSColor = objc.GetClass("NSColor")
-	classNSScreen = objc.GetClass("NSScreen")
-	classNSRunLoop = objc.GetClass("NSRunLoop")
-	classNSMachPort = objc.GetClass("NSMachPort")
-	classNSWorkspace = objc.GetClass("NSWorkspace")
-	classNSNotificationCenter = objc.GetClass("NSNotificationCenter")
-	classNSOperationQueue = objc.GetClass("NSOperationQueue")
+	class_NSInvocation = objc.GetClass("NSInvocation")
+	class_NSMethodSignature = objc.GetClass("NSMethodSignature")
+	class_NSAutoreleasePool = objc.GetClass("NSAutoreleasePool")
+	class_NSString = objc.GetClass("NSString")
+	class_NSColor = objc.GetClass("NSColor")
+	class_NSScreen = objc.GetClass("NSScreen")
+	class_NSRunLoop = objc.GetClass("NSRunLoop")
+	class_NSMachPort = objc.GetClass("NSMachPort")
+	class_NSWorkspace = objc.GetClass("NSWorkspace")
+	class_NSNotificationCenter = objc.GetClass("NSNotificationCenter")
+	class_NSOperationQueue = objc.GetClass("NSOperationQueue")
 
 	NSRunLoopCommonModes = NSRunLoopMode(NSString_alloc().InitWithUTF8String("kCFRunLoopCommonModes"))
 	NSDefaultRunLoopMode = NSRunLoopMode(NSString_alloc().InitWithUTF8String("kCFRunLoopDefaultMode"))
@@ -164,7 +164,7 @@ type NSColor struct {
 }
 
 func NSColor_colorWithSRGBRedGreenBlueAlpha(red, green, blue, alpha CGFloat) (color NSColor) {
-	return NSColor{objc.ID(classNSColor).Send(sel_colorWithSRGBRed_green_blue_alpha, red, green, blue, alpha)}
+	return NSColor{objc.ID(class_NSColor).Send(sel_colorWithSRGBRed_green_blue_alpha, red, green, blue, alpha)}
 }
 
 type NSWindow struct {
@@ -226,7 +226,7 @@ type NSInvocation struct {
 }
 
 func NSInvocation_invocationWithMethodSignature(sig NSMethodSignature) NSInvocation {
-	return NSInvocation{objc.ID(classNSInvocation).Send(sel_invocationWithMethodSignature, sig.ID)}
+	return NSInvocation{objc.ID(class_NSInvocation).Send(sel_invocationWithMethodSignature, sig.ID)}
 }
 
 func (i NSInvocation) SetSelector(cmd objc.SEL) {
@@ -262,7 +262,7 @@ type NSMethodSignature struct {
 //
 // [Apple Docs]: https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/ObjCRuntimeGuide/Articles/ocrtTypeEncodings.html#//apple_ref/doc/uid/TP40008048-CH100
 func NSMethodSignature_signatureWithObjCTypes(types string) NSMethodSignature {
-	return NSMethodSignature{objc.ID(classNSMethodSignature).Send(sel_signatureWithObjCTypes, types)}
+	return NSMethodSignature{objc.ID(class_NSMethodSignature).Send(sel_signatureWithObjCTypes, types)}
 }
 
 type NSAutoreleasePool struct {
@@ -270,7 +270,7 @@ type NSAutoreleasePool struct {
 }
 
 func NSAutoreleasePool_new() NSAutoreleasePool {
-	return NSAutoreleasePool{objc.ID(classNSAutoreleasePool).Send(sel_new)}
+	return NSAutoreleasePool{objc.ID(class_NSAutoreleasePool).Send(sel_new)}
 }
 
 func (p NSAutoreleasePool) Release() {
@@ -282,7 +282,7 @@ type NSString struct {
 }
 
 func NSString_alloc() NSString {
-	return NSString{objc.ID(classNSString).Send(sel_alloc)}
+	return NSString{objc.ID(class_NSString).Send(sel_alloc)}
 }
 
 func (s NSString) InitWithUTF8String(utf8 string) NSString {
@@ -310,7 +310,7 @@ type NSScreen struct {
 }
 
 func NSScreen_mainScreen() NSScreen {
-	return NSScreen{objc.ID(classNSScreen).Send(sel_mainScreen)}
+	return NSScreen{objc.ID(class_NSScreen).Send(sel_mainScreen)}
 }
 
 func (s NSScreen) DeviceDescription() NSDictionary {
@@ -338,11 +338,11 @@ type NSRunLoop struct {
 }
 
 func NSRunLoop_mainRunLoop() NSRunLoop {
-	return NSRunLoop{objc.ID(classNSRunLoop).Send(sel_mainRunLoop)}
+	return NSRunLoop{objc.ID(class_NSRunLoop).Send(sel_mainRunLoop)}
 }
 
 func NSRunLoop_currentRunLoop() NSRunLoop {
-	return NSRunLoop{objc.ID(classNSRunLoop).Send(sel_currentRunLoop)}
+	return NSRunLoop{objc.ID(class_NSRunLoop).Send(sel_currentRunLoop)}
 }
 
 func (r NSRunLoop) AddPort(port NSMachPort, mode NSRunLoopMode) {
@@ -369,7 +369,7 @@ type NSMachPort struct {
 }
 
 func NSMachPort_port() NSMachPort {
-	return NSMachPort{objc.ID(classNSMachPort).Send(sel_port)}
+	return NSMachPort{objc.ID(class_NSMachPort).Send(sel_port)}
 }
 
 type NSWorkspace struct {
@@ -377,7 +377,7 @@ type NSWorkspace struct {
 }
 
 func NSWorkspace_sharedWorkspace() NSWorkspace {
-	return NSWorkspace{objc.ID(classNSWorkspace).Send(sel_sharedWorkspace)}
+	return NSWorkspace{objc.ID(class_NSWorkspace).Send(sel_sharedWorkspace)}
 }
 
 func (w NSWorkspace) NotificationCenter() NSNotificationCenter {
@@ -402,5 +402,5 @@ type NSOperationQueue struct {
 }
 
 func NSOperationQueue_mainQueue() NSOperationQueue {
-	return NSOperationQueue{objc.ID(classNSOperationQueue).Send(sel_mainQueue)}
+	return NSOperationQueue{objc.ID(class_NSOperationQueue).Send(sel_mainQueue)}
 }

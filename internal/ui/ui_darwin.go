@@ -32,7 +32,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl"
 )
 
-var classEbitengineWindowDelegate objc.Class
+var class_EbitengineWindowDelegate objc.Class
 
 func (u *UserInterface) initializePlatform() error {
 	pushResizableState := func(id, win objc.ID) {
@@ -161,7 +161,7 @@ func (u *UserInterface) initializePlatform() error {
 	if err != nil {
 		return err
 	}
-	classEbitengineWindowDelegate = d
+	class_EbitengineWindowDelegate = d
 
 	return nil
 }
@@ -171,11 +171,11 @@ func (u *UserInterface) setApplePressAndHoldEnabled(enabled bool) {
 	if enabled {
 		val = 1
 	}
-	defaults := objc.ID(classNSMutableDictionary).Send(sel_alloc).Send(sel_init)
+	defaults := objc.ID(class_NSMutableDictionary).Send(sel_alloc).Send(sel_init)
 	defaults.Send(sel_setObject_forKey,
-		objc.ID(classNSNumber).Send(sel_alloc).Send(sel_initWithBool, val),
+		objc.ID(class_NSNumber).Send(sel_alloc).Send(sel_initWithBool, val),
 		cocoa.NSString_alloc().InitWithUTF8String("ApplePressAndHoldEnabled").ID)
-	ud := objc.ID(classNSUserDefaults).Send(sel_standardUserDefaults)
+	ud := objc.ID(class_NSUserDefaults).Send(sel_standardUserDefaults)
 	ud.Send(sel_registerDefaults, defaults)
 }
 
@@ -238,12 +238,12 @@ func (u *UserInterface) adjustWindowPosition(x, y int, monitor *Monitor) (int, i
 }
 
 var (
-	classNSAppearance        = objc.GetClass("NSAppearance")
-	classNSCursor            = objc.GetClass("NSCursor")
-	classNSEvent             = objc.GetClass("NSEvent")
-	classNSMutableDictionary = objc.GetClass("NSMutableDictionary")
-	classNSNumber            = objc.GetClass("NSNumber")
-	classNSUserDefaults      = objc.GetClass("NSUserDefaults")
+	class_NSAppearance        = objc.GetClass("NSAppearance")
+	class_NSCursor            = objc.GetClass("NSCursor")
+	class_NSEvent             = objc.GetClass("NSEvent")
+	class_NSMutableDictionary = objc.GetClass("NSMutableDictionary")
+	class_NSNumber            = objc.GetClass("NSNumber")
+	class_NSUserDefaults      = objc.GetClass("NSUserDefaults")
 )
 
 var (
@@ -281,7 +281,7 @@ var (
 )
 
 func currentMouseLocation() (x, y int) {
-	point := objc.Send[cocoa.NSPoint](objc.ID(classNSEvent), sel_mouseLocation)
+	point := objc.Send[cocoa.NSPoint](objc.ID(class_NSEvent), sel_mouseLocation)
 
 	x, y = int(point.X), int(point.Y)
 
@@ -446,7 +446,7 @@ func initializeWindowAfterCreation(w *glfw.Window) error {
 		return err
 	}
 	nswindow := objc.ID(cocoaWindow)
-	delegate := objc.ID(classEbitengineWindowDelegate).Send(sel_alloc).Send(sel_initWithOrigDelegate, nswindow.Send(sel_delegate))
+	delegate := objc.ID(class_EbitengineWindowDelegate).Send(sel_alloc).Send(sel_initWithOrigDelegate, nswindow.Send(sel_delegate))
 	nswindow.Send(sel_setDelegate, delegate)
 	return nil
 }
@@ -484,9 +484,9 @@ func (u *UserInterface) setWindowColorModeImpl(mode colormode.ColorMode) error {
 	var appearance objc.ID
 	switch mode {
 	case colormode.Light:
-		appearance = objc.ID(classNSAppearance).Send(sel_appearanceNamed, nsStringAqua.ID)
+		appearance = objc.ID(class_NSAppearance).Send(sel_appearanceNamed, nsStringAqua.ID)
 	case colormode.Dark:
-		appearance = objc.ID(classNSAppearance).Send(sel_appearanceNamed, nsStringDarkAqua.ID)
+		appearance = objc.ID(class_NSAppearance).Send(sel_appearanceNamed, nsStringDarkAqua.ID)
 	case colormode.Unknown:
 		appearance = 0
 	}

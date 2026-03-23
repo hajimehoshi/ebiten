@@ -34,9 +34,9 @@ import (
 )
 
 var (
-	classCAMetalLayer             = objc.GetClass("CAMetalLayer")
-	classCAMetalDisplayLink       = objc.GetClass("CAMetalDisplayLink")
-	classCAMetalDisplayLinkUpdate = objc.GetClass("CAMetalDisplayLinkUpdate")
+	class_CAMetalLayer             = objc.GetClass("CAMetalLayer")
+	class_CAMetalDisplayLink       = objc.GetClass("CAMetalDisplayLink")
+	class_CAMetalDisplayLinkUpdate = objc.GetClass("CAMetalDisplayLinkUpdate")
 )
 
 var (
@@ -118,7 +118,7 @@ func NewMetalLayer(colorSpace color.ColorSpace) (MetalLayer, error) {
 		return MetalLayer{}, fmt.Errorf("ca: unsupported color space: %d", colorSpace)
 	}
 
-	layer := objc.ID(classCAMetalLayer).Send(sel_new)
+	layer := objc.ID(class_CAMetalLayer).Send(sel_new)
 	// setColorspace: is available from iOS 13.0?
 	// https://github.com/hajimehoshi/ebiten/commit/3af351a2aa31e30affd433429c42130015b302f3
 	// TODO: Enable this on iOS as well.
@@ -303,7 +303,7 @@ func (m MetalDisplayLink) Release() {
 //
 // Reference: https://developer.apple.com/documentation/quartzcore/cametaldisplaylink/init(metallayer:)?language=objc
 func NewMetalDisplayLink(metalLayer MetalLayer) MetalDisplayLink {
-	displayLink := objc.ID(classCAMetalDisplayLink).Send(sel_alloc).Send(sel_initWithMetalLayer, metalLayer.metalLayer)
+	displayLink := objc.ID(class_CAMetalDisplayLink).Send(sel_alloc).Send(sel_initWithMetalLayer, metalLayer.metalLayer)
 	return MetalDisplayLink{displayLink}
 }
 

@@ -247,30 +247,30 @@ var (
 
 // ObjC classes (initialized in init after loading AppKit).
 var (
-	classNSApplication             objc.Class
-	classNSMenu                    objc.Class
-	classNSMenuItem                objc.Class
-	classNSEvent                   objc.Class
-	classNSProcessInfo             objc.Class
-	classNSNotificationCenter      objc.Class
-	classNSBundle                  objc.Class
-	classNSScreen                  objc.Class
-	classNSWindow                  objc.Class
-	classNSView                    objc.Class
-	classNSPasteboard              objc.Class
-	classNSCursor                  objc.Class
-	classNSImage                   objc.Class
-	classNSBitmapImageRep          objc.Class
-	classNSTrackingArea            objc.Class
-	classNSColor                   objc.Class
-	classNSArray                   objc.Class
-	classNSURL                     objc.Class
-	classNSOpenGLPixelFormat       objc.Class
-	classNSOpenGLContext           objc.Class
-	classNSRunningApplication      objc.Class
-	classNSMutableAttributedString objc.Class
-	classNSAttributedString        objc.Class
-	classNSDictionary              objc.Class
+	class_NSApplication             objc.Class
+	class_NSMenu                    objc.Class
+	class_NSMenuItem                objc.Class
+	class_NSEvent                   objc.Class
+	class_NSProcessInfo             objc.Class
+	class_NSNotificationCenter      objc.Class
+	class_NSBundle                  objc.Class
+	class_NSScreen                  objc.Class
+	class_NSWindow                  objc.Class
+	class_NSView                    objc.Class
+	class_NSPasteboard              objc.Class
+	class_NSCursor                  objc.Class
+	class_NSImage                   objc.Class
+	class_NSBitmapImageRep          objc.Class
+	class_NSTrackingArea            objc.Class
+	class_NSColor                   objc.Class
+	class_NSArray                   objc.Class
+	class_NSURL                     objc.Class
+	class_NSOpenGLPixelFormat       objc.Class
+	class_NSOpenGLContext           objc.Class
+	class_NSRunningApplication      objc.Class
+	class_NSMutableAttributedString objc.Class
+	class_NSAttributedString        objc.Class
+	class_NSDictionary              objc.Class
 )
 
 // ObjC selectors.
@@ -611,28 +611,28 @@ func init() {
 	}
 
 	// Look up ObjC classes (must be after loading AppKit).
-	classNSApplication = objc.GetClass("NSApplication")
-	classNSMenu = objc.GetClass("NSMenu")
-	classNSMenuItem = objc.GetClass("NSMenuItem")
-	classNSEvent = objc.GetClass("NSEvent")
-	classNSProcessInfo = objc.GetClass("NSProcessInfo")
-	classNSNotificationCenter = objc.GetClass("NSNotificationCenter")
-	classNSBundle = objc.GetClass("NSBundle")
-	classNSScreen = objc.GetClass("NSScreen")
-	classNSWindow = objc.GetClass("NSWindow")
-	classNSView = objc.GetClass("NSView")
-	classNSPasteboard = objc.GetClass("NSPasteboard")
-	classNSCursor = objc.GetClass("NSCursor")
-	classNSImage = objc.GetClass("NSImage")
-	classNSBitmapImageRep = objc.GetClass("NSBitmapImageRep")
-	classNSTrackingArea = objc.GetClass("NSTrackingArea")
-	classNSColor = objc.GetClass("NSColor")
-	classNSArray = objc.GetClass("NSArray")
-	classNSURL = objc.GetClass("NSURL")
-	classNSOpenGLPixelFormat = objc.GetClass("NSOpenGLPixelFormat")
-	classNSOpenGLContext = objc.GetClass("NSOpenGLContext")
-	classNSRunningApplication = objc.GetClass("NSRunningApplication")
-	classNSMutableAttributedString = objc.GetClass("NSMutableAttributedString")
-	classNSAttributedString = objc.GetClass("NSAttributedString")
-	classNSDictionary = objc.GetClass("NSDictionary")
+	class_NSApplication = objc.GetClass("NSApplication")
+	class_NSMenu = objc.GetClass("NSMenu")
+	class_NSMenuItem = objc.GetClass("NSMenuItem")
+	class_NSEvent = objc.GetClass("NSEvent")
+	class_NSProcessInfo = objc.GetClass("NSProcessInfo")
+	class_NSNotificationCenter = objc.GetClass("NSNotificationCenter")
+	class_NSBundle = objc.GetClass("NSBundle")
+	class_NSScreen = objc.GetClass("NSScreen")
+	class_NSWindow = objc.GetClass("NSWindow")
+	class_NSView = objc.GetClass("NSView")
+	class_NSPasteboard = objc.GetClass("NSPasteboard")
+	class_NSCursor = objc.GetClass("NSCursor")
+	class_NSImage = objc.GetClass("NSImage")
+	class_NSBitmapImageRep = objc.GetClass("NSBitmapImageRep")
+	class_NSTrackingArea = objc.GetClass("NSTrackingArea")
+	class_NSColor = objc.GetClass("NSColor")
+	class_NSArray = objc.GetClass("NSArray")
+	class_NSURL = objc.GetClass("NSURL")
+	class_NSOpenGLPixelFormat = objc.GetClass("NSOpenGLPixelFormat")
+	class_NSOpenGLContext = objc.GetClass("NSOpenGLContext")
+	class_NSRunningApplication = objc.GetClass("NSRunningApplication")
+	class_NSMutableAttributedString = objc.GetClass("NSMutableAttributedString")
+	class_NSAttributedString = objc.GetClass("NSAttributedString")
+	class_NSDictionary = objc.GetClass("NSDictionary")
 }

@@ -80,17 +80,17 @@ var (
 	sel_array                      = objc.RegisterName("array")
 	sel_lengthOfBytesUsingEncoding = objc.RegisterName("lengthOfBytesUsingEncoding:")
 
-	classNSArray            = objc.GetClass("NSArray")
-	classNSView             = objc.GetClass("NSView")
-	classNSAttributedString = objc.GetClass("NSAttributedString")
-	idNSApplication         = objc.ID(objc.GetClass("NSApplication"))
+	class_NSArray            = objc.GetClass("NSArray")
+	class_NSView             = objc.GetClass("NSView")
+	class_NSAttributedString = objc.GetClass("NSAttributedString")
+	idNSApplication          = objc.ID(objc.GetClass("NSApplication"))
 )
 
 var theTextInputClient objc.ID
 
 func getTextInputClient() objc.ID {
 	if theTextInputClient == 0 {
-		class := objc.ID(textInputClientClass)
+		class := objc.ID(class_TextInputClient)
 		theTextInputClient = class.Send(sel_alloc).Send(sel_init)
 	}
 	return theTextInputClient
@@ -140,13 +140,13 @@ func (t *textInput) start(bounds image.Rectangle) (<-chan textInputState, func()
 	return t.session.start()
 }
 
-var textInputClientClass objc.Class
+var class_TextInputClient objc.Class
 
 func init() {
 	var err error
-	textInputClientClass, err = objc.RegisterClass(
+	class_TextInputClient, err = objc.RegisterClass(
 		"TextInputClient",
-		classNSView,
+		class_NSView,
 		[]*objc.Protocol{objc.GetProtocol("NSTextInputClient")},
 		[]objc.FieldDef{},
 		[]objc.MethodDef{
@@ -243,7 +243,7 @@ func setMarkedText(_ objc.ID, _ objc.SEL, str objc.ID, selectedRange nsRange, re
 	//
 	// https://developer.apple.com/documentation/appkit/nstextinputclient/setmarkedtext(_:selectedrange:replacementrange:)?language=objc
 
-	if str.Send(sel_isKindOfClass, objc.ID(classNSAttributedString)) != 0 {
+	if str.Send(sel_isKindOfClass, objc.ID(class_NSAttributedString)) != 0 {
 		str = str.Send(sel_string)
 	}
 
@@ -261,7 +261,7 @@ func unmarkText(_ objc.ID, _ objc.SEL) {
 }
 
 func validAttributesForMarkedText(_ objc.ID, _ objc.SEL) objc.ID {
-	return objc.ID(classNSArray).Send(sel_array)
+	return objc.ID(class_NSArray).Send(sel_array)
 }
 
 func attributedSubstringForProposedRange(_ objc.ID, _ objc.SEL, _ nsRange, _ unsafe.Pointer) objc.ID {
@@ -269,7 +269,7 @@ func attributedSubstringForProposedRange(_ objc.ID, _ objc.SEL, _ nsRange, _ uns
 }
 
 func insertText(_ objc.ID, _ objc.SEL, str objc.ID, replacementRange nsRange) {
-	if str.Send(sel_isKindOfClass, objc.ID(classNSAttributedString)) != 0 {
+	if str.Send(sel_isKindOfClass, objc.ID(class_NSAttributedString)) != 0 {
 		str = str.Send(sel_string)
 	}
 

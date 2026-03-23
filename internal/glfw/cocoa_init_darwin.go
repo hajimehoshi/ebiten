@@ -150,7 +150,7 @@ func createKeyTables() {
 // getAppName returns the application name from NSProcessInfo or the bundle.
 func getAppName() string {
 	// Try to figure out what the calling application is called.
-	bundle := objc.ID(classNSBundle).Send(sel_mainBundle)
+	bundle := objc.ID(class_NSBundle).Send(sel_mainBundle)
 	if bundle != 0 {
 		info := bundle.Send(sel_infoDictionary)
 		if info != 0 {
@@ -174,7 +174,7 @@ func getAppName() string {
 	}
 
 	// Fall back to process name.
-	pi := objc.ID(classNSProcessInfo).Send(sel_processInfo)
+	pi := objc.ID(class_NSProcessInfo).Send(sel_processInfo)
 	name := cocoa.NSString{ID: pi.Send(sel_processName)}
 	if s := name.String(); len(s) > 0 {
 		return s
@@ -187,8 +187,8 @@ func getAppName() string {
 func createMenuBar() {
 	appName := getAppName()
 
-	menubar := objc.ID(classNSMenu).Send(objc.RegisterName("alloc")).Send(objc.RegisterName("init"))
-	nsApp := objc.ID(classNSApplication).Send(sel_sharedApplication)
+	menubar := objc.ID(class_NSMenu).Send(objc.RegisterName("alloc")).Send(objc.RegisterName("init"))
+	nsApp := objc.ID(class_NSApplication).Send(sel_sharedApplication)
 	nsApp.Send(sel_setMainMenu, menubar)
 
 	// nsStr creates an NSString and schedules it for release.
@@ -208,7 +208,7 @@ func createMenuBar() {
 
 	// Create the application menu.
 	appMenuItem := menubar.Send(sel_addItemWithTitle_action_keyEquivalent, nsStr(""), objc.SEL(0), nsStr(""))
-	appMenu := objc.ID(classNSMenu).Send(objc.RegisterName("alloc")).Send(objc.RegisterName("init"))
+	appMenu := objc.ID(class_NSMenu).Send(objc.RegisterName("alloc")).Send(objc.RegisterName("init"))
 	appMenuItem.Send(sel_setSubmenu, appMenu)
 
 	// About <AppName>
@@ -217,10 +217,10 @@ func createMenuBar() {
 		sel_orderFrontStandardAboutPanel,
 		nsStr(""))
 
-	appMenu.Send(sel_addItem, objc.ID(classNSMenuItem).Send(sel_separatorItem))
+	appMenu.Send(sel_addItem, objc.ID(class_NSMenuItem).Send(sel_separatorItem))
 
 	// Services submenu
-	servicesMenu := objc.ID(classNSMenu).Send(objc.RegisterName("alloc")).Send(objc.RegisterName("init"))
+	servicesMenu := objc.ID(class_NSMenu).Send(objc.RegisterName("alloc")).Send(objc.RegisterName("init"))
 	nsApp.Send(sel_setServicesMenu, servicesMenu)
 	servicesMenuItem := appMenu.Send(sel_addItemWithTitle_action_keyEquivalent,
 		nsStr("Services"),
@@ -229,7 +229,7 @@ func createMenuBar() {
 	servicesMenuItem.Send(sel_setSubmenu, servicesMenu)
 	servicesMenu.Send(sel_release)
 
-	appMenu.Send(sel_addItem, objc.ID(classNSMenuItem).Send(sel_separatorItem))
+	appMenu.Send(sel_addItem, objc.ID(class_NSMenuItem).Send(sel_separatorItem))
 
 	// Hide <AppName>
 	appMenu.Send(sel_addItemWithTitle_action_keyEquivalent,
@@ -251,7 +251,7 @@ func createMenuBar() {
 		sel_unhideAllApplications,
 		nsStr(""))
 
-	appMenu.Send(sel_addItem, objc.ID(classNSMenuItem).Send(sel_separatorItem))
+	appMenu.Send(sel_addItem, objc.ID(class_NSMenuItem).Send(sel_separatorItem))
 
 	// Quit <AppName>
 	appMenu.Send(sel_addItemWithTitle_action_keyEquivalent,
@@ -263,7 +263,7 @@ func createMenuBar() {
 	windowMenuItem := menubar.Send(sel_addItemWithTitle_action_keyEquivalent, nsStr(""), objc.SEL(0), nsStr(""))
 	menubar.Send(sel_release)
 
-	windowMenu := objc.ID(classNSMenu).Send(objc.RegisterName("alloc")).Send(
+	windowMenu := objc.ID(class_NSMenu).Send(objc.RegisterName("alloc")).Send(
 		sel_initWithTitle, nsStr("Window"))
 	nsApp.Send(sel_setWindowsMenu, windowMenu)
 	windowMenuItem.Send(sel_setSubmenu, windowMenu)
@@ -280,7 +280,7 @@ func createMenuBar() {
 		objc.RegisterName("performZoom:"),
 		nsStr(""))
 
-	windowMenu.Send(sel_addItem, objc.ID(classNSMenuItem).Send(sel_separatorItem))
+	windowMenu.Send(sel_addItem, objc.ID(class_NSMenuItem).Send(sel_separatorItem))
 
 	// Bring All to Front
 	windowMenu.Send(sel_addItemWithTitle_action_keyEquivalent,
@@ -289,7 +289,7 @@ func createMenuBar() {
 		nsStr(""))
 
 	// Enter Full Screen
-	windowMenu.Send(sel_addItem, objc.ID(classNSMenuItem).Send(sel_separatorItem))
+	windowMenu.Send(sel_addItem, objc.ID(class_NSMenuItem).Send(sel_separatorItem))
 	fullScreenItem := windowMenu.Send(sel_addItemWithTitle_action_keyEquivalent,
 		nsStr("Enter Full Screen"),
 		sel_toggleFullScreen,
@@ -407,8 +407,8 @@ func initializeTIS() error {
 
 // GLFWHelper and GLFWApplicationDelegate class references.
 var (
-	classGLFWHelper              objc.Class
-	classGLFWApplicationDelegate objc.Class
+	class_GLFWHelper              objc.Class
+	class_GLFWApplicationDelegate objc.Class
 )
 
 // platformInit performs the full macOS platform initialization.
@@ -435,7 +435,7 @@ func platformInit() error {
 	if err != nil {
 		return fmt.Errorf("glfw: failed to register GLFWHelper class: %w", err)
 	}
-	classGLFWHelper = helper
+	class_GLFWHelper = helper
 
 	// Register GLFWWindow, GLFWWindowDelegate, and GLFWContentView classes.
 	if err := registerGLFWClasses(); err != nil {
@@ -475,7 +475,7 @@ func platformInit() error {
 				Fn: func(_ objc.ID, _ objc.SEL, _ objc.ID) {
 					// In the C original, this first tries to load MainMenu.nib from
 					// the bundle, and only falls back to createMenuBar() if no nib exists.
-					bundle := objc.ID(classNSBundle).Send(sel_mainBundle)
+					bundle := objc.ID(class_NSBundle).Send(sel_mainBundle)
 					mainMenuNib := cocoa.NSString_alloc().InitWithUTF8String("MainMenu")
 					nibType := cocoa.NSString_alloc().InitWithUTF8String("nib")
 					nibPath := bundle.Send(objc.RegisterName("pathForResource:ofType:"), mainMenuNib.ID, nibType.ID)
@@ -483,7 +483,7 @@ func platformInit() error {
 					if nibPath != 0 {
 						bundle.Send(objc.RegisterName("loadNibNamed:owner:topLevelObjects:"),
 							mainMenuNib.ID,
-							objc.ID(classNSApplication).Send(sel_sharedApplication),
+							objc.ID(class_NSApplication).Send(sel_sharedApplication),
 							uintptr(unsafe.Pointer(&_glfw.platformWindow.nibObjects)))
 					} else {
 						createMenuBar()
@@ -494,7 +494,7 @@ func platformInit() error {
 			{
 				Cmd: sel_applicationDidFinishLaunching,
 				Fn: func(_ objc.ID, _ objc.SEL, _ objc.ID) {
-					nsApp := objc.ID(classNSApplication).Send(sel_sharedApplication)
+					nsApp := objc.ID(class_NSApplication).Send(sel_sharedApplication)
 					postEmptyEvent()
 					// In case we are unbundled, make us a proper UI application.
 					// The C code gates this on _glfw.hints.init.ns.menubar which
@@ -517,21 +517,21 @@ func platformInit() error {
 	if err != nil {
 		return fmt.Errorf("glfw: failed to register GLFWApplicationDelegate class: %w", err)
 	}
-	classGLFWApplicationDelegate = delegate
+	class_GLFWApplicationDelegate = delegate
 
 	// Create the shared NSApplication instance.
-	nsApp := objc.ID(classNSApplication).Send(sel_sharedApplication)
+	nsApp := objc.ID(class_NSApplication).Send(sel_sharedApplication)
 
 	// Create and set the application delegate.
-	_glfw.platformWindow.delegate = objc.ID(classGLFWApplicationDelegate).Send(
+	_glfw.platformWindow.delegate = objc.ID(class_GLFWApplicationDelegate).Send(
 		objc.RegisterName("alloc")).Send(objc.RegisterName("init"))
 	nsApp.Send(objc.RegisterName("setDelegate:"), _glfw.platformWindow.delegate)
 
 	// Create GLFWHelper instance and register for keyboard input source change notifications.
-	_glfw.platformWindow.helper = objc.ID(classGLFWHelper).Send(
+	_glfw.platformWindow.helper = objc.ID(class_GLFWHelper).Send(
 		objc.RegisterName("alloc")).Send(objc.RegisterName("init"))
 
-	notificationCenter := objc.ID(classNSNotificationCenter).Send(sel_defaultCenter)
+	notificationCenter := objc.ID(class_NSNotificationCenter).Send(sel_defaultCenter)
 	nsTextInputContextKeyboardSelectionDidChangeNotification := cocoa.NSString_alloc().InitWithUTF8String(
 		"NSTextInputContextKeyboardSelectionDidChangeNotification")
 	notificationCenter.Send(sel_addObserver_selector_name_object,
@@ -545,12 +545,12 @@ func platformInit() error {
 	// key-up events when the menu bar is active.
 	keyUpBlock := objc.NewBlock(func(_ objc.Block, event objc.ID) objc.ID {
 		if uintptr(event.Send(sel_modifierFlags))&NSEventModifierFlagCommand != 0 {
-			app := objc.ID(classNSApplication).Send(sel_sharedApplication)
+			app := objc.ID(class_NSApplication).Send(sel_sharedApplication)
 			app.Send(sel_keyWindow).Send(sel_sendEvent, event)
 		}
 		return event
 	})
-	_glfw.platformWindow.keyUpMonitor = objc.ID(classNSEvent).Send(
+	_glfw.platformWindow.keyUpMonitor = objc.ID(class_NSEvent).Send(
 		sel_addLocalMonitorForEventsMatchingMask_handler,
 		_NSEventMaskKeyUp,
 		keyUpBlock)
@@ -589,7 +589,7 @@ func platformInit() error {
 	// Run the application to process initial events, but only if it hasn't
 	// already finished launching. The delegate's applicationDidFinishLaunching:
 	// calls stop: and posts an empty event, so this returns quickly.
-	currentApp := objc.ID(classNSRunningApplication).Send(objc.RegisterName("currentApplication"))
+	currentApp := objc.ID(class_NSRunningApplication).Send(objc.RegisterName("currentApplication"))
 	if !objc.Send[bool](currentApp, objc.RegisterName("isFinishedLaunching")) {
 		nsApp.Send(sel_run)
 	}
@@ -604,9 +604,9 @@ func platformInit() error {
 
 // postEmptyEvent posts a no-op application-defined event to wake the run loop.
 func postEmptyEvent() {
-	nsApp := objc.ID(classNSApplication).Send(sel_sharedApplication)
+	nsApp := objc.ID(class_NSApplication).Send(sel_sharedApplication)
 	// NSApplicationDefined = 15
-	event := objc.Send[objc.ID](objc.ID(classNSEvent), sel_otherEventWithType_location_modifierFlags_timestamp_windowNumber_context_subtype_data1_data2,
+	event := objc.Send[objc.ID](objc.ID(class_NSEvent), sel_otherEventWithType_location_modifierFlags_timestamp_windowNumber_context_subtype_data1_data2,
 		uintptr(15),         // NSApplicationDefined
 		cocoa.CGPoint{0, 0}, // location (NSPoint)
 		uintptr(0),          // modifierFlags
@@ -640,7 +640,7 @@ func platformTerminate() error {
 
 	// Release the application delegate.
 	if _glfw.platformWindow.delegate != 0 {
-		nsApp := objc.ID(classNSApplication).Send(sel_sharedApplication)
+		nsApp := objc.ID(class_NSApplication).Send(sel_sharedApplication)
 		nsApp.Send(objc.RegisterName("setDelegate:"), 0)
 		_glfw.platformWindow.delegate.Send(objc.RegisterName("release"))
 		_glfw.platformWindow.delegate = 0
@@ -656,7 +656,7 @@ func platformTerminate() error {
 
 	// Remove the global keyUp monitor.
 	if _glfw.platformWindow.keyUpMonitor != 0 {
-		objc.ID(classNSEvent).Send(objc.RegisterName("removeMonitor:"), _glfw.platformWindow.keyUpMonitor)
+		objc.ID(class_NSEvent).Send(objc.RegisterName("removeMonitor:"), _glfw.platformWindow.keyUpMonitor)
 		_glfw.platformWindow.keyUpMonitor = 0
 	}
 
