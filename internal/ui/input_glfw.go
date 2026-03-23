@@ -46,10 +46,16 @@ func (u *UserInterface) registerInputCallbacks() error {
 		if !ok {
 			return
 		}
+		t := u.InputTime()
 		if action == glfw.Press {
-			u.inputState.setKeyPressed(uk, u.InputTime())
+			u.inputState.setKeyPressed(uk, t)
+			// On macOS, modifier keys can appear released prematurely when the text input system
+			// intercepts certain key combinations (e.g. Ctrl+A). The mods parameter on the key event
+			// still correctly reflects which modifiers are physically held. Use it to re-assert
+			// modifier key states that may have been incorrectly released.
+			u.inputState.syncModKeysByMods(mods, t)
 		} else {
-			u.inputState.setKeyReleased(uk, u.InputTime())
+			u.inputState.setKeyReleased(uk, t)
 		}
 	}); err != nil {
 		return err
@@ -202,4 +208,38 @@ func (u *UserInterface) KeyName(key Key) string {
 		name = n
 	})
 	return name
+}
+
+// syncModKeysByMods re-asserts modifier key states based on the mods bitmask
+// from a key event. On macOS, the text input system can intercept modifier+key
+// combinations (e.g. Ctrl+A) and prematurely release the modifier key via
+// flagsChanged. The mods parameter on the key event still correctly reflects
+// which modifiers are physically held, so we use it to restore the state.
+func (i *InputState) syncModKeysByMods(mods glfw.ModifierKey, t InputTime) {
+	type modMapping struct {
+		mod   glfw.ModifierKey
+		left  Key
+		right Key
+	}
+	mappings := [...]modMapping{
+		{glfw.ModControl, KeyControlLeft, KeyControlRight},
+		{glfw.ModShift, KeyShiftLeft, KeyShiftRight},
+		{glfw.ModAlt, KeyAltLeft, KeyAltRight},
+		{glfw.ModSuper, KeyMetaLeft, KeyMetaRight},
+	}
+	for _, m := range mappings {
+		if mods&m.mod == 0 {
+			continue
+		}
+		// The mod flag is set, so at least one of left/right should be pressed.
+		// Re-press whichever was most recently pressed.
+		// If neither was ever pressed, default to the left variant.
+		lp := i.KeyPressedTimes[m.left]
+		rp := i.KeyPressedTimes[m.right]
+		if lp >= rp {
+			i.setKeyPressed(m.left, t)
+		} else {
+			i.setKeyPressed(m.right, t)
+		}
+	}
 }
