@@ -85,10 +85,10 @@ func (g *Game) needsToMoveSnake() bool {
 }
 
 func (g *Game) reset() {
-	g.apple.X = 3 * gridSize
-	g.apple.Y = 3 * gridSize
+	g.apple.X = xGridCountInScreen / 3
+	g.apple.Y = yGridCountInScreen / 3
 	g.moveTime = 4
-	g.snakeBody = g.snakeBody[:1]
+	g.snakeBody = make([]Position, 1)
 	g.snakeBody[0].X = xGridCountInScreen / 2
 	g.snakeBody[0].Y = yGridCountInScreen / 2
 	g.score = 0
@@ -185,13 +185,8 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 }
 
 func newGame() *Game {
-	g := &Game{
-		apple:     Position{X: 3 * gridSize, Y: 3 * gridSize},
-		moveTime:  4,
-		snakeBody: make([]Position, 1),
-	}
-	g.snakeBody[0].X = xGridCountInScreen / 2
-	g.snakeBody[0].Y = yGridCountInScreen / 2
+	g := &Game{}
+	g.reset()
 	return g
 }
 
