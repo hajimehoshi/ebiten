@@ -24,4 +24,7 @@ var (
 
 	//go:embed pressstart2p.ttf
 	PressStart2P_ttf []byte
+
+	//go:embed TerminusTTF-4.49.3.ttf
+	TerminusTTF_ttf []byte
 )

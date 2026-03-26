@@ -333,6 +333,25 @@ func (g *GoTextFace) appendGlyphsForLine(glyphs []Glyph, line string, indexOffse
 }
 
 func (g *GoTextFace) glyphImage(glyph glyph, origin fixed.Point26_6) (*ebiten.Image, int, int) {
+	if glyph.bitmap != nil {
+		// Bitmap glyphs are pixel-aligned; no subpixel offset is needed.
+		origin.X &^= ((1 << 6) - 1)
+		origin.Y &^= ((1 << 6) - 1)
+
+		key := goTextGlyphImageCacheKey{
+			gid:        glyph.shapingGlyph.GlyphID,
+			variations: g.ensureVariationsString(),
+		}
+		img := g.Source.getOrCreateGlyphImage(g, key, func() (*ebiten.Image, bool) {
+			return ebiten.NewImageFromImage(glyph.bitmap), true
+		})
+
+		// Position using the shaping glyph's bearing values.
+		imgX := (origin.X + glyph.shapingGlyph.XBearing).Round()
+		imgY := (origin.Y - glyph.shapingGlyph.YBearing).Round()
+		return img, imgX, imgY
+	}
+
 	if g.direction().isHorizontal() {
 		origin.X = adjustGranularity(origin.X, g)
 		origin.Y &^= ((1 << 6) - 1)

@@ -33,6 +33,7 @@ import (
 	"golang.org/x/image/math/fixed"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/examples/resources/fonts"
 	t "github.com/hajimehoshi/ebiten/v2/internal/testing"
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
 )
@@ -553,5 +554,108 @@ func TestAppendGlyphsWithInvalidSequence(t *testing.T) {
 				t.Errorf("got: %d, want: %d", got, want)
 			}
 		})
+	}
+}
+
+func TestBitmapFont(t *testing.T) {
+	source, err := text.NewGoTextFaceSource(bytes.NewReader(fonts.TerminusTTF_ttf))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// The font has bitmap strikes at these ppem values.
+	bitmapSizes := []float64{12, 14, 16, 18, 20, 22, 24, 28, 32}
+
+	for _, size := range bitmapSizes {
+		face := &text.GoTextFace{
+			Source: source,
+			Size:   size,
+		}
+
+		const str = "Hg"
+
+		imgW := int(size) * len(str) * 2
+		imgH := int(size) * 3
+		dst := ebiten.NewImage(imgW, imgH)
+		defer dst.Deallocate()
+
+		op := &text.DrawOptions{}
+		op.GeoM.Translate(0, size)
+		op.ColorScale.ScaleWithColor(color.White)
+		text.Draw(dst, str, face, op)
+
+		// Verify that some non-transparent pixels exist.
+		hasPixel := false
+		for j := range imgH {
+			for i := range imgW {
+				if _, _, _, a := dst.At(i, j).RGBA(); a > 0 {
+					hasPixel = true
+				}
+			}
+		}
+		if !hasPixel {
+			t.Errorf("size %v: no pixels were rendered", size)
+			continue
+		}
+
+		// Bitmap glyphs should have no anti-aliasing:
+		// every pixel should be either fully opaque or fully transparent.
+		for j := range imgH {
+			for i := range imgW {
+				if _, _, _, a := dst.At(i, j).RGBA(); a != 0 && a != 0xffff {
+					t.Errorf("size %v: pixel at (%d, %d) has alpha %d; want 0 or 0xffff (bitmap glyph should not be anti-aliased)", size, i, j, a)
+				}
+			}
+		}
+	}
+}
+
+func TestBitmapFontBaseline(t *testing.T) {
+	source, err := text.NewGoTextFaceSource(bytes.NewReader(fonts.TerminusTTF_ttf))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	const size = 16
+	face := &text.GoTextFace{
+		Source: source,
+		Size:   size,
+	}
+
+	// Render each character individually and check that the bottommost
+	// row of pixels is at the same Y position (consistent baseline).
+	chars := []rune{'T', 'h', 'e', 'q', 'u', 'i', 'c', 'k'}
+	var bottoms []int
+	for _, ch := range chars {
+		imgW := size * 2
+		imgH := size * 3
+		dst := ebiten.NewImage(imgW, imgH)
+		defer dst.Deallocate()
+
+		op := &text.DrawOptions{}
+		op.GeoM.Translate(0, size)
+		op.ColorScale.ScaleWithColor(color.White)
+		text.Draw(dst, string(ch), face, op)
+
+		bottom := -1
+		for j := range imgH {
+			for i := range imgW {
+				if _, _, _, a := dst.At(i, j).RGBA(); a > 0 && j > bottom {
+					bottom = j
+				}
+			}
+		}
+		bottoms = append(bottoms, bottom)
+	}
+
+	// Characters without descenders (T, h, e, u, i, c, k) should share the same bottom Y.
+	// 'q' has a descender so skip index 3.
+	baselineChars := []int{0, 1, 2, 4, 5, 6, 7}
+	ref := bottoms[baselineChars[0]]
+	for _, idx := range baselineChars[1:] {
+		if bottoms[idx] != ref {
+			t.Errorf("baseline mismatch: %c bottom=%d, %c bottom=%d",
+				chars[baselineChars[0]], ref, chars[idx], bottoms[idx])
+		}
 	}
 }
