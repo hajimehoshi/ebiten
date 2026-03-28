@@ -431,6 +431,18 @@ func decodeBitmapGlyph(data font.GlyphBitmap) image.Image {
 			}
 		}
 		return img
+	case font.BlackAndWhiteByteAligned:
+		img := image.NewAlpha(image.Rect(0, 0, data.Width, data.Height))
+		rowBytes := (data.Width + 7) / 8
+		for j := range data.Height {
+			for i := range data.Width {
+				byteIdx := j*rowBytes + i/8
+				if data.Data[byteIdx]&(1<<(7-i%8)) != 0 {
+					img.Pix[j*img.Stride+i] = 0xff
+				}
+			}
+		}
+		return img
 	case font.PNG:
 		img, err := png.Decode(bytes.NewReader(data.Data))
 		if err != nil {
