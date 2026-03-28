@@ -30,7 +30,7 @@ import (
 
 // Game defines necessary functions for a game.
 type Game interface {
-	// Update updates a game by one tick. The given argument represents a screen image.
+	// Update updates a game by one tick.
 	//
 	// Update updates only the game logic and Draw draws the screen.
 	//
