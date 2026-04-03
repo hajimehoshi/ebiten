@@ -290,6 +290,8 @@ func (f *Field) cleanUp() {
 		f.end = nil
 		f.state = textInputState{}
 	}
+
+	theTextInput.session.clearQueue()
 }
 
 // Selection returns the current selection range in bytes.

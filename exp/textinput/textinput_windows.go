@@ -27,9 +27,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
-type textInput struct {
-	session session
-
+type textInputImpl struct {
 	origWndProc     uintptr
 	wndProcCallback uintptr
 	window          windows.HWND
@@ -41,8 +39,6 @@ type textInput struct {
 
 	err error
 }
-
-var theTextInput textInput
 
 func (t *textInput) Start(bounds image.Rectangle) (<-chan textInputState, func()) {
 	if microsoftgdk.IsXbox() {

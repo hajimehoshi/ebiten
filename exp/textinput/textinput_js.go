@@ -34,13 +34,9 @@ func init() {
 	theTextInput.init()
 }
 
-type textInput struct {
+type textInputImpl struct {
 	textareaElement js.Value
-
-	session session
 }
-
-var theTextInput textInput
 
 func (t *textInput) init() {
 	t.textareaElement = document.Call("createElement", "textarea")

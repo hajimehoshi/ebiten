@@ -25,12 +25,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
-type textInput struct {
-	// session must be accessed from the main thread.
-	session session
-}
-
-var theTextInput textInput
+type textInputImpl struct{}
 
 func (t *textInput) Start(bounds image.Rectangle) (<-chan textInputState, func()) {
 	var ch <-chan textInputState
