@@ -184,14 +184,6 @@ var (
 	windowPositionSetExplicitly atomic.Bool
 )
 
-func initializeWindowPositionIfNeeded(width, height int) {
-	if !windowPositionSetExplicitly.Load() {
-		sw, sh := ui.Get().Monitor().Size()
-		x, y := ui.InitialWindowPosition(sw, sh, width, height)
-		ui.Get().Window().SetPosition(x, y)
-	}
-}
-
 // WindowSize returns the window size on desktops.
 // WindowSize returns (0, 0) on other environments.
 //

@@ -118,6 +118,7 @@ type userInterfaceImpl struct {
 	cachedCurrentMonitor     *Monitor
 	cachedCurrentMonitorTime int64
 
+	initOnce              sync.Once
 	darwinInitOnce        sync.Once
 	showWindowOnce        sync.Once
 	bufferOnceSwappedOnce sync.Once
@@ -160,20 +161,6 @@ func (u *UserInterface) init() error {
 	u.userInterfaceImpl.initWindowSizeInDIP.Store(image.Pt(640, 480))
 
 	u.iwindow.ui = u
-
-	if err := u.initializePlatform(); err != nil {
-		return err
-	}
-	if err := u.initializeGLFW(); err != nil {
-		return err
-	}
-	if _, err := glfw.SetMonitorCallback(func(monitor *glfw.Monitor, event glfw.PeripheralEvent) {
-		if err := theMonitors.update(); err != nil {
-			u.setError(err)
-		}
-	}); err != nil {
-		return err
-	}
 
 	return nil
 }
@@ -265,6 +252,30 @@ func (u *UserInterface) initializeGLFW() error {
 	return nil
 }
 
+// ensureGLFWInit lazily initializes GLFW and related state on the first call.
+// This is safe to call multiple times; initialization happens only once.
+func (u *UserInterface) ensureGLFWInit() error {
+	u.initOnce.Do(func() {
+		if err := u.initializePlatform(); err != nil {
+			u.setError(err)
+			return
+		}
+		if err := u.initializeGLFW(); err != nil {
+			u.setError(err)
+			return
+		}
+		if _, err := glfw.SetMonitorCallback(func(monitor *glfw.Monitor, event glfw.PeripheralEvent) {
+			if err := theMonitors.update(); err != nil {
+				u.setError(err)
+			}
+		}); err != nil {
+			u.setError(err)
+			return
+		}
+	})
+	return u.error()
+}
+
 func (u *UserInterface) setInitMonitor(m *Monitor) {
 	u.initMonitor.Store(m)
 }
@@ -275,12 +286,20 @@ func (u *UserInterface) getInitMonitor() *Monitor {
 
 // AppendMonitors appends the current monitors to the passed in mons slice and returns it.
 func (u *UserInterface) AppendMonitors(monitors []*Monitor) []*Monitor {
+	// Ensure GLFW is initialized so that the monitor list is available.
+	if err := u.ensureGLFWInit(); err != nil {
+		return monitors
+	}
 	return theMonitors.append(monitors)
 }
 
 // Monitor returns the window's current monitor. Returns nil if there is no current monitor yet.
 func (u *UserInterface) Monitor() *Monitor {
 	if !u.isRunning() {
+		// Ensure GLFW is initialized so that the init monitor is available.
+		if err := u.ensureGLFWInit(); err != nil {
+			return nil
+		}
 		return u.getInitMonitor()
 	}
 	var monitor *Monitor
@@ -989,6 +1008,20 @@ event:
 }
 
 func (u *UserInterface) initOnMainThread(options *RunOptions) error {
+	if err := u.ensureGLFWInit(); err != nil {
+		return err
+	}
+
+	// Center the window on the monitor if the position was not explicitly set.
+	if !options.WindowPositionSet {
+		m := u.getInitMonitor()
+		if m != nil {
+			sw, sh := m.sizeInDIP()
+			x, y := InitialWindowPosition(int(sw), int(sh), options.InitWindowWidthInDIP, options.InitWindowHeightInDIP)
+			u.Window().SetPosition(x, y)
+		}
+	}
+
 	u.setApplePressAndHoldEnabled(options.ApplePressAndHoldEnabled)
 
 	if err := glfw.WindowHint(glfw.AutoIconify, glfw.False); err != nil {

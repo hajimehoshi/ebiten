@@ -181,6 +181,9 @@ type RunOptions struct {
 	ApplePressAndHoldEnabled bool
 	X11ClassName             string
 	X11InstanceName          string
+	InitWindowWidthInDIP     int
+	InitWindowHeightInDIP    int
+	WindowPositionSet        bool
 }
 
 // InitialWindowPosition returns the position for centering the given second width/height pair within the first width/height pair.

@@ -350,9 +350,11 @@ type RunGameOptions struct {
 func RunGameWithOptions(game Game, options *RunGameOptions) error {
 	defer isRunGameEnded_.Store(true)
 
-	initializeWindowPositionIfNeeded(WindowSize())
-
 	op := toUIRunOptions(options)
+	ww, wh := WindowSize()
+	op.InitWindowWidthInDIP = ww
+	op.InitWindowHeightInDIP = wh
+	op.WindowPositionSet = windowPositionSetExplicitly.Load()
 
 	// This is necessary to change the result of IsScreenTransparent.
 	screenTransparent.Store(op.ScreenTransparent)
