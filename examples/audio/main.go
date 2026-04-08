@@ -25,6 +25,7 @@ import (
 	_ "image/png"
 	"io"
 	"log"
+	"math"
 	"time"
 
 	"github.com/ebitengine/debugui"
@@ -79,6 +80,52 @@ func init() {
 	alertButtonImage = ebiten.NewImageFromImage(img)
 }
 
+type volumeMode int
+
+const (
+	volumeModeLinear volumeMode = iota
+	volumeModeSquared
+	volumeModeCubed
+	volumeModeDecibel
+)
+
+func (v volumeMode) String() string {
+	switch v {
+	case volumeModeLinear:
+		return "Linear"
+	case volumeModeSquared:
+		return "Squared"
+	case volumeModeCubed:
+		return "Cubed"
+	case volumeModeDecibel:
+		return "Decibel"
+	default:
+		panic("not reached")
+	}
+}
+
+// applyVolumeMode converts a linear slider value (0.0-1.0) to a volume value
+// based on the selected volume mode.
+func applyVolumeMode(linear float64, mode volumeMode) float64 {
+	switch mode {
+	case volumeModeLinear:
+		return linear
+	case volumeModeSquared:
+		return linear * linear
+	case volumeModeCubed:
+		return linear * linear * linear
+	case volumeModeDecibel:
+		if linear == 0 {
+			return 0
+		}
+		// Map linear 0..1 to -60dB..0dB, then convert to amplitude.
+		db := (linear - 1) * 60
+		return math.Pow(10, db/20)
+	default:
+		panic("not reached")
+	}
+}
+
 type musicType int
 
 const (
@@ -110,6 +157,7 @@ type Player struct {
 	seBytes      []byte
 	seCh         chan []byte
 	volume128    int
+	volumeMode   volumeMode
 	musicType    musicType
 
 	playButtonPosition  image.Point
@@ -376,14 +424,22 @@ func (g *Game) Update() error {
 
 	if _, err := g.debugUI.Update(func(ctx *debugui.Context) error {
 		var uiErr error
-		ctx.Window("Audio", image.Rect(10, 10, 330, 210), func(layout debugui.ContainerLayout) {
+		ctx.Window("Audio", image.Rect(10, 10, 330, 240), func(layout debugui.ContainerLayout) {
 			ctx.Header("Settings", true, func() {
 				ctx.SetGridLayout([]int{-1, -1}, nil)
 
 				if g.musicPlayer != nil {
 					ctx.Text("Volume")
 					ctx.Slider(&g.musicPlayer.volume128, 0, 128, 1).On(func() {
-						g.musicPlayer.audioPlayer.SetVolume(float64(g.musicPlayer.volume128) / 128)
+						v := applyVolumeMode(float64(g.musicPlayer.volume128)/128, g.musicPlayer.volumeMode)
+						g.musicPlayer.audioPlayer.SetVolume(v)
+					})
+
+					ctx.Text("Volume Mode")
+					ctx.Button(fmt.Sprintf("Current: %s", g.musicPlayer.volumeMode)).On(func() {
+						g.musicPlayer.volumeMode = (g.musicPlayer.volumeMode + 1) % 4
+						v := applyVolumeMode(float64(g.musicPlayer.volume128)/128, g.musicPlayer.volumeMode)
+						g.musicPlayer.audioPlayer.SetVolume(v)
 					})
 				}
 
