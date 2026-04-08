@@ -86,6 +86,7 @@ const (
 	volumeModeLinear volumeMode = iota
 	volumeModeSquared
 	volumeModeCubed
+	volumeMode166
 	volumeModeDecibel
 )
 
@@ -97,6 +98,8 @@ func (v volumeMode) String() string {
 		return "Squared"
 	case volumeModeCubed:
 		return "Cubed"
+	case volumeMode166:
+		return "x^1.66"
 	case volumeModeDecibel:
 		return "Decibel"
 	default:
@@ -114,6 +117,8 @@ func applyVolumeMode(linear float64, mode volumeMode) float64 {
 		return linear * linear
 	case volumeModeCubed:
 		return linear * linear * linear
+	case volumeMode166:
+		return math.Pow(linear, 1.66)
 	case volumeModeDecibel:
 		if linear == 0 {
 			return 0
@@ -437,7 +442,7 @@ func (g *Game) Update() error {
 
 					ctx.Text("Volume Mode")
 					ctx.Button(fmt.Sprintf("Current: %s", g.musicPlayer.volumeMode)).On(func() {
-						g.musicPlayer.volumeMode = (g.musicPlayer.volumeMode + 1) % 4
+						g.musicPlayer.volumeMode = (g.musicPlayer.volumeMode + 1) % 5
 						v := applyVolumeMode(float64(g.musicPlayer.volume128)/128, g.musicPlayer.volumeMode)
 						g.musicPlayer.audioPlayer.SetVolume(v)
 					})
