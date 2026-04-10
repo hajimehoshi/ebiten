@@ -219,52 +219,6 @@ func (v NSView) SetWantsLayer(wantsLayer bool) {
 	v.Send(selSetWantsLayer, wantsLayer)
 }
 
-// NSInvocation is being used to call functions that can't be called directly with purego.SyscallN.
-// See the downsides of that function for what it cannot do.
-type NSInvocation struct {
-	objc.ID
-}
-
-func NSInvocation_invocationWithMethodSignature(sig NSMethodSignature) NSInvocation {
-	return NSInvocation{objc.ID(classNSInvocation).Send(selInvocationWithMethodSignature, sig.ID)}
-}
-
-func (i NSInvocation) SetSelector(cmd objc.SEL) {
-	i.Send(selSetSelector, cmd)
-}
-
-func (i NSInvocation) SetTarget(target objc.ID) {
-	i.Send(selSetTarget, target)
-}
-
-func (i NSInvocation) SetArgumentAtIndex(arg unsafe.Pointer, idx int) {
-	i.Send(selSetArgumentAtIndex, arg, idx)
-}
-
-func (i NSInvocation) GetReturnValue(ret unsafe.Pointer) {
-	i.Send(selGetReturnValue, ret)
-}
-
-func (i NSInvocation) Invoke() {
-	i.Send(selInvoke)
-}
-
-func (i NSInvocation) InvokeWithTarget(target objc.ID) {
-	i.Send(selInvokeWithTarget, target)
-}
-
-type NSMethodSignature struct {
-	objc.ID
-}
-
-// NSMethodSignature_signatureWithObjCTypes takes a string that represents the type signature of a method.
-// It follows the encoding specified in the Apple Docs.
-//
-// [Apple Docs]: https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/ObjCRuntimeGuide/Articles/ocrtTypeEncodings.html#//apple_ref/doc/uid/TP40008048-CH100
-func NSMethodSignature_signatureWithObjCTypes(types string) NSMethodSignature {
-	return NSMethodSignature{objc.ID(classNSMethodSignature).Send(selSignatureWithObjCTypes, types)}
-}
-
 type NSAutoreleasePool struct {
 	objc.ID
 }
