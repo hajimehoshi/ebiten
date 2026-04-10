@@ -19,6 +19,8 @@ import (
 	"io"
 	"strings"
 	"sync"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/hook"
 )
 
 var (
@@ -79,6 +81,22 @@ func currentState() (string, int, int, textInputState, bool) {
 	return b.String(), f.selectionStartInBytes, f.selectionEndInBytes, f.state, true
 }
 
+func init() {
+	hook.AppendHookOnBeforeUpdate(func() error {
+		theFocusedFieldM.Lock()
+		f := theFocusedField
+		theFocusedFieldM.Unlock()
+
+		if f == nil {
+			return nil
+		}
+
+		handled, err := f.handleInput()
+		f.handled = handled
+		return err
+	})
+}
+
 // Field is a region accepting text inputting with IME.
 //
 // Field is not focused by default. You have to call Focus when you start text inputting.
@@ -91,10 +109,30 @@ type Field struct {
 	selectionStartInBytes int
 	selectionEndInBytes   int
 
+	bounds  image.Rectangle
+	handled bool
+
 	ch    <-chan textInputState
 	end   func()
 	state textInputState
 	err   error
+}
+
+// SetBounds sets the bounds used for IME window positioning.
+// The bounds indicate the character position (e.g., cursor bounds) where the IME window should appear.
+// The bounds width doesn't matter very much as long as it is greater than 0.
+// The bounds height should be the text height like a cursor height.
+//
+// Call SetBounds when the bounds change, such as when the cursor position updates.
+// Unlike the deprecated [Field.HandleInputWithBounds], SetBounds does not need to be called every tick.
+func (f *Field) SetBounds(bounds image.Rectangle) {
+	f.bounds = bounds
+}
+
+// Handled reports whether the text inputting was handled in the current tick.
+// If Handled returns true, a Field user should not handle further input events.
+func (f *Field) Handled() bool {
+	return f.handled
 }
 
 // HandleInput updates the field state.
@@ -106,7 +144,7 @@ type Field struct {
 //
 // HandleInput returns an error when handling input causes an error.
 //
-// Deprecated: use HandleInputWithBounds instead.
+// Deprecated: use [Field.SetBounds] and [Field.Handled] instead.
 func (f *Field) HandleInput(x, y int) (handled bool, err error) {
 	return f.HandleInputWithBounds(image.Rect(x, y, x+1, y+1))
 }
@@ -121,7 +159,19 @@ func (f *Field) HandleInput(x, y int) (handled bool, err error) {
 // If HandleInputWithBounds returns true, a Field user should not handle further input events.
 //
 // HandleInputWithBounds returns an error when handling input causes an error.
+//
+// Deprecated: use [Field.SetBounds] and [Field.Handled] instead.
 func (f *Field) HandleInputWithBounds(bounds image.Rectangle) (handled bool, err error) {
+	f.bounds = bounds
+	f.handled = false
+	handled, err = f.handleInput()
+	if handled {
+		f.handled = true
+	}
+	return
+}
+
+func (f *Field) handleInput() (handled bool, err error) {
 	if f.err != nil {
 		return false, f.err
 	}
@@ -135,7 +185,7 @@ func (f *Field) HandleInputWithBounds(bounds image.Rectangle) (handled bool, err
 		if f.ch == nil {
 			// TODO: On iOS Safari, Start doesn't work as expected (#2898).
 			// Handle a click event and focus the textarea there.
-			f.ch, f.end = start(bounds)
+			f.ch, f.end = start(f.bounds)
 			// Start returns nil for non-supported envrionments, or when unable to start text inputting for some reasons.
 			if f.ch == nil {
 				return handled, nil
@@ -240,6 +290,8 @@ func (f *Field) cleanUp() {
 		f.end = nil
 		f.state = textInputState{}
 	}
+
+	theTextInput.session.clearQueue()
 }
 
 // Selection returns the current selection range in bytes.
@@ -279,6 +331,11 @@ func (f *Field) TextForRendering() string {
 	var b strings.Builder
 	_ = f.WriteTextForRendering(&b)
 	return b.String()
+}
+
+// HasText reports whether the field has any text.
+func (f *Field) HasText() bool {
+	return f.pieceTable.hasText()
 }
 
 // TextLengthInBytes returns the length of the current text in bytes.

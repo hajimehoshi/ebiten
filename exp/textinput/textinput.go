@@ -117,6 +117,13 @@ func convertByteCountToUTF16Count(text string, c int) int {
 	return -1
 }
 
+type textInput struct {
+	textInputImpl
+	session session
+}
+
+var theTextInput textInput
+
 type session struct {
 	ch   chan textInputState
 	done chan struct{}
@@ -182,6 +189,15 @@ func (s *session) doSend(state textInputState) {
 			}
 		}
 	}
+}
+
+// clearQueue clears queued states.
+// This should be called when the text field is unfocused
+// so that the queued states are not flushed when the next session starts (#3429).
+func (s *session) clearQueue() {
+	s.m.Lock()
+	defer s.m.Unlock()
+	s.queuedStates = s.queuedStates[:0]
 }
 
 func (s *session) flushStateQueue() {

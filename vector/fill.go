@@ -607,9 +607,14 @@ func (f *fillPathsState) fillPaths(dst *ebiten.Image) {
 			}
 		}
 		dst2 := dst
+		var recycle bool
 		if dst.Bounds() != f.bounds[i] {
-			dst2 = dst.SubImage(f.bounds[i]).(*ebiten.Image)
+			dst2 = dst.RecyclableSubImage(f.bounds[i])
+			recycle = true
 		}
 		dst2.DrawTrianglesShader32(vs, is, shader, op)
+		if recycle {
+			dst2.Recycle()
+		}
 	}
 }

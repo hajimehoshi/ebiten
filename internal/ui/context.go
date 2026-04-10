@@ -137,7 +137,7 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 	}
 
 	// Update the input state after the layout is updated as a cursor position is affected by the layout.
-	if err := ui.updateInputStateForFrame(); err != nil {
+	if err := ui.updateInputStateForFrame(deviceScaleFactor); err != nil {
 		return false, err
 	}
 

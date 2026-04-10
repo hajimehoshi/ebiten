@@ -155,12 +155,10 @@ func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.Sh
 	c.srcs = srcs
 	c.vertices = q.lastVertices(len(vertices))
 	c.blend = blend
-	c.dstRegions = []graphicsdriver.DstRegion{
-		{
-			Region:     dstRegion,
-			IndexCount: len(indices),
-		},
-	}
+	c.dstRegions = append(c.dstRegions[:0], graphicsdriver.DstRegion{
+		Region:     dstRegion,
+		IndexCount: len(indices),
+	})
 	c.shader = shader
 	c.uniforms = uniforms
 	c.firstCaller = ""

@@ -20,7 +20,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
 )
 
-func (u *UserInterface) updateInputStateForFrame() error {
+func (u *UserInterface) updateInputStateForFrame(deviceScaleFactor float64) error {
 	var err error
 	u.mainThread.Call(func() {
 		err = u.updateInputStateForFrameImpl()

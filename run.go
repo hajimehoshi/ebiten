@@ -30,7 +30,7 @@ import (
 
 // Game defines necessary functions for a game.
 type Game interface {
-	// Update updates a game by one tick. The given argument represents a screen image.
+	// Update updates a game by one tick.
 	//
 	// Update updates only the game logic and Draw draws the screen.
 	//
@@ -350,9 +350,11 @@ type RunGameOptions struct {
 func RunGameWithOptions(game Game, options *RunGameOptions) error {
 	defer isRunGameEnded_.Store(true)
 
-	initializeWindowPositionIfNeeded(WindowSize())
-
 	op := toUIRunOptions(options)
+	ww, wh := WindowSize()
+	op.InitWindowWidthInDIP = ww
+	op.InitWindowHeightInDIP = wh
+	op.WindowPositionSet = windowPositionSetExplicitly.Load()
 
 	// This is necessary to change the result of IsScreenTransparent.
 	screenTransparent.Store(op.ScreenTransparent)

@@ -52,6 +52,10 @@ func runImageImportCheck(pass *analysis.Pass) (any, error) {
 		return imageImportCheckResult{}, nil
 	}
 
+	if pkgPath == "github.com/hajimehoshi/ebiten/v2/text/v2" {
+		return imageImportCheckResult{}, nil
+	}
+
 	// TODO: Remove this exception after v3 is released (#2336).
 	if pkgPath == "github.com/hajimehoshi/ebiten/v2/ebitenutil" {
 		return imageImportCheckResult{}, nil

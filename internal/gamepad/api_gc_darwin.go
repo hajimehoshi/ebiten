@@ -102,54 +102,54 @@ type controllerState struct {
 
 // ObjC classes (initialized in init after loading GameController framework).
 var (
-	classGCController      objc.Class
-	classNSNotificationCtr objc.Class
+	class_GCController         objc.Class
+	class_NSNotificationCenter objc.Class
 )
 
 // ObjC selectors for GameController framework.
 var (
-	selControllers             objc.SEL
-	selExtendedGamepad         objc.SEL
-	selMicroGamepad            objc.SEL
-	selProductCategory         objc.SEL
-	selVendorName              objc.SEL
-	selPhysicalInputProfile    objc.SEL
-	selRespondsToSelector      objc.SEL
-	selIsEqualToString         objc.SEL
-	selUTF8String              objc.SEL
-	selLeftThumbstick          objc.SEL
-	selRightThumbstick         objc.SEL
-	selLeftThumbstickButton    objc.SEL
-	selRightThumbstickButton   objc.SEL
-	selButtonA                 objc.SEL
-	selButtonB                 objc.SEL
-	selButtonX                 objc.SEL
-	selButtonY                 objc.SEL
-	selLeftShoulder            objc.SEL
-	selRightShoulder           objc.SEL
-	selButtonOptions           objc.SEL
-	selButtonHome              objc.SEL
-	selButtonMenu              objc.SEL
-	selLeftTrigger             objc.SEL
-	selRightTrigger            objc.SEL
-	selDpad                    objc.SEL
-	selXAxis                   objc.SEL
-	selYAxis                   objc.SEL
-	selValue                   objc.SEL
-	selIsPressed               objc.SEL
-	selUp                      objc.SEL
-	selDown                    objc.SEL
-	selLeft                    objc.SEL
-	selRight                   objc.SEL
-	selButtons                 objc.SEL
-	selObjectForKeyedSubscript objc.SEL
-	selObject                  objc.SEL
-	selDefaultCenter           objc.SEL
-	selAddObserver             objc.SEL
-	selAlloc                   objc.SEL
-	selInitWithUTF8String      objc.SEL
-	selCount                   objc.SEL
-	selObjectAtIndex           objc.SEL
+	sel_controllers                                objc.SEL
+	sel_extendedGamepad                            objc.SEL
+	sel_microGamepad                               objc.SEL
+	sel_productCategory                            objc.SEL
+	sel_vendorName                                 objc.SEL
+	sel_physicalInputProfile                       objc.SEL
+	sel_respondsToSelector                         objc.SEL
+	sel_isEqualToString                            objc.SEL
+	sel_UTF8String                                 objc.SEL
+	sel_leftThumbstick                             objc.SEL
+	sel_rightThumbstick                            objc.SEL
+	sel_leftThumbstickButton                       objc.SEL
+	sel_rightThumbstickButton                      objc.SEL
+	sel_buttonA                                    objc.SEL
+	sel_buttonB                                    objc.SEL
+	sel_buttonX                                    objc.SEL
+	sel_buttonY                                    objc.SEL
+	sel_leftShoulder                               objc.SEL
+	sel_rightShoulder                              objc.SEL
+	sel_buttonOptions                              objc.SEL
+	sel_buttonHome                                 objc.SEL
+	sel_buttonMenu                                 objc.SEL
+	sel_leftTrigger                                objc.SEL
+	sel_rightTrigger                               objc.SEL
+	sel_dpad                                       objc.SEL
+	sel_xAxis                                      objc.SEL
+	sel_yAxis                                      objc.SEL
+	sel_value                                      objc.SEL
+	sel_isPressed                                  objc.SEL
+	sel_up                                         objc.SEL
+	sel_down                                       objc.SEL
+	sel_left                                       objc.SEL
+	sel_right                                      objc.SEL
+	sel_buttons                                    objc.SEL
+	sel_objectForKeyedSubscript                    objc.SEL
+	sel_object                                     objc.SEL
+	sel_defaultCenter                              objc.SEL
+	sel_addObserverForName_object_queue_usingBlock objc.SEL
+	sel_alloc                                      objc.SEL
+	sel_initWithUTF8String                         objc.SEL
+	sel_count                                      objc.SEL
+	sel_objectAtIndex                              objc.SEL
 )
 
 // GC notification and input string constants (loaded from framework symbols).
@@ -172,51 +172,51 @@ func init() {
 		return
 	}
 
-	classGCController = objc.GetClass("GCController")
-	classNSNotificationCtr = objc.GetClass("NSNotificationCenter")
+	class_GCController = objc.GetClass("GCController")
+	class_NSNotificationCenter = objc.GetClass("NSNotificationCenter")
 
-	selControllers = objc.RegisterName("controllers")
-	selExtendedGamepad = objc.RegisterName("extendedGamepad")
-	selMicroGamepad = objc.RegisterName("microGamepad")
-	selProductCategory = objc.RegisterName("productCategory")
-	selVendorName = objc.RegisterName("vendorName")
-	selPhysicalInputProfile = objc.RegisterName("physicalInputProfile")
-	selRespondsToSelector = objc.RegisterName("respondsToSelector:")
-	selIsEqualToString = objc.RegisterName("isEqualToString:")
-	selUTF8String = objc.RegisterName("UTF8String")
-	selLeftThumbstick = objc.RegisterName("leftThumbstick")
-	selRightThumbstick = objc.RegisterName("rightThumbstick")
-	selLeftThumbstickButton = objc.RegisterName("leftThumbstickButton")
-	selRightThumbstickButton = objc.RegisterName("rightThumbstickButton")
-	selButtonA = objc.RegisterName("buttonA")
-	selButtonB = objc.RegisterName("buttonB")
-	selButtonX = objc.RegisterName("buttonX")
-	selButtonY = objc.RegisterName("buttonY")
-	selLeftShoulder = objc.RegisterName("leftShoulder")
-	selRightShoulder = objc.RegisterName("rightShoulder")
-	selButtonOptions = objc.RegisterName("buttonOptions")
-	selButtonHome = objc.RegisterName("buttonHome")
-	selButtonMenu = objc.RegisterName("buttonMenu")
-	selLeftTrigger = objc.RegisterName("leftTrigger")
-	selRightTrigger = objc.RegisterName("rightTrigger")
-	selDpad = objc.RegisterName("dpad")
-	selXAxis = objc.RegisterName("xAxis")
-	selYAxis = objc.RegisterName("yAxis")
-	selValue = objc.RegisterName("value")
-	selIsPressed = objc.RegisterName("isPressed")
-	selUp = objc.RegisterName("up")
-	selDown = objc.RegisterName("down")
-	selLeft = objc.RegisterName("left")
-	selRight = objc.RegisterName("right")
-	selButtons = objc.RegisterName("buttons")
-	selObjectForKeyedSubscript = objc.RegisterName("objectForKeyedSubscript:")
-	selObject = objc.RegisterName("object")
-	selDefaultCenter = objc.RegisterName("defaultCenter")
-	selAddObserver = objc.RegisterName("addObserverForName:object:queue:usingBlock:")
-	selAlloc = objc.RegisterName("alloc")
-	selInitWithUTF8String = objc.RegisterName("initWithUTF8String:")
-	selCount = objc.RegisterName("count")
-	selObjectAtIndex = objc.RegisterName("objectAtIndex:")
+	sel_controllers = objc.RegisterName("controllers")
+	sel_extendedGamepad = objc.RegisterName("extendedGamepad")
+	sel_microGamepad = objc.RegisterName("microGamepad")
+	sel_productCategory = objc.RegisterName("productCategory")
+	sel_vendorName = objc.RegisterName("vendorName")
+	sel_physicalInputProfile = objc.RegisterName("physicalInputProfile")
+	sel_respondsToSelector = objc.RegisterName("respondsToSelector:")
+	sel_isEqualToString = objc.RegisterName("isEqualToString:")
+	sel_UTF8String = objc.RegisterName("UTF8String")
+	sel_leftThumbstick = objc.RegisterName("leftThumbstick")
+	sel_rightThumbstick = objc.RegisterName("rightThumbstick")
+	sel_leftThumbstickButton = objc.RegisterName("leftThumbstickButton")
+	sel_rightThumbstickButton = objc.RegisterName("rightThumbstickButton")
+	sel_buttonA = objc.RegisterName("buttonA")
+	sel_buttonB = objc.RegisterName("buttonB")
+	sel_buttonX = objc.RegisterName("buttonX")
+	sel_buttonY = objc.RegisterName("buttonY")
+	sel_leftShoulder = objc.RegisterName("leftShoulder")
+	sel_rightShoulder = objc.RegisterName("rightShoulder")
+	sel_buttonOptions = objc.RegisterName("buttonOptions")
+	sel_buttonHome = objc.RegisterName("buttonHome")
+	sel_buttonMenu = objc.RegisterName("buttonMenu")
+	sel_leftTrigger = objc.RegisterName("leftTrigger")
+	sel_rightTrigger = objc.RegisterName("rightTrigger")
+	sel_dpad = objc.RegisterName("dpad")
+	sel_xAxis = objc.RegisterName("xAxis")
+	sel_yAxis = objc.RegisterName("yAxis")
+	sel_value = objc.RegisterName("value")
+	sel_isPressed = objc.RegisterName("isPressed")
+	sel_up = objc.RegisterName("up")
+	sel_down = objc.RegisterName("down")
+	sel_left = objc.RegisterName("left")
+	sel_right = objc.RegisterName("right")
+	sel_buttons = objc.RegisterName("buttons")
+	sel_objectForKeyedSubscript = objc.RegisterName("objectForKeyedSubscript:")
+	sel_object = objc.RegisterName("object")
+	sel_defaultCenter = objc.RegisterName("defaultCenter")
+	sel_addObserverForName_object_queue_usingBlock = objc.RegisterName("addObserverForName:object:queue:usingBlock:")
+	sel_alloc = objc.RegisterName("alloc")
+	sel_initWithUTF8String = objc.RegisterName("initWithUTF8String:")
+	sel_count = objc.RegisterName("count")
+	sel_objectAtIndex = objc.RegisterName("objectAtIndex:")
 
 	// Load notification name symbols (NSString* globals).
 	connectPtr, err := purego.Dlsym(gc, "GCControllerDidConnectNotification")
@@ -246,7 +246,7 @@ func init() {
 
 	// GCInputXboxShareButton is not an official constant; use "Button Share".
 	classNSString := objc.GetClass("NSString")
-	gcInputXboxShareButton = objc.ID(classNSString).Send(selAlloc).Send(selInitWithUTF8String, "Button Share\x00")
+	gcInputXboxShareButton = objc.ID(classNSString).Send(sel_alloc).Send(sel_initWithUTF8String, "Button Share\x00")
 }
 
 // nsStringToGoString converts an ObjC NSString to a Go string.
@@ -254,7 +254,7 @@ func nsStringToGoString(nsStr objc.ID) string {
 	if nsStr == 0 {
 		return ""
 	}
-	ptr := nsStr.Send(selUTF8String)
+	ptr := nsStr.Send(sel_UTF8String)
 	if ptr == 0 {
 		return ""
 	}
@@ -273,9 +273,9 @@ func nsStringEquals(nsStr objc.ID, s string) bool {
 		return false
 	}
 	classNSString := objc.GetClass("NSString")
-	goNSStr := objc.ID(classNSString).Send(selAlloc).Send(selInitWithUTF8String, s+"\x00")
+	goNSStr := objc.ID(classNSString).Send(sel_alloc).Send(sel_initWithUTF8String, s+"\x00")
 	defer goNSStr.Send(objc.RegisterName("release"))
-	return nsStr.Send(selIsEqualToString, goNSStr) != 0
+	return nsStr.Send(sel_isEqualToString, goNSStr) != 0
 }
 
 // getControllerPropertyFromController extracts controller properties via ObjC.
@@ -283,7 +283,7 @@ func getControllerPropertyFromController(controller objc.ID) controllerProperty 
 	var prop controllerProperty
 
 	// Get controller name.
-	vendorNameStr := controller.Send(selVendorName)
+	vendorNameStr := controller.Send(sel_vendorName)
 	if vendorNameStr != 0 {
 		prop.name = nsStringToGoString(vendorNameStr)
 	}
@@ -293,14 +293,14 @@ func getControllerPropertyFromController(controller objc.ID) controllerProperty 
 
 	var vendor, product, subtype uint16
 
-	extGamepad := controller.Send(selExtendedGamepad)
+	extGamepad := controller.Send(sel_extendedGamepad)
 	if extGamepad != 0 {
 		// Detect controller type via productCategory (macOS 10.15+) or vendorName.
 		isXbox := false
 		isPS4 := false
 		isPS5 := false
 
-		productCategory := controller.Send(selProductCategory)
+		productCategory := controller.Send(sel_productCategory)
 		if productCategory != 0 {
 			if nsStringEquals(productCategory, "DualShock 4") {
 				isPS4 = true
@@ -311,7 +311,7 @@ func getControllerPropertyFromController(controller objc.ID) controllerProperty 
 			}
 		}
 		if !isXbox && !isPS4 && !isPS5 {
-			vendorName := controller.Send(selVendorName)
+			vendorName := controller.Send(sel_vendorName)
 			if vendorName != 0 {
 				if nsStringEquals(vendorName, "DUALSHOCK") {
 					isPS4 = true
@@ -333,19 +333,19 @@ func getControllerPropertyFromController(controller objc.ID) controllerProperty 
 		prop.nButtons += 6
 
 		// Optional buttons (check availability via respondsToSelector:).
-		if extGamepad.Send(selRespondsToSelector, selLeftThumbstickButton) != 0 && extGamepad.Send(selLeftThumbstickButton) != 0 {
+		if extGamepad.Send(sel_respondsToSelector, sel_leftThumbstickButton) != 0 && extGamepad.Send(sel_leftThumbstickButton) != 0 {
 			prop.buttonMask |= (1 << kControllerButtonLeftStick)
 			prop.nButtons++
 		}
-		if extGamepad.Send(selRespondsToSelector, selRightThumbstickButton) != 0 && extGamepad.Send(selRightThumbstickButton) != 0 {
+		if extGamepad.Send(sel_respondsToSelector, sel_rightThumbstickButton) != 0 && extGamepad.Send(sel_rightThumbstickButton) != 0 {
 			prop.buttonMask |= (1 << kControllerButtonRightStick)
 			prop.nButtons++
 		}
-		if extGamepad.Send(selRespondsToSelector, selButtonOptions) != 0 && extGamepad.Send(selButtonOptions) != 0 {
+		if extGamepad.Send(sel_respondsToSelector, sel_buttonOptions) != 0 && extGamepad.Send(sel_buttonOptions) != 0 {
 			prop.buttonMask |= (1 << kControllerButtonBack)
 			prop.nButtons++
 		}
-		if extGamepad.Send(selRespondsToSelector, selButtonHome) != 0 && extGamepad.Send(selButtonHome) != 0 {
+		if extGamepad.Send(sel_respondsToSelector, sel_buttonHome) != 0 && extGamepad.Send(sel_buttonHome) != 0 {
 			prop.buttonMask |= (1 << kControllerButtonGuide)
 			prop.nButtons++
 		}
@@ -354,37 +354,37 @@ func getControllerPropertyFromController(controller objc.ID) controllerProperty 
 		prop.nButtons++
 
 		// Physical input profile buttons (GCInputDualShockTouchpad, Xbox paddles, etc.).
-		if controller.Send(selRespondsToSelector, selPhysicalInputProfile) != 0 {
-			profile := controller.Send(selPhysicalInputProfile)
+		if controller.Send(sel_respondsToSelector, sel_physicalInputProfile) != 0 {
+			profile := controller.Send(sel_physicalInputProfile)
 			if profile != 0 {
-				profileButtons := profile.Send(selButtons)
+				profileButtons := profile.Send(sel_buttons)
 				if profileButtons != 0 {
-					if gcInputDualShockTouchpadButton != 0 && profileButtons.Send(selObjectForKeyedSubscript, gcInputDualShockTouchpadButton) != 0 {
+					if gcInputDualShockTouchpadButton != 0 && profileButtons.Send(sel_objectForKeyedSubscript, gcInputDualShockTouchpadButton) != 0 {
 						prop.hasDualshockTouchpad = true
 						prop.buttonMask |= (1 << kControllerButtonMisc1)
 						prop.nButtons++
 					}
-					if gcInputXboxPaddleOne != 0 && profileButtons.Send(selObjectForKeyedSubscript, gcInputXboxPaddleOne) != 0 {
+					if gcInputXboxPaddleOne != 0 && profileButtons.Send(sel_objectForKeyedSubscript, gcInputXboxPaddleOne) != 0 {
 						prop.hasXboxPaddles = true
 						prop.buttonMask |= (1 << kControllerButtonPaddle1)
 						prop.nButtons++
 					}
-					if gcInputXboxPaddleTwo != 0 && profileButtons.Send(selObjectForKeyedSubscript, gcInputXboxPaddleTwo) != 0 {
+					if gcInputXboxPaddleTwo != 0 && profileButtons.Send(sel_objectForKeyedSubscript, gcInputXboxPaddleTwo) != 0 {
 						prop.hasXboxPaddles = true
 						prop.buttonMask |= (1 << kControllerButtonPaddle2)
 						prop.nButtons++
 					}
-					if gcInputXboxPaddleThree != 0 && profileButtons.Send(selObjectForKeyedSubscript, gcInputXboxPaddleThree) != 0 {
+					if gcInputXboxPaddleThree != 0 && profileButtons.Send(sel_objectForKeyedSubscript, gcInputXboxPaddleThree) != 0 {
 						prop.hasXboxPaddles = true
 						prop.buttonMask |= (1 << kControllerButtonPaddle3)
 						prop.nButtons++
 					}
-					if gcInputXboxPaddleFour != 0 && profileButtons.Send(selObjectForKeyedSubscript, gcInputXboxPaddleFour) != 0 {
+					if gcInputXboxPaddleFour != 0 && profileButtons.Send(sel_objectForKeyedSubscript, gcInputXboxPaddleFour) != 0 {
 						prop.hasXboxPaddles = true
 						prop.buttonMask |= (1 << kControllerButtonPaddle4)
 						prop.nButtons++
 					}
-					if gcInputXboxShareButton != 0 && profileButtons.Send(selObjectForKeyedSubscript, gcInputXboxShareButton) != 0 {
+					if gcInputXboxShareButton != 0 && profileButtons.Send(sel_objectForKeyedSubscript, gcInputXboxShareButton) != 0 {
 						prop.hasXboxShareButton = true
 						prop.buttonMask |= (1 << kControllerButtonMisc1)
 						prop.nButtons++
@@ -445,25 +445,25 @@ func getControllerPropertyFromController(controller objc.ID) controllerProperty 
 
 // getAxisValue reads a float value from an ObjC axis element (returns the raw float32 value from the `value` property).
 func getAxisValue(element objc.ID) float32 {
-	return objc.Send[float32](element, selValue)
+	return objc.Send[float32](element, sel_value)
 }
 
 // getIsPressed reads the boolean isPressed property from an ObjC button element.
 func getIsPressed(element objc.ID) bool {
-	return element.Send(selIsPressed) != 0
+	return element.Send(sel_isPressed) != 0
 }
 
 // getHatState reads the hat state from a GCControllerDirectionPad.
 func getHatState(dpad objc.ID) uint8 {
 	var hat uint8
-	if getIsPressed(dpad.Send(selUp)) {
+	if getIsPressed(dpad.Send(sel_up)) {
 		hat |= kHatUp
-	} else if getIsPressed(dpad.Send(selDown)) {
+	} else if getIsPressed(dpad.Send(sel_down)) {
 		hat |= kHatDown
 	}
-	if getIsPressed(dpad.Send(selLeft)) {
+	if getIsPressed(dpad.Send(sel_left)) {
 		hat |= kHatLeft
-	} else if getIsPressed(dpad.Send(selRight)) {
+	} else if getIsPressed(dpad.Send(sel_right)) {
 		hat |= kHatRight
 	}
 	return hat
@@ -476,20 +476,20 @@ func getControllerStateGC(controllerPtr uintptr, buttonMask uint32, nHats int,
 	controller := objc.ID(controllerPtr)
 	var state controllerState
 
-	extGamepad := controller.Send(selExtendedGamepad)
+	extGamepad := controller.Send(sel_extendedGamepad)
 	if extGamepad == 0 {
 		return state
 	}
 
 	// Axes.
-	leftStick := extGamepad.Send(selLeftThumbstick)
-	rightStick := extGamepad.Send(selRightThumbstick)
-	state.axes[0] = getAxisValue(leftStick.Send(selXAxis))
-	state.axes[1] = -getAxisValue(leftStick.Send(selYAxis))
-	state.axes[2] = getAxisValue(extGamepad.Send(selLeftTrigger))*2 - 1
-	state.axes[3] = getAxisValue(rightStick.Send(selXAxis))
-	state.axes[4] = -getAxisValue(rightStick.Send(selYAxis))
-	state.axes[5] = getAxisValue(extGamepad.Send(selRightTrigger))*2 - 1
+	leftStick := extGamepad.Send(sel_leftThumbstick)
+	rightStick := extGamepad.Send(sel_rightThumbstick)
+	state.axes[0] = getAxisValue(leftStick.Send(sel_xAxis))
+	state.axes[1] = -getAxisValue(leftStick.Send(sel_yAxis))
+	state.axes[2] = getAxisValue(extGamepad.Send(sel_leftTrigger))*2 - 1
+	state.axes[3] = getAxisValue(rightStick.Send(sel_xAxis))
+	state.axes[4] = -getAxisValue(rightStick.Send(sel_yAxis))
+	state.axes[5] = getAxisValue(extGamepad.Send(sel_rightTrigger))*2 - 1
 
 	// Buttons.
 	buttonCount := 0
@@ -499,60 +499,60 @@ func getControllerStateGC(controllerPtr uintptr, buttonMask uint32, nHats int,
 		}
 		buttonCount++
 	}
-	setButton(getIsPressed(extGamepad.Send(selButtonA)))
-	setButton(getIsPressed(extGamepad.Send(selButtonB)))
-	setButton(getIsPressed(extGamepad.Send(selButtonX)))
-	setButton(getIsPressed(extGamepad.Send(selButtonY)))
-	setButton(getIsPressed(extGamepad.Send(selLeftShoulder)))
-	setButton(getIsPressed(extGamepad.Send(selRightShoulder)))
+	setButton(getIsPressed(extGamepad.Send(sel_buttonA)))
+	setButton(getIsPressed(extGamepad.Send(sel_buttonB)))
+	setButton(getIsPressed(extGamepad.Send(sel_buttonX)))
+	setButton(getIsPressed(extGamepad.Send(sel_buttonY)))
+	setButton(getIsPressed(extGamepad.Send(sel_leftShoulder)))
+	setButton(getIsPressed(extGamepad.Send(sel_rightShoulder)))
 
 	if buttonMask&(1<<kControllerButtonLeftStick) != 0 {
-		setButton(getIsPressed(extGamepad.Send(selLeftThumbstickButton)))
+		setButton(getIsPressed(extGamepad.Send(sel_leftThumbstickButton)))
 	}
 	if buttonMask&(1<<kControllerButtonRightStick) != 0 {
-		setButton(getIsPressed(extGamepad.Send(selRightThumbstickButton)))
+		setButton(getIsPressed(extGamepad.Send(sel_rightThumbstickButton)))
 	}
 	if buttonMask&(1<<kControllerButtonBack) != 0 {
-		setButton(getIsPressed(extGamepad.Send(selButtonOptions)))
+		setButton(getIsPressed(extGamepad.Send(sel_buttonOptions)))
 	}
 	if buttonMask&(1<<kControllerButtonGuide) != 0 {
-		setButton(getIsPressed(extGamepad.Send(selButtonHome)))
+		setButton(getIsPressed(extGamepad.Send(sel_buttonHome)))
 	}
 	if buttonMask&(1<<kControllerButtonStart) != 0 {
-		setButton(getIsPressed(extGamepad.Send(selButtonMenu)))
+		setButton(getIsPressed(extGamepad.Send(sel_buttonMenu)))
 	}
 
 	if hasDualshockTouchpad {
-		profile := controller.Send(selPhysicalInputProfile)
-		profileButtons := profile.Send(selButtons)
-		btn := profileButtons.Send(selObjectForKeyedSubscript, gcInputDualShockTouchpadButton)
+		profile := controller.Send(sel_physicalInputProfile)
+		profileButtons := profile.Send(sel_buttons)
+		btn := profileButtons.Send(sel_objectForKeyedSubscript, gcInputDualShockTouchpadButton)
 		setButton(getIsPressed(btn))
 	}
 	if hasXboxPaddles {
-		profile := controller.Send(selPhysicalInputProfile)
-		profileButtons := profile.Send(selButtons)
+		profile := controller.Send(sel_physicalInputProfile)
+		profileButtons := profile.Send(sel_buttons)
 		if buttonMask&(1<<kControllerButtonPaddle1) != 0 {
-			setButton(getIsPressed(profileButtons.Send(selObjectForKeyedSubscript, gcInputXboxPaddleOne)))
+			setButton(getIsPressed(profileButtons.Send(sel_objectForKeyedSubscript, gcInputXboxPaddleOne)))
 		}
 		if buttonMask&(1<<kControllerButtonPaddle2) != 0 {
-			setButton(getIsPressed(profileButtons.Send(selObjectForKeyedSubscript, gcInputXboxPaddleTwo)))
+			setButton(getIsPressed(profileButtons.Send(sel_objectForKeyedSubscript, gcInputXboxPaddleTwo)))
 		}
 		if buttonMask&(1<<kControllerButtonPaddle3) != 0 {
-			setButton(getIsPressed(profileButtons.Send(selObjectForKeyedSubscript, gcInputXboxPaddleThree)))
+			setButton(getIsPressed(profileButtons.Send(sel_objectForKeyedSubscript, gcInputXboxPaddleThree)))
 		}
 		if buttonMask&(1<<kControllerButtonPaddle4) != 0 {
-			setButton(getIsPressed(profileButtons.Send(selObjectForKeyedSubscript, gcInputXboxPaddleFour)))
+			setButton(getIsPressed(profileButtons.Send(sel_objectForKeyedSubscript, gcInputXboxPaddleFour)))
 		}
 	}
 	if hasXboxShareButton {
-		profile := controller.Send(selPhysicalInputProfile)
-		profileButtons := profile.Send(selButtons)
-		setButton(getIsPressed(profileButtons.Send(selObjectForKeyedSubscript, gcInputXboxShareButton)))
+		profile := controller.Send(sel_physicalInputProfile)
+		profileButtons := profile.Send(sel_buttons)
+		setButton(getIsPressed(profileButtons.Send(sel_objectForKeyedSubscript, gcInputXboxShareButton)))
 	}
 
 	// Hat.
 	if nHats > 0 {
-		state.hat = getHatState(extGamepad.Send(selDpad))
+		state.hat = getHatState(extGamepad.Send(sel_dpad))
 	}
 
 	return state
@@ -561,7 +561,7 @@ func getControllerStateGC(controllerPtr uintptr, buttonMask uint32, nHats int,
 // addController adds a GCController to the gamepad list.
 func addController(controller objc.ID) {
 	// Ignore if the controller is not an actual controller (e.g., Siri Remote).
-	if controller.Send(selExtendedGamepad) == 0 && controller.Send(selMicroGamepad) != 0 {
+	if controller.Send(sel_extendedGamepad) == 0 && controller.Send(sel_microGamepad) != 0 {
 		return
 	}
 
@@ -610,39 +610,39 @@ func (g *gamepads) removeGCGamepad(controller uintptr) {
 }
 
 func initializeGCGamepads() {
-	if classGCController == 0 {
+	if class_GCController == 0 {
 		return
 	}
 
 	// Add all currently connected controllers.
-	controllers := objc.ID(classGCController).Send(selControllers)
-	count := int(controllers.Send(selCount))
+	controllers := objc.ID(class_GCController).Send(sel_controllers)
+	count := int(controllers.Send(sel_count))
 	for i := range count {
-		controller := controllers.Send(selObjectAtIndex, i)
+		controller := controllers.Send(sel_objectAtIndex, i)
 		addController(controller)
 	}
 
 	// Register for connect/disconnect notifications.
-	center := objc.ID(classNSNotificationCtr).Send(selDefaultCenter)
+	center := objc.ID(class_NSNotificationCenter).Send(sel_defaultCenter)
 
 	connectBlock := objc.NewBlock(func(_ objc.Block, notification objc.ID) {
-		controller := notification.Send(selObject)
+		controller := notification.Send(sel_object)
 		addController(controller)
 	})
 
 	disconnectBlock := objc.NewBlock(func(_ objc.Block, notification objc.ID) {
-		controller := notification.Send(selObject)
+		controller := notification.Send(sel_object)
 		removeController(controller)
 	})
 
 	// The notification name symbols are pointers to NSString* — dereference them.
 	if gcControllerDidConnectNotification != 0 {
 		connectName := *(*objc.ID)(unsafe.Pointer(gcControllerDidConnectNotification))
-		center.Send(selAddObserver, connectName, uintptr(0), uintptr(0), connectBlock)
+		center.Send(sel_addObserverForName_object_queue_usingBlock, connectName, uintptr(0), uintptr(0), connectBlock)
 	}
 	if gcControllerDidDisconnectNotification != 0 {
 		disconnectName := *(*objc.ID)(unsafe.Pointer(gcControllerDidDisconnectNotification))
-		center.Send(selAddObserver, disconnectName, uintptr(0), uintptr(0), disconnectBlock)
+		center.Send(sel_addObserverForName_object_queue_usingBlock, disconnectName, uintptr(0), uintptr(0), disconnectBlock)
 	}
 }
 

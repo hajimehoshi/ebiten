@@ -71,6 +71,10 @@ type Image struct {
 	// atime needs to be an atomic value since a sub-image atime can be accessed from its original image.
 	atime atomic.Int64
 
+	// recyclable reports whether the image was created via [Image.RecyclableSubImage]
+	// and can be returned to the pool via [Image.Recycle].
+	recyclable bool
+
 	// usageCallbacks are callbacks that are invoked when the image is used.
 	// usageCallbacks is valid only when the image is not a sub-image.
 	usageCallbacks map[int64]usageCallback
@@ -83,6 +87,12 @@ type Image struct {
 
 	// Do not add a 'buffering' member that are resolved lazily.
 	// This tends to forget resolving the buffer easily (#2362).
+}
+
+// theImagePool is a global pool of Image structs to reduce allocations.
+// [Image.RecyclableSubImage] draws from this pool; [Image.Recycle] returns to it.
+var theImagePool = sync.Pool{
+	New: func() any { return &Image{} },
 }
 
 type usageCallback struct {
@@ -1146,11 +1156,10 @@ func (i *Image) SubImage(r image.Rectangle) image.Image {
 		}
 	}
 
-	img := &Image{
-		image:    i.image,
-		bounds:   r,
-		original: i,
-	}
+	img := &Image{}
+	img.image = i.image
+	img.bounds = r
+	img.original = i
 	img.addr = img
 
 	if i.subImageCache == nil {
@@ -1158,6 +1167,42 @@ func (i *Image) SubImage(r image.Rectangle) image.Image {
 	}
 	i.subImageCache[r] = img
 	img.updateAccessTime()
+
+	return img
+}
+
+// RecyclableSubImage returns a sub-image of the image from a global pool.
+// The returned sub-image can be returned to the pool by calling [Image.Recycle].
+//
+// RecyclableSubImage is useful when you need to create many sub-images with different bounds,
+// and want to avoid repeated allocations.
+//
+// Unlike [Image.SubImage], the returned sub-image is not cached internally.
+// The caller is responsible for managing the lifecycle of the returned image.
+//
+// If the image is disposed, RecyclableSubImage panics.
+func (i *Image) RecyclableSubImage(r image.Rectangle) *Image {
+	i.copyCheck()
+	if i.isDisposed() {
+		panic("ebiten: the image is already disposed")
+	}
+
+	if i.isSubImage() {
+		return i.original.RecyclableSubImage(r.Intersect(i.Bounds()))
+	}
+
+	r = r.Intersect(i.Bounds())
+	// Need to check Empty explicitly. See the standard image package implementations.
+	if r.Empty() {
+		r = image.Rectangle{}
+	}
+
+	img := theImagePool.Get().(*Image)
+	img.image = i.image
+	img.bounds = r
+	img.original = i
+	img.addr = img
+	img.recyclable = true
 
 	return img
 }
@@ -1317,6 +1362,7 @@ func (i *Image) Dispose() {
 	if i.isSubImage() {
 		return
 	}
+	i.invokeUsageCallbacks()
 	i.image.Deallocate()
 	i.image = nil
 	i.subImageCacheM.Lock()
@@ -1345,8 +1391,37 @@ func (i *Image) Deallocate() {
 	if i.isSubImage() {
 		return
 	}
+	i.invokeUsageCallbacks()
 	i.image.Deallocate()
 	i.usageCallbacks = nil
+}
+
+// Recycle puts the Image struct back into a global pool for reuse, reducing allocations.
+// After Recycle is called, the image must not be used; the behavior is undefined.
+//
+// Recycle can only be called on images created by [Image.RecyclableSubImage].
+// Calling Recycle on any other image causes a panic.
+func (i *Image) Recycle() {
+	i.copyCheck()
+	if !i.recyclable {
+		panic("ebiten: Recycle can only be called on an image created by RecyclableSubImage")
+	}
+
+	// Clear all fields to release references and reset state.
+	i.addr = nil
+	i.image = nil
+	i.original = nil
+	i.bounds = image.Rectangle{}
+	i.tmpVertices = i.tmpVertices[:0]
+	i.tmpIndices = i.tmpIndices[:0]
+	i.tmpUniforms = i.tmpUniforms[:0]
+	clear(i.subImageCache)
+	i.subImageGCLastTick = 0
+	i.atime.Store(0)
+	clear(i.usageCallbacks)
+	i.recyclable = false
+
+	theImagePool.Put(i)
 }
 
 // WritePixels replaces the pixels of the image.
@@ -1444,10 +1519,9 @@ func newImage(bounds image.Rectangle, imageType atlas.ImageType) *Image {
 		panic(fmt.Sprintf("ebiten: height at NewImage must be positive but %d", height))
 	}
 
-	i := &Image{
-		image:  ui.Get().NewImage(width, height, imageType),
-		bounds: bounds,
-	}
+	i := &Image{}
+	i.image = ui.Get().NewImage(width, height, imageType)
+	i.bounds = bounds
 	i.addr = i
 	return i
 }

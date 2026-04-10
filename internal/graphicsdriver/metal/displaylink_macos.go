@@ -43,10 +43,10 @@ func (v *view) initDisplayLink() error {
 }
 
 var (
-	selProcessInfo            = objc.RegisterName("processInfo")
-	selOperatingSystemVersion = objc.RegisterName("operatingSystemVersion")
+	sel_processInfo            = objc.RegisterName("processInfo")
+	sel_operatingSystemVersion = objc.RegisterName("operatingSystemVersion")
 
-	classNSProcessInfo = objc.GetClass("NSProcessInfo")
+	class_NSProcessInfo = objc.GetClass("NSProcessInfo")
 )
 
 type nsOperatingSystemVersion struct {
@@ -80,14 +80,14 @@ func init() {
 }
 
 func isCAMetalDisplayLinkAvailable() bool {
-	version := objc.Send[nsOperatingSystemVersion](objc.ID(classNSProcessInfo).Send(selProcessInfo), selOperatingSystemVersion)
+	version := objc.Send[nsOperatingSystemVersion](objc.ID(class_NSProcessInfo).Send(sel_processInfo), sel_operatingSystemVersion)
 	if version.majorVersion >= 14 {
 		return nsClassFromString(cocoa.NSString_alloc().InitWithUTF8String("CAMetalDisplayLink")) != 0
 	}
 	return false
 }
 
-var classEbitengineCAMetalDisplayLinkDelegate objc.Class
+var class_EbitengineCAMetalDisplayLinkDelegate objc.Class
 
 func (v *view) initCAMetalDisplayLink() error {
 	v.drawableCh = make(chan ca.MetalDrawable)
@@ -123,7 +123,7 @@ func (v *view) initCAMetalDisplayLink() error {
 	if err != nil {
 		return fmt.Errorf("metal: objc.RegisterClass for EbitengineCAMetalDisplayLinkDelegate failed: %w", err)
 	}
-	classEbitengineCAMetalDisplayLinkDelegate = c
+	class_EbitengineCAMetalDisplayLinkDelegate = c
 
 	v.createCAMetalDisplayLink()
 
@@ -134,7 +134,7 @@ func (v *view) createCAMetalDisplayLink() {
 	ch := make(chan uintptr)
 	v.metalDisplayLinkRunLoop.PerformBlock(objc.NewBlock(func(block objc.Block) {
 		dl := ca.NewMetalDisplayLink(v.ml)
-		dl.SetDelegate(objc.ID(classEbitengineCAMetalDisplayLinkDelegate).Send(objc.RegisterName("new")))
+		dl.SetDelegate(objc.ID(class_EbitengineCAMetalDisplayLinkDelegate).Send(objc.RegisterName("new")))
 		dl.AddToRunLoop(v.metalDisplayLinkRunLoop, cocoa.NSDefaultRunLoopMode)
 		dl.SetPaused(false)
 		ch <- uintptr(dl.ID)

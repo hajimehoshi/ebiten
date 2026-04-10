@@ -70,9 +70,15 @@ const (
 
 // https://developer.android.com/reference/android/view/InputDevice
 const (
+	sourceUnknown  = 0x00000000
 	sourceKeyboard = 0x00000101
 	sourceGamepad  = 0x00000401
 	sourceJoystick = 0x01000010
+)
+
+// https://developer.android.com/reference/android/view/KeyCharacterMap#VIRTUAL_KEYBOARD
+const (
+	virtualKeyboard = -1
 )
 
 // See https://github.com/libsdl-org/SDL/blob/47f2373dc13b66c48bf4024fcdab53cd0bdd59bb/src/joystick/android/SDL_sysjoystick.c#L71-L172
@@ -139,7 +145,7 @@ func OnKeyDownOnAndroid(keyCode int, unicodeChar int, source int, deviceID int) 
 		}
 	case source&sourceJoystick == sourceJoystick:
 		// DPAD keys can come here, but they are also treated as an axis at a motion event. Ignore them.
-	case source&sourceKeyboard == sourceKeyboard:
+	case source&sourceKeyboard == sourceKeyboard, source == sourceUnknown && deviceID == virtualKeyboard:
 		if key, ok := androidKeyToUIKey[keyCode]; ok {
 			keyPressedTimes[key] = ui.Get().InputTime()
 		}
@@ -160,7 +166,7 @@ func OnKeyUpOnAndroid(keyCode int, source int, deviceID int) {
 		}
 	case source&sourceJoystick == sourceJoystick:
 		// DPAD keys can come here, but they are also treated as an axis at a motion event. Ignore them.
-	case source&sourceKeyboard == sourceKeyboard:
+	case source&sourceKeyboard == sourceKeyboard, source == sourceUnknown && deviceID == virtualKeyboard:
 		if key, ok := androidKeyToUIKey[keyCode]; ok {
 			keyReleasedTimes[key] = ui.Get().InputTime()
 		}

@@ -4867,3 +4867,72 @@ func TestSubImageRaceConditionWithSubImage(t *testing.T) {
 	}
 	wg.Wait()
 }
+
+func TestRecyclableSubImage(t *testing.T) {
+	img := ebiten.NewImage(16, 16)
+	img.Fill(color.White)
+
+	sub := img.RecyclableSubImage(image.Rect(0, 0, 8, 8))
+	if got := sub.Bounds(); got != image.Rect(0, 0, 8, 8) {
+		t.Errorf("Bounds(): got %v, want %v", got, image.Rect(0, 0, 8, 8))
+	}
+
+	want := color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff}
+	if got := sub.At(0, 0); got != want {
+		t.Errorf("At(0,0): got %v, want %v", got, want)
+	}
+
+	// Recycle should not panic on a recyclable sub-image.
+	sub.Recycle()
+}
+
+func TestRecyclableSubImageFromSubImage(t *testing.T) {
+	img := ebiten.NewImage(16, 16)
+	img.Fill(color.White)
+
+	sub := img.SubImage(image.Rect(0, 0, 12, 12)).(*ebiten.Image)
+	rsub := sub.RecyclableSubImage(image.Rect(0, 0, 8, 8))
+	if got := rsub.Bounds(); got != image.Rect(0, 0, 8, 8) {
+		t.Errorf("Bounds(): got %v, want %v", got, image.Rect(0, 0, 8, 8))
+	}
+
+	want := color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff}
+	if got := rsub.At(0, 0); got != want {
+		t.Errorf("At(0,0): got %v, want %v", got, want)
+	}
+
+	rsub.Recycle()
+}
+
+func TestRecycleOnNewImage(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("Recycle on NewImage must panic but did not")
+		}
+	}()
+	img := ebiten.NewImage(16, 16)
+	img.Recycle()
+}
+
+func TestRecycleOnSubImage(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("Recycle on SubImage must panic but did not")
+		}
+	}()
+	img := ebiten.NewImage(16, 16)
+	sub := img.SubImage(image.Rect(0, 0, 8, 8)).(*ebiten.Image)
+	sub.Recycle()
+}
+
+func TestUseAfterRecycle(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("using a recycled image must panic but did not")
+		}
+	}()
+	img := ebiten.NewImage(16, 16)
+	sub := img.RecyclableSubImage(image.Rect(0, 0, 8, 8))
+	sub.Recycle()
+	sub.Fill(color.White)
+}

@@ -20,7 +20,6 @@ import (
 	"math"
 	"time"
 
-	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
 	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
 )
 
@@ -47,10 +46,16 @@ func (u *UserInterface) registerInputCallbacks() error {
 		if !ok {
 			return
 		}
+		t := u.InputTime()
 		if action == glfw.Press {
-			u.inputState.setKeyPressed(uk, u.InputTime())
+			u.inputState.setKeyPressed(uk, t)
+			// On macOS, modifier keys can appear released prematurely when the text input system
+			// intercepts certain key combinations (e.g. Ctrl+A). The mods parameter on the key event
+			// still correctly reflects which modifiers are physically held. Use it to re-assert
+			// modifier key states that may have been incorrectly released.
+			u.inputState.syncModKeysByMods(mods, t)
 		} else {
-			u.inputState.setKeyReleased(uk, u.InputTime())
+			u.inputState.setKeyReleased(uk, t)
 		}
 	}); err != nil {
 		return err
@@ -138,45 +143,36 @@ func (u *UserInterface) registerInputCallbacks() error {
 	return nil
 }
 
-func (u *UserInterface) updateInputStateForFrame() error {
-	var err error
-	u.mainThread.Call(func() {
-		err = u.updateInputStateForFrameImpl()
-	})
-	return err
-}
-
-// updateInputStateForFrameImpl must be called from the main thread.
-func (u *UserInterface) updateInputStateForFrameImpl() error {
+// updateInputStateForFrame updates the input state using pre-fetched cursor position
+// and device scale factor. GetCursorPos and gamepad.Update are already called in
+// the mainThread.Call block of updateGame, so this avoids an extra round-trip.
+func (u *UserInterface) updateInputStateForFrame(deviceScaleFactor float64) error {
 	u.m.Lock()
 	defer u.m.Unlock()
 
-	m, err := u.currentMonitor()
-	if err != nil {
-		return err
-	}
-	s := m.DeviceScaleFactor()
+	s := deviceScaleFactor
 
 	cx, cy := u.savedCursorX, u.savedCursorY
-	defer func() {
-		u.savedCursorX = math.NaN()
-		u.savedCursorY = math.NaN()
-	}()
+	u.savedCursorX = math.NaN()
+	u.savedCursorY = math.NaN()
 
 	if !math.IsNaN(cx) && !math.IsNaN(cy) {
+		// Rare path: cursor position was saved (e.g. fullscreen transition with disabled cursor).
+		// SetCursorPos requires the main thread.
 		cx2, cy2 := u.context.logicalPositionToClientPosition(cx, cy, s)
 		cx2 = dipToGLFWPixel(cx2, s)
 		cy2 = dipToGLFWPixel(cy2, s)
-		if err := u.window.SetCursorPos(cx2, cy2); err != nil {
-			return err
-		}
-	} else {
-		cx2, cy2, err := u.window.GetCursorPos()
+		var err error
+		u.mainThread.Call(func() {
+			err = u.window.SetCursorPos(cx2, cy2)
+		})
 		if err != nil {
 			return err
 		}
-		cx2 = dipFromGLFWPixel(cx2, s)
-		cy2 = dipFromGLFWPixel(cy2, s)
+	} else {
+		// Common path: use the pre-fetched raw cursor position.
+		cx2 := dipFromGLFWPixel(u.rawCursorX, s)
+		cy2 := dipFromGLFWPixel(u.rawCursorY, s)
 		cx, cy = u.context.clientPositionToLogicalPosition(cx2, cy2, s)
 	}
 
@@ -185,9 +181,7 @@ func (u *UserInterface) updateInputStateForFrameImpl() error {
 		u.inputState.CursorX, u.inputState.CursorY = cx, cy
 	}
 
-	if err := gamepad.Update(); err != nil {
-		return err
-	}
+	// gamepad.Update is already called in updateGame's mainThread.Call block.
 	return nil
 }
 
@@ -214,4 +208,38 @@ func (u *UserInterface) KeyName(key Key) string {
 		name = n
 	})
 	return name
+}
+
+// syncModKeysByMods re-asserts modifier key states based on the mods bitmask
+// from a key event. On macOS, the text input system can intercept modifier+key
+// combinations (e.g. Ctrl+A) and prematurely release the modifier key via
+// flagsChanged. The mods parameter on the key event still correctly reflects
+// which modifiers are physically held, so we use it to restore the state.
+func (i *InputState) syncModKeysByMods(mods glfw.ModifierKey, t InputTime) {
+	type modMapping struct {
+		mod   glfw.ModifierKey
+		left  Key
+		right Key
+	}
+	mappings := [...]modMapping{
+		{glfw.ModControl, KeyControlLeft, KeyControlRight},
+		{glfw.ModShift, KeyShiftLeft, KeyShiftRight},
+		{glfw.ModAlt, KeyAltLeft, KeyAltRight},
+		{glfw.ModSuper, KeyMetaLeft, KeyMetaRight},
+	}
+	for _, m := range mappings {
+		if mods&m.mod == 0 {
+			continue
+		}
+		// The mod flag is set, so at least one of left/right should be pressed.
+		// Re-press whichever was most recently pressed.
+		// If neither was ever pressed, default to the left variant.
+		lp := i.KeyPressedTimes[m.left]
+		rp := i.KeyPressedTimes[m.right]
+		if lp >= rp {
+			i.setKeyPressed(m.left, t)
+		} else {
+			i.setKeyPressed(m.right, t)
+		}
+	}
 }

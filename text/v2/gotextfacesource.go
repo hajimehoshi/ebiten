@@ -14,16 +14,23 @@
 
 package text
 
+// go-text/typesetting already imports image/png, so the side effect is acceptable (#2336).
+
 import (
 	"bytes"
+	"image"
+	"image/jpeg"
+	"image/png"
 	"io"
 	"slices"
+	"sync"
 
 	"github.com/go-text/typesetting/font"
 	"github.com/go-text/typesetting/font/opentype"
 	"github.com/go-text/typesetting/language"
 	"github.com/go-text/typesetting/shaping"
 	"golang.org/x/image/math/fixed"
+	"golang.org/x/image/tiff"
 	xlanguage "golang.org/x/text/language"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -45,6 +52,7 @@ type glyph struct {
 	endIndex       int
 	scaledSegments []opentype.Segment
 	bounds         fixed.Rectangle26_6
+	bitmap         image.Image
 }
 
 type goTextOutputCacheValue struct {
@@ -111,6 +119,9 @@ type GoTextFaceSource struct {
 
 	runes          []rune
 	glyphDataCache *cache[glyphDataCacheKey, font.GlyphData]
+
+	bitmapSizesResult []font.BitmapSize
+	bitmapSizesOnce   sync.Once
 }
 
 func toFontResource(source io.Reader) (font.Resource, error) {
@@ -226,6 +237,16 @@ func (g *GoTextFaceSource) shape(text string, face *GoTextFace) ([]shaping.Outpu
 func (g *GoTextFaceSource) shapeImpl(text string, face *GoTextFace) ([]shaping.Output, []glyph) {
 	g.f.SetVariations(face.variations)
 
+	g.f.SetPpem(0, 0)
+	var useBitmap bool
+	for _, bs := range g.bitmapSizes() {
+		if float64(bs.YPpem) == face.Size {
+			g.f.SetPpem(bs.XPpem, bs.YPpem)
+			useBitmap = true
+			break
+		}
+	}
+
 	g.runes = g.runes[:0]
 	for _, r := range text {
 		g.runes = append(g.runes, r)
@@ -266,30 +287,49 @@ func (g *GoTextFaceSource) shapeImpl(text string, face *GoTextFace) ([]shaping.O
 
 		for _, gl := range out.Glyphs {
 			var segs []opentype.Segment
-			if g.glyphDataCache == nil {
-				g.glyphDataCache = newCache[glyphDataCacheKey, font.GlyphData](512)
-			}
-			key := glyphDataCacheKey{
-				gid:        gl.GlyphID,
-				variations: face.ensureVariationsString(),
-				sideways:   out.Direction.IsSideways(),
-			}
-			data := g.glyphDataCache.getOrCreate(key, func() (font.GlyphData, bool) {
-				data := g.f.GlyphData(gl.GlyphID)
-				if data == nil {
-					return nil, false
+			var bitmapImg image.Image
+
+			// When bitmap mode is active, bypass the glyphDataCache since
+			// GlyphData results depend on the ppem set on the face.
+			var data font.GlyphData
+			if useBitmap {
+				data = g.f.GlyphData(gl.GlyphID)
+				if data != nil {
+					if d, ok := data.(font.GlyphOutline); ok && out.Direction.IsSideways() {
+						d.Sideways(fixed26_6ToFloat32(-gl.YOffset) / fixed26_6ToFloat32(out.Size) * float32(g.f.Upem()))
+						data = d
+					}
 				}
-				if data, ok := data.(font.GlyphOutline); ok && out.Direction.IsSideways() {
-					data.Sideways(fixed26_6ToFloat32(-gl.YOffset) / fixed26_6ToFloat32(out.Size) * float32(g.f.Upem()))
+			} else {
+				if g.glyphDataCache == nil {
+					g.glyphDataCache = newCache[glyphDataCacheKey, font.GlyphData](512)
 				}
-				return data, true
-			})
+				key := glyphDataCacheKey{
+					gid:        gl.GlyphID,
+					variations: face.ensureVariationsString(),
+					sideways:   out.Direction.IsSideways(),
+				}
+				data = g.glyphDataCache.getOrCreate(key, func() (font.GlyphData, bool) {
+					data := g.f.GlyphData(gl.GlyphID)
+					if data == nil {
+						return nil, false
+					}
+					if data, ok := data.(font.GlyphOutline); ok && out.Direction.IsSideways() {
+						data.Sideways(fixed26_6ToFloat32(-gl.YOffset) / fixed26_6ToFloat32(out.Size) * float32(g.f.Upem()))
+					}
+					return data, true
+				})
+			}
 			switch data := data.(type) {
 			case font.GlyphOutline:
 				segs = data.Segments
 			case font.GlyphSVG:
 				segs = data.Outline.Segments
 			case font.GlyphBitmap:
+				if useBitmap {
+					bitmapImg = decodeBitmapGlyph(data)
+				}
+				// Use outline segments for vector rendering.
 				if data.Outline != nil {
 					segs = data.Outline.Segments
 				}
@@ -311,6 +351,7 @@ func (g *GoTextFaceSource) shapeImpl(text string, face *GoTextFace) ([]shaping.O
 				endIndex:       indices[gl.TextIndex()+gl.RunesCount()],
 				scaledSegments: scaledSegs,
 				bounds:         segmentsToBounds(scaledSegs),
+				bitmap:         bitmapImg,
 			})
 		}
 	}
@@ -368,6 +409,60 @@ func (g *GoTextFaceSource) hasGlyph(r rune) bool {
 	_, ok := g.f.Cmap.Lookup(r)
 	g.hasGlyphCache.set(r, ok)
 	return ok
+}
+
+func (g *GoTextFaceSource) bitmapSizes() []font.BitmapSize {
+	g.bitmapSizesOnce.Do(func() {
+		g.bitmapSizesResult = g.f.BitmapSizes()
+	})
+	return g.bitmapSizesResult
+}
+
+func decodeBitmapGlyph(data font.GlyphBitmap) image.Image {
+	switch data.Format {
+	case font.BlackAndWhite:
+		img := image.NewAlpha(image.Rect(0, 0, data.Width, data.Height))
+		for j := range data.Height {
+			for i := range data.Width {
+				idx := j*data.Width + i
+				if data.Data[idx/8]&(1<<(7-idx%8)) != 0 {
+					img.Pix[j*img.Stride+i] = 0xff
+				}
+			}
+		}
+		return img
+	case font.BlackAndWhiteByteAligned:
+		img := image.NewAlpha(image.Rect(0, 0, data.Width, data.Height))
+		rowBytes := (data.Width + 7) / 8
+		for j := range data.Height {
+			for i := range data.Width {
+				byteIdx := j*rowBytes + i/8
+				if data.Data[byteIdx]&(1<<(7-i%8)) != 0 {
+					img.Pix[j*img.Stride+i] = 0xff
+				}
+			}
+		}
+		return img
+	case font.PNG:
+		img, err := png.Decode(bytes.NewReader(data.Data))
+		if err != nil {
+			return nil
+		}
+		return img
+	case font.JPG:
+		img, err := jpeg.Decode(bytes.NewReader(data.Data))
+		if err != nil {
+			return nil
+		}
+		return img
+	case font.TIFF:
+		img, err := tiff.Decode(bytes.NewReader(data.Data))
+		if err != nil {
+			return nil
+		}
+		return img
+	}
+	return nil
 }
 
 type singleFontmap struct {

@@ -31,36 +31,35 @@ type rumbleMotor struct {
 
 // ObjC classes for CoreHaptics (initialized in init).
 var (
-	classCHHapticEngine         objc.Class
-	classCHHapticEventParameter objc.Class
-	classCHHapticEvent          objc.Class
-	classCHHapticPattern        objc.Class
-	classCHHapticDynamicParam   objc.Class
-	classNSArrayCH              objc.Class
+	class_CHHapticEngine           objc.Class
+	class_CHHapticEventParameter   objc.Class
+	class_CHHapticEvent            objc.Class
+	class_CHHapticPattern          objc.Class
+	class_CHHapticDynamicParameter objc.Class
+	class_NSArray                  objc.Class
 )
 
 // ObjC selectors for CoreHaptics.
 var (
-	selCHHaptics                   objc.SEL
-	selCHCreateEngineWithLocality  objc.SEL
-	selCHStartAndReturnError       objc.SEL
-	selCHStopWithCompletionHandler objc.SEL
-	selCHCreatePlayerWithPattern   objc.SEL
-	selCHSendParameters            objc.SEL
-	selCHStartAtTime               objc.SEL
-	selCHStopAtTime                objc.SEL
-	selCHSupportedLocalities       objc.SEL
-	selCHContainsObject            objc.SEL
-	selCHInitWithParameterID       objc.SEL
-	selCHInitWithEventType         objc.SEL
-	selCHInitWithEvents            objc.SEL
-	selCHInitDynParam              objc.SEL
-	selCHAlloc                     objc.SEL
-	selCHRelease                   objc.SEL
-	selCHRetain                    objc.SEL
-	selCHInit                      objc.SEL
-	selCHArrayWithObjects          objc.SEL
-	selCHArray                     objc.SEL
+	sel_haptics                                            objc.SEL
+	sel_createEngineWithLocality                           objc.SEL
+	sel_startAndReturnError                                objc.SEL
+	sel_stopWithCompletionHandler                          objc.SEL
+	sel_createPlayerWithPattern_error                      objc.SEL
+	sel_sendParameters_atTime_error                        objc.SEL
+	sel_startAtTime_error                                  objc.SEL
+	sel_stopAtTime_error                                   objc.SEL
+	sel_supportedLocalities                                objc.SEL
+	sel_containsObject                                     objc.SEL
+	sel_initWithParameterID_value                          objc.SEL
+	sel_initWithEventType_parameters_relativeTime_duration objc.SEL
+	sel_initWithEvents_parameters_error                    objc.SEL
+	sel_initWithParameterID_value_relativeTime             objc.SEL
+	sel_release                                            objc.SEL
+	sel_retain                                             objc.SEL
+	sel_init                                               objc.SEL
+	sel_arrayWithObjects_count                             objc.SEL
+	sel_array                                              objc.SEL
 )
 
 // CoreHaptics string/float constants (loaded from framework symbols).
@@ -85,38 +84,37 @@ func init() {
 		return
 	}
 
-	classCHHapticEngine = objc.GetClass("CHHapticEngine")
-	if classCHHapticEngine == 0 {
+	class_CHHapticEngine = objc.GetClass("CHHapticEngine")
+	if class_CHHapticEngine == 0 {
 		// CoreHaptics not available (pre-macOS 10.15).
 		return
 	}
 
-	classCHHapticEventParameter = objc.GetClass("CHHapticEventParameter")
-	classCHHapticEvent = objc.GetClass("CHHapticEvent")
-	classCHHapticPattern = objc.GetClass("CHHapticPattern")
-	classCHHapticDynamicParam = objc.GetClass("CHHapticDynamicParameter")
-	classNSArrayCH = objc.GetClass("NSArray")
+	class_CHHapticEventParameter = objc.GetClass("CHHapticEventParameter")
+	class_CHHapticEvent = objc.GetClass("CHHapticEvent")
+	class_CHHapticPattern = objc.GetClass("CHHapticPattern")
+	class_CHHapticDynamicParameter = objc.GetClass("CHHapticDynamicParameter")
+	class_NSArray = objc.GetClass("NSArray")
 
-	selCHHaptics = objc.RegisterName("haptics")
-	selCHCreateEngineWithLocality = objc.RegisterName("createEngineWithLocality:")
-	selCHStartAndReturnError = objc.RegisterName("startAndReturnError:")
-	selCHStopWithCompletionHandler = objc.RegisterName("stopWithCompletionHandler:")
-	selCHCreatePlayerWithPattern = objc.RegisterName("createPlayerWithPattern:error:")
-	selCHSendParameters = objc.RegisterName("sendParameters:atTime:error:")
-	selCHStartAtTime = objc.RegisterName("startAtTime:error:")
-	selCHStopAtTime = objc.RegisterName("stopAtTime:error:")
-	selCHSupportedLocalities = objc.RegisterName("supportedLocalities")
-	selCHContainsObject = objc.RegisterName("containsObject:")
-	selCHInitWithParameterID = objc.RegisterName("initWithParameterID:value:")
-	selCHInitWithEventType = objc.RegisterName("initWithEventType:parameters:relativeTime:duration:")
-	selCHInitWithEvents = objc.RegisterName("initWithEvents:parameters:error:")
-	selCHInitDynParam = objc.RegisterName("initWithParameterID:value:relativeTime:")
-	selCHAlloc = objc.RegisterName("alloc")
-	selCHRelease = objc.RegisterName("release")
-	selCHRetain = objc.RegisterName("retain")
-	selCHInit = objc.RegisterName("init")
-	selCHArrayWithObjects = objc.RegisterName("arrayWithObjects:count:")
-	selCHArray = objc.RegisterName("array")
+	sel_haptics = objc.RegisterName("haptics")
+	sel_createEngineWithLocality = objc.RegisterName("createEngineWithLocality:")
+	sel_startAndReturnError = objc.RegisterName("startAndReturnError:")
+	sel_stopWithCompletionHandler = objc.RegisterName("stopWithCompletionHandler:")
+	sel_createPlayerWithPattern_error = objc.RegisterName("createPlayerWithPattern:error:")
+	sel_sendParameters_atTime_error = objc.RegisterName("sendParameters:atTime:error:")
+	sel_startAtTime_error = objc.RegisterName("startAtTime:error:")
+	sel_stopAtTime_error = objc.RegisterName("stopAtTime:error:")
+	sel_supportedLocalities = objc.RegisterName("supportedLocalities")
+	sel_containsObject = objc.RegisterName("containsObject:")
+	sel_initWithParameterID_value = objc.RegisterName("initWithParameterID:value:")
+	sel_initWithEventType_parameters_relativeTime_duration = objc.RegisterName("initWithEventType:parameters:relativeTime:duration:")
+	sel_initWithEvents_parameters_error = objc.RegisterName("initWithEvents:parameters:error:")
+	sel_initWithParameterID_value_relativeTime = objc.RegisterName("initWithParameterID:value:relativeTime:")
+	sel_release = objc.RegisterName("release")
+	sel_retain = objc.RegisterName("retain")
+	sel_init = objc.RegisterName("init")
+	sel_arrayWithObjects_count = objc.RegisterName("arrayWithObjects:count:")
+	sel_array = objc.RegisterName("array")
 
 	// Load string constants from GameController framework.
 	gc, err := purego.Dlopen("/System/Library/Frameworks/GameController.framework/GameController", purego.RTLD_LAZY|purego.RTLD_GLOBAL)
@@ -157,16 +155,16 @@ func createGCRumbleMotor(controller uintptr, which int) uintptr {
 	}
 
 	controllerObj := objc.ID(controller)
-	haptics := controllerObj.Send(selCHHaptics)
+	haptics := controllerObj.Send(sel_haptics)
 	if haptics == 0 {
 		return 0
 	}
 
-	supportedLocalities := haptics.Send(selCHSupportedLocalities)
+	supportedLocalities := haptics.Send(sel_supportedLocalities)
 	if supportedLocalities == 0 || chHapticsLocalityHandles == 0 {
 		return 0
 	}
-	if supportedLocalities.Send(selCHContainsObject, chHapticsLocalityHandles) == 0 {
+	if supportedLocalities.Send(sel_containsObject, chHapticsLocalityHandles) == 0 {
 		return 0
 	}
 
@@ -177,21 +175,21 @@ func createGCRumbleMotor(controller uintptr, which int) uintptr {
 		locality = chHapticsLocalityRightHandle
 	}
 
-	engine := haptics.Send(selCHCreateEngineWithLocality, locality)
+	engine := haptics.Send(sel_createEngineWithLocality, locality)
 	if engine == 0 {
 		return 0
 	}
 
 	// Start the engine.
 	var nsError objc.ID
-	engine.Send(selCHStartAndReturnError, uintptr(unsafe.Pointer(&nsError)))
+	engine.Send(sel_startAndReturnError, uintptr(unsafe.Pointer(&nsError)))
 	if nsError != 0 {
 		return 0
 	}
 
 	// Create a continuous haptic event with intensity 1.0.
-	intensityParam := objc.ID(classCHHapticEventParameter).Send(selCHAlloc).Send(
-		selCHInitWithParameterID,
+	intensityParam := objc.ID(class_CHHapticEventParameter).Send(sel_alloc).Send(
+		sel_initWithParameterID_value,
 		chHapticEventParameterIDHapticIntensity,
 		float32(1.0),
 	)
@@ -199,47 +197,47 @@ func createGCRumbleMotor(controller uintptr, which int) uintptr {
 	// Create an NSArray with the parameter.
 	paramArray := makeNSArray(intensityParam)
 
-	event := objc.ID(classCHHapticEvent).Send(selCHAlloc).Send(
-		selCHInitWithEventType,
+	event := objc.ID(class_CHHapticEvent).Send(sel_alloc).Send(
+		sel_initWithEventType_parameters_relativeTime_duration,
 		chHapticEventTypeHapticContinuous,
 		paramArray,
 		float64(0),                        // relativeTime
 		float64(gcHapticDurationInfinite), // duration (NSTimeInterval)
 	)
-	intensityParam.Send(selCHRelease)
+	intensityParam.Send(sel_release)
 
 	// Create pattern.
 	eventArray := makeNSArray(event)
-	emptyArray := objc.ID(classNSArrayCH).Send(selCHArray)
+	emptyArray := objc.ID(class_NSArray).Send(sel_array)
 
 	nsError = 0
-	pattern := objc.ID(classCHHapticPattern).Send(selCHAlloc).Send(
-		selCHInitWithEvents,
+	pattern := objc.ID(class_CHHapticPattern).Send(sel_alloc).Send(
+		sel_initWithEvents_parameters_error,
 		eventArray,
 		emptyArray,
 		uintptr(unsafe.Pointer(&nsError)),
 	)
-	event.Send(selCHRelease)
+	event.Send(sel_release)
 	if nsError != 0 {
 		if pattern != 0 {
-			pattern.Send(selCHRelease)
+			pattern.Send(sel_release)
 		}
-		engine.Send(selCHStopWithCompletionHandler, uintptr(0))
+		engine.Send(sel_stopWithCompletionHandler, uintptr(0))
 		return 0
 	}
 
 	// Create player.
 	nsError = 0
-	player := engine.Send(selCHCreatePlayerWithPattern, pattern, uintptr(unsafe.Pointer(&nsError)))
-	pattern.Send(selCHRelease)
+	player := engine.Send(sel_createPlayerWithPattern_error, pattern, uintptr(unsafe.Pointer(&nsError)))
+	pattern.Send(sel_release)
 	if nsError != 0 {
-		engine.Send(selCHStopWithCompletionHandler, uintptr(0))
+		engine.Send(sel_stopWithCompletionHandler, uintptr(0))
 		return 0
 	}
 
 	motor := &rumbleMotor{
-		engine: engine.Send(selCHRetain),
-		player: player.Send(selCHRetain),
+		engine: engine.Send(sel_retain),
+		player: player.Send(sel_retain),
 		active: false,
 	}
 
@@ -249,7 +247,7 @@ func createGCRumbleMotor(controller uintptr, which int) uintptr {
 // makeNSArray creates an NSArray containing a single object.
 func makeNSArray(obj objc.ID) objc.ID {
 	objects := [1]uintptr{uintptr(obj)}
-	return objc.ID(classNSArrayCH).Send(selCHArrayWithObjects, uintptr(unsafe.Pointer(&objects[0])), 1)
+	return objc.ID(class_NSArray).Send(sel_arrayWithObjects_count, uintptr(unsafe.Pointer(&objects[0])), 1)
 }
 
 func releaseGCRumbleMotor(motorPtr uintptr) {
@@ -263,11 +261,11 @@ func releaseGCRumbleMotor(motorPtr uintptr) {
 	motor := (*rumbleMotor)(unsafe.Pointer(motorPtr))
 	if motor.active {
 		var nsError objc.ID
-		motor.player.Send(selCHStopAtTime, float64(0), uintptr(unsafe.Pointer(&nsError)))
+		motor.player.Send(sel_stopAtTime_error, float64(0), uintptr(unsafe.Pointer(&nsError)))
 	}
-	motor.engine.Send(selCHStopWithCompletionHandler, uintptr(0))
-	motor.player.Send(selCHRelease)
-	motor.engine.Send(selCHRelease)
+	motor.engine.Send(sel_stopWithCompletionHandler, uintptr(0))
+	motor.player.Send(sel_release)
+	motor.engine.Send(sel_release)
 }
 
 func vibrateGCGamepad(left, right uintptr, strong, weak float64) {
@@ -289,22 +287,22 @@ func vibrateMotor(motorPtr uintptr, intensity float64) {
 
 	if intensity <= 0 {
 		if motor.active {
-			motor.player.Send(selCHStopAtTime, float64(0), uintptr(unsafe.Pointer(&nsError)))
+			motor.player.Send(sel_stopAtTime_error, float64(0), uintptr(unsafe.Pointer(&nsError)))
 			motor.active = false
 		}
 	} else {
 		// Create a dynamic parameter to control intensity.
-		param := objc.ID(classCHHapticDynamicParam).Send(selCHAlloc).Send(
-			selCHInitDynParam,
+		param := objc.ID(class_CHHapticDynamicParameter).Send(sel_alloc).Send(
+			sel_initWithParameterID_value_relativeTime,
 			chHapticDynamicParameterIDHapticIntensityCtrl,
 			float32(intensity),
 			float64(0), // relativeTime
 		)
 		paramArray := makeNSArray(param)
-		motor.player.Send(selCHSendParameters, paramArray, float64(0), uintptr(unsafe.Pointer(&nsError)))
-		param.Send(selCHRelease)
+		motor.player.Send(sel_sendParameters_atTime_error, paramArray, float64(0), uintptr(unsafe.Pointer(&nsError)))
+		param.Send(sel_release)
 		if !motor.active {
-			motor.player.Send(selCHStartAtTime, float64(0), uintptr(unsafe.Pointer(&nsError)))
+			motor.player.Send(sel_startAtTime_error, float64(0), uintptr(unsafe.Pointer(&nsError)))
 			motor.active = true
 		}
 	}

@@ -22,13 +22,10 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
-type textInput struct {
-	session  session
+type textInputImpl struct {
 	rs       []rune
 	lastTick int64
 }
-
-var theTextInput textInput
 
 func (t *textInput) Start(bounds image.Rectangle) (<-chan textInputState, func()) {
 	// AppendInputChars is updated only when the tick is updated.
