@@ -22,7 +22,6 @@ import (
 	"golang.org/x/image/math/fixed"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
@@ -232,26 +231,20 @@ func (g *GoXFace) glyphImageImpl(r rune, subpixelOffset fixed.Point26_6, glyphBo
 	w++
 	h++
 
-	var rgba image.RGBA
-	var img *ebiten.Image
-	graphics.NewManagedBytes(4*w*h, func(bs []byte) {
-		rgba.Pix = bs
-		rgba.Stride = 4 * w
-		rgba.Rect = image.Rect(0, 0, w, h)
-		d := font.Drawer{
-			Dst:  &rgba,
-			Src:  image.White,
-			Face: g.f,
-			Dot: fixed.Point26_6{
-				X: -glyphBounds.Min.X + subpixelOffset.X,
-				Y: -glyphBounds.Min.Y + subpixelOffset.Y,
-			},
-		}
-		d.DrawString(string(r))
-		img = ebiten.NewImageFromImage(&rgba)
-	})
+	rgba := image.NewRGBA(image.Rect(0, 0, w, h))
 
-	return img
+	d := font.Drawer{
+		Dst:  rgba,
+		Src:  image.White,
+		Face: g.f,
+		Dot: fixed.Point26_6{
+			X: -glyphBounds.Min.X + subpixelOffset.X,
+			Y: -glyphBounds.Min.Y + subpixelOffset.Y,
+		},
+	}
+	d.DrawString(string(r))
+
+	return ebiten.NewImageFromImage(rgba)
 }
 
 // direction implements Face.

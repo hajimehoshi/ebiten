@@ -24,7 +24,6 @@ import (
 	gvector "golang.org/x/image/vector"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
@@ -123,16 +122,9 @@ func segmentsToImage(segs []opentype.Segment, subpixelOffset fixed.Point26_6, gl
 	// See also https://github.com/go-text/typesetting/issues/122.
 	rast.ClosePath()
 
-	var rgba image.RGBA
-	var img *ebiten.Image
-	graphics.NewManagedBytes(4*w*h, func(bs []byte) {
-		rgba.Pix = bs
-		rgba.Stride = 4 * w
-		rgba.Rect = image.Rect(0, 0, w, h)
-		rast.Draw(&rgba, rgba.Bounds(), image.Opaque, image.Point{})
-		img = ebiten.NewImageFromImage(&rgba)
-	})
-	return img
+	dst := image.NewRGBA(image.Rect(0, 0, w, h))
+	rast.Draw(dst, dst.Bounds(), image.Opaque, image.Point{})
+	return ebiten.NewImageFromImage(dst)
 }
 
 func appendVectorPathFromSegments(path *vector.Path, segs []opentype.Segment, x, y float32) {
