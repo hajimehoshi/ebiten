@@ -6,7 +6,7 @@ require (
 	github.com/ebitengine/debugui v0.2.0
 	github.com/ebitengine/gomobile v0.0.0-20260211053922-3d992dae95d1
 	github.com/ebitengine/hideconsole v1.0.0
-	github.com/ebitengine/oto/v3 v3.5.0-alpha.3.0.20260414014636-96cbf62d909b
+	github.com/ebitengine/oto/v3 v3.5.0-alpha.3.0.20260414020926-c7371b45fd92
 	github.com/ebitengine/purego v0.11.0-alpha.1
 	github.com/gen2brain/mpeg v0.5.0
 	github.com/go-text/typesetting v0.3.5-0.20260328164731-48df487c1500
