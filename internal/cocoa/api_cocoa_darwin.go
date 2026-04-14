@@ -45,9 +45,7 @@ func init() {
 	}
 
 	// AppKit may not be available (e.g. on iOS), so ignore errors.
-	if _, err := purego.Dlopen("/System/Library/Frameworks/AppKit.framework/AppKit", purego.RTLD_LAZY|purego.RTLD_GLOBAL); err != nil {
-		panic(fmt.Errorf("cocoa: failed to dlopen AppKit: %w", err))
-	}
+	_, _ = purego.Dlopen("/System/Library/Frameworks/AppKit.framework/AppKit", purego.RTLD_LAZY|purego.RTLD_GLOBAL)
 
 	class_NSInvocation = objc.GetClass("NSInvocation")
 	class_NSMethodSignature = objc.GetClass("NSMethodSignature")
