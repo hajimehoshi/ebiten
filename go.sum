@@ -4,8 +4,8 @@ github.com/ebitengine/gomobile v0.0.0-20260211053922-3d992dae95d1 h1:U8WldvN7/4c
 github.com/ebitengine/gomobile v0.0.0-20260211053922-3d992dae95d1/go.mod h1:J7sDBRQG9pJGMa9Z+h8l3flwk0yEKDzWeR57vA1LI5U=
 github.com/ebitengine/hideconsole v1.0.0 h1:5J4U0kXF+pv/DhiXt5/lTz0eO5ogJ1iXb8Yj1yReDqE=
 github.com/ebitengine/hideconsole v1.0.0/go.mod h1:hTTBTvVYWKBuxPr7peweneWdkUwEuHuB3C1R/ielR1A=
-github.com/ebitengine/oto/v3 v3.5.0-alpha.3 h1:l1r+CA5orhUAUXfkGY1n5pMOL35Q2VY2HSZ4ljFOgGk=
-github.com/ebitengine/oto/v3 v3.5.0-alpha.3/go.mod h1:/pu30UKQyprJ/X/7/U8Mfs3lQhJPW8R9t4WyJaOismo=
+github.com/ebitengine/oto/v3 v3.5.0-alpha.3.0.20260414014636-96cbf62d909b h1:ajdH+/uOs+boDnu5Lxc+ENqRSS4kg5BRVV3eh3WfBeY=
+github.com/ebitengine/oto/v3 v3.5.0-alpha.3.0.20260414014636-96cbf62d909b/go.mod h1:x/WBbSrO8m/lqbRD1lp+op0K9vg6v6QPVPrVTErFvbE=
 github.com/ebitengine/purego v0.11.0-alpha.1 h1:p9MRdpEz2yC1tLE132XVQtQa+hmnj2DeKQ0Djc8n3n0=
 github.com/ebitengine/purego v0.11.0-alpha.1/go.mod h1:iIjxzd6CiRiOG0UyXP+V1+jWqUXVjPKLAI0mRfJZTmQ=
 github.com/gen2brain/mpeg v0.5.0 h1:YrY5F5ZQAJCF/ItDHSb0bF5fxwk5IDq/RjOnfFhWurs=
