@@ -17,11 +17,11 @@ require (
 	github.com/jfreymuth/oggvorbis v1.0.5
 	github.com/kazzmir/opus-go v1.3.0
 	github.com/kisielk/errcheck v1.10.0
-	golang.org/x/image v0.38.0
+	golang.org/x/image v0.39.0
 	golang.org/x/sync v0.20.0
-	golang.org/x/sys v0.42.0
-	golang.org/x/text v0.35.0
-	golang.org/x/tools v0.43.0
+	golang.org/x/sys v0.43.0
+	golang.org/x/text v0.36.0
+	golang.org/x/tools v0.44.0
 )
 
 require (
@@ -29,5 +29,5 @@ require (
 	github.com/jfreymuth/vorbis v1.0.2 // indirect
 	github.com/pierrec/lz4/v4 v4.1.22 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
-	golang.org/x/mod v0.34.0 // indirect
+	golang.org/x/mod v0.35.0 // indirect
 )
