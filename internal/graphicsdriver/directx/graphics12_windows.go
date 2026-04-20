@@ -329,7 +329,7 @@ func (g *graphics12) initializeMembers() (ferr error) {
 	}()
 
 	// Create command allocators.
-	for i := 0; i < frameCount; i++ {
+	for i := range frameCount {
 		dca, err := g.device.CreateCommandAllocator(_D3D12_COMMAND_LIST_TYPE_DIRECT)
 		if err != nil {
 			return err
@@ -518,7 +518,7 @@ func (g *graphics12) initSwapChainXbox(width, height int) (ferr error) {
 		return err
 	}
 
-	for i := 0; i < frameCount; i++ {
+	for i := range frameCount {
 		r, err := g.device.CreateCommittedResource(&_D3D12_HEAP_PROPERTIES{
 			Type:                 _D3D12_HEAP_TYPE_DEFAULT,
 			CPUPageProperty:      _D3D12_CPU_PAGE_PROPERTY_UNKNOWN,
@@ -592,7 +592,7 @@ func (g *graphics12) createRenderTargetViewsDesktop() (ferr error) {
 	if err != nil {
 		return err
 	}
-	for i := 0; i < frameCount; i++ {
+	for i := range frameCount {
 		r, err := g.graphicsInfra.getBuffer(uint32(i), &_IID_ID3D12Resource)
 		if err != nil {
 			return err

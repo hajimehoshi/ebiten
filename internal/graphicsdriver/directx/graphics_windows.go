@@ -91,7 +91,7 @@ func NewGraphics() (graphicsdriver.Graphics, error) {
 		env = os.Getenv("EBITEN_DIRECTX")
 	}
 
-	for _, t := range strings.Split(env, ",") {
+	for t := range strings.SplitSeq(env, ",") {
 		t := strings.TrimSpace(t)
 		switch {
 		case t == "warp":
