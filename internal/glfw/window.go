@@ -4,6 +4,8 @@
 // SPDX-FileCopyrightText: 2012 Torsten Walluhn <tw@mad-cad.net>
 // SPDX-FileCopyrightText: 2022 The Ebitengine Authors
 
+//go:build darwin || windows
+
 package glfw
 
 import (
@@ -175,6 +177,7 @@ func defaultWindowHints() error {
 		autoIconify:  true,
 		centerCursor: true,
 		focusOnShow:  true,
+		retina:       true,
 	}
 
 	// The default is 24 bits of color, 24 bits of depth and 8 bits of stencil,
@@ -193,6 +196,10 @@ func defaultWindowHints() error {
 	_glfw.hints.refreshRate = DontCare
 
 	return nil
+}
+
+func DefaultWindowHints() error {
+	return defaultWindowHints()
 }
 
 func WindowHint(hint Hint, value int) error {
@@ -277,15 +284,25 @@ func WindowHint(hint Hint, value int) error {
 		_glfw.hints.context.release = value
 	case RefreshRate:
 		_glfw.hints.refreshRate = value
+	case CocoaRetinaFramebuffer:
+		_glfw.hints.window.retina = intToBool(value)
+	case CocoaGraphicsSwitching:
+		_glfw.hints.context.nsgl.offline = intToBool(value)
 	default:
 		return fmt.Errorf("glfw: invalid window hint 0x%08X: %w", hint, InvalidEnum)
 	}
 	return nil
 }
 
-// WindowHintString is not implemented.
 func WindowHintString(hint Hint, value string) error {
-	// Do nothing.
+	if !_glfw.initialized {
+		return NotInitialized
+	}
+
+	switch hint {
+	case CocoaFrameName:
+		_glfw.hints.window.frameName = value
+	}
 	return nil
 }
 
@@ -300,7 +317,23 @@ func (w *Window) Destroy() error {
 	}
 
 	// Clear all callbacks to avoid exposing a half torn-down w object
-	// TODO: Clear w.callbacks
+	w.callbacks.pos = nil
+	w.callbacks.size = nil
+	w.callbacks.close = nil
+	w.callbacks.refresh = nil
+	w.callbacks.focus = nil
+	w.callbacks.iconify = nil
+	w.callbacks.maximize = nil
+	w.callbacks.fbsize = nil
+	w.callbacks.scale = nil
+	w.callbacks.mouseButton = nil
+	w.callbacks.cursorPos = nil
+	w.callbacks.cursorEnter = nil
+	w.callbacks.scroll = nil
+	w.callbacks.key = nil
+	w.callbacks.character = nil
+	w.callbacks.charmods = nil
+	w.callbacks.drop = nil
 
 	// The w's context must not be current on another thread when the
 	// w is destroyed
@@ -314,6 +347,11 @@ func (w *Window) Destroy() error {
 		}
 	}
 
+	if err := w.platformDestroyWindow(); err != nil {
+		return err
+	}
+
+	// Unlink window from global list (after platform destroy, matching C ordering).
 	for i, window := range _glfw.windows {
 		if window == w {
 			copy(_glfw.windows[i:], _glfw.windows[i+1:])
@@ -321,10 +359,6 @@ func (w *Window) Destroy() error {
 			_glfw.windows = _glfw.windows[:len(_glfw.windows)-1]
 			break
 		}
-	}
-
-	if err := w.platformDestroyWindow(); err != nil {
-		return err
 	}
 
 	return nil
@@ -363,6 +397,9 @@ func (w *Window) SetIcon(images []image.Image) error {
 	gimgs := make([]*Image, len(images))
 	for i, img := range images {
 		b := img.Bounds()
+		if b.Dx() <= 0 || b.Dy() <= 0 {
+			return fmt.Errorf("glfw: invalid image dimensions for window icon: %w", InvalidValue)
+		}
 		m := image.NewNRGBA(image.Rect(0, 0, b.Dx(), b.Dy()))
 		draw.Draw(m, m.Bounds(), img, b.Min, draw.Src)
 		gimgs[i] = &Image{
@@ -674,7 +711,7 @@ func (w *Window) SetAttrib(attrib Hint, value int) error {
 		w.resizable = bValue
 		if w.monitor == nil {
 			if err := w.platformSetWindowResizable(bValue); err != nil {
-				return nil
+				return err
 			}
 		}
 		return nil

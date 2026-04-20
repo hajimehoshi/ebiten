@@ -3,6 +3,8 @@
 // SPDX-FileCopyrightText: 2006-2019 Camilla Löwy <elmindreda@glfw.org>
 // SPDX-FileCopyrightText: 2022 The Ebitengine Authors
 
+//go:build darwin || windows
+
 package glfw
 
 import (
@@ -35,6 +37,8 @@ type wndconfig struct {
 	focusOnShow      bool
 	mousePassthrough bool
 	scaleToMonitor   bool
+	retina           bool   // Cocoa: GLFW_COCOA_RETINA_FRAMEBUFFER
+	frameName        string // Cocoa: GLFW_COCOA_FRAME_NAME
 }
 
 type ctxconfig struct {
@@ -49,6 +53,9 @@ type ctxconfig struct {
 	robustness int
 	release    int
 	share      *Window
+	nsgl       struct {
+		offline bool
+	}
 }
 
 type fbconfig struct {
