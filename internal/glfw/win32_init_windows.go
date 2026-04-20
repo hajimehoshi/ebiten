@@ -145,7 +145,7 @@ func createKeyTables() {
 	_glfw.platformWindow.keycodes[0x037] = KeyKPMultiply
 	_glfw.platformWindow.keycodes[0x04A] = KeyKPSubtract
 
-	for scancode := 0; scancode < 512; scancode++ {
+	for scancode := range 512 {
 		if _glfw.platformWindow.keycodes[scancode] > 0 {
 			_glfw.platformWindow.scancodes[_glfw.platformWindow.keycodes[scancode]] = scancode
 		}

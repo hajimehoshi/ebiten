@@ -2366,7 +2366,7 @@ func (c *Cursor) platformCreateCursor(img *image.NRGBA, xhot, yhot int) error {
 	// Repack into a tight RGBA buffer: createIcon expects contiguous pixels
 	// and a non-zero image origin or non-trivial stride would confuse it.
 	pixels := make([]byte, w*h*4)
-	for y := 0; y < h; y++ {
+	for y := range h {
 		src := img.PixOffset(b.Min.X, b.Min.Y+y)
 		copy(pixels[y*w*4:(y+1)*w*4], img.Pix[src:src+w*4])
 	}
