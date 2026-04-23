@@ -10,7 +10,7 @@ require (
 	github.com/ebitengine/purego v0.11.0-alpha.1
 	github.com/gen2brain/mpeg v0.5.0
 	github.com/go-text/typesetting v0.3.5-0.20260328164731-48df487c1500
-	github.com/hajimehoshi/bitmapfont/v4 v4.1.0
+	github.com/hajimehoshi/bitmapfont/v4 v4.1.1
 	github.com/hajimehoshi/go-mp3 v0.3.4
 	github.com/jakecoffman/cp/v2 v2.4.0
 	github.com/jezek/xgb v1.3.0
