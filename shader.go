@@ -35,12 +35,31 @@ type Shader struct {
 }
 
 // NewShader compiles a shader program in the shading language Kage, and returns the result.
+// The src argument is the shader source code. The extra arguments are also shader source codes, and they are concatenated to the src argument. This is useful when you want to split a shader into multiple files.
 //
 // If the compilation fails, NewShader returns an error.
 //
 // For the details about the shader, see https://ebitengine.org/en/documents/shader.html.
-func NewShader(src []byte) (*Shader, error) {
-	return newShader(src, "")
+func NewShader(src []byte, extra... []byte) (*Shader, error) {
+	return newShader(flatten(src, extra), "")
+}
+
+func flatten(src []byte, extra [][]byte) []byte {
+    if len(extra) == 0 {
+        return src
+    }
+
+    total := len(src)
+    for _, e := range extra {
+        total += len(e)
+    }
+
+    b := make([]byte, 0, total)
+    b = append(b, src...)
+    for _, e := range extra {
+        b = append(b, e...)
+    }
+    return b
 }
 
 func newShader(src []byte, name string) (*Shader, error) {
