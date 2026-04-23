@@ -279,7 +279,7 @@ func TestShaderMultipleSources(t *testing.T) {
 
 	dst := ebiten.NewImage(w, h)
 
-    extra := `
+	extra := `
 func clr(red float) (float, float, float, float) {
 	return red, 0, 0, 1
 }

@@ -40,26 +40,26 @@ type Shader struct {
 // If the compilation fails, NewShader returns an error.
 //
 // For the details about the shader, see https://ebitengine.org/en/documents/shader.html.
-func NewShader(src []byte, extra... []byte) (*Shader, error) {
+func NewShader(src []byte, extra ...[]byte) (*Shader, error) {
 	return newShader(flatten(src, extra), "")
 }
 
 func flatten(src []byte, extra [][]byte) []byte {
-    if len(extra) == 0 {
-        return src
-    }
+	if len(extra) == 0 {
+		return src
+	}
 
-    total := len(src)
-    for _, e := range extra {
-        total += len(e)
-    }
+	total := len(src)
+	for _, e := range extra {
+		total += len(e)
+	}
 
-    b := make([]byte, 0, total)
-    b = append(b, src...)
-    for _, e := range extra {
-        b = append(b, e...)
-    }
-    return b
+	b := make([]byte, 0, total)
+	b = append(b, src...)
+	for _, e := range extra {
+		b = append(b, e...)
+	}
+	return b
 }
 
 func newShader(src []byte, name string) (*Shader, error) {
