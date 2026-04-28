@@ -57,7 +57,29 @@ type glyph struct {
 
 type goTextOutputCacheValue struct {
 	outputs []shaping.Output
-	glyphs  []glyph
+
+	// text and face are the inputs that produced outputs. They are retained so
+	// per-glyph data can be built lazily by ensureGlyphs.
+	text string
+	face *GoTextFace
+
+	// glyphs is lazily built by ensureGlyphs. A nil slice means glyphs have not
+	// been built yet; a non-nil (possibly empty) slice means they have.
+	// Protected by GoTextFaceSource.shapeMu.
+	glyphs []glyph
+}
+
+// ensureGlyphs returns per-glyph data, building it on first access.
+func (v *goTextOutputCacheValue) ensureGlyphs(g *GoTextFaceSource) []glyph {
+	g.shapeMu.Lock()
+	defer g.shapeMu.Unlock()
+	if v.glyphs == nil {
+		v.glyphs = g.buildGlyphs(v.outputs, v.text, v.face)
+		// The inputs are no longer needed; release the face reference.
+		v.text = ""
+		v.face = nil
+	}
+	return v.glyphs
 }
 
 type goTextGlyphImageCacheKey struct {
@@ -107,7 +129,7 @@ type GoTextFaceSource struct {
 	f        *font.Face
 	metadata Metadata
 
-	outputCache     *cache[goTextOutputCacheKey, goTextOutputCacheValue]
+	outputCache     *cache[goTextOutputCacheKey, *goTextOutputCacheValue]
 	glyphImageCache map[float64]*cache[goTextGlyphImageCacheKey, *ebiten.Image]
 	hasGlyphCache   runeToBoolMap
 
@@ -119,6 +141,11 @@ type GoTextFaceSource struct {
 
 	runes          []rune
 	glyphDataCache *cache[glyphDataCacheKey, font.GlyphData]
+
+	// shapeMu serializes mutations of the shared font state (g.f) during shaping
+	// and per-glyph data lookups. Lazy glyph builds happen outside of the
+	// outputCache mutex, so this mutex is needed to keep the font state consistent.
+	shapeMu sync.Mutex
 
 	bitmapSizesResult []font.BitmapSize
 	bitmapSizesOnce   sync.Once
@@ -148,7 +175,7 @@ func newGoTextFaceSource(face *font.Face) *GoTextFaceSource {
 	}
 	s.addr = s
 	s.metadata = metadataFromFace(face)
-	s.outputCache = newCache[goTextOutputCacheKey, goTextOutputCacheValue](512)
+	s.outputCache = newCache[goTextOutputCacheKey, *goTextOutputCacheValue](512)
 	// 4 is an arbitrary number, which should not cause troubles.
 	s.shaper.SetFontCacheSize(4)
 	return s
@@ -220,32 +247,63 @@ func (g *GoTextFaceSource) UnsafeInternal() any {
 	return g.f
 }
 
+// shapeOutputs returns the shaping outputs for the given text without building
+// per-glyph segment data. This is significantly cheaper than shape and is
+// suitable when only the total advance is required.
+func (g *GoTextFaceSource) shapeOutputs(text string, face *GoTextFace) []shaping.Output {
+	g.copyCheck()
+
+	key := face.outputCacheKey(text)
+	e := g.outputCache.getOrCreate(key, func() (*goTextOutputCacheValue, bool) {
+		g.shapeMu.Lock()
+		defer g.shapeMu.Unlock()
+		return &goTextOutputCacheValue{
+			outputs: g.buildOutputs(text, face),
+			text:    text,
+			face:    face,
+		}, true
+	})
+	return e.outputs
+}
+
 func (g *GoTextFaceSource) shape(text string, face *GoTextFace) ([]shaping.Output, []glyph) {
 	g.copyCheck()
 
 	key := face.outputCacheKey(text)
-	e := g.outputCache.getOrCreate(key, func() (goTextOutputCacheValue, bool) {
-		outputs, gs := g.shapeImpl(text, face)
-		return goTextOutputCacheValue{
-			outputs: outputs,
-			glyphs:  gs,
+	e := g.outputCache.getOrCreate(key, func() (*goTextOutputCacheValue, bool) {
+		g.shapeMu.Lock()
+		defer g.shapeMu.Unlock()
+		return &goTextOutputCacheValue{
+			outputs: g.buildOutputs(text, face),
+			text:    text,
+			face:    face,
 		}, true
 	})
-	return e.outputs, e.glyphs
+	return e.outputs, e.ensureGlyphs(g)
 }
 
-func (g *GoTextFaceSource) shapeImpl(text string, face *GoTextFace) ([]shaping.Output, []glyph) {
+// applyFaceState updates the shared font state to reflect face. It returns
+// whether bitmap glyph data should be used for face.Size.
+//
+// The caller must hold g.shapeMu.
+func (g *GoTextFaceSource) applyFaceState(face *GoTextFace) bool {
 	g.f.SetVariations(face.variations)
 
 	g.f.SetPpem(0, 0)
-	var useBitmap bool
 	for _, bs := range g.bitmapSizes() {
 		if float64(bs.YPpem) == face.Size {
 			g.f.SetPpem(bs.XPpem, bs.YPpem)
-			useBitmap = true
-			break
+			return true
 		}
 	}
+	return false
+}
+
+// buildOutputs runs HarfBuzz shaping on text and returns the per-segment outputs.
+//
+// The caller must hold g.shapeMu.
+func (g *GoTextFaceSource) buildOutputs(text string, face *GoTextFace) []shaping.Output {
+	g.applyFaceState(face)
 
 	g.runes = g.runes[:0]
 	for _, r := range text {
@@ -272,19 +330,31 @@ func (g *GoTextFaceSource) shapeImpl(text string, face *GoTextFace) ([]shaping.O
 	}
 
 	outputs := make([]shaping.Output, len(inputs))
-	var gs []glyph
 	for i, input := range inputs {
 		out := g.shaper.Shape(input)
 		outputs[i] = out
 
 		(shaping.Line{out}).AdjustBaselines()
+	}
+	return outputs
+}
 
-		var indices []int
-		for i := range text {
-			indices = append(indices, i)
-		}
-		indices = append(indices, len(text))
+// buildGlyphs converts already-shaped outputs into per-glyph segment data.
+// It always returns a non-nil slice so that callers can use a nil check to
+// distinguish unbuilt entries from entries that built to zero glyphs.
+//
+// The caller must hold g.shapeMu.
+func (g *GoTextFaceSource) buildGlyphs(outputs []shaping.Output, text string, face *GoTextFace) []glyph {
+	useBitmap := g.applyFaceState(face)
 
+	var indices []int
+	for i := range text {
+		indices = append(indices, i)
+	}
+	indices = append(indices, len(text))
+
+	gs := []glyph{}
+	for _, out := range outputs {
 		for _, gl := range out.Glyphs {
 			var segs []opentype.Segment
 			var bitmapImg image.Image
@@ -355,7 +425,7 @@ func (g *GoTextFaceSource) shapeImpl(text string, face *GoTextFace) ([]shaping.O
 			})
 		}
 	}
-	return outputs, gs
+	return gs
 }
 
 func (g *GoTextFaceSource) scale(size float64) float64 {
