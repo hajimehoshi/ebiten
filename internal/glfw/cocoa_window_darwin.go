@@ -1808,8 +1808,9 @@ func (c *Cursor) platformCreateCursor(img *image.NRGBA, xhot, yhot int) error {
 	pool := cocoa.NSAutoreleasePool_new()
 	defer pool.Release()
 
-	w := img.Bounds().Dx()
-	h := img.Bounds().Dy()
+	b := img.Bounds()
+	w := b.Dx()
+	h := b.Dy()
 
 	rep := objc.ID(class_NSBitmapImageRep).Send(sel_alloc).Send(sel_initWithBitmapDataPlanes_pixelsWide_pixelsHigh_bitsPerSample_samplesPerPixel_hasAlpha_isPlanar_colorSpaceName_bitmapFormat_bytesPerRow_bitsPerPixel,
 		uintptr(0),                   // planes (NULL = allocate)
@@ -1828,11 +1829,15 @@ func (c *Cursor) platformCreateCursor(img *image.NRGBA, xhot, yhot int) error {
 		return fmt.Errorf("glfw: failed to create NSBitmapImageRep: %w", PlatformError)
 	}
 
-	// Copy pixel data into the bitmap.
+	// Copy pixel data into the bitmap row by row to honor the image's stride
+	// and non-zero origin.
 	bitmapData := rep.Send(sel_bitmapData)
 	if bitmapData != 0 {
 		dst := unsafe.Slice((*byte)(unsafe.Pointer(bitmapData)), w*h*4)
-		copy(dst, img.Pix)
+		for y := range h {
+			src := img.PixOffset(b.Min.X, b.Min.Y+y)
+			copy(dst[y*w*4:(y+1)*w*4], img.Pix[src:src+w*4])
+		}
 	}
 
 	native := objc.ID(class_NSImage).Send(sel_alloc).Send(sel_initWithSize,

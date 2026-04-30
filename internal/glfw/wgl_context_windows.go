@@ -8,6 +8,7 @@ package glfw
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"unsafe"
 
@@ -331,12 +332,7 @@ func extensionSupportedWGL(extension string) bool {
 		return false
 	}
 
-	for _, str := range strings.Split(extensions, " ") {
-		if extension == str {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(strings.Split(extensions, " "), extension)
 }
 
 func getProcAddressWGL(procname string) uintptr {

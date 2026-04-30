@@ -19,6 +19,7 @@ import (
 	"io"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/hook"
 )
@@ -28,11 +29,20 @@ var (
 	theFocusedFieldM sync.Mutex
 )
 
+// focusField makes f the focused field. Any previously focused field is cleaned up
+// and its ChangedAt is bumped to reflect the focus loss.
 func focusField(f *Field) {
 	var origField *Field
+	var focused bool
+	// All ChangedAt bumps happen here, outside the mutex.
 	defer func() {
+		if focused {
+			f.bumpChangedAt()
+		}
 		if origField != nil {
 			origField.cleanUp()
+			// The previously focused field just lost focus, which is observable via IsFocused.
+			origField.bumpChangedAt()
 		}
 	}()
 
@@ -43,13 +53,17 @@ func focusField(f *Field) {
 	}
 	origField = theFocusedField
 	theFocusedField = f
+	focused = true
 }
 
+// blurField removes the focus from f. If f was focused, its ChangedAt is bumped.
 func blurField(f *Field) {
 	var origField *Field
+	// All ChangedAt bumps happen here, outside the mutex. origField is always f when set.
 	defer func() {
 		if origField != nil {
 			origField.cleanUp()
+			origField.bumpChangedAt()
 		}
 	}()
 
@@ -116,6 +130,42 @@ type Field struct {
 	end   func()
 	state textInputState
 	err   error
+
+	changedAt time.Time
+}
+
+// ChangedAt returns the time of the most recent state-changing mutation to this Field.
+//
+// ChangedAt is monotonically non-decreasing across mutations of this Field, suitable for
+// cache invalidation and similar change-detection use cases (autosave throttling, idle
+// detection, debouncing, etc.). The zero value indicates that no mutation has occurred.
+func (f *Field) ChangedAt() time.Time {
+	return f.changedAt
+}
+
+// bumpChangedAt advances changedAt to the current time, guaranteeing strict monotonic
+// increase across back-to-back synchronous calls even on platforms with a coarse clock.
+func (f *Field) bumpChangedAt() {
+	now := time.Now()
+	if !now.After(f.changedAt) {
+		now = f.changedAt.Add(time.Nanosecond)
+	}
+	f.changedAt = now
+}
+
+// setState assigns s to f.state, bumping changedAt when the visible composition state changes.
+//
+// Only the fields observable through the public API (Text and the composition selection)
+// are compared. The remaining fields (Committed/Delete*/Error) are transient IME signaling,
+// not part of the observable state this function is meant to track.
+func (f *Field) setState(s textInputState) {
+	changed := f.state.Text != s.Text ||
+		f.state.CompositionSelectionStartInBytes != s.CompositionSelectionStartInBytes ||
+		f.state.CompositionSelectionEndInBytes != s.CompositionSelectionEndInBytes
+	f.state = s
+	if changed {
+		f.bumpChangedAt()
+	}
 }
 
 // SetBounds sets the bounds used for IME window positioning.
@@ -203,12 +253,12 @@ func (f *Field) handleInput() (handled bool, err error) {
 				if !ok {
 					f.ch = nil
 					f.end = nil
-					f.state = textInputState{}
+					f.setState(textInputState{})
 					break readchar
 				}
 				if state.Committed && state.Text == "\x7f" {
 					// DEL should not modify the text (#3212).
-					f.state = textInputState{}
+					f.setState(textInputState{})
 					continue
 				}
 				handled = true
@@ -216,7 +266,7 @@ func (f *Field) handleInput() (handled bool, err error) {
 					f.commit(state)
 					continue
 				}
-				f.state = state
+				f.setState(state)
 			default:
 				break readchar
 			}
@@ -240,6 +290,7 @@ func (f *Field) commit(state textInputState) {
 	f.selectionStartInBytes = start + len(state.Text)
 	f.selectionEndInBytes = f.selectionStartInBytes
 	f.state = textInputState{}
+	f.bumpChangedAt()
 }
 
 // Focus focuses the field.
@@ -277,7 +328,7 @@ func (f *Field) cleanUp() {
 			if ok && state.Committed {
 				f.commit(state)
 			} else {
-				f.state = state
+				f.setState(state)
 			}
 		default:
 			break
@@ -288,7 +339,7 @@ func (f *Field) cleanUp() {
 		f.end()
 		f.ch = nil
 		f.end = nil
-		f.state = textInputState{}
+		f.setState(textInputState{})
 	}
 
 	theTextInput.session.clearQueue()
@@ -313,8 +364,14 @@ func (f *Field) CompositionSelection() (startInBytes, endInBytes int, ok bool) {
 func (f *Field) SetSelection(startInBytes, endInBytes int) {
 	f.cleanUp()
 	l := f.pieceTable.Len()
-	f.selectionStartInBytes = min(max(startInBytes, 0), l)
-	f.selectionEndInBytes = min(max(endInBytes, 0), l)
+	newStart := min(max(startInBytes, 0), l)
+	newEnd := min(max(endInBytes, 0), l)
+	if newStart == f.selectionStartInBytes && newEnd == f.selectionEndInBytes {
+		return
+	}
+	f.selectionStartInBytes = newStart
+	f.selectionEndInBytes = newEnd
+	f.bumpChangedAt()
 }
 
 // Text returns the current text.
@@ -368,6 +425,7 @@ func (f *Field) ResetText(text string) {
 	f.pieceTable.reset(text)
 	f.selectionStartInBytes = 0
 	f.selectionEndInBytes = 0
+	f.bumpChangedAt()
 }
 
 // UncommittedTextLengthInBytes returns the compositing text length in bytes when the field is focused and the text is editing.
@@ -388,15 +446,21 @@ func (f *Field) SetTextAndSelection(text string, selectionStartInBytes, selectio
 	f.pieceTable.replace(text, 0, l)
 	f.selectionStartInBytes = min(max(selectionStartInBytes, 0), l)
 	f.selectionEndInBytes = min(max(selectionEndInBytes, 0), l)
+	f.bumpChangedAt()
 }
 
 // ReplaceText replaces the text at the specified range and updates the selection range.
 // This operation is added to the undo history.
 func (f *Field) ReplaceText(text string, startInBytes, endInBytes int) {
 	f.cleanUp()
+	if text == "" && startInBytes == endInBytes {
+		// Empty replacement over a zero-width range is observably a no-op.
+		return
+	}
 	f.pieceTable.replace(text, startInBytes, endInBytes)
 	f.selectionStartInBytes = startInBytes + len(text)
 	f.selectionEndInBytes = f.selectionStartInBytes
+	f.bumpChangedAt()
 }
 
 // ReplaceTextAtSelection replaces the text at the selection range and updates the selection range.
@@ -425,6 +489,7 @@ func (f *Field) Undo() {
 	}
 	f.selectionStartInBytes = start
 	f.selectionEndInBytes = end
+	f.bumpChangedAt()
 }
 
 // Redo redoes the last undone operation.
@@ -437,4 +502,5 @@ func (f *Field) Redo() {
 	}
 	f.selectionStartInBytes = start
 	f.selectionEndInBytes = end
+	f.bumpChangedAt()
 }

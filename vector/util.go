@@ -62,8 +62,10 @@ var (
 func StrokeLine(dst *ebiten.Image, x0, y0, x1, y1 float32, strokeWidth float32, clr color.Color, antialias bool) {
 	if antialias {
 		path := thePathPool.Get().(*Path)
-		defer thePathPool.Put(path)
-		path.Reset()
+		defer func() {
+			path.Reset()
+			thePathPool.Put(path)
+		}()
 		path.MoveTo(x0, y0)
 		path.LineTo(x1, y1)
 		strokeOp := &StrokeOptions{}
@@ -89,8 +91,10 @@ func StrokeLine(dst *ebiten.Image, x0, y0, x1, y1 float32, strokeWidth float32, 
 func FillRect(dst *ebiten.Image, x, y, width, height float32, clr color.Color, antialias bool) {
 	if antialias {
 		path := thePathPool.Get().(*Path)
-		defer thePathPool.Put(path)
-		path.Reset()
+		defer func() {
+			path.Reset()
+			thePathPool.Put(path)
+		}()
 		path.MoveTo(x, y)
 		path.LineTo(x, y+height)
 		path.LineTo(x+width, y+height)
@@ -121,8 +125,10 @@ func DrawFilledRect(dst *ebiten.Image, x, y, width, height float32, clr color.Co
 func StrokeRect(dst *ebiten.Image, x, y, width, height float32, strokeWidth float32, clr color.Color, antialias bool) {
 	if antialias {
 		path := thePathPool.Get().(*Path)
-		defer thePathPool.Put(path)
-		path.Reset()
+		defer func() {
+			path.Reset()
+			thePathPool.Put(path)
+		}()
 		path.MoveTo(x, y)
 		path.LineTo(x, y+height)
 		path.LineTo(x+width, y+height)
@@ -186,8 +192,10 @@ func StrokeRect(dst *ebiten.Image, x, y, width, height float32, strokeWidth floa
 func FillCircle(dst *ebiten.Image, cx, cy, r float32, clr color.Color, antialias bool) {
 	if antialias {
 		path := thePathPool.Get().(*Path)
-		defer thePathPool.Put(path)
-		path.Reset()
+		defer func() {
+			path.Reset()
+			thePathPool.Put(path)
+		}()
 		path.Arc(cx, cy, r, 0, 2*math.Pi, Clockwise)
 		drawOp := &DrawPathOptions{}
 		drawOp.AntiAlias = true
@@ -242,8 +250,10 @@ func DrawFilledCircle(dst *ebiten.Image, cx, cy, r float32, clr color.Color, ant
 func StrokeCircle(dst *ebiten.Image, cx, cy, r float32, strokeWidth float32, clr color.Color, antialias bool) {
 	if antialias {
 		path := thePathPool.Get().(*Path)
-		defer thePathPool.Put(path)
-		path.Reset()
+		defer func() {
+			path.Reset()
+			thePathPool.Put(path)
+		}()
 		path.Arc(cx, cy, r, 0, 2*math.Pi, Clockwise)
 		path.Close()
 		strokeOp := &StrokeOptions{}
@@ -314,8 +324,10 @@ func StrokeCircle(dst *ebiten.Image, cx, cy, r float32, strokeWidth float32, clr
 // StrokePath strokes the specified path with the specified options.
 func StrokePath(dst *ebiten.Image, path *Path, strokeOptions *StrokeOptions, drawPathOptions *DrawPathOptions) {
 	stroke := thePathPool.Get().(*Path)
-	defer thePathPool.Put(stroke)
-	stroke.Reset()
+	defer func() {
+		stroke.Reset()
+		thePathPool.Put(stroke)
+	}()
 	op := &AddStrokeOptions{}
 	op.StrokeOptions = *strokeOptions
 	stroke.AddStroke(path, op)

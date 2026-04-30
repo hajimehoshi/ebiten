@@ -122,7 +122,8 @@ func segmentsToImage(segs []opentype.Segment, subpixelOffset fixed.Point26_6, gl
 	// See also https://github.com/go-text/typesetting/issues/122.
 	rast.ClosePath()
 
-	dst := image.NewRGBA(image.Rect(0, 0, w, h))
+	dst := newPooledRGBA(w, h)
+	defer releasePooledRGBA(dst)
 	rast.Draw(dst, dst.Bounds(), image.Opaque, image.Point{})
 	return ebiten.NewImageFromImage(dst)
 }

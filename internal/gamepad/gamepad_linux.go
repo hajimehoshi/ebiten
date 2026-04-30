@@ -377,7 +377,7 @@ func (g *nativeGamepadImpl) update(gamepad *gamepads) error {
 }
 
 func (g *nativeGamepadImpl) pollAbsState() error {
-	for code := 0; code < _ABS_CNT; code++ {
+	for code := range _ABS_CNT {
 		if g.absMap[code] < 0 {
 			continue
 		}

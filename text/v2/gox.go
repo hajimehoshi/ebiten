@@ -231,7 +231,8 @@ func (g *GoXFace) glyphImageImpl(r rune, subpixelOffset fixed.Point26_6, glyphBo
 	w++
 	h++
 
-	rgba := image.NewRGBA(image.Rect(0, 0, w, h))
+	rgba := newPooledRGBA(w, h)
+	defer releasePooledRGBA(rgba)
 
 	d := font.Drawer{
 		Dst:  rgba,

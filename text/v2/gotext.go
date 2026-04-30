@@ -267,7 +267,7 @@ func (g *GoTextFace) gScript() glanguage.Script {
 
 // advance implements Face.
 func (g *GoTextFace) advance(text string) float64 {
-	outputs, _ := g.Source.shape(text, g)
+	outputs := g.Source.shapeOutputs(text, g)
 
 	var a fixed.Int26_6
 	for _, output := range outputs {
