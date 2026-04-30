@@ -555,6 +555,322 @@ func TestPieceTableWriteRangeWriterError(t *testing.T) {
 	}
 }
 
+func TestPieceTableWriteRangeToWithInsertion(t *testing.T) {
+	// "Hello, there!" laid out across multiple pieces.
+	newPT := func() *textinput.PieceTable {
+		var p textinput.PieceTable
+		p.Replace("Hello World", 0, 0)
+		p.Replace(", ", 5, 6)
+		p.Replace("there", 7, 12)
+		p.UpdateByIME(textinput.TextInputState{Text: "!"}, 12, 12)
+		return &p
+	}
+
+	tests := []struct {
+		name        string
+		text        string
+		insertStart int
+		insertEnd   int
+		rangeStart  int
+		rangeEnd    int
+		want        string
+	}{
+		{
+			name:        "no insertion empty text, range matches writeRangeTo",
+			text:        "",
+			insertStart: 5,
+			insertEnd:   5,
+			rangeStart:  0,
+			rangeEnd:    13,
+			want:        "Hello, there!",
+		},
+		{
+			name:        "no insertion empty text, partial range",
+			text:        "",
+			insertStart: 0,
+			insertEnd:   0,
+			rangeStart:  7,
+			rangeEnd:    12,
+			want:        "there",
+		},
+		{
+			name:        "pure insertion, range entirely before",
+			text:        "[XYZ]",
+			insertStart: 7,
+			insertEnd:   7,
+			rangeStart:  0,
+			rangeEnd:    5,
+			want:        "Hello",
+		},
+		{
+			// Rendering: "Hello, [XYZ]there!" length 18.
+			name:        "pure insertion, range entirely after",
+			text:        "[XYZ]",
+			insertStart: 7,
+			insertEnd:   7,
+			rangeStart:  12,
+			rangeEnd:    18,
+			want:        "there!",
+		},
+		{
+			// Rendering: "Hello, [XYZ]there!"; bytes [5, 14) = ", [XYZ]th".
+			name:        "pure insertion, range straddles insertion point",
+			text:        "[XYZ]",
+			insertStart: 7,
+			insertEnd:   7,
+			rangeStart:  5,
+			rangeEnd:    14,
+			want:        ", [XYZ]th",
+		},
+		{
+			// Composition occupies [7, 12); inside is "XYZ" at [8, 11).
+			name:        "pure insertion, range inside composition",
+			text:        "[XYZ]",
+			insertStart: 7,
+			insertEnd:   7,
+			rangeStart:  8,
+			rangeEnd:    11,
+			want:        "XYZ",
+		},
+		{
+			// "ABC" replaces "there"; rendering "Hello, ABC!" length 11; bytes [5, 10) = ", ABC".
+			name:        "replacement (start != end), range straddles",
+			text:        "ABC",
+			insertStart: 7,
+			insertEnd:   12,
+			rangeStart:  5,
+			rangeEnd:    10,
+			want:        ", ABC",
+		},
+		{
+			// Rendering: "Hello, ABCDEF!" length 14; composition occupies [7, 13).
+			name:        "replacement, range entirely inside composition",
+			text:        "ABCDEF",
+			insertStart: 7,
+			insertEnd:   12,
+			rangeStart:  8,
+			rangeEnd:    12,
+			want:        "BCDE",
+		},
+		{
+			// Rendering: "Hello, ABC!" length 11; suffix "!" at [10, 11).
+			name:        "replacement, range entirely after composition",
+			text:        "ABC",
+			insertStart: 7,
+			insertEnd:   12,
+			rangeStart:  10,
+			rangeEnd:    11,
+			want:        "!",
+		},
+		{
+			// Rendering: "Hello, <C>there!" length 16; range [0, 7) = "Hello, ".
+			name:        "range exactly at insertion start boundary",
+			text:        "<C>",
+			insertStart: 7,
+			insertEnd:   7,
+			rangeStart:  0,
+			rangeEnd:    7,
+			want:        "Hello, ",
+		},
+		{
+			// Range [7, 10) = "<C>".
+			name:        "range exactly at insertion end boundary",
+			text:        "<C>",
+			insertStart: 7,
+			insertEnd:   7,
+			rangeStart:  7,
+			rangeEnd:    10,
+			want:        "<C>",
+		},
+		{
+			name:        "empty range",
+			text:        "<C>",
+			insertStart: 7,
+			insertEnd:   7,
+			rangeStart:  5,
+			rangeEnd:    5,
+			want:        "",
+		},
+		{
+			name:        "full range with composition",
+			text:        "<C>",
+			insertStart: 7,
+			insertEnd:   7,
+			rangeStart:  0,
+			rangeEnd:    16,
+			want:        "Hello, <C>there!",
+		},
+		{
+			name:        "negative start clamps to 0",
+			text:        "<C>",
+			insertStart: 7,
+			insertEnd:   7,
+			rangeStart:  -100,
+			rangeEnd:    5,
+			want:        "Hello",
+		},
+		{
+			name:        "end past renderingLength clamps",
+			text:        "<C>",
+			insertStart: 7,
+			insertEnd:   7,
+			rangeStart:  13,
+			rangeEnd:    1000,
+			want:        "re!",
+		},
+		{
+			name:        "start > end yields empty",
+			text:        "<C>",
+			insertStart: 7,
+			insertEnd:   7,
+			rangeStart:  9,
+			rangeEnd:    4,
+			want:        "",
+		},
+		{
+			name:        "start past renderingLength yields empty",
+			text:        "<C>",
+			insertStart: 7,
+			insertEnd:   7,
+			rangeStart:  1000,
+			rangeEnd:    2000,
+			want:        "",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			p := newPT()
+			var b strings.Builder
+			n, err := p.WriteRangeToWithInsertion(&b, tc.text, tc.insertStart, tc.insertEnd, tc.rangeStart, tc.rangeEnd)
+			if err != nil {
+				t.Fatalf("WriteRangeToWithInsertion failed: %v", err)
+			}
+			if got := b.String(); got != tc.want {
+				t.Errorf("got %q, want %q", got, tc.want)
+			}
+			if int(n) != len(tc.want) {
+				t.Errorf("n: got %d, want %d", n, len(tc.want))
+			}
+		})
+	}
+}
+
+func TestPieceTableWriteRangeToWithInsertionEmptyText(t *testing.T) {
+	// When text == "" and insertStart == insertEnd, output must equal writeRangeTo for the same range.
+	var p textinput.PieceTable
+	p.Replace("Hello, World!", 0, 0)
+	p.Replace("there", 7, 12) // fragment
+
+	for start := 0; start <= 13; start++ {
+		for end := start; end <= 13; end++ {
+			var got, want strings.Builder
+			if _, err := p.WriteRangeToWithInsertion(&got, "", 5, 5, start, end); err != nil {
+				t.Fatalf("WriteRangeToWithInsertion(%d, %d) failed: %v", start, end, err)
+			}
+			if _, err := p.WriteRangeTo(&want, start, end); err != nil {
+				t.Fatalf("WriteRangeTo(%d, %d) failed: %v", start, end, err)
+			}
+			if got.String() != want.String() {
+				t.Errorf("range [%d, %d): got %q, want %q", start, end, got.String(), want.String())
+			}
+		}
+	}
+}
+
+func TestPieceTableWriteRangeToWithInsertionRoundTrip(t *testing.T) {
+	// Fragment so traversal exercises piece boundaries.
+	var p textinput.PieceTable
+	p.Replace("Hello World", 0, 0)
+	p.Replace(", ", 5, 6)
+	p.Replace("there", 7, 12)
+	p.UpdateByIME(textinput.TextInputState{Text: "!"}, 12, 12)
+
+	cases := []struct {
+		name        string
+		text        string
+		insertStart int
+		insertEnd   int
+	}{
+		{
+			name:        "no-op",
+			text:        "",
+			insertStart: 0,
+			insertEnd:   0,
+		},
+		{
+			name:        "pure insert at start",
+			text:        "ABC",
+			insertStart: 0,
+			insertEnd:   0,
+		},
+		{
+			name:        "pure insert at end",
+			text:        "ABC",
+			insertStart: 13,
+			insertEnd:   13,
+		},
+		{
+			name:        "pure insert in middle",
+			text:        "ABC",
+			insertStart: 7,
+			insertEnd:   7,
+		},
+		{
+			name:        "replacement",
+			text:        "ABCDEFG",
+			insertStart: 7,
+			insertEnd:   12,
+		},
+		{
+			name:        "pure delete via composition (empty text)",
+			text:        "",
+			insertStart: 7,
+			insertEnd:   12,
+		},
+		{
+			name:        "replace whole text",
+			text:        "X",
+			insertStart: 0,
+			insertEnd:   13,
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			// Build the full reference output via writeToWithInsertion.
+			var ref strings.Builder
+			if _, err := p.WriteToWithInsertion(&ref, c.text, c.insertStart, c.insertEnd); err != nil {
+				t.Fatalf("WriteToWithInsertion failed: %v", err)
+			}
+			full := ref.String()
+			for start := 0; start <= len(full); start++ {
+				for end := start; end <= len(full); end++ {
+					var b strings.Builder
+					if _, err := p.WriteRangeToWithInsertion(&b, c.text, c.insertStart, c.insertEnd, start, end); err != nil {
+						t.Fatalf("WriteRangeToWithInsertion(%q, %d, %d, %d, %d) failed: %v",
+							c.text, c.insertStart, c.insertEnd, start, end, err)
+					}
+					if got, want := b.String(), full[start:end]; got != want {
+						t.Errorf("range [%d, %d): got %q, want %q", start, end, got, want)
+					}
+				}
+			}
+		})
+	}
+}
+
+func TestPieceTableWriteRangeToWithInsertionWriterError(t *testing.T) {
+	var p textinput.PieceTable
+	p.Replace("AAABBB", 0, 0)
+
+	wantErr := io.ErrShortWrite
+	w := &errWriter{err: wantErr, failAfter: 2}
+	if _, err := p.WriteRangeToWithInsertion(w, "XYZ", 3, 3, 0, 9); err != wantErr {
+		t.Errorf("got err %v, want %v", err, wantErr)
+	}
+}
+
 func TestPieceTableUndoRedo(t *testing.T) {
 	var p textinput.PieceTable
 

@@ -427,6 +427,22 @@ func (f *Field) WriteTextForRendering(w io.Writer) error {
 	return nil
 }
 
+// WriteTextForRenderingRange writes the bytes of the rendering text in [startInBytes, endInBytes) to w.
+// Coordinates are in rendering space: the rendering text is the committed text with the active
+// composition (if any) spliced in at the selection.
+//
+// startInBytes and endInBytes are clamped to [0, renderingLength], where renderingLength is
+// TextLengthInBytes() - (selectionEnd - selectionStart) + UncommittedTextLengthInBytes().
+// If the clamped start is not less than the clamped end, nothing is written.
+func (f *Field) WriteTextForRenderingRange(w io.Writer, startInBytes, endInBytes int) error {
+	if f.IsFocused() && f.state.Text != "" {
+		_, err := f.pieceTable.writeRangeToWithInsertion(w, f.state.Text, f.selectionStartInBytes, f.selectionEndInBytes, startInBytes, endInBytes)
+		return err
+	}
+	_, err := f.pieceTable.writeRangeTo(w, startInBytes, endInBytes)
+	return err
+}
+
 // ResetText resets the text.
 // ResetText clears the undo history and initializes it with the specified text.
 func (f *Field) ResetText(text string) {

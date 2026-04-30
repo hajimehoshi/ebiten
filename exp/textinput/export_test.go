@@ -44,6 +44,18 @@ func (p *PieceTable) WriteRangeTo(w io.Writer, start, end int) (int64, error) {
 	return p.writeRangeTo(w, start, end)
 }
 
+func (p *PieceTable) WriteRangeToWithInsertion(w io.Writer, text string, insertStart, insertEnd, rangeStart, rangeEnd int) (int64, error) {
+	return p.writeRangeToWithInsertion(w, text, insertStart, insertEnd, rangeStart, rangeEnd)
+}
+
+func (f *Field) SetCompositionStateForTest(text string, compStart, compEnd int) {
+	f.setState(textInputState{
+		Text:                             text,
+		CompositionSelectionStartInBytes: compStart,
+		CompositionSelectionEndInBytes:   compEnd,
+	})
+}
+
 func (p *PieceTable) Undo() (int, int, bool) {
 	return p.undo()
 }

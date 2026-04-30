@@ -115,6 +115,62 @@ func (p *pieceTable) writeRangeTo(w io.Writer, start, end int) (int64, error) {
 	return n, nil
 }
 
+// writeRangeToWithInsertion writes the bytes of the rendering text in [rangeStart, rangeEnd) to w.
+// The rendering text is the conceptual stream
+//
+//	committed[:insertStart] ++ text ++ committed[insertEnd:]
+//
+// where committed is the current piece-table content. rangeStart and rangeEnd are clamped to
+// [0, renderingLength] where renderingLength = Len() - (insertEnd - insertStart) + len(text).
+// If the clamped start is not less than the clamped end, nothing is written.
+func (p *pieceTable) writeRangeToWithInsertion(w io.Writer, text string, insertStart, insertEnd, rangeStart, rangeEnd int) (int64, error) {
+	pl := p.Len()
+	insertLen := len(text)
+	selLen := insertEnd - insertStart
+	totalLen := pl - selLen + insertLen
+
+	rangeStart = max(rangeStart, 0)
+	rangeEnd = min(rangeEnd, totalLen)
+	if rangeStart >= rangeEnd {
+		return 0, nil
+	}
+
+	var n int64
+
+	// 1. Committed prefix overlap with [rangeStart, rangeEnd).
+	if rangeStart < insertStart {
+		prefixEnd := min(rangeEnd, insertStart)
+		nn, err := p.writeRangeTo(w, rangeStart, prefixEnd)
+		n += nn
+		if err != nil {
+			return n, err
+		}
+	}
+
+	// 2. Composition overlap with [rangeStart, rangeEnd).
+	if ts, te := max(0, rangeStart-insertStart), min(insertLen, rangeEnd-insertStart); ts < te {
+		nn, err := io.WriteString(w, text[ts:te])
+		n += int64(nn)
+		if err != nil {
+			return n, err
+		}
+	}
+
+	// 3. Committed suffix overlap with [rangeStart, rangeEnd).
+	if rangeEnd > insertStart+insertLen {
+		suffixRangeStart := max(rangeStart, insertStart+insertLen)
+		ptStart := suffixRangeStart - insertLen + selLen
+		ptEnd := rangeEnd - insertLen + selLen
+		nn, err := p.writeRangeTo(w, ptStart, ptEnd)
+		n += nn
+		if err != nil {
+			return n, err
+		}
+	}
+
+	return n, nil
+}
+
 func (p *pieceTable) writeToWithInsertion(w io.Writer, text string, start, end int) (int64, error) {
 	var n int64
 	var offset int

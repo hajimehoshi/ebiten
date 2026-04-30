@@ -358,6 +358,156 @@ func TestFieldWriteTextRange(t *testing.T) {
 	}
 }
 
+func TestFieldWriteTextForRenderingRange(t *testing.T) {
+	var f textinput.Field
+	t.Cleanup(func() { f.Blur() })
+	f.Focus()
+	f.ResetText("Hello, World!")
+	// Force the underlying piece table to fragment.
+	f.ReplaceText("Gopher", 7, 12) // "Hello, Gopher!"
+
+	// Without a composition, behavior matches WriteTextRange.
+	committed := f.Text()
+	if committed != "Hello, Gopher!" {
+		t.Fatalf("setup: got %q, want %q", committed, "Hello, Gopher!")
+	}
+	for start := 0; start <= len(committed); start++ {
+		for end := start; end <= len(committed); end++ {
+			var got, want strings.Builder
+			if err := f.WriteTextForRenderingRange(&got, start, end); err != nil {
+				t.Fatalf("WriteTextForRenderingRange(%d, %d) failed: %v", start, end, err)
+			}
+			if err := f.WriteTextRange(&want, start, end); err != nil {
+				t.Fatalf("WriteTextRange(%d, %d) failed: %v", start, end, err)
+			}
+			if got.String() != want.String() {
+				t.Errorf("no composition, range [%d, %d): rendering=%q committed=%q",
+					start, end, got.String(), want.String())
+			}
+		}
+	}
+
+	// With a composition: place the cursor between "Hello, " and "Gopher!" (byte 7),
+	// then start a composition.
+	f.SetSelection(7, 7)
+	f.SetCompositionStateForTest("[ABC]", 0, 5)
+
+	full := f.TextForRendering()
+	if full != "Hello, [ABC]Gopher!" {
+		t.Fatalf("composition setup: got %q, want %q", full, "Hello, [ABC]Gopher!")
+	}
+
+	cases := []struct {
+		name  string
+		start int
+		end   int
+		want  string
+	}{
+		{
+			name:  "before composition",
+			start: 0,
+			end:   5,
+			want:  "Hello",
+		},
+		{
+			name:  "ending at composition start",
+			start: 0,
+			end:   7,
+			want:  "Hello, ",
+		},
+		{
+			name:  "starting at composition start",
+			start: 7,
+			end:   12,
+			want:  "[ABC]",
+		},
+		{
+			name:  "straddling composition start",
+			start: 5,
+			end:   10,
+			want:  ", [AB",
+		},
+		{
+			name:  "inside composition",
+			start: 8,
+			end:   11,
+			want:  "ABC",
+		},
+		{
+			name:  "straddling composition end",
+			start: 10,
+			end:   15,
+			want:  "C]Gop",
+		},
+		{
+			name:  "after composition",
+			start: 12,
+			end:   18,
+			want:  "Gopher",
+		},
+		{
+			name:  "full rendering",
+			start: 0,
+			end:   len(full),
+			want:  full,
+		},
+		{
+			name:  "empty range",
+			start: 9,
+			end:   9,
+			want:  "",
+		},
+		{
+			name:  "clamp negative start",
+			start: -10,
+			end:   7,
+			want:  "Hello, ",
+		},
+		{
+			name:  "clamp end past rendering length",
+			start: 12,
+			end:   1000,
+			want:  "Gopher!",
+		},
+		{
+			name:  "start > end",
+			start: 12,
+			end:   4,
+			want:  "",
+		},
+		{
+			name:  "start past rendering length",
+			start: 1000,
+			end:   2000,
+			want:  "",
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			var b strings.Builder
+			if err := f.WriteTextForRenderingRange(&b, c.start, c.end); err != nil {
+				t.Fatalf("WriteTextForRenderingRange failed: %v", err)
+			}
+			if got := b.String(); got != c.want {
+				t.Errorf("got %q, want %q", got, c.want)
+			}
+		})
+	}
+
+	// Round-trip: every (start, end) in the rendering buffer matches TextForRendering()[start:end].
+	for start := 0; start <= len(full); start++ {
+		for end := start; end <= len(full); end++ {
+			var b strings.Builder
+			if err := f.WriteTextForRenderingRange(&b, start, end); err != nil {
+				t.Fatalf("WriteTextForRenderingRange(%d, %d) failed: %v", start, end, err)
+			}
+			if got, want := b.String(), full[start:end]; got != want {
+				t.Errorf("range [%d, %d): got %q, want %q", start, end, got, want)
+			}
+		}
+	}
+}
+
 func TestFieldChangedAtStolenFocusAdvancesPreviousField(t *testing.T) {
 	var a, b textinput.Field
 	t.Cleanup(func() {
