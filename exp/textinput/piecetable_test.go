@@ -15,6 +15,7 @@
 package textinput_test
 
 import (
+	"io"
 	"strings"
 	"testing"
 
@@ -226,6 +227,331 @@ func TestPieceTableWriteToWithInsertion(t *testing.T) {
 				t.Errorf("piece table modified: got %q, want %q", got, tc.init)
 			}
 		})
+	}
+}
+
+func TestPieceTableWriteRangeTo(t *testing.T) {
+	// Build a fragmented piece table by replacing in the middle and via IME insertions
+	// at different positions. The piece table should now have multiple items.
+	var p textinput.PieceTable
+	p.Replace("Hello World", 0, 0)
+	p.Replace(", ", 5, 6)                                      // "Hello, World"
+	p.Replace("there", 7, 12)                                  // "Hello, there"
+	p.UpdateByIME(textinput.TextInputState{Text: "!"}, 12, 12) // "Hello, there!"
+
+	const full = "Hello, there!"
+
+	// Sanity check the setup.
+	{
+		var b strings.Builder
+		if _, err := p.WriteTo(&b); err != nil {
+			t.Fatalf("WriteTo failed: %v", err)
+		}
+		if got := b.String(); got != full {
+			t.Fatalf("setup: got %q, want %q", got, full)
+		}
+	}
+
+	tests := []struct {
+		name  string
+		start int
+		end   int
+		want  string
+	}{
+		{
+			name:  "whole range",
+			start: 0,
+			end:   len(full),
+			want:  full,
+		},
+		{
+			name:  "empty range in middle",
+			start: 5,
+			end:   5,
+			want:  "",
+		},
+		{
+			name:  "empty range at start",
+			start: 0,
+			end:   0,
+			want:  "",
+		},
+		{
+			name:  "empty range at end",
+			start: len(full),
+			end:   len(full),
+			want:  "",
+		},
+		{
+			name:  "start > end",
+			start: 8,
+			end:   3,
+			want:  "",
+		},
+		{
+			name:  "prefix",
+			start: 0,
+			end:   5,
+			want:  "Hello",
+		},
+		{
+			name:  "suffix",
+			start: 7,
+			end:   len(full),
+			want:  "there!",
+		},
+		{
+			name:  "single character",
+			start: 0,
+			end:   1,
+			want:  "H",
+		},
+		{
+			name:  "clamp negative start",
+			start: -10,
+			end:   5,
+			want:  "Hello",
+		},
+		{
+			name:  "clamp end past length",
+			start: 7,
+			end:   1000,
+			want:  "there!",
+		},
+		{
+			name:  "clamp both ends",
+			start: -1,
+			end:   len(full) + 100,
+			want:  full,
+		},
+		{
+			name:  "start past length",
+			start: len(full) + 5,
+			end:   len(full) + 10,
+			want:  "",
+		},
+		{
+			name:  "both past length",
+			start: len(full) + 1,
+			end:   len(full) + 2,
+			want:  "",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			var b strings.Builder
+			n, err := p.WriteRangeTo(&b, tc.start, tc.end)
+			if err != nil {
+				t.Fatalf("WriteRangeTo failed: %v", err)
+			}
+			if got := b.String(); got != tc.want {
+				t.Errorf("got %q, want %q", got, tc.want)
+			}
+			if int(n) != len(tc.want) {
+				t.Errorf("n: got %d, want %d", n, len(tc.want))
+			}
+		})
+	}
+}
+
+func TestPieceTableWriteRangeRoundTrip(t *testing.T) {
+	// Fragment the piece table so the round-trip exercises piece boundaries.
+	var p textinput.PieceTable
+	p.Replace("Hello World", 0, 0)
+	p.Replace(", ", 5, 6)
+	p.Replace("there", 7, 12)
+	p.UpdateByIME(textinput.TextInputState{Text: "!"}, 12, 12)
+	p.UpdateByIME(textinput.TextInputState{Text: "?"}, 13, 13)
+
+	var ref strings.Builder
+	if _, err := p.WriteTo(&ref); err != nil {
+		t.Fatalf("WriteTo failed: %v", err)
+	}
+	full := ref.String()
+
+	for start := 0; start <= len(full); start++ {
+		for end := start; end <= len(full); end++ {
+			var b strings.Builder
+			if _, err := p.WriteRangeTo(&b, start, end); err != nil {
+				t.Fatalf("WriteRangeTo(%d, %d) failed: %v", start, end, err)
+			}
+			if got, want := b.String(), full[start:end]; got != want {
+				t.Errorf("range [%d, %d): got %q, want %q", start, end, got, want)
+			}
+		}
+	}
+}
+
+func TestPieceTableWriteRangePieceBoundaries(t *testing.T) {
+	// Construct a piece table with known piece boundaries.
+	// After these operations, the piece table fragments into multiple items at
+	// well-defined byte offsets.
+	var p textinput.PieceTable
+	p.Replace("AAA", 0, 0)
+	p.Replace("BBB", 3, 3) // "AAABBB" - new piece starting at byte 3
+	p.Replace("CCC", 6, 6) // "AAABBBCCC" - new piece starting at byte 6
+
+	const full = "AAABBBCCC"
+	{
+		var b strings.Builder
+		if _, err := p.WriteTo(&b); err != nil {
+			t.Fatalf("WriteTo failed: %v", err)
+		}
+		if got := b.String(); got != full {
+			t.Fatalf("setup: got %q, want %q", got, full)
+		}
+	}
+
+	// Read at the known piece boundaries.
+	tests := []struct {
+		name  string
+		start int
+		end   int
+		want  string
+	}{
+		{
+			name:  "first piece exactly",
+			start: 0,
+			end:   3,
+			want:  "AAA",
+		},
+		{
+			name:  "second piece exactly",
+			start: 3,
+			end:   6,
+			want:  "BBB",
+		},
+		{
+			name:  "third piece exactly",
+			start: 6,
+			end:   9,
+			want:  "CCC",
+		},
+		{
+			name:  "start at boundary, span two pieces",
+			start: 3,
+			end:   9,
+			want:  "BBBCCC",
+		},
+		{
+			name:  "end at boundary, span two pieces",
+			start: 0,
+			end:   6,
+			want:  "AAABBB",
+		},
+		{
+			name:  "cross seam mid-pieces",
+			start: 1,
+			end:   8,
+			want:  "AABBBCC",
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			var b strings.Builder
+			if _, err := p.WriteRangeTo(&b, tc.start, tc.end); err != nil {
+				t.Fatalf("WriteRangeTo failed: %v", err)
+			}
+			if got := b.String(); got != tc.want {
+				t.Errorf("got %q, want %q", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestPieceTableWriteRangeEmpty(t *testing.T) {
+	var p textinput.PieceTable
+
+	// Zero-length text: any range should return empty.
+	for _, r := range []struct {
+		start int
+		end   int
+	}{
+		{
+			start: 0,
+			end:   0,
+		},
+		{
+			start: -5,
+			end:   5,
+		},
+		{
+			start: 0,
+			end:   100,
+		},
+	} {
+		var b strings.Builder
+		if _, err := p.WriteRangeTo(&b, r.start, r.end); err != nil {
+			t.Fatalf("WriteRangeTo(%d, %d) failed: %v", r.start, r.end, err)
+		}
+		if got := b.String(); got != "" {
+			t.Errorf("range [%d, %d) on empty: got %q, want %q", r.start, r.end, got, "")
+		}
+	}
+}
+
+func TestPieceTableWriteRangeAfterUndoRedo(t *testing.T) {
+	var p textinput.PieceTable
+	p.Replace("Hello", 0, 0)
+	p.Replace(", World", 5, 5) // "Hello, World"
+
+	check := func(start, end int, want string) {
+		t.Helper()
+		var b strings.Builder
+		if _, err := p.WriteRangeTo(&b, start, end); err != nil {
+			t.Fatalf("WriteRangeTo failed: %v", err)
+		}
+		if got := b.String(); got != want {
+			t.Errorf("range [%d, %d): got %q, want %q", start, end, got, want)
+		}
+	}
+
+	// Current state: "Hello, World"
+	check(0, 12, "Hello, World")
+	check(7, 12, "World")
+
+	// Undo back to "Hello".
+	if _, _, ok := p.Undo(); !ok {
+		t.Fatal("Undo failed")
+	}
+	check(0, 5, "Hello")
+	// End past current length must clamp to current Len, not stale state.
+	check(0, 100, "Hello")
+	// A range valid in the prior state must not leak old bytes.
+	check(7, 12, "")
+
+	// Redo back to "Hello, World".
+	if _, _, ok := p.Redo(); !ok {
+		t.Fatal("Redo failed")
+	}
+	check(0, 12, "Hello, World")
+	check(7, 12, "World")
+}
+
+type errWriter struct {
+	err       error
+	failAfter int
+	written   int
+}
+
+func (e *errWriter) Write(b []byte) (int, error) {
+	if e.written >= e.failAfter {
+		return 0, e.err
+	}
+	e.written += len(b)
+	return len(b), nil
+}
+
+func TestPieceTableWriteRangeWriterError(t *testing.T) {
+	var p textinput.PieceTable
+	p.Replace("AAA", 0, 0)
+	p.Replace("BBB", 3, 3)
+
+	wantErr := io.ErrShortWrite
+	w := &errWriter{err: wantErr, failAfter: 2}
+	if _, err := p.WriteRangeTo(w, 0, 6); err != wantErr {
+		t.Errorf("got err %v, want %v", err, wantErr)
 	}
 }
 

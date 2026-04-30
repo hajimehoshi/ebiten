@@ -407,6 +407,15 @@ func (f *Field) WriteText(w io.Writer) error {
 	return err
 }
 
+// WriteTextRange writes the bytes of the current text in [startInBytes, endInBytes) to w.
+// startInBytes and endInBytes are clamped to [0, TextLengthInBytes()].
+// If the clamped start is not less than the clamped end, nothing is written.
+// The written text doesn't include compositing texts.
+func (f *Field) WriteTextRange(w io.Writer, startInBytes, endInBytes int) error {
+	_, err := f.pieceTable.writeRangeTo(w, startInBytes, endInBytes)
+	return err
+}
+
 // WriteTextForRendering writes the text for rendering to w.
 // The written text includes compositing texts.
 func (f *Field) WriteTextForRendering(w io.Writer) error {

@@ -75,6 +75,46 @@ func (p *pieceTable) WriteTo(w io.Writer) (int64, error) {
 	return n, nil
 }
 
+// writeRangeTo writes the bytes of the current text in [start, end) to w.
+// start and end are clamped to [0, Len()]; if start >= end after clamping, nothing is written.
+func (p *pieceTable) writeRangeTo(w io.Writer, start, end int) (int64, error) {
+	l := p.Len()
+	start = max(start, 0)
+	end = min(end, l)
+	if start >= end {
+		return 0, nil
+	}
+
+	var n int64
+	var offset int
+	items := p.items()
+	for i := range items {
+		item := &items[i]
+		itemLen := item.end - item.start
+		itemEnd := offset + itemLen
+
+		if itemEnd <= start {
+			offset = itemEnd
+			continue
+		}
+		if offset >= end {
+			break
+		}
+
+		readStart := item.start + max(start-offset, 0)
+		readEnd := item.start + min(end-offset, itemLen)
+
+		nn, err := w.Write(p.table[readStart:readEnd])
+		n += int64(nn)
+		if err != nil {
+			return n, err
+		}
+
+		offset = itemEnd
+	}
+	return n, nil
+}
+
 func (p *pieceTable) writeToWithInsertion(w io.Writer, text string, start, end int) (int64, error) {
 	var n int64
 	var offset int

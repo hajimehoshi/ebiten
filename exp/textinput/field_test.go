@@ -238,9 +238,123 @@ func TestFieldChangedAtReadOnlyMethodsDoNotAdvance(t *testing.T) {
 	_ = f.WriteText(&b)
 	b.Reset()
 	_ = f.WriteTextForRendering(&b)
+	b.Reset()
+	_ = f.WriteTextRange(&b, 0, f.TextLengthInBytes())
 
 	if got := f.ChangedAt(); !got.Equal(prior) {
 		t.Errorf("read-only methods advanced ChangedAt: before=%v after=%v", prior, got)
+	}
+}
+
+func TestFieldWriteTextRange(t *testing.T) {
+	var f textinput.Field
+	t.Cleanup(func() { f.Blur() })
+	f.Focus()
+	f.ResetText("Hello, World!")
+	// Force the underlying piece table to fragment.
+	f.ReplaceText("Gopher", 7, 12) // "Hello, Gopher!"
+
+	full := f.Text()
+	if full != "Hello, Gopher!" {
+		t.Fatalf("setup: got %q, want %q", full, "Hello, Gopher!")
+	}
+
+	cases := []struct {
+		name  string
+		start int
+		end   int
+		want  string
+	}{
+		{
+			name:  "prefix",
+			start: 0,
+			end:   5,
+			want:  "Hello",
+		},
+		{
+			name:  "middle (post-fragmentation)",
+			start: 7,
+			end:   13,
+			want:  "Gopher",
+		},
+		{
+			name:  "whole",
+			start: 0,
+			end:   len(full),
+			want:  full,
+		},
+		{
+			name:  "empty",
+			start: 5,
+			end:   5,
+			want:  "",
+		},
+		{
+			name:  "clamp negative start",
+			start: -5,
+			end:   5,
+			want:  "Hello",
+		},
+		{
+			name:  "clamp end past length",
+			start: 7,
+			end:   1000,
+			want:  "Gopher!",
+		},
+		{
+			name:  "start > end",
+			start: 8,
+			end:   3,
+			want:  "",
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			var b strings.Builder
+			if err := f.WriteTextRange(&b, c.start, c.end); err != nil {
+				t.Fatalf("WriteTextRange failed: %v", err)
+			}
+			if got := b.String(); got != c.want {
+				t.Errorf("got %q, want %q", got, c.want)
+			}
+		})
+	}
+
+	// Round-trip: every (start, end) in the buffer matches Text()[start:end].
+	for start := 0; start <= len(full); start++ {
+		for end := start; end <= len(full); end++ {
+			var b strings.Builder
+			if err := f.WriteTextRange(&b, start, end); err != nil {
+				t.Fatalf("WriteTextRange(%d, %d) failed: %v", start, end, err)
+			}
+			if got, want := b.String(), full[start:end]; got != want {
+				t.Errorf("range [%d, %d): got %q, want %q", start, end, got, want)
+			}
+		}
+	}
+
+	// After Undo, the range must reflect the prior text, not stale data.
+	f.Undo()
+	prior := f.Text()
+	if prior != "Hello, World!" {
+		t.Fatalf("after Undo: got %q, want %q", prior, "Hello, World!")
+	}
+	var b strings.Builder
+	if err := f.WriteTextRange(&b, 7, 12); err != nil {
+		t.Fatalf("WriteTextRange after Undo: %v", err)
+	}
+	if got := b.String(); got != "World" {
+		t.Errorf("after Undo, range [7, 12): got %q, want %q", got, "World")
+	}
+
+	// Empty buffer.
+	f.ResetText("")
+	b.Reset()
+	if err := f.WriteTextRange(&b, 0, 100); err != nil {
+		t.Fatalf("WriteTextRange on empty: %v", err)
+	}
+	if got := b.String(); got != "" {
+		t.Errorf("empty buffer: got %q, want %q", got, "")
 	}
 }
 

@@ -40,6 +40,10 @@ func (p *PieceTable) WriteToWithInsertion(w io.Writer, text string, start, end i
 	return p.writeToWithInsertion(w, text, start, end)
 }
 
+func (p *PieceTable) WriteRangeTo(w io.Writer, start, end int) (int64, error) {
+	return p.writeRangeTo(w, start, end)
+}
+
 func (p *PieceTable) Undo() (int, int, bool) {
 	return p.undo()
 }
