@@ -22,14 +22,17 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/exp/textinput"
 )
 
-func TestFieldChangedAtZeroValue(t *testing.T) {
+func TestFieldGenerationZeroValue(t *testing.T) {
 	var f textinput.Field
+	if got := f.Generation(); got != 0 {
+		t.Errorf("fresh Field: Generation() = %d, want 0", got)
+	}
 	if got := f.ChangedAt(); !got.IsZero() {
 		t.Errorf("fresh Field: ChangedAt() = %v, want zero value", got)
 	}
 }
 
-func TestFieldChangedAtAdvancesOnMutations(t *testing.T) {
+func TestFieldGenerationAdvancesOnContentChanges(t *testing.T) {
 	testCases := []struct {
 		name   string
 		setup  func(*textinput.Field)
@@ -69,31 +72,6 @@ func TestFieldChangedAtAdvancesOnMutations(t *testing.T) {
 			},
 		},
 		{
-			name: "SetSelection",
-			setup: func(f *textinput.Field) {
-				f.ResetText("hello")
-			},
-			mutate: func(f *textinput.Field) {
-				f.SetSelection(1, 3)
-			},
-		},
-		{
-			name:  "Focus",
-			setup: func(f *textinput.Field) {},
-			mutate: func(f *textinput.Field) {
-				f.Focus()
-			},
-		},
-		{
-			name: "Blur",
-			setup: func(f *textinput.Field) {
-				f.Focus()
-			},
-			mutate: func(f *textinput.Field) {
-				f.Blur()
-			},
-		},
-		{
 			name: "Undo",
 			setup: func(f *textinput.Field) {
 				f.ResetText("hello")
@@ -120,17 +98,106 @@ func TestFieldChangedAtAdvancesOnMutations(t *testing.T) {
 			var f textinput.Field
 			t.Cleanup(func() { f.Blur() })
 			tc.setup(&f)
-			before := f.ChangedAt()
+			beforeGen := f.Generation()
+			beforeAt := f.ChangedAt()
 			tc.mutate(&f)
-			after := f.ChangedAt()
-			if !after.After(before) {
-				t.Errorf("%s: ChangedAt did not advance: before=%v after=%v", tc.name, before, after)
+			if afterGen := f.Generation(); afterGen <= beforeGen {
+				t.Errorf("%s: Generation did not advance: before=%d after=%d", tc.name, beforeGen, afterGen)
+			}
+			if afterAt := f.ChangedAt(); !afterAt.After(beforeAt) {
+				t.Errorf("%s: ChangedAt did not advance: before=%v after=%v", tc.name, beforeAt, afterAt)
 			}
 		})
 	}
 }
 
-func TestFieldChangedAtNoOpDoesNotAdvance(t *testing.T) {
+// Selection and focus changes advance ChangedAt (legacy contract) but not Generation
+// (new content-only contract).
+func TestFieldNonContentChangesAdvanceOnlyChangedAt(t *testing.T) {
+	testCases := []struct {
+		name   string
+		setup  func(*textinput.Field)
+		mutate func(*textinput.Field)
+	}{
+		{
+			name: "SetSelection",
+			setup: func(f *textinput.Field) {
+				f.ResetText("hello")
+			},
+			mutate: func(f *textinput.Field) {
+				f.SetSelection(1, 3)
+			},
+		},
+		{
+			name:  "Focus",
+			setup: func(f *textinput.Field) {},
+			mutate: func(f *textinput.Field) {
+				f.Focus()
+			},
+		},
+		{
+			name: "Blur",
+			setup: func(f *textinput.Field) {
+				f.Focus()
+			},
+			mutate: func(f *textinput.Field) {
+				f.Blur()
+			},
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			var f textinput.Field
+			t.Cleanup(func() { f.Blur() })
+			tc.setup(&f)
+			beforeGen := f.Generation()
+			beforeAt := f.ChangedAt()
+			tc.mutate(&f)
+			if afterGen := f.Generation(); afterGen != beforeGen {
+				t.Errorf("%s: Generation advanced on non-content change: before=%d after=%d", tc.name, beforeGen, afterGen)
+			}
+			if afterAt := f.ChangedAt(); !afterAt.After(beforeAt) {
+				t.Errorf("%s: ChangedAt did not advance: before=%v after=%v", tc.name, beforeAt, afterAt)
+			}
+		})
+	}
+}
+
+func TestFieldChangedAtStolenFocusAdvancesPreviousField(t *testing.T) {
+	var a, b textinput.Field
+	t.Cleanup(func() {
+		a.Blur()
+		b.Blur()
+	})
+	a.Focus()
+	before := a.ChangedAt()
+	b.Focus() // steals focus from a
+	if !a.ChangedAt().After(before) {
+		t.Errorf("a.ChangedAt did not advance when b stole focus: before=%v after=%v", before, a.ChangedAt())
+	}
+	if a.IsFocused() {
+		t.Errorf("a should no longer be focused")
+	}
+	if !b.IsFocused() {
+		t.Errorf("b should be focused")
+	}
+}
+
+func TestFieldGenerationStolenFocusDoesNotAdvancePreviousField(t *testing.T) {
+	var a, b textinput.Field
+	t.Cleanup(func() {
+		a.Blur()
+		b.Blur()
+	})
+	a.Focus()
+	before := a.Generation()
+	b.Focus() // steals focus from a
+	if got := a.Generation(); got != before {
+		t.Errorf("a.Generation advanced when b stole focus: before=%d after=%d", before, got)
+	}
+}
+
+func TestFieldGenerationNoOpDoesNotAdvance(t *testing.T) {
 	testCases := []struct {
 		name   string
 		setup  func(*textinput.Field)
@@ -204,24 +271,28 @@ func TestFieldChangedAtNoOpDoesNotAdvance(t *testing.T) {
 			var f textinput.Field
 			t.Cleanup(func() { f.Blur() })
 			tc.setup(&f)
-			before := f.ChangedAt()
+			beforeGen := f.Generation()
+			beforeAt := f.ChangedAt()
 			tc.mutate(&f)
-			after := f.ChangedAt()
-			if !after.Equal(before) {
-				t.Errorf("%s: ChangedAt advanced on no-op: before=%v after=%v", tc.name, before, after)
+			if afterGen := f.Generation(); afterGen != beforeGen {
+				t.Errorf("%s: Generation advanced on no-op: before=%d after=%d", tc.name, beforeGen, afterGen)
+			}
+			if afterAt := f.ChangedAt(); !afterAt.Equal(beforeAt) {
+				t.Errorf("%s: ChangedAt advanced on no-op: before=%v after=%v", tc.name, beforeAt, afterAt)
 			}
 		})
 	}
 }
 
-func TestFieldChangedAtReadOnlyMethodsDoNotAdvance(t *testing.T) {
+func TestFieldGenerationReadOnlyMethodsDoNotAdvance(t *testing.T) {
 	var f textinput.Field
 	t.Cleanup(func() { f.Blur() })
 	f.ResetText("hello")
 	f.SetSelection(1, 3)
 	f.Focus()
 
-	prior := f.ChangedAt()
+	priorGen := f.Generation()
+	priorAt := f.ChangedAt()
 
 	_ = f.Text()
 	_ = f.TextForRendering()
@@ -241,8 +312,11 @@ func TestFieldChangedAtReadOnlyMethodsDoNotAdvance(t *testing.T) {
 	b.Reset()
 	_ = f.WriteTextRange(&b, 0, f.TextLengthInBytes())
 
-	if got := f.ChangedAt(); !got.Equal(prior) {
-		t.Errorf("read-only methods advanced ChangedAt: before=%v after=%v", prior, got)
+	if got := f.Generation(); got != priorGen {
+		t.Errorf("read-only methods advanced Generation: before=%d after=%d", priorGen, got)
+	}
+	if got := f.ChangedAt(); !got.Equal(priorAt) {
+		t.Errorf("read-only methods advanced ChangedAt: before=%v after=%v", priorAt, got)
 	}
 }
 
@@ -505,26 +579,6 @@ func TestFieldWriteTextForRenderingRange(t *testing.T) {
 				t.Errorf("range [%d, %d): got %q, want %q", start, end, got, want)
 			}
 		}
-	}
-}
-
-func TestFieldChangedAtStolenFocusAdvancesPreviousField(t *testing.T) {
-	var a, b textinput.Field
-	t.Cleanup(func() {
-		a.Blur()
-		b.Blur()
-	})
-	a.Focus()
-	before := a.ChangedAt()
-	b.Focus() // steals focus from a
-	if !a.ChangedAt().After(before) {
-		t.Errorf("a.ChangedAt did not advance when b stole focus: before=%v after=%v", before, a.ChangedAt())
-	}
-	if a.IsFocused() {
-		t.Errorf("a should no longer be focused")
-	}
-	if !b.IsFocused() {
-		t.Errorf("b should be focused")
 	}
 }
 

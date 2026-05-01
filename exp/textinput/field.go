@@ -131,20 +131,39 @@ type Field struct {
 	state textInputState
 	err   error
 
-	changedAt time.Time
+	generation int64
+	changedAt  time.Time
 }
 
-// ChangedAt returns the time of the most recent state-changing mutation to this Field.
+// Generation returns a counter that advances when the field's renderable content changes.
 //
-// ChangedAt is monotonically non-decreasing across mutations of this Field, suitable for
-// cache invalidation and similar change-detection use cases (autosave throttling, idle
-// detection, debouncing, etc.). The zero value indicates that no mutation has occurred.
+// "Renderable content" is the text returned by [Field.WriteTextForRendering]: the
+// committed text plus any active IME composition. Selection-only changes and focus
+// changes do not advance Generation.
+//
+// Generation is monotonically non-decreasing and is suitable as a cache key for
+// derivations of the renderable content. The zero value indicates that no
+// content-changing mutation has occurred.
+func (f *Field) Generation() int64 {
+	return f.generation
+}
+
+// ChangedAt returns the time of the most recent state-changing mutation.
+//
+// ChangedAt is monotonically non-decreasing and advances on any observable state
+// change, including selection-only changes and focus changes. The zero value
+// indicates that no mutation has occurred.
+//
+// Deprecated: Use [Field.Generation] instead. Generation has stricter content-only
+// semantics (better suited for cache invalidation) and does not depend on the
+// system clock.
 func (f *Field) ChangedAt() time.Time {
 	return f.changedAt
 }
 
-// bumpChangedAt advances changedAt to the current time, guaranteeing strict monotonic
-// increase across back-to-back synchronous calls even on platforms with a coarse clock.
+// bumpChangedAt advances changedAt only. Used for state changes that are not content
+// changes (focus, selection). changedAt is forced strictly after its previous value
+// to keep equality checks meaningful even on platforms with a coarse clock.
 func (f *Field) bumpChangedAt() {
 	now := time.Now()
 	if !now.After(f.changedAt) {
@@ -153,7 +172,14 @@ func (f *Field) bumpChangedAt() {
 	f.changedAt = now
 }
 
-// setState assigns s to f.state, bumping changedAt when the visible composition state changes.
+// bumpGeneration advances generation, and also bumps changedAt for the deprecated
+// [Field.ChangedAt] API. Used for content changes.
+func (f *Field) bumpGeneration() {
+	f.generation++
+	f.bumpChangedAt()
+}
+
+// setState assigns s to f.state, bumping generation when the visible composition state changes.
 //
 // Only the fields observable through the public API (Text and the composition selection)
 // are compared. The remaining fields (Committed/Delete*/Error) are transient IME signaling,
@@ -164,7 +190,7 @@ func (f *Field) setState(s textInputState) {
 		f.state.CompositionSelectionEndInBytes != s.CompositionSelectionEndInBytes
 	f.state = s
 	if changed {
-		f.bumpChangedAt()
+		f.bumpGeneration()
 	}
 }
 
@@ -290,7 +316,7 @@ func (f *Field) commit(state textInputState) {
 	f.selectionStartInBytes = start + len(state.Text)
 	f.selectionEndInBytes = f.selectionStartInBytes
 	f.state = textInputState{}
-	f.bumpChangedAt()
+	f.bumpGeneration()
 }
 
 // Focus focuses the field.
@@ -450,7 +476,7 @@ func (f *Field) ResetText(text string) {
 	f.pieceTable.reset(text)
 	f.selectionStartInBytes = 0
 	f.selectionEndInBytes = 0
-	f.bumpChangedAt()
+	f.bumpGeneration()
 }
 
 // UncommittedTextLengthInBytes returns the compositing text length in bytes when the field is focused and the text is editing.
@@ -471,7 +497,7 @@ func (f *Field) SetTextAndSelection(text string, selectionStartInBytes, selectio
 	f.pieceTable.replace(text, 0, l)
 	f.selectionStartInBytes = min(max(selectionStartInBytes, 0), l)
 	f.selectionEndInBytes = min(max(selectionEndInBytes, 0), l)
-	f.bumpChangedAt()
+	f.bumpGeneration()
 }
 
 // ReplaceText replaces the text at the specified range and updates the selection range.
@@ -485,7 +511,7 @@ func (f *Field) ReplaceText(text string, startInBytes, endInBytes int) {
 	f.pieceTable.replace(text, startInBytes, endInBytes)
 	f.selectionStartInBytes = startInBytes + len(text)
 	f.selectionEndInBytes = f.selectionStartInBytes
-	f.bumpChangedAt()
+	f.bumpGeneration()
 }
 
 // ReplaceTextAtSelection replaces the text at the selection range and updates the selection range.
@@ -514,7 +540,7 @@ func (f *Field) Undo() {
 	}
 	f.selectionStartInBytes = start
 	f.selectionEndInBytes = end
-	f.bumpChangedAt()
+	f.bumpGeneration()
 }
 
 // Redo redoes the last undone operation.
@@ -527,5 +553,5 @@ func (f *Field) Redo() {
 	}
 	f.selectionStartInBytes = start
 	f.selectionEndInBytes = end
-	f.bumpChangedAt()
+	f.bumpGeneration()
 }
