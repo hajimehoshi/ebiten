@@ -1488,3 +1488,81 @@ func TestPieceTableResetInMiddle(t *testing.T) {
 	}
 	check("qux")
 }
+
+// errReader yields data and then returns err on the next Read.
+type errReader struct {
+	data []byte
+	err  error
+}
+
+func (r *errReader) Read(p []byte) (int, error) {
+	if len(r.data) == 0 {
+		return 0, r.err
+	}
+	n := copy(p, r.data)
+	r.data = r.data[n:]
+	return n, nil
+}
+
+func TestPieceTableReadFrom(t *testing.T) {
+	check := func(t *testing.T, p *textinput.PieceTable, want string) {
+		t.Helper()
+		var b strings.Builder
+		if _, err := p.WriteTo(&b); err != nil {
+			t.Fatalf("WriteTo failed: %v", err)
+		}
+		if got := b.String(); got != want {
+			t.Errorf("got %q, want %q", got, want)
+		}
+	}
+
+	t.Run("empty", func(t *testing.T) {
+		var p textinput.PieceTable
+		if err := p.ReadFrom(strings.NewReader("")); err != nil {
+			t.Fatalf("ReadFrom failed: %v", err)
+		}
+		check(t, &p, "")
+	})
+
+	t.Run("short", func(t *testing.T) {
+		var p textinput.PieceTable
+		if err := p.ReadFrom(strings.NewReader("hello")); err != nil {
+			t.Fatalf("ReadFrom failed: %v", err)
+		}
+		check(t, &p, "hello")
+	})
+
+	t.Run("longerThanMinRead", func(t *testing.T) {
+		// Larger than the 512-byte minRead to exercise the grow path.
+		want := strings.Repeat("abcdefgh", 200)
+		var p textinput.PieceTable
+		if err := p.ReadFrom(strings.NewReader(want)); err != nil {
+			t.Fatalf("ReadFrom failed: %v", err)
+		}
+		check(t, &p, want)
+	})
+
+	t.Run("replacesExistingContent", func(t *testing.T) {
+		var p textinput.PieceTable
+		p.Replace("old content here", 0, 0)
+		if err := p.ReadFrom(strings.NewReader("new")); err != nil {
+			t.Fatalf("ReadFrom failed: %v", err)
+		}
+		check(t, &p, "new")
+		// History is reset: undo should not restore the previous text.
+		if _, _, ok := p.Undo(); ok {
+			t.Errorf("Undo should fail after ReadFrom")
+		}
+	})
+
+	t.Run("readerError", func(t *testing.T) {
+		var p textinput.PieceTable
+		p.Reset("kept")
+		wantErr := io.ErrUnexpectedEOF
+		err := p.ReadFrom(&errReader{data: []byte("partial"), err: wantErr})
+		if err != wantErr {
+			t.Errorf("ReadFrom error: got %v, want %v", err, wantErr)
+		}
+		check(t, &p, "")
+	})
+}

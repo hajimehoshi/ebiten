@@ -508,6 +508,21 @@ func (f *Field) ResetText(text string) {
 	f.bumpGeneration()
 }
 
+// ReadTextFrom resets the text by reading bytes from r until EOF.
+// ReadTextFrom clears the undo history and initializes it with the read text.
+//
+// The bytes read from r must be valid UTF-8. Validation is the caller's responsibility.
+//
+// If r returns a non-EOF error, the field's text is reset to empty and the error is returned.
+func (f *Field) ReadTextFrom(r io.Reader) error {
+	f.cleanUp()
+	err := f.pieceTable.readFrom(r)
+	f.selectionStartInBytes = 0
+	f.selectionEndInBytes = 0
+	f.bumpGeneration()
+	return err
+}
+
 // UncommittedTextLengthInBytes returns the compositing text length in bytes when the field is focused and the text is editing.
 // The uncommitted text range is from the selection start to the selection start + the uncommitted text length.
 // UncommittedTextLengthInBytes returns 0 otherwise.

@@ -15,6 +15,7 @@
 package textinput_test
 
 import (
+	"errors"
 	"strings"
 	"testing"
 	"time"
@@ -43,6 +44,13 @@ func TestFieldGenerationAdvancesOnContentChanges(t *testing.T) {
 			setup: func(f *textinput.Field) {},
 			mutate: func(f *textinput.Field) {
 				f.ResetText("hello")
+			},
+		},
+		{
+			name:  "ReadTextFrom",
+			setup: func(f *textinput.Field) {},
+			mutate: func(f *textinput.Field) {
+				_ = f.ReadTextFrom(strings.NewReader("hello"))
 			},
 		},
 		{
@@ -580,6 +588,69 @@ func TestFieldWriteTextForRenderingRangeTo(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestFieldReadTextFrom(t *testing.T) {
+	t.Run("setsTextAndResetsSelection", func(t *testing.T) {
+		var f textinput.Field
+		t.Cleanup(func() { f.Blur() })
+		f.ResetText("old text here")
+		f.SetSelection(2, 5)
+
+		if err := f.ReadTextFrom(strings.NewReader("hello, world")); err != nil {
+			t.Fatalf("ReadTextFrom failed: %v", err)
+		}
+		if got, want := f.Text(), "hello, world"; got != want {
+			t.Errorf("Text: got %q, want %q", got, want)
+		}
+		if start, end := f.Selection(); start != 0 || end != 0 {
+			t.Errorf("Selection: got (%d, %d), want (0, 0)", start, end)
+		}
+		if f.CanUndo() {
+			t.Errorf("CanUndo() = true, want false after ReadTextFrom")
+		}
+	})
+
+	t.Run("largeStream", func(t *testing.T) {
+		var f textinput.Field
+		t.Cleanup(func() { f.Blur() })
+		want := strings.Repeat("abcdefgh", 500) // > minRead
+		if err := f.ReadTextFrom(strings.NewReader(want)); err != nil {
+			t.Fatalf("ReadTextFrom failed: %v", err)
+		}
+		if got := f.Text(); got != want {
+			t.Errorf("Text length: got %d, want %d", len(got), len(want))
+		}
+	})
+
+	t.Run("readerError", func(t *testing.T) {
+		var f textinput.Field
+		t.Cleanup(func() { f.Blur() })
+		f.ResetText("kept")
+
+		wantErr := errors.New("boom")
+		err := f.ReadTextFrom(&fieldErrReader{data: []byte("partial"), err: wantErr})
+		if !errors.Is(err, wantErr) {
+			t.Errorf("ReadTextFrom error: got %v, want %v", err, wantErr)
+		}
+		if got := f.Text(); got != "" {
+			t.Errorf("after error: Text = %q, want empty", got)
+		}
+	})
+}
+
+type fieldErrReader struct {
+	data []byte
+	err  error
+}
+
+func (r *fieldErrReader) Read(p []byte) (int, error) {
+	if len(r.data) == 0 {
+		return 0, r.err
+	}
+	n := copy(p, r.data)
+	r.data = r.data[n:]
+	return n, nil
 }
 
 func TestFieldChangedAtStrictlyMonotonicUnderTightLoop(t *testing.T) {

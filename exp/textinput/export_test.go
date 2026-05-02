@@ -32,6 +32,10 @@ func (p *PieceTable) Reset(text string) {
 	p.reset(text)
 }
 
+func (p *PieceTable) ReadFrom(r io.Reader) error {
+	return p.readFrom(r)
+}
+
 func (p *PieceTable) Replace(text string, start, end int) {
 	p.replace(text, start, end)
 }

@@ -16,6 +16,7 @@ package textinput
 
 import (
 	"io"
+	"slices"
 	"unicode/utf8"
 )
 
@@ -369,6 +370,33 @@ func isASCIIBytes(b []byte) bool {
 func (p *pieceTable) reset(text string) {
 	p.table = p.table[:0]
 	p.table = append(p.table, text...)
+	p.resetHistory()
+}
+
+// readFrom resets the piece table by reading bytes from r until EOF.
+// Unlike [bytes.Buffer.ReadFrom], readFrom does not append: any prior content is discarded.
+// On non-EOF error, the piece table is left in an empty state and the error is returned.
+func (p *pieceTable) readFrom(r io.Reader) error {
+	p.table = p.table[:0]
+	const minRead = 512
+	for {
+		p.table = slices.Grow(p.table, minRead)
+		n, err := r.Read(p.table[len(p.table):cap(p.table)])
+		p.table = p.table[:len(p.table)+n]
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			p.table = p.table[:0]
+			p.resetHistory()
+			return err
+		}
+	}
+	p.resetHistory()
+	return nil
+}
+
+func (p *pieceTable) resetHistory() {
 	p.history = p.history[:0]
 	p.history = append(p.history, historyItem{
 		items: []pieceTableItem{
