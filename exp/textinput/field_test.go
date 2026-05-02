@@ -50,7 +50,7 @@ func TestFieldGenerationAdvancesOnContentChanges(t *testing.T) {
 			name:  "ReadTextFrom",
 			setup: func(f *textinput.Field) {},
 			mutate: func(f *textinput.Field) {
-				_ = f.ReadTextFrom(strings.NewReader("hello"))
+				_, _ = f.ReadTextFrom(strings.NewReader("hello"))
 			},
 		},
 		{
@@ -314,11 +314,11 @@ func TestFieldGenerationReadOnlyMethodsDoNotAdvance(t *testing.T) {
 	_ = f.UncommittedTextLengthInBytes()
 	_ = f.Handled()
 	var b strings.Builder
-	_ = f.WriteTextTo(&b)
+	_, _ = f.WriteTextTo(&b)
 	b.Reset()
-	_ = f.WriteTextForRenderingTo(&b)
+	_, _ = f.WriteTextForRenderingTo(&b)
 	b.Reset()
-	_ = f.WriteTextRangeTo(&b, 0, f.TextLengthInBytes())
+	_, _ = f.WriteTextRangeTo(&b, 0, f.TextLengthInBytes())
 
 	if got := f.Generation(); got != priorGen {
 		t.Errorf("read-only methods advanced Generation: before=%d after=%d", priorGen, got)
@@ -393,11 +393,15 @@ func TestFieldWriteTextRangeTo(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			var b strings.Builder
-			if err := f.WriteTextRangeTo(&b, c.start, c.end); err != nil {
+			n, err := f.WriteTextRangeTo(&b, c.start, c.end)
+			if err != nil {
 				t.Fatalf("WriteTextRangeTo failed: %v", err)
 			}
 			if got := b.String(); got != c.want {
 				t.Errorf("got %q, want %q", got, c.want)
+			}
+			if int(n) != len(c.want) {
+				t.Errorf("WriteTextRangeTo returned n=%d, want %d", n, len(c.want))
 			}
 		})
 	}
@@ -406,11 +410,15 @@ func TestFieldWriteTextRangeTo(t *testing.T) {
 	for start := 0; start <= len(full); start++ {
 		for end := start; end <= len(full); end++ {
 			var b strings.Builder
-			if err := f.WriteTextRangeTo(&b, start, end); err != nil {
+			n, err := f.WriteTextRangeTo(&b, start, end)
+			if err != nil {
 				t.Fatalf("WriteTextRangeTo(%d, %d) failed: %v", start, end, err)
 			}
 			if got, want := b.String(), full[start:end]; got != want {
 				t.Errorf("range [%d, %d): got %q, want %q", start, end, got, want)
+			}
+			if int(n) != len(full[start:end]) {
+				t.Errorf("WriteTextRangeTo(%d, %d) returned n=%d, want %d", start, end, n, len(full[start:end]))
 			}
 		}
 	}
@@ -422,7 +430,7 @@ func TestFieldWriteTextRangeTo(t *testing.T) {
 		t.Fatalf("after Undo: got %q, want %q", prior, "Hello, World!")
 	}
 	var b strings.Builder
-	if err := f.WriteTextRangeTo(&b, 7, 12); err != nil {
+	if _, err := f.WriteTextRangeTo(&b, 7, 12); err != nil {
 		t.Fatalf("WriteTextRangeTo after Undo: %v", err)
 	}
 	if got := b.String(); got != "World" {
@@ -432,7 +440,7 @@ func TestFieldWriteTextRangeTo(t *testing.T) {
 	// Empty buffer.
 	f.ResetText("")
 	b.Reset()
-	if err := f.WriteTextRangeTo(&b, 0, 100); err != nil {
+	if _, err := f.WriteTextRangeTo(&b, 0, 100); err != nil {
 		t.Fatalf("WriteTextRangeTo on empty: %v", err)
 	}
 	if got := b.String(); got != "" {
@@ -456,10 +464,10 @@ func TestFieldWriteTextForRenderingRangeTo(t *testing.T) {
 	for start := 0; start <= len(committed); start++ {
 		for end := start; end <= len(committed); end++ {
 			var got, want strings.Builder
-			if err := f.WriteTextForRenderingRangeTo(&got, start, end); err != nil {
+			if _, err := f.WriteTextForRenderingRangeTo(&got, start, end); err != nil {
 				t.Fatalf("WriteTextForRenderingRangeTo(%d, %d) failed: %v", start, end, err)
 			}
-			if err := f.WriteTextRangeTo(&want, start, end); err != nil {
+			if _, err := f.WriteTextRangeTo(&want, start, end); err != nil {
 				t.Fatalf("WriteTextRangeTo(%d, %d) failed: %v", start, end, err)
 			}
 			if got.String() != want.String() {
@@ -567,11 +575,15 @@ func TestFieldWriteTextForRenderingRangeTo(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			var b strings.Builder
-			if err := f.WriteTextForRenderingRangeTo(&b, c.start, c.end); err != nil {
+			n, err := f.WriteTextForRenderingRangeTo(&b, c.start, c.end)
+			if err != nil {
 				t.Fatalf("WriteTextForRenderingRangeTo failed: %v", err)
 			}
 			if got := b.String(); got != c.want {
 				t.Errorf("got %q, want %q", got, c.want)
+			}
+			if int(n) != len(c.want) {
+				t.Errorf("WriteTextForRenderingRangeTo returned n=%d, want %d", n, len(c.want))
 			}
 		})
 	}
@@ -580,11 +592,15 @@ func TestFieldWriteTextForRenderingRangeTo(t *testing.T) {
 	for start := 0; start <= len(full); start++ {
 		for end := start; end <= len(full); end++ {
 			var b strings.Builder
-			if err := f.WriteTextForRenderingRangeTo(&b, start, end); err != nil {
+			n, err := f.WriteTextForRenderingRangeTo(&b, start, end)
+			if err != nil {
 				t.Fatalf("WriteTextForRenderingRangeTo(%d, %d) failed: %v", start, end, err)
 			}
 			if got, want := b.String(), full[start:end]; got != want {
 				t.Errorf("range [%d, %d): got %q, want %q", start, end, got, want)
+			}
+			if int(n) != len(full[start:end]) {
+				t.Errorf("WriteTextForRenderingRangeTo(%d, %d) returned n=%d, want %d", start, end, n, len(full[start:end]))
 			}
 		}
 	}
@@ -597,8 +613,12 @@ func TestFieldReadTextFrom(t *testing.T) {
 		f.ResetText("old text here")
 		f.SetSelection(2, 5)
 
-		if err := f.ReadTextFrom(strings.NewReader("hello, world")); err != nil {
+		n, err := f.ReadTextFrom(strings.NewReader("hello, world"))
+		if err != nil {
 			t.Fatalf("ReadTextFrom failed: %v", err)
+		}
+		if int(n) != len("hello, world") {
+			t.Errorf("ReadTextFrom returned n=%d, want %d", n, len("hello, world"))
 		}
 		if got, want := f.Text(), "hello, world"; got != want {
 			t.Errorf("Text: got %q, want %q", got, want)
@@ -615,8 +635,12 @@ func TestFieldReadTextFrom(t *testing.T) {
 		var f textinput.Field
 		t.Cleanup(func() { f.Blur() })
 		want := strings.Repeat("abcdefgh", 500) // > minRead
-		if err := f.ReadTextFrom(strings.NewReader(want)); err != nil {
+		n, err := f.ReadTextFrom(strings.NewReader(want))
+		if err != nil {
 			t.Fatalf("ReadTextFrom failed: %v", err)
+		}
+		if int(n) != len(want) {
+			t.Errorf("ReadTextFrom returned n=%d, want %d", n, len(want))
 		}
 		if got := f.Text(); got != want {
 			t.Errorf("Text length: got %d, want %d", len(got), len(want))
@@ -629,7 +653,7 @@ func TestFieldReadTextFrom(t *testing.T) {
 		f.ResetText("kept")
 
 		wantErr := errors.New("boom")
-		err := f.ReadTextFrom(&fieldErrReader{data: []byte("partial"), err: wantErr})
+		_, err := f.ReadTextFrom(&fieldErrReader{data: []byte("partial"), err: wantErr})
 		if !errors.Is(err, wantErr) {
 			t.Errorf("ReadTextFrom error: got %v, want %v", err, wantErr)
 		}

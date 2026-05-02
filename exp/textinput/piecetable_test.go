@@ -1518,16 +1518,24 @@ func TestPieceTableReadFrom(t *testing.T) {
 
 	t.Run("empty", func(t *testing.T) {
 		var p textinput.PieceTable
-		if err := p.ReadFrom(strings.NewReader("")); err != nil {
+		n, err := p.ReadFrom(strings.NewReader(""))
+		if err != nil {
 			t.Fatalf("ReadFrom failed: %v", err)
+		}
+		if n != 0 {
+			t.Errorf("ReadFrom returned n=%d, want 0", n)
 		}
 		check(t, &p, "")
 	})
 
 	t.Run("short", func(t *testing.T) {
 		var p textinput.PieceTable
-		if err := p.ReadFrom(strings.NewReader("hello")); err != nil {
+		n, err := p.ReadFrom(strings.NewReader("hello"))
+		if err != nil {
 			t.Fatalf("ReadFrom failed: %v", err)
+		}
+		if int(n) != len("hello") {
+			t.Errorf("ReadFrom returned n=%d, want %d", n, len("hello"))
 		}
 		check(t, &p, "hello")
 	})
@@ -1536,8 +1544,12 @@ func TestPieceTableReadFrom(t *testing.T) {
 		// Larger than the 512-byte minRead to exercise the grow path.
 		want := strings.Repeat("abcdefgh", 200)
 		var p textinput.PieceTable
-		if err := p.ReadFrom(strings.NewReader(want)); err != nil {
+		n, err := p.ReadFrom(strings.NewReader(want))
+		if err != nil {
 			t.Fatalf("ReadFrom failed: %v", err)
+		}
+		if int(n) != len(want) {
+			t.Errorf("ReadFrom returned n=%d, want %d", n, len(want))
 		}
 		check(t, &p, want)
 	})
@@ -1545,7 +1557,7 @@ func TestPieceTableReadFrom(t *testing.T) {
 	t.Run("replacesExistingContent", func(t *testing.T) {
 		var p textinput.PieceTable
 		p.Replace("old content here", 0, 0)
-		if err := p.ReadFrom(strings.NewReader("new")); err != nil {
+		if _, err := p.ReadFrom(strings.NewReader("new")); err != nil {
 			t.Fatalf("ReadFrom failed: %v", err)
 		}
 		check(t, &p, "new")
@@ -1559,7 +1571,7 @@ func TestPieceTableReadFrom(t *testing.T) {
 		var p textinput.PieceTable
 		p.Reset("kept")
 		wantErr := io.ErrUnexpectedEOF
-		err := p.ReadFrom(&errReader{data: []byte("partial"), err: wantErr})
+		_, err := p.ReadFrom(&errReader{data: []byte("partial"), err: wantErr})
 		if err != wantErr {
 			t.Errorf("ReadFrom error: got %v, want %v", err, wantErr)
 		}

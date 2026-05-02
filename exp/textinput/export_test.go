@@ -32,7 +32,7 @@ func (p *PieceTable) Reset(text string) {
 	p.reset(text)
 }
 
-func (p *PieceTable) ReadFrom(r io.Reader) error {
+func (p *PieceTable) ReadFrom(r io.Reader) (int64, error) {
 	return p.readFrom(r)
 }
 

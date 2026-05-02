@@ -405,7 +405,7 @@ func (f *Field) SetSelection(startInBytes, endInBytes int) {
 // The returned value doesn't include compositing texts.
 func (f *Field) Text() string {
 	var b strings.Builder
-	_ = f.WriteTextTo(&b)
+	_, _ = f.WriteTextTo(&b)
 	return b.String()
 }
 
@@ -413,7 +413,7 @@ func (f *Field) Text() string {
 // The returned value includes compositing texts.
 func (f *Field) TextForRendering() string {
 	var b strings.Builder
-	_ = f.WriteTextForRenderingTo(&b)
+	_, _ = f.WriteTextForRenderingTo(&b)
 	return b.String()
 }
 
@@ -429,50 +429,58 @@ func (f *Field) TextLengthInBytes() int {
 
 // WriteTextTo writes the current text to w.
 // The written text doesn't include compositing texts.
-func (f *Field) WriteTextTo(w io.Writer) error {
-	_, err := f.pieceTable.WriteTo(w)
-	return err
+//
+// The return value n is the number of bytes written.
+// Any error encountered during the write is also returned.
+func (f *Field) WriteTextTo(w io.Writer) (int64, error) {
+	return f.pieceTable.WriteTo(w)
 }
 
 // WriteText writes the current text to w.
 //
 // Deprecated: use [Field.WriteTextTo] instead.
 func (f *Field) WriteText(w io.Writer) error {
-	return f.WriteTextTo(w)
+	_, err := f.WriteTextTo(w)
+	return err
 }
 
 // WriteTextRangeTo writes the bytes of the current text in [startInBytes, endInBytes) to w.
 // startInBytes and endInBytes are clamped to [0, TextLengthInBytes()].
 // If the clamped start is not less than the clamped end, nothing is written.
 // The written text doesn't include compositing texts.
-func (f *Field) WriteTextRangeTo(w io.Writer, startInBytes, endInBytes int) error {
-	_, err := f.pieceTable.writeRangeTo(w, startInBytes, endInBytes)
-	return err
+//
+// The return value n is the number of bytes written.
+// Any error encountered during the write is also returned.
+func (f *Field) WriteTextRangeTo(w io.Writer, startInBytes, endInBytes int) (int64, error) {
+	return f.pieceTable.writeRangeTo(w, startInBytes, endInBytes)
 }
 
 // WriteTextRange writes the bytes of the current text in [startInBytes, endInBytes) to w.
 //
 // Deprecated: use [Field.WriteTextRangeTo] instead.
 func (f *Field) WriteTextRange(w io.Writer, startInBytes, endInBytes int) error {
-	return f.WriteTextRangeTo(w, startInBytes, endInBytes)
+	_, err := f.WriteTextRangeTo(w, startInBytes, endInBytes)
+	return err
 }
 
 // WriteTextForRenderingTo writes the text for rendering to w.
 // The written text includes compositing texts.
-func (f *Field) WriteTextForRenderingTo(w io.Writer) error {
+//
+// The return value n is the number of bytes written.
+// Any error encountered during the write is also returned.
+func (f *Field) WriteTextForRenderingTo(w io.Writer) (int64, error) {
 	if f.IsFocused() && f.state.Text != "" {
-		_, _ = f.pieceTable.writeToWithInsertion(w, f.state.Text, f.selectionStartInBytes, f.selectionEndInBytes)
-	} else {
-		_, _ = f.pieceTable.WriteTo(w)
+		return f.pieceTable.writeToWithInsertion(w, f.state.Text, f.selectionStartInBytes, f.selectionEndInBytes)
 	}
-	return nil
+	return f.pieceTable.WriteTo(w)
 }
 
 // WriteTextForRendering writes the text for rendering to w.
 //
 // Deprecated: use [Field.WriteTextForRenderingTo] instead.
 func (f *Field) WriteTextForRendering(w io.Writer) error {
-	return f.WriteTextForRenderingTo(w)
+	_, err := f.WriteTextForRenderingTo(w)
+	return err
 }
 
 // WriteTextForRenderingRangeTo writes the bytes of the rendering text in [startInBytes, endInBytes) to w.
@@ -482,20 +490,22 @@ func (f *Field) WriteTextForRendering(w io.Writer) error {
 // startInBytes and endInBytes are clamped to [0, renderingLength], where renderingLength is
 // TextLengthInBytes() - (selectionEnd - selectionStart) + UncommittedTextLengthInBytes().
 // If the clamped start is not less than the clamped end, nothing is written.
-func (f *Field) WriteTextForRenderingRangeTo(w io.Writer, startInBytes, endInBytes int) error {
+//
+// The return value n is the number of bytes written.
+// Any error encountered during the write is also returned.
+func (f *Field) WriteTextForRenderingRangeTo(w io.Writer, startInBytes, endInBytes int) (int64, error) {
 	if f.IsFocused() && f.state.Text != "" {
-		_, err := f.pieceTable.writeRangeToWithInsertion(w, f.state.Text, f.selectionStartInBytes, f.selectionEndInBytes, startInBytes, endInBytes)
-		return err
+		return f.pieceTable.writeRangeToWithInsertion(w, f.state.Text, f.selectionStartInBytes, f.selectionEndInBytes, startInBytes, endInBytes)
 	}
-	_, err := f.pieceTable.writeRangeTo(w, startInBytes, endInBytes)
-	return err
+	return f.pieceTable.writeRangeTo(w, startInBytes, endInBytes)
 }
 
 // WriteTextForRenderingRange writes the bytes of the rendering text in [startInBytes, endInBytes) to w.
 //
 // Deprecated: use [Field.WriteTextForRenderingRangeTo] instead.
 func (f *Field) WriteTextForRenderingRange(w io.Writer, startInBytes, endInBytes int) error {
-	return f.WriteTextForRenderingRangeTo(w, startInBytes, endInBytes)
+	_, err := f.WriteTextForRenderingRangeTo(w, startInBytes, endInBytes)
+	return err
 }
 
 // ResetText resets the text.
@@ -513,14 +523,15 @@ func (f *Field) ResetText(text string) {
 //
 // The bytes read from r must be valid UTF-8. Validation is the caller's responsibility.
 //
+// The return value n is the number of bytes read.
 // If r returns a non-EOF error, the field's text is reset to empty and the error is returned.
-func (f *Field) ReadTextFrom(r io.Reader) error {
+func (f *Field) ReadTextFrom(r io.Reader) (int64, error) {
 	f.cleanUp()
-	err := f.pieceTable.readFrom(r)
+	n, err := f.pieceTable.readFrom(r)
 	f.selectionStartInBytes = 0
 	f.selectionEndInBytes = 0
 	f.bumpGeneration()
-	return err
+	return n, err
 }
 
 // UncommittedTextLengthInBytes returns the compositing text length in bytes when the field is focused and the text is editing.
