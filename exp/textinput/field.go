@@ -521,8 +521,6 @@ func (f *Field) ResetText(text string) {
 // ReadTextFrom resets the text by reading bytes from r until EOF.
 // ReadTextFrom clears the undo history and initializes it with the read text.
 //
-// The bytes read from r must be valid UTF-8. Validation is the caller's responsibility.
-//
 // The return value n is the number of bytes read.
 // If r returns a non-EOF error, the field's text is reset to empty and the error is returned.
 func (f *Field) ReadTextFrom(r io.Reader) (int64, error) {
