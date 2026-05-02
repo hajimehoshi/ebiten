@@ -48,6 +48,14 @@ func (p *PieceTable) WriteRangeToWithInsertion(w io.Writer, text string, insertS
 	return p.writeRangeToWithInsertion(w, text, insertStart, insertEnd, rangeStart, rangeEnd)
 }
 
+func (p *PieceTable) UTF16CountToByteCount(c int) int {
+	return p.utf16CountToByteCount(c)
+}
+
+func (p *PieceTable) ByteCountToUTF16Count(c int) int {
+	return p.byteCountToUTF16Count(c)
+}
+
 func (f *Field) SetCompositionStateForTest(text string, compStart, compEnd int) {
 	f.setState(textInputState{
 		Text:                             text,

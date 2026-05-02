@@ -230,6 +230,105 @@ func TestPieceTableWriteToWithInsertion(t *testing.T) {
 	}
 }
 
+func TestPieceTableUTF16Count(t *testing.T) {
+	type tc struct {
+		c    int
+		want int
+	}
+	type op struct {
+		start, end int
+		text       string
+	}
+	tests := []struct {
+		name string
+		// ops is a sequence of Replace operations applied in order. The
+		// final piece-table layout depends on this sequence, so cases use
+		// different sequences to exercise single-piece and multi-piece
+		// content with various rune sizes.
+		ops  []op
+		full string
+		u2b  []tc // utf16CountToByteCount cases
+		b2u  []tc // byteCountToUTF16Count cases
+	}{
+		{
+			name: "ASCII single piece",
+			ops:  []op{{0, 0, "Hello, World"}},
+			full: "Hello, World",
+			u2b:  []tc{{0, 0}, {5, 5}, {12, 12}, {13, -1}},
+			b2u:  []tc{{0, 0}, {5, 5}, {12, 12}, {13, -1}},
+		},
+		{
+			name: "BMP single piece",
+			ops:  []op{{0, 0, "海老天"}},
+			full: "海老天",
+			u2b:  []tc{{0, 0}, {1, 3}, {2, 6}, {3, 9}, {4, -1}},
+			b2u:  []tc{{0, 0}, {3, 1}, {6, 2}, {9, 3}, {10, -1}},
+		},
+		{
+			name: "Supplementary single piece",
+			ops:  []op{{0, 0, "寿司🍣食べたい"}},
+			full: "寿司🍣食べたい",
+			// 寿(3B/1U) 司(3/1) 🍣(4/2) 食(3/1) べ(3/1) た(3/1) い(3/1) -> 22 bytes / 8 UTF-16 units
+			u2b: []tc{{0, 0}, {1, 3}, {2, 6}, {4, 10}, {5, 13}, {8, 22}, {9, -1}},
+			b2u: []tc{{0, 0}, {3, 1}, {6, 2}, {10, 4}, {13, 5}, {22, 8}, {23, -1}},
+		},
+		{
+			name: "Multi-piece ASCII",
+			ops: []op{
+				{0, 0, "Hello World"},
+				{5, 6, ", "},     // "Hello, World"
+				{7, 12, "there"}, // "Hello, there"
+			},
+			full: "Hello, there",
+			u2b:  []tc{{0, 0}, {5, 5}, {7, 7}, {12, 12}, {13, -1}},
+			b2u:  []tc{{0, 0}, {5, 5}, {7, 7}, {12, 12}, {13, -1}},
+		},
+		{
+			name: "Multi-piece mixed",
+			// Final content "Hello,🍣 there!" is laid out across four
+			// pieces: "Hello,", "🍣", " there", "!". Exercises the
+			// boundary between an ASCII piece and a non-ASCII piece, so
+			// both the per-piece ASCII fast path and the rune-walk path
+			// run in one call.
+			ops: []op{
+				{0, 0, "Hello, there"}, // "Hello, there"
+				{6, 6, "🍣"},            // "Hello,🍣 there" (16 bytes)
+				{16, 16, "!"},          // "Hello,🍣 there!" (17 bytes)
+			},
+			full: "Hello,🍣 there!",
+			// "Hello,"(6B/6U) 🍣(4B/2U) " there"(6B/6U) "!"(1B/1U) -> 17B/15U
+			u2b: []tc{{0, 0}, {6, 6}, {7, 10}, {8, 10}, {9, 11}, {15, 17}, {16, -1}},
+			b2u: []tc{{0, 0}, {6, 6}, {10, 8}, {11, 9}, {17, 15}, {18, -1}},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var p textinput.PieceTable
+			for _, o := range tt.ops {
+				p.Replace(o.text, o.start, o.end)
+			}
+			// Sanity check setup.
+			var b strings.Builder
+			if _, err := p.WriteTo(&b); err != nil {
+				t.Fatalf("WriteTo failed: %v", err)
+			}
+			if got := b.String(); got != tt.full {
+				t.Fatalf("setup: got %q, want %q", got, tt.full)
+			}
+			for _, c := range tt.u2b {
+				if got := p.UTF16CountToByteCount(c.c); got != c.want {
+					t.Errorf("UTF16CountToByteCount(%d) = %d, want %d", c.c, got, c.want)
+				}
+			}
+			for _, c := range tt.b2u {
+				if got := p.ByteCountToUTF16Count(c.c); got != c.want {
+					t.Errorf("ByteCountToUTF16Count(%d) = %d, want %d", c.c, got, c.want)
+				}
+			}
+		})
+	}
+}
+
 func TestPieceTableWriteRangeTo(t *testing.T) {
 	// Build a fragmented piece table by replacing in the middle and via IME insertions
 	// at different positions. The piece table should now have multiple items.

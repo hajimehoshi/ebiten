@@ -201,34 +201,34 @@ func init() {
 }
 
 func hasMarkedText(_ objc.ID, _ objc.SEL) bool {
-	_, _, _, state, ok := currentState()
-	if !ok {
-		return false
-	}
-	return len(state.Text) > 0
+	var has bool
+	withFocusedField(func(f *Field) {
+		has = len(f.state.Text) > 0
+	})
+	return has
 }
 
 func markedRange(_ objc.ID, _ objc.SEL) nsRange {
-	text, startInBytes, _, state, ok := currentState()
-	if !ok {
-		return nsRange{location: ^uint(0), length: 0} // NSNotFound
-	}
-	if len(state.Text) == 0 {
-		return nsRange{location: ^uint(0), length: 0} // NSNotFound
-	}
-	startInUTF16 := convertByteCountToUTF16Count(text, startInBytes)
-	markedTextLenInUTF16 := convertByteCountToUTF16Count(state.Text, len(state.Text))
-	return nsRange{location: uint(startInUTF16), length: uint(markedTextLenInUTF16)}
+	r := nsRange{location: ^uint(0), length: 0} // NSNotFound
+	withFocusedField(func(f *Field) {
+		if len(f.state.Text) == 0 {
+			return
+		}
+		startInUTF16 := f.pieceTable.byteCountToUTF16Count(f.selectionStartInBytes)
+		markedTextLenInUTF16 := convertByteCountToUTF16Count(f.state.Text, len(f.state.Text))
+		r = nsRange{location: uint(startInUTF16), length: uint(markedTextLenInUTF16)}
+	})
+	return r
 }
 
 func selectedRange(_ objc.ID, _ objc.SEL) nsRange {
-	text, startInBytes, endInBytes, _, ok := currentState()
-	if !ok {
-		return nsRange{location: ^uint(0), length: 0} // NSNotFound
-	}
-	startInUTF16 := convertByteCountToUTF16Count(text, startInBytes)
-	endInUTF16 := convertByteCountToUTF16Count(text, endInBytes)
-	return nsRange{location: uint(startInUTF16), length: uint(endInUTF16 - startInUTF16)}
+	r := nsRange{location: ^uint(0), length: 0} // NSNotFound
+	withFocusedField(func(f *Field) {
+		startInUTF16 := f.pieceTable.byteCountToUTF16Count(f.selectionStartInBytes)
+		endInUTF16 := f.pieceTable.byteCountToUTF16Count(f.selectionEndInBytes)
+		r = nsRange{location: uint(startInUTF16), length: uint(endInUTF16 - startInUTF16)}
+	})
+	return r
 }
 
 func setMarkedText(_ objc.ID, _ objc.SEL, str objc.ID, selectedRange nsRange, replacementRange nsRange) {
@@ -282,10 +282,10 @@ func insertText(_ objc.ID, _ objc.SEL, str objc.ID, replacementRange nsRange) {
 
 	var delStartInBytes, delEndInBytes int
 	if int64(replacementRange.location) >= 0 {
-		if text, _, _, _, ok := currentState(); ok {
-			delStartInBytes = convertUTF16CountToByteCount(text, int(replacementRange.location))
-			delEndInBytes = convertUTF16CountToByteCount(text, int(replacementRange.location+replacementRange.length))
-		}
+		withFocusedField(func(f *Field) {
+			delStartInBytes = f.pieceTable.utf16CountToByteCount(int(replacementRange.location))
+			delEndInBytes = f.pieceTable.utf16CountToByteCount(int(replacementRange.location + replacementRange.length))
+		})
 	}
 	theTextInput.update(t, 0, len(t), delStartInBytes, delEndInBytes, true)
 }
@@ -296,15 +296,14 @@ func characterIndexForPoint(_ objc.ID, _ objc.SEL, _ nsPoint) uint64 {
 
 func firstRectForCharacterRange(self objc.ID, _ objc.SEL, rang nsRange, actualRange *nsRange) nsRect {
 	if actualRange != nil {
-		if text, startInBytes, _, _, ok := currentState(); ok {
-			s := uint(convertByteCountToUTF16Count(text, startInBytes))
-			actualRange.location = s
+		withFocusedField(func(f *Field) {
+			actualRange.location = uint(f.pieceTable.byteCountToUTF16Count(f.selectionStartInBytes))
 			// 0 seems to work correctly.
 			// See https://developer.apple.com/documentation/appkit/nstextinputclient/firstrect(forcharacterrange:actualrange:)?language=objc
 			// > If the length of aRange is 0 (as it would be if there is nothing selected at the insertion point),
 			// > the rectangle coincides with the insertion point, and its width is 0.
 			actualRange.length = 0
-		}
+		})
 	}
 
 	window := self.Send(sel_window)

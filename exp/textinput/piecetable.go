@@ -16,6 +16,7 @@ package textinput
 
 import (
 	"io"
+	"unicode/utf8"
 )
 
 type opType int
@@ -252,6 +253,117 @@ func (p *pieceTable) Len() int {
 		n += item.end - item.start
 	}
 	return n
+}
+
+// utf16CountToByteCount returns the byte offset in the piece table content
+// that corresponds to c UTF-16 code units from the start, or -1 if c is past
+// the end. The content is assumed to be valid UTF-8.
+//
+// This could be implemented by materializing the content into a string and
+// calling convertUTF16CountToByteCount, but walking the pieces directly is
+// faster.
+func (p *pieceTable) utf16CountToByteCount(c int) int {
+	if c == 0 {
+		return 0
+	}
+	if c < 0 {
+		return -1
+	}
+	var (
+		byteOff  int
+		utf16Off int
+	)
+	items := p.items()
+	for i := range items {
+		item := &items[i]
+		chunk := p.table[item.start:item.end]
+		if isASCIIBytes(chunk) {
+			// In ASCII the UTF-16 unit count equals the byte count, so we
+			// can skip past whole chunks (and target into one) by
+			// arithmetic.
+			remaining := c - utf16Off
+			if remaining <= len(chunk) {
+				return byteOff + remaining
+			}
+			byteOff += len(chunk)
+			utf16Off += len(chunk)
+			continue
+		}
+		var j int
+		for j < len(chunk) {
+			r, size := utf8.DecodeRune(chunk[j:])
+			if r == utf8.RuneError && size <= 1 {
+				return -1
+			}
+			l16 := 1
+			if r >= 0x10000 {
+				l16 = 2
+			}
+			utf16Off += l16
+			if utf16Off >= c {
+				return byteOff + j + size
+			}
+			j += size
+		}
+		byteOff += len(chunk)
+	}
+	return -1
+}
+
+// byteCountToUTF16Count returns the UTF-16 code-unit count of the first c
+// bytes of the piece table content, or -1 if c is past the end.
+func (p *pieceTable) byteCountToUTF16Count(c int) int {
+	if c == 0 {
+		return 0
+	}
+	if c < 0 {
+		return -1
+	}
+	var (
+		byteOff  int
+		utf16Off int
+	)
+	items := p.items()
+	for i := range items {
+		item := &items[i]
+		chunk := p.table[item.start:item.end]
+		chunkLen := len(chunk)
+		if isASCIIBytes(chunk) {
+			if c <= byteOff+chunkLen {
+				return utf16Off + (c - byteOff)
+			}
+			byteOff += chunkLen
+			utf16Off += chunkLen
+			continue
+		}
+		var j int
+		for j < chunkLen {
+			r, size := utf8.DecodeRune(chunk[j:])
+			if r == utf8.RuneError && size <= 1 {
+				return -1
+			}
+			l16 := 1
+			if r >= 0x10000 {
+				l16 = 2
+			}
+			utf16Off += l16
+			j += size
+			if byteOff+j >= c {
+				return utf16Off
+			}
+		}
+		byteOff += chunkLen
+	}
+	return -1
+}
+
+func isASCIIBytes(b []byte) bool {
+	for i := range b {
+		if b[i] >= 0x80 {
+			return false
+		}
+	}
+	return true
 }
 
 func (p *pieceTable) reset(text string) {

@@ -82,17 +82,18 @@ func isFieldFocused(f *Field) bool {
 	return theFocusedField == f
 }
 
-// currentState is for testing.
-func currentState() (string, int, int, textInputState, bool) {
+// withFocusedField runs fn under the focus lock with the focused field, and
+// reports whether a field was focused. Callers must not retain the *Field
+// past the call. fn can read from f.pieceTable directly without
+// materializing the committed text into a Go string.
+func withFocusedField(fn func(f *Field)) bool {
 	theFocusedFieldM.Lock()
 	defer theFocusedFieldM.Unlock()
 	if theFocusedField == nil {
-		return "", 0, 0, textInputState{}, false
+		return false
 	}
-	f := theFocusedField
-	var b strings.Builder
-	_, _ = f.pieceTable.WriteTo(&b)
-	return b.String(), f.selectionStartInBytes, f.selectionEndInBytes, f.state, true
+	fn(theFocusedField)
+	return true
 }
 
 func init() {
