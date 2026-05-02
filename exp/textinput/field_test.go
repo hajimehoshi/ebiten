@@ -306,11 +306,11 @@ func TestFieldGenerationReadOnlyMethodsDoNotAdvance(t *testing.T) {
 	_ = f.UncommittedTextLengthInBytes()
 	_ = f.Handled()
 	var b strings.Builder
-	_ = f.WriteText(&b)
+	_ = f.WriteTextTo(&b)
 	b.Reset()
-	_ = f.WriteTextForRendering(&b)
+	_ = f.WriteTextForRenderingTo(&b)
 	b.Reset()
-	_ = f.WriteTextRange(&b, 0, f.TextLengthInBytes())
+	_ = f.WriteTextRangeTo(&b, 0, f.TextLengthInBytes())
 
 	if got := f.Generation(); got != priorGen {
 		t.Errorf("read-only methods advanced Generation: before=%d after=%d", priorGen, got)
@@ -320,7 +320,7 @@ func TestFieldGenerationReadOnlyMethodsDoNotAdvance(t *testing.T) {
 	}
 }
 
-func TestFieldWriteTextRange(t *testing.T) {
+func TestFieldWriteTextRangeTo(t *testing.T) {
 	var f textinput.Field
 	t.Cleanup(func() { f.Blur() })
 	f.Focus()
@@ -385,8 +385,8 @@ func TestFieldWriteTextRange(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			var b strings.Builder
-			if err := f.WriteTextRange(&b, c.start, c.end); err != nil {
-				t.Fatalf("WriteTextRange failed: %v", err)
+			if err := f.WriteTextRangeTo(&b, c.start, c.end); err != nil {
+				t.Fatalf("WriteTextRangeTo failed: %v", err)
 			}
 			if got := b.String(); got != c.want {
 				t.Errorf("got %q, want %q", got, c.want)
@@ -398,8 +398,8 @@ func TestFieldWriteTextRange(t *testing.T) {
 	for start := 0; start <= len(full); start++ {
 		for end := start; end <= len(full); end++ {
 			var b strings.Builder
-			if err := f.WriteTextRange(&b, start, end); err != nil {
-				t.Fatalf("WriteTextRange(%d, %d) failed: %v", start, end, err)
+			if err := f.WriteTextRangeTo(&b, start, end); err != nil {
+				t.Fatalf("WriteTextRangeTo(%d, %d) failed: %v", start, end, err)
 			}
 			if got, want := b.String(), full[start:end]; got != want {
 				t.Errorf("range [%d, %d): got %q, want %q", start, end, got, want)
@@ -414,8 +414,8 @@ func TestFieldWriteTextRange(t *testing.T) {
 		t.Fatalf("after Undo: got %q, want %q", prior, "Hello, World!")
 	}
 	var b strings.Builder
-	if err := f.WriteTextRange(&b, 7, 12); err != nil {
-		t.Fatalf("WriteTextRange after Undo: %v", err)
+	if err := f.WriteTextRangeTo(&b, 7, 12); err != nil {
+		t.Fatalf("WriteTextRangeTo after Undo: %v", err)
 	}
 	if got := b.String(); got != "World" {
 		t.Errorf("after Undo, range [7, 12): got %q, want %q", got, "World")
@@ -424,15 +424,15 @@ func TestFieldWriteTextRange(t *testing.T) {
 	// Empty buffer.
 	f.ResetText("")
 	b.Reset()
-	if err := f.WriteTextRange(&b, 0, 100); err != nil {
-		t.Fatalf("WriteTextRange on empty: %v", err)
+	if err := f.WriteTextRangeTo(&b, 0, 100); err != nil {
+		t.Fatalf("WriteTextRangeTo on empty: %v", err)
 	}
 	if got := b.String(); got != "" {
 		t.Errorf("empty buffer: got %q, want %q", got, "")
 	}
 }
 
-func TestFieldWriteTextForRenderingRange(t *testing.T) {
+func TestFieldWriteTextForRenderingRangeTo(t *testing.T) {
 	var f textinput.Field
 	t.Cleanup(func() { f.Blur() })
 	f.Focus()
@@ -440,7 +440,7 @@ func TestFieldWriteTextForRenderingRange(t *testing.T) {
 	// Force the underlying piece table to fragment.
 	f.ReplaceText("Gopher", 7, 12) // "Hello, Gopher!"
 
-	// Without a composition, behavior matches WriteTextRange.
+	// Without a composition, behavior matches WriteTextRangeTo.
 	committed := f.Text()
 	if committed != "Hello, Gopher!" {
 		t.Fatalf("setup: got %q, want %q", committed, "Hello, Gopher!")
@@ -448,11 +448,11 @@ func TestFieldWriteTextForRenderingRange(t *testing.T) {
 	for start := 0; start <= len(committed); start++ {
 		for end := start; end <= len(committed); end++ {
 			var got, want strings.Builder
-			if err := f.WriteTextForRenderingRange(&got, start, end); err != nil {
-				t.Fatalf("WriteTextForRenderingRange(%d, %d) failed: %v", start, end, err)
+			if err := f.WriteTextForRenderingRangeTo(&got, start, end); err != nil {
+				t.Fatalf("WriteTextForRenderingRangeTo(%d, %d) failed: %v", start, end, err)
 			}
-			if err := f.WriteTextRange(&want, start, end); err != nil {
-				t.Fatalf("WriteTextRange(%d, %d) failed: %v", start, end, err)
+			if err := f.WriteTextRangeTo(&want, start, end); err != nil {
+				t.Fatalf("WriteTextRangeTo(%d, %d) failed: %v", start, end, err)
 			}
 			if got.String() != want.String() {
 				t.Errorf("no composition, range [%d, %d): rendering=%q committed=%q",
@@ -559,8 +559,8 @@ func TestFieldWriteTextForRenderingRange(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			var b strings.Builder
-			if err := f.WriteTextForRenderingRange(&b, c.start, c.end); err != nil {
-				t.Fatalf("WriteTextForRenderingRange failed: %v", err)
+			if err := f.WriteTextForRenderingRangeTo(&b, c.start, c.end); err != nil {
+				t.Fatalf("WriteTextForRenderingRangeTo failed: %v", err)
 			}
 			if got := b.String(); got != c.want {
 				t.Errorf("got %q, want %q", got, c.want)
@@ -572,8 +572,8 @@ func TestFieldWriteTextForRenderingRange(t *testing.T) {
 	for start := 0; start <= len(full); start++ {
 		for end := start; end <= len(full); end++ {
 			var b strings.Builder
-			if err := f.WriteTextForRenderingRange(&b, start, end); err != nil {
-				t.Fatalf("WriteTextForRenderingRange(%d, %d) failed: %v", start, end, err)
+			if err := f.WriteTextForRenderingRangeTo(&b, start, end); err != nil {
+				t.Fatalf("WriteTextForRenderingRangeTo(%d, %d) failed: %v", start, end, err)
 			}
 			if got, want := b.String(), full[start:end]; got != want {
 				t.Errorf("range [%d, %d): got %q, want %q", start, end, got, want)

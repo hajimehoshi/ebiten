@@ -138,7 +138,7 @@ type Field struct {
 
 // Generation returns a counter that advances when the field's renderable content changes.
 //
-// "Renderable content" is the text returned by [Field.WriteTextForRendering]: the
+// "Renderable content" is the text returned by [Field.WriteTextForRenderingTo]: the
 // committed text plus any active IME composition. Selection-only changes and focus
 // changes do not advance Generation.
 //
@@ -405,7 +405,7 @@ func (f *Field) SetSelection(startInBytes, endInBytes int) {
 // The returned value doesn't include compositing texts.
 func (f *Field) Text() string {
 	var b strings.Builder
-	_ = f.WriteText(&b)
+	_ = f.WriteTextTo(&b)
 	return b.String()
 }
 
@@ -413,7 +413,7 @@ func (f *Field) Text() string {
 // The returned value includes compositing texts.
 func (f *Field) TextForRendering() string {
 	var b strings.Builder
-	_ = f.WriteTextForRendering(&b)
+	_ = f.WriteTextForRenderingTo(&b)
 	return b.String()
 }
 
@@ -427,25 +427,39 @@ func (f *Field) TextLengthInBytes() int {
 	return f.pieceTable.Len()
 }
 
-// WriteText writes the current text to w.
+// WriteTextTo writes the current text to w.
 // The written text doesn't include compositing texts.
-func (f *Field) WriteText(w io.Writer) error {
+func (f *Field) WriteTextTo(w io.Writer) error {
 	_, err := f.pieceTable.WriteTo(w)
 	return err
 }
 
-// WriteTextRange writes the bytes of the current text in [startInBytes, endInBytes) to w.
+// WriteText writes the current text to w.
+//
+// Deprecated: use [Field.WriteTextTo] instead.
+func (f *Field) WriteText(w io.Writer) error {
+	return f.WriteTextTo(w)
+}
+
+// WriteTextRangeTo writes the bytes of the current text in [startInBytes, endInBytes) to w.
 // startInBytes and endInBytes are clamped to [0, TextLengthInBytes()].
 // If the clamped start is not less than the clamped end, nothing is written.
 // The written text doesn't include compositing texts.
-func (f *Field) WriteTextRange(w io.Writer, startInBytes, endInBytes int) error {
+func (f *Field) WriteTextRangeTo(w io.Writer, startInBytes, endInBytes int) error {
 	_, err := f.pieceTable.writeRangeTo(w, startInBytes, endInBytes)
 	return err
 }
 
-// WriteTextForRendering writes the text for rendering to w.
+// WriteTextRange writes the bytes of the current text in [startInBytes, endInBytes) to w.
+//
+// Deprecated: use [Field.WriteTextRangeTo] instead.
+func (f *Field) WriteTextRange(w io.Writer, startInBytes, endInBytes int) error {
+	return f.WriteTextRangeTo(w, startInBytes, endInBytes)
+}
+
+// WriteTextForRenderingTo writes the text for rendering to w.
 // The written text includes compositing texts.
-func (f *Field) WriteTextForRendering(w io.Writer) error {
+func (f *Field) WriteTextForRenderingTo(w io.Writer) error {
 	if f.IsFocused() && f.state.Text != "" {
 		_, _ = f.pieceTable.writeToWithInsertion(w, f.state.Text, f.selectionStartInBytes, f.selectionEndInBytes)
 	} else {
@@ -454,20 +468,34 @@ func (f *Field) WriteTextForRendering(w io.Writer) error {
 	return nil
 }
 
-// WriteTextForRenderingRange writes the bytes of the rendering text in [startInBytes, endInBytes) to w.
+// WriteTextForRendering writes the text for rendering to w.
+//
+// Deprecated: use [Field.WriteTextForRenderingTo] instead.
+func (f *Field) WriteTextForRendering(w io.Writer) error {
+	return f.WriteTextForRenderingTo(w)
+}
+
+// WriteTextForRenderingRangeTo writes the bytes of the rendering text in [startInBytes, endInBytes) to w.
 // Coordinates are in rendering space: the rendering text is the committed text with the active
 // composition (if any) spliced in at the selection.
 //
 // startInBytes and endInBytes are clamped to [0, renderingLength], where renderingLength is
 // TextLengthInBytes() - (selectionEnd - selectionStart) + UncommittedTextLengthInBytes().
 // If the clamped start is not less than the clamped end, nothing is written.
-func (f *Field) WriteTextForRenderingRange(w io.Writer, startInBytes, endInBytes int) error {
+func (f *Field) WriteTextForRenderingRangeTo(w io.Writer, startInBytes, endInBytes int) error {
 	if f.IsFocused() && f.state.Text != "" {
 		_, err := f.pieceTable.writeRangeToWithInsertion(w, f.state.Text, f.selectionStartInBytes, f.selectionEndInBytes, startInBytes, endInBytes)
 		return err
 	}
 	_, err := f.pieceTable.writeRangeTo(w, startInBytes, endInBytes)
 	return err
+}
+
+// WriteTextForRenderingRange writes the bytes of the rendering text in [startInBytes, endInBytes) to w.
+//
+// Deprecated: use [Field.WriteTextForRenderingRangeTo] instead.
+func (f *Field) WriteTextForRenderingRange(w io.Writer, startInBytes, endInBytes int) error {
+	return f.WriteTextForRenderingRangeTo(w, startInBytes, endInBytes)
 }
 
 // ResetText resets the text.
