@@ -18,6 +18,7 @@ package textinput
 
 import (
 	"image"
+	"strings"
 	"unsafe"
 
 	"github.com/ebitengine/purego/objc"
@@ -200,6 +201,77 @@ func init() {
 	}
 }
 
+// lineView captures the IME-visible text as a single line — the line
+// containing the selection, with the marked text spliced in at the selection
+// range. All UTF-16 offsets that cross the NSTextInputClient boundary are
+// positions within this view.
+type lineView struct {
+	prefix string // committed bytes [lineStart, selectionStart)
+	marked string // f.state.Text
+	suffix string // committed bytes [selectionEnd, lineEnd)
+
+	prefixLenInUTF16 int
+	markedLenInUTF16 int
+	suffixLenInUTF16 int
+
+	lineStartInBytes      int
+	selectionStartInBytes int
+	selectionEndInBytes   int
+}
+
+func newLineView(f *Field) lineView {
+	lineStart, lineEnd := f.pieceTable.findLineBounds(f.selectionStartInBytes, f.selectionEndInBytes)
+	var prefBuf, suffBuf strings.Builder
+	_, _ = f.pieceTable.writeRangeTo(&prefBuf, lineStart, f.selectionStartInBytes)
+	_, _ = f.pieceTable.writeRangeTo(&suffBuf, f.selectionEndInBytes, lineEnd)
+	prefix := prefBuf.String()
+	suffix := suffBuf.String()
+	marked := f.state.Text
+	return lineView{
+		prefix:                prefix,
+		marked:                marked,
+		suffix:                suffix,
+		prefixLenInUTF16:      convertByteCountToUTF16Count(prefix, len(prefix)),
+		markedLenInUTF16:      convertByteCountToUTF16Count(marked, len(marked)),
+		suffixLenInUTF16:      convertByteCountToUTF16Count(suffix, len(suffix)),
+		lineStartInBytes:      lineStart,
+		selectionStartInBytes: f.selectionStartInBytes,
+		selectionEndInBytes:   f.selectionEndInBytes,
+	}
+}
+
+func utf16ToByteWithin(s string, utf16Pos int) int {
+	if utf16Pos <= 0 {
+		return 0
+	}
+	b := convertUTF16CountToByteCount(s, utf16Pos)
+	if b < 0 {
+		return len(s)
+	}
+	return b
+}
+
+// utf16PosToPieceTableByte converts a UTF-16 position in the lineView's
+// content (prefix + marked + suffix) to a byte offset in the piece table.
+// Positions in the prefix region map to piece-table bytes [lineStart,
+// selectionStart); positions in the suffix region map to [selectionEnd,
+// lineEnd). Positions strictly inside the marked region have no piece-table
+// byte and return -1; the caller should resolve such positions to
+// selectionStart or selectionEnd as appropriate.
+func (v *lineView) utf16PosToPieceTableByte(utf16Pos int) int {
+	if utf16Pos <= v.prefixLenInUTF16 {
+		return v.lineStartInBytes + utf16ToByteWithin(v.prefix, utf16Pos)
+	}
+	if utf16Pos < v.prefixLenInUTF16+v.markedLenInUTF16 {
+		return -1
+	}
+	// utf16Pos is at or past the marked region's right edge, so the matching
+	// piece-table byte is in the suffix. The suffix begins at view UTF-16
+	// offset prefixLen+markedLen and at piece-table byte selectionEnd.
+	suffixUTF16Pos := utf16Pos - v.prefixLenInUTF16 - v.markedLenInUTF16
+	return v.selectionEndInBytes + utf16ToByteWithin(v.suffix, suffixUTF16Pos)
+}
+
 func hasMarkedText(_ objc.ID, _ objc.SEL) bool {
 	var has bool
 	withFocusedField(func(f *Field) {
@@ -214,9 +286,8 @@ func markedRange(_ objc.ID, _ objc.SEL) nsRange {
 		if len(f.state.Text) == 0 {
 			return
 		}
-		startInUTF16 := f.pieceTable.byteCountToUTF16Count(f.selectionStartInBytes)
-		markedTextLenInUTF16 := convertByteCountToUTF16Count(f.state.Text, len(f.state.Text))
-		r = nsRange{location: uint(startInUTF16), length: uint(markedTextLenInUTF16)}
+		v := newLineView(f)
+		r = nsRange{location: uint(v.prefixLenInUTF16), length: uint(v.markedLenInUTF16)}
 	})
 	return r
 }
@@ -224,9 +295,13 @@ func markedRange(_ objc.ID, _ objc.SEL) nsRange {
 func selectedRange(_ objc.ID, _ objc.SEL) nsRange {
 	r := nsRange{location: ^uint(0), length: 0} // NSNotFound
 	withFocusedField(func(f *Field) {
-		startInUTF16 := f.pieceTable.byteCountToUTF16Count(f.selectionStartInBytes)
-		endInUTF16 := f.pieceTable.byteCountToUTF16Count(f.selectionEndInBytes)
-		r = nsRange{location: uint(startInUTF16), length: uint(endInUTF16 - startInUTF16)}
+		v := newLineView(f)
+		// During composition the caret sits at the start of the marked region.
+		// Without composition, an active non-collapsed field selection is hidden
+		// from the IME (its bytes are not part of the view), so report a
+		// collapsed selection at the same boundary. macOS rarely consults this
+		// when no composition is active.
+		r = nsRange{location: uint(v.prefixLenInUTF16), length: 0}
 	})
 	return r
 }
@@ -283,8 +358,22 @@ func insertText(_ objc.ID, _ objc.SEL, str objc.ID, replacementRange nsRange) {
 	var delStartInBytes, delEndInBytes int
 	if int64(replacementRange.location) >= 0 {
 		withFocusedField(func(f *Field) {
-			delStartInBytes = f.pieceTable.utf16CountToByteCount(int(replacementRange.location))
-			delEndInBytes = f.pieceTable.utf16CountToByteCount(int(replacementRange.location + replacementRange.length))
+			v := newLineView(f)
+			startUTF16 := int(replacementRange.location)
+			endUTF16 := int(replacementRange.location + replacementRange.length)
+			// A range overlapping the marked region expands to cover the whole
+			// region in the piece table: the marked text is not present there,
+			// so its boundaries are selectionStart and selectionEnd.
+			if b := v.utf16PosToPieceTableByte(startUTF16); b >= 0 {
+				delStartInBytes = b
+			} else {
+				delStartInBytes = v.selectionStartInBytes
+			}
+			if b := v.utf16PosToPieceTableByte(endUTF16); b >= 0 {
+				delEndInBytes = b
+			} else {
+				delEndInBytes = v.selectionEndInBytes
+			}
 		})
 	}
 	theTextInput.update(t, 0, len(t), delStartInBytes, delEndInBytes, true)
@@ -297,7 +386,8 @@ func characterIndexForPoint(_ objc.ID, _ objc.SEL, _ nsPoint) uint64 {
 func firstRectForCharacterRange(self objc.ID, _ objc.SEL, rang nsRange, actualRange *nsRange) nsRect {
 	if actualRange != nil {
 		withFocusedField(func(f *Field) {
-			actualRange.location = uint(f.pieceTable.byteCountToUTF16Count(f.selectionStartInBytes))
+			v := newLineView(f)
+			actualRange.location = uint(v.prefixLenInUTF16)
 			// 0 seems to work correctly.
 			// See https://developer.apple.com/documentation/appkit/nstextinputclient/firstrect(forcharacterrange:actualrange:)?language=objc
 			// > If the length of aRange is 0 (as it would be if there is nothing selected at the insertion point),

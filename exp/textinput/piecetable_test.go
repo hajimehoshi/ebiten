@@ -230,105 +230,6 @@ func TestPieceTableWriteToWithInsertion(t *testing.T) {
 	}
 }
 
-func TestPieceTableUTF16Count(t *testing.T) {
-	type tc struct {
-		c    int
-		want int
-	}
-	type op struct {
-		start, end int
-		text       string
-	}
-	tests := []struct {
-		name string
-		// ops is a sequence of Replace operations applied in order. The
-		// final piece-table layout depends on this sequence, so cases use
-		// different sequences to exercise single-piece and multi-piece
-		// content with various rune sizes.
-		ops  []op
-		full string
-		u2b  []tc // utf16CountToByteCount cases
-		b2u  []tc // byteCountToUTF16Count cases
-	}{
-		{
-			name: "ASCII single piece",
-			ops:  []op{{0, 0, "Hello, World"}},
-			full: "Hello, World",
-			u2b:  []tc{{0, 0}, {5, 5}, {12, 12}, {13, -1}},
-			b2u:  []tc{{0, 0}, {5, 5}, {12, 12}, {13, -1}},
-		},
-		{
-			name: "BMP single piece",
-			ops:  []op{{0, 0, "海老天"}},
-			full: "海老天",
-			u2b:  []tc{{0, 0}, {1, 3}, {2, 6}, {3, 9}, {4, -1}},
-			b2u:  []tc{{0, 0}, {3, 1}, {6, 2}, {9, 3}, {10, -1}},
-		},
-		{
-			name: "Supplementary single piece",
-			ops:  []op{{0, 0, "寿司🍣食べたい"}},
-			full: "寿司🍣食べたい",
-			// 寿(3B/1U) 司(3/1) 🍣(4/2) 食(3/1) べ(3/1) た(3/1) い(3/1) -> 22 bytes / 8 UTF-16 units
-			u2b: []tc{{0, 0}, {1, 3}, {2, 6}, {4, 10}, {5, 13}, {8, 22}, {9, -1}},
-			b2u: []tc{{0, 0}, {3, 1}, {6, 2}, {10, 4}, {13, 5}, {22, 8}, {23, -1}},
-		},
-		{
-			name: "Multi-piece ASCII",
-			ops: []op{
-				{0, 0, "Hello World"},
-				{5, 6, ", "},     // "Hello, World"
-				{7, 12, "there"}, // "Hello, there"
-			},
-			full: "Hello, there",
-			u2b:  []tc{{0, 0}, {5, 5}, {7, 7}, {12, 12}, {13, -1}},
-			b2u:  []tc{{0, 0}, {5, 5}, {7, 7}, {12, 12}, {13, -1}},
-		},
-		{
-			name: "Multi-piece mixed",
-			// Final content "Hello,🍣 there!" is laid out across four
-			// pieces: "Hello,", "🍣", " there", "!". Exercises the
-			// boundary between an ASCII piece and a non-ASCII piece, so
-			// both the per-piece ASCII fast path and the rune-walk path
-			// run in one call.
-			ops: []op{
-				{0, 0, "Hello, there"}, // "Hello, there"
-				{6, 6, "🍣"},            // "Hello,🍣 there" (16 bytes)
-				{16, 16, "!"},          // "Hello,🍣 there!" (17 bytes)
-			},
-			full: "Hello,🍣 there!",
-			// "Hello,"(6B/6U) 🍣(4B/2U) " there"(6B/6U) "!"(1B/1U) -> 17B/15U
-			u2b: []tc{{0, 0}, {6, 6}, {7, 10}, {8, 10}, {9, 11}, {15, 17}, {16, -1}},
-			b2u: []tc{{0, 0}, {6, 6}, {10, 8}, {11, 9}, {17, 15}, {18, -1}},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			var p textinput.PieceTable
-			for _, o := range tt.ops {
-				p.Replace(o.text, o.start, o.end)
-			}
-			// Sanity check setup.
-			var b strings.Builder
-			if _, err := p.WriteTo(&b); err != nil {
-				t.Fatalf("WriteTo failed: %v", err)
-			}
-			if got := b.String(); got != tt.full {
-				t.Fatalf("setup: got %q, want %q", got, tt.full)
-			}
-			for _, c := range tt.u2b {
-				if got := p.UTF16CountToByteCount(c.c); got != c.want {
-					t.Errorf("UTF16CountToByteCount(%d) = %d, want %d", c.c, got, c.want)
-				}
-			}
-			for _, c := range tt.b2u {
-				if got := p.ByteCountToUTF16Count(c.c); got != c.want {
-					t.Errorf("ByteCountToUTF16Count(%d) = %d, want %d", c.c, got, c.want)
-				}
-			}
-		})
-	}
-}
-
 func TestPieceTableWriteRangeTo(t *testing.T) {
 	// Build a fragmented piece table by replacing in the middle and via IME insertions
 	// at different positions. The piece table should now have multiple items.
@@ -1577,4 +1478,364 @@ func TestPieceTableReadFrom(t *testing.T) {
 		}
 		check(t, &p, "")
 	})
+}
+
+func TestPieceTableFindLineBounds(t *testing.T) {
+	type op struct {
+		start int
+		end   int
+		text  string
+	}
+	type want struct {
+		lineStart int
+		lineEnd   int
+	}
+	tests := []struct {
+		name string
+		// ops is a sequence of Replace operations applied in order. Different
+		// sequences produce different piece-table layouts, so cases use this
+		// to exercise both single-piece content and content split across
+		// pieces (including line breaks straddling piece boundaries).
+		ops      []op
+		selStart int
+		selEnd   int
+		want     want
+	}{
+		{
+			name:     "empty",
+			ops:      nil,
+			selStart: 0,
+			selEnd:   0,
+			want: want{
+				lineStart: 0,
+				lineEnd:   0,
+			},
+		},
+		{
+			name: "no line break",
+			ops: []op{
+				{
+					start: 0,
+					end:   0,
+					text:  "Hello, World",
+				},
+			},
+			selStart: 5,
+			selEnd:   5,
+			want: want{
+				lineStart: 0,
+				lineEnd:   12,
+			},
+		},
+		{
+			name: "LF before and after",
+			ops: []op{
+				{
+					start: 0,
+					end:   0,
+					text:  "abc\ndef\nghi",
+				},
+			},
+			selStart: 5, // cursor inside "def"
+			selEnd:   5,
+			want: want{
+				lineStart: 4,
+				lineEnd:   7,
+			},
+		},
+		{
+			name: "cursor right after LF",
+			ops: []op{
+				{
+					start: 0,
+					end:   0,
+					text:  "abc\ndef",
+				},
+			},
+			selStart: 4,
+			selEnd:   4,
+			want: want{
+				lineStart: 4,
+				lineEnd:   7,
+			},
+		},
+		{
+			name: "cursor at LF position",
+			ops: []op{
+				{
+					start: 0,
+					end:   0,
+					text:  "abc\ndef",
+				},
+			},
+			selStart: 3,
+			selEnd:   3,
+			want: want{
+				lineStart: 0,
+				lineEnd:   3,
+			},
+		},
+		{
+			name: "VT",
+			ops: []op{
+				{
+					start: 0,
+					end:   0,
+					text:  "abc\vdef",
+				},
+			},
+			selStart: 5,
+			selEnd:   5,
+			want: want{
+				lineStart: 4,
+				lineEnd:   7,
+			},
+		},
+		{
+			name: "FF",
+			ops: []op{
+				{
+					start: 0,
+					end:   0,
+					text:  "abc\fdef",
+				},
+			},
+			selStart: 5,
+			selEnd:   5,
+			want: want{
+				lineStart: 4,
+				lineEnd:   7,
+			},
+		},
+		{
+			name: "CR alone",
+			ops: []op{
+				{
+					start: 0,
+					end:   0,
+					text:  "abc\rdef",
+				},
+			},
+			selStart: 5,
+			selEnd:   5,
+			want: want{
+				lineStart: 4,
+				lineEnd:   7,
+			},
+		},
+		{
+			name: "CRLF treated as one break",
+			ops: []op{
+				{
+					start: 0,
+					end:   0,
+					text:  "abc\r\ndef",
+				},
+			},
+			selStart: 6, // cursor inside "def"
+			selEnd:   6,
+			want: want{
+				lineStart: 5,
+				lineEnd:   8,
+			},
+		},
+		{
+			name: "CRLF with cursor at end of break",
+			ops: []op{
+				{
+					start: 0,
+					end:   0,
+					text:  "abc\r\ndef",
+				},
+			},
+			selStart: 5,
+			selEnd:   5,
+			want: want{
+				lineStart: 5,
+				lineEnd:   8,
+			},
+		},
+		{
+			name: "NEL (U+0085)",
+			ops: []op{
+				{
+					start: 0,
+					end:   0,
+					text:  "abcdef", // U+0085 = 0xC2 0x85
+				},
+			},
+			selStart: 7, // 3 + 2 + 2 = 7 (within "def")
+			selEnd:   7,
+			want: want{
+				lineStart: 5, // "def" at bytes [5, 8)
+				lineEnd:   8,
+			},
+		},
+		{
+			name: "LS (U+2028)",
+			ops: []op{
+				{
+					start: 0,
+					end:   0,
+					text:  "abc def", // U+2028 = 0xE2 0x80 0xA8
+				},
+			},
+			selStart: 7,
+			selEnd:   7,
+			want: want{
+				lineStart: 6,
+				lineEnd:   9,
+			},
+		},
+		{
+			name: "PS (U+2029)",
+			ops: []op{
+				{
+					start: 0,
+					end:   0,
+					text:  "abc def", // U+2029 = 0xE2 0x80 0xA9
+				},
+			},
+			selStart: 7,
+			selEnd:   7,
+			want: want{
+				lineStart: 6,
+				lineEnd:   9,
+			},
+		},
+		{
+			name: "selection crossing LF",
+			ops: []op{
+				{
+					start: 0,
+					end:   0,
+					text:  "abc\ndef\nghi",
+				},
+			},
+			selStart: 2, // spans the first LF at byte 3
+			selEnd:   6,
+			want: want{
+				lineStart: 0,
+				lineEnd:   7, // expands past the LF; next LF is at 7
+			},
+		},
+		{
+			name: "selection crossing CRLF",
+			ops: []op{
+				{
+					start: 0,
+					end:   0,
+					text:  "abc\r\ndef\r\nghi",
+				},
+			},
+			selStart: 2, // spans CRLF (3..5); 7 is inside "def"
+			selEnd:   7,
+			want: want{
+				lineStart: 0,
+				lineEnd:   8, // next break is the CR at 8
+			},
+		},
+		{
+			name: "CRLF straddling pieces",
+			// Build "abc\r" + "\ndef" so the CR ends piece 0 and the LF
+			// begins piece 1.
+			ops: []op{
+				{
+					start: 0,
+					end:   0,
+					text:  "abc\r",
+				},
+				{
+					start: 4,
+					end:   4,
+					text:  "\ndef",
+				},
+			},
+			selStart: 6, // inside "def"
+			selEnd:   6,
+			want: want{
+				lineStart: 5,
+				lineEnd:   8,
+			},
+		},
+		{
+			name: "NEL straddling pieces",
+			// 0xC2 ends piece 0, 0x85 begins piece 1.
+			ops: []op{
+				{
+					start: 0,
+					end:   0,
+					text:  "abc\xc2",
+				},
+				{
+					start: 4,
+					end:   4,
+					text:  "\x85def",
+				},
+			},
+			selStart: 7,
+			selEnd:   7,
+			want: want{
+				lineStart: 5,
+				lineEnd:   8,
+			},
+		},
+		{
+			name: "LS straddling pieces (1+2)",
+			// 0xE2 in piece 0; 0x80 0xA8 begin piece 1.
+			ops: []op{
+				{
+					start: 0,
+					end:   0,
+					text:  "abc\xe2",
+				},
+				{
+					start: 4,
+					end:   4,
+					text:  "\x80\xa8def",
+				},
+			},
+			selStart: 7,
+			selEnd:   7,
+			want: want{
+				lineStart: 6,
+				lineEnd:   9,
+			},
+		},
+		{
+			name: "LS straddling pieces (2+1)",
+			// 0xE2 0x80 in piece 0; 0xA8 begins piece 1.
+			ops: []op{
+				{
+					start: 0,
+					end:   0,
+					text:  "abc\xe2\x80",
+				},
+				{
+					start: 5,
+					end:   5,
+					text:  "\xa8def",
+				},
+			},
+			selStart: 7,
+			selEnd:   7,
+			want: want{
+				lineStart: 6,
+				lineEnd:   9,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var p textinput.PieceTable
+			for _, o := range tt.ops {
+				p.Replace(o.text, o.start, o.end)
+			}
+			gotStart, gotEnd := p.FindLineBounds(tt.selStart, tt.selEnd)
+			if gotStart != tt.want.lineStart || gotEnd != tt.want.lineEnd {
+				t.Errorf("FindLineBounds(%d, %d) = (%d, %d), want (%d, %d)",
+					tt.selStart, tt.selEnd, gotStart, gotEnd, tt.want.lineStart, tt.want.lineEnd)
+			}
+		})
+	}
 }

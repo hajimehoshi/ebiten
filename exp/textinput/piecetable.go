@@ -17,7 +17,6 @@ package textinput
 import (
 	"io"
 	"slices"
-	"unicode/utf8"
 )
 
 type opType int
@@ -256,115 +255,139 @@ func (p *pieceTable) Len() int {
 	return n
 }
 
-// utf16CountToByteCount returns the byte offset in the piece table content
-// that corresponds to c UTF-16 code units from the start, or -1 if c is past
-// the end. The content is assumed to be valid UTF-8.
+// findLineBounds returns the byte offsets bounding the line that contains the
+// selection [selStart, selEnd]. lineStart is the position right after the
+// previous line break (or 0 if none), and lineEnd is the position of the next
+// line break (or Len() if none). The line break bytes themselves are excluded
+// from both ends.
 //
-// This could be implemented by materializing the content into a string and
-// calling convertUTF16CountToByteCount, but walking the pieces directly is
-// faster.
-func (p *pieceTable) utf16CountToByteCount(c int) int {
-	if c == 0 {
-		return 0
-	}
-	if c < 0 {
-		return -1
-	}
-	var (
-		byteOff  int
-		utf16Off int
-	)
-	items := p.items()
-	for i := range items {
-		item := &items[i]
-		chunk := p.table[item.start:item.end]
-		if isASCIIBytes(chunk) {
-			// In ASCII the UTF-16 unit count equals the byte count, so we
-			// can skip past whole chunks (and target into one) by
-			// arithmetic.
-			remaining := c - utf16Off
-			if remaining <= len(chunk) {
-				return byteOff + remaining
-			}
-			byteOff += len(chunk)
-			utf16Off += len(chunk)
-			continue
-		}
-		var j int
-		for j < len(chunk) {
-			r, size := utf8.DecodeRune(chunk[j:])
-			if r == utf8.RuneError && size <= 1 {
-				return -1
-			}
-			l16 := 1
-			if r >= 0x10000 {
-				l16 = 2
-			}
-			utf16Off += l16
-			if utf16Off >= c {
-				return byteOff + j + size
-			}
-			j += size
-		}
-		byteOff += len(chunk)
-	}
-	return -1
-}
+// Line breaks that fall within [selStart, selEnd) are ignored, so a selection
+// crossing line breaks yields a single combined line view.
+func (p *pieceTable) findLineBounds(selStart, selEnd int) (lineStart, lineEnd int) {
+	l := p.Len()
+	selStart = min(max(selStart, 0), l)
+	selEnd = min(max(selEnd, selStart), l)
 
-// byteCountToUTF16Count returns the UTF-16 code-unit count of the first c
-// bytes of the piece table content, or -1 if c is past the end.
-func (p *pieceTable) byteCountToUTF16Count(c int) int {
-	if c == 0 {
-		return 0
-	}
-	if c < 0 {
-		return -1
-	}
-	var (
-		byteOff  int
-		utf16Off int
-	)
-	items := p.items()
-	for i := range items {
-		item := &items[i]
-		chunk := p.table[item.start:item.end]
-		chunkLen := len(chunk)
-		if isASCIIBytes(chunk) {
-			if c <= byteOff+chunkLen {
-				return utf16Off + (c - byteOff)
-			}
-			byteOff += chunkLen
-			utf16Off += chunkLen
-			continue
-		}
-		var j int
-		for j < chunkLen {
-			r, size := utf8.DecodeRune(chunk[j:])
-			if r == utf8.RuneError && size <= 1 {
-				return -1
-			}
-			l16 := 1
-			if r >= 0x10000 {
-				l16 = 2
-			}
-			utf16Off += l16
-			j += size
-			if byteOff+j >= c {
-				return utf16Off
-			}
-		}
-		byteOff += chunkLen
-	}
-	return -1
-}
+	lineEnd = l
 
-func isASCIIBytes(b []byte) bool {
-	for i := range b {
-		if b[i] >= 0x80 {
-			return false
+	items := p.items()
+
+	// peekByte returns the byte at offset bytes after (pi, bi).
+	peekByte := func(pi, bi, offset int) (byte, bool) {
+		bi += offset
+		for pi < len(items) {
+			chunkLen := items[pi].end - items[pi].start
+			if bi < chunkLen {
+				return p.table[items[pi].start+bi], true
+			}
+			bi -= chunkLen
+			pi++
+		}
+		return 0, false
+	}
+
+	// peekByteBack returns the byte at offset bytes before (pi, bi).
+	peekByteBack := func(pi, bi, offset int) (byte, bool) {
+		bi -= offset
+		for bi < 0 {
+			pi--
+			if pi < 0 {
+				return 0, false
+			}
+			bi += items[pi].end - items[pi].start
+		}
+		return p.table[items[pi].start+bi], true
+	}
+
+	// findPiece returns (pieceIdx, byteIdxWithinPiece) for absolute byte
+	// position pos. Returns (len(items), 0) if pos is past the end.
+	findPiece := func(pos int) (int, int) {
+		var offset int
+		for i, item := range items {
+			chunkLen := item.end - item.start
+			if pos < offset+chunkLen {
+				return i, pos - offset
+			}
+			offset += chunkLen
+		}
+		return len(items), 0
+	}
+
+	// Scan backward from selStart-1 for the latest line break ending at or
+	// before selStart. The first line break encountered going backward is by
+	// definition the latest.
+	if selStart > 0 {
+		pi, bi := findPiece(selStart - 1)
+		absPos := selStart - 1
+		for pi >= 0 {
+			b := p.table[items[pi].start+bi]
+			var isLB bool
+			switch b {
+			case 0x0A, 0x0B, 0x0C, 0x0D: // LF, VT, FF, CR
+				isLB = true
+			case 0x85: // possible NEL last byte (0xC2 0x85)
+				if prev, ok := peekByteBack(pi, bi, 1); ok && prev == 0xC2 {
+					isLB = true
+				}
+			case 0xA8, 0xA9: // possible LS/PS last byte (0xE2 0x80 0xA8/0xA9)
+				if b1, ok := peekByteBack(pi, bi, 1); ok && b1 == 0x80 {
+					if b2, ok := peekByteBack(pi, bi, 2); ok && b2 == 0xE2 {
+						isLB = true
+					}
+				}
+			}
+			if isLB {
+				lineStart = absPos + 1
+				break
+			}
+			// Step backward.
+			if bi > 0 {
+				bi--
+			} else {
+				pi--
+				if pi < 0 {
+					break
+				}
+				bi = items[pi].end - items[pi].start - 1
+			}
+			absPos--
 		}
 	}
-	return true
+
+	// Scan forward from selEnd for the earliest line break starting at or
+	// after selEnd.
+	pi, bi := findPiece(selEnd)
+	absPos := selEnd
+	for pi < len(items) {
+		b := p.table[items[pi].start+bi]
+		var isLB bool
+		switch b {
+		case 0x0A, 0x0B, 0x0C, 0x0D: // LF, VT, FF, CR (alone or as part of CRLF)
+			isLB = true
+		case 0xC2: // possible NEL first byte
+			if next, ok := peekByte(pi, bi, 1); ok && next == 0x85 {
+				isLB = true
+			}
+		case 0xE2: // possible LS/PS first byte
+			if next1, ok := peekByte(pi, bi, 1); ok && next1 == 0x80 {
+				if next2, ok := peekByte(pi, bi, 2); ok && (next2 == 0xA8 || next2 == 0xA9) {
+					isLB = true
+				}
+			}
+		}
+		if isLB {
+			lineEnd = absPos
+			return
+		}
+		// Step forward.
+		bi++
+		if bi >= items[pi].end-items[pi].start {
+			pi++
+			bi = 0
+		}
+		absPos++
+	}
+	return
 }
 
 func (p *pieceTable) reset(text string) {
