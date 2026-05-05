@@ -18,6 +18,7 @@ package textinput
 
 import (
 	"image"
+	"math"
 	"strings"
 	"unsafe"
 
@@ -93,6 +94,8 @@ func getTextInputClient() objc.ID {
 }
 
 const nsUTF8StringEncoding = 4
+
+const nsNotFound = uint(math.MaxInt)
 
 type nsPoint struct {
 	x float64
@@ -326,7 +329,7 @@ func hasMarkedText(_ objc.ID, _ objc.SEL) bool {
 }
 
 func markedRange(_ objc.ID, _ objc.SEL) nsRange {
-	r := nsRange{location: ^uint(0), length: 0} // NSNotFound
+	r := nsRange{location: nsNotFound, length: 0}
 	withIMEView(func(v lineView) {
 		if len(v.marked) == 0 {
 			return
@@ -337,7 +340,7 @@ func markedRange(_ objc.ID, _ objc.SEL) nsRange {
 }
 
 func selectedRange(_ objc.ID, _ objc.SEL) nsRange {
-	r := nsRange{location: ^uint(0), length: 0} // NSNotFound
+	r := nsRange{location: nsNotFound, length: 0}
 	withIMEView(func(v lineView) {
 		// During composition the caret sits at the start of the marked region.
 		// Without composition, an active non-collapsed field selection is hidden
@@ -405,7 +408,7 @@ func insertText(_ objc.ID, _ objc.SEL, str objc.ID, replacementRange nsRange) {
 		// position (the caret) rather than 0, 0.
 		replStartInBytes = v.selectionStartInBytes
 		replEndInBytes = v.selectionEndInBytes
-		if int64(replacementRange.location) < 0 {
+		if replacementRange.location >= nsNotFound {
 			return
 		}
 		startUTF16 := int(replacementRange.location)

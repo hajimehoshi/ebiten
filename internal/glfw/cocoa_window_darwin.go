@@ -728,13 +728,13 @@ func registerGLFWClasses() error {
 							return nsRange{Location: 0, Length: length - 1}
 						}
 					}
-					return nsRange{Location: ^uintptr(0), Length: 0} // NSNotFound
+					return nsRange{Location: uintptr(math.MaxInt), Length: 0} // NSNotFound
 				},
 			},
 			{
 				Cmd: sel_selectedRange,
 				Fn: func(_ objc.ID, _ objc.SEL) nsRange {
-					return nsRange{Location: ^uintptr(0), Length: 0} // NSNotFound
+					return nsRange{Location: uintptr(math.MaxInt), Length: 0} // NSNotFound
 				},
 			},
 			{
