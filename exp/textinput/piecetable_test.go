@@ -1659,7 +1659,7 @@ func TestPieceTableFindLineBounds(t *testing.T) {
 				{
 					start: 0,
 					end:   0,
-					text:  "abcdef", // U+0085 = 0xC2 0x85
+					text:  "abc\u0085def",
 				},
 			},
 			selStart: 7, // 3 + 2 + 2 = 7 (within "def")
@@ -1675,7 +1675,7 @@ func TestPieceTableFindLineBounds(t *testing.T) {
 				{
 					start: 0,
 					end:   0,
-					text:  "abc def", // U+2028 = 0xE2 0x80 0xA8
+					text:  "abc\u2028def",
 				},
 			},
 			selStart: 7,
@@ -1691,7 +1691,7 @@ func TestPieceTableFindLineBounds(t *testing.T) {
 				{
 					start: 0,
 					end:   0,
-					text:  "abc def", // U+2029 = 0xE2 0x80 0xA9
+					text:  "abc\u2029def",
 				},
 			},
 			selStart: 7,
