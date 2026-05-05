@@ -63,9 +63,9 @@ type session struct {
 func (s *session) setComposition(text string, selStart, selEnd int) {
 	s.compositionM.Lock()
 	defer s.compositionM.Unlock()
-	s.composition.Text = text
-	s.composition.SelectionStartInBytes = selStart
-	s.composition.SelectionEndInBytes = selEnd
+	s.composition.text = text
+	s.composition.selStart = selStart
+	s.composition.selEnd = selEnd
 }
 
 // loadComposition returns the latest composition text seen from the platform IME.
@@ -147,9 +147,11 @@ func (s *session) Update() error {
 			if st.Committed {
 				s.committed = true
 				s.commit = Commit{
-					Text:                    st.Text,
-					ReplacementStartInBytes: st.ReplacementStartInBytes,
-					ReplacementEndInBytes:   st.ReplacementEndInBytes,
+					text:            st.Text,
+					textBeforeCaret: s.textBeforeCaret,
+					textAfterCaret:  s.textAfterCaret,
+					replStart:       st.ReplacementStartInBytes,
+					replEnd:         st.ReplacementEndInBytes,
 				}
 				s.markClosed(true)
 				return nil
@@ -185,7 +187,7 @@ func (s *session) IsCompositing() bool {
 	if s.composingThisUpdate {
 		return true
 	}
-	return s.loadComposition().Text != ""
+	return s.loadComposition().text != ""
 }
 
 // IsCommitted reports whether the session ended because the IME committed.
@@ -200,8 +202,8 @@ func (s *session) IsCommitted() bool {
 //
 // Defined only when IsCommitted returns true; otherwise returns the zero
 // value.
-func (s *session) Commit() Commit {
-	return s.commit
+func (s *session) Commit() *Commit {
+	return &s.commit
 }
 
 // IsClosed reports whether the session has ended for any reason.

@@ -51,10 +51,11 @@ type TextField struct {
 	composition         string
 	compositionSelStart int
 
-	// imeTextStart is the absolute byte offset in t.text where the
-	// TextBeforeCaret passed to the IME begins. Used to translate the
-	// IME's replacement range into an absolute range.
+	// imeTextStart and imeTextEnd are the absolute byte bounds in t.text of
+	// the TextBeforeCaret + TextAfterCaret slice handed to the IME. On
+	// commit the slice is replaced by the IME's reported new content.
 	imeTextStart int
+	imeTextEnd   int
 }
 
 func NewTextField(bounds image.Rectangle, multilines bool) *TextField {
@@ -71,6 +72,7 @@ func NewTextField(bounds image.Rectangle, multilines bool) *TextField {
 func (t *TextField) onNewIMESession() *textinput.SessionOptions {
 	before, after := t.lineAroundSelection()
 	t.imeTextStart = t.selectionStart - len(before)
+	t.imeTextEnd = t.selectionStart + len(after)
 	return &textinput.SessionOptions{
 		CaretBounds:     t.caretBounds(),
 		TextBeforeCaret: before,
@@ -78,34 +80,25 @@ func (t *TextField) onNewIMESession() *textinput.SessionOptions {
 	}
 }
 
-func (t *TextField) onIMEComposition(c textinput.Composition) {
-	t.composition = c.Text
-	t.compositionSelStart = c.SelectionStartInBytes
+func (t *TextField) onIMEComposition(c *textinput.Composition) {
+	t.composition = c.Text()
+	t.compositionSelStart, _ = c.SelectionRangeInBytes()
 }
 
-// onIMECommit applies a committed IME state: it removes the IME's
-// requested replacement range (translated from IME-text-relative to
-// absolute offsets), then inserts the committed text at the caret.
-func (t *TextField) onIMECommit(c textinput.Commit) {
-	if c.ReplacementEndInBytes > c.ReplacementStartInBytes {
-		absStart := t.imeTextStart + c.ReplacementStartInBytes
-		absEnd := t.imeTextStart + c.ReplacementEndInBytes
-		// Adjust the selection so it tracks across the removal.
-		shift := func(p int) int {
-			switch {
-			case p <= absStart:
-				return p
-			case p >= absEnd:
-				return p - (absEnd - absStart)
-			default:
-				return absStart
-			}
-		}
-		t.text = t.text[:absStart] + t.text[absEnd:]
-		t.selectionStart = shift(t.selectionStart)
-		t.selectionEnd = shift(t.selectionEnd)
+// onIMECommit applies a committed IME state. In the typical case (no
+// replacement), Text is just inserted at the current selection, so user
+// caret movement that happened during the session is honored. When the IME
+// requested a replacement of the surrounding text, the original IME slice
+// is replaced wholesale at its captured position.
+func (t *TextField) onIMECommit(c *textinput.Commit) {
+	if before, after := c.IsSurroundingTextReplaced(); before || after {
+		newBefore, newAfter := c.SurroundingText()
+		t.text = t.text[:t.imeTextStart] + newBefore + c.Text() + newAfter + t.text[t.imeTextEnd:]
+		t.selectionStart = t.imeTextStart + len(newBefore) + len(c.Text())
+		t.selectionEnd = t.selectionStart
+		return
 	}
-	t.replaceSelection(c.Text)
+	t.replaceSelection(c.Text())
 }
 
 func (t *TextField) Contains(x, y int) bool {

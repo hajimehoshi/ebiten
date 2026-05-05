@@ -34,12 +34,12 @@ type Composer struct {
 
 	// OnComposition is called when the IME's preedit changes, including
 	// when the session ends and the preedit should be cleared (the
-	// Composition argument is then the zero value). Optional.
-	OnComposition func(c Composition)
+	// Composition is then the zero value). Optional.
+	OnComposition func(c *Composition)
 
 	// OnCommit is called when the IME commits. The caller applies the
-	// committed text and replacement range to its own buffer. Optional.
-	OnCommit func(c Commit)
+	// committed text to its own buffer. Optional.
+	OnCommit func(c *Commit)
 
 	s *session
 }
@@ -65,38 +65,73 @@ type SessionOptions struct {
 // Composition describes the IME's current preedit text. It is passed to
 // Composer.OnComposition.
 type Composition struct {
-	// Text is the preedit text. Empty when no composition is in progress.
-	Text string
+	text     string
+	selStart int
+	selEnd   int
+}
 
-	// SelectionStartInBytes is the start position of the IME-side selection
-	// within Text, in bytes.
-	SelectionStartInBytes int
+// Text returns the preedit text. Empty when no composition is in progress.
+func (c *Composition) Text() string {
+	return c.text
+}
 
-	// SelectionEndInBytes is the end position of the IME-side selection
-	// within Text, in bytes.
-	SelectionEndInBytes int
+// SelectionRangeInBytes returns the IME-side selection within Text as a
+// half-open byte range [start, end).
+func (c *Composition) SelectionRangeInBytes() (start, end int) {
+	return c.selStart, c.selEnd
 }
 
 // Commit describes the data the IME recorded when committing. It is passed
-// to Composer.OnCommit.
+// to [Composer.OnCommit].
+//
+// In the typical case the caller inserts Text at the current caret. When
+// the IME requested a replacement of part of the surrounding text — see
+// [Commit.IsSurroundingTextReplaced] and [Commit.SurroundingText] — the
+// caller replaces the original [SessionOptions.TextBeforeCaret] +
+// [SessionOptions.TextAfterCaret] slice with prefix + Text + suffix, where
+// prefix and suffix come from SurroundingText, and places the caret at
+// the boundary after Text.
 type Commit struct {
-	// Text is the text the IME committed.
-	Text string
+	text            string
+	textBeforeCaret string
+	textAfterCaret  string
+	replStart       int
+	replEnd         int
+}
 
-	// ReplacementStartInBytes is the start position of the byte range that
-	// Text replaces. The position is a byte offset treating
-	// TextBeforeCaret followed by TextAfterCaret as a single buffer — not
-	// within Text and not within the caller's full text. To translate to a
-	// caller-side absolute offset, add the byte offset where TextBeforeCaret
-	// began in the caller's text.
-	//
-	// Equal to ReplacementEndInBytes when the IME does not request a
-	// replacement (the typical case).
-	ReplacementStartInBytes int
+// Text returns the text the IME committed.
+func (c *Commit) Text() string {
+	return c.text
+}
 
-	// ReplacementEndInBytes is the end position of the byte range that Text
-	// replaces. See ReplacementStartInBytes for the coordinate system.
-	ReplacementEndInBytes int
+// IsSurroundingTextReplaced reports whether the IME requested a
+// replacement of the before-caret or after-caret region. Both are false in
+// the typical case (the IME just inserted Text at the caret); the caller
+// can simply insert Text at its current caret without consulting
+// [Commit.SurroundingText].
+func (c *Commit) IsSurroundingTextReplaced() (before, after bool) {
+	preLen := len(c.textBeforeCaret)
+	return c.replStart != preLen, c.replEnd != preLen
+}
+
+// SurroundingText returns the prefix and suffix that remain after the
+// IME's replacement region is removed from the joined
+// [SessionOptions.TextBeforeCaret] + [SessionOptions.TextAfterCaret]
+// slice. The two strings equal the original SessionOptions values when
+// [Commit.IsSurroundingTextReplaced] returns (false, false).
+func (c *Commit) SurroundingText() (before, after string) {
+	preLen := len(c.textBeforeCaret)
+	if c.replStart <= preLen {
+		before = c.textBeforeCaret[:c.replStart]
+	} else {
+		before = c.textBeforeCaret + c.textAfterCaret[:c.replStart-preLen]
+	}
+	if c.replEnd >= preLen {
+		after = c.textAfterCaret[c.replEnd-preLen:]
+	} else {
+		after = c.textBeforeCaret[c.replEnd:] + c.textAfterCaret
+	}
+	return
 }
 
 // Update processes IME events for one tick and dispatches them through
@@ -127,7 +162,7 @@ func (c *Composer) Update() (handled bool, err error) {
 
 		if err = c.s.Update(); err != nil {
 			c.s = nil
-			c.dispatchComposition(Composition{})
+			c.dispatchEmptyComposition()
 			return handled, err
 		}
 
@@ -135,7 +170,7 @@ func (c *Composer) Update() (handled bool, err error) {
 			if c.OnCommit != nil {
 				c.OnCommit(c.s.Commit())
 			}
-			c.dispatchComposition(Composition{})
+			c.dispatchEmptyComposition()
 			c.s = nil
 			handled = true
 			continue
@@ -143,7 +178,7 @@ func (c *Composer) Update() (handled bool, err error) {
 
 		if c.s.IsClosed() {
 			c.s = nil
-			c.dispatchComposition(Composition{})
+			c.dispatchEmptyComposition()
 			break
 		}
 
@@ -167,11 +202,17 @@ func (c *Composer) Cancel() {
 	}
 	c.s.Cancel()
 	c.s = nil
-	c.dispatchComposition(Composition{})
+	c.dispatchEmptyComposition()
 }
 
 func (c *Composer) dispatchComposition(comp Composition) {
 	if c.OnComposition != nil {
-		c.OnComposition(comp)
+		c.OnComposition(&comp)
+	}
+}
+
+func (c *Composer) dispatchEmptyComposition() {
+	if c.OnComposition != nil {
+		c.OnComposition(&Composition{})
 	}
 }

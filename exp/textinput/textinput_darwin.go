@@ -251,7 +251,7 @@ func newLineView(f *Field) lineView {
 // back into the application's full text are responsible for adding their
 // own line-start offset.
 func newLineViewFromSession(s *session) lineView {
-	composition := s.loadComposition().Text
+	composition := s.loadComposition().text
 	prefix := s.textBeforeCaret
 	suffix := s.textAfterCaret
 	return lineView{

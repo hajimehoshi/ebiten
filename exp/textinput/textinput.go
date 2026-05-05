@@ -169,6 +169,18 @@ func (s *textInputEvents) clearActiveSessionIf(active *session) {
 	}
 }
 
+// caretPosInSession returns the byte offset of the caret within the joined
+// TextBeforeCaret + TextAfterCaret buffer of the active session, or 0 if no
+// session is active. Platform layers that don't compute their own
+// replacement range use this as the "no replacement, at the caret"
+// position when emitting commits.
+func (t *textInput) caretPosInSession() int {
+	if s := t.events.getActiveSession(); s != nil {
+		return len(s.textBeforeCaret)
+	}
+	return 0
+}
+
 func (s *textInputEvents) start() (ch chan textInputState, endFunc func()) {
 	s.m.Lock()
 	defer s.m.Unlock()

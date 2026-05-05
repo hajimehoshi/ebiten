@@ -46,9 +46,12 @@ func (t *textInput) Start(bounds image.Rectangle) (<-chan textInputState, func()
 	if len(t.rs) == 0 {
 		return nil, nil
 	}
+	caretPos := t.caretPosInSession()
 	t.events.send(textInputState{
-		Text:      string(t.rs),
-		Committed: true,
+		Text:                    string(t.rs),
+		ReplacementStartInBytes: caretPos,
+		ReplacementEndInBytes:   caretPos,
+		Committed:               true,
 	})
 	t.events.end()
 	return ch, func() {}
