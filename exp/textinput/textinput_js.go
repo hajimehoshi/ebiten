@@ -64,7 +64,7 @@ func (t *textInput) init() {
 		return nil
 	}))
 	t.textareaElement.Call("addEventListener", "focusout", js.FuncOf(func(this js.Value, args []js.Value) any {
-		t.session.end()
+		t.events.end()
 		return nil
 	}))
 	t.textareaElement.Call("addEventListener", "keydown", js.FuncOf(func(this js.Value, args []js.Value) any {
@@ -162,8 +162,8 @@ func (t *textInput) Start(bounds image.Rectangle) (<-chan textInputState, func()
 	}
 
 	if js.Global().Get("_ebitengine_textinput_ready").Truthy() {
-		t.session.end()
-		ch, end := t.session.start()
+		t.events.end()
+		ch, end := t.events.start()
 		js.Global().Get("window").Set("_ebitengine_textinput_ready", js.Undefined())
 		return ch, end
 	}
@@ -181,14 +181,14 @@ func (t *textInput) Start(bounds image.Rectangle) (<-chan textInputState, func()
 		style.Set("font-size", fmt.Sprintf("%dpx", bounds.Dy()))
 		style.Set("line-height", fmt.Sprintf("%dpx", bounds.Dy()))
 
-		t.session.start()
-		return t.session.ch, func() {
-			t.session.end()
+		t.events.start()
+		return t.events.ch, func() {
+			t.events.end()
 			// Reset the session explictly, or a new session cannot be created above.
 		}
 	}
 
-	t.session.end()
+	t.events.end()
 
 	// On iOS Safari, `focus` works only in user-interaction events (#2898).
 	// Assuming Start is called every tick, defer the starting process to the next user-interaction event.
@@ -206,7 +206,7 @@ func (t *textInput) trySend(committed bool) {
 	startInBytes := convertUTF16CountToByteCount(textareaValue, start)
 	endInBytes := convertUTF16CountToByteCount(textareaValue, end)
 
-	t.session.send(textInputState{
+	t.events.send(textInputState{
 		Text:                             textareaValue,
 		CompositionSelectionStartInBytes: startInBytes,
 		CompositionSelectionEndInBytes:   endInBytes,
@@ -214,7 +214,7 @@ func (t *textInput) trySend(committed bool) {
 	})
 
 	if committed {
-		t.session.end()
+		t.events.end()
 		t.textareaElement.Set("value", "")
 	}
 }

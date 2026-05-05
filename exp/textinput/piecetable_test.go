@@ -235,9 +235,9 @@ func TestPieceTableWriteRangeTo(t *testing.T) {
 	// at different positions. The piece table should now have multiple items.
 	var p textinput.PieceTable
 	p.Replace("Hello World", 0, 0)
-	p.Replace(", ", 5, 6)                                      // "Hello, World"
-	p.Replace("there", 7, 12)                                  // "Hello, there"
-	p.UpdateByIME(textinput.TextInputState{Text: "!"}, 12, 12) // "Hello, there!"
+	p.Replace(", ", 5, 6)            // "Hello, World"
+	p.Replace("there", 7, 12)        // "Hello, there"
+	p.UpdateByIME("!", 0, 0, 12, 12) // "Hello, there!"
 
 	const full = "Hello, there!"
 
@@ -361,8 +361,8 @@ func TestPieceTableWriteRangeRoundTrip(t *testing.T) {
 	p.Replace("Hello World", 0, 0)
 	p.Replace(", ", 5, 6)
 	p.Replace("there", 7, 12)
-	p.UpdateByIME(textinput.TextInputState{Text: "!"}, 12, 12)
-	p.UpdateByIME(textinput.TextInputState{Text: "?"}, 13, 13)
+	p.UpdateByIME("!", 0, 0, 12, 12)
+	p.UpdateByIME("?", 0, 0, 13, 13)
 
 	var ref strings.Builder
 	if _, err := p.WriteTo(&ref); err != nil {
@@ -562,7 +562,7 @@ func TestPieceTableWriteRangeToWithInsertion(t *testing.T) {
 		p.Replace("Hello World", 0, 0)
 		p.Replace(", ", 5, 6)
 		p.Replace("there", 7, 12)
-		p.UpdateByIME(textinput.TextInputState{Text: "!"}, 12, 12)
+		p.UpdateByIME("!", 0, 0, 12, 12)
 		return &p
 	}
 
@@ -784,7 +784,7 @@ func TestPieceTableWriteRangeToWithInsertionRoundTrip(t *testing.T) {
 	p.Replace("Hello World", 0, 0)
 	p.Replace(", ", 5, 6)
 	p.Replace("there", 7, 12)
-	p.UpdateByIME(textinput.TextInputState{Text: "!"}, 12, 12)
+	p.UpdateByIME("!", 0, 0, 12, 12)
 
 	cases := []struct {
 		name        string
@@ -889,15 +889,15 @@ func TestPieceTableUndoRedo(t *testing.T) {
 	check("")
 
 	// Op 1: Insert "Hello"
-	p.UpdateByIME(textinput.TextInputState{Text: "Hello"}, 0, 0)
+	p.UpdateByIME("Hello", 0, 0, 0, 0)
 	check("Hello")
 
 	// Op 2: Insert "\n"
-	p.UpdateByIME(textinput.TextInputState{Text: "\n"}, 5, 5)
+	p.UpdateByIME("\n", 0, 0, 5, 5)
 	check("Hello\n")
 
 	// Op 3: Insert "World"
-	p.UpdateByIME(textinput.TextInputState{Text: "World"}, 6, 6)
+	p.UpdateByIME("World", 0, 0, 6, 6)
 	check("Hello\nWorld")
 
 	// Undo Op 3
@@ -1024,9 +1024,9 @@ func TestPieceTableHistoryMerging(t *testing.T) {
 	}
 
 	// Op 1: Merge sequential characters
-	p.UpdateByIME(textinput.TextInputState{Text: "a"}, 0, 0)
-	p.UpdateByIME(textinput.TextInputState{Text: "b"}, 1, 1)
-	p.UpdateByIME(textinput.TextInputState{Text: "c"}, 2, 2)
+	p.UpdateByIME("a", 0, 0, 0, 0)
+	p.UpdateByIME("b", 0, 0, 1, 1)
+	p.UpdateByIME("c", 0, 0, 2, 2)
 	check("abc")
 
 	// Undo Op 1
@@ -1050,11 +1050,11 @@ func TestPieceTableHistoryMerging(t *testing.T) {
 	check("abc")
 
 	// Op 2: Newline breaks merge.
-	p.UpdateByIME(textinput.TextInputState{Text: "\n"}, 3, 3)
+	p.UpdateByIME("\n", 0, 0, 3, 3)
 	check("abc\n")
 
 	// Op 3: Insert "d" at 4.
-	p.UpdateByIME(textinput.TextInputState{Text: "d"}, 4, 4)
+	p.UpdateByIME("d", 0, 0, 4, 4)
 	check("abc\nd")
 
 	// Undo Op 3
@@ -1078,7 +1078,7 @@ func TestPieceTableHistoryMerging(t *testing.T) {
 	check("abc\nd")
 
 	// Op 4: Adjacency: Non-adjacent
-	p.UpdateByIME(textinput.TextInputState{Text: "x"}, 0, 0)
+	p.UpdateByIME("x", 0, 0, 0, 0)
 	check("xabc\nd")
 
 	// Undo Op 4
@@ -1108,9 +1108,7 @@ func TestPieceTableHistoryDelete(t *testing.T) {
 
 	check("")
 
-	p.UpdateByIME(textinput.TextInputState{
-		Text: "Hello",
-	}, 0, 0)
+	p.UpdateByIME("Hello", 0, 0, 0, 0)
 	check("Hello")
 
 	// Op 1: Delete "o" and "l" like a backspace key
@@ -1191,19 +1189,19 @@ func TestPieceTableHistoryMergingApplePressHold(t *testing.T) {
 	check("foo")
 
 	// Op 2: Add "a"
-	p.UpdateByIME(textinput.TextInputState{Text: "a"}, 3, 3)
+	p.UpdateByIME("a", 0, 0, 3, 3)
 	check("fooa")
 
 	// Op 3: Delete "a" and add "à"
-	p.UpdateByIME(textinput.TextInputState{Text: "à", DeleteStartInBytes: 3, DeleteEndInBytes: 4}, 4, 4)
+	p.UpdateByIME("à", 3, 4, 4, 4)
 	check("fooà")
 
 	// Op 4: Add "a"
-	p.UpdateByIME(textinput.TextInputState{Text: "a"}, 5, 5)
+	p.UpdateByIME("a", 0, 0, 5, 5)
 	check("fooàa")
 
 	// Op 5: Delete "a" and add "à"
-	p.UpdateByIME(textinput.TextInputState{Text: "à", DeleteStartInBytes: 5, DeleteEndInBytes: 6}, 6, 6)
+	p.UpdateByIME("à", 5, 6, 6, 6)
 	check("fooàà")
 
 	// Undo Op 5, 4, 3, 2

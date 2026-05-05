@@ -38,7 +38,7 @@ func (t *textInput) Start(bounds image.Rectangle) (<-chan textInputState, func()
 		t.lastTick = tick
 	}()
 
-	ch, _ := t.session.start()
+	ch, _ := t.events.start()
 
 	// This is a pseudo implementation with AppendInputChars without IME.
 	// This is tentative and should be replaced with IME in the future.
@@ -46,10 +46,10 @@ func (t *textInput) Start(bounds image.Rectangle) (<-chan textInputState, func()
 	if len(t.rs) == 0 {
 		return nil, nil
 	}
-	t.session.send(textInputState{
+	t.events.send(textInputState{
 		Text:      string(t.rs),
 		Committed: true,
 	})
-	t.session.end()
+	t.events.end()
 	return ch, func() {}
 }

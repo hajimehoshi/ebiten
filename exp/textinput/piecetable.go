@@ -549,23 +549,23 @@ func (p *pieceTable) doReplace(text string, start, end int) {
 	p.history[p.historyIndex].items = items
 }
 
-func (p *pieceTable) updateByIME(state textInputState, start, end int) int {
-	if delta := state.DeleteEndInBytes - state.DeleteStartInBytes; delta > 0 {
-		if start > state.DeleteStartInBytes {
+func (p *pieceTable) updateByIME(text string, replacementStart, replacementEnd, start, end int) int {
+	if delta := replacementEnd - replacementStart; delta > 0 {
+		if start > replacementStart {
 			start -= delta
 		}
-		if end > state.DeleteStartInBytes {
+		if end > replacementStart {
 			end -= delta
 		}
-		p.maybeAppendHistory(state.Text, state.DeleteStartInBytes, state.DeleteEndInBytes, start, end, 2, true)
+		p.maybeAppendHistory(text, replacementStart, replacementEnd, start, end, 2, true)
 	} else {
-		p.maybeAppendHistory(state.Text, start, end, 0, 0, 1, true)
+		p.maybeAppendHistory(text, start, end, 0, 0, 1, true)
 	}
 
-	if state.DeleteEndInBytes-state.DeleteStartInBytes > 0 {
-		p.doReplace("", state.DeleteStartInBytes, state.DeleteEndInBytes)
+	if replacementEnd-replacementStart > 0 {
+		p.doReplace("", replacementStart, replacementEnd)
 	}
-	p.doReplace(state.Text, start, end)
+	p.doReplace(text, start, end)
 	return start
 }
 

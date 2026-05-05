@@ -37,13 +37,13 @@ func (t *textInput) Start(bounds image.Rectangle) (<-chan textInputState, func()
 	return ch, end
 }
 
-func (t *textInput) update(text string, startInBytes, endInBytes int, deleteStartInBytes, deleteEndInBytes int, committed bool) {
-	t.session.send(textInputState{
+func (t *textInput) update(text string, startInBytes, endInBytes int, replacementStartInBytes, replacementEndInBytes int, committed bool) {
+	t.events.send(textInputState{
 		Text:                             text,
 		CompositionSelectionStartInBytes: startInBytes,
 		CompositionSelectionEndInBytes:   endInBytes,
-		DeleteStartInBytes:               deleteStartInBytes,
-		DeleteEndInBytes:                 deleteEndInBytes,
+		ReplacementStartInBytes:          replacementStartInBytes,
+		ReplacementEndInBytes:            replacementEndInBytes,
 		Committed:                        committed,
 	})
 	if committed {
@@ -52,7 +52,7 @@ func (t *textInput) update(text string, startInBytes, endInBytes int, deleteStar
 }
 
 func (t *textInput) endIfNeeded() {
-	t.session.end()
+	t.events.end()
 }
 
 var (
@@ -133,7 +133,7 @@ func (t *textInput) start(bounds image.Rectangle) (<-chan textInputState, func()
 		size:   nsSize{float64(bounds.Dx()), float64(bounds.Dy())},
 	})
 
-	return t.session.start()
+	return t.events.start()
 }
 
 var class_TextInputClient objc.Class
@@ -240,6 +240,51 @@ func newLineView(f *Field) lineView {
 	}
 }
 
+// newLineViewFromSession builds a lineView for the active session.
+//
+// In session-mode the byte offsets treat TextBeforeCaret followed by
+// TextAfterCaret as a single buffer (lineStartInBytes is 0 and
+// selection*InBytes are len(TextBeforeCaret)). Callers translating these
+// back into the application's full text are responsible for adding their
+// own line-start offset.
+func newLineViewFromSession(s *session) lineView {
+	composition := s.loadComposition().Text
+	prefix := s.textBeforeCaret
+	suffix := s.textAfterCaret
+	return lineView{
+		prefix:                prefix,
+		marked:                composition,
+		suffix:                suffix,
+		prefixLenInUTF16:      convertByteCountToUTF16Count(prefix, len(prefix)),
+		markedLenInUTF16:      convertByteCountToUTF16Count(composition, len(composition)),
+		suffixLenInUTF16:      convertByteCountToUTF16Count(suffix, len(suffix)),
+		lineStartInBytes:      0,
+		selectionStartInBytes: len(prefix),
+		selectionEndInBytes:   len(prefix),
+	}
+}
+
+// withIMEView calls fn with a lineView for the current IME target. It prefers
+// an active session over a focused Field. Returns false if neither exists.
+//
+// Reads are race-free: getActiveSession takes activeSessionM, lineView is
+// built from immutable-after-publish session fields and the compositionM-
+// guarded composition snapshot. There is, however, a brief staleness window:
+// when the platform forcibly tears down the channel (e.g. resignFirstResponder),
+// the Go-side activeSession pointer is cleared lazily, only when the user's
+// next Update observes the channel close. Between teardown and that Update,
+// withIMEView returns the session's last-seen composition. The IME sees
+// stale-but-valid data; it gets overwritten on the next event.
+func withIMEView(fn func(v lineView)) bool {
+	if s := theTextInput.events.getActiveSession(); s != nil {
+		fn(newLineViewFromSession(s))
+		return true
+	}
+	return withFocusedField(func(f *Field) {
+		fn(newLineView(f))
+	})
+}
+
 func utf16ToByteWithin(s string, utf16Pos int) int {
 	if utf16Pos <= 0 {
 		return 0
@@ -274,19 +319,18 @@ func (v *lineView) utf16PosToPieceTableByte(utf16Pos int) int {
 
 func hasMarkedText(_ objc.ID, _ objc.SEL) bool {
 	var has bool
-	withFocusedField(func(f *Field) {
-		has = len(f.state.Text) > 0
+	withIMEView(func(v lineView) {
+		has = len(v.marked) > 0
 	})
 	return has
 }
 
 func markedRange(_ objc.ID, _ objc.SEL) nsRange {
 	r := nsRange{location: ^uint(0), length: 0} // NSNotFound
-	withFocusedField(func(f *Field) {
-		if len(f.state.Text) == 0 {
+	withIMEView(func(v lineView) {
+		if len(v.marked) == 0 {
 			return
 		}
-		v := newLineView(f)
 		r = nsRange{location: uint(v.prefixLenInUTF16), length: uint(v.markedLenInUTF16)}
 	})
 	return r
@@ -294,8 +338,7 @@ func markedRange(_ objc.ID, _ objc.SEL) nsRange {
 
 func selectedRange(_ objc.ID, _ objc.SEL) nsRange {
 	r := nsRange{location: ^uint(0), length: 0} // NSNotFound
-	withFocusedField(func(f *Field) {
-		v := newLineView(f)
+	withIMEView(func(v lineView) {
 		// During composition the caret sits at the start of the marked region.
 		// Without composition, an active non-collapsed field selection is hidden
 		// from the IME (its bytes are not part of the view), so report a
@@ -355,28 +398,33 @@ func insertText(_ objc.ID, _ objc.SEL, str objc.ID, replacementRange nsRange) {
 	charPtr := str.Send(sel_UTF8String)
 	t := string(unsafe.Slice(*(**byte)(unsafe.Pointer(&charPtr)), utf8Len))
 
-	var delStartInBytes, delEndInBytes int
-	if int64(replacementRange.location) >= 0 {
-		withFocusedField(func(f *Field) {
-			v := newLineView(f)
-			startUTF16 := int(replacementRange.location)
-			endUTF16 := int(replacementRange.location + replacementRange.length)
-			// A range overlapping the marked region expands to cover the whole
-			// region in the piece table: the marked text is not present there,
-			// so its boundaries are selectionStart and selectionEnd.
-			if b := v.utf16PosToPieceTableByte(startUTF16); b >= 0 {
-				delStartInBytes = b
-			} else {
-				delStartInBytes = v.selectionStartInBytes
-			}
-			if b := v.utf16PosToPieceTableByte(endUTF16); b >= 0 {
-				delEndInBytes = b
-			} else {
-				delEndInBytes = v.selectionEndInBytes
-			}
-		})
-	}
-	theTextInput.update(t, 0, len(t), delStartInBytes, delEndInBytes, true)
+	var replStartInBytes, replEndInBytes int
+	withIMEView(func(v lineView) {
+		// Default to an empty range at the caret. When the IME does not
+		// supply a replacementRange the values still describe a meaningful
+		// position (the caret) rather than 0, 0.
+		replStartInBytes = v.selectionStartInBytes
+		replEndInBytes = v.selectionEndInBytes
+		if int64(replacementRange.location) < 0 {
+			return
+		}
+		startUTF16 := int(replacementRange.location)
+		endUTF16 := int(replacementRange.location + replacementRange.length)
+		// A range overlapping the marked region expands to cover the whole
+		// region: the marked text is not present in the underlying buffer,
+		// so its boundaries are selectionStart and selectionEnd.
+		if b := v.utf16PosToPieceTableByte(startUTF16); b >= 0 {
+			replStartInBytes = b
+		} else {
+			replStartInBytes = v.selectionStartInBytes
+		}
+		if b := v.utf16PosToPieceTableByte(endUTF16); b >= 0 {
+			replEndInBytes = b
+		} else {
+			replEndInBytes = v.selectionEndInBytes
+		}
+	})
+	theTextInput.update(t, 0, len(t), replStartInBytes, replEndInBytes, true)
 }
 
 func characterIndexForPoint(_ objc.ID, _ objc.SEL, _ nsPoint) uint64 {
@@ -385,8 +433,7 @@ func characterIndexForPoint(_ objc.ID, _ objc.SEL, _ nsPoint) uint64 {
 
 func firstRectForCharacterRange(self objc.ID, _ objc.SEL, rang nsRange, actualRange *nsRange) nsRect {
 	if actualRange != nil {
-		withFocusedField(func(f *Field) {
-			v := newLineView(f)
+		withIMEView(func(v lineView) {
 			actualRange.location = uint(v.prefixLenInUTF16)
 			// 0 seems to work correctly.
 			// See https://developer.apple.com/documentation/appkit/nstextinputclient/firstrect(forcharacterrange:actualrange:)?language=objc

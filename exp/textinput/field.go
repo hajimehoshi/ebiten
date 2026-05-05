@@ -313,7 +313,7 @@ func (f *Field) commit(state textInputState) {
 	if !state.Committed {
 		panic("textinput: commit must be called with committed state")
 	}
-	start := f.pieceTable.updateByIME(state, f.selectionStartInBytes, f.selectionEndInBytes)
+	start := f.pieceTable.updateByIME(state.Text, state.ReplacementStartInBytes, state.ReplacementEndInBytes, f.selectionStartInBytes, f.selectionEndInBytes)
 	f.selectionStartInBytes = start + len(state.Text)
 	f.selectionEndInBytes = f.selectionStartInBytes
 	f.state = textInputState{}
@@ -369,7 +369,7 @@ func (f *Field) cleanUp() {
 		f.setState(textInputState{})
 	}
 
-	theTextInput.session.clearQueue()
+	theTextInput.events.clearQueue()
 }
 
 // Selection returns the current selection range in bytes.

@@ -48,13 +48,13 @@ func (t *textInput) Start(bounds image.Rectangle) (<-chan textInputState, func()
 	var ch chan textInputState
 	var err error
 	ebiten.RunOnMainThread(func() {
-		t.session.end()
+		t.events.end()
 		err = t.start(bounds)
-		ch, _ = t.session.start()
+		ch, _ = t.events.start()
 	})
 	if err != nil {
-		t.session.send(textInputState{Error: err})
-		t.session.end()
+		t.events.send(textInputState{Error: err})
+		t.events.end()
 	}
 	return ch, func() {
 		ebiten.RunOnMainThread(func() {
@@ -68,7 +68,7 @@ func (t *textInput) Start(bounds image.Rectangle) (<-chan textInputState, func()
 				return
 			}
 			t.immContext = c
-			t.session.end()
+			t.events.end()
 		})
 	}
 }
@@ -144,14 +144,14 @@ func (t *textInput) wndProc(hWnd uintptr, uMsg uint32, wParam, lParam uintptr) u
 		if lParam&(_GCS_RESULTSTR|_GCS_COMPSTR) != 0 {
 			if lParam&_GCS_RESULTSTR != 0 {
 				if err := t.commit(); err != nil {
-					t.session.send(textInputState{Error: err})
-					t.session.end()
+					t.events.send(textInputState{Error: err})
+					t.events.end()
 				}
 			}
 			if lParam&_GCS_COMPSTR != 0 {
 				if err := t.update(); err != nil {
-					t.session.send(textInputState{Error: err})
-					t.session.end()
+					t.events.send(textInputState{Error: err})
+					t.events.end()
 				}
 			}
 			return 1
@@ -196,14 +196,14 @@ func (t *textInput) wndProc(hWnd uintptr, uMsg uint32, wParam, lParam uintptr) u
 
 // send must be called from the main thread.
 func (t *textInput) send(text string, startInBytes, endInBytes int, committed bool) {
-	t.session.send(textInputState{
+	t.events.send(textInputState{
 		Text:                             text,
 		CompositionSelectionStartInBytes: startInBytes,
 		CompositionSelectionEndInBytes:   endInBytes,
 		Committed:                        committed,
 	})
 	if committed {
-		t.session.end()
+		t.events.end()
 	}
 }
 

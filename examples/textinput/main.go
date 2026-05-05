@@ -41,14 +41,71 @@ const (
 type TextField struct {
 	bounds     image.Rectangle
 	multilines bool
-	field      textinput.Field
+
+	text           string
+	selectionStart int
+	selectionEnd   int
+	focused        bool
+
+	composer            textinput.Composer
+	composition         string
+	compositionSelStart int
+
+	// imeTextStart is the absolute byte offset in t.text where the
+	// TextBeforeCaret passed to the IME begins. Used to translate the
+	// IME's replacement range into an absolute range.
+	imeTextStart int
 }
 
 func NewTextField(bounds image.Rectangle, multilines bool) *TextField {
-	return &TextField{
+	t := &TextField{
 		bounds:     bounds,
 		multilines: multilines,
 	}
+	t.composer.OnNewSession = t.onNewIMESession
+	t.composer.OnComposition = t.onIMEComposition
+	t.composer.OnCommit = t.onIMECommit
+	return t
+}
+
+func (t *TextField) onNewIMESession() *textinput.SessionOptions {
+	before, after := t.lineAroundSelection()
+	t.imeTextStart = t.selectionStart - len(before)
+	return &textinput.SessionOptions{
+		CaretBounds:     t.caretBounds(),
+		TextBeforeCaret: before,
+		TextAfterCaret:  after,
+	}
+}
+
+func (t *TextField) onIMEComposition(c textinput.Composition) {
+	t.composition = c.Text
+	t.compositionSelStart = c.SelectionStartInBytes
+}
+
+// onIMECommit applies a committed IME state: it removes the IME's
+// requested replacement range (translated from IME-text-relative to
+// absolute offsets), then inserts the committed text at the caret.
+func (t *TextField) onIMECommit(c textinput.Commit) {
+	if c.ReplacementEndInBytes > c.ReplacementStartInBytes {
+		absStart := t.imeTextStart + c.ReplacementStartInBytes
+		absEnd := t.imeTextStart + c.ReplacementEndInBytes
+		// Adjust the selection so it tracks across the removal.
+		shift := func(p int) int {
+			switch {
+			case p <= absStart:
+				return p
+			case p >= absEnd:
+				return p - (absEnd - absStart)
+			default:
+				return absStart
+			}
+		}
+		t.text = t.text[:absStart] + t.text[absEnd:]
+		t.selectionStart = shift(t.selectionStart)
+		t.selectionEnd = shift(t.selectionEnd)
+	}
+	t.replaceSelection(c.Text)
 }
 
 func (t *TextField) Contains(x, y int) bool {
@@ -60,7 +117,8 @@ func (t *TextField) SetSelectionStartByCursorPosition(x, y int) bool {
 	if !ok {
 		return false
 	}
-	t.field.SetSelection(idx, idx)
+	t.selectionStart = idx
+	t.selectionEnd = idx
 	return true
 }
 
@@ -85,7 +143,7 @@ func (t *TextField) textIndexByCursorPosition(x, y int) (int, bool) {
 	var nlCount int
 	var lineStart int
 	var prevAdvance float64
-	txt := t.field.Text()
+	txt := t.text
 	for i, r := range txt {
 		var x0, x1 int
 		currentAdvance := text.Advance(txt[lineStart:i], fontFace)
@@ -120,92 +178,115 @@ func (t *TextField) textIndexByCursorPosition(x, y int) (int, bool) {
 }
 
 func (t *TextField) Focus() {
-	t.field.Focus()
+	t.focused = true
 }
 
 func (t *TextField) Blur() {
-	t.field.Blur()
+	t.focused = false
+}
+
+func (t *TextField) IsFocused() bool {
+	return t.focused
+}
+
+// lineAroundSelection returns the bytes of the current line on either side of
+// the selection start. They form CaretContext for the IME.
+func (t *TextField) lineAroundSelection() (before, after string) {
+	lineStart := strings.LastIndexByte(t.text[:t.selectionStart], '\n') + 1
+	rel := strings.IndexByte(t.text[t.selectionStart:], '\n')
+	var lineEnd int
+	if rel < 0 {
+		lineEnd = len(t.text)
+	} else {
+		lineEnd = t.selectionStart + rel
+	}
+	return t.text[lineStart:t.selectionStart], t.text[t.selectionStart:lineEnd]
+}
+
+func (t *TextField) replaceSelection(s string) {
+	t.text = t.text[:t.selectionStart] + s + t.text[t.selectionEnd:]
+	t.selectionStart += len(s)
+	t.selectionEnd = t.selectionStart
+}
+
+func (t *TextField) caretBounds() image.Rectangle {
+	cx, cy := t.cursorPos()
+	px, py := textFieldPadding()
+	x0 := t.bounds.Min.X + cx + px
+	y0 := t.bounds.Min.Y + cy + py
+	h := int(fontFace.Metrics().HLineGap + fontFace.Metrics().HAscent + fontFace.Metrics().HDescent)
+	return image.Rect(x0, y0, x0+1, y0+h)
 }
 
 func (t *TextField) Update() error {
-	if !t.field.IsFocused() {
+	if !t.focused {
+		t.composer.Cancel()
 		return nil
 	}
 
-	x, y := t.bounds.Min.X, t.bounds.Min.Y
-	cx, cy := t.cursorPos()
-	px, py := textFieldPadding()
-	x0 := x + cx + px
-	x1 := x0 + 1
-	y0 := y + cy + py
-	y1 := y0 + int(fontFace.Metrics().HLineGap+fontFace.Metrics().HAscent+fontFace.Metrics().HDescent)
-	t.field.SetBounds(image.Rect(x0, y0, x1, y1))
-	if t.field.Handled() {
+	handled, err := t.composer.Update()
+	if err != nil {
+		return err
+	}
+	if handled {
 		return nil
 	}
 
 	switch {
 	case inpututil.IsKeyJustPressed(ebiten.KeyEnter):
 		if t.multilines {
-			t.field.ReplaceTextAtSelection("\n")
+			t.replaceSelection("\n")
 		}
 	case inpututil.IsKeyJustPressed(ebiten.KeyBackspace):
-		selectionStart, selectionEnd := t.field.Selection()
-		if selectionStart != selectionEnd {
-			t.field.ReplaceTextAtSelection("")
-		} else if selectionStart > 0 {
+		if t.selectionStart != t.selectionEnd {
+			t.replaceSelection("")
+		} else if t.selectionStart > 0 {
 			// TODO: Remove a grapheme instead of a code point.
-			_, l := utf8.DecodeLastRuneInString(t.field.Text()[:selectionStart])
-			t.field.ReplaceText("", selectionStart-l, selectionStart)
+			_, l := utf8.DecodeLastRuneInString(t.text[:t.selectionStart])
+			t.text = t.text[:t.selectionStart-l] + t.text[t.selectionStart:]
+			t.selectionStart -= l
+			t.selectionEnd = t.selectionStart
 		}
 	case inpututil.IsKeyJustPressed(ebiten.KeyLeft):
-		selectionStart, _ := t.field.Selection()
-		if selectionStart > 0 {
+		if t.selectionStart > 0 {
 			// TODO: Remove a grapheme instead of a code point.
-			_, l := utf8.DecodeLastRuneInString(t.field.Text()[:selectionStart])
-			selectionStart -= l
+			_, l := utf8.DecodeLastRuneInString(t.text[:t.selectionStart])
+			t.selectionStart -= l
 		}
-		t.field.SetSelection(selectionStart, selectionStart)
+		t.selectionEnd = t.selectionStart
 	case inpututil.IsKeyJustPressed(ebiten.KeyRight):
-		_, selectionEnd := t.field.Selection()
-		if selectionEnd < len(t.field.Text()) {
+		if t.selectionEnd < len(t.text) {
 			// TODO: Remove a grapheme instead of a code point.
-			_, l := utf8.DecodeRuneInString(t.field.Text()[selectionEnd:])
-			selectionEnd += l
+			_, l := utf8.DecodeRuneInString(t.text[t.selectionEnd:])
+			t.selectionEnd += l
 		}
-		t.field.SetSelection(selectionEnd, selectionEnd)
-	}
-
-	if !t.multilines {
-		orig := t.field.Text()
-		new := strings.ReplaceAll(orig, "\n", "")
-		if new != orig {
-			selectionStart, selectionEnd := t.field.Selection()
-			selectionStart -= strings.Count(orig[:selectionStart], "\n")
-			selectionEnd -= strings.Count(orig[:selectionEnd], "\n")
-			t.field.SetSelection(selectionStart, selectionEnd)
-		}
+		t.selectionStart = t.selectionEnd
 	}
 
 	return nil
 }
 
+// textForRendering returns the committed text with the active composition
+// spliced in at the caret.
+func (t *TextField) textForRendering() string {
+	if t.composition == "" {
+		return t.text
+	}
+	return t.text[:t.selectionStart] + t.composition + t.text[t.selectionStart:]
+}
+
 func (t *TextField) cursorPos() (int, int) {
+	txt := t.textForRendering()
+	caret := t.selectionStart + t.compositionSelStart
+	txt = txt[:caret]
 	var nlCount int
 	lastNLPos := -1
-	txt := t.field.TextForRendering()
-	selectionStart, _ := t.field.Selection()
-	if s, _, ok := t.field.CompositionSelection(); ok {
-		selectionStart += s
-	}
-	txt = txt[:selectionStart]
 	for i, r := range txt {
 		if r == '\n' {
 			nlCount++
 			lastNLPos = i
 		}
 	}
-
 	txt = txt[lastNLPos+1:]
 	x := int(text.Advance(txt, fontFace))
 	y := nlCount * int(fontFace.Metrics().HLineGap+fontFace.Metrics().HAscent+fontFace.Metrics().HDescent)
@@ -215,14 +296,13 @@ func (t *TextField) cursorPos() (int, int) {
 func (t *TextField) Draw(screen *ebiten.Image) {
 	vector.FillRect(screen, float32(t.bounds.Min.X), float32(t.bounds.Min.Y), float32(t.bounds.Dx()), float32(t.bounds.Dy()), color.White, false)
 	var clr color.Color = color.Black
-	if t.field.IsFocused() {
+	if t.focused {
 		clr = color.RGBA{0, 0, 0xff, 0xff}
 	}
 	vector.StrokeRect(screen, float32(t.bounds.Min.X), float32(t.bounds.Min.Y), float32(t.bounds.Dx()), float32(t.bounds.Dy()), 1, clr, false)
 
 	px, py := textFieldPadding()
-	selectionStart, _ := t.field.Selection()
-	if t.field.IsFocused() && selectionStart >= 0 {
+	if t.focused {
 		x, y := t.bounds.Min.X, t.bounds.Min.Y
 		cx, cy := t.cursorPos()
 		x += px + cx
@@ -237,7 +317,7 @@ func (t *TextField) Draw(screen *ebiten.Image) {
 	op.GeoM.Translate(float64(tx), float64(ty))
 	op.ColorScale.ScaleWithColor(color.Black)
 	op.LineSpacing = fontFace.Metrics().HLineGap + fontFace.Metrics().HAscent + fontFace.Metrics().HDescent
-	text.Draw(screen, t.field.TextForRendering(), fontFace, op)
+	text.Draw(screen, t.textForRendering(), fontFace, op)
 }
 
 const textFieldHeight = 24

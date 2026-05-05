@@ -72,8 +72,6 @@ func (p *PieceTable) Redo() (int, int, bool) {
 	return p.redo()
 }
 
-type TextInputState = textInputState
-
-func (p *PieceTable) UpdateByIME(state TextInputState, start, end int) int {
-	return p.updateByIME(state, start, end)
+func (p *PieceTable) UpdateByIME(text string, replacementStart, replacementEnd, start, end int) int {
+	return p.updateByIME(text, replacementStart, replacementEnd, start, end)
 }
