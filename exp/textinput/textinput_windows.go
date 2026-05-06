@@ -196,13 +196,12 @@ func (t *textInput) wndProc(hWnd uintptr, uMsg uint32, wParam, lParam uintptr) u
 
 // send must be called from the main thread.
 func (t *textInput) send(text string, startInBytes, endInBytes int, committed bool) {
-	caretPos := t.caretPosInSession()
 	t.events.send(textInputState{
 		Text:                             text,
 		CompositionSelectionStartInBytes: startInBytes,
 		CompositionSelectionEndInBytes:   endInBytes,
-		ReplacementStartInBytes:          caretPos,
-		ReplacementEndInBytes:            caretPos,
+		ReplacementStartInBytes:          noReplacement,
+		ReplacementEndInBytes:            noReplacement,
 		Committed:                        committed,
 	})
 	if committed {

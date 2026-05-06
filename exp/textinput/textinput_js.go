@@ -206,13 +206,12 @@ func (t *textInput) trySend(committed bool) {
 	startInBytes := convertUTF16CountToByteCount(textareaValue, start)
 	endInBytes := convertUTF16CountToByteCount(textareaValue, end)
 
-	caretPos := t.caretPosInSession()
 	t.events.send(textInputState{
 		Text:                             textareaValue,
 		CompositionSelectionStartInBytes: startInBytes,
 		CompositionSelectionEndInBytes:   endInBytes,
-		ReplacementStartInBytes:          caretPos,
-		ReplacementEndInBytes:            caretPos,
+		ReplacementStartInBytes:          noReplacement,
+		ReplacementEndInBytes:            noReplacement,
 		Committed:                        committed,
 	})
 

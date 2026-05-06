@@ -29,6 +29,12 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
+// noReplacement is the sentinel value for [textInputState.ReplacementStartInBytes]
+// and [textInputState.ReplacementEndInBytes] meaning "no replacement, at
+// the caret of the receiving session." [session.Update] resolves it to
+// len(textBeforeCaret) on commit.
+const noReplacement = -1
+
 // textInputState is the internal record of an IME event flowing from the
 // platform layer to the Go side via a channel.
 type textInputState struct {
@@ -45,12 +51,14 @@ type textInputState struct {
 
 	// ReplacementStartInBytes is the start position of the byte range that
 	// Text replaces, in the joined TextBeforeCaret+TextAfterCaret buffer.
-	// Meaningful only when Committed is true.
+	// Meaningful only when Committed is true. Use [noReplacement] for the
+	// "no replacement, at the caret" case.
 	ReplacementStartInBytes int
 
 	// ReplacementEndInBytes is the end position of the byte range that Text
 	// replaces, in the joined TextBeforeCaret+TextAfterCaret buffer.
-	// Meaningful only when Committed is true.
+	// Meaningful only when Committed is true. Use [noReplacement] for the
+	// "no replacement, at the caret" case.
 	ReplacementEndInBytes int
 
 	// Committed reports whether Text is the final committed text.
@@ -167,18 +175,6 @@ func (s *textInputEvents) clearActiveSessionIf(active *session) {
 	if s.activeSession == active {
 		s.activeSession = nil
 	}
-}
-
-// caretPosInSession returns the byte offset of the caret within the joined
-// TextBeforeCaret + TextAfterCaret buffer of the active session, or 0 if no
-// session is active. Platform layers that don't compute their own
-// replacement range use this as the "no replacement, at the caret"
-// position when emitting commits.
-func (t *textInput) caretPosInSession() int {
-	if s := t.events.getActiveSession(); s != nil {
-		return len(s.textBeforeCaret)
-	}
-	return 0
 }
 
 func (s *textInputEvents) start() (ch chan textInputState, endFunc func()) {

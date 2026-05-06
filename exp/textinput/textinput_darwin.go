@@ -369,7 +369,7 @@ func setMarkedText(_ objc.ID, _ objc.SEL, str objc.ID, selectedRange nsRange, re
 
 	startInBytes := convertUTF16CountToByteCount(t, int(selectedRange.location))
 	endInBytes := convertUTF16CountToByteCount(t, int(selectedRange.location+selectedRange.length))
-	theTextInput.update(t, startInBytes, endInBytes, 0, 0, false)
+	theTextInput.update(t, startInBytes, endInBytes, noReplacement, noReplacement, false)
 }
 
 func unmarkText(_ objc.ID, _ objc.SEL) {
@@ -401,13 +401,8 @@ func insertText(_ objc.ID, _ objc.SEL, str objc.ID, replacementRange nsRange) {
 	charPtr := str.Send(sel_UTF8String)
 	t := string(unsafe.Slice(*(**byte)(unsafe.Pointer(&charPtr)), utf8Len))
 
-	var replStartInBytes, replEndInBytes int
+	replStartInBytes, replEndInBytes := noReplacement, noReplacement
 	withIMEView(func(v lineView) {
-		// Default to an empty range at the caret. When the IME does not
-		// supply a replacementRange the values still describe a meaningful
-		// position (the caret) rather than 0, 0.
-		replStartInBytes = v.selectionStartInBytes
-		replEndInBytes = v.selectionEndInBytes
 		if replacementRange.location >= nsNotFound {
 			return
 		}

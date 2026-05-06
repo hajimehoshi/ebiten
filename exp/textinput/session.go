@@ -145,13 +145,20 @@ func (s *session) Update() error {
 				return st.Error
 			}
 			if st.Committed {
+				replStart := st.ReplacementStartInBytes
+				replEnd := st.ReplacementEndInBytes
+				if replStart == noReplacement || replEnd == noReplacement {
+					preLen := len(s.textBeforeCaret)
+					replStart = preLen
+					replEnd = preLen
+				}
 				s.committed = true
 				s.commit = Commit{
 					text:            st.Text,
 					textBeforeCaret: s.textBeforeCaret,
 					textAfterCaret:  s.textAfterCaret,
-					replStart:       st.ReplacementStartInBytes,
-					replEnd:         st.ReplacementEndInBytes,
+					replStart:       replStart,
+					replEnd:         replEnd,
 				}
 				s.markClosed(true)
 				return nil
