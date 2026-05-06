@@ -139,6 +139,7 @@ type GoTextFaceSource struct {
 	addr *GoTextFaceSource
 
 	shaper shaping.HarfbuzzShaper
+	seg    shaping.Segmenter
 
 	runes          []rune
 	glyphDataCache *cache[glyphDataCacheKey, font.GlyphData]
@@ -323,8 +324,7 @@ func (g *GoTextFaceSource) buildOutputs(text string, face *GoTextFace, skipExten
 		Language:     language.Language(face.Language.String()),
 	}
 
-	var seg shaping.Segmenter
-	inputs := seg.Split(input, &singleFontmap{face: g.f})
+	inputs := g.seg.Split(input, &singleFontmap{face: g.f})
 
 	// Reverse the input for RTL texts.
 	if face.Direction == DirectionRightToLeft {
