@@ -130,6 +130,7 @@ type GoTextFaceSource struct {
 	metadata Metadata
 
 	outputCache     *cache[goTextOutputCacheKey, *goTextOutputCacheValue]
+	advanceCache    *cache[goTextOutputCacheKey, fixed.Int26_6]
 	glyphImageCache map[float64]*cache[goTextGlyphImageCacheKey, *ebiten.Image]
 	hasGlyphCache   runeToBoolMap
 
@@ -176,6 +177,7 @@ func newGoTextFaceSource(face *font.Face) *GoTextFaceSource {
 	s.addr = s
 	s.metadata = metadataFromFace(face)
 	s.outputCache = newCache[goTextOutputCacheKey, *goTextOutputCacheValue](512)
+	s.advanceCache = newCache[goTextOutputCacheKey, fixed.Int26_6](512)
 	// 4 is an arbitrary number, which should not cause troubles.
 	s.shaper.SetFontCacheSize(4)
 	return s
@@ -247,23 +249,21 @@ func (g *GoTextFaceSource) UnsafeInternal() any {
 	return g.f
 }
 
-// shapeOutputs returns the shaping outputs for the given text without building
-// per-glyph segment data. This is significantly cheaper than shape and is
-// suitable when only the total advance is required.
-func (g *GoTextFaceSource) shapeOutputs(text string, face *GoTextFace) []shaping.Output {
+// advance returns the total advance of text. It uses ShapeNoExtents to skip
+// computing glyph extents, which are not needed when only advance is required.
+func (g *GoTextFaceSource) advance(text string, face *GoTextFace) fixed.Int26_6 {
 	g.copyCheck()
 
 	key := face.outputCacheKey(text)
-	e := g.outputCache.getOrCreate(key, func() (*goTextOutputCacheValue, bool) {
+	return g.advanceCache.getOrCreate(key, func() (fixed.Int26_6, bool) {
 		g.shapeMu.Lock()
 		defer g.shapeMu.Unlock()
-		return &goTextOutputCacheValue{
-			outputs: g.buildOutputs(text, face),
-			text:    text,
-			face:    face,
-		}, true
+		var a fixed.Int26_6
+		for _, out := range g.buildOutputs(text, face, true) {
+			a += out.Advance
+		}
+		return a, true
 	})
-	return e.outputs
 }
 
 func (g *GoTextFaceSource) shape(text string, face *GoTextFace) ([]shaping.Output, []glyph) {
@@ -274,7 +274,7 @@ func (g *GoTextFaceSource) shape(text string, face *GoTextFace) ([]shaping.Outpu
 		g.shapeMu.Lock()
 		defer g.shapeMu.Unlock()
 		return &goTextOutputCacheValue{
-			outputs: g.buildOutputs(text, face),
+			outputs: g.buildOutputs(text, face, false),
 			text:    text,
 			face:    face,
 		}, true
@@ -300,9 +300,11 @@ func (g *GoTextFaceSource) applyFaceState(face *GoTextFace) bool {
 }
 
 // buildOutputs runs HarfBuzz shaping on text and returns the per-segment outputs.
+// When skipExtents is true, glyph extents are not queried, which is cheaper and
+// suitable when only advance is required.
 //
 // The caller must hold g.shapeMu.
-func (g *GoTextFaceSource) buildOutputs(text string, face *GoTextFace) []shaping.Output {
+func (g *GoTextFaceSource) buildOutputs(text string, face *GoTextFace, skipExtents bool) []shaping.Output {
 	g.applyFaceState(face)
 
 	g.runes = g.runes[:0]
@@ -331,7 +333,12 @@ func (g *GoTextFaceSource) buildOutputs(text string, face *GoTextFace) []shaping
 
 	outputs := make([]shaping.Output, len(inputs))
 	for i, input := range inputs {
-		out := g.shaper.Shape(input)
+		var out shaping.Output
+		if skipExtents {
+			out = g.shaper.ShapeNoExtents(input)
+		} else {
+			out = g.shaper.Shape(input)
+		}
 		outputs[i] = out
 
 		(shaping.Line{out}).AdjustBaselines()

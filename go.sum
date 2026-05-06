@@ -10,10 +10,10 @@ github.com/ebitengine/purego v0.11.0-alpha.2 h1:1CkfjYdYLP728HcWJhyBfr9+vveTR6FI
 github.com/ebitengine/purego v0.11.0-alpha.2/go.mod h1:iIjxzd6CiRiOG0UyXP+V1+jWqUXVjPKLAI0mRfJZTmQ=
 github.com/gen2brain/mpeg v0.5.0 h1:YrY5F5ZQAJCF/ItDHSb0bF5fxwk5IDq/RjOnfFhWurs=
 github.com/gen2brain/mpeg v0.5.0/go.mod h1:N37OJKAg3YeMfVqscgraoU6kwusr4pvA8aJK9QWPGiQ=
-github.com/go-text/typesetting v0.3.5-0.20260328164731-48df487c1500 h1:l7639IpdOGEudiCMSyhyqg/floLzrSMQ5NTt8biUa8E=
-github.com/go-text/typesetting v0.3.5-0.20260328164731-48df487c1500/go.mod h1:yW47fmJYxJsPcyNWEOGM2lNx766ZKw0cilos3XaD5YY=
-github.com/go-text/typesetting-utils v0.0.0-20260327125527-fbf04b32d9ad h1:J6fi06yzug4KkyQo0hK7UZVFBIlCh7iaG38sGq7THaY=
-github.com/go-text/typesetting-utils v0.0.0-20260327125527-fbf04b32d9ad/go.mod h1:3/62I4La/HBRX9TcTpBj4eipLiwzf+vhI+7whTc9V7o=
+github.com/go-text/typesetting v0.3.5-0.20260505125104-04e4e76f9371 h1:rQq+LisqB/K7wGowlqDlOOAEO/K29DL0kndCxg2fBso=
+github.com/go-text/typesetting v0.3.5-0.20260505125104-04e4e76f9371/go.mod h1:XZO1hD+nQVyvVa5IicQk7FsCa4PFQaJ2soWAP1f//68=
+github.com/go-text/typesetting-utils v0.0.0-20260419141703-4ffe8874dabc h1:8FGo2It5K75XkavhTiCKExUfVaVDS1feBnLCru5qeoY=
+github.com/go-text/typesetting-utils v0.0.0-20260419141703-4ffe8874dabc/go.mod h1:3/62I4La/HBRX9TcTpBj4eipLiwzf+vhI+7whTc9V7o=
 github.com/google/go-cmp v0.6.0 h1:ofyhxvXcZhMsU5ulbFiLKl/XBFqE1GSq7atu8tAmTRI=
 github.com/google/go-cmp v0.6.0/go.mod h1:17dUlkBOakJ0+DkrSSNjCkIjxS6bF9zb3elmeNGIjoY=
 github.com/hajimehoshi/bitmapfont/v4 v4.1.1 h1:5FNENqs0QbURnFG8HeDJuPl/FIjU4tNesm4suKJfIwY=
