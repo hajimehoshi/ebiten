@@ -160,6 +160,20 @@ type Glyph struct {
 	// OriginOffsetY is the adjustment value to the Y position of the origin of this glyph.
 	// OriginOffsetY is usually 0, but can be non-zero for some special glyphs or glyphs in the vertical text layout.
 	OriginOffsetY float64
+
+	// AdvanceX is the X advance applied after rendering this glyph.
+	// Non-zero only for horizontal text layouts.
+	//
+	// For consecutive glyphs in the same line, OriginX + AdvanceX of one glyph equals OriginX of the next.
+	// For the last glyph of a line, OriginX + AdvanceX equals the value returned by [Advance] for that line.
+	AdvanceX float64
+
+	// AdvanceY is the Y advance applied after rendering this glyph.
+	// Non-zero only for vertical text layouts.
+	//
+	// For consecutive glyphs in the same line, OriginY + AdvanceY of one glyph equals OriginY of the next.
+	// For the last glyph of a line, OriginY + AdvanceY equals the analogous identity for vertical text based on [Advance].
+	AdvanceY float64
 }
 
 // Advance returns the advanced distance from the origin position when rendering the given text with the given face.

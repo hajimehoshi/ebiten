@@ -179,6 +179,12 @@ func (g *GoXFace) appendGlyphsForLine(glyphs []Glyph, line string, indexOffset i
 			size = 1
 		}
 
+		var prevOriginX fixed.Int26_6
+		if advanceIndex > 0 {
+			prevOriginX = originXs[advanceIndex-1]
+		}
+		advanceX := fixed26_6ToFloat64(originXs[advanceIndex] - prevOriginX)
+
 		// Append a glyph even if img is nil.
 		// This is necessary to return index information for control characters.
 		glyphs = append(glyphs, Glyph{
@@ -191,6 +197,8 @@ func (g *GoXFace) appendGlyphsForLine(glyphs []Glyph, line string, indexOffset i
 			OriginY:           fixed26_6ToFloat64(origin.Y),
 			OriginOffsetX:     0,
 			OriginOffsetY:     0,
+			AdvanceX:          advanceX,
+			AdvanceY:          0,
 		})
 	}
 

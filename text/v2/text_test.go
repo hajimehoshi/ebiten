@@ -659,3 +659,105 @@ func TestBitmapFontBaseline(t *testing.T) {
 		}
 	}
 }
+
+func TestGlyphAdvance(t *testing.T) {
+	const eps = 1.0 / (1 << 6)
+
+	goxFace := text.NewGoXFace(bitmapfont.Face)
+
+	source, err := text.NewGoTextFaceSource(bytes.NewReader(fonts.MPlus1pRegular_ttf))
+	if err != nil {
+		t.Fatal(err)
+	}
+	gtLTR := &text.GoTextFace{
+		Source:    source,
+		Size:      24,
+		Direction: text.DirectionLeftToRight,
+	}
+	gtVertical := &text.GoTextFace{
+		Source:    source,
+		Size:      24,
+		Direction: text.DirectionTopToBottomAndRightToLeft,
+	}
+
+	cases := []struct {
+		name     string
+		face     text.Face
+		text     string
+		vertical bool
+	}{
+		{
+			name: "GoXFace/Hello",
+			face: goxFace,
+			text: "Hello",
+		},
+		{
+			name: "GoXFace/single",
+			face: goxFace,
+			text: "A",
+		},
+		{
+			name: "GoTextFace/horizontal",
+			face: gtLTR,
+			text: "Hello",
+		},
+		{
+			name:     "GoTextFace/vertical",
+			face:     gtVertical,
+			text:     "あいうえお",
+			vertical: true,
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			glyphs := text.AppendGlyphs(nil, tc.text, tc.face, nil)
+			if len(glyphs) == 0 {
+				t.Fatalf("no glyphs produced for %q", tc.text)
+			}
+
+			// Per-glyph contiguity: origin + advance equals the next origin.
+			for i := 0; i < len(glyphs)-1; i++ {
+				gotX := glyphs[i].OriginX + glyphs[i].AdvanceX
+				gotY := glyphs[i].OriginY + glyphs[i].AdvanceY
+				wantX := glyphs[i+1].OriginX
+				wantY := glyphs[i+1].OriginY
+				if math.Abs(gotX-wantX) > eps {
+					t.Errorf("glyph %d: OriginX+AdvanceX = %v, next OriginX = %v", i, gotX, wantX)
+				}
+				if math.Abs(gotY-wantY) > eps {
+					t.Errorf("glyph %d: OriginY+AdvanceY = %v, next OriginY = %v", i, gotY, wantY)
+				}
+			}
+
+			// AdvanceX/AdvanceY are populated only for the corresponding direction.
+			for i, g := range glyphs {
+				if tc.vertical {
+					if g.AdvanceX != 0 {
+						t.Errorf("glyph %d: AdvanceX = %v, want 0 for vertical layout", i, g.AdvanceX)
+					}
+				} else {
+					if g.AdvanceY != 0 {
+						t.Errorf("glyph %d: AdvanceY = %v, want 0 for horizontal layout", i, g.AdvanceY)
+					}
+				}
+			}
+
+			// Sum across the line equals text.Advance(...).
+			last := glyphs[len(glyphs)-1]
+			advance := text.Advance(tc.text, tc.face)
+			if tc.vertical {
+				// For vertical layouts, GoTextFace.advance returns a negative value
+				// matching the AdvanceY sign convention.
+				gotEnd := last.OriginY + last.AdvanceY - glyphs[0].OriginY
+				if math.Abs(gotEnd-advance) > eps {
+					t.Errorf("vertical: last OriginY+AdvanceY - first OriginY = %v, want %v", gotEnd, advance)
+				}
+			} else {
+				gotEnd := last.OriginX + last.AdvanceX - glyphs[0].OriginX
+				if math.Abs(gotEnd-advance) > eps {
+					t.Errorf("horizontal: last OriginX+AdvanceX - first OriginX = %v, want %v", gotEnd, advance)
+				}
+			}
+		})
+	}
+}

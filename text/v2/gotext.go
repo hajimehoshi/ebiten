@@ -296,6 +296,13 @@ func (g *GoTextFace) appendGlyphsForLine(glyphs []Glyph, line string, indexOffse
 		// imgX and imgY are integers so that the nearest filter can be used.
 		img, imgX, imgY := g.glyphImage(glyph, o)
 
+		var advanceX, advanceY float64
+		if horizontal {
+			advanceX = fixed26_6ToFloat64(glyph.shapingGlyph.Advance)
+		} else {
+			advanceY = -fixed26_6ToFloat64(glyph.shapingGlyph.Advance)
+		}
+
 		// Append a glyph even if img is nil.
 		// This is necessary to return index information for control characters.
 		glyphs = append(glyphs, Glyph{
@@ -309,6 +316,8 @@ func (g *GoTextFace) appendGlyphsForLine(glyphs []Glyph, line string, indexOffse
 			OriginY:           fixed26_6ToFloat64(origin.Y),
 			OriginOffsetX:     fixed26_6ToFloat64(glyph.shapingGlyph.XOffset),
 			OriginOffsetY:     fixed26_6ToFloat64(-glyph.shapingGlyph.YOffset),
+			AdvanceX:          advanceX,
+			AdvanceY:          advanceY,
 		})
 		if horizontal {
 			origin = origin.Add(fixed.Point26_6{
