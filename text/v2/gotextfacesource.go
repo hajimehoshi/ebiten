@@ -134,7 +134,8 @@ type GoTextFaceSource struct {
 	glyphImageCache map[float64]*cache[goTextGlyphImageCacheKey, *ebiten.Image]
 	hasGlyphCache   runeToBoolMap
 
-	unscaledMetrics Metrics
+	unscaledMetrics     Metrics
+	unscaledMetricsOnce sync.Once
 
 	addr *GoTextFaceSource
 
@@ -450,8 +451,8 @@ func (g *GoTextFaceSource) getOrCreateGlyphImage(goTextFace *GoTextFace, key goT
 }
 
 func (g *GoTextFaceSource) metrics(size float64) Metrics {
-	um := g.unscaledMetrics
-	if um.HAscent == 0 && um.HDescent == 0 && um.VAscent == 0 && um.VDescent == 0 {
+	g.unscaledMetricsOnce.Do(func() {
+		um := &g.unscaledMetrics
 		if h, ok := g.f.FontHExtents(); ok {
 			um.HLineGap = float64(h.LineGap)
 			um.HAscent = float64(h.Ascender)
@@ -464,8 +465,9 @@ func (g *GoTextFaceSource) metrics(size float64) Metrics {
 		}
 		um.XHeight = float64(g.f.LineMetric(font.XHeight))
 		um.CapHeight = float64(g.f.LineMetric(font.CapHeight))
-	}
+	})
 
+	um := g.unscaledMetrics
 	scale := g.scale(size)
 	return Metrics{
 		HLineGap:  um.HLineGap * scale,
