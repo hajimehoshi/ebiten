@@ -443,10 +443,14 @@ func platformInit() error {
 	}
 
 	// Register GLFWApplicationDelegate class — implements NSApplicationDelegate.
+	// The NSApplicationDelegate protocol is intentionally NOT declared: on
+	// macOS 14 doing so makes AppKit crash inside nextEventMatchingMask:
+	// shortly after the app activates (issue #3451). AppKit still calls our
+	// delegate methods because it falls back to respondsToSelector:.
 	delegate, err := objc.RegisterClass(
 		"GLFWApplicationDelegate",
 		objc.GetClass("NSObject"),
-		[]*objc.Protocol{objc.GetProtocol("NSApplicationDelegate")},
+		nil,
 		nil,
 		[]objc.MethodDef{
 			{
