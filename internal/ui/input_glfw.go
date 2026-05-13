@@ -18,6 +18,7 @@ package ui
 
 import (
 	"math"
+	"runtime"
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
@@ -53,7 +54,18 @@ func (u *UserInterface) registerInputCallbacks() error {
 			// intercepts certain key combinations (e.g. Ctrl+A). The mods parameter on the key event
 			// still correctly reflects which modifiers are physically held. Use it to re-assert
 			// modifier key states that may have been incorrectly released.
-			u.inputState.syncModKeysByMods(mods, t)
+			//
+			// Restrict this to macOS: on Windows, AltGr (Right Alt) makes the OS report Ctrl as
+			// held even though the synthetic Ctrl event is filtered out, which would otherwise
+			// make Ctrl appear stuck (#3453).
+			//
+			// Note that this is asymmetric: the mods bitmask is only consulted on press, not on
+			// release. A symmetric release-side sync (clearing modifiers absent from mods) is not
+			// done because no known platform bug requires it, and on Windows it would not help the
+			// AltGr case anyway since mods reports Ctrl held for the entire AltGr-down duration.
+			if runtime.GOOS == "darwin" {
+				u.inputState.syncModKeysByMods(mods, t)
+			}
 		} else {
 			u.inputState.setKeyReleased(uk, t)
 		}
