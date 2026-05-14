@@ -124,6 +124,27 @@ type glyphDataCacheKey struct {
 	sideways   bool
 }
 
+// scaledSegmentsCacheKey identifies a scaled-segment slice. Scaled segments
+// are derived from (raw segments, scale), where raw segments are uniquely
+// keyed by (gid, variations, sideways) and scale is fixed by out.Size.
+//
+// Scaled segments are kept even for glyphs that also have a usable
+// bitmap, because [AppendVectorPath] consumes them regardless of bitmap
+// presence.
+type scaledSegmentsCacheKey struct {
+	gid        font.GID
+	variations string
+	sideways   bool
+	size       fixed.Int26_6
+}
+
+// bitmapCacheKey identifies a decoded bitmap image. Bitmap data depends on
+// ppem (driven by face.Size).
+type bitmapCacheKey struct {
+	gid  font.GID
+	size float64
+}
+
 // GoTextFaceSource is a source of a GoTextFace. This can be shared by multiple GoTextFace objects.
 type GoTextFaceSource struct {
 	f        *font.Face
@@ -142,8 +163,10 @@ type GoTextFaceSource struct {
 	shaper shaping.HarfbuzzShaper
 	seg    shaping.Segmenter
 
-	runes          []rune
-	glyphDataCache *cache[glyphDataCacheKey, font.GlyphData]
+	runes              []rune
+	glyphDataCache     *cache[glyphDataCacheKey, font.GlyphData]
+	scaledSegmentCache *cache[scaledSegmentsCacheKey, []opentype.Segment]
+	bitmapCache        *cache[bitmapCacheKey, image.Image]
 
 	// shapeMu serializes mutations of the shared font state (g.f) during shaping
 	// and per-glyph data lookups. Lazy glyph builds happen outside of the
@@ -361,19 +384,31 @@ func (g *GoTextFaceSource) buildGlyphs(outputs []shaping.Output, text string, fa
 	}
 	indices = append(indices, len(text))
 
+	variations := face.ensureVariationsString()
 	gs := []glyph{}
 	for _, out := range outputs {
+		sideways := out.Direction.IsSideways()
 		for _, gl := range out.Glyphs {
-			var segs []opentype.Segment
-			var bitmapImg image.Image
-
-			// When bitmap mode is active, bypass the glyphDataCache since
-			// GlyphData results depend on the ppem set on the face.
+			// Fetch glyph data. glyphDataCache is keyed on
+			// (gid, variations, sideways) and omits the face's ppem.
+			//
+			// This is valid only as long as the underlying typesetting
+			// library does not apply hinting at GlyphData time: today
+			// it reads raw outline points from glyf/CFF/CFF2 and
+			// variable-font axes (including opsz) are routed through
+			// SetVariations and captured by variations above. If a
+			// hinting interpreter is added in the future, outlines may
+			// vary per ppem and this cache will need a ppem dimension.
+			//
+			// In bitmap mode the ppem is set to face.Size's matching
+			// bitmap size and GlyphDataBitmap's result depends on it,
+			// so the same cache key would conflate entries from
+			// different sizes. Bypass the cache in that path.
 			var data font.GlyphData
 			if useBitmap {
 				data = g.f.GlyphData(gl.GlyphID)
 				if data != nil {
-					if d, ok := data.(font.GlyphOutline); ok && out.Direction.IsSideways() {
+					if d, ok := data.(font.GlyphOutline); ok && sideways {
 						d.Sideways(fixed26_6ToFloat32(-gl.YOffset) / fixed26_6ToFloat32(out.Size) * float32(g.f.Upem()))
 						data = d
 					}
@@ -384,43 +419,80 @@ func (g *GoTextFaceSource) buildGlyphs(outputs []shaping.Output, text string, fa
 				}
 				key := glyphDataCacheKey{
 					gid:        gl.GlyphID,
-					variations: face.ensureVariationsString(),
-					sideways:   out.Direction.IsSideways(),
+					variations: variations,
+					sideways:   sideways,
 				}
 				data = g.glyphDataCache.getOrCreate(key, func() (font.GlyphData, bool) {
 					data := g.f.GlyphData(gl.GlyphID)
 					if data == nil {
 						return nil, false
 					}
-					if data, ok := data.(font.GlyphOutline); ok && out.Direction.IsSideways() {
+					if data, ok := data.(font.GlyphOutline); ok && sideways {
 						data.Sideways(fixed26_6ToFloat32(-gl.YOffset) / fixed26_6ToFloat32(out.Size) * float32(g.f.Upem()))
 					}
 					return data, true
 				})
 			}
-			switch data := data.(type) {
+
+			// Extract the raw (unscaled) outline segments and, if bitmap
+			// mode is active, the embedded bitmap data.
+			var rawSegs []opentype.Segment
+			var rawBitmap font.GlyphBitmap
+			var hasRawBitmap bool
+			switch d := data.(type) {
 			case font.GlyphOutline:
-				segs = data.Segments
+				rawSegs = d.Segments
 			case font.GlyphSVG:
-				segs = data.Outline.Segments
+				rawSegs = d.Outline.Segments
 			case font.GlyphBitmap:
-				if useBitmap {
-					bitmapImg = decodeBitmapGlyph(data)
+				if d.Outline != nil {
+					rawSegs = d.Outline.Segments
 				}
-				// Use outline segments for vector rendering.
-				if data.Outline != nil {
-					segs = data.Outline.Segments
+				if useBitmap {
+					rawBitmap = d
+					hasRawBitmap = true
 				}
 			}
 
-			scaledSegs := make([]opentype.Segment, len(segs))
-			scale := float32(g.scale(fixed26_6ToFloat64(out.Size)))
-			for i, seg := range segs {
-				scaledSegs[i] = seg
-				for j := range seg.Args {
-					scaledSegs[i].Args[j].X *= scale
-					scaledSegs[i].Args[j].Y *= -scale
+			// Cache the scaled segments across glyph instances of the
+			// same (gid, variations, sideways, size).
+			if g.scaledSegmentCache == nil {
+				g.scaledSegmentCache = newCache[scaledSegmentsCacheKey, []opentype.Segment](512)
+			}
+			scaledKey := scaledSegmentsCacheKey{
+				gid:        gl.GlyphID,
+				variations: variations,
+				sideways:   sideways,
+				size:       out.Size,
+			}
+			scaledSegs := g.scaledSegmentCache.getOrCreate(scaledKey, func() ([]opentype.Segment, bool) {
+				if rawSegs == nil {
+					return nil, false
 				}
+				scaled := make([]opentype.Segment, len(rawSegs))
+				scale := float32(g.scale(fixed26_6ToFloat64(out.Size)))
+				for i, seg := range rawSegs {
+					scaled[i] = seg
+					for j := range seg.Args {
+						scaled[i].Args[j].X *= scale
+						scaled[i].Args[j].Y *= -scale
+					}
+				}
+				return scaled, true
+			})
+
+			// Cache the decoded bitmap across glyph instances of the
+			// same (gid, face.Size).
+			var bitmapImg image.Image
+			if hasRawBitmap {
+				if g.bitmapCache == nil {
+					g.bitmapCache = newCache[bitmapCacheKey, image.Image](256)
+				}
+				bitmapKey := bitmapCacheKey{gid: gl.GlyphID, size: face.Size}
+				bitmapImg = g.bitmapCache.getOrCreate(bitmapKey, func() (image.Image, bool) {
+					img := decodeBitmapGlyph(rawBitmap)
+					return img, img != nil
+				})
 			}
 
 			gs = append(gs, glyph{
