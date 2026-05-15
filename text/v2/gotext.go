@@ -18,6 +18,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"image"
 
 	"github.com/go-text/typesetting/di"
 	"github.com/go-text/typesetting/font"
@@ -279,22 +280,28 @@ func (g *GoTextFace) hasGlyph(r rune) bool {
 	return g.Source.hasGlyph(r)
 }
 
-// appendGlyphsForLine implements Face.
-func (g *GoTextFace) appendGlyphsForLine(glyphs []Glyph, line string, indexOffset int, originX, originY float64) []Glyph {
+// appendLazyGlyphsForLine implements Face.
+func (g *GoTextFace) appendLazyGlyphsForLine(glyphs []LazyGlyph, line string, indexOffset int, originX, originY float64) []LazyGlyph {
 	origin := fixed.Point26_6{
 		X: float64ToFixed26_6(originX),
 		Y: float64ToFixed26_6(originY),
 	}
 	horizontal := g.direction().isHorizontal()
 	_, gs := g.Source.shape(line, g)
-	for _, glyph := range gs {
+
+	// imager is allocated lazily on the first glyph that produces an image.
+	// If none do (e.g. a line of control characters), no allocation happens.
+	var imager *goTextLineImager
+
+	for i := range gs {
+		glyph := &gs[i]
 		o := origin.Add(fixed.Point26_6{
 			X: glyph.shapingGlyph.XOffset,
 			Y: -glyph.shapingGlyph.YOffset,
 		})
 
-		// imgX and imgY are integers so that the nearest filter can be used.
-		img, imgX, imgY := g.glyphImage(glyph, o)
+		// The image position is integer so that the nearest filter can be used.
+		bounds, args, hasImage := goTextGlyphImageInfo(g, glyph, o)
 
 		var advanceX, advanceY float64
 		if horizontal {
@@ -303,22 +310,30 @@ func (g *GoTextFace) appendGlyphsForLine(glyphs []Glyph, line string, indexOffse
 			advanceY = -fixed26_6ToFloat64(glyph.shapingGlyph.Advance)
 		}
 
-		// Append a glyph even if img is nil.
-		// This is necessary to return index information for control characters.
-		glyphs = append(glyphs, Glyph{
+		lg := LazyGlyph{
 			StartIndexInBytes: indexOffset + glyph.startIndex,
 			EndIndexInBytes:   indexOffset + glyph.endIndex,
 			GID:               uint32(glyph.shapingGlyph.GlyphID),
-			Image:             img,
-			X:                 float64(imgX),
-			Y:                 float64(imgY),
+			ImageBounds:       bounds,
 			OriginX:           fixed26_6ToFloat64(origin.X),
 			OriginY:           fixed26_6ToFloat64(origin.Y),
 			OriginOffsetX:     fixed26_6ToFloat64(glyph.shapingGlyph.XOffset),
 			OriginOffsetY:     fixed26_6ToFloat64(-glyph.shapingGlyph.YOffset),
 			AdvanceX:          advanceX,
 			AdvanceY:          advanceY,
-		})
+		}
+		if hasImage {
+			if imager == nil {
+				imager = &goTextLineImager{face: g}
+			}
+			imager.args = append(imager.args, args)
+			lg.imager = imager
+			lg.imageIndex = len(imager.args) - 1
+		}
+		// Append a glyph even if it has no image (control characters etc.).
+		// This is necessary to return index information for control characters.
+		glyphs = append(glyphs, lg)
+
 		if horizontal {
 			origin = origin.Add(fixed.Point26_6{
 				X: glyph.shapingGlyph.Advance,
@@ -335,21 +350,62 @@ func (g *GoTextFace) appendGlyphsForLine(glyphs []Glyph, line string, indexOffse
 	return glyphs
 }
 
-func (g *GoTextFace) glyphImage(glyph goTextGlyph, origin fixed.Point26_6) (*ebiten.Image, int, int) {
-	if glyph.render == nil {
-		// No segments and no bitmap (e.g. control characters). Compute
-		// the rounded position so callers can record it on Glyph.X/Y,
-		// but skip the image cache entirely.
-		if g.direction().isHorizontal() {
-			origin.X = adjustGranularity(origin.X, g)
-			origin.Y &^= ((1 << 6) - 1)
-		} else {
-			origin.X &^= ((1 << 6) - 1)
-			origin.Y = adjustGranularity(origin.Y, g)
-		}
-		return nil, origin.X.Floor(), origin.Y.Floor()
-	}
+// goTextLineImager owns a per-call slice of per-glyph args for a single
+// invocation of [GoTextFace.appendLazyGlyphsForLine]. It satisfies
+// [glyphImager].
+type goTextLineImager struct {
+	face *GoTextFace
+	args []goTextGlyphImageArgs
+}
 
+// goTextGlyphImageArgs is the per-glyph data needed by
+// [goTextLineImager.glyphImage]. It points into the cached glyph slice
+// owned by the source's shape-output cache, so the bitmap and scaled
+// segments are not duplicated per occurrence.
+type goTextGlyphImageArgs struct {
+	glyph          *goTextGlyph
+	subpixelOffset fixed.Point26_6
+}
+
+// glyphImage implements glyphImager.
+func (im *goTextLineImager) glyphImage(index int) *ebiten.Image {
+	args := &im.args[index]
+	glyph := args.glyph
+	face := im.face
+	if glyph.render.bitmap != nil {
+		key := goTextGlyphImageCacheKey{
+			gid:        glyph.shapingGlyph.GlyphID,
+			variations: face.ensureVariationsString(),
+		}
+		bitmap := glyph.render.bitmap
+		return face.Source.getOrCreateGlyphImage(face, key, func() (*ebiten.Image, bool) {
+			return ebiten.NewImageFromImage(bitmap), true
+		})
+	}
+	key := goTextGlyphImageCacheKey{
+		gid:        glyph.shapingGlyph.GlyphID,
+		xoffset:    args.subpixelOffset.X,
+		yoffset:    args.subpixelOffset.Y,
+		variations: face.ensureVariationsString(),
+	}
+	segs := glyph.render.segments
+	subpixelOffset := args.subpixelOffset
+	bounds := glyph.render.bounds
+	return face.Source.getOrCreateGlyphImage(face, key, func() (*ebiten.Image, bool) {
+		img := segmentsToImage(segs, subpixelOffset, bounds)
+		return img, img != nil
+	})
+}
+
+// goTextGlyphImageInfo returns the image bounds in layout space and the
+// per-glyph args needed to realize the image. The bounds are computed
+// without rasterizing. hasImage is false for glyphs that do not produce
+// an image (zero-area outlines, zero-segment glyphs, or control
+// characters); in that case bounds is empty and args is the zero value.
+func goTextGlyphImageInfo(face *GoTextFace, glyph *goTextGlyph, origin fixed.Point26_6) (bounds image.Rectangle, args goTextGlyphImageArgs, hasImage bool) {
+	if glyph.render == nil {
+		return
+	}
 	if glyph.render.bitmap != nil {
 		b := glyph.render.bitmap.Bounds()
 		if b.Dx() > 0 && b.Dy() > 0 {
@@ -357,50 +413,48 @@ func (g *GoTextFace) glyphImage(glyph goTextGlyph, origin fixed.Point26_6) (*ebi
 			origin.X &^= ((1 << 6) - 1)
 			origin.Y &^= ((1 << 6) - 1)
 
-			key := goTextGlyphImageCacheKey{
-				gid:        glyph.shapingGlyph.GlyphID,
-				variations: g.ensureVariationsString(),
-			}
-			bitmap := glyph.render.bitmap
-			img := g.Source.getOrCreateGlyphImage(g, key, func() (*ebiten.Image, bool) {
-				return ebiten.NewImageFromImage(bitmap), true
-			})
-
 			// Position using the shaping glyph's bearing values.
 			imgX := (origin.X + glyph.shapingGlyph.XBearing).Round()
 			imgY := (origin.Y - glyph.shapingGlyph.YBearing).Round()
-			return img, imgX, imgY
+			bounds = image.Rect(imgX, imgY, imgX+b.Dx(), imgY+b.Dy())
+			args = goTextGlyphImageArgs{glyph: glyph}
+			hasImage = true
+			return
 		}
 	}
 
-	if g.direction().isHorizontal() {
-		origin.X = adjustGranularity(origin.X, g)
+	if face.direction().isHorizontal() {
+		origin.X = adjustGranularity(origin.X, face)
 		origin.Y &^= ((1 << 6) - 1)
 	} else {
 		origin.X &^= ((1 << 6) - 1)
-		origin.Y = adjustGranularity(origin.Y, g)
+		origin.Y = adjustGranularity(origin.Y, face)
 	}
 
 	b := glyph.render.bounds
-	segs := glyph.render.segments
 	subpixelOffset := fixed.Point26_6{
 		X: (origin.X + b.Min.X) & ((1 << 6) - 1),
 		Y: (origin.Y + b.Min.Y) & ((1 << 6) - 1),
 	}
-	key := goTextGlyphImageCacheKey{
-		gid:        glyph.shapingGlyph.GlyphID,
-		xoffset:    subpixelOffset.X,
-		yoffset:    subpixelOffset.Y,
-		variations: g.ensureVariationsString(),
-	}
-	img := g.Source.getOrCreateGlyphImage(g, key, func() (*ebiten.Image, bool) {
-		img := segmentsToImage(segs, subpixelOffset, b)
-		return img, img != nil
-	})
 
 	imgX := (origin.X + b.Min.X).Floor()
 	imgY := (origin.Y + b.Min.Y).Floor()
-	return img, imgX, imgY
+
+	// The dimensions follow the formula in segmentsToImage: the +1 covers the
+	// edge case where the outline reaches the bounds.
+	rw := (b.Max.X - b.Min.X).Ceil()
+	rh := (b.Max.Y - b.Min.Y).Ceil()
+	if rw == 0 || rh == 0 || len(glyph.render.segments) == 0 {
+		return
+	}
+	bounds = image.Rect(imgX, imgY, imgX+rw+1, imgY+rh+1)
+
+	args = goTextGlyphImageArgs{
+		glyph:          glyph,
+		subpixelOffset: subpixelOffset,
+	}
+	hasImage = true
+	return
 }
 
 // appendVectorPathForLine implements Face.

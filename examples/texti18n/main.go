@@ -144,7 +144,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 		if g.showOrigins {
 			op := &text.LayoutOptions{}
-			for _, g := range text.AppendGlyphs(nil, arabicText, f, op) {
+			for _, g := range text.AppendLazyGlyphs(nil, arabicText, f, op) {
 				vector.FillCircle(screen, float32(x)+float32(g.OriginX+g.OriginOffsetX), float32(y)+float32(g.OriginY+g.OriginOffsetY), 2, color.RGBA{0, 0xff, 0, 0xff}, true)
 				vector.FillCircle(screen, float32(x)+float32(g.OriginX), float32(y)+float32(g.OriginY), 2, color.RGBA{0xff, 0, 0, 0xff}, true)
 			}
@@ -166,7 +166,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 		if g.showOrigins {
 			op := &text.LayoutOptions{}
-			for _, g := range text.AppendGlyphs(nil, hindiText, f, op) {
+			for _, g := range text.AppendLazyGlyphs(nil, hindiText, f, op) {
 				vector.FillCircle(screen, float32(x)+float32(g.OriginX+g.OriginOffsetX), float32(y)+float32(g.OriginY+g.OriginOffsetY), 2, color.RGBA{0, 0xff, 0, 0xff}, true)
 				vector.FillCircle(screen, float32(x)+float32(g.OriginX), float32(y)+float32(g.OriginY), 2, color.RGBA{0xff, 0, 0, 0xff}, true)
 			}
@@ -188,7 +188,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 		if g.showOrigins {
 			op := &text.LayoutOptions{}
-			for _, g := range text.AppendGlyphs(nil, myanmarText, f, op) {
+			for _, g := range text.AppendLazyGlyphs(nil, myanmarText, f, op) {
 				vector.FillCircle(screen, float32(x)+float32(g.OriginX+g.OriginOffsetX), float32(y)+float32(g.OriginY+g.OriginOffsetY), 2, color.RGBA{0, 0xff, 0, 0xff}, true)
 				vector.FillCircle(screen, float32(x)+float32(g.OriginX), float32(y)+float32(g.OriginY), 2, color.RGBA{0xff, 0, 0, 0xff}, true)
 			}
@@ -210,7 +210,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 		if g.showOrigins {
 			op := &text.LayoutOptions{}
-			for _, g := range text.AppendGlyphs(nil, thaiText, f, op) {
+			for _, g := range text.AppendLazyGlyphs(nil, thaiText, f, op) {
 				vector.FillCircle(screen, float32(x)+float32(g.OriginX+g.OriginOffsetX), float32(y)+float32(g.OriginY+g.OriginOffsetY), 2, color.RGBA{0, 0xff, 0, 0xff}, true)
 				vector.FillCircle(screen, float32(x)+float32(g.OriginX), float32(y)+float32(g.OriginY), 2, color.RGBA{0xff, 0, 0, 0xff}, true)
 			}
@@ -238,7 +238,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		if g.showOrigins {
 			op := &text.LayoutOptions{}
 			op.LineSpacing = lineSpacing
-			for _, g := range text.AppendGlyphs(nil, mongolianText, f, op) {
+			for _, g := range text.AppendLazyGlyphs(nil, mongolianText, f, op) {
 				vector.FillCircle(screen, float32(x)+float32(g.OriginX+g.OriginOffsetX), float32(y)+float32(g.OriginY+g.OriginOffsetY), 2, color.RGBA{0, 0xff, 0, 0xff}, true)
 				vector.FillCircle(screen, float32(x)+float32(g.OriginX), float32(y)+float32(g.OriginY), 2, color.RGBA{0xff, 0, 0, 0xff}, true)
 			}
@@ -265,7 +265,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		if g.showOrigins {
 			op := &text.LayoutOptions{}
 			op.LineSpacing = lineSpacing
-			for _, g := range text.AppendGlyphs(nil, japaneseText, f, op) {
+			for _, g := range text.AppendLazyGlyphs(nil, japaneseText, f, op) {
 				vector.FillCircle(screen, float32(x)+float32(g.OriginX), float32(y)+float32(g.OriginY), 2, color.RGBA{0xff, 0, 0, 0xff}, true)
 				vector.FillCircle(screen, float32(x)+float32(g.OriginX+g.OriginOffsetX), float32(y)+float32(g.OriginY+g.OriginOffsetY), 2, color.RGBA{0, 0xff, 0, 0xff}, true)
 			}

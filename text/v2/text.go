@@ -18,6 +18,8 @@
 package text
 
 import (
+	"image"
+
 	"golang.org/x/image/math/fixed"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -35,7 +37,7 @@ type Face interface {
 
 	hasGlyph(r rune) bool
 
-	appendGlyphsForLine(glyphs []Glyph, line string, indexOffset int, originX, originY float64) []Glyph
+	appendLazyGlyphsForLine(glyphs []LazyGlyph, line string, indexOffset int, originX, originY float64) []LazyGlyph
 	appendVectorPathForLine(path *vector.Path, line string, originX, originY float64)
 
 	direction() Direction
@@ -140,11 +142,19 @@ type Glyph struct {
 	// X is the X position to render this glyph.
 	// The position is determined in a sequence of characters given at AppendGlyphs.
 	// The position's origin is the first character's origin position.
+	//
+	// X is always an integer value; the type is float64 for historical
+	// reasons. See also [LazyGlyph.ImageBounds], which exposes the same
+	// position as part of an [image.Rectangle].
 	X float64
 
 	// Y is the Y position to render this glyph.
 	// The position is determined in a sequence of characters given at AppendGlyphs.
 	// The position's origin is the first character's origin position.
+	//
+	// Y is always an integer value; the type is float64 for historical
+	// reasons. See also [LazyGlyph.ImageBounds], which exposes the same
+	// position as part of an [image.Rectangle].
 	Y float64
 
 	// OriginX is the X position of the origin of this glyph.
@@ -174,6 +184,97 @@ type Glyph struct {
 	// For consecutive glyphs in the same line, OriginY + AdvanceY of one glyph equals OriginY of the next.
 	// For the last glyph of a line, OriginY + AdvanceY equals the analogous identity for vertical text based on [Advance].
 	AdvanceY float64
+}
+
+// LazyGlyph is like [Glyph] but its rasterized image is realized on demand.
+//
+// LazyGlyph carries every piece of layout information you need to position,
+// hit-test, or cull a glyph without rasterizing it. [LazyGlyph.Image]
+// returns the rasterized bitmap (possibly from cache) on first access.
+//
+// LazyGlyph is useful when only glyph layout is needed (such as hit testing
+// or cursor positioning), or when a custom draw loop culls glyphs that fall
+// outside a viewport.
+type LazyGlyph struct {
+	// StartIndexInBytes is the start index in bytes for the given string at AppendLazyGlyphs.
+	StartIndexInBytes int
+
+	// EndIndexInBytes is the end index in bytes for the given string at AppendLazyGlyphs.
+	EndIndexInBytes int
+
+	// GID is an ID for a glyph of TrueType or OpenType font. GID is valid when the face is GoTextFace.
+	GID uint32
+
+	// ImageBounds is the rectangle the rasterized glyph image occupies in
+	// the layout coordinate space (with origin at the first character's
+	// origin position). ImageBounds.Min is the position at which the image
+	// should be drawn, and the rectangle's Dx and Dy give the bitmap's
+	// width and height.
+	//
+	// ImageBounds is computed from font metadata without rasterizing the
+	// glyph. ImageBounds is the zero [image.Rectangle] for glyphs that
+	// produce no image (control characters or zero-area glyphs); use
+	// ImageBounds.Empty to detect that case.
+	ImageBounds image.Rectangle
+
+	// OriginX is the X position of the origin of this glyph.
+	OriginX float64
+
+	// OriginY is the Y position of the origin of this glyph.
+	OriginY float64
+
+	// OriginOffsetX is the adjustment value to the X position of the origin of this glyph.
+	// OriginOffsetX is usually 0, but can be non-zero for some special glyphs or glyphs in the vertical text layout.
+	OriginOffsetX float64
+
+	// OriginOffsetY is the adjustment value to the Y position of the origin of this glyph.
+	// OriginOffsetY is usually 0, but can be non-zero for some special glyphs or glyphs in the vertical text layout.
+	OriginOffsetY float64
+
+	// AdvanceX is the X advance applied after rendering this glyph.
+	// Non-zero only for horizontal text layouts.
+	AdvanceX float64
+
+	// AdvanceY is the Y advance applied after rendering this glyph.
+	// Non-zero only for vertical text layouts.
+	AdvanceY float64
+
+	// imager dispatches glyph image realization. nil when the glyph has no
+	// image (e.g. control characters).
+	//
+	// imager is a per-line, per-face object that owns a tightly-packed
+	// slice of per-glyph data. imageIndex selects the entry within that
+	// slice. Storing a pointer here keeps LazyGlyph small and avoids
+	// carrying redundant references to data that already lives in the
+	// face's own caches.
+	imager glyphImager
+
+	// imageIndex is this glyph's index within imager's args slice.
+	imageIndex int
+}
+
+// Image returns the rasterized glyph bitmap.
+//
+// Image realizes the bitmap on first call and is backed by the same glyph
+// image cache as [Glyph.Image]. Subsequent calls return the cached image at
+// the cost of one cache lookup.
+//
+// Image returns nil for control characters and zero-area glyphs.
+//
+// The returned image is a grayscale image i.e. RGBA values are the same.
+// The returned image should be used as a render source and must not be modified.
+func (g LazyGlyph) Image() *ebiten.Image {
+	if g.imager == nil {
+		return nil
+	}
+	return g.imager.glyphImage(g.imageIndex)
+}
+
+// glyphImager produces the rasterized image for a glyph identified by its
+// index within a face-specific args slice. Implementations are allocated
+// once per face per call to appendLazyGlyphsForLine.
+type glyphImager interface {
+	glyphImage(index int) *ebiten.Image
 }
 
 // Advance returns the advanced distance from the origin position when rendering the given text with the given face.
@@ -269,10 +370,14 @@ func CacheGlyphs(text string, face Face) {
 
 	c := glyphVariationCount(face)
 
-	var buf []Glyph
+	var buf []LazyGlyph
 	// Create all the possible variations (#2528).
 	for range c {
-		buf = appendGlyphs(buf, text, face, x, y, nil)
+		buf = appendLazyGlyphs(buf, text, face, x, y, nil)
+		// Realize each glyph to populate the underlying image cache.
+		for _, g := range buf {
+			g.Image()
+		}
 		buf = buf[:0]
 
 		if face.direction().isHorizontal() {

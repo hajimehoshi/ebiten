@@ -57,9 +57,9 @@ func (l *LimitedFace) hasGlyph(r rune) bool {
 	return l.unicodeRanges.Contains(r) && l.face.hasGlyph(r)
 }
 
-// appendGlyphsForLine implements Face.
-func (l *LimitedFace) appendGlyphsForLine(glyphs []Glyph, line string, indexOffset int, originX, originY float64) []Glyph {
-	return l.face.appendGlyphsForLine(glyphs, l.unicodeRanges.Filter(line), indexOffset, originX, originY)
+// appendLazyGlyphsForLine implements Face.
+func (l *LimitedFace) appendLazyGlyphsForLine(glyphs []LazyGlyph, line string, indexOffset int, originX, originY float64) []LazyGlyph {
+	return l.face.appendLazyGlyphsForLine(glyphs, l.unicodeRanges.Filter(line), indexOffset, originX, originY)
 }
 
 // appendVectorPathForLine implements Face.

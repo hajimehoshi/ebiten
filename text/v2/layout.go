@@ -15,6 +15,8 @@
 package text
 
 import (
+	"image"
+	"math"
 	"slices"
 	"sync"
 
@@ -68,7 +70,7 @@ type LayoutOptions struct {
 var theDrawGlyphsPool = sync.Pool{
 	New: func() any {
 		// 64 is an arbitrary number for the initial capacity.
-		s := make([]Glyph, 0, 64)
+		s := make([]LazyGlyph, 0, 64)
 		// Return a pointer instead of a slice, or go-vet warns at Put.
 		return &s
 	},
@@ -124,23 +126,60 @@ func Draw(dst *ebiten.Image, text string, face Face, options *DrawOptions) {
 
 	geoM := drawOp.GeoM
 
-	glyphs := theDrawGlyphsPool.Get().(*[]Glyph)
+	glyphs := theDrawGlyphsPool.Get().(*[]LazyGlyph)
 	defer func() {
 		// Clear the content to avoid memory leaks.
 		// The capacity is kept so that the next call to Draw can reuse it.
 		*glyphs = slices.Delete(*glyphs, 0, len(*glyphs))
 		theDrawGlyphsPool.Put(glyphs)
 	}()
-	*glyphs = AppendGlyphs((*glyphs)[:0], text, face, &layoutOp)
+	*glyphs = AppendLazyGlyphs((*glyphs)[:0], text, face, &layoutOp)
+
+	dstBounds := dst.Bounds()
 	for _, g := range *glyphs {
-		if g.Image == nil {
+		if g.ImageBounds.Empty() {
+			continue
+		}
+		// Cull glyphs whose transformed bounding box does not overlap dst.
+		// This avoids rasterizing offscreen glyphs.
+		if !transformedRectOverlaps(geoM, g.ImageBounds, dstBounds) {
+			continue
+		}
+		img := g.Image()
+		if img == nil {
 			continue
 		}
 		drawOp.GeoM.Reset()
-		drawOp.GeoM.Translate(g.X, g.Y)
+		drawOp.GeoM.Translate(float64(g.ImageBounds.Min.X), float64(g.ImageBounds.Min.Y))
 		drawOp.GeoM.Concat(geoM)
-		dst.DrawImage(g.Image, &drawOp)
+		dst.DrawImage(img, &drawOp)
 	}
+}
+
+// transformedRectOverlaps reports whether rect's image under geoM overlaps
+// dst. The transformed rectangle is expanded to integer pixel boundaries
+// before the overlap check.
+func transformedRectOverlaps(geoM ebiten.GeoM, rect, dst image.Rectangle) bool {
+	x0f, y0f := float64(rect.Min.X), float64(rect.Min.Y)
+	x1f, y1f := float64(rect.Max.X), float64(rect.Max.Y)
+	// Transform the four corners of the rectangle into destination space.
+	ax, ay := geoM.Apply(x0f, y0f)
+	bx, by := geoM.Apply(x1f, y0f)
+	cx, cy := geoM.Apply(x0f, y1f)
+	dx, dy := geoM.Apply(x1f, y1f)
+
+	minX := math.Min(math.Min(ax, bx), math.Min(cx, dx))
+	minY := math.Min(math.Min(ay, by), math.Min(cy, dy))
+	maxX := math.Max(math.Max(ax, bx), math.Max(cx, dx))
+	maxY := math.Max(math.Max(ay, by), math.Max(cy, dy))
+
+	transformed := image.Rect(
+		int(math.Floor(minX)),
+		int(math.Floor(minY)),
+		int(math.Ceil(maxX)),
+		int(math.Ceil(maxY)),
+	)
+	return transformed.Overlaps(dst)
 }
 
 // AppendGlyphs appends glyphs to the given slice and returns a slice.
@@ -148,11 +187,57 @@ func Draw(dst *ebiten.Image, text string, face Face, options *DrawOptions) {
 // AppendGlyphs is a low-level API, and you can use AppendGlyphs to have more control than Draw.
 // AppendGlyphs is also available to precache glyphs.
 //
+// AppendGlyphs rasterizes every glyph eagerly. If you do not need the
+// rasterized images for every glyph (for example, for hit testing or
+// visibility culling), consider [AppendLazyGlyphs] instead, which defers
+// rasterization until [LazyGlyph.Image] is called.
+//
 // For the details of options, see Draw function.
 //
 // AppendGlyphs is concurrent-safe.
 func AppendGlyphs(glyphs []Glyph, text string, face Face, options *LayoutOptions) []Glyph {
-	return appendGlyphs(glyphs, text, face, 0, 0, options)
+	lazyBufP := theAppendGlyphsLazyBufPool.Get().(*[]LazyGlyph)
+	lazyBuf := (*lazyBufP)[:0]
+	defer func() {
+		*lazyBufP = slices.Delete(lazyBuf, 0, len(lazyBuf))
+		theAppendGlyphsLazyBufPool.Put(lazyBufP)
+	}()
+	forEachLine(text, face, options, func(line string, indexOffset int, originX, originY float64) {
+		before := len(lazyBuf)
+		lazyBuf = face.appendLazyGlyphsForLine(lazyBuf, line, indexOffset, originX, originY)
+		for i := before; i < len(lazyBuf); i++ {
+			lg := lazyBuf[i]
+			glyphs = append(glyphs, Glyph{
+				StartIndexInBytes: lg.StartIndexInBytes,
+				EndIndexInBytes:   lg.EndIndexInBytes,
+				GID:               lg.GID,
+				Image:             lg.Image(),
+				X:                 float64(lg.ImageBounds.Min.X),
+				Y:                 float64(lg.ImageBounds.Min.Y),
+				OriginX:           lg.OriginX,
+				OriginY:           lg.OriginY,
+				OriginOffsetX:     lg.OriginOffsetX,
+				OriginOffsetY:     lg.OriginOffsetY,
+				AdvanceX:          lg.AdvanceX,
+				AdvanceY:          lg.AdvanceY,
+			})
+		}
+	})
+	return glyphs
+}
+
+// AppendLazyGlyphs appends lazy glyphs to the given slice and returns a slice.
+//
+// AppendLazyGlyphs is similar to [AppendGlyphs] but each [LazyGlyph] defers
+// rasterization until [LazyGlyph.Image] is called. This is useful when only
+// glyph layout is needed (such as hit testing) or when a custom draw loop
+// culls glyphs that fall outside a viewport.
+//
+// For the details of options, see Draw function.
+//
+// AppendLazyGlyphs is concurrent-safe.
+func AppendLazyGlyphs(glyphs []LazyGlyph, text string, face Face, options *LayoutOptions) []LazyGlyph {
+	return appendLazyGlyphs(glyphs, text, face, 0, 0, options)
 }
 
 // AppendVectorPath appends a vector path for glyphs to the given path.
@@ -165,15 +250,22 @@ func AppendVectorPath(path *vector.Path, text string, face Face, options *Layout
 	})
 }
 
-// appendGlyphs appends glyphs to the given slice and returns a slice.
+// appendLazyGlyphs appends lazy glyphs to the given slice and returns a slice.
 //
-// appendGlyphs assumes the text is rendered with the position (x, y).
+// appendLazyGlyphs assumes the text is rendered with the position (x, y).
 // (x, y) might affect the subpixel rendering results.
-func appendGlyphs(glyphs []Glyph, text string, face Face, x, y float64, options *LayoutOptions) []Glyph {
+func appendLazyGlyphs(glyphs []LazyGlyph, text string, face Face, x, y float64, options *LayoutOptions) []LazyGlyph {
 	forEachLine(text, face, options, func(line string, indexOffset int, originX, originY float64) {
-		glyphs = face.appendGlyphsForLine(glyphs, line, indexOffset, originX+x, originY+y)
+		glyphs = face.appendLazyGlyphsForLine(glyphs, line, indexOffset, originX+x, originY+y)
 	})
 	return glyphs
+}
+
+var theAppendGlyphsLazyBufPool = sync.Pool{
+	New: func() any {
+		s := make([]LazyGlyph, 0, 64)
+		return &s
+	},
 }
 
 // forEachLine interates lines.

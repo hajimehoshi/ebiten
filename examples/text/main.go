@@ -60,7 +60,7 @@ func init() {
 }
 
 type Game struct {
-	glyphs      []text.Glyph
+	glyphs      []text.LazyGlyph
 	showOrigins bool
 }
 
@@ -69,7 +69,7 @@ func (g *Game) Update() error {
 	if len(g.glyphs) == 0 {
 		op := &text.LayoutOptions{}
 		op.LineSpacing = mplusNormalFace.Size * 1.5
-		g.glyphs = text.AppendGlyphs(g.glyphs, sampleText, mplusNormalFace, op)
+		g.glyphs = text.AppendLazyGlyphs(g.glyphs, sampleText, mplusNormalFace, op)
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyO) {
 		g.showOrigins = !g.showOrigins
@@ -126,16 +126,17 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	{
 		const x, y = 240, 360
 		op := &ebiten.DrawImageOptions{}
-		// g.glyphs is initialized by text.AppendGlyphs.
+		// g.glyphs is initialized by text.AppendLazyGlyphs.
 		// You can customize how to render each glyph.
 		// In this example, multiple colors are used to render glyphs.
 		for i, gl := range g.glyphs {
-			if gl.Image == nil {
+			img := gl.Image()
+			if img == nil {
 				continue
 			}
 			op.GeoM.Reset()
 			op.GeoM.Translate(x, y)
-			op.GeoM.Translate(gl.X, gl.Y)
+			op.GeoM.Translate(float64(gl.ImageBounds.Min.X), float64(gl.ImageBounds.Min.Y))
 			op.ColorScale.Reset()
 			r := float32(1)
 			if i%3 == 0 {
@@ -150,7 +151,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 				b = 0.5
 			}
 			op.ColorScale.Scale(r, g, b, 1)
-			screen.DrawImage(gl.Image, op)
+			screen.DrawImage(img, op)
 		}
 
 		if g.showOrigins {

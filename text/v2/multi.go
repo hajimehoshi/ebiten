@@ -109,15 +109,15 @@ func (m *MultiFace) hasGlyph(r rune) bool {
 	return false
 }
 
-// appendGlyphsForLine implements Face.
-func (m *MultiFace) appendGlyphsForLine(glyphs []Glyph, line string, indexOffset int, originX, originY float64) []Glyph {
+// appendLazyGlyphsForLine implements Face.
+func (m *MultiFace) appendLazyGlyphsForLine(glyphs []LazyGlyph, line string, indexOffset int, originX, originY float64) []LazyGlyph {
 	for c := range m.splitText(line) {
 		if c.faceIndex == -1 {
 			continue
 		}
 		f := m.faces[c.faceIndex]
 		t := line[c.textStartIndex:c.textEndIndex]
-		glyphs = f.appendGlyphsForLine(glyphs, t, indexOffset, originX, originY)
+		glyphs = f.appendLazyGlyphsForLine(glyphs, t, indexOffset, originX, originY)
 		if a := f.advance(t); f.direction().isHorizontal() {
 			originX += a
 		} else {
