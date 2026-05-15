@@ -503,7 +503,29 @@ func (g *GoTextFaceSource) buildRenderData(gl shaping.Glyph, size fixed.Int26_6,
 			}
 		}
 		rd.segments = segs
-		rd.bounds = segmentsToBounds(segs)
+
+		// The Outline of a GlyphSVG or GlyphBitmap is sourced from the
+		// same glyf/CFF table that supplies the GlyphOutline case, so
+		// in every branch [font.Face.GlyphExtents] describes the same
+		// outline as the segments and is a valid source of its
+		// bounding box. The one exception is GlyphBitmap with
+		// useBitmap=true, where the ppem-aware lookup resolves via the
+		// bitmap subtable; that's fine in practice because bitmap
+		// rendering reads its bounds from the decoded image, not from
+		// rd.bounds.
+		//
+		// If GlyphExtents returns ok=false, rd.bounds stays zero; the
+		// render path treats that as a degenerate glyph and skips it.
+		// In practice this shouldn't happen: whenever rawSegs is
+		// non-nil, the glyf/CFF table has the glyph and GlyphExtents
+		// resolves through it.
+		if ext, ok := g.f.GlyphExtents(gl.GlyphID); ok {
+			var yOffset float32
+			if sideways {
+				yOffset = fixed26_6ToFloat32(-gl.YOffset) / fixed26_6ToFloat32(size) * float32(g.f.Upem())
+			}
+			rd.bounds = glyphExtentsToBounds(ext, scale, sideways, yOffset)
+		}
 	}
 	if hasRawBitmap {
 		rd.bitmap = decodeBitmapGlyph(rawBitmap)
