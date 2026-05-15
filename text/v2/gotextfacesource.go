@@ -401,61 +401,6 @@ func (g *GoTextFaceSource) buildGlyphs(outputs []shaping.Output, text string, fa
 	for _, out := range outputs {
 		sideways := out.Direction.IsSideways()
 		for _, gl := range out.Glyphs {
-			// Fetch glyph data. The size field of the cache key is 0 for
-			// outline glyphs and out.Size for bitmap glyphs; see the
-			// comment on glyphDataCacheKey for the rationale.
-			//
-			// The outline path assumes the underlying typesetting library
-			// does not apply hinting at GlyphData time: today it reads raw
-			// outline points from glyf/CFF/CFF2 and variable-font axes
-			// (including opsz) route through SetVariations and are
-			// captured by variations above. If a hinting interpreter is
-			// added in the future, outlines may vary per ppem and the
-			// outline path will also need a non-zero size in the key.
-			if g.glyphDataCache == nil {
-				g.glyphDataCache = newCache[glyphDataCacheKey, font.GlyphData](512)
-			}
-			var keySize fixed.Int26_6
-			if useBitmap {
-				keySize = out.Size
-			}
-			key := glyphDataCacheKey{
-				gid:        gl.GlyphID,
-				variations: variations,
-				sideways:   sideways,
-				size:       keySize,
-			}
-			data := g.glyphDataCache.getOrCreate(key, func() (font.GlyphData, bool) {
-				data := g.f.GlyphData(gl.GlyphID)
-				if data == nil {
-					return nil, false
-				}
-				if d, ok := data.(font.GlyphOutline); ok && sideways {
-					d.Sideways(fixed26_6ToFloat32(-gl.YOffset) / fixed26_6ToFloat32(out.Size) * float32(g.f.Upem()))
-				}
-				return data, true
-			})
-
-			// Extract the raw (unscaled) outline segments and, if bitmap
-			// mode is active, the embedded bitmap data.
-			var rawSegs []opentype.Segment
-			var rawBitmap font.GlyphBitmap
-			var hasRawBitmap bool
-			switch d := data.(type) {
-			case font.GlyphOutline:
-				rawSegs = d.Segments
-			case font.GlyphSVG:
-				rawSegs = d.Outline.Segments
-			case font.GlyphBitmap:
-				if d.Outline != nil {
-					rawSegs = d.Outline.Segments
-				}
-				if useBitmap {
-					rawBitmap = d
-					hasRawBitmap = true
-				}
-			}
-
 			// Cache the render data (segments + bounds + bitmap) across
 			// glyph instances of the same (gid, variations, sideways, size).
 			if g.renderDataCache == nil {
@@ -468,27 +413,7 @@ func (g *GoTextFaceSource) buildGlyphs(outputs []shaping.Output, text string, fa
 				size:       out.Size,
 			}
 			render := g.renderDataCache.getOrCreate(renderKey, func() (*glyphRenderData, bool) {
-				if rawSegs == nil && !hasRawBitmap {
-					return nil, false
-				}
-				rd := &glyphRenderData{}
-				if rawSegs != nil {
-					segs := make([]opentype.Segment, len(rawSegs))
-					scale := float32(g.scale(fixed26_6ToFloat64(out.Size)))
-					for i, seg := range rawSegs {
-						segs[i] = seg
-						for j := range seg.Args {
-							segs[i].Args[j].X *= scale
-							segs[i].Args[j].Y *= -scale
-						}
-					}
-					rd.segments = segs
-					rd.bounds = segmentsToBounds(segs)
-				}
-				if hasRawBitmap {
-					rd.bitmap = decodeBitmapGlyph(rawBitmap)
-				}
-				return rd, true
+				return g.buildRenderData(gl, out.Size, sideways, variations, useBitmap)
 			})
 
 			gs = append(gs, goTextGlyph{
@@ -500,6 +425,90 @@ func (g *GoTextFaceSource) buildGlyphs(outputs []shaping.Output, text string, fa
 		}
 	}
 	return gs
+}
+
+// buildRenderData fetches glyph data, scales outline segments, and decodes
+// the embedded bitmap when bitmap mode is active. It returns (nil, false)
+// when the glyph has no renderable data.
+//
+// The caller must hold g.shapeMu.
+func (g *GoTextFaceSource) buildRenderData(gl shaping.Glyph, size fixed.Int26_6, sideways bool, variations string, useBitmap bool) (*glyphRenderData, bool) {
+	// Fetch glyph data. The size field of the cache key is 0 for outline
+	// glyphs and size for bitmap glyphs; see the comment on
+	// glyphDataCacheKey for the rationale.
+	//
+	// The outline path assumes the underlying typesetting library does
+	// not apply hinting at GlyphData time: today it reads raw outline
+	// points from glyf/CFF/CFF2 and variable-font axes (including opsz)
+	// route through SetVariations and are captured by variations above.
+	// If a hinting interpreter is added in the future, outlines may vary
+	// per ppem and the outline path will also need a non-zero size in
+	// the key.
+	if g.glyphDataCache == nil {
+		g.glyphDataCache = newCache[glyphDataCacheKey, font.GlyphData](512)
+	}
+	var keySize fixed.Int26_6
+	if useBitmap {
+		keySize = size
+	}
+	key := glyphDataCacheKey{
+		gid:        gl.GlyphID,
+		variations: variations,
+		sideways:   sideways,
+		size:       keySize,
+	}
+	data := g.glyphDataCache.getOrCreate(key, func() (font.GlyphData, bool) {
+		data := g.f.GlyphData(gl.GlyphID)
+		if data == nil {
+			return nil, false
+		}
+		if d, ok := data.(font.GlyphOutline); ok && sideways {
+			d.Sideways(fixed26_6ToFloat32(-gl.YOffset) / fixed26_6ToFloat32(size) * float32(g.f.Upem()))
+		}
+		return data, true
+	})
+
+	// Extract the raw (unscaled) outline segments and, if bitmap mode is
+	// active, the embedded bitmap data.
+	var rawSegs []opentype.Segment
+	var rawBitmap font.GlyphBitmap
+	var hasRawBitmap bool
+	switch d := data.(type) {
+	case font.GlyphOutline:
+		rawSegs = d.Segments
+	case font.GlyphSVG:
+		rawSegs = d.Outline.Segments
+	case font.GlyphBitmap:
+		if d.Outline != nil {
+			rawSegs = d.Outline.Segments
+		}
+		if useBitmap {
+			rawBitmap = d
+			hasRawBitmap = true
+		}
+	}
+
+	if rawSegs == nil && !hasRawBitmap {
+		return nil, false
+	}
+	rd := &glyphRenderData{}
+	if rawSegs != nil {
+		segs := make([]opentype.Segment, len(rawSegs))
+		scale := float32(g.scale(fixed26_6ToFloat64(size)))
+		for i, seg := range rawSegs {
+			segs[i] = seg
+			for j := range seg.Args {
+				segs[i].Args[j].X *= scale
+				segs[i].Args[j].Y *= -scale
+			}
+		}
+		rd.segments = segs
+		rd.bounds = segmentsToBounds(segs)
+	}
+	if hasRawBitmap {
+		rd.bitmap = decodeBitmapGlyph(rawBitmap)
+	}
+	return rd, true
 }
 
 func (g *GoTextFaceSource) scale(size float64) float64 {
