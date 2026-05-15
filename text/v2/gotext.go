@@ -335,9 +335,23 @@ func (g *GoTextFace) appendGlyphsForLine(glyphs []Glyph, line string, indexOffse
 	return glyphs
 }
 
-func (g *GoTextFace) glyphImage(glyph glyph, origin fixed.Point26_6) (*ebiten.Image, int, int) {
-	if glyph.bitmap != nil {
-		b := glyph.bitmap.Bounds()
+func (g *GoTextFace) glyphImage(glyph goTextGlyph, origin fixed.Point26_6) (*ebiten.Image, int, int) {
+	if glyph.render == nil {
+		// No segments and no bitmap (e.g. control characters). Compute
+		// the rounded position so callers can record it on Glyph.X/Y,
+		// but skip the image cache entirely.
+		if g.direction().isHorizontal() {
+			origin.X = adjustGranularity(origin.X, g)
+			origin.Y &^= ((1 << 6) - 1)
+		} else {
+			origin.X &^= ((1 << 6) - 1)
+			origin.Y = adjustGranularity(origin.Y, g)
+		}
+		return nil, origin.X.Floor(), origin.Y.Floor()
+	}
+
+	if glyph.render.bitmap != nil {
+		b := glyph.render.bitmap.Bounds()
 		if b.Dx() > 0 && b.Dy() > 0 {
 			// Bitmap glyphs are pixel-aligned; no subpixel offset is needed.
 			origin.X &^= ((1 << 6) - 1)
@@ -347,8 +361,9 @@ func (g *GoTextFace) glyphImage(glyph glyph, origin fixed.Point26_6) (*ebiten.Im
 				gid:        glyph.shapingGlyph.GlyphID,
 				variations: g.ensureVariationsString(),
 			}
+			bitmap := glyph.render.bitmap
 			img := g.Source.getOrCreateGlyphImage(g, key, func() (*ebiten.Image, bool) {
-				return ebiten.NewImageFromImage(glyph.bitmap), true
+				return ebiten.NewImageFromImage(bitmap), true
 			})
 
 			// Position using the shaping glyph's bearing values.
@@ -366,7 +381,8 @@ func (g *GoTextFace) glyphImage(glyph glyph, origin fixed.Point26_6) (*ebiten.Im
 		origin.Y = adjustGranularity(origin.Y, g)
 	}
 
-	b := glyph.bounds
+	b := glyph.render.bounds
+	segs := glyph.render.segments
 	subpixelOffset := fixed.Point26_6{
 		X: (origin.X + b.Min.X) & ((1 << 6) - 1),
 		Y: (origin.Y + b.Min.Y) & ((1 << 6) - 1),
@@ -378,7 +394,7 @@ func (g *GoTextFace) glyphImage(glyph glyph, origin fixed.Point26_6) (*ebiten.Im
 		variations: g.ensureVariationsString(),
 	}
 	img := g.Source.getOrCreateGlyphImage(g, key, func() (*ebiten.Image, bool) {
-		img := segmentsToImage(glyph.scaledSegments, subpixelOffset, b)
+		img := segmentsToImage(segs, subpixelOffset, b)
 		return img, img != nil
 	})
 
@@ -396,7 +412,9 @@ func (g *GoTextFace) appendVectorPathForLine(path *vector.Path, line string, ori
 	horizontal := g.direction().isHorizontal()
 	_, gs := g.Source.shape(line, g)
 	for _, glyph := range gs {
-		appendVectorPathFromSegments(path, glyph.scaledSegments, fixed26_6ToFloat32(origin.X), fixed26_6ToFloat32(origin.Y))
+		if glyph.render != nil {
+			appendVectorPathFromSegments(path, glyph.render.segments, fixed26_6ToFloat32(origin.X), fixed26_6ToFloat32(origin.Y))
+		}
 		if horizontal {
 			origin = origin.Add(fixed.Point26_6{
 				X: glyph.shapingGlyph.Advance,

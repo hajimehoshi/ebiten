@@ -46,13 +46,15 @@ type goTextOutputCacheKey struct {
 	features   string
 }
 
-type glyph struct {
-	shapingGlyph   *shaping.Glyph
-	startIndex     int
-	endIndex       int
-	scaledSegments []opentype.Segment
-	bounds         fixed.Rectangle26_6
-	bitmap         image.Image
+type goTextGlyph struct {
+	shapingGlyph *shaping.Glyph
+	startIndex   int
+	endIndex     int
+
+	// render is a pointer to the shared render data (scaled segments,
+	// bounds, and decoded bitmap). It is nil for glyphs with no outline
+	// and no bitmap (e.g. control characters).
+	render *glyphRenderData
 }
 
 type goTextOutputCacheValue struct {
@@ -66,11 +68,11 @@ type goTextOutputCacheValue struct {
 	// glyphs is lazily built by ensureGlyphs. A nil slice means glyphs have not
 	// been built yet; a non-nil (possibly empty) slice means they have.
 	// Protected by GoTextFaceSource.shapeMu.
-	glyphs []glyph
+	glyphs []goTextGlyph
 }
 
 // ensureGlyphs returns per-glyph data, building it on first access.
-func (v *goTextOutputCacheValue) ensureGlyphs(g *GoTextFaceSource) []glyph {
+func (v *goTextOutputCacheValue) ensureGlyphs(g *GoTextFaceSource) []goTextGlyph {
 	g.shapeMu.Lock()
 	defer g.shapeMu.Unlock()
 	if v.glyphs == nil {
@@ -124,25 +126,30 @@ type glyphDataCacheKey struct {
 	sideways   bool
 }
 
-// scaledSegmentsCacheKey identifies a scaled-segment slice. Scaled segments
-// are derived from (raw segments, scale), where raw segments are uniquely
-// keyed by (gid, variations, sideways) and scale is fixed by out.Size.
+// glyphRenderDataCacheKey identifies the render-data bundle for one glyph.
+// Scaled segments depend on all four key fields; bitmap depends only on
+// (gid, size) but is bundled here so a single cache entry yields every
+// renderable form of the glyph. For fonts exercising multiple variations
+// or sideways modes at the same size, the same bitmap image may be
+// referenced from multiple entries — the image data is still shared via
+// the interface's pointer, only the entry headers are duplicated.
 //
-// Scaled segments are kept even for glyphs that also have a usable
-// bitmap, because [AppendVectorPath] consumes them regardless of bitmap
-// presence.
-type scaledSegmentsCacheKey struct {
+// Bundling segments and bitmap together means [AppendVectorPath] retains
+// access to the outline even for glyphs whose bitmap is also populated.
+type glyphRenderDataCacheKey struct {
 	gid        font.GID
 	variations string
 	sideways   bool
 	size       fixed.Int26_6
 }
 
-// bitmapCacheKey identifies a decoded bitmap image. Bitmap data depends on
-// ppem (driven by face.Size).
-type bitmapCacheKey struct {
-	gid  font.GID
-	size float64
+// glyphRenderData bundles all data needed to render one glyph: scaled
+// outline segments, their bounding rectangle, and (when bitmap mode is
+// active) the decoded bitmap image.
+type glyphRenderData struct {
+	segments []opentype.Segment
+	bounds   fixed.Rectangle26_6
+	bitmap   image.Image
 }
 
 // GoTextFaceSource is a source of a GoTextFace. This can be shared by multiple GoTextFace objects.
@@ -163,10 +170,9 @@ type GoTextFaceSource struct {
 	shaper shaping.HarfbuzzShaper
 	seg    shaping.Segmenter
 
-	runes              []rune
-	glyphDataCache     *cache[glyphDataCacheKey, font.GlyphData]
-	scaledSegmentCache *cache[scaledSegmentsCacheKey, []opentype.Segment]
-	bitmapCache        *cache[bitmapCacheKey, image.Image]
+	runes           []rune
+	glyphDataCache  *cache[glyphDataCacheKey, font.GlyphData]
+	renderDataCache *cache[glyphRenderDataCacheKey, *glyphRenderData]
 
 	// shapeMu serializes mutations of the shared font state (g.f) during shaping
 	// and per-glyph data lookups. Lazy glyph builds happen outside of the
@@ -291,7 +297,7 @@ func (g *GoTextFaceSource) advance(text string, face *GoTextFace) fixed.Int26_6 
 	})
 }
 
-func (g *GoTextFaceSource) shape(text string, face *GoTextFace) ([]shaping.Output, []glyph) {
+func (g *GoTextFaceSource) shape(text string, face *GoTextFace) ([]shaping.Output, []goTextGlyph) {
 	g.copyCheck()
 
 	key := face.outputCacheKey(text)
@@ -375,7 +381,7 @@ func (g *GoTextFaceSource) buildOutputs(text string, face *GoTextFace, skipExten
 // distinguish unbuilt entries from entries that built to zero glyphs.
 //
 // The caller must hold g.shapeMu.
-func (g *GoTextFaceSource) buildGlyphs(outputs []shaping.Output, text string, face *GoTextFace) []glyph {
+func (g *GoTextFaceSource) buildGlyphs(outputs []shaping.Output, text string, face *GoTextFace) []goTextGlyph {
 	useBitmap := g.applyFaceState(face)
 
 	var indices []int
@@ -385,7 +391,7 @@ func (g *GoTextFaceSource) buildGlyphs(outputs []shaping.Output, text string, fa
 	indices = append(indices, len(text))
 
 	variations := face.ensureVariationsString()
-	gs := []glyph{}
+	gs := []goTextGlyph{}
 	for _, out := range outputs {
 		sideways := out.Direction.IsSideways()
 		for _, gl := range out.Glyphs {
@@ -454,54 +460,46 @@ func (g *GoTextFaceSource) buildGlyphs(outputs []shaping.Output, text string, fa
 				}
 			}
 
-			// Cache the scaled segments across glyph instances of the
-			// same (gid, variations, sideways, size).
-			if g.scaledSegmentCache == nil {
-				g.scaledSegmentCache = newCache[scaledSegmentsCacheKey, []opentype.Segment](512)
+			// Cache the render data (segments + bounds + bitmap) across
+			// glyph instances of the same (gid, variations, sideways, size).
+			if g.renderDataCache == nil {
+				g.renderDataCache = newCache[glyphRenderDataCacheKey, *glyphRenderData](512)
 			}
-			scaledKey := scaledSegmentsCacheKey{
+			renderKey := glyphRenderDataCacheKey{
 				gid:        gl.GlyphID,
 				variations: variations,
 				sideways:   sideways,
 				size:       out.Size,
 			}
-			scaledSegs := g.scaledSegmentCache.getOrCreate(scaledKey, func() ([]opentype.Segment, bool) {
-				if rawSegs == nil {
+			render := g.renderDataCache.getOrCreate(renderKey, func() (*glyphRenderData, bool) {
+				if rawSegs == nil && !hasRawBitmap {
 					return nil, false
 				}
-				scaled := make([]opentype.Segment, len(rawSegs))
-				scale := float32(g.scale(fixed26_6ToFloat64(out.Size)))
-				for i, seg := range rawSegs {
-					scaled[i] = seg
-					for j := range seg.Args {
-						scaled[i].Args[j].X *= scale
-						scaled[i].Args[j].Y *= -scale
+				rd := &glyphRenderData{}
+				if rawSegs != nil {
+					segs := make([]opentype.Segment, len(rawSegs))
+					scale := float32(g.scale(fixed26_6ToFloat64(out.Size)))
+					for i, seg := range rawSegs {
+						segs[i] = seg
+						for j := range seg.Args {
+							segs[i].Args[j].X *= scale
+							segs[i].Args[j].Y *= -scale
+						}
 					}
+					rd.segments = segs
+					rd.bounds = segmentsToBounds(segs)
 				}
-				return scaled, true
+				if hasRawBitmap {
+					rd.bitmap = decodeBitmapGlyph(rawBitmap)
+				}
+				return rd, true
 			})
 
-			// Cache the decoded bitmap across glyph instances of the
-			// same (gid, face.Size).
-			var bitmapImg image.Image
-			if hasRawBitmap {
-				if g.bitmapCache == nil {
-					g.bitmapCache = newCache[bitmapCacheKey, image.Image](256)
-				}
-				bitmapKey := bitmapCacheKey{gid: gl.GlyphID, size: face.Size}
-				bitmapImg = g.bitmapCache.getOrCreate(bitmapKey, func() (image.Image, bool) {
-					img := decodeBitmapGlyph(rawBitmap)
-					return img, img != nil
-				})
-			}
-
-			gs = append(gs, glyph{
-				shapingGlyph:   &gl,
-				startIndex:     indices[gl.TextIndex()],
-				endIndex:       indices[gl.TextIndex()+gl.RunesCount()],
-				scaledSegments: scaledSegs,
-				bounds:         segmentsToBounds(scaledSegs),
-				bitmap:         bitmapImg,
+			gs = append(gs, goTextGlyph{
+				shapingGlyph: &gl,
+				startIndex:   indices[gl.TextIndex()],
+				endIndex:     indices[gl.TextIndex()+gl.RunesCount()],
+				render:       render,
 			})
 		}
 	}
