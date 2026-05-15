@@ -407,8 +407,15 @@ func goTextGlyphImageInfo(face *GoTextFace, glyph *goTextGlyph, origin fixed.Poi
 		return
 	}
 	if glyph.render.bitmap != nil {
-		b := glyph.render.bitmap.Bounds()
-		if b.Dx() > 0 && b.Dy() > 0 {
+		// The bitmap's pixel dimensions are derived from rd.bounds, which
+		// for bitmap glyphs comes from font.Face.GlyphExtents resolving
+		// through sbix or CBDT/EBDT. That matches the decoded image's
+		// Bounds() up to font-data integrity and removes the need to
+		// touch the decoded image here.
+		b := glyph.render.bounds
+		rw := (b.Max.X - b.Min.X).Ceil()
+		rh := (b.Max.Y - b.Min.Y).Ceil()
+		if rw > 0 && rh > 0 {
 			// Bitmap glyphs are pixel-aligned; no subpixel offset is needed.
 			origin.X &^= ((1 << 6) - 1)
 			origin.Y &^= ((1 << 6) - 1)
@@ -416,7 +423,7 @@ func goTextGlyphImageInfo(face *GoTextFace, glyph *goTextGlyph, origin fixed.Poi
 			// Position using the shaping glyph's bearing values.
 			imgX := (origin.X + glyph.shapingGlyph.XBearing).Round()
 			imgY := (origin.Y - glyph.shapingGlyph.YBearing).Round()
-			bounds = image.Rect(imgX, imgY, imgX+b.Dx(), imgY+b.Dy())
+			bounds = image.Rect(imgX, imgY, imgX+rw, imgY+rh)
 			args = goTextGlyphImageArgs{glyph: glyph}
 			hasImage = true
 			return

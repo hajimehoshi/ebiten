@@ -492,9 +492,9 @@ func (g *GoTextFaceSource) buildRenderData(gl shaping.Glyph, size fixed.Int26_6,
 		return nil, false
 	}
 	rd := &glyphRenderData{}
+	scale := float32(g.scale(fixed26_6ToFloat64(size)))
 	if rawSegs != nil {
 		segs := make([]opentype.Segment, len(rawSegs))
-		scale := float32(g.scale(fixed26_6ToFloat64(size)))
 		for i, seg := range rawSegs {
 			segs[i] = seg
 			for j := range seg.Args {
@@ -503,30 +503,27 @@ func (g *GoTextFaceSource) buildRenderData(gl shaping.Glyph, size fixed.Int26_6,
 			}
 		}
 		rd.segments = segs
-
-		// The Outline of a GlyphSVG or GlyphBitmap is sourced from the
-		// same glyf/CFF table that supplies the GlyphOutline case, so
-		// in every branch [font.Face.GlyphExtents] describes the same
-		// outline as the segments and is a valid source of its
-		// bounding box. The one exception is GlyphBitmap with
-		// useBitmap=true, where the ppem-aware lookup resolves via the
-		// bitmap subtable; that's fine in practice because bitmap
-		// rendering reads its bounds from the decoded image, not from
-		// rd.bounds.
-		//
-		// If GlyphExtents returns ok=false, rd.bounds stays zero; the
-		// render path treats that as a degenerate glyph and skips it.
-		// In practice this shouldn't happen: whenever rawSegs is
-		// non-nil, the glyf/CFF table has the glyph and GlyphExtents
-		// resolves through it.
-		if ext, ok := g.f.GlyphExtents(gl.GlyphID); ok {
-			var yOffset float32
-			if sideways {
-				yOffset = fixed26_6ToFloat32(-gl.YOffset) / fixed26_6ToFloat32(size) * float32(g.f.Upem())
-			}
-			rd.bounds = glyphExtentsToBounds(ext, scale, sideways, yOffset)
-		}
 	}
+
+	// rd.bounds is the source of truth for the glyph's rendered
+	// rectangle on both the outline and bitmap render paths. In
+	// outline mode [font.Face.GlyphExtents] resolves through glyf or
+	// CFF and matches the bounds of the segments. In bitmap mode it
+	// resolves through sbix or CBDT/EBDT and matches the dimensions
+	// of the image that decodeBitmapGlyph will produce.
+	//
+	// If GlyphExtents returns ok=false, rd.bounds stays zero and the
+	// render path treats the glyph as degenerate and skips it. In
+	// practice this shouldn't happen: whenever the glyph produces any
+	// data, the corresponding table supplies its extents too.
+	if ext, ok := g.f.GlyphExtents(gl.GlyphID); ok {
+		var yOffset float32
+		if sideways {
+			yOffset = fixed26_6ToFloat32(-gl.YOffset) / fixed26_6ToFloat32(size) * float32(g.f.Upem())
+		}
+		rd.bounds = glyphExtentsToBounds(ext, scale, sideways, yOffset)
+	}
+
 	if hasRawBitmap {
 		rd.bitmap = decodeBitmapGlyph(rawBitmap)
 	}
