@@ -124,6 +124,12 @@ type glyphDataCacheKey struct {
 	gid        font.GID
 	variations string
 	sideways   bool
+	// size is 0 in outline mode and out.Size in bitmap mode. The outline
+	// path is ppem-independent (GlyphData reads raw outline points and
+	// variable-font axes route through SetVariations), so 0 is used for
+	// every face size and they share an entry. Bitmap glyph data depends
+	// on the face's currently-set ppem, so each size needs its own entry.
+	size fixed.Int26_6
 }
 
 // glyphRenderDataCacheKey identifies the render-data bundle for one glyph.
@@ -395,50 +401,40 @@ func (g *GoTextFaceSource) buildGlyphs(outputs []shaping.Output, text string, fa
 	for _, out := range outputs {
 		sideways := out.Direction.IsSideways()
 		for _, gl := range out.Glyphs {
-			// Fetch glyph data. glyphDataCache is keyed on
-			// (gid, variations, sideways) and omits the face's ppem.
+			// Fetch glyph data. The size field of the cache key is 0 for
+			// outline glyphs and out.Size for bitmap glyphs; see the
+			// comment on glyphDataCacheKey for the rationale.
 			//
-			// This is valid only as long as the underlying typesetting
-			// library does not apply hinting at GlyphData time: today
-			// it reads raw outline points from glyf/CFF/CFF2 and
-			// variable-font axes (including opsz) are routed through
-			// SetVariations and captured by variations above. If a
-			// hinting interpreter is added in the future, outlines may
-			// vary per ppem and this cache will need a ppem dimension.
-			//
-			// In bitmap mode the ppem is set to face.Size's matching
-			// bitmap size and GlyphDataBitmap's result depends on it,
-			// so the same cache key would conflate entries from
-			// different sizes. Bypass the cache in that path.
-			var data font.GlyphData
-			if useBitmap {
-				data = g.f.GlyphData(gl.GlyphID)
-				if data != nil {
-					if d, ok := data.(font.GlyphOutline); ok && sideways {
-						d.Sideways(fixed26_6ToFloat32(-gl.YOffset) / fixed26_6ToFloat32(out.Size) * float32(g.f.Upem()))
-						data = d
-					}
-				}
-			} else {
-				if g.glyphDataCache == nil {
-					g.glyphDataCache = newCache[glyphDataCacheKey, font.GlyphData](512)
-				}
-				key := glyphDataCacheKey{
-					gid:        gl.GlyphID,
-					variations: variations,
-					sideways:   sideways,
-				}
-				data = g.glyphDataCache.getOrCreate(key, func() (font.GlyphData, bool) {
-					data := g.f.GlyphData(gl.GlyphID)
-					if data == nil {
-						return nil, false
-					}
-					if data, ok := data.(font.GlyphOutline); ok && sideways {
-						data.Sideways(fixed26_6ToFloat32(-gl.YOffset) / fixed26_6ToFloat32(out.Size) * float32(g.f.Upem()))
-					}
-					return data, true
-				})
+			// The outline path assumes the underlying typesetting library
+			// does not apply hinting at GlyphData time: today it reads raw
+			// outline points from glyf/CFF/CFF2 and variable-font axes
+			// (including opsz) route through SetVariations and are
+			// captured by variations above. If a hinting interpreter is
+			// added in the future, outlines may vary per ppem and the
+			// outline path will also need a non-zero size in the key.
+			if g.glyphDataCache == nil {
+				g.glyphDataCache = newCache[glyphDataCacheKey, font.GlyphData](512)
 			}
+			var keySize fixed.Int26_6
+			if useBitmap {
+				keySize = out.Size
+			}
+			key := glyphDataCacheKey{
+				gid:        gl.GlyphID,
+				variations: variations,
+				sideways:   sideways,
+				size:       keySize,
+			}
+			data := g.glyphDataCache.getOrCreate(key, func() (font.GlyphData, bool) {
+				data := g.f.GlyphData(gl.GlyphID)
+				if data == nil {
+					return nil, false
+				}
+				if d, ok := data.(font.GlyphOutline); ok && sideways {
+					d.Sideways(fixed26_6ToFloat32(-gl.YOffset) / fixed26_6ToFloat32(out.Size) * float32(g.f.Upem()))
+				}
+				return data, true
+			})
 
 			// Extract the raw (unscaled) outline segments and, if bitmap
 			// mode is active, the embedded bitmap data.
