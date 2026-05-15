@@ -76,6 +76,22 @@ var theDrawGlyphsPool = sync.Pool{
 	},
 }
 
+// drawGlyphEntry is a realized glyph image plus its destination-space
+// translation, used by [Draw] to defer DrawImage calls until after all glyph
+// images have been rasterized.
+type drawGlyphEntry struct {
+	img *ebiten.Image
+	x   float64
+	y   float64
+}
+
+var theDrawGlyphEntriesPool = sync.Pool{
+	New: func() any {
+		s := make([]drawGlyphEntry, 0, 64)
+		return &s
+	},
+}
+
 // Draw draws a given text on a given destination image dst.
 // face is the font for text rendering.
 //
@@ -135,6 +151,15 @@ func Draw(dst *ebiten.Image, text string, face Face, options *DrawOptions) {
 	}()
 	*glyphs = AppendLazyGlyphs((*glyphs)[:0], text, face, &layoutOp)
 
+	entries := theDrawGlyphEntriesPool.Get().(*[]drawGlyphEntry)
+	defer func() {
+		*entries = slices.Delete(*entries, 0, len(*entries))
+		theDrawGlyphEntriesPool.Put(entries)
+	}()
+
+	// Realize images, then draw, in two passes: interleaving DrawImage
+	// with glyph realization flushes the pending atlas write-pixels batch
+	// on each glyph and fragments draw calls (#3455).
 	dstBounds := dst.Bounds()
 	for _, g := range *glyphs {
 		if g.ImageBounds.Empty() {
@@ -149,10 +174,18 @@ func Draw(dst *ebiten.Image, text string, face Face, options *DrawOptions) {
 		if img == nil {
 			continue
 		}
+		*entries = append(*entries, drawGlyphEntry{
+			img: img,
+			x:   float64(g.ImageBounds.Min.X),
+			y:   float64(g.ImageBounds.Min.Y),
+		})
+	}
+
+	for _, e := range *entries {
 		drawOp.GeoM.Reset()
-		drawOp.GeoM.Translate(float64(g.ImageBounds.Min.X), float64(g.ImageBounds.Min.Y))
+		drawOp.GeoM.Translate(e.x, e.y)
 		drawOp.GeoM.Concat(geoM)
-		dst.DrawImage(img, &drawOp)
+		dst.DrawImage(e.img, &drawOp)
 	}
 }
 

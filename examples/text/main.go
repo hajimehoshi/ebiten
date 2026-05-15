@@ -129,6 +129,12 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		// g.glyphs is initialized by text.AppendLazyGlyphs.
 		// You can customize how to render each glyph.
 		// In this example, multiple colors are used to render glyphs.
+		//
+		// Realize every glyph image before issuing any DrawImage so the
+		// atlas write-pixels batch is not flushed on each glyph.
+		for _, gl := range g.glyphs {
+			gl.Image()
+		}
 		for i, gl := range g.glyphs {
 			img := gl.Image()
 			if img == nil {
