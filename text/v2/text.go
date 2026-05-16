@@ -18,6 +18,7 @@
 package text
 
 import (
+	"fmt"
 	"image"
 
 	"golang.org/x/image/math/fixed"
@@ -33,7 +34,7 @@ type Face interface {
 	// Metrics returns the metrics for this Face.
 	Metrics() Metrics
 
-	advance(text string) float64
+	advanceAt(text string, indexInBytes int) float64
 
 	hasGlyph(r rune) bool
 
@@ -288,8 +289,36 @@ type glyphImager interface {
 // Advance doesn't treat multiple lines.
 //
 // Advance is concurrent-safe.
+//
+// Deprecated: as of v2.10. Use [AdvanceAt] instead. Calling Advance on a
+// prefix of a line produces incorrect results, because shaping a substring
+// in isolation can differ from shaping the full line (ligatures, contextual
+// forms, cursive joining, kerning across the boundary).
 func Advance(text string, face Face) float64 {
-	return face.advance(text)
+	return face.advanceAt(text, len(text))
+}
+
+// AdvanceAt returns the advanced distance from the origin position to indexInBytes,
+// computed from the in-context shape of text. It is intended for caret and
+// selection positioning within a line.
+//
+// AdvanceAt doesn't treat multiple lines.
+//
+// AdvanceAt(text, face, len(text)) is equivalent to the previous [Advance].
+// AdvanceAt(text, face, 0) is 0.
+//
+// If indexInBytes falls strictly inside a glyph cluster (e.g., between bytes
+// of a ligature, a multi-byte rune, or a combining mark and its base), the
+// returned advance is snapped to the cluster's start.
+//
+// AdvanceAt panics if indexInBytes is negative or greater than len(text).
+//
+// AdvanceAt is concurrent-safe.
+func AdvanceAt(text string, face Face, indexInBytes int) float64 {
+	if indexInBytes < 0 || indexInBytes > len(text) {
+		panic(fmt.Sprintf("text: indexInBytes %d is out of range [0, %d] at AdvanceAt", indexInBytes, len(text)))
+	}
+	return face.advanceAt(text, indexInBytes)
 }
 
 // Direction represents a direction of text rendering.
@@ -338,7 +367,8 @@ func Measure(text string, face Face, lineSpacingInPixels float64) (width, height
 	var primary float64
 	var lineCount int
 	for line := range textutil.Lines(text) {
-		primary = max(primary, face.advance(textutil.TrimTailingLineBreak(line)))
+		l := textutil.TrimTailingLineBreak(line)
+		primary = max(primary, face.advanceAt(l, len(l)))
 		lineCount++
 	}
 

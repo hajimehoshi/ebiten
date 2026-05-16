@@ -214,7 +214,7 @@ type GoTextFaceSource struct {
 	metadata Metadata
 
 	outputCache     *cache[goTextOutputCacheKey, *goTextOutputCacheValue]
-	advanceCache    *cache[goTextOutputCacheKey, fixed.Int26_6]
+	advanceCache    *cache[goTextOutputCacheKey, []fixed.Int26_6]
 	glyphImageCache map[float64]*cache[goTextGlyphImageCacheKey, *ebiten.Image]
 	hasGlyphCache   runeToBoolMap
 
@@ -275,7 +275,7 @@ func newGoTextFaceSource(face *font.Face) *GoTextFaceSource {
 	s.addr = s
 	s.metadata = metadataFromFace(face)
 	s.outputCache = newCache[goTextOutputCacheKey, *goTextOutputCacheValue](512)
-	s.advanceCache = newCache[goTextOutputCacheKey, fixed.Int26_6](512)
+	s.advanceCache = newCache[goTextOutputCacheKey, []fixed.Int26_6](512)
 	// 4 is an arbitrary number, which should not cause troubles.
 	s.shaper.SetFontCacheSize(4)
 	return s
@@ -347,21 +347,55 @@ func (g *GoTextFaceSource) UnsafeInternal() any {
 	return g.f
 }
 
-// advance returns the total advance of text. It uses ShapeNoExtents to skip
-// computing glyph extents, which are not needed when only advance is required.
-func (g *GoTextFaceSource) advance(text string, face *GoTextFace) fixed.Int26_6 {
+// advances returns a cumulative-advance slice of length len(text)+1 such that
+// element i is the advance from the start of text to byte index i. A byte
+// index that lands inside a glyph cluster gets the same advance as the
+// cluster's start (snap-to-prev), since the cluster's advance is recorded
+// only at its end-byte position.
+func (g *GoTextFaceSource) advances(text string, face *GoTextFace) []fixed.Int26_6 {
 	g.copyCheck()
 
 	key := face.outputCacheKey(text)
-	return g.advanceCache.getOrCreate(key, func() (fixed.Int26_6, bool) {
+	return g.advanceCache.getOrCreate(key, func() ([]fixed.Int26_6, bool) {
 		g.shapeMu.Lock()
 		defer g.shapeMu.Unlock()
-		var a fixed.Int26_6
-		for _, out := range g.buildOutputs(text, face, true) {
-			a += out.Advance
+		outputs := g.buildOutputs(text, face, true)
+
+		// Rune index → byte index, plus a final entry at len(text).
+		runeToByte := make([]int, 0, len(text)+1)
+		for i := range text {
+			runeToByte = append(runeToByte, i)
+		}
+		runeToByte = append(runeToByte, len(text))
+
+		// Accumulate each glyph's advance at its cluster end-byte, then
+		// prefix-sum to get cumulative advance at every byte position.
+		a := make([]fixed.Int26_6, len(text)+1)
+		for _, out := range outputs {
+			for i := range out.Glyphs {
+				gl := &out.Glyphs[i]
+				endByte := runeToByte[gl.ClusterIndex+gl.RunesCount()]
+				a[endByte] += gl.Advance
+			}
+		}
+		for i := 1; i < len(a); i++ {
+			a[i] += a[i-1]
 		}
 		return a, true
 	})
+}
+
+// advanceAt returns the advance from the start of text to indexInBytes.
+// indexInBytes that falls inside a glyph cluster snaps to the cluster's start.
+func (g *GoTextFaceSource) advanceAt(text string, face *GoTextFace, indexInBytes int) fixed.Int26_6 {
+	if indexInBytes <= 0 {
+		return 0
+	}
+	a := g.advances(text, face)
+	if indexInBytes >= len(a) {
+		return a[len(a)-1]
+	}
+	return a[indexInBytes]
 }
 
 // glyphs returns per-glyph wrappers for text, computed from the cached shape

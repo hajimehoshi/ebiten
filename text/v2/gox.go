@@ -111,13 +111,35 @@ func (g *GoXFace) UnsafeInternal() font.Face {
 	return g.f.f
 }
 
-// advance implements Face.
-func (g *GoXFace) advance(text string) float64 {
+// advanceAt implements Face.
+func (g *GoXFace) advanceAt(text string, indexInBytes int) float64 {
+	if indexInBytes <= 0 {
+		return 0
+	}
 	xs := g.originXs(text)
 	if len(xs) == 0 {
 		return 0
 	}
-	return fixed26_6ToFloat64(xs[len(xs)-1])
+	if indexInBytes >= len(text) {
+		return fixed26_6ToFloat64(xs[len(xs)-1])
+	}
+	// indexInBytes inside a rune snaps to the rune's start: only include
+	// runes whose entire byte range is <= indexInBytes.
+	var runeIdx int
+	for i := range text {
+		_, l := utf8.DecodeRuneInString(text[i:])
+		if l < 0 {
+			l = 1
+		}
+		if i+l > indexInBytes {
+			break
+		}
+		runeIdx++
+	}
+	if runeIdx == 0 {
+		return 0
+	}
+	return fixed26_6ToFloat64(xs[runeIdx-1])
 }
 
 func (g *GoXFace) originXs(text string) []fixed.Int26_6 {

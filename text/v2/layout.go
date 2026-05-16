@@ -368,7 +368,8 @@ func forEachLine(text string, face Face, options *LayoutOptions, f func(text str
 	var lineCount int
 	for line := range textutil.Lines(text) {
 		lineCount++
-		a := face.advance(textutil.TrimTailingLineBreak(line))
+		l := textutil.TrimTailingLineBreak(line)
+		a := face.advanceAt(l, len(l))
 		advances = append(advances, a)
 		longestAdvance = max(longestAdvance, a)
 	}

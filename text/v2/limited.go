@@ -15,6 +15,8 @@
 package text
 
 import (
+	"unicode/utf8"
+
 	"github.com/hajimehoshi/ebiten/v2/text/v2/internal/textutil"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
@@ -47,9 +49,32 @@ func (l *LimitedFace) Metrics() Metrics {
 	return l.face.Metrics()
 }
 
-// advance implements Face.
-func (l *LimitedFace) advance(text string) float64 {
-	return l.face.advance(l.unicodeRanges.Filter(text))
+// advanceAt implements Face.
+func (l *LimitedFace) advanceAt(text string, indexInBytes int) float64 {
+	filtered := l.unicodeRanges.Filter(text)
+	if filtered == text {
+		return l.face.advanceAt(filtered, indexInBytes)
+	}
+	// Filter substitutes unsupported runes with U+FFFD (3 bytes), so byte
+	// offsets in text don't match those in filtered. Translate indexInBytes
+	// into the filtered string's byte space.
+	const fffdLen = 3
+	var filteredIdx int
+	for i, r := range text {
+		_, runeLen := utf8.DecodeRuneInString(text[i:])
+		if runeLen < 0 {
+			runeLen = 1
+		}
+		if i+runeLen > indexInBytes {
+			break
+		}
+		if l.unicodeRanges.Contains(r) {
+			filteredIdx += runeLen
+		} else {
+			filteredIdx += fffdLen
+		}
+	}
+	return l.face.advanceAt(filtered, filteredIdx)
 }
 
 // hasGlyph implements Face.

@@ -742,9 +742,9 @@ func TestGlyphAdvance(t *testing.T) {
 				}
 			}
 
-			// Sum across the line equals text.Advance(...).
+			// Sum across the line equals text.AdvanceAt(_, _, len(text)).
 			last := glyphs[len(glyphs)-1]
-			advance := text.Advance(tc.text, tc.face)
+			advance := text.AdvanceAt(tc.text, tc.face, len(tc.text))
 			if tc.vertical {
 				// For vertical layouts, GoTextFace.advance returns a negative value
 				// matching the AdvanceY sign convention.
@@ -759,5 +759,153 @@ func TestGlyphAdvance(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestAdvanceAt(t *testing.T) {
+	const eps = 1.0 / (1 << 6)
+
+	goxFace := text.NewGoXFace(bitmapfont.Face)
+
+	source, err := text.NewGoTextFaceSource(bytes.NewReader(fonts.MPlus1pRegular_ttf))
+	if err != nil {
+		t.Fatal(err)
+	}
+	gtLTR := &text.GoTextFace{
+		Source:    source,
+		Size:      24,
+		Direction: text.DirectionLeftToRight,
+	}
+	gtVertical := &text.GoTextFace{
+		Source:    source,
+		Size:      24,
+		Direction: text.DirectionTopToBottomAndRightToLeft,
+	}
+
+	cases := []struct {
+		name string
+		face text.Face
+		text string
+	}{
+		{
+			name: "GoXFace/ASCII",
+			face: goxFace,
+			text: "Hello, world",
+		},
+		{
+			name: "GoXFace/MultiByte",
+			face: goxFace,
+			text: "Hello, 世界",
+		},
+		{
+			name: "GoTextFace/LTR",
+			face: gtLTR,
+			text: "Hello, world",
+		},
+		{
+			name: "GoTextFace/LTR/MultiByte",
+			face: gtLTR,
+			text: "Hello, 世界",
+		},
+		{
+			name: "GoTextFace/Vertical",
+			face: gtVertical,
+			text: "あいうえお",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := text.AdvanceAt(tc.text, tc.face, 0); got != 0 {
+				t.Errorf("AdvanceAt(_, _, 0) = %v, want 0", got)
+			}
+
+			fullAt := text.AdvanceAt(tc.text, tc.face, len(tc.text))
+			//nolint:staticcheck // Advance is deprecated; this verifies parity.
+			fullAdv := text.Advance(tc.text, tc.face)
+			if math.Abs(fullAt-fullAdv) > eps {
+				t.Errorf("AdvanceAt(_, _, len) = %v, want Advance() = %v", fullAt, fullAdv)
+			}
+
+			// AdvanceAt is monotonic non-decreasing along the byte sequence.
+			// The vertical sign convention is normalized to magnitude by
+			// GoTextFace.advanceAt.
+			var prev float64
+			for i := range tc.text {
+				got := text.AdvanceAt(tc.text, tc.face, i)
+				if got < prev-eps {
+					t.Errorf("AdvanceAt(_, _, %d) = %v, expected >= previous %v", i, got, prev)
+				}
+				prev = got
+			}
+
+			// Snap-to-prev: AdvanceAt within a multi-byte rune equals the
+			// advance at the rune's start.
+			for i, r := range tc.text {
+				runeLen := len(string(r))
+				if runeLen < 2 {
+					continue
+				}
+				atStart := text.AdvanceAt(tc.text, tc.face, i)
+				for off := 1; off < runeLen; off++ {
+					got := text.AdvanceAt(tc.text, tc.face, i+off)
+					if math.Abs(got-atStart) > eps {
+						t.Errorf("AdvanceAt(_, _, %d) = %v, want snap-to-prev %v", i+off, got, atStart)
+					}
+				}
+			}
+		})
+	}
+}
+
+func TestAdvanceAtMultiFace(t *testing.T) {
+	const eps = 1.0 / (1 << 6)
+
+	source, err := text.NewGoTextFaceSource(bytes.NewReader(fonts.MPlus1pRegular_ttf))
+	if err != nil {
+		t.Fatal(err)
+	}
+	gt := &text.GoTextFace{Source: source, Size: 24}
+	gx := text.NewGoXFace(bitmapfont.Face)
+	m, err := text.NewMultiFace(gx, gt)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	str := "Hello, 世界"
+
+	var prev float64
+	for i := range str {
+		got := text.AdvanceAt(str, m, i)
+		if got < prev-eps {
+			t.Errorf("MultiFace: AdvanceAt(_, _, %d) = %v < previous %v", i, got, prev)
+		}
+		prev = got
+	}
+	fullAt := text.AdvanceAt(str, m, len(str))
+	//nolint:staticcheck // Advance is deprecated; this verifies parity.
+	fullAdv := text.Advance(str, m)
+	if math.Abs(fullAt-fullAdv) > eps {
+		t.Errorf("MultiFace: AdvanceAt(_, _, len) = %v, want Advance() = %v", fullAt, fullAdv)
+	}
+}
+
+func TestAdvanceAtPanic(t *testing.T) {
+	source, err := text.NewGoTextFaceSource(bytes.NewReader(fonts.MPlus1pRegular_ttf))
+	if err != nil {
+		t.Fatal(err)
+	}
+	face := &text.GoTextFace{Source: source, Size: 24}
+	str := "Hi"
+
+	for _, indexInBytes := range []int{-1, len(str) + 1} {
+		func() {
+			defer func() {
+				if recover() == nil {
+					t.Errorf("AdvanceAt(_, _, %d) did not panic", indexInBytes)
+				}
+			}()
+			_ = text.AdvanceAt(str, face, indexInBytes)
+		}()
 	}
 }

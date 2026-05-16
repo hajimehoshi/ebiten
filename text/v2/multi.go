@@ -92,15 +92,26 @@ func (m *MultiFace) Metrics() Metrics {
 	return mt
 }
 
-// advance implements Face.
-func (m *MultiFace) advance(text string) float64 {
+// advanceAt implements Face.
+func (m *MultiFace) advanceAt(text string, indexInBytes int) float64 {
+	if indexInBytes <= 0 {
+		return 0
+	}
 	var a float64
 	for _, c := range m.splitText(text) {
 		if c.faceIndex == -1 {
 			continue
 		}
 		f := m.faces[c.faceIndex]
-		a += f.advance(text[c.textStartIndex:c.textEndIndex])
+		chunk := text[c.textStartIndex:c.textEndIndex]
+		if c.textEndIndex <= indexInBytes {
+			a += f.advanceAt(chunk, len(chunk))
+			continue
+		}
+		if c.textStartIndex < indexInBytes {
+			a += f.advanceAt(chunk, indexInBytes-c.textStartIndex)
+		}
+		break
 	}
 	return a
 }
@@ -124,7 +135,7 @@ func (m *MultiFace) appendLazyGlyphsForLine(glyphs []LazyGlyph, line string, ind
 		f := m.faces[c.faceIndex]
 		t := line[c.textStartIndex:c.textEndIndex]
 		glyphs = f.appendLazyGlyphsForLine(glyphs, t, indexOffset, originX, originY, keepGlyph)
-		if a := f.advance(t); f.direction().isHorizontal() {
+		if a := f.advanceAt(t, len(t)); f.direction().isHorizontal() {
 			originX += a
 		} else {
 			originY += a
@@ -143,7 +154,7 @@ func (m *MultiFace) appendVectorPathForLine(path *vector.Path, line string, orig
 		f := m.faces[c.faceIndex]
 		t := line[c.textStartIndex:c.textEndIndex]
 		f.appendVectorPathForLine(path, t, originX, originY)
-		if a := f.advance(t); f.direction().isHorizontal() {
+		if a := f.advanceAt(t, len(t)); f.direction().isHorizontal() {
 			originX += a
 		} else {
 			originY += a

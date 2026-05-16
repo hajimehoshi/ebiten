@@ -274,9 +274,9 @@ func (g *GoTextFace) gScript() glanguage.Script {
 	return s
 }
 
-// advance implements Face.
-func (g *GoTextFace) advance(text string) float64 {
-	a := g.Source.advance(text, g)
+// advanceAt implements Face.
+func (g *GoTextFace) advanceAt(text string, indexInBytes int) float64 {
+	a := g.Source.advanceAt(text, g, indexInBytes)
 	if g.direction().isHorizontal() {
 		return fixed26_6ToFloat64(a)
 	}
