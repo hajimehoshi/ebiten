@@ -141,6 +141,7 @@ func Draw(dst *ebiten.Image, text string, face Face, options *DrawOptions) {
 	}
 
 	geoM := drawOp.GeoM
+	dstBounds := dst.Bounds()
 
 	glyphs := theDrawGlyphsPool.Get().(*[]LazyGlyph)
 	defer func() {
@@ -149,7 +150,7 @@ func Draw(dst *ebiten.Image, text string, face Face, options *DrawOptions) {
 		*glyphs = slices.Delete(*glyphs, 0, len(*glyphs))
 		theDrawGlyphsPool.Put(glyphs)
 	}()
-	*glyphs = AppendLazyGlyphs((*glyphs)[:0], text, face, &layoutOp)
+	*glyphs = appendLazyGlyphs((*glyphs)[:0], text, face, 0, 0, &layoutOp, keepGlyphFilter(face, geoM, dstBounds))
 
 	entries := theDrawGlyphEntriesPool.Get().(*[]drawGlyphEntry)
 	defer func() {
@@ -160,7 +161,6 @@ func Draw(dst *ebiten.Image, text string, face Face, options *DrawOptions) {
 	// Realize images, then draw, in two passes: interleaving DrawImage
 	// with glyph realization flushes the pending atlas write-pixels batch
 	// on each glyph and fragments draw calls (#3455).
-	dstBounds := dst.Bounds()
 	for _, g := range *glyphs {
 		if g.ImageBounds.Empty() {
 			continue
@@ -186,6 +186,53 @@ func Draw(dst *ebiten.Image, text string, face Face, options *DrawOptions) {
 		drawOp.GeoM.Translate(e.x, e.y)
 		drawOp.GeoM.Concat(geoM)
 		dst.DrawImage(e.img, &drawOp)
+	}
+}
+
+// keepGlyphFilter returns a per-glyph predicate suitable for
+// appendLazyGlyphs's keepGlyph parameter. It returns false for glyphs
+// whose text-space origin, after the geoM transform, is far enough outside
+// dst that no plausible glyph image can reach into dst from there. Glyphs
+// near the edge are kept and re-checked by the precise per-glyph cull in
+// Draw.
+//
+// The cull applies only when geoM has no shear or rotation. Otherwise nil
+// is returned and no glyph-level cull happens.
+func keepGlyphFilter(face Face, geoM ebiten.GeoM, dstBounds image.Rectangle) func(originX, originY float64) bool {
+	if geoM.Element(0, 1) != 0 || geoM.Element(1, 0) != 0 {
+		return nil
+	}
+	// advanceMarginFactor is the cull slack on each side of dst along
+	// the advance (text-progression) axis, as a multiple of the line
+	// height. It must be large enough to cover the widest single glyph
+	// in any real font: Arabic ligatures such as U+FDFD can span ~10
+	// line heights, and decorative or composite glyphs in some fonts go
+	// further. 100 is well above anything observed without sacrificing
+	// the cull benefit.
+	const advanceMarginFactor = 100
+	m := face.Metrics()
+	var marginX, marginY float64
+	if face.direction().isHorizontal() {
+		height := m.HAscent + m.HDescent
+		marginX = advanceMarginFactor * height
+		marginY = height + m.HLineGap
+	} else {
+		width := m.VAscent + m.VDescent
+		marginY = advanceMarginFactor * width
+		marginX = width + m.VLineGap
+	}
+	a := geoM.Element(0, 0)
+	d := geoM.Element(1, 1)
+	tx := geoM.Element(0, 2)
+	ty := geoM.Element(1, 2)
+	dstMinX := float64(dstBounds.Min.X) - marginX
+	dstMaxX := float64(dstBounds.Max.X) + marginX
+	dstMinY := float64(dstBounds.Min.Y) - marginY
+	dstMaxY := float64(dstBounds.Max.Y) + marginY
+	return func(originX, originY float64) bool {
+		dx := a*originX + tx
+		dy := d*originY + ty
+		return dx >= dstMinX && dx <= dstMaxX && dy >= dstMinY && dy <= dstMaxY
 	}
 }
 
@@ -237,7 +284,7 @@ func AppendGlyphs(glyphs []Glyph, text string, face Face, options *LayoutOptions
 	}()
 	forEachLine(text, face, options, func(line string, indexOffset int, originX, originY float64) {
 		before := len(lazyBuf)
-		lazyBuf = face.appendLazyGlyphsForLine(lazyBuf, line, indexOffset, originX, originY)
+		lazyBuf = face.appendLazyGlyphsForLine(lazyBuf, line, indexOffset, originX, originY, nil)
 		for i := before; i < len(lazyBuf); i++ {
 			lg := lazyBuf[i]
 			glyphs = append(glyphs, Glyph{
@@ -270,7 +317,7 @@ func AppendGlyphs(glyphs []Glyph, text string, face Face, options *LayoutOptions
 //
 // AppendLazyGlyphs is concurrent-safe.
 func AppendLazyGlyphs(glyphs []LazyGlyph, text string, face Face, options *LayoutOptions) []LazyGlyph {
-	return appendLazyGlyphs(glyphs, text, face, 0, 0, options)
+	return appendLazyGlyphs(glyphs, text, face, 0, 0, options, nil)
 }
 
 // AppendVectorPath appends a vector path for glyphs to the given path.
@@ -287,9 +334,13 @@ func AppendVectorPath(path *vector.Path, text string, face Face, options *Layout
 //
 // appendLazyGlyphs assumes the text is rendered with the position (x, y).
 // (x, y) might affect the subpixel rendering results.
-func appendLazyGlyphs(glyphs []LazyGlyph, text string, face Face, x, y float64, options *LayoutOptions) []LazyGlyph {
+//
+// keepGlyph, when non-nil, is forwarded to each face's
+// appendLazyGlyphsForLine so glyphs whose text-space origin fails the
+// predicate are skipped without their image bounds being computed.
+func appendLazyGlyphs(glyphs []LazyGlyph, text string, face Face, x, y float64, options *LayoutOptions, keepGlyph func(originX, originY float64) bool) []LazyGlyph {
 	forEachLine(text, face, options, func(line string, indexOffset int, originX, originY float64) {
-		glyphs = face.appendLazyGlyphsForLine(glyphs, line, indexOffset, originX+x, originY+y)
+		glyphs = face.appendLazyGlyphsForLine(glyphs, line, indexOffset, originX+x, originY+y, keepGlyph)
 	})
 	return glyphs
 }

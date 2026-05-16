@@ -37,7 +37,11 @@ type Face interface {
 
 	hasGlyph(r rune) bool
 
-	appendLazyGlyphsForLine(glyphs []LazyGlyph, line string, indexOffset int, originX, originY float64) []LazyGlyph
+	// appendLazyGlyphsForLine appends a LazyGlyph for each glyph in line
+	// to glyphs and returns the extended slice. If keepGlyph is non-nil,
+	// glyphs for which it returns false are skipped (the origin still
+	// advances).
+	appendLazyGlyphsForLine(glyphs []LazyGlyph, line string, indexOffset int, originX, originY float64, keepGlyph func(originX, originY float64) bool) []LazyGlyph
 	appendVectorPathForLine(path *vector.Path, line string, originX, originY float64)
 
 	direction() Direction
@@ -375,7 +379,7 @@ func CacheGlyphs(text string, face Face) {
 	var buf []LazyGlyph
 	// Create all the possible variations (#2528).
 	for range c {
-		buf = appendLazyGlyphs(buf, text, face, x, y, nil)
+		buf = appendLazyGlyphs(buf, text, face, x, y, nil, nil)
 		// Realize each glyph to populate the underlying image cache.
 		for _, g := range buf {
 			g.Image()

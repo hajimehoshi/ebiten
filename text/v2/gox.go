@@ -150,7 +150,7 @@ func (g *GoXFace) hasGlyph(r rune) bool {
 }
 
 // appendLazyGlyphsForLine implements Face.
-func (g *GoXFace) appendLazyGlyphsForLine(glyphs []LazyGlyph, line string, indexOffset int, originX, originY float64) []LazyGlyph {
+func (g *GoXFace) appendLazyGlyphsForLine(glyphs []LazyGlyph, line string, indexOffset int, originX, originY float64, keepGlyph func(originX, originY float64) bool) []LazyGlyph {
 	g.copyCheck()
 
 	origin := fixed.Point26_6{
@@ -172,6 +172,10 @@ func (g *GoXFace) appendLazyGlyphsForLine(glyphs []LazyGlyph, line string, index
 		if i > 0 {
 			origin.X = ox + originXs[advanceIndex]
 			advanceIndex++
+		}
+
+		if keepGlyph != nil && !keepGlyph(fixed26_6ToFloat64(origin.X), fixed26_6ToFloat64(origin.Y)) {
+			continue
 		}
 
 		// The image position is integer so that the nearest filter can be used.

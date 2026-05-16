@@ -289,7 +289,7 @@ func (g *GoTextFace) hasGlyph(r rune) bool {
 }
 
 // appendLazyGlyphsForLine implements Face.
-func (g *GoTextFace) appendLazyGlyphsForLine(glyphs []LazyGlyph, line string, indexOffset int, originX, originY float64) []LazyGlyph {
+func (g *GoTextFace) appendLazyGlyphsForLine(glyphs []LazyGlyph, line string, indexOffset int, originX, originY float64, keepGlyph func(originX, originY float64) bool) []LazyGlyph {
 	origin := fixed.Point26_6{
 		X: float64ToFixed26_6(originX),
 		Y: float64ToFixed26_6(originY),
@@ -311,42 +311,44 @@ func (g *GoTextFace) appendLazyGlyphsForLine(glyphs []LazyGlyph, line string, in
 			Y: -glyph.shapingGlyph.YOffset,
 		})
 
-		// The image position is integer so that the nearest filter can be used.
-		bounds, args, hasImage := goTextGlyphImageInfo(g, glyph, o, granularity)
+		if keepGlyph == nil || keepGlyph(fixed26_6ToFloat64(o.X), fixed26_6ToFloat64(o.Y)) {
+			// The image position is integer so that the nearest filter can be used.
+			bounds, args, hasImage := goTextGlyphImageInfo(g, glyph, o, granularity)
 
-		var advanceX, advanceY float64
-		if horizontal {
-			advanceX = fixed26_6ToFloat64(glyph.shapingGlyph.Advance)
-		} else {
-			advanceY = -fixed26_6ToFloat64(glyph.shapingGlyph.Advance)
-		}
-
-		lg := LazyGlyph{
-			StartIndexInBytes: indexOffset + glyph.startIndex,
-			EndIndexInBytes:   indexOffset + glyph.endIndex,
-			GID:               uint32(glyph.shapingGlyph.GlyphID),
-			ImageBounds:       bounds,
-			OriginX:           fixed26_6ToFloat64(origin.X),
-			OriginY:           fixed26_6ToFloat64(origin.Y),
-			OriginOffsetX:     fixed26_6ToFloat64(glyph.shapingGlyph.XOffset),
-			OriginOffsetY:     fixed26_6ToFloat64(-glyph.shapingGlyph.YOffset),
-			AdvanceX:          advanceX,
-			AdvanceY:          advanceY,
-		}
-		if hasImage {
-			if imager == nil {
-				imager = &goTextLineImager{
-					face: g,
-					args: make([]goTextGlyphImageArgs, 0, len(gs)-i),
-				}
+			var advanceX, advanceY float64
+			if horizontal {
+				advanceX = fixed26_6ToFloat64(glyph.shapingGlyph.Advance)
+			} else {
+				advanceY = -fixed26_6ToFloat64(glyph.shapingGlyph.Advance)
 			}
-			imager.args = append(imager.args, args)
-			lg.imager = imager
-			lg.imageIndex = len(imager.args) - 1
+
+			lg := LazyGlyph{
+				StartIndexInBytes: indexOffset + glyph.startIndex,
+				EndIndexInBytes:   indexOffset + glyph.endIndex,
+				GID:               uint32(glyph.shapingGlyph.GlyphID),
+				ImageBounds:       bounds,
+				OriginX:           fixed26_6ToFloat64(origin.X),
+				OriginY:           fixed26_6ToFloat64(origin.Y),
+				OriginOffsetX:     fixed26_6ToFloat64(glyph.shapingGlyph.XOffset),
+				OriginOffsetY:     fixed26_6ToFloat64(-glyph.shapingGlyph.YOffset),
+				AdvanceX:          advanceX,
+				AdvanceY:          advanceY,
+			}
+			if hasImage {
+				if imager == nil {
+					imager = &goTextLineImager{
+						face: g,
+						args: make([]goTextGlyphImageArgs, 0, len(gs)-i),
+					}
+				}
+				imager.args = append(imager.args, args)
+				lg.imager = imager
+				lg.imageIndex = len(imager.args) - 1
+			}
+			// Append a glyph even if it has no image (control characters etc.).
+			// This is necessary to return index information for control characters.
+			glyphs = append(glyphs, lg)
 		}
-		// Append a glyph even if it has no image (control characters etc.).
-		// This is necessary to return index information for control characters.
-		glyphs = append(glyphs, lg)
 
 		if horizontal {
 			origin = origin.Add(fixed.Point26_6{

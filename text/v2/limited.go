@@ -58,8 +58,8 @@ func (l *LimitedFace) hasGlyph(r rune) bool {
 }
 
 // appendLazyGlyphsForLine implements Face.
-func (l *LimitedFace) appendLazyGlyphsForLine(glyphs []LazyGlyph, line string, indexOffset int, originX, originY float64) []LazyGlyph {
-	return l.face.appendLazyGlyphsForLine(glyphs, l.unicodeRanges.Filter(line), indexOffset, originX, originY)
+func (l *LimitedFace) appendLazyGlyphsForLine(glyphs []LazyGlyph, line string, indexOffset int, originX, originY float64, keepGlyph func(originX, originY float64) bool) []LazyGlyph {
+	return l.face.appendLazyGlyphsForLine(glyphs, l.unicodeRanges.Filter(line), indexOffset, originX, originY, keepGlyph)
 }
 
 // appendVectorPathForLine implements Face.
