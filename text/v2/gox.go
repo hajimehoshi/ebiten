@@ -16,6 +16,7 @@ package text
 
 import (
 	"image"
+	"slices"
 	"unicode/utf8"
 
 	"golang.org/x/image/font"
@@ -160,6 +161,8 @@ func (g *GoXFace) appendLazyGlyphsForLine(glyphs []LazyGlyph, line string, index
 
 	originXs := g.originXs(line)
 	var advanceIndex int
+
+	glyphs = slices.Grow(glyphs, len(line))
 
 	// imager is allocated lazily on the first glyph that produces an image.
 	var imager *goXLineImager

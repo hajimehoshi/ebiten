@@ -19,6 +19,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"image"
+	"slices"
 
 	"github.com/go-text/typesetting/di"
 	"github.com/go-text/typesetting/font"
@@ -295,6 +296,8 @@ func (g *GoTextFace) appendLazyGlyphsForLine(glyphs []LazyGlyph, line string, in
 	}
 	horizontal := g.direction().isHorizontal()
 	_, gs := g.Source.shape(line, g)
+
+	glyphs = slices.Grow(glyphs, len(gs))
 
 	// imager is allocated lazily on the first glyph that produces an image.
 	// If none do (e.g. a line of control characters), no allocation happens.
