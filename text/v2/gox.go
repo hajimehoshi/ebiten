@@ -161,6 +161,7 @@ func (g *GoXFace) appendLazyGlyphsForLine(glyphs []LazyGlyph, line string, index
 
 	originXs := g.originXs(line)
 	var advanceIndex int
+	granularity := granularityFactor(g)
 
 	glyphs = slices.Grow(glyphs, len(line))
 
@@ -174,7 +175,7 @@ func (g *GoXFace) appendLazyGlyphsForLine(glyphs []LazyGlyph, line string, index
 		}
 
 		// The image position is integer so that the nearest filter can be used.
-		bounds, args, hasImage := goXGlyphImageInfo(g, r, origin)
+		bounds, args, hasImage := goXGlyphImageInfo(g, r, origin, granularity)
 
 		// Adjust the position to the integers.
 		// The current glyph images assume that they are rendered on integer positions so far.
@@ -254,9 +255,13 @@ func (im *goXLineImager) glyphImage(index int) *ebiten.Image {
 // per-glyph args needed to realize the image. The bounds are computed
 // without rasterizing. hasImage is false for runes that produce no image;
 // in that case bounds is empty and args is the zero value.
-func goXGlyphImageInfo(face *GoXFace, r rune, origin fixed.Point26_6) (bounds image.Rectangle, args goXGlyphImageArgs, hasImage bool) {
+//
+// granularity is taken as a parameter rather than derived from face
+// because the caller is expected to compute it once per layout pass
+// (see granularityFactor) and share it across every glyph.
+func goXGlyphImageInfo(face *GoXFace, r rune, origin fixed.Point26_6, granularity fixed.Int26_6) (bounds image.Rectangle, args goXGlyphImageArgs, hasImage bool) {
 	// Assume that GoXFace's direction is always horizontal.
-	origin.X = adjustGranularity(origin.X, face)
+	origin.X = adjustGranularity(origin.X, granularity)
 	origin.Y &^= ((1 << 6) - 1)
 
 	b, _, _ := face.f.GlyphBounds(r)

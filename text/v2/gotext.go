@@ -295,6 +295,7 @@ func (g *GoTextFace) appendLazyGlyphsForLine(glyphs []LazyGlyph, line string, in
 		Y: float64ToFixed26_6(originY),
 	}
 	horizontal := g.direction().isHorizontal()
+	granularity := granularityFactor(g)
 	_, gs := g.Source.shape(line, g)
 
 	glyphs = slices.Grow(glyphs, len(gs))
@@ -311,7 +312,7 @@ func (g *GoTextFace) appendLazyGlyphsForLine(glyphs []LazyGlyph, line string, in
 		})
 
 		// The image position is integer so that the nearest filter can be used.
-		bounds, args, hasImage := goTextGlyphImageInfo(g, glyph, o)
+		bounds, args, hasImage := goTextGlyphImageInfo(g, glyph, o, granularity)
 
 		var advanceX, advanceY float64
 		if horizontal {
@@ -414,7 +415,11 @@ func (im *goTextLineImager) glyphImage(index int) *ebiten.Image {
 // without rasterizing. hasImage is false for glyphs that do not produce
 // an image (control characters or glyphs whose extents are empty); in
 // that case bounds is empty and args is the zero value.
-func goTextGlyphImageInfo(face *GoTextFace, glyph *goTextGlyph, origin fixed.Point26_6) (bounds image.Rectangle, args goTextGlyphImageArgs, hasImage bool) {
+//
+// granularity is taken as a parameter rather than derived from face
+// because the caller is expected to compute it once per layout pass
+// (see granularityFactor) and share it across every glyph.
+func goTextGlyphImageInfo(face *GoTextFace, glyph *goTextGlyph, origin fixed.Point26_6, granularity fixed.Int26_6) (bounds image.Rectangle, args goTextGlyphImageArgs, hasImage bool) {
 	if glyph.render == nil {
 		return
 	}
@@ -442,11 +447,11 @@ func goTextGlyphImageInfo(face *GoTextFace, glyph *goTextGlyph, origin fixed.Poi
 	}
 
 	if face.direction().isHorizontal() {
-		origin.X = adjustGranularity(origin.X, face)
+		origin.X = adjustGranularity(origin.X, granularity)
 		origin.Y &^= ((1 << 6) - 1)
 	} else {
 		origin.X &^= ((1 << 6) - 1)
-		origin.Y = adjustGranularity(origin.Y, face)
+		origin.Y = adjustGranularity(origin.Y, granularity)
 	}
 
 	b := glyph.render.bounds

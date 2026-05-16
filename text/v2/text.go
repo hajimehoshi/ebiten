@@ -114,9 +114,11 @@ func glyphVariationCount(face Face) int {
 	return 1
 }
 
-func adjustGranularity(x fixed.Int26_6, face Face) fixed.Int26_6 {
-	c := glyphVariationCount(face)
-	factor := (1 << 6) / fixed.Int26_6(c)
+func granularityFactor(face Face) fixed.Int26_6 {
+	return (1 << 6) / fixed.Int26_6(glyphVariationCount(face))
+}
+
+func adjustGranularity(x, factor fixed.Int26_6) fixed.Int26_6 {
 	return x / factor * factor
 }
 
