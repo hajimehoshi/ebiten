@@ -562,7 +562,7 @@ func (p *Path) Arc(x, y, radius, startAngle, endAngle float32, dir Direction) {
 		a := float64(startAngle)
 		if dir == Clockwise {
 			for {
-				p.Arc(x, y, radius, float32(a), float32(math.Min(a+delta, float64(endAngle))), dir)
+				p.Arc(x, y, radius, float32(a), float32(min(a+delta, float64(endAngle))), dir)
 				if a+delta >= float64(endAngle) {
 					break
 				}
@@ -570,7 +570,7 @@ func (p *Path) Arc(x, y, radius, startAngle, endAngle float32, dir Direction) {
 			}
 		} else {
 			for {
-				p.Arc(x, y, radius, float32(a), float32(math.Max(a-delta, float64(endAngle))), dir)
+				p.Arc(x, y, radius, float32(a), float32(max(a-delta, float64(endAngle))), dir)
 				if a-delta <= float64(endAngle) {
 					break
 				}

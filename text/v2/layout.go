@@ -201,10 +201,10 @@ func transformedRectOverlaps(geoM ebiten.GeoM, rect, dst image.Rectangle) bool {
 	cx, cy := geoM.Apply(x0f, y1f)
 	dx, dy := geoM.Apply(x1f, y1f)
 
-	minX := math.Min(math.Min(ax, bx), math.Min(cx, dx))
-	minY := math.Min(math.Min(ay, by), math.Min(cy, dy))
-	maxX := math.Max(math.Max(ax, bx), math.Max(cx, dx))
-	maxY := math.Max(math.Max(ay, by), math.Max(cy, dy))
+	minX := min(ax, bx, cx, dx)
+	minY := min(ay, by, cy, dy)
+	maxX := max(ax, bx, cx, dx)
+	maxY := max(ay, by, cy, dy)
 
 	transformed := image.Rect(
 		int(math.Floor(minX)),

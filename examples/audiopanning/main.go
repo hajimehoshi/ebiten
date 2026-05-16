@@ -171,8 +171,8 @@ func (s *StereoPanStream) Read(p []byte) (int, error) {
 	// When pan is -1.0, only the left channel of the stereo sound is audible, when pan is 1.0,
 	// only the right channel of the stereo sound is audible.
 	// https://docs.unity3d.com/ScriptReference/AudioSource-panStereo.html
-	ls := float32(math.Min(s.pan*-1+1, 1))
-	rs := float32(math.Min(s.pan+1, 1))
+	ls := float32(min(s.pan*-1+1, 1))
+	rs := float32(min(s.pan+1, 1))
 	for i := 0; i < alignedN; i += 8 {
 		lc := math.Float32frombits(uint32(p[i])|(uint32(p[i+1])<<8)|(uint32(p[i+2])<<16)|(uint32(p[i+3])<<24)) * ls
 		rc := math.Float32frombits(uint32(p[i+4])|(uint32(p[i+5])<<8)|(uint32(p[i+6])<<16)|(uint32(p[i+7])<<24)) * rs
@@ -192,7 +192,7 @@ func (s *StereoPanStream) Read(p []byte) (int, error) {
 }
 
 func (s *StereoPanStream) SetPan(pan float64) {
-	s.pan = math.Min(math.Max(-1, pan), 1)
+	s.pan = min(max(-1, pan), 1)
 }
 
 func (s *StereoPanStream) Pan() float64 {

@@ -320,7 +320,7 @@ func (c *context) logicalPositionToClientPosition(x, y float64, deviceScaleFacto
 func (c *context) screenScaleAndOffsets() (scale, offsetX, offsetY float64) {
 	scaleX := c.screenWidth / c.offscreenWidth
 	scaleY := c.screenHeight / c.offscreenHeight
-	scale = math.Min(scaleX, scaleY)
+	scale = min(scaleX, scaleY)
 	width := c.offscreenWidth * scale
 	height := c.offscreenHeight * scale
 	offsetX = (c.screenWidth - width) / 2

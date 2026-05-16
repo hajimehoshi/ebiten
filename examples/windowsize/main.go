@@ -165,7 +165,7 @@ func (g *game) Update() error {
 	// ebiten.WindowSize can return (0, 0) on browsers or mobiles.
 	screenScale := 1.0
 	if ww, wh := ebiten.WindowSize(); ww > 0 && wh > 0 {
-		screenScale = math.Min(float64(ww)/g.screenWidth, float64(wh)/g.screenHeight)
+		screenScale = min(float64(ww)/g.screenWidth, float64(wh)/g.screenHeight)
 	}
 
 	// Call SetWindowSize and SetWindowPosition only when necessary.
