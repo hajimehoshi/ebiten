@@ -364,7 +364,9 @@ func (g *GoTextFaceSource) advance(text string, face *GoTextFace) fixed.Int26_6 
 	})
 }
 
-func (g *GoTextFaceSource) shape(text string, face *GoTextFace) ([]shaping.Output, []goTextGlyph) {
+// glyphs returns per-glyph wrappers for text, computed from the cached shape
+// outputs.
+func (g *GoTextFaceSource) glyphs(text string, face *GoTextFace) []goTextGlyph {
 	g.copyCheck()
 
 	key := face.outputCacheKey(text)
@@ -377,7 +379,7 @@ func (g *GoTextFaceSource) shape(text string, face *GoTextFace) ([]shaping.Outpu
 			face:    face,
 		}, true
 	})
-	return e.outputs, e.ensureGlyphs(g)
+	return e.ensureGlyphs(g)
 }
 
 // applyFaceState updates the shared font state to reflect face and

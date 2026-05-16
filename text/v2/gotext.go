@@ -296,7 +296,7 @@ func (g *GoTextFace) appendLazyGlyphsForLine(glyphs []LazyGlyph, line string, in
 	}
 	horizontal := g.direction().isHorizontal()
 	granularity := granularityFactor(g)
-	_, gs := g.Source.shape(line, g)
+	gs := g.Source.glyphs(line, g)
 
 	glyphs = slices.Grow(glyphs, len(gs))
 
@@ -489,7 +489,7 @@ func (g *GoTextFace) appendVectorPathForLine(path *vector.Path, line string, ori
 		Y: float64ToFixed26_6(originY),
 	}
 	horizontal := g.direction().isHorizontal()
-	_, gs := g.Source.shape(line, g)
+	gs := g.Source.glyphs(line, g)
 	for _, glyph := range gs {
 		if glyph.render != nil {
 			appendVectorPathFromSegments(path, glyph.render.segments(), fixed26_6ToFloat32(origin.X), fixed26_6ToFloat32(origin.Y))
