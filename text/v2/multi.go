@@ -16,7 +16,6 @@ package text
 
 import (
 	"errors"
-	"iter"
 	"unicode/utf8"
 
 	"github.com/hajimehoshi/ebiten/v2/vector"
@@ -30,6 +29,11 @@ var _ Face = (*MultiFace)(nil)
 // There is a known issue: if the writing directions of the faces don't agree, the rendering result might be messed up.
 type MultiFace struct {
 	faces []Face
+
+	// splitTextCache memoizes per-text chunk decomposition. The decomposition
+	// depends only on the faces' hasGlyph results, which are stable for the
+	// lifetime of a face, so cached entries never need invalidation.
+	splitTextCache *cache[string, []textChunk]
 }
 
 // NewMultiFace creates a new MultiFace from the given faces.
@@ -47,7 +51,9 @@ func NewMultiFace(faces ...Face) (*MultiFace, error) {
 		}
 	}
 
-	m := &MultiFace{}
+	m := &MultiFace{
+		splitTextCache: newCache[string, []textChunk](32),
+	}
 	m.faces = make([]Face, len(faces))
 	copy(m.faces, faces)
 	return m, nil
@@ -89,7 +95,7 @@ func (m *MultiFace) Metrics() Metrics {
 // advance implements Face.
 func (m *MultiFace) advance(text string) float64 {
 	var a float64
-	for c := range m.splitText(text) {
+	for _, c := range m.splitText(text) {
 		if c.faceIndex == -1 {
 			continue
 		}
@@ -111,7 +117,7 @@ func (m *MultiFace) hasGlyph(r rune) bool {
 
 // appendLazyGlyphsForLine implements Face.
 func (m *MultiFace) appendLazyGlyphsForLine(glyphs []LazyGlyph, line string, indexOffset int, originX, originY float64) []LazyGlyph {
-	for c := range m.splitText(line) {
+	for _, c := range m.splitText(line) {
 		if c.faceIndex == -1 {
 			continue
 		}
@@ -130,7 +136,7 @@ func (m *MultiFace) appendLazyGlyphsForLine(glyphs []LazyGlyph, line string, ind
 
 // appendVectorPathForLine implements Face.
 func (m *MultiFace) appendVectorPathForLine(path *vector.Path, line string, originX, originY float64) {
-	for c := range m.splitText(line) {
+	for _, c := range m.splitText(line) {
 		if c.faceIndex == -1 {
 			continue
 		}
@@ -163,51 +169,53 @@ type textChunk struct {
 	faceIndex      int
 }
 
-func (m *MultiFace) splitText(text string) iter.Seq[textChunk] {
-	return func(yield func(textChunk) bool) {
-		var chunk textChunk
-		for i, r := range text {
-			fi := -1
-			for i, f := range m.faces {
-				if !f.hasGlyph(r) && i < len(m.faces)-1 {
-					continue
-				}
-				fi = i
-				break
-			}
-			if fi == -1 {
-				panic("text: a face was not selected correctly")
-			}
+func (m *MultiFace) splitText(text string) []textChunk {
+	return m.splitTextCache.getOrCreate(text, func() ([]textChunk, bool) {
+		return m.doSplitText(text), true
+	})
+}
 
-			// Do not use utf8.RuneLen here, as r may be U+FFFD (replacement character)
-			// when the line contains invalid UTF-8 sequences (#3284).
-			_, l := utf8.DecodeRuneInString(text[i:])
-			if l < 0 {
-				// A string for-loop iterator advances by 1 byte when it encounters an invalid UTF-8 sequence.
-				l = 1
+func (m *MultiFace) doSplitText(text string) []textChunk {
+	var chunks []textChunk
+	var chunk textChunk
+	for i, r := range text {
+		fi := -1
+		for i, f := range m.faces {
+			if !f.hasGlyph(r) && i < len(m.faces)-1 {
+				continue
 			}
-
-			var s int
-			if chunk != (textChunk{}) {
-				if chunk.faceIndex == fi {
-					chunk.textEndIndex += l
-					continue
-				}
-				if !yield(chunk) {
-					return
-				}
-				s = chunk.textEndIndex
-			}
-			chunk = textChunk{
-				textStartIndex: s,
-				textEndIndex:   s + l,
-				faceIndex:      fi,
-			}
+			fi = i
+			break
 		}
+		if fi == -1 {
+			panic("text: a face was not selected correctly")
+		}
+
+		// Do not use utf8.RuneLen here, as r may be U+FFFD (replacement character)
+		// when the line contains invalid UTF-8 sequences (#3284).
+		_, l := utf8.DecodeRuneInString(text[i:])
+		if l < 0 {
+			// A string for-loop iterator advances by 1 byte when it encounters an invalid UTF-8 sequence.
+			l = 1
+		}
+
+		var s int
 		if chunk != (textChunk{}) {
-			if !yield(chunk) {
-				return
+			if chunk.faceIndex == fi {
+				chunk.textEndIndex += l
+				continue
 			}
+			chunks = append(chunks, chunk)
+			s = chunk.textEndIndex
+		}
+		chunk = textChunk{
+			textStartIndex: s,
+			textEndIndex:   s + l,
+			faceIndex:      fi,
 		}
 	}
+	if chunk != (textChunk{}) {
+		chunks = append(chunks, chunk)
+	}
+	return chunks
 }
