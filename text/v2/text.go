@@ -304,8 +304,8 @@ func Advance(text string, face Face) float64 {
 //
 // AdvanceAt doesn't treat multiple lines.
 //
-// AdvanceAt(text, face, len(text)) is equivalent to the previous [Advance].
-// AdvanceAt(text, face, 0) is 0.
+// AdvanceAt(text, len(text), face) is equivalent to the previous [Advance].
+// AdvanceAt(text, 0, face) is 0.
 //
 // If indexInBytes falls strictly inside a glyph cluster (e.g., between bytes
 // of a ligature, a multi-byte rune, or a combining mark and its base), the
@@ -314,7 +314,7 @@ func Advance(text string, face Face) float64 {
 // AdvanceAt panics if indexInBytes is negative or greater than len(text).
 //
 // AdvanceAt is concurrent-safe.
-func AdvanceAt(text string, face Face, indexInBytes int) float64 {
+func AdvanceAt(text string, indexInBytes int, face Face) float64 {
 	if indexInBytes < 0 || indexInBytes > len(text) {
 		panic(fmt.Sprintf("text: indexInBytes %d is out of range [0, %d] at AdvanceAt", indexInBytes, len(text)))
 	}

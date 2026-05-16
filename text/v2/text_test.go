@@ -742,9 +742,9 @@ func TestGlyphAdvance(t *testing.T) {
 				}
 			}
 
-			// Sum across the line equals text.AdvanceAt(_, _, len(text)).
+			// Sum across the line equals text.AdvanceAt(_, len(text), _).
 			last := glyphs[len(glyphs)-1]
-			advance := text.AdvanceAt(tc.text, tc.face, len(tc.text))
+			advance := text.AdvanceAt(tc.text, len(tc.text), tc.face)
 			if tc.vertical {
 				// For vertical layouts, GoTextFace.advance returns a negative value
 				// matching the AdvanceY sign convention.
@@ -816,15 +816,15 @@ func TestAdvanceAt(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			if got := text.AdvanceAt(tc.text, tc.face, 0); got != 0 {
-				t.Errorf("AdvanceAt(_, _, 0) = %v, want 0", got)
+			if got := text.AdvanceAt(tc.text, 0, tc.face); got != 0 {
+				t.Errorf("AdvanceAt(_, 0, _) = %v, want 0", got)
 			}
 
-			fullAt := text.AdvanceAt(tc.text, tc.face, len(tc.text))
+			fullAt := text.AdvanceAt(tc.text, len(tc.text), tc.face)
 			//nolint:staticcheck // Advance is deprecated; this verifies parity.
 			fullAdv := text.Advance(tc.text, tc.face)
 			if math.Abs(fullAt-fullAdv) > eps {
-				t.Errorf("AdvanceAt(_, _, len) = %v, want Advance() = %v", fullAt, fullAdv)
+				t.Errorf("AdvanceAt(_, len, _) = %v, want Advance() = %v", fullAt, fullAdv)
 			}
 
 			// AdvanceAt is monotonic non-decreasing along the byte sequence.
@@ -832,9 +832,9 @@ func TestAdvanceAt(t *testing.T) {
 			// GoTextFace.advanceAt.
 			var prev float64
 			for i := range tc.text {
-				got := text.AdvanceAt(tc.text, tc.face, i)
+				got := text.AdvanceAt(tc.text, i, tc.face)
 				if got < prev-eps {
-					t.Errorf("AdvanceAt(_, _, %d) = %v, expected >= previous %v", i, got, prev)
+					t.Errorf("AdvanceAt(_, %d, _) = %v, expected >= previous %v", i, got, prev)
 				}
 				prev = got
 			}
@@ -846,11 +846,11 @@ func TestAdvanceAt(t *testing.T) {
 				if runeLen < 2 {
 					continue
 				}
-				atStart := text.AdvanceAt(tc.text, tc.face, i)
+				atStart := text.AdvanceAt(tc.text, i, tc.face)
 				for off := 1; off < runeLen; off++ {
-					got := text.AdvanceAt(tc.text, tc.face, i+off)
+					got := text.AdvanceAt(tc.text, i+off, tc.face)
 					if math.Abs(got-atStart) > eps {
-						t.Errorf("AdvanceAt(_, _, %d) = %v, want snap-to-prev %v", i+off, got, atStart)
+						t.Errorf("AdvanceAt(_, %d, _) = %v, want snap-to-prev %v", i+off, got, atStart)
 					}
 				}
 			}
@@ -876,17 +876,17 @@ func TestAdvanceAtMultiFace(t *testing.T) {
 
 	var prev float64
 	for i := range str {
-		got := text.AdvanceAt(str, m, i)
+		got := text.AdvanceAt(str, i, m)
 		if got < prev-eps {
-			t.Errorf("MultiFace: AdvanceAt(_, _, %d) = %v < previous %v", i, got, prev)
+			t.Errorf("MultiFace: AdvanceAt(_, %d, _) = %v < previous %v", i, got, prev)
 		}
 		prev = got
 	}
-	fullAt := text.AdvanceAt(str, m, len(str))
+	fullAt := text.AdvanceAt(str, len(str), m)
 	//nolint:staticcheck // Advance is deprecated; this verifies parity.
 	fullAdv := text.Advance(str, m)
 	if math.Abs(fullAt-fullAdv) > eps {
-		t.Errorf("MultiFace: AdvanceAt(_, _, len) = %v, want Advance() = %v", fullAt, fullAdv)
+		t.Errorf("MultiFace: AdvanceAt(_, len, _) = %v, want Advance() = %v", fullAt, fullAdv)
 	}
 }
 
@@ -902,10 +902,10 @@ func TestAdvanceAtPanic(t *testing.T) {
 		func() {
 			defer func() {
 				if recover() == nil {
-					t.Errorf("AdvanceAt(_, _, %d) did not panic", indexInBytes)
+					t.Errorf("AdvanceAt(_, %d, _) did not panic", indexInBytes)
 				}
 			}()
-			_ = text.AdvanceAt(str, face, indexInBytes)
+			_ = text.AdvanceAt(str, indexInBytes, face)
 		}()
 	}
 }
