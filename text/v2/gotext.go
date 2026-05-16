@@ -331,7 +331,10 @@ func (g *GoTextFace) appendLazyGlyphsForLine(glyphs []LazyGlyph, line string, in
 		}
 		if hasImage {
 			if imager == nil {
-				imager = &goTextLineImager{face: g}
+				imager = &goTextLineImager{
+					face: g,
+					args: make([]goTextGlyphImageArgs, 0, len(gs)-i),
+				}
 			}
 			imager.args = append(imager.args, args)
 			lg.imager = imager
