@@ -51,9 +51,9 @@ type goTextGlyph struct {
 	startIndex   int
 	endIndex     int
 
-	// render is a pointer to the shared render data (scaled segments,
-	// bounds, and decoded bitmap). It is nil for glyphs with no outline
-	// and no bitmap (e.g. control characters).
+	// render is a pointer to the shared render data (bounds plus the
+	// lazily-realized segments and bitmap). It is nil for glyphs with
+	// no outline and no bitmap (e.g. control characters).
 	render *glyphRenderData
 }
 
@@ -129,6 +129,13 @@ type glyphDataCacheKey struct {
 	// variable-font axes route through SetVariations), so 0 is used for
 	// every face size and they share an entry. Bitmap glyph data depends
 	// on the face's currently-set ppem, so each size needs its own entry.
+	//
+	// The outline-uses-0 invariant assumes the underlying typesetting
+	// library does not apply hinting at GlyphData time: today it reads
+	// raw outline points from glyf/CFF/CFF2 and variable-font axes
+	// (including opsz) route through SetVariations. If a hinting
+	// interpreter is added in the future, outlines may vary per ppem
+	// and the outline case will need a non-zero size here too.
 	size fixed.Int26_6
 }
 
@@ -149,13 +156,56 @@ type glyphRenderDataCacheKey struct {
 	size       fixed.Int26_6
 }
 
-// glyphRenderData bundles all data needed to render one glyph: scaled
-// outline segments, their bounding rectangle, and (when bitmap mode is
-// active) the decoded bitmap image.
+// glyphRenderData bundles the data needed to render one glyph. bounds
+// is computed eagerly so layout decisions (image rectangle, culling,
+// ImageBounds) don't pay for the GlyphData fetch. hasBitmap is an
+// eager heuristic — true when the face is at a bitmap-strike size —
+// used only by layout to pick the positioning convention.
+//
+// The actual segments and bitmap are produced on first call to
+// [glyphRenderData.segments] or [glyphRenderData.bitmap], which fetch
+// glyph data via the source's glyphDataCache.
 type glyphRenderData struct {
-	segments []opentype.Segment
-	bounds   fixed.Rectangle26_6
-	bitmap   image.Image
+	bounds    fixed.Rectangle26_6
+	hasBitmap bool
+
+	realizeOnce sync.Once
+
+	// Captured at build time for use by realize.
+	source      *GoTextFaceSource
+	gid         font.GID
+	size        fixed.Int26_6
+	sideways    bool
+	yOffset     fixed.Int26_6
+	variations  []font.Variation
+	useBitmap   bool
+	bitmapXPpem uint16
+	bitmapYPpem uint16
+
+	// Populated by realize. Accessed via segments / bitmap so callers
+	// don't have to remember to drive the lazy initialization.
+	realizedSegments []opentype.Segment
+	realizedBitmap   image.Image
+}
+
+// segments returns the scaled outline segments, realizing them on
+// first call.
+func (rd *glyphRenderData) segments() []opentype.Segment {
+	rd.realizeOnce.Do(rd.realize)
+	return rd.realizedSegments
+}
+
+// bitmap returns the decoded bitmap image, realizing it on first
+// call. It returns nil when the glyph has no bitmap data.
+func (rd *glyphRenderData) bitmap() image.Image {
+	rd.realizeOnce.Do(rd.realize)
+	return rd.realizedBitmap
+}
+
+// realize delegates to [GoTextFaceSource.realizeRenderData], where
+// the lock and the work both live.
+func (rd *glyphRenderData) realize() {
+	rd.source.realizeRenderData(rd)
 }
 
 // GoTextFaceSource is a source of a GoTextFace. This can be shared by multiple GoTextFace objects.
@@ -184,6 +234,17 @@ type GoTextFaceSource struct {
 	// and per-glyph data lookups. Lazy glyph builds happen outside of the
 	// outputCache mutex, so this mutex is needed to keep the font state consistent.
 	shapeMu sync.Mutex
+
+	// lastVariationsString and lastXPpem/lastYPpem mirror the state
+	// last pushed to g.f via SetVariations and SetPpem, so callers
+	// can skip the Set call when it would be a no-op. Typesetting's
+	// Set methods unconditionally reset the per-Face extents cache
+	// on every call (an O(nGlyphs) reset each), so without this
+	// elision a long shape + draw cycle would discard the cache
+	// once per realized glyph. Guarded by shapeMu.
+	lastVariationsString string
+	lastXPpem            uint16
+	lastYPpem            uint16
 
 	bitmapSizesResult []font.BitmapSize
 	bitmapSizesOnce   sync.Once
@@ -319,21 +380,29 @@ func (g *GoTextFaceSource) shape(text string, face *GoTextFace) ([]shaping.Outpu
 	return e.outputs, e.ensureGlyphs(g)
 }
 
-// applyFaceState updates the shared font state to reflect face. It returns
-// whether bitmap glyph data should be used for face.Size.
+// applyFaceState updates the shared font state to reflect face and
+// returns the bitmap-strike ppem that was applied. xPpem and yPpem are
+// zero — and useBitmap is false — when no strike matches face.Size;
+// otherwise they hold the strike's pixel size and useBitmap is true.
 //
 // The caller must hold g.shapeMu.
-func (g *GoTextFaceSource) applyFaceState(face *GoTextFace) bool {
-	g.f.SetVariations(face.variations)
+func (g *GoTextFaceSource) applyFaceState(face *GoTextFace) (xPpem, yPpem uint16, useBitmap bool) {
+	if s := face.ensureVariationsString(); s != g.lastVariationsString {
+		g.f.SetVariations(face.variations)
+		g.lastVariationsString = s
+	}
 
-	g.f.SetPpem(0, 0)
 	for _, bs := range g.bitmapSizes() {
 		if float64(bs.YPpem) == face.Size {
-			g.f.SetPpem(bs.XPpem, bs.YPpem)
-			return true
+			xPpem, yPpem, useBitmap = bs.XPpem, bs.YPpem, true
+			break
 		}
 	}
-	return false
+	if xPpem != g.lastXPpem || yPpem != g.lastYPpem {
+		g.f.SetPpem(xPpem, yPpem)
+		g.lastXPpem, g.lastYPpem = xPpem, yPpem
+	}
+	return xPpem, yPpem, useBitmap
 }
 
 // buildOutputs runs HarfBuzz shaping on text and returns the per-segment outputs.
@@ -342,7 +411,7 @@ func (g *GoTextFaceSource) applyFaceState(face *GoTextFace) bool {
 //
 // The caller must hold g.shapeMu.
 func (g *GoTextFaceSource) buildOutputs(text string, face *GoTextFace, skipExtents bool) []shaping.Output {
-	g.applyFaceState(face)
+	_, _, _ = g.applyFaceState(face)
 
 	g.runes = g.runes[:0]
 	for _, r := range text {
@@ -382,13 +451,15 @@ func (g *GoTextFaceSource) buildOutputs(text string, face *GoTextFace, skipExten
 	return outputs
 }
 
-// buildGlyphs converts already-shaped outputs into per-glyph segment data.
-// It always returns a non-nil slice so that callers can use a nil check to
-// distinguish unbuilt entries from entries that built to zero glyphs.
+// buildGlyphs converts already-shaped outputs into per-glyph render
+// data entries (each carrying eager bounds plus the parameters needed
+// for a later realize). It always returns a non-nil slice so that
+// callers can use a nil check to distinguish unbuilt entries from
+// entries that built to zero glyphs.
 //
 // The caller must hold g.shapeMu.
 func (g *GoTextFaceSource) buildGlyphs(outputs []shaping.Output, text string, face *GoTextFace) []goTextGlyph {
-	useBitmap := g.applyFaceState(face)
+	xPpem, yPpem, useBitmap := g.applyFaceState(face)
 
 	var indices []int
 	for i := range text {
@@ -397,12 +468,21 @@ func (g *GoTextFaceSource) buildGlyphs(outputs []shaping.Output, text string, fa
 	indices = append(indices, len(text))
 
 	variations := face.ensureVariationsString()
+
+	// Snapshot the variations slice once; every glyphRenderData built
+	// in this call shares the same underlying copy. The user-facing
+	// face.variations may be replaced by a later SetVariation, so each
+	// buildGlyphs call needs its own copy, but all glyphs within one
+	// call can safely point at the same snapshot.
+	var variationsSnapshot []font.Variation
+	if len(face.variations) > 0 {
+		variationsSnapshot = append([]font.Variation(nil), face.variations...)
+	}
+
 	gs := []goTextGlyph{}
 	for _, out := range outputs {
 		sideways := out.Direction.IsSideways()
 		for _, gl := range out.Glyphs {
-			// Cache the render data (segments + bounds + bitmap) across
-			// glyph instances of the same (gid, variations, sideways, size).
 			if g.renderDataCache == nil {
 				g.renderDataCache = newCache[glyphRenderDataCacheKey, *glyphRenderData](512)
 			}
@@ -413,7 +493,7 @@ func (g *GoTextFaceSource) buildGlyphs(outputs []shaping.Output, text string, fa
 				size:       out.Size,
 			}
 			render := g.renderDataCache.getOrCreate(renderKey, func() (*glyphRenderData, bool) {
-				return g.buildRenderData(gl, out.Size, sideways, variations, useBitmap)
+				return g.buildRenderData(gl, out.Size, sideways, variationsSnapshot, useBitmap, xPpem, yPpem)
 			})
 
 			gs = append(gs, goTextGlyph{
@@ -427,49 +507,115 @@ func (g *GoTextFaceSource) buildGlyphs(outputs []shaping.Output, text string, fa
 	return gs
 }
 
-// buildRenderData fetches glyph data, scales outline segments, and decodes
-// the embedded bitmap when bitmap mode is active. It returns (nil, false)
-// when the glyph has no renderable data.
+// buildRenderData computes the eager parts of a glyph's render data —
+// its bounding rectangle and the bitmap-mode discriminator — and
+// captures the parameters needed to defer everything else (the
+// GlyphData fetch, segment scaling, bitmap decoding) to a later
+// [GoTextFaceSource.realizeRenderData] call. It returns (nil, false)
+// for glyphs that produce no bounds (control characters, glyphs
+// absent from the font) when not in bitmap mode; in bitmap mode (the
+// face is at a size matching one of the font's bitmap strikes) a
+// render data is returned even if GlyphExtents fails, in case the
+// realize step finds a usable bitmap entry for the glyph.
 //
 // The caller must hold g.shapeMu.
-func (g *GoTextFaceSource) buildRenderData(gl shaping.Glyph, size fixed.Int26_6, sideways bool, variations string, useBitmap bool) (*glyphRenderData, bool) {
-	// Fetch glyph data. The size field of the cache key is 0 for outline
-	// glyphs and size for bitmap glyphs; see the comment on
-	// glyphDataCacheKey for the rationale.
-	//
-	// The outline path assumes the underlying typesetting library does
-	// not apply hinting at GlyphData time: today it reads raw outline
-	// points from glyf/CFF/CFF2 and variable-font axes (including opsz)
-	// route through SetVariations and are captured by variations above.
-	// If a hinting interpreter is added in the future, outlines may vary
-	// per ppem and the outline path will also need a non-zero size in
-	// the key.
+func (g *GoTextFaceSource) buildRenderData(gl shaping.Glyph, size fixed.Int26_6, sideways bool, variations []font.Variation, useBitmap bool, xPpem, yPpem uint16) (*glyphRenderData, bool) {
+	// bounds is the source of truth for the glyph's rendered
+	// rectangle on both the outline and bitmap render paths. In
+	// outline mode [font.Face.GlyphExtents] resolves through glyf or
+	// CFF and matches the bounds of the eventually-realized segments.
+	// In bitmap mode it resolves through sbix or CBDT/EBDT and
+	// matches the dimensions of the bitmap that realize will decode.
+	var bounds fixed.Rectangle26_6
+	if ext, ok := g.f.GlyphExtents(gl.GlyphID); ok {
+		var yOffset float32
+		if sideways {
+			yOffset = fixed26_6ToFloat32(-gl.YOffset) / fixed26_6ToFloat32(size) * float32(g.f.Upem())
+		}
+		scale := float32(g.scale(fixed26_6ToFloat64(size)))
+		bounds = glyphExtentsToBounds(ext, scale, sideways, yOffset)
+	}
+
+	if bounds.Empty() && !useBitmap {
+		return nil, false
+	}
+
+	// variations is a caller-owned snapshot — taken by buildGlyphs
+	// once per call and shared across every glyph it builds. Storing
+	// the slice header by value is safe because the caller never
+	// mutates the underlying array.
+	return &glyphRenderData{
+		bounds:      bounds,
+		hasBitmap:   useBitmap,
+		source:      g,
+		gid:         gl.GlyphID,
+		size:        size,
+		sideways:    sideways,
+		yOffset:     gl.YOffset,
+		variations:  variations,
+		useBitmap:   useBitmap,
+		bitmapXPpem: xPpem,
+		bitmapYPpem: yPpem,
+	}, true
+}
+
+// realizeRenderData performs the deferred work that buildRenderData
+// captured params for: fetching glyph data, scaling outline segments,
+// and decoding bitmaps, then writes the results back onto rd.
+//
+// realizeRenderData acquires g.shapeMu because it mutates shared
+// font state (g.f variations and ppem) and reads from g.glyphDataCache.
+func (g *GoTextFaceSource) realizeRenderData(rd *glyphRenderData) {
+	g.shapeMu.Lock()
+	defer g.shapeMu.Unlock()
+
+	// Re-apply the face state captured at build time. The current
+	// g.f state may belong to a different face configuration if
+	// shaping or another realize has run since.
+	variationsString := encodeVariations(rd.variations)
+	if variationsString != g.lastVariationsString {
+		g.f.SetVariations(rd.variations)
+		g.lastVariationsString = variationsString
+	}
+	var wantX, wantY uint16
+	if rd.useBitmap {
+		wantX, wantY = rd.bitmapXPpem, rd.bitmapYPpem
+	}
+	if wantX != g.lastXPpem || wantY != g.lastYPpem {
+		g.f.SetPpem(wantX, wantY)
+		g.lastXPpem, g.lastYPpem = wantX, wantY
+	}
+
+	// Fetch GlyphData. Cached entries are reusable across glyph
+	// instances sharing (gid, variations, sideways, size).
 	if g.glyphDataCache == nil {
 		g.glyphDataCache = newCache[glyphDataCacheKey, font.GlyphData](512)
 	}
 	var keySize fixed.Int26_6
-	if useBitmap {
-		keySize = size
+	if rd.useBitmap {
+		keySize = rd.size
 	}
 	key := glyphDataCacheKey{
-		gid:        gl.GlyphID,
-		variations: variations,
-		sideways:   sideways,
+		gid:        rd.gid,
+		variations: variationsString,
+		sideways:   rd.sideways,
 		size:       keySize,
 	}
 	data := g.glyphDataCache.getOrCreate(key, func() (font.GlyphData, bool) {
-		data := g.f.GlyphData(gl.GlyphID)
-		if data == nil {
+		d := g.f.GlyphData(rd.gid)
+		if d == nil {
 			return nil, false
 		}
-		if d, ok := data.(font.GlyphOutline); ok && sideways {
-			d.Sideways(fixed26_6ToFloat32(-gl.YOffset) / fixed26_6ToFloat32(size) * float32(g.f.Upem()))
+		if outline, ok := d.(font.GlyphOutline); ok && rd.sideways {
+			outline.Sideways(fixed26_6ToFloat32(-rd.yOffset) / fixed26_6ToFloat32(rd.size) * float32(g.f.Upem()))
 		}
-		return data, true
+		return d, true
 	})
 
-	// Extract the raw (unscaled) outline segments and, if bitmap mode is
-	// active, the embedded bitmap data.
+	if data == nil {
+		return
+	}
+
 	var rawSegs []opentype.Segment
 	var rawBitmap font.GlyphBitmap
 	var hasRawBitmap bool
@@ -482,18 +628,14 @@ func (g *GoTextFaceSource) buildRenderData(gl shaping.Glyph, size fixed.Int26_6,
 		if d.Outline != nil {
 			rawSegs = d.Outline.Segments
 		}
-		if useBitmap {
+		if rd.useBitmap {
 			rawBitmap = d
 			hasRawBitmap = true
 		}
 	}
 
-	if rawSegs == nil && !hasRawBitmap {
-		return nil, false
-	}
-	rd := &glyphRenderData{}
-	scale := float32(g.scale(fixed26_6ToFloat64(size)))
-	if rawSegs != nil {
+	if len(rawSegs) > 0 {
+		scale := float32(g.scale(fixed26_6ToFloat64(rd.size)))
 		segs := make([]opentype.Segment, len(rawSegs))
 		for i, seg := range rawSegs {
 			segs[i] = seg
@@ -502,32 +644,11 @@ func (g *GoTextFaceSource) buildRenderData(gl shaping.Glyph, size fixed.Int26_6,
 				segs[i].Args[j].Y *= -scale
 			}
 		}
-		rd.segments = segs
+		rd.realizedSegments = segs
 	}
-
-	// rd.bounds is the source of truth for the glyph's rendered
-	// rectangle on both the outline and bitmap render paths. In
-	// outline mode [font.Face.GlyphExtents] resolves through glyf or
-	// CFF and matches the bounds of the segments. In bitmap mode it
-	// resolves through sbix or CBDT/EBDT and matches the dimensions
-	// of the image that decodeBitmapGlyph will produce.
-	//
-	// If GlyphExtents returns ok=false, rd.bounds stays zero and the
-	// render path treats the glyph as degenerate and skips it. In
-	// practice this shouldn't happen: whenever the glyph produces any
-	// data, the corresponding table supplies its extents too.
-	if ext, ok := g.f.GlyphExtents(gl.GlyphID); ok {
-		var yOffset float32
-		if sideways {
-			yOffset = fixed26_6ToFloat32(-gl.YOffset) / fixed26_6ToFloat32(size) * float32(g.f.Upem())
-		}
-		rd.bounds = glyphExtentsToBounds(ext, scale, sideways, yOffset)
-	}
-
 	if hasRawBitmap {
-		rd.bitmap = decodeBitmapGlyph(rawBitmap)
+		rd.realizedBitmap = decodeBitmapGlyph(rawBitmap)
 	}
-	return rd, true
 }
 
 func (g *GoTextFaceSource) scale(size float64) float64 {

@@ -200,16 +200,23 @@ func (g *GoTextFace) ensureVariationsString() string {
 	if g.variationsString != "" {
 		return g.variationsString
 	}
-	if len(g.variations) == 0 {
+	g.variationsString = encodeVariations(g.variations)
+	return g.variationsString
+}
+
+// encodeVariations returns a binary string encoding of variations
+// suitable for use as a cache key. It is the canonical form referenced
+// by glyphDataCacheKey and glyphRenderDataCacheKey.
+func encodeVariations(variations []font.Variation) string {
+	if len(variations) == 0 {
 		return ""
 	}
 	var buf bytes.Buffer
-	for _, t := range g.variations {
+	for _, t := range variations {
 		_ = binary.Write(&buf, binary.LittleEndian, t.Tag)
 		_ = binary.Write(&buf, binary.LittleEndian, t.Value)
 	}
-	g.variationsString = buf.String()
-	return g.variationsString
+	return buf.String()
 }
 
 func (g *GoTextFace) ensureFeaturesString() string {
@@ -372,14 +379,13 @@ func (im *goTextLineImager) glyphImage(index int) *ebiten.Image {
 	args := &im.args[index]
 	glyph := args.glyph
 	face := im.face
-	if glyph.render.bitmap != nil {
+	if bm := glyph.render.bitmap(); bm != nil {
 		key := goTextGlyphImageCacheKey{
 			gid:        glyph.shapingGlyph.GlyphID,
 			variations: face.ensureVariationsString(),
 		}
-		bitmap := glyph.render.bitmap
 		return face.Source.getOrCreateGlyphImage(face, key, func() (*ebiten.Image, bool) {
-			return ebiten.NewImageFromImage(bitmap), true
+			return ebiten.NewImageFromImage(bm), true
 		})
 	}
 	key := goTextGlyphImageCacheKey{
@@ -388,7 +394,7 @@ func (im *goTextLineImager) glyphImage(index int) *ebiten.Image {
 		yoffset:    args.subpixelOffset.Y,
 		variations: face.ensureVariationsString(),
 	}
-	segs := glyph.render.segments
+	segs := glyph.render.segments()
 	subpixelOffset := args.subpixelOffset
 	bounds := glyph.render.bounds
 	return face.Source.getOrCreateGlyphImage(face, key, func() (*ebiten.Image, bool) {
@@ -400,18 +406,17 @@ func (im *goTextLineImager) glyphImage(index int) *ebiten.Image {
 // goTextGlyphImageInfo returns the image bounds in layout space and the
 // per-glyph args needed to realize the image. The bounds are computed
 // without rasterizing. hasImage is false for glyphs that do not produce
-// an image (zero-area outlines, zero-segment glyphs, or control
-// characters); in that case bounds is empty and args is the zero value.
+// an image (control characters or glyphs whose extents are empty); in
+// that case bounds is empty and args is the zero value.
 func goTextGlyphImageInfo(face *GoTextFace, glyph *goTextGlyph, origin fixed.Point26_6) (bounds image.Rectangle, args goTextGlyphImageArgs, hasImage bool) {
 	if glyph.render == nil {
 		return
 	}
-	if glyph.render.bitmap != nil {
-		// The bitmap's pixel dimensions are derived from rd.bounds, which
-		// for bitmap glyphs comes from font.Face.GlyphExtents resolving
-		// through sbix or CBDT/EBDT. That matches the decoded image's
-		// Bounds() up to font-data integrity and removes the need to
-		// touch the decoded image here.
+	if glyph.render.hasBitmap {
+		// Bitmap glyph: dimensions come from rd.bounds (sourced from
+		// GlyphExtents via the sbix or CBDT/EBDT subtable, set during
+		// buildRenderData) so layout doesn't have to wait for the
+		// bitmap to be decoded.
 		b := glyph.render.bounds
 		rw := (b.Max.X - b.Min.X).Ceil()
 		rh := (b.Max.Y - b.Min.Y).Ceil()
@@ -451,7 +456,7 @@ func goTextGlyphImageInfo(face *GoTextFace, glyph *goTextGlyph, origin fixed.Poi
 	// edge case where the outline reaches the bounds.
 	rw := (b.Max.X - b.Min.X).Ceil()
 	rh := (b.Max.Y - b.Min.Y).Ceil()
-	if rw == 0 || rh == 0 || len(glyph.render.segments) == 0 {
+	if rw == 0 || rh == 0 {
 		return
 	}
 	bounds = image.Rect(imgX, imgY, imgX+rw+1, imgY+rh+1)
@@ -474,7 +479,7 @@ func (g *GoTextFace) appendVectorPathForLine(path *vector.Path, line string, ori
 	_, gs := g.Source.shape(line, g)
 	for _, glyph := range gs {
 		if glyph.render != nil {
-			appendVectorPathFromSegments(path, glyph.render.segments, fixed26_6ToFloat32(origin.X), fixed26_6ToFloat32(origin.Y))
+			appendVectorPathFromSegments(path, glyph.render.segments(), fixed26_6ToFloat32(origin.X), fixed26_6ToFloat32(origin.Y))
 		}
 		if horizontal {
 			origin = origin.Add(fixed.Point26_6{
