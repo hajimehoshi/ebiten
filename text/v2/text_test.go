@@ -813,6 +813,21 @@ func TestAdvanceAt(t *testing.T) {
 			face: gtVertical,
 			text: "あいうえお",
 		},
+		{
+			name: "GoTextFace/LTR/MultiSentence",
+			face: gtLTR,
+			text: "Hello. World. Goodbye!",
+		},
+		{
+			name: "GoTextFace/LTR/MultiSentenceLowercaseSuppress",
+			face: gtLTR,
+			text: "Yes etc. and so on.",
+		},
+		{
+			name: "GoTextFace/LTR/CJKMultiSentence",
+			face: gtLTR,
+			text: "今日は雨だ。明日も雨だ。",
+		},
 	}
 
 	for _, tc := range cases {
@@ -985,6 +1000,77 @@ func TestAdvanceAtBidi(t *testing.T) {
 	if !(leadSpace+eps < leadEnd) {
 		t.Errorf("L1 trailing whitespace: leading at first trailing space = %v, want < leading at end = %v",
 			leadSpace, leadEnd)
+	}
+}
+
+// TestAdvanceAtRTLLineUnderChunker covers a pure-RTL line on an LTR
+// face: the chunker emits the RTL run whole, and the in-chunk layout
+// must still place logically-earlier RTL bytes visually to the right
+// of logically-later ones.
+func TestAdvanceAtRTLLineUnderChunker(t *testing.T) {
+	const eps = 1.0 / (1 << 6)
+
+	source, err := text.NewGoTextFaceSource(bytes.NewReader(fonts.MPlus1pRegular_ttf))
+	if err != nil {
+		t.Fatal(err)
+	}
+	face := &text.GoTextFace{
+		Source:    source,
+		Size:      24,
+		Direction: text.DirectionLeftToRight,
+	}
+
+	// Two Hebrew sentences under LTR-paragraph treatment. The body
+	// of the line resolves to level 1 (RTL) and the chunker emits it
+	// as a single chunk; the trailing period takes paragraph
+	// direction L by N2 and becomes a separate level-0 chunk.
+	//
+	// Bytes (Hebrew letters are 2 bytes each):
+	//   א=0 ב=2 .=4 ' '=5 ג=6 ד=8 .=10
+	const s = "אב. גד."
+
+	// Sample two RTL bytes inside the single L1 chunk (AdvanceAt(0)
+	// is hardcoded to 0, so it can't witness the right-edge
+	// convention of an RTL byte).
+	leadBet := text.AdvanceAt(s, 2, face)   // leading edge of ב
+	leadDaled := text.AdvanceAt(s, 8, face) // leading edge of ד
+
+	// ב is logically before ד within the RTL run, so visually ב
+	// sits to the right of ד. Under the leading-edge convention for
+	// RTL, the leading edge of ב must therefore lie strictly to the
+	// right of the leading edge of ד.
+	if !(leadBet > leadDaled+eps) {
+		t.Errorf("RTL layout: leading(ב)=%v should be > leading(ד)=%v", leadBet, leadDaled)
+	}
+}
+
+// TestAdvanceAtRTLFaceMultiSentence exercises the chunker on an RTL
+// face. Multi-sentence Arabic resolves to all level-1 chunks; with
+// paragraphLevel=1, the chunker emits multiple sentence-cut chunks
+// (split at U+06D4 ARABIC FULL STOP) and AdvanceAt composes their
+// visual widths via L2. The end-of-line caret must agree with
+// Advance() to confirm the multi-chunk composition matches the
+// whole-line shape.
+func TestAdvanceAtRTLFaceMultiSentence(t *testing.T) {
+	const eps = 1.0 / (1 << 6)
+
+	source, err := text.NewGoTextFaceSource(bytes.NewReader(fonts.MPlus1pRegular_ttf))
+	if err != nil {
+		t.Fatal(err)
+	}
+	face := &text.GoTextFace{
+		Source:    source,
+		Size:      24,
+		Direction: text.DirectionRightToLeft,
+	}
+
+	const s = "اب۔ كد۔"
+
+	full := text.AdvanceAt(s, len(s), face)
+	//nolint:staticcheck // Advance is deprecated; this verifies parity.
+	whole := text.Advance(s, face)
+	if math.Abs(full-whole) > eps {
+		t.Errorf("AdvanceAt(_, len, RTLFace) = %v, want Advance() = %v", full, whole)
 	}
 }
 

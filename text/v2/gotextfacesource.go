@@ -36,6 +36,7 @@ import (
 	xlanguage "golang.org/x/text/language"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/text/v2/internal/chunk"
 	"github.com/hajimehoshi/ebiten/v2/text/v2/internal/textutil"
 )
 
@@ -244,6 +245,7 @@ type GoTextFaceSource struct {
 	runes           []rune
 	glyphDataCache  *cache[glyphDataCacheKey, font.GlyphData]
 	renderDataCache *cache[glyphRenderDataCacheKey, *glyphRenderData]
+	chunkPlanCache  *cache[chunkPlanKey, []chunk.Chunk]
 
 	// shapeMu serializes mutations of the shared font state (g.f) during shaping
 	// and per-glyph data lookups. Lazy glyph builds happen outside of the
@@ -290,6 +292,7 @@ func newGoTextFaceSource(face *font.Face) *GoTextFaceSource {
 	s.addr = s
 	s.metadata = metadataFromFace(face)
 	s.outputCache = newCache[goTextOutputCacheKey, *goTextOutputCacheValue](512)
+	s.chunkPlanCache = newCache[chunkPlanKey, []chunk.Chunk](512)
 	// 4 is an arbitrary number, which should not cause troubles.
 	s.shaper.SetFontCacheSize(4)
 	return s
@@ -443,25 +446,87 @@ func buildAdvances(outputs []shaping.Output, text string) []fixed.Int26_6 {
 // advanceAt returns the advance from the start of text to indexInBytes.
 // indexInBytes that falls inside a glyph cluster snaps to the cluster's start.
 func (g *GoTextFaceSource) advanceAt(text string, face *GoTextFace, indexInBytes int) fixed.Int26_6 {
+	g.copyCheck()
+
 	if indexInBytes <= 0 {
 		return 0
 	}
-	if n := textutil.FirstLineLen(text); n < len(text) {
-		text = text[:n]
-		indexInBytes = min(indexInBytes, len(text))
+
+	chunks := g.chunks(text, face)
+	if len(chunks) == 1 {
+		// Single-chunk path: index into the chunk's advance slice
+		// directly. The chunk may end before len(text) when a line
+		// break trimmed the first line shorter than the input.
+		ch := chunks[0]
+		chunkText := text[ch.Start:ch.End]
+		a := g.outputCacheValue(chunkText, face).ensureAdvances(chunkText)
+		local := indexInBytes - ch.Start
+		if local >= len(a) {
+			return a[len(a)-1]
+		}
+		return a[local]
 	}
-	a := g.advances(text, face)
-	if indexInBytes >= len(a) {
-		return a[len(a)-1]
+
+	order := chunksVisualOrder(chunks)
+
+	targetLogical := -1
+	for li, ch := range chunks {
+		if indexInBytes < ch.End {
+			targetLogical = li
+			break
+		}
 	}
-	return a[indexInBytes]
+
+	var x fixed.Int26_6
+	for _, li := range order {
+		ch := chunks[li]
+		chunkText := text[ch.Start:ch.End]
+		chunkAdv := g.outputCacheValue(chunkText, face).ensureAdvances(chunkText)
+		if li == targetLogical {
+			local := max(indexInBytes-ch.Start, 0)
+			if local >= len(chunkAdv) {
+				local = len(chunkAdv) - 1
+			}
+			return x + chunkAdv[local]
+		}
+		x += chunkAdv[len(chunkAdv)-1]
+	}
+	// indexInBytes is past every chunk: return the total visual width.
+	return x
 }
 
-// glyphs returns per-glyph wrappers for text, computed from the cached shape
-// outputs.
+// glyphs returns per-glyph wrappers for text, computed from the cached
+// shape outputs.
 func (g *GoTextFaceSource) glyphs(text string, face *GoTextFace) []goTextGlyph {
 	g.copyCheck()
-	return g.outputCacheValue(text, face).ensureGlyphs(g, text, face)
+
+	chunks := g.chunks(text, face)
+	if len(chunks) == 1 {
+		ch := chunks[0]
+		chunkText := text[ch.Start:ch.End]
+		return g.outputCacheValue(chunkText, face).ensureGlyphs(g, chunkText, face)
+	}
+
+	order := chunksVisualOrder(chunks)
+
+	chunkGlyphs := make([][]goTextGlyph, len(chunks))
+	var total int
+	for i, ch := range chunks {
+		chunkText := text[ch.Start:ch.End]
+		chunkGlyphs[i] = g.outputCacheValue(chunkText, face).ensureGlyphs(g, chunkText, face)
+		total += len(chunkGlyphs[i])
+	}
+	result := make([]goTextGlyph, 0, total)
+	for _, li := range order {
+		ch := chunks[li]
+		for _, gl := range chunkGlyphs[li] {
+			translated := gl
+			translated.startIndex += ch.Start
+			translated.endIndex += ch.Start
+			result = append(result, translated)
+		}
+	}
+	return result
 }
 
 // outputCacheValue returns the cached shape-output bundle for the
@@ -615,6 +680,16 @@ func l2VisualOrder(levels []bidi.Level) []int {
 		}
 	}
 	return order
+}
+
+// chunksVisualOrder returns the permutation of [0, len(chunks)) that
+// lists the chunks in UAX #9 L2 visual order.
+func chunksVisualOrder(chunks []chunk.Chunk) []int {
+	levels := make([]bidi.Level, len(chunks))
+	for i, ch := range chunks {
+		levels[i] = ch.Level
+	}
+	return l2VisualOrder(levels)
 }
 
 // buildGlyphs converts already-shaped outputs into per-glyph render
@@ -867,6 +942,34 @@ func (g *GoTextFaceSource) hasGlyph(r rune) bool {
 	_, ok := g.f.Cmap.Lookup(r)
 	g.hasGlyphCache.set(r, ok)
 	return ok
+}
+
+// chunkPlanKey keys the memo so a Source shared by faces of different
+// paragraph direction can't return one face's chunk plan to the other.
+type chunkPlanKey struct {
+	text  string
+	level bidi.Level
+}
+
+// chunks returns the chunk plan for text under face. Vertical faces
+// fall back to a single chunk covering only the first line, since the
+// chunker only handles horizontal text (LTR or RTL base). The result
+// is memoized so repeated calls within a frame don't re-walk the
+// input.
+func (g *GoTextFaceSource) chunks(text string, face *GoTextFace) []chunk.Chunk {
+	if face.diDirection().IsVertical() {
+		n := textutil.FirstLineLen(text)
+		return []chunk.Chunk{{Start: 0, End: n}}
+	}
+
+	var paragraphLevel bidi.Level
+	if face.Direction == DirectionRightToLeft {
+		paragraphLevel = 1
+	}
+	key := chunkPlanKey{text: text, level: paragraphLevel}
+	return g.chunkPlanCache.getOrCreate(key, func() ([]chunk.Chunk, bool) {
+		return chunk.AppendChunks(nil, text, paragraphLevel), true
+	})
 }
 
 func (g *GoTextFaceSource) bitmapSizes() []font.BitmapSize {
