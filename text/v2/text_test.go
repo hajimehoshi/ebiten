@@ -1028,15 +1028,23 @@ func TestAdvanceAtLineBreak(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	face := &text.GoTextFace{
-		Source:    source,
-		Size:      24,
-		Direction: text.DirectionLeftToRight,
-	}
 
-	baseline := text.AdvanceAt("a", 1, face)
-	if baseline == 0 {
-		t.Fatalf("AdvanceAt(%q, 1, _) = 0, want non-zero", "a")
+	cases := []struct {
+		name string
+		face text.Face
+	}{
+		{
+			name: "GoXFace",
+			face: text.NewGoXFace(bitmapfont.Face),
+		},
+		{
+			name: "GoTextFace",
+			face: &text.GoTextFace{
+				Source:    source,
+				Size:      24,
+				Direction: text.DirectionLeftToRight,
+			},
+		},
 	}
 
 	// AdvanceAt operates on the first line only. For each tail, the result
@@ -1046,14 +1054,23 @@ func TestAdvanceAtLineBreak(t *testing.T) {
 		"\n", "\r", "\v", "\f", "\u0085", "\u2028", "\u2029", "\r\n",
 		"\nb", "\nbcd", "\r\nbcd",
 	}
-	for _, tail := range tails {
-		str := "a" + tail
-		for i := 1; i <= len(str); i++ {
-			got := text.AdvanceAt(str, i, face)
-			if math.Abs(got-baseline) > eps {
-				t.Errorf("AdvanceAt(%q, %d, _) = %v, want %v", str, i, got, baseline)
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			baseline := text.AdvanceAt("a", 1, tc.face)
+			if baseline == 0 {
+				t.Fatalf("AdvanceAt(%q, 1, _) = 0, want non-zero", "a")
 			}
-		}
+			for _, tail := range tails {
+				str := "a" + tail
+				for i := 1; i <= len(str); i++ {
+					got := text.AdvanceAt(str, i, tc.face)
+					if math.Abs(got-baseline) > eps {
+						t.Errorf("AdvanceAt(%q, %d, _) = %v, want %v", str, i, got, baseline)
+					}
+				}
+			}
+		})
 	}
 }
 

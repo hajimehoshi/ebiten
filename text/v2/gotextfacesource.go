@@ -36,6 +36,7 @@ import (
 	xlanguage "golang.org/x/text/language"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/text/v2/internal/textutil"
 )
 
 type goTextOutputCacheKey struct {
@@ -444,6 +445,10 @@ func buildAdvances(outputs []shaping.Output, text string) []fixed.Int26_6 {
 func (g *GoTextFaceSource) advanceAt(text string, face *GoTextFace, indexInBytes int) fixed.Int26_6 {
 	if indexInBytes <= 0 {
 		return 0
+	}
+	if n := textutil.FirstLineLen(text); n < len(text) {
+		text = text[:n]
+		indexInBytes = min(indexInBytes, len(text))
 	}
 	a := g.advances(text, face)
 	if indexInBytes >= len(a) {

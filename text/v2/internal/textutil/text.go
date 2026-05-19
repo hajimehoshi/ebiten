@@ -42,8 +42,8 @@ func Lines(str string) iter.Seq[string] {
 	}
 }
 
-// isLineBreak reports whether r is a line-break codepoint.
-func isLineBreak(r rune) bool {
+// IsLineBreak reports whether r is a line-break codepoint.
+func IsLineBreak(r rune) bool {
 	switch r {
 	case '\n', '\v', '\f', '\r', '\u0085', '\u2028', '\u2029':
 		return true
@@ -56,7 +56,7 @@ func isLineBreak(r rune) bool {
 // if str has no line break.
 func FirstLineLen(str string) int {
 	for i, r := range str {
-		if isLineBreak(r) {
+		if IsLineBreak(r) {
 			return i
 		}
 	}

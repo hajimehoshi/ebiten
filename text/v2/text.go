@@ -329,10 +329,6 @@ func AdvanceAt(text string, indexInBytes int, face Face) float64 {
 	if indexInBytes < 0 || indexInBytes > len(text) {
 		panic(fmt.Sprintf("text: indexInBytes %d is out of range [0, %d] at AdvanceAt", indexInBytes, len(text)))
 	}
-	if n := textutil.FirstLineLen(text); n < len(text) {
-		text = text[:n]
-		indexInBytes = min(indexInBytes, len(text))
-	}
 	return face.advanceAt(text, indexInBytes)
 }
 

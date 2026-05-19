@@ -23,6 +23,7 @@ import (
 	"golang.org/x/image/math/fixed"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/text/v2/internal/textutil"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
@@ -120,13 +121,13 @@ func (g *GoXFace) advanceAt(text string, indexInBytes int) float64 {
 	if len(xs) == 0 {
 		return 0
 	}
-	if indexInBytes >= len(text) {
-		return fixed26_6ToFloat64(xs[len(xs)-1])
-	}
-	// indexInBytes inside a rune snaps to the rune's start: only include
-	// runes whose entire byte range is <= indexInBytes.
+	// indexInBytes inside a rune snaps to the rune's start: only
+	// include runes whose entire byte range is <= indexInBytes.
 	var runeIdx int
-	for i := range text {
+	for i, r := range text {
+		if textutil.IsLineBreak(r) {
+			break
+		}
 		_, l := utf8.DecodeRuneInString(text[i:])
 		if l < 0 {
 			l = 1
@@ -135,6 +136,9 @@ func (g *GoXFace) advanceAt(text string, indexInBytes int) float64 {
 			break
 		}
 		runeIdx++
+		if runeIdx == len(xs) {
+			break
+		}
 	}
 	if runeIdx == 0 {
 		return 0
@@ -152,6 +156,9 @@ func (g *GoXFace) originXs(text string) []fixed.Int26_6 {
 		prevR := rune(-1)
 		var originX fixed.Int26_6
 		for _, r := range text {
+			if textutil.IsLineBreak(r) {
+				break
+			}
 			if prevR >= 0 {
 				originX += g.f.Kern(prevR, r)
 				originXs = append(originXs, originX)
@@ -159,6 +166,10 @@ func (g *GoXFace) originXs(text string) []fixed.Int26_6 {
 			a, _ := g.f.GlyphAdvance(r)
 			originX += a
 			prevR = r
+		}
+		if prevR < 0 {
+			// First line is empty (text starts with a line break).
+			return nil, false
 		}
 		originXs = append(originXs, originX)
 		return originXs, true
