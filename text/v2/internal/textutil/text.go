@@ -42,13 +42,25 @@ func Lines(str string) iter.Seq[string] {
 	}
 }
 
-// FirstLine returns the prefix of str up to (but not including) the first
-// line break. If str has no line break, FirstLine returns str unchanged.
-func FirstLine(str string) string {
-	if idx := strings.IndexAny(str, "\n\v\f\r\u0085\u2028\u2029"); idx >= 0 {
-		return str[:idx]
+// isLineBreak reports whether r is a line-break codepoint.
+func isLineBreak(r rune) bool {
+	switch r {
+	case '\n', '\v', '\f', '\r', '\u0085', '\u2028', '\u2029':
+		return true
 	}
-	return str
+	return false
+}
+
+// FirstLineLen returns the byte length of the first line of str — the
+// number of bytes before the first line-break codepoint, or len(str)
+// if str has no line break.
+func FirstLineLen(str string) int {
+	for i, r := range str {
+		if isLineBreak(r) {
+			return i
+		}
+	}
+	return len(str)
 }
 
 func TrimTailingLineBreak(str string) string {
