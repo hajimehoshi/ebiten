@@ -20,7 +20,7 @@ import (
 )
 
 func L2VisualOrder(levels []bidi.Level) []int {
-	return l2VisualOrder(levels)
+	return appendL2VisualOrder(nil, levels)
 }
 
 func Fixed26_6ToFloat32(x fixed.Int26_6) float32 {

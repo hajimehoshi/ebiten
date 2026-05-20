@@ -263,6 +263,10 @@ type GoTextFaceSource struct {
 	lastXPpem            uint16
 	lastYPpem            uint16
 
+	bidiLevelsBuf  []bidi.Level
+	visualOrderBuf []int
+	inputsBuf      []shaping.Input
+
 	bitmapSizesResult []font.BitmapSize
 	bitmapSizesOnce   sync.Once
 }
@@ -467,7 +471,11 @@ func (g *GoTextFaceSource) advanceAt(text string, face *GoTextFace, indexInBytes
 		return a[local]
 	}
 
-	order := chunksVisualOrder(chunks)
+	// Stack arrays rather than reusable struct fields: this path
+	// runs without shapeMu, so a shared buffer would race.
+	var levelsArr [16]bidi.Level
+	var orderArr [16]int
+	order := appendChunksVisualOrder(orderArr[:0], levelsArr[:0], chunks)
 
 	targetLogical := -1
 	for li, ch := range chunks {
@@ -507,7 +515,11 @@ func (g *GoTextFaceSource) glyphs(text string, face *GoTextFace) []goTextGlyph {
 		return g.outputCacheValue(chunkText, face).ensureGlyphs(g, chunkText, face)
 	}
 
-	order := chunksVisualOrder(chunks)
+	// Stack arrays rather than reusable struct fields: this path
+	// runs without shapeMu, so a shared buffer would race.
+	var levelsArr [16]bidi.Level
+	var orderArr [16]int
+	order := appendChunksVisualOrder(orderArr[:0], levelsArr[:0], chunks)
 
 	chunkGlyphs := make([][]goTextGlyph, len(chunks))
 	var total int
@@ -608,23 +620,25 @@ func (g *GoTextFaceSource) buildOutputs(text string, face *GoTextFace) []shaping
 		}
 		bidiRuns := g.bidiPara.Segment(g.runes, defaultBidiDir)
 
-		levels := make([]bidi.Level, len(inputs))
+		g.bidiLevelsBuf = slices.Grow(g.bidiLevelsBuf[:0], len(inputs))
 		var bi int
-		for ii, in := range inputs {
+		for _, in := range inputs {
 			for bi+1 < bidiRuns.NumRuns() && bidiRuns.Run(bi).End <= in.RunStart {
 				bi++
 			}
+			var level bidi.Level
 			if bidiRuns.NumRuns() > 0 {
-				levels[ii] = bidiRuns.Run(bi).Level
+				level = bidiRuns.Run(bi).Level
 			}
+			g.bidiLevelsBuf = append(g.bidiLevelsBuf, level)
 		}
 
-		order := l2VisualOrder(levels)
-		reordered := make([]shaping.Input, len(inputs))
-		for vi, li := range order {
-			reordered[vi] = inputs[li]
+		g.visualOrderBuf = appendL2VisualOrder(g.visualOrderBuf, g.bidiLevelsBuf)
+		g.inputsBuf = slices.Grow(g.inputsBuf[:0], len(inputs))
+		for _, li := range g.visualOrderBuf {
+			g.inputsBuf = append(g.inputsBuf, inputs[li])
 		}
-		inputs = reordered
+		inputs = g.inputsBuf
 	}
 
 	outputs := make([]shaping.Output, len(inputs))
@@ -637,18 +651,19 @@ func (g *GoTextFaceSource) buildOutputs(text string, face *GoTextFace) []shaping
 	return outputs
 }
 
-// l2VisualOrder returns a permutation of [0, len(levels)) that lists
-// the input indices in visual left-to-right order, per the Unicode
-// Bidirectional Algorithm rule L2: from the highest level in the line
-// down to the lowest odd level, reverse each contiguous run of indices
-// whose level is at least the current pass level.
-func l2VisualOrder(levels []bidi.Level) []int {
-	order := make([]int, len(levels))
-	for i := range order {
-		order[i] = i
+// appendL2VisualOrder appends to dst[:0] a permutation of
+// [0, len(levels)) that lists the input indices in visual
+// left-to-right order, per the Unicode Bidirectional Algorithm rule
+// L2: from the highest level in the line down to the lowest odd
+// level, reverse each contiguous run of indices whose level is at
+// least the current pass level.
+func appendL2VisualOrder(dst []int, levels []bidi.Level) []int {
+	dst = slices.Grow(dst[:0], len(levels))
+	for i := range levels {
+		dst = append(dst, i)
 	}
 	if len(levels) <= 1 {
-		return order
+		return dst
 	}
 
 	var maxLevel bidi.Level
@@ -662,34 +677,36 @@ func l2VisualOrder(levels []bidi.Level) []int {
 		}
 	}
 	if minOddLevel > maxLevel {
-		return order
+		return dst
 	}
 
 	for level := maxLevel; level >= minOddLevel; level-- {
-		for i := 0; i < len(order); {
-			if levels[order[i]] < level {
+		for i := 0; i < len(dst); {
+			if levels[dst[i]] < level {
 				i++
 				continue
 			}
 			j := i
-			for j < len(order) && levels[order[j]] >= level {
+			for j < len(dst) && levels[dst[j]] >= level {
 				j++
 			}
-			slices.Reverse(order[i:j])
+			slices.Reverse(dst[i:j])
 			i = j
 		}
 	}
-	return order
+	return dst
 }
 
-// chunksVisualOrder returns the permutation of [0, len(chunks)) that
-// lists the chunks in UAX #9 L2 visual order.
-func chunksVisualOrder(chunks []chunk.Chunk) []int {
-	levels := make([]bidi.Level, len(chunks))
-	for i, ch := range chunks {
-		levels[i] = ch.Level
+// appendChunksVisualOrder appends to dstOrder[:0] a permutation of
+// [0, len(chunks)) that lists the chunks in UAX #9 L2 visual order.
+// levelsBuf is used as scratch space for the per-chunk level slice;
+// pass nil if no buffer is available.
+func appendChunksVisualOrder(dstOrder []int, levelsBuf []bidi.Level, chunks []chunk.Chunk) []int {
+	levelsBuf = slices.Grow(levelsBuf[:0], len(chunks))
+	for _, ch := range chunks {
+		levelsBuf = append(levelsBuf, ch.Level)
 	}
-	return l2VisualOrder(levels)
+	return appendL2VisualOrder(dstOrder, levelsBuf)
 }
 
 // buildGlyphs converts already-shaped outputs into per-glyph render
