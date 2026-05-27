@@ -142,6 +142,9 @@ func (c *Commit) SurroundingText() (before, after string) {
 //
 // Update may invoke OnCommit and OnComposition multiple times in one call
 // if the platform queued multiple compositions between ticks.
+//
+// Update should be called every tick (Update) during editing. It is safe to
+// call more often than once per tick.
 func (c *Composer) Update() (handled bool, err error) {
 	for {
 		if c.s == nil {
