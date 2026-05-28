@@ -262,3 +262,5 @@ func (u *UserInterface) setWindowColorModeImpl(mode colormode.ColorMode) error {
 	_ = xproto.ChangeProperty(xconn, xproto.PropModeReplace, xproto.Window(window), gtkThemeVariantAtom, utf8StringAtom, 8, uint32(len(themeVariant)), []byte(themeVariant))
 	return nil
 }
+
+func (u *UserInterface) syncModKeysFromOS() {}

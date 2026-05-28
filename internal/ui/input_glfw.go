@@ -50,19 +50,10 @@ func (u *UserInterface) registerInputCallbacks() error {
 		t := u.InputTime()
 		if action == glfw.Press {
 			u.inputState.setKeyPressed(uk, t)
-			// On macOS, modifier keys can appear released prematurely when the text input system
-			// intercepts certain key combinations (e.g. Ctrl+A). The mods parameter on the key event
-			// still correctly reflects which modifiers are physically held. Use it to re-assert
-			// modifier key states that may have been incorrectly released.
-			//
-			// Restrict this to macOS: on Windows, AltGr (Right Alt) makes the OS report Ctrl as
-			// held even though the synthetic Ctrl event is filtered out, which would otherwise
-			// make Ctrl appear stuck (#3453).
-			//
-			// Note that this is asymmetric: the mods bitmask is only consulted on press, not on
-			// release. A symmetric release-side sync (clearing modifiers absent from mods) is not
-			// done because no known platform bug requires it, and on Windows it would not help the
-			// AltGr case anyway since mods reports Ctrl held for the entire AltGr-down duration.
+			// See the comment on syncModKeysByMods for why this is needed and why it is macOS-only.
+			// TODO: This may be redundant with the per-tick syncModKeysFromOS poll. Confirm
+			// within-tick IsKeyJustPressed/IsKeyJustReleased semantics for Cmd+A still hold
+			// without it, then remove.
 			if runtime.GOOS == "darwin" {
 				u.inputState.syncModKeysByMods(mods, t)
 			}
@@ -222,11 +213,10 @@ func (u *UserInterface) KeyName(key Key) string {
 	return name
 }
 
-// syncModKeysByMods re-asserts modifier key states based on the mods bitmask
-// from a key event. On macOS, the text input system can intercept modifier+key
-// combinations (e.g. Ctrl+A) and prematurely release the modifier key via
-// flagsChanged. The mods parameter on the key event still correctly reflects
-// which modifiers are physically held, so we use it to restore the state.
+// syncModKeysByMods reconciles per-key modifier state with a mods bitmask.
+// Needed on macOS to recover from text-input intercepts (e.g. Cmd+A) and
+// system hotkey absorption (e.g. Cmd+Shift+4). macOS-only: on Windows,
+// AltGr would make Ctrl appear stuck (#3453).
 func (i *InputState) syncModKeysByMods(mods glfw.ModifierKey, t InputTime) {
 	type modMapping struct {
 		mod   glfw.ModifierKey
@@ -240,18 +230,25 @@ func (i *InputState) syncModKeysByMods(mods glfw.ModifierKey, t InputTime) {
 		{glfw.ModSuper, KeyMetaLeft, KeyMetaRight},
 	}
 	for _, m := range mappings {
-		if mods&m.mod == 0 {
+		if mods&m.mod != 0 {
+			// The mod flag is set, so at least one of left/right should be pressed.
+			// Re-press whichever was most recently pressed.
+			// If neither was ever pressed, default to the left variant.
+			lp := i.KeyPressedTimes[m.left]
+			rp := i.KeyPressedTimes[m.right]
+			if lp >= rp {
+				i.setKeyPressed(m.left, t)
+			} else {
+				i.setKeyPressed(m.right, t)
+			}
 			continue
 		}
-		// The mod flag is set, so at least one of left/right should be pressed.
-		// Re-press whichever was most recently pressed.
-		// If neither was ever pressed, default to the left variant.
-		lp := i.KeyPressedTimes[m.left]
-		rp := i.KeyPressedTimes[m.right]
-		if lp >= rp {
-			i.setKeyPressed(m.left, t)
-		} else {
-			i.setKeyPressed(m.right, t)
+		// The mod flag is clear: release any variant currently in the pressed state.
+		if i.KeyPressedTimes[m.left] > i.KeyReleasedTimes[m.left] {
+			i.setKeyReleased(m.left, t)
+		}
+		if i.KeyPressedTimes[m.right] > i.KeyReleasedTimes[m.right] {
+			i.setKeyReleased(m.right, t)
 		}
 	}
 }

@@ -254,6 +254,7 @@ var (
 	sel_init                          = objc.RegisterName("init")
 	sel_initWithBool                  = objc.RegisterName("initWithBool:")
 	sel_initWithOrigDelegate          = objc.RegisterName("initWithOrigDelegate:")
+	sel_modifierFlags                 = objc.RegisterName("modifierFlags")
 	sel_mouseLocation                 = objc.RegisterName("mouseLocation")
 	sel_origDelegate                  = objc.RegisterName("origDelegate")
 	sel_isOrigResizable               = objc.RegisterName("isOrigResizable")
@@ -279,6 +280,38 @@ var (
 	sel_windowWillEnterFullScreen     = objc.RegisterName("windowWillEnterFullScreen:")
 	sel_windowWillExitFullScreen      = objc.RegisterName("windowWillExitFullScreen:")
 )
+
+// syncModKeysFromOS reconciles modifier key state to the current OS state.
+// On macOS some system flows (the screenshot tool's Cmd+Shift+4, and others)
+// absorb modifier key-up events globally without changing window focus, so the
+// matching releases never reach the app. Polling +[NSEvent modifierFlags] each
+// tick ensures stuck modifiers eventually clear. Must be called on the main
+// thread with u.m unheld.
+func (u *UserInterface) syncModKeysFromOS() {
+	flags := objc.Send[uint](objc.ID(class_NSEvent), sel_modifierFlags)
+	const (
+		nsEventModifierFlagShift   = 1 << 17
+		nsEventModifierFlagControl = 1 << 18
+		nsEventModifierFlagOption  = 1 << 19
+		nsEventModifierFlagCommand = 1 << 20
+	)
+	var mods glfw.ModifierKey
+	if flags&nsEventModifierFlagShift != 0 {
+		mods |= glfw.ModShift
+	}
+	if flags&nsEventModifierFlagControl != 0 {
+		mods |= glfw.ModControl
+	}
+	if flags&nsEventModifierFlagOption != 0 {
+		mods |= glfw.ModAlt
+	}
+	if flags&nsEventModifierFlagCommand != 0 {
+		mods |= glfw.ModSuper
+	}
+	u.m.Lock()
+	defer u.m.Unlock()
+	u.inputState.syncModKeysByMods(mods, u.InputTime())
+}
 
 func currentMouseLocation() (x, y int) {
 	point := objc.Send[cocoa.NSPoint](objc.ID(class_NSEvent), sel_mouseLocation)

@@ -1364,6 +1364,7 @@ func (u *UserInterface) update() (float64, float64, error) {
 			return 0, 0, err
 		}
 	}
+	u.syncModKeysFromOS()
 
 	// If isRunnableOnUnfocused is false and the window is not focused, wait here.
 	// For the first update, skip this check as the window might not be seen yet in some environments like ChromeOS (#3091).

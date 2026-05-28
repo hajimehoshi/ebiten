@@ -329,3 +329,5 @@ func (u *UserInterface) setWindowColorModeImpl(mode colormode.ColorMode) error {
 
 	return nil
 }
+
+func (u *UserInterface) syncModKeysFromOS() {}
