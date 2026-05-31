@@ -9,12 +9,14 @@ import (
 	"errors"
 	"fmt"
 	"image"
+	"log/slog"
 	"math"
 	"runtime"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
 
+	"github.com/hajimehoshi/ebiten/v2/internal/exeicon"
 	"github.com/hajimehoshi/ebiten/v2/internal/microsoftgdk"
 	"github.com/hajimehoshi/ebiten/v2/internal/winver"
 )
@@ -1377,12 +1379,68 @@ func (w *Window) createNativeWindow(wndconfig *wndconfig, fbconfig *fbconfig) er
 		w.platform.transparent = true
 	}
 
+	if err := w.setIconFromExecutable(); err != nil {
+		return err
+	}
+
 	width, height, err := w.platformGetWindowSize()
 	if err != nil {
 		return err
 	}
 	w.platform.width, w.platform.height = width, height
 
+	return nil
+}
+
+// setIconFromExecutable sets the icon embedded in the running executable as the
+// window icon, so an executable carrying an icon shows it as the window icon
+// without calling SetWindowIcon, matching typical Windows applications.
+//
+// Extracting the icon is best-effort: when the executable embeds no icon (such
+// as a plain "go build" binary) or extraction fails, the window keeps the
+// generic class icon, and SetWindowIcon(nil) later reverts to that same icon.
+func (w *Window) setIconFromExecutable() error {
+	if microsoftgdk.IsXbox() {
+		return nil
+	}
+
+	cxIcon, err := _GetSystemMetrics(_SM_CXICON)
+	if err != nil {
+		return err
+	}
+	cyIcon, err := _GetSystemMetrics(_SM_CYICON)
+	if err != nil {
+		return err
+	}
+	bigIcon, err := exeicon.Extract(int(cxIcon), int(cyIcon))
+	if err != nil {
+		slog.Error("glfw: extracting the large window icon from the executable failed", "error", err)
+	}
+
+	cxSmIcon, err := _GetSystemMetrics(_SM_CXSMICON)
+	if err != nil {
+		return err
+	}
+	cySmIcon, err := _GetSystemMetrics(_SM_CYSMICON)
+	if err != nil {
+		return err
+	}
+	smallIcon, err := exeicon.Extract(int(cxSmIcon), int(cySmIcon))
+	if err != nil {
+		slog.Error("glfw: extracting the small window icon from the executable failed", "error", err)
+	}
+
+	if bigIcon == 0 && smallIcon == 0 {
+		return nil
+	}
+
+	// Either handle may be zero; WM_SETICON with a zero handle leaves the class
+	// icon in place for that size, and Windows derives the small icon from the
+	// large one when the small handle is zero.
+	_SendMessageW(w.platform.handle, _WM_SETICON, _ICON_BIG, _LPARAM(bigIcon))
+	_SendMessageW(w.platform.handle, _WM_SETICON, _ICON_SMALL, _LPARAM(smallIcon))
+	w.platform.bigIcon = _HICON(bigIcon)
+	w.platform.smallIcon = _HICON(smallIcon)
 	return nil
 }
 
