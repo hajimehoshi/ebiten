@@ -17,6 +17,7 @@ package audio_test
 import (
 	"bytes"
 	"io"
+	"math"
 	"runtime"
 	"testing"
 	"time"
@@ -129,6 +130,52 @@ func TestPauseBeforeInit(t *testing.T) {
 
 	if err := audio.UpdateForTesting(); err != nil {
 		t.Error(err)
+	}
+}
+
+func TestSetVolume(t *testing.T) {
+	setup()
+	defer teardown()
+
+	p, err := context.NewPlayer(bytes.NewReader(make([]byte, 4)))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, volume := range []float64{0, 0.5, 1} {
+		p.SetVolume(volume)
+		if got, want := p.Volume(), volume; got != want {
+			t.Errorf("p.Volume(): got: %f, want: %f", got, want)
+		}
+	}
+
+	panicked := func(f func()) (panicked bool) {
+		defer func() {
+			panicked = recover() != nil
+		}()
+		f()
+		return false
+	}
+
+	for _, test := range []struct {
+		name   string
+		volume float64
+	}{
+		{name: "negative", volume: -0.1},
+		{name: "greater than one", volume: 1.1},
+		{name: "NaN", volume: math.NaN()},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			p.SetVolume(0.5)
+			if !panicked(func() {
+				p.SetVolume(test.volume)
+			}) {
+				t.Errorf("p.SetVolume(%f) did not panic", test.volume)
+			}
+			if got, want := p.Volume(), 0.5; got != want {
+				t.Errorf("p.Volume(): got: %f, want: %f", got, want)
+			}
+		})
 	}
 }
 

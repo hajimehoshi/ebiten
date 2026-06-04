@@ -515,6 +515,9 @@ func (p *Player) Volume() float64 {
 // SetVolume sets the volume of this player.
 // volume must be in between 0 and 1. SetVolume panics otherwise.
 func (p *Player) SetVolume(volume float64) {
+	if !(0 <= volume && volume <= 1) {
+		panic(fmt.Sprintf("audio: volume must be in between 0 and 1 but was %v", volume))
+	}
 	p.p.SetVolume(volume)
 }
 
