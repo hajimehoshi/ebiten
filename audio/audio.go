@@ -513,7 +513,8 @@ func (p *Player) Volume() float64 {
 }
 
 // SetVolume sets the volume of this player.
-// volume must be in between 0 and 1. SetVolume panics otherwise.
+// volume must be in between 0 and 1.
+// Otherwiser, the behavior is undefined.
 func (p *Player) SetVolume(volume float64) {
 	p.p.SetVolume(volume)
 }
