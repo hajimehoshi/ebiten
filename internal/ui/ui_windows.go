@@ -33,11 +33,11 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/winver"
 )
 
-func (u *UserInterface) initializePlatform() error {
+func (u *glfwBackend) initializePlatform() error {
 	return nil
 }
 
-func (u *UserInterface) setApplePressAndHoldEnabled(enabled bool) {
+func (u *glfwBackend) setApplePressAndHoldEnabled(enabled bool) {
 	// Do nothings.
 }
 
@@ -117,7 +117,7 @@ func dipToGLFWPixel(x float64, deviceScaleFactor float64) float64 {
 	return x * deviceScaleFactor
 }
 
-func (u *UserInterface) adjustWindowPosition(x, y int, monitor *Monitor) (int, int, error) {
+func (u *glfwBackend) adjustWindowPosition(x, y int, monitor *Monitor) (int, int, error) {
 	if microsoftgdk.IsXbox() {
 		return x, y, nil
 	}
@@ -203,28 +203,28 @@ func monitorFromWin32Window(w windows.HWND) *Monitor {
 	return nil
 }
 
-func (u *UserInterface) nativeWindow() (uintptr, error) {
+func (u *glfwBackend) nativeWindow() (uintptr, error) {
 	w, err := u.window.GetWin32Window()
 	return uintptr(w), err
 }
 
-func (u *UserInterface) isNativeFullscreen() (bool, error) {
+func (u *glfwBackend) isNativeFullscreen() (bool, error) {
 	return false, nil
 }
 
-func (u *UserInterface) isNativeFullscreenAvailable() bool {
+func (u *glfwBackend) isNativeFullscreenAvailable() bool {
 	return false
 }
 
-func (u *UserInterface) setNativeFullscreen(fullscreen bool) error {
+func (u *glfwBackend) setNativeFullscreen(fullscreen bool) error {
 	panic(fmt.Sprintf("ui: setNativeFullscreen is not implemented in this environment: %s", runtime.GOOS))
 }
 
-func (u *UserInterface) adjustViewSizeAfterFullscreen() error {
+func (u *glfwBackend) adjustViewSizeAfterFullscreen() error {
 	return nil
 }
 
-func (u *UserInterface) setWindowResizingModeForOS(mode WindowResizingMode) error {
+func (u *glfwBackend) setWindowResizingModeForOS(mode WindowResizingMode) error {
 	return nil
 }
 
@@ -232,7 +232,7 @@ func initializeWindowAfterCreation(w *glfw.Window) error {
 	return nil
 }
 
-func (u *UserInterface) skipTaskbar() error {
+func (u *glfwBackend) skipTaskbar() error {
 	// S_FALSE is returned when CoInitializeEx is nested. This is a successful case.
 	if err := windows.CoInitializeEx(0, windows.COINIT_MULTITHREADED); err != nil && !errors.Is(err, syscall.Errno(windows.S_FALSE)) {
 		return err
@@ -259,11 +259,11 @@ func (u *UserInterface) skipTaskbar() error {
 	return nil
 }
 
-func (u *UserInterface) setDocumentEdited(edited bool) error {
+func (u *glfwBackend) setDocumentEdited(edited bool) error {
 	return nil
 }
 
-func (u *UserInterface) afterWindowCreation() error {
+func (u *glfwBackend) afterWindowCreation() error {
 	if microsoftgdk.IsXbox() {
 		return nil
 	}
@@ -284,6 +284,12 @@ func (u *UserInterface) afterWindowCreation() error {
 // RestoreIMMContextOnMainThread is called from the main thread.
 // The textinput package invokes RestoreIMMContextOnMainThread to enable IME inputting.
 func (u *UserInterface) RestoreIMMContextOnMainThread() error {
+	return u.backend.(*glfwBackend).RestoreIMMContextOnMainThread()
+}
+
+// RestoreIMMContextOnMainThread is called from the main thread.
+// The textinput package invokes RestoreIMMContextOnMainThread to enable IME inputting.
+func (u *glfwBackend) RestoreIMMContextOnMainThread() error {
 	w, err := u.window.GetWin32Window()
 	if err != nil {
 		return err
@@ -307,7 +313,7 @@ func init() {
 }
 
 // setWindowColorModeImpl must be called from the main thread.
-func (u *UserInterface) setWindowColorModeImpl(mode colormode.ColorMode) error {
+func (u *glfwBackend) setWindowColorModeImpl(mode colormode.ColorMode) error {
 	if microsoftgdk.IsXbox() {
 		return nil
 	}
@@ -330,4 +336,4 @@ func (u *UserInterface) setWindowColorModeImpl(mode colormode.ColorMode) error {
 	return nil
 }
 
-func (u *UserInterface) syncModKeysFromOS() {}
+func (u *glfwBackend) syncModKeysFromOS() {}

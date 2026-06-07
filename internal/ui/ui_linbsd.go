@@ -32,11 +32,11 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl"
 )
 
-func (u *UserInterface) initializePlatform() error {
+func (u *glfwBackend) initializePlatform() error {
 	return nil
 }
 
-func (u *UserInterface) setApplePressAndHoldEnabled(enabled bool) {
+func (u *glfwBackend) setApplePressAndHoldEnabled(enabled bool) {
 	// Do nothings.
 }
 
@@ -137,7 +137,7 @@ func dipToGLFWPixel(x float64, deviceScaleFactor float64) float64 {
 	return x * deviceScaleFactor
 }
 
-func (u *UserInterface) adjustWindowPosition(x, y int, monitor *Monitor) (int, int, error) {
+func (u *glfwBackend) adjustWindowPosition(x, y int, monitor *Monitor) (int, int, error) {
 	return x, y, nil
 }
 
@@ -165,28 +165,28 @@ func monitorFromWindowByOS(_ *glfw.Window) (*Monitor, error) {
 	return nil, nil
 }
 
-func (u *UserInterface) nativeWindow() (uintptr, error) {
+func (u *glfwBackend) nativeWindow() (uintptr, error) {
 	// TODO: Implement this.
 	return 0, nil
 }
 
-func (u *UserInterface) isNativeFullscreen() (bool, error) {
+func (u *glfwBackend) isNativeFullscreen() (bool, error) {
 	return false, nil
 }
 
-func (u *UserInterface) isNativeFullscreenAvailable() bool {
+func (u *glfwBackend) isNativeFullscreenAvailable() bool {
 	return false
 }
 
-func (u *UserInterface) setNativeFullscreen(fullscreen bool) error {
+func (u *glfwBackend) setNativeFullscreen(fullscreen bool) error {
 	panic(fmt.Sprintf("ui: setNativeFullscreen is not implemented in this environment: %s", runtime.GOOS))
 }
 
-func (u *UserInterface) adjustViewSizeAfterFullscreen() error {
+func (u *glfwBackend) adjustViewSizeAfterFullscreen() error {
 	return nil
 }
 
-func (u *UserInterface) setWindowResizingModeForOS(mode WindowResizingMode) error {
+func (u *glfwBackend) setWindowResizingModeForOS(mode WindowResizingMode) error {
 	return nil
 }
 
@@ -204,20 +204,20 @@ func initializeWindowAfterCreation(w *glfw.Window) error {
 	return nil
 }
 
-func (u *UserInterface) skipTaskbar() error {
+func (u *glfwBackend) skipTaskbar() error {
 	return nil
 }
 
-func (u *UserInterface) setDocumentEdited(edited bool) error {
+func (u *glfwBackend) setDocumentEdited(edited bool) error {
 	return nil
 }
 
-func (u *UserInterface) afterWindowCreation() error {
+func (u *glfwBackend) afterWindowCreation() error {
 	return nil
 }
 
 // setWindowColorModeImpl must be called from the main thread.
-func (u *UserInterface) setWindowColorModeImpl(mode colormode.ColorMode) error {
+func (u *glfwBackend) setWindowColorModeImpl(mode colormode.ColorMode) error {
 	xconn, err := xgb.NewConn()
 	if err != nil {
 		// Assume we're on pure Wayland then.
@@ -263,4 +263,4 @@ func (u *UserInterface) setWindowColorModeImpl(mode colormode.ColorMode) error {
 	return nil
 }
 
-func (u *UserInterface) syncModKeysFromOS() {}
+func (u *glfwBackend) syncModKeysFromOS() {}

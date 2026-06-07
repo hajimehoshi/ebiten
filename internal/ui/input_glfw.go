@@ -32,7 +32,7 @@ var glfwMouseButtonToMouseButton = map[glfw.MouseButton]MouseButton{
 	glfw.MouseButton5:      MouseButton4,
 }
 
-func (u *UserInterface) registerInputCallbacks() error {
+func (u *glfwBackend) registerInputCallbacks() error {
 	if _, err := u.window.SetKeyCallback(func(w *glfw.Window, key glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {
 		// Ignore key repeats for now.
 		if action == glfw.Repeat {
@@ -149,7 +149,7 @@ func (u *UserInterface) registerInputCallbacks() error {
 // updateInputStateForFrame updates the input state using pre-fetched cursor position
 // and device scale factor. GetCursorPos and gamepad.Update are already called in
 // the mainThread.Call block of updateGame, so this avoids an extra round-trip.
-func (u *UserInterface) updateInputStateForFrame(deviceScaleFactor float64) error {
+func (u *glfwBackend) updateInputStateForFrame(deviceScaleFactor float64) error {
 	u.m.Lock()
 	defer u.m.Unlock()
 
@@ -188,7 +188,7 @@ func (u *UserInterface) updateInputStateForFrame(deviceScaleFactor float64) erro
 	return nil
 }
 
-func (u *UserInterface) KeyName(key Key) string {
+func (u *glfwBackend) KeyName(key Key) string {
 	if !u.isRunning() {
 		return ""
 	}

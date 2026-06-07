@@ -34,7 +34,7 @@ import (
 
 var class_EbitengineWindowDelegate objc.Class
 
-func (u *UserInterface) initializePlatform() error {
+func (u *glfwBackend) initializePlatform() error {
 	pushResizableState := func(id, win objc.ID) {
 		window := cocoa.NSWindow{ID: win}
 		id.Send(sel_setOrigResizable, window.StyleMask()&cocoa.NSWindowStyleMaskResizable != 0)
@@ -166,7 +166,7 @@ func (u *UserInterface) initializePlatform() error {
 	return nil
 }
 
-func (u *UserInterface) setApplePressAndHoldEnabled(enabled bool) {
+func (u *glfwBackend) setApplePressAndHoldEnabled(enabled bool) {
 	var val int
 	if enabled {
 		val = 1
@@ -233,7 +233,7 @@ func dipToGLFWPixel(x float64, scale float64) float64 {
 	return x
 }
 
-func (u *UserInterface) adjustWindowPosition(x, y int, monitor *Monitor) (int, int, error) {
+func (u *glfwBackend) adjustWindowPosition(x, y int, monitor *Monitor) (int, int, error) {
 	return x, y, nil
 }
 
@@ -287,7 +287,7 @@ var (
 // matching releases never reach the app. Polling +[NSEvent modifierFlags] each
 // tick ensures stuck modifiers eventually clear. Must be called on the main
 // thread with u.m unheld.
-func (u *UserInterface) syncModKeysFromOS() {
+func (u *glfwBackend) syncModKeysFromOS() {
 	flags := objc.Send[uint](objc.ID(class_NSEvent), sel_modifierFlags)
 	const (
 		nsEventModifierFlagShift   = 1 << 17
@@ -361,11 +361,11 @@ func monitorFromWindowByOS(w *glfw.Window) (*Monitor, error) {
 	return nil, nil
 }
 
-func (u *UserInterface) nativeWindow() (uintptr, error) {
+func (u *glfwBackend) nativeWindow() (uintptr, error) {
 	return u.window.GetCocoaWindow()
 }
 
-func (u *UserInterface) isNativeFullscreen() (bool, error) {
+func (u *glfwBackend) isNativeFullscreen() (bool, error) {
 	w, err := u.window.GetCocoaWindow()
 	if err != nil {
 		return false, err
@@ -373,13 +373,13 @@ func (u *UserInterface) isNativeFullscreen() (bool, error) {
 	return cocoa.NSWindow{ID: objc.ID(w)}.StyleMask()&cocoa.NSWindowStyleMaskFullScreen != 0, nil
 }
 
-func (u *UserInterface) isNativeFullscreenAvailable() bool {
+func (u *glfwBackend) isNativeFullscreenAvailable() bool {
 	// TODO: If the window is transparent, we should use GLFW's windowed fullscreen (#1822, #1857).
 	// However, if the user clicks the green button, should this window be in native fullscreen mode?
 	return true
 }
 
-func (u *UserInterface) setNativeFullscreen(fullscreen bool) error {
+func (u *glfwBackend) setNativeFullscreen(fullscreen bool) error {
 	// Toggling fullscreen might ignore events like keyUp. Ensure that events are fired.
 	if err := glfw.WaitEventsTimeout(0.1); err != nil {
 		return err
@@ -410,7 +410,7 @@ func (u *UserInterface) setNativeFullscreen(fullscreen bool) error {
 	return nil
 }
 
-func (u *UserInterface) adjustViewSizeAfterFullscreen() error {
+func (u *glfwBackend) adjustViewSizeAfterFullscreen() error {
 	if u.GraphicsLibrary() == GraphicsLibraryOpenGL {
 		return nil
 	}
@@ -441,7 +441,7 @@ func (u *UserInterface) adjustViewSizeAfterFullscreen() error {
 	return nil
 }
 
-func (u *UserInterface) isFullscreenAllowedFromUI(mode WindowResizingMode) bool {
+func (u *glfwBackend) isFullscreenAllowedFromUI(mode WindowResizingMode) bool {
 	s := u.windowSizeLimit.Load().(windowSizeRange)
 	if s.maxWidthInDIP != glfw.DontCare || s.maxHeightInDIP != glfw.DontCare {
 		return false
@@ -455,7 +455,7 @@ func (u *UserInterface) isFullscreenAllowedFromUI(mode WindowResizingMode) bool 
 	return false
 }
 
-func (u *UserInterface) setWindowResizingModeForOS(mode WindowResizingMode) error {
+func (u *glfwBackend) setWindowResizingModeForOS(mode WindowResizingMode) error {
 	var collectionBehavior uint
 	if u.isFullscreenAllowedFromUI(mode) {
 		collectionBehavior |= cocoa.NSWindowCollectionBehaviorManaged
@@ -484,12 +484,12 @@ func initializeWindowAfterCreation(w *glfw.Window) error {
 	return nil
 }
 
-func (u *UserInterface) skipTaskbar() error {
+func (u *glfwBackend) skipTaskbar() error {
 	return nil
 }
 
 // setDocumentEdited must be called from the main thread.
-func (u *UserInterface) setDocumentEdited(edited bool) error {
+func (u *glfwBackend) setDocumentEdited(edited bool) error {
 	w, err := u.window.GetCocoaWindow()
 	if err != nil {
 		return err
@@ -498,7 +498,7 @@ func (u *UserInterface) setDocumentEdited(edited bool) error {
 	return nil
 }
 
-func (u *UserInterface) afterWindowCreation() error {
+func (u *glfwBackend) afterWindowCreation() error {
 	return nil
 }
 
@@ -508,7 +508,7 @@ var (
 )
 
 // setWindowColorModeImpl must be called from the main thread.
-func (u *UserInterface) setWindowColorModeImpl(mode colormode.ColorMode) error {
+func (u *glfwBackend) setWindowColorModeImpl(mode colormode.ColorMode) error {
 	w, err := u.window.GetCocoaWindow()
 	if err != nil {
 		return err
