@@ -6,8 +6,8 @@ github.com/ebitengine/hideconsole v1.0.0 h1:5J4U0kXF+pv/DhiXt5/lTz0eO5ogJ1iXb8Yj
 github.com/ebitengine/hideconsole v1.0.0/go.mod h1:hTTBTvVYWKBuxPr7peweneWdkUwEuHuB3C1R/ielR1A=
 github.com/ebitengine/oto/v3 v3.5.0-alpha.7.0.20260605165940-b742b1c953ff h1:sb8Vn69i/bSoqealT/B52iYfHrMvFrZ+j27EBNmFtZU=
 github.com/ebitengine/oto/v3 v3.5.0-alpha.7.0.20260605165940-b742b1c953ff/go.mod h1:KodwnDJP8uHQ6EjvnAvXGgUZjhFTfAIqR0PFXewFv3c=
-github.com/ebitengine/purego v0.11.0-alpha.3.0.20260604015905-d339eb0fd4d3 h1:KbQMNPjpAESXJYQlGsCca3ocYJE7wMeXkuTuTGiYT8c=
-github.com/ebitengine/purego v0.11.0-alpha.3.0.20260604015905-d339eb0fd4d3/go.mod h1:iIjxzd6CiRiOG0UyXP+V1+jWqUXVjPKLAI0mRfJZTmQ=
+github.com/ebitengine/purego v0.11.0-alpha.4 h1:C3adPBbjb7z4b/81sixV9ZObQn6fSUwsp3q8O2szk1M=
+github.com/ebitengine/purego v0.11.0-alpha.4/go.mod h1:iIjxzd6CiRiOG0UyXP+V1+jWqUXVjPKLAI0mRfJZTmQ=
 github.com/gen2brain/mpeg v0.5.0 h1:YrY5F5ZQAJCF/ItDHSb0bF5fxwk5IDq/RjOnfFhWurs=
 github.com/gen2brain/mpeg v0.5.0/go.mod h1:N37OJKAg3YeMfVqscgraoU6kwusr4pvA8aJK9QWPGiQ=
 github.com/go-text/typesetting v0.3.5-0.20260505125104-04e4e76f9371 h1:rQq+LisqB/K7wGowlqDlOOAEO/K29DL0kndCxg2fBso=
