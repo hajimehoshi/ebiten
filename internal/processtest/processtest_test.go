@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !android && !ios && !js
-
 package processtest_test
 
 import (
@@ -41,6 +39,11 @@ func isWSL() (bool, error) {
 }
 
 func TestPrograms(t *testing.T) {
+	switch runtime.GOOS {
+	case "android", "ios", "js":
+		t.Skipf("process tests are not supported on %s", runtime.GOOS)
+	}
+
 	wsl, err := isWSL()
 	if err != nil {
 		t.Fatal(err)
