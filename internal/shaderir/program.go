@@ -60,6 +60,10 @@ type Program struct {
 
 	SourceHash SourceHash
 
+	// FragmentSource is the Kage source the program was compiled from, or nil if it was not built from
+	// Kage source.
+	FragmentSource []byte
+
 	uniformFactors []uint32
 }
 

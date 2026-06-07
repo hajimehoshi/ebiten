@@ -202,6 +202,8 @@ func CompileShader(fragmentSrc []byte) (*shaderir.Program, error) {
 		return nil, fmt.Errorf("graphics: fragment shader entry point '%s' is missing", frag)
 	}
 
+	ir.FragmentSource = bytes.Clone(fragmentSrc)
+
 	return ir, nil
 }
 
