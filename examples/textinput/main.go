@@ -213,7 +213,7 @@ func (t *TextField) caretBounds() image.Rectangle {
 
 func (t *TextField) Update() error {
 	if !t.focused {
-		t.composer.Cancel()
+		t.composer.Finish()
 		return nil
 	}
 
@@ -341,6 +341,8 @@ func (g *Game) Update() error {
 		}
 		for _, tf := range g.textFields {
 			if tf.Contains(x, y) {
+				// Finish the current input before moving the caret.
+				tf.composer.Finish()
 				tf.Focus()
 				tf.SetSelectionStartByCursorPosition(x, y)
 			} else {

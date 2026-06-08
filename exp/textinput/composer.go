@@ -195,13 +195,16 @@ func (c *Composer) Update() (handled bool, err error) {
 	return handled, nil
 }
 
-// Cancel ends the current session if any, firing OnComposition with an
-// empty composition so the caller can clear its preedit overlay. Call
-// this when the field loses focus or when the caller wants to abandon
-// any in-progress composition.
-func (c *Composer) Cancel() {
+// Finish ends the current session if any. Any in-progress composition is
+// committed through OnCommit as if the IME had committed it, then
+// OnComposition is fired with an empty composition so the caller can clear
+// its preedit overlay.
+func (c *Composer) Finish() {
 	if c.s == nil {
 		return
+	}
+	if c.OnCommit != nil && c.s.loadComposition().text != "" {
+		c.OnCommit(c.s.compositionAsCommit())
 	}
 	c.s.Cancel()
 	c.s = nil

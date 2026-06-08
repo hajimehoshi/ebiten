@@ -213,6 +213,20 @@ func (s *session) Commit() *Commit {
 	return &s.commit
 }
 
+// compositionAsCommit returns a Commit that inserts the current composition at
+// the caret with no surrounding-text replacement, as if the IME had committed
+// the preedit.
+func (s *session) compositionAsCommit() *Commit {
+	preLen := len(s.textBeforeCaret)
+	return &Commit{
+		text:            s.loadComposition().text,
+		textBeforeCaret: s.textBeforeCaret,
+		textAfterCaret:  s.textAfterCaret,
+		replStart:       preLen,
+		replEnd:         preLen,
+	}
+}
+
 // IsClosed reports whether the session has ended for any reason.
 // IsClosed becomes true after Update observes a commit, after the platform
 // unilaterally ends the session, or after Cancel is called.

@@ -76,6 +76,8 @@ var (
 	sel_isKindOfClass              = objc.RegisterName("isKindOfClass:")
 	sel_array                      = objc.RegisterName("array")
 	sel_lengthOfBytesUsingEncoding = objc.RegisterName("lengthOfBytesUsingEncoding:")
+	sel_inputContext               = objc.RegisterName("inputContext")
+	sel_discardMarkedText          = objc.RegisterName("discardMarkedText")
 
 	class_NSArray            = objc.GetClass("NSArray")
 	class_NSView             = objc.GetClass("NSView")
@@ -125,6 +127,15 @@ func (t *textInput) start(bounds image.Rectangle) (<-chan textInputState, func()
 	contentView := window.Send(sel_contentView)
 	contentView.Send(sel_addSubview, tc)
 	window.Send(sel_makeFirstResponder, tc)
+
+	// Discard marked text left over from a previous session. The text input
+	// client is shared, so otherwise a previously focused field's uncommitted
+	// composition would continue into this session (#3463). This runs at
+	// session start, not teardown, because a new session can begin before the
+	// previous field ends its own.
+	if ctx := tc.Send(sel_inputContext); ctx != 0 {
+		ctx.Send(sel_discardMarkedText)
+	}
 
 	r := objc.Send[nsRect](contentView, sel_frame)
 	// The Y dirction is upward in the Cocoa coordinate system.
