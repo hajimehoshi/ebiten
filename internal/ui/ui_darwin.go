@@ -34,7 +34,7 @@ import (
 
 var class_EbitengineWindowDelegate objc.Class
 
-func (u *glfwBackend) initializePlatform() error {
+func (u *UserInterface) initializePlatform() error {
 	pushResizableState := func(id, win objc.ID) {
 		window := cocoa.NSWindow{ID: win}
 		id.Send(sel_setOrigResizable, window.StyleMask()&cocoa.NSWindowStyleMaskResizable != 0)
@@ -123,7 +123,10 @@ func (u *glfwBackend) initializePlatform() error {
 			{
 				Cmd: sel_windowWillEnterFullScreen,
 				Fn: func(id objc.ID, cmd objc.SEL, notification objc.ID) {
-					if err := u.setOrigWindowPosWithCurrentPos(); err != nil {
+					// The window delegate methods are invoked only while a GLFW window exists,
+					// so the backend is the GLFW backend here.
+					b := u.backend.(*glfwBackend)
+					if err := b.setOrigWindowPosWithCurrentPos(); err != nil {
 						u.setError(err)
 						return
 					}
@@ -143,7 +146,10 @@ func (u *glfwBackend) initializePlatform() error {
 					// Even a window has a size limitation, a window can be fullscreen by calling SetFullscreen(true).
 					// In this case, the window size limitation is disabled temporarily.
 					// When exiting from fullscreen, reset the window size limitation.
-					if err := u.updateWindowSizeLimits(); err != nil {
+					// The window delegate methods are invoked only while a GLFW window exists,
+					// so the backend is the GLFW backend here.
+					b := u.backend.(*glfwBackend)
+					if err := b.updateWindowSizeLimits(); err != nil {
 						u.setError(err)
 						return
 					}

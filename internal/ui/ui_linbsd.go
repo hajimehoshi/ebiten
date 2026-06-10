@@ -32,7 +32,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl"
 )
 
-func (u *glfwBackend) initializePlatform() error {
+func (u *UserInterface) initializePlatform() error {
 	return nil
 }
 

@@ -189,10 +189,6 @@ func (u *glfwBackend) updateInputStateForFrame(deviceScaleFactor float64) error 
 }
 
 func (u *glfwBackend) KeyName(key Key) string {
-	if !u.isRunning() {
-		return ""
-	}
-
 	gk, ok := uiKeyToGLFWKey[key]
 	if !ok {
 		return ""

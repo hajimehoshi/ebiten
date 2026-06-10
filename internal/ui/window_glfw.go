@@ -17,7 +17,6 @@
 package ui
 
 import (
-	"image"
 	"runtime"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/colormode"
@@ -28,13 +27,9 @@ type glfwWindow struct {
 	ui *glfwBackend
 }
 
+var _ backendWindow = (*glfwWindow)(nil)
+
 func (w *glfwWindow) IsDecorated() bool {
-	if w.ui.isTerminated() {
-		return false
-	}
-	if !w.ui.isRunning() {
-		return w.ui.isInitWindowDecorated()
-	}
 	var v bool
 	w.ui.mainThread.Call(func() {
 		if w.ui.isTerminated() {
@@ -51,14 +46,6 @@ func (w *glfwWindow) IsDecorated() bool {
 }
 
 func (w *glfwWindow) SetDecorated(decorated bool) {
-	if w.ui.isTerminated() {
-		return
-	}
-	if !w.ui.isRunning() {
-		w.ui.setInitWindowDecorated(decorated)
-		return
-	}
-
 	w.ui.mainThread.Call(func() {
 		if w.ui.isTerminated() {
 			return
@@ -70,23 +57,7 @@ func (w *glfwWindow) SetDecorated(decorated bool) {
 	})
 }
 
-func (w *glfwWindow) ResizingMode() WindowResizingMode {
-	if w.ui.isTerminated() {
-		return 0
-	}
-	return WindowResizingMode(w.ui.windowResizingMode.Load())
-}
-
 func (w *glfwWindow) SetResizingMode(mode WindowResizingMode) {
-	if w.ui.isTerminated() {
-		return
-	}
-	if WindowResizingMode(w.ui.windowResizingMode.Swap(int32(mode))) == mode {
-		return
-	}
-	if !w.ui.isRunning() {
-		return
-	}
 	w.ui.mainThread.Call(func() {
 		if w.ui.isTerminated() {
 			return
@@ -99,12 +70,6 @@ func (w *glfwWindow) SetResizingMode(mode WindowResizingMode) {
 }
 
 func (w *glfwWindow) IsFloating() bool {
-	if w.ui.isTerminated() {
-		return false
-	}
-	if !w.ui.isRunning() {
-		return w.ui.isInitWindowFloating()
-	}
 	var v bool
 	w.ui.mainThread.Call(func() {
 		if w.ui.isTerminated() {
@@ -121,13 +86,6 @@ func (w *glfwWindow) IsFloating() bool {
 }
 
 func (w *glfwWindow) SetFloating(floating bool) {
-	if w.ui.isTerminated() {
-		return
-	}
-	if !w.ui.isRunning() {
-		w.ui.setInitWindowFloating(floating)
-		return
-	}
 	w.ui.mainThread.Call(func() {
 		if w.ui.isTerminated() {
 			return
@@ -140,15 +98,6 @@ func (w *glfwWindow) SetFloating(floating bool) {
 }
 
 func (w *glfwWindow) IsMaximized() bool {
-	if w.ui.isTerminated() {
-		return false
-	}
-	if !w.ui.isRunning() {
-		return w.ui.isInitWindowMaximized()
-	}
-	if w.ResizingMode() != WindowResizingModeEnabled {
-		return false
-	}
 	var v bool
 	w.ui.mainThread.Call(func() {
 		if w.ui.isTerminated() {
@@ -165,25 +114,6 @@ func (w *glfwWindow) IsMaximized() bool {
 }
 
 func (w *glfwWindow) Maximize() {
-	if w.ui.isTerminated() {
-		return
-	}
-
-	// Do not allow maximizing the window when the window is not resizable.
-	// On Windows, it is possible to restore the window from being maximized by mouse-dragging,
-	// and this can be an unexpected behavior (#1990).
-	if w.ResizingMode() != WindowResizingModeEnabled {
-		return
-	}
-
-	if !w.ui.isWindowMaximizable() {
-		return
-	}
-
-	if !w.ui.isRunning() {
-		w.ui.setInitWindowMaximized(true)
-		return
-	}
 	w.ui.mainThread.Call(func() {
 		if w.ui.isTerminated() {
 			return
@@ -196,9 +126,6 @@ func (w *glfwWindow) Maximize() {
 }
 
 func (w *glfwWindow) IsMinimized() bool {
-	if !w.ui.isRunning() {
-		return false
-	}
 	var v bool
 	w.ui.mainThread.Call(func() {
 		if w.ui.isTerminated() {
@@ -215,10 +142,6 @@ func (w *glfwWindow) IsMinimized() bool {
 }
 
 func (w *glfwWindow) Minimize() {
-	if !w.ui.isRunning() {
-		// Do nothing
-		return
-	}
 	w.ui.mainThread.Call(func() {
 		if w.ui.isTerminated() {
 			return
@@ -231,16 +154,6 @@ func (w *glfwWindow) Minimize() {
 }
 
 func (w *glfwWindow) Restore() {
-	if w.ui.isTerminated() {
-		return
-	}
-	if !w.ui.isWindowMaximizable() {
-		return
-	}
-	if !w.ui.isRunning() {
-		// Do nothing
-		return
-	}
 	w.ui.mainThread.Call(func() {
 		if w.ui.isTerminated() {
 			return
@@ -253,16 +166,6 @@ func (w *glfwWindow) Restore() {
 }
 
 func (w *glfwWindow) SetMonitor(monitor *Monitor) {
-	if monitor == nil {
-		panic("ui: monitor cannot be nil at SetMonitor")
-	}
-	if w.ui.isTerminated() {
-		return
-	}
-	if !w.ui.isRunning() {
-		w.ui.setInitMonitor(monitor)
-		return
-	}
 	w.ui.mainThread.Call(func() {
 		if w.ui.isTerminated() {
 			return
@@ -275,12 +178,6 @@ func (w *glfwWindow) SetMonitor(monitor *Monitor) {
 }
 
 func (w *glfwWindow) Position() (int, int) {
-	if w.ui.isTerminated() {
-		return 0, 0
-	}
-	if !w.ui.isRunning() {
-		panic("ui: WindowPosition can't be called before the main loop starts")
-	}
 	var x, y int
 	w.ui.mainThread.Call(func() {
 		if w.ui.isTerminated() {
@@ -319,13 +216,6 @@ func (w *glfwWindow) Position() (int, int) {
 }
 
 func (w *glfwWindow) SetPosition(x, y int) {
-	if w.ui.isTerminated() {
-		return
-	}
-	if !w.ui.isRunning() {
-		w.ui.setInitWindowPositionInDIP(x, y)
-		return
-	}
 	w.ui.mainThread.Call(func() {
 		if w.ui.isTerminated() {
 			return
@@ -343,13 +233,6 @@ func (w *glfwWindow) SetPosition(x, y int) {
 }
 
 func (w *glfwWindow) Size() (int, int) {
-	if w.ui.isTerminated() {
-		return 0, 0
-	}
-	if !w.ui.isRunning() {
-		ww, wh := w.ui.getInitWindowSizeInDIP()
-		return w.ui.adjustWindowSizeBasedOnSizeLimitsInDIP(ww, wh)
-	}
 	var ww, wh int
 	w.ui.mainThread.Call(func() {
 		if w.ui.isTerminated() {
@@ -363,14 +246,6 @@ func (w *glfwWindow) Size() (int, int) {
 }
 
 func (w *glfwWindow) SetSize(width, height int) {
-	if w.ui.isTerminated() {
-		return
-	}
-	if !w.ui.isRunning() {
-		// If the window is initially maximized, the set size is ignored anyway.
-		w.ui.setInitWindowSizeInDIP(width, height)
-		return
-	}
 	w.ui.mainThread.Call(func() {
 		if w.ui.isTerminated() {
 			return
@@ -390,21 +265,7 @@ func (w *glfwWindow) SetSize(width, height int) {
 	})
 }
 
-func (w *glfwWindow) SizeLimits() (minw, minh, maxw, maxh int) {
-	return w.ui.getWindowSizeLimitsInDIP()
-}
-
 func (w *glfwWindow) SetSizeLimits(minw, minh, maxw, maxh int) {
-	if w.ui.isTerminated() {
-		return
-	}
-	if !w.ui.setWindowSizeLimitsInDIP(minw, minh, maxw, maxh) {
-		return
-	}
-	if !w.ui.isRunning() {
-		return
-	}
-
 	w.ui.mainThread.Call(func() {
 		if w.ui.isTerminated() {
 			return
@@ -416,24 +277,7 @@ func (w *glfwWindow) SetSizeLimits(minw, minh, maxw, maxh int) {
 	})
 }
 
-func (w *glfwWindow) SetIcon(iconImages []image.Image) {
-	if w.ui.isTerminated() {
-		return
-	}
-	// The icons are actually set at (*UserInterface).loop.
-	w.ui.setIconImages(iconImages)
-}
-
 func (w *glfwWindow) SetTitle(title string) {
-	if w.ui.isTerminated() {
-		return
-	}
-	if w.ui.title.Swap(title) == title {
-		return
-	}
-	if !w.ui.isRunning() {
-		return
-	}
 	w.ui.mainThread.Call(func() {
 		if w.ui.isTerminated() {
 			return
@@ -445,42 +289,32 @@ func (w *glfwWindow) SetTitle(title string) {
 	})
 }
 
-func (w *glfwWindow) ColorMode() colormode.ColorMode {
-	if w.ui.isTerminated() {
-		return colormode.Unknown
-	}
-	return colormode.ColorMode(w.ui.colorMode.Load())
-}
-
 func (w *glfwWindow) SetColorMode(mode colormode.ColorMode) {
-	if w.ui.isTerminated() {
-		return
-	}
-	if !w.ui.isRunning() {
-		w.ui.colorMode.Store(int32(mode))
-		return
-	}
-	if err := w.ui.setWindowColorMode(mode); err != nil {
+	var err error
+	w.ui.mainThread.Call(func() {
+		if w.ui.isTerminated() {
+			return
+		}
+		err = w.ui.setWindowColorModeImpl(mode)
+	})
+	if err != nil {
 		w.ui.setError(err)
 	}
 }
 
 func (w *glfwWindow) SetClosingHandled(handled bool) {
-	w.ui.setWindowClosingHandled(handled)
-}
-
-func (w *glfwWindow) IsClosingHandled() bool {
-	return w.ui.isWindowClosingHandled()
+	w.ui.mainThread.Call(func() {
+		if w.ui.isTerminated() {
+			return
+		}
+		if err := w.ui.setDocumentEdited(handled); err != nil {
+			w.ui.setError(err)
+			return
+		}
+	})
 }
 
 func (w *glfwWindow) SetMousePassthrough(enabled bool) {
-	if w.ui.isTerminated() {
-		return
-	}
-	if !w.ui.isRunning() {
-		w.ui.setInitWindowMousePassthrough(enabled)
-		return
-	}
 	w.ui.mainThread.Call(func() {
 		if w.ui.isTerminated() {
 			return
@@ -493,12 +327,6 @@ func (w *glfwWindow) SetMousePassthrough(enabled bool) {
 }
 
 func (w *glfwWindow) IsMousePassthrough() bool {
-	if w.ui.isTerminated() {
-		return false
-	}
-	if !w.ui.isRunning() {
-		return w.ui.isInitWindowMousePassthrough()
-	}
 	var v bool
 	w.ui.mainThread.Call(func() {
 		if w.ui.isTerminated() {
@@ -515,13 +343,6 @@ func (w *glfwWindow) IsMousePassthrough() bool {
 }
 
 func (w *glfwWindow) RequestAttention() {
-	if w.ui.isTerminated() {
-		return
-	}
-	if !w.ui.isRunning() {
-		// Do nothing
-		return
-	}
 	w.ui.mainThread.Call(func() {
 		if w.ui.isTerminated() {
 			return

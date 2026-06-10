@@ -33,7 +33,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/winver"
 )
 
-func (u *glfwBackend) initializePlatform() error {
+func (u *UserInterface) initializePlatform() error {
 	return nil
 }
 
