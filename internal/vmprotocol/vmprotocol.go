@@ -17,7 +17,7 @@
 // On connect, both ends exchange a handshake to confirm a matching ProtocolVersion before
 // interpreting the stream. Messages are named by their sender. The host sends one HostMessage
 // operation at a time; the guest sends back a sequence of GuestMessages belonging to that operation
-// — draw-command batches and queries, concluded by a done message — in lockstep. A query suspends
+// — graphics-command batches and queries, concluded by a done message — in lockstep. A query suspends
 // the operation until the host answers it with the corresponding HostMessage. The encoding is gob.
 package vmprotocol
 
@@ -105,9 +105,9 @@ const (
 	// operation's outcome (Err and Terminated). Exactly one concludes each operation, after any
 	// number of other messages.
 	GuestMessageKindDone GuestMessageKind = iota
-	// GuestMessageKindDrawCommands carries a batch of draw commands for the host to render. Zero or
-	// more precede the concluding GuestMessageKindDone within one operation.
-	GuestMessageKindDrawCommands
+	// GuestMessageKindGraphicsCommands carries a batch of graphics commands for the host to replay.
+	// Zero or more precede the concluding GuestMessageKindDone within one operation.
+	GuestMessageKindGraphicsCommands
 	// GuestMessageKindQueryReadPixels asks the host to read pixels back (from the commands already
 	// sent) before the guest can finish the operation. The host answers with
 	// HostMessageKindAnswerReadPixels.
@@ -137,9 +137,9 @@ type GuestMessage struct {
 	// of matching an error string. Set on GuestMessageKindDone.
 	Terminated bool
 
-	// DrawCommands is the batch of draw commands the host must render. Set on
-	// GuestMessageKindDrawCommands.
-	DrawCommands []DrawCommand
+	// GraphicsCommands is the batch of graphics commands the host must replay. Set on
+	// GuestMessageKindGraphicsCommands.
+	GraphicsCommands []GraphicsCommand
 
 	// ReadImageID and ReadRegions identify the read-back request on GuestMessageKindQueryReadPixels.
 	ReadImageID graphicsdriver.ImageID
@@ -185,7 +185,7 @@ func (d *Decoder) DecodeGuestMessage(msg *GuestMessage) error {
 //
 // The wire format is frozen within a patch series: builds sharing the same Ebitengine minor version
 // (x.y) always agree on this value and so are always compatible. A change that affects the wire — the
-// HostMessage/GuestMessage kinds or fields, or the DrawCommand schema or its semantics — bumps this
+// HostMessage/GuestMessage kinds or fields, or the GraphicsCommand schema or its semantics — bumps this
 // value and may only land in a minor or major release.
 const ProtocolVersion = 1
 

@@ -22,67 +22,67 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 )
 
-// DrawOp identifies a recorded graphics command.
-type DrawOp int
+// GraphicsCommandKind identifies a recorded graphics command.
+type GraphicsCommandKind int
 
 const (
-	DrawOpInitialize DrawOp = iota
-	DrawOpBegin
-	DrawOpEnd
-	DrawOpSetTransparent
-	DrawOpSetVertices
-	DrawOpNewImage
-	DrawOpNewScreenFramebufferImage
-	DrawOpNewShader
-	DrawOpDrawTriangles
-	DrawOpSetVsyncEnabled
-	DrawOpWritePixels
-	DrawOpReadPixels
-	DrawOpDisposeImage
-	DrawOpDisposeShader
+	GraphicsCommandKindInitialize GraphicsCommandKind = iota
+	GraphicsCommandKindBegin
+	GraphicsCommandKindEnd
+	GraphicsCommandKindSetTransparent
+	GraphicsCommandKindSetVertices
+	GraphicsCommandKindNewImage
+	GraphicsCommandKindNewScreenFramebufferImage
+	GraphicsCommandKindNewShader
+	GraphicsCommandKindDrawTriangles
+	GraphicsCommandKindSetVsyncEnabled
+	GraphicsCommandKindWritePixels
+	GraphicsCommandKindReadPixels
+	GraphicsCommandKindDisposeImage
+	GraphicsCommandKindDisposeShader
 )
 
-func (o DrawOp) String() string {
-	switch o {
-	case DrawOpInitialize:
+func (k GraphicsCommandKind) String() string {
+	switch k {
+	case GraphicsCommandKindInitialize:
 		return "Initialize"
-	case DrawOpBegin:
+	case GraphicsCommandKindBegin:
 		return "Begin"
-	case DrawOpEnd:
+	case GraphicsCommandKindEnd:
 		return "End"
-	case DrawOpSetTransparent:
+	case GraphicsCommandKindSetTransparent:
 		return "SetTransparent"
-	case DrawOpSetVertices:
+	case GraphicsCommandKindSetVertices:
 		return "SetVertices"
-	case DrawOpNewImage:
+	case GraphicsCommandKindNewImage:
 		return "NewImage"
-	case DrawOpNewScreenFramebufferImage:
+	case GraphicsCommandKindNewScreenFramebufferImage:
 		return "NewScreenFramebufferImage"
-	case DrawOpNewShader:
+	case GraphicsCommandKindNewShader:
 		return "NewShader"
-	case DrawOpDrawTriangles:
+	case GraphicsCommandKindDrawTriangles:
 		return "DrawTriangles"
-	case DrawOpSetVsyncEnabled:
+	case GraphicsCommandKindSetVsyncEnabled:
 		return "SetVsyncEnabled"
-	case DrawOpWritePixels:
+	case GraphicsCommandKindWritePixels:
 		return "WritePixels"
-	case DrawOpReadPixels:
+	case GraphicsCommandKindReadPixels:
 		return "ReadPixels"
-	case DrawOpDisposeImage:
+	case GraphicsCommandKindDisposeImage:
 		return "DisposeImage"
-	case DrawOpDisposeShader:
+	case GraphicsCommandKindDisposeShader:
 		return "DisposeShader"
 	default:
-		return fmt.Sprintf("DrawOp(%d)", int(o))
+		return fmt.Sprintf("GraphicsCommandKind(%d)", int(k))
 	}
 }
 
-// DrawCommand is a single recorded graphics command: the guest-side remote driver produces these, they
-// cross the wire, and the host replays them.
+// GraphicsCommand is a single recorded graphics command: the guest-side remote driver produces these,
+// they cross the wire, and the host replays them.
 //
-// Only the fields relevant to Op are populated; the rest stay at their zero values.
-type DrawCommand struct {
-	Op DrawOp
+// Only the fields relevant to Kind are populated; the rest stay at their zero values.
+type GraphicsCommand struct {
+	Kind GraphicsCommandKind
 
 	// Present is set by End.
 	Present bool
