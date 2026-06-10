@@ -3,6 +3,8 @@
 // SPDX-FileCopyrightText: 2006-2019 Camilla Löwy <elmindreda@glfw.org>
 // SPDX-FileCopyrightText: 2022 The Ebitengine Authors
 
+//go:build darwin || windows
+
 package glfw
 
 import (
@@ -37,6 +39,9 @@ func (v *VidMode) equals(other *VidMode) bool {
 }
 
 func (m *Monitor) refreshVideoModes() error {
+	if len(m.modes) > 0 {
+		return nil
+	}
 	m.modes = m.modes[:0]
 	modes, err := m.platformAppendVideoModes(m.modes)
 	if err != nil {
@@ -258,6 +263,9 @@ func SetMonitorCallback(cbfun MonitorCallback) (MonitorCallback, error) {
 func (m *Monitor) GetVideoModes() ([]*VidMode, error) {
 	if !_glfw.initialized {
 		return nil, NotInitialized
+	}
+	if err := m.refreshVideoModes(); err != nil {
+		return nil, err
 	}
 	return m.modes, nil
 }
