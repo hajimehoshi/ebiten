@@ -10,8 +10,8 @@ package glfw
 //#define GLFW_EXPOSE_NATIVE_X11
 //#define GLFW_EXPOSE_NATIVE_GLX
 //#define GLFW_INCLUDE_NONE
-//#include "glfw3_unix.h"
-//#include "glfw3native_unix.h"
+//#include "glfw3_linbsd.h"
+//#include "glfw3native_linbsd.h"
 import "C"
 import "unsafe"
 

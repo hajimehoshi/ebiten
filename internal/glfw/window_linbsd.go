@@ -8,7 +8,7 @@ package glfw
 
 // #include <stdlib.h>
 // #define GLFW_INCLUDE_NONE
-// #include "glfw3_unix.h"
+// #include "glfw3_linbsd.h"
 //
 // void goWindowPosCB(void* window, int xpos, int ypos);
 // void goWindowSizeCB(void* window, int width, int height);

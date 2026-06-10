@@ -8,7 +8,7 @@ package glfw
 
 // #include <stdlib.h>
 // #define GLFW_INCLUDE_NONE
-// #include "glfw3_unix.h"
+// #include "glfw3_linbsd.h"
 import "C"
 
 import (

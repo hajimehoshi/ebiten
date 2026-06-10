@@ -8,7 +8,7 @@ package glfw
 
 // #include <stdlib.h>
 // #define GLFW_INCLUDE_NONE
-// #include "glfw3_unix.h"
+// #include "glfw3_linbsd.h"
 //
 // void goKeyCB(void* window, int key, int  scancode, int action, int mods);
 // void goCharCB(void* window, unsigned int character);

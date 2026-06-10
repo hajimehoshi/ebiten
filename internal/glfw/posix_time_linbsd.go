@@ -8,7 +8,7 @@
 package glfw
 
 // #undef GLFW_INCLUDE_NONE
-// #include "internal_unix.h"
+// #include "internal_linbsd.h"
 import "C"
 
 import "time"

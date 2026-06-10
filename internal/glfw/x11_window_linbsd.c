@@ -9,7 +9,7 @@
  #define _GNU_SOURCE
 #endif
 
-#include "internal_unix.h"
+#include "internal_linbsd.h"
 
 #include <X11/cursorfont.h>
 #include <X11/Xmd.h>

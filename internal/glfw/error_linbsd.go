@@ -7,7 +7,7 @@
 package glfw
 
 // #define GLFW_INCLUDE_NONE
-// #include "glfw3_unix.h"
+// #include "glfw3_linbsd.h"
 //
 // void goErrorCB(int code, char* desc);
 //
