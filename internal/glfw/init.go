@@ -36,10 +36,6 @@ func terminate() error {
 
 	_glfw.initialized = false
 
-	if err := _glfw.contextSlot.destroy(); err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -66,10 +62,6 @@ func Init() (err error) {
 	_glfw.hints.init.hatButtons = true
 
 	if err := platformInit(); err != nil {
-		return err
-	}
-
-	if err := _glfw.contextSlot.create(); err != nil {
 		return err
 	}
 

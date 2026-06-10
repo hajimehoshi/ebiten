@@ -194,10 +194,6 @@ type Cursor struct {
 	platform platformCursorState
 }
 
-type tls struct {
-	platform platformTLSState
-}
-
 type library struct {
 	initialized bool
 
@@ -215,7 +211,7 @@ type library struct {
 
 	monitors []*Monitor
 
-	contextSlot tls
+	currentContext *Window
 
 	callbacks struct {
 		monitor MonitorCallback

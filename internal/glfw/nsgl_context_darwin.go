@@ -183,14 +183,10 @@ func makeContextCurrentNSGL(window *Window) error {
 
 	if window != nil {
 		window.context.platform.object.Send(sel_makeCurrentContext)
-		if err := _glfw.contextSlot.set(uintptr(unsafe.Pointer(window))); err != nil {
-			return err
-		}
+		_glfw.currentContext = window
 	} else {
 		objc.ID(class_NSOpenGLContext).Send(sel_clearCurrentContext)
-		if err := _glfw.contextSlot.set(0); err != nil {
-			return err
-		}
+		_glfw.currentContext = nil
 	}
 	return nil
 }

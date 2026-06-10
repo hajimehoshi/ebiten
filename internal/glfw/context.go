@@ -459,11 +459,7 @@ func (w *Window) MakeContextCurrent() error {
 		return NotInitialized
 	}
 
-	ptr, err := _glfw.contextSlot.get()
-	if err != nil {
-		return err
-	}
-	previous := (*Window)(unsafe.Pointer(ptr))
+	previous := _glfw.currentContext
 
 	if w != nil && w.context.client == NoAPI {
 		return fmt.Errorf("glfw: cannot make current with a window that has no OpenGL or OpenGL ES context: %w", NoWindowContext)
@@ -489,11 +485,7 @@ func GetCurrentContext() (*Window, error) {
 	if !_glfw.initialized {
 		return nil, NotInitialized
 	}
-	ptr, err := _glfw.contextSlot.get()
-	if err != nil {
-		return nil, err
-	}
-	return (*Window)(unsafe.Pointer(ptr)), nil
+	return _glfw.currentContext, nil
 }
 
 func (w *Window) SwapBuffers() error {

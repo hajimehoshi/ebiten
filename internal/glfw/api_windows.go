@@ -174,7 +174,6 @@ const (
 	_SWP_NOSIZE                                                = 0x0001
 	_SWP_NOZORDER                                              = 0x0004
 	_SWP_SHOWWINDOW                                            = 0x0040
-	_TLS_OUT_OF_INDEXES                           uint32       = 0xffffffff
 	_TME_LEAVE                                                 = 0x00000002
 	_UNICODE_NOCHAR                                            = 0xffff
 	_USER_DEFAULT_SCREEN_DPI                                   = 96
@@ -728,10 +727,6 @@ var (
 
 	procGetModuleHandleExW      = kernel32.NewProc("GetModuleHandleExW")
 	procSetThreadExecutionState = kernel32.NewProc("SetThreadExecutionState")
-	procTlsAlloc                = kernel32.NewProc("TlsAlloc")
-	procTlsFree                 = kernel32.NewProc("TlsFree")
-	procTlsGetValue             = kernel32.NewProc("TlsGetValue")
-	procTlsSetValue             = kernel32.NewProc("TlsSetValue")
 
 	procWGLCreateContext     = opengl32.NewProc("wglCreateContext")
 	procWGLDeleteContext     = opengl32.NewProc("wglDeleteContext")
@@ -1675,38 +1670,6 @@ func _SystemParametersInfoW(uiAction uint32, uiParam uint32, pvParam uintptr, fW
 	r, _, e := procSystemParametersInfoW.Call(uintptr(uiAction), uintptr(uiParam), pvParam, uintptr(fWinIni))
 	if int32(r) == 0 && !errors.Is(e, windows.ERROR_SUCCESS) {
 		return fmt.Errorf("glfw: SystemParametersInfoW failed: %w", e)
-	}
-	return nil
-}
-
-func _TlsAlloc() (uint32, error) {
-	r, _, e := procTlsAlloc.Call()
-	if uint32(r) == _TLS_OUT_OF_INDEXES {
-		return 0, fmt.Errorf("glfw: TlsAlloc failed: %w", e)
-	}
-	return uint32(r), nil
-}
-
-func _TlsFree(dwTlsIndex uint32) error {
-	r, _, e := procTlsFree.Call(uintptr(dwTlsIndex))
-	if int32(r) == 0 && !errors.Is(e, windows.ERROR_SUCCESS) {
-		return fmt.Errorf("glfw: TlsFree failed: %w", e)
-	}
-	return nil
-}
-
-func _TlsGetValue(dwTlsIndex uint32) (uintptr, error) {
-	r, _, e := procTlsGetValue.Call(uintptr(dwTlsIndex))
-	if r == 0 && !errors.Is(e, windows.ERROR_SUCCESS) {
-		return 0, fmt.Errorf("glfw: TlsGetValue failed: %w", e)
-	}
-	return r, nil
-}
-
-func _TlsSetValue(dwTlsIndex uint32, lpTlsValue uintptr) error {
-	r, _, e := procTlsSetValue.Call(uintptr(dwTlsIndex), lpTlsValue)
-	if int32(r) == 0 && !errors.Is(e, windows.ERROR_SUCCESS) {
-		return fmt.Errorf("glfw: TlsSetValue failed: %w", e)
 	}
 	return nil
 }

@@ -38,11 +38,6 @@ type platformCursorState struct {
 	object objc.ID // NSCursor
 }
 
-type platformTLSState struct {
-	allocated bool
-	value     uintptr
-}
-
 type platformLibraryWindowState struct {
 	eventSource  uintptr // CGEventSourceRef
 	delegate     objc.ID

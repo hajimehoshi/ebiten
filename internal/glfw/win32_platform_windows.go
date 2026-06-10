@@ -51,11 +51,6 @@ type platformCursorState struct {
 	handle _HCURSOR
 }
 
-type platformTLSState struct {
-	allocated bool
-	index     uint32
-}
-
 type platformLibraryWindowState struct {
 	instance                 _HINSTANCE
 	helperWindowHandle       windows.HWND

@@ -335,13 +335,8 @@ func (w *Window) Destroy() error {
 	w.callbacks.charmods = nil
 	w.callbacks.drop = nil
 
-	// The w's context must not be current on another thread when the
-	// w is destroyed
-	current, err := _glfw.contextSlot.get()
-	if err != nil {
-		return err
-	}
-	if uintptr(unsafe.Pointer(w)) == current {
+	// Detach w's context if it is current, so the window is not destroyed while current
+	if w == _glfw.currentContext {
 		if err := (*Window)(nil).MakeContextCurrent(); err != nil {
 			return err
 		}
