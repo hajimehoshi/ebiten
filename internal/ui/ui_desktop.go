@@ -55,12 +55,12 @@ type userInterfaceImpl struct {
 	context        *context
 }
 
-func newGlfwBackend(u *UserInterface) *glfwBackend {
+func newGLFWBackend(u *UserInterface) *glfwBackend {
 	return &glfwBackend{UserInterface: u}
 }
 
 func (u *UserInterface) init() error {
-	u.backend = newGlfwBackend(u)
+	u.backend = newGLFWBackend(u)
 	return u.backend.init()
 }
 
