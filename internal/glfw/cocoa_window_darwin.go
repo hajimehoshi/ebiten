@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"image"
 	"math"
-	"reflect"
 	"unsafe"
 
 	"github.com/ebitengine/purego/objc"
@@ -195,18 +194,12 @@ func registerGLFWClasses() error {
 		"GLFWWindowDelegate",
 		objc.GetClass("NSObject"),
 		[]*objc.Protocol{objc.GetProtocol("NSWindowDelegate")},
-		[]objc.FieldDef{
-			{
-				Name:      "goWindow",
-				Type:      reflect.TypeFor[uintptr](),
-				Attribute: objc.ReadWrite,
-			},
-		},
+		nil,
 		[]objc.MethodDef{
 			{
 				Cmd: objc.RegisterName("windowShouldClose:"),
 				Fn: func(self objc.ID, _ objc.SEL, sender objc.ID) bool {
-					window := getGoWindow(class_GLFWWindowDelegate, self)
+					window := getGoWindow(self)
 					if window == nil {
 						return false
 					}
@@ -217,7 +210,7 @@ func registerGLFWClasses() error {
 			{
 				Cmd: objc.RegisterName("windowDidResize:"),
 				Fn: func(self objc.ID, _ objc.SEL, notification objc.ID) {
-					window := getGoWindow(class_GLFWWindowDelegate, self)
+					window := getGoWindow(self)
 					if window == nil {
 						return
 					}
@@ -242,7 +235,7 @@ func registerGLFWClasses() error {
 			{
 				Cmd: objc.RegisterName("windowDidMove:"),
 				Fn: func(self objc.ID, _ objc.SEL, notification objc.ID) {
-					window := getGoWindow(class_GLFWWindowDelegate, self)
+					window := getGoWindow(self)
 					if window == nil {
 						return
 					}
@@ -268,7 +261,7 @@ func registerGLFWClasses() error {
 			{
 				Cmd: objc.RegisterName("windowDidMiniaturize:"),
 				Fn: func(self objc.ID, _ objc.SEL, notification objc.ID) {
-					window := getGoWindow(class_GLFWWindowDelegate, self)
+					window := getGoWindow(self)
 					if window == nil {
 						return
 					}
@@ -281,7 +274,7 @@ func registerGLFWClasses() error {
 			{
 				Cmd: objc.RegisterName("windowDidDeminiaturize:"),
 				Fn: func(self objc.ID, _ objc.SEL, notification objc.ID) {
-					window := getGoWindow(class_GLFWWindowDelegate, self)
+					window := getGoWindow(self)
 					if window == nil {
 						return
 					}
@@ -294,7 +287,7 @@ func registerGLFWClasses() error {
 			{
 				Cmd: objc.RegisterName("windowDidBecomeKey:"),
 				Fn: func(self objc.ID, _ objc.SEL, notification objc.ID) {
-					window := getGoWindow(class_GLFWWindowDelegate, self)
+					window := getGoWindow(self)
 					if window == nil {
 						return
 					}
@@ -308,7 +301,7 @@ func registerGLFWClasses() error {
 			{
 				Cmd: objc.RegisterName("windowDidResignKey:"),
 				Fn: func(self objc.ID, _ objc.SEL, notification objc.ID) {
-					window := getGoWindow(class_GLFWWindowDelegate, self)
+					window := getGoWindow(self)
 					if window == nil {
 						return
 					}
@@ -321,7 +314,7 @@ func registerGLFWClasses() error {
 			{
 				Cmd: objc.RegisterName("windowDidChangeOcclusionState:"),
 				Fn: func(self objc.ID, _ objc.SEL, notification objc.ID) {
-					window := getGoWindow(class_GLFWWindowDelegate, self)
+					window := getGoWindow(self)
 					if window == nil {
 						return
 					}
@@ -343,19 +336,13 @@ func registerGLFWClasses() error {
 		"GLFWContentView",
 		objc.GetClass("NSView"),
 		[]*objc.Protocol{objc.GetProtocol("NSTextInputClient")},
-		[]objc.FieldDef{
-			{
-				Name:      "goWindow",
-				Type:      reflect.TypeFor[uintptr](),
-				Attribute: objc.ReadWrite,
-			},
-		},
+		nil,
 		[]objc.MethodDef{
 			// Mouse button events.
 			{
 				Cmd: objc.RegisterName("mouseDown:"),
 				Fn: func(self objc.ID, _ objc.SEL, event objc.ID) {
-					window := getGoWindow(class_GLFWContentView, self)
+					window := getGoWindow(self)
 					if window == nil {
 						return
 					}
@@ -366,7 +353,7 @@ func registerGLFWClasses() error {
 			{
 				Cmd: objc.RegisterName("mouseUp:"),
 				Fn: func(self objc.ID, _ objc.SEL, event objc.ID) {
-					window := getGoWindow(class_GLFWContentView, self)
+					window := getGoWindow(self)
 					if window == nil {
 						return
 					}
@@ -377,7 +364,7 @@ func registerGLFWClasses() error {
 			{
 				Cmd: objc.RegisterName("rightMouseDown:"),
 				Fn: func(self objc.ID, _ objc.SEL, event objc.ID) {
-					window := getGoWindow(class_GLFWContentView, self)
+					window := getGoWindow(self)
 					if window == nil {
 						return
 					}
@@ -388,7 +375,7 @@ func registerGLFWClasses() error {
 			{
 				Cmd: objc.RegisterName("rightMouseUp:"),
 				Fn: func(self objc.ID, _ objc.SEL, event objc.ID) {
-					window := getGoWindow(class_GLFWContentView, self)
+					window := getGoWindow(self)
 					if window == nil {
 						return
 					}
@@ -399,7 +386,7 @@ func registerGLFWClasses() error {
 			{
 				Cmd: objc.RegisterName("otherMouseDown:"),
 				Fn: func(self objc.ID, _ objc.SEL, event objc.ID) {
-					window := getGoWindow(class_GLFWContentView, self)
+					window := getGoWindow(self)
 					if window == nil {
 						return
 					}
@@ -411,7 +398,7 @@ func registerGLFWClasses() error {
 			{
 				Cmd: objc.RegisterName("otherMouseUp:"),
 				Fn: func(self objc.ID, _ objc.SEL, event objc.ID) {
-					window := getGoWindow(class_GLFWContentView, self)
+					window := getGoWindow(self)
 					if window == nil {
 						return
 					}
@@ -424,7 +411,7 @@ func registerGLFWClasses() error {
 			{
 				Cmd: objc.RegisterName("mouseMoved:"),
 				Fn: func(self objc.ID, _ objc.SEL, event objc.ID) {
-					window := getGoWindow(class_GLFWContentView, self)
+					window := getGoWindow(self)
 					if window == nil {
 						return
 					}
@@ -434,7 +421,7 @@ func registerGLFWClasses() error {
 			{
 				Cmd: objc.RegisterName("mouseDragged:"),
 				Fn: func(self objc.ID, _ objc.SEL, event objc.ID) {
-					window := getGoWindow(class_GLFWContentView, self)
+					window := getGoWindow(self)
 					if window == nil {
 						return
 					}
@@ -444,7 +431,7 @@ func registerGLFWClasses() error {
 			{
 				Cmd: objc.RegisterName("rightMouseDragged:"),
 				Fn: func(self objc.ID, _ objc.SEL, event objc.ID) {
-					window := getGoWindow(class_GLFWContentView, self)
+					window := getGoWindow(self)
 					if window == nil {
 						return
 					}
@@ -454,7 +441,7 @@ func registerGLFWClasses() error {
 			{
 				Cmd: objc.RegisterName("otherMouseDragged:"),
 				Fn: func(self objc.ID, _ objc.SEL, event objc.ID) {
-					window := getGoWindow(class_GLFWContentView, self)
+					window := getGoWindow(self)
 					if window == nil {
 						return
 					}
@@ -464,7 +451,7 @@ func registerGLFWClasses() error {
 			{
 				Cmd: objc.RegisterName("mouseExited:"),
 				Fn: func(self objc.ID, _ objc.SEL, event objc.ID) {
-					window := getGoWindow(class_GLFWContentView, self)
+					window := getGoWindow(self)
 					if window == nil {
 						return
 					}
@@ -477,7 +464,7 @@ func registerGLFWClasses() error {
 			{
 				Cmd: objc.RegisterName("mouseEntered:"),
 				Fn: func(self objc.ID, _ objc.SEL, event objc.ID) {
-					window := getGoWindow(class_GLFWContentView, self)
+					window := getGoWindow(self)
 					if window == nil {
 						return
 					}
@@ -491,7 +478,7 @@ func registerGLFWClasses() error {
 			{
 				Cmd: objc.RegisterName("keyDown:"),
 				Fn: func(self objc.ID, _ objc.SEL, event objc.ID) {
-					window := getGoWindow(class_GLFWContentView, self)
+					window := getGoWindow(self)
 					if window == nil {
 						return
 					}
@@ -510,7 +497,7 @@ func registerGLFWClasses() error {
 			{
 				Cmd: objc.RegisterName("keyUp:"),
 				Fn: func(self objc.ID, _ objc.SEL, event objc.ID) {
-					window := getGoWindow(class_GLFWContentView, self)
+					window := getGoWindow(self)
 					if window == nil {
 						return
 					}
@@ -525,7 +512,7 @@ func registerGLFWClasses() error {
 			{
 				Cmd: objc.RegisterName("flagsChanged:"),
 				Fn: func(self objc.ID, _ objc.SEL, event objc.ID) {
-					window := getGoWindow(class_GLFWContentView, self)
+					window := getGoWindow(self)
 					if window == nil {
 						return
 					}
@@ -553,7 +540,7 @@ func registerGLFWClasses() error {
 			{
 				Cmd: objc.RegisterName("scrollWheel:"),
 				Fn: func(self objc.ID, _ objc.SEL, event objc.ID) {
-					window := getGoWindow(class_GLFWContentView, self)
+					window := getGoWindow(self)
 					if window == nil {
 						return
 					}
@@ -574,7 +561,7 @@ func registerGLFWClasses() error {
 			{
 				Cmd: objc.RegisterName("viewDidChangeBackingProperties"),
 				Fn: func(self objc.ID, _ objc.SEL) {
-					window := getGoWindow(class_GLFWContentView, self)
+					window := getGoWindow(self)
 					if window == nil {
 						return
 					}
@@ -637,11 +624,12 @@ func registerGLFWClasses() error {
 			{
 				Cmd: objc.RegisterName("dealloc"),
 				Fn: func(self objc.ID, _ objc.SEL) {
-					window := getGoWindow(class_GLFWContentView, self)
+					window := getGoWindow(self)
 					if window != nil && window.platform.markedText != 0 {
 						window.platform.markedText.Send(sel_release)
 						window.platform.markedText = 0
 					}
+					delete(theGoWindows, self)
 					self.SendSuper(objc.RegisterName("dealloc"))
 				},
 			},
@@ -654,7 +642,7 @@ func registerGLFWClasses() error {
 			{
 				Cmd: objc.RegisterName("isOpaque"),
 				Fn: func(self objc.ID, _ objc.SEL) bool {
-					window := getGoWindow(class_GLFWContentView, self)
+					window := getGoWindow(self)
 					if window == nil {
 						return false
 					}
@@ -676,7 +664,7 @@ func registerGLFWClasses() error {
 			{
 				Cmd: objc.RegisterName("updateLayer"),
 				Fn: func(self objc.ID, _ objc.SEL) {
-					window := getGoWindow(class_GLFWContentView, self)
+					window := getGoWindow(self)
 					if window == nil {
 						return
 					}
@@ -691,7 +679,7 @@ func registerGLFWClasses() error {
 			{
 				Cmd: objc.RegisterName("cursorUpdate:"),
 				Fn: func(self objc.ID, _ objc.SEL, _ objc.ID) {
-					window := getGoWindow(class_GLFWContentView, self)
+					window := getGoWindow(self)
 					if window == nil {
 						return
 					}
@@ -708,7 +696,7 @@ func registerGLFWClasses() error {
 			{
 				Cmd: sel_hasMarkedText,
 				Fn: func(self objc.ID, _ objc.SEL) bool {
-					window := getGoWindow(class_GLFWContentView, self)
+					window := getGoWindow(self)
 					if window == nil {
 						return false
 					}
@@ -721,7 +709,7 @@ func registerGLFWClasses() error {
 			{
 				Cmd: sel_markedRange,
 				Fn: func(self objc.ID, _ objc.SEL) nsRange {
-					window := getGoWindow(class_GLFWContentView, self)
+					window := getGoWindow(self)
 					if window != nil && window.platform.markedText != 0 {
 						length := objc.Send[uintptr](window.platform.markedText, sel_length)
 						if length > 0 {
@@ -740,7 +728,7 @@ func registerGLFWClasses() error {
 			{
 				Cmd: sel_setMarkedText_selectedRange_replacementRange,
 				Fn: func(self objc.ID, _ objc.SEL, str objc.ID, _ nsRange, _ nsRange) {
-					window := getGoWindow(class_GLFWContentView, self)
+					window := getGoWindow(self)
 					if window == nil {
 						return
 					}
@@ -757,7 +745,7 @@ func registerGLFWClasses() error {
 			{
 				Cmd: sel_unmarkText,
 				Fn: func(self objc.ID, _ objc.SEL) {
-					window := getGoWindow(class_GLFWContentView, self)
+					window := getGoWindow(self)
 					if window == nil {
 						return
 					}
@@ -785,7 +773,7 @@ func registerGLFWClasses() error {
 			{
 				Cmd: sel_insertText_replacementRange,
 				Fn: func(self objc.ID, _ objc.SEL, text objc.ID, _ nsRange) {
-					window := getGoWindow(class_GLFWContentView, self)
+					window := getGoWindow(self)
 					if window == nil {
 						return
 					}
@@ -820,7 +808,7 @@ func registerGLFWClasses() error {
 			{
 				Cmd: sel_firstRectForCharacterRange_actualRange,
 				Fn: func(self objc.ID, _ objc.SEL, _ nsRange, _ uintptr) cocoa.NSRect {
-					window := getGoWindow(class_GLFWContentView, self)
+					window := getGoWindow(self)
 					if window == nil {
 						return cocoa.NSRect{}
 					}
@@ -841,7 +829,7 @@ func registerGLFWClasses() error {
 			{
 				Cmd: objc.RegisterName("drawRect:"),
 				Fn: func(self objc.ID, _ objc.SEL, _ cocoa.NSRect) {
-					window := getGoWindow(class_GLFWContentView, self)
+					window := getGoWindow(self)
 					if window == nil {
 						return
 					}
@@ -858,7 +846,7 @@ func registerGLFWClasses() error {
 			{
 				Cmd: objc.RegisterName("performDragOperation:"),
 				Fn: func(self objc.ID, _ objc.SEL, sender objc.ID) bool {
-					window := getGoWindow(class_GLFWContentView, self)
+					window := getGoWindow(self)
 					if window == nil {
 						return false
 					}
@@ -911,18 +899,17 @@ func registerGLFWClasses() error {
 	return nil
 }
 
-// getGoWindow extracts the Go *Window pointer from an ObjC instance's goWindow field.
-func getGoWindow(class objc.Class, id objc.ID) *Window {
-	ptr := objc.Send[uintptr](id, objc.RegisterName("goWindow"))
-	if ptr == 0 {
-		return nil
-	}
-	return (*Window)(unsafe.Pointer(ptr))
+// theGoWindows associates ObjC delegate and content-view instances with their Go Windows.
+var theGoWindows = map[objc.ID]*Window{}
+
+// getGoWindow returns the Go Window associated with an ObjC instance, or nil if there is none.
+func getGoWindow(id objc.ID) *Window {
+	return theGoWindows[id]
 }
 
-// setGoWindow stores the Go *Window pointer in an ObjC instance's goWindow field.
+// setGoWindow associates an ObjC instance with a Go Window.
 func setGoWindow(id objc.ID, window *Window) {
-	id.Send(objc.RegisterName("setGoWindow:"), uintptr(unsafe.Pointer(window)))
+	theGoWindows[id] = window
 }
 
 // handleMouseMoved processes mouse movement events.
@@ -1194,11 +1181,14 @@ func (w *Window) platformDestroyWindow() error {
 
 	if w.platform.delegate != 0 {
 		w.platform.object.Send(sel_setDelegate, 0)
+		delete(theGoWindows, w.platform.delegate)
 		w.platform.delegate.Send(sel_release)
 		w.platform.delegate = 0
 	}
 
 	if w.platform.view != 0 {
+		// The view's theGoWindows entry is removed in the dealloc callback, which fires
+		// only after the NSWindow releases its content view.
 		w.platform.view.Send(sel_release)
 		w.platform.view = 0
 	}
@@ -2117,6 +2107,3 @@ func goStringFromCString(ptr uintptr) string {
 	}
 	return string(unsafe.Slice(p, n))
 }
-
-// Ensure reflect is used (needed for objc.RegisterClass field definitions).
-var _ = reflect.TypeFor[uintptr]
