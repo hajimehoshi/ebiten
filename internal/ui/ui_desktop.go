@@ -80,14 +80,14 @@ type backendWindow interface {
 var _ uiBackend = (*glfwBackend)(nil)
 
 type userInterfaceImpl struct {
-	// backend is set at Run and is never replaced nor cleared afterwards.
+	// backend is the backend serving the running game.
 	//
-	// Reading backend without synchronization is safe only after isRunning()
-	// returns true: the backend assignment happens before the atomic store of
-	// the running flag, so a goroutine observing the flag also observes the
-	// assignment. Functions that skip this check must be called only from the
-	// game loop, which the backend itself drives.
-	backend uiBackend
+	// backend is non-nil only while the game runs: a backend publishes itself
+	// via setRunningBackend when it gets ready to serve calls, and
+	// unpublishes itself when the game stops. The settings issued while
+	// backend is nil are buffered, and a backend consumes them at its
+	// initialization.
+	backend atomic.Pointer[uiBackend]
 
 	graphicsDriver graphicsdriver.Graphics
 	context        *context
@@ -120,8 +120,34 @@ func (u *UserInterface) init() error {
 }
 
 func (u *UserInterface) Run(game Game, options *RunOptions) error {
-	u.backend = newGLFWBackend(u)
-	return u.backend.run(game, options)
+	return newGLFWBackend(u).run(game, options)
+}
+
+// setRunningBackend publishes the backend that serves the running game, or
+// unpublishes the current backend when b is nil. The running state is updated
+// accordingly. A backend calls setRunningBackend with itself when it gets
+// ready to serve calls, and with nil when the game stops.
+func (u *UserInterface) setRunningBackend(b uiBackend) {
+	// The backend and the running state are updated non-atomically. The update
+	// orders guarantee that a backend is published whenever the running state
+	// is true.
+	if b == nil {
+		u.setRunning(false)
+		u.backend.Store(nil)
+		return
+	}
+	u.backend.Store(&b)
+	u.setRunning(true)
+}
+
+// runningBackend returns the backend serving the running game, or nil if the
+// game is not running.
+func (u *UserInterface) runningBackend() uiBackend {
+	b := u.backend.Load()
+	if b == nil {
+		return nil
+	}
+	return *b
 }
 
 func (u *UserInterface) setInitMonitor(m *Monitor) {
@@ -161,22 +187,23 @@ func (u *UserInterface) setRunnableOnUnfocused(runnableOnUnfocused bool) {
 }
 
 func (u *UserInterface) readInputState(inputState *InputState) {
-	u.backend.readInputState(inputState)
+	u.runningBackend().readInputState(inputState)
 }
 
 func (u *UserInterface) updateInputStateForFrame(deviceScaleFactor float64) error {
-	return u.backend.updateInputStateForFrame(deviceScaleFactor)
+	return u.runningBackend().updateInputStateForFrame(deviceScaleFactor)
 }
 
 func (u *UserInterface) updateIconIfNeeded() error {
-	return u.backend.updateIconIfNeeded()
+	return u.runningBackend().updateIconIfNeeded()
 }
 
 func (u *UserInterface) IsFocused() bool {
-	if !u.isRunning() {
+	b := u.runningBackend()
+	if b == nil {
 		return false
 	}
-	return u.backend.IsFocused()
+	return b.IsFocused()
 }
 
 func (u *UserInterface) IsFullscreen() bool {
@@ -187,10 +214,11 @@ func (u *UserInterface) IsFullscreen() bool {
 	if u.isTerminated() {
 		return false
 	}
-	if !u.isRunning() {
+	b := u.runningBackend()
+	if b == nil {
 		return u.isInitFullscreen()
 	}
-	return u.backend.IsFullscreen()
+	return b.IsFullscreen()
 }
 
 func (u *UserInterface) SetFullscreen(fullscreen bool) {
@@ -201,11 +229,12 @@ func (u *UserInterface) SetFullscreen(fullscreen bool) {
 	if u.isTerminated() {
 		return
 	}
-	if !u.isRunning() {
+	b := u.runningBackend()
+	if b == nil {
 		u.setInitFullscreen(fullscreen)
 		return
 	}
-	u.backend.SetFullscreen(fullscreen)
+	b.SetFullscreen(fullscreen)
 }
 
 func (u *UserInterface) IsRunnableOnUnfocused() bool {
@@ -227,38 +256,42 @@ func (u *UserInterface) SetFPSMode(mode FPSModeType) {
 	if FPSModeType(u.fpsMode.Swap(int32(mode))) == mode {
 		return
 	}
-	if !u.isRunning() {
+	b := u.runningBackend()
+	if b == nil {
 		return
 	}
-	u.backend.SetFPSMode(mode)
+	b.SetFPSMode(mode)
 }
 
 func (u *UserInterface) ScheduleFrame() {
-	if !u.isRunning() {
+	b := u.runningBackend()
+	if b == nil {
 		return
 	}
-	u.backend.ScheduleFrame()
+	b.ScheduleFrame()
 }
 
 func (u *UserInterface) CursorMode() CursorMode {
 	if u.isTerminated() {
 		return 0
 	}
-	if !u.isRunning() {
+	b := u.runningBackend()
+	if b == nil {
 		return u.getInitCursorMode()
 	}
-	return u.backend.CursorMode()
+	return b.CursorMode()
 }
 
 func (u *UserInterface) SetCursorMode(mode CursorMode) {
 	if u.isTerminated() {
 		return
 	}
-	if !u.isRunning() {
+	b := u.runningBackend()
+	if b == nil {
 		u.setInitCursorMode(mode)
 		return
 	}
-	u.backend.SetCursorMode(mode)
+	b.SetCursorMode(mode)
 }
 
 func (u *UserInterface) CursorShape() CursorShape {
@@ -272,10 +305,11 @@ func (u *UserInterface) SetCursorShape(shape CursorShape) {
 	if CursorShape(u.cursorShape.Swap(int32(shape))) == shape {
 		return
 	}
-	if !u.isRunning() {
+	b := u.runningBackend()
+	if b == nil {
 		return
 	}
-	u.backend.SetCursorShape(shape)
+	b.SetCursorShape(shape)
 }
 
 func (u *UserInterface) Window() Window {
@@ -287,14 +321,15 @@ func (u *UserInterface) Window() Window {
 
 // Monitor returns the window's current monitor. Returns nil if there is no current monitor yet.
 func (u *UserInterface) Monitor() *Monitor {
-	if !u.isRunning() {
+	b := u.runningBackend()
+	if b == nil {
 		// Ensure GLFW is initialized so that the init monitor is available.
 		if err := u.ensureGLFWInit(); err != nil {
 			return nil
 		}
 		return u.getInitMonitor()
 	}
-	return u.backend.Monitor()
+	return b.Monitor()
 }
 
 // AppendMonitors appends the current monitors to the passed in mons slice and returns it.
@@ -307,12 +342,13 @@ func (u *UserInterface) AppendMonitors(monitors []*Monitor) []*Monitor {
 }
 
 func (u *UserInterface) RunOnMainThread(f func()) {
-	u.backend.RunOnMainThread(f)
+	u.runningBackend().RunOnMainThread(f)
 }
 
 func (u *UserInterface) KeyName(key Key) string {
-	if !u.isRunning() {
+	b := u.runningBackend()
+	if b == nil {
 		return ""
 	}
-	return u.backend.KeyName(key)
+	return b.KeyName(key)
 }

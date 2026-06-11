@@ -225,21 +225,23 @@ func (w *desktopWindow) IsDecorated() bool {
 	if w.ui.isTerminated() {
 		return false
 	}
-	if !w.ui.isRunning() {
+	b := w.ui.runningBackend()
+	if b == nil {
 		return w.isInitWindowDecorated()
 	}
-	return w.ui.backend.Window().IsDecorated()
+	return b.Window().IsDecorated()
 }
 
 func (w *desktopWindow) SetDecorated(decorated bool) {
 	if w.ui.isTerminated() {
 		return
 	}
-	if !w.ui.isRunning() {
+	b := w.ui.runningBackend()
+	if b == nil {
 		w.setInitWindowDecorated(decorated)
 		return
 	}
-	w.ui.backend.Window().SetDecorated(decorated)
+	b.Window().SetDecorated(decorated)
 }
 
 func (w *desktopWindow) ResizingMode() WindowResizingMode {
@@ -256,44 +258,48 @@ func (w *desktopWindow) SetResizingMode(mode WindowResizingMode) {
 	if WindowResizingMode(w.windowResizingMode.Swap(int32(mode))) == mode {
 		return
 	}
-	if !w.ui.isRunning() {
+	b := w.ui.runningBackend()
+	if b == nil {
 		return
 	}
-	w.ui.backend.Window().SetResizingMode(mode)
+	b.Window().SetResizingMode(mode)
 }
 
 func (w *desktopWindow) IsFloating() bool {
 	if w.ui.isTerminated() {
 		return false
 	}
-	if !w.ui.isRunning() {
+	b := w.ui.runningBackend()
+	if b == nil {
 		return w.isInitWindowFloating()
 	}
-	return w.ui.backend.Window().IsFloating()
+	return b.Window().IsFloating()
 }
 
 func (w *desktopWindow) SetFloating(floating bool) {
 	if w.ui.isTerminated() {
 		return
 	}
-	if !w.ui.isRunning() {
+	b := w.ui.runningBackend()
+	if b == nil {
 		w.setInitWindowFloating(floating)
 		return
 	}
-	w.ui.backend.Window().SetFloating(floating)
+	b.Window().SetFloating(floating)
 }
 
 func (w *desktopWindow) IsMaximized() bool {
 	if w.ui.isTerminated() {
 		return false
 	}
-	if !w.ui.isRunning() {
+	b := w.ui.runningBackend()
+	if b == nil {
 		return w.isInitWindowMaximized()
 	}
 	if w.ResizingMode() != WindowResizingModeEnabled {
 		return false
 	}
-	return w.ui.backend.Window().IsMaximized()
+	return b.Window().IsMaximized()
 }
 
 func (w *desktopWindow) Maximize() {
@@ -312,26 +318,29 @@ func (w *desktopWindow) Maximize() {
 		return
 	}
 
-	if !w.ui.isRunning() {
+	b := w.ui.runningBackend()
+	if b == nil {
 		w.setInitWindowMaximized(true)
 		return
 	}
-	w.ui.backend.Window().Maximize()
+	b.Window().Maximize()
 }
 
 func (w *desktopWindow) IsMinimized() bool {
-	if !w.ui.isRunning() {
+	b := w.ui.runningBackend()
+	if b == nil {
 		return false
 	}
-	return w.ui.backend.Window().IsMinimized()
+	return b.Window().IsMinimized()
 }
 
 func (w *desktopWindow) Minimize() {
-	if !w.ui.isRunning() {
+	b := w.ui.runningBackend()
+	if b == nil {
 		// Do nothing
 		return
 	}
-	w.ui.backend.Window().Minimize()
+	b.Window().Minimize()
 }
 
 func (w *desktopWindow) Restore() {
@@ -341,11 +350,12 @@ func (w *desktopWindow) Restore() {
 	if !w.isWindowMaximizable() {
 		return
 	}
-	if !w.ui.isRunning() {
+	b := w.ui.runningBackend()
+	if b == nil {
 		// Do nothing
 		return
 	}
-	w.ui.backend.Window().Restore()
+	b.Window().Restore()
 }
 
 func (w *desktopWindow) SetMonitor(monitor *Monitor) {
@@ -355,55 +365,60 @@ func (w *desktopWindow) SetMonitor(monitor *Monitor) {
 	if w.ui.isTerminated() {
 		return
 	}
-	if !w.ui.isRunning() {
+	b := w.ui.runningBackend()
+	if b == nil {
 		w.ui.setInitMonitor(monitor)
 		return
 	}
-	w.ui.backend.Window().SetMonitor(monitor)
+	b.Window().SetMonitor(monitor)
 }
 
 func (w *desktopWindow) Position() (int, int) {
 	if w.ui.isTerminated() {
 		return 0, 0
 	}
-	if !w.ui.isRunning() {
+	b := w.ui.runningBackend()
+	if b == nil {
 		panic("ui: WindowPosition can't be called before the main loop starts")
 	}
-	return w.ui.backend.Window().Position()
+	return b.Window().Position()
 }
 
 func (w *desktopWindow) SetPosition(x, y int) {
 	if w.ui.isTerminated() {
 		return
 	}
-	if !w.ui.isRunning() {
+	b := w.ui.runningBackend()
+	if b == nil {
 		w.setInitWindowPositionInDIP(x, y)
 		return
 	}
-	w.ui.backend.Window().SetPosition(x, y)
+	b.Window().SetPosition(x, y)
 }
 
 func (w *desktopWindow) Size() (int, int) {
 	if w.ui.isTerminated() {
 		return 0, 0
 	}
-	if !w.ui.isRunning() {
+	b := w.ui.runningBackend()
+	if b == nil {
 		ww, wh := w.getInitWindowSizeInDIP()
 		return w.adjustWindowSizeBasedOnSizeLimitsInDIP(ww, wh)
 	}
-	return w.ui.backend.Window().Size()
+	return b.Window().Size()
 }
 
 func (w *desktopWindow) SetSize(width, height int) {
 	if w.ui.isTerminated() {
 		return
 	}
-	if !w.ui.isRunning() {
+	b := w.ui.runningBackend()
+	if b == nil {
 		// If the window is initially maximized, the set size is ignored anyway.
 		w.setInitWindowSizeInDIP(width, height)
 		return
 	}
-	w.ui.backend.Window().SetSize(width, height)
+	b.Window().SetSize(width, height)
 }
 
 func (w *desktopWindow) SizeLimits() (minw, minh, maxw, maxh int) {
@@ -417,10 +432,11 @@ func (w *desktopWindow) SetSizeLimits(minw, minh, maxw, maxh int) {
 	if !w.setWindowSizeLimitsInDIP(minw, minh, maxw, maxh) {
 		return
 	}
-	if !w.ui.isRunning() {
+	b := w.ui.runningBackend()
+	if b == nil {
 		return
 	}
-	w.ui.backend.Window().SetSizeLimits(minw, minh, maxw, maxh)
+	b.Window().SetSizeLimits(minw, minh, maxw, maxh)
 }
 
 func (w *desktopWindow) SetIcon(iconImages []image.Image) {
@@ -438,10 +454,11 @@ func (w *desktopWindow) SetTitle(title string) {
 	if w.title.Swap(title) == title {
 		return
 	}
-	if !w.ui.isRunning() {
+	b := w.ui.runningBackend()
+	if b == nil {
 		return
 	}
-	w.ui.backend.Window().SetTitle(title)
+	b.Window().SetTitle(title)
 }
 
 func (w *desktopWindow) ColorMode() colormode.ColorMode {
@@ -455,14 +472,15 @@ func (w *desktopWindow) SetColorMode(mode colormode.ColorMode) {
 	if w.ui.isTerminated() {
 		return
 	}
-	if !w.ui.isRunning() {
+	b := w.ui.runningBackend()
+	if b == nil {
 		w.colorMode.Store(int32(mode))
 		return
 	}
 	if colormode.ColorMode(w.colorMode.Swap(int32(mode))) == mode {
 		return
 	}
-	w.ui.backend.Window().SetColorMode(mode)
+	b.Window().SetColorMode(mode)
 }
 
 func (w *desktopWindow) SetClosingHandled(handled bool) {
@@ -472,10 +490,11 @@ func (w *desktopWindow) SetClosingHandled(handled bool) {
 	if w.windowClosingHandled.Swap(handled) == handled {
 		return
 	}
-	if !w.ui.isRunning() {
+	b := w.ui.runningBackend()
+	if b == nil {
 		return
 	}
-	w.ui.backend.Window().SetClosingHandled(handled)
+	b.Window().SetClosingHandled(handled)
 }
 
 func (w *desktopWindow) IsClosingHandled() bool {
@@ -486,30 +505,33 @@ func (w *desktopWindow) SetMousePassthrough(enabled bool) {
 	if w.ui.isTerminated() {
 		return
 	}
-	if !w.ui.isRunning() {
+	b := w.ui.runningBackend()
+	if b == nil {
 		w.setInitWindowMousePassthrough(enabled)
 		return
 	}
-	w.ui.backend.Window().SetMousePassthrough(enabled)
+	b.Window().SetMousePassthrough(enabled)
 }
 
 func (w *desktopWindow) IsMousePassthrough() bool {
 	if w.ui.isTerminated() {
 		return false
 	}
-	if !w.ui.isRunning() {
+	b := w.ui.runningBackend()
+	if b == nil {
 		return w.isInitWindowMousePassthrough()
 	}
-	return w.ui.backend.Window().IsMousePassthrough()
+	return b.Window().IsMousePassthrough()
 }
 
 func (w *desktopWindow) RequestAttention() {
 	if w.ui.isTerminated() {
 		return
 	}
-	if !w.ui.isRunning() {
+	b := w.ui.runningBackend()
+	if b == nil {
 		// Do nothing
 		return
 	}
-	w.ui.backend.Window().RequestAttention()
+	b.Window().RequestAttention()
 }

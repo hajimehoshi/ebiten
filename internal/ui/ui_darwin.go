@@ -124,8 +124,11 @@ func (u *UserInterface) initializePlatform() error {
 				Cmd: sel_windowWillEnterFullScreen,
 				Fn: func(id objc.ID, cmd objc.SEL, notification objc.ID) {
 					// The window delegate methods are invoked only while a GLFW window exists,
-					// so the backend is the GLFW backend here.
-					b := u.backend.(*glfwBackend)
+					// so the running backend is the GLFW backend.
+					b, ok := u.runningBackend().(*glfwBackend)
+					if !ok {
+						return
+					}
 					if err := b.setOrigWindowPosWithCurrentPos(); err != nil {
 						u.setError(err)
 						return
@@ -147,8 +150,11 @@ func (u *UserInterface) initializePlatform() error {
 					// In this case, the window size limitation is disabled temporarily.
 					// When exiting from fullscreen, reset the window size limitation.
 					// The window delegate methods are invoked only while a GLFW window exists,
-					// so the backend is the GLFW backend here.
-					b := u.backend.(*glfwBackend)
+					// so the running backend is the GLFW backend.
+					b, ok := u.runningBackend().(*glfwBackend)
+					if !ok {
+						return
+					}
 					if err := b.updateWindowSizeLimits(); err != nil {
 						u.setError(err)
 						return

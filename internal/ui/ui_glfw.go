@@ -481,8 +481,8 @@ func (u *glfwBackend) createWindow() error {
 		return err
 	}
 	u.window = window
-	// Set the running state true just a window is set (#2742).
-	u.setRunning(true)
+	// Publish the backend and set the running state true just as a window is set (#2742).
+	u.setRunningBackend(u)
 
 	// The position must be set before the size is set (#1982).
 	// setWindowSizeInDIP refers the current monitor's device scale.
@@ -1884,8 +1884,8 @@ func (u *glfwBackend) runMultiThread(game Game, options *RunOptions) error {
 			return err
 		}
 
-		// setRunning(true) should be called in initOnMainThread for each platform.
-		defer u.setRunning(false)
+		// The backend is published at the window creation in initOnMainThread.
+		defer u.setRunningBackend(nil)
 
 		return u.loopGame()
 	})
@@ -1899,8 +1899,8 @@ func (u *glfwBackend) runSingleThread(game Game, options *RunOptions) error {
 	// Initialize the main thread first so the thread is available at u.run (#809).
 	u.mainThread = thread.NewNoopThread()
 
-	// setRunning(true) should be called in initOnMainThread for each platform.
-	defer u.setRunning(false)
+	// The backend is published at the window creation in initOnMainThread.
+	defer u.setRunningBackend(nil)
 
 	u.context = newContext(game)
 

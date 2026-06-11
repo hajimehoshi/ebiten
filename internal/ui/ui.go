@@ -233,6 +233,9 @@ func (u *UserInterface) GraphicsLibrary() GraphicsLibrary {
 }
 
 func (u *UserInterface) isRunning() bool {
+	// TODO: Replace the running state with the existence of a published backend
+	// for all the platforms, like the desktop build (see setRunningBackend in
+	// ui_desktop.go), and remove the running flag.
 	return u.running.Load() && !u.isTerminated()
 }
 
