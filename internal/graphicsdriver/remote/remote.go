@@ -51,6 +51,9 @@ type Host interface {
 
 	// MaxImageSize reports the host graphics driver's maximum image size.
 	MaxImageSize() (int, error)
+
+	// ColorSpace reports the host graphics driver's color space.
+	ColorSpace() (color.ColorSpace, error)
 }
 
 // Graphics records the command stream emitted by the guest and forwards it to a Host. It is not safe
@@ -77,6 +80,11 @@ type Graphics struct {
 	// maxImageSizeOnce. It never changes for a session.
 	maxImageSize     int
 	maxImageSizeOnce sync.Once
+
+	// colorSpace caches the host's color space, queried from the host exactly once via
+	// colorSpaceOnce. It never changes for a session.
+	colorSpace     color.ColorSpace
+	colorSpaceOnce sync.Once
 }
 
 // NewGraphics returns a remote graphics driver.
@@ -129,8 +137,21 @@ func (g *Graphics) Initialize() error {
 	return nil
 }
 
+// ColorSpace returns the host graphics driver's color space: the guest's pixels are rendered by the
+// host's driver, so its color space is the one in effect. It panics if no host is attached.
 func (g *Graphics) ColorSpace() color.ColorSpace {
-	return color.ColorSpaceSRGB
+	// A call happens only while the guest is driven, by which point a host is attached.
+	if g.host == nil {
+		panic("remote: ColorSpace was called before a host was attached")
+	}
+	g.colorSpaceOnce.Do(func() {
+		c, err := g.host.ColorSpace()
+		if err != nil {
+			panic(fmt.Sprintf("remote: querying the host's color space failed: %v", err))
+		}
+		g.colorSpace = c
+	})
+	return g.colorSpace
 }
 
 func (g *Graphics) Begin() error {

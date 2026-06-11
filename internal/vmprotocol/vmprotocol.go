@@ -32,6 +32,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/hajimehoshi/ebiten/v2/internal/color"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 )
 
@@ -60,6 +61,8 @@ const (
 	HostMessageKindAnswerMaxImageSize
 	// HostMessageKindAnswerDeviceScaleFactor answers a GuestMessageKindQueryDeviceScaleFactor.
 	HostMessageKindAnswerDeviceScaleFactor
+	// HostMessageKindAnswerColorSpace answers a GuestMessageKindQueryColorSpace.
+	HostMessageKindAnswerColorSpace
 )
 
 // HostMessage is a message the host sends to a guest: an operation to perform, or the answer to a
@@ -93,6 +96,9 @@ type HostMessage struct {
 
 	// ScaleFactor is set on HostMessageKindAnswerDeviceScaleFactor.
 	ScaleFactor float64
+
+	// ColorSpace is set on HostMessageKindAnswerColorSpace.
+	ColorSpace color.ColorSpace
 }
 
 // GuestMessageKind discriminates the messages a guest sends to the host.
@@ -121,6 +127,9 @@ const (
 	// Unlike the maximum image size it is not cached: the host's scale can change during a session
 	// (e.g. the window moving to a monitor with a different DPI).
 	GuestMessageKindQueryDeviceScaleFactor
+	// GuestMessageKindQueryColorSpace asks the host for its graphics driver's color space before the
+	// guest can finish the operation. The host answers with HostMessageKindAnswerColorSpace.
+	GuestMessageKindQueryColorSpace
 )
 
 // GuestMessage is a message a guest sends to the host while handling an operation: recorded graphics

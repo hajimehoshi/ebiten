@@ -31,6 +31,7 @@ import (
 	"sync"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
+	"github.com/hajimehoshi/ebiten/v2/internal/color"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/remote"
 	"github.com/hajimehoshi/ebiten/v2/internal/hook"
@@ -526,6 +527,16 @@ func (h *vmHostClient) MaxImageSize() (int, error) {
 		return 0, err
 	}
 	return answer.MaxImageSize, nil
+}
+
+func (h *vmHostClient) ColorSpace() (color.ColorSpace, error) {
+	answer, err := h.query(&vmprotocol.GuestMessage{
+		Kind: vmprotocol.GuestMessageKindQueryColorSpace,
+	}, vmprotocol.HostMessageKindAnswerColorSpace)
+	if err != nil {
+		return 0, err
+	}
+	return answer.ColorSpace, nil
 }
 
 func (h *vmHostClient) DeviceScaleFactor() (float64, error) {

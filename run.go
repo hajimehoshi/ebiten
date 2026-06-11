@@ -319,7 +319,8 @@ type RunGameOptions struct {
 	// `ebitenginevm` build tag, the environment variable EBITENGINE_VM_ENDPOINT is used instead.
 	//
 	// When the game runs as a virtualization guest, GraphicsLibrary is ignored, and the graphics
-	// library is always GraphicsLibraryRemote.
+	// library is always GraphicsLibraryRemote. ColorSpace is also ignored: the color space is
+	// determined by the host.
 	//
 	// VMGuestEndpoint is available only on desktops.
 	//
