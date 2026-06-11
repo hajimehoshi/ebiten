@@ -34,20 +34,40 @@ type Monitor struct {
 	name               string
 	boundsInGLFWPixels image.Rectangle
 	contentScale       float64
+
+	// virtual provides the monitor's values when the monitor has no backing glfw.Monitor (a
+	// virtualization guest's monitor). It is nil for a real monitor.
+	virtual virtualMonitorSource
+}
+
+// virtualMonitorSource provides the values of a monitor that has no backing glfw.Monitor.
+type virtualMonitorSource interface {
+	deviceScaleFactor() float64
+	outsideSize() (width, height float64)
 }
 
 // Name returns the monitor's name.
 func (m *Monitor) Name() string {
+	if m.virtual != nil {
+		return ""
+	}
 	return m.name
 }
 
 // DeviceScaleFactor is concurrent-safe as contentScale is immutable.
 func (m *Monitor) DeviceScaleFactor() float64 {
+	if m.virtual != nil {
+		return m.virtual.deviceScaleFactor()
+	}
 	return m.contentScale
 }
 
 // Size returns the size of the monitor in device-independent pixels.
 func (m *Monitor) Size() (int, int) {
+	if m.virtual != nil {
+		w, h := m.virtual.outsideSize()
+		return int(w), int(h)
+	}
 	w, h := m.sizeInDIP()
 	return int(w), int(h)
 }

@@ -120,7 +120,26 @@ func (u *UserInterface) init() error {
 }
 
 func (u *UserInterface) Run(game Game, options *RunOptions) error {
+	if b := maybeNewVMGuestBackend(u, options); b != nil {
+		return b.run(game, options)
+	}
 	return newGLFWBackend(u).run(game, options)
+}
+
+// maybeNewVMGuestBackend returns a remote (guest) backend when a host endpoint is configured, or nil
+// to keep the default backend.
+func maybeNewVMGuestBackend(u *UserInterface, options *RunOptions) uiBackend {
+	if microsoftgdk.IsXbox() {
+		return nil
+	}
+	ep := options.VMGuestEndpoint
+	if ep == "" {
+		ep = vmGuestEndpointFromEnv()
+	}
+	if ep == "" {
+		return nil
+	}
+	return newRemoteBackend(u, ep)
 }
 
 // setRunningBackend publishes the backend that serves the running game, or
@@ -332,8 +351,17 @@ func (u *UserInterface) Monitor() *Monitor {
 	return b.Monitor()
 }
 
+// monitorAppender is implemented by a backend that provides its own monitor list rather than the
+// glfw one.
+type monitorAppender interface {
+	appendMonitors(monitors []*Monitor) []*Monitor
+}
+
 // AppendMonitors appends the current monitors to the passed in mons slice and returns it.
 func (u *UserInterface) AppendMonitors(monitors []*Monitor) []*Monitor {
+	if a, ok := u.runningBackend().(monitorAppender); ok {
+		return a.appendMonitors(monitors)
+	}
 	// Ensure GLFW is initialized so that the monitor list is available.
 	if err := u.ensureGLFWInit(); err != nil {
 		return monitors

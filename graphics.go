@@ -57,6 +57,10 @@ const (
 
 	// GraphicsLibraryPlayStation5 represents the graphics library PlayStation 5.
 	GraphicsLibraryPlayStation5 GraphicsLibrary = GraphicsLibrary(ui.GraphicsLibraryPlayStation5)
+
+	// GraphicsLibraryRemote represents a virtualization guest that forwards its graphics commands to a
+	// host process rather than rendering on a local GPU.
+	GraphicsLibraryRemote GraphicsLibrary = GraphicsLibrary(ui.GraphicsLibraryRemote)
 )
 
 // String returns a string representing the graphics library.

@@ -23,6 +23,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
 	"github.com/hajimehoshi/ebiten/v2/internal/color"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/v2/internal/mipmap"
 	"github.com/hajimehoshi/ebiten/v2/internal/thread"
 )
@@ -105,6 +106,12 @@ func Get() *UserInterface {
 	return theUI
 }
 
+// GraphicsMaxImageSize returns the maximum image size the graphics driver supports. The graphics
+// driver must be initialized before this is called.
+func (u *UserInterface) GraphicsMaxImageSize() int {
+	return graphicscommand.MaxImageSize(u.graphicsDriver)
+}
+
 // newUserInterface must be called from the main thread.
 func newUserInterface() (*UserInterface, error) {
 	u := &UserInterface{}
@@ -184,6 +191,7 @@ type RunOptions struct {
 	InitWindowWidthInDIP     int
 	InitWindowHeightInDIP    int
 	WindowPositionSet        bool
+	VMGuestEndpoint          string
 }
 
 // InitialWindowPosition returns the position for centering the given second width/height pair within the first width/height pair.

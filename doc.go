@@ -93,6 +93,11 @@
 // The option "featurelevel" is valid only for DirectX 12.
 // The possible values are "11_0", "11_1", "12_0", "12_1", and "12_2". The default value is "11_0".
 //
+// `EBITENGINE_VM_ENDPOINT` environment variable specifies the endpoint URL of a virtualization host,
+// like unix:///path/to/socket or tcp://host:port. If this is set, the game runs as a virtualization
+// guest of that host instead of opening a window. This is valid only when the build tag 'ebitenginevm'
+// is specified. This works only on desktops. See also RunGameOptions.VMGuestEndpoint.
+//
 // # Build tags
 //
 // `ebitenginedebug` outputs a log of graphics commands. This is useful to know what happens in Ebitengine. In general, the
@@ -106,6 +111,9 @@
 // They must be called from the main thread or the same goroutine as the given game's callback functions like Update
 // `ebitenginesinglethread` works only with desktops and consoles.
 // `ebitenginesinglethread` was deprecated as of v2.7. Use RunGameOptions.SingleThread instead.
+//
+// `ebitenginevm` allows the environment variable `EBITENGINE_VM_ENDPOINT` to run the game as a
+// virtualization guest. This works only on desktops.
 //
 // `microsoftgdk` is for Microsoft GDK (e.g. Xbox).
 //

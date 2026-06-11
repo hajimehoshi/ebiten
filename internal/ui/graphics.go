@@ -107,6 +107,7 @@ const (
 	GraphicsLibraryDirectX
 	GraphicsLibraryMetal
 	GraphicsLibraryPlayStation5
+	GraphicsLibraryRemote
 )
 
 func (g GraphicsLibrary) String() string {
@@ -123,6 +124,8 @@ func (g GraphicsLibrary) String() string {
 		return "Metal"
 	case GraphicsLibraryPlayStation5:
 		return "PlayStation 5"
+	case GraphicsLibraryRemote:
+		return "Remote"
 	default:
 		return fmt.Sprintf("GraphicsLibrary(%d)", g)
 	}
