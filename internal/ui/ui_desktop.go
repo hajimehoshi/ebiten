@@ -17,12 +17,10 @@
 package ui
 
 import (
-	"image"
 	"sync"
 	"sync/atomic"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/colormode"
-	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/microsoftgdk"
 )
@@ -81,14 +79,14 @@ type backendWindow interface {
 
 var _ uiBackend = (*glfwBackend)(nil)
 
-type windowSizeRange struct {
-	minWidthInDIP  int
-	minHeightInDIP int
-	maxWidthInDIP  int
-	maxHeightInDIP int
-}
-
 type userInterfaceImpl struct {
+	// backend is set at Run and is never replaced nor cleared afterwards.
+	//
+	// Reading backend without synchronization is safe only after isRunning()
+	// returns true: the backend assignment happens before the atomic store of
+	// the running flag, so a goroutine observing the flag also observes the
+	// assignment. Functions that skip this check must be called only from the
+	// game loop, which the backend itself drives.
 	backend uiBackend
 
 	graphicsDriver graphicsdriver.Graphics
@@ -97,48 +95,26 @@ type userInterfaceImpl struct {
 	// The atomic fields below hold the settings that can be set before the
 	// backend exists. The backend consumes the init* fields at its
 	// initialization, and reads the other fields whenever it needs them.
-	title atomic.Value
+	// The window settings are held by desktopWindow.
+	runnableOnUnfocused atomic.Bool
+	fpsMode             atomic.Int32
+	cursorShape         atomic.Int32
 
-	windowSizeLimit atomic.Value
+	initMonitor    atomic.Pointer[Monitor]
+	initFullscreen atomic.Bool
+	initCursorMode atomic.Int32
 
-	runnableOnUnfocused  atomic.Bool
-	fpsMode              atomic.Int32
-	iconImages           atomic.Pointer[[]image.Image]
-	cursorShape          atomic.Int32
-	windowClosingHandled atomic.Bool
-	windowResizingMode   atomic.Int32
-	colorMode            atomic.Int32
-
-	initMonitor                atomic.Pointer[Monitor]
-	initFullscreen             atomic.Bool
-	initCursorMode             atomic.Int32
-	initWindowDecorated        atomic.Bool
-	initWindowPositionInDIP    atomic.Value
-	initWindowSizeInDIP        atomic.Value
-	initWindowFloating         atomic.Bool
-	initWindowMaximized        atomic.Bool
-	initWindowMousePassthrough atomic.Bool
-
-	iwindow desktopWindow
+	desktopWindow desktopWindow
 
 	glfwInitOnce sync.Once
 }
 
 func (u *UserInterface) init() error {
-	u.title.Store("")
 	u.runnableOnUnfocused.Store(true)
-	u.windowSizeLimit.Store(windowSizeRange{
-		minWidthInDIP:  glfw.DontCare,
-		minHeightInDIP: glfw.DontCare,
-		maxWidthInDIP:  glfw.DontCare,
-		maxHeightInDIP: glfw.DontCare,
-	})
 	u.initCursorMode.Store(int32(CursorModeVisible))
-	u.initWindowDecorated.Store(true)
-	u.initWindowPositionInDIP.Store(image.Pt(invalidPos, invalidPos))
-	u.initWindowSizeInDIP.Store(image.Pt(640, 480))
 
-	u.iwindow.ui = u
+	u.desktopWindow.ui = u
+	u.desktopWindow.init()
 
 	return nil
 }
@@ -154,54 +130,6 @@ func (u *UserInterface) setInitMonitor(m *Monitor) {
 
 func (u *UserInterface) getInitMonitor() *Monitor {
 	return u.initMonitor.Load()
-}
-
-func (u *UserInterface) getWindowSizeLimitsInDIP() (minw, minh, maxw, maxh int) {
-	if microsoftgdk.IsXbox() {
-		return glfw.DontCare, glfw.DontCare, glfw.DontCare, glfw.DontCare
-	}
-
-	s := u.windowSizeLimit.Load().(windowSizeRange)
-	return s.minWidthInDIP, s.minHeightInDIP, s.maxWidthInDIP, s.maxHeightInDIP
-}
-
-func (u *UserInterface) setWindowSizeLimitsInDIP(minw, minh, maxw, maxh int) bool {
-	if microsoftgdk.IsXbox() {
-		// Do nothing. The size is always fixed.
-		return false
-	}
-
-	newS := windowSizeRange{
-		minWidthInDIP:  minw,
-		minHeightInDIP: minh,
-		maxWidthInDIP:  maxw,
-		maxHeightInDIP: maxh,
-	}
-	return u.windowSizeLimit.Swap(newS) != newS
-}
-
-func (u *UserInterface) isWindowMaximizable() bool {
-	_, _, maxw, maxh := u.getWindowSizeLimitsInDIP()
-	return maxw == glfw.DontCare && maxh == glfw.DontCare
-}
-
-// adjustWindowSizeBasedOnSizeLimitsInDIP adjust the size based on the window size limits.
-// width and height are in device-independent pixels.
-func (u *UserInterface) adjustWindowSizeBasedOnSizeLimitsInDIP(width, height int) (int, int) {
-	minw, minh, maxw, maxh := u.getWindowSizeLimitsInDIP()
-	if minw >= 0 && width < minw {
-		width = minw
-	}
-	if minh >= 0 && height < minh {
-		height = minh
-	}
-	if maxw >= 0 && width > maxw {
-		width = maxw
-	}
-	if maxh >= 0 && height > maxh {
-		height = maxh
-	}
-	return width, height
 }
 
 func (u *UserInterface) isInitFullscreen() bool {
@@ -224,111 +152,12 @@ func (u *UserInterface) getCursorShape() CursorShape {
 	return CursorShape(u.cursorShape.Load())
 }
 
-func (u *UserInterface) isInitWindowDecorated() bool {
-	return u.initWindowDecorated.Load()
-}
-
-func (u *UserInterface) setInitWindowDecorated(decorated bool) {
-	u.initWindowDecorated.Store(decorated)
-}
-
 func (u *UserInterface) isRunnableOnUnfocused() bool {
 	return u.runnableOnUnfocused.Load()
 }
 
 func (u *UserInterface) setRunnableOnUnfocused(runnableOnUnfocused bool) {
 	u.runnableOnUnfocused.Store(runnableOnUnfocused)
-}
-
-func (u *UserInterface) getAndResetIconImages() []image.Image {
-	images := u.iconImages.Swap(nil)
-	if images == nil {
-		return nil
-	}
-	return *images
-}
-
-func (u *UserInterface) setIconImages(iconImages []image.Image) {
-	// Even if iconImages is nil, always create a slice.
-	// A 0-size slice and nil are distinguished.
-	// See the comment in updateIconIfNeeded.
-	newImages := make([]image.Image, len(iconImages))
-	copy(newImages, iconImages)
-	u.iconImages.Store(&newImages)
-}
-
-func (u *UserInterface) getInitWindowPositionInDIP() (int, int) {
-	if microsoftgdk.IsXbox() {
-		return 0, 0
-	}
-
-	pt := u.initWindowPositionInDIP.Load().(image.Point)
-	if pt.X != invalidPos && pt.Y != invalidPos {
-		return pt.X, pt.Y
-	}
-	return invalidPos, invalidPos
-}
-
-func (u *UserInterface) setInitWindowPositionInDIP(x, y int) {
-	if microsoftgdk.IsXbox() {
-		return
-	}
-
-	// TODO: Update initMonitor if necessary (#1575).
-	u.initWindowPositionInDIP.Store(image.Pt(x, y))
-}
-
-func (u *UserInterface) getInitWindowSizeInDIP() (int, int) {
-	if microsoftgdk.IsXbox() {
-		return microsoftgdk.MonitorResolution()
-	}
-
-	pt := u.initWindowSizeInDIP.Load().(image.Point)
-	return pt.X, pt.Y
-}
-
-func (u *UserInterface) setInitWindowSizeInDIP(width, height int) {
-	if microsoftgdk.IsXbox() {
-		return
-	}
-
-	u.initWindowSizeInDIP.Store(image.Pt(width, height))
-}
-
-func (u *UserInterface) isInitWindowFloating() bool {
-	if microsoftgdk.IsXbox() {
-		return false
-	}
-	return u.initWindowFloating.Load()
-}
-
-func (u *UserInterface) setInitWindowFloating(floating bool) {
-	if microsoftgdk.IsXbox() {
-		return
-	}
-
-	u.initWindowFloating.Store(floating)
-}
-
-func (u *UserInterface) isInitWindowMaximized() bool {
-	// TODO: Is this always true on Xbox?
-	return u.initWindowMaximized.Load()
-}
-
-func (u *UserInterface) setInitWindowMaximized(maximized bool) {
-	u.initWindowMaximized.Store(maximized)
-}
-
-func (u *UserInterface) isInitWindowMousePassthrough() bool {
-	return u.initWindowMousePassthrough.Load()
-}
-
-func (u *UserInterface) setInitWindowMousePassthrough(enabled bool) {
-	u.initWindowMousePassthrough.Store(enabled)
-}
-
-func (u *UserInterface) isWindowClosingHandled() bool {
-	return u.windowClosingHandled.Load()
 }
 
 func (u *UserInterface) readInputState(inputState *InputState) {
@@ -453,7 +282,7 @@ func (u *UserInterface) Window() Window {
 	if microsoftgdk.IsXbox() {
 		return &nullWindow{}
 	}
-	return &u.iwindow
+	return &u.desktopWindow
 }
 
 // Monitor returns the window's current monitor. Returns nil if there is no current monitor yet.

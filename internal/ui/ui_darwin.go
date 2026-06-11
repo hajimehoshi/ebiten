@@ -448,7 +448,7 @@ func (u *glfwBackend) adjustViewSizeAfterFullscreen() error {
 }
 
 func (u *glfwBackend) isFullscreenAllowedFromUI(mode WindowResizingMode) bool {
-	s := u.windowSizeLimit.Load().(windowSizeRange)
+	s := u.desktopWindow.windowSizeLimit.Load().(windowSizeRange)
 	if s.maxWidthInDIP != glfw.DontCare || s.maxHeightInDIP != glfw.DontCare {
 		return false
 	}

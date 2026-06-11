@@ -73,7 +73,7 @@ type glfwBackend struct {
 	fpsModeInited bool
 
 	inputState       InputState
-	iwindow          glfwWindow
+	backendWindow    glfwWindow
 	savedCursorX     float64
 	savedCursorY     float64
 	rawCursorX       float64
@@ -120,7 +120,7 @@ func newGLFWBackend(u *UserInterface) *glfwBackend {
 	b.origWindowPosY = invalidPos
 	b.savedCursorX = math.NaN()
 	b.savedCursorY = math.NaN()
-	b.iwindow.ui = b
+	b.backendWindow.ui = b
 	return b
 }
 
@@ -472,7 +472,7 @@ func (u *glfwBackend) createWindow() error {
 	}
 
 	monitor := u.getInitMonitor()
-	ww, wh := u.getInitWindowSizeInDIP()
+	ww, wh := u.desktopWindow.getInitWindowSizeInDIP()
 	s := monitor.DeviceScaleFactor()
 	width := int(dipToGLFWPixel(float64(ww), s))
 	height := int(dipToGLFWPixel(float64(wh), s))
@@ -486,7 +486,7 @@ func (u *glfwBackend) createWindow() error {
 
 	// The position must be set before the size is set (#1982).
 	// setWindowSizeInDIP refers the current monitor's device scale.
-	wx, wy := u.getInitWindowPositionInDIP()
+	wx, wy := u.desktopWindow.getInitWindowPositionInDIP()
 	mw, mh := monitor.sizeInDIP()
 	if max := int(mw) - ww; wx >= max {
 		wx = max
@@ -525,7 +525,7 @@ func (u *glfwBackend) createWindow() error {
 	if err := u.window.SetCursor(glfwSystemCursors[u.getCursorShape()]); err != nil {
 		return err
 	}
-	if err := u.window.SetTitle(u.title.Load().(string)); err != nil {
+	if err := u.window.SetTitle(u.desktopWindow.title.Load().(string)); err != nil {
 		return err
 	}
 	// Icons are set after every frame. They don't have to be cared here.
@@ -534,7 +534,7 @@ func (u *glfwBackend) createWindow() error {
 		return err
 	}
 
-	if err := u.setDocumentEdited(u.windowClosingHandled.Load()); err != nil {
+	if err := u.setDocumentEdited(u.desktopWindow.windowClosingHandled.Load()); err != nil {
 		return err
 	}
 
@@ -553,7 +553,7 @@ func (u *glfwBackend) registerWindowCloseCallback() error {
 			u.inputState.WindowBeingClosed = true
 			u.m.Unlock()
 
-			if !u.isWindowClosingHandled() {
+			if !u.desktopWindow.isWindowClosingHandled() {
 				return
 			}
 			if err := u.window.Focus(); err != nil {
@@ -725,7 +725,7 @@ func (u *glfwBackend) initOnMainThread(options *RunOptions) error {
 	// On macOS, window decoration should be initialized once after buffers are swapped (#2600).
 	if runtime.GOOS != "darwin" {
 		decorated := glfw.False
-		if u.isInitWindowDecorated() {
+		if u.desktopWindow.isInitWindowDecorated() {
 			decorated = glfw.True
 		}
 		if err := glfw.WindowHint(glfw.Decorated, decorated); err != nil {
@@ -758,7 +758,7 @@ func (u *glfwBackend) initOnMainThread(options *RunOptions) error {
 	// Before creating a window, set it unresizable no matter what u.isInitWindowResizable() is (#1987).
 	// Making the window resizable here doesn't work correctly when switching to enable resizing.
 	resizable := glfw.False
-	if WindowResizingMode(u.windowResizingMode.Load()) == WindowResizingModeEnabled {
+	if WindowResizingMode(u.desktopWindow.windowResizingMode.Load()) == WindowResizingModeEnabled {
 		resizable = glfw.True
 	}
 	if err := glfw.WindowHint(glfw.Resizable, resizable); err != nil {
@@ -766,7 +766,7 @@ func (u *glfwBackend) initOnMainThread(options *RunOptions) error {
 	}
 
 	floating := glfw.False
-	if u.isInitWindowFloating() {
+	if u.desktopWindow.isInitWindowFloating() {
 		floating = glfw.True
 	}
 	if err := glfw.WindowHint(glfw.Floating, floating); err != nil {
@@ -783,7 +783,7 @@ func (u *glfwBackend) initOnMainThread(options *RunOptions) error {
 	}
 
 	mousePassthrough := glfw.False
-	if u.isInitWindowMousePassthrough() {
+	if u.desktopWindow.isInitWindowMousePassthrough() {
 		mousePassthrough = glfw.True
 	}
 	if err := glfw.WindowHint(glfw.MousePassthrough, mousePassthrough); err != nil {
@@ -801,20 +801,20 @@ func (u *glfwBackend) initOnMainThread(options *RunOptions) error {
 		return err
 	}
 
-	if m := colormode.ColorMode(u.colorMode.Load()); m != colormode.Unknown {
+	if m := colormode.ColorMode(u.desktopWindow.colorMode.Load()); m != colormode.Unknown {
 		if err := u.setWindowColorModeImpl(m); err != nil {
 			return err
 		}
 	}
 
 	// Maximizing a window requires a proper size and position. Call Maximize here (#1117).
-	if u.isInitWindowMaximized() {
+	if u.desktopWindow.isInitWindowMaximized() {
 		if err := u.window.Maximize(); err != nil {
 			return err
 		}
 	}
 
-	if err := u.setWindowResizingModeForOS(WindowResizingMode(u.windowResizingMode.Load())); err != nil {
+	if err := u.setWindowResizingModeForOS(WindowResizingMode(u.desktopWindow.windowResizingMode.Load())); err != nil {
 		return err
 	}
 
@@ -962,7 +962,7 @@ func (u *glfwBackend) update() (float64, float64, error) {
 		u.darwinInitOnce.Do(func() {
 			// On macOS, window decoration should be initialized once after buffers are swapped (#2600).
 			decorated := glfw.False
-			if u.isInitWindowDecorated() {
+			if u.desktopWindow.isInitWindowDecorated() {
 				decorated = glfw.True
 			}
 			if err = u.window.SetAttrib(glfw.Decorated, decorated); err != nil {
@@ -1195,7 +1195,7 @@ func (u *glfwBackend) updateIconIfNeeded() error {
 		return nil
 	}
 
-	imgs := u.getAndResetIconImages()
+	imgs := u.desktopWindow.getAndResetIconImages()
 	// A 0-size slice and nil are distinguished here.
 	// A 0-size slice means a user indicates to reset the icon.
 	// On the other hand, nil means a user didn't update the icon state.
@@ -1243,7 +1243,7 @@ func (u *glfwBackend) updateWindowSizeLimits() error {
 	if err != nil {
 		return err
 	}
-	minw, minh, maxw, maxh := u.getWindowSizeLimitsInDIP()
+	minw, minh, maxw, maxh := u.desktopWindow.getWindowSizeLimitsInDIP()
 
 	s := m.DeviceScaleFactor()
 	if minw < 0 {
@@ -1276,7 +1276,7 @@ func (u *glfwBackend) updateWindowSizeLimits() error {
 	}
 
 	// The window size limit affects the resizing mode, especially on macOS (#2260).
-	if err := u.setWindowResizingModeForOS(WindowResizingMode(u.windowResizingMode.Load())); err != nil {
+	if err := u.setWindowResizingModeForOS(WindowResizingMode(u.desktopWindow.windowResizingMode.Load())); err != nil {
 		return err
 	}
 
@@ -1291,25 +1291,6 @@ func (u *glfwBackend) disableWindowSizeLimits() error {
 	return u.window.SetSizeLimits(glfw.DontCare, glfw.DontCare, glfw.DontCare, glfw.DontCare)
 }
 
-// adjustWindowSizeBasedOnSizeLimitsInDIP adjust the size based on the window size limits.
-// width and height are in device-independent pixels.
-func (u *glfwBackend) adjustWindowSizeBasedOnSizeLimitsInDIP(width, height int) (int, int) {
-	minw, minh, maxw, maxh := u.getWindowSizeLimitsInDIP()
-	if minw >= 0 && width < minw {
-		width = minw
-	}
-	if minh >= 0 && height < minh {
-		height = minh
-	}
-	if maxw >= 0 && width > maxw {
-		width = maxw
-	}
-	if maxh >= 0 && height > maxh {
-		height = maxh
-	}
-	return width, height
-}
-
 // setWindowSize must be called from the main thread.
 func (u *glfwBackend) setWindowSizeInDIP(width, height int, callSetSize bool) error {
 	if microsoftgdk.IsXbox() {
@@ -1317,7 +1298,7 @@ func (u *glfwBackend) setWindowSizeInDIP(width, height int, callSetSize bool) er
 		return nil
 	}
 
-	width, height = u.adjustWindowSizeBasedOnSizeLimitsInDIP(width, height)
+	width, height = u.desktopWindow.adjustWindowSizeBasedOnSizeLimitsInDIP(width, height)
 	m, err := u.minimumWindowWidth()
 	if err != nil {
 		return err
@@ -1604,7 +1585,7 @@ func (u *glfwBackend) readInputState(inputState *InputState) {
 }
 
 func (u *glfwBackend) Window() backendWindow {
-	return &u.iwindow
+	return &u.backendWindow
 }
 
 // GLFW's functions to manipulate a window can invoke the SetSize callback (#1576, #1585, #1606).
@@ -1730,7 +1711,7 @@ func (u *glfwBackend) setWindowDecorated(decorated bool) error {
 
 	// The title can be lost when the decoration is gone. Recover this.
 	if decorated {
-		if err := u.window.SetTitle(u.title.Load().(string)); err != nil {
+		if err := u.window.SetTitle(u.desktopWindow.title.Load().(string)); err != nil {
 			return err
 		}
 	}
