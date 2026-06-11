@@ -1899,7 +1899,7 @@ func (u *glfwBackend) runSingleThread(game Game, options *RunOptions) error {
 	// Initialize the main thread first so the thread is available at u.run (#809).
 	u.mainThread = thread.NewNoopThread()
 
-	u.setRunning(true)
+	// setRunning(true) should be called in initOnMainThread for each platform.
 	defer u.setRunning(false)
 
 	u.context = newContext(game)
