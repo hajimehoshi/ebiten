@@ -74,6 +74,8 @@ type remoteBackend struct {
 	outsideHeight float64
 	scale         float64
 
+	ticked bool
+
 	m sync.Mutex
 }
 
@@ -166,9 +168,13 @@ func (r *remoteBackend) serve(conn net.Conn) error {
 				} else {
 					doneMsg.Err = err.Error()
 				}
+			} else {
+				r.ticked = true
 			}
 		case vmprotocol.HostMessageKindDrawFrame:
-			if err := r.drawFrame(); err != nil {
+			if !r.ticked {
+				doneMsg.Err = "ui: a frame was requested before the first tick"
+			} else if err := r.drawFrame(); err != nil {
 				doneMsg.Err = err.Error()
 			}
 		case vmprotocol.HostMessageKindPressKey:

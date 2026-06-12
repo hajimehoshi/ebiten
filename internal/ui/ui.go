@@ -112,6 +112,12 @@ func (u *UserInterface) GraphicsMaxImageSize() int {
 	return graphicscommand.MaxImageSize(u.graphicsDriver)
 }
 
+// GraphicsColorSpace returns the graphics driver's color space. The graphics driver must be
+// initialized before this is called.
+func (u *UserInterface) GraphicsColorSpace() color.ColorSpace {
+	return u.graphicsDriver.ColorSpace()
+}
+
 // newUserInterface must be called from the main thread.
 func newUserInterface() (*UserInterface, error) {
 	u := &UserInterface{}

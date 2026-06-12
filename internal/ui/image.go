@@ -31,6 +31,20 @@ func SetPanicOnErrorOnReadingPixelsForTesting(value bool) {
 	panicOnErrorOnReadingPixels = value
 }
 
+var imageFromEbitenImage func(ebitenImage any) (*Image, image.Rectangle)
+
+// SetImageFromEbitenImageFunc sets the implementation of [ImageFromEbitenImage]. Package ebiten calls
+// this at initialization: this package cannot import ebiten, so the bridge is a function value.
+func SetImageFromEbitenImageFunc(f func(ebitenImage any) (*Image, image.Rectangle)) {
+	imageFromEbitenImage = f
+}
+
+// ImageFromEbitenImage returns the internal image and the adjusted bounds underlying a public
+// ebiten.Image, or a nil image if the ebiten image is disposed.
+func ImageFromEbitenImage(ebitenImage any) (*Image, image.Rectangle) {
+	return imageFromEbitenImage(ebitenImage)
+}
+
 type Image struct {
 	ui *UserInterface
 

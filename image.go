@@ -244,6 +244,20 @@ func (i *Image) adjustedBounds() image.Rectangle {
 	return image.Rect(x, y, x+b.Dx(), y+b.Dy())
 }
 
+func init() {
+	// The bridge serves module-internal packages drawing at the internal image layer (e.g. vmhost);
+	// the ui package cannot import this package.
+	ui.SetImageFromEbitenImageFunc(func(img any) (*ui.Image, image.Rectangle) {
+		i := img.(*Image)
+		i.copyCheck()
+		if i.isDisposed() {
+			return nil, image.Rectangle{}
+		}
+		i.invokeUsageCallbacks()
+		return i.image, i.adjustedBounds()
+	})
+}
+
 // DrawImage draws the given image on the image i.
 //
 // DrawImage accepts the options. For details, see the document of
