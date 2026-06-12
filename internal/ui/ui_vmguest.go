@@ -171,10 +171,10 @@ func (r *remoteBackend) serve(conn net.Conn) error {
 			} else {
 				r.ticked = true
 			}
-		case vmprotocol.HostMessageKindDrawFrame:
+		case vmprotocol.HostMessageKindAdvanceFrame:
 			if !r.ticked {
 				doneMsg.Err = "ui: a frame was requested before the first tick"
-			} else if err := r.drawFrame(); err != nil {
+			} else if err := r.advanceFrame(); err != nil {
 				doneMsg.Err = err.Error()
 			}
 		case vmprotocol.HostMessageKindPressKey:
@@ -267,8 +267,8 @@ func (r *remoteBackend) advanceTick() error {
 	return r.flushCommands()
 }
 
-// drawFrame renders the current state into the host-owned screen without advancing game state.
-func (r *remoteBackend) drawFrame() error {
+// advanceFrame renders the current state into the host-owned screen without advancing game state.
+func (r *remoteBackend) advanceFrame() error {
 	w, h := r.outsideSize()
 	if w == 0 || h == 0 {
 		return nil

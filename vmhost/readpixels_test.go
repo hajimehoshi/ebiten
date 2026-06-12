@@ -44,8 +44,8 @@ func TestReadPixelsRoundTrip(t *testing.T) {
 	if err := guest.AdvanceTick(); err != nil {
 		t.Fatalf("advancing a tick failed: %v", err)
 	}
-	guest.DrawFrame()
-	// DrawFrame defers its errors to the next AdvanceTick.
+	guest.AdvanceFrame()
+	// AdvanceFrame defers its errors to the next AdvanceTick.
 	if err := guest.AdvanceTick(); err != nil {
 		t.Fatalf("rendering the guest frame failed: %v", err)
 	}

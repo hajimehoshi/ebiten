@@ -47,7 +47,7 @@ type frameRenderer struct {
 
 	// screen is the mirror of the guest's screen framebuffer. It is a renderer-owned image, not the
 	// outside screen: a frame is drawn through many commands, and the outside screen must advance from
-	// one completed frame to the next (at the DrawFrame composite), never showing a partially drawn
+	// one completed frame to the next (at the AdvanceFrame composite), never showing a partially drawn
 	// state.
 	screen *hostImage
 }

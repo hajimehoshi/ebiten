@@ -45,7 +45,7 @@ type HostMessageKind int
 const (
 	HostMessageKindSetOutsideSize HostMessageKind = iota
 	HostMessageKindAdvanceTick
-	HostMessageKindDrawFrame
+	HostMessageKindAdvanceFrame
 	HostMessageKindPressKey
 	HostMessageKindReleaseKey
 	HostMessageKindMoveCursor

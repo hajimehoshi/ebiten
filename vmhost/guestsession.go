@@ -17,8 +17,8 @@
 // host's own GPU.
 //
 // The protocol is hidden behind the GuestSession API. AdvanceTick drives the guest's Update;
-// DrawFrame renders the guest's current state into the host-owned screen set by SetOutsideScreen so
-// the host can composite it into its own window.
+// AdvanceFrame renders the guest's current state into the host-owned screen set by SetOutsideScreen
+// so the host can composite it into its own window.
 package vmhost
 
 import (
@@ -36,7 +36,7 @@ import (
 // GuestSession is a session with a guest process, driven and observed from the host side. It holds
 // no process handle: the guest's lifetime belongs to whoever spawned it.
 //
-// [GuestSession.AdvanceTick] and [GuestSession.DrawFrame] issue draws on the host's GPU through the
+// [GuestSession.AdvanceTick] and [GuestSession.AdvanceFrame] issue draws on the host's GPU through the
 // ordinary ebiten stack, so they must be called from within the host's frame (its Update or Draw).
 type GuestSession struct {
 	conn io.ReadWriteCloser
@@ -53,11 +53,11 @@ type GuestSession struct {
 	sentWidth  float64
 	sentHeight float64
 
-	// ticked reports whether an Update has completed on the guest, gating DrawFrame: a frame must
+	// ticked reports whether an Update has completed on the guest, gating AdvanceFrame: a frame must
 	// not be drawn before the first tick.
 	ticked bool
 
-	// err holds an error deferred from DrawFrame; it surfaces at the next AdvanceTick.
+	// err holds an error deferred from AdvanceFrame; it surfaces at the next AdvanceTick.
 	err error
 
 	// pixelsBuf and pixelsListBuf back the ReadPixels answers: one flat reused buffer, subsliced per
@@ -237,7 +237,7 @@ func (g *GuestSession) SetOutsideScreen(screen *ebiten.Image) error {
 
 // AdvanceTick runs one Update on the guest. It returns [ebiten.Termination] (matchable with
 // [errors.Is]) when the guest's Update signals a regular termination, and it also carries any error
-// deferred from a preceding [GuestSession.DrawFrame].
+// deferred from a preceding [GuestSession.AdvanceFrame].
 func (g *GuestSession) AdvanceTick() error {
 	if g.err != nil {
 		err := g.err
@@ -258,24 +258,24 @@ func (g *GuestSession) AdvanceTick() error {
 	return nil
 }
 
-// DrawFrame has the guest draw its current state and composites the frame into the screen set by
+// AdvanceFrame has the guest draw its current state and composites the frame into the screen set by
 // [GuestSession.SetOutsideScreen], without advancing the game state. It must not be called before the
 // first [GuestSession.AdvanceTick]: a frame is never drawn before the first tick. Errors are deferred
 // to [GuestSession.AdvanceTick].
-func (g *GuestSession) DrawFrame() {
+func (g *GuestSession) AdvanceFrame() {
 	if g.outsideScreen == nil {
-		g.deferError(errors.New("vmhost: SetOutsideScreen must be called at least once before DrawFrame"))
+		g.deferError(errors.New("vmhost: SetOutsideScreen must be called at least once before AdvanceFrame"))
 		return
 	}
 	if !g.ticked {
-		g.deferError(errors.New("vmhost: AdvanceTick must be called at least once before DrawFrame"))
+		g.deferError(errors.New("vmhost: AdvanceTick must be called at least once before AdvanceFrame"))
 		return
 	}
 
 	// The guest streams its draw commands back as graphics-command batches, which sendMessage() renders
 	// into the screen.
 	if _, err := g.sendMessage(&vmprotocol.HostMessage{
-		Kind: vmprotocol.HostMessageKindDrawFrame,
+		Kind: vmprotocol.HostMessageKindAdvanceFrame,
 	}); err != nil {
 		g.deferError(err)
 		return
