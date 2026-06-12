@@ -70,7 +70,7 @@ func runGuest(ln net.Listener, binary, endpoint string) error {
 		return fmt.Errorf("accepting the guest failed: %w", err)
 	}
 
-	guest, err := vmhost.NewGuestSession(conn)
+	guest, err := vmhost.NewGuestSession(conn, nil)
 	if err != nil {
 		return err
 	}

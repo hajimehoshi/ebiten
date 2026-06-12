@@ -27,6 +27,7 @@ import (
 	"io"
 	"net"
 	"slices"
+	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
@@ -39,7 +40,7 @@ import (
 // [GuestSession.AdvanceTick] and [GuestSession.AdvanceFrame] issue draws on the host's GPU through the
 // ordinary ebiten stack, so they must be called from within the host's frame (its Update or Draw).
 type GuestSession struct {
-	conn io.ReadWriteCloser
+	conn net.Conn
 	enc  *vmprotocol.Encoder
 	dec  *vmprotocol.Decoder
 
@@ -66,20 +67,58 @@ type GuestSession struct {
 	pixelsListBuf [][]byte
 }
 
+// NewGuestSessionOptions represents options for [NewGuestSession].
+type NewGuestSessionOptions struct {
+	// IdleTimeout is the maximum duration the connection may make no progress while an operation
+	// (including the handshake) is in progress: when it elapses, the operation fails with an error
+	// matching [os.ErrDeadlineExceeded], and the session is unusable except for
+	// [GuestSession.Close]. It bounds silence, not an operation's total duration: a guest that keeps
+	// sending never times out. The default (0) means no timeout.
+	IdleTimeout time.Duration
+}
+
 // NewGuestSession opens a session with a guest process over an established connection. It performs the
 // protocol handshake and returns an error if the guest's protocol version does not match the host's.
-func NewGuestSession(conn io.ReadWriteCloser) (*GuestSession, error) {
-	// The handshake runs on the bare connection before it is wrapped in gob codecs (the host is the
-	// initiator).
-	if err := vmprotocol.PerformHandshake(conn, true); err != nil {
+// options can be nil, which means the default options.
+func NewGuestSession(conn net.Conn, options *NewGuestSessionOptions) (*GuestSession, error) {
+	var rw io.ReadWriter = conn
+	if options != nil && options.IdleTimeout > 0 {
+		rw = &idleTimeoutConn{
+			conn:        conn,
+			idleTimeout: options.IdleTimeout,
+		}
+	}
+	// The handshake runs before the connection is wrapped in gob codecs (the host is the initiator).
+	if err := vmprotocol.PerformHandshake(rw, true); err != nil {
 		return nil, err
 	}
 	return &GuestSession{
 		conn:     conn,
-		enc:      vmprotocol.NewEncoder(conn),
-		dec:      vmprotocol.NewDecoder(conn),
+		enc:      vmprotocol.NewEncoder(rw),
+		dec:      vmprotocol.NewDecoder(rw),
 		renderer: newFrameRenderer(),
 	}, nil
+}
+
+// idleTimeoutConn bounds each Read and Write with a deadline refreshed at every call, so the timeout
+// limits silence on the connection rather than an operation's total duration.
+type idleTimeoutConn struct {
+	conn        net.Conn
+	idleTimeout time.Duration
+}
+
+func (c *idleTimeoutConn) Read(p []byte) (int, error) {
+	if err := c.conn.SetReadDeadline(time.Now().Add(c.idleTimeout)); err != nil {
+		return 0, err
+	}
+	return c.conn.Read(p)
+}
+
+func (c *idleTimeoutConn) Write(p []byte) (int, error) {
+	if err := c.conn.SetWriteDeadline(time.Now().Add(c.idleTimeout)); err != nil {
+		return 0, err
+	}
+	return c.conn.Write(p)
 }
 
 // sendMessage sends one operation and reads the guest's messages until its concluding one, answering any

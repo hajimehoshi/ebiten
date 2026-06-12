@@ -86,7 +86,7 @@ func startGuest(t *testing.T, pkgPath string, activation guestActivation, networ
 		t.Fatalf("accepting the guest failed: %v", err)
 	}
 
-	guest, err := vmhost.NewGuestSession(conn)
+	guest, err := vmhost.NewGuestSession(conn, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -326,7 +326,7 @@ func buildAndStartGuest(ln net.Listener, bin, endpoint, pkg string) (gp *guestPr
 		}
 	}()
 
-	session, err := vmhost.NewGuestSession(conn)
+	session, err := vmhost.NewGuestSession(conn, nil)
 	if err != nil {
 		return nil, err
 	}
