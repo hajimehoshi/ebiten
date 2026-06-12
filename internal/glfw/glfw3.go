@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: 2006-2019 Camilla Löwy <elmindreda@glfw.org>
 // SPDX-FileCopyrightText: 2022 The Ebitengine Authors
 
-//go:build darwin || freebsd || linux || netbsd || openbsd || windows
+//go:build darwin || freebsd || linux || netbsd || windows
 
 package glfw
 

@@ -4,7 +4,7 @@
 // SPDX-FileCopyrightText: 2012 Torsten Walluhn <tw@mad-cad.net>
 // SPDX-FileCopyrightText: 2022 The Ebitengine Authors
 
-//go:build darwin || windows
+//go:build darwin || freebsd || linux || netbsd || windows
 
 package glfw
 
@@ -302,6 +302,12 @@ func WindowHintString(hint Hint, value string) error {
 	switch hint {
 	case CocoaFrameName:
 		_glfw.hints.window.frameName = value
+	case X11ClassName:
+		_glfw.hints.window.className = value
+	case X11InstanceName:
+		_glfw.hints.window.instanceName = value
+	default:
+		return fmt.Errorf("glfw: invalid window hint string 0x%08X: %w", hint, InvalidEnum)
 	}
 	return nil
 }

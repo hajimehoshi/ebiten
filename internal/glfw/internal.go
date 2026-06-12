@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: 2006-2019 Camilla Löwy <elmindreda@glfw.org>
 // SPDX-FileCopyrightText: 2022 The Ebitengine Authors
 
-//go:build darwin || windows
+//go:build darwin || freebsd || linux || netbsd || windows
 
 package glfw
 
@@ -39,6 +39,8 @@ type wndconfig struct {
 	scaleToMonitor   bool
 	retina           bool   // Cocoa: GLFW_COCOA_RETINA_FRAMEBUFFER
 	frameName        string // Cocoa: GLFW_COCOA_FRAME_NAME
+	className        string // X11: GLFW_X11_CLASS_NAME
+	instanceName     string // X11: GLFW_X11_INSTANCE_NAME
 }
 
 type ctxconfig struct {

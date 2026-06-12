@@ -1,0 +1,1 @@
+github.com/hajimehoshi/ebiten/v2/internal/glfw

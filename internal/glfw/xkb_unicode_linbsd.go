@@ -2,12 +2,9 @@
 // SPDX-FileCopyrightText: 2014 Jonas Ådahl <jadahl@gmail.com>
 // SPDX-FileCopyrightText: 2024 The Ebitengine Authors
 
-//go:build freebsd || linux || netbsd || openbsd
+//go:build freebsd || linux || netbsd
 
 package glfw
-
-// #include "xkb_unicode_linbsd.h"
-import "C"
 
 /*
  * Marcus: This code was originally written by Markus G. Kuhn.
@@ -871,23 +868,22 @@ var keysymtab = map[uint32]uint32{
 	0xffbd: '=',    // XKB_KEY_KP_Equal
 }
 
-// _glfwKeySym2Unicode converts XKB KeySym to Unicode.
-//
-//export _glfwKeySym2Unicode
-func _glfwKeySym2Unicode(keysym C.uint) C.uint32_t {
+// keySym2Unicode converts an XKB KeySym to a Unicode code point. ok is false
+// when the KeySym has no Unicode equivalent.
+func keySym2Unicode(keysym uint32) (codepoint rune, ok bool) {
 	// First check for Latin-1 characters (1:1 mapping)
 	if (keysym >= 0x0020 && keysym <= 0x007e) || (keysym >= 0x00a0 && keysym <= 0x00ff) {
-		return keysym
+		return rune(keysym), true
 	}
 
 	// Also check for directly encoded 24-bit UCS characters
 	if (keysym & 0xff000000) == 0x01000000 {
-		return keysym & 0x00ffffff
+		return rune(keysym & 0x00ffffff), true
 	}
 
-	ucs, ok := keysymtab[uint32(keysym)]
+	ucs, ok := keysymtab[keysym]
 	if !ok {
-		return C.GLFW_INVALID_CODEPOINT
+		return 0, false
 	}
-	return C.uint32_t(ucs)
+	return rune(ucs), true
 }

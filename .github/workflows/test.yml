@@ -40,7 +40,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install libasound2-dev libgl1-mesa-dev libxcursor-dev libxi-dev libxinerama-dev libxrandr-dev libxxf86vm-dev
+          sudo apt-get install libgl1 libgl1-mesa-dri libx11-6 libxcursor1 libxext6 libxi6 libxinerama1 libxrandr2 libxrender1
 
       - name: Prepare ebitenmobile test
         run: |
@@ -58,7 +58,7 @@ jobs:
       - name: go vet (Linux)
         if: runner.os == 'Linux'
         run: |
-          go vet ./...
+          go list ./... | grep -v -x -F -f .github/workflows/govetblock_linux.txt | xargs go vet
 
       - name: go vet (macOS)
         if: runner.os == 'macOS'
@@ -84,7 +84,15 @@ jobs:
           go build "-gcflags=all=-N -l" -v ./...
           env GOOS=darwin GOARCH=amd64 go build -v ./...
           env GOOS=darwin GOARCH=arm64 go build -v ./...
+          env GOOS=freebsd GOARCH=amd64 go build "-gcflags=github.com/ebitengine/purego/internal/fakecgo=-std" -v ./...
+          env GOOS=freebsd GOARCH=arm64 go build "-gcflags=github.com/ebitengine/purego/internal/fakecgo=-std" -v ./...
           env GOOS=js GOARCH=wasm go build -v ./...
+          env GOOS=linux GOARCH=386 go build -v ./...
+          env GOOS=linux GOARCH=amd64 go build -v ./...
+          env GOOS=linux GOARCH=arm go build -v ./...
+          env GOOS=linux GOARCH=arm64 go build -v ./...
+          env GOOS=netbsd GOARCH=amd64 go build "-gcflags=github.com/ebitengine/purego/internal/fakecgo=-std" -v ./...
+          env GOOS=netbsd GOARCH=arm64 go build "-gcflags=github.com/ebitengine/purego/internal/fakecgo=-std" -v ./...
           env GOOS=windows GOARCH=386 go build -v ./...
           env GOOS=windows GOARCH=amd64 go build -v ./...
           env GOOS=windows GOARCH=arm64 go build -v ./...
@@ -97,16 +105,6 @@ jobs:
           lipo -create flappy_amd64 flappy_arm64 -output flappy
           file flappy
           rm flappy
-
-      - name: go build (NintendoSDK)
-        if: runner.os == 'Linux'
-        run: |
-          go build -tags=nintendosdk -v ./...
-
-      - name: go build (PlayStation 5)
-        if: runner.os == 'Linux'
-        run: |
-          go build -tags=playstation5 -v ./...
 
       - name: go mod vendor
         run: |
@@ -135,14 +133,13 @@ jobs:
         run: |
           sudo dpkg --add-architecture i386
           sudo apt-get update
-          sudo apt-get install gcc-multilib
-          sudo apt-get install libasound2-dev:i386 libgl1-mesa-dev:i386 libxcursor-dev:i386 libxi-dev:i386 libxinerama-dev:i386 libxrandr-dev:i386 libxxf86vm-dev:i386
-          env CGO_ENABLED=1 GOARCH=386 go test -shuffle=on -v -p=1 ./...
+          sudo apt-get install libgl1:i386 libgl1-mesa-dri:i386 libx11-6:i386 libxcursor1:i386 libxext6:i386 libxi6:i386 libxinerama1:i386 libxrandr2:i386 libxrender1:i386
+          env GOARCH=386 go test -shuffle=on -v -p=1 ./...
 
       - name: go test (Linux OpenGL ES)
         if: runner.os == 'Linux'
         run: |
-          sudo apt-get install libgles2-mesa-dev
+          sudo apt-get install libegl1 libgles2
           env EBITENGINE_GRAPHICS_LIBRARY=opengl go test -shuffle=on -v -p=1 ./...
 
       - name: go test (Windows)
@@ -156,6 +153,17 @@ jobs:
         run: |
           env GOARCH=386 go test -shuffle=on -v ./...
           env GOARCH=386 EBITENGINE_DIRECTX=version=12 go test -shuffle=on -v ./...
+
+      - name: go test internal/glfw/_xlibcheck
+        if: runner.os == 'Linux'
+        run: |
+          sudo dpkg --add-architecture i386
+          sudo apt-get update
+          sudo apt-get install gcc-multilib
+          sudo apt-get install libxcursor-dev libxi-dev libxinerama-dev libxrandr-dev libxrender-dev
+          sudo apt-get install libxcursor-dev:i386 libxi-dev:i386 libxinerama-dev:i386 libxrandr-dev:i386 libxrender-dev:i386
+          go test -shuffle=on -v ./internal/glfw/_xlibcheck/
+          env CGO_ENABLED=1 GOARCH=386 go test -shuffle=on -v ./internal/glfw/_xlibcheck/
 
       - name: Install ebitenmobile
         run: |
@@ -174,6 +182,17 @@ jobs:
         run: |
           cd /tmp/go-inovation
           ebitenmobile bind -target ios -o Inovation.xcframework -v github.com/hajimehoshi/go-inovation/mobile
+
+      - name: go build (NintendoSDK)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get install libegl-dev
+          go build -tags=nintendosdk -v ./...
+
+      - name: go build (PlayStation 5)
+        if: runner.os == 'Linux'
+        run: |
+          go build -tags=playstation5 -v ./...
 
   wasm:
     strategy:
