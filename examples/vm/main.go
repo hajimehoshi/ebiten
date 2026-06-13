@@ -73,8 +73,11 @@ type Game struct {
 	dir      string
 	pin      ebitenginePin
 
-	pkg    string // the package text field's buffer
-	status string
+	// pkg is the package text field's buffer.
+	pkg string
+	// guestTPS is the ticks-per-second rate the guest is driven at, bound to the panel's slider; 0 pauses it.
+	guestTPS int
+	status   string
 
 	launching bool
 	results   chan launchResult
@@ -85,6 +88,9 @@ type Game struct {
 	// screenSet reports whether guestScreen has been handed to the current session via
 	// SetOutsideScreen; it is cleared when the session or the screen changes.
 	screenSet bool
+
+	// tickAccum carries the sub-tick remainder between host updates, in units where hostTPS equals one tick.
+	tickAccum int
 
 	width  int
 	height int
@@ -107,10 +113,15 @@ func (g *Game) Update() error {
 	}
 
 	state, err := g.debugui.Update(func(ctx *debugui.Context) error {
-		ctx.Window("Virtualization host", image.Rect(10, 10, 360, 150), func(layout debugui.ContainerLayout) {
+		ctx.Window("Virtualization host", image.Rect(10, 10, 410, 170), func(layout debugui.ContainerLayout) {
 			ctx.Text("Package to run as a guest:")
+			ctx.SetGridLayout([]int{-1, 60}, nil)
 			ctx.TextField(&g.pkg)
 			ctx.Button("Launch").On(g.launchGuest)
+			ctx.SetGridLayout([]int{-1, -1}, nil)
+			ctx.Text("Guest TPS:")
+			ctx.Slider(&g.guestTPS, 0, 300, 1)
+			ctx.SetGridLayout([]int{-1}, nil)
 			ctx.Text(g.status)
 		})
 		return nil
@@ -130,7 +141,7 @@ func (g *Game) Update() error {
 	if g.gp == nil {
 		return nil
 	}
-	if err := g.advanceGuestTick(state); err != nil {
+	if err := g.advanceGuestTicks(state); err != nil {
 		g.status = "Guest error: " + err.Error()
 		g.closeGuest()
 		return nil
@@ -174,8 +185,9 @@ func (g *Game) launchGuest() {
 	}()
 }
 
-// advanceGuestTick gives the guest its screen, forwards the window's input to it, and advances it one tick.
-func (g *Game) advanceGuestTick(state debugui.InputCapturingState) error {
+// advanceGuestTicks gives the guest its screen, forwards the window's input to it, and advances it by the
+// number of ticks due this host update at the guest's TPS.
+func (g *Game) advanceGuestTicks(state debugui.InputCapturingState) error {
 	if g.width == 0 || g.height == 0 {
 		return nil
 	}
@@ -194,8 +206,29 @@ func (g *Game) advanceGuestTick(state debugui.InputCapturingState) error {
 		g.screenSet = true
 	}
 	g.forwardInput(state)
-	g.gp.session.AdvanceTick()
+	for range g.guestTickCount() {
+		g.gp.session.AdvanceTick()
+	}
 	return nil
+}
+
+// guestTickCount returns how many ticks to advance the guest this host update so it runs at g.guestTPS
+// ticks per second on average, regardless of the host's tick rate.
+func (g *Game) guestTickCount() int {
+	// A non-positive rate pauses the guest: no ticks advance.
+	if g.guestTPS <= 0 {
+		return 0
+	}
+	hostTPS := ebiten.TPS()
+	if hostTPS <= 0 {
+		// Guard against a non-positive rate (e.g. SyncWithFPS).
+		hostTPS = ebiten.DefaultTPS
+	}
+	// Every hostTPS accumulated units make one tick, so hostTPS updates (one second) yield guestTPS ticks.
+	g.tickAccum += g.guestTPS
+	n := g.tickAccum / hostTPS
+	g.tickAccum %= hostTPS
+	return n
 }
 
 // forwardInput sends the window's input to the guest, except input the debug UI is consuming (a hovered
@@ -540,6 +573,7 @@ func run() (err error) {
 		pin:      pin,
 		results:  make(chan launchResult, 1),
 		pkg:      pkg,
+		guestTPS: ebiten.DefaultTPS,
 		status:   "Edit the package and press Enter or Launch",
 	}
 	g.launchGuest()
