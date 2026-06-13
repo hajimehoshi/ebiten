@@ -269,6 +269,7 @@ func (g *Game) forwardInput(state debugui.InputCapturingState) {
 func (g *Game) Draw(screen *ebiten.Image) {
 	if g.gp != nil && g.screenSet {
 		g.gp.session.AdvanceFrame()
+		g.gp.session.CompositeFrame()
 		// guestScreen is physical-sized; scale it back down to fill the logical screen.
 		scale := ebiten.Monitor().DeviceScaleFactor()
 		op := &ebiten.DrawImageOptions{}
@@ -284,7 +285,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 }
 
 // closeGuest stops the current guest, if any. Close releases the mirror images that Draw composites
-// via AdvanceFrame, so it must run on the host frame, not concurrently with Draw; reaping the process
+// via CompositeFrame, so it must run on the host frame, not concurrently with Draw; reaping the process
 // is left to a goroutine so a slow exit cannot stall the frame.
 func (g *Game) closeGuest() {
 	if g.gp == nil {
@@ -483,7 +484,8 @@ func isWithinModule(pkg, module string) bool {
 
 // buildAndStartGuest builds pkg as a guest at the given binary path, launches it pointed at the host's
 // endpoint, and returns a handle once it has connected. It is safe to call off the main goroutine; only
-// the returned session's SetOutsideScreen/AdvanceTick/AdvanceFrame/Close must run on the host frame.
+// the returned session's screen-touching methods (SetOutsideScreen, CompositeFrame, Close) must run on
+// the host frame.
 func buildAndStartGuest(ln net.Listener, workDir, bin, endpoint, pkg string, pin ebitenginePin) (gp *guestProcess, err error) {
 	if err := buildGuest(workDir, bin, pkg, pin); err != nil {
 		return nil, fmt.Errorf("building %s failed (see console): %w", pkg, err)

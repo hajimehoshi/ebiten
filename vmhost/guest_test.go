@@ -99,15 +99,19 @@ func startGuest(t *testing.T, pkgPath string, activation guestActivation, networ
 	return guest
 }
 
-// tickAndFrame advances the guest one tick, requests a frame, and blocks until it is composited into
-// the outside screen, failing the test if the session ended instead. AdvanceFrame requests the frame
-// and WaitFrame blocks for it, so the outside screen deterministically reflects the tick.
+// tickAndFrame advances the guest one tick, requests a frame, blocks until it is rendered, and
+// composites it into the outside screen, failing the test if the session ended instead. AdvanceFrame
+// requests the frame, WaitFrame blocks for it, and CompositeFrame presents it, so the outside screen
+// deterministically reflects the tick.
 func tickAndFrame(t *testing.T, guest *vmhost.GuestSession) {
 	t.Helper()
 	guest.AdvanceTick()
 	guest.AdvanceFrame()
 	if !guest.WaitFrame() {
 		t.Fatalf("rendering the guest frame failed: %v", guest.Err())
+	}
+	if !guest.CompositeFrame() {
+		t.Fatalf("compositing the guest frame failed: %v", guest.Err())
 	}
 }
 

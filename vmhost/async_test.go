@@ -12,8 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// The session runs the guest on a background goroutine: AdvanceTick queues ticks without blocking,
-// PendingTicks reports the backlog, and WaitTick/WaitFrame block for completion.
+// The session runs the guest on a background goroutine: AdvanceTick and AdvanceFrame queue work without
+// blocking, PendingTicks reports the tick backlog, WaitTick/WaitFrame block for completion, and
+// CompositeFrame presents the rendered frame.
 
 package vmhost_test
 
@@ -36,8 +37,9 @@ func TestAsyncTickQueue(t *testing.T) {
 
 	// A frame requested before the first tick composites nothing: the guest draws no frame before its
 	// first Update.
-	if guest.AdvanceFrame() {
-		t.Error("AdvanceFrame before the first tick reported a composited frame")
+	guest.AdvanceFrame()
+	if guest.CompositeFrame() {
+		t.Error("CompositeFrame before the first tick reported a composited frame")
 	}
 
 	// Queue several ticks without blocking, then drain them. PendingTicks reports the backlog.
@@ -52,12 +54,15 @@ func TestAsyncTickQueue(t *testing.T) {
 		t.Errorf("PendingTicks after WaitTick = %d; want 0", n)
 	}
 
-	// A frame now composites the drawn state. AdvanceFrame requests it and WaitFrame blocks for it. The
-	// red tile's interior at (10+8, 10+8) device-independent pixels, scaled to physical pixels, must
-	// carry the guest's red.
+	// A frame now composites the drawn state. AdvanceFrame requests it, WaitFrame blocks for it, and
+	// CompositeFrame presents it. The red tile's interior at (10+8, 10+8) device-independent pixels,
+	// scaled to physical pixels, must carry the guest's red.
 	guest.AdvanceFrame()
 	if !guest.WaitFrame() {
 		t.Fatalf("WaitFrame failed: %v", guest.Err())
+	}
+	if !guest.CompositeFrame() {
+		t.Fatalf("CompositeFrame failed: %v", guest.Err())
 	}
 	pixels := make([]byte, 4*pw*ph)
 	outsideScreen.ReadPixels(pixels)

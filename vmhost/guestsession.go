@@ -18,9 +18,10 @@
 //
 // The protocol is hidden behind the GuestSession API. A background goroutine owns the connection and
 // the guest's mirror images, so a slow or wedged guest never blocks the host's own frame.
-// [GuestSession.AdvanceTick] drives the guest's Update; [GuestSession.AdvanceFrame] composites the
-// guest's most recently completed frame into the host-owned screen set by
-// [GuestSession.SetOutsideScreen] so the host can composite it into its own window.
+// [GuestSession.AdvanceTick] drives the guest's Update and [GuestSession.AdvanceFrame] requests its
+// next frame; [GuestSession.CompositeFrame] composites the guest's most recently completed frame into
+// the host-owned screen set by [GuestSession.SetOutsideScreen] so the host can composite it into its
+// own window.
 package vmhost
 
 import (
@@ -43,10 +44,10 @@ import (
 // no process handle: the guest's lifetime belongs to whoever spawned it.
 //
 // A background goroutine owns the connection and the guest's mirror images and performs all protocol
-// I/O, so the host's calls do not block on the guest. [GuestSession.AdvanceFrame] and
-// [GuestSession.WaitFrame] composite into the host's screen, and [GuestSession.Close] releases the
-// images they composite; these three must be called from within the host's frame (its Update or Draw),
-// and not concurrently with one another. The other methods may be called from any goroutine.
+// I/O, so the host's calls do not block on the guest. [GuestSession.CompositeFrame] composites into the
+// host's screen and [GuestSession.Close] releases the images it composites; these two must be called
+// from within the host's frame (its Update or Draw), and not concurrently with one another. The other
+// methods may be called from any goroutine.
 type GuestSession struct {
 	// conn is safe for concurrent use: the session goroutine reads and writes through the codecs while
 	// Close pokes its deadline and closes it.
@@ -260,7 +261,7 @@ func (g *GuestSession) fail(err error) {
 }
 
 // finishFrame publishes the just-rendered mirror screen for the host to composite and wakes a waiting
-// WaitFrame or AdvanceFrame. It returns an error if the guest produced no screen.
+// WaitFrame. It returns an error if the guest produced no screen.
 func (g *GuestSession) finishFrame() error {
 	g.mu.Lock()
 	defer g.mu.Unlock()
@@ -485,94 +486,66 @@ func (g *GuestSession) AdvanceTick() {
 	g.cond.Broadcast()
 }
 
-// AdvanceFrame composites the guest's most recently completed frame into the screen set by
-// [GuestSession.SetOutsideScreen] and requests the next one, without blocking on the guest. It reports
-// whether the outside screen advanced to a newly completed frame; it returns false when no newer frame
-// is ready yet (the screen keeps its previous content) or when the session has ended (see
-// [GuestSession.Err]). On its own it is the non-blocking live-display path; pair it with
-// [GuestSession.WaitFrame] to block for the frame it requests. It must be called from within the
-// host's frame.
-func (g *GuestSession) AdvanceFrame() bool {
-	frame := g.pollFrame()
-	if frame.img == nil {
-		return false
-	}
-	composited := g.compositeFrame(frame)
-	g.markComposited()
-	return composited
-}
-
-// WaitFrame blocks until the frame requested by a preceding [GuestSession.AdvanceFrame] has been
-// rendered, then composites it into the screen set by [GuestSession.SetOutsideScreen]. It is the
-// blocking counterpart of AdvanceFrame for deterministic capture: AdvanceTick, AdvanceFrame, WaitFrame
-// leaves the outside screen reflecting the tick. It reports whether it composited a frame; it returns
-// false when no frame was requested (no preceding AdvanceFrame) or the session has ended (see
-// [GuestSession.Err]). It must be called from within the host's frame.
-func (g *GuestSession) WaitFrame() bool {
-	frame := g.awaitFrame()
-	if frame.img == nil {
-		return false
-	}
-	composited := g.compositeFrame(frame)
-	g.markComposited()
-	return composited
-}
-
-// pollFrame requests the next frame and returns an already-completed one to composite. The returned
-// frame is the zero value (nil img) when none is ready.
-func (g *GuestSession) pollFrame() hostImage {
+// AdvanceFrame requests the guest's next frame. It does not block: the frame is rendered by the session
+// goroutine and presented later by [GuestSession.CompositeFrame], optionally after blocking for it with
+// [GuestSession.WaitFrame]. Without that wait, CompositeFrame likely presents a previously requested
+// frame, since the one just requested has yet to render. At most one frame is in flight: requests made
+// before the last is composited by CompositeFrame coalesce into one. A regular termination, a timeout,
+// and any deferred error surface from [GuestSession.Err].
+func (g *GuestSession) AdvanceFrame() {
 	g.mu.Lock()
 	defer g.mu.Unlock()
-	if g.closed || g.err != nil || g.outsideScreen == nil {
-		return hostImage{}
+	if g.closed || g.err != nil {
+		return
 	}
 	// A frame can only be produced after the first tick.
 	if g.submittedTicks > 0 {
 		g.frameRequested = true
 		g.cond.Broadcast()
 	}
-	if g.framePhase != framePhaseCompositable {
-		return hostImage{}
-	}
-	return g.compositableFrame
 }
 
-// awaitFrame blocks until a frame requested by AdvanceFrame has completed, and returns it to composite.
-// The returned frame is the zero value (nil img) when the session ended or no frame was requested.
-func (g *GuestSession) awaitFrame() hostImage {
+// WaitFrame blocks until the frame requested by a preceding [GuestSession.AdvanceFrame] has been
+// rendered, leaving it for [GuestSession.CompositeFrame] to present. Inserted between them it makes
+// capture deterministic: AdvanceTick, AdvanceFrame, WaitFrame, CompositeFrame leaves the outside screen
+// reflecting the tick. It reports whether the frame is ready; it returns false when no frame was
+// requested (no preceding AdvanceFrame) or the session has ended (see [GuestSession.Err]).
+func (g *GuestSession) WaitFrame() bool {
 	g.mu.Lock()
 	defer g.mu.Unlock()
-	if g.closed || g.err != nil || g.outsideScreen == nil {
-		return hostImage{}
+	if g.closed || g.err != nil {
+		return false
 	}
 	// Only block for a frame that is on the way: one requested, in flight, or already ready.
 	if !g.frameRequested && g.framePhase == framePhaseRenderable {
-		return hostImage{}
+		return false
 	}
 	for g.framePhase != framePhaseCompositable {
 		if g.closed || g.err != nil {
-			return hostImage{}
+			return false
 		}
 		g.cond.Wait()
 	}
-	return g.compositableFrame
+	return true
 }
 
-// markComposited records that the host has consumed the ready frame, freeing the mirror for the session
-// to render the next.
-func (g *GuestSession) markComposited() {
-	g.mu.Lock()
-	defer g.mu.Unlock()
-	g.framePhase = framePhaseRenderable
-	g.cond.Broadcast()
-}
+// CompositeFrame composites the guest's most recently completed frame into the screen set by
+// [GuestSession.SetOutsideScreen], freeing the session to render the next. It reports whether the
+// outside screen advanced to a newly completed frame; it returns false when no newer frame is ready yet
+// (the screen keeps its previous content) or when the session has ended (see [GuestSession.Err]). It
+// must be called from within the host's frame.
+func (g *GuestSession) CompositeFrame() bool {
+	frame := g.takeFrame()
+	if frame.img == nil {
+		return false
+	}
+	// The frame is taken; free the mirror for the next render whether it is presented or dropped.
+	defer g.markComposited()
 
-// compositeFrame draws the completed frame into the outside screen, or drops it (returning false) when
-// its size no longer matches the outside screen (a resize happened after it was rendered). It must be
-// called from within the host's frame and without g.mu held.
-func (g *GuestSession) compositeFrame(frame hostImage) bool {
+	// Drop the frame if its size no longer matches the outside screen (a resize happened after it was
+	// rendered).
 	b := g.outsideScreen.Bounds()
-	if frame.img == nil || frame.width != b.Dx() || frame.height != b.Dy() {
+	if frame.width != b.Dx() || frame.height != b.Dy() {
 		return false
 	}
 	dst, dstRegion := ui.ImageFromEbitenImage(g.outsideScreen)
@@ -589,6 +562,29 @@ func (g *GuestSession) compositeFrame(frame hostImage) bool {
 	srcRegions := [graphics.ShaderSrcImageCount]image.Rectangle{image.Rect(0, 0, frame.width, frame.height)}
 	dst.DrawTriangles(srcs, g.compositeVtxBuf, graphics.QuadIndices(), graphicsdriver.BlendCopy, dstRegion, srcRegions, ui.NearestFilterShader, nil, true)
 	return true
+}
+
+// takeFrame returns the completed frame for the host to composite, or the zero value (nil img) when
+// none is ready.
+func (g *GuestSession) takeFrame() hostImage {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	if g.closed || g.err != nil {
+		return hostImage{}
+	}
+	if g.framePhase != framePhaseCompositable {
+		return hostImage{}
+	}
+	return g.compositableFrame
+}
+
+// markComposited records that the host has consumed the ready frame, freeing the mirror for the session
+// to render the next.
+func (g *GuestSession) markComposited() {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	g.framePhase = framePhaseRenderable
+	g.cond.Broadcast()
 }
 
 // WaitTick blocks until the guest has processed every tick requested so far. It reports whether all
@@ -695,8 +691,8 @@ func (g *GuestSession) postMessage(msg *vmprotocol.HostMessage) {
 // Close stops the session, releases the host images mirrored for it, and closes the connection. It
 // ends the session, not the guest's process: the guest's [ebiten.RunGame] returns (with a nil error,
 // as when its window is closed), and the process exits on its own. Close releases the mirror images
-// that [GuestSession.AdvanceFrame] and [GuestSession.WaitFrame] composite, so it must be called from
-// within the host's frame and not concurrently with them.
+// that [GuestSession.CompositeFrame] composites, so it must be called from within the host's frame and
+// not concurrently with it.
 func (g *GuestSession) Close() error {
 	g.closeOnce.Do(func() {
 		g.requestClose()
