@@ -20,10 +20,13 @@
 //
 //	go run ./examples/vm [package]
 //
-// Enter a package (an import path or a path like ./examples/paint) in the panel and click Launch, or
-// press Enter. The host builds it with -tags ebitenginevm, runs it pointed at a private socket,
-// forwards the window's input to it, and composites its rendered frames into the window. Audio and
-// gamepads are not forwarded yet.
+// Enter a package in the panel and click Launch, or press Enter. The package may be an import path,
+// optionally with an @version query (e.g. example.com/game@latest), or a local path like
+// ./examples/paint. Because the host and guest speak a version-locked protocol, an import path is
+// built in a generated module that pins Ebitengine to the host's own version; a local path is built
+// in its own module. The host builds the guest with -tags ebitenginevm, runs it pointed at a private
+// socket, forwards the window's input to it, and composites its rendered frames into the window.
+// Audio and gamepads are not forwarded yet.
 package main
 
 import (
@@ -36,9 +39,12 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"runtime/debug"
+	"strings"
 	"time"
 
 	"github.com/ebitengine/debugui"
+	"golang.org/x/mod/module"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
@@ -65,6 +71,7 @@ type Game struct {
 	ln       net.Listener
 	endpoint string
 	dir      string
+	pin      ebitenginePin
 
 	pkg    string // the package text field's buffer
 	status string
@@ -162,7 +169,7 @@ func (g *Game) launchGuest() {
 		bin += ".exe"
 	}
 	go func() {
-		gp, err := buildAndStartGuest(g.ln, bin, g.endpoint, pkg)
+		gp, err := buildAndStartGuest(g.ln, g.dir, bin, g.endpoint, pkg, g.pin)
 		g.results <- launchResult{gp: gp, err: err}
 	}()
 }
@@ -267,14 +274,185 @@ func (g *Game) closeGuest() {
 	}()
 }
 
+// ebitengineModule is the import path of the Ebitengine module the host is built against. The guest
+// must be built against the same version, since the host and guest speak a version-locked protocol.
+const ebitengineModule = "github.com/hajimehoshi/ebiten/v2"
+
+// ebitenginePin says how to force a guest build onto the host's Ebitengine version. require is the
+// version for the generated module's require directive; replace is the right-hand side of a replace
+// directive that overrides every version of the module — either "<module>@<version>" or a local
+// directory.
+type ebitenginePin struct {
+	require string
+	replace string
+}
+
+// moduleReplacementVersion returns a placeholder require version compatible with the module path's
+// major-version suffix: a "/vN" suffix requires a "vN.x.x" version, and an unversioned path takes
+// "v0.0.0".
+func moduleReplacementVersion(modulePath string) string {
+	_, pathMajor, ok := module.SplitPathVersion(modulePath)
+	if !ok || pathMajor == "" {
+		return "v0.0.0"
+	}
+	// pathMajor is a separator followed by the major version, e.g. "/v2" or ".v2".
+	return pathMajor[1:] + ".0.0"
+}
+
+// resolveEbitenginePin reads the host's own build information to determine which Ebitengine version a
+// guest must be built against.
+func resolveEbitenginePin() (ebitenginePin, error) {
+	bi, ok := debug.ReadBuildInfo()
+	if !ok {
+		return ebitenginePin{}, errors.New("the host has no build information; cannot determine its Ebitengine version")
+	}
+
+	// A directory replacement ignores the require version, but the require line still needs one
+	// matching the module path's major version.
+	dirVersion := moduleReplacementVersion(ebitengineModule)
+
+	// Ebitengine as a dependency of the host.
+	for _, dep := range bi.Deps {
+		if dep.Path != ebitengineModule {
+			continue
+		}
+		m := dep
+		if dep.Replace != nil {
+			m = dep.Replace
+		}
+		if m.Version != "" {
+			return ebitenginePin{require: m.Version, replace: m.Path + "@" + m.Version}, nil
+		}
+		// A directory replacement recorded in the host's own build. Only an absolute path can be
+		// reproduced for the guest; a relative one is resolved against the host's source tree, whose
+		// location is unknown at run time.
+		if filepath.IsAbs(m.Path) {
+			return ebitenginePin{require: dirVersion, replace: m.Path}, nil
+		}
+		return ebitenginePin{}, fmt.Errorf("the host pins %s to a non-absolute path %q, which cannot be reproduced for the guest", ebitengineModule, m.Path)
+	}
+
+	// Ebitengine is the host's main module: the host was built from the Ebitengine repository itself.
+	if bi.Main.Path == ebitengineModule {
+		if v := bi.Main.Version; v != "" && v != "(devel)" {
+			return ebitenginePin{require: v, replace: ebitengineModule + "@" + v}, nil
+		}
+		dir, err := ebitengineModuleDir()
+		if err != nil {
+			return ebitenginePin{}, err
+		}
+		return ebitenginePin{require: dirVersion, replace: dir}, nil
+	}
+
+	return ebitenginePin{}, fmt.Errorf("%s is not a dependency of the host", ebitengineModule)
+}
+
+// ebitengineModuleDir returns the local source directory of the Ebitengine module, resolved from the
+// host's working directory.
+func ebitengineModuleDir() (string, error) {
+	out, err := exec.Command("go", "list", "-m", "-f", "{{.Dir}}", ebitengineModule).Output()
+	if err != nil {
+		return "", fmt.Errorf("locating the %s source: %w", ebitengineModule, err)
+	}
+	dir := strings.TrimSpace(string(out))
+	if dir == "" {
+		return "", fmt.Errorf("the %s source directory is unknown", ebitengineModule)
+	}
+	return dir, nil
+}
+
+// buildGuest builds spec into a binary at bin with the ebitenginevm build tag, forcing the guest onto
+// the host's Ebitengine version. spec is either a local path, built in its own module, or an import
+// path with an optional @version query, built in a module generated under workDir.
+func buildGuest(workDir, bin, spec string, pin ebitenginePin) error {
+	if isFileSystemPath(spec) {
+		// A local package is built in its own module, which already pins its Ebitengine version.
+		build := exec.Command("go", "build", "-tags", "ebitenginevm", "-o", bin, spec)
+		build.Stdout = os.Stderr
+		build.Stderr = os.Stderr
+		return build.Run()
+	}
+
+	pkg, version, _ := strings.Cut(spec, "@")
+
+	// 'go build' rejects a version query, and neither 'go install pkg@v' nor 'go run pkg@v' permits the
+	// dependency override needed to pin Ebitengine. So the package is built inside a generated module
+	// that requires it and replaces Ebitengine with the host's version.
+	md, err := os.MkdirTemp(workDir, "mod")
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err := os.RemoveAll(md); err != nil {
+			log.Printf("vm: removing the temporary module: %v", err)
+		}
+	}()
+
+	if err := goModuleCmd(md, "mod", "init", "ebitenginevmguest"); err != nil {
+		return err
+	}
+	if err := goModuleCmd(md, "mod", "edit",
+		"-require="+ebitengineModule+"@"+pin.require,
+		"-replace="+ebitengineModule+"="+pin.replace); err != nil {
+		return err
+	}
+
+	if isWithinModule(pkg, ebitengineModule) {
+		// A package inside the Ebitengine module is already provided by the pinned require above, so it
+		// must not be fetched separately (and cannot be independently versioned).
+		if version != "" {
+			return fmt.Errorf("a version query is not allowed on %s, which is part of %s", pkg, ebitengineModule)
+		}
+	} else {
+		query := pkg + "@latest"
+		if version != "" {
+			query = pkg + "@" + version
+		}
+		if err := goModuleCmd(md, "get", query); err != nil {
+			return err
+		}
+	}
+
+	return goModuleCmd(md, "build", "-mod=mod", "-tags", "ebitenginevm", "-o", bin, pkg)
+}
+
+// goModuleCmd runs a go command in dir with the workspace disabled, so an enclosing go.work cannot
+// override the generated module's pins.
+func goModuleCmd(dir string, args ...string) error {
+	cmd := exec.Command("go", args...)
+	cmd.Dir = dir
+	cmd.Env = append(os.Environ(), "GOWORK=off")
+	cmd.Stdout = os.Stderr
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
+}
+
+// isFileSystemPath reports whether spec refers to a package by file system path rather than import path.
+func isFileSystemPath(spec string) bool {
+	if filepath.IsAbs(spec) {
+		return true
+	}
+	if spec == "." || spec == ".." {
+		return true
+	}
+	for _, prefix := range []string{"./", "../", `.\`, `..\`} {
+		if strings.HasPrefix(spec, prefix) {
+			return true
+		}
+	}
+	return false
+}
+
+// isWithinModule reports whether the import path pkg is provided by the module.
+func isWithinModule(pkg, module string) bool {
+	return pkg == module || strings.HasPrefix(pkg, module+"/")
+}
+
 // buildAndStartGuest builds pkg as a guest at the given binary path, launches it pointed at the host's
 // endpoint, and returns a handle once it has connected. It is safe to call off the main goroutine; only
 // the returned session's SetOutsideScreen/AdvanceTick/AdvanceFrame/Close must run on the host frame.
-func buildAndStartGuest(ln net.Listener, bin, endpoint, pkg string) (gp *guestProcess, err error) {
-	build := exec.Command("go", "build", "-tags", "ebitenginevm", "-o", bin, pkg)
-	build.Stdout = os.Stderr
-	build.Stderr = os.Stderr
-	if err := build.Run(); err != nil {
+func buildAndStartGuest(ln net.Listener, workDir, bin, endpoint, pkg string, pin ebitenginePin) (gp *guestProcess, err error) {
+	if err := buildGuest(workDir, bin, pkg, pin); err != nil {
 		return nil, fmt.Errorf("building %s failed (see console): %w", pkg, err)
 	}
 	defer func() {
@@ -344,6 +522,13 @@ func run() (err error) {
 		return err
 	}
 
+	// Resolve the host's Ebitengine version once, while the working directory is still the one the host
+	// was launched from; guests are pinned to it so they speak the same version-locked protocol.
+	pin, err := resolveEbitenginePin()
+	if err != nil {
+		return err
+	}
+
 	pkg := "github.com/hajimehoshi/ebiten/v2/examples/rotate"
 	if len(os.Args) > 1 {
 		pkg = os.Args[1]
@@ -352,6 +537,7 @@ func run() (err error) {
 		ln:       ln,
 		endpoint: endpoint,
 		dir:      dir,
+		pin:      pin,
 		results:  make(chan launchResult, 1),
 		pkg:      pkg,
 		status:   "Edit the package and press Enter or Launch",

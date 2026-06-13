@@ -18,6 +18,7 @@ require (
 	github.com/kazzmir/opus-go v1.3.0
 	github.com/kisielk/errcheck v1.20.0
 	golang.org/x/image v0.41.0
+	golang.org/x/mod v0.36.0
 	golang.org/x/sync v0.20.0
 	golang.org/x/sys v0.45.0
 	golang.org/x/text v0.37.0
@@ -28,5 +29,4 @@ require (
 	github.com/jfreymuth/pulse v0.1.1 // indirect
 	github.com/jfreymuth/vorbis v1.0.2 // indirect
 	github.com/pierrec/lz4/v4 v4.1.22 // indirect
-	golang.org/x/mod v0.36.0 // indirect
 )
