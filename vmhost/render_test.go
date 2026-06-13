@@ -55,21 +55,12 @@ func testHostRendersGuestFrame(t *testing.T, network string) {
 	if err := guest.SetOutsideScreen(outsideScreen); err != nil {
 		t.Fatal(err)
 	}
-	if err := guest.MoveCursor(spriteX, spriteY); err != nil {
-		t.Fatal(err)
-	}
+	guest.MoveCursor(spriteX, spriteY)
 
 	// Advance one tick (the guest sees the cursor), then render the frame into the host-owned screen.
 	// This code runs inside the host's run loop (the test runs from the game's Update), so issuing
 	// ebiten draws and reading pixels back is allowed.
-	if err := guest.AdvanceTick(); err != nil {
-		t.Fatalf("advancing a tick failed: %v", err)
-	}
-	guest.AdvanceFrame()
-	// AdvanceFrame defers its errors to the next AdvanceTick.
-	if err := guest.AdvanceTick(); err != nil {
-		t.Fatalf("rendering the guest frame failed: %v", err)
-	}
+	tickAndFrame(t, guest)
 
 	pixels := make([]byte, 4*pw*ph)
 	outsideScreen.ReadPixels(pixels)

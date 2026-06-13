@@ -90,7 +90,11 @@ func TestIdleTimeoutMidOperation(t *testing.T) {
 	if err := guest.SetOutsideScreen(ebiten.NewImage(320, 240)); err != nil {
 		t.Fatal(err)
 	}
-	if err := guest.AdvanceTick(); !errors.Is(err, os.ErrDeadlineExceeded) {
-		t.Errorf("AdvanceTick with a silent guest: got %v, want %v", err, os.ErrDeadlineExceeded)
+	// AdvanceTick is asynchronous; the tick blocks the session goroutine on the silent guest until the
+	// idle timeout fires. WaitTick blocks until that happens, and the error surfaces from Err.
+	guest.AdvanceTick()
+	guest.WaitTick()
+	if err := guest.Err(); !errors.Is(err, os.ErrDeadlineExceeded) {
+		t.Errorf("a silent guest mid-tick: got %v, want %v", err, os.ErrDeadlineExceeded)
 	}
 }

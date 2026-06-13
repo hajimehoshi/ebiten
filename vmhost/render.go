@@ -18,7 +18,6 @@ import (
 	"fmt"
 	"image"
 	"math"
-	"slices"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
@@ -303,32 +302,5 @@ func (f *frameRenderer) readPixels(pixels [][]byte, id graphicsdriver.ImageID, r
 	for i, r := range regions {
 		hi.img.ReadPixels(pixels[i], r)
 	}
-	return nil
-}
-
-// screenSize returns the size of the guest's rendered screen, or an error if the guest has not
-// produced one.
-func (f *frameRenderer) screenSize() (width, height int, err error) {
-	if f.screen == nil {
-		return 0, 0, fmt.Errorf("vmhost: no screen framebuffer was produced")
-	}
-	return f.screen.width, f.screen.height, nil
-}
-
-// compositeScreen draws the guest's rendered screen into dst, replacing the pixels of dstRegion. It
-// must be called within the host's frame.
-func (f *frameRenderer) compositeScreen(dst *ui.Image, dstRegion image.Rectangle) error {
-	if f.screen == nil {
-		return fmt.Errorf("vmhost: no screen framebuffer was produced")
-	}
-	w, h := f.screen.width, f.screen.height
-	n := 4 * graphics.VertexFloatCount
-	f.vtxBuf = slices.Grow(f.vtxBuf[:0], n)[:n]
-	graphics.QuadVerticesFromDstAndSrc(f.vtxBuf,
-		float32(dstRegion.Min.X), float32(dstRegion.Min.Y), float32(dstRegion.Max.X), float32(dstRegion.Max.Y),
-		0, 0, float32(w), float32(h), 1, 1, 1, 1)
-	srcs := [graphics.ShaderSrcImageCount]*ui.Image{f.screen.img}
-	srcRegions := [graphics.ShaderSrcImageCount]image.Rectangle{image.Rect(0, 0, w, h)}
-	dst.DrawTriangles(srcs, f.vtxBuf, graphics.QuadIndices(), graphicsdriver.BlendCopy, dstRegion, srcRegions, ui.NearestFilterShader, nil, true)
 	return nil
 }

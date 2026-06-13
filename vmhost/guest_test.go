@@ -99,6 +99,18 @@ func startGuest(t *testing.T, pkgPath string, activation guestActivation, networ
 	return guest
 }
 
+// tickAndFrame advances the guest one tick, requests a frame, and blocks until it is composited into
+// the outside screen, failing the test if the session ended instead. AdvanceFrame requests the frame
+// and WaitFrame blocks for it, so the outside screen deterministically reflects the tick.
+func tickAndFrame(t *testing.T, guest *vmhost.GuestSession) {
+	t.Helper()
+	guest.AdvanceTick()
+	guest.AdvanceFrame()
+	if !guest.WaitFrame() {
+		t.Fatalf("rendering the guest frame failed: %v", guest.Err())
+	}
+}
+
 // newGuestListener opens a listener for the guest to dial on the given network: a fresh temporary
 // socket for "unix", or an ephemeral loopback port for "tcp". It returns the listener and its
 // endpoint URL, with an accept deadline set so that a guest that never dials fails the test instead

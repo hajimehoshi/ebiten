@@ -124,6 +124,12 @@ func (g *Game) Update() error {
 		return nil
 	}
 	if err := g.advanceGuestTick(state); err != nil {
+		g.status = "Guest error: " + err.Error()
+		g.closeGuest()
+		return nil
+	}
+	// The session runs the guest on its own goroutine; a termination or error surfaces here.
+	if err := g.gp.session.Err(); err != nil {
 		if errors.Is(err, ebiten.Termination) {
 			g.status = g.pkg + " exited"
 		} else {
@@ -180,61 +186,44 @@ func (g *Game) advanceGuestTick(state debugui.InputCapturingState) error {
 		}
 		g.screenSet = true
 	}
-	if err := g.forwardInput(state); err != nil {
-		return err
-	}
-	return g.gp.session.AdvanceTick()
+	g.forwardInput(state)
+	g.gp.session.AdvanceTick()
+	return nil
 }
 
 // forwardInput sends the window's input to the guest, except input the debug UI is consuming (a hovered
 // or focused widget), so the panel stays usable.
-func (g *Game) forwardInput(state debugui.InputCapturingState) error {
+func (g *Game) forwardInput(state debugui.InputCapturingState) {
 	s := g.gp.session
 
 	if state&debugui.InputCapturingStateFocus == 0 {
 		for _, k := range inpututil.AppendJustPressedKeys(nil) {
-			if err := s.PressKey(k); err != nil {
-				return err
-			}
+			s.PressKey(k)
 		}
 		for _, k := range inpututil.AppendJustReleasedKeys(nil) {
-			if err := s.ReleaseKey(k); err != nil {
-				return err
-			}
+			s.ReleaseKey(k)
 		}
 		for _, r := range ebiten.AppendInputChars(nil) {
-			if err := s.TypeRune(r); err != nil {
-				return err
-			}
+			s.TypeRune(r)
 		}
 	}
 
 	if state&debugui.InputCapturingStateHover == 0 {
 		// The guest fills the whole window, so cursor coordinates map directly.
 		x, y := ebiten.CursorPosition()
-		if err := s.MoveCursor(float64(x), float64(y)); err != nil {
-			return err
-		}
+		s.MoveCursor(float64(x), float64(y))
 		for _, b := range []ebiten.MouseButton{ebiten.MouseButtonLeft, ebiten.MouseButtonRight, ebiten.MouseButtonMiddle} {
 			if inpututil.IsMouseButtonJustPressed(b) {
-				if err := s.PressMouseButton(b); err != nil {
-					return err
-				}
+				s.PressMouseButton(b)
 			}
 			if inpututil.IsMouseButtonJustReleased(b) {
-				if err := s.ReleaseMouseButton(b); err != nil {
-					return err
-				}
+				s.ReleaseMouseButton(b)
 			}
 		}
 		if wx, wy := ebiten.Wheel(); wx != 0 || wy != 0 {
-			if err := s.ScrollWheel(wx, wy); err != nil {
-				return err
-			}
+			s.ScrollWheel(wx, wy)
 		}
 	}
-
-	return nil
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
@@ -254,9 +243,9 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 	return outsideWidth, outsideHeight
 }
 
-// closeGuest stops the current guest, if any. The graceful Close releases the host's mirrored images, so
-// it must run on the host frame; reaping the process is left to a goroutine so a slow exit cannot stall
-// the frame.
+// closeGuest stops the current guest, if any. Close releases the mirror images that Draw composites
+// via AdvanceFrame, so it must run on the host frame, not concurrently with Draw; reaping the process
+// is left to a goroutine so a slow exit cannot stall the frame.
 func (g *Game) closeGuest() {
 	if g.gp == nil {
 		return

@@ -41,14 +41,7 @@ func TestReadPixelsRoundTrip(t *testing.T) {
 	}
 
 	// The round-trip happens inside this tick's Update; the host serves it on demand.
-	if err := guest.AdvanceTick(); err != nil {
-		t.Fatalf("advancing a tick failed: %v", err)
-	}
-	guest.AdvanceFrame()
-	// AdvanceFrame defers its errors to the next AdvanceTick.
-	if err := guest.AdvanceTick(); err != nil {
-		t.Fatalf("rendering the guest frame failed: %v", err)
-	}
+	tickAndFrame(t, guest)
 
 	// The guest filled its offscreen with (0x12, 0x34, 0x56, 0xff), read it back through the host, and
 	// painted the screen with exactly those bytes. Recover them from the screen.

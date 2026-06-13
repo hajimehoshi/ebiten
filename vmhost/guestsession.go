@@ -16,20 +16,25 @@
 // separate process over a connection, and renders the guest's frames into host-owned images on the
 // host's own GPU.
 //
-// The protocol is hidden behind the GuestSession API. AdvanceTick drives the guest's Update;
-// AdvanceFrame renders the guest's current state into the host-owned screen set by SetOutsideScreen
-// so the host can composite it into its own window.
+// The protocol is hidden behind the GuestSession API. A background goroutine owns the connection and
+// the guest's mirror images, so a slow or wedged guest never blocks the host's own frame.
+// [GuestSession.AdvanceTick] drives the guest's Update; [GuestSession.AdvanceFrame] composites the
+// guest's most recently completed frame into the host-owned screen set by
+// [GuestSession.SetOutsideScreen] so the host can composite it into its own window.
 package vmhost
 
 import (
 	"errors"
-	"fmt"
+	"image"
 	"io"
 	"net"
 	"slices"
+	"sync"
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 	"github.com/hajimehoshi/ebiten/v2/internal/vmprotocol"
 )
@@ -37,43 +42,108 @@ import (
 // GuestSession is a session with a guest process, driven and observed from the host side. It holds
 // no process handle: the guest's lifetime belongs to whoever spawned it.
 //
-// [GuestSession.AdvanceTick] and [GuestSession.AdvanceFrame] issue draws on the host's GPU through the
-// ordinary ebiten stack, so they must be called from within the host's frame (its Update or Draw).
+// A background goroutine owns the connection and the guest's mirror images and performs all protocol
+// I/O, so the host's calls do not block on the guest. [GuestSession.AdvanceFrame] and
+// [GuestSession.WaitFrame] composite into the host's screen, and [GuestSession.Close] releases the
+// images they composite; these three must be called from within the host's frame (its Update or Draw),
+// and not concurrently with one another. The other methods may be called from any goroutine.
 type GuestSession struct {
+	// conn is safe for concurrent use: the session goroutine reads and writes through the codecs while
+	// Close pokes its deadline and closes it.
 	conn net.Conn
-	enc  *vmprotocol.Encoder
-	dec  *vmprotocol.Decoder
 
+	// The following fields are owned by the session goroutine; no lock guards them.
+	enc *vmprotocol.Encoder
+	dec *vmprotocol.Decoder
+	// renderer mirrors the guest's images. Close disposes it after the goroutine has joined, and
+	// finishFrame publishes its screen into compositableFrame under mu.
 	renderer *frameRenderer
-
-	// outsideScreen is the host-owned image the guest's frames render into, set by SetOutsideScreen.
-	outsideScreen *ebiten.Image
-
-	// sentWidth/sentHeight are the last outside size sent, in device-independent pixels, so the size
-	// is resent only when it changes.
-	sentWidth  float64
-	sentHeight float64
-
-	// ticked reports whether an Update has completed on the guest, gating AdvanceFrame: a frame must
-	// not be drawn before the first tick.
-	ticked bool
-
-	// err holds an error deferred from AdvanceFrame; it surfaces at the next AdvanceTick.
-	err error
-
 	// pixelsBuf and pixelsListBuf back the ReadPixels answers: one flat reused buffer, subsliced per
-	// region. The encode writes them out before the next answer reuses them.
+	// region.
 	pixelsBuf     []byte
 	pixelsListBuf [][]byte
+
+	// The following fields are owned by the host goroutine; no lock guards them.
+	outsideScreen   *ebiten.Image
+	sentWidth       float64
+	sentHeight      float64
+	compositeVtxBuf []float32
+
+	mu   sync.Mutex
+	cond *sync.Cond
+
+	// The following fields are guarded by mu.
+	//
+	// ops is the ordered request queue (ticks coalesced into a count, plus input and size messages),
+	// drained by the session goroutine in submission order.
+	ops []op
+	// submittedTicks and consumedTicks count ticks requested and processed; their difference is the
+	// backlog. They only increase. submittedTicks is touched only by the host goroutine, but it lives
+	// here because WaitTick compares it against consumedTicks, which the session writes.
+	submittedTicks int64
+	consumedTicks  int64
+	// frameRequested is the droppable frame request set by AdvanceFrame: repeated requests coalesce to
+	// one. It is independent of framePhase — a request for the next frame may arrive while the current
+	// one is still in flight or awaiting compositing.
+	frameRequested bool
+	// framePhase is the lifecycle of the single in-progress frame; the session does not render a new one
+	// until the host has composited the last (back to framePhaseRenderable).
+	framePhase framePhase
+	// compositableFrame is the mirror screen handed to the host to composite while framePhase is
+	// framePhaseCompositable.
+	compositableFrame hostImage
+	// err holds the error(s) that ended the session, joined as they occur; closed is set by Close.
+	err    error
+	closed bool
+
+	// done is closed when the session goroutine exits; Close waits on it. closeOnce and closeErr make
+	// Close idempotent.
+	done      chan struct{}
+	closeOnce sync.Once
+	closeErr  error
 }
+
+// opKind discriminates an operation the session goroutine performs.
+type opKind int
+
+const (
+	// opTick is a run of tick requests, count in op.count.
+	opTick opKind = iota
+	// opMessage is a single host message (input or outside size), in op.msg.
+	opMessage
+	// opFrame renders a frame. It is never queued; nextOp derives it from a pending frame request.
+	opFrame
+)
+
+type op struct {
+	kind  opKind
+	count int
+	msg   *vmprotocol.HostMessage
+}
+
+// framePhase tracks which side may touch the screen mirror as the single in-progress frame moves from
+// render to composite. The phases are exclusive, so the host never composites the mirror while the
+// session is rendering into it.
+type framePhase int
+
+const (
+	// framePhaseRenderable: the mirror is open for the session to render the next frame into; the host
+	// must not composite it.
+	framePhaseRenderable framePhase = iota
+	// framePhaseRendering: the session is rendering into the mirror; the host must not composite it.
+	framePhaseRendering
+	// framePhaseCompositable: the mirror holds a completed frame for the host to composite; the session
+	// must not render into it.
+	framePhaseCompositable
+)
 
 // NewGuestSessionOptions represents options for [NewGuestSession].
 type NewGuestSessionOptions struct {
 	// IdleTimeout is the maximum duration the connection may make no progress while an operation
 	// (including the handshake) is in progress: when it elapses, the operation fails with an error
-	// matching [os.ErrDeadlineExceeded], and the session is unusable except for
-	// [GuestSession.Close]. It bounds silence, not an operation's total duration: a guest that keeps
-	// sending never times out. The default (0) means no timeout.
+	// matching [os.ErrDeadlineExceeded], the error surfaces from [GuestSession.Err], and the session is
+	// unusable except for [GuestSession.Close]. It bounds silence, not an operation's total duration: a
+	// guest that keeps sending never times out. The default (0) means no timeout.
 	IdleTimeout time.Duration
 }
 
@@ -92,12 +162,16 @@ func NewGuestSession(conn net.Conn, options *NewGuestSessionOptions) (*GuestSess
 	if err := vmprotocol.PerformHandshake(rw, true); err != nil {
 		return nil, err
 	}
-	return &GuestSession{
+	g := &GuestSession{
 		conn:     conn,
 		enc:      vmprotocol.NewEncoder(rw),
 		dec:      vmprotocol.NewDecoder(rw),
 		renderer: newFrameRenderer(),
-	}, nil
+		done:     make(chan struct{}),
+	}
+	g.cond = sync.NewCond(&g.mu)
+	go g.sessionLoop()
+	return g, nil
 }
 
 // idleTimeoutConn bounds each Read and Write with a deadline refreshed at every call, so the timeout
@@ -121,52 +195,160 @@ func (c *idleTimeoutConn) Write(p []byte) (int, error) {
 	return c.conn.Write(p)
 }
 
-// sendMessage sends one operation and reads the guest's messages until its concluding one, answering any
-// mid-operation queries in between.
-func (g *GuestSession) sendMessage(msg *vmprotocol.HostMessage) (*vmprotocol.GuestMessage, error) {
+// sessionLoop owns the connection: it repeatedly takes the next task, runs it without the lock, and
+// records the result. All access to the shared state is confined to the helper methods it calls, each
+// of which holds the lock for its own scope.
+func (g *GuestSession) sessionLoop() {
+	defer close(g.done)
+	for {
+		o, ok := g.nextOp()
+		if !ok {
+			return
+		}
+		var err error
+		switch o.kind {
+		case opTick, opMessage:
+			// A successful tick or message needs no completion step: consumeTick already wakes WaitTick
+			// per tick, and a message changes nothing a waiter observes.
+			err = g.runOp(o)
+		case opFrame:
+			if err = g.sendAndReceive(&vmprotocol.HostMessage{
+				Kind: vmprotocol.HostMessageKindAdvanceFrame,
+			}); err == nil {
+				err = g.finishFrame()
+			}
+		}
+		if err != nil {
+			g.fail(err)
+			return
+		}
+	}
+}
+
+// nextOp blocks until there is work, then returns the next operation; ok is false when the session
+// should stop. Queued operations are drained before a frame is rendered, so a frame always reflects
+// every request submitted before it.
+func (g *GuestSession) nextOp() (op, bool) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	for {
+		if g.closed || g.err != nil {
+			return op{}, false
+		}
+		if len(g.ops) > 0 {
+			o := g.ops[0]
+			g.ops = g.ops[1:]
+			return o, true
+		}
+		if g.frameRequested && g.consumedTicks > 0 && g.framePhase == framePhaseRenderable {
+			// A frame was requested, the queue is drained, and the mirror is free.
+			g.frameRequested = false
+			g.framePhase = framePhaseRendering
+			return op{kind: opFrame}, true
+		}
+		// Nothing is actionable yet; wait for the next state change.
+		g.cond.Wait()
+	}
+}
+
+// fail records an error that ends the session and wakes any waiters.
+func (g *GuestSession) fail(err error) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	g.setErrLocked(err)
+	g.cond.Broadcast()
+}
+
+// finishFrame publishes the just-rendered mirror screen for the host to composite and wakes a waiting
+// WaitFrame or AdvanceFrame. It returns an error if the guest produced no screen.
+func (g *GuestSession) finishFrame() error {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	if g.renderer.screen == nil {
+		g.framePhase = framePhaseRenderable
+		return errors.New("vmhost: no screen framebuffer was produced")
+	}
+	g.compositableFrame = *g.renderer.screen
+	g.framePhase = framePhaseCompositable
+	g.cond.Broadcast()
+	return nil
+}
+
+// runOp performs one queued operation: a run of ticks or a single host message. It must be called
+// without g.mu held.
+func (g *GuestSession) runOp(o op) error {
+	switch o.kind {
+	case opTick:
+		for range o.count {
+			if err := g.sendAndReceive(&vmprotocol.HostMessage{
+				Kind: vmprotocol.HostMessageKindAdvanceTick,
+			}); err != nil {
+				return err
+			}
+			g.consumeTick()
+		}
+		return nil
+	case opMessage:
+		return g.sendAndReceive(o.msg)
+	}
+	return nil
+}
+
+// consumeTick records that one tick has been processed.
+func (g *GuestSession) consumeTick() {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	g.consumedTicks++
+	g.cond.Broadcast()
+}
+
+// sendAndReceive sends one operation and reads the guest's messages until its concluding one,
+// rendering command batches and answering queries in between. It must be called without g.mu held: the
+// renderer is the session goroutine's alone here.
+func (g *GuestSession) sendAndReceive(msg *vmprotocol.HostMessage) error {
 	if err := g.enc.EncodeHostMessage(msg); err != nil {
-		return nil, err
+		return err
 	}
 	for {
 		var gm vmprotocol.GuestMessage
 		if err := g.dec.DecodeGuestMessage(&gm); err != nil {
-			return nil, err
+			return err
 		}
 		switch gm.Kind {
 		case vmprotocol.GuestMessageKindGraphicsCommands:
 			if err := g.renderer.render(gm.GraphicsCommands); err != nil {
-				return nil, err
+				return err
 			}
 			continue
 		case vmprotocol.GuestMessageKindQueryReadPixels:
 			if err := g.answerReadPixels(&gm); err != nil {
-				return nil, err
+				return err
 			}
 			continue
 		case vmprotocol.GuestMessageKindQueryMaxImageSize:
 			if err := g.answerMaxImageSize(); err != nil {
-				return nil, err
+				return err
 			}
 			continue
 		case vmprotocol.GuestMessageKindQueryDeviceScaleFactor:
 			if err := g.answerDeviceScaleFactor(); err != nil {
-				return nil, err
+				return err
 			}
 			continue
 		case vmprotocol.GuestMessageKindQueryColorSpace:
 			if err := g.answerColorSpace(); err != nil {
-				return nil, err
+				return err
 			}
 			continue
 		}
 		// GuestMessageKindDone.
 		if gm.Terminated {
-			return &gm, ebiten.Termination
+			return ebiten.Termination
 		}
 		if gm.Err != "" {
-			return &gm, errors.New(gm.Err)
+			return errors.New(gm.Err)
 		}
-		return &gm, nil
+		return nil
 	}
 }
 
@@ -198,8 +380,7 @@ func (g *GuestSession) answerReadPixels(query *vmprotocol.GuestMessage) error {
 	return g.enc.EncodeHostMessage(&answer)
 }
 
-// answerMaxImageSize answers with the host graphics driver's maximum image size. The query is served
-// from within the host's frame, so the driver is initialized.
+// answerMaxImageSize answers with the host graphics driver's maximum image size.
 func (g *GuestSession) answerMaxImageSize() error {
 	return g.enc.EncodeHostMessage(&vmprotocol.HostMessage{
 		Kind:         vmprotocol.HostMessageKindAnswerMaxImageSize,
@@ -207,8 +388,7 @@ func (g *GuestSession) answerMaxImageSize() error {
 	})
 }
 
-// answerDeviceScaleFactor answers with the host's current device scale factor. The query is served
-// from within the host's frame, so the host's monitor is available.
+// answerDeviceScaleFactor answers with the host's current device scale factor.
 func (g *GuestSession) answerDeviceScaleFactor() error {
 	return g.enc.EncodeHostMessage(&vmprotocol.HostMessage{
 		Kind:        vmprotocol.HostMessageKindAnswerDeviceScaleFactor,
@@ -225,8 +405,7 @@ func hostDeviceScaleFactor() float64 {
 	return 1
 }
 
-// answerColorSpace answers with the host graphics driver's color space. The query is served from
-// within the host's frame, so the driver is initialized.
+// answerColorSpace answers with the host graphics driver's color space.
 func (g *GuestSession) answerColorSpace() error {
 	return g.enc.EncodeHostMessage(&vmprotocol.HostMessage{
 		Kind:       vmprotocol.HostMessageKindAnswerColorSpace,
@@ -234,13 +413,13 @@ func (g *GuestSession) answerColorSpace() error {
 	})
 }
 
-// deferError records an error to surface at the next AdvanceTick, joined with any error already
-// deferred.
-func (g *GuestSession) deferError(err error) {
+// setErrLocked records an error that ends the session, joined with any already recorded. g.mu must be
+// held.
+func (g *GuestSession) setErrLocked(err error) {
 	g.err = errors.Join(g.err, err)
 }
 
-// SetOutsideScreen sets the host-owned image the guest's frames render into, and sizes the guest to
+// SetOutsideScreen sets the host-owned image the guest's frames composite into, and sizes the guest to
 // it: the image is in device-dependent pixels, that is, the guest's outside size in
 // device-independent pixels multiplied by the host's device scale factor
 // ([ebiten.MonitorType.DeviceScaleFactor]). The image must not be nil. SetOutsideScreen must be
@@ -249,6 +428,12 @@ func (g *GuestSession) deferError(err error) {
 func (g *GuestSession) SetOutsideScreen(screen *ebiten.Image) error {
 	if screen == nil {
 		return errors.New("vmhost: SetOutsideScreen requires a non-nil screen")
+	}
+
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	if g.closed || g.err != nil {
+		return nil
 	}
 	g.outsideScreen = screen
 
@@ -262,160 +447,276 @@ func (g *GuestSession) SetOutsideScreen(screen *ebiten.Image) error {
 	if w == g.sentWidth && h == g.sentHeight {
 		return nil
 	}
-	if _, err := g.sendMessage(&vmprotocol.HostMessage{
-		Kind:   vmprotocol.HostMessageKindSetOutsideSize,
-		Width:  w,
-		Height: h,
-	}); err != nil {
-		return err
-	}
+	g.ops = append(g.ops, op{
+		kind: opMessage,
+		msg: &vmprotocol.HostMessage{
+			Kind:   vmprotocol.HostMessageKindSetOutsideSize,
+			Width:  w,
+			Height: h,
+		},
+	})
 	g.sentWidth = w
 	g.sentHeight = h
+	g.cond.Broadcast()
 	return nil
 }
 
-// AdvanceTick runs one Update on the guest. It returns [ebiten.Termination] (matchable with
-// [errors.Is]) when the guest's Update signals a regular termination, and it also carries any error
-// deferred from a preceding [GuestSession.AdvanceFrame].
-func (g *GuestSession) AdvanceTick() error {
-	if g.err != nil {
-		err := g.err
-		g.err = nil
-		return err
+// AdvanceTick requests one Update on the guest. It does not block: the request is queued and processed
+// by the session goroutine. A regular termination, a timeout, and any deferred error surface from
+// [GuestSession.Err]; the number of requested-but-unprocessed ticks is reported by
+// [GuestSession.PendingTicks].
+func (g *GuestSession) AdvanceTick() {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	if g.closed || g.err != nil {
+		return
 	}
 	if g.outsideScreen == nil {
-		return errors.New("vmhost: SetOutsideScreen must be called at least once before AdvanceTick")
+		g.setErrLocked(errors.New("vmhost: SetOutsideScreen must be called at least once before AdvanceTick"))
+		return
 	}
-	// The guest streams its tick commands back as graphics-command batches, which sendMessage() renders to keep the
-	// renderer's image and shader state current for later read-backs and frames.
-	if _, err := g.sendMessage(&vmprotocol.HostMessage{
-		Kind: vmprotocol.HostMessageKindAdvanceTick,
-	}); err != nil {
-		return err
+	// Coalesce consecutive ticks into a single counted entry.
+	if n := len(g.ops); n > 0 && g.ops[n-1].kind == opTick {
+		g.ops[n-1].count++
+	} else {
+		g.ops = append(g.ops, op{kind: opTick, count: 1})
 	}
-	g.ticked = true
-	return nil
+	g.submittedTicks++
+	g.cond.Broadcast()
 }
 
-// AdvanceFrame has the guest draw its current state and composites the frame into the screen set by
-// [GuestSession.SetOutsideScreen], without advancing the game state. It must not be called before the
-// first [GuestSession.AdvanceTick]: a frame is never drawn before the first tick. Errors are deferred
-// to [GuestSession.AdvanceTick].
-func (g *GuestSession) AdvanceFrame() {
-	if g.outsideScreen == nil {
-		g.deferError(errors.New("vmhost: SetOutsideScreen must be called at least once before AdvanceFrame"))
-		return
+// AdvanceFrame composites the guest's most recently completed frame into the screen set by
+// [GuestSession.SetOutsideScreen] and requests the next one, without blocking on the guest. It reports
+// whether the outside screen advanced to a newly completed frame; it returns false when no newer frame
+// is ready yet (the screen keeps its previous content) or when the session has ended (see
+// [GuestSession.Err]). On its own it is the non-blocking live-display path; pair it with
+// [GuestSession.WaitFrame] to block for the frame it requests. It must be called from within the
+// host's frame.
+func (g *GuestSession) AdvanceFrame() bool {
+	frame := g.pollFrame()
+	if frame.img == nil {
+		return false
 	}
-	if !g.ticked {
-		g.deferError(errors.New("vmhost: AdvanceTick must be called at least once before AdvanceFrame"))
-		return
-	}
+	composited := g.compositeFrame(frame)
+	g.markComposited()
+	return composited
+}
 
-	// The guest streams its draw commands back as graphics-command batches, which sendMessage() renders
-	// into the screen.
-	if _, err := g.sendMessage(&vmprotocol.HostMessage{
-		Kind: vmprotocol.HostMessageKindAdvanceFrame,
-	}); err != nil {
-		g.deferError(err)
-		return
+// WaitFrame blocks until the frame requested by a preceding [GuestSession.AdvanceFrame] has been
+// rendered, then composites it into the screen set by [GuestSession.SetOutsideScreen]. It is the
+// blocking counterpart of AdvanceFrame for deterministic capture: AdvanceTick, AdvanceFrame, WaitFrame
+// leaves the outside screen reflecting the tick. It reports whether it composited a frame; it returns
+// false when no frame was requested (no preceding AdvanceFrame) or the session has ended (see
+// [GuestSession.Err]). It must be called from within the host's frame.
+func (g *GuestSession) WaitFrame() bool {
+	frame := g.awaitFrame()
+	if frame.img == nil {
+		return false
 	}
+	composited := g.compositeFrame(frame)
+	g.markComposited()
+	return composited
+}
 
-	sw, sh, err := g.renderer.screenSize()
-	if err != nil {
-		g.deferError(err)
-		return
+// pollFrame requests the next frame and returns an already-completed one to composite. The returned
+// frame is the zero value (nil img) when none is ready.
+func (g *GuestSession) pollFrame() hostImage {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	if g.closed || g.err != nil || g.outsideScreen == nil {
+		return hostImage{}
 	}
+	// A frame can only be produced after the first tick.
+	if g.submittedTicks > 0 {
+		g.frameRequested = true
+		g.cond.Broadcast()
+	}
+	if g.framePhase != framePhaseCompositable {
+		return hostImage{}
+	}
+	return g.compositableFrame
+}
+
+// awaitFrame blocks until a frame requested by AdvanceFrame has completed, and returns it to composite.
+// The returned frame is the zero value (nil img) when the session ended or no frame was requested.
+func (g *GuestSession) awaitFrame() hostImage {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	if g.closed || g.err != nil || g.outsideScreen == nil {
+		return hostImage{}
+	}
+	// Only block for a frame that is on the way: one requested, in flight, or already ready.
+	if !g.frameRequested && g.framePhase == framePhaseRenderable {
+		return hostImage{}
+	}
+	for g.framePhase != framePhaseCompositable {
+		if g.closed || g.err != nil {
+			return hostImage{}
+		}
+		g.cond.Wait()
+	}
+	return g.compositableFrame
+}
+
+// markComposited records that the host has consumed the ready frame, freeing the mirror for the session
+// to render the next.
+func (g *GuestSession) markComposited() {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	g.framePhase = framePhaseRenderable
+	g.cond.Broadcast()
+}
+
+// compositeFrame draws the completed frame into the outside screen, or drops it (returning false) when
+// its size no longer matches the outside screen (a resize happened after it was rendered). It must be
+// called from within the host's frame and without g.mu held.
+func (g *GuestSession) compositeFrame(frame hostImage) bool {
 	b := g.outsideScreen.Bounds()
-	if sw != b.Dx() || sh != b.Dy() {
-		g.deferError(fmt.Errorf("vmhost: rendered screen %dx%d does not match the outside screen %dx%d",
-			sw, sh, b.Dx(), b.Dy()))
-		return
+	if frame.img == nil || frame.width != b.Dx() || frame.height != b.Dy() {
+		return false
 	}
 	dst, dstRegion := ui.ImageFromEbitenImage(g.outsideScreen)
 	if dst == nil {
 		// A disposed outside screen draws nothing.
-		return
+		return false
 	}
-	if err := g.renderer.compositeScreen(dst, dstRegion); err != nil {
-		g.deferError(err)
+	n := 4 * graphics.VertexFloatCount
+	g.compositeVtxBuf = slices.Grow(g.compositeVtxBuf[:0], n)[:n]
+	graphics.QuadVerticesFromDstAndSrc(g.compositeVtxBuf,
+		float32(dstRegion.Min.X), float32(dstRegion.Min.Y), float32(dstRegion.Max.X), float32(dstRegion.Max.Y),
+		0, 0, float32(frame.width), float32(frame.height), 1, 1, 1, 1)
+	srcs := [graphics.ShaderSrcImageCount]*ui.Image{frame.img}
+	srcRegions := [graphics.ShaderSrcImageCount]image.Rectangle{image.Rect(0, 0, frame.width, frame.height)}
+	dst.DrawTriangles(srcs, g.compositeVtxBuf, graphics.QuadIndices(), graphicsdriver.BlendCopy, dstRegion, srcRegions, ui.NearestFilterShader, nil, true)
+	return true
+}
+
+// WaitTick blocks until the guest has processed every tick requested so far. It reports whether all
+// were processed; it returns false when the session ended first (see [GuestSession.Err]).
+func (g *GuestSession) WaitTick() bool {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	st := g.submittedTicks
+	for g.consumedTicks < st {
+		if g.closed || g.err != nil {
+			return false
+		}
+		g.cond.Wait()
 	}
+	return true
+}
+
+// PendingTicks returns the number of ticks requested but not yet processed by the guest.
+func (g *GuestSession) PendingTicks() int {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	return int(g.submittedTicks - g.consumedTicks)
+}
+
+// Err returns the error that ended the session, or nil if it is still running. It reports
+// [ebiten.Termination] (matchable with [errors.Is]) when the guest's Update signaled a regular
+// termination, a timeout (matchable with [os.ErrDeadlineExceeded]), or any deferred error. Once it is
+// non-nil the session is unusable except for [GuestSession.Close].
+func (g *GuestSession) Err() error {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	return g.err
 }
 
 // PressKey injects a key-press event. key is an ebiten.Key.
-func (g *GuestSession) PressKey(key ebiten.Key) error {
-	_, err := g.sendMessage(&vmprotocol.HostMessage{
+func (g *GuestSession) PressKey(key ebiten.Key) {
+	g.postMessage(&vmprotocol.HostMessage{
 		Kind: vmprotocol.HostMessageKindPressKey,
 		Code: int(key),
 	})
-	return err
 }
 
 // ReleaseKey injects a key-release event.
-func (g *GuestSession) ReleaseKey(key ebiten.Key) error {
-	_, err := g.sendMessage(&vmprotocol.HostMessage{
+func (g *GuestSession) ReleaseKey(key ebiten.Key) {
+	g.postMessage(&vmprotocol.HostMessage{
 		Kind: vmprotocol.HostMessageKindReleaseKey,
 		Code: int(key),
 	})
-	return err
 }
 
 // MoveCursor sets the cursor position in outside-screen device-independent pixels.
-func (g *GuestSession) MoveCursor(x, y float64) error {
-	_, err := g.sendMessage(&vmprotocol.HostMessage{
+func (g *GuestSession) MoveCursor(x, y float64) {
+	g.postMessage(&vmprotocol.HostMessage{
 		Kind: vmprotocol.HostMessageKindMoveCursor,
 		X:    x,
 		Y:    y,
 	})
-	return err
 }
 
 // PressMouseButton injects a mouse-button-press event.
-func (g *GuestSession) PressMouseButton(button ebiten.MouseButton) error {
-	_, err := g.sendMessage(&vmprotocol.HostMessage{
+func (g *GuestSession) PressMouseButton(button ebiten.MouseButton) {
+	g.postMessage(&vmprotocol.HostMessage{
 		Kind: vmprotocol.HostMessageKindPressMouseButton,
 		Code: int(button),
 	})
-	return err
 }
 
 // ReleaseMouseButton injects a mouse-button-release event.
-func (g *GuestSession) ReleaseMouseButton(button ebiten.MouseButton) error {
-	_, err := g.sendMessage(&vmprotocol.HostMessage{
+func (g *GuestSession) ReleaseMouseButton(button ebiten.MouseButton) {
+	g.postMessage(&vmprotocol.HostMessage{
 		Kind: vmprotocol.HostMessageKindReleaseMouseButton,
 		Code: int(button),
 	})
-	return err
 }
 
 // ScrollWheel injects a wheel movement.
-func (g *GuestSession) ScrollWheel(x, y float64) error {
-	_, err := g.sendMessage(&vmprotocol.HostMessage{
+func (g *GuestSession) ScrollWheel(x, y float64) {
+	g.postMessage(&vmprotocol.HostMessage{
 		Kind: vmprotocol.HostMessageKindScrollWheel,
 		X:    x,
 		Y:    y,
 	})
-	return err
 }
 
 // TypeRune injects a typed character.
-func (g *GuestSession) TypeRune(r rune) error {
-	_, err := g.sendMessage(&vmprotocol.HostMessage{
+func (g *GuestSession) TypeRune(r rune) {
+	g.postMessage(&vmprotocol.HostMessage{
 		Kind: vmprotocol.HostMessageKindTypeRune,
 		Rune: r,
 	})
-	return err
 }
 
-// Close tells the guest to stop, releases the host images mirrored for it, and closes the connection.
-// It ends the session, not the guest's process: the guest's [ebiten.RunGame] returns (with a nil
-// error, as when its window is closed), and the process exits on its own. Close must be called from
-// within the host's frame (it deallocates ebiten images).
+// postMessage queues a single host message in submission order.
+func (g *GuestSession) postMessage(msg *vmprotocol.HostMessage) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	if g.closed || g.err != nil {
+		return
+	}
+	g.ops = append(g.ops, op{kind: opMessage, msg: msg})
+	g.cond.Broadcast()
+}
+
+// Close stops the session, releases the host images mirrored for it, and closes the connection. It
+// ends the session, not the guest's process: the guest's [ebiten.RunGame] returns (with a nil error,
+// as when its window is closed), and the process exits on its own. Close releases the mirror images
+// that [GuestSession.AdvanceFrame] and [GuestSession.WaitFrame] composite, so it must be called from
+// within the host's frame and not concurrently with them.
 func (g *GuestSession) Close() error {
-	_, err := g.sendMessage(&vmprotocol.HostMessage{
-		Kind: vmprotocol.HostMessageKindClose,
+	g.closeOnce.Do(func() {
+		g.requestClose()
+		// Unblock the session goroutine if it is mid-read on a wedged guest. When it is idle this is a
+		// harmless no-op: it wakes from the broadcast and exits without touching the connection again.
+		_ = g.conn.SetDeadline(time.Now())
+		<-g.done
+
+		g.renderer.dispose()
+		g.closeErr = g.conn.Close()
 	})
-	g.renderer.dispose()
-	return errors.Join(err, g.conn.Close())
+	return g.closeErr
+}
+
+// requestClose marks the session closed and wakes the session goroutine.
+func (g *GuestSession) requestClose() {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	g.closed = true
+	g.cond.Broadcast()
 }
 
 // EndpointURLFromAddr formats a host endpoint URL for the given address, typically a [net.Listener]'s,

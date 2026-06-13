@@ -38,14 +38,7 @@ func TestAtlasPackedImages(t *testing.T) {
 	if err := guest.SetOutsideScreen(outsideScreen); err != nil {
 		t.Fatal(err)
 	}
-	if err := guest.AdvanceTick(); err != nil {
-		t.Fatalf("advancing a tick failed: %v", err)
-	}
-	guest.AdvanceFrame()
-	// AdvanceFrame defers its errors to the next AdvanceTick.
-	if err := guest.AdvanceTick(); err != nil {
-		t.Fatalf("rendering the guest frame failed: %v", err)
-	}
+	tickAndFrame(t, guest)
 
 	pixels := make([]byte, 4*pw*ph)
 	outsideScreen.ReadPixels(pixels)

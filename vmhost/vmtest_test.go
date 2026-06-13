@@ -82,11 +82,14 @@ func runGuest(ln net.Listener, binary, endpoint string) error {
 	}
 
 	// One tick runs the tests, as in an ordinary go test of the package (MainWithRunLoop runs m.Run
-	// inside Update); it ends by returning Termination. Any other error means driving failed mid-tick -
-	// most often the guest process died (e.g. a panicking test), which surfaces here (and as a close
-	// error below) as a connection EOF. The guest's own output, including any panic stack trace, has
-	// already gone to stderr, and its exit code below is authoritative.
-	driveErr := guest.AdvanceTick()
+	// inside Update); it ends by returning Termination. WaitTick blocks until the session goroutine has
+	// processed the tick or ended; the outcome is read from Err. Any error other than Termination means
+	// driving failed mid-tick - most often the guest process died (e.g. a panicking test), which
+	// surfaces here (and as a close error below) as a connection EOF. The guest's own output, including
+	// any panic stack trace, has already gone to stderr, and its exit code below is authoritative.
+	guest.AdvanceTick()
+	guest.WaitTick()
+	driveErr := guest.Err()
 	if errors.Is(driveErr, ebiten.Termination) {
 		driveErr = nil
 	} else if driveErr != nil {
