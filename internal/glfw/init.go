@@ -9,6 +9,7 @@ package glfw
 
 import (
 	"errors"
+	"slices"
 )
 
 func terminate() error {
@@ -16,16 +17,12 @@ func terminate() error {
 	// callbacks from firing during teardown.
 	_glfw.callbacks.monitor = nil
 
-	for _, w := range _glfw.windows {
-		if err := w.Destroy(); err != nil {
-			return err
-		}
+	if err := destroyWindows(); err != nil {
+		return err
 	}
 
-	for _, c := range _glfw.cursors {
-		if err := c.Destroy(); err != nil {
-			return err
-		}
+	if err := destroyCursors(); err != nil {
+		return err
 	}
 
 	_glfw.monitors = nil
@@ -36,6 +33,30 @@ func terminate() error {
 
 	_glfw.initialized = false
 
+	return nil
+}
+
+// destroyWindows destroys every window. [Window.Destroy] removes the window
+// from _glfw.windows, so the iteration runs over a snapshot to avoid skipping
+// entries.
+func destroyWindows() error {
+	for _, w := range slices.Clone(_glfw.windows) {
+		if err := w.Destroy(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// destroyCursors destroys every cursor. [Cursor.Destroy] removes the cursor
+// from _glfw.cursors, so the iteration runs over a snapshot to avoid skipping
+// an entry or revisiting one, the latter of which would free a cursor twice.
+func destroyCursors() error {
+	for _, c := range slices.Clone(_glfw.cursors) {
+		if err := c.Destroy(); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 

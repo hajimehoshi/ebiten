@@ -62,5 +62,33 @@ func SmokeTestX11() error {
 		xDestroyIC(ic)
 	}
 
+	// Cursor teardown must free each cursor exactly once (#3465). These shapes
+	// always resolve to a real handle even without a cursor theme (as under a
+	// bare Xvfb), so destroying them all must not raise a BadCursor from a
+	// double free.
+	_glfw.initialized = true
+	defer func() {
+		_glfw.initialized = false
+	}()
+	for _, shape := range []StandardCursor{
+		ArrowCursor, IBeamCursor, CrosshairCursor, HandCursor,
+		HResizeCursor, VResizeCursor, ResizeAllCursor,
+	} {
+		if _, err := CreateStandardCursor(shape); err != nil {
+			return fmt.Errorf("glfw: smoke: CreateStandardCursor failed: %w", err)
+		}
+	}
+	grabErrorHandlerX11()
+	cursorErr := destroyCursors()
+	xSync(_glfw.platformWindow.display, false)
+	cursorErrorCode := _glfw.platformWindow.errorCode
+	releaseErrorHandlerX11()
+	if cursorErr != nil {
+		return fmt.Errorf("glfw: smoke: destroyCursors failed: %w", cursorErr)
+	}
+	if cursorErrorCode != _Success {
+		return fmt.Errorf("glfw: smoke: cursor teardown raised an X error (code %d), likely a double free", cursorErrorCode)
+	}
+
 	return nil
 }
