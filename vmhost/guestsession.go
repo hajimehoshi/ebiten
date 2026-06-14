@@ -83,10 +83,13 @@ type GuestSession struct {
 	// here because WaitTick compares it against consumedTicks, which the session writes.
 	submittedTicks int64
 	consumedTicks  int64
-	// frameRequested is the droppable frame request set by AdvanceFrame: repeated requests coalesce to
-	// one. It is independent of framePhase — a request for the next frame may arrive while the current
-	// one is still in flight or awaiting compositing.
-	frameRequested bool
+	// requestedFrameSeq increments on each AdvanceFrame, so coalesced requests collapse to the latest
+	// value. renderedFrameSeq is the request the most recently completed frame satisfies; a
+	// frame is owed while requestedFrameSeq exceeds it, and it doubles as the consumed marker once the
+	// frame is composited. WaitFrame compares a snapshot of requestedFrameSeq against renderedFrameSeq so
+	// it resolves to a specific requested frame rather than any newer one.
+	requestedFrameSeq int64
+	renderedFrameSeq  int64
 	// framePhase is the lifecycle of the single in-progress frame; the session does not render a new one
 	// until the host has composited the last (back to framePhaseRenderable).
 	framePhase framePhase
@@ -120,6 +123,8 @@ type op struct {
 	kind  opKind
 	count int
 	msg   *vmprotocol.HostMessage
+	// seq is the frame request an opFrame satisfies; it labels the rendered frame for WaitFrame.
+	seq int64
 }
 
 // framePhase tracks which side may touch the screen mirror as the single in-progress frame moves from
@@ -216,7 +221,7 @@ func (g *GuestSession) sessionLoop() {
 			if err = g.sendAndReceive(&vmprotocol.HostMessage{
 				Kind: vmprotocol.HostMessageKindAdvanceFrame,
 			}); err == nil {
-				err = g.finishFrame()
+				err = g.finishFrame(o.seq)
 			}
 		}
 		if err != nil {
@@ -241,11 +246,11 @@ func (g *GuestSession) nextOp() (op, bool) {
 			g.ops = g.ops[1:]
 			return o, true
 		}
-		if g.frameRequested && g.consumedTicks > 0 && g.framePhase == framePhaseRenderable {
-			// A frame was requested, the queue is drained, and the mirror is free.
-			g.frameRequested = false
+		if g.requestedFrameSeq > g.renderedFrameSeq && g.consumedTicks > 0 && g.framePhase == framePhaseRenderable {
+			// A frame is owed, the queue is drained, and the mirror is free. The frame satisfies every
+			// request up to the latest, so it carries the current requestedFrameSeq.
 			g.framePhase = framePhaseRendering
-			return op{kind: opFrame}, true
+			return op{kind: opFrame, seq: g.requestedFrameSeq}, true
 		}
 		// Nothing is actionable yet; wait for the next state change.
 		g.cond.Wait()
@@ -262,7 +267,7 @@ func (g *GuestSession) fail(err error) {
 
 // finishFrame publishes the just-rendered mirror screen for the host to composite and wakes a waiting
 // WaitFrame. It returns an error if the guest produced no screen.
-func (g *GuestSession) finishFrame() error {
+func (g *GuestSession) finishFrame(seq int64) error {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	if g.renderer.screen == nil {
@@ -270,6 +275,7 @@ func (g *GuestSession) finishFrame() error {
 		return errors.New("vmhost: no screen framebuffer was produced")
 	}
 	g.compositableFrame = *g.renderer.screen
+	g.renderedFrameSeq = seq
 	g.framePhase = framePhaseCompositable
 	g.cond.Broadcast()
 	return nil
@@ -500,7 +506,7 @@ func (g *GuestSession) AdvanceFrame() {
 	}
 	// A frame can only be produced after the first tick.
 	if g.submittedTicks > 0 {
-		g.frameRequested = true
+		g.requestedFrameSeq++
 		g.cond.Broadcast()
 	}
 }
@@ -508,25 +514,41 @@ func (g *GuestSession) AdvanceFrame() {
 // WaitFrame blocks until the frame requested by a preceding [GuestSession.AdvanceFrame] has been
 // rendered, leaving it for [GuestSession.CompositeFrame] to present. Inserted between them it makes
 // capture deterministic: AdvanceTick, AdvanceFrame, WaitFrame, CompositeFrame leaves the outside screen
-// reflecting the tick. It reports whether the frame is ready; it returns false when no frame was
-// requested (no preceding AdvanceFrame) or the session has ended (see [GuestSession.Err]).
+// reflecting the tick. The wait resolves to the most recent frame requested as of the call: an earlier
+// completed frame still awaiting compositing is dropped rather than returned, while a frame requested
+// concurrently afterward does not extend the wait. It reports whether a frame is ready; it returns false
+// when no frame was requested (no preceding AdvanceFrame) or the session has ended (see
+// [GuestSession.Err]). It must not be called concurrently with [GuestSession.CompositeFrame].
 func (g *GuestSession) WaitFrame() bool {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	if g.closed || g.err != nil {
 		return false
 	}
-	// Only block for a frame that is on the way: one requested, in flight, or already ready.
-	if !g.frameRequested && g.framePhase == framePhaseRenderable {
+	// Wait for the latest request as of now; requests arriving later do not move this target.
+	want := g.requestedFrameSeq
+	// Nothing is on the way: the wanted frame has already been rendered and composited, and no newer one
+	// is owed.
+	if want <= g.renderedFrameSeq && g.framePhase == framePhaseRenderable {
 		return false
 	}
-	for g.framePhase != framePhaseCompositable {
+	for {
 		if g.closed || g.err != nil {
 			return false
 		}
+		if g.framePhase == framePhaseCompositable {
+			// The completed frame satisfies the request once it is at least as new as the wanted one.
+			if g.renderedFrameSeq >= want {
+				return true
+			}
+			// The completed frame predates the request and occupies the single mirror, blocking the session
+			// from rendering the request. Drop it (it was never composited) so the request can render. The
+			// next render carries a seq >= want, so the wait then resolves without chasing later requests.
+			g.framePhase = framePhaseRenderable
+			g.cond.Broadcast()
+		}
 		g.cond.Wait()
 	}
-	return true
 }
 
 // CompositeFrame composites the guest's most recently completed frame into the screen set by

@@ -19,6 +19,7 @@
 package vmhost_test
 
 import (
+	"runtime"
 	"testing"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -71,5 +72,113 @@ func TestAsyncTickQueue(t *testing.T) {
 	i := 4 * (y*pw + x)
 	if r, g, b := pixels[i], pixels[i+1], pixels[i+2]; r != 0xff || g != 0x00 || b != 0x00 {
 		t.Errorf("red tile after async driving = (%d, %d, %d); want (255, 0, 0)", r, g, b)
+	}
+}
+
+// TestWaitFrameResolvesToLatestRequest checks that when a completed frame is awaiting compositing and a
+// newer frame is requested, WaitFrame drops the stale frame and resolves to the latest request rather
+// than returning the stale frame.
+func TestWaitFrameResolvesToLatestRequest(t *testing.T) {
+	guest := startGuest(t, "./testdata/guest", activateByEnv, "unix")
+
+	const w, h = 320, 240
+	scale := ebiten.Monitor().DeviceScaleFactor()
+	pw, ph := int(w*scale), int(h*scale)
+	outsideScreen := ebiten.NewImage(pw, ph)
+	if err := guest.SetOutsideScreen(outsideScreen); err != nil {
+		t.Fatal(err)
+	}
+
+	// Render a frame with the sprite at A and leave it completed but uncomposited: the single mirror now
+	// holds a stale frame.
+	const ax, ay = 40, 40
+	guest.MoveCursor(ax, ay)
+	guest.AdvanceTick()
+	guest.AdvanceFrame()
+	if !guest.WaitFrame() {
+		t.Fatalf("WaitFrame for the first frame failed: %v", guest.Err())
+	}
+
+	// Request a newer frame with the sprite at B without compositing the stale one first. WaitFrame must
+	// drop the stale frame and resolve to this latest request, not return the stale frame at A.
+	const bx, by = 200, 150
+	guest.MoveCursor(bx, by)
+	guest.AdvanceTick()
+	guest.AdvanceFrame()
+	if !guest.WaitFrame() {
+		t.Fatalf("WaitFrame for the latest frame failed: %v", guest.Err())
+	}
+	if !guest.CompositeFrame() {
+		t.Fatalf("CompositeFrame failed: %v", guest.Err())
+	}
+
+	pixels := make([]byte, 4*pw*ph)
+	outsideScreen.ReadPixels(pixels)
+	at := func(x, y int) (r, g, b uint8) {
+		i := 4 * (y*pw + x)
+		return pixels[i], pixels[i+1], pixels[i+2]
+	}
+
+	// The latest frame placed the sprite at B: B's center is near-white, and A's center fell back to the
+	// guest's bluish background (the stale frame at A was dropped, not composited).
+	bcx, bcy := int((bx+8)*scale), int((by+8)*scale)
+	acx, acy := int((ax+8)*scale), int((ay+8)*scale)
+	if r, g, b := at(bcx, bcy); !(r > 0xc0 && g > 0xc0 && b > 0xc0) {
+		t.Errorf("sprite not at the latest position B: (%d, %d, %d); want near-white", r, g, b)
+	}
+	if r, g, b := at(acx, acy); !(b > r && b > 0x40) {
+		t.Errorf("stale frame A was composited: A's center = (%d, %d, %d); want bluish background", r, g, b)
+	}
+}
+
+// TestWaitFrameUnderConcurrentAdvanceFrame stresses WaitFrame against AdvanceFrame called from another
+// goroutine. Because WaitFrame waits for the request outstanding at its entry rather than chasing every
+// later one, each call still returns despite the steady stream of newer requests; this also exercises the
+// concurrent path under the race detector. It cannot pin which frame a given WaitFrame resolves to (that
+// depends on timing), so it asserts that the wait completes, not a pixel.
+func TestWaitFrameUnderConcurrentAdvanceFrame(t *testing.T) {
+	guest := startGuest(t, "./testdata/guest", activateByEnv, "unix")
+
+	scale := ebiten.Monitor().DeviceScaleFactor()
+	outsideScreen := ebiten.NewImage(int(64*scale), int(64*scale))
+	if err := guest.SetOutsideScreen(outsideScreen); err != nil {
+		t.Fatal(err)
+	}
+
+	// Request frames continuously from a background goroutine for the whole capture.
+	stop := make(chan struct{})
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		for {
+			select {
+			case <-stop:
+				return
+			default:
+				guest.AdvanceFrame()
+				runtime.Gosched()
+			}
+		}
+	}()
+
+	for range 20 {
+		guest.AdvanceTick()
+		guest.AdvanceFrame()
+		if !guest.WaitFrame() {
+			t.Fatalf("WaitFrame did not return under concurrent AdvanceFrame: %v", guest.Err())
+		}
+		if !guest.CompositeFrame() {
+			t.Fatalf("CompositeFrame failed under concurrent AdvanceFrame: %v", guest.Err())
+		}
+	}
+
+	close(stop)
+	<-done
+
+	// The background goroutine may have left frames owed. Drain them so the session is idle when the test's
+	// cleanup closes the guest: an idle guest sees a clean EOF, whereas closing mid-frame would interrupt
+	// the guest's write and exit it non-zero.
+	for guest.WaitFrame() {
+		guest.CompositeFrame()
 	}
 }
