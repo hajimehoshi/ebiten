@@ -18,7 +18,10 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"os/exec"
 	"runtime"
+	"strings"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
@@ -69,6 +72,39 @@ func (g *Game) Layout(width, height int) (int, int) {
 	return 320, 240
 }
 
+// runningUnderParallelsLinux reports whether the process is running inside a
+// Parallels virtual machine on Linux.
+func runningUnderParallelsLinux() bool {
+	// The detection below relies on Linux-only interfaces.
+	if runtime.GOOS != "linux" {
+		return false
+	}
+
+	// systemd-detect-virt is checked first as it is reliable even on ARM guests,
+	// where the DMI tables can be sparse.
+	if out, err := exec.Command("systemd-detect-virt").Output(); err == nil {
+		if strings.TrimSpace(string(out)) == "parallels" {
+			return true
+		}
+	}
+
+	for _, name := range []string{
+		"/sys/class/dmi/id/sys_vendor",
+		"/sys/class/dmi/id/product_name",
+	} {
+		b, err := os.ReadFile(name)
+		if err != nil {
+			continue
+		}
+		for _, f := range strings.Fields(string(b)) {
+			if strings.EqualFold(f, "parallels") {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 func main() {
 	// Mouse is not supported on mobiles.
 	// Capturing a cursor requires a user gesture on browsers.
@@ -77,8 +113,14 @@ func main() {
 		return
 	}
 
-	// This test is flaky on Windows (especially on GitHub Actions). Skip this.
-	if runtime.GOOS == "windows" {
+	// Capturing the cursor relies on the OS honoring pointer warping while
+	// nothing else moves the pointer. Some environments break this contract and
+	// make the captured cursor position jump, so skip the test there:
+	//
+	//   - Windows is flaky, especially on GitHub Actions.
+	//   - Parallels drives the guest pointer as an absolute device via host mouse
+	//     integration, which fights the pointer grab-and-warp that capturing uses.
+	if runtime.GOOS == "windows" || runningUnderParallelsLinux() {
 		return
 	}
 
