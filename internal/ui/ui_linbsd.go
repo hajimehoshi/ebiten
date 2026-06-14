@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build (freebsd || (linux && !android) || netbsd || openbsd) && !nintendosdk && !playstation5
+//go:build (freebsd || (linux && !android) || netbsd) && !nintendosdk && !playstation5
 
 package ui
 
@@ -20,10 +20,6 @@ import (
 	"errors"
 	"fmt"
 	"runtime"
-
-	"github.com/jezek/xgb"
-	"github.com/jezek/xgb/randr"
-	"github.com/jezek/xgb/xproto"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/color"
 	"github.com/hajimehoshi/ebiten/v2/internal/colormode"
@@ -82,51 +78,28 @@ func glfwMonitorSizeInGLFWPixels(m *glfw.Monitor) (int, int, error) {
 	// for Ebitengine's `(*Monitor).Size()` public API.
 	// Also at the moment we need this prior to switching to fullscreen, but that might be replaceable.
 	// So this function computes the ratio of physical per logical pixels.
-	xconn, err := xgb.NewConn()
-	if err != nil {
-		// No X11 connection?
-		// Assume we're on pure Wayland then.
+	if !ensureX11() {
+		// No X11 connection? Assume we're on pure Wayland then.
 		// GLFW/Wayland shouldn't be having this issue.
 		return physWidth, physHeight, nil
 	}
-	defer xconn.Close()
 
-	if err := randr.Init(xconn); err != nil {
-		// No RANDR extension? No problem.
+	display, err := glfw.GetX11Display()
+	if err != nil || display == 0 {
 		return physWidth, physHeight, nil
 	}
 
-	root := xproto.Setup(xconn).DefaultScreen(xconn).Root
-	res, err := randr.GetScreenResourcesCurrent(xconn, root).Reply()
-	if err != nil {
-		// Likely means RANDR is not working. No problem.
+	crtc, err := m.GetX11Adapter()
+	if err != nil || crtc == 0 {
 		return physWidth, physHeight, nil
 	}
 
-	monitorX, monitorY, err := m.GetPos()
-	if err != nil {
-		// TODO: Is it OK to ignore this error?
+	w, h, ok := x11CrtcSize(display, uint(crtc))
+	if !ok {
+		// Monitor not known to XRandR. Weird.
 		return physWidth, physHeight, nil
 	}
-
-	for _, crtc := range res.Crtcs[:res.NumCrtcs] {
-		info, err := randr.GetCrtcInfo(xconn, crtc, res.ConfigTimestamp).Reply()
-		if err != nil {
-			// This Crtc is bad. Maybe just got disconnected?
-			continue
-		}
-		if info.NumOutputs == 0 {
-			// This Crtc is not connected to any output.
-			// In other words, a disabled monitor.
-			continue
-		}
-		if int(info.X) == monitorX && int(info.Y) == monitorY {
-			return int(info.Width), int(info.Height), nil
-		}
-	}
-
-	// Monitor not known to XRandR. Weird.
-	return physWidth, physHeight, nil
+	return w, h, nil
 }
 
 func dipFromGLFWPixel(x float64, deviceScaleFactor float64) float64 {
@@ -142,19 +115,20 @@ func (u *glfwBackend) adjustWindowPosition(x, y int, monitor *Monitor) (int, int
 }
 
 func initialMonitorByOS() (*Monitor, error) {
-	xconn, err := xgb.NewConn()
-	if err != nil {
+	if !ensureX11() {
 		// Assume we're on pure Wayland then.
 		return nil, nil
 	}
-	defer xconn.Close()
 
-	root := xproto.Setup(xconn).DefaultScreen(xconn).Root
-	rep, err := xproto.QueryPointer(xconn, root).Reply()
-	if err != nil {
-		return nil, err
+	display, err := glfw.GetX11Display()
+	if err != nil || display == 0 {
+		return nil, nil
 	}
-	x, y := int(rep.RootX), int(rep.RootY)
+
+	x, y, ok := x11QueryPointerPosition(display)
+	if !ok {
+		return nil, nil
+	}
 
 	// Find the monitor including the cursor.
 	return theMonitors.monitorFromPosition(x, y), nil
@@ -218,12 +192,18 @@ func (u *glfwBackend) afterWindowCreation() error {
 
 // setWindowColorModeImpl must be called from the main thread.
 func (u *glfwBackend) setWindowColorModeImpl(mode colormode.ColorMode) error {
-	xconn, err := xgb.NewConn()
-	if err != nil {
+	if !ensureX11() {
 		// Assume we're on pure Wayland then.
 		return nil
 	}
-	defer xconn.Close()
+
+	display, err := glfw.GetX11Display()
+	if err != nil {
+		return err
+	}
+	if display == 0 {
+		return nil
+	}
 
 	// Get the X11 window ID from GLFW
 	window, err := u.window.GetX11Window()
@@ -241,25 +221,7 @@ func (u *glfwBackend) setWindowColorModeImpl(mode colormode.ColorMode) error {
 		// Keep themeVariant empty.
 	}
 
-	gtkThemeVariantStr := "_GTK_THEME_VARIANT"
-	r, err := xproto.InternAtom(xconn, false, uint16(len(gtkThemeVariantStr)), gtkThemeVariantStr).Reply()
-	if err != nil {
-		return err
-	}
-	gtkThemeVariantAtom := r.Atom
-
-	utf8Str := "UTF8_STRING"
-	r, err = xproto.InternAtom(xconn, false, uint16(len(utf8Str)), utf8Str).Reply()
-	if err != nil {
-		return err
-	}
-	utf8StringAtom := r.Atom
-
-	if themeVariant == "" {
-		_ = xproto.DeleteProperty(xconn, xproto.Window(window), gtkThemeVariantAtom)
-		return nil
-	}
-	_ = xproto.ChangeProperty(xconn, xproto.PropModeReplace, xproto.Window(window), gtkThemeVariantAtom, utf8StringAtom, 8, uint32(len(themeVariant)), []byte(themeVariant))
+	x11SetWindowThemeVariant(display, window, themeVariant)
 	return nil
 }
 

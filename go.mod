@@ -13,7 +13,6 @@ require (
 	github.com/hajimehoshi/bitmapfont/v4 v4.1.1
 	github.com/hajimehoshi/go-mp3 v0.3.4
 	github.com/jakecoffman/cp/v2 v2.4.0
-	github.com/jezek/xgb v1.3.1
 	github.com/jfreymuth/oggvorbis v1.0.5
 	github.com/kazzmir/opus-go v1.3.0
 	github.com/kisielk/errcheck v1.20.0
