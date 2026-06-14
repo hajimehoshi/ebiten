@@ -44,7 +44,7 @@ func SmokeTestX11() error {
 	xSync(_glfw.platformWindow.display, false)
 	errorCode := _glfw.platformWindow.errorCode
 	releaseErrorHandlerX11()
-	if errorCode == Success {
+	if errorCode == _Success {
 		return fmt.Errorf("glfw: smoke: the X error handler was not invoked")
 	}
 
@@ -52,7 +52,7 @@ func SmokeTestX11() error {
 	// available (it is not under a bare Xvfb without an IM server).
 	if _glfw.platformWindow.im != 0 {
 		ic := xCreateIC(_glfw.platformWindow.im,
-			"inputStyle", XIMPreeditNothing|XIMStatusNothing,
+			"inputStyle", _XIMPreeditNothing|_XIMStatusNothing,
 			"clientWindow", _glfw.platformWindow.helperWindowHandle,
 			"focusWindow", _glfw.platformWindow.helperWindowHandle,
 			0)

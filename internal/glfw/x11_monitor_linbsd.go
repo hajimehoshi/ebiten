@@ -14,13 +14,13 @@ import (
 
 // modeIsGood reports whether the display mode should be included in
 // enumeration.
-func modeIsGood(mi *XRRModeInfo) bool {
-	return mi.ModeFlags&RR_Interlace == 0
+func modeIsGood(mi *_XRRModeInfo) bool {
+	return mi.ModeFlags&_RR_Interlace == 0
 }
 
 // calculateRefreshRate calculates the refresh rate, in Hz, from the
 // specified RandR mode info.
-func calculateRefreshRate(mi *XRRModeInfo) int {
+func calculateRefreshRate(mi *_XRRModeInfo) int {
 	if mi.HTotal != 0 && mi.VTotal != 0 {
 		return int(math.Round(float64(mi.DotClock) / (float64(mi.HTotal) * float64(mi.VTotal))))
 	}
@@ -28,8 +28,8 @@ func calculateRefreshRate(mi *XRRModeInfo) int {
 }
 
 // getModeInfo returns the mode info for a RandR mode XID.
-func getModeInfo(sr *XRRScreenResources, id RRMode) *XRRModeInfo {
-	modes := unsafe.Slice((*XRRModeInfo)(unsafe.Pointer(sr.Modes)), int(sr.Nmode))
+func getModeInfo(sr *_XRRScreenResources, id _RRMode) *_XRRModeInfo {
+	modes := unsafe.Slice((*_XRRModeInfo)(unsafe.Pointer(sr.Modes)), int(sr.Nmode))
 	for i := range modes {
 		if modes[i].ID == id {
 			return &modes[i]
@@ -39,10 +39,10 @@ func getModeInfo(sr *XRRScreenResources, id RRMode) *XRRModeInfo {
 }
 
 // vidmodeFromModeInfo converts RandR mode info to a GLFW video mode.
-func vidmodeFromModeInfo(mi *XRRModeInfo, ci *XRRCrtcInfo) *VidMode {
+func vidmodeFromModeInfo(mi *_XRRModeInfo, ci *_XRRCrtcInfo) *VidMode {
 	var mode VidMode
 
-	if ci.Rotation == RR_Rotate_90 || ci.Rotation == RR_Rotate_270 {
+	if ci.Rotation == _RR_Rotate_90 || ci.Rotation == _RR_Rotate_270 {
 		mode.Width = int(mi.Height)
 		mode.Height = int(mi.Width)
 	} else {
@@ -66,29 +66,29 @@ func pollMonitorsX11() error {
 
 		srPtr := randr.GetScreenResourcesCurrent(display, _glfw.platformWindow.root)
 		defer randr.FreeScreenResources(srPtr)
-		sr := (*XRRScreenResources)(unsafe.Pointer(srPtr))
+		sr := (*_XRRScreenResources)(unsafe.Pointer(srPtr))
 
 		primary := randr.GetOutputPrimary(display, _glfw.platformWindow.root)
 
-		var screens []XineramaScreenInfo
+		var screens []_XineramaScreenInfo
 		if _glfw.platformWindow.xinerama.available {
 			var screenCount int32
 			screensPtr := _glfw.platformWindow.xinerama.QueryScreens(display, &screenCount)
 			if screensPtr != 0 {
 				defer xFree(screensPtr)
-				screens = unsafe.Slice((*XineramaScreenInfo)(unsafe.Pointer(screensPtr)), int(screenCount))
+				screens = unsafe.Slice((*_XineramaScreenInfo)(unsafe.Pointer(screensPtr)), int(screenCount))
 			}
 		}
 
 		disconnected := make([]*Monitor, len(_glfw.monitors))
 		copy(disconnected, _glfw.monitors)
 
-		outputs := unsafe.Slice((*RROutput)(unsafe.Pointer(sr.Outputs)), int(sr.Noutput))
+		outputs := unsafe.Slice((*_RROutput)(unsafe.Pointer(sr.Outputs)), int(sr.Noutput))
 		for i := range outputs {
 			oiPtr := randr.GetOutputInfo(display, srPtr, outputs[i])
-			oi := (*XRROutputInfo)(unsafe.Pointer(oiPtr))
+			oi := (*_XRROutputInfo)(unsafe.Pointer(oiPtr))
 
-			if oi.Connection != RR_Connected || oi.Crtc == None {
+			if oi.Connection != _RR_Connected || oi.Crtc == _None {
 				randr.FreeOutputInfo(oiPtr)
 				continue
 			}
@@ -106,7 +106,7 @@ func pollMonitorsX11() error {
 			}
 
 			ciPtr := randr.GetCrtcInfo(display, srPtr, oi.Crtc)
-			ci := (*XRRCrtcInfo)(unsafe.Pointer(ciPtr))
+			ci := (*_XRRCrtcInfo)(unsafe.Pointer(ciPtr))
 
 			monitor := &Monitor{name: goString(oi.Name)}
 			monitor.platform.output = outputs[i]
@@ -167,15 +167,15 @@ func setVideoModeX11(monitor *Monitor, desired *VidMode) error {
 		}
 
 		srPtr := randr.GetScreenResourcesCurrent(display, _glfw.platformWindow.root)
-		sr := (*XRRScreenResources)(unsafe.Pointer(srPtr))
+		sr := (*_XRRScreenResources)(unsafe.Pointer(srPtr))
 		ciPtr := randr.GetCrtcInfo(display, srPtr, monitor.platform.crtc)
-		ci := (*XRRCrtcInfo)(unsafe.Pointer(ciPtr))
+		ci := (*_XRRCrtcInfo)(unsafe.Pointer(ciPtr))
 		oiPtr := randr.GetOutputInfo(display, srPtr, monitor.platform.output)
-		oi := (*XRROutputInfo)(unsafe.Pointer(oiPtr))
+		oi := (*_XRROutputInfo)(unsafe.Pointer(oiPtr))
 
-		native := RRMode(None)
+		native := _RRMode(_None)
 
-		modes := unsafe.Slice((*RRMode)(unsafe.Pointer(oi.Modes)), int(oi.Nmode))
+		modes := unsafe.Slice((*_RRMode)(unsafe.Pointer(oi.Modes)), int(oi.Nmode))
 		for i := range modes {
 			mi := getModeInfo(sr, modes[i])
 			if !modeIsGood(mi) {
@@ -189,19 +189,19 @@ func setVideoModeX11(monitor *Monitor, desired *VidMode) error {
 			}
 		}
 
-		if native != None {
-			if monitor.platform.oldMode == None {
+		if native != _None {
+			if monitor.platform.oldMode == _None {
 				monitor.platform.oldMode = ci.Mode
 			}
 
 			outputs := ci.Outputs
 			randr.SetCrtcConfig(display,
 				srPtr, monitor.platform.crtc,
-				CurrentTime,
+				_CurrentTime,
 				ci.X, ci.Y,
 				native,
 				ci.Rotation,
-				(*RROutput)(unsafe.Pointer(outputs)),
+				(*_RROutput)(unsafe.Pointer(outputs)),
 				ci.Noutput)
 		}
 
@@ -216,7 +216,7 @@ func setVideoModeX11(monitor *Monitor, desired *VidMode) error {
 // specified monitor.
 func restoreVideoModeX11(monitor *Monitor) {
 	if _glfw.platformWindow.randr.available && !_glfw.platformWindow.randr.monitorBroken {
-		if monitor.platform.oldMode == None {
+		if monitor.platform.oldMode == _None {
 			return
 		}
 
@@ -225,21 +225,21 @@ func restoreVideoModeX11(monitor *Monitor) {
 
 		srPtr := randr.GetScreenResourcesCurrent(display, _glfw.platformWindow.root)
 		ciPtr := randr.GetCrtcInfo(display, srPtr, monitor.platform.crtc)
-		ci := (*XRRCrtcInfo)(unsafe.Pointer(ciPtr))
+		ci := (*_XRRCrtcInfo)(unsafe.Pointer(ciPtr))
 
 		randr.SetCrtcConfig(display,
 			srPtr, monitor.platform.crtc,
-			CurrentTime,
+			_CurrentTime,
 			ci.X, ci.Y,
 			monitor.platform.oldMode,
 			ci.Rotation,
-			(*RROutput)(unsafe.Pointer(ci.Outputs)),
+			(*_RROutput)(unsafe.Pointer(ci.Outputs)),
 			ci.Noutput)
 
 		randr.FreeCrtcInfo(ciPtr)
 		randr.FreeScreenResources(srPtr)
 
-		monitor.platform.oldMode = None
+		monitor.platform.oldMode = _None
 	}
 }
 
@@ -260,7 +260,7 @@ func (m *Monitor) platformGetMonitorPos() (xpos, ypos int, ok bool) {
 	}
 	defer randr.FreeCrtcInfo(ciPtr)
 
-	ci := (*XRRCrtcInfo)(unsafe.Pointer(ciPtr))
+	ci := (*_XRRCrtcInfo)(unsafe.Pointer(ciPtr))
 	return int(ci.X), int(ci.Y), true
 }
 
@@ -277,16 +277,16 @@ func (m *Monitor) platformGetMonitorWorkarea() (xpos, ypos, width, height int) {
 		randr := &_glfw.platformWindow.randr
 
 		srPtr := randr.GetScreenResourcesCurrent(display, _glfw.platformWindow.root)
-		sr := (*XRRScreenResources)(unsafe.Pointer(srPtr))
+		sr := (*_XRRScreenResources)(unsafe.Pointer(srPtr))
 		ciPtr := randr.GetCrtcInfo(display, srPtr, m.platform.crtc)
-		ci := (*XRRCrtcInfo)(unsafe.Pointer(ciPtr))
+		ci := (*_XRRCrtcInfo)(unsafe.Pointer(ciPtr))
 
 		areaX = ci.X
 		areaY = ci.Y
 
 		mi := getModeInfo(sr, ci.Mode)
 
-		if ci.Rotation == RR_Rotate_90 || ci.Rotation == RR_Rotate_270 {
+		if ci.Rotation == _RR_Rotate_90 || ci.Rotation == _RR_Rotate_270 {
 			areaWidth = int32(mi.Height)
 			areaHeight = int32(mi.Width)
 		} else {
@@ -305,12 +305,12 @@ func (m *Monitor) platformGetMonitorWorkarea() (xpos, ypos, width, height int) {
 		var extentsPtr, desktopPtr uintptr
 		extentCount := getWindowPropertyX11(_glfw.platformWindow.root,
 			_glfw.platformWindow.NET_WORKAREA,
-			XA_CARDINAL,
+			_XA_CARDINAL,
 			&extentsPtr)
 
 		if getWindowPropertyX11(_glfw.platformWindow.root,
 			_glfw.platformWindow.NET_CURRENT_DESKTOP,
-			XA_CARDINAL,
+			_XA_CARDINAL,
 			&desktopPtr) > 0 {
 			desktop := *(*_Culong)(unsafe.Pointer(desktopPtr))
 			if extentCount >= 4 && desktop < extentCount/4 {
@@ -359,13 +359,13 @@ func (m *Monitor) platformAppendVideoModes(monitors []*VidMode) ([]*VidMode, err
 		randr := &_glfw.platformWindow.randr
 
 		srPtr := randr.GetScreenResourcesCurrent(display, _glfw.platformWindow.root)
-		sr := (*XRRScreenResources)(unsafe.Pointer(srPtr))
+		sr := (*_XRRScreenResources)(unsafe.Pointer(srPtr))
 		ciPtr := randr.GetCrtcInfo(display, srPtr, m.platform.crtc)
-		ci := (*XRRCrtcInfo)(unsafe.Pointer(ciPtr))
+		ci := (*_XRRCrtcInfo)(unsafe.Pointer(ciPtr))
 		oiPtr := randr.GetOutputInfo(display, srPtr, m.platform.output)
-		oi := (*XRROutputInfo)(unsafe.Pointer(oiPtr))
+		oi := (*_XRROutputInfo)(unsafe.Pointer(oiPtr))
 
-		modes := unsafe.Slice((*RRMode)(unsafe.Pointer(oi.Modes)), int(oi.Nmode))
+		modes := unsafe.Slice((*_RRMode)(unsafe.Pointer(oi.Modes)), int(oi.Nmode))
 		for i := range modes {
 			mi := getModeInfo(sr, modes[i])
 			if !modeIsGood(mi) {
@@ -408,11 +408,11 @@ func (m *Monitor) platformGetVideoMode() *VidMode {
 		randr := &_glfw.platformWindow.randr
 
 		srPtr := randr.GetScreenResourcesCurrent(display, _glfw.platformWindow.root)
-		sr := (*XRRScreenResources)(unsafe.Pointer(srPtr))
+		sr := (*_XRRScreenResources)(unsafe.Pointer(srPtr))
 
 		ciPtr := randr.GetCrtcInfo(display, srPtr, m.platform.crtc)
 		if ciPtr != 0 {
-			ci := (*XRRCrtcInfo)(unsafe.Pointer(ciPtr))
+			ci := (*_XRRCrtcInfo)(unsafe.Pointer(ciPtr))
 			// mi can be nil if the monitor has been disconnected
 			if mi := getModeInfo(sr, ci.Mode); mi != nil {
 				mode = *vidmodeFromModeInfo(mi, ci)

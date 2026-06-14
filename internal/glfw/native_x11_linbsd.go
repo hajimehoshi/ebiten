@@ -16,12 +16,12 @@ func GetX11Display() (uintptr, error) {
 }
 
 // GetX11Adapter returns the RRCrtc of the monitor.
-func (m *Monitor) GetX11Adapter() (RRCrtc, error) {
+func (m *Monitor) GetX11Adapter() (_RRCrtc, error) {
 	return m.platform.crtc, nil
 }
 
 // GetX11Monitor returns the RROutput of the monitor.
-func (m *Monitor) GetX11Monitor() (RROutput, error) {
+func (m *Monitor) GetX11Monitor() (_RROutput, error) {
 	return m.platform.output, nil
 }
 
@@ -53,7 +53,7 @@ func SetX11SelectionString(str string) {
 	xSetSelectionOwner(_glfw.platformWindow.display,
 		_glfw.platformWindow.PRIMARY,
 		_glfw.platformWindow.helperWindowHandle,
-		CurrentTime)
+		_CurrentTime)
 }
 
 // GetX11SelectionString gets the X11 primary selection string.

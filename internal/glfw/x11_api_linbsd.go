@@ -53,106 +53,106 @@ var (
 	xDisplayHeightMM  func(display uintptr, screen int32) int32
 	xDisplayWidth     func(display uintptr, screen int32) int32
 	xDisplayWidthMM   func(display uintptr, screen int32) int32
-	xRootWindow       func(display uintptr, screen int32) XID
+	xRootWindow       func(display uintptr, screen int32) _XID
 
 	xAllocClassHint            func() uintptr
 	xAllocSizeHints            func() uintptr
 	xAllocWMHints              func() uintptr
-	xChangeProperty            func(display uintptr, w XID, property Atom, typ Atom, format int32, mode int32, data unsafe.Pointer, nelements int32) int32
-	xChangeWindowAttributes    func(display uintptr, w XID, valuemask _Culong, attributes *XSetWindowAttributes) int32
-	xCheckIfEvent              func(display uintptr, event *XEvent, predicate uintptr, arg uintptr) bool
-	xCheckTypedWindowEvent     func(display uintptr, w XID, eventType int32, event *XEvent) bool
+	xChangeProperty            func(display uintptr, w _XID, property _Atom, typ _Atom, format int32, mode int32, data unsafe.Pointer, nelements int32) int32
+	xChangeWindowAttributes    func(display uintptr, w _XID, valuemask _Culong, attributes *_XSetWindowAttributes) int32
+	xCheckIfEvent              func(display uintptr, event *_XEvent, predicate uintptr, arg uintptr) bool
+	xCheckTypedWindowEvent     func(display uintptr, w _XID, eventType int32, event *_XEvent) bool
 	xCloseDisplay              func(display uintptr) int32
 	xCloseIM                   func(im uintptr) int32
-	xConvertSelection          func(display uintptr, selection Atom, target Atom, property Atom, requestor XID, time Time) int32
-	xCreateColormap            func(display uintptr, w XID, visual uintptr, alloc int32) XID
-	xCreateFontCursor          func(display uintptr, shape uint32) XID
-	xCreateRegion              func() Region
-	xCreateWindow              func(display uintptr, parent XID, x, y int32, width, height, borderWidth uint32, depth int32, class uint32, visual uintptr, valuemask _Culong, attributes *XSetWindowAttributes) XID
-	xDefineCursor              func(display uintptr, w XID, cursor XID) int32
-	xDeleteProperty            func(display uintptr, w XID, property Atom) int32
+	xConvertSelection          func(display uintptr, selection _Atom, target _Atom, property _Atom, requestor _XID, time _Time) int32
+	xCreateColormap            func(display uintptr, w _XID, visual uintptr, alloc int32) _XID
+	xCreateFontCursor          func(display uintptr, shape uint32) _XID
+	xCreateRegion              func() _Region
+	xCreateWindow              func(display uintptr, parent _XID, x, y int32, width, height, borderWidth uint32, depth int32, class uint32, visual uintptr, valuemask _Culong, attributes *_XSetWindowAttributes) _XID
+	xDefineCursor              func(display uintptr, w _XID, cursor _XID) int32
+	xDeleteProperty            func(display uintptr, w _XID, property _Atom) int32
 	xDestroyIC                 func(ic uintptr)
-	xDestroyRegion             func(r Region) int32
-	xDestroyWindow             func(display uintptr, w XID) int32
+	xDestroyRegion             func(r _Region) int32
+	xDestroyWindow             func(display uintptr, w _XID) int32
 	xDisplayKeycodes           func(display uintptr, minKeycodes, maxKeycodes *int32) int32
 	xEventsQueued              func(display uintptr, mode int32) int32
-	xFilterEvent               func(event *XEvent, w XID) bool
+	xFilterEvent               func(event *_XEvent, w _XID) bool
 	xFlush                     func(display uintptr) int32
 	xFree                      func(data uintptr) int32
-	xFreeColormap              func(display uintptr, colormap XID) int32
-	xFreeCursor                func(display uintptr, cursor XID) int32
-	xFreeEventData             func(display uintptr, cookie *XGenericEventCookie)
+	xFreeColormap              func(display uintptr, colormap _XID) int32
+	xFreeCursor                func(display uintptr, cursor _XID) int32
+	xFreeEventData             func(display uintptr, cookie *_XGenericEventCookie)
 	xGetErrorText              func(display uintptr, code int32, buffer []byte, length int32) int32
-	xGetEventData              func(display uintptr, cookie *XGenericEventCookie) bool
+	xGetEventData              func(display uintptr, cookie *_XGenericEventCookie) bool
 	xGetICValues               func(ic uintptr, key string, value *_Culong, term uintptr) uintptr
 	xGetIMValues               func(im uintptr, key string, value *uintptr, term uintptr) uintptr
-	xGetInputFocus             func(display uintptr, focusReturn *XID, revertToReturn *int32) int32
-	xGetKeyboardMapping        func(display uintptr, firstKeycode KeyCode, keycodeCount int32, keysymsPerKeycodeReturn *int32) uintptr
+	xGetInputFocus             func(display uintptr, focusReturn *_XID, revertToReturn *int32) int32
+	xGetKeyboardMapping        func(display uintptr, firstKeycode _KeyCode, keycodeCount int32, keysymsPerKeycodeReturn *int32) uintptr
 	xGetScreenSaver            func(display uintptr, timeout, interval, preferBlanking, allowExposures *int32) int32
-	xGetSelectionOwner         func(display uintptr, selection Atom) XID
-	xGetVisualInfo             func(display uintptr, vinfoMask _Clong, vinfoTemplate *XVisualInfo, nitemsReturn *int32) uintptr
-	xGetWMNormalHints          func(display uintptr, w XID, hints *XSizeHints, supplied *_Clong) int32
-	xGetWindowAttributes       func(display uintptr, w XID, attributes *XWindowAttributes) int32
-	xGetWindowProperty         func(display uintptr, w XID, property Atom, longOffset, longLength _Clong, delete bool, reqType Atom, actualTypeReturn *Atom, actualFormatReturn *int32, nitemsReturn *_Culong, bytesAfterReturn *_Culong, propReturn *uintptr) int32
-	xGrabPointer               func(display uintptr, grabWindow XID, ownerEvents bool, eventMask uint32, pointerMode, keyboardMode int32, confineTo XID, cursor XID, time Time) int32
-	xIconifyWindow             func(display uintptr, w XID, screen int32) int32
+	xGetSelectionOwner         func(display uintptr, selection _Atom) _XID
+	xGetVisualInfo             func(display uintptr, vinfoMask _Clong, vinfoTemplate *_XVisualInfo, nitemsReturn *int32) uintptr
+	xGetWMNormalHints          func(display uintptr, w _XID, hints *_XSizeHints, supplied *_Clong) int32
+	xGetWindowAttributes       func(display uintptr, w _XID, attributes *_XWindowAttributes) int32
+	xGetWindowProperty         func(display uintptr, w _XID, property _Atom, longOffset, longLength _Clong, delete bool, reqType _Atom, actualTypeReturn *_Atom, actualFormatReturn *int32, nitemsReturn *_Culong, bytesAfterReturn *_Culong, propReturn *uintptr) int32
+	xGrabPointer               func(display uintptr, grabWindow _XID, ownerEvents bool, eventMask uint32, pointerMode, keyboardMode int32, confineTo _XID, cursor _XID, time _Time) int32
+	xIconifyWindow             func(display uintptr, w _XID, screen int32) int32
 	xInitThreads               func() int32
-	xInternAtom                func(display uintptr, atomName string, onlyIfExists bool) Atom
-	xLookupString              func(eventStruct *XKeyEvent, bufferReturn []byte, bytesBuffer int32, keysymReturn *KeySym, statusInOut uintptr) int32
-	xMapRaised                 func(display uintptr, w XID) int32
-	xMapWindow                 func(display uintptr, w XID) int32
-	xMoveResizeWindow          func(display uintptr, w XID, x, y int32, width, height uint32) int32
-	xMoveWindow                func(display uintptr, w XID, x, y int32) int32
-	xNextEvent                 func(display uintptr, eventReturn *XEvent) int32
+	xInternAtom                func(display uintptr, atomName string, onlyIfExists bool) _Atom
+	xLookupString              func(eventStruct *_XKeyEvent, bufferReturn []byte, bytesBuffer int32, keysymReturn *_KeySym, statusInOut uintptr) int32
+	xMapRaised                 func(display uintptr, w _XID) int32
+	xMapWindow                 func(display uintptr, w _XID) int32
+	xMoveResizeWindow          func(display uintptr, w _XID, x, y int32, width, height uint32) int32
+	xMoveWindow                func(display uintptr, w _XID, x, y int32) int32
+	xNextEvent                 func(display uintptr, eventReturn *_XEvent) int32
 	xOpenDisplay               func(displayName uintptr) uintptr
 	xOpenIM                    func(display uintptr, db uintptr, resName uintptr, resClass uintptr) uintptr
-	xPeekEvent                 func(display uintptr, eventReturn *XEvent) int32
+	xPeekEvent                 func(display uintptr, eventReturn *_XEvent) int32
 	xPending                   func(display uintptr) int32
 	xQLength                   func(display uintptr) int32
 	xQueryExtension            func(display uintptr, name string, majorOpcodeReturn, firstEventReturn, firstErrorReturn *int32) bool
-	xQueryPointer              func(display uintptr, w XID, rootReturn, childReturn *XID, rootXReturn, rootYReturn, winXReturn, winYReturn *int32, maskReturn *uint32) bool
-	xRaiseWindow               func(display uintptr, w XID) int32
-	xResizeWindow              func(display uintptr, w XID, width, height uint32) int32
+	xQueryPointer              func(display uintptr, w _XID, rootReturn, childReturn *_XID, rootXReturn, rootYReturn, winXReturn, winYReturn *int32, maskReturn *uint32) bool
+	xRaiseWindow               func(display uintptr, w _XID) int32
+	xResizeWindow              func(display uintptr, w _XID, width, height uint32) int32
 	xResourceManagerString     func(display uintptr) uintptr
-	xSelectInput               func(display uintptr, w XID, eventMask _Clong) int32
-	xSendEvent                 func(display uintptr, w XID, propagate bool, eventMask _Clong, eventSend *XEvent) int32
-	xSetClassHint              func(display uintptr, w XID, classHints *XClassHint) int32
+	xSelectInput               func(display uintptr, w _XID, eventMask _Clong) int32
+	xSendEvent                 func(display uintptr, w _XID, propagate bool, eventMask _Clong, eventSend *_XEvent) int32
+	xSetClassHint              func(display uintptr, w _XID, classHints *_XClassHint) int32
 	xSetErrorHandler           func(handler uintptr) uintptr
 	xSetICFocus                func(ic uintptr)
-	xSetInputFocus             func(display uintptr, focus XID, revertTo int32, time Time) int32
+	xSetInputFocus             func(display uintptr, focus _XID, revertTo int32, time _Time) int32
 	xSetLocaleModifiers        func(modifierList string) uintptr
 	xSetScreenSaver            func(display uintptr, timeout, interval, preferBlanking, allowExposures int32) int32
-	xSetSelectionOwner         func(display uintptr, selection Atom, owner XID, time Time) int32
-	xSetWMHints                func(display uintptr, w XID, wmHints *XWMHints) int32
-	xSetWMNormalHints          func(display uintptr, w XID, hints *XSizeHints)
-	xSetWMProtocols            func(display uintptr, w XID, protocols *Atom, count int32) int32
+	xSetSelectionOwner         func(display uintptr, selection _Atom, owner _XID, time _Time) int32
+	xSetWMHints                func(display uintptr, w _XID, wmHints *_XWMHints) int32
+	xSetWMNormalHints          func(display uintptr, w _XID, hints *_XSizeHints)
+	xSetWMProtocols            func(display uintptr, w _XID, protocols *_Atom, count int32) int32
 	xSupportsLocale            func() bool
 	xSync                      func(display uintptr, discard bool) int32
-	xTranslateCoordinates      func(display uintptr, srcW, destW XID, srcX, srcY int32, destXReturn, destYReturn *int32, childReturn *XID) bool
-	xUndefineCursor            func(display uintptr, w XID) int32
-	xUngrabPointer             func(display uintptr, time Time) int32
-	xUnmapWindow               func(display uintptr, w XID) int32
+	xTranslateCoordinates      func(display uintptr, srcW, destW _XID, srcX, srcY int32, destXReturn, destYReturn *int32, childReturn *_XID) bool
+	xUndefineCursor            func(display uintptr, w _XID) int32
+	xUngrabPointer             func(display uintptr, time _Time) int32
+	xUnmapWindow               func(display uintptr, w _XID) int32
 	xUnsetICFocus              func(ic uintptr)
-	xWarpPointer               func(display uintptr, srcW, destW XID, srcX, srcY int32, srcWidth, srcHeight uint32, destX, destY int32) int32
+	xWarpPointer               func(display uintptr, srcW, destW _XID, srcX, srcY int32, srcWidth, srcHeight uint32, destX, destY int32) int32
 	xkbFreeKeyboard            func(xkb uintptr, which uint32, freeDesc bool)
 	xkbFreeNames               func(xkb uintptr, which uint32, freeMap bool)
 	xkbGetMap                  func(display uintptr, which uint32, deviceSpec uint32) uintptr
 	xkbGetNames                func(display uintptr, which uint32, xkb uintptr) int32
-	xkbGetState                func(display uintptr, deviceSpec uint32, stateReturn *XkbStateRec) int32
-	xkbKeycodeToKeysym         func(display uintptr, kc uint32, group, level int32) KeySym
+	xkbGetState                func(display uintptr, deviceSpec uint32, stateReturn *_XkbStateRec) int32
+	xkbKeycodeToKeysym         func(display uintptr, kc uint32, group, level int32) _KeySym
 	xkbQueryExtension          func(display uintptr, opcodeReturn, eventBaseReturn, errorBaseReturn, majorReturn, minorReturn *int32) bool
 	xkbSelectEventDetails      func(display uintptr, deviceSpec uint32, eventType uint32, affect, details _Culong) bool
 	xkbSetDetectableAutoRepeat func(display uintptr, detectable bool, supportedReturn *int32) bool
 	xrmDestroyDatabase         func(database uintptr)
-	xrmGetResource             func(database uintptr, strName, strClass string, strTypeReturn *uintptr, valueReturn *XrmValue) bool
+	xrmGetResource             func(database uintptr, strName, strClass string, strTypeReturn *uintptr, valueReturn *_XrmValue) bool
 	xrmGetStringDatabase       func(data uintptr) uintptr
 	xrmInitialize              func()
-	xutf8LookupString          func(ic uintptr, event *XKeyEvent, bufferReturn []byte, bytesBuffer int32, keysymReturn *KeySym, statusReturn *int32) int32
-	xutf8SetWMProperties       func(display uintptr, w XID, windowName, iconName string, argv uintptr, argc int32, normalHints, wmHints, classHints uintptr)
+	xutf8LookupString          func(ic uintptr, event *_XKeyEvent, bufferReturn []byte, bytesBuffer int32, keysymReturn *_KeySym, statusReturn *int32) int32
+	xutf8SetWMProperties       func(display uintptr, w _XID, windowName, iconName string, argv uintptr, argc int32, normalHints, wmHints, classHints uintptr)
 
 	// Variadic in C; bound with the exact argument shape used by this
 	// package (XNInputStyle, XNClientWindow, XNFocusWindow, NULL).
-	xCreateIC func(im uintptr, k1 string, v1 XIMStyle, k2 string, v2 XID, k3 string, v3 XID, term uintptr) uintptr
+	xCreateIC func(im uintptr, k1 string, v1 _XIMStyle, k2 string, v2 _XID, k3 string, v3 _XID, term uintptr) uintptr
 
 	// setlocale from libc, resolved via RTLD_DEFAULT so that the libc soname
 	// (glibc vs musl) does not matter. setlocaleQuery is the same function
@@ -163,7 +163,7 @@ var (
 )
 
 // XrmValue is the Xrm resource value struct.
-type XrmValue struct {
+type _XrmValue struct {
 	Size uint32
 	Addr uintptr
 }

@@ -43,79 +43,79 @@ type (
 )
 
 type (
-	XID     = _Culong
-	Atom    = _Culong
-	Time    = _Culong
-	KeySym  = _Culong
-	KeyCode = uint8
+	_XID     = _Culong
+	_Atom    = _Culong
+	_Time    = _Culong
+	_KeySym  = _Culong
+	_KeyCode = uint8
 
-	VisualID  = _Culong
-	RROutput  = XID
-	RRCrtc    = XID
-	RRMode    = XID
-	Rotation  = uint16
-	XContext  = int32
-	XIMStyle  = _Culong
-	XrmQuark  = int32
-	XcursorID = uint32
+	_VisualID  = _Culong
+	_RROutput  = _XID
+	_RRCrtc    = _XID
+	_RRMode    = _XID
+	_Rotation  = uint16
+	_XContext  = int32
+	_XIMStyle  = _Culong
+	_XrmQuark  = int32
+	_XcursorID = uint32
 
 	// Region is an opaque pointer (the _XRegion struct is private to Xlib).
-	Region = uintptr
+	_Region = uintptr
 )
 
 // XEvent is the Xlib event union: 24 C longs, the first int of which is the
 // event type. Access the contents through the typed view methods, which
 // mirror the C union members.
-type XEvent struct {
+type _XEvent struct {
 	data [24]_Clong
 }
 
-func (e *XEvent) EventType() int32               { return *(*int32)(unsafe.Pointer(e)) }
-func (e *XEvent) xany() *XAnyEvent               { return (*XAnyEvent)(unsafe.Pointer(e)) }
-func (e *XEvent) xkey() *XKeyEvent               { return (*XKeyEvent)(unsafe.Pointer(e)) }
-func (e *XEvent) xbutton() *XButtonEvent         { return (*XButtonEvent)(unsafe.Pointer(e)) }
-func (e *XEvent) xmotion() *XMotionEvent         { return (*XMotionEvent)(unsafe.Pointer(e)) }
-func (e *XEvent) xcrossing() *XCrossingEvent     { return (*XCrossingEvent)(unsafe.Pointer(e)) }
-func (e *XEvent) xfocus() *XFocusChangeEvent     { return (*XFocusChangeEvent)(unsafe.Pointer(e)) }
-func (e *XEvent) xexpose() *XExposeEvent         { return (*XExposeEvent)(unsafe.Pointer(e)) }
-func (e *XEvent) xvisibility() *XVisibilityEvent { return (*XVisibilityEvent)(unsafe.Pointer(e)) }
-func (e *XEvent) xdestroywindow() *XDestroyWindowEvent {
-	return (*XDestroyWindowEvent)(unsafe.Pointer(e))
+func (e *_XEvent) EventType() int32                { return *(*int32)(unsafe.Pointer(e)) }
+func (e *_XEvent) xany() *_XAnyEvent               { return (*_XAnyEvent)(unsafe.Pointer(e)) }
+func (e *_XEvent) xkey() *_XKeyEvent               { return (*_XKeyEvent)(unsafe.Pointer(e)) }
+func (e *_XEvent) xbutton() *_XButtonEvent         { return (*_XButtonEvent)(unsafe.Pointer(e)) }
+func (e *_XEvent) xmotion() *_XMotionEvent         { return (*_XMotionEvent)(unsafe.Pointer(e)) }
+func (e *_XEvent) xcrossing() *_XCrossingEvent     { return (*_XCrossingEvent)(unsafe.Pointer(e)) }
+func (e *_XEvent) xfocus() *_XFocusChangeEvent     { return (*_XFocusChangeEvent)(unsafe.Pointer(e)) }
+func (e *_XEvent) xexpose() *_XExposeEvent         { return (*_XExposeEvent)(unsafe.Pointer(e)) }
+func (e *_XEvent) xvisibility() *_XVisibilityEvent { return (*_XVisibilityEvent)(unsafe.Pointer(e)) }
+func (e *_XEvent) xdestroywindow() *_XDestroyWindowEvent {
+	return (*_XDestroyWindowEvent)(unsafe.Pointer(e))
 }
-func (e *XEvent) xunmap() *XUnmapEvent         { return (*XUnmapEvent)(unsafe.Pointer(e)) }
-func (e *XEvent) xmap() *XMapEvent             { return (*XMapEvent)(unsafe.Pointer(e)) }
-func (e *XEvent) xreparent() *XReparentEvent   { return (*XReparentEvent)(unsafe.Pointer(e)) }
-func (e *XEvent) xconfigure() *XConfigureEvent { return (*XConfigureEvent)(unsafe.Pointer(e)) }
-func (e *XEvent) xproperty() *XPropertyEvent   { return (*XPropertyEvent)(unsafe.Pointer(e)) }
-func (e *XEvent) xselectionrequest() *XSelectionRequestEvent {
-	return (*XSelectionRequestEvent)(unsafe.Pointer(e))
+func (e *_XEvent) xunmap() *_XUnmapEvent         { return (*_XUnmapEvent)(unsafe.Pointer(e)) }
+func (e *_XEvent) xmap() *_XMapEvent             { return (*_XMapEvent)(unsafe.Pointer(e)) }
+func (e *_XEvent) xreparent() *_XReparentEvent   { return (*_XReparentEvent)(unsafe.Pointer(e)) }
+func (e *_XEvent) xconfigure() *_XConfigureEvent { return (*_XConfigureEvent)(unsafe.Pointer(e)) }
+func (e *_XEvent) xproperty() *_XPropertyEvent   { return (*_XPropertyEvent)(unsafe.Pointer(e)) }
+func (e *_XEvent) xselectionrequest() *_XSelectionRequestEvent {
+	return (*_XSelectionRequestEvent)(unsafe.Pointer(e))
 }
-func (e *XEvent) xselection() *XSelectionEvent { return (*XSelectionEvent)(unsafe.Pointer(e)) }
-func (e *XEvent) xselectionclear() *XSelectionClearEvent {
-	return (*XSelectionClearEvent)(unsafe.Pointer(e))
+func (e *_XEvent) xselection() *_XSelectionEvent { return (*_XSelectionEvent)(unsafe.Pointer(e)) }
+func (e *_XEvent) xselectionclear() *_XSelectionClearEvent {
+	return (*_XSelectionClearEvent)(unsafe.Pointer(e))
 }
-func (e *XEvent) xclient() *XClientMessageEvent  { return (*XClientMessageEvent)(unsafe.Pointer(e)) }
-func (e *XEvent) xcookie() *XGenericEventCookie  { return (*XGenericEventCookie)(unsafe.Pointer(e)) }
-func (e *XEvent) xkbAny() *XkbAnyEvent           { return (*XkbAnyEvent)(unsafe.Pointer(e)) }
-func (e *XEvent) xkbState() *XkbStateNotifyEvent { return (*XkbStateNotifyEvent)(unsafe.Pointer(e)) }
+func (e *_XEvent) xclient() *_XClientMessageEvent  { return (*_XClientMessageEvent)(unsafe.Pointer(e)) }
+func (e *_XEvent) xcookie() *_XGenericEventCookie  { return (*_XGenericEventCookie)(unsafe.Pointer(e)) }
+func (e *_XEvent) xkbAny() *_XkbAnyEvent           { return (*_XkbAnyEvent)(unsafe.Pointer(e)) }
+func (e *_XEvent) xkbState() *_XkbStateNotifyEvent { return (*_XkbStateNotifyEvent)(unsafe.Pointer(e)) }
 
-type XAnyEvent struct {
+type _XAnyEvent struct {
 	Type      int32
 	Serial    _Culong
 	SendEvent int32
 	Display   uintptr
-	Window    XID
+	Window    _XID
 }
 
-type XKeyEvent struct {
+type _XKeyEvent struct {
 	Type       int32
 	Serial     _Culong
 	SendEvent  int32
 	Display    uintptr
-	Window     XID
-	Root       XID
-	Subwindow  XID
-	Time       Time
+	Window     _XID
+	Root       _XID
+	Subwindow  _XID
+	Time       _Time
 	X          int32
 	Y          int32
 	XRoot      int32
@@ -125,15 +125,15 @@ type XKeyEvent struct {
 	SameScreen int32
 }
 
-type XButtonEvent struct {
+type _XButtonEvent struct {
 	Type       int32
 	Serial     _Culong
 	SendEvent  int32
 	Display    uintptr
-	Window     XID
-	Root       XID
-	Subwindow  XID
-	Time       Time
+	Window     _XID
+	Root       _XID
+	Subwindow  _XID
+	Time       _Time
 	X          int32
 	Y          int32
 	XRoot      int32
@@ -143,15 +143,15 @@ type XButtonEvent struct {
 	SameScreen int32
 }
 
-type XMotionEvent struct {
+type _XMotionEvent struct {
 	Type       int32
 	Serial     _Culong
 	SendEvent  int32
 	Display    uintptr
-	Window     XID
-	Root       XID
-	Subwindow  XID
-	Time       Time
+	Window     _XID
+	Root       _XID
+	Subwindow  _XID
+	Time       _Time
 	X          int32
 	Y          int32
 	XRoot      int32
@@ -161,15 +161,15 @@ type XMotionEvent struct {
 	SameScreen int32
 }
 
-type XCrossingEvent struct {
+type _XCrossingEvent struct {
 	Type       int32
 	Serial     _Culong
 	SendEvent  int32
 	Display    uintptr
-	Window     XID
-	Root       XID
-	Subwindow  XID
-	Time       Time
+	Window     _XID
+	Root       _XID
+	Subwindow  _XID
+	Time       _Time
 	X          int32
 	Y          int32
 	XRoot      int32
@@ -181,22 +181,22 @@ type XCrossingEvent struct {
 	State      uint32
 }
 
-type XFocusChangeEvent struct {
+type _XFocusChangeEvent struct {
 	Type      int32
 	Serial    _Culong
 	SendEvent int32
 	Display   uintptr
-	Window    XID
+	Window    _XID
 	Mode      int32
 	Detail    int32
 }
 
-type XExposeEvent struct {
+type _XExposeEvent struct {
 	Type      int32
 	Serial    _Culong
 	SendEvent int32
 	Display   uintptr
-	Window    XID
+	Window    _XID
 	X         int32
 	Y         int32
 	Width     int32
@@ -204,132 +204,132 @@ type XExposeEvent struct {
 	Count     int32
 }
 
-type XVisibilityEvent struct {
+type _XVisibilityEvent struct {
 	Type      int32
 	Serial    _Culong
 	SendEvent int32
 	Display   uintptr
-	Window    XID
+	Window    _XID
 	State     int32
 }
 
-type XDestroyWindowEvent struct {
+type _XDestroyWindowEvent struct {
 	Type      int32
 	Serial    _Culong
 	SendEvent int32
 	Display   uintptr
-	Event     XID
-	Window    XID
+	Event     _XID
+	Window    _XID
 }
 
-type XUnmapEvent struct {
+type _XUnmapEvent struct {
 	Type          int32
 	Serial        _Culong
 	SendEvent     int32
 	Display       uintptr
-	Event         XID
-	Window        XID
+	Event         _XID
+	Window        _XID
 	FromConfigure int32
 }
 
-type XMapEvent struct {
+type _XMapEvent struct {
 	Type             int32
 	Serial           _Culong
 	SendEvent        int32
 	Display          uintptr
-	Event            XID
-	Window           XID
+	Event            _XID
+	Window           _XID
 	OverrideRedirect int32
 }
 
-type XReparentEvent struct {
+type _XReparentEvent struct {
 	Type             int32
 	Serial           _Culong
 	SendEvent        int32
 	Display          uintptr
-	Event            XID
-	Window           XID
-	Parent           XID
+	Event            _XID
+	Window           _XID
+	Parent           _XID
 	X                int32
 	Y                int32
 	OverrideRedirect int32
 }
 
-type XConfigureEvent struct {
+type _XConfigureEvent struct {
 	Type             int32
 	Serial           _Culong
 	SendEvent        int32
 	Display          uintptr
-	Event            XID
-	Window           XID
+	Event            _XID
+	Window           _XID
 	X                int32
 	Y                int32
 	Width            int32
 	Height           int32
 	BorderWidth      int32
-	Above            XID
+	Above            _XID
 	OverrideRedirect int32
 }
 
-type XPropertyEvent struct {
+type _XPropertyEvent struct {
 	Type      int32
 	Serial    _Culong
 	SendEvent int32
 	Display   uintptr
-	Window    XID
-	Atom      Atom
-	Time      Time
+	Window    _XID
+	Atom      _Atom
+	Time      _Time
 	State     int32
 }
 
-type XSelectionRequestEvent struct {
+type _XSelectionRequestEvent struct {
 	Type      int32
 	Serial    _Culong
 	SendEvent int32
 	Display   uintptr
-	Owner     XID
-	Requestor XID
-	Selection Atom
-	Target    Atom
-	Property  Atom
-	Time      Time
+	Owner     _XID
+	Requestor _XID
+	Selection _Atom
+	Target    _Atom
+	Property  _Atom
+	Time      _Time
 }
 
-type XSelectionEvent struct {
+type _XSelectionEvent struct {
 	Type      int32
 	Serial    _Culong
 	SendEvent int32
 	Display   uintptr
-	Requestor XID
-	Selection Atom
-	Target    Atom
-	Property  Atom
-	Time      Time
+	Requestor _XID
+	Selection _Atom
+	Target    _Atom
+	Property  _Atom
+	Time      _Time
 }
 
-type XSelectionClearEvent struct {
+type _XSelectionClearEvent struct {
 	Type      int32
 	Serial    _Culong
 	SendEvent int32
 	Display   uintptr
-	Window    XID
-	Selection Atom
-	Time      Time
+	Window    _XID
+	Selection _Atom
+	Time      _Time
 }
 
-type XClientMessageEvent struct {
+type _XClientMessageEvent struct {
 	Type        int32
 	Serial      _Culong
 	SendEvent   int32
 	Display     uintptr
-	Window      XID
-	MessageType Atom
+	Window      _XID
+	MessageType _Atom
 	Format      int32
 	// Data is the b/s/l union; the l member (5 C longs) covers it entirely.
 	Data [5]_Clong
 }
 
-type XGenericEventCookie struct {
+type _XGenericEventCookie struct {
 	Type      int32
 	Serial    _Culong
 	SendEvent int32
@@ -340,20 +340,20 @@ type XGenericEventCookie struct {
 	Data      uintptr
 }
 
-type XErrorEvent struct {
+type _XErrorEvent struct {
 	Type        int32
 	Display     uintptr
-	Resourceid  XID
+	Resourceid  _XID
 	Serial      _Culong
 	ErrorCode   uint8
 	RequestCode uint8
 	MinorCode   uint8
 }
 
-type XSetWindowAttributes struct {
-	BackgroundPixmap   XID
+type _XSetWindowAttributes struct {
+	BackgroundPixmap   _XID
 	BackgroundPixel    _Culong
-	BorderPixmap       XID
+	BorderPixmap       _XID
 	BorderPixel        _Culong
 	BitGravity         int32
 	WinGravity         int32
@@ -364,11 +364,11 @@ type XSetWindowAttributes struct {
 	EventMask          _Clong
 	DoNotPropagateMask _Clong
 	OverrideRedirect   int32
-	Colormap           XID
-	Cursor             XID
+	Colormap           _XID
+	Cursor             _XID
 }
 
-type XWindowAttributes struct {
+type _XWindowAttributes struct {
 	X                  int32
 	Y                  int32
 	Width              int32
@@ -376,7 +376,7 @@ type XWindowAttributes struct {
 	BorderWidth        int32
 	Depth              int32
 	Visual             uintptr
-	Root               XID
+	Root               _XID
 	Class              int32
 	BitGravity         int32
 	WinGravity         int32
@@ -384,7 +384,7 @@ type XWindowAttributes struct {
 	BackingPlanes      _Culong
 	BackingPixel       _Culong
 	SaveUnder          int32
-	Colormap           XID
+	Colormap           _XID
 	MapInstalled       int32
 	MapState           int32
 	AllEventMasks      _Clong
@@ -397,9 +397,9 @@ type XWindowAttributes struct {
 // Visual is accessed only through its visualid (the XVisualIDFromVisual
 // macro). The remaining fields are spelled out so the layout matches Xlib on
 // both LP64 and ILP32 (a fixed byte pad would be wrong on 32-bit).
-type Visual struct {
+type _Visual struct {
 	ExtData    uintptr
-	Visualid   VisualID
+	Visualid   _VisualID
 	Class      int32
 	RedMask    _Culong
 	GreenMask  _Culong
@@ -408,9 +408,9 @@ type Visual struct {
 	MapEntries int32
 }
 
-type XVisualInfo struct {
+type _XVisualInfo struct {
 	Visual       uintptr
-	Visualid     VisualID
+	Visualid     _VisualID
 	Screen       int32
 	Depth        int32
 	Class        int32
@@ -421,7 +421,7 @@ type XVisualInfo struct {
 	BitsPerRGB   int32
 }
 
-type XSizeHints struct {
+type _XSizeHints struct {
 	Flags      _Clong
 	X          int32
 	Y          int32
@@ -440,29 +440,29 @@ type XSizeHints struct {
 	WinGravity int32
 }
 
-type XWMHints struct {
+type _XWMHints struct {
 	Flags        _Clong
 	Input        int32
 	InitialState int32
-	IconPixmap   XID
-	IconWindow   XID
+	IconPixmap   _XID
+	IconWindow   _XID
 	IconX        int32
 	IconY        int32
-	IconMask     XID
-	WindowGroup  XID
+	IconMask     _XID
+	WindowGroup  _XID
 }
 
-type XClassHint struct {
+type _XClassHint struct {
 	ResName  uintptr
 	ResClass uintptr
 }
 
-type XIMStyles struct {
+type _XIMStyles struct {
 	CountStyles     uint16
 	SupportedStyles uintptr // *XIMStyle
 }
 
-type XRectangle struct {
+type _XRectangle struct {
 	X      int16
 	Y      int16
 	Width  uint16
@@ -471,12 +471,12 @@ type XRectangle struct {
 
 // Xkb
 
-type XkbDescRec struct {
+type _XkbDescRec struct {
 	Dpy        uintptr
 	Flags      uint16
 	DeviceSpec uint16
-	MinKeyCode KeyCode
-	MaxKeyCode KeyCode
+	MinKeyCode _KeyCode
+	MaxKeyCode _KeyCode
 	Ctrls      uintptr
 	Server     uintptr
 	Map        uintptr
@@ -491,48 +491,48 @@ type XkbDescRec struct {
 // NumKeyAliases) are correct on both LP64 and ILP32. The leading run is 57
 // word-sized Atom fields: keycodes, geometry, symbols, types, compat,
 // vmods[16], indicators[32], and groups[4].
-type XkbNamesRec struct {
-	_             [57]Atom
+type _XkbNamesRec struct {
+	_             [57]_Atom
 	Keys          uintptr // *XkbKeyNameRec
 	KeyAliases    uintptr // *XkbKeyAliasRec
 	RadioGroups   uintptr // char*
-	PhysSymbols   Atom
+	PhysSymbols   _Atom
 	NumKeys       uint8
 	NumKeyAliases uint8
 	NumRG         uint16
 }
 
-type XkbKeyNameRec struct {
+type _XkbKeyNameRec struct {
 	Name [4]byte
 }
 
-type XkbKeyAliasRec struct {
+type _XkbKeyAliasRec struct {
 	Real  [4]byte
 	Alias [4]byte
 }
 
 // XkbStateRec exposes only the group field; the rest stays as padding.
-type XkbStateRec struct {
+type _XkbStateRec struct {
 	Group uint8
 	_     [17]byte
 }
 
-type XkbAnyEvent struct {
+type _XkbAnyEvent struct {
 	Type      int32
 	Serial    _Culong
 	SendEvent int32
 	Display   uintptr
-	Time      Time
+	Time      _Time
 	XkbType   int32
 	Device    int32
 }
 
-type XkbStateNotifyEvent struct {
+type _XkbStateNotifyEvent struct {
 	Type      int32
 	Serial    _Culong
 	SendEvent int32
 	Display   uintptr
-	Time      Time
+	Time      _Time
 	XkbType   int32
 	Device    int32
 	Changed   uint32
@@ -542,7 +542,7 @@ type XkbStateNotifyEvent struct {
 
 // Xrender
 
-type XRenderDirectFormat struct {
+type _XRenderDirectFormat struct {
 	Red       int16
 	RedMask   int16
 	Green     int16
@@ -553,18 +553,18 @@ type XRenderDirectFormat struct {
 	AlphaMask int16
 }
 
-type XRenderPictFormat struct {
-	ID       XID
+type _XRenderPictFormat struct {
+	ID       _XID
 	Type     int32
 	Depth    int32
-	Direct   XRenderDirectFormat
-	Colormap XID
+	Direct   _XRenderDirectFormat
+	Colormap _XID
 }
 
 // RandR
 
-type XRRModeInfo struct {
-	ID         RRMode
+type _XRRModeInfo struct {
+	ID         _RRMode
 	Width      uint32
 	Height     uint32
 	DotClock   _Culong
@@ -580,9 +580,9 @@ type XRRModeInfo struct {
 	ModeFlags  _Culong
 }
 
-type XRRScreenResources struct {
-	Timestamp       Time
-	ConfigTimestamp Time
+type _XRRScreenResources struct {
+	Timestamp       _Time
+	ConfigTimestamp _Time
 	Ncrtc           int32
 	Crtcs           uintptr // *RRCrtc
 	Noutput         int32
@@ -591,9 +591,9 @@ type XRRScreenResources struct {
 	Modes           uintptr // *XRRModeInfo
 }
 
-type XRROutputInfo struct {
-	Timestamp     Time
-	Crtc          RRCrtc
+type _XRROutputInfo struct {
+	Timestamp     _Time
+	Crtc          _RRCrtc
 	Name          uintptr // *byte
 	NameLen       int32
 	MmWidth       _Culong
@@ -609,24 +609,24 @@ type XRROutputInfo struct {
 	Modes         uintptr // *RRMode
 }
 
-type XRRCrtcInfo struct {
-	Timestamp Time
+type _XRRCrtcInfo struct {
+	Timestamp _Time
 	X         int32
 	Y         int32
 	Width     uint32
 	Height    uint32
-	Mode      RRMode
-	Rotation  Rotation
+	Mode      _RRMode
+	Rotation  _Rotation
 	Noutput   int32
 	Outputs   uintptr // *RROutput
-	Rotations Rotation
+	Rotations _Rotation
 	Npossible int32
 	Possible  uintptr // *RROutput
 }
 
 // Xinerama
 
-type XineramaScreenInfo struct {
+type _XineramaScreenInfo struct {
 	ScreenNumber int32
 	XOrg         int16
 	YOrg         int16
@@ -636,7 +636,7 @@ type XineramaScreenInfo struct {
 
 // Xcursor
 
-type XcursorImage struct {
+type _XcursorImage struct {
 	Version uint32
 	Size    uint32
 	Width   uint32
@@ -649,30 +649,30 @@ type XcursorImage struct {
 
 // XInput2
 
-type XIEventMask struct {
+type _XIEventMask struct {
 	Deviceid int32
 	MaskLen  int32
 	Mask     uintptr // *byte
 }
 
-type XIValuatorState struct {
+type _XIValuatorState struct {
 	MaskLen int32
 	Mask    uintptr // *byte
 	Values  uintptr // *float64
 }
 
-type XIRawEvent struct {
+type _XIRawEvent struct {
 	Type      int32
 	Serial    _Culong
 	SendEvent int32
 	Display   uintptr
 	Extension int32
 	Evtype    int32
-	Time      Time
+	Time      _Time
 	Deviceid  int32
 	Sourceid  int32
 	Detail    int32
 	Flags     int32
-	Valuators XIValuatorState
+	Valuators _XIValuatorState
 	RawValues uintptr // *float64
 }

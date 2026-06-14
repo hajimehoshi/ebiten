@@ -158,284 +158,284 @@ func keyNameString(name [4]byte) string {
 // NOTE: This is only used as a fallback, in case the XKB method fails
 //
 //	It is layout-dependent and will fail partially on most non-US layouts
-func translateKeySyms(keysyms []KeySym) Key {
+func translateKeySyms(keysyms []_KeySym) Key {
 	if len(keysyms) > 1 {
 		switch keysyms[1] {
-		case XK_KP_0:
+		case _XK_KP_0:
 			return KeyKP0
-		case XK_KP_1:
+		case _XK_KP_1:
 			return KeyKP1
-		case XK_KP_2:
+		case _XK_KP_2:
 			return KeyKP2
-		case XK_KP_3:
+		case _XK_KP_3:
 			return KeyKP3
-		case XK_KP_4:
+		case _XK_KP_4:
 			return KeyKP4
-		case XK_KP_5:
+		case _XK_KP_5:
 			return KeyKP5
-		case XK_KP_6:
+		case _XK_KP_6:
 			return KeyKP6
-		case XK_KP_7:
+		case _XK_KP_7:
 			return KeyKP7
-		case XK_KP_8:
+		case _XK_KP_8:
 			return KeyKP8
-		case XK_KP_9:
+		case _XK_KP_9:
 			return KeyKP9
-		case XK_KP_Separator, XK_KP_Decimal:
+		case _XK_KP_Separator, _XK_KP_Decimal:
 			return KeyKPDecimal
-		case XK_KP_Equal:
+		case _XK_KP_Equal:
 			return KeyKPEqual
-		case XK_KP_Enter:
+		case _XK_KP_Enter:
 			return KeyKPEnter
 		}
 	}
 
 	switch keysyms[0] {
-	case XK_Escape:
+	case _XK_Escape:
 		return KeyEscape
-	case XK_Tab:
+	case _XK_Tab:
 		return KeyTab
-	case XK_Shift_L:
+	case _XK_Shift_L:
 		return KeyLeftShift
-	case XK_Shift_R:
+	case _XK_Shift_R:
 		return KeyRightShift
-	case XK_Control_L:
+	case _XK_Control_L:
 		return KeyLeftControl
-	case XK_Control_R:
+	case _XK_Control_R:
 		return KeyRightControl
-	case XK_Meta_L, XK_Alt_L:
+	case _XK_Meta_L, _XK_Alt_L:
 		return KeyLeftAlt
-	case XK_Mode_switch, // Mapped to Alt_R on many keyboards
-		XK_ISO_Level3_Shift, // AltGr on at least some machines
-		XK_Meta_R,
-		XK_Alt_R:
+	case _XK_Mode_switch, // Mapped to Alt_R on many keyboards
+		_XK_ISO_Level3_Shift, // AltGr on at least some machines
+		_XK_Meta_R,
+		_XK_Alt_R:
 		return KeyRightAlt
-	case XK_Super_L:
+	case _XK_Super_L:
 		return KeyLeftSuper
-	case XK_Super_R:
+	case _XK_Super_R:
 		return KeyRightSuper
-	case XK_Menu:
+	case _XK_Menu:
 		return KeyMenu
-	case XK_Num_Lock:
+	case _XK_Num_Lock:
 		return KeyNumLock
-	case XK_Caps_Lock:
+	case _XK_Caps_Lock:
 		return KeyCapsLock
-	case XK_Print:
+	case _XK_Print:
 		return KeyPrintScreen
-	case XK_Scroll_Lock:
+	case _XK_Scroll_Lock:
 		return KeyScrollLock
-	case XK_Pause:
+	case _XK_Pause:
 		return KeyPause
-	case XK_Delete:
+	case _XK_Delete:
 		return KeyDelete
-	case XK_BackSpace:
+	case _XK_BackSpace:
 		return KeyBackspace
-	case XK_Return:
+	case _XK_Return:
 		return KeyEnter
-	case XK_Home:
+	case _XK_Home:
 		return KeyHome
-	case XK_End:
+	case _XK_End:
 		return KeyEnd
-	case XK_Page_Up:
+	case _XK_Page_Up:
 		return KeyPageUp
-	case XK_Page_Down:
+	case _XK_Page_Down:
 		return KeyPageDown
-	case XK_Insert:
+	case _XK_Insert:
 		return KeyInsert
-	case XK_Left:
+	case _XK_Left:
 		return KeyLeft
-	case XK_Right:
+	case _XK_Right:
 		return KeyRight
-	case XK_Down:
+	case _XK_Down:
 		return KeyDown
-	case XK_Up:
+	case _XK_Up:
 		return KeyUp
-	case XK_F1:
+	case _XK_F1:
 		return KeyF1
-	case XK_F2:
+	case _XK_F2:
 		return KeyF2
-	case XK_F3:
+	case _XK_F3:
 		return KeyF3
-	case XK_F4:
+	case _XK_F4:
 		return KeyF4
-	case XK_F5:
+	case _XK_F5:
 		return KeyF5
-	case XK_F6:
+	case _XK_F6:
 		return KeyF6
-	case XK_F7:
+	case _XK_F7:
 		return KeyF7
-	case XK_F8:
+	case _XK_F8:
 		return KeyF8
-	case XK_F9:
+	case _XK_F9:
 		return KeyF9
-	case XK_F10:
+	case _XK_F10:
 		return KeyF10
-	case XK_F11:
+	case _XK_F11:
 		return KeyF11
-	case XK_F12:
+	case _XK_F12:
 		return KeyF12
-	case XK_F13:
+	case _XK_F13:
 		return KeyF13
-	case XK_F14:
+	case _XK_F14:
 		return KeyF14
-	case XK_F15:
+	case _XK_F15:
 		return KeyF15
-	case XK_F16:
+	case _XK_F16:
 		return KeyF16
-	case XK_F17:
+	case _XK_F17:
 		return KeyF17
-	case XK_F18:
+	case _XK_F18:
 		return KeyF18
-	case XK_F19:
+	case _XK_F19:
 		return KeyF19
-	case XK_F20:
+	case _XK_F20:
 		return KeyF20
-	case XK_F21:
+	case _XK_F21:
 		return KeyF21
-	case XK_F22:
+	case _XK_F22:
 		return KeyF22
-	case XK_F23:
+	case _XK_F23:
 		return KeyF23
-	case XK_F24:
+	case _XK_F24:
 		return KeyF24
 
 	// Numeric keypad
-	case XK_KP_Divide:
+	case _XK_KP_Divide:
 		return KeyKPDivide
-	case XK_KP_Multiply:
+	case _XK_KP_Multiply:
 		return KeyKPMultiply
-	case XK_KP_Subtract:
+	case _XK_KP_Subtract:
 		return KeyKPSubtract
-	case XK_KP_Add:
+	case _XK_KP_Add:
 		return KeyKPAdd
 
 	// These should have been detected in secondary keysym test above!
-	case XK_KP_Insert:
+	case _XK_KP_Insert:
 		return KeyKP0
-	case XK_KP_End:
+	case _XK_KP_End:
 		return KeyKP1
-	case XK_KP_Down:
+	case _XK_KP_Down:
 		return KeyKP2
-	case XK_KP_Page_Down:
+	case _XK_KP_Page_Down:
 		return KeyKP3
-	case XK_KP_Left:
+	case _XK_KP_Left:
 		return KeyKP4
-	case XK_KP_Right:
+	case _XK_KP_Right:
 		return KeyKP6
-	case XK_KP_Home:
+	case _XK_KP_Home:
 		return KeyKP7
-	case XK_KP_Up:
+	case _XK_KP_Up:
 		return KeyKP8
-	case XK_KP_Page_Up:
+	case _XK_KP_Page_Up:
 		return KeyKP9
-	case XK_KP_Delete:
+	case _XK_KP_Delete:
 		return KeyKPDecimal
-	case XK_KP_Equal:
+	case _XK_KP_Equal:
 		return KeyKPEqual
-	case XK_KP_Enter:
+	case _XK_KP_Enter:
 		return KeyKPEnter
 
 	// Last resort: Check for printable keys (should not happen if the XKB
 	// extension is available). This will give a layout dependent mapping
 	// (which is wrong, and we may miss some keys, especially on non-US
 	// keyboards), but it's better than nothing...
-	case XK_a:
+	case _XK_a:
 		return KeyA
-	case XK_b:
+	case _XK_b:
 		return KeyB
-	case XK_c:
+	case _XK_c:
 		return KeyC
-	case XK_d:
+	case _XK_d:
 		return KeyD
-	case XK_e:
+	case _XK_e:
 		return KeyE
-	case XK_f:
+	case _XK_f:
 		return KeyF
-	case XK_g:
+	case _XK_g:
 		return KeyG
-	case XK_h:
+	case _XK_h:
 		return KeyH
-	case XK_i:
+	case _XK_i:
 		return KeyI
-	case XK_j:
+	case _XK_j:
 		return KeyJ
-	case XK_k:
+	case _XK_k:
 		return KeyK
-	case XK_l:
+	case _XK_l:
 		return KeyL
-	case XK_m:
+	case _XK_m:
 		return KeyM
-	case XK_n:
+	case _XK_n:
 		return KeyN
-	case XK_o:
+	case _XK_o:
 		return KeyO
-	case XK_p:
+	case _XK_p:
 		return KeyP
-	case XK_q:
+	case _XK_q:
 		return KeyQ
-	case XK_r:
+	case _XK_r:
 		return KeyR
-	case XK_s:
+	case _XK_s:
 		return KeyS
-	case XK_t:
+	case _XK_t:
 		return KeyT
-	case XK_u:
+	case _XK_u:
 		return KeyU
-	case XK_v:
+	case _XK_v:
 		return KeyV
-	case XK_w:
+	case _XK_w:
 		return KeyW
-	case XK_x:
+	case _XK_x:
 		return KeyX
-	case XK_y:
+	case _XK_y:
 		return KeyY
-	case XK_z:
+	case _XK_z:
 		return KeyZ
-	case XK_1:
+	case _XK_1:
 		return Key1
-	case XK_2:
+	case _XK_2:
 		return Key2
-	case XK_3:
+	case _XK_3:
 		return Key3
-	case XK_4:
+	case _XK_4:
 		return Key4
-	case XK_5:
+	case _XK_5:
 		return Key5
-	case XK_6:
+	case _XK_6:
 		return Key6
-	case XK_7:
+	case _XK_7:
 		return Key7
-	case XK_8:
+	case _XK_8:
 		return Key8
-	case XK_9:
+	case _XK_9:
 		return Key9
-	case XK_0:
+	case _XK_0:
 		return Key0
-	case XK_space:
+	case _XK_space:
 		return KeySpace
-	case XK_minus:
+	case _XK_minus:
 		return KeyMinus
-	case XK_equal:
+	case _XK_equal:
 		return KeyEqual
-	case XK_bracketleft:
+	case _XK_bracketleft:
 		return KeyLeftBracket
-	case XK_bracketright:
+	case _XK_bracketright:
 		return KeyRightBracket
-	case XK_backslash:
+	case _XK_backslash:
 		return KeyBackslash
-	case XK_semicolon:
+	case _XK_semicolon:
 		return KeySemicolon
-	case XK_apostrophe:
+	case _XK_apostrophe:
 		return KeyApostrophe
-	case XK_grave:
+	case _XK_grave:
 		return KeyGraveAccent
-	case XK_comma:
+	case _XK_comma:
 		return KeyComma
-	case XK_period:
+	case _XK_period:
 		return KeyPeriod
-	case XK_slash:
+	case _XK_slash:
 		return KeySlash
-	case XK_less:
+	case _XK_less:
 		return KeyWorld1 // At least in some layouts...
 	}
 
@@ -457,16 +457,16 @@ func createKeyTables() {
 		// Use XKB to determine physical key locations independently of the
 		// current keyboard layout
 
-		descPtr := xkbGetMap(_glfw.platformWindow.display, 0, XkbUseCoreKbd)
-		xkbGetNames(_glfw.platformWindow.display, XkbKeyNamesMask|XkbKeyAliasesMask, descPtr)
+		descPtr := xkbGetMap(_glfw.platformWindow.display, 0, _XkbUseCoreKbd)
+		xkbGetNames(_glfw.platformWindow.display, _XkbKeyNamesMask|_XkbKeyAliasesMask, descPtr)
 
-		desc := (*XkbDescRec)(unsafe.Pointer(descPtr))
+		desc := (*_XkbDescRec)(unsafe.Pointer(descPtr))
 		scancodeMin = int32(desc.MinKeyCode)
 		scancodeMax = int32(desc.MaxKeyCode)
 
-		names := (*XkbNamesRec)(unsafe.Pointer(desc.Names))
-		keyNames := unsafe.Slice((*XkbKeyNameRec)(unsafe.Pointer(names.Keys)), int(scancodeMax)+1)
-		keyAliases := unsafe.Slice((*XkbKeyAliasRec)(unsafe.Pointer(names.KeyAliases)), int(names.NumKeyAliases))
+		names := (*_XkbNamesRec)(unsafe.Pointer(desc.Names))
+		keyNames := unsafe.Slice((*_XkbKeyNameRec)(unsafe.Pointer(names.Keys)), int(scancodeMax)+1)
+		keyAliases := unsafe.Slice((*_XkbKeyAliasRec)(unsafe.Pointer(names.KeyAliases)), int(names.NumKeyAliases))
 
 		// Find the X11 key code -> GLFW key code mapping
 		for scancode := scancodeMin; scancode <= scancodeMax; scancode++ {
@@ -497,7 +497,7 @@ func createKeyTables() {
 			_glfw.platformWindow.keycodes[scancode] = key
 		}
 
-		xkbFreeNames(descPtr, XkbKeyNamesMask, true)
+		xkbFreeNames(descPtr, _XkbKeyNamesMask, true)
 		xkbFreeKeyboard(descPtr, 0, true)
 	} else {
 		xDisplayKeycodes(_glfw.platformWindow.display, &scancodeMin, &scancodeMax)
@@ -505,10 +505,10 @@ func createKeyTables() {
 
 	var width int32
 	keysymsPtr := xGetKeyboardMapping(_glfw.platformWindow.display,
-		KeyCode(scancodeMin),
+		_KeyCode(scancodeMin),
 		scancodeMax-scancodeMin+1,
 		&width)
-	keysyms := unsafe.Slice((*KeySym)(unsafe.Pointer(keysymsPtr)), int(scancodeMax-scancodeMin+1)*int(width))
+	keysyms := unsafe.Slice((*_KeySym)(unsafe.Pointer(keysymsPtr)), int(scancodeMax-scancodeMin+1)*int(width))
 
 	for scancode := scancodeMin; scancode <= scancodeMax; scancode++ {
 		// Translate the un-translated key codes using traditional X11 KeySym
@@ -536,10 +536,10 @@ func hasUsableInputMethodStyle() bool {
 		return false
 	}
 
-	styles := (*XIMStyles)(unsafe.Pointer(stylesPtr))
-	supportedStyles := unsafe.Slice((*XIMStyle)(unsafe.Pointer(styles.SupportedStyles)), int(styles.CountStyles))
+	styles := (*_XIMStyles)(unsafe.Pointer(stylesPtr))
+	supportedStyles := unsafe.Slice((*_XIMStyle)(unsafe.Pointer(styles.SupportedStyles)), int(styles.CountStyles))
 	for _, style := range supportedStyles {
-		if style == XIMPreeditNothing|XIMStatusNothing {
+		if style == _XIMPreeditNothing|_XIMStatusNothing {
 			found = true
 			break
 		}
@@ -551,14 +551,14 @@ func hasUsableInputMethodStyle() bool {
 
 // getAtomIfSupported returns the atom with the specified name if it is
 // supported, and None otherwise.
-func getAtomIfSupported(supportedAtoms []Atom, atomName string) Atom {
+func getAtomIfSupported(supportedAtoms []_Atom, atomName string) _Atom {
 	atom := xInternAtom(_glfw.platformWindow.display, atomName, false)
 	for _, supported := range supportedAtoms {
 		if supported == atom {
 			return atom
 		}
 	}
-	return None
+	return _None
 }
 
 // detectEWMH checks whether the running window manager is EWMH-compliant.
@@ -568,7 +568,7 @@ func detectEWMH() {
 	var windowFromRootPtr uintptr
 	if getWindowPropertyX11(_glfw.platformWindow.root,
 		_glfw.platformWindow.NET_SUPPORTING_WM_CHECK,
-		XA_WINDOW,
+		_XA_WINDOW,
 		&windowFromRootPtr) == 0 {
 		return
 	}
@@ -579,9 +579,9 @@ func detectEWMH() {
 	// Then we look for the same property on that window
 
 	var windowFromChildPtr uintptr
-	if getWindowPropertyX11(*(*XID)(unsafe.Pointer(windowFromRootPtr)),
+	if getWindowPropertyX11(*(*_XID)(unsafe.Pointer(windowFromRootPtr)),
 		_glfw.platformWindow.NET_SUPPORTING_WM_CHECK,
-		XA_WINDOW,
+		_XA_WINDOW,
 		&windowFromChildPtr) == 0 {
 		xFree(windowFromRootPtr)
 		return
@@ -591,7 +591,7 @@ func detectEWMH() {
 
 	// If the property exists, it should contain the XID of the window
 
-	if *(*XID)(unsafe.Pointer(windowFromRootPtr)) != *(*XID)(unsafe.Pointer(windowFromChildPtr)) {
+	if *(*_XID)(unsafe.Pointer(windowFromRootPtr)) != *(*_XID)(unsafe.Pointer(windowFromChildPtr)) {
 		xFree(windowFromRootPtr)
 		xFree(windowFromChildPtr)
 		return
@@ -608,12 +608,12 @@ func detectEWMH() {
 	var supportedAtomsPtr uintptr
 	atomCount := getWindowPropertyX11(_glfw.platformWindow.root,
 		_glfw.platformWindow.NET_SUPPORTED,
-		XA_ATOM,
+		_XA_ATOM,
 		&supportedAtomsPtr)
 
-	var supportedAtoms []Atom
+	var supportedAtoms []_Atom
 	if supportedAtomsPtr != 0 {
-		supportedAtoms = unsafe.Slice((*Atom)(unsafe.Pointer(supportedAtomsPtr)), int(atomCount))
+		supportedAtoms = unsafe.Slice((*_Atom)(unsafe.Pointer(supportedAtomsPtr)), int(atomCount))
 	}
 
 	// See which of the atoms we support that are supported by the WM
@@ -665,7 +665,7 @@ func initExtensions() error {
 		if xQueryExtension(display, "XInputExtension", &xi.majorOpcode, &xi.eventBase, &xi.errorBase) {
 			xi.major = 2
 			xi.minor = 0
-			if xi.QueryVersion(display, &xi.major, &xi.minor) == Success {
+			if xi.QueryVersion(display, &xi.major, &xi.minor) == _Success {
 				xi.available = true
 			}
 		}
@@ -701,7 +701,7 @@ func initExtensions() error {
 		randr := &_glfw.platformWindow.randr
 		sr := randr.GetScreenResourcesCurrent(display, _glfw.platformWindow.root)
 
-		if (*XRRScreenResources)(unsafe.Pointer(sr)).Ncrtc == 0 {
+		if (*_XRRScreenResources)(unsafe.Pointer(sr)).Ncrtc == 0 {
 			// A system without CRTCs is likely a system with broken RandR
 			// Disable the RandR monitor path and fall back to core functions
 			randr.monitorBroken = true
@@ -711,7 +711,7 @@ func initExtensions() error {
 	}
 
 	if _glfw.platformWindow.randr.available && !_glfw.platformWindow.randr.monitorBroken {
-		_glfw.platformWindow.randr.SelectInput(display, _glfw.platformWindow.root, RROutputChangeNotifyMask)
+		_glfw.platformWindow.randr.SelectInput(display, _glfw.platformWindow.root, _RROutputChangeNotifyMask)
 	}
 
 	if handle, err := openX11Library("libXcursor.so.1", "libXcursor.so"); err == nil {
@@ -752,12 +752,12 @@ func initExtensions() error {
 			}
 		}
 
-		var state XkbStateRec
-		if xkbGetState(display, XkbUseCoreKbd, &state) == Success {
+		var state _XkbStateRec
+		if xkbGetState(display, _XkbUseCoreKbd, &state) == _Success {
 			xkb.group = uint32(state.Group)
 		}
 
-		xkbSelectEventDetails(display, XkbUseCoreKbd, XkbStateNotify, XkbGroupStateMask, XkbGroupStateMask)
+		xkbSelectEventDetails(display, _XkbUseCoreKbd, _XkbStateNotify, _XkbGroupStateMask, _XkbGroupStateMask)
 	}
 
 	if handle, err := openX11Library("libXrender.so.1", "libXrender.so"); err == nil {
@@ -866,7 +866,7 @@ func getSystemContentScale() (xscale, yscale float32) {
 	if rms != 0 {
 		db := xrmGetStringDatabase(rms)
 		if db != 0 {
-			var value XrmValue
+			var value _XrmValue
 			var typ uintptr
 			if xrmGetResource(db, "Xft.dpi", "Xft.Dpi", &typ, &value) {
 				if typ != 0 && goString(typ) == "String" {
@@ -885,21 +885,21 @@ func getSystemContentScale() (xscale, yscale float32) {
 
 // createHiddenCursor creates a blank cursor for hidden and disabled cursor
 // modes.
-func createHiddenCursor() XID {
+func createHiddenCursor() _XID {
 	pixels := make([]byte, 16*16*4)
 	return createCursorX11(&Image{Width: 16, Height: 16, Pixels: pixels}, 0, 0)
 }
 
 // createHelperWindow creates a helper window for IPC.
-func createHelperWindow() XID {
-	var wa XSetWindowAttributes
-	wa.EventMask = PropertyChangeMask
+func createHelperWindow() _XID {
+	var wa _XSetWindowAttributes
+	wa.EventMask = _PropertyChangeMask
 
 	return xCreateWindow(_glfw.platformWindow.display, _glfw.platformWindow.root,
 		0, 0, 1, 1, 0, 0,
-		InputOnly,
+		_InputOnly,
 		xDefaultVisual(_glfw.platformWindow.display, int32(_glfw.platformWindow.screen)),
-		CWEventMask, &wa)
+		_CWEventMask, &wa)
 }
 
 // createEmptyEventPipe creates the pipe for empty events.
@@ -919,7 +919,7 @@ func errorHandler(display uintptr, event uintptr) uintptr {
 		return 0
 	}
 
-	_glfw.platformWindow.errorCode = int((*XErrorEvent)(unsafe.Pointer(event)).ErrorCode)
+	_glfw.platformWindow.errorCode = int((*_XErrorEvent)(unsafe.Pointer(event)).ErrorCode)
 	return 0
 }
 
@@ -928,7 +928,7 @@ func grabErrorHandlerX11() {
 	if errorHandlerCallback == 0 {
 		errorHandlerCallback = purego.NewCallback(errorHandler)
 	}
-	_glfw.platformWindow.errorCode = Success
+	_glfw.platformWindow.errorCode = _Success
 	_glfw.platformWindow.errorHandler = xSetErrorHandler(errorHandlerCallback)
 }
 
@@ -957,16 +957,16 @@ func inputErrorX11(code ErrorCode, message string) error {
 
 // createCursorX11 creates a native cursor object from the specified image and
 // hotspot.
-func createCursorX11(image *Image, xhot, yhot int) XID {
+func createCursorX11(image *Image, xhot, yhot int) _XID {
 	if _glfw.platformWindow.xcursor.handle == 0 {
-		return None
+		return _None
 	}
 
 	nativePtr := _glfw.platformWindow.xcursor.ImageCreate(int32(image.Width), int32(image.Height))
 	if nativePtr == 0 {
-		return None
+		return _None
 	}
-	native := (*XcursorImage)(unsafe.Pointer(nativePtr))
+	native := (*_XcursorImage)(unsafe.Pointer(nativePtr))
 
 	native.Xhot = uint32(xhot)
 	native.Yhot = uint32(yhot)
@@ -1015,7 +1015,7 @@ func platformInit() error {
 
 	_glfw.platformWindow.screen = int(xDefaultScreen(_glfw.platformWindow.display))
 	_glfw.platformWindow.root = xRootWindow(_glfw.platformWindow.display, int32(_glfw.platformWindow.screen))
-	_glfw.platformWindow.windowsByXID = map[XID]*Window{}
+	_glfw.platformWindow.windowsByXID = map[_XID]*Window{}
 
 	_glfw.platformWindow.contentScaleX, _glfw.platformWindow.contentScaleY = getSystemContentScale()
 
@@ -1055,7 +1055,7 @@ func platformTerminate() error {
 		}
 
 		xDestroyWindow(_glfw.platformWindow.display, _glfw.platformWindow.helperWindowHandle)
-		_glfw.platformWindow.helperWindowHandle = None
+		_glfw.platformWindow.helperWindowHandle = _None
 	}
 
 	if _glfw.platformWindow.hiddenCursorHandle != 0 {

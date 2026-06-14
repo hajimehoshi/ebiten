@@ -14,9 +14,9 @@ package glfw
 // implementation.
 
 type platformWindowState struct {
-	colormap XID
-	handle   XID
-	parent   XID
+	colormap _XID
+	handle   _XID
+	parent   _XID
 	ic       uintptr // XIC
 
 	overrideRedirect bool
@@ -37,13 +37,13 @@ type platformWindowState struct {
 
 	// The time of the last KeyPress event per keycode, for discarding
 	// duplicate key events generated for some keys by ibus
-	keyPressTimes [256]Time
+	keyPressTimes [256]_Time
 }
 
 type platformMonitorState struct {
-	output  RROutput
-	crtc    RRCrtc
-	oldMode RRMode
+	output  _RROutput
+	crtc    _RRCrtc
+	oldMode _RRMode
 
 	// Index of corresponding Xinerama screen, for EWMH full screen window
 	// placement
@@ -51,22 +51,22 @@ type platformMonitorState struct {
 }
 
 type platformCursorState struct {
-	handle XID
+	handle _XID
 }
 
 type platformLibraryWindowState struct {
 	display uintptr // Display*
 	screen  int
-	root    XID
+	root    _XID
 
 	// System content scale
 	contentScaleX, contentScaleY float32
 	// Helper window for IPC
-	helperWindowHandle XID
+	helperWindowHandle _XID
 	// Invisible cursor for hidden cursor mode
-	hiddenCursorHandle XID
+	hiddenCursorHandle _XID
 	// XID to *Window mapping (replaces the C implementation's XContext)
-	windowsByXID map[XID]*Window
+	windowsByXID map[_XID]*Window
 	// XIM input method
 	im uintptr
 	// The previous X error handler, to be restored later
@@ -90,60 +90,60 @@ type platformLibraryWindowState struct {
 	emptyEventPipe       [2]int
 
 	// Window manager atoms
-	NET_SUPPORTED                  Atom
-	NET_SUPPORTING_WM_CHECK        Atom
-	WM_PROTOCOLS                   Atom
-	WM_STATE                       Atom
-	WM_DELETE_WINDOW               Atom
-	NET_WM_NAME                    Atom
-	NET_WM_ICON_NAME               Atom
-	NET_WM_ICON                    Atom
-	NET_WM_PID                     Atom
-	NET_WM_PING                    Atom
-	NET_WM_WINDOW_TYPE             Atom
-	NET_WM_WINDOW_TYPE_NORMAL      Atom
-	NET_WM_STATE                   Atom
-	NET_WM_STATE_ABOVE             Atom
-	NET_WM_STATE_FULLSCREEN        Atom
-	NET_WM_STATE_MAXIMIZED_VERT    Atom
-	NET_WM_STATE_MAXIMIZED_HORZ    Atom
-	NET_WM_STATE_DEMANDS_ATTENTION Atom
-	NET_WM_BYPASS_COMPOSITOR       Atom
-	NET_WM_FULLSCREEN_MONITORS     Atom
-	NET_WM_WINDOW_OPACITY          Atom
-	NET_WM_CM_Sx                   Atom
-	NET_WORKAREA                   Atom
-	NET_CURRENT_DESKTOP            Atom
-	NET_ACTIVE_WINDOW              Atom
-	NET_FRAME_EXTENTS              Atom
-	NET_REQUEST_FRAME_EXTENTS      Atom
-	MOTIF_WM_HINTS                 Atom
+	NET_SUPPORTED                  _Atom
+	NET_SUPPORTING_WM_CHECK        _Atom
+	WM_PROTOCOLS                   _Atom
+	WM_STATE                       _Atom
+	WM_DELETE_WINDOW               _Atom
+	NET_WM_NAME                    _Atom
+	NET_WM_ICON_NAME               _Atom
+	NET_WM_ICON                    _Atom
+	NET_WM_PID                     _Atom
+	NET_WM_PING                    _Atom
+	NET_WM_WINDOW_TYPE             _Atom
+	NET_WM_WINDOW_TYPE_NORMAL      _Atom
+	NET_WM_STATE                   _Atom
+	NET_WM_STATE_ABOVE             _Atom
+	NET_WM_STATE_FULLSCREEN        _Atom
+	NET_WM_STATE_MAXIMIZED_VERT    _Atom
+	NET_WM_STATE_MAXIMIZED_HORZ    _Atom
+	NET_WM_STATE_DEMANDS_ATTENTION _Atom
+	NET_WM_BYPASS_COMPOSITOR       _Atom
+	NET_WM_FULLSCREEN_MONITORS     _Atom
+	NET_WM_WINDOW_OPACITY          _Atom
+	NET_WM_CM_Sx                   _Atom
+	NET_WORKAREA                   _Atom
+	NET_CURRENT_DESKTOP            _Atom
+	NET_ACTIVE_WINDOW              _Atom
+	NET_FRAME_EXTENTS              _Atom
+	NET_REQUEST_FRAME_EXTENTS      _Atom
+	MOTIF_WM_HINTS                 _Atom
 
 	// Xdnd (drag and drop) atoms
-	XdndAware      Atom
-	XdndEnter      Atom
-	XdndPosition   Atom
-	XdndStatus     Atom
-	XdndActionCopy Atom
-	XdndDrop       Atom
-	XdndFinished   Atom
-	XdndSelection  Atom
-	XdndTypeList   Atom
-	text_uri_list  Atom
+	XdndAware      _Atom
+	XdndEnter      _Atom
+	XdndPosition   _Atom
+	XdndStatus     _Atom
+	XdndActionCopy _Atom
+	XdndDrop       _Atom
+	XdndFinished   _Atom
+	XdndSelection  _Atom
+	XdndTypeList   _Atom
+	text_uri_list  _Atom
 
 	// Selection (clipboard) atoms
-	TARGETS           Atom
-	MULTIPLE          Atom
-	INCR              Atom
-	CLIPBOARD         Atom
-	PRIMARY           Atom
-	CLIPBOARD_MANAGER Atom
-	SAVE_TARGETS      Atom
-	NULL_             Atom
-	UTF8_STRING       Atom
-	COMPOUND_STRING   Atom
-	ATOM_PAIR         Atom
-	GLFW_SELECTION    Atom
+	TARGETS           _Atom
+	MULTIPLE          _Atom
+	INCR              _Atom
+	CLIPBOARD         _Atom
+	PRIMARY           _Atom
+	CLIPBOARD_MANAGER _Atom
+	SAVE_TARGETS      _Atom
+	NULL_             _Atom
+	UTF8_STRING       _Atom
+	COMPOUND_STRING   _Atom
+	ATOM_PAIR         _Atom
+	GLFW_SELECTION    _Atom
 
 	randr struct {
 		available     bool
@@ -157,15 +157,15 @@ type platformLibraryWindowState struct {
 		FreeCrtcInfo              func(crtcInfo uintptr)
 		FreeOutputInfo            func(outputInfo uintptr)
 		FreeScreenResources       func(resources uintptr)
-		GetCrtcInfo               func(display uintptr, resources uintptr, crtc RRCrtc) uintptr
-		GetOutputInfo             func(display uintptr, resources uintptr, output RROutput) uintptr
-		GetOutputPrimary          func(display uintptr, window XID) RROutput
-		GetScreenResourcesCurrent func(display uintptr, window XID) uintptr
+		GetCrtcInfo               func(display uintptr, resources uintptr, crtc _RRCrtc) uintptr
+		GetOutputInfo             func(display uintptr, resources uintptr, output _RROutput) uintptr
+		GetOutputPrimary          func(display uintptr, window _XID) _RROutput
+		GetScreenResourcesCurrent func(display uintptr, window _XID) uintptr
 		QueryExtension            func(display uintptr, eventBaseReturn, errorBaseReturn *int32) bool
 		QueryVersion              func(display uintptr, majorReturn, minorReturn *int32) int32
-		SelectInput               func(display uintptr, window XID, mask int32)
-		SetCrtcConfig             func(display uintptr, resources uintptr, crtc RRCrtc, timestamp Time, x, y int32, mode RRMode, rotation Rotation, outputs *RROutput, noutputs int32) int32
-		UpdateConfiguration       func(event *XEvent) int32
+		SelectInput               func(display uintptr, window _XID, mask int32)
+		SetCrtcConfig             func(display uintptr, resources uintptr, crtc _RRCrtc, timestamp _Time, x, y int32, mode _RRMode, rotation _Rotation, outputs *_RROutput, noutputs int32) int32
+		UpdateConfiguration       func(event *_XEvent) int32
 	}
 
 	xkb struct {
@@ -189,8 +189,8 @@ type platformLibraryWindowState struct {
 
 	xdnd struct {
 		version int
-		source  XID
-		format  Atom
+		source  _XID
+		format  _Atom
 	}
 
 	xcursor struct {
@@ -198,7 +198,7 @@ type platformLibraryWindowState struct {
 
 		ImageCreate      func(width, height int32) uintptr
 		ImageDestroy     func(image uintptr)
-		ImageLoadCursor  func(display uintptr, image uintptr) XID
+		ImageLoadCursor  func(display uintptr, image uintptr) _XID
 		GetTheme         func(display uintptr) uintptr
 		GetDefaultSize   func(display uintptr) int32
 		LibraryLoadImage func(library string, theme uintptr, size int32) uintptr
@@ -225,7 +225,7 @@ type platformLibraryWindowState struct {
 		minor       int32
 
 		QueryVersion func(display uintptr, majorVersionInOut, minorVersionInOut *int32) int32
-		SelectEvents func(display uintptr, window XID, masks *XIEventMask, numMasks int32) int32
+		SelectEvents func(display uintptr, window _XID, masks *_XIEventMask, numMasks int32) int32
 	}
 
 	xrender struct {
@@ -251,8 +251,8 @@ type platformLibraryWindowState struct {
 
 		QueryExtension func(display uintptr, eventBaseReturn, errorBaseReturn *int32) bool
 		QueryVersion   func(display uintptr, majorVersionReturn, minorVersionReturn *int32) int32
-		CombineRegion  func(display uintptr, window XID, destKind int32, xOff, yOff int32, region Region, op int32)
-		CombineMask    func(display uintptr, window XID, destKind int32, xOff, yOff int32, src XID, op int32)
+		CombineRegion  func(display uintptr, window _XID, destKind int32, xOff, yOff int32, region _Region, op int32)
+		CombineMask    func(display uintptr, window _XID, destKind int32, xOff, yOff int32, src _XID, op int32)
 	}
 }
 
@@ -261,7 +261,7 @@ type platformLibraryWindowState struct {
 type platformContextState struct {
 	glx struct {
 		handle uintptr // GLXContext
-		window XID     // GLXWindow
+		window _XID    // GLXWindow
 	}
 	egl struct {
 		config  uintptr // EGLConfig
@@ -297,19 +297,19 @@ type platformLibraryContextState struct {
 		QueryExtension        func(display uintptr, errorBase, eventBase *int32) bool
 		QueryVersion          func(display uintptr, major, minor *int32) bool
 		DestroyContext        func(display uintptr, ctx uintptr)
-		MakeCurrent           func(display uintptr, drawable XID, ctx uintptr) bool
-		SwapBuffers           func(display uintptr, drawable XID)
+		MakeCurrent           func(display uintptr, drawable _XID, ctx uintptr) bool
+		SwapBuffers           func(display uintptr, drawable _XID)
 		QueryExtensionsString func(display uintptr, screen int32) uintptr
 		CreateNewContext      func(display uintptr, config uintptr, renderType int32, share uintptr, direct bool) uintptr
-		CreateWindow          func(display uintptr, config uintptr, win XID, attribs *int32) XID
-		DestroyWindow         func(display uintptr, window XID)
+		CreateWindow          func(display uintptr, config uintptr, win _XID, attribs *int32) _XID
+		DestroyWindow         func(display uintptr, window _XID)
 		GetVisualFromFBConfig func(display uintptr, config uintptr) uintptr
 
 		GetProcAddress    func(procname string) uintptr
 		GetProcAddressARB func(procname string) uintptr
 
 		SwapIntervalSGI         func(interval int32) int32
-		SwapIntervalEXT         func(display uintptr, drawable XID, interval int32)
+		SwapIntervalEXT         func(display uintptr, drawable _XID, interval int32)
 		SwapIntervalMESA        func(interval int32) int32
 		CreateContextAttribsARB func(display uintptr, config uintptr, share uintptr, direct bool, attribs *int32) uintptr
 	}
@@ -336,7 +336,7 @@ type platformLibraryContextState struct {
 		CreateContext       func(display uintptr, config uintptr, shareContext uintptr, attribList *int32) uintptr
 		DestroySurface      func(display uintptr, surface uintptr) bool
 		DestroyContext      func(display uintptr, ctx uintptr) bool
-		CreateWindowSurface func(display uintptr, config uintptr, win XID, attribList *int32) uintptr
+		CreateWindowSurface func(display uintptr, config uintptr, win _XID, attribList *int32) uintptr
 		MakeCurrent         func(display uintptr, draw uintptr, read uintptr, ctx uintptr) bool
 		SwapBuffers         func(display uintptr, surface uintptr) bool
 		SwapInterval        func(display uintptr, interval int32) bool

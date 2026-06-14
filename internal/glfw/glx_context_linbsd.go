@@ -33,7 +33,7 @@ func chooseGLXFBConfig(desired *fbconfig) (uintptr, error) {
 
 	// HACK: This is a (hopefully temporary) workaround for Chromium
 	//       (VirtualBox GL) not setting the window bit on any GLXFBConfigs
-	vendor := goString(glx.GetClientString(_glfw.platformWindow.display, GLX_VENDOR))
+	vendor := goString(glx.GetClientString(_glfw.platformWindow.display, _GLX_VENDOR))
 	if vendor == "Chromium" {
 		trustWindowBit = false
 	}
@@ -51,54 +51,54 @@ func chooseGLXFBConfig(desired *fbconfig) (uintptr, error) {
 		var u fbconfig
 
 		// Only consider RGBA GLXFBConfigs
-		if getGLXFBConfigAttrib(n, GLX_RENDER_TYPE)&GLX_RGBA_BIT == 0 {
+		if getGLXFBConfigAttrib(n, _GLX_RENDER_TYPE)&_GLX_RGBA_BIT == 0 {
 			continue
 		}
 
 		// Only consider window GLXFBConfigs
-		if getGLXFBConfigAttrib(n, GLX_DRAWABLE_TYPE)&GLX_WINDOW_BIT == 0 {
+		if getGLXFBConfigAttrib(n, _GLX_DRAWABLE_TYPE)&_GLX_WINDOW_BIT == 0 {
 			if trustWindowBit {
 				continue
 			}
 		}
 
-		if intToBool(int(getGLXFBConfigAttrib(n, GLX_DOUBLEBUFFER))) != desired.doublebuffer {
+		if intToBool(int(getGLXFBConfigAttrib(n, _GLX_DOUBLEBUFFER))) != desired.doublebuffer {
 			continue
 		}
 
 		if desired.transparent {
 			viPtr := glx.GetVisualFromFBConfig(_glfw.platformWindow.display, n)
 			if viPtr != 0 {
-				u.transparent = isVisualTransparentX11((*XVisualInfo)(unsafe.Pointer(viPtr)).Visual)
+				u.transparent = isVisualTransparentX11((*_XVisualInfo)(unsafe.Pointer(viPtr)).Visual)
 				xFree(viPtr)
 			}
 		}
 
-		u.redBits = int(getGLXFBConfigAttrib(n, GLX_RED_SIZE))
-		u.greenBits = int(getGLXFBConfigAttrib(n, GLX_GREEN_SIZE))
-		u.blueBits = int(getGLXFBConfigAttrib(n, GLX_BLUE_SIZE))
+		u.redBits = int(getGLXFBConfigAttrib(n, _GLX_RED_SIZE))
+		u.greenBits = int(getGLXFBConfigAttrib(n, _GLX_GREEN_SIZE))
+		u.blueBits = int(getGLXFBConfigAttrib(n, _GLX_BLUE_SIZE))
 
-		u.alphaBits = int(getGLXFBConfigAttrib(n, GLX_ALPHA_SIZE))
-		u.depthBits = int(getGLXFBConfigAttrib(n, GLX_DEPTH_SIZE))
-		u.stencilBits = int(getGLXFBConfigAttrib(n, GLX_STENCIL_SIZE))
+		u.alphaBits = int(getGLXFBConfigAttrib(n, _GLX_ALPHA_SIZE))
+		u.depthBits = int(getGLXFBConfigAttrib(n, _GLX_DEPTH_SIZE))
+		u.stencilBits = int(getGLXFBConfigAttrib(n, _GLX_STENCIL_SIZE))
 
-		u.accumRedBits = int(getGLXFBConfigAttrib(n, GLX_ACCUM_RED_SIZE))
-		u.accumGreenBits = int(getGLXFBConfigAttrib(n, GLX_ACCUM_GREEN_SIZE))
-		u.accumBlueBits = int(getGLXFBConfigAttrib(n, GLX_ACCUM_BLUE_SIZE))
-		u.accumAlphaBits = int(getGLXFBConfigAttrib(n, GLX_ACCUM_ALPHA_SIZE))
+		u.accumRedBits = int(getGLXFBConfigAttrib(n, _GLX_ACCUM_RED_SIZE))
+		u.accumGreenBits = int(getGLXFBConfigAttrib(n, _GLX_ACCUM_GREEN_SIZE))
+		u.accumBlueBits = int(getGLXFBConfigAttrib(n, _GLX_ACCUM_BLUE_SIZE))
+		u.accumAlphaBits = int(getGLXFBConfigAttrib(n, _GLX_ACCUM_ALPHA_SIZE))
 
-		u.auxBuffers = int(getGLXFBConfigAttrib(n, GLX_AUX_BUFFERS))
+		u.auxBuffers = int(getGLXFBConfigAttrib(n, _GLX_AUX_BUFFERS))
 
-		if getGLXFBConfigAttrib(n, GLX_STEREO) != 0 {
+		if getGLXFBConfigAttrib(n, _GLX_STEREO) != 0 {
 			u.stereo = true
 		}
 
 		if glx.ARB_multisample {
-			u.samples = int(getGLXFBConfigAttrib(n, GLX_SAMPLES))
+			u.samples = int(getGLXFBConfigAttrib(n, _GLX_SAMPLES))
 		}
 
 		if glx.ARB_framebuffer_sRGB || glx.EXT_framebuffer_sRGB {
-			u.sRGB = intToBool(int(getGLXFBConfigAttrib(n, GLX_FRAMEBUFFER_SRGB_CAPABLE_ARB)))
+			u.sRGB = intToBool(int(getGLXFBConfigAttrib(n, _GLX_FRAMEBUFFER_SRGB_CAPABLE_ARB)))
 		}
 
 		u.handle = n
@@ -119,7 +119,7 @@ func chooseGLXFBConfig(desired *fbconfig) (uintptr, error) {
 func createLegacyContextGLX(window *Window, fbconfig uintptr, share uintptr) uintptr {
 	return _glfw.platformContext.glx.CreateNewContext(_glfw.platformWindow.display,
 		fbconfig,
-		GLX_RGBA_TYPE,
+		_GLX_RGBA_TYPE,
 		share,
 		true)
 }
@@ -136,7 +136,7 @@ func makeContextCurrentGLX(window *Window) error {
 		_glfw.currentContext = window
 	} else {
 		_glfw.currentContext = nil
-		if !glx.MakeCurrent(_glfw.platformWindow.display, None, 0) {
+		if !glx.MakeCurrent(_glfw.platformWindow.display, _None, 0) {
 			return fmt.Errorf("glfw: glx: failed to clear current context: %w", PlatformError)
 		}
 	}
@@ -192,7 +192,7 @@ func destroyContextGLX(window *Window) error {
 
 	if window.context.platform.glx.window != 0 {
 		glx.DestroyWindow(_glfw.platformWindow.display, window.context.platform.glx.window)
-		window.context.platform.glx.window = None
+		window.context.platform.glx.window = _None
 	}
 
 	if window.context.platform.glx.handle != 0 {
@@ -382,47 +382,47 @@ func createContextGLX(window *Window, ctxconfig *ctxconfig, fbconfig *fbconfig) 
 
 		if ctxconfig.client == OpenGLAPI {
 			if ctxconfig.forward {
-				flags |= GLX_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB
+				flags |= _GLX_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB
 			}
 
 			if ctxconfig.profile == OpenGLCoreProfile {
-				mask |= GLX_CONTEXT_CORE_PROFILE_BIT_ARB
+				mask |= _GLX_CONTEXT_CORE_PROFILE_BIT_ARB
 			} else if ctxconfig.profile == OpenGLCompatProfile {
-				mask |= GLX_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB
+				mask |= _GLX_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB
 			}
 		} else {
-			mask |= GLX_CONTEXT_ES2_PROFILE_BIT_EXT
+			mask |= _GLX_CONTEXT_ES2_PROFILE_BIT_EXT
 		}
 
 		if ctxconfig.debug {
-			flags |= GLX_CONTEXT_DEBUG_BIT_ARB
+			flags |= _GLX_CONTEXT_DEBUG_BIT_ARB
 		}
 
 		if ctxconfig.robustness != 0 {
 			if glx.ARB_create_context_robustness {
 				if ctxconfig.robustness == NoResetNotification {
-					setAttrib(GLX_CONTEXT_RESET_NOTIFICATION_STRATEGY_ARB, GLX_NO_RESET_NOTIFICATION_ARB)
+					setAttrib(_GLX_CONTEXT_RESET_NOTIFICATION_STRATEGY_ARB, _GLX_NO_RESET_NOTIFICATION_ARB)
 				} else if ctxconfig.robustness == LoseContextOnReset {
-					setAttrib(GLX_CONTEXT_RESET_NOTIFICATION_STRATEGY_ARB, GLX_LOSE_CONTEXT_ON_RESET_ARB)
+					setAttrib(_GLX_CONTEXT_RESET_NOTIFICATION_STRATEGY_ARB, _GLX_LOSE_CONTEXT_ON_RESET_ARB)
 				}
 
-				flags |= GLX_CONTEXT_ROBUST_ACCESS_BIT_ARB
+				flags |= _GLX_CONTEXT_ROBUST_ACCESS_BIT_ARB
 			}
 		}
 
 		if ctxconfig.release != 0 {
 			if glx.ARB_context_flush_control {
 				if ctxconfig.release == ReleaseBehaviorNone {
-					setAttrib(GLX_CONTEXT_RELEASE_BEHAVIOR_ARB, GLX_CONTEXT_RELEASE_BEHAVIOR_NONE_ARB)
+					setAttrib(_GLX_CONTEXT_RELEASE_BEHAVIOR_ARB, _GLX_CONTEXT_RELEASE_BEHAVIOR_NONE_ARB)
 				} else if ctxconfig.release == ReleaseBehaviorFlush {
-					setAttrib(GLX_CONTEXT_RELEASE_BEHAVIOR_ARB, GLX_CONTEXT_RELEASE_BEHAVIOR_FLUSH_ARB)
+					setAttrib(_GLX_CONTEXT_RELEASE_BEHAVIOR_ARB, _GLX_CONTEXT_RELEASE_BEHAVIOR_FLUSH_ARB)
 				}
 			}
 		}
 
 		if ctxconfig.noerror {
 			if glx.ARB_create_context_no_error {
-				setAttrib(GLX_CONTEXT_OPENGL_NO_ERROR_ARB, 1)
+				setAttrib(_GLX_CONTEXT_OPENGL_NO_ERROR_ARB, 1)
 			}
 		}
 
@@ -430,19 +430,19 @@ func createContextGLX(window *Window, ctxconfig *ctxconfig, fbconfig *fbconfig) 
 		//       explicitly requesting version 1.0 does not always return the
 		//       highest version supported by the driver
 		if ctxconfig.major != 1 || ctxconfig.minor != 0 {
-			setAttrib(GLX_CONTEXT_MAJOR_VERSION_ARB, int32(ctxconfig.major))
-			setAttrib(GLX_CONTEXT_MINOR_VERSION_ARB, int32(ctxconfig.minor))
+			setAttrib(_GLX_CONTEXT_MAJOR_VERSION_ARB, int32(ctxconfig.major))
+			setAttrib(_GLX_CONTEXT_MINOR_VERSION_ARB, int32(ctxconfig.minor))
 		}
 
 		if mask != 0 {
-			setAttrib(GLX_CONTEXT_PROFILE_MASK_ARB, mask)
+			setAttrib(_GLX_CONTEXT_PROFILE_MASK_ARB, mask)
 		}
 
 		if flags != 0 {
-			setAttrib(GLX_CONTEXT_FLAGS_ARB, flags)
+			setAttrib(_GLX_CONTEXT_FLAGS_ARB, flags)
 		}
 
-		setAttrib(None, None)
+		setAttrib(_None, _None)
 
 		window.context.platform.glx.handle =
 			glx.CreateContextAttribsARB(_glfw.platformWindow.display,
@@ -456,7 +456,7 @@ func createContextGLX(window *Window, ctxconfig *ctxconfig, fbconfig *fbconfig) 
 		//       default 1.0 context creation with a GLXBadProfileARB error in
 		//       violation of the extension spec
 		if window.context.platform.glx.handle == 0 {
-			if _glfw.platformWindow.errorCode == int(glx.errorBase)+GLXBadProfileARB &&
+			if _glfw.platformWindow.errorCode == int(glx.errorBase)+_GLXBadProfileARB &&
 				ctxconfig.client == OpenGLAPI &&
 				ctxconfig.profile == OpenGLAnyProfile &&
 				!ctxconfig.forward {
@@ -500,7 +500,7 @@ func chooseVisualGLX(wndconfig *wndconfig, ctxconfig *ctxconfig, fbconfig *fbcon
 	if resultPtr == 0 {
 		return 0, 0, fmt.Errorf("glfw: glx: failed to retrieve Visual for GLXFBConfig: %w", PlatformError)
 	}
-	result := (*XVisualInfo)(unsafe.Pointer(resultPtr))
+	result := (*_XVisualInfo)(unsafe.Pointer(resultPtr))
 
 	visual = result.Visual
 	depth = result.Depth

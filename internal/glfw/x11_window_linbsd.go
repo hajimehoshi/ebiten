@@ -24,20 +24,20 @@ const (
 	_NET_WM_STATE_REMOVE = 0
 	_NET_WM_STATE_ADD    = 1
 
-	MWM_HINTS_FUNCTIONS = 1
-	MWM_FUNC_RESIZE     = 2
-	MWM_FUNC_MOVE       = 4
-	MWM_FUNC_MINIMIZE   = 8
-	MWM_FUNC_MAXIMIZE   = 16
-	MWM_FUNC_CLOSE      = 32
+	_MWM_HINTS_FUNCTIONS = 1
+	_MWM_FUNC_RESIZE     = 2
+	_MWM_FUNC_MOVE       = 4
+	_MWM_FUNC_MINIMIZE   = 8
+	_MWM_FUNC_MAXIMIZE   = 16
+	_MWM_FUNC_CLOSE      = 32
 
-	MWM_HINTS_DECORATIONS = 2
-	MWM_DECOR_BORDER      = 2
-	MWM_DECOR_RESIZEH     = 4
-	MWM_DECOR_TITLE       = 8
-	MWM_DECOR_MENU        = 16
-	MWM_DECOR_MINIMIZE    = 32
-	MWM_DECOR_MAXIMIZE    = 64
+	_MWM_HINTS_DECORATIONS = 2
+	_MWM_DECOR_BORDER      = 2
+	_MWM_DECOR_RESIZEH     = 4
+	_MWM_DECOR_TITLE       = 8
+	_MWM_DECOR_MENU        = 16
+	_MWM_DECOR_MINIMIZE    = 32
+	_MWM_DECOR_MAXIMIZE    = 64
 
 	_GLFW_XDND_VERSION = 5
 )
@@ -138,12 +138,12 @@ func drainEmptyEvents() {
 // waitForVisibilityNotify waits until a VisibilityNotify event arrives for
 // the specified window or the timeout period elapses (ICCCM section 4.2.2).
 func waitForVisibilityNotify(window *Window) bool {
-	var dummy XEvent
+	var dummy _XEvent
 	timeout := 0.1
 
 	for !xCheckTypedWindowEvent(_glfw.platformWindow.display,
 		window.platform.handle,
-		VisibilityNotify,
+		_VisibilityNotify,
 		&dummy) {
 		if !waitForX11Event(&timeout) {
 			return false
@@ -155,7 +155,7 @@ func waitForVisibilityNotify(window *Window) bool {
 
 // getWindowState returns the state of the window.
 func getWindowState(window *Window) int {
-	result := WithdrawnState
+	result := _WithdrawnState
 
 	var statePtr uintptr
 	if getWindowPropertyX11(window.platform.handle,
@@ -177,14 +177,14 @@ func getWindowState(window *Window) int {
 // isSelectionEvent reports whether it is a selection event for the helper
 // window.
 func isSelectionEvent(display uintptr, eventPtr uintptr, pointer uintptr) uintptr {
-	event := (*XEvent)(unsafe.Pointer(eventPtr))
+	event := (*_XEvent)(unsafe.Pointer(eventPtr))
 	if event.xany().Window != _glfw.platformWindow.helperWindowHandle {
 		return 0
 	}
 
-	if event.EventType() == SelectionRequest ||
-		event.EventType() == SelectionNotify ||
-		event.EventType() == SelectionClear {
+	if event.EventType() == _SelectionRequest ||
+		event.EventType() == _SelectionNotify ||
+		event.EventType() == _SelectionClear {
 		return 1
 	}
 	return 0
@@ -195,13 +195,13 @@ var isSelectionEventCallback uintptr
 // isFrameExtentsEvent reports whether it is a _NET_FRAME_EXTENTS event for
 // the window whose XID is passed as the pointer argument.
 func isFrameExtentsEvent(display uintptr, eventPtr uintptr, pointer uintptr) uintptr {
-	event := (*XEvent)(unsafe.Pointer(eventPtr))
-	if event.EventType() != PropertyNotify {
+	event := (*_XEvent)(unsafe.Pointer(eventPtr))
+	if event.EventType() != _PropertyNotify {
 		return 0
 	}
 	property := event.xproperty()
-	if property.State == PropertyNewValue &&
-		property.Window == XID(pointer) &&
+	if property.State == _PropertyNewValue &&
+		property.Window == _XID(pointer) &&
 		property.Atom == _glfw.platformWindow.NET_FRAME_EXTENTS {
 		return 1
 	}
@@ -214,18 +214,18 @@ var isFrameExtentsEventCallback uintptr
 // arrival the isSelPropNewValueNotify predicate matches. The predicate cannot
 // receive the event through the XCheckIfEvent pointer argument, as a Go
 // pointer must not be handed to C.
-var selPropNewValueNotification *XEvent
+var selPropNewValueNotification *_XEvent
 
 // isSelPropNewValueNotify reports whether it is a property event for the
 // selection transfer awaited in selPropNewValueNotification.
 func isSelPropNewValueNotify(display uintptr, eventPtr uintptr, pointer uintptr) uintptr {
-	event := (*XEvent)(unsafe.Pointer(eventPtr))
-	if event.EventType() != PropertyNotify {
+	event := (*_XEvent)(unsafe.Pointer(eventPtr))
+	if event.EventType() != _PropertyNotify {
 		return 0
 	}
 	property := event.xproperty()
 	notification := selPropNewValueNotification
-	if property.State == PropertyNewValue &&
+	if property.State == _PropertyNewValue &&
 		property.Window == notification.xselection().Requestor &&
 		property.Atom == notification.xselection().Property {
 		return 1
@@ -239,22 +239,22 @@ var isSelPropNewValueNotifyCallback uintptr
 func translateState(state uint32) ModifierKey {
 	var mods ModifierKey
 
-	if state&ShiftMask != 0 {
+	if state&_ShiftMask != 0 {
 		mods |= ModShift
 	}
-	if state&ControlMask != 0 {
+	if state&_ControlMask != 0 {
 		mods |= ModControl
 	}
-	if state&Mod1Mask != 0 {
+	if state&_Mod1Mask != 0 {
 		mods |= ModAlt
 	}
-	if state&Mod4Mask != 0 {
+	if state&_Mod4Mask != 0 {
 		mods |= ModSuper
 	}
-	if state&LockMask != 0 {
+	if state&_LockMask != 0 {
 		mods |= ModCapsLock
 	}
-	if state&Mod2Mask != 0 {
+	if state&_Mod2Mask != 0 {
 		mods |= ModNumLock
 	}
 
@@ -272,10 +272,10 @@ func translateKey(scancode int) Key {
 }
 
 // sendEventToWM sends an EWMH or ICCCM event to the window manager.
-func sendEventToWM(window *Window, eventType Atom, a, b, c, d, e int) {
-	var event XEvent
+func sendEventToWM(window *Window, eventType _Atom, a, b, c, d, e int) {
+	var event _XEvent
 	client := event.xclient()
-	client.Type = ClientMessage
+	client.Type = _ClientMessage
 	client.Window = window.platform.handle
 	client.Format = 32 // Data is 32-bit longs
 	client.MessageType = eventType
@@ -287,7 +287,7 @@ func sendEventToWM(window *Window, eventType Atom, a, b, c, d, e int) {
 
 	xSendEvent(_glfw.platformWindow.display, _glfw.platformWindow.root,
 		false,
-		SubstructureNotifyMask|SubstructureRedirectMask,
+		_SubstructureNotifyMask|_SubstructureRedirectMask,
 		&event)
 }
 
@@ -300,30 +300,30 @@ func updateWindowHints(window *Window) {
 	// flags, functions, decorations, input_mode, status
 	var hints [5]_Culong
 
-	hints[0] = MWM_HINTS_FUNCTIONS | MWM_HINTS_DECORATIONS
+	hints[0] = _MWM_HINTS_FUNCTIONS | _MWM_HINTS_DECORATIONS
 
-	hints[1] = MWM_FUNC_MOVE | MWM_FUNC_MINIMIZE | MWM_FUNC_CLOSE
+	hints[1] = _MWM_FUNC_MOVE | _MWM_FUNC_MINIMIZE | _MWM_FUNC_CLOSE
 	if window.resizable && window.decorated {
-		hints[1] |= MWM_FUNC_RESIZE
+		hints[1] |= _MWM_FUNC_RESIZE
 	}
 	if maximizable {
-		hints[1] |= MWM_FUNC_MAXIMIZE
+		hints[1] |= _MWM_FUNC_MAXIMIZE
 	}
 
 	if window.decorated {
-		hints[2] |= MWM_DECOR_BORDER | MWM_DECOR_TITLE | MWM_DECOR_MENU | MWM_DECOR_MINIMIZE
+		hints[2] |= _MWM_DECOR_BORDER | _MWM_DECOR_TITLE | _MWM_DECOR_MENU | _MWM_DECOR_MINIMIZE
 		if window.resizable {
-			hints[2] |= MWM_DECOR_RESIZEH
+			hints[2] |= _MWM_DECOR_RESIZEH
 		}
 		if maximizable {
-			hints[2] |= MWM_DECOR_MAXIMIZE
+			hints[2] |= _MWM_DECOR_MAXIMIZE
 		}
 	}
 
 	xChangeProperty(_glfw.platformWindow.display, window.platform.handle,
 		_glfw.platformWindow.MOTIF_WM_HINTS,
 		_glfw.platformWindow.MOTIF_WM_HINTS, 32,
-		PropModeReplace,
+		_PropModeReplace,
 		unsafe.Pointer(&hints[0]),
 		int32(len(hints)))
 }
@@ -332,36 +332,36 @@ func updateWindowHints(window *Window) {
 // settings.
 func updateNormalHints(window *Window, width, height int) {
 	hintsPtr := xAllocSizeHints()
-	hints := (*XSizeHints)(unsafe.Pointer(hintsPtr))
+	hints := (*_XSizeHints)(unsafe.Pointer(hintsPtr))
 
 	var supplied _Clong
 	xGetWMNormalHints(_glfw.platformWindow.display, window.platform.handle, hints, &supplied)
 
-	hints.Flags &^= PMinSize | PMaxSize | PAspect
+	hints.Flags &^= _PMinSize | _PMaxSize | _PAspect
 
 	if window.monitor == nil {
 		if window.resizable {
 			if window.minwidth != DontCare && window.minheight != DontCare {
-				hints.Flags |= PMinSize
+				hints.Flags |= _PMinSize
 				hints.MinWidth = int32(window.minwidth)
 				hints.MinHeight = int32(window.minheight)
 			}
 
 			if window.maxwidth != DontCare && window.maxheight != DontCare {
-				hints.Flags |= PMaxSize
+				hints.Flags |= _PMaxSize
 				hints.MaxWidth = int32(window.maxwidth)
 				hints.MaxHeight = int32(window.maxheight)
 			}
 
 			if window.numer != DontCare && window.denom != DontCare {
-				hints.Flags |= PAspect
+				hints.Flags |= _PAspect
 				hints.MinAspect.X = int32(window.numer)
 				hints.MaxAspect.X = int32(window.numer)
 				hints.MinAspect.Y = int32(window.denom)
 				hints.MaxAspect.Y = int32(window.denom)
 			}
 		} else {
-			hints.Flags |= PMinSize | PMaxSize
+			hints.Flags |= _PMinSize | _PMaxSize
 			hints.MinWidth = int32(width)
 			hints.MaxWidth = int32(width)
 			hints.MinHeight = int32(height)
@@ -404,11 +404,11 @@ func updateWindowMode(window *Window) {
 			// manually and some things (like iconify/restore) won't work at
 			// all, as those are tasks usually performed by the window manager
 
-			var attributes XSetWindowAttributes
+			var attributes _XSetWindowAttributes
 			attributes.OverrideRedirect = 1
 			xChangeWindowAttributes(_glfw.platformWindow.display,
 				window.platform.handle,
-				CWOverrideRedirect,
+				_CWOverrideRedirect,
 				&attributes)
 
 			window.platform.overrideRedirect = true
@@ -418,8 +418,8 @@ func updateWindowMode(window *Window) {
 		if !window.platform.transparent {
 			value := _Culong(1)
 			xChangeProperty(_glfw.platformWindow.display, window.platform.handle,
-				_glfw.platformWindow.NET_WM_BYPASS_COMPOSITOR, XA_CARDINAL, 32,
-				PropModeReplace, unsafe.Pointer(&value), 1)
+				_glfw.platformWindow.NET_WM_BYPASS_COMPOSITOR, _XA_CARDINAL, 32,
+				_PropModeReplace, unsafe.Pointer(&value), 1)
 		}
 	} else {
 		if _glfw.platformWindow.xinerama.available &&
@@ -435,11 +435,11 @@ func updateWindowMode(window *Window) {
 				int(_glfw.platformWindow.NET_WM_STATE_FULLSCREEN),
 				0, 1, 0)
 		} else {
-			var attributes XSetWindowAttributes
+			var attributes _XSetWindowAttributes
 			attributes.OverrideRedirect = 0
 			xChangeWindowAttributes(_glfw.platformWindow.display,
 				window.platform.handle,
-				CWOverrideRedirect,
+				_CWOverrideRedirect,
 				&attributes)
 
 			window.platform.overrideRedirect = false
@@ -480,16 +480,16 @@ func updateCursorImage(window *Window) {
 // captureCursor grabs the cursor and confines it to the window.
 func captureCursor(window *Window) {
 	xGrabPointer(_glfw.platformWindow.display, window.platform.handle, true,
-		ButtonPressMask|ButtonReleaseMask|PointerMotionMask,
-		GrabModeAsync, GrabModeAsync,
+		_ButtonPressMask|_ButtonReleaseMask|_PointerMotionMask,
+		_GrabModeAsync, _GrabModeAsync,
 		window.platform.handle,
-		None,
-		CurrentTime)
+		_None,
+		_CurrentTime)
 }
 
 // releaseCursor ungrabs the cursor.
 func releaseCursor() {
-	xUngrabPointer(_glfw.platformWindow.display, CurrentTime)
+	xUngrabPointer(_glfw.platformWindow.display, _CurrentTime)
 }
 
 func xiMaskLen(event int) int {
@@ -505,11 +505,11 @@ func xiMaskIsSet(mask []byte, event int) bool {
 }
 
 func enableRawMouseMotion(window *Window) {
-	mask := make([]byte, xiMaskLen(XI_RawMotion))
-	xiSetMask(mask, XI_RawMotion)
+	mask := make([]byte, xiMaskLen(_XI_RawMotion))
+	xiSetMask(mask, _XI_RawMotion)
 
-	em := XIEventMask{
-		Deviceid: XIAllMasterDevices,
+	em := _XIEventMask{
+		Deviceid: _XIAllMasterDevices,
 		MaskLen:  int32(len(mask)),
 		Mask:     uintptr(unsafe.Pointer(&mask[0])),
 	}
@@ -520,8 +520,8 @@ func enableRawMouseMotion(window *Window) {
 func disableRawMouseMotion(window *Window) {
 	mask := make([]byte, 1)
 
-	em := XIEventMask{
-		Deviceid: XIAllMasterDevices,
+	em := _XIEventMask{
+		Deviceid: _XIAllMasterDevices,
 		MaskLen:  int32(len(mask)),
 		Mask:     uintptr(unsafe.Pointer(&mask[0])),
 	}
@@ -580,16 +580,16 @@ func createNativeWindow(window *Window, wndconfig *wndconfig, visual uintptr, de
 	window.platform.colormap = xCreateColormap(_glfw.platformWindow.display,
 		_glfw.platformWindow.root,
 		visual,
-		AllocNone)
+		_AllocNone)
 
 	window.platform.transparent = isVisualTransparentX11(visual)
 
-	var wa XSetWindowAttributes
+	var wa _XSetWindowAttributes
 	wa.Colormap = window.platform.colormap
-	wa.EventMask = StructureNotifyMask | KeyPressMask | KeyReleaseMask |
-		PointerMotionMask | ButtonPressMask | ButtonReleaseMask |
-		ExposureMask | FocusChangeMask | VisibilityChangeMask |
-		EnterWindowMask | LeaveWindowMask | PropertyChangeMask
+	wa.EventMask = _StructureNotifyMask | _KeyPressMask | _KeyReleaseMask |
+		_PointerMotionMask | _ButtonPressMask | _ButtonReleaseMask |
+		_ExposureMask | _FocusChangeMask | _VisibilityChangeMask |
+		_EnterWindowMask | _LeaveWindowMask | _PropertyChangeMask
 
 	grabErrorHandlerX11()
 
@@ -600,9 +600,9 @@ func createNativeWindow(window *Window, wndconfig *wndconfig, visual uintptr, de
 		uint32(width), uint32(height),
 		0,     // Border width
 		depth, // Color depth
-		InputOutput,
+		_InputOutput,
 		visual,
-		CWBorderPixel|CWColormap|CWEventMask,
+		_CWBorderPixel|_CWColormap|_CWEventMask,
 		&wa)
 
 	releaseErrorHandlerX11()
@@ -620,7 +620,7 @@ func createNativeWindow(window *Window, wndconfig *wndconfig, visual uintptr, de
 	}
 
 	if _glfw.platformWindow.NET_WM_STATE != 0 && window.monitor == nil {
-		states := make([]Atom, 0, 3)
+		states := make([]_Atom, 0, 3)
 
 		if wndconfig.floating {
 			if _glfw.platformWindow.NET_WM_STATE_ABOVE != 0 {
@@ -640,14 +640,14 @@ func createNativeWindow(window *Window, wndconfig *wndconfig, visual uintptr, de
 
 		if len(states) > 0 {
 			xChangeProperty(_glfw.platformWindow.display, window.platform.handle,
-				_glfw.platformWindow.NET_WM_STATE, XA_ATOM, 32,
-				PropModeReplace, unsafe.Pointer(&states[0]), int32(len(states)))
+				_glfw.platformWindow.NET_WM_STATE, _XA_ATOM, 32,
+				_PropModeReplace, unsafe.Pointer(&states[0]), int32(len(states)))
 		}
 	}
 
 	// Declare the WM protocols supported by GLFW
 	{
-		protocols := []Atom{
+		protocols := []_Atom{
 			_glfw.platformWindow.WM_DELETE_WINDOW,
 			_glfw.platformWindow.NET_WM_PING,
 		}
@@ -660,16 +660,16 @@ func createNativeWindow(window *Window, wndconfig *wndconfig, visual uintptr, de
 	{
 		pid := _Clong(os.Getpid())
 		xChangeProperty(_glfw.platformWindow.display, window.platform.handle,
-			_glfw.platformWindow.NET_WM_PID, XA_CARDINAL, 32,
-			PropModeReplace,
+			_glfw.platformWindow.NET_WM_PID, _XA_CARDINAL, 32,
+			_PropModeReplace,
 			unsafe.Pointer(&pid), 1)
 	}
 
 	if _glfw.platformWindow.NET_WM_WINDOW_TYPE != 0 && _glfw.platformWindow.NET_WM_WINDOW_TYPE_NORMAL != 0 {
 		windowType := _glfw.platformWindow.NET_WM_WINDOW_TYPE_NORMAL
 		xChangeProperty(_glfw.platformWindow.display, window.platform.handle,
-			_glfw.platformWindow.NET_WM_WINDOW_TYPE, XA_ATOM, 32,
-			PropModeReplace, unsafe.Pointer(&windowType), 1)
+			_glfw.platformWindow.NET_WM_WINDOW_TYPE, _XA_ATOM, 32,
+			_PropModeReplace, unsafe.Pointer(&windowType), 1)
 	}
 
 	// Set ICCCM WM_HINTS property
@@ -678,10 +678,10 @@ func createNativeWindow(window *Window, wndconfig *wndconfig, visual uintptr, de
 		if hintsPtr == 0 {
 			return fmt.Errorf("glfw: x11: failed to allocate WM hints: %w", OutOfMemory)
 		}
-		hints := (*XWMHints)(unsafe.Pointer(hintsPtr))
+		hints := (*_XWMHints)(unsafe.Pointer(hintsPtr))
 
-		hints.Flags = StateHint
-		hints.InitialState = NormalState
+		hints.Flags = _StateHint
+		hints.InitialState = _NormalState
 
 		xSetWMHints(_glfw.platformWindow.display, window.platform.handle, hints)
 		xFree(hintsPtr)
@@ -693,18 +693,18 @@ func createNativeWindow(window *Window, wndconfig *wndconfig, visual uintptr, de
 		if hintsPtr == 0 {
 			return fmt.Errorf("glfw: x11: failed to allocate size hints: %w", OutOfMemory)
 		}
-		hints := (*XSizeHints)(unsafe.Pointer(hintsPtr))
+		hints := (*_XSizeHints)(unsafe.Pointer(hintsPtr))
 
 		if !wndconfig.resizable {
-			hints.Flags |= PMinSize | PMaxSize
+			hints.Flags |= _PMinSize | _PMaxSize
 			hints.MinWidth = int32(width)
 			hints.MaxWidth = int32(width)
 			hints.MinHeight = int32(height)
 			hints.MaxHeight = int32(height)
 		}
 
-		hints.Flags |= PWinGravity
-		hints.WinGravity = StaticGravity
+		hints.Flags |= _PWinGravity
+		hints.WinGravity = _StaticGravity
 
 		xSetWMNormalHints(_glfw.platformWindow.display, window.platform.handle, hints)
 		xFree(hintsPtr)
@@ -736,7 +736,7 @@ func createNativeWindow(window *Window, wndconfig *wndconfig, visual uintptr, de
 
 		nameBytes := append([]byte(name), 0)
 		classBytes := append([]byte(class), 0)
-		hint := XClassHint{
+		hint := _XClassHint{
 			ResName:  uintptr(unsafe.Pointer(&nameBytes[0])),
 			ResClass: uintptr(unsafe.Pointer(&classBytes[0])),
 		}
@@ -748,10 +748,10 @@ func createNativeWindow(window *Window, wndconfig *wndconfig, visual uintptr, de
 
 	// Announce support for Xdnd (drag and drop)
 	{
-		version := Atom(_GLFW_XDND_VERSION)
+		version := _Atom(_GLFW_XDND_VERSION)
 		xChangeProperty(_glfw.platformWindow.display, window.platform.handle,
-			_glfw.platformWindow.XdndAware, XA_ATOM, 32,
-			PropModeReplace, unsafe.Pointer(&version), 1)
+			_glfw.platformWindow.XdndAware, _XA_ATOM, 32,
+			_PropModeReplace, unsafe.Pointer(&version), 1)
 	}
 
 	if err := window.platformSetWindowTitle(wndconfig.title); err != nil {
@@ -761,7 +761,7 @@ func createNativeWindow(window *Window, wndconfig *wndconfig, visual uintptr, de
 	if _glfw.platformWindow.im != 0 {
 		window.platform.ic = xCreateIC(_glfw.platformWindow.im,
 			"inputStyle",
-			XIMPreeditNothing|XIMStatusNothing,
+			_XIMPreeditNothing|_XIMStatusNothing,
 			"clientWindow",
 			window.platform.handle,
 			"focusWindow",
@@ -792,8 +792,8 @@ func createNativeWindow(window *Window, wndconfig *wndconfig, visual uintptr, de
 // writeTargetToProperty writes the selection string in the format of the
 // requested target and returns the property to reply with, or None when the
 // request cannot be satisfied.
-func writeTargetToProperty(request *XSelectionRequestEvent) Atom {
-	formats := []Atom{_glfw.platformWindow.UTF8_STRING, XA_STRING}
+func writeTargetToProperty(request *_XSelectionRequestEvent) _Atom {
+	formats := []_Atom{_glfw.platformWindow.UTF8_STRING, _XA_STRING}
 
 	selectionString := _glfw.platformWindow.clipboardString
 	if request.Selection == _glfw.platformWindow.PRIMARY {
@@ -805,28 +805,28 @@ func writeTargetToProperty(request *XSelectionRequestEvent) Atom {
 		selectionPtr = unsafe.Pointer(&selectionBytes[0])
 	}
 
-	if request.Property == None {
+	if request.Property == _None {
 		// The requester is a legacy client (ICCCM section 2.2)
 		// Legacy clients are not supported, so fail here
-		return None
+		return _None
 	}
 
 	if request.Target == _glfw.platformWindow.TARGETS {
 		// The list of supported targets was requested
 
-		targets := []Atom{
+		targets := []_Atom{
 			_glfw.platformWindow.TARGETS,
 			_glfw.platformWindow.MULTIPLE,
 			_glfw.platformWindow.UTF8_STRING,
-			XA_STRING,
+			_XA_STRING,
 		}
 
 		xChangeProperty(_glfw.platformWindow.display,
 			request.Requestor,
 			request.Property,
-			XA_ATOM,
+			_XA_ATOM,
 			32,
-			PropModeReplace,
+			_PropModeReplace,
 			unsafe.Pointer(&targets[0]),
 			int32(len(targets)))
 
@@ -842,9 +842,9 @@ func writeTargetToProperty(request *XSelectionRequestEvent) Atom {
 			_glfw.platformWindow.ATOM_PAIR,
 			&targetsPtr)
 
-		var targets []Atom
+		var targets []_Atom
 		if targetsPtr != 0 && count > 0 {
-			targets = unsafe.Slice((*Atom)(unsafe.Pointer(targetsPtr)), count)
+			targets = unsafe.Slice((*_Atom)(unsafe.Pointer(targetsPtr)), count)
 		}
 
 		for i := 0; i+1 < len(targets); i += 2 {
@@ -862,11 +862,11 @@ func writeTargetToProperty(request *XSelectionRequestEvent) Atom {
 					targets[i+1],
 					targets[i],
 					8,
-					PropModeReplace,
+					_PropModeReplace,
 					selectionPtr,
 					int32(len(selectionBytes)))
 			} else {
-				targets[i+1] = None
+				targets[i+1] = _None
 			}
 		}
 
@@ -875,7 +875,7 @@ func writeTargetToProperty(request *XSelectionRequestEvent) Atom {
 			request.Property,
 			_glfw.platformWindow.ATOM_PAIR,
 			32,
-			PropModeReplace,
+			_PropModeReplace,
 			unsafe.Pointer(targetsPtr),
 			int32(count))
 
@@ -895,7 +895,7 @@ func writeTargetToProperty(request *XSelectionRequestEvent) Atom {
 			request.Property,
 			_glfw.platformWindow.NULL_,
 			32,
-			PropModeReplace,
+			_PropModeReplace,
 			nil,
 			0)
 
@@ -913,7 +913,7 @@ func writeTargetToProperty(request *XSelectionRequestEvent) Atom {
 				request.Property,
 				request.Target,
 				8,
-				PropModeReplace,
+				_PropModeReplace,
 				selectionPtr,
 				int32(len(selectionBytes)))
 
@@ -923,16 +923,16 @@ func writeTargetToProperty(request *XSelectionRequestEvent) Atom {
 
 	// The requested target is not supported
 
-	return None
+	return _None
 }
 
 // handleSelectionRequest replies to a request to convert the selection.
-func handleSelectionRequest(event *XEvent) {
+func handleSelectionRequest(event *_XEvent) {
 	request := event.xselectionrequest()
 
-	var reply XEvent
+	var reply _XEvent
 	selection := reply.xselection()
-	selection.Type = SelectionNotify
+	selection.Type = _SelectionNotify
 	selection.Property = writeTargetToProperty(request)
 	selection.Display = request.Display
 	selection.Requestor = request.Requestor
@@ -944,7 +944,7 @@ func handleSelectionRequest(event *XEvent) {
 }
 
 // getSelectionString returns the string held by the specified selection.
-func getSelectionString(selection Atom) (string, error) {
+func getSelectionString(selection _Atom) (string, error) {
 	selectionString := &_glfw.platformWindow.clipboardString
 	if selection == _glfw.platformWindow.PRIMARY {
 		selectionString = &_glfw.platformWindow.primarySelectionString
@@ -964,24 +964,24 @@ func getSelectionString(selection Atom) (string, error) {
 	}
 
 	found := false
-	for _, target := range []Atom{_glfw.platformWindow.UTF8_STRING, XA_STRING} {
-		var notification, dummy XEvent
+	for _, target := range []_Atom{_glfw.platformWindow.UTF8_STRING, _XA_STRING} {
+		var notification, dummy _XEvent
 
 		xConvertSelection(_glfw.platformWindow.display,
 			selection,
 			target,
 			_glfw.platformWindow.GLFW_SELECTION,
 			_glfw.platformWindow.helperWindowHandle,
-			CurrentTime)
+			_CurrentTime)
 
 		for !xCheckTypedWindowEvent(_glfw.platformWindow.display,
 			_glfw.platformWindow.helperWindowHandle,
-			SelectionNotify,
+			_SelectionNotify,
 			&notification) {
 			waitForX11Event(nil)
 		}
 
-		if notification.xselection().Property == None {
+		if notification.xselection().Property == _None {
 			continue
 		}
 
@@ -992,7 +992,7 @@ func getSelectionString(selection Atom) (string, error) {
 			0)
 
 		var data uintptr
-		var actualType Atom
+		var actualType _Atom
 		var actualFormat int32
 		var itemCount, bytesAfter _Culong
 
@@ -1002,7 +1002,7 @@ func getSelectionString(selection Atom) (string, error) {
 			0,
 			math.MaxInt,
 			true,
-			AnyPropertyType,
+			_AnyPropertyType,
 			&actualType,
 			&actualFormat,
 			&itemCount,
@@ -1030,7 +1030,7 @@ func getSelectionString(selection Atom) (string, error) {
 					0,
 					math.MaxInt,
 					true,
-					AnyPropertyType,
+					_AnyPropertyType,
 					&actualType,
 					&actualFormat,
 					&itemCount,
@@ -1044,7 +1044,7 @@ func getSelectionString(selection Atom) (string, error) {
 
 				if itemCount == 0 {
 					if received {
-						if target == XA_STRING {
+						if target == _XA_STRING {
 							*selectionString = convertLatin1toUTF8(string(str))
 						} else {
 							*selectionString = string(str)
@@ -1056,7 +1056,7 @@ func getSelectionString(selection Atom) (string, error) {
 				}
 			}
 		} else if actualType == target {
-			if target == XA_STRING {
+			if target == _XA_STRING {
 				*selectionString = convertLatin1toUTF8(goString(data))
 			} else {
 				*selectionString = goString(data)
@@ -1091,7 +1091,7 @@ func acquireMonitor(window *Window) error {
 			&_glfw.platformWindow.saver.exposure)
 
 		// Disable screen saver
-		xSetScreenSaver(_glfw.platformWindow.display, 0, 0, DontPreferBlanking, DefaultExposures)
+		xSetScreenSaver(_glfw.platformWindow.display, 0, 0, _DontPreferBlanking, _DefaultExposures)
 	}
 
 	if window.monitor.window == nil {
@@ -1137,30 +1137,30 @@ func releaseMonitor(window *Window) {
 }
 
 // processEvent processes the specified X event.
-func processEvent(event *XEvent) error {
+func processEvent(event *_XEvent) error {
 	var keycode int
 	filtered := false
 
 	// HACK: Save scancode as some IMs clear the field in XFilterEvent
-	if event.EventType() == KeyPress || event.EventType() == KeyRelease {
+	if event.EventType() == _KeyPress || event.EventType() == _KeyRelease {
 		keycode = int(event.xkey().Keycode)
 	}
 
 	if _glfw.platformWindow.im != 0 {
-		filtered = xFilterEvent(event, None)
+		filtered = xFilterEvent(event, _None)
 	}
 
 	if _glfw.platformWindow.randr.available {
-		if event.EventType() == _glfw.platformWindow.randr.eventBase+RRNotify {
+		if event.EventType() == _glfw.platformWindow.randr.eventBase+_RRNotify {
 			_glfw.platformWindow.randr.UpdateConfiguration(event)
 			return pollMonitorsX11()
 		}
 	}
 
 	if _glfw.platformWindow.xkb.available {
-		if event.EventType() == _glfw.platformWindow.xkb.eventBase+XkbEventCode {
-			if event.xkbAny().XkbType == XkbStateNotify &&
-				event.xkbState().Changed&XkbGroupStateMask != 0 {
+		if event.EventType() == _glfw.platformWindow.xkb.eventBase+_XkbEventCode {
+			if event.xkbAny().XkbType == _XkbStateNotify &&
+				event.xkbState().Changed&_XkbGroupStateMask != 0 {
 				_glfw.platformWindow.xkb.group = uint32(event.xkbState().Group)
 			}
 
@@ -1168,7 +1168,7 @@ func processEvent(event *XEvent) error {
 		}
 	}
 
-	if event.EventType() == GenericEvent {
+	if event.EventType() == _GenericEvent {
 		if _glfw.platformWindow.xi.available {
 			window := _glfw.platformWindow.disabledCursorWindow
 			cookie := event.xcookie()
@@ -1177,8 +1177,8 @@ func processEvent(event *XEvent) error {
 				window.rawMouseMotion &&
 				cookie.Extension == _glfw.platformWindow.xi.majorOpcode &&
 				xGetEventData(_glfw.platformWindow.display, cookie) &&
-				cookie.Evtype == XI_RawMotion {
-				re := (*XIRawEvent)(unsafe.Pointer(cookie.Data))
+				cookie.Evtype == _XI_RawMotion {
+				re := (*_XIRawEvent)(unsafe.Pointer(cookie.Data))
 				if re.Valuators.MaskLen != 0 {
 					mask := unsafe.Slice((*byte)(unsafe.Pointer(re.Valuators.Mask)), re.Valuators.MaskLen)
 					values := re.RawValues
@@ -1204,7 +1204,7 @@ func processEvent(event *XEvent) error {
 		return nil
 	}
 
-	if event.EventType() == SelectionRequest {
+	if event.EventType() == _SelectionRequest {
 		handleSelectionRequest(event)
 		return nil
 	}
@@ -1216,11 +1216,11 @@ func processEvent(event *XEvent) error {
 	}
 
 	switch event.EventType() {
-	case ReparentNotify:
+	case _ReparentNotify:
 		window.platform.parent = event.xreparent().Parent
 		return nil
 
-	case KeyPress:
+	case _KeyPress:
 		key := translateKey(keycode)
 		mods := translateState(event.xkey().State)
 		plain := mods&(ModControl|ModAlt) == 0
@@ -1252,7 +1252,7 @@ func processEvent(event *XEvent) error {
 					chars, int32(len(buffer)-1),
 					nil, &status)
 
-				if status == XBufferOverflow {
+				if status == _XBufferOverflow {
 					chars = make([]byte, count+1)
 					count = xutf8LookupString(window.platform.ic,
 						event.xkey(),
@@ -1260,14 +1260,14 @@ func processEvent(event *XEvent) error {
 						nil, &status)
 				}
 
-				if status == XLookupChars || status == XLookupBoth {
+				if status == _XLookupChars || status == _XLookupBoth {
 					for _, codepoint := range string(chars[:count]) {
 						window.inputChar(codepoint, mods, plain)
 					}
 				}
 			}
 		} else {
-			var keysym KeySym
+			var keysym _KeySym
 			xLookupString(event.xkey(), nil, 0, &keysym, 0)
 
 			window.inputKey(key, keycode, Press, mods)
@@ -1279,7 +1279,7 @@ func processEvent(event *XEvent) error {
 
 		return nil
 
-	case KeyRelease:
+	case _KeyRelease:
 		key := translateKey(keycode)
 		mods := translateState(event.xkey().State)
 
@@ -1288,11 +1288,11 @@ func processEvent(event *XEvent) error {
 			//       pairs with similar or identical time stamps
 			//       The key repeat logic in inputKey expects only key
 			//       presses to repeat, so detect and discard release events
-			if xEventsQueued(_glfw.platformWindow.display, QueuedAfterReading) != 0 {
-				var next XEvent
+			if xEventsQueued(_glfw.platformWindow.display, _QueuedAfterReading) != 0 {
+				var next _XEvent
 				xPeekEvent(_glfw.platformWindow.display, &next)
 
-				if next.EventType() == KeyPress &&
+				if next.EventType() == _KeyPress &&
 					next.xkey().Window == event.xkey().Window &&
 					int(next.xkey().Keycode) == keycode {
 					// HACK: The time of repeat events sometimes doesn't
@@ -1314,58 +1314,58 @@ func processEvent(event *XEvent) error {
 		window.inputKey(key, keycode, Release, mods)
 		return nil
 
-	case ButtonPress:
+	case _ButtonPress:
 		mods := translateState(event.xbutton().State)
 
 		switch event.xbutton().Button {
-		case Button1:
+		case _Button1:
 			window.inputMouseClick(MouseButtonLeft, Press, mods)
-		case Button2:
+		case _Button2:
 			window.inputMouseClick(MouseButtonMiddle, Press, mods)
-		case Button3:
+		case _Button3:
 			window.inputMouseClick(MouseButtonRight, Press, mods)
 
 		// Modern X provides scroll events as mouse button presses
-		case Button4:
+		case _Button4:
 			window.inputScroll(0, 1)
-		case Button5:
+		case _Button5:
 			window.inputScroll(0, -1)
-		case Button6:
+		case _Button6:
 			window.inputScroll(1, 0)
-		case Button7:
+		case _Button7:
 			window.inputScroll(-1, 0)
 
 		default:
 			// Additional buttons after 7 are treated as regular buttons
 			// The gap left by the scroll input above is filled by
 			// subtracting 4
-			window.inputMouseClick(MouseButton(int(event.xbutton().Button)-Button1-4),
+			window.inputMouseClick(MouseButton(int(event.xbutton().Button)-_Button1-4),
 				Press, mods)
 		}
 
 		return nil
 
-	case ButtonRelease:
+	case _ButtonRelease:
 		mods := translateState(event.xbutton().State)
 
 		switch {
-		case event.xbutton().Button == Button1:
+		case event.xbutton().Button == _Button1:
 			window.inputMouseClick(MouseButtonLeft, Release, mods)
-		case event.xbutton().Button == Button2:
+		case event.xbutton().Button == _Button2:
 			window.inputMouseClick(MouseButtonMiddle, Release, mods)
-		case event.xbutton().Button == Button3:
+		case event.xbutton().Button == _Button3:
 			window.inputMouseClick(MouseButtonRight, Release, mods)
-		case event.xbutton().Button > Button7:
+		case event.xbutton().Button > _Button7:
 			// Additional buttons after 7 are treated as regular buttons
 			// The gap left by the scroll input above is filled by
 			// subtracting 4
-			window.inputMouseClick(MouseButton(int(event.xbutton().Button)-Button1-4),
+			window.inputMouseClick(MouseButton(int(event.xbutton().Button)-_Button1-4),
 				Release, mods)
 		}
 
 		return nil
 
-	case EnterNotify:
+	case _EnterNotify:
 		// XEnterWindowEvent is XCrossingEvent
 		x := int(event.xcrossing().X)
 		y := int(event.xcrossing().Y)
@@ -1383,11 +1383,11 @@ func processEvent(event *XEvent) error {
 		window.platform.lastCursorPosY = y
 		return nil
 
-	case LeaveNotify:
+	case _LeaveNotify:
 		window.inputCursorEnter(false)
 		return nil
 
-	case MotionNotify:
+	case _MotionNotify:
 		x := int(event.xmotion().X)
 		y := int(event.xmotion().Y)
 
@@ -1417,7 +1417,7 @@ func processEvent(event *XEvent) error {
 		window.platform.lastCursorPosY = y
 		return nil
 
-	case ConfigureNotify:
+	case _ConfigureNotify:
 		if int(event.xconfigure().Width) != window.platform.width ||
 			int(event.xconfigure().Height) != window.platform.height {
 			window.platform.width = int(event.xconfigure().Width)
@@ -1439,7 +1439,7 @@ func processEvent(event *XEvent) error {
 		if event.xany().SendEvent == 0 && window.platform.parent != _glfw.platformWindow.root {
 			grabErrorHandlerX11()
 
-			var dummy XID
+			var dummy _XID
 			xTranslateCoordinates(_glfw.platformWindow.display,
 				window.platform.parent,
 				_glfw.platformWindow.root,
@@ -1448,7 +1448,7 @@ func processEvent(event *XEvent) error {
 				&dummy)
 
 			releaseErrorHandlerX11()
-			if _glfw.platformWindow.errorCode == BadWindow {
+			if _glfw.platformWindow.errorCode == _BadWindow {
 				return nil
 			}
 		}
@@ -1462,7 +1462,7 @@ func processEvent(event *XEvent) error {
 
 		return nil
 
-	case ClientMessage:
+	case _ClientMessage:
 		// Custom client message, probably from the window manager
 
 		if filtered {
@@ -1471,13 +1471,13 @@ func processEvent(event *XEvent) error {
 
 		client := event.xclient()
 
-		if client.MessageType == None {
+		if client.MessageType == _None {
 			return nil
 		}
 
 		if client.MessageType == _glfw.platformWindow.WM_PROTOCOLS {
-			protocol := Atom(client.Data[0])
-			if protocol == None {
+			protocol := _Atom(client.Data[0])
+			if protocol == _None {
 				return nil
 			}
 
@@ -1495,34 +1495,34 @@ func processEvent(event *XEvent) error {
 
 				xSendEvent(_glfw.platformWindow.display, _glfw.platformWindow.root,
 					false,
-					SubstructureNotifyMask|SubstructureRedirectMask,
+					_SubstructureNotifyMask|_SubstructureRedirectMask,
 					&reply)
 			}
 		} else if client.MessageType == _glfw.platformWindow.XdndEnter {
 			// A drag operation has entered the window
 			list := client.Data[1]&1 != 0
 
-			_glfw.platformWindow.xdnd.source = XID(client.Data[0])
+			_glfw.platformWindow.xdnd.source = _XID(client.Data[0])
 			_glfw.platformWindow.xdnd.version = client.Data[1] >> 24
-			_glfw.platformWindow.xdnd.format = None
+			_glfw.platformWindow.xdnd.format = _None
 
 			if _glfw.platformWindow.xdnd.version > _GLFW_XDND_VERSION {
 				return nil
 			}
 
-			var formats []Atom
+			var formats []_Atom
 			var formatsPtr uintptr
 
 			if list {
 				count := getWindowPropertyX11(_glfw.platformWindow.xdnd.source,
 					_glfw.platformWindow.XdndTypeList,
-					XA_ATOM,
+					_XA_ATOM,
 					&formatsPtr)
 				if formatsPtr != 0 && count > 0 {
-					formats = unsafe.Slice((*Atom)(unsafe.Pointer(formatsPtr)), count)
+					formats = unsafe.Slice((*_Atom)(unsafe.Pointer(formatsPtr)), count)
 				}
 			} else {
-				formats = []Atom{Atom(client.Data[2]), Atom(client.Data[3]), Atom(client.Data[4])}
+				formats = []_Atom{_Atom(client.Data[2]), _Atom(client.Data[3]), _Atom(client.Data[4])}
 			}
 
 			for _, format := range formats {
@@ -1537,15 +1537,15 @@ func processEvent(event *XEvent) error {
 			}
 		} else if client.MessageType == _glfw.platformWindow.XdndDrop {
 			// The drag operation has finished by dropping on the window
-			time := CurrentTime
+			time := _CurrentTime
 
 			if _glfw.platformWindow.xdnd.version > _GLFW_XDND_VERSION {
 				return nil
 			}
 
-			if _glfw.platformWindow.xdnd.format != None {
+			if _glfw.platformWindow.xdnd.format != _None {
 				if _glfw.platformWindow.xdnd.version >= 1 {
-					time = Time(client.Data[2])
+					time = _Time(client.Data[2])
 				}
 
 				// Request the chosen format from the source window
@@ -1556,18 +1556,18 @@ func processEvent(event *XEvent) error {
 					window.platform.handle,
 					time)
 			} else if _glfw.platformWindow.xdnd.version >= 2 {
-				var reply XEvent
+				var reply _XEvent
 				replyClient := reply.xclient()
-				replyClient.Type = ClientMessage
+				replyClient.Type = _ClientMessage
 				replyClient.Window = _glfw.platformWindow.xdnd.source
 				replyClient.MessageType = _glfw.platformWindow.XdndFinished
 				replyClient.Format = 32
 				replyClient.Data[0] = _Clong(window.platform.handle)
 				replyClient.Data[1] = 0 // The drag was rejected
-				replyClient.Data[2] = None
+				replyClient.Data[2] = _None
 
 				xSendEvent(_glfw.platformWindow.display, _glfw.platformWindow.xdnd.source,
-					false, NoEventMask, &reply)
+					false, _NoEventMask, &reply)
 				xFlush(_glfw.platformWindow.display)
 			}
 		} else if client.MessageType == _glfw.platformWindow.XdndPosition {
@@ -1579,7 +1579,7 @@ func processEvent(event *XEvent) error {
 				return nil
 			}
 
-			var dummy XID
+			var dummy _XID
 			var xpos, ypos int32
 			xTranslateCoordinates(_glfw.platformWindow.display,
 				_glfw.platformWindow.root,
@@ -1590,9 +1590,9 @@ func processEvent(event *XEvent) error {
 
 			window.inputCursorPos(float64(xpos), float64(ypos))
 
-			var reply XEvent
+			var reply _XEvent
 			replyClient := reply.xclient()
-			replyClient.Type = ClientMessage
+			replyClient.Type = _ClientMessage
 			replyClient.Window = _glfw.platformWindow.xdnd.source
 			replyClient.MessageType = _glfw.platformWindow.XdndStatus
 			replyClient.Format = 32
@@ -1600,7 +1600,7 @@ func processEvent(event *XEvent) error {
 			replyClient.Data[2] = 0 // Specify an empty rectangle
 			replyClient.Data[3] = 0
 
-			if _glfw.platformWindow.xdnd.format != None {
+			if _glfw.platformWindow.xdnd.format != _None {
 				// Reply that we are ready to copy the dragged data
 				replyClient.Data[1] = 1 // Accept with no rectangle
 				if _glfw.platformWindow.xdnd.version >= 2 {
@@ -1609,13 +1609,13 @@ func processEvent(event *XEvent) error {
 			}
 
 			xSendEvent(_glfw.platformWindow.display, _glfw.platformWindow.xdnd.source,
-				false, NoEventMask, &reply)
+				false, _NoEventMask, &reply)
 			xFlush(_glfw.platformWindow.display)
 		}
 
 		return nil
 
-	case SelectionNotify:
+	case _SelectionNotify:
 		if event.xselection().Property == _glfw.platformWindow.XdndSelection {
 			// The converted data from the drag operation has arrived
 			var data uintptr
@@ -1633,9 +1633,9 @@ func processEvent(event *XEvent) error {
 			}
 
 			if _glfw.platformWindow.xdnd.version >= 2 {
-				var reply XEvent
+				var reply _XEvent
 				replyClient := reply.xclient()
-				replyClient.Type = ClientMessage
+				replyClient.Type = _ClientMessage
 				replyClient.Window = _glfw.platformWindow.xdnd.source
 				replyClient.MessageType = _glfw.platformWindow.XdndFinished
 				replyClient.Format = 32
@@ -1644,16 +1644,16 @@ func processEvent(event *XEvent) error {
 				replyClient.Data[2] = _Clong(_glfw.platformWindow.XdndActionCopy)
 
 				xSendEvent(_glfw.platformWindow.display, _glfw.platformWindow.xdnd.source,
-					false, NoEventMask, &reply)
+					false, _NoEventMask, &reply)
 				xFlush(_glfw.platformWindow.display)
 			}
 		}
 
 		return nil
 
-	case FocusIn:
-		if event.xfocus().Mode == NotifyGrab ||
-			event.xfocus().Mode == NotifyUngrab {
+	case _FocusIn:
+		if event.xfocus().Mode == _NotifyGrab ||
+			event.xfocus().Mode == _NotifyUngrab {
 			// Ignore focus events from popup indicator windows, window menu
 			// key chords and window dragging
 			return nil
@@ -1672,9 +1672,9 @@ func processEvent(event *XEvent) error {
 		window.inputWindowFocus(true)
 		return nil
 
-	case FocusOut:
-		if event.xfocus().Mode == NotifyGrab ||
-			event.xfocus().Mode == NotifyUngrab {
+	case _FocusOut:
+		if event.xfocus().Mode == _NotifyGrab ||
+			event.xfocus().Mode == _NotifyUngrab {
 			// Ignore focus events from popup indicator windows, window menu
 			// key chords and window dragging
 			return nil
@@ -1697,22 +1697,22 @@ func processEvent(event *XEvent) error {
 		window.inputWindowFocus(false)
 		return nil
 
-	case Expose:
+	case _Expose:
 		window.inputWindowDamage()
 		return nil
 
-	case PropertyNotify:
-		if event.xproperty().State != PropertyNewValue {
+	case _PropertyNotify:
+		if event.xproperty().State != _PropertyNewValue {
 			return nil
 		}
 
 		if event.xproperty().Atom == _glfw.platformWindow.WM_STATE {
 			state := getWindowState(window)
-			if state != IconicState && state != NormalState {
+			if state != _IconicState && state != _NormalState {
 				return nil
 			}
 
-			iconified := state == IconicState
+			iconified := state == _IconicState
 			if window.platform.iconified != iconified {
 				if window.monitor != nil {
 					if iconified {
@@ -1737,7 +1737,7 @@ func processEvent(event *XEvent) error {
 
 		return nil
 
-	case DestroyNotify:
+	case _DestroyNotify:
 		return nil
 	}
 
@@ -1747,8 +1747,8 @@ func processEvent(event *XEvent) error {
 // getWindowPropertyX11 retrieves a single window property of the specified
 // type. The returned data must be released with xFree.
 // Inspired by fghGetWindowProperty from freeglut
-func getWindowPropertyX11(window XID, property Atom, typ Atom, value *uintptr) _Culong {
-	var actualType Atom
+func getWindowPropertyX11(window _XID, property _Atom, typ _Atom, value *uintptr) _Culong {
+	var actualType _Atom
 	var actualFormat int32
 	var itemCount, bytesAfter _Culong
 
@@ -1779,7 +1779,7 @@ func isVisualTransparentX11(visual uintptr) bool {
 	if pfPtr == 0 {
 		return false
 	}
-	return (*XRenderPictFormat)(unsafe.Pointer(pfPtr)).Direct.AlphaMask != 0
+	return (*_XRenderPictFormat)(unsafe.Pointer(pfPtr)).Direct.AlphaMask != 0
 }
 
 // pushSelectionToManagerX11 transfers the owned selections to the clipboard
@@ -1788,23 +1788,23 @@ func pushSelectionToManagerX11() {
 	xConvertSelection(_glfw.platformWindow.display,
 		_glfw.platformWindow.CLIPBOARD_MANAGER,
 		_glfw.platformWindow.SAVE_TARGETS,
-		None,
+		_None,
 		_glfw.platformWindow.helperWindowHandle,
-		CurrentTime)
+		_CurrentTime)
 
 	if isSelectionEventCallback == 0 {
 		isSelectionEventCallback = purego.NewCallback(isSelectionEvent)
 	}
 
 	for {
-		var event XEvent
+		var event _XEvent
 
 		for xCheckIfEvent(_glfw.platformWindow.display, &event, isSelectionEventCallback, 0) {
 			switch event.EventType() {
-			case SelectionRequest:
+			case _SelectionRequest:
 				handleSelectionRequest(&event)
 
-			case SelectionNotify:
+			case _SelectionNotify:
 				if event.xselection().Target == _glfw.platformWindow.SAVE_TARGETS {
 					// This means one of two things; either the selection
 					// was not owned, which means there is no clipboard
@@ -1961,12 +1961,12 @@ func (w *Window) platformSetWindowTitle(title string) error {
 
 	xChangeProperty(_glfw.platformWindow.display, w.platform.handle,
 		_glfw.platformWindow.NET_WM_NAME, _glfw.platformWindow.UTF8_STRING, 8,
-		PropModeReplace,
+		_PropModeReplace,
 		titlePtr, int32(len(titleBytes)))
 
 	xChangeProperty(_glfw.platformWindow.display, w.platform.handle,
 		_glfw.platformWindow.NET_WM_ICON_NAME, _glfw.platformWindow.UTF8_STRING, 8,
-		PropModeReplace,
+		_PropModeReplace,
 		titlePtr, int32(len(titleBytes)))
 
 	xFlush(_glfw.platformWindow.display)
@@ -2002,8 +2002,8 @@ func (w *Window) platformSetWindowIcon(images []*Image) error {
 		//       before sending it over the wire.
 		xChangeProperty(_glfw.platformWindow.display, w.platform.handle,
 			_glfw.platformWindow.NET_WM_ICON,
-			XA_CARDINAL, 32,
-			PropModeReplace,
+			_XA_CARDINAL, 32,
+			_PropModeReplace,
 			unsafe.Pointer(&icon[0]),
 			int32(len(icon)))
 	} else {
@@ -2016,7 +2016,7 @@ func (w *Window) platformSetWindowIcon(images []*Image) error {
 }
 
 func (w *Window) platformGetWindowPos() (xpos, ypos int, err error) {
-	var dummy XID
+	var dummy _XID
 	var x, y int32
 
 	xTranslateCoordinates(_glfw.platformWindow.display, w.platform.handle, _glfw.platformWindow.root,
@@ -2031,10 +2031,10 @@ func (w *Window) platformSetWindowPos(xpos, ypos int) error {
 	if !w.platformWindowVisible() {
 		var supplied _Clong
 		hintsPtr := xAllocSizeHints()
-		hints := (*XSizeHints)(unsafe.Pointer(hintsPtr))
+		hints := (*_XSizeHints)(unsafe.Pointer(hintsPtr))
 
 		if xGetWMNormalHints(_glfw.platformWindow.display, w.platform.handle, hints, &supplied) != 0 {
-			hints.Flags |= PPosition
+			hints.Flags |= _PPosition
 			hints.X = 0
 			hints.Y = 0
 
@@ -2050,7 +2050,7 @@ func (w *Window) platformSetWindowPos(xpos, ypos int) error {
 }
 
 func (w *Window) platformGetWindowSize() (width, height int, err error) {
-	var attribs XWindowAttributes
+	var attribs _XWindowAttributes
 	xGetWindowAttributes(_glfw.platformWindow.display, w.platform.handle, &attribs)
 
 	return int(attribs.Width), int(attribs.Height), nil
@@ -2104,12 +2104,12 @@ func (w *Window) platformGetWindowFrameSize() (left, top, right, bottom int, err
 		return 0, 0, 0, 0, nil
 	}
 
-	if _glfw.platformWindow.NET_FRAME_EXTENTS == None {
+	if _glfw.platformWindow.NET_FRAME_EXTENTS == _None {
 		return 0, 0, 0, 0, nil
 	}
 
 	if !w.platformWindowVisible() && _glfw.platformWindow.NET_REQUEST_FRAME_EXTENTS != 0 {
-		var event XEvent
+		var event _XEvent
 		timeout := 0.5
 
 		// Ensure _NET_FRAME_EXTENTS is set, allowing glfwGetWindowFrameSize to
@@ -2137,7 +2137,7 @@ func (w *Window) platformGetWindowFrameSize() (left, top, right, bottom int, err
 	var extentsPtr uintptr
 	if getWindowPropertyX11(w.platform.handle,
 		_glfw.platformWindow.NET_FRAME_EXTENTS,
-		XA_CARDINAL,
+		_XA_CARDINAL,
 		&extentsPtr) == 4 {
 		extents := unsafe.Slice((*_Clong)(unsafe.Pointer(extentsPtr)), 4)
 		left = int(extents[0])
@@ -2212,19 +2212,19 @@ func (w *Window) platformMaximizeWindow() error {
 		var statesPtr uintptr
 		count := getWindowPropertyX11(w.platform.handle,
 			_glfw.platformWindow.NET_WM_STATE,
-			XA_ATOM,
+			_XA_ATOM,
 			&statesPtr)
 
 		// NOTE: We don't check for failure as this property may not exist yet
 		//       and that's fine (and we'll create it implicitly with append)
 
-		missing := []Atom{
+		missing := []_Atom{
 			_glfw.platformWindow.NET_WM_STATE_MAXIMIZED_VERT,
 			_glfw.platformWindow.NET_WM_STATE_MAXIMIZED_HORZ,
 		}
 
 		if statesPtr != 0 {
-			states := unsafe.Slice((*Atom)(unsafe.Pointer(statesPtr)), int(count))
+			states := unsafe.Slice((*_Atom)(unsafe.Pointer(statesPtr)), int(count))
 			for _, state := range states {
 				for j := 0; j < len(missing); j++ {
 					if state == missing[j] {
@@ -2242,8 +2242,8 @@ func (w *Window) platformMaximizeWindow() error {
 		}
 
 		xChangeProperty(_glfw.platformWindow.display, w.platform.handle,
-			_glfw.platformWindow.NET_WM_STATE, XA_ATOM, 32,
-			PropModeAppend,
+			_glfw.platformWindow.NET_WM_STATE, _XA_ATOM, 32,
+			_PropModeAppend,
 			unsafe.Pointer(&missing[0]),
 			int32(len(missing)))
 	}
@@ -2283,7 +2283,7 @@ func (w *Window) platformFocusWindow() error {
 		sendEventToWM(w, _glfw.platformWindow.NET_ACTIVE_WINDOW, 1, 0, 0, 0, 0)
 	} else if w.platformWindowVisible() {
 		xRaiseWindow(_glfw.platformWindow.display, w.platform.handle)
-		xSetInputFocus(_glfw.platformWindow.display, w.platform.handle, RevertToParent, CurrentTime)
+		xSetInputFocus(_glfw.platformWindow.display, w.platform.handle, _RevertToParent, _CurrentTime)
 	}
 
 	xFlush(_glfw.platformWindow.display)
@@ -2345,7 +2345,7 @@ func (w *Window) platformSetWindowMonitor(monitor *Monitor, xpos, ypos, width, h
 }
 
 func (w *Window) platformWindowFocused() bool {
-	var focused XID
+	var focused _XID
 	var state int32
 
 	xGetInputFocus(_glfw.platformWindow.display, &focused, &state)
@@ -2353,13 +2353,13 @@ func (w *Window) platformWindowFocused() bool {
 }
 
 func (w *Window) platformWindowIconified() bool {
-	return getWindowState(w) == IconicState
+	return getWindowState(w) == _IconicState
 }
 
 func (w *Window) platformWindowVisible() bool {
-	var wa XWindowAttributes
+	var wa _XWindowAttributes
 	xGetWindowAttributes(_glfw.platformWindow.display, w.platform.handle, &wa)
-	return wa.MapState == IsViewable
+	return wa.MapState == _IsViewable
 }
 
 func (w *Window) platformWindowMaximized() bool {
@@ -2372,12 +2372,12 @@ func (w *Window) platformWindowMaximized() bool {
 	var statesPtr uintptr
 	count := getWindowPropertyX11(w.platform.handle,
 		_glfw.platformWindow.NET_WM_STATE,
-		XA_ATOM,
+		_XA_ATOM,
 		&statesPtr)
 
 	maximized := false
 	if statesPtr != 0 {
-		states := unsafe.Slice((*Atom)(unsafe.Pointer(statesPtr)), int(count))
+		states := unsafe.Slice((*_Atom)(unsafe.Pointer(statesPtr)), int(count))
 		for _, state := range states {
 			if state == _glfw.platformWindow.NET_WM_STATE_MAXIMIZED_VERT ||
 				state == _glfw.platformWindow.NET_WM_STATE_MAXIMIZED_HORZ {
@@ -2395,7 +2395,7 @@ func (w *Window) platformWindowMaximized() bool {
 func (w *Window) platformWindowHovered() (bool, error) {
 	window := _glfw.platformWindow.root
 	for window != 0 {
-		var root, child XID
+		var root, child _XID
 		var rootX, rootY, childX, childY int32
 		var mask uint32
 
@@ -2407,7 +2407,7 @@ func (w *Window) platformWindowHovered() (bool, error) {
 
 		releaseErrorHandlerX11()
 
-		if _glfw.platformWindow.errorCode == BadWindow {
+		if _glfw.platformWindow.errorCode == _BadWindow {
 			window = _glfw.platformWindow.root
 		} else if !result {
 			return false, nil
@@ -2426,7 +2426,7 @@ func (w *Window) platformFramebufferTransparent() bool {
 		return false
 	}
 
-	return xGetSelectionOwner(_glfw.platformWindow.display, _glfw.platformWindow.NET_WM_CM_Sx) != None
+	return xGetSelectionOwner(_glfw.platformWindow.display, _glfw.platformWindow.NET_WM_CM_Sx) != _None
 }
 
 func (w *Window) platformSetWindowResizable(enabled bool) error {
@@ -2462,15 +2462,15 @@ func (w *Window) platformSetWindowFloating(enabled bool) error {
 		var statesPtr uintptr
 		count := getWindowPropertyX11(w.platform.handle,
 			_glfw.platformWindow.NET_WM_STATE,
-			XA_ATOM,
+			_XA_ATOM,
 			&statesPtr)
 
 		// NOTE: We don't check for failure as this property may not exist yet
 		//       and that's fine (and we'll create it implicitly with append)
 
-		var states []Atom
+		var states []_Atom
 		if statesPtr != 0 {
-			states = unsafe.Slice((*Atom)(unsafe.Pointer(statesPtr)), int(count))
+			states = unsafe.Slice((*_Atom)(unsafe.Pointer(statesPtr)), int(count))
 		}
 
 		if enabled {
@@ -2484,8 +2484,8 @@ func (w *Window) platformSetWindowFloating(enabled bool) error {
 			if i == len(states) {
 				above := _glfw.platformWindow.NET_WM_STATE_ABOVE
 				xChangeProperty(_glfw.platformWindow.display, w.platform.handle,
-					_glfw.platformWindow.NET_WM_STATE, XA_ATOM, 32,
-					PropModeAppend,
+					_glfw.platformWindow.NET_WM_STATE, _XA_ATOM, 32,
+					_PropModeAppend,
 					unsafe.Pointer(&above),
 					1)
 			}
@@ -2506,8 +2506,8 @@ func (w *Window) platformSetWindowFloating(enabled bool) error {
 					statesHead = unsafe.Pointer(&states[0])
 				}
 				xChangeProperty(_glfw.platformWindow.display, w.platform.handle,
-					_glfw.platformWindow.NET_WM_STATE, XA_ATOM, 32,
-					PropModeReplace, statesHead, int32(len(states)))
+					_glfw.platformWindow.NET_WM_STATE, _XA_ATOM, 32,
+					_PropModeReplace, statesHead, int32(len(states)))
 			}
 		}
 
@@ -2528,11 +2528,11 @@ func (w *Window) platformSetWindowMousePassthrough(enabled bool) error {
 	if enabled {
 		region := xCreateRegion()
 		_glfw.platformWindow.xshape.CombineRegion(_glfw.platformWindow.display, w.platform.handle,
-			ShapeInput, 0, 0, region, ShapeSet)
+			_ShapeInput, 0, 0, region, _ShapeSet)
 		xDestroyRegion(region)
 	} else {
 		_glfw.platformWindow.xshape.CombineMask(_glfw.platformWindow.display, w.platform.handle,
-			ShapeInput, 0, 0, None, ShapeSet)
+			_ShapeInput, 0, 0, _None, _ShapeSet)
 	}
 	return nil
 }
@@ -2544,7 +2544,7 @@ func (w *Window) platformGetWindowOpacity() (float32, error) {
 		var valuePtr uintptr
 		if getWindowPropertyX11(w.platform.handle,
 			_glfw.platformWindow.NET_WM_WINDOW_OPACITY,
-			XA_CARDINAL,
+			_XA_CARDINAL,
 			&valuePtr) != 0 {
 			value := uint32(*(*_Culong)(unsafe.Pointer(valuePtr)))
 			opacity = float32(float64(value) / 0xffffffff)
@@ -2561,8 +2561,8 @@ func (w *Window) platformGetWindowOpacity() (float32, error) {
 func (w *Window) platformSetWindowOpacity(opacity float32) error {
 	value := _Culong(0xffffffff * float64(opacity))
 	xChangeProperty(_glfw.platformWindow.display, w.platform.handle,
-		_glfw.platformWindow.NET_WM_WINDOW_OPACITY, XA_CARDINAL, 32,
-		PropModeReplace, unsafe.Pointer(&value), 1)
+		_glfw.platformWindow.NET_WM_WINDOW_OPACITY, _XA_CARDINAL, 32,
+		_PropModeReplace, unsafe.Pointer(&value), 1)
 	return nil
 }
 
@@ -2593,7 +2593,7 @@ func platformPollEvents() error {
 	xPending(_glfw.platformWindow.display)
 
 	for xQLength(_glfw.platformWindow.display) != 0 {
-		var event XEvent
+		var event _XEvent
 		xNextEvent(_glfw.platformWindow.display, &event)
 		if err := processEvent(&event); err != nil {
 			return err
@@ -2636,7 +2636,7 @@ func platformPostEmptyEvent() error {
 }
 
 func (w *Window) platformGetCursorPos() (xpos, ypos float64, err error) {
-	var root, child XID
+	var root, child _XID
 	var rootX, rootY, childX, childY int32
 	var mask uint32
 
@@ -2653,7 +2653,7 @@ func (w *Window) platformSetCursorPos(xpos, ypos float64) error {
 	w.platform.warpCursorPosX = int(xpos)
 	w.platform.warpCursorPosY = int(ypos)
 
-	xWarpPointer(_glfw.platformWindow.display, None, w.platform.handle,
+	xWarpPointer(_glfw.platformWindow.display, _None, w.platform.handle,
 		0, 0, 0, 0, int32(xpos), int32(ypos))
 	xFlush(_glfw.platformWindow.display)
 	return nil
@@ -2718,7 +2718,7 @@ func platformGetScancodeName(scancode int) (string, error) {
 
 	keysym := xkbKeycodeToKeysym(_glfw.platformWindow.display,
 		uint32(scancode), int32(_glfw.platformWindow.xkb.group), 0)
-	if keysym == NoSymbol {
+	if keysym == _NoSymbol {
 		return "", nil
 	}
 
@@ -2750,7 +2750,7 @@ func (c *Cursor) platformCreateCursor(img *image.NRGBA, xhot, yhot int) error {
 	}
 
 	c.platform.handle = createCursorX11(&Image{Width: w, Height: h, Pixels: pixels}, xhot, yhot)
-	if c.platform.handle == None {
+	if c.platform.handle == _None {
 		return fmt.Errorf("glfw: x11: failed to create cursor: %w", PlatformError)
 	}
 
@@ -2797,24 +2797,24 @@ func (c *Cursor) platformCreateStandardCursor(shape StandardCursor) error {
 		}
 	}
 
-	if c.platform.handle == None {
+	if c.platform.handle == _None {
 		var native uint32
 
 		switch shape {
 		case ArrowCursor:
-			native = XC_left_ptr
+			native = _XC_left_ptr
 		case IBeamCursor:
-			native = XC_xterm
+			native = _XC_xterm
 		case CrosshairCursor:
-			native = XC_crosshair
+			native = _XC_crosshair
 		case HandCursor:
-			native = XC_hand2
+			native = _XC_hand2
 		case HResizeCursor:
-			native = XC_sb_h_double_arrow
+			native = _XC_sb_h_double_arrow
 		case VResizeCursor:
-			native = XC_sb_v_double_arrow
+			native = _XC_sb_v_double_arrow
 		case ResizeAllCursor:
-			native = XC_fleur
+			native = _XC_fleur
 		default:
 			// An unavailable shape is deliberately not an error: callers
 			// fall back to the default cursor (#2476).
@@ -2822,7 +2822,7 @@ func (c *Cursor) platformCreateStandardCursor(shape StandardCursor) error {
 		}
 
 		c.platform.handle = xCreateFontCursor(_glfw.platformWindow.display, native)
-		if c.platform.handle == None {
+		if c.platform.handle == _None {
 			return fmt.Errorf("glfw: x11: failed to create standard cursor: %w", PlatformError)
 		}
 	}
@@ -2831,7 +2831,7 @@ func (c *Cursor) platformCreateStandardCursor(shape StandardCursor) error {
 }
 
 func (c *Cursor) platformDestroyCursor() error {
-	if c.platform.handle != None {
+	if c.platform.handle != _None {
 		xFreeCursor(_glfw.platformWindow.display, c.platform.handle)
 	}
 	return nil
@@ -2851,7 +2851,7 @@ func platformSetClipboardString(str string) error {
 	xSetSelectionOwner(_glfw.platformWindow.display,
 		_glfw.platformWindow.CLIPBOARD,
 		_glfw.platformWindow.helperWindowHandle,
-		CurrentTime)
+		_CurrentTime)
 
 	if xGetSelectionOwner(_glfw.platformWindow.display, _glfw.platformWindow.CLIPBOARD) !=
 		_glfw.platformWindow.helperWindowHandle {

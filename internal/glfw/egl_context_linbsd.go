@@ -19,35 +19,35 @@ import (
 // getEGLErrorString returns a description of the specified EGL error.
 func getEGLErrorString(err int32) string {
 	switch err {
-	case EGL_SUCCESS:
+	case _EGL_SUCCESS:
 		return "Success"
-	case EGL_NOT_INITIALIZED:
+	case _EGL_NOT_INITIALIZED:
 		return "EGL is not or could not be initialized"
-	case EGL_BAD_ACCESS:
+	case _EGL_BAD_ACCESS:
 		return "EGL cannot access a requested resource"
-	case EGL_BAD_ALLOC:
+	case _EGL_BAD_ALLOC:
 		return "EGL failed to allocate resources for the requested operation"
-	case EGL_BAD_ATTRIBUTE:
+	case _EGL_BAD_ATTRIBUTE:
 		return "An unrecognized attribute or attribute value was passed in the attribute list"
-	case EGL_BAD_CONTEXT:
+	case _EGL_BAD_CONTEXT:
 		return "An EGLContext argument does not name a valid EGL rendering context"
-	case EGL_BAD_CONFIG:
+	case _EGL_BAD_CONFIG:
 		return "An EGLConfig argument does not name a valid EGL frame buffer configuration"
-	case EGL_BAD_CURRENT_SURFACE:
+	case _EGL_BAD_CURRENT_SURFACE:
 		return "The current surface of the calling thread is a window, pixel buffer or pixmap that is no longer valid"
-	case EGL_BAD_DISPLAY:
+	case _EGL_BAD_DISPLAY:
 		return "An EGLDisplay argument does not name a valid EGL display connection"
-	case EGL_BAD_SURFACE:
+	case _EGL_BAD_SURFACE:
 		return "An EGLSurface argument does not name a valid surface configured for GL rendering"
-	case EGL_BAD_MATCH:
+	case _EGL_BAD_MATCH:
 		return "Arguments are inconsistent"
-	case EGL_BAD_PARAMETER:
+	case _EGL_BAD_PARAMETER:
 		return "One or more argument values are invalid"
-	case EGL_BAD_NATIVE_PIXMAP:
+	case _EGL_BAD_NATIVE_PIXMAP:
 		return "A NativePixmapType argument does not refer to a valid native pixmap"
-	case EGL_BAD_NATIVE_WINDOW:
+	case _EGL_BAD_NATIVE_WINDOW:
 		return "A NativeWindowType argument does not refer to a valid native window"
-	case EGL_CONTEXT_LOST:
+	case _EGL_CONTEXT_LOST:
 		return "The application must destroy all contexts and reinitialise"
 	default:
 		return "ERROR: UNKNOWN EGL ERROR"
@@ -70,12 +70,12 @@ func chooseEGLConfig(ctxconfig *ctxconfig, fbconfig_ *fbconfig) (uintptr, error)
 	var apiBit int32
 	if ctxconfig.client == OpenGLESAPI {
 		if ctxconfig.major == 1 {
-			apiBit = EGL_OPENGL_ES_BIT
+			apiBit = _EGL_OPENGL_ES_BIT
 		} else {
-			apiBit = EGL_OPENGL_ES2_BIT
+			apiBit = _EGL_OPENGL_ES2_BIT
 		}
 	} else {
-		apiBit = EGL_OPENGL_BIT
+		apiBit = _EGL_OPENGL_BIT
 	}
 
 	if fbconfig_.stereo {
@@ -99,46 +99,46 @@ func chooseEGLConfig(ctxconfig *ctxconfig, fbconfig_ *fbconfig) (uintptr, error)
 		var u fbconfig
 
 		// Only consider RGB(A) EGLConfigs
-		if getEGLConfigAttrib(n, EGL_COLOR_BUFFER_TYPE) != EGL_RGB_BUFFER {
+		if getEGLConfigAttrib(n, _EGL_COLOR_BUFFER_TYPE) != _EGL_RGB_BUFFER {
 			continue
 		}
 
 		// Only consider window EGLConfigs
-		if getEGLConfigAttrib(n, EGL_SURFACE_TYPE)&EGL_WINDOW_BIT == 0 {
+		if getEGLConfigAttrib(n, _EGL_SURFACE_TYPE)&_EGL_WINDOW_BIT == 0 {
 			continue
 		}
 
 		// Only consider EGLConfigs with associated Visuals
-		visualID := getEGLConfigAttrib(n, EGL_NATIVE_VISUAL_ID)
+		visualID := getEGLConfigAttrib(n, _EGL_NATIVE_VISUAL_ID)
 		if visualID == 0 {
 			continue
 		}
 
 		if fbconfig_.transparent {
-			var vi XVisualInfo
-			vi.Visualid = VisualID(visualID)
+			var vi _XVisualInfo
+			vi.Visualid = _VisualID(visualID)
 			var count int32
-			visPtr := xGetVisualInfo(_glfw.platformWindow.display, VisualIDMask, &vi, &count)
+			visPtr := xGetVisualInfo(_glfw.platformWindow.display, _VisualIDMask, &vi, &count)
 			if visPtr != 0 {
-				u.transparent = isVisualTransparentX11((*XVisualInfo)(unsafe.Pointer(visPtr)).Visual)
+				u.transparent = isVisualTransparentX11((*_XVisualInfo)(unsafe.Pointer(visPtr)).Visual)
 				xFree(visPtr)
 			}
 		}
 
-		if getEGLConfigAttrib(n, EGL_RENDERABLE_TYPE)&apiBit == 0 {
+		if getEGLConfigAttrib(n, _EGL_RENDERABLE_TYPE)&apiBit == 0 {
 			wrongApiAvailable = true
 			continue
 		}
 
-		u.redBits = int(getEGLConfigAttrib(n, EGL_RED_SIZE))
-		u.greenBits = int(getEGLConfigAttrib(n, EGL_GREEN_SIZE))
-		u.blueBits = int(getEGLConfigAttrib(n, EGL_BLUE_SIZE))
+		u.redBits = int(getEGLConfigAttrib(n, _EGL_RED_SIZE))
+		u.greenBits = int(getEGLConfigAttrib(n, _EGL_GREEN_SIZE))
+		u.blueBits = int(getEGLConfigAttrib(n, _EGL_BLUE_SIZE))
 
-		u.alphaBits = int(getEGLConfigAttrib(n, EGL_ALPHA_SIZE))
-		u.depthBits = int(getEGLConfigAttrib(n, EGL_DEPTH_SIZE))
-		u.stencilBits = int(getEGLConfigAttrib(n, EGL_STENCIL_SIZE))
+		u.alphaBits = int(getEGLConfigAttrib(n, _EGL_ALPHA_SIZE))
+		u.depthBits = int(getEGLConfigAttrib(n, _EGL_DEPTH_SIZE))
+		u.stencilBits = int(getEGLConfigAttrib(n, _EGL_STENCIL_SIZE))
 
-		u.samples = int(getEGLConfigAttrib(n, EGL_SAMPLES))
+		u.samples = int(getEGLConfigAttrib(n, _EGL_SAMPLES))
 		u.doublebuffer = fbconfig_.doublebuffer
 
 		u.handle = n
@@ -175,7 +175,7 @@ func makeContextCurrentEGL(window *Window) error {
 		_glfw.currentContext = window
 	} else {
 		_glfw.currentContext = nil
-		if !egl.MakeCurrent(egl.display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT) {
+		if !egl.MakeCurrent(egl.display, _EGL_NO_SURFACE, _EGL_NO_SURFACE, _EGL_NO_CONTEXT) {
 			return fmt.Errorf("glfw: egl: failed to clear current context: %s: %w", getEGLErrorString(egl.GetError()), PlatformError)
 		}
 	}
@@ -199,7 +199,7 @@ func swapIntervalEGL(window *Window, interval int) error {
 
 func extensionSupportedEGL(extension string) bool {
 	egl := &_glfw.platformContext.egl
-	extensions := goString(egl.QueryString(egl.display, EGL_EXTENSIONS))
+	extensions := goString(egl.QueryString(egl.display, _EGL_EXTENSIONS))
 	if len(extensions) == 0 {
 		return false
 	}
@@ -232,12 +232,12 @@ func destroyContextEGL(window *Window) error {
 
 	if window.context.platform.egl.surface != 0 {
 		egl.DestroySurface(egl.display, window.context.platform.egl.surface)
-		window.context.platform.egl.surface = EGL_NO_SURFACE
+		window.context.platform.egl.surface = _EGL_NO_SURFACE
 	}
 
 	if window.context.platform.egl.handle != 0 {
 		egl.DestroyContext(egl.display, window.context.platform.egl.handle)
-		window.context.platform.egl.handle = EGL_NO_CONTEXT
+		window.context.platform.egl.handle = _EGL_NO_CONTEXT
 	}
 	return nil
 }
@@ -297,7 +297,7 @@ func initEGL() error {
 	}
 
 	egl.display = egl.GetDisplay(_glfw.platformWindow.display)
-	if egl.display == EGL_NO_DISPLAY {
+	if egl.display == _EGL_NO_DISPLAY {
 		err := fmt.Errorf("glfw: egl: failed to get EGL display: %s: %w", getEGLErrorString(egl.GetError()), APIUnavailable)
 		terminateEGL()
 		return err
@@ -325,7 +325,7 @@ func terminateEGL() {
 
 	if egl.display != 0 {
 		egl.Terminate(egl.display)
-		egl.display = EGL_NO_DISPLAY
+		egl.display = _EGL_NO_DISPLAY
 	}
 
 	if egl.handle != 0 {
@@ -353,11 +353,11 @@ func createContextEGL(window *Window, ctxconfig *ctxconfig, fbconfig *fbconfig) 
 	}
 
 	if ctxconfig.client == OpenGLESAPI {
-		if !egl.BindAPI(EGL_OPENGL_ES_API) {
+		if !egl.BindAPI(_EGL_OPENGL_ES_API) {
 			return fmt.Errorf("glfw: egl: failed to bind OpenGL ES: %s: %w", getEGLErrorString(egl.GetError()), APIUnavailable)
 		}
 	} else {
-		if !egl.BindAPI(EGL_OPENGL_API) {
+		if !egl.BindAPI(_EGL_OPENGL_API) {
 			return fmt.Errorf("glfw: egl: failed to bind OpenGL: %s: %w", getEGLErrorString(egl.GetError()), APIUnavailable)
 		}
 	}
@@ -372,67 +372,67 @@ func createContextEGL(window *Window, ctxconfig *ctxconfig, fbconfig *fbconfig) 
 
 		if ctxconfig.client == OpenGLAPI {
 			if ctxconfig.forward {
-				flags |= EGL_CONTEXT_OPENGL_FORWARD_COMPATIBLE_BIT_KHR
+				flags |= _EGL_CONTEXT_OPENGL_FORWARD_COMPATIBLE_BIT_KHR
 			}
 
 			if ctxconfig.profile == OpenGLCoreProfile {
-				mask |= EGL_CONTEXT_OPENGL_CORE_PROFILE_BIT_KHR
+				mask |= _EGL_CONTEXT_OPENGL_CORE_PROFILE_BIT_KHR
 			} else if ctxconfig.profile == OpenGLCompatProfile {
-				mask |= EGL_CONTEXT_OPENGL_COMPATIBILITY_PROFILE_BIT_KHR
+				mask |= _EGL_CONTEXT_OPENGL_COMPATIBILITY_PROFILE_BIT_KHR
 			}
 		}
 
 		if ctxconfig.debug {
-			flags |= EGL_CONTEXT_OPENGL_DEBUG_BIT_KHR
+			flags |= _EGL_CONTEXT_OPENGL_DEBUG_BIT_KHR
 		}
 
 		if ctxconfig.robustness != 0 {
 			if ctxconfig.robustness == NoResetNotification {
-				setAttrib(EGL_CONTEXT_OPENGL_RESET_NOTIFICATION_STRATEGY_KHR, EGL_NO_RESET_NOTIFICATION_KHR)
+				setAttrib(_EGL_CONTEXT_OPENGL_RESET_NOTIFICATION_STRATEGY_KHR, _EGL_NO_RESET_NOTIFICATION_KHR)
 			} else if ctxconfig.robustness == LoseContextOnReset {
-				setAttrib(EGL_CONTEXT_OPENGL_RESET_NOTIFICATION_STRATEGY_KHR, EGL_LOSE_CONTEXT_ON_RESET_KHR)
+				setAttrib(_EGL_CONTEXT_OPENGL_RESET_NOTIFICATION_STRATEGY_KHR, _EGL_LOSE_CONTEXT_ON_RESET_KHR)
 			}
 
-			flags |= EGL_CONTEXT_OPENGL_ROBUST_ACCESS_BIT_KHR
+			flags |= _EGL_CONTEXT_OPENGL_ROBUST_ACCESS_BIT_KHR
 		}
 
 		if ctxconfig.major != 1 || ctxconfig.minor != 0 {
-			setAttrib(EGL_CONTEXT_MAJOR_VERSION_KHR, int32(ctxconfig.major))
-			setAttrib(EGL_CONTEXT_MINOR_VERSION_KHR, int32(ctxconfig.minor))
+			setAttrib(_EGL_CONTEXT_MAJOR_VERSION_KHR, int32(ctxconfig.major))
+			setAttrib(_EGL_CONTEXT_MINOR_VERSION_KHR, int32(ctxconfig.minor))
 		}
 
 		if ctxconfig.noerror {
 			if egl.KHR_create_context_no_error {
-				setAttrib(EGL_CONTEXT_OPENGL_NO_ERROR_KHR, 1)
+				setAttrib(_EGL_CONTEXT_OPENGL_NO_ERROR_KHR, 1)
 			}
 		}
 
 		if mask != 0 {
-			setAttrib(EGL_CONTEXT_OPENGL_PROFILE_MASK_KHR, mask)
+			setAttrib(_EGL_CONTEXT_OPENGL_PROFILE_MASK_KHR, mask)
 		}
 
 		if flags != 0 {
-			setAttrib(EGL_CONTEXT_FLAGS_KHR, flags)
+			setAttrib(_EGL_CONTEXT_FLAGS_KHR, flags)
 		}
 	} else {
 		if ctxconfig.client == OpenGLESAPI {
-			setAttrib(EGL_CONTEXT_CLIENT_VERSION, int32(ctxconfig.major))
+			setAttrib(_EGL_CONTEXT_CLIENT_VERSION, int32(ctxconfig.major))
 		}
 	}
 
 	if egl.KHR_context_flush_control {
 		if ctxconfig.release == ReleaseBehaviorNone {
-			setAttrib(EGL_CONTEXT_RELEASE_BEHAVIOR_KHR, EGL_CONTEXT_RELEASE_BEHAVIOR_NONE_KHR)
+			setAttrib(_EGL_CONTEXT_RELEASE_BEHAVIOR_KHR, _EGL_CONTEXT_RELEASE_BEHAVIOR_NONE_KHR)
 		} else if ctxconfig.release == ReleaseBehaviorFlush {
-			setAttrib(EGL_CONTEXT_RELEASE_BEHAVIOR_KHR, EGL_CONTEXT_RELEASE_BEHAVIOR_FLUSH_KHR)
+			setAttrib(_EGL_CONTEXT_RELEASE_BEHAVIOR_KHR, _EGL_CONTEXT_RELEASE_BEHAVIOR_FLUSH_KHR)
 		}
 	}
 
-	setAttrib(EGL_NONE, EGL_NONE)
+	setAttrib(_EGL_NONE, _EGL_NONE)
 
 	window.context.platform.egl.handle = egl.CreateContext(egl.display, config, share, &attribs[0])
 
-	if window.context.platform.egl.handle == EGL_NO_CONTEXT {
+	if window.context.platform.egl.handle == _EGL_NO_CONTEXT {
 		return fmt.Errorf("glfw: egl: failed to create context: %s: %w", getEGLErrorString(egl.GetError()), VersionUnavailable)
 	}
 
@@ -441,19 +441,19 @@ func createContextEGL(window *Window, ctxconfig *ctxconfig, fbconfig *fbconfig) 
 
 	if fbconfig.sRGB {
 		if egl.KHR_gl_colorspace {
-			setAttrib(EGL_GL_COLORSPACE_KHR, EGL_GL_COLORSPACE_SRGB_KHR)
+			setAttrib(_EGL_GL_COLORSPACE_KHR, _EGL_GL_COLORSPACE_SRGB_KHR)
 		}
 	}
 
 	if !fbconfig.doublebuffer {
-		setAttrib(EGL_RENDER_BUFFER, EGL_SINGLE_BUFFER)
+		setAttrib(_EGL_RENDER_BUFFER, _EGL_SINGLE_BUFFER)
 	}
 
-	setAttrib(EGL_NONE, EGL_NONE)
+	setAttrib(_EGL_NONE, _EGL_NONE)
 
 	window.context.platform.egl.surface =
 		egl.CreateWindowSurface(egl.display, config, window.platform.handle, &attribs[0])
-	if window.context.platform.egl.surface == EGL_NO_SURFACE {
+	if window.context.platform.egl.surface == _EGL_NO_SURFACE {
 		return fmt.Errorf("glfw: egl: failed to create window surface: %s: %w", getEGLErrorString(egl.GetError()), PlatformError)
 	}
 
@@ -509,18 +509,18 @@ func chooseVisualEGL(wndconfig *wndconfig, ctxconfig *ctxconfig, fbconfig *fbcon
 	}
 
 	var visualID int32
-	_glfw.platformContext.egl.GetConfigAttrib(_glfw.platformContext.egl.display, native, EGL_NATIVE_VISUAL_ID, &visualID)
+	_glfw.platformContext.egl.GetConfigAttrib(_glfw.platformContext.egl.display, native, _EGL_NATIVE_VISUAL_ID, &visualID)
 
-	var desired XVisualInfo
+	var desired _XVisualInfo
 	desired.Screen = int32(_glfw.platformWindow.screen)
-	desired.Visualid = VisualID(visualID)
+	desired.Visualid = _VisualID(visualID)
 
 	var count int32
-	resultPtr := xGetVisualInfo(_glfw.platformWindow.display, VisualScreenMask|VisualIDMask, &desired, &count)
+	resultPtr := xGetVisualInfo(_glfw.platformWindow.display, _VisualScreenMask|_VisualIDMask, &desired, &count)
 	if resultPtr == 0 {
 		return 0, 0, fmt.Errorf("glfw: egl: failed to retrieve Visual for EGLConfig: %w", PlatformError)
 	}
-	result := (*XVisualInfo)(unsafe.Pointer(resultPtr))
+	result := (*_XVisualInfo)(unsafe.Pointer(resultPtr))
 
 	visual = result.Visual
 	depth = result.Depth
