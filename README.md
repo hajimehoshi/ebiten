@@ -16,15 +16,15 @@ Ebitengine (formerly known as Ebiten) is an open source game engine for the Go p
 
 ## Platforms
 
-* [Windows](https://ebitengine.org/en/documents/install.html?os=windows) (No Cgo required!)
-* [macOS](https://ebitengine.org/en/documents/install.html?os=darwin) (No Cgo required!)
+* [Windows](https://ebitengine.org/en/documents/install.html?os=windows)
+* [macOS](https://ebitengine.org/en/documents/install.html?os=darwin)
 * [Linux](https://ebitengine.org/en/documents/install.html?os=linux)
 * [FreeBSD](https://ebitengine.org/en/documents/install.html?os=freebsd)
-* [Android](https://ebitengine.org/en/documents/mobile.html)
-* [iOS](https://ebitengine.org/en/documents/mobile.html)
+* [Android](https://ebitengine.org/en/documents/mobile.html) (Cgo required)
+* [iOS](https://ebitengine.org/en/documents/mobile.html) (Cgo required)
 * [WebAssembly](https://ebitengine.org/en/documents/webassembly.html)
-* Nintendo Switch
-* Xbox (Xbox support is limited and not available to everyone. Negotiations are currently underway to make it accessible to all.)
+* Nintendo Switch (Cgo required)
+* Xbox (Cgo required) (Xbox support is limited and not available to everyone. Negotiations are currently underway to make it accessible to all.)
 
 For installation on desktops, see [the installation instruction](https://ebitengine.org/en/documents/install.html).
 
@@ -47,6 +47,7 @@ For installation on desktops, see [the installation instruction](https://ebiteng
   * [mobile](https://pkg.go.dev/github.com/hajimehoshi/ebiten/v2/mobile)
   * [text/v2](https://pkg.go.dev/github.com/hajimehoshi/ebiten/v2/text/v2)
   * [vector](https://pkg.go.dev/github.com/hajimehoshi/ebiten/v2/vector)
+  * [vmhost](https://pkg.go.dev/github.com/hajimehoshi/ebiten/v2/vmhost)
   * [exp/textinput](https://pkg.go.dev/github.com/hajimehoshi/ebiten/v2/exp/textinput)
 
 ## Community
