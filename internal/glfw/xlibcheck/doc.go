@@ -16,9 +16,12 @@
 // mirrors of the Xlib structs against the real C headers. It lives in its own
 // leaf package because the go tool rejects cgo in a test of a package that is
 // imported elsewhere in the build ("use of cgo in test not supported"), which
-// internal/glfw is. Its directory name has a leading underscore so the go tool
-// ignores it when matching the "./..." pattern; the ordinary build therefore
-// does not need the X11 development headers, and only the dedicated CI step that
-// names the package path explicitly compiles the check. The package itself is
-// otherwise empty.
+// internal/glfw is.
+//
+// The whole check is guarded by the ebitenginexlibcheck build tag. Ordinary
+// builds do not set it, so this package is empty for them and needs no X11
+// development headers; only the dedicated CI step that sets the tag compiles
+// the check. The same tag exposes the alias bridge to the unexported Xlib
+// mirror types in internal/glfw, so internal/glfw keeps those types out of its
+// ordinary (untagged) build.
 package xlibcheck

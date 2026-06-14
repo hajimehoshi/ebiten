@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build (freebsd || linux || netbsd) && cgo
+//go:build (freebsd || linux || netbsd) && cgo && ebitenginexlibcheck
 
 // This test cross-checks internal/glfw's Go mirrors of the Xlib structs against
 // the real C headers, so it works on whatever data model the C compiler
@@ -38,7 +38,7 @@ import (
 	"unsafe"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
-	xlibcheck "github.com/hajimehoshi/ebiten/v2/internal/glfw/_xlibcheck"
+	"github.com/hajimehoshi/ebiten/v2/internal/glfw/xlibcheck"
 )
 
 func TestXlibStructSizes(t *testing.T) {
