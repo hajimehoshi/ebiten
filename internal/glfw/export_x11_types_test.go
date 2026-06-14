@@ -12,18 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build (freebsd || linux || netbsd) && !ebitenginexlibcheck
+//go:build freebsd || linux || netbsd
 
 package glfw
 
-// These aliases re-export the unexported X11 struct types for the in-package
-// golden test in x11_types_linbsd_test.go, which is an external (glfw_test)
-// test and so cannot name the unexported types directly.
-//
-// The cgo cross-check in the xlibcheck package needs the same types but, living
-// in another package, can only see this package's non-test surface; it gets them
-// from x11_types_aliases_linbsd.go, gated behind the ebitenginexlibcheck build
-// tag. This file is excluded under that tag so the two alias sets never collide.
+// These aliases re-export the unexported X11 struct types for the golden test
+// in x11_types_linbsd_test.go, which is an external (glfw_test) test and so
+// cannot name the unexported types directly.
 
 type (
 	XEvent                 = _XEvent

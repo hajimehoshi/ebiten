@@ -195,7 +195,7 @@ jobs:
         run: |
           go build -tags=playstation5 -v ./...
 
-      - name: go test internal/glfw/xlibcheck
+      - name: go test internal/glfw (xlibcheck)
         if: runner.os == 'Linux'
         run: |
           sudo dpkg --add-architecture i386
@@ -203,8 +203,8 @@ jobs:
           sudo apt-get install gcc-multilib
           sudo apt-get install libxcursor-dev libxi-dev libxinerama-dev libxrandr-dev libxrender-dev
           sudo apt-get install libxcursor-dev:i386 libxi-dev:i386 libxinerama-dev:i386 libxrandr-dev:i386 libxrender-dev:i386
-          go test -shuffle=on -v -tags=ebitenginexlibcheck ./internal/glfw/xlibcheck/
-          env CGO_ENABLED=1 GOARCH=386 go test -shuffle=on -v -tags=ebitenginexlibcheck ./internal/glfw/xlibcheck/
+          go test -shuffle=on -v -tags=ebitenginexlibcheck ./internal/glfw/
+          env CGO_ENABLED=1 GOARCH=386 go test -shuffle=on -v -tags=ebitenginexlibcheck ./internal/glfw/
 
       - name: Install ebitenmobile
         run: |
