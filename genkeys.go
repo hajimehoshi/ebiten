@@ -798,7 +798,7 @@ func main() {
 		buildConstraints := ""
 		switch path {
 		case filepath.Join("internal", "glfw", "keys.go"):
-			buildConstraints = "//go:build darwin || freebsd || linux || netbsd || openbsd || windows"
+			buildConstraints = "//go:build darwin || freebsd || linux || netbsd || windows"
 		case filepath.Join("internal", "ui", "keys_mobile.go"):
 			buildConstraints = "//go:build android || ios"
 		case filepath.Join("internal", "ui", "keys_glfw.go"):

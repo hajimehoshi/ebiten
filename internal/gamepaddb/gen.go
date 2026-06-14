@@ -116,7 +116,7 @@ func run() error {
 		},
 		"Linux": {
 			filenameSuffix:   "linbsd",
-			buildConstraints: "//go:build (freebsd || (linux && !android) || netbsd || openbsd) && !nintendosdk && !playstation5",
+			buildConstraints: "//go:build (freebsd || (linux && !android) || netbsd) && !nintendosdk && !playstation5",
 		},
 		"iOS": {
 			filenameSuffix: "gc_darwin",

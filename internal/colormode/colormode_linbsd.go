@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build (freebsd || (linux && !android) || netbsd || openbsd) && !nintendosdk && !playstation5
+//go:build (freebsd || (linux && !android) || netbsd) && !nintendosdk && !playstation5
 
 package colormode
 
