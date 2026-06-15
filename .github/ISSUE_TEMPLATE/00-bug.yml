@@ -29,7 +29,7 @@ body:
 - type: input
   id: version_of_go
   attributes:
-    label: Go Version (`go version`)
+    label: Go Version (paste your `go version` output)
   validations:
     required: true
 - type: textarea
