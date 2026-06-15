@@ -72,6 +72,7 @@ func NewGraphics() (graphicsdriver.Graphics, error) {
 
 	var useWARP bool
 	var useDebugLayer bool
+	var useDRED bool
 	version := 11
 
 	// Specify the feature level 11 by default.
@@ -99,6 +100,8 @@ func NewGraphics() (graphicsdriver.Graphics, error) {
 			useWARP = true
 		case t == "debug":
 			useDebugLayer = true
+		case t == "dred":
+			useDRED = true
 		case strings.HasPrefix(t, "version="):
 			v, err := strconv.Atoi(t[len("version="):])
 			if err != nil {
@@ -127,7 +130,7 @@ func NewGraphics() (graphicsdriver.Graphics, error) {
 		}
 		return g, nil
 	case 12:
-		g, err := newGraphics12(useWARP, useDebugLayer, featureLevel)
+		g, err := newGraphics12(useWARP, useDebugLayer, useDRED, featureLevel)
 		if err != nil {
 			return nil, err
 		}

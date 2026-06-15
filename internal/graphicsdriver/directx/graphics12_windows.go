@@ -43,6 +43,7 @@ func (r *resourceWithSize) release() {
 
 type graphics12 struct {
 	debug              *_ID3D12Debug
+	dredEnabled        bool
 	device             *_ID3D12Device
 	commandQueue       *_ID3D12CommandQueue
 	rtvDescriptorHeap  *_ID3D12DescriptorHeap
@@ -109,7 +110,7 @@ type graphics12 struct {
 	pipelineStates
 }
 
-func newGraphics12(useWARP bool, useDebugLayer bool, featureLevel _D3D_FEATURE_LEVEL) (*graphics12, error) {
+func newGraphics12(useWARP bool, useDebugLayer bool, useDRED bool, featureLevel _D3D_FEATURE_LEVEL) (*graphics12, error) {
 	g := &graphics12{}
 
 	// Initialize not only a device but also other members like a fence.
@@ -119,7 +120,7 @@ func newGraphics12(useWARP bool, useDebugLayer bool, featureLevel _D3D_FEATURE_L
 			return nil, err
 		}
 	} else {
-		if err := g.initializeDesktop(useWARP, useDebugLayer, featureLevel); err != nil {
+		if err := g.initializeDesktop(useWARP, useDebugLayer, useDRED, featureLevel); err != nil {
 			return nil, err
 		}
 	}
@@ -127,7 +128,7 @@ func newGraphics12(useWARP bool, useDebugLayer bool, featureLevel _D3D_FEATURE_L
 	return g, nil
 }
 
-func (g *graphics12) initializeDesktop(useWARP bool, useDebugLayer bool, featureLevel _D3D_FEATURE_LEVEL) (ferr error) {
+func (g *graphics12) initializeDesktop(useWARP bool, useDebugLayer bool, useDRED bool, featureLevel _D3D_FEATURE_LEVEL) (ferr error) {
 	if err := d3d12.Load(); err != nil {
 		return err
 	}
@@ -149,6 +150,20 @@ func (g *graphics12) initializeDesktop(useWARP bool, useDebugLayer bool, feature
 			}
 		}()
 		g.debug.EnableDebugLayer()
+	}
+
+	// EBITENGINE_DIRECTX's dred token enables Device Removed Extended Data so a device removal can be
+	// diagnosed (the page-fault address and the GPU's last command). It must be enabled before the
+	// device is created.
+	if useDRED {
+		settings, err := _D3D12GetDREDSettings()
+		if err != nil {
+			return err
+		}
+		settings.SetAutoBreadcrumbsEnablement(_D3D12_DRED_ENABLEMENT_FORCED_ON)
+		settings.SetPageFaultEnablement(_D3D12_DRED_ENABLEMENT_FORCED_ON)
+		settings.Release()
+		g.dredEnabled = true
 	}
 
 	f, err := _CreateDXGIFactory()
@@ -673,7 +688,7 @@ func (g *graphics12) End(present bool) error {
 		return err
 	}
 	if err := g.copyCommandList.Close(); err != nil {
-		return err
+		return g.withDeviceRemovedReason(err)
 	}
 
 	// screenImage can be nil in tests.
@@ -684,7 +699,7 @@ func (g *graphics12) End(present bool) error {
 	}
 
 	if err := g.drawCommandList.Close(); err != nil {
-		return err
+		return g.withDeviceRemovedReason(err)
 	}
 	g.commandQueue.ExecuteCommandLists([]*_ID3D12GraphicsCommandList{g.drawCommandList})
 
@@ -829,7 +844,7 @@ func (g *graphics12) flushCommandList(commandList *_ID3D12GraphicsCommandList) e
 	}
 
 	if err := commandList.Close(); err != nil {
-		return err
+		return g.withDeviceRemovedReason(err)
 	}
 
 	g.commandQueue.ExecuteCommandLists([]*_ID3D12GraphicsCommandList{commandList})
@@ -875,6 +890,23 @@ func (g *graphics12) waitForCommandQueue() error {
 		return err
 	}
 	return nil
+}
+
+// withDeviceRemovedReason augments err with the device-removed reason when the device has been removed.
+// A GPU fault surfaces from a later API call (e.g. command list Close) as a generic
+// DXGI_ERROR_DEVICE_REMOVED, so appending the reason — and DRED's breadcrumbs/page-fault when enabled —
+// pinpoints the underlying cause.
+func (g *graphics12) withDeviceRemovedReason(err error) error {
+	if err == nil {
+		return nil
+	}
+	if reason := g.device.GetDeviceRemovedReason(); reason != nil {
+		if g.dredEnabled {
+			g.dumpDRED()
+		}
+		return fmt.Errorf("%w (device removed reason: %w)", err, reason)
+	}
+	return err
 }
 
 func (g *graphics12) SetTransparent(transparent bool) {

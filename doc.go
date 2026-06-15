@@ -80,6 +80,7 @@
 // You can specify multiple values separated by a comma. The default value is empty (i.e. no parameters).
 //
 //	"debug":                      Use a debug layer.
+//	"dred":                       Enable Device Removed Extended Data to diagnose a device removal. This is for DirectX 12.
 //	"warp":                       Use WARP (i.e. software rendering).
 //	"version=VERSION":            Specify a DirectX version (e.g. 11).
 //	"featurelevel=FEATURE_LEVEL": Specify a feature level (e.g. 11_0). This is for DirectX 12.
@@ -92,6 +93,9 @@
 //
 // The option "featurelevel" is valid only for DirectX 12.
 // The possible values are "11_0", "11_1", "12_0", "12_1", and "12_2". The default value is "11_0".
+//
+// The option "dred" is valid only for DirectX 12 and is independent of "debug".
+// On a device removal, it reports the GPU's last command and the page-fault address via log/slog.
 //
 // `EBITENGINE_VM_ENDPOINT` environment variable specifies the endpoint URL of a virtualization host,
 // like unix:///path/to/socket or tcp://host:port. If this is set, the game runs as a virtualization
