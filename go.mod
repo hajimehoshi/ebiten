@@ -16,12 +16,12 @@ require (
 	github.com/jfreymuth/oggvorbis v1.0.5
 	github.com/kazzmir/opus-go v1.3.0
 	github.com/kisielk/errcheck v1.20.0
-	golang.org/x/image v0.41.0
-	golang.org/x/mod v0.36.0
-	golang.org/x/sync v0.20.0
-	golang.org/x/sys v0.45.0
-	golang.org/x/text v0.37.0
-	golang.org/x/tools v0.45.0
+	golang.org/x/image v0.42.0
+	golang.org/x/mod v0.37.0
+	golang.org/x/sync v0.21.0
+	golang.org/x/sys v0.46.0
+	golang.org/x/text v0.38.0
+	golang.org/x/tools v0.46.0
 )
 
 require (
