@@ -320,7 +320,8 @@ type RunGameOptions struct {
 	//
 	// When the game runs as a virtualization guest, GraphicsLibrary is ignored, and the graphics
 	// library is always GraphicsLibraryRemote. ColorSpace is also ignored: the color space is
-	// determined by the host.
+	// determined by the host. The game's audio is not played on a local audio device: it is
+	// forwarded to the host.
 	//
 	// VMGuestEndpoint is available only on desktops.
 	//

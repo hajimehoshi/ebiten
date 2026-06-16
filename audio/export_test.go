@@ -115,7 +115,7 @@ func init() {
 }
 
 type dummyHook struct {
-	updates []func() error
+	updates []func(vmGuest bool) error
 }
 
 func (h *dummyHook) OnSuspendAudio(f func() error) {
@@ -124,7 +124,7 @@ func (h *dummyHook) OnSuspendAudio(f func() error) {
 func (h *dummyHook) OnResumeAudio(f func() error) {
 }
 
-func (h *dummyHook) AppendHookOnBeforeUpdate(f func() error) {
+func (h *dummyHook) AppendHookOnBeforeUpdateWithVMGuestInfo(f func(vmGuest bool) error) {
 	h.updates = append(h.updates, f)
 }
 
@@ -134,7 +134,7 @@ func init() {
 
 func UpdateForTesting() error {
 	for _, f := range hookerForTesting.(*dummyHook).updates {
-		if err := f(); err != nil {
+		if err := f(false); err != nil {
 			return err
 		}
 	}

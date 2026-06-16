@@ -25,8 +25,8 @@
 // ./examples/paint. Because the host and guest speak a version-locked protocol, an import path is
 // built in a generated module that pins Ebitengine to the host's own version; a local path is built
 // in its own module. The host builds the guest with -tags ebitenginevm, runs it pointed at a private
-// socket, forwards the window's input to it, and composites its rendered frames into the window.
-// Audio and gamepads are not forwarded yet.
+// socket, forwards the window's input to it, composites its rendered frames into the window, and plays
+// its audio. Gamepads are not forwarded yet.
 package main
 
 import (
@@ -40,6 +40,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"runtime/debug"
+	"slices"
 	"strings"
 	"time"
 
@@ -47,6 +48,7 @@ import (
 	"golang.org/x/mod/module"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/audio"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/hajimehoshi/ebiten/v2/vmhost"
 )
@@ -88,6 +90,13 @@ type Game struct {
 	// screenSet reports whether guestScreen has been handed to the current session via
 	// SetOutsideScreen; it is cleared when the session or the screen changes.
 	screenSet bool
+
+	// audioContext is the host's single audio context, created lazily at the guest's sample rate.
+	audioContext *audio.Context
+	// audioPlayers maps each guest stream to the host player that plays it; audioStreamsBuf is reused
+	// by AppendAudioStreams.
+	audioPlayers    map[*vmhost.GuestAudioStream]*audio.Player
+	audioStreamsBuf []*vmhost.GuestAudioStream
 
 	// tickAccum carries the sub-tick remainder between host updates, in units where hostTPS equals one tick.
 	tickAccum int
@@ -154,6 +163,61 @@ func (g *Game) Update() error {
 			g.status = "Guest error: " + err.Error()
 		}
 		g.closeGuest()
+		return nil
+	}
+	return g.updateAudio()
+}
+
+// updateAudio plays each guest player on its own host player, so the guest's players stay unmixed.
+func (g *Game) updateAudio() error {
+	rate := g.gp.session.AudioSampleRate()
+	if rate == 0 {
+		// The guest has not produced audio yet, so its sample rate is unknown.
+		return nil
+	}
+	if g.audioContext == nil {
+		g.audioContext = audio.NewContext(rate)
+	}
+	if g.audioContext.SampleRate() != rate {
+		// One audio context per process, so a later guest at a different rate than the first cannot be
+		// played without resampling; skip its audio to keep the example simple.
+		g.status = fmt.Sprintf("Running %s (audio off: sample rate %d != %d)", g.gp.pkg, rate, g.audioContext.SampleRate())
+		return nil
+	}
+
+	g.audioStreamsBuf = slices.Delete(g.audioStreamsBuf, 0, len(g.audioStreamsBuf))
+	g.audioStreamsBuf = g.gp.session.AppendAudioStreams(g.audioStreamsBuf)
+	for _, stream := range g.audioStreamsBuf {
+		hp := g.audioPlayers[stream]
+		if hp == nil {
+			// Start a host player only for a stream that is currently playing; a finished or paused stream
+			// gets none, and a replayed one gets a fresh host player when it plays again.
+			if !stream.IsPlaying() {
+				continue
+			}
+			var err error
+			hp, err = g.audioContext.NewPlayerF32(stream)
+			if err != nil {
+				return err
+			}
+			// oto reads ahead this far, pulling the samples from the guest; keep it small for low latency
+			// but large enough to cover a momentarily busy session.
+			hp.SetBufferSize(time.Second / 20)
+			hp.Play()
+			g.audioPlayers[stream] = hp
+		}
+		// The forwarded samples are raw, so apply the guest player's volume on the host side.
+		hp.SetVolume(stream.Volume())
+	}
+	// Close finished host players: a host player stops once its guest stream reaches EOF and plays out
+	// (or the stream is closed), so this waits for the tail instead of cutting it.
+	for stream, hp := range g.audioPlayers {
+		if !hp.IsPlaying() {
+			if err := hp.Close(); err != nil {
+				log.Printf("vm: closing an audio player: %v", err)
+			}
+			delete(g.audioPlayers, stream)
+		}
 	}
 	return nil
 }
@@ -294,6 +358,12 @@ func (g *Game) closeGuest() {
 	gp := g.gp
 	g.gp = nil
 	g.screenSet = false
+	for stream, hp := range g.audioPlayers {
+		if err := hp.Close(); err != nil {
+			log.Printf("vm: closing an audio player: %v", err)
+		}
+		delete(g.audioPlayers, stream)
+	}
 	if err := gp.session.Close(); err != nil {
 		log.Printf("vm: closing the guest: %v", err)
 	}
@@ -569,14 +639,15 @@ func run() (err error) {
 		pkg = os.Args[1]
 	}
 	g := &Game{
-		ln:       ln,
-		endpoint: endpoint,
-		dir:      dir,
-		pin:      pin,
-		results:  make(chan launchResult, 1),
-		pkg:      pkg,
-		guestTPS: ebiten.DefaultTPS,
-		status:   "Edit the package and press Enter or Launch",
+		ln:           ln,
+		endpoint:     endpoint,
+		dir:          dir,
+		pin:          pin,
+		results:      make(chan launchResult, 1),
+		pkg:          pkg,
+		guestTPS:     ebiten.DefaultTPS,
+		audioPlayers: map[*vmhost.GuestAudioStream]*audio.Player{},
+		status:       "Edit the package and press Enter or Launch",
 	}
 	g.launchGuest()
 

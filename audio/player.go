@@ -145,7 +145,7 @@ func (f *playerFactory) error() error {
 	return addErrorInfo(f.context.Err())
 }
 
-func (f *playerFactory) initContextIfNeeded() (<-chan struct{}, error) {
+func (f *playerFactory) initContextIfNeeded(vmGuest bool) (<-chan struct{}, error) {
 	f.m.Lock()
 	defer f.m.Unlock()
 
@@ -160,7 +160,7 @@ func (f *playerFactory) initContextIfNeeded() (<-chan struct{}, error) {
 		return ready, nil
 	}
 
-	c, ready, err := newContext(f.sampleRate)
+	c, ready, err := newContext(f.sampleRate, vmGuest)
 	if err != nil {
 		return nil, err
 	}
@@ -354,6 +354,11 @@ func (p *playerImpl) Close() error {
 			p.player = nil
 		}()
 		p.player.Pause()
+		// Release the device player if it holds resources beyond this process (the
+		// virtualization guest's forwarded player).
+		if closer, ok := p.player.(io.Closer); ok {
+			_ = closer.Close()
+		}
 		p.stopwatch.stop()
 	}
 	return nil

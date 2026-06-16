@@ -28,6 +28,7 @@ import (
 	"io"
 	"math"
 	"net"
+	"slices"
 	"sync"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
@@ -36,6 +37,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/remote"
 	"github.com/hajimehoshi/ebiten/v2/internal/hook"
 	"github.com/hajimehoshi/ebiten/v2/internal/thread"
+	"github.com/hajimehoshi/ebiten/v2/internal/vmguest"
 	"github.com/hajimehoshi/ebiten/v2/internal/vmprotocol"
 )
 
@@ -144,6 +146,9 @@ func (r *remoteBackend) serve(conn net.Conn) error {
 	r.graphics.SetHost(host)
 	r.vmHost = host
 
+	// audioReadBuf is reused to answer host audio reads; the serve loop is single-threaded.
+	var audioReadBuf []byte
+
 	for {
 		var msg vmprotocol.HostMessage
 		if err := dec.DecodeHostMessage(&msg); err != nil {
@@ -170,6 +175,10 @@ func (r *remoteBackend) serve(conn net.Conn) error {
 				}
 			} else {
 				r.ticked = true
+				// Let guest subsystems forward their per-tick messages (e.g. audio) over the connection.
+				if err := vmguest.RunPostTickHooks(enc); err != nil {
+					return err
+				}
 			}
 		case vmprotocol.HostMessageKindAdvanceFrame:
 			if !r.ticked {
@@ -191,6 +200,18 @@ func (r *remoteBackend) serve(conn net.Conn) error {
 			r.scrollWheel(msg.X, msg.Y)
 		case vmprotocol.HostMessageKindTypeRune:
 			r.typeRune(msg.Rune)
+		case vmprotocol.HostMessageKindReadAudio:
+			// A guest subsystem (audio) decodes the samples into the buffer; this package does not
+			// depend on it.
+			audioReadBuf = slices.Grow(audioReadBuf[:0], msg.AudioMaxLenInBytes)[:msg.AudioMaxLenInBytes]
+			n, eof := vmguest.RunAudioReadHandler(msg.AudioPlayerID, audioReadBuf)
+			if err := enc.EncodeGuestMessage(&vmprotocol.GuestMessage{
+				Kind:     vmprotocol.GuestMessageKindAudioData,
+				AudioPCM: audioReadBuf[:n],
+				AudioEOF: eof,
+			}); err != nil {
+				return err
+			}
 		case vmprotocol.HostMessageKindClose:
 			closing = true
 		default:
@@ -441,6 +462,11 @@ func (c *context) updateTickForVMGuest(graphicsDriver graphicsdriver.Graphics, o
 	})
 
 	if err := hook.RunBeforeUpdateHooks(); err != nil {
+		return err
+	}
+	// This process is a virtualization guest, so the pre-tick hooks get true and guest subsystems (such
+	// as audio) route themselves to the host accordingly.
+	if err := hook.RunBeforeUpdateHooksWithVMGuestInfo(true); err != nil {
 		return err
 	}
 	if err := c.game.Update(); err != nil {

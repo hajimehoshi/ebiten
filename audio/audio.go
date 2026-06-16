@@ -124,7 +124,7 @@ func NewContext(sampleRate int) *Context {
 		return nil
 	})
 
-	h.AppendHookOnBeforeUpdate(func() error {
+	h.AppendHookOnBeforeUpdateWithVMGuestInfo(func(vmGuest bool) error {
 		var err error
 		theContextLock.Lock()
 		if theContext != nil {
@@ -140,7 +140,7 @@ func NewContext(sampleRate int) *Context {
 		// keeps the device from being created before the environment is known (#969, #970,
 		// #2715, #3438). This also initializes the device when there is no player and the
 		// program waits for IsReady() to be true.
-		ready, err := c.playerFactory.initContextIfNeeded()
+		ready, err := c.playerFactory.initContextIfNeeded(vmGuest)
 		if err != nil {
 			return err
 		}
@@ -154,7 +154,7 @@ func NewContext(sampleRate int) *Context {
 	})
 
 	// In the current Ebitengine implementation, update might not be called when the window is in background (#3154).
-	// In this case, an audio player position is not updated correctly with AppendHookOnBeforeUpdate.
+	// In this case, an audio player position is not updated correctly with AppendHookOnBeforeUpdateWithVMGuestInfo.
 	// Use a distinct goroutine to update the player states.
 	go func() {
 		for {
@@ -541,7 +541,7 @@ func (p *Player) SetBufferSize(bufferSize time.Duration) {
 type hooker interface {
 	OnSuspendAudio(f func() error)
 	OnResumeAudio(f func() error)
-	AppendHookOnBeforeUpdate(f func() error)
+	AppendHookOnBeforeUpdateWithVMGuestInfo(f func(vmGuest bool) error)
 }
 
 var hookerForTesting hooker
@@ -563,8 +563,8 @@ func (h *hookerImpl) OnResumeAudio(f func() error) {
 	hook.OnResumeAudio(f)
 }
 
-func (h *hookerImpl) AppendHookOnBeforeUpdate(f func() error) {
-	hook.AppendHookOnBeforeUpdate(f)
+func (h *hookerImpl) AppendHookOnBeforeUpdateWithVMGuestInfo(f func(vmGuest bool) error) {
+	hook.AppendHookOnBeforeUpdateWithVMGuestInfo(f)
 }
 
 // ResampleReader converts the sample rate of the given singed 16bit integer, little-endian, 2 channels (stereo) stream.

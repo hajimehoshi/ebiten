@@ -21,10 +21,12 @@
 // [GuestSession.AdvanceTick] drives the guest's Update and [GuestSession.AdvanceFrame] requests its
 // next frame; [GuestSession.CompositeFrame] composites the guest's most recently completed frame into
 // the host-owned screen set by [GuestSession.SetOutsideScreen] so the host can composite it into its
-// own window.
+// own window. The audio the guest plays is exposed per player — never mixed — through
+// [GuestSession.AppendAudioStreams], so the host can observe and play each separately.
 package vmhost
 
 import (
+	"cmp"
 	"errors"
 	"image"
 	"io"
@@ -63,6 +65,10 @@ type GuestSession struct {
 	// region.
 	pixelsBuf     []byte
 	pixelsListBuf [][]byte
+	// audioReadPCM and audioReadEOF capture the answer to the in-flight HostMessageKindReadAudio while
+	// sendAndReceive runs; runReadAudio hands them to the waiting reader.
+	audioReadPCM []byte
+	audioReadEOF bool
 
 	// The following fields are owned by the host goroutine; no lock guards them.
 	outsideScreen   *ebiten.Image
@@ -105,6 +111,14 @@ type GuestSession struct {
 	done      chan struct{}
 	closeOnce sync.Once
 	closeErr  error
+
+	// audioMu guards the audio player map and the reported sample rate. Each GuestAudioStream guards its
+	// own fields with its own lock, so reads of one player neither block the map operations nor the other
+	// players. These have a separate lock from mu because the host reads players from an arbitrary
+	// goroutine (an audio player's source), independently of the host's frame-bound work under mu.
+	audioMu         sync.Mutex
+	audioStreams    map[int64]*GuestAudioStream
+	audioSampleRate int
 }
 
 // opKind discriminates an operation the session goroutine performs.
@@ -117,6 +131,8 @@ const (
 	opMessage
 	// opFrame renders a frame. It is never queued; nextOp derives it from a pending frame request.
 	opFrame
+	// opReadAudio reads one audio player's samples; the result goes to op.audioResp.
+	opReadAudio
 )
 
 type op struct {
@@ -125,6 +141,10 @@ type op struct {
 	msg   *vmprotocol.HostMessage
 	// seq is the frame request an opFrame satisfies; it labels the rendered frame for WaitFrame.
 	seq int64
+	// audioID and audioMaxLenInBytes parameterize an opReadAudio; audioResp receives its result.
+	audioID            int64
+	audioMaxLenInBytes int
+	audioResp          chan audioReadResult
 }
 
 // framePhase tracks which side may touch the screen mirror as the single in-progress frame moves from
@@ -169,11 +189,12 @@ func NewGuestSession(conn net.Conn, options *NewGuestSessionOptions) (*GuestSess
 		return nil, err
 	}
 	g := &GuestSession{
-		conn:     conn,
-		enc:      vmprotocol.NewEncoder(rw),
-		dec:      vmprotocol.NewDecoder(rw),
-		renderer: newFrameRenderer(),
-		done:     make(chan struct{}),
+		conn:         conn,
+		enc:          vmprotocol.NewEncoder(rw),
+		dec:          vmprotocol.NewDecoder(rw),
+		renderer:     newFrameRenderer(),
+		done:         make(chan struct{}),
+		audioStreams: map[int64]*GuestAudioStream{},
 	}
 	g.cond = sync.NewCond(&g.mu)
 	go g.sessionLoop()
@@ -206,6 +227,8 @@ func (c *idleTimeoutConn) Write(p []byte) (int, error) {
 // of which holds the lock for its own scope.
 func (g *GuestSession) sessionLoop() {
 	defer close(g.done)
+	// Release audio reads still queued at shutdown; a read already in flight is released by runReadAudio.
+	defer g.drainQueuedReads()
 	for {
 		o, ok := g.nextOp()
 		if !ok {
@@ -217,6 +240,8 @@ func (g *GuestSession) sessionLoop() {
 			// A successful tick or message needs no completion step: consumeTick already wakes WaitTick
 			// per tick, and a message changes nothing a waiter observes.
 			err = g.runOp(o)
+		case opReadAudio:
+			err = g.runReadAudio(o)
 		case opFrame:
 			if err = g.sendAndReceive(&vmprotocol.HostMessage{
 				Kind: vmprotocol.HostMessageKindAdvanceFrame,
@@ -347,6 +372,16 @@ func (g *GuestSession) sendAndReceive(msg *vmprotocol.HostMessage) error {
 				return err
 			}
 			continue
+		case vmprotocol.GuestMessageKindAudioControl:
+			g.applyAudioControl(&gm)
+			continue
+		case vmprotocol.GuestMessageKindAudioData:
+			// gm is fresh each iteration, so AudioPCM is a newly allocated slice no later decode
+			// overwrites, and the waiting Read copies it out before the next read; aliasing it directly
+			// needs no copy.
+			g.audioReadPCM = gm.AudioPCM
+			g.audioReadEOF = gm.AudioEOF
+			continue
 		}
 		// GuestMessageKindDone.
 		if gm.Terminated {
@@ -454,7 +489,9 @@ func (g *GuestSession) SetOutsideScreen(screen *ebiten.Image) error {
 	if w == g.sentWidth && h == g.sentHeight {
 		return nil
 	}
-	g.ops = append(g.ops, op{
+	g.sentWidth = w
+	g.sentHeight = h
+	g.queueOpLocked(op{
 		kind: opMessage,
 		msg: &vmprotocol.HostMessage{
 			Kind:   vmprotocol.HostMessageKindSetOutsideSize,
@@ -462,9 +499,6 @@ func (g *GuestSession) SetOutsideScreen(screen *ebiten.Image) error {
 			Height: h,
 		},
 	})
-	g.sentWidth = w
-	g.sentHeight = h
-	g.cond.Broadcast()
 	return nil
 }
 
@@ -699,6 +733,13 @@ func (g *GuestSession) TypeRune(r rune) {
 	})
 }
 
+// queueOpLocked appends o to the request queue and wakes the session goroutine to drain it. g.mu must
+// be held.
+func (g *GuestSession) queueOpLocked(o op) {
+	g.ops = append(g.ops, o)
+	g.cond.Broadcast()
+}
+
 // postMessage queues a single host message in submission order.
 func (g *GuestSession) postMessage(msg *vmprotocol.HostMessage) {
 	g.mu.Lock()
@@ -706,8 +747,10 @@ func (g *GuestSession) postMessage(msg *vmprotocol.HostMessage) {
 	if g.closed || g.err != nil {
 		return
 	}
-	g.ops = append(g.ops, op{kind: opMessage, msg: msg})
-	g.cond.Broadcast()
+	g.queueOpLocked(op{
+		kind: opMessage,
+		msg:  msg,
+	})
 }
 
 // Close stops the session, releases the host images mirrored for it, and closes the connection. It
@@ -735,6 +778,151 @@ func (g *GuestSession) requestClose() {
 	defer g.mu.Unlock()
 	g.closed = true
 	g.cond.Broadcast()
+}
+
+// audioReadResult is the outcome of an opReadAudio, delivered to the waiting GuestAudioStream.Read.
+type audioReadResult struct {
+	pcm []byte
+	eof bool
+}
+
+// runReadAudio reads one audio player's samples from the guest and delivers them to the waiting
+// GuestAudioStream.Read. It must be called without g.mu held. It always closes o.audioResp before
+// returning: the result is sent first on success, while a connection error closes it without sending,
+// so the reader reports end-of-stream.
+func (g *GuestSession) runReadAudio(o op) error {
+	defer close(o.audioResp)
+	g.audioReadPCM = nil
+	g.audioReadEOF = false
+	if err := g.sendAndReceive(&vmprotocol.HostMessage{
+		Kind:               vmprotocol.HostMessageKindReadAudio,
+		AudioPlayerID:      o.audioID,
+		AudioMaxLenInBytes: o.audioMaxLenInBytes,
+	}); err != nil {
+		return err
+	}
+	o.audioResp <- audioReadResult{
+		pcm: g.audioReadPCM,
+		eof: g.audioReadEOF,
+	}
+	return nil
+}
+
+// drainQueuedReads closes the response channel of every audio read still queued when the session ends,
+// so its waiting GuestAudioStream.Read reports end-of-stream. It runs once the session loop has stopped,
+// so g.closed or g.err is set and no further read can be queued; a read already in flight is closed by
+// runReadAudio instead, so the two never close the same channel.
+func (g *GuestSession) drainQueuedReads() {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	for _, o := range g.ops {
+		if o.kind == opReadAudio {
+			close(o.audioResp)
+		}
+	}
+	g.ops = nil
+}
+
+// applyAudioControl applies a tick's control changes: it records the sample rate and each player's
+// playing flag and volume, creating a GuestAudioStream for an unseen ID. It runs on the session
+// goroutine; the players' Read fetch their samples concurrently, each under its own lock.
+func (g *GuestSession) applyAudioControl(msg *vmprotocol.GuestMessage) {
+	g.audioMu.Lock()
+	defer g.audioMu.Unlock()
+
+	g.audioSampleRate = msg.AudioSampleRate
+	for i := range msg.AudioControls {
+		c := &msg.AudioControls[i]
+		if c.Closed {
+			// The guest closed the player: mark the stream not playing and drop it. An unknown ID (never
+			// observed, or already gone) is ignored.
+			if p := g.audioStreams[c.ID]; p != nil {
+				p.markClosed()
+				delete(g.audioStreams, c.ID)
+			}
+			continue
+		}
+		p := g.audioStreams[c.ID]
+		if p == nil {
+			p = &GuestAudioStream{
+				session: g,
+				id:      c.ID,
+				rate:    msg.AudioSampleRate,
+			}
+			g.audioStreams[c.ID] = p
+		}
+		p.setControl(c.Playing, c.Volume)
+	}
+}
+
+// AudioSampleRate returns the sample rate of the guest's audio, in per-channel samples per second, as
+// reported by the guest. It is 0 until the guest has played audio. The guest uses the rate its game
+// chose; the host need not match it (or play the audio at all), but a host that does play it should
+// use this rate. It may be called from any goroutine.
+func (g *GuestSession) AudioSampleRate() int {
+	g.audioMu.Lock()
+	defer g.audioMu.Unlock()
+	return g.audioSampleRate
+}
+
+// AppendAudioStreams appends the guest's current audio streams to streams and returns the extended
+// slice. Each is a separate stream (the guest's players are never mixed); the appended streams are
+// ordered by creation. A stream stays valid until the guest closes its player; reaching EOF does not
+// remove it. It may be called from any goroutine.
+func (g *GuestSession) AppendAudioStreams(streams []*GuestAudioStream) []*GuestAudioStream {
+	g.audioMu.Lock()
+	defer g.audioMu.Unlock()
+	start := len(streams)
+	for _, p := range g.audioStreams {
+		streams = append(streams, p)
+	}
+	slices.SortFunc(streams[start:], func(a, b *GuestAudioStream) int {
+		return cmp.Compare(a.id, b.id)
+	})
+	return streams
+}
+
+// readGuestAudio fills b with player id's samples from the guest, truncated to whole stereo frames,
+// and reports the number of bytes written and whether the source has ended. It is called from a
+// GuestAudioStream.Read on an arbitrary goroutine: it queues a read for the session goroutine (which
+// owns the connection) and waits. A closed or failed session reads as end-of-stream.
+func (g *GuestSession) readGuestAudio(id int64, b []byte) (n int, eof bool) {
+	// Round len(b) down to a multiple of 8 — one float32 per channel, two channels — so a sample is
+	// never split across reads.
+	maxLenInBytes := len(b) - len(b)%8
+	// Query even when maxLenInBytes is 0, so the guest's true end-of-stream state is reported regardless of
+	// the buffer size. The guest returns at most maxLenInBytes, so the result always fits in b.
+	resp, ok := g.queueReadAudio(id, maxLenInBytes)
+	if !ok {
+		return 0, true
+	}
+
+	// The session goroutine sends the result, or closes resp without sending when the session ends before
+	// the read completes; a closed resp reports end-of-stream.
+	res, ok := <-resp
+	if !ok {
+		return 0, true
+	}
+	return copy(b, res.pcm), res.eof
+}
+
+// queueReadAudio queues a read of player id's samples for the session goroutine and wakes it,
+// returning the channel its result will arrive on. ok is false when the session has closed or failed,
+// so no read is queued.
+func (g *GuestSession) queueReadAudio(id int64, maxLenInBytes int) (resp chan audioReadResult, ok bool) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	if g.closed || g.err != nil {
+		return nil, false
+	}
+	resp = make(chan audioReadResult, 1)
+	g.queueOpLocked(op{
+		kind:               opReadAudio,
+		audioID:            id,
+		audioMaxLenInBytes: maxLenInBytes,
+		audioResp:          resp,
+	})
+	return resp, true
 }
 
 // EndpointURLFromAddr formats a host endpoint URL for the given address, typically a [net.Listener]'s,

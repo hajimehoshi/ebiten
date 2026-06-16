@@ -158,6 +158,11 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 		if err := hook.RunBeforeUpdateHooks(); err != nil {
 			return false, err
 		}
+		// This is not a virtualization guest, so the pre-tick hooks get false; the guest backend runs
+		// them with true in updateTickForVMGuest.
+		if err := hook.RunBeforeUpdateHooksWithVMGuestInfo(false); err != nil {
+			return false, err
+		}
 		if err := c.game.Update(); err != nil {
 			return false, err
 		}

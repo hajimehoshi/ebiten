@@ -22,8 +22,8 @@ var m sync.Mutex
 
 var onBeforeUpdateHooks []func() error
 
-// AppendHookOnBeforeUpdate appends a hook function that is run before the main update function
-// every tick.
+// AppendHookOnBeforeUpdate appends a hook function that is run before the main update function every
+// tick.
 func AppendHookOnBeforeUpdate(f func() error) {
 	m.Lock()
 	onBeforeUpdateHooks = append(onBeforeUpdateHooks, f)
@@ -36,6 +36,29 @@ func RunBeforeUpdateHooks() error {
 
 	for _, f := range onBeforeUpdateHooks {
 		if err := f(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+var onBeforeUpdateWithVMGuestInfoHooks []func(vmGuest bool) error
+
+// AppendHookOnBeforeUpdateWithVMGuestInfo appends a hook function that runs before the main update
+// function every tick, the same as [AppendHookOnBeforeUpdate], but is passed whether the process is
+// running as a virtualization guest.
+func AppendHookOnBeforeUpdateWithVMGuestInfo(f func(vmGuest bool) error) {
+	m.Lock()
+	defer m.Unlock()
+	onBeforeUpdateWithVMGuestInfoHooks = append(onBeforeUpdateWithVMGuestInfoHooks, f)
+}
+
+func RunBeforeUpdateHooksWithVMGuestInfo(vmGuest bool) error {
+	m.Lock()
+	defer m.Unlock()
+
+	for _, f := range onBeforeUpdateWithVMGuestInfoHooks {
+		if err := f(vmGuest); err != nil {
 			return err
 		}
 	}

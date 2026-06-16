@@ -17,8 +17,9 @@
 // On connect, both ends exchange a handshake to confirm a matching ProtocolVersion before
 // interpreting the stream. Messages are named by their sender. The host sends one HostMessage
 // operation at a time; the guest sends back a sequence of GuestMessages belonging to that operation
-// — graphics-command batches and queries, concluded by a done message — in lockstep. A query suspends
-// the operation until the host answers it with the corresponding HostMessage. The encoding is gob.
+// — graphics-command batches, audio control and data, and queries, concluded by a done message — in
+// lockstep. A query suspends the operation until the host answers it with the corresponding
+// HostMessage. The encoding is gob.
 package vmprotocol
 
 import (
@@ -54,6 +55,10 @@ const (
 	HostMessageKindScrollWheel
 	HostMessageKindTypeRune
 	HostMessageKindClose
+
+	// HostMessageKindReadAudio asks the guest to decode and return up to AudioMaxLenInBytes of one audio
+	// player's samples (identified by AudioPlayerID). The guest answers with GuestMessageKindAudioData.
+	HostMessageKindReadAudio
 
 	// HostMessageKindAnswerReadPixels answers a GuestMessageKindQueryReadPixels.
 	HostMessageKindAnswerReadPixels
@@ -99,6 +104,11 @@ type HostMessage struct {
 
 	// ColorSpace is set on HostMessageKindAnswerColorSpace.
 	ColorSpace color.ColorSpace
+
+	// AudioPlayerID and AudioMaxLenInBytes are set on HostMessageKindReadAudio: the player to read from and
+	// the maximum number of bytes to return.
+	AudioPlayerID      int64
+	AudioMaxLenInBytes int
 }
 
 // GuestMessageKind discriminates the messages a guest sends to the host.
@@ -130,6 +140,15 @@ const (
 	// GuestMessageKindQueryColorSpace asks the host for its graphics driver's color space before the
 	// guest can finish the operation. The host answers with HostMessageKindAnswerColorSpace.
 	GuestMessageKindQueryColorSpace
+	// GuestMessageKindAudioControl carries the audio control changes since the last tick: the context's
+	// sample rate and, for each player whose state changed, its playing flag and volume, or its removal
+	// when closed. Zero or one precedes the concluding GuestMessageKindDone of an advance-tick operation.
+	// The samples themselves are pulled separately (HostMessageKindReadAudio), so each guest player stays
+	// its own stream, never mixed.
+	GuestMessageKindAudioControl
+	// GuestMessageKindAudioData answers a HostMessageKindReadAudio with one player's decoded samples and
+	// whether its source has ended. It precedes the concluding GuestMessageKindDone of that operation.
+	GuestMessageKindAudioData
 )
 
 // GuestMessage is a message a guest sends to the host while handling an operation: recorded graphics
@@ -153,6 +172,41 @@ type GuestMessage struct {
 	// ReadImageID and ReadRegions identify the read-back request on GuestMessageKindQueryReadPixels.
 	ReadImageID graphicsdriver.ImageID
 	ReadRegions []image.Rectangle
+
+	// AudioSampleRate is the guest audio context's sample rate, in per-channel samples per second. The
+	// guest reports its own rate (it is not asked to match the host's); the host plays or inspects the
+	// streams at it. Set on GuestMessageKindAudioControl.
+	AudioSampleRate int
+
+	// AudioControls carries the audio players whose control state changed since the last tick. Set on
+	// GuestMessageKindAudioControl.
+	AudioControls []AudioControl
+
+	// AudioPCM is one player's decoded samples: 32-bit little-endian floats with two interleaved
+	// channels, at AudioSampleRate, with the volume NOT applied. AudioEOF reports that the player's
+	// source has ended (any final samples accompany it). Both set on GuestMessageKindAudioData.
+	AudioPCM []byte
+	AudioEOF bool
+}
+
+// AudioControl is one guest audio player's control state. The samples are pulled separately
+// (HostMessageKindReadAudio); this carries only what the game changes from its Update.
+type AudioControl struct {
+	// ID identifies the guest player; it is stable for the player's lifetime and unique within a
+	// session.
+	ID int64
+
+	// Playing reports whether the player is currently playing.
+	Playing bool
+
+	// Volume is the player's volume in [0,1]. It is reported, not applied to the samples, so the host
+	// can observe the raw stream and apply the volume itself.
+	Volume float64
+
+	// Closed reports that the guest player was removed — closed by the game, or reclaimed once it
+	// finished and was abandoned; the host drops the stream. When set, the other control fields carry no
+	// state.
+	Closed bool
 }
 
 // Encoder writes messages to a connection.
@@ -187,6 +241,13 @@ func (e *Encoder) EncodeGuestMessage(msg *GuestMessage) error {
 
 func (d *Decoder) DecodeGuestMessage(msg *GuestMessage) error {
 	return d.dec.Decode(msg)
+}
+
+// GuestMessageEncoder encodes a guest message to the host. A post-tick hook receives one so a guest
+// subsystem can forward its own messages without depending on the UI backend that owns the connection.
+// *Encoder implements it.
+type GuestMessageEncoder interface {
+	EncodeGuestMessage(*GuestMessage) error
 }
 
 // ProtocolVersion identifies the wire protocol. PerformHandshake asserts on connect that both ends
