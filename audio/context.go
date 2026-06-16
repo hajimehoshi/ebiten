@@ -27,15 +27,15 @@ func newContext(sampleRate int) (context, chan struct{}, error) {
 		Format:       oto.FormatFloat32LE,
 	})
 	err = addErrorInfo(err)
-	return &contextProxy{ctx}, ready, err
+	return &otoContext{ctx}, ready, err
 }
 
-// contextProxy is a proxy between otoContext and context.
-type contextProxy struct {
+// otoContext is a proxy between oto.Context and context.
+type otoContext struct {
 	*oto.Context
 }
 
 // NewPlayer implements context.
-func (c *contextProxy) NewPlayer(r io.Reader) player {
+func (c *otoContext) NewPlayer(r io.Reader) player {
 	return c.Context.NewPlayer(r)
 }
