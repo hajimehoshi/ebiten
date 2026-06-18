@@ -14,6 +14,10 @@
 
 // Package audio provides audio players.
 //
+// This package must be used within an Ebitengine game; it does not work standalone, as the
+// audio device is initialized only after the game starts running. To play audio outside an
+// Ebitengine game, use Oto ([github.com/ebitengine/oto/v3]) directly.
+//
 // The stream format must be 16-bit little endian or 32-bit float little endian, and 2 channels. The format is as follows:
 //
 //	[data]      = [sample 1] [sample 2] [sample 3] ...
@@ -131,8 +135,11 @@ func NewContext(sampleRate int) *Context {
 			return err
 		}
 
-		// Initialize the context here in the case when there is no player and
-		// the program waits for IsReady() to be true (#969, #970, #2715).
+		// Create the audio device here, on the first update after the UI backend is
+		// initialized, rather than when a player is first touched. Deferring the creation
+		// keeps the device from being created before the environment is known (#969, #970,
+		// #2715, #3438). This also initializes the device when there is no player and the
+		// program waits for IsReady() to be true.
 		ready, err := c.playerFactory.initContextIfNeeded()
 		if err != nil {
 			return err
@@ -282,6 +289,10 @@ func (c *Context) updatePlayers() error {
 	// Instead, let's check the states proactively every frame.
 	for _, p := range players {
 		if err := p.Err(); err != nil {
+			return err
+		}
+		// Start playing if Play was requested before the audio device was created.
+		if err := p.startIfPending(); err != nil {
 			return err
 		}
 		p.updatePosition()

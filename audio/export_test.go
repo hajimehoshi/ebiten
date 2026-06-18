@@ -149,6 +149,15 @@ func PlayersCountForTesting() int {
 	return n
 }
 
+// ContextCreatedForTesting reports whether the underlying audio device has been created.
+func ContextCreatedForTesting() bool {
+	c := CurrentContext()
+	if c == nil {
+		return false
+	}
+	return c.playerFactory.currentContext() != nil
+}
+
 func ResetContextForTesting() {
 	theContext = nil
 }

@@ -159,6 +159,109 @@ func TestNonSeekableSource(t *testing.T) {
 	}
 }
 
+// Issue #3438
+func TestDeferredDeviceCreation(t *testing.T) {
+	setup()
+	defer teardown()
+
+	p, err := context.NewPlayer(bytes.NewReader(make([]byte, 4)))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Touching a player before the first update must not create the audio device.
+	p.SetVolume(0.5)
+	p.Play()
+
+	if audio.ContextCreatedForTesting() {
+		t.Errorf("the audio device must not be created before the first update")
+	}
+
+	// The state set before the device is created is recorded.
+	if got, want := p.Volume(), 0.5; got != want {
+		t.Errorf("Volume(): got: %v, want: %v", got, want)
+	}
+	if got, want := p.IsPlaying(), true; got != want {
+		t.Errorf("IsPlaying(): got: %t, want: %t", got, want)
+	}
+	if got, want := audio.PlayersCountForTesting(), 1; got != want {
+		t.Errorf("PlayersCountForTesting(): got: %d, want: %d", got, want)
+	}
+
+	// The first update creates the audio device.
+	if err := audio.UpdateForTesting(); err != nil {
+		t.Error(err)
+	}
+	if !audio.ContextCreatedForTesting() {
+		t.Errorf("the audio device must be created after the first update")
+	}
+
+	// The pending player eventually starts playing and finishes, which is only possible
+	// once the device is created and the player is materialized.
+	for range 10 {
+		if audio.PlayersCountForTesting() == 0 {
+			return
+		}
+		if err := audio.UpdateForTesting(); err != nil {
+			t.Error(err)
+		}
+		time.Sleep(200 * time.Millisecond)
+	}
+	t.Errorf("time out")
+}
+
+// Issue #3438
+func TestSetPositionBeforeDeviceCreation(t *testing.T) {
+	setup()
+	defer teardown()
+
+	// 44100 [Hz] * 8 [bytes/sample] is one second of 32bit float stereo audio.
+	src := bytes.NewReader(make([]byte, 44100*8))
+	p, err := context.NewPlayerF32(src)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := p.SetPosition(500 * time.Millisecond); err != nil {
+		t.Fatal(err)
+	}
+
+	// SetPosition must not create the audio device.
+	if audio.ContextCreatedForTesting() {
+		t.Errorf("the audio device must not be created before the first update")
+	}
+
+	// The position set before the device is created is recorded.
+	if got, want := p.Position(), 500*time.Millisecond; got != want {
+		t.Errorf("Position(): got: %v, want: %v", got, want)
+	}
+}
+
+// Issue #3438
+func TestRewindNonSeekableBeforeDeviceCreation(t *testing.T) {
+	setup()
+	defer teardown()
+
+	p, err := context.NewPlayer(emptySource{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	p.Play()
+
+	// Rewinding to the start before the device is created must not panic even for a
+	// non-seekable source, as the stream has not been read yet.
+	if err := p.Rewind(); err != nil {
+		t.Fatal(err)
+	}
+
+	p.Pause()
+
+	if err := audio.UpdateForTesting(); err != nil {
+		t.Error(err)
+	}
+}
+
 type uncomparableSource []int
 
 func (uncomparableSource) Read(buf []byte) (int, error) {
