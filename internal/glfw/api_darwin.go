@@ -330,6 +330,7 @@ var (
 	sel_type                                                                                         = objc.RegisterName("type")
 	sel_modifierFlags                                                                                = objc.RegisterName("modifierFlags")
 	sel_keyCode                                                                                      = objc.RegisterName("keyCode")
+	sel_performKeyEquivalent                                                                         = objc.RegisterName("performKeyEquivalent:")
 	sel_characters                                                                                   = objc.RegisterName("characters")
 	sel_charactersIgnoringModifiers                                                                  = objc.RegisterName("charactersIgnoringModifiers")
 	sel_locationInWindow                                                                             = objc.RegisterName("locationInWindow")

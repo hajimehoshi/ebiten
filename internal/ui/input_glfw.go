@@ -228,11 +228,16 @@ func (i *InputState) syncModKeysByMods(mods glfw.ModifierKey, t InputTime) {
 	for _, m := range mappings {
 		if mods&m.mod != 0 {
 			// The mod flag is set, so at least one of left/right should be pressed.
-			// Re-press whichever was most recently pressed.
-			// If neither was ever pressed, default to the left variant.
-			lp := i.KeyPressedTimes[m.left]
-			rp := i.KeyPressedTimes[m.right]
-			if lp >= rp {
+			// If one already is, the state is in sync: leave its press time intact,
+			// otherwise the key would keep registering as just-pressed every tick.
+			leftPressed := i.KeyPressedTimes[m.left] > i.KeyReleasedTimes[m.left]
+			rightPressed := i.KeyPressedTimes[m.right] > i.KeyReleasedTimes[m.right]
+			if leftPressed || rightPressed {
+				continue
+			}
+			// Neither is pressed: press whichever was most recently pressed,
+			// defaulting to the left variant if neither was ever pressed.
+			if i.KeyPressedTimes[m.left] >= i.KeyPressedTimes[m.right] {
 				i.setKeyPressed(m.left, t)
 			} else {
 				i.setKeyPressed(m.right, t)

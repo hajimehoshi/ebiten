@@ -495,6 +495,34 @@ func registerGLFWClasses() error {
 				},
 			},
 			{
+				Cmd: sel_performKeyEquivalent,
+				Fn: func(self objc.ID, _ objc.SEL, event objc.ID) bool {
+					window := getGoWindow(self)
+					if window == nil {
+						return objc.SendSuper[bool](self, sel_performKeyEquivalent, event)
+					}
+					keyCode := uint16(event.Send(sel_keyCode))
+					key := translateKey(keyCode)
+					flags := uintptr(event.Send(sel_modifierFlags))
+					mods := translateFlags(flags)
+
+					// Some key combinations are dispatched as key equivalents and
+					// consumed before they reach keyDown:. Claim them here and emit
+					// them as key presses. Mirrors performKeyEquivalent: from upstream
+					// GLFW, which added it after the 3.3 series this backend was ported from.
+					if mods&ModControl != 0 && (key == KeyTab || key == KeyEscape) {
+						window.inputKey(key, int(keyCode), Press, mods)
+						return true
+					}
+					if mods&ModSuper != 0 && key == KeyPeriod {
+						window.inputKey(key, int(keyCode), Press, mods)
+						return true
+					}
+
+					return objc.SendSuper[bool](self, sel_performKeyEquivalent, event)
+				},
+			},
+			{
 				Cmd: objc.RegisterName("keyUp:"),
 				Fn: func(self objc.ID, _ objc.SEL, event objc.ID) {
 					window := getGoWindow(self)
