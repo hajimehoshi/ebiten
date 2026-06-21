@@ -28,8 +28,8 @@ import (
 )
 
 const (
-	screenWidth  = 640
-	screenHeight = 480
+	screenWidth  = 800
+	screenHeight = 800
 )
 
 type Game struct {
@@ -37,6 +37,8 @@ type Game struct {
 	gamepadIDs     map[ebiten.GamepadID]struct{}
 	axes           map[ebiten.GamepadID][]string
 	pressedButtons map[ebiten.GamepadID][]string
+
+	rumbles map[ebiten.GamepadID]bool
 }
 
 func (g *Game) Update() error {
@@ -59,6 +61,7 @@ func (g *Game) Update() error {
 
 	g.axes = map[ebiten.GamepadID][]string{}
 	g.pressedButtons = map[ebiten.GamepadID][]string{}
+	g.rumbles = map[ebiten.GamepadID]bool{}
 	for id := range g.gamepadIDs {
 		maxAxis := ebiten.GamepadAxisType(ebiten.GamepadAxisCount(id))
 		for a := range maxAxis {
@@ -114,6 +117,9 @@ func (g *Game) Update() error {
 				}
 			}
 		}
+
+		g.rumbles[id] = ebiten.HasGamepadRumble(id)
+
 	}
 	return nil
 }
@@ -188,6 +194,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 			str += fmt.Sprintf("  Name:    %s\n", ebiten.GamepadName(id))
 			str += fmt.Sprintf("  Axes:    %s\n", strings.Join(g.axes[id], ", "))
 			str += fmt.Sprintf("  Buttons: %s\n", strings.Join(g.pressedButtons[id], ", "))
+			str += fmt.Sprintf("  Rumble: %v\n", g.rumbles[id])
 			if ebiten.IsStandardGamepadLayoutAvailable(id) {
 				str += "\n"
 				str += standardMap(id) + "\n"

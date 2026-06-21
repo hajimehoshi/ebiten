@@ -18,6 +18,8 @@ package gamepad
 
 import (
 	"fmt"
+	"log"
+	"math"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -106,7 +108,16 @@ func (*nativeGamepadsImpl) openGamepad(gamepads *gamepads, path string) (err err
 		return nil
 	}
 
-	fd, err := unix.Open(path, unix.O_RDONLY|unix.O_NONBLOCK, 0)
+	// check write permissions needed for rumble
+	fd, err := unix.Open(path, unix.O_RDWR|unix.O_NONBLOCK, 0)
+	canWrite := true
+
+	if err == unix.EACCES || err == unix.EPERM {
+		canWrite = false
+
+		fd, err = unix.Open(path, unix.O_RDONLY|unix.O_NONBLOCK, 0)
+	}
+
 	if err != nil {
 		if err == unix.EACCES {
 			return nil
@@ -150,6 +161,14 @@ func (*nativeGamepadsImpl) openGamepad(gamepads *gamepads, path string) (err err
 		}
 
 		return nil
+	}
+
+	hasRumble := false
+	ffBits := make([]byte, (_FF_CNT+7)/8)
+	if canWrite && isBitSet(evBits, unix.EV_FF) {
+		if err := ioctl(fd, _EVIOCGBIT(unix.EV_FF, uint(len(ffBits))), unsafe.Pointer(&ffBits[0])); err == nil {
+			hasRumble = isBitSet(ffBits, _FF_RUMBLE)
+		}
 	}
 
 	cname := make([]byte, 256)
@@ -225,6 +244,7 @@ func (*nativeGamepadsImpl) openGamepad(gamepads *gamepads, path string) (err err
 	n.axisCount_ = axisCount
 	n.buttonCount_ = buttonCount
 	n.hatCount_ = hatCount
+	n.hasRumble_ = hasRumble
 
 	n.computeStandardLayout(id.vendor)
 
@@ -301,6 +321,7 @@ type nativeGamepadImpl struct {
 	axisCount_   int
 	buttonCount_ int
 	hatCount_    int
+	hasRumble_   bool
 
 	stdAxisMap   map[gamepaddb.StandardAxis]mappingInput
 	stdButtonMap map[gamepaddb.StandardButton]mappingInput
@@ -621,6 +642,76 @@ func (g *nativeGamepadImpl) hatState(hat int) int {
 	return g.hats[hat]
 }
 
-func (g *nativeGamepadImpl) vibrate(duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
-	// TODO: Implement this (#1452)
+func (g *nativeGamepadImpl) hasRumble() bool {
+	return g.hasRumble_
+}
+
+func (g *nativeGamepadImpl) vibrate(
+	duration time.Duration, strongMagnitude float64, weakMagnitude float64,
+) {
+	if g.fd == 0 || !g.hasRumble_ {
+		return
+	}
+
+	ms := duration / time.Millisecond
+	if ms <= 0 {
+		return
+	}
+
+	if ms > 0xffff {
+		ms = 0xffff
+	}
+
+	strong := uint16(math.Max(0, math.Min(strongMagnitude, 1)) * 0xffff)
+	weak := uint16(math.Max(0, math.Min(weakMagnitude, 1)) * 0xffff)
+
+	effect := ff_effect{
+		typ: _FF_RUMBLE,
+		id:  -1,
+		replay: ff_replay{
+			length: uint16(ms),
+			delay:  0,
+		},
+	}
+	effect.setRumble(strong, weak)
+
+	if err := ioctl(g.fd, _EVIOCSFF(), unsafe.Pointer(&effect)); err != nil {
+		log.Fatal(err)
+		return
+	}
+
+	ev := input_event{
+		typ:   unix.EV_FF,
+		code:  uint16(effect.id),
+		value: 1,
+	}
+
+	if err := writeInputEvent(g.fd, ev); err != nil {
+		_ = ioctlInt(g.fd, _EVIOCRMFF(), int(effect.id))
+	}
+}
+
+func ioctlInt(fd int, request uint, arg int) error {
+	r, _, e := unix.Syscall(
+		unix.SYS_IOCTL,
+		uintptr(fd),
+		uintptr(request),
+		uintptr(arg),
+	)
+	if int32(r) < 0 {
+		return e
+	}
+	return nil
+}
+
+func writeInputEvent(fd int, e input_event) error {
+	buf := unsafe.Slice((*byte)(unsafe.Pointer(&e)), unsafe.Sizeof(e))
+	n, err := unix.Write(fd, buf)
+	if err != nil {
+		return err
+	}
+	if n != len(buf) {
+		return unix.EIO
+	}
+	return nil
 }

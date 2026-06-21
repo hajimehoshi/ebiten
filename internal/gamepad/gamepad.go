@@ -248,6 +248,7 @@ type nativeGamepad interface {
 	buttonValue(button int) float64
 	isButtonPressed(button int) bool
 	hatState(hat int) int
+	hasRumble() bool
 	vibrate(duration time.Duration, strongMagnitude float64, weakMagnitude float64)
 }
 
@@ -408,6 +409,14 @@ func (g *Gamepad) IsStandardButtonPressed(button gamepaddb.StandardButton) bool 
 		return m.Pressed()
 	}
 	return false
+}
+
+// HasRumble is concurrent-safe.
+func (g *Gamepad) HasRumble() bool {
+	g.m.Lock()
+	defer g.m.Unlock()
+
+	return g.native.hasRumble()
 }
 
 // Vibrate is concurrent-safe.

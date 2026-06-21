@@ -80,6 +80,13 @@ const (
 
 	_SYN_REPORT  = 0
 	_SYN_DROPPED = 3
+
+	_FF_MAX    = 0x7f
+	_FF_CNT    = _FF_MAX + 1
+	_FF_RUMBLE = 0x50
+
+	_EVIOCSFF_NR  = 0x80
+	_EVIOCRMFF_NR = 0x81
 )
 
 func _IOC(dir, typ, nr, size uint) uint {
@@ -106,6 +113,14 @@ func _EVIOCGNAME(len uint) uint {
 	return _IOC(_IOC_READ, 'E', 0x06, len)
 }
 
+func _EVIOCSFF() uint {
+	return _IOC(_IOC_WRITE, 'E', _EVIOCSFF_NR, uint(unsafe.Sizeof(ff_effect{})))
+}
+
+func _EVIOCRMFF() uint {
+	return _IOC(_IOC_WRITE, 'E', _EVIOCRMFF_NR, uint(unsafe.Sizeof(int32(0))))
+}
+
 type input_absinfo struct {
 	value      int32
 	minimum    int32
@@ -127,6 +142,38 @@ type input_id struct {
 	vendor  uint16
 	product uint16
 	version uint16
+}
+
+type ff_trigger struct {
+	button   uint16
+	interval uint16
+}
+
+type ff_replay struct {
+	length uint16
+	delay  uint16
+}
+
+type ff_rumble_effect struct {
+	strong_magnitude uint16
+	weak_magnitude   uint16
+}
+
+type ff_effect struct {
+	typ       uint16
+	id        int16
+	direction uint16
+	trigger   ff_trigger
+	replay    ff_replay
+
+	_ [2]byte
+	u [32]byte
+}
+
+func (e *ff_effect) setRumble(strong, weak uint16) {
+	r := (*ff_rumble_effect)(unsafe.Pointer(&e.u[0]))
+	r.strong_magnitude = strong
+	r.weak_magnitude = weak
 }
 
 func ioctl(fd int, request uint, ptr unsafe.Pointer) error {
