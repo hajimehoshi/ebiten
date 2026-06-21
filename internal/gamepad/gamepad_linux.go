@@ -18,7 +18,6 @@ package gamepad
 
 import (
 	"fmt"
-	"log"
 	"math"
 	"os"
 	"path/filepath"
@@ -196,8 +195,9 @@ func (*nativeGamepadsImpl) openGamepad(gamepads *gamepads, path string) (err err
 	}
 
 	n := &nativeGamepadImpl{
-		path: path,
-		fd:   fd,
+		path:       path,
+		fd:         fd,
+		ffEffectID: -1,
 	}
 	gp := gamepads.add(name, sdlID)
 	gp.native = n
@@ -322,6 +322,7 @@ type nativeGamepadImpl struct {
 	buttonCount_ int
 	hatCount_    int
 	hasRumble_   bool
+	ffEffectID   int16
 
 	stdAxisMap   map[gamepaddb.StandardAxis]mappingInput
 	stdButtonMap map[gamepaddb.StandardButton]mappingInput
@@ -329,6 +330,11 @@ type nativeGamepadImpl struct {
 
 func (g *nativeGamepadImpl) close() {
 	if g.fd != 0 {
+		if g.ffEffectID >= 0 {
+			_ = ioctlInt(g.fd, _EVIOCRMFF(), int(g.ffEffectID))
+			g.ffEffectID = -1
+		}
+
 		_ = unix.Close(g.fd)
 	}
 	g.fd = 0
@@ -667,7 +673,7 @@ func (g *nativeGamepadImpl) vibrate(
 
 	effect := ff_effect{
 		typ: _FF_RUMBLE,
-		id:  -1,
+		id:  g.ffEffectID,
 		replay: ff_replay{
 			length: uint16(ms),
 			delay:  0,
@@ -676,9 +682,10 @@ func (g *nativeGamepadImpl) vibrate(
 	effect.setRumble(strong, weak)
 
 	if err := ioctl(g.fd, _EVIOCSFF(), unsafe.Pointer(&effect)); err != nil {
-		log.Fatal(err)
 		return
 	}
+
+	g.ffEffectID = effect.id
 
 	ev := input_event{
 		typ:   unix.EV_FF,
@@ -686,9 +693,7 @@ func (g *nativeGamepadImpl) vibrate(
 		value: 1,
 	}
 
-	if err := writeInputEvent(g.fd, ev); err != nil {
-		_ = ioctlInt(g.fd, _EVIOCRMFF(), int(effect.id))
-	}
+	_ = writeInputEvent(g.fd, ev)
 }
 
 func ioctlInt(fd int, request uint, arg int) error {
