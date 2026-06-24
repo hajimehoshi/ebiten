@@ -180,6 +180,9 @@ var (
 	cfBundleGetBundleWithIdentifier   func(bundleID uintptr) uintptr
 	cfBundleGetFunctionPointerForName func(bundle uintptr, functionName uintptr) uintptr
 	cfBundleGetDataPointerForName     func(bundle uintptr, symbolName uintptr) uintptr
+	cfBundleGetMainBundle             func() uintptr
+	cfBundleCopyResourcesDirectoryURL func(bundle uintptr) uintptr
+	cfURLGetFileSystemRepresentation  func(url uintptr, resolveAgainstBase bool, buffer *byte, maxBufLen int) bool
 	cfStringCreateWithCString         func(alloc uintptr, cStr string, encoding uint32) uintptr
 	cfArrayGetCount                   func(array uintptr) int
 	cfArrayGetValueAtIndex            func(array uintptr, index int) uintptr
@@ -533,6 +536,9 @@ func init() {
 	purego.RegisterLibFunc(&cfBundleGetBundleWithIdentifier, coreFoundation, "CFBundleGetBundleWithIdentifier")
 	purego.RegisterLibFunc(&cfBundleGetFunctionPointerForName, coreFoundation, "CFBundleGetFunctionPointerForName")
 	purego.RegisterLibFunc(&cfBundleGetDataPointerForName, coreFoundation, "CFBundleGetDataPointerForName")
+	purego.RegisterLibFunc(&cfBundleGetMainBundle, coreFoundation, "CFBundleGetMainBundle")
+	purego.RegisterLibFunc(&cfBundleCopyResourcesDirectoryURL, coreFoundation, "CFBundleCopyResourcesDirectoryURL")
+	purego.RegisterLibFunc(&cfURLGetFileSystemRepresentation, coreFoundation, "CFURLGetFileSystemRepresentation")
 	purego.RegisterLibFunc(&cfStringCreateWithCString, coreFoundation, "CFStringCreateWithCString")
 	purego.RegisterLibFunc(&cfArrayGetCount, coreFoundation, "CFArrayGetCount")
 	purego.RegisterLibFunc(&cfArrayGetValueAtIndex, coreFoundation, "CFArrayGetValueAtIndex")

@@ -5,7 +5,10 @@
 package glfw
 
 import (
+	"bytes"
 	"fmt"
+	"os"
+	"path/filepath"
 	"unsafe"
 
 	"github.com/ebitengine/purego"
@@ -411,6 +414,42 @@ var (
 	class_GLFWApplicationDelegate objc.Class
 )
 
+// changeToResourcesDirectory changes the current working directory to the
+// application bundle's resources directory, if present.
+//
+// This mirrors GLFW's GLFW_COCOA_CHDIR_RESOURCES init hint, which defaults to
+// true. An unbundled binary has no such directory and is left untouched.
+func changeToResourcesDirectory() {
+	bundle := cfBundleGetMainBundle()
+	if bundle == 0 {
+		return
+	}
+
+	resourcesURL := cfBundleCopyResourcesDirectoryURL(bundle)
+	if resourcesURL == 0 {
+		return
+	}
+	defer cfRelease(resourcesURL)
+
+	// MAXPATHLEN on macOS.
+	var buf [1024]byte
+	if !cfURLGetFileSystemRepresentation(resourcesURL, true, &buf[0], len(buf)) {
+		return
+	}
+
+	n := bytes.IndexByte(buf[:], 0)
+	if n < 0 {
+		return
+	}
+	path := string(buf[:n])
+
+	if filepath.Base(path) != "Resources" {
+		return
+	}
+
+	_ = os.Chdir(path)
+}
+
 // platformInit performs the full macOS platform initialization.
 func platformInit() error {
 	pool := cocoa.NSAutoreleasePool_new()
@@ -558,6 +597,11 @@ func platformInit() error {
 		sel_addLocalMonitorForEventsMatchingMask_handler,
 		_NSEventMaskKeyUp,
 		keyUpBlock)
+
+	// The C code gates this on _glfw.hints.init.ns.chdir which defaults to
+	// true. Ebitengine relies on that default, so it is called unconditionally
+	// to preserve the behavior of the cgo implementation.
+	changeToResourcesDirectory()
 
 	// Create a CGEventSource for synthesized events.
 	_glfw.platformWindow.eventSource = cgEventSourceCreate(_kCGEventSourceStateHIDSystemState)
