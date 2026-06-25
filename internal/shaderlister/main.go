@@ -41,7 +41,10 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/pssl"
 )
 
-var flagTarget = flag.String("target", "", "shader compilation targets separated by comma (e.g. 'glsl,glsles,hlsl,msl')")
+var (
+	flagTarget   = flag.String("target", "", "shader compilation targets separated by comma (e.g. 'glsl,glsles,hlsl,msl')")
+	flagManifest = flag.String("manifest", "", "path to a JSON manifest file listing shader source file paths in a \"ShaderFiles\" array, resolved relative to the manifest file")
+)
 
 func main() {
 	if err := xmain(); err != nil {
@@ -89,17 +92,10 @@ type PSSL struct {
 
 func xmain() error {
 	flag.Usage = func() {
-		fmt.Fprintln(os.Stderr, "shaderlister [-target=TARGET] [package]")
+		fmt.Fprintln(os.Stderr, "shaderlister [-target=TARGET] [-manifest=PATH] [package...]")
 		os.Exit(2)
 	}
 	flag.Parse()
-
-	pkgs, err := packages.Load(&packages.Config{
-		Mode: packages.NeedName | packages.NeedImports | packages.NeedDeps | packages.NeedTypes | packages.NeedSyntax | packages.NeedTypesInfo,
-	}, flag.Args()...)
-	if err != nil {
-		return err
-	}
 
 	var targets []string
 	if ft := strings.TrimSpace(*flagTarget); ft != "" {
@@ -112,52 +108,58 @@ func xmain() error {
 	// Even if no shader is found, the output should be a JSON array. Start with an empty slice, not nil.
 	shaders := []Shader{}
 
-	var visitErr error
-	packages.Visit(pkgs, func(pkg *packages.Package) bool {
-		path := pkg.PkgPath
-		// A standard library should not have a directive for shaders. Skip them.
-		if isStandardImportPath(path) {
-			return true
-		}
-		// A semi-standard library should not have a directive for shaders. Skip them.
-		if strings.HasPrefix(path, "golang.org/x/") {
-			return true
-		}
-
-		origN := len(shaders)
-		shaders, err = appendShaderSources(shaders, pkg)
+	// Collect shaders statically discovered in the given packages.
+	if args := flag.Args(); len(args) > 0 {
+		pkgs, err := packages.Load(&packages.Config{
+			Mode: packages.NeedName | packages.NeedImports | packages.NeedDeps | packages.NeedTypes | packages.NeedSyntax | packages.NeedTypesInfo,
+		}, args...)
 		if err != nil {
-			visitErr = err
-			return false
+			return err
 		}
-		newShaders := shaders[origN:]
 
-		// Add source hashes.
-		for i := range newShaders {
-			shader := &newShaders[i]
-			hash, err := graphics.CalcSourceHash([]byte(shader.Source))
+		var visitErr error
+		packages.Visit(pkgs, func(pkg *packages.Package) bool {
+			path := pkg.PkgPath
+			// A standard library should not have a directive for shaders. Skip them.
+			if isStandardImportPath(path) {
+				return true
+			}
+			// A semi-standard library should not have a directive for shaders. Skip them.
+			if strings.HasPrefix(path, "golang.org/x/") {
+				return true
+			}
+
+			origN := len(shaders)
+			var err error
+			shaders, err = appendShaderSources(shaders, pkg)
 			if err != nil {
 				visitErr = err
 				return false
 			}
-			shader.SourceHash = hash.String()
-		}
-
-		// Compile shaders.
-		if len(targets) == 0 {
-			return true
-		}
-		for i := range newShaders {
-			if err := compile(&newShaders[i], targets); err != nil {
+			if err := hashAndCompileShaders(shaders[origN:], targets); err != nil {
 				visitErr = err
 				return false
 			}
-		}
 
-		return true
-	}, nil)
-	if visitErr != nil {
-		return visitErr
+			return true
+		}, nil)
+		if visitErr != nil {
+			return visitErr
+		}
+	}
+
+	// Collect shaders listed in the manifest file given via the -manifest flag.
+	// These are not tied to any package.
+	if manifest := *flagManifest; manifest != "" {
+		origN := len(shaders)
+		var err error
+		shaders, err = appendShadersFromManifest(shaders, manifest)
+		if err != nil {
+			return err
+		}
+		if err := hashAndCompileShaders(shaders[origN:], targets); err != nil {
+			return err
+		}
 	}
 
 	w := bufio.NewWriter(os.Stdout)
@@ -436,6 +438,41 @@ func appendShaderSources(shaders []Shader, pkg *packages.Package) ([]Shader, err
 	return shaders, nil
 }
 
+// appendShadersFromManifest reads the JSON manifest file at manifest, whose "ShaderFiles" array holds
+// shader source file paths resolved relative to the manifest's directory, and appends each as a shader.
+// Duplicate paths are skipped.
+func appendShadersFromManifest(shaders []Shader, manifest string) ([]Shader, error) {
+	content, err := os.ReadFile(manifest)
+	if err != nil {
+		return nil, err
+	}
+
+	var m struct {
+		ShaderFiles []string
+	}
+	if err := json.Unmarshal(content, &m); err != nil {
+		return nil, fmt.Errorf("parsing manifest %s failed: %w", manifest, err)
+	}
+
+	dir := filepath.Dir(manifest)
+	visitedPaths := map[string]struct{}{}
+	for _, s := range m.ShaderFiles {
+		path := filepath.FromSlash(s)
+		if !filepath.IsAbs(path) {
+			path = filepath.Join(dir, path)
+		}
+		if _, ok := visitedPaths[path]; ok {
+			continue
+		}
+		visitedPaths[path] = struct{}{}
+		shaders, err = appendShaderFromFile(shaders, "", "", path)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return shaders, nil
+}
+
 func appendShaderFromFile(shaders []Shader, pkgPath string, goFile string, kageFile string) ([]Shader, error) {
 	content, err := os.ReadFile(kageFile)
 	if err != nil {
@@ -474,6 +511,30 @@ func objectTypeString(obj types.Object) string {
 	default:
 		return fmt.Sprintf("objectTypeString(%T)", obj)
 	}
+}
+
+// hashAndCompileShaders fills in the SourceHash of each shader and, if targets is non-empty,
+// compiles each shader for the given targets.
+func hashAndCompileShaders(shaders []Shader, targets []string) error {
+	for i := range shaders {
+		shader := &shaders[i]
+		hash, err := graphics.CalcSourceHash([]byte(shader.Source))
+		if err != nil {
+			return err
+		}
+		shader.SourceHash = hash.String()
+	}
+
+	if len(targets) == 0 {
+		return nil
+	}
+	for i := range shaders {
+		if err := compile(&shaders[i], targets); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func compile(shader *Shader, targets []string) error {

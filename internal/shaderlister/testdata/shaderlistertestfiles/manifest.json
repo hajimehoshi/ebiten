@@ -1,0 +1,7 @@
+{
+	"ShaderFiles": [
+		"single.kage",
+		"dir/nested.kage",
+		"dir/sub/deep.kage"
+	]
+}

@@ -18,7 +18,10 @@ import (
 	"cmp"
 	"encoding/json"
 	"fmt"
+	"maps"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"slices"
 	"strings"
@@ -124,5 +127,107 @@ func TestEmpty(t *testing.T) {
 	// Check the output is `[]`, not `null`.
 	if got, want := strings.TrimSpace(string(out)), "[]"; got != want {
 		t.Errorf("output: got: %q, want: %q", got, want)
+	}
+}
+
+func TestManifest(t *testing.T) {
+	if !hasGoCommand() {
+		t.Skip("go command is missing")
+	}
+
+	const dir = "testdata/shaderlistertestfiles"
+	// These are the files listed in manifest.json, whose paths are resolved relative to the manifest.
+	files := []string{
+		filepath.Join(dir, "single.kage"),
+		filepath.Join(dir, "dir", "nested.kage"),
+		filepath.Join(dir, "dir", "sub", "deep.kage"),
+	}
+
+	// Compute the expected source hashes directly from the listed files.
+	// These must match the hashes the tool emits, which in turn match the hashes
+	// Ebitengine computes at runtime from the same bytes.
+	wantHashes := map[string]struct{}{}
+	for _, f := range files {
+		content, err := os.ReadFile(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		hash, err := graphics.CalcSourceHash(content)
+		if err != nil {
+			t.Fatal(err)
+		}
+		wantHashes[hash.String()] = struct{}{}
+	}
+
+	// Pass a manifest file without any package. Its listed paths are resolved relative to the manifest.
+	cmd := exec.Command("go", "run", "github.com/hajimehoshi/ebiten/v2/internal/shaderlister",
+		"-target", "hlsl",
+		"-manifest", filepath.Join(dir, "manifest.json"))
+	out, err := cmd.Output()
+	if err != nil {
+		if err, ok := err.(*exec.ExitError); ok {
+			t.Fatalf("Error: %v\n%s", err, err.Stderr)
+		}
+		t.Fatal(err)
+	}
+
+	type hlsl struct {
+		Vertex string
+		Pixel  string
+	}
+	type shader struct {
+		Package    string
+		GoFile     string
+		KageFile   string
+		Source     string
+		SourceHash string
+		HLSL       *hlsl
+	}
+	var shaders []shader
+	if err := json.Unmarshal(out, &shaders); err != nil {
+		t.Fatal(err)
+	}
+
+	if got, want := len(shaders), len(files); got != want {
+		t.Fatalf("len(shaders): got: %d, want: %d", got, want)
+	}
+
+	gotHashes := map[string]struct{}{}
+	for _, s := range shaders {
+		// A shader listed via -manifest is not tied to any package.
+		if s.Package != "" {
+			t.Errorf("s.Package: got: %q, want empty", s.Package)
+		}
+		if s.GoFile != "" {
+			t.Errorf("s.GoFile: got: %q, want empty", s.GoFile)
+		}
+		if s.KageFile == "" {
+			t.Errorf("s.KageFile is empty: %v", s)
+		}
+
+		hash, err := graphics.CalcSourceHash([]byte(s.Source))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got, want := s.SourceHash, hash.String(); got != want {
+			t.Errorf("s.SourceHash: got: %q, want: %q", got, want)
+		}
+		gotHashes[s.SourceHash] = struct{}{}
+
+		if s.HLSL == nil {
+			t.Errorf("s.HLSL is nil: %v", s)
+			continue
+		}
+		if s.HLSL.Vertex == "" {
+			t.Errorf("s.HLSL.Vertex is empty: %v", s)
+		}
+		if s.HLSL.Pixel == "" {
+			t.Errorf("s.HLSL.Pixel is empty: %v", s)
+		}
+	}
+
+	// Every file listed in the manifest must appear.
+	if !maps.Equal(gotHashes, wantHashes) {
+		t.Errorf("source hashes: got: %v, want: %v", gotHashes, wantHashes)
 	}
 }
