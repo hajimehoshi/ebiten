@@ -92,7 +92,7 @@ type PSSL struct {
 
 func xmain() error {
 	flag.Usage = func() {
-		fmt.Fprintln(os.Stderr, "shaderlister [-target=TARGET] [-manifest=PATH] [package...]")
+		fmt.Fprintln(os.Stderr, "shadercollector [-target=TARGET] [-manifest=PATH] [package...]")
 		os.Exit(2)
 	}
 	flag.Parse()

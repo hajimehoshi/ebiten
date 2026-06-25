@@ -42,7 +42,7 @@ func TestRun(t *testing.T) {
 		t.Skip("go command is missing")
 	}
 
-	cmd := exec.Command("go", "run", "github.com/hajimehoshi/ebiten/v2/internal/shaderlister", "github.com/hajimehoshi/ebiten/v2/internal/shaderlister/testdata/shaderlistertest")
+	cmd := exec.Command("go", "run", "github.com/hajimehoshi/ebiten/v2/internal/shadercollector", "github.com/hajimehoshi/ebiten/v2/internal/shadercollector/testdata/shadercollectortest")
 	out, err := cmd.Output()
 	if err != nil {
 		if err, ok := err.(*exec.ExitError); ok {
@@ -115,7 +115,7 @@ func TestEmpty(t *testing.T) {
 		t.Skip("go command is missing")
 	}
 
-	cmd := exec.Command("go", "run", "github.com/hajimehoshi/ebiten/v2/internal/shaderlister", "github.com/ebitengine/purego")
+	cmd := exec.Command("go", "run", "github.com/hajimehoshi/ebiten/v2/internal/shadercollector", "github.com/ebitengine/purego")
 	out, err := cmd.Output()
 	if err != nil {
 		if err, ok := err.(*exec.ExitError); ok {
@@ -135,7 +135,7 @@ func TestManifest(t *testing.T) {
 		t.Skip("go command is missing")
 	}
 
-	const dir = "testdata/shaderlistertestfiles"
+	const dir = "testdata/shadercollectortestfiles"
 	// These are the files listed in manifest.json, whose paths are resolved relative to the manifest.
 	files := []string{
 		filepath.Join(dir, "single.kage"),
@@ -160,7 +160,7 @@ func TestManifest(t *testing.T) {
 	}
 
 	// Pass a manifest file without any package. Its listed paths are resolved relative to the manifest.
-	cmd := exec.Command("go", "run", "github.com/hajimehoshi/ebiten/v2/internal/shaderlister",
+	cmd := exec.Command("go", "run", "github.com/hajimehoshi/ebiten/v2/internal/shadercollector",
 		"-target", "hlsl",
 		"-manifest", filepath.Join(dir, "manifest.json"))
 	out, err := cmd.Output()

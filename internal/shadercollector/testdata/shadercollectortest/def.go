@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package shaderlistertest
+package shadercollectortest
 
 import (
-	"github.com/hajimehoshi/ebiten/v2/internal/shaderlister/testdata/shaderlistertest2"
+	"github.com/hajimehoshi/ebiten/v2/internal/shadercollector/testdata/shadercollectortest2"
 )
 
 //ebitengine:shadersource
@@ -39,7 +39,7 @@ const (
 const _ = "not shader"
 
 //ebitengine:shadersource
-const d = shaderlistertest2.S + " 5"
+const d = shadercollectortest2.S + " 5"
 
 const _ = "not shader"
 
