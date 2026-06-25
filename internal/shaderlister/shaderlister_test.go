@@ -39,7 +39,7 @@ func TestRun(t *testing.T) {
 		t.Skip("go command is missing")
 	}
 
-	cmd := exec.Command("go", "run", "github.com/hajimehoshi/ebiten/v2/internal/shaderlister", "github.com/hajimehoshi/ebiten/v2/internal/shaderlister/shaderlistertest")
+	cmd := exec.Command("go", "run", "github.com/hajimehoshi/ebiten/v2/internal/shaderlister", "github.com/hajimehoshi/ebiten/v2/internal/shaderlister/testdata/shaderlistertest")
 	out, err := cmd.Output()
 	if err != nil {
 		if err, ok := err.(*exec.ExitError); ok {
