@@ -17,7 +17,7 @@ package shaderir
 
 import (
 	"bytes"
-	"encoding/hex"
+	"encoding/base32"
 	"go/constant"
 	"go/token"
 	"hash/fnv"
@@ -44,7 +44,7 @@ func CalcSourceHash(source []byte) SourceHash {
 }
 
 func (s SourceHash) String() string {
-	return hex.EncodeToString(s[:])
+	return strings.ToLower(base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(s[:]))
 }
 
 type Program struct {
