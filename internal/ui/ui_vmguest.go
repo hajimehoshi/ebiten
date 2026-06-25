@@ -146,15 +146,28 @@ func (r *remoteBackend) serve(conn net.Conn) error {
 	r.graphics.SetHost(host)
 	r.vmHost = host
 
+	if err := r.serveLoop(dec, enc); err != nil {
+		// A guest is driven entirely by its host: once the connection to the host is gone — whether the
+		// host closed it cleanly, exited, or crashed — there is nothing left to drive the guest, so end the
+		// run without an error rather than surface the dropped connection as a failure the guest program
+		// would report (typically log.Fatal). Any other error is a genuine failure and propagates.
+		if isHostConnectionGone(err) {
+			return nil
+		}
+		return err
+	}
+	return nil
+}
+
+// serveLoop runs the lockstep request/response loop until the host signals close, the connection ends,
+// or an operation fails.
+func (r *remoteBackend) serveLoop(dec *vmprotocol.Decoder, enc *vmprotocol.Encoder) error {
 	// audioReadBuf is reused to answer host audio reads; the serve loop is single-threaded.
 	var audioReadBuf []byte
 
 	for {
 		var msg vmprotocol.HostMessage
 		if err := dec.DecodeHostMessage(&msg); err != nil {
-			if errors.Is(err, io.EOF) {
-				return nil
-			}
 			return err
 		}
 
@@ -225,6 +238,18 @@ func (r *remoteBackend) serve(conn net.Conn) error {
 			return nil
 		}
 	}
+}
+
+// isHostConnectionGone reports whether err indicates the connection to the host has ended: a clean EOF
+// or a truncated read at the boundary, a use of the now-closed connection, or a reset/aborted/broken
+// connection (handled per OS by isConnectionReset). A guest is driven entirely by its host, so any of
+// these means the host is gone and the guest should stop without error rather than treat it as a
+// failure.
+func isHostConnectionGone(err error) bool {
+	return errors.Is(err, io.EOF) ||
+		errors.Is(err, io.ErrUnexpectedEOF) ||
+		errors.Is(err, net.ErrClosed) ||
+		isConnectionReset(err)
 }
 
 // vmHostQuerier fetches host-owned values the guest needs on demand. The host owns the real window
