@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Shadercollector collects Kage shader sources and compiles them to backend targets,
+// emitting the result as JSON. It is a build-time tool for shader precompilation, which
+// is still under construction (#2861, #3157).
 package main
 
 import (
@@ -42,7 +45,7 @@ import (
 )
 
 var (
-	flagTarget   = flag.String("target", "", "shader compilation targets separated by comma (e.g. 'glsl,glsles,hlsl,msl')")
+	flagTarget   = flag.String("target", "", "shader compilation targets separated by comma (e.g. 'glsl,hlsl,msl')")
 	flagManifest = flag.String("manifest", "", "path to a JSON manifest file listing shader source file paths in a \"ShaderFiles\" array, resolved relative to the manifest file")
 )
 
@@ -551,11 +554,10 @@ func compile(shader *Shader, targets []string) error {
 				Vertex:   vs,
 				Fragment: fs,
 			}
-		case "glsles":
-			vs, fs := glsl.Compile(ir, glsl.GLSLVersionES300)
+			esVS, esFS := glsl.Compile(ir, glsl.GLSLVersionES300)
 			shader.GLSLES = &GLSLES{
-				Vertex:   vs,
-				Fragment: fs,
+				Vertex:   esVS,
+				Fragment: esFS,
 			}
 		case "hlsl":
 			vs, ps, _, _ := hlsl.Compile(ir)

@@ -135,7 +135,7 @@ func TestManifest(t *testing.T) {
 		t.Skip("go command is missing")
 	}
 
-	const dir = "testdata/shadercollectortestfiles"
+	dir := filepath.Join("testdata", "shadercollectortestfiles")
 	// These are the files listed in manifest.json, whose paths are resolved relative to the manifest.
 	files := []string{
 		filepath.Join(dir, "single.kage"),
@@ -229,5 +229,65 @@ func TestManifest(t *testing.T) {
 	// Every file listed in the manifest must appear.
 	if !maps.Equal(gotHashes, wantHashes) {
 		t.Errorf("source hashes: got: %v, want: %v", gotHashes, wantHashes)
+	}
+}
+
+func TestGLSLTarget(t *testing.T) {
+	if !hasGoCommand() {
+		t.Skip("go command is missing")
+	}
+
+	dir := filepath.Join("testdata", "shadercollectortestfiles")
+	cmd := exec.Command("go", "run", "github.com/hajimehoshi/ebiten/v2/internal/shadercollector",
+		"-target", "glsl",
+		"-manifest", filepath.Join(dir, "manifest.json"))
+	out, err := cmd.Output()
+	if err != nil {
+		if err, ok := err.(*exec.ExitError); ok {
+			t.Fatalf("Error: %v\n%s", err, err.Stderr)
+		}
+		t.Fatal(err)
+	}
+
+	type glsl struct {
+		Vertex   string
+		Fragment string
+	}
+	type shader struct {
+		Source string
+		GLSL   *glsl
+		GLSLES *glsl
+	}
+	var shaders []shader
+	if err := json.Unmarshal(out, &shaders); err != nil {
+		t.Fatal(err)
+	}
+
+	if len(shaders) == 0 {
+		t.Fatal("no shaders were emitted")
+	}
+
+	for _, s := range shaders {
+		if s.GLSL == nil {
+			t.Errorf("s.GLSL is nil: %v", s)
+			continue
+		}
+		if s.GLSL.Vertex == "" {
+			t.Errorf("s.GLSL.Vertex is empty: %v", s)
+		}
+		if s.GLSL.Fragment == "" {
+			t.Errorf("s.GLSL.Fragment is empty: %v", s)
+		}
+
+		if s.GLSLES == nil {
+			t.Errorf("s.GLSLES is nil: %v", s)
+			continue
+		}
+		if s.GLSLES.Vertex == "" {
+			t.Errorf("s.GLSLES.Vertex is empty: %v", s)
+		}
+		if s.GLSLES.Fragment == "" {
+			t.Errorf("s.GLSLES.Fragment is empty: %v", s)
+		}
 	}
 }
