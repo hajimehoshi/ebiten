@@ -29,6 +29,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
+	"github.com/hajimehoshi/ebiten/v2/internal/shaderprecomp"
 )
 
 //export ebitengine_ProjectionMatrixUniformDwordIndex
@@ -130,15 +131,21 @@ func (g *Graphics) MaxImageSize() int {
 }
 
 func (g *Graphics) NewShader(program *shaderir.Program) (graphicsdriver.Shader, error) {
-	s := precompiledShaders[program.SourceID]
-	defer runtime.KeepAlive(s)
+	vertexHeader, vertexText, pixelHeader, pixelText, ok := shaderprecomp.PlayStation5Shader(program.SourceID)
+	if !ok {
+		return nil, fmt.Errorf("playstation5: no precompiled shader is registered for the shader source ID %s; shader precompilation is required on PlayStation 5", program.SourceID)
+	}
+	defer runtime.KeepAlive(vertexHeader)
+	defer runtime.KeepAlive(vertexText)
+	defer runtime.KeepAlive(pixelHeader)
+	defer runtime.KeepAlive(pixelText)
 
 	var id C.int
 	if err := C.ebitengine_NewShader(&id,
-		(*C.char)(unsafe.Pointer(unsafe.SliceData(s.vertexHeader))), C.int(len(s.vertexHeader)),
-		(*C.char)(unsafe.Pointer(unsafe.SliceData(s.vertexText))), C.int(len(s.vertexText)),
-		(*C.char)(unsafe.Pointer(unsafe.SliceData(s.pixelHeader))), C.int(len(s.pixelHeader)),
-		(*C.char)(unsafe.Pointer(unsafe.SliceData(s.pixelText))), C.int(len(s.pixelText))); !C.ebitengine_IsErrorNil(&err) {
+		(*C.char)(unsafe.Pointer(unsafe.SliceData(vertexHeader))), C.int(len(vertexHeader)),
+		(*C.char)(unsafe.Pointer(unsafe.SliceData(vertexText))), C.int(len(vertexText)),
+		(*C.char)(unsafe.Pointer(unsafe.SliceData(pixelHeader))), C.int(len(pixelHeader)),
+		(*C.char)(unsafe.Pointer(unsafe.SliceData(pixelText))), C.int(len(pixelText))); !C.ebitengine_IsErrorNil(&err) {
 		return nil, newPlaystation5Error("(*playstation5.Graphics).NewShader", err)
 	}
 	return &Shader{

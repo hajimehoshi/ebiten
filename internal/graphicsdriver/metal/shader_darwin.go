@@ -16,44 +16,13 @@ package metal
 
 import (
 	"fmt"
-	"sync"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/mtl"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/msl"
+	"github.com/hajimehoshi/ebiten/v2/internal/shaderprecomp"
 )
-
-type precompiledLibraries struct {
-	binaries map[shaderir.SourceID][]byte
-	m        sync.Mutex
-}
-
-func (c *precompiledLibraries) put(hash shaderir.SourceID, bin []byte) {
-	c.m.Lock()
-	defer c.m.Unlock()
-
-	if c.binaries == nil {
-		c.binaries = map[shaderir.SourceID][]byte{}
-	}
-	if _, ok := c.binaries[hash]; ok {
-		panic(fmt.Sprintf("metal: the precompiled library for the hash %s is already registered", hash.String()))
-	}
-	c.binaries[hash] = bin
-}
-
-func (c *precompiledLibraries) get(hash shaderir.SourceID) []byte {
-	c.m.Lock()
-	defer c.m.Unlock()
-
-	return c.binaries[hash]
-}
-
-var thePrecompiledLibraries precompiledLibraries
-
-func RegisterPrecompiledLibrary(source []byte, bin []byte) {
-	thePrecompiledLibraries.put(shaderir.CalcSourceID(source), bin)
-}
 
 type shaderRpsKey struct {
 	blend  graphicsdriver.Blend
@@ -102,7 +71,7 @@ func (s *Shader) Dispose() {
 
 func (s *Shader) init(device mtl.Device) error {
 	var src string
-	if libBin := thePrecompiledLibraries.get(s.ir.SourceID); len(libBin) > 0 {
+	if libBin, ok := shaderprecomp.MetalLibrary(s.ir.SourceID); ok {
 		lib, err := device.NewLibraryWithData(libBin)
 		if err != nil {
 			return err

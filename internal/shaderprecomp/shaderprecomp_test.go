@@ -1,0 +1,156 @@
+// Copyright 2026 The Ebitengine Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package shaderprecomp_test
+
+import (
+	"bytes"
+	"testing"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
+	"github.com/hajimehoshi/ebiten/v2/internal/shaderprecomp"
+)
+
+func id(s string) shaderir.SourceID {
+	return shaderir.CalcSourceID([]byte(s))
+}
+
+func TestFXCs(t *testing.T) {
+	i := id("fxc")
+	if _, _, ok := shaderprecomp.FXCs(i); ok {
+		t.Fatal("FXCs must not be registered yet")
+	}
+	shaderprecomp.RegisterFXCs(i, []byte("vs"), []byte("ps"))
+	vs, ps, ok := shaderprecomp.FXCs(i)
+	if !ok {
+		t.Fatal("FXCs must be registered")
+	}
+	if got, want := string(vs), "vs"; got != want {
+		t.Errorf("vertex: got %q, want %q", got, want)
+	}
+	if got, want := string(ps), "ps"; got != want {
+		t.Errorf("pixel: got %q, want %q", got, want)
+	}
+}
+
+func TestMetalLibrary(t *testing.T) {
+	i := id("metal")
+	if _, ok := shaderprecomp.MetalLibrary(i); ok {
+		t.Fatal("a Metal library must not be registered yet")
+	}
+	shaderprecomp.RegisterMetalLibrary(i, []byte("lib"))
+	lib, ok := shaderprecomp.MetalLibrary(i)
+	if !ok {
+		t.Fatal("a Metal library must be registered")
+	}
+	if got, want := string(lib), "lib"; got != want {
+		t.Errorf("library: got %q, want %q", got, want)
+	}
+}
+
+func TestPlayStation5Shader(t *testing.T) {
+	i := id("ps5")
+	if _, _, _, _, ok := shaderprecomp.PlayStation5Shader(i); ok {
+		t.Fatal("a PlayStation 5 shader must not be registered yet")
+	}
+	shaderprecomp.RegisterPlayStation5Shader(i, []byte("vh"), []byte("vt"), []byte("ph"), []byte("pt"))
+	vh, vt, ph, pt, ok := shaderprecomp.PlayStation5Shader(i)
+	if !ok {
+		t.Fatal("a PlayStation 5 shader must be registered")
+	}
+	if got, want := string(vh), "vh"; got != want {
+		t.Errorf("vertex header: got %q, want %q", got, want)
+	}
+	if got, want := string(vt), "vt"; got != want {
+		t.Errorf("vertex text: got %q, want %q", got, want)
+	}
+	if got, want := string(ph), "ph"; got != want {
+		t.Errorf("pixel header: got %q, want %q", got, want)
+	}
+	if got, want := string(pt), "pt"; got != want {
+		t.Errorf("pixel text: got %q, want %q", got, want)
+	}
+}
+
+func TestGLSL(t *testing.T) {
+	i := id("glsl")
+	shaderprecomp.RegisterGLSL(i, []byte("vs"), []byte("fs"), []byte("esvs"), []byte("esfs"))
+
+	vs, fs, ok := shaderprecomp.GLSL(i, false)
+	if !ok {
+		t.Fatal("the default GLSL must be registered")
+	}
+	if got, want := string(vs)+"/"+string(fs), "vs/fs"; got != want {
+		t.Errorf("default GLSL: got %q, want %q", got, want)
+	}
+
+	esvs, esfs, ok := shaderprecomp.GLSL(i, true)
+	if !ok {
+		t.Fatal("the GLSL ES must be registered")
+	}
+	if got, want := string(esvs)+"/"+string(esfs), "esvs/esfs"; got != want {
+		t.Errorf("GLSL ES: got %q, want %q", got, want)
+	}
+}
+
+func TestGLSLESOnly(t *testing.T) {
+	i := id("glsl-es-only")
+	shaderprecomp.RegisterGLSL(i, nil, nil, []byte("esvs"), []byte("esfs"))
+
+	if _, _, ok := shaderprecomp.GLSL(i, false); ok {
+		t.Error("the default GLSL must not be available when registered as nil")
+	}
+	if _, _, ok := shaderprecomp.GLSL(i, true); !ok {
+		t.Error("the GLSL ES must be available")
+	}
+}
+
+func TestGLSLUnregistered(t *testing.T) {
+	i := id("glsl-unregistered")
+	if _, _, ok := shaderprecomp.GLSL(i, false); ok {
+		t.Error("GLSL must not be available for an unregistered ID")
+	}
+	if _, _, ok := shaderprecomp.GLSL(i, true); ok {
+		t.Error("GLSL ES must not be available for an unregistered ID")
+	}
+}
+
+func TestRegisterDuplicatePanics(t *testing.T) {
+	i := id("dup")
+	shaderprecomp.RegisterFXCs(i, []byte("vs"), []byte("ps"))
+
+	defer func() {
+		if recover() == nil {
+			t.Error("registering FXCs twice for the same ID must panic")
+		}
+	}()
+	shaderprecomp.RegisterFXCs(i, []byte("vs2"), []byte("ps2"))
+}
+
+func TestKeyedBySourceID(t *testing.T) {
+	// Different sources must yield different keys.
+	a := id("source-a")
+	b := id("source-b")
+	if bytes.Equal(a[:], b[:]) {
+		t.Fatal("distinct sources must have distinct IDs")
+	}
+	shaderprecomp.RegisterMetalLibrary(a, []byte("a"))
+	shaderprecomp.RegisterMetalLibrary(b, []byte("b"))
+	if lib, _ := shaderprecomp.MetalLibrary(a); string(lib) != "a" {
+		t.Errorf("got %q, want %q", lib, "a")
+	}
+	if lib, _ := shaderprecomp.MetalLibrary(b); string(lib) != "b" {
+		t.Errorf("got %q, want %q", lib, "b")
+	}
+}

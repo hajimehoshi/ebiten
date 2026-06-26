@@ -47,6 +47,7 @@ For installation on desktops, see [the installation instruction](https://ebiteng
   * [mobile](https://pkg.go.dev/github.com/hajimehoshi/ebiten/v2/mobile)
   * [text/v2](https://pkg.go.dev/github.com/hajimehoshi/ebiten/v2/text/v2)
   * [vector](https://pkg.go.dev/github.com/hajimehoshi/ebiten/v2/vector)
+  * [exp/shaderprecomp](https://pkg.go.dev/github.com/hajimehoshi/ebiten/v2/exp/shaderprecomp)
   * [exp/textinput](https://pkg.go.dev/github.com/hajimehoshi/ebiten/v2/exp/textinput)
   * [exp/vmhost](https://pkg.go.dev/github.com/hajimehoshi/ebiten/v2/exp/vmhost)
 

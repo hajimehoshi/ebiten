@@ -18,6 +18,7 @@ package shaderir
 import (
 	"bytes"
 	"encoding/base32"
+	"fmt"
 	"go/constant"
 	"go/token"
 	"hash/fnv"
@@ -45,6 +46,20 @@ func CalcSourceID(source []byte) SourceID {
 
 func (s SourceID) String() string {
 	return strings.ToLower(base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(s[:]))
+}
+
+// ParseSourceID parses a base32 string returned by [SourceID.String] back into a SourceID.
+func ParseSourceID(str string) (SourceID, error) {
+	bs, err := base32.StdEncoding.WithPadding(base32.NoPadding).DecodeString(strings.ToUpper(str))
+	if err != nil {
+		return SourceID{}, err
+	}
+	var id SourceID
+	if len(bs) != len(id) {
+		return SourceID{}, fmt.Errorf("shaderir: invalid SourceID string: %q", str)
+	}
+	copy(id[:], bs)
+	return id, nil
 }
 
 type Program struct {

@@ -16,7 +16,6 @@ package directx
 
 import (
 	"fmt"
-	"sync"
 	"unsafe"
 
 	"golang.org/x/sync/errgroup"
@@ -24,6 +23,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/hlsl"
+	"github.com/hajimehoshi/ebiten/v2/internal/shaderprecomp"
 )
 
 const (
@@ -33,46 +33,6 @@ const (
 	VertexShaderEntryPoint = "VSMain"
 	PixelShaderEntryPoint  = "PSMain"
 )
-
-type fxcPair struct {
-	vertex []byte
-	pixel  []byte
-}
-
-type precompiledFXCs struct {
-	binaries map[shaderir.SourceID]fxcPair
-	m        sync.Mutex
-}
-
-func (c *precompiledFXCs) put(hash shaderir.SourceID, vertex, pixel []byte) {
-	c.m.Lock()
-	defer c.m.Unlock()
-
-	if c.binaries == nil {
-		c.binaries = map[shaderir.SourceID]fxcPair{}
-	}
-	if _, ok := c.binaries[hash]; ok {
-		panic(fmt.Sprintf("directx: the precompiled library for the hash %s is already registered", hash.String()))
-	}
-	c.binaries[hash] = fxcPair{
-		vertex: vertex,
-		pixel:  pixel,
-	}
-}
-
-func (c *precompiledFXCs) get(hash shaderir.SourceID) ([]byte, []byte) {
-	c.m.Lock()
-	defer c.m.Unlock()
-
-	f := c.binaries[hash]
-	return f.vertex, f.pixel
-}
-
-var thePrecompiledFXCs precompiledFXCs
-
-func RegisterPrecompiledFXCs(source []byte, vertex, pixel []byte) {
-	thePrecompiledFXCs.put(shaderir.CalcSourceID(source), vertex, pixel)
-}
 
 var vertexShaderCache = map[string]*_ID3DBlob{}
 
@@ -89,7 +49,7 @@ func compileShader(program *shaderir.Program) (vsh, psh *_ID3DBlob, ferr error) 
 		}
 	}()
 
-	if vshBin, pshBin := thePrecompiledFXCs.get(program.SourceID); vshBin != nil && pshBin != nil {
+	if vshBin, pshBin, ok := shaderprecomp.FXCs(program.SourceID); ok {
 		var err error
 		if vsh, err = _D3DCreateBlob(uint(len(vshBin))); err != nil {
 			return nil, nil, err

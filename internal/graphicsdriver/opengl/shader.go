@@ -24,6 +24,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl/gl"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/glsl"
+	"github.com/hajimehoshi/ebiten/v2/internal/shaderprecomp"
 )
 
 type Shader struct {
@@ -56,7 +57,14 @@ func (s *Shader) Dispose() {
 }
 
 func (s *Shader) compile() error {
-	vssrc, fssrc := glsl.Compile(s.ir, s.graphics.context.glslVersion())
+	version := s.graphics.context.glslVersion()
+
+	var vssrc, fssrc string
+	if vs, fs, ok := shaderprecomp.GLSL(s.ir.SourceID, version == glsl.GLSLVersionES300); ok {
+		vssrc, fssrc = string(vs), string(fs)
+	} else {
+		vssrc, fssrc = glsl.Compile(s.ir, version)
+	}
 
 	vs, err := s.graphics.context.newShader(gl.VERTEX_SHADER, vssrc)
 	if err != nil {
