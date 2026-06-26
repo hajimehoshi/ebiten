@@ -8,7 +8,7 @@ require (
 	github.com/ebitengine/hideconsole v1.0.0
 	github.com/ebitengine/oto/v3 v3.5.0-alpha.8
 	github.com/ebitengine/purego v0.11.0-alpha.5
-	github.com/gen2brain/mpeg v0.5.0
+	github.com/gen2brain/mpeg v0.6.2
 	github.com/go-text/typesetting v0.3.5-0.20260505125104-04e4e76f9371
 	github.com/hajimehoshi/bitmapfont/v4 v4.1.1
 	github.com/hajimehoshi/go-mp3 v0.3.4
@@ -16,12 +16,12 @@ require (
 	github.com/jfreymuth/oggvorbis v1.0.5
 	github.com/kazzmir/opus-go v1.3.0
 	github.com/kisielk/errcheck v1.20.0
-	golang.org/x/image v0.42.0
+	golang.org/x/image v0.43.0
 	golang.org/x/mod v0.37.0
 	golang.org/x/sync v0.21.0
 	golang.org/x/sys v0.46.0
 	golang.org/x/text v0.38.0
-	golang.org/x/tools v0.46.0
+	golang.org/x/tools v0.47.0
 )
 
 require (
