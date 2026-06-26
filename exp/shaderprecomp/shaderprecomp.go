@@ -38,6 +38,11 @@ import (
 //
 // The shadercollector tool reports a ShaderSourceID as a base32 string.
 // Use [ParseShaderSourceID] or [MustParseShaderSourceID] to reconstruct it.
+//
+// A ShaderSourceID is not stable across Ebitengine versions: the same shader source might be
+// assigned a different ID when Ebitengine is updated. Precompile shaders for the specific
+// Ebitengine version you target, and do not expect an ID obtained from one version to be valid
+// in another.
 type ShaderSourceID struct {
 	id shaderir.SourceID
 }

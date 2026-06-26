@@ -15,6 +15,10 @@
 // Shadercollector collects Kage shader sources and compiles them to backend targets,
 // emitting the result as JSON. It is a build-time tool for shader precompilation, which
 // is still under construction (#2861, #3157).
+//
+// The result, including the reported SourceIDs and the converted sources, can change when
+// Ebitengine is updated. Re-run shadercollector and re-precompile the shaders for the specific
+// Ebitengine version you target.
 package main
 
 import (
