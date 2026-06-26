@@ -23,6 +23,8 @@
 // the host-owned screen set by [GuestSession.SetOutsideScreen] so the host can composite it into its
 // own window. The audio the guest plays is exposed per player — never mixed — through
 // [GuestSession.AppendAudioStreams], so the host can observe and play each separately.
+//
+// This package is experimental and the API might be changed in the future.
 package vmhost
 
 import (

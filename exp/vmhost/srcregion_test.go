@@ -19,8 +19,8 @@ import (
 	"math"
 	"testing"
 
+	"github.com/hajimehoshi/ebiten/v2/exp/vmhost"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
-	"github.com/hajimehoshi/ebiten/v2/vmhost"
 )
 
 // makePrefix builds a preserved-uniform prefix with source image 0's texture size and region set.

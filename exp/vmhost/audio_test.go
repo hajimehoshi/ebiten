@@ -26,7 +26,7 @@ import (
 	"testing"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/vmhost"
+	"github.com/hajimehoshi/ebiten/v2/exp/vmhost"
 )
 
 // readComps reads up to want components from the player, stopping early at io.EOF. A read returning no

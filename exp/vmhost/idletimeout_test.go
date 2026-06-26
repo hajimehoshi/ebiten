@@ -22,8 +22,8 @@ import (
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/exp/vmhost"
 	"github.com/hajimehoshi/ebiten/v2/internal/vmprotocol"
-	"github.com/hajimehoshi/ebiten/v2/vmhost"
 )
 
 const testIdleTimeout = 100 * time.Millisecond

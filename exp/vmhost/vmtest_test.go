@@ -24,7 +24,7 @@ import (
 	"testing"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/vmhost"
+	"github.com/hajimehoshi/ebiten/v2/exp/vmhost"
 )
 
 // TestEbitenPackageAsGuest runs the public ebiten package's own test suite as a virtualization guest,

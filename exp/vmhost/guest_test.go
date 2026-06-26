@@ -23,7 +23,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hajimehoshi/ebiten/v2/vmhost"
+	"github.com/hajimehoshi/ebiten/v2/exp/vmhost"
 )
 
 // guestActivation selects how a test guest is activated.
