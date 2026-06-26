@@ -23,7 +23,7 @@ import (
 var (
 	// precompiledShaders is a map to store precompiled shaders.
 	// precompiledShaders is initialized by a separate tool.
-	precompiledShaders map[shaderir.SourceHash]*shaderSource
+	precompiledShaders map[shaderir.SourceID]*shaderSource
 )
 
 type shaderSource struct {

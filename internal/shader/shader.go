@@ -200,7 +200,7 @@ func Compile(src []byte, vertexEntry, fragmentEntry string, textureCount int) (*
 		fragmentEntry: fragmentEntry,
 		unit:          unit,
 	}
-	s.ir.SourceHash = shaderir.CalcSourceHash(src)
+	s.ir.SourceID = shaderir.CalcSourceID(src)
 	s.global.ir = &shaderir.Block{}
 	s.parse(f)
 

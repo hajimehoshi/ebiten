@@ -57,16 +57,16 @@ func main() {
 }
 
 type Shader struct {
-	Package    string
-	GoFile     string `json:",omitempty"`
-	KageFile   string `json:",omitempty"`
-	Source     string
-	SourceHash string
-	GLSL       *GLSL   `json:",omitempty"`
-	GLSLES     *GLSLES `json:",omitempty"`
-	HLSL       *HLSL   `json:",omitempty"`
-	MSL        *MSL    `json:",omitempty"`
-	PSSL       *PSSL   `json:",omitempty"`
+	Package  string
+	GoFile   string `json:",omitempty"`
+	KageFile string `json:",omitempty"`
+	Source   string
+	SourceID string
+	GLSL     *GLSL   `json:",omitempty"`
+	GLSLES   *GLSLES `json:",omitempty"`
+	HLSL     *HLSL   `json:",omitempty"`
+	MSL      *MSL    `json:",omitempty"`
+	PSSL     *PSSL   `json:",omitempty"`
 }
 
 type GLSL struct {
@@ -516,16 +516,16 @@ func objectTypeString(obj types.Object) string {
 	}
 }
 
-// hashAndCompileShaders fills in the SourceHash of each shader and, if targets is non-empty,
+// hashAndCompileShaders fills in the SourceID of each shader and, if targets is non-empty,
 // compiles each shader for the given targets.
 func hashAndCompileShaders(shaders []Shader, targets []string) error {
 	for i := range shaders {
 		shader := &shaders[i]
-		hash, err := graphics.CalcSourceHash([]byte(shader.Source))
+		hash, err := graphics.CalcSourceID([]byte(shader.Source))
 		if err != nil {
 			return err
 		}
-		shader.SourceHash = hash.String()
+		shader.SourceID = hash.String()
 	}
 
 	if len(targets) == 0 {

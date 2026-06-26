@@ -32,18 +32,18 @@ const (
 	Pixels
 )
 
-type SourceHash [16]byte
+type SourceID [16]byte
 
-func CalcSourceHash(source []byte) SourceHash {
+func CalcSourceID(source []byte) SourceID {
 	h := fnv.New128a()
 	_, _ = h.Write(bytes.TrimSpace(source))
 
-	var hash SourceHash
+	var hash SourceID
 	h.Sum(hash[:0])
 	return hash
 }
 
-func (s SourceHash) String() string {
+func (s SourceID) String() string {
 	return strings.ToLower(base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(s[:]))
 }
 
@@ -58,7 +58,7 @@ type Program struct {
 	FragmentFunc FragmentFunc
 	Unit         Unit
 
-	SourceHash SourceHash
+	SourceID SourceID
 
 	// FragmentSource is the Kage source the program was compiled from, or nil if it was not built from
 	// Kage source.

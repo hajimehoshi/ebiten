@@ -40,16 +40,16 @@ type fxcPair struct {
 }
 
 type precompiledFXCs struct {
-	binaries map[shaderir.SourceHash]fxcPair
+	binaries map[shaderir.SourceID]fxcPair
 	m        sync.Mutex
 }
 
-func (c *precompiledFXCs) put(hash shaderir.SourceHash, vertex, pixel []byte) {
+func (c *precompiledFXCs) put(hash shaderir.SourceID, vertex, pixel []byte) {
 	c.m.Lock()
 	defer c.m.Unlock()
 
 	if c.binaries == nil {
-		c.binaries = map[shaderir.SourceHash]fxcPair{}
+		c.binaries = map[shaderir.SourceID]fxcPair{}
 	}
 	if _, ok := c.binaries[hash]; ok {
 		panic(fmt.Sprintf("directx: the precompiled library for the hash %s is already registered", hash.String()))
@@ -60,7 +60,7 @@ func (c *precompiledFXCs) put(hash shaderir.SourceHash, vertex, pixel []byte) {
 	}
 }
 
-func (c *precompiledFXCs) get(hash shaderir.SourceHash) ([]byte, []byte) {
+func (c *precompiledFXCs) get(hash shaderir.SourceID) ([]byte, []byte) {
 	c.m.Lock()
 	defer c.m.Unlock()
 
@@ -71,7 +71,7 @@ func (c *precompiledFXCs) get(hash shaderir.SourceHash) ([]byte, []byte) {
 var thePrecompiledFXCs precompiledFXCs
 
 func RegisterPrecompiledFXCs(source []byte, vertex, pixel []byte) {
-	thePrecompiledFXCs.put(shaderir.CalcSourceHash(source), vertex, pixel)
+	thePrecompiledFXCs.put(shaderir.CalcSourceID(source), vertex, pixel)
 }
 
 var vertexShaderCache = map[string]*_ID3DBlob{}
@@ -89,7 +89,7 @@ func compileShader(program *shaderir.Program) (vsh, psh *_ID3DBlob, ferr error) 
 		}
 	}()
 
-	if vshBin, pshBin := thePrecompiledFXCs.get(program.SourceHash); vshBin != nil && pshBin != nil {
+	if vshBin, pshBin := thePrecompiledFXCs.get(program.SourceID); vshBin != nil && pshBin != nil {
 		var err error
 		if vsh, err = _D3DCreateBlob(uint(len(vshBin))); err != nil {
 			return nil, nil, err

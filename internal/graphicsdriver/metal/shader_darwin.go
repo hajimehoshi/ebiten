@@ -25,16 +25,16 @@ import (
 )
 
 type precompiledLibraries struct {
-	binaries map[shaderir.SourceHash][]byte
+	binaries map[shaderir.SourceID][]byte
 	m        sync.Mutex
 }
 
-func (c *precompiledLibraries) put(hash shaderir.SourceHash, bin []byte) {
+func (c *precompiledLibraries) put(hash shaderir.SourceID, bin []byte) {
 	c.m.Lock()
 	defer c.m.Unlock()
 
 	if c.binaries == nil {
-		c.binaries = map[shaderir.SourceHash][]byte{}
+		c.binaries = map[shaderir.SourceID][]byte{}
 	}
 	if _, ok := c.binaries[hash]; ok {
 		panic(fmt.Sprintf("metal: the precompiled library for the hash %s is already registered", hash.String()))
@@ -42,7 +42,7 @@ func (c *precompiledLibraries) put(hash shaderir.SourceHash, bin []byte) {
 	c.binaries[hash] = bin
 }
 
-func (c *precompiledLibraries) get(hash shaderir.SourceHash) []byte {
+func (c *precompiledLibraries) get(hash shaderir.SourceID) []byte {
 	c.m.Lock()
 	defer c.m.Unlock()
 
@@ -52,7 +52,7 @@ func (c *precompiledLibraries) get(hash shaderir.SourceHash) []byte {
 var thePrecompiledLibraries precompiledLibraries
 
 func RegisterPrecompiledLibrary(source []byte, bin []byte) {
-	thePrecompiledLibraries.put(shaderir.CalcSourceHash(source), bin)
+	thePrecompiledLibraries.put(shaderir.CalcSourceID(source), bin)
 }
 
 type shaderRpsKey struct {
@@ -102,7 +102,7 @@ func (s *Shader) Dispose() {
 
 func (s *Shader) init(device mtl.Device) error {
 	var src string
-	if libBin := thePrecompiledLibraries.get(s.ir.SourceHash); len(libBin) > 0 {
+	if libBin := thePrecompiledLibraries.get(s.ir.SourceID); len(libBin) > 0 {
 		lib, err := device.NewLibraryWithData(libBin)
 		if err != nil {
 			return err

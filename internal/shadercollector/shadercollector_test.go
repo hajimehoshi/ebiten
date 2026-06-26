@@ -52,11 +52,11 @@ func TestRun(t *testing.T) {
 	}
 
 	type shader struct {
-		Package    string
-		GoFile     string
-		KageFile   string
-		Source     string
-		SourceHash string
+		Package  string
+		GoFile   string
+		KageFile string
+		Source   string
+		SourceID string
 	}
 	var shaders []shader
 	if err := json.Unmarshal(out, &shaders); err != nil {
@@ -97,12 +97,12 @@ func TestRun(t *testing.T) {
 			t.Errorf("s.File is empty: %v", s)
 		}
 		// KageFile can be empty.
-		hash, err := graphics.CalcSourceHash([]byte(s.shader.Source))
+		hash, err := graphics.CalcSourceID([]byte(s.shader.Source))
 		if err != nil {
 			t.Fatal(err)
 		}
-		if got, want := s.shader.SourceHash, hash.String(); got != want {
-			t.Errorf("s.SourceHash: got: %q, want: %q", got, want)
+		if got, want := s.shader.SourceID, hash.String(); got != want {
+			t.Errorf("s.SourceID: got: %q, want: %q", got, want)
 		}
 		if got, want := s.filteredSource, fmt.Sprintf("shader %d", i+1); got != want {
 			t.Errorf("s.Source: got: %q, want: %q", got, want)
@@ -152,7 +152,7 @@ func TestManifest(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		hash, err := graphics.CalcSourceHash(content)
+		hash, err := graphics.CalcSourceID(content)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -176,12 +176,12 @@ func TestManifest(t *testing.T) {
 		Pixel  string
 	}
 	type shader struct {
-		Package    string
-		GoFile     string
-		KageFile   string
-		Source     string
-		SourceHash string
-		HLSL       *hlsl
+		Package  string
+		GoFile   string
+		KageFile string
+		Source   string
+		SourceID string
+		HLSL     *hlsl
 	}
 	var shaders []shader
 	if err := json.Unmarshal(out, &shaders); err != nil {
@@ -205,14 +205,14 @@ func TestManifest(t *testing.T) {
 			t.Errorf("s.KageFile is empty: %v", s)
 		}
 
-		hash, err := graphics.CalcSourceHash([]byte(s.Source))
+		hash, err := graphics.CalcSourceID([]byte(s.Source))
 		if err != nil {
 			t.Fatal(err)
 		}
-		if got, want := s.SourceHash, hash.String(); got != want {
-			t.Errorf("s.SourceHash: got: %q, want: %q", got, want)
+		if got, want := s.SourceID, hash.String(); got != want {
+			t.Errorf("s.SourceID: got: %q, want: %q", got, want)
 		}
-		gotHashes[s.SourceHash] = struct{}{}
+		gotHashes[s.SourceID] = struct{}{}
 
 		if s.HLSL == nil {
 			t.Errorf("s.HLSL is nil: %v", s)

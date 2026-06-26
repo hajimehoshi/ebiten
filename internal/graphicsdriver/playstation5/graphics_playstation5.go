@@ -130,7 +130,7 @@ func (g *Graphics) MaxImageSize() int {
 }
 
 func (g *Graphics) NewShader(program *shaderir.Program) (graphicsdriver.Shader, error) {
-	s := precompiledShaders[program.SourceHash]
+	s := precompiledShaders[program.SourceID]
 	defer runtime.KeepAlive(s)
 
 	var id C.int
