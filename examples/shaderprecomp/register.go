@@ -121,7 +121,9 @@ func init() {
 		precompiledShadersRegistered = true
 	}
 	for id, b := range fxcs {
-		shaderprecomp.RegisterFXCs(shaderprecomp.MustParseShaderSourceID(id), b.vertex, b.pixel)
+		// The example compiles HLSL with the Windows SDK fxc tool, so these binaries are registered for
+		// Windows. Xbox is registered separately via RegisterFXCsForXbox; this example does not target it.
+		shaderprecomp.RegisterFXCsForWindows(shaderprecomp.MustParseShaderSourceID(id), b.vertex, b.pixel)
 		precompiledShadersRegistered = true
 	}
 	for id, m := range metallibs {

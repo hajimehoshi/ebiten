@@ -28,19 +28,52 @@ func id(s string) shaderir.SourceID {
 
 func TestFXCs(t *testing.T) {
 	i := id("fxc")
-	if _, _, ok := shaderprecomp.FXCs(i); ok {
-		t.Fatal("FXCs must not be registered yet")
+	if _, _, ok := shaderprecomp.FXCs(i, shaderprecomp.FXCPlatformWindows); ok {
+		t.Fatal("Windows FXCs must not be registered yet")
 	}
-	shaderprecomp.RegisterFXCs(i, []byte("vs"), []byte("ps"))
-	vs, ps, ok := shaderprecomp.FXCs(i)
+	if _, _, ok := shaderprecomp.FXCs(i, shaderprecomp.FXCPlatformXbox); ok {
+		t.Fatal("Xbox FXCs must not be registered yet")
+	}
+
+	shaderprecomp.RegisterFXCsForWindows(i, []byte("winvs"), []byte("winps"))
+	shaderprecomp.RegisterFXCsForXbox(i, []byte("xboxvs"), []byte("xboxps"))
+
+	vs, ps, ok := shaderprecomp.FXCs(i, shaderprecomp.FXCPlatformWindows)
 	if !ok {
-		t.Fatal("FXCs must be registered")
+		t.Fatal("Windows FXCs must be registered")
 	}
-	if got, want := string(vs), "vs"; got != want {
-		t.Errorf("vertex: got %q, want %q", got, want)
+	if got, want := string(vs)+"/"+string(ps), "winvs/winps"; got != want {
+		t.Errorf("Windows FXCs: got %q, want %q", got, want)
 	}
-	if got, want := string(ps), "ps"; got != want {
-		t.Errorf("pixel: got %q, want %q", got, want)
+
+	vs, ps, ok = shaderprecomp.FXCs(i, shaderprecomp.FXCPlatformXbox)
+	if !ok {
+		t.Fatal("Xbox FXCs must be registered")
+	}
+	if got, want := string(vs)+"/"+string(ps), "xboxvs/xboxps"; got != want {
+		t.Errorf("Xbox FXCs: got %q, want %q", got, want)
+	}
+}
+
+func TestFXCsWindowsOnly(t *testing.T) {
+	i := id("fxc-windows-only")
+	shaderprecomp.RegisterFXCsForWindows(i, []byte("vs"), []byte("ps"))
+
+	if _, _, ok := shaderprecomp.FXCs(i, shaderprecomp.FXCPlatformWindows); !ok {
+		t.Error("the Windows FXCs must be available")
+	}
+	if _, _, ok := shaderprecomp.FXCs(i, shaderprecomp.FXCPlatformXbox); ok {
+		t.Error("the Xbox FXCs must not be available when not registered")
+	}
+}
+
+func TestFXCsUnregistered(t *testing.T) {
+	i := id("fxc-unregistered")
+	if _, _, ok := shaderprecomp.FXCs(i, shaderprecomp.FXCPlatformWindows); ok {
+		t.Error("the Windows FXCs must not be available for an unregistered ID")
+	}
+	if _, _, ok := shaderprecomp.FXCs(i, shaderprecomp.FXCPlatformXbox); ok {
+		t.Error("the Xbox FXCs must not be available for an unregistered ID")
 	}
 }
 
@@ -181,14 +214,14 @@ func TestGLSLUnregistered(t *testing.T) {
 
 func TestRegisterDuplicatePanics(t *testing.T) {
 	i := id("dup")
-	shaderprecomp.RegisterFXCs(i, []byte("vs"), []byte("ps"))
+	shaderprecomp.RegisterFXCsForWindows(i, []byte("vs"), []byte("ps"))
 
 	defer func() {
 		if recover() == nil {
-			t.Error("registering FXCs twice for the same ID must panic")
+			t.Error("registering Windows FXCs twice for the same ID must panic")
 		}
 	}()
-	shaderprecomp.RegisterFXCs(i, []byte("vs2"), []byte("ps2"))
+	shaderprecomp.RegisterFXCsForWindows(i, []byte("vs2"), []byte("ps2"))
 }
 
 func TestKeyedBySourceID(t *testing.T) {

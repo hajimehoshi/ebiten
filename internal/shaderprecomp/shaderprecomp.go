@@ -27,9 +27,29 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
 
-type fxc struct {
+// FXCPlatform identifies the platform a precompiled FXC binary targets.
+//
+// Windows and Xbox are kept separate as a precaution: Xbox uses the GDK's own shader compiler, and a
+// binary built for one platform is not guaranteed to be usable on the other. They may turn out to be
+// interchangeable, but the registry distinguishes them so a Windows binary is never silently used on Xbox.
+type FXCPlatform int
+
+const (
+	// FXCPlatformWindows is an FXC binary compiled with the Windows SDK fxc tool.
+	FXCPlatformWindows FXCPlatform = iota
+
+	// FXCPlatformXbox is an FXC binary compiled with the Xbox (GDK) shader compiler.
+	FXCPlatformXbox
+)
+
+type fxcBinaries struct {
 	vertex []byte
 	pixel  []byte
+}
+
+type fxc struct {
+	windows fxcBinaries
+	xbox    fxcBinaries
 }
 
 // MetalLibraryPlatform identifies the platform a precompiled Metal library targets.
@@ -85,28 +105,51 @@ type registry struct {
 
 var theRegistry registry
 
-func (r *registry) registerFXCs(id shaderir.SourceID, vertex, pixel []byte) {
+func (r *registry) registerFXCsForWindows(id shaderir.SourceID, vertex, pixel []byte) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	if r.fxcs == nil {
 		r.fxcs = map[shaderir.SourceID]fxc{}
 	}
-	if _, ok := r.fxcs[id]; ok {
-		panic(fmt.Sprintf("shaderprecomp: FXCs for the shader source ID %s are already registered", id))
+	f := r.fxcs[id]
+	if f.windows.vertex != nil || f.windows.pixel != nil {
+		panic(fmt.Sprintf("shaderprecomp: Windows FXCs for the shader source ID %s are already registered", id))
 	}
-	r.fxcs[id] = fxc{
-		vertex: vertex,
-		pixel:  pixel,
-	}
+	f.windows = fxcBinaries{vertex: vertex, pixel: pixel}
+	r.fxcs[id] = f
 }
 
-func (r *registry) getFXCs(id shaderir.SourceID) (vertex, pixel []byte, ok bool) {
+func (r *registry) registerFXCsForXbox(id shaderir.SourceID, vertex, pixel []byte) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	f, ok := r.fxcs[id]
-	return f.vertex, f.pixel, ok
+	if r.fxcs == nil {
+		r.fxcs = map[shaderir.SourceID]fxc{}
+	}
+	f := r.fxcs[id]
+	if f.xbox.vertex != nil || f.xbox.pixel != nil {
+		panic(fmt.Sprintf("shaderprecomp: Xbox FXCs for the shader source ID %s are already registered", id))
+	}
+	f.xbox = fxcBinaries{vertex: vertex, pixel: pixel}
+	r.fxcs[id] = f
+}
+
+func (r *registry) getFXCs(id shaderir.SourceID, platform FXCPlatform) (vertex, pixel []byte, ok bool) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	f := r.fxcs[id]
+	var b fxcBinaries
+	switch platform {
+	case FXCPlatformWindows:
+		b = f.windows
+	case FXCPlatformXbox:
+		b = f.xbox
+	default:
+		return nil, nil, false
+	}
+	return b.vertex, b.pixel, b.vertex != nil || b.pixel != nil
 }
 
 func (r *registry) registerMetalLibraryForMacOS(id shaderir.SourceID, library []byte) {
@@ -220,15 +263,22 @@ func (r *registry) getGLSL(id shaderir.SourceID, es bool) (vertex, fragment []by
 	return g.vertex, g.fragment, true
 }
 
-// RegisterFXCs registers precompiled FXC binaries for the shader source ID id.
-// RegisterFXCs panics if FXCs for id are already registered.
-func RegisterFXCs(id shaderir.SourceID, vertex, pixel []byte) {
-	theRegistry.registerFXCs(id, vertex, pixel)
+// RegisterFXCsForWindows registers precompiled Windows FXC binaries for the shader source ID id.
+// RegisterFXCsForWindows panics if Windows FXCs for id are already registered.
+func RegisterFXCsForWindows(id shaderir.SourceID, vertex, pixel []byte) {
+	theRegistry.registerFXCsForWindows(id, vertex, pixel)
 }
 
-// FXCs returns the precompiled FXC binaries registered for the shader source ID id.
-func FXCs(id shaderir.SourceID) (vertex, pixel []byte, ok bool) {
-	return theRegistry.getFXCs(id)
+// RegisterFXCsForXbox registers precompiled Xbox FXC binaries for the shader source ID id.
+// RegisterFXCsForXbox panics if Xbox FXCs for id are already registered.
+func RegisterFXCsForXbox(id shaderir.SourceID, vertex, pixel []byte) {
+	theRegistry.registerFXCsForXbox(id, vertex, pixel)
+}
+
+// FXCs returns the precompiled FXC binaries registered for the shader source ID id and platform.
+// ok is false when no binaries are registered for the platform, in which case the shader is compiled at runtime.
+func FXCs(id shaderir.SourceID, platform FXCPlatform) (vertex, pixel []byte, ok bool) {
+	return theRegistry.getFXCs(id, platform)
 }
 
 // RegisterMetalLibraryForMacOS registers a precompiled macOS Metal library for the shader source ID id.

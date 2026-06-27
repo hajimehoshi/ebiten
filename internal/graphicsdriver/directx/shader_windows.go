@@ -21,6 +21,7 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
+	"github.com/hajimehoshi/ebiten/v2/internal/microsoftgdk"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/hlsl"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderprecomp"
@@ -49,7 +50,13 @@ func compileShader(program *shaderir.Program) (vsh, psh *_ID3DBlob, ferr error) 
 		}
 	}()
 
-	if vshBin, pshBin, ok := shaderprecomp.FXCs(program.SourceID); ok {
+	// Windows and Xbox precompiled binaries are registered separately as a precaution, since Xbox uses
+	// the GDK's own shader compiler and the binaries are not guaranteed to be interchangeable.
+	fxcPlatform := shaderprecomp.FXCPlatformWindows
+	if microsoftgdk.IsXbox() {
+		fxcPlatform = shaderprecomp.FXCPlatformXbox
+	}
+	if vshBin, pshBin, ok := shaderprecomp.FXCs(program.SourceID, fxcPlatform); ok {
 		var err error
 		if vsh, err = _D3DCreateBlob(uint(len(vshBin))); err != nil {
 			return nil, nil, err

@@ -73,16 +73,33 @@ func MustParseShaderSourceID(str string) ShaderSourceID {
 	return id
 }
 
-// RegisterFXCs registers precompiled FXC binaries for the shader source identified by id,
-// so that Ebitengine uses them on DirectX instead of compiling the shader at runtime.
+// RegisterFXCsForWindows registers precompiled FXC binaries for Windows for the shader source
+// identified by id, so that Ebitengine uses them on DirectX instead of compiling the shader at runtime.
 //
-// vertexFXC and pixelFXC are the binaries compiled by the fxc tool.
+// vertexFXC and pixelFXC are the binaries compiled by the Windows SDK fxc tool.
 //
-// RegisterFXCs panics if FXCs for id are already registered.
+// Windows and Xbox are registered separately as a precaution: Xbox uses the GDK's own shader compiler,
+// and whether a binary built for one platform is usable on the other is not guaranteed. If they turn out
+// to be interchangeable for your shaders, the same binaries can be registered for both.
 //
-// RegisterFXCs is concurrent-safe.
-func RegisterFXCs(id ShaderSourceID, vertexFXC, pixelFXC []byte) {
-	internalshaderprecomp.RegisterFXCs(id.id, vertexFXC, pixelFXC)
+// RegisterFXCsForWindows panics if Windows FXCs for id are already registered.
+//
+// RegisterFXCsForWindows is concurrent-safe.
+func RegisterFXCsForWindows(id ShaderSourceID, vertexFXC, pixelFXC []byte) {
+	internalshaderprecomp.RegisterFXCsForWindows(id.id, vertexFXC, pixelFXC)
+}
+
+// RegisterFXCsForXbox registers precompiled FXC binaries for Xbox for the shader source identified
+// by id, so that Ebitengine uses them on DirectX instead of compiling the shader at runtime.
+//
+// vertexFXC and pixelFXC are the binaries compiled by the Xbox (GDK) shader compiler.
+// See [RegisterFXCsForWindows] for why Windows and Xbox are registered separately.
+//
+// RegisterFXCsForXbox panics if Xbox FXCs for id are already registered.
+//
+// RegisterFXCsForXbox is concurrent-safe.
+func RegisterFXCsForXbox(id ShaderSourceID, vertexFXC, pixelFXC []byte) {
+	internalshaderprecomp.RegisterFXCsForXbox(id.id, vertexFXC, pixelFXC)
 }
 
 // RegisterMetalLibraryForMacOS registers a precompiled macOS Metal library for the shader source
