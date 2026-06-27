@@ -26,54 +26,54 @@ func id(s string) shaderir.SourceID {
 	return shaderir.CalcSourceID([]byte(s))
 }
 
-func TestFXCs(t *testing.T) {
-	i := id("fxc")
-	if _, _, ok := shaderprecomp.FXCs(i, shaderprecomp.FXCPlatformWindows); ok {
-		t.Fatal("Windows FXCs must not be registered yet")
+func TestDXBCs(t *testing.T) {
+	i := id("dxbc")
+	if _, _, ok := shaderprecomp.DXBCs(i, shaderprecomp.DXBCPlatformWindows); ok {
+		t.Fatal("Windows DXBCs must not be registered yet")
 	}
-	if _, _, ok := shaderprecomp.FXCs(i, shaderprecomp.FXCPlatformXbox); ok {
-		t.Fatal("Xbox FXCs must not be registered yet")
+	if _, _, ok := shaderprecomp.DXBCs(i, shaderprecomp.DXBCPlatformXbox); ok {
+		t.Fatal("Xbox DXBCs must not be registered yet")
 	}
 
-	shaderprecomp.RegisterFXCsForWindows(i, []byte("winvs"), []byte("winps"))
-	shaderprecomp.RegisterFXCsForXbox(i, []byte("xboxvs"), []byte("xboxps"))
+	shaderprecomp.RegisterDXBCsForWindows(i, []byte("winvs"), []byte("winps"))
+	shaderprecomp.RegisterDXBCsForXbox(i, []byte("xboxvs"), []byte("xboxps"))
 
-	vs, ps, ok := shaderprecomp.FXCs(i, shaderprecomp.FXCPlatformWindows)
+	vs, ps, ok := shaderprecomp.DXBCs(i, shaderprecomp.DXBCPlatformWindows)
 	if !ok {
-		t.Fatal("Windows FXCs must be registered")
+		t.Fatal("Windows DXBCs must be registered")
 	}
 	if got, want := string(vs)+"/"+string(ps), "winvs/winps"; got != want {
-		t.Errorf("Windows FXCs: got %q, want %q", got, want)
+		t.Errorf("Windows DXBCs: got %q, want %q", got, want)
 	}
 
-	vs, ps, ok = shaderprecomp.FXCs(i, shaderprecomp.FXCPlatformXbox)
+	vs, ps, ok = shaderprecomp.DXBCs(i, shaderprecomp.DXBCPlatformXbox)
 	if !ok {
-		t.Fatal("Xbox FXCs must be registered")
+		t.Fatal("Xbox DXBCs must be registered")
 	}
 	if got, want := string(vs)+"/"+string(ps), "xboxvs/xboxps"; got != want {
-		t.Errorf("Xbox FXCs: got %q, want %q", got, want)
+		t.Errorf("Xbox DXBCs: got %q, want %q", got, want)
 	}
 }
 
-func TestFXCsWindowsOnly(t *testing.T) {
-	i := id("fxc-windows-only")
-	shaderprecomp.RegisterFXCsForWindows(i, []byte("vs"), []byte("ps"))
+func TestDXBCsWindowsOnly(t *testing.T) {
+	i := id("dxbc-windows-only")
+	shaderprecomp.RegisterDXBCsForWindows(i, []byte("vs"), []byte("ps"))
 
-	if _, _, ok := shaderprecomp.FXCs(i, shaderprecomp.FXCPlatformWindows); !ok {
-		t.Error("the Windows FXCs must be available")
+	if _, _, ok := shaderprecomp.DXBCs(i, shaderprecomp.DXBCPlatformWindows); !ok {
+		t.Error("the Windows DXBCs must be available")
 	}
-	if _, _, ok := shaderprecomp.FXCs(i, shaderprecomp.FXCPlatformXbox); ok {
-		t.Error("the Xbox FXCs must not be available when not registered")
+	if _, _, ok := shaderprecomp.DXBCs(i, shaderprecomp.DXBCPlatformXbox); ok {
+		t.Error("the Xbox DXBCs must not be available when not registered")
 	}
 }
 
-func TestFXCsUnregistered(t *testing.T) {
-	i := id("fxc-unregistered")
-	if _, _, ok := shaderprecomp.FXCs(i, shaderprecomp.FXCPlatformWindows); ok {
-		t.Error("the Windows FXCs must not be available for an unregistered ID")
+func TestDXBCsUnregistered(t *testing.T) {
+	i := id("dxbc-unregistered")
+	if _, _, ok := shaderprecomp.DXBCs(i, shaderprecomp.DXBCPlatformWindows); ok {
+		t.Error("the Windows DXBCs must not be available for an unregistered ID")
 	}
-	if _, _, ok := shaderprecomp.FXCs(i, shaderprecomp.FXCPlatformXbox); ok {
-		t.Error("the Xbox FXCs must not be available for an unregistered ID")
+	if _, _, ok := shaderprecomp.DXBCs(i, shaderprecomp.DXBCPlatformXbox); ok {
+		t.Error("the Xbox DXBCs must not be available for an unregistered ID")
 	}
 }
 
@@ -214,14 +214,14 @@ func TestGLSLUnregistered(t *testing.T) {
 
 func TestRegisterDuplicatePanics(t *testing.T) {
 	i := id("dup")
-	shaderprecomp.RegisterFXCsForWindows(i, []byte("vs"), []byte("ps"))
+	shaderprecomp.RegisterDXBCsForWindows(i, []byte("vs"), []byte("ps"))
 
 	defer func() {
 		if recover() == nil {
-			t.Error("registering Windows FXCs twice for the same ID must panic")
+			t.Error("registering Windows DXBCs twice for the same ID must panic")
 		}
 	}()
-	shaderprecomp.RegisterFXCsForWindows(i, []byte("vs2"), []byte("ps2"))
+	shaderprecomp.RegisterDXBCsForWindows(i, []byte("vs2"), []byte("ps2"))
 }
 
 func TestKeyedBySourceID(t *testing.T) {

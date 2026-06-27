@@ -35,7 +35,7 @@ func init() {
 		esVertex   []byte
 		esFragment []byte
 	}
-	type fxcBinaries struct {
+	type dxbcBinaries struct {
 		vertex []byte
 		pixel  []byte
 	}
@@ -47,7 +47,7 @@ func init() {
 	// The files are named "<id>_<kind>.<ext>". A source ID is base32 and never
 	// contains '_', so the part before the first '_' is the ID.
 	glsls := map[string]*glslSources{}
-	fxcs := map[string]*fxcBinaries{}
+	dxbcs := map[string]*dxbcBinaries{}
 	metallibs := map[string]*metalLibraries{}
 
 	entries, err := shaderFiles.ReadDir("shaders")
@@ -80,15 +80,15 @@ func init() {
 				s.esFragment = readShaderFile(name)
 			}
 
-		case ".fxc":
+		case ".dxbc":
 			id, kind, ok := strings.Cut(stem, "_")
 			if !ok {
 				continue
 			}
-			b := fxcs[id]
+			b := dxbcs[id]
 			if b == nil {
-				b = &fxcBinaries{}
-				fxcs[id] = b
+				b = &dxbcBinaries{}
+				dxbcs[id] = b
 			}
 			switch kind {
 			case "vertex":
@@ -120,10 +120,10 @@ func init() {
 		shaderprecomp.RegisterGLSL(shaderprecomp.MustParseShaderSourceID(id), s.vertex, s.fragment, s.esVertex, s.esFragment)
 		precompiledShadersRegistered = true
 	}
-	for id, b := range fxcs {
+	for id, b := range dxbcs {
 		// The example compiles HLSL with the Windows SDK fxc tool, so these binaries are registered for
-		// Windows. Xbox is registered separately via RegisterFXCsForXbox; this example does not target it.
-		shaderprecomp.RegisterFXCsForWindows(shaderprecomp.MustParseShaderSourceID(id), b.vertex, b.pixel)
+		// Windows. Xbox is registered separately via RegisterDXBCsForXbox; this example does not target it.
+		shaderprecomp.RegisterDXBCsForWindows(shaderprecomp.MustParseShaderSourceID(id), b.vertex, b.pixel)
 		precompiledShadersRegistered = true
 	}
 	for id, m := range metallibs {

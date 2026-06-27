@@ -19,7 +19,7 @@
 // up with //go:embed.
 //
 // It collects the shaders with the shadercollector tool, then compiles each
-// target whose compiler is available: HLSL to FXC with fxc.exe, and MSL to a
+// target whose compiler is available: HLSL to DXBC with fxc.exe, and MSL to a
 // Metal library with the Metal tools. GLSL needs no external tool and is always
 // generated.
 package main
@@ -80,7 +80,7 @@ func xmain() error {
 
 	// Compile the binary targets whose compiler is available.
 	if hasFXC() {
-		if err := generateFXC(shaders); err != nil {
+		if err := generateDXBC(shaders); err != nil {
 			return err
 		}
 	}
@@ -148,7 +148,7 @@ func generateGLSL(shaders []shader) error {
 	return nil
 }
 
-func generateFXC(shaders []shader) error {
+func generateDXBC(shaders []shader) error {
 	tmpdir, err := os.MkdirTemp("", "")
 	if err != nil {
 		return err
@@ -159,40 +159,40 @@ func generateFXC(shaders []shader) error {
 		if s.HLSL == nil {
 			continue
 		}
-		vs, err := compileFXC(tmpdir, s.SourceID+"_vertex", s.HLSL.Vertex, "vs_4_0", "VSMain")
+		vs, err := compileDXBC(tmpdir, s.SourceID+"_vertex", s.HLSL.Vertex, "vs_4_0", "VSMain")
 		if err != nil {
 			return err
 		}
-		if err := writeArtifact(s.SourceID+"_vertex.fxc", vs); err != nil {
+		if err := writeArtifact(s.SourceID+"_vertex.dxbc", vs); err != nil {
 			return err
 		}
-		ps, err := compileFXC(tmpdir, s.SourceID+"_pixel", s.HLSL.Pixel, "ps_4_0", "PSMain")
+		ps, err := compileDXBC(tmpdir, s.SourceID+"_pixel", s.HLSL.Pixel, "ps_4_0", "PSMain")
 		if err != nil {
 			return err
 		}
-		if err := writeArtifact(s.SourceID+"_pixel.fxc", ps); err != nil {
+		if err := writeArtifact(s.SourceID+"_pixel.dxbc", ps); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-// compileFXC compiles a single HLSL source to an FXC binary with fxc.exe.
+// compileDXBC compiles a single HLSL source to a DXBC binary with fxc.exe.
 //
 // See https://learn.microsoft.com/en-us/windows/win32/direct3dtools/fxc.
-func compileFXC(tmpdir, name, source, profile, entryPoint string) ([]byte, error) {
+func compileDXBC(tmpdir, name, source, profile, entryPoint string) ([]byte, error) {
 	hlslPath := filepath.Join(tmpdir, name+".hlsl")
 	if err := os.WriteFile(hlslPath, []byte(source), 0644); err != nil {
 		return nil, err
 	}
-	fxcPath := filepath.Join(tmpdir, name+".fxc")
-	cmd := exec.Command("fxc.exe", "/nologo", "/O3", "/T", profile, "/E", entryPoint, "/Fo", fxcPath, hlslPath)
+	outPath := filepath.Join(tmpdir, name+".dxbc")
+	cmd := exec.Command("fxc.exe", "/nologo", "/O3", "/T", profile, "/E", entryPoint, "/Fo", outPath, hlslPath)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
 		return nil, err
 	}
-	return os.ReadFile(fxcPath)
+	return os.ReadFile(outPath)
 }
 
 // metalLibraryTargets are the platforms a Metal library is built for. A .metallib is specific to the

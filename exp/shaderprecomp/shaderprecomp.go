@@ -73,33 +73,33 @@ func MustParseShaderSourceID(str string) ShaderSourceID {
 	return id
 }
 
-// RegisterFXCsForWindows registers precompiled FXC binaries for Windows for the shader source
+// RegisterDXBCsForWindows registers precompiled DXBC binaries for Windows for the shader source
 // identified by id, so that Ebitengine uses them on DirectX instead of compiling the shader at runtime.
 //
-// vertexFXC and pixelFXC are the binaries compiled by the Windows SDK fxc tool.
+// vertexDXBC and pixelDXBC are the binaries compiled by the Windows SDK fxc tool.
 //
 // Windows and Xbox are registered separately as a precaution: Xbox uses the GDK's own shader compiler,
 // and whether a binary built for one platform is usable on the other is not guaranteed. If they turn out
 // to be interchangeable for your shaders, the same binaries can be registered for both.
 //
-// RegisterFXCsForWindows panics if Windows FXCs for id are already registered.
+// RegisterDXBCsForWindows panics if Windows DXBCs for id are already registered.
 //
-// RegisterFXCsForWindows is concurrent-safe.
-func RegisterFXCsForWindows(id ShaderSourceID, vertexFXC, pixelFXC []byte) {
-	internalshaderprecomp.RegisterFXCsForWindows(id.id, vertexFXC, pixelFXC)
+// RegisterDXBCsForWindows is concurrent-safe.
+func RegisterDXBCsForWindows(id ShaderSourceID, vertexDXBC, pixelDXBC []byte) {
+	internalshaderprecomp.RegisterDXBCsForWindows(id.id, vertexDXBC, pixelDXBC)
 }
 
-// RegisterFXCsForXbox registers precompiled FXC binaries for Xbox for the shader source identified
+// RegisterDXBCsForXbox registers precompiled DXBC binaries for Xbox for the shader source identified
 // by id, so that Ebitengine uses them on DirectX instead of compiling the shader at runtime.
 //
-// vertexFXC and pixelFXC are the binaries compiled by the Xbox (GDK) shader compiler.
-// See [RegisterFXCsForWindows] for why Windows and Xbox are registered separately.
+// vertexDXBC and pixelDXBC are the binaries compiled by the Xbox (GDK) shader compiler.
+// See [RegisterDXBCsForWindows] for why Windows and Xbox are registered separately.
 //
-// RegisterFXCsForXbox panics if Xbox FXCs for id are already registered.
+// RegisterDXBCsForXbox panics if Xbox DXBCs for id are already registered.
 //
-// RegisterFXCsForXbox is concurrent-safe.
-func RegisterFXCsForXbox(id ShaderSourceID, vertexFXC, pixelFXC []byte) {
-	internalshaderprecomp.RegisterFXCsForXbox(id.id, vertexFXC, pixelFXC)
+// RegisterDXBCsForXbox is concurrent-safe.
+func RegisterDXBCsForXbox(id ShaderSourceID, vertexDXBC, pixelDXBC []byte) {
+	internalshaderprecomp.RegisterDXBCsForXbox(id.id, vertexDXBC, pixelDXBC)
 }
 
 // RegisterMetalLibraryForMacOS registers a precompiled macOS Metal library for the shader source

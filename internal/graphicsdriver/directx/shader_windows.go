@@ -52,11 +52,11 @@ func compileShader(program *shaderir.Program) (vsh, psh *_ID3DBlob, ferr error) 
 
 	// Windows and Xbox precompiled binaries are registered separately as a precaution, since Xbox uses
 	// the GDK's own shader compiler and the binaries are not guaranteed to be interchangeable.
-	fxcPlatform := shaderprecomp.FXCPlatformWindows
+	dxbcPlatform := shaderprecomp.DXBCPlatformWindows
 	if microsoftgdk.IsXbox() {
-		fxcPlatform = shaderprecomp.FXCPlatformXbox
+		dxbcPlatform = shaderprecomp.DXBCPlatformXbox
 	}
-	if vshBin, pshBin, ok := shaderprecomp.FXCs(program.SourceID, fxcPlatform); ok {
+	if vshBin, pshBin, ok := shaderprecomp.DXBCs(program.SourceID, dxbcPlatform); ok {
 		var err error
 		if vsh, err = _D3DCreateBlob(uint(len(vshBin))); err != nil {
 			return nil, nil, err

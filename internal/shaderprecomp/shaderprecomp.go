@@ -27,29 +27,29 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
 
-// FXCPlatform identifies the platform a precompiled FXC binary targets.
+// DXBCPlatform identifies the platform a precompiled DXBC binary targets.
 //
 // Windows and Xbox are kept separate as a precaution: Xbox uses the GDK's own shader compiler, and a
 // binary built for one platform is not guaranteed to be usable on the other. They may turn out to be
 // interchangeable, but the registry distinguishes them so a Windows binary is never silently used on Xbox.
-type FXCPlatform int
+type DXBCPlatform int
 
 const (
-	// FXCPlatformWindows is an FXC binary compiled with the Windows SDK fxc tool.
-	FXCPlatformWindows FXCPlatform = iota
+	// DXBCPlatformWindows is a DXBC binary compiled with the Windows SDK fxc tool.
+	DXBCPlatformWindows DXBCPlatform = iota
 
-	// FXCPlatformXbox is an FXC binary compiled with the Xbox (GDK) shader compiler.
-	FXCPlatformXbox
+	// DXBCPlatformXbox is a DXBC binary compiled with the Xbox (GDK) shader compiler.
+	DXBCPlatformXbox
 )
 
-type fxcBinaries struct {
+type dxbcBinaries struct {
 	vertex []byte
 	pixel  []byte
 }
 
-type fxc struct {
-	windows fxcBinaries
-	xbox    fxcBinaries
+type dxbc struct {
+	windows dxbcBinaries
+	xbox    dxbcBinaries
 }
 
 // MetalLibraryPlatform identifies the platform a precompiled Metal library targets.
@@ -97,7 +97,7 @@ type glslShader struct {
 type registry struct {
 	mu sync.Mutex
 
-	fxcs                map[shaderir.SourceID]fxc
+	dxbcs               map[shaderir.SourceID]dxbc
 	metalLibraries      map[shaderir.SourceID]metalLibrary
 	playStation5Shaders map[shaderir.SourceID]playStation5Shader
 	glslShaders         map[shaderir.SourceID]glslShader
@@ -105,46 +105,46 @@ type registry struct {
 
 var theRegistry registry
 
-func (r *registry) registerFXCsForWindows(id shaderir.SourceID, vertex, pixel []byte) {
+func (r *registry) registerDXBCsForWindows(id shaderir.SourceID, vertex, pixel []byte) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	if r.fxcs == nil {
-		r.fxcs = map[shaderir.SourceID]fxc{}
+	if r.dxbcs == nil {
+		r.dxbcs = map[shaderir.SourceID]dxbc{}
 	}
-	f := r.fxcs[id]
+	f := r.dxbcs[id]
 	if f.windows.vertex != nil || f.windows.pixel != nil {
-		panic(fmt.Sprintf("shaderprecomp: Windows FXCs for the shader source ID %s are already registered", id))
+		panic(fmt.Sprintf("shaderprecomp: Windows DXBCs for the shader source ID %s are already registered", id))
 	}
-	f.windows = fxcBinaries{vertex: vertex, pixel: pixel}
-	r.fxcs[id] = f
+	f.windows = dxbcBinaries{vertex: vertex, pixel: pixel}
+	r.dxbcs[id] = f
 }
 
-func (r *registry) registerFXCsForXbox(id shaderir.SourceID, vertex, pixel []byte) {
+func (r *registry) registerDXBCsForXbox(id shaderir.SourceID, vertex, pixel []byte) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	if r.fxcs == nil {
-		r.fxcs = map[shaderir.SourceID]fxc{}
+	if r.dxbcs == nil {
+		r.dxbcs = map[shaderir.SourceID]dxbc{}
 	}
-	f := r.fxcs[id]
+	f := r.dxbcs[id]
 	if f.xbox.vertex != nil || f.xbox.pixel != nil {
-		panic(fmt.Sprintf("shaderprecomp: Xbox FXCs for the shader source ID %s are already registered", id))
+		panic(fmt.Sprintf("shaderprecomp: Xbox DXBCs for the shader source ID %s are already registered", id))
 	}
-	f.xbox = fxcBinaries{vertex: vertex, pixel: pixel}
-	r.fxcs[id] = f
+	f.xbox = dxbcBinaries{vertex: vertex, pixel: pixel}
+	r.dxbcs[id] = f
 }
 
-func (r *registry) getFXCs(id shaderir.SourceID, platform FXCPlatform) (vertex, pixel []byte, ok bool) {
+func (r *registry) getDXBCs(id shaderir.SourceID, platform DXBCPlatform) (vertex, pixel []byte, ok bool) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	f := r.fxcs[id]
-	var b fxcBinaries
+	f := r.dxbcs[id]
+	var b dxbcBinaries
 	switch platform {
-	case FXCPlatformWindows:
+	case DXBCPlatformWindows:
 		b = f.windows
-	case FXCPlatformXbox:
+	case DXBCPlatformXbox:
 		b = f.xbox
 	default:
 		return nil, nil, false
@@ -263,22 +263,22 @@ func (r *registry) getGLSL(id shaderir.SourceID, es bool) (vertex, fragment []by
 	return g.vertex, g.fragment, true
 }
 
-// RegisterFXCsForWindows registers precompiled Windows FXC binaries for the shader source ID id.
-// RegisterFXCsForWindows panics if Windows FXCs for id are already registered.
-func RegisterFXCsForWindows(id shaderir.SourceID, vertex, pixel []byte) {
-	theRegistry.registerFXCsForWindows(id, vertex, pixel)
+// RegisterDXBCsForWindows registers precompiled Windows DXBC binaries for the shader source ID id.
+// RegisterDXBCsForWindows panics if Windows DXBCs for id are already registered.
+func RegisterDXBCsForWindows(id shaderir.SourceID, vertex, pixel []byte) {
+	theRegistry.registerDXBCsForWindows(id, vertex, pixel)
 }
 
-// RegisterFXCsForXbox registers precompiled Xbox FXC binaries for the shader source ID id.
-// RegisterFXCsForXbox panics if Xbox FXCs for id are already registered.
-func RegisterFXCsForXbox(id shaderir.SourceID, vertex, pixel []byte) {
-	theRegistry.registerFXCsForXbox(id, vertex, pixel)
+// RegisterDXBCsForXbox registers precompiled Xbox DXBC binaries for the shader source ID id.
+// RegisterDXBCsForXbox panics if Xbox DXBCs for id are already registered.
+func RegisterDXBCsForXbox(id shaderir.SourceID, vertex, pixel []byte) {
+	theRegistry.registerDXBCsForXbox(id, vertex, pixel)
 }
 
-// FXCs returns the precompiled FXC binaries registered for the shader source ID id and platform.
+// DXBCs returns the precompiled DXBC binaries registered for the shader source ID id and platform.
 // ok is false when no binaries are registered for the platform, in which case the shader is compiled at runtime.
-func FXCs(id shaderir.SourceID, platform FXCPlatform) (vertex, pixel []byte, ok bool) {
-	return theRegistry.getFXCs(id, platform)
+func DXBCs(id shaderir.SourceID, platform DXBCPlatform) (vertex, pixel []byte, ok bool) {
+	return theRegistry.getDXBCs(id, platform)
 }
 
 // RegisterMetalLibraryForMacOS registers a precompiled macOS Metal library for the shader source ID id.
