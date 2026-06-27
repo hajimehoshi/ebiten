@@ -31,6 +31,9 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"slices"
+	"strconv"
+	"strings"
 )
 
 // shader mirrors the JSON reported by the shadercollector tool.
@@ -80,14 +83,14 @@ func xmain() error {
 	}
 
 	// Compile the binary targets whose compiler is available.
-	if hasFXC() {
-		if err := generateDXBC(shaders); err != nil {
+	if fxc := findFXC(); fxc != "" {
+		if err := generateDXBC(shaders, fxc); err != nil {
 			return err
 		}
 	} else if runtime.GOOS == "windows" {
 		fmt.Fprintln(os.Stderr, "warning: the FXC shader compiler ('fxc.exe') was not found; skipping DXBC shaders.")
 		fmt.Fprintln(os.Stderr, "Install the Windows SDK, then run from a Developer Command Prompt or add its bin directory to PATH, e.g.:")
-		fmt.Fprintln(os.Stderr, `    C:\Program Files (x86)\Windows Kits\10\bin\<version>\x64`)
+		fmt.Fprintf(os.Stderr, "    C:\\Program Files (x86)\\Windows Kits\\10\\bin\\<version>\\%s\n", windowsSDKArch())
 	}
 	if hasMetalCompiler() {
 		if err := generateMetalLibrary(shaders); err != nil {
@@ -104,10 +107,75 @@ func xmain() error {
 	return nil
 }
 
-// hasFXC reports whether the fxc.exe shader compiler is available.
-func hasFXC() bool {
-	_, err := exec.LookPath("fxc.exe")
-	return err == nil
+// windowsSDKArch maps the host architecture to the Windows SDK bin subdirectory name.
+func windowsSDKArch() string {
+	switch runtime.GOARCH {
+	case "amd64":
+		return "x64"
+	case "arm64":
+		return "arm64"
+	case "386":
+		return "x86"
+	case "arm":
+		return "arm"
+	default:
+		return "x64"
+	}
+}
+
+// findFXC returns the path to the fxc.exe shader compiler, or an empty string if
+// it cannot be found. It first checks PATH (e.g. within a Developer Command
+// Prompt), then the default Windows SDK installation directory.
+func findFXC() string {
+	if p, err := exec.LookPath("fxc.exe"); err == nil {
+		return p
+	}
+	if runtime.GOOS != "windows" {
+		return ""
+	}
+
+	// The SDK is installed under %ProgramFiles(x86)%\Windows Kits\10 by default.
+	root := os.Getenv("ProgramFiles(x86)")
+	if root == "" {
+		root = `C:\Program Files (x86)`
+	}
+	binDir := filepath.Join(root, "Windows Kits", "10", "bin")
+
+	entries, err := os.ReadDir(binDir)
+	if err != nil {
+		return ""
+	}
+
+	// Each SDK version has its own subdirectory; prefer the newest.
+	var versions []string
+	for _, e := range entries {
+		if e.IsDir() && strings.HasPrefix(e.Name(), "10.") {
+			versions = append(versions, e.Name())
+		}
+	}
+	// Sort newest first. Compare the dotted versions numerically, as plain
+	// string comparison would misorder, e.g., "10.0.9.0" and "10.0.22000.0".
+	slices.SortFunc(versions, func(a, b string) int {
+		as := strings.Split(a, ".")
+		bs := strings.Split(b, ".")
+		for k := range min(len(as), len(bs)) {
+			ai, _ := strconv.Atoi(as[k])
+			bi, _ := strconv.Atoi(bs[k])
+			if ai != bi {
+				return bi - ai
+			}
+		}
+		return len(bs) - len(as)
+	})
+
+	arch := windowsSDKArch()
+	for _, v := range versions {
+		p := filepath.Join(binDir, v, arch, "fxc.exe")
+		if _, err := os.Stat(p); err == nil {
+			return p
+		}
+	}
+	return ""
 }
 
 // hasMetalCompiler reports whether the Metal shader compiler is available.
@@ -159,7 +227,7 @@ func generateGLSL(shaders []shader) error {
 	return nil
 }
 
-func generateDXBC(shaders []shader) error {
+func generateDXBC(shaders []shader, fxc string) error {
 	tmpdir, err := os.MkdirTemp("", "")
 	if err != nil {
 		return err
@@ -170,14 +238,14 @@ func generateDXBC(shaders []shader) error {
 		if s.HLSL == nil {
 			continue
 		}
-		vs, err := compileDXBC(tmpdir, s.SourceID+"_vertex", s.HLSL.Vertex, "vs_4_0", "VSMain")
+		vs, err := compileDXBC(fxc, tmpdir, s.SourceID+"_vertex", s.HLSL.Vertex, "vs_4_0", "VSMain")
 		if err != nil {
 			return err
 		}
 		if err := writeArtifact(s.SourceID+"_vertex.dxbc", vs); err != nil {
 			return err
 		}
-		ps, err := compileDXBC(tmpdir, s.SourceID+"_pixel", s.HLSL.Pixel, "ps_4_0", "PSMain")
+		ps, err := compileDXBC(fxc, tmpdir, s.SourceID+"_pixel", s.HLSL.Pixel, "ps_4_0", "PSMain")
 		if err != nil {
 			return err
 		}
@@ -191,13 +259,13 @@ func generateDXBC(shaders []shader) error {
 // compileDXBC compiles a single HLSL source to a DXBC binary with fxc.exe.
 //
 // See https://learn.microsoft.com/en-us/windows/win32/direct3dtools/fxc.
-func compileDXBC(tmpdir, name, source, profile, entryPoint string) ([]byte, error) {
+func compileDXBC(fxc, tmpdir, name, source, profile, entryPoint string) ([]byte, error) {
 	hlslPath := filepath.Join(tmpdir, name+".hlsl")
 	if err := os.WriteFile(hlslPath, []byte(source), 0644); err != nil {
 		return nil, err
 	}
 	outPath := filepath.Join(tmpdir, name+".dxbc")
-	cmd := exec.Command("fxc.exe", "/nologo", "/O3", "/T", profile, "/E", entryPoint, "/Fo", outPath, hlslPath)
+	cmd := exec.Command(fxc, "/nologo", "/O3", "/T", profile, "/E", entryPoint, "/Fo", outPath, hlslPath)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
