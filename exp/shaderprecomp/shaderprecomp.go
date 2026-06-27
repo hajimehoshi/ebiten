@@ -85,16 +85,33 @@ func RegisterFXCs(id ShaderSourceID, vertexFXC, pixelFXC []byte) {
 	internalshaderprecomp.RegisterFXCs(id.id, vertexFXC, pixelFXC)
 }
 
-// RegisterMetalLibrary registers a precompiled Metal library for the shader source identified by id,
-// so that Ebitengine uses it on Metal instead of compiling the shader at runtime.
+// RegisterMetalLibraryForMacOS registers a precompiled macOS Metal library for the shader source
+// identified by id, so that Ebitengine uses it on macOS instead of compiling the shader at runtime.
 //
-// library is the content of a .metallib file.
+// library is the content of a .metallib file built with the macOS SDK (xcrun -sdk macosx). A library
+// built for a different platform cannot be loaded, so a macOS build and an iOS build need separate
+// libraries; register each with the matching function.
 //
-// RegisterMetalLibrary panics if a Metal library for id is already registered.
+// RegisterMetalLibraryForMacOS panics if a macOS Metal library for id is already registered.
 //
-// RegisterMetalLibrary is concurrent-safe.
-func RegisterMetalLibrary(id ShaderSourceID, library []byte) {
-	internalshaderprecomp.RegisterMetalLibrary(id.id, library)
+// RegisterMetalLibraryForMacOS is concurrent-safe.
+func RegisterMetalLibraryForMacOS(id ShaderSourceID, library []byte) {
+	internalshaderprecomp.RegisterMetalLibraryForMacOS(id.id, library)
+}
+
+// RegisterMetalLibraryForIOS registers a precompiled iOS Metal library for the shader source identified
+// by id, so that Ebitengine uses it on iOS instead of compiling the shader at runtime.
+//
+// library is the content of a .metallib file built with the iOS device SDK (xcrun -sdk iphoneos).
+//
+// The iOS Simulator needs a library built with a different SDK (xcrun -sdk iphonesimulator) and is not
+// supported; Ebitengine compiles the shader at runtime there.
+//
+// RegisterMetalLibraryForIOS panics if an iOS Metal library for id is already registered.
+//
+// RegisterMetalLibraryForIOS is concurrent-safe.
+func RegisterMetalLibraryForIOS(id ShaderSourceID, library []byte) {
+	internalshaderprecomp.RegisterMetalLibraryForIOS(id.id, library)
 }
 
 // RegisterPlayStation5Shader registers a precompiled PlayStation 5 shader for the shader source

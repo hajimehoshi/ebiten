@@ -39,12 +39,16 @@ func init() {
 		vertex []byte
 		pixel  []byte
 	}
+	type metalLibraries struct {
+		macOS []byte
+		iOS   []byte
+	}
 
-	// The files are named "<id>_<kind>.<ext>" (or "<id>.metallib"). A source ID
-	// is base32 and never contains '_', so the part before the first '_' is the ID.
+	// The files are named "<id>_<kind>.<ext>". A source ID is base32 and never
+	// contains '_', so the part before the first '_' is the ID.
 	glsls := map[string]*glslSources{}
 	fxcs := map[string]*fxcBinaries{}
-	metallibs := map[string][]byte{}
+	metallibs := map[string]*metalLibraries{}
 
 	entries, err := shaderFiles.ReadDir("shaders")
 	if err != nil {
@@ -94,7 +98,21 @@ func init() {
 			}
 
 		case ".metallib":
-			metallibs[stem] = readShaderFile(name)
+			id, kind, ok := strings.Cut(stem, "_")
+			if !ok {
+				continue
+			}
+			m := metallibs[id]
+			if m == nil {
+				m = &metalLibraries{}
+				metallibs[id] = m
+			}
+			switch kind {
+			case "macos":
+				m.macOS = readShaderFile(name)
+			case "ios":
+				m.iOS = readShaderFile(name)
+			}
 		}
 	}
 
@@ -106,9 +124,16 @@ func init() {
 		shaderprecomp.RegisterFXCs(shaderprecomp.MustParseShaderSourceID(id), b.vertex, b.pixel)
 		precompiledShadersRegistered = true
 	}
-	for id, lib := range metallibs {
-		shaderprecomp.RegisterMetalLibrary(shaderprecomp.MustParseShaderSourceID(id), lib)
-		precompiledShadersRegistered = true
+	for id, m := range metallibs {
+		pid := shaderprecomp.MustParseShaderSourceID(id)
+		if m.macOS != nil {
+			shaderprecomp.RegisterMetalLibraryForMacOS(pid, m.macOS)
+			precompiledShadersRegistered = true
+		}
+		if m.iOS != nil {
+			shaderprecomp.RegisterMetalLibraryForIOS(pid, m.iOS)
+			precompiledShadersRegistered = true
+		}
 	}
 }
 

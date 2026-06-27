@@ -195,6 +195,18 @@ func compileFXC(tmpdir, name, source, profile, entryPoint string) ([]byte, error
 	return os.ReadFile(fxcPath)
 }
 
+// metalLibraryTargets are the platforms a Metal library is built for. A .metallib is specific to the
+// SDK it was built with, so macOS and iOS need separate libraries. The suffix is appended to the
+// artifact name so register.go can tell them apart. The iOS Simulator (xcrun -sdk iphonesimulator)
+// is not built here, as it is not supported by the precompilation registry.
+var metalLibraryTargets = []struct {
+	sdk    string
+	suffix string
+}{
+	{sdk: "macosx", suffix: "macos"},
+	{sdk: "iphoneos", suffix: "ios"},
+}
+
 func generateMetalLibrary(shaders []shader) error {
 	tmpdir, err := os.MkdirTemp("", "")
 	if err != nil {
@@ -202,37 +214,50 @@ func generateMetalLibrary(shaders []shader) error {
 	}
 	defer os.RemoveAll(tmpdir)
 
-	for _, s := range shaders {
-		if s.MSL == nil {
+	for _, t := range metalLibraryTargets {
+		// A machine might not have every SDK installed (e.g. Command Line Tools only). Skip a
+		// target whose SDK is unavailable rather than failing.
+		if !hasMetalSDK(t.sdk) {
 			continue
 		}
-		lib, err := compileMetalLibrary(tmpdir, s.SourceID, s.MSL.Shader)
-		if err != nil {
-			return err
-		}
-		if err := writeArtifact(s.SourceID+".metallib", lib); err != nil {
-			return err
+		for _, s := range shaders {
+			if s.MSL == nil {
+				continue
+			}
+			lib, err := compileMetalLibrary(tmpdir, s.SourceID+"_"+t.suffix, s.MSL.Shader, t.sdk)
+			if err != nil {
+				return err
+			}
+			if err := writeArtifact(s.SourceID+"_"+t.suffix+".metallib", lib); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
 }
 
-// compileMetalLibrary compiles a single MSL source to a Metal library with the Metal tools.
+// hasMetalSDK reports whether the Metal shader compiler is available for the given SDK.
+func hasMetalSDK(sdk string) bool {
+	return exec.Command("xcrun", "-sdk", sdk, "-f", "metal").Run() == nil
+}
+
+// compileMetalLibrary compiles a single MSL source to a Metal library with the Metal tools for the
+// given SDK (e.g. macosx or iphoneos).
 //
 // See https://developer.apple.com/documentation/metal/shader_libraries/building_a_shader_library_by_precompiling_source_files.
-func compileMetalLibrary(tmpdir, name, source string) ([]byte, error) {
+func compileMetalLibrary(tmpdir, name, source, sdk string) ([]byte, error) {
 	metalPath := filepath.Join(tmpdir, name+".metal")
 	if err := os.WriteFile(metalPath, []byte(source), 0644); err != nil {
 		return nil, err
 	}
 	irPath := filepath.Join(tmpdir, name+".ir")
-	cmd := exec.Command("xcrun", "-sdk", "macosx", "metal", "-o", irPath, "-c", metalPath)
+	cmd := exec.Command("xcrun", "-sdk", sdk, "metal", "-o", irPath, "-c", metalPath)
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
 		return nil, err
 	}
 	libPath := filepath.Join(tmpdir, name+".metallib")
-	cmd = exec.Command("xcrun", "-sdk", "macosx", "metallib", "-o", libPath, irPath)
+	cmd = exec.Command("xcrun", "-sdk", sdk, "metallib", "-o", libPath, irPath)
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
 		return nil, err

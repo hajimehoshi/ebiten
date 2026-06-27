@@ -32,6 +32,32 @@ type fxc struct {
 	pixel  []byte
 }
 
+// MetalLibraryPlatform identifies the platform a precompiled Metal library targets.
+//
+// A .metallib is specific to the SDK it was built with, so a library built for one platform
+// cannot be loaded on another.
+type MetalLibraryPlatform int
+
+const (
+	// MetalLibraryPlatformMacOS is a Metal library built with the macOS SDK (xcrun -sdk macosx).
+	MetalLibraryPlatformMacOS MetalLibraryPlatform = iota
+
+	// MetalLibraryPlatformIOS is a Metal library built with the iOS device SDK (xcrun -sdk iphoneos).
+	MetalLibraryPlatformIOS
+
+	// MetalLibraryPlatformIOSSimulator is the iOS Simulator, which needs the iOS Simulator SDK
+	// (xcrun -sdk iphonesimulator). No precompiled library is registered for it; Ebitengine falls
+	// back to runtime compilation there.
+	//
+	// TODO: Support registering a precompiled Metal library for the iOS Simulator.
+	MetalLibraryPlatformIOSSimulator
+)
+
+type metalLibrary struct {
+	macOS []byte
+	iOS   []byte
+}
+
 type playStation5Shader struct {
 	vertexHeader []byte
 	vertexText   []byte
@@ -52,7 +78,7 @@ type registry struct {
 	mu sync.Mutex
 
 	fxcs                map[shaderir.SourceID]fxc
-	metalLibraries      map[shaderir.SourceID][]byte
+	metalLibraries      map[shaderir.SourceID]metalLibrary
 	playStation5Shaders map[shaderir.SourceID]playStation5Shader
 	glslShaders         map[shaderir.SourceID]glslShader
 }
@@ -83,25 +109,51 @@ func (r *registry) getFXCs(id shaderir.SourceID) (vertex, pixel []byte, ok bool)
 	return f.vertex, f.pixel, ok
 }
 
-func (r *registry) registerMetalLibrary(id shaderir.SourceID, library []byte) {
+func (r *registry) registerMetalLibraryForMacOS(id shaderir.SourceID, library []byte) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	if r.metalLibraries == nil {
-		r.metalLibraries = map[shaderir.SourceID][]byte{}
+		r.metalLibraries = map[shaderir.SourceID]metalLibrary{}
 	}
-	if _, ok := r.metalLibraries[id]; ok {
-		panic(fmt.Sprintf("shaderprecomp: a Metal library for the shader source ID %s is already registered", id))
+	lib := r.metalLibraries[id]
+	if lib.macOS != nil {
+		panic(fmt.Sprintf("shaderprecomp: a macOS Metal library for the shader source ID %s is already registered", id))
 	}
-	r.metalLibraries[id] = library
+	lib.macOS = library
+	r.metalLibraries[id] = lib
 }
 
-func (r *registry) getMetalLibrary(id shaderir.SourceID) (library []byte, ok bool) {
+func (r *registry) registerMetalLibraryForIOS(id shaderir.SourceID, library []byte) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	library, ok = r.metalLibraries[id]
-	return library, ok
+	if r.metalLibraries == nil {
+		r.metalLibraries = map[shaderir.SourceID]metalLibrary{}
+	}
+	lib := r.metalLibraries[id]
+	if lib.iOS != nil {
+		panic(fmt.Sprintf("shaderprecomp: an iOS Metal library for the shader source ID %s is already registered", id))
+	}
+	lib.iOS = library
+	r.metalLibraries[id] = lib
+}
+
+func (r *registry) getMetalLibrary(id shaderir.SourceID, platform MetalLibraryPlatform) (library []byte, ok bool) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	lib := r.metalLibraries[id]
+	switch platform {
+	case MetalLibraryPlatformMacOS:
+		return lib.macOS, lib.macOS != nil
+	case MetalLibraryPlatformIOS:
+		return lib.iOS, lib.iOS != nil
+	default:
+		// There is no precompiled Metal library for the iOS Simulator,
+		// so fall back to runtime compilation.
+		return nil, false
+	}
 }
 
 func (r *registry) registerPlayStation5Shader(id shaderir.SourceID, vertexHeader, vertexText, pixelHeader, pixelText []byte) {
@@ -179,15 +231,22 @@ func FXCs(id shaderir.SourceID) (vertex, pixel []byte, ok bool) {
 	return theRegistry.getFXCs(id)
 }
 
-// RegisterMetalLibrary registers a precompiled Metal library for the shader source ID id.
-// RegisterMetalLibrary panics if a Metal library for id is already registered.
-func RegisterMetalLibrary(id shaderir.SourceID, library []byte) {
-	theRegistry.registerMetalLibrary(id, library)
+// RegisterMetalLibraryForMacOS registers a precompiled macOS Metal library for the shader source ID id.
+// RegisterMetalLibraryForMacOS panics if a macOS Metal library for id is already registered.
+func RegisterMetalLibraryForMacOS(id shaderir.SourceID, library []byte) {
+	theRegistry.registerMetalLibraryForMacOS(id, library)
 }
 
-// MetalLibrary returns the precompiled Metal library registered for the shader source ID id.
-func MetalLibrary(id shaderir.SourceID) (library []byte, ok bool) {
-	return theRegistry.getMetalLibrary(id)
+// RegisterMetalLibraryForIOS registers a precompiled iOS Metal library for the shader source ID id.
+// RegisterMetalLibraryForIOS panics if an iOS Metal library for id is already registered.
+func RegisterMetalLibraryForIOS(id shaderir.SourceID, library []byte) {
+	theRegistry.registerMetalLibraryForIOS(id, library)
+}
+
+// MetalLibrary returns the precompiled Metal library registered for the shader source ID id and platform.
+// ok is false when no library is registered for the platform, in which case the shader is compiled at runtime.
+func MetalLibrary(id shaderir.SourceID, platform MetalLibraryPlatform) (library []byte, ok bool) {
+	return theRegistry.getMetalLibrary(id, platform)
 }
 
 // RegisterPlayStation5Shader registers a precompiled PlayStation 5 shader for the shader source ID id.

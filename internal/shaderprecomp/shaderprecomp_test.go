@@ -46,17 +46,70 @@ func TestFXCs(t *testing.T) {
 
 func TestMetalLibrary(t *testing.T) {
 	i := id("metal")
-	if _, ok := shaderprecomp.MetalLibrary(i); ok {
-		t.Fatal("a Metal library must not be registered yet")
+	if _, ok := shaderprecomp.MetalLibrary(i, shaderprecomp.MetalLibraryPlatformMacOS); ok {
+		t.Fatal("a macOS Metal library must not be registered yet")
 	}
-	shaderprecomp.RegisterMetalLibrary(i, []byte("lib"))
-	lib, ok := shaderprecomp.MetalLibrary(i)
+	if _, ok := shaderprecomp.MetalLibrary(i, shaderprecomp.MetalLibraryPlatformIOS); ok {
+		t.Fatal("an iOS Metal library must not be registered yet")
+	}
+
+	shaderprecomp.RegisterMetalLibraryForMacOS(i, []byte("maclib"))
+	shaderprecomp.RegisterMetalLibraryForIOS(i, []byte("ioslib"))
+
+	lib, ok := shaderprecomp.MetalLibrary(i, shaderprecomp.MetalLibraryPlatformMacOS)
 	if !ok {
-		t.Fatal("a Metal library must be registered")
+		t.Fatal("a macOS Metal library must be registered")
 	}
-	if got, want := string(lib), "lib"; got != want {
-		t.Errorf("library: got %q, want %q", got, want)
+	if got, want := string(lib), "maclib"; got != want {
+		t.Errorf("macOS library: got %q, want %q", got, want)
 	}
+
+	lib, ok = shaderprecomp.MetalLibrary(i, shaderprecomp.MetalLibraryPlatformIOS)
+	if !ok {
+		t.Fatal("an iOS Metal library must be registered")
+	}
+	if got, want := string(lib), "ioslib"; got != want {
+		t.Errorf("iOS library: got %q, want %q", got, want)
+	}
+
+	// The iOS Simulator has no precompiled library and falls back to runtime compilation.
+	if _, ok := shaderprecomp.MetalLibrary(i, shaderprecomp.MetalLibraryPlatformIOSSimulator); ok {
+		t.Error("the iOS Simulator must not use a precompiled Metal library")
+	}
+}
+
+func TestMetalLibraryMacOSOnly(t *testing.T) {
+	i := id("metal-macos-only")
+	shaderprecomp.RegisterMetalLibraryForMacOS(i, []byte("maclib"))
+
+	if _, ok := shaderprecomp.MetalLibrary(i, shaderprecomp.MetalLibraryPlatformMacOS); !ok {
+		t.Error("the macOS Metal library must be available")
+	}
+	if _, ok := shaderprecomp.MetalLibrary(i, shaderprecomp.MetalLibraryPlatformIOS); ok {
+		t.Error("the iOS Metal library must not be available when not registered")
+	}
+}
+
+func TestMetalLibraryUnregistered(t *testing.T) {
+	i := id("metal-unregistered")
+	if _, ok := shaderprecomp.MetalLibrary(i, shaderprecomp.MetalLibraryPlatformMacOS); ok {
+		t.Error("the macOS Metal library must not be available for an unregistered ID")
+	}
+	if _, ok := shaderprecomp.MetalLibrary(i, shaderprecomp.MetalLibraryPlatformIOS); ok {
+		t.Error("the iOS Metal library must not be available for an unregistered ID")
+	}
+}
+
+func TestRegisterMetalLibraryDuplicatePanics(t *testing.T) {
+	i := id("metal-dup")
+	shaderprecomp.RegisterMetalLibraryForMacOS(i, []byte("maclib"))
+
+	defer func() {
+		if recover() == nil {
+			t.Error("registering a macOS Metal library twice for the same ID must panic")
+		}
+	}()
+	shaderprecomp.RegisterMetalLibraryForMacOS(i, []byte("maclib2"))
 }
 
 func TestPlayStation5Shader(t *testing.T) {
@@ -145,12 +198,12 @@ func TestKeyedBySourceID(t *testing.T) {
 	if bytes.Equal(a[:], b[:]) {
 		t.Fatal("distinct sources must have distinct IDs")
 	}
-	shaderprecomp.RegisterMetalLibrary(a, []byte("a"))
-	shaderprecomp.RegisterMetalLibrary(b, []byte("b"))
-	if lib, _ := shaderprecomp.MetalLibrary(a); string(lib) != "a" {
+	shaderprecomp.RegisterMetalLibraryForMacOS(a, []byte("a"))
+	shaderprecomp.RegisterMetalLibraryForMacOS(b, []byte("b"))
+	if lib, _ := shaderprecomp.MetalLibrary(a, shaderprecomp.MetalLibraryPlatformMacOS); string(lib) != "a" {
 		t.Errorf("got %q, want %q", lib, "a")
 	}
-	if lib, _ := shaderprecomp.MetalLibrary(b); string(lib) != "b" {
+	if lib, _ := shaderprecomp.MetalLibrary(b, shaderprecomp.MetalLibraryPlatformMacOS); string(lib) != "b" {
 		t.Errorf("got %q, want %q", lib, "b")
 	}
 }

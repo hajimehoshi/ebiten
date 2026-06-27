@@ -71,7 +71,7 @@ func (s *Shader) Dispose() {
 
 func (s *Shader) init(device mtl.Device) error {
 	var src string
-	if libBin, ok := shaderprecomp.MetalLibrary(s.ir.SourceID); ok {
+	if libBin, ok := shaderprecomp.MetalLibrary(s.ir.SourceID, metalLibraryPlatform()); ok {
 		lib, err := device.NewLibraryWithData(libBin)
 		if err != nil {
 			return err
