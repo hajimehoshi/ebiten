@@ -834,12 +834,6 @@ func (u *glfwBackend) initOnMainThread(options *RunOptions) error {
 		g.SetWindow(w)
 	}
 
-	w, err := u.nativeWindow()
-	if err != nil {
-		return err
-	}
-	gamepad.SetNativeWindow(w)
-
 	// Register callbacks after the window initialization done.
 	// The callback might cause swapping frames, that assumes the window is already set (#2137).
 	if err := u.registerWindowCloseCallback(); err != nil {
@@ -1147,7 +1141,12 @@ func (u *glfwBackend) updateGame() error {
 		if err != nil {
 			return
 		}
-		if err = gamepad.Update(); err != nil {
+		var nativeWindow uintptr
+		nativeWindow, err = u.nativeWindow()
+		if err != nil {
+			return
+		}
+		if err = gamepad.Update(nativeWindow); err != nil {
 			return
 		}
 	}); err != nil {

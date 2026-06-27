@@ -36,9 +36,10 @@ const (
 )
 
 type gamepads struct {
-	inited   bool
-	gamepads []*Gamepad
-	m        sync.Mutex
+	inited       bool
+	gamepads     []*Gamepad
+	nativeWindow uintptr
+	m            sync.Mutex
 
 	native nativeGamepads
 }
@@ -48,8 +49,16 @@ type nativeGamepads interface {
 	update(gamepads *gamepads) error
 }
 
-var theGamepads = gamepads{
-	native: newNativeGamepadsImpl(),
+var theGamepads gamepads
+
+// ensureNative constructs the native backend on first use if it is not already set.
+//
+// ensureNative must be called with g.m held. It only fills a nil native field, so a backend
+// installed explicitly is left untouched.
+func (g *gamepads) ensureNative() {
+	if g.native == nil {
+		g.native = newNativeGamepadsImpl()
+	}
 }
 
 // AppendGamepadIDs is concurrent-safe.
@@ -58,17 +67,15 @@ func AppendGamepadIDs(ids []ID) []ID {
 }
 
 // Update is concurrent-safe.
-func Update() error {
-	return theGamepads.update()
+//
+// nativeWindow is the platform's native window handle, or 0 if there is none.
+func Update(nativeWindow uintptr) error {
+	return theGamepads.update(nativeWindow)
 }
 
 // Get is concurrent-safe.
 func Get(id ID) *Gamepad {
 	return theGamepads.get(id)
-}
-
-func SetNativeWindow(nativeWindow uintptr) {
-	theGamepads.setNativeWindow(nativeWindow)
 }
 
 func (g *gamepads) appendGamepadIDs(ids []ID) []ID {
@@ -83,9 +90,18 @@ func (g *gamepads) appendGamepadIDs(ids []ID) []ID {
 	return ids
 }
 
-func (g *gamepads) update() error {
+func (g *gamepads) update(nativeWindow uintptr) error {
 	g.m.Lock()
 	defer g.m.Unlock()
+
+	g.ensureNative()
+
+	if g.nativeWindow != nativeWindow {
+		if n, ok := g.native.(interface{ setNativeWindow(uintptr) }); ok {
+			n.setNativeWindow(nativeWindow)
+		}
+		g.nativeWindow = nativeWindow
+	}
 
 	if !g.inited {
 		if err := g.native.init(g); err != nil {
@@ -166,16 +182,6 @@ func (g *gamepads) remove(cond func(*Gamepad) bool) {
 		if cond(gp) {
 			g.gamepads[i] = nil
 		}
-	}
-}
-
-func (g *gamepads) setNativeWindow(nativeWindow uintptr) {
-	g.m.Lock()
-	defer g.m.Unlock()
-
-	var n any = g.native
-	if n, ok := n.(interface{ setNativeWindow(uintptr) }); ok {
-		n.setNativeWindow(nativeWindow)
 	}
 }
 
