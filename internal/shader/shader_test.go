@@ -22,6 +22,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/shader"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/glsl"
@@ -197,5 +198,36 @@ func TestCompile(t *testing.T) {
 			// TODO: Should the results be tested?
 			msl.Compile(s)
 		})
+	}
+}
+
+// TestCompileHLSLIntModulo confirms that integer modulo is emitted via the modInt
+// helper rather than the '%' operator.
+func TestCompileHLSLIntModulo(t *testing.T) {
+	src := []byte(`//kage:unit pixels
+
+package main
+
+func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+	a := int(srcPos.x)
+	b := a % 3
+	return vec4(float(b))
+}`)
+	s, err := graphics.CompileShader(src)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, ps, _, _ := hlsl.Compile(s)
+	if !strings.Contains(ps, "modInt(") {
+		t.Errorf("HLSL pixel shader should use modInt for integer modulo, but got:\n%s", ps)
+	}
+	// The PSMain body must not use the '%' operator directly. modInt's own definition
+	// uses '%' on uints (which fxc does not warn about), so check only the body.
+	i := strings.Index(ps, "PSMain")
+	if i < 0 {
+		t.Fatalf("HLSL pixel shader should have a PSMain function, but got:\n%s", ps)
+	}
+	if body := ps[i:]; strings.Contains(body, " % ") {
+		t.Errorf("HLSL PSMain should not use the '%%' operator for integer modulo, but got:\n%s", body)
 	}
 }

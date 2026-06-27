@@ -68,6 +68,38 @@ float4 mod(float4 x, float4 y) {
 	return x - y * floor(x/y);
 }
 
+// modInt computes x % y. fxc emits warning X3556 for signed integer % and /, and
+// suggests uints, so the magnitude is computed with unsigned modulo and the sign of
+// the dividend is reapplied. This matches a signed truncated modulo except for the
+// minimum integer, where abs overflows.
+int modInt(int x, int y) {
+	return sign(x) * (int)((uint)abs(x) % (uint)abs(y));
+}
+
+int2 modInt(int2 x, int y) {
+	return sign(x) * (int2)((uint2)abs(x) % (uint2)abs(y));
+}
+
+int3 modInt(int3 x, int y) {
+	return sign(x) * (int3)((uint3)abs(x) % (uint3)abs(y));
+}
+
+int4 modInt(int4 x, int y) {
+	return sign(x) * (int4)((uint4)abs(x) % (uint4)abs(y));
+}
+
+int2 modInt(int2 x, int2 y) {
+	return sign(x) * (int2)((uint2)abs(x) % (uint2)abs(y));
+}
+
+int3 modInt(int3 x, int3 y) {
+	return sign(x) * (int3)((uint3)abs(x) % (uint3)abs(y));
+}
+
+int4 modInt(int4 x, int4 y) {
+	return sign(x) * (int4)((uint4)abs(x) % (uint4)abs(y));
+}
+
 float2x2 float2x2FromScalar(float x) {
 	return float2x2(x, 0, 0, x);
 }
@@ -482,6 +514,10 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 				// If either is a matrix, use the mul function.
 				// Swap the order of the lhs and the rhs since matrices are row-major in HLSL.
 				return fmt.Sprintf("mul(%s, %s)", expr(&e.Exprs[1]), expr(&e.Exprs[0]))
+			case shaderir.ModOp:
+				// Use modInt instead of '%'. fxc warns that signed integer '%' may be much slower
+				// (warning X3556); modInt computes the same result with unsigned arithmetic.
+				return fmt.Sprintf("modInt((%s), (%s))", expr(&e.Exprs[0]), expr(&e.Exprs[1]))
 			}
 			return fmt.Sprintf("(%s) %s (%s)", expr(&e.Exprs[0]), opString(e.Op), expr(&e.Exprs[1]))
 		case shaderir.Selection:
