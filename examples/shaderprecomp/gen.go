@@ -30,6 +30,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 )
 
 // shader mirrors the JSON reported by the shadercollector tool.
@@ -83,11 +84,21 @@ func xmain() error {
 		if err := generateDXBC(shaders); err != nil {
 			return err
 		}
+	} else if runtime.GOOS == "windows" {
+		fmt.Fprintln(os.Stderr, "warning: the FXC shader compiler ('fxc.exe') was not found; skipping DXBC shaders.")
+		fmt.Fprintln(os.Stderr, "Install the Windows SDK, then run from a Developer Command Prompt or add its bin directory to PATH, e.g.:")
+		fmt.Fprintln(os.Stderr, `    C:\Program Files (x86)\Windows Kits\10\bin\<version>\x64`)
 	}
-	if hasMetal() {
+	if hasMetalCompiler() {
 		if err := generateMetalLibrary(shaders); err != nil {
 			return err
 		}
+	} else if runtime.GOOS == "darwin" {
+		fmt.Fprintln(os.Stderr, "warning: the Metal shader compiler ('xcrun metal') was not found; skipping Metal libraries.")
+		fmt.Fprintln(os.Stderr, "Install Xcode (the Command Line Tools alone are not enough) and select it:")
+		fmt.Fprintln(os.Stderr, "    sudo xcode-select -s /Applications/Xcode.app/Contents/Developer")
+		fmt.Fprintln(os.Stderr, "On Xcode 16.3 or later, also download the Metal toolchain:")
+		fmt.Fprintln(os.Stderr, "    xcodebuild -downloadComponent MetalToolchain")
 	}
 
 	return nil
@@ -99,8 +110,8 @@ func hasFXC() bool {
 	return err == nil
 }
 
-// hasMetal reports whether the Metal shader compiler is available.
-func hasMetal() bool {
+// hasMetalCompiler reports whether the Metal shader compiler is available.
+func hasMetalCompiler() bool {
 	// The metal tool is invoked through xcrun and is not on PATH directly, so
 	// look it up with 'xcrun -f'.
 	return exec.Command("xcrun", "-f", "metal").Run() == nil
