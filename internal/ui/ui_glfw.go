@@ -968,7 +968,10 @@ func (u *glfwBackend) update() (float64, float64, error) {
 		}
 	}
 
-	if u.bufferOnceSwapped {
+	// Showing the window (and the focus and size adjustments that go with it) is skipped when the window
+	// is initially invisible, so an application started with SetWindowVisible(false) never shows a window.
+	// A later SetWindowVisible(true) shows it through the regular path.
+	if u.bufferOnceSwapped && u.desktopWindow.isInitWindowVisible() {
 		var err error
 		u.showWindowOnce.Do(func() {
 			// Show the window after first buffer swap to avoid flash of white especially on Windows.
@@ -1106,6 +1109,7 @@ func (u *glfwBackend) loopGame() (err error) {
 
 func (u *glfwBackend) updateGame() error {
 	var unfocused bool
+	var windowHidden bool
 
 	var t1, t2 time.Time
 
@@ -1124,6 +1128,15 @@ func (u *glfwBackend) updateGame() error {
 			}
 			unfocused = a == glfw.False
 		}
+
+		// A hidden window is not presented to, so its frames are not throttled by the present. Detect it so
+		// the buffer swap can be skipped and the tick rate stays at the target TPS while hidden.
+		visible, e := u.window.GetAttrib(glfw.Visible)
+		if e != nil {
+			err = e
+			return
+		}
+		windowHidden = visible == glfw.False
 
 		outsideWidth, outsideHeight, err = u.update()
 		if err != nil {
@@ -1157,7 +1170,7 @@ func (u *glfwBackend) updateGame() error {
 		t1 = time.Now()
 	}
 
-	if err := u.context.updateFrame(u.graphicsDriver, outsideWidth, outsideHeight, deviceScaleFactor, u.UserInterface); err != nil {
+	if err := u.context.updateFrame(u.graphicsDriver, outsideWidth, outsideHeight, deviceScaleFactor, u.UserInterface, !windowHidden); err != nil {
 		return err
 	}
 
@@ -1692,6 +1705,18 @@ func (u *glfwBackend) restoreWindow() error {
 	}
 
 	return nil
+}
+
+// setWindowVisible must be called from the main thread.
+func (u *glfwBackend) setWindowVisible(visible bool) error {
+	if microsoftgdk.IsXbox() {
+		return nil
+	}
+
+	if visible {
+		return u.window.Show()
+	}
+	return u.window.Hide()
 }
 
 // setWindowDecorated must be called from the main thread.

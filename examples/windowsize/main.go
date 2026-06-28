@@ -23,6 +23,7 @@ import (
 	"log"
 	"math"
 	"math/rand/v2"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -50,6 +51,7 @@ var (
 	flagRunnableOnUnfocused = flag.Bool("runnableonunfocused", true, "whether the app is runnable even on unfocused")
 	flagColorSpace          = flag.String("colorspace", "", "color space ('', 'srgb', or 'display-p3')")
 	flagColorMode           = flag.String("colormode", "", "window color mode ('', 'light', or 'dark')")
+	flagWindowVisible       = flag.Bool("windowvisible", true, "whether the window is visible")
 )
 
 func init() {
@@ -61,6 +63,10 @@ const (
 	initScreenHeight = 640
 	initScreenScale  = 1
 )
+
+// restoreDelayInTicks is how many ticks a maximized, minimized, or hidden window stays in that state
+// before it is restored automatically.
+const restoreDelayInTicks = 120
 
 var (
 	gophersImage *ebiten.Image
@@ -102,6 +108,9 @@ type game struct {
 	autoRestore    bool
 	autoAdjustment bool
 	tps            int
+
+	restoreCountdown      int
+	windowHiddenCountdown int
 }
 
 func (g *game) Layout(outsideWidth, outsideHeight int) (int, int) {
@@ -159,6 +168,10 @@ func colorModeString(c ebiten.ColorMode) string {
 }
 
 func (g *game) Update() error {
+	if g.count == 0 && !*flagWindowVisible {
+		fmt.Fprintln(os.Stderr, "The first Update is called. The window is hidden and will be shown after a while.")
+	}
+
 	g.tps = ebiten.TPS()
 	g.positionX, g.positionY = ebiten.WindowPosition()
 
@@ -243,6 +256,12 @@ func (g *game) Update() error {
 				floating := ebiten.IsWindowFloating()
 				ctx.Checkbox(&floating, "").On(func() {
 					ebiten.SetWindowFloating(floating)
+				})
+
+				ctx.Text("Hide Window (shown again automatically)")
+				ctx.Button("Hide").On(func() {
+					ebiten.SetWindowVisible(false)
+					g.windowHiddenCountdown = restoreDelayInTicks
 				})
 
 				ctx.Text("Update Icon")
@@ -378,6 +397,9 @@ func (g *game) Update() error {
 				ctx.Text("Focused?")
 				ctx.Text(fmt.Sprintf("%t", ebiten.IsFocused()))
 
+				ctx.Text("Visible?")
+				ctx.Text(fmt.Sprintf("%t", ebiten.IsWindowVisible()))
+
 				ctx.Text("TPS")
 				ctx.Text(fmt.Sprintf("%0.2f", ebiten.ActualTPS()))
 
@@ -449,10 +471,14 @@ func (g *game) Update() error {
 	var restore bool
 	if ebiten.IsWindowMaximized() || ebiten.IsWindowMinimized() {
 		if g.autoRestore {
-			restore = g.count%ebiten.TPS() == 0
+			// Restore after a fixed number of ticks, the same way the hidden window is restored below.
+			g.restoreCountdown--
+			restore = g.restoreCountdown <= 0
 		} else {
 			restore = inpututil.IsKeyJustPressed(ebiten.KeyE)
 		}
+	} else {
+		g.restoreCountdown = restoreDelayInTicks
 	}
 
 	if toUpdateWindowSize {
@@ -465,6 +491,15 @@ func (g *game) Update() error {
 	}
 	if restore {
 		ebiten.RestoreWindow()
+	}
+
+	// A hidden window receives no input, so the user cannot show it again. Restore it automatically after
+	// a while.
+	if g.windowHiddenCountdown > 0 {
+		g.windowHiddenCountdown--
+		if g.windowHiddenCountdown == 0 {
+			ebiten.SetWindowVisible(true)
+		}
 	}
 
 	g.count++
@@ -518,12 +553,19 @@ func main() {
 	}
 
 	g := &game{
-		screenWidth:  initScreenWidth,
-		screenHeight: initScreenHeight,
+		screenWidth:      initScreenWidth,
+		screenHeight:     initScreenHeight,
+		restoreCountdown: restoreDelayInTicks,
 	}
 
 	if *flagFullscreen {
 		ebiten.SetFullscreen(true)
+	}
+	if !*flagWindowVisible {
+		ebiten.SetWindowVisible(false)
+		// Show the window again after a while so the example does not stay invisible. The game keeps
+		// running while the window is hidden.
+		g.windowHiddenCountdown = restoreDelayInTicks
 	}
 	if *flagResizable {
 		ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)

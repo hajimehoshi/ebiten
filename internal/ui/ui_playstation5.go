@@ -83,7 +83,7 @@ func (u *UserInterface) initOnMainThread(options *RunOptions) error {
 
 func (u *UserInterface) loopGame() error {
 	for {
-		if err := u.context.updateFrame(u.graphicsDriver, screenWidth, screenHeight, theMonitor.DeviceScaleFactor(), u); err != nil {
+		if err := u.context.updateFrame(u.graphicsDriver, screenWidth, screenHeight, theMonitor.DeviceScaleFactor(), u, true); err != nil {
 			return err
 		}
 	}

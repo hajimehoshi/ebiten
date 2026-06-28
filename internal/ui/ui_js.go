@@ -349,7 +349,7 @@ func (u *UserInterface) updateImpl(force bool) error {
 			return err
 		}
 	} else {
-		if err := u.context.updateFrame(u.graphicsDriver, w, h, theMonitor.DeviceScaleFactor(), u); err != nil {
+		if err := u.context.updateFrame(u.graphicsDriver, w, h, theMonitor.DeviceScaleFactor(), u, true); err != nil {
 			return err
 		}
 	}

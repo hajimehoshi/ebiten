@@ -63,6 +63,28 @@ func SetWindowDecorated(decorated bool) {
 	ui.Get().Window().SetDecorated(decorated)
 }
 
+// IsWindowVisible reports whether the window is visible.
+//
+// IsWindowVisible always returns false on platforms other than desktops.
+//
+// IsWindowVisible is concurrent-safe.
+func IsWindowVisible() bool {
+	return ui.Get().Window().IsVisible()
+}
+
+// SetWindowVisible sets whether the window is visible.
+//
+// The window is visible by default. Calling SetWindowVisible(false) before RunGame runs the game
+// without showing the window.
+//
+// SetWindowVisible works only on desktops.
+// SetWindowVisible does nothing if the platform is not a desktop.
+//
+// SetWindowVisible is concurrent-safe.
+func SetWindowVisible(visible bool) {
+	ui.Get().Window().SetVisible(visible)
+}
+
 // WindowResizingMode returns the current mode in which a user resizes the window.
 //
 // The default mode is WindowResizingModeDisabled.

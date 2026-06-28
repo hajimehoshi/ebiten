@@ -55,6 +55,8 @@ type uiBackend interface {
 type backendWindow interface {
 	IsDecorated() bool
 	SetDecorated(decorated bool)
+	IsVisible() bool
+	SetVisible(visible bool)
 	SetResizingMode(mode WindowResizingMode)
 	SetMonitor(monitor *Monitor)
 	Position() (int, int)

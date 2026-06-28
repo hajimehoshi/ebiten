@@ -52,6 +52,7 @@ type desktopWindow struct {
 	colorMode            atomic.Int32
 
 	initWindowDecorated        atomic.Bool
+	initWindowVisible          atomic.Bool
 	initWindowPositionInDIP    atomic.Value
 	initWindowSizeInDIP        atomic.Value
 	initWindowFloating         atomic.Bool
@@ -70,6 +71,7 @@ func (w *desktopWindow) init() {
 		maxHeightInDIP: glfw.DontCare,
 	})
 	w.initWindowDecorated.Store(true)
+	w.initWindowVisible.Store(true)
 	w.initWindowPositionInDIP.Store(image.Pt(invalidPos, invalidPos))
 	w.initWindowSizeInDIP.Store(image.Pt(640, 480))
 }
@@ -128,6 +130,14 @@ func (w *desktopWindow) isInitWindowDecorated() bool {
 
 func (w *desktopWindow) setInitWindowDecorated(decorated bool) {
 	w.initWindowDecorated.Store(decorated)
+}
+
+func (w *desktopWindow) isInitWindowVisible() bool {
+	return w.initWindowVisible.Load()
+}
+
+func (w *desktopWindow) setInitWindowVisible(visible bool) {
+	w.initWindowVisible.Store(visible)
 }
 
 func (w *desktopWindow) getAndResetIconImages() []image.Image {
@@ -242,6 +252,29 @@ func (w *desktopWindow) SetDecorated(decorated bool) {
 		return
 	}
 	b.Window().SetDecorated(decorated)
+}
+
+func (w *desktopWindow) IsVisible() bool {
+	if w.ui.isTerminated() {
+		return false
+	}
+	b := w.ui.runningBackend()
+	if b == nil {
+		return w.isInitWindowVisible()
+	}
+	return b.Window().IsVisible()
+}
+
+func (w *desktopWindow) SetVisible(visible bool) {
+	if w.ui.isTerminated() {
+		return
+	}
+	b := w.ui.runningBackend()
+	if b == nil {
+		w.setInitWindowVisible(visible)
+		return
+	}
+	b.Window().SetVisible(visible)
 }
 
 func (w *desktopWindow) ResizingMode() WindowResizingMode {

@@ -57,6 +57,34 @@ func (w *glfwWindow) SetDecorated(decorated bool) {
 	})
 }
 
+func (w *glfwWindow) IsVisible() bool {
+	var v bool
+	w.ui.mainThread.Call(func() {
+		if w.ui.isTerminated() {
+			return
+		}
+		a, err := w.ui.window.GetAttrib(glfw.Visible)
+		if err != nil {
+			w.ui.setError(err)
+			return
+		}
+		v = a == glfw.True
+	})
+	return v
+}
+
+func (w *glfwWindow) SetVisible(visible bool) {
+	w.ui.mainThread.Call(func() {
+		if w.ui.isTerminated() {
+			return
+		}
+		if err := w.ui.setWindowVisible(visible); err != nil {
+			w.ui.setError(err)
+			return
+		}
+	})
+}
+
 func (w *glfwWindow) SetResizingMode(mode WindowResizingMode) {
 	w.ui.mainThread.Call(func() {
 		if w.ui.isTerminated() {

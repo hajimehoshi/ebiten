@@ -23,6 +23,8 @@ import (
 type Window interface {
 	IsDecorated() bool
 	SetDecorated(decorated bool)
+	IsVisible() bool
+	SetVisible(visible bool)
 	ResizingMode() WindowResizingMode
 	SetResizingMode(mode WindowResizingMode)
 	SetMonitor(*Monitor)
@@ -57,6 +59,13 @@ func (*nullWindow) IsDecorated() bool {
 }
 
 func (*nullWindow) SetDecorated(decorated bool) {
+}
+
+func (*nullWindow) IsVisible() bool {
+	return false
+}
+
+func (*nullWindow) SetVisible(visible bool) {
 }
 
 func (*nullWindow) ResizingMode() WindowResizingMode {

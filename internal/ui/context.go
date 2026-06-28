@@ -69,13 +69,17 @@ func newContext(game Game) *context {
 	}
 }
 
-func (c *context) updateFrame(graphicsDriver graphicsdriver.Graphics, outsideWidth, outsideHeight float64, deviceScaleFactor float64, ui *UserInterface) error {
+// updateFrame runs one frame. present reports whether the frame should be shown on the screen; when it
+// is false (e.g. the window is hidden) the buffer swap is skipped, so the loop paces from
+// swapBuffersOrWait's no-swap path instead of a present that may block, and Update keeps running at the
+// target tick rate.
+func (c *context) updateFrame(graphicsDriver graphicsdriver.Graphics, outsideWidth, outsideHeight float64, deviceScaleFactor float64, ui *UserInterface, present bool) error {
 	// TODO: If updateCount is 0 and vsync is disabled, swapping buffers can be skipped.
 	needsSwapBuffers, err := c.updateFrameImpl(graphicsDriver, clock.UpdateFrame(), outsideWidth, outsideHeight, deviceScaleFactor, ui, false)
 	if err != nil {
 		return err
 	}
-	if err := c.swapBuffersOrWait(needsSwapBuffers, graphicsDriver, ui.FPSMode() == FPSModeVsyncOn); err != nil {
+	if err := c.swapBuffersOrWait(needsSwapBuffers && present, graphicsDriver, ui.FPSMode() == FPSModeVsyncOn); err != nil {
 		return err
 	}
 	return nil

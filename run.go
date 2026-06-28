@@ -496,6 +496,9 @@ func IsRunnableOnUnfocused() bool {
 // If the given value is true, the game runs even in background e.g. when losing focus.
 // The initial state is true.
 //
+// Even when the given value is false, the game keeps running while the window is hidden by
+// [SetWindowVisible], since a hidden window can never be focused and would otherwise never run again.
+//
 // Known issue: On browsers, even if the state is on, the game doesn't run in background tabs.
 // This is because browsers throttles background tabs not to often update.
 //
