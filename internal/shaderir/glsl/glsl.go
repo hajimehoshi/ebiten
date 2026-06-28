@@ -99,7 +99,6 @@ type compileContext struct {
 	version     GLSLVersion
 	structNames map[string]string
 	structTypes []shaderir.Type
-	unit        shaderir.Unit
 }
 
 func (c *compileContext) structName(p *shaderir.Program, t *shaderir.Type) string {
@@ -122,7 +121,6 @@ func Compile(p *shaderir.Program, version GLSLVersion) (vertexShader, fragmentSh
 	c := &compileContext{
 		version:     version,
 		structNames: map[string]string{},
-		unit:        p.Unit,
 	}
 
 	// Vertex func
@@ -508,7 +506,7 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 			}
 			callee := e.Exprs[0]
 			if callee.Type == shaderir.BuiltinFuncExpr {
-				if c.unit == shaderir.Pixels && callee.BuiltinFunc == shaderir.TexelAt {
+				if callee.BuiltinFunc == shaderir.TexelAt {
 					return fmt.Sprintf("%s(%s, ivec2(%s), 0)", expr(&callee), args[0], args[1])
 				}
 				if callee.BuiltinFunc == shaderir.Min || callee.BuiltinFunc == shaderir.Max {

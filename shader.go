@@ -22,7 +22,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/builtinshader"
 	"github.com/hajimehoshi/ebiten/v2/internal/colormshader"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
-	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
+	"github.com/hajimehoshi/ebiten/v2/internal/shader"
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
@@ -31,7 +31,16 @@ import (
 // For the details about the shader, see https://ebitengine.org/en/documents/shader.html.
 type Shader struct {
 	shader *ui.Shader
-	unit   shaderir.Unit
+
+	// unit is the unit the shader was authored in (//kage:unit). The compiled shader always runs in
+	// the pixel unit; this is kept only to enforce the user-facing rules of the texel unit, such as
+	// requiring source images to be the same size.
+	unit shader.Unit
+}
+
+// unitIsTexels reports whether the shader was authored in the texel unit.
+func (s *Shader) unitIsTexels() bool {
+	return s.unit == shader.Texels
 }
 
 // NewShader compiles a shader program in the shading language Kage, and returns the result.
@@ -48,9 +57,13 @@ func newShader(src []byte, name string) (*Shader, error) {
 	if err != nil {
 		return nil, err
 	}
+	unit, err := shader.ParseCompilerDirectives(src)
+	if err != nil {
+		return nil, err
+	}
 	return &Shader{
 		shader: ui.NewShader(ir, name),
-		unit:   ir.Unit,
+		unit:   unit,
 	}, nil
 }
 

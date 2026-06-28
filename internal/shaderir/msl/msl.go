@@ -48,8 +48,8 @@ func (c *compileContext) structName(p *shaderir.Program, t *shaderir.Type) strin
 	return n
 }
 
-func Prelude(unit shaderir.Unit) string {
-	str := `#include <metal_stdlib>
+func Prelude() string {
+	return `#include <metal_stdlib>
 
 using namespace metal;
 
@@ -57,12 +57,6 @@ template<typename T, typename U>
 T mod(T x, U y) {
 	return x - y * floor(x/y);
 }`
-	if unit == shaderir.Texels {
-		str += `
-
-constexpr sampler texture_sampler{filter::nearest};`
-	}
-	return str
 }
 
 const (
@@ -76,7 +70,7 @@ func Compile(p *shaderir.Program) (shader string) {
 	}
 
 	var lines []string
-	lines = append(lines, strings.Split(Prelude(p.Unit), "\n")...)
+	lines = append(lines, strings.Split(Prelude(), "\n")...)
 	lines = append(lines, "", "{{.Structs}}")
 
 	if len(p.Uniforms) > 0 {
@@ -413,14 +407,7 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 				args = append(args, expr(&exp))
 			}
 			if callee.Type == shaderir.BuiltinFuncExpr && callee.BuiltinFunc == shaderir.TexelAt {
-				switch p.Unit {
-				case shaderir.Texels:
-					return fmt.Sprintf("%s.sample(texture_sampler, %s)", args[0], strings.Join(args[1:], ", "))
-				case shaderir.Pixels:
-					return fmt.Sprintf("%s.read(static_cast<uint2>(%s))", args[0], strings.Join(args[1:], ", "))
-				default:
-					panic(fmt.Sprintf("msl: unexpected unit: %d", p.Unit))
-				}
+				return fmt.Sprintf("%s.read(static_cast<uint2>(%s))", args[0], strings.Join(args[1:], ", "))
 			}
 			if callee.Type == shaderir.BuiltinFuncExpr && (callee.BuiltinFunc == shaderir.Min || callee.BuiltinFunc == shaderir.Max) {
 				result := args[0]

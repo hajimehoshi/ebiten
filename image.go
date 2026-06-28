@@ -31,7 +31,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
-	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
@@ -932,7 +931,7 @@ func (i *Image) DrawTrianglesShader32(vertices []Vertex, indices []uint32, shade
 		if img.isDisposed() {
 			panic("ebiten: the given image to DrawTrianglesShader must not be disposed")
 		}
-		if shader.unit == shaderir.Texels {
+		if shader.unitIsTexels() {
 			if i == 0 {
 				imgSize = img.Bounds().Size()
 			} else {
@@ -1081,7 +1080,7 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 	var srcRegions [graphics.ShaderSrcImageCount]image.Rectangle
 	for i, img := range options.Images {
 		if img == nil {
-			if shader.unit == shaderir.Pixels && i == 0 {
+			if !shader.unitIsTexels() && i == 0 {
 				// Give the source size as pixels only when the unit is pixels so that users can get the source size via imageSrc0Size (#2166).
 				// With the texel mode, the imageSrc0Origin and imageSrc0Size values should be in texels so the source position in pixels would not match.
 				srcRegions[i] = image.Rect(0, 0, width, height)

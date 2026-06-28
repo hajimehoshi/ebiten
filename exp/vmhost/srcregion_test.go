@@ -39,21 +39,9 @@ func TestSrcRegionFromUniforms(t *testing.T) {
 	want := image.Rect(4, 8, 14, 20) // origin (4,8), size (10,12)
 
 	t.Run("pixels", func(t *testing.T) {
-		// Pixel-unit regions are stored in pixels; passing a zero texture size reads them directly.
+		// The region is stored in pixels and read directly.
 		u := makePrefix(64, 32, 4, 8, 10, 12)
-		got, ok := vmhost.SrcRegionFromUniforms(u, 0, 0, 0)
-		if !ok {
-			t.Fatal("ok = false, want true")
-		}
-		if got != want {
-			t.Errorf("got %v, want %v", got, want)
-		}
-	})
-
-	t.Run("texels (normalized by texture size)", func(t *testing.T) {
-		// Same region, but stored normalized by the 64x32 texture; pass that size to scale it back.
-		u := makePrefix(64, 32, 4.0/64, 8.0/32, 10.0/64, 12.0/32)
-		got, ok := vmhost.SrcRegionFromUniforms(u, 0, 64, 32)
+		got, ok := vmhost.SrcRegionFromUniforms(u, 0)
 		if !ok {
 			t.Fatal("ok = false, want true")
 		}
@@ -63,7 +51,7 @@ func TestSrcRegionFromUniforms(t *testing.T) {
 	})
 
 	t.Run("missing prefix", func(t *testing.T) {
-		if _, ok := vmhost.SrcRegionFromUniforms([]uint32{0, 0}, 0, 0, 0); ok {
+		if _, ok := vmhost.SrcRegionFromUniforms([]uint32{0, 0}, 0); ok {
 			t.Error("ok = true, want false for a too-short uniform slice")
 		}
 	})

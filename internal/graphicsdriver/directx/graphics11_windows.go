@@ -16,7 +16,6 @@ package directx
 
 import (
 	"fmt"
-	"math"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
@@ -165,7 +164,6 @@ type graphics11 struct {
 	indexBufferSizeInBytes uint32
 
 	rasterizerState *_ID3D11RasterizerState
-	samplerState    *_ID3D11SamplerState
 	blendStates     map[blendStateKey]*_ID3D11BlendState
 
 	vsyncEnabled bool
@@ -263,24 +261,6 @@ func newGraphics11(useWARP bool, useDebugLayer bool) (gr11 *graphics11, ferr err
 		g.rasterizerState = rs
 	}
 	g.deviceContext.RSSetState(g.rasterizerState)
-
-	// Set the sampler state.
-	if g.samplerState == nil {
-		s, err := g.device.CreateSamplerState(&_D3D11_SAMPLER_DESC{
-			Filter:         _D3D11_FILTER_MIN_MAG_MIP_POINT,
-			AddressU:       _D3D11_TEXTURE_ADDRESS_WRAP,
-			AddressV:       _D3D11_TEXTURE_ADDRESS_WRAP,
-			AddressW:       _D3D11_TEXTURE_ADDRESS_WRAP,
-			ComparisonFunc: _D3D11_COMPARISON_NEVER,
-			MinLOD:         -math.MaxFloat32,
-			MaxLOD:         math.MaxFloat32,
-		})
-		if err != nil {
-			return nil, err
-		}
-		g.samplerState = s
-	}
-	g.deviceContext.PSSetSamplers(0, []*_ID3D11SamplerState{g.samplerState})
 
 	return g, nil
 }

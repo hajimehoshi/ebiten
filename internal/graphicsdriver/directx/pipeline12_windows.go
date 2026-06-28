@@ -144,8 +144,6 @@ type pipelineStates struct {
 	shaderDescriptorHeap *_ID3D12DescriptorHeap
 	shaderDescriptorSize uint32
 
-	samplerDescriptorHeap *_ID3D12DescriptorHeap
-
 	constantBuffers    [frameCount][]*_ID3D12Resource
 	constantBufferMaps [frameCount][]uintptr
 }
@@ -173,31 +171,6 @@ func (p *pipelineStates) initialize(device *_ID3D12Device) (ferr error) {
 		}
 	}()
 	p.shaderDescriptorSize = device.GetDescriptorHandleIncrementSize(_D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)
-
-	samplerH, err := device.CreateDescriptorHeap(&_D3D12_DESCRIPTOR_HEAP_DESC{
-		Type:           _D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER,
-		NumDescriptors: 1,
-		Flags:          _D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE,
-		NodeMask:       0,
-	})
-	if err != nil {
-		return err
-	}
-	p.samplerDescriptorHeap = samplerH
-
-	h, err := p.samplerDescriptorHeap.GetCPUDescriptorHandleForHeapStart()
-	if err != nil {
-		return err
-	}
-	device.CreateSampler(&_D3D12_SAMPLER_DESC{
-		Filter:         _D3D12_FILTER_MIN_MAG_MIP_POINT,
-		AddressU:       _D3D12_TEXTURE_ADDRESS_MODE_WRAP,
-		AddressV:       _D3D12_TEXTURE_ADDRESS_MODE_WRAP,
-		AddressW:       _D3D12_TEXTURE_ADDRESS_MODE_WRAP,
-		ComparisonFunc: _D3D12_COMPARISON_FUNC_NEVER,
-		MinLOD:         -math.MaxFloat32,
-		MaxLOD:         math.MaxFloat32,
-	}, h)
 
 	return nil
 }
@@ -294,7 +267,6 @@ func (p *pipelineStates) drawTriangles(device *_ID3D12Device, commandList *_ID3D
 
 	commandList.SetDescriptorHeaps([]*_ID3D12DescriptorHeap{
 		p.shaderDescriptorHeap,
-		p.samplerDescriptorHeap,
 	})
 
 	// Match the indices with rootParams in graphicsPipelineState.
@@ -305,11 +277,6 @@ func (p *pipelineStates) drawTriangles(device *_ID3D12Device, commandList *_ID3D
 	gh.Offset(offset, p.shaderDescriptorSize)
 	commandList.SetGraphicsRootDescriptorTable(0, gh)
 	commandList.SetGraphicsRootDescriptorTable(1, gh)
-	sh, err := p.samplerDescriptorHeap.GetGPUDescriptorHandleForHeapStart()
-	if err != nil {
-		return err
-	}
-	commandList.SetGraphicsRootDescriptorTable(2, sh)
 
 	s, err := shader.pipelineState(blend, screen)
 	if err != nil {
@@ -352,13 +319,6 @@ func (p *pipelineStates) ensureRootSignature(device *_ID3D12Device) (rootSignatu
 		RegisterSpace:                     0,
 		OffsetInDescriptorsFromTableStart: 1,
 	}
-	sampler := _D3D12_DESCRIPTOR_RANGE{
-		RangeType:                         _D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, // s0
-		NumDescriptors:                    1,
-		BaseShaderRegister:                0,
-		RegisterSpace:                     0,
-		OffsetInDescriptorsFromTableStart: 0,
-	}
 
 	rootParams := [...]_D3D12_ROOT_PARAMETER{
 		{
@@ -374,14 +334,6 @@ func (p *pipelineStates) ensureRootSignature(device *_ID3D12Device) (rootSignatu
 			DescriptorTable: _D3D12_ROOT_DESCRIPTOR_TABLE{
 				NumDescriptorRanges: 1,
 				pDescriptorRanges:   &srv,
-			},
-			ShaderVisibility: _D3D12_SHADER_VISIBILITY_PIXEL,
-		},
-		{
-			ParameterType: _D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE,
-			DescriptorTable: _D3D12_ROOT_DESCRIPTOR_TABLE{
-				NumDescriptorRanges: 1,
-				pDescriptorRanges:   &sampler,
 			},
 			ShaderVisibility: _D3D12_SHADER_VISIBILITY_PIXEL,
 		},

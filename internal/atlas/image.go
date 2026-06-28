@@ -29,7 +29,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/packing"
-	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
 
 var (
@@ -473,14 +472,6 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderSrcImageCount]*Image, vertice
 			vertices[i+1] += dy
 			vertices[i+2] += oxf
 			vertices[i+3] += oyf
-		}
-		if shader.unit == shaderir.Texels {
-			sw, sh := srcs[0].backend.backendImage.InternalSize()
-			swf, shf := float32(sw), float32(sh)
-			for i := 0; i < n; i += graphics.VertexFloatCount {
-				vertices[i+2] /= swf
-				vertices[i+3] /= shf
-			}
 		}
 	} else {
 		n := len(vertices)

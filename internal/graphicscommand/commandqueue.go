@@ -26,7 +26,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/debug"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
-	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
 
 const (
@@ -393,12 +392,6 @@ func prependPreservedUniforms(uniforms []uint32, shader *Shader, dst *Image, src
 	}
 
 	dr := imageRectangleToRectangleF32(dstRegion)
-	if shader.unit() == shaderir.Texels {
-		dr.x /= float32(dw)
-		dr.y /= float32(dh)
-		dr.width /= float32(dw)
-		dr.height /= float32(dh)
-	}
 
 	// Set the destination region origin.
 	uniforms[10] = math.Float32bits(dr.x)
@@ -411,18 +404,6 @@ func prependPreservedUniforms(uniforms []uint32, shader *Shader, dst *Image, src
 	var srs [graphics.ShaderSrcImageCount]rectangleF32
 	for i, r := range srcRegions {
 		srs[i] = imageRectangleToRectangleF32(r)
-	}
-	if shader.unit() == shaderir.Texels {
-		for i, src := range srcs {
-			if src == nil {
-				continue
-			}
-			w, h := src.InternalSize()
-			srs[i].x /= float32(w)
-			srs[i].y /= float32(h)
-			srs[i].width /= float32(w)
-			srs[i].height /= float32(h)
-		}
 	}
 
 	// Set the source region origins.

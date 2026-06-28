@@ -24,7 +24,6 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/shader"
-	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/glsl"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/hlsl"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/msl"
@@ -48,7 +47,7 @@ func hlslNormalize(str string, prelude string) string {
 }
 
 func metalNormalize(str string) string {
-	prelude := msl.Prelude(shaderir.Texels)
+	prelude := msl.Prelude()
 	str = strings.TrimPrefix(str, prelude)
 	return strings.TrimSpace(str)
 }

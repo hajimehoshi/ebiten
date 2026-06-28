@@ -56,7 +56,3 @@ func (s *Shader) Dispose() {
 	}
 	theCommandQueueManager.enqueueCommand(c)
 }
-
-func (s *Shader) unit() shaderir.Unit {
-	return s.ir.Unit
-}

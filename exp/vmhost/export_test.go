@@ -16,6 +16,6 @@ package vmhost
 
 import "image"
 
-func SrcRegionFromUniforms(uniforms []uint32, i int, texW, texH float32) (image.Rectangle, bool) {
-	return srcRegionFromUniforms(uniforms, i, texW, texH)
+func SrcRegionFromUniforms(uniforms []uint32, i int) (image.Rectangle, bool) {
+	return srcRegionFromUniforms(uniforms, i)
 }

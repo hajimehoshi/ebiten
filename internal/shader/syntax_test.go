@@ -3640,7 +3640,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 func TestSyntaxCompilerDirective(t *testing.T) {
 	cases := []struct {
 		src  string
-		unit shaderir.Unit
+		unit shader.Unit
 		err  bool
 	}{
 		{
@@ -3649,7 +3649,7 @@ func TestSyntaxCompilerDirective(t *testing.T) {
 func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 	return dstPos
 }`,
-			unit: shaderir.Texels,
+			unit: shader.Texels,
 			err:  false,
 		},
 		{
@@ -3660,7 +3660,7 @@ package main
 func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 	return dstPos
 }`,
-			unit: shaderir.Texels,
+			unit: shader.Texels,
 			err:  false,
 		},
 		{
@@ -3671,7 +3671,7 @@ package main
 func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 	return dstPos
 }`,
-			unit: shaderir.Pixels,
+			unit: shader.Pixels,
 			err:  false,
 		},
 		{
@@ -3713,22 +3713,26 @@ package main
 func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 	return dstPos
 }`,
-			unit: shaderir.Pixels,
+			unit: shader.Pixels,
 			err:  false,
 		},
 	}
 	for _, c := range cases {
-		ir, err := compileToIR([]byte(c.src))
+		// The unit and any directive error are resolved by ParseCompilerDirectives.
+		unit, err := shader.ParseCompilerDirectives([]byte(c.src))
 		if err == nil && c.err {
-			t.Errorf("Compile(%q) must return an error but does not", c.src)
+			t.Errorf("ParseCompilerDirectives(%q) must return an error but does not", c.src)
 		} else if err != nil && !c.err {
-			t.Errorf("Compile(%q) must not return nil but returned %v", c.src, err)
+			t.Errorf("ParseCompilerDirectives(%q) must not return an error but returned %v", c.src, err)
 		}
 		if err != nil || c.err {
 			continue
 		}
-		if got, want := ir.Unit, c.unit; got != want {
-			t.Errorf("Compile(%q).Unit: got: %d, want: %d", c.src, got, want)
+		if got, want := unit, c.unit; got != want {
+			t.Errorf("ParseCompilerDirectives(%q): got: %d, want: %d", c.src, got, want)
+		}
+		if _, err := compileToIR([]byte(c.src)); err != nil {
+			t.Errorf("compileToIR(%q) must not return an error but returned %v", c.src, err)
 		}
 	}
 }

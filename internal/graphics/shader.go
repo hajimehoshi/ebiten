@@ -23,7 +23,16 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
 
-func shaderSuffix(unit shaderir.Unit) (string, error) {
+// shaderSuffix returns the Kage source appended to a user's fragment shader.
+//
+// The engine's core always operates in the pixel unit: the region uniforms hold pixels, and __texelAt
+// fetches a texel by its integer pixel coordinates. A texel-unit shader is supported by generating builtin
+// functions that convert between texels and pixels at the boundary, so the unit never leaks into the core.
+func shaderSuffix(unit shader.Unit) (string, error) {
+	if unit != shader.Pixels && unit != shader.Texels {
+		return "", fmt.Errorf("graphics: unexpected unit: %d", unit)
+	}
+
 	var shaderSuffix strings.Builder
 	shaderSuffix.WriteString(fmt.Sprintf(`
 var __imageDstTextureSize vec2
@@ -45,7 +54,24 @@ var __imageSrcTextureSizes [%[1]d]vec2
 func imageSrcTextureSize() vec2 {
 	return __imageSrcTextureSizes[0]
 }
+`, ShaderSrcImageCount))
 
+	// The region uniforms always hold pixels. In the texel unit, the public functions convert them to
+	// texels by dividing by the texture size.
+	dstOrigin := "__imageDstRegionOrigin"
+	dstSize := "__imageDstRegionSize"
+	srcOrigin0 := "__imageSrcRegionOrigins[0]"
+	srcSize0 := "__imageSrcRegionSizes[0]"
+	if unit == shader.Texels {
+		// A source texture size can be zero when no source image is given. Guard against a division by
+		// zero with max so that a zero region stays zero, matching the case without a source image.
+		dstOrigin = "__imageDstRegionOrigin / __imageDstTextureSize"
+		dstSize = "__imageDstRegionSize / __imageDstTextureSize"
+		srcOrigin0 = "__imageSrcRegionOrigins[0] / max(__imageSrcTextureSizes[0], vec2(1))"
+		srcSize0 = "__imageSrcRegionSizes[0] / max(__imageSrcTextureSizes[0], vec2(1))"
+	}
+
+	shaderSuffix.WriteString(fmt.Sprintf(`
 // The unit is the destination texture's pixel or texel.
 var __imageDstRegionOrigin vec2
 
@@ -59,7 +85,7 @@ var __imageDstRegionSize vec2
 //
 // Deprecated: as of v2.6. Use imageDstOrigin or imageDstSize.
 func imageDstRegionOnTexture() (vec2, vec2) {
-	return __imageDstRegionOrigin, __imageDstRegionSize
+	return %[1]s, %[2]s
 }
 
 // imageDstOrigin returns the destination image's origin on its texture.
@@ -67,20 +93,22 @@ func imageDstRegionOnTexture() (vec2, vec2) {
 //
 // As an image is a part of internal texture, the image can be located at an arbitrary position on the texture.
 func imageDstOrigin() vec2 {
-	return __imageDstRegionOrigin
+	return %[1]s
 }
 
 // imageDstSize returns the destination image's size.
 // The unit is the source texture's pixel or texel.
 func imageDstSize() vec2 {
-	return __imageDstRegionSize
+	return %[2]s
 }
+`, dstOrigin, dstSize))
+
+	shaderSuffix.WriteString(fmt.Sprintf(`
+// The unit is the source texture's pixel or texel.
+var __imageSrcRegionOrigins [%[3]d]vec2
 
 // The unit is the source texture's pixel or texel.
-var __imageSrcRegionOrigins [%[1]d]vec2
-
-// The unit is the source texture's pixel or texel.
-var __imageSrcRegionSizes [%[1]d]vec2
+var __imageSrcRegionSizes [%[3]d]vec2
 
 // imageSrcRegionOnTexture returns the 0th source image's region (the origin and the size) on its texture.
 // The unit is the source texture's pixel or texel.
@@ -89,77 +117,80 @@ var __imageSrcRegionSizes [%[1]d]vec2
 //
 // Deprecated: as of v2.6. Use imageSrc0Origin or imageSrc0Size instead.
 func imageSrcRegionOnTexture() (vec2, vec2) {
-	return __imageSrcRegionOrigins[0], __imageSrcRegionSizes[0]
+	return %[1]s, %[2]s
 }
-`, ShaderSrcImageCount))
+`, srcOrigin0, srcSize0, ShaderSrcImageCount))
 
 	for i := range ShaderSrcImageCount {
+		srcOrigin := fmt.Sprintf("__imageSrcRegionOrigins[%d]", i)
+		srcSize := fmt.Sprintf("__imageSrcRegionSizes[%d]", i)
+		if unit == shader.Texels {
+			srcOrigin = fmt.Sprintf("__imageSrcRegionOrigins[%[1]d] / max(__imageSrcTextureSizes[%[1]d], vec2(1))", i)
+			srcSize = fmt.Sprintf("__imageSrcRegionSizes[%[1]d] / max(__imageSrcTextureSizes[%[1]d], vec2(1))", i)
+		}
 		shaderSuffix.WriteString(fmt.Sprintf(`
 // imageSrc%[1]dOrigin returns the source image's region origin on its texture.
 // The unit is the source texture's pixel or texel.
 //
 // As an image is a part of internal texture, the image can be located at an arbitrary position on the texture.
 func imageSrc%[1]dOrigin() vec2 {
-	return __imageSrcRegionOrigins[%[1]d]
+	return %[2]s
 }
 
 // imageSrc%[1]dSize returns the source image's size.
 // The unit is the source texture's pixel or texel.
 func imageSrc%[1]dSize() vec2 {
-	return __imageSrcRegionSizes[%[1]d]
+	return %[3]s
 }
-`, i))
+`, i, srcOrigin, srcSize))
 
-		pos := "pos"
+		// In the texel unit, the argument is in texels of the 0th texture. Convert it to pixels of the
+		// 0th texture so that the rest of the body matches the pixel unit.
+		var convert string
+		if unit == shader.Texels {
+			convert = "\tpos = pos * __imageSrcTextureSizes[0]\n"
+		}
+		// pos is in pixels of the 0th texture. Convert it to the i-th texture's pixels.
+		texPos := "pos"
 		if i >= 1 {
-			// Convert the position in texture0's positions to the target texture positions.
-			switch unit {
-			case shaderir.Pixels:
-				pos = fmt.Sprintf("pos - __imageSrcRegionOrigins[0] + __imageSrcRegionOrigins[%d]", i)
-			case shaderir.Texels:
-				pos = fmt.Sprintf("((pos - __imageSrcRegionOrigins[0]) * __imageSrcTextureSizes[0]) / __imageSrcTextureSizes[%[1]d] + __imageSrcRegionOrigins[%[1]d]", i)
-			default:
-				return "", fmt.Errorf("graphics: unexpected unit: %d", unit)
-			}
+			texPos = fmt.Sprintf("pos - __imageSrcRegionOrigins[0] + __imageSrcRegionOrigins[%d]", i)
+		}
+		// In the texel unit, all the source region sizes are the same (#1870), so the 0th source region
+		// size is always used for the bounds check.
+		sizeIdx := i
+		if unit == shader.Texels {
+			sizeIdx = 0
 		}
 		// __t%d is a special variable for a texture variable.
 		shaderSuffix.WriteString(fmt.Sprintf(`
 func imageSrc%[1]dUnsafeAt(pos vec2) vec4 {
 	// pos is the position in positions of the source texture (= 0th image's texture).
-	return __texelAt(__t%[1]d, %[2]s)
+%[2]s	return __texelAt(__t%[1]d, %[3]s)
 }
-`, i, pos))
-		switch unit {
-		case shaderir.Pixels:
-			shaderSuffix.WriteString(fmt.Sprintf(`
+
 func imageSrc%[1]dAt(pos vec2) vec4 {
 	// pos is the position of the source texture (= 0th image's texture).
 	// If pos is in the region, the result is (1, 1). Otherwise, either element is 0.
-	in := step(__imageSrcRegionOrigins[0], pos) - step(__imageSrcRegionOrigins[0] + __imageSrcRegionSizes[%[1]d], pos)
-	return __texelAt(__t%[1]d, %[2]s) * in.x * in.y
+%[2]s	in := step(__imageSrcRegionOrigins[0], pos) - step(__imageSrcRegionOrigins[0] + __imageSrcRegionSizes[%[4]d], pos)
+	return __texelAt(__t%[1]d, %[3]s) * in.x * in.y
 }
-`, i, pos))
-		case shaderir.Texels:
-			shaderSuffix.WriteString(fmt.Sprintf(`
-func imageSrc%[1]dAt(pos vec2) vec4 {
-	// pos is the position of the source texture (= 0th image's texture).
-	// If pos is in the region, the result is (1, 1). Otherwise, either element is 0.
-	// With the texel mode, all the source region sizes are the same (#1870).
-	// As pos is in texels of the 0th texture, always use the 0th image region size.
-	in := step(__imageSrcRegionOrigins[0], pos) - step(__imageSrcRegionOrigins[0] + __imageSrcRegionSizes[0], pos)
-	return __texelAt(__t%[1]d, %[2]s) * in.x * in.y
-}
-`, i, pos))
-		}
+`, i, convert, texPos, sizeIdx))
 	}
 
-	shaderSuffix.WriteString(`
+	// The core feeds srcPos to __vertex in pixels. In the texel unit, convert it to texels for the
+	// user's fragment shader. The texture size is guarded against zero (no source image) to avoid a
+	// division by zero; the position is then left in pixels, matching the pixel unit.
+	srcPos := "srcPos"
+	if unit == shader.Texels {
+		srcPos = "srcPos / max(__imageSrcTextureSizes[0], vec2(1))"
+	}
+	shaderSuffix.WriteString(fmt.Sprintf(`
 var __projectionMatrix mat4
 
 func __vertex(dstPos vec2, srcPos vec2, color vec4, custom vec4) (vec4, vec2, vec4, vec4) {
-	return __projectionMatrix * vec4(dstPos, 0, 1), srcPos, color, custom
+	return __projectionMatrix * vec4(dstPos, 0, 1), %s, color, custom
 }
-`)
+`, srcPos))
 	return shaderSuffix.String(), nil
 }
 

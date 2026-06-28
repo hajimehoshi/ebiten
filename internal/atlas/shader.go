@@ -74,7 +74,6 @@ var theShadersWithInternalShader shadersWithInternalShader
 type Shader struct {
 	ir      *shaderir.Program
 	shader  *graphicscommand.Shader
-	unit    shaderir.Unit
 	name    string
 	cleanup runtime.Cleanup
 }
@@ -84,7 +83,6 @@ func NewShader(ir *shaderir.Program, name string) *Shader {
 	return &Shader{
 		ir:   ir,
 		name: name,
-		unit: ir.Unit,
 	}
 }
 

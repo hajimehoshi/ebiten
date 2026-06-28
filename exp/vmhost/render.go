@@ -22,7 +22,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
-	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 	"github.com/hajimehoshi/ebiten/v2/internal/vmprotocol"
 )
@@ -58,9 +57,6 @@ type hostImage struct {
 
 type hostShader struct {
 	shader *ui.Shader
-	// texels reports whether the shader's unit is texels (so the preserved source-region values are
-	// normalized) rather than pixels.
-	texels bool
 }
 
 // newFrameRenderer returns an empty renderer.
@@ -131,7 +127,6 @@ func (f *frameRenderer) renderOne(c vmprotocol.GraphicsCommand) error {
 		}
 		f.shaders[c.ShaderID] = &hostShader{
 			shader: ui.NewShader(ir, ""),
-			texels: ir.Unit == shaderir.Texels,
 		}
 		return nil
 
@@ -152,32 +147,19 @@ func (f *frameRenderer) renderOne(c vmprotocol.GraphicsCommand) error {
 
 		var srcs [graphics.ShaderSrcImageCount]*ui.Image
 		var srcRegions [graphics.ShaderSrcImageCount]image.Rectangle
-		var src0TexW, src0TexH float32
 		for i, s := range c.Srcs {
-			var texW, texH float32
 			if s != graphicsdriver.InvalidImageID {
 				src, ok := f.images[s]
 				if !ok {
 					return fmt.Errorf("vmhost: DrawTriangles references unknown src image %d", s)
 				}
 				srcs[i] = src.img
-				if shader.texels {
-					// For a texel-unit shader the source region and the vertex source coordinates are
-					// normalized by the source texture's internal size. The recorded texture-size uniform
-					// is unreliable (it is left zero when the shader does not read it), so use the
-					// mirrored image's own internal size, which matches the guest's.
-					texW = float32(graphics.InternalImageSize(src.width))
-					texH = float32(graphics.InternalImageSize(src.height))
-				}
-			}
-			if i == 0 {
-				src0TexW, src0TexH = texW, texH
 			}
 			// The source region is encoded in the preserved-uniform prefix for every slot, including
 			// source-less ones: a source-less draw still carries a region (e.g. DrawRectShader's
 			// rectangle, which the shader reads via imageSrc0Size/Origin), so recover it regardless of
 			// whether a source image is bound.
-			region, ok := srcRegionFromUniforms(c.Uniforms, i, texW, texH)
+			region, ok := srcRegionFromUniforms(c.Uniforms, i)
 			if !ok {
 				return fmt.Errorf("vmhost: DrawTriangles lacks the preserved uniform prefix")
 			}
@@ -210,15 +192,6 @@ func (f *frameRenderer) renderOne(c vmprotocol.GraphicsCommand) error {
 			}
 
 			f.vtxBuf = append(f.vtxBuf[:0], f.vertices[int(lo)*graphics.VertexFloatCount:(int(hi)+1)*graphics.VertexFloatCount]...)
-			// ui.Image takes source coordinates in pixels and normalizes them itself, but the guest recorded
-			// them already normalized by the first source's texture size (the driver-layer form for a
-			// texel-unit shader). Un-normalize them back to pixels.
-			if src0TexW > 0 && src0TexH > 0 {
-				for v := 0; v+3 < len(f.vtxBuf); v += graphics.VertexFloatCount {
-					f.vtxBuf[v+2] *= src0TexW
-					f.vtxBuf[v+3] *= src0TexH
-				}
-			}
 
 			f.idxBuf = f.idxBuf[:0]
 			for _, i := range idx {
@@ -259,30 +232,18 @@ func (f *frameRenderer) renderOne(c vmprotocol.GraphicsCommand) error {
 }
 
 // srcRegionFromUniforms recovers source image i's sampling region (in source pixels) from the
-// preserved-uniform prefix. For a texel-unit shader the stored origin/size are normalized by the source
-// texture's internal size; pass that size in texW/texH to scale them back to pixels, or 0 to read them
-// as pixels directly (pixel-unit shaders and source-less slots). It returns false if the prefix is
-// absent.
-func srcRegionFromUniforms(uniforms []uint32, i int, texW, texH float32) (image.Rectangle, bool) {
+// preserved-uniform prefix. It returns false if the prefix is absent.
+func srcRegionFromUniforms(uniforms []uint32, i int) (image.Rectangle, bool) {
 	if len(uniforms) < graphics.PreservedUniformDwordCount {
 		return image.Rectangle{}, false
 	}
 
-	// Each origins/sizes entry is two float32s per source image.
+	// Each origins/sizes entry is two float32s per source image. The values are exactly integral pixel
+	// coordinates.
 	ox := math.Float32frombits(uniforms[graphics.SourceImageRegionOriginUniformDwordIndex+2*i])
 	oy := math.Float32frombits(uniforms[graphics.SourceImageRegionOriginUniformDwordIndex+2*i+1])
 	sw := math.Float32frombits(uniforms[graphics.SourceImageRegionSizeUniformDwordIndex+2*i])
 	sh := math.Float32frombits(uniforms[graphics.SourceImageRegionSizeUniformDwordIndex+2*i+1])
-	if texW > 0 && texH > 0 {
-		ox *= texW
-		sw *= texW
-		oy *= texH
-		sh *= texH
-	}
-
-	// The values are exactly integral: pixel-unit regions hold integer pixel coordinates, and
-	// texel-unit values are integers divided by a power-of-two texture size, which the multiplication
-	// above inverts exactly.
 	return image.Rect(int(ox), int(oy), int(ox+sw), int(oy+sh)), true
 }
 

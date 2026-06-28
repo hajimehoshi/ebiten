@@ -51,7 +51,6 @@ type compileState struct {
 
 	vertexEntry   string
 	fragmentEntry string
-	unit          shaderir.Unit
 
 	ir shaderir.Program
 
@@ -183,8 +182,8 @@ func (p *ParseError) Error() string {
 }
 
 func Compile(src []byte, vertexEntry, fragmentEntry string, textureCount int) (*shaderir.Program, error) {
-	unit, err := ParseCompilerDirectives(src)
-	if err != nil {
+	// Validate the //kage:unit directive even though the unit itself is resolved by the caller.
+	if _, err := ParseCompilerDirectives(src); err != nil {
 		return nil, err
 	}
 
@@ -198,7 +197,6 @@ func Compile(src []byte, vertexEntry, fragmentEntry string, textureCount int) (*
 		fs:            fs,
 		vertexEntry:   vertexEntry,
 		fragmentEntry: fragmentEntry,
-		unit:          unit,
 	}
 	s.ir.SourceID = shaderir.CalcSourceID(src)
 	s.global.ir = &shaderir.Block{}
@@ -217,9 +215,17 @@ func Compile(src []byte, vertexEntry, fragmentEntry string, textureCount int) (*
 	return &s.ir, nil
 }
 
-func ParseCompilerDirectives(src []byte) (shaderir.Unit, error) {
+// Unit is the coordinate unit a Kage shader is authored in, selected by the //kage:unit directive.
+type Unit int
+
+const (
+	Texels Unit = iota
+	Pixels
+)
+
+func ParseCompilerDirectives(src []byte) (Unit, error) {
 	// TODO: Change the unit to pixels in v3 (#2645).
-	unit := shaderir.Texels
+	unit := Texels
 
 	// Go's whitespace is U+0020 (SP), U+0009 (\t), U+000d (\r), and U+000A (\n).
 	// See https://go.dev/ref/spec#Tokens
@@ -238,9 +244,9 @@ func ParseCompilerDirectives(src []byte) (shaderir.Unit, error) {
 		}
 		switch m[1] {
 		case "pixels":
-			unit = shaderir.Pixels
+			unit = Pixels
 		case "texels":
-			unit = shaderir.Texels
+			unit = Texels
 		default:
 			return 0, fmt.Errorf("shader: invalid value for //kage:unit: %s", m[1])
 		}
@@ -256,8 +262,6 @@ func (s *compileState) addError(pos token.Pos, str string) {
 }
 
 func (cs *compileState) parse(f *ast.File) {
-	cs.ir.Unit = cs.unit
-
 	// Parse GenDecl for global variables, and then parse functions.
 	for _, d := range f.Decls {
 		if _, ok := d.(*ast.FuncDecl); !ok {

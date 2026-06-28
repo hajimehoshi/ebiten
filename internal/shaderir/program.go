@@ -26,13 +26,6 @@ import (
 	"strings"
 )
 
-type Unit int
-
-const (
-	Texels Unit = iota
-	Pixels
-)
-
 type SourceID [16]byte
 
 func CalcSourceID(source []byte) SourceID {
@@ -71,7 +64,6 @@ type Program struct {
 	Funcs        []Func
 	VertexFunc   VertexFunc
 	FragmentFunc FragmentFunc
-	Unit         Unit
 
 	SourceID SourceID
 
