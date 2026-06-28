@@ -77,6 +77,11 @@ type remoteBackend struct {
 	rawCursorX float64
 	rawCursorY float64
 
+	// rawTouches is the set of active touches, in outside-screen device-independent pixels. It is
+	// mutated by the host's press/move/release events and translated to logical coordinates per tick in
+	// updateInputStateForFrame, like the cursor.
+	rawTouches []rawTouch
+
 	// outsideWidth and outsideHeight are the host-supplied outside size, in device-independent
 	// pixels. scale is the host's device scale factor, pulled per tick.
 	outsideWidth  float64
@@ -235,6 +240,12 @@ func (r *remoteBackend) serveLoop(dec *vmprotocol.Decoder, enc *vmprotocol.Encod
 			}
 		case vmprotocol.HostMessageKindUpdateGamepads:
 			r.updateGamepads(msg.GamepadStates)
+		case vmprotocol.HostMessageKindPressTouch:
+			r.setTouch(TouchID(msg.Code), msg.X, msg.Y)
+		case vmprotocol.HostMessageKindMoveTouch:
+			r.setTouch(TouchID(msg.Code), msg.X, msg.Y)
+		case vmprotocol.HostMessageKindReleaseTouch:
+			r.releaseTouch(TouchID(msg.Code))
 		case vmprotocol.HostMessageKindClose:
 			closing = true
 		default:
@@ -366,6 +377,22 @@ func (r *remoteBackend) updateInputStateForFrame(deviceScaleFactor float64) erro
 	if !math.IsNaN(x) && !math.IsNaN(y) {
 		r.inputState.CursorX, r.inputState.CursorY = x, y
 	}
+
+	// Rebuild the per-tick touch set from the event-applied raw set, translating each to logical
+	// coordinates as the cursor is.
+	r.inputState.Touches = r.inputState.Touches[:0]
+	for i := range r.rawTouches {
+		t := &r.rawTouches[i]
+		tx, ty := r.context.clientPositionToLogicalPosition(t.x, t.y, deviceScaleFactor)
+		if math.IsNaN(tx) || math.IsNaN(ty) {
+			continue
+		}
+		r.inputState.Touches = append(r.inputState.Touches, Touch{
+			ID: t.id,
+			X:  int(tx),
+			Y:  int(ty),
+		})
+	}
 	return nil
 }
 
@@ -417,6 +444,42 @@ func (r *remoteBackend) typeRune(c rune) {
 	r.m.Lock()
 	defer r.m.Unlock()
 	r.inputState.appendRune(c)
+}
+
+// rawTouch is one active touch's position, in outside-screen device-independent pixels, pending
+// translation to logical coordinates in updateInputStateForFrame.
+type rawTouch struct {
+	id TouchID
+	x  float64
+	y  float64
+}
+
+// setTouch starts or moves the touch identified by id. A press and a move are applied identically: the
+// touch set is membership-based (just-pressed and just-released are recovered by the guest's own
+// inpututil diffing the set across ticks), so both upsert the position.
+func (r *remoteBackend) setTouch(id TouchID, x, y float64) {
+	r.m.Lock()
+	defer r.m.Unlock()
+	for i := range r.rawTouches {
+		if r.rawTouches[i].id == id {
+			r.rawTouches[i].x = x
+			r.rawTouches[i].y = y
+			return
+		}
+	}
+	r.rawTouches = append(r.rawTouches, rawTouch{id: id, x: x, y: y})
+}
+
+// releaseTouch ends the touch identified by id. Releasing an unknown touch is a no-op.
+func (r *remoteBackend) releaseTouch(id TouchID) {
+	r.m.Lock()
+	defer r.m.Unlock()
+	for i := range r.rawTouches {
+		if r.rawTouches[i].id == id {
+			r.rawTouches = slices.Delete(r.rawTouches, i, i+1)
+			return
+		}
+	}
 }
 
 // updateGamepads replaces the connected gamepads with the host's snapshot. Gamepads are a global

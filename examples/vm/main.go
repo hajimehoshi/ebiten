@@ -25,8 +25,8 @@
 // ./examples/paint. Because the host and guest speak a version-locked protocol, an import path is
 // built in a generated module that pins Ebitengine to the host's own version; a local path is built
 // in its own module. The host builds the guest with -tags ebitenginevm, runs it pointed at a private
-// socket, forwards the window's input (keyboard, mouse, and gamepads) to it, composites its rendered
-// frames into the window, and plays its audio.
+// socket, forwards the window's input (keyboard, mouse, touches, and gamepads) to it, composites its
+// rendered frames into the window, and plays its audio.
 package main
 
 import (
@@ -101,6 +101,9 @@ type Game struct {
 	// gamepadIDsBuf and gamepadStatesBuf are reused each tick by forwardInput.
 	gamepadIDsBuf    []ebiten.GamepadID
 	gamepadStatesBuf []vmhost.GamepadState
+
+	// touchIDsBuf is reused each tick by forwardInput.
+	touchIDsBuf []ebiten.TouchID
 
 	// tickAccum carries the sub-tick remainder between host updates, in units where hostTPS equals one tick.
 	tickAccum int
@@ -341,6 +344,28 @@ func (g *Game) forwardInput(state debugui.InputCapturingState) {
 		g.gamepadStatesBuf = append(g.gamepadStatesBuf, gamepadState(id))
 	}
 	s.UpdateGamepads(g.gamepadStatesBuf)
+
+	// Touches are forwarded as press/move/release events, like the keyboard and mouse buttons, and
+	// unconditionally: dropping a release while the panel is hovered would leave the guest with a stuck
+	// touch. The guest fills the window, so the positions map directly.
+	g.touchIDsBuf = inpututil.AppendJustPressedTouchIDs(g.touchIDsBuf[:0])
+	for _, id := range g.touchIDsBuf {
+		x, y := ebiten.TouchPosition(id)
+		s.PressTouch(id, float64(x), float64(y))
+	}
+	g.touchIDsBuf = ebiten.AppendTouchIDs(g.touchIDsBuf[:0])
+	for _, id := range g.touchIDsBuf {
+		// A just-pressed touch was already positioned by PressTouch above; only a continuing touch moves.
+		if inpututil.TouchPressDuration(id) == 1 {
+			continue
+		}
+		x, y := ebiten.TouchPosition(id)
+		s.MoveTouch(id, float64(x), float64(y))
+	}
+	g.touchIDsBuf = inpututil.AppendJustReleasedTouchIDs(g.touchIDsBuf[:0])
+	for _, id := range g.touchIDsBuf {
+		s.ReleaseTouch(id)
+	}
 }
 
 // gamepadState reads the current state of one host gamepad through the public ebiten API into the

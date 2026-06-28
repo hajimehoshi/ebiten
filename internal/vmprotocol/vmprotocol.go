@@ -56,6 +56,9 @@ const (
 	HostMessageKindScrollWheel
 	HostMessageKindTypeRune
 	HostMessageKindUpdateGamepads
+	HostMessageKindPressTouch
+	HostMessageKindMoveTouch
+	HostMessageKindReleaseTouch
 	HostMessageKindClose
 
 	// HostMessageKindReadAudio asks the guest to decode and return up to AudioMaxLenInBytes of one audio
@@ -81,10 +84,11 @@ type HostMessage struct {
 	Width  float64
 	Height float64
 
-	// PressKey/ReleaseKey carry a ui.Key; PressMouseButton/ReleaseMouseButton carry a ui.MouseButton.
+	// PressKey/ReleaseKey carry a ui.Key; PressMouseButton/ReleaseMouseButton carry a ui.MouseButton;
+	// PressTouch/MoveTouch/ReleaseTouch carry a ui.TouchID.
 	Code int
 
-	// MoveCursor and ScrollWheel.
+	// MoveCursor and ScrollWheel; also PressTouch and MoveTouch carry the touch position.
 	X float64
 	Y float64
 

@@ -814,6 +814,34 @@ func standardButtonsToProtocol(buttons map[ebiten.StandardGamepadButton]GamepadS
 	return m
 }
 
+// PressTouch injects a touch-press event at (x, y), in outside-screen device-independent pixels.
+func (g *GuestSession) PressTouch(id ebiten.TouchID, x, y float64) {
+	g.postMessage(&vmprotocol.HostMessage{
+		Kind: vmprotocol.HostMessageKindPressTouch,
+		Code: int(id),
+		X:    x,
+		Y:    y,
+	})
+}
+
+// MoveTouch injects a touch-move event to (x, y), in outside-screen device-independent pixels.
+func (g *GuestSession) MoveTouch(id ebiten.TouchID, x, y float64) {
+	g.postMessage(&vmprotocol.HostMessage{
+		Kind: vmprotocol.HostMessageKindMoveTouch,
+		Code: int(id),
+		X:    x,
+		Y:    y,
+	})
+}
+
+// ReleaseTouch injects a touch-release event.
+func (g *GuestSession) ReleaseTouch(id ebiten.TouchID) {
+	g.postMessage(&vmprotocol.HostMessage{
+		Kind: vmprotocol.HostMessageKindReleaseTouch,
+		Code: int(id),
+	})
+}
+
 // postMessage queues a single host message in submission order.
 func (g *GuestSession) postMessage(msg *vmprotocol.HostMessage) {
 	g.mu.Lock()
