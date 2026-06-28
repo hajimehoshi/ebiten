@@ -15,6 +15,7 @@
 package gamepad
 
 import (
+	"errors"
 	"sync"
 	"time"
 
@@ -51,14 +52,19 @@ type nativeGamepads interface {
 
 var theGamepads gamepads
 
-// ensureNative constructs the native backend on first use if it is not already set.
+// ensureNative constructs the native backend on first use if it is not already set: a virtual backend
+// (whose gamepads are passed to [Update]) when virtual is true, otherwise the device-polling backend.
 //
-// ensureNative must be called with g.m held. It only fills a nil native field, so a backend
-// installed explicitly is left untouched.
-func (g *gamepads) ensureNative() {
-	if g.native == nil {
-		g.native = newNativeGamepadsImpl()
+// ensureNative must be called with g.m held.
+func (g *gamepads) ensureNative(virtual bool) {
+	if g.native != nil {
+		return
 	}
+	if virtual {
+		g.native = nativeGamepadsVirtual{}
+		return
+	}
+	g.native = newNativeGamepadsImpl()
 }
 
 // AppendGamepadIDs is concurrent-safe.
@@ -68,9 +74,11 @@ func AppendGamepadIDs(ids []ID) []ID {
 
 // Update is concurrent-safe.
 //
-// nativeWindow is the platform's native window handle, or 0 if there is none.
-func Update(nativeWindow uintptr) error {
-	return theGamepads.update(nativeWindow)
+// nativeWindow is the platform's native window handle, or 0 if there is none. virtualGamepads selects
+// the gamepads: a nil slice polls the real devices, while a non-nil slice (possibly empty) makes the
+// connected gamepads exactly those it describes.
+func Update(nativeWindow uintptr, virtualGamepads []VirtualGamepadState) error {
+	return theGamepads.update(nativeWindow, virtualGamepads)
 }
 
 // Get is concurrent-safe.
@@ -90,17 +98,31 @@ func (g *gamepads) appendGamepadIDs(ids []ID) []ID {
 	return ids
 }
 
-func (g *gamepads) update(nativeWindow uintptr) error {
+func (g *gamepads) update(nativeWindow uintptr, virtualGamepads []VirtualGamepadState) error {
 	g.m.Lock()
 	defer g.m.Unlock()
 
-	g.ensureNative()
+	virtual := virtualGamepads != nil
+
+	// The first Update fixes whether the gamepads are virtual; it must not change afterward, as the
+	// constructed backend and the gamepad list assume a single mode.
+	if g.native != nil {
+		if _, wasVirtual := g.native.(nativeGamepadsVirtual); wasVirtual != virtual {
+			return errors.New("gamepad: virtualGamepads must be consistently nil or non-nil across Update calls")
+		}
+	}
+
+	g.ensureNative(virtual)
 
 	if g.nativeWindow != nativeWindow {
 		if n, ok := g.native.(interface{ setNativeWindow(uintptr) }); ok {
 			n.setNativeWindow(nativeWindow)
 		}
 		g.nativeWindow = nativeWindow
+	}
+
+	if virtual {
+		g.setVirtualGamepads(virtualGamepads)
 	}
 
 	if !g.inited {
@@ -188,7 +210,12 @@ func (g *gamepads) remove(cond func(*Gamepad) bool) {
 type Gamepad struct {
 	name  string
 	sdlID string
-	m     sync.Mutex
+	// virtual reports that the gamepad's state is supplied externally (the gamepads passed to [Update])
+	// rather than read from a device. Its standard-layout mapping comes from its native input rather
+	// than from gamepaddb, so an external driver can present any standard layout it likes regardless of
+	// the SDL ID. It is set once when the gamepad is created and never changes.
+	virtual bool
+	m       sync.Mutex
 
 	native nativeGamepad
 }
@@ -340,7 +367,7 @@ func (g *Gamepad) IsStandardLayoutAvailable() bool {
 	g.m.Lock()
 	defer g.m.Unlock()
 
-	if gamepaddb.HasStandardLayoutMapping(g.sdlID) {
+	if !g.virtual && gamepaddb.HasStandardLayoutMapping(g.sdlID) {
 		return true
 	}
 	return g.native.hasOwnStandardLayoutMapping()
@@ -351,7 +378,7 @@ func (g *Gamepad) IsStandardAxisAvailable(axis gamepaddb.StandardAxis) bool {
 	g.m.Lock()
 	defer g.m.Unlock()
 
-	if gamepaddb.HasStandardLayoutMapping(g.sdlID) {
+	if !g.virtual && gamepaddb.HasStandardLayoutMapping(g.sdlID) {
 		return gamepaddb.HasStandardAxis(g.sdlID, axis)
 	}
 	return g.native.standardAxisInOwnMapping(axis) != nil
@@ -362,7 +389,7 @@ func (g *Gamepad) IsStandardButtonAvailable(button gamepaddb.StandardButton) boo
 	g.m.Lock()
 	defer g.m.Unlock()
 
-	if gamepaddb.HasStandardLayoutMapping(g.sdlID) {
+	if !g.virtual && gamepaddb.HasStandardLayoutMapping(g.sdlID) {
 		return gamepaddb.HasStandardButton(g.sdlID, button)
 	}
 	return g.native.standardButtonInOwnMapping(button) != nil
@@ -370,7 +397,7 @@ func (g *Gamepad) IsStandardButtonAvailable(button gamepaddb.StandardButton) boo
 
 // StandardAxisValue is concurrent-safe.
 func (g *Gamepad) StandardAxisValue(axis gamepaddb.StandardAxis) float64 {
-	if gamepaddb.HasStandardLayoutMapping(g.sdlID) {
+	if !g.virtual && gamepaddb.HasStandardLayoutMapping(g.sdlID) {
 		// StandardAxisValue invokes g.Axis, g.Button, or g.Hat so this cannot be locked.
 		return gamepaddb.StandardAxisValue(g.sdlID, axis, g)
 	}
@@ -386,7 +413,7 @@ func (g *Gamepad) StandardAxisValue(axis gamepaddb.StandardAxis) float64 {
 
 // StandardButtonValue is concurrent-safe.
 func (g *Gamepad) StandardButtonValue(button gamepaddb.StandardButton) float64 {
-	if gamepaddb.HasStandardLayoutMapping(g.sdlID) {
+	if !g.virtual && gamepaddb.HasStandardLayoutMapping(g.sdlID) {
 		// StandardButtonValue invokes g.Axis, g.Button, or g.Hat so this cannot be locked.
 		return gamepaddb.StandardButtonValue(g.sdlID, button, g)
 	}
@@ -402,7 +429,7 @@ func (g *Gamepad) StandardButtonValue(button gamepaddb.StandardButton) float64 {
 
 // IsStandardButtonPressed is concurrent-safe.
 func (g *Gamepad) IsStandardButtonPressed(button gamepaddb.StandardButton) bool {
-	if gamepaddb.HasStandardLayoutMapping(g.sdlID) {
+	if !g.virtual && gamepaddb.HasStandardLayoutMapping(g.sdlID) {
 		// IsStandardButtonPressed invokes g.Axis, g.Button, or g.Hat so this cannot be locked.
 		return gamepaddb.IsStandardButtonPressed(g.sdlID, button, g)
 	}

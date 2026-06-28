@@ -33,6 +33,8 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
 	"github.com/hajimehoshi/ebiten/v2/internal/color"
+	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
+	"github.com/hajimehoshi/ebiten/v2/internal/gamepaddb"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/remote"
 	"github.com/hajimehoshi/ebiten/v2/internal/hook"
@@ -65,6 +67,11 @@ type remoteBackend struct {
 
 	inputState InputState
 
+	// gamepadStates is the latest set of gamepads forwarded by the host, passed to gamepad.Update each
+	// tick. It is owned by the serve goroutine. It stays non-nil (possibly empty) so the guest's gamepad
+	// subsystem is always virtual rather than polling real devices.
+	gamepadStates []gamepad.VirtualGamepadState
+
 	// rawCursorX and rawCursorY are the injected cursor position in outside-screen device-independent
 	// pixels. They are translated to logical coordinates per tick in updateInputStateForFrame.
 	rawCursorX float64
@@ -88,6 +95,7 @@ func newRemoteBackend(u *UserInterface, endpoint string) *remoteBackend {
 	}
 	r.monitor = &Monitor{virtual: r}
 	r.scale = 1
+	r.gamepadStates = []gamepad.VirtualGamepadState{}
 	return r
 }
 
@@ -225,6 +233,8 @@ func (r *remoteBackend) serveLoop(dec *vmprotocol.Decoder, enc *vmprotocol.Encod
 			}); err != nil {
 				return err
 			}
+		case vmprotocol.HostMessageKindUpdateGamepads:
+			r.updateGamepads(msg.GamepadStates)
 		case vmprotocol.HostMessageKindClose:
 			closing = true
 		default:
@@ -302,6 +312,11 @@ func (r *remoteBackend) advanceTick() error {
 	}
 	s, err := r.pullDeviceScaleFactor()
 	if err != nil {
+		return err
+	}
+	// The guest has no devices of its own; drive the gamepad subsystem with the host-forwarded set (a
+	// non-nil slice keeps it virtual). There is no native window.
+	if err := gamepad.Update(0, r.gamepadStates); err != nil {
 		return err
 	}
 	if err := r.context.updateTickForVMGuest(r.graphicsDriver, w, h, s, r.UserInterface); err != nil {
@@ -402,6 +417,42 @@ func (r *remoteBackend) typeRune(c rune) {
 	r.m.Lock()
 	defer r.m.Unlock()
 	r.inputState.appendRune(c)
+}
+
+// updateGamepads replaces the connected gamepads with the host's snapshot. Gamepads are a global
+// subsystem rather than part of inputState, so this updates them directly; it needs no lock.
+func (r *remoteBackend) updateGamepads(states []vmprotocol.GamepadState) {
+	// gamepad.Update copies this snapshot into the gamepad's own storage, so the entries here may alias
+	// states' slices and maps instead of copying them — states is a freshly decoded, read-only message,
+	// so the aliases stay valid — and the buffer may be reused across ticks. It is kept non-nil so the
+	// subsystem stays virtual.
+	r.gamepadStates = r.gamepadStates[:0]
+	for i := range states {
+		s := &states[i]
+		r.gamepadStates = append(r.gamepadStates, gamepad.VirtualGamepadState{
+			ID:              gamepad.ID(s.ID),
+			SDLID:           s.SDLID,
+			Name:            s.Name,
+			Axes:            s.Axes,
+			Buttons:         s.Buttons,
+			StandardAxes:    s.StandardAxes,
+			StandardButtons: virtualStandardButtons(s.StandardButtons),
+		})
+	}
+}
+
+func virtualStandardButtons(buttons map[gamepaddb.StandardButton]vmprotocol.GamepadStandardButtonState) map[gamepaddb.StandardButton]gamepad.VirtualStandardGamepadButton {
+	if buttons == nil {
+		return nil
+	}
+	m := make(map[gamepaddb.StandardButton]gamepad.VirtualStandardGamepadButton, len(buttons))
+	for b, s := range buttons {
+		m[b] = gamepad.VirtualStandardGamepadButton{
+			Pressed: s.Pressed,
+			Value:   s.Value,
+		}
+	}
+	return m
 }
 
 func (r *remoteBackend) KeyName(key Key) string {

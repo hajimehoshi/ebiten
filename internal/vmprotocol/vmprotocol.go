@@ -34,6 +34,7 @@ import (
 	"strings"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/color"
+	"github.com/hajimehoshi/ebiten/v2/internal/gamepaddb"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 )
 
@@ -54,6 +55,7 @@ const (
 	HostMessageKindReleaseMouseButton
 	HostMessageKindScrollWheel
 	HostMessageKindTypeRune
+	HostMessageKindUpdateGamepads
 	HostMessageKindClose
 
 	// HostMessageKindReadAudio asks the guest to decode and return up to AudioMaxLenInBytes of one audio
@@ -89,6 +91,10 @@ type HostMessage struct {
 	// TypeRune.
 	Rune rune
 
+	// GamepadStates is the complete set of connected gamepads. Set on HostMessageKindUpdateGamepads; a
+	// gamepad absent from it is disconnected.
+	GamepadStates []GamepadState
+
 	// Err is the query failure, if any, as a string (gob cannot carry an error value). Set on
 	// HostMessageKindAnswerReadPixels.
 	Err string
@@ -109,6 +115,32 @@ type HostMessage struct {
 	// the maximum number of bytes to return.
 	AudioPlayerID      int64
 	AudioMaxLenInBytes int
+}
+
+// GamepadState is the forwarded state of one gamepad. The raw axes and buttons mirror the host's
+// public gamepad view, where hats are folded into buttons; the standard maps hold the standard-layout
+// view, with a present key meaning the standard button or axis is available.
+type GamepadState struct {
+	ID    int
+	SDLID string
+	Name  string
+
+	// Axes holds each raw axis value, in -1..1.
+	Axes []float64
+	// Buttons holds each raw button's pressed state.
+	Buttons []bool
+
+	// StandardAxes and StandardButtons hold the standard-layout view; a key is present exactly when the
+	// standard axis or button is available.
+	StandardAxes    map[gamepaddb.StandardAxis]float64
+	StandardButtons map[gamepaddb.StandardButton]GamepadStandardButtonState
+}
+
+// GamepadStandardButtonState is one standard-layout button's state: its pressed flag and its analog
+// value in 0..1.
+type GamepadStandardButtonState struct {
+	Pressed bool
+	Value   float64
 }
 
 // GuestMessageKind discriminates the messages a guest sends to the host.

@@ -25,8 +25,8 @@
 // ./examples/paint. Because the host and guest speak a version-locked protocol, an import path is
 // built in a generated module that pins Ebitengine to the host's own version; a local path is built
 // in its own module. The host builds the guest with -tags ebitenginevm, runs it pointed at a private
-// socket, forwards the window's input to it, composites its rendered frames into the window, and plays
-// its audio. Gamepads are not forwarded yet.
+// socket, forwards the window's input (keyboard, mouse, and gamepads) to it, composites its rendered
+// frames into the window, and plays its audio.
 package main
 
 import (
@@ -97,6 +97,10 @@ type Game struct {
 	// by AppendAudioStreams.
 	audioPlayers    map[*vmhost.GuestAudioStream]*audio.Player
 	audioStreamsBuf []*vmhost.GuestAudioStream
+
+	// gamepadIDsBuf and gamepadStatesBuf are reused each tick by forwardInput.
+	gamepadIDsBuf    []ebiten.GamepadID
+	gamepadStatesBuf []vmhost.GamepadState
 
 	// tickAccum carries the sub-tick remainder between host updates, in units where hostTPS equals one tick.
 	tickAccum int
@@ -328,6 +332,54 @@ func (g *Game) forwardInput(state debugui.InputCapturingState) {
 			s.ScrollWheel(wx, wy)
 		}
 	}
+
+	// Gamepads are mirrored unconditionally: unlike keyboard and mouse input they are not gated on the
+	// debug UI, which does not consume gamepad input.
+	g.gamepadIDsBuf = ebiten.AppendGamepadIDs(g.gamepadIDsBuf[:0])
+	g.gamepadStatesBuf = g.gamepadStatesBuf[:0]
+	for _, id := range g.gamepadIDsBuf {
+		g.gamepadStatesBuf = append(g.gamepadStatesBuf, gamepadState(id))
+	}
+	s.UpdateGamepads(g.gamepadStatesBuf)
+}
+
+// gamepadState reads the current state of one host gamepad through the public ebiten API into the
+// snapshot the guest is fed.
+func gamepadState(id ebiten.GamepadID) vmhost.GamepadState {
+	state := vmhost.GamepadState{
+		ID:    id,
+		SDLID: ebiten.GamepadSDLID(id),
+		Name:  ebiten.GamepadName(id),
+	}
+
+	for a := 0; a < ebiten.GamepadAxisCount(id); a++ {
+		state.Axes = append(state.Axes, ebiten.GamepadAxisValue(id, a))
+	}
+	for b := 0; b < ebiten.GamepadButtonCount(id); b++ {
+		state.Buttons = append(state.Buttons, ebiten.IsGamepadButtonPressed(id, ebiten.GamepadButton(b)))
+	}
+
+	if !ebiten.IsStandardGamepadLayoutAvailable(id) {
+		return state
+	}
+	state.StandardAxes = map[ebiten.StandardGamepadAxis]float64{}
+	for a := ebiten.StandardGamepadAxis(0); a <= ebiten.StandardGamepadAxisMax; a++ {
+		if !ebiten.IsStandardGamepadAxisAvailable(id, a) {
+			continue
+		}
+		state.StandardAxes[a] = ebiten.StandardGamepadAxisValue(id, a)
+	}
+	state.StandardButtons = map[ebiten.StandardGamepadButton]vmhost.GamepadStandardButtonState{}
+	for b := ebiten.StandardGamepadButton(0); b <= ebiten.StandardGamepadButtonMax; b++ {
+		if !ebiten.IsStandardGamepadButtonAvailable(id, b) {
+			continue
+		}
+		state.StandardButtons[b] = vmhost.GamepadStandardButtonState{
+			Pressed: ebiten.IsStandardGamepadButtonPressed(id, b),
+			Value:   ebiten.StandardGamepadButtonValue(id, b),
+		}
+	}
+	return state
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {

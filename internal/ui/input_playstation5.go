@@ -30,7 +30,7 @@ func (u *UserInterface) updateInputStateForFrame(deviceScaleFactor float64) erro
 
 // updateInputStateForFrameImpl must be called from the main thread.
 func (u *UserInterface) updateInputStateForFrameImpl() error {
-	if err := gamepad.Update(0); err != nil {
+	if err := gamepad.Update(0, nil); err != nil {
 		return err
 	}
 	return nil

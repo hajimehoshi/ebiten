@@ -742,6 +742,78 @@ func (g *GuestSession) queueOpLocked(o op) {
 	g.cond.Broadcast()
 }
 
+// GamepadState is a snapshot of one gamepad to inject with [GuestSession.UpdateGamepads].
+type GamepadState struct {
+	ID    ebiten.GamepadID
+	SDLID string
+	Name  string
+
+	// Axes and Buttons follow the ebiten gamepad view, where hats are folded into buttons (matching
+	// [ebiten.GamepadAxisValue] and [ebiten.IsGamepadButtonPressed]).
+	Axes    []float64
+	Buttons []bool
+
+	// StandardAxes and StandardButtons hold the standard-layout view; a present key means the standard
+	// axis or button is available, which need not match the SDL ID's database entry — a host may present
+	// any standard layout it likes.
+	StandardAxes    map[ebiten.StandardGamepadAxis]float64
+	StandardButtons map[ebiten.StandardGamepadButton]GamepadStandardButtonState
+}
+
+// GamepadStandardButtonState is one standard-layout button's pressed flag and its analog value in
+// 0..1.
+type GamepadStandardButtonState struct {
+	Pressed bool
+	Value   float64
+}
+
+// UpdateGamepads injects the complete set of connected gamepads; a gamepad absent from states is
+// disconnected. Like the other input injectors it is fed independently of [GuestSession.AdvanceTick]
+// and observed by the guest at its next tick.
+func (g *GuestSession) UpdateGamepads(states []GamepadState) {
+	// Gamepad state is polled per tick at the source — continuous axes plus a changing set of connected
+	// devices — so each call resends the whole snapshot, keeping the guest's view authoritative and
+	// self-correcting against a dropped or duplicated message.
+	g.postMessage(&vmprotocol.HostMessage{
+		Kind:          vmprotocol.HostMessageKindUpdateGamepads,
+		GamepadStates: gamepadStatesToProtocol(states),
+	})
+}
+
+func gamepadStatesToProtocol(states []GamepadState) []vmprotocol.GamepadState {
+	if states == nil {
+		return nil
+	}
+	out := make([]vmprotocol.GamepadState, len(states))
+	for i := range states {
+		s := &states[i]
+		out[i] = vmprotocol.GamepadState{
+			ID:              int(s.ID),
+			SDLID:           s.SDLID,
+			Name:            s.Name,
+			Axes:            s.Axes,
+			Buttons:         s.Buttons,
+			StandardAxes:    s.StandardAxes,
+			StandardButtons: standardButtonsToProtocol(s.StandardButtons),
+		}
+	}
+	return out
+}
+
+func standardButtonsToProtocol(buttons map[ebiten.StandardGamepadButton]GamepadStandardButtonState) map[ebiten.StandardGamepadButton]vmprotocol.GamepadStandardButtonState {
+	if buttons == nil {
+		return nil
+	}
+	m := make(map[ebiten.StandardGamepadButton]vmprotocol.GamepadStandardButtonState, len(buttons))
+	for b, s := range buttons {
+		m[b] = vmprotocol.GamepadStandardButtonState{
+			Pressed: s.Pressed,
+			Value:   s.Value,
+		}
+	}
+	return m
+}
+
 // postMessage queues a single host message in submission order.
 func (g *GuestSession) postMessage(msg *vmprotocol.HostMessage) {
 	g.mu.Lock()

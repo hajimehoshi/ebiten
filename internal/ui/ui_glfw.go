@@ -1146,7 +1146,7 @@ func (u *glfwBackend) updateGame() error {
 		if err != nil {
 			return
 		}
-		if err = gamepad.Update(nativeWindow); err != nil {
+		if err = gamepad.Update(nativeWindow, nil); err != nil {
 			return
 		}
 	}); err != nil {

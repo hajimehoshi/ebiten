@@ -335,7 +335,7 @@ func (u *UserInterface) updateImpl(force bool) error {
 		return nil
 	}
 
-	if err := gamepad.Update(0); err != nil {
+	if err := gamepad.Update(0, nil); err != nil {
 		return err
 	}
 
