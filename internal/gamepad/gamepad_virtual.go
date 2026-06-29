@@ -15,6 +15,7 @@
 package gamepad
 
 import (
+	"maps"
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepaddb"
@@ -111,9 +112,7 @@ func copyMap[K comparable, V any](dst, src map[K]V) map[K]V {
 	} else {
 		clear(dst)
 	}
-	for k, v := range src {
-		dst[k] = v
-	}
+	maps.Copy(dst, src)
 	return dst
 }
 
