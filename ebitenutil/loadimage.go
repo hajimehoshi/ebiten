@@ -15,6 +15,7 @@
 package ebitenutil
 
 import (
+	"fmt"
 	"image"
 	"io"
 	"net/http"
@@ -47,6 +48,9 @@ func NewImageFromURL(url string) (*ebiten.Image, error) {
 	defer func() {
 		_ = res.Body.Close()
 	}()
+	if res.StatusCode/100 != 2 {
+		return nil, fmt.Errorf("GET %s: %s", url, res.Status)
+	}
 
 	img, _, err := image.Decode(res.Body)
 	if err != nil {
