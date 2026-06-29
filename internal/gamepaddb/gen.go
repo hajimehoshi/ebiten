@@ -46,7 +46,7 @@ const license = `// Copyright 2024 The Ebitengine Authors
 
 // To update the database file, run:
 //
-//     curl --location --remote-name https://raw.githubusercontent.com/mdqinc/SDL_GameControllerDB/master/gamecontrollerdb.txt
+//     curl --location --remote-name https://raw.githubusercontent.com/mdqinc/SDL_GameControllerDB/refs/heads/master/gamecontrollerdb.txt
 
 //go:embed gamecontrollerdb.txt
 var gameControllerDB []byte
