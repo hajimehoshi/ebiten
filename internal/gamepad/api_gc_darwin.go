@@ -150,6 +150,7 @@ var (
 	sel_initWithUTF8String                         objc.SEL
 	sel_count                                      objc.SEL
 	sel_objectAtIndex                              objc.SEL
+	sel_supportsHIDDevice                          objc.SEL
 )
 
 // GC notification and input string constants (loaded from framework symbols).
@@ -217,6 +218,7 @@ func init() {
 	sel_initWithUTF8String = objc.RegisterName("initWithUTF8String:")
 	sel_count = objc.RegisterName("count")
 	sel_objectAtIndex = objc.RegisterName("objectAtIndex:")
+	sel_supportsHIDDevice = objc.RegisterName("supportsHIDDevice:")
 
 	// Load notification name symbols (NSString* globals).
 	connectPtr, err := purego.Dlsym(gc, "GCControllerDidConnectNotification")
@@ -599,7 +601,10 @@ func (g *gamepads) removeGCGamepad(controller uintptr) {
 	defer g.m.Unlock()
 
 	g.remove(func(gamepad *Gamepad) bool {
-		gc := gamepad.native.(*nativeGamepadGC)
+		gc, ok := gamepad.native.(*nativeGamepadGC)
+		if !ok {
+			return false
+		}
 		if gc.controller == controller {
 			releaseGCRumbleMotor(gc.leftMotor)
 			releaseGCRumbleMotor(gc.rightMotor)
@@ -607,6 +612,19 @@ func (g *gamepads) removeGCGamepad(controller uintptr) {
 		}
 		return false
 	})
+}
+
+// gcSupportsHIDDevice reports whether the GameController framework claims the given HID device.
+// It reports false when GameController or +[GCController supportsHIDDevice:] (macOS 11+) is unavailable.
+func gcSupportsHIDDevice(device _IOHIDDeviceRef) bool {
+	if class_GCController == 0 {
+		return false
+	}
+	gcClass := objc.ID(class_GCController)
+	if gcClass.Send(sel_respondsToSelector, sel_supportsHIDDevice) == 0 {
+		return false
+	}
+	return gcClass.Send(sel_supportsHIDDevice, uintptr(device)) != 0
 }
 
 func initializeGCGamepads() {

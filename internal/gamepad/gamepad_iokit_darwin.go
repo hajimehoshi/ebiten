@@ -33,11 +33,17 @@ type nativeGamepadsIOKit struct {
 	devicesM        sync.Mutex
 }
 
+// theIOKitGamepads is the running IOKit backend. The C device callbacks reference
+// it directly, as theGamepads.native may be a composite backend rather than this one.
+var theIOKitGamepads *nativeGamepadsIOKit
+
 func newNativeGamepadsIOKit() nativeGamepads {
 	return &nativeGamepadsIOKit{}
 }
 
 func (g *nativeGamepadsIOKit) init(gamepads *gamepads) error {
+	theIOKitGamepads = g
+
 	if err := initializeCF(); err != nil {
 		return err
 	}
@@ -112,30 +118,30 @@ func (g *nativeGamepadsIOKit) init(gamepads *gamepads) error {
 }
 
 func ebitenGamepadMatchingCallback(ctx unsafe.Pointer, res _IOReturn, sender unsafe.Pointer, device _IOHIDDeviceRef) {
-	n := theGamepads.native.(*nativeGamepadsIOKit)
+	n := theIOKitGamepads
 	n.devicesM.Lock()
 	defer n.devicesM.Unlock()
 	n.devicesToAdd = append(n.devicesToAdd, device)
 }
 
 func ebitenGamepadRemovalCallback(ctx unsafe.Pointer, res _IOReturn, sender unsafe.Pointer, device _IOHIDDeviceRef) {
-	n := theGamepads.native.(*nativeGamepadsIOKit)
+	n := theIOKitGamepads
 	n.devicesM.Lock()
 	defer n.devicesM.Unlock()
 	n.devicesToRemove = append(n.devicesToRemove, device)
 }
 
 func (g *nativeGamepadsIOKit) update(gamepads *gamepads) error {
-	n := theGamepads.native.(*nativeGamepadsIOKit)
-	n.devicesM.Lock()
-	defer n.devicesM.Unlock()
+	g.devicesM.Lock()
+	defer g.devicesM.Unlock()
 
 	for _, device := range g.devicesToAdd {
 		g.addDevice(device, gamepads)
 	}
 	for _, device := range g.devicesToRemove {
-		gamepads.remove(func(g *Gamepad) bool {
-			return g.native.(*nativeGamepadHID).device == device
+		gamepads.remove(func(gp *Gamepad) bool {
+			n, ok := gp.native.(*nativeGamepadHID)
+			return ok && n.device == device
 		})
 	}
 	g.devicesToAdd = g.devicesToAdd[:0]
@@ -144,8 +150,15 @@ func (g *nativeGamepadsIOKit) update(gamepads *gamepads) error {
 }
 
 func (g *nativeGamepadsIOKit) addDevice(device _IOHIDDeviceRef, gamepads *gamepads) {
-	if gamepads.find(func(g *Gamepad) bool {
-		return g.native.(*nativeGamepadHID).device == device
+	// Let the GameController backend own the controllers it supports; IOKit handles
+	// only the devices GameController does not enumerate.
+	if gcSupportsHIDDevice(device) {
+		return
+	}
+
+	if gamepads.find(func(gp *Gamepad) bool {
+		n, ok := gp.native.(*nativeGamepadHID)
+		return ok && n.device == device
 	}) != nil {
 		return
 	}

@@ -41,8 +41,8 @@ type nativeGamepadGC struct {
 	hasDualshockTouchpad bool
 	hasXboxPaddles       bool
 	hasXboxShareButton   bool
-	leftMotor            uintptr
-	rightMotor           uintptr
+	leftMotor            *rumbleMotor
+	rightMotor           *rumbleMotor
 	vibEnd               time.Time
 
 	axes    []float64

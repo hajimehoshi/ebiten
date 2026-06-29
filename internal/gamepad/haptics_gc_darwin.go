@@ -149,23 +149,23 @@ func init() {
 	coreHapticsAvailable = true
 }
 
-func createGCRumbleMotor(controller uintptr, which int) uintptr {
+func createGCRumbleMotor(controller uintptr, which int) *rumbleMotor {
 	if !coreHapticsAvailable {
-		return 0
+		return nil
 	}
 
 	controllerObj := objc.ID(controller)
 	haptics := controllerObj.Send(sel_haptics)
 	if haptics == 0 {
-		return 0
+		return nil
 	}
 
 	supportedLocalities := haptics.Send(sel_supportedLocalities)
 	if supportedLocalities == 0 || chHapticsLocalityHandles == 0 {
-		return 0
+		return nil
 	}
 	if supportedLocalities.Send(sel_containsObject, chHapticsLocalityHandles) == 0 {
-		return 0
+		return nil
 	}
 
 	var locality objc.ID
@@ -177,14 +177,14 @@ func createGCRumbleMotor(controller uintptr, which int) uintptr {
 
 	engine := haptics.Send(sel_createEngineWithLocality, locality)
 	if engine == 0 {
-		return 0
+		return nil
 	}
 
 	// Start the engine.
 	var nsError objc.ID
 	engine.Send(sel_startAndReturnError, uintptr(unsafe.Pointer(&nsError)))
 	if nsError != 0 {
-		return 0
+		return nil
 	}
 
 	// Create a continuous haptic event with intensity 1.0.
@@ -223,7 +223,7 @@ func createGCRumbleMotor(controller uintptr, which int) uintptr {
 			pattern.Send(sel_release)
 		}
 		engine.Send(sel_stopWithCompletionHandler, uintptr(0))
-		return 0
+		return nil
 	}
 
 	// Create player.
@@ -232,16 +232,13 @@ func createGCRumbleMotor(controller uintptr, which int) uintptr {
 	pattern.Send(sel_release)
 	if nsError != 0 {
 		engine.Send(sel_stopWithCompletionHandler, uintptr(0))
-		return 0
+		return nil
 	}
 
-	motor := &rumbleMotor{
+	return &rumbleMotor{
 		engine: engine.Send(sel_retain),
 		player: player.Send(sel_retain),
-		active: false,
 	}
-
-	return uintptr(unsafe.Pointer(motor))
 }
 
 // makeNSArray creates an NSArray containing a single object.
@@ -250,15 +247,14 @@ func makeNSArray(obj objc.ID) objc.ID {
 	return objc.ID(class_NSArray).Send(sel_arrayWithObjects_count, uintptr(unsafe.Pointer(&objects[0])), 1)
 }
 
-func releaseGCRumbleMotor(motorPtr uintptr) {
-	if motorPtr == 0 {
+func releaseGCRumbleMotor(motor *rumbleMotor) {
+	if motor == nil {
 		return
 	}
 	if !coreHapticsAvailable {
 		return
 	}
 
-	motor := (*rumbleMotor)(unsafe.Pointer(motorPtr))
 	if motor.active {
 		var nsError objc.ID
 		motor.player.Send(sel_stopAtTime_error, float64(0), uintptr(unsafe.Pointer(&nsError)))
@@ -268,7 +264,7 @@ func releaseGCRumbleMotor(motorPtr uintptr) {
 	motor.engine.Send(sel_release)
 }
 
-func vibrateGCGamepad(left, right uintptr, strong, weak float64) {
+func vibrateGCGamepad(left, right *rumbleMotor, strong, weak float64) {
 	// In common gamepads, the left motor emits low-frequency vibrations and the right motor emits high-frequency vibrations.
 	// See also:
 	// * https://learn.microsoft.com/en-us/windows/uwp/gaming/gamepad-and-vibration#using-the-vibration-motors
@@ -277,12 +273,11 @@ func vibrateGCGamepad(left, right uintptr, strong, weak float64) {
 	vibrateMotor(right, weak)
 }
 
-func vibrateMotor(motorPtr uintptr, intensity float64) {
-	if motorPtr == 0 || !coreHapticsAvailable {
+func vibrateMotor(motor *rumbleMotor, intensity float64) {
+	if motor == nil || !coreHapticsAvailable {
 		return
 	}
 
-	motor := (*rumbleMotor)(unsafe.Pointer(motorPtr))
 	var nsError objc.ID
 
 	if intensity <= 0 {
