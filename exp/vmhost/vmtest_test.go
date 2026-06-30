@@ -87,7 +87,7 @@ func runGuest(ln net.Listener, binary, endpoint string) error {
 	// driving failed mid-tick - most often the guest process died (e.g. a panicking test), which
 	// surfaces here (and as a close error below) as a connection EOF. The guest's own output, including
 	// any panic stack trace, has already gone to stderr, and its exit code below is authoritative.
-	guest.AdvanceTick()
+	guest.AdvanceTicks(1)
 	guest.WaitTick()
 	driveErr := guest.Err()
 	if errors.Is(driveErr, ebiten.Termination) {

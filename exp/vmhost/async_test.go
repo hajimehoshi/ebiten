@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// The session runs the guest on a background goroutine: AdvanceTick and AdvanceFrame queue work without
+// The session runs the guest on a background goroutine: AdvanceTicks and AdvanceFrame queue work without
 // blocking, PendingTicks reports the tick backlog, WaitTick/WaitFrame block for completion, and
 // CompositeFrame presents the rendered frame.
 
@@ -45,9 +45,7 @@ func TestAsyncTickQueue(t *testing.T) {
 
 	// Queue several ticks without blocking, then drain them. PendingTicks reports the backlog.
 	const ticks = 5
-	for range ticks {
-		guest.AdvanceTick()
-	}
+	guest.AdvanceTicks(ticks)
 	if !guest.WaitTick() {
 		t.Fatalf("WaitTick failed: %v", guest.Err())
 	}
@@ -93,7 +91,7 @@ func TestWaitFrameResolvesToLatestRequest(t *testing.T) {
 	// holds a stale frame.
 	const ax, ay = 40, 40
 	guest.MoveCursor(ax, ay)
-	guest.AdvanceTick()
+	guest.AdvanceTicks(1)
 	guest.AdvanceFrame()
 	if !guest.WaitFrame() {
 		t.Fatalf("WaitFrame for the first frame failed: %v", guest.Err())
@@ -103,7 +101,7 @@ func TestWaitFrameResolvesToLatestRequest(t *testing.T) {
 	// drop the stale frame and resolve to this latest request, not return the stale frame at A.
 	const bx, by = 200, 150
 	guest.MoveCursor(bx, by)
-	guest.AdvanceTick()
+	guest.AdvanceTicks(1)
 	guest.AdvanceFrame()
 	if !guest.WaitFrame() {
 		t.Fatalf("WaitFrame for the latest frame failed: %v", guest.Err())
@@ -162,7 +160,7 @@ func TestWaitFrameUnderConcurrentAdvanceFrame(t *testing.T) {
 	}()
 
 	for range 20 {
-		guest.AdvanceTick()
+		guest.AdvanceTicks(1)
 		guest.AdvanceFrame()
 		if !guest.WaitFrame() {
 			t.Fatalf("WaitFrame did not return under concurrent AdvanceFrame: %v", guest.Err())
@@ -180,5 +178,53 @@ func TestWaitFrameUnderConcurrentAdvanceFrame(t *testing.T) {
 	// the guest's write and exit it non-zero.
 	for guest.WaitFrame() {
 		guest.CompositeFrame()
+	}
+}
+
+// TestAdvanceTicks checks that AdvanceTicks(n) queues n ticks like n successive AdvanceTick calls, and
+// that a non-positive count queues nothing.
+func TestAdvanceTicks(t *testing.T) {
+	guest := startGuest(t, "./testdata/atlas", activateByEnv, "unix")
+
+	const w, h = 128, 128
+	scale := ebiten.Monitor().DeviceScaleFactor()
+	pw, ph := int(w*scale), int(h*scale)
+	outsideScreen := ebiten.NewImage(pw, ph)
+	if err := guest.SetOutsideScreen(outsideScreen); err != nil {
+		t.Fatal(err)
+	}
+
+	// A zero count queues nothing, so the backlog stays empty.
+	guest.AdvanceTicks(0)
+	if n := guest.PendingTicks(); n != 0 {
+		t.Errorf("PendingTicks after AdvanceTicks(0) = %d; want 0", n)
+	}
+
+	// A negative count is a programming error and panics.
+	func() {
+		defer func() {
+			if recover() == nil {
+				t.Error("AdvanceTicks(-1) did not panic")
+			}
+		}()
+		guest.AdvanceTicks(-1)
+	}()
+
+	// AdvanceTicks(n) drives n Updates; WaitTick drains the whole backlog.
+	guest.AdvanceTicks(5)
+	if !guest.WaitTick() {
+		t.Fatalf("WaitTick failed: %v", guest.Err())
+	}
+	if n := guest.PendingTicks(); n != 0 {
+		t.Errorf("PendingTicks after WaitTick = %d; want 0", n)
+	}
+
+	// The guest ran: a frame now composites its drawn state.
+	guest.AdvanceFrame()
+	if !guest.WaitFrame() {
+		t.Fatalf("WaitFrame failed: %v", guest.Err())
+	}
+	if !guest.CompositeFrame() {
+		t.Fatalf("CompositeFrame failed: %v", guest.Err())
 	}
 }

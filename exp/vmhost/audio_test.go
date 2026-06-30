@@ -60,7 +60,7 @@ func readComps(t *testing.T, p *vmhost.GuestAudioStream, want int) (comps []floa
 func TestAudioForwarding(t *testing.T) {
 	guest := startGuest(t, "./testdata/audio", activateByEnv, "unix")
 
-	// AdvanceTick requires a screen even though only audio is read back.
+	// AdvanceTicks requires a screen even though only audio is read back.
 	scale := ebiten.Monitor().DeviceScaleFactor()
 	outsideScreen := ebiten.NewImage(int(64*scale), int(64*scale))
 	if err := guest.SetOutsideScreen(outsideScreen); err != nil {
@@ -70,7 +70,7 @@ func TestAudioForwarding(t *testing.T) {
 	// Tick past the point where both players start (ramp at tick 3, flat at tick 4) so the host has
 	// learned them through the control plane.
 	for tick := 1; tick <= 6; tick++ {
-		guest.AdvanceTick()
+		guest.AdvanceTicks(1)
 		if !guest.WaitTick() {
 			t.Fatalf("waiting for tick %d failed: %v", tick, guest.Err())
 		}
@@ -132,7 +132,7 @@ func TestAudioForwarding(t *testing.T) {
 	// never reaches EOF: its Read ends and it disappears from the stream list. The ramp, by contrast,
 	// reached EOF but was never closed, so it must persist (it could be sought back and replayed).
 	for tick := 7; tick <= 8; tick++ {
-		guest.AdvanceTick()
+		guest.AdvanceTicks(1)
 		if !guest.WaitTick() {
 			t.Fatalf("waiting for tick %d failed: %v", tick, guest.Err())
 		}

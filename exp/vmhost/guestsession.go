@@ -18,7 +18,7 @@
 //
 // The protocol is hidden behind the GuestSession API. A background goroutine owns the connection and
 // the guest's mirror images, so a slow or wedged guest never blocks the host's own frame.
-// [GuestSession.AdvanceTick] drives the guest's Update and [GuestSession.AdvanceFrame] requests its
+// [GuestSession.AdvanceTicks] drives the guest's Update and [GuestSession.AdvanceFrame] requests its
 // next frame; [GuestSession.CompositeFrame] composites the guest's most recently completed frame into
 // the host-owned screen set by [GuestSession.SetOutsideScreen] so the host can composite it into its
 // own window. The audio the guest plays is exposed per player — never mixed — through
@@ -467,7 +467,7 @@ func (g *GuestSession) setErrLocked(err error) {
 // it: the image is in device-dependent pixels, that is, the guest's outside size in
 // device-independent pixels multiplied by the host's device scale factor
 // ([ebiten.MonitorType.DeviceScaleFactor]). The image must not be nil. SetOutsideScreen must be
-// called before the first [GuestSession.AdvanceTick], and again when the host replaces its screen
+// called before the first [GuestSession.AdvanceTicks], and again when the host replaces its screen
 // (e.g. on a resize).
 func (g *GuestSession) SetOutsideScreen(screen *ebiten.Image) error {
 	if screen == nil {
@@ -504,27 +504,33 @@ func (g *GuestSession) SetOutsideScreen(screen *ebiten.Image) error {
 	return nil
 }
 
-// AdvanceTick requests one Update on the guest. It does not block: the request is queued and processed
-// by the session goroutine. A regular termination, a timeout, and any deferred error surface from
-// [GuestSession.Err]; the number of requested-but-unprocessed ticks is reported by
-// [GuestSession.PendingTicks].
-func (g *GuestSession) AdvanceTick() {
+// AdvanceTicks requests n Updates on the guest. It does not block: the requests are queued and processed
+// by the session goroutine. n must not be negative; a zero count is a no-op. A regular termination, a
+// timeout, and any deferred error surface from [GuestSession.Err]; the number of
+// requested-but-unprocessed ticks is reported by [GuestSession.PendingTicks].
+func (g *GuestSession) AdvanceTicks(n int) {
+	if n < 0 {
+		panic("vmhost: negative AdvanceTicks count")
+	}
+	if n == 0 {
+		return
+	}
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	if g.closed || g.err != nil {
 		return
 	}
 	if g.outsideScreen == nil {
-		g.setErrLocked(errors.New("vmhost: SetOutsideScreen must be called at least once before AdvanceTick"))
+		g.setErrLocked(errors.New("vmhost: SetOutsideScreen must be called at least once before AdvanceTicks"))
 		return
 	}
 	// Coalesce consecutive ticks into a single counted entry.
-	if n := len(g.ops); n > 0 && g.ops[n-1].kind == opTick {
-		g.ops[n-1].count++
+	if k := len(g.ops); k > 0 && g.ops[k-1].kind == opTick {
+		g.ops[k-1].count += n
 	} else {
-		g.ops = append(g.ops, op{kind: opTick, count: 1})
+		g.ops = append(g.ops, op{kind: opTick, count: n})
 	}
-	g.submittedTicks++
+	g.submittedTicks += int64(n)
 	g.cond.Broadcast()
 }
 
@@ -549,8 +555,8 @@ func (g *GuestSession) AdvanceFrame() {
 
 // WaitFrame blocks until the frame requested by a preceding [GuestSession.AdvanceFrame] has been
 // rendered, leaving it for [GuestSession.CompositeFrame] to present. Inserted between them it makes
-// capture deterministic: AdvanceTick, AdvanceFrame, WaitFrame, CompositeFrame leaves the outside screen
-// reflecting the tick. The wait resolves to the most recent frame requested as of the call: an earlier
+// capture deterministic: AdvanceTicks, AdvanceFrame, WaitFrame, CompositeFrame leaves the outside screen
+// reflecting the ticks. The wait resolves to the most recent frame requested as of the call: an earlier
 // completed frame still awaiting compositing is dropped rather than returned, while a frame requested
 // concurrently afterward does not extend the wait. It reports whether a frame is ready; it returns false
 // when no frame was requested (no preceding AdvanceFrame) or the session has ended (see
@@ -768,7 +774,7 @@ type GamepadStandardButtonState struct {
 }
 
 // UpdateGamepads injects the complete set of connected gamepads; a gamepad absent from states is
-// disconnected. Like the other input injectors it is fed independently of [GuestSession.AdvanceTick]
+// disconnected. Like the other input injectors it is fed independently of [GuestSession.AdvanceTicks]
 // and observed by the guest at its next tick.
 func (g *GuestSession) UpdateGamepads(states []GamepadState) {
 	// Gamepad state is polled per tick at the source — continuous axes plus a changing set of connected

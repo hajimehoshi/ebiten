@@ -105,7 +105,7 @@ func startGuest(t *testing.T, pkgPath string, activation guestActivation, networ
 // deterministically reflects the tick.
 func tickAndFrame(t *testing.T, guest *vmhost.GuestSession) {
 	t.Helper()
-	guest.AdvanceTick()
+	guest.AdvanceTicks(1)
 	guest.AdvanceFrame()
 	if !guest.WaitFrame() {
 		t.Fatalf("rendering the guest frame failed: %v", guest.Err())

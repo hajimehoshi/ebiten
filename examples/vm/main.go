@@ -281,9 +281,7 @@ func (g *Game) advanceGuestTicks(state debugui.InputCapturingState) error {
 		g.screenSet = true
 	}
 	g.forwardInput(state)
-	for range g.guestTickCount() {
-		g.gp.session.AdvanceTick()
-	}
+	g.gp.session.AdvanceTicks(g.guestTickCount())
 	return nil
 }
 
