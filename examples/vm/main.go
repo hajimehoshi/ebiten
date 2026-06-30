@@ -102,6 +102,10 @@ type Game struct {
 	gamepadIDsBuf    []ebiten.GamepadID
 	gamepadStatesBuf []vmhost.GamepadState
 
+	// keyBuf and runeBuf are reused each tick by forwardInput.
+	keyBuf  []ebiten.Key
+	runeBuf []rune
+
 	// touchIDsBuf is reused each tick by forwardInput.
 	touchIDsBuf []ebiten.TouchID
 
@@ -308,13 +312,16 @@ func (g *Game) forwardInput(state debugui.InputCapturingState) {
 	s := g.gp.session
 
 	if state&debugui.InputCapturingStateFocus == 0 {
-		for _, k := range inpututil.AppendJustPressedKeys(nil) {
+		g.keyBuf = inpututil.AppendJustPressedKeys(g.keyBuf[:0])
+		for _, k := range g.keyBuf {
 			s.PressKey(k)
 		}
-		for _, k := range inpututil.AppendJustReleasedKeys(nil) {
+		g.keyBuf = inpututil.AppendJustReleasedKeys(g.keyBuf[:0])
+		for _, k := range g.keyBuf {
 			s.ReleaseKey(k)
 		}
-		for _, r := range ebiten.AppendInputChars(nil) {
+		g.runeBuf = ebiten.AppendInputChars(g.runeBuf[:0])
+		for _, r := range g.runeBuf {
 			s.TypeRune(r)
 		}
 	}
