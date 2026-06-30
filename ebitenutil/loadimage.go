@@ -49,7 +49,7 @@ func NewImageFromURL(url string) (*ebiten.Image, error) {
 		_ = res.Body.Close()
 	}()
 	if res.StatusCode/100 != 2 {
-		return nil, fmt.Errorf("GET %s: %s", url, res.Status)
+		return nil, fmt.Errorf("ebitenutil: request to %s failed: %s", url, res.Status)
 	}
 
 	img, _, err := image.Decode(res.Body)
