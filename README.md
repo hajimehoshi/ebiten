@@ -51,6 +51,10 @@ For installation on desktops, see [the installation instruction](https://ebiteng
   * [exp/textinput](https://pkg.go.dev/github.com/hajimehoshi/ebiten/v2/exp/textinput)
   * [exp/vmhost](https://pkg.go.dev/github.com/hajimehoshi/ebiten/v2/exp/vmhost)
 
+## AI coding agents
+
+If you use an AI coding agent to write or modify Ebitengine code or applications, point it at the [`.agents/skills`](.agents/skills) directory, which holds skills for working with this repository.
+
 ## Community
 
 - [Discord](https://discord.gg/3tVdM5H8cC)
