@@ -16,7 +16,7 @@
 // through its ticks faster than real time while injecting input, and reads the rendered frame back as
 // pixels — all from a hidden host window, with no changes to the app's source. Edit the INPUT SCRIPT
 // block in Update to script the keys, clicks, touches, and gamepads the guest observes. It is a
-// starting-point template to copy and adapt, not a stable command. See the test-ebitengine-app skill.
+// starting-point template to copy and adapt, not a stable command. See the run-ebitengine-app-headless skill.
 //
 // Written against ebiten commit c8db8fd6d (2026-06-30); exp/vmhost is experimental, so update this
 // driver if its API has moved since.

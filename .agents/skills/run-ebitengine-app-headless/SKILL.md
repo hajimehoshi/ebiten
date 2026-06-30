@@ -1,13 +1,14 @@
 ---
-name: test-ebitengine-app
+name: run-ebitengine-app-headless
 description: >
-  Use this skill to test or debug a running Ebitengine app (anything
-  implementing ebiten.Game) headlessly and programmatically — no visible
-  window and no changes to the app's source. It launches the app as a
-  vmhost guest, drives it through its ticks faster than real time, injects
-  keyboard / mouse / touch / gamepad / text input, reads the rendered frame
-  back as pixels to assert on or dump as a PNG, and observes the audio the
-  app plays. Use when you need input injection, deterministic multi-tick
+  Use this skill to run an Ebitengine app (anything implementing
+  ebiten.Game) headlessly and programmatically — no visible window and
+  no changes to the app's source — to test, debug, screenshot, or
+  otherwise exercise it. It launches the app as a vmhost guest, drives it
+  through its ticks faster than real time, injects keyboard / mouse /
+  touch / gamepad / text input, reads the rendered frame back as pixels
+  to assert on or dump as a PNG, and observes the audio the app plays.
+  Use when you need input injection, deterministic multi-tick
   runs, golden-image checks, or audio assertions — for example to
   reproduce an input-dependent bug, verify behavior after a sequence of
   clicks or key presses, check that the right sound plays, capture a single
@@ -15,7 +16,7 @@ description: >
 allowed-tools: Read, Edit, Write, Bash
 ---
 
-# test-ebitengine-app skill
+# run-ebitengine-app-headless skill
 
 *Targets ebiten commit `c8db8fd6d` (2026-06-30), verified against it.
 `exp/vmhost` is experimental, so if its API has moved since, the driver and
@@ -50,7 +51,7 @@ Only the host touches a GPU or display; the guest is fully headless.
   the audio it plays.
 
 A host driver lives at
-[driver/main.go](.agents/skills/test-ebitengine-app/driver/main.go). Treat it
+[driver/main.go](.agents/skills/run-ebitengine-app-headless/driver/main.go). Treat it
 as a **starting-point template**, not a finished tool: copy it and adapt the
 input script, assertions, and screen size to your case. It runs as-is only for
 the trivial screenshot (recipe step 1); it is a skill asset, not a stable
@@ -82,7 +83,7 @@ command, so don't depend on its flags.
 ## Recipe
 
 Everything here is built on the driver at
-[driver/main.go](.agents/skills/test-ebitengine-app/driver/main.go): step 1
+[driver/main.go](.agents/skills/run-ebitengine-app-headless/driver/main.go): step 1
 runs it as-is, steps 2–3 copy and adapt it. The Go snippets below are excerpts
 of its `Update`, so `d.guest` (the `*vmhost.GuestSession`), `d.screen`, and
 `*ticks` (the `-ticks` flag value) are the driver's own identifiers.
@@ -96,7 +97,7 @@ from your app's module and point `-pkg` at your package.
 Run the shipped driver directly against any guest package:
 
 ```bash
-go run ./.agents/skills/test-ebitengine-app/driver \
+go run ./.agents/skills/run-ebitengine-app-headless/driver \
   -pkg ./examples/rotate -ticks 60 -out /tmp/frame.png
 ```
 
@@ -111,7 +112,7 @@ Copy the driver to a scratch dir, edit the `INPUT SCRIPT` block in
 `go build ./...`):
 
 ```bash
-mkdir -p .vmdriver && cp .agents/skills/test-ebitengine-app/driver/main.go .vmdriver/
+mkdir -p .vmdriver && cp .agents/skills/run-ebitengine-app-headless/driver/main.go .vmdriver/
 # edit .vmdriver/main.go — the INPUT SCRIPT block in Update
 go run ./.vmdriver -pkg ./examples/paint -ticks 120 -out /tmp/frame.png
 rm -rf .vmdriver
