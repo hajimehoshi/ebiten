@@ -33,8 +33,7 @@ func TestNewImageFromURLHTTPError(t *testing.T) {
 	}))
 	defer s.Close()
 
-	_, err := ebitenutil.NewImageFromURL(s.URL)
-	if err == nil {
+	if _, err := ebitenutil.NewImageFromURL(s.URL); err == nil {
 		t.Fatal("NewImageFromURL returned nil error for HTTP 404")
 	}
 }
