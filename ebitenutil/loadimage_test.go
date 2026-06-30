@@ -15,9 +15,10 @@
 package ebitenutil_test
 
 import (
+	"image"
+	"image/png"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
@@ -25,15 +26,15 @@ import (
 
 func TestNewImageFromURLHTTPError(t *testing.T) {
 	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		http.Error(w, "not found", http.StatusNotFound)
+		w.WriteHeader(http.StatusNotFound)
+		if err := png.Encode(w, image.NewRGBA(image.Rect(0, 0, 1, 1))); err != nil {
+			t.Errorf("png.Encode failed: %v", err)
+		}
 	}))
 	defer s.Close()
 
 	_, err := ebitenutil.NewImageFromURL(s.URL)
 	if err == nil {
 		t.Fatal("NewImageFromURL returned nil error for HTTP 404")
-	}
-	if got, want := err.Error(), "404 Not Found"; !strings.Contains(got, want) {
-		t.Fatalf("NewImageFromURL error = %q, want to contain %q", got, want)
 	}
 }
