@@ -50,11 +50,20 @@ var (
 // driver is the host: an ebiten.Game that drives one guest and composites its final frame into its own
 // (hidden) screen image. It does all its work in a single Update, then terminates.
 type driver struct {
-	guest  *vmhost.GuestSession
-	screen *ebiten.Image
+	guest    *vmhost.GuestSession
+	screen   *ebiten.Image
+	closed   bool
+	closeErr error
 }
 
 func (d *driver) Update() error {
+	defer func() {
+		if err := d.guest.Close(); err != nil {
+			d.closeErr = err
+		}
+		d.closed = true
+	}()
+
 	// Create the host-owned screen and size the guest to it. SetOutsideScreen must precede AdvanceTicks.
 	// The guest renders at the host's device scale factor, so the image is sized in physical pixels.
 	scale := ebiten.Monitor().DeviceScaleFactor()
@@ -89,7 +98,9 @@ func (d *driver) Update() error {
 	if !d.guest.WaitFrame() {
 		return ebiten.Termination // the session ended (guest terminated, crashed, or timed out); see Err()
 	}
-	d.guest.CompositeFrame() // composite the completed frame into d.screen
+	if !d.guest.CompositeFrame() {
+		return errors.New("compositing the guest frame failed")
+	}
 
 	if err := d.dump(); err != nil {
 		return err
@@ -170,7 +181,20 @@ func xmain() error {
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("starting the guest failed: %w", err)
 	}
+	var processDone bool
+	defer func() {
+		if processDone {
+			return
+		}
+		_ = cmd.Process.Kill()
+		_ = cmd.Wait()
+	}()
 
+	if dl, ok := ln.(interface{ SetDeadline(time.Time) error }); ok {
+		if err := dl.SetDeadline(time.Now().Add(10 * time.Second)); err != nil {
+			return err
+		}
+	}
 	conn, err := ln.Accept()
 	if err != nil {
 		return fmt.Errorf("accepting the guest failed: %w", err)
@@ -185,17 +209,21 @@ func xmain() error {
 
 	// Drive the guest from a hidden host window.
 	ebiten.SetWindowVisible(false)
-	runErr := ebiten.RunGame(&driver{guest: guest})
+	d := &driver{guest: guest}
+	runErr := ebiten.RunGame(d)
 
-	// Close ends the session so the guest's RunGame returns and its process exits; cmd.Wait then waits
-	// for that exit and frees the process's resources (without the Close it would block). The frame is
-	// already captured, so teardown trouble is a warning, not a failed run.
-	if err := guest.Close(); err != nil {
-		slog.Warn("closing the guest session failed", "err", err)
+	// Close is called from Update, which is inside the host's frame. After that the guest's RunGame
+	// returns and cmd.Wait frees the process's resources.
+	if d.closeErr != nil {
+		slog.Warn("closing the guest session failed", "err", d.closeErr)
+	}
+	if !d.closed {
+		_ = cmd.Process.Kill()
 	}
 	if err := cmd.Wait(); err != nil {
 		slog.Warn("waiting for the guest process failed", "err", err)
 	}
+	processDone = true
 
 	if runErr != nil {
 		return fmt.Errorf("host run failed: %w", runErr)

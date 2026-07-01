@@ -96,8 +96,11 @@ of its `Update`, so `d.guest` (the `*vmhost.GuestSession`), `d.screen`, and
 `*ticks` (the `-ticks` flag value) are the driver's own identifiers.
 
 Run these examples from the **ebiten repo root** — the `-pkg ./examples/...`
-paths below are repo-relative. To test your own app instead, run the driver
-from your app's module and point `-pkg` at your package.
+paths below are repo-relative. To test your own app in another module, copy
+or invoke this driver from that module's root and point `-pkg` at the guest
+package there. The driver imports `github.com/hajimehoshi/ebiten/v2/exp/vmhost`,
+so the host and guest must resolve to the same Ebitengine version; use your
+module's `go.mod` or `replace` directives to keep them aligned.
 
 ### 1. No input — just capture a frame
 
@@ -110,19 +113,19 @@ go run ./.agents/skills/run-ebitengine-app-headless/driver \
 
 Flags: `-pkg` (guest package), `-ticks` (how many ticks to run before
 dumping + exiting), `-out` (PNG path), `-w`/`-h` (logical screen size,
-default 320×240).
+default 320×240). In a restricted sandbox, `go run` may need a writable
+`GOCACHE` or approval to use the normal Go build cache.
 
 ### 2. With input — script the ticks
 
 Copy the driver to a scratch dir, edit the `INPUT SCRIPT` block in
-`Update`, run it, then remove the copy (a `.`-prefixed dir stays out of
-`go build ./...`):
+`Update`, then run the copy (a `.`-prefixed dir stays out of
+`go build ./...`; remove it when you are done):
 
 ```bash
 mkdir -p .vmdriver && cp .agents/skills/run-ebitengine-app-headless/driver/main.go .vmdriver/
 # edit .vmdriver/main.go — the INPUT SCRIPT block in Update
 go run ./.vmdriver -pkg ./examples/paint -ticks 120 -out /tmp/frame.png
-rm -rf .vmdriver
 ```
 
 The injectors on `*vmhost.GuestSession`. Injected state is observed at the
@@ -148,8 +151,9 @@ d.guest.ReleaseTouch(0)
 d.guest.UpdateGamepads([]vmhost.GamepadState{ /* ... */ })
 ```
 
-Example — settle 30 ticks, then a one-tick click, then run out the rest — as
-the `INPUT SCRIPT` block:
+Example — use `-ticks` as the total run length, settle 30 ticks, hold a
+click for one tick, then run the remaining ticks — as the `INPUT SCRIPT`
+block. For shorter total runs, reduce the settle count first.
 
 ```go
 d.guest.AdvanceTicks(30) // let the app settle
@@ -157,17 +161,23 @@ d.guest.MoveCursor(160, 120)
 d.guest.PressMouseButton(ebiten.MouseButtonLeft)
 d.guest.AdvanceTicks(1)  // one tick with the button held
 d.guest.ReleaseMouseButton(ebiten.MouseButtonLeft)
-d.guest.AdvanceTicks(*ticks)
+if rest := *ticks - 31; rest > 0 {
+	d.guest.AdvanceTicks(rest)
+}
 ```
 
 ### 3. Inspect the output
 
-Read the PNG with the Read tool; it renders inline. For a programmatic
+Inspect the PNG with the available image-viewing tool. For a programmatic
 assertion, read pixels in `Update` after `CompositeFrame` and compare —
 `d.screen.ReadPixels(buf)` gives premultiplied-alpha RGBA, 4 bytes per
-pixel. The center pixel of a `w*h` screen is at
-`4*((h/2)*w + w/2)`. For a golden check, dump once, eyeball it, then
-compare bytes against the saved PNG on later runs.
+pixel. Input coordinates and `-w`/`-h` are logical device-independent pixels,
+but `d.screen` and the PNG are physical pixels (`logical × DeviceScaleFactor`;
+for example, a 320×240 logical screen can produce a 640×480 PNG on a 2x
+display). Use `b := d.screen.Bounds()` for assertion dimensions; the center
+pixel of that physical `w*h` image is at `4*((h/2)*w + w/2)`. For a golden
+check, dump once, eyeball it, then compare bytes against the saved PNG on
+later runs.
 
 ## How the driver drives the guest
 
@@ -177,7 +187,7 @@ The whole run happens in one host `Update`:
 d.guest.AdvanceTicks(*ticks) // run every tick back-to-back, no real-time pacing
 d.guest.AdvanceFrame()       // request the final frame
 d.guest.WaitFrame()          // block until all queued ticks have run and it is rendered
-d.guest.CompositeFrame()     // composite it into the host-owned screen image
+d.guest.CompositeFrame()     // composite it into the host-owned screen image; check the bool in assertions
 ```
 
 `AdvanceTicks(*ticks)` queues every tick at once; `WaitFrame` then blocks
@@ -194,7 +204,9 @@ input by hand, interleave instead: `AdvanceTicks(n)`, `AdvanceFrame`,
 backlog; ticks coalesce, so queuing many is cheap.
 
 `guest.Err()` becomes non-nil when the guest terminates, crashes, or times
-out; a panicking guest prints its stack to stderr and the driver stops.
+out; a panicking guest prints its stack to stderr and the driver stops. The
+driver also puts a deadline on accepting the guest connection so a guest that
+never dials the host fails instead of hanging indefinitely.
 
 ## Observing audio
 
@@ -238,6 +250,9 @@ does not remove it (a seek-and-replay yields more samples). To actually
 - **`SetOutsideScreen` before the first `AdvanceTicks`**, and the image is
   in **physical** pixels (logical size × `DeviceScaleFactor`). The driver
   handles this; keep it if you change the screen size.
+- **Call `GuestSession.Close` from the host frame.** The driver closes the
+  guest inside `Update`, after dumping the frame. Keep that shape if you copy
+  the template; `cmd.Wait` can run after `ebiten.RunGame` returns.
 - **Wall-clock isn't deterministic.** Tick *count* is exact, but code
   using `time.Now()` still sees real time between ticks.
 - **`exp/vmhost` is experimental** — its API may change.
