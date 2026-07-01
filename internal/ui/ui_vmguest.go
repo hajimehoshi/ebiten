@@ -32,6 +32,7 @@ import (
 	"sync"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
+	"github.com/hajimehoshi/ebiten/v2/internal/clock"
 	"github.com/hajimehoshi/ebiten/v2/internal/color"
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepaddb"
@@ -178,6 +179,11 @@ func (r *remoteBackend) serveLoop(dec *vmprotocol.Decoder, enc *vmprotocol.Encod
 	// audioReadBuf is reused to answer host audio reads; the serve loop is single-threaded.
 	var audioReadBuf []byte
 
+	// lastSentTPS is the requested TPS last forwarded to the host; sentTPS guards the first send so that
+	// the initial value is reported even when it equals the zero value.
+	var lastSentTPS int
+	var sentTPS bool
+
 	for {
 		var msg vmprotocol.HostMessage
 		if err := dec.DecodeHostMessage(&msg); err != nil {
@@ -204,6 +210,18 @@ func (r *remoteBackend) serveLoop(dec *vmprotocol.Decoder, enc *vmprotocol.Encod
 				// Let guest subsystems forward their per-tick messages (e.g. audio) over the connection.
 				if err := vmguest.RunPostTickHooks(enc); err != nil {
 					return err
+				}
+				// Report the game's requested TPS whenever it changes, so a host pacing the guest itself
+				// can honor its rate.
+				if tps := clock.TPS(); !sentTPS || tps != lastSentTPS {
+					if err := enc.EncodeGuestMessage(&vmprotocol.GuestMessage{
+						Kind:         vmprotocol.GuestMessageKindRequestedTPS,
+						RequestedTPS: tps,
+					}); err != nil {
+						return err
+					}
+					lastSentTPS = tps
+					sentTPS = true
 				}
 			}
 		case vmprotocol.HostMessageKindAdvanceFrame:

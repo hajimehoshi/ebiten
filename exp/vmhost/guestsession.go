@@ -38,6 +38,7 @@ import (
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/internal/clock"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
@@ -104,6 +105,9 @@ type GuestSession struct {
 	// compositableFrame is the mirror screen handed to the host to composite while framePhase is
 	// framePhaseCompositable.
 	compositableFrame hostImage
+	// requestedTPS is the guest game's most recently reported requested TPS. It starts at the standard
+	// default and the guest updates it whenever its game changes the value.
+	requestedTPS int
 	// err holds the error(s) that ended the session, joined as they occur; closed is set by Close.
 	err    error
 	closed bool
@@ -197,6 +201,9 @@ func NewGuestSession(conn net.Conn, options *NewGuestSessionOptions) (*GuestSess
 		renderer:     newFrameRenderer(),
 		done:         make(chan struct{}),
 		audioStreams: map[int64]*GuestAudioStream{},
+		// The guest reports its requested TPS only when it changes; until then it runs at the standard
+		// default, so report that rather than a meaningless zero.
+		requestedTPS: clock.DefaultTPS,
 	}
 	g.cond = sync.NewCond(&g.mu)
 	go g.sessionLoop()
@@ -383,6 +390,9 @@ func (g *GuestSession) sendAndReceive(msg *vmprotocol.HostMessage) error {
 			// needs no copy.
 			g.audioReadPCM = gm.AudioPCM
 			g.audioReadEOF = gm.AudioEOF
+			continue
+		case vmprotocol.GuestMessageKindRequestedTPS:
+			g.setRequestedTPS(gm.RequestedTPS)
 			continue
 		}
 		// GuestMessageKindDone.
@@ -671,6 +681,13 @@ func (g *GuestSession) PendingTicks() int {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	return int(g.submittedTicks - g.consumedTicks)
+}
+
+// ProcessedTicks returns the number of ticks the guest has processed so far.
+func (g *GuestSession) ProcessedTicks() int {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	return int(g.consumedTicks)
 }
 
 // Err returns the error that ended the session, or nil if it is still running. It reports
@@ -971,6 +988,23 @@ func (g *GuestSession) AudioSampleRate() int {
 	g.audioMu.Lock()
 	defer g.audioMu.Unlock()
 	return g.audioSampleRate
+}
+
+// setRequestedTPS records the guest's reported requested TPS.
+func (g *GuestSession) setRequestedTPS(tps int) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	g.requestedTPS = tps
+}
+
+// RequestedTPS returns the ticks-per-second the guest's game requests via [ebiten.SetTPS], which may be
+// [ebiten.SyncWithFPS]. It is the standard default until the guest's game changes it. The host drives
+// the guest's ticks itself, so this is advisory; a host pacing the guest in real time should honor it.
+// It may be called from any goroutine.
+func (g *GuestSession) RequestedTPS() int {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	return g.requestedTPS
 }
 
 // AppendAudioStreams appends the guest's current audio streams to streams and returns the extended

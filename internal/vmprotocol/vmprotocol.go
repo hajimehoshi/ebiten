@@ -185,6 +185,11 @@ const (
 	// GuestMessageKindAudioData answers a HostMessageKindReadAudio with one player's decoded samples and
 	// whether its source has ended. It precedes the concluding GuestMessageKindDone of that operation.
 	GuestMessageKindAudioData
+	// GuestMessageKindRequestedTPS reports the guest game's requested ticks-per-second (RequestedTPS). The
+	// guest sends it after a tick whenever the value changes, so a host pacing the guest itself can honor
+	// its requested rate. Zero or one precedes the concluding GuestMessageKindDone of an advance-tick
+	// operation.
+	GuestMessageKindRequestedTPS
 )
 
 // GuestMessage is a message a guest sends to the host while handling an operation: recorded graphics
@@ -223,6 +228,10 @@ type GuestMessage struct {
 	// source has ended (any final samples accompany it). Both set on GuestMessageKindAudioData.
 	AudioPCM []byte
 	AudioEOF bool
+
+	// RequestedTPS is the guest game's requested ticks-per-second (what its game passed to
+	// ebiten.SetTPS), which may be ebiten.SyncWithFPS. Set on GuestMessageKindRequestedTPS.
+	RequestedTPS int
 }
 
 // AudioControl is one guest audio player's control state. The samples are pulled separately

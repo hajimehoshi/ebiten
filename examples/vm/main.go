@@ -91,6 +91,11 @@ type Game struct {
 	// SetOutsideScreen; it is cleared when the session or the screen changes.
 	screenSet bool
 
+	// guestTPSAdopted records whether the current guest's requested TPS has been adopted once its first
+	// tick was processed. It resets when a guest is adopted: a freshly launched guest is driven at the
+	// rate its own game requests.
+	guestTPSAdopted bool
+
 	// audioContext is the host's single audio context, created lazily at the guest's sample rate.
 	audioContext *audio.Context
 	// audioPlayers maps each guest stream to the host player that plays it; audioStreamsBuf is reused
@@ -127,6 +132,7 @@ func (g *Game) Update() error {
 			g.closeGuest()
 			g.gp = r.gp
 			g.screenSet = false
+			g.guestTPSAdopted = false
 			g.status = "Running " + g.pkg
 		}
 	default:
@@ -175,6 +181,12 @@ func (g *Game) Update() error {
 		}
 		g.closeGuest()
 		return nil
+	}
+	// Once the freshly launched guest has processed its first tick, it has reported its requested TPS,
+	// so adopt that rate to drive it as its own game intends.
+	if !g.guestTPSAdopted && g.gp.session.ProcessedTicks() > 0 {
+		g.adoptRequestedTPS()
+		g.guestTPSAdopted = true
 	}
 	return g.updateAudio()
 }
@@ -302,6 +314,25 @@ func (g *Game) guestTickCount() int {
 	n := g.tickAccum / hostTPS
 	g.tickAccum %= hostTPS
 	return n
+}
+
+// adoptRequestedTPS sets the guest's drive rate to the rate the guest's own game requests (via
+// ebiten.SetTPS), so the host paces it as the game intends instead of at the slider's manual value. It
+// is a no-op while no guest is running.
+func (g *Game) adoptRequestedTPS() {
+	if g.gp == nil {
+		return
+	}
+	tps := g.gp.session.RequestedTPS()
+	if tps == ebiten.SyncWithFPS {
+		// SyncWithFPS ties the guest's tick rate to the display's refresh rate. This host advances the
+		// guest from its own Update, so approximate that intent with the host's tick rate.
+		tps = ebiten.TPS()
+		if tps <= 0 {
+			tps = ebiten.DefaultTPS
+		}
+	}
+	g.guestTPS = tps
 }
 
 // forwardInput sends the window's input to the guest, except input the debug UI is consuming (a hovered
