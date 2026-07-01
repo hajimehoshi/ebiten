@@ -88,46 +88,49 @@ func TestConvertByteCountToUTF16Count(t *testing.T) {
 	}
 }
 
-// TestQueuedStateReplayedWithoutClear documents the desync mechanism: a preedit
-// that arrives after a commit closed the channel is queued, and the next
-// session's start() replays it as a live composition.
-func TestQueuedStateReplayedWithoutClear(t *testing.T) {
-	var ev textinput.TextInputEvents
-
-	// Session 1: the IME commits, which delivers the committed state and then
-	// closes the channel.
-	ev.Start()
-	ev.SendCommit("committed")
-	ev.End()
-
-	// A keystroke landing in the window between the commit and the next session
-	// begins a new preedit. With the channel closed, the state is queued.
-	ev.SendComposition("l")
-
-	// Session 2 starts without clearing the queue: the queued preedit is
-	// flushed into the new session and reported as a live composition.
-	if got := ev.StartSessionCompositing(); !got {
-		t.Errorf("StartSessionCompositing() = %v, want true (queued preedit replayed)", got)
-	}
-}
-
-// TestClearQueueDropsDiscardedMarkedText verifies the macOS fix: when a session
-// starts after the OS marked text is discarded, clearing the queue first
-// prevents the stale preedit from being replayed as a live composition, so the
-// session does not get stuck compositing.
+// TestClearQueueDropsDiscardedMarkedText verifies the macOS fix: a preedit
+// queued after a commit closed the channel would be replayed as a live
+// composition by the next session's start(). Clearing the queue first (as macOS
+// start() does after discarding the OS marked text) drops the stale preedit.
 func TestClearQueueDropsDiscardedMarkedText(t *testing.T) {
-	var ev textinput.TextInputEvents
+	for _, tc := range []struct {
+		name       string
+		clearQueue bool
+		want       bool
+	}{
+		{
+			// The queued preedit is replayed as a live composition: the bug.
+			name:       "without clear",
+			clearQueue: false,
+			want:       true,
+		},
+		{
+			// Clearing after the discard drops the stale preedit.
+			name:       "with clear",
+			clearQueue: true,
+			want:       false,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var ev textinput.TextInputEvents
 
-	ev.Start()
-	ev.SendCommit("committed")
-	ev.End()
+			// Session 1: the IME commits, then closes the channel.
+			ev.Start()
+			ev.SendCommit("committed")
+			ev.End()
 
-	ev.SendComposition("l")
+			// A keystroke between sessions begins a preedit; with the channel
+			// closed, it is queued.
+			ev.SendComposition("l")
 
-	// macOS start() discards the OS marked text and then clears the queue, so
-	// the stale preedit is not replayed.
-	ev.ClearQueue()
-	if got := ev.StartSessionCompositing(); got {
-		t.Errorf("StartSessionCompositing() = %v, want false (queue cleared after discard)", got)
+			if tc.clearQueue {
+				ev.ClearQueue()
+			}
+
+			// Session 2: the queued preedit is replayed only if not cleared.
+			if got := ev.StartSessionCompositing(); got != tc.want {
+				t.Errorf("StartSessionCompositing() = %v, want %v", got, tc.want)
+			}
+		})
 	}
 }
