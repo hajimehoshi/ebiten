@@ -48,7 +48,7 @@ func NewImageFromURL(url string) (*ebiten.Image, error) {
 	defer func() {
 		_ = res.Body.Close()
 	}()
-	if res.StatusCode < http.StatusOK || 300 <= res.StatusCode {
+	if res.StatusCode < 200 || res.StatusCode >= 300 {
 		return nil, fmt.Errorf("ebitenutil: request to %s failed: %s", url, res.Status)
 	}
 
