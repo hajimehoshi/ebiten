@@ -33,22 +33,29 @@ unmodified.
 
 Only the host touches a GPU or display; the guest is fully headless.
 
-- **Guest** = the app under test. Its `ebiten.RunGame` dials the host's
-  **endpoint** — the host listener's address as a URL, e.g.
-  `unix:///path/to/socket` or `tcp://127.0.0.1:PORT` (the driver builds one
-  from its listener with `vmhost.EndpointURLFromAddr`) — and connects over
-  that socket *instead of opening a window*, forwarding its graphics
-  commands rather than rendering. The endpoint reaches the guest one of two
-  ways: built with `-tags ebitenginevm` it reads the
-  `EBITENGINE_VM_ENDPOINT` environment variable (no source change — this is
-  what the driver uses); or, with no build tag, the app's code sets
-  `RunGameOptions.VMGuestEndpoint`.
+- **Guest** = the app under test. Its `ebiten.RunGame` connects to the host
+  over a socket *instead of opening a window*, forwarding its graphics
+  commands rather than rendering.
 - **Host** = the small driver you run. It is itself an `ebiten.Game`
   with `ebiten.SetWindowVisible(false)`, so it has no visible window. It
   replays the guest's draw commands on the real GPU, and exposes a
   `vmhost.GuestSession` to step the guest (`AdvanceTicks`/`AdvanceFrame`/
   `WaitFrame`/`CompositeFrame`), inject input, read pixels back, and observe
   the audio it plays.
+
+## The endpoint
+
+The guest reaches the host through an **endpoint** — the host listener's
+address as a URL, e.g. `unix:///path/to/socket` or `tcp://127.0.0.1:PORT`
+(the driver builds one from its listener with `vmhost.EndpointURLFromAddr`).
+The endpoint reaches the guest one of two ways:
+
+- Built with `-tags ebitenginevm`, the guest reads the
+  `EBITENGINE_VM_ENDPOINT` environment variable (no source change — this is
+  what the driver uses).
+- With no build tag, the app's code sets `RunGameOptions.VMGuestEndpoint`.
+
+## The driver
 
 A host driver lives at
 [driver/main.go](.agents/skills/run-ebitengine-app-headless/driver/main.go). Treat it
