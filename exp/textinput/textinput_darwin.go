@@ -137,6 +137,11 @@ func (t *textInput) start(bounds image.Rectangle) (<-chan textInputState, func()
 		ctx.Send(sel_discardMarkedText)
 	}
 
+	// Discarding the OS marked text leaves any Go-side queued states describing
+	// a composition that no longer exists on the OS side. Clear them so start()
+	// does not replay them into the new session as a live composition.
+	t.events.clearQueue()
+
 	r := objc.Send[nsRect](contentView, sel_frame)
 	// The Y dirction is upward in the Cocoa coordinate system.
 	y := int(r.size.height) - bounds.Max.Y

@@ -75,3 +75,35 @@ func (p *PieceTable) Redo() (int, int, bool) {
 func (p *PieceTable) UpdateByIME(text string, replacementStart, replacementEnd, start, end int) int {
 	return p.updateByIME(text, replacementStart, replacementEnd, start, end)
 }
+
+type TextInputEvents = textInputEvents
+
+func (s *TextInputEvents) Start() {
+	s.start()
+}
+
+func (s *TextInputEvents) End() {
+	s.end()
+}
+
+func (s *TextInputEvents) ClearQueue() {
+	s.clearQueue()
+}
+
+func (s *TextInputEvents) SendComposition(text string) {
+	s.send(textInputState{Text: text})
+}
+
+func (s *TextInputEvents) SendCommit(text string) {
+	s.send(textInputState{Text: text, Committed: true})
+}
+
+// StartSessionCompositing starts a session on a freshly opened channel, as the
+// platform start() does (flushing any queued states), pumps one Update, and
+// reports whether the session observed a live composition.
+func (s *TextInputEvents) StartSessionCompositing() bool {
+	ch, end := s.start()
+	sess := &session{ch: ch, end: end}
+	_ = sess.Update()
+	return sess.IsCompositing()
+}
