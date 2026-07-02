@@ -791,8 +791,6 @@ func initExtensions() error {
 	}
 
 	// Update the key code LUT
-	// FIXME: We should listen to XkbMapNotify events to track changes to
-	// the keyboard mapping.
 	createKeyTables()
 
 	// String format atoms
