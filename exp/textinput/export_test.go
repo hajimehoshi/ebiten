@@ -14,10 +14,6 @@
 
 package textinput
 
-import (
-	"io"
-)
-
 func ConvertUTF16CountToByteCount(text string, c int) int {
 	return convertUTF16CountToByteCount(text, c)
 }
@@ -26,54 +22,8 @@ func ConvertByteCountToUTF16Count(text string, c int) int {
 	return convertByteCountToUTF16Count(text, c)
 }
 
-type PieceTable = pieceTable
-
-func (p *PieceTable) Reset(text string) {
-	p.reset(text)
-}
-
-func (p *PieceTable) ReadFrom(r io.Reader) (int64, error) {
-	return p.readFrom(r)
-}
-
-func (p *PieceTable) Replace(text string, start, end int) {
-	p.replace(text, start, end)
-}
-
-func (p *PieceTable) WriteToWithInsertion(w io.Writer, text string, start, end int) (int64, error) {
-	return p.writeToWithInsertion(w, text, start, end)
-}
-
-func (p *PieceTable) WriteRangeTo(w io.Writer, start, end int) (int64, error) {
-	return p.writeRangeTo(w, start, end)
-}
-
-func (p *PieceTable) WriteRangeToWithInsertion(w io.Writer, text string, insertStart, insertEnd, rangeStart, rangeEnd int) (int64, error) {
-	return p.writeRangeToWithInsertion(w, text, insertStart, insertEnd, rangeStart, rangeEnd)
-}
-
-func (p *PieceTable) FindLineBounds(selStart, selEnd int) (int, int) {
-	return p.findLineBounds(selStart, selEnd)
-}
-
-func (f *Field) SetCompositionStateForTest(text string, compStart, compEnd int) {
-	f.setState(textInputState{
-		Text:                             text,
-		CompositionSelectionStartInBytes: compStart,
-		CompositionSelectionEndInBytes:   compEnd,
-	})
-}
-
-func (p *PieceTable) Undo() (int, int, bool) {
-	return p.undo()
-}
-
-func (p *PieceTable) Redo() (int, int, bool) {
-	return p.redo()
-}
-
-func (p *PieceTable) UpdateByIME(text string, replacementStart, replacementEnd, start, end int) int {
-	return p.updateByIME(text, replacementStart, replacementEnd, start, end)
+func FindLineBounds(text string, selStart, selEnd int) (int, int) {
+	return findLineBounds(text, selStart, selEnd)
 }
 
 type TextInputEvents = textInputEvents

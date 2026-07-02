@@ -19,7 +19,6 @@ package textinput
 import (
 	"image"
 	"math"
-	"strings"
 	"unsafe"
 
 	"github.com/ebitengine/purego/objc"
@@ -239,12 +238,9 @@ type lineView struct {
 }
 
 func newLineView(f *Field) lineView {
-	lineStart, lineEnd := f.pieceTable.findLineBounds(f.selectionStartInBytes, f.selectionEndInBytes)
-	var prefBuf, suffBuf strings.Builder
-	_, _ = f.pieceTable.writeRangeTo(&prefBuf, lineStart, f.selectionStartInBytes)
-	_, _ = f.pieceTable.writeRangeTo(&suffBuf, f.selectionEndInBytes, lineEnd)
-	prefix := prefBuf.String()
-	suffix := suffBuf.String()
+	lineStart, lineEnd := findLineBounds(f.text, f.selectionStartInBytes, f.selectionEndInBytes)
+	prefix := f.text[lineStart:f.selectionStartInBytes]
+	suffix := f.text[f.selectionEndInBytes:lineEnd]
 	marked := f.state.Text
 	return lineView{
 		prefix:                prefix,
@@ -315,14 +311,14 @@ func utf16ToByteWithin(s string, utf16Pos int) int {
 	return b
 }
 
-// utf16PosToPieceTableByte converts a UTF-16 position in the lineView's
-// content (prefix + marked + suffix) to a byte offset in the piece table.
-// Positions in the prefix region map to piece-table bytes [lineStart,
-// selectionStart); positions in the suffix region map to [selectionEnd,
-// lineEnd). Positions strictly inside the marked region have no piece-table
-// byte and return -1; the caller should resolve such positions to
-// selectionStart or selectionEnd as appropriate.
-func (v *lineView) utf16PosToPieceTableByte(utf16Pos int) int {
+// utf16PosToTextByte converts a UTF-16 position in the lineView's content
+// (prefix + marked + suffix) to a byte offset in the underlying text.
+// Positions in the prefix region map to bytes [lineStart, selectionStart);
+// positions in the suffix region map to [selectionEnd, lineEnd). Positions
+// strictly inside the marked region have no underlying byte and return -1;
+// the caller should resolve such positions to selectionStart or selectionEnd
+// as appropriate.
+func (v *lineView) utf16PosToTextByte(utf16Pos int) int {
 	if utf16Pos <= v.prefixLenInUTF16 {
 		return v.lineStartInBytes + utf16ToByteWithin(v.prefix, utf16Pos)
 	}
@@ -330,8 +326,8 @@ func (v *lineView) utf16PosToPieceTableByte(utf16Pos int) int {
 		return -1
 	}
 	// utf16Pos is at or past the marked region's right edge, so the matching
-	// piece-table byte is in the suffix. The suffix begins at view UTF-16
-	// offset prefixLen+markedLen and at piece-table byte selectionEnd.
+	// byte is in the suffix. The suffix begins at view UTF-16 offset
+	// prefixLen+markedLen and at byte selectionEnd.
 	suffixUTF16Pos := utf16Pos - v.prefixLenInUTF16 - v.markedLenInUTF16
 	return v.selectionEndInBytes + utf16ToByteWithin(v.suffix, suffixUTF16Pos)
 }
@@ -427,12 +423,12 @@ func insertText(_ objc.ID, _ objc.SEL, str objc.ID, replacementRange nsRange) {
 		// A range overlapping the marked region expands to cover the whole
 		// region: the marked text is not present in the underlying buffer,
 		// so its boundaries are selectionStart and selectionEnd.
-		if b := v.utf16PosToPieceTableByte(startUTF16); b >= 0 {
+		if b := v.utf16PosToTextByte(startUTF16); b >= 0 {
 			replStartInBytes = b
 		} else {
 			replStartInBytes = v.selectionStartInBytes
 		}
-		if b := v.utf16PosToPieceTableByte(endUTF16); b >= 0 {
+		if b := v.utf16PosToTextByte(endUTF16); b >= 0 {
 			replEndInBytes = b
 		} else {
 			replEndInBytes = v.selectionEndInBytes

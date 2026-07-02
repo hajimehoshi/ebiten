@@ -134,3 +134,144 @@ func TestClearQueueDropsDiscardedMarkedText(t *testing.T) {
 		})
 	}
 }
+
+func TestFindLineBounds(t *testing.T) {
+	tests := []struct {
+		name          string
+		text          string
+		selStart      int
+		selEnd        int
+		wantLineStart int
+		wantLineEnd   int
+	}{
+		{
+			name:          "empty",
+			text:          "",
+			selStart:      0,
+			selEnd:        0,
+			wantLineStart: 0,
+			wantLineEnd:   0,
+		},
+		{
+			name:          "no line break",
+			text:          "Hello, World",
+			selStart:      5,
+			selEnd:        5,
+			wantLineStart: 0,
+			wantLineEnd:   12,
+		},
+		{
+			name:          "LF before and after",
+			text:          "abc\ndef\nghi",
+			selStart:      5, // cursor inside "def"
+			selEnd:        5,
+			wantLineStart: 4,
+			wantLineEnd:   7,
+		},
+		{
+			name:          "cursor right after LF",
+			text:          "abc\ndef",
+			selStart:      4,
+			selEnd:        4,
+			wantLineStart: 4,
+			wantLineEnd:   7,
+		},
+		{
+			name:          "cursor at LF position",
+			text:          "abc\ndef",
+			selStart:      3,
+			selEnd:        3,
+			wantLineStart: 0,
+			wantLineEnd:   3,
+		},
+		{
+			name:          "VT",
+			text:          "abc\vdef",
+			selStart:      5,
+			selEnd:        5,
+			wantLineStart: 4,
+			wantLineEnd:   7,
+		},
+		{
+			name:          "FF",
+			text:          "abc\fdef",
+			selStart:      5,
+			selEnd:        5,
+			wantLineStart: 4,
+			wantLineEnd:   7,
+		},
+		{
+			name:          "CR alone",
+			text:          "abc\rdef",
+			selStart:      5,
+			selEnd:        5,
+			wantLineStart: 4,
+			wantLineEnd:   7,
+		},
+		{
+			name:          "CRLF treated as one break",
+			text:          "abc\r\ndef",
+			selStart:      6, // cursor inside "def"
+			selEnd:        6,
+			wantLineStart: 5,
+			wantLineEnd:   8,
+		},
+		{
+			name:          "CRLF with cursor at end of break",
+			text:          "abc\r\ndef",
+			selStart:      5,
+			selEnd:        5,
+			wantLineStart: 5,
+			wantLineEnd:   8,
+		},
+		{
+			name:          "NEL (U+0085)",
+			text:          "abc\u0085def",
+			selStart:      7, // 3 + 2 + 2 = 7 (within "def")
+			selEnd:        7,
+			wantLineStart: 5, // "def" at bytes [5, 8)
+			wantLineEnd:   8,
+		},
+		{
+			name:          "LS (U+2028)",
+			text:          "abc\u2028def",
+			selStart:      7,
+			selEnd:        7,
+			wantLineStart: 6,
+			wantLineEnd:   9,
+		},
+		{
+			name:          "PS (U+2029)",
+			text:          "abc\u2029def",
+			selStart:      7,
+			selEnd:        7,
+			wantLineStart: 6,
+			wantLineEnd:   9,
+		},
+		{
+			name:          "selection crossing LF",
+			text:          "abc\ndef\nghi",
+			selStart:      2, // spans the first LF at byte 3
+			selEnd:        6,
+			wantLineStart: 0,
+			wantLineEnd:   7, // expands past the LF; next LF is at 7
+		},
+		{
+			name:          "selection crossing CRLF",
+			text:          "abc\r\ndef\r\nghi",
+			selStart:      2, // spans CRLF (3..5); 7 is inside "def"
+			selEnd:        7,
+			wantLineStart: 0,
+			wantLineEnd:   8, // next break is the CR at 8
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotStart, gotEnd := textinput.FindLineBounds(tt.text, tt.selStart, tt.selEnd)
+			if gotStart != tt.wantLineStart || gotEnd != tt.wantLineEnd {
+				t.Errorf("FindLineBounds(%q, %d, %d) = (%d, %d), want (%d, %d)",
+					tt.text, tt.selStart, tt.selEnd, gotStart, gotEnd, tt.wantLineStart, tt.wantLineEnd)
+			}
+		})
+	}
+}
