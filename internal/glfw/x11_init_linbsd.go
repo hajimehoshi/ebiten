@@ -758,6 +758,7 @@ func initExtensions() error {
 		}
 
 		xkbSelectEventDetails(display, _XkbUseCoreKbd, _XkbStateNotify, _XkbGroupStateMask, _XkbGroupStateMask)
+		xkbSelectEventDetails(display, _XkbUseCoreKbd, _XkbMapNotify, _XkbKeySymsMask, _XkbKeySymsMask)
 	}
 
 	if handle, err := openX11Library("libXrender.so.1", "libXrender.so"); err == nil {
@@ -790,8 +791,6 @@ func initExtensions() error {
 	}
 
 	// Update the key code LUT
-	// FIXME: We should listen to XkbMapNotify events to track changes to
-	// the keyboard mapping.
 	createKeyTables()
 
 	// String format atoms

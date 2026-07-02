@@ -1157,15 +1157,17 @@ func processEvent(event *_XEvent) error {
 		}
 	}
 
-	if _glfw.platformWindow.xkb.available {
-		if event.EventType() == _glfw.platformWindow.xkb.eventBase+_XkbEventCode {
-			if event.xkbAny().XkbType == _XkbStateNotify &&
-				event.xkbState().Changed&_XkbGroupStateMask != 0 {
+	if _glfw.platformWindow.xkb.available && event.EventType() == _glfw.platformWindow.xkb.eventBase+_XkbEventCode {
+		switch event.xkbAny().XkbType {
+		case _XkbStateNotify:
+			if event.xkbState().Changed&_XkbGroupStateMask != 0 {
 				_glfw.platformWindow.xkb.group = uint32(event.xkbState().Group)
 			}
-
-			return nil
+		case _XkbMapNotify:
+			createKeyTables()
 		}
+
+		return nil
 	}
 
 	if event.EventType() == _GenericEvent {
