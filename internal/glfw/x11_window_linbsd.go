@@ -1159,9 +1159,13 @@ func processEvent(event *_XEvent) error {
 
 	if _glfw.platformWindow.xkb.available {
 		if event.EventType() == _glfw.platformWindow.xkb.eventBase+_XkbEventCode {
-			if event.xkbAny().XkbType == _XkbStateNotify &&
+			xkbType := event.xkbAny().XkbType
+			if xkbType == _XkbStateNotify &&
 				event.xkbState().Changed&_XkbGroupStateMask != 0 {
 				_glfw.platformWindow.xkb.group = uint32(event.xkbState().Group)
+			}
+			if xkbType == _XkbMapNotify {
+				createKeyTables()
 			}
 
 			return nil

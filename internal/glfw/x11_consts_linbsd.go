@@ -73,7 +73,9 @@ const (
 	_XkbKeyNameLength  = 4
 	_XkbEventCode      = 0
 	_XkbStateNotify    = 2
+	_XkbMapNotify      = 1
 	_XkbGroupStateMask = 1 << 4
+	_XkbKeySymsMask    = 1 << 1
 )
 
 // X.h (continued)

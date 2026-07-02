@@ -758,6 +758,7 @@ func initExtensions() error {
 		}
 
 		xkbSelectEventDetails(display, _XkbUseCoreKbd, _XkbStateNotify, _XkbGroupStateMask, _XkbGroupStateMask)
+		xkbSelectEventDetails(display, _XkbUseCoreKbd, _XkbMapNotify, _XkbKeySymsMask, _XkbKeySymsMask)
 	}
 
 	if handle, err := openX11Library("libXrender.so.1", "libXrender.so"); err == nil {
