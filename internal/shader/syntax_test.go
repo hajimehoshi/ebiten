@@ -15,6 +15,7 @@
 package shader_test
 
 import (
+	"bufio"
 	"fmt"
 	"strings"
 	"testing"
@@ -3708,6 +3709,19 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 		},
 		{
 			src: "\t    " + `//kage:unit pixels` + "    \t\r" + `
+package main
+
+func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+	return dstPos
+}`,
+			unit: shader.Pixels,
+			err:  false,
+		},
+		{
+			// A directive must be parsed even after a line longer than bufio.MaxScanTokenSize.
+			src: `// ` + strings.Repeat("a", bufio.MaxScanTokenSize) + `
+//kage:unit pixels
+
 package main
 
 func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
