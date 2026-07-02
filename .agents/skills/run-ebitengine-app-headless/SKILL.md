@@ -18,7 +18,7 @@ allowed-tools: Read, Edit, Write, Bash
 
 # run-ebitengine-app-headless skill
 
-*Targets ebiten commit `c8db8fd6d` (2026-06-30), verified against it.
+*Targets ebiten commit `de81775da` (2026-07-02), verified against it.
 `exp/vmhost` is experimental, so if its API has moved since, the driver and
 the snippets here may need updating.*
 
@@ -150,6 +150,11 @@ d.guest.ReleaseTouch(0)
 // gamepads — full snapshot each call; see vmhost.GamepadState
 d.guest.UpdateGamepads([]vmhost.GamepadState{ /* ... */ })
 ```
+
+Tick counts follow the guest's own TPS: `d.guest.RequestedTPS()` reports
+what its game requested via `ebiten.SetTPS` (the standard 60 until changed,
+possibly `ebiten.SyncWithFPS`). One second of app time is that many ticks —
+a game that set 30 TPS needs 30 ticks per second, not 60.
 
 Example — use `-ticks` as the total run length, settle 30 ticks, hold a
 click for one tick, then run the remaining ticks — as the `INPUT SCRIPT`

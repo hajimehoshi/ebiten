@@ -18,7 +18,7 @@
 // block in Update to script the keys, clicks, touches, and gamepads the guest observes. It is a
 // starting-point template to copy and adapt, not a stable command. See the run-ebitengine-app-headless skill.
 //
-// Written against ebiten commit c8db8fd6d (2026-06-30); exp/vmhost is experimental, so update this
+// Written against ebiten commit de81775da (2026-07-02); exp/vmhost is experimental, so update this
 // driver if its API has moved since.
 package main
 
@@ -52,6 +52,7 @@ var (
 type driver struct {
 	guest    *vmhost.GuestSession
 	screen   *ebiten.Image
+	dumped   bool
 	closed   bool
 	closeErr error
 }
@@ -96,7 +97,9 @@ func (d *driver) Update() error {
 	// so the screen reflects the end of the run.
 	d.guest.AdvanceFrame()
 	if !d.guest.WaitFrame() {
-		return ebiten.Termination // the session ended (guest terminated, crashed, or timed out); see Err()
+		// The session ended (guest terminated, crashed, or timed out; see Err()), or no frame was ever
+		// requested (a zero-tick run). Either way d.dumped stays false and xmain reports it.
+		return ebiten.Termination
 	}
 	if !d.guest.CompositeFrame() {
 		return errors.New("compositing the guest frame failed")
@@ -105,6 +108,7 @@ func (d *driver) Update() error {
 	if err := d.dump(); err != nil {
 		return err
 	}
+	d.dumped = true
 	return ebiten.Termination
 }
 
@@ -230,6 +234,14 @@ func xmain() error {
 	}
 	if err := guest.Err(); err != nil && !errors.Is(err, ebiten.Termination) {
 		return fmt.Errorf("guest session failed: %w", err)
+	}
+	if !d.dumped {
+		// Reachable when the guest terminated itself (its Update returned ebiten.Termination) before the
+		// final frame rendered, or when the run advanced no ticks so no frame was requested.
+		if err := guest.Err(); err != nil {
+			return fmt.Errorf("the guest ended before the frame was captured: %w", err)
+		}
+		return errors.New("no frame was captured; the run must advance at least one tick")
 	}
 	slog.Info("wrote frame", "path", *out, "ticks", *ticks)
 	return nil
