@@ -65,6 +65,14 @@ type glfwBackend struct {
 	// bufferOnceSwapped must be accessed from the main thread.
 	bufferOnceSwapped bool
 
+	// pollingEvents reports whether the main thread is polling events for the game loop.
+	// pollingEvents must be accessed from the main thread.
+	pollingEvents bool
+
+	// forcingFrame reports whether a frame is being rendered from an event callback.
+	// forcingFrame must be accessed from the main thread.
+	forcingFrame bool
+
 	origWindowPosX        int
 	origWindowPosY        int
 	origWindowWidthInDIP  int
@@ -610,12 +618,77 @@ func (u *glfwBackend) registerWindowFramebufferSizeCallback() error {
 				u.setError(err)
 				return
 			}
+
+			// While the window is being resized on macOS or Windows, the OS traps the main
+			// thread in an event-handling loop and the game loop cannot proceed. Render a frame
+			// here so that the rendering result follows the window size (#2615).
+			u.forceUpdateFrameDuringPollEvents(float64(ww), float64(wh), s)
 		}
 	}
 	if _, err := u.window.SetFramebufferSizeCallback(u.defaultFramebufferSizeCallback); err != nil {
 		return err
 	}
 	return nil
+}
+
+// forceUpdateFrameDuringPollEvents runs one frame when the game loop is blocked by event polling
+// on the main thread, like the modal loop during window resizing on macOS and Windows.
+// Otherwise, forceUpdateFrameDuringPollEvents does nothing.
+//
+// forceUpdateFrameDuringPollEvents must be called from the main thread.
+func (u *glfwBackend) forceUpdateFrameDuringPollEvents(outsideWidth, outsideHeight, deviceScaleFactor float64) {
+	// On macOS and Windows, resizing a window runs a modal loop inside event polling and traps
+	// the main thread until the mouse button is released, so a frame must be rendered here.
+	// On X11 and Wayland, there is no such modal loop: resize events are delivered through the
+	// normal event queue, event polling returns immediately, and the game loop keeps running
+	// and rendering during the resize. Rendering an extra frame here in addition to the game
+	// loop's own frames caused flickering (#2144).
+	if runtime.GOOS != "darwin" && runtime.GOOS != "windows" {
+		return
+	}
+
+	// Unless the main thread is polling events for the game loop, the game loop is not blocked
+	// by this callback. Also, a frame must not run in the middle of another main-thread operation
+	// invoking this callback, like setting a window size.
+	if !u.pollingEvents {
+		return
+	}
+
+	// Prevent recursive frames e.g. when the game's Update changes the window size.
+	if u.forcingFrame {
+		return
+	}
+
+	if !u.bufferOnceSwapped {
+		return
+	}
+
+	// In the single-thread mode, the game loop runs on the main thread and cannot be resumed here.
+	mainThread, ok := u.mainThread.(interface {
+		NestedLoop(ctx stdcontext.Context) error
+	})
+	if !ok {
+		return
+	}
+
+	u.forcingFrame = true
+	defer func() {
+		u.forcingFrame = false
+	}()
+
+	// Run the frame on another goroutine, as the game's Update and Draw must not run on the main
+	// thread. Keep processing main-thread calls in a nested loop until the frame ends, since
+	// running a frame can request them.
+	var err error
+	ctx, cancel := stdcontext.WithCancel(stdcontext.Background())
+	go func() {
+		defer cancel()
+		err = u.context.forceUpdateFrame(u.graphicsDriver, outsideWidth, outsideHeight, deviceScaleFactor, u.UserInterface)
+	}()
+	_ = mainThread.NestedLoop(ctx)
+	if err != nil {
+		u.setError(err)
+	}
 }
 
 func (u *glfwBackend) registerDropCallback() error {
@@ -1034,11 +1107,17 @@ func (u *glfwBackend) update() (float64, float64, error) {
 
 	if FPSModeType(u.fpsMode.Load()) != FPSModeVsyncOffMinimum {
 		// TODO: Updating the input can be skipped when clock.Update returns 0 (#1367).
-		if err := glfw.PollEvents(); err != nil {
+		u.pollingEvents = true
+		err := glfw.PollEvents()
+		u.pollingEvents = false
+		if err != nil {
 			return 0, 0, err
 		}
 	} else {
-		if err := glfw.WaitEvents(); err != nil {
+		u.pollingEvents = true
+		err := glfw.WaitEvents()
+		u.pollingEvents = false
+		if err != nil {
 			return 0, 0, err
 		}
 	}

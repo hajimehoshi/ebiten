@@ -28,21 +28,25 @@ type Thread interface {
 }
 
 type queueItem struct {
-	f    func()
-	sync bool
+	f func()
+
+	// done is closed when the execution of f is completed. done is nil for an asynchronous call.
+	//
+	// done must be dedicated to one queue item. With NestedLoop, multiple synchronous calls can
+	// be in flight at the same time, and a completion signal on a shared channel could be
+	// received by a wrong caller.
+	done chan struct{}
 }
 
 // OSThread represents an OS thread.
 type OSThread struct {
 	funcs chan queueItem
-	done  chan struct{}
 }
 
 // NewOSThread creates a new thread.
 func NewOSThread() *OSThread {
 	return &OSThread{
 		funcs: make(chan queueItem),
-		done:  make(chan struct{}),
 	}
 }
 
@@ -55,14 +59,28 @@ func (t *OSThread) Loop(ctx context.Context) error {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
+	return t.loop(ctx)
+}
+
+// NestedLoop runs functions requested by Call and CallAsync until ctx is canceled.
+//
+// NestedLoop is useful when a function invoked by Loop blocks the thread and requests
+// from other goroutines must be processed in the meantime.
+//
+// NestedLoop returns ctx's error if exists.
+//
+// NestedLoop must be called on the OS thread running Loop, from within a function invoked by Loop.
+func (t *OSThread) NestedLoop(ctx context.Context) error {
+	return t.loop(ctx)
+}
+
+func (t *OSThread) loop(ctx context.Context) error {
 	for {
 		select {
 		case item := <-t.funcs:
 			func() {
-				if item.sync {
-					defer func() {
-						t.done <- struct{}{}
-					}()
+				if item.done != nil {
+					defer close(item.done)
 				}
 				item.f()
 			}()
@@ -78,8 +96,9 @@ func (t *OSThread) Loop(ctx context.Context) error {
 //
 // Call blocks if Loop is not called.
 func (t *OSThread) Call(f func()) {
-	t.funcs <- queueItem{f: f, sync: true}
-	<-t.done
+	done := make(chan struct{})
+	t.funcs <- queueItem{f: f, done: done}
+	<-done
 }
 
 func (t *OSThread) private() {
@@ -91,7 +110,7 @@ func (t *OSThread) private() {
 //
 // Do not call CallAsync from the same thread. CallAsync would block forever.
 func (t *OSThread) CallAsync(f func()) {
-	t.funcs <- queueItem{f: f, sync: false}
+	t.funcs <- queueItem{f: f}
 }
 
 // NoopThread is used to disable threading.
