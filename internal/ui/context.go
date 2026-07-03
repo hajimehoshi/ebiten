@@ -85,6 +85,8 @@ func (c *context) updateFrame(graphicsDriver graphicsdriver.Graphics, outsideWid
 	return nil
 }
 
+// forceUpdateFrame runs one frame with a forced draw, regardless of the draw-skipping states.
+// The number of ticks is determined by the clock like updateFrame.
 func (c *context) forceUpdateFrame(graphicsDriver graphicsdriver.Graphics, outsideWidth, outsideHeight float64, deviceScaleFactor float64, ui *UserInterface) error {
 	n := 1
 	if ui.GraphicsLibrary() == GraphicsLibraryDirectX {
@@ -93,7 +95,10 @@ func (c *context) forceUpdateFrame(graphicsDriver graphicsdriver.Graphics, outsi
 		n = 2
 	}
 	for i := 0; i < n; i++ {
-		needsSwapBuffers, err := c.updateFrameImpl(graphicsDriver, 1, outsideWidth, outsideHeight, deviceScaleFactor, ui, true)
+		// Let the clock determine the tick count as usual, instead of forcing one tick per call.
+		// Forced frames can happen at any rate, like once per window-resizing event, and forcing
+		// a tick there would advance the game time faster than the specified TPS (#2615).
+		needsSwapBuffers, err := c.updateFrameImpl(graphicsDriver, clock.UpdateFrame(), outsideWidth, outsideHeight, deviceScaleFactor, ui, true)
 		if err != nil {
 			return err
 		}
