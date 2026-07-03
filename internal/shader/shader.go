@@ -15,13 +15,11 @@
 package shader
 
 import (
-	"bytes"
 	"fmt"
 	"go/ast"
 	gconstant "go/constant"
 	"go/parser"
 	"go/token"
-	"regexp"
 	"strings"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
@@ -181,11 +179,6 @@ func (p *ParseError) Error() string {
 }
 
 func Compile(src []byte, vertexEntry, fragmentEntry string, textureCount int) (*shaderir.Program, error) {
-	// Validate the //kage:unit directive even though the unit itself is resolved by the caller.
-	if _, err := ParseCompilerDirectives(src); err != nil {
-		return nil, err
-	}
-
 	fs := token.NewFileSet()
 	f, err := parser.ParseFile(fs, "", src, parser.AllErrors)
 	if err != nil {
@@ -212,45 +205,6 @@ func Compile(src []byte, vertexEntry, fragmentEntry string, textureCount int) (*
 
 	s.ir.TextureCount = textureCount
 	return &s.ir, nil
-}
-
-// Unit is the coordinate unit a Kage shader is authored in, selected by the //kage:unit directive.
-type Unit int
-
-const (
-	Texels Unit = iota
-	Pixels
-)
-
-func ParseCompilerDirectives(src []byte) (Unit, error) {
-	// TODO: Change the unit to pixels in v3 (#2645).
-	unit := Texels
-
-	// Go's whitespace is U+0020 (SP), U+0009 (\t), U+000d (\r), and U+000A (\n).
-	// See https://go.dev/ref/spec#Tokens
-	reUnit := regexp.MustCompile(`^[ \t\r\n]*//kage:unit\s+([^ \t\r\n]+)[ \t\r\n]*$`)
-	var unitParsed bool
-
-	for line := range bytes.Lines(src) {
-		m := reUnit.FindSubmatch(line)
-		if m == nil {
-			continue
-		}
-		if unitParsed {
-			return 0, fmt.Errorf("shader: at most one //kage:unit can exist in a shader")
-		}
-		switch string(m[1]) {
-		case "pixels":
-			unit = Pixels
-		case "texels":
-			unit = Texels
-		default:
-			return 0, fmt.Errorf("shader: invalid value for //kage:unit: %s", m[1])
-		}
-		unitParsed = true
-	}
-
-	return unit, nil
 }
 
 func (s *compileState) addError(pos token.Pos, str string) {

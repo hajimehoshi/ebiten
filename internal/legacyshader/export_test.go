@@ -1,4 +1,4 @@
-// Copyright 2024 The Ebitengine Authors
+// Copyright 2026 The Ebitengine Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,11 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package shadercollectortest2
+package legacyshader
 
-const S = "package main // shader"
-
-//ebitengine:shadersource
-const _ = "package main // shader 6"
-
-const _ = "not shader"
+var ConvertToPixels = convertToPixels

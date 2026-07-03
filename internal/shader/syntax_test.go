@@ -15,7 +15,6 @@
 package shader_test
 
 import (
-	"bufio"
 	"fmt"
 	"strings"
 	"testing"
@@ -3634,119 +3633,6 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 			t.Errorf("%s must return an error but does not", stmt)
 		} else if err != nil && !c.err {
 			t.Errorf("%s must not return nil but returned %v", stmt, err)
-		}
-	}
-}
-
-func TestSyntaxCompilerDirective(t *testing.T) {
-	cases := []struct {
-		src  string
-		unit shader.Unit
-		err  bool
-	}{
-		{
-			src: `package main
-
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
-	return dstPos
-}`,
-			unit: shader.Texels,
-			err:  false,
-		},
-		{
-			src: `//kage:unit texels
-
-package main
-
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
-	return dstPos
-}`,
-			unit: shader.Texels,
-			err:  false,
-		},
-		{
-			src: `//kage:unit pixels
-
-package main
-
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
-	return dstPos
-}`,
-			unit: shader.Pixels,
-			err:  false,
-		},
-		{
-			src: `//kage:unit foo
-
-package main
-
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
-	return dstPos
-}`,
-			err: true,
-		},
-		{
-			src: `//kage:unit pixels
-//kage:unit pixels
-
-package main
-
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
-	return dstPos
-}`,
-			err: true,
-		},
-		{
-			src: `//kage:unit pixels
-//kage:unit texels
-
-package main
-
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
-	return dstPos
-}`,
-			err: true,
-		},
-		{
-			src: "\t    " + `//kage:unit pixels` + "    \t\r" + `
-package main
-
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
-	return dstPos
-}`,
-			unit: shader.Pixels,
-			err:  false,
-		},
-		{
-			// A directive must be parsed even after a line longer than bufio.MaxScanTokenSize.
-			src: `// ` + strings.Repeat("a", bufio.MaxScanTokenSize) + `
-//kage:unit pixels
-
-package main
-
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
-	return dstPos
-}`,
-			unit: shader.Pixels,
-			err:  false,
-		},
-	}
-	for _, c := range cases {
-		// The unit and any directive error are resolved by ParseCompilerDirectives.
-		unit, err := shader.ParseCompilerDirectives([]byte(c.src))
-		if err == nil && c.err {
-			t.Errorf("ParseCompilerDirectives(%q) must return an error but does not", c.src)
-		} else if err != nil && !c.err {
-			t.Errorf("ParseCompilerDirectives(%q) must not return an error but returned %v", c.src, err)
-		}
-		if err != nil || c.err {
-			continue
-		}
-		if got, want := unit, c.unit; got != want {
-			t.Errorf("ParseCompilerDirectives(%q): got: %d, want: %d", c.src, got, want)
-		}
-		if _, err := compileToIR([]byte(c.src)); err != nil {
-			t.Errorf("compileToIR(%q) must not return an error but returned %v", c.src, err)
 		}
 	}
 }

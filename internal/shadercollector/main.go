@@ -41,7 +41,7 @@ import (
 	"golang.org/x/tools/go/ast/inspector"
 	"golang.org/x/tools/go/packages"
 
-	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
+	"github.com/hajimehoshi/ebiten/v2/internal/legacyshader"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/glsl"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/hlsl"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/msl"
@@ -525,7 +525,7 @@ func objectTypeString(obj types.Object) string {
 func hashAndCompileShaders(shaders []Shader, targets []string) error {
 	for i := range shaders {
 		shader := &shaders[i]
-		hash, err := graphics.CalcSourceID([]byte(shader.Source))
+		hash, err := legacyshader.CalcSourceID([]byte(shader.Source))
 		if err != nil {
 			return err
 		}
@@ -545,7 +545,7 @@ func hashAndCompileShaders(shaders []Shader, targets []string) error {
 }
 
 func compile(shader *Shader, targets []string) error {
-	ir, err := graphics.CompileShader([]byte(shader.Source))
+	ir, _, err := legacyshader.CompileShader([]byte(shader.Source))
 	if err != nil {
 		return fmt.Errorf("compiling shader failed: %w", err)
 	}

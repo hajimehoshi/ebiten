@@ -27,7 +27,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
+	"github.com/hajimehoshi/ebiten/v2/internal/legacyshader"
 )
 
 func hasGoCommand() bool {
@@ -97,7 +97,7 @@ func TestRun(t *testing.T) {
 			t.Errorf("s.File is empty: %v", s)
 		}
 		// KageFile can be empty.
-		hash, err := graphics.CalcSourceID([]byte(s.shader.Source))
+		hash, err := legacyshader.CalcSourceID([]byte(s.shader.Source))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -152,7 +152,7 @@ func TestManifest(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		hash, err := graphics.CalcSourceID(content)
+		hash, err := legacyshader.CalcSourceID(content)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -205,7 +205,7 @@ func TestManifest(t *testing.T) {
 			t.Errorf("s.KageFile is empty: %v", s)
 		}
 
-		hash, err := graphics.CalcSourceID([]byte(s.Source))
+		hash, err := legacyshader.CalcSourceID([]byte(s.Source))
 		if err != nil {
 			t.Fatal(err)
 		}

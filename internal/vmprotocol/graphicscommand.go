@@ -108,8 +108,8 @@ type GraphicsCommand struct {
 	// ShaderID is set by NewShader, DrawTriangles, and DisposeShader.
 	ShaderID graphicsdriver.ShaderID
 
-	// ShaderSource is the Kage source a shader was compiled from, set by NewShader. The host
-	// recompiles it to recreate the shader (the compiled IR is not forwarded).
+	// ShaderSource is the pixel-unit Kage source a shader was compiled from, set by NewShader.
+	// The host recompiles it to recreate the shader (the compiled IR is not forwarded).
 	ShaderSource []byte
 
 	// Dst/Srcs/DstRegions/IndexOffset/Blend/Uniforms are set by DrawTriangles. Uniforms holds a copy.

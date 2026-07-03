@@ -19,20 +19,20 @@ import (
 )
 
 //ebitengine:shadersource
-const _ = "shader 1"
+const _ = "package main // shader 1"
 
 const (
 	//ebitengine:shadersource
-	_ = "shader 2"
+	_ = "package main // shader 2"
 
 	//ebitengine:shadersource
-	a = "shader 3"
+	a = "package main // shader 3"
 
 	//ebitengine:invalid
 	b = "not shader"
 
 	//ebitengine:shadersource
-	c = "shader" + " 4"
+	c = "package main // shader" + " 4"
 )
 
 //ebitengine:invalid
