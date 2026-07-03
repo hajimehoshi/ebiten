@@ -52,8 +52,8 @@ func ParseKageUnitDirective(src []byte) (string, error) {
 // writeShaderBridge writes to w the Kage source appended to a user's fragment shader, bridging the user's
 // builtin functions to the engine's __-prefixed uniforms and textures. The bridge operates in the pixel
 // unit: the region uniforms hold pixels, and __texelAt fetches a texel by its integer pixel coordinates.
-func writeShaderBridge(w io.Writer) {
-	fmt.Fprintf(w, `
+func writeShaderBridge(w io.Writer) error {
+	if _, err := fmt.Fprintf(w, `
 var __imageDstTextureSize vec2
 
 // imageDstTextureSize returns the destination image's texture size in pixels.
@@ -73,9 +73,11 @@ var __imageSrcTextureSizes [%[1]d]vec2
 func imageSrcTextureSize() vec2 {
 	return __imageSrcTextureSizes[0]
 }
-`, ShaderSrcImageCount)
+`, ShaderSrcImageCount); err != nil {
+		return err
+	}
 
-	io.WriteString(w, `
+	if _, err := io.WriteString(w, `
 // The unit is the destination texture's pixel or texel.
 var __imageDstRegionOrigin vec2
 
@@ -105,9 +107,11 @@ func imageDstOrigin() vec2 {
 func imageDstSize() vec2 {
 	return __imageDstRegionSize
 }
-`)
+`); err != nil {
+		return err
+	}
 
-	fmt.Fprintf(w, `
+	if _, err := fmt.Fprintf(w, `
 // The unit is the source texture's pixel or texel.
 var __imageSrcRegionOrigins [%[1]d]vec2
 
@@ -123,10 +127,12 @@ var __imageSrcRegionSizes [%[1]d]vec2
 func imageSrcRegionOnTexture() (vec2, vec2) {
 	return __imageSrcRegionOrigins[0], __imageSrcRegionSizes[0]
 }
-`, ShaderSrcImageCount)
+`, ShaderSrcImageCount); err != nil {
+		return err
+	}
 
 	for i := range ShaderSrcImageCount {
-		fmt.Fprintf(w, `
+		if _, err := fmt.Fprintf(w, `
 // imageSrc%[1]dOrigin returns the source image's region origin on its texture.
 // The unit is the source texture's pixel or texel.
 //
@@ -140,7 +146,9 @@ func imageSrc%[1]dOrigin() vec2 {
 func imageSrc%[1]dSize() vec2 {
 	return __imageSrcRegionSizes[%[1]d]
 }
-`, i)
+`, i); err != nil {
+			return err
+		}
 
 		// pos is in pixels of the 0th texture. Convert it to the i-th texture's pixels.
 		texPos := "pos"
@@ -148,7 +156,7 @@ func imageSrc%[1]dSize() vec2 {
 			texPos = fmt.Sprintf("pos - __imageSrcRegionOrigins[0] + __imageSrcRegionOrigins[%d]", i)
 		}
 		// __t%d is a special variable for a texture variable.
-		fmt.Fprintf(w, `
+		if _, err := fmt.Fprintf(w, `
 func imageSrc%[1]dUnsafeAt(pos vec2) vec4 {
 	// pos is the position in positions of the source texture (= 0th image's texture).
 	return __texelAt(__t%[1]d, %[2]s)
@@ -160,23 +168,30 @@ func imageSrc%[1]dAt(pos vec2) vec4 {
 	in := step(__imageSrcRegionOrigins[0], pos) - step(__imageSrcRegionOrigins[0] + __imageSrcRegionSizes[%[1]d], pos)
 	return __texelAt(__t%[1]d, %[2]s) * in.x * in.y
 }
-`, i, texPos)
+`, i, texPos); err != nil {
+			return err
+		}
 	}
 
-	io.WriteString(w, `
+	if _, err := io.WriteString(w, `
 var __projectionMatrix mat4
 
 func __vertex(dstPos vec2, srcPos vec2, color vec4, custom vec4) (vec4, vec2, vec4, vec4) {
 	return __projectionMatrix * vec4(dstPos, 0, 1), srcPos, color, custom
 }
-`)
+`); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // completeShaderSource returns a complete shader source: the fragment shader source followed by the bridge.
 func completeShaderSource(fragmentSrc []byte) []byte {
 	var buf bytes.Buffer
-	buf.Write(fragmentSrc)
-	writeShaderBridge(&buf)
+	// Writing to a bytes.Buffer never fails.
+	_, _ = buf.Write(fragmentSrc)
+	_ = writeShaderBridge(&buf)
 	return buf.Bytes()
 }
 
