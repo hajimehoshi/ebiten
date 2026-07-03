@@ -18,7 +18,6 @@
 package gamepaddb
 
 import (
-	"bufio"
 	"bytes"
 	"encoding/hex"
 	"fmt"
@@ -510,9 +509,6 @@ func Update(mappingData []byte) error {
 	mappingsM.Lock()
 	defer mappingsM.Unlock()
 
-	buf := bytes.NewBuffer(mappingData)
-	s := bufio.NewScanner(buf)
-
 	type parsedLine struct {
 		id      string
 		name    string
@@ -521,9 +517,8 @@ func Update(mappingData []byte) error {
 	}
 	var lines []parsedLine
 
-	for s.Scan() {
-		line := s.Text()
-		id, name, buttons, axes, err := parseLine(line, currentPlatform())
+	for line := range bytes.Lines(mappingData) {
+		id, name, buttons, axes, err := parseLine(string(line), currentPlatform())
 		if err != nil {
 			return err
 		}
@@ -535,10 +530,6 @@ func Update(mappingData []byte) error {
 				axes:    axes,
 			})
 		}
-	}
-
-	if err := s.Err(); err != nil {
-		return err
 	}
 
 	for _, l := range lines {

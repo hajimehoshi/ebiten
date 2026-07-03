@@ -17,8 +17,6 @@
 package opengl
 
 import (
-	"bufio"
-	"bytes"
 	"os/exec"
 	"strings"
 
@@ -29,10 +27,8 @@ import (
 )
 
 func isGLXExtensionForGL2Available() bool {
-	var buf bytes.Buffer
-	cmd := exec.Command("glxinfo")
-	cmd.Stdout = &buf
-	if err := cmd.Run(); err != nil {
+	out, err := exec.Command("glxinfo").Output()
+	if err != nil {
 		return false
 	}
 
@@ -42,9 +38,8 @@ func isGLXExtensionForGL2Available() bool {
 	)
 
 	var listingExtensions bool
-	s := bufio.NewScanner(&buf)
-	for s.Scan() {
-		line := s.Text()
+	for line := range strings.Lines(string(out)) {
+		line = strings.TrimRight(line, "\r\n")
 		if !listingExtensions {
 			if line == "GLX extensions:" {
 				listingExtensions = true

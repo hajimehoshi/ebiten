@@ -15,7 +15,6 @@
 package shader
 
 import (
-	"bufio"
 	"bytes"
 	"fmt"
 	"go/ast"
@@ -232,19 +231,15 @@ func ParseCompilerDirectives(src []byte) (Unit, error) {
 	reUnit := regexp.MustCompile(`^[ \t\r\n]*//kage:unit\s+([^ \t\r\n]+)[ \t\r\n]*$`)
 	var unitParsed bool
 
-	buf := bytes.NewBuffer(src)
-	s := bufio.NewScanner(buf)
-	// A line can be longer than the scanner's default maximum token size.
-	s.Buffer(nil, len(src)+1)
-	for s.Scan() {
-		m := reUnit.FindStringSubmatch(s.Text())
+	for line := range bytes.Lines(src) {
+		m := reUnit.FindSubmatch(line)
 		if m == nil {
 			continue
 		}
 		if unitParsed {
 			return 0, fmt.Errorf("shader: at most one //kage:unit can exist in a shader")
 		}
-		switch m[1] {
+		switch string(m[1]) {
 		case "pixels":
 			unit = Pixels
 		case "texels":
@@ -253,9 +248,6 @@ func ParseCompilerDirectives(src []byte) (Unit, error) {
 			return 0, fmt.Errorf("shader: invalid value for //kage:unit: %s", m[1])
 		}
 		unitParsed = true
-	}
-	if err := s.Err(); err != nil {
-		return 0, fmt.Errorf("shader: scanning the source failed: %w", err)
 	}
 
 	return unit, nil
