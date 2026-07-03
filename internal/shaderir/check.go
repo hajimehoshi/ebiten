@@ -104,7 +104,7 @@ func TypeFromBinaryOp(op Op, lhst, rhst Type, lhsConst, rhsConst constant.Value)
 			return Type{}, false
 		}
 
-		if op == And || op == Or || op == Xor {
+		if op == And || op == AndNot || op == Or || op == Xor {
 			if lhsConst.Kind() == constant.Int && rhsConst.Kind() == constant.Int {
 				return Type{Main: Int}, true
 			}
@@ -193,7 +193,7 @@ func TypeFromBinaryOp(op Op, lhst, rhst Type, lhsConst, rhsConst constant.Value)
 		return Type{}, false
 	}
 
-	if op == And || op == Or || op == Xor {
+	if op == And || op == AndNot || op == Or || op == Xor {
 		if lhst.Main == Int && rhst.Main == Int {
 			return Type{Main: Int}, true
 		}

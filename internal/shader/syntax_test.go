@@ -1633,6 +1633,34 @@ func TestSyntaxBitwiseOperatorAssign(t *testing.T) {
 		{stmt: "a := mat2(1); a &= 2", err: true},
 		{stmt: "a := mat2(1); a &= mat2(2)", err: true},
 
+		{stmt: "a := 1; a &^= 2", err: false},
+		{stmt: "a := 1; a &^= 2.0", err: false},
+		{stmt: "const c = 2; a := 1; a &^= c", err: false},
+		{stmt: "const c = 2.0; a := 1; a &^= c", err: false},
+		{stmt: "const c int = 2; a := 1; a &^= c", err: false},
+		{stmt: "const c int = 2.0; a := 1; a &^= c", err: false},
+		{stmt: "const c float = 2; a := 1; a &^= c", err: true},
+		{stmt: "const c float = 2.0; a := 1; a &^= c", err: true},
+		{stmt: "a := 1; a &^= int(2)", err: false},
+		{stmt: "a := 1; a &^= vec2(2)", err: true},
+		{stmt: "a := 1; a &^= vec3(2)", err: true},
+		{stmt: "a := 1; a &^= vec4(2)", err: true},
+		{stmt: "a := 1; a &^= ivec2(2)", err: true},
+		{stmt: "a := 1; a &^= ivec3(2)", err: true},
+		{stmt: "a := 1; a &^= ivec4(2)", err: true},
+		{stmt: "a := 1; a &^= mat2(2)", err: true},
+		{stmt: "a := 1; a &^= mat3(2)", err: true},
+		{stmt: "a := 1; a &^= mat4(2)", err: true},
+		{stmt: "a := 1.0; a &^= 2", err: true},
+		{stmt: "a := ivec2(1); a &^= 2", err: false},
+		{stmt: "a := ivec2(1); a &^= ivec2(1)", err: false},
+		{stmt: "a := ivec2(1); a &^= ivec3(1)", err: true},
+		{stmt: "a := ivec2(1); a &^= ivec4(1)", err: true},
+		{stmt: "a := vec2(1); a &^= 2", err: true},
+		{stmt: "a := vec2(1); a &^= vec2(2)", err: true},
+		{stmt: "a := mat2(1); a &^= 2", err: true},
+		{stmt: "a := mat2(1); a &^= mat2(2)", err: true},
+
 		{stmt: "a := 1; a |= 2", err: false},
 		{stmt: "a := 1; a |= 2.0", err: false},
 		{stmt: "const c = 2; a := 1; a |= c", err: false},
@@ -4089,6 +4117,25 @@ func TestSyntaxBitwiseOperator(t *testing.T) {
 		{stmt: "_ = mat3(0) & mat3(1)", err: true},
 		{stmt: "_ = mat4(0) & mat4(1)", err: true},
 
+		{stmt: "_ = false &^ true", err: true},
+		{stmt: "_ = int(0) &^ int(1)", err: false},
+		{stmt: "_ = float(0) &^ float(1)", err: true},
+		{stmt: "_ = vec2(0) &^ vec2(1)", err: true},
+		{stmt: "_ = vec3(0) &^ vec3(1)", err: true},
+		{stmt: "_ = vec4(0) &^ vec4(1)", err: true},
+		{stmt: "_ = ivec2(0) &^ ivec2(1)", err: false},
+		{stmt: "_ = ivec3(0) &^ ivec3(1)", err: false},
+		{stmt: "_ = ivec4(0) &^ ivec4(1)", err: false},
+		{stmt: "_ = ivec2(0) &^ int(1)", err: false},
+		{stmt: "_ = ivec3(0) &^ int(1)", err: false},
+		{stmt: "_ = ivec4(0) &^ int(1)", err: false},
+		{stmt: "_ = int(0) &^ ivec2(1)", err: false},
+		{stmt: "_ = int(0) &^ ivec3(1)", err: false},
+		{stmt: "_ = int(0) &^ ivec4(1)", err: false},
+		{stmt: "_ = mat2(0) &^ mat2(1)", err: true},
+		{stmt: "_ = mat3(0) &^ mat3(1)", err: true},
+		{stmt: "_ = mat4(0) &^ mat4(1)", err: true},
+
 		{stmt: "_ = false | true", err: true},
 		{stmt: "_ = int(0) | int(1)", err: false},
 		{stmt: "_ = float(0) | float(1)", err: true},
@@ -4126,6 +4173,62 @@ func TestSyntaxBitwiseOperator(t *testing.T) {
 		{stmt: "_ = mat2(0) ^ mat2(1)", err: true},
 		{stmt: "_ = mat3(0) ^ mat3(1)", err: true},
 		{stmt: "_ = mat4(0) ^ mat4(1)", err: true},
+	}
+
+	for _, c := range cases {
+		stmt := c.stmt
+		src := fmt.Sprintf(`package main
+
+func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+	%s
+	return dstPos
+}`, stmt)
+		_, err := compileToIR([]byte(src))
+		if err == nil && c.err {
+			t.Errorf("%s must return an error but does not", stmt)
+		} else if err != nil && !c.err {
+			t.Errorf("%s must not return nil but returned %v", stmt, err)
+		}
+	}
+}
+
+func TestSyntaxUnaryOperator(t *testing.T) {
+	cases := []struct {
+		stmt string
+		err  bool
+	}{
+		{stmt: "_ = ^1", err: false},
+		{stmt: "_ = ^1.0", err: true},
+		{stmt: "_ = ^true", err: true},
+		{stmt: "const c = 1; _ = ^c", err: false},
+		{stmt: "const c = 1.0; _ = ^c", err: true},
+		{stmt: "const c int = 1; _ = ^c", err: false},
+		{stmt: "const c float = 1; _ = ^c", err: true},
+		{stmt: "a := 1; _ = ^a", err: false},
+		{stmt: "a := 1.0; _ = ^a", err: true},
+		{stmt: "b := true; _ = ^b", err: true},
+		{stmt: "_ = ^int(1)", err: false},
+		{stmt: "_ = ^float(1)", err: true},
+		{stmt: "_ = ^vec2(1)", err: true},
+		{stmt: "_ = ^vec3(1)", err: true},
+		{stmt: "_ = ^vec4(1)", err: true},
+		{stmt: "_ = ^ivec2(1)", err: false},
+		{stmt: "_ = ^ivec3(1)", err: false},
+		{stmt: "_ = ^ivec4(1)", err: false},
+		{stmt: "_ = ^mat2(1)", err: true},
+		{stmt: "_ = ^mat3(1)", err: true},
+		{stmt: "_ = ^mat4(1)", err: true},
+
+		{stmt: "_ = !true", err: false},
+		{stmt: "_ = !1", err: true},
+		{stmt: "_ = !1.0", err: true},
+
+		{stmt: "_ = -1", err: false},
+		{stmt: "_ = -1.0", err: false},
+		{stmt: "_ = -true", err: true},
+		{stmt: "_ = +1", err: false},
+		{stmt: "_ = +1.0", err: false},
+		{stmt: "_ = +true", err: true},
 	}
 
 	for _, c := range cases {

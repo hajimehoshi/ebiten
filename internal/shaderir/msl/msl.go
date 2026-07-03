@@ -375,7 +375,7 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 		case shaderir.Unary:
 			var op string
 			switch e.Op {
-			case shaderir.Add, shaderir.Sub, shaderir.NotOp:
+			case shaderir.Add, shaderir.Sub, shaderir.NotOp, shaderir.ComplementOp:
 				op = opString(e.Op)
 			default:
 				op = fmt.Sprintf("?(unexpected op: %d)", e.Op)
@@ -387,6 +387,8 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 				return fmt.Sprintf("all((%s) == (%s))", expr(&e.Exprs[0]), expr(&e.Exprs[1]))
 			case shaderir.VectorNotEqualOp:
 				return fmt.Sprintf("!all((%s) == (%s))", expr(&e.Exprs[0]), expr(&e.Exprs[1]))
+			case shaderir.AndNot:
+				return fmt.Sprintf("(%s) & ~(%s)", expr(&e.Exprs[0]), expr(&e.Exprs[1]))
 			}
 			return fmt.Sprintf("(%s) %s (%s)", expr(&e.Exprs[0]), opString(e.Op), expr(&e.Exprs[1]))
 		case shaderir.Selection:

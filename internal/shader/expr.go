@@ -1057,6 +1057,20 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 		}
 
 		if exprs[0].Const != nil {
+			// go/constant.UnaryOp panics when the operator is not defined on the constant's kind.
+			var valid bool
+			switch e.Op {
+			case token.ADD, token.SUB:
+				valid = exprs[0].Const.Kind() == gconstant.Int || exprs[0].Const.Kind() == gconstant.Float
+			case token.NOT:
+				valid = exprs[0].Const.Kind() == gconstant.Bool
+			case token.XOR:
+				valid = exprs[0].Const.Kind() == gconstant.Int
+			}
+			if !valid {
+				cs.addError(e.Pos(), fmt.Sprintf("invalid operation: operator %s not defined on %s", e.Op, exprs[0].Const.String()))
+				return nil, nil, nil, false
+			}
 			v := gconstant.UnaryOp(e.Op, exprs[0].Const, 0)
 			// Use the original type as it is.
 			// Keep the type untyped if the original expression is untyped (#2705).
@@ -1076,6 +1090,12 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 			op = shaderir.Sub
 		case token.NOT:
 			op = shaderir.NotOp
+		case token.XOR:
+			if ts[0].Main != shaderir.Int && !ts[0].IsIntVector() {
+				cs.addError(e.Pos(), fmt.Sprintf("invalid operation: operator %s not defined on %s", e.Op, ts[0].String()))
+				return nil, nil, nil, false
+			}
+			op = shaderir.ComplementOp
 		default:
 			cs.addError(e.Pos(), fmt.Sprintf("unexpected operator: %s", e.Op))
 			return nil, nil, nil, false

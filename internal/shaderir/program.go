@@ -168,6 +168,7 @@ const (
 	Add Op = iota
 	Sub
 	NotOp
+	ComplementOp
 	ComponentWiseMul
 	MatrixMul
 	Div
@@ -183,6 +184,7 @@ const (
 	VectorEqualOp
 	VectorNotEqualOp
 	And
+	AndNot
 	Xor
 	Or
 	AndAnd
@@ -234,6 +236,8 @@ func OpFromToken(t token.Token, lhs, rhs Type) (Op, bool) {
 		return NotEqualOp, true
 	case token.AND:
 		return And, true
+	case token.AND_NOT:
+		return AndNot, true
 	case token.XOR:
 		return Xor, true
 	case token.OR:

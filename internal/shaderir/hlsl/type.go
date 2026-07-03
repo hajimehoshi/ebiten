@@ -28,6 +28,8 @@ func opString(op shaderir.Op) string {
 		return "-"
 	case shaderir.NotOp:
 		return "!"
+	case shaderir.ComplementOp:
+		return "~"
 	case shaderir.ComponentWiseMul:
 		return "*"
 	case shaderir.Div:

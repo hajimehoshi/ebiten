@@ -2295,12 +2295,16 @@ func TestShaderBitwiseOperator(t *testing.T) {
 			if assign {
 				code = `	v.rgb &= 0x5a
 	v.rgb |= 0x30
-	v.rgb ^= 0x8d`
+	v.rgb ^= 0x8d
+	v.rgb &^= 0xc3`
 			} else {
 				code = `	v.rgb = v.rgb & 0x5a
 	v.rgb = v.rgb | 0x30
-	v.rgb = v.rgb ^ 0x8d`
+	v.rgb = v.rgb ^ 0x8d
+	v.rgb = v.rgb &^ 0xc3`
 			}
+			code += `
+	v.rgb = ^v.rgb & 0xff`
 
 			s, err := ebiten.NewShader(fmt.Appendf(nil, `//kage:unit pixels
 
@@ -2324,7 +2328,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 			for j := range h {
 				for i := range w {
 					got := dst.At(i, j).(color.RGBA)
-					want := color.RGBA{R: 0xbd, G: 0xb7, B: 0xf7, A: 0xff}
+					want := color.RGBA{R: 0xc3, G: 0xcb, B: 0xcb, A: 0xff}
 					if !sameColors(got, want, 2) {
 						t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
 					}
