@@ -110,9 +110,10 @@ func (v *view) initCAMetalDisplayLink() error {
 						slog.Debug("metal: metalDisplayLink:needsUpdate: is unexpectedly called from the main run loop")
 						return
 					}
-					// vsyncDisabled becomes true before the display link is invalidated (see updateMetalDisplayLink).
+					// vsyncDisabled or liveResizing becomes true before the display link is invalidated
+					// (see updateMetalDisplayLink).
 					// Return without sending a drawable so that the run loop can execute the invalidation block.
-					if v.vsyncDisabled.Load() {
+					if v.vsyncDisabled.Load() || v.liveResizing.Load() {
 						return
 					}
 					drawable := ca.MetalDisplayLinkUpdate{ID: needsUpdate}.Drawable()
@@ -135,11 +136,8 @@ func (v *view) initCAMetalDisplayLink() error {
 	return nil
 }
 
-// updateMetalDisplayLink creates or destroys CAMetalDisplayLink for the current vsync state.
-//
-// CAMetalLayer's nextDrawable is not available while CAMetalDisplayLink exists for the layer.
-// The display link must be destroyed while vsync is disabled, as drawables are obtained
-// directly from the Metal layer then (see nextDrawable).
+// updateMetalDisplayLink creates or destroys CAMetalDisplayLink for the current vsync and
+// live-resize states.
 func (v *view) updateMetalDisplayLink() {
 	// A zero run loop means CAMetalDisplayLink is not used: either the OS doesn't support it,
 	// or the display link is not initialized yet. In the latter case, initCAMetalDisplayLink
@@ -148,8 +146,17 @@ func (v *view) updateMetalDisplayLink() {
 		return
 	}
 
-	// Destroy the display link while vsync is disabled.
-	if v.vsyncDisabled.Load() {
+	// Destroy the display link while vsync is disabled or the window is being resized.
+	// CAMetalLayer's nextDrawable is not available while CAMetalDisplayLink exists for the
+	// layer, and drawables must be obtained directly from the Metal layer in these cases
+	// (see nextDrawable):
+	//   - While vsync is disabled, getting a drawable must not wait for the display refresh.
+	//   - While the window is being resized, the display link creates a drawable before
+	//     invoking the delegate callback, so the drawable often has a stale size while the
+	//     drawable size keeps changing, and waiting for a drawable with the correct size
+	//     wastes the tight drawable pool. A drawable obtained directly from the Metal layer
+	//     always has the current drawable size (#3478).
+	if v.vsyncDisabled.Load() || v.liveResizing.Load() {
 		if v.metalDisplayLink == 0 {
 			return
 		}
@@ -173,8 +180,8 @@ func (v *view) updateMetalDisplayLink() {
 
 		// A delegate callback might be blocked to send a drawable, preventing the run loop from executing
 		// the block above. Receive drawables until the display link is invalidated.
-		// New delegate callbacks return without sending a drawable as vsyncDisabled is already true,
-		// so this loop always terminates.
+		// New delegate callbacks return without sending a drawable as vsyncDisabled or liveResizing is
+		// already true, so this loop always terminates.
 	loop:
 		for {
 			select {
@@ -187,7 +194,7 @@ func (v *view) updateMetalDisplayLink() {
 		return
 	}
 
-	// Create the display link while vsync is enabled.
+	// Create the display link while vsync is enabled and the window is not being resized.
 	if v.metalDisplayLink != 0 {
 		return
 	}
@@ -262,7 +269,51 @@ func displayLinkOutputCallback(displayLink uintptr, inNow, inOutputTime uintptr,
 	return 0
 }
 
+// updatePresentationState synchronizes the presentation-related states with the window.
+// This must be called at the beginning of a frame.
+func (v *view) updatePresentationState() {
+	inLiveResize := v.inLiveResize()
+	if v.liveResizing.Load() != inLiveResize {
+		v.liveResizing.Store(inLiveResize)
+		v.updateMetalDisplayLink()
+	}
+
+	// presentsWithTransaction is enabled unless vsync is disabled (#1196) or the window is in
+	// the fullscreen mode (#1745, #1974). Toggling presentsWithTransaction drops the current
+	// layer content immediately and irrecoverably, showing the window background for a moment
+	// (#3478). The property must not be toggled at the beginning of window resizing, so it is
+	// kept enabled during the entire windowed lifetime with vsync on instead.
+	//
+	// While vsync is disabled, presentsWithTransaction is enabled only during window resizing:
+	// frames are event-paced then, so the unlimited presentation rate does not matter, and the
+	// synced presentations keep the content from being distorted. The toggle at the beginning
+	// of resizing can show the window background for a moment, which is less noticeable than
+	// the content being distorted during the entire resizing.
+	presentsWithTransaction := !v.isFullscreen() && (!v.vsyncDisabled.Load() || inLiveResize)
+	if v.presentsWithTransaction != presentsWithTransaction {
+		if presentsWithTransaction {
+			// Wait until all the drawables queued for asynchronous presentation are presented.
+			// Otherwise, a pending presentation can replace the layer content after the first
+			// transaction-synced presentation, and a stale frame is shown for a moment.
+			for start := time.Now(); v.queuedPresents.Load() > 0 && time.Since(start) < 100*time.Millisecond; {
+				time.Sleep(time.Millisecond)
+			}
+		}
+		set := func() {
+			v.ml.SetPresentsWithTransaction(presentsWithTransaction)
+		}
+		if v.runOnMainThread != nil {
+			v.runOnMainThread(set)
+		} else {
+			set()
+		}
+		v.presentsWithTransaction = presentsWithTransaction
+	}
+}
+
 func (v *view) nextDrawable() ca.MetalDrawable {
+	v.applyDrawableSizeIfNeeded()
+
 	if v.metalDisplayLink != 0 {
 		const wait = 100 * time.Millisecond
 		if v.drawableTimer == nil {
@@ -271,14 +322,25 @@ func (v *view) nextDrawable() ca.MetalDrawable {
 			v.drawableTimer.Reset(wait)
 		}
 		defer v.drawableTimer.Stop()
-		select {
-		case d := <-v.drawableCh:
-			v.drawableFromDisplayLink = true
-			return d
-		case <-v.drawableTimer.C:
-			// This happens when the main thread needs to execute the notification observer callback,
-			// or when the appliation goes to full screen (#3354).
-			return ca.MetalDrawable{}
+		for {
+			select {
+			case d := <-v.drawableCh:
+				v.drawableFromDisplayLink = true
+				// The display link creates a drawable before invoking the delegate callback, so the
+				// drawable might have a stale size when the drawable size has just been changed e.g.
+				// by window resizing. Skip such a drawable and wait for one with the new size (#3478).
+				if v.drawableWidth != 0 && v.drawableHeight != 0 {
+					if t := d.Texture(); t.Width() != v.drawableWidth || t.Height() != v.drawableHeight {
+						v.finishDrawableUsage()
+						continue
+					}
+				}
+				return d
+			case <-v.drawableTimer.C:
+				// This happens when the main thread needs to execute the notification observer callback,
+				// or when the appliation goes to full screen (#3354).
+				return ca.MetalDrawable{}
+			}
 		}
 	}
 

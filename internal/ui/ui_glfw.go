@@ -907,6 +907,10 @@ func (u *glfwBackend) initOnMainThread(options *RunOptions) error {
 		g.SetWindow(w)
 	}
 
+	if g, ok := u.graphicsDriver.(interface{ SetMainThreadRunner(func(func())) }); ok {
+		g.SetMainThreadRunner(u.mainThread.Call)
+	}
+
 	// Register callbacks after the window initialization done.
 	// The callback might cause swapping frames, that assumes the window is already set (#2137).
 	if err := u.registerWindowCloseCallback(); err != nil {

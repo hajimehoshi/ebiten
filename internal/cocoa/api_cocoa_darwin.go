@@ -81,11 +81,13 @@ var (
 	sel_mainScreen                                 = objc.RegisterName("mainScreen")
 	sel_screen                                     = objc.RegisterName("screen")
 	sel_isVisible                                  = objc.RegisterName("isVisible")
+	sel_inLiveResize                               = objc.RegisterName("inLiveResize")
 	sel_deviceDescription                          = objc.RegisterName("deviceDescription")
 	sel_objectForKey                               = objc.RegisterName("objectForKey:")
 	sel_unsignedIntValue                           = objc.RegisterName("unsignedIntValue")
 	sel_setLayer                                   = objc.RegisterName("setLayer:")
 	sel_setWantsLayer                              = objc.RegisterName("setWantsLayer:")
+	sel_setLayerContentsRedrawPolicy               = objc.RegisterName("setLayerContentsRedrawPolicy:")
 	sel_mainRunLoop                                = objc.RegisterName("mainRunLoop")
 	sel_currentRunLoop                             = objc.RegisterName("currentRunLoop")
 	sel_run                                        = objc.RegisterName("run")
@@ -171,6 +173,10 @@ func (w NSWindow) IsVisible() bool {
 	return w.Send(sel_isVisible) != 0
 }
 
+func (w NSWindow) InLiveResize() bool {
+	return w.Send(sel_inLiveResize) != 0
+}
+
 func (w NSWindow) Screen() NSScreen {
 	return NSScreen{w.Send(sel_screen)}
 }
@@ -197,6 +203,20 @@ func (v NSView) Frame() NSRect {
 
 func (v NSView) SetLayer(layer uintptr) {
 	v.Send(sel_setLayer, layer)
+}
+
+type NSViewLayerContentsRedrawPolicy NSInteger
+
+const (
+	NSViewLayerContentsRedrawNever             NSViewLayerContentsRedrawPolicy = 0
+	NSViewLayerContentsRedrawOnSetNeedsDisplay NSViewLayerContentsRedrawPolicy = 1
+	NSViewLayerContentsRedrawDuringViewResize  NSViewLayerContentsRedrawPolicy = 2
+	NSViewLayerContentsRedrawBeforeViewResize  NSViewLayerContentsRedrawPolicy = 3
+	NSViewLayerContentsRedrawCrossfade         NSViewLayerContentsRedrawPolicy = 4
+)
+
+func (v NSView) SetLayerContentsRedrawPolicy(policy NSViewLayerContentsRedrawPolicy) {
+	v.Send(sel_setLayerContentsRedrawPolicy, int(policy))
 }
 
 func (v NSView) SetWantsLayer(wantsLayer bool) {

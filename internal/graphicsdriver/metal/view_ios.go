@@ -83,6 +83,23 @@ func (v *view) finishDrawableUsage() {
 	// Do nothing.
 }
 
+func (v *view) setDrawableSize(width, height int) {
+	v.ml.SetDrawableSize(width, height)
+}
+
+func (v *view) updatePresentationState() {
+	// There is no user-driven window resizing on iOS, and presentsWithTransaction is always false.
+}
+
+func (v *view) shouldPresentWithTransaction() bool {
+	// There is no user-driven window resizing on iOS.
+	return false
+}
+
+func (v *view) presentDrawableWithTransaction(cb mtl.CommandBuffer, d ca.MetalDrawable) {
+	panic("metal: presentDrawableWithTransaction is not available on iOS")
+}
+
 func (v *view) presentDrawable(cb mtl.CommandBuffer, d ca.MetalDrawable) {
 	cb.PresentDrawable(d)
 }

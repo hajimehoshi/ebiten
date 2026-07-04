@@ -131,6 +131,7 @@ func (g *Graphics) Begin() error {
 	// NSAutoreleasePool is required to release drawable correctly (#847).
 	// https://developer.apple.com/library/archive/documentation/3DDrawing/Conceptual/MTLBestPracticesGuide/Drawables.html
 	g.pool = cocoa.NSAutoreleasePool_new()
+	g.view.updatePresentationState()
 	return nil
 }
 
@@ -148,6 +149,14 @@ func (g *Graphics) SetWindow(window uintptr) {
 	// Note that [NSApp mainWindow] returns nil when the window is borderless.
 	// Then the window is needed to be given explicitly.
 	g.view.setWindow(window)
+}
+
+// SetMainThreadRunner sets a function that runs the given function on the main thread synchronously.
+//
+// The runner must be able to run a function even while the main thread is blocked until the
+// current frame ends, like during window resizing.
+func (g *Graphics) SetMainThreadRunner(f func(func())) {
+	g.view.runOnMainThread = f
 }
 
 func (g *Graphics) SetUIView(uiview uintptr) {
@@ -269,13 +278,23 @@ func (g *Graphics) flushCommandBufferIfNeeded(present bool) {
 	g.flushRenderCommandEncoderIfNeeded()
 
 	var presented bool
+	var drawableToPresentWithTransaction ca.MetalDrawable
 	if present && g.screenDrawable != (ca.MetalDrawable{}) {
-		g.view.presentDrawable(g.cb, g.screenDrawable)
+		if g.view.shouldPresentWithTransaction() {
+			// The drawable must be presented after the command buffer is committed and scheduled.
+			drawableToPresentWithTransaction = g.screenDrawable
+		} else {
+			g.view.presentDrawable(g.cb, g.screenDrawable)
+		}
 		g.screenDrawable = ca.MetalDrawable{}
 		presented = true
 	}
 
 	g.cb.Commit()
+
+	if drawableToPresentWithTransaction != (ca.MetalDrawable{}) {
+		g.view.presentDrawableWithTransaction(g.cb, drawableToPresentWithTransaction)
+	}
 
 	for _, t := range g.tmpTextures {
 		t.Release()

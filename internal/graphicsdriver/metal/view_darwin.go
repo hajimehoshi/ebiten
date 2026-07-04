@@ -44,6 +44,11 @@ type view struct {
 	// This can be read from the thread for CAMetalDisplayLink, while the other members are used only on the rendering thread.
 	vsyncDisabled atomic.Bool
 
+	// liveResizing reports whether the window is being resized by the user on macOS.
+	// This is written on the rendering thread, and can be read from the thread for CAMetalDisplayLink.
+	// This is always false on iOS.
+	liveResizing atomic.Bool
+
 	device mtl.Device
 	ml     ca.MetalLayer
 
@@ -53,8 +58,9 @@ type view struct {
 	metalDisplayLink uintptr
 
 	// queuedPresents is the number of drawables that are queued for presentation and not presented yet.
-	// queuedPresents is tracked while vsync is disabled on macOS, to skip a frame instead of blocking
-	// until a drawable is available (see nextDrawable).
+	// While vsync is disabled on macOS, this is used to skip a frame instead of blocking until a
+	// drawable is available (see nextDrawable). This is also used to wait for all the queued
+	// presentations before switching to transaction-synced presentation (see updatePresentsWithTransaction).
 	// queuedPresents is incremented on the rendering thread and decremented on Metal's presentation thread.
 	queuedPresents atomic.Int32
 
@@ -69,6 +75,23 @@ type view struct {
 	// lastPresentTime is the last time when a drawable presentation was registered on a command buffer.
 	lastPresentTime time.Time
 
+	// presentsWithTransaction is the last value set for the layer's presentsWithTransaction property.
+	// This is true only while the window is being resized by the user on macOS, and always false on iOS.
+	presentsWithTransaction bool
+
+	// drawableWidth and drawableHeight are the last drawable size set at setDrawableSize.
+	// These are used only on the rendering thread, and only on macOS.
+	drawableWidth  int
+	drawableHeight int
+
+	// drawableSizeDirty reports whether the drawable size recorded at setDrawableSize is not
+	// applied to the layer yet. This is used only on the rendering thread, and only on macOS.
+	drawableSizeDirty bool
+
+	// runOnMainThread runs a function on the main thread synchronously.
+	// This is set at most once at the initialization on macOS, and nil on iOS.
+	runOnMainThread func(f func())
+
 	// The following members are used only with CAMetalDisplayLink.
 	drawableCh               chan ca.MetalDrawable
 	drawableDoneCh           chan struct{}
@@ -80,10 +103,6 @@ type view struct {
 	// The following members are used only with CADisplayLink.
 	handleToSelf viewHandle
 	fence        *fence
-}
-
-func (v *view) setDrawableSize(width, height int) {
-	v.ml.SetDrawableSize(width, height)
 }
 
 func (v *view) getMTLDevice() mtl.Device {
@@ -127,9 +146,8 @@ func (v *view) initialize(device mtl.Device, colorSpace color.ColorSpace) error 
 	v.forceSetDisplaySyncEnabled(!v.vsyncDisabled.Load())
 	v.ml.SetFramebufferOnly(true)
 
-	// presentsWithTransaction doesn't work in the fullscreen mode (#1745, #1974).
-	// presentsWithTransaction doesn't work with vsync off (#1196).
-	// nextDrawable took more than one second if the window has other controls like NSTextView (#1029).
+	// presentsWithTransaction is disabled at first, and updated at every frame on macOS
+	// (see updatePresentationState). This is always disabled on iOS.
 	v.ml.SetPresentsWithTransaction(false)
 
 	v.ml.SetMaximumDrawableCount(maximumDrawableCount)

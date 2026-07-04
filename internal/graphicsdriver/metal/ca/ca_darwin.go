@@ -37,6 +37,7 @@ var (
 	class_CAMetalLayer             = objc.GetClass("CAMetalLayer")
 	class_CAMetalDisplayLink       = objc.GetClass("CAMetalDisplayLink")
 	class_CAMetalDisplayLinkUpdate = objc.GetClass("CAMetalDisplayLinkUpdate")
+	class_CATransaction            = objc.GetClass("CATransaction")
 )
 
 var (
@@ -66,7 +67,15 @@ var (
 	sel_release                    = objc.RegisterName("release")
 	sel_addPresentedHandler        = objc.RegisterName("addPresentedHandler:")
 	sel_respondsToSelector         = objc.RegisterName("respondsToSelector:")
+	sel_flush                      = objc.RegisterName("flush")
 )
+
+// FlushTransaction commits any extant implicit Core Animation transaction on the calling thread.
+//
+// Reference: https://developer.apple.com/documentation/quartzcore/catransaction/1448270-flush.
+func FlushTransaction() {
+	objc.ID(class_CATransaction).Send(sel_flush)
+}
 
 // Layer is an object that manages image-based content and
 // allows you to perform animations on that content.
