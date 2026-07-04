@@ -270,7 +270,7 @@ func (g *Graphics) flushCommandBufferIfNeeded(present bool) {
 
 	var presented bool
 	if present && g.screenDrawable != (ca.MetalDrawable{}) {
-		g.cb.PresentDrawable(g.screenDrawable)
+		g.view.presentDrawable(g.cb, g.screenDrawable)
 		g.screenDrawable = ca.MetalDrawable{}
 		presented = true
 	}

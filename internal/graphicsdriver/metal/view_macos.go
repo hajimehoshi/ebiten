@@ -17,9 +17,12 @@
 package metal
 
 import (
+	"time"
+
 	"github.com/ebitengine/purego/objc"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/cocoa"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/ca"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/mtl"
 )
 
@@ -61,12 +64,34 @@ func (v *view) initializeOS() error {
 }
 
 func (v *view) waitForDisplayLinkOutputCallback() {
-	if v.caDisplayLink == 0 && v.metalDisplayLink == 0 {
+	if v.caDisplayLink == 0 {
 		return
 	}
-	if v.caDisplayLink == 0 && v.vsyncDisabled {
-		// TODO: nextDrawable still waits for the next drawable available, so this should be fixed not to wait.
+	if v.vsyncDisabled.Load() {
 		return
 	}
 	v.fence.wait()
+}
+
+// presentDrawable registers the drawable presentation on the command buffer.
+func (v *view) presentDrawable(cb mtl.CommandBuffer, d ca.MetalDrawable) {
+	// While vsync is disabled, the number of drawables queued for presentation is tracked
+	// so that nextDrawable can skip a frame instead of blocking until a drawable is available.
+	if v.vsyncDisabled.Load() {
+		v.presentedHandlerOnce.Do(func() {
+			// addPresentedHandler is available as of macOS 10.15.4.
+			if !d.CanAddPresentedHandler() {
+				return
+			}
+			v.presentedHandler = objc.NewBlock(func(block objc.Block, drawable objc.ID) {
+				v.queuedPresents.Add(-1)
+			})
+		})
+		if v.presentedHandler != 0 {
+			v.queuedPresents.Add(1)
+			d.AddPresentedHandler(v.presentedHandler)
+		}
+	}
+	v.lastPresentTime = time.Now()
+	cb.PresentDrawable(d)
 }

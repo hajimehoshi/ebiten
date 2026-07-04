@@ -83,6 +83,14 @@ func (v *view) finishDrawableUsage() {
 	// Do nothing.
 }
 
+func (v *view) presentDrawable(cb mtl.CommandBuffer, d ca.MetalDrawable) {
+	cb.PresentDrawable(d)
+}
+
+func (v *view) updateMetalDisplayLink() {
+	// Do nothing.
+}
+
 func (v *view) initializeOS() error {
 	// Do nothing.
 	return nil

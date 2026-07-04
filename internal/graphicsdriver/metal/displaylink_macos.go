@@ -110,6 +110,11 @@ func (v *view) initCAMetalDisplayLink() error {
 						slog.Debug("metal: metalDisplayLink:needsUpdate: is unexpectedly called from the main run loop")
 						return
 					}
+					// vsyncDisabled becomes true before the display link is invalidated (see updateMetalDisplayLink).
+					// Return without sending a drawable so that the run loop can execute the invalidation block.
+					if v.vsyncDisabled.Load() {
+						return
+					}
 					drawable := ca.MetalDisplayLinkUpdate{ID: needsUpdate}.Drawable()
 					if drawable == (ca.MetalDrawable{}) {
 						return
@@ -125,16 +130,76 @@ func (v *view) initCAMetalDisplayLink() error {
 	}
 	class_EbitengineCAMetalDisplayLinkDelegate = c
 
-	v.createCAMetalDisplayLink()
+	v.updateMetalDisplayLink()
 
 	return nil
 }
 
-func (v *view) createCAMetalDisplayLink() {
+// updateMetalDisplayLink creates or destroys CAMetalDisplayLink for the current vsync state.
+//
+// CAMetalLayer's nextDrawable is not available while CAMetalDisplayLink exists for the layer.
+// The display link must be destroyed while vsync is disabled, as drawables are obtained
+// directly from the Metal layer then (see nextDrawable).
+func (v *view) updateMetalDisplayLink() {
+	// A zero run loop means CAMetalDisplayLink is not used: either the OS doesn't support it,
+	// or the display link is not initialized yet. In the latter case, initCAMetalDisplayLink
+	// calls this function after creating the run loop.
+	if v.metalDisplayLinkRunLoop.ID == 0 {
+		return
+	}
+
+	// Destroy the display link while vsync is disabled.
+	if v.vsyncDisabled.Load() {
+		if v.metalDisplayLink == 0 {
+			return
+		}
+		dl := ca.MetalDisplayLink{ID: objc.ID(v.metalDisplayLink)}
+		v.metalDisplayLink = 0
+
+		// If a drawable from the display link is still in use, the delegate callback that delivered it is
+		// blocked until the drawable usage finishes. Unblock the callback. The drawable remains usable and
+		// presentable.
+		if v.drawableFromDisplayLink {
+			v.drawableFromDisplayLink = false
+			v.drawableDoneCh <- struct{}{}
+		}
+
+		done := make(chan struct{})
+		v.metalDisplayLinkRunLoop.PerformBlock(objc.NewBlock(func(block objc.Block) {
+			dl.Invalidate()
+			dl.Release()
+			close(done)
+		}))
+
+		// A delegate callback might be blocked to send a drawable, preventing the run loop from executing
+		// the block above. Receive drawables until the display link is invalidated.
+		// New delegate callbacks return without sending a drawable as vsyncDisabled is already true,
+		// so this loop always terminates.
+	loop:
+		for {
+			select {
+			case <-v.drawableCh:
+				v.drawableDoneCh <- struct{}{}
+			case <-done:
+				break loop
+			}
+		}
+		return
+	}
+
+	// Create the display link while vsync is enabled.
+	if v.metalDisplayLink != 0 {
+		return
+	}
+
+	if v.metalDisplayLinkDelegate == 0 {
+		v.metalDisplayLinkDelegate = objc.ID(class_EbitengineCAMetalDisplayLinkDelegate).Send(objc.RegisterName("new"))
+	}
+
 	ch := make(chan uintptr)
 	v.metalDisplayLinkRunLoop.PerformBlock(objc.NewBlock(func(block objc.Block) {
 		dl := ca.NewMetalDisplayLink(v.ml)
-		dl.SetDelegate(objc.ID(class_EbitengineCAMetalDisplayLinkDelegate).Send(objc.RegisterName("new")))
+		dl.SetDelegate(v.metalDisplayLinkDelegate)
 		dl.AddToRunLoop(v.metalDisplayLinkRunLoop, cocoa.NSDefaultRunLoopMode)
 		dl.SetPaused(false)
 		ch <- uintptr(dl.ID)
@@ -208,12 +273,23 @@ func (v *view) nextDrawable() ca.MetalDrawable {
 		defer v.drawableTimer.Stop()
 		select {
 		case d := <-v.drawableCh:
+			v.drawableFromDisplayLink = true
 			return d
 		case <-v.drawableTimer.C:
 			// This happens when the main thread needs to execute the notification observer callback,
 			// or when the appliation goes to full screen (#3354).
 			return ca.MetalDrawable{}
 		}
+	}
+
+	// While vsync is disabled, getting a drawable must not block until one is available.
+	// When all the drawables but the one on the display are queued for presentation,
+	// skip the frame instead of blocking. The time condition is a fallback to keep presenting
+	// even when the tracking is stuck e.g. by a presented handler not being called.
+	if v.vsyncDisabled.Load() &&
+		v.queuedPresents.Load() >= maximumDrawableCount-1 &&
+		time.Since(v.lastPresentTime) < time.Second/4 {
+		return ca.MetalDrawable{}
 	}
 
 	v.waitForDisplayLinkOutputCallback()
@@ -227,8 +303,9 @@ func (v *view) nextDrawable() ca.MetalDrawable {
 }
 
 func (v *view) finishDrawableUsage() {
-	if v.metalDisplayLink != 0 {
-		v.drawableDoneCh <- struct{}{}
+	if !v.drawableFromDisplayLink {
 		return
 	}
+	v.drawableFromDisplayLink = false
+	v.drawableDoneCh <- struct{}{}
 }

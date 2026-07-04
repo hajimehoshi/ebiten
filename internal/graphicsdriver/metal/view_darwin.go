@@ -17,7 +17,10 @@ package metal
 import (
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"time"
+
+	"github.com/ebitengine/purego/objc"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/cocoa"
 	"github.com/hajimehoshi/ebiten/v2/internal/color"
@@ -36,7 +39,10 @@ type view struct {
 	uiview uintptr
 
 	windowChanged bool
-	vsyncDisabled bool
+
+	// vsyncDisabled reports whether vsync is disabled.
+	// This can be read from the thread for CAMetalDisplayLink, while the other members are used only on the rendering thread.
+	vsyncDisabled atomic.Bool
 
 	device mtl.Device
 	ml     ca.MetalLayer
@@ -46,11 +52,30 @@ type view struct {
 	caDisplayLink    uintptr
 	metalDisplayLink uintptr
 
+	// queuedPresents is the number of drawables that are queued for presentation and not presented yet.
+	// queuedPresents is tracked while vsync is disabled on macOS, to skip a frame instead of blocking
+	// until a drawable is available (see nextDrawable).
+	// queuedPresents is incremented on the rendering thread and decremented on Metal's presentation thread.
+	queuedPresents atomic.Int32
+
+	// presentedHandler is the handler called when a drawable is presented.
+	// presentedHandler is created at most once and reused for all the drawables.
+	// A zero presentedHandler means the handler is not created yet or not available.
+	presentedHandler objc.Block
+
+	// presentedHandlerOnce guards the creation of presentedHandler.
+	presentedHandlerOnce sync.Once
+
+	// lastPresentTime is the last time when a drawable presentation was registered on a command buffer.
+	lastPresentTime time.Time
+
 	// The following members are used only with CAMetalDisplayLink.
-	drawableCh              chan ca.MetalDrawable
-	drawableDoneCh          chan struct{}
-	drawableTimer           *time.Timer
-	metalDisplayLinkRunLoop cocoa.NSRunLoop
+	drawableCh               chan ca.MetalDrawable
+	drawableDoneCh           chan struct{}
+	drawableTimer            *time.Timer
+	drawableFromDisplayLink  bool
+	metalDisplayLinkRunLoop  cocoa.NSRunLoop
+	metalDisplayLinkDelegate objc.ID
 
 	// The following members are used only with CADisplayLink.
 	handleToSelf viewHandle
@@ -66,7 +91,7 @@ func (v *view) getMTLDevice() mtl.Device {
 }
 
 func (v *view) setDisplaySyncEnabled(enabled bool) {
-	if !v.vsyncDisabled == enabled {
+	if !v.vsyncDisabled.Load() == enabled {
 		return
 	}
 	v.forceSetDisplaySyncEnabled(enabled)
@@ -74,7 +99,8 @@ func (v *view) setDisplaySyncEnabled(enabled bool) {
 
 func (v *view) forceSetDisplaySyncEnabled(enabled bool) {
 	v.ml.SetDisplaySyncEnabled(enabled)
-	v.vsyncDisabled = !enabled
+	v.vsyncDisabled.Store(!enabled)
+	v.updateMetalDisplayLink()
 }
 
 func (v *view) colorPixelFormat() mtl.PixelFormat {
@@ -98,7 +124,7 @@ func (v *view) initialize(device mtl.Device, colorSpace color.ColorSpace) error 
 	v.ml.SetPixelFormat(mtl.PixelFormatBGRA8UNorm)
 
 	// The vsync state might be reset. Set the state again (#1364).
-	v.forceSetDisplaySyncEnabled(!v.vsyncDisabled)
+	v.forceSetDisplaySyncEnabled(!v.vsyncDisabled.Load())
 	v.ml.SetFramebufferOnly(true)
 
 	// presentsWithTransaction doesn't work in the fullscreen mode (#1745, #1974).
