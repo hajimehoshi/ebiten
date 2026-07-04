@@ -977,13 +977,9 @@ func (u *glfwBackend) outsideSize() (float64, float64, error) {
 
 // setFPSMode must be called from the main thread.
 func (u *glfwBackend) setFPSMode(fpsMode FPSModeType) error {
-	needUpdate := FPSModeType(u.fpsMode.Load()) != fpsMode || !u.fpsModeInited
-	u.fpsMode.Store(int32(fpsMode))
+	// The unchanged-mode case is filtered out by UserInterface.SetFPSMode, which updates u.fpsMode.
+	// Do not compare fpsMode with u.fpsMode here.
 	u.fpsModeInited = true
-
-	if !needUpdate {
-		return nil
-	}
 
 	sticky := glfw.True
 	if fpsMode == FPSModeVsyncOffMinimum {
@@ -996,8 +992,7 @@ func (u *glfwBackend) setFPSMode(fpsMode FPSModeType) error {
 		return err
 	}
 
-	vsyncEnabled := FPSModeType(u.fpsMode.Load()) == FPSModeVsyncOn
-	graphicscommand.SetVsyncEnabled(vsyncEnabled, u.graphicsDriver)
+	graphicscommand.SetVsyncEnabled(fpsMode == FPSModeVsyncOn, u.graphicsDriver)
 
 	return nil
 }
