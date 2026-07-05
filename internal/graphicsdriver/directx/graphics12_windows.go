@@ -505,9 +505,15 @@ func (g *graphics12) updateSwapChain(width, height int) error {
 		return nil
 	}
 
-	// Resize the swap chain now, before this frame renders the screen, so that the frame renders
-	// and presents at the new size. Presenting a stale-size buffer while the window is already at
-	// the new size makes the compositor scale it for a moment (#3477).
+	// If the buffers already cover the window, leave the swap chain unchanged; the screen renders
+	// into the top-left window-sized region.
+	if g.graphicsInfra.canReuseSwapChainBuffers(width, height) {
+		return nil
+	}
+
+	// Otherwise reallocate the swap chain now, before this frame renders the screen, so that the
+	// frame renders and presents at the new size. Presenting a stale-size buffer while the window is
+	// already at the new size makes the compositor scale it for a moment (#3477).
 	if err := g.resizeSwapChainDesktop(width, height); err != nil {
 		return err
 	}
@@ -795,6 +801,16 @@ func (g *graphics12) End(present bool) error {
 
 func (g *graphics12) presentDesktop() error {
 	return g.graphicsInfra.present(g.vsyncEnabled)
+}
+
+// FinishForcedFrame waits for a frame forced while the game loop is blocked (e.g. during a window
+// resize) to finish on the GPU, so it reaches the screen immediately rather than a frame late, which
+// DirectX 12's frame pipelining would otherwise cause (#3477).
+func (g *graphics12) FinishForcedFrame() error {
+	if microsoftgdk.IsXbox() {
+		return nil
+	}
+	return g.waitForCommandQueue()
 }
 
 func (g *graphics12) presentXbox() error {

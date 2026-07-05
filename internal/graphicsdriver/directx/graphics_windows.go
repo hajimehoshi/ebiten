@@ -153,6 +153,11 @@ type graphicsInfra struct {
 
 	bufferCount int
 
+	// bufferWidth and bufferHeight are the allocated size of the swap chain's back buffers, which
+	// can exceed the window size (see canReuseSwapChainBuffers).
+	bufferWidth  int
+	bufferHeight int
+
 	cleanup runtime.Cleanup
 }
 
@@ -348,6 +353,9 @@ func (g *graphicsInfra) initSwapChain(width, height int, device unsafe.Pointer, 
 		}
 	}
 
+	g.bufferWidth = width
+	g.bufferHeight = height
+
 	return nil
 }
 
@@ -446,18 +454,42 @@ func (g *graphicsInfra) initSwapChainComposition(width, height int, device unsaf
 	return nil
 }
 
+// alignSwapChainBufferSize rounds size up so a continuous resize does not reallocate the buffers on
+// every step.
+func alignSwapChainBufferSize(size int) int {
+	const unit = 1024
+	return (size + unit - 1) / unit * unit
+}
+
+// canReuseSwapChainBuffers reports whether a width x height window can be presented with the current
+// back buffers, without reallocating them. Only composition swap chains qualify, since the window
+// clips their possibly oversized buffers; a plain HWND swap chain must always match the window (#3477).
+func (g *graphicsInfra) canReuseSwapChainBuffers(width, height int) bool {
+	return g.dcompDevice != nil && width <= g.bufferWidth && height <= g.bufferHeight
+}
+
 func (g *graphicsInfra) resizeSwapChain(width, height int) error {
 	if g.swapChain == nil {
 		return fmt.Errorf("directx: swap chain must be initialized at resizeSwapChain, but is not")
+	}
+
+	// Grow a composition swap chain's buffers with headroom and never shrink them. A plain HWND swap
+	// chain matches its buffers to the window.
+	bufferWidth, bufferHeight := width, height
+	if g.dcompDevice != nil {
+		bufferWidth = alignSwapChainBufferSize(max(width, g.bufferWidth))
+		bufferHeight = alignSwapChainBufferSize(max(height, g.bufferHeight))
 	}
 
 	var flag uint32
 	if g.allowTearing {
 		flag |= uint32(_DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING)
 	}
-	if err := g.swapChain.ResizeBuffers(uint32(g.bufferCount), uint32(width), uint32(height), _DXGI_FORMAT_B8G8R8A8_UNORM, flag); err != nil {
+	if err := g.swapChain.ResizeBuffers(uint32(g.bufferCount), uint32(bufferWidth), uint32(bufferHeight), _DXGI_FORMAT_B8G8R8A8_UNORM, flag); err != nil {
 		return err
 	}
+	g.bufferWidth = bufferWidth
+	g.bufferHeight = bufferHeight
 
 	// Let the DirectComposition visual pick up the resized swap chain.
 	if g.dcompDevice != nil {

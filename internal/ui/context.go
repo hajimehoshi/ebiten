@@ -112,6 +112,14 @@ func (c *context) forceUpdateFrame(graphicsDriver graphicsdriver.Graphics, outsi
 			return err
 		}
 	}
+
+	// A pipelined driver (DirectX 12) may not finish a forced frame before control returns to the
+	// OS's window-resize loop, showing stale content. Wait for it to finish if supported (#3477).
+	if f, ok := graphicsDriver.(interface{ FinishForcedFrame() error }); ok {
+		if err := f.FinishForcedFrame(); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 

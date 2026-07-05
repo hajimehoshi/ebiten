@@ -396,15 +396,15 @@ func (g *graphics11) NewScreenFramebufferImage(width, height int) (graphicsdrive
 		g.screenImage = nil
 	}
 
-	if g.graphicsInfra.isSwapChainInited() {
+	if !g.graphicsInfra.isSwapChainInited() {
+		if err := g.graphicsInfra.initSwapChain(width, height, unsafe.Pointer(g.device), g.window); err != nil {
+			return nil, err
+		}
+	} else if !g.graphicsInfra.canReuseSwapChainBuffers(width, height) {
 		// Resize the swap chain now, before this frame renders the screen, so that the frame renders
 		// and presents at the new size. Presenting a stale-size buffer while the window is already at
 		// the new size makes the compositor scale it for a moment (#3477).
 		if err := g.graphicsInfra.resizeSwapChain(width, height); err != nil {
-			return nil, err
-		}
-	} else {
-		if err := g.graphicsInfra.initSwapChain(width, height, unsafe.Pointer(g.device), g.window); err != nil {
 			return nil, err
 		}
 	}
