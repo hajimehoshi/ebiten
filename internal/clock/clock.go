@@ -161,6 +161,27 @@ func UpdateFrame() int {
 	return c
 }
 
+// SinkTick advances the logical game time by one tick, so that the following
+// UpdateFrame calls return correspondingly fewer ticks. It accounts for a tick that
+// was run outside of UpdateFrame's own counting (such as a tick forced on window
+// resize), keeping the total number of ticks consistent with the target TPS over time.
+//
+// The logical time is never advanced past the current real time, so that a long
+// continuous resize does not bank an unbounded number of future ticks and stall the
+// game after the resize ends.
+//
+// SinkTick has no effect unless a positive TPS is set.
+func SinkTick() {
+	m.Lock()
+	defer m.Unlock()
+
+	tps := theTPS.Load()
+	if tps <= 0 {
+		return
+	}
+	lastSystemTime = min(lastSystemTime+int64(time.Second)/tps, now())
+}
+
 func SetTPS(newTPS int) {
 	theTPS.Store(int64(newTPS))
 }

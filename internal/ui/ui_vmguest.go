@@ -606,7 +606,7 @@ func (c *context) updateTickForVMGuest(graphicsDriver graphicsdriver.Graphics, o
 		return err
 	}
 
-	if w, h := c.layoutGame(outsideWidth, outsideHeight, deviceScaleFactor); w == 0 || h == 0 {
+	if w, h, _ := c.layoutGame(outsideWidth, outsideHeight, deviceScaleFactor); w == 0 || h == 0 {
 		return nil
 	}
 
@@ -656,7 +656,7 @@ func (c *context) drawFrameForVMGuest(graphicsDriver graphicsdriver.Graphics, ou
 		return err
 	}
 
-	if w, h := c.layoutGame(outsideWidth, outsideHeight, deviceScaleFactor); w == 0 || h == 0 {
+	if w, h, _ := c.layoutGame(outsideWidth, outsideHeight, deviceScaleFactor); w == 0 || h == 0 {
 		return nil
 	}
 

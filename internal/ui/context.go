@@ -55,7 +55,13 @@ type context struct {
 	offscreenHeight float64
 
 	isOffscreenModified bool
-	lastSwapBufferTime  time.Time
+
+	// offscreenDrawn reports whether the current offscreen has been drawn since it was
+	// created. The offscreen keeps its content across frames, but is recreated empty when
+	// the screen size changes, so this guards against presenting an empty (black) frame.
+	offscreenDrawn bool
+
+	lastSwapBufferTime time.Time
 
 	skipCount int
 
@@ -141,7 +147,8 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 	}
 
 	// ForceUpdate can be invoked even if the context is not initialized yet (#1591).
-	if w, h := c.layoutGame(outsideWidth, outsideHeight, deviceScaleFactor); w == 0 || h == 0 {
+	ow, oh, resized := c.layoutGame(outsideWidth, outsideHeight, deviceScaleFactor)
+	if ow == 0 || oh == 0 {
 		return false, nil
 	}
 
@@ -150,10 +157,17 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 		return false, err
 	}
 
-	// Ensure that Update is called once before Draw so that Update can be used for initialization.
-	if !c.updateCalled && updateCount == 0 {
+	// Ensure Update runs at least once before the first Draw (so Update can be used for
+	// initialization), and at least once whenever the layout size changes so that a resize
+	// frame is always preceded by an Update at the new size. Without the latter, an incremental
+	// renderer that only paints the regions computed during Update leaves the newly exposed area
+	// unpainted while the window is being resized (#3477).
+	if updateCount == 0 && (!c.updateCalled || resized) {
 		updateCount = 1
 		c.updateCalled = true
+		// Reconcile the forced tick with the clock: forcing an Update on every resize step
+		// (#3477) would otherwise advance the game time faster than the target TPS (#2615).
+		clock.SinkTick()
 	}
 	debug.FrameLogf("Update count per frame: %d\n", updateCount)
 
@@ -229,6 +243,8 @@ func (c *context) newOffscreenImage(w, h int) *Image {
 	img.modifyCallback = func() {
 		c.isOffscreenModified = true
 	}
+	// A newly created offscreen has no content yet.
+	c.offscreenDrawn = false
 	return img
 }
 
@@ -247,6 +263,10 @@ func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics, ui *UserInter
 		return false, err
 	}
 
+	if c.isOffscreenModified {
+		c.offscreenDrawn = true
+	}
+
 	const maxSkipCount = 4
 
 	if !forceDraw && !c.isOffscreenModified {
@@ -258,6 +278,15 @@ func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics, ui *UserInter
 	}
 
 	if c.skipCount >= maxSkipCount {
+		return false, nil
+	}
+
+	// Never present an offscreen that has not been drawn since it was recreated on a resize.
+	// A game that repaints only on change (an incremental renderer) may draw nothing on the
+	// frame the offscreen is recreated, and presenting it would flash an empty, black frame.
+	// Keep the previously presented frame until the game repaints (#3477). Like the skip-count
+	// above, this is bypassed by a forced draw.
+	if !forceDraw && !c.offscreenDrawn {
 		return false, nil
 	}
 
@@ -276,7 +305,10 @@ func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics, ui *UserInter
 	return true, nil
 }
 
-func (c *context) layoutGame(outsideWidth, outsideHeight float64, deviceScaleFactor float64) (int, int) {
+// layoutGame updates the game's layout for the given outside size and returns
+// the offscreen size in pixels. The returned bool reports whether the screen
+// size changed from the previous layout.
+func (c *context) layoutGame(outsideWidth, outsideHeight float64, deviceScaleFactor float64) (int, int, bool) {
 	owf, ohf := c.game.Layout(outsideWidth, outsideHeight)
 	if owf <= 0 || ohf <= 0 {
 		panic("ui: Layout must return positive numbers")
@@ -284,7 +316,8 @@ func (c *context) layoutGame(outsideWidth, outsideHeight float64, deviceScaleFac
 
 	screenWidth := outsideWidth * deviceScaleFactor
 	screenHeight := outsideHeight * deviceScaleFactor
-	if c.screenWidth != screenWidth || c.screenHeight != screenHeight {
+	resized := c.screenWidth != screenWidth || c.screenHeight != screenHeight
+	if resized {
 		c.skipCount = 0
 	}
 	c.screenWidth = screenWidth
@@ -313,7 +346,7 @@ func (c *context) layoutGame(outsideWidth, outsideHeight float64, deviceScaleFac
 		c.offscreen = c.newOffscreenImage(ow, oh)
 	}
 
-	return ow, oh
+	return ow, oh, resized
 }
 
 func (c *context) clientPositionToLogicalPosition(x, y float64, deviceScaleFactor float64) (float64, float64) {
