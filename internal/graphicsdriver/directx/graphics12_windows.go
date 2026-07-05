@@ -85,6 +85,13 @@ type graphics12 struct {
 	frameIndex          int
 	prevBeginFrameIndex int
 
+	// backBufferIndex is the index of the swap chain's current back buffer, which the screen image
+	// renders into and which present flips. It normally equals frameIndex, but ResizeBuffers resets
+	// the back buffer index independently, so they diverge for the frame in which the swap chain is
+	// resized in the middle of rendering (#3477). frameIndex must stay stable within a frame because
+	// the vertex buffers, command allocators, and fences are indexed by it.
+	backBufferIndex int
+
 	// frameStarted is true since Begin until End with present
 	frameStarted bool
 
@@ -99,9 +106,6 @@ type graphics12 struct {
 	tmpUniforms     []uint32
 
 	vsyncEnabled bool
-
-	newScreenWidth  int
-	newScreenHeight int
 
 	suspendingCh chan struct{}
 	suspendedCh  chan struct{}
@@ -501,8 +505,12 @@ func (g *graphics12) updateSwapChain(width, height int) error {
 		return nil
 	}
 
-	g.newScreenWidth = width
-	g.newScreenHeight = height
+	// Resize the swap chain now, before this frame renders the screen, so that the frame renders
+	// and presents at the new size. Presenting a stale-size buffer while the window is already at
+	// the new size makes the compositor scale it for a moment (#3477).
+	if err := g.resizeSwapChainDesktop(width, height); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -523,6 +531,7 @@ func (g *graphics12) initSwapChainDesktop(width, height int) error {
 		return err
 	}
 	g.frameIndex = idx
+	g.backBufferIndex = idx
 
 	return nil
 }
@@ -579,8 +588,27 @@ func (g *graphics12) initSwapChainXbox(width, height int) (ferr error) {
 	return nil
 }
 
+// resizeSwapChainDesktop resizes the swap chain in the middle of a frame, before the frame renders
+// the screen. This must be called between Begin and End, while the command lists are open.
 func (g *graphics12) resizeSwapChainDesktop(width, height int) error {
-	// All resources must be released before ResizeBuffers.
+	// Execute the commands recorded so far this frame, then close the command lists. ResizeBuffers
+	// requires all references to the swap chain's buffers released, all the GPU work referencing them
+	// finished, and the command lists not recording.
+	if err := g.flushCommandList(g.copyCommandList); err != nil {
+		return err
+	}
+	if err := g.flushCommandList(g.drawCommandList); err != nil {
+		return err
+	}
+	if err := g.copyCommandList.Close(); err != nil {
+		return g.withDeviceRemovedReason(err)
+	}
+	if err := g.drawCommandList.Close(); err != nil {
+		return g.withDeviceRemovedReason(err)
+	}
+
+	// Signaling the command queue and waiting for it makes the GPU idle, since the queue executes
+	// serially.
 	if err := g.waitForCommandQueue(); err != nil {
 		return err
 	}
@@ -595,6 +623,31 @@ func (g *graphics12) resizeSwapChainDesktop(width, height int) error {
 	}
 
 	if err := g.createRenderTargetViewsDesktop(); err != nil {
+		return err
+	}
+
+	// ResizeBuffers resets the current back buffer index. Update backBufferIndex so that the screen
+	// renders into the current back buffer, but keep frameIndex unchanged: the vertex buffers for this
+	// frame were already uploaded under frameIndex, and the command allocators and fences are indexed
+	// by it, so changing it in the middle of a frame would desynchronize them.
+	idx, err := g.graphicsInfra.currentBackBufferIndex()
+	if err != nil {
+		return err
+	}
+	g.backBufferIndex = idx
+
+	// Re-open the command lists so the rest of the frame can keep recording. The GPU is already idle,
+	// so resetting the allocators is safe.
+	if err := g.drawCommandAllocators[g.frameIndex].Reset(); err != nil {
+		return err
+	}
+	if err := g.copyCommandAllocators[g.frameIndex].Reset(); err != nil {
+		return err
+	}
+	if err := g.drawCommandList.Reset(g.drawCommandAllocators[g.frameIndex], nil); err != nil {
+		return err
+	}
+	if err := g.copyCommandList.Reset(g.copyCommandAllocators[g.frameIndex], nil); err != nil {
 		return err
 	}
 
@@ -727,16 +780,6 @@ func (g *graphics12) End(present bool) error {
 			}
 		}
 
-		if g.newScreenWidth != 0 && g.newScreenHeight != 0 {
-			if err := g.resizeSwapChainDesktop(g.newScreenWidth, g.newScreenHeight); err != nil {
-				return err
-			}
-			g.screenImage.width = g.newScreenWidth
-			g.screenImage.height = g.newScreenHeight
-			g.newScreenWidth = 0
-			g.newScreenHeight = 0
-		}
-
 		if err := g.moveToNextFrame(); err != nil {
 			return err
 		}
@@ -782,6 +825,9 @@ func (g *graphics12) moveToNextFrame() error {
 		}
 		g.frameIndex = idx
 	}
+	// The next frame starts with the back buffer index converged with the frame index. They only
+	// diverge when the swap chain is resized in the middle of a frame (see resizeSwapChainDesktop).
+	g.backBufferIndex = g.frameIndex
 
 	if g.fences[g.frameIndex].GetCompletedValue() < g.fenceValues[g.frameIndex] {
 		if err := g.fences[g.frameIndex].SetEventOnCompletion(g.fenceValues[g.frameIndex], g.fenceWaitEvent); err != nil {
@@ -1031,15 +1077,13 @@ func (g *graphics12) NewImage(width, height int) (graphicsdriver.Image, error) {
 }
 
 func (g *graphics12) NewScreenFramebufferImage(width, height int) (graphicsdriver.Image, error) {
-	imageWidth := width
-	imageHeight := height
 	if g.screenImage != nil {
-		imageWidth = g.screenImage.width
-		imageHeight = g.screenImage.height
 		g.screenImage.Dispose()
 		g.screenImage = nil
 	}
 
+	// updateSwapChain resizes the swap chain to the new size immediately, so the screen image can be
+	// created with the new size and the frame renders and presents at that size (#3477).
 	if err := g.updateSwapChain(width, height); err != nil {
 		return nil, err
 	}
@@ -1047,8 +1091,8 @@ func (g *graphics12) NewScreenFramebufferImage(width, height int) (graphicsdrive
 	i := &image12{
 		graphics: g,
 		id:       g.genNextImageID(),
-		width:    imageWidth,
-		height:   imageHeight,
+		width:    width,
+		height:   height,
 		screen:   true,
 		states:   [frameCount]_D3D12_RESOURCE_STATES{0, 0},
 	}

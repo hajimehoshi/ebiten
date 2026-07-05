@@ -58,3 +58,20 @@ func _RegisterAppStateChangeNotification(routine _PAPPSTATE_CHANGE_ROUTINE, cont
 	}
 	return registration, nil
 }
+
+const (
+	_GWL_EXSTYLE = -20
+
+	_WS_EX_NOREDIRECTIONBITMAP = 0x00200000
+)
+
+var (
+	user32 = windows.NewLazySystemDLL("user32.dll")
+
+	procGetWindowLongW = user32.NewProc("GetWindowLongW")
+)
+
+func _GetWindowLongW(hwnd windows.HWND, index int32) int32 {
+	r, _, _ := procGetWindowLongW.Call(uintptr(hwnd), uintptr(index))
+	return int32(r)
+}

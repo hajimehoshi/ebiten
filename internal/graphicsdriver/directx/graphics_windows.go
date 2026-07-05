@@ -160,6 +160,12 @@ type graphicsInfraResources struct {
 	factory    *_IDXGIFactory
 	swapChain  *_IDXGISwapChain
 	swapChain4 *_IDXGISwapChain4
+
+	// dcompDevice, dcompTarget, and dcompVisual are non-nil when the swap chain is presented through
+	// a DirectComposition visual tree instead of being bound directly to the window (#3477).
+	dcompDevice *_IDCompositionDevice
+	dcompTarget *_IDCompositionTarget
+	dcompVisual *_IDCompositionVisual
 }
 
 // newGraphicsInfra takes the ownership of the given factory.
@@ -201,6 +207,18 @@ func (g *graphicsInfraResources) releaseResources() {
 	if g.swapChain4 != nil {
 		g.swapChain4.Release()
 		g.swapChain4 = nil
+	}
+	if g.dcompVisual != nil {
+		g.dcompVisual.Release()
+		g.dcompVisual = nil
+	}
+	if g.dcompTarget != nil {
+		g.dcompTarget.Release()
+		g.dcompTarget = nil
+	}
+	if g.dcompDevice != nil {
+		g.dcompDevice.Release()
+		g.dcompDevice = nil
 	}
 }
 
@@ -252,52 +270,65 @@ func (g *graphicsInfra) initSwapChain(width, height int, device unsafe.Pointer, 
 		return fmt.Errorf("directx: swap chain must not be initialized at initSwapChain, but is already done")
 	}
 
-	// Create a swap chain.
-	//
-	// DXGI_ALPHA_MODE_PREMULTIPLIED doesn't work with a HWND well.
-	//
-	//     IDXGIFactory::CreateSwapChain: Alpha blended swapchains must be created with CreateSwapChainForComposition,
-	//     or CreateSwapChainForCoreWindow with the DXGI_SWAP_CHAIN_FLAG_FOREGROUND_LAYER flag
-	//
-	// Use *_SEQUENTIAL swap effects to follow the Mozilla way:
-	// https://github.com/mozilla/gecko-dev/blob/0907529ff72c456ddb47839f5f7ba16291f28dce/gfx/layers/d3d11/CompositorD3D11.cpp#L167-L254
-	desc := &_DXGI_SWAP_CHAIN_DESC{
-		BufferDesc: _DXGI_MODE_DESC{
-			Width:  uint32(width),
-			Height: uint32(height),
-			Format: _DXGI_FORMAT_B8G8R8A8_UNORM,
-		},
-		SampleDesc: _DXGI_SAMPLE_DESC{
-			Count:   1,
-			Quality: 0,
-		},
-		BufferUsage:  _DXGI_USAGE_RENDER_TARGET_OUTPUT,
-		BufferCount:  frameCount,
-		OutputWindow: window,
-		Windowed:     1,
-		SwapEffect:   _DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL,
+	// If the window was created without a redirection surface (see internal/glfw), it can only
+	// display content through a DirectComposition visual tree. Presenting this way also avoids the
+	// momentary distortion that a plain HWND swap chain shows while the window is being resized
+	// (#3477).
+	if windowHasNoRedirectionBitmap(window) {
+		if err := g.initSwapChainComposition(width, height, device, window); err != nil {
+			return err
+		}
 	}
 
-	// DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL/DISCARD are not supported for older Windows than 10 or DirectX 12.
-	// https://learn.microsoft.com/en-us/windows/win32/api/dxgi/ne-dxgi-dxgi_swap_effect
-	if !winver.IsWindows10OrGreater() {
-		desc.SwapEffect = _DXGI_SWAP_EFFECT_SEQUENTIAL
-		// With the non-flip (bitblt) mode, the buffer count should be 1. See also:
-		// * https://bugzilla.mozilla.org/show_bug.cgi?id=1419293#c18
-		// * https://learn.microsoft.com/en-us/windows/win32/direct3ddxgi/dxgi-flip-model
-		desc.BufferCount = 1
+	if g.swapChain == nil {
+		// Create a plain HWND swap chain.
+		//
+		// DXGI_ALPHA_MODE_PREMULTIPLIED doesn't work with a HWND well. The DirectX debug layer reports:
+		//
+		//     IDXGIFactory::CreateSwapChain: Alpha blended swapchains must be created with CreateSwapChainForComposition,
+		//     or CreateSwapChainForCoreWindow with the DXGI_SWAP_CHAIN_FLAG_FOREGROUND_LAYER flag
+		//
+		// Use *_SEQUENTIAL swap effects to follow the Mozilla way:
+		// https://searchfox.org/firefox-main/rev/24cab6a0399d3dd76568e424d9a720b2be4f56df/gfx/layers/d3d11/CompositorD3D11.cpp#160-201
+		desc := &_DXGI_SWAP_CHAIN_DESC{
+			BufferDesc: _DXGI_MODE_DESC{
+				Width:  uint32(width),
+				Height: uint32(height),
+				Format: _DXGI_FORMAT_B8G8R8A8_UNORM,
+			},
+			SampleDesc: _DXGI_SAMPLE_DESC{
+				Count:   1,
+				Quality: 0,
+			},
+			BufferUsage:  _DXGI_USAGE_RENDER_TARGET_OUTPUT,
+			BufferCount:  frameCount,
+			OutputWindow: window,
+			Windowed:     1,
+			SwapEffect:   _DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL,
+		}
+
+		// DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL/DISCARD are not supported for older Windows than 10 or DirectX 12.
+		// https://learn.microsoft.com/en-us/windows/win32/api/dxgi/ne-dxgi-dxgi_swap_effect
+		if !winver.IsWindows10OrGreater() {
+			desc.SwapEffect = _DXGI_SWAP_EFFECT_SEQUENTIAL
+			// With the non-flip (bitblt) mode, the buffer count should be 1. See also:
+			// * https://bugzilla.mozilla.org/show_bug.cgi?id=1419293#c18
+			// * https://learn.microsoft.com/en-us/windows/win32/direct3ddxgi/dxgi-flip-model
+			desc.BufferCount = 1
+		}
+
+		g.bufferCount = int(desc.BufferCount)
+
+		if g.allowTearing {
+			desc.Flags |= uint32(_DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING)
+		}
+		s, err := g.factory.CreateSwapChain(device, desc)
+		if err != nil {
+			return err
+		}
+		g.swapChain = s
 	}
 
-	g.bufferCount = int(desc.BufferCount)
-
-	if g.allowTearing {
-		desc.Flags |= uint32(_DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING)
-	}
-	s, err := g.factory.CreateSwapChain(device, desc)
-	if err != nil {
-		return err
-	}
-	g.swapChain = s
 	defer func() {
 		if ferr != nil {
 			g.release()
@@ -308,11 +339,109 @@ func (g *graphicsInfra) initSwapChain(width, height int, device unsafe.Pointer, 
 		g.swapChain4 = (*_IDXGISwapChain4)(s4)
 	}
 
-	// MakeWindowAssociation should be called after swap chain creation.
+	// MakeWindowAssociation should be called after swap chain creation. It only applies to a swap
+	// chain bound directly to a window, not to a composition swap chain.
 	// https://docs.microsoft.com/en-us/windows/win32/api/dxgi/nf-dxgi-idxgifactory-makewindowassociation
-	if err := g.factory.MakeWindowAssociation(window, _DXGI_MWA_NO_WINDOW_CHANGES|_DXGI_MWA_NO_ALT_ENTER); err != nil {
+	if g.dcompDevice == nil {
+		if err := g.factory.MakeWindowAssociation(window, _DXGI_MWA_NO_WINDOW_CHANGES|_DXGI_MWA_NO_ALT_ENTER); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// windowHasNoRedirectionBitmap reports whether the window was created without a redirection surface
+// (WS_EX_NOREDIRECTIONBITMAP). Such a window shows nothing unless its content is presented through
+// DirectComposition (#3477).
+func windowHasNoRedirectionBitmap(window windows.HWND) bool {
+	return _GetWindowLongW(window, _GWL_EXSTYLE)&_WS_EX_NOREDIRECTIONBITMAP != 0
+}
+
+// initSwapChainComposition creates a composition swap chain and sets up a DirectComposition visual
+// tree that presents it in the given window. On success, it stores the swap chain and the
+// DirectComposition objects in g.
+func (g *graphicsInfra) initSwapChainComposition(width, height int, device unsafe.Pointer, window windows.HWND) (ferr error) {
+	f, err := g.factory.QueryInterface(&_IID_IDXGIFactory4)
+	if err != nil {
 		return err
 	}
+	if f == nil {
+		return fmt.Errorf("directx: IDXGIFactory4 is not available")
+	}
+	factory4 := (*_IDXGIFactory4)(f)
+	defer factory4.Release()
+
+	desc := &_DXGI_SWAP_CHAIN_DESC1{
+		Width:       uint32(width),
+		Height:      uint32(height),
+		Format:      _DXGI_FORMAT_B8G8R8A8_UNORM,
+		SampleDesc:  _DXGI_SAMPLE_DESC{Count: 1},
+		BufferUsage: _DXGI_USAGE_RENDER_TARGET_OUTPUT,
+		BufferCount: frameCount,
+		Scaling:     _DXGI_SCALING_STRETCH,
+		SwapEffect:  _DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL,
+		AlphaMode:   _DXGI_ALPHA_MODE_IGNORE,
+	}
+	if g.allowTearing {
+		desc.Flags |= uint32(_DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING)
+	}
+
+	swapChain, err := factory4.CreateSwapChainForComposition(device, desc, nil)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if ferr != nil {
+			swapChain.Release()
+		}
+	}()
+
+	dcompDevice, err := _DCompositionCreateDevice(nil)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if ferr != nil {
+			dcompDevice.Release()
+		}
+	}()
+
+	dcompTarget, err := dcompDevice.CreateTargetForHwnd(window, true)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if ferr != nil {
+			dcompTarget.Release()
+		}
+	}()
+
+	dcompVisual, err := dcompDevice.CreateVisual()
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if ferr != nil {
+			dcompVisual.Release()
+		}
+	}()
+
+	if err := dcompVisual.SetContent(unsafe.Pointer(swapChain)); err != nil {
+		return err
+	}
+	if err := dcompTarget.SetRoot(dcompVisual); err != nil {
+		return err
+	}
+	if err := dcompDevice.Commit(); err != nil {
+		return err
+	}
+
+	g.swapChain = swapChain
+	g.dcompDevice = dcompDevice
+	g.dcompTarget = dcompTarget
+	g.dcompVisual = dcompVisual
+	g.bufferCount = int(desc.BufferCount)
 
 	return nil
 }
@@ -328,6 +457,13 @@ func (g *graphicsInfra) resizeSwapChain(width, height int) error {
 	}
 	if err := g.swapChain.ResizeBuffers(uint32(g.bufferCount), uint32(width), uint32(height), _DXGI_FORMAT_B8G8R8A8_UNORM, flag); err != nil {
 		return err
+	}
+
+	// Let the DirectComposition visual pick up the resized swap chain.
+	if g.dcompDevice != nil {
+		if err := g.dcompDevice.Commit(); err != nil {
+			return err
+		}
 	}
 	return nil
 }

@@ -231,21 +231,21 @@ func (i *image12) WritePixels(args []graphicsdriver.PixelsArgs) error {
 
 func (i *image12) resource() *_ID3D12Resource {
 	if i.screen {
-		return i.graphics.renderTargets[i.graphics.frameIndex]
+		return i.graphics.renderTargets[i.graphics.backBufferIndex]
 	}
 	return i.texture
 }
 
 func (i *image12) state() _D3D12_RESOURCE_STATES {
 	if i.screen {
-		return i.states[i.graphics.frameIndex]
+		return i.states[i.graphics.backBufferIndex]
 	}
 	return i.states[0]
 }
 
 func (i *image12) setState(newState _D3D12_RESOURCE_STATES) {
 	if i.screen {
-		i.states[i.graphics.frameIndex] = newState
+		i.states[i.graphics.backBufferIndex] = newState
 		return
 	}
 	i.states[0] = newState
@@ -287,7 +287,7 @@ func (i *image12) setAsRenderTarget(drawCommandList *_ID3D12GraphicsCommandList,
 		if err != nil {
 			return err
 		}
-		rtv.Offset(int32(i.graphics.frameIndex), i.graphics.rtvDescriptorSize)
+		rtv.Offset(int32(i.graphics.backBufferIndex), i.graphics.rtvDescriptorSize)
 		drawCommandList.OMSetRenderTargets([]_D3D12_CPU_DESCRIPTOR_HANDLE{rtv}, false, nil)
 		return nil
 	}

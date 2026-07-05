@@ -340,6 +340,7 @@ const (
 	_WS_EX_APPWINDOW                                           = 0x00040000
 	_WS_EX_CLIENTEDGE                                          = 0x00000200
 	_WS_EX_LAYERED                                             = 0x00080000
+	_WS_EX_NOREDIRECTIONBITMAP                                 = 0x00200000
 	_WS_EX_OVERLAPPEDWINDOW                                    = _WS_EX_WINDOWEDGE | _WS_EX_CLIENTEDGE
 	_WS_EX_TOPMOST                                             = 0x00000008
 	_WS_EX_TRANSPARENT                                         = 0x00000020
@@ -702,6 +703,7 @@ type _WNDCLASSEXW struct {
 }
 
 var (
+	dcomp    = windows.NewLazySystemDLL("dcomp.dll")
 	dwmapi   = windows.NewLazySystemDLL("dwmapi.dll")
 	gdi32    = windows.NewLazySystemDLL("gdi32.dll")
 	kernel32 = windows.NewLazySystemDLL("kernel32.dll")
@@ -709,6 +711,8 @@ var (
 	shcore   = windows.NewLazySystemDLL("shcore.dll")
 	shell32  = windows.NewLazySystemDLL("shell32.dll")
 	user32   = windows.NewLazySystemDLL("user32.dll")
+
+	procDCompositionCreateDevice = dcomp.NewProc("DCompositionCreateDevice")
 
 	procDwmEnableBlurBehindWindow = dwmapi.NewProc("DwmEnableBlurBehindWindow")
 	procDwmGetColorizationColor   = dwmapi.NewProc("DwmGetColorizationColor")
@@ -1119,6 +1123,13 @@ func _DwmIsCompositionEnabled() (bool, error) {
 		return false, fmt.Errorf("glfw: DwmIsCompositionEnabled failed: %w", handleError(windows.Handle(uint32(r))))
 	}
 	return enabled != 0, nil
+}
+
+// isDirectCompositionAvailable reports whether DirectComposition can be used. It is used to decide
+// whether a window can be created without a redirection surface (WS_EX_NOREDIRECTIONBITMAP), which
+// requires the content to be presented through DirectComposition.
+func isDirectCompositionAvailable() bool {
+	return procDCompositionCreateDevice.Find() == nil
 }
 
 func _EnableNonClientDpiScaling(hwnd windows.HWND) error {

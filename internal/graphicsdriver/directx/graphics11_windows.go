@@ -168,9 +168,6 @@ type graphics11 struct {
 
 	vsyncEnabled bool
 	window       windows.HWND
-
-	newScreenWidth  int
-	newScreenHeight int
 }
 
 func newGraphics11(useWARP bool, useDebugLayer bool) (gr11 *graphics11, ferr error) {
@@ -286,30 +283,6 @@ func (g *graphics11) End(present bool) error {
 		return err
 	}
 
-	if g.newScreenWidth != 0 && g.newScreenHeight != 0 {
-		if g.screenImage != nil {
-			// ResizeBuffer requires all the related resources released,
-			// so release the swapchain's buffer.
-			// Do not dispose the screen image itself since the image's ID is still used.
-			g.screenImage.disposeBuffers()
-		}
-
-		if err := g.graphicsInfra.resizeSwapChain(g.newScreenWidth, g.newScreenHeight); err != nil {
-			return err
-		}
-
-		t, err := g.graphicsInfra.getBuffer(0, &_IID_ID3D11Texture2D)
-		if err != nil {
-			return err
-		}
-		g.screenImage.width = g.newScreenWidth
-		g.screenImage.height = g.newScreenHeight
-		g.screenImage.texture = (*_ID3D11Texture2D)(t)
-
-		g.newScreenWidth = 0
-		g.newScreenHeight = 0
-	}
-
 	return nil
 }
 
@@ -416,17 +389,20 @@ func (g *graphics11) NewImage(width, height int) (graphicsdriver.Image, error) {
 }
 
 func (g *graphics11) NewScreenFramebufferImage(width, height int) (graphicsdriver.Image, error) {
-	imageWidth := width
-	imageHeight := height
 	if g.screenImage != nil {
-		imageWidth = g.screenImage.width
-		imageHeight = g.screenImage.height
+		// Dispose the screen image, so that no reference to the swap chain's buffer remains before
+		// ResizeBuffers.
 		g.screenImage.Dispose()
 		g.screenImage = nil
 	}
 
 	if g.graphicsInfra.isSwapChainInited() {
-		g.newScreenWidth, g.newScreenHeight = width, height
+		// Resize the swap chain now, before this frame renders the screen, so that the frame renders
+		// and presents at the new size. Presenting a stale-size buffer while the window is already at
+		// the new size makes the compositor scale it for a moment (#3477).
+		if err := g.graphicsInfra.resizeSwapChain(width, height); err != nil {
+			return nil, err
+		}
 	} else {
 		if err := g.graphicsInfra.initSwapChain(width, height, unsafe.Pointer(g.device), g.window); err != nil {
 			return nil, err
@@ -441,8 +417,8 @@ func (g *graphics11) NewScreenFramebufferImage(width, height int) (graphicsdrive
 	i := &image11{
 		graphics: g,
 		id:       g.genNextImageID(),
-		width:    imageWidth,
-		height:   imageHeight,
+		width:    width,
+		height:   height,
 		screen:   true,
 		texture:  (*_ID3D11Texture2D)(t),
 	}

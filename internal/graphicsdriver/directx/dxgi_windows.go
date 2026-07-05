@@ -66,6 +66,8 @@ const (
 
 type _DXGI_SCALING int32
 
+const _DXGI_SCALING_STRETCH _DXGI_SCALING = 0
+
 type _DXGI_SWAP_CHAIN_FLAG int32
 
 const (
@@ -170,6 +172,20 @@ type _DXGI_SWAP_CHAIN_DESC struct {
 	Windowed     _BOOL
 	SwapEffect   _DXGI_SWAP_EFFECT
 	Flags        uint32
+}
+
+type _DXGI_SWAP_CHAIN_DESC1 struct {
+	Width       uint32
+	Height      uint32
+	Format      _DXGI_FORMAT
+	Stereo      _BOOL
+	SampleDesc  _DXGI_SAMPLE_DESC
+	BufferUsage _DXGI_USAGE
+	BufferCount uint32
+	Scaling     _DXGI_SCALING
+	SwapEffect  _DXGI_SWAP_EFFECT
+	AlphaMode   _DXGI_ALPHA_MODE
+	Flags       uint32
 }
 
 type _LUID struct {
@@ -376,6 +392,20 @@ type _IDXGIFactory4_Vtbl struct {
 	GetCreationFlags              uintptr
 	EnumAdapterByLuid             uintptr
 	EnumWarpAdapter               uintptr
+}
+
+func (i *_IDXGIFactory4) CreateSwapChainForComposition(pDevice unsafe.Pointer, pDesc *_DXGI_SWAP_CHAIN_DESC1, pRestrictToOutput *_IDXGIOutput) (*_IDXGISwapChain, error) {
+	var swapChain *_IDXGISwapChain
+	r, _, _ := syscall.Syscall6(i.vtbl.CreateSwapChainForComposition, 5, uintptr(unsafe.Pointer(i)),
+		uintptr(pDevice), uintptr(unsafe.Pointer(pDesc)), uintptr(unsafe.Pointer(pRestrictToOutput)),
+		uintptr(unsafe.Pointer(&swapChain)), 0)
+	runtime.KeepAlive(pDevice)
+	runtime.KeepAlive(pDesc)
+	runtime.KeepAlive(pRestrictToOutput)
+	if uint32(r) != uint32(windows.S_OK) {
+		return nil, fmt.Errorf("directx: IDXGIFactory4::CreateSwapChainForComposition failed: %w", handleError(windows.Handle(uint32(r))))
+	}
+	return swapChain, nil
 }
 
 func (i *_IDXGIFactory4) EnumAdapters1(adapter uint32) (*_IDXGIAdapter1, error) {

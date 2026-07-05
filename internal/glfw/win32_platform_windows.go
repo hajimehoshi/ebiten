@@ -25,6 +25,11 @@ type platformWindowState struct {
 	transparent    bool // Whether to enable framebuffer transparency on DWM
 	scaleToMonitor bool
 
+	// noRedirectionBitmap is true when the window is created without a redirection surface
+	// (WS_EX_NOREDIRECTIONBITMAP), so DWM does not stretch stale content while the window is being
+	// resized (#3477). It is only enabled for windows that present through DirectComposition.
+	noRedirectionBitmap bool
+
 	// Cached size used to filter out duplicate events
 	width  int
 	height int

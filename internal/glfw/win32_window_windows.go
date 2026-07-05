@@ -51,6 +51,10 @@ func (w *Window) getWindowExStyle() uint32 {
 		style |= _WS_EX_TOPMOST
 	}
 
+	if w.platform.noRedirectionBitmap {
+		style |= _WS_EX_NOREDIRECTIONBITMAP
+	}
+
 	return style
 }
 
@@ -1487,6 +1491,14 @@ func unregisterWindowClassWin32() error {
 }
 
 func (w *Window) platformCreateWindow(wndconfig *wndconfig, ctxconfig *ctxconfig, fbconfig *fbconfig) error {
+	// A window that manages its own presentation (no OpenGL context) and is not transparent can be
+	// created without a redirection surface, so DWM does not stretch stale content while the window
+	// is being resized (#3477). This requires DirectComposition to present the content; the graphics
+	// driver detects WS_EX_NOREDIRECTIONBITMAP and uses DirectComposition accordingly.
+	if ctxconfig.client == NoAPI && !fbconfig.transparent && winver.IsWindows10OrGreater() && isDirectCompositionAvailable() {
+		w.platform.noRedirectionBitmap = true
+	}
+
 	if err := w.createNativeWindow(wndconfig, fbconfig); err != nil {
 		return err
 	}
