@@ -10,6 +10,7 @@ package glfw
 import (
 	"fmt"
 	"os"
+	"runtime"
 	"strconv"
 	"unsafe"
 
@@ -652,6 +653,15 @@ func detectEWMH() {
 	}
 }
 
+// puregoSupportsStructs reports whether purego can marshal a struct passed by
+// value on the current platform. purego supports this only on amd64 and arm64,
+// and among the platforms these files build for only on Linux (see purego's
+// ensureStructSupported). GOOS and GOARCH are constant per build, so a block
+// guarded by this call is eliminated where it is false.
+func puregoSupportsStructs() bool {
+	return runtime.GOOS == "linux" && (runtime.GOARCH == "amd64" || runtime.GOARCH == "arm64")
+}
+
 // initExtensions looks for and initializes supported X11 extensions.
 func initExtensions() error {
 	display := _glfw.platformWindow.display
@@ -788,6 +798,25 @@ func initExtensions() error {
 				xshape.available = true
 			}
 		}
+
+		// The X Sync extension lives in libXext too. XSyncCreateCounter and
+		// XSyncSetCounter take an XSyncValue struct by value, so register them only
+		// where purego can marshal a struct argument; elsewhere available stays
+		// false and _NET_WM_SYNC_REQUEST is left unadvertised.
+		if puregoSupportsStructs() {
+			xsync := &_glfw.platformWindow.xsync
+			purego.RegisterLibFunc(&xsync.QueryExtension, handle, "XSyncQueryExtension")
+			purego.RegisterLibFunc(&xsync.Initialize, handle, "XSyncInitialize")
+			purego.RegisterLibFunc(&xsync.CreateCounter, handle, "XSyncCreateCounter")
+			purego.RegisterLibFunc(&xsync.SetCounter, handle, "XSyncSetCounter")
+			purego.RegisterLibFunc(&xsync.DestroyCounter, handle, "XSyncDestroyCounter")
+
+			if xsync.QueryExtension(display, &xsync.eventBase, &xsync.errorBase) {
+				if xsync.Initialize(display, &xsync.major, &xsync.minor) != 0 {
+					xsync.available = true
+				}
+			}
+		}
 	}
 
 	// Update the key code LUT
@@ -839,6 +868,8 @@ func initExtensions() error {
 	_glfw.platformWindow.NET_WM_ICON_NAME = xInternAtom(display, "_NET_WM_ICON_NAME", false)
 	_glfw.platformWindow.NET_WM_BYPASS_COMPOSITOR = xInternAtom(display, "_NET_WM_BYPASS_COMPOSITOR", false)
 	_glfw.platformWindow.NET_WM_WINDOW_OPACITY = xInternAtom(display, "_NET_WM_WINDOW_OPACITY", false)
+	_glfw.platformWindow.NET_WM_SYNC_REQUEST = xInternAtom(display, "_NET_WM_SYNC_REQUEST", false)
+	_glfw.platformWindow.NET_WM_SYNC_REQUEST_COUNTER = xInternAtom(display, "_NET_WM_SYNC_REQUEST_COUNTER", false)
 	_glfw.platformWindow.MOTIF_WM_HINTS = xInternAtom(display, "_MOTIF_WM_HINTS", false)
 
 	// The compositing manager selection name contains the screen number

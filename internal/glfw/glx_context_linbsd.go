@@ -145,6 +145,7 @@ func makeContextCurrentGLX(window *Window) error {
 
 func swapBuffersGLX(window *Window) error {
 	_glfw.platformContext.glx.SwapBuffers(_glfw.platformWindow.display, window.context.platform.glx.window)
+	window.signalFrameSyncCounter()
 	return nil
 }
 

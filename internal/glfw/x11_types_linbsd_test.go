@@ -353,6 +353,13 @@ func TestXlibStructLayouts(t *testing.T) {
 		{"XIRawEvent.Valuators", unsafe.Offsetof(glfw.XIRawEvent{}.Valuators), 64},
 		{"XIRawEvent.RawValues", unsafe.Offsetof(glfw.XIRawEvent{}.RawValues), 88},
 		{"sizeof XIRawEvent", unsafe.Sizeof(glfw.XIRawEvent{}), 96},
+
+		// XSyncValue is {int hi; unsigned int lo}, both 32-bit on every data
+		// model. The field order is load-bearing: it is passed to the X Sync
+		// counter functions by value, so hi must stay at offset 0.
+		{"XSyncValue.Hi", unsafe.Offsetof(glfw.XSyncValue{}.Hi), 0},
+		{"XSyncValue.Lo", unsafe.Offsetof(glfw.XSyncValue{}.Lo), 4},
+		{"sizeof XSyncValue", unsafe.Sizeof(glfw.XSyncValue{}), 8},
 	} {
 		if tt.got != tt.want {
 			t.Errorf("%s: got %d, want %d", tt.name, tt.got, tt.want)

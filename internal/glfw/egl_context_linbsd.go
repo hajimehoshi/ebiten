@@ -188,6 +188,7 @@ func swapBuffersEGL(window *Window) error {
 		return fmt.Errorf("glfw: egl: the context must be current on the calling thread when swapping buffers: %w", PlatformError)
 	}
 	egl.SwapBuffers(egl.display, window.context.platform.egl.surface)
+	window.signalFrameSyncCounter()
 	return nil
 }
 

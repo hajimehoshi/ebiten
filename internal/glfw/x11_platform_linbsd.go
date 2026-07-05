@@ -7,6 +7,10 @@
 
 package glfw
 
+import (
+	"sync/atomic"
+)
+
 // This file is the Go translation of x11_platform_linbsd.h: the X11-specific
 // platform state embedded in the shared core's Window, Monitor, Cursor, and
 // library structs. The extension function fields are registered from the
@@ -38,6 +42,19 @@ type platformWindowState struct {
 	// The time of the last KeyPress event per keycode, for discarding
 	// duplicate key events generated for some keys by ibus
 	keyPressTimes [256]_Time
+
+	// _NET_WM_SYNC_REQUEST frame synchronization counter (0 when unsupported).
+	// It is set once at window creation and cleared at destruction, both on the
+	// main thread outside the game loop, so it needs no synchronization.
+	syncCounter _XID
+	// syncValue is the counter value the window manager most recently requested
+	// (packed as hi<<32|lo), to be set on syncCounter after the next buffer swap.
+	// syncRequested reports whether such a request is awaiting acknowledgment.
+	// Both are written on the main thread (event handling) and read on the render
+	// thread (buffer swap, which runs asynchronously when vsync is off), so they
+	// are accessed atomically.
+	syncValue     atomic.Uint64
+	syncRequested atomic.Bool
 }
 
 type platformMonitorState struct {
@@ -111,6 +128,8 @@ type platformLibraryWindowState struct {
 	NET_WM_BYPASS_COMPOSITOR       _Atom
 	NET_WM_FULLSCREEN_MONITORS     _Atom
 	NET_WM_WINDOW_OPACITY          _Atom
+	NET_WM_SYNC_REQUEST            _Atom
+	NET_WM_SYNC_REQUEST_COUNTER    _Atom
 	NET_WM_CM_Sx                   _Atom
 	NET_WORKAREA                   _Atom
 	NET_CURRENT_DESKTOP            _Atom
@@ -253,6 +272,23 @@ type platformLibraryWindowState struct {
 		QueryVersion   func(display uintptr, majorVersionReturn, minorVersionReturn *int32) int32
 		CombineRegion  func(display uintptr, window _XID, destKind int32, xOff, yOff int32, region _Region, op int32)
 		CombineMask    func(display uintptr, window _XID, destKind int32, xOff, yOff int32, src _XID, op int32)
+	}
+
+	// xsync holds the X Sync extension entry points used for _NET_WM_SYNC_REQUEST
+	// frame synchronization. It is only wired up where purego can pass an
+	// _XSyncValue by value (see initExtensions), so available is false elsewhere.
+	xsync struct {
+		available bool
+		major     int32
+		minor     int32
+		eventBase int32
+		errorBase int32
+
+		QueryExtension func(display uintptr, eventBaseReturn, errorBaseReturn *int32) bool
+		Initialize     func(display uintptr, majorReturn, minorReturn *int32) int32
+		CreateCounter  func(display uintptr, initialValue _XSyncValue) _XID
+		SetCounter     func(display uintptr, counter _XID, value _XSyncValue) int32
+		DestroyCounter func(display uintptr, counter _XID) int32
 	}
 }
 

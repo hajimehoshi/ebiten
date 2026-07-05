@@ -63,6 +63,14 @@ type (
 	_Region = uintptr
 )
 
+// _XSyncValue mirrors XSyncValue from the X Sync extension: a signed 64-bit
+// value split into high and low halves. Both halves are C int/unsigned int,
+// i.e. exactly 32 bits on every ABI, unlike the pointer-sized _Clong/_Culong.
+type _XSyncValue struct {
+	Hi int32
+	Lo uint32
+}
+
 // XEvent is the Xlib event union: 24 C longs, the first int of which is the
 // event type. Access the contents through the typed view methods, which
 // mirror the C union members.

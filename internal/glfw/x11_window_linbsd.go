@@ -645,6 +645,12 @@ func createNativeWindow(window *Window, wndconfig *wndconfig, visual uintptr, de
 		}
 	}
 
+	// Whether _NET_WM_SYNC_REQUEST frame synchronization can be used for this
+	// window. It requires the X Sync extension and both EWMH atoms.
+	syncRequestSupported := _glfw.platformWindow.xsync.available &&
+		_glfw.platformWindow.NET_WM_SYNC_REQUEST != 0 &&
+		_glfw.platformWindow.NET_WM_SYNC_REQUEST_COUNTER != 0
+
 	// Declare the WM protocols supported by GLFW
 	{
 		protocols := []_Atom{
@@ -652,8 +658,28 @@ func createNativeWindow(window *Window, wndconfig *wndconfig, visual uintptr, de
 			_glfw.platformWindow.NET_WM_PING,
 		}
 
+		// Advertise _NET_WM_SYNC_REQUEST only when the counter below can be set;
+		// otherwise a compositor would wait on it forever during a resize.
+		if syncRequestSupported {
+			protocols = append(protocols, _glfw.platformWindow.NET_WM_SYNC_REQUEST)
+		}
+
 		xSetWMProtocols(_glfw.platformWindow.display, window.platform.handle,
 			&protocols[0], int32(len(protocols)))
+	}
+
+	// Create the _NET_WM_SYNC_REQUEST counter. The window manager reads it to
+	// tell when a frame has been drawn at the new size while resizing, so it can
+	// hold the previous frame instead of showing the unpainted background.
+	if syncRequestSupported {
+		window.platform.syncCounter = _glfw.platformWindow.xsync.CreateCounter(
+			_glfw.platformWindow.display, _XSyncValue{})
+
+		counter := _Clong(window.platform.syncCounter)
+		xChangeProperty(_glfw.platformWindow.display, window.platform.handle,
+			_glfw.platformWindow.NET_WM_SYNC_REQUEST_COUNTER, _XA_CARDINAL, 32,
+			_PropModeReplace,
+			unsafe.Pointer(&counter), 1)
 	}
 
 	// Declare our PID
@@ -1499,6 +1525,16 @@ func processEvent(event *_XEvent) error {
 					false,
 					_SubstructureNotifyMask|_SubstructureRedirectMask,
 					&reply)
+			} else if protocol == _glfw.platformWindow.NET_WM_SYNC_REQUEST {
+				// The window manager is (interactively) resizing the window and
+				// wants the sync counter set to this value once a frame has been
+				// drawn at the new size (EWMH _NET_WM_SYNC_REQUEST). Data[2] and
+				// Data[3] carry the low and high halves of the requested value.
+				if window.platform.syncCounter != 0 {
+					packed := uint64(uint32(int32(client.Data[3])))<<32 | uint64(uint32(client.Data[2]))
+					window.platform.syncValue.Store(packed)
+					window.platform.syncRequested.Store(true)
+				}
 			}
 		} else if client.MessageType == _glfw.platformWindow.XdndEnter {
 			// A drag operation has entered the window
@@ -1910,6 +1946,27 @@ func (w *Window) platformCreateWindow(wndconfig *wndconfig, ctxconfig *ctxconfig
 	return nil
 }
 
+// signalFrameSyncCounter acknowledges the most recent _NET_WM_SYNC_REQUEST by
+// setting the sync counter to the requested value, telling the window manager a
+// frame has been drawn at the new size. It must be called right after a buffer
+// swap, and does nothing unless a request is pending.
+func (w *Window) signalFrameSyncCounter() {
+	if !w.platform.syncRequested.Swap(false) {
+		return
+	}
+
+	packed := w.platform.syncValue.Load()
+	value := _XSyncValue{
+		Hi: int32(uint32(packed >> 32)),
+		Lo: uint32(packed),
+	}
+	_glfw.platformWindow.xsync.SetCounter(_glfw.platformWindow.display,
+		w.platform.syncCounter, value)
+	// Flush so the compositor sees the new value promptly: at a low frame rate
+	// the swap above can be the last X request for a while.
+	xFlush(_glfw.platformWindow.display)
+}
+
 func (w *Window) platformDestroyWindow() error {
 	if _glfw.platformWindow.disabledCursorWindow == w {
 		if err := enableCursor(w); err != nil {
@@ -1924,6 +1981,11 @@ func (w *Window) platformDestroyWindow() error {
 	if w.platform.ic != 0 {
 		xDestroyIC(w.platform.ic)
 		w.platform.ic = 0
+	}
+
+	if w.platform.syncCounter != 0 {
+		_glfw.platformWindow.xsync.DestroyCounter(_glfw.platformWindow.display, w.platform.syncCounter)
+		w.platform.syncCounter = 0
 	}
 
 	if w.context.destroy != nil {
