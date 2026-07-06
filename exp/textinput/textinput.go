@@ -68,11 +68,11 @@ type textInputState struct {
 	Error error
 }
 
-// start starts text inputting.
-// start returns a channel to send the state repeatedly, and a function to end the text inputting.
+// startTextInput starts text inputting.
+// startTextInput returns a channel to send the state repeatedly, and a function to end the text inputting.
 //
-// start returns nil and nil if the current environment doesn't support this package.
-func start(bounds image.Rectangle) (states <-chan textInputState, close func()) {
+// startTextInput returns nil and nil if the current environment doesn't support this package.
+func startTextInput(bounds image.Rectangle) (states <-chan textInputState, close func()) {
 	cMinX, cMinY := ui.Get().LogicalPositionToClientPositionInNativePixels(float64(bounds.Min.X), float64(bounds.Min.Y))
 	cMaxX, cMaxY := ui.Get().LogicalPositionToClientPositionInNativePixels(float64(bounds.Max.X), float64(bounds.Max.Y))
 	return theTextInput.Start(image.Rect(int(cMinX), int(cMinY), int(cMaxX), int(cMaxY)))

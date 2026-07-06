@@ -131,8 +131,8 @@ func (f *Field) HandleInputWithBounds(bounds image.Rectangle) (handled bool, err
 		if f.ch == nil {
 			// TODO: On iOS Safari, Start doesn't work as expected (#2898).
 			// Handle a click event and focus the textarea there.
-			f.ch, f.end = start(bounds)
-			// Start returns nil for non-supported envrionments, or when unable to start text inputting for some reasons.
+			f.ch, f.end = startTextInput(bounds)
+			// startTextInput returns nil for non-supported envrionments, or when unable to start text inputting for some reasons.
 			if f.ch == nil {
 				return handled, nil
 			}
