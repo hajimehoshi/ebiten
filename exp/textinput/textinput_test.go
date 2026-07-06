@@ -135,6 +135,182 @@ func TestClearQueueDropsDiscardedMarkedText(t *testing.T) {
 	}
 }
 
+func TestComputeReplacement(t *testing.T) {
+	tests := []struct {
+		name      string
+		baseline  string
+		newText   string
+		wantText  string
+		wantStart int
+		wantEnd   int
+	}{
+		{
+			name:      "insert into empty",
+			baseline:  "",
+			newText:   "a",
+			wantText:  "a",
+			wantStart: 0,
+			wantEnd:   0,
+		},
+		{
+			name:      "append",
+			baseline:  "a",
+			newText:   "ab",
+			wantText:  "b",
+			wantStart: 1,
+			wantEnd:   1,
+		},
+		{
+			name:      "no change",
+			baseline:  "abc",
+			newText:   "abc",
+			wantText:  "",
+			wantStart: 3,
+			wantEnd:   3,
+		},
+		{
+			name:      "prepend",
+			baseline:  "bc",
+			newText:   "abc",
+			wantText:  "a",
+			wantStart: 0,
+			wantEnd:   0,
+		},
+		{
+			name:      "middle insert",
+			baseline:  "helloworld",
+			newText:   "helloXworld",
+			wantText:  "X",
+			wantStart: 5,
+			wantEnd:   5,
+		},
+		{
+			name:      "middle replace",
+			baseline:  "hello",
+			newText:   "hEllo",
+			wantText:  "E",
+			wantStart: 1,
+			wantEnd:   2,
+		},
+
+		// Accent popup: the trailing base character is replaced.
+		{
+			name:      "accent replaces last ASCII",
+			baseline:  "a",
+			newText:   "à",
+			wantText:  "à",
+			wantStart: 0,
+			wantEnd:   1,
+		},
+		{
+			name:      "accent replaces last in word",
+			baseline:  "cafe",
+			newText:   "café",
+			wantText:  "é",
+			wantStart: 3,
+			wantEnd:   4,
+		},
+		{
+			name:      "accent adds combining mark",
+			baseline:  "e",
+			newText:   "e\u0301",
+			wantText:  "\u0301",
+			wantStart: 1,
+			wantEnd:   1,
+		},
+
+		// Two precomposed accents sharing a leading UTF-8 byte must not be
+		// split mid-rune (à and è both start with 0xC3).
+		{
+			name:      "precomposed to precomposed",
+			baseline:  "à",
+			newText:   "è",
+			wantText:  "è",
+			wantStart: 0,
+			wantEnd:   2,
+		},
+
+		// Multibyte alignment on the suffix side.
+		{
+			name:      "replace before multibyte suffix",
+			baseline:  "aé",
+			newText:   "bé",
+			wantText:  "b",
+			wantStart: 0,
+			wantEnd:   1,
+		},
+		{
+			name:      "replace multibyte middle",
+			baseline:  "海老天",
+			newText:   "海X天",
+			wantText:  "X",
+			wantStart: 3,
+			wantEnd:   6,
+		},
+		{
+			name:      "cjk preedit",
+			baseline:  "",
+			newText:   "日本",
+			wantText:  "日本",
+			wantStart: 0,
+			wantEnd:   0,
+		},
+
+		// Emoji (surrogate pair in UTF-16, 4 bytes in UTF-8).
+		{
+			name:      "replace emoji",
+			baseline:  "\U0001f363",
+			newText:   "\U0001f371",
+			wantText:  "\U0001f371",
+			wantStart: 0,
+			wantEnd:   4,
+		},
+
+		// Deletions yield empty text.
+		{
+			name:      "delete last",
+			baseline:  "ab",
+			newText:   "a",
+			wantText:  "",
+			wantStart: 1,
+			wantEnd:   2,
+		},
+		{
+			name:      "delete first",
+			baseline:  "ab",
+			newText:   "b",
+			wantText:  "",
+			wantStart: 0,
+			wantEnd:   1,
+		},
+		{
+			name:      "delete all",
+			baseline:  "abc",
+			newText:   "",
+			wantText:  "",
+			wantStart: 0,
+			wantEnd:   3,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotText, gotStart, gotEnd := textinput.ComputeReplacement(tt.baseline, tt.newText)
+			if gotText != tt.wantText || gotStart != tt.wantStart || gotEnd != tt.wantEnd {
+				t.Errorf("ComputeReplacement(%q, %q) = (%q, %d, %d), want (%q, %d, %d)",
+					tt.baseline, tt.newText, gotText, gotStart, gotEnd, tt.wantText, tt.wantStart, tt.wantEnd)
+			}
+			// The replaced range must be valid, and applying the edit must
+			// reproduce newText.
+			if gotStart < 0 || gotEnd < gotStart || gotEnd > len(tt.baseline) {
+				t.Fatalf("invalid range [%d, %d) for baseline len %d", gotStart, gotEnd, len(tt.baseline))
+			}
+			if got := tt.baseline[:gotStart] + gotText + tt.baseline[gotEnd:]; got != tt.newText {
+				t.Errorf("applying edit gave %q, want %q", got, tt.newText)
+			}
+		})
+	}
+}
+
 func TestFindLineBounds(t *testing.T) {
 	tests := []struct {
 		name          string

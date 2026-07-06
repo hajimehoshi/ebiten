@@ -26,6 +26,10 @@ func FindLineBounds(text string, selStart, selEnd int) (int, int) {
 	return findLineBounds(text, selStart, selEnd)
 }
 
+func ComputeReplacement(baseline, newText string) (string, int, int) {
+	return computeReplacement(baseline, newText)
+}
+
 type TextInputEvents = textInputEvents
 
 func (s *TextInputEvents) Start() {

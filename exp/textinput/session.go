@@ -111,7 +111,7 @@ func startSession(opts *SessionOptions) (*session, error) {
 		return nil, fmt.Errorf("textinput: TextAfterCaret is not valid UTF-8")
 	}
 
-	ch, end := startTextInput(opts.CaretBounds)
+	ch, end := startTextInput(opts.CaretBounds, opts.TextBeforeCaret, opts.TextAfterCaret)
 	if ch == nil {
 		return nil, nil
 	}

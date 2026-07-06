@@ -40,7 +40,7 @@ type textInputImpl struct {
 	err error
 }
 
-func (t *textInput) Start(bounds image.Rectangle) (<-chan textInputState, func()) {
+func (t *textInput) Start(bounds image.Rectangle, _, _ string) (<-chan textInputState, func()) {
 	if microsoftgdk.IsXbox() {
 		return nil, nil
 	}

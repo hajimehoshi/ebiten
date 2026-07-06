@@ -36,6 +36,16 @@ func init() {
 
 type textInputImpl struct {
 	textareaElement js.Value
+
+	// lastSentValue/lastSentCommitted: the last state sent in the session path,
+	// used to drop trailing duplicate events (e.g. the input after compositionend).
+	lastSentValue     string
+	lastSentCommitted bool
+
+	// committedThisSession reports whether this session already committed; a
+	// second commit before the next session starts falls back to a caret insert
+	// (see trySend).
+	committedThisSession bool
 }
 
 func (t *textInput) init() {
@@ -156,7 +166,7 @@ body.addEventListener("keyup", handler);`)
 	// TODO: What about other events like wheel?
 }
 
-func (t *textInput) Start(bounds image.Rectangle) (<-chan textInputState, func()) {
+func (t *textInput) Start(bounds image.Rectangle, textBeforeCaret, textAfterCaret string) (<-chan textInputState, func()) {
 	if !t.textareaElement.Truthy() {
 		return nil, nil
 	}
@@ -165,13 +175,16 @@ func (t *textInput) Start(bounds image.Rectangle) (<-chan textInputState, func()
 		t.events.end()
 		ch, end := t.events.start()
 		js.Global().Get("window").Set("_ebitengine_textinput_ready", js.Undefined())
+		// The user-interaction handler already focused the textarea and reset
+		// its value; set the surrounding text so edits can be diffed.
+		t.setSurroundingTextToTextarea(textBeforeCaret, textAfterCaret)
 		return ch, end
 	}
 
 	// If a textarea is focused, create a session immediately.
 	// A virtual keyboard should already be shown on mobile browsers.
 	if document.Get("activeElement").Equal(t.textareaElement) {
-		t.textareaElement.Set("value", "")
+		t.setSurroundingTextToTextarea(textBeforeCaret, textAfterCaret)
 		t.textareaElement.Call("focus")
 		style := t.textareaElement.Get("style")
 		style.Set("left", fmt.Sprintf("%dpx", bounds.Min.X))
@@ -197,7 +210,94 @@ func (t *textInput) Start(bounds image.Rectangle) (<-chan textInputState, func()
 	return nil, nil
 }
 
+// setSurroundingTextToTextarea writes the text around the caret so later edits
+// can be diffed against it. The DOM is written only when the value differs, to
+// avoid disturbing an in-flight accent popup.
+func (t *textInput) setSurroundingTextToTextarea(textBeforeCaret, textAfterCaret string) {
+	value := textBeforeCaret + textAfterCaret
+	if t.textareaElement.Get("value").String() != value {
+		t.textareaElement.Set("value", value)
+		caret := max(convertByteCountToUTF16Count(textBeforeCaret, len(textBeforeCaret)), 0)
+		t.textareaElement.Call("setSelectionRange", caret, caret)
+	}
+	t.lastSentValue = value
+	t.lastSentCommitted = true
+	t.committedThisSession = false
+}
+
 func (t *textInput) trySend(committed bool) {
+	s := theTextInput.events.getActiveSession()
+	if s == nil {
+		// No session means the deprecated Field is inputting; it uses the legacy
+		// whole-value path.
+		// TODO: Remove trySendLegacy and this branch once Field is gone; a
+		// Composer session is always active otherwise.
+		t.trySendLegacy(committed)
+		return
+	}
+
+	// Diff the textarea against the session's surrounding text and send the edit
+	// as a replacement range (needed for the accent popup, #3236). The textarea
+	// is not cleared on commit, so the popup can replace the just-typed character.
+	value := t.textareaElement.Get("value").String()
+	if value == t.lastSentValue && committed == t.lastSentCommitted {
+		return
+	}
+
+	if t.committedThisSession {
+		// Already committed this session; the buffer has moved past our baseline.
+		// Send just the new delta as a caret insert (rapid double-commit case).
+		text, _, _ := computeReplacement(t.lastSentValue, value)
+		t.events.send(textInputState{
+			Text:                    text,
+			ReplacementStartInBytes: noReplacement,
+			ReplacementEndInBytes:   noReplacement,
+			Committed:               committed,
+		})
+		t.lastSentValue = value
+		t.lastSentCommitted = committed
+		if committed {
+			t.events.end()
+		}
+		return
+	}
+
+	baseline := s.textBeforeCaret + s.textAfterCaret
+	text, replStartInBytes, replEndInBytes := computeReplacement(baseline, value)
+
+	if !committed {
+		// Composition: the diff middle is the preedit; report the selection
+		// relative to its start.
+		start := t.textareaElement.Get("selectionStart").Int()
+		end := t.textareaElement.Get("selectionEnd").Int()
+		startInBytes := convertUTF16CountToByteCount(value, start)
+		endInBytes := convertUTF16CountToByteCount(value, end)
+		t.events.send(textInputState{
+			Text:                             text,
+			CompositionSelectionStartInBytes: min(max(startInBytes-replStartInBytes, 0), len(text)),
+			CompositionSelectionEndInBytes:   min(max(endInBytes-replStartInBytes, 0), len(text)),
+			ReplacementStartInBytes:          noReplacement,
+			ReplacementEndInBytes:            noReplacement,
+			Committed:                        false,
+		})
+		t.lastSentValue = value
+		t.lastSentCommitted = false
+		return
+	}
+
+	t.events.send(textInputState{
+		Text:                    text,
+		ReplacementStartInBytes: replStartInBytes,
+		ReplacementEndInBytes:   replEndInBytes,
+		Committed:               true,
+	})
+	t.lastSentValue = value
+	t.lastSentCommitted = true
+	t.committedThisSession = true
+	t.events.end()
+}
+
+func (t *textInput) trySendLegacy(committed bool) {
 	textareaValue := t.textareaElement.Get("value").String()
 	// textareaValue can be an empty value, but this should be sent especially for a compositing text (#3324).
 

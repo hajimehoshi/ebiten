@@ -28,7 +28,7 @@ import (
 
 type textInputImpl struct{}
 
-func (t *textInput) Start(bounds image.Rectangle) (<-chan textInputState, func()) {
+func (t *textInput) Start(bounds image.Rectangle, _, _ string) (<-chan textInputState, func()) {
 	var ch <-chan textInputState
 	var end func()
 	ebiten.RunOnMainThread(func() {

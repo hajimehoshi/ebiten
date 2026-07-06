@@ -71,11 +71,15 @@ type textInputState struct {
 // startTextInput starts text inputting.
 // startTextInput returns a channel to send the state repeatedly, and a function to end the text inputting.
 //
+// A platform may mirror textBeforeCaret and textAfterCaret, the surrounding
+// text, into its input buffer so an edit reported by the OS can be expressed as
+// a replacement range within it.
+//
 // startTextInput returns nil and nil if the current environment doesn't support this package.
-func startTextInput(bounds image.Rectangle) (states <-chan textInputState, close func()) {
+func startTextInput(bounds image.Rectangle, textBeforeCaret, textAfterCaret string) (states <-chan textInputState, close func()) {
 	cMinX, cMinY := ui.Get().LogicalPositionToClientPositionInNativePixels(float64(bounds.Min.X), float64(bounds.Min.Y))
 	cMaxX, cMaxY := ui.Get().LogicalPositionToClientPositionInNativePixels(float64(bounds.Max.X), float64(bounds.Max.Y))
-	return theTextInput.Start(image.Rect(int(cMinX), int(cMinY), int(cMaxX), int(cMaxY)))
+	return theTextInput.Start(image.Rect(int(cMinX), int(cMinY), int(cMaxX), int(cMaxY)), textBeforeCaret, textAfterCaret)
 }
 
 func convertUTF16CountToByteCount(text string, c int) int {
@@ -126,6 +130,36 @@ func convertByteCountToUTF16Count(text string, c int) int {
 		}
 	}
 	return -1
+}
+
+// computeReplacement returns the minimal edit turning baseline into newText: the
+// replacement text and the rune-aligned byte range [startInBytes, endInBytes) it
+// replaces in baseline.
+func computeReplacement(baseline, newText string) (replacement string, startInBytes, endInBytes int) {
+	// Common prefix, rune by rune.
+	var prefix int
+	for prefix < len(baseline) && prefix < len(newText) {
+		rb, size := utf8.DecodeRuneInString(baseline[prefix:])
+		rn, _ := utf8.DecodeRuneInString(newText[prefix:])
+		if rb != rn {
+			break
+		}
+		prefix += size
+	}
+
+	// Common suffix, rune by rune, without crossing the prefix.
+	sufBaseline, sufNew := len(baseline), len(newText)
+	for sufBaseline > prefix && sufNew > prefix {
+		rb, size := utf8.DecodeLastRuneInString(baseline[:sufBaseline])
+		rn, _ := utf8.DecodeLastRuneInString(newText[:sufNew])
+		if rb != rn {
+			break
+		}
+		sufBaseline -= size
+		sufNew -= size
+	}
+
+	return newText[prefix:sufNew], prefix, sufBaseline
 }
 
 // findLineBounds returns the byte offsets bounding the line of text that
