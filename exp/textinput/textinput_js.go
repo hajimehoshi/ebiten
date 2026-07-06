@@ -17,6 +17,7 @@ package textinput
 import (
 	"fmt"
 	"image"
+	"strings"
 	"syscall/js"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
@@ -82,7 +83,7 @@ func (t *textInput) init() {
 		if e.Get("code").String() == "Tab" {
 			e.Call("preventDefault")
 		}
-		if ui.IsVirtualKeyboard() && (e.Get("code").String() == "Enter" || e.Get("key").String() == "Enter") {
+		if isVirtualKeyboard() && (e.Get("code").String() == "Enter" || e.Get("key").String() == "Enter") {
 			// Ignore Enter key to avoid ebiten.IsKeyPressed(ebiten.KeyEnter) unexpectedly becomes true.
 			e.Call("preventDefault")
 			ui.Get().UpdateInputFromEvent(e)
@@ -128,7 +129,7 @@ func (t *textInput) init() {
 			return nil
 		}
 		// Though `isComposing` is false, send the text as being not committed for text completion with a virtual keyboard.
-		if ui.IsVirtualKeyboard() {
+		if isVirtualKeyboard() {
 			t.trySend(false)
 			return nil
 		}
@@ -319,4 +320,16 @@ func (t *textInput) trySendLegacy(committed bool) {
 		t.events.end()
 		t.textareaElement.Set("value", "")
 	}
+}
+
+func isVirtualKeyboard() bool {
+	// Detect a virtual keyboard by the user agent.
+	// Note that this is not a correct way to detect a virtual keyboard.
+	// In the future, we should use the `navigator.virtualKeyboard` API.
+	// https://developer.mozilla.org/en-US/docs/Web/API/Navigator/virtualKeyboard
+	ua := js.Global().Get("navigator").Get("userAgent").String()
+	if strings.Contains(ua, "Android") || strings.Contains(ua, "iPhone") || strings.Contains(ua, "iPad") || strings.Contains(ua, "iPod") {
+		return true
+	}
+	return false
 }
