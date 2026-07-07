@@ -22,6 +22,12 @@ import (
 // the per-tick session lifecycle and dispatches composition and commit
 // events through caller-registered callbacks.
 //
+// A session can span multiple ticks. While one is in progress, do not
+// edit the target buffer except in response to [Composer.OnCommit]: a
+// commit is applied relative to the surrounding text captured by
+// [Composer.OnNewSession], so editing underneath a live session can leave
+// that position stale. Call [Composer.Finish] before a caller-driven edit.
+//
 // See examples/textinput in the Ebitengine repository for a complete
 // usage example.
 type Composer struct {
