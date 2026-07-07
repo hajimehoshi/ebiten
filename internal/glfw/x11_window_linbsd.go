@@ -17,6 +17,7 @@ import (
 	"unsafe"
 
 	"github.com/ebitengine/purego"
+	"golang.org/x/sys/cpu"
 	"golang.org/x/sys/unix"
 )
 
@@ -673,7 +674,7 @@ func createNativeWindow(window *Window, wndconfig *wndconfig, visual uintptr, de
 	// hold the previous frame instead of showing the unpainted background.
 	if syncRequestSupported {
 		window.platform.syncCounter = _glfw.platformWindow.xsync.CreateCounter(
-			_glfw.platformWindow.display, _XSyncValue{})
+			_glfw.platformWindow.display, 0)
 
 		counter := _Clong(window.platform.syncCounter)
 		xChangeProperty(_glfw.platformWindow.display, window.platform.handle,
@@ -1946,6 +1947,15 @@ func (w *Window) platformCreateWindow(wndconfig *wndconfig, ctxconfig *ctxconfig
 	return nil
 }
 
+// packXSyncValue packs an X Sync value's high and low halves into the machine
+// word that a by-value XSyncValue occupies as a function argument.
+func packXSyncValue(hi int32, lo uint32) uint64 {
+	if cpu.IsBigEndian {
+		return uint64(uint32(hi))<<32 | uint64(lo)
+	}
+	return uint64(uint32(hi)) | uint64(lo)<<32
+}
+
 // signalFrameSyncCounter acknowledges the most recent _NET_WM_SYNC_REQUEST by
 // setting the sync counter to the requested value, telling the window manager a
 // frame has been drawn at the new size. It must be called right after a buffer
@@ -1956,12 +1966,8 @@ func (w *Window) signalFrameSyncCounter() {
 	}
 
 	packed := w.platform.syncValue.Load()
-	value := _XSyncValue{
-		Hi: int32(uint32(packed >> 32)),
-		Lo: uint32(packed),
-	}
 	_glfw.platformWindow.xsync.SetCounter(_glfw.platformWindow.display,
-		w.platform.syncCounter, value)
+		w.platform.syncCounter, packXSyncValue(int32(uint32(packed>>32)), uint32(packed)))
 	// Flush so the compositor sees the new value promptly: at a low frame rate
 	// the swap above can be the last X request for a while.
 	xFlush(_glfw.platformWindow.display)

@@ -69,5 +69,4 @@ type (
 	XIEventMask            = _XIEventMask
 	XIValuatorState        = _XIValuatorState
 	XIRawEvent             = _XIRawEvent
-	XSyncValue             = _XSyncValue
 )

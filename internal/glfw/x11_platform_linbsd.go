@@ -275,8 +275,10 @@ type platformLibraryWindowState struct {
 	}
 
 	// xsync holds the X Sync extension entry points used for _NET_WM_SYNC_REQUEST
-	// frame synchronization. It is only wired up where purego can pass an
-	// _XSyncValue by value (see initExtensions), so available is false elsewhere.
+	// frame synchronization. The counter value, an XSyncValue struct, is passed as
+	// a single machine word rather than by value, which is ABI-correct only on
+	// 64-bit architectures (see initExtensions), so available is false on 32-bit
+	// ones.
 	xsync struct {
 		available bool
 		major     int32
@@ -286,8 +288,8 @@ type platformLibraryWindowState struct {
 
 		QueryExtension func(display uintptr, eventBaseReturn, errorBaseReturn *int32) bool
 		Initialize     func(display uintptr, majorReturn, minorReturn *int32) int32
-		CreateCounter  func(display uintptr, initialValue _XSyncValue) _XID
-		SetCounter     func(display uintptr, counter _XID, value _XSyncValue) int32
+		CreateCounter  func(display uintptr, initialValue uint64) _XID
+		SetCounter     func(display uintptr, counter _XID, value uint64) int32
 		DestroyCounter func(display uintptr, counter _XID) int32
 	}
 }

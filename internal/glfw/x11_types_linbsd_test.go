@@ -353,16 +353,35 @@ func TestXlibStructLayouts(t *testing.T) {
 		{"XIRawEvent.Valuators", unsafe.Offsetof(glfw.XIRawEvent{}.Valuators), 64},
 		{"XIRawEvent.RawValues", unsafe.Offsetof(glfw.XIRawEvent{}.RawValues), 88},
 		{"sizeof XIRawEvent", unsafe.Sizeof(glfw.XIRawEvent{}), 96},
-
-		// XSyncValue is {int hi; unsigned int lo}, both 32-bit on every data
-		// model. The field order is load-bearing: it is passed to the X Sync
-		// counter functions by value, so hi must stay at offset 0.
-		{"XSyncValue.Hi", unsafe.Offsetof(glfw.XSyncValue{}.Hi), 0},
-		{"XSyncValue.Lo", unsafe.Offsetof(glfw.XSyncValue{}.Lo), 4},
-		{"sizeof XSyncValue", unsafe.Sizeof(glfw.XSyncValue{}), 8},
 	} {
 		if tt.got != tt.want {
 			t.Errorf("%s: got %d, want %d", tt.name, tt.got, tt.want)
+		}
+	}
+}
+
+// TestPackXSyncValue checks packXSyncValue against the machine word an XSyncValue
+// occupies when passed by value.
+func TestPackXSyncValue(t *testing.T) {
+	type xSyncValue struct {
+		hi int32
+		lo uint32
+	}
+	for _, v := range []struct {
+		hi int32
+		lo uint32
+	}{
+		{0, 0},
+		{1, 2},
+		{-1, 0},
+		{0, 0xffffffff},
+		{0x12345678, 0x9abcdef0},
+		{-0x12345678, 0x0fedcba9},
+	} {
+		s := xSyncValue{hi: v.hi, lo: v.lo}
+		want := *(*uint64)(unsafe.Pointer(&s))
+		if got := glfw.PackXSyncValue(v.hi, v.lo); got != want {
+			t.Errorf("PackXSyncValue(%#x, %#x) = %#016x, want %#016x", v.hi, v.lo, got, want)
 		}
 	}
 }

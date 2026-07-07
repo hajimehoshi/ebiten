@@ -10,7 +10,6 @@ package glfw
 import (
 	"fmt"
 	"os"
-	"runtime"
 	"strconv"
 	"unsafe"
 
@@ -653,13 +652,10 @@ func detectEWMH() {
 	}
 }
 
-// puregoSupportsStructs reports whether purego can marshal a struct passed by
-// value on the current platform. purego supports this only on amd64 and arm64,
-// and among the platforms these files build for only on Linux (see purego's
-// ensureStructSupported). GOOS and GOARCH are constant per build, so a block
-// guarded by this call is eliminated where it is false.
-func puregoSupportsStructs() bool {
-	return runtime.GOOS == "linux" && (runtime.GOARCH == "amd64" || runtime.GOARCH == "arm64")
+// xsyncValuePassableAsWord reports whether an X Sync value can be passed to
+// libXext as a single machine word instead of an XSyncValue struct by value.
+func xsyncValuePassableAsWord() bool {
+	return strconv.IntSize == 64
 }
 
 // initExtensions looks for and initializes supported X11 extensions.
@@ -800,10 +796,11 @@ func initExtensions() error {
 		}
 
 		// The X Sync extension lives in libXext too. XSyncCreateCounter and
-		// XSyncSetCounter take an XSyncValue struct by value, so register them only
-		// where purego can marshal a struct argument; elsewhere available stays
-		// false and _NET_WM_SYNC_REQUEST is left unadvertised.
-		if puregoSupportsStructs() {
+		// XSyncSetCounter take an XSyncValue struct (two 32-bit ints) by value; it
+		// is passed here as a single machine word instead, which matches the
+		// struct's ABI only on 64-bit architectures. On 32-bit ones the X Sync
+		// path stays disabled and _NET_WM_SYNC_REQUEST is left unadvertised.
+		if xsyncValuePassableAsWord() {
 			xsync := &_glfw.platformWindow.xsync
 			purego.RegisterLibFunc(&xsync.QueryExtension, handle, "XSyncQueryExtension")
 			purego.RegisterLibFunc(&xsync.Initialize, handle, "XSyncInitialize")

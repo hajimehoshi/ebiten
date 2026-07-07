@@ -6,3 +6,5 @@
 package glfw
 
 var ParseUriList = parseUriList
+
+var PackXSyncValue = packXSyncValue
