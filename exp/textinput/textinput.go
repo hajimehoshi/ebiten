@@ -159,10 +159,18 @@ func convertByteCountToUTF16Count(text string, c int) int {
 	return -1
 }
 
-// computeReplacement returns the minimal edit turning baseline into newText: the
-// replacement text and the rune-aligned byte range [startInBytes, endInBytes) it
-// replaces in baseline.
-func computeReplacement(baseline, newText string) (replacement string, startInBytes, endInBytes int) {
+// computeReplacement returns the single contiguous edit turning baseline into
+// newText: the replacement text and the rune-aligned byte range
+// [startInBytes, endInBytes) it replaces in baseline. The range is what remains
+// after stripping the longest common prefix and suffix, so it is not
+// necessarily the minimal edit.
+//
+// A non-negative caretInBytes is taken as the end of the edited region in
+// newText and anchors the replacement, disambiguating an edit into repeated
+// surrounding text — e.g. committing "na" at "ba|na" — where the prefix/suffix
+// span alone would wrongly land at the end. Pass a negative value when the
+// caret does not mark the edit's end (a composition preedit) or is unknown.
+func computeReplacement(baseline, newText string, caretInBytes int) (replacement string, startInBytes, endInBytes int) {
 	// Common prefix, rune by rune.
 	var prefix int
 	for prefix < len(baseline) && prefix < len(newText) {
@@ -172,6 +180,17 @@ func computeReplacement(baseline, newText string) (replacement string, startInBy
 			break
 		}
 		prefix += size
+	}
+
+	// Caret-anchored: the text after the caret is unchanged, so it must be a
+	// suffix of baseline. This holds only when the caret sits at the end of the
+	// edited region (a commit); otherwise fall through to the common-suffix
+	// scan below.
+	if 0 <= caretInBytes && caretInBytes <= len(newText) {
+		if end := len(baseline) - (len(newText) - caretInBytes); end >= 0 && newText[caretInBytes:] == baseline[end:] {
+			start := min(prefix, caretInBytes, end)
+			return newText[start:caretInBytes], start, end
+		}
 	}
 
 	// Common suffix, rune by rune, without crossing the prefix.

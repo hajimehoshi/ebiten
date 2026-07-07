@@ -136,10 +136,14 @@ func TestClearQueueDropsDiscardedMarkedText(t *testing.T) {
 }
 
 func TestComputeReplacement(t *testing.T) {
+	// caret is the byte offset of the caret in newText; a negative caret
+	// exercises the plain caret-agnostic path, a non-negative one the
+	// caret-anchored path.
 	tests := []struct {
 		name      string
 		baseline  string
 		newText   string
+		caret     int
 		wantText  string
 		wantStart int
 		wantEnd   int
@@ -148,6 +152,7 @@ func TestComputeReplacement(t *testing.T) {
 			name:      "insert into empty",
 			baseline:  "",
 			newText:   "a",
+			caret:     -1,
 			wantText:  "a",
 			wantStart: 0,
 			wantEnd:   0,
@@ -156,6 +161,7 @@ func TestComputeReplacement(t *testing.T) {
 			name:      "append",
 			baseline:  "a",
 			newText:   "ab",
+			caret:     -1,
 			wantText:  "b",
 			wantStart: 1,
 			wantEnd:   1,
@@ -164,6 +170,7 @@ func TestComputeReplacement(t *testing.T) {
 			name:      "no change",
 			baseline:  "abc",
 			newText:   "abc",
+			caret:     -1,
 			wantText:  "",
 			wantStart: 3,
 			wantEnd:   3,
@@ -172,6 +179,7 @@ func TestComputeReplacement(t *testing.T) {
 			name:      "prepend",
 			baseline:  "bc",
 			newText:   "abc",
+			caret:     -1,
 			wantText:  "a",
 			wantStart: 0,
 			wantEnd:   0,
@@ -180,6 +188,7 @@ func TestComputeReplacement(t *testing.T) {
 			name:      "middle insert",
 			baseline:  "helloworld",
 			newText:   "helloXworld",
+			caret:     -1,
 			wantText:  "X",
 			wantStart: 5,
 			wantEnd:   5,
@@ -188,6 +197,7 @@ func TestComputeReplacement(t *testing.T) {
 			name:      "middle replace",
 			baseline:  "hello",
 			newText:   "hEllo",
+			caret:     -1,
 			wantText:  "E",
 			wantStart: 1,
 			wantEnd:   2,
@@ -198,6 +208,7 @@ func TestComputeReplacement(t *testing.T) {
 			name:      "accent replaces last ASCII",
 			baseline:  "a",
 			newText:   "à",
+			caret:     -1,
 			wantText:  "à",
 			wantStart: 0,
 			wantEnd:   1,
@@ -206,6 +217,7 @@ func TestComputeReplacement(t *testing.T) {
 			name:      "accent replaces last in word",
 			baseline:  "cafe",
 			newText:   "café",
+			caret:     -1,
 			wantText:  "é",
 			wantStart: 3,
 			wantEnd:   4,
@@ -214,6 +226,7 @@ func TestComputeReplacement(t *testing.T) {
 			name:      "accent adds combining mark",
 			baseline:  "e",
 			newText:   "e\u0301",
+			caret:     -1,
 			wantText:  "\u0301",
 			wantStart: 1,
 			wantEnd:   1,
@@ -225,6 +238,7 @@ func TestComputeReplacement(t *testing.T) {
 			name:      "precomposed to precomposed",
 			baseline:  "à",
 			newText:   "è",
+			caret:     -1,
 			wantText:  "è",
 			wantStart: 0,
 			wantEnd:   2,
@@ -235,6 +249,7 @@ func TestComputeReplacement(t *testing.T) {
 			name:      "replace before multibyte suffix",
 			baseline:  "aé",
 			newText:   "bé",
+			caret:     -1,
 			wantText:  "b",
 			wantStart: 0,
 			wantEnd:   1,
@@ -243,6 +258,7 @@ func TestComputeReplacement(t *testing.T) {
 			name:      "replace multibyte middle",
 			baseline:  "海老天",
 			newText:   "海X天",
+			caret:     -1,
 			wantText:  "X",
 			wantStart: 3,
 			wantEnd:   6,
@@ -251,6 +267,7 @@ func TestComputeReplacement(t *testing.T) {
 			name:      "cjk preedit",
 			baseline:  "",
 			newText:   "日本",
+			caret:     -1,
 			wantText:  "日本",
 			wantStart: 0,
 			wantEnd:   0,
@@ -261,6 +278,7 @@ func TestComputeReplacement(t *testing.T) {
 			name:      "replace emoji",
 			baseline:  "\U0001f363",
 			newText:   "\U0001f371",
+			caret:     -1,
 			wantText:  "\U0001f371",
 			wantStart: 0,
 			wantEnd:   4,
@@ -271,6 +289,7 @@ func TestComputeReplacement(t *testing.T) {
 			name:      "delete last",
 			baseline:  "ab",
 			newText:   "a",
+			caret:     -1,
 			wantText:  "",
 			wantStart: 1,
 			wantEnd:   2,
@@ -279,6 +298,7 @@ func TestComputeReplacement(t *testing.T) {
 			name:      "delete first",
 			baseline:  "ab",
 			newText:   "b",
+			caret:     -1,
 			wantText:  "",
 			wantStart: 0,
 			wantEnd:   1,
@@ -287,17 +307,89 @@ func TestComputeReplacement(t *testing.T) {
 			name:      "delete all",
 			baseline:  "abc",
 			newText:   "",
+			caret:     -1,
 			wantText:  "",
 			wantStart: 0,
 			wantEnd:   3,
 		},
+
+		// Caret-anchored cases.
+
+		// Inserting "na" at "ba|na" to build "banana". The caret after the
+		// committed text anchors the edit in the middle; the prefix/suffix span
+		// alone would append at the end.
+		{
+			name:      "anchored insert into repeated text at caret",
+			baseline:  "bana",
+			newText:   "banana",
+			caret:     len("bana"),
+			wantText:  "na",
+			wantStart: len("ba"),
+			wantEnd:   len("ba"),
+		},
+		// The same repeated text, but the caret is at the very end: this really
+		// is an append.
+		{
+			name:      "anchored append to repeated text at end",
+			baseline:  "bana",
+			newText:   "banana",
+			caret:     len("banana"),
+			wantText:  "na",
+			wantStart: len("bana"),
+			wantEnd:   len("bana"),
+		},
+		// An unambiguous middle insert: the anchored path agrees with the plain
+		// "middle insert" case above.
+		{
+			name:      "anchored middle insert",
+			baseline:  "helloworld",
+			newText:   "helloXworld",
+			caret:     6,
+			wantText:  "X",
+			wantStart: 5,
+			wantEnd:   5,
+		},
+		// Accent popup with the caret after the replaced character.
+		{
+			name:      "anchored accent replaces last ASCII",
+			baseline:  "a",
+			newText:   "à",
+			caret:     len("à"),
+			wantText:  "à",
+			wantStart: 0,
+			wantEnd:   1,
+		},
+		// A composition preedit ("abXY") whose leading text repeats the
+		// surrounding text, anchored at the preedit end. The prefix/suffix span
+		// alone would grab the wrong run ("XYab").
+		{
+			name:      "anchored preedit repeats surrounding text",
+			baseline:  "abab",
+			newText:   "ababXYab",
+			caret:     len("ababXY"),
+			wantText:  "abXY",
+			wantStart: 2,
+			wantEnd:   2,
+		},
+		// A caret that does not sit at the end of the edited region (the text
+		// after it is not a suffix of baseline) falls back to the prefix/suffix
+		// span.
+		{
+			name:      "anchored caret not at edit end falls back",
+			baseline:  "abc",
+			newText:   "aXYc",
+			caret:     2,
+			wantText:  "XY",
+			wantStart: 1,
+			wantEnd:   2,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotText, gotStart, gotEnd := textinput.ComputeReplacement(tt.baseline, tt.newText)
+			gotText, gotStart, gotEnd := textinput.ComputeReplacement(tt.baseline, tt.newText, tt.caret)
 			if gotText != tt.wantText || gotStart != tt.wantStart || gotEnd != tt.wantEnd {
-				t.Errorf("ComputeReplacement(%q, %q) = (%q, %d, %d), want (%q, %d, %d)",
-					tt.baseline, tt.newText, gotText, gotStart, gotEnd, tt.wantText, tt.wantStart, tt.wantEnd)
+				t.Errorf("ComputeReplacement(%q, %q, %d) = (%q, %d, %d), want (%q, %d, %d)",
+					tt.baseline, tt.newText, tt.caret, gotText, gotStart, gotEnd, tt.wantText, tt.wantStart, tt.wantEnd)
 			}
 			// The replaced range must be valid, and applying the edit must
 			// reproduce newText.

@@ -249,7 +249,7 @@ func (t *textInput) trySend(kind commitKind) {
 	if t.committedThisSession {
 		// Already committed this session; the buffer has moved past our baseline.
 		// Send just the new delta as a caret insert (rapid double-commit case).
-		text, _, _ := computeReplacement(t.lastSentValue, value)
+		text, _, _ := computeReplacement(t.lastSentValue, value, -1)
 		t.events.send(textInputState{
 			Text:                    text,
 			ReplacementStartInBytes: noReplacement,
@@ -265,11 +265,15 @@ func (t *textInput) trySend(kind commitKind) {
 	}
 
 	baseline := s.textBeforeCaret + s.textAfterCaret
-	text, replStartInBytes, replEndInBytes := computeReplacement(baseline, value)
 
 	if !kind.committed() {
-		// Composition: the diff middle is the preedit; report the selection
-		// relative to its start.
+		// Composition: the preedit ends where the unchanged after-caret text
+		// begins. Anchor there rather than at the caret, which may sit inside
+		// the preedit during conversion, so the preedit is located correctly
+		// even when the surrounding text repeats. Report the selection relative
+		// to the preedit start.
+		preeditEnd := len(value) - len(s.textAfterCaret)
+		text, replStartInBytes, _ := computeReplacement(baseline, value, preeditEnd)
 		start := t.textareaElement.Get("selectionStart").Int()
 		end := t.textareaElement.Get("selectionEnd").Int()
 		startInBytes := convertUTF16CountToByteCount(value, start)
@@ -286,6 +290,12 @@ func (t *textInput) trySend(kind commitKind) {
 		t.lastSentCommitted = false
 		return
 	}
+
+	// The caret is at the end of the committed text; anchor on it so an
+	// insertion into repeated surrounding text is not misplaced at the end.
+	caret := t.textareaElement.Get("selectionStart").Int()
+	caretInBytes := convertUTF16CountToByteCount(value, caret)
+	text, replStartInBytes, replEndInBytes := computeReplacement(baseline, value, caretInBytes)
 
 	t.events.send(textInputState{
 		Text:                    text,
