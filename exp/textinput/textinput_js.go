@@ -273,22 +273,31 @@ func (t *textInput) trySend(kind commitKind) {
 		// even when the surrounding text repeats. Report the selection relative
 		// to the preedit start.
 		preeditEnd := len(value) - len(s.textAfterCaret)
-		text, replStartInBytes, _ := computeReplacement(baseline, value, preeditEnd)
-		start := t.textareaElement.Get("selectionStart").Int()
-		end := t.textareaElement.Get("selectionEnd").Int()
-		startInBytes := convertUTF16CountToByteCount(value, start)
-		endInBytes := convertUTF16CountToByteCount(value, end)
-		t.events.send(textInputState{
-			Text:                             text,
-			CompositionSelectionStartInBytes: min(max(startInBytes-replStartInBytes, 0), len(text)),
-			CompositionSelectionEndInBytes:   min(max(endInBytes-replStartInBytes, 0), len(text)),
-			ReplacementStartInBytes:          noReplacement,
-			ReplacementEndInBytes:            noReplacement,
-			CommitKind:                       kind,
-		})
-		t.lastSentValue = value
-		t.lastSentCommitted = false
-		return
+		text, replStartInBytes, replEndInBytes := computeReplacement(baseline, value, preeditEnd)
+		// A composition can only insert a preedit at the caret. When the edit
+		// removes committed bytes (replStartInBytes < replEndInBytes) — e.g. a
+		// backspace on a virtual keyboard — a preedit cannot express it, so
+		// commit the replacement instead.
+		if replStartInBytes >= replEndInBytes {
+			start := t.textareaElement.Get("selectionStart").Int()
+			end := t.textareaElement.Get("selectionEnd").Int()
+			startInBytes := convertUTF16CountToByteCount(value, start)
+			endInBytes := convertUTF16CountToByteCount(value, end)
+			t.events.send(textInputState{
+				Text:                             text,
+				CompositionSelectionStartInBytes: min(max(startInBytes-replStartInBytes, 0), len(text)),
+				CompositionSelectionEndInBytes:   min(max(endInBytes-replStartInBytes, 0), len(text)),
+				ReplacementStartInBytes:          noReplacement,
+				ReplacementEndInBytes:            noReplacement,
+				CommitKind:                       kind,
+			})
+			t.lastSentValue = value
+			t.lastSentCommitted = false
+			return
+		}
+		// A virtual-keyboard deletion removes committed bytes; deliver it as a
+		// commit without a game-visible key press.
+		kind = commitWithoutKeyPress
 	}
 
 	// The caret is at the end of the committed text; anchor on it so an
