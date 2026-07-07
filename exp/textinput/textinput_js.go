@@ -17,7 +17,6 @@ package textinput
 import (
 	"fmt"
 	"image"
-	"strings"
 	"syscall/js"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
@@ -84,7 +83,9 @@ func (t *textInput) init() {
 			e.Call("preventDefault")
 		}
 		if isVirtualKeyboard() && (e.Get("code").String() == "Enter" || e.Get("key").String() == "Enter") {
-			// Ignore Enter key to avoid ebiten.IsKeyPressed(ebiten.KeyEnter) unexpectedly becomes true.
+			// On a virtual keyboard, Return commits the text and is forwarded as a
+			// KeyEnter press so the game can react to it (e.g. insert a new line).
+			// preventDefault stops the textarea from inserting a literal new line.
 			e.Call("preventDefault")
 			ui.Get().UpdateInputFromEvent(e)
 			t.trySend(true)
@@ -323,13 +324,13 @@ func (t *textInput) trySendLegacy(committed bool) {
 }
 
 func isVirtualKeyboard() bool {
-	// Detect a virtual keyboard by the user agent.
-	// Note that this is not a correct way to detect a virtual keyboard.
-	// In the future, we should use the `navigator.virtualKeyboard` API.
+	// Assume that a device whose primary pointer is coarse (a touchscreen)
+	// uses a software keyboard. This cannot detect an attached hardware
+	// keyboard, and reports the device capability rather than whether a
+	// virtual keyboard is currently shown.
+	//
+	// TODO: Use the `navigator.virtualKeyboard` API once it is widely
+	// supported to detect the actual virtual keyboard state.
 	// https://developer.mozilla.org/en-US/docs/Web/API/Navigator/virtualKeyboard
-	ua := js.Global().Get("navigator").Get("userAgent").String()
-	if strings.Contains(ua, "Android") || strings.Contains(ua, "iPhone") || strings.Contains(ua, "iPad") || strings.Contains(ua, "iPod") {
-		return true
-	}
-	return false
+	return js.Global().Call("matchMedia", "(pointer: coarse)").Get("matches").Bool()
 }
