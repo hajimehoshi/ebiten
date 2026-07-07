@@ -54,8 +54,8 @@ type session struct {
 
 	// Committed-state fields, populated by Update when a committed state is
 	// drained. Valid only after IsCommitted returns true.
-	committed bool
-	commit    Commit
+	commitKind commitKind
+	commit     Commit
 }
 
 // setComposition updates the composition state read by platform IME callbacks.
@@ -144,7 +144,7 @@ func (s *session) Update() error {
 				s.markClosed(false)
 				return st.Error
 			}
-			if st.Committed {
+			if st.CommitKind.committed() {
 				replStart := st.ReplacementStartInBytes
 				replEnd := st.ReplacementEndInBytes
 				if replStart == noReplacement || replEnd == noReplacement {
@@ -152,7 +152,7 @@ func (s *session) Update() error {
 					replStart = preLen
 					replEnd = preLen
 				}
-				s.committed = true
+				s.commitKind = st.CommitKind
 				s.commit = Commit{
 					text:            st.Text,
 					textBeforeCaret: s.textBeforeCaret,
@@ -201,7 +201,14 @@ func (s *session) IsCompositing() bool {
 // Implies IsClosed. Once IsCommitted returns true, Commit returns the data
 // the IME recorded.
 func (s *session) IsCommitted() bool {
-	return s.committed
+	return s.commitKind.committed()
+}
+
+// IsCommittedWithKeyPress reports whether the commit arrived with a key press
+// that is also delivered to the game (Return on a virtual keyboard). Defined
+// only when IsCommitted returns true.
+func (s *session) IsCommittedWithKeyPress() bool {
+	return s.commitKind == commitWithKeyPress
 }
 
 // Commit returns the IME's committed text and the byte range that the

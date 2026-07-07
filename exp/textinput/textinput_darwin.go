@@ -37,16 +37,16 @@ func (t *textInput) Start(bounds image.Rectangle, _, _ string) (<-chan textInput
 	return ch, end
 }
 
-func (t *textInput) update(text string, startInBytes, endInBytes int, replacementStartInBytes, replacementEndInBytes int, committed bool) {
+func (t *textInput) update(text string, startInBytes, endInBytes int, replacementStartInBytes, replacementEndInBytes int, kind commitKind) {
 	t.events.send(textInputState{
 		Text:                             text,
 		CompositionSelectionStartInBytes: startInBytes,
 		CompositionSelectionEndInBytes:   endInBytes,
 		ReplacementStartInBytes:          replacementStartInBytes,
 		ReplacementEndInBytes:            replacementEndInBytes,
-		Committed:                        committed,
+		CommitKind:                       kind,
 	})
-	if committed {
+	if kind.committed() {
 		t.endIfNeeded()
 	}
 }
@@ -381,7 +381,7 @@ func setMarkedText(_ objc.ID, _ objc.SEL, str objc.ID, selectedRange nsRange, re
 
 	startInBytes := convertUTF16CountToByteCount(t, int(selectedRange.location))
 	endInBytes := convertUTF16CountToByteCount(t, int(selectedRange.location+selectedRange.length))
-	theTextInput.update(t, startInBytes, endInBytes, noReplacement, noReplacement, false)
+	theTextInput.update(t, startInBytes, endInBytes, noReplacement, noReplacement, commitNone)
 }
 
 func unmarkText(_ objc.ID, _ objc.SEL) {
@@ -434,7 +434,7 @@ func insertText(_ objc.ID, _ objc.SEL, str objc.ID, replacementRange nsRange) {
 			replEndInBytes = v.selectionEndInBytes
 		}
 	})
-	theTextInput.update(t, 0, len(t), replStartInBytes, replEndInBytes, true)
+	theTextInput.update(t, 0, len(t), replStartInBytes, replEndInBytes, commitWithoutKeyPress)
 }
 
 func characterIndexForPoint(_ objc.ID, _ objc.SEL, _ nsPoint) uint64 {

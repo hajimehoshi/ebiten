@@ -70,7 +70,7 @@ func (t *textInput) init() {
 	style.Set("height", "1px")
 
 	t.textareaElement.Call("addEventListener", "compositionend", js.FuncOf(func(this js.Value, args []js.Value) any {
-		t.trySend(true)
+		t.trySend(commitWithoutKeyPress)
 		return nil
 	}))
 	t.textareaElement.Call("addEventListener", "focusout", js.FuncOf(func(this js.Value, args []js.Value) any {
@@ -83,12 +83,12 @@ func (t *textInput) init() {
 			e.Call("preventDefault")
 		}
 		if isVirtualKeyboard() && (e.Get("code").String() == "Enter" || e.Get("key").String() == "Enter") {
-			// On a virtual keyboard, Return commits the text and is forwarded as a
-			// KeyEnter press so the game can react to it (e.g. insert a new line).
-			// preventDefault stops the textarea from inserting a literal new line.
+			// On a virtual keyboard, Return commits the text and is forwarded as
+			// a KeyEnter press the game acts on (e.g. a newline). preventDefault
+			// suppresses the textarea's own literal newline.
 			e.Call("preventDefault")
 			ui.Get().UpdateInputFromEvent(e)
-			t.trySend(true)
+			t.trySend(commitWithKeyPress)
 			return nil
 		}
 		if !e.Get("isComposing").Bool() {
@@ -113,32 +113,32 @@ func (t *textInput) init() {
 		e := args[0]
 		// On iOS Safari, `isComposing` can be undefined.
 		if e.Get("isComposing").IsUndefined() {
-			t.trySend(false)
+			t.trySend(commitNone)
 			return nil
 		}
 		if e.Get("isComposing").Bool() {
-			t.trySend(false)
+			t.trySend(commitNone)
 			return nil
 		}
 		if e.Get("inputType").String() == "insertLineBreak" {
-			t.trySend(true)
+			t.trySend(commitWithoutKeyPress)
 			return nil
 		}
 		if e.Get("inputType").String() == "insertText" && e.Get("data").Equal(js.Null()) {
 			// When a new line is inserted, the 'data' property might be null.
-			t.trySend(true)
+			t.trySend(commitWithoutKeyPress)
 			return nil
 		}
 		// Though `isComposing` is false, send the text as being not committed for text completion with a virtual keyboard.
 		if isVirtualKeyboard() {
-			t.trySend(false)
+			t.trySend(commitNone)
 			return nil
 		}
-		t.trySend(true)
+		t.trySend(commitWithoutKeyPress)
 		return nil
 	}))
 	t.textareaElement.Call("addEventListener", "change", js.FuncOf(func(this js.Value, args []js.Value) any {
-		t.trySend(true)
+		t.trySend(commitWithoutKeyPress)
 		return nil
 	}))
 	body.Call("appendChild", t.textareaElement)
@@ -227,14 +227,14 @@ func (t *textInput) setSurroundingTextToTextarea(textBeforeCaret, textAfterCaret
 	t.committedThisSession = false
 }
 
-func (t *textInput) trySend(committed bool) {
+func (t *textInput) trySend(kind commitKind) {
 	s := theTextInput.events.getActiveSession()
 	if s == nil {
 		// No session means the deprecated Field is inputting; it uses the legacy
 		// whole-value path.
 		// TODO: Remove trySendLegacy and this branch once Field is gone; a
 		// Composer session is always active otherwise.
-		t.trySendLegacy(committed)
+		t.trySendLegacy(kind)
 		return
 	}
 
@@ -242,7 +242,7 @@ func (t *textInput) trySend(committed bool) {
 	// as a replacement range (needed for the accent popup, #3236). The textarea
 	// is not cleared on commit, so the popup can replace the just-typed character.
 	value := t.textareaElement.Get("value").String()
-	if value == t.lastSentValue && committed == t.lastSentCommitted {
+	if value == t.lastSentValue && kind.committed() == t.lastSentCommitted {
 		return
 	}
 
@@ -254,11 +254,11 @@ func (t *textInput) trySend(committed bool) {
 			Text:                    text,
 			ReplacementStartInBytes: noReplacement,
 			ReplacementEndInBytes:   noReplacement,
-			Committed:               committed,
+			CommitKind:              kind,
 		})
 		t.lastSentValue = value
-		t.lastSentCommitted = committed
-		if committed {
+		t.lastSentCommitted = kind.committed()
+		if kind.committed() {
 			t.events.end()
 		}
 		return
@@ -267,7 +267,7 @@ func (t *textInput) trySend(committed bool) {
 	baseline := s.textBeforeCaret + s.textAfterCaret
 	text, replStartInBytes, replEndInBytes := computeReplacement(baseline, value)
 
-	if !committed {
+	if !kind.committed() {
 		// Composition: the diff middle is the preedit; report the selection
 		// relative to its start.
 		start := t.textareaElement.Get("selectionStart").Int()
@@ -280,7 +280,7 @@ func (t *textInput) trySend(committed bool) {
 			CompositionSelectionEndInBytes:   min(max(endInBytes-replStartInBytes, 0), len(text)),
 			ReplacementStartInBytes:          noReplacement,
 			ReplacementEndInBytes:            noReplacement,
-			Committed:                        false,
+			CommitKind:                       kind,
 		})
 		t.lastSentValue = value
 		t.lastSentCommitted = false
@@ -291,7 +291,7 @@ func (t *textInput) trySend(committed bool) {
 		Text:                    text,
 		ReplacementStartInBytes: replStartInBytes,
 		ReplacementEndInBytes:   replEndInBytes,
-		Committed:               true,
+		CommitKind:              kind,
 	})
 	t.lastSentValue = value
 	t.lastSentCommitted = true
@@ -299,7 +299,7 @@ func (t *textInput) trySend(committed bool) {
 	t.events.end()
 }
 
-func (t *textInput) trySendLegacy(committed bool) {
+func (t *textInput) trySendLegacy(kind commitKind) {
 	textareaValue := t.textareaElement.Get("value").String()
 	// textareaValue can be an empty value, but this should be sent especially for a compositing text (#3324).
 
@@ -314,10 +314,10 @@ func (t *textInput) trySendLegacy(committed bool) {
 		CompositionSelectionEndInBytes:   endInBytes,
 		ReplacementStartInBytes:          noReplacement,
 		ReplacementEndInBytes:            noReplacement,
-		Committed:                        committed,
+		CommitKind:                       kind,
 	})
 
-	if committed {
+	if kind.committed() {
 		t.events.end()
 		t.textareaElement.Set("value", "")
 	}

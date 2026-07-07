@@ -143,8 +143,10 @@ func (c *Commit) SurroundingText() (before, after string) {
 // Update processes IME events for one tick and dispatches them through
 // the registered callbacks. It returns true if the IME consumed input
 // during this tick — the caller should skip its own key handlers when
-// handled is true to avoid double-processing keys (e.g. the Enter that
-// committed a composition).
+// handled is true to avoid double-processing keys.
+//
+// A commit delivered with a key press that the game also receives leaves
+// handled false, so the caller still acts on that key.
 //
 // Update may invoke OnCommit and OnComposition multiple times in one call
 // if the platform queued multiple compositions between ticks.
@@ -180,8 +182,11 @@ func (c *Composer) Update() (handled bool, err error) {
 				c.OnCommit(c.s.Commit())
 			}
 			c.dispatchEmptyComposition()
+			// A commit delivered with a key press leaves handled false.
+			if !c.s.IsCommittedWithKeyPress() {
+				handled = true
+			}
 			c.s = nil
-			handled = true
 			continue
 		}
 

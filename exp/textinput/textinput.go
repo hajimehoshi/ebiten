@@ -35,34 +35,61 @@ import (
 // len(textBeforeCaret) on commit.
 const noReplacement = -1
 
+// commitKind describes whether a textInputState is a final commit and, if so,
+// how it was produced.
+type commitKind int
+
+const (
+	// commitNone marks a composition (preedit) update, not a commit.
+	commitNone commitKind = iota
+
+	// commitWithoutKeyPress marks a final committed edit delivered without a key
+	// press the game receives (a desktop IME commit, a suggestion tap).
+	commitWithoutKeyPress
+
+	// commitWithKeyPress marks a final committed edit delivered with a key press
+	// the game also receives (Return on a virtual keyboard). The Composer leaves
+	// handled false for it so the caller still acts on that key.
+	commitWithKeyPress
+)
+
+// committed reports whether k is a final commit.
+func (k commitKind) committed() bool {
+	return k != commitNone
+}
+
 // textInputState is the internal record of an IME event flowing from the
 // platform layer to the Go side via a channel.
 type textInputState struct {
-	// Text is the current composition text, or the committed text when Committed is true.
+	// Text is the current composition text, or the committed text for a final
+	// commit (see CommitKind).
 	Text string
 
 	// CompositionSelectionStartInBytes is the start position of the selection
-	// within Text, in bytes. Meaningful only when Committed is false.
+	// within Text, in bytes. Meaningful only for a composition (CommitKind is
+	// commitNone).
 	CompositionSelectionStartInBytes int
 
 	// CompositionSelectionEndInBytes is the end position of the selection
-	// within Text, in bytes. Meaningful only when Committed is false.
+	// within Text, in bytes. Meaningful only for a composition (CommitKind is
+	// commitNone).
 	CompositionSelectionEndInBytes int
 
 	// ReplacementStartInBytes is the start position of the byte range that
 	// Text replaces, in the joined TextBeforeCaret+TextAfterCaret buffer.
-	// Meaningful only when Committed is true. Use [noReplacement] for the
+	// Meaningful only for a final commit. Use [noReplacement] for the
 	// "no replacement, at the caret" case.
 	ReplacementStartInBytes int
 
 	// ReplacementEndInBytes is the end position of the byte range that Text
 	// replaces, in the joined TextBeforeCaret+TextAfterCaret buffer.
-	// Meaningful only when Committed is true. Use [noReplacement] for the
+	// Meaningful only for a final commit. Use [noReplacement] for the
 	// "no replacement, at the caret" case.
 	ReplacementEndInBytes int
 
-	// Committed reports whether Text is the final committed text.
-	Committed bool
+	// CommitKind reports whether Text is a final commit and, if so, how it was
+	// produced.
+	CommitKind commitKind
 
 	// Error is an error that happens during text inputting.
 	Error error

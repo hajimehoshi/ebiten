@@ -32,6 +32,19 @@ func ComputeReplacement(baseline, newText string) (string, int, int) {
 
 type TextInputEvents = textInputEvents
 
+// TextInputState re-exports the internal state record so white-box tests can
+// build the events they send.
+type TextInputState = textInputState
+
+// CommitKind and its constants re-export the internal commit-kind enum.
+type CommitKind = commitKind
+
+const (
+	CommitNone            = commitNone
+	CommitWithoutKeyPress = commitWithoutKeyPress
+	CommitWithKeyPress    = commitWithKeyPress
+)
+
 func (s *TextInputEvents) Start() {
 	s.start()
 }
@@ -44,12 +57,8 @@ func (s *TextInputEvents) ClearQueue() {
 	s.clearQueue()
 }
 
-func (s *TextInputEvents) SendComposition(text string) {
-	s.send(textInputState{Text: text})
-}
-
-func (s *TextInputEvents) SendCommit(text string) {
-	s.send(textInputState{Text: text, Committed: true})
+func (s *TextInputEvents) Send(state TextInputState) {
+	s.send(state)
 }
 
 // StartSessionCompositing starts a session on a freshly opened channel, as the

@@ -152,13 +152,13 @@ func (f *Field) HandleInputWithBounds(bounds image.Rectangle) (handled bool, err
 					f.state = textInputState{}
 					break readchar
 				}
-				if state.Committed && state.Text == "\x7f" {
+				if state.CommitKind.committed() && state.Text == "\x7f" {
 					// DEL should not modify the text (#3212).
 					f.state = textInputState{}
 					continue
 				}
 				handled = true
-				if state.Committed {
+				if state.CommitKind.committed() {
 					f.commit(state)
 					continue
 				}
@@ -179,7 +179,7 @@ func (f *Field) HandleInputWithBounds(bounds image.Rectangle) (handled bool, err
 }
 
 func (f *Field) commit(state textInputState) {
-	if !state.Committed {
+	if !state.CommitKind.committed() {
 		panic("textinput: commit must be called with committed state")
 	}
 	if state.ReplacementEndInBytes-state.ReplacementStartInBytes > 0 {
@@ -229,7 +229,7 @@ func (f *Field) cleanUp() {
 				f.err = state.Error
 				return
 			}
-			if ok && state.Committed {
+			if ok && state.CommitKind.committed() {
 				f.commit(state)
 			} else {
 				f.state = state

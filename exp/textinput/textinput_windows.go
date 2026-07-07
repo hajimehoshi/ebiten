@@ -157,7 +157,7 @@ func (t *textInput) wndProc(hWnd uintptr, uMsg uint32, wParam, lParam uintptr) u
 			return 1
 		}
 	case _WM_IME_ENDCOMPOSITION:
-		t.send("", 0, 0, false)
+		t.send("", 0, 0, commitNone)
 		return 1
 	case _WM_CHAR, _WM_SYSCHAR:
 		if wParam >= 0xd800 && wParam <= 0xdbff {
@@ -176,7 +176,7 @@ func (t *textInput) wndProc(hWnd uintptr, uMsg uint32, wParam, lParam uintptr) u
 			t.highSurrogate = 0
 			if c >= 0x20 {
 				str := string(c)
-				t.send(str, 0, len(str), true)
+				t.send(str, 0, len(str), commitWithoutKeyPress)
 			}
 		}
 	case _WM_UNICHAR:
@@ -187,7 +187,7 @@ func (t *textInput) wndProc(hWnd uintptr, uMsg uint32, wParam, lParam uintptr) u
 		}
 		if r := rune(wParam); r >= 0x20 {
 			str := string(r)
-			t.send(str, 0, len(str), true)
+			t.send(str, 0, len(str), commitWithoutKeyPress)
 		}
 	}
 
@@ -195,16 +195,16 @@ func (t *textInput) wndProc(hWnd uintptr, uMsg uint32, wParam, lParam uintptr) u
 }
 
 // send must be called from the main thread.
-func (t *textInput) send(text string, startInBytes, endInBytes int, committed bool) {
+func (t *textInput) send(text string, startInBytes, endInBytes int, kind commitKind) {
 	t.events.send(textInputState{
 		Text:                             text,
 		CompositionSelectionStartInBytes: startInBytes,
 		CompositionSelectionEndInBytes:   endInBytes,
 		ReplacementStartInBytes:          noReplacement,
 		ReplacementEndInBytes:            noReplacement,
-		Committed:                        committed,
+		CommitKind:                       kind,
 	})
-	if committed {
+	if kind.committed() {
 		t.events.end()
 	}
 }
@@ -268,7 +268,7 @@ func (t *textInput) update() (err error) {
 		}
 	}
 	text := windows.UTF16ToString(buffer16)
-	t.send(text, convertUTF16CountToByteCount(text, start16), convertUTF16CountToByteCount(text, end16), false)
+	t.send(text, convertUTF16CountToByteCount(text, start16), convertUTF16CountToByteCount(text, end16), commitNone)
 
 	return nil
 }
@@ -300,7 +300,7 @@ func (t *textInput) commit() (err error) {
 	}
 
 	text := windows.UTF16ToString(buffer16)
-	t.send(text, 0, len(text), true)
+	t.send(text, 0, len(text), commitWithoutKeyPress)
 
 	return nil
 }
