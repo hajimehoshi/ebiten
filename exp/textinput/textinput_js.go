@@ -91,6 +91,18 @@ func (t *textInput) init() {
 			t.trySend(commitWithKeyPress)
 			return nil
 		}
+		if isVirtualKeyboard() && (e.Get("code").String() == "Backspace" || e.Get("key").String() == "Backspace") {
+			// The textarea's own deletion fires deleteContentBackward, which the
+			// IME path applies; forwarding a raw KeyBackspace too would delete
+			// twice, as iOS Safari splits keydown and input across a tick. At the
+			// textarea head nothing is deleted and no input fires, so forward the
+			// raw key to delete across the line boundary.
+			start := t.textareaElement.Get("selectionStart").Int()
+			end := t.textareaElement.Get("selectionEnd").Int()
+			if start != 0 || end != 0 {
+				return nil
+			}
+		}
 		if !e.Get("isComposing").Bool() {
 			ui.Get().UpdateInputFromEvent(e)
 		}
@@ -213,11 +225,15 @@ func (t *textInput) Start(bounds image.Rectangle, textBeforeCaret, textAfterCare
 }
 
 // setSurroundingTextToTextarea writes the text around the caret so later edits
-// can be diffed against it. The DOM is written only when the value differs, to
-// avoid disturbing an in-flight accent popup.
+// can be diffed against it.
 func (t *textInput) setSurroundingTextToTextarea(textBeforeCaret, textAfterCaret string) {
 	value := textBeforeCaret + textAfterCaret
-	if t.textareaElement.Get("value").String() != value {
+	// On a virtual keyboard, iOS Safari keeps committed IME text marked as a
+	// composition; assigning value drops that state so a backspace deletes one
+	// character, not the whole run. Force the write even when unchanged. Desktop
+	// keeps the skip to avoid dismissing an in-flight accent popup (#3236).
+	if t.textareaElement.Get("value").String() != value || isVirtualKeyboard() {
+		t.textareaElement.Set("value", "")
 		t.textareaElement.Set("value", value)
 		caret := max(convertByteCountToUTF16Count(textBeforeCaret, len(textBeforeCaret)), 0)
 		t.textareaElement.Call("setSelectionRange", caret, caret)
