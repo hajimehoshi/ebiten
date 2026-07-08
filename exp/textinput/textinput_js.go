@@ -405,6 +405,21 @@ func (t *textInput) setSurroundingTextToTextarea(textBeforeCaret, textAfterCaret
 	t.committedThisSession = false
 }
 
+// compositionSelectionInBytes returns the IME's selection within the preedit,
+// as a byte range relative to the preedit's start. The preedit occupies
+// preeditLen bytes of the textarea's value from preeditStart.
+func (t *textInput) compositionSelectionInBytes(value string, preeditStart, preeditLen int) (start, end int) {
+	if isVirtualKeyboard() {
+		// A virtual keyboard offers no way to move the caret inside a preedit, so the
+		// caret is at its end. iOS Safari reports the selection from before the preedit
+		// was inserted, which would put the caret at the preedit's head.
+		return preeditLen, preeditLen
+	}
+	startInBytes := convertUTF16CountToByteCount(value, t.textareaElement.Get("selectionStart").Int())
+	endInBytes := convertUTF16CountToByteCount(value, t.textareaElement.Get("selectionEnd").Int())
+	return min(max(startInBytes-preeditStart, 0), preeditLen), min(max(endInBytes-preeditStart, 0), preeditLen)
+}
+
 func (t *textInput) trySend(kind commitKind) {
 
 	if t.imeDiscard == imeDiscarding {
@@ -464,14 +479,11 @@ func (t *textInput) trySend(kind commitKind) {
 		// backspace on a virtual keyboard — a preedit cannot express it, so
 		// commit the replacement instead.
 		if replStartInBytes >= replEndInBytes {
-			start := t.textareaElement.Get("selectionStart").Int()
-			end := t.textareaElement.Get("selectionEnd").Int()
-			startInBytes := convertUTF16CountToByteCount(value, start)
-			endInBytes := convertUTF16CountToByteCount(value, end)
+			selStartInBytes, selEndInBytes := t.compositionSelectionInBytes(value, replStartInBytes, len(text))
 			t.events.send(textInputState{
 				Text:                             text,
-				CompositionSelectionStartInBytes: min(max(startInBytes-replStartInBytes, 0), len(text)),
-				CompositionSelectionEndInBytes:   min(max(endInBytes-replStartInBytes, 0), len(text)),
+				CompositionSelectionStartInBytes: selStartInBytes,
+				CompositionSelectionEndInBytes:   selEndInBytes,
 				ReplacementStartInBytes:          noReplacement,
 				ReplacementEndInBytes:            noReplacement,
 				CommitKind:                       kind,
