@@ -19,6 +19,7 @@ import (
 	"image"
 	"syscall/js"
 
+	"github.com/hajimehoshi/ebiten/v2/internal/hook"
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
@@ -37,6 +38,10 @@ func init() {
 type textInputImpl struct {
 	textareaElement js.Value
 
+	// dummyTextareaElement parks the DOM focus and handles no input.
+	// See discardIMEState.
+	dummyTextareaElement js.Value
+
 	// lastSentValue/lastSentCommitted: the last state sent in the session path,
 	// used to drop trailing duplicate events (e.g. the input after compositionend).
 	lastSentValue     string
@@ -46,17 +51,61 @@ type textInputImpl struct {
 	// second commit before the next session starts falls back to a caret insert
 	// (see trySend).
 	committedThisSession bool
+
+	// composing reports whether the IME holds a composition for the textarea. iOS
+	// Safari reports one through the input event's inputType only.
+	composing bool
+
+	// closedTicks counts consecutive ticks without text inputting.
+	// See dismissVirtualKeyboardIfNeeded.
+	closedTicks int
+
+	// imeDiscard tracks the IME's composition for an abandoned target.
+	imeDiscard imeDiscardState
 }
 
-func (t *textInput) init() {
-	t.textareaElement = document.Call("createElement", "textarea")
-	t.textareaElement.Set("id", "ebitengine-textinput")
-	t.textareaElement.Set("autocapitalize", "off")
-	t.textareaElement.Set("spellcheck", false)
-	t.textareaElement.Set("translate", "no")
-	t.textareaElement.Set("wrap", "off")
+// imeDiscardState is the state of the IME's composition for an abandoned target.
+type imeDiscardState int
 
-	style := t.textareaElement.Get("style")
+const (
+	// imeDiscardNone marks that the IME holds no composition for an abandoned target.
+	imeDiscardNone imeDiscardState = iota
+
+	// imeDiscardNeeded marks that the IME can still hold one. Start discards it, as
+	// the next session can start before the abandoned one ends (#3463).
+	imeDiscardNeeded
+
+	// imeDiscarding marks that discardIMEState is moving the DOM focus. The events
+	// the move fires are the IME's teardown, not the user's input.
+	imeDiscarding
+)
+
+// markIMEDiscardNeeded records that the IME can still hold a composition for an
+// abandoned target.
+func (t *textInput) markIMEDiscardNeeded() {
+	t.imeDiscard = imeDiscardNeeded
+}
+
+// needsIMEDiscard reports whether the IME can still hold a composition for an
+// abandoned target.
+func (t *textInput) needsIMEDiscard() bool {
+	return t.imeDiscard == imeDiscardNeeded
+}
+
+// markIMEDiscarded records that the IME no longer holds one.
+func (t *textInput) markIMEDiscarded() {
+	t.imeDiscard = imeDiscardNone
+}
+
+func newTextareaElement(id string) js.Value {
+	e := document.Call("createElement", "textarea")
+	e.Set("id", id)
+	e.Set("autocapitalize", "off")
+	e.Set("spellcheck", false)
+	e.Set("translate", "no")
+	e.Set("wrap", "off")
+
+	style := e.Get("style")
 	style.Set("position", "absolute")
 	style.Set("left", "0")
 	style.Set("top", "0")
@@ -68,12 +117,32 @@ func (t *textInput) init() {
 	style.Set("tabindex", "-1")
 	style.Set("width", "1px")
 	style.Set("height", "1px")
+	return e
+}
 
+func (t *textInput) init() {
+	hook.AppendHookOnBeforeUpdate(func() error {
+		t.dismissVirtualKeyboardIfNeeded()
+		return nil
+	})
+
+	t.textareaElement = newTextareaElement("ebitengine-textinput")
+	// The dummy must be editable too, or focusing it would dismiss a virtual keyboard.
+	t.dummyTextareaElement = newTextareaElement("ebitengine-textinput-dummy")
+
+	t.textareaElement.Call("addEventListener", "compositionstart", js.FuncOf(func(this js.Value, args []js.Value) any {
+		t.composing = true
+		return nil
+	}))
 	t.textareaElement.Call("addEventListener", "compositionend", js.FuncOf(func(this js.Value, args []js.Value) any {
+		t.composing = false
 		t.trySend(commitWithoutKeyPress)
 		return nil
 	}))
 	t.textareaElement.Call("addEventListener", "focusout", js.FuncOf(func(this js.Value, args []js.Value) any {
+		if t.imeDiscard == imeDiscarding {
+			return nil
+		}
 		t.events.end()
 		return nil
 	}))
@@ -129,6 +198,9 @@ func (t *textInput) init() {
 	}))
 	t.textareaElement.Call("addEventListener", "input", js.FuncOf(func(this js.Value, args []js.Value) any {
 		e := args[0]
+		if e.Get("inputType").String() == "insertCompositionText" {
+			t.composing = true
+		}
 		// On iOS Safari, `isComposing` can be undefined.
 		if e.Get("isComposing").IsUndefined() {
 			t.trySend(commitNone)
@@ -160,6 +232,8 @@ func (t *textInput) init() {
 		return nil
 	}))
 	body.Call("appendChild", t.textareaElement)
+	body.Call("appendChild", t.dummyTextareaElement)
+	ui.Get().SetTextInputFocusedFunc(t.textInputElementFocused)
 
 	js.Global().Call("eval", `
 // Process the textarea element under user-interaction events.
@@ -191,18 +265,34 @@ func (t *textInput) Start(bounds image.Rectangle, textBeforeCaret, textAfterCare
 		return nil, nil
 	}
 
+	// A start deferred by deferStart has completed: the user-interaction handler
+	// installed in init focused the textarea and reset its value.
 	if js.Global().Get("_ebitengine_textinput_ready").Truthy() {
 		t.events.end()
+		// An IME carries a composition over to the refocused textarea and finishes it
+		// there. Those events describe the abandoned target, and start replays them.
+		t.events.clearQueue()
 		ch, end := t.events.start()
 		js.Global().Get("window").Set("_ebitengine_textinput_ready", js.Undefined())
-		// The user-interaction handler already focused the textarea and reset
-		// its value; set the surrounding text so edits can be diffed.
+		// Focusing the textarea has restarted the IME.
+		theTextInput.markIMEDiscarded()
 		t.setSurroundingTextToTextarea(textBeforeCaret, textAfterCaret)
 		return ch, end
 	}
 
 	// If a textarea is focused, create a session immediately.
 	// A virtual keyboard should already be shown on mobile browsers.
+	if theTextInput.needsIMEDiscard() {
+		// A composition is the only IME state that outlives its target, and discarding
+		// it costs the textarea its input session.
+		if t.composing && document.Get("activeElement").Equal(t.textareaElement) {
+			// The focus lands on the dummy, so the deferred branch below runs.
+			t.discardIMEState()
+		} else {
+			theTextInput.markIMEDiscarded()
+		}
+	}
+
 	if document.Get("activeElement").Equal(t.textareaElement) {
 		t.setSurroundingTextToTextarea(textBeforeCaret, textAfterCaret)
 		t.textareaElement.Call("focus")
@@ -221,17 +311,79 @@ func (t *textInput) Start(bounds image.Rectangle, textBeforeCaret, textAfterCare
 		}
 	}
 
-	t.events.end()
-
-	// On iOS Safari, `focus` works only in user-interaction events (#2898).
-	// Assuming Start is called every tick, defer the starting process to the next user-interaction event.
-	js.Global().Get("window").Set("_ebitengine_textinput_x", bounds.Min.X)
-	js.Global().Get("window").Set("_ebitengine_textinput_y", bounds.Max.Y)
+	t.deferStart(bounds)
 	return nil, nil
 }
 
+// deferStart puts off starting a session until the next user-interaction event,
+// where the textarea can take the focus and get an input session (#2898).
+func (t *textInput) deferStart(bounds image.Rectangle) {
+	t.events.end()
+	js.Global().Get("window").Set("_ebitengine_textinput_x", bounds.Min.X)
+	js.Global().Get("window").Set("_ebitengine_textinput_y", bounds.Max.Y)
+}
+
+// discardIMEState makes the IME let go of the composition it holds for the
+// textarea, by parking the DOM focus on the dummy textarea (#3463). The focus is
+// left there, and the caller must defer starting a session (#2898).
+//
+// The textarea must have the DOM focus. The IME discard state is none on return.
+func (t *textInput) discardIMEState() {
+	t.imeDiscard = imeDiscarding
+	defer func() {
+		t.imeDiscard = imeDiscardNone
+		t.composing = false
+	}()
+	t.dummyTextareaElement.Call("focus")
+}
+
+// textInputElementFocused reports whether the DOM focus is on either textarea.
+// It rests on the dummy while a start is deferred (see discardIMEState).
+func (t *textInput) textInputElementFocused() bool {
+	active := document.Get("activeElement")
+	return active.Equal(t.textareaElement) || active.Equal(t.dummyTextareaElement)
+}
+
+// dismissVirtualKeyboardIfNeeded moves the DOM focus from the textarea to the
+// canvas once the caller stops inputting text, dismissing a virtual keyboard.
+func (t *textInput) dismissVirtualKeyboardIfNeeded() {
+	if !t.textInputElementFocused() {
+		t.closedTicks = 0
+		return
+	}
+
+	// A start deferred to a user-interaction event is pending (#2898). The caret
+	// position can be 0, so test for the property's presence.
+	if !js.Global().Get("_ebitengine_textinput_x").IsUndefined() || js.Global().Get("_ebitengine_textinput_ready").Truthy() {
+		t.closedTicks = 0
+		return
+	}
+
+	// An active session outlives the event channel, which a commit closes from a DOM
+	// event. The deprecated Field keeps the channel open, registering no session.
+	if t.events.isOpen() || t.events.getActiveSession() != nil {
+		t.closedTicks = 0
+		return
+	}
+
+	t.closedTicks++
+	// This runs before Update, where text inputting reopens. Finishing text inputting
+	// in one tick and reopening it in the next leaves one tick closed, so two mean
+	// the caller stopped.
+	if t.closedTicks < 2 {
+		return
+	}
+	t.closedTicks = 0
+	// The game's key listeners are on the canvas element, so it must take the focus.
+	ui.Get().FocusCanvas()
+
+	// Blurring the textarea fires events carrying the text it still holds. With no
+	// session to receive them, they are queued for the next one.
+	t.events.clearQueue()
+}
+
 // setSurroundingTextToTextarea writes the text around the caret so later edits
-// can be diffed against it.
+// can be diffed against it, and puts the textarea's caret where the caller's is.
 func (t *textInput) setSurroundingTextToTextarea(textBeforeCaret, textAfterCaret string) {
 	value := textBeforeCaret + textAfterCaret
 	// On a virtual keyboard, iOS Safari keeps committed IME text marked as a
@@ -241,7 +393,11 @@ func (t *textInput) setSurroundingTextToTextarea(textBeforeCaret, textAfterCaret
 	if t.textareaElement.Get("value").String() != value || isVirtualKeyboard() {
 		t.textareaElement.Set("value", "")
 		t.textareaElement.Set("value", value)
-		caret := max(convertByteCountToUTF16Count(textBeforeCaret, len(textBeforeCaret)), 0)
+	}
+	// The caller can move its caret without editing the text. Skip an unchanged
+	// selection, which an in-flight accent popup does not survive (#3236).
+	caret := max(convertByteCountToUTF16Count(textBeforeCaret, len(textBeforeCaret)), 0)
+	if t.textareaElement.Get("selectionStart").Int() != caret || t.textareaElement.Get("selectionEnd").Int() != caret {
 		t.textareaElement.Call("setSelectionRange", caret, caret)
 	}
 	t.lastSentValue = value
@@ -250,6 +406,13 @@ func (t *textInput) setSurroundingTextToTextarea(textBeforeCaret, textAfterCaret
 }
 
 func (t *textInput) trySend(kind commitKind) {
+
+	if t.imeDiscard == imeDiscarding {
+		// Moving the focus off the textarea ends a composition, firing events for the
+		// target the caller has already taken over.
+		return
+	}
+
 	s := theTextInput.events.getActiveSession()
 	if s == nil {
 		// No session means the deprecated Field is inputting; it uses the legacy

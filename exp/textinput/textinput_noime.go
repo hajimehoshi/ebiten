@@ -27,6 +27,9 @@ type textInputImpl struct {
 	lastTick int64
 }
 
+func (t *textInput) markIMEDiscardNeeded() {
+}
+
 func (t *textInput) Start(bounds image.Rectangle, _, _ string) (<-chan textInputState, func()) {
 	// AppendInputChars is updated only when the tick is updated.
 	// If the tick is not updated, return nil immediately.

@@ -40,6 +40,9 @@ type textInputImpl struct {
 	err error
 }
 
+func (t *textInput) markIMEDiscardNeeded() {
+}
+
 func (t *textInput) Start(bounds image.Rectangle, _, _ string) (<-chan textInputState, func()) {
 	if microsoftgdk.IsXbox() {
 		return nil, nil

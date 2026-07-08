@@ -89,6 +89,8 @@ func (s *session) markClosed(callPlatformEnd bool) {
 
 // startSession begins a new IME session at the given caret.
 //
+// A session already owning the platform IME is cancelled first.
+//
 // If opts is nil, zero-value defaults are used.
 //
 // startSession returns (nil, nil) when a session cannot be started in the
@@ -110,6 +112,10 @@ func startSession(opts *SessionOptions) (*session, error) {
 	if !utf8.ValidString(opts.TextAfterCaret) {
 		return nil, fmt.Errorf("textinput: TextAfterCaret is not valid UTF-8")
 	}
+
+	// Only one session can own the platform IME, and the previous one's teardown
+	// closes the event channel this session is about to be handed.
+	theTextInput.cancelSessionIfNeeded()
 
 	ch, end := startTextInput(opts.CaretBounds, opts.TextBeforeCaret, opts.TextAfterCaret)
 	if ch == nil {
@@ -251,4 +257,5 @@ func (s *session) Cancel() {
 		return
 	}
 	s.markClosed(true)
+	theTextInput.abandonTarget()
 }

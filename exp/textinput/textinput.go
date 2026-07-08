@@ -261,6 +261,21 @@ type textInput struct {
 
 var theTextInput textInput
 
+// cancelSessionIfNeeded cancels the session owning the platform IME, if any.
+func (t *textInput) cancelSessionIfNeeded() {
+	if s := t.events.getActiveSession(); s != nil {
+		s.Cancel()
+	}
+}
+
+// abandonTarget drops what the platform still holds for a cancelled session's
+// target: the IME's composition, and the queued states. Either would otherwise
+// reach the next session.
+func (t *textInput) abandonTarget() {
+	t.markIMEDiscardNeeded()
+	t.events.clearQueue()
+}
+
 type textInputEvents struct {
 	ch   chan textInputState
 	done chan struct{}
@@ -315,6 +330,14 @@ func (s *textInputEvents) start() (ch chan textInputState, endFunc func()) {
 	}
 	s.flushStateQueue()
 	return s.ch, s.end
+}
+
+// isOpen reports whether text inputting is in progress, including by the
+// deprecated Field, which registers no session.
+func (s *textInputEvents) isOpen() bool {
+	s.m.Lock()
+	defer s.m.Unlock()
+	return s.ch != nil
 }
 
 func (s *textInputEvents) end() {

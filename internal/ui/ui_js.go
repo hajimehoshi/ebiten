@@ -116,6 +116,8 @@ type userInterfaceImpl struct {
 
 	keyboardLayoutMap js.Value
 
+	textInputFocusedFunc func() bool
+
 	m         sync.Mutex
 	dropFileM sync.Mutex
 }
@@ -573,6 +575,27 @@ func (u *UserInterface) setWindowEventHandlers(v js.Value) {
 	}))
 }
 
+// SetTextInputFocusedFunc registers a function reporting whether an element
+// receiving text input has the DOM focus.
+func (u *UserInterface) SetTextInputFocusedFunc(f func() bool) {
+	u.textInputFocusedFunc = f
+}
+
+// FocusCanvas moves the DOM focus to the canvas.
+func (u *UserInterface) FocusCanvas() {
+	if !canvas.Truthy() {
+		return
+	}
+	canvas.Call("focus")
+}
+
+func (u *UserInterface) isTextInputFocused() bool {
+	if u.textInputFocusedFunc == nil {
+		return false
+	}
+	return u.textInputFocusedFunc()
+}
+
 func (u *UserInterface) setCanvasEventHandlers(v js.Value) {
 	// Keyboard
 	v.Call("addEventListener", "keydown", js.FuncOf(func(this js.Value, args []js.Value) any {
@@ -600,7 +623,10 @@ func (u *UserInterface) setCanvasEventHandlers(v js.Value) {
 	// Mouse
 	v.Call("addEventListener", "mousedown", js.FuncOf(func(this js.Value, args []js.Value) any {
 		// Focus the canvas explicitly to activate tha game (#961).
-		v.Call("focus")
+		// Taking the focus from the text input element would dismiss a virtual keyboard.
+		if !u.isTextInputFocused() {
+			v.Call("focus")
+		}
 
 		e := args[0]
 		e.Call("preventDefault")
@@ -641,7 +667,10 @@ func (u *UserInterface) setCanvasEventHandlers(v js.Value) {
 	// Touch
 	v.Call("addEventListener", "touchstart", js.FuncOf(func(this js.Value, args []js.Value) any {
 		// Focus the canvas explicitly to activate tha game (#961).
-		v.Call("focus")
+		// Taking the focus from the text input element would dismiss a virtual keyboard.
+		if !u.isTextInputFocused() {
+			v.Call("focus")
+		}
 
 		e := args[0]
 		e.Call("preventDefault")

@@ -28,6 +28,9 @@ import (
 
 type textInputImpl struct{}
 
+func (t *textInput) markIMEDiscardNeeded() {
+}
+
 func (t *textInput) Start(bounds image.Rectangle, _, _ string) (<-chan textInputState, func()) {
 	var ch <-chan textInputState
 	var end func()
