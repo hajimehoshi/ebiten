@@ -50,7 +50,7 @@ var (
 	flagGraphicsLibrary     = flag.String("graphicslibrary", "", "graphics library (e.g. opengl)")
 	flagRunnableOnUnfocused = flag.Bool("runnableonunfocused", true, "whether the app is runnable even on unfocused")
 	flagColorSpace          = flag.String("colorspace", "", "color space ('', 'srgb', or 'display-p3')")
-	flagColorMode           = flag.String("colormode", "", "window color mode ('', 'light', or 'dark')")
+	flagColorMode           = flag.String("colormode", "", "preferred color mode ('', 'light', or 'dark')")
 	flagWindowVisible       = flag.Bool("windowvisible", true, "whether the window is visible")
 )
 
@@ -273,16 +273,16 @@ func (g *game) Update() error {
 					ebiten.SetWindowIcon(nil)
 				})
 
-				ctx.Text("Window Color Mode")
-				mode := ebiten.WindowColorMode()
+				ctx.Text("Preferred Color Mode")
+				mode := ebiten.PreferredColorMode()
 				ctx.Button(colorModeString(mode)).On(func() {
 					switch mode {
 					case ebiten.ColorModeLight:
-						ebiten.SetWindowColorMode(ebiten.ColorModeDark)
+						ebiten.SetPreferredColorMode(ebiten.ColorModeDark)
 					case ebiten.ColorModeDark:
-						ebiten.SetWindowColorMode(ebiten.ColorModeUnknown)
+						ebiten.SetPreferredColorMode(ebiten.ColorModeUnknown)
 					case ebiten.ColorModeUnknown:
-						ebiten.SetWindowColorMode(ebiten.ColorModeLight)
+						ebiten.SetPreferredColorMode(ebiten.ColorModeLight)
 					}
 				})
 			})
@@ -625,11 +625,11 @@ func main() {
 	}
 	switch *flagColorMode {
 	case "light":
-		ebiten.SetWindowColorMode(ebiten.ColorModeLight)
+		ebiten.SetPreferredColorMode(ebiten.ColorModeLight)
 	case "dark":
-		ebiten.SetWindowColorMode(ebiten.ColorModeDark)
+		ebiten.SetPreferredColorMode(ebiten.ColorModeDark)
 	default:
-		ebiten.SetWindowColorMode(ebiten.ColorModeUnknown)
+		ebiten.SetPreferredColorMode(ebiten.ColorModeUnknown)
 	}
 	op.InitUnfocused = !*flagInitFocused
 	op.ScreenTransparent = *flagTransparent

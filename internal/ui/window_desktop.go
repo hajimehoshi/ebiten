@@ -49,7 +49,6 @@ type desktopWindow struct {
 	iconImages           atomic.Pointer[[]image.Image]
 	windowClosingHandled atomic.Bool
 	windowResizingMode   atomic.Int32
-	colorMode            atomic.Int32
 
 	initWindowDecorated        atomic.Bool
 	initWindowVisible          atomic.Bool
@@ -494,23 +493,13 @@ func (w *desktopWindow) SetTitle(title string) {
 	b.Window().SetTitle(title)
 }
 
-func (w *desktopWindow) ColorMode() colormode.ColorMode {
-	if w.ui.isTerminated() {
-		return colormode.Unknown
-	}
-	return colormode.ColorMode(w.colorMode.Load())
-}
-
 func (w *desktopWindow) SetColorMode(mode colormode.ColorMode) {
 	if w.ui.isTerminated() {
 		return
 	}
 	b := w.ui.runningBackend()
 	if b == nil {
-		w.colorMode.Store(int32(mode))
-		return
-	}
-	if colormode.ColorMode(w.colorMode.Swap(int32(mode))) == mode {
+		// The backend consumes the preferred color mode at its initialization.
 		return
 	}
 	b.Window().SetColorMode(mode)

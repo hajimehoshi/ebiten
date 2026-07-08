@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/colormode"
+	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
 // ColorMode represents a color scheme, such as light or dark.
@@ -43,6 +44,26 @@ const (
 // SystemColorMode is concurrent-safe.
 func SystemColorMode() ColorMode {
 	return theSystemColorCache.get()
+}
+
+// PreferredColorMode returns the color mode set by [SetPreferredColorMode].
+//
+// PreferredColorMode returns ColorModeUnknown if no color mode is preferred.
+//
+// PreferredColorMode is concurrent-safe.
+func PreferredColorMode() ColorMode {
+	return ColorMode(ui.Get().PreferredColorMode())
+}
+
+// SetPreferredColorMode sets the color mode the application prefers.
+// If ColorModeUnknown is passed, the preference is cleared and the system color mode is used.
+//
+// On desktops, the appearance of the window title bar follows the preferred color mode.
+// On the other platforms, the preferred color mode has no visible effect.
+//
+// SetPreferredColorMode is concurrent-safe.
+func SetPreferredColorMode(colorMode ColorMode) {
+	ui.Get().SetPreferredColorMode(colormode.ColorMode(colorMode))
 }
 
 var theSystemColorCache systemColorCache

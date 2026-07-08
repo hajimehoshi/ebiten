@@ -874,7 +874,9 @@ func (u *glfwBackend) initOnMainThread(options *RunOptions) error {
 		return err
 	}
 
-	if m := colormode.ColorMode(u.desktopWindow.colorMode.Load()); m != colormode.Unknown {
+	// createWindow has published the backend. A concurrent SetPreferredColorMode thus either
+	// applies the color mode by itself, or stores a value that is read here.
+	if m := u.PreferredColorMode(); m != colormode.Unknown {
 		if err := u.setWindowColorModeImpl(m); err != nil {
 			return err
 		}

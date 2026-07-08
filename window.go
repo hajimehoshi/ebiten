@@ -18,7 +18,6 @@ import (
 	"image"
 	"sync/atomic"
 
-	"github.com/hajimehoshi/ebiten/v2/internal/colormode"
 	"github.com/hajimehoshi/ebiten/v2/internal/inputstate"
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
@@ -128,25 +127,6 @@ func SetWindowResizable(resizable bool) {
 // SetWindowTitle is concurrent-safe.
 func SetWindowTitle(title string) {
 	ui.Get().Window().SetTitle(title)
-}
-
-// WindowColorMode returns the current color mode of the window.
-//
-// WindowColorMode returns ColorModeUnknown if the platform is not a desktop.
-//
-// WindowColorMode is concurrent-safe.
-func WindowColorMode() ColorMode {
-	return ColorMode(ui.Get().Window().ColorMode())
-}
-
-// SetWindowColorMode sets the color mode of the window.
-// If ColorModeUnknown is passed, the window color mode is reset to the system default.
-//
-// SetWindowColorMode does nothing if the platform is not a desktop.
-//
-// SetWindowColorMode is concurrent-safe.
-func SetWindowColorMode(colorMode ColorMode) {
-	ui.Get().Window().SetColorMode(colormode.ColorMode(colorMode))
 }
 
 // SetWindowIcon sets the icon of the game window.

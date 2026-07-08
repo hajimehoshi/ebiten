@@ -23,6 +23,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
 	"github.com/hajimehoshi/ebiten/v2/internal/color"
+	"github.com/hajimehoshi/ebiten/v2/internal/colormode"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/v2/internal/mipmap"
 	"github.com/hajimehoshi/ebiten/v2/internal/thread"
@@ -82,11 +83,28 @@ type UserInterface struct {
 	tick                      atomic.Int64
 	inputTime                 atomic.Int64
 
+	// preferredColorMode is the color mode the application prefers.
+	//
+	// preferredColorMode is a property of the application rather than of the window: it is kept
+	// even where no window can reflect it.
+	preferredColorMode atomic.Int32
+
 	whiteImage *Image
 
 	mainThread thread.Thread
 
 	userInterfaceImpl
+}
+
+func (u *UserInterface) PreferredColorMode() colormode.ColorMode {
+	return colormode.ColorMode(u.preferredColorMode.Load())
+}
+
+func (u *UserInterface) SetPreferredColorMode(mode colormode.ColorMode) {
+	if colormode.ColorMode(u.preferredColorMode.Swap(int32(mode))) == mode {
+		return
+	}
+	u.Window().SetColorMode(mode)
 }
 
 var (
