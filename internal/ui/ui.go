@@ -104,7 +104,7 @@ func (u *UserInterface) SetPreferredColorMode(mode colormode.ColorMode) {
 	if colormode.ColorMode(u.preferredColorMode.Swap(int32(mode))) == mode {
 		return
 	}
-	u.Window().SetColorMode(mode)
+	u.Window().applyColorMode()
 }
 
 var (

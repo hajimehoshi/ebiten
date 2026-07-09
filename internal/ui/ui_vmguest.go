@@ -555,7 +555,7 @@ func (r *remoteBackend) CursorMode() CursorMode {
 func (r *remoteBackend) SetCursorMode(mode CursorMode) {
 }
 
-func (r *remoteBackend) SetCursorShape(shape CursorShape) {
+func (r *remoteBackend) applyCursorShape() {
 }
 
 func (r *remoteBackend) IsFullscreen() bool {
@@ -565,7 +565,7 @@ func (r *remoteBackend) IsFullscreen() bool {
 func (r *remoteBackend) SetFullscreen(fullscreen bool) {
 }
 
-func (r *remoteBackend) SetFPSMode(mode FPSModeType) {
+func (r *remoteBackend) applyFPSMode() {
 }
 
 func (r *remoteBackend) ScheduleFrame() {

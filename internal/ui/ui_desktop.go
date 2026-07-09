@@ -20,7 +20,6 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/hajimehoshi/ebiten/v2/internal/colormode"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/microsoftgdk"
 )
@@ -38,11 +37,11 @@ type uiBackend interface {
 	IsFocused() bool
 	IsFullscreen() bool
 	SetFullscreen(fullscreen bool)
-	SetFPSMode(mode FPSModeType)
+	applyFPSMode()
 	ScheduleFrame()
 	CursorMode() CursorMode
 	SetCursorMode(mode CursorMode)
-	SetCursorShape(shape CursorShape)
+	applyCursorShape()
 	Window() backendWindow
 	Monitor() *Monitor
 	RunOnMainThread(f func())
@@ -52,12 +51,18 @@ type uiBackend interface {
 // backendWindow is the part of Window that a backend implements.
 // The methods are called only while the game runs. The remaining part of
 // Window is answered by desktopWindow from the settings in userInterfaceImpl.
+//
+// An applyX method takes no value and applies the setting currently stored in
+// userInterfaceImpl or desktopWindow, rather than a value passed by the caller.
+// The store and this apply run as two steps, so a value-carrying apply could let
+// two concurrent setters leave the store and the window disagreeing; applying the
+// stored value instead keeps them in agreement (#3481).
 type backendWindow interface {
 	IsDecorated() bool
 	SetDecorated(decorated bool)
 	IsVisible() bool
 	SetVisible(visible bool)
-	SetResizingMode(mode WindowResizingMode)
+	applyResizingMode()
 	SetMonitor(monitor *Monitor)
 	Position() (int, int)
 	SetPosition(x, y int)
@@ -70,10 +75,10 @@ type backendWindow interface {
 	IsMaximized() bool
 	Minimize()
 	IsMinimized() bool
-	SetTitle(title string)
-	SetColorMode(mode colormode.ColorMode)
+	applyTitle()
+	applyColorMode()
 	Restore()
-	SetClosingHandled(handled bool)
+	applyClosingHandled()
 	SetMousePassthrough(enabled bool)
 	IsMousePassthrough() bool
 	RequestAttention()
@@ -281,7 +286,7 @@ func (u *UserInterface) SetFPSMode(mode FPSModeType) {
 	if b == nil {
 		return
 	}
-	b.SetFPSMode(mode)
+	b.applyFPSMode()
 }
 
 func (u *UserInterface) ScheduleFrame() {
@@ -330,7 +335,7 @@ func (u *UserInterface) SetCursorShape(shape CursorShape) {
 	if b == nil {
 		return
 	}
-	b.SetCursorShape(shape)
+	b.applyCursorShape()
 }
 
 func (u *UserInterface) Window() Window {

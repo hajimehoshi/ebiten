@@ -19,7 +19,6 @@ package ui
 import (
 	"runtime"
 
-	"github.com/hajimehoshi/ebiten/v2/internal/colormode"
 	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
 )
 
@@ -85,12 +84,12 @@ func (w *glfwWindow) SetVisible(visible bool) {
 	})
 }
 
-func (w *glfwWindow) SetResizingMode(mode WindowResizingMode) {
+func (w *glfwWindow) applyResizingMode() {
 	w.ui.mainThread.Call(func() {
 		if w.ui.isTerminated() {
 			return
 		}
-		if err := w.ui.setWindowResizingMode(mode); err != nil {
+		if err := w.ui.setWindowResizingMode(WindowResizingMode(w.ui.desktopWindow.windowResizingMode.Load())); err != nil {
 			w.ui.setError(err)
 			return
 		}
@@ -305,37 +304,37 @@ func (w *glfwWindow) SetSizeLimits(minw, minh, maxw, maxh int) {
 	})
 }
 
-func (w *glfwWindow) SetTitle(title string) {
+func (w *glfwWindow) applyTitle() {
 	w.ui.mainThread.Call(func() {
 		if w.ui.isTerminated() {
 			return
 		}
-		if err := w.ui.setWindowTitle(title); err != nil {
+		if err := w.ui.setWindowTitle(w.ui.desktopWindow.title.Load().(string)); err != nil {
 			w.ui.setError(err)
 			return
 		}
 	})
 }
 
-func (w *glfwWindow) SetColorMode(mode colormode.ColorMode) {
+func (w *glfwWindow) applyColorMode() {
 	var err error
 	w.ui.mainThread.Call(func() {
 		if w.ui.isTerminated() {
 			return
 		}
-		err = w.ui.setWindowColorModeImpl(mode)
+		err = w.ui.setWindowColorModeImpl(w.ui.PreferredColorMode())
 	})
 	if err != nil {
 		w.ui.setError(err)
 	}
 }
 
-func (w *glfwWindow) SetClosingHandled(handled bool) {
+func (w *glfwWindow) applyClosingHandled() {
 	w.ui.mainThread.Call(func() {
 		if w.ui.isTerminated() {
 			return
 		}
-		if err := w.ui.setDocumentEdited(handled); err != nil {
+		if err := w.ui.setDocumentEdited(w.ui.desktopWindow.isWindowClosingHandled()); err != nil {
 			w.ui.setError(err)
 			return
 		}

@@ -392,12 +392,12 @@ func (u *glfwBackend) IsFocused() bool {
 	return focused
 }
 
-func (u *glfwBackend) SetFPSMode(mode FPSModeType) {
+func (u *glfwBackend) applyFPSMode() {
 	u.mainThread.Call(func() {
 		if u.isTerminated() {
 			return
 		}
-		if err := u.setFPSMode(mode); err != nil {
+		if err := u.setFPSMode(FPSModeType(u.fpsMode.Load())); err != nil {
 			u.setError(err)
 			return
 		}
@@ -459,12 +459,12 @@ func (u *glfwBackend) SetCursorMode(mode CursorMode) {
 	})
 }
 
-func (u *glfwBackend) SetCursorShape(shape CursorShape) {
+func (u *glfwBackend) applyCursorShape() {
 	u.mainThread.Call(func() {
 		if u.isTerminated() {
 			return
 		}
-		if err := u.window.SetCursor(glfwSystemCursors[shape]); err != nil {
+		if err := u.window.SetCursor(glfwSystemCursors[u.getCursorShape()]); err != nil {
 			u.setError(err)
 			return
 		}

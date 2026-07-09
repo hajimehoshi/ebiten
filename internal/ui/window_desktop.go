@@ -20,7 +20,6 @@ import (
 	"image"
 	"sync/atomic"
 
-	"github.com/hajimehoshi/ebiten/v2/internal/colormode"
 	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
 	"github.com/hajimehoshi/ebiten/v2/internal/microsoftgdk"
 )
@@ -294,7 +293,7 @@ func (w *desktopWindow) SetResizingMode(mode WindowResizingMode) {
 	if b == nil {
 		return
 	}
-	b.Window().SetResizingMode(mode)
+	b.Window().applyResizingMode()
 }
 
 func (w *desktopWindow) IsFloating() bool {
@@ -490,10 +489,10 @@ func (w *desktopWindow) SetTitle(title string) {
 	if b == nil {
 		return
 	}
-	b.Window().SetTitle(title)
+	b.Window().applyTitle()
 }
 
-func (w *desktopWindow) SetColorMode(mode colormode.ColorMode) {
+func (w *desktopWindow) applyColorMode() {
 	if w.ui.isTerminated() {
 		return
 	}
@@ -502,7 +501,7 @@ func (w *desktopWindow) SetColorMode(mode colormode.ColorMode) {
 		// The backend consumes the preferred color mode at its initialization.
 		return
 	}
-	b.Window().SetColorMode(mode)
+	b.Window().applyColorMode()
 }
 
 func (w *desktopWindow) SetClosingHandled(handled bool) {
@@ -516,7 +515,7 @@ func (w *desktopWindow) SetClosingHandled(handled bool) {
 	if b == nil {
 		return
 	}
-	b.Window().SetClosingHandled(handled)
+	b.Window().applyClosingHandled()
 }
 
 func (w *desktopWindow) IsClosingHandled() bool {
