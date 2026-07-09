@@ -80,7 +80,9 @@ func (g *Game) initAudioIfNeeded() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	g.player.SetBufferSize(200 * time.Millisecond)
+	// Set a small buffer size to avoid discontinuities in audio playback (#3396).
+	// 1/20[s] should work in most cases, but this might cause glitches in some environments.
+	g.player.SetBufferSize(time.Second / 20)
 
 	// Play the infinite-length stream. This never ends.
 	g.player.Play()
