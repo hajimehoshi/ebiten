@@ -170,16 +170,17 @@ type glyphRenderDataCacheKey struct {
 
 // glyphRenderData bundles the data needed to render one glyph. bounds
 // is computed eagerly so layout decisions (image rectangle, culling,
-// ImageBounds) don't pay for the GlyphData fetch. hasBitmap is an
-// eager heuristic — true when the face is at a bitmap-strike size —
-// used only by layout to pick the positioning convention.
+// ImageBounds) don't pay for the GlyphData fetch. useBitmap is true
+// when the face is at a bitmap-strike size; layout consults it to pick
+// the positioning convention and realize consults it to select
+// bitmap-mode glyph data.
 //
 // The actual segments and bitmap are produced on first call to
 // [glyphRenderData.segments] or [glyphRenderData.bitmap], which fetch
 // glyph data via the source's glyphDataCache.
 type glyphRenderData struct {
 	bounds    fixed.Rectangle26_6
-	hasBitmap bool
+	useBitmap bool
 
 	realizeOnce sync.Once
 
@@ -190,7 +191,6 @@ type glyphRenderData struct {
 	sideways    bool
 	yOffset     fixed.Int26_6
 	variations  []font.Variation
-	useBitmap   bool
 	bitmapXPpem uint16
 	bitmapYPpem uint16
 
@@ -812,14 +812,13 @@ func (g *GoTextFaceSource) buildRenderData(gl shaping.Glyph, size fixed.Int26_6,
 	// mutates the underlying array.
 	return &glyphRenderData{
 		bounds:      bounds,
-		hasBitmap:   bm.useBitmap,
+		useBitmap:   bm.useBitmap,
 		source:      g,
 		gid:         gl.GlyphID,
 		size:        size,
 		sideways:    sideways,
 		yOffset:     gl.YOffset,
 		variations:  variations,
-		useBitmap:   bm.useBitmap,
 		bitmapXPpem: bm.xPpem,
 		bitmapYPpem: bm.yPpem,
 	}, true

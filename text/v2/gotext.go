@@ -423,7 +423,7 @@ func goTextGlyphImageInfo(face *GoTextFace, glyph *goTextGlyph, origin fixed.Poi
 	if glyph.render == nil {
 		return
 	}
-	if glyph.render.hasBitmap {
+	if glyph.render.useBitmap {
 		// Bitmap glyph: dimensions come from rd.bounds (sourced from
 		// GlyphExtents via the sbix or CBDT/EBDT subtable, set during
 		// buildRenderData) so layout doesn't have to wait for the
