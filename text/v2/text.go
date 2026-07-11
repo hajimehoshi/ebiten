@@ -139,7 +139,8 @@ type Glyph struct {
 	GID uint32
 
 	// Image is a rasterized glyph image.
-	// Image is a grayscale image i.e. RGBA values are the same.
+	// Image is a grayscale image i.e. RGBA values are the same,
+	// except for color glyphs like emojis, whose image is colored.
 	//
 	// Image should be used as a render source and must not be modified.
 	//
@@ -268,7 +269,8 @@ type LazyGlyph struct {
 //
 // Image returns nil for control characters and zero-area glyphs.
 //
-// The returned image is a grayscale image i.e. RGBA values are the same.
+// The returned image is a grayscale image i.e. RGBA values are the same,
+// except for color glyphs like emojis, whose image is colored.
 // The returned image should be used as a render source and must not be modified.
 func (g LazyGlyph) Image() *ebiten.Image {
 	if g.imager == nil {

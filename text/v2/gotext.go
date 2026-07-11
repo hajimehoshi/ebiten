@@ -403,6 +403,16 @@ func (im *goTextLineImager) glyphImage(index int) *ebiten.Image {
 		if bm := rd.bitmap(); bm != nil {
 			return ebiten.NewImageFromImage(bm), true
 		}
+		if svg := rd.svg(); svg != nil {
+			if img := svgToImage(svg, fixed26_6ToFloat64(rd.size), subpixelOffset, rd.bounds); img != nil {
+				return img, true
+			}
+		}
+		if img := colrV0LayersToImage(rd.colrV0Layers(), subpixelOffset, rd.bounds); img != nil {
+			return img, true
+		}
+		// The outline is the last resort, e.g. for an SVG glyph whose
+		// document cannot be rasterized.
 		img := segmentsToImage(rd.segments(), subpixelOffset, rd.bounds)
 		return img, img != nil
 	})

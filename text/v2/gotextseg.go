@@ -60,26 +60,14 @@ func glyphExtentsToBounds(ext font.GlyphExtents, scale float32, sideways bool, y
 	}
 }
 
-func segmentsToImage(segs []opentype.Segment, subpixelOffset fixed.Point26_6, glyphBounds fixed.Rectangle26_6) *ebiten.Image {
-	if len(segs) == 0 {
-		return nil
-	}
-
-	w, h := (glyphBounds.Max.X - glyphBounds.Min.X).Ceil(), (glyphBounds.Max.Y - glyphBounds.Min.Y).Ceil()
-	if w == 0 || h == 0 {
-		return nil
-	}
-
-	// Add always 1 to the size.
-	// In theory, it is possible to determine whether +1 is necessary or not, but the calculation is pretty complicated.
-	w++
-	h++
-
+// newGlyphRasterizer returns a rasterizer of the given pixel size with
+// the outline segments added, translated by the bias derived from
+// glyphBounds and subpixelOffset.
+func newGlyphRasterizer(w, h int, segs []opentype.Segment, subpixelOffset fixed.Point26_6, glyphBounds fixed.Rectangle26_6) *gvector.Rasterizer {
 	biasX := fixed26_6ToFloat32(-glyphBounds.Min.X + subpixelOffset.X)
 	biasY := fixed26_6ToFloat32(-glyphBounds.Min.Y + subpixelOffset.Y)
 
 	rast := gvector.NewRasterizer(w, h)
-	rast.DrawOp = draw.Src
 	for _, seg := range segs {
 		switch seg.Op {
 		case opentype.SegmentOpMoveTo:
@@ -104,6 +92,26 @@ func segmentsToImage(segs []opentype.Segment, subpixelOffset fixed.Point26_6, gl
 	// NotoSansJP-VF.otf in https://github.com/notofonts/noto-cjk/releases/tag/Sans2.004.
 	// See also https://github.com/go-text/typesetting/issues/122.
 	rast.ClosePath()
+	return rast
+}
+
+func segmentsToImage(segs []opentype.Segment, subpixelOffset fixed.Point26_6, glyphBounds fixed.Rectangle26_6) *ebiten.Image {
+	if len(segs) == 0 {
+		return nil
+	}
+
+	w, h := (glyphBounds.Max.X - glyphBounds.Min.X).Ceil(), (glyphBounds.Max.Y - glyphBounds.Min.Y).Ceil()
+	if w == 0 || h == 0 {
+		return nil
+	}
+
+	// Add always 1 to the size.
+	// In theory, it is possible to determine whether +1 is necessary or not, but the calculation is pretty complicated.
+	w++
+	h++
+
+	rast := newGlyphRasterizer(w, h, segs, subpixelOffset, glyphBounds)
+	rast.DrawOp = draw.Src
 
 	dst := newPooledRGBA(w, h)
 	defer releasePooledRGBA(dst)

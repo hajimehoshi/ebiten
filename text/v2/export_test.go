@@ -48,3 +48,9 @@ func (rtb *RuneToBoolMap) Set(rune rune, value bool) {
 func (rtb *RuneToBoolMap) Get(rune rune) (bool, bool) {
 	return rtb.get(rune)
 }
+
+// SVGGlyphDocument extracts the SVG document describing only the glyph
+// gid from an OpenType SVG document.
+func SVGGlyphDocument(source []byte, gid uint32) []byte {
+	return newSVGDocIndex(source).glyphDocument(gid)
+}
