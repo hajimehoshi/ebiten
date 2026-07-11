@@ -32,7 +32,7 @@ import (
 // https://commons.wikimedia.org/wiki/File:Shibuya_Crossing,_Tokyo,_Japan_(video).webm
 // "Shibuya Crossing, Tokyo, Japan (video).webm" by Basile Morin
 // The Creative Commons Attribution-Share Alike 4.0 International license
-const mpgURL = "https://example-resources.ebitengine.org/shibuya.mpg"
+const mpgURL = "https://res.ebitengine.org/examples/shibuya.mpg"
 
 type Game struct {
 	player *mpegPlayer
