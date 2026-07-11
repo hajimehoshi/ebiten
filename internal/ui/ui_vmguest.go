@@ -73,6 +73,12 @@ type remoteBackend struct {
 	// subsystem is always virtual rather than polling real devices.
 	gamepadStates []gamepad.VirtualGamepadState
 
+	// vibrationsBuf is reused to drain the gamepad vibrations requested during a tick; wireVibrationsBuf
+	// is reused to hold their wire-typed copy for the message. gob encodes the latter synchronously, so it
+	// can be overwritten on the next flush. Both are owned by the serve goroutine.
+	vibrationsBuf     []gamepad.VirtualGamepadVibration
+	wireVibrationsBuf []vmprotocol.GamepadVibration
+
 	// rawCursorX and rawCursorY are the injected cursor position in outside-screen device-independent
 	// pixels. They are translated to logical coordinates per tick in updateInputStateForFrame.
 	rawCursorX float64
@@ -197,6 +203,9 @@ func (r *remoteBackend) serveLoop(dec *vmprotocol.Decoder, enc *vmprotocol.Encod
 		case vmprotocol.HostMessageKindSetOutsideSize:
 			r.setOutsideSize(msg.Width, msg.Height)
 		case vmprotocol.HostMessageKindAdvanceTick:
+			// ebiten.Tick() reports this tick's number during the Update; capture it before advanceTick
+			// runs the Update and increments the counter, so it can be attached to the tick's vibrations.
+			tick := int(r.Tick())
 			if err := r.advanceTick(); err != nil {
 				// A regular termination is the guest's Update asking for a clean stop, not a failure;
 				// forward it distinctly so the host can map it back to the ebiten.Termination sentinel.
@@ -222,6 +231,10 @@ func (r *remoteBackend) serveLoop(dec *vmprotocol.Decoder, enc *vmprotocol.Encod
 					}
 					lastSentTPS = tps
 					sentTPS = true
+				}
+				// Forward any gamepad vibrations the tick's Update requested.
+				if err := r.flushGamepadVibrations(enc, tick); err != nil {
+					return err
 				}
 			}
 		case vmprotocol.HostMessageKindAdvanceFrame:
@@ -534,6 +547,29 @@ func virtualStandardButtons(buttons map[gamepaddb.StandardButton]vmprotocol.Game
 		}
 	}
 	return m
+}
+
+// flushGamepadVibrations forwards the vibrations the tick's Update requested to the host, tagged with
+// the tick (the guest's ebiten.Tick() during that Update). It sends nothing when none were requested.
+func (r *remoteBackend) flushGamepadVibrations(enc *vmprotocol.Encoder, tick int) error {
+	r.vibrationsBuf = gamepad.AppendVirtualGamepadVibrations(r.vibrationsBuf[:0])
+	if len(r.vibrationsBuf) == 0 {
+		return nil
+	}
+	r.wireVibrationsBuf = r.wireVibrationsBuf[:0]
+	for _, v := range r.vibrationsBuf {
+		r.wireVibrationsBuf = append(r.wireVibrationsBuf, vmprotocol.GamepadVibration{
+			ID:              int(v.ID),
+			Duration:        v.Duration,
+			StrongMagnitude: v.StrongMagnitude,
+			WeakMagnitude:   v.WeakMagnitude,
+		})
+	}
+	return enc.EncodeGuestMessage(&vmprotocol.GuestMessage{
+		Kind:              vmprotocol.GuestMessageKindGamepadVibrations,
+		GamepadVibrations: r.wireVibrationsBuf,
+		Tick:              tick,
+	})
 }
 
 func (r *remoteBackend) KeyName(key Key) string {

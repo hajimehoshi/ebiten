@@ -26,7 +26,7 @@
 // built in a generated module that pins Ebitengine to the host's own version; a local path is built
 // in its own module. The host builds the guest with -tags ebitenginevm, runs it pointed at a private
 // socket, forwards the window's input (keyboard, mouse, touches, and gamepads) to it, composites its
-// rendered frames into the window, and plays its audio.
+// rendered frames into the window, plays its audio, and applies the gamepad vibrations it requests.
 package main
 
 import (
@@ -711,7 +711,18 @@ func buildAndStartGuest(ln net.Listener, workDir, bin, endpoint, pkg string, pin
 		}
 	}()
 
-	session, err := vmhost.NewGuestSession(conn, nil)
+	session, err := vmhost.NewGuestSession(conn, &vmhost.NewGuestSessionOptions{
+		// Mirror each vibration the guest requests onto the host's own gamepad. The guest's gamepad IDs
+		// match the host's, because the host forwards its own gamepads to the guest. VibrateGamepad is
+		// concurrent-safe, so running this on the session goroutine is fine.
+		OnGamepadVibration: func(v vmhost.GamepadVibration) {
+			ebiten.VibrateGamepad(v.GamepadID, &ebiten.VibrateGamepadOptions{
+				Duration:        v.Duration,
+				StrongMagnitude: v.StrongMagnitude,
+				WeakMagnitude:   v.WeakMagnitude,
+			})
+		},
+	})
 	if err != nil {
 		return nil, err
 	}

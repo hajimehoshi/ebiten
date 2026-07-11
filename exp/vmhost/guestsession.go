@@ -22,7 +22,8 @@
 // next frame; [GuestSession.CompositeFrame] composites the guest's most recently completed frame into
 // the host-owned screen set by [GuestSession.SetOutsideScreen] so the host can composite it into its
 // own window. The audio the guest plays is exposed per player — never mixed — through
-// [GuestSession.AppendAudioStreams], so the host can observe and play each separately.
+// [GuestSession.AppendAudioStreams], so the host can observe and play each separately. The gamepad
+// vibrations the guest requests are delivered to the [NewGuestSessionOptions] OnGamepadVibration handler.
 //
 // This package is experimental and the API might be changed in the future.
 package vmhost
@@ -125,6 +126,10 @@ type GuestSession struct {
 	audioMu         sync.Mutex
 	audioStreams    map[int64]*GuestAudioStream
 	audioSampleRate int
+
+	// onGamepadVibration, if non-nil, is called for each vibration the guest requests. It is set at
+	// construction and only read by the session goroutine, so it needs no lock.
+	onGamepadVibration func(GamepadVibration)
 }
 
 // opKind discriminates an operation the session goroutine performs.
@@ -177,6 +182,11 @@ type NewGuestSessionOptions struct {
 	// unusable except for [GuestSession.Close]. It bounds silence, not an operation's total duration: a
 	// guest that keeps sending never times out. The default (0) means no timeout.
 	IdleTimeout time.Duration
+
+	// OnGamepadVibration, if non-nil, is called for each gamepad vibration the guest's game requests, as
+	// it arrives. It runs on the session's goroutine, so it must not block; a host typically just calls
+	// [ebiten.VibrateGamepad], which is concurrent-safe. A nil handler discards the guest's vibrations.
+	OnGamepadVibration func(GamepadVibration)
 }
 
 // NewGuestSession opens a session with a guest process over an established connection. It performs the
@@ -204,6 +214,10 @@ func NewGuestSession(conn net.Conn, options *NewGuestSessionOptions) (*GuestSess
 		// The guest reports its requested TPS only when it changes; until then it runs at the standard
 		// default, so report that rather than a meaningless zero.
 		requestedTPS: clock.DefaultTPS,
+	}
+	if options != nil {
+		// Set before the session goroutine starts, so it reads the handler without a lock.
+		g.onGamepadVibration = options.OnGamepadVibration
 	}
 	g.cond = sync.NewCond(&g.mu)
 	go g.sessionLoop()
@@ -393,6 +407,9 @@ func (g *GuestSession) sendAndReceive(msg *vmprotocol.HostMessage) error {
 			continue
 		case vmprotocol.GuestMessageKindRequestedTPS:
 			g.setRequestedTPS(gm.RequestedTPS)
+			continue
+		case vmprotocol.GuestMessageKindGamepadVibrations:
+			g.dispatchGamepadVibrations(&gm)
 			continue
 		}
 		// GuestMessageKindDone.
@@ -835,6 +852,41 @@ func standardButtonsToProtocol(buttons map[ebiten.StandardGamepadButton]GamepadS
 		}
 	}
 	return m
+}
+
+// GamepadVibration is a vibration the guest's game requested for one gamepad, passed to the
+// [NewGuestSessionOptions] OnGamepadVibration handler. GamepadID matches the
+// [GuestSession.UpdateGamepads] ID, so a host applies it to the corresponding gamepad with
+// [ebiten.VibrateGamepad].
+type GamepadVibration struct {
+	// Tick is the guest's [ebiten.Tick] during the Update that requested the vibration.
+	Tick int
+
+	GamepadID ebiten.GamepadID
+	Duration  time.Duration
+
+	// StrongMagnitude and WeakMagnitude are the low- and high-frequency rumble intensities, in 0..1.
+	StrongMagnitude float64
+	WeakMagnitude   float64
+}
+
+// dispatchGamepadVibrations calls the vibration handler for each vibration the tick requested, stamping
+// each with the tick that produced it. It runs on the session goroutine and does nothing when no handler
+// is registered.
+func (g *GuestSession) dispatchGamepadVibrations(msg *vmprotocol.GuestMessage) {
+	if g.onGamepadVibration == nil {
+		return
+	}
+	for i := range msg.GamepadVibrations {
+		v := &msg.GamepadVibrations[i]
+		g.onGamepadVibration(GamepadVibration{
+			GamepadID:       ebiten.GamepadID(v.ID),
+			Duration:        v.Duration,
+			StrongMagnitude: v.StrongMagnitude,
+			WeakMagnitude:   v.WeakMagnitude,
+			Tick:            msg.Tick,
+		})
+	}
 }
 
 // PressTouch injects a touch-press event at (x, y), in outside-screen device-independent pixels.

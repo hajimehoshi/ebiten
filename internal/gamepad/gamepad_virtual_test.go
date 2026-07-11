@@ -18,6 +18,7 @@ import (
 	"math"
 	"slices"
 	"testing"
+	"time"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepaddb"
@@ -194,6 +195,62 @@ func TestVirtualGamepadStandardLayoutBypassesDB(t *testing.T) {
 	}
 	if !g.IsStandardButtonPressed(gamepaddb.StandardButtonRightBottom) {
 		t.Error("IsStandardButtonPressed(RightBottom) = false; want true (the forwarded layout must win over gamepaddb)")
+	}
+}
+
+func TestVirtualGamepadVibration(t *testing.T) {
+	updateVirtualGamepads(t, []gamepad.VirtualGamepadState{
+		{ID: 0, SDLID: "id0", Name: "Pad 0"},
+		{ID: 1, SDLID: "id1", Name: "Pad 1"},
+	})
+	defer updateVirtualGamepads(t, []gamepad.VirtualGamepadState{})
+
+	// Nothing requested yet: the drain is empty.
+	if got := gamepad.AppendVirtualGamepadVibrations(nil); len(got) != 0 {
+		t.Errorf("AppendVirtualGamepadVibrations with no request = %v; want none", got)
+	}
+
+	g0 := gamepad.Get(0)
+	if g0 == nil {
+		t.Fatal("Get(0) = nil; want a gamepad")
+	}
+	g0.Vibrate(500*time.Millisecond, 0.25, 0.75)
+
+	got := gamepad.AppendVirtualGamepadVibrations(nil)
+	want := []gamepad.VirtualGamepadVibration{
+		{ID: 0, Duration: 500 * time.Millisecond, StrongMagnitude: 0.25, WeakMagnitude: 0.75},
+	}
+	if !slices.Equal(got, want) {
+		t.Errorf("AppendVirtualGamepadVibrations = %v; want %v", got, want)
+	}
+
+	// A vibration is reported once: a second drain is empty.
+	if got := gamepad.AppendVirtualGamepadVibrations(nil); len(got) != 0 {
+		t.Errorf("second AppendVirtualGamepadVibrations = %v; want none (already drained)", got)
+	}
+
+	// A later request within one drain interval replaces an earlier one: a device has a single rumble
+	// state, so the last write wins.
+	g0.Vibrate(time.Second, 1, 1)
+	g0.Vibrate(0, 0, 0)
+	got = gamepad.AppendVirtualGamepadVibrations(nil)
+	want = []gamepad.VirtualGamepadVibration{
+		{ID: 0, Duration: 0, StrongMagnitude: 0, WeakMagnitude: 0},
+	}
+	if !slices.Equal(got, want) {
+		t.Errorf("after two requests, AppendVirtualGamepadVibrations = %v; want %v (last write wins)", got, want)
+	}
+
+	// Each gamepad is reported on its own ID, in ID order.
+	gamepad.Get(1).Vibrate(time.Second, 0.5, 0.5)
+	g0.Vibrate(2*time.Second, 0.1, 0.2)
+	got = gamepad.AppendVirtualGamepadVibrations(nil)
+	want = []gamepad.VirtualGamepadVibration{
+		{ID: 0, Duration: 2 * time.Second, StrongMagnitude: 0.1, WeakMagnitude: 0.2},
+		{ID: 1, Duration: time.Second, StrongMagnitude: 0.5, WeakMagnitude: 0.5},
+	}
+	if !slices.Equal(got, want) {
+		t.Errorf("AppendVirtualGamepadVibrations for two gamepads = %v; want %v", got, want)
 	}
 }
 

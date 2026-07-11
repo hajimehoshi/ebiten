@@ -44,6 +44,12 @@ const (
 // are released via t.Cleanup.
 func startGuest(t *testing.T, pkgPath string, activation guestActivation, network string) *vmhost.GuestSession {
 	t.Helper()
+	return startGuestWithOptions(t, pkgPath, activation, network, nil)
+}
+
+// startGuestWithOptions is like startGuest but passes options to [vmhost.NewGuestSession].
+func startGuestWithOptions(t *testing.T, pkgPath string, activation guestActivation, network string, options *vmhost.NewGuestSessionOptions) *vmhost.GuestSession {
+	t.Helper()
 	skipIfVMUnsupported(t)
 
 	guestBin := filepath.Join(t.TempDir(), "guest")
@@ -86,7 +92,7 @@ func startGuest(t *testing.T, pkgPath string, activation guestActivation, networ
 		t.Fatalf("accepting the guest failed: %v", err)
 	}
 
-	guest, err := vmhost.NewGuestSession(conn, nil)
+	guest, err := vmhost.NewGuestSession(conn, options)
 	if err != nil {
 		t.Fatal(err)
 	}

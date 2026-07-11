@@ -32,6 +32,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/color"
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepaddb"
@@ -190,6 +191,10 @@ const (
 	// its requested rate. Zero or one precedes the concluding GuestMessageKindDone of an advance-tick
 	// operation.
 	GuestMessageKindRequestedTPS
+	// GuestMessageKindGamepadVibrations carries the gamepad vibrations the guest's game requested during
+	// the tick, at most one per gamepad. Zero or one precedes the concluding GuestMessageKindDone of an
+	// advance-tick operation.
+	GuestMessageKindGamepadVibrations
 )
 
 // GuestMessage is a message a guest sends to the host while handling an operation: recorded graphics
@@ -232,6 +237,25 @@ type GuestMessage struct {
 	// RequestedTPS is the guest game's requested ticks-per-second (what its game passed to
 	// ebiten.SetTPS), which may be ebiten.SyncWithFPS. Set on GuestMessageKindRequestedTPS.
 	RequestedTPS int
+
+	// GamepadVibrations carries the gamepad vibrations requested during the tick, at most one per
+	// gamepad. Set on GuestMessageKindGamepadVibrations.
+	GamepadVibrations []GamepadVibration
+
+	// Tick is the guest's ebiten.Tick() during the tick that produced the vibrations. Set on
+	// GuestMessageKindGamepadVibrations.
+	Tick int
+}
+
+// GamepadVibration is one gamepad's requested vibration: its rumble magnitudes and how long they
+// last. ID identifies the gamepad, matching GamepadState.ID.
+type GamepadVibration struct {
+	ID       int
+	Duration time.Duration
+
+	// StrongMagnitude and WeakMagnitude are the low- and high-frequency rumble intensities, in 0..1.
+	StrongMagnitude float64
+	WeakMagnitude   float64
 }
 
 // AudioControl is one guest audio player's control state. The samples are pulled separately

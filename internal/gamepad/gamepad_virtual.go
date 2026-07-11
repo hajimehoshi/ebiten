@@ -43,6 +43,46 @@ type VirtualStandardGamepadButton struct {
 	Value   float64
 }
 
+// VirtualGamepadVibration is a vibration requested by a virtual gamepad: which gamepad (ID), its
+// rumble magnitudes in 0..1, and how long they last.
+type VirtualGamepadVibration struct {
+	ID              ID
+	Duration        time.Duration
+	StrongMagnitude float64
+	WeakMagnitude   float64
+}
+
+// AppendVirtualGamepadVibrations appends the vibrations virtual gamepads have requested since the last
+// call to dst and returns the extended slice, clearing them so each is reported once. At most one entry
+// per gamepad is appended.
+func AppendVirtualGamepadVibrations(dst []VirtualGamepadVibration) []VirtualGamepadVibration {
+	return theGamepads.appendVirtualVibrations(dst)
+}
+
+func (g *gamepads) appendVirtualVibrations(dst []VirtualGamepadVibration) []VirtualGamepadVibration {
+	g.m.Lock()
+	defer g.m.Unlock()
+
+	for id, gp := range g.gamepads {
+		if gp == nil || !gp.virtual {
+			continue
+		}
+		gp.m.Lock()
+		n := gp.native.(*nativeGamepadVirtual)
+		if n.vibrationPending {
+			dst = append(dst, VirtualGamepadVibration{
+				ID:              ID(id),
+				Duration:        n.vibration.duration,
+				StrongMagnitude: n.vibration.strongMagnitude,
+				WeakMagnitude:   n.vibration.weakMagnitude,
+			})
+			n.vibrationPending = false
+		}
+		gp.m.Unlock()
+	}
+	return dst
+}
+
 // setVirtualGamepads makes the connected gamepads exactly those described by states; a gamepad
 // absent from it is disconnected. g.m must be held.
 func (g *gamepads) setVirtualGamepads(states []VirtualGamepadState) {
@@ -134,6 +174,19 @@ type nativeGamepadVirtual struct {
 
 	standardAxes    map[gamepaddb.StandardAxis]float64
 	standardButtons map[gamepaddb.StandardButton]VirtualStandardGamepadButton
+
+	// vibration holds the latest vibration the game requested; vibrationPending reports that it has not
+	// been drained yet. A device has a single current rumble state, so a later request within the same
+	// drain interval replaces an earlier one.
+	vibration        virtualVibration
+	vibrationPending bool
+}
+
+// virtualVibration is one requested rumble: its magnitudes and duration.
+type virtualVibration struct {
+	duration        time.Duration
+	strongMagnitude float64
+	weakMagnitude   float64
 }
 
 func (g *nativeGamepadVirtual) update(gamepads *gamepads) error {
@@ -202,7 +255,14 @@ func (g *nativeGamepadVirtual) hatState(hat int) int {
 }
 
 func (g *nativeGamepadVirtual) vibrate(duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
-	// Vibration is guest-to-host feedback, a direction this backend does not forward yet.
+	// Vibration is guest-to-host feedback: record it so the host can drain and apply it. The gamepad's
+	// lock is held by Gamepad.Vibrate, the same lock AppendVirtualGamepadVibrations takes to drain.
+	g.vibration = virtualVibration{
+		duration:        duration,
+		strongMagnitude: strongMagnitude,
+		weakMagnitude:   weakMagnitude,
+	}
+	g.vibrationPending = true
 }
 
 // virtualStandardAxisMapping presents a forwarded standard axis value (in -1..1) through the
