@@ -388,15 +388,10 @@ func (im *goTextLineImager) glyphImage(index int) *ebiten.Image {
 	args := &im.args[index]
 	glyph := args.glyph
 	face := im.face
-	if bm := glyph.render.bitmap(); bm != nil {
-		key := goTextGlyphImageCacheKey{
-			gid:        glyph.shapingGlyph.GlyphID,
-			variations: face.ensureVariationsString(),
-		}
-		return face.Source.getOrCreateGlyphImage(face, key, func() (*ebiten.Image, bool) {
-			return ebiten.NewImageFromImage(bm), true
-		})
-	}
+	rd := glyph.render
+	// A bitmap glyph is pixel-aligned and its subpixel offset is always
+	// zero (see goTextGlyphImageInfo), so one key form covers both the
+	// bitmap and the outline conventions.
 	key := goTextGlyphImageCacheKey{
 		gid:        glyph.shapingGlyph.GlyphID,
 		xoffset:    args.subpixelOffset.X,
@@ -405,7 +400,10 @@ func (im *goTextLineImager) glyphImage(index int) *ebiten.Image {
 	}
 	subpixelOffset := args.subpixelOffset
 	return face.Source.getOrCreateGlyphImage(face, key, func() (*ebiten.Image, bool) {
-		img := segmentsToImage(glyph.render.segments(), subpixelOffset, glyph.render.bounds)
+		if bm := rd.bitmap(); bm != nil {
+			return ebiten.NewImageFromImage(bm), true
+		}
+		img := segmentsToImage(rd.segments(), subpixelOffset, rd.bounds)
 		return img, img != nil
 	})
 }
