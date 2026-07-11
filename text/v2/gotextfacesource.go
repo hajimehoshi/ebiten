@@ -557,29 +557,39 @@ func (g *GoTextFaceSource) outputCacheValue(text string, face *GoTextFace) *goTe
 	})
 }
 
+// faceBitmapState describes how bitmap strikes apply to a face size.
+type faceBitmapState struct {
+	// xPpem and yPpem are the pixel-per-em values pushed to the font,
+	// used to select a bitmap strike. Both are zero when no strike
+	// matches face.Size.
+	xPpem, yPpem uint16
+
+	// useBitmap indicates that bitmap glyph data should be used.
+	useBitmap bool
+}
+
 // applyFaceState updates the shared font state to reflect face and
-// returns the bitmap-strike ppem that was applied. xPpem and yPpem are
-// zero — and useBitmap is false — when no strike matches face.Size;
-// otherwise they hold the strike's pixel size and useBitmap is true.
+// returns the resulting bitmap state.
 //
 // The caller must hold g.shapeMu.
-func (g *GoTextFaceSource) applyFaceState(face *GoTextFace) (xPpem, yPpem uint16, useBitmap bool) {
+func (g *GoTextFaceSource) applyFaceState(face *GoTextFace) faceBitmapState {
 	if s := face.ensureVariationsString(); s != g.lastVariationsString {
 		g.f.SetVariations(face.variations)
 		g.lastVariationsString = s
 	}
 
+	var bm faceBitmapState
 	for _, bs := range g.bitmapSizes() {
 		if float64(bs.YPpem) == face.Size {
-			xPpem, yPpem, useBitmap = bs.XPpem, bs.YPpem, true
+			bm = faceBitmapState{xPpem: bs.XPpem, yPpem: bs.YPpem, useBitmap: true}
 			break
 		}
 	}
-	if xPpem != g.lastXPpem || yPpem != g.lastYPpem {
-		g.f.SetPpem(xPpem, yPpem)
-		g.lastXPpem, g.lastYPpem = xPpem, yPpem
+	if bm.xPpem != g.lastXPpem || bm.yPpem != g.lastYPpem {
+		g.f.SetPpem(bm.xPpem, bm.yPpem)
+		g.lastXPpem, g.lastYPpem = bm.xPpem, bm.yPpem
 	}
-	return xPpem, yPpem, useBitmap
+	return bm
 }
 
 // buildOutputs runs HarfBuzz shaping on text and returns the per-segment
@@ -587,7 +597,7 @@ func (g *GoTextFaceSource) applyFaceState(face *GoTextFace) (xPpem, yPpem uint16
 //
 // The caller must hold g.shapeMu.
 func (g *GoTextFaceSource) buildOutputs(text string, face *GoTextFace) []shaping.Output {
-	_, _, _ = g.applyFaceState(face)
+	_ = g.applyFaceState(face)
 
 	g.runes = g.runes[:0]
 	for _, r := range text {
@@ -715,7 +725,7 @@ func appendChunksVisualOrder(dstOrder []int, levelsBuf []bidi.Level, chunks []ch
 //
 // The caller must hold g.shapeMu.
 func (g *GoTextFaceSource) buildGlyphs(outputs []shaping.Output, text string, face *GoTextFace) []goTextGlyph {
-	xPpem, yPpem, useBitmap := g.applyFaceState(face)
+	bm := g.applyFaceState(face)
 
 	var indices []int
 	for i := range text {
@@ -749,7 +759,7 @@ func (g *GoTextFaceSource) buildGlyphs(outputs []shaping.Output, text string, fa
 				size:       out.Size,
 			}
 			render := g.renderDataCache.getOrCreate(renderKey, func() (*glyphRenderData, bool) {
-				return g.buildRenderData(gl, out.Size, sideways, variationsSnapshot, useBitmap, xPpem, yPpem)
+				return g.buildRenderData(gl, out.Size, sideways, variationsSnapshot, bm)
 			})
 
 			gs = append(gs, goTextGlyph{
@@ -775,7 +785,7 @@ func (g *GoTextFaceSource) buildGlyphs(outputs []shaping.Output, text string, fa
 // realize step finds a usable bitmap entry for the glyph.
 //
 // The caller must hold g.shapeMu.
-func (g *GoTextFaceSource) buildRenderData(gl shaping.Glyph, size fixed.Int26_6, sideways bool, variations []font.Variation, useBitmap bool, xPpem, yPpem uint16) (*glyphRenderData, bool) {
+func (g *GoTextFaceSource) buildRenderData(gl shaping.Glyph, size fixed.Int26_6, sideways bool, variations []font.Variation, bm faceBitmapState) (*glyphRenderData, bool) {
 	// bounds is the source of truth for the glyph's rendered
 	// rectangle on both the outline and bitmap render paths. In
 	// outline mode [font.Face.GlyphExtents] resolves through glyf or
@@ -792,7 +802,7 @@ func (g *GoTextFaceSource) buildRenderData(gl shaping.Glyph, size fixed.Int26_6,
 		bounds = glyphExtentsToBounds(ext, scale, sideways, yOffset)
 	}
 
-	if bounds.Empty() && !useBitmap {
+	if bounds.Empty() && !bm.useBitmap {
 		return nil, false
 	}
 
@@ -802,16 +812,16 @@ func (g *GoTextFaceSource) buildRenderData(gl shaping.Glyph, size fixed.Int26_6,
 	// mutates the underlying array.
 	return &glyphRenderData{
 		bounds:      bounds,
-		hasBitmap:   useBitmap,
+		hasBitmap:   bm.useBitmap,
 		source:      g,
 		gid:         gl.GlyphID,
 		size:        size,
 		sideways:    sideways,
 		yOffset:     gl.YOffset,
 		variations:  variations,
-		useBitmap:   useBitmap,
-		bitmapXPpem: xPpem,
-		bitmapYPpem: yPpem,
+		useBitmap:   bm.useBitmap,
+		bitmapXPpem: bm.xPpem,
+		bitmapYPpem: bm.yPpem,
 	}, true
 }
 
