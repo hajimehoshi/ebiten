@@ -232,32 +232,41 @@ by observing the app.
 
 ## Observing audio
 
-The guest plays no local audio; instead each of its audio players is
-exposed to the host as a separate, **un-mixed** `*vmhost.GuestAudioStream`.
-The audio methods are goroutine-safe and not frame-bound (unlike
-`CompositeFrame`/`Close`), so inspect them anywhere. Control state (which
-players exist, playing flag, volume) updates as you `AdvanceTicks`; samples
-are pulled from the guest on demand. Drop this into `Update` after the
-`AdvanceTicks` call:
+The guest plays no local audio; instead each audio stream it starts is
+handed to the host through the `OnAudioStream` handler registered when the
+session is created, as a separate, **un-mixed** `*vmhost.GuestAudioStream`.
+The driver already wires this up: `d.onAudioStream` collects the streams
+(guarded by a mutex, since the handler runs on the session goroutine) and
+`d.appendAudioStreams(nil)` hands back the still-open ones (dropping any the
+guest has closed). The audio methods are
+goroutine-safe and not frame-bound (unlike `CompositeFrame`/`Close`), so
+inspect them anywhere; sample data is pulled from the guest on demand. Drop
+this into `Update` once the ticks have run (e.g. after `WaitFrame`, so the
+streams the run started have been delivered):
 
 ```go
-rate := d.guest.AudioSampleRate()          // per-channel samples/sec; 0 until audio plays
-streams := d.guest.AppendAudioStreams(nil) // one entry per guest player
-for i, s := range streams {
+rate := d.guest.AudioSampleRate()             // per-channel samples/sec; 0 until audio plays
+for i, s := range d.appendAudioStreams(nil) { // one entry per still-open guest player
     slog.Info("guest audio player", "i", i,
         "playing", s.IsPlaying(), "volume", s.Volume(), "position", s.Position())
     // Raw PCM: 32-bit little-endian floats, two interleaved channels, at `rate`.
     // Read pulls on demand; volume is reported but NOT applied to these samples.
     buf := make([]byte, 4096)
-    n, _ := s.Read(buf) // 0 bytes while paused; io.EOF at the source's end
+    n, _ := s.Read(buf) // 0 bytes while paused; io.EOF once the guest closes/ends the source
     slog.Info("read PCM", "bytes", n, "rate", rate)
 }
 ```
 
-A stream stays valid until the guest closes its player; reaching `io.EOF`
-does not remove it (a seek-and-replay yields more samples). To actually
-*hear* it rather than just inspect it, feed the stream to a host
-`audio.Player` as its source — see [examples/vm/main.go](examples/vm/main.go).
+`OnAudioStream` fires once per stream, on the session goroutine, when the
+guest starts it — so it must not block, and it must not call `Read` (which
+queues onto that same goroutine and would deadlock). The driver's handler
+only stashes the handle; read the samples from `Update`, as above. A stream
+stays valid after `io.EOF` (a seek-and-replay yields more samples); once the
+guest closes its player, `IsClosed()` returns true and `Read` reports
+`io.EOF` for good, so `appendAudioStreams` drops it — returning only the
+guest's still-open streams. To actually *hear* it rather than just inspect it,
+feed the stream to a host `audio.Player` as its source — see
+[examples/vm/main.go](examples/vm/main.go).
 
 ## Gotchas
 

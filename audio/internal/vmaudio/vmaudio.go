@@ -64,8 +64,9 @@ func CurrentContext() *Context {
 	return theContext.Load()
 }
 
-// forwardControl is the post-tick hook: it pushes the control changes accumulated since the last tick.
-func forwardControl(enc vmprotocol.GuestMessageEncoder) error {
+// forwardControl is the post-tick hook: it pushes the control changes accumulated since the last tick,
+// tagged with tick (the guest's ebiten.Tick() during it) so the host can stamp a newly-started stream.
+func forwardControl(enc vmprotocol.GuestMessageEncoder, tick int) error {
 	c := CurrentContext()
 	if c == nil {
 		return nil
@@ -76,6 +77,7 @@ func forwardControl(enc vmprotocol.GuestMessageEncoder) error {
 	}
 	return enc.EncodeGuestMessage(&vmprotocol.GuestMessage{
 		Kind:            vmprotocol.GuestMessageKindAudioControl,
+		StartTick:       tick,
 		AudioSampleRate: c.sampleRate,
 		AudioControls:   c.controlsBuf,
 	})

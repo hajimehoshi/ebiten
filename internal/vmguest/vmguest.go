@@ -26,26 +26,27 @@ import (
 
 var (
 	postTickHooksMu sync.Mutex
-	postTickHooks   []func(vmprotocol.GuestMessageEncoder) error
+	postTickHooks   []func(vmprotocol.GuestMessageEncoder, int) error
 )
 
 // AppendPostTickHook registers a hook run after each guest tick, before the tick's concluding message,
-// so a guest subsystem can forward its own messages for that tick. Hooks are registered at
+// so a guest subsystem can forward its own messages for that tick. The hook receives the guest's
+// ebiten.Tick() during that tick, to stamp the messages it forwards. Hooks are registered at
 // initialization, before the guest serves.
-func AppendPostTickHook(hook func(vmprotocol.GuestMessageEncoder) error) {
+func AppendPostTickHook(hook func(vmprotocol.GuestMessageEncoder, int) error) {
 	postTickHooksMu.Lock()
 	defer postTickHooksMu.Unlock()
 	postTickHooks = append(postTickHooks, hook)
 }
 
-// RunPostTickHooks runs the registered post-tick hooks with the given encoder. The guest UI backend
-// calls it after a successful tick.
-func RunPostTickHooks(enc vmprotocol.GuestMessageEncoder) error {
+// RunPostTickHooks runs the registered post-tick hooks with the given encoder and the guest's
+// ebiten.Tick() during the tick just run. The guest UI backend calls it after a successful tick.
+func RunPostTickHooks(enc vmprotocol.GuestMessageEncoder, tick int) error {
 	postTickHooksMu.Lock()
 	hooks := postTickHooks
 	postTickHooksMu.Unlock()
 	for _, hook := range hooks {
-		if err := hook(enc); err != nil {
+		if err := hook(enc, tick); err != nil {
 			return err
 		}
 	}

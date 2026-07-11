@@ -43,6 +43,7 @@ import (
 	"runtime/debug"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/ebitengine/debugui"
@@ -60,6 +61,30 @@ type guestProcess struct {
 	cmd     *exec.Cmd
 	bin     string
 	pkg     string // the package this guest was built from
+
+	// audioStreamsMu guards newAudioStreams, which appendNewAudioStream appends to (on the session
+	// goroutine) and takeNewAudioStreams drains (on the host goroutine).
+	audioStreamsMu  sync.Mutex
+	newAudioStreams []*vmhost.GuestAudioStream
+}
+
+// appendNewAudioStream records a new guest audio stream. It is the session's OnAudioStream handler, so it
+// runs on the session goroutine: it must not block or read the stream (Read would deadlock the session
+// goroutine), so it only stashes the handle for takeNewAudioStreams to hand off.
+func (gp *guestProcess) appendNewAudioStream(s *vmhost.GuestAudioStream) {
+	gp.audioStreamsMu.Lock()
+	defer gp.audioStreamsMu.Unlock()
+	gp.newAudioStreams = append(gp.newAudioStreams, s)
+}
+
+// takeNewAudioStreams appends the streams started since the last call to dst, clears them, and returns
+// the extended slice.
+func (gp *guestProcess) takeNewAudioStreams(dst []*vmhost.GuestAudioStream) []*vmhost.GuestAudioStream {
+	gp.audioStreamsMu.Lock()
+	defer gp.audioStreamsMu.Unlock()
+	dst = append(dst, gp.newAudioStreams...)
+	gp.newAudioStreams = gp.newAudioStreams[:0]
+	return dst
 }
 
 // launchResult is the outcome of an asynchronous build-and-launch.
@@ -99,10 +124,10 @@ type Game struct {
 
 	// audioContext is the host's single audio context, created lazily at the guest's sample rate.
 	audioContext *audio.Context
-	// audioPlayers maps each guest stream to the host player that plays it; audioStreamsBuf is reused
-	// by AppendAudioStreams.
-	audioPlayers    map[*vmhost.GuestAudioStream]*audio.Player
-	audioStreamsBuf []*vmhost.GuestAudioStream
+	// audioPlayers maps each guest stream to the host player that plays it; audioStreams holds the guest's
+	// current streams (from the OnAudioStream handler). Both are reset when the guest changes.
+	audioPlayers map[*vmhost.GuestAudioStream]*audio.Player
+	audioStreams []*vmhost.GuestAudioStream
 
 	// gamepadIDsBuf and gamepadStatesBuf are reused each tick by forwardInput.
 	gamepadIDsBuf    []ebiten.GamepadID
@@ -194,6 +219,14 @@ func (g *Game) Update() error {
 
 // updateAudio plays each guest player on its own host player, so the guest's players stay unmixed.
 func (g *Game) updateAudio() error {
+	// Adopt the streams handed to the OnAudioStream handler since the last frame, and drop any the guest
+	// has closed (a closed stream never plays again, so audioStreams would otherwise grow unbounded). A
+	// finished-but-open stream is kept: a seek-and-replay reuses it and fires no new handler.
+	g.audioStreams = g.gp.takeNewAudioStreams(g.audioStreams)
+	g.audioStreams = slices.DeleteFunc(g.audioStreams, func(s *vmhost.GuestAudioStream) bool {
+		return s.IsClosed()
+	})
+
 	rate := g.gp.session.AudioSampleRate()
 	if rate == 0 {
 		// The guest has not produced audio yet, so its sample rate is unknown.
@@ -209,9 +242,7 @@ func (g *Game) updateAudio() error {
 		return nil
 	}
 
-	g.audioStreamsBuf = slices.Delete(g.audioStreamsBuf, 0, len(g.audioStreamsBuf))
-	g.audioStreamsBuf = g.gp.session.AppendAudioStreams(g.audioStreamsBuf)
-	for _, stream := range g.audioStreamsBuf {
+	for _, stream := range g.audioStreams {
 		hp := g.audioPlayers[stream]
 		if hp == nil {
 			// Start a host player only for a stream that is currently playing; a finished or paused stream
@@ -234,7 +265,8 @@ func (g *Game) updateAudio() error {
 		hp.SetVolume(stream.Volume())
 	}
 	// Close finished host players: a host player stops once its guest stream reaches EOF and plays out
-	// (or the stream is closed), so this waits for the tail instead of cutting it.
+	// (or the stream is closed), so this waits for the tail instead of cutting it. The stream stays in
+	// audioStreams so a replay can start a fresh host player.
 	for stream, hp := range g.audioPlayers {
 		if !hp.IsPlaying() {
 			if err := hp.Close(); err != nil {
@@ -478,6 +510,9 @@ func (g *Game) closeGuest() {
 		}
 		delete(g.audioPlayers, stream)
 	}
+	// The streams belong to the guest being closed; drop them so the next guest starts fresh. The
+	// session's pending buffer goes away with gp.
+	g.audioStreams = g.audioStreams[:0]
 	if err := gp.session.Close(); err != nil {
 		log.Printf("vm: closing the guest: %v", err)
 	}
@@ -712,6 +747,9 @@ func buildAndStartGuest(ln net.Listener, workDir, bin, endpoint, pkg string, pin
 		}
 	}()
 
+	// The handlers below capture gp, so build it before the session; its session field is filled in once
+	// NewGuestSession returns.
+	gp = &guestProcess{cmd: cmd, bin: bin, pkg: pkg}
 	session, err := vmhost.NewGuestSession(conn, &vmhost.NewGuestSessionOptions{
 		// Mirror each vibration the guest requests onto the host's own gamepad. The guest's gamepad IDs
 		// match the host's, because the host forwards its own gamepads to the guest. VibrateGamepad is
@@ -731,11 +769,14 @@ func buildAndStartGuest(ln net.Listener, workDir, bin, endpoint, pkg string, pin
 				Magnitude: v.Magnitude,
 			})
 		},
+		// Record each new guest audio stream for updateAudio to play on the host frame.
+		OnAudioStream: gp.appendNewAudioStream,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return &guestProcess{session: session, cmd: cmd, bin: bin, pkg: pkg}, nil
+	gp.session = session
+	return gp, nil
 }
 
 func run() (err error) {

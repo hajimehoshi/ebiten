@@ -33,6 +33,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
+	"sync"
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -55,6 +57,33 @@ type driver struct {
 	dumped   bool
 	closed   bool
 	closeErr error
+
+	// audioMu guards audioStreams — the guest's currently-open streams. onAudioStream appends to it on the
+	// session goroutine; appendAudioStreams reads it (dropping any the guest has closed) on the host
+	// goroutine.
+	audioMu      sync.Mutex
+	audioStreams []*vmhost.GuestAudioStream
+}
+
+// onAudioStream records a new guest audio stream. It is the session's OnAudioStream handler, so it runs
+// on the session goroutine: it must not block, and it must not read the stream (Read queues onto that
+// same goroutine and would deadlock). It only stashes the handle for appendAudioStreams to hand back.
+func (d *driver) onAudioStream(s *vmhost.GuestAudioStream) {
+	d.audioMu.Lock()
+	defer d.audioMu.Unlock()
+	d.audioStreams = append(d.audioStreams, s)
+}
+
+// appendAudioStreams appends the guest's currently-open audio streams to dst and returns the extended
+// slice, dropping any the guest has closed (IsClosed) — a closed stream never plays again and its Read is
+// at io.EOF — so the tracked set stays live instead of growing without bound. Safe to call from Update.
+func (d *driver) appendAudioStreams(dst []*vmhost.GuestAudioStream) []*vmhost.GuestAudioStream {
+	d.audioMu.Lock()
+	defer d.audioMu.Unlock()
+	d.audioStreams = slices.DeleteFunc(d.audioStreams, func(s *vmhost.GuestAudioStream) bool {
+		return s.IsClosed()
+	})
+	return append(dst, d.audioStreams...)
 }
 
 func (d *driver) Update() error {
@@ -204,16 +233,23 @@ func xmain() error {
 		return fmt.Errorf("accepting the guest failed: %w", err)
 	}
 
+	// The OnAudioStream handler below is a method on d, so build d before the session; its guest field is
+	// filled in once NewGuestSession returns.
+	d := &driver{}
 	// NewGuestSession performs the protocol handshake over the connection; it needs no graphics context,
-	// so it can run before RunGame. IdleTimeout fails fast if the guest wedges.
-	guest, err := vmhost.NewGuestSession(conn, &vmhost.NewGuestSessionOptions{IdleTimeout: 10 * time.Second})
+	// so it can run before RunGame. IdleTimeout fails fast if the guest wedges. OnAudioStream collects the
+	// guest's audio streams as they start (see the "Observing audio" section of SKILL.md).
+	guest, err := vmhost.NewGuestSession(conn, &vmhost.NewGuestSessionOptions{
+		IdleTimeout:   10 * time.Second,
+		OnAudioStream: d.onAudioStream,
+	})
 	if err != nil {
 		return err
 	}
+	d.guest = guest
 
 	// Drive the guest from a hidden host window.
 	ebiten.SetWindowVisible(false)
-	d := &driver{guest: guest}
 	runErr := ebiten.RunGame(d)
 
 	// Close is called from Update, which is inside the host's frame. After that the guest's RunGame

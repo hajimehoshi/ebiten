@@ -13,8 +13,9 @@
 // limitations under the License.
 
 // The guest plays a scripted pair of sources (see testdata/audio): a finite ramp at full volume and
-// an infinite 0.25 source at volume 0.5. The host pulls each on demand as its own stream (never
-// mixed), so each is asserted byte-exactly — including that the volume is reported but not applied.
+// an infinite 0.25 source at volume 0.5. The host learns each new stream through the OnAudioStream
+// handler and pulls it on demand as its own stream (never mixed), so each is asserted byte-exactly —
+// including that the volume is reported but not applied.
 
 package vmhost_test
 
@@ -23,6 +24,8 @@ import (
 	"errors"
 	"io"
 	"math"
+	"slices"
+	"sync"
 	"testing"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -58,7 +61,24 @@ func readComps(t *testing.T, p *vmhost.GuestAudioStream, want int) (comps []floa
 }
 
 func TestAudioForwarding(t *testing.T) {
-	guest := startGuest(t, "./testdata/audio", activateByEnv, "unix")
+	// The handler runs on the session goroutine, so guard the collected streams with a mutex.
+	var mu sync.Mutex
+	var streams []*vmhost.GuestAudioStream
+	snapshot := func() []*vmhost.GuestAudioStream {
+		mu.Lock()
+		defer mu.Unlock()
+		return slices.Clone(streams)
+	}
+
+	guest := startGuestWithOptions(t, "./testdata/audio", activateByEnv, "unix", &vmhost.NewGuestSessionOptions{
+		// The handler must not read the stream (that would deadlock the session goroutine), so it only
+		// records the handle; the test reads it below on its own goroutine.
+		OnAudioStream: func(s *vmhost.GuestAudioStream) {
+			mu.Lock()
+			streams = append(streams, s)
+			mu.Unlock()
+		},
+	})
 
 	// AdvanceTicks requires a screen even though only audio is read back.
 	scale := ebiten.Monitor().DeviceScaleFactor()
@@ -67,8 +87,8 @@ func TestAudioForwarding(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Tick past the point where both players start (ramp at tick 3, flat at tick 4) so the host has
-	// learned them through the control plane.
+	// Tick past the point where both players start (ramp at tick 3, flat at tick 4). WaitTick returns only
+	// after the tick's messages are handled, so by tick 6 the handler has been called for each new stream.
 	for tick := 1; tick <= 6; tick++ {
 		guest.AdvanceTicks(1)
 		if !guest.WaitTick() {
@@ -76,9 +96,9 @@ func TestAudioForwarding(t *testing.T) {
 		}
 	}
 
-	players := guest.AppendAudioStreams(nil)
+	players := snapshot()
 	if len(players) != 2 {
-		t.Fatalf("got %d audio players; want 2 (the guest's players must not be mixed)", len(players))
+		t.Fatalf("OnAudioStream reported %d streams; want 2 (one per guest player, never mixed)", len(players))
 	}
 
 	// The host learns the guest's own sample rate (the fixture's 48000); it is not asked to match it.
@@ -100,6 +120,16 @@ func TestAudioForwarding(t *testing.T) {
 	}
 	if ramp == nil || flat == nil {
 		t.Fatalf("missing a stream: ramp=%v flat=%v", ramp != nil, flat != nil)
+	}
+
+	// Each stream is stamped with the guest tick it started on: the fixture plays the ramp during its 3rd
+	// Update (ebiten.Tick() 2) and the flat source during its 4th (ebiten.Tick() 3). StartTick anchors the
+	// stream to the guest's tick timeline.
+	if ramp.StartTick() != 2 {
+		t.Errorf("ramp.StartTick() = %d; want 2", ramp.StartTick())
+	}
+	if flat.StartTick() != 3 {
+		t.Errorf("flat.StartTick() = %d; want 3", flat.StartTick())
 	}
 
 	// The ramp source is 2000 frames = 4000 components, value i+1 at index i, and it ends.
@@ -128,9 +158,9 @@ func TestAudioForwarding(t *testing.T) {
 		}
 	}
 
-	// The guest closes the flat player at tick 8. The host must drop it even though its infinite source
-	// never reaches EOF: its Read ends and it disappears from the stream list. The ramp, by contrast,
-	// reached EOF but was never closed, so it must persist (it could be sought back and replayed).
+	// The guest closes the flat player at tick 8. Its infinite source never reaches EOF on its own, so the
+	// close is what ends the host's stream: a later Read reports EOF. Closing a stream is not a new-stream
+	// event, so the handler must not fire again.
 	for tick := 7; tick <= 8; tick++ {
 		guest.AdvanceTicks(1)
 		if !guest.WaitTick() {
@@ -140,23 +170,19 @@ func TestAudioForwarding(t *testing.T) {
 	if _, eof := readComps(t, flat, 1); !eof {
 		t.Error("the closed flat stream did not reach EOF on the host")
 	}
-	var sawFlat, sawRamp bool
-	for _, p := range guest.AppendAudioStreams(nil) {
-		switch p {
-		case flat:
-			sawFlat = true
-		case ramp:
-			sawRamp = true
-		}
-	}
-	if sawFlat {
-		t.Error("the closed stream is still returned by AppendAudioStreams")
-	}
-	if !sawRamp {
-		t.Error("the ramp stream was dropped at EOF; it must persist until closed")
+	if all := snapshot(); len(all) != 2 {
+		t.Errorf("OnAudioStream reported %d streams after a close; want 2 (a close is not a new stream)", len(all))
 	}
 	// The finished ramp reports not playing, matching audio.Player at its end.
 	if ramp.IsPlaying() {
 		t.Error("the finished ramp stream still reports playing")
+	}
+	// IsClosed distinguishes the guest-closed flat from the ramp, which only reached EOF: a host tracking
+	// streams keeps the latter (it could be replayed) but may drop the former.
+	if !flat.IsClosed() {
+		t.Error("the guest-closed flat stream does not report closed")
+	}
+	if ramp.IsClosed() {
+		t.Error("the ramp stream reports closed, but it only reached EOF and was never closed")
 	}
 }

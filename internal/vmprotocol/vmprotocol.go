@@ -249,8 +249,9 @@ type GuestMessage struct {
 	// Vibration carries the device vibration requested during the tick. Set on GuestMessageKindVibration.
 	Vibration Vibration
 
-	// StartTick is the guest's ebiten.Tick() during the tick that produced the vibrations. Set on
-	// GuestMessageKindGamepadVibrations and GuestMessageKindVibration.
+	// StartTick is the guest's ebiten.Tick() during the tick that produced the message's per-tick payload.
+	// Set on GuestMessageKindGamepadVibrations and GuestMessageKindVibration (when the vibration was
+	// requested) and on GuestMessageKindAudioControl (when a stream it reports first started).
 	StartTick int
 }
 

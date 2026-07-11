@@ -224,8 +224,9 @@ func (r *remoteBackend) serveLoop(dec *vmprotocol.Decoder, enc *vmprotocol.Encod
 				}
 			} else {
 				r.ticked = true
-				// Let guest subsystems forward their per-tick messages (e.g. audio) over the connection.
-				if err := vmguest.RunPostTickHooks(enc); err != nil {
+				// Let guest subsystems forward their per-tick messages (e.g. audio) over the connection,
+				// stamping them with this tick.
+				if err := vmguest.RunPostTickHooks(enc, tick); err != nil {
 					return err
 				}
 				// Report the game's requested TPS whenever it changes, so a host pacing the guest itself

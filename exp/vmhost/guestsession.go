@@ -21,16 +21,15 @@
 // [GuestSession.AdvanceTicks] drives the guest's Update and [GuestSession.AdvanceFrame] requests its
 // next frame; [GuestSession.CompositeFrame] composites the guest's most recently completed frame into
 // the host-owned screen set by [GuestSession.SetOutsideScreen] so the host can composite it into its
-// own window. The audio the guest plays is exposed per player — never mixed — through
-// [GuestSession.AppendAudioStreams], so the host can observe and play each separately. The gamepad and
-// device vibrations the guest requests are delivered to the [NewGuestSessionOptions] OnGamepadVibration
-// and OnVibration handlers.
+// own window. The audio the guest plays is exposed per player — never mixed — through the
+// [NewGuestSessionOptions] OnAudioStream handler, which hands the host each new stream to observe and
+// play separately. The gamepad and device vibrations the guest requests are delivered to the
+// [NewGuestSessionOptions] OnGamepadVibration and OnVibration handlers.
 //
 // This package is experimental and the API might be changed in the future.
 package vmhost
 
 import (
-	"cmp"
 	"errors"
 	"image"
 	"io"
@@ -135,6 +134,11 @@ type GuestSession struct {
 	// onVibration, if non-nil, is called for each device vibration the guest requests. Like
 	// onGamepadVibration, it is set at construction and read only by the session goroutine.
 	onVibration func(Vibration)
+
+	// onAudioStream, if non-nil, is called for each new audio stream the guest starts. Like
+	// onGamepadVibration it is set at construction and only read by the session goroutine, so it needs no
+	// lock.
+	onAudioStream func(*GuestAudioStream)
 }
 
 // opKind discriminates an operation the session goroutine performs.
@@ -197,6 +201,13 @@ type NewGuestSessionOptions struct {
 	// arrives. It runs on the session's goroutine, so it must not block; a host typically just calls
 	// [ebiten.Vibrate], which is concurrent-safe. A nil handler discards the guest's vibrations.
 	OnVibration func(Vibration)
+
+	// OnAudioStream, if non-nil, is called once for each new audio stream the guest starts, handed the
+	// persistent [GuestAudioStream] to read and inspect. It runs on the session's goroutine, so it must
+	// not block, and it must not call [GuestAudioStream.Read] (which queues onto that same goroutine and
+	// would deadlock): a host typically records the stream and reads it from another goroutine, e.g. as
+	// the source of an audio player. A nil handler discards the guest's audio.
+	OnAudioStream func(*GuestAudioStream)
 }
 
 // NewGuestSession opens a session with a guest process over an established connection. It performs the
@@ -226,9 +237,10 @@ func NewGuestSession(conn net.Conn, options *NewGuestSessionOptions) (*GuestSess
 		requestedTPS: clock.DefaultTPS,
 	}
 	if options != nil {
-		// Set before the session goroutine starts, so it reads the handlers without a lock.
+		// Set before the session goroutine starts, so they are read without a lock.
 		g.onGamepadVibration = options.OnGamepadVibration
 		g.onVibration = options.OnVibration
+		g.onAudioStream = options.OnAudioStream
 	}
 	g.cond = sync.NewCond(&g.mu)
 	go g.sessionLoop()
@@ -1044,9 +1056,11 @@ func (g *GuestSession) drainQueuedReads() {
 // playing flag and volume, creating a GuestAudioStream for an unseen ID. It runs on the session
 // goroutine; the players' Read fetch their samples concurrently, each under its own lock.
 func (g *GuestSession) applyAudioControl(msg *vmprotocol.GuestMessage) {
-	g.audioMu.Lock()
-	defer g.audioMu.Unlock()
+	// The new streams are collected under audioMu but their handler runs after it is released: the
+	// handler may call back into the session (e.g. AudioSampleRate, which takes audioMu).
+	var newStreams []*GuestAudioStream
 
+	g.audioMu.Lock()
 	g.audioSampleRate = msg.AudioSampleRate
 	for i := range msg.AudioControls {
 		c := &msg.AudioControls[i]
@@ -1062,13 +1076,25 @@ func (g *GuestSession) applyAudioControl(msg *vmprotocol.GuestMessage) {
 		p := g.audioStreams[c.ID]
 		if p == nil {
 			p = &GuestAudioStream{
-				session: g,
-				id:      c.ID,
-				rate:    msg.AudioSampleRate,
+				session:   g,
+				id:        c.ID,
+				rate:      msg.AudioSampleRate,
+				startTick: msg.StartTick,
 			}
 			g.audioStreams[c.ID] = p
+			if g.onAudioStream != nil {
+				newStreams = append(newStreams, p)
+			}
 		}
 		p.setControl(c.Playing, c.Volume)
+	}
+	g.audioMu.Unlock()
+
+	// Hand each new stream to the handler in creation order (AudioControls arrive sorted by ID). The
+	// stream's control is already applied, so its Playing and Volume reflect this tick. The handler must
+	// not read the stream synchronously: Read queues onto this goroutine and would deadlock.
+	for _, p := range newStreams {
+		g.onAudioStream(p)
 	}
 }
 
@@ -1097,23 +1123,6 @@ func (g *GuestSession) RequestedTPS() int {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	return g.requestedTPS
-}
-
-// AppendAudioStreams appends the guest's current audio streams to streams and returns the extended
-// slice. Each is a separate stream (the guest's players are never mixed); the appended streams are
-// ordered by creation. A stream stays valid until the guest closes its player; reaching EOF does not
-// remove it. It may be called from any goroutine.
-func (g *GuestSession) AppendAudioStreams(streams []*GuestAudioStream) []*GuestAudioStream {
-	g.audioMu.Lock()
-	defer g.audioMu.Unlock()
-	start := len(streams)
-	for _, p := range g.audioStreams {
-		streams = append(streams, p)
-	}
-	slices.SortFunc(streams[start:], func(a, b *GuestAudioStream) int {
-		return cmp.Compare(a.id, b.id)
-	})
-	return streams
 }
 
 // readGuestAudio fills b with player id's samples from the guest, truncated to whole stereo frames,
