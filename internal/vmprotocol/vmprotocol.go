@@ -195,6 +195,10 @@ const (
 	// the tick, at most one per gamepad. Zero or one precedes the concluding GuestMessageKindDone of an
 	// advance-tick operation.
 	GuestMessageKindGamepadVibrations
+	// GuestMessageKindVibration carries the device vibration the guest's game requested during the tick.
+	// A device has a single vibration state, so at most one is sent per tick (the last request wins).
+	// Zero or one precedes the concluding GuestMessageKindDone of an advance-tick operation.
+	GuestMessageKindVibration
 )
 
 // GuestMessage is a message a guest sends to the host while handling an operation: recorded graphics
@@ -242,8 +246,11 @@ type GuestMessage struct {
 	// gamepad. Set on GuestMessageKindGamepadVibrations.
 	GamepadVibrations []GamepadVibration
 
+	// Vibration carries the device vibration requested during the tick. Set on GuestMessageKindVibration.
+	Vibration Vibration
+
 	// Tick is the guest's ebiten.Tick() during the tick that produced the vibrations. Set on
-	// GuestMessageKindGamepadVibrations.
+	// GuestMessageKindGamepadVibrations and GuestMessageKindVibration.
 	Tick int
 }
 
@@ -256,6 +263,12 @@ type GamepadVibration struct {
 	// StrongMagnitude and WeakMagnitude are the low- and high-frequency rumble intensities, in 0..1.
 	StrongMagnitude float64
 	WeakMagnitude   float64
+}
+
+// Vibration is a requested device vibration: how long it lasts and its magnitude, in 0..1.
+type Vibration struct {
+	Duration  time.Duration
+	Magnitude float64
 }
 
 // AudioControl is one guest audio player's control state. The samples are pulled separately

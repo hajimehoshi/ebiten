@@ -113,7 +113,7 @@ import (
 	"time"
 )
 
-func Vibrate(duration time.Duration, magnitude float64) {
+func vibrate(duration time.Duration, magnitude float64) {
 	go func() {
 		C.vibrate(C.double(float64(duration)/float64(time.Second)), C.double(magnitude))
 	}()

@@ -20,6 +20,6 @@ import (
 	"time"
 )
 
-func Vibrate(duration time.Duration, magnitude float64) {
+func vibrate(duration time.Duration, magnitude float64) {
 	// Do nothing.
 }

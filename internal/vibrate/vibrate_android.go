@@ -203,7 +203,7 @@ static void vibrateOneShot(uintptr_t java_vm, uintptr_t jni_env, uintptr_t ctx, 
 */
 import "C"
 
-func Vibrate(duration time.Duration, magnitude float64) {
+func vibrate(duration time.Duration, magnitude float64) {
 	go func() {
 		_ = app.RunOnJVM(func(vm, env, ctx uintptr) error {
 			// TODO: This might be crash when this is called from init(). How can we detect this?

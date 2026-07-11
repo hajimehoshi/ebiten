@@ -40,6 +40,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/remote"
 	"github.com/hajimehoshi/ebiten/v2/internal/hook"
 	"github.com/hajimehoshi/ebiten/v2/internal/thread"
+	"github.com/hajimehoshi/ebiten/v2/internal/vibrate"
 	"github.com/hajimehoshi/ebiten/v2/internal/vmguest"
 	"github.com/hajimehoshi/ebiten/v2/internal/vmprotocol"
 )
@@ -79,6 +80,10 @@ type remoteBackend struct {
 	vibrationsBuf     []gamepad.VirtualGamepadVibration
 	wireVibrationsBuf []vmprotocol.GamepadVibration
 
+	// deviceVibrationsBuf is reused to drain the device vibration requested during a tick. It holds at
+	// most one entry. It is owned by the serve goroutine.
+	deviceVibrationsBuf []vibrate.Vibration
+
 	// rawCursorX and rawCursorY are the injected cursor position in outside-screen device-independent
 	// pixels. They are translated to logical coordinates per tick in updateInputStateForFrame.
 	rawCursorX float64
@@ -108,6 +113,9 @@ func newRemoteBackend(u *UserInterface, endpoint string) *remoteBackend {
 	r.monitor = &Monitor{virtual: r}
 	r.scale = 1
 	r.gamepadStates = []gamepad.VirtualGamepadState{}
+	// A guest forwards the device vibration its game requests to the host, so start recording it. This is
+	// reached only for an actual guest, so non-guest builds keep vibrate's recording off.
+	vibrate.EnableRecording()
 	return r
 }
 
@@ -234,6 +242,10 @@ func (r *remoteBackend) serveLoop(dec *vmprotocol.Decoder, enc *vmprotocol.Encod
 				}
 				// Forward any gamepad vibrations the tick's Update requested.
 				if err := r.flushGamepadVibrations(enc, tick); err != nil {
+					return err
+				}
+				// Forward any device vibration the tick's Update requested.
+				if err := r.flushVibration(enc, tick); err != nil {
 					return err
 				}
 			}
@@ -569,6 +581,25 @@ func (r *remoteBackend) flushGamepadVibrations(enc *vmprotocol.Encoder, tick int
 		Kind:              vmprotocol.GuestMessageKindGamepadVibrations,
 		GamepadVibrations: r.wireVibrationsBuf,
 		Tick:              tick,
+	})
+}
+
+// flushVibration forwards the device vibration the tick's Update requested to the host, tagged with the
+// tick (the guest's ebiten.Tick() during that Update). It sends nothing when none was requested.
+func (r *remoteBackend) flushVibration(enc *vmprotocol.Encoder, tick int) error {
+	r.deviceVibrationsBuf = vibrate.AppendPendingVibrations(r.deviceVibrationsBuf[:0])
+	if len(r.deviceVibrationsBuf) == 0 {
+		return nil
+	}
+	// AppendPendingVibrations yields at most one entry, since a device has a single vibration state.
+	v := r.deviceVibrationsBuf[0]
+	return enc.EncodeGuestMessage(&vmprotocol.GuestMessage{
+		Kind: vmprotocol.GuestMessageKindVibration,
+		Vibration: vmprotocol.Vibration{
+			Duration:  v.Duration,
+			Magnitude: v.Magnitude,
+		},
+		Tick: tick,
 	})
 }
 

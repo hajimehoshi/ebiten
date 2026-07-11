@@ -22,8 +22,9 @@
 // next frame; [GuestSession.CompositeFrame] composites the guest's most recently completed frame into
 // the host-owned screen set by [GuestSession.SetOutsideScreen] so the host can composite it into its
 // own window. The audio the guest plays is exposed per player — never mixed — through
-// [GuestSession.AppendAudioStreams], so the host can observe and play each separately. The gamepad
-// vibrations the guest requests are delivered to the [NewGuestSessionOptions] OnGamepadVibration handler.
+// [GuestSession.AppendAudioStreams], so the host can observe and play each separately. The gamepad and
+// device vibrations the guest requests are delivered to the [NewGuestSessionOptions] OnGamepadVibration
+// and OnVibration handlers.
 //
 // This package is experimental and the API might be changed in the future.
 package vmhost
@@ -130,6 +131,10 @@ type GuestSession struct {
 	// onGamepadVibration, if non-nil, is called for each vibration the guest requests. It is set at
 	// construction and only read by the session goroutine, so it needs no lock.
 	onGamepadVibration func(GamepadVibration)
+
+	// onVibration, if non-nil, is called for each device vibration the guest requests. Like
+	// onGamepadVibration, it is set at construction and read only by the session goroutine.
+	onVibration func(Vibration)
 }
 
 // opKind discriminates an operation the session goroutine performs.
@@ -187,6 +192,11 @@ type NewGuestSessionOptions struct {
 	// it arrives. It runs on the session's goroutine, so it must not block; a host typically just calls
 	// [ebiten.VibrateGamepad], which is concurrent-safe. A nil handler discards the guest's vibrations.
 	OnGamepadVibration func(GamepadVibration)
+
+	// OnVibration, if non-nil, is called for each device vibration the guest's game requests, as it
+	// arrives. It runs on the session's goroutine, so it must not block; a host typically just calls
+	// [ebiten.Vibrate], which is concurrent-safe. A nil handler discards the guest's vibrations.
+	OnVibration func(Vibration)
 }
 
 // NewGuestSession opens a session with a guest process over an established connection. It performs the
@@ -216,8 +226,9 @@ func NewGuestSession(conn net.Conn, options *NewGuestSessionOptions) (*GuestSess
 		requestedTPS: clock.DefaultTPS,
 	}
 	if options != nil {
-		// Set before the session goroutine starts, so it reads the handler without a lock.
+		// Set before the session goroutine starts, so it reads the handlers without a lock.
 		g.onGamepadVibration = options.OnGamepadVibration
+		g.onVibration = options.OnVibration
 	}
 	g.cond = sync.NewCond(&g.mu)
 	go g.sessionLoop()
@@ -410,6 +421,9 @@ func (g *GuestSession) sendAndReceive(msg *vmprotocol.HostMessage) error {
 			continue
 		case vmprotocol.GuestMessageKindGamepadVibrations:
 			g.dispatchGamepadVibrations(&gm)
+			continue
+		case vmprotocol.GuestMessageKindVibration:
+			g.dispatchVibration(&gm)
 			continue
 		}
 		// GuestMessageKindDone.
@@ -880,13 +894,39 @@ func (g *GuestSession) dispatchGamepadVibrations(msg *vmprotocol.GuestMessage) {
 	for i := range msg.GamepadVibrations {
 		v := &msg.GamepadVibrations[i]
 		g.onGamepadVibration(GamepadVibration{
+			Tick:            msg.Tick,
 			GamepadID:       ebiten.GamepadID(v.ID),
 			Duration:        v.Duration,
 			StrongMagnitude: v.StrongMagnitude,
 			WeakMagnitude:   v.WeakMagnitude,
-			Tick:            msg.Tick,
 		})
 	}
+}
+
+// Vibration is a device vibration the guest's game requested, passed to the [NewGuestSessionOptions]
+// OnVibration handler. A host acts on it by vibrating its own device with [ebiten.Vibrate].
+type Vibration struct {
+	// Tick is the guest's [ebiten.Tick] during the Update that requested the vibration.
+	Tick int
+
+	Duration time.Duration
+
+	// Magnitude is the vibration strength, in 0..1.
+	Magnitude float64
+}
+
+// dispatchVibration calls the device-vibration handler with the vibration the tick requested, stamped
+// with the tick that produced it. It runs on the session goroutine and does nothing when no handler is
+// registered.
+func (g *GuestSession) dispatchVibration(msg *vmprotocol.GuestMessage) {
+	if g.onVibration == nil {
+		return
+	}
+	g.onVibration(Vibration{
+		Tick:      msg.Tick,
+		Duration:  msg.Vibration.Duration,
+		Magnitude: msg.Vibration.Magnitude,
+	})
 }
 
 // PressTouch injects a touch-press event at (x, y), in outside-screen device-independent pixels.

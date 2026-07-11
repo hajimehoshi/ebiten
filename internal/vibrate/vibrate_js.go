@@ -19,7 +19,7 @@ import (
 	"time"
 )
 
-func Vibrate(duration time.Duration, magnitude float64) {
+func vibrate(duration time.Duration, magnitude float64) {
 	// magnitude is ignored.
 
 	if js.Global().Get("navigator").Get("vibrate").Truthy() {
