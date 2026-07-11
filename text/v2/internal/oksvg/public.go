@@ -137,7 +137,9 @@ func ReadIcon(iconFile string, errMode ...ErrorMode) (*SvgIcon, error) {
 	if errf != nil {
 		return nil, errf
 	}
-	defer fin.Close()
+	defer func() {
+		_ = fin.Close()
+	}()
 	return ReadIconStream(fin, errMode...)
 }
 

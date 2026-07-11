@@ -99,7 +99,9 @@ func (c *IconCursor) PushStyle(attrs []xml.Attr) error {
 			}
 		}
 	}
-	c.adaptClasses(&curStyle, className)
+	if err := c.adaptClasses(&curStyle, className); err != nil {
+		return err
+	}
 	c.StyleStack = append(c.StyleStack, curStyle) // Push style onto stack
 	return nil
 }
@@ -369,13 +371,16 @@ func (c *IconCursor) readStartElement(se xml.StartElement) (err error) {
 	return
 }
 
-func (c *IconCursor) adaptClasses(pathStyle *PathStyle, className string) {
+func (c *IconCursor) adaptClasses(pathStyle *PathStyle, className string) error {
 	if className == "" || len(c.icon.classes) == 0 {
-		return
+		return nil
 	}
 	for k, v := range c.icon.classes[className] {
-		c.readStyleAttr(pathStyle, k, v)
+		if err := c.readStyleAttr(pathStyle, k, v); err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
 func (c *IconCursor) returnError(errMsg string) bool {
