@@ -32,11 +32,10 @@ const (
 
 type Game struct {
 	path vector.Path
-	tick int
 }
 
 func (g *Game) Update() error {
-	if g.tick == 0 {
+	if ebiten.Tick() == 0 {
 		s, err := text.NewGoTextFaceSource(bytes.NewReader(fonts.MPlus1pRegular_ttf))
 		if err != nil {
 			return err
@@ -49,8 +48,6 @@ func (g *Game) Update() error {
 		}, op)
 	}
 
-	g.tick++
-
 	return nil
 }
 
@@ -61,7 +58,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	newPath.AddPath(&g.path, op)
 
 	strokeOp := &vector.StrokeOptions{}
-	strokeOp.Width = 2*(float32(math.Sin(float64(g.tick)*2*math.Pi/180))+1) + 1
+	strokeOp.Width = 2*(float32(math.Sin(float64(ebiten.Tick())*2*math.Pi/180))+1) + 1
 	strokeOp.LineJoin = vector.LineJoinRound
 	strokeOp.LineCap = vector.LineCapRound
 	drawOp := &vector.DrawPathOptions{}

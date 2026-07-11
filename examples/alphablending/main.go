@@ -34,23 +34,20 @@ var (
 	ebitenImage *ebiten.Image
 )
 
-type Game struct {
-	count int
-}
+type Game struct{}
 
 func (g *Game) Update() error {
-	g.count++
-	g.count %= ebiten.TPS() * 10
 	return nil
 }
 
 func (g *Game) offset() float64 {
-	v := float64(g.count) * 0.2
+	count := int(ebiten.Tick()) % (ebiten.TPS() * 10)
+	v := float64(count) * 0.2
 	switch {
-	case 480 < g.count:
+	case 480 < count:
 		v = 0
-	case 240 < g.count:
-		v = float64(480-g.count) * 0.2
+	case 240 < count:
+		v = float64(480-count) * 0.2
 	}
 	return v
 }

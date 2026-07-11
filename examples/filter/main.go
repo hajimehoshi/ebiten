@@ -36,16 +36,14 @@ var (
 )
 
 type Game struct {
-	counter int
 }
 
 func (g *Game) Update() error {
-	g.counter++
 	return nil
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	scale := 2*math.Sin(float64(g.counter%360)*math.Pi/180) + 4
+	scale := 2*math.Sin(float64(ebiten.Tick()%360)*math.Pi/180) + 4
 
 	ebitenutil.DebugPrintAt(screen, "Nearest Filter (default) and Linear Filter", 16, 16)
 

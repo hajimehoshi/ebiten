@@ -38,8 +38,7 @@ var (
 )
 
 type Game struct {
-	count int
-	lost  bool
+	lost bool
 }
 
 func (g *Game) Update() error {
@@ -52,7 +51,6 @@ func (g *Game) Update() error {
 		ebiten.SetScreenClearedEveryFrame(!ebiten.IsScreenClearedEveryFrame())
 	}
 
-	g.count++
 	return nil
 }
 
@@ -69,7 +67,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 	// For the details, see examples/rotate.
 	op.GeoM.Translate(-float64(s.X)/2, -float64(s.Y)/2)
-	op.GeoM.Rotate(float64(g.count%360) * 2 * math.Pi / 360)
+	op.GeoM.Rotate(float64(ebiten.Tick()%360) * 2 * math.Pi / 360)
 	op.GeoM.Translate(screenWidth/2, screenHeight/2)
 	screen.DrawImage(gophersImage, op)
 

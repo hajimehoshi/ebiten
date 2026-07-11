@@ -94,7 +94,6 @@ func toBytes(l, r []float32) []byte {
 
 type Game struct {
 	scoreIndex  int
-	frames      int
 	currentNote rune
 
 	audioContext *audio.Context
@@ -141,12 +140,11 @@ func (g *Game) playNote(scoreIndex int) rune {
 
 func (g *Game) Update() error {
 	// Play notes for each half second.
-	if g.frames%30 == 0 && g.audioContext.IsReady() {
+	if ebiten.Tick()%30 == 0 && g.audioContext.IsReady() {
 		g.currentNote = g.playNote(g.scoreIndex)
 		g.scoreIndex++
 		g.scoreIndex %= len(score)
 	}
-	g.frames++
 	return nil
 }
 

@@ -47,8 +47,6 @@ const (
 )
 
 type Game struct {
-	counter int
-
 	aa   bool
 	line bool
 
@@ -309,8 +307,6 @@ func (g *Game) drawWave(screen *ebiten.Image, counter int, aa bool, line bool) {
 }
 
 func (g *Game) Update() error {
-	g.counter++
-
 	// Switch anti-alias.
 	if inpututil.IsKeyJustPressed(ebiten.KeyA) {
 		g.aa = !g.aa
@@ -330,8 +326,8 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	dst.Fill(color.RGBA{0xe0, 0xe0, 0xe0, 0xff})
 	g.drawEbitenText(dst, 0, 50, g.aa, g.line)
 	g.drawEbitenLogo(dst, 20, 150, g.aa, g.line)
-	g.drawArc(dst, g.counter, g.aa, g.line)
-	g.drawWave(dst, g.counter, g.aa, g.line)
+	g.drawArc(dst, int(ebiten.Tick()), g.aa, g.line)
+	g.drawWave(dst, int(ebiten.Tick()), g.aa, g.line)
 
 	msg := fmt.Sprintf("TPS: %0.2f\nFPS: %0.2f", ebiten.ActualTPS(), ebiten.ActualFPS())
 	msg += "\nPress A to switch anti-alias."
@@ -344,7 +340,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 }
 
 func main() {
-	g := &Game{counter: 0}
+	g := &Game{}
 
 	ebiten.SetWindowSize(screenWidth, screenHeight)
 	ebiten.SetWindowTitle("Vector (Ebitengine Demo)")

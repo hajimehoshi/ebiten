@@ -35,12 +35,9 @@ var (
 	gophersImage *ebiten.Image
 )
 
-type Game struct {
-	count int
-}
+type Game struct{}
 
 func (g *Game) Update() error {
-	g.count++
 	return nil
 }
 
@@ -54,7 +51,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 	// Rotate the hue.
 	var c colorm.ColorM
-	c.RotateHue(float64(g.count%360) * 2 * math.Pi / 360)
+	c.RotateHue(float64(ebiten.Tick()%360) * 2 * math.Pi / 360)
 	colorm.DrawImage(screen, gophersImage, c, op)
 }
 

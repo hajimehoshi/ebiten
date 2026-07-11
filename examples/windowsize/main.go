@@ -99,7 +99,6 @@ func createRandomIconImage() image.Image {
 type game struct {
 	debugUI debugui.DebugUI
 
-	count        int
 	screenWidth  float64
 	screenHeight float64
 	positionX    int
@@ -168,7 +167,7 @@ func colorModeString(c ebiten.ColorMode) string {
 }
 
 func (g *game) Update() error {
-	if g.count == 0 && !*flagWindowVisible {
+	if ebiten.Tick() == 0 && !*flagWindowVisible {
 		fmt.Fprintln(os.Stderr, "The first Update is called. The window is hidden and will be shown after a while.")
 	}
 
@@ -502,7 +501,6 @@ func (g *game) Update() error {
 		}
 	}
 
-	g.count++
 	return nil
 }
 
@@ -511,8 +509,8 @@ func (g *game) Draw(screen *ebiten.Image) {
 	w2, h2 := screen.Bounds().Dx(), screen.Bounds().Dy()
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(float64(-w+w2)/2, float64(-h+h2)/2)
-	dx := math.Cos(2*math.Pi*float64(g.count)/360) * 20
-	dy := math.Sin(2*math.Pi*float64(g.count)/360) * 20
+	dx := math.Cos(2*math.Pi*float64(ebiten.Tick())/360) * 20
+	dy := math.Sin(2*math.Pi*float64(ebiten.Tick())/360) * 20
 	op.GeoM.Translate(dx, dy)
 	screen.DrawImage(gophersImage, op)
 

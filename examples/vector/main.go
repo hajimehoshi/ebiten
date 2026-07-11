@@ -40,8 +40,6 @@ var blends = []ebiten.Blend{
 type Game struct {
 	debugui debugui.DebugUI
 
-	counter int
-
 	aa         bool
 	line       bool
 	blendIndex int
@@ -252,8 +250,6 @@ func (g *Game) drawWave(screen *ebiten.Image, counter int, aa bool, line bool) {
 }
 
 func (g *Game) Update() error {
-	g.counter++
-
 	if _, err := g.debugui.Update(func(ctx *debugui.Context) error {
 		ctx.Window("Vector", image.Rect(10, screenHeight-160, 210, screenHeight-10), func(layout debugui.ContainerLayout) {
 			ctx.Text(fmt.Sprintf("TPS: %0.2f", ebiten.ActualTPS()))
@@ -284,8 +280,8 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	}
 	g.drawEbitenText(dst, g.aa, g.line)
 	g.drawEbitenLogo(dst, 20, 150, g.aa, g.line)
-	g.drawArc(dst, g.counter, g.aa, g.line)
-	g.drawWave(dst, g.counter, g.aa, g.line)
+	g.drawArc(dst, int(ebiten.Tick()), g.aa, g.line)
+	g.drawWave(dst, int(ebiten.Tick()), g.aa, g.line)
 
 	g.debugui.Draw(screen)
 }
@@ -295,7 +291,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 }
 
 func main() {
-	g := &Game{counter: 0}
+	g := &Game{}
 
 	ebiten.SetWindowSize(screenWidth, screenHeight)
 	ebiten.SetWindowTitle("Vector (Ebitengine Demo)")

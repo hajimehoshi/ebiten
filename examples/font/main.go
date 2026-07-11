@@ -94,14 +94,13 @@ func init() {
 }
 
 type Game struct {
-	counter        int
 	kanjiText      string
 	kanjiTextColor color.RGBA
 }
 
 func (g *Game) Update() error {
 	// Change the text color for each second.
-	if g.counter%ebiten.TPS() == 0 {
+	if ebiten.Tick()%int64(ebiten.TPS()) == 0 {
 		g.kanjiText = ""
 		for range 6 {
 			for range 12 {
@@ -115,7 +114,6 @@ func (g *Game) Update() error {
 		g.kanjiTextColor.B = 0x80 + uint8(rand.IntN(0x7f))
 		g.kanjiTextColor.A = 0xff
 	}
-	g.counter++
 	return nil
 }
 

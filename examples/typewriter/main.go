@@ -45,9 +45,8 @@ func repeatingKeyPressed(key ebiten.Key) bool {
 }
 
 type Game struct {
-	runes   []rune
-	text    string
-	counter int
+	runes []rune
+	text  string
 }
 
 func (g *Game) Update() error {
@@ -75,14 +74,13 @@ func (g *Game) Update() error {
 		}
 	}
 
-	g.counter++
 	return nil
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
 	// Blink the cursor.
 	t := g.text
-	if g.counter%60 < 30 {
+	if ebiten.Tick()%60 < 30 {
 		t += "_"
 	}
 	ebitenutil.DebugPrint(screen, t)
@@ -94,8 +92,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 
 func main() {
 	g := &Game{
-		text:    "Type on the keyboard:\n",
-		counter: 0,
+		text: "Type on the keyboard:\n",
 	}
 
 	ebiten.SetWindowSize(screenWidth, screenHeight)

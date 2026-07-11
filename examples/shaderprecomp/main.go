@@ -39,13 +39,10 @@ var defaultShaderSource []byte
 var precompiledShadersRegistered bool
 
 type Game struct {
-	shader  *ebiten.Shader
-	counter int
+	shader *ebiten.Shader
 }
 
 func (g *Game) Update() error {
-	g.counter++
-
 	if g.shader == nil {
 		s, err := ebiten.NewShader(defaultShaderSource)
 		if err != nil {
@@ -61,7 +58,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	w, h := screen.Bounds().Dx(), screen.Bounds().Dy()
 	op := &ebiten.DrawRectShaderOptions{}
 	op.Uniforms = map[string]any{
-		"Time":   float32(g.counter) / float32(ebiten.TPS()),
+		"Time":   float32(ebiten.Tick()) / float32(ebiten.TPS()),
 		"Cursor": []float32{float32(cx), float32(cy)},
 	}
 	screen.DrawRectShader(w, h, g.shader, op)

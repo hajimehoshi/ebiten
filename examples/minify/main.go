@@ -45,7 +45,6 @@ type Game struct {
 	rotate    bool
 	clip      bool
 	autoScale bool
-	counter   int
 	scale     float64
 }
 
@@ -53,12 +52,8 @@ func (g *Game) Update() error {
 	if g.scale == 0 {
 		g.scale = 1
 	}
-	g.counter++
-	if g.counter == 480 {
-		g.counter = 0
-	}
 	if g.autoScale {
-		g.scale = 1.5 / math.Pow(1.01, float64(g.counter))
+		g.scale = 1.5 / math.Pow(1.01, float64(ebiten.Tick()%480))
 	}
 
 	if _, err := g.debugui.Update(func(ctx *debugui.Context) error {
@@ -94,7 +89,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		op := &ebiten.DrawImageOptions{}
 		if g.rotate {
 			op.GeoM.Translate(-float64(w)/2, -float64(h)/2)
-			op.GeoM.Rotate(float64(g.counter) / 300 * 2 * math.Pi)
+			op.GeoM.Rotate(float64(ebiten.Tick()%480) / 300 * 2 * math.Pi)
 			op.GeoM.Translate(float64(w)/2, float64(h)/2)
 		}
 		op.GeoM.Scale(s, s)

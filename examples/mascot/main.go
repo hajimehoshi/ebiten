@@ -64,8 +64,6 @@ type mascot struct {
 	y16  int
 	vx16 int
 	vy16 int
-
-	count int
 }
 
 func (m *mascot) Layout(outsideWidth, outsideHeight int) (int, int) {
@@ -73,8 +71,6 @@ func (m *mascot) Layout(outsideWidth, outsideHeight int) (int, int) {
 }
 
 func (m *mascot) Update() error {
-	m.count++
-
 	sw, sh := ebiten.Monitor().Size()
 	ebiten.SetWindowPosition(m.x16/16, m.y16/16+sh-height)
 
@@ -116,7 +112,7 @@ func (m *mascot) Update() error {
 func (m *mascot) Draw(screen *ebiten.Image) {
 	img := gopher1
 	if m.y16 == 0 {
-		switch (m.count / 3) % 4 {
+		switch (ebiten.Tick() / 3) % 4 {
 		case 0:
 			img = gopher1
 		case 1, 3:

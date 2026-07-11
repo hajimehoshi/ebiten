@@ -53,13 +53,9 @@ func init() {
 	mplusFaceSource = s
 }
 
-type Game struct {
-	count int
-}
+type Game struct{}
 
 func (g *Game) Update() error {
-	g.count++
-
 	if runtime.GOOS == "js" {
 		if ebiten.IsKeyPressed(ebiten.KeyF) || len(inpututil.AppendJustPressedTouchIDs(nil)) > 0 {
 			ebiten.SetFullscreen(true)
@@ -79,7 +75,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 	op.GeoM.Translate(-float64(w)/2, -float64(h)/2)
 	op.GeoM.Scale(scale, scale)
-	op.GeoM.Rotate(float64(g.count%360) * 2 * math.Pi / 360)
+	op.GeoM.Rotate(float64(ebiten.Tick()%360) * 2 * math.Pi / 360)
 	sw, sh := screen.Bounds().Dx(), screen.Bounds().Dy()
 	op.GeoM.Translate(float64(sw)/2, float64(sh)/2)
 	op.Filter = ebiten.FilterLinear

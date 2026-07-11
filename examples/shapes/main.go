@@ -34,8 +34,7 @@ const (
 type Game struct {
 	debugui debugui.DebugUI
 
-	count int
-	aa    bool
+	aa bool
 }
 
 func (g *Game) Update() error {
@@ -50,14 +49,11 @@ func (g *Game) Update() error {
 		return err
 	}
 
-	g.count++
-	g.count %= 240
-
 	return nil
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	cf := float32(g.count)
+	cf := float32(ebiten.Tick() % 240)
 	vector.StrokeLine(screen, 100, 100, 300, 100, 1, color.RGBA{0xff, 0xff, 0xff, 0xff}, g.aa)
 	vector.StrokeLine(screen, 50, 150, 50, 350, 1, color.RGBA{0xff, 0xff, 0x00, 0xff}, g.aa)
 	vector.StrokeLine(screen, 50, 100+cf, 200+cf, 250, 4, color.RGBA{0x00, 0xff, 0xff, 0xff}, g.aa)

@@ -36,8 +36,6 @@ const (
 type Game struct {
 	debugui debugui.DebugUI
 
-	counter int
-
 	aa         bool
 	showCenter bool
 }
@@ -54,7 +52,6 @@ func (g *Game) Update() error {
 	}); err != nil {
 		return err
 	}
-	g.counter++
 	if inpututil.IsKeyJustPressed(ebiten.KeyA) {
 		g.aa = !g.aa
 	}
@@ -104,8 +101,8 @@ func (g *Game) drawLine(screen *ebiten.Image, region image.Rectangle, cap vector
 	c1x := float64(region.Max.X - region.Dx()/4)
 	c1y := float64(region.Max.Y - region.Dy()/4)
 	r := float64(min(region.Dx(), region.Dy()) / 4)
-	a0 := 2 * math.Pi * float64(g.counter) / (16 * ebiten.DefaultTPS)
-	a1 := 2 * math.Pi * float64(g.counter) / (9 * ebiten.DefaultTPS)
+	a0 := 2 * math.Pi * float64(ebiten.Tick()) / (16 * ebiten.DefaultTPS)
+	a1 := 2 * math.Pi * float64(ebiten.Tick()) / (9 * ebiten.DefaultTPS)
 
 	var path vector.Path
 	sin0, cos0 := math.Sincos(a0)

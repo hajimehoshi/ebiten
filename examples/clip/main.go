@@ -34,12 +34,9 @@ var (
 	gophersImage *ebiten.Image
 )
 
-type Game struct {
-	count int
-}
+type Game struct{}
 
 func (g *Game) Update() error {
-	g.count++
 	return nil
 }
 
@@ -54,7 +51,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 	// Rotate the image. As a result, the anchor point of this rotate is
 	// the center of the image.
-	op.GeoM.Rotate(float64(g.count%360) * 2 * math.Pi / 360)
+	op.GeoM.Rotate(float64(ebiten.Tick()%360) * 2 * math.Pi / 360)
 
 	// Move the image to the screen's center.
 	op.GeoM.Translate(screenWidth/2, screenHeight/2)
