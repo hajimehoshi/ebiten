@@ -67,7 +67,7 @@ func TestDeviceVibrationForwarding(t *testing.T) {
 		Duration:  250 * time.Millisecond,
 		Magnitude: 0.5,
 		// The vibration was requested during the first tick, whose ebiten.Tick() is 0.
-		Tick: 0,
+		StartTick: 0,
 	}
 	if vibrations[0] != want {
 		t.Errorf("vibration = %+v; want %+v", vibrations[0], want)
@@ -85,8 +85,8 @@ func TestDeviceVibrationForwarding(t *testing.T) {
 	}
 	for i, v := range all {
 		// Four ticks have run, one vibration each; their ebiten.Tick() values are 0 through 3.
-		if v.Tick != i {
-			t.Errorf("vibration %d has Tick %d; want %d", i, v.Tick, i)
+		if v.StartTick != i {
+			t.Errorf("vibration %d has StartTick %d; want %d", i, v.StartTick, i)
 		}
 	}
 }

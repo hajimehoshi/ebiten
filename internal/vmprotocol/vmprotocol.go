@@ -249,9 +249,9 @@ type GuestMessage struct {
 	// Vibration carries the device vibration requested during the tick. Set on GuestMessageKindVibration.
 	Vibration Vibration
 
-	// Tick is the guest's ebiten.Tick() during the tick that produced the vibrations. Set on
+	// StartTick is the guest's ebiten.Tick() during the tick that produced the vibrations. Set on
 	// GuestMessageKindGamepadVibrations and GuestMessageKindVibration.
-	Tick int
+	StartTick int
 }
 
 // GamepadVibration is one gamepad's requested vibration: its rumble magnitudes and how long they

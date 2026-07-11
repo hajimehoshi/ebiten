@@ -580,7 +580,7 @@ func (r *remoteBackend) flushGamepadVibrations(enc *vmprotocol.Encoder, tick int
 	return enc.EncodeGuestMessage(&vmprotocol.GuestMessage{
 		Kind:              vmprotocol.GuestMessageKindGamepadVibrations,
 		GamepadVibrations: r.wireVibrationsBuf,
-		Tick:              tick,
+		StartTick:         tick,
 	})
 }
 
@@ -599,7 +599,7 @@ func (r *remoteBackend) flushVibration(enc *vmprotocol.Encoder, tick int) error 
 			Duration:  v.Duration,
 			Magnitude: v.Magnitude,
 		},
-		Tick: tick,
+		StartTick: tick,
 	})
 }
 

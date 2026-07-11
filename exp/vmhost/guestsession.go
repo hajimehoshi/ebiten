@@ -873,8 +873,8 @@ func standardButtonsToProtocol(buttons map[ebiten.StandardGamepadButton]GamepadS
 // [GuestSession.UpdateGamepads] ID, so a host applies it to the corresponding gamepad with
 // [ebiten.VibrateGamepad].
 type GamepadVibration struct {
-	// Tick is the guest's [ebiten.Tick] during the Update that requested the vibration.
-	Tick int
+	// StartTick is the guest's [ebiten.Tick] during the Update that requested the vibration.
+	StartTick int
 
 	GamepadID ebiten.GamepadID
 	Duration  time.Duration
@@ -894,7 +894,7 @@ func (g *GuestSession) dispatchGamepadVibrations(msg *vmprotocol.GuestMessage) {
 	for i := range msg.GamepadVibrations {
 		v := &msg.GamepadVibrations[i]
 		g.onGamepadVibration(GamepadVibration{
-			Tick:            msg.Tick,
+			StartTick:       msg.StartTick,
 			GamepadID:       ebiten.GamepadID(v.ID),
 			Duration:        v.Duration,
 			StrongMagnitude: v.StrongMagnitude,
@@ -906,8 +906,8 @@ func (g *GuestSession) dispatchGamepadVibrations(msg *vmprotocol.GuestMessage) {
 // Vibration is a device vibration the guest's game requested, passed to the [NewGuestSessionOptions]
 // OnVibration handler. A host acts on it by vibrating its own device with [ebiten.Vibrate].
 type Vibration struct {
-	// Tick is the guest's [ebiten.Tick] during the Update that requested the vibration.
-	Tick int
+	// StartTick is the guest's [ebiten.Tick] during the Update that requested the vibration.
+	StartTick int
 
 	Duration time.Duration
 
@@ -923,7 +923,7 @@ func (g *GuestSession) dispatchVibration(msg *vmprotocol.GuestMessage) {
 		return
 	}
 	g.onVibration(Vibration{
-		Tick:      msg.Tick,
+		StartTick: msg.StartTick,
 		Duration:  msg.Vibration.Duration,
 		Magnitude: msg.Vibration.Magnitude,
 	})
