@@ -561,18 +561,22 @@ func (u *UserInterface) init() error {
 
 func (u *UserInterface) setWindowEventHandlers(v js.Value) {
 	v.Call("addEventListener", "resize", js.FuncOf(func(this js.Value, args []js.Value) any {
-		u.updateScreenSize()
-
-		// updateImpl can block. Use goroutine.
-		// See https://pkg.go.dev/syscall/js#FuncOf.
-		go func() {
-			if err := u.updateImpl(true); err != nil {
-				u.setError(err)
-				return
-			}
-		}()
+		u.onResize()
 		return nil
 	}))
+}
+
+func (u *UserInterface) onResize() {
+	u.updateScreenSize()
+
+	// updateImpl can block. Use goroutine.
+	// See https://pkg.go.dev/syscall/js#FuncOf.
+	go func() {
+		if err := u.updateImpl(true); err != nil {
+			u.setError(err)
+			return
+		}
+	}()
 }
 
 // SetTextInputFocusedFunc registers a function reporting whether an element
@@ -597,6 +601,14 @@ func (u *UserInterface) isTextInputFocused() bool {
 }
 
 func (u *UserInterface) setCanvasEventHandlers(v js.Value) {
+	if resizeObserver := js.Global().Get("ResizeObserver"); resizeObserver.Truthy() {
+		observer := resizeObserver.New(js.FuncOf(func(this js.Value, args []js.Value) any {
+			u.onResize()
+			return nil
+		}))
+		observer.Call("observe", v)
+	}
+
 	// Keyboard
 	v.Call("addEventListener", "keydown", js.FuncOf(func(this js.Value, args []js.Value) any {
 		// Focus the canvas explicitly to activate tha game (#961).
