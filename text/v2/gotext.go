@@ -403,11 +403,9 @@ func (im *goTextLineImager) glyphImage(index int) *ebiten.Image {
 		yoffset:    args.subpixelOffset.Y,
 		variations: face.ensureVariationsString(),
 	}
-	segs := glyph.render.segments()
 	subpixelOffset := args.subpixelOffset
-	bounds := glyph.render.bounds
 	return face.Source.getOrCreateGlyphImage(face, key, func() (*ebiten.Image, bool) {
-		img := segmentsToImage(segs, subpixelOffset, bounds)
+		img := segmentsToImage(glyph.render.segments(), subpixelOffset, glyph.render.bounds)
 		return img, img != nil
 	})
 }
