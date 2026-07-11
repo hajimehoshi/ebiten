@@ -167,6 +167,12 @@ type Player struct {
 
 	playButtonPosition  image.Point
 	alertButtonPosition image.Point
+
+	// Fields for dragging the seek bar.
+	seeking         bool
+	seekingByTouch  bool
+	seekingTouchID  ebiten.TouchID
+	resumeAfterSeek bool
 }
 
 func playerBarRect() (x, y, w, h int) {
@@ -334,38 +340,71 @@ func (p *Player) switchPlayStateIfNeeded() {
 	p.audioPlayer.Play()
 }
 
-func (p *Player) justPressedPosition() (int, int, bool) {
-	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
-		x, y := ebiten.CursorPosition()
-		return x, y, true
-	}
-
-	if touches := inpututil.AppendJustPressedTouchIDs(nil); len(touches) > 0 {
-		x, y := ebiten.TouchPosition(touches[0])
-		return x, y, true
-	}
-
-	return 0, 0, false
-}
-
 func (p *Player) seekBarIfNeeded() error {
-	// Calculate the next seeking position from the current cursor position.
-	x, y, ok := p.justPressedPosition()
-	if !ok {
-		return nil
-	}
 	bx, by, bw, bh := playerBarRect()
-	const padding = 4
-	if y < by-padding || by+bh+padding <= y {
+
+	// Start dragging when a pointer is just pressed on the bar.
+	if !p.seeking {
+		const padding = 4
+		onBar := func(x, y int) bool {
+			return bx <= x && x < bx+bw && by-padding <= y && y < by+bh+padding
+		}
+		if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
+			if x, y := ebiten.CursorPosition(); onBar(x, y) {
+				p.seeking = true
+				p.seekingByTouch = false
+			}
+		}
+		if !p.seeking {
+			for _, id := range inpututil.AppendJustPressedTouchIDs(nil) {
+				if x, y := ebiten.TouchPosition(id); onBar(x, y) {
+					p.seeking = true
+					p.seekingByTouch = true
+					p.seekingTouchID = id
+					break
+				}
+			}
+		}
+		// Pause the audio while dragging to avoid noisy playback, and remember
+		// whether to resume once the drag ends.
+		if p.seeking {
+			p.resumeAfterSeek = p.audioPlayer.IsPlaying()
+			p.audioPlayer.Pause()
+		}
+	}
+
+	if !p.seeking {
 		return nil
 	}
-	if x < bx || bx+bw <= x {
-		return nil
+
+	// While the pointer is held, keep updating the position from its horizontal position.
+	var x int
+	var released bool
+	if p.seekingByTouch {
+		if inpututil.IsTouchJustReleased(p.seekingTouchID) {
+			x, _ = inpututil.TouchPositionInPreviousTick(p.seekingTouchID)
+			released = true
+		} else {
+			x, _ = ebiten.TouchPosition(p.seekingTouchID)
+		}
+	} else {
+		x, _ = ebiten.CursorPosition()
+		released = !ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft)
 	}
+
+	x = min(max(x, bx), bx+bw)
+
 	pos := time.Duration(x-bx) * p.total / time.Duration(bw)
 	p.current = pos
 	if err := p.audioPlayer.SetPosition(pos); err != nil {
 		return err
+	}
+
+	if released {
+		p.seeking = false
+		if p.resumeAfterSeek {
+			p.audioPlayer.Play()
+		}
 	}
 	return nil
 }
