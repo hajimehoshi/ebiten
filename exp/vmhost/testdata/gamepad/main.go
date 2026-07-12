@@ -16,8 +16,10 @@
 
 // This is a guest that verifies the gamepad state the host forwards. During Update it reads the
 // gamepad through the public ebiten API and compares it against the fixed expectation the host
-// injects; it fills the screen green when everything matches and red otherwise (logging each
-// mismatch), so the outcome is observable in the rendered screen.
+// injects; it fills the screen green when everything matched on every tick and red otherwise (logging
+// each mismatch), so the outcome is observable in the rendered screen. A mismatch latches: with
+// several injected snapshots and ticks queued ahead of one frame, a corrupted earlier tick is not
+// masked by a correct later one.
 //
 // It is launched by a host; see vmhost's gamepad test.
 package main
@@ -42,11 +44,13 @@ var (
 )
 
 type game struct {
-	ok bool
+	failed bool
 }
 
 func (g *game) Update() error {
-	g.ok = g.check()
+	if !g.check() {
+		g.failed = true
+	}
 	return nil
 }
 
@@ -115,11 +119,11 @@ func approx(a, b float64) bool {
 }
 
 func (g *game) Draw(screen *ebiten.Image) {
-	if g.ok {
-		screen.Fill(color.RGBA{R: 0x00, G: 0xff, B: 0x00, A: 0xff})
+	if g.failed {
+		screen.Fill(color.RGBA{R: 0xff, G: 0x00, B: 0x00, A: 0xff})
 		return
 	}
-	screen.Fill(color.RGBA{R: 0xff, G: 0x00, B: 0x00, A: 0xff})
+	screen.Fill(color.RGBA{R: 0x00, G: 0xff, B: 0x00, A: 0xff})
 }
 
 func (g *game) Layout(outsideWidth, outsideHeight int) (int, int) {

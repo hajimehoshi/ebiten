@@ -109,6 +109,11 @@ type GuestSession struct {
 	// requestedTPS is the guest game's most recently reported requested TPS. It starts at the standard
 	// default and the guest updates it whenever its game changes the value.
 	requestedTPS int
+	// msgPool is a free list backing the queued host messages: a sender takes one through
+	// takeMessageLocked and the session goroutine returns it once it is encoded, so steady-state input
+	// forwarding allocates nothing. Pooled messages are reset, with their buffers' capacity kept for
+	// reuse.
+	msgPool []*vmprotocol.HostMessage
 	// err holds the error(s) that ended the session, joined as they occur; closed is set by Close.
 	err    error
 	closed bool
@@ -367,7 +372,9 @@ func (g *GuestSession) runOp(o op) error {
 		}
 		return nil
 	case opMessage:
-		return g.sendAndReceive(o.msg)
+		err := g.sendAndReceive(o.msg)
+		g.recycleMessage(o.msg)
+		return err
 	}
 	return nil
 }
@@ -546,13 +553,13 @@ func (g *GuestSession) SetOutsideScreen(screen *ebiten.Image) error {
 	}
 	g.sentWidth = w
 	g.sentHeight = h
+	msg := g.takeMessageLocked()
+	msg.Kind = vmprotocol.HostMessageKindSetOutsideSize
+	msg.Width = w
+	msg.Height = h
 	g.queueOpLocked(op{
 		kind: opMessage,
-		msg: &vmprotocol.HostMessage{
-			Kind:   vmprotocol.HostMessageKindSetOutsideSize,
-			Width:  w,
-			Height: h,
-		},
+		msg:  msg,
 	})
 	return nil
 }
@@ -745,60 +752,60 @@ func (g *GuestSession) Err() error {
 
 // PressKey injects a key-press event. key is an ebiten.Key.
 func (g *GuestSession) PressKey(key ebiten.Key) {
-	g.postMessage(&vmprotocol.HostMessage{
-		Kind: vmprotocol.HostMessageKindPressKey,
-		Code: int(key),
-	})
+	msg := g.takeMessage()
+	msg.Kind = vmprotocol.HostMessageKindPressKey
+	msg.Code = int(key)
+	g.postMessage(msg)
 }
 
 // ReleaseKey injects a key-release event.
 func (g *GuestSession) ReleaseKey(key ebiten.Key) {
-	g.postMessage(&vmprotocol.HostMessage{
-		Kind: vmprotocol.HostMessageKindReleaseKey,
-		Code: int(key),
-	})
+	msg := g.takeMessage()
+	msg.Kind = vmprotocol.HostMessageKindReleaseKey
+	msg.Code = int(key)
+	g.postMessage(msg)
 }
 
 // MoveCursor sets the cursor position in outside-screen device-independent pixels.
 func (g *GuestSession) MoveCursor(x, y float64) {
-	g.postMessage(&vmprotocol.HostMessage{
-		Kind: vmprotocol.HostMessageKindMoveCursor,
-		X:    x,
-		Y:    y,
-	})
+	msg := g.takeMessage()
+	msg.Kind = vmprotocol.HostMessageKindMoveCursor
+	msg.X = x
+	msg.Y = y
+	g.postMessage(msg)
 }
 
 // PressMouseButton injects a mouse-button-press event.
 func (g *GuestSession) PressMouseButton(button ebiten.MouseButton) {
-	g.postMessage(&vmprotocol.HostMessage{
-		Kind: vmprotocol.HostMessageKindPressMouseButton,
-		Code: int(button),
-	})
+	msg := g.takeMessage()
+	msg.Kind = vmprotocol.HostMessageKindPressMouseButton
+	msg.Code = int(button)
+	g.postMessage(msg)
 }
 
 // ReleaseMouseButton injects a mouse-button-release event.
 func (g *GuestSession) ReleaseMouseButton(button ebiten.MouseButton) {
-	g.postMessage(&vmprotocol.HostMessage{
-		Kind: vmprotocol.HostMessageKindReleaseMouseButton,
-		Code: int(button),
-	})
+	msg := g.takeMessage()
+	msg.Kind = vmprotocol.HostMessageKindReleaseMouseButton
+	msg.Code = int(button)
+	g.postMessage(msg)
 }
 
 // ScrollWheel injects a wheel movement.
 func (g *GuestSession) ScrollWheel(x, y float64) {
-	g.postMessage(&vmprotocol.HostMessage{
-		Kind: vmprotocol.HostMessageKindScrollWheel,
-		X:    x,
-		Y:    y,
-	})
+	msg := g.takeMessage()
+	msg.Kind = vmprotocol.HostMessageKindScrollWheel
+	msg.X = x
+	msg.Y = y
+	g.postMessage(msg)
 }
 
 // TypeRune injects a typed character.
 func (g *GuestSession) TypeRune(r rune) {
-	g.postMessage(&vmprotocol.HostMessage{
-		Kind: vmprotocol.HostMessageKindTypeRune,
-		Rune: r,
-	})
+	msg := g.takeMessage()
+	msg.Kind = vmprotocol.HostMessageKindTypeRune
+	msg.Rune = r
+	g.postMessage(msg)
 }
 
 // queueOpLocked appends o to the request queue and wakes the session goroutine to drain it. g.mu must
@@ -836,48 +843,80 @@ type GamepadStandardButtonState struct {
 // UpdateGamepads injects the complete set of connected gamepads; a gamepad absent from states is
 // disconnected. Like the other input injectors it is fed independently of [GuestSession.AdvanceTicks]
 // and observed by the guest at its next tick.
+//
+// The caller retains ownership of states and everything it references: the snapshot is copied out
+// before UpdateGamepads returns, so the slice, its elements, and their slices and maps may be reused
+// (e.g. refilled for the next tick).
 func (g *GuestSession) UpdateGamepads(states []GamepadState) {
 	// Gamepad state is polled per tick at the source — continuous axes plus a changing set of connected
 	// devices — so each call resends the whole snapshot, keeping the guest's view authoritative and
 	// self-correcting against a dropped or duplicated message.
-	g.postMessage(&vmprotocol.HostMessage{
-		Kind:          vmprotocol.HostMessageKindUpdateGamepads,
-		GamepadStates: gamepadStatesToProtocol(states),
-	})
+	msg := g.takeMessage()
+	msg.Kind = vmprotocol.HostMessageKindUpdateGamepads
+	msg.GamepadStates = appendGamepadStatesToProtocol(msg.GamepadStates, states)
+	g.postMessage(msg)
 }
 
-func gamepadStatesToProtocol(states []GamepadState) []vmprotocol.GamepadState {
-	if states == nil {
-		return nil
+// appendGamepadStatesToProtocol copies states into dst in their protocol form and returns the extended
+// slice, reusing dst's elements and their slices and maps within capacity. An emptied-but-kept buffer
+// encodes like a nil one (gob omits zero-length fields).
+func appendGamepadStatesToProtocol(dst []vmprotocol.GamepadState, states []GamepadState) []vmprotocol.GamepadState {
+	// Reslice through the capacity so the elements there — and their inner buffers — survive both the
+	// extension and a growth's copy.
+	if n := len(states); n <= cap(dst) {
+		dst = dst[:n]
+	} else {
+		dst = slices.Grow(dst[:cap(dst)], n-cap(dst))[:n]
 	}
-	out := make([]vmprotocol.GamepadState, len(states))
 	for i := range states {
 		s := &states[i]
-		out[i] = vmprotocol.GamepadState{
-			ID:              int(s.ID),
-			SDLID:           s.SDLID,
-			Name:            s.Name,
-			Axes:            s.Axes,
-			Buttons:         s.Buttons,
-			StandardAxes:    s.StandardAxes,
-			StandardButtons: standardButtonsToProtocol(s.StandardButtons),
-		}
+		d := &dst[i]
+		d.ID = int(s.ID)
+		d.SDLID = s.SDLID
+		d.Name = s.Name
+		d.Axes = append(d.Axes[:0], s.Axes...)
+		d.Buttons = append(d.Buttons[:0], s.Buttons...)
+		d.StandardAxes = copyStandardAxesToProtocol(d.StandardAxes, s.StandardAxes)
+		d.StandardButtons = copyStandardButtonsToProtocol(d.StandardButtons, s.StandardButtons)
 	}
-	return out
+	return dst
 }
 
-func standardButtonsToProtocol(buttons map[ebiten.StandardGamepadButton]GamepadStandardButtonState) map[ebiten.StandardGamepadButton]vmprotocol.GamepadStandardButtonState {
-	if buttons == nil {
-		return nil
+// copyStandardAxesToProtocol copies src into dst, reusing dst's storage; it allocates only when dst is
+// nil and src has entries.
+func copyStandardAxesToProtocol(dst, src map[ebiten.StandardGamepadAxis]float64) map[ebiten.StandardGamepadAxis]float64 {
+	if dst == nil {
+		if len(src) == 0 {
+			return nil
+		}
+		dst = make(map[ebiten.StandardGamepadAxis]float64, len(src))
+	} else {
+		clear(dst)
 	}
-	m := make(map[ebiten.StandardGamepadButton]vmprotocol.GamepadStandardButtonState, len(buttons))
-	for b, s := range buttons {
-		m[b] = vmprotocol.GamepadStandardButtonState{
+	for a, v := range src {
+		dst[a] = v
+	}
+	return dst
+}
+
+// copyStandardButtonsToProtocol copies src into dst in its protocol form, reusing dst's storage; it
+// allocates only when dst is nil and src has entries.
+func copyStandardButtonsToProtocol(dst map[ebiten.StandardGamepadButton]vmprotocol.GamepadStandardButtonState, src map[ebiten.StandardGamepadButton]GamepadStandardButtonState) map[ebiten.StandardGamepadButton]vmprotocol.GamepadStandardButtonState {
+	if dst == nil {
+		if len(src) == 0 {
+			return nil
+		}
+		dst = make(map[ebiten.StandardGamepadButton]vmprotocol.GamepadStandardButtonState, len(src))
+	} else {
+		clear(dst)
+	}
+	for b, s := range src {
+		dst[b] = vmprotocol.GamepadStandardButtonState{
 			Pressed: s.Pressed,
 			Value:   s.Value,
 		}
 	}
-	return m
+	return dst
 }
 
 // GamepadVibration is a vibration the guest's game requested for one gamepad, passed to the
@@ -943,43 +982,81 @@ func (g *GuestSession) dispatchVibration(msg *vmprotocol.GuestMessage) {
 
 // PressTouch injects a touch-press event at (x, y), in outside-screen device-independent pixels.
 func (g *GuestSession) PressTouch(id ebiten.TouchID, x, y float64) {
-	g.postMessage(&vmprotocol.HostMessage{
-		Kind: vmprotocol.HostMessageKindPressTouch,
-		Code: int(id),
-		X:    x,
-		Y:    y,
-	})
+	msg := g.takeMessage()
+	msg.Kind = vmprotocol.HostMessageKindPressTouch
+	msg.Code = int(id)
+	msg.X = x
+	msg.Y = y
+	g.postMessage(msg)
 }
 
 // MoveTouch injects a touch-move event to (x, y), in outside-screen device-independent pixels.
 func (g *GuestSession) MoveTouch(id ebiten.TouchID, x, y float64) {
-	g.postMessage(&vmprotocol.HostMessage{
-		Kind: vmprotocol.HostMessageKindMoveTouch,
-		Code: int(id),
-		X:    x,
-		Y:    y,
-	})
+	msg := g.takeMessage()
+	msg.Kind = vmprotocol.HostMessageKindMoveTouch
+	msg.Code = int(id)
+	msg.X = x
+	msg.Y = y
+	g.postMessage(msg)
 }
 
 // ReleaseTouch injects a touch-release event.
 func (g *GuestSession) ReleaseTouch(id ebiten.TouchID) {
-	g.postMessage(&vmprotocol.HostMessage{
-		Kind: vmprotocol.HostMessageKindReleaseTouch,
-		Code: int(id),
-	})
+	msg := g.takeMessage()
+	msg.Kind = vmprotocol.HostMessageKindReleaseTouch
+	msg.Code = int(id)
+	g.postMessage(msg)
 }
 
-// postMessage queues a single host message in submission order.
+// postMessage queues a single host message in submission order. msg must come from takeMessage; the
+// session goroutine recycles it once it is encoded (or it is recycled here when the session has
+// already ended).
 func (g *GuestSession) postMessage(msg *vmprotocol.HostMessage) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	if g.closed || g.err != nil {
+		g.recycleMessageLocked(msg)
 		return
 	}
 	g.queueOpLocked(op{
 		kind: opMessage,
 		msg:  msg,
 	})
+}
+
+// takeMessage returns a host message to queue, recycled from the pool when one is available. It is
+// reset: the caller sets the fields its kind needs.
+func (g *GuestSession) takeMessage() *vmprotocol.HostMessage {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	return g.takeMessageLocked()
+}
+
+// takeMessageLocked is takeMessage for callers already holding g.mu.
+func (g *GuestSession) takeMessageLocked() *vmprotocol.HostMessage {
+	n := len(g.msgPool)
+	if n == 0 {
+		return &vmprotocol.HostMessage{}
+	}
+	msg := g.msgPool[n-1]
+	g.msgPool[n-1] = nil
+	g.msgPool = g.msgPool[:n-1]
+	return msg
+}
+
+// recycleMessage resets msg and returns it to the pool for the next takeMessage.
+func (g *GuestSession) recycleMessage(msg *vmprotocol.HostMessage) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	g.recycleMessageLocked(msg)
+}
+
+// recycleMessageLocked is recycleMessage for callers already holding g.mu.
+func (g *GuestSession) recycleMessageLocked(msg *vmprotocol.HostMessage) {
+	// The reset keeps the GamepadStates buffer — and, within it, each element's slices and maps — so the
+	// next UpdateGamepads copies into the same storage.
+	*msg = vmprotocol.HostMessage{GamepadStates: msg.GamepadStates[:0]}
+	g.msgPool = append(g.msgPool, msg)
 }
 
 // Close stops the session, releases the host images mirrored for it, and closes the connection. It

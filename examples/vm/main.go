@@ -446,11 +446,17 @@ func (g *Game) forwardInput(state debugui.InputCapturingState) {
 	}
 
 	// Gamepads are mirrored unconditionally: unlike keyboard and mouse input they are not gated on the
-	// debug UI, which does not consume gamepad input.
+	// debug UI, which does not consume gamepad input. UpdateGamepads copies the snapshot out, so the
+	// same states — and the slices and maps inside them — are refilled every tick. The buffer is
+	// resliced through its capacity so the elements there keep their buffers.
 	g.gamepadIDsBuf = ebiten.AppendGamepadIDs(g.gamepadIDsBuf[:0])
-	g.gamepadStatesBuf = g.gamepadStatesBuf[:0]
-	for _, id := range g.gamepadIDsBuf {
-		g.gamepadStatesBuf = append(g.gamepadStatesBuf, gamepadState(id))
+	if n := len(g.gamepadIDsBuf); n <= cap(g.gamepadStatesBuf) {
+		g.gamepadStatesBuf = g.gamepadStatesBuf[:n]
+	} else {
+		g.gamepadStatesBuf = slices.Grow(g.gamepadStatesBuf[:cap(g.gamepadStatesBuf)], n-cap(g.gamepadStatesBuf))[:n]
+	}
+	for i, id := range g.gamepadIDsBuf {
+		gamepadState(id, &g.gamepadStatesBuf[i])
 	}
 	s.UpdateGamepads(g.gamepadStatesBuf)
 
@@ -477,33 +483,40 @@ func (g *Game) forwardInput(state debugui.InputCapturingState) {
 	}
 }
 
-// gamepadState reads the current state of one host gamepad through the public ebiten API into the
-// snapshot the guest is fed.
-func gamepadState(id ebiten.GamepadID) vmhost.GamepadState {
-	state := vmhost.GamepadState{
-		ID:    id,
-		SDLID: ebiten.GamepadSDLID(id),
-		Name:  ebiten.GamepadName(id),
-	}
+// gamepadState reads the current state of one host gamepad through the public ebiten API into state,
+// reusing state's slices and maps.
+func gamepadState(id ebiten.GamepadID, state *vmhost.GamepadState) {
+	state.ID = id
+	state.SDLID = ebiten.GamepadSDLID(id)
+	state.Name = ebiten.GamepadName(id)
 
+	state.Axes = state.Axes[:0]
 	for a := 0; a < ebiten.GamepadAxisCount(id); a++ {
 		state.Axes = append(state.Axes, ebiten.GamepadAxisValue(id, a))
 	}
+	state.Buttons = state.Buttons[:0]
 	for b := 0; b < ebiten.GamepadButtonCount(id); b++ {
 		state.Buttons = append(state.Buttons, ebiten.IsGamepadButtonPressed(id, ebiten.GamepadButton(b)))
 	}
 
+	// An emptied map means no standard layout, like a nil one, so the maps are kept for reuse.
+	clear(state.StandardAxes)
+	clear(state.StandardButtons)
 	if !ebiten.IsStandardGamepadLayoutAvailable(id) {
-		return state
+		return
 	}
-	state.StandardAxes = map[ebiten.StandardGamepadAxis]float64{}
+	if state.StandardAxes == nil {
+		state.StandardAxes = map[ebiten.StandardGamepadAxis]float64{}
+	}
 	for a := ebiten.StandardGamepadAxis(0); a <= ebiten.StandardGamepadAxisMax; a++ {
 		if !ebiten.IsStandardGamepadAxisAvailable(id, a) {
 			continue
 		}
 		state.StandardAxes[a] = ebiten.StandardGamepadAxisValue(id, a)
 	}
-	state.StandardButtons = map[ebiten.StandardGamepadButton]vmhost.GamepadStandardButtonState{}
+	if state.StandardButtons == nil {
+		state.StandardButtons = map[ebiten.StandardGamepadButton]vmhost.GamepadStandardButtonState{}
+	}
 	for b := ebiten.StandardGamepadButton(0); b <= ebiten.StandardGamepadButtonMax; b++ {
 		if !ebiten.IsStandardGamepadButtonAvailable(id, b) {
 			continue
@@ -513,7 +526,6 @@ func gamepadState(id ebiten.GamepadID) vmhost.GamepadState {
 			Value:   ebiten.StandardGamepadButtonValue(id, b),
 		}
 	}
-	return state
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
