@@ -137,6 +137,14 @@ type Game struct {
 	keyBuf  []ebiten.Key
 	runeBuf []rune
 
+	// pressedKeys holds the keys whose presses were forwarded to the guest and whose releases were not
+	// yet, so releases can reach the guest even when the debug UI has focus.
+	pressedKeys map[ebiten.Key]struct{}
+
+	// pressedMouseButtons holds the mouse buttons whose presses were forwarded to the guest and whose
+	// releases were not yet, so releases can reach the guest even when the debug UI is hovered.
+	pressedMouseButtons map[ebiten.MouseButton]struct{}
+
 	// touchIDsBuf is reused each tick by forwardInput.
 	touchIDsBuf []ebiten.TouchID
 
@@ -159,7 +167,9 @@ func (g *Game) Update() error {
 			g.gp = r.gp
 			g.screenSet = false
 			g.guestTPSAdopted = false
-			g.status = "Running " + g.pkg
+			// A remainder accumulated for the previous guest must not tick the new one.
+			g.tickAccum = 0
+			g.status = "Running " + r.gp.pkg
 		}
 	default:
 	}
@@ -201,7 +211,9 @@ func (g *Game) Update() error {
 	// The session runs the guest on its own goroutine; a termination or error surfaces here.
 	if err := g.gp.session.Err(); err != nil {
 		if errors.Is(err, ebiten.Termination) {
-			g.status = g.pkg + " exited"
+			// g.pkg is the text field's buffer, which may have been edited since this guest launched;
+			// the guest's own package name is in g.gp.
+			g.status = g.gp.pkg + " exited"
 		} else {
 			g.status = "Guest error: " + err.Error()
 		}
@@ -259,6 +271,9 @@ func (g *Game) updateAudio() error {
 			// but large enough to cover a momentarily busy session.
 			hp.SetBufferSize(time.Second / 20)
 			hp.Play()
+			if g.audioPlayers == nil {
+				g.audioPlayers = map[*vmhost.GuestAudioStream]*audio.Player{}
+			}
 			g.audioPlayers[stream] = hp
 		}
 		// The forwarded samples are raw, so apply the guest player's volume on the host side.
@@ -377,15 +392,26 @@ func (g *Game) forwardInput(state debugui.InputCapturingState) {
 		g.keyBuf = inpututil.AppendJustPressedKeys(g.keyBuf[:0])
 		for _, k := range g.keyBuf {
 			s.PressKey(k)
-		}
-		g.keyBuf = inpututil.AppendJustReleasedKeys(g.keyBuf[:0])
-		for _, k := range g.keyBuf {
-			s.ReleaseKey(k)
+			if g.pressedKeys == nil {
+				g.pressedKeys = map[ebiten.Key]struct{}{}
+			}
+			g.pressedKeys[k] = struct{}{}
 		}
 		g.runeBuf = ebiten.AppendInputChars(g.runeBuf[:0])
 		for _, r := range g.runeBuf {
 			s.TypeRune(r)
 		}
+	}
+
+	// Key releases are forwarded regardless of focus, like touch releases below: dropping a release
+	// would leave the guest with a stuck key.
+	g.keyBuf = inpututil.AppendJustReleasedKeys(g.keyBuf[:0])
+	for _, k := range g.keyBuf {
+		if _, ok := g.pressedKeys[k]; !ok {
+			continue
+		}
+		s.ReleaseKey(k)
+		delete(g.pressedKeys, k)
 	}
 
 	if state&debugui.InputCapturingStateHover == 0 {
@@ -395,14 +421,28 @@ func (g *Game) forwardInput(state debugui.InputCapturingState) {
 		for _, b := range []ebiten.MouseButton{ebiten.MouseButtonLeft, ebiten.MouseButtonRight, ebiten.MouseButtonMiddle} {
 			if inpututil.IsMouseButtonJustPressed(b) {
 				s.PressMouseButton(b)
-			}
-			if inpututil.IsMouseButtonJustReleased(b) {
-				s.ReleaseMouseButton(b)
+				if g.pressedMouseButtons == nil {
+					g.pressedMouseButtons = map[ebiten.MouseButton]struct{}{}
+				}
+				g.pressedMouseButtons[b] = struct{}{}
 			}
 		}
 		if wx, wy := ebiten.Wheel(); wx != 0 || wy != 0 {
 			s.ScrollWheel(wx, wy)
 		}
+	}
+
+	// Mouse button releases are forwarded regardless of hover, like the key releases above: a drag
+	// ending over the panel would otherwise leave the guest with a stuck button.
+	for _, b := range []ebiten.MouseButton{ebiten.MouseButtonLeft, ebiten.MouseButtonRight, ebiten.MouseButtonMiddle} {
+		if !inpututil.IsMouseButtonJustReleased(b) {
+			continue
+		}
+		if _, ok := g.pressedMouseButtons[b]; !ok {
+			continue
+		}
+		s.ReleaseMouseButton(b)
+		delete(g.pressedMouseButtons, b)
 	}
 
 	// Gamepads are mirrored unconditionally: unlike keyboard and mouse input they are not gated on the
@@ -504,6 +544,9 @@ func (g *Game) closeGuest() {
 	gp := g.gp
 	g.gp = nil
 	g.screenSet = false
+	// The forwarded presses belong to the guest being closed; the next guest starts with nothing held.
+	clear(g.pressedKeys)
+	clear(g.pressedMouseButtons)
 	for stream, hp := range g.audioPlayers {
 		if err := hp.Close(); err != nil {
 			log.Printf("vm: closing an audio player: %v", err)
@@ -751,6 +794,11 @@ func buildAndStartGuest(ln net.Listener, workDir, bin, endpoint, pkg string, pin
 	// NewGuestSession returns.
 	gp = &guestProcess{cmd: cmd, bin: bin, pkg: pkg}
 	session, err := vmhost.NewGuestSession(conn, &vmhost.NewGuestSessionOptions{
+		// Bound how long a guest may stop responding mid-operation (a wedged Update, a dead
+		// connection), so the wedge surfaces as an error from Err instead of stalling the session
+		// forever.
+		IdleTimeout: 30 * time.Second,
+
 		// Mirror each vibration the guest requests onto the host's own gamepad. The guest's gamepad IDs
 		// match the host's, because the host forwards its own gamepads to the guest. VibrateGamepad is
 		// concurrent-safe, so running this on the session goroutine is fine.
@@ -813,15 +861,14 @@ func run() (err error) {
 		pkg = os.Args[1]
 	}
 	g := &Game{
-		ln:           ln,
-		endpoint:     endpoint,
-		dir:          dir,
-		pin:          pin,
-		results:      make(chan launchResult, 1),
-		pkg:          pkg,
-		guestTPS:     ebiten.DefaultTPS,
-		audioPlayers: map[*vmhost.GuestAudioStream]*audio.Player{},
-		status:       "Edit the package and press Enter or Launch",
+		ln:       ln,
+		endpoint: endpoint,
+		dir:      dir,
+		pin:      pin,
+		results:  make(chan launchResult, 1),
+		pkg:      pkg,
+		guestTPS: ebiten.DefaultTPS,
+		status:   "Edit the package and press Enter or Launch",
 	}
 	g.launchGuest()
 
