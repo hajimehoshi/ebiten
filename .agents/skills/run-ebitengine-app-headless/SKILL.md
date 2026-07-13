@@ -18,9 +18,10 @@ allowed-tools: Read, Edit, Write, Bash
 
 # run-ebitengine-app-headless skill
 
-*Targets ebiten commit `de81775da` (2026-07-02), verified against it.
-`exp/vmhost` is experimental, so if its API has moved since, the driver and
-the snippets here may need updating.*
+*Verified 2026-07-14 against the in-repo `exp/vmhost` (WaitTicks rename;
+handlers dispatched on the calling goroutine). `exp/vmhost` is experimental,
+so if its API has moved since, the driver and the snippets here may need
+updating.*
 
 Drive an Ebitengine app from a small **host** program that runs it as a
 **guest** of the `exp/vmhost` package. The host controls the guest's
@@ -204,7 +205,7 @@ rendering; only a frame does.
 paced to the host's ~60 TPS, so a 1000-tick run finishes near-instantly
 instead of taking ~16 real seconds. To capture intermediate frames or pace
 input by hand, interleave instead: `AdvanceTicks(n)`, `AdvanceFrame`,
-`WaitFrame`, `CompositeFrame`, repeat. `PendingTicks` and `WaitTick` track the
+`WaitFrame`, `CompositeFrame`, repeat. `PendingTicks` and `WaitTicks` track the
 backlog; ticks coalesce, so queuing many is cheap.
 
 `guest.Err()` becomes non-nil when the guest terminates, crashes, or times
@@ -235,8 +236,7 @@ by observing the app.
 The guest plays no local audio; instead each audio stream it starts is
 handed to the host through the `OnAudioStream` handler registered when the
 session is created, as a separate, **un-mixed** `*vmhost.GuestAudioStream`.
-The driver already wires this up: `d.onAudioStream` collects the streams
-(guarded by a mutex, since the handler runs on the session goroutine) and
+The driver already wires this up: `d.onAudioStream` collects the streams and
 `d.appendAudioStreams(nil)` hands back the still-open ones (dropping any the
 guest has closed). The audio methods are
 goroutine-safe and not frame-bound (unlike `CompositeFrame`/`Close`), so
@@ -257,9 +257,8 @@ for i, s := range d.appendAudioStreams(nil) { // one entry per still-open guest 
 }
 ```
 
-`OnAudioStream` fires once per stream, on the session goroutine, when the
-guest starts it — so it must not block, and it must not call `Read` (which
-queues onto that same goroutine and would deadlock). The driver's handler
+`OnAudioStream` fires once per stream, during `AdvanceTicks` and `WaitTicks`
+on the goroutine calling them, when the guest starts it. The driver's handler
 only stashes the handle; read the samples from `Update`, as above. A stream
 stays valid after `io.EOF` (a seek-and-replay yields more samples); once the
 guest closes its player, `IsClosed()` returns true and `Read` reports

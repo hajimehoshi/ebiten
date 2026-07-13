@@ -50,7 +50,7 @@ func TestRequestedTPSForwarding(t *testing.T) {
 	}
 	for _, tt := range tests {
 		guest.AdvanceTicks(1)
-		if !guest.WaitTick() {
+		if !guest.WaitTicks() {
 			t.Fatalf("waiting for tick %d failed: %v", tt.tick, guest.Err())
 		}
 		if got := guest.ProcessedTicks(); got != tt.tick {

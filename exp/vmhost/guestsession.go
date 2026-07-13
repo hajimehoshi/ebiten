@@ -24,7 +24,9 @@
 // own window. The audio the guest plays is exposed per player — never mixed — through the
 // [NewGuestSessionOptions] OnAudioStream handler, which hands the host each new stream to observe and
 // play separately. The gamepad and device vibrations the guest requests are delivered to the
-// [NewGuestSessionOptions] OnGamepadVibration and OnVibration handlers.
+// [NewGuestSessionOptions] OnGamepadVibration and OnVibration handlers. The handlers run during
+// [GuestSession.AdvanceTicks] and [GuestSession.WaitTicks], on the goroutine calling them, so a host
+// never deals with the session's own goroutine.
 //
 // This package is experimental and the API might be changed in the future.
 package vmhost
@@ -33,6 +35,7 @@ import (
 	"errors"
 	"image"
 	"io"
+	"maps"
 	"net"
 	"slices"
 	"sync"
@@ -90,7 +93,7 @@ type GuestSession struct {
 	ops []op
 	// submittedTicks and consumedTicks count ticks requested and processed; their difference is the
 	// backlog. They only increase. submittedTicks is touched only by the host goroutine, but it lives
-	// here because WaitTick compares it against consumedTicks, which the session writes.
+	// here because WaitTicks compares it against consumedTicks, which the session writes.
 	submittedTicks int64
 	consumedTicks  int64
 	// requestedFrameSeq increments on each AdvanceFrame, so coalesced requests collapse to the latest
@@ -109,6 +112,14 @@ type GuestSession struct {
 	// requestedTPS is the guest game's most recently reported requested TPS. It starts at the standard
 	// default and the guest updates it whenever its game changes the value.
 	requestedTPS int
+	// pendingEvents holds the guest events (vibrations, new audio streams) awaiting handler delivery, in
+	// arrival order. The session goroutine appends them and dispatchPendingEvents drains them on the
+	// goroutine calling AdvanceTicks or WaitTicks. Events for a nil handler are never queued, so the queue
+	// only grows while requested ticks produce events for a registered handler.
+	pendingEvents []guestEvent
+	// pendingEventsBuf is the spare buffer dispatchPendingEvents swaps in for pendingEvents, so
+	// steady-state dispatch alternates between the two slices' storage instead of allocating.
+	pendingEventsBuf []guestEvent
 	// msgPool is a free list backing the queued host messages: a sender takes one through
 	// takeMessageLocked and the session goroutine returns it once it is encoded, so steady-state input
 	// forwarding allocates nothing. Pooled messages are reset, with their buffers' capacity kept for
@@ -133,16 +144,15 @@ type GuestSession struct {
 	audioSampleRate int
 
 	// onGamepadVibration, if non-nil, is called for each vibration the guest requests. It is set at
-	// construction and only read by the session goroutine, so it needs no lock.
+	// construction and never modified, so it is read without a lock.
 	onGamepadVibration func(GamepadVibration)
 
 	// onVibration, if non-nil, is called for each device vibration the guest requests. Like
-	// onGamepadVibration, it is set at construction and read only by the session goroutine.
+	// onGamepadVibration, it is set at construction and never modified.
 	onVibration func(Vibration)
 
 	// onAudioStream, if non-nil, is called for each new audio stream the guest starts. Like
-	// onGamepadVibration it is set at construction and only read by the session goroutine, so it needs no
-	// lock.
+	// onGamepadVibration it is set at construction and never modified, so it is read without a lock.
 	onAudioStream func(*GuestAudioStream)
 }
 
@@ -172,6 +182,24 @@ type op struct {
 	audioResp          chan audioReadResult
 }
 
+// guestEventKind discriminates a guest event queued for handler delivery.
+type guestEventKind int
+
+const (
+	guestEventGamepadVibration guestEventKind = iota
+	guestEventVibration
+	guestEventAudioStream
+)
+
+// guestEvent is one guest-originated event awaiting its handler; the field its kind selects carries the
+// payload.
+type guestEvent struct {
+	kind             guestEventKind
+	gamepadVibration GamepadVibration
+	vibration        Vibration
+	audioStream      *GuestAudioStream
+}
+
 // framePhase tracks which side may touch the screen mirror as the single in-progress frame moves from
 // render to composite. The phases are exclusive, so the host never composites the mirror while the
 // session is rendering into it.
@@ -197,21 +225,20 @@ type NewGuestSessionOptions struct {
 	// guest that keeps sending never times out. The default (0) means no timeout.
 	IdleTimeout time.Duration
 
-	// OnGamepadVibration, if non-nil, is called for each gamepad vibration the guest's game requests, as
-	// it arrives. It runs on the session's goroutine, so it must not block; a host typically just calls
-	// [ebiten.VibrateGamepad], which is concurrent-safe. A nil handler discards the guest's vibrations.
+	// OnGamepadVibration, if non-nil, is called for each gamepad vibration the guest's game requests. It
+	// runs during [GuestSession.AdvanceTicks] and [GuestSession.WaitTicks], on the calling goroutine; a
+	// host typically just calls [ebiten.VibrateGamepad]. A nil handler discards the guest's vibrations.
 	OnGamepadVibration func(GamepadVibration)
 
-	// OnVibration, if non-nil, is called for each device vibration the guest's game requests, as it
-	// arrives. It runs on the session's goroutine, so it must not block; a host typically just calls
-	// [ebiten.Vibrate], which is concurrent-safe. A nil handler discards the guest's vibrations.
+	// OnVibration, if non-nil, is called for each device vibration the guest's game requests. It runs
+	// during [GuestSession.AdvanceTicks] and [GuestSession.WaitTicks], on the calling goroutine; a host
+	// typically just calls [ebiten.Vibrate]. A nil handler discards the guest's vibrations.
 	OnVibration func(Vibration)
 
 	// OnAudioStream, if non-nil, is called once for each new audio stream the guest starts, handed the
-	// persistent [GuestAudioStream] to read and inspect. It runs on the session's goroutine, so it must
-	// not block, and it must not call [GuestAudioStream.Read] (which queues onto that same goroutine and
-	// would deadlock): a host typically records the stream and reads it from another goroutine, e.g. as
-	// the source of an audio player. A nil handler discards the guest's audio.
+	// persistent [GuestAudioStream] to read and inspect. It runs during [GuestSession.AdvanceTicks] and
+	// [GuestSession.WaitTicks], on the calling goroutine; a host typically uses the stream as the source
+	// of an audio player. A nil handler discards the guest's audio.
 	OnAudioStream func(*GuestAudioStream)
 }
 
@@ -288,7 +315,7 @@ func (g *GuestSession) sessionLoop() {
 		var err error
 		switch o.kind {
 		case opTick, opMessage:
-			// A successful tick or message needs no completion step: consumeTick already wakes WaitTick
+			// A successful tick or message needs no completion step: consumeTick already wakes WaitTicks
 			// per tick, and a message changes nothing a waiter observes.
 			err = g.runOp(o)
 		case opReadAudio:
@@ -439,10 +466,10 @@ func (g *GuestSession) sendAndReceive(msg *vmprotocol.HostMessage) error {
 			g.setRequestedTPS(gm.RequestedTPS)
 			continue
 		case vmprotocol.GuestMessageKindGamepadVibrations:
-			g.dispatchGamepadVibrations(&gm)
+			g.queueGamepadVibrations(&gm)
 			continue
 		case vmprotocol.GuestMessageKindVibration:
-			g.dispatchVibration(&gm)
+			g.queueVibration(&gm)
 			continue
 		}
 		// GuestMessageKindDone.
@@ -564,14 +591,24 @@ func (g *GuestSession) SetOutsideScreen(screen *ebiten.Image) error {
 	return nil
 }
 
-// AdvanceTicks requests n Updates on the guest. It does not block: the requests are queued and processed
-// by the session goroutine. n must not be negative; a zero count is a no-op. A regular termination, a
-// timeout, and any deferred error surface from [GuestSession.Err]; the number of
-// requested-but-unprocessed ticks is reported by [GuestSession.PendingTicks].
+// AdvanceTicks requests n Updates on the guest. It does not block on the guest: the requests are queued
+// and processed by the session goroutine. n must not be negative; a zero count requests nothing.
+//
+// Before returning it delivers the guest events processed ticks have produced (vibrations and new audio
+// streams) to the [NewGuestSessionOptions] handlers, on the calling goroutine.
+//
+// A regular termination, a timeout, and any deferred error surface from [GuestSession.Err]; the number
+// of requested-but-unprocessed ticks is reported by [GuestSession.PendingTicks].
 func (g *GuestSession) AdvanceTicks(n int) {
 	if n < 0 {
 		panic("vmhost: negative AdvanceTicks count")
 	}
+	g.queueTicks(n)
+	g.dispatchPendingEvents()
+}
+
+// queueTicks queues n tick requests for the session goroutine.
+func (g *GuestSession) queueTicks(n int) {
 	if n == 0 {
 		return
 	}
@@ -711,9 +748,20 @@ func (g *GuestSession) markComposited() {
 	g.cond.Broadcast()
 }
 
-// WaitTick blocks until the guest has processed every tick requested so far. It reports whether all
+// WaitTicks blocks until the guest has processed every tick requested so far. It reports whether all
 // were processed; it returns false when the session ended first (see [GuestSession.Err]).
-func (g *GuestSession) WaitTick() bool {
+//
+// Before returning it delivers the guest events the ticks produced (vibrations and new audio streams)
+// to the [NewGuestSessionOptions] handlers, on the calling goroutine.
+func (g *GuestSession) WaitTicks() bool {
+	ok := g.waitTicks()
+	g.dispatchPendingEvents()
+	return ok
+}
+
+// waitTicks blocks until the guest has processed every tick requested so far, or the session ends
+// first.
+func (g *GuestSession) waitTicks() bool {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	st := g.submittedTicks
@@ -893,9 +941,7 @@ func copyStandardAxesToProtocol(dst, src map[ebiten.StandardGamepadAxis]float64)
 	} else {
 		clear(dst)
 	}
-	for a, v := range src {
-		dst[a] = v
-	}
+	maps.Copy(dst, src)
 	return dst
 }
 
@@ -935,21 +981,26 @@ type GamepadVibration struct {
 	WeakMagnitude   float64
 }
 
-// dispatchGamepadVibrations calls the vibration handler for each vibration the tick requested, stamping
+// queueGamepadVibrations queues one event per vibration the tick requested for the handler, stamping
 // each with the tick that produced it. It runs on the session goroutine and does nothing when no handler
 // is registered.
-func (g *GuestSession) dispatchGamepadVibrations(msg *vmprotocol.GuestMessage) {
+func (g *GuestSession) queueGamepadVibrations(msg *vmprotocol.GuestMessage) {
 	if g.onGamepadVibration == nil {
 		return
 	}
+	g.mu.Lock()
+	defer g.mu.Unlock()
 	for i := range msg.GamepadVibrations {
 		v := &msg.GamepadVibrations[i]
-		g.onGamepadVibration(GamepadVibration{
-			StartTick:       msg.StartTick,
-			GamepadID:       ebiten.GamepadID(v.ID),
-			Duration:        v.Duration,
-			StrongMagnitude: v.StrongMagnitude,
-			WeakMagnitude:   v.WeakMagnitude,
+		g.pendingEvents = append(g.pendingEvents, guestEvent{
+			kind: guestEventGamepadVibration,
+			gamepadVibration: GamepadVibration{
+				StartTick:       msg.StartTick,
+				GamepadID:       ebiten.GamepadID(v.ID),
+				Duration:        v.Duration,
+				StrongMagnitude: v.StrongMagnitude,
+				WeakMagnitude:   v.WeakMagnitude,
+			},
 		})
 	}
 }
@@ -966,18 +1017,67 @@ type Vibration struct {
 	Magnitude float64
 }
 
-// dispatchVibration calls the device-vibration handler with the vibration the tick requested, stamped
-// with the tick that produced it. It runs on the session goroutine and does nothing when no handler is
-// registered.
-func (g *GuestSession) dispatchVibration(msg *vmprotocol.GuestMessage) {
+// queueVibration queues the device vibration the tick requested for the handler, stamped with the tick
+// that produced it. It runs on the session goroutine and does nothing when no handler is registered.
+func (g *GuestSession) queueVibration(msg *vmprotocol.GuestMessage) {
 	if g.onVibration == nil {
 		return
 	}
-	g.onVibration(Vibration{
-		StartTick: msg.StartTick,
-		Duration:  msg.Vibration.Duration,
-		Magnitude: msg.Vibration.Magnitude,
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	g.pendingEvents = append(g.pendingEvents, guestEvent{
+		kind: guestEventVibration,
+		vibration: Vibration{
+			StartTick: msg.StartTick,
+			Duration:  msg.Vibration.Duration,
+			Magnitude: msg.Vibration.Magnitude,
+		},
 	})
+}
+
+// dispatchPendingEvents delivers the queued guest events to their handlers, in arrival order, on the
+// calling goroutine. A queued event's handler is always registered: queueing checks it. Events queued
+// while the handlers run are left for the next dispatch.
+func (g *GuestSession) dispatchPendingEvents() {
+	events := g.takePendingEvents()
+	if len(events) == 0 {
+		return
+	}
+	for i := range events {
+		e := &events[i]
+		switch e.kind {
+		case guestEventGamepadVibration:
+			g.onGamepadVibration(e.gamepadVibration)
+		case guestEventVibration:
+			g.onVibration(e.vibration)
+		case guestEventAudioStream:
+			g.onAudioStream(e.audioStream)
+		}
+	}
+	g.recyclePendingEvents(events)
+}
+
+// takePendingEvents takes ownership of the queued events, handing the spare buffer to the queue so
+// nothing appends to the returned slice. The spare is taken (not shared): a concurrent dispatch gets a
+// fresh slice.
+func (g *GuestSession) takePendingEvents() []guestEvent {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	events := g.pendingEvents
+	if len(events) == 0 {
+		return nil
+	}
+	g.pendingEvents = g.pendingEventsBuf[:0]
+	g.pendingEventsBuf = nil
+	return events
+}
+
+// recyclePendingEvents returns the emptied events buffer as the spare, zeroing the elements so the
+// payloads' pointers are not retained.
+func (g *GuestSession) recyclePendingEvents(events []guestEvent) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	g.pendingEventsBuf = slices.Delete(events, 0, len(events))
 }
 
 // PressTouch injects a touch-press event at (x, y), in outside-screen device-independent pixels.
@@ -1133,11 +1233,32 @@ func (g *GuestSession) drainQueuedReads() {
 // playing flag and volume, creating a GuestAudioStream for an unseen ID. It runs on the session
 // goroutine; the players' Read fetch their samples concurrently, each under its own lock.
 func (g *GuestSession) applyAudioControl(msg *vmprotocol.GuestMessage) {
-	// The new streams are collected under audioMu but their handler runs after it is released: the
-	// handler may call back into the session (e.g. AudioSampleRate, which takes audioMu).
-	var newStreams []*GuestAudioStream
+	// The new streams are collected under audioMu and queued for the handler under mu afterward, so the
+	// two locks never nest.
+	newStreams := g.updateAudioStreams(msg)
+	if len(newStreams) == 0 {
+		return
+	}
+	// Queue each new stream for the handler in creation order (AudioControls arrive sorted by ID). By the
+	// time the handler runs, the stream's control is applied, so its Playing and Volume reflect at least
+	// this tick.
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	for _, p := range newStreams {
+		g.pendingEvents = append(g.pendingEvents, guestEvent{
+			kind:        guestEventAudioStream,
+			audioStream: p,
+		})
+	}
+}
 
+// updateAudioStreams records the sample rate and each player's playing flag and volume, creating a
+// GuestAudioStream for an unseen ID. It returns the streams created for the handler, none when no
+// handler is registered.
+func (g *GuestSession) updateAudioStreams(msg *vmprotocol.GuestMessage) []*GuestAudioStream {
 	g.audioMu.Lock()
+	defer g.audioMu.Unlock()
+	var newStreams []*GuestAudioStream
 	g.audioSampleRate = msg.AudioSampleRate
 	for i := range msg.AudioControls {
 		c := &msg.AudioControls[i]
@@ -1165,14 +1286,7 @@ func (g *GuestSession) applyAudioControl(msg *vmprotocol.GuestMessage) {
 		}
 		p.setControl(c.Playing, c.Volume)
 	}
-	g.audioMu.Unlock()
-
-	// Hand each new stream to the handler in creation order (AudioControls arrive sorted by ID). The
-	// stream's control is already applied, so its Playing and Volume reflect this tick. The handler must
-	// not read the stream synchronously: Read queues onto this goroutine and would deadlock.
-	for _, p := range newStreams {
-		g.onAudioStream(p)
-	}
+	return newStreams
 }
 
 // AudioSampleRate returns the sample rate of the guest's audio, in per-channel samples per second, as

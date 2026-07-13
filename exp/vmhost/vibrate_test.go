@@ -19,8 +19,6 @@
 package vmhost_test
 
 import (
-	"slices"
-	"sync"
 	"testing"
 	"time"
 
@@ -29,20 +27,13 @@ import (
 )
 
 func TestGamepadVibrationForwarding(t *testing.T) {
-	// The handler runs on the session goroutine, so guard the collected vibrations with a mutex.
-	var mu sync.Mutex
+	// The handler runs on this goroutine, during AdvanceTicks and WaitTicks, so the collected vibrations
+	// need no lock.
 	var got []vmhost.GamepadVibration
-	snapshot := func() []vmhost.GamepadVibration {
-		mu.Lock()
-		defer mu.Unlock()
-		return slices.Clone(got)
-	}
 
 	guest := startGuestWithOptions(t, "./testdata/vibrate", activateByEnv, "unix", &vmhost.NewGuestSessionOptions{
 		OnGamepadVibration: func(v vmhost.GamepadVibration) {
-			mu.Lock()
 			got = append(got, v)
-			mu.Unlock()
 		},
 	})
 
@@ -60,14 +51,13 @@ func TestGamepadVibrationForwarding(t *testing.T) {
 	})
 
 	guest.AdvanceTicks(1)
-	if !guest.WaitTick() {
+	if !guest.WaitTicks() {
 		t.Fatalf("waiting for the tick failed: %v", guest.Err())
 	}
 
-	// WaitTick returns only after the tick's messages (including the vibration) have been handled.
-	vibrations := snapshot()
-	if len(vibrations) != 1 {
-		t.Fatalf("got %d vibrations; want 1: %+v", len(vibrations), vibrations)
+	// WaitTicks delivers the tick's vibration to the handler before returning.
+	if len(got) != 1 {
+		t.Fatalf("got %d vibrations; want 1: %+v", len(got), got)
 	}
 	want := vmhost.GamepadVibration{
 		GamepadID:       0,
@@ -77,21 +67,20 @@ func TestGamepadVibrationForwarding(t *testing.T) {
 		// The vibration was requested during the first tick, whose ebiten.Tick() is 0.
 		StartTick: 0,
 	}
-	if vibrations[0] != want {
-		t.Errorf("vibration = %+v; want %+v", vibrations[0], want)
+	if got[0] != want {
+		t.Errorf("vibration = %+v; want %+v", got[0], want)
 	}
 
 	// Every vibration is delivered — advancing several ticks does not coalesce them — each stamped with
 	// the tick that produced it, so a host can tell how much guest time has elapsed since each request.
 	guest.AdvanceTicks(3)
-	if !guest.WaitTick() {
+	if !guest.WaitTicks() {
 		t.Fatalf("waiting for the batched ticks failed: %v", guest.Err())
 	}
-	all := snapshot()
-	if len(all) != 4 {
-		t.Fatalf("got %d vibrations after 4 ticks; want 4: %+v", len(all), all)
+	if len(got) != 4 {
+		t.Fatalf("got %d vibrations after 4 ticks; want 4: %+v", len(got), got)
 	}
-	for i, v := range all {
+	for i, v := range got {
 		// Four ticks have run, one vibration each; their ebiten.Tick() values are 0 through 3.
 		if v.StartTick != i {
 			t.Errorf("vibration %d has StartTick %d; want %d", i, v.StartTick, i)

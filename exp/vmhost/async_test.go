@@ -13,7 +13,7 @@
 // limitations under the License.
 
 // The session runs the guest on a background goroutine: AdvanceTicks and AdvanceFrame queue work without
-// blocking, PendingTicks reports the tick backlog, WaitTick/WaitFrame block for completion, and
+// blocking, PendingTicks reports the tick backlog, WaitTicks/WaitFrame block for completion, and
 // CompositeFrame presents the rendered frame.
 
 package vmhost_test
@@ -46,11 +46,11 @@ func TestAsyncTickQueue(t *testing.T) {
 	// Queue several ticks without blocking, then drain them. PendingTicks reports the backlog.
 	const ticks = 5
 	guest.AdvanceTicks(ticks)
-	if !guest.WaitTick() {
-		t.Fatalf("WaitTick failed: %v", guest.Err())
+	if !guest.WaitTicks() {
+		t.Fatalf("WaitTicks failed: %v", guest.Err())
 	}
 	if n := guest.PendingTicks(); n != 0 {
-		t.Errorf("PendingTicks after WaitTick = %d; want 0", n)
+		t.Errorf("PendingTicks after WaitTicks = %d; want 0", n)
 	}
 
 	// A frame now composites the drawn state. AdvanceFrame requests it, WaitFrame blocks for it, and
@@ -210,13 +210,13 @@ func TestAdvanceTicks(t *testing.T) {
 		guest.AdvanceTicks(-1)
 	}()
 
-	// AdvanceTicks(n) drives n Updates; WaitTick drains the whole backlog.
+	// AdvanceTicks(n) drives n Updates; WaitTicks drains the whole backlog.
 	guest.AdvanceTicks(5)
-	if !guest.WaitTick() {
-		t.Fatalf("WaitTick failed: %v", guest.Err())
+	if !guest.WaitTicks() {
+		t.Fatalf("WaitTicks failed: %v", guest.Err())
 	}
 	if n := guest.PendingTicks(); n != 0 {
-		t.Errorf("PendingTicks after WaitTick = %d; want 0", n)
+		t.Errorf("PendingTicks after WaitTicks = %d; want 0", n)
 	}
 
 	// The guest ran: a frame now composites its drawn state.

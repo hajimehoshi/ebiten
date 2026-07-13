@@ -43,7 +43,6 @@ import (
 	"runtime/debug"
 	"slices"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/ebitengine/debugui"
@@ -62,26 +61,21 @@ type guestProcess struct {
 	bin     string
 	pkg     string // the package this guest was built from
 
-	// audioStreamsMu guards newAudioStreams, which appendNewAudioStream appends to (on the session
-	// goroutine) and takeNewAudioStreams drains (on the host goroutine).
-	audioStreamsMu  sync.Mutex
+	// newAudioStreams collects the streams handed to the OnAudioStream handler until updateAudio adopts
+	// them. The handler runs during AdvanceTicks in the host's Update, on the same goroutine as
+	// takeNewAudioStreams, so no lock is needed.
 	newAudioStreams []*vmhost.GuestAudioStream
 }
 
-// appendNewAudioStream records a new guest audio stream. It is the session's OnAudioStream handler, so it
-// runs on the session goroutine: it must not block or read the stream (Read would deadlock the session
-// goroutine), so it only stashes the handle for takeNewAudioStreams to hand off.
+// appendNewAudioStream records a new guest audio stream. It is the session's OnAudioStream handler; it
+// stashes the handle for takeNewAudioStreams to hand off.
 func (gp *guestProcess) appendNewAudioStream(s *vmhost.GuestAudioStream) {
-	gp.audioStreamsMu.Lock()
-	defer gp.audioStreamsMu.Unlock()
 	gp.newAudioStreams = append(gp.newAudioStreams, s)
 }
 
 // takeNewAudioStreams appends the streams started since the last call to dst, clears them, and returns
 // the extended slice.
 func (gp *guestProcess) takeNewAudioStreams(dst []*vmhost.GuestAudioStream) []*vmhost.GuestAudioStream {
-	gp.audioStreamsMu.Lock()
-	defer gp.audioStreamsMu.Unlock()
 	dst = append(dst, gp.newAudioStreams...)
 	gp.newAudioStreams = gp.newAudioStreams[:0]
 	return dst
@@ -812,8 +806,7 @@ func buildAndStartGuest(ln net.Listener, workDir, bin, endpoint, pkg string, pin
 		IdleTimeout: 30 * time.Second,
 
 		// Mirror each vibration the guest requests onto the host's own gamepad. The guest's gamepad IDs
-		// match the host's, because the host forwards its own gamepads to the guest. VibrateGamepad is
-		// concurrent-safe, so running this on the session goroutine is fine.
+		// match the host's, because the host forwards its own gamepads to the guest.
 		OnGamepadVibration: func(v vmhost.GamepadVibration) {
 			ebiten.VibrateGamepad(v.GamepadID, &ebiten.VibrateGamepadOptions{
 				Duration:        v.Duration,
@@ -821,8 +814,7 @@ func buildAndStartGuest(ln net.Listener, workDir, bin, endpoint, pkg string, pin
 				WeakMagnitude:   v.WeakMagnitude,
 			})
 		},
-		// Mirror the device vibration the guest requests onto the host's own device. Vibrate is
-		// concurrent-safe, so running this on the session goroutine is fine.
+		// Mirror the device vibration the guest requests onto the host's own device.
 		OnVibration: func(v vmhost.Vibration) {
 			ebiten.Vibrate(&ebiten.VibrateOptions{
 				Duration:  v.Duration,

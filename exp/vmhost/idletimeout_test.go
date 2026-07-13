@@ -91,9 +91,9 @@ func TestIdleTimeoutMidOperation(t *testing.T) {
 		t.Fatal(err)
 	}
 	// AdvanceTicks is asynchronous; the tick blocks the session goroutine on the silent guest until the
-	// idle timeout fires. WaitTick blocks until that happens, and the error surfaces from Err.
+	// idle timeout fires. WaitTicks blocks until that happens, and the error surfaces from Err.
 	guest.AdvanceTicks(1)
-	guest.WaitTick()
+	guest.WaitTicks()
 	if err := guest.Err(); !errors.Is(err, os.ErrDeadlineExceeded) {
 		t.Errorf("a silent guest mid-tick: got %v, want %v", err, os.ErrDeadlineExceeded)
 	}

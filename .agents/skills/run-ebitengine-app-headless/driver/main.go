@@ -34,7 +34,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"slices"
-	"sync"
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -58,19 +57,15 @@ type driver struct {
 	closed   bool
 	closeErr error
 
-	// audioMu guards audioStreams — the guest's currently-open streams. onAudioStream appends to it on the
-	// session goroutine; appendAudioStreams reads it (dropping any the guest has closed) on the host
-	// goroutine.
-	audioMu      sync.Mutex
+	// audioStreams holds the guest's currently-open streams. onAudioStream appends to it during
+	// AdvanceTicks and WaitTicks in Update; appendAudioStreams reads it (dropping any the guest has
+	// closed) on the same goroutine, so no lock is needed.
 	audioStreams []*vmhost.GuestAudioStream
 }
 
-// onAudioStream records a new guest audio stream. It is the session's OnAudioStream handler, so it runs
-// on the session goroutine: it must not block, and it must not read the stream (Read queues onto that
-// same goroutine and would deadlock). It only stashes the handle for appendAudioStreams to hand back.
+// onAudioStream records a new guest audio stream. It is the session's OnAudioStream handler, invoked
+// during AdvanceTicks and WaitTicks; it stashes the handle for appendAudioStreams to hand back.
 func (d *driver) onAudioStream(s *vmhost.GuestAudioStream) {
-	d.audioMu.Lock()
-	defer d.audioMu.Unlock()
 	d.audioStreams = append(d.audioStreams, s)
 }
 
@@ -78,8 +73,6 @@ func (d *driver) onAudioStream(s *vmhost.GuestAudioStream) {
 // slice, dropping any the guest has closed (IsClosed) — a closed stream never plays again and its Read is
 // at io.EOF — so the tracked set stays live instead of growing without bound. Safe to call from Update.
 func (d *driver) appendAudioStreams(dst []*vmhost.GuestAudioStream) []*vmhost.GuestAudioStream {
-	d.audioMu.Lock()
-	defer d.audioMu.Unlock()
 	d.audioStreams = slices.DeleteFunc(d.audioStreams, func(s *vmhost.GuestAudioStream) bool {
 		return s.IsClosed()
 	})

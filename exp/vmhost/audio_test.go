@@ -24,8 +24,6 @@ import (
 	"errors"
 	"io"
 	"math"
-	"slices"
-	"sync"
 	"testing"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -61,22 +59,13 @@ func readComps(t *testing.T, p *vmhost.GuestAudioStream, want int) (comps []floa
 }
 
 func TestAudioForwarding(t *testing.T) {
-	// The handler runs on the session goroutine, so guard the collected streams with a mutex.
-	var mu sync.Mutex
+	// The handler runs on this goroutine, during AdvanceTicks and WaitTicks, so the collected streams need
+	// no lock. It only records the handle; the test reads the streams below.
 	var streams []*vmhost.GuestAudioStream
-	snapshot := func() []*vmhost.GuestAudioStream {
-		mu.Lock()
-		defer mu.Unlock()
-		return slices.Clone(streams)
-	}
 
 	guest := startGuestWithOptions(t, "./testdata/audio", activateByEnv, "unix", &vmhost.NewGuestSessionOptions{
-		// The handler must not read the stream (that would deadlock the session goroutine), so it only
-		// records the handle; the test reads it below on its own goroutine.
 		OnAudioStream: func(s *vmhost.GuestAudioStream) {
-			mu.Lock()
 			streams = append(streams, s)
-			mu.Unlock()
 		},
 	})
 
@@ -87,18 +76,17 @@ func TestAudioForwarding(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Tick past the point where both players start (ramp at tick 3, flat at tick 4). WaitTick returns only
-	// after the tick's messages are handled, so by tick 6 the handler has been called for each new stream.
+	// Tick past the point where both players start (ramp at tick 3, flat at tick 4). WaitTicks delivers the
+	// ticks' new streams to the handler before returning, so by tick 6 it has been called for each.
 	for tick := 1; tick <= 6; tick++ {
 		guest.AdvanceTicks(1)
-		if !guest.WaitTick() {
+		if !guest.WaitTicks() {
 			t.Fatalf("waiting for tick %d failed: %v", tick, guest.Err())
 		}
 	}
 
-	players := snapshot()
-	if len(players) != 2 {
-		t.Fatalf("OnAudioStream reported %d streams; want 2 (one per guest player, never mixed)", len(players))
+	if len(streams) != 2 {
+		t.Fatalf("OnAudioStream reported %d streams; want 2 (one per guest player, never mixed)", len(streams))
 	}
 
 	// The host learns the guest's own sample rate (the fixture's 48000); it is not asked to match it.
@@ -108,7 +96,7 @@ func TestAudioForwarding(t *testing.T) {
 
 	// Classify the two streams by their reported volume: the ramp is full volume, the flat source 0.5.
 	var ramp, flat *vmhost.GuestAudioStream
-	for _, p := range players {
+	for _, p := range streams {
 		switch p.Volume() {
 		case 1:
 			ramp = p
@@ -163,15 +151,15 @@ func TestAudioForwarding(t *testing.T) {
 	// event, so the handler must not fire again.
 	for tick := 7; tick <= 8; tick++ {
 		guest.AdvanceTicks(1)
-		if !guest.WaitTick() {
+		if !guest.WaitTicks() {
 			t.Fatalf("waiting for tick %d failed: %v", tick, guest.Err())
 		}
 	}
 	if _, eof := readComps(t, flat, 1); !eof {
 		t.Error("the closed flat stream did not reach EOF on the host")
 	}
-	if all := snapshot(); len(all) != 2 {
-		t.Errorf("OnAudioStream reported %d streams after a close; want 2 (a close is not a new stream)", len(all))
+	if len(streams) != 2 {
+		t.Errorf("OnAudioStream reported %d streams after a close; want 2 (a close is not a new stream)", len(streams))
 	}
 	// The finished ramp reports not playing, matching audio.Player at its end.
 	if ramp.IsPlaying() {
