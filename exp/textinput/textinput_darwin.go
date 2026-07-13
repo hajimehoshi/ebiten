@@ -440,7 +440,7 @@ func insertText(_ objc.ID, _ objc.SEL, str objc.ID, replacementRange nsRange) {
 			replEndInBytes = v.selectionEndInBytes
 		}
 	})
-	theTextInputImpl.update(t, 0, len(t), replStartInBytes, replEndInBytes, commitWithoutKeyPress)
+	theTextInputImpl.update(t, 0, len(t), replStartInBytes, replEndInBytes, commitRegular)
 }
 
 func characterIndexForPoint(_ objc.ID, _ objc.SEL, _ nsPoint) uint64 {

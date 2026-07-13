@@ -40,9 +40,9 @@ type TextInputState = textInputState
 type CommitKind = commitKind
 
 const (
-	CommitNone            = commitNone
-	CommitWithoutKeyPress = commitWithoutKeyPress
-	CommitWithKeyPress    = commitWithKeyPress
+	CommitNone               = commitNone
+	CommitRegular            = commitRegular
+	CommitWithPassthroughKey = commitWithPassthroughKey
 )
 
 func (s *TextInputEvents) Start() {

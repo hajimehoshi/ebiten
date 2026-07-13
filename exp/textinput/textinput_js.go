@@ -138,7 +138,7 @@ func (t *textInputImpl) init() {
 	}))
 	t.textareaElement.Call("addEventListener", "compositionend", js.FuncOf(func(this js.Value, args []js.Value) any {
 		t.composing = false
-		t.trySend(commitWithoutKeyPress)
+		t.trySend(commitRegular)
 		return nil
 	}))
 	t.textareaElement.Call("addEventListener", "focusout", js.FuncOf(func(this js.Value, args []js.Value) any {
@@ -160,7 +160,7 @@ func (t *textInputImpl) init() {
 			// suppresses the textarea's own literal newline.
 			e.Call("preventDefault")
 			ui.Get().UpdateInputFromEvent(e)
-			t.trySend(commitWithKeyPress)
+			t.trySend(commitWithPassthroughKey)
 			return nil
 		}
 		if isVirtualKeyboard() && (e.Get("code").String() == "Backspace" || e.Get("key").String() == "Backspace") {
@@ -213,12 +213,12 @@ func (t *textInputImpl) init() {
 			return nil
 		}
 		if e.Get("inputType").String() == "insertLineBreak" {
-			t.trySend(commitWithoutKeyPress)
+			t.trySend(commitRegular)
 			return nil
 		}
 		if e.Get("inputType").String() == "insertText" && e.Get("data").Equal(js.Null()) {
 			// When a new line is inserted, the 'data' property might be null.
-			t.trySend(commitWithoutKeyPress)
+			t.trySend(commitRegular)
 			return nil
 		}
 		// Though `isComposing` is false, send the text as being not committed for text completion with a virtual keyboard.
@@ -226,11 +226,11 @@ func (t *textInputImpl) init() {
 			t.trySend(commitNone)
 			return nil
 		}
-		t.trySend(commitWithoutKeyPress)
+		t.trySend(commitRegular)
 		return nil
 	}))
 	t.textareaElement.Call("addEventListener", "change", js.FuncOf(func(this js.Value, args []js.Value) any {
-		t.trySend(commitWithoutKeyPress)
+		t.trySend(commitRegular)
 		return nil
 	}))
 	body.Call("appendChild", t.textareaElement)
@@ -497,8 +497,8 @@ func (t *textInputImpl) trySend(kind commitKind) {
 			return
 		}
 		// A virtual-keyboard deletion removes committed bytes; deliver it as a
-		// commit without a game-visible key press.
-		kind = commitWithoutKeyPress
+		// commit whose key does not pass through to the game.
+		kind = commitRegular
 	}
 
 	// The caret is at the end of the committed text; anchor on it so an

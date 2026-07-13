@@ -116,7 +116,7 @@ func TestClearQueueDropsDiscardedMarkedText(t *testing.T) {
 
 			// Session 1: the IME commits, then closes the channel.
 			ev.Start()
-			ev.Send(textinput.TextInputState{Text: "committed", CommitKind: textinput.CommitWithoutKeyPress})
+			ev.Send(textinput.TextInputState{Text: "committed", CommitKind: textinput.CommitRegular})
 			ev.End()
 
 			// A keystroke between sessions begins a preedit; with the channel

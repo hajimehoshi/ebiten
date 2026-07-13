@@ -55,7 +55,7 @@ func (t *textInputImpl) Start(bounds image.Rectangle, _, _ string) (<-chan textI
 		Text:                    string(t.rs),
 		ReplacementStartInBytes: noReplacement,
 		ReplacementEndInBytes:   noReplacement,
-		CommitKind:              commitWithoutKeyPress,
+		CommitKind:              commitRegular,
 	})
 	t.events.end()
 	return ch, func() {}

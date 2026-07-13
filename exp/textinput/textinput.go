@@ -44,14 +44,15 @@ const (
 	// commitNone marks a composition (preedit) update, not a commit.
 	commitNone commitKind = iota
 
-	// commitWithoutKeyPress marks a final committed edit delivered without a key
-	// press the game receives (a desktop IME commit, a suggestion tap).
-	commitWithoutKeyPress
+	// commitRegular marks a final committed edit whose triggering key press, if
+	// any, is consumed by the IME, so no key passes through to the game (a
+	// desktop IME commit, a suggestion tap).
+	commitRegular
 
-	// commitWithKeyPress marks a final committed edit delivered with a key press
-	// the game also receives (Return on a virtual keyboard). The Composer leaves
-	// handled false for it so the caller still acts on that key.
-	commitWithKeyPress
+	// commitWithPassthroughKey marks a final committed edit whose triggering key
+	// press also passes through to the game. The Composer leaves handled false
+	// for it so the caller still acts on that key.
+	commitWithPassthroughKey
 )
 
 // committed reports whether k is a final commit.

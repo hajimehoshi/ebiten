@@ -210,11 +210,11 @@ func (s *session) IsCommitted() bool {
 	return s.commitKind.committed()
 }
 
-// IsCommittedWithKeyPress reports whether the commit arrived with a key press
-// that is also delivered to the game (Return on a virtual keyboard). Defined
-// only when IsCommitted returns true.
-func (s *session) IsCommittedWithKeyPress() bool {
-	return s.commitKind == commitWithKeyPress
+// IsCommittedWithPassthroughKey reports whether the commit arrived with a key
+// press that also passes through to the game. Defined only when IsCommitted
+// returns true.
+func (s *session) IsCommittedWithPassthroughKey() bool {
+	return s.commitKind == commitWithPassthroughKey
 }
 
 // Commit returns the IME's committed text and the byte range that the

@@ -182,8 +182,8 @@ func (c *Composer) Update() (handled bool, err error) {
 				c.OnCommit(c.s.Commit())
 			}
 			c.dispatchEmptyComposition()
-			// A commit delivered with a key press leaves handled false.
-			if !c.s.IsCommittedWithKeyPress() {
+			// A commit whose key passes through to the game leaves handled false.
+			if !c.s.IsCommittedWithPassthroughKey() {
 				handled = true
 			}
 			c.s = nil

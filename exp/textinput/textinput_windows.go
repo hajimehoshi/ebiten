@@ -182,7 +182,7 @@ func (t *textInputImpl) wndProc(hWnd uintptr, uMsg uint32, wParam, lParam uintpt
 			t.highSurrogate = 0
 			if c >= 0x20 {
 				str := string(c)
-				t.send(str, 0, len(str), commitWithoutKeyPress)
+				t.send(str, 0, len(str), commitRegular)
 			}
 		}
 	case _WM_UNICHAR:
@@ -193,7 +193,7 @@ func (t *textInputImpl) wndProc(hWnd uintptr, uMsg uint32, wParam, lParam uintpt
 		}
 		if r := rune(wParam); r >= 0x20 {
 			str := string(r)
-			t.send(str, 0, len(str), commitWithoutKeyPress)
+			t.send(str, 0, len(str), commitRegular)
 		}
 	}
 
@@ -306,7 +306,7 @@ func (t *textInputImpl) commit() (err error) {
 	}
 
 	text := windows.UTF16ToString(buffer16)
-	t.send(text, 0, len(text), commitWithoutKeyPress)
+	t.send(text, 0, len(text), commitRegular)
 
 	return nil
 }
