@@ -35,7 +35,8 @@ type Composer struct {
 	// (initial use, after a commit, or after a platform-side teardown).
 	// It must return the caret bounds and the text immediately around the
 	// caret so that the IME can position the candidate window and use the
-	// surrounding text for prediction. Required.
+	// surrounding text for prediction, or nil to start no session for now
+	// (Update asks again later). Required.
 	OnNewSession func() *SessionOptions
 
 	// OnComposition is called when the IME's preedit changes, including
@@ -159,6 +160,9 @@ func (c *Composer) Update() (handled bool, err error) {
 			var opts *SessionOptions
 			if c.OnNewSession != nil {
 				opts = c.OnNewSession()
+				if opts == nil {
+					break
+				}
 			}
 			var sess *session
 			sess, err = startSession(opts)
