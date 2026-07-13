@@ -267,6 +267,8 @@ func (t *textInputImpl) Start(bounds image.Rectangle, textBeforeCaret, textAfter
 		return nil, nil
 	}
 
+	bounds = caretBoundsInClientNativePixels(bounds)
+
 	// A start deferred by deferStart has completed: the user-interaction handler
 	// installed in init focused the textarea and reset its value.
 	if js.Global().Get("_ebitengine_textinput_ready").Truthy() {

@@ -34,6 +34,7 @@ func (t *textInputImpl) markIMEDiscardNeeded() {
 }
 
 func (t *textInputImpl) Start(bounds image.Rectangle, _, _ string) (<-chan textInputState, func()) {
+	bounds = caretBoundsInClientNativePixels(bounds)
 	var ch <-chan textInputState
 	var end func()
 	ebiten.RunOnMainThread(func() {

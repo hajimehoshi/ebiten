@@ -105,9 +105,15 @@ type textInputState struct {
 //
 // startTextInput returns nil and nil if the current environment doesn't support this package.
 func startTextInput(bounds image.Rectangle, textBeforeCaret, textAfterCaret string) (states <-chan textInputState, close func()) {
+	return theTextInput.backend().Start(bounds, textBeforeCaret, textAfterCaret)
+}
+
+// caretBoundsInClientNativePixels converts logical caret bounds to the client area's native pixels,
+// the coordinates the platform backends hand to the OS IME.
+func caretBoundsInClientNativePixels(bounds image.Rectangle) image.Rectangle {
 	cMinX, cMinY := ui.Get().LogicalPositionToClientPositionInNativePixels(float64(bounds.Min.X), float64(bounds.Min.Y))
 	cMaxX, cMaxY := ui.Get().LogicalPositionToClientPositionInNativePixels(float64(bounds.Max.X), float64(bounds.Max.Y))
-	return theTextInput.backend().Start(image.Rect(int(cMinX), int(cMinY), int(cMaxX), int(cMaxY)), textBeforeCaret, textAfterCaret)
+	return image.Rect(int(cMinX), int(cMinY), int(cMaxX), int(cMaxY))
 }
 
 func convertUTF16CountToByteCount(text string, c int) int {
@@ -257,8 +263,9 @@ func isLineBreak(r rune) bool {
 
 // textInputBackend produces the raw text-input state stream for sessions.
 type textInputBackend interface {
-	// Start starts text inputting, with the same contract as [startTextInput]
-	// except that bounds is in client-side native pixels.
+	// Start starts text inputting, with the same contract as [startTextInput].
+	// bounds is in logical pixels; a backend converts it to the coordinates it
+	// needs (e.g. [caretBoundsInClientNativePixels] for the OS IME).
 	Start(bounds image.Rectangle, textBeforeCaret, textAfterCaret string) (states <-chan textInputState, close func())
 
 	// markIMEDiscardNeeded records that the IME can still hold a composition

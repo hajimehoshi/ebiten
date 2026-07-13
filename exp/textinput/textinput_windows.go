@@ -50,6 +50,7 @@ func (t *textInputImpl) Start(bounds image.Rectangle, _, _ string) (<-chan textI
 		return nil, nil
 	}
 
+	bounds = caretBoundsInClientNativePixels(bounds)
 	var ch chan textInputState
 	var err error
 	ebiten.RunOnMainThread(func() {
