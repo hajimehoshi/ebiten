@@ -50,6 +50,10 @@ type playerFactory struct {
 	context    context
 	sampleRate int
 
+	// vmGuest is whether the context is a virtualization guest's virtual device (see the vmaudio
+	// package). It is set when the context is created.
+	vmGuest bool
+
 	m sync.Mutex
 }
 
@@ -153,6 +157,8 @@ func (f *playerFactory) initContextIfNeeded(vmGuest bool) (<-chan struct{}, erro
 		return nil, nil
 	}
 
+	f.vmGuest = vmGuest
+
 	if driverForTesting != nil {
 		f.context = driverForTesting
 		ready := make(chan struct{})
@@ -172,6 +178,12 @@ func (f *playerFactory) currentContext() context {
 	f.m.Lock()
 	defer f.m.Unlock()
 	return f.context
+}
+
+func (f *playerFactory) isVMGuest() bool {
+	f.m.Lock()
+	defer f.m.Unlock()
+	return f.vmGuest
 }
 
 func (p *playerImpl) ensureStream() error {
@@ -506,7 +518,11 @@ func (p *playerImpl) updatePosition() {
 	if p.lastSamples >= 0 && p.lastSamples == samples {
 		// If the number of samples is not changed from the last tick,
 		// the underlying buffer is not updated yet. Adjust the position by the time (#2901).
-		adjustingTime = p.stopwatch.current()
+		// A virtualization guest's device consumes the sources only as the host pulls them, not
+		// in real time, so the consumed samples are already the exact position there.
+		if !p.factory.isVMGuest() {
+			adjustingTime = p.stopwatch.current()
+		}
 	} else {
 		p.lastSamples = samples
 		p.stopwatch.reset()
