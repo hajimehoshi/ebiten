@@ -142,6 +142,11 @@ func (r *remoteBackend) run(game Game, options *RunOptions) (err error) {
 	r.graphicsDriver = r.graphics
 	r.setGraphicsLibrary(GraphicsLibraryRemote)
 
+	// Record the game's transparent-screen intent so the host can observe it. Recording only appends to
+	// the command buffer; it reaches the host with the first frame's command batch. The glfw backend
+	// forwards the same option to its own driver.
+	r.graphics.SetTransparent(options.ScreenTransparent)
+
 	r.setRunningBackend(r)
 	defer r.setRunningBackend(nil)
 
