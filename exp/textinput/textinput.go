@@ -27,6 +27,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
+	"github.com/hajimehoshi/ebiten/v2/internal/vmguest"
 )
 
 // noReplacement is the sentinel value for [textInputState.ReplacementStartInBytes]
@@ -106,7 +107,7 @@ type textInputState struct {
 func startTextInput(bounds image.Rectangle, textBeforeCaret, textAfterCaret string) (states <-chan textInputState, close func()) {
 	cMinX, cMinY := ui.Get().LogicalPositionToClientPositionInNativePixels(float64(bounds.Min.X), float64(bounds.Min.Y))
 	cMaxX, cMaxY := ui.Get().LogicalPositionToClientPositionInNativePixels(float64(bounds.Max.X), float64(bounds.Max.Y))
-	return theTextInput.Start(image.Rect(int(cMinX), int(cMinY), int(cMaxX), int(cMaxY)), textBeforeCaret, textAfterCaret)
+	return theTextInput.backend().Start(image.Rect(int(cMinX), int(cMinY), int(cMaxX), int(cMaxY)), textBeforeCaret, textAfterCaret)
 }
 
 func convertUTF16CountToByteCount(text string, c int) int {
@@ -254,12 +255,36 @@ func isLineBreak(r rune) bool {
 	return false
 }
 
+// textInputBackend produces the raw text-input state stream for sessions.
+type textInputBackend interface {
+	// Start starts text inputting, with the same contract as [startTextInput]
+	// except that bounds is in client-side native pixels.
+	Start(bounds image.Rectangle, textBeforeCaret, textAfterCaret string) (states <-chan textInputState, close func())
+
+	// markIMEDiscardNeeded records that the IME can still hold a composition
+	// for an abandoned target. The composition is not discarded immediately:
+	// the backend discards it when the next session starts.
+	markIMEDiscardNeeded()
+}
+
 type textInput struct {
-	textInputImpl
 	events textInputEvents
 }
 
 var theTextInput textInput
+
+// theTextInputImpl is the platform text-input backend, chosen at build time.
+var theTextInputImpl = textInputImpl{events: &theTextInput.events}
+
+// backend returns the text-input backend serving this process: the VM guest
+// backend when running as a VM guest, and the platform implementation
+// otherwise.
+func (t *textInput) backend() textInputBackend {
+	if vmguest.IsGuest() {
+		return &theVMGuestTextInput
+	}
+	return &theTextInputImpl
+}
 
 // cancelSessionIfNeeded cancels the session owning the platform IME, if any.
 func (t *textInput) cancelSessionIfNeeded() {
@@ -272,7 +297,7 @@ func (t *textInput) cancelSessionIfNeeded() {
 // target: the IME's composition, and the queued states. Either would otherwise
 // reach the next session.
 func (t *textInput) abandonTarget() {
-	t.markIMEDiscardNeeded()
+	t.backend().markIMEDiscardNeeded()
 	t.events.clearQueue()
 }
 

@@ -28,6 +28,8 @@ import (
 )
 
 type textInputImpl struct {
+	events *textInputEvents
+
 	origWndProc     uintptr
 	wndProcCallback uintptr
 	window          windows.HWND
@@ -40,10 +42,10 @@ type textInputImpl struct {
 	err error
 }
 
-func (t *textInput) markIMEDiscardNeeded() {
+func (t *textInputImpl) markIMEDiscardNeeded() {
 }
 
-func (t *textInput) Start(bounds image.Rectangle, _, _ string) (<-chan textInputState, func()) {
+func (t *textInputImpl) Start(bounds image.Rectangle, _, _ string) (<-chan textInputState, func()) {
 	if microsoftgdk.IsXbox() {
 		return nil, nil
 	}
@@ -77,7 +79,7 @@ func (t *textInput) Start(bounds image.Rectangle, _, _ string) (<-chan textInput
 }
 
 // start must be called from the main thread.
-func (t *textInput) start(bounds image.Rectangle) error {
+func (t *textInputImpl) start(bounds image.Rectangle) error {
 	if t.err != nil {
 		return t.err
 	}
@@ -136,7 +138,7 @@ func (t *textInput) start(bounds image.Rectangle) error {
 	return nil
 }
 
-func (t *textInput) wndProc(hWnd uintptr, uMsg uint32, wParam, lParam uintptr) uintptr {
+func (t *textInputImpl) wndProc(hWnd uintptr, uMsg uint32, wParam, lParam uintptr) uintptr {
 	switch uMsg {
 	case _WM_IME_SETCONTEXT:
 		// Draw preedit text by an application side.
@@ -198,7 +200,7 @@ func (t *textInput) wndProc(hWnd uintptr, uMsg uint32, wParam, lParam uintptr) u
 }
 
 // send must be called from the main thread.
-func (t *textInput) send(text string, startInBytes, endInBytes int, kind commitKind) {
+func (t *textInputImpl) send(text string, startInBytes, endInBytes int, kind commitKind) {
 	t.events.send(textInputState{
 		Text:                             text,
 		CompositionSelectionStartInBytes: startInBytes,
@@ -213,7 +215,7 @@ func (t *textInput) send(text string, startInBytes, endInBytes int, kind commitK
 }
 
 // update must be called from the main thread.
-func (t *textInput) update() (err error) {
+func (t *textInputImpl) update() (err error) {
 	if t.err != nil {
 		return t.err
 	}
@@ -277,7 +279,7 @@ func (t *textInput) update() (err error) {
 }
 
 // commit must be called from the main thread.
-func (t *textInput) commit() (err error) {
+func (t *textInputImpl) commit() (err error) {
 	if t.err != nil {
 		return t.err
 	}

@@ -22,6 +22,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/microsoftgdk"
+	"github.com/hajimehoshi/ebiten/v2/internal/vmguest"
 )
 
 // uiBackend is the platform UI implementation for the desktop build.
@@ -127,7 +128,9 @@ func (u *UserInterface) init() error {
 }
 
 func (u *UserInterface) Run(game Game, options *RunOptions) error {
-	if b := maybeNewVMGuestBackend(u, options); b != nil {
+	b := maybeNewVMGuestBackend(u, options)
+	vmguest.MarkGuest(b != nil)
+	if b != nil {
 		return b.run(game, options)
 	}
 	return newGLFWBackend(u).run(game, options)

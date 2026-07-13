@@ -20,9 +20,48 @@ package vmguest
 
 import (
 	"sync"
+	"sync/atomic"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/vmprotocol"
 )
+
+// guestState is whether this process runs as a VM guest. It stays
+// guestStateUndetermined until a run entry selects its UI backend.
+const (
+	guestStateUndetermined int32 = iota
+	guestStateGuest
+	guestStateNotGuest
+)
+
+var guestState atomic.Int32
+
+// MarkGuest records whether this process runs as a VM guest. A run entry
+// calls it when selecting its UI backend, before the game runs. MarkGuest
+// panics when the guest mode is already determined: a game can run only once
+// in one process.
+func MarkGuest(guest bool) {
+	state := guestStateNotGuest
+	if guest {
+		state = guestStateGuest
+	}
+	if !guestState.CompareAndSwap(guestStateUndetermined, state) {
+		panic("vmguest: MarkGuest is called more than once")
+	}
+}
+
+// IsGuest reports whether this process runs as a VM guest. IsGuest panics when
+// the guest mode is not determined yet: it must not be called before a run
+// entry selects its UI backend.
+func IsGuest() bool {
+	switch guestState.Load() {
+	case guestStateGuest:
+		return true
+	case guestStateNotGuest:
+		return false
+	default:
+		panic("vmguest: IsGuest is called before the guest mode is determined")
+	}
+}
 
 var (
 	postTickHooksMu sync.Mutex

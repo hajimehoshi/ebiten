@@ -23,14 +23,16 @@ import (
 )
 
 type textInputImpl struct {
+	events *textInputEvents
+
 	rs       []rune
 	lastTick int64
 }
 
-func (t *textInput) markIMEDiscardNeeded() {
+func (t *textInputImpl) markIMEDiscardNeeded() {
 }
 
-func (t *textInput) Start(bounds image.Rectangle, _, _ string) (<-chan textInputState, func()) {
+func (t *textInputImpl) Start(bounds image.Rectangle, _, _ string) (<-chan textInputState, func()) {
 	// AppendInputChars is updated only when the tick is updated.
 	// If the tick is not updated, return nil immediately.
 	tick := ebiten.Tick()

@@ -24,9 +24,11 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/v2/internal/thread"
+	"github.com/hajimehoshi/ebiten/v2/internal/vmguest"
 )
 
 func (u *UserInterface) Run(game Game, options *RunOptions) error {
+	vmguest.MarkGuest(false)
 	if options.SingleThread || buildTagSingleThread || runtime.GOOS == "js" {
 		return u.runSingleThread(game, options)
 	}

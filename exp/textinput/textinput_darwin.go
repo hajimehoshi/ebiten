@@ -26,12 +26,14 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
-type textInputImpl struct{}
-
-func (t *textInput) markIMEDiscardNeeded() {
+type textInputImpl struct {
+	events *textInputEvents
 }
 
-func (t *textInput) Start(bounds image.Rectangle, _, _ string) (<-chan textInputState, func()) {
+func (t *textInputImpl) markIMEDiscardNeeded() {
+}
+
+func (t *textInputImpl) Start(bounds image.Rectangle, _, _ string) (<-chan textInputState, func()) {
 	var ch <-chan textInputState
 	var end func()
 	ebiten.RunOnMainThread(func() {
@@ -40,7 +42,7 @@ func (t *textInput) Start(bounds image.Rectangle, _, _ string) (<-chan textInput
 	return ch, end
 }
 
-func (t *textInput) update(text string, startInBytes, endInBytes int, replacementStartInBytes, replacementEndInBytes int, kind commitKind) {
+func (t *textInputImpl) update(text string, startInBytes, endInBytes int, replacementStartInBytes, replacementEndInBytes int, kind commitKind) {
 	t.events.send(textInputState{
 		Text:                             text,
 		CompositionSelectionStartInBytes: startInBytes,
@@ -54,7 +56,7 @@ func (t *textInput) update(text string, startInBytes, endInBytes int, replacemen
 	}
 }
 
-func (t *textInput) endIfNeeded() {
+func (t *textInputImpl) endIfNeeded() {
 	t.events.end()
 }
 
@@ -121,7 +123,7 @@ type nsRange struct {
 	length   uint
 }
 
-func (t *textInput) start(bounds image.Rectangle) (<-chan textInputState, func()) {
+func (t *textInputImpl) start(bounds image.Rectangle) (<-chan textInputState, func()) {
 	t.endIfNeeded()
 
 	tc := getTextInputClient()
@@ -384,7 +386,7 @@ func setMarkedText(_ objc.ID, _ objc.SEL, str objc.ID, selectedRange nsRange, re
 
 	startInBytes := convertUTF16CountToByteCount(t, int(selectedRange.location))
 	endInBytes := convertUTF16CountToByteCount(t, int(selectedRange.location+selectedRange.length))
-	theTextInput.update(t, startInBytes, endInBytes, noReplacement, noReplacement, commitNone)
+	theTextInputImpl.update(t, startInBytes, endInBytes, noReplacement, noReplacement, commitNone)
 }
 
 func unmarkText(_ objc.ID, _ objc.SEL) {
@@ -437,7 +439,7 @@ func insertText(_ objc.ID, _ objc.SEL, str objc.ID, replacementRange nsRange) {
 			replEndInBytes = v.selectionEndInBytes
 		}
 	})
-	theTextInput.update(t, 0, len(t), replStartInBytes, replEndInBytes, commitWithoutKeyPress)
+	theTextInputImpl.update(t, 0, len(t), replStartInBytes, replEndInBytes, commitWithoutKeyPress)
 }
 
 func characterIndexForPoint(_ objc.ID, _ objc.SEL, _ nsPoint) uint64 {
@@ -466,6 +468,6 @@ func doCommandBySelector(_ objc.ID, _ objc.SEL, _ objc.SEL) {
 }
 
 func resignFirstResponder(self objc.ID, cmd objc.SEL) bool {
-	theTextInput.endIfNeeded()
+	theTextInputImpl.endIfNeeded()
 	return objc.SendSuper[bool](self, cmd)
 }

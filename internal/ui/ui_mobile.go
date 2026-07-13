@@ -28,6 +28,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/hook"
+	"github.com/hajimehoshi/ebiten/v2/internal/vmguest"
 )
 
 var (
@@ -123,6 +124,7 @@ func (u *UserInterface) Run(game Game, options *RunOptions) error {
 }
 
 func (u *UserInterface) RunWithoutMainLoop(game Game, options *RunOptions) {
+	vmguest.MarkGuest(false)
 	go func() {
 		if err := u.runMobile(game, options); err != nil {
 			u.errCh <- err
