@@ -18,10 +18,9 @@ allowed-tools: Read, Edit, Write, Bash
 
 # run-ebitengine-app-headless skill
 
-*Verified 2026-07-14 against the in-repo `exp/vmhost` (WaitTicks rename;
-handlers dispatched on the calling goroutine). `exp/vmhost` is experimental,
-so if its API has moved since, the driver and the snippets here may need
-updating.*
+*Targets ebiten commit `a884b6732` (2026-07-14), verified against it.
+`exp/vmhost` is experimental, so if its API has moved since, the driver and
+the snippets here may need updating.*
 
 Drive an Ebitengine app from a small **host** program that runs it as a
 **guest** of the `exp/vmhost` package. The host controls the guest's
