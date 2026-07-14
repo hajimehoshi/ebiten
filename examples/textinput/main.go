@@ -213,7 +213,7 @@ func (t *TextField) caretBounds() image.Rectangle {
 
 func (t *TextField) Update() error {
 	if !t.focused {
-		t.composer.Finish()
+		t.composer.Confirm()
 		return nil
 	}
 
@@ -226,16 +226,16 @@ func (t *TextField) Update() error {
 	}
 
 	// These cases edit t.text or move the caret outside the IME's view, so
-	// finish any live session first: it can outlive a tick (e.g. a virtual
+	// confirm any live session first: it can outlive a tick (e.g. a virtual
 	// keyboard) and its captured bounds would go stale (see onIMECommit).
 	switch {
 	case inpututil.IsKeyJustPressed(ebiten.KeyEnter):
-		t.composer.Finish()
+		t.composer.Confirm()
 		if t.multilines {
 			t.replaceSelection("\n")
 		}
 	case inpututil.IsKeyJustPressed(ebiten.KeyBackspace):
-		t.composer.Finish()
+		t.composer.Confirm()
 		if t.selectionStart != t.selectionEnd {
 			t.replaceSelection("")
 		} else if t.selectionStart > 0 {
@@ -246,7 +246,7 @@ func (t *TextField) Update() error {
 			t.selectionEnd = t.selectionStart
 		}
 	case inpututil.IsKeyJustPressed(ebiten.KeyLeft):
-		t.composer.Finish()
+		t.composer.Confirm()
 		if t.selectionStart > 0 {
 			// TODO: Remove a grapheme instead of a code point.
 			_, l := utf8.DecodeLastRuneInString(t.text[:t.selectionStart])
@@ -254,7 +254,7 @@ func (t *TextField) Update() error {
 		}
 		t.selectionEnd = t.selectionStart
 	case inpututil.IsKeyJustPressed(ebiten.KeyRight):
-		t.composer.Finish()
+		t.composer.Confirm()
 		if t.selectionEnd < len(t.text) {
 			// TODO: Remove a grapheme instead of a code point.
 			_, l := utf8.DecodeRuneInString(t.text[t.selectionEnd:])
@@ -348,8 +348,8 @@ func (g *Game) Update() error {
 		}
 		for _, tf := range g.textFields {
 			if tf.Contains(x, y) {
-				// Finish the current input before moving the caret.
-				tf.composer.Finish()
+				// Confirm the current input before moving the caret.
+				tf.composer.Confirm()
 				tf.Focus()
 				tf.SetSelectionStartByCursorPosition(x, y)
 			} else {

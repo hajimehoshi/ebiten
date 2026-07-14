@@ -26,7 +26,7 @@ import (
 // edit the target buffer except in response to [Composer.OnCommit]: a
 // commit is applied relative to the surrounding text captured by
 // [Composer.OnNewSession], so editing underneath a live session can leave
-// that position stale. Call [Composer.Finish] before a caller-driven edit.
+// that position stale. Call [Composer.Confirm] before a caller-driven edit.
 //
 // See examples/textinput in the Ebitengine repository for a complete
 // usage example.
@@ -210,11 +210,11 @@ func (c *Composer) Update() (handled bool, err error) {
 	return handled, nil
 }
 
-// Finish ends the current session if any. Any in-progress composition is
+// Confirm ends the current session if any. Any in-progress composition is
 // committed through OnCommit as if the IME had committed it, then
 // OnComposition is fired with an empty composition so the caller can clear
 // its preedit overlay.
-func (c *Composer) Finish() {
+func (c *Composer) Confirm() {
 	if c.s == nil {
 		return
 	}
@@ -224,6 +224,13 @@ func (c *Composer) Finish() {
 	c.s.Cancel()
 	c.s = nil
 	c.dispatchEmptyComposition()
+}
+
+// Finish ends the current session if any.
+//
+// Deprecated: Use [Composer.Confirm] instead.
+func (c *Composer) Finish() {
+	c.Confirm()
 }
 
 func (c *Composer) dispatchComposition(comp Composition) {
