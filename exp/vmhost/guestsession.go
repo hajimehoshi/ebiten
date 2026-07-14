@@ -114,6 +114,9 @@ type GuestSession struct {
 	// requestedTPS is the guest game's most recently reported requested TPS. It starts at the standard
 	// default and the guest updates it whenever its game changes the value.
 	requestedTPS int
+	// cursorShape is the guest game's most recently reported cursor shape. It starts at the default
+	// shape and the guest updates it whenever its game changes the value.
+	cursorShape ebiten.CursorShapeType
 	// screenTransparent is the guest game's most recently reported transparent-screen intent. It starts
 	// false (opaque, matching ebiten.RunGameOptions' default); the session publishes the renderer's value
 	// here after each rendered batch so CompositeFrame can read it on the host goroutine.
@@ -493,6 +496,9 @@ func (g *GuestSession) sendAndReceive(msg *vmprotocol.HostMessage) error {
 			continue
 		case vmprotocol.GuestMessageKindRequestedTPS:
 			g.setRequestedTPS(gm.RequestedTPS)
+			continue
+		case vmprotocol.GuestMessageKindCursorShape:
+			g.setCursorShape(ebiten.CursorShapeType(gm.CursorShape))
 			continue
 		case vmprotocol.GuestMessageKindGamepadVibrations:
 			g.queueGamepadVibrations(&gm)
@@ -1378,7 +1384,7 @@ func (g *GuestSession) updateAudioStreams(msg *vmprotocol.GuestMessage) []*Guest
 // AudioSampleRate returns the sample rate of the guest's audio, in per-channel samples per second, as
 // reported by the guest. It is 0 until the guest has played audio. The guest uses the rate its game
 // chose; the host need not match it (or play the audio at all), but a host that does play it should
-// use this rate. It may be called from any goroutine.
+// use this rate.
 func (g *GuestSession) AudioSampleRate() int {
 	g.audioMu.Lock()
 	defer g.audioMu.Unlock()
@@ -1395,11 +1401,27 @@ func (g *GuestSession) setRequestedTPS(tps int) {
 // RequestedTPS returns the ticks-per-second the guest's game requests via [ebiten.SetTPS], which may be
 // [ebiten.SyncWithFPS]. It is the standard default until the guest's game changes it. The host drives
 // the guest's ticks itself, so this is advisory; a host pacing the guest in real time should honor it.
-// It may be called from any goroutine.
 func (g *GuestSession) RequestedTPS() int {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	return g.requestedTPS
+}
+
+// setCursorShape records the guest's reported cursor shape.
+func (g *GuestSession) setCursorShape(shape ebiten.CursorShapeType) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	g.cursorShape = shape
+}
+
+// CursorShape returns the cursor shape the guest's game requests via [ebiten.SetCursorShape]. It is
+// [ebiten.CursorShapeDefault] until the guest's game changes it. The guest has no cursor of its own,
+// so a host honors it by applying the shape to its own cursor while the cursor is over the guest's
+// screen.
+func (g *GuestSession) CursorShape() ebiten.CursorShapeType {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	return g.cursorShape
 }
 
 // setScreenTransparent records the guest's reported transparent-screen intent for CompositeFrame.

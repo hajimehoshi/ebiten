@@ -26,8 +26,8 @@
 // built in a generated module that pins Ebitengine to the host's own version; a local path is built
 // in its own module. The host builds the guest with -tags ebitenginevm, runs it pointed at a private
 // socket, forwards the window's input (keyboard, mouse, touches, and gamepads) to it, composites its
-// rendered frames into the window, plays its audio, and applies the gamepad and device vibrations it
-// requests.
+// rendered frames into the window, plays its audio, applies the gamepad and device vibrations it
+// requests, and mirrors its requested cursor shape.
 package main
 
 import (
@@ -212,6 +212,8 @@ func (g *Game) Update() error {
 		(inpututil.IsKeyJustPressed(ebiten.KeyEnter) || inpututil.IsKeyJustPressed(ebiten.KeyNumpadEnter)) {
 		g.launchGuest()
 	}
+
+	g.applyGuestCursorShape(state)
 
 	if g.gp == nil {
 		return nil
@@ -403,6 +405,17 @@ func (g *Game) adoptRequestedTPS() {
 		}
 	}
 	g.guestTPS = tps
+}
+
+// applyGuestCursorShape mirrors the guest's requested cursor shape onto the host's cursor, except
+// while the debug UI is hovered (the panel keeps the default shape, matching the cursor forwarding
+// gate in forwardInput). Without a running guest the cursor returns to the default shape.
+func (g *Game) applyGuestCursorShape(state debugui.InputCapturingState) {
+	shape := ebiten.CursorShapeDefault
+	if g.gp != nil && state&debugui.InputCapturingStateHover == 0 {
+		shape = g.gp.session.CursorShape()
+	}
+	ebiten.SetCursorShape(shape)
 }
 
 // forwardInput sends the window's input to the guest, except input the debug UI is consuming (a hovered

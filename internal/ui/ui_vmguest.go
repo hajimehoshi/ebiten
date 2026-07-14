@@ -203,6 +203,11 @@ func (r *remoteBackend) serveLoop(dec *vmprotocol.Decoder, enc *vmprotocol.Encod
 	var lastSentTPS int
 	var sentTPS bool
 
+	// lastSentCursorShape is the cursor shape last forwarded to the host; sentCursorShape guards the
+	// first send like sentTPS.
+	var lastSentCursorShape CursorShape
+	var sentCursorShape bool
+
 	for {
 		var msg vmprotocol.HostMessage
 		if err := dec.DecodeHostMessage(&msg); err != nil {
@@ -245,6 +250,18 @@ func (r *remoteBackend) serveLoop(dec *vmprotocol.Decoder, enc *vmprotocol.Encod
 					}
 					lastSentTPS = tps
 					sentTPS = true
+				}
+				// Report the game's cursor shape whenever it changes, so a host can mirror the shape on
+				// its own cursor.
+				if shape := r.getCursorShape(); !sentCursorShape || shape != lastSentCursorShape {
+					if err := enc.EncodeGuestMessage(&vmprotocol.GuestMessage{
+						Kind:        vmprotocol.GuestMessageKindCursorShape,
+						CursorShape: int(shape),
+					}); err != nil {
+						return err
+					}
+					lastSentCursorShape = shape
+					sentCursorShape = true
 				}
 				// Forward any gamepad vibrations the tick's Update requested.
 				if err := r.flushGamepadVibrations(enc, tick); err != nil {
@@ -633,6 +650,8 @@ func (r *remoteBackend) SetCursorMode(mode CursorMode) {
 }
 
 func (r *remoteBackend) applyCursorShape() {
+	// A guest has no cursor of its own; the stored shape is polled and forwarded to the host after
+	// each tick (see serveLoop).
 }
 
 func (r *remoteBackend) IsFullscreen() bool {

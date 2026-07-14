@@ -221,6 +221,10 @@ const (
 	// stops serving it and discards any composition it still holds. Zero or more precede the
 	// concluding GuestMessageKindDone of an advance-tick operation, in order.
 	GuestMessageKindTextInputEnd
+	// GuestMessageKindCursorShape reports the guest game's requested cursor shape. The guest sends it
+	// after a tick whenever the value changes, so a host can mirror the shape on its own cursor. Zero
+	// or one precedes the concluding GuestMessageKindDone of an advance-tick operation.
+	GuestMessageKindCursorShape
 )
 
 // GuestMessage is a message a guest sends to the host while handling an operation: recorded graphics
@@ -276,6 +280,10 @@ type GuestMessage struct {
 	// requested), on GuestMessageKindAudioControl (when a stream it reports first started), and on
 	// GuestMessageKindTextInput (when the session started).
 	StartTick int
+
+	// CursorShape is the guest game's requested cursor shape, carrying a ui.CursorShape. Set on
+	// GuestMessageKindCursorShape.
+	CursorShape int
 
 	// TextInputID identifies a guest text-input session. The guest assigns increasing IDs, unique
 	// within a process. Set on GuestMessageKindTextInput and GuestMessageKindTextInputEnd.
