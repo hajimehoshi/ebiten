@@ -76,6 +76,8 @@ type GuestSession struct {
 	// sendAndReceive runs; runReadAudio hands them to the waiting reader.
 	audioReadPCM []byte
 	audioReadEOF bool
+	// textInput is the guest's active text-input session, or nil.
+	textInput *GuestTextInput
 
 	// The following fields are owned by the host goroutine; no lock guards them.
 	outsideScreen   *ebiten.Image
@@ -158,6 +160,10 @@ type GuestSession struct {
 	// onAudioStream, if non-nil, is called for each new audio stream the guest starts. Like
 	// onGamepadVibration it is set at construction and never modified, so it is read without a lock.
 	onAudioStream func(*GuestAudioStream)
+
+	// onTextInput, if non-nil, is called for each text-input session the guest's game starts. Like
+	// onGamepadVibration it is set at construction and never modified, so it is read without a lock.
+	onTextInput func(*GuestTextInput)
 }
 
 // opKind discriminates an operation the session goroutine performs.
@@ -193,6 +199,7 @@ const (
 	guestEventGamepadVibration guestEventKind = iota
 	guestEventVibration
 	guestEventAudioStream
+	guestEventTextInput
 )
 
 // guestEvent is one guest-originated event awaiting its handler; the field its kind selects carries the
@@ -202,6 +209,7 @@ type guestEvent struct {
 	gamepadVibration GamepadVibration
 	vibration        Vibration
 	audioStream      *GuestAudioStream
+	textInput        *GuestTextInput
 }
 
 // framePhase tracks which side may touch the screen mirror as the single in-progress frame moves from
@@ -244,6 +252,12 @@ type NewGuestSessionOptions struct {
 	// [GuestSession.WaitTicks], on the calling goroutine; a host typically uses the stream as the source
 	// of an audio player. A nil handler discards the guest's audio.
 	OnAudioStream func(*GuestAudioStream)
+
+	// OnTextInput, if non-nil, is called once for each text-input session the guest's game starts,
+	// handed the [GuestTextInput] to serve as the guest's IME. It runs during
+	// [GuestSession.AdvanceTicks] and [GuestSession.WaitTicks], on the calling goroutine. With a nil
+	// handler a session starts and never receives a state, like a platform without IME support.
+	OnTextInput func(*GuestTextInput)
 }
 
 // NewGuestSession opens a session with a guest process over an established connection. It performs the
@@ -277,6 +291,7 @@ func NewGuestSession(conn net.Conn, options *NewGuestSessionOptions) (*GuestSess
 		g.onGamepadVibration = options.OnGamepadVibration
 		g.onVibration = options.OnVibration
 		g.onAudioStream = options.OnAudioStream
+		g.onTextInput = options.OnTextInput
 	}
 	g.cond = sync.NewCond(&g.mu)
 	go g.sessionLoop()
@@ -311,6 +326,13 @@ func (g *GuestSession) sessionLoop() {
 	defer close(g.done)
 	// Release audio reads still queued at shutdown; a read already in flight is released by runReadAudio.
 	defer g.drainQueuedReads()
+	// A guest text-input session does not outlive the guest session: closing it here lets its holders
+	// observe the end through IsClosed.
+	defer func() {
+		if g.textInput != nil {
+			g.textInput.markClosed()
+		}
+	}()
 	for {
 		o, ok := g.nextOp()
 		if !ok {
@@ -478,6 +500,12 @@ func (g *GuestSession) sendAndReceive(msg *vmprotocol.HostMessage) error {
 		case vmprotocol.GuestMessageKindVibration:
 			g.queueVibration(&gm)
 			continue
+		case vmprotocol.GuestMessageKindTextInput:
+			g.handleTextInput(&gm)
+			continue
+		case vmprotocol.GuestMessageKindTextInputEnd:
+			g.handleTextInputEnd(&gm)
+			continue
 		}
 		// GuestMessageKindDone.
 		if gm.Terminated {
@@ -601,8 +629,9 @@ func (g *GuestSession) SetOutsideScreen(screen *ebiten.Image) error {
 // AdvanceTicks requests n Updates on the guest. It does not block on the guest: the requests are queued
 // and processed by the session goroutine. n must not be negative; a zero count requests nothing.
 //
-// Before returning it delivers the guest events processed ticks have produced (vibrations and new audio
-// streams) to the [NewGuestSessionOptions] handlers, on the calling goroutine.
+// Before returning it delivers the guest events processed ticks have produced (vibrations, new audio
+// streams, and new text-input sessions) to the [NewGuestSessionOptions] handlers, on the calling
+// goroutine.
 //
 // A regular termination, a timeout, and any deferred error surface from [GuestSession.Err]; the number
 // of requested-but-unprocessed ticks is reported by [GuestSession.PendingTicks].
@@ -768,8 +797,8 @@ func (g *GuestSession) markComposited() {
 // WaitTicks blocks until the guest has processed every tick requested so far. It reports whether all
 // were processed; it returns false when the session ended first (see [GuestSession.Err]).
 //
-// Before returning it delivers the guest events the ticks produced (vibrations and new audio streams)
-// to the [NewGuestSessionOptions] handlers, on the calling goroutine.
+// Before returning it delivers the guest events the ticks produced (vibrations, new audio streams,
+// and new text-input sessions) to the [NewGuestSessionOptions] handlers, on the calling goroutine.
 func (g *GuestSession) WaitTicks() bool {
 	ok := g.waitTicks()
 	g.dispatchPendingEvents()
@@ -1069,6 +1098,8 @@ func (g *GuestSession) dispatchPendingEvents() {
 			g.onVibration(e.vibration)
 		case guestEventAudioStream:
 			g.onAudioStream(e.audioStream)
+		case guestEventTextInput:
+			g.onTextInput(e.textInput)
 		}
 	}
 	g.recyclePendingEvents(events)
@@ -1095,6 +1126,43 @@ func (g *GuestSession) recyclePendingEvents(events []guestEvent) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	g.pendingEventsBuf = slices.Delete(events, 0, len(events))
+}
+
+// handleTextInput tracks the guest's new text-input session and queues it for the handler. It
+// runs on the session goroutine.
+func (g *GuestSession) handleTextInput(msg *vmprotocol.GuestMessage) {
+	// The guest releases a session before starting the next one, but be robust to a missing end: a new
+	// session supersedes the current one.
+	if g.textInput != nil {
+		g.textInput.markClosed()
+	}
+	t := &GuestTextInput{
+		g:               g,
+		id:              msg.TextInputID,
+		bounds:          msg.TextInputBounds,
+		textBeforeCaret: msg.TextInputTextBeforeCaret,
+		textAfterCaret:  msg.TextInputTextAfterCaret,
+	}
+	g.textInput = t
+	if g.onTextInput == nil {
+		return
+	}
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	g.pendingEvents = append(g.pendingEvents, guestEvent{
+		kind:      guestEventTextInput,
+		textInput: t,
+	})
+}
+
+// handleTextInputEnd marks the guest's text-input session as released. It runs on the session
+// goroutine.
+func (g *GuestSession) handleTextInputEnd(msg *vmprotocol.GuestMessage) {
+	if g.textInput == nil || g.textInput.id != msg.TextInputID {
+		return
+	}
+	g.textInput.markClosed()
+	g.textInput = nil
 }
 
 // PressTouch injects a touch-press event at (x, y), in outside-screen device-independent pixels.

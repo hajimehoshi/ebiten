@@ -74,6 +74,13 @@ const (
 	HostMessageKindAnswerDeviceScaleFactor
 	// HostMessageKindAnswerColorSpace answers a GuestMessageKindQueryColorSpace.
 	HostMessageKindAnswerColorSpace
+
+	// HostMessageKindTextInputState delivers one text-input state for the guest text-input session
+	// identified by TextInputID.
+	HostMessageKindTextInputState
+	// HostMessageKindEndTextInput ends the guest text-input session identified by TextInputID from the
+	// host side (e.g. on focus loss). A committed TextInputState ends the session without this message.
+	HostMessageKindEndTextInput
 )
 
 // HostMessage is a message the host sends to a guest: an operation to perform, or the answer to a
@@ -120,6 +127,13 @@ type HostMessage struct {
 	// the maximum number of bytes to return.
 	AudioPlayerID      int64
 	AudioMaxLenInBytes int
+
+	// TextInputID identifies the guest text-input session, matching GuestMessage.TextInputID. Set on
+	// HostMessageKindTextInputState and HostMessageKindEndTextInput.
+	TextInputID int64
+
+	// TextInputState is the delivered text-input state. Set on HostMessageKindTextInputState.
+	TextInputState TextInputState
 }
 
 // GamepadState is the forwarded state of one gamepad. The raw axes and buttons mirror the host's
@@ -199,6 +213,14 @@ const (
 	// A device has a single vibration state, so at most one is sent per tick (the last request wins).
 	// Zero or one precedes the concluding GuestMessageKindDone of an advance-tick operation.
 	GuestMessageKindVibration
+	// GuestMessageKindTextInput reports that the guest started a text-input session; the host
+	// serves it with HostMessageKindTextInputState. Zero or more precede the concluding
+	// GuestMessageKindDone of an advance-tick operation, in order.
+	GuestMessageKindTextInput
+	// GuestMessageKindTextInputEnd reports that the guest released a text-input session; the host
+	// stops serving it and discards any composition it still holds. Zero or more precede the
+	// concluding GuestMessageKindDone of an advance-tick operation, in order.
+	GuestMessageKindTextInputEnd
 )
 
 // GuestMessage is a message a guest sends to the host while handling an operation: recorded graphics
@@ -253,6 +275,19 @@ type GuestMessage struct {
 	// Set on GuestMessageKindGamepadVibrations and GuestMessageKindVibration (when the vibration was
 	// requested) and on GuestMessageKindAudioControl (when a stream it reports first started).
 	StartTick int
+
+	// TextInputID identifies a guest text-input session. The guest assigns increasing IDs, unique
+	// within a process. Set on GuestMessageKindTextInput and GuestMessageKindTextInputEnd.
+	TextInputID int64
+
+	// TextInputBounds is the caret rectangle in the guest's client-area device-independent pixels,
+	// e.g. for placing an IME candidate window. Set on GuestMessageKindTextInput.
+	TextInputBounds image.Rectangle
+
+	// TextInputTextBeforeCaret and TextInputTextAfterCaret are the text around the guest's caret, for
+	// IME prediction and surrounding-text replacement. Set on GuestMessageKindTextInput.
+	TextInputTextBeforeCaret string
+	TextInputTextAfterCaret  string
 }
 
 // GamepadVibration is one gamepad's requested vibration: its rumble magnitudes and how long they
@@ -290,6 +325,51 @@ type AudioControl struct {
 	// finished and was abandoned; the host drops the stream. When set, the other control fields carry no
 	// state.
 	Closed bool
+}
+
+// TextInputCommitKind describes whether a TextInputState is a final commit and, if so, how it was
+// produced.
+type TextInputCommitKind int
+
+const (
+	// TextInputCommitKindNone marks a composition (preedit) update, not a commit.
+	TextInputCommitKindNone TextInputCommitKind = iota
+
+	// TextInputCommitKindRegular marks a commit whose triggering key press, if any, does not pass
+	// through to the guest's game.
+	TextInputCommitKindRegular
+
+	// TextInputCommitKindWithPassthroughKey marks a commit whose triggering key press also passes
+	// through to the guest's game.
+	TextInputCommitKindWithPassthroughKey
+)
+
+// TextInputNoReplacement is the sentinel replacement range meaning no replacement: the committed
+// text is inserted at the guest's caret.
+const TextInputNoReplacement = -1
+
+// TextInputState is one text-input event for a guest session: the current composition, or a final
+// commit. A commit, and a state carrying an Err, end the session.
+type TextInputState struct {
+	// Text is the composition (preedit) text, or the committed text when CommitKind reports a commit.
+	Text string
+
+	// CompositionSelectionStartInBytes and CompositionSelectionEndInBytes are the selection within
+	// Text, in bytes. Meaningful only for a composition.
+	CompositionSelectionStartInBytes int
+	CompositionSelectionEndInBytes   int
+
+	// ReplacementStartInBytes and ReplacementEndInBytes are the byte range Text replaces in the joined
+	// surrounding-text buffer the session started with. Meaningful only for a commit;
+	// TextInputNoReplacement means an insert at the caret.
+	ReplacementStartInBytes int
+	ReplacementEndInBytes   int
+
+	// CommitKind reports whether Text is a final commit and, if so, how it was produced.
+	CommitKind TextInputCommitKind
+
+	// Err is a text-inputting failure, if any, as a string (gob cannot carry an error value).
+	Err string
 }
 
 // Encoder writes messages to a connection.

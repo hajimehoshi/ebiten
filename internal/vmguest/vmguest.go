@@ -92,6 +92,46 @@ func RunPostTickHooks(enc vmprotocol.GuestMessageEncoder, tick int) error {
 	return nil
 }
 
+var (
+	textInputHandlersMu   sync.Mutex
+	textInputStateHandler func(id int64, state vmprotocol.TextInputState)
+	textInputEndHandler   func(id int64)
+)
+
+// RegisterTextInputHandlers registers the handlers answering HostMessageKindTextInputState and
+// HostMessageKindEndTextInput. The text-input subsystem registers them at initialization, so the UI
+// backend can deliver text-input messages without depending on it.
+func RegisterTextInputHandlers(state func(id int64, state vmprotocol.TextInputState), end func(id int64)) {
+	textInputHandlersMu.Lock()
+	defer textInputHandlersMu.Unlock()
+	textInputStateHandler = state
+	textInputEndHandler = end
+}
+
+// RunTextInputStateHandler runs the registered text-input state handler. When none is registered the
+// state is dropped, since a guest without the text-input subsystem starts no session.
+func RunTextInputStateHandler(id int64, state vmprotocol.TextInputState) {
+	textInputHandlersMu.Lock()
+	handler := textInputStateHandler
+	textInputHandlersMu.Unlock()
+	if handler == nil {
+		return
+	}
+	handler(id, state)
+}
+
+// RunTextInputEndHandler runs the registered text-input end handler. When none is registered the
+// message is dropped.
+func RunTextInputEndHandler(id int64) {
+	textInputHandlersMu.Lock()
+	handler := textInputEndHandler
+	textInputHandlersMu.Unlock()
+	if handler == nil {
+		return
+	}
+	handler(id)
+}
+
 // AudioReadFunc reads player id's samples into buf, like io.Reader.Read, and reports whether the
 // player's source has ended (an unknown player reads as ended). The samples are raw (the volume is
 // reported separately, not applied).

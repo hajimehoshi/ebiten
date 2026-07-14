@@ -295,6 +295,10 @@ func (r *remoteBackend) serveLoop(dec *vmprotocol.Decoder, enc *vmprotocol.Encod
 			r.setTouch(TouchID(msg.Code), msg.X, msg.Y)
 		case vmprotocol.HostMessageKindReleaseTouch:
 			r.releaseTouch(TouchID(msg.Code))
+		case vmprotocol.HostMessageKindTextInputState:
+			vmguest.RunTextInputStateHandler(msg.TextInputID, msg.TextInputState)
+		case vmprotocol.HostMessageKindEndTextInput:
+			vmguest.RunTextInputEndHandler(msg.TextInputID)
 		case vmprotocol.HostMessageKindClose:
 			closing = true
 		default:

@@ -104,11 +104,19 @@ type Commit struct {
 	textAfterCaret  string
 	replStart       int
 	replEnd         int
+	passthroughKey  bool
 }
 
 // Text returns the text the IME committed.
 func (c *Commit) Text() string {
 	return c.text
+}
+
+// HasPassthroughKey reports whether the commit's triggering key press also
+// passes through to the game's own key input, in which case the caller
+// usually still acts on that key.
+func (c *Commit) HasPassthroughKey() bool {
+	return c.passthroughKey
 }
 
 // IsSurroundingTextReplaced reports whether the IME requested a
@@ -215,10 +223,24 @@ func (c *Composer) Update() (handled bool, err error) {
 // OnComposition is fired with an empty composition so the caller can clear
 // its preedit overlay.
 func (c *Composer) Confirm() {
+	c.end(true)
+}
+
+// Cancel ends the current session if any, discarding an in-progress
+// composition: unlike [Composer.Confirm], nothing is committed.
+// OnComposition is fired with an empty composition so the caller can clear
+// its preedit overlay.
+func (c *Composer) Cancel() {
+	c.end(false)
+}
+
+// end ends the current session if any, committing an in-progress
+// composition through OnCommit only when commit is true.
+func (c *Composer) end(commit bool) {
 	if c.s == nil {
 		return
 	}
-	if c.OnCommit != nil && c.s.loadComposition().text != "" {
+	if commit && c.OnCommit != nil && c.s.loadComposition().text != "" {
 		c.OnCommit(c.s.compositionAsCommit())
 	}
 	c.s.Cancel()

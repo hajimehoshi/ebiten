@@ -51,6 +51,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/audio"
 	"github.com/hajimehoshi/ebiten/v2/exp/vmhost"
+	"github.com/hajimehoshi/ebiten/v2/exp/vmhost/vmhostutil"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
 
@@ -65,6 +66,17 @@ type guestProcess struct {
 	// them. The handler runs during AdvanceTicks in the host's Update, on the same goroutine as
 	// takeNewAudioStreams, so no lock is needed.
 	newAudioStreams []*vmhost.GuestAudioStream
+
+	// newTextInput is the guest's most recently started text-input session, stashed by the
+	// OnTextInput handler until Update adopts it. Like newAudioStreams, the handler runs during
+	// AdvanceTicks in the host's Update, on the same goroutine, so no lock is needed.
+	newTextInput *vmhost.GuestTextInput
+}
+
+// setNewTextInput records the guest's newest text-input session. It is the session's
+// OnTextInput handler; it stashes the handle for Update to adopt.
+func (gp *guestProcess) setNewTextInput(t *vmhost.GuestTextInput) {
+	gp.newTextInput = t
 }
 
 // appendNewAudioStream records a new guest audio stream. It is the session's OnAudioStream handler; it
@@ -142,6 +154,9 @@ type Game struct {
 	// touchIDsBuf is reused each tick by forwardInput.
 	touchIDsBuf []ebiten.TouchID
 
+	// textInputForwarder serves the guest's text-input sessions with the host's IME.
+	textInputForwarder vmhostutil.ComposerForwarder
+
 	// tickAccum carries the sub-tick remainder between host updates, in units where hostTPS equals one tick.
 	tickAccum int
 
@@ -194,6 +209,10 @@ func (g *Game) Update() error {
 		g.launchGuest()
 	}
 
+	// Pump the text-input forwarding every tick, even without a live guest, so a session whose guest
+	// went away is released.
+	g.textInputForwarder.Update()
+
 	if g.gp == nil {
 		return nil
 	}
@@ -219,6 +238,15 @@ func (g *Game) Update() error {
 	if !g.guestTPSAdopted && g.gp.session.ProcessedTicks() > 0 {
 		g.adoptRequestedTPS()
 		g.guestTPSAdopted = true
+	}
+	// Serve the guest's newest text-input session with the host's IME, unless the debug UI itself has
+	// the keyboard focus. The guest is composited at the origin at the logical scale, so its caret
+	// bounds are already in the host's logical pixels.
+	if state&debugui.InputCapturingStateFocus == 0 {
+		if t := g.gp.newTextInput; t != nil {
+			g.gp.newTextInput = nil
+			g.textInputForwarder.Forward(t, t.CaretBounds())
+		}
 	}
 	return g.updateAudio()
 }
@@ -823,6 +851,8 @@ func buildAndStartGuest(ln net.Listener, workDir, bin, endpoint, pkg string, pin
 		},
 		// Record each new guest audio stream for updateAudio to play on the host frame.
 		OnAudioStream: gp.appendNewAudioStream,
+		// Record each text-input session the guest starts, for Update to serve with the host's IME.
+		OnTextInput: gp.setNewTextInput,
 	})
 	if err != nil {
 		return nil, err

@@ -165,6 +165,7 @@ func (s *session) Update() error {
 					textAfterCaret:  s.textAfterCaret,
 					replStart:       replStart,
 					replEnd:         replEnd,
+					passthroughKey:  st.CommitKind == commitWithPassthroughKey,
 				}
 				s.markClosed(true)
 				return nil

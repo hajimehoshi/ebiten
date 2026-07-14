@@ -391,6 +391,12 @@ func (u *UserInterface) LogicalPositionToClientPositionInNativePixels(x, y float
 	return x, y
 }
 
+// LogicalPositionToClientPositionInDIPs converts a logical position to a client-area position in
+// device-independent pixels, which mean the same lengths on every platform (unlike native pixels).
+func (u *UserInterface) LogicalPositionToClientPositionInDIPs(x, y float64) (float64, float64) {
+	return u.context.logicalPositionToClientPosition(x, y, u.Monitor().DeviceScaleFactor())
+}
+
 func (c *context) runInFrame(f func()) {
 	ch := make(chan struct{})
 	c.funcsInFrameCh <- func() {

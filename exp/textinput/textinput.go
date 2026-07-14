@@ -16,6 +16,8 @@
 // This package is experimental and the API might be changed in the future.
 //
 // This package is supported on Windows, macOS, and Web browsers so far.
+// It also works in a virtualization guest regardless of the operating system,
+// with the host serving text inputting (see exp/vmhost).
 package textinput
 
 import (
