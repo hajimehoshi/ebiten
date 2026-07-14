@@ -67,24 +67,33 @@ func (f *ComposerForwarder) Forward(t *vmhost.GuestTextInput, caretBounds image.
 
 // Update advances the forwarding: it pumps the host's text inputting and forwards what it produced.
 // Call Update once per tick (Update) while the forwarder is in use.
-func (f *ComposerForwarder) Update() {
+//
+// Update reports whether the host's IME consumed input during this tick, like
+// [textinput.Composer.Update]: the host should skip its own key handlers when handled is true.
+// Input forwarded to the guest is not affected: keep forwarding it regardless, as the guest skips
+// what its own session consumed.
+func (f *ComposerForwarder) Update() (handled bool) {
 	f.initComposerCallbacks()
 
 	t := f.target
 	if t == nil {
-		return
+		return false
 	}
 
 	// The guest released the session (its game cancelled text inputting), or its guest session ended.
 	if t.IsClosed() {
 		f.stop()
-		return
+		return false
 	}
 
-	if _, err := f.composer.Update(); err != nil {
+	handled, err := f.composer.Update()
+	if err != nil {
+		// The error's consumer is the guest session: it ends with the error, as a session on a native
+		// IME would.
 		t.EndWithError(err)
 		f.stop()
 	}
+	return handled
 }
 
 // initComposerCallbacks registers the composer callbacks once.

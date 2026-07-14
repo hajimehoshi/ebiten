@@ -201,17 +201,17 @@ func (g *Game) Update() error {
 		return err
 	}
 
+	// Pump the text-input forwarding every tick, even after the guest is gone: only Update
+	// releases the host IME session left over when its guest goes away.
+	imeHandled := g.textInputForwarder.Update()
+
 	// Launch on Enter while the text field is focused. The field's own On event also fires on blur, which
 	// would relaunch whenever focus leaves it, so launching is driven only by the button and this explicit
-	// Enter check.
-	if state&debugui.InputCapturingStateFocus != 0 &&
+	// Enter check. An Enter the host's IME consumed (e.g. confirming a composition) is skipped.
+	if !imeHandled && state&debugui.InputCapturingStateFocus != 0 &&
 		(inpututil.IsKeyJustPressed(ebiten.KeyEnter) || inpututil.IsKeyJustPressed(ebiten.KeyNumpadEnter)) {
 		g.launchGuest()
 	}
-
-	// Pump the text-input forwarding every tick, even without a live guest, so a session whose guest
-	// went away is released.
-	g.textInputForwarder.Update()
 
 	if g.gp == nil {
 		return nil
