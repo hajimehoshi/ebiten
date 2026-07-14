@@ -273,7 +273,8 @@ type GuestMessage struct {
 
 	// StartTick is the guest's ebiten.Tick() during the tick that produced the message's per-tick payload.
 	// Set on GuestMessageKindGamepadVibrations and GuestMessageKindVibration (when the vibration was
-	// requested) and on GuestMessageKindAudioControl (when a stream it reports first started).
+	// requested), on GuestMessageKindAudioControl (when a stream it reports first started), and on
+	// GuestMessageKindTextInput (when the session started).
 	StartTick int
 
 	// TextInputID identifies a guest text-input session. The guest assigns increasing IDs, unique

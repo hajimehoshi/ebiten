@@ -155,12 +155,16 @@ func (v *vmGuestTextInput) handleEnd(id int64) {
 	v.events.end()
 }
 
-// flushPending forwards the queued session start/end messages, in order.
+// flushPending forwards the queued session start/end messages, in order, stamping each start with
+// the tick (the guest's ebiten.Tick() during the Update that started it).
 func (v *vmGuestTextInput) flushPending(enc vmprotocol.GuestMessageEncoder, tick int) error {
 	v.mu.Lock()
 	defer v.mu.Unlock()
 
 	for i := range v.pending {
+		if v.pending[i].Kind == vmprotocol.GuestMessageKindTextInput {
+			v.pending[i].StartTick = tick
+		}
 		if err := enc.EncodeGuestMessage(&v.pending[i]); err != nil {
 			return err
 		}

@@ -1142,6 +1142,7 @@ func (g *GuestSession) handleTextInput(msg *vmprotocol.GuestMessage) {
 		bounds:          msg.TextInputBounds,
 		textBeforeCaret: msg.TextInputTextBeforeCaret,
 		textAfterCaret:  msg.TextInputTextAfterCaret,
+		startTick:       msg.StartTick,
 	}
 	g.textInput = t
 	if g.onTextInput == nil {

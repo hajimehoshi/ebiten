@@ -76,6 +76,10 @@ func TestTextInput(t *testing.T) {
 	if ti.IsClosed() {
 		t.Error("IsClosed() = true before any response; want false")
 	}
+	// The guest's Composer started the session during its first Update (ebiten.Tick() 0).
+	if got, want := ti.StartTick(), 0; got != want {
+		t.Errorf("StartTick() = %d; want %d", got, want)
+	}
 
 	// A composition response reaches the guest at its next tick; the guest paints blue when it shows
 	// the expected preedit.
@@ -107,6 +111,10 @@ func TestTextInput(t *testing.T) {
 	if got[1].IsClosed() {
 		t.Error("the session restarted after the commit is already closed")
 	}
+	// The restart happened during the commit-observing Update, the guest's third (ebiten.Tick() 2).
+	if got, want := got[1].StartTick(), 2; got != want {
+		t.Errorf("the restarted session's StartTick() = %d; want %d", got, want)
+	}
 
 	// Ending the follow-up session from the host side is observed by the guest as a teardown: its
 	// Composer clears the preedit and retries, so the painted state stays green (the committed
@@ -127,6 +135,10 @@ func TestTextInput(t *testing.T) {
 	got = sessions
 	if len(got) != 3 {
 		t.Fatalf("got %d text-input sessions after the host-side end; want 3", len(got))
+	}
+	// The teardown was observed at ebiten.Tick() 3 and the Composer retried one tick later.
+	if got, want := got[2].StartTick(), 4; got != want {
+		t.Errorf("the retried session's StartTick() = %d; want %d", got, want)
 	}
 	got[2].CommitWithOptions("XY", &vmhost.GuestTextInputCommitOptions{
 		ReplaceSurroundingText:  true,

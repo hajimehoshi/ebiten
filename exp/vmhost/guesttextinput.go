@@ -34,6 +34,7 @@ type GuestTextInput struct {
 	bounds          image.Rectangle
 	textBeforeCaret string
 	textAfterCaret  string
+	startTick       int
 
 	closed atomic.Bool
 }
@@ -52,6 +53,12 @@ func (t *GuestTextInput) TextBeforeCaret() string {
 // TextAfterCaret returns the text immediately after the guest's caret.
 func (t *GuestTextInput) TextAfterCaret() string {
 	return t.textAfterCaret
+}
+
+// StartTick returns the guest's [ebiten.Tick] during the tick the session started, i.e. the guest's
+// Update that started text inputting.
+func (t *GuestTextInput) StartTick() int {
+	return t.startTick
 }
 
 // IsClosed reports whether the session has ended: the host committed or ended it, or the guest
