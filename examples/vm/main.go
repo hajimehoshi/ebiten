@@ -594,6 +594,10 @@ func (g *Game) closeGuest() {
 	// The forwarded presses belong to the guest being closed; the next guest starts with nothing held.
 	clear(g.pressedKeys)
 	clear(g.pressedMouseButtons)
+	// The text-input forwarding belongs to the guest being closed too: without this, a session held
+	// open across a commit would wait for that guest's next session and could deliver its queued
+	// text to the next guest.
+	g.textInputForwarder.Reset()
 	for stream, hp := range g.audioPlayers {
 		if err := hp.Close(); err != nil {
 			log.Printf("vm: closing an audio player: %v", err)
