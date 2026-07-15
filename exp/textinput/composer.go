@@ -248,13 +248,6 @@ func (c *Composer) end(commit bool) {
 	c.dispatchEmptyComposition()
 }
 
-// Finish ends the current session if any.
-//
-// Deprecated: Use [Composer.Confirm] instead.
-func (c *Composer) Finish() {
-	c.Confirm()
-}
-
 func (c *Composer) dispatchComposition(comp Composition) {
 	if c.OnComposition != nil {
 		c.OnComposition(&comp)
