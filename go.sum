@@ -1,5 +1,5 @@
-github.com/ebitengine/debugui v0.3.0-alpha.0.20260613142809-19edc7c03832 h1:mx19J1lLaqqqNT5QhMTZw8lS1WbqI/eQJmvzJQFNeXM=
-github.com/ebitengine/debugui v0.3.0-alpha.0.20260613142809-19edc7c03832/go.mod h1:H7RvmIaMN+kzTyTsAIx7WO6OVScG1oGQWB0NeZu3eig=
+github.com/ebitengine/debugui v0.3.0-alpha.0.20260715042159-d40b6a8e2b00 h1:JAh2Ia9KdW5qTfhHaZ7s3cDkCS3wxJp5SZn2/n+pppE=
+github.com/ebitengine/debugui v0.3.0-alpha.0.20260715042159-d40b6a8e2b00/go.mod h1:z2yGKzmYSuAaoDwLG0ZZdV+27P+Wf+dfv+706bVzGuk=
 github.com/ebitengine/gomobile v0.0.0-20260211053922-3d992dae95d1 h1:U8WldvN7/4cgo65U2fr2urv43/yhqYOK5FegFPPfI4M=
 github.com/ebitengine/gomobile v0.0.0-20260211053922-3d992dae95d1/go.mod h1:J7sDBRQG9pJGMa9Z+h8l3flwk0yEKDzWeR57vA1LI5U=
 github.com/ebitengine/hideconsole v1.0.0 h1:5J4U0kXF+pv/DhiXt5/lTz0eO5ogJ1iXb8Yj1yReDqE=
