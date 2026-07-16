@@ -52,21 +52,7 @@ func startGuestWithOptions(t *testing.T, pkgPath string, activation guestActivat
 	t.Helper()
 	skipIfVMUnsupported(t)
 
-	guestBin := filepath.Join(t.TempDir(), "guest")
-	if runtime.GOOS == "windows" {
-		guestBin += ".exe"
-	}
-	// VCS stamping requires git, which fails on a repository mounted into a container under a
-	// different owner (the Steam CI job).
-	buildArgs := []string{"build", "-buildvcs=false"}
-	if activation == activateByEnv {
-		buildArgs = append(buildArgs, "-tags", "ebitenginevm")
-	}
-	buildArgs = append(buildArgs, "-o", guestBin, pkgPath)
-	if out, err := exec.Command("go", buildArgs...).CombinedOutput(); err != nil {
-		t.Fatalf("building the guest failed: %v\n%s", err, out)
-	}
-
+	guestBin := buildGuest(t, pkgPath, activation)
 	ln, endpoint := newGuestListener(t, network)
 
 	var cmd *exec.Cmd
@@ -103,6 +89,28 @@ func startGuestWithOptions(t *testing.T, pkgPath string, activation guestActivat
 	})
 
 	return guest
+}
+
+// buildGuest compiles the guest program at pkgPath into a temporary binary and returns its path.
+// activateByEnv builds it with the ebitenginevm build tag.
+func buildGuest(t *testing.T, pkgPath string, activation guestActivation) string {
+	t.Helper()
+
+	guestBin := filepath.Join(t.TempDir(), "guest")
+	if runtime.GOOS == "windows" {
+		guestBin += ".exe"
+	}
+	// VCS stamping requires git, which fails on a repository mounted into a container under a
+	// different owner (the Steam CI job).
+	buildArgs := []string{"build", "-buildvcs=false"}
+	if activation == activateByEnv {
+		buildArgs = append(buildArgs, "-tags", "ebitenginevm")
+	}
+	buildArgs = append(buildArgs, "-o", guestBin, pkgPath)
+	if out, err := exec.Command("go", buildArgs...).CombinedOutput(); err != nil {
+		t.Fatalf("building the guest failed: %v\n%s", err, out)
+	}
+	return guestBin
 }
 
 // tickAndFrame advances the guest one tick, requests a frame, blocks until it is rendered, and
