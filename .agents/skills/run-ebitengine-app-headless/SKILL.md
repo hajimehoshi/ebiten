@@ -170,7 +170,36 @@ if rest := *ticks - 31; rest > 0 {
 }
 ```
 
-### 3. Inspect the output
+### 3. Many states — snapshot each one
+
+The driver's `snapshot(i)` method renders the guest's *current* state and
+writes it to a numbered PNG derived from `-out` (`frame.png` →
+`frame_00.png`, `frame_01.png`, …). Call it between input segments in the
+`INPUT SCRIPT` block to walk the app through N states and capture every
+one — in practice the highest-value pattern (for example, clicking through
+each page of a multi-page app and golden-comparing all of them):
+
+```go
+d.guest.AdvanceTicks(30) // let the app settle
+for page := 0; page < pageCount; page++ {
+	if page > 0 {
+		d.guest.MoveCursor(nextButtonX, nextButtonY) // click "next page"
+		d.guest.PressMouseButton(ebiten.MouseButtonLeft)
+		d.guest.AdvanceTicks(1)
+		d.guest.ReleaseMouseButton(ebiten.MouseButtonLeft)
+		d.guest.AdvanceTicks(30)
+	}
+	if err := d.snapshot(page); err != nil {
+		return err
+	}
+}
+```
+
+Each `snapshot` runs the `AdvanceFrame` / `WaitFrame` / `CompositeFrame`
+sequence itself, so the numbered PNGs are exact frames; the final
+`-out` frame at the end of `Update` is still written as usual.
+
+### 4. Inspect the output
 
 Inspect the PNG with the available image-viewing tool. For a programmatic
 assertion, read pixels in `Update` after `CompositeFrame` and compare —
@@ -181,7 +210,34 @@ for example, a 320×240 logical screen can produce a 640×480 PNG on a 2x
 display). Use `b := d.screen.Bounds()` for assertion dimensions; the center
 pixel of that physical `w*h` image is at `4*((h/2)*w + w/2)`. For a golden
 check, dump once, eyeball it, then compare bytes against the saved PNG on
-later runs.
+later runs — see [Verifying a run](#verifying-a-run) for the pitfalls.
+
+## Verifying a run
+
+Judge success by the **presence of the output PNG** (or the driver's final
+`wrote frame` log line) — never by the exit status observed through a
+pipe. Don't pipe the driver's output through `tail -1` or send it to
+`/dev/null`: when the driver fails, its actual one-line error (the
+`fmt.Fprintln` in `main`) is easily discarded, leaving only `go run`'s
+generic `exit status 1` with nothing to diagnose. Save the full output to
+a log file and read it on failure:
+
+```bash
+go run ./.vmdriver -pkg ./examples/paint -ticks 120 -out /tmp/frame.png \
+  > /tmp/run.log 2>&1 || cat /tmp/run.log
+```
+
+When byte-comparing captures with `cmp -s`, check that both files exist
+first: a missing file (from a capture that silently failed) also reads as
+a difference, masquerading as a pixel regression.
+
+### Golden baselines across a code change
+
+To golden-compare before/after a code change, capture the baseline from
+the committed state via `git show <commit>:<file>` extraction or a
+temporary commit — **not** `git stash` round-trips: the stash list is
+repo-global and shared across worktrees, so a stray `git stash pop` can
+grab an unrelated stash entry belonging to the user.
 
 ## How the driver drives the guest
 
@@ -282,6 +338,10 @@ feed the stream to a host `audio.Player` as its source — see
 - **Call `GuestSession.Close` from the host frame.** The driver closes the
   guest inside `Update`, after dumping the frame. Keep that shape if you copy
   the template; `cmd.Wait` can run after `ebiten.RunGame` returns.
+- **Launches are occasionally flaky.** Back-to-back runs sometimes fail on
+  the first attempt while an identical rerun succeeds (root cause not
+  identified; possibly socket/handshake timing). Retry once before
+  debugging.
 - **Wall-clock isn't deterministic.** Tick *count* is exact, but code
   using `time.Now()` still sees real time between ticks.
 - **`exp/vmhost` is experimental** — its API may change.

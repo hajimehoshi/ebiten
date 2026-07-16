@@ -34,6 +34,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -111,6 +112,9 @@ func (d *driver) Update() error {
 	//	d.guest.ReleaseMouseButton(ebiten.MouseButtonLeft)
 	//	d.guest.AdvanceTicks(*ticks)
 	//
+	// To capture the app in several states in one run — the multi-snapshot pattern — call d.snapshot(i)
+	// between segments; each call renders the current state and writes a numbered PNG next to -out.
+	//
 	// Default — no input, just run *ticks ticks:
 	d.guest.AdvanceTicks(*ticks)
 	// ---------------------------------------------------------------------------------------------------
@@ -127,20 +131,34 @@ func (d *driver) Update() error {
 		return errors.New("compositing the guest frame failed")
 	}
 
-	if err := d.dump(); err != nil {
+	if err := d.dump(*out); err != nil {
 		return err
 	}
 	d.dumped = true
 	return ebiten.Termination
 }
 
-// dump writes the current screen to a PNG. ReadPixels returns premultiplied-alpha RGBA, which is
+// snapshot renders the guest's current state and writes it to a numbered PNG derived from -out
+// (frame.png -> frame_00.png, frame_01.png, ...). Call it between input-script segments to capture a
+// sequence of app states in one run, e.g. to golden-compare every page of a multi-page app.
+func (d *driver) snapshot(index int) error {
+	d.guest.AdvanceFrame()
+	if !d.guest.WaitFrame() {
+		return fmt.Errorf("rendering snapshot %d failed: %w", index, d.guest.Err())
+	}
+	if !d.guest.CompositeFrame() {
+		return fmt.Errorf("compositing snapshot %d failed", index)
+	}
+	return d.dump(fmt.Sprintf("%s_%02d.png", strings.TrimSuffix(*out, ".png"), index))
+}
+
+// dump writes the current screen to a PNG at path. ReadPixels returns premultiplied-alpha RGBA, which is
 // identical to non-premultiplied bytes for an opaque screen (the common case).
-func (d *driver) dump() error {
+func (d *driver) dump(path string) error {
 	b := d.screen.Bounds()
 	img := image.NewRGBA(b)
 	d.screen.ReadPixels(img.Pix)
-	f, err := os.Create(*out)
+	f, err := os.Create(path)
 	if err != nil {
 		return err
 	}
