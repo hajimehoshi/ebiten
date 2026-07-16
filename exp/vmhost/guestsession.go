@@ -33,6 +33,7 @@ package vmhost
 
 import (
 	"errors"
+	"fmt"
 	"image"
 	"io"
 	"maps"
@@ -276,7 +277,7 @@ func NewGuestSession(conn net.Conn, options *NewGuestSessionOptions) (*GuestSess
 	}
 	// The handshake runs before the connection is wrapped in gob codecs (the host is the initiator).
 	if err := vmprotocol.PerformHandshake(rw, true); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("vmhost: the handshake with the guest failed: %w", err)
 	}
 	g := &GuestSession{
 		conn:         conn,

@@ -159,14 +159,18 @@ func (r *remoteBackend) dialHost() (net.Conn, error) {
 	if err != nil {
 		return nil, err
 	}
-	return net.Dial(e.Network, e.Address)
+	conn, err := net.Dial(e.Network, e.Address)
+	if err != nil {
+		return nil, fmt.Errorf("ui: dialing the virtualization host at %s failed: %w", r.endpoint, err)
+	}
+	return conn, nil
 }
 
 func (r *remoteBackend) serve(conn net.Conn) error {
 	// Assert a matching protocol version on the bare connection before wrapping it in gob codecs. The
 	// host is the initiator, so the guest receives first.
 	if err := vmprotocol.PerformHandshake(conn, false); err != nil {
-		return err
+		return fmt.Errorf("ui: the handshake with the virtualization host failed: %w", err)
 	}
 
 	dec := vmprotocol.NewDecoder(conn)

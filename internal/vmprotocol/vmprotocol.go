@@ -444,11 +444,11 @@ func PerformHandshake(conn io.ReadWriter, initiator bool) error {
 	// first, so the exchange does not rely on the transport buffering a send ahead of a receive.
 	if initiator {
 		if err := writeHandshake(conn); err != nil {
-			return err
+			return fmt.Errorf("vmprotocol: sending the handshake failed: %w", err)
 		}
 		buf, err := readHandshake(conn)
 		if err != nil {
-			return err
+			return fmt.Errorf("vmprotocol: receiving the peer's handshake failed: %w", err)
 		}
 		return validateHandshake(buf)
 	}
@@ -457,10 +457,10 @@ func PerformHandshake(conn io.ReadWriter, initiator bool) error {
 	// close).
 	buf, err := readHandshake(conn)
 	if err != nil {
-		return err
+		return fmt.Errorf("vmprotocol: receiving the peer's handshake failed: %w", err)
 	}
 	if err := writeHandshake(conn); err != nil {
-		return err
+		return fmt.Errorf("vmprotocol: sending the handshake failed: %w", err)
 	}
 	return validateHandshake(buf)
 }
