@@ -22,6 +22,7 @@ import (
 	"io"
 	"log"
 	"math"
+	"sync"
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -79,8 +80,9 @@ func (g *Game) initAudioIfNeeded() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	// Set a small buffer size to avoid discontinuities in audio playback (#3396).
-	// 1/20[s] should work in most cases, but this might cause glitches in some environments.
+	// Set a small buffer size to reduce the latency between calling SetPan and the new pan value
+	// applying to what is heard. 1/20[s] should work in most cases, but this might cause glitches
+	// in some environments.
 	g.player.SetBufferSize(time.Second / 20)
 
 	// Play the infinite-length stream. This never ends.
@@ -143,8 +145,12 @@ func main() {
 // based on the Panning.
 type StereoPanStream struct {
 	io.ReadSeeker
-	pan float64 // -1: left; 0: center; 1: right
-	buf []byte
+	// mu protects pan. Read is called by the audio system, which might be running in a different
+	// goroutine than the Update loop that calls SetPan.
+	mu      sync.Mutex
+	pan     float64 // -1: left; 0: center; 1: right
+	prevPan float64
+	buf     []byte
 }
 
 func (s *StereoPanStream) Read(p []byte) (int, error) {
@@ -167,14 +173,24 @@ func (s *StereoPanStream) Read(p []byte) (int, error) {
 	s.buf = append(s.buf, p[totalN-extra:totalN]...)
 	alignedN := totalN - extra
 
+	prevPan := s.prevPan
+	s.mu.Lock()
+	pan := s.pan
+	s.mu.Unlock()
+
 	// This implementation uses a linear scale, ranging from -1 to 1, for stereo or mono sounds.
 	// If pan = 0.0, the balance for the sound in each speaker is at 100% left and 100% right.
 	// When pan is -1.0, only the left channel of the stereo sound is audible, when pan is 1.0,
 	// only the right channel of the stereo sound is audible.
 	// https://docs.unity3d.com/ScriptReference/AudioSource-panStereo.html
-	ls := float32(min(s.pan*-1+1, 1))
-	rs := float32(min(s.pan+1, 1))
+	frameCount := alignedN / 8
 	for i := 0; i < alignedN; i += 8 {
+		panForFrame := pan
+		if frameCount > 1 {
+			panForFrame = lerp(prevPan, pan, float64(i/8)/float64(frameCount-1))
+		}
+		ls := float32(min(panForFrame*-1+1, 1))
+		rs := float32(min(panForFrame+1, 1))
 		lc := math.Float32frombits(uint32(p[i])|(uint32(p[i+1])<<8)|(uint32(p[i+2])<<16)|(uint32(p[i+3])<<24)) * ls
 		rc := math.Float32frombits(uint32(p[i+4])|(uint32(p[i+5])<<8)|(uint32(p[i+6])<<16)|(uint32(p[i+7])<<24)) * rs
 		lcBits := math.Float32bits(lc)
@@ -189,14 +205,22 @@ func (s *StereoPanStream) Read(p []byte) (int, error) {
 		p[i+6] = byte(rcBits >> 16)
 		p[i+7] = byte(rcBits >> 24)
 	}
+	if alignedN > 0 {
+		s.prevPan = pan
+	}
 	return alignedN, err
 }
 
 func (s *StereoPanStream) SetPan(pan float64) {
-	s.pan = min(max(-1, pan), 1)
+	pan = min(max(-1, pan), 1)
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.pan = pan
 }
 
 func (s *StereoPanStream) Pan() float64 {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	return s.pan
 }
 
