@@ -145,13 +145,10 @@ func main() {
 // based on the Panning.
 type StereoPanStream struct {
 	io.ReadSeeker
-	// m protects pan. Read is called by the audio system, which might be running in a different
+	// mu protects pan. Read is called by the audio system, which might be running in a different
 	// goroutine than the Update loop that calls SetPan.
-	m   sync.Mutex
-	pan float64 // -1: left; 0: center; 1: right
-	// prevPan is the final pan value during the previous Read call. Used to interpolate the pan
-	// effect smoothly regardless of quick pan changes or large buffer sizes. The interpolation
-	// helps avoid a discontinuous signal that sometimes causes audible clicks or pops.
+	mu      sync.Mutex
+	pan     float64 // -1: left; 0: center; 1: right
 	prevPan float64
 	buf     []byte
 }
@@ -177,9 +174,9 @@ func (s *StereoPanStream) Read(p []byte) (int, error) {
 	alignedN := totalN - extra
 
 	prevPan := s.prevPan
-	s.m.Lock()
+	s.mu.Lock()
 	pan := s.pan
-	s.m.Unlock()
+	s.mu.Unlock()
 
 	// This implementation uses a linear scale, ranging from -1 to 1, for stereo or mono sounds.
 	// If pan = 0.0, the balance for the sound in each speaker is at 100% left and 100% right.
@@ -208,8 +205,8 @@ func (s *StereoPanStream) Read(p []byte) (int, error) {
 		p[i+6] = byte(rcBits >> 16)
 		p[i+7] = byte(rcBits >> 24)
 	}
-	// Only update the prevPan value if we actually processed some frames of audio. If we didn't
-	// process any, we still want to interpolate from the old value during the next Read.
+	// Only update the prevPan value if some frames of audio were actually processed. If none were
+	// processed, interpolation should continue from the old value during the next Read.
 	if alignedN > 0 {
 		s.prevPan = pan
 	}
@@ -218,14 +215,14 @@ func (s *StereoPanStream) Read(p []byte) (int, error) {
 
 func (s *StereoPanStream) SetPan(pan float64) {
 	pan = min(max(-1, pan), 1)
-	s.m.Lock()
-	defer s.m.Unlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	s.pan = pan
 }
 
 func (s *StereoPanStream) Pan() float64 {
-	s.m.Lock()
-	defer s.m.Unlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	return s.pan
 }
 
