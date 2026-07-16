@@ -611,9 +611,11 @@ func (g *Game) closeGuest() {
 		log.Printf("vm: closing the guest: %v", err)
 	}
 	go func() {
-		// Reaping happens off the frame and has no caller to return to, so log rather than discard.
+		// Reaping happens off the frame and has no caller to return to, so log rather than discard. Losing
+		// the host ends the closed guest's RunGame without an error, so it exits with code 0 on its own; a
+		// non-zero exit here is a genuine guest crash, not teardown noise.
 		if err := gp.cmd.Wait(); err != nil {
-			log.Printf("vm: waiting for the guest: %v", err)
+			log.Printf("vm: the guest exited with an error: %v", err)
 		}
 		if err := os.Remove(gp.bin); err != nil {
 			log.Printf("vm: removing the guest binary: %v", err)

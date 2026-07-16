@@ -337,7 +337,10 @@ feed the stream to a host `audio.Player` as its source — see
   handles this; keep it if you change the screen size.
 - **Call `GuestSession.Close` from the host frame.** The driver closes the
   guest inside `Update`, after dumping the frame. Keep that shape if you copy
-  the template; `cmd.Wait` can run after `ebiten.RunGame` returns.
+  the template; `cmd.Wait` can run after `ebiten.RunGame` returns. Losing the
+  host ends the closed guest's `RunGame` without an error, so it exits 0 on
+  its own — the driver waits for it rather than killing it, and treats a
+  non-zero exit as a genuine guest crash.
 - **Launches are occasionally flaky.** Back-to-back runs sometimes fail on
   the first attempt while an identical rerun succeeds (root cause not
   identified; possibly socket/handshake timing). Retry once before

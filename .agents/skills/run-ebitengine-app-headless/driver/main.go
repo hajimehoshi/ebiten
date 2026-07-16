@@ -18,7 +18,7 @@
 // block in Update to script the keys, clicks, touches, and gamepads the guest observes. It is a
 // starting-point template to copy and adapt, not a stable command. See the run-ebitengine-app-headless skill.
 //
-// Written against ebiten commit de81775da (2026-07-02); exp/vmhost is experimental, so update this
+// Written against ebiten commit 95dde051e (2026-07-16); exp/vmhost is experimental, so update this
 // driver if its API has moved since.
 package main
 
@@ -52,11 +52,11 @@ var (
 // driver is the host: an ebiten.Game that drives one guest and composites its final frame into its own
 // (hidden) screen image. It does all its work in a single Update, then terminates.
 type driver struct {
-	guest    *vmhost.GuestSession
-	screen   *ebiten.Image
-	dumped   bool
-	closed   bool
-	closeErr error
+	guest              *vmhost.GuestSession
+	screen             *ebiten.Image
+	dumped             bool
+	guestSessionClosed bool
+	closeErr           error
 
 	// audioStreams holds the guest's currently-open streams. onAudioStream appends to it during
 	// AdvanceTicks and WaitTicks in Update; appendAudioStreams reads it (dropping any the guest has
@@ -85,7 +85,7 @@ func (d *driver) Update() error {
 		if err := d.guest.Close(); err != nil {
 			d.closeErr = err
 		}
-		d.closed = true
+		d.guestSessionClosed = true
 	}()
 
 	// Create the host-owned screen and size the guest to it. SetOutsideScreen must precede AdvanceTicks.
@@ -263,21 +263,26 @@ func xmain() error {
 	ebiten.SetWindowVisible(false)
 	runErr := ebiten.RunGame(d)
 
-	// Close is called from Update, which is inside the host's frame. After that the guest's RunGame
-	// returns and cmd.Wait frees the process's resources.
+	// Close is called from Update, which is inside the host's frame.
 	if d.closeErr != nil {
 		slog.Warn("closing the guest session failed", "err", d.closeErr)
 	}
-	if !d.closed {
+	var waitErr error
+	if d.guestSessionClosed {
+		waitErr = waitForGuestExit(cmd)
+	} else {
+		// Update never ran (the host run ended before it), so the session was never closed and the guest is
+		// still attached to this host. Kill and reap it; its exit status is expected and discarded.
 		_ = cmd.Process.Kill()
-	}
-	if err := cmd.Wait(); err != nil {
-		slog.Warn("waiting for the guest process failed", "err", err)
+		_ = cmd.Wait()
 	}
 	processDone = true
 
 	if runErr != nil {
 		return fmt.Errorf("host run failed: %w", runErr)
+	}
+	if waitErr != nil {
+		return waitErr
 	}
 	if err := guest.Err(); err != nil && !errors.Is(err, ebiten.Termination) {
 		return fmt.Errorf("guest session failed: %w", err)
@@ -292,4 +297,29 @@ func xmain() error {
 	}
 	slog.Info("wrote frame", "path", *out, "ticks", *ticks)
 	return nil
+}
+
+// waitForGuestExit reaps the guest after its session was closed. The closed session left the guest
+// without a host, which ends its RunGame without an error, so it exits with code 0 on its own; a non-zero
+// exit is therefore a genuine guest failure (a crash), not teardown noise. The guest only notices the
+// closed session when it next touches the connection, so one wedged in its own Update would never exit:
+// the wait is bounded, and a guest that overruns it is killed and reported rather than hanging the run.
+func waitForGuestExit(cmd *exec.Cmd) error {
+	const guestExitTimeout = 30 * time.Second
+
+	done := make(chan error, 1)
+	go func() {
+		done <- cmd.Wait()
+	}()
+	select {
+	case err := <-done:
+		if err != nil {
+			return fmt.Errorf("the guest process exited with an error: %w", err)
+		}
+		return nil
+	case <-time.After(guestExitTimeout):
+		_ = cmd.Process.Kill()
+		<-done
+		return fmt.Errorf("the guest did not exit within %v of its session being closed (is its Update wedged?)", guestExitTimeout)
+	}
 }
