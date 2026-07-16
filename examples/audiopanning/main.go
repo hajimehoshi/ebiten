@@ -205,8 +205,6 @@ func (s *StereoPanStream) Read(p []byte) (int, error) {
 		p[i+6] = byte(rcBits >> 16)
 		p[i+7] = byte(rcBits >> 24)
 	}
-	// Only update the prevPan value if some frames of audio were actually processed. If none were
-	// processed, interpolation should continue from the old value during the next Read.
 	if alignedN > 0 {
 		s.prevPan = pan
 	}
