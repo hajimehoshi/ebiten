@@ -58,7 +58,7 @@ The endpoint reaches the guest one of two ways:
 ## The driver
 
 A host driver lives at
-[driver/main.go](.agents/skills/run-ebitengine-app-headless/driver/main.go). Treat it
+[driver/main.go](skills/run-ebitengine-app-headless/driver/main.go). Treat it
 as a **starting-point template**, not a finished tool: copy it and adapt the
 input script, assertions, and screen size to your case. It runs as-is only for
 the trivial screenshot (recipe step 1); it is a skill asset, not a stable
@@ -90,7 +90,7 @@ command, so don't depend on its flags.
 ## Recipe
 
 Everything here is built on the driver at
-[driver/main.go](.agents/skills/run-ebitengine-app-headless/driver/main.go): step 1
+[driver/main.go](skills/run-ebitengine-app-headless/driver/main.go): step 1
 runs it as-is, steps 2–3 copy and adapt it. The Go snippets below are excerpts
 of its `Update`, so `d.guest` (the `*vmhost.GuestSession`), `d.screen`, and
 `*ticks` (the `-ticks` flag value) are the driver's own identifiers.
@@ -107,7 +107,7 @@ module's `go.mod` or `replace` directives to keep them aligned.
 Run the shipped driver directly against any guest package:
 
 ```bash
-go run ./.agents/skills/run-ebitengine-app-headless/driver \
+go run ./skills/run-ebitengine-app-headless/driver \
   -pkg ./examples/rotate -ticks 60 -out /tmp/frame.png
 ```
 
@@ -123,7 +123,7 @@ Copy the driver to a scratch dir, edit the `INPUT SCRIPT` block in
 `go build ./...`; remove it when you are done):
 
 ```bash
-mkdir -p .vmdriver && cp .agents/skills/run-ebitengine-app-headless/driver/main.go .vmdriver/
+mkdir -p .vmdriver && cp skills/run-ebitengine-app-headless/driver/main.go .vmdriver/
 # edit .vmdriver/main.go — the INPUT SCRIPT block in Update
 go run ./.vmdriver -pkg ./examples/paint -ticks 120 -out /tmp/frame.png
 ```
