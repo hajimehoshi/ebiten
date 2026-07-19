@@ -44,26 +44,26 @@ jobs:
       - name: go vet (Linux)
         if: runner.os == 'Linux'
         run: |
-          go list ./... | grep -v -x -F -f .github/workflows/govetblock_linux.txt | xargs go vet
+          go list ./... ./skills/run-ebitengine-app-headless/_driver | grep -v -x -F -f .github/workflows/govetblock_linux.txt | xargs go vet
 
       - name: go vet (macOS)
         if: runner.os == 'macOS'
         run: |
-          go list ./... | grep -v -x -F -f .github/workflows/govetblock_darwin.txt | xargs go vet
+          go list ./... ./skills/run-ebitengine-app-headless/_driver | grep -v -x -F -f .github/workflows/govetblock_darwin.txt | xargs go vet
 
       - name: go vet (Windows)
         if: runner.os == 'Windows'
         run: |
-          go list ./... | grep -v -x -F -f .github/workflows/govetblock_windows.txt | xargs go vet
+          go list ./... ./skills/run-ebitengine-app-headless/_driver | grep -v -x -F -f .github/workflows/govetblock_windows.txt | xargs go vet
 
       - name: go vet (vettool)
         run: |
           go install ./internal/vettools
-          go vet -vettool=$(which vettools)${{ runner.os == 'Windows' && '.exe' || '' }} -v ./...
+          go vet -vettool=$(which vettools)${{ runner.os == 'Windows' && '.exe' || '' }} -v ./... ./skills/run-ebitengine-app-headless/_driver
 
       - name: go build
         run: |
-          go build -v ./...
+          go build -v ./... ./skills/run-ebitengine-app-headless/_driver
           # Compile without optimization to check potential stack overflow.
           # The option '-gcflags=all=-N -l' is often used at Visual Studio Code.
           # See also https://go.googlesource.com/vscode-go/+/HEAD/docs/debugging.md#launch and the issue #2120.

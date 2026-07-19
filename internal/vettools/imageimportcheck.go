@@ -44,6 +44,11 @@ type imageImportCheckError struct {
 }
 
 func runImageImportCheck(pass *analysis.Pass) (any, error) {
+	// A main package is not importable, so its registrations never reach another package.
+	if pass.Pkg.Name() == "main" {
+		return imageImportCheckResult{}, nil
+	}
+
 	pkgPath := pass.Pkg.Path()
 	if strings.HasPrefix(pkgPath, "github.com/hajimehoshi/ebiten/v2/examples/") {
 		return imageImportCheckResult{}, nil
