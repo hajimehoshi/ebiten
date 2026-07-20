@@ -242,8 +242,9 @@ func (r *glyphRenderData) realize() {
 
 // GoTextFaceSource is a source of a GoTextFace. This can be shared by multiple GoTextFace objects.
 type GoTextFaceSource struct {
-	f        *font.Face
-	metadata Metadata
+	f             *font.Face
+	metadata      Metadata
+	variationAxes []VariationAxis
 
 	outputCache     *cache[goTextOutputCacheKey, *goTextOutputCacheValue]
 	glyphImageCache map[float64]*cache[goTextGlyphImageCacheKey, *ebiten.Image]
@@ -317,12 +318,13 @@ func toFontResource(source io.Reader) (font.Resource, error) {
 	return bytes.NewReader(bs), nil
 }
 
-func newGoTextFaceSource(face *font.Face) *GoTextFaceSource {
+func newGoTextFaceSource(face *font.Face, loader *opentype.Loader) *GoTextFaceSource {
 	s := &GoTextFaceSource{
 		f: face,
 	}
 	s.addr = s
 	s.metadata = metadataFromFace(face)
+	s.variationAxes = variationAxesFromLoader(loader)
 	s.outputCache = newCache[goTextOutputCacheKey, *goTextOutputCacheValue](512)
 	s.chunkPlanCache = newCache[chunkPlanKey, []chunk.Chunk](512)
 	// 4 is an arbitrary number, which should not cause troubles.
@@ -347,7 +349,7 @@ func NewGoTextFaceSource(source io.Reader) (*GoTextFaceSource, error) {
 		return nil, err
 	}
 
-	s := newGoTextFaceSource(font.NewFace(f))
+	s := newGoTextFaceSource(font.NewFace(f), l)
 	return s, nil
 }
 
@@ -369,7 +371,7 @@ func NewGoTextFaceSourcesFromCollection(source io.Reader) ([]*GoTextFaceSource, 
 		if err != nil {
 			return nil, err
 		}
-		s := newGoTextFaceSource(font.NewFace(f))
+		s := newGoTextFaceSource(font.NewFace(f), l)
 		sources[i] = s
 	}
 	return sources, nil
@@ -384,6 +386,54 @@ func (g *GoTextFaceSource) copyCheck() {
 // Metadata returns its metadata.
 func (g *GoTextFaceSource) Metadata() Metadata {
 	return g.metadata
+}
+
+// VariationAxis represents an axis of an OpenType font variation.
+type VariationAxis struct {
+	// Tag is the tag identifying the axis, like 'wght'.
+	Tag Tag
+
+	// Min is the minimum value of the axis.
+	Min float32
+
+	// Default is the default value of the axis.
+	Default float32
+
+	// Max is the maximum value of the axis.
+	Max float32
+}
+
+// AppendVariationAxes appends the font's variation axes to axes and returns the extended slice,
+// in the order they are defined in the font.
+// The result is unchanged when the font is not a variable font.
+func (g *GoTextFaceSource) AppendVariationAxes(axes []VariationAxis) []VariationAxis {
+	return append(axes, g.variationAxes...)
+}
+
+// variationAxesFromLoader parses the font's 'fvar' table and returns its axes.
+// variationAxesFromLoader returns nil when the table is missing or broken.
+func variationAxesFromLoader(loader *opentype.Loader) []VariationAxis {
+	raw, err := loader.RawTable(opentype.MustNewTag("fvar"))
+	if err != nil {
+		return nil
+	}
+	fvar, _, err := tables.ParseFvar(raw)
+	if err != nil {
+		return nil
+	}
+	if len(fvar.FvarRecords.Axis) == 0 {
+		return nil
+	}
+	axes := make([]VariationAxis, 0, len(fvar.FvarRecords.Axis))
+	for _, a := range fvar.FvarRecords.Axis {
+		axes = append(axes, VariationAxis{
+			Tag:     Tag(a.Tag),
+			Min:     a.Minimum,
+			Default: a.Default,
+			Max:     a.Maximum,
+		})
+	}
+	return axes
 }
 
 // UnsafeInternal returns its font.Face.
