@@ -113,10 +113,13 @@ func (i *Image) WritePixels(args []graphicsdriver.PixelsArgs) error {
 		return nil
 	}
 
-	// glFlush is necessary on Android.
-	// glTexSubImage2D didn't work without this hack at least on Nexus 5x and NuAns NEO [Reloaded] (#211).
+	// Some drivers process glTexSubImage2D without waiting for pending draw commands, even though
+	// commands in a single context must be processed in order (#211, #593, #3487).
+	// Wait for completion of the pending draw commands explicitly before updating the texture.
+	// The opposite order, draw commands issued after glTexSubImage2D, does not need an explicit wait,
+	// as drivers process this ordering correctly.
 	if i.graphics.drawCalled {
-		i.graphics.context.ctx.Flush()
+		i.graphics.context.ctx.Finish()
 	}
 	i.graphics.drawCalled = false
 

@@ -317,6 +317,14 @@ func (d *DebugContext) EnableVertexAttribArray(arg0 uint32) {
 	}
 }
 
+func (d *DebugContext) Finish() {
+	d.Context.Finish()
+	fmt.Fprintln(os.Stderr, "Finish")
+	if e := d.Context.GetError(); e != NO_ERROR {
+		panic(fmt.Sprintf("gl: GetError() returned %d at Finish", e))
+	}
+}
+
 func (d *DebugContext) Flush() {
 	d.Context.Flush()
 	fmt.Fprintln(os.Stderr, "Flush")

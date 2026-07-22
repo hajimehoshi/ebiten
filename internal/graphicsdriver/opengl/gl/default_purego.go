@@ -54,6 +54,7 @@ type defaultContext struct {
 	gpDrawElements             uintptr
 	gpEnable                   uintptr
 	gpEnableVertexAttribArray  uintptr
+	gpFinish                   uintptr
 	gpFlush                    uintptr
 	gpFramebufferRenderbuffer  uintptr
 	gpFramebufferTexture2D     uintptr
@@ -273,6 +274,10 @@ func (c *defaultContext) Enable(cap uint32) {
 
 func (c *defaultContext) EnableVertexAttribArray(index uint32) {
 	purego.SyscallN(c.gpEnableVertexAttribArray, uintptr(index))
+}
+
+func (c *defaultContext) Finish() {
+	purego.SyscallN(c.gpFinish)
 }
 
 func (c *defaultContext) Flush() {
@@ -502,6 +507,7 @@ func (c *defaultContext) LoadFunctions() error {
 	c.gpDrawElements = g.get("glDrawElements")
 	c.gpEnable = g.get("glEnable")
 	c.gpEnableVertexAttribArray = g.get("glEnableVertexAttribArray")
+	c.gpFinish = g.get("glFinish")
 	c.gpFlush = g.get("glFlush")
 	c.gpFramebufferRenderbuffer = g.get("glFramebufferRenderbuffer")
 	c.gpFramebufferTexture2D = g.get("glFramebufferTexture2D")

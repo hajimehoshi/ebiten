@@ -55,6 +55,7 @@ type defaultContext struct {
 	fnDrawElements             js.Value
 	fnEnable                   js.Value
 	fnEnableVertexAttribArray  js.Value
+	fnFinish                   js.Value
 	fnFramebufferRenderbuffer  js.Value
 	fnFramebufferTexture2D     js.Value
 	fnFlush                    js.Value
@@ -184,6 +185,7 @@ func NewDefaultContext(v js.Value) (Context, error) {
 		fnDrawElements:             v.Get("drawElements").Call("bind", v),
 		fnEnable:                   v.Get("enable").Call("bind", v),
 		fnEnableVertexAttribArray:  v.Get("enableVertexAttribArray").Call("bind", v),
+		fnFinish:                   v.Get("finish").Call("bind", v),
 		fnFramebufferRenderbuffer:  v.Get("framebufferRenderbuffer").Call("bind", v),
 		fnFramebufferTexture2D:     v.Get("framebufferTexture2D").Call("bind", v),
 		fnFlush:                    v.Get("flush").Call("bind", v),
@@ -390,6 +392,10 @@ func (c *defaultContext) Enable(cap uint32) {
 
 func (c *defaultContext) EnableVertexAttribArray(index uint32) {
 	c.fnEnableVertexAttribArray.Invoke(index)
+}
+
+func (c *defaultContext) Finish() {
+	c.fnFinish.Invoke()
 }
 
 func (c *defaultContext) Flush() {
