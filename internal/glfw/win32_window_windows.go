@@ -1494,8 +1494,10 @@ func (w *Window) platformCreateWindow(wndconfig *wndconfig, ctxconfig *ctxconfig
 	// A window that manages its own presentation (no OpenGL context) and is not transparent can be
 	// created without a redirection surface, so DWM does not stretch stale content while the window
 	// is being resized (#3477). This requires DirectComposition to present the content; the graphics
-	// driver detects WS_EX_NOREDIRECTIONBITMAP and uses DirectComposition accordingly.
-	if ctxconfig.client == NoAPI && !fbconfig.transparent && winver.IsWindows10OrGreater() && isDirectCompositionAvailable() {
+	// driver detects WS_EX_NOREDIRECTIONBITMAP and uses DirectComposition accordingly. Whether
+	// DirectComposition actually works can only be determined by the driver (#3489), so this relies
+	// on Win32NoRedirectionBitmap rather than probing here.
+	if ctxconfig.client == NoAPI && !fbconfig.transparent && winver.IsWindows10OrGreater() && wndconfig.noRedirectionBitmap {
 		w.platform.noRedirectionBitmap = true
 	}
 

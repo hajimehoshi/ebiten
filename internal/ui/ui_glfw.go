@@ -825,6 +825,16 @@ func (u *glfwBackend) initOnMainThread(options *RunOptions) error {
 	u.setGraphicsLibrary(lib)
 	u.graphicsDriver.SetTransparent(options.ScreenTransparent)
 
+	// A window created without a redirection surface shows nothing unless its content is presented
+	// through DirectComposition, and only the graphics driver can tell whether that works (#3489).
+	noRedirectionBitmap := glfw.False
+	if d, ok := g.(interface{ SupportsDirectComposition() bool }); ok && d.SupportsDirectComposition() {
+		noRedirectionBitmap = glfw.True
+	}
+	if err := glfw.WindowHint(glfw.Win32NoRedirectionBitmap, noRedirectionBitmap); err != nil {
+		return err
+	}
+
 	// internal/glfw is customized and the default client API is NoAPI, not OpenGLAPI.
 	// Then, glfw.WindowHint(glfw.ClientAPI, glfw.NoAPI) doesn't have to be called.
 

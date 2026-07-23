@@ -975,6 +975,13 @@ func (g *graphics12) SetTransparent(transparent bool) {
 	// TODO: Implement this?
 }
 
+// SupportsDirectComposition reports whether this driver can present through DirectComposition.
+// It must be called before the window is created, as it decides whether the window can be created
+// without a redirection surface.
+func (g *graphics12) SupportsDirectComposition() bool {
+	return g.graphicsInfra.supportsComposition(unsafe.Pointer(g.commandQueue))
+}
+
 func (g *graphics12) SetVertices(vertices []float32, indices []uint32) (ferr error) {
 	// Create buffers if necessary.
 	vidx := len(g.vertices[g.frameIndex])

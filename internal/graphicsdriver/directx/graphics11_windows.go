@@ -295,6 +295,13 @@ func (g *graphics11) SetTransparent(transparent bool) {
 	// TODO: Implement this?
 }
 
+// SupportsDirectComposition reports whether this driver can present through DirectComposition.
+// It must be called before the window is created, as it decides whether the window can be created
+// without a redirection surface.
+func (g *graphics11) SupportsDirectComposition() bool {
+	return g.graphicsInfra.supportsComposition(unsafe.Pointer(g.device))
+}
+
 func (g *graphics11) SetVertices(vertices []float32, indices []uint32) error {
 	if size := pow2(uint32(len(vertices)) * uint32(unsafe.Sizeof(vertices[0]))); g.vertexBufferSizeInBytes < size {
 		if g.vertexBuffer != nil {

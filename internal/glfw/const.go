@@ -115,6 +115,11 @@ const (
 	CocoaGraphicsSwitching = Hint(0x00023003)
 	X11ClassName           = Hint(0x00024001)
 	X11InstanceName        = Hint(0x00024002)
+
+	// Win32NoRedirectionBitmap specifies whether the window is created without a redirection surface
+	// (WS_EX_NOREDIRECTIONBITMAP). Only set this when the content is presented through
+	// DirectComposition, as such a window shows nothing otherwise.
+	Win32NoRedirectionBitmap = Hint(0x10000001)
 )
 
 const (

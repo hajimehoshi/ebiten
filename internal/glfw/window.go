@@ -262,6 +262,8 @@ func WindowHint(hint Hint, value int) error {
 		_glfw.hints.window.focusOnShow = intToBool(value)
 	case MousePassthrough:
 		_glfw.hints.window.mousePassthrough = intToBool(value)
+	case Win32NoRedirectionBitmap:
+		_glfw.hints.window.noRedirectionBitmap = intToBool(value)
 	case ClientAPI:
 		_glfw.hints.context.client = value
 	case ContextCreationAPI:

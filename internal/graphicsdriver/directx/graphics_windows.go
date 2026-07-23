@@ -366,16 +366,15 @@ func windowHasNoRedirectionBitmap(window windows.HWND) bool {
 	return _GetWindowLongW(window, _GWL_EXSTYLE)&_WS_EX_NOREDIRECTIONBITMAP != 0
 }
 
-// initSwapChainComposition creates a composition swap chain and sets up a DirectComposition visual
-// tree that presents it in the given window. On success, it stores the swap chain and the
-// DirectComposition objects in g.
-func (g *graphicsInfra) initSwapChainComposition(width, height int, device unsafe.Pointer, window windows.HWND) (ferr error) {
+// createCompositionSwapChain creates a swap chain that can be presented through a
+// DirectComposition visual tree.
+func (g *graphicsInfra) createCompositionSwapChain(width, height int, device unsafe.Pointer) (*_IDXGISwapChain, error) {
 	f, err := g.factory.QueryInterface(&_IID_IDXGIFactory4)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if f == nil {
-		return fmt.Errorf("directx: IDXGIFactory4 is not available")
+		return nil, fmt.Errorf("directx: IDXGIFactory4 is not available")
 	}
 	factory4 := (*_IDXGIFactory4)(f)
 	defer factory4.Release()
@@ -395,7 +394,34 @@ func (g *graphicsInfra) initSwapChainComposition(width, height int, device unsaf
 		desc.Flags |= uint32(_DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING)
 	}
 
-	swapChain, err := factory4.CreateSwapChainForComposition(device, desc, nil)
+	return factory4.CreateSwapChainForComposition(device, desc, nil)
+}
+
+// supportsComposition reports whether a swap chain can be presented through a DirectComposition
+// visual tree.
+func (g *graphicsInfra) supportsComposition(device unsafe.Pointer) bool {
+	// Some Direct3D implementations export the required entry points without implementing them
+	// (#3489), so create the objects and release them right away.
+	swapChain, err := g.createCompositionSwapChain(1, 1, device)
+	if err != nil {
+		return false
+	}
+	swapChain.Release()
+
+	dcompDevice, err := _DCompositionCreateDevice(nil)
+	if err != nil {
+		return false
+	}
+	dcompDevice.Release()
+
+	return true
+}
+
+// initSwapChainComposition creates a composition swap chain and sets up a DirectComposition visual
+// tree that presents it in the given window. On success, it stores the swap chain and the
+// DirectComposition objects in g.
+func (g *graphicsInfra) initSwapChainComposition(width, height int, device unsafe.Pointer, window windows.HWND) (ferr error) {
+	swapChain, err := g.createCompositionSwapChain(width, height, device)
 	if err != nil {
 		return err
 	}
@@ -449,7 +475,7 @@ func (g *graphicsInfra) initSwapChainComposition(width, height int, device unsaf
 	g.dcompDevice = dcompDevice
 	g.dcompTarget = dcompTarget
 	g.dcompVisual = dcompVisual
-	g.bufferCount = int(desc.BufferCount)
+	g.bufferCount = frameCount
 
 	return nil
 }

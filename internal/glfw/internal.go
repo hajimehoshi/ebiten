@@ -41,6 +41,8 @@ type wndconfig struct {
 	frameName        string // Cocoa: GLFW_COCOA_FRAME_NAME
 	className        string // X11: GLFW_X11_CLASS_NAME
 	instanceName     string // X11: GLFW_X11_INSTANCE_NAME
+
+	noRedirectionBitmap bool // Win32
 }
 
 type ctxconfig struct {
