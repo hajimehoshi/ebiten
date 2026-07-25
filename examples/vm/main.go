@@ -43,6 +43,7 @@ import (
 	"runtime/debug"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/ebitengine/debugui"
@@ -116,6 +117,10 @@ type Game struct {
 
 	gp          *guestProcess
 	guestScreen *ebiten.Image
+
+	// reapers counts the goroutines closeGuest left waiting on a guest's process, so shutdown can wait
+	// for those processes to be gone.
+	reapers sync.WaitGroup
 
 	// screenSet reports whether guestScreen has been handed to the current session via
 	// SetOutsideScreen; it is cleared when the session or the screen changes.
@@ -610,7 +615,7 @@ func (g *Game) closeGuest() {
 	if err := gp.session.Close(); err != nil {
 		log.Printf("vm: closing the guest: %v", err)
 	}
-	go func() {
+	g.reapers.Go(func() {
 		// Reaping happens off the frame and has no caller to return to, so log rather than discard. Losing
 		// the host ends the closed guest's RunGame without an error, so it exits with code 0 on its own; a
 		// non-zero exit here is a genuine guest crash, not teardown noise.
@@ -620,7 +625,7 @@ func (g *Game) closeGuest() {
 		if err := os.Remove(gp.bin); err != nil {
 			log.Printf("vm: removing the guest binary: %v", err)
 		}
-	}()
+	})
 }
 
 // ebitengineModule is the import path of the Ebitengine module the host is built against. The guest
@@ -797,18 +802,45 @@ func isWithinModule(pkg, module string) bool {
 	return pkg == module || strings.HasPrefix(pkg, module+"/")
 }
 
-// buildAndStartGuest builds pkg as a guest at the given binary path, launches it pointed at a listener
-// of its own at sock, and returns a handle once it has connected. It is safe to call off the main
-// goroutine; only the returned session's screen-touching methods (SetOutsideScreen, CompositeFrame,
-// Close) must run on the host frame.
+// buildAndStartGuest builds pkg as a guest at the given binary path and starts it, returning a handle
+// once it has connected. It is safe to call off the main goroutine; only the returned session's
+// screen-touching methods (SetOutsideScreen, CompositeFrame, Close) must run on the host frame.
 func buildAndStartGuest(workDir, bin, sock, pkg string, pin ebitenginePin) (gp *guestProcess, err error) {
 	if err := buildGuest(workDir, bin, pkg, pin); err != nil {
 		return nil, fmt.Errorf("building %s failed (see console): %w", pkg, err)
 	}
 	defer func() {
-		// The binary outlives this function only on success.
+		// The binary outlives this function only on success. A failing startGuest has already reaped the
+		// process, so this never removes a running executable, which Windows forbids.
 		if err != nil {
 			err = errors.Join(err, os.Remove(bin))
+		}
+	}()
+
+	return startGuest(bin, sock, pkg)
+}
+
+// startGuest launches the guest binary at bin pointed at a listener of its own at sock, and returns a
+// handle once it has connected. pkg is the package the binary was built from. It is safe to call off the
+// main goroutine; only the returned session's screen-touching methods (SetOutsideScreen, CompositeFrame,
+// Close) must run on the host frame.
+func startGuest(bin, sock, pkg string) (gp *guestProcess, err error) {
+	// The process and the connection outlive this function only on success, and a caller that removes the
+	// binary relies on the process being reaped first. This releases them together, and is registered
+	// before either is acquired so that it runs after every deferred call below (deferred calls run in
+	// reverse order) and sees the final error, including one reported by the listener's deferred close.
+	var cmd *exec.Cmd
+	var conn net.Conn
+	defer func() {
+		if err == nil {
+			return
+		}
+		gp = nil
+		if conn != nil {
+			err = errors.Join(err, conn.Close())
+		}
+		if cmd != nil {
+			err = errors.Join(err, cmd.Process.Kill(), cmd.Wait())
 		}
 	}()
 
@@ -828,36 +860,24 @@ func buildAndStartGuest(workDir, bin, sock, pkg string, pin ebitenginePin) (gp *
 		return nil, err
 	}
 
-	cmd := exec.Command(bin)
-	cmd.Env = append(os.Environ(), "EBITENGINE_VM_ENDPOINT="+endpoint)
-	cmd.Stdout = os.Stderr
-	cmd.Stderr = os.Stderr
-	if err := cmd.Start(); err != nil {
+	c := exec.Command(bin)
+	c.Env = append(os.Environ(), "EBITENGINE_VM_ENDPOINT="+endpoint)
+	c.Stdout = os.Stderr
+	c.Stderr = os.Stderr
+	if err := c.Start(); err != nil {
 		return nil, err
 	}
-	defer func() {
-		// The process outlives this function only on success. This runs before the binary removal
-		// above (deferred calls run in reverse order): a running executable cannot be removed on
-		// Windows.
-		if err != nil {
-			err = errors.Join(err, cmd.Process.Kill(), cmd.Wait())
-		}
-	}()
+	// Only a started process is this function's to reap.
+	cmd = c
 
 	// A guest that never dials must not block the launch forever.
 	if err := ln.(*net.UnixListener).SetDeadline(time.Now().Add(30 * time.Second)); err != nil {
 		return nil, err
 	}
-	conn, err := ln.Accept()
+	conn, err = ln.Accept()
 	if err != nil {
 		return nil, fmt.Errorf("%s did not connect as a guest (is it an Ebitengine app?): %w", pkg, err)
 	}
-	defer func() {
-		// The connection outlives this function only on success (the session takes ownership).
-		if err != nil {
-			err = errors.Join(err, conn.Close())
-		}
-	}()
 
 	// The handlers below capture gp, so build it before the session; its session field is filled in once
 	// NewGuestSession returns.
@@ -924,6 +944,14 @@ func run() (err error) {
 		guestTPS: ebiten.DefaultTPS,
 		status:   "Edit the package and press Enter or Launch",
 	}
+	// Deferred after the directory's removal above, so this runs first: a running executable cannot be
+	// removed on Windows, so every guest's process must be gone before their directory is. The wait also
+	// covers guests closed earlier in the session, whose reaping may still be in flight.
+	defer func() {
+		g.closeGuest()
+		g.reapers.Wait()
+	}()
+
 	g.launchGuest()
 
 	ebiten.SetWindowSize(640, 480)
