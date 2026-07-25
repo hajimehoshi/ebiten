@@ -102,6 +102,9 @@
 // guest of that host instead of opening a window. This is valid only when the build tag 'ebitenginevm'
 // is specified. This works only on desktops. See also RunGameOptions.VMGuestEndpoint.
 //
+// The endpoint addresses one guest session. The variable is removed from the game's environment at
+// startup, so that a process the game starts does not inherit it.
+//
 // # Build tags
 //
 // `ebitenginedebug` outputs a log of graphics commands. This is useful to know what happens in Ebitengine. In general, the

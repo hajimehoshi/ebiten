@@ -102,10 +102,8 @@ type launchResult struct {
 type Game struct {
 	debugui debugui.DebugUI
 
-	ln       net.Listener
-	endpoint string
-	dir      string
-	pin      ebitenginePin
+	dir string
+	pin ebitenginePin
 
 	// pkg is the package text field's buffer.
 	pkg string
@@ -331,15 +329,17 @@ func (g *Game) launchGuest() {
 	g.launching = true
 	g.status = "Building " + g.pkg + " ..."
 	pkg := g.pkg
-	// The launch tick names the binary. Launches are serialized by g.launching, so at most one launch
-	// starts per tick, and an old guest's binary may still be running (and locked, on Windows) while
-	// the next one builds, so every launch needs its own path.
-	bin := filepath.Join(g.dir, fmt.Sprintf("guest-%d", ebiten.Tick()))
+	// The launch tick names the binary and the guest's socket. Launches are serialized by g.launching,
+	// so at most one launch starts per tick, and an old guest's binary may still be running (and locked,
+	// on Windows) while the next one builds, so every launch needs its own paths.
+	tick := ebiten.Tick()
+	bin := filepath.Join(g.dir, fmt.Sprintf("guest-%d", tick))
 	if runtime.GOOS == "windows" {
 		bin += ".exe"
 	}
+	sock := filepath.Join(g.dir, fmt.Sprintf("guest-%d.sock", tick))
 	go func() {
-		gp, err := buildAndStartGuest(g.ln, g.dir, bin, g.endpoint, pkg, g.pin)
+		gp, err := buildAndStartGuest(g.dir, bin, sock, pkg, g.pin)
 		g.results <- launchResult{gp: gp, err: err}
 	}()
 }
@@ -797,11 +797,11 @@ func isWithinModule(pkg, module string) bool {
 	return pkg == module || strings.HasPrefix(pkg, module+"/")
 }
 
-// buildAndStartGuest builds pkg as a guest at the given binary path, launches it pointed at the host's
-// endpoint, and returns a handle once it has connected. It is safe to call off the main goroutine; only
-// the returned session's screen-touching methods (SetOutsideScreen, CompositeFrame, Close) must run on
-// the host frame.
-func buildAndStartGuest(ln net.Listener, workDir, bin, endpoint, pkg string, pin ebitenginePin) (gp *guestProcess, err error) {
+// buildAndStartGuest builds pkg as a guest at the given binary path, launches it pointed at a listener
+// of its own at sock, and returns a handle once it has connected. It is safe to call off the main
+// goroutine; only the returned session's screen-touching methods (SetOutsideScreen, CompositeFrame,
+// Close) must run on the host frame.
+func buildAndStartGuest(workDir, bin, sock, pkg string, pin ebitenginePin) (gp *guestProcess, err error) {
 	if err := buildGuest(workDir, bin, pkg, pin); err != nil {
 		return nil, fmt.Errorf("building %s failed (see console): %w", pkg, err)
 	}
@@ -811,6 +811,22 @@ func buildAndStartGuest(ln net.Listener, workDir, bin, endpoint, pkg string, pin
 			err = errors.Join(err, os.Remove(bin))
 		}
 	}()
+
+	// Every guest gets a listener of its own, closed when the launch completes: the endpoint addresses
+	// one guest session, so it must not outlive the launch, and a process the guest starts must not be
+	// able to reach the host through it. Closing a Unix listener removes its socket file too.
+	ln, err := net.Listen("unix", sock)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		err = errors.Join(err, ln.Close())
+	}()
+
+	endpoint, err := vmhost.EndpointURLFromAddr(ln.Addr())
+	if err != nil {
+		return nil, err
+	}
 
 	cmd := exec.Command(bin)
 	cmd.Env = append(os.Environ(), "EBITENGINE_VM_ENDPOINT="+endpoint)
@@ -828,8 +844,8 @@ func buildAndStartGuest(ln net.Listener, workDir, bin, endpoint, pkg string, pin
 		}
 	}()
 
-	// Both *net.UnixListener and *net.TCPListener provide SetDeadline.
-	if err := ln.(interface{ SetDeadline(time.Time) error }).SetDeadline(time.Now().Add(30 * time.Second)); err != nil {
+	// A guest that never dials must not block the launch forever.
+	if err := ln.(*net.UnixListener).SetDeadline(time.Now().Add(30 * time.Second)); err != nil {
 		return nil, err
 	}
 	conn, err := ln.Accept()
@@ -889,19 +905,6 @@ func run() (err error) {
 		err = errors.Join(err, os.RemoveAll(dir))
 	}()
 
-	ln, err := net.Listen("unix", filepath.Join(dir, "vm.sock"))
-	if err != nil {
-		return err
-	}
-	defer func() {
-		err = errors.Join(err, ln.Close())
-	}()
-
-	endpoint, err := vmhost.EndpointURLFromAddr(ln.Addr())
-	if err != nil {
-		return err
-	}
-
 	// Resolve the host's Ebitengine version once, while the working directory is still the one the host
 	// was launched from; guests are pinned to it so they speak the same version-locked protocol.
 	pin, err := resolveEbitenginePin()
@@ -914,8 +917,6 @@ func run() (err error) {
 		pkg = os.Args[1]
 	}
 	g := &Game{
-		ln:       ln,
-		endpoint: endpoint,
 		dir:      dir,
 		pin:      pin,
 		results:  make(chan launchResult, 1),

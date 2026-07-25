@@ -245,6 +245,12 @@ func xmain() error {
 	if err != nil {
 		return fmt.Errorf("accepting the guest failed: %w", err)
 	}
+	// The listener served this one guest: retire the endpoint now that the guest has connected, so that
+	// a process the guest starts cannot reach this host through it. Closing a Unix listener removes its
+	// socket file. The deferred Close above covers the paths that return before this point.
+	if err := ln.Close(); err != nil {
+		return fmt.Errorf("closing the guest listener failed: %w", err)
+	}
 
 	// The OnAudioStream handler below is a method on d, so build d before the session; its guest field is
 	// filled in once NewGuestSession returns.

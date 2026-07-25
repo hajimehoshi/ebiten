@@ -21,8 +21,18 @@ import "os"
 // vmGuestEndpointEnv names the host endpoint a guest dials when no endpoint is given in RunOptions.
 const vmGuestEndpointEnv = "EBITENGINE_VM_ENDPOINT"
 
+// vmGuestEndpoint is the host endpoint configured in the environment.
+var vmGuestEndpoint = func() string {
+	// The variable is removed from the environment as it is read: the endpoint addresses one guest
+	// session, so a process started by this one must not inherit it. A value set afterwards reaches
+	// children as usual.
+	ep := os.Getenv(vmGuestEndpointEnv)
+	_ = os.Unsetenv(vmGuestEndpointEnv)
+	return ep
+}()
+
 // vmGuestEndpointFromEnv returns the host endpoint configured in the environment. Reading the
 // environment is enabled by the ebitenginevm build tag.
 func vmGuestEndpointFromEnv() string {
-	return os.Getenv(vmGuestEndpointEnv)
+	return vmGuestEndpoint
 }
