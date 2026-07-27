@@ -17,6 +17,7 @@
 package ui
 
 import (
+	"fmt"
 	"sync"
 	"sync/atomic"
 
@@ -133,7 +134,15 @@ func (u *UserInterface) Run(game Game, options *RunOptions) error {
 	if b != nil {
 		return b.run(game, options)
 	}
-	return newGLFWBackend(u).run(game, options)
+	if b := maybeNewGLFWBackend(u); b != nil {
+		return b.run(game, options)
+	}
+	// Fall back to a framebuffer device where there is no window system.
+	fb, err := maybeNewFbdevBackend(u)
+	if err != nil {
+		return fmt.Errorf("ui: no window system is available: %w", err)
+	}
+	return fb.run(game, options)
 }
 
 // maybeNewVMGuestBackend returns a remote (guest) backend when a host endpoint is configured, or nil

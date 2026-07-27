@@ -24,6 +24,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl/gl"
+	"github.com/hajimehoshi/ebiten/v2/internal/windowsystem"
 )
 
 func isGLXExtensionForGL2Available() bool {
@@ -75,8 +76,12 @@ func NewGraphics() (graphicsdriver.Graphics, error) {
 		return nil, err
 	}
 
-	if err := setGLFWClientAPI(ctx.IsES()); err != nil {
-		return nil, err
+	// The hints configure the window glfw creates, so they are meaningless
+	// where there is no window system.
+	if windowsystem.Available() {
+		if err := setGLFWClientAPI(ctx.IsES()); err != nil {
+			return nil, err
+		}
 	}
 
 	return newGraphics(ctx, color.ColorSpaceSRGB), nil
