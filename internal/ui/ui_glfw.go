@@ -39,6 +39,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/hook"
 	"github.com/hajimehoshi/ebiten/v2/internal/microsoftgdk"
 	"github.com/hajimehoshi/ebiten/v2/internal/thread"
+	"github.com/hajimehoshi/ebiten/v2/internal/windowsystem"
 )
 
 func driverCursorModeToGLFWCursorMode(mode CursorMode) int {
@@ -119,6 +120,15 @@ const (
 func init() {
 	// Lock the main thread.
 	runtime.LockOSThread()
+}
+
+// maybeNewGLFWBackend returns a glfw backend, or nil where there is no window
+// system for it to use.
+func maybeNewGLFWBackend(u *UserInterface) *glfwBackend {
+	if !windowsystem.Available() {
+		return nil
+	}
+	return newGLFWBackend(u)
 }
 
 func newGLFWBackend(u *UserInterface) *glfwBackend {
