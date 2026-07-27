@@ -64,7 +64,7 @@ func isGLXExtensionForGL2Available() bool {
 }
 
 type graphicsPlatform struct {
-	window *glfw.Window
+	presenter Presenter
 }
 
 // NewGraphics creates an implementation of graphicsdriver.Graphics for OpenGL.
@@ -115,12 +115,13 @@ func setGLFWClientAPI(isES bool) error {
 	return nil
 }
 
-func (g *Graphics) SetGLFWWindow(window *glfw.Window) {
-	g.window = window
+// SetPresenter sets what the rendered frame is presented through.
+func (g *Graphics) SetPresenter(presenter Presenter) {
+	g.presenter = presenter
 }
 
 func (g *Graphics) makeContextCurrent() error {
-	return g.window.MakeContextCurrent()
+	return g.presenter.MakeContextCurrent()
 }
 
 func (g *Graphics) swapBuffers() error {
@@ -130,17 +131,15 @@ func (g *Graphics) swapBuffers() error {
 	// SwapInterval is affected by the current monitor of the window.
 	// This needs to be called at least after SetMonitor.
 	// Without SwapInterval after SetMonitor, vsynch doesn't work (#375).
+	var interval int
 	if g.vsync {
-		if err := g.window.SwapInterval(1); err != nil {
-			return err
-		}
-	} else {
-		if err := g.window.SwapInterval(0); err != nil {
-			return err
-		}
+		interval = 1
+	}
+	if err := g.presenter.SwapInterval(interval); err != nil {
+		return err
 	}
 
-	if err := g.window.SwapBuffers(); err != nil {
+	if err := g.presenter.SwapBuffers(); err != nil {
 		return err
 	}
 	return nil

@@ -35,6 +35,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
 	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl"
 	"github.com/hajimehoshi/ebiten/v2/internal/hook"
 	"github.com/hajimehoshi/ebiten/v2/internal/microsoftgdk"
 	"github.com/hajimehoshi/ebiten/v2/internal/thread"
@@ -909,8 +910,8 @@ func (u *glfwBackend) initOnMainThread(options *RunOptions) error {
 	}
 
 	switch g := u.graphicsDriver.(type) {
-	case interface{ SetGLFWWindow(window *glfw.Window) }:
-		g.SetGLFWWindow(u.window)
+	case interface{ SetPresenter(opengl.Presenter) }:
+		g.SetPresenter(u.window)
 	case interface{ SetWindow(uintptr) }:
 		w, err := u.nativeWindow()
 		if err != nil {

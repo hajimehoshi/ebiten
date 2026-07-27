@@ -32,6 +32,14 @@ type activatedTexture struct {
 	index         int
 }
 
+// Presenter is what the rendered frame is presented through: a window on a
+// desktop, or the context of a system that has no window system.
+type Presenter interface {
+	MakeContextCurrent() error
+	SwapInterval(interval int) error
+	SwapBuffers() error
+}
+
 type Graphics struct {
 	state      openGLState
 	context    context
