@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build (!darwin && !js && !windows) || ios
+//go:build android || ios || nintendosdk || playstation5
 
 package textinput
 

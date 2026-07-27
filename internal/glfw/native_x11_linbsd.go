@@ -30,6 +30,12 @@ func (w *Window) GetX11Window() (uintptr, error) {
 	return uintptr(w.platform.handle), nil
 }
 
+// GetX11InputContext returns the X input context (XIC) of the window, or 0
+// when no input method is available.
+func (w *Window) GetX11InputContext() (uintptr, error) {
+	return w.platform.ic, nil
+}
+
 // GetGLXContext returns the GLXContext of the window.
 func (w *Window) GetGLXContext() (uintptr, error) {
 	if w.context.source != NativeContextAPI {
