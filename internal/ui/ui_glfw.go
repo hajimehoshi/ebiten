@@ -92,6 +92,8 @@ type glfwBackend struct {
 	lastWheelOffsetY float64
 	lastWheelTime    time.Time
 
+	unfocusedSleepOverhead time.Duration
+
 	closeCallback                  glfw.CloseCallback
 	framebufferSizeCallback        glfw.FramebufferSizeCallback
 	defaultFramebufferSizeCallback glfw.FramebufferSizeCallback
@@ -1288,14 +1290,29 @@ func (u *glfwBackend) updateGame() error {
 	// When a window is not focused or in another space, SwapBuffers might return immediately and CPU might be busy.
 	// Mitigate this by sleeping (#982, #2521).
 	if unfocused {
-		d := t2.Sub(t1)
-		const wait = time.Second / 60
-		if d < wait {
-			time.Sleep(wait - d)
+		if d := unfocusedSleepDuration(t2.Sub(t1), u.unfocusedSleepOverhead); d > 0 {
+			t := time.Now()
+			time.Sleep(d)
+			u.unfocusedSleepOverhead = time.Since(t) - d
+			if u.unfocusedSleepOverhead < 0 {
+				u.unfocusedSleepOverhead = 0
+			}
+		} else {
+			u.unfocusedSleepOverhead = 0
 		}
+	} else {
+		u.unfocusedSleepOverhead = 0
 	}
 
 	return nil
+}
+
+func unfocusedSleepDuration(elapsed, sleepOverhead time.Duration) time.Duration {
+	const wait = time.Second / 60
+	if elapsed+sleepOverhead >= wait {
+		return 0
+	}
+	return wait - elapsed - sleepOverhead
 }
 
 func (u *glfwBackend) updateIconIfNeeded() error {
