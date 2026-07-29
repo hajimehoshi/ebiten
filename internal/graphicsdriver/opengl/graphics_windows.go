@@ -18,7 +18,6 @@ import (
 	"fmt"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/color"
-	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl/gl"
 	"github.com/hajimehoshi/ebiten/v2/internal/microsoftgdk"
@@ -37,16 +36,6 @@ func NewGraphics() (graphicsdriver.Graphics, error) {
 
 	ctx, err := gl.NewDefaultContext()
 	if err != nil {
-		return nil, err
-	}
-
-	if err := glfw.WindowHint(glfw.ClientAPI, glfw.OpenGLAPI); err != nil {
-		return nil, err
-	}
-	if err := glfw.WindowHint(glfw.ContextVersionMajor, 3); err != nil {
-		return nil, err
-	}
-	if err := glfw.WindowHint(glfw.ContextVersionMinor, 2); err != nil {
 		return nil, err
 	}
 

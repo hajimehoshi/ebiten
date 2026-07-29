@@ -17,52 +17,10 @@
 package opengl
 
 import (
-	"os/exec"
-	"strings"
-
 	"github.com/hajimehoshi/ebiten/v2/internal/color"
-	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl/gl"
-	"github.com/hajimehoshi/ebiten/v2/internal/windowsystem"
 )
-
-func isGLXExtensionForGL2Available() bool {
-	out, err := exec.Command("glxinfo").Output()
-	if err != nil {
-		return false
-	}
-
-	const (
-		indent = "    "
-		ext    = "GLX_EXT_create_context_es2_profile"
-	)
-
-	var listingExtensions bool
-	for line := range strings.Lines(string(out)) {
-		line = strings.TrimRight(line, "\r\n")
-		if !listingExtensions {
-			if line == "GLX extensions:" {
-				listingExtensions = true
-			}
-			continue
-		}
-
-		if !strings.HasPrefix(line, indent) {
-			listingExtensions = false
-			break
-		}
-
-		for len(line) > 0 {
-			head, tail, _ := strings.Cut(line, ",")
-			if strings.TrimSpace(head) == ext {
-				return true
-			}
-			line = tail
-		}
-	}
-	return false
-}
 
 type graphicsPlatform struct {
 	presenter Presenter
@@ -76,48 +34,12 @@ func NewGraphics() (graphicsdriver.Graphics, error) {
 		return nil, err
 	}
 
-	// The hints configure the window glfw creates, so they are meaningless
-	// where there is no window system.
-	if windowsystem.Available() {
-		if err := setGLFWClientAPI(ctx.IsES()); err != nil {
-			return nil, err
-		}
-	}
-
 	return newGraphics(ctx, color.ColorSpaceSRGB), nil
 }
 
-func setGLFWClientAPI(isES bool) error {
-	if isES {
-		if err := glfw.WindowHint(glfw.ClientAPI, glfw.OpenGLESAPI); err != nil {
-			return err
-		}
-		if err := glfw.WindowHint(glfw.ContextVersionMajor, 3); err != nil {
-			return err
-		}
-		if err := glfw.WindowHint(glfw.ContextVersionMinor, 0); err != nil {
-			return err
-		}
-		// Use GLX if the extension allows, or use EGL otherwise.
-		// Prefer GLX since EGL might not work well on Wayland (#3152).
-		if !isGLXExtensionForGL2Available() {
-			if err := glfw.WindowHint(glfw.ContextCreationAPI, glfw.EGLContextAPI); err != nil {
-				return err
-			}
-		}
-		return nil
-	}
-
-	if err := glfw.WindowHint(glfw.ClientAPI, glfw.OpenGLAPI); err != nil {
-		return err
-	}
-	if err := glfw.WindowHint(glfw.ContextVersionMajor, 3); err != nil {
-		return err
-	}
-	if err := glfw.WindowHint(glfw.ContextVersionMinor, 2); err != nil {
-		return err
-	}
-	return nil
+// IsES reports whether the underlying context is OpenGL ES.
+func (g *Graphics) IsES() bool {
+	return g.context.ctx.IsES()
 }
 
 // SetPresenter sets what the rendered frame is presented through.

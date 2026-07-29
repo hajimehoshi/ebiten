@@ -100,6 +100,22 @@ func (*graphicsDriverCreatorImpl) newPlayStation5() (graphicsdriver.Graphics, er
 	return nil, errors.New("ui: PlayStation 5 is not supported in this environment")
 }
 
+// setOpenGLWindowHints sets the GLFW hints to create a window with an OpenGL context.
+//
+// setOpenGLWindowHints must be called from the main thread.
+func (u *glfwBackend) setOpenGLWindowHints() error {
+	if err := glfw.WindowHint(glfw.ClientAPI, glfw.OpenGLAPI); err != nil {
+		return err
+	}
+	if err := glfw.WindowHint(glfw.ContextVersionMajor, 3); err != nil {
+		return err
+	}
+	if err := glfw.WindowHint(glfw.ContextVersionMinor, 2); err != nil {
+		return err
+	}
+	return nil
+}
+
 // glfwMonitorSizeInGLFWPixels must be called from the main thread.
 func glfwMonitorSizeInGLFWPixels(m *glfw.Monitor) (int, int, error) {
 	vm, err := m.GetVideoMode()

@@ -19,7 +19,9 @@ package ui
 import (
 	"errors"
 	"fmt"
+	"os/exec"
 	"runtime"
+	"strings"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/color"
 	"github.com/hajimehoshi/ebiten/v2/internal/colormode"
@@ -60,6 +62,84 @@ func (*graphicsDriverCreatorImpl) newMetal() (graphicsdriver.Graphics, error) {
 
 func (*graphicsDriverCreatorImpl) newPlayStation5() (graphicsdriver.Graphics, error) {
 	return nil, errors.New("ui: PlayStation 5 is not supported in this environment")
+}
+
+func isGLXExtensionForGL2Available() bool {
+	out, err := exec.Command("glxinfo").Output()
+	if err != nil {
+		return false
+	}
+
+	const (
+		indent = "    "
+		ext    = "GLX_EXT_create_context_es2_profile"
+	)
+
+	var listingExtensions bool
+	for line := range strings.Lines(string(out)) {
+		line = strings.TrimRight(line, "\r\n")
+		if !listingExtensions {
+			if line == "GLX extensions:" {
+				listingExtensions = true
+			}
+			continue
+		}
+
+		if !strings.HasPrefix(line, indent) {
+			listingExtensions = false
+			break
+		}
+
+		for len(line) > 0 {
+			head, tail, _ := strings.Cut(line, ",")
+			if strings.TrimSpace(head) == ext {
+				return true
+			}
+			line = tail
+		}
+	}
+	return false
+}
+
+// setOpenGLWindowHints sets the GLFW hints to create a window with an OpenGL context.
+//
+// setOpenGLWindowHints must be called from the main thread.
+func (u *glfwBackend) setOpenGLWindowHints() error {
+	var isES bool
+	if g, ok := u.graphicsDriver.(interface{ IsES() bool }); ok {
+		isES = g.IsES()
+	}
+
+	if isES {
+		if err := glfw.WindowHint(glfw.ClientAPI, glfw.OpenGLESAPI); err != nil {
+			return err
+		}
+		if err := glfw.WindowHint(glfw.ContextVersionMajor, 3); err != nil {
+			return err
+		}
+		if err := glfw.WindowHint(glfw.ContextVersionMinor, 0); err != nil {
+			return err
+		}
+		// Use GLX if the extension allows, or use EGL otherwise.
+		// Prefer GLX since EGL might not work well on Wayland (#3152).
+		if !isGLXExtensionForGL2Available() {
+			if err := glfw.WindowHint(glfw.ContextCreationAPI, glfw.EGLContextAPI); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+
+	if err := glfw.WindowHint(glfw.ClientAPI, glfw.OpenGLAPI); err != nil {
+		return err
+	}
+	if err := glfw.WindowHint(glfw.ContextVersionMajor, 3); err != nil {
+		return err
+	}
+	if err := glfw.WindowHint(glfw.ContextVersionMinor, 2); err != nil {
+		return err
+	}
+	return nil
 }
 
 // glfwMonitorSizeInGLFWPixels must be called from the main thread.

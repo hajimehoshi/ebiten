@@ -836,6 +836,14 @@ func (u *glfwBackend) initOnMainThread(options *RunOptions) error {
 	u.setGraphicsLibrary(lib)
 	u.graphicsDriver.SetTransparent(options.ScreenTransparent)
 
+	// The OpenGL driver needs a window with a GL context, unlike the other drivers.
+	// Set the context-related hints before creating a window.
+	if lib == GraphicsLibraryOpenGL {
+		if err := u.setOpenGLWindowHints(); err != nil {
+			return err
+		}
+	}
+
 	// A window created without a redirection surface shows nothing unless its content is presented
 	// through DirectComposition, and only the graphics driver can tell whether that works (#3489).
 	noRedirectionBitmap := glfw.False
