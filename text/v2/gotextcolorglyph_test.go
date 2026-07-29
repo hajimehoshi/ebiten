@@ -75,6 +75,14 @@ func TestDrawColorGlyph(t *testing.T) {
 				t.Fatal("g.Image is nil")
 			}
 
+			lazyGlyphs := text.AppendLazyGlyphs(nil, tc.str, face, nil)
+			if len(lazyGlyphs) != 1 {
+				t.Fatalf("len(lazyGlyphs): got: %d, want: 1", len(lazyGlyphs))
+			}
+			if !lazyGlyphs[0].Colored() {
+				t.Error("Colored() must be true for a color glyph")
+			}
+
 			b := g.Image.Bounds()
 			if got, want := b.Dx(), int(tc.size); got < want || got > want+1 {
 				t.Errorf("image width: got: %d, want: %d or %d", got, want, want+1)
@@ -93,6 +101,68 @@ func TestDrawColorGlyph(t *testing.T) {
 			if gotDst != tc.want {
 				t.Errorf("Draw: got: %v, want: %v", gotDst, tc.want)
 			}
+
+			// The text color must not tint a color glyph (#3494).
+			dst.Clear()
+			op := &text.DrawOptions{}
+			op.ColorScale.ScaleWithColor(color.Black)
+			text.Draw(dst, tc.str, face, op)
+			gotDst = dst.At(int(tc.size)/2, int(m.HAscent)-int(tc.size)/2)
+			if gotDst != tc.want {
+				t.Errorf("Draw with a black color scale: got: %v, want: %v", gotDst, tc.want)
+			}
+
+			// The alpha of the color scale must still apply to a color glyph.
+			dst.Clear()
+			op = &text.DrawOptions{}
+			op.ColorScale.ScaleAlpha(0.5)
+			text.Draw(dst, tc.str, face, op)
+			gotDst = dst.At(int(tc.size)/2, int(m.HAscent)-int(tc.size)/2)
+			wantAlpha := color.RGBA{
+				R: uint8(int(tc.want.R) / 2),
+				G: uint8(int(tc.want.G) / 2),
+				B: uint8(int(tc.want.B) / 2),
+				A: uint8(int(tc.want.A) / 2),
+			}
+			if got, ok := gotDst.(color.RGBA); !ok || colorDiff(got, wantAlpha) > 1 {
+				t.Errorf("Draw with a half alpha: got: %v, want: %v", gotDst, wantAlpha)
+			}
 		})
 	}
+}
+
+func TestLazyGlyphColoredGrayscale(t *testing.T) {
+	f, err := os.Open(filepath.Join("testdata", "Roboto-Regular.ttf"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		_ = f.Close()
+	}()
+
+	src, err := text.NewGoTextFaceSource(f)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	face := &text.GoTextFace{
+		Source: src,
+		Size:   16,
+	}
+	for _, g := range text.AppendLazyGlyphs(nil, "Sushi", face, nil) {
+		if g.Colored() {
+			t.Errorf("Colored() must be false for a grayscale glyph (GID: %d)", g.GID)
+		}
+	}
+}
+
+// colorDiff returns the maximum difference among the RGBA components.
+func colorDiff(a, b color.RGBA) int {
+	diff := func(x, y uint8) int {
+		if x > y {
+			return int(x - y)
+		}
+		return int(y - x)
+	}
+	return max(diff(a.R, b.R), diff(a.G, b.G), diff(a.B, b.B), diff(a.A, b.A))
 }

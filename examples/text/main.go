@@ -17,8 +17,10 @@ package main
 import (
 	"bytes"
 	"image/color"
+	"io"
 	"log"
 	"math"
+	"net/http"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
@@ -36,10 +38,22 @@ const (
 const sampleText = `  The quick brown fox jumps
 over the lazy dog.`
 
+const emojiSampleText = "Sushi🍣"
+
+// emojiFontURL is a URL of Noto Color Emoji, a color emoji font using COLRv1 and SVG glyph data.
+// The license is the SIL Open Font License, Version 1.1:
+//
+// https://fonts.google.com/noto/specimen/Noto+Color+Emoji
+// Copyright 2022 Google Inc.
+const emojiFontURL = "https://res.ebitengine.org/examples/NotoColorEmoji-Regular.ttf"
+
 var (
 	mplusFaceSource *text.GoTextFaceSource
 	mplusNormalFace *text.GoTextFace
 	mplusBigFace    *text.GoTextFace
+
+	// textWithEmojiFaceCh receives a face combining M+ and Noto Color Emoji.
+	textWithEmojiFaceCh = make(chan text.Face, 1)
 )
 
 func init() {
@@ -60,8 +74,9 @@ func init() {
 }
 
 type Game struct {
-	glyphs      []text.LazyGlyph
-	showOrigins bool
+	glyphs            []text.LazyGlyph
+	showOrigins       bool
+	textWithEmojiFace text.Face
 }
 
 func (g *Game) Update() error {
@@ -70,6 +85,12 @@ func (g *Game) Update() error {
 		op := &text.LayoutOptions{}
 		op.LineSpacing = mplusNormalFace.Size * 1.5
 		g.glyphs = text.AppendLazyGlyphs(g.glyphs, sampleText, mplusNormalFace, op)
+	}
+	if g.textWithEmojiFace == nil {
+		select {
+		case g.textWithEmojiFace = <-textWithEmojiFaceCh:
+		default:
+		}
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyO) {
 		g.showOrigins = !g.showOrigins
@@ -99,6 +120,24 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		op.GeoM.Translate(x, y)
 		op.LineSpacing = mplusBigFace.Size * 1.5
 		text.Draw(screen, sampleText, mplusBigFace, op)
+	}
+	{
+		const x, y = screenWidth - 20, 20
+		str := emojiSampleText
+		face := g.textWithEmojiFace
+		if face == nil {
+			str = "Loading an Emoji font..."
+			face = mplusNormalFace
+		}
+		w, h := text.Measure(str, face, 0)
+		vector.FillRect(screen, float32(x)-float32(w), y, float32(w), float32(h), gray, false)
+		op := &text.DrawOptions{}
+		op.GeoM.Translate(x, y)
+		op.PrimaryAlign = text.AlignEnd
+		// The color scale scales the text color, except for color glyphs like emojis,
+		// to which only the alpha is applied. The emoji keeps its own colors.
+		op.ColorScale.ScaleWithColor(color.Black)
+		text.Draw(screen, str, face, op)
 	}
 	{
 		const x, y = 20, 220
@@ -173,6 +212,32 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 }
 
 func main() {
+	// Downloading the emoji font might take time, so download it in parallel.
+	// The text with the emoji is rendered after the download is done.
+	go func() {
+		res, err := http.Get(emojiFontURL)
+		if err != nil {
+			log.Fatal(err)
+		}
+		fontData, err := io.ReadAll(res.Body)
+		_ = res.Body.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
+		emojiFaceSource, err := text.NewGoTextFaceSource(bytes.NewReader(fontData))
+		if err != nil {
+			log.Fatal(err)
+		}
+		f, err := text.NewMultiFace(mplusNormalFace, &text.GoTextFace{
+			Source: emojiFaceSource,
+			Size:   mplusNormalFace.Size,
+		})
+		if err != nil {
+			log.Fatal(err)
+		}
+		textWithEmojiFaceCh <- f
+	}()
+
 	ebiten.SetWindowSize(screenWidth, screenHeight)
 	ebiten.SetWindowTitle("Text (Ebitengine Demo)")
 	if err := ebiten.RunGame(&Game{}); err != nil {

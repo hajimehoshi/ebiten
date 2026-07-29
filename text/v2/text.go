@@ -279,11 +279,22 @@ func (g LazyGlyph) Image() *ebiten.Image {
 	return g.imager.glyphImage(g.imageIndex)
 }
 
+// Colored reports whether the image returned by [LazyGlyph.Image] is colored
+// like a color emoji, rather than grayscale.
+func (g LazyGlyph) Colored() bool {
+	if g.imager == nil {
+		return false
+	}
+	return g.imager.glyphColored(g.imageIndex)
+}
+
 // glyphImager produces the rasterized image for a glyph identified by its
-// index within a face-specific args slice. Implementations are allocated
-// once per face per call to appendLazyGlyphsForLine.
+// index within a face-specific args slice, and reports whether the glyph is
+// colored without rasterizing it. Implementations are allocated once per
+// face per call to appendLazyGlyphsForLine.
 type glyphImager interface {
 	glyphImage(index int) *ebiten.Image
+	glyphColored(index int) bool
 }
 
 // Advance returns the advanced distance from the origin position when rendering the given text with the given face.

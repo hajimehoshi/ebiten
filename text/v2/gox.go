@@ -288,6 +288,12 @@ func (im *goXLineImager) glyphImage(index int) *ebiten.Image {
 	})
 }
 
+// glyphColored implements glyphImager. A GoXFace glyph is always a
+// grayscale mask.
+func (im *goXLineImager) glyphColored(index int) bool {
+	return false
+}
+
 // goXGlyphImageInfo returns the image bounds in layout space and the
 // per-glyph args needed to realize the image. The bounds are computed
 // without rasterizing. hasImage is false for runes that produce no image;

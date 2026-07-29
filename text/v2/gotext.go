@@ -418,6 +418,11 @@ func (im *goTextLineImager) glyphImage(index int) *ebiten.Image {
 	})
 }
 
+// glyphColored implements glyphImager.
+func (im *goTextLineImager) glyphColored(index int) bool {
+	return im.args[index].glyph.render.colored()
+}
+
 // goTextGlyphImageInfo returns the image bounds in layout space and the
 // per-glyph args needed to realize the image. The bounds are computed
 // without rasterizing. hasImage is false for glyphs that do not produce

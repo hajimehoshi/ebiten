@@ -34,7 +34,7 @@ const (
 // fontURL is a URL of Noto Color Emoji, a color emoji font using COLRv1 and SVG glyph data.
 // The license is the SIL Open Font License, Version 1.1:
 //
-// https://github.com/googlefonts/noto-emoji
+// https://fonts.google.com/noto/specimen/Noto+Color+Emoji
 // Copyright 2022 Google Inc.
 const fontURL = "https://res.ebitengine.org/examples/NotoColorEmoji-Regular.ttf"
 

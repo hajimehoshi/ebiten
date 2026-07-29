@@ -204,6 +204,10 @@ type glyphRenderData struct {
 	realizedBitmap       image.Image
 	realizedSVG          *svgGlyphData
 	realizedCOLRV0Layers []colrV0Layer
+
+	// realizedBitmapColored is true when realizedBitmap comes from a
+	// color strike (PNG, JPEG, or TIFF) rather than a monochrome mask.
+	realizedBitmapColored bool
 }
 
 // segments returns the scaled outline segments, realizing them on
@@ -218,6 +222,18 @@ func (r *glyphRenderData) segments() []opentype.Segment {
 func (r *glyphRenderData) bitmap() image.Image {
 	r.realizeOnce.Do(r.realize)
 	return r.realizedBitmap
+}
+
+// colored reports whether the glyph renders from a color form, realizing
+// the render data on first call. This doesn't rasterize the glyph image.
+// The actual image can still be grayscale when colored is true, e.g. for
+// an SVG document whose rasterization fails and falls back to the outline.
+func (r *glyphRenderData) colored() bool {
+	r.realizeOnce.Do(r.realize)
+	if r.realizedBitmap != nil {
+		return r.realizedBitmapColored
+	}
+	return r.realizedSVG != nil || len(r.realizedCOLRV0Layers) > 0
 }
 
 // svg returns the OpenType SVG glyph description, realizing it on first
@@ -1180,6 +1196,12 @@ func (g *GoTextFaceSource) realizeRenderData(rd *glyphRenderData) {
 	}
 	if hasRawBitmap {
 		rd.realizedBitmap = scaleBitmapToBounds(decodeBitmapGlyph(rawBitmap), rd.bounds)
+		if rd.realizedBitmap != nil {
+			switch rawBitmap.Format {
+			case font.PNG, font.JPG, font.TIFF:
+				rd.realizedBitmapColored = true
+			}
+		}
 	}
 }
 

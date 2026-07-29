@@ -40,6 +40,9 @@ const (
 // DrawImageOptions.GeoM is an additional geometry transformation
 // after putting the rendering region along with the specified alignments.
 // DrawImageOptions.ColorScale scales the text color.
+// For color glyphs like color emojis, only the alpha of ColorScale is
+// applied and the other components are ignored, so that the glyphs keep
+// their own colors.
 type DrawOptions struct {
 	ebiten.DrawImageOptions
 	LayoutOptions
@@ -78,11 +81,13 @@ var theDrawGlyphsPool = sync.Pool{
 
 // drawGlyphEntry is a realized glyph image plus its destination-space
 // translation, used by [Draw] to defer DrawImage calls until after all glyph
-// images have been rasterized.
+// images have been rasterized. colored is true for a color glyph image,
+// which must not be tinted by the text color.
 type drawGlyphEntry struct {
-	img *ebiten.Image
-	x   float64
-	y   float64
+	img     *ebiten.Image
+	x       float64
+	y       float64
+	colored bool
 }
 
 var theDrawGlyphEntriesPool = sync.Pool{
@@ -175,17 +180,28 @@ func Draw(dst *ebiten.Image, text string, face Face, options *DrawOptions) {
 			continue
 		}
 		*entries = append(*entries, drawGlyphEntry{
-			img: img,
-			x:   float64(g.ImageBounds.Min.X),
-			y:   float64(g.ImageBounds.Min.Y),
+			img:     img,
+			x:       float64(g.ImageBounds.Min.X),
+			y:       float64(g.ImageBounds.Min.Y),
+			colored: g.Colored(),
 		})
 	}
 
+	// A color glyph must not be tinted by the text color, so only the
+	// alpha of the color scale is applied to it (see DrawOptions).
+	coloredOp := drawOp
+	coloredOp.ColorScale.Reset()
+	coloredOp.ColorScale.ScaleAlpha(drawOp.ColorScale.A())
+
 	for _, e := range *entries {
-		drawOp.GeoM.Reset()
-		drawOp.GeoM.Translate(e.x, e.y)
-		drawOp.GeoM.Concat(geoM)
-		dst.DrawImage(e.img, &drawOp)
+		op := &drawOp
+		if e.colored {
+			op = &coloredOp
+		}
+		op.GeoM.Reset()
+		op.GeoM.Translate(e.x, e.y)
+		op.GeoM.Concat(geoM)
+		dst.DrawImage(e.img, op)
 	}
 }
 
