@@ -147,6 +147,10 @@ type Glyph struct {
 	// Image can be nil.
 	Image *ebiten.Image
 
+	// Colored reports whether Image is colored like a color emoji, rather
+	// than grayscale.
+	Colored bool
+
 	// X is the X position to render this glyph.
 	// The position is determined in a sequence of characters given at AppendGlyphs.
 	// The position's origin is the first character's origin position.

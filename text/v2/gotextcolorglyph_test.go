@@ -74,6 +74,9 @@ func TestDrawColorGlyph(t *testing.T) {
 			if g.Image == nil {
 				t.Fatal("g.Image is nil")
 			}
+			if !g.Colored {
+				t.Error("Colored must be true for a color glyph")
+			}
 
 			lazyGlyphs := text.AppendLazyGlyphs(nil, tc.str, face, nil)
 			if len(lazyGlyphs) != 1 {
@@ -131,7 +134,7 @@ func TestDrawColorGlyph(t *testing.T) {
 	}
 }
 
-func TestLazyGlyphColoredGrayscale(t *testing.T) {
+func TestGlyphColoredGrayscale(t *testing.T) {
 	f, err := os.Open(filepath.Join("testdata", "Roboto-Regular.ttf"))
 	if err != nil {
 		t.Fatal(err)
@@ -148,6 +151,11 @@ func TestLazyGlyphColoredGrayscale(t *testing.T) {
 	face := &text.GoTextFace{
 		Source: src,
 		Size:   16,
+	}
+	for _, g := range text.AppendGlyphs(nil, "Sushi", face, nil) {
+		if g.Colored {
+			t.Errorf("Colored must be false for a grayscale glyph (GID: %d)", g.GID)
+		}
 	}
 	for _, g := range text.AppendLazyGlyphs(nil, "Sushi", face, nil) {
 		if g.Colored() {

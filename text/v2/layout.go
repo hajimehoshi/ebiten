@@ -308,6 +308,7 @@ func AppendGlyphs(glyphs []Glyph, text string, face Face, options *LayoutOptions
 				EndIndexInBytes:   lg.EndIndexInBytes,
 				GID:               lg.GID,
 				Image:             lg.Image(),
+				Colored:           lg.Colored(),
 				X:                 float64(lg.ImageBounds.Min.X),
 				Y:                 float64(lg.ImageBounds.Min.Y),
 				OriginX:           lg.OriginX,
