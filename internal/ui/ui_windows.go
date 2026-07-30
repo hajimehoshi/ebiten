@@ -244,7 +244,7 @@ func (u *glfwBackend) setWindowResizingModeForOS(mode WindowResizingMode) error 
 	return nil
 }
 
-func initializeWindowAfterCreation(w *glfw.Window) error {
+func (u *glfwBackend) initializeWindowAfterCreation(w *glfw.Window) error {
 	return nil
 }
 

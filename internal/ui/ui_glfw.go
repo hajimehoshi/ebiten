@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"image"
 	"math"
-	"os"
 	"runtime"
 	"sync"
 	"time"
@@ -528,7 +527,7 @@ func (u *glfwBackend) createWindow() error {
 		return err
 	}
 
-	if err := initializeWindowAfterCreation(window); err != nil {
+	if err := u.initializeWindowAfterCreation(window); err != nil {
 		return err
 	}
 
@@ -890,13 +889,6 @@ func (u *glfwBackend) initOnMainThread(options *RunOptions) error {
 	}
 	if err := glfw.WindowHint(glfw.MousePassthrough, mousePassthrough); err != nil {
 		return err
-	}
-
-	// Set the window visible explicitly or the application freezes on Wayland (#974).
-	if os.Getenv("WAYLAND_DISPLAY") != "" {
-		if err := glfw.WindowHint(glfw.Visible, glfw.True); err != nil {
-			return err
-		}
 	}
 
 	if err := u.createWindow(); err != nil {

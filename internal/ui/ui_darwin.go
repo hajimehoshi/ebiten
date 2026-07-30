@@ -506,7 +506,7 @@ func (u *glfwBackend) setWindowResizingModeForOS(mode WindowResizingMode) error 
 	return nil
 }
 
-func initializeWindowAfterCreation(w *glfw.Window) error {
+func (u *glfwBackend) initializeWindowAfterCreation(w *glfw.Window) error {
 	// TODO: Register NSWindowWillEnterFullScreenNotification and so on.
 	// Enable resizing temporary before making the window fullscreen.
 	cocoaWindow, err := w.GetCocoaWindow()
