@@ -21,6 +21,7 @@ import (
 	"math"
 	"unsafe"
 
+	"github.com/ebitengine/purego/cstrings"
 	"github.com/ebitengine/purego/objc"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -62,27 +63,25 @@ func (t *textInputImpl) endIfNeeded() {
 }
 
 var (
-	sel_addSubview                 = objc.RegisterName("addSubview:")
-	sel_alloc                      = objc.RegisterName("alloc")
-	sel_contentView                = objc.RegisterName("contentView")
-	sel_convertRectToScreen        = objc.RegisterName("convertRectToScreen:")
-	sel_frame                      = objc.RegisterName("frame")
-	sel_init                       = objc.RegisterName("init")
-	sel_mainWindow                 = objc.RegisterName("mainWindow")
-	sel_makeFirstResponder         = objc.RegisterName("makeFirstResponder:")
-	sel_setFrame                   = objc.RegisterName("setFrame:")
-	sel_sharedApplication          = objc.RegisterName("sharedApplication")
-	sel_window                     = objc.RegisterName("window")
-	sel_string                     = objc.RegisterName("string")
-	sel_UTF8String                 = objc.RegisterName("UTF8String")
-	sel_length                     = objc.RegisterName("length")
-	sel_characterAtIndex           = objc.RegisterName("characterAtIndex:")
-	sel_resignFirstResponder       = objc.RegisterName("resignFirstResponder")
-	sel_isKindOfClass              = objc.RegisterName("isKindOfClass:")
-	sel_array                      = objc.RegisterName("array")
-	sel_lengthOfBytesUsingEncoding = objc.RegisterName("lengthOfBytesUsingEncoding:")
-	sel_inputContext               = objc.RegisterName("inputContext")
-	sel_discardMarkedText          = objc.RegisterName("discardMarkedText")
+	sel_addSubview           = objc.RegisterName("addSubview:")
+	sel_alloc                = objc.RegisterName("alloc")
+	sel_contentView          = objc.RegisterName("contentView")
+	sel_convertRectToScreen  = objc.RegisterName("convertRectToScreen:")
+	sel_frame                = objc.RegisterName("frame")
+	sel_init                 = objc.RegisterName("init")
+	sel_mainWindow           = objc.RegisterName("mainWindow")
+	sel_makeFirstResponder   = objc.RegisterName("makeFirstResponder:")
+	sel_setFrame             = objc.RegisterName("setFrame:")
+	sel_sharedApplication    = objc.RegisterName("sharedApplication")
+	sel_window               = objc.RegisterName("window")
+	sel_string               = objc.RegisterName("string")
+	sel_length               = objc.RegisterName("length")
+	sel_characterAtIndex     = objc.RegisterName("characterAtIndex:")
+	sel_resignFirstResponder = objc.RegisterName("resignFirstResponder")
+	sel_isKindOfClass        = objc.RegisterName("isKindOfClass:")
+	sel_array                = objc.RegisterName("array")
+	sel_inputContext         = objc.RegisterName("inputContext")
+	sel_discardMarkedText    = objc.RegisterName("discardMarkedText")
 
 	class_NSArray            = objc.GetClass("NSArray")
 	class_NSView             = objc.GetClass("NSView")
@@ -99,8 +98,6 @@ func getTextInputClient() objc.ID {
 	}
 	return theTextInputClient
 }
-
-const nsUTF8StringEncoding = 4
 
 const nsNotFound = uint(math.MaxInt)
 
@@ -381,9 +378,7 @@ func setMarkedText(_ objc.ID, _ objc.SEL, str objc.ID, selectedRange nsRange, re
 		str = str.Send(sel_string)
 	}
 
-	utf8Len := str.Send(sel_lengthOfBytesUsingEncoding, nsUTF8StringEncoding)
-	charPtr := str.Send(sel_UTF8String)
-	t := string(unsafe.Slice(*(**byte)(unsafe.Pointer(&charPtr)), utf8Len))
+	t := cstrings.NSStringToString(str)
 
 	startInBytes := convertUTF16CountToByteCount(t, int(selectedRange.location))
 	endInBytes := convertUTF16CountToByteCount(t, int(selectedRange.location+selectedRange.length))
@@ -415,9 +410,7 @@ func insertText(_ objc.ID, _ objc.SEL, str objc.ID, replacementRange nsRange) {
 	//
 	// https://developer.apple.com/documentation/appkit/nstextinputclient/inserttext(_:replacementrange:)?language=objc
 
-	utf8Len := str.Send(sel_lengthOfBytesUsingEncoding, nsUTF8StringEncoding)
-	charPtr := str.Send(sel_UTF8String)
-	t := string(unsafe.Slice(*(**byte)(unsafe.Pointer(&charPtr)), utf8Len))
+	t := cstrings.NSStringToString(str)
 
 	replStartInBytes, replEndInBytes := noReplacement, noReplacement
 	withIMEView(func(v lineView) {

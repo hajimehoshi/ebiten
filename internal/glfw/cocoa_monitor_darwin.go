@@ -10,6 +10,7 @@ import (
 	"math"
 	"unsafe"
 
+	"github.com/ebitengine/purego/cstrings"
 	"github.com/ebitengine/purego/objc"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/cocoa"
@@ -164,20 +165,8 @@ func getMonitorNameNS(displayID uint32) string {
 		//       display replacement on machines with automatic graphics switching
 		if cgDisplayUnitNumber(sid) == cgDisplayUnitNumber(displayID) {
 			if screen.Send(objc.RegisterName("respondsToSelector:"), sel_localizedName) != 0 {
-				nameID := screen.Send(sel_localizedName)
-				if nameID != 0 {
-					utf8Ptr := nameID.Send(sel_UTF8String)
-					if utf8Ptr != 0 {
-						// Use lengthOfBytesUsingEncoding: to get the UTF-8 byte count.
-						// NSString.length returns UTF-16 code units which differs for non-ASCII.
-						length := int(nameID.Send(sel_lengthOfBytesUsingEncoding, NSUTF8StringEncoding))
-						if length > 0 {
-							// Copy the string to avoid dangling pointer
-							// when the NSString is released.
-							src := unsafe.String((*byte)(unsafe.Pointer(utf8Ptr)), length)
-							return string([]byte(src))
-						}
-					}
+				if name := cstrings.NSStringToString(screen.Send(sel_localizedName)); name != "" {
+					return name
 				}
 			}
 			break

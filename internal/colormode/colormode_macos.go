@@ -17,28 +17,18 @@
 package colormode
 
 import (
-	"bytes"
-	"unsafe"
+	"strings"
 
+	"github.com/ebitengine/purego/cstrings"
 	"github.com/ebitengine/purego/objc"
 )
 
 var (
 	idNSApplication = objc.ID(objc.GetClass("NSApplication"))
 
-	sel_effectiveAppearance        = objc.RegisterName("effectiveAppearance")
-	sel_lengthOfBytesUsingEncoding = objc.RegisterName("lengthOfBytesUsingEncoding:")
-	sel_name                       = objc.RegisterName("name")
-	sel_sharedApplication          = objc.RegisterName("sharedApplication")
-	sel_UTF8String                 = objc.RegisterName("UTF8String")
-)
-
-const (
-	nsUTF8StringEncoding = 4
-)
-
-var (
-	bytesDark = []byte("Dark")
+	sel_effectiveAppearance = objc.RegisterName("effectiveAppearance")
+	sel_name                = objc.RegisterName("name")
+	sel_sharedApplication   = objc.RegisterName("sharedApplication")
 )
 
 func systemColorMode() ColorMode {
@@ -48,9 +38,9 @@ func systemColorMode() ColorMode {
 	// * https://developer.apple.com/documentation/appkit/nsapplication/effectiveappearance?language=objc
 	// * https://go.dev/wiki/MinimumRequirements
 	objcName := idNSApplication.Send(sel_sharedApplication).Send(sel_effectiveAppearance).Send(sel_name)
-	name := unsafe.Slice((*byte)(unsafe.Pointer(objcName.Send(sel_UTF8String))), objcName.Send(sel_lengthOfBytesUsingEncoding, nsUTF8StringEncoding))
+	name := cstrings.NSStringToString(objcName)
 	// https://developer.apple.com/documentation/appkit/nsappearance/name-swift.struct?language=objc
-	if bytes.Contains(name, bytesDark) {
+	if strings.Contains(name, "Dark") {
 		return Dark
 	}
 	return Light

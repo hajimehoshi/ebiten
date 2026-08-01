@@ -19,6 +19,7 @@ import (
 	"unsafe"
 
 	"github.com/ebitengine/purego"
+	"github.com/ebitengine/purego/cstrings"
 	"github.com/ebitengine/purego/objc"
 )
 
@@ -116,7 +117,6 @@ var (
 	sel_physicalInputProfile                       objc.SEL
 	sel_respondsToSelector                         objc.SEL
 	sel_isEqualToString                            objc.SEL
-	sel_UTF8String                                 objc.SEL
 	sel_leftThumbstick                             objc.SEL
 	sel_rightThumbstick                            objc.SEL
 	sel_leftThumbstickButton                       objc.SEL
@@ -184,7 +184,6 @@ func init() {
 	sel_physicalInputProfile = objc.RegisterName("physicalInputProfile")
 	sel_respondsToSelector = objc.RegisterName("respondsToSelector:")
 	sel_isEqualToString = objc.RegisterName("isEqualToString:")
-	sel_UTF8String = objc.RegisterName("UTF8String")
 	sel_leftThumbstick = objc.RegisterName("leftThumbstick")
 	sel_rightThumbstick = objc.RegisterName("rightThumbstick")
 	sel_leftThumbstickButton = objc.RegisterName("leftThumbstickButton")
@@ -251,24 +250,6 @@ func init() {
 	gcInputXboxShareButton = objc.ID(classNSString).Send(sel_alloc).Send(sel_initWithUTF8String, "Button Share\x00")
 }
 
-// nsStringToGoString converts an ObjC NSString to a Go string.
-func nsStringToGoString(nsStr objc.ID) string {
-	if nsStr == 0 {
-		return ""
-	}
-	ptr := nsStr.Send(sel_UTF8String)
-	if ptr == 0 {
-		return ""
-	}
-	// Read a C string from the pointer.
-	cstr := unsafe.Pointer(ptr)
-	length := 0
-	for *(*byte)(unsafe.Add(cstr, length)) != 0 {
-		length++
-	}
-	return string(unsafe.Slice((*byte)(cstr), length))
-}
-
 // nsStringEquals checks if an NSString equals a Go string.
 func nsStringEquals(nsStr objc.ID, s string) bool {
 	if nsStr == 0 {
@@ -285,10 +266,7 @@ func getControllerPropertyFromController(controller objc.ID) controllerProperty 
 	var prop controllerProperty
 
 	// Get controller name.
-	vendorNameStr := controller.Send(sel_vendorName)
-	if vendorNameStr != 0 {
-		prop.name = nsStringToGoString(vendorNameStr)
-	}
+	prop.name = cstrings.NSStringToString(controller.Send(sel_vendorName))
 	if prop.name == "" {
 		prop.name = "MFi Gamepad"
 	}

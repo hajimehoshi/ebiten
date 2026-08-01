@@ -30,11 +30,6 @@ const (
 	kCFNumberIntType             = 9
 )
 
-// NSString encoding constants.
-const (
-	NSUTF8StringEncoding = 4
-)
-
 // NSApplication constants.
 const (
 	_NSApplicationActivationPolicyRegular = 0
@@ -462,15 +457,13 @@ var (
 	sel_clearColor = objc.RegisterName("clearColor")
 
 	// NSArray selectors
-	sel_arrayWithObject            = objc.RegisterName("arrayWithObject:")
-	sel_count                      = objc.RegisterName("count")
-	sel_objectAtIndex              = objc.RegisterName("objectAtIndex:")
-	sel_objectForKey               = objc.RegisterName("objectForKey:")
-	sel_unsignedIntValue           = objc.RegisterName("unsignedIntValue")
-	sel_localizedName              = objc.RegisterName("localizedName")
-	sel_UTF8String                 = objc.RegisterName("UTF8String")
-	sel_length                     = objc.RegisterName("length")
-	sel_lengthOfBytesUsingEncoding = objc.RegisterName("lengthOfBytesUsingEncoding:")
+	sel_arrayWithObject  = objc.RegisterName("arrayWithObject:")
+	sel_count            = objc.RegisterName("count")
+	sel_objectAtIndex    = objc.RegisterName("objectAtIndex:")
+	sel_objectForKey     = objc.RegisterName("objectForKey:")
+	sel_unsignedIntValue = objc.RegisterName("unsignedIntValue")
+	sel_localizedName    = objc.RegisterName("localizedName")
+	sel_length           = objc.RegisterName("length")
 
 	// Drag and drop selectors
 	sel_draggingPasteboard            = objc.RegisterName("draggingPasteboard")

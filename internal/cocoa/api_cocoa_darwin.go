@@ -16,9 +16,9 @@ package cocoa
 
 import (
 	"fmt"
-	"unsafe"
 
 	"github.com/ebitengine/purego"
+	"github.com/ebitengine/purego/cstrings"
 	"github.com/ebitengine/purego/objc"
 )
 
@@ -68,8 +68,6 @@ var (
 	sel_new                                        = objc.RegisterName("new")
 	sel_release                                    = objc.RegisterName("release")
 	sel_initWithUTF8String                         = objc.RegisterName("initWithUTF8String:")
-	sel_UTF8String                                 = objc.RegisterName("UTF8String")
-	sel_lengthOfBytesUsingEncoding                 = objc.RegisterName("lengthOfBytesUsingEncoding:")
 	sel_frame                                      = objc.RegisterName("frame")
 	sel_contentView                                = objc.RegisterName("contentView")
 	sel_setBackgroundColor                         = objc.RegisterName("setBackgroundColor:")
@@ -248,11 +246,7 @@ func (s NSString) InitWithUTF8String(utf8 string) NSString {
 }
 
 func (s NSString) String() string {
-	// Use lengthOfBytesUsingEncoding: with NSUTF8StringEncoding (4) to get the
-	// correct UTF-8 byte count. NSString.length returns UTF-16 code units which
-	// differs from UTF-8 byte count for non-ASCII characters.
-	length := s.Send(sel_lengthOfBytesUsingEncoding, 4)
-	return string(unsafe.Slice((*byte)(unsafe.Pointer(s.Send(sel_UTF8String))), length))
+	return cstrings.NSStringToString(s.ID)
 }
 
 type NSNotification struct {
