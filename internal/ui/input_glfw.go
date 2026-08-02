@@ -213,6 +213,12 @@ func (u *glfwBackend) KeyName(key Key) string {
 // Needed on macOS to recover from text-input intercepts (e.g. Cmd+A) and
 // system hotkey absorption (e.g. Cmd+Shift+4). macOS-only: on Windows,
 // AltGr would make Ctrl appear stuck (#3453).
+//
+// TODO: Revisit how modifier keys are tracked once modifiers get their own type
+// (#3498). This reconciliation exists because modifier state is derived from the
+// per-key press and release times, which the OS does not always deliver. If
+// IsModifierPressed reads the mods bitmask directly instead, this may become
+// unnecessary.
 func (i *InputState) syncModKeysByMods(mods glfw.ModifierKey, t InputTime) {
 	type modMapping struct {
 		mod   glfw.ModifierKey
