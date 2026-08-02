@@ -1,0 +1,40 @@
+name: Test FreeBSD
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    name: Test on FreeBSD
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Git
+        run: |
+          # See actions/checkout#135
+          git config --global core.autocrlf false
+          git config --global core.eol lf
+
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Test
+        uses: vmactions/freebsd-vm@v1
+        with:
+          usesh: true
+          cache-after-prepare: true
+          prepare: |
+            pkg install -y go pkgconf mesa-libs alsa-lib xorg-vfbserver \
+              libX11 libXcursor libXext libXi libXinerama libXrandr libXrender
+          run: |
+            set -e
+            go version
+            # Xvfb comes from xorg-vfbserver. Its output has to go somewhere
+            # other than the session's stdout: a background process still
+            # holding stdout keeps the ssh command from returning, and the job
+            # hangs until it times out. A file rather than /dev/null, so the
+            # reason is recoverable if the X server ever fails to start.
+            export DISPLAY=:99.0
+            Xvfb :99 -screen 0 1024x768x24 > /tmp/xvfb.log 2>&1 &
+            sleep 3
+            go build -v ./...
+            go test -shuffle=on -p=1 ./...
