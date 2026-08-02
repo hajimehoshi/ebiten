@@ -1293,10 +1293,7 @@ func (u *glfwBackend) updateGame() error {
 		if d := unfocusedSleepDuration(t2.Sub(t1), u.unfocusedSleepOverhead); d > 0 {
 			t := time.Now()
 			time.Sleep(d)
-			u.unfocusedSleepOverhead = time.Since(t) - d
-			if u.unfocusedSleepOverhead < 0 {
-				u.unfocusedSleepOverhead = 0
-			}
+			u.unfocusedSleepOverhead = max(time.Since(t)-d, 0)
 		} else {
 			u.unfocusedSleepOverhead = 0
 		}
@@ -1309,10 +1306,7 @@ func (u *glfwBackend) updateGame() error {
 
 func unfocusedSleepDuration(elapsed, sleepOverhead time.Duration) time.Duration {
 	const wait = time.Second / 60
-	if elapsed+sleepOverhead >= wait {
-		return 0
-	}
-	return wait - elapsed - sleepOverhead
+	return max(wait-elapsed-sleepOverhead, 0)
 }
 
 func (u *glfwBackend) updateIconIfNeeded() error {

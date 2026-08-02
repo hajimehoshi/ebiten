@@ -45,12 +45,27 @@ func TestUnfocusedSleepDuration(t *testing.T) {
 			want:          wait - 3*time.Millisecond,
 		},
 		{
-			name:    "at wait",
-			elapsed: wait,
+			name:          "elapsed and overhead exactly at wait",
+			elapsed:       wait - time.Millisecond,
+			sleepOverhead: time.Millisecond,
 		},
 		{
 			name:    "over wait",
 			elapsed: wait + time.Millisecond,
+		},
+		{
+			name:          "overhead larger than wait",
+			sleepOverhead: wait + time.Millisecond,
+		},
+		{
+			name:    "negative elapsed",
+			elapsed: -time.Millisecond,
+			want:    wait + time.Millisecond,
+		},
+		{
+			name:          "negative overhead",
+			sleepOverhead: -time.Millisecond,
+			want:          wait + time.Millisecond,
 		},
 	}
 	for _, tt := range tests {
