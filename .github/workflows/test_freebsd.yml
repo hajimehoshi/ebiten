@@ -38,7 +38,17 @@ jobs:
             # go vet
             # FreeBSD compiles the same *_linbsd.go sources as Linux, so the
             # Linux block list applies here too.
-            go list ./... ./skills/run-ebitengine-app-headless/_driver | grep -v -x -F -f .github/workflows/govetblock_linux.txt | xargs go vet
+            # DIAGNOSTIC: does the block list actually filter here?
+            ls -l .github/workflows/govetblock_linux.txt
+            od -c .github/workflows/govetblock_linux.txt | head -5
+            go list ./... ./skills/run-ebitengine-app-headless/_driver > /tmp/pkgs.txt
+            echo "all packages: $(wc -l < /tmp/pkgs.txt)"
+            grep -n "internal/glfw$\|internal/ui$" /tmp/pkgs.txt || true
+            grep -v -x -F -f .github/workflows/govetblock_linux.txt /tmp/pkgs.txt > /tmp/pkgs_vet.txt || true
+            echo "after block list: $(wc -l < /tmp/pkgs_vet.txt)"
+            echo "still present after filter:"
+            grep -n "internal/glfw$\|internal/ui$" /tmp/pkgs_vet.txt || echo "  (none - filter works)"
+            xargs go vet < /tmp/pkgs_vet.txt
             go install ./internal/vettools
             go vet -vettool=$(which vettools) -v ./... ./skills/run-ebitengine-app-headless/_driver
 
