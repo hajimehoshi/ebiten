@@ -1,0 +1,83 @@
+name: Test FreeBSD
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        go: ['1.25', '1.26']
+    name: Test with Go ${{ matrix.go }} on FreeBSD
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Git
+        run: |
+          # See actions/checkout#135
+          git config --global core.autocrlf false
+          git config --global core.eol lf
+
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Resolve the Go version
+        id: go
+        run: |
+          set -eux
+          version=$(curl -fsSL 'https://go.dev/dl/?mode=json' \
+            | jq -r --arg prefix 'go${{ matrix.go }}.' \
+                '[.[] | select(.version | startswith($prefix))][0].version')
+          test -n "$version" && test "$version" != null
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Test
+        uses: vmactions/freebsd-vm@v1
+        with:
+          usesh: true
+          cache-after-prepare: true
+          prepare: |
+            fetch https://go.dev/dl/${{ steps.go.outputs.version }}.freebsd-amd64.tar.gz
+            rm -fr /usr/local/go
+            tar -C /usr/local -xf ${{ steps.go.outputs.version }}.freebsd-amd64.tar.gz
+            pkg install -y pkgconf mesa-libs alsa-lib xorg-vfbserver \
+              libX11 libXcursor libXext libXi libXinerama libXrandr libXrender
+          run: |
+            set -eux
+            export PATH=/usr/local/go/bin:$PATH
+            go version
+
+            export PATH="$(go env GOPATH)/bin:$PATH"
+
+            # Xvfb must not hold the session's stdout or the ssh command never returns.
+            export DISPLAY=:99.0
+            Xvfb :99 -screen 0 1024x768x24 > /tmp/xvfb.log 2>&1 &
+            sleep 3
+
+            # go vet
+            go list ./... ./skills/run-ebitengine-app-headless/_driver | grep -v -x -F -f .github/workflows/govetblock_linbsd.txt | xargs go vet
+            go install ./internal/vettools
+            go vet -vettool=$(which vettools) -v ./... ./skills/run-ebitengine-app-headless/_driver
+
+            # go build
+            go build -v ./... ./skills/run-ebitengine-app-headless/_driver
+            # Compile without optimization to check potential stack overflow.
+            # The option '-gcflags=all=-N -l' is often used at Visual Studio Code.
+            # See also https://go.googlesource.com/vscode-go/+/HEAD/docs/debugging.md#launch and the issue #2120.
+            go build "-gcflags=all=-N -l" -v ./...
+            env GOOS=darwin GOARCH=amd64 go build -v ./...
+            env GOOS=darwin GOARCH=arm64 go build -v ./...
+            env GOOS=freebsd GOARCH=arm64 go build "-gcflags=github.com/ebitengine/purego/internal/fakecgo=-std" -v ./...
+            env GOOS=js GOARCH=wasm go build -v ./...
+            env GOOS=linux GOARCH=386 go build -v ./...
+            env GOOS=linux GOARCH=amd64 go build -v ./...
+            env GOOS=linux GOARCH=arm go build -v ./...
+            env GOOS=linux GOARCH=arm64 go build -v ./...
+            env GOOS=netbsd GOARCH=amd64 go build -v ./...
+            env GOOS=netbsd GOARCH=arm64 go build -v ./...
+            env GOOS=windows GOARCH=386 go build -v ./...
+            env GOOS=windows GOARCH=amd64 go build -v ./...
+            env GOOS=windows GOARCH=arm64 go build -v ./...
+
+            # go test
+            go test -shuffle=on -v -p=1 ./...
