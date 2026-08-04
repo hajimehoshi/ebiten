@@ -1280,27 +1280,17 @@ func (u *glfwBackend) updateGame() error {
 	// When a window is not focused or in another space, SwapBuffers might return immediately and CPU might be busy.
 	// Mitigate this by sleeping (#982, #2521).
 	if unfocused {
+		const wait = time.Second / 60
 		now := time.Now()
-		next := nextUnfocusedWake(u.unfocusedNextWake, now)
-		u.unfocusedNextWake = next
-		if d := next.Sub(now); d > 0 {
-			time.Sleep(d)
+		if next := u.unfocusedNextWake.Add(wait); next.After(now) {
+			u.unfocusedNextWake = next
+			time.Sleep(time.Until(next))
+		} else {
+			u.unfocusedNextWake = now
 		}
 	}
 
 	return nil
-}
-
-// nextUnfocusedWake returns the absolute time the next unfocused frame should
-// start. Scheduling against the previous target rather than the elapsed time
-// keeps the cadence at wait even when a frame overshoots, and falling back to
-// now prevents a long stall from making the next frames catch up in a burst.
-func nextUnfocusedWake(lastWake, now time.Time) time.Time {
-	const wait = time.Second / 60
-	if next := lastWake.Add(wait); next.After(now) {
-		return next
-	}
-	return now
 }
 
 func (u *glfwBackend) updateIconIfNeeded() error {
