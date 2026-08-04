@@ -21,57 +21,52 @@ import (
 	"time"
 )
 
-func TestUnfocusedSleepDuration(t *testing.T) {
+func TestNextUnfocusedWake(t *testing.T) {
 	const wait = time.Second / 60
+	base := time.Unix(0, 0)
+
 	tests := []struct {
-		name          string
-		elapsed       time.Duration
-		sleepOverhead time.Duration
-		want          time.Duration
+		name     string
+		lastWake time.Time
+		now      time.Time
+		want     time.Time
 	}{
 		{
-			name: "zero",
-			want: wait,
+			name:     "first frame schedules one interval ahead",
+			lastWake: base,
+			now:      base,
+			want:     base.Add(wait),
 		},
 		{
-			name:    "partial",
-			elapsed: time.Millisecond,
-			want:    wait - time.Millisecond,
+			name:     "target is kept when the frame was quick",
+			lastWake: base,
+			now:      base.Add(wait / 4),
+			want:     base.Add(wait),
 		},
 		{
-			name:          "sleep overhead",
-			elapsed:       time.Millisecond,
-			sleepOverhead: 2 * time.Millisecond,
-			want:          wait - 3*time.Millisecond,
+			name:     "a small overshoot still advances by a whole interval",
+			lastWake: base,
+			now:      base.Add(wait - time.Nanosecond),
+			want:     base.Add(wait),
 		},
 		{
-			name:          "elapsed and overhead exactly at wait",
-			elapsed:       wait - time.Millisecond,
-			sleepOverhead: time.Millisecond,
+			name:     "no catch-up burst after a long stall",
+			lastWake: base,
+			now:      base.Add(10 * wait),
+			want:     base.Add(10 * wait),
 		},
 		{
-			name:    "over wait",
-			elapsed: wait + time.Millisecond,
-		},
-		{
-			name:          "overhead larger than wait",
-			sleepOverhead: wait + time.Millisecond,
-		},
-		{
-			name:    "negative elapsed",
-			elapsed: -time.Millisecond,
-			want:    wait + time.Millisecond,
-		},
-		{
-			name:          "negative overhead",
-			sleepOverhead: -time.Millisecond,
-			want:          wait + time.Millisecond,
+			name:     "exactly on target does not sleep",
+			lastWake: base,
+			now:      base.Add(wait),
+			want:     base.Add(wait),
 		},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := unfocusedSleepDuration(tt.elapsed, tt.sleepOverhead); got != tt.want {
-				t.Errorf("unfocusedSleepDuration(%v, %v) = %v, want %v", tt.elapsed, tt.sleepOverhead, got, tt.want)
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := nextUnfocusedWake(tc.lastWake, tc.now); !got.Equal(tc.want) {
+				t.Errorf("nextUnfocusedWake(%v, %v) = %v, want %v", tc.lastWake, tc.now, got, tc.want)
 			}
 		})
 	}

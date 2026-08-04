@@ -92,7 +92,7 @@ type glfwBackend struct {
 	lastWheelOffsetY float64
 	lastWheelTime    time.Time
 
-	unfocusedSleepOverhead time.Duration
+	unfocusedNextWake time.Time
 
 	closeCallback                  glfw.CloseCallback
 	framebufferSizeCallback        glfw.FramebufferSizeCallback
@@ -1214,8 +1214,6 @@ func (u *glfwBackend) updateGame() error {
 	var unfocused bool
 	var windowHidden bool
 
-	var t1, t2 time.Time
-
 	var outsideWidth, outsideHeight float64
 	var deviceScaleFactor float64
 	var err error
@@ -1269,10 +1267,6 @@ func (u *glfwBackend) updateGame() error {
 		return err
 	}
 
-	if unfocused {
-		t1 = time.Now()
-	}
-
 	if err := u.context.updateFrame(u.graphicsDriver, outsideWidth, outsideHeight, deviceScaleFactor, u.UserInterface, !windowHidden); err != nil {
 		return err
 	}
@@ -1283,30 +1277,30 @@ func (u *glfwBackend) updateGame() error {
 		})
 	})
 
-	if unfocused {
-		t2 = time.Now()
-	}
-
 	// When a window is not focused or in another space, SwapBuffers might return immediately and CPU might be busy.
 	// Mitigate this by sleeping (#982, #2521).
 	if unfocused {
-		if d := unfocusedSleepDuration(t2.Sub(t1), u.unfocusedSleepOverhead); d > 0 {
-			t := time.Now()
+		now := time.Now()
+		next := nextUnfocusedWake(u.unfocusedNextWake, now)
+		u.unfocusedNextWake = next
+		if d := next.Sub(now); d > 0 {
 			time.Sleep(d)
-			u.unfocusedSleepOverhead = max(time.Since(t)-d, 0)
-		} else {
-			u.unfocusedSleepOverhead = 0
 		}
-	} else {
-		u.unfocusedSleepOverhead = 0
 	}
 
 	return nil
 }
 
-func unfocusedSleepDuration(elapsed, sleepOverhead time.Duration) time.Duration {
+// nextUnfocusedWake returns the absolute time the next unfocused frame should
+// start. Scheduling against the previous target rather than the elapsed time
+// keeps the cadence at wait even when a frame overshoots, and falling back to
+// now prevents a long stall from making the next frames catch up in a burst.
+func nextUnfocusedWake(lastWake, now time.Time) time.Time {
 	const wait = time.Second / 60
-	return max(wait-elapsed-sleepOverhead, 0)
+	if next := lastWake.Add(wait); next.After(now) {
+		return next
+	}
+	return now
 }
 
 func (u *glfwBackend) updateIconIfNeeded() error {
