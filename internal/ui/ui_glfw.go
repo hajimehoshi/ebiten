@@ -91,6 +91,8 @@ type glfwBackend struct {
 	lastWheelOffsetY float64
 	lastWheelTime    time.Time
 
+	unfocusedNextWake time.Time
+
 	closeCallback                  glfw.CloseCallback
 	framebufferSizeCallback        glfw.FramebufferSizeCallback
 	defaultFramebufferSizeCallback glfw.FramebufferSizeCallback
@@ -1212,8 +1214,6 @@ func (u *glfwBackend) updateGame() error {
 	var unfocused bool
 	var windowHidden bool
 
-	var t1, t2 time.Time
-
 	var outsideWidth, outsideHeight float64
 	var deviceScaleFactor float64
 	var err error
@@ -1267,10 +1267,6 @@ func (u *glfwBackend) updateGame() error {
 		return err
 	}
 
-	if unfocused {
-		t1 = time.Now()
-	}
-
 	if err := u.context.updateFrame(u.graphicsDriver, outsideWidth, outsideHeight, deviceScaleFactor, u.UserInterface, !windowHidden); err != nil {
 		return err
 	}
@@ -1281,17 +1277,16 @@ func (u *glfwBackend) updateGame() error {
 		})
 	})
 
-	if unfocused {
-		t2 = time.Now()
-	}
-
 	// When a window is not focused or in another space, SwapBuffers might return immediately and CPU might be busy.
 	// Mitigate this by sleeping (#982, #2521).
 	if unfocused {
-		d := t2.Sub(t1)
 		const wait = time.Second / 60
-		if d < wait {
-			time.Sleep(wait - d)
+		now := time.Now()
+		if next := u.unfocusedNextWake.Add(wait); next.After(now) {
+			u.unfocusedNextWake = next
+			time.Sleep(time.Until(next))
+		} else {
+			u.unfocusedNextWake = now
 		}
 	}
 
