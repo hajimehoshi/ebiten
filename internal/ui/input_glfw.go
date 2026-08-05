@@ -87,7 +87,9 @@ func (u *glfwBackend) registerInputCallbacks() error {
 		return err
 	}
 
-	if _, err := u.window.SetCharModsCallback(func(w *glfw.Window, char rune, mods glfw.ModifierKey) {
+	// The character callback skips the characters that are produced with the modifier combinations
+	// the platform treats as shortcuts, like Ctrl+= on X11 (#3502).
+	if _, err := u.window.SetCharCallback(func(w *glfw.Window, char rune) {
 		// As this function is called from GLFW callbacks, the current thread is main.
 		u.m.Lock()
 		defer u.m.Unlock()
