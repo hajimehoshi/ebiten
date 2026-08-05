@@ -35,7 +35,6 @@ var (
 	// with the single key-value shape used by this file.
 	xVaCreateNestedList func(dummy int32, name *byte, value *xPoint, term uintptr) uintptr
 	xSetICValues        func(ic uintptr, name string, value uintptr, term uintptr) uintptr
-	xmbResetIC          func(ic uintptr) uintptr
 )
 
 // ensureX11 loads the libX11 functions on first use and reports whether they
@@ -55,7 +54,6 @@ var ensureX11 = sync.OnceValue(func() bool {
 	purego.RegisterLibFunc(&xFree, lib, "XFree")
 	purego.RegisterLibFunc(&xVaCreateNestedList, lib, "XVaCreateNestedList")
 	purego.RegisterLibFunc(&xSetICValues, lib, "XSetICValues")
-	purego.RegisterLibFunc(&xmbResetIC, lib, "XmbResetIC")
 	return true
 })
 
@@ -83,17 +81,4 @@ func setIMESpotLocation(ic uintptr, x, y int) {
 	}
 	xSetICValues(ic, "preeditAttributes", list, 0)
 	xFree(list)
-}
-
-// discardIMEComposition discards the composition the input method holds for
-// the given X input context, if any.
-//
-// discardIMEComposition must be called from the main thread.
-func discardIMEComposition(ic uintptr) {
-	if ic == 0 || !ensureX11() {
-		return
-	}
-	if result := xmbResetIC(ic); result != 0 {
-		xFree(result)
-	}
 }

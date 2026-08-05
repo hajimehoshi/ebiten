@@ -57,8 +57,21 @@ func (s *TextInputEvents) ClearQueue() {
 	s.clearQueue()
 }
 
-func (s *TextInputEvents) Send(state TextInputState) {
-	s.send(state)
+func (s *TextInputEvents) Send(state TextInputState) bool {
+	return s.send(state)
+}
+
+// StartSessionCommit starts a session on a freshly opened channel, as the
+// platform start() does (flushing any queued states), pumps one Update, and
+// reports the committed text and whether a commit arrived.
+func (s *TextInputEvents) StartSessionCommit() (string, bool) {
+	ch, end := s.start()
+	sess := &session{ch: ch, end: end}
+	_ = sess.Update()
+	if !sess.IsCommitted() {
+		return "", false
+	}
+	return sess.Commit().text, true
 }
 
 // StartSessionCompositing starts a session on a freshly opened channel, as the

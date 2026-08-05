@@ -318,6 +318,11 @@ type textInputEvents struct {
 
 	queuedStates []textInputState
 
+	// sessionCommitted reports whether a commit has already been delivered to
+	// the open session. A session ends at its first commit, so whatever is
+	// queued behind that commit is for the next one.
+	sessionCommitted bool
+
 	m sync.Mutex
 
 	// activeSession is the public-facing session currently driving these
@@ -364,6 +369,7 @@ func (s *textInputEvents) start() (ch chan textInputState, endFunc func()) {
 		s.ch = make(chan textInputState, 10)
 		s.done = make(chan struct{})
 	}
+	s.sessionCommitted = false
 	s.flushStateQueue()
 	return s.ch, s.end
 }
@@ -389,16 +395,17 @@ func (s *textInputEvents) end() {
 	s.done = nil
 }
 
-func (s *textInputEvents) send(state textInputState) {
+// send hands state to the open session, or queues it for the next one, and
+// reports whether the session took it.
+func (s *textInputEvents) send(state textInputState) bool {
 	s.m.Lock()
 	defer s.m.Unlock()
 
-	if s.ch != nil {
-		s.flushStateQueue()
-		s.doSend(state)
-	} else {
-		s.queuedStates = append(s.queuedStates, state)
-	}
+	// Queueing first keeps states in the order they were reported, as an
+	// earlier one may still be queued behind a commit.
+	s.queuedStates = append(s.queuedStates, state)
+	s.flushStateQueue()
+	return len(s.queuedStates) == 0
 }
 
 func (s *textInputEvents) doSend(state textInputState) {
@@ -429,9 +436,21 @@ func (s *textInputEvents) clearQueue() {
 	s.queuedStates = s.queuedStates[:0]
 }
 
+// flushStateQueue delivers queued states to the open session, stopping at the
+// commit that ends it. A session reports at most one commit, so anything
+// queued behind that commit stays for the next session rather than being
+// delivered to a channel that is about to close.
 func (s *textInputEvents) flushStateQueue() {
+	var sent int
 	for _, st := range s.queuedStates {
+		if s.ch == nil || s.sessionCommitted {
+			break
+		}
 		s.doSend(st)
+		sent++
+		if st.CommitKind.committed() {
+			s.sessionCommitted = true
+		}
 	}
-	s.queuedStates = slices.Delete(s.queuedStates, 0, len(s.queuedStates))
+	s.queuedStates = slices.Delete(s.queuedStates, 0, sent)
 }

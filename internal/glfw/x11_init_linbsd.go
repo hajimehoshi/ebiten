@@ -527,26 +527,38 @@ func createKeyTables() {
 	xFree(keysymsPtr)
 }
 
-// hasUsableInputMethodStyle reports whether the IM has a usable style.
-func hasUsableInputMethodStyle() bool {
-	found := false
+// usableInputMethodStyle returns the input style to create input contexts
+// with, preferring on-the-spot over over-the-spot, and reports whether the IM
+// supports either.
+func usableInputMethodStyle() (_XIMStyle, bool) {
 	var stylesPtr uintptr
 
 	if xGetIMValues(_glfw.platformWindow.im, "queryInputStyle", &stylesPtr, 0) != 0 {
-		return false
+		return 0, false
 	}
 
+	var onTheSpot, overTheSpot bool
 	styles := (*_XIMStyles)(unsafe.Pointer(stylesPtr))
 	supportedStyles := unsafe.Slice((*_XIMStyle)(unsafe.Pointer(styles.SupportedStyles)), int(styles.CountStyles))
 	for _, style := range supportedStyles {
-		if style == _XIMPreeditNothing|_XIMStatusNothing {
-			found = true
-			break
+		switch style {
+		case _XIMPreeditCallbacks | _XIMStatusNothing:
+			onTheSpot = true
+		case _XIMPreeditNothing | _XIMStatusNothing:
+			overTheSpot = true
 		}
 	}
 
 	xFree(stylesPtr)
-	return found
+
+	switch {
+	case onTheSpot:
+		return _XIMPreeditCallbacks | _XIMStatusNothing, true
+	case overTheSpot:
+		return _XIMPreeditNothing | _XIMStatusNothing, true
+	default:
+		return 0, false
+	}
 }
 
 // getAtomIfSupported returns the atom with the specified name if it is
@@ -1062,7 +1074,10 @@ func platformInit() error {
 
 		_glfw.platformWindow.im = xOpenIM(_glfw.platformWindow.display, 0, 0, 0)
 		if _glfw.platformWindow.im != 0 {
-			if !hasUsableInputMethodStyle() {
+			style, ok := usableInputMethodStyle()
+			if ok {
+				_glfw.platformWindow.imStyle = style
+			} else {
 				xCloseIM(_glfw.platformWindow.im)
 				_glfw.platformWindow.im = 0
 			}

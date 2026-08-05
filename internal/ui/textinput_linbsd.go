@@ -16,6 +16,10 @@
 
 package ui
 
+import (
+	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
+)
+
 // X11InputContextOnMainThread is called from the main thread.
 // The textinput package invokes X11InputContextOnMainThread to get the
 // window's X input context (XIC), which is 0 when no input method is
@@ -26,4 +30,34 @@ func (u *UserInterface) X11InputContextOnMainThread() uintptr {
 		return 0
 	}
 	return ic
+}
+
+// ResetX11InputContextOnMainThread discards the composition the input method
+// holds for the window.
+//
+// ResetX11InputContextOnMainThread must be called from the main thread.
+func (u *UserInterface) ResetX11InputContextOnMainThread() {
+	_ = u.runningBackend().(*glfwBackend).window.ResetInputContext()
+}
+
+// SetX11TextInputHandlersOnMainThread registers the handlers the textinput
+// package receives input method events with. onPreedit reports a composition
+// update, where selStartInBytes and selEndInBytes delimit the highlighted part
+// of text, and onCommit reports committed text. Either may be nil.
+//
+// The handlers are called from the main thread while events are processed.
+//
+// SetX11TextInputHandlersOnMainThread must be called from the main thread.
+func (u *UserInterface) SetX11TextInputHandlersOnMainThread(onPreedit func(text string, selStartInBytes, selEndInBytes int), onCommit func(text string)) {
+	w := u.runningBackend().(*glfwBackend).window
+	if onPreedit != nil {
+		_, _ = w.SetPreeditCallback(func(_ *glfw.Window, text string, selStartInBytes, selEndInBytes int) {
+			onPreedit(text, selStartInBytes, selEndInBytes)
+		})
+	}
+	if onCommit != nil {
+		_, _ = w.SetTextInputCallback(func(_ *glfw.Window, text string) {
+			onCommit(text)
+		})
+	}
 }

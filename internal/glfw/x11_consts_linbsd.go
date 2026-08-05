@@ -55,14 +55,40 @@ const (
 
 // Xlib.h
 const (
-	_XIMPreeditNothing = 0x0008
-	_XIMStatusNothing  = 0x0400
+	_XIMPreeditCallbacks = 0x0002
+	_XIMPreeditNothing   = 0x0008
+	_XIMStatusNothing    = 0x0400
 
 	_QueuedAfterReading = 1
 
 	_XBufferOverflow = -1
 	_XLookupChars    = 2
 	_XLookupBoth     = 4
+)
+
+// XIMFeedback values, describing how the input method wants each preedit
+// character rendered. These are the values Xlib passes to a client, which are
+// not the ones the input method protocol puts on the wire.
+const (
+	_XIMReverse   = 1 << 0
+	_XIMUnderline = 1 << 1
+	_XIMHighlight = 1 << 2
+	_XIMPrimary   = 1 << 5
+	_XIMSecondary = 1 << 6
+	_XIMTertiary  = 1 << 7
+)
+
+// XIMCaretDirection values. Only the movements that are meaningful for a
+// composition drawn as a single run of characters are acted on.
+const (
+	_XIMForwardChar      = 0
+	_XIMBackwardChar     = 1
+	_XIMForwardWord      = 2
+	_XIMBackwardWord     = 3
+	_XIMLineStart        = 8
+	_XIMLineEnd          = 9
+	_XIMAbsolutePosition = 10
+	_XIMDontChange       = 11
 )
 
 // XKB.h

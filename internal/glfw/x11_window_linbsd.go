@@ -785,16 +785,7 @@ func createNativeWindow(window *Window, wndconfig *wndconfig, visual uintptr, de
 		return err
 	}
 
-	if _glfw.platformWindow.im != 0 {
-		window.platform.ic = xCreateIC(_glfw.platformWindow.im,
-			"inputStyle",
-			_XIMPreeditNothing|_XIMStatusNothing,
-			"clientWindow",
-			window.platform.handle,
-			"focusWindow",
-			window.platform.handle,
-			0)
-	}
+	window.createInputContext()
 
 	if window.platform.ic != 0 {
 		var filter _Culong
@@ -1290,9 +1281,13 @@ func processEvent(event *_XEvent) error {
 				}
 
 				if status == _XLookupChars || status == _XLookupBoth {
-					for _, codepoint := range string(chars[:count]) {
+					text := string(chars[:count])
+					for _, codepoint := range text {
 						window.inputChar(codepoint, mods, plain)
 					}
+					// The input method commits a whole string at once, so it
+					// is reported as one event rather than per character.
+					window.inputText(text, plain)
 				}
 			}
 		} else {
@@ -1303,6 +1298,7 @@ func processEvent(event *_XEvent) error {
 
 			if codepoint, ok := keySym2Unicode(uint32(keysym)); ok {
 				window.inputChar(codepoint, mods, plain)
+				window.inputText(string(codepoint), plain)
 			}
 		}
 

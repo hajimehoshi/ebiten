@@ -48,8 +48,14 @@ func (w *Window) inputKey(key Key, scancode int, action Action, mods ModifierKey
 	}
 }
 
+// isTextCodepoint reports whether a codepoint is text an application can
+// insert, which excludes the C0 and C1 control characters and delete.
+func isTextCodepoint(codepoint rune) bool {
+	return codepoint >= 32 && (codepoint <= 126 || codepoint >= 160)
+}
+
 func (w *Window) inputChar(codepoint rune, mods ModifierKey, plain bool) {
-	if codepoint < 32 || (codepoint > 126 && codepoint < 160) {
+	if !isTextCodepoint(codepoint) {
 		return
 	}
 

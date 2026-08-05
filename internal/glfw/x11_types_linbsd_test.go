@@ -353,6 +353,23 @@ func TestXlibStructLayouts(t *testing.T) {
 		{"XIRawEvent.Valuators", unsafe.Offsetof(glfw.XIRawEvent{}.Valuators), 64},
 		{"XIRawEvent.RawValues", unsafe.Offsetof(glfw.XIRawEvent{}.RawValues), 88},
 		{"sizeof XIRawEvent", unsafe.Sizeof(glfw.XIRawEvent{}), 96},
+
+		{"XIMCallback.Callback", unsafe.Offsetof(glfw.XIMCallback{}.Callback), 8},
+		{"sizeof XIMCallback", unsafe.Sizeof(glfw.XIMCallback{}), 16},
+
+		{"XIMText.Feedback", unsafe.Offsetof(glfw.XIMText{}.Feedback), 8},
+		{"XIMText.EncodingIsWChar", unsafe.Offsetof(glfw.XIMText{}.EncodingIsWChar), 16},
+		{"XIMText.String", unsafe.Offsetof(glfw.XIMText{}.String), 24},
+		{"sizeof XIMText", unsafe.Sizeof(glfw.XIMText{}), 32},
+
+		{"XIMPreeditDrawCB.ChgFirst", unsafe.Offsetof(glfw.XIMPreeditDrawCB{}.ChgFirst), 4},
+		{"XIMPreeditDrawCB.ChgLength", unsafe.Offsetof(glfw.XIMPreeditDrawCB{}.ChgLength), 8},
+		{"XIMPreeditDrawCB.Text", unsafe.Offsetof(glfw.XIMPreeditDrawCB{}.Text), 16},
+		{"sizeof XIMPreeditDrawCB", unsafe.Sizeof(glfw.XIMPreeditDrawCB{}), 24},
+
+		{"XIMPreeditCaretCB.Direction", unsafe.Offsetof(glfw.XIMPreeditCaretCB{}.Direction), 4},
+		{"XIMPreeditCaretCB.Style", unsafe.Offsetof(glfw.XIMPreeditCaretCB{}.Style), 8},
+		{"sizeof XIMPreeditCaretCB", unsafe.Sizeof(glfw.XIMPreeditCaretCB{}), 12},
 	} {
 		if tt.got != tt.want {
 			t.Errorf("%s: got %d, want %d", tt.name, tt.got, tt.want)

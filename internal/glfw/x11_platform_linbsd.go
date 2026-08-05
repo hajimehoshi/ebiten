@@ -23,6 +23,24 @@ type platformWindowState struct {
 	parent   _XID
 	ic       uintptr // XIC
 
+	// The composition the input method is currently showing, accumulated from
+	// the incremental preedit draw callbacks, the matching per-character
+	// feedback, and the caret offset within it in characters. All are zero
+	// unless the on-the-spot input style is in use.
+	preeditText     []rune
+	preeditFeedback []_XIMFeedback
+	preeditCaret    int
+
+	// The composition a reset discarded, which an input method may commit
+	// rather than drop, and which is then no longer anyone's input. It is
+	// empty once such a commit has been seen or a new composition has begun.
+	discardedText string
+
+	// Callbacks for the text the input method produces: composition updates
+	// and committed text.
+	preeditCallback   PreeditCallback
+	textInputCallback TextInputCallback
+
 	overrideRedirect bool
 	iconified        bool
 	maximized        bool
@@ -86,6 +104,9 @@ type platformLibraryWindowState struct {
 	windowsByXID map[_XID]*Window
 	// XIM input method
 	im uintptr
+	// The input style input contexts are created with, which is on-the-spot
+	// when the input method offers it and over-the-spot otherwise
+	imStyle _XIMStyle
 	// The previous X error handler, to be restored later
 	errorHandler uintptr
 	// Most recent error code received by X error handler

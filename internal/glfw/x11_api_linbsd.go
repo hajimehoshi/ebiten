@@ -143,6 +143,7 @@ var (
 	xkbQueryExtension          func(display uintptr, opcodeReturn, eventBaseReturn, errorBaseReturn, majorReturn, minorReturn *int32) bool
 	xkbSelectEventDetails      func(display uintptr, deviceSpec uint32, eventType uint32, affect, details _Culong) bool
 	xkbSetDetectableAutoRepeat func(display uintptr, detectable bool, supportedReturn *int32) bool
+	xmbResetIC                 func(ic uintptr) uintptr
 	xrmDestroyDatabase         func(database uintptr)
 	xrmGetResource             func(database uintptr, strName, strClass string, strTypeReturn *uintptr, valueReturn *_XrmValue) bool
 	xrmGetStringDatabase       func(data uintptr) uintptr
@@ -154,12 +155,28 @@ var (
 	// package (XNInputStyle, XNClientWindow, XNFocusWindow, NULL).
 	xCreateIC func(im uintptr, k1 string, v1 _XIMStyle, k2 string, v2 _XID, k3 string, v3 _XID, term uintptr) uintptr
 
+	// xCreateICPreedit is XCreateIC with the on-the-spot argument shape, which
+	// appends XNPreeditAttributes and its nested callback list to the shape
+	// above.
+	xCreateICPreedit func(im uintptr, k1 string, v1 _XIMStyle, k2 string, v2 _XID, k3 string, v3 _XID, k4 string, v4 uintptr, term uintptr) uintptr
+
+	// Variadic in C; bound with the four preedit callbacks the on-the-spot
+	// input style registers. The names and values are passed by pointer
+	// because the returned list refers to them.
+	xVaCreateNestedList func(dummy int32, n1 *byte, v1 *_XIMCallback, n2 *byte, v2 *_XIMCallback, n3 *byte, v3 *_XIMCallback, n4 *byte, v4 *_XIMCallback, term uintptr) uintptr
+
 	// setlocale from libc, resolved via RTLD_DEFAULT so that the libc soname
 	// (glibc vs musl) does not matter. setlocaleQuery is the same function
 	// with a pointer-typed locale argument, for passing NULL to query the
 	// current locale.
 	setlocale      func(category int32, locale string) uintptr
 	setlocaleQuery func(category int32, locale uintptr) uintptr
+
+	// mbstowcs from libc, resolved the same way. It decodes a multi-byte
+	// string in the LC_CTYPE locale, which is the encoding the input method
+	// reports its composition in. It is nil when libc does not export it,
+	// which callers must handle.
+	mbstowcs func(dest *int32, src uintptr, n uintptr) uintptr
 )
 
 // XrmValue is the Xrm resource value struct.
@@ -216,6 +233,7 @@ func initLibX11() error {
 	purego.RegisterLibFunc(&xCreateColormap, lib, "XCreateColormap")
 	purego.RegisterLibFunc(&xCreateFontCursor, lib, "XCreateFontCursor")
 	purego.RegisterLibFunc(&xCreateIC, lib, "XCreateIC")
+	purego.RegisterLibFunc(&xCreateICPreedit, lib, "XCreateIC")
 	purego.RegisterLibFunc(&xCreateRegion, lib, "XCreateRegion")
 	purego.RegisterLibFunc(&xCreateWindow, lib, "XCreateWindow")
 	purego.RegisterLibFunc(&xDefineCursor, lib, "XDefineCursor")
@@ -282,6 +300,7 @@ func initLibX11() error {
 	purego.RegisterLibFunc(&xUngrabPointer, lib, "XUngrabPointer")
 	purego.RegisterLibFunc(&xUnmapWindow, lib, "XUnmapWindow")
 	purego.RegisterLibFunc(&xUnsetICFocus, lib, "XUnsetICFocus")
+	purego.RegisterLibFunc(&xVaCreateNestedList, lib, "XVaCreateNestedList")
 	purego.RegisterLibFunc(&xWarpPointer, lib, "XWarpPointer")
 	purego.RegisterLibFunc(&xkbFreeKeyboard, lib, "XkbFreeKeyboard")
 	purego.RegisterLibFunc(&xkbFreeNames, lib, "XkbFreeNames")
@@ -292,6 +311,7 @@ func initLibX11() error {
 	purego.RegisterLibFunc(&xkbQueryExtension, lib, "XkbQueryExtension")
 	purego.RegisterLibFunc(&xkbSelectEventDetails, lib, "XkbSelectEventDetails")
 	purego.RegisterLibFunc(&xkbSetDetectableAutoRepeat, lib, "XkbSetDetectableAutoRepeat")
+	purego.RegisterLibFunc(&xmbResetIC, lib, "XmbResetIC")
 	purego.RegisterLibFunc(&xrmDestroyDatabase, lib, "XrmDestroyDatabase")
 	purego.RegisterLibFunc(&xrmGetResource, lib, "XrmGetResource")
 	purego.RegisterLibFunc(&xrmGetStringDatabase, lib, "XrmGetStringDatabase")
@@ -305,6 +325,10 @@ func initLibX11() error {
 	}
 	purego.RegisterFunc(&setlocale, setlocaleSym)
 	purego.RegisterFunc(&setlocaleQuery, setlocaleSym)
+
+	if mbstowcsSym, err := purego.Dlsym(purego.RTLD_DEFAULT, "mbstowcs"); err == nil {
+		purego.RegisterFunc(&mbstowcs, mbstowcsSym)
+	}
 
 	return nil
 }

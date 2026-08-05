@@ -49,15 +49,16 @@ type (
 	_KeySym  = _Culong
 	_KeyCode = uint8
 
-	_VisualID  = _Culong
-	_RROutput  = _XID
-	_RRCrtc    = _XID
-	_RRMode    = _XID
-	_Rotation  = uint16
-	_XContext  = int32
-	_XIMStyle  = _Culong
-	_XrmQuark  = int32
-	_XcursorID = uint32
+	_VisualID    = _Culong
+	_RROutput    = _XID
+	_RRCrtc      = _XID
+	_RRMode      = _XID
+	_Rotation    = uint16
+	_XContext    = int32
+	_XIMStyle    = _Culong
+	_XIMFeedback = _Culong
+	_XrmQuark    = int32
+	_XcursorID   = uint32
 
 	// Region is an opaque pointer (the _XRegion struct is private to Xlib).
 	_Region = uintptr
@@ -460,6 +461,40 @@ type _XClassHint struct {
 type _XIMStyles struct {
 	CountStyles     uint16
 	SupportedStyles uintptr // *XIMStyle
+}
+
+// _XIMCallback is the XIMCallback struct. Callback holds an XIMProc function
+// pointer rather than a Go pointer, so a value of this type can be handed to
+// Xlib and kept by it.
+type _XIMCallback struct {
+	ClientData uintptr // XPointer
+	Callback   uintptr // XIMProc
+}
+
+// _XIMText is the XIMText struct. String is the union of a multi-byte and a
+// wide-character string, discriminated by EncodingIsWChar. Length counts
+// characters, not bytes.
+type _XIMText struct {
+	Length          uint16
+	Feedback        uintptr // *XIMFeedback
+	EncodingIsWChar int32   // Bool
+	String          uintptr // union { char *multi_byte; wchar_t *wide_char; }
+}
+
+// _XIMPreeditDrawCallbackStruct is the XIMPreeditDrawCallbackStruct struct.
+// Caret, ChgFirst and ChgLength are in characters. Text is nil for a deletion.
+type _XIMPreeditDrawCallbackStruct struct {
+	Caret     int32
+	ChgFirst  int32
+	ChgLength int32
+	Text      uintptr // *XIMText
+}
+
+// _XIMPreeditCaretCallbackStruct is the XIMPreeditCaretCallbackStruct struct.
+type _XIMPreeditCaretCallbackStruct struct {
+	Position  int32
+	Direction int32 // XIMCaretDirection
+	Style     int32 // XIMCaretStyle
 }
 
 type _XRectangle struct {

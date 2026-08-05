@@ -543,3 +543,90 @@ func TestFindLineBounds(t *testing.T) {
 		})
 	}
 }
+
+// commitState returns a state representing a committed text.
+func commitState(text string) textinput.TextInputState {
+	return textinput.TextInputState{Text: text, CommitKind: textinput.CommitRegular}
+}
+
+// TestQueuedCommitsReachSuccessiveSessions verifies that several commits
+// arriving before the next tick are all delivered, in order. A session ends at
+// its first commit, so flushing every queued commit into one session's channel
+// would close that channel over the ones it never read.
+func TestQueuedCommitsReachSuccessiveSessions(t *testing.T) {
+	var ev textinput.TextInputEvents
+
+	// Three keystrokes land between ticks, with no session open to take them.
+	for _, text := range []string{"a", "b", "c"} {
+		if ev.Send(commitState(text)) {
+			t.Fatalf("Send(%q) reported delivery with no session open", text)
+		}
+	}
+
+	// The application starts a session per commit it observes, as Composer
+	// does within a single Update.
+	for _, want := range []string{"a", "b", "c"} {
+		got, ok := ev.StartSessionCommit()
+		if !ok {
+			t.Fatalf("no commit delivered, want %q", want)
+		}
+		if got != want {
+			t.Errorf("commit = %q, want %q", got, want)
+		}
+	}
+
+	if got, ok := ev.StartSessionCommit(); ok {
+		t.Errorf("a fourth session got commit %q, want none", got)
+	}
+}
+
+// TestQueuedCompositionsPrecedeTheirCommit verifies that the states before a
+// commit reach the same session as the commit, and that what follows it does
+// not.
+func TestQueuedCompositionsPrecedeTheirCommit(t *testing.T) {
+	var ev textinput.TextInputEvents
+
+	ev.Send(textinput.TextInputState{Text: "a"})
+	ev.Send(commitState("A"))
+	ev.Send(textinput.TextInputState{Text: "b"})
+	ev.Send(commitState("B"))
+
+	for _, want := range []string{"A", "B"} {
+		got, ok := ev.StartSessionCommit()
+		if !ok {
+			t.Fatalf("no commit delivered, want %q", want)
+		}
+		if got != want {
+			t.Errorf("commit = %q, want %q", got, want)
+		}
+	}
+}
+
+// TestSendReportsDelivery verifies that Send distinguishes a state an open
+// session took from one merely queued. The X11 backend ends a session only on
+// the former, so that a commit no session read cannot push the deadline that
+// decides whether queued states still belong to a session about to start.
+func TestSendReportsDelivery(t *testing.T) {
+	var ev textinput.TextInputEvents
+
+	// No session: the state is queued, not delivered.
+	if ev.Send(commitState("a")) {
+		t.Error("Send with no session open reported delivery")
+	}
+
+	// A session takes the queued commit, and ends at it, so a further commit
+	// belongs to the next session.
+	ev.Start()
+	if ev.Send(commitState("b")) {
+		t.Error("Send after the session took its commit reported delivery")
+	}
+	ev.End()
+
+	// A session with nothing queued takes a commit directly.
+	var fresh textinput.TextInputEvents
+	fresh.Start()
+	if !fresh.Send(commitState("c")) {
+		t.Error("Send to an open session did not report delivery")
+	}
+	fresh.End()
+}

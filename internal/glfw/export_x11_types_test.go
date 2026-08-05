@@ -50,6 +50,10 @@ type (
 	XWMHints               = _XWMHints
 	XClassHint             = _XClassHint
 	XIMStyles              = _XIMStyles
+	XIMCallback            = _XIMCallback
+	XIMText                = _XIMText
+	XIMPreeditDrawCB       = _XIMPreeditDrawCallbackStruct
+	XIMPreeditCaretCB      = _XIMPreeditCaretCallbackStruct
 	XRectangle             = _XRectangle
 	XkbDescRec             = _XkbDescRec
 	XkbNamesRec            = _XkbNamesRec
