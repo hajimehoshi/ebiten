@@ -29,6 +29,7 @@ import (
 	"unicode/utf16"
 	"unicode/utf8"
 
+	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 	"github.com/hajimehoshi/ebiten/v2/internal/vmguest"
 )
@@ -312,6 +313,39 @@ func (t *textInput) abandonTarget() {
 	t.events.clearQueue()
 }
 
+// queueCarryTicks is how long after a session ends the states queued since
+// still count as belonging to the next session.
+const queueCarryTicks = 2
+
+// withinQueueCarry reports whether a session starting at tick follows one that
+// ended at lastEndTick closely enough to take over its queued states.
+// lastEndTick is 0 when no session has ended yet.
+//
+// The platform reports text whether or not a session is open, and a commit ends
+// the session, so the text typed while the application starts the next one is
+// queued. That text belongs to the next session: typing faster than one
+// character per tick would otherwise lose everything after the first. The two
+// are told apart by when the last session ended, as an application driving text
+// input starts the next session as soon as it observes the commit.
+func withinQueueCarry(lastEndTick, tick int64) bool {
+	if lastEndTick == 0 {
+		return false
+	}
+	return tick-lastEndTick <= queueCarryTicks
+}
+
+// queuedStatesBelong reports whether states reported at queuedTick are for a
+// session starting at tick, which is so in two cases: the previous session
+// ended within the carry window, or they were reported in the tick the session
+// starts in.
+//
+// The events of a tick are processed before the game updates, so text typed in
+// the same tick a session starts in was reported before the session existed.
+// It is what the application is starting the session for.
+func queuedStatesBelong(lastEndTick, queuedTick, tick int64) bool {
+	return withinQueueCarry(lastEndTick, tick) || queuedTick == tick
+}
+
 type textInputEvents struct {
 	ch   chan textInputState
 	done chan struct{}
@@ -322,6 +356,16 @@ type textInputEvents struct {
 	// the open session. A session ends at its first commit, so whatever is
 	// queued behind that commit is for the next one.
 	sessionCommitted bool
+
+	// lastEndTick is the tick the last session ended at, or 0 before the first
+	// one ends.
+	lastEndTick int64
+
+	// queuedTick is the tick the queued states were reported in.
+	queuedTick int64
+
+	// tick overrides the tick source in tests. A nil tick means [ebiten.Tick].
+	tick func() int64
 
 	m sync.Mutex
 
@@ -359,9 +403,23 @@ func (s *textInputEvents) clearActiveSessionIf(active *session) {
 	}
 }
 
+// currentTick reports the current tick.
+func (s *textInputEvents) currentTick() int64 {
+	if s.tick != nil {
+		return s.tick()
+	}
+	return ebiten.Tick()
+}
+
 func (s *textInputEvents) start() (ch chan textInputState, endFunc func()) {
 	s.m.Lock()
 	defer s.m.Unlock()
+
+	// States belonging to no session describe a target this one knows nothing
+	// about.
+	if !queuedStatesBelong(s.lastEndTick, s.queuedTick, s.currentTick()) {
+		s.queuedStates = s.queuedStates[:0]
+	}
 
 	if s.ch == nil {
 		// 10 should be enough for most cases.
@@ -387,8 +445,13 @@ func (s *textInputEvents) end() {
 	defer s.m.Unlock()
 
 	if s.ch == nil {
+		// There is no session to end. A platform that ends unconditionally
+		// after every commit reaches this whenever a commit is queued or
+		// dropped, and treating those as endings would push the carry deadline
+		// forward for as long as the application takes keyboard input.
 		return
 	}
+	s.lastEndTick = s.currentTick()
 	close(s.ch)
 	s.ch = nil
 	close(s.done)
@@ -396,10 +459,25 @@ func (s *textInputEvents) end() {
 }
 
 // send hands state to the open session, or queues it for the next one, and
-// reports whether the session took it.
+// reports whether the session took it. A state no session can claim is
+// dropped: queueing it would grow the queue for as long as the application
+// takes keyboard input without opening a session, and would reach whichever
+// session eventually starts.
 func (s *textInputEvents) send(state textInputState) bool {
 	s.m.Lock()
 	defer s.m.Unlock()
+
+	if s.ch == nil {
+		// States left from an earlier tick are for a session that never
+		// started. Dropping them as the tick turns over bounds what is held to
+		// a single tick of typing, however long the application goes without
+		// opening a session.
+		tick := s.currentTick()
+		if !queuedStatesBelong(s.lastEndTick, s.queuedTick, tick) {
+			s.queuedStates = s.queuedStates[:0]
+		}
+		s.queuedTick = tick
+	}
 
 	// Queueing first keeps states in the order they were reported, as an
 	// earlier one may still be queued behind a commit.

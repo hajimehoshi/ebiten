@@ -30,6 +30,16 @@ func ComputeReplacement(baseline, newText string, caretInBytes int) (string, int
 	return computeReplacement(baseline, newText, caretInBytes)
 }
 
+const QueueCarryTicks = queueCarryTicks
+
+func WithinQueueCarry(lastEndTick, tick int64) bool {
+	return withinQueueCarry(lastEndTick, tick)
+}
+
+func QueuedStatesBelong(lastEndTick, queuedTick, tick int64) bool {
+	return queuedStatesBelong(lastEndTick, queuedTick, tick)
+}
+
 type TextInputEvents = textInputEvents
 
 // TextInputState re-exports the internal state record so white-box tests can
@@ -44,6 +54,20 @@ const (
 	CommitRegular            = commitRegular
 	CommitWithPassthroughKey = commitWithPassthroughKey
 )
+
+// SetTick replaces the tick source these events date queue ownership from.
+func (s *TextInputEvents) SetTick(tick func() int64) {
+	s.m.Lock()
+	defer s.m.Unlock()
+	s.tick = tick
+}
+
+// QueuedStateCount reports how many states are held for a session to take.
+func (s *TextInputEvents) QueuedStateCount() int {
+	s.m.Lock()
+	defer s.m.Unlock()
+	return len(s.queuedStates)
+}
 
 func (s *TextInputEvents) Start() {
 	s.start()

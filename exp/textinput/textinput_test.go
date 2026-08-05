@@ -630,3 +630,298 @@ func TestSendReportsDelivery(t *testing.T) {
 	}
 	fresh.End()
 }
+
+// The platform reports text whether or not a session is open, so text typed
+// with nothing focused must not be carried into a session started later, while
+// text typed between a commit and the next session must be.
+func TestWithinQueueCarry(t *testing.T) {
+	const carry = textinput.QueueCarryTicks
+	for _, tc := range []struct {
+		name        string
+		lastEndTick int64
+		tick        int64
+		want        bool
+	}{
+		{
+			// Typing before any text field is ever focused.
+			name:        "no session has ended",
+			lastEndTick: 0,
+			tick:        1000,
+			want:        false,
+		},
+		{
+			// A commit and the restart observed within the same tick.
+			name:        "restarted in the same tick",
+			lastEndTick: 100,
+			tick:        100,
+			want:        true,
+		},
+		{
+			name:        "restarted on the next tick",
+			lastEndTick: 100,
+			tick:        101,
+			want:        true,
+		},
+		{
+			name:        "restarted at the end of the window",
+			lastEndTick: 100,
+			tick:        100 + carry,
+			want:        true,
+		},
+		{
+			// The application stopped driving text input, so what was typed
+			// since belongs to no session.
+			name:        "restarted just past the window",
+			lastEndTick: 100,
+			tick:        100 + carry + 1,
+			want:        false,
+		},
+		{
+			name:        "focused again much later",
+			lastEndTick: 100,
+			tick:        10000,
+			want:        false,
+		},
+		{
+			// The gate that keeps input from accumulating: every keystroke
+			// taken while the application drives no session at all reaches
+			// this and must be dropped rather than queued.
+			name:        "typing on and on with no session",
+			lastEndTick: 100,
+			tick:        1_000_000,
+			want:        false,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := textinput.WithinQueueCarry(tc.lastEndTick, tc.tick); got != tc.want {
+				t.Errorf("got %v, want %v", got, tc.want)
+			}
+		})
+	}
+}
+
+// The events of a tick are processed before the game updates, so text typed in
+// the tick a session starts in was reported before the session existed. It is
+// what the session is being started for, and must survive; text from any
+// earlier tick must not, or it would both accumulate and reach an unrelated
+// session.
+func TestQueuedStatesBelong(t *testing.T) {
+	const carry = textinput.QueueCarryTicks
+	for _, tc := range []struct {
+		name        string
+		lastEndTick int64
+		queuedTick  int64
+		tick        int64
+		want        bool
+	}{
+		{
+			// The very first session: nothing has ended, but the text was
+			// typed in the tick the session starts in.
+			name:        "typed in the tick the first session starts",
+			lastEndTick: 0,
+			queuedTick:  500,
+			tick:        500,
+			want:        true,
+		},
+		{
+			name:        "typed a tick before the first session starts",
+			lastEndTick: 0,
+			queuedTick:  499,
+			tick:        500,
+			want:        false,
+		},
+		{
+			// The commit-to-restart gap, which spans a tick boundary.
+			name:        "left by a session that just ended",
+			lastEndTick: 100,
+			queuedTick:  100,
+			tick:        101,
+			want:        true,
+		},
+		{
+			name:        "left at the end of the carry window",
+			lastEndTick: 100,
+			queuedTick:  100,
+			tick:        100 + carry,
+			want:        true,
+		},
+		{
+			name:        "left just past the carry window",
+			lastEndTick: 100,
+			queuedTick:  100,
+			tick:        100 + carry + 1,
+			want:        false,
+		},
+		{
+			// Typing on and on with nothing focused: each tick's states are
+			// dropped as the next tick reports its own.
+			name:        "typed long ago with nothing focused",
+			lastEndTick: 100,
+			queuedTick:  5000,
+			tick:        1_000_000,
+			want:        false,
+		},
+		{
+			// Still typing right now, but no session has wanted it since the
+			// carry window closed: this tick's text is for whoever starts now.
+			name:        "typed in this tick long after the last session",
+			lastEndTick: 100,
+			queuedTick:  1_000_000,
+			tick:        1_000_000,
+			want:        true,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			got := textinput.QueuedStatesBelong(tc.lastEndTick, tc.queuedTick, tc.tick)
+			if got != tc.want {
+				t.Errorf("got %v, want %v", got, tc.want)
+			}
+		})
+	}
+}
+
+// newEventsAtTick returns events reading the tick the returned pointer holds,
+// so a test can advance ticks as a running game would.
+func newEventsAtTick(tick *int64) *textinput.TextInputEvents {
+	var ev textinput.TextInputEvents
+	ev.SetTick(func() int64 {
+		return *tick
+	})
+	return &ev
+}
+
+// TestQueueDoesNotGrowWithoutSession verifies that states reported with no
+// session open do not accumulate. The platforms keep reporting after a session
+// ends — Windows never restores its window-procedure subclass, and macOS leaves
+// its text input client the first responder — so without this every keystroke
+// taken outside a text field would be held forever.
+func TestQueueDoesNotGrowWithoutSession(t *testing.T) {
+	var tick int64 = 1
+	ev := newEventsAtTick(&tick)
+
+	// A session runs and ends, as focusing a text field and committing would.
+	ev.Start()
+	ev.Send(commitState("a"))
+	ev.End()
+
+	// The platform keeps reporting for the rest of the application's life.
+	// Only the states of the carry window, and then of the current tick, are
+	// held: what is queued never grows with the number of ticks.
+	const perTick = 5
+	const wantAtMost = perTick * (textinput.QueueCarryTicks + 1)
+	for tick = 2; tick <= 1000; tick++ {
+		for range perTick {
+			ev.Send(commitState("x"))
+		}
+		got := ev.QueuedStateCount()
+		if got > wantAtMost {
+			t.Fatalf("at tick %d: %d states queued, want at most %d", tick, got, wantAtMost)
+		}
+		// Past the carry window nothing but this tick's states survives.
+		if tick > 1+textinput.QueueCarryTicks && got != perTick {
+			t.Fatalf("at tick %d: %d states queued, want %d", tick, got, perTick)
+		}
+	}
+}
+
+// TestStaleQueuedStatesDoNotReachNextSession verifies that text typed with
+// nothing focused does not land in a text field focused later.
+func TestStaleQueuedStatesDoNotReachNextSession(t *testing.T) {
+	var tick int64 = 100
+	ev := newEventsAtTick(&tick)
+
+	// Typing with no text field focused.
+	ev.Send(commitState("stale"))
+
+	// The application focuses a text field much later.
+	tick = 500
+	if got, ok := ev.StartSessionCommit(); ok {
+		t.Errorf("the session got commit %q, want none", got)
+	}
+}
+
+// TestQueuedStatesOfStartTickReachSession verifies that text typed in the tick
+// a session starts in still reaches it. The events of a tick are processed
+// before the game updates, so a keystroke opening a text field reports its text
+// before the session exists.
+func TestQueuedStatesOfStartTickReachSession(t *testing.T) {
+	var tick int64 = 100
+	ev := newEventsAtTick(&tick)
+
+	ev.Send(commitState("a"))
+
+	got, ok := ev.StartSessionCommit()
+	if !ok {
+		t.Fatal("no commit delivered, want \"a\"")
+	}
+	if got != "a" {
+		t.Errorf("commit = %q, want %q", got, "a")
+	}
+}
+
+// TestQueuedStatesWithinCarryReachNextSession verifies that text typed between
+// a commit and the next session start is not lost. A commit ends the session,
+// so typing faster than one character per tick reports the rest with no session
+// open.
+func TestQueuedStatesWithinCarryReachNextSession(t *testing.T) {
+	for _, tc := range []struct {
+		name      string
+		startTick int64
+		want      bool
+	}{
+		{
+			name:      "restarted within the carry window",
+			startTick: 100 + textinput.QueueCarryTicks,
+			want:      true,
+		},
+		{
+			name:      "restarted past the carry window",
+			startTick: 100 + textinput.QueueCarryTicks + 1,
+			want:      false,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var tick int64 = 100
+			ev := newEventsAtTick(&tick)
+
+			// A session takes a commit and ends at it.
+			ev.Start()
+			ev.Send(commitState("a"))
+			ev.End()
+
+			// The next character arrives before the application reopens.
+			tick = 101
+			ev.Send(commitState("b"))
+
+			tick = tc.startTick
+			got, ok := ev.StartSessionCommit()
+			if ok != tc.want {
+				t.Fatalf("commit delivered = %v (%q), want %v", ok, got, tc.want)
+			}
+			if ok && got != "b" {
+				t.Errorf("commit = %q, want %q", got, "b")
+			}
+		})
+	}
+}
+
+// TestEndWithoutSessionDoesNotExtendCarry verifies that ending when no session
+// is open leaves the carry deadline alone. Windows and macOS end
+// unconditionally after every commit, so a commit that no session took would
+// otherwise keep the window open for as long as the application takes keyboard
+// input.
+func TestEndWithoutSessionDoesNotExtendCarry(t *testing.T) {
+	var tick int64 = 100
+	ev := newEventsAtTick(&tick)
+
+	// Typing with no text field focused, as a platform reports it: a commit
+	// no session takes, followed by an unconditional end.
+	ev.Send(commitState("stale"))
+	ev.End()
+
+	// Within what would be the carry window had the end counted.
+	tick = 100 + textinput.QueueCarryTicks
+	if got, ok := ev.StartSessionCommit(); ok {
+		t.Errorf("the session got commit %q, want none", got)
+	}
+}
