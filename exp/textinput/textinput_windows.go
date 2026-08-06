@@ -117,16 +117,19 @@ func (t *textInputImpl) start(bounds image.Rectangle) error {
 		t.immContext = 0
 	}
 	h := _ImmGetContext(t.window)
+	// CFS_EXCLUDE takes ptCurrentPos as the caret's top left corner and rcArea as
+	// the region the candidate window must not cover, so the input method places
+	// the window right below the caret, or above it when there is no room.
 	if err := _ImmSetCandidateWindow(h, &_CANDIDATEFORM{
 		dwIndex: 0,
-		dwStyle: _CFS_CANDIDATEPOS,
+		dwStyle: _CFS_EXCLUDE,
 		ptCurrentPos: _POINT{
 			x: int32(bounds.Min.X),
-			y: int32(bounds.Max.Y),
+			y: int32(bounds.Min.Y),
 		},
 		rcArea: _RECT{
 			left:   int32(bounds.Min.X),
-			top:    int32(bounds.Max.Y),
+			top:    int32(bounds.Min.Y),
 			right:  int32(bounds.Max.X),
 			bottom: int32(bounds.Max.Y),
 		},
