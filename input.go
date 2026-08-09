@@ -52,6 +52,10 @@ func InputChars() []rune {
 // Note that a Key represents a physical key of US keyboard layout.
 // For example, KeyQ represents Q key on US keyboards and ' (quote) key on Dvorak keyboards.
 //
+// For a modifier key ([KeyAlt], [KeyControl], [KeyShift], [KeyMeta], and their left and right variants),
+// IsKeyPressed reports true when the key was pressed at any point in the current tick, including a key
+// released in the current tick.
+//
 // IsKeyPressed is concurrent-safe.
 //
 // On Android (ebitenmobile), EbitenView must be focusable to enable to handle keyboard keys.

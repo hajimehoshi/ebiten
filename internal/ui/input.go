@@ -124,6 +124,9 @@ func (i *InputState) IsKeyPressed(key Key, tick int64) bool {
 	}
 	p := i.KeyPressedTimes[key]
 	r := i.KeyReleasedTimes[key]
+	if isModifierKey(key) {
+		return inputStateModifierPressed(p, r, tick)
+	}
 	return inputStatePressed(p, r, tick)
 }
 
@@ -149,6 +152,9 @@ func (i *InputState) KeyPressDuration(key Key, tick int64) int64 {
 	}
 	p := i.KeyPressedTimes[key]
 	r := i.KeyReleasedTimes[key]
+	if isModifierKey(key) {
+		return inputStateModifierDuration(p, r, tick)
+	}
 	return inputStateDuration(p, r, tick)
 }
 
@@ -186,6 +192,17 @@ func (i *InputState) MouseButtonPressDuration(button MouseButton, tick int64) in
 	return inputStateDuration(p, r, tick)
 }
 
+func isModifierKey(key Key) bool {
+	switch key {
+	case KeyAlt, KeyAltLeft, KeyAltRight,
+		KeyControl, KeyControlLeft, KeyControlRight,
+		KeyMeta, KeyMetaLeft, KeyMetaRight,
+		KeyShift, KeyShiftLeft, KeyShiftRight:
+		return true
+	}
+	return false
+}
+
 func inputStatePressed(pressed, released InputTime, tick int64) bool {
 	return released < pressed || inputStateJustPressed(pressed, tick)
 }
@@ -198,11 +215,31 @@ func inputStateJustReleased(released InputTime, tick int64) bool {
 	return released > 0 && released.Tick() == tick
 }
 
+// inputStateModifierPressed reports whether a modifier key was down at any point during the tick.
+//
+// An input event is stamped with the tick it is processed in, so a stalled event queue can deliver a
+// modifier's release edge in the same tick as the press edge of the key it qualifies. As a modifier is
+// read as a state beside an edge query on that key, ending the press at the release edge would lose the
+// chord (#3497, #3498).
+func inputStateModifierPressed(pressed, released InputTime, tick int64) bool {
+	return inputStatePressed(pressed, released, tick) || inputStateJustReleased(released, tick)
+}
+
 func inputStateDuration(pressed, released InputTime, tick int64) int64 {
 	if pressed == 0 {
 		return 0
 	}
 	if pressed < released {
+		return 0
+	}
+	return tick - pressed.Tick() + 1
+}
+
+func inputStateModifierDuration(pressed, released InputTime, tick int64) int64 {
+	if pressed == 0 {
+		return 0
+	}
+	if !inputStateModifierPressed(pressed, released, tick) {
 		return 0
 	}
 	return tick - pressed.Tick() + 1

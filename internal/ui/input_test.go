@@ -123,3 +123,102 @@ func TestMultipleMouseButtonReleases(t *testing.T) {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
 }
+
+// TestModifierKeyReleasedInTick tests that a modifier key released in the current tick is still
+// reported as pressed, so that a chord whose events are delivered in one tick is not lost (#3497).
+func TestModifierKeyReleasedInTick(t *testing.T) {
+	const baseTick = 100
+	var inputState ui.InputState
+
+	inputState.SetKeyPressed(ui.KeyShiftLeft, ui.NewInputTimeFromTick(baseTick))
+	inputState.SetKeyReleased(ui.KeyShiftLeft, ui.NewInputTimeFromTick(baseTick+2))
+
+	if got, want := inputState.IsKeyPressed(ui.KeyShiftLeft, baseTick+2), true; got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+	if got, want := inputState.IsKeyJustReleased(ui.KeyShiftLeft, baseTick+2), true; got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+	// The press duration must agree with IsKeyPressed.
+	if got, want := inputState.KeyPressDuration(ui.KeyShiftLeft, baseTick+2), int64(3); got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+
+	// The virtual modifier key follows its variants.
+	if got, want := inputState.IsKeyPressed(ui.KeyShift, baseTick+2), true; got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+
+	// The key is no longer pressed in the next tick.
+	if got, want := inputState.IsKeyPressed(ui.KeyShiftLeft, baseTick+3), false; got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+	if got, want := inputState.IsKeyPressed(ui.KeyShift, baseTick+3), false; got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+	if got, want := inputState.KeyPressDuration(ui.KeyShiftLeft, baseTick+3), int64(0); got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+}
+
+// TestModifierKeyPressedAndReleasedInTick tests a modifier key whose press and release are both
+// delivered in one tick.
+func TestModifierKeyPressedAndReleasedInTick(t *testing.T) {
+	const baseTick = 100
+	var inputState ui.InputState
+
+	inputState.SetKeyPressed(ui.KeyMetaLeft, ui.NewInputTimeFromTick(baseTick)+1)
+	inputState.SetKeyReleased(ui.KeyMetaLeft, ui.NewInputTimeFromTick(baseTick)+2)
+
+	if got, want := inputState.IsKeyPressed(ui.KeyMetaLeft, baseTick), true; got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+	if got, want := inputState.KeyPressDuration(ui.KeyMetaLeft, baseTick), int64(1); got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+	if got, want := inputState.IsKeyPressed(ui.KeyMetaLeft, baseTick+1), false; got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+}
+
+// TestModifierKeyVariants tests that releasing one variant of a modifier key does not affect the other.
+func TestModifierKeyVariants(t *testing.T) {
+	const baseTick = 100
+	var inputState ui.InputState
+
+	inputState.SetKeyPressed(ui.KeyControlLeft, ui.NewInputTimeFromTick(baseTick))
+	inputState.SetKeyPressed(ui.KeyControlRight, ui.NewInputTimeFromTick(baseTick))
+	inputState.SetKeyReleased(ui.KeyControlLeft, ui.NewInputTimeFromTick(baseTick+1))
+
+	if got, want := inputState.IsKeyPressed(ui.KeyControlRight, baseTick+2), true; got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+	if got, want := inputState.IsKeyPressed(ui.KeyControl, baseTick+2), true; got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+
+	inputState.SetKeyReleased(ui.KeyControlRight, ui.NewInputTimeFromTick(baseTick+3))
+	if got, want := inputState.IsKeyPressed(ui.KeyControl, baseTick+3), true; got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+	if got, want := inputState.IsKeyPressed(ui.KeyControl, baseTick+4), false; got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+}
+
+// TestNonModifierKeyReleasedInTick tests that a key that is not a modifier key keeps the existing
+// behavior: the release edge ends the press for the whole tick.
+func TestNonModifierKeyReleasedInTick(t *testing.T) {
+	const baseTick = 100
+	var inputState ui.InputState
+
+	inputState.SetKeyPressed(ui.KeyA, ui.NewInputTimeFromTick(baseTick))
+	inputState.SetKeyReleased(ui.KeyA, ui.NewInputTimeFromTick(baseTick+2))
+
+	if got, want := inputState.IsKeyPressed(ui.KeyA, baseTick+2), false; got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+	if got, want := inputState.KeyPressDuration(ui.KeyA, baseTick+2), int64(0); got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+}

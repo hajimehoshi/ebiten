@@ -187,6 +187,9 @@ func IsKeyJustReleased(key ebiten.Key) bool {
 
 // KeyPressDuration returns how long the key is pressed in ticks (Update).
 //
+// KeyPressDuration follows [ebiten.IsKeyPressed], and thus returns a positive value for a modifier key
+// released in the current tick.
+//
 // KeyPressDuration must be called in a game's Update, not Draw.
 //
 // KeyPressDuration is concurrent safe.
