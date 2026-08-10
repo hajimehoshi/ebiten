@@ -50,8 +50,8 @@ func (u *UserInterface) updateInputStateForFrame(deviceScaleFactor float64) erro
 		x, y := u.context.clientPositionToLogicalPosition(t.X, t.Y, s)
 		u.inputState.Touches = append(u.inputState.Touches, Touch{
 			ID: t.ID,
-			X:  int(x),
-			Y:  int(y),
+			X:  x,
+			Y:  y,
 		})
 	}
 	return nil

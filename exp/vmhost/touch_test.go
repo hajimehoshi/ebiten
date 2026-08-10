@@ -51,13 +51,13 @@ func TestTouchForwarding(t *testing.T) {
 	// are in outside-screen device-independent pixels, within the 32x32 outside size.
 
 	// Tick 0: two touches begin.
-	guest.PressTouch(1, 3, 4)
-	guest.PressTouch(2, 30, 20)
+	guest.PressTouch(1, 3.75, 4.5)
+	guest.PressTouch(2, 30.25, 20.5)
 	tickAndFrame(t, guest)
 	assertGreen("after press")
 
 	// Tick 1: touch 1 moves, touch 2 ends.
-	guest.MoveTouch(1, 5, 6)
+	guest.MoveTouch(1, 5.5, 6.25)
 	guest.ReleaseTouch(2)
 	tickAndFrame(t, guest)
 	assertGreen("after move and release")

@@ -21,8 +21,8 @@ import (
 )
 
 type position struct {
-	x int
-	y int
+	x float64
+	y float64
 }
 
 var (
@@ -40,8 +40,8 @@ func updateInput(runes []rune) {
 	for id, position := range touches {
 		touchSlice = append(touchSlice, ui.TouchForInput{
 			ID: id,
-			X:  float64(position.x),
-			Y:  float64(position.y),
+			X:  position.x,
+			Y:  position.y,
 		})
 	}
 

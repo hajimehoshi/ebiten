@@ -160,7 +160,7 @@ func AppendTouchIDs[T ~int](touches []T) []T {
 	return touches
 }
 
-func (i *inputState) TouchPosition(id ui.TouchID) (int, int) {
+func (i *inputState) TouchPosition(id ui.TouchID) (float64, float64) {
 	i.m.Lock()
 	defer i.m.Unlock()
 

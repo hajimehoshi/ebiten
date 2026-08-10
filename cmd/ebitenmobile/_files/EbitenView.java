@@ -156,10 +156,10 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
         int touchIndex = e.getActionIndex();
         for (int i = 0; i < e.getPointerCount(); i++) {
             int id = e.getPointerId(i);
-            int x = (int)e.getX(i);
-            int y = (int)e.getY(i);
+            double x = e.getX(i);
+            double y = e.getY(i);
             int action = (i == touchIndex) ? e.getActionMasked() : MotionEvent.ACTION_MOVE;
-            Ebitenmobileview.updateTouchesOnAndroid(action, id, (int)pxToDp(x), (int)pxToDp(y));
+            Ebitenmobileview.updateTouchesOnAndroid(action, id, pxToDp(x), pxToDp(y));
         }
         return true;
     }

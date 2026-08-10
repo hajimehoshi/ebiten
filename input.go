@@ -396,5 +396,15 @@ func TouchIDs() []TouchID {
 //
 // TouchPosition is concurrent-safe.
 func TouchPosition(id TouchID) (int, int) {
+	x, y := inputstate.Get().TouchPosition(ui.TouchID(id))
+	return int(x), int(y)
+}
+
+// TouchPositionF returns a high-precision position for the touch of the specified ID.
+//
+// If the touch of the specified ID is not present, TouchPositionF returns (0, 0).
+//
+// TouchPositionF is concurrent-safe.
+func TouchPositionF(id TouchID) (float64, float64) {
 	return inputstate.Get().TouchPosition(ui.TouchID(id))
 }

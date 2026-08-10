@@ -33,8 +33,8 @@ type gamepadState struct {
 
 type touchState struct {
 	duration int
-	x        int
-	y        int
+	x        float64
+	y        float64
 }
 
 type inputState struct {
@@ -114,7 +114,7 @@ func (i *inputState) update() {
 	for _, id := range i.touchIDsBuf {
 		state := i.touchStates[id]
 		state.duration++
-		state.x, state.y = ebiten.TouchPosition(id)
+		state.x, state.y = ebiten.TouchPositionF(id)
 		i.touchStates[id] = state
 	}
 
@@ -624,8 +624,19 @@ func TouchPressDuration(id ebiten.TouchID) int {
 //
 // TouchPositionInPreviousTick must be called in a game's Update, not Draw.
 //
-// TouchJustReleasedPosition is concurrent safe.
+// TouchPositionInPreviousTick is concurrent safe.
 func TouchPositionInPreviousTick(id ebiten.TouchID) (int, int) {
+	x, y := TouchPositionFInPreviousTick(id)
+	return int(x), int(y)
+}
+
+// TouchPositionFInPreviousTick returns the high-precision position in the previous tick.
+// If the touch is a just-released touch, TouchPositionFInPreviousTick returns the last position of the touch.
+//
+// TouchPositionFInPreviousTick must be called in a game's Update, not Draw.
+//
+// TouchPositionFInPreviousTick is concurrent safe.
+func TouchPositionFInPreviousTick(id ebiten.TouchID) (float64, float64) {
 	theInputState.m.RLock()
 	defer theInputState.m.RUnlock()
 

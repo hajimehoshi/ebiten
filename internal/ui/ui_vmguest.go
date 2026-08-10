@@ -463,8 +463,8 @@ func (r *remoteBackend) updateInputStateForFrame(deviceScaleFactor float64) erro
 		}
 		r.inputState.Touches = append(r.inputState.Touches, Touch{
 			ID: t.id,
-			X:  int(tx),
-			Y:  int(ty),
+			X:  tx,
+			Y:  ty,
 		})
 	}
 	return nil

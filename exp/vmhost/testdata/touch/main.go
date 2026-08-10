@@ -26,23 +26,30 @@ package main
 import (
 	"image/color"
 	"log"
+	"math"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
 
 type wantTouch struct {
 	id   ebiten.TouchID
-	x, y int
+	x, y float64
 }
 
 // wantByTick is the expected set of touches per tick; keep it in sync with the host's injected events.
 // The guest fills the whole window, so the device-independent positions the host injects map to the
 // same logical positions regardless of the device scale factor. Tick 0: two touches begin. Tick 1:
-// touch 1 moves and touch 2 ends.
+// touch 1 moves and touch 2 ends. The positions have fractional parts well away from an integer
+// boundary, so that both the truncated and the high-precision accessors are pinned down.
 var wantByTick = [][]wantTouch{
-	{{id: 1, x: 3, y: 4}, {id: 2, x: 30, y: 20}},
-	{{id: 1, x: 5, y: 6}},
+	{{id: 1, x: 3.75, y: 4.5}, {id: 2, x: 30.25, y: 20.5}},
+	{{id: 1, x: 5.5, y: 6.25}},
 }
+
+// eps is the tolerance for a position, which is scaled by the device scale factor and back and so is
+// not necessarily bit-exact.
+const eps = 1e-6
 
 type game struct {
 	tick int
@@ -68,10 +75,10 @@ func (g *game) check() bool {
 		ok = false
 	}
 
-	got := map[ebiten.TouchID][2]int{}
+	got := map[ebiten.TouchID][2]float64{}
 	for _, id := range ebiten.AppendTouchIDs(nil) {
-		x, y := ebiten.TouchPosition(id)
-		got[id] = [2]int{x, y}
+		x, y := ebiten.TouchPositionF(id)
+		got[id] = [2]float64{x, y}
 	}
 	if len(got) != len(want) {
 		fail("touch count = %d; want %d", len(got), len(want))
@@ -82,10 +89,27 @@ func (g *game) check() bool {
 			fail("touch %d missing", w.id)
 			continue
 		}
-		if pos != [2]int{w.x, w.y} {
-			fail("TouchPosition(%d) = %v; want [%d %d]", w.id, pos, w.x, w.y)
+		if math.Abs(pos[0]-w.x) > eps || math.Abs(pos[1]-w.y) > eps {
+			fail("TouchPositionF(%d) = (%v, %v); want (%v, %v)", w.id, pos[0], pos[1], w.x, w.y)
+		}
+		if x, y := ebiten.TouchPosition(w.id); x != int(w.x) || y != int(w.y) {
+			fail("TouchPosition(%d) = (%d, %d); want (%d, %d)", w.id, x, y, int(w.x), int(w.y))
 		}
 	}
+
+	// The previous tick's touches are still readable, including the ones released since.
+	if g.tick > 0 {
+		for _, w := range wantByTick[g.tick-1] {
+			x, y := inpututil.TouchPositionFInPreviousTick(w.id)
+			if math.Abs(x-w.x) > eps || math.Abs(y-w.y) > eps {
+				fail("TouchPositionFInPreviousTick(%d) = (%v, %v); want (%v, %v)", w.id, x, y, w.x, w.y)
+			}
+			if x, y := inpututil.TouchPositionInPreviousTick(w.id); x != int(w.x) || y != int(w.y) {
+				fail("TouchPositionInPreviousTick(%d) = (%d, %d); want (%d, %d)", w.id, x, y, int(w.x), int(w.y))
+			}
+		}
+	}
+
 	return ok
 }
 

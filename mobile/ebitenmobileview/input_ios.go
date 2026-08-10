@@ -44,7 +44,7 @@ func getIDFromPtr(ptr int64) int {
 	return id
 }
 
-func UpdateTouchesOnIOS(phase int, ptr int64, x, y int) {
+func UpdateTouchesOnIOS(phase int, ptr int64, x, y float64) {
 	switch phase {
 	case C.UITouchPhaseBegan, C.UITouchPhaseMoved, C.UITouchPhaseStationary:
 		id := getIDFromPtr(ptr)

@@ -125,7 +125,7 @@ var androidKeyToSDL = map[int]int{
 	keycodeButton16:     35,
 }
 
-func UpdateTouchesOnAndroid(action int, id int, x, y int) {
+func UpdateTouchesOnAndroid(action int, id int, x, y float64) {
 	switch action {
 	case 0x00, 0x05, 0x02: // ACTION_DOWN, ACTION_POINTER_DOWN, ACTION_MOVE
 		touches[ui.TouchID(id)] = position{x, y}

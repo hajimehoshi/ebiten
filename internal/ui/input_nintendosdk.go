@@ -63,8 +63,8 @@ func (u *UserInterface) updateInputStateForFrameImpl() error {
 		x, y := u.context.clientPositionToLogicalPosition(float64(t.x), float64(t.y), theMonitor.DeviceScaleFactor())
 		u.inputState.Touches = append(u.inputState.Touches, Touch{
 			ID: TouchID(t.id),
-			X:  int(x),
-			Y:  int(y),
+			X:  x,
+			Y:  y,
 		})
 	}
 

@@ -34,8 +34,8 @@ type TouchID int
 
 type Touch struct {
 	ID TouchID
-	X  int
-	Y  int
+	X  float64
+	Y  float64
 }
 
 type InputState struct {
