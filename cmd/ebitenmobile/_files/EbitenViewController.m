@@ -319,7 +319,7 @@
       if (key == nil) {
         continue;
       }
-      EbitenmobileviewUpdatePressesOnIOS(press.phase, key.keyCode, key.characters);
+      EbitenmobileviewUpdatePressesOnIOS(press.phase, key.keyCode, key.characters, key.modifierFlags);
     }
   }
 }

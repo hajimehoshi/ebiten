@@ -38,6 +38,23 @@ type Touch struct {
 	Y  float64
 }
 
+// LockKeyState is the state of a lock key. The zero value means the platform does not report the state.
+type LockKeyState byte
+
+const (
+	LockKeyStateUnknown LockKeyState = iota
+	LockKeyStateOn
+	LockKeyStateOff
+)
+
+// NewLockKeyStateFromBool converts an on/off state reported by a platform to a LockKeyState.
+func NewLockKeyStateFromBool(on bool) LockKeyState {
+	if on {
+		return LockKeyStateOn
+	}
+	return LockKeyStateOff
+}
+
 type InputState struct {
 	KeyPressedTimes  [KeyMax + 1]InputTime
 	KeyReleasedTimes [KeyMax + 1]InputTime
@@ -53,6 +70,26 @@ type InputState struct {
 	Runes             []rune
 	WindowBeingClosed bool
 	DroppedFiles      fs.FS
+	CapsLock          LockKeyState
+	NumLock           LockKeyState
+}
+
+// IsCapsLockOn reports whether Caps Lock is on.
+func (i *InputState) IsCapsLockOn() bool {
+	if i.CapsLock == LockKeyStateUnknown {
+		// An unreported state is off.
+		return false
+	}
+	return i.CapsLock == LockKeyStateOn
+}
+
+// IsNumLockOn reports whether the numeric keypad produces digits.
+func (i *InputState) IsNumLockOn() bool {
+	if i.NumLock == LockKeyStateUnknown {
+		// An unreported state is on: a keypad that reports nothing produces digits.
+		return true
+	}
+	return i.NumLock == LockKeyStateOn
 }
 
 func (i *InputState) setKeyPressed(key Key, t InputTime) {
@@ -258,6 +295,8 @@ func (i *InputState) copyAndReset(dst *InputState) {
 	dst.Runes = append(dst.Runes[:0], i.Runes...)
 	dst.WindowBeingClosed = i.WindowBeingClosed
 	dst.DroppedFiles = i.DroppedFiles
+	dst.CapsLock = i.CapsLock
+	dst.NumLock = i.NumLock
 
 	// Reset the members that are updated by deltas, rather than absolute values.
 	i.WheelX = 0

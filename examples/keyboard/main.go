@@ -16,6 +16,7 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"image"
 	_ "image/png"
 	"log"
@@ -95,6 +96,18 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	textOp := &text.DrawOptions{}
 	textOp.LineSpacing = fontFace.Metrics().HLineGap + fontFace.Metrics().HAscent + fontFace.Metrics().HDescent
 	text.Draw(screen, strings.Join(keyStrs, ", ")+"\n"+strings.Join(keyNames, ", "), fontFace, textOp)
+
+	// The keyboard image has no lock keys, so show their states as text.
+	lockOp := &text.DrawOptions{}
+	lockOp.GeoM.Translate(offsetX, offsetY+160)
+	text.Draw(screen, fmt.Sprintf("Caps Lock: %s, Num Lock: %s", onOff(ebiten.IsCapsLockOn()), onOff(ebiten.IsNumLockOn())), fontFace, lockOp)
+}
+
+func onOff(on bool) string {
+	if on {
+		return "on"
+	}
+	return "off"
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {

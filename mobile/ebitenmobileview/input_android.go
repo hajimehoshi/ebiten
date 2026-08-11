@@ -81,6 +81,12 @@ const (
 	virtualKeyboard = -1
 )
 
+// https://developer.android.com/reference/android/view/KeyEvent#getMetaState()
+const (
+	metaCapsLockOn = 0x00100000
+	metaNumLockOn  = 0x00200000
+)
+
 // See https://github.com/libsdl-org/SDL/blob/47f2373dc13b66c48bf4024fcdab53cd0bdd59bb/src/joystick/android/SDL_sysjoystick.c#L71-L172
 // TODO: This exceeds gamepad.SDLControllerButtonMax. Is that OK?
 
@@ -136,7 +142,7 @@ func UpdateTouchesOnAndroid(action int, id int, x, y float64) {
 	}
 }
 
-func OnKeyDownOnAndroid(keyCode int, unicodeChar int, source int, deviceID int) {
+func OnKeyDownOnAndroid(keyCode int, unicodeChar int, source int, deviceID int, metaState int) {
 	switch {
 	case source&sourceGamepad == sourceGamepad:
 		// A gamepad can be detected as a keyboard. Detect the device as a gamepad first.
@@ -149,6 +155,7 @@ func OnKeyDownOnAndroid(keyCode int, unicodeChar int, source int, deviceID int) 
 		if key, ok := androidKeyToUIKey[keyCode]; ok {
 			keyPressedTimes[key] = ui.Get().InputTime()
 		}
+		updateLockKeys(source, metaState)
 		var runes []rune
 		if r := rune(unicodeChar); r != 0 && unicode.IsPrint(r) {
 			runes = []rune{r}
@@ -157,7 +164,7 @@ func OnKeyDownOnAndroid(keyCode int, unicodeChar int, source int, deviceID int) 
 	}
 }
 
-func OnKeyUpOnAndroid(keyCode int, source int, deviceID int) {
+func OnKeyUpOnAndroid(keyCode int, source int, deviceID int, metaState int) {
 	switch {
 	case source&sourceGamepad == sourceGamepad:
 		// A gamepad can be detected as a keyboard. Detect the device as a gamepad first.
@@ -170,8 +177,19 @@ func OnKeyUpOnAndroid(keyCode int, source int, deviceID int) {
 		if key, ok := androidKeyToUIKey[keyCode]; ok {
 			keyReleasedTimes[key] = ui.Get().InputTime()
 		}
+		updateLockKeys(source, metaState)
 		updateInput(nil)
 	}
+}
+
+// updateLockKeys takes the lock key states from a key event's meta state.
+// A virtual keyboard has no lock keys and reports none, so only a physical keyboard is a source.
+func updateLockKeys(source int, metaState int) {
+	if source&sourceKeyboard != sourceKeyboard {
+		return
+	}
+	capsLock = ui.NewLockKeyStateFromBool(metaState&metaCapsLockOn != 0)
+	numLock = ui.NewLockKeyStateFromBool(metaState&metaNumLockOn != 0)
 }
 
 func OnGamepadAxisChanged(deviceID int, axisID int, value float32) {

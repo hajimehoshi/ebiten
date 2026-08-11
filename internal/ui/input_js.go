@@ -35,6 +35,9 @@ var (
 	stringTouchstart = js.ValueOf("touchstart")
 	stringTouchend   = js.ValueOf("touchend")
 	stringTouchmove  = js.ValueOf("touchmove")
+
+	stringCapsLock = js.ValueOf("CapsLock")
+	stringNumLock  = js.ValueOf("NumLock")
 )
 
 type touchInClient struct {
@@ -130,7 +133,8 @@ func (u *UserInterface) mouseUp(code int) {
 func (u *UserInterface) updateInputFromEvent(e js.Value) error {
 	// Avoid using js.Value.String() as String creates a Uint8Array via a TextEncoder and causes a heavy
 	// overhead (#1437).
-	switch t := e.Get("type"); {
+	t := e.Get("type")
+	switch {
 	case t.Equal(stringKeydown):
 		if str := e.Get("key").String(); isKeyString(str) {
 			for _, r := range str {
@@ -154,6 +158,15 @@ func (u *UserInterface) updateInputFromEvent(e js.Value) error {
 		u.inputState.WheelY += -e.Get("deltaY").Float()
 	case t.Equal(stringTouchstart) || t.Equal(stringTouchend) || t.Equal(stringTouchmove):
 		u.updateTouchesFromEvent(e)
+	}
+
+	// A browser reports the lock key states only as part of an input event. KeyboardEvent and
+	// MouseEvent carry them; TouchEvent does not.
+	switch {
+	case t.Equal(stringKeydown), t.Equal(stringKeyup), t.Equal(stringMousedown), t.Equal(stringMouseup),
+		t.Equal(stringMousemove), t.Equal(stringWheel):
+		u.inputState.CapsLock = NewLockKeyStateFromBool(e.Call("getModifierState", stringCapsLock).Bool())
+		u.inputState.NumLock = NewLockKeyStateFromBool(e.Call("getModifierState", stringNumLock).Bool())
 	}
 
 	u.forceUpdateOnMinimumFPSMode()

@@ -26,13 +26,15 @@ type TouchForInput struct {
 	Y float64
 }
 
-func (u *UserInterface) updateInputStateFromOutside(keyPressedTimes, keyReleasedTimes [KeyMax + 1]InputTime, runes []rune, touches []TouchForInput) {
+func (u *UserInterface) updateInputStateFromOutside(keyPressedTimes, keyReleasedTimes [KeyMax + 1]InputTime, runes []rune, touches []TouchForInput, capsLock, numLock LockKeyState) {
 	u.m.Lock()
 	defer u.m.Unlock()
 
 	u.inputState.KeyPressedTimes = keyPressedTimes
 	u.inputState.KeyReleasedTimes = keyReleasedTimes
 	u.inputState.Runes = append(u.inputState.Runes, runes...)
+	u.inputState.CapsLock = capsLock
+	u.inputState.NumLock = numLock
 	u.touches = u.touches[:0]
 	for _, t := range touches {
 		u.touches = append(u.touches, t)

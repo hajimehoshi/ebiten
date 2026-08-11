@@ -138,13 +138,13 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
         if (event.getRepeatCount() > 0) {
             return super.onKeyDown(keyCode, event);
         }
-        Ebitenmobileview.onKeyDownOnAndroid(keyCode, event.getUnicodeChar(), event.getSource(), event.getDeviceId());
+        Ebitenmobileview.onKeyDownOnAndroid(keyCode, event.getUnicodeChar(), event.getSource(), event.getDeviceId(), event.getMetaState());
         return true;
     }
 
     @Override
     public boolean onKeyUp(int keyCode, KeyEvent event) {
-        Ebitenmobileview.onKeyUpOnAndroid(keyCode, event.getSource(), event.getDeviceId());
+        Ebitenmobileview.onKeyUpOnAndroid(keyCode, event.getSource(), event.getDeviceId(), event.getMetaState());
         return true;
     }
 

@@ -63,6 +63,27 @@ func IsKeyPressed(key Key) bool {
 	return inputstate.Get().IsKeyPressed(ui.Key(key))
 }
 
+// IsCapsLockOn reports whether Caps Lock is on.
+//
+// The state is reported as off on platforms that do not report it, like mobiles and consoles.
+// On browsers, the state is the one carried by the last input event the app received.
+//
+// IsCapsLockOn is concurrent-safe.
+func IsCapsLockOn() bool {
+	return inputstate.Get().IsCapsLockOn()
+}
+
+// IsNumLockOn reports whether the numeric keypad produces digits instead of acting as navigation keys.
+//
+// The state is reported as on on platforms that do not report it, like mobiles and consoles, and on
+// macOS, where the numeric keypad always produces digits.
+// On browsers, the state is the one carried by the last input event the app received.
+//
+// IsNumLockOn is concurrent-safe.
+func IsNumLockOn() bool {
+	return inputstate.Get().IsNumLockOn()
+}
+
 // KeyName returns a key name for the current keyboard layout.
 // For example, KeyName(KeyQ) returns 'q' for a QWERTY keyboard, and returns 'a' for an AZERTY keyboard.
 //

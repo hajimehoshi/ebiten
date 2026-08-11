@@ -36,6 +36,13 @@ type (
 
 const xPropModeReplace = 0
 
+// Modifier bits of the state mask XQueryPointer returns. Mod2 is where X11
+// keymaps conventionally bind Num Lock.
+const (
+	xLockMask = 1 << 1
+	xMod2Mask = 1 << 4
+)
+
 // xrrCrtcInfo mirrors the leading members of XRRCrtcInfo. Only the size fields
 // are read, so the trailing members are omitted.
 type xrrCrtcInfo struct {
@@ -119,18 +126,18 @@ func x11RootWindow(display uintptr) xID {
 	return xRootWindow(display, xDefaultScreen(display))
 }
 
-// x11QueryPointerPosition returns the cursor position relative to the root
-// window. ok is false when the pointer is on another screen.
-func x11QueryPointerPosition(display uintptr) (x, y int, ok bool) {
+// x11QueryPointer returns the cursor position relative to the root window, and
+// the modifier and button state mask. ok is false when the pointer is on
+// another screen.
+func x11QueryPointer(display uintptr) (x, y int, mask uint32, ok bool) {
 	var (
 		rootReturn, childReturn  xID
 		rootX, rootY, winX, winY int32
-		mask                     uint32
 	)
 	if !xQueryPointer(display, x11RootWindow(display), &rootReturn, &childReturn, &rootX, &rootY, &winX, &winY, &mask) {
-		return 0, 0, false
+		return 0, 0, 0, false
 	}
-	return int(rootX), int(rootY), true
+	return int(rootX), int(rootY), mask, true
 }
 
 // x11CrtcSize returns the pixel size of the given CRTC. ok is false when RandR

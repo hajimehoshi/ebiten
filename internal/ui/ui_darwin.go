@@ -348,6 +348,19 @@ func (u *glfwBackend) syncModKeysFromOS() {
 	u.inputState.syncModKeysByMods(mods, u.InputTime())
 }
 
+// syncLockKeysFromOS updates the lock key state to the current OS state.
+// Must be called on the main thread with u.m unheld.
+func (u *glfwBackend) syncLockKeysFromOS() {
+	flags := objc.Send[uint](objc.ID(class_NSEvent), sel_modifierFlags)
+	const nsEventModifierFlagCapsLock = 1 << 16
+
+	u.m.Lock()
+	defer u.m.Unlock()
+	u.inputState.CapsLock = NewLockKeyStateFromBool(flags&nsEventModifierFlagCapsLock != 0)
+	// macOS has no Num Lock: the numeric keypad always produces digits.
+	u.inputState.NumLock = LockKeyStateOn
+}
+
 func currentMouseLocation() (x, y int) {
 	point := objc.Send[cocoa.NSPoint](objc.ID(class_NSEvent), sel_mouseLocation)
 

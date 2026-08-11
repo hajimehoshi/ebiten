@@ -29,6 +29,10 @@ var (
 	keyPressedTimes  [ui.KeyMax + 1]ui.InputTime
 	keyReleasedTimes [ui.KeyMax + 1]ui.InputTime
 	touches          = map[ui.TouchID]position{}
+
+	// capsLock and numLock stay unknown until a physical keyboard reports them.
+	capsLock ui.LockKeyState
+	numLock  ui.LockKeyState
 )
 
 var (
@@ -45,5 +49,5 @@ func updateInput(runes []rune) {
 		})
 	}
 
-	ui.Get().UpdateInput(keyPressedTimes, keyReleasedTimes, runes, touchSlice)
+	ui.Get().UpdateInput(keyPressedTimes, keyReleasedTimes, runes, touchSlice, capsLock, numLock)
 }

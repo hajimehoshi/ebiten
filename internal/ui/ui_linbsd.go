@@ -205,7 +205,7 @@ func initialMonitorByOS() (*Monitor, error) {
 		return nil, nil
 	}
 
-	x, y, ok := x11QueryPointerPosition(display)
+	x, y, _, ok := x11QueryPointer(display)
 	if !ok {
 		return nil, nil
 	}
@@ -312,3 +312,24 @@ func (u *glfwBackend) setWindowColorModeImpl(mode colormode.ColorMode) error {
 }
 
 func (u *glfwBackend) syncModKeysFromOS() {}
+
+// syncLockKeysFromOS updates the lock key state to the current OS state.
+// Must be called on the main thread with u.m unheld.
+func (u *glfwBackend) syncLockKeysFromOS() {
+	if !ensureX11() {
+		return
+	}
+	display, err := glfw.GetX11Display()
+	if err != nil || display == 0 {
+		return
+	}
+	_, _, mask, ok := x11QueryPointer(display)
+	if !ok {
+		return
+	}
+
+	u.m.Lock()
+	defer u.m.Unlock()
+	u.inputState.CapsLock = NewLockKeyStateFromBool(mask&xLockMask != 0)
+	u.inputState.NumLock = NewLockKeyStateFromBool(mask&xMod2Mask != 0)
+}

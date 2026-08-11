@@ -32,6 +32,8 @@ const (
 	_DWMWA_USE_IMMERSIVE_DARK_MODE = 20
 	_MONITOR_DEFAULTTONEAREST      = 2
 	_SM_CYCAPTION                  = 4
+	_VK_CAPITAL                    = 0x14
+	_VK_NUMLOCK                    = 0x90
 )
 
 var (
@@ -84,6 +86,7 @@ var (
 	procMonitorFromWindow = user32.NewProc("MonitorFromWindow")
 	procGetMonitorInfoW   = user32.NewProc("GetMonitorInfoW")
 	procGetCursorPos      = user32.NewProc("GetCursorPos")
+	procGetKeyState       = user32.NewProc("GetKeyState")
 )
 
 func _ImmAssociateContext(hwnd windows.HWND, hIMC uintptr) (uintptr, error) {
@@ -144,6 +147,11 @@ func _GetCursorPos() (int32, int32, error) {
 		return 0, 0, fmt.Errorf("ui: GetCursorPos failed: returned 0")
 	}
 	return pt.x, pt.y, nil
+}
+
+func _GetKeyState(nVirtKey int) int16 {
+	r, _, _ := procGetKeyState.Call(uintptr(nVirtKey))
+	return int16(r)
 }
 
 func _DwmSetWindowAttribute(hwnd windows.HWND, dwAttribute uint32, pvAttribute unsafe.Pointer, cbAttribute uint32) error {

@@ -60,9 +60,11 @@ func UpdateTouchesOnIOS(phase int, ptr int64, x, y float64) {
 	}
 }
 
-func UpdatePressesOnIOS(phase int, keyCode int, keyString string) {
+func UpdatePressesOnIOS(phase int, keyCode int, keyString string, modifierFlags int) {
 	// TODO: If a key is kept pressed, ignore the repeated key events.
 	// There seems no way to check whether a key event is a repeated event or not so far.
+	updateLockKeys(modifierFlags)
+
 	switch phase {
 	case C.UIPressPhaseStationary:
 		// keyPressedTimes represents the time when a key is first pressed.
@@ -89,4 +91,11 @@ func UpdatePressesOnIOS(phase int, keyCode int, keyString string) {
 	default:
 		panic(fmt.Sprintf("ebitenmobileview: invalid phase: %d", phase))
 	}
+}
+
+// updateLockKeys takes the lock key states from a key event's modifier flags.
+func updateLockKeys(modifierFlags int) {
+	capsLock = ui.NewLockKeyStateFromBool(modifierFlags&C.UIKeyModifierAlphaShift != 0)
+	// iOS has no Num Lock: the numeric keypad always produces digits.
+	numLock = ui.LockKeyStateOn
 }

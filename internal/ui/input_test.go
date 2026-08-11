@@ -222,3 +222,30 @@ func TestNonModifierKeyReleasedInTick(t *testing.T) {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
 }
+
+// TestLockKeyStates tests that a lock key state a platform does not report falls back to Caps Lock
+// off and Num Lock on.
+func TestLockKeyStates(t *testing.T) {
+	testCases := []struct {
+		state ui.LockKeyState
+		caps  bool
+		num   bool
+	}{
+		{ui.LockKeyStateUnknown, false, true},
+		{ui.LockKeyStateOn, true, true},
+		{ui.LockKeyStateOff, false, false},
+	}
+
+	for _, tc := range testCases {
+		var inputState ui.InputState
+		inputState.CapsLock = tc.state
+		inputState.NumLock = tc.state
+
+		if got, want := inputState.IsCapsLockOn(), tc.caps; got != want {
+			t.Errorf("state: %d, got: %v, want: %v", tc.state, got, want)
+		}
+		if got, want := inputState.IsNumLockOn(), tc.num; got != want {
+			t.Errorf("state: %d, got: %v, want: %v", tc.state, got, want)
+		}
+	}
+}

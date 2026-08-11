@@ -353,3 +353,20 @@ func (u *glfwBackend) setWindowColorModeImpl(mode colormode.ColorMode) error {
 }
 
 func (u *glfwBackend) syncModKeysFromOS() {}
+
+// syncLockKeysFromOS updates the lock key state to the current OS state.
+// Must be called on the main thread with u.m unheld.
+func (u *glfwBackend) syncLockKeysFromOS() {
+	if microsoftgdk.IsXbox() {
+		return
+	}
+
+	// The low-order bit of GetKeyState is the toggle state.
+	caps := _GetKeyState(_VK_CAPITAL)&1 != 0
+	num := _GetKeyState(_VK_NUMLOCK)&1 != 0
+
+	u.m.Lock()
+	defer u.m.Unlock()
+	u.inputState.CapsLock = NewLockKeyStateFromBool(caps)
+	u.inputState.NumLock = NewLockKeyStateFromBool(num)
+}

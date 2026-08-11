@@ -1146,6 +1146,7 @@ func (u *glfwBackend) update() (float64, float64, error) {
 		}
 	}
 	u.syncModKeysFromOS()
+	u.syncLockKeysFromOS()
 
 	// If isRunnableOnUnfocused is false and the window is not focused, wait here.
 	// For the first update, skip this check as the window might not be seen yet in some environments like ChromeOS (#3091).
