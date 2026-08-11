@@ -184,16 +184,6 @@ jobs:
           cd go-inovation
           go mod edit -replace=github.com/hajimehoshi/ebiten/v2=$GITHUB_WORKSPACE
           go mod tidy
-          # gomobile reads the module graph with go list -m and copies it into the module
-          # it generates. For a replaced module go list reports a version, and gomobile
-          # scopes the replace directive to it. A dependency can require a newer Ebitengine
-          # than go-inovation does, and then the directive matches nothing and the
-          # published Ebitengine is built instead of this repository. That dependency is
-          # currently debugui, which this repository requires for the examples.
-          # For a workspace member go list reports no version, as it is a main module, and
-          # then the directive applies to whatever version is selected.
-          # TODO: Remove this workaround once gomobile keeps the directive unscoped.
-          go work init . $GITHUB_WORKSPACE
 
       - name: go build (NintendoSDK)
         if: runner.os == 'Linux'
