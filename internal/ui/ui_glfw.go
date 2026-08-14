@@ -1211,9 +1211,27 @@ func (u *glfwBackend) loopGame() (err error) {
 	}
 }
 
+// shouldPresentFrame reports whether a frame should be presented to the window.
+func shouldPresentFrame(windowVisible, bufferOnceSwapped, initWindowVisible bool) bool {
+	if windowVisible {
+		return true
+	}
+
+	// A window that is to be shown at startup stays hidden until the first frame is presented (#2875).
+	// That frame must still be presented (#3508): showing the window and, on macOS, entering the
+	// fullscreen mode (#2599) both require buffers to have been swapped once.
+	if !bufferOnceSwapped && initWindowVisible {
+		return true
+	}
+
+	// A hidden window is not presented to, so its frames are not throttled by the present. Skip the
+	// buffer swap so that the tick rate stays at the target TPS while hidden.
+	return false
+}
+
 func (u *glfwBackend) updateGame() error {
 	var unfocused bool
-	var windowHidden bool
+	var present bool
 
 	var outsideWidth, outsideHeight float64
 	var deviceScaleFactor float64
@@ -1231,14 +1249,12 @@ func (u *glfwBackend) updateGame() error {
 			unfocused = a == glfw.False
 		}
 
-		// A hidden window is not presented to, so its frames are not throttled by the present. Detect it so
-		// the buffer swap can be skipped and the tick rate stays at the target TPS while hidden.
 		visible, e := u.window.GetAttrib(glfw.Visible)
 		if e != nil {
 			err = e
 			return
 		}
-		windowHidden = visible == glfw.False
+		present = shouldPresentFrame(visible == glfw.True, u.bufferOnceSwapped, u.desktopWindow.isInitWindowVisible())
 
 		outsideWidth, outsideHeight, err = u.update()
 		if err != nil {
@@ -1268,7 +1284,7 @@ func (u *glfwBackend) updateGame() error {
 		return err
 	}
 
-	if err := u.context.updateFrame(u.graphicsDriver, outsideWidth, outsideHeight, deviceScaleFactor, u.UserInterface, !windowHidden); err != nil {
+	if err := u.context.updateFrame(u.graphicsDriver, outsideWidth, outsideHeight, deviceScaleFactor, u.UserInterface, present); err != nil {
 		return err
 	}
 
