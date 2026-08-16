@@ -93,6 +93,14 @@ type textInputState struct {
 	// "no replacement, at the caret" case.
 	ReplacementEndInBytes int
 
+	// ReplacementRelativeToCaret reports whether ReplacementStartInBytes and
+	// ReplacementEndInBytes are offsets from the receiving session's caret,
+	// which may be negative, rather than positions in its joined buffer.
+	// [noReplacement] does not apply then, an offset pair of 0 and 0 meaning
+	// the same. Used for an edit diffed against a buffer another session's
+	// commit left behind, where only the caret is a common reference.
+	ReplacementRelativeToCaret bool
+
 	// CommitKind reports whether Text is a final commit and, if so, how it was
 	// produced.
 	CommitKind commitKind

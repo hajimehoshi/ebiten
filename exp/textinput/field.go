@@ -182,14 +182,21 @@ func (f *Field) commit(state textInputState) {
 	if !state.CommitKind.committed() {
 		panic("textinput: commit must be called with committed state")
 	}
-	if state.ReplacementEndInBytes-state.ReplacementStartInBytes > 0 {
-		if f.selectionStartInBytes > state.ReplacementStartInBytes {
-			f.selectionStartInBytes -= state.ReplacementEndInBytes - state.ReplacementStartInBytes
+	replStart, replEnd := state.ReplacementStartInBytes, state.ReplacementEndInBytes
+	if state.ReplacementRelativeToCaret {
+		// A state queued for a session this field took over instead carries
+		// offsets from that session's caret, which is this field's selection.
+		replStart = min(max(f.selectionStartInBytes+replStart, 0), len(f.text))
+		replEnd = min(max(f.selectionStartInBytes+replEnd, replStart), len(f.text))
+	}
+	if replEnd-replStart > 0 {
+		if f.selectionStartInBytes > replStart {
+			f.selectionStartInBytes -= replEnd - replStart
 		}
-		if f.selectionEndInBytes > state.ReplacementStartInBytes {
-			f.selectionEndInBytes -= state.ReplacementEndInBytes - state.ReplacementStartInBytes
+		if f.selectionEndInBytes > replStart {
+			f.selectionEndInBytes -= replEnd - replStart
 		}
-		f.text = f.text[:state.ReplacementStartInBytes] + f.text[state.ReplacementEndInBytes:]
+		f.text = f.text[:replStart] + f.text[replEnd:]
 	}
 	f.text = f.text[:f.selectionStartInBytes] + state.Text + f.text[f.selectionEndInBytes:]
 	f.selectionStartInBytes += len(state.Text)

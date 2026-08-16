@@ -16,7 +16,14 @@ package textinput
 
 // diffSender turns snapshots of a platform text buffer, seeded with the active
 // session's surrounding text, into textInputState updates, by diffing each
-// snapshot against the session's baseline.
+// snapshot against a baseline.
+//
+// A commit ends the session, while the platform keeps reporting edits until the
+// application starts the next one. Those edits belong to that next session, so
+// they are diffed against the buffer the commit left behind, which the
+// application reproduces by applying the commit, and are expressed relative to
+// its caret: the next session brings its own surrounding text, and applying the
+// commit leaves its caret at the end of the committed text.
 type diffSender struct {
 	events *textInputEvents
 
@@ -29,9 +36,17 @@ type diffSender struct {
 	lastSentSelStart  int
 	lastSentSelEnd    int
 
-	// committedThisSession reports whether this session already committed; a
-	// second commit before the next session starts falls back to a caret insert
-	// (see trySend).
+	// committedValue is the buffer as of the last commit sent and
+	// committedCaretInBytes the caret within it, at the end of the committed
+	// text. Meaningful only while committedThisSession is true.
+	//
+	// A composition leaves them alone: its finalization must commit the whole
+	// composition, not the difference from its last snapshot.
+	committedValue        string
+	committedCaretInBytes int
+
+	// committedThisSession reports whether the session the buffer was seeded for
+	// has already committed.
 	committedThisSession bool
 }
 
@@ -42,7 +57,19 @@ func (d *diffSender) reset(value string) {
 	d.lastSentCommitted = true
 	d.lastSentSelStart = 0
 	d.lastSentSelEnd = 0
+	d.committedValue = ""
+	d.committedCaretInBytes = 0
 	d.committedThisSession = false
+}
+
+// baseline returns the text the buffer's snapshots are diffed against and the
+// caret within it: session s's surrounding text until s commits, and the buffer
+// that commit left behind afterwards.
+func (d *diffSender) baseline(s *session) (value string, caretInBytes int) {
+	if d.committedThisSession {
+		return d.committedValue, d.committedCaretInBytes
+	}
+	return s.textBeforeCaret + s.textAfterCaret, len(s.textBeforeCaret)
 }
 
 // compositionSelectionInBytes returns the selection within the preedit, as a
@@ -109,20 +136,18 @@ func handlePlatformState(events *textInputEvents, sender *diffSender, legacyClea
 	return false
 }
 
-// trySend diffs the buffer against session s's surrounding text and sends the
-// edit as a replacement range. value is the buffer's current content and
-// selStartInUTF16 and selEndInUTF16 its selection; caretAtPreeditEnd is
-// documented at [compositionSelectionInBytes].
+// trySend diffs the buffer against the baseline and sends the edit as a
+// replacement range. value is the buffer's current content and selStartInUTF16
+// and selEndInUTF16 its selection; caretAtPreeditEnd is documented at
+// [compositionSelectionInBytes].
 func (d *diffSender) trySend(s *session, value string, selStartInUTF16, selEndInUTF16 int, caretAtPreeditEnd bool, kind commitKind) {
-	composing := !kind.committed() && !d.committedThisSession
-
 	// A composition is compared against the last state sent in
 	// trySendComposition, which knows the selection it would report.
-	if !composing && value == d.lastSentValue && kind.committed() == d.lastSentCommitted {
+	if kind.committed() && d.lastSentCommitted && value == d.lastSentValue {
 		return
 	}
 
-	if composing {
+	if !kind.committed() {
 		if d.trySendComposition(s, value, selStartInUTF16, selEndInUTF16, caretAtPreeditEnd) {
 			return
 		}
@@ -131,56 +156,59 @@ func (d *diffSender) trySend(s *session, value string, selStartInUTF16, selEndIn
 		kind = commitRegular
 	}
 
-	if d.committedThisSession {
-		// Already committed this session; the buffer has moved past our baseline.
-		// Send just the new delta as a caret insert (rapid double-commit case).
-		text, _, _ := computeReplacement(d.lastSentValue, value, -1)
-		d.events.send(textInputState{
-			Text:                    text,
-			ReplacementStartInBytes: noReplacement,
-			ReplacementEndInBytes:   noReplacement,
-			CommitKind:              kind,
-		})
-		d.lastSentValue = value
-		d.lastSentCommitted = kind.committed()
-		if kind.committed() {
-			d.events.end()
-		}
-		return
-	}
-
-	baseline := s.textBeforeCaret + s.textAfterCaret
+	baseline, baselineCaretInBytes := d.baseline(s)
 
 	// The caret is at the end of the committed text; anchor on it so an
 	// insertion into repeated surrounding text is not misplaced at the end.
 	caretInBytes := convertUTF16CountToByteCount(value, selStartInUTF16)
 	text, replStartInBytes, replEndInBytes := computeReplacement(baseline, value, caretInBytes)
 
+	// Applying the commit leaves the application's caret at the end of the
+	// committed text: the baseline for the edits reported until the next session
+	// starts.
+	committedCaretInBytes := replStartInBytes + len(text)
+
+	// The session the baseline came from has ended, so the range is not in the
+	// coordinates of the session that receives this commit.
+	relative := d.committedThisSession
+	if relative {
+		replStartInBytes -= baselineCaretInBytes
+		replEndInBytes -= baselineCaretInBytes
+	}
+
 	d.events.send(textInputState{
-		Text:                    text,
-		ReplacementStartInBytes: replStartInBytes,
-		ReplacementEndInBytes:   replEndInBytes,
-		CommitKind:              kind,
+		Text:                       text,
+		ReplacementStartInBytes:    replStartInBytes,
+		ReplacementEndInBytes:      replEndInBytes,
+		ReplacementRelativeToCaret: relative,
+		CommitKind:                 kind,
 	})
 	d.lastSentValue = value
 	d.lastSentCommitted = true
+	d.committedValue = value
+	d.committedCaretInBytes = committedCaretInBytes
 	d.committedThisSession = true
 	d.events.end()
 }
 
-// trySendComposition sends the buffer as a preedit inserted at session s's
+// trySendComposition sends the buffer as a preedit inserted at the baseline's
 // caret, and reports whether it could: a preedit cannot express an edit that
-// removes committed text. The arguments are documented at [diffSender.trySend].
+// removes text from the baseline. The arguments are documented at
+// [diffSender.trySend].
 func (d *diffSender) trySendComposition(s *session, value string, selStartInUTF16, selEndInUTF16 int, caretAtPreeditEnd bool) bool {
 	// The preedit ends where the unchanged after-caret text begins. Anchor there
 	// rather than at the caret, which may sit inside the preedit during
 	// conversion, so the preedit is located correctly even when the surrounding
 	// text repeats.
-	baseline := s.textBeforeCaret + s.textAfterCaret
-	preeditEnd := len(value) - len(s.textAfterCaret)
+	baseline, baselineCaretInBytes := d.baseline(s)
+	preeditEnd := len(value) - (len(baseline) - baselineCaretInBytes)
 	text, replStartInBytes, replEndInBytes := computeReplacement(baseline, value, preeditEnd)
 	if replStartInBytes < replEndInBytes {
 		return false
+	}
+	if text == "" && d.lastSentCommitted {
+		// Nothing is composed, and no preedit was reported that needs clearing.
+		return true
 	}
 
 	// The selection is relative to the preedit's start.

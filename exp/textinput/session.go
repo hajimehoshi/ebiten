@@ -153,8 +153,17 @@ func (s *session) Update() error {
 			if st.CommitKind.committed() {
 				replStart := st.ReplacementStartInBytes
 				replEnd := st.ReplacementEndInBytes
-				if replStart == noReplacement || replEnd == noReplacement {
-					preLen := len(s.textBeforeCaret)
+				preLen := len(s.textBeforeCaret)
+				switch {
+				case st.ReplacementRelativeToCaret:
+					// The edit was diffed against a buffer whose caret sat where
+					// this session's does, but whose surrounding text was the
+					// previous session's. Clamp: this session decides how much
+					// text around the caret it exposes.
+					total := preLen + len(s.textAfterCaret)
+					replStart = min(max(preLen+replStart, 0), total)
+					replEnd = min(max(preLen+replEnd, replStart), total)
+				case replStart == noReplacement || replEnd == noReplacement:
 					replStart = preLen
 					replEnd = preLen
 				}

@@ -146,6 +146,41 @@ func (d *DiffSender) TrySend(value string, selStartInUTF16, selEndInUTF16 int, c
 	d.sender.trySend(d.session, value, selStartInUTF16, selEndInUTF16, caretAtPreeditEnd, kind)
 }
 
+// StartNextSession starts a session seeded with the surrounding text the
+// application holds after applying the previous session's commit, as a platform
+// backend does when the application opens the next one. The states queued behind
+// that commit are taken over.
+func (d *DiffSender) StartNextSession(textBeforeCaret, textAfterCaret string) {
+	d.sender.reset(textBeforeCaret + textAfterCaret)
+	ch, end := d.events.start()
+	d.ch = ch
+	d.session = &session{
+		ch:              ch,
+		end:             end,
+		textBeforeCaret: textBeforeCaret,
+		textAfterCaret:  textAfterCaret,
+	}
+}
+
+// Update drains the session's states, as a tick does.
+func (d *DiffSender) Update() error {
+	return d.session.Update()
+}
+
+// Commit returns the commit the session observed, or nil if it observed none.
+func (d *DiffSender) Commit() *Commit {
+	if !d.session.IsCommitted() {
+		return nil
+	}
+	return d.session.Commit()
+}
+
+// Composition returns the preedit the session last observed.
+func (d *DiffSender) Composition() *Composition {
+	c := d.session.Composition()
+	return &c
+}
+
 // Drain returns the states sent to the session since the last call.
 func (d *DiffSender) Drain() []TextInputState {
 	var states []TextInputState

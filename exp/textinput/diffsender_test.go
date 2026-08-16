@@ -118,6 +118,190 @@ func TestDiffSenderCommitUnchanged(t *testing.T) {
 	}
 }
 
+// applyCommit applies c as [textinput.Commit] documents, and returns the text
+// around the caret afterwards with the caret's position within it.
+func applyCommit(c *textinput.Commit) (text string, caretInBytes int) {
+	before, after := c.SurroundingText()
+	return before + c.Text() + after, len(before) + len(c.Text())
+}
+
+// commitForNextSession hands the states queued behind a commit to a session
+// seeded with the surrounding text the application holds after applying it, and
+// returns that session's commit.
+func commitForNextSession(t *testing.T, d *textinput.DiffSender, textBeforeCaret, textAfterCaret string) *textinput.Commit {
+	t.Helper()
+	d.StartNextSession(textBeforeCaret, textAfterCaret)
+	if err := d.Update(); err != nil {
+		t.Fatalf("Update: %v", err)
+	}
+	c := d.Commit()
+	if c == nil {
+		t.Fatal("the next session got no commit")
+	}
+	return c
+}
+
+// The platform reports a deletion of the just-committed text before the
+// application starts the next session. The next session must delete, not insert
+// nothing at its caret.
+func TestDiffSenderDeletionAfterCommit(t *testing.T) {
+	d := textinput.NewDiffSender("ab", "cd")
+
+	// The IME commits "x" at the caret, ending the session.
+	d.TrySend("abxcd", 3, 3, false, textinput.CommitRegular)
+	if got, want := len(d.Drain()), 1; got != want {
+		t.Fatalf("len(states) = %d, want %d", got, want)
+	}
+
+	// A backspace removes it before the application opens the next session.
+	d.TrySend("abcd", 2, 2, false, textinput.CommitRegular)
+
+	// The application applied the commit, so its buffer is "abx|cd".
+	c := commitForNextSession(t, d, "abx", "cd")
+	if before, after := c.IsSurroundingTextReplaced(); !before || after {
+		t.Errorf("IsSurroundingTextReplaced() = %v, %v, want true, false", before, after)
+	}
+	text, caret := applyCommit(c)
+	if got, want := text, "abcd"; got != want {
+		t.Errorf("text = %q, want %q", got, want)
+	}
+	if got, want := caret, len("ab"); got != want {
+		t.Errorf("caret = %d, want %d", got, want)
+	}
+}
+
+// A virtual keyboard reports its backspace as a composition, which cannot
+// express a deletion, so the same handoff applies (see [diffSender.trySend]).
+func TestDiffSenderCompositionDeletionAfterCommit(t *testing.T) {
+	d := textinput.NewDiffSender("ab", "cd")
+
+	d.TrySend("abxcd", 3, 3, true, textinput.CommitRegular)
+	if got, want := len(d.Drain()), 1; got != want {
+		t.Fatalf("len(states) = %d, want %d", got, want)
+	}
+
+	d.TrySend("abcd", 2, 2, true, textinput.CommitNone)
+
+	c := commitForNextSession(t, d, "abx", "cd")
+	if got, want := c.Text(), ""; got != want {
+		t.Errorf("Text = %q, want %q", got, want)
+	}
+	text, caret := applyCommit(c)
+	if got, want := text, "abcd"; got != want {
+		t.Errorf("text = %q, want %q", got, want)
+	}
+	if got, want := caret, len("ab"); got != want {
+		t.Errorf("caret = %d, want %d", got, want)
+	}
+}
+
+// A deletion carried into the next session is reported in bytes, though the
+// platform reports its selection in UTF-16 code units.
+func TestDiffSenderDeletionAfterCommitInMultibyteText(t *testing.T) {
+	d := textinput.NewDiffSender("あ", "")
+
+	d.TrySend("あい", 2, 2, false, textinput.CommitRegular)
+	if got, want := len(d.Drain()), 1; got != want {
+		t.Fatalf("len(states) = %d, want %d", got, want)
+	}
+
+	d.TrySend("あ", 1, 1, false, textinput.CommitRegular)
+
+	c := commitForNextSession(t, d, "あい", "")
+	text, caret := applyCommit(c)
+	if got, want := text, "あ"; got != want {
+		t.Errorf("text = %q, want %q", got, want)
+	}
+	if got, want := caret, len("あ"); got != want {
+		t.Errorf("caret = %d, want %d", got, want)
+	}
+}
+
+// A composition started before the next session ends with the same buffer it
+// last reported. The commit must carry the whole composition, not the difference
+// from that report.
+func TestDiffSenderCompositionFinalizedAfterCommit(t *testing.T) {
+	d := textinput.NewDiffSender("ab", "cd")
+
+	d.TrySend("abxcd", 3, 3, false, textinput.CommitRegular)
+	if got, want := len(d.Drain()), 1; got != want {
+		t.Fatalf("len(states) = %d, want %d", got, want)
+	}
+
+	// The IME composes "あ" and finalizes it without changing the buffer.
+	d.TrySend("abxあcd", 4, 4, false, textinput.CommitNone)
+	d.TrySend("abxあcd", 4, 4, false, textinput.CommitRegular)
+
+	c := commitForNextSession(t, d, "abx", "cd")
+	if got, want := c.Text(), "あ"; got != want {
+		t.Errorf("Text = %q, want %q", got, want)
+	}
+	if before, after := c.IsSurroundingTextReplaced(); before || after {
+		t.Errorf("IsSurroundingTextReplaced() = %v, %v, want false, false", before, after)
+	}
+	text, caret := applyCommit(c)
+	if got, want := text, "abxあcd"; got != want {
+		t.Errorf("text = %q, want %q", got, want)
+	}
+	if got, want := caret, len("abxあ"); got != want {
+		t.Errorf("caret = %d, want %d", got, want)
+	}
+}
+
+// The composition reported before the next session starts reaches it as a
+// preedit, not as a commit.
+func TestDiffSenderCompositionAfterCommitReachesNextSession(t *testing.T) {
+	d := textinput.NewDiffSender("ab", "cd")
+
+	d.TrySend("abxcd", 3, 3, false, textinput.CommitRegular)
+	if got, want := len(d.Drain()), 1; got != want {
+		t.Fatalf("len(states) = %d, want %d", got, want)
+	}
+
+	d.TrySend("abxあcd", 4, 4, false, textinput.CommitNone)
+
+	d.StartNextSession("abx", "cd")
+	if err := d.Update(); err != nil {
+		t.Fatalf("Update: %v", err)
+	}
+	if c := d.Commit(); c != nil {
+		t.Fatalf("the session committed %q, want a composition", c.Text())
+	}
+	if got, want := d.Composition().Text(), "あ"; got != want {
+		t.Errorf("Composition().Text() = %q, want %q", got, want)
+	}
+}
+
+// Typing faster than the application opens sessions commits every keystroke at
+// the caret of the session that takes it.
+func TestDiffSenderInsertionsAfterCommit(t *testing.T) {
+	d := textinput.NewDiffSender("ab", "cd")
+
+	d.TrySend("abxcd", 3, 3, false, textinput.CommitRegular)
+	d.TrySend("abxycd", 4, 4, false, textinput.CommitRegular)
+	d.TrySend("abxyzcd", 5, 5, false, textinput.CommitRegular)
+	if got, want := d.PendingStateCount(), 2; got != want {
+		t.Fatalf("PendingStateCount() = %d, want %d", got, want)
+	}
+
+	textBeforeCaret, textAfterCaret := "abx", "cd"
+	for _, want := range []string{"y", "z"} {
+		c := commitForNextSession(t, d, textBeforeCaret, textAfterCaret)
+		if got := c.Text(); got != want {
+			t.Errorf("Text = %q, want %q", got, want)
+		}
+		if before, after := c.IsSurroundingTextReplaced(); before || after {
+			t.Errorf("IsSurroundingTextReplaced() = %v, %v, want false, false", before, after)
+		}
+		text, caret := applyCommit(c)
+		textBeforeCaret, textAfterCaret = text[:caret], text[caret:]
+	}
+
+	if got, want := textBeforeCaret+textAfterCaret, "abxyzcd"; got != want {
+		t.Errorf("text = %q, want %q", got, want)
+	}
+}
+
 // A backspace on a virtual keyboard removes committed text, which a preedit
 // cannot express, so it is committed instead (see [diffSender.trySend]).
 func TestDiffSenderCompositionRemovingCommittedText(t *testing.T) {
