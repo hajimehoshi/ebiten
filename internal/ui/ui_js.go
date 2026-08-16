@@ -16,6 +16,7 @@ package ui
 
 import (
 	"errors"
+	"image"
 	"math"
 	"sync"
 	"syscall/js"
@@ -904,6 +905,43 @@ func IsScreenTransparentAvailable() bool {
 
 func dipToNativePixels(x float64, scale float64) float64 {
 	return x
+}
+
+func dipFromNativePixels(x float64, scale float64) float64 {
+	return x
+}
+
+// VisibleClientRegionInNativePixels returns the part of the client area visible in the browser's
+// visual viewport, in native pixels. The returned boolean reports whether the region is known.
+func (u *UserInterface) VisibleClientRegionInNativePixels() (image.Rectangle, bool) {
+	if !window.Truthy() || !canvas.Truthy() {
+		return image.Rectangle{}, false
+	}
+	visualViewport := window.Get("visualViewport")
+	if !visualViewport.Truthy() {
+		return image.Rectangle{}, false
+	}
+
+	// Both the canvas rectangle and the visual viewport are in CSS pixels relative to the
+	// layout viewport.
+	rect := canvas.Call("getBoundingClientRect")
+	cx0 := rect.Get("left").Float()
+	cy0 := rect.Get("top").Float()
+	x0 := max(cx0, visualViewport.Get("offsetLeft").Float())
+	y0 := max(cy0, visualViewport.Get("offsetTop").Float())
+	x1 := min(rect.Get("right").Float(), visualViewport.Get("offsetLeft").Float()+visualViewport.Get("width").Float())
+	y1 := min(rect.Get("bottom").Float(), visualViewport.Get("offsetTop").Float()+visualViewport.Get("height").Float())
+	if x1 <= x0 || y1 <= y0 {
+		return image.Rectangle{}, true
+	}
+
+	s := u.Monitor().DeviceScaleFactor()
+	return image.Rect(
+		int(dipToNativePixels(x0-cx0, s)),
+		int(dipToNativePixels(y0-cy0, s)),
+		int(dipToNativePixels(x1-cx0, s)),
+		int(dipToNativePixels(y1-cy0, s)),
+	), true
 }
 
 func (u *UserInterface) RunOnMainThread(f func()) {

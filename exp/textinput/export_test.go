@@ -14,6 +14,10 @@
 
 package textinput
 
+import (
+	"image"
+)
+
 func ConvertUTF16CountToByteCount(text string, c int) int {
 	return convertUTF16CountToByteCount(text, c)
 }
@@ -106,4 +110,14 @@ func (s *TextInputEvents) StartSessionCompositing() bool {
 	sess := &session{ch: ch, end: end}
 	_ = sess.Update()
 	return sess.IsCompositing()
+}
+
+// SetVirtualKeyboardSourcesForTest replaces the virtual keyboard state and tick sources and
+// drops the cached snapshot.
+func SetVirtualKeyboardSourcesForTest(read func() (visible bool, visibleClientRegion image.Rectangle, ok bool), tick func() int64) {
+	theVirtualKeyboardState.m.Lock()
+	defer theVirtualKeyboardState.m.Unlock()
+	theVirtualKeyboardState.read = read
+	theVirtualKeyboardState.tick = tick
+	theVirtualKeyboardState.hasState = false
 }

@@ -397,6 +397,29 @@ func (u *UserInterface) LogicalPositionToClientPositionInDIPs(x, y float64) (flo
 	return u.context.logicalPositionToClientPosition(x, y, u.Monitor().DeviceScaleFactor())
 }
 
+// ClientPositionInNativePixelsToLogicalPosition converts a client-area position in native pixels
+// to a logical position. This is the inverse of
+// [UserInterface.LogicalPositionToClientPositionInNativePixels].
+// The returned position is NaN before the game's layout is determined.
+func (u *UserInterface) ClientPositionInNativePixelsToLogicalPosition(x, y float64) (float64, float64) {
+	if u.context == nil {
+		return math.NaN(), math.NaN()
+	}
+	s := u.Monitor().DeviceScaleFactor()
+	x = dipFromNativePixels(x, s)
+	y = dipFromNativePixels(y, s)
+	return u.context.clientPositionToLogicalPosition(x, y, s)
+}
+
+// LogicalScreenSize returns the game screen's size in logical units.
+// LogicalScreenSize returns zeros before the game's layout is determined.
+func (u *UserInterface) LogicalScreenSize() (float64, float64) {
+	if u.context == nil {
+		return 0, 0
+	}
+	return u.context.offscreenWidth, u.context.offscreenHeight
+}
+
 func (c *context) runInFrame(f func()) {
 	ch := make(chan struct{})
 	c.funcsInFrameCh <- func() {
