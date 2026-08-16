@@ -589,12 +589,15 @@ func (t *textInputImpl) keyboardWillChangeFrameOnMain(notification objc.ID) {
 	viewFrame := objc.Send[cgRect](parent, sel_convertRectFromView, windowFrame, window)
 	bounds := objc.Send[cgRect](parent, sel_bounds)
 
-	full := image.Rect(0, 0, int(bounds.size.width), int(bounds.size.height))
+	// The view's coordinate space is in points, while the recorded region is in native
+	// pixels. Scale by the same factor the UI derives its screen size with.
+	scale := ui.Get().Monitor().DeviceScaleFactor()
+	full := image.Rect(0, 0, int(bounds.size.width*scale), int(bounds.size.height*scale))
 	keyboard := image.Rect(
-		int(viewFrame.origin.x),
-		int(viewFrame.origin.y),
-		int(viewFrame.origin.x+viewFrame.size.width),
-		int(viewFrame.origin.y+viewFrame.size.height),
+		int(viewFrame.origin.x*scale),
+		int(viewFrame.origin.y*scale),
+		int((viewFrame.origin.x+viewFrame.size.width)*scale),
+		int((viewFrame.origin.y+viewFrame.size.height)*scale),
 	).Intersect(full)
 
 	t.mu.Lock()
