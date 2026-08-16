@@ -44,15 +44,9 @@ type textInputImpl struct {
 	// See discardIMEState.
 	dummyTextareaElement js.Value
 
-	// lastSentValue/lastSentCommitted: the last state sent in the session path,
-	// used to drop trailing duplicate events (e.g. the input after compositionend).
-	lastSentValue     string
-	lastSentCommitted bool
-
-	// committedThisSession reports whether this session already committed; a
-	// second commit before the next session starts falls back to a caret insert
-	// (see trySend).
-	committedThisSession bool
+	// sender diffs the textarea against the session's surrounding text in the
+	// session path.
+	sender diffSender
 
 	// composing reports whether the IME holds a composition for the textarea. iOS
 	// Safari reports one through the input event's inputType only.
@@ -123,6 +117,7 @@ func newTextareaElement(id string) js.Value {
 }
 
 func (t *textInputImpl) init() {
+	t.sender.events = t.events
 	hook.AppendHookOnBeforeUpdate(func() error {
 		t.dismissVirtualKeyboardIfNeeded()
 		return nil
@@ -404,24 +399,7 @@ func (t *textInputImpl) setSurroundingTextToTextarea(textBeforeCaret, textAfterC
 	if t.textareaElement.Get("selectionStart").Int() != caret || t.textareaElement.Get("selectionEnd").Int() != caret {
 		t.textareaElement.Call("setSelectionRange", caret, caret)
 	}
-	t.lastSentValue = value
-	t.lastSentCommitted = true
-	t.committedThisSession = false
-}
-
-// compositionSelectionInBytes returns the IME's selection within the preedit,
-// as a byte range relative to the preedit's start. The preedit occupies
-// preeditLen bytes of the textarea's value from preeditStart.
-func (t *textInputImpl) compositionSelectionInBytes(value string, preeditStart, preeditLen int) (start, end int) {
-	if isVirtualKeyboard() {
-		// A virtual keyboard offers no way to move the caret inside a preedit, so the
-		// caret is at its end. iOS Safari reports the selection from before the preedit
-		// was inserted, which would put the caret at the preedit's head.
-		return preeditLen, preeditLen
-	}
-	startInBytes := convertUTF16CountToByteCount(value, t.textareaElement.Get("selectionStart").Int())
-	endInBytes := convertUTF16CountToByteCount(value, t.textareaElement.Get("selectionEnd").Int())
-	return min(max(startInBytes-preeditStart, 0), preeditLen), min(max(endInBytes-preeditStart, 0), preeditLen)
+	t.sender.reset(value)
 }
 
 func (t *textInputImpl) trySend(kind commitKind) {
@@ -446,77 +424,9 @@ func (t *textInputImpl) trySend(kind commitKind) {
 	// as a replacement range (needed for the accent popup, #3236). The textarea
 	// is not cleared on commit, so the popup can replace the just-typed character.
 	value := t.textareaElement.Get("value").String()
-	if value == t.lastSentValue && kind.committed() == t.lastSentCommitted {
-		return
-	}
-
-	if t.committedThisSession {
-		// Already committed this session; the buffer has moved past our baseline.
-		// Send just the new delta as a caret insert (rapid double-commit case).
-		text, _, _ := computeReplacement(t.lastSentValue, value, -1)
-		t.events.send(textInputState{
-			Text:                    text,
-			ReplacementStartInBytes: noReplacement,
-			ReplacementEndInBytes:   noReplacement,
-			CommitKind:              kind,
-		})
-		t.lastSentValue = value
-		t.lastSentCommitted = kind.committed()
-		if kind.committed() {
-			t.events.end()
-		}
-		return
-	}
-
-	baseline := s.textBeforeCaret + s.textAfterCaret
-
-	if !kind.committed() {
-		// Composition: the preedit ends where the unchanged after-caret text
-		// begins. Anchor there rather than at the caret, which may sit inside
-		// the preedit during conversion, so the preedit is located correctly
-		// even when the surrounding text repeats. Report the selection relative
-		// to the preedit start.
-		preeditEnd := len(value) - len(s.textAfterCaret)
-		text, replStartInBytes, replEndInBytes := computeReplacement(baseline, value, preeditEnd)
-		// A composition can only insert a preedit at the caret. When the edit
-		// removes committed bytes (replStartInBytes < replEndInBytes) — e.g. a
-		// backspace on a virtual keyboard — a preedit cannot express it, so
-		// commit the replacement instead.
-		if replStartInBytes >= replEndInBytes {
-			selStartInBytes, selEndInBytes := t.compositionSelectionInBytes(value, replStartInBytes, len(text))
-			t.events.send(textInputState{
-				Text:                             text,
-				CompositionSelectionStartInBytes: selStartInBytes,
-				CompositionSelectionEndInBytes:   selEndInBytes,
-				ReplacementStartInBytes:          noReplacement,
-				ReplacementEndInBytes:            noReplacement,
-				CommitKind:                       kind,
-			})
-			t.lastSentValue = value
-			t.lastSentCommitted = false
-			return
-		}
-		// A virtual-keyboard deletion removes committed bytes; deliver it as a
-		// commit whose key does not pass through to the game.
-		kind = commitRegular
-	}
-
-	// The caret is at the end of the committed text; anchor on it so an
-	// insertion into repeated surrounding text is not misplaced at the end.
-	caret := t.textareaElement.Get("selectionStart").Int()
-	caretInBytes := convertUTF16CountToByteCount(value, caret)
-	text, replStartInBytes, replEndInBytes := computeReplacement(baseline, value, caretInBytes)
-
-	t.events.send(textInputState{
-		Text:                    text,
-		ReplacementStartInBytes: replStartInBytes,
-		ReplacementEndInBytes:   replEndInBytes,
-		CommitKind:              kind,
-	})
-	t.lastSentValue = value
-	t.lastSentCommitted = true
-	t.committedThisSession = true
-	t.events.end()
+	selStart := t.textareaElement.Get("selectionStart").Int()
+	selEnd := t.textareaElement.Get("selectionEnd").Int()
+	t.sender.trySend(s, value, selStart, selEnd, isVirtualKeyboard(), kind)
 }
 
 func (t *textInputImpl) trySendLegacy(kind commitKind) {
