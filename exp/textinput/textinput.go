@@ -19,6 +19,28 @@
 // UNIX-like systems with X11, and Web browsers so far.
 // It also works in a virtualization guest regardless of the operating system,
 // with the host serving text inputting (see exp/vmhost).
+//
+// # Virtual keyboards
+//
+// On iOS and Android, a virtual keyboard appears during text inputting.
+// While the keyboard would cover the caret reported by
+// [SessionOptions.CaretBounds], the rendering is shifted so that the caret
+// stays visible, and the shift is undone when the keyboard disappears.
+// Web browsers scroll the page by themselves instead.
+//
+// # Android
+//
+// The soft-input mode (android:windowSoftInputMode) is left to the app,
+// since EbitenView can be embedded in any activity. Every mode works: the
+// keyboard's occlusion is measured from the actual geometry, not assumed
+// from the mode. adjustNothing is the most predictable, as the caret is
+// kept visible by the shift described above without the window being
+// resized or panned.
+//
+// EbitenView contains a hidden text-editing view that takes the focus
+// during text inputting. When embedding EbitenView in a custom view
+// hierarchy, no ancestor view must prevent its descendants from taking
+// the focus.
 package textinput
 
 import (
