@@ -256,6 +256,28 @@ func (u *UserInterface) Window() Window {
 	return &nullWindow{}
 }
 
+// displayInfoValues is the display info last recorded by refreshDisplayInfo,
+// served to any thread by displayInfo.
+type displayInfoValues struct {
+	width  float64
+	height float64
+	scale  float64
+}
+
+var theDisplayInfo atomic.Value
+
+func (u *UserInterface) displayInfo() (int, int, float64, bool) {
+	// Reading the display info here would require waiting for the main thread
+	// on iOS, which can deadlock.
+	v, ok := theDisplayInfo.Load().(displayInfoValues)
+	if !ok {
+		return 0, 0, 1, false
+	}
+	width := int(dipFromNativePixels(v.width, v.scale))
+	height := int(dipFromNativePixels(v.height, v.scale))
+	return width, height, v.scale, true
+}
+
 type Monitor struct {
 	monitor monitor
 

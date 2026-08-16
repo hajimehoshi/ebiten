@@ -19,10 +19,13 @@ package ui
 //
 // #import <UIKit/UIKit.h>
 //
-// static void displayInfoOnMainThread(float* width, float* height, float* scale, UIView* view) {
+// #cgo noescape displayInfoOnMainThread
+// #cgo nocallback displayInfoOnMainThread
+// static void displayInfoOnMainThread(float* width, float* height, float* scale, uintptr_t viewPtr) {
 //   *width = 0;
 //   *height = 0;
 //   *scale = 1;
+//   UIView* view = (__bridge UIView*)(void*)viewPtr;
 //   UIWindow* window = view.window;
 //   if (!window) {
 //     return;
@@ -36,26 +39,11 @@ package ui
 //   *height = bounds.size.height;
 //   *scale = scene.screen.nativeScale;
 // }
-//
-// #cgo noescape displayInfoIfMain
-// #cgo nocallback displayInfoIfMain
-// static int displayInfoIfMain(float* width, float* height, float* scale, uintptr_t viewPtr) {
-//   if (!viewPtr) {
-//     return 0;
-//   }
-//   if (![NSThread isMainThread]) {
-//     return 0;
-//   }
-//   UIView* view = (__bridge UIView*)(void*)viewPtr;
-//   displayInfoOnMainThread(width, height, scale, view);
-//   return 1;
-// }
 import "C"
 
 import (
 	"errors"
 	"fmt"
-	"sync/atomic"
 
 	"github.com/ebitengine/purego/objc"
 
@@ -139,55 +127,21 @@ func dipFromNativePixels(x float64, scale float64) float64 {
 	return x
 }
 
-// displayInfoValues is the display info last read on the main thread, served
-// to the other threads by displayInfo.
-type displayInfoValues struct {
-	width  float64
-	height float64
-	scale  float64
-}
-
-var theDisplayInfo atomic.Value
-
-func (u *UserInterface) displayInfo() (int, int, float64, bool) {
+// refreshDisplayInfo records the display info for displayInfo to serve on any
+// thread. refreshDisplayInfo must be called on the main thread.
+func (u *UserInterface) refreshDisplayInfo() {
 	view := u.uiView.Load()
 	if view == 0 {
-		return 0, 0, 1, false
+		return
 	}
 
 	var cWidth, cHeight, cScale C.float
-	if C.displayInfoIfMain(&cWidth, &cHeight, &cScale, C.uintptr_t(view)) != 0 {
-		v := displayInfoValues{
-			width:  float64(cWidth),
-			height: float64(cHeight),
-			scale:  float64(cScale),
-		}
-		theDisplayInfo.Store(v)
-		return displayInfoFromValues(v)
-	}
-
-	// Waiting for the main thread here can deadlock: the main thread can be
-	// inside a call into Go that blocks on the game's goroutine, like an input
-	// callback. Serve the values last read on the main thread; they are
-	// refreshed whenever the view's layout changes (see refreshDisplayInfo).
-	v, ok := theDisplayInfo.Load().(displayInfoValues)
-	if !ok {
-		return 0, 0, 1, false
-	}
-	return displayInfoFromValues(v)
-}
-
-func displayInfoFromValues(v displayInfoValues) (int, int, float64, bool) {
-	width := int(dipFromNativePixels(v.width, v.scale))
-	height := int(dipFromNativePixels(v.height, v.scale))
-	return width, height, v.scale, true
-}
-
-// refreshDisplayInfo records the display info when called on the main thread,
-// for displayInfo to serve on the other threads. It does nothing on other
-// threads.
-func (u *UserInterface) refreshDisplayInfo() {
-	_, _, _, _ = u.displayInfo()
+	C.displayInfoOnMainThread(&cWidth, &cHeight, &cScale, C.uintptr_t(view))
+	theDisplayInfo.Store(displayInfoValues{
+		width:  float64(cWidth),
+		height: float64(cHeight),
+		scale:  float64(cScale),
+	})
 }
 
 func (u *UserInterface) RunOnMainThread(f func()) {
