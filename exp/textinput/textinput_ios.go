@@ -366,10 +366,9 @@ func (t *textInputImpl) applyStartOnMain() {
 	// of an embedding application to lift the first responder above the
 	// keyboard; a text view outside the window is never covered by the keyboard,
 	// so that scrolling never happens and the application's scroll position
-	// stays put. The game reacts to the keyboard itself with
-	// VirtualKeyboardVisibleBounds. An onscreen text view would also draw over
-	// the game, and a hidden one could not become the first responder. The size
-	// mirrors the caret bounds.
+	// stays put. The keyboard is avoided by shifting the rendering instead. An
+	// onscreen text view would also draw over the game, and a hidden one could
+	// not become the first responder. The size mirrors the caret bounds.
 	tv.Send(sel_setFrame, cgRect{
 		origin: cgPoint{x: -10000, y: -10000},
 		size:   cgSize{width: float64(max(bounds.Dx(), 1)), height: float64(max(bounds.Dy(), 1))},

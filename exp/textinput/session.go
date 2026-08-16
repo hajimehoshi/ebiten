@@ -16,6 +16,7 @@ package textinput
 
 import (
 	"fmt"
+	"image"
 	"sync"
 	"unicode/utf8"
 )
@@ -38,6 +39,11 @@ type session struct {
 
 	textBeforeCaret string
 	textAfterCaret  string
+
+	// caretBounds is where the caret was when the session started. The caret cannot move
+	// vertically within a session: a line break commits instead of joining the preedit, and a
+	// caller-driven move must confirm the session first.
+	caretBounds image.Rectangle
 
 	// Composition state, written by platform IME callbacks (synchronously),
 	// read by platform IME query callbacks and by Composition. The mutex
@@ -81,6 +87,7 @@ func (s *session) loadComposition() Composition {
 // closed from below).
 func (s *session) markClosed(callPlatformEnd bool) {
 	s.closed = true
+	clearVirtualKeyboardFromUI()
 	if callPlatformEnd {
 		s.end()
 	}
@@ -126,6 +133,7 @@ func startSession(opts *SessionOptions) (*session, error) {
 		end:             end,
 		textBeforeCaret: opts.TextBeforeCaret,
 		textAfterCaret:  opts.TextAfterCaret,
+		caretBounds:     opts.CaretBounds,
 	}
 	theTextInput.events.setActiveSession(s)
 	return s, nil
@@ -138,6 +146,7 @@ func (s *session) Update() error {
 	if s.closed {
 		return nil
 	}
+	reportVirtualKeyboardToUI(s.caretBounds)
 	s.composingThisUpdate = false
 	for {
 		select {

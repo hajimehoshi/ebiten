@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !android && !ios && !js
+//go:build !android && !ios
 
 package textinput
 
@@ -23,7 +23,9 @@ import (
 // readVirtualKeyboard reports whether a virtual keyboard is shown and the client-area region it
 // leaves visible, in native pixels. ok is false when the region is unknown.
 //
-// No platform here reports a virtual keyboard yet.
+// No platform here reports a virtual keyboard. Browsers are among them on purpose: a browser
+// scrolls the page to reveal the focused element itself, and shifting the rendering on top of
+// that would compensate twice.
 func readVirtualKeyboard() (visible bool, visibleClientRegion image.Rectangle, ok bool) {
 	return false, image.Rectangle{}, false
 }

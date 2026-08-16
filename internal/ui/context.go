@@ -56,6 +56,11 @@ type context struct {
 
 	isOffscreenModified bool
 
+	// virtualKeyboardOffsetY shifts the screen so that a virtual keyboard does not cover the
+	// text-input caret. It is refreshed once per frame, so that everything derived from the
+	// screen transform within a frame agrees.
+	virtualKeyboardOffsetY float64
+
 	// offscreenDrawn reports whether the current offscreen has been drawn since it was
 	// created. The offscreen keeps its content across frames, but is recreated empty when
 	// the screen size changes, so this guards against presenting an empty (black) frame.
@@ -159,6 +164,10 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 	if ow == 0 || oh == 0 {
 		return false, nil
 	}
+
+	// Refresh the shift after the layout, which it is derived from, and before the input state,
+	// which is converted with it.
+	c.updateVirtualKeyboardOffsetY()
 
 	// Update the input state after the layout is updated as a cursor position is affected by the layout.
 	if err := ui.updateInputStateForFrame(deviceScaleFactor); err != nil {
@@ -372,7 +381,16 @@ func (c *context) logicalPositionToClientPosition(x, y float64, deviceScaleFacto
 	return (x*s + ox) / deviceScaleFactor, (y*s + oy) / deviceScaleFactor
 }
 
+// screenScaleAndOffsets returns the transform from the offscreen to the screen. It includes the
+// shift avoiding a virtual keyboard, so that the rendering, the input positions and the caret
+// position reported to the platform IME all agree.
 func (c *context) screenScaleAndOffsets() (scale, offsetX, offsetY float64) {
+	scale, offsetX, offsetY = c.letterboxScaleAndOffsets()
+	return scale, offsetX, offsetY + c.virtualKeyboardOffsetY
+}
+
+// letterboxScaleAndOffsets returns the transform centering the offscreen in the screen.
+func (c *context) letterboxScaleAndOffsets() (scale, offsetX, offsetY float64) {
 	scaleX := c.screenWidth / c.offscreenWidth
 	scaleY := c.screenHeight / c.offscreenHeight
 	scale = min(scaleX, scaleY)
@@ -381,6 +399,34 @@ func (c *context) screenScaleAndOffsets() (scale, offsetX, offsetY float64) {
 	offsetX = (c.screenWidth - width) / 2
 	offsetY = (c.screenHeight - height) / 2
 	return
+}
+
+// updateVirtualKeyboardOffsetY refreshes the shift lifting the text-input caret out of the
+// region a virtual keyboard covers. The shift is zero or negative, and for a caret on the
+// screen it never exceeds the covered region's height, so the strip it exposes at the bottom
+// of the screen stays under the keyboard.
+//
+// The shift is derived from the letterbox transform rather than the current one: a shift
+// measured against an already shifted screen would feed back into itself.
+func (c *context) updateVirtualKeyboardOffsetY() {
+	c.virtualKeyboardOffsetY = 0
+
+	caretBounds, visibleRegion, ok := theVirtualKeyboard.state()
+	if !ok {
+		return
+	}
+
+	scale, _, offsetY := c.letterboxScaleAndOffsets()
+	// The scale 0 indicates that the screen is not initialized yet.
+	if scale == 0 {
+		return
+	}
+	caretBottom := float64(caretBounds.Max.Y)*scale + offsetY
+	visibleBottom := float64(visibleRegion.Max.Y)
+	if caretBottom <= visibleBottom {
+		return
+	}
+	c.virtualKeyboardOffsetY = visibleBottom - caretBottom
 }
 
 func (u *UserInterface) LogicalPositionToClientPositionInNativePixels(x, y float64) (float64, float64) {
@@ -395,29 +441,6 @@ func (u *UserInterface) LogicalPositionToClientPositionInNativePixels(x, y float
 // device-independent pixels, which mean the same lengths on every platform (unlike native pixels).
 func (u *UserInterface) LogicalPositionToClientPositionInDIPs(x, y float64) (float64, float64) {
 	return u.context.logicalPositionToClientPosition(x, y, u.Monitor().DeviceScaleFactor())
-}
-
-// ClientPositionInNativePixelsToLogicalPosition converts a client-area position in native pixels
-// to a logical position. This is the inverse of
-// [UserInterface.LogicalPositionToClientPositionInNativePixels].
-// The returned position is NaN before the game's layout is determined.
-func (u *UserInterface) ClientPositionInNativePixelsToLogicalPosition(x, y float64) (float64, float64) {
-	if u.context == nil {
-		return math.NaN(), math.NaN()
-	}
-	s := u.Monitor().DeviceScaleFactor()
-	x = dipFromNativePixels(x, s)
-	y = dipFromNativePixels(y, s)
-	return u.context.clientPositionToLogicalPosition(x, y, s)
-}
-
-// LogicalScreenSize returns the game screen's size in logical units.
-// LogicalScreenSize returns zeros before the game's layout is determined.
-func (u *UserInterface) LogicalScreenSize() (float64, float64) {
-	if u.context == nil {
-		return 0, 0
-	}
-	return u.context.offscreenWidth, u.context.offscreenHeight
 }
 
 func (c *context) runInFrame(f func()) {

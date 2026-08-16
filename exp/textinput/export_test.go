@@ -14,10 +14,6 @@
 
 package textinput
 
-import (
-	"image"
-)
-
 func ConvertUTF16CountToByteCount(text string, c int) int {
 	return convertUTF16CountToByteCount(text, c)
 }
@@ -200,16 +196,6 @@ func (d *DiffSender) Drain() []TextInputState {
 // PendingStateCount reports how many states are held for the next session.
 func (d *DiffSender) PendingStateCount() int {
 	return d.events.QueuedStateCount()
-}
-
-// SetVirtualKeyboardSourcesForTest replaces the virtual keyboard state and tick sources and
-// drops the cached snapshot.
-func SetVirtualKeyboardSourcesForTest(read func() (visible bool, visibleClientRegion image.Rectangle, ok bool), tick func() int64) {
-	theVirtualKeyboardState.m.Lock()
-	defer theVirtualKeyboardState.m.Unlock()
-	theVirtualKeyboardState.read = read
-	theVirtualKeyboardState.tick = tick
-	theVirtualKeyboardState.hasState = false
 }
 
 // PlatformStateHandler drives handlePlatformState with its own events and

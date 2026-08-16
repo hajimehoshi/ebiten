@@ -14,6 +14,10 @@
 
 package ui
 
+import (
+	"image"
+)
+
 func (i *InputState) SetKeyPressed(key Key, t InputTime) {
 	i.setKeyPressed(key, t)
 }
@@ -32,4 +36,27 @@ func (i *InputState) SetMouseButtonReleased(button MouseButton, t InputTime) {
 
 func IsConnectionReset(err error) bool {
 	return isConnectionReset(err)
+}
+
+func SetVirtualKeyboardStateForTest(caretBounds image.Rectangle, caretKnown bool, visibleRegion image.Rectangle, visibleRegionKnown bool) {
+	v := &theVirtualKeyboard
+	v.mu.Lock()
+	defer v.mu.Unlock()
+	v.caretBounds = caretBounds
+	v.caretKnown = caretKnown
+	v.visibleRegion = visibleRegion
+	v.visibleRegionKnown = visibleRegionKnown
+}
+
+// ScreenScaleAndOffsetsForTest returns the screen transform for the given sizes, with the
+// virtual keyboard state set by SetVirtualKeyboardStateForTest applied.
+func ScreenScaleAndOffsetsForTest(screenWidth, screenHeight, offscreenWidth, offscreenHeight float64) (scale, offsetX, offsetY float64) {
+	c := &context{
+		screenWidth:     screenWidth,
+		screenHeight:    screenHeight,
+		offscreenWidth:  offscreenWidth,
+		offscreenHeight: offscreenHeight,
+	}
+	c.updateVirtualKeyboardOffsetY()
+	return c.screenScaleAndOffsets()
 }

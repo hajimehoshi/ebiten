@@ -2055,7 +2055,3 @@ func (u *glfwBackend) runSingleThread(game Game, options *RunOptions) error {
 func dipToNativePixels(x float64, scale float64) float64 {
 	return dipToGLFWPixel(x, scale)
 }
-
-func dipFromNativePixels(x float64, scale float64) float64 {
-	return dipFromGLFWPixel(x, scale)
-}

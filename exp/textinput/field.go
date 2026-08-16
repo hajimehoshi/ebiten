@@ -125,6 +125,8 @@ func (f *Field) HandleInputWithBounds(bounds image.Rectangle) (handled bool, err
 		return false, nil
 	}
 
+	reportVirtualKeyboardToUI(bounds)
+
 	// Text inputting can happen multiple times in one tick (1/60[s] by default).
 	// Handle all of them.
 	for {
@@ -224,6 +226,8 @@ func (f *Field) IsFocused() bool {
 }
 
 func (f *Field) cleanUp() {
+	clearVirtualKeyboardFromUI()
+
 	if f.err != nil {
 		return
 	}
