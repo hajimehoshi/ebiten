@@ -27,6 +27,18 @@ import (
 // #import <UIKit/UIKit.h>
 import "C"
 
+func init() {
+	ui.Get().SetKeyPressDispatcher(dispatchKeyPress)
+}
+
+// dispatchKeyPress records a key press, and its release, for a key the platform
+// text editor received instead of the game's view.
+func dispatchKeyPress(key ui.Key) {
+	keyPressedTimes[key] = ui.Get().InputTime()
+	keyReleasedTimes[key] = ui.Get().InputTime()
+	updateInput(nil)
+}
+
 var ptrToID = map[int64]int{}
 
 func getIDFromPtr(ptr int64) int {

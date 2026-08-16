@@ -37,7 +37,7 @@ type TextInputDriver interface {
 // exp/textinput.
 type androidTextInput struct {
 	driver   TextInputDriver
-	onState  func(text string, selectionStartInUTF16, selectionEndInUTF16, composingStartInUTF16, composingEndInUTF16, generation int)
+	onState  func(text string, selectionStartInUTF16, selectionEndInUTF16, composingStartInUTF16, composingEndInUTF16 int, passthroughKey bool, generation int)
 	vkShown  bool
 	vkRegion image.Rectangle
 	vkKnown  bool
@@ -57,7 +57,7 @@ func (u *UserInterface) SetTextInputDriver(driver TextInputDriver) {
 
 // SetTextInputStateCallback sets the callback receiving the platform text
 // buffer's states reported through [UserInterface.UpdateTextInputState].
-func (u *UserInterface) SetTextInputStateCallback(onState func(text string, selectionStartInUTF16, selectionEndInUTF16, composingStartInUTF16, composingEndInUTF16, generation int)) {
+func (u *UserInterface) SetTextInputStateCallback(onState func(text string, selectionStartInUTF16, selectionEndInUTF16, composingStartInUTF16, composingEndInUTF16 int, passthroughKey bool, generation int)) {
 	t := &theAndroidTextInput
 	t.m.Lock()
 	defer t.m.Unlock()
@@ -95,8 +95,9 @@ func (u *UserInterface) DismissPlatformTextInput() {
 
 // UpdateTextInputState reports the platform text buffer's state to the
 // callback. The composing range is negative when no composition is in
-// progress.
-func (u *UserInterface) UpdateTextInputState(text string, selectionStartInUTF16, selectionEndInUTF16, composingStartInUTF16, composingEndInUTF16, generation int) {
+// progress. passthroughKey reports whether the state comes with a key press
+// the game receives too.
+func (u *UserInterface) UpdateTextInputState(text string, selectionStartInUTF16, selectionEndInUTF16, composingStartInUTF16, composingEndInUTF16 int, passthroughKey bool, generation int) {
 	t := &theAndroidTextInput
 	t.m.Lock()
 	onState := t.onState
@@ -104,7 +105,7 @@ func (u *UserInterface) UpdateTextInputState(text string, selectionStartInUTF16,
 	if onState == nil {
 		return
 	}
-	onState(text, selectionStartInUTF16, selectionEndInUTF16, composingStartInUTF16, composingEndInUTF16, generation)
+	onState(text, selectionStartInUTF16, selectionEndInUTF16, composingStartInUTF16, composingEndInUTF16, passthroughKey, generation)
 }
 
 // UpdateVirtualKeyboardState records the virtual keyboard state: whether it is

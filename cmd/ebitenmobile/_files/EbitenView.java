@@ -33,6 +33,7 @@ import android.util.AttributeSet;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Display;
+import android.view.KeyCharacterMap;
 import android.view.KeyEvent;
 import android.view.InputDevice;
 import android.view.MotionEvent;
@@ -549,6 +550,48 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
                 return null;
             }
             return new InputConnectionWrapper(connection, false) {
+                // An input method commits the Return key as a line break,
+                // appended to the text it finalizes. The game decides what a
+                // Return does, so commit only that text and report the key.
+                @Override
+                public boolean commitText(CharSequence text, int newCursorPosition) {
+                    if (endsWithLineBreak(text)) {
+                        return commitBeforeReturnKey(text, newCursorPosition, null);
+                    }
+                    return super.commitText(text, newCursorPosition);
+                }
+
+                // The TextAttribute overload (API 33) delegates directly to
+                // the wrapped connection, bypassing the two-argument override.
+                // The method is never called on older systems, where merely
+                // declaring it is harmless.
+                @Override
+                public boolean commitText(CharSequence text, int newCursorPosition, TextAttribute textAttribute) {
+                    if (endsWithLineBreak(text)) {
+                        return commitBeforeReturnKey(text, newCursorPosition, textAttribute);
+                    }
+                    return super.commitText(text, newCursorPosition, textAttribute);
+                }
+
+                private boolean commitBeforeReturnKey(CharSequence text, int newCursorPosition, TextAttribute textAttribute) {
+                    CharSequence committed = text.subSequence(0, text.length() - 1);
+                    boolean result;
+                    // The state this commit reports carries the key, so that
+                    // the game acts on the Return as well.
+                    passthroughKeyPending = true;
+                    try {
+                        if (textAttribute == null) {
+                            result = super.commitText(committed, newCursorPosition);
+                        } else {
+                            result = super.commitText(committed, newCursorPosition, textAttribute);
+                        }
+                    } finally {
+                        passthroughKeyPending = false;
+                    }
+                    dispatchKeyToGame(KeyEvent.KEYCODE_ENTER);
+                    return result;
+                }
+
                 @Override
                 public boolean finishComposingText() {
                     boolean result = super.finishComposingText();
@@ -594,11 +637,16 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
 
         // The focused edit text receives the hardware key events instead of
         // EbitenView; forward them to the game like EbitenView's onKeyDown and
-        // onKeyUp do.
+        // onKeyUp do. The Return key, which an input method delivers as a key
+        // event too, is consumed after forwarding: the game acts on the key
+        // press, so a line break in the text buffer would double it.
         @Override
         public boolean onKeyDown(int keyCode, KeyEvent event) {
             if (event.getRepeatCount() == 0) {
                 Ebitenmobileview.onKeyDownOnAndroid(keyCode, event.getUnicodeChar(), event.getSource(), event.getDeviceId(), event.getMetaState());
+            }
+            if (keyCode == KeyEvent.KEYCODE_ENTER) {
+                return true;
             }
             return super.onKeyDown(keyCode, event);
         }
@@ -606,7 +654,24 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
         @Override
         public boolean onKeyUp(int keyCode, KeyEvent event) {
             Ebitenmobileview.onKeyUpOnAndroid(keyCode, event.getSource(), event.getDeviceId(), event.getMetaState());
+            if (keyCode == KeyEvent.KEYCODE_ENTER) {
+                return true;
+            }
             return super.onKeyUp(keyCode, event);
+        }
+
+        // endsWithLineBreak reports whether text ends with the line break an
+        // input method appends for the Return key.
+        private boolean endsWithLineBreak(CharSequence text) {
+            return text != null && text.length() > 0 && text.charAt(text.length() - 1) == '\n';
+        }
+
+        // dispatchKeyToGame reports a key press, and its release, to the game.
+        // The input method delivered the key as an edit, so no key event
+        // exists to forward; the virtual keyboard's device is its source.
+        private void dispatchKeyToGame(int keyCode) {
+            Ebitenmobileview.onKeyDownOnAndroid(keyCode, 0, 0, KeyCharacterMap.VIRTUAL_KEYBOARD, 0);
+            Ebitenmobileview.onKeyUpOnAndroid(keyCode, 0, KeyCharacterMap.VIRTUAL_KEYBOARD, 0);
         }
     }
 
@@ -682,7 +747,7 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
         Editable e = this.editText.getText();
         int composingStart = BaseInputConnection.getComposingSpanStart(e);
         int composingEnd = BaseInputConnection.getComposingSpanEnd(e);
-        Ebitenmobileview.onTextInputStateChanged(e.toString(), this.editText.getSelectionStart(), this.editText.getSelectionEnd(), composingStart, composingEnd, this.textInputGeneration);
+        Ebitenmobileview.onTextInputStateChanged(e.toString(), this.editText.getSelectionStart(), this.editText.getSelectionEnd(), composingStart, composingEnd, this.passthroughKeyPending, this.textInputGeneration);
     }
 
     private void reportVirtualKeyboardState() {
@@ -737,4 +802,5 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
     private int caretHeight;
     private boolean pendingShowSoftInput;
     private boolean suppressTextInputReports;
+    private boolean passthroughKeyPending;
 }

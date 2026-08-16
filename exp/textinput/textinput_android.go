@@ -98,10 +98,13 @@ func (t *textInputImpl) recordStart(value string) int {
 }
 
 // onState handles a state reported by the platform text buffer.
-func (t *textInputImpl) onState(text string, selectionStartInUTF16, selectionEndInUTF16, composingStartInUTF16, composingEndInUTF16, generation int) {
+func (t *textInputImpl) onState(text string, selectionStartInUTF16, selectionEndInUTF16, composingStartInUTF16, composingEndInUTF16 int, passthroughKey bool, generation int) {
 	kind := commitRegular
-	if composingStartInUTF16 >= 0 && composingEndInUTF16 >= 0 {
+	switch {
+	case composingStartInUTF16 >= 0 && composingEndInUTF16 >= 0:
 		kind = commitNone
+	case passthroughKey:
+		kind = commitWithPassthroughKey
 	}
 
 	// Evaluated outside t.mu: the focus lock is taken with no other lock held.

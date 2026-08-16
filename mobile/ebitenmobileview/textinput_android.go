@@ -42,9 +42,10 @@ func SetTextInputDriver(driver TextInputDriver) {
 // OnTextInputStateChanged reports the text buffer's state: its content, the
 // selection and the composing range in UTF-16 units, and the generation of the
 // StartTextInput the state belongs to. The composing range is negative when no
-// composition is in progress.
-func OnTextInputStateChanged(text string, selectionStartInUTF16, selectionEndInUTF16, composingStartInUTF16, composingEndInUTF16, generation int) {
-	ui.Get().UpdateTextInputState(text, selectionStartInUTF16, selectionEndInUTF16, composingStartInUTF16, composingEndInUTF16, generation)
+// composition is in progress. passthroughKey reports whether the state comes
+// with a key press the game receives too.
+func OnTextInputStateChanged(text string, selectionStartInUTF16, selectionEndInUTF16, composingStartInUTF16, composingEndInUTF16 int, passthroughKey bool, generation int) {
+	ui.Get().UpdateTextInputState(text, selectionStartInUTF16, selectionEndInUTF16, composingStartInUTF16, composingEndInUTF16, passthroughKey, generation)
 }
 
 // OnVirtualKeyboardChanged reports whether the virtual keyboard is shown and

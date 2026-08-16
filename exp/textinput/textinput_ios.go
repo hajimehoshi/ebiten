@@ -41,6 +41,9 @@ import (
 // Cancelling a session abandons its seed: a seeding dispatched before the
 // cancellation neither opens the virtual keyboard nor lets the abandoned
 // target's events through.
+//
+// Some keys are not text: the text view is a subclass whose insertText: and
+// deleteBackward report the key press to the game instead of editing the text.
 
 type cgPoint struct {
 	x float64
@@ -74,8 +77,10 @@ var (
 	sel_convertRectFromView         = objc.RegisterName("convertRect:fromView:")
 	sel_convertRectFromWindow       = objc.RegisterName("convertRect:fromWindow:")
 	sel_defaultCenter               = objc.RegisterName("defaultCenter")
+	sel_deleteBackward              = objc.RegisterName("deleteBackward")
 	sel_init                        = objc.RegisterName("init")
 	sel_initWithUTF8String          = objc.RegisterName("initWithUTF8String:")
+	sel_insertText                  = objc.RegisterName("insertText:")
 	sel_keyboardWillChangeFrame     = objc.RegisterName("ebitengineKeyboardWillChangeFrame:")
 	sel_markedTextRange             = objc.RegisterName("markedTextRange")
 	sel_objectForKey                = objc.RegisterName("objectForKey:")
@@ -157,7 +162,10 @@ type textInputImpl struct {
 	mu sync.Mutex
 }
 
-var class_EbitengineTextInputDelegate objc.Class
+var (
+	class_EbitengineTextInputDelegate objc.Class
+	class_EbitengineTextInputTextView objc.Class
+)
 
 // ensureUIKit registers the delegate class and the keyboard-frame observer on
 // first use.
@@ -218,6 +226,36 @@ func (t *textInputImpl) ensureUIKit() {
 			panic(err)
 		}
 
+		class_EbitengineTextInputTextView, err = objc.RegisterClass(
+			"EbitengineTextInputTextView",
+			objc.GetClass("UITextView"),
+			nil,
+			nil,
+			[]objc.MethodDef{
+				{
+					Cmd: sel_insertText,
+					Fn: func(self objc.ID, _ objc.SEL, text objc.ID) {
+						if insertTextOnMain(self, text) {
+							return
+						}
+						self.SendSuper(sel_insertText, text)
+					},
+				},
+				{
+					Cmd: sel_deleteBackward,
+					Fn: func(self objc.ID, _ objc.SEL) {
+						if deleteBackwardOnMain(self) {
+							return
+						}
+						self.SendSuper(sel_deleteBackward)
+					},
+				},
+			},
+		)
+		if err != nil {
+			panic(err)
+		}
+
 		t.delegate = objc.ID(class_EbitengineTextInputDelegate).Send(sel_alloc).Send(sel_init)
 
 		// The keyboard notification names are the constants' string values.
@@ -231,7 +269,7 @@ func (t *textInputImpl) ensureUIKit() {
 // parent.
 func (t *textInputImpl) ensureTextViewOnMain(parent objc.ID) objc.ID {
 	if t.textView == 0 {
-		tv := objc.ID(objc.GetClass("UITextView")).Send(sel_alloc).Send(sel_init)
+		tv := objc.ID(class_EbitengineTextInputTextView).Send(sel_alloc).Send(sel_init)
 		// UITextAutocapitalizationTypeNone
 		tv.Send(sel_setAutocapitalizationType, 0)
 		tv.Send(sel_setDelegate, t.delegate)
@@ -462,6 +500,35 @@ func (t *textInputImpl) handleTextViewChange(value string, selStart, selEnd int,
 	// The selection does not track the preedit on iOS; see
 	// compositionSelectionInBytes.
 	return handlePlatformState(t.events, &t.sender, &t.legacyCleared, value, selStart, selEnd, true, kind, fieldFocused)
+}
+
+// insertTextOnMain reports whether text is the Return key, which the game
+// receives as a key press and acts on itself. An insertion while the IME is
+// composing finalizes the composition and is left to UIKit.
+func insertTextOnMain(tv objc.ID, text objc.ID) (handled bool) {
+	if cstrings.NSStringToString(text) != "\n" {
+		return false
+	}
+	if tv.Send(sel_markedTextRange) != 0 {
+		return false
+	}
+	ui.Get().DispatchKeyPress(ui.KeyEnter)
+	return true
+}
+
+// deleteBackwardOnMain reports whether the deletion is at the head of the text
+// view, where it reaches text the session does not expose: the game receives a
+// Backspace key press and edits across the boundary itself.
+func deleteBackwardOnMain(tv objc.ID) (handled bool) {
+	if tv.Send(sel_markedTextRange) != 0 {
+		return false
+	}
+	sel := objc.Send[nsRange](tv, sel_selectedRange)
+	if sel.location != 0 || sel.length != 0 {
+		return false
+	}
+	ui.Get().DispatchKeyPress(ui.KeyBackspace)
+	return true
 }
 
 // textViewEndedEditingOnMain ends text inputting when the first responder is
