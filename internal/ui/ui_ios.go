@@ -84,7 +84,7 @@ func (g *graphicsDriverCreatorImpl) newAuto() (graphicsdriver.Graphics, Graphics
 	}
 	o, err2 := g.newOpenGL()
 	if err2 == nil {
-		return o, GraphicsLibraryMetal, nil
+		return o, GraphicsLibraryOpenGL, nil
 	}
 	return nil, GraphicsLibraryUnknown, fmt.Errorf("ui: failed to choose graphics drivers: Metal: %v, OpenGL: %v", err1, err2)
 }
