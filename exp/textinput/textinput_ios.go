@@ -361,8 +361,14 @@ func (t *textInputImpl) applyStartOnMain() {
 	}
 	tv := t.ensureTextViewOnMain(parent)
 
-	// The text view is kept offscreen: an onscreen one would draw over the
-	// game, and a hidden one could not become the first responder. The size
+	// The text view is kept outside the window, where the browser and Android
+	// backends keep theirs at the caret. UIKit scrolls the enclosing scroll view
+	// of an embedding application to lift the first responder above the
+	// keyboard; a text view outside the window is never covered by the keyboard,
+	// so that scrolling never happens and the application's scroll position
+	// stays put. The game reacts to the keyboard itself with
+	// VirtualKeyboardVisibleBounds. An onscreen text view would also draw over
+	// the game, and a hidden one could not become the first responder. The size
 	// mirrors the caret bounds.
 	tv.Send(sel_setFrame, cgRect{
 		origin: cgPoint{x: -10000, y: -10000},
