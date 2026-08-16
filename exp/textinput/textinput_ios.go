@@ -34,7 +34,9 @@ import (
 // thread. Main-thread work is dispatched with performSelectorOnMainThread and
 // reads its inputs from mutex-guarded fields. A generation counter guards the
 // opposite direction: delegate events reported between a Start and the
-// dispatched seeding describe the previous target and are dropped.
+// dispatched seeding describe the previous target and are dropped. The counter
+// also dates a dismissal, which a Start between the request and the dispatched
+// resigning cancels: resigning would end the session that Start just opened.
 //
 // Cancelling a session abandons its seed: a seeding dispatched before the
 // cancellation neither opens the virtual keyboard nor lets the abandoned
@@ -127,9 +129,11 @@ type textInputImpl struct {
 
 	// active reports whether text inputting has been requested and not
 	// dismissed. closedTicks counts consecutive ticks without text inputting;
-	// see dismissVirtualKeyboardIfNeeded.
-	active      bool
-	closedTicks int
+	// see dismissVirtualKeyboardIfNeeded. dismissGeneration is the generation the
+	// dispatched dismissal was requested for.
+	active            bool
+	closedTicks       int
+	dismissGeneration int
 
 	// legacyCleared drops the delegate events fired by the legacy path
 	// clearing the text view.
@@ -289,11 +293,15 @@ func (t *textInputImpl) pendingStart() (text string, caretInUTF16 int, bounds im
 	return t.pendingText, t.pendingCaretInUTF16, t.pendingBounds, t.generation, t.cancelled
 }
 
-// markApplied records that the seed of generation was applied to the text view.
-func (t *textInputImpl) markApplied(generation int) {
+// markApplied records that the seed of generation was applied to the text view,
+// and reports whether its target was abandoned while it was being applied.
+func (t *textInputImpl) markApplied(generation int) (abandoned bool) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	t.appliedGeneration = generation
+	// A newer generation is not this seed's business: the Start that bumped the
+	// counter has its own seeding dispatched.
+	return t.cancelled && generation == t.generation
 }
 
 // applyStartOnMain seeds the text view with the pending surrounding text and
@@ -329,12 +337,35 @@ func (t *textInputImpl) applyStartOnMain() {
 	tv.Send(sel_setSelectedRange, nsRange{location: uint(caret), length: 0})
 	tv.Send(sel_becomeFirstResponder)
 
-	t.markApplied(gen)
+	if t.markApplied(gen) {
+		// The target was abandoned between the check above and the text view
+		// becoming the first responder, so the virtual keyboard is open for a
+		// target that is gone.
+		t.resignAndClearOnMain()
+	}
 }
 
-// applyDismissOnMain resigns the first responder, dismissing the virtual
-// keyboard, and drops the text view's content along with any composition.
+// applyDismissOnMain dismisses the virtual keyboard, unless a Start has made the
+// dismissal obsolete.
 func (t *textInputImpl) applyDismissOnMain() {
+	if !t.shouldApplyDismiss() {
+		return
+	}
+	t.resignAndClearOnMain()
+}
+
+// shouldApplyDismiss reports whether the dispatched dismissal still applies.
+func (t *textInputImpl) shouldApplyDismiss() bool {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	// A Start dispatched after the dismissal opens the virtual keyboard again,
+	// and resigning in between would end the session it opened.
+	return t.dismissGeneration == t.generation
+}
+
+// resignAndClearOnMain resigns the first responder, dismissing the virtual
+// keyboard, and drops the text view's content along with any composition.
+func (t *textInputImpl) resignAndClearOnMain() {
 	if t.textView == 0 {
 		return
 	}
@@ -367,6 +398,7 @@ func (t *textInputImpl) shouldDismiss() bool {
 	}
 	t.closedTicks = 0
 	t.active = false
+	t.dismissGeneration = t.generation
 	return true
 }
 
@@ -469,11 +501,26 @@ func (t *textInputImpl) handleTextViewChange(value string, selStart, selEnd int,
 // textViewEndedEditingOnMain ends text inputting when the first responder is
 // resigned, e.g. by the user dismissing the virtual keyboard.
 func (t *textInputImpl) textViewEndedEditingOnMain() {
+	if !t.markEndedEditing() {
+		return
+	}
 	t.events.end()
+}
+
+// markEndedEditing records that the text view stopped editing, and reports
+// whether the ending applies to the target the latest Start requested.
+func (t *textInputImpl) markEndedEditing() bool {
 	t.mu.Lock()
 	defer t.mu.Unlock()
+	if t.appliedGeneration != t.generation {
+		// The text view was resigned for the previous target, as the seeding the
+		// latest Start dispatched has not run yet. Ending now would close the
+		// session that Start opened.
+		return false
+	}
 	t.active = false
 	t.closedTicks = 0
+	return true
 }
 
 // keyboardWillChangeFrameOnMain records the virtual keyboard state from a
@@ -511,20 +558,23 @@ func (t *textInputImpl) keyboardWillChangeFrameOnMain(notification objc.ID) {
 		int(viewFrame.origin.x+viewFrame.size.width),
 		int(viewFrame.origin.y+viewFrame.size.height),
 	).Intersect(full)
-	// An undocked keyboard (an iPad floating or split keyboard) is narrower
-	// than the view and is conventionally ignored, matching UIKit's own
-	// keyboard layout guide.
-	docked := viewFrame.size.width >= bounds.size.width
 
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	t.vkKnown = true
-	if keyboard.Empty() || !docked {
+	if keyboard.Empty() {
 		t.vkVisible = false
 		t.vkVisibleRegion = full
 		return
 	}
 	t.vkVisible = true
+	// An undocked keyboard (an iPad floating or split keyboard) is narrower than
+	// the view, so it hides no full-width strip of it. Report the whole view as
+	// visible, matching UIKit's own keyboard layout guide.
+	if viewFrame.size.width < bounds.size.width {
+		t.vkVisibleRegion = full
+		return
+	}
 	t.vkVisibleRegion = image.Rect(0, 0, full.Max.X, min(max(keyboard.Min.Y, 0), full.Max.Y))
 }
 

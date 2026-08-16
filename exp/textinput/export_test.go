@@ -112,6 +112,61 @@ func (s *TextInputEvents) StartSessionCompositing() bool {
 	return sess.IsCompositing()
 }
 
+// DiffSender drives the buffer differ for a session with the given surrounding
+// text, and collects the states it sends.
+type DiffSender struct {
+	events  textInputEvents
+	sender  diffSender
+	session *session
+	ch      <-chan textInputState
+}
+
+// NewDiffSender returns a differ for a session seeded with the surrounding text,
+// as a platform backend does on start.
+func NewDiffSender(textBeforeCaret, textAfterCaret string) *DiffSender {
+	d := &DiffSender{}
+	d.events.tick = func() int64 {
+		return 0
+	}
+	d.sender.events = &d.events
+	ch, end := d.events.start()
+	d.ch = ch
+	d.session = &session{
+		ch:              ch,
+		end:             end,
+		textBeforeCaret: textBeforeCaret,
+		textAfterCaret:  textAfterCaret,
+	}
+	d.sender.reset(textBeforeCaret + textAfterCaret)
+	return d
+}
+
+// TrySend hands the differ a snapshot of the platform buffer.
+func (d *DiffSender) TrySend(value string, selStartInUTF16, selEndInUTF16 int, caretAtPreeditEnd bool, kind CommitKind) {
+	d.sender.trySend(d.session, value, selStartInUTF16, selEndInUTF16, caretAtPreeditEnd, kind)
+}
+
+// Drain returns the states sent to the session since the last call.
+func (d *DiffSender) Drain() []TextInputState {
+	var states []TextInputState
+	for {
+		select {
+		case state, ok := <-d.ch:
+			if !ok {
+				return states
+			}
+			states = append(states, state)
+		default:
+			return states
+		}
+	}
+}
+
+// PendingStateCount reports how many states are held for the next session.
+func (d *DiffSender) PendingStateCount() int {
+	return d.events.QueuedStateCount()
+}
+
 // SetVirtualKeyboardSourcesForTest replaces the virtual keyboard state and tick sources and
 // drops the cached snapshot.
 func SetVirtualKeyboardSourcesForTest(read func() (visible bool, visibleClientRegion image.Rectangle, ok bool), tick func() int64) {
