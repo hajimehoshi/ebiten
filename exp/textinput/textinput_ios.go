@@ -70,7 +70,6 @@ var (
 	sel_defaultCenter               = objc.RegisterName("defaultCenter")
 	sel_init                        = objc.RegisterName("init")
 	sel_initWithUTF8String          = objc.RegisterName("initWithUTF8String:")
-	sel_keyWindow                   = objc.RegisterName("keyWindow")
 	sel_keyboardWillChangeFrame     = objc.RegisterName("ebitengineKeyboardWillChangeFrame:")
 	sel_markedTextRange             = objc.RegisterName("markedTextRange")
 	sel_objectForKey                = objc.RegisterName("objectForKey:")
@@ -83,7 +82,6 @@ var (
 	sel_setFrame                    = objc.RegisterName("setFrame:")
 	sel_setSelectedRange            = objc.RegisterName("setSelectedRange:")
 	sel_setText                     = objc.RegisterName("setText:")
-	sel_sharedApplication           = objc.RegisterName("sharedApplication")
 	sel_text                        = objc.RegisterName("text")
 	sel_userInfo                    = objc.RegisterName("userInfo")
 	sel_window                      = objc.RegisterName("window")
@@ -216,17 +214,6 @@ func (t *textInputImpl) ensureUIKit() {
 	})
 }
 
-// resolveParentViewOnMain returns the view the text view is attached to: the
-// view reported through SetUIView, or the key window as a fallback (the OpenGL
-// path does not report its view).
-func (t *textInputImpl) resolveParentViewOnMain() objc.ID {
-	if v := objc.ID(ui.Get().UIView()); v != 0 {
-		return v
-	}
-	app := objc.ID(objc.GetClass("UIApplication")).Send(sel_sharedApplication)
-	return app.Send(sel_keyWindow)
-}
-
 // ensureTextViewOnMain creates the hidden text view lazily and attaches it to
 // parent.
 func (t *textInputImpl) ensureTextViewOnMain(parent objc.ID) objc.ID {
@@ -297,7 +284,9 @@ func (t *textInputImpl) markApplied(generation int) {
 func (t *textInputImpl) applyStartOnMain() {
 	text, caret, bounds, gen := t.pendingStart()
 
-	parent := t.resolveParentViewOnMain()
+	// The parent is the game's view, which the mobile binding reports on
+	// startup. Nothing can be seeded before that.
+	parent := objc.ID(ui.Get().UIView())
 	if parent == 0 {
 		return
 	}
@@ -459,7 +448,7 @@ func (t *textInputImpl) textViewEndedEditingOnMain() {
 // keyboardWillChangeFrameOnMain records the virtual keyboard state from a
 // keyboard-frame notification.
 func (t *textInputImpl) keyboardWillChangeFrameOnMain(notification objc.ID) {
-	parent := t.resolveParentViewOnMain()
+	parent := objc.ID(ui.Get().UIView())
 	if parent == 0 {
 		return
 	}

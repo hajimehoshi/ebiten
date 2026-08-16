@@ -105,19 +105,22 @@
     return;
   }
 
+  UIView* gameView = nil;
   if (isGL) {
     self.glkView.delegate = (id<GLKViewDelegate>)(self);
-    [self.view addSubview: self.glkView];
+    gameView = self.glkView;
   } else {
-    [self.view addSubview: self.metalView];
-    EbitenmobileviewSetUIView((uintptr_t)(self.metalView), &err);
-    if (err != nil) {
-      [self onErrorOnGameUpdate:err];
-      @synchronized(self) {
-        error_ = true;
-      }
-      return;
+    gameView = self.metalView;
+  }
+  [self.view addSubview: gameView];
+
+  EbitenmobileviewSetUIView((uintptr_t)(gameView), &err);
+  if (err != nil) {
+    [self onErrorOnGameUpdate:err];
+    @synchronized(self) {
+      error_ = true;
     }
+    return;
   }
 
   renderThread_ = [[NSThread alloc] initWithTarget:self
@@ -142,6 +145,18 @@
 
   if (isGL) {
     EAGLContext *context = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES3];
+    if (context == nil) {
+      NSError* ctxErr = [NSError errorWithDomain:@"Ebitengine"
+                                            code:0
+                                        userInfo:@{NSLocalizedDescriptionKey: @"OpenGL ES 3 is not supported"}];
+      [self performSelectorOnMainThread:@selector(onErrorOnGameUpdate:)
+                             withObject:ctxErr
+                          waitUntilDone:NO];
+      @synchronized(self) {
+        error_ = true;
+      }
+      return;
+    }
     [self glkView].context = context;
 
     [EAGLContext setCurrentContext:context];
