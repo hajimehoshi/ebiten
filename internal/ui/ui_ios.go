@@ -120,6 +120,11 @@ func (u *UserInterface) SetUIView(uiview uintptr) error {
 	return nil
 }
 
+// UIView returns the UIView pointer set by [UserInterface.SetUIView], or 0.
+func (u *UserInterface) UIView() uintptr {
+	return u.uiView.Load()
+}
+
 func (u *UserInterface) IsGL() (bool, error) {
 	select {
 	case err := <-u.errCh:

@@ -15,7 +15,7 @@
 // Package textinput provides a text-inputting controller.
 // This package is experimental and the API might be changed in the future.
 //
-// This package is supported on Windows, macOS, Linux and other Unix-like
+// This package is supported on Windows, macOS, Linux, iOS, other UNIX-like
 // systems with X11, and Web browsers so far.
 // It also works in a virtualization guest regardless of the operating system,
 // with the host serving text inputting (see exp/vmhost).

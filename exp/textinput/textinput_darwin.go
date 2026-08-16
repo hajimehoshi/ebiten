@@ -93,7 +93,7 @@ var theTextInputClient objc.ID
 
 func getTextInputClient() objc.ID {
 	if theTextInputClient == 0 {
-		class := objc.ID(class_TextInputClient)
+		class := objc.ID(class_EbitengineTextInputClient)
 		theTextInputClient = class.Send(sel_alloc).Send(sel_init)
 	}
 	return theTextInputClient
@@ -157,15 +157,15 @@ func (t *textInputImpl) start(bounds image.Rectangle) (<-chan textInputState, fu
 	return t.events.start()
 }
 
-var class_TextInputClient objc.Class
+var class_EbitengineTextInputClient objc.Class
 
 func init() {
 	var err error
-	class_TextInputClient, err = objc.RegisterClass(
-		"TextInputClient",
+	class_EbitengineTextInputClient, err = objc.RegisterClass(
+		"EbitengineTextInputClient",
 		class_NSView,
 		[]*objc.Protocol{objc.GetProtocol("NSTextInputClient")},
-		[]objc.FieldDef{},
+		nil,
 		[]objc.MethodDef{
 			{
 				Cmd: objc.RegisterName("hasMarkedText"),
