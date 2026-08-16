@@ -35,6 +35,10 @@ import (
 // reads its inputs from mutex-guarded fields. A generation counter guards the
 // opposite direction: delegate events reported between a Start and the
 // dispatched seeding describe the previous target and are dropped.
+//
+// Cancelling a session abandons its seed: a seeding dispatched before the
+// cancellation neither opens the virtual keyboard nor lets the abandoned
+// target's events through.
 
 type cgPoint struct {
 	x float64
@@ -115,6 +119,11 @@ type textInputImpl struct {
 	pendingBounds       image.Rectangle
 	generation          int
 	appliedGeneration   int
+
+	// cancelled reports whether the current generation's target was abandoned.
+	// The seed of a cancelled generation is not applied, and its delegate
+	// events are dropped, until the next Start.
+	cancelled bool
 
 	// active reports whether text inputting has been requested and not
 	// dismissed. closedTicks counts consecutive ticks without text inputting;
@@ -232,8 +241,14 @@ func (t *textInputImpl) ensureTextViewOnMain(parent objc.ID) objc.ID {
 }
 
 func (t *textInputImpl) markIMEDiscardNeeded() {
-	// Nothing to record: ebitengineApplyStart always rewrites the text view's
-	// content, which discards a leftover composition, and dismissing clears it.
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	// The composition itself needs no recording: ebitengineApplyStart always
+	// rewrites the text view's content, which discards a leftover composition,
+	// and dismissing clears it. The abandonment itself must be recorded: the
+	// seeding the last Start dispatched runs on the main thread only after the
+	// tick ends.
+	t.cancelled = true
 }
 
 func (t *textInputImpl) Start(bounds image.Rectangle, textBeforeCaret, textAfterCaret string) (<-chan textInputState, func()) {
@@ -260,16 +275,18 @@ func (t *textInputImpl) setPendingStart(value string, caretInUTF16 int, bounds i
 	t.pendingCaretInUTF16 = caretInUTF16
 	t.pendingBounds = bounds
 	t.generation++
+	t.cancelled = false
 	t.active = true
 	t.closedTicks = 0
 	t.sender.reset(value)
 }
 
-// pendingStart returns the seed recorded by the last Start.
-func (t *textInputImpl) pendingStart() (text string, caretInUTF16 int, bounds image.Rectangle, generation int) {
+// pendingStart returns the seed recorded by the last Start, and whether its
+// target was abandoned since.
+func (t *textInputImpl) pendingStart() (text string, caretInUTF16 int, bounds image.Rectangle, generation int, cancelled bool) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	return t.pendingText, t.pendingCaretInUTF16, t.pendingBounds, t.generation
+	return t.pendingText, t.pendingCaretInUTF16, t.pendingBounds, t.generation, t.cancelled
 }
 
 // markApplied records that the seed of generation was applied to the text view.
@@ -282,7 +299,13 @@ func (t *textInputImpl) markApplied(generation int) {
 // applyStartOnMain seeds the text view with the pending surrounding text and
 // makes it the first responder.
 func (t *textInputImpl) applyStartOnMain() {
-	text, caret, bounds, gen := t.pendingStart()
+	text, caret, bounds, gen, cancelled := t.pendingStart()
+	if cancelled {
+		// Seeding now would open the virtual keyboard for a target that is
+		// gone. Leaving the generation unapplied drops the events the text
+		// view reports for it.
+		return
+	}
 
 	// The parent is the game's view, which the mobile binding reports on
 	// startup. Nothing can be seeded before that.
@@ -394,6 +417,14 @@ func (t *textInputImpl) handleTextViewChange(value string, selStart, selEnd int,
 	if t.appliedGeneration != t.generation {
 		// The event predates the seeding requested by the latest Start and
 		// describes the previous target.
+		return false
+	}
+
+	if t.cancelled {
+		// The session the text view was seeded for was cancelled, so the event
+		// describes an abandoned target. s can still be non-nil: it is read
+		// before the mutex is taken, and the game's thread can cancel in
+		// between.
 		return false
 	}
 
