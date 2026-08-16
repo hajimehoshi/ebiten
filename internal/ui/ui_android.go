@@ -156,6 +156,11 @@ func (u *UserInterface) displayInfo() (int, int, float64, bool) {
 	return width, height, scale, true
 }
 
+// refreshDisplayInfo does nothing: displayInfo reads the display info directly
+// on any thread on Android.
+func (u *UserInterface) refreshDisplayInfo() {
+}
+
 func (u *UserInterface) RunOnMainThread(f func()) {
 	panic("ui: RunOnMainThread is not supported for this platform")
 }

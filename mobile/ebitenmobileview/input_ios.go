@@ -29,12 +29,27 @@ import "C"
 
 func init() {
 	ui.Get().SetKeyPressDispatcher(dispatchKeyPress)
+	ui.Get().SetKeyEventDispatchers(dispatchKeyDown, dispatchKeyUp)
 }
 
 // dispatchKeyPress records a key press, and its release, for a key the platform
 // text editor received instead of the game's view.
 func dispatchKeyPress(key ui.Key) {
 	keyPressedTimes[key] = ui.Get().InputTime()
+	keyReleasedTimes[key] = ui.Get().InputTime()
+	updateInput(nil)
+}
+
+// dispatchKeyDown records a key press for a key the platform text editor
+// received instead of the game's view.
+func dispatchKeyDown(key ui.Key) {
+	keyPressedTimes[key] = ui.Get().InputTime()
+	updateInput(nil)
+}
+
+// dispatchKeyUp records a key release for a key the platform text editor
+// received instead of the game's view.
+func dispatchKeyUp(key ui.Key) {
 	keyReleasedTimes[key] = ui.Get().InputTime()
 	updateInput(nil)
 }

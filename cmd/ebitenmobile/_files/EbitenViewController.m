@@ -341,10 +341,20 @@
 
 - (void)pressesBegan:(NSSet<UIPress *> *)presses withEvent:(UIPressesEvent *)event {
   [self updatePresses:presses];
+  // Let the system handle the presses too: swallowing them here would mark
+  // key presses as handled and starve the text-input system, which types
+  // hardware keys into the focused text view only for unhandled presses.
+  [super pressesBegan:presses withEvent:event];
 }
 
 - (void)pressesEnded:(NSSet<UIPress *> *)presses withEvent:(UIPressesEvent *)event {
   [self updatePresses:presses];
+  [super pressesEnded:presses withEvent:event];
+}
+
+- (void)pressesCancelled:(NSSet<UIPress *> *)presses withEvent:(UIPressesEvent *)event {
+  [self updatePresses:presses];
+  [super pressesCancelled:presses withEvent:event];
 }
 
 - (void)suspendGame {

@@ -67,9 +67,12 @@ type nsRange struct {
 
 var (
 	sel_CGRectValue                 = objc.RegisterName("CGRectValue")
+	sel_addObject                   = objc.RegisterName("addObject:")
 	sel_addObserver                 = objc.RegisterName("addObserver:selector:name:object:")
 	sel_addSubview                  = objc.RegisterName("addSubview:")
 	sel_alloc                       = objc.RegisterName("alloc")
+	sel_allObjects                  = objc.RegisterName("allObjects")
+	sel_count                       = objc.RegisterName("count")
 	sel_applyDismiss                = objc.RegisterName("ebitengineApplyDismiss")
 	sel_applyStart                  = objc.RegisterName("ebitengineApplyStart")
 	sel_becomeFirstResponder        = objc.RegisterName("becomeFirstResponder")
@@ -81,10 +84,16 @@ var (
 	sel_init                        = objc.RegisterName("init")
 	sel_initWithUTF8String          = objc.RegisterName("initWithUTF8String:")
 	sel_insertText                  = objc.RegisterName("insertText:")
+	sel_key                         = objc.RegisterName("key")
+	sel_keyCode                     = objc.RegisterName("keyCode")
 	sel_keyboardWillChangeFrame     = objc.RegisterName("ebitengineKeyboardWillChangeFrame:")
 	sel_markedTextRange             = objc.RegisterName("markedTextRange")
+	sel_objectAtIndex               = objc.RegisterName("objectAtIndex:")
 	sel_objectForKey                = objc.RegisterName("objectForKey:")
 	sel_performSelectorOnMainThread = objc.RegisterName("performSelectorOnMainThread:withObject:waitUntilDone:")
+	sel_pressesBegan                = objc.RegisterName("pressesBegan:withEvent:")
+	sel_pressesCancelled            = objc.RegisterName("pressesCancelled:withEvent:")
+	sel_pressesEnded                = objc.RegisterName("pressesEnded:withEvent:")
 	sel_release                     = objc.RegisterName("release")
 	sel_resignFirstResponder        = objc.RegisterName("resignFirstResponder")
 	sel_selectedRange               = objc.RegisterName("selectedRange")
@@ -151,11 +160,14 @@ type textInputImpl struct {
 	vkVisibleRegion image.Rectangle
 	vkKnown         bool
 
-	// textView, delegate, and parentView are used only on the main thread,
-	// after ensureUIKit.
-	textView   objc.ID
-	delegate   objc.ID
-	parentView objc.ID
+	// textView, delegate, parentView, and consumedPresses are used only on the
+	// main thread, after ensureUIKit. consumedPresses maps an in-flight UIPress
+	// consumed by pressesBeganOnMain to the key delivered to the game, so that
+	// its ending releases the key and stays consumed too.
+	textView        objc.ID
+	delegate        objc.ID
+	parentView      objc.ID
+	consumedPresses map[objc.ID]ui.Key
 
 	ensureUIKitOnce sync.Once
 
@@ -248,6 +260,24 @@ func (t *textInputImpl) ensureUIKit() {
 							return
 						}
 						self.SendSuper(sel_deleteBackward)
+					},
+				},
+				{
+					Cmd: sel_pressesBegan,
+					Fn: func(self objc.ID, _ objc.SEL, presses, event objc.ID) {
+						theTextInputImpl.pressesOnMain(self, presses, event, sel_pressesBegan)
+					},
+				},
+				{
+					Cmd: sel_pressesEnded,
+					Fn: func(self objc.ID, _ objc.SEL, presses, event objc.ID) {
+						theTextInputImpl.pressesOnMain(self, presses, event, sel_pressesEnded)
+					},
+				},
+				{
+					Cmd: sel_pressesCancelled,
+					Fn: func(self objc.ID, _ objc.SEL, presses, event objc.ID) {
+						theTextInputImpl.pressesOnMain(self, presses, event, sel_pressesCancelled)
 					},
 				},
 			},
@@ -517,7 +547,7 @@ func insertTextOnMain(tv objc.ID, text objc.ID) (handled bool) {
 	if tv.Send(sel_markedTextRange) != 0 {
 		return false
 	}
-	ui.Get().DispatchKeyPress(ui.KeyEnter)
+	dispatchKeyPressUnlessDown(ui.KeyEnter)
 	return true
 }
 
@@ -532,8 +562,101 @@ func deleteBackwardOnMain(tv objc.ID) (handled bool) {
 	if sel.location != 0 || sel.length != 0 {
 		return false
 	}
-	ui.Get().DispatchKeyPress(ui.KeyBackspace)
+	dispatchKeyPressUnlessDown(ui.KeyBackspace)
 	return true
+}
+
+// dispatchKeyPressUnlessDown delivers a synthetic key press for an edit the
+// virtual keyboard produced without a key event. A key that is already down
+// was delivered by a real key event, so a synthetic press would double it.
+func dispatchKeyPressUnlessDown(key ui.Key) {
+	if ui.Get().IsKeyDown(key) {
+		return
+	}
+	ui.Get().DispatchKeyPress(key)
+}
+
+// HID keyboard usages of the keys the text view consumes; see consumableKey.
+const (
+	hidUsageKeyboardReturn          = 0x28
+	hidUsageKeyboardDeleteBackspace = 0x2A
+)
+
+// pressesOnMain handles a hardware key press event of the text view. A press
+// of a key the game acts on itself (see consumableKey) is consumed: the game
+// receives the key event, and the text system never edits the text for it, so
+// nothing is doubled. The remaining presses follow the responder chain, which
+// delivers them to the game's view controller and then to the text system.
+func (t *textInputImpl) pressesOnMain(self, presses, event objc.ID, cmd objc.SEL) {
+	arr := presses.Send(sel_allObjects)
+	n := int(objc.Send[uint](arr, sel_count))
+
+	var kept objc.ID
+	consumed := 0
+	for i := 0; i < n; i++ {
+		p := arr.Send(sel_objectAtIndex, uint(i))
+		if cmd == sel_pressesBegan {
+			if key, ok := t.consumableKey(self, p); ok {
+				if t.consumedPresses == nil {
+					t.consumedPresses = map[objc.ID]ui.Key{}
+				}
+				t.consumedPresses[p] = key
+				ui.Get().DispatchKeyDown(key)
+				consumed++
+				continue
+			}
+		} else if key, ok := t.consumedPresses[p]; ok {
+			delete(t.consumedPresses, p)
+			ui.Get().DispatchKeyUp(key)
+			consumed++
+			continue
+		}
+		if kept == 0 {
+			kept = objc.ID(objc.GetClass("NSMutableSet")).Send(sel_alloc).Send(sel_init)
+		}
+		kept.Send(sel_addObject, p)
+	}
+
+	if consumed == 0 {
+		if kept != 0 {
+			kept.Send(sel_release)
+		}
+		self.SendSuper(cmd, presses, event)
+		return
+	}
+	if kept != 0 {
+		self.SendSuper(cmd, kept, event)
+		kept.Send(sel_release)
+	}
+}
+
+// consumableKey returns the key the game receives for press, and whether the
+// press is consumed by the text view. A Return outside a composition is the
+// game's: a line break is the game's decision. A Backspace at the head of the
+// text view reaches text the session does not expose, and the game edits
+// across the boundary itself.
+func (t *textInputImpl) consumableKey(tv objc.ID, press objc.ID) (ui.Key, bool) {
+	k := press.Send(sel_key)
+	if k == 0 {
+		return 0, false
+	}
+	switch objc.Send[int](k, sel_keyCode) {
+	case hidUsageKeyboardReturn:
+		if tv.Send(sel_markedTextRange) != 0 {
+			return 0, false
+		}
+		return ui.KeyEnter, true
+	case hidUsageKeyboardDeleteBackspace:
+		if tv.Send(sel_markedTextRange) != 0 {
+			return 0, false
+		}
+		sel := objc.Send[nsRange](tv, sel_selectedRange)
+		if sel.location != 0 || sel.length != 0 {
+			return 0, false
+		}
+		return ui.KeyBackspace, true
+	}
+	return 0, false
 }
 
 // textViewEndedEditingOnMain ends text inputting when the first responder is

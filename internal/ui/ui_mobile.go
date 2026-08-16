@@ -191,6 +191,7 @@ func (u *UserInterface) update() error {
 // SetOutsideSize is concurrent safe.
 func (u *UserInterface) SetOutsideSize(outsideWidth, outsideHeight float64) {
 	u.userInterfaceImpl.outsideSize.Store(pointF{x: outsideWidth, y: outsideHeight})
+	u.refreshDisplayInfo()
 }
 
 func (u *UserInterface) CursorMode() CursorMode {
