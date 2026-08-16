@@ -441,7 +441,8 @@ func (t *textInputImpl) textViewChangedOnMain() {
 // handleTextViewChange reports the edit and returns whether the caller must
 // clear the text view.
 func (t *textInputImpl) handleTextViewChange(value string, selStart, selEnd int, kind commitKind) (clearTextView bool) {
-	s := t.events.getActiveSession()
+	// Evaluated outside t.mu: the focus lock is taken with no other lock held.
+	fieldFocused := withFocusedField(func(*Field) {})
 
 	t.mu.Lock()
 	defer t.mu.Unlock()
@@ -454,48 +455,13 @@ func (t *textInputImpl) handleTextViewChange(value string, selStart, selEnd int,
 
 	if t.cancelled {
 		// The session the text view was seeded for was cancelled, so the event
-		// describes an abandoned target. s can still be non-nil: it is read
-		// before the mutex is taken, and the game's thread can cancel in
-		// between.
-		return false
-	}
-
-	if s == nil {
-		// No session means the deprecated Field is inputting; it uses the
-		// legacy whole-value path.
-		// TODO: Remove this branch once Field is gone; a Composer session is
-		// always active otherwise.
-		if !t.events.isOpen() {
-			// The event has no receiver: it is the teardown noise of a
-			// dismissal, not the user's input.
-			return false
-		}
-		if t.legacyCleared {
-			t.legacyCleared = false
-			if value == "" {
-				return false
-			}
-		}
-		t.events.send(textInputState{
-			Text:                             value,
-			CompositionSelectionStartInBytes: convertUTF16CountToByteCount(value, selStart),
-			CompositionSelectionEndInBytes:   convertUTF16CountToByteCount(value, selEnd),
-			ReplacementStartInBytes:          noReplacement,
-			ReplacementEndInBytes:            noReplacement,
-			CommitKind:                       kind,
-		})
-		if kind.committed() {
-			t.events.end()
-			t.legacyCleared = true
-			return true
-		}
+		// describes an abandoned target.
 		return false
 	}
 
 	// The selection does not track the preedit on iOS; see
 	// compositionSelectionInBytes.
-	t.sender.trySend(s, value, selStart, selEnd, true, kind)
-	return false
+	return handlePlatformState(t.events, &t.sender, &t.legacyCleared, value, selStart, selEnd, true, kind, fieldFocused)
 }
 
 // textViewEndedEditingOnMain ends text inputting when the first responder is

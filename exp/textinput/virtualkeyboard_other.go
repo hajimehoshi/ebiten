@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !ios && !js
+//go:build !android && !ios && !js
 
 package textinput
 
@@ -25,6 +25,5 @@ import (
 //
 // No platform here reports a virtual keyboard yet.
 func readVirtualKeyboard() (visible bool, visibleClientRegion image.Rectangle, ok bool) {
-	// TODO: Implement this for Android (#2831).
 	return false, image.Rectangle{}, false
 }

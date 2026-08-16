@@ -176,3 +176,91 @@ func SetVirtualKeyboardSourcesForTest(read func() (visible bool, visibleClientRe
 	theVirtualKeyboardState.tick = tick
 	theVirtualKeyboardState.hasState = false
 }
+
+// PlatformStateHandler drives handlePlatformState with its own events and
+// sender, mirroring a platform backend whose channel is open.
+type PlatformStateHandler struct {
+	events        textInputEvents
+	sender        diffSender
+	legacyCleared bool
+	ch            <-chan textInputState
+}
+
+// NewPlatformStateHandler returns a handler whose diff baseline is value, as a
+// platform backend after seeding.
+func NewPlatformStateHandler(value string) *PlatformStateHandler {
+	h := &PlatformStateHandler{}
+	h.events.tick = func() int64 {
+		return 0
+	}
+	h.sender.events = &h.events
+	ch, _ := h.events.start()
+	h.ch = ch
+	h.sender.reset(value)
+	return h
+}
+
+// Handle reports a platform state with the caret pinned to the preedit's end,
+// and returns whether the platform buffer must be cleared.
+func (h *PlatformStateHandler) Handle(value string, selStartInUTF16, selEndInUTF16 int, kind CommitKind, fieldFocused bool) bool {
+	return handlePlatformState(&h.events, &h.sender, &h.legacyCleared, value, selStartInUTF16, selEndInUTF16, true, kind, fieldFocused)
+}
+
+// RegisterSession installs an active session with the given surrounding text.
+func (h *PlatformStateHandler) RegisterSession(textBeforeCaret, textAfterCaret string) {
+	h.events.setActiveSession(&session{
+		ch:              h.ch,
+		end:             h.events.end,
+		textBeforeCaret: textBeforeCaret,
+		textAfterCaret:  textAfterCaret,
+	})
+}
+
+// Drain returns the states delivered since the last call.
+func (h *PlatformStateHandler) Drain() []TextInputState {
+	var states []TextInputState
+	for {
+		select {
+		case state, ok := <-h.ch:
+			if !ok {
+				return states
+			}
+			states = append(states, state)
+		default:
+			return states
+		}
+	}
+}
+
+// IsOpen reports whether the channel is open.
+func (h *PlatformStateHandler) IsOpen() bool {
+	return h.events.isOpen()
+}
+
+// LegacyCleared reports whether the legacy path cleared the buffer.
+func (h *PlatformStateHandler) LegacyCleared() bool {
+	return h.legacyCleared
+}
+
+// SeedGate re-exports the internal reseeding arbitration.
+type SeedGate = seedGate
+
+// Start re-exports seedGate.start.
+func (g *SeedGate) Start(value string) int {
+	return g.start(value)
+}
+
+// Abandon re-exports seedGate.abandon.
+func (g *SeedGate) Abandon() {
+	g.abandon()
+}
+
+// Admit re-exports seedGate.admit.
+func (g *SeedGate) Admit(generation int) (resetBaseline bool, ok bool) {
+	return g.admit(generation)
+}
+
+// PendingValue returns the pending seed.
+func (g *SeedGate) PendingValue() string {
+	return g.pendingValue
+}

@@ -20,9 +20,15 @@ import java.util.Comparator;
 import java.util.List;
 
 import android.content.Context;
+import android.graphics.Insets;
+import android.graphics.Rect;
 import android.hardware.input.InputManager;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
+import android.text.Editable;
+import android.text.InputType;
+import android.text.TextWatcher;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
 import android.util.Log;
@@ -30,12 +36,23 @@ import android.view.Display;
 import android.view.KeyEvent;
 import android.view.InputDevice;
 import android.view.MotionEvent;
+import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
+import android.view.WindowInsets;
 import android.view.WindowManager;
+import android.view.inputmethod.BaseInputConnection;
+import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputConnection;
+import android.view.inputmethod.InputConnectionWrapper;
+import android.view.inputmethod.InputMethodManager;
+import android.view.inputmethod.TextAttribute;
+import android.widget.EditText;
 
 import $Placeholder_JavaPkg$.ebitenmobileview.Ebitenmobileview;
+import $Placeholder_JavaPkg$.ebitenmobileview.TextInputDriver;
 
-public class EbitenView extends ViewGroup implements InputManager.InputDeviceListener {
+public class EbitenView extends ViewGroup implements InputManager.InputDeviceListener, TextInputDriver {
     static class Gamepad {
         public int deviceId;
         public ArrayList<InputDevice.MotionRange> axes;
@@ -122,14 +139,36 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
         for (int id : this.inputManager.getInputDeviceIds()) {
             this.onInputDeviceAdded(id);
         }
+
+        this.editText = new EbitenEditText(context);
+        addView(this.editText, new LayoutParams(1, 1));
+        Ebitenmobileview.setTextInputDriver(this);
+        getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+            @Override
+            public void onGlobalLayout() {
+                reportVirtualKeyboardState();
+            }
+        });
     }
 
     @Override
     protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
         this.ebitenSurfaceView.layout(0, 0, right - left, bottom - top);
+        layoutEditText();
         double widthInDp = pxToDp(right - left);
         double heightInDp = pxToDp(bottom - top);
         Ebitenmobileview.layout(widthInDp, heightInDp);
+    }
+
+    // layoutEditText places the edit text at the game's caret bounds, so that
+    // panning for the virtual keyboard and the IME's candidate UI are anchored
+    // to the caret. The edit text is fully transparent and takes no touches.
+    private void layoutEditText() {
+        int x = this.caretX;
+        int y = this.caretY;
+        int width = Math.max(this.caretWidth, 1);
+        int height = Math.max(this.caretHeight, 1);
+        this.editText.layout(x, y, x + width, y + height);
     }
 
     @Override
@@ -462,7 +501,240 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
         return Ebitenmobileview.areGPUResourcesSaved();
     }
 
+    // EbitenEditText is the hidden edit text serving the IME. Its content is
+    // seeded and observed by the Go side; the game renders the text itself.
+    private class EbitenEditText extends EditText {
+        public EbitenEditText(Context context) {
+            super(context);
+            setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE);
+            setImeOptions(EditorInfo.IME_FLAG_NO_EXTRACT_UI | EditorInfo.IME_FLAG_NO_FULLSCREEN);
+            setFocusableInTouchMode(true);
+            // The edit text sits at the game's caret but must not be seen. An
+            // invisible or offscreen view could not keep the focus or anchor
+            // panning, so make it fully transparent instead.
+            setAlpha(0.0f);
+            if (Build.VERSION.SDK_INT >= 26) {
+                setImportantForAutofill(IMPORTANT_FOR_AUTOFILL_NO);
+            }
+            addTextChangedListener(new TextWatcher() {
+                @Override
+                public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+                }
+
+                @Override
+                public void onTextChanged(CharSequence s, int start, int before, int count) {
+                }
+
+                @Override
+                public void afterTextChanged(Editable s) {
+                    reportTextInputState();
+                }
+            });
+        }
+
+        @Override
+        protected void onSelectionChanged(int selStart, int selEnd) {
+            super.onSelectionChanged(selStart, selEnd);
+            reportTextInputState();
+        }
+
+        // Composition operations like finishComposingText and
+        // setComposingRegion can change only the composing spans, firing
+        // neither the TextWatcher nor onSelectionChanged. Wrap the input
+        // connection to report the state after such an operation completes.
+        @Override
+        public InputConnection onCreateInputConnection(EditorInfo outAttrs) {
+            InputConnection connection = super.onCreateInputConnection(outAttrs);
+            if (connection == null) {
+                return null;
+            }
+            return new InputConnectionWrapper(connection, false) {
+                @Override
+                public boolean finishComposingText() {
+                    boolean result = super.finishComposingText();
+                    reportTextInputState();
+                    return result;
+                }
+
+                @Override
+                public boolean setComposingRegion(int start, int end) {
+                    boolean result = super.setComposingRegion(start, end);
+                    reportTextInputState();
+                    return result;
+                }
+
+                // The TextAttribute overload (API 33) delegates directly to
+                // the wrapped connection, bypassing the two-argument override.
+                // The method is never called on older systems, where merely
+                // declaring it is harmless.
+                @Override
+                public boolean setComposingRegion(int start, int end, TextAttribute textAttribute) {
+                    boolean result = super.setComposingRegion(start, end, textAttribute);
+                    reportTextInputState();
+                    return result;
+                }
+
+                @Override
+                public boolean endBatchEdit() {
+                    boolean result = super.endBatchEdit();
+                    if (!result) {
+                        // The last nested batch edit ended.
+                        reportTextInputState();
+                    }
+                    return result;
+                }
+            };
+        }
+
+        // The game handles the touches at the caret; never take them.
+        @Override
+        public boolean onTouchEvent(MotionEvent event) {
+            return false;
+        }
+
+        // The focused edit text receives the hardware key events instead of
+        // EbitenView; forward them to the game like EbitenView's onKeyDown and
+        // onKeyUp do.
+        @Override
+        public boolean onKeyDown(int keyCode, KeyEvent event) {
+            if (event.getRepeatCount() == 0) {
+                Ebitenmobileview.onKeyDownOnAndroid(keyCode, event.getUnicodeChar(), event.getSource(), event.getDeviceId(), event.getMetaState());
+            }
+            return super.onKeyDown(keyCode, event);
+        }
+
+        @Override
+        public boolean onKeyUp(int keyCode, KeyEvent event) {
+            Ebitenmobileview.onKeyUpOnAndroid(keyCode, event.getSource(), event.getDeviceId(), event.getMetaState());
+            return super.onKeyUp(keyCode, event);
+        }
+    }
+
+    // startTextInput implements TextInputDriver. It is called from the Go side
+    // on an arbitrary thread.
+    @Override
+    public void startTextInput(final String text, final long selectionStartInUTF16, final long selectionEndInUTF16, final long caretX, final long caretY, final long caretWidth, final long caretHeight, final long generation) {
+        new Handler(Looper.getMainLooper()).post(new Runnable() {
+            @Override
+            public void run() {
+                textInputGeneration = generation;
+                EbitenView.this.caretX = (int)caretX;
+                EbitenView.this.caretY = (int)caretY;
+                EbitenView.this.caretWidth = (int)caretWidth;
+                EbitenView.this.caretHeight = (int)caretHeight;
+                layoutEditText();
+                // Programmatic seeding is not the user's input; do not report
+                // it. setText invokes the TextWatcher synchronously.
+                suppressTextInputReports = true;
+                editText.setText(text);
+                editText.setSelection((int)selectionStartInUTF16, (int)selectionEndInUTF16);
+                suppressTextInputReports = false;
+                editText.requestFocus();
+                showSoftInput();
+            }
+        });
+    }
+
+    // showSoftInput shows the virtual keyboard, or defers showing it until the
+    // window gains the focus, where showSoftInput is ignored.
+    private void showSoftInput() {
+        if (!hasWindowFocus()) {
+            this.pendingShowSoftInput = true;
+            return;
+        }
+        this.pendingShowSoftInput = false;
+        InputMethodManager imm = (InputMethodManager)getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
+        imm.showSoftInput(this.editText, 0);
+    }
+
+    @Override
+    public void onWindowFocusChanged(boolean hasWindowFocus) {
+        super.onWindowFocusChanged(hasWindowFocus);
+        if (hasWindowFocus && this.pendingShowSoftInput) {
+            showSoftInput();
+        }
+    }
+
+    // dismissTextInput implements TextInputDriver. It is called from the Go
+    // side on an arbitrary thread.
+    @Override
+    public void dismissTextInput() {
+        new Handler(Looper.getMainLooper()).post(new Runnable() {
+            @Override
+            public void run() {
+                pendingShowSoftInput = false;
+                InputMethodManager imm = (InputMethodManager)getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
+                imm.hideSoftInputFromWindow(getWindowToken(), 0);
+                // Programmatic clearing is not the user's input; do not report
+                // it.
+                suppressTextInputReports = true;
+                editText.setText("");
+                suppressTextInputReports = false;
+                editText.clearFocus();
+            }
+        });
+    }
+
+    private void reportTextInputState() {
+        if (this.editText == null || this.suppressTextInputReports) {
+            return;
+        }
+        Editable e = this.editText.getText();
+        int composingStart = BaseInputConnection.getComposingSpanStart(e);
+        int composingEnd = BaseInputConnection.getComposingSpanEnd(e);
+        Ebitenmobileview.onTextInputStateChanged(e.toString(), this.editText.getSelectionStart(), this.editText.getSelectionEnd(), composingStart, composingEnd, this.textInputGeneration);
+    }
+
+    private void reportVirtualKeyboardState() {
+        // Measure the visible frame rather than assuming a soft-input mode, so
+        // that any adjust mode reports a true region.
+        Rect visibleFrame = new Rect();
+        getWindowVisibleDisplayFrame(visibleFrame);
+        int[] location = new int[2];
+        getLocationOnScreen(location);
+        int x0 = Math.min(Math.max(visibleFrame.left - location[0], 0), getWidth());
+        int y0 = Math.min(Math.max(visibleFrame.top - location[1], 0), getHeight());
+        int x1 = Math.min(Math.max(visibleFrame.right - location[0], x0), getWidth());
+        int y1 = Math.min(Math.max(visibleFrame.bottom - location[1], y0), getHeight());
+        boolean shown;
+        if (Build.VERSION.SDK_INT >= 30) {
+            WindowInsets insets = getRootWindowInsets();
+            shown = insets != null && insets.isVisible(WindowInsets.Type.ime());
+            if (shown) {
+                // The visible frame does not reflect the virtual keyboard with
+                // some soft-input modes (e.g. adjustNothing). Clip the region
+                // by the IME inset, which is measured from the window's bottom
+                // edge.
+                Insets imeInsets = insets.getInsets(WindowInsets.Type.ime());
+                View root = getRootView();
+                int[] rootLocation = new int[2];
+                root.getLocationOnScreen(rootLocation);
+                int imeTop = rootLocation[1] + root.getHeight() - imeInsets.bottom - location[1];
+                y1 = Math.min(Math.max(imeTop, y0), y1);
+            }
+        } else {
+            // This view can already be resized to the visible frame (e.g. with
+            // adjustResize), so measure against the root view, which keeps the
+            // window's full size. Assume that a band taller than any system bar
+            // at the bottom of the window is the virtual keyboard.
+            View root = getRootView();
+            int[] rootLocation = new int[2];
+            root.getLocationOnScreen(rootLocation);
+            int rootBottom = rootLocation[1] + root.getHeight();
+            shown = rootBottom - visibleFrame.bottom > 100 * getResources().getDisplayMetrics().density;
+        }
+        Ebitenmobileview.onVirtualKeyboardChanged(shown, x0, y0, x1 - x0, y1 - y0);
+    }
+
     private EbitenSurfaceView ebitenSurfaceView;
+    private EbitenEditText editText;
     private InputManager inputManager;
     private ArrayList<Gamepad> gamepads;
+    private long textInputGeneration;
+    private int caretX;
+    private int caretY;
+    private int caretWidth;
+    private int caretHeight;
+    private boolean pendingShowSoftInput;
+    private boolean suppressTextInputReports;
 }

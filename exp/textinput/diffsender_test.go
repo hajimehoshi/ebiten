@@ -141,3 +141,60 @@ func TestDiffSenderCompositionRemovingCommittedText(t *testing.T) {
 		t.Errorf("ReplacementEndInBytes = %d, want %d", got, want)
 	}
 }
+
+// TestHandlePlatformStateBeforeSessionRegistration simulates the platform
+// reporting a state after the platform text input started but before the
+// session is registered (startSession installs the session only after starting
+// the platform text input). The state must not be taken for the deprecated
+// Field's input.
+func TestHandlePlatformStateBeforeSessionRegistration(t *testing.T) {
+	h := textinput.NewPlatformStateHandler("abc")
+
+	// The platform echoes the seeded value while no session is registered.
+	if got, want := h.Handle("abc", 3, 3, textinput.CommitRegular, false), false; got != want {
+		t.Errorf("Handle = %t, want %t", got, want)
+	}
+	if states := h.Drain(); len(states) != 0 {
+		t.Errorf("states delivered before session registration: %+v", states)
+	}
+	if !h.IsOpen() {
+		t.Errorf("events closed before session registration")
+	}
+
+	// Once the session is registered, states are diffed against it.
+	h.RegisterSession("abc", "")
+	h.Handle("abcd", 4, 4, textinput.CommitRegular, false)
+	states := h.Drain()
+	if got, want := len(states), 1; got != want {
+		t.Fatalf("len(states) = %d, want %d", got, want)
+	}
+	if got, want := states[0].Text, "d"; got != want {
+		t.Errorf("Text = %q, want %q", got, want)
+	}
+	if got, want := states[0].CommitKind, textinput.CommitRegular; got != want {
+		t.Errorf("CommitKind = %d, want %d", got, want)
+	}
+}
+
+// TestHandlePlatformStateLegacyField verifies that the legacy whole-value path
+// still serves a focused Field.
+func TestHandlePlatformStateLegacyField(t *testing.T) {
+	h := textinput.NewPlatformStateHandler("")
+
+	if got, want := h.Handle("abc", 3, 3, textinput.CommitRegular, true), true; got != want {
+		t.Errorf("Handle = %t, want %t", got, want)
+	}
+	states := h.Drain()
+	if got, want := len(states), 1; got != want {
+		t.Fatalf("len(states) = %d, want %d", got, want)
+	}
+	if got, want := states[0].Text, "abc"; got != want {
+		t.Errorf("Text = %q, want %q", got, want)
+	}
+	if h.IsOpen() {
+		t.Errorf("events still open after a legacy commit")
+	}
+	if !h.LegacyCleared() {
+		t.Errorf("LegacyCleared() = false, want true")
+	}
+}
