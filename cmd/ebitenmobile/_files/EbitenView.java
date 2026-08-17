@@ -192,6 +192,17 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
         Ebitenmobileview.layout(widthInDp, heightInDp);
     }
 
+    @Override
+    public WindowInsets onApplyWindowInsets(WindowInsets insets) {
+        // On an edge-to-edge window, showing or hiding the virtual keyboard
+        // changes the window insets without relayouting the window, so the
+        // global layout listener does not fire. Report the state on inset
+        // changes as well.
+        WindowInsets result = super.onApplyWindowInsets(insets);
+        reportVirtualKeyboardState();
+        return result;
+    }
+
     // layoutEditText places the edit text at the game's caret bounds, so that
     // panning for the virtual keyboard and the IME's candidate UI are anchored
     // to the caret. The edit text is fully transparent and takes no touches.
