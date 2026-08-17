@@ -175,7 +175,7 @@ func OnKeyUpOnAndroid(keyCode int, source int, deviceID int, metaState int) {
 		// DPAD keys can come here, but they are also treated as an axis at a motion event. Ignore them.
 	case source&sourceKeyboard == sourceKeyboard, source == sourceUnknown && deviceID == virtualKeyboard:
 		if key, ok := androidKeyToUIKey[keyCode]; ok {
-			keyReleasedTimes[key] = ui.Get().InputTime()
+			setKeyReleased(key)
 		}
 		updateLockKeys(source, metaState)
 		updateInput(nil)

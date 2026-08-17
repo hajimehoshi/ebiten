@@ -36,7 +36,7 @@ func init() {
 // text editor received instead of the game's view.
 func dispatchKeyPress(key ui.Key) {
 	keyPressedTimes[key] = ui.Get().InputTime()
-	keyReleasedTimes[key] = ui.Get().InputTime()
+	setKeyReleased(key)
 	updateInput(nil)
 }
 
@@ -50,7 +50,7 @@ func dispatchKeyDown(key ui.Key) {
 // dispatchKeyUp records a key release for a key the platform text editor
 // received instead of the game's view.
 func dispatchKeyUp(key ui.Key) {
-	keyReleasedTimes[key] = ui.Get().InputTime()
+	setKeyReleased(key)
 	updateInput(nil)
 }
 
@@ -116,11 +116,8 @@ func UpdatePressesOnIOS(phase int, keyCode int, keyString string, modifierFlags 
 		}
 		updateInput(runes)
 	case C.UIPressPhaseEnded, C.UIPressPhaseCancelled:
-		// A key that is not down was pressed into a composition, where the press
-		// is not reported. Recording the release alone would report a release of
-		// a key the game never saw pressed.
-		if key, ok := iosKeyToUIKey[keyCode]; ok && keyPressedTimes[key] > keyReleasedTimes[key] {
-			keyReleasedTimes[key] = ui.Get().InputTime()
+		if key, ok := iosKeyToUIKey[keyCode]; ok {
+			setKeyReleased(key)
 		}
 		updateInput(nil)
 	default:

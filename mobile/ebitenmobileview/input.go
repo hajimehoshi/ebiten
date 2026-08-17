@@ -39,6 +39,15 @@ var (
 	touchSlice []ui.TouchForInput
 )
 
+// setKeyReleased records a key release. The release of a key that is not down
+// is ignored: the game never saw the key pressed.
+func setKeyReleased(key ui.Key) {
+	if keyPressedTimes[key] <= keyReleasedTimes[key] {
+		return
+	}
+	keyReleasedTimes[key] = ui.Get().InputTime()
+}
+
 func updateInput(runes []rune) {
 	touchSlice = touchSlice[:0]
 	for id, position := range touches {
