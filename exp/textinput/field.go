@@ -129,6 +129,7 @@ func (f *Field) HandleInputWithBounds(bounds image.Rectangle) (handled bool, err
 
 	// Text inputting can happen multiple times in one tick (1/60[s] by default).
 	// Handle all of them.
+	var endedByUser bool
 	for {
 		if f.ch == nil {
 			// TODO: On iOS Safari, Start doesn't work as expected (#2898).
@@ -151,7 +152,13 @@ func (f *Field) HandleInputWithBounds(bounds image.Rectangle) (handled bool, err
 				if !ok {
 					f.ch = nil
 					f.end = nil
-					f.state = textInputState{}
+					if theTextInput.events.takeEndedByUser() {
+						// Keep f.state: the pending composition is committed
+						// below.
+						endedByUser = true
+					} else {
+						f.state = textInputState{}
+					}
 					break readchar
 				}
 				if state.CommitKind.committed() && state.Text == "\x7f" {
@@ -168,6 +175,24 @@ func (f *Field) HandleInputWithBounds(bounds image.Rectangle) (handled bool, err
 			default:
 				break readchar
 			}
+		}
+
+		if endedByUser {
+			// The user ended text inputting, e.g. by dismissing the virtual
+			// keyboard. Commit what the user last saw, and unfocus instead of
+			// restarting: another session would show the virtual keyboard
+			// again.
+			if f.state.Text != "" {
+				f.commit(textInputState{
+					Text:                    f.state.Text,
+					ReplacementStartInBytes: noReplacement,
+					ReplacementEndInBytes:   noReplacement,
+					CommitKind:              commitRegular,
+				})
+			}
+			f.state = textInputState{}
+			f.Blur()
+			return handled, nil
 		}
 
 		if f.ch == nil {

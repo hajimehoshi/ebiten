@@ -48,6 +48,14 @@ type Composer struct {
 	// committed text to its own buffer. Optional.
 	OnCommit func(c *Commit)
 
+	// OnEndByUser is called when the user ends text inputting from the
+	// platform side, e.g. by dismissing the virtual keyboard. The caller
+	// should stop text inputting, typically by unfocusing its text field:
+	// starting another session would show the virtual keyboard again.
+	// An in-progress composition is committed through OnCommit first, as
+	// [Composer.Confirm] does. Optional.
+	OnEndByUser func()
+
 	s *session
 }
 
@@ -198,13 +206,27 @@ func (c *Composer) Update() (handled bool, err error) {
 			if !c.s.IsCommittedWithPassthroughKey() {
 				handled = true
 			}
+			endedByUser := c.s.IsClosedByUser()
 			c.s = nil
+			if endedByUser {
+				c.dispatchEndByUser()
+				break
+			}
 			continue
 		}
 
 		if c.s.IsClosed() {
+			// The user's ending discards no composition: what the user last saw
+			// is committed, as Confirm does.
+			if c.s.IsClosedByUser() && c.OnCommit != nil && c.s.loadComposition().text != "" {
+				c.OnCommit(c.s.compositionAsCommit())
+			}
+			endedByUser := c.s.IsClosedByUser()
 			c.s = nil
 			c.dispatchEmptyComposition()
+			if endedByUser {
+				c.dispatchEndByUser()
+			}
 			break
 		}
 
@@ -257,5 +279,11 @@ func (c *Composer) dispatchComposition(comp Composition) {
 func (c *Composer) dispatchEmptyComposition() {
 	if c.OnComposition != nil {
 		c.OnComposition(&Composition{})
+	}
+}
+
+func (c *Composer) dispatchEndByUser() {
+	if c.OnEndByUser != nil {
+		c.OnEndByUser()
 	}
 }

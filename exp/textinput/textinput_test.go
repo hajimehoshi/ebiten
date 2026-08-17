@@ -925,3 +925,75 @@ func TestEndWithoutSessionDoesNotExtendCarry(t *testing.T) {
 		t.Errorf("the session got commit %q, want none", got)
 	}
 }
+
+// A platform-side ending recorded as the user's, e.g. the user dismissing the
+// virtual keyboard, must reach the session observing the closed channel, so
+// that the application can stop text inputting instead of restarting it,
+// which would show the virtual keyboard again.
+func TestUserEndingReachesSession(t *testing.T) {
+	d := textinput.NewDiffSender("", "")
+
+	// The user composes, then dismisses the virtual keyboard.
+	d.TrySend("か", 1, 1, true, textinput.CommitNone)
+	d.EndByUser()
+	if err := d.Update(); err != nil {
+		t.Fatalf("Update: %v", err)
+	}
+	if !d.SessionClosed() {
+		t.Error("SessionClosed() = false, want true")
+	}
+	if !d.SessionClosedByUser() {
+		t.Error("SessionClosedByUser() = false, want true")
+	}
+
+	// The record must not leak into the next session.
+	d.StartNextSession("", "")
+	if err := d.Update(); err != nil {
+		t.Fatalf("Update: %v", err)
+	}
+	if d.SessionClosedByUser() {
+		t.Error("SessionClosedByUser() = true for the next session, want false")
+	}
+}
+
+// A platform teardown that is not the user's, e.g. a focus loss, must not be
+// recorded as the user's ending.
+func TestPlatformTeardownIsNotUserEnding(t *testing.T) {
+	d := textinput.NewDiffSender("", "")
+
+	d.TrySend("か", 1, 1, true, textinput.CommitNone)
+	d.End()
+	if err := d.Update(); err != nil {
+		t.Fatalf("Update: %v", err)
+	}
+	if !d.SessionClosed() {
+		t.Error("SessionClosed() = false, want true")
+	}
+	if d.SessionClosedByUser() {
+		t.Error("SessionClosedByUser() = true, want false")
+	}
+}
+
+// A commit and the user's dismissal can land in the same tick: the commit ends
+// the session, and the ending must still be recorded as the user's, or the
+// application would restart text inputting and show the virtual keyboard
+// again.
+func TestUserEndingAfterCommitInSameTick(t *testing.T) {
+	d := textinput.NewDiffSender("", "")
+
+	d.TrySend("a", 1, 1, false, textinput.CommitRegular)
+	d.EndByUser()
+	if err := d.Update(); err != nil {
+		t.Fatalf("Update: %v", err)
+	}
+	c := d.Commit()
+	if c == nil {
+		t.Fatal("the session got no commit")
+	}
+	if got, want := c.Text(), "a"; got != want {
+		t.Errorf("Text() = %q, want %q", got, want)
+	}
+	if !d.SessionClosedByUser() {
+		t.Error("SessionClosedByUser() = false, want true")
+	}
+}

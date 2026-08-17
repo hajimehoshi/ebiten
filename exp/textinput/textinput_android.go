@@ -35,6 +35,7 @@ func init() {
 	t := &theTextInputImpl
 	t.sender.events = t.events
 	ui.Get().SetTextInputStateCallback(t.onState)
+	ui.Get().SetTextInputEndByUserCallback(t.onEndByUser)
 	hook.AppendHookOnBeforeUpdate(func() error {
 		t.dismissVirtualKeyboardIfNeeded()
 		return nil
@@ -132,6 +133,13 @@ func (t *textInputImpl) handleState(text string, selectionStartInUTF16, selectio
 	// The selection does not track the preedit on a virtual keyboard; see
 	// compositionSelectionInBytes.
 	return handlePlatformState(t.events, &t.sender, &t.legacyCleared, text, selectionStartInUTF16, selectionEndInUTF16, true, kind, fieldFocused)
+}
+
+// onEndByUser handles the user ending text inputting from the platform
+// side, e.g. with the Back key hiding the virtual keyboard: the open session
+// ends, recording the ending as the user's.
+func (t *textInputImpl) onEndByUser() {
+	t.events.endByUser()
 }
 
 // currentGeneration returns the current seeding generation.

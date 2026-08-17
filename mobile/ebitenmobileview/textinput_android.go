@@ -53,3 +53,9 @@ func OnTextInputStateChanged(text string, selectionStartInUTF16, selectionEndInU
 func OnVirtualKeyboardChanged(shown bool, x, y, width, height int) {
 	ui.Get().UpdateVirtualKeyboardState(shown, image.Rect(x, y, x+width, y+height))
 }
+
+// OnTextInputEndedByUser reports that the user ended text inputting, e.g.
+// with the Back key hiding the virtual keyboard.
+func OnTextInputEndedByUser() {
+	ui.Get().DispatchTextInputEndByUser()
+}

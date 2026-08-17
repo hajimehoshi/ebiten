@@ -28,6 +28,10 @@
 // stays visible, and the shift is undone when the keyboard disappears.
 // Web browsers scroll the page by themselves instead.
 //
+// When the user dismisses the virtual keyboard, e.g. with the Back gesture
+// on Android, text inputting ends: [Composer.OnEndByUser] is called, and a
+// focused [Field] loses its focus.
+//
 // # Android
 //
 // The soft-input mode (android:windowSoftInputMode) is left to the app,
@@ -394,6 +398,11 @@ type textInputEvents struct {
 	// queuedTick is the tick the queued states were reported in.
 	queuedTick int64
 
+	// endedByUser reports whether the last ending was the user ending text
+	// inputting from the platform side, e.g. by dismissing the virtual
+	// keyboard. Taken by the session observing the closed channel.
+	endedByUser bool
+
 	// tick overrides the tick source in tests. A nil tick means [ebiten.Tick].
 	tick func() int64
 
@@ -458,6 +467,7 @@ func (s *textInputEvents) start() (ch chan textInputState, endFunc func()) {
 		s.done = make(chan struct{})
 	}
 	s.sessionCommitted = false
+	s.endedByUser = false
 	s.flushStateQueue()
 	return s.ch, s.end
 }
@@ -473,7 +483,33 @@ func (s *textInputEvents) isOpen() bool {
 func (s *textInputEvents) end() {
 	s.m.Lock()
 	defer s.m.Unlock()
+	s.doEnd()
+}
 
+// endByUser ends like end, recording that the ending is the user ending text
+// inputting from the platform side, e.g. by dismissing the virtual keyboard.
+// The record is kept even when the channel is already closed: a platform can
+// commit, which ends, and then report the user's ending, and the ending
+// belongs to the session that has not drained that commit yet. start clears a
+// record no session consumed.
+func (s *textInputEvents) endByUser() {
+	s.m.Lock()
+	defer s.m.Unlock()
+	s.endedByUser = true
+	s.doEnd()
+}
+
+// takeEndedByUser reports whether the last ending was the user's, and clears
+// the record.
+func (s *textInputEvents) takeEndedByUser() bool {
+	s.m.Lock()
+	defer s.m.Unlock()
+	ended := s.endedByUser
+	s.endedByUser = false
+	return ended
+}
+
+func (s *textInputEvents) doEnd() {
 	if s.ch == nil {
 		// There is no session to end. A platform that ends unconditionally
 		// after every commit reaches this whenever a commit is queued or

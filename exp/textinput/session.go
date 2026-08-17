@@ -21,6 +21,21 @@ import (
 	"unicode/utf8"
 )
 
+// sessionState describes whether a session has closed and how.
+type sessionState int
+
+const (
+	sessionStateOpen sessionState = iota
+
+	// sessionStateClosed is any closing but the user's: a commit, a
+	// cancellation, or a platform-side teardown.
+	sessionStateClosed
+
+	// sessionStateClosedByUser is the user ending text inputting from the
+	// platform side, e.g. by dismissing the virtual keyboard.
+	sessionStateClosedByUser
+)
+
 // session is one IME composition session.
 //
 // A session lives from startSession until one of:
@@ -35,7 +50,8 @@ import (
 type session struct {
 	ch     <-chan textInputState
 	end    func()
-	closed bool
+	events *textInputEvents
+	state  sessionState
 
 	textBeforeCaret string
 	textAfterCaret  string
@@ -86,12 +102,16 @@ func (s *session) loadComposition() Composition {
 // callback; pass false when the platform itself has already ended (channel
 // closed from below).
 func (s *session) markClosed(callPlatformEnd bool) {
-	s.closed = true
+	if s.events.takeEndedByUser() {
+		s.state = sessionStateClosedByUser
+	} else {
+		s.state = sessionStateClosed
+	}
 	clearVirtualKeyboardFromUI()
 	if callPlatformEnd {
 		s.end()
 	}
-	theTextInput.events.clearActiveSessionIf(s)
+	s.events.clearActiveSessionIf(s)
 }
 
 // startSession begins a new IME session at the given caret.
@@ -131,6 +151,7 @@ func startSession(opts *SessionOptions) (*session, error) {
 	s := &session{
 		ch:              ch,
 		end:             end,
+		events:          &theTextInput.events,
 		textBeforeCaret: opts.TextBeforeCaret,
 		textAfterCaret:  opts.TextAfterCaret,
 		caretBounds:     opts.CaretBounds,
@@ -143,7 +164,7 @@ func startSession(opts *SessionOptions) (*session, error) {
 // invoke Update once per tick to observe composition updates, commits, and
 // platform-side teardown.
 func (s *session) Update() error {
-	if s.closed {
+	if s.IsClosed() {
 		return nil
 	}
 	reportVirtualKeyboardToUI(s.caretBounds)
@@ -213,7 +234,7 @@ func (s *session) Composition() Composition {
 // like backspace that empties the preedit). Returns false once the session
 // has closed, regardless of any stale composition state.
 func (s *session) IsCompositing() bool {
-	if s.closed {
+	if s.IsClosed() {
 		return false
 	}
 	if s.composingThisUpdate {
@@ -263,7 +284,14 @@ func (s *session) compositionAsCommit() *Commit {
 // IsClosed becomes true after Update observes a commit, after the platform
 // unilaterally ends the session, or after Cancel is called.
 func (s *session) IsClosed() bool {
-	return s.closed
+	return s.state != sessionStateOpen
+}
+
+// IsClosedByUser reports whether the session closed because the user ended
+// text inputting from the platform side, e.g. by dismissing the virtual
+// keyboard. Implies IsClosed.
+func (s *session) IsClosedByUser() bool {
+	return s.state == sessionStateClosedByUser
 }
 
 // Cancel aborts an in-progress composition and releases the platform IME.
@@ -272,7 +300,7 @@ func (s *session) IsClosed() bool {
 // observe a commit via Update or call Cancel; otherwise the platform IME may
 // be left in an indeterminate state.
 func (s *session) Cancel() {
-	if s.closed {
+	if s.IsClosed() {
 		return
 	}
 	s.markClosed(true)

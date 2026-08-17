@@ -66,6 +66,7 @@ func NewTextField(bounds image.Rectangle, multilines bool) *TextField {
 	t.composer.OnNewSession = t.onNewIMESession
 	t.composer.OnComposition = t.onIMEComposition
 	t.composer.OnCommit = t.onIMECommit
+	t.composer.OnEndByUser = t.Blur
 	return t
 }
 

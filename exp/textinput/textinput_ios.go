@@ -660,12 +660,13 @@ func (t *textInputImpl) consumableKey(tv objc.ID, press objc.ID) (ui.Key, bool) 
 }
 
 // textViewEndedEditingOnMain ends text inputting when the first responder is
-// resigned, e.g. by the user dismissing the virtual keyboard.
+// resigned. The engine resigns only after the session has ended, so an ending
+// a session observes is the user's, e.g. dismissing the virtual keyboard.
 func (t *textInputImpl) textViewEndedEditingOnMain() {
 	if !t.markEndedEditing() {
 		return
 	}
-	t.events.end()
+	t.events.endByUser()
 }
 
 // markEndedEditing records that the text view stopped editing, and reports

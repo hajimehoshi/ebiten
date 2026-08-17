@@ -90,7 +90,7 @@ func (s *TextInputEvents) Send(state TextInputState) bool {
 // reports the committed text and whether a commit arrived.
 func (s *TextInputEvents) StartSessionCommit() (string, bool) {
 	ch, end := s.start()
-	sess := &session{ch: ch, end: end}
+	sess := &session{ch: ch, end: end, events: s}
 	_ = sess.Update()
 	if !sess.IsCommitted() {
 		return "", false
@@ -103,7 +103,7 @@ func (s *TextInputEvents) StartSessionCommit() (string, bool) {
 // reports whether the session observed a live composition.
 func (s *TextInputEvents) StartSessionCompositing() bool {
 	ch, end := s.start()
-	sess := &session{ch: ch, end: end}
+	sess := &session{ch: ch, end: end, events: s}
 	_ = sess.Update()
 	return sess.IsCompositing()
 }
@@ -130,6 +130,7 @@ func NewDiffSender(textBeforeCaret, textAfterCaret string) *DiffSender {
 	d.session = &session{
 		ch:              ch,
 		end:             end,
+		events:          &d.events,
 		textBeforeCaret: textBeforeCaret,
 		textAfterCaret:  textAfterCaret,
 	}
@@ -153,6 +154,7 @@ func (d *DiffSender) StartNextSession(textBeforeCaret, textAfterCaret string) {
 	d.session = &session{
 		ch:              ch,
 		end:             end,
+		events:          &d.events,
 		textBeforeCaret: textBeforeCaret,
 		textAfterCaret:  textAfterCaret,
 	}
@@ -161,6 +163,26 @@ func (d *DiffSender) StartNextSession(textBeforeCaret, textAfterCaret string) {
 // Update drains the session's states, as a tick does.
 func (d *DiffSender) Update() error {
 	return d.session.Update()
+}
+
+// EndByUser ends the events as the platform does for the user's dismissal.
+func (d *DiffSender) EndByUser() {
+	d.events.endByUser()
+}
+
+// End ends the events as the platform does for its own teardown.
+func (d *DiffSender) End() {
+	d.events.end()
+}
+
+// SessionClosedByUser reports whether the session recorded the user's ending.
+func (d *DiffSender) SessionClosedByUser() bool {
+	return d.session.IsClosedByUser()
+}
+
+// SessionClosed reports whether the session is closed.
+func (d *DiffSender) SessionClosed() bool {
+	return d.session.IsClosed()
 }
 
 // Commit returns the commit the session observed, or nil if it observed none.
@@ -232,6 +254,7 @@ func (h *PlatformStateHandler) RegisterSession(textBeforeCaret, textAfterCaret s
 	h.events.setActiveSession(&session{
 		ch:              h.ch,
 		end:             h.events.end,
+		events:          &h.events,
 		textBeforeCaret: textBeforeCaret,
 		textAfterCaret:  textAfterCaret,
 	})

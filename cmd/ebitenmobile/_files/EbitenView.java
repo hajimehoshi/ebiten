@@ -656,6 +656,18 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
             return false;
         }
 
+        // The Back key while the virtual keyboard is shown is the user
+        // dismissing it; the input method hides itself. Report the dismissal
+        // so that the game side ends text inputting instead of showing the
+        // keyboard again.
+        @Override
+        public boolean onKeyPreIme(int keyCode, KeyEvent event) {
+            if (keyCode == KeyEvent.KEYCODE_BACK && event.getAction() == KeyEvent.ACTION_UP && virtualKeyboardShown) {
+                Ebitenmobileview.onTextInputEndedByUser();
+            }
+            return super.onKeyPreIme(keyCode, event);
+        }
+
         // The focused edit text receives the hardware key events instead of
         // EbitenView; forward them to the game like EbitenView's onKeyDown and
         // onKeyUp do. The Return key, which an input method delivers as a key
@@ -809,6 +821,7 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
             int rootBottom = rootLocation[1] + root.getHeight();
             shown = rootBottom - visibleFrame.bottom > 100 * getResources().getDisplayMetrics().density;
         }
+        this.virtualKeyboardShown = shown;
         Ebitenmobileview.onVirtualKeyboardChanged(shown, x0, y0, x1 - x0, y1 - y0);
     }
 
@@ -827,4 +840,5 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
     private boolean pendingShowSoftInput;
     private boolean suppressTextInputReports;
     private boolean passthroughKeyPending;
+    private boolean virtualKeyboardShown;
 }

@@ -36,11 +36,12 @@ type TextInputDriver interface {
 // androidTextInput is the text-input plumbing between the platform view and
 // exp/textinput.
 type androidTextInput struct {
-	driver   TextInputDriver
-	onState  func(text string, selectionStartInUTF16, selectionEndInUTF16, composingStartInUTF16, composingEndInUTF16 int, passthroughKey bool, generation int)
-	vkShown  bool
-	vkRegion image.Rectangle
-	vkKnown  bool
+	driver      TextInputDriver
+	onState     func(text string, selectionStartInUTF16, selectionEndInUTF16, composingStartInUTF16, composingEndInUTF16 int, passthroughKey bool, generation int)
+	onEndByUser func()
+	vkShown     bool
+	vkRegion    image.Rectangle
+	vkKnown     bool
 
 	m sync.Mutex
 }
@@ -62,6 +63,15 @@ func (u *UserInterface) SetTextInputStateCallback(onState func(text string, sele
 	t.m.Lock()
 	defer t.m.Unlock()
 	t.onState = onState
+}
+
+// SetTextInputEndByUserCallback sets the callback receiving the user's
+// ending reported through [UserInterface.DispatchTextInputEndByUser].
+func (u *UserInterface) SetTextInputEndByUserCallback(onEndByUser func()) {
+	t := &theAndroidTextInput
+	t.m.Lock()
+	defer t.m.Unlock()
+	t.onEndByUser = onEndByUser
 }
 
 // textInputDriver returns the registered driver, or nil.
@@ -106,6 +116,19 @@ func (u *UserInterface) UpdateTextInputState(text string, selectionStartInUTF16,
 		return
 	}
 	onState(text, selectionStartInUTF16, selectionEndInUTF16, composingStartInUTF16, composingEndInUTF16, passthroughKey, generation)
+}
+
+// DispatchTextInputEndByUser reports that the user ended text inputting,
+// e.g. by dismissing the virtual keyboard, to the callback.
+func (u *UserInterface) DispatchTextInputEndByUser() {
+	t := &theAndroidTextInput
+	t.m.Lock()
+	onEndByUser := t.onEndByUser
+	t.m.Unlock()
+	if onEndByUser == nil {
+		return
+	}
+	onEndByUser()
 }
 
 // UpdateVirtualKeyboardState records the virtual keyboard state: whether it is
