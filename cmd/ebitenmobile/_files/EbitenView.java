@@ -151,6 +151,14 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
 
         updateDeviceScale();
 
+        // A view receives key events only while it has the focus. Take the
+        // focus so that onKeyDown and onKeyUp receive hardware key and
+        // gamepad button events. The hidden edit text takes the focus over
+        // while a text input session is active.
+        setFocusable(true);
+        setFocusableInTouchMode(true);
+        requestFocus();
+
         this.gamepads = new ArrayList<Gamepad>();
 
         this.ebitenSurfaceView = new EbitenSurfaceView(getContext());
@@ -788,6 +796,10 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
                 editText.setText("");
                 suppressTextInputReports = false;
                 editText.clearFocus();
+                // In touch mode, the cleared focus does not move to another
+                // view on its own; take it back so that key events keep
+                // reaching this view.
+                requestFocus();
             }
         });
     }
