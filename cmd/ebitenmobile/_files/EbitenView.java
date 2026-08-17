@@ -50,6 +50,8 @@ import android.view.inputmethod.InputMethodManager;
 import android.view.inputmethod.TextAttribute;
 import android.widget.EditText;
 
+import go.Seq;
+
 import $Placeholder_JavaPkg$.ebitenmobileview.Ebitenmobileview;
 import $Placeholder_JavaPkg$.ebitenmobileview.TextInputDriver;
 
@@ -129,6 +131,14 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
     }
 
     private void initialize(Context context) {
+        // Set the Android context for the Go side, which requires it e.g. to
+        // get the display information or to vibrate. Seq.setContext leaks a
+        // JNI global reference per call, so set the context at most once.
+        if (!seqContextSet) {
+            seqContextSet = true;
+            Seq.setContext(context.getApplicationContext());
+        }
+
         this.gamepads = new ArrayList<Gamepad>();
 
         this.ebitenSurfaceView = new EbitenSurfaceView(getContext());
@@ -790,6 +800,8 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
         }
         Ebitenmobileview.onVirtualKeyboardChanged(shown, x0, y0, x1 - x0, y1 - y0);
     }
+
+    private static boolean seqContextSet;
 
     private EbitenSurfaceView ebitenSurfaceView;
     private EbitenEditText editText;
