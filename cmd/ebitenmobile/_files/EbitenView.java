@@ -17,7 +17,9 @@ package $Placeholder_JavaPkg$.$Placeholder_PrefixLower$;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import android.content.Context;
 import android.graphics.Insets;
@@ -660,10 +662,20 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
         // dismissing it; the input method hides itself. Report the dismissal
         // so that the game side ends text inputting instead of showing the
         // keyboard again.
+        //
+        // onKeyPreIme also reports key releases, sharing pressedKeyCodes with
+        // onKeyUp: neither alone sees every release. The input method can
+        // consume a release whose press it delivered (Gboard consumes the
+        // release of a Backspace that deleted text), which would leave the key
+        // pressed in the game forever, while a key event an input method
+        // injects through the input connection skips onKeyPreIme.
         @Override
         public boolean onKeyPreIme(int keyCode, KeyEvent event) {
             if (keyCode == KeyEvent.KEYCODE_BACK && event.getAction() == KeyEvent.ACTION_UP && virtualKeyboardShown) {
                 Ebitenmobileview.onTextInputEndedByUser();
+            }
+            if (event.getAction() == KeyEvent.ACTION_UP && pressedKeyCodes.remove(keyCode)) {
+                Ebitenmobileview.onKeyUpOnAndroid(keyCode, event.getSource(), event.getDeviceId(), event.getMetaState());
             }
             return super.onKeyPreIme(keyCode, event);
         }
@@ -676,6 +688,7 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
         @Override
         public boolean onKeyDown(int keyCode, KeyEvent event) {
             if (event.getRepeatCount() == 0) {
+                pressedKeyCodes.add(keyCode);
                 Ebitenmobileview.onKeyDownOnAndroid(keyCode, event.getUnicodeChar(), event.getSource(), event.getDeviceId(), event.getMetaState());
             }
             if (keyCode == KeyEvent.KEYCODE_ENTER) {
@@ -686,7 +699,9 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
 
         @Override
         public boolean onKeyUp(int keyCode, KeyEvent event) {
-            Ebitenmobileview.onKeyUpOnAndroid(keyCode, event.getSource(), event.getDeviceId(), event.getMetaState());
+            if (pressedKeyCodes.remove(keyCode)) {
+                Ebitenmobileview.onKeyUpOnAndroid(keyCode, event.getSource(), event.getDeviceId(), event.getMetaState());
+            }
             if (keyCode == KeyEvent.KEYCODE_ENTER) {
                 return true;
             }
@@ -706,6 +721,10 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
             Ebitenmobileview.onKeyDownOnAndroid(keyCode, 0, 0, KeyCharacterMap.VIRTUAL_KEYBOARD, 0);
             Ebitenmobileview.onKeyUpOnAndroid(keyCode, 0, KeyCharacterMap.VIRTUAL_KEYBOARD, 0);
         }
+
+        // pressedKeyCodes holds the key codes whose press the game has seen
+        // and whose release it has not.
+        private final Set<Integer> pressedKeyCodes = new HashSet<Integer>();
     }
 
     // startTextInput implements TextInputDriver. It is called from the Go side
