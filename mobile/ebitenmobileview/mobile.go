@@ -130,10 +130,6 @@ func OnContextLost() bool {
 	return atlas.RestoreGPUResources()
 }
 
-func DeviceScale() float64 {
-	return ui.Get().Monitor().DeviceScaleFactor()
-}
-
 type Renderer interface {
 	ui.Renderer
 }

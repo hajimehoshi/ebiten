@@ -116,8 +116,16 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
         }
     }
 
-    private static double pxToDp(double x) {
-        return x / Ebitenmobileview.deviceScale();
+    private double pxToDp(double x) {
+        return x / this.deviceScale;
+    }
+
+    private void updateDeviceScale() {
+        WindowManager windowManager = (WindowManager)getContext().getSystemService(Context.WINDOW_SERVICE);
+        Display display = windowManager.getDefaultDisplay();
+        DisplayMetrics metrics = new DisplayMetrics();
+        display.getRealMetrics(metrics);
+        this.deviceScale = metrics.density;
     }
 
     public EbitenView(Context context) {
@@ -138,6 +146,8 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
             seqContextSet = true;
             Seq.setContext(context.getApplicationContext());
         }
+
+        updateDeviceScale();
 
         this.gamepads = new ArrayList<Gamepad>();
 
@@ -166,6 +176,7 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
     protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
         this.ebitenSurfaceView.layout(0, 0, right - left, bottom - top);
         layoutEditText();
+        updateDeviceScale();
         double widthInDp = pxToDp(right - left);
         double heightInDp = pxToDp(bottom - top);
         Ebitenmobileview.layout(widthInDp, heightInDp);
@@ -803,6 +814,7 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
 
     private static boolean seqContextSet;
 
+    private float deviceScale = 1.0f;
     private EbitenSurfaceView ebitenSurfaceView;
     private EbitenEditText editText;
     private InputManager inputManager;
