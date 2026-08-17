@@ -16,6 +16,7 @@ package ui
 
 import (
 	"sync"
+	"sync/atomic"
 )
 
 // iosTextInput is the text-input plumbing between the platform view and
@@ -24,6 +25,8 @@ type iosTextInput struct {
 	dispatchKeyPress func(key Key)
 	dispatchKeyDown  func(key Key)
 	dispatchKeyUp    func(key Key)
+
+	keyPressForComposition atomic.Bool
 
 	m sync.Mutex
 }
@@ -86,6 +89,18 @@ func (u *UserInterface) DispatchKeyPress(key Key) {
 		return
 	}
 	dispatch(key)
+}
+
+// SetKeyPressForComposition sets whether the key press the platform is
+// delivering belongs to a live composition, which the game does not receive.
+func (u *UserInterface) SetKeyPressForComposition(forComposition bool) {
+	theIOSTextInput.keyPressForComposition.Store(forComposition)
+}
+
+// IsKeyPressForComposition reports whether the key press the platform is
+// delivering belongs to a live composition.
+func (u *UserInterface) IsKeyPressForComposition() bool {
+	return theIOSTextInput.keyPressForComposition.Load()
 }
 
 // IsKeyDown reports whether key is currently reported down by the platform's

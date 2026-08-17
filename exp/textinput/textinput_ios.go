@@ -588,6 +588,16 @@ const (
 // nothing is doubled. The remaining presses follow the responder chain, which
 // delivers them to the game's view controller and then to the text system.
 func (t *textInputImpl) pressesOnMain(self, presses, event objc.ID, cmd objc.SEL) {
+	// Sample the composition before the presses are forwarded: forwarding can
+	// finalize the composition, e.g. for the Return committing it, and the
+	// composition would then be gone where the press is reported to the game.
+	// The responder chain forwards on this thread, so the report is nested in
+	// the calls below.
+	if cmd == sel_pressesBegan && self.Send(sel_markedTextRange) != 0 {
+		ui.Get().SetKeyPressForComposition(true)
+		defer ui.Get().SetKeyPressForComposition(false)
+	}
+
 	arr := presses.Send(sel_allObjects)
 	n := int(objc.Send[uint](arr, sel_count))
 

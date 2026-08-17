@@ -97,6 +97,11 @@ func UpdatePressesOnIOS(phase int, keyCode int, keyString string, modifierFlags 
 		// keyPressedTimes represents the time when a key is first pressed.
 		// Do nothing here.
 	case C.UIPressPhaseBegan:
+		if ui.Get().IsKeyPressForComposition() {
+			// The key is typed into a composition, which the input method acts
+			// on. The release is still reported, so that the key cannot stick.
+			return
+		}
 		if key, ok := iosKeyToUIKey[keyCode]; ok {
 			keyPressedTimes[key] = ui.Get().InputTime()
 		}
@@ -111,7 +116,10 @@ func UpdatePressesOnIOS(phase int, keyCode int, keyString string, modifierFlags 
 		}
 		updateInput(runes)
 	case C.UIPressPhaseEnded, C.UIPressPhaseCancelled:
-		if key, ok := iosKeyToUIKey[keyCode]; ok {
+		// A key that is not down was pressed into a composition, where the press
+		// is not reported. Recording the release alone would report a release of
+		// a key the game never saw pressed.
+		if key, ok := iosKeyToUIKey[keyCode]; ok && keyPressedTimes[key] > keyReleasedTimes[key] {
 			keyReleasedTimes[key] = ui.Get().InputTime()
 		}
 		updateInput(nil)
