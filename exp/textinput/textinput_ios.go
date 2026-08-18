@@ -442,6 +442,14 @@ func (t *textInputImpl) resignAndClearOnMain() {
 	if t.textView == 0 {
 		return
 	}
+	// Every consumed press's key is released by the time the text view
+	// resigns: the ending of a press that outlives the session is not
+	// guaranteed to arrive. A late ending finds its press absent and is
+	// forwarded unconsumed.
+	for p, key := range t.consumedPresses {
+		delete(t.consumedPresses, p)
+		ui.Get().DispatchKeyUp(key)
+	}
 	t.textView.Send(sel_resignFirstResponder)
 	ns := newNSString("")
 	t.textView.Send(sel_setText, ns)
