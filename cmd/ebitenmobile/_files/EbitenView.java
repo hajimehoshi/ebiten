@@ -691,7 +691,7 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
         @Override
         public boolean onKeyPreIme(int keyCode, KeyEvent event) {
             if (keyCode == KeyEvent.KEYCODE_BACK && event.getAction() == KeyEvent.ACTION_UP && virtualKeyboardShown) {
-                Ebitenmobileview.onTextInputEndedByUser();
+                reportTextInputEndedByUser();
             }
             if (event.getAction() == KeyEvent.ACTION_UP && pressedKeyCodes.remove(keyCode)) {
                 Ebitenmobileview.onKeyUpOnAndroid(keyCode, event.getSource(), event.getDeviceId(), event.getMetaState());
@@ -753,6 +753,7 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
         new Handler(Looper.getMainLooper()).post(new Runnable() {
             @Override
             public void run() {
+                textInputActive = true;
                 textInputGeneration = generation;
                 EbitenView.this.caretX = (int)caretX;
                 EbitenView.this.caretY = (int)caretY;
@@ -771,14 +772,12 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
         });
     }
 
-    // showSoftInput shows the virtual keyboard, or defers showing it until the
-    // window gains the focus, where showSoftInput is ignored.
+    // showSoftInput shows the virtual keyboard. The request is ignored without
+    // the window focus; onWindowFocusChanged retries it.
     private void showSoftInput() {
         if (!hasWindowFocus()) {
-            this.pendingShowSoftInput = true;
             return;
         }
-        this.pendingShowSoftInput = false;
         InputMethodManager imm = (InputMethodManager)getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
         imm.showSoftInput(this.editText, 0);
     }
@@ -786,7 +785,16 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
     @Override
     public void onWindowFocusChanged(boolean hasWindowFocus) {
         super.onWindowFocusChanged(hasWindowFocus);
-        if (hasWindowFocus && this.pendingShowSoftInput) {
+        if (!hasWindowFocus) {
+            // The keyboard hiding on a focus loss (e.g. going to the
+            // background) is not the user's dismissal; reset the shown state
+            // so it is not reported as one.
+            this.virtualKeyboardShown = false;
+            return;
+        }
+        // Text inputting survives a focus loss: show the keyboard again. This
+        // also serves a show that was ignored without the focus.
+        if (this.textInputActive) {
             showSoftInput();
         }
     }
@@ -798,7 +806,9 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
         new Handler(Looper.getMainLooper()).post(new Runnable() {
             @Override
             public void run() {
-                pendingShowSoftInput = false;
+                // End text inputting first so that the keyboard hiding below
+                // is not reported as the user's dismissal.
+                textInputActive = false;
                 InputMethodManager imm = (InputMethodManager)getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
                 imm.hideSoftInputFromWindow(getWindowToken(), 0);
                 // Programmatic clearing is not the user's input; do not report
@@ -863,8 +873,28 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
             int rootBottom = rootLocation[1] + root.getHeight();
             shown = rootBottom - visibleFrame.bottom > 100 * getResources().getDisplayMetrics().density;
         }
+        boolean wasShown = this.virtualKeyboardShown;
         this.virtualKeyboardShown = shown;
         Ebitenmobileview.onVirtualKeyboardChanged(shown, x0, y0, x1 - x0, y1 - y0);
+        // The keyboard disappearing while text inputting is active is the
+        // user dismissing it, e.g. with a back gesture the input method
+        // handles by itself with no Back key event. dismissTextInput ends
+        // text inputting before hiding, so its hiding is not observed here.
+        if (wasShown && !shown && hasWindowFocus()) {
+            reportTextInputEndedByUser();
+        }
+    }
+
+    // reportTextInputEndedByUser reports the user ending text inputting, e.g.
+    // by dismissing the virtual keyboard. Only the first report counts: one
+    // dismissal can be observed both as a Back key event and as the keyboard
+    // disappearing.
+    private void reportTextInputEndedByUser() {
+        if (!this.textInputActive) {
+            return;
+        }
+        this.textInputActive = false;
+        Ebitenmobileview.onTextInputEndedByUser();
     }
 
     private static boolean seqContextSet;
@@ -879,7 +909,9 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
     private int caretY;
     private int caretWidth;
     private int caretHeight;
-    private boolean pendingShowSoftInput;
+    // textInputActive is true from startTextInput until dismissTextInput or a
+    // reported user ending.
+    private boolean textInputActive;
     private boolean suppressTextInputReports;
     private boolean passthroughKeyPending;
     private boolean virtualKeyboardShown;
