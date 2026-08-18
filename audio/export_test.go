@@ -27,7 +27,7 @@ type (
 		playing bool
 		volume  float64
 
-		// readGen is incremented by Reset to stop the goroutine reading r.
+		// readGen is incremented by PauseAndStopReading to stop the goroutine reading r.
 		readGen int
 
 		mu sync.Mutex
@@ -89,8 +89,9 @@ func (p *dummyPlayer) Play() {
 	}()
 }
 
-// readOnce performs one read from the source with the mutex held, so that Reset waits for an
-// in-flight read. stopped reports that Reset was called and reading must not continue.
+// readOnce performs one read from the source with the mutex held, so that PauseAndStopReading waits
+// for an in-flight read. stopped reports that PauseAndStopReading was called and reading must not
+// continue.
 func (p *dummyPlayer) readOnce(gen int, buf []byte) (stopped bool, err error) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -102,7 +103,7 @@ func (p *dummyPlayer) readOnce(gen int, buf []byte) (stopped bool, err error) {
 	return false, err
 }
 
-func (p *dummyPlayer) Reset() {
+func (p *dummyPlayer) PauseAndStopReading() {
 	p.mu.Lock()
 	p.playing = false
 	p.readGen++

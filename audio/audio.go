@@ -329,7 +329,7 @@ func (c *Context) SampleRate() int {
 // Even when all references to a Player object is gone,
 // the object is not GCed until the player finishes playing.
 // This means that if a Player plays an infinite stream,
-// the object is never GCed unless [Player.Reset] or [Player.Pause] is called.
+// the object is never GCed unless [Player.Pause] or [Player.PauseAndStopReading] is called.
 type Player struct {
 	p       *playerImpl
 	cleanup runtime.Cleanup
@@ -460,19 +460,9 @@ func (p *playerImpl) finalize() {
 //
 // Close returns error when the player is already closed.
 //
-// Deprecated: as of v2.10. Use [Player.Reset] instead.
+// Deprecated: as of v2.10. Use [Player.PauseAndStopReading] instead.
 func (p *Player) Close() error {
 	return p.p.Close()
-}
-
-// Reset clears the buffered data and pauses its playing.
-// After Reset returns, this player does not use the source until [Player.Play], [Player.SetPosition],
-// or [Player.Rewind] is called, so the source can be closed safely.
-// Reset blocks until an ongoing read from the source finishes, if any.
-//
-// The position after Reset is unspecified. Use [Player.SetPosition] to set it.
-func (p *Player) Reset() {
-	p.p.Reset()
 }
 
 // Play plays the stream.
@@ -513,6 +503,15 @@ func (p *Player) Seek(offset time.Duration) error {
 // Pause pauses the playing.
 func (p *Player) Pause() {
 	p.p.Pause()
+}
+
+// PauseAndStopReading pauses the playing and stops reading the source.
+// After PauseAndStopReading returns, this player does not read the source until [Player.Play],
+// [Player.SetPosition], or [Player.Rewind] is called, so the source can be closed safely.
+// The buffered data is kept, and [Player.Play] resumes the playing without a gap.
+// PauseAndStopReading blocks until an ongoing read from the source finishes, if any.
+func (p *Player) PauseAndStopReading() {
+	p.p.PauseAndStopReading()
 }
 
 // Position returns the current position in time.

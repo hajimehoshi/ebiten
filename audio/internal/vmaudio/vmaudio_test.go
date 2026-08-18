@@ -276,7 +276,7 @@ func (r *countingReader) Read(buf []byte) (int, error) {
 	return r.r.Read(buf)
 }
 
-func TestResetStopsReadingSource(t *testing.T) {
+func TestPauseAndStopReadingStopsReadingSource(t *testing.T) {
 	c := newContext(t, 8)
 	src := &countingReader{r: bytes.NewReader(pcmBytes(ramp(1, 8)...))}
 	p := c.NewPlayer(src)
@@ -285,31 +285,31 @@ func TestResetStopsReadingSource(t *testing.T) {
 
 	pcm, _ := c.ReadForTesting(id, 16)
 	if got, want := pcmComps(pcm), ramp(1, 4); !slices.Equal(got, want) {
-		t.Fatalf("before reset %v; want %v", got, want)
+		t.Fatalf("before pausing %v; want %v", got, want)
 	}
 
-	p.Reset()
+	p.PauseAndStopReading()
 
 	// The pause is reported to the host.
 	controls := c.TakeControlChangesForTesting(nil)
 	if len(controls) != 1 || controls[0].Playing {
-		t.Errorf("controls after reset = %+v; want one not-playing control", controls)
+		t.Errorf("controls after PauseAndStopReading = %+v; want one not-playing control", controls)
 	}
 
-	// After Reset, a read yields no samples and does not touch the source.
+	// After PauseAndStopReading, a read yields no samples and does not touch the source.
 	reads := src.reads
 	if pcm, eof := c.ReadForTesting(id, 16); len(pcm) != 0 || eof {
-		t.Fatalf("read after reset = (%d bytes, eof=%v); want (0, false)", len(pcm), eof)
+		t.Fatalf("read after PauseAndStopReading = (%d bytes, eof=%v); want (0, false)", len(pcm), eof)
 	}
 	if src.reads != reads {
-		t.Errorf("the source was read after Reset: got %d reads; want %d", src.reads, reads)
+		t.Errorf("the source was read after PauseAndStopReading: got %d reads; want %d", src.reads, reads)
 	}
 
 	// The player is reusable: Play resumes from the source's current position.
 	p.Play()
 	pcm, _ = c.ReadForTesting(id, 16)
 	if got, want := pcmComps(pcm), ramp(5, 4); !slices.Equal(got, want) {
-		t.Errorf("after play following reset %v; want %v", got, want)
+		t.Errorf("after play following PauseAndStopReading %v; want %v", got, want)
 	}
 }
 

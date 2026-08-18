@@ -297,8 +297,23 @@ func (s *countingSource) Read(buf []byte) (int, error) {
 	return len(buf), nil
 }
 
-// Issue #3509
-func TestReset(t *testing.T) {
+// waitForRead waits until src's read count differs from reads and returns the new count.
+func waitForRead(t *testing.T, src *countingSource, reads int64) int64 {
+	t.Helper()
+	deadline := time.Now().Add(time.Second)
+	for {
+		if got := src.reads.Load(); got != reads {
+			return got
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("the source was not read")
+		}
+		time.Sleep(time.Millisecond)
+	}
+}
+
+// Issue #3510
+func TestPauseAndStopReading(t *testing.T) {
 	if runtime.GOOS == "js" {
 		t.Skip("infinite steams in tests cannot be treated well on browsers")
 	}
@@ -319,44 +334,68 @@ func TestReset(t *testing.T) {
 		t.Error(err)
 	}
 
-	// Wait until the source is read.
-	deadline := time.Now().Add(time.Second)
-	for src.reads.Load() == 0 {
-		if time.Now().After(deadline) {
-			t.Fatal("the source was not read after Play")
-		}
-		time.Sleep(time.Millisecond)
-	}
+	waitForRead(t, src, 0)
 
-	p.Reset()
+	p.PauseAndStopReading()
 
 	if p.IsPlaying() {
-		t.Error("IsPlaying() after Reset: got: true, want: false")
+		t.Error("IsPlaying() after PauseAndStopReading: got: true, want: false")
 	}
 	if got, want := audio.PlayersCountForTesting(), 0; got != want {
-		t.Errorf("PlayersCountForTesting() after Reset: got: %d, want: %d", got, want)
+		t.Errorf("PlayersCountForTesting() after PauseAndStopReading: got: %d, want: %d", got, want)
 	}
 
-	// After Reset, the source must not be read.
+	// After PauseAndStopReading, the source must not be read.
 	reads := src.reads.Load()
 	time.Sleep(100 * time.Millisecond)
 	if got := src.reads.Load(); got != reads {
-		t.Errorf("the source was read after Reset: got: %d reads, want: %d", got, reads)
+		t.Errorf("the source was read after PauseAndStopReading: got: %d reads, want: %d", got, reads)
 	}
 
-	// The player is reusable after Reset.
+	// The player is reusable after PauseAndStopReading.
 	p.Play()
-	deadline = time.Now().Add(time.Second)
-	for src.reads.Load() == reads {
-		if time.Now().After(deadline) {
-			t.Fatal("the source was not read after Play following Reset")
-		}
-		time.Sleep(time.Millisecond)
+	waitForRead(t, src, reads)
+}
+
+// Issue #3510
+func TestPauseAndStopReadingWhilePaused(t *testing.T) {
+	if runtime.GOOS == "js" {
+		t.Skip("infinite steams in tests cannot be treated well on browsers")
+	}
+
+	setup()
+	defer teardown()
+
+	src := &countingSource{}
+	p, err := context.NewPlayerF32(src)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	p.Play()
+
+	// The first update creates the audio device and starts the pending player.
+	if err := audio.UpdateForTesting(); err != nil {
+		t.Error(err)
+	}
+
+	reads := waitForRead(t, src, 0)
+
+	// A paused player keeps reading the source to fill its buffer.
+	p.Pause()
+	waitForRead(t, src, reads)
+
+	// PauseAndStopReading must stop the reads even though the player is already paused.
+	p.PauseAndStopReading()
+	reads = src.reads.Load()
+	time.Sleep(100 * time.Millisecond)
+	if got := src.reads.Load(); got != reads {
+		t.Errorf("the source was read after PauseAndStopReading: got: %d reads, want: %d", got, reads)
 	}
 }
 
-// Issue #3509
-func TestResetBeforeInit(t *testing.T) {
+// Issue #3510
+func TestPauseAndStopReadingBeforeInit(t *testing.T) {
 	setup()
 	defer teardown()
 
@@ -365,15 +404,15 @@ func TestResetBeforeInit(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Reset before the device is created cancels the pending play.
+	// PauseAndStopReading before the device is created cancels the pending play.
 	p.Play()
-	p.Reset()
+	p.PauseAndStopReading()
 
 	if p.IsPlaying() {
-		t.Error("IsPlaying() after Reset: got: true, want: false")
+		t.Error("IsPlaying() after PauseAndStopReading: got: true, want: false")
 	}
 	if got, want := audio.PlayersCountForTesting(), 0; got != want {
-		t.Errorf("PlayersCountForTesting() after Reset: got: %d, want: %d", got, want)
+		t.Errorf("PlayersCountForTesting() after PauseAndStopReading: got: %d, want: %d", got, want)
 	}
 
 	if err := audio.UpdateForTesting(); err != nil {
