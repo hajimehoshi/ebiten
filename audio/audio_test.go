@@ -18,6 +18,7 @@ import (
 	"bytes"
 	"io"
 	"runtime"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -280,6 +281,100 @@ func TestUncomparableSource(t *testing.T) {
 
 	p.Play()
 	p.Pause()
+
+	if err := audio.UpdateForTesting(); err != nil {
+		t.Error(err)
+	}
+}
+
+// countingSource is an infinite source counting the Read calls.
+type countingSource struct {
+	reads atomic.Int64
+}
+
+func (s *countingSource) Read(buf []byte) (int, error) {
+	s.reads.Add(1)
+	return len(buf), nil
+}
+
+// Issue #3509
+func TestReset(t *testing.T) {
+	if runtime.GOOS == "js" {
+		t.Skip("infinite steams in tests cannot be treated well on browsers")
+	}
+
+	setup()
+	defer teardown()
+
+	src := &countingSource{}
+	p, err := context.NewPlayerF32(src)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	p.Play()
+
+	// The first update creates the audio device and starts the pending player.
+	if err := audio.UpdateForTesting(); err != nil {
+		t.Error(err)
+	}
+
+	// Wait until the source is read.
+	deadline := time.Now().Add(time.Second)
+	for src.reads.Load() == 0 {
+		if time.Now().After(deadline) {
+			t.Fatal("the source was not read after Play")
+		}
+		time.Sleep(time.Millisecond)
+	}
+
+	p.Reset()
+
+	if p.IsPlaying() {
+		t.Error("IsPlaying() after Reset: got: true, want: false")
+	}
+	if got, want := audio.PlayersCountForTesting(), 0; got != want {
+		t.Errorf("PlayersCountForTesting() after Reset: got: %d, want: %d", got, want)
+	}
+
+	// After Reset, the source must not be read.
+	reads := src.reads.Load()
+	time.Sleep(100 * time.Millisecond)
+	if got := src.reads.Load(); got != reads {
+		t.Errorf("the source was read after Reset: got: %d reads, want: %d", got, reads)
+	}
+
+	// The player is reusable after Reset.
+	p.Play()
+	deadline = time.Now().Add(time.Second)
+	for src.reads.Load() == reads {
+		if time.Now().After(deadline) {
+			t.Fatal("the source was not read after Play following Reset")
+		}
+		time.Sleep(time.Millisecond)
+	}
+}
+
+// Issue #3509
+func TestResetBeforeInit(t *testing.T) {
+	setup()
+	defer teardown()
+
+	p, err := context.NewPlayer(bytes.NewReader(make([]byte, 4)))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Reset before the device is created cancels the pending play.
+	p.Play()
+	p.Reset()
+
+	if p.IsPlaying() {
+		t.Error("IsPlaying() after Reset: got: true, want: false")
+	}
+	if got, want := audio.PlayersCountForTesting(), 0; got != want {
+		t.Errorf("PlayersCountForTesting() after Reset: got: %d, want: %d", got, want)
+	}
 
 	if err := audio.UpdateForTesting(); err != nil {
 		t.Error(err)

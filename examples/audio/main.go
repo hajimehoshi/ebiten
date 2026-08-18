@@ -257,8 +257,8 @@ func NewPlayer(game *Game, audioContext *audio.Context, musicType musicType) (*P
 	return player, nil
 }
 
-func (p *Player) Close() error {
-	return p.audioPlayer.Close()
+func (p *Player) Pause() {
+	p.audioPlayer.Pause()
 }
 
 func (p *Player) update() error {
@@ -467,7 +467,6 @@ func (g *Game) Update() error {
 	}
 
 	if _, err := g.debugUI.Update(func(ctx *debugui.Context) error {
-		var uiErr error
 		ctx.Window("Audio", image.Rect(10, 10, 330, 240), func(layout debugui.ContainerLayout) {
 			ctx.Header("Settings", true, func() {
 				ctx.SetGridLayout([]int{-1, -1}, nil)
@@ -508,10 +507,8 @@ func (g *Game) Update() error {
 						panic("not reached")
 					}
 
-					if err := g.musicPlayer.Close(); err != nil {
-						uiErr = err
-						return
-					}
+					// Pause the current music so that the abandoned player can be garbage-collected.
+					g.musicPlayer.Pause()
 					g.musicPlayer = nil
 
 					go func() {
@@ -548,7 +545,7 @@ func (g *Game) Update() error {
 				ctx.Text(fmt.Sprintf("%0.2f", ebiten.ActualTPS()))
 			})
 		})
-		return uiErr
+		return nil
 	}); err != nil {
 		return err
 	}

@@ -254,6 +254,17 @@ func (p *Player) Pause() {
 	p.playing = false
 }
 
+// Reset pauses the player and discards the data buffered from the source.
+// After Reset returns, the source is not read until Play is called, so the source can be closed safely.
+// Reset blocks until an ongoing read from the source finishes, if any.
+func (p *Player) Reset() {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.playing = false
+	p.buf = p.buf[:0]
+	p.eof = false
+}
+
 func (p *Player) IsPlaying() bool {
 	p.mu.Lock()
 	defer p.mu.Unlock()

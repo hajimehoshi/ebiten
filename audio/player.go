@@ -29,6 +29,7 @@ type player interface {
 	Pause()
 	Play()
 	IsPlaying() bool
+	Reset()
 	Volume() float64
 	SetVolume(volume float64)
 	BufferedSize() int
@@ -314,6 +315,34 @@ func (p *playerImpl) Pause() {
 	p.stopwatch.stop()
 }
 
+func (p *playerImpl) Reset() {
+	p.m.Lock()
+	defer p.m.Unlock()
+
+	if p.closed {
+		p.context.setError(fmt.Errorf("audio: Reset for a closed player"))
+		return
+	}
+
+	if p.player == nil {
+		// The audio device is not created yet, so the source has not been read.
+		// Cancel a pending play request if any.
+		if p.pendingPlay {
+			p.pendingPlay = false
+			p.context.removePlayingPlayer(p)
+		}
+		return
+	}
+
+	p.player.Reset()
+	p.context.removePlayingPlayer(p)
+
+	// The buffered data is discarded, so the playing position jumps to the stream's position.
+	p.lastSamples = -1
+	p.adjustedPosition = int64(p.stream.positionInTimeDuration())
+	p.stopwatch.reset()
+}
+
 func (p *playerImpl) IsPlaying() bool {
 	p.m.Lock()
 	defer p.m.Unlock()
@@ -365,7 +394,7 @@ func (p *playerImpl) Close() error {
 		defer func() {
 			p.player = nil
 		}()
-		p.player.Pause()
+		p.player.Reset()
 		// Release the device player if it holds resources beyond this process (the
 		// virtualization guest's forwarded player).
 		if closer, ok := p.player.(io.Closer); ok {
