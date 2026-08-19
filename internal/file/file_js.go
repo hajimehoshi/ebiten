@@ -139,6 +139,33 @@ func (f *FileEntryFS) ReadDir(name string) ([]fs.DirEntry, error) {
 	return d.ReadDir(-1)
 }
 
+func (f *FileEntryFS) ReadFile(name string) ([]byte, error) {
+	if !fs.ValidPath(name) {
+		return nil, &fs.PathError{
+			Op:   "readfile",
+			Path: name,
+			Err:  fs.ErrNotExist,
+		}
+	}
+
+	ent, err := f.Open(name)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		_ = ent.Close()
+	}()
+	fl, ok := ent.(*file)
+	if !ok {
+		return nil, &fs.PathError{
+			Op:   "readfile",
+			Path: name,
+			Err:  fs.ErrInvalid,
+		}
+	}
+	return fl.readAll()
+}
+
 type file struct {
 	entry      js.Value
 	file       js.Value
@@ -174,32 +201,43 @@ func (f *file) Stat() (fs.FileInfo, error) {
 	}, nil
 }
 
-func (f *file) Read(buf []byte) (int, error) {
-	if !f.uint8Array.Truthy() {
-		chArrayBuffer := make(chan js.Value, 1)
-		cbThen := js.FuncOf(func(this js.Value, args []js.Value) any {
-			chArrayBuffer <- args[0]
-			return nil
-		})
-		defer cbThen.Release()
-
-		chError := make(chan js.Value, 1)
-		cbCatch := js.FuncOf(func(this js.Value, args []js.Value) any {
-			chError <- args[0]
-			return nil
-		})
-		defer cbCatch.Release()
-
-		f.ensureFile().Call("arrayBuffer").Call("then", cbThen).Call("catch", cbCatch)
-		select {
-		case ab := <-chArrayBuffer:
-			f.uint8Array = js.Global().Get("Uint8Array").New(ab)
-		case err := <-chError:
-			return 0, fmt.Errorf("%s", err.Call("toString").String())
-		}
+func (f *file) ensureUint8Array() (js.Value, error) {
+	if f.uint8Array.Truthy() {
+		return f.uint8Array, nil
 	}
 
-	size := int64(f.uint8Array.Get("byteLength").Float())
+	chArrayBuffer := make(chan js.Value, 1)
+	cbThen := js.FuncOf(func(this js.Value, args []js.Value) any {
+		chArrayBuffer <- args[0]
+		return nil
+	})
+	defer cbThen.Release()
+
+	chError := make(chan js.Value, 1)
+	cbCatch := js.FuncOf(func(this js.Value, args []js.Value) any {
+		chError <- args[0]
+		return nil
+	})
+	defer cbCatch.Release()
+
+	f.ensureFile().Call("arrayBuffer").Call("then", cbThen).Call("catch", cbCatch)
+	select {
+	case ab := <-chArrayBuffer:
+		f.uint8Array = js.Global().Get("Uint8Array").New(ab)
+	case err := <-chError:
+		return js.Value{}, fmt.Errorf("%s", err.Call("toString").String())
+	}
+
+	return f.uint8Array, nil
+}
+
+func (f *file) Read(buf []byte) (int, error) {
+	uint8Array, err := f.ensureUint8Array()
+	if err != nil {
+		return 0, err
+	}
+
+	size := int64(uint8Array.Get("byteLength").Float())
 	if f.offset >= size {
 		return 0, io.EOF
 	}
@@ -208,7 +246,7 @@ func (f *file) Read(buf []byte) (int, error) {
 		return 0, nil
 	}
 
-	slice := f.uint8Array.Call("subarray", f.offset, f.offset+int64(len(buf)))
+	slice := uint8Array.Call("subarray", f.offset, f.offset+int64(len(buf)))
 	n := slice.Get("byteLength").Int()
 	js.CopyBytesToGo(buf[:n], slice)
 	f.offset += int64(n)
@@ -216,6 +254,24 @@ func (f *file) Read(buf []byte) (int, error) {
 		return n, io.EOF
 	}
 	return n, nil
+}
+
+func (f *file) readAll() ([]byte, error) {
+	uint8Array, err := f.ensureUint8Array()
+	if err != nil {
+		return nil, err
+	}
+
+	size := int64(uint8Array.Get("byteLength").Float())
+	if f.offset >= size {
+		return nil, nil
+	}
+
+	slice := uint8Array.Call("subarray", f.offset)
+	bs := make([]byte, size-f.offset)
+	js.CopyBytesToGo(bs, slice)
+	f.offset = size
+	return bs, nil
 }
 
 func (f *file) Close() error {
