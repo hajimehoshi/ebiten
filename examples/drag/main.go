@@ -21,6 +21,7 @@ import (
 	_ "image/png"
 	"log"
 	"math/rand/v2"
+	"slices"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
@@ -207,8 +208,8 @@ func NewGame() *Game {
 func (g *Game) spriteAt(x, y int) *Sprite {
 	// As the sprites are ordered from back to front,
 	// search the clicked/touched sprite in reverse order.
-	for i := len(g.sprites) - 1; i >= 0; i-- {
-		s := g.sprites[i]
+	for _, s := range slices.Backward(g.sprites) {
+
 		if s.In(x, y) {
 			return s
 		}

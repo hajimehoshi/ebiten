@@ -20,6 +20,7 @@ import (
 	gconstant "go/constant"
 	"go/parser"
 	"go/token"
+	"slices"
 	"strings"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
@@ -143,12 +144,12 @@ func (b *block) findLocalVariableByIndex(idx int) (shaderir.Type, bool) {
 	for outer := b.outer; outer != nil; outer = outer.outer {
 		bs = append(bs, outer)
 	}
-	for i := len(bs) - 1; i >= 0; i-- {
-		if len(bs[i].vars) <= idx {
-			idx -= len(bs[i].vars)
+	for _, b := range slices.Backward(bs) {
+		if len(b.vars) <= idx {
+			idx -= len(b.vars)
 			continue
 		}
-		return bs[i].vars[idx].typ, true
+		return b.vars[idx].typ, true
 	}
 	return shaderir.Type{}, false
 }

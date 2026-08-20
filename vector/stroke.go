@@ -16,6 +16,7 @@ package vector
 
 import (
 	"math"
+	"slices"
 
 	"github.com/hajimehoshi/ebiten/v2"
 )
@@ -199,8 +200,8 @@ func appendParalleledPathFromSubPathReversed(strokePath *Path, subPath *subPath,
 	// A line operation must have a different point from the start point.
 	// A quadratic curve operation must have create a curve, not a line.
 
-	for i := len(subPath.ops) - 1; i >= 0; i-- {
-		op := subPath.ops[i]
+	for i, op := range slices.Backward(subPath.ops) {
+
 		nextP := subPath.startAtOp(i)
 		switch op.typ {
 		case opTypeLineTo:

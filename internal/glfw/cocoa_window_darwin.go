@@ -2128,7 +2128,7 @@ func goStringFromCString(ptr uintptr) string {
 	p := (*byte)(unsafe.Pointer(ptr))
 	var n int
 	for {
-		if *(*byte)(unsafe.Pointer(uintptr(unsafe.Pointer(p)) + uintptr(n))) == 0 {
+		if *(*byte)(unsafe.Add(unsafe.Pointer(p), n)) == 0 {
 			break
 		}
 		n++
