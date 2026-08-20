@@ -25,7 +25,7 @@ jobs:
         id: go
         run: |
           set -eux
-          version=$(curl -fsSL 'https://go.dev/dl/?mode=json' \
+          version=$(curl -fsSL 'https://go.dev/dl/?mode=json&include=all' \
             | jq -r --arg prefix 'go${{ matrix.go }}.' \
                 '[.[] | select(.version | startswith($prefix))][0].version')
           test -n "$version" && test "$version" != null
