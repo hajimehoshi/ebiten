@@ -4,7 +4,7 @@ go 1.25.0
 
 require (
 	github.com/ebitengine/debugui v0.3.0-alpha.0.20260715042159-d40b6a8e2b00
-	github.com/ebitengine/gomobile v0.0.0-20260811165420-c5a1b14deab0
+	github.com/ebitengine/gomobile v0.0.0-20260820040257-d11f821a26a6
 	github.com/ebitengine/hideconsole v1.0.0
 	github.com/ebitengine/oto/v3 v3.5.0-alpha.10.0.20260818182929-225f9fc92533
 	github.com/ebitengine/purego v0.11.0-alpha.9
