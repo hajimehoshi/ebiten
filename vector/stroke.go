@@ -201,7 +201,6 @@ func appendParalleledPathFromSubPathReversed(strokePath *Path, subPath *subPath,
 	// A quadratic curve operation must have create a curve, not a line.
 
 	for i, op := range slices.Backward(subPath.ops) {
-
 		nextP := subPath.startAtOp(i)
 		switch op.typ {
 		case opTypeLineTo:

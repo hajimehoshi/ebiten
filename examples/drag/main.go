@@ -209,7 +209,6 @@ func (g *Game) spriteAt(x, y int) *Sprite {
 	// As the sprites are ordered from back to front,
 	// search the clicked/touched sprite in reverse order.
 	for _, s := range slices.Backward(g.sprites) {
-
 		if s.In(x, y) {
 			return s
 		}
