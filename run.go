@@ -15,6 +15,7 @@
 package ebiten
 
 import (
+	stdcontext "context"
 	"errors"
 	"image"
 	"image/color"
@@ -365,15 +366,7 @@ type RunGameOptions struct {
 func RunGameWithOptions(game Game, options *RunGameOptions) error {
 	defer isRunGameEnded_.Store(true)
 
-	op := toUIRunOptions(options)
-	ww, wh := WindowSize()
-	op.InitWindowWidthInDIP = ww
-	op.InitWindowHeightInDIP = wh
-	op.WindowPositionSet = windowPositionSetExplicitly.Load()
-
-	// This is necessary to change the result of IsScreenTransparent.
-	screenTransparent.Store(op.ScreenTransparent)
-	g := newGameForUI(game, op.ScreenTransparent)
+	op, g := prepareUIRun(game, options)
 
 	if err := ui.Get().Run(g, op); err != nil {
 		if errors.Is(err, Termination) {
@@ -387,6 +380,69 @@ func RunGameWithOptions(game Game, options *RunGameOptions) error {
 
 func isRunGameEnded() bool {
 	return isRunGameEnded_.Load()
+}
+
+// prepareUIRun builds the ui.RunOptions and gameForUI that every Run*
+// variant hands to the ui package, filling in window size/position
+// defaults. Shared by RunGameWithOptions and RunGameEmbedded to avoid
+// duplicating this setup.
+func prepareUIRun(game Game, options *RunGameOptions) (*ui.RunOptions, *gameForUI) {
+	op := toUIRunOptions(options)
+	ww, wh := WindowSize()
+	op.InitWindowWidthInDIP = ww
+	op.InitWindowHeightInDIP = wh
+	op.WindowPositionSet = windowPositionSetExplicitly.Load()
+
+	// This is necessary to change the result of IsScreenTransparent.
+	screenTransparent.Store(op.ScreenTransparent)
+	g := newGameForUI(game, op.ScreenTransparent)
+
+	return op, g
+}
+
+// RunGameEmbedded runs the game inside a window your own app already
+// owns, instead of Ebitengine creating and running its own window. Use
+// this when another framework (e.g. a CEF/Chromium OSR compositor driven
+// by a native host window) needs to own the process's real main thread,
+// and Ebitengine needs to share it cooperatively instead of taking it
+// over. If the window should stay hidden, call SetWindowVisible(false)
+// before calling RunGameEmbedded.
+//
+// It does not block. It sets up the window and hands back two functions:
+//   - pump: call this often (e.g. once per frame) to let the game update
+//     and draw.
+//   - stop: call this once, when you're done, to shut the game down.
+//
+// You must call RunGameEmbedded on the same OS thread your app's own
+// main loop runs on, with runtime.LockOSThread already in effect for it.
+// Only works with the GLFW desktop backend; returns an error otherwise
+// (VM-guest and framebuffer-device environments aren't supported).
+//
+// Only call one of RunGame, RunGameWithOptions, or RunGameEmbedded, and
+// only once per program.
+//
+// Experimental: this API may change in a future version.
+func RunGameEmbedded(game Game, options *RunGameOptions) (pump func(ctx stdcontext.Context) error, stop func(), err error) {
+	// Unlike RunGameWithOptions, isRunGameEnded_ must NOT be set as soon as
+	// this returns — it returns immediately by design, while the game
+	// keeps running via pump until stop is called. Setting it early made
+	// isRunGameEnded() (checked by e.g. NewImage) report the game as over
+	// while still running, panicking on the next frame. Wrap stop instead,
+	// so the flag flips only when the caller actually stops.
+
+	op, g := prepareUIRun(game, options)
+
+	rawPump, rawStop, err := ui.Get().RunEmbedded(g, op)
+	if err != nil {
+		isRunGameEnded_.Store(true)
+		return nil, nil, err
+	}
+
+	stop = func() {
+		rawStop()
+		isRunGameEnded_.Store(true)
+	}
+	return rawPump, stop, nil
 }
 
 // ScreenSizeInFullscreen returns the size in device-independent pixels when the game is fullscreen.

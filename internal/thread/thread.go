@@ -74,20 +74,45 @@ func (t *OSThread) NestedLoop(ctx context.Context) error {
 	return t.loop(ctx)
 }
 
+// LoopNonBlocking runs whatever calls are queued right now, then returns
+// immediately — unlike Loop, it never waits for a call to arrive. Use it
+// when another event loop (e.g. a host app's own) needs to share the OS
+// thread instead of Loop dedicating it forever; call it regularly from
+// that loop so queued Call/CallAsync requests don't stall.
+//
+// Must be called on the OS thread, with runtime.LockOSThread already in
+// effect — unlike Loop, it doesn't call LockOSThread itself.
+func (t *OSThread) LoopNonBlocking(ctx context.Context) error {
+	for {
+		select {
+		case item := <-t.funcs:
+			runQueueItem(item)
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+			return nil
+		}
+	}
+}
+
 func (t *OSThread) loop(ctx context.Context) error {
 	for {
 		select {
 		case item := <-t.funcs:
-			func() {
-				if item.done != nil {
-					defer close(item.done)
-				}
-				item.f()
-			}()
+			runQueueItem(item)
 		case <-ctx.Done():
 			return ctx.Err()
 		}
 	}
+}
+
+// runQueueItem runs a single queued call and signals its completion, if
+// it's waiting for one (Call waits; CallAsync doesn't).
+func runQueueItem(item queueItem) {
+	if item.done != nil {
+		defer close(item.done)
+	}
+	item.f()
 }
 
 // Call calls f on the thread.

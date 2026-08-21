@@ -2032,6 +2032,80 @@ func (u *glfwBackend) runMultiThread(game Game, options *RunOptions) error {
 	return wg.Wait()
 }
 
+// RunMultiThreadEmbedded is like runMultiThread, but it never blocks the
+// calling goroutine on its own loop. Instead it returns a pump function
+// to call regularly (e.g. from a host toolkit's own main-thread timer),
+// and a stop function to shut everything down. It reuses
+// internal/thread.OSThread's existing Call/CallAsync/LoopNonBlocking
+// machinery — this is just the wiring to expose that as a RunGame-level
+// API on desktop, matching what RunGameWithoutMainLoop already does for
+// android/ios.
+//
+// Must be called from the real OS main thread, with runtime.LockOSThread
+// already in effect for the calling goroutine.
+func (u *glfwBackend) RunMultiThreadEmbedded(game Game, options *RunOptions) (pump func(ctx stdcontext.Context) error, stop func(), err error) {
+	mt := thread.NewOSThread()
+	u.mainThread = mt
+	graphicscommand.SetOSThreadAsRenderThread()
+
+	u.context = newContext(game)
+
+	ctx, cancel := stdcontext.WithCancel(stdcontext.Background())
+
+	if err := u.initOnMainThread(options); err != nil {
+		cancel()
+		return nil, nil, err
+	}
+
+	var wg errgroup.Group
+
+	// Run the render thread.
+	wg.Go(func() error {
+		defer cancel()
+		graphicscommand.LoopRenderThread(ctx)
+		return nil
+	})
+
+	// Run the game thread. Any main-thread-only work loopGame triggers
+	// (via mt.Call/CallAsync) queues on mt and is serviced whenever the
+	// caller invokes the returned pump function, not by a dedicated
+	// goroutine here.
+	wg.Go(func() error {
+		defer cancel()
+		defer u.setRunningBackend(nil)
+		return u.loopGame()
+	})
+
+	pump = func(pctx stdcontext.Context) error {
+		return mt.LoopNonBlocking(pctx)
+	}
+	stop = func() {
+		cancel()
+
+		// The game/render goroutines may be mid mt.Call when cancel() runs
+		// — Call blocks on an uncancellable channel send, so they may be
+		// waiting on mt to be serviced once more before they see
+		// ctx.Done() and return. Nothing else drains mt once the caller
+		// stops calling pump, so keep draining here until the goroutines
+		// actually finish — otherwise stop could hang waiting on a Call
+		// nobody will ever service.
+		done := make(chan struct{})
+		go func() {
+			defer close(done)
+			_ = wg.Wait()
+		}()
+		for {
+			select {
+			case <-done:
+				return
+			default:
+				_ = mt.LoopNonBlocking(stdcontext.Background())
+			}
+		}
+	}
+	return pump, stop, nil
+}
+
 func (u *glfwBackend) runSingleThread(game Game, options *RunOptions) error {
 	// Initialize the main thread first so the thread is available at u.run (#809).
 	u.mainThread = thread.NewNoopThread()
