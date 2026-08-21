@@ -78,3 +78,35 @@ func TestFSReadDir(t *testing.T) {
 		t.Errorf("fs.ReadDir on a file must return an error")
 	}
 }
+
+func TestFSReadFile(t *testing.T) {
+	vfs := file.NewVirtualFS([]string{"testdata/foo.txt", "testdata/dir"})
+
+	content, err := fs.ReadFile(vfs, "foo.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := string(content), "foo\n"; got != want {
+		t.Errorf("content: got: %q, want: %q", got, want)
+	}
+
+	subContent, err := fs.ReadFile(vfs, "dir/foo.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := string(subContent), "dir/foo\n"; got != want {
+		t.Errorf("content: got: %q, want: %q", got, want)
+	}
+
+	if _, err := fs.ReadFile(vfs, "."); err == nil {
+		t.Errorf("fs.ReadFile on the root directory must return an error")
+	}
+
+	if _, err := fs.ReadFile(vfs, "dir"); err == nil {
+		t.Errorf("fs.ReadFile on a directory must return an error")
+	}
+
+	if _, err := fs.ReadFile(vfs, "bar.txt"); err == nil {
+		t.Errorf("fs.ReadFile on a file not in the file system must return an error")
+	}
+}

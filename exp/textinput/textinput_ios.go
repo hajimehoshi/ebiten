@@ -442,6 +442,14 @@ func (t *textInputImpl) resignAndClearOnMain() {
 	if t.textView == 0 {
 		return
 	}
+	// Every consumed press's key is released by the time the text view
+	// resigns: the ending of a press that outlives the session is not
+	// guaranteed to arrive. A late ending finds its press absent and is
+	// forwarded unconsumed.
+	for p, key := range t.consumedPresses {
+		delete(t.consumedPresses, p)
+		ui.Get().DispatchKeyUp(key)
+	}
 	t.textView.Send(sel_resignFirstResponder)
 	ns := newNSString("")
 	t.textView.Send(sel_setText, ns)
@@ -576,10 +584,12 @@ func dispatchKeyPressUnlessDown(key ui.Key) {
 	ui.Get().DispatchKeyPress(key)
 }
 
-// HID keyboard usages of the keys the text view consumes; see consumableKey.
+// UIKeyboardHIDUsage values (UIKit) of the keys the text view consumes; see
+// consumableKey.
 const (
-	hidUsageKeyboardReturn          = 0x28
-	hidUsageKeyboardDeleteBackspace = 0x2A
+	_UIKeyboardHIDUsageKeyboardReturnOrEnter     = 0x28
+	_UIKeyboardHIDUsageKeyboardDeleteOrBackspace = 0x2A
+	_UIKeyboardHIDUsageKeypadEnter               = 0x58
 )
 
 // pressesOnMain handles a hardware key press event of the text view. A press
@@ -641,22 +651,27 @@ func (t *textInputImpl) pressesOnMain(self, presses, event objc.ID, cmd objc.SEL
 }
 
 // consumableKey returns the key the game receives for press, and whether the
-// press is consumed by the text view. A Return outside a composition is the
-// game's: a line break is the game's decision. A Backspace at the head of the
-// text view reaches text the session does not expose, and the game edits
-// across the boundary itself.
+// press is consumed by the text view. A Return or a keypad Enter outside a
+// composition is the game's: a line break is the game's decision. A Backspace
+// at the head of the text view reaches text the session does not expose, and
+// the game edits across the boundary itself.
 func (t *textInputImpl) consumableKey(tv objc.ID, press objc.ID) (ui.Key, bool) {
 	k := press.Send(sel_key)
 	if k == 0 {
 		return 0, false
 	}
 	switch objc.Send[int](k, sel_keyCode) {
-	case hidUsageKeyboardReturn:
+	case _UIKeyboardHIDUsageKeyboardReturnOrEnter:
 		if tv.Send(sel_markedTextRange) != 0 {
 			return 0, false
 		}
 		return ui.KeyEnter, true
-	case hidUsageKeyboardDeleteBackspace:
+	case _UIKeyboardHIDUsageKeypadEnter:
+		if tv.Send(sel_markedTextRange) != 0 {
+			return 0, false
+		}
+		return ui.KeyNumpadEnter, true
+	case _UIKeyboardHIDUsageKeyboardDeleteOrBackspace:
 		if tv.Send(sel_markedTextRange) != 0 {
 			return 0, false
 		}

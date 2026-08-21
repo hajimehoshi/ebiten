@@ -254,6 +254,16 @@ func (p *Player) Pause() {
 	p.playing = false
 }
 
+// PauseAndStopReading pauses the player and stops reading the source.
+// After PauseAndStopReading returns, the source is not read until Play is called, so the source can be
+// closed safely. The data buffered from the source is kept.
+// PauseAndStopReading blocks until an ongoing read from the source finishes, if any.
+func (p *Player) PauseAndStopReading() {
+	// A paused virtual player reads nothing, and mu is held for a whole source read, so pausing
+	// waits for an ongoing read and forbids the next one.
+	p.Pause()
+}
+
 func (p *Player) IsPlaying() bool {
 	p.mu.Lock()
 	defer p.mu.Unlock()

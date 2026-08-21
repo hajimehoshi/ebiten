@@ -26,7 +26,11 @@ type (
 		r       io.Reader
 		playing bool
 		volume  float64
-		m       sync.Mutex
+
+		// readGen is incremented by PauseAndStopReading to stop the goroutine reading r.
+		readGen int
+
+		mu sync.Mutex
 	}
 )
 
@@ -54,19 +58,23 @@ func (c *dummyContext) Err() error {
 }
 
 func (p *dummyPlayer) Pause() {
-	p.m.Lock()
+	p.mu.Lock()
 	p.playing = false
-	p.m.Unlock()
+	p.mu.Unlock()
 }
 
 func (p *dummyPlayer) Play() {
-	p.m.Lock()
+	p.mu.Lock()
 	p.playing = true
-	p.m.Unlock()
+	gen := p.readGen
+	p.mu.Unlock()
 	go func() {
 		var buf [4096]byte
 		for {
-			_, err := p.r.Read(buf[:])
+			stopped, err := p.readOnce(gen, buf[:])
+			if stopped {
+				return
+			}
 			if err != nil {
 				if err != io.EOF {
 					panic(err)
@@ -75,15 +83,36 @@ func (p *dummyPlayer) Play() {
 			}
 			time.Sleep(time.Millisecond)
 		}
-		p.m.Lock()
+		p.mu.Lock()
 		p.playing = false
-		p.m.Unlock()
+		p.mu.Unlock()
 	}()
 }
 
+// readOnce performs one read from the source with the mutex held, so that PauseAndStopReading waits
+// for an in-flight read. stopped reports that PauseAndStopReading was called and reading must not
+// continue.
+func (p *dummyPlayer) readOnce(gen int, buf []byte) (stopped bool, err error) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	if p.readGen != gen {
+		return true, nil
+	}
+	_, err = p.r.Read(buf)
+	return false, err
+}
+
+func (p *dummyPlayer) PauseAndStopReading() {
+	p.mu.Lock()
+	p.playing = false
+	p.readGen++
+	p.mu.Unlock()
+}
+
 func (p *dummyPlayer) IsPlaying() bool {
-	p.m.Lock()
-	defer p.m.Unlock()
+	p.mu.Lock()
+	defer p.mu.Unlock()
 	return p.playing
 }
 

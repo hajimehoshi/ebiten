@@ -18,6 +18,7 @@ import (
 	"bytes"
 	"io"
 	"runtime"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -280,6 +281,139 @@ func TestUncomparableSource(t *testing.T) {
 
 	p.Play()
 	p.Pause()
+
+	if err := audio.UpdateForTesting(); err != nil {
+		t.Error(err)
+	}
+}
+
+// countingSource is an infinite source counting the Read calls.
+type countingSource struct {
+	reads atomic.Int64
+}
+
+func (s *countingSource) Read(buf []byte) (int, error) {
+	s.reads.Add(1)
+	return len(buf), nil
+}
+
+// waitForRead waits until src's read count differs from reads and returns the new count.
+func waitForRead(t *testing.T, src *countingSource, reads int64) int64 {
+	t.Helper()
+	deadline := time.Now().Add(time.Second)
+	for {
+		if got := src.reads.Load(); got != reads {
+			return got
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("the source was not read")
+		}
+		time.Sleep(time.Millisecond)
+	}
+}
+
+// Issue #3510
+func TestPauseAndStopReading(t *testing.T) {
+	if runtime.GOOS == "js" {
+		t.Skip("infinite steams in tests cannot be treated well on browsers")
+	}
+
+	setup()
+	defer teardown()
+
+	src := &countingSource{}
+	p, err := context.NewPlayerF32(src)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	p.Play()
+
+	// The first update creates the audio device and starts the pending player.
+	if err := audio.UpdateForTesting(); err != nil {
+		t.Error(err)
+	}
+
+	waitForRead(t, src, 0)
+
+	p.PauseAndStopReading()
+
+	if p.IsPlaying() {
+		t.Error("IsPlaying() after PauseAndStopReading: got: true, want: false")
+	}
+	if got, want := audio.PlayersCountForTesting(), 0; got != want {
+		t.Errorf("PlayersCountForTesting() after PauseAndStopReading: got: %d, want: %d", got, want)
+	}
+
+	// After PauseAndStopReading, the source must not be read.
+	reads := src.reads.Load()
+	time.Sleep(100 * time.Millisecond)
+	if got := src.reads.Load(); got != reads {
+		t.Errorf("the source was read after PauseAndStopReading: got: %d reads, want: %d", got, reads)
+	}
+
+	// The player is reusable after PauseAndStopReading.
+	p.Play()
+	waitForRead(t, src, reads)
+}
+
+// Issue #3510
+func TestPauseAndStopReadingWhilePaused(t *testing.T) {
+	if runtime.GOOS == "js" {
+		t.Skip("infinite steams in tests cannot be treated well on browsers")
+	}
+
+	setup()
+	defer teardown()
+
+	src := &countingSource{}
+	p, err := context.NewPlayerF32(src)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	p.Play()
+
+	// The first update creates the audio device and starts the pending player.
+	if err := audio.UpdateForTesting(); err != nil {
+		t.Error(err)
+	}
+
+	reads := waitForRead(t, src, 0)
+
+	// A paused player keeps reading the source to fill its buffer.
+	p.Pause()
+	waitForRead(t, src, reads)
+
+	// PauseAndStopReading must stop the reads even though the player is already paused.
+	p.PauseAndStopReading()
+	reads = src.reads.Load()
+	time.Sleep(100 * time.Millisecond)
+	if got := src.reads.Load(); got != reads {
+		t.Errorf("the source was read after PauseAndStopReading: got: %d reads, want: %d", got, reads)
+	}
+}
+
+// Issue #3510
+func TestPauseAndStopReadingBeforeInit(t *testing.T) {
+	setup()
+	defer teardown()
+
+	p, err := context.NewPlayer(bytes.NewReader(make([]byte, 4)))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// PauseAndStopReading before the device is created cancels the pending play.
+	p.Play()
+	p.PauseAndStopReading()
+
+	if p.IsPlaying() {
+		t.Error("IsPlaying() after PauseAndStopReading: got: true, want: false")
+	}
+	if got, want := audio.PlayersCountForTesting(), 0; got != want {
+		t.Errorf("PlayersCountForTesting() after PauseAndStopReading: got: %d, want: %d", got, want)
+	}
 
 	if err := audio.UpdateForTesting(); err != nil {
 		t.Error(err)

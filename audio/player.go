@@ -27,6 +27,7 @@ import (
 // This is defined in order to remove the dependency on Oto from this file.
 type player interface {
 	Pause()
+	PauseAndStopReading()
 	Play()
 	IsPlaying() bool
 	Volume() float64
@@ -314,6 +315,32 @@ func (p *playerImpl) Pause() {
 	p.stopwatch.stop()
 }
 
+func (p *playerImpl) PauseAndStopReading() {
+	p.m.Lock()
+	defer p.m.Unlock()
+
+	if p.closed {
+		p.context.setError(fmt.Errorf("audio: PauseAndStopReading for a closed player"))
+		return
+	}
+
+	if p.player == nil {
+		// The audio device is not created yet, so the source has not been read.
+		// Cancel a pending play request if any.
+		if p.pendingPlay {
+			p.pendingPlay = false
+			p.context.removePlayingPlayer(p)
+		}
+		return
+	}
+
+	// The underlying player keeps reading the source even while paused, so it must be told to stop
+	// regardless of the playing state.
+	p.player.PauseAndStopReading()
+	p.context.removePlayingPlayer(p)
+	p.stopwatch.stop()
+}
+
 func (p *playerImpl) IsPlaying() bool {
 	p.m.Lock()
 	defer p.m.Unlock()
@@ -365,7 +392,7 @@ func (p *playerImpl) Close() error {
 		defer func() {
 			p.player = nil
 		}()
-		p.player.Pause()
+		p.player.PauseAndStopReading()
 		// Release the device player if it holds resources beyond this process (the
 		// virtualization guest's forwarded player).
 		if closer, ok := p.player.(io.Closer); ok {

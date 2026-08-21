@@ -106,13 +106,45 @@ func (v *VirtualFS) ReadDir(name string) ([]fs.DirEntry, error) {
 			return nil, err
 		}
 		defer func() {
-			_ = f.Close
+			_ = f.Close()
 		}()
 		return f.ReadDir(-1)
 	}
 
 	return nil, &fs.PathError{
 		Op:   "readdir",
+		Path: name,
+		Err:  fs.ErrNotExist,
+	}
+}
+
+func (v *VirtualFS) ReadFile(name string) ([]byte, error) {
+	if !fs.ValidPath(name) {
+		return nil, &fs.PathError{
+			Op:   "readfile",
+			Path: name,
+			Err:  fs.ErrNotExist,
+		}
+	}
+
+	if name == "." {
+		return nil, &fs.PathError{
+			Op:   "readfile",
+			Path: name,
+			Err:  fs.ErrInvalid,
+		}
+	}
+
+	es := strings.Split(name, "/")
+	for _, realPath := range v.paths {
+		if filepath.Base(realPath) != es[0] {
+			continue
+		}
+		return os.ReadFile(filepath.Join(append([]string{realPath}, es[1:]...)...))
+	}
+
+	return nil, &fs.PathError{
+		Op:   "readfile",
 		Path: name,
 		Err:  fs.ErrNotExist,
 	}

@@ -368,8 +368,10 @@ func currentMouseLocation() (x, y int) {
 
 	// On macOS, the Y axis is upward. Adjust the Y position (#807, #2794).
 	y = -y
-	m := theMonitors.primaryMonitor()
-	y += m.videoMode.Height
+	// The primary monitor can be nil in theory (#1878, #1887, #3241).
+	if m := theMonitors.primaryMonitor(); m != nil {
+		y += m.videoMode.Height
+	}
 	return x, y
 }
 

@@ -702,15 +702,16 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
         // The focused edit text receives the hardware key events instead of
         // EbitenView; forward them to the game like EbitenView's onKeyDown and
         // onKeyUp do. The Return key, which an input method delivers as a key
-        // event too, is consumed after forwarding: the game acts on the key
-        // press, so a line break in the text buffer would double it.
+        // event too, and the numpad Enter key are consumed after forwarding:
+        // the game acts on the key press, so a line break in the text buffer
+        // would double it.
         @Override
         public boolean onKeyDown(int keyCode, KeyEvent event) {
             if (event.getRepeatCount() == 0) {
                 pressedKeyCodes.add(keyCode);
                 Ebitenmobileview.onKeyDownOnAndroid(keyCode, event.getUnicodeChar(), event.getSource(), event.getDeviceId(), event.getMetaState());
             }
-            if (keyCode == KeyEvent.KEYCODE_ENTER) {
+            if (keyCode == KeyEvent.KEYCODE_ENTER || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER) {
                 return true;
             }
             return super.onKeyDown(keyCode, event);
@@ -721,7 +722,7 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
             if (pressedKeyCodes.remove(keyCode)) {
                 Ebitenmobileview.onKeyUpOnAndroid(keyCode, event.getSource(), event.getDeviceId(), event.getMetaState());
             }
-            if (keyCode == KeyEvent.KEYCODE_ENTER) {
+            if (keyCode == KeyEvent.KEYCODE_ENTER || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER) {
                 return true;
             }
             return super.onKeyUp(keyCode, event);

@@ -226,11 +226,6 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 }
 
 func (c *context) swapBuffersOrWait(needsSwapBuffers bool, graphicsDriver graphicsdriver.Graphics, vsyncEnabled bool) error {
-	now := time.Now()
-	defer func() {
-		c.lastSwapBufferTime = now
-	}()
-
 	if needsSwapBuffers {
 		if err := atlas.SwapBuffers(graphicsDriver); err != nil {
 			return err
@@ -246,11 +241,17 @@ func (c *context) swapBuffersOrWait(needsSwapBuffers bool, graphicsDriver graphi
 		// In the case when the display has high refresh rates like 240 [Hz], the wait time should be small.
 		waitTime = time.Millisecond
 	}
+
+	// Pace with an absolute deadline to avoid drift.
+	now := time.Now()
 	if waitTime > 0 {
-		if delta := waitTime - now.Sub(c.lastSwapBufferTime); delta > 0 {
-			time.Sleep(delta)
+		if next := c.lastSwapBufferTime.Add(waitTime); next.After(now) {
+			time.Sleep(next.Sub(now))
+			c.lastSwapBufferTime = next
+			return nil
 		}
 	}
+	c.lastSwapBufferTime = now
 
 	return nil
 }
