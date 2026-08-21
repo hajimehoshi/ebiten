@@ -415,6 +415,15 @@ func (u *glfwBackend) nativeWindow() (uintptr, error) {
 	return u.window.GetCocoaWindow()
 }
 
+// isWindowOccluded reports whether no part of the window is visible on the screen.
+func (u *glfwBackend) isWindowOccluded() (bool, error) {
+	w, err := u.window.GetCocoaWindow()
+	if err != nil {
+		return false, err
+	}
+	return cocoa.NSWindow{ID: objc.ID(w)}.OcclusionState()&cocoa.NSWindowOcclusionStateVisible == 0, nil
+}
+
 func (u *glfwBackend) isNativeFullscreen() (bool, error) {
 	w, err := u.window.GetCocoaWindow()
 	if err != nil {

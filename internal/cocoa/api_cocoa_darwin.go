@@ -79,6 +79,7 @@ var (
 	sel_mainScreen                                 = objc.RegisterName("mainScreen")
 	sel_screen                                     = objc.RegisterName("screen")
 	sel_isVisible                                  = objc.RegisterName("isVisible")
+	sel_occlusionState                             = objc.RegisterName("occlusionState")
 	sel_inLiveResize                               = objc.RegisterName("inLiveResize")
 	sel_deviceDescription                          = objc.RegisterName("deviceDescription")
 	sel_objectForKey                               = objc.RegisterName("objectForKey:")
@@ -107,6 +108,10 @@ const (
 const (
 	NSWindowStyleMaskResizable  = 1 << 3
 	NSWindowStyleMaskFullScreen = 1 << 14
+)
+
+const (
+	NSWindowOcclusionStateVisible = 1 << 1
 )
 
 type CGFloat = float64
@@ -169,6 +174,10 @@ func (w NSWindow) SetBackgroundColor(color NSColor) {
 
 func (w NSWindow) IsVisible() bool {
 	return w.Send(sel_isVisible) != 0
+}
+
+func (w NSWindow) OcclusionState() NSUInteger {
+	return NSUInteger(w.Send(sel_occlusionState))
 }
 
 func (w NSWindow) InLiveResize() bool {

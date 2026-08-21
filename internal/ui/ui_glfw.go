@@ -1212,8 +1212,8 @@ func (u *glfwBackend) loopGame() (err error) {
 }
 
 // shouldPresentFrame reports whether a frame should be presented to the window.
-func shouldPresentFrame(windowVisible, bufferOnceSwapped, initWindowVisible bool) bool {
-	if windowVisible {
+func shouldPresentFrame(windowOnScreen, bufferOnceSwapped, initWindowVisible bool) bool {
+	if windowOnScreen {
 		return true
 	}
 
@@ -1224,8 +1224,9 @@ func shouldPresentFrame(windowVisible, bufferOnceSwapped, initWindowVisible bool
 		return true
 	}
 
-	// A hidden window is not presented to, so its frames are not throttled by the present. Skip the
-	// buffer swap so that the tick rate stays at the target TPS while hidden.
+	// Skip the buffer swap so that the tick rate stays at the specified TPS. On macOS, a present for
+	// an occluded window waits for a display link that the OS throttles far below the refresh rate,
+	// and the tick rate would drop with it (#3405).
 	return false
 }
 
@@ -1254,7 +1255,12 @@ func (u *glfwBackend) updateGame() error {
 			err = e
 			return
 		}
-		present = shouldPresentFrame(visible == glfw.True, u.bufferOnceSwapped, u.desktopWindow.isInitWindowVisible())
+		occluded, e := u.isWindowOccluded()
+		if e != nil {
+			err = e
+			return
+		}
+		present = shouldPresentFrame(visible == glfw.True && !occluded, u.bufferOnceSwapped, u.desktopWindow.isInitWindowVisible())
 
 		outsideWidth, outsideHeight, err = u.update()
 		if err != nil {
