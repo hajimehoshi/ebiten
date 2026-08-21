@@ -739,6 +739,15 @@ func (g *graphics12) Begin() error {
 	return nil
 }
 
+// IsOccluded reports whether the screen is invisible.
+func (g *graphics12) IsOccluded() bool {
+	// graphicsInfra is nil on Xbox, where a swap chain is not used.
+	if g.graphicsInfra == nil {
+		return false
+	}
+	return g.graphicsInfra.occluded.Load()
+}
+
 func (g *graphics12) End(present bool) error {
 	// The swap chain might still be nil when Begin-End is invoked not by a frame (e.g., Image.At).
 

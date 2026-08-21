@@ -232,8 +232,15 @@ func (c *context) swapBuffersOrWait(needsSwapBuffers bool, graphicsDriver graphi
 		}
 	}
 
+	// Swapping buffers for an invisible screen returns without waiting for the display. Pace such a
+	// frame like a skipped swap, or the loop would run as fast as the CPU allows (#2181).
+	var occluded bool
+	if o, ok := graphicsDriver.(interface{ IsOccluded() bool }); ok {
+		occluded = o.IsOccluded()
+	}
+
 	var waitTime time.Duration
-	if !needsSwapBuffers {
+	if !needsSwapBuffers || occluded {
 		// When swapping buffers is skipped and Draw is called too early, sleep for a while to suppress CPU usages (#2890).
 		waitTime = time.Second / 60
 	} else if vsyncEnabled {

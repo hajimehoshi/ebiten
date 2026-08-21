@@ -226,7 +226,7 @@ func (u *glfwBackend) nativeWindow() (uintptr, error) {
 
 func (u *glfwBackend) isWindowOccluded() (bool, error) {
 	// TODO: Implement this.
-	return false, nil
+	return false, errors.ErrUnsupported
 }
 
 func (u *glfwBackend) isNativeFullscreen() (bool, error) {

@@ -22,7 +22,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
-	"time"
+	"sync/atomic"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
@@ -146,10 +146,8 @@ type graphicsInfra struct {
 	allowTearing bool
 
 	// occluded reports whether the screen is invisible or not.
-	occluded bool
-
-	// lastTime is the last time for rendering.
-	lastTime time.Time
+	// occluded is updated on the rendering thread and read on the goroutine running the game loop.
+	occluded atomic.Bool
 
 	bufferCount int
 
@@ -540,7 +538,7 @@ func (g *graphicsInfra) present(vsyncEnabled bool) error {
 
 	var syncInterval uint32
 	var flags _DXGI_PRESENT
-	if g.occluded {
+	if g.occluded.Load() {
 		// The screen is not visible. Test whether we can resume.
 		flags |= _DXGI_PRESENT_TEST
 	} else {
@@ -556,16 +554,7 @@ func (g *graphicsInfra) present(vsyncEnabled bool) error {
 	if err != nil {
 		return err
 	}
-	g.occluded = occluded
-
-	// Reduce FPS when the screen is invisible.
-	now := time.Now()
-	if g.occluded {
-		if delta := 100*time.Millisecond - now.Sub(g.lastTime); delta > 0 {
-			time.Sleep(delta)
-		}
-	}
-	g.lastTime = now
+	g.occluded.Store(occluded)
 
 	return nil
 }

@@ -225,8 +225,8 @@ func (u *glfwBackend) nativeWindow() (uintptr, error) {
 }
 
 func (u *glfwBackend) isWindowOccluded() (bool, error) {
-	// TODO: Implement this.
-	return false, nil
+	// An invisible screen is detected by the DirectX driver and paced by the frame loop instead.
+	return false, errors.ErrUnsupported
 }
 
 func (u *glfwBackend) isNativeFullscreen() (bool, error) {

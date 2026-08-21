@@ -274,6 +274,14 @@ func (g *graphics11) Begin() error {
 	return nil
 }
 
+// IsOccluded reports whether the screen is invisible.
+func (g *graphics11) IsOccluded() bool {
+	if g.graphicsInfra == nil {
+		return false
+	}
+	return g.graphicsInfra.occluded.Load()
+}
+
 func (g *graphics11) End(present bool) error {
 	if !present {
 		return nil

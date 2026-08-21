@@ -1256,7 +1256,7 @@ func (u *glfwBackend) updateGame() error {
 			return
 		}
 		occluded, e := u.isWindowOccluded()
-		if e != nil {
+		if e != nil && !errors.Is(e, errors.ErrUnsupported) {
 			err = e
 			return
 		}
