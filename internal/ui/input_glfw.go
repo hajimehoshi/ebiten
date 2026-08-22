@@ -152,18 +152,13 @@ func (u *glfwBackend) registerInputCallbacks() error {
 // and device scale factor. GetCursorPos and gamepad.Update are already called in
 // the mainThread.Call block of updateGame, so this avoids an extra round-trip.
 func (u *glfwBackend) updateInputStateForFrame(deviceScaleFactor float64) error {
-	u.mu.Lock()
-	defer u.mu.Unlock()
-
 	s := deviceScaleFactor
 
-	cx, cy := u.savedCursorX, u.savedCursorY
-	u.savedCursorX = math.NaN()
-	u.savedCursorY = math.NaN()
-
-	if !math.IsNaN(cx) && !math.IsNaN(cy) {
+	cx, cy, ok := u.takeSavedCursorPos()
+	if ok {
 		// Rare path: cursor position was saved (e.g. fullscreen transition with disabled cursor).
-		// SetCursorPos requires the main thread.
+		// SetCursorPos requires the main thread. The GLFW callbacks take u.mu on the main thread,
+		// so u.mu must not be held while waiting for the main thread.
 		cx2, cy2 := u.context.logicalPositionToClientPosition(cx, cy, s)
 		cx2 = dipToGLFWPixel(cx2, s)
 		cy2 = dipToGLFWPixel(cy2, s)
@@ -176,18 +171,47 @@ func (u *glfwBackend) updateInputStateForFrame(deviceScaleFactor float64) error 
 		}
 	} else {
 		// Common path: use the pre-fetched raw cursor position.
-		cx2 := dipFromGLFWPixel(u.rawCursorX, s)
-		cy2 := dipFromGLFWPixel(u.rawCursorY, s)
+		rx, ry := u.rawCursorPos()
+		cx2 := dipFromGLFWPixel(rx, s)
+		cy2 := dipFromGLFWPixel(ry, s)
 		cx, cy = u.context.clientPositionToLogicalPosition(cx2, cy2, s)
 	}
 
 	// AdjustPosition can return NaN at the initialization.
 	if !math.IsNaN(cx) && !math.IsNaN(cy) {
-		u.inputState.CursorX, u.inputState.CursorY = cx, cy
+		u.setCursorPosInInputState(cx, cy)
 	}
 
 	// gamepad.Update is already called in updateGame's mainThread.Call block.
 	return nil
+}
+
+// takeSavedCursorPos returns the cursor position saved at a fullscreen transition, in logical
+// units, and clears it. ok is false when no position is saved.
+func (u *glfwBackend) takeSavedCursorPos() (x, y float64, ok bool) {
+	u.mu.Lock()
+	defer u.mu.Unlock()
+
+	x, y = u.savedCursorX, u.savedCursorY
+	u.savedCursorX = math.NaN()
+	u.savedCursorY = math.NaN()
+	return x, y, !math.IsNaN(x) && !math.IsNaN(y)
+}
+
+// rawCursorPos returns the cursor position fetched for the current frame, in GLFW pixels.
+func (u *glfwBackend) rawCursorPos() (x, y float64) {
+	u.mu.Lock()
+	defer u.mu.Unlock()
+
+	return u.rawCursorX, u.rawCursorY
+}
+
+// setCursorPosInInputState records the cursor position for the current frame, in logical units.
+func (u *glfwBackend) setCursorPosInInputState(x, y float64) {
+	u.mu.Lock()
+	defer u.mu.Unlock()
+
+	u.inputState.CursorX, u.inputState.CursorY = x, y
 }
 
 func (u *glfwBackend) KeyName(key Key) string {
