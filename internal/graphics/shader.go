@@ -58,7 +58,7 @@ var __imageDstTextureSize vec2
 
 // imageDstTextureSize returns the destination image's texture size in pixels.
 //
-// Deprecated: as of v2.6. Use the pixel-unit mode.
+// As an image is a part of internal texture, the texture is usually bigger than the image.
 func imageDstTextureSize() vec2 {
 	return __imageDstTextureSize
 }
@@ -66,10 +66,8 @@ func imageDstTextureSize() vec2 {
 var __imageSrcTextureSizes [%[1]d]vec2
 
 // imageSrcTextureSize returns the 0th source image's texture size in pixels.
-// As an image is a part of internal texture, the texture is usually bigger than the image.
-// The texture's size is useful when you want to calculate pixels from texels in the texel mode.
 //
-// Deprecated: as of v2.6. Use the pixel-unit mode.
+// Deprecated: as of v2.6. Use imageSrc0TextureSize instead.
 func imageSrcTextureSize() vec2 {
 	return __imageSrcTextureSizes[0]
 }
@@ -145,6 +143,13 @@ func imageSrc%[1]dOrigin() vec2 {
 // The unit is the source texture's pixel or texel.
 func imageSrc%[1]dSize() vec2 {
 	return __imageSrcRegionSizes[%[1]d]
+}
+
+// imageSrc%[1]dTextureSize returns the source image's texture size in pixels.
+//
+// As an image is a part of internal texture, the texture is usually bigger than the image.
+func imageSrc%[1]dTextureSize() vec2 {
+	return __imageSrcTextureSizes[%[1]d]
 }
 `, i); err != nil {
 			return err

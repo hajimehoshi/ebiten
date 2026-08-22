@@ -1848,6 +1848,65 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 	}
 }
 
+func TestShaderTextureSize(t *testing.T) {
+	// The sub-images are on textures far bigger than themselves, and the two textures have different
+	// shapes.
+	src0 := ebiten.NewImageWithOptions(image.Rect(0, 0, 20, 4000), &ebiten.NewImageOptions{
+		Unmanaged: true,
+	}).SubImage(image.Rect(4, 1025, 6, 1028)).(*ebiten.Image)
+	defer src0.Deallocate()
+
+	src1 := ebiten.NewImageWithOptions(image.Rect(0, 0, 4000, 20), &ebiten.NewImageOptions{
+		Unmanaged: true,
+	}).SubImage(image.Rect(2047, 7, 2049, 10)).(*ebiten.Image)
+	defer src1.Deallocate()
+
+	for _, unit := range []string{"texels", "pixels"} {
+		t.Run(fmt.Sprintf("unit %s", unit), func(t *testing.T) {
+			// A texture size is in pixels in either unit, and a texture is at least as big as the
+			// image on it. A component is 1 only when all its comparisons hold.
+			shader, err := ebiten.NewShader(fmt.Appendf(nil, `//kage:unit %s
+
+package main
+
+func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+	s0 := imageSrc0TextureSize()
+	s1 := imageSrc1TextureSize()
+	d := imageDstTextureSize()
+	return vec4(
+		step(20, s0.x)*step(4000, s0.y),
+		step(4000, s1.x)*step(20, s1.y),
+		// The deprecated accessor without an index must still be the 0th source's texture size.
+		step(2, d.x)*step(3, d.y)*step(0, -distance(s0, imageSrcTextureSize())),
+		1)
+}
+`, unit))
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer shader.Deallocate()
+
+			dst := ebiten.NewImage(2, 3)
+			defer dst.Deallocate()
+
+			op := &ebiten.DrawRectShaderOptions{}
+			op.Images[0] = src0
+			op.Images[1] = src1
+			dst.DrawRectShader(2, 3, shader, op)
+
+			for j := range 3 {
+				for i := range 2 {
+					got := dst.At(i, j).(color.RGBA)
+					want := color.RGBA{0xff, 0xff, 0xff, 0xff}
+					if got != want {
+						t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
+					}
+				}
+			}
+		})
+	}
+}
+
 func TestShaderIVec(t *testing.T) {
 	const w, h = 16, 16
 	dst := ebiten.NewImage(w, h)

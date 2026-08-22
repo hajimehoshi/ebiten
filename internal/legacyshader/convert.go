@@ -48,16 +48,16 @@ var texelBuiltinNames = func() map[string]struct{} {
 
 // texelHelpersSuffix is the Kage source defining the texel-unit helper functions. A helper wraps the
 // pixel-unit builtin function of the same base name, converting the argument or the results between
-// texels and pixels with the texture-size uniforms.
+// texels and pixels with the texture-size builtin functions.
 var texelHelpersSuffix = func() string {
 	var b strings.Builder
 	b.WriteString(`
 func __legacyshader_imageDstOrigin() vec2 {
-	return imageDstOrigin() / __imageDstTextureSize
+	return imageDstOrigin() / imageDstTextureSize()
 }
 
 func __legacyshader_imageDstSize() vec2 {
-	return imageDstSize() / __imageDstTextureSize
+	return imageDstSize() / imageDstTextureSize()
 }
 
 func __legacyshader_imageDstRegionOnTexture() (vec2, vec2) {
@@ -73,21 +73,21 @@ func __legacyshader_imageSrcRegionOnTexture() (vec2, vec2) {
 		// zero with max so that a zero region stays zero, matching the case without a source image.
 		b.WriteString(fmt.Sprintf(`
 func __legacyshader_imageSrc%[1]dOrigin() vec2 {
-	return imageSrc%[1]dOrigin() / max(__imageSrcTextureSizes[%[1]d], vec2(1))
+	return imageSrc%[1]dOrigin() / max(imageSrc%[1]dTextureSize(), vec2(1))
 }
 
 func __legacyshader_imageSrc%[1]dSize() vec2 {
-	return imageSrc%[1]dSize() / max(__imageSrcTextureSizes[%[1]d], vec2(1))
+	return imageSrc%[1]dSize() / max(imageSrc%[1]dTextureSize(), vec2(1))
 }
 
 func __legacyshader_imageSrc%[1]dUnsafeAt(pos vec2) vec4 {
 	// The argument is in texels of the 0th texture. Convert it to pixels of the 0th texture.
-	return imageSrc%[1]dUnsafeAt(pos * __imageSrcTextureSizes[0])
+	return imageSrc%[1]dUnsafeAt(pos * imageSrc0TextureSize())
 }
 
 func __legacyshader_imageSrc%[1]dAt(pos vec2) vec4 {
 	// The argument is in texels of the 0th texture. Convert it to pixels of the 0th texture.
-	return imageSrc%[1]dAt(pos * __imageSrcTextureSizes[0])
+	return imageSrc%[1]dAt(pos * imageSrc0TextureSize())
 }
 `, i))
 	}
@@ -173,7 +173,7 @@ func convertToPixels(src []byte) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// srcPosConversionStmt returns the statement `name := param / max(__imageSrcTextureSizes[0], vec2(1))`,
+// srcPosConversionStmt returns the statement `name := param / max(imageSrc0TextureSize(), vec2(1))`,
 // converting the fragment entry point's source position from pixels to texels. The texture size is
 // guarded against zero (no source image) to avoid a division by zero.
 func srcPosConversionStmt(name, param string) ast.Stmt {
@@ -187,9 +187,8 @@ func srcPosConversionStmt(name, param string) ast.Stmt {
 				Y: &ast.CallExpr{
 					Fun: ast.NewIdent("max"),
 					Args: []ast.Expr{
-						&ast.IndexExpr{
-							X:     ast.NewIdent("__imageSrcTextureSizes"),
-							Index: &ast.BasicLit{Kind: token.INT, Value: "0"},
+						&ast.CallExpr{
+							Fun: ast.NewIdent("imageSrc0TextureSize"),
 						},
 						&ast.CallExpr{
 							Fun:  ast.NewIdent("vec2"),

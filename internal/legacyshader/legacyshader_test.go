@@ -168,7 +168,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 		"__legacyshader_imageDstRegionOnTexture()",
 		"__legacyshader_imageSrc0Origin(), __legacyshader_imageSrc1Origin()",
 		"func Fragment(dstPos vec4, __legacyshader_srcPos vec2, color vec4) vec4 {",
-		"srcPos := __legacyshader_srcPos / max(__imageSrcTextureSizes[0], vec2(1))",
+		"srcPos := __legacyshader_srcPos / max(imageSrc0TextureSize(), vec2(1))",
 		"_ = srcPos",
 	} {
 		if !strings.Contains(outStr, want) {
