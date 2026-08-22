@@ -581,11 +581,16 @@ func Disable_TestMinImageSize(t *testing.T) {
 
 func TestMaxImageSizeJust(t *testing.T) {
 	s := maxImageSizeForTesting
-	// An unmanaged image never belongs to an atlas and doesn't have its paddings.
-	// TODO: Should we allow such this size for ImageTypeRegular?
-	img := atlas.NewImage(s, s, atlas.ImageTypeUnmanaged)
-	defer img.Deallocate()
-	img.WritePixels(make([]byte, 4*s*s), image.Rect(0, 0, s, s))
+	// An image of the maximum size fits a backend image of the same size: its padding, if any, sticks
+	// out of the page.
+	for _, imageType := range []atlas.ImageType{atlas.ImageTypeRegular, atlas.ImageTypeUnmanaged} {
+		img := atlas.NewImage(s, s, imageType)
+		defer img.Deallocate()
+		img.WritePixels(make([]byte, 4*s*s), image.Rect(0, 0, s, s))
+		if w, h := img.BackendSizeForTesting(); w != s || h != s {
+			t.Errorf("backend size for the image type %d: got: (%d, %d), want: (%d, %d)", imageType, w, h, s, s)
+		}
+	}
 }
 
 func TestMaxImageSizeExceeded(t *testing.T) {

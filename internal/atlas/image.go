@@ -696,7 +696,7 @@ func (i *Image) canBePutOnAtlas() bool {
 	if i.imageType != ImageTypeRegular {
 		return false
 	}
-	return i.width+i.paddingSize() <= maxSize && i.height+i.paddingSize() <= maxSize
+	return i.width <= maxSize && i.height <= maxSize
 }
 
 func (i *imageImpl) cleanup() {
