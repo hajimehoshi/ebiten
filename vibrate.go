@@ -72,6 +72,8 @@ type VibrateGamepadOptions struct {
 //
 // VibrateGamepad works only on browsers and Nintendo Switch so far.
 //
+// VibrateGamepad does nothing before the game starts.
+//
 // VibrateGamepad is concurrent-safe.
 func VibrateGamepad(gamepadID GamepadID, options *VibrateGamepadOptions) {
 	g := gamepad.Get(gamepadID)

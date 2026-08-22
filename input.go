@@ -148,6 +148,8 @@ type GamepadID = gamepad.ID
 //
 // GamepadSDLID always returns an empty string on browsers and mobiles.
 //
+// GamepadSDLID returns an empty string before the game starts.
+//
 // GamepadSDLID is concurrent-safe.
 func GamepadSDLID(id GamepadID) string {
 	g := gamepad.Get(id)
@@ -165,6 +167,8 @@ func GamepadSDLID(id GamepadID) string {
 //   - Chrome: "Xbox 360 Controller (XInput STANDARD GAMEPAD)"
 //   - Firefox: "xinput"
 //
+// GamepadName returns an empty string before the game starts.
+//
 // GamepadName is concurrent-safe.
 func GamepadName(id GamepadID) string {
 	g := gamepad.Get(id)
@@ -176,6 +180,8 @@ func GamepadName(id GamepadID) string {
 
 // AppendGamepadIDs appends available gamepad IDs to gamepadIDs, and returns the extended buffer.
 // Giving a slice that already has enough capacity works efficiently.
+//
+// AppendGamepadIDs appends no ID before the game starts.
 //
 // AppendGamepadIDs is concurrent-safe.
 func AppendGamepadIDs(gamepadIDs []GamepadID) []GamepadID {
@@ -190,6 +196,8 @@ func GamepadIDs() []GamepadID {
 }
 
 // GamepadAxisCount returns the number of axes of the gamepad (id).
+//
+// GamepadAxisCount returns 0 before the game starts.
 //
 // GamepadAxisCount is concurrent-safe.
 func GamepadAxisCount(id GamepadID) int {
@@ -210,6 +218,8 @@ func GamepadAxisNum(id GamepadID) int {
 // GamepadAxisValue returns a float value [-1.0 - 1.0] of the given gamepad (id)'s axis (axis).
 // The value depends on the gamepad layout.
 //
+// GamepadAxisValue returns 0 before the game starts.
+//
 // GamepadAxisValue is concurrent-safe.
 func GamepadAxisValue(id GamepadID, axis GamepadAxisType) float64 {
 	g := gamepad.Get(id)
@@ -227,6 +237,8 @@ func GamepadAxis(id GamepadID, axis GamepadAxisType) float64 {
 }
 
 // GamepadButtonCount returns the number of the buttons of the given gamepad (id).
+//
+// GamepadButtonCount returns 0 before the game starts.
 //
 // GamepadButtonCount is concurrent-safe.
 func GamepadButtonCount(id GamepadID) int {
@@ -250,6 +262,8 @@ func GamepadButtonNum(id GamepadID) int {
 //
 // If you want to know whether the given button of gamepad (id) started being pressed in the current tick,
 // use inpututil.IsGamepadButtonJustPressed
+//
+// IsGamepadButtonPressed returns false before the game starts.
 //
 // IsGamepadButtonPressed is concurrent-safe.
 //
@@ -280,6 +294,7 @@ func IsGamepadButtonPressed(id GamepadID, button GamepadButton) bool {
 // For a vertical axis, -1.0 means up and 1.0 means down.
 //
 // StandardGamepadAxisValue returns 0 when the gamepad doesn't have a standard gamepad layout mapping.
+// StandardGamepadAxisValue returns 0 before the game starts.
 //
 // StandardGamepadAxisValue is concurrent safe.
 func StandardGamepadAxisValue(id GamepadID, axis StandardGamepadAxis) float64 {
@@ -293,6 +308,7 @@ func StandardGamepadAxisValue(id GamepadID, axis StandardGamepadAxis) float64 {
 // StandardGamepadButtonValue returns a float value [0.0 - 1.0] of the given gamepad (id)'s standard button (button).
 //
 // StandardGamepadButtonValue returns 0 when the gamepad doesn't have a standard gamepad layout mapping.
+// StandardGamepadButtonValue returns 0 before the game starts.
 //
 // StandardGamepadButtonValue is concurrent safe.
 func StandardGamepadButtonValue(id GamepadID, button StandardGamepadButton) float64 {
@@ -306,6 +322,7 @@ func StandardGamepadButtonValue(id GamepadID, button StandardGamepadButton) floa
 // IsStandardGamepadButtonPressed reports whether the given gamepad (id)'s standard gamepad button (button) is pressed.
 //
 // IsStandardGamepadButtonPressed returns false when the gamepad doesn't have a standard gamepad layout mapping.
+// IsStandardGamepadButtonPressed returns false before the game starts.
 //
 // IsStandardGamepadButtonPressed is concurrent safe.
 func IsStandardGamepadButtonPressed(id GamepadID, button StandardGamepadButton) bool {
@@ -318,6 +335,8 @@ func IsStandardGamepadButtonPressed(id GamepadID, button StandardGamepadButton) 
 
 // IsStandardGamepadLayoutAvailable reports whether the gamepad (id) has a standard gamepad layout mapping.
 //
+// IsStandardGamepadLayoutAvailable returns false before the game starts.
+//
 // IsStandardGamepadLayoutAvailable is concurrent-safe.
 func IsStandardGamepadLayoutAvailable(id GamepadID) bool {
 	g := gamepad.Get(id)
@@ -329,6 +348,8 @@ func IsStandardGamepadLayoutAvailable(id GamepadID) bool {
 
 // IsStandardGamepadAxisAvailable reports whether the standard gamepad axis is available on the gamepad (id).
 //
+// IsStandardGamepadAxisAvailable returns false before the game starts.
+//
 // IsStandardGamepadAxisAvailable is concurrent-safe.
 func IsStandardGamepadAxisAvailable(id GamepadID, axis StandardGamepadAxis) bool {
 	g := gamepad.Get(id)
@@ -339,6 +360,8 @@ func IsStandardGamepadAxisAvailable(id GamepadID, axis StandardGamepadAxis) bool
 }
 
 // IsStandardGamepadButtonAvailable reports whether the standard gamepad button is available on the gamepad (id).
+//
+// IsStandardGamepadButtonAvailable returns false before the game starts.
 //
 // IsStandardGamepadButtonAvailable is concurrent-safe.
 func IsStandardGamepadButtonAvailable(id GamepadID, button StandardGamepadButton) bool {
