@@ -921,17 +921,12 @@ func TestDallocateUnmanagedImageBackends(t *testing.T) {
 // TODO: Add tests to extend image on an atlas out of the main loop
 
 func TestImageSizeSameAsBackendSize(t *testing.T) {
-	const size = minSourceImageSizeForTesting
+	const size = maxImageSizeForTesting
 
+	// Only a regular image has a padding and can be on an atlas. An image of the maximum size is
+	// always alone on its backend, as a page fits such an image only when the page is empty.
 	img := atlas.NewImage(size, size, atlas.ImageTypeRegular)
 	defer img.Deallocate()
-
-	// Allocate the image as a destination in order to have a backend image only for this image.
-	c := atlas.BackendCountForTesting()
-	img.EnsureIsolatedFromSourceForTesting(nil)
-	if got, want := atlas.BackendCountForTesting()-c, 1; got != want {
-		t.Fatalf("the number of the new backends: got: %d, want: %d", got, want)
-	}
 
 	pix := make([]byte, 4*size*size)
 	for j := range size {
@@ -950,21 +945,26 @@ func TestImageSizeSameAsBackendSize(t *testing.T) {
 		t.Errorf("got: (%d, %d), want: (%d, %d)", w, h, size, size)
 	}
 
-	readPix := make([]byte, 4*size*size)
-	ok, err := img.ReadPixels(ui.Get().GraphicsDriverForTesting(), readPix, image.Rect(0, 0, size, size))
+	// Read the pixels at the right and the bottom edges, where the contents reach the edges of the
+	// backend image and no padding is written.
+	const regionSize = 16
+	region := image.Rect(size-regionSize, size-regionSize, size, size)
+	readPix := make([]byte, 4*regionSize*regionSize)
+	ok, err := img.ReadPixels(ui.Get().GraphicsDriverForTesting(), readPix, region)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !ok {
 		t.Fatal("ReadPixels failed")
 	}
-	for j := range size {
-		for i := range size {
-			idx := 4 * (size*j + i)
-			want := color.RGBA{R: byte(i), G: byte(j), B: byte(i + j), A: 0xff}
+	for j := range regionSize {
+		for i := range regionSize {
+			idx := 4 * (regionSize*j + i)
+			x, y := region.Min.X+i, region.Min.Y+j
+			want := color.RGBA{R: byte(x), G: byte(y), B: byte(x + y), A: 0xff}
 			got := color.RGBA{R: readPix[idx], G: readPix[idx+1], B: readPix[idx+2], A: readPix[idx+3]}
 			if got != want {
-				t.Errorf("at (%d, %d): got: %v, want: %v", i, j, got, want)
+				t.Errorf("at (%d, %d): got: %v, want: %v", x, y, got, want)
 			}
 		}
 	}
