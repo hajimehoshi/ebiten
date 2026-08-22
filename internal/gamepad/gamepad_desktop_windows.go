@@ -879,7 +879,7 @@ func (g *nativeGamepadDesktop) hatState(hat int) int {
 
 func (g *nativeGamepadDesktop) vibrate(duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
 	if g.usesDInput() {
-		// TODO: Implement this for DirectInput devices (#1452)
+		// TODO: Implement this for DirectInput devices (#2014)
 		return
 	}
 
