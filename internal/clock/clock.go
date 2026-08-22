@@ -26,166 +26,203 @@ const (
 	SyncWithFPS = -1
 )
 
-func init() {
-	theTPS.Store(DefaultTPS)
-}
+const (
+	// maxCatchUpTicks is the maximum number of ticks that one frame can run to catch up with the real time.
+	maxCatchUpTicks = 5
 
-var (
-	// theTPS represents TPS (ticks per second).
-	theTPS atomic.Int64
+	// minCatchUpTime is the lower limit of the real time that one frame can catch up with.
+	// This limit matters when TPS is so big that maxCatchUpTicks ticks are shorter than one frame (#1444).
+	minCatchUpTime = 5 * time.Second / 60
+)
 
+// Clock determines how many ticks should run in each frame, so that ticks run at the specified TPS
+// as closely as the frame rate allows.
+type Clock struct {
+	tps atomic.Int64
+
+	// unconsumedTime is the real time that has passed but that ticks have not consumed yet.
+	// This is negative when a tick has run a little earlier than its exact timing.
+	unconsumedTime int64
+
+	// lastNow is the time given to the last UpdateFrame call.
 	lastNow int64
-
-	// lastSystemTime is the last system time in the previous UpdateFrame.
-	// lastSystemTime indicates the logical time in the game, so this can be bigger than the current time.
-	lastSystemTime int64
 
 	actualFPS   float64
 	actualTPS   float64
-	prevTPS     int64
 	lastUpdated int64
-	fpsCount    = 0
-	tpsCount    = 0
+	fpsCount    int
+	tpsCount    int
 
-	m sync.Mutex
-)
-
-func init() {
-	n := now()
-	lastNow = n
-	lastSystemTime = n
-	lastUpdated = n
+	mu sync.Mutex
 }
 
-func ActualFPS() float64 {
-	m.Lock()
-	defer m.Unlock()
-	return actualFPS
+// NewClock returns a new Clock. now is the current time, in the same time base as UpdateFrame's argument.
+func NewClock(now int64) *Clock {
+	c := &Clock{
+		lastNow:     now,
+		lastUpdated: now,
+	}
+	c.tps.Store(DefaultTPS)
+	return c
 }
 
-func ActualTPS() float64 {
-	m.Lock()
-	defer m.Unlock()
-	return actualTPS
+func (c *Clock) ActualFPS() float64 {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.actualFPS
 }
 
-func calcCountFromTPS(tps int64, now int64) int {
-	if tps == 0 {
-		return 0
-	}
-	if tps < 0 {
-		panic("clock: tps must >= 0")
-	}
+func (c *Clock) ActualTPS() float64 {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.actualTPS
+}
 
-	diff := now - lastSystemTime
-	if diff < 0 {
-		return 0
+// SetTPS sets the number of ticks per second. 0 stops ticks.
+//
+// If tps is negative but not SyncWithFPS, SetTPS panics.
+func (c *Clock) SetTPS(tps int) {
+	if tps < 0 && tps != SyncWithFPS {
+		panic("clock: tps must be >= 0 or SyncWithFPS")
 	}
+	c.tps.Store(int64(tps))
+}
 
-	count := 0
-	syncWithSystemClock := false
+func (c *Clock) TPS() int {
+	return int(c.tps.Load())
+}
 
-	// Detect whether the previous time is too old.
-	// Use either 5 ticks or 5/60 sec in the case when TPS is too big like 300 (#1444).
-	if diff > max(int64(time.Second)*5/tps, int64(time.Second)*5/60) || prevTPS != tps {
-		// The previous time is too old.
-		// Let's force to sync the game time with the system clock.
-		syncWithSystemClock = true
-	} else {
-		count = int(diff * tps / int64(time.Second))
+// UpdateFrame updates the inner clock state and returns an integer value
+// indicating how many times the game should update based on the current TPS.
+//
+// If TPS is SyncWithFPS, UpdateFrame always returns 1.
+// If TPS is 0, UpdateFrame always returns 0.
+//
+// UpdateFrame is expected to be called once per frame with a monotonic now.
+func (c *Clock) UpdateFrame(now int64) int {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if c.lastNow > now {
+		// This ensures that now must be monotonic (#875).
+		panic("clock: now must be monotonic")
 	}
-	prevTPS = tps
+	delta := now - c.lastNow
+	c.lastNow = now
 
-	// Stabilize the count.
-	// Without this adjustment, count can be unstable like 0, 2, 0, 2, ...
-	// TODO: Brush up this logic so that this will work with any FPS. Now this works only when FPS = TPS.
-	if count == 0 && (int64(time.Second)/tps/2) < diff {
+	var count int
+	switch tps := c.tps.Load(); {
+	case tps == SyncWithFPS:
 		count = 1
-	}
-	if count == 2 && (int64(time.Second)/tps*3/2) > diff {
-		count = 1
+	case tps > 0:
+		count = c.consumeTicks(tps, delta)
+	default:
+		// Ticks are stopped. Don't keep the elapsed time so that restarting them doesn't run a burst of ticks.
+		c.unconsumedTime = 0
 	}
 
-	if syncWithSystemClock {
-		lastSystemTime = now
-	} else {
-		lastSystemTime += int64(count) * int64(time.Second) / tps
-	}
+	c.updateActualFPSAndTPS(now, count)
 
 	return count
 }
 
-func updateFPSAndTPS(now int64, count int) {
-	fpsCount++
-	tpsCount += count
-	if now < lastUpdated {
-		panic("clock: lastUpdated must be older than now")
+// consumeTicks returns how many ticks the elapsed real time affords, and subtracts them from the
+// unconsumed time.
+func (c *Clock) consumeTicks(tps int64, delta int64) int {
+	// Avoid a zero tick, which an unrealistically big TPS would cause.
+	tick := max(int64(time.Second)/tps, 1)
+
+	c.unconsumedTime += delta
+
+	// Limit the time that one frame can catch up with. Otherwise, a slow frame would run so many ticks
+	// that the next frame gets even slower, and the frame rate would never recover. With this limit,
+	// the game time gets behind the real time instead: the game runs in slow motion, which is
+	// recoverable, rather than spiraling down.
+	c.unconsumedTime = min(c.unconsumedTime, max(maxCatchUpTicks*tick, int64(minCatchUpTime)))
+
+	// Round the count to the nearest tick rather than truncating it. With truncation, a small jitter in
+	// the frame timing crosses a tick boundary back and forth, and the count becomes unstable like
+	// 0, 2, 0, 2, ... whenever the frame interval is close to a multiple of a tick.
+	//
+	// The rounded-up part is kept as a negative unconsumed time, so that rounding never accumulates
+	// into a drift from the real time.
+	t := c.unconsumedTime + tick/2
+	if t <= 0 {
+		return 0
 	}
-	if time.Second > time.Duration(now-lastUpdated) {
+	count := t / tick
+	c.unconsumedTime -= count * tick
+	return int(count)
+}
+
+func (c *Clock) updateActualFPSAndTPS(now int64, count int) {
+	c.fpsCount++
+	c.tpsCount += count
+	if time.Second > time.Duration(now-c.lastUpdated) {
 		return
 	}
-	actualFPS = float64(fpsCount) * float64(time.Second) / float64(now-lastUpdated)
-	actualTPS = float64(tpsCount) * float64(time.Second) / float64(now-lastUpdated)
-	lastUpdated = now
-	fpsCount = 0
-	tpsCount = 0
+	c.actualFPS = float64(c.fpsCount) * float64(time.Second) / float64(now-c.lastUpdated)
+	c.actualTPS = float64(c.tpsCount) * float64(time.Second) / float64(now-c.lastUpdated)
+	c.lastUpdated = now
+	c.fpsCount = 0
+	c.tpsCount = 0
 }
 
-// UpdateFrame updates the inner clock state and returns an integer value
-// indicating how many times the game should update based on the current tps.
+// SinkTick advances the game time by one tick, so that the following UpdateFrame calls
+// return correspondingly fewer ticks. It accounts for a tick that was run outside of UpdateFrame's
+// own counting (such as a tick forced on window resize), keeping the total number of ticks
+// consistent with the target TPS over time.
 //
-// If tps is SyncWithFPS, UpdateFrame always returns 1.
-// If tps <= 0 and not SyncWithFPS, UpdateFrame always returns 0.
+// now is the current time, in the same time base as UpdateFrame's argument.
 //
-// UpdateFrame is expected to be called once per frame.
-func UpdateFrame() int {
-	m.Lock()
-	defer m.Unlock()
-
-	n := now()
-	if lastNow > n {
-		// This ensures that now() must be monotonic (#875).
-		panic("clock: lastNow must be older than n")
-	}
-	lastNow = n
-
-	c := 0
-	tps := theTPS.Load()
-	if tps == SyncWithFPS {
-		c = 1
-	} else if tps > 0 {
-		c = calcCountFromTPS(tps, n)
-	}
-	updateFPSAndTPS(n, c)
-
-	return c
-}
-
-// SinkTick advances the logical game time by one tick, so that the following
-// UpdateFrame calls return correspondingly fewer ticks. It accounts for a tick that
-// was run outside of UpdateFrame's own counting (such as a tick forced on window
-// resize), keeping the total number of ticks consistent with the target TPS over time.
-//
-// The logical time is never advanced past the current real time, so that a long
-// continuous resize does not bank an unbounded number of future ticks and stall the
-// game after the resize ends.
+// The game time is never advanced past the current real time, so that a long continuous resize does
+// not bank an unbounded number of future ticks and stall the game after the resize ends.
 //
 // SinkTick has no effect unless a positive TPS is set.
-func SinkTick() {
-	m.Lock()
-	defer m.Unlock()
+func (c *Clock) SinkTick(now int64) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 
-	tps := theTPS.Load()
+	tps := c.tps.Load()
 	if tps <= 0 {
 		return
 	}
-	lastSystemTime = min(lastSystemTime+int64(time.Second)/tps, now())
+
+	// Consume the real time that has passed since the last frame, so that the sunk tick counts even
+	// when UpdateFrame is not called in between.
+	c.unconsumedTime = max(c.unconsumedTime+(now-c.lastNow)-int64(time.Second)/tps, 0)
+	c.lastNow = now
 }
 
-func SetTPS(newTPS int) {
-	theTPS.Store(int64(newTPS))
+var theClock = NewClock(now())
+
+func ActualFPS() float64 {
+	return theClock.ActualFPS()
+}
+
+func ActualTPS() float64 {
+	return theClock.ActualTPS()
+}
+
+func SetTPS(tps int) {
+	theClock.SetTPS(tps)
 }
 
 func TPS() int {
-	return int(theTPS.Load())
+	return theClock.TPS()
+}
+
+// UpdateFrame updates the inner clock state and returns an integer value
+// indicating how many times the game should update based on the current TPS.
+//
+// See [Clock.UpdateFrame].
+func UpdateFrame() int {
+	return theClock.UpdateFrame(now())
+}
+
+// SinkTick advances the game time by one tick.
+//
+// See [Clock.SinkTick].
+func SinkTick() {
+	theClock.SinkTick(now())
 }
