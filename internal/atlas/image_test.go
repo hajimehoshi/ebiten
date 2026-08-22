@@ -914,3 +914,53 @@ func TestDallocateUnmanagedImageBackends(t *testing.T) {
 }
 
 // TODO: Add tests to extend image on an atlas out of the main loop
+
+func TestImageSizeSameAsBackendSize(t *testing.T) {
+	const size = minSourceImageSizeForTesting
+
+	img := atlas.NewImage(size, size, atlas.ImageTypeRegular)
+	defer img.Deallocate()
+
+	// Allocate the image as a destination in order to have a backend image only for this image.
+	c := atlas.BackendCountForTesting()
+	img.EnsureIsolatedFromSourceForTesting(nil)
+	if got, want := atlas.BackendCountForTesting()-c, 1; got != want {
+		t.Fatalf("the number of the new backends: got: %d, want: %d", got, want)
+	}
+
+	pix := make([]byte, 4*size*size)
+	for j := range size {
+		for i := range size {
+			pix[4*(size*j+i)] = byte(i)
+			pix[4*(size*j+i)+1] = byte(j)
+			pix[4*(size*j+i)+2] = byte(i + j)
+			pix[4*(size*j+i)+3] = 0xff
+		}
+	}
+	img.WritePixels(pix, image.Rect(0, 0, size, size))
+
+	// The padding sticks out of the backend image, and the backend image doesn't have to be extended
+	// for the padding.
+	if w, h := img.BackendSizeForTesting(); w != size || h != size {
+		t.Errorf("got: (%d, %d), want: (%d, %d)", w, h, size, size)
+	}
+
+	readPix := make([]byte, 4*size*size)
+	ok, err := img.ReadPixels(ui.Get().GraphicsDriverForTesting(), readPix, image.Rect(0, 0, size, size))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !ok {
+		t.Fatal("ReadPixels failed")
+	}
+	for j := range size {
+		for i := range size {
+			idx := 4 * (size*j + i)
+			want := color.RGBA{R: byte(i), G: byte(j), B: byte(i + j), A: 0xff}
+			got := color.RGBA{R: readPix[idx], G: readPix[idx+1], B: readPix[idx+2], A: readPix[idx+3]}
+			if got != want {
+				t.Errorf("at (%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+}

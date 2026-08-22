@@ -210,7 +210,7 @@ func TestPage(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		p := packing.NewPage(1024, 1024, 1024)
+		p := packing.NewPage(1024, 1024, 1024, 0)
 		nodes := []*packing.Node{}
 		nnodes := 0
 		for i, in := range c.In {
@@ -252,7 +252,7 @@ func TestPage(t *testing.T) {
 }
 
 func TestAlloc(t *testing.T) {
-	p := packing.NewPage(1024, 1024, 2048)
+	p := packing.NewPage(1024, 1024, 2048, 0)
 	w, h := p.Size()
 	p.Alloc(w/2, h/2)
 
@@ -275,7 +275,7 @@ func TestAlloc(t *testing.T) {
 }
 
 func TestAlloc2(t *testing.T) {
-	p := packing.NewPage(1024, 1024, 2048)
+	p := packing.NewPage(1024, 1024, 2048, 0)
 	w, h := p.Size()
 	p.Alloc(w/2, h/2)
 	n1 := p.Alloc(w/2, h/2)
@@ -297,7 +297,7 @@ func TestAlloc2(t *testing.T) {
 }
 
 func TestAllocJustSize(t *testing.T) {
-	p := packing.NewPage(1024, 1024, 4096)
+	p := packing.NewPage(1024, 1024, 4096, 0)
 	if p.Alloc(4096, 4096) == nil {
 		t.Errorf("got: nil, want: non-nil")
 	}
@@ -305,7 +305,7 @@ func TestAllocJustSize(t *testing.T) {
 
 // Issue #1454
 func TestAllocTooMuch(t *testing.T) {
-	p := packing.NewPage(1024, 1024, 4096)
+	p := packing.NewPage(1024, 1024, 4096, 0)
 	p.Alloc(1, 1)
 	if p.Alloc(4096, 4096) != nil {
 		t.Errorf("got: non-nil, want: nil")
@@ -313,7 +313,7 @@ func TestAllocTooMuch(t *testing.T) {
 }
 
 func TestNonSquareAlloc(t *testing.T) {
-	p := packing.NewPage(1024, 1024, 16384)
+	p := packing.NewPage(1024, 1024, 16384, 0)
 	n0 := p.Alloc(16384, 1)
 	if _, h := p.Size(); h != 1024 {
 		t.Errorf("got: %d, want: 1024", h)
@@ -327,7 +327,7 @@ func TestNonSquareAlloc(t *testing.T) {
 }
 
 func TestExtend(t *testing.T) {
-	p := packing.NewPage(1024, 1024, 2048)
+	p := packing.NewPage(1024, 1024, 2048, 0)
 	n0 := p.Alloc(1024, 1024)
 	if n0 == nil {
 		t.Errorf("p.Alloc(1024, 1024) failed")
@@ -363,7 +363,7 @@ func TestExtend(t *testing.T) {
 }
 
 func TestExtend2(t *testing.T) {
-	p := packing.NewPage(1024, 1024, 2048)
+	p := packing.NewPage(1024, 1024, 2048, 0)
 	n0 := p.Alloc(1024, 1024)
 	if n0 == nil {
 		t.Errorf("p.Alloc(1024, 1024) failed")
@@ -395,7 +395,7 @@ func TestExtend2(t *testing.T) {
 }
 
 func TestExtend3(t *testing.T) {
-	p := packing.NewPage(1024, 1024, 2048)
+	p := packing.NewPage(1024, 1024, 2048, 0)
 
 	// Allocate a small area that doesn't touch the left edge and the bottom edge.
 	// Allocating (1, 1) would split the entire region into left and right in the current implementation,
@@ -432,7 +432,7 @@ func TestExtend3(t *testing.T) {
 
 // Issue #2584
 func TestRemoveAtRootsChild(t *testing.T) {
-	p := packing.NewPage(32, 32, 1024)
+	p := packing.NewPage(32, 32, 1024, 0)
 	n0 := p.Alloc(18, 18)
 	n1 := p.Alloc(28, 59)
 	n2 := p.Alloc(18, 18)
@@ -448,4 +448,51 @@ func TestRemoveAtRootsChild(t *testing.T) {
 
 	n6 := p.Alloc(18, 18)
 	p.Free(n6)
+}
+
+func TestAllocWithOverhang(t *testing.T) {
+	const overhang = 1
+
+	p := packing.NewPage(1024, 1024, 4096, overhang)
+	w, h := p.Size()
+
+	// A node can stick out of the page by the overhang, and the page is not extended for this.
+	n0 := p.Alloc(w+overhang, h+overhang)
+	if n0 == nil {
+		t.Fatalf("p.Alloc failed: width: %d, height: %d", w+overhang, h+overhang)
+	}
+	if got, want := n0.Region(), image.Rect(0, 0, w+overhang, h+overhang); got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+	if gotW, gotH := p.Size(); gotW != w || gotH != h {
+		t.Errorf("got: (%d, %d), want: (%d, %d)", gotW, gotH, w, h)
+	}
+
+	// The region out of the page is still reserved for n0 after the page is extended.
+	n1 := p.Alloc(16, 16)
+	if n1 == nil {
+		t.Fatalf("p.Alloc failed: width: %d, height: %d", 16, 16)
+	}
+	if got, want := n0.Region(), image.Rect(0, 0, w+overhang, h+overhang); got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+	if n0.Region().Overlaps(n1.Region()) {
+		t.Errorf("the regions must not overlap: n0: %v, n1: %v", n0.Region(), n1.Region())
+	}
+}
+
+func TestAllocatedRegionWithOverhang(t *testing.T) {
+	const overhang = 1
+
+	p := packing.NewPage(1024, 1024, 4096, overhang)
+	w, h := p.Size()
+
+	if p.Alloc(w+overhang, h+overhang) == nil {
+		t.Fatalf("p.Alloc failed: width: %d, height: %d", w+overhang, h+overhang)
+	}
+
+	// The allocated region never sticks out of the page.
+	if got, want := p.AllocatedRegion(), image.Rect(0, 0, w, h); got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
 }

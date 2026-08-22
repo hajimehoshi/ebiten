@@ -48,6 +48,15 @@ func (i *Image) PaddingSizeForTesting() int {
 	return i.paddingSize()
 }
 
+func (i *Image) BackendSizeForTesting() (int, int) {
+	backendsM.Lock()
+	defer backendsM.Unlock()
+	if i.backend == nil {
+		return 0, 0
+	}
+	return i.backend.width, i.backend.height
+}
+
 func (i *Image) IsOnSourceBackendForTesting() bool {
 	backendsM.Lock()
 	defer backendsM.Unlock()

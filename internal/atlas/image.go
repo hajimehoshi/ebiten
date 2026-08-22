@@ -395,7 +395,8 @@ func (i *imageImpl) regionWithPadding() image.Rectangle {
 	if !i.isOnAtlas() {
 		return image.Rect(0, 0, i.width+i.paddingSize(), i.height+i.paddingSize())
 	}
-	return i.node.Region()
+	// A node at the right or the bottom edge of the page sticks out of the backend image by its padding.
+	return i.node.Region().Intersect(image.Rect(0, 0, i.backend.width, i.backend.height))
 }
 
 // DrawTriangles draws triangles with the given image.
@@ -565,14 +566,18 @@ func (i *Image) writePixels(pix []byte, region image.Rectangle) {
 	pixb := graphics.NewManagedBytes(4*r.Dx()*r.Dy(), func(bs []byte) {
 		// Clear the edges. bs might not be zero-cleared.
 		rowPixels := 4 * r.Dx()
-		for i := range rowPixels {
-			bs[rowPixels*(r.Dy()-1)+i] = 0
+		if r.Dy() > region.Dy() {
+			for i := range rowPixels {
+				bs[rowPixels*(r.Dy()-1)+i] = 0
+			}
 		}
-		for j := 1; j < r.Dy(); j++ {
-			bs[rowPixels*j-4] = 0
-			bs[rowPixels*j-3] = 0
-			bs[rowPixels*j-2] = 0
-			bs[rowPixels*j-1] = 0
+		if r.Dx() > region.Dx() {
+			for j := 1; j <= region.Dy(); j++ {
+				bs[rowPixels*j-4] = 0
+				bs[rowPixels*j-3] = 0
+				bs[rowPixels*j-2] = 0
+				bs[rowPixels*j-1] = 0
+			}
 		}
 
 		// Copy the content.
@@ -769,24 +774,26 @@ loop:
 	} else {
 		width, height = minDestinationSize, minDestinationSize
 	}
-	for wp > width {
+	for i.width > width {
 		if width == maxSize {
 			panic(fmt.Sprintf("atlas: the image being put on an atlas is too big: width: %d, height: %d", i.width, i.height))
 		}
 		width *= 2
 	}
-	for hp > height {
+	for i.height > height {
 		if height == maxSize {
 			panic(fmt.Sprintf("atlas: the image being put on an atlas is too big: width: %d, height: %d", i.width, i.height))
 		}
 		height *= 2
 	}
 
+	// Only a regular image can be put on an atlas, so every image on this page has the same padding.
+	page := packing.NewPage(width, height, maxSize, i.paddingSize())
 	b := &backend{
 		width:        width,
 		height:       height,
 		backendImage: graphicscommand.NewImage(width, height, false, ""),
-		page:         packing.NewPage(width, height, maxSize),
+		page:         page,
 		source:       asSource,
 	}
 	b.clear(image.Rect(0, 0, width, height))
