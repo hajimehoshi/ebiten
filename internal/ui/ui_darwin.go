@@ -321,7 +321,7 @@ var (
 // absorb modifier key-up events globally without changing window focus, so the
 // matching releases never reach the app. Polling +[NSEvent modifierFlags] each
 // tick ensures stuck modifiers eventually clear. Must be called on the main
-// thread with u.mu unheld.
+// thread.
 func (u *glfwBackend) syncModKeysFromOS() {
 	flags := objc.Send[uint](objc.ID(class_NSEvent), sel_modifierFlags)
 	const (
@@ -343,22 +343,18 @@ func (u *glfwBackend) syncModKeysFromOS() {
 	if flags&nsEventModifierFlagCommand != 0 {
 		mods |= glfw.ModSuper
 	}
-	u.mu.Lock()
-	defer u.mu.Unlock()
-	u.inputState.syncModKeysByMods(mods, u.InputTime())
+	u.input.syncModKeys(mods, u.InputTime())
 }
 
 // syncLockKeysFromOS updates the lock key state to the current OS state.
-// Must be called on the main thread with u.mu unheld.
+// Must be called on the main thread.
 func (u *glfwBackend) syncLockKeysFromOS() {
 	flags := objc.Send[uint](objc.ID(class_NSEvent), sel_modifierFlags)
 	const nsEventModifierFlagCapsLock = 1 << 16
 
-	u.mu.Lock()
-	defer u.mu.Unlock()
-	u.inputState.CapsLock = NewLockKeyStateFromBool(flags&nsEventModifierFlagCapsLock != 0)
+	caps := NewLockKeyStateFromBool(flags&nsEventModifierFlagCapsLock != 0)
 	// macOS has no Num Lock: the numeric keypad always produces digits.
-	u.inputState.NumLock = LockKeyStateOn
+	u.input.setLockKeys(caps, LockKeyStateOn)
 }
 
 func currentMouseLocation() (x, y int) {

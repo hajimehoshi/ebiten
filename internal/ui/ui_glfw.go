@@ -21,7 +21,6 @@ import (
 	"errors"
 	"fmt"
 	"image"
-	"math"
 	"runtime"
 	"sync"
 	"time"
@@ -81,15 +80,8 @@ type glfwBackend struct {
 
 	fpsModeInited bool
 
-	inputState       InputState
-	backendWindow    glfwWindow
-	savedCursorX     float64
-	savedCursorY     float64
-	rawCursorX       float64
-	rawCursorY       float64
-	lastWheelOffsetX float64
-	lastWheelOffsetY float64
-	lastWheelTime    time.Time
+	input         glfwInput
+	backendWindow glfwWindow
 
 	unfocusedNextWake time.Time
 
@@ -108,8 +100,6 @@ type glfwBackend struct {
 
 	// immContext is used only in Windows.
 	immContext uintptr
-
-	mu sync.Mutex
 }
 
 const (
@@ -138,8 +128,7 @@ func newGLFWBackend(u *UserInterface) *glfwBackend {
 	}
 	b.origWindowPosX = invalidPos
 	b.origWindowPosY = invalidPos
-	b.savedCursorX = math.NaN()
-	b.savedCursorY = math.NaN()
+	b.input.clearSavedCursorPos()
 	b.backendWindow.ui = b
 	return b
 }
@@ -569,9 +558,7 @@ func (u *glfwBackend) createWindow() error {
 func (u *glfwBackend) registerWindowCloseCallback() error {
 	if u.closeCallback == nil {
 		u.closeCallback = func(_ *glfw.Window) {
-			u.mu.Lock()
-			u.inputState.WindowBeingClosed = true
-			u.mu.Unlock()
+			u.input.setWindowBeingClosed()
 
 			if !u.desktopWindow.isWindowClosingHandled() {
 				return
@@ -706,9 +693,7 @@ func (u *glfwBackend) forceUpdateFrameDuringPollEvents(outsideWidth, outsideHeig
 func (u *glfwBackend) registerDropCallback() error {
 	if u.dropCallback == nil {
 		u.dropCallback = func(_ *glfw.Window, names []string) {
-			u.mu.Lock()
-			defer u.mu.Unlock()
-			u.inputState.DroppedFiles = file.NewVirtualFS(names)
+			u.input.setDroppedFiles(file.NewVirtualFS(names))
 		}
 	}
 	if _, err := u.window.SetDropCallback(u.dropCallback); err != nil {
@@ -1274,10 +1259,12 @@ func (u *glfwBackend) updateGame() error {
 
 		// Pre-fetch cursor position and update gamepads to avoid
 		// a second mainThread.Call round-trip in updateInputStateForFrame.
-		u.rawCursorX, u.rawCursorY, err = u.window.GetCursorPos()
+		var cx, cy float64
+		cx, cy, err = u.window.GetCursorPos()
 		if err != nil {
 			return
 		}
+		u.input.setRawCursorPos(cx, cy)
 		var nativeWindow uintptr
 		nativeWindow, err = u.nativeWindow()
 		if err != nil {
@@ -1516,8 +1503,7 @@ func (u *glfwBackend) setFullscreen(fullscreen bool) error {
 		return err
 	}
 	if im == glfw.CursorDisabled {
-		u.savedCursorX = u.inputState.CursorX
-		u.savedCursorY = u.inputState.CursorY
+		u.input.saveCursorPos()
 	}
 
 	// Enter the fullscreen.
@@ -1710,9 +1696,7 @@ func (u *glfwBackend) currentMonitorImpl() (*Monitor, error) {
 }
 
 func (u *glfwBackend) readInputState(inputState *InputState) {
-	u.mu.Lock()
-	defer u.mu.Unlock()
-	u.inputState.copyAndReset(inputState)
+	u.input.read(inputState)
 }
 
 func (u *glfwBackend) Window() backendWindow {

@@ -321,7 +321,7 @@ func (u *glfwBackend) setWindowColorModeImpl(mode colormode.ColorMode) error {
 func (u *glfwBackend) syncModKeysFromOS() {}
 
 // syncLockKeysFromOS updates the lock key state to the current OS state.
-// Must be called on the main thread with u.mu unheld.
+// Must be called on the main thread.
 func (u *glfwBackend) syncLockKeysFromOS() {
 	if !ensureX11() {
 		return
@@ -335,8 +335,7 @@ func (u *glfwBackend) syncLockKeysFromOS() {
 		return
 	}
 
-	u.mu.Lock()
-	defer u.mu.Unlock()
-	u.inputState.CapsLock = NewLockKeyStateFromBool(mask&xLockMask != 0)
-	u.inputState.NumLock = NewLockKeyStateFromBool(mask&xMod2Mask != 0)
+	caps := NewLockKeyStateFromBool(mask&xLockMask != 0)
+	num := NewLockKeyStateFromBool(mask&xMod2Mask != 0)
+	u.input.setLockKeys(caps, num)
 }
