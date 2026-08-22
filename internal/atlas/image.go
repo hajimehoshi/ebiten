@@ -678,6 +678,14 @@ func (i *imageImpl) deallocateImpl() {
 	panic("atlas: backend not found at an image being deallocated")
 }
 
+// MaxImageSize returns the maximum width and height of an image in pixels.
+// MaxImageSize returns 0 before the graphics driver is ready.
+func MaxImageSize() int {
+	backendsM.Lock()
+	defer backendsM.Unlock()
+	return maxSize
+}
+
 func NewImage(width, height int, imageType ImageType) *Image {
 	// Actual allocation is done lazily, and the lock is not needed.
 	return &Image{

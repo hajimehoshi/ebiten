@@ -4936,3 +4936,22 @@ func TestUseAfterRecycle(t *testing.T) {
 	sub.Recycle()
 	sub.Fill(color.White)
 }
+
+// Issue #1734
+func TestMaxImageSize(t *testing.T) {
+	s := ebiten.MaxImageSize()
+	if s <= 0 {
+		t.Fatalf("ebiten.MaxImageSize() must be positive but %d", s)
+	}
+
+	// An image bigger than the maximum size cannot be allocated.
+	func() {
+		defer func() {
+			if r := recover(); r == nil {
+				t.Errorf("WritePixels must panic but not")
+			}
+		}()
+		img := ebiten.NewImage(s+1, 1)
+		img.WritePixels(make([]byte, 4*(s+1)))
+	}()
+}

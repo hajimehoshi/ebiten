@@ -1472,9 +1472,16 @@ func (i *Image) ReplacePixels(pixels []byte) {
 	i.WritePixels(pixels)
 }
 
+// MaxImageSize returns the device-dependent maximum width and height of an image in pixels.
+//
+// MaxImageSize returns 0 before the game starts.
+func MaxImageSize() int {
+	return atlas.MaxImageSize()
+}
+
 // NewImage returns an empty image.
 //
-// If width or height is less than 1 or more than device-dependent maximum size, NewImage panics.
+// If width or height is less than 1 or more than [MaxImageSize], NewImage panics.
 //
 // NewImage should be called only when necessary.
 // For example, you should avoid to call NewImage every Update or Draw call.
@@ -1498,7 +1505,7 @@ type NewImageOptions struct {
 
 // NewImageWithOptions returns an empty image with the given bounds and the options.
 //
-// If width or height is less than 1 or more than device-dependent maximum size, NewImageWithOptions panics.
+// If width or height is less than 1 or more than [MaxImageSize], NewImageWithOptions panics.
 //
 // The rendering origin position is (0, 0) of the given bounds.
 // If DrawImage is called on a new image created by NewImageOptions,
@@ -1541,7 +1548,7 @@ func newImage(bounds image.Rectangle, imageType atlas.ImageType) *Image {
 
 // NewImageFromImage creates a new image with the given image (source).
 //
-// If source's width or height is less than 1 or more than device-dependent maximum size, NewImageFromImage panics.
+// If source's width or height is less than 1 or more than [MaxImageSize], NewImageFromImage panics.
 //
 // NewImageFromImage should be called only when necessary.
 // For example, you should avoid to call NewImageFromImage every Update or Draw call.
@@ -1571,7 +1578,7 @@ type NewImageFromImageOptions struct {
 
 // NewImageFromImageWithOptions creates a new image with the given image (source) with the given options.
 //
-// If source's width or height is less than 1 or more than device-dependent maximum size, NewImageFromImageWithOptions panics.
+// If source's width or height is less than 1 or more than [MaxImageSize], NewImageFromImageWithOptions panics.
 //
 // If options is nil, the default setting is used.
 //
