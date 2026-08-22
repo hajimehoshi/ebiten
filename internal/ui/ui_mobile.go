@@ -279,14 +279,14 @@ func (u *UserInterface) displayInfo() (int, int, float64, bool) {
 }
 
 type Monitor struct {
-	monitor monitor
+	cache atomic.Pointer[monitorCache]
+}
 
-	// expireAt is a tick when the cached values expire.
-	// As there is no commmon way to detect monitor changes in Android and iOS,
-	// the values are invalidated regularly.
-	expireAt atomic.Int64
-
-	mu sync.Mutex
+// monitorCache is the monitor values and the tick they expire at. As there is no common way to
+// detect monitor changes in Android and iOS, the values are invalidated regularly.
+type monitorCache struct {
+	monitor  monitor
+	expireAt int64
 }
 
 type monitor struct {
@@ -302,16 +302,11 @@ func (m *Monitor) Name() string {
 }
 
 func (m *Monitor) ensureValues() monitor {
-	if m.expireAt.Load() > theUI.Tick() {
-		return m.monitor
+	tick := theUI.Tick()
+	if c := m.cache.Load(); c != nil && c.expireAt > tick {
+		return c.monitor
 	}
 
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	// Re-check the state since the state might be changed while locking.
-	if m.expireAt.Load() > theUI.Tick() {
-		return m.monitor
-	}
 	width, height, scale, ok := theUI.displayInfo()
 	if !ok {
 		// This can happen e.g. when JVM is not ready.
@@ -321,13 +316,16 @@ func (m *Monitor) ensureValues() monitor {
 			deviceScaleFactor: 1,
 		}
 	}
-	m.monitor = monitor{
+	mon := monitor{
 		width:             width,
 		height:            height,
 		deviceScaleFactor: scale,
 	}
-	m.expireAt.Store(theUI.Tick() + 1)
-	return m.monitor
+	m.cache.Store(&monitorCache{
+		monitor:  mon,
+		expireAt: tick + 1,
+	})
+	return mon
 }
 
 func (m *Monitor) DeviceScaleFactor() float64 {
