@@ -4500,72 +4500,140 @@ func TestSyntaxForRange(t *testing.T) {
 		stmt string
 		err  bool
 	}{
-		{stmt: `for i := range 3 {
-		_ = i
-	}`, err: false},
-		{stmt: `for i := range 3 {
-	}`, err: true},
-		{stmt: `for range 3 {
-	}`, err: false},
-		{stmt: `for _ = range 3 {
-	}`, err: false},
-		{stmt: `for _ := range 3 {
-	}`, err: true},
-		{stmt: `for i, j := range 3 {
-		_, _ = i, j
-	}`, err: true},
-		{stmt: `i := 0
-	for i = range 3 {
-		_ = i
-	}`, err: true},
-		{stmt: `const c = 3
-	for i := range c {
-		_ = i
-	}`, err: false},
-		{stmt: `for i := range int(3) {
-		_ = i
-	}`, err: false},
-		{stmt: `for i := range -3 {
-		_ = i
-	}`, err: false},
-		{stmt: `for i := range 3.0 {
-		_ = i
-	}`, err: true},
-		{stmt: `for i := range 3.5 {
-		_ = i
-	}`, err: true},
-		{stmt: `for i := range float(3) {
-		_ = i
-	}`, err: true},
-		{stmt: `n := 3
-	for i := range n {
-		_ = i
-	}`, err: true},
-		{stmt: `var a [3]int
-	for i := range a {
-		_ = i
-	}`, err: true},
-		{stmt: `for i := range 3 {
-		if i == 1 {
-			continue
-		}
-		break
-	}`, err: false},
-		{stmt: `for i := range 3 {
-		for j := range 3 {
-			_ = i * j
-		}
-	}`, err: false},
-		{stmt: `for i := range 3 {
-		i := 1
-		_ = i
-	}`, err: true},
-		{stmt: `for i := range 3 {
-		_ = i
-	}
-	for i := range 3 {
-		_ = i
-	}`, err: false},
+		{
+			stmt: "for i := range 3 { _ = i }",
+			err:  false,
+		},
+		{
+			stmt: "for i := range 3 {}",
+			err:  true,
+		},
+		{
+			stmt: "for range 3 {}",
+			err:  false,
+		},
+		{
+			stmt: "for _ = range 3 {}",
+			err:  false,
+		},
+		{
+			stmt: "for _ := range 3 {}",
+			err:  true,
+		},
+		{
+			stmt: "for i, j := range 3 { _, _ = i, j }",
+			err:  true,
+		},
+		{
+			stmt: "i := 0; for i = range 3 { _ = i }",
+			err:  true,
+		},
+		{
+			stmt: "const c = 3; for i := range c { _ = i }",
+			err:  false,
+		},
+		{
+			stmt: "for i := range int(3) { _ = i }",
+			err:  false,
+		},
+		{
+			stmt: "for i := range -3 { _ = i }",
+			err:  false,
+		},
+		{
+			stmt: "for i := range 3.0 { _ = i }",
+			err:  true,
+		},
+		{
+			stmt: "for i := range 3.5 { _ = i }",
+			err:  true,
+		},
+		{
+			stmt: "for i := range float(3) { _ = i }",
+			err:  true,
+		},
+		{
+			stmt: "n := 3; for i := range n { _ = i }",
+			err:  true,
+		},
+
+		{
+			stmt: "var a [3]int; for i := range a { _ = i }",
+			err:  false,
+		},
+		{
+			stmt: "var a [3]int; for range a {}",
+			err:  false,
+		},
+		{
+			stmt: "var a [3]int; for _ = range a {}",
+			err:  false,
+		},
+		{
+			stmt: "var a [3]int; for i, v := range a { _, _ = i, v }",
+			err:  false,
+		},
+		{
+			stmt: "var a [3]int; for _, v := range a { _ = v }",
+			err:  false,
+		},
+		{
+			stmt: "var a [3]int; for i, _ := range a { _ = i }",
+			err:  false,
+		},
+		{
+			stmt: "var a [3]int; for _, _ := range a {}",
+			err:  true,
+		},
+		{
+			stmt: "var a [3]int; for i, v := range a { _ = i }",
+			err:  true,
+		},
+		{
+			stmt: "var a [3]int; for i, v := range a { _ = v }",
+			err:  true,
+		},
+		{
+			stmt: "var a [3]int; i, v := 0, 0; for i, v = range a { _, _ = i, v }",
+			err:  true,
+		},
+		{
+			stmt: "var a [3]vec2; for _, v := range a { _ = v.x }",
+			err:  false,
+		},
+		{
+			stmt: "var a [3]int; for _, v := range a { _ = v.x }",
+			err:  true,
+		},
+		{
+			stmt: "var a [3]int; for _, v := range a { v = 1; _ = v }",
+			err:  false,
+		},
+		{
+			stmt: "var a [3]int; for i, v := range a { a[i] = v + 1 }; _ = a",
+			err:  false,
+		},
+
+		{
+			stmt: "for i := range 3 { if i == 1 { continue }; break }",
+			err:  false,
+		},
+		{
+			stmt: "for i := range 3 { for j := range 3 { _ = i * j } }",
+			err:  false,
+		},
+		{
+			stmt: "var a [3]int; for i := range a { for j := range a { _ = i + j } }",
+			err:  false,
+		},
+		{
+			stmt: "for i := range 3 { i := 1; _ = i }",
+			err:  true,
+		},
+		{
+			stmt: "for i := range 3 { _ = i }; for i := range 3 { _ = i }",
+			err:  false,
+		},
 	}
 
 	for _, c := range cases {

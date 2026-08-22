@@ -928,88 +928,153 @@ func (cs *compileState) parseFor(block *block, fname string, stmt *ast.ForStmt, 
 	}, true
 }
 
-func (cs *compileState) parseForRange(block *block, fname string, stmt *ast.RangeStmt, inParams, outParams []variable, returnType shaderir.Type) ([]shaderir.Stmt, bool) {
-	msg := "range-statement must follow this format: for (varname) := range (constant) { ..."
-	if stmt.Value != nil {
-		cs.addError(stmt.Pos(), "range over an integer permits only one iteration variable")
-		return nil, false
+// parseRangeVar returns the name and the position of an iteration variable of a range-statement.
+// A missing variable is treated as a blank identifier.
+func (cs *compileState) parseRangeVar(e ast.Expr, defaultPos token.Pos, msg string) (string, token.Pos, bool) {
+	if e == nil {
+		return "_", defaultPos, true
 	}
+	ident, ok := e.(*ast.Ident)
+	if !ok {
+		cs.addError(e.Pos(), msg)
+		return "", 0, false
+	}
+	return ident.Name, ident.Pos(), true
+}
 
-	varname := "_"
-	varpos := stmt.Pos()
-	if stmt.Key != nil {
-		ident, ok := stmt.Key.(*ast.Ident)
-		if !ok {
-			cs.addError(stmt.Key.Pos(), msg)
-			return nil, false
-		}
-		varname = ident.Name
-		varpos = ident.Pos()
-		if varname == "_" {
-			// A blank identifier is not a new variable, so ':=' is not allowed.
-			if stmt.Tok == token.DEFINE {
-				cs.addError(varpos, "no new variables on left side of :=")
-				return nil, false
-			}
-		} else if stmt.Tok != token.DEFINE {
-			cs.addError(varpos, msg)
-			return nil, false
-		}
-	}
+func (cs *compileState) parseForRange(block *block, fname string, stmt *ast.RangeStmt, inParams, outParams []variable, returnType shaderir.Type) ([]shaderir.Stmt, bool) {
+	msg := "range-statement must follow this format: for (varname) := range (constant integer or array) { ..."
 
 	exprs, ts, ss, ok := cs.parseExpr(block, fname, stmt.X, true)
 	if !ok {
 		return nil, false
 	}
-	if len(exprs) != 1 || len(ts) != 1 || len(ss) != 0 {
+	if len(exprs) != 1 || len(ts) != 1 {
 		cs.addError(stmt.X.Pos(), msg)
+		return nil, false
+	}
+	if len(ss) != 0 {
+		cs.addError(stmt.X.Pos(), "a range expression must be a constant or a variable")
 		return nil, false
 	}
 	t := ts[0]
 	if t.Main == shaderir.None && exprs[0].Const != nil {
 		t = toDefaultType(exprs[0].Const)
 	}
-	if t.Main != shaderir.Int {
+
+	var end gconstant.Value
+	var elmType shaderir.Type
+	switch t.Main {
+	case shaderir.Int:
+		if stmt.Value != nil {
+			cs.addError(stmt.Value.Pos(), "range over an integer permits only one iteration variable")
+			return nil, false
+		}
+		if exprs[0].Const == nil {
+			cs.addError(stmt.X.Pos(), "a range expression must be a constant")
+			return nil, false
+		}
+		end = gconstant.ToInt(exprs[0].Const)
+	case shaderir.Array:
+		// The array is indexed at each iteration, so the range expression must be one that can be
+		// evaluated repeatedly.
+		if stmt.Value != nil && exprs[0].Type != shaderir.LocalVariable && exprs[0].Type != shaderir.UniformVariable {
+			cs.addError(stmt.X.Pos(), "a range expression must be a variable to use the second iteration variable")
+			return nil, false
+		}
+		end = gconstant.MakeInt64(int64(t.Length))
+		elmType = t.Sub[0]
+	default:
 		cs.addError(stmt.X.Pos(), fmt.Sprintf("cannot range over a value of type %s", t.String()))
 		return nil, false
 	}
-	if exprs[0].Const == nil {
-		cs.addError(stmt.X.Pos(), "a range expression must be a constant")
+
+	keyname, keypos, ok := cs.parseRangeVar(stmt.Key, stmt.Pos(), msg)
+	if !ok {
 		return nil, false
 	}
-	end := gconstant.ToInt(exprs[0].Const)
+	valname, valpos, ok := cs.parseRangeVar(stmt.Value, stmt.Pos(), msg)
+	if !ok {
+		return nil, false
+	}
+	switch stmt.Tok {
+	case token.DEFINE:
+		if keyname == "_" && valname == "_" {
+			cs.addError(keypos, "no new variables on left side of :=")
+			return nil, false
+		}
+	case token.ASSIGN:
+		// A range-statement introduces its own iteration variables, so an existing variable cannot be
+		// one of them.
+		if keyname != "_" || valname != "_" {
+			cs.addError(keypos, msg)
+			return nil, false
+		}
+	}
 
-	// Create a new pseudo block for the counter variable, so that the counter variable belongs to the
-	// new pseudo block for each for-loop. Without this, the same-named counter variables in different
-	// for-loops confuses the parser.
+	// Create a new pseudo block for the iteration variables, so that the variables belong to the new
+	// pseudo block for each for-loop. Without this, the same-named variables in different for-loops
+	// confuses the parser.
 	pseudoBlock, ok := cs.parseBlock(block, fname, nil, inParams, outParams, returnType, false)
 	if !ok {
 		return nil, false
 	}
 	vartype := shaderir.Type{Main: shaderir.Int}
 	varidx := pseudoBlock.totalLocalVariableCount()
-	pseudoBlock.addNamedLocalVariable(varname, vartype, varpos)
+	pseudoBlock.addNamedLocalVariable(keyname, vartype, keypos)
+	validx := pseudoBlock.totalLocalVariableCount()
+	if stmt.Value != nil {
+		pseudoBlock.addNamedLocalVariable(valname, elmType, valpos)
+	}
 
 	b, ok := cs.parseBlock(pseudoBlock, fname, []ast.Stmt{stmt.Body}, inParams, outParams, returnType, true)
 	if !ok {
 		return nil, false
 	}
-	if pos, ok := pseudoBlock.unusedVars[0]; ok {
-		cs.addError(pos, fmt.Sprintf("local variable %s is not used", varname))
-		return nil, false
+	for i, v := range pseudoBlock.vars {
+		if pos, ok := pseudoBlock.unusedVars[i]; ok {
+			cs.addError(pos, fmt.Sprintf("local variable %s is not used", v.name))
+			return nil, false
+		}
 	}
 
 	bodyir := b.ir
 	for len(bodyir.Stmts) == 1 && bodyir.Stmts[0].Type == shaderir.BlockStmt {
 		bodyir = bodyir.Stmts[0].Blocks[0]
 	}
+	if stmt.Value != nil {
+		bodyir.Stmts = append([]shaderir.Stmt{
+			{
+				Type: shaderir.Assign,
+				Exprs: []shaderir.Expr{
+					{
+						Type:  shaderir.LocalVariable,
+						Index: validx,
+					},
+					{
+						Type: shaderir.Index,
+						Exprs: []shaderir.Expr{
+							exprs[0],
+							{
+								Type:  shaderir.LocalVariable,
+								Index: varidx,
+							},
+						},
+					},
+				},
+			},
+		}, bodyir.Stmts...)
+	}
 
 	// As the pseudo block is not actually used, copy the variable part to the actual block.
 	// This must be done after parsing the for-loop is done, or the duplicated variables confuses the
 	// parsing.
-	v := pseudoBlock.vars[0]
-	v.forLoopCounter = true
-	block.vars = append(block.vars, v)
+	counter := pseudoBlock.vars[0]
+	counter.forLoopCounter = true
+	block.vars = append(block.vars, counter)
+	if stmt.Value != nil {
+		block.vars = append(block.vars, pseudoBlock.vars[1])
+	}
 
 	return []shaderir.Stmt{
 		{
