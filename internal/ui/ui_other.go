@@ -39,7 +39,7 @@ func (u *UserInterface) runMultiThread(game Game, options *RunOptions) error {
 	u.mainThread = thread.NewOSThread()
 	graphicscommand.SetOSThreadAsRenderThread()
 
-	u.context = newContext(game)
+	u.context = newContext(game, options.ScreenTransparent)
 
 	ctx, cancel := stdcontext.WithCancel(stdcontext.Background())
 	defer cancel()
@@ -86,7 +86,7 @@ func (u *UserInterface) runSingleThread(game Game, options *RunOptions) error {
 	u.setRunning(true)
 	defer u.setRunning(false)
 
-	u.context = newContext(game)
+	u.context = newContext(game, options.ScreenTransparent)
 
 	if err := u.initOnMainThread(options); err != nil {
 		return err

@@ -148,7 +148,7 @@ func (u *UserInterface) runMobile(game Game, options *RunOptions) (err error) {
 	u.setRunning(true)
 	defer u.setRunning(false)
 
-	u.context = newContext(game)
+	u.context = newContext(game, options.ScreenTransparent)
 
 	g, lib, err := newGraphicsDriver(&graphicsDriverCreatorImpl{
 		colorSpace: options.ColorSpace,

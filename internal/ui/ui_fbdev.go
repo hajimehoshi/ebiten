@@ -78,7 +78,7 @@ func (b *fbdevBackend) run(game Game, options *RunOptions) error {
 	b.mainThread = thread.NewOSThread()
 	graphicscommand.SetOSThreadAsRenderThread()
 
-	b.context = newContext(game)
+	b.context = newContext(game, options.ScreenTransparent)
 
 	ctx, cancel := stdcontext.WithCancel(stdcontext.Background())
 	defer cancel()

@@ -44,6 +44,8 @@ type Game interface {
 type context struct {
 	game Game
 
+	screenTransparent bool
+
 	updateCalled bool
 
 	offscreen *Image
@@ -73,10 +75,11 @@ type context struct {
 	funcsInFrameCh chan func()
 }
 
-func newContext(game Game) *context {
+func newContext(game Game, screenTransparent bool) *context {
 	return &context{
-		game:           game,
-		funcsInFrameCh: make(chan func()),
+		game:              game,
+		screenTransparent: screenTransparent,
+		funcsInFrameCh:    make(chan func()),
 	}
 }
 
@@ -322,7 +325,14 @@ func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics, ui *UserInter
 
 	if graphicsDriver.NeedsClearingScreen() {
 		// This clear is needed for fullscreen mode or some mobile platforms (#622).
-		c.screen.clear()
+		// An opaque screen is cleared with opaque black: when the screen's framebuffer has an alpha
+		// channel, a compositor would show the desktop through the area the offscreen does not
+		// cover (#3454).
+		if c.screenTransparent {
+			c.screen.clear()
+		} else {
+			c.screen.fillBlack()
+		}
 	}
 
 	c.game.DrawFinalScreen(c.screenScaleAndOffsets())

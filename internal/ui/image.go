@@ -223,6 +223,10 @@ func (i *Image) clear() {
 	i.Fill(0, 0, 0, 0, image.Rect(0, 0, i.width, i.height))
 }
 
+func (i *Image) fillBlack() {
+	i.Fill(0, 0, 0, 1, image.Rect(0, 0, i.width, i.height))
+}
+
 func (i *Image) Fill(r, g, b, a float32, region image.Rectangle) {
 	// The white image is not locked: it is never modified after the initialization, and a fill
 	// skips mipmaps, so drawing from it cannot modify it.
