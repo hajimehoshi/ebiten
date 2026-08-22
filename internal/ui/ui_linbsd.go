@@ -225,7 +225,9 @@ func (u *glfwBackend) nativeWindow() (uintptr, error) {
 }
 
 func (u *glfwBackend) isWindowOccluded() (bool, error) {
-	// TODO: Implement this.
+	// The tick rate doesn't drop for an occluded window on X11, so skipping the present is not
+	// needed to keep the game running. Occlusion is reported only as VisibilityNotify events,
+	// which a compositing manager suppresses by redirecting windows to offscreen storage.
 	return false, errors.ErrUnsupported
 }
 
