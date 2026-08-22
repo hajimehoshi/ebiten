@@ -53,6 +53,8 @@ func Prelude() string {
 
 using namespace metal;
 
+constexpr sampler __texelSampler(coord::pixel, filter::nearest, address::clamp_to_zero);
+
 template<typename T, typename U>
 T mod(T x, U y) {
 	return x - y * floor(x/y);
@@ -409,7 +411,8 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 				args = append(args, expr(&exp))
 			}
 			if callee.Type == shaderir.BuiltinFuncExpr && callee.BuiltinFunc == shaderir.TexelAt {
-				return fmt.Sprintf("%s.read(static_cast<uint2>(%s))", args[0], strings.Join(args[1:], ", "))
+				// The sampler returns a transparent texel for a position outside the texture.
+				return fmt.Sprintf("%s.sample(__texelSampler, %s)", args[0], strings.Join(args[1:], ", "))
 			}
 			if callee.Type == shaderir.BuiltinFuncExpr && (callee.BuiltinFunc == shaderir.Min || callee.BuiltinFunc == shaderir.Max) {
 				result := args[0]

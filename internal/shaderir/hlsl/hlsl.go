@@ -514,7 +514,8 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 						return fmt.Sprintf("float4x4FromScalar(%s)", args[0])
 					}
 				case shaderir.TexelAt:
-					return fmt.Sprintf("%s.Load(int3(%s, 0))", args[0], strings.Join(args[1:], ", "))
+					// Floor the position so that a negative position is out of the texture.
+					return fmt.Sprintf("%s.Load(int3(int2(floor(%s)), 0))", args[0], strings.Join(args[1:], ", "))
 				}
 			}
 			if callee.Type == shaderir.BuiltinFuncExpr && (callee.BuiltinFunc == shaderir.Min || callee.BuiltinFunc == shaderir.Max) {

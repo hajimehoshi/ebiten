@@ -510,7 +510,8 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 			callee := e.Exprs[0]
 			if callee.Type == shaderir.BuiltinFuncExpr {
 				if callee.BuiltinFunc == shaderir.TexelAt {
-					return fmt.Sprintf("%s(%s, ivec2(%s), 0)", expr(&callee), args[0], args[1])
+					// Floor the position so that a negative position is out of the texture.
+					return fmt.Sprintf("%s(%s, ivec2(floor(%s)), 0)", expr(&callee), args[0], args[1])
 				}
 				if callee.BuiltinFunc == shaderir.Min || callee.BuiltinFunc == shaderir.Max {
 					result := args[0]
