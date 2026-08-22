@@ -106,7 +106,7 @@ type userInterfaceImpl struct {
 	// uiView is used only on iOS.
 	uiView atomic.Uintptr
 
-	m sync.Mutex
+	mu sync.Mutex
 }
 
 func (u *UserInterface) SetForeground(foreground bool) error {
@@ -247,8 +247,8 @@ func (u *UserInterface) updateExplicitRenderingModeIfNeeded(fpsMode FPSModeType)
 }
 
 func (u *UserInterface) readInputState(inputState *InputState) {
-	u.m.Lock()
-	defer u.m.Unlock()
+	u.mu.Lock()
+	defer u.mu.Unlock()
 	u.inputState.copyAndReset(inputState)
 }
 
@@ -286,7 +286,7 @@ type Monitor struct {
 	// the values are invalidated regularly.
 	expireAt atomic.Int64
 
-	m sync.Mutex
+	mu sync.Mutex
 }
 
 type monitor struct {
@@ -306,8 +306,8 @@ func (m *Monitor) ensureValues() monitor {
 		return m.monitor
 	}
 
-	m.m.Lock()
-	defer m.m.Unlock()
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	// Re-check the state since the state might be changed while locking.
 	if m.expireAt.Load() > theUI.Tick() {
 		return m.monitor

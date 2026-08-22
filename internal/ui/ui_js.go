@@ -118,8 +118,8 @@ type userInterfaceImpl struct {
 
 	textInputFocusedFunc func() bool
 
-	m         sync.Mutex
-	dropFileM sync.Mutex
+	mu         sync.Mutex
+	dropFileMu sync.Mutex
 }
 
 var (
@@ -329,8 +329,8 @@ func (u *UserInterface) update() error {
 
 func (u *UserInterface) updateImpl(force bool) error {
 	// Guard updateImpl as this function cannot be invoked until this finishes (#2339).
-	u.m.Lock()
-	defer u.m.Unlock()
+	u.mu.Lock()
+	defer u.mu.Unlock()
 
 	// context can be nil when an event is fired but the loop doesn't start yet (#1928).
 	if u.context == nil {
@@ -752,8 +752,8 @@ func (u *UserInterface) setCanvasEventHandlers(v js.Value) {
 }
 
 func (u *UserInterface) appendDroppedFiles(data js.Value) {
-	u.dropFileM.Lock()
-	defer u.dropFileM.Unlock()
+	u.dropFileMu.Lock()
+	defer u.dropFileMu.Unlock()
 	items := data.Get("items")
 
 	var entries []js.Value

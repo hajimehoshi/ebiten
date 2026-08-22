@@ -27,8 +27,8 @@ type TouchForInput struct {
 }
 
 func (u *UserInterface) updateInputStateFromOutside(keyPressedTimes, keyReleasedTimes [KeyMax + 1]InputTime, runes []rune, touches []TouchForInput, capsLock, numLock LockKeyState) {
-	u.m.Lock()
-	defer u.m.Unlock()
+	u.mu.Lock()
+	defer u.mu.Unlock()
 
 	u.inputState.KeyPressedTimes = keyPressedTimes
 	u.inputState.KeyReleasedTimes = keyReleasedTimes
@@ -42,8 +42,8 @@ func (u *UserInterface) updateInputStateFromOutside(keyPressedTimes, keyReleased
 }
 
 func (u *UserInterface) updateInputStateForFrame(deviceScaleFactor float64) error {
-	u.m.Lock()
-	defer u.m.Unlock()
+	u.mu.Lock()
+	defer u.mu.Unlock()
 
 	s := deviceScaleFactor
 

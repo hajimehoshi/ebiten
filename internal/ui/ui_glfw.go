@@ -109,7 +109,7 @@ type glfwBackend struct {
 	// immContext is used only in Windows.
 	immContext uintptr
 
-	m sync.Mutex
+	mu sync.Mutex
 }
 
 const (
@@ -569,9 +569,9 @@ func (u *glfwBackend) createWindow() error {
 func (u *glfwBackend) registerWindowCloseCallback() error {
 	if u.closeCallback == nil {
 		u.closeCallback = func(_ *glfw.Window) {
-			u.m.Lock()
+			u.mu.Lock()
 			u.inputState.WindowBeingClosed = true
-			u.m.Unlock()
+			u.mu.Unlock()
 
 			if !u.desktopWindow.isWindowClosingHandled() {
 				return
@@ -706,8 +706,8 @@ func (u *glfwBackend) forceUpdateFrameDuringPollEvents(outsideWidth, outsideHeig
 func (u *glfwBackend) registerDropCallback() error {
 	if u.dropCallback == nil {
 		u.dropCallback = func(_ *glfw.Window, names []string) {
-			u.m.Lock()
-			defer u.m.Unlock()
+			u.mu.Lock()
+			defer u.mu.Unlock()
 			u.inputState.DroppedFiles = file.NewVirtualFS(names)
 		}
 	}
@@ -1710,8 +1710,8 @@ func (u *glfwBackend) currentMonitorImpl() (*Monitor, error) {
 }
 
 func (u *glfwBackend) readInputState(inputState *InputState) {
-	u.m.Lock()
-	defer u.m.Unlock()
+	u.mu.Lock()
+	defer u.mu.Unlock()
 	u.inputState.copyAndReset(inputState)
 }
 

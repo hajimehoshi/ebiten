@@ -65,7 +65,7 @@ type userInterfaceImpl struct {
 	inputState    InputState
 	nativeTouches []C.struct_Touch
 
-	m sync.Mutex
+	mu sync.Mutex
 }
 
 func (u *UserInterface) init() error {
@@ -105,8 +105,8 @@ func (*UserInterface) IsFocused() bool {
 }
 
 func (u *UserInterface) readInputState(inputState *InputState) {
-	u.m.Lock()
-	defer u.m.Unlock()
+	u.mu.Lock()
+	defer u.mu.Unlock()
 	u.inputState.copyAndReset(inputState)
 }
 

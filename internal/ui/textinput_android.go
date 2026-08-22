@@ -43,7 +43,7 @@ type androidTextInput struct {
 	vkRegion    image.Rectangle
 	vkKnown     bool
 
-	m sync.Mutex
+	mu sync.Mutex
 }
 
 var theAndroidTextInput androidTextInput
@@ -51,8 +51,8 @@ var theAndroidTextInput androidTextInput
 // SetTextInputDriver sets the platform text-input driver.
 func (u *UserInterface) SetTextInputDriver(driver TextInputDriver) {
 	t := &theAndroidTextInput
-	t.m.Lock()
-	defer t.m.Unlock()
+	t.mu.Lock()
+	defer t.mu.Unlock()
 	t.driver = driver
 }
 
@@ -60,8 +60,8 @@ func (u *UserInterface) SetTextInputDriver(driver TextInputDriver) {
 // buffer's states reported through [UserInterface.UpdateTextInputState].
 func (u *UserInterface) SetTextInputStateCallback(onState func(text string, selectionStartInUTF16, selectionEndInUTF16, composingStartInUTF16, composingEndInUTF16 int, passthroughKey bool, generation int)) {
 	t := &theAndroidTextInput
-	t.m.Lock()
-	defer t.m.Unlock()
+	t.mu.Lock()
+	defer t.mu.Unlock()
 	t.onState = onState
 }
 
@@ -69,16 +69,16 @@ func (u *UserInterface) SetTextInputStateCallback(onState func(text string, sele
 // ending reported through [UserInterface.DispatchTextInputEndByUser].
 func (u *UserInterface) SetTextInputEndByUserCallback(onEndByUser func()) {
 	t := &theAndroidTextInput
-	t.m.Lock()
-	defer t.m.Unlock()
+	t.mu.Lock()
+	defer t.mu.Unlock()
 	t.onEndByUser = onEndByUser
 }
 
 // textInputDriver returns the registered driver, or nil.
 func (u *UserInterface) textInputDriver() TextInputDriver {
 	t := &theAndroidTextInput
-	t.m.Lock()
-	defer t.m.Unlock()
+	t.mu.Lock()
+	defer t.mu.Unlock()
 	return t.driver
 }
 
@@ -109,9 +109,9 @@ func (u *UserInterface) DismissPlatformTextInput() {
 // the game receives too.
 func (u *UserInterface) UpdateTextInputState(text string, selectionStartInUTF16, selectionEndInUTF16, composingStartInUTF16, composingEndInUTF16 int, passthroughKey bool, generation int) {
 	t := &theAndroidTextInput
-	t.m.Lock()
+	t.mu.Lock()
 	onState := t.onState
-	t.m.Unlock()
+	t.mu.Unlock()
 	if onState == nil {
 		return
 	}
@@ -122,9 +122,9 @@ func (u *UserInterface) UpdateTextInputState(text string, selectionStartInUTF16,
 // e.g. by dismissing the virtual keyboard, to the callback.
 func (u *UserInterface) DispatchTextInputEndByUser() {
 	t := &theAndroidTextInput
-	t.m.Lock()
+	t.mu.Lock()
 	onEndByUser := t.onEndByUser
-	t.m.Unlock()
+	t.mu.Unlock()
 	if onEndByUser == nil {
 		return
 	}
@@ -135,8 +135,8 @@ func (u *UserInterface) DispatchTextInputEndByUser() {
 // shown, and the client-area region it leaves visible in native pixels.
 func (u *UserInterface) UpdateVirtualKeyboardState(shown bool, visibleRegion image.Rectangle) {
 	t := &theAndroidTextInput
-	t.m.Lock()
-	defer t.m.Unlock()
+	t.mu.Lock()
+	defer t.mu.Unlock()
 	t.vkShown = shown
 	t.vkRegion = visibleRegion
 	t.vkKnown = true
@@ -146,7 +146,7 @@ func (u *UserInterface) UpdateVirtualKeyboardState(shown bool, visibleRegion ima
 // false until a state is recorded.
 func (u *UserInterface) VirtualKeyboardState() (shown bool, visibleRegion image.Rectangle, ok bool) {
 	t := &theAndroidTextInput
-	t.m.Lock()
-	defer t.m.Unlock()
+	t.mu.Lock()
+	defer t.mu.Unlock()
 	return t.vkShown, t.vkRegion, t.vkKnown
 }

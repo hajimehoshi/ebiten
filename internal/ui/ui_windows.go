@@ -360,7 +360,7 @@ func (u *glfwBackend) setWindowColorModeImpl(mode colormode.ColorMode) error {
 func (u *glfwBackend) syncModKeysFromOS() {}
 
 // syncLockKeysFromOS updates the lock key state to the current OS state.
-// Must be called on the main thread with u.m unheld.
+// Must be called on the main thread with u.mu unheld.
 func (u *glfwBackend) syncLockKeysFromOS() {
 	if microsoftgdk.IsXbox() {
 		return
@@ -370,8 +370,8 @@ func (u *glfwBackend) syncLockKeysFromOS() {
 	caps := _GetKeyState(_VK_CAPITAL)&1 != 0
 	num := _GetKeyState(_VK_NUMLOCK)&1 != 0
 
-	u.m.Lock()
-	defer u.m.Unlock()
+	u.mu.Lock()
+	defer u.mu.Unlock()
 	u.inputState.CapsLock = NewLockKeyStateFromBool(caps)
 	u.inputState.NumLock = NewLockKeyStateFromBool(num)
 }

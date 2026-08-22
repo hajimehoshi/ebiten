@@ -55,8 +55,8 @@ func (u *UserInterface) updateInputStateForFrameImpl() error {
 		C.ebitengine_GetTouches(&u.nativeTouches[0])
 	}
 
-	u.m.Lock()
-	defer u.m.Unlock()
+	u.mu.Lock()
+	defer u.mu.Unlock()
 
 	u.inputState.Touches = u.inputState.Touches[:0]
 	for _, t := range u.nativeTouches {

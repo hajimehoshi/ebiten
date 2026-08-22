@@ -40,8 +40,8 @@ func (u *glfwBackend) registerInputCallbacks() error {
 		}
 
 		// As this function is called from GLFW callbacks, the current thread is main.
-		u.m.Lock()
-		defer u.m.Unlock()
+		u.mu.Lock()
+		defer u.mu.Unlock()
 
 		uk, ok := glfwKeyToUIKey[key]
 		if !ok {
@@ -71,8 +71,8 @@ func (u *glfwBackend) registerInputCallbacks() error {
 		}
 
 		// As this function is called from GLFW callbacks, the current thread is main.
-		u.m.Lock()
-		defer u.m.Unlock()
+		u.mu.Lock()
+		defer u.mu.Unlock()
 
 		ub, ok := glfwMouseButtonToMouseButton[button]
 		if !ok {
@@ -91,8 +91,8 @@ func (u *glfwBackend) registerInputCallbacks() error {
 	// the platform treats as shortcuts, like Ctrl+= on X11 (#3502).
 	if _, err := u.window.SetCharCallback(func(w *glfw.Window, char rune) {
 		// As this function is called from GLFW callbacks, the current thread is main.
-		u.m.Lock()
-		defer u.m.Unlock()
+		u.mu.Lock()
+		defer u.mu.Unlock()
 		u.inputState.appendRune(char)
 	}); err != nil {
 		return err
@@ -100,8 +100,8 @@ func (u *glfwBackend) registerInputCallbacks() error {
 
 	if _, err := u.window.SetScrollCallback(func(w *glfw.Window, xoff float64, yoff float64) {
 		// As this function is called from GLFW callbacks, the current thread is main.
-		u.m.Lock()
-		defer u.m.Unlock()
+		u.mu.Lock()
+		defer u.mu.Unlock()
 
 		now := time.Now()
 
@@ -152,8 +152,8 @@ func (u *glfwBackend) registerInputCallbacks() error {
 // and device scale factor. GetCursorPos and gamepad.Update are already called in
 // the mainThread.Call block of updateGame, so this avoids an extra round-trip.
 func (u *glfwBackend) updateInputStateForFrame(deviceScaleFactor float64) error {
-	u.m.Lock()
-	defer u.m.Unlock()
+	u.mu.Lock()
+	defer u.mu.Unlock()
 
 	s := deviceScaleFactor
 

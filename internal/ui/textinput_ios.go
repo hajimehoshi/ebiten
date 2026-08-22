@@ -28,7 +28,7 @@ type iosTextInput struct {
 
 	keyPressForComposition atomic.Bool
 
-	m sync.Mutex
+	mu sync.Mutex
 }
 
 var theIOSTextInput iosTextInput
@@ -37,8 +37,8 @@ var theIOSTextInput iosTextInput
 // by a platform text editor rather than by the game's view.
 func (u *UserInterface) SetKeyPressDispatcher(dispatch func(key Key)) {
 	t := &theIOSTextInput
-	t.m.Lock()
-	defer t.m.Unlock()
+	t.mu.Lock()
+	defer t.mu.Unlock()
 	t.dispatchKeyPress = dispatch
 }
 
@@ -46,8 +46,8 @@ func (u *UserInterface) SetKeyPressDispatcher(dispatch func(key Key)) {
 // release reported by a platform text editor rather than by the game's view.
 func (u *UserInterface) SetKeyEventDispatchers(down, up func(key Key)) {
 	t := &theIOSTextInput
-	t.m.Lock()
-	defer t.m.Unlock()
+	t.mu.Lock()
+	defer t.mu.Unlock()
 	t.dispatchKeyDown = down
 	t.dispatchKeyUp = up
 }
@@ -56,9 +56,9 @@ func (u *UserInterface) SetKeyEventDispatchers(down, up func(key Key)) {
 // nothing until a dispatcher is registered.
 func (u *UserInterface) DispatchKeyDown(key Key) {
 	t := &theIOSTextInput
-	t.m.Lock()
+	t.mu.Lock()
 	dispatch := t.dispatchKeyDown
-	t.m.Unlock()
+	t.mu.Unlock()
 	if dispatch == nil {
 		return
 	}
@@ -69,9 +69,9 @@ func (u *UserInterface) DispatchKeyDown(key Key) {
 // nothing until a dispatcher is registered.
 func (u *UserInterface) DispatchKeyUp(key Key) {
 	t := &theIOSTextInput
-	t.m.Lock()
+	t.mu.Lock()
 	dispatch := t.dispatchKeyUp
-	t.m.Unlock()
+	t.mu.Unlock()
 	if dispatch == nil {
 		return
 	}
@@ -82,9 +82,9 @@ func (u *UserInterface) DispatchKeyUp(key Key) {
 // input. It does nothing until a dispatcher is registered.
 func (u *UserInterface) DispatchKeyPress(key Key) {
 	t := &theIOSTextInput
-	t.m.Lock()
+	t.mu.Lock()
 	dispatch := t.dispatchKeyPress
-	t.m.Unlock()
+	t.mu.Unlock()
 	if dispatch == nil {
 		return
 	}
@@ -109,7 +109,7 @@ func (u *UserInterface) IsKeyDown(key Key) bool {
 	if key < 0 || KeyMax < key {
 		return false
 	}
-	u.m.Lock()
-	defer u.m.Unlock()
+	u.mu.Lock()
+	defer u.mu.Unlock()
 	return u.inputState.KeyPressedTimes[key] > u.inputState.KeyReleasedTimes[key]
 }

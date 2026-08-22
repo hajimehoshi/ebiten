@@ -50,7 +50,7 @@ type fbdevBackend struct {
 
 	inputState InputState
 
-	m sync.Mutex
+	mu sync.Mutex
 }
 
 // maybeNewFbdevBackend returns a backend presenting on a framebuffer device, or
@@ -207,8 +207,8 @@ func (b *fbdevBackend) outsideSize() (width, height float64) {
 }
 
 func (b *fbdevBackend) readInputState(inputState *InputState) {
-	b.m.Lock()
-	defer b.m.Unlock()
+	b.mu.Lock()
+	defer b.mu.Unlock()
 	b.inputState.copyAndReset(inputState)
 }
 

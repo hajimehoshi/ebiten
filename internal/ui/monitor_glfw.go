@@ -84,7 +84,7 @@ type monitors struct {
 	// monitor config change event.
 	monitors []*Monitor
 
-	m sync.Mutex
+	mu sync.Mutex
 
 	updateCalled atomic.Bool
 }
@@ -96,8 +96,8 @@ func (m *monitors) append(ms []*Monitor) []*Monitor {
 		panic("ui: (*monitors).update must be called before (*monitors).append is called")
 	}
 
-	m.m.Lock()
-	defer m.m.Unlock()
+	m.mu.Lock()
+	defer m.mu.Unlock()
 
 	return append(ms, m.monitors...)
 }
@@ -106,8 +106,8 @@ func (m *monitors) contains(monitor *Monitor) bool {
 	if !m.updateCalled.Load() {
 		return false
 	}
-	m.m.Lock()
-	defer m.m.Unlock()
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	return slices.Contains(m.monitors, monitor)
 }
 
@@ -116,8 +116,8 @@ func (m *monitors) primaryMonitor() *Monitor {
 		panic("ui: (*monitors).update must be called before (*monitors).primaryMonitor is called")
 	}
 
-	m.m.Lock()
-	defer m.m.Unlock()
+	m.mu.Lock()
+	defer m.mu.Unlock()
 
 	// GetMonitors might return nil in theory (#1878, #1887, #3241).
 	// primaryMonitor can be called at the initialization, so monitors can be nil.
@@ -131,8 +131,8 @@ func (m *monitors) primaryMonitor() *Monitor {
 // or returns nil if monitor is not found.
 // The position is in GLFW pixels.
 func (m *monitors) monitorFromPosition(x, y int) *Monitor {
-	m.m.Lock()
-	defer m.m.Unlock()
+	m.mu.Lock()
+	defer m.mu.Unlock()
 
 	for _, m := range m.monitors {
 		// Use an inclusive range. On macOS, the cursor position can take this range (#2794).
@@ -198,9 +198,9 @@ func (m *monitors) update() error {
 		})
 	}
 
-	m.m.Lock()
+	m.mu.Lock()
 	m.monitors = newMonitors
-	m.m.Unlock()
+	m.mu.Unlock()
 
 	m.updateCalled.Store(true)
 	return nil

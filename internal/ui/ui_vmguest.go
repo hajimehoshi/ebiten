@@ -102,7 +102,7 @@ type remoteBackend struct {
 
 	ticked bool
 
-	m sync.Mutex
+	mu sync.Mutex
 }
 
 func newRemoteBackend(u *UserInterface, endpoint string) *remoteBackend {
@@ -357,15 +357,15 @@ type vmHostQuerier interface {
 // size is the size of the host-owned screen the guest renders into. The device scale factor is not
 // set here; it is queried from the host per tick (it can change during a session).
 func (r *remoteBackend) setOutsideSize(outsideWidth, outsideHeight float64) {
-	r.m.Lock()
-	defer r.m.Unlock()
+	r.mu.Lock()
+	defer r.mu.Unlock()
 	r.outsideWidth = outsideWidth
 	r.outsideHeight = outsideHeight
 }
 
 func (r *remoteBackend) outsideSize() (outsideWidth, outsideHeight float64) {
-	r.m.Lock()
-	defer r.m.Unlock()
+	r.mu.Lock()
+	defer r.mu.Unlock()
 	return r.outsideWidth, r.outsideHeight
 }
 
@@ -376,15 +376,15 @@ func (r *remoteBackend) pullDeviceScaleFactor() (float64, error) {
 	if err != nil {
 		return 0, err
 	}
-	r.m.Lock()
-	defer r.m.Unlock()
+	r.mu.Lock()
+	defer r.mu.Unlock()
 	r.scale = s
 	return s, nil
 }
 
 func (r *remoteBackend) deviceScaleFactor() float64 {
-	r.m.Lock()
-	defer r.m.Unlock()
+	r.mu.Lock()
+	defer r.mu.Unlock()
 	return r.scale
 }
 
@@ -438,14 +438,14 @@ func (r *remoteBackend) flushCommands() error {
 }
 
 func (r *remoteBackend) readInputState(inputState *InputState) {
-	r.m.Lock()
-	defer r.m.Unlock()
+	r.mu.Lock()
+	defer r.mu.Unlock()
 	r.inputState.copyAndReset(inputState)
 }
 
 func (r *remoteBackend) updateInputStateForFrame(deviceScaleFactor float64) error {
-	r.m.Lock()
-	defer r.m.Unlock()
+	r.mu.Lock()
+	defer r.mu.Unlock()
 
 	x, y := r.context.clientPositionToLogicalPosition(r.rawCursorX, r.rawCursorY, deviceScaleFactor)
 	if !math.IsNaN(x) && !math.IsNaN(y) {
@@ -472,51 +472,51 @@ func (r *remoteBackend) updateInputStateForFrame(deviceScaleFactor float64) erro
 
 // pressKey injects a key-press event.
 func (r *remoteBackend) pressKey(key Key) {
-	r.m.Lock()
-	defer r.m.Unlock()
+	r.mu.Lock()
+	defer r.mu.Unlock()
 	r.inputState.setKeyPressed(key, r.InputTime())
 }
 
 // releaseKey injects a key-release event.
 func (r *remoteBackend) releaseKey(key Key) {
-	r.m.Lock()
-	defer r.m.Unlock()
+	r.mu.Lock()
+	defer r.mu.Unlock()
 	r.inputState.setKeyReleased(key, r.InputTime())
 }
 
 // moveCursor sets the cursor position in outside-screen device-independent pixels.
 func (r *remoteBackend) moveCursor(x, y float64) {
-	r.m.Lock()
-	defer r.m.Unlock()
+	r.mu.Lock()
+	defer r.mu.Unlock()
 	r.rawCursorX, r.rawCursorY = x, y
 }
 
 // pressMouseButton injects a mouse-button-press event.
 func (r *remoteBackend) pressMouseButton(button MouseButton) {
-	r.m.Lock()
-	defer r.m.Unlock()
+	r.mu.Lock()
+	defer r.mu.Unlock()
 	r.inputState.setMouseButtonPressed(button, r.InputTime())
 }
 
 // releaseMouseButton injects a mouse-button-release event.
 func (r *remoteBackend) releaseMouseButton(button MouseButton) {
-	r.m.Lock()
-	defer r.m.Unlock()
+	r.mu.Lock()
+	defer r.mu.Unlock()
 	r.inputState.setMouseButtonReleased(button, r.InputTime())
 }
 
 // scrollWheel injects a wheel movement (accumulated until the next tick reads it).
 func (r *remoteBackend) scrollWheel(x, y float64) {
-	r.m.Lock()
-	defer r.m.Unlock()
+	r.mu.Lock()
+	defer r.mu.Unlock()
 	r.inputState.WheelX += x
 	r.inputState.WheelY += y
 }
 
 // typeRune injects a typed character.
 func (r *remoteBackend) typeRune(c rune) {
-	r.m.Lock()
-	defer r.m.Unlock()
+	r.mu.Lock()
+	defer r.mu.Unlock()
 	r.inputState.appendRune(c)
 }
 
@@ -532,8 +532,8 @@ type rawTouch struct {
 // touch set is membership-based (just-pressed and just-released are recovered by the guest's own
 // inpututil diffing the set across ticks), so both upsert the position.
 func (r *remoteBackend) setTouch(id TouchID, x, y float64) {
-	r.m.Lock()
-	defer r.m.Unlock()
+	r.mu.Lock()
+	defer r.mu.Unlock()
 	for i := range r.rawTouches {
 		if r.rawTouches[i].id == id {
 			r.rawTouches[i].x = x
@@ -546,8 +546,8 @@ func (r *remoteBackend) setTouch(id TouchID, x, y float64) {
 
 // releaseTouch ends the touch identified by id. Releasing an unknown touch is a no-op.
 func (r *remoteBackend) releaseTouch(id TouchID) {
-	r.m.Lock()
-	defer r.m.Unlock()
+	r.mu.Lock()
+	defer r.mu.Unlock()
 	for i := range r.rawTouches {
 		if r.rawTouches[i].id == id {
 			r.rawTouches = slices.Delete(r.rawTouches, i, i+1)
