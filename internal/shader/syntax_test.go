@@ -4493,3 +4493,94 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 		}
 	}
 }
+
+// Issue #2905
+func TestSyntaxForRange(t *testing.T) {
+	cases := []struct {
+		stmt string
+		err  bool
+	}{
+		{stmt: `for i := range 3 {
+		_ = i
+	}`, err: false},
+		{stmt: `for i := range 3 {
+	}`, err: true},
+		{stmt: `for range 3 {
+	}`, err: false},
+		{stmt: `for _ = range 3 {
+	}`, err: false},
+		{stmt: `for _ := range 3 {
+	}`, err: true},
+		{stmt: `for i, j := range 3 {
+		_, _ = i, j
+	}`, err: true},
+		{stmt: `i := 0
+	for i = range 3 {
+		_ = i
+	}`, err: true},
+		{stmt: `const c = 3
+	for i := range c {
+		_ = i
+	}`, err: false},
+		{stmt: `for i := range int(3) {
+		_ = i
+	}`, err: false},
+		{stmt: `for i := range -3 {
+		_ = i
+	}`, err: false},
+		{stmt: `for i := range 3.0 {
+		_ = i
+	}`, err: true},
+		{stmt: `for i := range 3.5 {
+		_ = i
+	}`, err: true},
+		{stmt: `for i := range float(3) {
+		_ = i
+	}`, err: true},
+		{stmt: `n := 3
+	for i := range n {
+		_ = i
+	}`, err: true},
+		{stmt: `var a [3]int
+	for i := range a {
+		_ = i
+	}`, err: true},
+		{stmt: `for i := range 3 {
+		if i == 1 {
+			continue
+		}
+		break
+	}`, err: false},
+		{stmt: `for i := range 3 {
+		for j := range 3 {
+			_ = i * j
+		}
+	}`, err: false},
+		{stmt: `for i := range 3 {
+		i := 1
+		_ = i
+	}`, err: true},
+		{stmt: `for i := range 3 {
+		_ = i
+	}
+	for i := range 3 {
+		_ = i
+	}`, err: false},
+	}
+
+	for _, c := range cases {
+		stmt := c.stmt
+		src := fmt.Sprintf(`package main
+
+func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+	%s
+	return dstPos
+}`, stmt)
+		_, err := compileToIR([]byte(src))
+		if err == nil && c.err {
+			t.Errorf("%s must return an error but does not", stmt)
+		} else if err != nil && !c.err {
+			t.Errorf("%s must not return nil but returned %v", stmt, err)
+		}
+	}
+}

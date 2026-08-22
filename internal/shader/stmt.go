@@ -234,6 +234,13 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 		}
 		stmts = append(stmts, ss...)
 
+	case *ast.RangeStmt:
+		ss, ok := cs.parseForRange(block, fname, stmt, inParams, outParams, returnType)
+		if !ok {
+			return nil, false
+		}
+		stmts = append(stmts, ss...)
+
 	case *ast.IfStmt:
 		if stmt.Init != nil {
 			init := stmt.Init
@@ -917,6 +924,103 @@ func (cs *compileState) parseFor(block *block, fname string, stmt *ast.ForStmt, 
 			ForEnd:      end,
 			ForOp:       op,
 			ForDelta:    delta,
+		},
+	}, true
+}
+
+func (cs *compileState) parseForRange(block *block, fname string, stmt *ast.RangeStmt, inParams, outParams []variable, returnType shaderir.Type) ([]shaderir.Stmt, bool) {
+	msg := "range-statement must follow this format: for (varname) := range (constant) { ..."
+	if stmt.Value != nil {
+		cs.addError(stmt.Pos(), "range over an integer permits only one iteration variable")
+		return nil, false
+	}
+
+	varname := "_"
+	varpos := stmt.Pos()
+	if stmt.Key != nil {
+		ident, ok := stmt.Key.(*ast.Ident)
+		if !ok {
+			cs.addError(stmt.Key.Pos(), msg)
+			return nil, false
+		}
+		varname = ident.Name
+		varpos = ident.Pos()
+		if varname == "_" {
+			// A blank identifier is not a new variable, so ':=' is not allowed.
+			if stmt.Tok == token.DEFINE {
+				cs.addError(varpos, "no new variables on left side of :=")
+				return nil, false
+			}
+		} else if stmt.Tok != token.DEFINE {
+			cs.addError(varpos, msg)
+			return nil, false
+		}
+	}
+
+	exprs, ts, ss, ok := cs.parseExpr(block, fname, stmt.X, true)
+	if !ok {
+		return nil, false
+	}
+	if len(exprs) != 1 || len(ts) != 1 || len(ss) != 0 {
+		cs.addError(stmt.X.Pos(), msg)
+		return nil, false
+	}
+	t := ts[0]
+	if t.Main == shaderir.None && exprs[0].Const != nil {
+		t = toDefaultType(exprs[0].Const)
+	}
+	if t.Main != shaderir.Int {
+		cs.addError(stmt.X.Pos(), fmt.Sprintf("cannot range over a value of type %s", t.String()))
+		return nil, false
+	}
+	if exprs[0].Const == nil {
+		cs.addError(stmt.X.Pos(), "a range expression must be a constant")
+		return nil, false
+	}
+	end := gconstant.ToInt(exprs[0].Const)
+
+	// Create a new pseudo block for the counter variable, so that the counter variable belongs to the
+	// new pseudo block for each for-loop. Without this, the same-named counter variables in different
+	// for-loops confuses the parser.
+	pseudoBlock, ok := cs.parseBlock(block, fname, nil, inParams, outParams, returnType, false)
+	if !ok {
+		return nil, false
+	}
+	vartype := shaderir.Type{Main: shaderir.Int}
+	varidx := pseudoBlock.totalLocalVariableCount()
+	pseudoBlock.addNamedLocalVariable(varname, vartype, varpos)
+
+	b, ok := cs.parseBlock(pseudoBlock, fname, []ast.Stmt{stmt.Body}, inParams, outParams, returnType, true)
+	if !ok {
+		return nil, false
+	}
+	if pos, ok := pseudoBlock.unusedVars[0]; ok {
+		cs.addError(pos, fmt.Sprintf("local variable %s is not used", varname))
+		return nil, false
+	}
+
+	bodyir := b.ir
+	for len(bodyir.Stmts) == 1 && bodyir.Stmts[0].Type == shaderir.BlockStmt {
+		bodyir = bodyir.Stmts[0].Blocks[0]
+	}
+
+	// As the pseudo block is not actually used, copy the variable part to the actual block.
+	// This must be done after parsing the for-loop is done, or the duplicated variables confuses the
+	// parsing.
+	v := pseudoBlock.vars[0]
+	v.forLoopCounter = true
+	block.vars = append(block.vars, v)
+
+	return []shaderir.Stmt{
+		{
+			Type:        shaderir.For,
+			Blocks:      []*shaderir.Block{bodyir},
+			ForVarType:  vartype,
+			ForVarIndex: varidx,
+			ForInit:     gconstant.MakeInt64(0),
+			ForEnd:      end,
+			ForOp:       shaderir.LessThanOp,
+			ForDelta:    gconstant.MakeInt64(1),
 		},
 	}, true
 }
