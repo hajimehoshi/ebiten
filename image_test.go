@@ -4955,3 +4955,50 @@ func TestMaxImageSize(t *testing.T) {
 		img.WritePixels(make([]byte, 4*(s+1)))
 	}()
 }
+
+// Issue #3515
+func TestSubImageRaceConditionWithDrawImage(t *testing.T) {
+	const w, h = 4, 4
+	dst := ebiten.NewImage(w, h)
+	src := ebiten.NewImage(w, h)
+
+	var wg sync.WaitGroup
+	for i := range h {
+		for j := range w {
+			sub := dst.SubImage(image.Rect(i, j, i+1, j+1)).(*ebiten.Image)
+			wg.Go(func() {
+				for range 20 {
+					sub.DrawImage(src, nil)
+				}
+			})
+		}
+	}
+	wg.Wait()
+}
+
+// Issue #3515
+func TestSubImageDrawImageInOppositeDirections(t *testing.T) {
+	const w, h = 16, 16
+	img0 := ebiten.NewImage(w, h)
+	img1 := ebiten.NewImage(w, h)
+
+	r0 := image.Rect(0, 0, w/2, h/2)
+	r1 := image.Rect(w/2, h/2, w, h)
+
+	var wg sync.WaitGroup
+	wg.Go(func() {
+		dst := img0.SubImage(r0).(*ebiten.Image)
+		src := img1.SubImage(r0).(*ebiten.Image)
+		for range 1000 {
+			dst.DrawImage(src, nil)
+		}
+	})
+	wg.Go(func() {
+		dst := img1.SubImage(r1).(*ebiten.Image)
+		src := img0.SubImage(r1).(*ebiten.Image)
+		for range 1000 {
+			dst.DrawImage(src, nil)
+		}
+	})
+	wg.Wait()
+}
