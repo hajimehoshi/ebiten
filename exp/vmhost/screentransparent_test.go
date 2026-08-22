@@ -47,7 +47,7 @@ func TestScreenTransparentComposite(t *testing.T) {
 			}
 
 			// The guest draws nothing, so the whole screen is uncovered: a transparent guest composites to
-			// fully transparent, a non-transparent guest over opaque black.
+			// fully transparent, a non-transparent guest to opaque black.
 			tickAndFrame(t, guest)
 
 			pixels := make([]byte, 4*pw*ph)

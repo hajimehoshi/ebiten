@@ -118,10 +118,6 @@ type GuestSession struct {
 	// cursorShape is the guest game's most recently reported cursor shape. It starts at the default
 	// shape and the guest updates it whenever its game changes the value.
 	cursorShape ebiten.CursorShapeType
-	// screenTransparent is the guest game's most recently reported transparent-screen intent. It starts
-	// false (opaque, matching ebiten.RunGameOptions' default); the session publishes the renderer's value
-	// here after each rendered batch so CompositeFrame can read it on the host goroutine.
-	screenTransparent bool
 	// pendingEvents holds the guest events (vibrations, new audio streams) awaiting handler delivery, in
 	// arrival order. The session goroutine appends them and dispatchPendingEvents drains them on the
 	// goroutine calling AdvanceTicks or WaitTicks. Events for a nil handler are never queued, so the queue
@@ -461,9 +457,6 @@ func (g *GuestSession) sendAndReceive(msg *vmprotocol.HostMessage) error {
 			if err := g.renderer.render(gm.GraphicsCommands); err != nil {
 				return err
 			}
-			// Publish the renderer's transparent-screen intent for cross-goroutine reads. The renderer is
-			// this goroutine's alone here, so reading its field directly is safe.
-			g.setScreenTransparent(g.renderer.screenTransparent)
 			continue
 		case vmprotocol.GuestMessageKindQueryReadPixels:
 			if err := g.answerReadPixels(&gm); err != nil {
@@ -739,11 +732,10 @@ func (g *GuestSession) WaitFrame() bool {
 // (the screen keeps its previous content) or when the session has ended (see [GuestSession.Err]). It
 // must be called from within the host's frame.
 //
-// A guest that did not request a transparent screen ([ebiten.RunGameOptions].ScreenTransparent) is
-// composited over opaque black, as a standalone non-transparent window presents its frame; a
-// transparent guest's frame keeps its alpha.
+// The frame replaces the outside screen's content rather than blending over it, so the outside screen
+// carries the guest screen's alpha.
 func (g *GuestSession) CompositeFrame() bool {
-	frame, transparent := g.takeFrame()
+	frame := g.takeFrame()
 	if frame.img == nil {
 		return false
 	}
@@ -761,12 +753,6 @@ func (g *GuestSession) CompositeFrame() bool {
 		// A disposed outside screen draws nothing.
 		return false
 	}
-	// Prefill opaque black and blend the frame over it; a transparent guest's frame is copied as-is.
-	blend := graphicsdriver.BlendCopy
-	if !transparent {
-		dst.Fill(0, 0, 0, 1, dstRegion)
-		blend = graphicsdriver.BlendSourceOver
-	}
 	n := 4 * graphics.VertexFloatCount
 	g.compositeVtxBuf = slices.Grow(g.compositeVtxBuf[:0], n)[:n]
 	graphics.QuadVerticesFromDstAndSrc(g.compositeVtxBuf,
@@ -774,22 +760,22 @@ func (g *GuestSession) CompositeFrame() bool {
 		0, 0, float32(frame.width), float32(frame.height), 1, 1, 1, 1)
 	srcs := [graphics.ShaderSrcImageCount]*ui.Image{frame.img}
 	srcRegions := [graphics.ShaderSrcImageCount]image.Rectangle{image.Rect(0, 0, frame.width, frame.height)}
-	dst.DrawTriangles(srcs, g.compositeVtxBuf, graphics.QuadIndices(), blend, dstRegion, srcRegions, ui.NearestFilterShader, nil, true)
+	dst.DrawTriangles(srcs, g.compositeVtxBuf, graphics.QuadIndices(), graphicsdriver.BlendCopy, dstRegion, srcRegions, ui.NearestFilterShader, nil, true)
 	return true
 }
 
-// takeFrame returns the completed frame for the host to composite and the guest's transparent-screen
-// intent, or the zero value (nil img) when none is ready.
-func (g *GuestSession) takeFrame() (frame hostImage, transparent bool) {
+// takeFrame returns the completed frame for the host to composite, or the zero value (nil img) when
+// none is ready.
+func (g *GuestSession) takeFrame() hostImage {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	if g.closed || g.err != nil {
-		return hostImage{}, false
+		return hostImage{}
 	}
 	if g.framePhase != framePhaseCompositable {
-		return hostImage{}, false
+		return hostImage{}
 	}
-	return g.compositableFrame, g.screenTransparent
+	return g.compositableFrame
 }
 
 // markComposited records that the host has consumed the ready frame, freeing the mirror for the session
@@ -1423,13 +1409,6 @@ func (g *GuestSession) CursorShape() ebiten.CursorShapeType {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	return g.cursorShape
-}
-
-// setScreenTransparent records the guest's reported transparent-screen intent for CompositeFrame.
-func (g *GuestSession) setScreenTransparent(transparent bool) {
-	g.mu.Lock()
-	defer g.mu.Unlock()
-	g.screenTransparent = transparent
 }
 
 // readGuestAudio fills b with player id's samples from the guest, truncated to whole stereo frames,

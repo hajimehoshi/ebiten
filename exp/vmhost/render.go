@@ -47,11 +47,6 @@ type frameRenderer struct {
 	// outside screen: a frame is drawn through many commands, and the outside screen must advance from
 	// one completed frame to the next (at CompositeFrame), never showing a partially drawn state.
 	screen *hostImage
-
-	// screenTransparent records the guest game's most recently reported transparent-screen intent. The
-	// renderer does not act on it; the session publishes it so CompositeFrame can composite a
-	// non-transparent guest's frame over opaque black.
-	screenTransparent bool
 }
 
 type hostImage struct {
@@ -101,13 +96,11 @@ func (f *frameRenderer) renderOne(c vmprotocol.GraphicsCommand) error {
 	case vmprotocol.GraphicsCommandKindInitialize,
 		vmprotocol.GraphicsCommandKindBegin,
 		vmprotocol.GraphicsCommandKindEnd,
+		vmprotocol.GraphicsCommandKindSetTransparent,
 		vmprotocol.GraphicsCommandKindSetVsyncEnabled,
 		vmprotocol.GraphicsCommandKindReadPixels:
-		// Framing, vsync, and read-back are owned by the host's own ebiten loop.
-		return nil
-
-	case vmprotocol.GraphicsCommandKindSetTransparent:
-		f.screenTransparent = c.Transparent
+		// Framing, vsync, and read-back are owned by the host's own ebiten loop, and the guest clears its
+		// own screen to the alpha its transparency setting implies.
 		return nil
 
 	case vmprotocol.GraphicsCommandKindNewImage, vmprotocol.GraphicsCommandKindNewScreenFramebufferImage:
