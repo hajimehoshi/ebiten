@@ -40,16 +40,19 @@ type VirtualFS struct {
 }
 
 func NewVirtualFS(paths []string) (*VirtualFS, error) {
-	absPaths, err := realPaths(paths)
+	ps, err := absPaths(paths)
 	if err != nil {
 		return nil, err
 	}
-	rootDir := commonDirOfParents(absPaths)
+	rootDir := commonDirOfParents(ps)
 
-	root := &virtualFSNode{}
-	for _, realPath := range absPaths {
-		root.add(strings.Split(entryName(rootDir, realPath), "/"), realPath)
+	root := &virtualFSNode{
+		absPath: rootDir,
 	}
+	for _, absPath := range ps {
+		root.add(strings.Split(entryName(rootDir, absPath), "/"), absPath)
+	}
+	root.fillAbsPaths()
 	root.sortRecursively()
 
 	return &VirtualFS{
@@ -67,13 +70,21 @@ func (v *VirtualFS) Open(name string) (fs.File, error) {
 		}
 	}
 
-	if n.realPath == "" {
+	if !n.given {
 		return &virtualDir{node: n}, nil
 	}
 
+	absPath := n.join(rest)
 	// os.File should implement fs.File interface, so this should be fine even on Windows.
 	// See https://cs.opensource.google/go/go/+/refs/tags/go1.23.0:src/os/file.go;l=695-710
-	return os.Open(n.join(rest))
+	f, err := os.Open(absPath)
+	if err != nil {
+		return nil, err
+	}
+	return &virtualFile{
+		File:    f,
+		absPath: absPath,
+	}, nil
 }
 
 func (v *VirtualFS) ReadDir(name string) ([]fs.DirEntry, error) {
@@ -86,7 +97,7 @@ func (v *VirtualFS) ReadDir(name string) ([]fs.DirEntry, error) {
 		}
 	}
 
-	if n.realPath == "" {
+	if !n.given {
 		d := virtualDir{node: n}
 		return d.ReadDir(-1)
 	}
@@ -111,7 +122,7 @@ func (v *VirtualFS) ReadFile(name string) ([]byte, error) {
 		}
 	}
 
-	if n.realPath == "" {
+	if !n.given {
 		return nil, &fs.PathError{
 			Op:   "readfile",
 			Path: name,
@@ -123,7 +134,7 @@ func (v *VirtualFS) ReadFile(name string) ([]byte, error) {
 }
 
 // find returns the node for the given name, and the path elements left unresolved by the node.
-// The elements are left only for a node for a real path, where the real file system takes over.
+// The elements are left only for a node of a given path, where the real file system takes over.
 // find returns a nil node if the name is invalid or is not in the file system.
 func (v *VirtualFS) find(name string) (*virtualFSNode, []string) {
 	if !fs.ValidPath(name) {
@@ -137,7 +148,7 @@ func (v *VirtualFS) find(name string) (*virtualFSNode, []string) {
 	n := v.root
 	es := strings.Split(name, "/")
 	for i, e := range es {
-		if n.realPath != "" {
+		if n.given {
 			return n, es[i:]
 		}
 		idx := slices.IndexFunc(n.children, func(c *virtualFSNode) bool {
@@ -153,15 +164,16 @@ func (v *VirtualFS) find(name string) (*virtualFSNode, []string) {
 
 // virtualFSNode is an entry of a VirtualFS.
 //
-// A node either represents a real path, or exists only to reach such nodes.
+// A node is either one of the given paths, or exists only to reach such nodes.
 // Only the latter has children.
 type virtualFSNode struct {
 	name     string
-	realPath string
+	absPath  string
+	given    bool
 	children []*virtualFSNode
 }
 
-func (n *virtualFSNode) add(es []string, realPath string) {
+func (n *virtualFSNode) add(es []string, absPath string) {
 	name := es[0]
 	idx := slices.IndexFunc(n.children, func(c *virtualFSNode) bool {
 		return c.name == name
@@ -173,10 +185,26 @@ func (n *virtualFSNode) add(es []string, realPath string) {
 	c := n.children[idx]
 
 	if len(es) == 1 {
-		c.realPath = realPath
+		c.absPath = absPath
+		c.given = true
 		return
 	}
-	c.add(es[1:], realPath)
+	c.add(es[1:], absPath)
+}
+
+// fillAbsPaths sets the absolute path of the nodes that are not one of the given paths.
+func (n *virtualFSNode) fillAbsPaths() {
+	for _, c := range n.children {
+		if !c.given {
+			if n.absPath != "" {
+				c.absPath = filepath.Join(n.absPath, c.name)
+			} else {
+				// The file system has no root directory, so a child of the root is a volume name.
+				c.absPath = joinVolumePath(c.name, nil)
+			}
+		}
+		c.fillAbsPaths()
+	}
 }
 
 func (n *virtualFSNode) sortRecursively() {
@@ -188,16 +216,20 @@ func (n *virtualFSNode) sortRecursively() {
 	}
 }
 
-// join returns the real path for the given path elements under the node.
+// join returns the absolute path for the given path elements under the node.
 func (n *virtualFSNode) join(es []string) string {
-	return filepath.Join(append([]string{n.realPath}, es...)...)
+	return filepath.Join(append([]string{n.absPath}, es...)...)
 }
 
-// realPaths returns the given paths as absolute paths, sorted, without duplications,
+// absPaths returns the given paths as absolute paths, sorted, without duplications,
 // and without a path under another path.
-func realPaths(paths []string) ([]string, error) {
+func absPaths(paths []string) ([]string, error) {
 	var ps []string
 	for _, p := range paths {
+		// filepath.Abs returns the working directory for an empty path.
+		if p == "" {
+			continue
+		}
 		abs, err := filepath.Abs(p)
 		if err != nil {
 			return nil, fmt.Errorf("file: getting an absolute path of %s failed: %w", p, err)
@@ -212,7 +244,7 @@ func realPaths(paths []string) ([]string, error) {
 	slices.Sort(ps)
 	ps = slices.Compact(ps)
 
-	// A node for a real path must not have children. Drop paths reachable from another path.
+	// A node of a given path must not have children. Drop paths reachable from another path.
 	var res []string
 	for _, absPath := range ps {
 		if slices.ContainsFunc(res, func(p string) bool {
@@ -283,8 +315,8 @@ func commonDirOfParents(absPaths []string) string {
 
 // entryName returns the name of the given real path in a file system whose root directory is rootDir.
 // If rootDir is empty, the name starts with a volume name so that the name is still unique.
-func entryName(rootDir, realPath string) string {
-	vol, es := splitVolumePath(realPath)
+func entryName(rootDir, absPath string) string {
+	vol, es := splitVolumePath(absPath)
 
 	if rootDir != "" {
 		_, rootEs := splitVolumePath(rootDir)
@@ -293,6 +325,26 @@ func entryName(rootDir, realPath string) string {
 
 	// A volume name can contain separators e.g. `\\host\share`. Keep it as one path element.
 	return path.Join(append([]string{vol}, es...)...)
+}
+
+// virtualFile is a file in a VirtualFS that reports its own path in the real file system.
+type virtualFile struct {
+	*os.File
+	absPath string
+}
+
+func (v *virtualFile) AbsPath() string {
+	return v.absPath
+}
+
+// virtualDirEntry is an entry of a VirtualFS that reports its own path in the real file system.
+type virtualDirEntry struct {
+	fs.DirEntry
+	absPath string
+}
+
+func (v *virtualDirEntry) AbsPath() string {
+	return v.absPath
 }
 
 type virtualDir struct {
@@ -343,20 +395,26 @@ func (v *virtualDir) ReadDir(count int) ([]fs.DirEntry, error) {
 	ents := make([]fs.DirEntry, n)
 	for i := range ents {
 		c := v.node.children[v.offset+i]
-		if c.realPath == "" {
-			ents[i] = fs.FileInfoToDirEntry(&virtualDirFileInfo{
-				name: c.name,
-			})
+		if !c.given {
+			ents[i] = &virtualDirEntry{
+				DirEntry: fs.FileInfoToDirEntry(&virtualDirFileInfo{
+					name: c.name,
+				}),
+				absPath: c.absPath,
+			}
 			continue
 		}
-		fi, err := os.Stat(c.realPath)
+		fi, err := os.Stat(c.absPath)
 		if err != nil {
 			if count <= 0 {
 				return ents, err
 			}
 			return nil, err
 		}
-		ents[i] = fs.FileInfoToDirEntry(fi)
+		ents[i] = &virtualDirEntry{
+			DirEntry: fs.FileInfoToDirEntry(fi),
+			absPath:  c.absPath,
+		}
 	}
 	v.offset += n
 

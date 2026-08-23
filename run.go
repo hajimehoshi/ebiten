@@ -768,9 +768,18 @@ func toUIRunOptions(options *RunGameOptions) *ui.RunOptions {
 //
 // As of Ebitengine 2.10, the returned value also implements [io/fs.ReadFileFS].
 //
+// As of Ebitengine 2.10, on desktops, the directory entries and the files the returned value
+// provides also implement [AbsPather].
+//
 // DroppedFiles is concurrent-safe.
 func DroppedFiles() fs.FS {
 	return inputstate.Get().DroppedFiles()
+}
+
+// AbsPather is a directory entry or a file that has a path in the real file system.
+type AbsPather interface {
+	// AbsPath returns the absolute path in the real file system.
+	AbsPath() string
 }
 
 // Tick returns the current tick count.

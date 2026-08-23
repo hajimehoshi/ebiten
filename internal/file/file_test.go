@@ -192,3 +192,60 @@ func TestFSRootDirectoryPath(t *testing.T) {
 		t.Errorf("names: got: %v, want: %v", got, want)
 	}
 }
+
+func absPath(t *testing.T, entry any) string {
+	t.Helper()
+
+	a, ok := entry.(interface{ AbsPath() string })
+	if !ok {
+		t.Fatalf("%T must have an AbsPath method", entry)
+	}
+	return a.AbsPath()
+}
+
+func TestFSAbsPath(t *testing.T) {
+	vfs := newVirtualFS(t, []string{"testdata/foo.txt", "testdata/dir/foo.txt"})
+
+	base, err := filepath.Abs("testdata")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// "dir" is not a given path, but it still has a path in the real file system.
+	want := map[string]string{
+		"dir":     filepath.Join(base, "dir"),
+		"foo.txt": filepath.Join(base, "foo.txt"),
+	}
+	ents, err := fs.ReadDir(vfs, ".")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, ent := range ents {
+		if got, want := absPath(t, ent), want[ent.Name()]; got != want {
+			t.Errorf("AbsPath() for %s: got: %s, want: %s", ent.Name(), got, want)
+		}
+	}
+
+	subEnts, err := fs.ReadDir(vfs, "dir")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(subEnts) != 1 {
+		t.Fatalf("len(subEnts): got: %d, want: %d", len(subEnts), 1)
+	}
+	if got, want := absPath(t, subEnts[0]), filepath.Join(base, "dir", "foo.txt"); got != want {
+		t.Errorf("AbsPath(): got: %s, want: %s", got, want)
+	}
+
+	// An opened file reports its path as well.
+	f, err := vfs.Open("dir/foo.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		_ = f.Close()
+	}()
+	if got, want := absPath(t, f), filepath.Join(base, "dir", "foo.txt"); got != want {
+		t.Errorf("AbsPath(): got: %s, want: %s", got, want)
+	}
+}
