@@ -945,11 +945,11 @@ func (u *glfwBackend) initOnMainThread(options *RunOptions) error {
 	return nil
 }
 
-// outsideSize returns the size to give the game's Layout, in device-independent pixels, and the
+// layoutSizes returns the size to give the game's Layout, in device-independent pixels, and the
 // size of the final rendering destination, in pixels.
 //
-// outsideSize must be called from the main thread.
-func (u *glfwBackend) outsideSize() (outsideWidth, outsideHeight float64, screenWidth, screenHeight int, err error) {
+// layoutSizes must be called from the main thread.
+func (u *glfwBackend) layoutSizes() (outsideWidth, outsideHeight float64, screenWidth, screenHeight int, err error) {
 	f, err := u.isFullscreen()
 	if err != nil {
 		return 0, 0, 0, 0, err
@@ -1213,7 +1213,7 @@ func (u *glfwBackend) update() (outsideWidth, outsideHeight float64, screenWidth
 		return 0, 0, 0, 0, err
 	}
 
-	return u.outsideSize()
+	return u.layoutSizes()
 }
 
 func (u *glfwBackend) loopGame() (err error) {
