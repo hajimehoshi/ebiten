@@ -326,20 +326,35 @@ func (u *glfwBackend) setWindowMonitor(monitor *Monitor) error {
 	return nil
 }
 
+// isWindowedFullscreen reports whether the window is in GLFW's fullscreen, which covers a monitor
+// without using the platform's native fullscreen.
+//
+// isWindowedFullscreen must be called from the main thread.
+func (u *glfwBackend) isWindowedFullscreen() (bool, error) {
+	m, err := u.window.GetMonitor()
+	if err != nil {
+		return false, err
+	}
+	return m != nil, nil
+}
+
+// isFullscreen reports whether the window is fullscreen, either in windowed fullscreen or in native
+// fullscreen.
+//
 // isFullscreen must be called from the main thread.
 func (u *glfwBackend) isFullscreen() (bool, error) {
 	if !u.isRunning() {
 		panic("ui: isFullscreen can't be called before the main loop starts")
 	}
-	m, err := u.window.GetMonitor()
+	wf, err := u.isWindowedFullscreen()
 	if err != nil {
 		return false, err
 	}
-	n, err := u.isNativeFullscreen()
+	nf, err := u.isNativeFullscreen()
 	if err != nil {
 		return false, err
 	}
-	return m != nil || n, nil
+	return wf || nf, nil
 }
 
 func (u *glfwBackend) IsFullscreen() bool {
@@ -950,15 +965,11 @@ func (u *glfwBackend) initOnMainThread(options *RunOptions) error {
 //
 // layoutSizes must be called from the main thread.
 func (u *glfwBackend) layoutSizes() (outsideWidth, outsideHeight float64, screenWidth, screenHeight int, err error) {
-	f, err := u.isFullscreen()
+	wf, err := u.isWindowedFullscreen()
 	if err != nil {
 		return 0, 0, 0, 0, err
 	}
-	n, err := u.isNativeFullscreen()
-	if err != nil {
-		return 0, 0, 0, 0, err
-	}
-	if f && !n {
+	if wf {
 		// On Linux, the window size is not reliable just after making the window
 		// fullscreened. Use the monitor size.
 		// On macOS's native fullscreen, the window's size returns a more precise size
@@ -1748,14 +1759,6 @@ func (u *glfwBackend) Window() backendWindow {
 
 // maximizeWindow must be called from the main thread.
 func (u *glfwBackend) maximizeWindow() error {
-	n, err := u.isNativeFullscreen()
-	if err != nil {
-		return err
-	}
-	if n {
-		return nil
-	}
-
 	f, err := u.isFullscreen()
 	if err != nil {
 		return err
