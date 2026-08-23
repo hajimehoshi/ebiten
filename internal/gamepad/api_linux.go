@@ -80,6 +80,10 @@ const (
 
 	_SYN_REPORT  = 0
 	_SYN_DROPPED = 3
+
+	_FF_RUMBLE = 0x50
+	_FF_MAX    = 0x7f
+	_FF_CNT    = _FF_MAX + 1
 )
 
 func _IOC(dir, typ, nr, size uint) uint {
@@ -88,6 +92,10 @@ func _IOC(dir, typ, nr, size uint) uint {
 
 func _IOR(typ, nr, size uint) uint {
 	return _IOC(_IOC_READ, typ, nr, size)
+}
+
+func _IOW(typ, nr, size uint) uint {
+	return _IOC(_IOC_WRITE, typ, nr, size)
 }
 
 func _EVIOCGABS(abs uint) uint {
@@ -104,6 +112,61 @@ func _EVIOCGID() uint {
 
 func _EVIOCGNAME(len uint) uint {
 	return _IOC(_IOC_READ, 'E', 0x06, len)
+}
+
+func _EVIOCSFF() uint {
+	return _IOW('E', 0x80, uint(unsafe.Sizeof(ff_effect{})))
+}
+
+type ff_envelope struct {
+	attack_length uint16
+	attack_level  uint16
+	fade_length   uint16
+	fade_level    uint16
+}
+
+// ff_periodic_effect is the largest and most aligned member of ff_effect's
+// parameter union. ff_effect uses it as the union field so that the union's
+// size and alignment are correct on every architecture.
+type ff_periodic_effect struct {
+	waveform    uint16
+	period      uint16
+	magnitude   int16
+	offset      int16
+	phase       uint16
+	envelope    ff_envelope
+	custom_len  uint32
+	custom_data uintptr
+}
+
+type ff_rumble_effect struct {
+	strong_magnitude uint16
+	weak_magnitude   uint16
+}
+
+type ff_trigger struct {
+	button   uint16
+	interval uint16
+}
+
+type ff_replay struct {
+	length uint16
+	delay  uint16
+}
+
+type ff_effect struct {
+	typ       uint16
+	id        int16
+	direction uint16
+	trigger   ff_trigger
+	replay    ff_replay
+	u         ff_periodic_effect
+}
+
+// rumble accesses the rumble parameters at the head of the effect's parameter
+// union.
+func (e *ff_effect) rumble() *ff_rumble_effect {
+	return (*ff_rumble_effect)(unsafe.Pointer(&e.u))
 }
 
 type input_absinfo struct {
