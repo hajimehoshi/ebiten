@@ -210,6 +210,7 @@ func (g *nativeGamepadsDesktop) detectConnection(gamepads *gamepads) error {
 			gp := gamepads.add(name, sdlID)
 			gp.native = &nativeGamepadDesktop{
 				xinputIndex: i,
+				rumble:      &xinputRumbler{index: i},
 			}
 		}
 	}
@@ -341,6 +342,7 @@ func (g *nativeGamepadsDesktop) dinput8EnumDevicesCallback(lpddi *_DIDEVICEINSTA
 
 	name := windows.UTF16ToString(lpddi.tszInstanceName[:])
 	var sdlID string
+	var rumble rumbler = noRumbler{}
 	if string(lpddi.guidProduct.Data4[2:8]) == "PIDVID" {
 		// This seems different from the current SDL implementation.
 		// Probably guidProduct includes the vendor and the product information, but this works.
@@ -350,6 +352,9 @@ func (g *nativeGamepadsDesktop) dinput8EnumDevicesCallback(lpddi *_DIDEVICEINSTA
 			byte(lpddi.guidProduct.Data1>>8),
 			byte(lpddi.guidProduct.Data1>>16),
 			byte(lpddi.guidProduct.Data1>>24))
+		if sony := openSonyRumble(dinputPath, uint16(lpddi.guidProduct.Data1), uint16(lpddi.guidProduct.Data1>>16)); sony != nil {
+			rumble = sony
+		}
 	} else {
 		bs := []byte(name)
 		if len(bs) < 12 {
@@ -367,6 +372,7 @@ func (g *nativeGamepadsDesktop) dinput8EnumDevicesCallback(lpddi *_DIDEVICEINSTA
 		dinputAxes:    make([]float64, ctx.axisCount+ctx.sliderCount),
 		dinputButtons: make([]bool, ctx.buttonCount),
 		dinputHats:    make([]int, ctx.povCount),
+		rumble:        rumble,
 	}
 
 	return _DIENUM_CONTINUE
@@ -538,8 +544,7 @@ type nativeGamepadDesktop struct {
 	xinputIndex int
 	xinputState _XINPUT_STATE
 
-	vib    bool
-	vibEnd time.Time
+	rumble rumbler
 }
 
 func (*nativeGamepadDesktop) hasOwnStandardLayoutMapping() bool {
@@ -570,6 +575,7 @@ func (g *nativeGamepadDesktop) update(gamepads *gamepads) (err error) {
 		if g.dinputDevice != nil {
 			g.dinputDevice.Release()
 		}
+		g.rumble.close()
 	}()
 
 	if g.usesDInput() {
@@ -654,6 +660,8 @@ func (g *nativeGamepadDesktop) update(gamepads *gamepads) (err error) {
 				hi++
 			}
 		}
+
+		g.rumble.update()
 		return nil
 	}
 
@@ -667,10 +675,7 @@ func (g *nativeGamepadDesktop) update(gamepads *gamepads) (err error) {
 	}
 	g.xinputState = state
 
-	// XInput vibration lasts until changed, so stop it once the requested duration has passed.
-	if g.vib && time.Now().Sub(g.vibEnd) >= 0 {
-		g.stopVibration()
-	}
+	g.rumble.update()
 	return nil
 }
 
@@ -784,39 +789,5 @@ func (g *nativeGamepadDesktop) hatState(hat int) int {
 }
 
 func (g *nativeGamepadDesktop) vibrate(duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
-	if g.usesDInput() {
-		// TODO: Implement this for DirectInput devices (#2014)
-		return
-	}
-
-	if strongMagnitude <= 0 && weakMagnitude <= 0 {
-		g.stopVibration()
-		return
-	}
-
-	g.vib = true
-	g.vibEnd = time.Now().Add(duration)
-	_ = _XInputSetState(uint32(g.xinputIndex), &_XINPUT_VIBRATION{
-		wLeftMotorSpeed:  xinputMotorSpeed(strongMagnitude),
-		wRightMotorSpeed: xinputMotorSpeed(weakMagnitude),
-	})
-}
-
-// xinputMotorSpeed converts a magnitude in the range 0 to 1 to an XInput motor speed.
-// Out-of-range values are clamped and NaN is treated as 0.
-func xinputMotorSpeed(magnitude float64) uint16 {
-	// Converting an out-of-range or NaN value to uint16 is implementation-defined,
-	// so such values must be rejected before the conversion.
-	if !(magnitude > 0) {
-		return 0
-	}
-	if magnitude > 1 {
-		return 0xffff
-	}
-	return uint16(magnitude * 0xffff)
-}
-
-func (g *nativeGamepadDesktop) stopVibration() {
-	g.vib = false
-	_ = _XInputSetState(uint32(g.xinputIndex), &_XINPUT_VIBRATION{})
+	g.rumble.vibrate(duration, strongMagnitude, weakMagnitude)
 }

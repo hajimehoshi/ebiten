@@ -72,8 +72,9 @@ type VibrateGamepadOptions struct {
 //
 // VibrateGamepad does nothing on Android and Linux so far.
 //
-// On Windows, VibrateGamepad works only for XInput gamepads (e.g. Xbox controllers).
-// VibrateGamepad does nothing for DirectInput gamepads.
+// On Windows, VibrateGamepad works only for XInput gamepads (e.g. Xbox controllers) and
+// for PlayStation controllers (DualShock 4 and DualSense).
+// VibrateGamepad does nothing for other DirectInput gamepads.
 //
 // On macOS, VibrateGamepad works only for gamepads the GameController framework supports
 // (e.g. Xbox, PlayStation, and MFi controllers). VibrateGamepad does nothing for other gamepads.
