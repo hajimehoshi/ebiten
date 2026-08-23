@@ -897,9 +897,10 @@ func (g *nativeGamepadDesktop) vibrate(duration time.Duration, strongMagnitude f
 }
 
 // xinputMotorSpeed converts a magnitude in the range 0 to 1 to an XInput motor speed.
-// Out-of-range values are clamped, and NaN is treated as 0, since converting such
-// values to uint16 is implementation-defined.
+// Out-of-range values are clamped and NaN is treated as 0.
 func xinputMotorSpeed(magnitude float64) uint16 {
+	// Converting an out-of-range or NaN value to uint16 is implementation-defined,
+	// so such values must be rejected before the conversion.
 	if !(magnitude > 0) {
 		return 0
 	}

@@ -70,10 +70,13 @@ type VibrateGamepadOptions struct {
 
 // VibrateGamepad vibrates the specified gamepad with the specified options.
 //
-// VibrateGamepad works only on browsers, Nintendo Switch, Xbox, Windows, macOS, and iOS so far.
+// VibrateGamepad does nothing on Android and Linux so far.
 //
 // On Windows, VibrateGamepad works only for XInput gamepads (e.g. Xbox controllers).
 // VibrateGamepad does nothing for DirectInput gamepads.
+//
+// On macOS, VibrateGamepad works only for gamepads the GameController framework supports
+// (e.g. Xbox, PlayStation, and MFi controllers). VibrateGamepad does nothing for other gamepads.
 //
 // VibrateGamepad does nothing before the game starts.
 //
