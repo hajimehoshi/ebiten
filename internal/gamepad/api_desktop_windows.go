@@ -147,28 +147,25 @@ var (
 	procSetWindowLongPtrW = user32.NewProc("SetWindowLongPtrW") // 64-Bit Windows version.
 )
 
-// As there is no guarantee that these DLLs exist, NewLazySystemDLL is not available.
-// TODO: Is there a 'system' version of LoadLibrary?
 var (
-	dinput8 windows.Handle
-	xinput  windows.Handle
+	procDirectInput8Create *windows.LazyProc
 
-	procDirectInput8Create    uintptr
-	procXInputGetCapabilities uintptr
-	procXInputGetState        uintptr
-	procXInputSetState        uintptr
+	procXInputGetCapabilities *windows.LazyProc
+	procXInputGetState        *windows.LazyProc
+	procXInputSetState        *windows.LazyProc
 )
 
 func loadDInput8() error {
-	if h, err := windows.LoadLibrary("dinput8.dll"); err == nil {
-		dinput8 = h
-
-		p, err := windows.GetProcAddress(h, "DirectInput8Create")
-		if err != nil {
-			return err
-		}
-		procDirectInput8Create = p
+	dinput8 := windows.NewLazySystemDLL("dinput8.dll")
+	if err := dinput8.Load(); err != nil {
+		return nil
 	}
+
+	proc := dinput8.NewProc("DirectInput8Create")
+	if err := proc.Find(); err != nil {
+		return err
+	}
+	procDirectInput8Create = proc
 
 	return nil
 }
@@ -176,41 +173,47 @@ func loadDInput8() error {
 func loadXInput() error {
 	// TODO: Loading xinput1_4.dll or xinput9_1_0.dll should be enough.
 	// See https://source.chromium.org/chromium/chromium/src/+/main:device/gamepad/xinput_data_fetcher_win.cc;l=75-84;drc=643cdf61903e99f27c3d80daee67e217e9d280e0
-	for _, dll := range []string{
+	for _, name := range []string{
 		"xinput1_4.dll",
 		"xinput1_3.dll",
 		"xinput9_1_0.dll",
 		"xinput1_2.dll",
 		"xinput1_1.dll",
 	} {
-		if h, err := windows.LoadLibrary(dll); err == nil {
-			xinput = h
-			{
-				p, err := windows.GetProcAddress(h, "XInputGetCapabilities")
-				if err != nil {
-					return err
-				}
-				procXInputGetCapabilities = p
-			}
-			{
-				p, err := windows.GetProcAddress(h, "XInputGetState")
-				if err != nil {
-					return err
-				}
-				procXInputGetState = p
-			}
-			{
-				p, err := windows.GetProcAddress(h, "XInputSetState")
-				if err != nil {
-					return err
-				}
-				procXInputSetState = p
-			}
-			break
+		xinput := windows.NewLazySystemDLL(name)
+		if err := xinput.Load(); err != nil {
+			continue
 		}
+
+		getCapabilities := xinput.NewProc("XInputGetCapabilities")
+		if err := getCapabilities.Find(); err != nil {
+			return err
+		}
+		getState := xinput.NewProc("XInputGetState")
+		if err := getState.Find(); err != nil {
+			return err
+		}
+		setState := xinput.NewProc("XInputSetState")
+		if err := setState.Find(); err != nil {
+			return err
+		}
+
+		procXInputGetCapabilities = getCapabilities
+		procXInputGetState = getState
+		procXInputSetState = setState
+
+		break
 	}
 
 	return nil
+}
+
+func isDInput8DLLAvailable() bool {
+	return procDirectInput8Create != nil
+}
+
+func isXInputDLLAvailable() bool {
+	return procXInputGetCapabilities != nil
 }
 
 func _GetModuleHandleW() (uintptr, error) {
@@ -271,9 +274,7 @@ func _SetWindowLongPtrW(hWnd windows.HWND, nIndex int32, dwNewLong uintptr) (uin
 }
 
 func _DirectInput8Create(hinst uintptr, dwVersion uint32, riidltf *windows.GUID, ppvOut **_IDirectInput8W, punkOuter unsafe.Pointer) error {
-	r, _, _ := syscall.Syscall6(procDirectInput8Create, 5,
-		hinst, uintptr(dwVersion), uintptr(unsafe.Pointer(riidltf)), uintptr(unsafe.Pointer(ppvOut)), uintptr(punkOuter),
-		0)
+	r, _, _ := procDirectInput8Create.Call(hinst, uintptr(dwVersion), uintptr(unsafe.Pointer(riidltf)), uintptr(unsafe.Pointer(ppvOut)), uintptr(punkOuter))
 	if uint32(r) != _DI_OK {
 		return fmt.Errorf("gamepad: DirectInput8Create failed: %w", handleError(windows.Handle(uint32(r))))
 	}
@@ -282,8 +283,7 @@ func _DirectInput8Create(hinst uintptr, dwVersion uint32, riidltf *windows.GUID,
 
 func _XInputGetCapabilities(dwUserIndex uint32, dwFlags uint32, pCapabilities *_XINPUT_CAPABILITIES) error {
 	// XInputGetCapabilities doesn't call SetLastError and returns an error code directly.
-	r, _, _ := syscall.Syscall(procXInputGetCapabilities, 3,
-		uintptr(dwUserIndex), uintptr(dwFlags), uintptr(unsafe.Pointer(pCapabilities)))
+	r, _, _ := procXInputGetCapabilities.Call(uintptr(dwUserIndex), uintptr(dwFlags), uintptr(unsafe.Pointer(pCapabilities)))
 	if e := syscall.Errno(uint32(r)); e != windows.ERROR_SUCCESS {
 		return fmt.Errorf("gamepad: XInputGetCapabilities failed: %w", e)
 	}
@@ -292,8 +292,7 @@ func _XInputGetCapabilities(dwUserIndex uint32, dwFlags uint32, pCapabilities *_
 
 func _XInputGetState(dwUserIndex uint32, pState *_XINPUT_STATE) error {
 	// XInputGetState doesn't call SetLastError and returns an error code directly.
-	r, _, _ := syscall.Syscall(procXInputGetState, 2,
-		uintptr(dwUserIndex), uintptr(unsafe.Pointer(pState)), 0)
+	r, _, _ := procXInputGetState.Call(uintptr(dwUserIndex), uintptr(unsafe.Pointer(pState)))
 	if e := syscall.Errno(uint32(r)); e != windows.ERROR_SUCCESS {
 		return fmt.Errorf("gamepad: XInputGetCapabilities failed: %w", e)
 	}
@@ -302,8 +301,7 @@ func _XInputGetState(dwUserIndex uint32, pState *_XINPUT_STATE) error {
 
 func _XInputSetState(dwUserIndex uint32, pVibration *_XINPUT_VIBRATION) error {
 	// XInputSetState doesn't call SetLastError and returns an error code directly.
-	r, _, _ := syscall.Syscall(procXInputSetState, 2,
-		uintptr(dwUserIndex), uintptr(unsafe.Pointer(pVibration)), 0)
+	r, _, _ := procXInputSetState.Call(uintptr(dwUserIndex), uintptr(unsafe.Pointer(pVibration)))
 	if e := syscall.Errno(uint32(r)); e != windows.ERROR_SUCCESS {
 		return fmt.Errorf("gamepad: XInputSetState failed: %w", e)
 	}

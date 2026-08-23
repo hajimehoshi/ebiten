@@ -132,7 +132,7 @@ func (g *nativeGamepadsDesktop) init(gamepads *gamepads) error {
 		return err
 	}
 
-	if dinput8 != 0 {
+	if isDInput8DLLAvailable() {
 		// TODO: Use _GetModuleHandleExW to align with GLFW v3.3.8.
 		m, err := _GetModuleHandleW()
 		if err != nil {
@@ -154,7 +154,7 @@ func (g *nativeGamepadsDesktop) init(gamepads *gamepads) error {
 }
 
 func (g *nativeGamepadsDesktop) detectConnection(gamepads *gamepads) error {
-	if dinput8 != 0 {
+	if isDInput8DLLAvailable() {
 		if g.enumDevicesCallback == 0 {
 			g.enumDevicesCallback = windows.NewCallback(g.dinput8EnumDevicesCallback)
 		}
@@ -165,7 +165,7 @@ func (g *nativeGamepadsDesktop) detectConnection(gamepads *gamepads) error {
 			return g.err
 		}
 	}
-	if xinput != 0 {
+	if isXInputDLLAvailable() {
 		const xuserMaxCount = 4
 
 		for i := range xuserMaxCount {
