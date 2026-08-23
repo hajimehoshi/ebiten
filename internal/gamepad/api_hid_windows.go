@@ -63,7 +63,9 @@ func hidOutputReportByteLength(handle windows.Handle) (int, error) {
 	if r, _, _ := procHidDGetPreparsedData.Call(uintptr(handle), uintptr(unsafe.Pointer(&preparsedData))); r == 0 {
 		return 0, fmt.Errorf("gamepad: HidD_GetPreparsedData failed")
 	}
-	defer procHidDFreePreparsedData.Call(preparsedData)
+	defer func() {
+		_, _, _ = procHidDFreePreparsedData.Call(preparsedData)
+	}()
 
 	var caps _HIDP_CAPS
 	if r, _, _ := procHidPGetCaps.Call(preparsedData, uintptr(unsafe.Pointer(&caps))); uint32(r) != _HIDP_STATUS_SUCCESS {

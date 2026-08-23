@@ -91,13 +91,13 @@ func openSonyRumble(path string, vid, pid uint16) *sonyRumbler {
 
 	outLen, err := hidOutputReportByteLength(handle)
 	if err != nil || outLen < sonyReportSize(model, bt) {
-		windows.CloseHandle(handle)
+		_ = windows.CloseHandle(handle)
 		return nil
 	}
 
 	event, err := windows.CreateEvent(nil, 1, 0, nil)
 	if err != nil {
-		windows.CloseHandle(handle)
+		_ = windows.CloseHandle(handle)
 		return nil
 	}
 
