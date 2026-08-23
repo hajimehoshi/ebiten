@@ -20,6 +20,7 @@ import (
 	"image"
 	_ "image/png"
 	"log"
+	"slices"
 	"strings"
 
 	"github.com/hajimehoshi/bitmapfont/v4"
@@ -50,11 +51,20 @@ func init() {
 }
 
 type Game struct {
-	keys []ebiten.Key
+	keys      []ebiten.Key
+	keysDrawn bool
 }
 
 func (g *Game) Update() error {
-	g.keys = inpututil.AppendPressedKeys(g.keys[:0])
+	// Update can run several times for one Draw. Collect the keys of all these ticks.
+	// Reset the keys here rather than in Draw, as a frame might not have any Update.
+	if g.keysDrawn {
+		g.keys = g.keys[:0]
+		g.keysDrawn = false
+	}
+	g.keys = inpututil.AppendPressedKeys(g.keys)
+	slices.Sort(g.keys)
+	g.keys = slices.Compact(g.keys)
 	return nil
 }
 
@@ -101,6 +111,8 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	lockOp := &text.DrawOptions{}
 	lockOp.GeoM.Translate(offsetX, offsetY+160)
 	text.Draw(screen, fmt.Sprintf("Caps Lock: %s, Num Lock: %s", onOff(ebiten.IsCapsLockOn()), onOff(ebiten.IsNumLockOn())), fontFace, lockOp)
+
+	g.keysDrawn = true
 }
 
 func onOff(on bool) string {
