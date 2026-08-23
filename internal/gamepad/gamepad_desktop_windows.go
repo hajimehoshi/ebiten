@@ -106,6 +106,7 @@ type nativeGamepadsDesktop struct {
 	procDirectInput8Create    uintptr
 	procXInputGetCapabilities uintptr
 	procXInputGetState        uintptr
+	procXInputSetState        uintptr
 
 	origWndProc         uintptr
 	wndProcCallback     uintptr
@@ -169,6 +170,13 @@ func (g *nativeGamepadsDesktop) init(gamepads *gamepads) error {
 				}
 				g.procXInputGetState = p
 			}
+			{
+				p, err := windows.GetProcAddress(h, "XInputSetState")
+				if err != nil {
+					return err
+				}
+				g.procXInputSetState = p
+			}
 			break
 		}
 	}
@@ -220,6 +228,16 @@ func (g *nativeGamepadsDesktop) xinputGetState(dwUserIndex uint32, pState *_XINP
 		uintptr(dwUserIndex), uintptr(unsafe.Pointer(pState)), 0)
 	if e := syscall.Errno(uint32(r)); e != windows.ERROR_SUCCESS {
 		return fmt.Errorf("gamepad: XInputGetCapabilities failed: %w", e)
+	}
+	return nil
+}
+
+func (g *nativeGamepadsDesktop) xinputSetState(dwUserIndex uint32, pVibration *_XINPUT_VIBRATION) error {
+	// XInputSetState doesn't call SetLastError and returns an error code directly.
+	r, _, _ := syscall.Syscall(g.procXInputSetState, 2,
+		uintptr(dwUserIndex), uintptr(unsafe.Pointer(pVibration)), 0)
+	if e := syscall.Errno(uint32(r)); e != windows.ERROR_SUCCESS {
+		return fmt.Errorf("gamepad: XInputSetState failed: %w", e)
 	}
 	return nil
 }
@@ -280,7 +298,8 @@ func (g *nativeGamepadsDesktop) detectConnection(gamepads *gamepads) error {
 
 			gp := gamepads.add(name, sdlID)
 			gp.native = &nativeGamepadDesktop{
-				xinputIndex: i,
+				xinputIndex:    i,
+				nativeGamepads: g,
 			}
 		}
 	}
@@ -432,12 +451,13 @@ func (g *nativeGamepadsDesktop) dinput8EnumDevicesCallback(lpddi *_DIDEVICEINSTA
 
 	gp := gamepads.add(name, sdlID)
 	gp.native = &nativeGamepadDesktop{
-		dinputDevice:  device,
-		dinputObjects: ctx.objects,
-		dinputPath:    dinputPath,
-		dinputAxes:    make([]float64, ctx.axisCount+ctx.sliderCount),
-		dinputButtons: make([]bool, ctx.buttonCount),
-		dinputHats:    make([]int, ctx.povCount),
+		dinputDevice:   device,
+		dinputObjects:  ctx.objects,
+		dinputPath:     dinputPath,
+		dinputAxes:     make([]float64, ctx.axisCount+ctx.sliderCount),
+		dinputButtons:  make([]bool, ctx.buttonCount),
+		dinputHats:     make([]int, ctx.povCount),
+		nativeGamepads: g,
 	}
 
 	return _DIENUM_CONTINUE
@@ -608,6 +628,12 @@ type nativeGamepadDesktop struct {
 
 	xinputIndex int
 	xinputState _XINPUT_STATE
+	// nativeGamepads is the backend that owns this gamepad. vibrate has no access to the
+	// gamepads object, so the XInput procedures have to be reachable through this.
+	nativeGamepads *nativeGamepadsDesktop
+
+	vib    bool
+	vibEnd time.Time
 }
 
 func (*nativeGamepadDesktop) hasOwnStandardLayoutMapping() bool {
@@ -734,6 +760,11 @@ func (g *nativeGamepadDesktop) update(gamepads *gamepads) (err error) {
 		return nil
 	}
 	g.xinputState = state
+
+	// XInput vibration lasts until changed, so stop it once the requested duration has passed.
+	if g.vib && time.Now().Sub(g.vibEnd) >= 0 {
+		g.stopVibration()
+	}
 	return nil
 }
 
@@ -847,5 +878,38 @@ func (g *nativeGamepadDesktop) hatState(hat int) int {
 }
 
 func (g *nativeGamepadDesktop) vibrate(duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
-	// TODO: Implement this (#1452)
+	if g.usesDInput() {
+		// TODO: Implement this for DirectInput devices (#2014)
+		return
+	}
+
+	if strongMagnitude <= 0 && weakMagnitude <= 0 {
+		g.stopVibration()
+		return
+	}
+
+	g.vib = true
+	g.vibEnd = time.Now().Add(duration)
+	_ = g.nativeGamepads.xinputSetState(uint32(g.xinputIndex), &_XINPUT_VIBRATION{
+		wLeftMotorSpeed:  xinputMotorSpeed(strongMagnitude),
+		wRightMotorSpeed: xinputMotorSpeed(weakMagnitude),
+	})
+}
+
+// xinputMotorSpeed converts a magnitude in the range 0 to 1 to an XInput motor speed.
+// Out-of-range values are clamped, and NaN is treated as 0, since converting such
+// values to uint16 is implementation-defined.
+func xinputMotorSpeed(magnitude float64) uint16 {
+	if !(magnitude > 0) {
+		return 0
+	}
+	if magnitude > 1 {
+		return 0xffff
+	}
+	return uint16(magnitude * 0xffff)
+}
+
+func (g *nativeGamepadDesktop) stopVibration() {
+	g.vib = false
+	_ = g.nativeGamepads.xinputSetState(uint32(g.xinputIndex), &_XINPUT_VIBRATION{})
 }
