@@ -51,8 +51,12 @@ type context struct {
 	offscreen *Image
 	screen    *Image
 
-	screenWidth     float64
-	screenHeight    float64
+	// screenWidth and screenHeight are the size of the final rendering destination, in pixels.
+	// They are given by the platform rather than derived from the outside size, which cannot
+	// represent the pixel count exactly at a fractional device scale factor.
+	screenWidth  int
+	screenHeight int
+
 	offscreenWidth  float64
 	offscreenHeight float64
 
@@ -87,9 +91,9 @@ func newContext(game Game, screenTransparent bool) *context {
 // is false (e.g. the window is hidden) the buffer swap is skipped, so the loop paces from
 // swapBuffersOrWait's no-swap path instead of a present that may block, and Update keeps running at the
 // target tick rate.
-func (c *context) updateFrame(graphicsDriver graphicsdriver.Graphics, outsideWidth, outsideHeight float64, deviceScaleFactor float64, ui *UserInterface, present bool) error {
+func (c *context) updateFrame(graphicsDriver graphicsdriver.Graphics, outsideWidth, outsideHeight float64, screenWidth, screenHeight int, deviceScaleFactor float64, ui *UserInterface, present bool) error {
 	// TODO: If updateCount is 0 and vsync is disabled, swapping buffers can be skipped.
-	needsSwapBuffers, err := c.updateFrameImpl(graphicsDriver, clock.UpdateFrame(), outsideWidth, outsideHeight, deviceScaleFactor, ui, false)
+	needsSwapBuffers, err := c.updateFrameImpl(graphicsDriver, clock.UpdateFrame(), outsideWidth, outsideHeight, screenWidth, screenHeight, deviceScaleFactor, ui, false)
 	if err != nil {
 		return err
 	}
@@ -101,7 +105,7 @@ func (c *context) updateFrame(graphicsDriver graphicsdriver.Graphics, outsideWid
 
 // forceUpdateFrame runs one frame with a forced draw, regardless of the draw-skipping states.
 // The number of ticks is determined by the clock like updateFrame.
-func (c *context) forceUpdateFrame(graphicsDriver graphicsdriver.Graphics, outsideWidth, outsideHeight float64, deviceScaleFactor float64, ui *UserInterface) error {
+func (c *context) forceUpdateFrame(graphicsDriver graphicsdriver.Graphics, outsideWidth, outsideHeight float64, screenWidth, screenHeight int, deviceScaleFactor float64, ui *UserInterface) error {
 	n := 1
 	if ui.GraphicsLibrary() == GraphicsLibraryDirectX {
 		// On DirectX, both framebuffers in the swap chain should be updated.
@@ -112,7 +116,7 @@ func (c *context) forceUpdateFrame(graphicsDriver graphicsdriver.Graphics, outsi
 		// Let the clock determine the tick count as usual, instead of forcing one tick per call.
 		// Forced frames can happen at any rate, like once per window-resizing event, and forcing
 		// a tick there would advance the game time faster than the specified TPS (#2615).
-		needsSwapBuffers, err := c.updateFrameImpl(graphicsDriver, clock.UpdateFrame(), outsideWidth, outsideHeight, deviceScaleFactor, ui, true)
+		needsSwapBuffers, err := c.updateFrameImpl(graphicsDriver, clock.UpdateFrame(), outsideWidth, outsideHeight, screenWidth, screenHeight, deviceScaleFactor, ui, true)
 		if err != nil {
 			return err
 		}
@@ -131,7 +135,7 @@ func (c *context) forceUpdateFrame(graphicsDriver graphicsdriver.Graphics, outsi
 	return nil
 }
 
-func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, updateCount int, outsideWidth, outsideHeight float64, deviceScaleFactor float64, ui *UserInterface, forceDraw bool) (needsSwapBuffers bool, err error) {
+func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, updateCount int, outsideWidth, outsideHeight float64, screenWidth, screenHeight int, deviceScaleFactor float64, ui *UserInterface, forceDraw bool) (needsSwapBuffers bool, err error) {
 	// The given outside size can be 0 e.g. just after restoring from the fullscreen mode on Windows (#1589)
 	// Just ignore such cases. Otherwise, creating a zero-sized framebuffer causes a panic.
 	if outsideWidth == 0 || outsideHeight == 0 {
@@ -163,7 +167,7 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 	}
 
 	// ForceUpdate can be invoked even if the context is not initialized yet (#1591).
-	ow, oh, resized := c.layoutGame(outsideWidth, outsideHeight, deviceScaleFactor)
+	ow, oh, resized := c.layoutGame(outsideWidth, outsideHeight, screenWidth, screenHeight)
 	if ow == 0 || oh == 0 {
 		return false, nil
 	}
@@ -340,17 +344,15 @@ func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics, ui *UserInter
 	return true, nil
 }
 
-// layoutGame updates the game's layout for the given outside size and returns
-// the offscreen size in pixels. The returned bool reports whether the screen
-// size changed from the previous layout.
-func (c *context) layoutGame(outsideWidth, outsideHeight float64, deviceScaleFactor float64) (int, int, bool) {
+// layoutGame updates the game's layout for the given outside size, in device-independent pixels,
+// and the given screen size, in pixels. It returns the offscreen size in pixels. The returned bool
+// reports whether the screen size changed from the previous layout.
+func (c *context) layoutGame(outsideWidth, outsideHeight float64, screenWidth, screenHeight int) (int, int, bool) {
 	owf, ohf := c.game.Layout(outsideWidth, outsideHeight)
 	if owf <= 0 || ohf <= 0 {
 		panic("ui: Layout must return positive numbers")
 	}
 
-	screenWidth := outsideWidth * deviceScaleFactor
-	screenHeight := outsideHeight * deviceScaleFactor
 	resized := c.screenWidth != screenWidth || c.screenHeight != screenHeight
 	if resized {
 		c.skipCount = 0
@@ -360,17 +362,15 @@ func (c *context) layoutGame(outsideWidth, outsideHeight float64, deviceScaleFac
 	c.offscreenWidth = owf
 	c.offscreenHeight = ohf
 
-	sw := int(math.Ceil(c.screenWidth))
-	sh := int(math.Ceil(c.screenHeight))
 	ow := int(math.Ceil(c.offscreenWidth))
 	oh := int(math.Ceil(c.offscreenHeight))
 
-	if c.screen != nil && (c.screen.width != sw || c.screen.height != sh) {
+	if c.screen != nil && (c.screen.width != screenWidth || c.screen.height != screenHeight) {
 		c.screen.Deallocate()
 		c.screen = nil
 	}
-	if c.screen == nil && sw > 0 && sh > 0 {
-		c.screen = c.game.NewScreenImage(sw, sh)
+	if c.screen == nil && screenWidth > 0 && screenHeight > 0 {
+		c.screen = c.game.NewScreenImage(screenWidth, screenHeight)
 	}
 
 	if c.offscreen != nil && (c.offscreen.width != ow || c.offscreen.height != oh) {
@@ -409,13 +409,15 @@ func (c *context) screenScaleAndOffsets() (scale, offsetX, offsetY float64) {
 
 // letterboxScaleAndOffsets returns the transform centering the offscreen in the screen.
 func (c *context) letterboxScaleAndOffsets() (scale, offsetX, offsetY float64) {
-	scaleX := c.screenWidth / c.offscreenWidth
-	scaleY := c.screenHeight / c.offscreenHeight
+	sw := float64(c.screenWidth)
+	sh := float64(c.screenHeight)
+	scaleX := sw / c.offscreenWidth
+	scaleY := sh / c.offscreenHeight
 	scale = min(scaleX, scaleY)
 	width := c.offscreenWidth * scale
 	height := c.offscreenHeight * scale
-	offsetX = (c.screenWidth - width) / 2
-	offsetY = (c.screenHeight - height) / 2
+	offsetX = (sw - width) / 2
+	offsetY = (sh - height) / 2
 	return
 }
 

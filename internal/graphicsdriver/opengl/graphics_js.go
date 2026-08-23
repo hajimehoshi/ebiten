@@ -24,6 +24,7 @@ import (
 )
 
 type graphicsPlatform struct {
+	glContext js.Value
 }
 
 // NewGraphics creates an implementation of graphicsdriver.Graphics for OpenGL.
@@ -56,7 +57,15 @@ func NewGraphics(canvas js.Value, colorSpace color.ColorSpace) (graphicsdriver.G
 		return nil, err
 	}
 
-	return newGraphics(ctx, colorSpace), nil
+	g := newGraphics(ctx, colorSpace)
+	g.glContext = glContext
+	return g, nil
+}
+
+// ScreenFramebufferSize returns the size of the drawing buffer the screen is rendered into, in
+// pixels. A browser can allocate a buffer smaller than the canvas it was asked for.
+func (g *Graphics) ScreenFramebufferSize() (int, int) {
+	return g.glContext.Get("drawingBufferWidth").Int(), g.glContext.Get("drawingBufferHeight").Int()
 }
 
 func (g *Graphics) makeContextCurrent() error {

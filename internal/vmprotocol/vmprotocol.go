@@ -88,9 +88,16 @@ const (
 type HostMessage struct {
 	Kind HostMessageKind
 
-	// SetOutsideSize.
-	Width  float64
-	Height float64
+	// OutsideWidth and OutsideHeight are the size to give the guest's Layout, in device-independent
+	// pixels. Set on SetOutsideSize.
+	OutsideWidth  float64
+	OutsideHeight float64
+
+	// ScreenWidth and ScreenHeight are the size of the host-owned screen the guest renders into, in
+	// pixels. Set on SetOutsideSize. They are sent separately from OutsideWidth and OutsideHeight,
+	// which cannot represent the pixel count exactly at a fractional device scale factor.
+	ScreenWidth  int
+	ScreenHeight int
 
 	// PressKey/ReleaseKey carry a ui.Key; PressMouseButton/ReleaseMouseButton carry a ui.MouseButton;
 	// PressTouch/MoveTouch/ReleaseTouch carry a ui.TouchID.

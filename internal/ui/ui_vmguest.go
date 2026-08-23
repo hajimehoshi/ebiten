@@ -95,9 +95,12 @@ type remoteBackend struct {
 	rawTouches []rawTouch
 
 	// outsideWidth and outsideHeight are the host-supplied outside size, in device-independent
-	// pixels. scale is the host's device scale factor, pulled per tick.
+	// pixels. screenWidth and screenHeight are the host-supplied size of the screen the guest
+	// renders into, in pixels. scale is the host's device scale factor, pulled per tick.
 	outsideWidth  float64
 	outsideHeight float64
+	screenWidth   int
+	screenHeight  int
 	scale         float64
 
 	ticked bool
@@ -223,7 +226,7 @@ func (r *remoteBackend) serveLoop(dec *vmprotocol.Decoder, enc *vmprotocol.Encod
 		var closing bool
 		switch msg.Kind {
 		case vmprotocol.HostMessageKindSetOutsideSize:
-			r.setOutsideSize(msg.Width, msg.Height)
+			r.setOutsideSize(msg.OutsideWidth, msg.OutsideHeight, msg.ScreenWidth, msg.ScreenHeight)
 		case vmprotocol.HostMessageKindAdvanceTick:
 			// ebiten.Tick() reports this tick's number during the Update; capture it before advanceTick
 			// runs the Update and increments the counter, so it can be attached to the tick's vibrations.
@@ -353,20 +356,36 @@ type vmHostQuerier interface {
 	DeviceScaleFactor() (float64, error)
 }
 
-// setOutsideSize sets the outside (window-equivalent) size, in device-independent pixels. The given
-// size is the size of the host-owned screen the guest renders into. The device scale factor is not
+// setOutsideSize sets the outside (window-equivalent) size, in device-independent pixels, and the
+// size of the host-owned screen the guest renders into, in pixels. The device scale factor is not
 // set here; it is queried from the host per tick (it can change during a session).
-func (r *remoteBackend) setOutsideSize(outsideWidth, outsideHeight float64) {
+func (r *remoteBackend) setOutsideSize(outsideWidth, outsideHeight float64, screenWidth, screenHeight int) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.outsideWidth = outsideWidth
 	r.outsideHeight = outsideHeight
+	r.screenWidth = screenWidth
+	r.screenHeight = screenHeight
 }
 
+// outsideSize implements virtualMonitorSource.
 func (r *remoteBackend) outsideSize() (outsideWidth, outsideHeight float64) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	return r.outsideWidth, r.outsideHeight
+}
+
+// screenSize returns the size of the host-owned screen the guest renders into, in pixels.
+func (r *remoteBackend) screenSize() (screenWidth, screenHeight int) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.screenWidth > 0 && r.screenHeight > 0 {
+		return r.screenWidth, r.screenHeight
+	}
+	// The host reported no size in pixels, so derive it from the outside size. The host divides
+	// the screen's pixel count by the scale factor to get that size, so rounding the product
+	// lands back on the pixel count.
+	return int(math.Round(r.outsideWidth * r.scale)), int(math.Round(r.outsideHeight * r.scale))
 }
 
 // pullDeviceScaleFactor fetches the host's current device scale factor and records it so a later
@@ -404,7 +423,8 @@ func (r *remoteBackend) advanceTick() error {
 	if err := gamepad.Update(0, r.gamepadStates); err != nil {
 		return err
 	}
-	if err := r.context.updateTickForVMGuest(r.graphicsDriver, w, h, s, r.UserInterface); err != nil {
+	sw, sh := r.screenSize()
+	if err := r.context.updateTickForVMGuest(r.graphicsDriver, w, h, sw, sh, s, r.UserInterface); err != nil {
 		return err
 	}
 	if err := atlas.SwapBuffers(r.graphicsDriver); err != nil {
@@ -423,7 +443,8 @@ func (r *remoteBackend) advanceFrame() error {
 	if err != nil {
 		return err
 	}
-	if err := r.context.drawFrameForVMGuest(r.graphicsDriver, w, h, s, r.UserInterface); err != nil {
+	sw, sh := r.screenSize()
+	if err := r.context.drawFrameForVMGuest(r.graphicsDriver, w, h, sw, sh, s, r.UserInterface); err != nil {
 		return err
 	}
 	if err := atlas.SwapBuffers(r.graphicsDriver); err != nil {
@@ -688,7 +709,7 @@ func (r *remoteBackend) RunOnMainThread(f func()) {
 }
 
 // updateTickForVMGuest runs one Update step in a single atlas frame, without drawing.
-func (c *context) updateTickForVMGuest(graphicsDriver graphicsdriver.Graphics, outsideWidth, outsideHeight, deviceScaleFactor float64, ui *UserInterface) (err error) {
+func (c *context) updateTickForVMGuest(graphicsDriver graphicsdriver.Graphics, outsideWidth, outsideHeight float64, screenWidth, screenHeight int, deviceScaleFactor float64, ui *UserInterface) (err error) {
 	if outsideWidth == 0 || outsideHeight == 0 {
 		return nil
 	}
@@ -706,7 +727,7 @@ func (c *context) updateTickForVMGuest(graphicsDriver graphicsdriver.Graphics, o
 		return err
 	}
 
-	if w, h, _ := c.layoutGame(outsideWidth, outsideHeight, deviceScaleFactor); w == 0 || h == 0 {
+	if w, h, _ := c.layoutGame(outsideWidth, outsideHeight, screenWidth, screenHeight); w == 0 || h == 0 {
 		return nil
 	}
 
@@ -738,7 +759,7 @@ func (c *context) updateTickForVMGuest(graphicsDriver graphicsdriver.Graphics, o
 }
 
 // drawFrameForVMGuest renders the current state in a single atlas frame.
-func (c *context) drawFrameForVMGuest(graphicsDriver graphicsdriver.Graphics, outsideWidth, outsideHeight, deviceScaleFactor float64, ui *UserInterface) (err error) {
+func (c *context) drawFrameForVMGuest(graphicsDriver graphicsdriver.Graphics, outsideWidth, outsideHeight float64, screenWidth, screenHeight int, deviceScaleFactor float64, ui *UserInterface) (err error) {
 	if outsideWidth == 0 || outsideHeight == 0 {
 		return nil
 	}
@@ -756,7 +777,7 @@ func (c *context) drawFrameForVMGuest(graphicsDriver graphicsdriver.Graphics, ou
 		return err
 	}
 
-	if w, h, _ := c.layoutGame(outsideWidth, outsideHeight, deviceScaleFactor); w == 0 || h == 0 {
+	if w, h, _ := c.layoutGame(outsideWidth, outsideHeight, screenWidth, screenHeight); w == 0 || h == 0 {
 		return nil
 	}
 

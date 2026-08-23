@@ -50,7 +50,7 @@ func SetVirtualKeyboardStateForTest(caretBounds image.Rectangle, caretKnown bool
 
 // ScreenScaleAndOffsetsForTest returns the screen transform for the given sizes, with the
 // virtual keyboard state set by SetVirtualKeyboardStateForTest applied.
-func ScreenScaleAndOffsetsForTest(screenWidth, screenHeight, offscreenWidth, offscreenHeight float64) (scale, offsetX, offsetY float64) {
+func ScreenScaleAndOffsetsForTest(screenWidth, screenHeight int, offscreenWidth, offscreenHeight float64) (scale, offsetX, offsetY float64) {
 	c := &context{
 		screenWidth:     screenWidth,
 		screenHeight:    screenHeight,

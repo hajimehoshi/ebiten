@@ -108,6 +108,9 @@ class EbitenSurfaceView extends GLSurfaceView implements Renderer {
 
         @Override
         public void onSurfaceChanged(GL10 gl, int width, int height) {
+            // The surface's size in pixels is exact, unlike a size converted to and back from
+            // density-independent pixels.
+            Ebitenmobileview.onSurfaceChanged(width, height);
         }
     }
 
