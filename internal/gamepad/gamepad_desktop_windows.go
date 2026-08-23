@@ -20,7 +20,6 @@ import (
 	"sort"
 	"strings"
 	"sync/atomic"
-	"syscall"
 	"time"
 	"unsafe"
 
@@ -99,14 +98,7 @@ var xinputButtons = []uint16{
 }
 
 type nativeGamepadsDesktop struct {
-	dinput8    windows.Handle
 	dinput8API *_IDirectInput8W
-	xinput     windows.Handle
-
-	procDirectInput8Create    uintptr
-	procXInputGetCapabilities uintptr
-	procXInputGetState        uintptr
-	procXInputSetState        uintptr
 
 	origWndProc         uintptr
 	wndProcCallback     uintptr
@@ -133,55 +125,14 @@ type enumObjectsContext struct {
 }
 
 func (g *nativeGamepadsDesktop) init(gamepads *gamepads) error {
-	// As there is no guarantee that the DLL exists, NewLazySystemDLL is not available.
-	// TODO: Is there a 'system' version of LoadLibrary?
-	if h, err := windows.LoadLibrary("dinput8.dll"); err == nil {
-		g.dinput8 = h
-
-		p, err := windows.GetProcAddress(h, "DirectInput8Create")
-		if err != nil {
-			return err
-		}
-		g.procDirectInput8Create = p
+	if err := loadDInput8(); err != nil {
+		return err
+	}
+	if err := loadXInput(); err != nil {
+		return err
 	}
 
-	// TODO: Loading xinput1_4.dll or xinput9_1_0.dll should be enough.
-	// See https://source.chromium.org/chromium/chromium/src/+/main:device/gamepad/xinput_data_fetcher_win.cc;l=75-84;drc=643cdf61903e99f27c3d80daee67e217e9d280e0
-	for _, dll := range []string{
-		"xinput1_4.dll",
-		"xinput1_3.dll",
-		"xinput9_1_0.dll",
-		"xinput1_2.dll",
-		"xinput1_1.dll",
-	} {
-		if h, err := windows.LoadLibrary(dll); err == nil {
-			g.xinput = h
-			{
-				p, err := windows.GetProcAddress(h, "XInputGetCapabilities")
-				if err != nil {
-					return err
-				}
-				g.procXInputGetCapabilities = p
-			}
-			{
-				p, err := windows.GetProcAddress(h, "XInputGetState")
-				if err != nil {
-					return err
-				}
-				g.procXInputGetState = p
-			}
-			{
-				p, err := windows.GetProcAddress(h, "XInputSetState")
-				if err != nil {
-					return err
-				}
-				g.procXInputSetState = p
-			}
-			break
-		}
-	}
-
-	if g.dinput8 != 0 {
+	if dinput8 != 0 {
 		// TODO: Use _GetModuleHandleExW to align with GLFW v3.3.8.
 		m, err := _GetModuleHandleW()
 		if err != nil {
@@ -189,7 +140,7 @@ func (g *nativeGamepadsDesktop) init(gamepads *gamepads) error {
 		}
 
 		var api *_IDirectInput8W
-		if err := g.directInput8Create(m, _DIRECTINPUT_VERSION, &_IID_IDirectInput8W, &api, nil); err != nil {
+		if err := _DirectInput8Create(m, _DIRECTINPUT_VERSION, &_IID_IDirectInput8W, &api, nil); err != nil {
 			return err
 		}
 		g.dinput8API = api
@@ -202,48 +153,8 @@ func (g *nativeGamepadsDesktop) init(gamepads *gamepads) error {
 	return nil
 }
 
-func (g *nativeGamepadsDesktop) directInput8Create(hinst uintptr, dwVersion uint32, riidltf *windows.GUID, ppvOut **_IDirectInput8W, punkOuter unsafe.Pointer) error {
-	r, _, _ := syscall.Syscall6(g.procDirectInput8Create, 5,
-		hinst, uintptr(dwVersion), uintptr(unsafe.Pointer(riidltf)), uintptr(unsafe.Pointer(ppvOut)), uintptr(punkOuter),
-		0)
-	if uint32(r) != _DI_OK {
-		return fmt.Errorf("gamepad: DirectInput8Create failed: %w", handleError(windows.Handle(uint32(r))))
-	}
-	return nil
-}
-
-func (g *nativeGamepadsDesktop) xinputGetCapabilities(dwUserIndex uint32, dwFlags uint32, pCapabilities *_XINPUT_CAPABILITIES) error {
-	// XInputGetCapabilities doesn't call SetLastError and returns an error code directly.
-	r, _, _ := syscall.Syscall(g.procXInputGetCapabilities, 3,
-		uintptr(dwUserIndex), uintptr(dwFlags), uintptr(unsafe.Pointer(pCapabilities)))
-	if e := syscall.Errno(uint32(r)); e != windows.ERROR_SUCCESS {
-		return fmt.Errorf("gamepad: XInputGetCapabilities failed: %w", e)
-	}
-	return nil
-}
-
-func (g *nativeGamepadsDesktop) xinputGetState(dwUserIndex uint32, pState *_XINPUT_STATE) error {
-	// XInputGetState doesn't call SetLastError and returns an error code directly.
-	r, _, _ := syscall.Syscall(g.procXInputGetState, 2,
-		uintptr(dwUserIndex), uintptr(unsafe.Pointer(pState)), 0)
-	if e := syscall.Errno(uint32(r)); e != windows.ERROR_SUCCESS {
-		return fmt.Errorf("gamepad: XInputGetCapabilities failed: %w", e)
-	}
-	return nil
-}
-
-func (g *nativeGamepadsDesktop) xinputSetState(dwUserIndex uint32, pVibration *_XINPUT_VIBRATION) error {
-	// XInputSetState doesn't call SetLastError and returns an error code directly.
-	r, _, _ := syscall.Syscall(g.procXInputSetState, 2,
-		uintptr(dwUserIndex), uintptr(unsafe.Pointer(pVibration)), 0)
-	if e := syscall.Errno(uint32(r)); e != windows.ERROR_SUCCESS {
-		return fmt.Errorf("gamepad: XInputSetState failed: %w", e)
-	}
-	return nil
-}
-
 func (g *nativeGamepadsDesktop) detectConnection(gamepads *gamepads) error {
-	if g.dinput8 != 0 {
+	if dinput8 != 0 {
 		if g.enumDevicesCallback == 0 {
 			g.enumDevicesCallback = windows.NewCallback(g.dinput8EnumDevicesCallback)
 		}
@@ -254,7 +165,7 @@ func (g *nativeGamepadsDesktop) detectConnection(gamepads *gamepads) error {
 			return g.err
 		}
 	}
-	if g.xinput != 0 {
+	if xinput != 0 {
 		const xuserMaxCount = 4
 
 		for i := range xuserMaxCount {
@@ -266,7 +177,7 @@ func (g *nativeGamepadsDesktop) detectConnection(gamepads *gamepads) error {
 			}
 
 			var xic _XINPUT_CAPABILITIES
-			if err := g.xinputGetCapabilities(uint32(i), 0, &xic); err != nil {
+			if err := _XInputGetCapabilities(uint32(i), 0, &xic); err != nil {
 				if !errors.Is(err, windows.ERROR_DEVICE_NOT_CONNECTED) {
 					return err
 				}
@@ -298,8 +209,7 @@ func (g *nativeGamepadsDesktop) detectConnection(gamepads *gamepads) error {
 
 			gp := gamepads.add(name, sdlID)
 			gp.native = &nativeGamepadDesktop{
-				xinputIndex:    i,
-				nativeGamepads: g,
+				xinputIndex: i,
 			}
 		}
 	}
@@ -451,13 +361,12 @@ func (g *nativeGamepadsDesktop) dinput8EnumDevicesCallback(lpddi *_DIDEVICEINSTA
 
 	gp := gamepads.add(name, sdlID)
 	gp.native = &nativeGamepadDesktop{
-		dinputDevice:   device,
-		dinputObjects:  ctx.objects,
-		dinputPath:     dinputPath,
-		dinputAxes:     make([]float64, ctx.axisCount+ctx.sliderCount),
-		dinputButtons:  make([]bool, ctx.buttonCount),
-		dinputHats:     make([]int, ctx.povCount),
-		nativeGamepads: g,
+		dinputDevice:  device,
+		dinputObjects: ctx.objects,
+		dinputPath:    dinputPath,
+		dinputAxes:    make([]float64, ctx.axisCount+ctx.sliderCount),
+		dinputButtons: make([]bool, ctx.buttonCount),
+		dinputHats:    make([]int, ctx.povCount),
 	}
 
 	return _DIENUM_CONTINUE
@@ -628,9 +537,6 @@ type nativeGamepadDesktop struct {
 
 	xinputIndex int
 	xinputState _XINPUT_STATE
-	// nativeGamepads is the backend that owns this gamepad. vibrate has no access to the
-	// gamepads object, so the XInput procedures have to be reachable through this.
-	nativeGamepads *nativeGamepadsDesktop
 
 	vib    bool
 	vibEnd time.Time
@@ -752,7 +658,7 @@ func (g *nativeGamepadDesktop) update(gamepads *gamepads) (err error) {
 	}
 
 	var state _XINPUT_STATE
-	if err := gamepads.native.(*nativeGamepadsDesktop).xinputGetState(uint32(g.xinputIndex), &state); err != nil {
+	if err := _XInputGetState(uint32(g.xinputIndex), &state); err != nil {
 		if !errors.Is(err, windows.ERROR_DEVICE_NOT_CONNECTED) {
 			return err
 		}
@@ -890,7 +796,7 @@ func (g *nativeGamepadDesktop) vibrate(duration time.Duration, strongMagnitude f
 
 	g.vib = true
 	g.vibEnd = time.Now().Add(duration)
-	_ = g.nativeGamepads.xinputSetState(uint32(g.xinputIndex), &_XINPUT_VIBRATION{
+	_ = _XInputSetState(uint32(g.xinputIndex), &_XINPUT_VIBRATION{
 		wLeftMotorSpeed:  xinputMotorSpeed(strongMagnitude),
 		wRightMotorSpeed: xinputMotorSpeed(weakMagnitude),
 	})
@@ -912,5 +818,5 @@ func xinputMotorSpeed(magnitude float64) uint16 {
 
 func (g *nativeGamepadDesktop) stopVibration() {
 	g.vib = false
-	_ = g.nativeGamepads.xinputSetState(uint32(g.xinputIndex), &_XINPUT_VIBRATION{})
+	_ = _XInputSetState(uint32(g.xinputIndex), &_XINPUT_VIBRATION{})
 }
