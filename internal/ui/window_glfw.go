@@ -265,9 +265,10 @@ func (w *glfwWindow) Size() (int, int) {
 		if w.ui.isTerminated() {
 			return
 		}
-		// Unlike origWindowPos, origWindow{Width,Height}InDPI are always updated via the callback.
-		ww = w.ui.origWindowWidthInDIP
-		wh = w.ui.origWindowHeightInDIP
+		// Unlike origWindowPos, window{Width,Height}InDIP are updated on every resize via the
+		// framebuffer size callback, so there is no fullscreen case to handle.
+		ww = w.ui.windowWidthInDIP
+		wh = w.ui.windowHeightInDIP
 	})
 	return ww, wh
 }

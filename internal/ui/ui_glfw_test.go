@@ -17,6 +17,7 @@
 package ui_test
 
 import (
+	"image"
 	"testing"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
@@ -70,6 +71,61 @@ func TestOutsideSizeInDIPInNativeFullscreenUsesActualSize(t *testing.T) {
 			wantH := ui.DIPFromGLFWPixelForTest(float64(ph), s)
 			if w != wantW || h != wantH {
 				t.Errorf("scale %v: outsideSizeInDIP(%d, %d, %d, %d, true, %v) = (%v, %v); want (%v, %v)", s, pw, ph, req, req, s, w, h, wantW, wantH)
+			}
+		}
+	}
+}
+
+// TestWindowSizeToRestoreRestoresCapturedSize tests that a window comes back from fullscreen at
+// the exact pixel size it had, even at a device scale factor where that size is not representable
+// in device-independent pixels.
+func TestWindowSizeToRestoreRestoresCapturedSize(t *testing.T) {
+	for _, s := range deviceScaleFactorsForTest {
+		m := ui.NewMonitorForTest(image.Rect(0, 0, 1920, 1080), s)
+		for px := 1; px <= 2000; px++ {
+			// The size in device-independent pixels is the one the framebuffer size callback
+			// derives from the window's pixel size, which can be a pixel short of it.
+			dip := int(ui.DIPFromGLFWPixelForTest(float64(px), s))
+			w, h := ui.WindowSizeToRestoreForTest(px, px, m, dip, dip, m)
+			if w != px || h != px {
+				t.Errorf("scale %v: windowSizeToRestore(%d, %d, m, %d, %d, m) = (%d, %d); want (%d, %d)", s, px, px, dip, dip, w, h, px, px)
+			}
+		}
+	}
+}
+
+// TestWindowSizeToRestoreOnAnotherMonitorUsesSizeInDIP tests that a size captured on one monitor
+// is not restored on another, where the same pixel count is a different apparent size.
+func TestWindowSizeToRestoreOnAnotherMonitorUsesSizeInDIP(t *testing.T) {
+	for _, s := range deviceScaleFactorsForTest {
+		b := image.Rect(0, 0, 1920, 1080)
+		origMonitor := ui.NewMonitorForTest(b, s)
+		// A monitor with the same bounds and scale factor but a different identity is enough:
+		// a captured size is restored only on the very monitor it was captured on.
+		m := ui.NewMonitorForTest(b, s)
+		for dip := 1; dip <= 2000; dip++ {
+			wantW, wantH := ui.WindowSizeInGLFWPixelsForTest(dip, dip, s)
+			// One pixel wider than the converted size is the smallest captured size whose
+			// restoration would be visible.
+			w, h := ui.WindowSizeToRestoreForTest(wantW+1, wantH+1, origMonitor, dip, dip, m)
+			if w != wantW || h != wantH {
+				t.Errorf("scale %v: windowSizeToRestore(%d, %d, origMonitor, %d, %d, m) = (%d, %d); want (%d, %d)", s, wantW+1, wantH+1, dip, dip, w, h, wantW, wantH)
+			}
+		}
+	}
+}
+
+// TestWindowSizeToRestoreWithoutCapturedSizeUsesSizeInDIP tests that a window whose size was not
+// captured, as when the platform makes it fullscreen on its own, is restored to the size in
+// device-independent pixels.
+func TestWindowSizeToRestoreWithoutCapturedSizeUsesSizeInDIP(t *testing.T) {
+	for _, s := range deviceScaleFactorsForTest {
+		m := ui.NewMonitorForTest(image.Rect(0, 0, 1920, 1080), s)
+		for dip := 1; dip <= 2000; dip++ {
+			w, h := ui.WindowSizeToRestoreForTest(ui.InvalidSizeForTest, ui.InvalidSizeForTest, nil, dip, dip, m)
+			wantW, wantH := ui.WindowSizeInGLFWPixelsForTest(dip, dip, s)
+			if w != wantW || h != wantH {
+				t.Errorf("scale %v: windowSizeToRestore(invalidSize, invalidSize, nil, %d, %d, m) = (%d, %d); want (%d, %d)", s, dip, dip, w, h, wantW, wantH)
 			}
 		}
 	}

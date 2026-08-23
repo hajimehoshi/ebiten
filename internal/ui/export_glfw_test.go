@@ -16,6 +16,15 @@
 
 package ui
 
+import "image"
+
+func NewMonitorForTest(boundsInGLFWPixels image.Rectangle, deviceScaleFactor float64) *Monitor {
+	return &Monitor{
+		boundsInGLFWPixels: boundsInGLFWPixels,
+		contentScale:       deviceScaleFactor,
+	}
+}
+
 func OutsideSizeInDIPForTest(windowWidth, windowHeight int, requestedWidthInDIP, requestedHeightInDIP int, nativeFullscreen bool, deviceScaleFactor float64) (float64, float64) {
 	return outsideSizeInDIP(windowWidth, windowHeight, requestedWidthInDIP, requestedHeightInDIP, nativeFullscreen, deviceScaleFactor)
 }
@@ -26,4 +35,10 @@ func WindowSizeInGLFWPixelsForTest(widthInDIP, heightInDIP int, deviceScaleFacto
 
 func DIPFromGLFWPixelForTest(x float64, deviceScaleFactor float64) float64 {
 	return dipFromGLFWPixel(x, deviceScaleFactor)
+}
+
+const InvalidSizeForTest = invalidSize
+
+func WindowSizeToRestoreForTest(origWidth, origHeight int, origMonitor *Monitor, widthInDIP, heightInDIP int, monitor *Monitor) (int, int) {
+	return windowSizeToRestore(origWidth, origHeight, origMonitor, widthInDIP, heightInDIP, monitor)
 }
