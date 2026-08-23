@@ -820,7 +820,7 @@ func (i *Image) DumpScreenshot(graphicsDriver graphicsdriver.Graphics, path stri
 	defer backendsM.Unlock()
 
 	if !inFrame {
-		panic("atlas: DumpScreenshots must be called in between BeginFrame and EndFrame")
+		panic("atlas: DumpScreenshot must be called in between BeginFrame and EndFrame")
 	}
 
 	return i.backend.backendImage.Dump(graphicsDriver, path, blackbg, image.Rect(0, 0, i.width, i.height))

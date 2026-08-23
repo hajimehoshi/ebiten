@@ -294,7 +294,7 @@ func _XInputGetState(dwUserIndex uint32, pState *_XINPUT_STATE) error {
 	// XInputGetState doesn't call SetLastError and returns an error code directly.
 	r, _, _ := procXInputGetState.Call(uintptr(dwUserIndex), uintptr(unsafe.Pointer(pState)))
 	if e := syscall.Errno(uint32(r)); e != windows.ERROR_SUCCESS {
-		return fmt.Errorf("gamepad: XInputGetCapabilities failed: %w", e)
+		return fmt.Errorf("gamepad: XInputGetState failed: %w", e)
 	}
 	return nil
 }

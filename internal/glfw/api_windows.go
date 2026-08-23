@@ -981,7 +981,7 @@ func _CreateWindowExW(dwExStyle uint32, className string, windowName string, dwS
 		var err error
 		lpClassName, err = windows.UTF16PtrFromString(className)
 		if err != nil {
-			panic("glfw: class name msut not include a NUL character")
+			panic("glfw: class name must not include a NUL character")
 		}
 	}
 
@@ -990,7 +990,7 @@ func _CreateWindowExW(dwExStyle uint32, className string, windowName string, dwS
 		var err error
 		lpWindowName, err = windows.UTF16PtrFromString(windowName)
 		if err != nil {
-			panic("glfw: window name msut not include a NUL character")
+			panic("glfw: window name must not include a NUL character")
 		}
 	}
 
@@ -1353,7 +1353,7 @@ func _GetSystemMetrics(nIndex int32) (int32, error) {
 func _GetSystemMetricsForDpi(nIndex int32, dpi uint32) (int32, error) {
 	r, _, e := procGetSystemMetricsForDpi.Call(uintptr(nIndex), uintptr(dpi))
 	if int32(r) == 0 && !errors.Is(e, windows.ERROR_SUCCESS) {
-		return 0, fmt.Errorf("glfw: GetSystemMetrics failed: %w", e)
+		return 0, fmt.Errorf("glfw: GetSystemMetricsForDpi failed: %w", e)
 	}
 	return int32(r), nil
 }

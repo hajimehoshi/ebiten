@@ -338,7 +338,7 @@ func (i *_IDXGIFactory) CreateSwapChain(pDevice unsafe.Pointer, pDesc *_DXGI_SWA
 func (i *_IDXGIFactory) MakeWindowAssociation(windowHandle windows.HWND, flags uint32) error {
 	r, _, _ := syscall.Syscall(i.vtbl.MakeWindowAssociation, 3, uintptr(unsafe.Pointer(i)), uintptr(windowHandle), uintptr(flags))
 	if uint32(r) != uint32(windows.S_OK) {
-		return fmt.Errorf("directx: IDXGIFactory::MakeWIndowAssociation failed: %w", handleError(windows.Handle(uint32(r))))
+		return fmt.Errorf("directx: IDXGIFactory::MakeWindowAssociation failed: %w", handleError(windows.Handle(uint32(r))))
 	}
 	return nil
 }
