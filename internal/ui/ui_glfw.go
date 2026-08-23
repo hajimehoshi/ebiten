@@ -693,7 +693,12 @@ func (u *glfwBackend) forceUpdateFrameDuringPollEvents(outsideWidth, outsideHeig
 func (u *glfwBackend) registerDropCallback() error {
 	if u.dropCallback == nil {
 		u.dropCallback = func(_ *glfw.Window, names []string) {
-			u.input.setDroppedFiles(file.NewVirtualFS(names))
+			fs, err := file.NewVirtualFS(names)
+			if err != nil {
+				u.setError(err)
+				return
+			}
+			u.input.setDroppedFiles(fs)
 		}
 	}
 	if _, err := u.window.SetDropCallback(u.dropCallback); err != nil {

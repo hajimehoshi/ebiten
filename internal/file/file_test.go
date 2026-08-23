@@ -18,6 +18,7 @@ package file_test
 
 import (
 	"io/fs"
+	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
@@ -26,7 +27,7 @@ import (
 )
 
 func TestFSReadDir(t *testing.T) {
-	vfs := file.NewVirtualFS([]string{"testdata/foo.txt", "testdata/dir"})
+	vfs := newVirtualFS(t, []string{"testdata/foo.txt", "testdata/dir"})
 
 	rootEnts, err := fs.ReadDir(vfs, ".")
 	if err != nil {
@@ -80,7 +81,7 @@ func TestFSReadDir(t *testing.T) {
 }
 
 func TestFSReadFile(t *testing.T) {
-	vfs := file.NewVirtualFS([]string{"testdata/foo.txt", "testdata/dir"})
+	vfs := newVirtualFS(t, []string{"testdata/foo.txt", "testdata/dir"})
 
 	content, err := fs.ReadFile(vfs, "foo.txt")
 	if err != nil {
@@ -108,5 +109,86 @@ func TestFSReadFile(t *testing.T) {
 
 	if _, err := fs.ReadFile(vfs, "bar.txt"); err == nil {
 		t.Errorf("fs.ReadFile on a file not in the file system must return an error")
+	}
+}
+
+func newVirtualFS(t *testing.T, paths []string) fs.FS {
+	t.Helper()
+
+	vfs, err := file.NewVirtualFS(paths)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return vfs
+}
+
+func dirEntryNames(t *testing.T, vfs fs.FS, name string) []string {
+	t.Helper()
+
+	ents, err := fs.ReadDir(vfs, name)
+	if err != nil {
+		t.Fatal(err)
+	}
+	names := make([]string, 0, len(ents))
+	for _, ent := range ents {
+		names = append(names, ent.Name())
+	}
+	slices.Sort(names)
+	return names
+}
+
+func TestFSSameBaseNames(t *testing.T) {
+	vfs := newVirtualFS(t, []string{"testdata/foo.txt", "testdata/dir/foo.txt"})
+
+	// The paths are not in the same directory, so the root directory is their common ancestor directory.
+	if got, want := dirEntryNames(t, vfs, "."), []string{"dir", "foo.txt"}; !slices.Equal(got, want) {
+		t.Errorf("names: got: %v, want: %v", got, want)
+	}
+
+	// "dir" is not a given path. Only the given path under it must be listed.
+	if got, want := dirEntryNames(t, vfs, "dir"), []string{"foo.txt"}; !slices.Equal(got, want) {
+		t.Errorf("names: got: %v, want: %v", got, want)
+	}
+
+	// The files share their base names, but must be distinguishable.
+	content, err := fs.ReadFile(vfs, "foo.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := string(content), "foo\n"; got != want {
+		t.Errorf("content: got: %q, want: %q", got, want)
+	}
+
+	subContent, err := fs.ReadFile(vfs, "dir/foo.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := string(subContent), "dir/foo\n"; got != want {
+		t.Errorf("content: got: %q, want: %q", got, want)
+	}
+
+	if _, err := fs.ReadFile(vfs, "dir/qux.txt"); err == nil {
+		t.Errorf("fs.ReadFile on a file not in the file system must return an error")
+	}
+}
+
+func TestFSPathUnderAnotherPath(t *testing.T) {
+	vfs := newVirtualFS(t, []string{"testdata/dir", "testdata/dir/foo.txt"})
+
+	if got, want := dirEntryNames(t, vfs, "."), []string{"dir"}; !slices.Equal(got, want) {
+		t.Errorf("names: got: %v, want: %v", got, want)
+	}
+
+	// "dir" itself is given, so its content must be listed as it is.
+	if got, want := dirEntryNames(t, vfs, "dir"), []string{"foo.txt", "qux.txt"}; !slices.Equal(got, want) {
+		t.Errorf("names: got: %v, want: %v", got, want)
+	}
+}
+
+func TestFSRootDirectoryPath(t *testing.T) {
+	vfs := newVirtualFS(t, []string{string(filepath.Separator), "testdata/foo.txt"})
+
+	if got, want := dirEntryNames(t, vfs, "."), []string{"foo.txt"}; !slices.Equal(got, want) {
+		t.Errorf("names: got: %v, want: %v", got, want)
 	}
 }
