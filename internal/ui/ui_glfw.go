@@ -960,6 +960,18 @@ func (u *glfwBackend) initOnMainThread(options *RunOptions) error {
 	return nil
 }
 
+// outsideSizeInDIP returns the size to give the game's Layout, in device-independent pixels.
+func outsideSizeInDIP(windowWidth, windowHeight int, requestedWidthInDIP, requestedHeightInDIP int, nativeFullscreen bool, deviceScaleFactor float64) (float64, float64) {
+	// Report the requested size while the window has the pixel size that request produces, as
+	// converting the pixel size back would not return it at a fractional scale factor (#2978).
+	// In fullscreen it is the size to restore, not the current size. Otherwise use the actual
+	// window size, which might not match the specified size on Windows (#1163).
+	if rw, rh := windowSizeInGLFWPixels(requestedWidthInDIP, requestedHeightInDIP, deviceScaleFactor); !nativeFullscreen && windowWidth == rw && windowHeight == rh {
+		return float64(requestedWidthInDIP), float64(requestedHeightInDIP)
+	}
+	return dipFromGLFWPixel(float64(windowWidth), deviceScaleFactor), dipFromGLFWPixel(float64(windowHeight), deviceScaleFactor)
+}
+
 // layoutSizes returns the size to give the game's Layout, in device-independent pixels, and the
 // size of the final rendering destination, in pixels.
 //
@@ -1014,9 +1026,6 @@ func (u *glfwBackend) layoutSizes() (outsideWidth, outsideHeight float64, screen
 		return w, h, fw, fh, nil
 	}
 
-	// Instead of u.origWindow{Width,Height}InDIP, use the actual window size here.
-	// On Windows, the specified size at SetSize and the actual window size might
-	// not match (#1163).
 	ww, wh, err := u.window.GetSize()
 	if err != nil {
 		return 0, 0, 0, 0, err
@@ -1026,8 +1035,14 @@ func (u *glfwBackend) layoutSizes() (outsideWidth, outsideHeight float64, screen
 		return 0, 0, 0, 0, err
 	}
 	s := m.DeviceScaleFactor()
-	w := dipFromGLFWPixel(float64(ww), s)
-	h := dipFromGLFWPixel(float64(wh), s)
+
+	// Windowed fullscreen already returned above, so only native fullscreen can be in effect here.
+	nf, err := u.isNativeFullscreen()
+	if err != nil {
+		return 0, 0, 0, 0, err
+	}
+
+	w, h := outsideSizeInDIP(ww, wh, u.origWindowWidthInDIP, u.origWindowHeightInDIP, nf, s)
 
 	// The framebuffer size is the exact pixel count of the rendering destination on every
 	// platform, including macOS where a GLFW pixel is a point.
@@ -1138,8 +1153,7 @@ func (u *glfwBackend) update() (outsideWidth, outsideHeight float64, screenWidth
 				return
 			}
 			s := m.DeviceScaleFactor()
-			newW := int(dipToGLFWPixel(float64(u.origWindowWidthInDIP), s))
-			newH := int(dipToGLFWPixel(float64(u.origWindowHeightInDIP), s))
+			newW, newH := windowSizeInGLFWPixels(u.origWindowWidthInDIP, u.origWindowHeightInDIP, s)
 
 			// Even though a framebuffer callback is not called, waitForFramebufferSizeCallback returns by timeout,
 			// so it is safe to use this.
@@ -1459,6 +1473,12 @@ func (u *glfwBackend) disableWindowSizeLimits() error {
 	return u.window.SetSizeLimits(glfw.DontCare, glfw.DontCare, glfw.DontCare, glfw.DontCare)
 }
 
+// windowSizeInGLFWPixels returns the window size in GLFW pixels for the given size in
+// device-independent pixels.
+func windowSizeInGLFWPixels(widthInDIP, heightInDIP int, deviceScaleFactor float64) (int, int) {
+	return int(dipToGLFWPixel(float64(widthInDIP), deviceScaleFactor)), int(dipToGLFWPixel(float64(heightInDIP), deviceScaleFactor))
+}
+
 // setWindowSize must be called from the main thread.
 func (u *glfwBackend) setWindowSizeInDIP(width, height int, callSetSize bool) error {
 	if microsoftgdk.IsXbox() {
@@ -1507,8 +1527,7 @@ func (u *glfwBackend) setWindowSizeInDIP(width, height int, callSetSize bool) er
 			return err
 		}
 		s := m.DeviceScaleFactor()
-		newW := int(dipToGLFWPixel(float64(width), s))
-		newH := int(dipToGLFWPixel(float64(height), s))
+		newW, newH := windowSizeInGLFWPixels(width, height, s)
 		if oldW != newW || oldH != newH {
 			// Just after SetSize, GetSize is not reliable especially on Linux/UNIX.
 			// Let's wait for FramebufferSize callback in any cases.
