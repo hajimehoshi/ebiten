@@ -130,3 +130,66 @@ func TestWindowSizeToRestoreWithoutCapturedSizeUsesSizeInDIP(t *testing.T) {
 		}
 	}
 }
+
+var monitorBoundsForTest = []image.Rectangle{
+	image.Rect(0, 0, 1920, 1080),
+	image.Rect(-2560, -300, 0, 1140),
+}
+
+// TestWindowPositionInDIPKeepsRequestedPosition tests that a window that moved to the pixel
+// position a requested position produces keeps that position, even at a device scale factor where
+// it is not representable in pixels (#2978).
+func TestWindowPositionInDIPKeepsRequestedPosition(t *testing.T) {
+	for _, s := range deviceScaleFactorsForTest {
+		for _, b := range monitorBoundsForTest {
+			m := ui.NewMonitorForTest(b, s)
+			for req := -1000; req <= 2000; req++ {
+				px, py := ui.WindowPositionInGLFWPixelsForTest(req, req, m)
+				x, y := ui.WindowPositionInDIPForTest(px, py, req, req, m)
+				if x != req || y != req {
+					t.Errorf("scale %v, monitor %v: windowPositionInDIP(%d, %d, %d, %d, m) = (%d, %d); want (%d, %d)", s, b, px, py, req, req, x, y, req, req)
+				}
+			}
+		}
+	}
+}
+
+// TestWindowPositionInDIPUsesActualPosition tests that a window that moved anywhere else uses
+// where it is, as the move did not come from a request.
+func TestWindowPositionInDIPUsesActualPosition(t *testing.T) {
+	for _, s := range deviceScaleFactorsForTest {
+		for _, b := range monitorBoundsForTest {
+			m := ui.NewMonitorForTest(b, s)
+			for req := -1000; req <= 2000; req++ {
+				px, py := ui.WindowPositionInGLFWPixelsForTest(req, req, m)
+				// One pixel to the right of the stored position is the smallest move the
+				// position comparison has to notice.
+				ax, ay := px+1, py
+				x, y := ui.WindowPositionInDIPForTest(ax, ay, req, req, m)
+				wantX := int(ui.DIPFromGLFWPixelForTest(float64(ax-b.Min.X), s))
+				wantY := int(ui.DIPFromGLFWPixelForTest(float64(ay-b.Min.Y), s))
+				if x != wantX || y != wantY {
+					t.Errorf("scale %v, monitor %v: windowPositionInDIP(%d, %d, %d, %d, m) = (%d, %d); want (%d, %d)", s, b, ax, ay, req, req, x, y, wantX, wantY)
+				}
+			}
+		}
+	}
+}
+
+// TestWindowPositionInDIPIsStable tests that reporting the same position again does not change it.
+// A window manager can send a move event for a position the window already has, and the stored
+// position must not drift with every one of them.
+func TestWindowPositionInDIPIsStable(t *testing.T) {
+	for _, s := range deviceScaleFactorsForTest {
+		for _, b := range monitorBoundsForTest {
+			m := ui.NewMonitorForTest(b, s)
+			for px := -1000; px <= 2000; px++ {
+				x, y := ui.WindowPositionInDIPForTest(px, px, 0, 0, m)
+				x2, y2 := ui.WindowPositionInDIPForTest(px, px, x, y, m)
+				if x2 != x || y2 != y {
+					t.Errorf("scale %v, monitor %v: windowPositionInDIP(%d, %d, %d, %d, m) = (%d, %d); want (%d, %d)", s, b, px, px, x, y, x2, y2, x, y)
+				}
+			}
+		}
+	}
+}

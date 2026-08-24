@@ -42,3 +42,11 @@ const InvalidSizeForTest = invalidSize
 func WindowSizeToRestoreForTest(origWidth, origHeight int, origMonitor *Monitor, widthInDIP, heightInDIP int, monitor *Monitor) (int, int) {
 	return windowSizeToRestore(origWidth, origHeight, origMonitor, widthInDIP, heightInDIP, monitor)
 }
+
+func WindowPositionInGLFWPixelsForTest(xInDIP, yInDIP int, monitor *Monitor) (int, int) {
+	return windowPositionInGLFWPixels(xInDIP, yInDIP, monitor)
+}
+
+func WindowPositionInDIPForTest(windowX, windowY int, xInDIP, yInDIP int, monitor *Monitor) (int, int) {
+	return windowPositionInDIP(windowX, windowY, xInDIP, yInDIP, monitor)
+}

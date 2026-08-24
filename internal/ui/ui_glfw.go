@@ -95,6 +95,13 @@ type glfwBackend struct {
 	windowWidthInDIP  int
 	windowHeightInDIP int
 
+	// windowXInDIP and windowYInDIP are the window position relative to its monitor, in
+	// device-independent pixels, as it was requested. Converting a pixel position back does not
+	// return the requested position at a fractional scale factor (#2978).
+	// They are not updated while the window is fullscreen.
+	windowXInDIP int
+	windowYInDIP int
+
 	fpsModeInited bool
 
 	input         glfwInput
@@ -103,6 +110,7 @@ type glfwBackend struct {
 	unfocusedNextWake time.Time
 
 	closeCallback                  glfw.CloseCallback
+	posCallback                    glfw.PosCallback
 	framebufferSizeCallback        glfw.FramebufferSizeCallback
 	defaultFramebufferSizeCallback glfw.FramebufferSizeCallback
 	dropCallback                   glfw.DropCallback
@@ -542,7 +550,7 @@ func (u *glfwBackend) createWindow() error {
 	if wy < 0 {
 		wy = 0
 	}
-	if err := u.setWindowPositionInDIP(wx, wy, monitor); err != nil {
+	if err := u.setWindowPositionInDIP(wx, wy, monitor, true); err != nil {
 		return err
 	}
 
@@ -607,6 +615,45 @@ func (u *glfwBackend) registerWindowCloseCallback() error {
 		}
 	}
 	if _, err := u.window.SetCloseCallback(u.closeCallback); err != nil {
+		return err
+	}
+	return nil
+}
+
+// registerWindowPosCallback must be called from the main thread.
+func (u *glfwBackend) registerWindowPosCallback() error {
+	if u.posCallback == nil {
+		u.posCallback = func(_ *glfw.Window, x, y int) {
+			f, err := u.isFullscreen()
+			if err != nil {
+				u.setError(err)
+				return
+			}
+			if f {
+				return
+			}
+			a, err := u.window.GetAttrib(glfw.Iconified)
+			if err != nil {
+				u.setError(err)
+				return
+			}
+			if a == glfw.True {
+				return
+			}
+
+			m, err := u.currentMonitor()
+			if err != nil {
+				u.setError(err)
+				return
+			}
+			nx, ny := windowPositionInDIP(x, y, u.windowXInDIP, u.windowYInDIP, m)
+			if err := u.setWindowPositionInDIP(nx, ny, m, false); err != nil {
+				u.setError(err)
+				return
+			}
+		}
+	}
+	if _, err := u.window.SetPosCallback(u.posCallback); err != nil {
 		return err
 	}
 	return nil
@@ -962,6 +1009,9 @@ func (u *glfwBackend) initOnMainThread(options *RunOptions) error {
 	// Register callbacks after the window initialization done.
 	// The callback might cause swapping frames, that assumes the window is already set (#2137).
 	if err := u.registerWindowCloseCallback(); err != nil {
+		return err
+	}
+	if err := u.registerWindowPosCallback(); err != nil {
 		return err
 	}
 	if err := u.registerWindowFramebufferSizeCallback(); err != nil {
@@ -1993,14 +2043,50 @@ func (u *glfwBackend) setWindowResizingMode(mode WindowResizingMode) error {
 	return nil
 }
 
+// windowPositionInGLFWPixels returns the window position in GLFW pixels for the given position in
+// device-independent pixels relative to the given monitor.
+func windowPositionInGLFWPixels(xInDIP, yInDIP int, monitor *Monitor) (int, int) {
+	s := monitor.DeviceScaleFactor()
+	mx := monitor.boundsInGLFWPixels.Min.X
+	my := monitor.boundsInGLFWPixels.Min.Y
+	return mx + int(dipToGLFWPixel(float64(xInDIP), s)), my + int(dipToGLFWPixel(float64(yInDIP), s))
+}
+
+// windowPositionInDIP returns the position to store for a window that moved to windowX, windowY in
+// GLFW pixels, in device-independent pixels relative to the given monitor.
+//
+// xInDIP and yInDIP are the position stored so far.
+func windowPositionInDIP(windowX, windowY int, xInDIP, yInDIP int, monitor *Monitor) (int, int) {
+	// Keep the stored position while the window is at the pixel position it describes, as
+	// converting the pixel position back would not return it at a fractional scale factor
+	// (#2978). Otherwise the window moved for a reason other than a request, so use where it is.
+	if px, py := windowPositionInGLFWPixels(xInDIP, yInDIP, monitor); windowX == px && windowY == py {
+		return xInDIP, yInDIP
+	}
+
+	s := monitor.DeviceScaleFactor()
+	mx := monitor.boundsInGLFWPixels.Min.X
+	my := monitor.boundsInGLFWPixels.Min.Y
+	return int(dipFromGLFWPixel(float64(windowX-mx), s)), int(dipFromGLFWPixel(float64(windowY-my), s))
+}
+
 // setWindowPositionInDIP sets the window position.
 //
 // x and y are the position in device-independent pixels.
 //
+// callSetPos reports whether to move the window, and is false to record a position it already has.
+//
 // setWindowPositionInDIP must be called from the main thread.
-func (u *glfwBackend) setWindowPositionInDIP(x, y int, monitor *Monitor) error {
+func (u *glfwBackend) setWindowPositionInDIP(x, y int, monitor *Monitor, callSetPos bool) error {
 	if microsoftgdk.IsXbox() {
 		// Do nothing. The position is always fixed.
+		return nil
+	}
+
+	u.windowXInDIP = x
+	u.windowYInDIP = y
+
+	if !callSetPos {
 		return nil
 	}
 
@@ -2009,20 +2095,17 @@ func (u *glfwBackend) setWindowPositionInDIP(x, y int, monitor *Monitor) error {
 		return err
 	}
 
-	mx := monitor.boundsInGLFWPixels.Min.X
-	my := monitor.boundsInGLFWPixels.Min.Y
-	s := monitor.DeviceScaleFactor()
-	xf := dipToGLFWPixel(float64(x), s)
-	yf := dipToGLFWPixel(float64(y), s)
-
-	x, y, err = u.adjustWindowPosition(mx+int(xf), my+int(yf), monitor)
+	px, py := windowPositionInGLFWPixels(x, y, monitor)
+	px, py, err = u.adjustWindowPosition(px, py, monitor)
 	if err != nil {
 		return err
 	}
 	if f {
-		u.setOrigWindowPos(x, y)
+		// The window keeps its fullscreen position, so update the position it is restored to
+		// instead, as setWindowSizeInDIP does for the size.
+		u.setOrigWindowPos(px, py)
 	} else {
-		if err := u.window.SetPos(x, y); err != nil {
+		if err := u.window.SetPos(px, py); err != nil {
 			return err
 		}
 	}
