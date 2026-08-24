@@ -529,14 +529,14 @@ func (p *Player) Current() time.Duration {
 	return p.Position()
 }
 
-// Volume returns the current volume of this player [0-1].
+// Volume returns the current volume of this player, which is 0 or larger.
 func (p *Player) Volume() float64 {
 	return p.p.Volume()
 }
 
-// SetVolume sets the volume of this player.
-// volume must be in between 0 and 1.
-// Otherwiser, the behavior is undefined.
+// SetVolume sets the volume of this player, which must be in the range of [0, math.MaxFloat32].
+// A volume larger than 1 amplifies the sound and might cause clipping.
+// A value out of the range, including NaN, is treated as 0.
 func (p *Player) SetVolume(volume float64) {
 	p.p.SetVolume(volume)
 }

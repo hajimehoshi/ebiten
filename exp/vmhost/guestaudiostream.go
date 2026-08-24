@@ -93,8 +93,8 @@ func (p *GuestAudioStream) IsClosed() bool {
 	return p.closed
 }
 
-// Volume returns the guest player's volume, in [0,1]. It is not applied to the samples from
-// [GuestAudioStream.Read]; the host applies it when playing.
+// Volume returns the guest player's volume, which is 0 or larger. It is not applied to the samples
+// from [GuestAudioStream.Read]; the host applies it when playing.
 func (p *GuestAudioStream) Volume() float64 {
 	p.mu.Lock()
 	defer p.mu.Unlock()

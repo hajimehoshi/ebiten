@@ -18,6 +18,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -77,7 +78,7 @@ type playerImpl struct {
 	initBufferSize int
 	bytesPerSample int
 
-	// volume is the player's volume in the range [0, 1].
+	// volume is the player's volume in the range of [0, math.MaxFloat32].
 	// The value is kept here so that a volume set before the underlying player is created is preserved.
 	volume float64
 
@@ -372,6 +373,12 @@ func (p *playerImpl) SetVolume(volume float64) {
 	p.m.Lock()
 	defer p.m.Unlock()
 
+	// Not every audio device normalizes the volume: a virtualization guest's virtual device just
+	// records it, and Volume returns this value before the audio device is created.
+	// !(volume > 0) is true for NaN as well as for negative values.
+	if !(volume > 0) || volume > math.MaxFloat32 {
+		volume = 0
+	}
 	p.volume = volume
 	if p.player != nil {
 		p.player.SetVolume(volume)

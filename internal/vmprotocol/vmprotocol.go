@@ -333,8 +333,8 @@ type AudioControl struct {
 	// Playing reports whether the player is currently playing.
 	Playing bool
 
-	// Volume is the player's volume in [0,1]. It is reported, not applied to the samples, so the host
-	// can observe the raw stream and apply the volume itself.
+	// Volume is the player's volume, which is 0 or larger. It is reported, not applied to the samples,
+	// so the host can observe the raw stream and apply the volume itself.
 	Volume float64
 
 	// Closed reports that the guest player was removed — closed by the game, or reclaimed once it
