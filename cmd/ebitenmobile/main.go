@@ -200,7 +200,7 @@ func doBind(args []string, flagset *flag.FlagSet, buildOS string) error {
 		return err
 	}
 	prefixLower := bindPrefix + pkgs[0].Name
-	prefixUpper := caser.String(bindPrefix) + caser.String(pkgs[0].Name)
+	prefixUpper := strings.Title(bindPrefix) + strings.Title(pkgs[0].Name)
 
 	args = append(args, "github.com/hajimehoshi/ebiten/v2/mobile/ebitenmobileview")
 
