@@ -1028,13 +1028,13 @@ func (u *glfwBackend) initOnMainThread(options *RunOptions) error {
 }
 
 // outsideSizeInDIP returns the size to give the game's Layout, in device-independent pixels.
-func outsideSizeInDIP(windowWidth, windowHeight int, requestedWidthInDIP, requestedHeightInDIP int, nativeFullscreen bool, deviceScaleFactor float64) (float64, float64) {
+func outsideSizeInDIP(windowWidth, windowHeight int, requestedWidthInDIP, requestedHeightInDIP int, fullscreen bool, deviceScaleFactor float64) (float64, float64) {
 	// Report the requested size while the window has the pixel size that request produces, as
 	// converting the pixel size back would not return it at a fractional scale factor (#2978).
 	// The requested size is not updated in fullscreen, where it is the size from before entering
 	// it. Otherwise use the actual window size, which might not match the specified size on
 	// Windows (#1163).
-	if rw, rh := windowSizeInGLFWPixels(requestedWidthInDIP, requestedHeightInDIP, deviceScaleFactor); !nativeFullscreen && windowWidth == rw && windowHeight == rh {
+	if rw, rh := windowSizeInGLFWPixels(requestedWidthInDIP, requestedHeightInDIP, deviceScaleFactor); !fullscreen && windowWidth == rw && windowHeight == rh {
 		return float64(requestedWidthInDIP), float64(requestedHeightInDIP)
 	}
 	return dipFromGLFWPixel(float64(windowWidth), deviceScaleFactor), dipFromGLFWPixel(float64(windowHeight), deviceScaleFactor)
@@ -1045,28 +1045,33 @@ func outsideSizeInDIP(windowWidth, windowHeight int, requestedWidthInDIP, reques
 //
 // layoutSizes must be called from the main thread.
 func (u *glfwBackend) layoutSizes() (outsideWidth, outsideHeight float64, screenWidth, screenHeight int, err error) {
+	m, err := u.currentMonitor()
+	if err != nil {
+		return 0, 0, 0, 0, err
+	}
+	if m == nil {
+		return 0, 0, 0, 0, nil
+	}
+	s := m.DeviceScaleFactor()
+
 	wf, err := u.isWindowedFullscreen()
 	if err != nil {
 		return 0, 0, 0, 0, err
 	}
-	if wf {
-		// On Linux, the window size is not reliable just after making the window
-		// fullscreened. Use the monitor size.
-		// On macOS's native fullscreen, the window's size returns a more precise size
-		// reflecting the adjustment of the view size (#1745).
-		m, err := u.currentMonitor()
-		if err != nil {
-			return 0, 0, 0, 0, err
-		}
-		if m == nil {
-			return 0, 0, 0, 0, nil
-		}
-		w, h := m.sizeInDIP()
-		s := m.DeviceScaleFactor()
-		// The monitor's size in device-independent pixels is its pixel count divided by the scale
-		// factor, so rounding the product lands back on the pixel count. Rounding the product up
-		// would overshoot it by one pixel whenever the division was inexact.
-		return w, h, int(math.Round(w * s)), int(math.Round(h * s)), nil
+	nf, err := u.isNativeFullscreen()
+	if err != nil {
+		return 0, 0, 0, 0, err
+	}
+	fullscreen := wf || nf
+
+	// The framebuffer size is the exact pixel count of the rendering destination on every platform,
+	// including macOS where a GLFW pixel is a point. Read it rather than predicting it from the
+	// monitor: a window manager settles the fullscreen size asynchronously, and a desktop that
+	// reconfigures its screen on the transition leaves the monitor's size describing the old
+	// configuration (#2225).
+	fw, fh, err := u.window.GetFramebufferSize()
+	if err != nil {
+		return 0, 0, 0, 0, err
 	}
 
 	a, err := u.window.GetAttrib(glfw.Iconified)
@@ -1074,21 +1079,22 @@ func (u *glfwBackend) layoutSizes() (outsideWidth, outsideHeight float64, screen
 		return 0, 0, 0, 0, err
 	}
 	if a == glfw.True {
-		// An iconified window has no size to lay out for; use the size it is restored to.
-		m, err := u.currentMonitor()
-		if err != nil {
-			return 0, 0, 0, 0, err
+		// An iconified window has no size to lay out for; use the size it is restored to, which is
+		// the monitor's size in fullscreen and the requested size otherwise. A minimized window
+		// reports no client area on Windows, so the rendering destination comes from that same
+		// source.
+		if fullscreen {
+			w, h := m.sizeInDIP()
+			if fw == 0 || fh == 0 {
+				fw, fh = m.boundsInGLFWPixels.Dx(), m.boundsInGLFWPixels.Dy()
+			}
+			return w, h, fw, fh, nil
 		}
-		s := m.DeviceScaleFactor()
 		w := float64(u.windowWidthInDIP)
 		h := float64(u.windowHeightInDIP)
-		fw, fh, err := u.window.GetFramebufferSize()
-		if err != nil {
-			return 0, 0, 0, 0, err
-		}
 		if fw == 0 || fh == 0 {
-			// A minimized window reports no client area on Windows. Predict the size it is
-			// restored to, truncating the product like setWindowSizeInDIP does.
+			// setWindowSizeInDIP truncates the product, so truncate it here as well to predict
+			// the same pixel count.
 			fw, fh = int(w*s), int(h*s)
 		}
 		return w, h, fw, fh, nil
@@ -1098,26 +1104,7 @@ func (u *glfwBackend) layoutSizes() (outsideWidth, outsideHeight float64, screen
 	if err != nil {
 		return 0, 0, 0, 0, err
 	}
-	m, err := u.currentMonitor()
-	if err != nil {
-		return 0, 0, 0, 0, err
-	}
-	s := m.DeviceScaleFactor()
-
-	// Windowed fullscreen already returned above, so only native fullscreen can be in effect here.
-	nf, err := u.isNativeFullscreen()
-	if err != nil {
-		return 0, 0, 0, 0, err
-	}
-
-	w, h := outsideSizeInDIP(ww, wh, u.windowWidthInDIP, u.windowHeightInDIP, nf, s)
-
-	// The framebuffer size is the exact pixel count of the rendering destination on every
-	// platform, including macOS where a GLFW pixel is a point.
-	fw, fh, err := u.window.GetFramebufferSize()
-	if err != nil {
-		return 0, 0, 0, 0, err
-	}
+	w, h := outsideSizeInDIP(ww, wh, u.windowWidthInDIP, u.windowHeightInDIP, fullscreen, s)
 	return w, h, fw, fh, nil
 }
 

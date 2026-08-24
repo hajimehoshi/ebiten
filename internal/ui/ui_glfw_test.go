@@ -59,10 +59,9 @@ func TestOutsideSizeInDIPUsesActualSize(t *testing.T) {
 	}
 }
 
-// TestOutsideSizeInDIPInNativeFullscreenUsesActualSize tests that the requested size is not
-// reported in the native fullscreen mode, where it is the size to restore on leaving fullscreen
-// rather than the current size.
-func TestOutsideSizeInDIPInNativeFullscreenUsesActualSize(t *testing.T) {
+// TestOutsideSizeInDIPInFullscreenUsesActualSize tests that the requested size is not reported in
+// fullscreen, where it is the size to restore on leaving fullscreen rather than the current size.
+func TestOutsideSizeInDIPInFullscreenUsesActualSize(t *testing.T) {
 	for _, s := range deviceScaleFactorsForTest {
 		for req := 1; req <= 2000; req++ {
 			pw, ph := ui.WindowSizeInGLFWPixelsForTest(req, req, s)

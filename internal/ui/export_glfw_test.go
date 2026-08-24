@@ -25,8 +25,8 @@ func NewMonitorForTest(boundsInGLFWPixels image.Rectangle, deviceScaleFactor flo
 	}
 }
 
-func OutsideSizeInDIPForTest(windowWidth, windowHeight int, requestedWidthInDIP, requestedHeightInDIP int, nativeFullscreen bool, deviceScaleFactor float64) (float64, float64) {
-	return outsideSizeInDIP(windowWidth, windowHeight, requestedWidthInDIP, requestedHeightInDIP, nativeFullscreen, deviceScaleFactor)
+func OutsideSizeInDIPForTest(windowWidth, windowHeight int, requestedWidthInDIP, requestedHeightInDIP int, fullscreen bool, deviceScaleFactor float64) (float64, float64) {
+	return outsideSizeInDIP(windowWidth, windowHeight, requestedWidthInDIP, requestedHeightInDIP, fullscreen, deviceScaleFactor)
 }
 
 func WindowSizeInGLFWPixelsForTest(widthInDIP, heightInDIP int, deviceScaleFactor float64) (int, int) {
