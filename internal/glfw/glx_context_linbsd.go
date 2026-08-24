@@ -43,6 +43,8 @@ func chooseGLXFBConfig(desired *fbconfig) (uintptr, error) {
 	if nativeConfigsPtr == 0 || nativeCount == 0 {
 		return 0, fmt.Errorf("glfw: glx: no GLXFBConfigs returned: %w", APIUnavailable)
 	}
+	defer xFree(nativeConfigsPtr)
+
 	nativeConfigs := unsafe.Slice((*uintptr)(unsafe.Pointer(nativeConfigsPtr)), int(nativeCount))
 
 	usableConfigs := make([]*fbconfig, 0, nativeCount)
@@ -106,9 +108,6 @@ func chooseGLXFBConfig(desired *fbconfig) (uintptr, error) {
 	}
 
 	closest := chooseFBConfig(desired, usableConfigs)
-
-	xFree(nativeConfigsPtr)
-
 	if closest == nil {
 		return 0, fmt.Errorf("glfw: glx: failed to find a suitable GLXFBConfig: %w", FormatUnavailable)
 	}
@@ -501,11 +500,11 @@ func chooseVisualGLX(wndconfig *wndconfig, ctxconfig *ctxconfig, fbconfig *fbcon
 	if resultPtr == 0 {
 		return 0, 0, fmt.Errorf("glfw: glx: failed to retrieve Visual for GLXFBConfig: %w", PlatformError)
 	}
-	result := (*_XVisualInfo)(unsafe.Pointer(resultPtr))
+	defer xFree(resultPtr)
 
+	result := (*_XVisualInfo)(unsafe.Pointer(resultPtr))
 	visual = result.Visual
 	depth = result.Depth
 
-	xFree(resultPtr)
 	return visual, depth, nil
 }

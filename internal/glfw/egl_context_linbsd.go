@@ -521,11 +521,11 @@ func chooseVisualEGL(wndconfig *wndconfig, ctxconfig *ctxconfig, fbconfig *fbcon
 	if resultPtr == 0 {
 		return 0, 0, fmt.Errorf("glfw: egl: failed to retrieve Visual for EGLConfig: %w", PlatformError)
 	}
-	result := (*_XVisualInfo)(unsafe.Pointer(resultPtr))
+	defer xFree(resultPtr)
 
+	result := (*_XVisualInfo)(unsafe.Pointer(resultPtr))
 	visual = result.Visual
 	depth = result.Depth
 
-	xFree(resultPtr)
 	return visual, depth, nil
 }

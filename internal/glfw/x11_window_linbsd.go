@@ -159,17 +159,18 @@ func getWindowState(window *Window) int {
 	result := _WithdrawnState
 
 	var statePtr uintptr
-	if getWindowPropertyX11(window.platform.handle,
+	itemCount := getWindowPropertyX11(window.platform.handle,
 		_glfw.platformWindow.WM_STATE,
 		_glfw.platformWindow.WM_STATE,
-		&statePtr) >= 2 {
+		&statePtr)
+	if statePtr != 0 {
+		defer xFree(statePtr)
+	}
+
+	if itemCount >= 2 {
 		// The property contains a CARD32 state followed by the icon window,
 		// each stored in a long.
 		result = int(uint32(*(*_Culong)(unsafe.Pointer(statePtr))))
-	}
-
-	if statePtr != 0 {
-		xFree(statePtr)
 	}
 
 	return result
@@ -333,6 +334,8 @@ func updateWindowHints(window *Window) {
 // settings.
 func updateNormalHints(window *Window, width, height int) {
 	hintsPtr := xAllocSizeHints()
+	defer xFree(hintsPtr)
+
 	hints := (*_XSizeHints)(unsafe.Pointer(hintsPtr))
 
 	var supplied _Clong
@@ -371,7 +374,6 @@ func updateNormalHints(window *Window, width, height int) {
 	}
 
 	xSetWMNormalHints(_glfw.platformWindow.display, window.platform.handle, hints)
-	xFree(hintsPtr)
 
 	updateWindowHints(window)
 }
@@ -859,6 +861,9 @@ func writeTargetToProperty(request *_XSelectionRequestEvent) _Atom {
 			request.Property,
 			_glfw.platformWindow.ATOM_PAIR,
 			&targetsPtr)
+		if targetsPtr != 0 {
+			defer xFree(targetsPtr)
+		}
 
 		var targets []_Atom
 		if targetsPtr != 0 && count > 0 {
@@ -896,10 +901,6 @@ func writeTargetToProperty(request *_XSelectionRequestEvent) _Atom {
 			_PropModeReplace,
 			unsafe.Pointer(targetsPtr),
 			int32(count))
-
-		if targetsPtr != 0 {
-			xFree(targetsPtr)
-		}
 
 		return request.Property
 	}
@@ -2201,19 +2202,20 @@ func (w *Window) platformGetWindowFrameSize() (left, top, right, bottom int, err
 	}
 
 	var extentsPtr uintptr
-	if getWindowPropertyX11(w.platform.handle,
+	itemCount := getWindowPropertyX11(w.platform.handle,
 		_glfw.platformWindow.NET_FRAME_EXTENTS,
 		_XA_CARDINAL,
-		&extentsPtr) == 4 {
+		&extentsPtr)
+	if extentsPtr != 0 {
+		defer xFree(extentsPtr)
+	}
+
+	if itemCount == 4 {
 		extents := unsafe.Slice((*_Clong)(unsafe.Pointer(extentsPtr)), 4)
 		left = int(extents[0])
 		top = int(extents[2])
 		right = int(extents[1])
 		bottom = int(extents[3])
-	}
-
-	if extentsPtr != 0 {
-		xFree(extentsPtr)
 	}
 
 	return left, top, right, bottom, nil
@@ -2290,6 +2292,8 @@ func (w *Window) platformMaximizeWindow() error {
 		}
 
 		if statesPtr != 0 {
+			defer xFree(statesPtr)
+
 			states := unsafe.Slice((*_Atom)(unsafe.Pointer(statesPtr)), int(count))
 			for _, state := range states {
 				for j := 0; j < len(missing); j++ {
@@ -2299,8 +2303,6 @@ func (w *Window) platformMaximizeWindow() error {
 					}
 				}
 			}
-
-			xFree(statesPtr)
 		}
 
 		if len(missing) == 0 {
@@ -2443,6 +2445,8 @@ func (w *Window) platformWindowMaximized() bool {
 
 	maximized := false
 	if statesPtr != 0 {
+		defer xFree(statesPtr)
+
 		states := unsafe.Slice((*_Atom)(unsafe.Pointer(statesPtr)), int(count))
 		for _, state := range states {
 			if state == _glfw.platformWindow.NET_WM_STATE_MAXIMIZED_VERT ||
@@ -2451,8 +2455,6 @@ func (w *Window) platformWindowMaximized() bool {
 				break
 			}
 		}
-
-		xFree(statesPtr)
 	}
 
 	return maximized
@@ -2536,6 +2538,7 @@ func (w *Window) platformSetWindowFloating(enabled bool) error {
 
 		var states []_Atom
 		if statesPtr != 0 {
+			defer xFree(statesPtr)
 			states = unsafe.Slice((*_Atom)(unsafe.Pointer(statesPtr)), int(count))
 		}
 
@@ -2576,10 +2579,6 @@ func (w *Window) platformSetWindowFloating(enabled bool) error {
 					_PropModeReplace, statesHead, int32(len(states)))
 			}
 		}
-
-		if statesPtr != 0 {
-			xFree(statesPtr)
-		}
 	}
 
 	xFlush(_glfw.platformWindow.display)
@@ -2608,16 +2607,17 @@ func (w *Window) platformGetWindowOpacity() (float32, error) {
 
 	if xGetSelectionOwner(_glfw.platformWindow.display, _glfw.platformWindow.NET_WM_CM_Sx) != 0 {
 		var valuePtr uintptr
-		if getWindowPropertyX11(w.platform.handle,
+		itemCount := getWindowPropertyX11(w.platform.handle,
 			_glfw.platformWindow.NET_WM_WINDOW_OPACITY,
 			_XA_CARDINAL,
-			&valuePtr) != 0 {
-			value := uint32(*(*_Culong)(unsafe.Pointer(valuePtr)))
-			opacity = float32(float64(value) / 0xffffffff)
+			&valuePtr)
+		if valuePtr != 0 {
+			defer xFree(valuePtr)
 		}
 
-		if valuePtr != 0 {
-			xFree(valuePtr)
+		if itemCount != 0 {
+			value := uint32(*(*_Culong)(unsafe.Pointer(valuePtr)))
+			opacity = float32(float64(value) / 0xffffffff)
 		}
 	}
 
