@@ -72,7 +72,8 @@ type Metrics struct {
 	// If the face is GoXFace or the font doesn't support a vertical direction, VAscent is 0.
 	VAscent float64
 
-	// VDescent is the distance in pixels from the top of a line to its baseline for vertical lines.
+	// VDescent is the distance in pixels from the bottom of a line to its baseline for vertical lines.
+	// The value is typically positive, even though a descender goes below the baseline.
 	// If the face is GoXFace or the font doesn't support a vertical direction, VDescent is 0.
 	VDescent float64
 

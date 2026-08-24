@@ -396,8 +396,6 @@ func IsStandardGamepadButtonAvailable(id GamepadID, button StandardGamepadButton
 //	"iOS":      GOOS=ios
 //	"":         Any GOOS
 //
-// On platforms where gamepad mappings are not managed by Ebitengine, this always returns false and nil.
-//
 // UpdateStandardGamepadLayoutMappings is concurrent-safe.
 //
 // UpdateStandardGamepadLayoutMappings mappings take effect immediately even for already connected gamepads.

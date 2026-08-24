@@ -171,7 +171,7 @@ func SetScreenClearedEveryFrame(cleared bool) {
 	ui.Get().SetScreenClearedEveryFrame(cleared)
 }
 
-// IsScreenClearedEveryFrame returns true if the frame isn't cleared at the beginning.
+// IsScreenClearedEveryFrame returns true if the screen is cleared at the beginning of each frame.
 //
 // IsScreenClearedEveryFrame is concurrent-safe.
 func IsScreenClearedEveryFrame() bool {
