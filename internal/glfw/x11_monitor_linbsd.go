@@ -58,6 +58,30 @@ func vidmodeFromModeInfo(mi *_XRRModeInfo, ci *_XRRCrtcInfo) *VidMode {
 	return &mode
 }
 
+// getCrtcInfoX11 returns the RandR CRTC info for the given CRTC, or 0 when
+// the CRTC no longer exists.
+//
+// The X error handler must be installed for this request, as the default
+// handler exits the process for an XID that the X server has already
+// destroyed (#3094).
+func getCrtcInfoX11(srPtr uintptr, crtc _RRCrtc) uintptr {
+	grabErrorHandlerX11()
+	defer releaseErrorHandlerX11()
+	return _glfw.platformWindow.randr.GetCrtcInfo(_glfw.platformWindow.display, srPtr, crtc)
+}
+
+// getOutputInfoX11 returns the RandR output info for the given output, or 0
+// when the output no longer exists.
+//
+// The X error handler must be installed for this request, as the default
+// handler exits the process for an XID that the X server has already
+// destroyed (#3094).
+func getOutputInfoX11(srPtr uintptr, output _RROutput) uintptr {
+	grabErrorHandlerX11()
+	defer releaseErrorHandlerX11()
+	return _glfw.platformWindow.randr.GetOutputInfo(_glfw.platformWindow.display, srPtr, output)
+}
+
 // pollMonitorsX11 polls for changes in the set of connected monitors.
 func pollMonitorsX11() error {
 	if !_glfw.platformWindow.randr.available || _glfw.platformWindow.randr.monitorBroken {
@@ -86,9 +110,18 @@ func pollMonitorsX11() error {
 	disconnected := make([]*Monitor, len(_glfw.monitors))
 	copy(disconnected, _glfw.monitors)
 
+	type connection struct {
+		monitor   *Monitor
+		placement int
+	}
+	var connections []connection
+
 	outputs := unsafe.Slice((*_RROutput)(unsafe.Pointer(sr.Outputs)), int(sr.Noutput))
 	for i := range outputs {
-		oiPtr := randr.GetOutputInfo(display, srPtr, outputs[i])
+		oiPtr := getOutputInfoX11(srPtr, outputs[i])
+		if oiPtr == 0 {
+			continue
+		}
 		oi := (*_XRROutputInfo)(unsafe.Pointer(oiPtr))
 
 		if oi.Connection != _RR_Connected || oi.Crtc == _None {
@@ -96,25 +129,31 @@ func pollMonitorsX11() error {
 			continue
 		}
 
-		var j int
-		for ; j < len(disconnected); j++ {
+		ciPtr := getCrtcInfoX11(srPtr, oi.Crtc)
+		if ciPtr == 0 {
+			randr.FreeOutputInfo(oiPtr)
+			continue
+		}
+		ci := (*_XRRCrtcInfo)(unsafe.Pointer(ciPtr))
+
+		// An output that is already known keeps its monitor, but its CRTC can
+		// have been reassigned since the last poll.
+		var monitor *Monitor
+		for j := range disconnected {
 			if disconnected[j] != nil && disconnected[j].platform.output == outputs[i] {
+				monitor = disconnected[j]
 				disconnected[j] = nil
 				break
 			}
 		}
-		if j < len(disconnected) {
-			randr.FreeOutputInfo(oiPtr)
-			continue
+		known := monitor != nil
+		if !known {
+			monitor = &Monitor{name: goString(oi.Name)}
+			monitor.platform.output = outputs[i]
 		}
-
-		ciPtr := randr.GetCrtcInfo(display, srPtr, oi.Crtc)
-		ci := (*_XRRCrtcInfo)(unsafe.Pointer(ciPtr))
-
-		monitor := &Monitor{name: goString(oi.Name)}
-		monitor.platform.output = outputs[i]
 		monitor.platform.crtc = oi.Crtc
 
+		monitor.platform.index = 0
 		for j := range screens {
 			if int32(screens[j].XOrg) == ci.X &&
 				int32(screens[j].YOrg) == ci.Y &&
@@ -125,26 +164,37 @@ func pollMonitorsX11() error {
 			}
 		}
 
+		randr.FreeOutputInfo(oiPtr)
+		randr.FreeCrtcInfo(ciPtr)
+
+		if known {
+			continue
+		}
+
 		placement := _GLFW_INSERT_LAST
 		if monitor.platform.output == primary {
 			placement = _GLFW_INSERT_FIRST
 		}
-
-		err := inputMonitor(monitor, Connected, placement)
-
-		randr.FreeOutputInfo(oiPtr)
-		randr.FreeCrtcInfo(ciPtr)
-
-		if err != nil {
-			return err
-		}
+		connections = append(connections, connection{
+			monitor:   monitor,
+			placement: placement,
+		})
 	}
 
+	// Report the disconnections before the connections. A monitor callback
+	// enumerates the monitors, and must not reach a monitor whose CRTC the X
+	// server has already destroyed (#3094).
 	for _, monitor := range disconnected {
 		if monitor != nil {
 			if err := inputMonitor(monitor, Disconnected, 0); err != nil {
 				return err
 			}
+		}
+	}
+
+	for _, c := range connections {
+		if err := inputMonitor(c.monitor, Connected, c.placement); err != nil {
+			return err
 		}
 	}
 
@@ -164,6 +214,9 @@ func setVideoModeX11(monitor *Monitor, desired *VidMode) error {
 	if err != nil {
 		return err
 	}
+	if best == nil {
+		return nil
+	}
 	current := monitor.platformGetVideoMode()
 	if current != nil && current.equals(best) {
 		return nil
@@ -173,11 +226,17 @@ func setVideoModeX11(monitor *Monitor, desired *VidMode) error {
 	defer randr.FreeScreenResources(srPtr)
 	sr := (*_XRRScreenResources)(unsafe.Pointer(srPtr))
 
-	ciPtr := randr.GetCrtcInfo(display, srPtr, monitor.platform.crtc)
+	ciPtr := getCrtcInfoX11(srPtr, monitor.platform.crtc)
+	if ciPtr == 0 {
+		return nil
+	}
 	defer randr.FreeCrtcInfo(ciPtr)
 	ci := (*_XRRCrtcInfo)(unsafe.Pointer(ciPtr))
 
-	oiPtr := randr.GetOutputInfo(display, srPtr, monitor.platform.output)
+	oiPtr := getOutputInfoX11(srPtr, monitor.platform.output)
+	if oiPtr == 0 {
+		return nil
+	}
 	defer randr.FreeOutputInfo(oiPtr)
 	oi := (*_XRROutputInfo)(unsafe.Pointer(oiPtr))
 
@@ -186,7 +245,7 @@ func setVideoModeX11(monitor *Monitor, desired *VidMode) error {
 	modes := unsafe.Slice((*_RRMode)(unsafe.Pointer(oi.Modes)), int(oi.Nmode))
 	for i := range modes {
 		mi := getModeInfo(sr, modes[i])
-		if !modeIsGood(mi) {
+		if mi == nil || !modeIsGood(mi) {
 			continue
 		}
 
@@ -233,7 +292,10 @@ func restoreVideoModeX11(monitor *Monitor) {
 	srPtr := randr.GetScreenResourcesCurrent(display, _glfw.platformWindow.root)
 	defer randr.FreeScreenResources(srPtr)
 
-	ciPtr := randr.GetCrtcInfo(display, srPtr, monitor.platform.crtc)
+	ciPtr := getCrtcInfoX11(srPtr, monitor.platform.crtc)
+	if ciPtr == 0 {
+		return
+	}
 	defer randr.FreeCrtcInfo(ciPtr)
 	ci := (*_XRRCrtcInfo)(unsafe.Pointer(ciPtr))
 
@@ -260,7 +322,7 @@ func (m *Monitor) platformGetMonitorPos() (xpos, ypos int, ok bool) {
 	srPtr := randr.GetScreenResourcesCurrent(display, _glfw.platformWindow.root)
 	defer randr.FreeScreenResources(srPtr)
 
-	ciPtr := randr.GetCrtcInfo(display, srPtr, m.platform.crtc)
+	ciPtr := getCrtcInfoX11(srPtr, m.platform.crtc)
 	if ciPtr == 0 {
 		return 0, 0, false
 	}
@@ -278,6 +340,7 @@ func (m *Monitor) platformGetMonitorWorkarea() (xpos, ypos, width, height int) {
 	display := _glfw.platformWindow.display
 
 	var areaX, areaY, areaWidth, areaHeight int32
+	var areaFromCrtc bool
 
 	if _glfw.platformWindow.randr.available && !_glfw.platformWindow.randr.monitorBroken {
 		randr := &_glfw.platformWindow.randr
@@ -286,23 +349,28 @@ func (m *Monitor) platformGetMonitorWorkarea() (xpos, ypos, width, height int) {
 		defer randr.FreeScreenResources(srPtr)
 		sr := (*_XRRScreenResources)(unsafe.Pointer(srPtr))
 
-		ciPtr := randr.GetCrtcInfo(display, srPtr, m.platform.crtc)
-		defer randr.FreeCrtcInfo(ciPtr)
-		ci := (*_XRRCrtcInfo)(unsafe.Pointer(ciPtr))
+		if ciPtr := getCrtcInfoX11(srPtr, m.platform.crtc); ciPtr != 0 {
+			defer randr.FreeCrtcInfo(ciPtr)
+			ci := (*_XRRCrtcInfo)(unsafe.Pointer(ciPtr))
 
-		areaX = ci.X
-		areaY = ci.Y
+			// mi can be nil if the monitor has been disconnected.
+			if mi := getModeInfo(sr, ci.Mode); mi != nil {
+				areaX = ci.X
+				areaY = ci.Y
 
-		mi := getModeInfo(sr, ci.Mode)
-
-		if ci.Rotation == _RR_Rotate_90 || ci.Rotation == _RR_Rotate_270 {
-			areaWidth = int32(mi.Height)
-			areaHeight = int32(mi.Width)
-		} else {
-			areaWidth = int32(mi.Width)
-			areaHeight = int32(mi.Height)
+				if ci.Rotation == _RR_Rotate_90 || ci.Rotation == _RR_Rotate_270 {
+					areaWidth = int32(mi.Height)
+					areaHeight = int32(mi.Width)
+				} else {
+					areaWidth = int32(mi.Width)
+					areaHeight = int32(mi.Height)
+				}
+				areaFromCrtc = true
+			}
 		}
-	} else {
+	}
+
+	if !areaFromCrtc {
 		areaWidth = xDisplayWidth(display, int32(_glfw.platformWindow.screen))
 		areaHeight = xDisplayHeight(display, int32(_glfw.platformWindow.screen))
 	}
@@ -372,18 +440,25 @@ func (m *Monitor) platformAppendVideoModes(monitors []*VidMode) ([]*VidMode, err
 	defer randr.FreeScreenResources(srPtr)
 	sr := (*_XRRScreenResources)(unsafe.Pointer(srPtr))
 
-	ciPtr := randr.GetCrtcInfo(display, srPtr, m.platform.crtc)
+	// The CRTC and the output are gone when the monitor has been disconnected.
+	ciPtr := getCrtcInfoX11(srPtr, m.platform.crtc)
+	if ciPtr == 0 {
+		return result, nil
+	}
 	defer randr.FreeCrtcInfo(ciPtr)
 	ci := (*_XRRCrtcInfo)(unsafe.Pointer(ciPtr))
 
-	oiPtr := randr.GetOutputInfo(display, srPtr, m.platform.output)
+	oiPtr := getOutputInfoX11(srPtr, m.platform.output)
+	if oiPtr == 0 {
+		return result, nil
+	}
 	defer randr.FreeOutputInfo(oiPtr)
 	oi := (*_XRROutputInfo)(unsafe.Pointer(oiPtr))
 
 	modes := unsafe.Slice((*_RRMode)(unsafe.Pointer(oi.Modes)), int(oi.Nmode))
 	for i := range modes {
 		mi := getModeInfo(sr, modes[i])
-		if !modeIsGood(mi) {
+		if mi == nil || !modeIsGood(mi) {
 			continue
 		}
 
@@ -429,7 +504,7 @@ func (m *Monitor) platformGetVideoMode() *VidMode {
 	defer randr.FreeScreenResources(srPtr)
 	sr := (*_XRRScreenResources)(unsafe.Pointer(srPtr))
 
-	ciPtr := randr.GetCrtcInfo(display, srPtr, m.platform.crtc)
+	ciPtr := getCrtcInfoX11(srPtr, m.platform.crtc)
 	if ciPtr != 0 {
 		defer randr.FreeCrtcInfo(ciPtr)
 		ci := (*_XRRCrtcInfo)(unsafe.Pointer(ciPtr))
