@@ -789,9 +789,7 @@ func appendL2VisualOrder(dst []int, levels []bidi.Level) []int {
 	var maxLevel bidi.Level
 	minOddLevel := bidi.Level(127)
 	for _, l := range levels {
-		if l > maxLevel {
-			maxLevel = l
-		}
+		maxLevel = max(maxLevel, l)
 		if l%2 == 1 && l < minOddLevel {
 			minOddLevel = l
 		}
