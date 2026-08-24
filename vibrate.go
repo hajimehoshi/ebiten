@@ -70,13 +70,17 @@ type VibrateGamepadOptions struct {
 
 // VibrateGamepad vibrates the specified gamepad with the specified options.
 //
-// VibrateGamepad does nothing on Android and Linux so far.
+// VibrateGamepad does nothing on Android so far.
 //
 // On Windows, VibrateGamepad works only for XInput gamepads (e.g. Xbox controllers).
 // VibrateGamepad does nothing for DirectInput gamepads.
 //
 // On macOS, VibrateGamepad works only for gamepads the GameController framework supports
 // (e.g. Xbox, PlayStation, and MFi controllers). VibrateGamepad does nothing for other gamepads.
+//
+// On Linux, VibrateGamepad works only for gamepads supporting the rumble force-feedback effect
+// (e.g. Xbox, PlayStation, and Nintendo Switch Pro controllers), and requires write permission
+// for the device files under /dev/input. VibrateGamepad does nothing for other gamepads.
 //
 // VibrateGamepad does nothing before the game starts.
 //

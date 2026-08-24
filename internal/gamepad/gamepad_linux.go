@@ -106,7 +106,13 @@ func (*nativeGamepadsImpl) openGamepad(gamepads *gamepads, path string) (err err
 		return nil
 	}
 
-	fd, err := unix.Open(path, unix.O_RDONLY|unix.O_NONBLOCK, 0)
+	// Write access is required to play force-feedback effects. Fall back to read-only access,
+	// which is enough for reading the input events.
+	fd, err := unix.Open(path, unix.O_RDWR|unix.O_NONBLOCK, 0)
+	writable := err == nil
+	if !writable {
+		fd, err = unix.Open(path, unix.O_RDONLY|unix.O_NONBLOCK, 0)
+	}
 	if err != nil {
 		if err == unix.EACCES {
 			return nil
@@ -130,6 +136,7 @@ func (*nativeGamepadsImpl) openGamepad(gamepads *gamepads, path string) (err err
 	evBits := make([]byte, (unix.EV_CNT+7)/8)
 	keyBits := make([]byte, (_KEY_CNT+7)/8)
 	absBits := make([]byte, (_ABS_CNT+7)/8)
+	ffBits := make([]byte, (_FF_CNT+7)/8)
 	var id input_id
 	if err := ioctl(fd, _EVIOCGBIT(0, uint(len(evBits))), unsafe.Pointer(&evBits[0])); err != nil {
 		return fmt.Errorf("gamepad: ioctl for evBits failed: %w", err)
@@ -139,6 +146,9 @@ func (*nativeGamepadsImpl) openGamepad(gamepads *gamepads, path string) (err err
 	}
 	if err := ioctl(fd, _EVIOCGBIT(unix.EV_ABS, uint(len(absBits))), unsafe.Pointer(&absBits[0])); err != nil {
 		return fmt.Errorf("gamepad: ioctl for absBits failed: %w", err)
+	}
+	if err := ioctl(fd, _EVIOCGBIT(unix.EV_FF, uint(len(ffBits))), unsafe.Pointer(&ffBits[0])); err != nil {
+		return fmt.Errorf("gamepad: ioctl for ffBits failed: %w", err)
 	}
 	if err := ioctl(fd, _EVIOCGID(), unsafe.Pointer(&id)); err != nil {
 		return fmt.Errorf("gamepad: ioctl for an ID failed: %w", err)
@@ -177,14 +187,17 @@ func (*nativeGamepadsImpl) openGamepad(gamepads *gamepads, path string) (err err
 	}
 
 	n := &nativeGamepadImpl{
-		path: path,
-		fd:   fd,
+		path:     path,
+		fd:       fd,
+		effectID: -1,
 	}
 	gp := gamepads.add(name, sdlID)
 	gp.native = n
 	runtime.AddCleanup(gp, func(n *nativeGamepadImpl) {
 		n.close()
 	}, n)
+
+	n.hasVibration = writable && isBitSet(ffBits, _FF_RUMBLE)
 
 	var axisCount int
 	var buttonCount int
@@ -294,6 +307,9 @@ type nativeGamepadImpl struct {
 	absInfo [_ABS_CNT]input_absinfo
 	dropped bool
 
+	hasVibration bool
+	effectID     int16
+
 	axes    [_ABS_CNT]float64
 	buttons [_KEY_CNT - _BTN_MISC]bool
 	hats    [4]int
@@ -308,6 +324,11 @@ type nativeGamepadImpl struct {
 
 func (g *nativeGamepadImpl) close() {
 	if g.fd != 0 {
+		if g.effectID >= 0 {
+			id := int(g.effectID)
+			_, _, _ = unix.Syscall(unix.SYS_IOCTL, uintptr(g.fd), uintptr(_EVIOCRMFF()), uintptr(unsafe.Pointer(&id)))
+			g.effectID = -1
+		}
 		_ = unix.Close(g.fd)
 	}
 	g.fd = 0
@@ -622,5 +643,70 @@ func (g *nativeGamepadImpl) hatState(hat int) int {
 }
 
 func (g *nativeGamepadImpl) vibrate(duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
-	// TODO: Implement this (#1452)
+	if g.fd == 0 || !g.hasVibration {
+		return
+	}
+
+	var length uint16
+	if ms := duration.Milliseconds(); ms > int64(0xffff) {
+		length = 0xffff
+	} else if ms > 0 {
+		length = uint16(ms)
+	}
+	if strongMagnitude <= 0 && weakMagnitude <= 0 {
+		length = 0
+	}
+
+	if length == 0 {
+		// Stop playing the current effect.
+		if g.effectID < 0 {
+			return
+		}
+		g.writeForceFeedbackEvent(g.effectID, false)
+		return
+	}
+
+	var effect ffEffect
+	effect.typ = _FF_RUMBLE
+	effect.id = g.effectID
+	effect.replay.length = length
+	effect.u.rumble.strongMagnitude = magnitudeToUint16(strongMagnitude)
+	effect.u.rumble.weakMagnitude = magnitudeToUint16(weakMagnitude)
+
+	// Kernels renumbered EVIOCSFF, so try the current number first and fall
+	// back to the legacy one.
+	err := ioctl(g.fd, _EVIOCSFF(), unsafe.Pointer(&effect))
+	if err != nil {
+		err = ioctl(g.fd, _EVIOCSFFLegacy(), unsafe.Pointer(&effect))
+	}
+	if err != nil {
+		g.effectID = -1
+		return
+	}
+	g.effectID = effect.id
+
+	g.writeForceFeedbackEvent(effect.id, true)
+}
+
+func (g *nativeGamepadImpl) writeForceFeedbackEvent(id int16, play bool) {
+	event := input_event{
+		typ:   unix.EV_FF,
+		code:  uint16(id),
+		value: 0,
+	}
+	if play {
+		event.value = 1
+	}
+	buf := (*[unsafe.Sizeof(input_event{})]byte)(unsafe.Pointer(&event))[:]
+	_, _ = unix.Write(g.fd, buf)
+}
+
+func magnitudeToUint16(magnitude float64) uint16 {
+	if magnitude <= 0 {
+		return 0
+	}
+	if magnitude >= 1 {
+		return 0xffff
+	}
+	return uint16(magnitude * 0xffff)
 }

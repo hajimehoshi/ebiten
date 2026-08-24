@@ -39,6 +39,10 @@ const (
 	_ABS_MAX   = 0x3f
 	_ABS_CNT   = _ABS_MAX + 1
 
+	_FF_RUMBLE = 0x50
+	_FF_MAX    = 0x7f
+	_FF_CNT    = _FF_MAX + 1
+
 	_BTN_MISC       = 0x100
 	_BTN_GAMEPAD    = 0x130
 	_BTN_A          = 0x130
@@ -90,6 +94,10 @@ func _IOR(typ, nr, size uint) uint {
 	return _IOC(_IOC_READ, typ, nr, size)
 }
 
+func _IOW(typ, nr, size uint) uint {
+	return _IOC(_IOC_WRITE, typ, nr, size)
+}
+
 func _EVIOCGABS(abs uint) uint {
 	return _IOR('E', 0x40+abs, uint(unsafe.Sizeof(input_absinfo{})))
 }
@@ -104,6 +112,20 @@ func _EVIOCGID() uint {
 
 func _EVIOCGNAME(len uint) uint {
 	return _IOC(_IOC_READ, 'E', 0x06, len)
+}
+
+func _EVIOCSFF() uint {
+	return _IOW('E', 0x80, uint(unsafe.Sizeof(ffEffect{})))
+}
+
+// _EVIOCSFFLegacy is the EVIOCSFF ioctl number used by kernels before the
+// command was renumbered.
+func _EVIOCSFFLegacy() uint {
+	return _IOW('E', 0x52, uint(unsafe.Sizeof(ffEffect{})))
+}
+
+func _EVIOCRMFF() uint {
+	return _IOW('E', 0x81, 4)
 }
 
 type input_absinfo struct {
@@ -127,6 +149,54 @@ type input_id struct {
 	vendor  uint16
 	product uint16
 	version uint16
+}
+
+type ffTrigger struct {
+	button   uint16
+	interval uint16
+}
+
+type ffReplay struct {
+	length uint16
+	delay  uint16
+}
+
+type ffEnvelope struct {
+	attackLength uint16
+	attackLevel  uint16
+	fadeLength   uint16
+	fadeLevel    uint16
+}
+
+type ffPeriodicEffect struct {
+	waveform   uint16
+	period     uint16
+	magnitude  int16
+	offset     int16
+	phase      uint16
+	envelope   ffEnvelope
+	customLen  uint32
+	customData uintptr
+}
+
+type ffRumbleEffect struct {
+	strongMagnitude uint16
+	weakMagnitude   uint16
+}
+
+type ffEffectUnion struct {
+	rumble ffRumbleEffect
+	_      [unsafe.Sizeof(ffPeriodicEffect{}) - unsafe.Sizeof(ffRumbleEffect{})]byte
+}
+
+type ffEffect struct {
+	typ       uint16
+	id        int16
+	direction uint16
+	trigger   ffTrigger
+	replay    ffReplay
+	_         [2]byte
+	u         ffEffectUnion
 }
 
 func ioctl(fd int, request uint, ptr unsafe.Pointer) error {
