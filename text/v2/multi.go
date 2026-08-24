@@ -64,30 +64,14 @@ func (m *MultiFace) Metrics() Metrics {
 	var mt Metrics
 	for _, f := range m.faces {
 		mt1 := f.Metrics()
-		if mt1.HLineGap > mt.HLineGap {
-			mt.HLineGap = mt1.HLineGap
-		}
-		if mt1.HAscent > mt.HAscent {
-			mt.HAscent = mt1.HAscent
-		}
-		if mt1.HDescent > mt.HDescent {
-			mt.HDescent = mt1.HDescent
-		}
-		if mt1.VLineGap > mt.VLineGap {
-			mt.VLineGap = mt1.VLineGap
-		}
-		if mt1.VAscent > mt.VAscent {
-			mt.VAscent = mt1.VAscent
-		}
-		if mt1.VDescent > mt.VDescent {
-			mt.VDescent = mt1.VDescent
-		}
-		if mt1.XHeight > mt.XHeight {
-			mt.XHeight = mt1.XHeight
-		}
-		if mt1.CapHeight > mt.CapHeight {
-			mt.CapHeight = mt1.CapHeight
-		}
+		mt.HLineGap = max(mt.HLineGap, mt1.HLineGap)
+		mt.HAscent = max(mt.HAscent, mt1.HAscent)
+		mt.HDescent = max(mt.HDescent, mt1.HDescent)
+		mt.VLineGap = max(mt.VLineGap, mt1.VLineGap)
+		mt.VAscent = max(mt.VAscent, mt1.VAscent)
+		mt.VDescent = max(mt.VDescent, mt1.VDescent)
+		mt.XHeight = max(mt.XHeight, mt1.XHeight)
+		mt.CapHeight = max(mt.CapHeight, mt1.CapHeight)
 	}
 	return mt
 }

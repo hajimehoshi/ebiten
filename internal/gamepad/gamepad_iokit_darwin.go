@@ -15,9 +15,10 @@
 package gamepad
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
-	"sort"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -283,9 +284,16 @@ func (g *nativeGamepadsIOKit) addDevice(device _IOHIDDeviceRef, gamepads *gamepa
 		}
 	}
 
-	sort.Stable(n.axes)
-	sort.Stable(n.buttons)
-	sort.Stable(n.hats)
+	slices.SortStableFunc(n.axes, compareElements)
+	slices.SortStableFunc(n.buttons, compareElements)
+	slices.SortStableFunc(n.hats, compareElements)
+}
+
+func compareElements(a, b element) int {
+	return cmp.Or(
+		cmp.Compare(a.usage, b.usage),
+		cmp.Compare(a.index, b.index),
+	)
 }
 
 type element struct {
@@ -296,31 +304,11 @@ type element struct {
 	maximum int
 }
 
-type elements []element
-
-func (e elements) Len() int {
-	return len(e)
-}
-
-func (e elements) Less(i, j int) bool {
-	if e[i].usage != e[j].usage {
-		return e[i].usage < e[j].usage
-	}
-	if e[i].index != e[j].index {
-		return e[i].index < e[j].index
-	}
-	return false
-}
-
-func (e elements) Swap(i, j int) {
-	e[i], e[j] = e[j], e[i]
-}
-
 type nativeGamepadHID struct {
 	device  _IOHIDDeviceRef
-	axes    elements
-	buttons elements
-	hats    elements
+	axes    []element
+	buttons []element
+	hats    []element
 
 	axisValues   []float64
 	buttonValues []bool

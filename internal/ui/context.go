@@ -112,7 +112,7 @@ func (c *context) forceUpdateFrame(graphicsDriver graphicsdriver.Graphics, outsi
 		// Or, the rendering result becomes unexpected when the window is resized.
 		n = 2
 	}
-	for i := 0; i < n; i++ {
+	for range n {
 		// Let the clock determine the tick count as usual, instead of forcing one tick per call.
 		// Forced frames can happen at any rate, like once per window-resizing event, and forcing
 		// a tick there would advance the game time faster than the specified TPS (#2615).
@@ -196,7 +196,7 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 	debug.FrameLogf("Update count per frame: %d\n", updateCount)
 
 	// Update the game.
-	for i := 0; i < updateCount; i++ {
+	for range updateCount {
 		// Read the input state and use it for one tick to give a consistent result for one tick (#2496, #2501).
 		c.game.UpdateInputState(func(inputState *InputState) {
 			ui.readInputState(inputState)

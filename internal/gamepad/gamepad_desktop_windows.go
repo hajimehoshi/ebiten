@@ -15,9 +15,10 @@
 package gamepad
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
-	"sort"
+	"slices"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -332,11 +333,11 @@ func (g *nativeGamepadsDesktop) dinput8EnumDevicesCallback(lpddi *_DIDEVICEINSTA
 		return _DIENUM_STOP
 	}
 
-	sort.Slice(ctx.objects, func(i, j int) bool {
-		if ctx.objects[i].objectType != ctx.objects[j].objectType {
-			return ctx.objects[i].objectType < ctx.objects[j].objectType
-		}
-		return ctx.objects[i].index < ctx.objects[j].index
+	slices.SortFunc(ctx.objects, func(a, b dinputObject) int {
+		return cmp.Or(
+			cmp.Compare(a.objectType, b.objectType),
+			cmp.Compare(a.index, b.index),
+		)
 	})
 
 	name := windows.UTF16ToString(lpddi.tszInstanceName[:])
@@ -668,7 +669,7 @@ func (g *nativeGamepadDesktop) update(gamepads *gamepads) (err error) {
 	g.xinputState = state
 
 	// XInput vibration lasts until changed, so stop it once the requested duration has passed.
-	if g.vib && time.Now().Sub(g.vibEnd) >= 0 {
+	if g.vib && time.Since(g.vibEnd) >= 0 {
 		g.stopVibration()
 	}
 	return nil

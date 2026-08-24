@@ -310,7 +310,7 @@ func (u *UserInterface) isFocused() bool {
 // > This prevents locking upon initial navigation or re-acquiring lock without user's attention.
 func (u *UserInterface) canCaptureCursor() bool {
 	// 1.5 [sec] seems enough in the real world.
-	return time.Now().Sub(u.lastCaptureExitTime) >= 1500*time.Millisecond
+	return time.Since(u.lastCaptureExitTime) >= 1500*time.Millisecond
 }
 
 func (u *UserInterface) update() error {
@@ -758,7 +758,7 @@ func (u *UserInterface) appendDroppedFiles(data js.Value) {
 	items := data.Get("items")
 
 	var entries []js.Value
-	for i := 0; i < items.Length(); i++ {
+	for i := range items.Length() {
 		kind := items.Index(i).Get("kind").String()
 		switch kind {
 		case "file":

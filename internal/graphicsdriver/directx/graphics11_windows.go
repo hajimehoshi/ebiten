@@ -66,7 +66,7 @@ func init() {
 	if diff%4 != 0 {
 		panic("directx: unexpected attribute layout")
 	}
-	for i := 0; i < diff/4; i++ {
+	for i := range diff / 4 {
 		inputElementDescsForDX11 = append(inputElementDescsForDX11, _D3D11_INPUT_ELEMENT_DESC{
 			SemanticName:         &([]byte("COLOR\000"))[0],
 			SemanticIndex:        uint32(i) + 1,

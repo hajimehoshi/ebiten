@@ -22,7 +22,7 @@ import (
 	"go/constant"
 	"go/token"
 	"hash/fnv"
-	"sort"
+	"slices"
 	"strings"
 )
 
@@ -433,7 +433,7 @@ func (p *Program) ReachableFuncsFromBlock(block *Block) []*Func {
 	}
 	walkExprs(f, block)
 
-	sort.Ints(indices)
+	slices.Sort(indices)
 
 	funcs := make([]*Func, 0, len(indices))
 	for _, i := range indices {

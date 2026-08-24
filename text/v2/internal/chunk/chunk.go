@@ -332,7 +332,7 @@ func mayContainStrongRTLInFirstLine(text string) bool {
 	//   NEL  U+0085 → 0xC2 0x85
 	//   LS   U+2028 → 0xE2 0x80 0xA8
 	//   PS   U+2029 → 0xE2 0x80 0xA9
-	for i := 0; i < len(text); i++ {
+	for i := range len(text) {
 		b := text[i]
 		if b < 0x80 {
 			switch b {
