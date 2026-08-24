@@ -46,7 +46,7 @@ func (s *StereoF32) Read(b []byte) (int, error) {
 		return 0, err
 	}
 	if s.mono {
-		for i := 0; i < n/4; i++ {
+		for i := range n / 4 {
 			b[8*i] = s.buf[4*i]
 			b[8*i+1] = s.buf[4*i+1]
 			b[8*i+2] = s.buf[4*i+2]

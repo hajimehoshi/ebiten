@@ -613,7 +613,7 @@ func (t *textInputImpl) pressesOnMain(self, presses, event objc.ID, cmd objc.SEL
 
 	var kept objc.ID
 	consumed := 0
-	for i := 0; i < n; i++ {
+	for i := range n {
 		p := arr.Send(sel_objectAtIndex, uint(i))
 		if cmd == sel_pressesBegan {
 			if key, ok := t.consumableKey(self, p); ok {

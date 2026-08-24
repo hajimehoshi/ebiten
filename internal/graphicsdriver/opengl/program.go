@@ -121,7 +121,7 @@ func init() {
 	if diff%4 != 0 {
 		panic("opengl: unexpected attribute layout")
 	}
-	for i := 0; i < diff/4; i++ {
+	for i := range diff / 4 {
 		theArrayBufferLayout.addPart(arrayBufferLayoutPart{
 			name: fmt.Sprintf("A%d", i+3),
 			num:  4,
