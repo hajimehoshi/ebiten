@@ -369,6 +369,6 @@ func (g *GoXFace) direction() Direction {
 func (g *GoXFace) appendVectorPathForLine(path *vector.Path, line string, originX, originY float64) {
 }
 
-// Metrics implements Face.
+// private implements Face.
 func (g *GoXFace) private() {
 }

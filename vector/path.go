@@ -214,7 +214,8 @@ func (p *Path) addSubPaths(n int) {
 	p.subPaths = slices.Grow(p.subPaths, n)[:len(p.subPaths)+n]
 }
 
-// MoveTo starts a new sub-path with the given position (x, y) without adding a sub-path,
+// MoveTo starts a new sub-path with the given position (x, y), without adding any line segments.
+// If the last sub-path is still empty, MoveTo updates its start position instead of adding a new one.
 func (p *Path) MoveTo(x, y float32) {
 	p.resetFlatPaths()
 
@@ -229,7 +230,8 @@ func (p *Path) MoveTo(x, y float32) {
 
 // LineTo adds a line segment to the path, which starts from the last position of the current sub-path
 // and ends to the given position (x, y).
-// If p doesn't have any sub-paths or the last sub-path is closed, LineTo sets (x, y) as the start position of a new sub-path.
+// If p doesn't have any sub-paths, LineTo sets (x, y) as the start position of a new sub-path.
+// If the last sub-path is closed, LineTo creates a new sub-path whose start position is the same as the closed sub-path's.
 func (p *Path) LineTo(x, y float32) {
 	p.resetFlatPaths()
 
