@@ -46,6 +46,10 @@ func newGameForUI(game Game, transparent bool) *gameForUI {
 	return g
 }
 
+// screenSize is the size of the image given at Draw.
+// A nil value means that the game has not started yet.
+var screenSize atomic.Pointer[image.Point]
+
 func (g *gameForUI) NewOffscreenImage(width, height int) *ui.Image {
 	if g.offscreen != nil {
 		g.offscreen.Deallocate()
@@ -57,6 +61,7 @@ func (g *gameForUI) NewOffscreenImage(width, height int) *ui.Image {
 	// An image on an atlas is surrounded by a transparent edge,
 	// and the shader program unexpectedly picks the pixel on the edges.
 	g.offscreen = newImage(image.Rect(0, 0, width, height), atlas.ImageTypeUnmanaged)
+	screenSize.Store(&image.Point{X: width, Y: height})
 	return g.offscreen.image
 }
 

@@ -389,6 +389,19 @@ func isRunGameEnded() bool {
 	return isRunGameEnded_.Load()
 }
 
+// ScreenSize returns the size of the image given at [Game.Draw], in pixels.
+//
+// ScreenSize returns (0, 0) before the game starts.
+//
+// ScreenSize is concurrent-safe.
+func ScreenSize() (int, int) {
+	s := screenSize.Load()
+	if s == nil {
+		return 0, 0
+	}
+	return s.X, s.Y
+}
+
 // ScreenSizeInFullscreen returns the size in device-independent pixels when the game is fullscreen.
 // The adopted monitor is the 'current' monitor which the window belongs to.
 // The returned value can be given to SetSize function if the perfectly fit fullscreen is needed.

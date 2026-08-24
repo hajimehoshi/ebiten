@@ -20,6 +20,17 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
+func TestScreenSize(t *testing.T) {
+	// The game running these tests returns (320, 240) at Layout.
+	w, h := ebiten.ScreenSize()
+	if got, want := w, 320; got != want {
+		t.Errorf("w: got: %d, want: %d", got, want)
+	}
+	if got, want := h, 240; got != want {
+		t.Errorf("h: got: %d, want: %d", got, want)
+	}
+}
+
 func TestScreenSizeInFullscreen(t *testing.T) {
 	// Just call ScreenSizeInFullscreen. There was a crash bug on browsers (#2975).
 	w, h := ebiten.ScreenSizeInFullscreen()
