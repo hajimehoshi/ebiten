@@ -3,6 +3,9 @@ name: GitHub Pages
 on:
   push:
     branches: ["main"]
+    paths:
+      - ".github/workflows/pages.yml"
+      - ".github/workflows/site/**"
   workflow_dispatch:
 
 permissions:
