@@ -16,6 +16,7 @@ package buffered
 
 import (
 	"image"
+	"maps"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
@@ -208,12 +209,9 @@ func (c *pixelCache) writePixels(img *atlas.Image, pix []byte, region image.Rect
 	// Avoid this unless ReadPixels is called.
 
 	// Remove entries in the dots buffer that are overwritten by this writePixels call.
-	for pos := range c.dots {
-		if !pos.In(region) {
-			continue
-		}
-		delete(c.dots, pos)
-	}
+	maps.DeleteFunc(c.dots, func(pos image.Point, _ [4]byte) bool {
+		return pos.In(region)
+	})
 
 	img.WritePixels(pix, region)
 }
