@@ -680,8 +680,8 @@ func (g *nativeGamepadImpl) vibrate(duration time.Duration, strongMagnitude floa
 		id:  g.effectID,
 	}
 	effect.replay.length = uint16(ms)
-	effect.rumble().strong_magnitude = uint16(min(max(strongMagnitude, 0), 1) * 0xffff)
-	effect.rumble().weak_magnitude = uint16(min(max(weakMagnitude, 0), 1) * 0xffff)
+	effect.rumble().strong_magnitude = ffMagnitude(strongMagnitude)
+	effect.rumble().weak_magnitude = ffMagnitude(weakMagnitude)
 
 	if err := ioctl(g.fd, _EVIOCSFF(), unsafe.Pointer(&effect)); err != nil {
 		return
@@ -689,6 +689,20 @@ func (g *nativeGamepadImpl) vibrate(duration time.Duration, strongMagnitude floa
 	g.effectID = effect.id
 
 	g.writeFFEvent(effect.id, 1)
+}
+
+// ffMagnitude converts a magnitude in the range 0 to 1 to a force feedback
+// motor magnitude. Out-of-range values are clamped and NaN is treated as 0.
+func ffMagnitude(magnitude float64) uint16 {
+	// Converting an out-of-range or NaN value to uint16 is implementation-defined,
+	// so such values must be rejected before the conversion.
+	if !(magnitude > 0) {
+		return 0
+	}
+	if magnitude > 1 {
+		return 0xffff
+	}
+	return uint16(magnitude * 0xffff)
 }
 
 // writeFFEvent starts (value 1) or stops (value 0) playing an uploaded force
