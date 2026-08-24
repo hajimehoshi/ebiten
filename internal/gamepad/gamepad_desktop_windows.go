@@ -669,7 +669,7 @@ func (g *nativeGamepadDesktop) update(gamepads *gamepads) (err error) {
 	g.xinputState = state
 
 	// XInput vibration lasts until changed, so stop it once the requested duration has passed.
-	if g.vib && time.Now().Sub(g.vibEnd) >= 0 {
+	if g.vib && time.Since(g.vibEnd) >= 0 {
 		g.stopVibration()
 	}
 	return nil

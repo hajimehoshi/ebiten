@@ -310,7 +310,7 @@ func (u *UserInterface) isFocused() bool {
 // > This prevents locking upon initial navigation or re-acquiring lock without user's attention.
 func (u *UserInterface) canCaptureCursor() bool {
 	// 1.5 [sec] seems enough in the real world.
-	return time.Now().Sub(u.lastCaptureExitTime) >= 1500*time.Millisecond
+	return time.Since(u.lastCaptureExitTime) >= 1500*time.Millisecond
 }
 
 func (u *UserInterface) update() error {
