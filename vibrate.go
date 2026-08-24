@@ -77,6 +77,7 @@ type VibrateGamepadOptions struct {
 //
 // On Linux, VibrateGamepad works only for gamepads that support the force feedback rumble effect,
 // and requires write access to the gamepad's device file.
+// The maximum duration on Linux is 65535 milliseconds; longer durations are truncated.
 //
 // On macOS, VibrateGamepad works only for gamepads the GameController framework supports
 // (e.g. Xbox, PlayStation, and MFi controllers). VibrateGamepad does nothing for other gamepads.
