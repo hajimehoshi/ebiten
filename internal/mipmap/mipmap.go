@@ -272,7 +272,7 @@ func mipmapLevelFromDistance(dx0, dy0, dx1, dy1, sx0, sy0, sx1, sy1 float32) int
 		return 0
 	}
 
-	level := 0
+	var level int
 	for scale < 0.25 {
 		level++
 		scale *= 4

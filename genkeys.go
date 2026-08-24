@@ -793,7 +793,7 @@ func main() {
 
 		// The build tag can't be included in the templates because of `go vet`.
 		// Pass the build tag and extract this in the template to make `go vet` happy.
-		buildConstraints := ""
+		var buildConstraints string
 		switch path {
 		case filepath.Join("internal", "glfw", "keys.go"):
 			buildConstraints = "//go:build darwin || freebsd || linux || netbsd || windows"

@@ -60,7 +60,7 @@ func getIDFromPtr(ptr int64) int {
 	if id, ok := ptrToID[ptr]; ok {
 		return id
 	}
-	maxID := 0
+	var maxID int
 	for _, id := range ptrToID {
 		maxID = max(maxID, id)
 	}

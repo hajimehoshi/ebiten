@@ -212,7 +212,7 @@ func TestPage(t *testing.T) {
 	for _, c := range cases {
 		p := packing.NewPage(1024, 1024, 1024, 0)
 		nodes := []*packing.Node{}
-		nnodes := 0
+		var nnodes int
 		for i, in := range c.In {
 			if in.FreeNodeID == -1 {
 				n := p.Alloc(in.Width, in.Height)

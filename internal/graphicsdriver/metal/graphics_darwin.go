@@ -476,7 +476,7 @@ func (g *Graphics) draw(dst *Image, dstRegions []graphicsdriver.DstRegion, srcs 
 	g.lastDst = dst
 
 	if g.rce == (mtl.RenderCommandEncoder{}) {
-		rpd := mtl.RenderPassDescriptor{}
+		var rpd mtl.RenderPassDescriptor
 		// Even though the destination pixels are not used, mtl.LoadActionDontCare might cause glitches
 		// (#1019). Always using mtl.LoadActionLoad is safe.
 		if dst.screen {

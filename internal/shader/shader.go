@@ -121,7 +121,7 @@ func (b *block) findLocalVariable(name string, markLocalVariableUsed bool) (int,
 		panic("shader: variable name must be non-empty and non-underscore")
 	}
 
-	idx := 0
+	var idx int
 	for outer := b.outer; outer != nil; outer = outer.outer {
 		idx += len(outer.vars)
 	}

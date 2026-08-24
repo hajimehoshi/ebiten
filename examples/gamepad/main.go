@@ -172,7 +172,7 @@ func standardMap(id ebiten.GamepadID) string {
 
 func (g *Game) Draw(screen *ebiten.Image) {
 	// Draw the current gamepad status.
-	str := ""
+	var str string
 	if len(g.gamepadIDs) > 0 {
 		ids := make([]ebiten.GamepadID, 0, len(g.gamepadIDs))
 		for id := range g.gamepadIDs {

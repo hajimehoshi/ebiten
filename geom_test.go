@@ -27,7 +27,7 @@ func TestGeoMInit(t *testing.T) {
 	for i := range ebiten.GeoMDim - 1 {
 		for j := range ebiten.GeoMDim {
 			got := m.Element(i, j)
-			want := 0.0
+			var want float64
 			if i == j {
 				want = 1
 			}
@@ -39,7 +39,7 @@ func TestGeoMInit(t *testing.T) {
 }
 
 func TestGeoMAssign(t *testing.T) {
-	m := ebiten.GeoM{}
+	var m ebiten.GeoM
 	m.SetElement(0, 0, 1)
 	m2 := m
 	m.SetElement(0, 0, 0)
@@ -51,9 +51,9 @@ func TestGeoMAssign(t *testing.T) {
 }
 
 func TestGeoMConcat(t *testing.T) {
-	matrix1 := ebiten.GeoM{}
+	var matrix1 ebiten.GeoM
 	matrix1.Scale(2, 2)
-	matrix2 := ebiten.GeoM{}
+	var matrix2 ebiten.GeoM
 	matrix2.Translate(1, 1)
 
 	matrix3 := matrix1
@@ -93,7 +93,7 @@ func TestGeoMConcat(t *testing.T) {
 }
 
 func TestGeoMConcatSelf(t *testing.T) {
-	m := ebiten.GeoM{}
+	var m ebiten.GeoM
 	m.SetElement(0, 0, 1)
 	m.SetElement(0, 1, 2)
 	m.SetElement(0, 2, 3)
@@ -128,13 +128,13 @@ func geoMToString(g ebiten.GeoM) string {
 }
 
 func TestGeoMApply(t *testing.T) {
-	trans := ebiten.GeoM{}
+	var trans ebiten.GeoM
 	trans.Translate(1, 2)
 
-	scale := ebiten.GeoM{}
+	var scale ebiten.GeoM
 	scale.Scale(1.5, 2.5)
 
-	cpx := ebiten.GeoM{}
+	var cpx ebiten.GeoM
 	cpx.Rotate(math.Pi)
 	cpx.Scale(1.5, 2.5)
 	cpx.Translate(-2, -3)
@@ -187,26 +187,26 @@ func TestGeoMApply(t *testing.T) {
 }
 
 func TestGeoMIsInvert(t *testing.T) {
-	zero := ebiten.GeoM{}
+	var zero ebiten.GeoM
 	zero.Scale(0, 0)
 
-	trans := ebiten.GeoM{}
+	var trans ebiten.GeoM
 	trans.Translate(1, 2)
 
-	scale := ebiten.GeoM{}
+	var scale ebiten.GeoM
 	scale.Scale(1.5, 2.5)
 
-	cpx := ebiten.GeoM{}
+	var cpx ebiten.GeoM
 	cpx.Rotate(math.Pi)
 	cpx.Scale(1.5, 2.5)
 	cpx.Translate(-2, -3)
 
-	cpx2 := ebiten.GeoM{}
+	var cpx2 ebiten.GeoM
 	cpx2.Scale(2, 3)
 	cpx2.Rotate(0.234)
 	cpx2.Translate(100, 100)
 
-	skew := ebiten.GeoM{}
+	var skew ebiten.GeoM
 	skew.Skew(1, 1)
 
 	cases := []struct {
@@ -287,7 +287,7 @@ func TestGeoMIsInvert(t *testing.T) {
 }
 
 func newGeoM(a, b, c, d, tx, ty float64) ebiten.GeoM {
-	outp := ebiten.GeoM{}
+	var outp ebiten.GeoM
 	outp.SetElement(0, 0, a)
 	outp.SetElement(0, 1, b)
 	outp.SetElement(0, 2, tx)

@@ -28,7 +28,7 @@ func soundAt(timeInSecond float64) float64 {
 	const freq = 220
 
 	amp := []float64{1.0, 0.8, 0.6, 0.4, 0.2}
-	v := 0.0
+	var v float64
 	for j := range amp {
 		v += amp[j] * math.Sin(2.0*math.Pi*timeInSecond*freq*float64(j+1)) / 2
 	}

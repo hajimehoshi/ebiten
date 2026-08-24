@@ -72,7 +72,7 @@ func TestTextColor(t *testing.T) {
 		for i := range w {
 			got := img.At(i, j)
 			want1 := color.RGBA{R: 0x80, G: 0x80, B: 0x80, A: 0x80}
-			want2 := color.RGBA{}
+			var want2 color.RGBA
 			if got != want1 && got != want2 {
 				t.Errorf("img At(%d, %d): got %v; want %v or %v", i, j, got, want1, want2)
 			}
@@ -586,7 +586,7 @@ func TestBitmapFont(t *testing.T) {
 		text.Draw(dst, str, face, op)
 
 		// Verify that some non-transparent pixels exist.
-		hasPixel := false
+		var hasPixel bool
 		for j := range imgH {
 			for i := range imgW {
 				if _, _, _, a := dst.At(i, j).RGBA(); a > 0 {

@@ -207,7 +207,7 @@ func (s *GameScene) level() int {
 }
 
 func (s *GameScene) addScore(lines int) {
-	base := 0
+	var base int
 	switch lines {
 	case 1:
 		base = 100
@@ -242,7 +242,7 @@ func (s *GameScene) Update(state *GameState) error {
 		s.nextPiece = s.choosePiece()
 	}
 
-	moved := false
+	var moved bool
 	piece := s.currentPiece
 	angle := s.currentPieceAngle
 

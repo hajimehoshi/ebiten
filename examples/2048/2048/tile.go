@@ -169,7 +169,7 @@ func MoveTiles(tiles map[*Tile]struct{}, size int, dir Dir) bool {
 		sort.Sort(sort.Reverse(sort.IntSlice(ty)))
 	}
 
-	moved := false
+	var moved bool
 	for _, j := range ty {
 		for _, i := range tx {
 			t := tileAt(tiles, i, j)
@@ -214,7 +214,7 @@ func MoveTiles(tiles map[*Tile]struct{}, size int, dir Dir) bool {
 				break
 			}
 			// next is the next state of the tile t.
-			next := TileData{}
+			var next TileData
 			next.value = t.current.value
 			// If there is a tile at the next position (ii, jj), this should be
 			// mergeable. Let's merge.
@@ -340,7 +340,7 @@ func (t *Tile) Draw(boardImage *ebiten.Image) {
 		op.GeoM.Translate(float64(tileSize/2), float64(tileSize/2))
 	case 0 < t.poppingCount:
 		const maxScale = 1.2
-		rate := 0.0
+		var rate float64
 		if maxPoppingCount*2/3 <= t.poppingCount {
 			// 0 to 1
 			rate = 1 - float64(t.poppingCount-2*maxPoppingCount/3)/float64(maxPoppingCount/3)

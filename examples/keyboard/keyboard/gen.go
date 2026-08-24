@@ -171,7 +171,7 @@ func drawKey(dst *ebiten.Image, name string, x, y, width int) {
 func outputKeyboardImage() (map[ebiten.Key]image.Rectangle, error) {
 	keyMap := map[ebiten.Key]image.Rectangle{}
 	img := ebiten.NewImage(320, 240)
-	x, y := 0, 0
+	var x, y int
 	for j, line := range keyboardKeys {
 		x = 0
 		const height = 18

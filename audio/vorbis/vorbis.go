@@ -135,7 +135,7 @@ func (s *i16Stream) Seek(offset int64, whence int) (int64, error) {
 		return 0, fmt.Errorf("vorbis: the source must be io.Seeker but not: %w", errors.ErrUnsupported)
 	}
 
-	next := int64(0)
+	var next int64
 	switch whence {
 	case io.SeekStart:
 		next = offset

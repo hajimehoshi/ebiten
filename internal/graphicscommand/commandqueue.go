@@ -111,7 +111,7 @@ func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.Sh
 		panic(fmt.Sprintf("graphicscommand: len(vertices) must equal to or less than %d but was %d", maxVertexFloatCount, len(vertices)))
 	}
 
-	split := false
+	var split bool
 	if mustUseDifferentVertexBuffer(q.tmpNumVertexFloats + len(vertices)) {
 		q.tmpNumVertexFloats = 0
 		split = true
@@ -277,9 +277,9 @@ func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics, endFrame bo
 
 	cs := q.commands
 	for len(cs) > 0 {
-		nv := 0
-		ne := 0
-		nc := 0
+		var nv int
+		var ne int
+		var nc int
 		for _, c := range cs {
 			if dtc, ok := c.(*drawTrianglesCommand); ok {
 				if nc > 0 && mustUseDifferentVertexBuffer(nv+dtc.numVertices()) {
@@ -297,7 +297,7 @@ func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics, endFrame bo
 			es = es[ne:]
 			vs = vs[nv:]
 		}
-		indexOffset := 0
+		var indexOffset int
 		for _, c := range cs[:nc] {
 			if err := c.Exec(q, graphicsDriver, indexOffset); err != nil {
 				return err

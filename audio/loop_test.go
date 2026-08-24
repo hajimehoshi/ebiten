@@ -105,7 +105,7 @@ func TestInfiniteLoopWithIntro(t *testing.T) {
 	}
 	for i, b := range buf {
 		got := b
-		want := byte(0)
+		var want byte
 		if i < introLength {
 			want = indexToByte(i % srcLength)
 		} else {

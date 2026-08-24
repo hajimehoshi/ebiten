@@ -93,7 +93,7 @@ func pollMonitorsX11() error {
 				continue
 			}
 
-			j := 0
+			var j int
 			for ; j < len(disconnected); j++ {
 				if disconnected[j] != nil && disconnected[j].platform.output == outputs[i] {
 					disconnected[j] = nil
@@ -382,7 +382,7 @@ func (m *Monitor) platformAppendVideoModes(monitors []*VidMode) ([]*VidMode, err
 			mode := vidmodeFromModeInfo(mi, ci)
 
 			// Skip duplicate modes
-			duplicate := false
+			var duplicate bool
 			for _, existing := range result {
 				if existing.equals(mode) {
 					duplicate = true

@@ -114,7 +114,7 @@ func chooseFBConfig(desired *fbconfig, alternatives []*fbconfig) *fbconfig {
 		}
 
 		// Count number of missing buffers
-		missing := 0
+		var missing int
 
 		if desired.alphaBits > 0 && current.alphaBits == 0 {
 			missing++
@@ -148,7 +148,7 @@ func chooseFBConfig(desired *fbconfig, alternatives []*fbconfig) *fbconfig {
 		// less than one large channel size difference
 
 		// Calculate color channel size difference value
-		colorDiff := 0
+		var colorDiff int
 
 		if desired.redBits != DontCare {
 			colorDiff += (desired.redBits - current.redBits) *
@@ -166,7 +166,7 @@ func chooseFBConfig(desired *fbconfig, alternatives []*fbconfig) *fbconfig {
 		}
 
 		// Calculate non-color channel size difference value
-		extraDiff := 0
+		var extraDiff int
 
 		if desired.alphaBits != DontCare {
 			extraDiff += (desired.alphaBits - current.alphaBits) *
@@ -575,7 +575,7 @@ func bytePtrToString(p *byte) string {
 	}
 
 	// Find NUL terminator.
-	n := 0
+	var n int
 	for ptr := unsafe.Pointer(p); *(*byte)(ptr) != 0; n++ {
 		ptr = unsafe.Add(ptr, 1)
 	}

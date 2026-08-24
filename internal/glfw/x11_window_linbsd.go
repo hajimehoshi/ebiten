@@ -294,7 +294,7 @@ func sendEventToWM(window *Window, eventType _Atom, a, b, c, d, e int) {
 }
 
 func updateWindowHints(window *Window) {
-	maximizable := false
+	var maximizable bool
 	if window.monitor == nil && window.resizable && window.maxwidth == DontCare && window.maxheight == DontCare {
 		maximizable = true
 	}
@@ -871,7 +871,7 @@ func writeTargetToProperty(request *_XSelectionRequestEvent) _Atom {
 		}
 
 		for i := 0; i+1 < len(targets); i += 2 {
-			supported := false
+			var supported bool
 			for _, format := range formats {
 				if targets[i] == format {
 					supported = true
@@ -982,7 +982,7 @@ func getSelectionString(selection _Atom) (string, error) {
 		isSelPropNewValueNotifyCallback = purego.NewCallback(isSelPropNewValueNotify)
 	}
 
-	found := false
+	var found bool
 	for _, target := range []_Atom{_glfw.platformWindow.UTF8_STRING, _XA_STRING} {
 		var notification, dummy _XEvent
 
@@ -1030,7 +1030,7 @@ func getSelectionString(selection _Atom) (string, error) {
 
 		if actualType == _glfw.platformWindow.INCR {
 			var str []byte
-			received := false
+			var received bool
 
 			for {
 				for !xCheckIfEvent(_glfw.platformWindow.display,
@@ -1158,7 +1158,7 @@ func releaseMonitor(window *Window) {
 // processEvent processes the specified X event.
 func processEvent(event *_XEvent) error {
 	var keycode int
-	filtered := false
+	var filtered bool
 
 	// HACK: Save scancode as some IMs clear the field in XFilterEvent
 	if event.EventType() == _KeyPress || event.EventType() == _KeyRelease {
@@ -2441,7 +2441,7 @@ func (w *Window) platformWindowMaximized() bool {
 		_XA_ATOM,
 		&statesPtr)
 
-	maximized := false
+	var maximized bool
 	if statesPtr != 0 {
 		defer xFree(statesPtr)
 
@@ -2541,7 +2541,7 @@ func (w *Window) platformSetWindowFloating(enabled bool) error {
 		}
 
 		if enabled {
-			i := 0
+			var i int
 			for ; i < len(states); i++ {
 				if states[i] == _glfw.platformWindow.NET_WM_STATE_ABOVE {
 					break
@@ -2557,7 +2557,7 @@ func (w *Window) platformSetWindowFloating(enabled bool) error {
 					1)
 			}
 		} else if states != nil {
-			i := 0
+			var i int
 			for ; i < len(states); i++ {
 				if states[i] == _glfw.platformWindow.NET_WM_STATE_ABOVE {
 					break

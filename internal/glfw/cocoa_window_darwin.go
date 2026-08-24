@@ -895,7 +895,7 @@ func registerGLFWClasses() error {
 						uintptr(nsYes), uintptr(nsPasteboardURLReadingFileURLsOnlyKey))
 
 					urls := pasteboard.Send(sel_readObjectsForClasses_options, classes, uintptr(options))
-					urlCount := 0
+					var urlCount int
 					if urls != 0 {
 						urlCount = int(urls.Send(sel_count))
 					}

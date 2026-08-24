@@ -54,7 +54,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	// doing the summing up in a fragment shader (Kage can be used here).
 	//
 	// So this implementation only serves to demonstrate use of alpha blending.
-	layers := 0
+	var layers int
 	for j := -3; j <= 3; j++ {
 		for i := -3; i <= 3; i++ {
 			op := &ebiten.DrawImageOptions{}

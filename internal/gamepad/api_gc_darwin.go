@@ -276,9 +276,9 @@ func getControllerPropertyFromController(controller objc.ID) controllerProperty 
 	extGamepad := controller.Send(sel_extendedGamepad)
 	if extGamepad != 0 {
 		// Detect controller type via productCategory (macOS 10.15+) or vendorName.
-		isXbox := false
-		isPS4 := false
-		isPS5 := false
+		var isXbox bool
+		var isPS4 bool
+		var isPS5 bool
 
 		productCategory := controller.Send(sel_productCategory)
 		if productCategory != 0 {
@@ -472,7 +472,7 @@ func getControllerStateGC(controllerPtr uintptr, buttonMask uint32, nHats int,
 	state.axes[5] = getAxisValue(extGamepad.Send(sel_rightTrigger))*2 - 1
 
 	// Buttons.
-	buttonCount := 0
+	var buttonCount int
 	setButton := func(pressed bool) {
 		if pressed {
 			state.buttons[buttonCount] = 1

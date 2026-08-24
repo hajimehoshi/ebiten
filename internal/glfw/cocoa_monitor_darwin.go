@@ -498,7 +498,7 @@ func (m *Monitor) platformAppendVideoModes(monitors []*VidMode) ([]*VidMode, err
 		vm := vidmodeFromCGDisplayMode(mode, m.platform.fallbackRefreshRate)
 		vmPtr := &vm
 
-		duplicate := false
+		var duplicate bool
 		for _, existing := range monitors[origLen:] {
 			if existing.equals(vmPtr) {
 				duplicate = true

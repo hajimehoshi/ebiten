@@ -110,8 +110,8 @@ func drawNinePatches(dst *ebiten.Image, dstRect image.Rectangle, srcRect image.R
 			sy := srcY
 			sw := srcW / 4
 			sh := srcH / 4
-			dx := 0
-			dy := 0
+			var dx int
+			var dy int
 			dw := sw
 			dh := sh
 			switch i {

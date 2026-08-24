@@ -67,7 +67,7 @@ func (gm *Game) updateOffscreen(centerX, centerY, size float64) {
 			y := (screenHeight-float64(j))*size/screenHeight - size/2 + centerY
 			c := complex(x, y)
 			z := complex(0, 0)
-			it := 0
+			var it int
 			for ; it < maxIt; it++ {
 				z = z*z + c
 				if real(z)*real(z)+imag(z)*imag(z) > 4 {

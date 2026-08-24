@@ -93,7 +93,7 @@ func chooseEGLConfig(ctxconfig *ctxconfig, fbconfig_ *fbconfig) (uintptr, error)
 	nativeConfigs = nativeConfigs[:nativeCount]
 
 	usableConfigs := make([]*fbconfig, 0, nativeCount)
-	wrongApiAvailable := false
+	var wrongApiAvailable bool
 
 	for _, n := range nativeConfigs {
 		var u fbconfig

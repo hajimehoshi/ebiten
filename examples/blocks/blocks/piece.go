@@ -181,7 +181,7 @@ func drawBlock(r *ebiten.Image, block BlockType, x, y int, clr colorm.ColorM) {
 func (p *Piece) InitialPosition() (int, int) {
 	size := len(p.blocks)
 	x := (fieldBlockCountX - size) / 2
-	y := 0
+	var y int
 Loop:
 	for j := range size {
 		for i := range size {

@@ -50,7 +50,7 @@ var (
 
 // ReadFloat reads a floating point value and adds it to the cursor's points slice.
 func (c *PathCursor) ReadFloat(numStr string) error {
-	last := 0
+	var last int
 	isFirst := true
 	for i, n := range numStr {
 		if n == '.' {
@@ -210,7 +210,7 @@ func (c *PathCursor) addSeg(segString string) error {
 	}
 	l := len(c.points)
 	k := segString[0]
-	rel := false
+	var rel bool
 	switch k {
 	case 'z':
 		fallthrough
