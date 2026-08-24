@@ -427,6 +427,7 @@ func initWGL() error {
 	_glfw.platformContext.ARB_context_flush_control = extensionSupportedWGL("WGL_ARB_context_flush_control")
 
 	if err := wglMakeCurrent(pdc, prc); err != nil {
+		_ = wglDeleteContext(rc)
 		return err
 	}
 	if err := wglDeleteContext(rc); err != nil {
