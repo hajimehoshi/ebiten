@@ -125,20 +125,6 @@ type ff_envelope struct {
 	fade_level    uint16
 }
 
-// ff_periodic_effect is the largest and most aligned member of ff_effect's
-// parameter union. ff_effect uses it as the union field so that the union's
-// size and alignment are correct on every architecture.
-type ff_periodic_effect struct {
-	waveform    uint16
-	period      uint16
-	magnitude   int16
-	offset      int16
-	phase       uint16
-	envelope    ff_envelope
-	custom_len  uint32
-	custom_data uintptr
-}
-
 type ff_rumble_effect struct {
 	strong_magnitude uint16
 	weak_magnitude   uint16
@@ -154,19 +140,24 @@ type ff_replay struct {
 	delay  uint16
 }
 
+// ff_effect_union mirrors the parameter union of the kernel's struct ff_effect.
+// The rumble parameters are at the union's head; the remaining fields give the
+// union the size and alignment of its largest member, ff_periodic_effect.
+type ff_effect_union struct {
+	rumble ff_rumble_effect
+	_      [6]byte
+	_      ff_envelope
+	_      uint32
+	_      uintptr
+}
+
 type ff_effect struct {
 	typ       uint16
 	id        int16
 	direction uint16
 	trigger   ff_trigger
 	replay    ff_replay
-	u         ff_periodic_effect
-}
-
-// rumble accesses the rumble parameters at the head of the effect's parameter
-// union.
-func (e *ff_effect) rumble() *ff_rumble_effect {
-	return (*ff_rumble_effect)(unsafe.Pointer(&e.u))
+	u         ff_effect_union
 }
 
 type input_absinfo struct {
