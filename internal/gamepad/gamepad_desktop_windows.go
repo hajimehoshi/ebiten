@@ -797,23 +797,9 @@ func (g *nativeGamepadDesktop) vibrate(duration time.Duration, strongMagnitude f
 	g.vib = true
 	g.vibEnd = time.Now().Add(duration)
 	_ = _XInputSetState(uint32(g.xinputIndex), &_XINPUT_VIBRATION{
-		wLeftMotorSpeed:  xinputMotorSpeed(strongMagnitude),
-		wRightMotorSpeed: xinputMotorSpeed(weakMagnitude),
+		wLeftMotorSpeed:  motorMagnitude(strongMagnitude),
+		wRightMotorSpeed: motorMagnitude(weakMagnitude),
 	})
-}
-
-// xinputMotorSpeed converts a magnitude in the range 0 to 1 to an XInput motor speed.
-// Out-of-range values are clamped and NaN is treated as 0.
-func xinputMotorSpeed(magnitude float64) uint16 {
-	// Converting an out-of-range or NaN value to uint16 is implementation-defined,
-	// so such values must be rejected before the conversion.
-	if !(magnitude > 0) {
-		return 0
-	}
-	if magnitude > 1 {
-		return 0xffff
-	}
-	return uint16(magnitude * 0xffff)
 }
 
 func (g *nativeGamepadDesktop) stopVibration() {
