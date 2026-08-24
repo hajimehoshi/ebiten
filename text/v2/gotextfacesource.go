@@ -848,10 +848,7 @@ func (g *GoTextFaceSource) buildGlyphs(outputs []shaping.Output, text string, fa
 	// face.variations may be replaced by a later SetVariation, so each
 	// buildGlyphs call needs its own copy, but all glyphs within one
 	// call can safely point at the same snapshot.
-	var variationsSnapshot []font.Variation
-	if len(face.variations) > 0 {
-		variationsSnapshot = append([]font.Variation(nil), face.variations...)
-	}
+	variationsSnapshot := slices.Clone(face.variations)
 
 	var gs []goTextGlyph
 	for _, out := range outputs {
