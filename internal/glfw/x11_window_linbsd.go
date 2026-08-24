@@ -1246,52 +1246,7 @@ func processEvent(event *_XEvent) error {
 		mods := translateState(event.xkey().State)
 		plain := mods&(ModControl|ModAlt) == 0
 
-		if window.platform.ic != 0 {
-			// HACK: Do not report the key press events duplicated by XIM
-			//       Duplicate key releases are filtered out implicitly by
-			//       the GLFW key repeat logic in inputKey
-			//       A timestamp per key is used to handle simultaneous keys
-			// NOTE: Always allow the first event for each key through
-			//       (the server never sends a timestamp of zero)
-			// NOTE: Timestamp difference is compared to handle wrap-around
-			diff := event.xkey().Time - window.platform.keyPressTimes[keycode]
-			if diff == event.xkey().Time || (diff > 0 && diff < 1<<31) {
-				if keycode != 0 {
-					window.inputKey(key, keycode, Press, mods)
-				}
-
-				window.platform.keyPressTimes[keycode] = event.xkey().Time
-			}
-
-			if !filtered {
-				var status int32
-				buffer := make([]byte, 100)
-				chars := buffer
-
-				count := xutf8LookupString(window.platform.ic,
-					event.xkey(),
-					chars, int32(len(buffer)-1),
-					nil, &status)
-
-				if status == _XBufferOverflow {
-					chars = make([]byte, count+1)
-					count = xutf8LookupString(window.platform.ic,
-						event.xkey(),
-						chars, count,
-						nil, &status)
-				}
-
-				if status == _XLookupChars || status == _XLookupBoth {
-					text := string(chars[:count])
-					for _, codepoint := range text {
-						window.inputChar(codepoint, mods, plain)
-					}
-					// The input method commits a whole string at once, so it
-					// is reported as one event rather than per character.
-					window.inputText(text, plain)
-				}
-			}
-		} else {
+		if window.platform.ic == 0 {
 			var keysym _KeySym
 			xLookupString(event.xkey(), nil, 0, &keysym, 0)
 
@@ -1300,6 +1255,53 @@ func processEvent(event *_XEvent) error {
 			if codepoint, ok := keySym2Unicode(uint32(keysym)); ok {
 				window.inputChar(codepoint, mods, plain)
 				window.inputText(string(codepoint), plain)
+			}
+
+			return nil
+		}
+
+		// HACK: Do not report the key press events duplicated by XIM
+		//       Duplicate key releases are filtered out implicitly by
+		//       the GLFW key repeat logic in inputKey
+		//       A timestamp per key is used to handle simultaneous keys
+		// NOTE: Always allow the first event for each key through
+		//       (the server never sends a timestamp of zero)
+		// NOTE: Timestamp difference is compared to handle wrap-around
+		diff := event.xkey().Time - window.platform.keyPressTimes[keycode]
+		if diff == event.xkey().Time || (diff > 0 && diff < 1<<31) {
+			if keycode != 0 {
+				window.inputKey(key, keycode, Press, mods)
+			}
+
+			window.platform.keyPressTimes[keycode] = event.xkey().Time
+		}
+
+		if !filtered {
+			var status int32
+			buffer := make([]byte, 100)
+			chars := buffer
+
+			count := xutf8LookupString(window.platform.ic,
+				event.xkey(),
+				chars, int32(len(buffer)-1),
+				nil, &status)
+
+			if status == _XBufferOverflow {
+				chars = make([]byte, count+1)
+				count = xutf8LookupString(window.platform.ic,
+					event.xkey(),
+					chars, count,
+					nil, &status)
+			}
+
+			if status == _XLookupChars || status == _XLookupBoth {
+				text := string(chars[:count])
+				for _, codepoint := range text {
+					window.inputChar(codepoint, mods, plain)
+				}
+				// The input method commits a whole string at once, so it
+				// is reported as one event rather than per character.
+				window.inputText(text, plain)
 			}
 		}
 
