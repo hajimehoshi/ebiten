@@ -525,6 +525,9 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 				name := e.(*ast.Ident).Name
 				if name != "_" {
 					for _, v := range block.vars {
+						if v.outOfScope {
+							continue
+						}
 						if v.name == name {
 							cs.addError(pos, fmt.Sprintf("duplicated local variable name: %s", name))
 							return nil, false
@@ -670,6 +673,9 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 				name := e.(*ast.Ident).Name
 				if name != "_" {
 					for _, v := range block.vars {
+						if v.outOfScope {
+							continue
+						}
 						if v.name == name {
 							cs.addError(pos, fmt.Sprintf("duplicated local variable name: %s", name))
 							return nil, false
@@ -910,8 +916,11 @@ func (cs *compileState) parseFor(block *block, fname string, stmt *ast.ForStmt, 
 	// As the pseudo block is not actually used, copy the variable part to the actual block.
 	// This must be done after parsing the for-loop is done, or the duplicated variables confuses the
 	// parsing.
+	// The scope of the counter variable ends with this for-loop, so the variable is marked as
+	// out-of-scope. The variable itself is still kept for the local-variable indices.
 	v := pseudoBlock.vars[0]
 	v.forLoopCounter = true
+	v.outOfScope = true
 	block.vars = append(block.vars, v)
 
 	return []shaderir.Stmt{
@@ -1069,11 +1078,16 @@ func (cs *compileState) parseForRange(block *block, fname string, stmt *ast.Rang
 	// As the pseudo block is not actually used, copy the variable part to the actual block.
 	// This must be done after parsing the for-loop is done, or the duplicated variables confuses the
 	// parsing.
+	// The scopes of the iteration variables end with this for-loop, so the variables are marked as
+	// out-of-scope. The variables themselves are still kept for the local-variable indices.
 	counter := pseudoBlock.vars[0]
 	counter.forLoopCounter = true
+	counter.outOfScope = true
 	block.vars = append(block.vars, counter)
 	if stmt.Value != nil {
-		block.vars = append(block.vars, pseudoBlock.vars[1])
+		value := pseudoBlock.vars[1]
+		value.outOfScope = true
+		block.vars = append(block.vars, value)
 	}
 
 	return []shaderir.Stmt{
