@@ -25,7 +25,6 @@ import (
 var (
 	class_NSAutoreleasePool    objc.Class
 	class_NSString             objc.Class
-	class_NSColor              objc.Class
 	class_NSScreen             objc.Class
 	class_NSRunLoop            objc.Class
 	class_NSMachPort           objc.Class
@@ -47,7 +46,6 @@ func init() {
 
 	class_NSAutoreleasePool = objc.GetClass("NSAutoreleasePool")
 	class_NSString = objc.GetClass("NSString")
-	class_NSColor = objc.GetClass("NSColor")
 	class_NSScreen = objc.GetClass("NSScreen")
 	class_NSRunLoop = objc.GetClass("NSRunLoop")
 	class_NSMachPort = objc.GetClass("NSMachPort")
@@ -68,11 +66,7 @@ var (
 	sel_new                                        = objc.RegisterName("new")
 	sel_release                                    = objc.RegisterName("release")
 	sel_initWithUTF8String                         = objc.RegisterName("initWithUTF8String:")
-	sel_frame                                      = objc.RegisterName("frame")
 	sel_contentView                                = objc.RegisterName("contentView")
-	sel_setBackgroundColor                         = objc.RegisterName("setBackgroundColor:")
-	sel_colorWithSRGBRed_green_blue_alpha          = objc.RegisterName("colorWithSRGBRed:green:blue:alpha:")
-	sel_setFrameSize                               = objc.RegisterName("setFrameSize:")
 	sel_object                                     = objc.RegisterName("object")
 	sel_styleMask                                  = objc.RegisterName("styleMask")
 	sel_setStyleMask                               = objc.RegisterName("setStyleMask:")
@@ -148,14 +142,6 @@ type NSError struct {
 	objc.ID
 }
 
-type NSColor struct {
-	objc.ID
-}
-
-func NSColor_colorWithSRGBRedGreenBlueAlpha(red, green, blue, alpha CGFloat) (color NSColor) {
-	return NSColor{objc.ID(class_NSColor).Send(sel_colorWithSRGBRed_green_blue_alpha, red, green, blue, alpha)}
-}
-
 type NSWindow struct {
 	objc.ID
 }
@@ -166,10 +152,6 @@ func (w NSWindow) StyleMask() NSUInteger {
 
 func (w NSWindow) SetStyleMask(styleMask NSUInteger) {
 	w.Send(sel_setStyleMask, styleMask)
-}
-
-func (w NSWindow) SetBackgroundColor(color NSColor) {
-	w.Send(sel_setBackgroundColor, color.ID)
 }
 
 func (w NSWindow) IsVisible() bool {
@@ -188,24 +170,12 @@ func (w NSWindow) Screen() NSScreen {
 	return NSScreen{w.Send(sel_screen)}
 }
 
-func (w NSWindow) Frame() NSRect {
-	return objc.Send[NSRect](w.ID, sel_frame)
-}
-
 func (w NSWindow) ContentView() NSView {
 	return NSView{w.Send(sel_contentView)}
 }
 
 type NSView struct {
 	objc.ID
-}
-
-func (v NSView) SetFrameSize(size CGSize) {
-	v.ID.Send(sel_setFrameSize, size)
-}
-
-func (v NSView) Frame() NSRect {
-	return objc.Send[NSRect](v.ID, sel_frame)
 }
 
 func (v NSView) SetLayer(layer uintptr) {

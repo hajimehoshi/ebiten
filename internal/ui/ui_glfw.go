@@ -1705,9 +1705,6 @@ func (u *glfwBackend) setFullscreen(fullscreen bool) error {
 				return err
 			}
 		}
-		if err := u.adjustViewSizeAfterFullscreen(); err != nil {
-			return err
-		}
 		return nil
 	}
 

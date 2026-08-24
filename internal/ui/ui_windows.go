@@ -241,10 +241,6 @@ func (u *glfwBackend) setNativeFullscreen(fullscreen bool) error {
 	panic(fmt.Sprintf("ui: setNativeFullscreen is not implemented in this environment: %s", runtime.GOOS))
 }
 
-func (u *glfwBackend) adjustViewSizeAfterFullscreen() error {
-	return nil
-}
-
 func (u *glfwBackend) setWindowResizingModeForOS(mode WindowResizingMode) error {
 	return nil
 }
