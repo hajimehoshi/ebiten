@@ -1547,15 +1547,18 @@ func processEvent(event *_XEvent) error {
 			}
 
 			var formats []_Atom
-			var formatsPtr uintptr
 
 			if list {
+				var formatsPtr uintptr
 				count := getWindowPropertyX11(_glfw.platformWindow.xdnd.source,
 					_glfw.platformWindow.XdndTypeList,
 					_XA_ATOM,
 					&formatsPtr)
-				if formatsPtr != 0 && count > 0 {
-					formats = unsafe.Slice((*_Atom)(unsafe.Pointer(formatsPtr)), count)
+				if formatsPtr != 0 {
+					defer xFree(formatsPtr)
+					if count > 0 {
+						formats = unsafe.Slice((*_Atom)(unsafe.Pointer(formatsPtr)), count)
+					}
 				}
 			} else {
 				formats = []_Atom{_Atom(client.Data[2]), _Atom(client.Data[3]), _Atom(client.Data[4])}
@@ -1566,10 +1569,6 @@ func processEvent(event *_XEvent) error {
 					_glfw.platformWindow.xdnd.format = _glfw.platformWindow.text_uri_list
 					break
 				}
-			}
-
-			if formatsPtr != 0 {
-				xFree(formatsPtr)
 			}
 		} else if client.MessageType == _glfw.platformWindow.XdndDrop {
 			// The drag operation has finished by dropping on the window
@@ -1659,13 +1658,12 @@ func processEvent(event *_XEvent) error {
 				event.xselection().Property,
 				event.xselection().Target,
 				&data)
+			if data != 0 {
+				defer xFree(data)
+			}
 
 			if result != 0 {
 				window.inputDrop(parseUriList(goString(data)))
-			}
-
-			if data != 0 {
-				xFree(data)
 			}
 
 			if _glfw.platformWindow.xdnd.version >= 2 {
