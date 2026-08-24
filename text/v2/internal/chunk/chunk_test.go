@@ -12,13 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package chunk
+package chunk_test
 
 import (
 	"strings"
 	"testing"
 
 	"github.com/go-text/typesetting/bidi"
+
+	"github.com/hajimehoshi/ebiten/v2/text/v2/internal/chunk"
 )
 
 func TestChunks(t *testing.T) {
@@ -144,7 +146,7 @@ func TestChunks(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			got := AppendChunks(nil, tc.text, 0)
+			got := chunk.AppendChunks(nil, tc.text, 0)
 			gotStrs := make([]string, len(got))
 			for i, r := range got {
 				gotStrs[i] = tc.text[r.Start:r.End]
@@ -179,13 +181,13 @@ func TestChunks(t *testing.T) {
 
 // TestChunks_WhitespaceFallback verifies that a long no-terminator
 // span is split at whitespace once the cumulative chunk size crosses
-// [fallbackBytes].
+// [chunk.FallbackBytes].
 func TestChunks_WhitespaceFallback(t *testing.T) {
 	// Build "word word word ..." with no sentence terminators, long
 	// enough that the fallback fires several times.
 	word := strings.Repeat("a", 31) + " " // 32 bytes per word
 	text := strings.Repeat(word, 3000)    // ~96 KB
-	got := AppendChunks(nil, text, 0)
+	got := chunk.AppendChunks(nil, text, 0)
 	if len(got) < 4 {
 		t.Fatalf("expected fallback to fire multiple times; got %d chunks for %d bytes", len(got), len(text))
 	}
@@ -198,8 +200,8 @@ func TestChunks_WhitespaceFallback(t *testing.T) {
 			if text[r.End-1] != ' ' {
 				t.Errorf("chunk %d does not end at a space (ends with %q)", i, text[r.End-1])
 			}
-			if size > fallbackBytes+len(word) {
-				t.Errorf("chunk %d size %d exceeds threshold %d by more than one word", i, size, fallbackBytes)
+			if size > chunk.FallbackBytes+len(word) {
+				t.Errorf("chunk %d size %d exceeds threshold %d by more than one word", i, size, chunk.FallbackBytes)
 			}
 		}
 	}
@@ -272,7 +274,7 @@ func TestChunks_Levels(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			got := AppendChunks(nil, tc.text, tc.paragraphLevel)
+			got := chunk.AppendChunks(nil, tc.text, tc.paragraphLevel)
 			if len(got) != len(tc.wantTexts) {
 				t.Fatalf("chunk count = %d, want %d", len(got), len(tc.wantTexts))
 			}
@@ -292,9 +294,9 @@ func TestChunks_Levels(t *testing.T) {
 // existing content in dst is left untouched and the new chunks are
 // appended to it.
 func TestAppendChunks_PreservesDst(t *testing.T) {
-	sentinel := Chunk{Start: 99, End: 99, Level: 99}
-	dst := []Chunk{sentinel}
-	got := AppendChunks(dst, "Hello. World.", 0)
+	sentinel := chunk.Chunk{Start: 99, End: 99, Level: 99}
+	dst := []chunk.Chunk{sentinel}
+	got := chunk.AppendChunks(dst, "Hello. World.", 0)
 	if len(got) < 2 {
 		t.Fatalf("got %d chunks, want at least 2 (sentinel + appended)", len(got))
 	}
@@ -308,19 +310,19 @@ func TestAppendChunks_PreservesDst(t *testing.T) {
 // mark immediately after the fallback space must be absorbed into the
 // preceding chunk, not orphaned at the start of the next chunk.
 func TestChunks_FallbackAbsorbsExtend(t *testing.T) {
-	// The run of 'a' is long enough that i-chunkStart >= fallbackBytes
+	// The run of 'a' is long enough that i-chunkStart >= chunk.FallbackBytes
 	// holds at the space that follows. The next byte is the start of
 	// a combining acute (U+0301), which the fallback must absorb into
 	// the first chunk.
-	first := strings.Repeat("a", fallbackBytes) + " "
+	first := strings.Repeat("a", chunk.FallbackBytes) + " "
 	text := first + "\u0301" + "bcd"
-	got := AppendChunks(nil, text, 0)
+	got := chunk.AppendChunks(nil, text, 0)
 	if len(got) != 2 {
 		t.Fatalf("got %d chunks, want 2", len(got))
 	}
 	// The first chunk must include the 'a' run, the space, and the
 	// absorbed combining mark.
-	if want := fallbackBytes + 1 + len("\u0301"); got[0].End != want {
+	if want := chunk.FallbackBytes + 1 + len("\u0301"); got[0].End != want {
 		t.Errorf("first chunk ends at %d, want %d", got[0].End, want)
 	}
 }
