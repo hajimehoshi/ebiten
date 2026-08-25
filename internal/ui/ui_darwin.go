@@ -129,7 +129,7 @@ func (u *UserInterface) initializePlatform() error {
 					if !ok {
 						return
 					}
-					if err := b.setOrigWindowPosWithCurrentPos(); err != nil {
+					if err := b.captureWindowPosToRestore(); err != nil {
 						u.setError(err)
 						return
 					}
