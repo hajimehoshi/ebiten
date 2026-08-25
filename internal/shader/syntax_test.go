@@ -308,6 +308,21 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 	}
 }
 
+func TestSyntaxTooManyFragmentArguments(t *testing.T) {
+	if _, err := compileToIR([]byte(`package main
+
+func Vertex(pos vec2) vec4 {
+	return vec4(pos, 0, 1)
+}
+
+func Fragment(dstPos vec4, srcPos vec2) vec4 {
+	return dstPos + vec4(srcPos, 0, 0)
+}
+`)); err == nil {
+		t.Errorf("error must be non-nil but was nil")
+	}
+}
+
 func TestSyntaxUnsupportedSyntax(t *testing.T) {
 	if _, err := compileToIR([]byte(`package main
 
