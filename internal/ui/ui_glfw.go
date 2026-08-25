@@ -91,16 +91,16 @@ type glfwBackend struct {
 	// fractional scale factor (#2978), and while the window is iconified there is no pixel size
 	// to convert at all: the window reports no client area on Windows, and origWindowWidth and
 	// origWindowHeight are captured only while fullscreen.
-	// A fullscreen window's size does not update them, so they are the size to restore on
-	// leaving fullscreen.
+	// While the window is fullscreen, a resize of the window itself does not update them.
+	// An explicit request does, and it also updates origWindowWidth and origWindowHeight.
 	windowWidthInDIP  int
 	windowHeightInDIP int
 
 	// windowXInDIP and windowYInDIP are the window position relative to its monitor, in
 	// device-independent pixels, as it was requested. Converting a pixel position back does not
 	// return the requested position at a fractional scale factor (#2978).
-	// A fullscreen window's position does not update them, so they are the position to restore
-	// on leaving fullscreen.
+	// While the window is fullscreen, a move of the window itself does not update them.
+	// An explicit request does, and it also updates origWindowPosX and origWindowPosY.
 	windowXInDIP int
 	windowYInDIP int
 
