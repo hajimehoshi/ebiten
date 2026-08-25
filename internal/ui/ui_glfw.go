@@ -1029,13 +1029,15 @@ func (u *glfwBackend) initOnMainThread(options *RunOptions) error {
 
 // outsideSizeInDIP returns the size to give the game's Layout, in device-independent pixels.
 func outsideSizeInDIP(windowWidth, windowHeight int, requestedWidthInDIP, requestedHeightInDIP int, fullscreen bool, deviceScaleFactor float64) (float64, float64) {
-	// Report the requested size while the window has the pixel size that request produces, as
-	// converting the pixel size back would not return it at a fractional scale factor (#2978).
-	// The requested size is not updated in fullscreen, where it is the size from before entering
-	// it. Otherwise use the actual window size, which might not match the specified size on
-	// Windows (#1163).
-	if rw, rh := windowSizeInGLFWPixels(requestedWidthInDIP, requestedHeightInDIP, deviceScaleFactor); !fullscreen && windowWidth == rw && windowHeight == rh {
-		return float64(requestedWidthInDIP), float64(requestedHeightInDIP)
+	// The requested size is not updated in fullscreen, where it is the size from before entering it.
+	if !fullscreen {
+		// Report the requested size while the window has the pixel size that request produces, as
+		// converting the pixel size back would not return it at a fractional scale factor (#2978).
+		// Otherwise use the actual window size, which might not match the specified size on
+		// Windows (#1163).
+		if rw, rh := windowSizeInGLFWPixels(requestedWidthInDIP, requestedHeightInDIP, deviceScaleFactor); windowWidth == rw && windowHeight == rh {
+			return float64(requestedWidthInDIP), float64(requestedHeightInDIP)
+		}
 	}
 	return dipFromGLFWPixel(float64(windowWidth), deviceScaleFactor), dipFromGLFWPixel(float64(windowHeight), deviceScaleFactor)
 }
