@@ -66,6 +66,10 @@ type glfwBackend struct {
 	// bufferOnceSwapped must be accessed from the main thread.
 	bufferOnceSwapped bool
 
+	// lastFrameMonitor is the monitor the game was presented on at the previous frame.
+	// lastFrameMonitor must be accessed from the main thread.
+	lastFrameMonitor *Monitor
+
 	// pollingEvents reports whether the main thread is polling events for the game loop.
 	// pollingEvents must be accessed from the main thread.
 	pollingEvents bool
@@ -1339,6 +1343,7 @@ func shouldPresentFrame(windowOnScreen, bufferOnceSwapped, initWindowVisible boo
 func (u *glfwBackend) updateGame() error {
 	var unfocused bool
 	var present bool
+	var monitorChanged bool
 
 	var outsideWidth, outsideHeight float64
 	var screenWidth, screenHeight int
@@ -1378,6 +1383,9 @@ func (u *glfwBackend) updateGame() error {
 			return
 		}
 		deviceScaleFactor = m.DeviceScaleFactor()
+		u.setRefreshRate(m.RefreshRate())
+		monitorChanged = m != u.lastFrameMonitor
+		u.lastFrameMonitor = m
 
 		// Pre-fetch cursor position and update gamepads to avoid
 		// a second mainThread.Call round-trip in updateInputStateForFrame.
@@ -1397,6 +1405,12 @@ func (u *glfwBackend) updateGame() error {
 		}
 	}); err != nil {
 		return err
+	}
+
+	// Whether swapping buffers waits for the display can differ per monitor, e.g. when the monitors
+	// are driven by different GPUs. Measure it again on the new monitor.
+	if monitorChanged {
+		u.context.resetVsyncDetection()
 	}
 
 	if err := u.context.updateFrame(u.graphicsDriver, outsideWidth, outsideHeight, screenWidth, screenHeight, deviceScaleFactor, u.UserInterface, present); err != nil {

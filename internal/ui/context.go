@@ -74,6 +74,14 @@ type context struct {
 
 	lastSwapBufferTime time.Time
 
+	// vsyncIgnored reports whether swapping buffers does not wait for the display even though vsync
+	// is enabled. The loop must then be paced explicitly.
+	vsyncIgnored bool
+
+	// vsyncIgnoredCount is the number of the successive frames that were swapped too early for the
+	// display to have shown them.
+	vsyncIgnoredCount int
+
 	skipCount int
 
 	funcsInFrameCh chan func()
@@ -97,7 +105,7 @@ func (c *context) updateFrame(graphicsDriver graphicsdriver.Graphics, outsideWid
 	if err != nil {
 		return err
 	}
-	if err := c.swapBuffersOrWait(needsSwapBuffers && present, graphicsDriver, ui.FPSMode() == FPSModeVsyncOn); err != nil {
+	if err := c.swapBuffersOrWait(needsSwapBuffers && present, graphicsDriver, ui.FPSMode() == FPSModeVsyncOn, ui.RefreshRate()); err != nil {
 		return err
 	}
 	return nil
@@ -120,7 +128,7 @@ func (c *context) forceUpdateFrame(graphicsDriver graphicsdriver.Graphics, outsi
 		if err != nil {
 			return err
 		}
-		if err := c.swapBuffersOrWait(needsSwapBuffers, graphicsDriver, ui.FPSMode() == FPSModeVsyncOn); err != nil {
+		if err := c.swapBuffersOrWait(needsSwapBuffers, graphicsDriver, ui.FPSMode() == FPSModeVsyncOn, ui.RefreshRate()); err != nil {
 			return err
 		}
 	}
@@ -232,7 +240,7 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 	return c.drawGame(graphicsDriver, ui, forceDraw)
 }
 
-func (c *context) swapBuffersOrWait(needsSwapBuffers bool, graphicsDriver graphicsdriver.Graphics, vsyncEnabled bool) error {
+func (c *context) swapBuffersOrWait(needsSwapBuffers bool, graphicsDriver graphicsdriver.Graphics, vsyncEnabled bool, refreshRate int) error {
 	if needsSwapBuffers {
 		if err := atlas.SwapBuffers(graphicsDriver); err != nil {
 			return err
@@ -246,6 +254,14 @@ func (c *context) swapBuffersOrWait(needsSwapBuffers bool, graphicsDriver graphi
 		occluded = o.IsOccluded()
 	}
 
+	now := time.Now()
+
+	// A frame that is not swapped with vsync enabled tells nothing about whether swapping buffers
+	// waits for the display, and breaks the run of the frames that returned early.
+	if !needsSwapBuffers || occluded || !vsyncEnabled {
+		c.vsyncIgnoredCount = 0
+	}
+
 	var waitTime time.Duration
 	if !needsSwapBuffers || occluded {
 		// When swapping buffers is skipped and Draw is called too early, sleep for a while to suppress CPU usages (#2890).
@@ -254,10 +270,18 @@ func (c *context) swapBuffersOrWait(needsSwapBuffers bool, graphicsDriver graphi
 		// In some environments, e.g. Linux on Parallels, SwapBuffers doesn't wait for the vsync (#2952).
 		// In the case when the display has high refresh rates like 240 [Hz], the wait time should be small.
 		waitTime = time.Millisecond
+
+		// A graphics driver can be configured to force the vsync off, and then swapping buffers never
+		// waits for the display (#3009). Pace the loop at the refresh rate, as nothing else does.
+		if refreshRate > 0 {
+			refreshInterval := time.Second / time.Duration(refreshRate)
+			if c.updateVsyncIgnored(now.Sub(c.lastSwapBufferTime), refreshInterval) {
+				waitTime = refreshInterval
+			}
+		}
 	}
 
 	// Pace with an absolute deadline to avoid drift.
-	now := time.Now()
 	if waitTime > 0 {
 		if next := c.lastSwapBufferTime.Add(waitTime); next.After(now) {
 			time.Sleep(next.Sub(now))
@@ -268,6 +292,37 @@ func (c *context) swapBuffersOrWait(needsSwapBuffers bool, graphicsDriver graphi
 	c.lastSwapBufferTime = now
 
 	return nil
+}
+
+// resetVsyncDetection makes whether swapping buffers waits for the display measured again.
+func (c *context) resetVsyncDetection() {
+	c.vsyncIgnored = false
+	c.vsyncIgnoredCount = 0
+}
+
+// updateVsyncIgnored records how long one frame took, including swapping its buffers, and reports
+// whether swapping buffers turns out not to wait for the display.
+func (c *context) updateVsyncIgnored(frameTime, refreshInterval time.Duration) bool {
+	if c.vsyncIgnored {
+		return true
+	}
+
+	// A swap can return early while the graphics driver still has room to queue frames. Require a
+	// long run of early frames to tell an environment that never waits from such a burst.
+	const threshold = 30
+
+	if frameTime >= refreshInterval/2 {
+		c.vsyncIgnoredCount = 0
+		return false
+	}
+
+	c.vsyncIgnoredCount++
+	if c.vsyncIgnoredCount < threshold {
+		return false
+	}
+
+	c.vsyncIgnored = true
+	return true
 }
 
 func (c *context) newOffscreenImage(w, h int) *Image {

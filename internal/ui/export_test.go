@@ -16,6 +16,7 @@ package ui
 
 import (
 	"image"
+	"time"
 )
 
 func (i *InputState) SetKeyPressed(key Key, t InputTime) {
@@ -59,4 +60,15 @@ func ScreenScaleAndOffsetsForTest(screenWidth, screenHeight int, offscreenWidth,
 	}
 	c.updateVirtualKeyboardOffsetY()
 	return c.screenScaleAndOffsets()
+}
+
+// VsyncIgnoredForTest reports whether the given successive frame times, measured on a display with
+// the given refresh interval, make the loop pace itself instead of relying on the vsync.
+func VsyncIgnoredForTest(frameTimes []time.Duration, refreshInterval time.Duration) bool {
+	var c context
+	var ignored bool
+	for _, frameTime := range frameTimes {
+		ignored = c.updateVsyncIgnored(frameTime, refreshInterval)
+	}
+	return ignored
 }
