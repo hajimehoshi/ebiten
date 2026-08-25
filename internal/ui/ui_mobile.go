@@ -305,8 +305,8 @@ func (u *UserInterface) displayInfo() (int, int, float64, bool) {
 	if !ok {
 		return 0, 0, 1, false
 	}
-	width := int(dipFromNativePixels(v.width, v.scale))
-	height := int(dipFromNativePixels(v.height, v.scale))
+	width := int(math.Round(dipFromNativePixels(v.width, v.scale)))
+	height := int(math.Round(dipFromNativePixels(v.height, v.scale)))
 	return width, height, v.scale, true
 }
 

@@ -326,14 +326,13 @@ func (u *glfwBackend) setWindowMonitor(monitor *Monitor) error {
 	}
 
 	s := monitor.DeviceScaleFactor()
-	w := dipToGLFWPixel(float64(ww), s)
-	h := dipToGLFWPixel(float64(wh), s)
+	w, h := windowSizeInGLFWPixels(ww, wh, s)
 	mx := monitor.boundsInGLFWPixels.Min.X
 	my := monitor.boundsInGLFWPixels.Min.Y
 	mw, mh := monitor.sizeInDIP()
-	mw = dipToGLFWPixel(mw, s)
-	mh = dipToGLFWPixel(mh, s)
-	px, py := InitialWindowPosition(int(mw), int(mh), int(w), int(h))
+	mwInGLFWPixels := int(math.Round(dipToGLFWPixel(mw, s)))
+	mhInGLFWPixels := int(math.Round(dipToGLFWPixel(mh, s)))
+	px, py := InitialWindowPosition(mwInGLFWPixels, mhInGLFWPixels, w, h)
 	if err := u.window.SetPos(mx+px, my+py); err != nil {
 		return err
 	}
@@ -523,8 +522,7 @@ func (u *glfwBackend) createWindow() error {
 	monitor := u.getInitMonitor()
 	ww, wh := u.desktopWindow.getInitWindowSizeInDIP()
 	s := monitor.DeviceScaleFactor()
-	width := int(dipToGLFWPixel(float64(ww), s))
-	height := int(dipToGLFWPixel(float64(wh), s))
+	width, height := windowSizeInGLFWPixels(ww, wh, s)
 	window, err := glfw.CreateWindow(width, height, "", nil, nil)
 	if err != nil {
 		return err
@@ -694,8 +692,8 @@ func (u *glfwBackend) registerWindowFramebufferSizeCallback() error {
 				return
 			}
 			s := m.DeviceScaleFactor()
-			ww := int(dipFromGLFWPixel(float64(gw), s))
-			wh := int(dipFromGLFWPixel(float64(gh), s))
+			ww := int(math.Round(dipFromGLFWPixel(float64(gw), s)))
+			wh := int(math.Round(dipFromGLFWPixel(float64(gh), s)))
 			if err := u.setWindowSizeInDIP(ww, wh, false); err != nil {
 				u.setError(err)
 				return
@@ -1098,9 +1096,9 @@ func (u *glfwBackend) layoutSizes() (outsideWidth, outsideHeight float64, screen
 		w := float64(u.windowWidthInDIP)
 		h := float64(u.windowHeightInDIP)
 		if fw == 0 || fh == 0 {
-			// setWindowSizeInDIP truncates the product, so truncate it here as well to predict
-			// the same pixel count.
-			fw, fh = int(w*s), int(h*s)
+			// setWindowSizeInDIP rounds the product, so round it here as well to predict the
+			// same pixel count.
+			fw, fh = int(math.Round(w*s)), int(math.Round(h*s))
 		}
 		return w, h, fw, fh, nil
 	}
@@ -1494,24 +1492,24 @@ func (u *glfwBackend) updateWindowSizeLimits() error {
 		if err != nil {
 			return err
 		}
-		minw = int(dipToGLFWPixel(float64(mw), s))
+		minw = int(math.Round(dipToGLFWPixel(float64(mw), s)))
 	} else {
-		minw = int(dipToGLFWPixel(float64(minw), s))
+		minw = int(math.Round(dipToGLFWPixel(float64(minw), s)))
 	}
 	if minh < 0 {
 		minh = glfw.DontCare
 	} else {
-		minh = int(dipToGLFWPixel(float64(minh), s))
+		minh = int(math.Round(dipToGLFWPixel(float64(minh), s)))
 	}
 	if maxw < 0 {
 		maxw = glfw.DontCare
 	} else {
-		maxw = int(dipToGLFWPixel(float64(maxw), s))
+		maxw = int(math.Round(dipToGLFWPixel(float64(maxw), s)))
 	}
 	if maxh < 0 {
 		maxh = glfw.DontCare
 	} else {
-		maxh = int(dipToGLFWPixel(float64(maxh), s))
+		maxh = int(math.Round(dipToGLFWPixel(float64(maxh), s)))
 	}
 	if err := u.window.SetSizeLimits(minw, minh, maxw, maxh); err != nil {
 		return err
@@ -1536,7 +1534,7 @@ func (u *glfwBackend) disableWindowSizeLimits() error {
 // windowSizeInGLFWPixels returns the window size in GLFW pixels for the given size in
 // device-independent pixels.
 func windowSizeInGLFWPixels(widthInDIP, heightInDIP int, deviceScaleFactor float64) (int, int) {
-	return int(dipToGLFWPixel(float64(widthInDIP), deviceScaleFactor)), int(dipToGLFWPixel(float64(heightInDIP), deviceScaleFactor))
+	return int(math.Round(dipToGLFWPixel(float64(widthInDIP), deviceScaleFactor))), int(math.Round(dipToGLFWPixel(float64(heightInDIP), deviceScaleFactor)))
 }
 
 // windowSizeToRestore returns the size to give the window on leaving fullscreen, in GLFW pixels.
@@ -2040,7 +2038,7 @@ func windowPositionInGLFWPixels(xInDIP, yInDIP int, monitor *Monitor) (int, int)
 	s := monitor.DeviceScaleFactor()
 	mx := monitor.boundsInGLFWPixels.Min.X
 	my := monitor.boundsInGLFWPixels.Min.Y
-	return mx + int(dipToGLFWPixel(float64(xInDIP), s)), my + int(dipToGLFWPixel(float64(yInDIP), s))
+	return mx + int(math.Round(dipToGLFWPixel(float64(xInDIP), s))), my + int(math.Round(dipToGLFWPixel(float64(yInDIP), s)))
 }
 
 // windowPositionInDIP returns the position to store for a window that moved to windowX, windowY in
@@ -2058,7 +2056,7 @@ func windowPositionInDIP(windowX, windowY int, xInDIP, yInDIP int, monitor *Moni
 	s := monitor.DeviceScaleFactor()
 	mx := monitor.boundsInGLFWPixels.Min.X
 	my := monitor.boundsInGLFWPixels.Min.Y
-	return int(dipFromGLFWPixel(float64(windowX-mx), s)), int(dipFromGLFWPixel(float64(windowY-my), s))
+	return int(math.Round(dipFromGLFWPixel(float64(windowX-mx), s))), int(math.Round(dipFromGLFWPixel(float64(windowY-my), s)))
 }
 
 // setWindowPositionInDIP sets the window position.

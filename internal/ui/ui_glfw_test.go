@@ -18,6 +18,7 @@ package ui_test
 
 import (
 	"image"
+	"math"
 	"testing"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
@@ -83,8 +84,8 @@ func TestWindowSizeToRestoreRestoresCapturedSize(t *testing.T) {
 		m := ui.NewMonitorForTest(image.Rect(0, 0, 1920, 1080), s)
 		for px := 1; px <= 2000; px++ {
 			// The size in device-independent pixels is the one the framebuffer size callback
-			// derives from the window's pixel size, which can be a pixel short of it.
-			dip := int(ui.DIPFromGLFWPixelForTest(float64(px), s))
+			// derives from the window's pixel size, which might not convert back to it.
+			dip := int(math.Round(ui.DIPFromGLFWPixelForTest(float64(px), s)))
 			w, h := ui.WindowSizeToRestoreForTest(px, px, m, dip, dip, m)
 			if w != px || h != px {
 				t.Errorf("scale %v: windowSizeToRestore(%d, %d, m, %d, %d, m) = (%d, %d); want (%d, %d)", s, px, px, dip, dip, w, h, px, px)
@@ -165,8 +166,8 @@ func TestWindowPositionInDIPUsesActualPosition(t *testing.T) {
 				// position comparison has to notice.
 				ax, ay := px+1, py
 				x, y := ui.WindowPositionInDIPForTest(ax, ay, req, req, m)
-				wantX := int(ui.DIPFromGLFWPixelForTest(float64(ax-b.Min.X), s))
-				wantY := int(ui.DIPFromGLFWPixelForTest(float64(ay-b.Min.Y), s))
+				wantX := int(math.Round(ui.DIPFromGLFWPixelForTest(float64(ax-b.Min.X), s)))
+				wantY := int(math.Round(ui.DIPFromGLFWPixelForTest(float64(ay-b.Min.Y), s)))
 				if x != wantX || y != wantY {
 					t.Errorf("scale %v, monitor %v: windowPositionInDIP(%d, %d, %d, %d, m) = (%d, %d); want (%d, %d)", s, b, ax, ay, req, req, x, y, wantX, wantY)
 				}
@@ -187,6 +188,38 @@ func TestWindowPositionInDIPIsStable(t *testing.T) {
 				x2, y2 := ui.WindowPositionInDIPForTest(px, px, x, y, m)
 				if x2 != x || y2 != y {
 					t.Errorf("scale %v, monitor %v: windowPositionInDIP(%d, %d, %d, %d, m) = (%d, %d); want (%d, %d)", s, b, px, px, x, y, x2, y2, x, y)
+				}
+			}
+		}
+	}
+}
+
+// TestWindowSizeInGLFWPixelsIsNearestSize tests that a size in device-independent pixels converts
+// to the nearest pixel count. Truncating it instead would make a window that is never larger than
+// it was asked to be and can be a whole pixel smaller.
+func TestWindowSizeInGLFWPixelsIsNearestSize(t *testing.T) {
+	for _, s := range deviceScaleFactorsForTest {
+		for dip := 1; dip <= 2000; dip++ {
+			w, h := ui.WindowSizeInGLFWPixelsForTest(dip, dip, s)
+			want := ui.DIPToGLFWPixelForTest(float64(dip), s)
+			if math.Abs(float64(w)-want) > 0.5 || math.Abs(float64(h)-want) > 0.5 {
+				t.Errorf("scale %v: windowSizeInGLFWPixels(%d, %d, %v) = (%d, %d); want the nearest integers to %v", s, dip, dip, s, w, h, want)
+			}
+		}
+	}
+}
+
+// TestWindowPositionInGLFWPixelsIsNearestPosition tests that a position in device-independent
+// pixels converts to the nearest pixel position, as the size does.
+func TestWindowPositionInGLFWPixelsIsNearestPosition(t *testing.T) {
+	for _, s := range deviceScaleFactorsForTest {
+		for _, b := range monitorBoundsForTest {
+			m := ui.NewMonitorForTest(b, s)
+			for dip := -1000; dip <= 2000; dip++ {
+				x, y := ui.WindowPositionInGLFWPixelsForTest(dip, dip, m)
+				want := ui.DIPToGLFWPixelForTest(float64(dip), s)
+				if math.Abs(float64(x-b.Min.X)-want) > 0.5 || math.Abs(float64(y-b.Min.Y)-want) > 0.5 {
+					t.Errorf("scale %v, monitor %v: windowPositionInGLFWPixels(%d, %d, m) = (%d, %d); want the nearest integers to %v relative to the monitor", s, b, dip, dip, x, y, want)
 				}
 			}
 		}

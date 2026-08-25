@@ -37,6 +37,10 @@ func DIPFromGLFWPixelForTest(x float64, deviceScaleFactor float64) float64 {
 	return dipFromGLFWPixel(x, deviceScaleFactor)
 }
 
+func DIPToGLFWPixelForTest(x float64, deviceScaleFactor float64) float64 {
+	return dipToGLFWPixel(x, deviceScaleFactor)
+}
+
 const InvalidSizeForTest = invalidSize
 
 func WindowSizeToRestoreForTest(capturedWidth, capturedHeight int, capturedMonitor *Monitor, widthInDIP, heightInDIP int, monitor *Monitor) (int, int) {
