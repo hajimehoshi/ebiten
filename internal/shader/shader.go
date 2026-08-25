@@ -30,12 +30,6 @@ type variable struct {
 	name           string
 	typ            shaderir.Type
 	forLoopCounter bool
-
-	// outOfScope indicates that the variable's scope has ended but the variable is still kept to
-	// keep the local variable indices. An out-of-scope variable is never found nor checked by its
-	// name. This is the case for a for-loop's iteration variables, which are shared with the
-	// enclosing block but whose scopes end with the for-loop.
-	outOfScope bool
 }
 
 type constant struct {
@@ -132,9 +126,6 @@ func (b *block) findLocalVariable(name string, markLocalVariableUsed bool) (int,
 		idx += len(outer.vars)
 	}
 	for i, v := range b.vars {
-		if v.outOfScope {
-			continue
-		}
 		if v.name == name {
 			if markLocalVariableUsed {
 				delete(b.unusedVars, i)
@@ -630,9 +621,6 @@ func (s *compileState) parseVariable(block *block, fname string, vs *ast.ValueSp
 
 		name := n.Name
 		for _, v := range append(block.vars, vars...) {
-			if v.outOfScope {
-				continue
-			}
 			if v.name == name {
 				s.addError(vs.Pos(), fmt.Sprintf("duplicated local variable name: %s", name))
 				return nil, nil, nil, false
@@ -673,9 +661,6 @@ func (s *compileState) parseConstant(block *block, fname string, vs *ast.ValueSp
 			}
 		}
 		for _, v := range block.vars {
-			if v.outOfScope {
-				continue
-			}
 			if v.name == name {
 				s.addError(vs.Pos(), fmt.Sprintf("duplicated local constant/variable name: %s", name))
 				return nil, false
