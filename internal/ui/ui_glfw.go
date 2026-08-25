@@ -91,14 +91,16 @@ type glfwBackend struct {
 	// fractional scale factor (#2978), and while the window is iconified there is no pixel size
 	// to convert at all: the window reports no client area on Windows, and origWindowWidth and
 	// origWindowHeight are captured only while fullscreen.
-	// They are not updated while the window is fullscreen.
+	// A fullscreen window's size does not update them, so they are the size to restore on
+	// leaving fullscreen.
 	windowWidthInDIP  int
 	windowHeightInDIP int
 
 	// windowXInDIP and windowYInDIP are the window position relative to its monitor, in
 	// device-independent pixels, as it was requested. Converting a pixel position back does not
 	// return the requested position at a fractional scale factor (#2978).
-	// They are not updated while the window is fullscreen.
+	// A fullscreen window's position does not update them, so they are the position to restore
+	// on leaving fullscreen.
 	windowXInDIP int
 	windowYInDIP int
 
@@ -1029,7 +1031,7 @@ func (u *glfwBackend) initOnMainThread(options *RunOptions) error {
 
 // outsideSizeInDIP returns the size to give the game's Layout, in device-independent pixels.
 func outsideSizeInDIP(windowWidth, windowHeight int, requestedWidthInDIP, requestedHeightInDIP int, fullscreen bool, deviceScaleFactor float64) (float64, float64) {
-	// The requested size is not updated in fullscreen, where it is the size from before entering it.
+	// The requested size is a windowed size, unrelated to the size of a fullscreen window.
 	if !fullscreen {
 		// Report the requested size while the window has the pixel size that request produces, as
 		// converting the pixel size back would not return it at a fractional scale factor (#2978).
