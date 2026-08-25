@@ -142,7 +142,8 @@ type ff_replay struct {
 
 // ff_effect_union mirrors the parameter union of the kernel's struct ff_effect.
 // The rumble parameters are at the union's head; the remaining fields give the
-// union the size and alignment of its largest member, ff_periodic_effect.
+// union the size and alignment of the kernel's largest union member,
+// ff_periodic_effect.
 type ff_effect_union struct {
 	rumble ff_rumble_effect
 	_      [6]byte

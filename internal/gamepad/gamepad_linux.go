@@ -652,9 +652,7 @@ func (g *nativeGamepadImpl) vibrate(duration time.Duration, strongMagnitude floa
 	}
 
 	if strongMagnitude <= 0 && weakMagnitude <= 0 {
-		if g.effectID >= 0 {
-			g.writeFFEvent(0)
-		}
+		g.writeFFEvent(0)
 		return
 	}
 
@@ -692,8 +690,11 @@ func (g *nativeGamepadImpl) vibrate(duration time.Duration, strongMagnitude floa
 }
 
 // writeFFEvent starts (value 1) or stops (value 0) playing the uploaded force
-// feedback effect.
+// feedback effect. It does nothing when no effect has been uploaded.
 func (g *nativeGamepadImpl) writeFFEvent(value int32) {
+	if g.effectID < 0 {
+		return
+	}
 	e := input_event{
 		typ:   unix.EV_FF,
 		code:  uint16(g.effectID),
