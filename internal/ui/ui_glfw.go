@@ -685,16 +685,20 @@ func (u *glfwBackend) registerWindowFramebufferSizeCallback() error {
 				return
 			}
 
-			// The framebuffer size is always scaled by the device scale factor (#1975).
-			// See also the implementation in uiContext.updateOffscreen.
+			// w and h are the framebuffer size, not the window size.
+			gw, gh, err := u.window.GetSize()
+			if err != nil {
+				u.setError(err)
+				return
+			}
 			m, err := u.currentMonitor()
 			if err != nil {
 				u.setError(err)
 				return
 			}
 			s := m.DeviceScaleFactor()
-			ww := int(float64(w) / s)
-			wh := int(float64(h) / s)
+			ww := int(dipFromGLFWPixel(float64(gw), s))
+			wh := int(dipFromGLFWPixel(float64(gh), s))
 			if err := u.setWindowSizeInDIP(ww, wh, false); err != nil {
 				u.setError(err)
 				return
