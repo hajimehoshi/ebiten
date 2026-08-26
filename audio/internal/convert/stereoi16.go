@@ -137,5 +137,22 @@ func (s *StereoI16ReadSeeker) Seek(offset int64, whence int) (int64, error) {
 		offset *= 3
 		offset /= 2
 	}
-	return s.source.Seek(offset, whence)
+	pos, err := s.source.Seek(offset, whence)
+	if err != nil {
+		return 0, err
+	}
+	// s.source operates in mono-byte space, but this wrapper presents a
+	// stereo-byte space (and Stream.Length reports stereo bytes), so convert
+	// the returned position back.
+	if s.mono {
+		switch s.format {
+		case FormatU8:
+			pos *= 4
+		case FormatS16:
+			pos *= 2
+		case FormatS24:
+			pos = pos * 4 / 3
+		}
+	}
+	return pos, nil
 }
