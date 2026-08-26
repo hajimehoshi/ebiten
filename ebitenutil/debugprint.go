@@ -70,6 +70,11 @@ func drawDebugText(rt *ebiten.Image, str string, ox, oy int) {
 			y += ch
 			continue
 		}
+		// The available runes are in U+0000 to U+00FF, per DebugPrint's documentation. Runes outside
+		// the range are silently skipped: the font atlas doesn't cover them.
+		if int(c) > 0xFF {
+			continue
+		}
 		s, ok := debugPrintTextSubImages[c]
 		if !ok {
 			n := w / cw
