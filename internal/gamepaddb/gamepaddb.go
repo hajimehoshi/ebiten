@@ -166,6 +166,9 @@ func parseLine(line string, platform platform) (id string, name string, buttons 
 }
 
 func parseMappingElement(str string) (mapping, error) {
+	if len(str) == 0 {
+		return mapping{}, fmt.Errorf("gamepaddb: unexpected empty mapping")
+	}
 	switch {
 	case str[0] == 'a' || strings.HasPrefix(str, "+a") || strings.HasPrefix(str, "-a"):
 		var tilda bool
@@ -251,7 +254,7 @@ func parseMappingElement(str string) (mapping, error) {
 		}, nil
 	}
 
-	return mapping{}, fmt.Errorf("gamepaddb: unepxected mapping: %s", str)
+	return mapping{}, fmt.Errorf("gamepaddb: unexpected mapping: %s", str)
 }
 
 func toStandardGamepadButton(str string) (StandardButton, bool) {

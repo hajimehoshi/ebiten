@@ -54,6 +54,15 @@ func TestUpdate(t *testing.T) {
 			Input: "00000000000000000000000000000000,foo,platform:Windows",
 			Err:   false,
 		},
+		{
+			// An empty binding after ':' used to panic.
+			Input: "00000000000000000000000000000000,foo,a:",
+			Err:   true,
+		},
+		{
+			Input: "00000000000000000000000000000000,foo,leftx:a:",
+			Err:   true,
+		},
 	}
 
 	for _, c := range cases {
