@@ -134,7 +134,7 @@ func (s *sonyRumbler) update() {
 		s.next = false
 		s.issueWrite(s.nextStrong, s.nextWeak)
 	}
-	if s.vib && time.Now().Sub(s.vibEnd) >= 0 {
+	if s.vib && time.Since(s.vibEnd) >= 0 {
 		s.stop()
 	}
 }
