@@ -133,17 +133,9 @@ func (i *Image) Clear() {
 
 // Fill fills the image with a solid color.
 //
-// If the image is disposed, Fill does nothing.
-//
-// As of v2.10, Fill does not panic if clr is nil; it treats nil as a no-op.
 func (i *Image) Fill(clr color.Color) {
 	i.copyCheck()
-
-	if clr == nil {
-		return
-	}
-
-	if i.isDisposed() {
+	if i.isDisposed() || clr == nil {
 		return
 	}
 	i.invokeUsageCallbacks()
@@ -1339,14 +1331,9 @@ func (i *Image) at(x, y int) (r, g, b, a byte) {
 // If the image is disposed, Set does nothing.
 //
 // For performance, it is recommended to use WritePixels instead of Set whenever possible.
-//
-// As of v2.10, Set does not panic if clr is nil; it treats nil as a no-op.
 func (i *Image) Set(x, y int, clr color.Color) {
 	i.copyCheck()
-	if clr == nil {
-		return
-	}
-	if i.isDisposed() {
+	if i.isDisposed() || clr == nil {
 		return
 	}
 
