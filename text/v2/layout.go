@@ -466,10 +466,11 @@ func forEachLine(text string, face Face, options *LayoutOptions, f func(text str
 			}
 		}
 
+		l := len(line)
 		line = textutil.TrimTailingLineBreak(line)
 		f(line, indexOffset, originX+offsetX, originY+offsetY)
 
-		indexOffset += len(line) + 1
+		indexOffset += l
 		i++
 
 		// Advance the origin position in the secondary direction.

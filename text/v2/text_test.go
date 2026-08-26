@@ -37,6 +37,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/examples/resources/fonts"
 	t "github.com/hajimehoshi/ebiten/v2/internal/testing"
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
+	"github.com/hajimehoshi/ebiten/v2/text/v2/internal/textutil"
 )
 
 func TestMain(m *testing.M) {
@@ -55,6 +56,31 @@ over the lazy dog.`
 	want := regexp.MustCompile(`\S`).ReplaceAllString(sampleText, " ")
 	if got != want {
 		t.Errorf("got: %q, want: %q", got, want)
+	}
+}
+
+func TestGlyphIndexWithLineBreaks(t *testing.T) {
+	// A line break is not always a single byte: it can be "\r\n" or a multi-byte character.
+	for _, lineBreak := range []string{"\n", "\v", "\f", "\r", "\r\n", "\u0085", "\u2028", "\u2029"} {
+		sampleText := "abc" + lineBreak + "defg" + lineBreak + "hijklmno"
+
+		f := text.NewGoXFace(bitmapfont.Face)
+		got := sampleText
+		for _, g := range text.AppendGlyphs(nil, sampleText, f, nil) {
+			if g.StartIndexInBytes < 0 || g.EndIndexInBytes > len(got) || g.StartIndexInBytes >= g.EndIndexInBytes {
+				t.Errorf("lineBreak: %q, invalid indices: [%d, %d)", lineBreak, g.StartIndexInBytes, g.EndIndexInBytes)
+				continue
+			}
+			got = got[:g.StartIndexInBytes] + strings.Repeat(" ", g.EndIndexInBytes-g.StartIndexInBytes) + got[g.EndIndexInBytes:]
+		}
+
+		// All the runes other than the line breaks should be covered by the glyphs.
+		for i, r := range got {
+			if r == ' ' || textutil.IsLineBreak(r) {
+				continue
+			}
+			t.Errorf("lineBreak: %q, unexpected rune %q at %d: %q", lineBreak, r, i, got)
+		}
 	}
 }
 
