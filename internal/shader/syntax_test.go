@@ -909,6 +909,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 }`)); err == nil {
 		t.Errorf("error must be non-nil but was nil")
 	}
+
 	if _, err := compileToIR([]byte(`package main
 
 func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
@@ -1057,6 +1058,69 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 	return vec4(0)
 }`)); err == nil {
 		t.Errorf("error must be non-nil but was nil")
+	}
+
+	if _, err := compileToIR([]byte(`package main
+
+func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+	a := 1 / 0
+	_ = a
+	return vec4(0)
+}`)); err == nil {
+		t.Errorf("error must be non-nil but was nil")
+	}
+
+	if _, err := compileToIR([]byte(`package main
+
+func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+	a := 1 % 0
+	_ = a
+	return vec4(0)
+}`)); err == nil {
+		t.Errorf("error must be non-nil but was nil")
+	}
+
+	if _, err := compileToIR([]byte(`package main
+
+func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+	a := 1.0 / 0.0
+	_ = a
+	return vec4(0)
+}`)); err == nil {
+		t.Errorf("error must be non-nil but was nil")
+	}
+
+	// A division by a non-constant zero is not an error at the compile time.
+	if _, err := compileToIR([]byte(`package main
+
+func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+	a := 1
+	b := 0
+	c := a / b
+	_ = c
+	return vec4(0)
+}`)); err != nil {
+		t.Error(err)
+	}
+
+	if _, err := compileToIR([]byte(`package main
+
+func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+	a := 1 << -1
+	_ = a
+	return vec4(0)
+}`)); err == nil {
+		t.Errorf("error must be non-nil but was nil")
+	}
+
+	if _, err := compileToIR([]byte(`package main
+
+func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+	a := 1 << 62
+	_ = a
+	return vec4(0)
+}`)); err != nil {
+		t.Error(err)
 	}
 
 	if _, err := compileToIR([]byte(`package main

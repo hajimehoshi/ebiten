@@ -163,8 +163,16 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 					cs.addError(e.Pos(), fmt.Sprintf("unexpected %s type for: %s", rhs[0].Const.String(), e.Op))
 					return nil, nil, nil, false
 				}
+				if shift < 0 {
+					cs.addError(e.Pos(), fmt.Sprintf("negative shift count: %s", rhs[0].Const.String()))
+					return nil, nil, nil, false
+				}
 				v = gconstant.Shift(lhs[0].Const, op, uint(shift))
 			default:
+				if (op == token.QUO || op == token.QUO_ASSIGN || op == token.REM) && gconstant.Sign(rhs[0].Const) == 0 {
+					cs.addError(e.Pos(), "division by zero")
+					return nil, nil, nil, false
+				}
 				v = gconstant.BinaryOp(lhs[0].Const, op, rhs[0].Const)
 			}
 
