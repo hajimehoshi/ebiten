@@ -435,6 +435,31 @@ func TestImageFill(t *testing.T) {
 	}
 }
 
+// TestImageFillSetNilColor checks that a nil color value passed to Fill or Set is treated as a no-op
+// instead of panicking. nil.RGBA() panics in the standard library, so without this guard any caller
+// that happened to pass nil (e.g. from a default-constructed color.Color field) would crash the game.
+func TestImageFillSetNilColor(t *testing.T) {
+	defer func() {
+		if r := recover(); r != nil {
+			t.Fatalf("test PANIC: %v", r)
+		}
+	}()
+
+	for _, tc := range []struct {
+		name string
+		f    func(img *ebiten.Image)
+	}{
+		{"Fill", func(img *ebiten.Image) { img.Fill(nil) }},
+		{"Set", func(img *ebiten.Image) { img.Set(2, 2, nil) }},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			img := ebiten.NewImage(8, 8)
+			defer img.Deallocate()
+			tc.f(img) // must not panic.
+		})
+	}
+}
+
 // Issue #740
 func TestImageClear(t *testing.T) {
 	const w, h = 128, 256
