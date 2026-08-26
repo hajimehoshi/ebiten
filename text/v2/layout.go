@@ -215,6 +215,9 @@ func Draw(dst *ebiten.Image, text string, face Face, options *DrawOptions) {
 // The cull applies only when geoM has no shear or rotation. Otherwise nil
 // is returned and no glyph-level cull happens.
 func keepGlyphFilter(face Face, geoM ebiten.GeoM, dstBounds image.Rectangle) func(originX, originY float64) bool {
+	// Nonzero off-diagonal elements mean a rotation or a skew, where a
+	// glyph's extent depends on both axes. The origin projection below and
+	// its per-axis margins hold only for a diagonal geoM.
 	if geoM.Element(0, 1) != 0 || geoM.Element(1, 0) != 0 {
 		return nil
 	}
@@ -241,6 +244,11 @@ func keepGlyphFilter(face Face, geoM ebiten.GeoM, dstBounds image.Rectangle) fun
 	d := geoM.Element(1, 1)
 	tx := geoM.Element(0, 2)
 	ty := geoM.Element(1, 2)
+	// The margins are distances in the text space, while the predicate
+	// compares positions in dst's space. Scale them so that they still
+	// cover the glyph extents after the transform.
+	marginX *= math.Abs(a)
+	marginY *= math.Abs(d)
 	dstMinX := float64(dstBounds.Min.X) - marginX
 	dstMaxX := float64(dstBounds.Max.X) + marginX
 	dstMinY := float64(dstBounds.Min.Y) - marginY
