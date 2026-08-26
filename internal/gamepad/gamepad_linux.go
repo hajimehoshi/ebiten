@@ -106,7 +106,15 @@ func (*nativeGamepadsImpl) openGamepad(gamepads *gamepads, path string) (err err
 		return nil
 	}
 
-	fd, err := unix.Open(path, unix.O_RDONLY|unix.O_NONBLOCK, 0)
+	// Rumble requires write access to upload and play force feedback effects.
+	// Fall back to read-only when write access is not permitted: the gamepad
+	// still works, without rumble.
+	writable := true
+	fd, err := unix.Open(path, unix.O_RDWR|unix.O_NONBLOCK, 0)
+	if err == unix.EACCES || err == unix.EPERM {
+		writable = false
+		fd, err = unix.Open(path, unix.O_RDONLY|unix.O_NONBLOCK, 0)
+	}
 	if err != nil {
 		if err == unix.EACCES {
 			return nil
@@ -176,9 +184,19 @@ func (*nativeGamepadsImpl) openGamepad(gamepads *gamepads, path string) (err err
 			bs[0], bs[1], bs[2], bs[3], bs[4], bs[5], bs[6], bs[7], bs[8], bs[9], bs[10], bs[11])
 	}
 
+	supportsRumble := false
+	if writable && isBitSet(evBits, unix.EV_FF) {
+		ffBits := make([]byte, (_FF_CNT+7)/8)
+		if err := ioctl(fd, _EVIOCGBIT(unix.EV_FF, uint(len(ffBits))), unsafe.Pointer(&ffBits[0])); err == nil {
+			supportsRumble = isBitSet(ffBits, _FF_RUMBLE)
+		}
+	}
+
 	n := &nativeGamepadImpl{
-		path: path,
-		fd:   fd,
+		path:           path,
+		fd:             fd,
+		supportsRumble: supportsRumble,
+		effectID:       -1,
 	}
 	gp := gamepads.add(name, sdlID)
 	gp.native = n
@@ -274,7 +292,11 @@ func (g *nativeGamepadsImpl) update(gamepads *gamepads) error {
 			if gp := gamepads.find(func(gamepad *Gamepad) bool {
 				return gamepad.native.(*nativeGamepadImpl).path == path
 			}); gp != nil {
+				// Lock the gamepad so the close cannot race with a
+				// concurrent Vibrate using the file descriptor.
+				gp.m.Lock()
 				gp.native.(*nativeGamepadImpl).close()
+				gp.m.Unlock()
 				gamepads.remove(func(gamepad *Gamepad) bool {
 					return gamepad == gp
 				})
@@ -293,6 +315,9 @@ type nativeGamepadImpl struct {
 	absMap  [_ABS_CNT]int
 	absInfo [_ABS_CNT]input_absinfo
 	dropped bool
+
+	supportsRumble bool
+	effectID       int16
 
 	axes    [_ABS_CNT]float64
 	buttons [_KEY_CNT - _BTN_MISC]bool
@@ -622,5 +647,58 @@ func (g *nativeGamepadImpl) hatState(hat int) int {
 }
 
 func (g *nativeGamepadImpl) vibrate(duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
-	// TODO: Implement this (#1452)
+	if !g.supportsRumble || g.fd == 0 {
+		return
+	}
+
+	if strongMagnitude <= 0 && weakMagnitude <= 0 {
+		g.writeFFEvent(0)
+		return
+	}
+
+	if duration <= 0 {
+		return
+	}
+
+	// The kernel stops the effect once the replay length has passed, so no
+	// duration tracking is needed here. A replay length of 0 would play the
+	// effect with no time limit, so keep it at least 1.
+	ms := duration.Milliseconds()
+	if ms < 1 {
+		ms = 1
+	}
+	if ms > 0xffff {
+		ms = 0xffff
+	}
+
+	// An ID of -1 lets the kernel assign an ID to a new effect. Uploading
+	// with the ID of an already uploaded effect updates the effect in place.
+	effect := ff_effect{
+		typ: _FF_RUMBLE,
+		id:  g.effectID,
+	}
+	effect.replay.length = uint16(ms)
+	effect.u.rumble.strong_magnitude = motorMagnitude(strongMagnitude)
+	effect.u.rumble.weak_magnitude = motorMagnitude(weakMagnitude)
+
+	if err := ioctl(g.fd, _EVIOCSFF(), unsafe.Pointer(&effect)); err != nil {
+		return
+	}
+	g.effectID = effect.id
+
+	g.writeFFEvent(1)
+}
+
+// writeFFEvent starts (value 1) or stops (value 0) playing the uploaded force
+// feedback effect. It does nothing when no effect has been uploaded.
+func (g *nativeGamepadImpl) writeFFEvent(value int32) {
+	if g.effectID < 0 {
+		return
+	}
+	e := input_event{
+		typ:   unix.EV_FF,
+		code:  uint16(g.effectID),
+		value: value,
+	}
+	_, _ = unix.Write(g.fd, unsafe.Slice((*byte)(unsafe.Pointer(&e)), int(unsafe.Sizeof(e))))
 }

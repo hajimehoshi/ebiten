@@ -450,3 +450,17 @@ func (g *Gamepad) Vibrate(duration time.Duration, strongMagnitude float64, weakM
 
 	g.native.vibrate(duration, strongMagnitude, weakMagnitude)
 }
+
+// motorMagnitude converts a magnitude in the range 0 to 1 to a vibration motor magnitude.
+// Out-of-range values are clamped and NaN is treated as 0.
+func motorMagnitude(magnitude float64) uint16 {
+	// Converting an out-of-range or NaN value to uint16 is implementation-defined,
+	// so such values must be rejected before the conversion.
+	if !(magnitude > 0) {
+		return 0
+	}
+	if magnitude > 1 {
+		return 0xffff
+	}
+	return uint16(magnitude * 0xffff)
+}

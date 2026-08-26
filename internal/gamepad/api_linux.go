@@ -80,6 +80,10 @@ const (
 
 	_SYN_REPORT  = 0
 	_SYN_DROPPED = 3
+
+	_FF_RUMBLE = 0x50
+	_FF_MAX    = 0x7f
+	_FF_CNT    = _FF_MAX + 1
 )
 
 func _IOC(dir, typ, nr, size uint) uint {
@@ -88,6 +92,10 @@ func _IOC(dir, typ, nr, size uint) uint {
 
 func _IOR(typ, nr, size uint) uint {
 	return _IOC(_IOC_READ, typ, nr, size)
+}
+
+func _IOW(typ, nr, size uint) uint {
+	return _IOC(_IOC_WRITE, typ, nr, size)
 }
 
 func _EVIOCGABS(abs uint) uint {
@@ -104,6 +112,53 @@ func _EVIOCGID() uint {
 
 func _EVIOCGNAME(len uint) uint {
 	return _IOC(_IOC_READ, 'E', 0x06, len)
+}
+
+func _EVIOCSFF() uint {
+	return _IOW('E', 0x80, uint(unsafe.Sizeof(ff_effect{})))
+}
+
+type ff_envelope struct {
+	attack_length uint16
+	attack_level  uint16
+	fade_length   uint16
+	fade_level    uint16
+}
+
+type ff_rumble_effect struct {
+	strong_magnitude uint16
+	weak_magnitude   uint16
+}
+
+type ff_trigger struct {
+	button   uint16
+	interval uint16
+}
+
+type ff_replay struct {
+	length uint16
+	delay  uint16
+}
+
+// ff_effect_union mirrors the parameter union of the kernel's struct ff_effect.
+// The rumble parameters are at the union's head; the remaining fields give the
+// union the size and alignment of the kernel's largest union member,
+// ff_periodic_effect.
+type ff_effect_union struct {
+	rumble ff_rumble_effect
+	_      [6]byte
+	_      ff_envelope
+	_      uint32
+	_      uintptr
+}
+
+type ff_effect struct {
+	typ       uint16
+	id        int16
+	direction uint16
+	trigger   ff_trigger
+	replay    ff_replay
+	u         ff_effect_union
 }
 
 type input_absinfo struct {
