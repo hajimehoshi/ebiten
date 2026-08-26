@@ -212,6 +212,12 @@ func Draw(dst *ebiten.Image, text string, face Face, options *DrawOptions) {
 // near the edge are kept and re-checked by the precise per-glyph cull in
 // Draw.
 //
+// The margins are in the destination's coordinates, so they account for geoM's
+// scale: a glyph's extent on the destination scales with geoM, and an unscaled
+// margin would wrongly cull glyphs at the edges of a scaled destination. The
+// absolute values are used so that flipped (negative-scale) geoMs are covered
+// as well.
+//
 // The cull applies only when geoM has no shear or rotation. Otherwise nil
 // is returned and no glyph-level cull happens.
 func keepGlyphFilter(face Face, geoM ebiten.GeoM, dstBounds image.Rectangle) func(originX, originY float64) bool {
@@ -227,20 +233,23 @@ func keepGlyphFilter(face Face, geoM ebiten.GeoM, dstBounds image.Rectangle) fun
 	// the cull benefit.
 	const advanceMarginFactor = 100
 	m := face.Metrics()
-	var marginX, marginY float64
-	if face.direction().isHorizontal() {
-		height := m.HAscent + m.HDescent
-		marginX = advanceMarginFactor * height
-		marginY = height + m.HLineGap
-	} else {
-		width := m.VAscent + m.VDescent
-		marginY = advanceMarginFactor * width
-		marginX = width + m.VLineGap
-	}
 	a := geoM.Element(0, 0)
 	d := geoM.Element(1, 1)
 	tx := geoM.Element(0, 2)
 	ty := geoM.Element(1, 2)
+	// scale is the larger absolute scale factor of geoM. The margins are in the destination's
+	// coordinates, so they have to cover a glyph's extent after scaling.
+	scale := max(math.Abs(a), math.Abs(d))
+	var marginX, marginY float64
+	if face.direction().isHorizontal() {
+		height := m.HAscent + m.HDescent
+		marginX = advanceMarginFactor * height * scale
+		marginY = (height + m.HLineGap) * scale
+	} else {
+		width := m.VAscent + m.VDescent
+		marginY = advanceMarginFactor * width * scale
+		marginX = (width + m.VLineGap) * scale
+	}
 	dstMinX := float64(dstBounds.Min.X) - marginX
 	dstMaxX := float64(dstBounds.Max.X) + marginX
 	dstMinY := float64(dstBounds.Min.Y) - marginY
