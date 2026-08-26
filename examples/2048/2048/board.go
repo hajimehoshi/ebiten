@@ -120,7 +120,7 @@ func (b *Board) Draw(boardImage *ebiten.Image) {
 	boardImage.Fill(frameColor)
 	for j := 0; j < b.size; j++ {
 		for i := 0; i < b.size; i++ {
-			v := 0
+			var v int
 			op := &ebiten.DrawImageOptions{}
 			x := i*tileSize + (i+1)*tileMargin
 			y := j*tileSize + (j+1)*tileMargin

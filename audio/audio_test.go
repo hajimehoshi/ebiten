@@ -17,6 +17,7 @@ package audio_test
 import (
 	"bytes"
 	"io"
+	"math"
 	"runtime"
 	"sync/atomic"
 	"testing"
@@ -417,5 +418,54 @@ func TestPauseAndStopReadingBeforeInit(t *testing.T) {
 
 	if err := audio.UpdateForTesting(); err != nil {
 		t.Error(err)
+	}
+}
+
+// Issue #3359
+func TestSetVolumeInvalidValue(t *testing.T) {
+	setup()
+	defer teardown()
+
+	p, err := context.NewPlayer(&infiniteReader{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	volumes := []struct {
+		in   float64
+		want float64
+	}{
+		{in: 0.5, want: 0.5},
+		{in: 2, want: 2},
+		{in: math.MaxFloat32, want: math.MaxFloat32},
+		{in: -1, want: 0},
+		{in: math.MaxFloat32 * 2, want: 0},
+		{in: math.Inf(1), want: 0},
+		{in: math.Inf(-1), want: 0},
+		{in: math.NaN(), want: 0},
+	}
+
+	// The volume is kept by the player itself before the audio device is created.
+	for _, v := range volumes {
+		p.SetVolume(v.in)
+		if got, want := p.Volume(), v.want; got != want {
+			t.Errorf("Volume() after SetVolume(%v) before the device creation: got: %v, want: %v", v.in, got, want)
+		}
+	}
+
+	p.Play()
+	if err := audio.UpdateForTesting(); err != nil {
+		t.Fatal(err)
+	}
+	if !audio.ContextCreatedForTesting() {
+		t.Fatal("the audio device must be created after the first update")
+	}
+
+	// The volume is kept by the underlying player after the audio device is created.
+	for _, v := range volumes {
+		p.SetVolume(v.in)
+		if got, want := p.Volume(), v.want; got != want {
+			t.Errorf("Volume() after SetVolume(%v) after the device creation: got: %v, want: %v", v.in, got, want)
+		}
 	}
 }

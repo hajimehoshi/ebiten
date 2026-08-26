@@ -66,7 +66,7 @@ func init() {
 	if diff%4 != 0 {
 		panic("directx: unexpected attribute layout")
 	}
-	for i := 0; i < diff/4; i++ {
+	for i := range diff / 4 {
 		inputElementDescsForDX11 = append(inputElementDescsForDX11, _D3D11_INPUT_ELEMENT_DESC{
 			SemanticName:         &([]byte("COLOR\000"))[0],
 			SemanticIndex:        uint32(i) + 1,
@@ -514,7 +514,7 @@ func (g *graphics11) removeShader(s *shader11) {
 func (g *graphics11) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.ShaderSrcImageCount]graphicsdriver.ImageID, shaderID graphicsdriver.ShaderID, dstRegions []graphicsdriver.DstRegion, indexOffset int, blend graphicsdriver.Blend, uniforms []uint32) error {
 	// Remove bound textures first. This is needed to avoid warnings on the debugger.
 	g.deviceContext.OMSetRenderTargets([]*_ID3D11RenderTargetView{nil}, nil)
-	srvs := [graphics.ShaderSrcImageCount]*_ID3D11ShaderResourceView{}
+	var srvs [graphics.ShaderSrcImageCount]*_ID3D11ShaderResourceView
 	g.deviceContext.PSSetShaderResources(0, srvs[:])
 
 	dst := g.images[dstID]

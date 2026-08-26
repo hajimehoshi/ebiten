@@ -612,8 +612,8 @@ func (t *textInputImpl) pressesOnMain(self, presses, event objc.ID, cmd objc.SEL
 	n := int(objc.Send[uint](arr, sel_count))
 
 	var kept objc.ID
-	consumed := 0
-	for i := 0; i < n; i++ {
+	var consumed int
+	for i := range n {
 		p := arr.Send(sel_objectAtIndex, uint(i))
 		if cmd == sel_pressesBegan {
 			if key, ok := t.consumableKey(self, p); ok {

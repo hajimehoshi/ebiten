@@ -89,6 +89,10 @@ type UserInterface struct {
 	// even where no window can reflect it.
 	preferredColorMode atomic.Int32
 
+	// refreshRate is the refresh rate, in Hz, of the display the game is presented on.
+	// It is 0 when the rate is unknown.
+	refreshRate atomic.Int32
+
 	whiteImage *Image
 
 	mainThread thread.Thread
@@ -262,6 +266,16 @@ func (u *UserInterface) setGraphicsLibrary(library GraphicsLibrary) {
 
 func (u *UserInterface) GraphicsLibrary() GraphicsLibrary {
 	return GraphicsLibrary(u.graphicsLibrary.Load())
+}
+
+func (u *UserInterface) setRefreshRate(refreshRate int) {
+	u.refreshRate.Store(int32(refreshRate))
+}
+
+// RefreshRate returns the refresh rate, in Hz, of the display the game is presented on.
+// It returns 0 when the rate is unknown.
+func (u *UserInterface) RefreshRate() int {
+	return int(u.refreshRate.Load())
 }
 
 func (u *UserInterface) isRunning() bool {

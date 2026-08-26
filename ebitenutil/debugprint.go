@@ -57,8 +57,8 @@ func DebugPrintAt(image *ebiten.Image, str string, x, y int) {
 
 func drawDebugText(rt *ebiten.Image, str string, ox, oy int) {
 	op := &ebiten.DrawImageOptions{}
-	x := 0
-	y := 0
+	var x int
+	var y int
 	w := debugPrintTextImage.Bounds().Dx()
 	for _, c := range str {
 		const (

@@ -212,7 +212,7 @@ func (i *InfiniteLoop) Read(b []byte) (int, error) {
 			buflen := min(int64(256*i.bytesPerSample), i.length())
 
 			buf := make([]byte, buflen)
-			pos := 0
+			var pos int
 			for pos < len(buf) {
 				n, err := i.src.Read(buf[pos:])
 				if err != nil && err != io.EOF {
@@ -248,7 +248,7 @@ func (i *InfiniteLoop) Seek(offset int64, whence int) (int64, error) {
 		return 0, err
 	}
 
-	next := int64(0)
+	var next int64
 	switch whence {
 	case io.SeekStart:
 		next = offset

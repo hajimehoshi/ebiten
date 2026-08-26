@@ -175,6 +175,130 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 	}
 }
 
+func TestSyntaxLoopVariableScope(t *testing.T) {
+	// A loop variable's scope ends with the loop. Redeclaring a variable with the same name after
+	// the loop is fine.
+	if _, err := compileToIR([]byte(`package main
+
+func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+	for i := 0; i < 3; i++ {
+	}
+	i := 10.0
+	return vec4(i)
+}
+`)); err != nil {
+		t.Error(err)
+	}
+
+	if _, err := compileToIR([]byte(`package main
+
+func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+	for i := range 3 {
+		_ = i
+	}
+	i := 10.0
+	return vec4(i)
+}
+`)); err != nil {
+		t.Error(err)
+	}
+
+	if _, err := compileToIR([]byte(`package main
+
+func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+	a := [3]float{1, 2, 3}
+	sum := 0.0
+	for _, v := range a {
+		sum += v
+	}
+	v := 10.0
+	return vec4(sum + v)
+}
+`)); err != nil {
+		t.Error(err)
+	}
+
+	if _, err := compileToIR([]byte(`package main
+
+func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+	a := [3]float{1, 2, 3}
+	sum := 0.0
+	for _, v := range a {
+		sum += v
+	}
+	var v float = 10.0
+	return vec4(sum + v)
+}
+`)); err != nil {
+		t.Error(err)
+	}
+
+	if _, err := compileToIR([]byte(`package main
+
+func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+	for i := range 3 {
+		_ = i
+	}
+	const i = 10
+	return vec4(float(i))
+}
+`)); err != nil {
+		t.Error(err)
+	}
+
+	// After the loop, the name refers to the global variable, not the loop variable.
+	if _, err := compileToIR([]byte(`package main
+
+var I float
+
+func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+	for I := 0; I < 3; I++ {
+	}
+	return vec4(sin(I))
+}
+`)); err != nil {
+		t.Error(err)
+	}
+
+	// A loop variable is not available after the loop.
+	if _, err := compileToIR([]byte(`package main
+
+func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+	for i := 0; i < 3; i++ {
+	}
+	return vec4(float(i))
+}
+`)); err == nil {
+		t.Errorf("error must be non-nil but was nil")
+	}
+
+	if _, err := compileToIR([]byte(`package main
+
+func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+	for i := range 3 {
+		_ = i
+	}
+	return vec4(float(i))
+}
+`)); err == nil {
+		t.Errorf("error must be non-nil but was nil")
+	}
+
+	if _, err := compileToIR([]byte(`package main
+
+func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+	a := [3]float{1, 2, 3}
+	sum := 0.0
+	for _, v := range a {
+		sum += v
+	}
+	return vec4(sum + v)
+}
+`)); err == nil {
+		t.Errorf("error must be non-nil but was nil")
+	}
+}
+
 func TestSyntaxWrongReturn(t *testing.T) {
 	if _, err := compileToIR([]byte(`package main
 
@@ -302,6 +426,21 @@ func init() {
 
 func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 	return vec4(0)
+}
+`)); err == nil {
+		t.Errorf("error must be non-nil but was nil")
+	}
+}
+
+func TestSyntaxTooManyFragmentArguments(t *testing.T) {
+	if _, err := compileToIR([]byte(`package main
+
+func Vertex(pos vec2) vec4 {
+	return vec4(pos, 0, 1)
+}
+
+func Fragment(dstPos vec4, srcPos vec2) vec4 {
+	return dstPos + vec4(srcPos, 0, 0)
 }
 `)); err == nil {
 		t.Errorf("error must be non-nil but was nil")

@@ -192,7 +192,7 @@ func (s *squiral) step(game *Game) {
 			// b. Test all outer fields for the color of the
 			// squiral itself.
 			horivert := dir % 2
-			xtarg := vec2{}
+			var xtarg vec2
 			set := true
 			for _, out := range neighbors[horivert] {
 				xtarg.x = target.x + out.x
@@ -292,7 +292,7 @@ func (g *Game) setpix(xy vec2, col color.Color) {
 }
 
 func (g *Game) Update() error {
-	reset := false
+	var reset bool
 
 	if _, err := g.debugui.Update(func(ctx *debugui.Context) error {
 		ctx.Window("Squirals", image.Rect(10, 10, 210, 160), func(layout debugui.ContainerLayout) {

@@ -141,7 +141,7 @@ func (f *Field) setBlock(x, y int, blockType BlockType) {
 }
 
 func (f *Field) endFlushAnimating() int {
-	flushedLineCount := 0
+	var flushedLineCount int
 	for j := fieldBlockCountY - 1; 0 <= j; j-- {
 		if f.flushLine(j + flushedLineCount) {
 			flushedLineCount++

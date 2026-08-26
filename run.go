@@ -171,7 +171,7 @@ func SetScreenClearedEveryFrame(cleared bool) {
 	ui.Get().SetScreenClearedEveryFrame(cleared)
 }
 
-// IsScreenClearedEveryFrame returns true if the frame isn't cleared at the beginning.
+// IsScreenClearedEveryFrame returns true if the screen is cleared at the beginning of each frame.
 //
 // IsScreenClearedEveryFrame is concurrent-safe.
 func IsScreenClearedEveryFrame() bool {
@@ -387,6 +387,19 @@ func RunGameWithOptions(game Game, options *RunGameOptions) error {
 
 func isRunGameEnded() bool {
 	return isRunGameEnded_.Load()
+}
+
+// ScreenSize returns the size of the image given at [Game.Draw], in pixels.
+//
+// ScreenSize returns (0, 0) before the game starts.
+//
+// ScreenSize is concurrent-safe.
+func ScreenSize() (int, int) {
+	s := screenSize.Load()
+	if s == nil {
+		return 0, 0
+	}
+	return s.X, s.Y
 }
 
 // ScreenSizeInFullscreen returns the size in device-independent pixels when the game is fullscreen.

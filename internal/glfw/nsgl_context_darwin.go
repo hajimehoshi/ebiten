@@ -46,7 +46,7 @@ func (w *Window) createContextNSGL(ctxconfig *ctxconfig, fbconfig_ *fbconfig) er
 
 	// Build the pixel format attributes array.
 	var attribs [40]uint32
-	idx := 0
+	var idx int
 
 	addAttrib := func(a uint32) {
 		attribs[idx] = a

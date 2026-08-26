@@ -19,6 +19,7 @@ package ui
 import (
 	stdcontext "context"
 	"fmt"
+	"math"
 	"runtime"
 	"runtime/debug"
 	"sync"
@@ -86,11 +87,20 @@ type pointF struct {
 	y float64
 }
 
+type pointI struct {
+	x int
+	y int
+}
+
 type userInterfaceImpl struct {
 	graphicsDriver        graphicsdriver.Graphics
 	graphicsLibraryInitCh chan struct{}
 
 	outsideSize atomic.Value
+
+	// surfaceSize is the size of the rendering surface, in pixels, as the platform reports it. It is
+	// unset when the platform reports no size, and the size is then derived from the outside size.
+	surfaceSize atomic.Value
 
 	foreground atomic.Bool
 	errCh      chan error
@@ -180,10 +190,32 @@ func (u *UserInterface) update() error {
 	}()
 
 	w, h := u.outsideSize()
-	if err := u.context.updateFrame(u.graphicsDriver, w, h, theMonitor.DeviceScaleFactor(), u, true); err != nil {
+	s := theMonitor.DeviceScaleFactor()
+	sw, sh := u.screenSize(w, h, s)
+	if err := u.context.updateFrame(u.graphicsDriver, w, h, sw, sh, s, u, true); err != nil {
 		return err
 	}
 	return nil
+}
+
+// screenSize returns the size of the rendering surface, in pixels.
+//
+// screenSize must be called on the same goroutine as update().
+func (u *UserInterface) screenSize(outsideWidth, outsideHeight float64, deviceScaleFactor float64) (int, int) {
+	if s, ok := u.userInterfaceImpl.surfaceSize.Load().(pointI); ok {
+		return s.x, s.y
+	}
+	// The platform reports no surface size, so derive it from the view's size in device-independent
+	// pixels. That size is the view's pixel count divided by the scale factor, so rounding the
+	// product lands back on the pixel count.
+	return int(math.Round(outsideWidth * deviceScaleFactor)), int(math.Round(outsideHeight * deviceScaleFactor))
+}
+
+// SetSurfaceSize sets the size of the rendering surface, in pixels, as reported by the platform.
+//
+// SetSurfaceSize is concurrent safe.
+func (u *UserInterface) SetSurfaceSize(width, height int) {
+	u.userInterfaceImpl.surfaceSize.Store(pointI{x: width, y: height})
 }
 
 // SetOutsideSize is called from mobile/ebitenmobileview.
@@ -273,8 +305,8 @@ func (u *UserInterface) displayInfo() (int, int, float64, bool) {
 	if !ok {
 		return 0, 0, 1, false
 	}
-	width := int(dipFromNativePixels(v.width, v.scale))
-	height := int(dipFromNativePixels(v.height, v.scale))
+	width := int(math.Round(dipFromNativePixels(v.width, v.scale)))
+	height := int(math.Round(dipFromNativePixels(v.height, v.scale)))
 	return width, height, v.scale, true
 }
 

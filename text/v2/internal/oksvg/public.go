@@ -32,7 +32,7 @@ func ReadIconStream(stream io.Reader, errMode ...ErrorMode) (*SvgIcon, error) {
 	if len(errMode) > 0 {
 		cursor.ErrorMode = errMode[0]
 	}
-	classInfo := ""
+	var classInfo string
 	decoder := xml.NewDecoder(stream)
 	for {
 		t, err := decoder.Token()

@@ -27,7 +27,7 @@ func TestColorMInit(t *testing.T) {
 	for i := range colorm.Dim - 1 {
 		for j := range colorm.Dim {
 			got := m.Element(i, j)
-			want := 0.0
+			var want float64
 			if i == j {
 				want = 1
 			}
@@ -41,7 +41,7 @@ func TestColorMInit(t *testing.T) {
 	for i := range colorm.Dim - 1 {
 		for j := range colorm.Dim {
 			got := m.Element(i, j)
-			want := 0.0
+			var want float64
 			if i == j {
 				want = 1
 			}
@@ -53,7 +53,7 @@ func TestColorMInit(t *testing.T) {
 }
 
 func TestColorMAssign(t *testing.T) {
-	m := colorm.ColorM{}
+	var m colorm.ColorM
 	m.SetElement(0, 0, 1)
 	m2 := m
 	m.SetElement(0, 0, 0)
@@ -71,7 +71,7 @@ func TestColorMTranslate(t *testing.T) {
 		{0, 0, 1, 0, 2.5},
 		{0, 0, 0, 1, 3.5},
 	}
-	m := colorm.ColorM{}
+	var m colorm.ColorM
 	m.Translate(0.5, 1.5, 2.5, 3.5)
 	for i := range 4 {
 		for j := range 5 {
@@ -91,7 +91,7 @@ func TestColorMScale(t *testing.T) {
 		{0, 0, 2.5, 0, 0},
 		{0, 0, 0, 3.5, 0},
 	}
-	m := colorm.ColorM{}
+	var m colorm.ColorM
 	m.Scale(0.5, 1.5, 2.5, 3.5)
 	for i := range 4 {
 		for j := range 5 {
@@ -111,7 +111,7 @@ func TestColorMTranslateAndScale(t *testing.T) {
 		{0, 0, 1, 0, 0},
 		{0, 0, 0, 0.5, 0.5},
 	}
-	m := colorm.ColorM{}
+	var m colorm.ColorM
 	m.Translate(0, 0, 0, 1)
 	m.Scale(1, 1, 1, 0.5)
 	for i := range 4 {
@@ -132,7 +132,7 @@ func TestColorMMonochrome(t *testing.T) {
 		{0.2990, 0.5870, 0.1140, 0, 0},
 		{0, 0, 0, 1, 0},
 	}
-	m := colorm.ColorM{}
+	var m colorm.ColorM
 	m.ChangeHSV(0, 0, 1)
 	for i := range 4 {
 		for j := range 5 {
@@ -152,7 +152,7 @@ func TestColorMConcatSelf(t *testing.T) {
 		{30, 43, 51, 39, 34},
 		{25, 37, 39, 46, 36},
 	}
-	m := colorm.ColorM{}
+	var m colorm.ColorM
 	for i := range 4 {
 		for j := range 5 {
 			m.SetElement(i, j, float64((i+j)%5+1))
@@ -178,13 +178,13 @@ func absDiffU32(x, y uint32) uint32 {
 }
 
 func TestColorMApply(t *testing.T) {
-	mono := colorm.ColorM{}
+	var mono colorm.ColorM
 	mono.ChangeHSV(0, 0, 1)
 
-	shiny := colorm.ColorM{}
+	var shiny colorm.ColorM
 	shiny.Translate(1, 1, 1, 0)
 
-	shift := colorm.ColorM{}
+	var shift colorm.ColorM
 	shift.Translate(0.5, 0.5, 0.5, 0.5)
 
 	cases := []struct {

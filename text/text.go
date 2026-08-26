@@ -289,7 +289,7 @@ func BoundString(face font.Face, text string) image.Rectangle {
 	m := fc.Metrics()
 	faceHeight := m.Height
 
-	fx, fy := fixed.I(0), fixed.I(0)
+	var fx, fy fixed.Int26_6
 	prevR := rune(-1)
 
 	var bounds fixed.Rectangle26_6

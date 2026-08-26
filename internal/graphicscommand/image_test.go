@@ -72,7 +72,7 @@ func TestClear(t *testing.T) {
 		for i := range w / 2 {
 			idx := 4 * (i + w*j)
 			got := color.RGBA{R: pix[idx], G: pix[idx+1], B: pix[idx+2], A: pix[idx+3]}
-			want := color.RGBA{}
+			var want color.RGBA
 			if got != want {
 				t.Errorf("dst.At(%d, %d) after DrawTriangles: got %v, want: %v", i, j, got, want)
 			}

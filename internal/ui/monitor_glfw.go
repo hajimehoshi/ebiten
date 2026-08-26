@@ -62,6 +62,14 @@ func (m *Monitor) DeviceScaleFactor() float64 {
 	return m.contentScale
 }
 
+// RefreshRate returns the monitor's refresh rate in Hz. It returns 0 when the rate is unknown.
+func (m *Monitor) RefreshRate() int {
+	if m.videoMode == nil {
+		return 0
+	}
+	return m.videoMode.RefreshRate
+}
+
 // Size returns the size of the monitor in device-independent pixels.
 func (m *Monitor) Size() (int, int) {
 	if m.virtual != nil {

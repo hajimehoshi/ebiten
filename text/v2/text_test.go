@@ -37,6 +37,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/examples/resources/fonts"
 	t "github.com/hajimehoshi/ebiten/v2/internal/testing"
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
+	"github.com/hajimehoshi/ebiten/v2/text/v2/internal/textutil"
 )
 
 func TestMain(m *testing.M) {
@@ -58,6 +59,31 @@ over the lazy dog.`
 	}
 }
 
+func TestGlyphIndexWithLineBreaks(t *testing.T) {
+	// A line break is not always a single byte: it can be "\r\n" or a multi-byte character.
+	for _, lineBreak := range []string{"\n", "\v", "\f", "\r", "\r\n", "\u0085", "\u2028", "\u2029"} {
+		sampleText := "abc" + lineBreak + "defg" + lineBreak + "hijklmno"
+
+		f := text.NewGoXFace(bitmapfont.Face)
+		got := sampleText
+		for _, g := range text.AppendGlyphs(nil, sampleText, f, nil) {
+			if g.StartIndexInBytes < 0 || g.EndIndexInBytes > len(got) || g.StartIndexInBytes >= g.EndIndexInBytes {
+				t.Errorf("lineBreak: %q, invalid indices: [%d, %d)", lineBreak, g.StartIndexInBytes, g.EndIndexInBytes)
+				continue
+			}
+			got = got[:g.StartIndexInBytes] + strings.Repeat(" ", g.EndIndexInBytes-g.StartIndexInBytes) + got[g.EndIndexInBytes:]
+		}
+
+		// All the runes other than the line breaks should be covered by the glyphs.
+		for i, r := range got {
+			if r == ' ' || textutil.IsLineBreak(r) {
+				continue
+			}
+			t.Errorf("lineBreak: %q, unexpected rune %q at %d: %q", lineBreak, r, i, got)
+		}
+	}
+}
+
 func TestTextColor(t *testing.T) {
 	clr := color.RGBA{R: 0x80, G: 0x80, B: 0x80, A: 0x80}
 	img := ebiten.NewImage(30, 30)
@@ -72,7 +98,7 @@ func TestTextColor(t *testing.T) {
 		for i := range w {
 			got := img.At(i, j)
 			want1 := color.RGBA{R: 0x80, G: 0x80, B: 0x80, A: 0x80}
-			want2 := color.RGBA{}
+			var want2 color.RGBA
 			if got != want1 && got != want2 {
 				t.Errorf("img At(%d, %d): got %v; want %v or %v", i, j, got, want1, want2)
 			}
@@ -586,7 +612,7 @@ func TestBitmapFont(t *testing.T) {
 		text.Draw(dst, str, face, op)
 
 		// Verify that some non-transparent pixels exist.
-		hasPixel := false
+		var hasPixel bool
 		for j := range imgH {
 			for i := range imgW {
 				if _, _, _, a := dst.At(i, j).RGBA(); a > 0 {

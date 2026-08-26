@@ -196,7 +196,7 @@ func (c *colorMImplBodyTranslate) scaleElements() (r, g, b, a float32) {
 
 func colorToFloat32s(clr color.Color) (float32, float32, float32, float32) {
 	r, g, b, a := clr.RGBA()
-	rf, gf, bf, af := float32(0.0), float32(0.0), float32(0.0), float32(0.0)
+	var rf, gf, bf, af float32
 	// Unmultiply alpha
 	if a > 0 {
 		rf = float32(r) / float32(a)

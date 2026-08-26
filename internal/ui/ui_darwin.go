@@ -129,7 +129,7 @@ func (u *UserInterface) initializePlatform() error {
 					if !ok {
 						return
 					}
-					if err := b.setOrigWindowPosWithCurrentPos(); err != nil {
+					if err := b.captureWindowPosToRestore(); err != nil {
 						u.setError(err)
 						return
 					}
@@ -462,37 +462,6 @@ func (u *glfwBackend) setNativeFullscreen(fullscreen bool) error {
 		window.Send(sel_setCollectionBehavior, cocoa.NSUInteger(cocoa.NSUInteger(origCollectionBehavior)))
 	}
 
-	return nil
-}
-
-func (u *glfwBackend) adjustViewSizeAfterFullscreen() error {
-	if u.GraphicsLibrary() == GraphicsLibraryOpenGL {
-		return nil
-	}
-
-	w, err := u.window.GetCocoaWindow()
-	if err != nil {
-		return err
-	}
-	window := cocoa.NSWindow{ID: objc.ID(w)}
-	if window.StyleMask()&cocoa.NSWindowStyleMaskFullScreen == 0 {
-		return nil
-	}
-
-	// Reduce the view height (#1745).
-	// https://stackoverflow.com/questions/27758027/sprite-kit-serious-fps-issue-in-full-screen-mode-on-os-x
-	windowSize := window.Frame().Size
-	view := window.ContentView()
-	viewSize := view.Frame().Size
-	if windowSize.Width != viewSize.Width || windowSize.Height != viewSize.Height {
-		return nil
-	}
-	viewSize.Width--
-	view.SetFrameSize(viewSize)
-
-	// NSColor.blackColor (0, 0, 0, 1) didn't work.
-	// Use the transparent color instead.
-	window.SetBackgroundColor(cocoa.NSColor_colorWithSRGBRedGreenBlueAlpha(0, 0, 0, 0))
 	return nil
 }
 

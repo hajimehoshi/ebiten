@@ -188,7 +188,7 @@ func StrokeRect(dst *ebiten.Image, x, y, width, height float32, strokeWidth floa
 	}
 }
 
-// FillCircle fills a circle with the specified center position (cx, cy), the radius (r), width and color.
+// FillCircle fills a circle with the specified center position (cx, cy), the radius (r) and color.
 func FillCircle(dst *ebiten.Image, cx, cy, r float32, clr color.Color, antialias bool) {
 	if antialias {
 		path := thePathPool.Get().(*Path)
@@ -239,7 +239,7 @@ func FillCircle(dst *ebiten.Image, cx, cy, r float32, clr color.Color, antialias
 	})
 }
 
-// DrawFilledCircle fills a circle with the specified center position (cx, cy), the radius (r), width and color.
+// DrawFilledCircle fills a circle with the specified center position (cx, cy), the radius (r) and color.
 //
 // Deprecated: as of v2.9. Use [FillCircle] instead.
 func DrawFilledCircle(dst *ebiten.Image, cx, cy, r float32, clr color.Color, antialias bool) {
@@ -323,6 +323,9 @@ func StrokeCircle(dst *ebiten.Image, cx, cy, r float32, strokeWidth float32, clr
 
 // StrokePath strokes the specified path with the specified options.
 func StrokePath(dst *ebiten.Image, path *Path, strokeOptions *StrokeOptions, drawPathOptions *DrawPathOptions) {
+	if strokeOptions == nil {
+		strokeOptions = &StrokeOptions{}
+	}
 	stroke := thePathPool.Get().(*Path)
 	defer func() {
 		stroke.Reset()

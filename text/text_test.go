@@ -43,7 +43,7 @@ func TestTextColor(t *testing.T) {
 		for i := range w {
 			got := img.At(i, j)
 			want1 := color.RGBA{R: 0x80, G: 0x80, B: 0x80, A: 0x80}
-			want2 := color.RGBA{}
+			var want2 color.RGBA
 			if got != want1 && got != want2 {
 				t.Errorf("img At(%d, %d): got %v; want %v or %v", i, j, got, want1, want2)
 			}

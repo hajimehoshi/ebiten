@@ -15,10 +15,11 @@
 package graphicscommand
 
 import (
+	"cmp"
 	"fmt"
 	"image"
 	"io"
-	"sort"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -213,7 +214,7 @@ func (i *Image) dumpTo(w io.Writer, graphicsDriver graphicsdriver.Graphics, blac
 	}
 
 	if blackbg {
-		for i := 0; i < len(pix)/4; i++ {
+		for i := range len(pix) / 4 {
 			pix[4*i+3] = 0xff
 		}
 	}
@@ -230,8 +231,8 @@ func (i *Image) dumpTo(w io.Writer, graphicsDriver graphicsdriver.Graphics, blac
 }
 
 func LogImagesInfo(images []*Image) {
-	sort.Slice(images, func(a, b int) bool {
-		return images[a].id < images[b].id
+	slices.SortFunc(images, func(a, b *Image) int {
+		return cmp.Compare(a.id, b.id)
 	})
 	for _, i := range images {
 		w, h := i.InternalSize()

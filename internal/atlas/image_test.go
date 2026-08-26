@@ -46,8 +46,8 @@ func quadVertices(sw, sh, x, y int, scalex float32) []float32 {
 	dy0 := float32(y)
 	dx1 := float32(x) + float32(sw)*scalex
 	dy1 := float32(y) + float32(sh)
-	sx0 := float32(0)
-	sy0 := float32(0)
+	var sx0 float32
+	var sy0 float32
 	sx1 := float32(sw)
 	sy1 := float32(sh)
 	vs := make([]float32, 4*graphics.VertexFloatCount)

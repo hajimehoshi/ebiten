@@ -310,7 +310,7 @@ func (u *UserInterface) isFocused() bool {
 // > This prevents locking upon initial navigation or re-acquiring lock without user's attention.
 func (u *UserInterface) canCaptureCursor() bool {
 	// 1.5 [sec] seems enough in the real world.
-	return time.Now().Sub(u.lastCaptureExitTime) >= 1500*time.Millisecond
+	return time.Since(u.lastCaptureExitTime) >= 1500*time.Millisecond
 }
 
 func (u *UserInterface) update() error {
@@ -346,12 +346,13 @@ func (u *UserInterface) updateImpl(force bool) error {
 	// See also https://crbug.com/123694.
 
 	w, h := u.outsideSize()
+	sw, sh := u.screenSize()
 	if force {
-		if err := u.context.forceUpdateFrame(u.graphicsDriver, w, h, theMonitor.DeviceScaleFactor(), u); err != nil {
+		if err := u.context.forceUpdateFrame(u.graphicsDriver, w, h, sw, sh, theMonitor.DeviceScaleFactor(), u); err != nil {
 			return err
 		}
 	} else {
-		if err := u.context.updateFrame(u.graphicsDriver, w, h, theMonitor.DeviceScaleFactor(), u, true); err != nil {
+		if err := u.context.updateFrame(u.graphicsDriver, w, h, sw, sh, theMonitor.DeviceScaleFactor(), u, true); err != nil {
 			return err
 		}
 	}
@@ -757,7 +758,7 @@ func (u *UserInterface) appendDroppedFiles(data js.Value) {
 	items := data.Get("items")
 
 	var entries []js.Value
-	for i := 0; i < items.Length(); i++ {
+	for i := range items.Length() {
 		kind := items.Index(i).Get("kind").String()
 		switch kind {
 		case "file":
@@ -833,6 +834,21 @@ func (u *UserInterface) initOnMainThread(options *RunOptions) error {
 	}
 
 	return nil
+}
+
+// screenSize returns the size of the drawing buffer the screen is rendered into, in pixels.
+func (u *UserInterface) screenSize() (int, int) {
+	// TODO: The drawing buffer's size is the size updateScreenSize asks for, so it is scaled by
+	// the device pixel ratio there rather than reported in device pixels by the browser. Use a
+	// ResizeObserver's devicePixelContentBoxSize, which is measured in device pixels, once it is
+	// available across browsers.
+	if g, ok := u.graphicsDriver.(interface{ ScreenFramebufferSize() (int, int) }); ok {
+		return g.ScreenFramebufferSize()
+	}
+	// Node.js has no canvas, and so no drawing buffer to report.
+	w, h := u.outsideSize()
+	f := theMonitor.DeviceScaleFactor()
+	return int(w * f), int(h * f)
 }
 
 func (u *UserInterface) updateScreenSize() {

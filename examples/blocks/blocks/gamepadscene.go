@@ -99,7 +99,7 @@ ROTATE RIGHT: %s
 
 
 %s`
-	msg := ""
+	var msg string
 	if s.currentIndex == len(virtualGamepadButtons) {
 		msg = "OK!"
 	}

@@ -339,7 +339,7 @@ func _ID3D12GraphicsCommandList_OMSetRenderTargets(i *_ID3D12GraphicsCommandList
 	if len(renderTargetDescriptors) > 0 {
 		pRenderTargetDescriptors = &renderTargetDescriptors[0]
 	}
-	v := 0
+	var v int
 	if rtsSingleHandleToDescriptorRange {
 		v = 1
 	}

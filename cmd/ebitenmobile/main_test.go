@@ -12,10 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package main_test
 
 import (
 	"testing"
+
+	ebitenmobile "github.com/hajimehoshi/ebiten/v2/cmd/ebitenmobile"
 )
 
 func TestJavaPackageName(t *testing.T) {
@@ -69,7 +71,7 @@ func TestJavaPackageName(t *testing.T) {
 		},
 	}
 	for _, tc := range testCases {
-		if got, want := isValidJavaPackageName(tc.in), tc.out; got != want {
+		if got, want := ebitenmobile.IsValidJavaPackageName(tc.in), tc.out; got != want {
 			t.Errorf("isValidJavaPackageName(%q) = %v; want %v", tc.in, got, want)
 		}
 	}

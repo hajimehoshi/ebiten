@@ -140,7 +140,7 @@ func (n *nativeGamepadXbox) update(gamepads *gamepads) error {
 	}
 	n.state = state
 
-	if n.vib && time.Now().Sub(n.vibEnd) >= 0 {
+	if n.vib && time.Since(n.vibEnd) >= 0 {
 		n.gameInputDevice.SetRumbleState(&_GameInputRumbleParams{
 			lowFrequency:  0,
 			highFrequency: 0,

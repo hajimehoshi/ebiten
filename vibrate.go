@@ -70,11 +70,15 @@ type VibrateGamepadOptions struct {
 
 // VibrateGamepad vibrates the specified gamepad with the specified options.
 //
-// VibrateGamepad does nothing on Android and Linux so far.
+// VibrateGamepad does nothing on Android so far.
 //
 // On Windows, VibrateGamepad works only for XInput gamepads (e.g. Xbox controllers) and
 // for PlayStation controllers (DualShock 4 and DualSense).
 // VibrateGamepad does nothing for other DirectInput gamepads.
+//
+// On Linux, VibrateGamepad works only for gamepads that support the force feedback rumble effect,
+// and requires write access to the gamepad's device file.
+// The maximum duration on Linux is 65535 milliseconds; longer durations are clamped.
 //
 // On macOS, VibrateGamepad works only for gamepads the GameController framework supports
 // (e.g. Xbox, PlayStation, and MFi controllers). VibrateGamepad does nothing for other gamepads.

@@ -208,7 +208,7 @@ func (p *mpegPlayer) Draw(screen *ebiten.Image) error {
 	sw, sh := screen.Bounds().Dx(), screen.Bounds().Dy()
 	fw, fh := frame.Bounds().Dx(), frame.Bounds().Dy()
 
-	op := ebiten.DrawImageOptions{}
+	var op ebiten.DrawImageOptions
 	wf, hf := float64(sw)/float64(fw), float64(sh)/float64(fh)
 	s := wf
 	if hf < wf {

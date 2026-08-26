@@ -121,7 +121,7 @@ func (b *block) findLocalVariable(name string, markLocalVariableUsed bool) (int,
 		panic("shader: variable name must be non-empty and non-underscore")
 	}
 
-	idx := 0
+	var idx int
 	for outer := b.outer; outer != nil; outer = outer.outer {
 		idx += len(outer.vars)
 	}
@@ -310,6 +310,9 @@ func (cs *compileState) parse(f *ast.File) {
 				name := fragmentInParams[i].name
 				cs.addError(0, fmt.Sprintf("fragment argument %s must be %s but was %s", name, p.typ.String(), t.String()))
 			}
+		}
+		if len(fragmentInParams) > len(vertexOutParams) {
+			cs.addError(0, fmt.Sprintf("the number of the fragment arguments (%d) must not be greater than the number of the vertex returning values (%d)", len(fragmentInParams), len(vertexOutParams)))
 		}
 
 		// The first out-param is treated as gl_Position in GLSL.

@@ -88,9 +88,16 @@ const (
 type HostMessage struct {
 	Kind HostMessageKind
 
-	// SetOutsideSize.
-	Width  float64
-	Height float64
+	// OutsideWidth and OutsideHeight are the size to give the guest's Layout, in device-independent
+	// pixels. Set on SetOutsideSize.
+	OutsideWidth  float64
+	OutsideHeight float64
+
+	// ScreenWidth and ScreenHeight are the size of the host-owned screen the guest renders into, in
+	// pixels. Set on SetOutsideSize. They are sent separately from OutsideWidth and OutsideHeight,
+	// which cannot represent the pixel count exactly at a fractional device scale factor.
+	ScreenWidth  int
+	ScreenHeight int
 
 	// PressKey/ReleaseKey carry a ui.Key; PressMouseButton/ReleaseMouseButton carry a ui.MouseButton;
 	// PressTouch/MoveTouch/ReleaseTouch carry a ui.TouchID.
@@ -326,8 +333,8 @@ type AudioControl struct {
 	// Playing reports whether the player is currently playing.
 	Playing bool
 
-	// Volume is the player's volume in [0,1]. It is reported, not applied to the samples, so the host
-	// can observe the raw stream and apply the volume itself.
+	// Volume is the player's volume, which is 0 or larger. It is reported, not applied to the samples,
+	// so the host can observe the raw stream and apply the volume itself.
 	Volume float64
 
 	// Closed reports that the guest player was removed — closed by the game, or reclaimed once it

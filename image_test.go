@@ -326,7 +326,7 @@ func TestImageDispose(t *testing.T) {
 	// The color is transparent (color.RGBA{}).
 	// Note that the value's type must be color.RGBA.
 	got := img.At(0, 0)
-	want := color.RGBA{}
+	var want color.RGBA
 	if got != want {
 		t.Errorf("img.At(0, 0) got: %v, want: %v", got, want)
 	}
@@ -339,7 +339,7 @@ func TestImageDeallocate(t *testing.T) {
 
 	// The color is transparent (color.RGBA{}).
 	got := img.At(0, 0)
-	want := color.RGBA{}
+	var want color.RGBA
 	if got != want {
 		t.Errorf("img.At(0, 0) got: %v, want: %v", got, want)
 	}
@@ -453,7 +453,7 @@ func TestImageClear(t *testing.T) {
 	for j := range h {
 		for i := range w {
 			got := img.At(i, j)
-			want := color.RGBA{}
+			var want color.RGBA
 			if got != want {
 				t.Errorf("img At(%d, %d): got %v; want %v", i, j, got, want)
 			}
@@ -492,7 +492,7 @@ func TestImageEdge(t *testing.T) {
 	img0.WritePixels(pixels)
 	img1 := ebiten.NewImage(img1Width, img1Height)
 	red := color.RGBA{R: 0xff, A: 0xff}
-	transparent := color.RGBA{}
+	var transparent color.RGBA
 
 	angles := []float64{}
 	for a := range 1440 {
@@ -752,7 +752,7 @@ func TestImageOutside(t *testing.T) {
 		for j := range 4 {
 			for i := range 4 {
 				got := dst.At(i, j).(color.RGBA)
-				want := color.RGBA{}
+				var want color.RGBA
 				if got != want {
 					t.Errorf("src(x: %d, y: %d, w: %d, h: %d), dst At(%d, %d): got %v, want: %v", c.X, c.Y, c.Width, c.Height, i, j, got, want)
 				}
@@ -901,7 +901,7 @@ loop:
 					continue
 				}
 				got := dst.At(0, i+j).(color.RGBA)
-				want := color.RGBA{}
+				var want color.RGBA
 				if j < 0 {
 					want = color.RGBA{R: 0xff, A: 0xff}
 				}
@@ -1162,7 +1162,7 @@ func TestImageSubImageAt(t *testing.T) {
 	img.Fill(color.RGBA{R: 0xff, A: 0xff})
 
 	got := img.SubImage(image.Rect(1, 1, 16, 16)).At(0, 0).(color.RGBA)
-	want := color.RGBA{}
+	var want color.RGBA
 	if got != want {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
@@ -1271,7 +1271,7 @@ func TestImageLinearFilterGlitch2(t *testing.T) {
 	src := ebiten.NewImage(w, h)
 	dst := ebiten.NewImage(w, h)
 
-	idx := 0
+	var idx int
 	pix := make([]byte, 4*w*h)
 	for j := range h {
 		for i := range w {
@@ -1629,7 +1629,7 @@ func TestImageAlphaOnBlack(t *testing.T) {
 	dst0.DrawImage(src0, op)
 	dst1.DrawImage(src1, op)
 
-	gray := false
+	var gray bool
 	for j := range h {
 		for i := range w {
 			got := dst0.At(i, j)
@@ -1960,7 +1960,7 @@ func TestImageWritePixelsOnSubImage(t *testing.T) {
 	dst.Fill(color.RGBA{R: 0xff, A: 0xff})
 
 	pix0 := make([]byte, 4*5*3)
-	idx := 0
+	var idx int
 	for range 3 {
 		for range 5 {
 			pix0[4*idx] = 0
@@ -3537,7 +3537,7 @@ func TestImageOptionsClear(t *testing.T) {
 	for j := r0.Min.Y; j < r0.Max.Y; j++ {
 		for i := r0.Min.X; i < r0.Max.X; i++ {
 			got := img.At(i, j)
-			want := color.RGBA{}
+			var want color.RGBA
 			if got != want {
 				t.Errorf("img.At(%d, %d): got: %v, want: %v", i, j, got, want)
 			}

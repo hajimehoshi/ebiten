@@ -188,6 +188,7 @@ var (
 
 // WindowSize returns the window size on desktops.
 // The size is the content area size and doesn't include window decorations like a title bar.
+// The unit is device-independent pixels.
 // WindowSize returns (0, 0) on other environments.
 //
 // Even if the application is in fullscreen mode, WindowSize returns the original window size.
@@ -200,6 +201,8 @@ func WindowSize() (int, int) {
 
 // SetWindowSize sets the window size on desktops.
 // The size is the content area size and doesn't include window decorations like a title bar.
+// The unit is device-independent pixels: the size in physical pixels is this size scaled by
+// [MonitorType.DeviceScaleFactor] and rounded down to whole pixels.
 // SetWindowSize does nothing on other environments.
 //
 // Even if the application is in fullscreen mode, SetWindowSize sets the original window size.

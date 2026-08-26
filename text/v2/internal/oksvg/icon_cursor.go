@@ -74,7 +74,7 @@ func (c *IconCursor) ReadGradAttr(attr xml.Attr) (err error) {
 // direct fill and opacity attributes.
 func (c *IconCursor) PushStyle(attrs []xml.Attr) error {
 	var pairs []string
-	className := ""
+	var className string
 	for _, attr := range attrs {
 		switch strings.ToLower(attr.Name.Local) {
 		case "style":
@@ -326,7 +326,7 @@ func (c *IconCursor) readStartElement(se xml.StartElement) (err error) {
 		skipDef = true
 	}
 	if c.inDefs && !skipDef {
-		ID := ""
+		var ID string
 		for _, attr := range se.Attr {
 			if attr.Name.Local == "id" {
 				ID = attr.Value

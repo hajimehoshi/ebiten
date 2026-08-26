@@ -70,7 +70,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		Size:   12,
 	}, op)
 
-	p := vector.Path{}
+	var p vector.Path
 	p.Arc(100, 100, 6, 0, 2*math.Pi, vector.Clockwise)
 	filling, indicies := p.AppendVerticesAndIndicesForFilling(nil, nil)
 	screen.DrawTriangles(filling, indicies, whiteTextureImage, &ebiten.DrawTrianglesOptions{

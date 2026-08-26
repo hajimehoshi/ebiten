@@ -21,9 +21,13 @@
 // x11_types_linbsd_test.go cannot cover (its goldens are LP64-only).
 //
 // The C reference values come from xlibcheck_linbsd.go (cgo lives there, not
-// here, because import "C" is not allowed in a _test.go file). This test is a
-// white-box (package glfw) test so it can read those unexported values and the
-// unexported mirror types directly, without exporting anything.
+// here, because import "C" is not allowed in a _test.go file).
+//
+// This file declares package glfw, unlike the other tests here, which declare
+// package glfw_test. What it checks is the memory layout of the unexported
+// Xlib mirror types, which no exported API describes: an external test package
+// would need a bridge that assembles the whole comparison table inside package
+// glfw, leaving the test with nothing but a loop over that table.
 //
 // Struct sizes catch padding/alignment mistakes on every data model. The field
 // offsets are pinned for LP64 by the golden test and, for the mirrors that spell

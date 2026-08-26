@@ -58,7 +58,7 @@ func (a *arrayBufferLayout) float32Count() int {
 	if a.total != 0 {
 		return a.total
 	}
-	t := 0
+	var t int
 	for _, p := range a.parts {
 		t += p.num
 	}
@@ -77,7 +77,7 @@ func (a *arrayBufferLayout) enable(context *context) {
 		context.ctx.EnableVertexAttribArray(uint32(i))
 	}
 	total := a.float32Count()
-	offset := 0
+	var offset int
 	for i, p := range a.parts {
 		context.ctx.VertexAttribPointer(uint32(i), int32(p.num), gl.FLOAT, false, int32(floatSizeInBytes*total), offset)
 		offset += floatSizeInBytes * p.num
@@ -121,7 +121,7 @@ func init() {
 	if diff%4 != 0 {
 		panic("opengl: unexpected attribute layout")
 	}
-	for i := 0; i < diff/4; i++ {
+	for i := range diff / 4 {
 		theArrayBufferLayout.addPart(arrayBufferLayoutPart{
 			name: fmt.Sprintf("A%d", i+3),
 			num:  4,

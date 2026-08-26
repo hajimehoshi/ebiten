@@ -910,8 +910,12 @@ func (cs *compileState) parseFor(block *block, fname string, stmt *ast.ForStmt, 
 	// As the pseudo block is not actually used, copy the variable part to the actual block.
 	// This must be done after parsing the for-loop is done, or the duplicated variables confuses the
 	// parsing.
+	// The scope of the counter variable ends with this for-loop. Clear its name so that the
+	// variable is neither found nor checked by its name anymore. The variable itself is still kept
+	// for the local-variable indices.
 	v := pseudoBlock.vars[0]
 	v.forLoopCounter = true
+	v.name = ""
 	block.vars = append(block.vars, v)
 
 	return []shaderir.Stmt{
@@ -1069,11 +1073,17 @@ func (cs *compileState) parseForRange(block *block, fname string, stmt *ast.Rang
 	// As the pseudo block is not actually used, copy the variable part to the actual block.
 	// This must be done after parsing the for-loop is done, or the duplicated variables confuses the
 	// parsing.
+	// The scopes of the iteration variables end with this for-loop. Clear their names so that the
+	// variables are neither found nor checked by their names anymore. The variables themselves are
+	// still kept for the local-variable indices.
 	counter := pseudoBlock.vars[0]
 	counter.forLoopCounter = true
+	counter.name = ""
 	block.vars = append(block.vars, counter)
 	if stmt.Value != nil {
-		block.vars = append(block.vars, pseudoBlock.vars[1])
+		value := pseudoBlock.vars[1]
+		value.name = ""
+		block.vars = append(block.vars, value)
 	}
 
 	return []shaderir.Stmt{

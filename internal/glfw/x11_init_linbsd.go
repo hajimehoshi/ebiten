@@ -508,6 +508,8 @@ func createKeyTables() {
 		_KeyCode(scancodeMin),
 		scancodeMax-scancodeMin+1,
 		&width)
+	defer xFree(keysymsPtr)
+
 	keysyms := unsafe.Slice((*_KeySym)(unsafe.Pointer(keysymsPtr)), int(scancodeMax-scancodeMin+1)*int(width))
 
 	for scancode := scancodeMin; scancode <= scancodeMax; scancode++ {
@@ -523,8 +525,6 @@ func createKeyTables() {
 			_glfw.platformWindow.scancodes[key] = int(scancode)
 		}
 	}
-
-	xFree(keysymsPtr)
 }
 
 // usableInputMethodStyle returns the input style to create input contexts
@@ -537,6 +537,8 @@ func usableInputMethodStyle() (_XIMStyle, bool) {
 		return 0, false
 	}
 
+	defer xFree(stylesPtr)
+
 	var onTheSpot, overTheSpot bool
 	styles := (*_XIMStyles)(unsafe.Pointer(stylesPtr))
 	supportedStyles := unsafe.Slice((*_XIMStyle)(unsafe.Pointer(styles.SupportedStyles)), int(styles.CountStyles))
@@ -548,8 +550,6 @@ func usableInputMethodStyle() (_XIMStyle, bool) {
 			overTheSpot = true
 		}
 	}
-
-	xFree(stylesPtr)
 
 	switch {
 	case onTheSpot:
@@ -584,6 +584,7 @@ func detectEWMH() {
 		&windowFromRootPtr) == 0 {
 		return
 	}
+	defer xFree(windowFromRootPtr)
 
 	grabErrorHandlerX11()
 
@@ -591,26 +592,23 @@ func detectEWMH() {
 	// Then we look for the same property on that window
 
 	var windowFromChildPtr uintptr
-	if getWindowPropertyX11(*(*_XID)(unsafe.Pointer(windowFromRootPtr)),
+	itemCount := getWindowPropertyX11(*(*_XID)(unsafe.Pointer(windowFromRootPtr)),
 		_glfw.platformWindow.NET_SUPPORTING_WM_CHECK,
 		_XA_WINDOW,
-		&windowFromChildPtr) == 0 {
-		xFree(windowFromRootPtr)
-		return
-	}
+		&windowFromChildPtr)
 
 	releaseErrorHandlerX11()
+
+	if itemCount == 0 {
+		return
+	}
+	defer xFree(windowFromChildPtr)
 
 	// If the property exists, it should contain the XID of the window
 
 	if *(*_XID)(unsafe.Pointer(windowFromRootPtr)) != *(*_XID)(unsafe.Pointer(windowFromChildPtr)) {
-		xFree(windowFromRootPtr)
-		xFree(windowFromChildPtr)
 		return
 	}
-
-	xFree(windowFromRootPtr)
-	xFree(windowFromChildPtr)
 
 	// We are now fairly sure that an EWMH-compliant WM is currently running
 	// We can now start querying the WM about what features it supports by
@@ -625,6 +623,7 @@ func detectEWMH() {
 
 	var supportedAtoms []_Atom
 	if supportedAtomsPtr != 0 {
+		defer xFree(supportedAtomsPtr)
 		supportedAtoms = unsafe.Slice((*_Atom)(unsafe.Pointer(supportedAtomsPtr)), int(atomCount))
 	}
 
@@ -658,10 +657,6 @@ func detectEWMH() {
 		getAtomIfSupported(supportedAtoms, "_NET_FRAME_EXTENTS")
 	_glfw.platformWindow.NET_REQUEST_FRAME_EXTENTS =
 		getAtomIfSupported(supportedAtoms, "_NET_REQUEST_FRAME_EXTENTS")
-
-	if supportedAtomsPtr != 0 {
-		xFree(supportedAtomsPtr)
-	}
 }
 
 // xsyncValuePassableAsWord reports whether an X Sync value can be passed to

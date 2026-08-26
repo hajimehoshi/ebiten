@@ -20,10 +20,11 @@ package main
 
 import (
 	"bufio"
+	"cmp"
 	"log"
 	"os"
 	"path/filepath"
-	"sort"
+	"slices"
 	"strconv"
 	"strings"
 	"text/template"
@@ -690,38 +691,35 @@ func functionKey(name string) int {
 	return i
 }
 
-func keyNamesLess(k []string) func(i, j int) bool {
-	return func(i, j int) bool {
-		k0, k1 := k[i], k[j]
-		d0, d1 := digitKey(k0), digitKey(k1)
-		a0, a1 := alphabetKey(k0), alphabetKey(k1)
-		f0, f1 := functionKey(k0), functionKey(k1)
-		if d0 != -1 {
-			if d1 != -1 {
-				return d0 < d1
-			}
-			return true
-		}
-		if a0 != -1 {
-			if d1 != -1 {
-				return false
-			}
-			if a1 != -1 {
-				return a0 < a1
-			}
-			return true
-		}
+func keyNamesCmp(k0, k1 string) int {
+	d0, d1 := digitKey(k0), digitKey(k1)
+	a0, a1 := alphabetKey(k0), alphabetKey(k1)
+	f0, f1 := functionKey(k0), functionKey(k1)
+	if d0 != -1 {
 		if d1 != -1 {
-			return false
+			return cmp.Compare(d0, d1)
+		}
+		return -1
+	}
+	if a0 != -1 {
+		if d1 != -1 {
+			return 1
 		}
 		if a1 != -1 {
-			return false
+			return cmp.Compare(a0, a1)
 		}
-		if f0 != -1 && f1 != -1 {
-			return f0 < f1
-		}
-		return k0 < k1
+		return -1
 	}
+	if d1 != -1 {
+		return 1
+	}
+	if a1 != -1 {
+		return 1
+	}
+	if f0 != -1 && f1 != -1 {
+		return cmp.Compare(f0, f1)
+	}
+	return strings.Compare(k0, k1)
 }
 
 const license = `// Copyright 2013 The Ebitengine Authors
@@ -761,10 +759,10 @@ func main() {
 	ebitengineKeyNames = append(ebitengineKeyNames, "Alt", "Control", "Shift", "Meta")
 	ebitengineKeyNamesWithoutOld = append(ebitengineKeyNamesWithoutOld, "Alt", "Control", "Shift", "Meta")
 
-	sort.Slice(ebitengineKeyNames, keyNamesLess(ebitengineKeyNames))
-	sort.Slice(ebitengineKeyNamesWithoutOld, keyNamesLess(ebitengineKeyNamesWithoutOld))
-	sort.Slice(ebitengineKeyNamesWithoutMods, keyNamesLess(ebitengineKeyNamesWithoutMods))
-	sort.Slice(uiKeyNames, keyNamesLess(uiKeyNames))
+	slices.SortFunc(ebitengineKeyNames, keyNamesCmp)
+	slices.SortFunc(ebitengineKeyNamesWithoutOld, keyNamesCmp)
+	slices.SortFunc(ebitengineKeyNamesWithoutMods, keyNamesCmp)
+	slices.SortFunc(uiKeyNames, keyNamesCmp)
 
 	// TODO: Add this line for event package (#926).
 	//
@@ -795,7 +793,7 @@ func main() {
 
 		// The build tag can't be included in the templates because of `go vet`.
 		// Pass the build tag and extract this in the template to make `go vet` happy.
-		buildConstraints := ""
+		var buildConstraints string
 		switch path {
 		case filepath.Join("internal", "glfw", "keys.go"):
 			buildConstraints = "//go:build darwin || freebsd || linux || netbsd || windows"

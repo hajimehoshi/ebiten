@@ -210,34 +210,8 @@ func (w *glfwWindow) Position() (int, int) {
 		if w.ui.isTerminated() {
 			return
 		}
-		f, err := w.ui.isFullscreen()
-		if err != nil {
-			w.ui.setError(err)
-			return
-		}
-
-		var wx, wy int
-		if f {
-			wx, wy = w.ui.origWindowPos()
-		} else {
-			x, y, err := w.ui.window.GetPos()
-			if err != nil {
-				w.ui.setError(err)
-				return
-			}
-			wx, wy = x, y
-		}
-		m, err := w.ui.currentMonitor()
-		if err != nil {
-			w.ui.setError(err)
-			return
-		}
-		wx -= m.boundsInGLFWPixels.Min.X
-		wy -= m.boundsInGLFWPixels.Min.Y
-		s := m.DeviceScaleFactor()
-		xf := dipFromGLFWPixel(float64(wx), s)
-		yf := dipFromGLFWPixel(float64(wy), s)
-		x, y = int(xf), int(yf)
+		x = w.ui.windowXInDIP
+		y = w.ui.windowYInDIP
 	})
 	return x, y
 }
@@ -252,7 +226,7 @@ func (w *glfwWindow) SetPosition(x, y int) {
 			w.ui.setError(err)
 			return
 		}
-		if err := w.ui.setWindowPositionInDIP(x, y, m); err != nil {
+		if err := w.ui.setWindowPositionInDIP(x, y, m, true); err != nil {
 			w.ui.setError(err)
 			return
 		}
@@ -265,9 +239,8 @@ func (w *glfwWindow) Size() (int, int) {
 		if w.ui.isTerminated() {
 			return
 		}
-		// Unlike origWindowPos, origWindow{Width,Height}InDPI are always updated via the callback.
-		ww = w.ui.origWindowWidthInDIP
-		wh = w.ui.origWindowHeightInDIP
+		ww = w.ui.windowWidthInDIP
+		wh = w.ui.windowHeightInDIP
 	})
 	return ww, wh
 }

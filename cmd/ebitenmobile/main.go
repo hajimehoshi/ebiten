@@ -33,8 +33,12 @@ import (
 	"text/template"
 	"unicode"
 
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 	"golang.org/x/tools/go/packages"
 )
+
+var caser = cases.Title(language.Und)
 
 const (
 	ebitenmobileCommand = "ebitenmobile"
@@ -230,30 +234,21 @@ func doBind(args []string, flagset *flag.FlagSet, buildOS string) error {
 	}
 
 	if buildOS == "darwin" {
-		// TODO: Use os.ReadDir after Ebitengine stops supporting Go 1.15.
-		f, err := os.Open(buildO)
-		if err != nil {
-			return err
-		}
-		defer func() {
-			_ = f.Close()
-		}()
-
-		names, err := f.Readdirnames(-1)
+		dirEntries, err := os.ReadDir(buildO)
 		if err != nil {
 			return err
 		}
 
-		for _, name := range names {
+		for _, dirEntry := range dirEntries {
+			name := dirEntry.Name()
 			if name == "Info.plist" {
 				continue
 			}
 			frameworkName := filepath.Base(buildO)
 			frameworkNameBase := frameworkName[:len(frameworkName)-len(".xcframework")]
 			// The first character must be an upper case (#2192).
-			// TODO: strings.Title is used here for the consistency with gomobile (see cmd/gomobile/bind_iosapp.go).
-			// As strings.Title is deprecated, golang.org/x/text/cases should be used.
-			frameworkNameBase = strings.Title(frameworkNameBase)
+			// For the consistency with gomobile (see cmd/gomobile/bind_iosapp.go), the name is title-cased.
+			frameworkNameBase = caser.String(frameworkNameBase)
 			dir := filepath.Join(buildO, name, frameworkNameBase+".framework")
 
 			if err := os.WriteFile(filepath.Join(dir, "Headers", prefixUpper+"EbitenViewController.h"), []byte(replacePrefixes(objcH)), 0644); err != nil {

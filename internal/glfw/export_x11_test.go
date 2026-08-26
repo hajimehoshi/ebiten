@@ -48,6 +48,19 @@ func SmokeTestX11() error {
 		return fmt.Errorf("glfw: smoke: the X error handler was not invoked")
 	}
 
+	// A CRTC that the X server has destroyed, as XWayland does for a monitor
+	// that is turned off, must not reach the default X error handler, which
+	// exits the process (#3094).
+	if _glfw.platformWindow.randr.available && !_glfw.platformWindow.randr.monitorBroken {
+		randr := &_glfw.platformWindow.randr
+		srPtr := randr.GetScreenResourcesCurrent(_glfw.platformWindow.display, _glfw.platformWindow.root)
+		defer randr.FreeScreenResources(srPtr)
+		if ciPtr := getCrtcInfoX11(srPtr, 0xdeadbeef); ciPtr != 0 {
+			randr.FreeCrtcInfo(ciPtr)
+			return fmt.Errorf("glfw: smoke: XRRGetCrtcInfo succeeded for a destroyed CRTC")
+		}
+	}
+
 	// The fixed-arity variadic XCreateIC call, when an input method is
 	// available (it is not under a bare Xvfb without an IM server).
 	if _glfw.platformWindow.im != 0 {

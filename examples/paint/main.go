@@ -82,7 +82,7 @@ func NewGame() *Game {
 }
 
 func (g *Game) Update() error {
-	drawn := false
+	var drawn bool
 
 	// Paint the brush by mouse dragging
 	mx, my := ebiten.CursorPosition()

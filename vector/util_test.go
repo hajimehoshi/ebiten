@@ -146,3 +146,19 @@ func TestFillRectOnBigImage(t *testing.T) {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
 }
+
+// nil options should be treated as the zero values, as FillPath does.
+func TestStrokePathNilOptions(t *testing.T) {
+	dst := ebiten.NewImage(16, 16)
+	defer dst.Deallocate()
+
+	var path vector.Path
+	path.MoveTo(4, 4)
+	path.LineTo(12, 12)
+	vector.StrokePath(dst, &path, nil, nil)
+
+	// A zero-width stroke renders nothing.
+	if got, want := dst.At(8, 8), (color.RGBA{}); got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+}

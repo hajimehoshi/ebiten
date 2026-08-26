@@ -124,7 +124,7 @@ func _MonitorFromWindow(hwnd windows.HWND, dwFlags uint32) uintptr {
 }
 
 func _GetMonitorInfoW(hMonitor uintptr) (_MONITORINFO, error) {
-	mi := _MONITORINFO{}
+	var mi _MONITORINFO
 	mi.cbSize = uint32(unsafe.Sizeof(mi))
 
 	r, _, e := procGetMonitorInfoW.Call(hMonitor, uintptr(unsafe.Pointer(&mi)))

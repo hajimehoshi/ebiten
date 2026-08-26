@@ -81,10 +81,12 @@ type GuestSession struct {
 	textInput *GuestTextInput
 
 	// The following fields are owned by the host goroutine; no lock guards them.
-	outsideScreen   *ebiten.Image
-	sentWidth       float64
-	sentHeight      float64
-	compositeVtxBuf []float32
+	outsideScreen     *ebiten.Image
+	sentOutsideWidth  float64
+	sentOutsideHeight float64
+	sentScreenWidth   int
+	sentScreenHeight  int
+	compositeVtxBuf   []float32
 
 	mu   sync.Mutex
 	cond *sync.Cond
@@ -605,20 +607,26 @@ func (g *GuestSession) SetOutsideScreen(screen *ebiten.Image) error {
 
 	// The outside size is the screen's size divided by the host's device scale factor. The scale
 	// itself is not sent: the guest pulls it from the host per tick and renders at the screen's full
-	// device-dependent resolution.
+	// device-dependent resolution. The screen's size in pixels is sent alongside, as the guest must
+	// render into an image of exactly that size for CompositeFrame to accept the frame.
 	scale := hostDeviceScaleFactor()
 	b := screen.Bounds()
-	w := float64(b.Dx()) / scale
-	h := float64(b.Dy()) / scale
-	if w == g.sentWidth && h == g.sentHeight {
+	pw, ph := b.Dx(), b.Dy()
+	w := float64(pw) / scale
+	h := float64(ph) / scale
+	if w == g.sentOutsideWidth && h == g.sentOutsideHeight && pw == g.sentScreenWidth && ph == g.sentScreenHeight {
 		return nil
 	}
-	g.sentWidth = w
-	g.sentHeight = h
+	g.sentOutsideWidth = w
+	g.sentOutsideHeight = h
+	g.sentScreenWidth = pw
+	g.sentScreenHeight = ph
 	msg := g.takeMessageLocked()
 	msg.Kind = vmprotocol.HostMessageKindSetOutsideSize
-	msg.Width = w
-	msg.Height = h
+	msg.OutsideWidth = w
+	msg.OutsideHeight = h
+	msg.ScreenWidth = pw
+	msg.ScreenHeight = ph
 	g.queueOpLocked(op{
 		kind: opMessage,
 		msg:  msg,

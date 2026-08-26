@@ -15,11 +15,12 @@
 package metal
 
 import (
+	"cmp"
 	"fmt"
 	"image"
 	"math"
 	"runtime"
-	"sort"
+	"slices"
 	"unsafe"
 
 	"github.com/ebitengine/purego/objc"
@@ -209,8 +210,8 @@ loop:
 		for b := range g.unusedBuffers {
 			bufs = append(bufs, b)
 		}
-		sort.Slice(bufs, func(a, b int) bool {
-			return bufs[a].Length() > bufs[b].Length()
+		slices.SortFunc(bufs, func(a, b mtl.Buffer) int {
+			return cmp.Compare(b.Length(), a.Length())
 		})
 		for _, b := range bufs[maxUnusedBuffers:] {
 			delete(g.unusedBuffers, b)
@@ -475,7 +476,7 @@ func (g *Graphics) draw(dst *Image, dstRegions []graphicsdriver.DstRegion, srcs 
 	g.lastDst = dst
 
 	if g.rce == (mtl.RenderCommandEncoder{}) {
-		rpd := mtl.RenderPassDescriptor{}
+		var rpd mtl.RenderPassDescriptor
 		// Even though the destination pixels are not used, mtl.LoadActionDontCare might cause glitches
 		// (#1019). Always using mtl.LoadActionLoad is safe.
 		if dst.screen {

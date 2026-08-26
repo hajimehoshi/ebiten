@@ -37,7 +37,7 @@ func NewGame() *Game {
 
 	// Licensed under Public Domain
 	// https://commons.wikimedia.org/wiki/File:As08-16-2593.jpg
-	const url = "https://upload.wikimedia.org/wikipedia/commons/1/1f/As08-16-2593.jpg"
+	const url = "https://res.ebitengine.org/examples/earth.jpg"
 
 	// Load the image asynchronously.
 	go func() {

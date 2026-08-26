@@ -181,7 +181,8 @@ func (b *fbdevBackend) updateGame() error {
 	}
 
 	w, h := b.outsideSize()
-	return b.context.updateFrame(b.graphicsDriver, w, h, b.deviceScaleFactor(), b.UserInterface, true)
+	sw, sh := b.screenSize()
+	return b.context.updateFrame(b.graphicsDriver, w, h, sw, sh, b.deviceScaleFactor(), b.UserInterface, true)
 }
 
 // deviceScaleFactor implements virtualMonitorSource.
@@ -196,14 +197,18 @@ func (b *fbdevBackend) deviceScaleFactor() float64 {
 //
 // The surface covers the display, and nothing can resize it.
 func (b *fbdevBackend) outsideSize() (width, height float64) {
+	w, h := b.screenSize()
+	return float64(w), float64(h)
+}
+
+// screenSize returns the size of the surface in pixels.
+func (b *fbdevBackend) screenSize() (width, height int) {
 	// The surface is created without a size, so the implementation chooses one.
 	// Before it exists, the display's mode is the best answer available.
 	if b.eglContext != nil {
-		w, h := b.eglContext.Size()
-		return float64(w), float64(h)
+		return b.eglContext.Size()
 	}
-	w, h := b.display.Size()
-	return float64(w), float64(h)
+	return b.display.Size()
 }
 
 func (b *fbdevBackend) readInputState(inputState *InputState) {

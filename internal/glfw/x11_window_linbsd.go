@@ -159,17 +159,18 @@ func getWindowState(window *Window) int {
 	result := _WithdrawnState
 
 	var statePtr uintptr
-	if getWindowPropertyX11(window.platform.handle,
+	itemCount := getWindowPropertyX11(window.platform.handle,
 		_glfw.platformWindow.WM_STATE,
 		_glfw.platformWindow.WM_STATE,
-		&statePtr) >= 2 {
+		&statePtr)
+	if statePtr != 0 {
+		defer xFree(statePtr)
+	}
+
+	if itemCount >= 2 {
 		// The property contains a CARD32 state followed by the icon window,
 		// each stored in a long.
 		result = int(uint32(*(*_Culong)(unsafe.Pointer(statePtr))))
-	}
-
-	if statePtr != 0 {
-		xFree(statePtr)
 	}
 
 	return result
@@ -293,7 +294,7 @@ func sendEventToWM(window *Window, eventType _Atom, a, b, c, d, e int) {
 }
 
 func updateWindowHints(window *Window) {
-	maximizable := false
+	var maximizable bool
 	if window.monitor == nil && window.resizable && window.maxwidth == DontCare && window.maxheight == DontCare {
 		maximizable = true
 	}
@@ -333,6 +334,8 @@ func updateWindowHints(window *Window) {
 // settings.
 func updateNormalHints(window *Window, width, height int) {
 	hintsPtr := xAllocSizeHints()
+	defer xFree(hintsPtr)
+
 	hints := (*_XSizeHints)(unsafe.Pointer(hintsPtr))
 
 	var supplied _Clong
@@ -371,7 +374,6 @@ func updateNormalHints(window *Window, width, height int) {
 	}
 
 	xSetWMNormalHints(_glfw.platformWindow.display, window.platform.handle, hints)
-	xFree(hintsPtr)
 
 	updateWindowHints(window)
 }
@@ -859,6 +861,9 @@ func writeTargetToProperty(request *_XSelectionRequestEvent) _Atom {
 			request.Property,
 			_glfw.platformWindow.ATOM_PAIR,
 			&targetsPtr)
+		if targetsPtr != 0 {
+			defer xFree(targetsPtr)
+		}
 
 		var targets []_Atom
 		if targetsPtr != 0 && count > 0 {
@@ -866,7 +871,7 @@ func writeTargetToProperty(request *_XSelectionRequestEvent) _Atom {
 		}
 
 		for i := 0; i+1 < len(targets); i += 2 {
-			supported := false
+			var supported bool
 			for _, format := range formats {
 				if targets[i] == format {
 					supported = true
@@ -896,10 +901,6 @@ func writeTargetToProperty(request *_XSelectionRequestEvent) _Atom {
 			_PropModeReplace,
 			unsafe.Pointer(targetsPtr),
 			int32(count))
-
-		if targetsPtr != 0 {
-			xFree(targetsPtr)
-		}
 
 		return request.Property
 	}
@@ -981,7 +982,7 @@ func getSelectionString(selection _Atom) (string, error) {
 		isSelPropNewValueNotifyCallback = purego.NewCallback(isSelPropNewValueNotify)
 	}
 
-	found := false
+	var found bool
 	for _, target := range []_Atom{_glfw.platformWindow.UTF8_STRING, _XA_STRING} {
 		var notification, dummy _XEvent
 
@@ -1029,7 +1030,7 @@ func getSelectionString(selection _Atom) (string, error) {
 
 		if actualType == _glfw.platformWindow.INCR {
 			var str []byte
-			received := false
+			var received bool
 
 			for {
 				for !xCheckIfEvent(_glfw.platformWindow.display,
@@ -1157,7 +1158,7 @@ func releaseMonitor(window *Window) {
 // processEvent processes the specified X event.
 func processEvent(event *_XEvent) error {
 	var keycode int
-	filtered := false
+	var filtered bool
 
 	// HACK: Save scancode as some IMs clear the field in XFilterEvent
 	if event.EventType() == _KeyPress || event.EventType() == _KeyRelease {
@@ -1245,52 +1246,7 @@ func processEvent(event *_XEvent) error {
 		mods := translateState(event.xkey().State)
 		plain := mods&(ModControl|ModAlt) == 0
 
-		if window.platform.ic != 0 {
-			// HACK: Do not report the key press events duplicated by XIM
-			//       Duplicate key releases are filtered out implicitly by
-			//       the GLFW key repeat logic in inputKey
-			//       A timestamp per key is used to handle simultaneous keys
-			// NOTE: Always allow the first event for each key through
-			//       (the server never sends a timestamp of zero)
-			// NOTE: Timestamp difference is compared to handle wrap-around
-			diff := event.xkey().Time - window.platform.keyPressTimes[keycode]
-			if diff == event.xkey().Time || (diff > 0 && diff < 1<<31) {
-				if keycode != 0 {
-					window.inputKey(key, keycode, Press, mods)
-				}
-
-				window.platform.keyPressTimes[keycode] = event.xkey().Time
-			}
-
-			if !filtered {
-				var status int32
-				buffer := make([]byte, 100)
-				chars := buffer
-
-				count := xutf8LookupString(window.platform.ic,
-					event.xkey(),
-					chars, int32(len(buffer)-1),
-					nil, &status)
-
-				if status == _XBufferOverflow {
-					chars = make([]byte, count+1)
-					count = xutf8LookupString(window.platform.ic,
-						event.xkey(),
-						chars, count,
-						nil, &status)
-				}
-
-				if status == _XLookupChars || status == _XLookupBoth {
-					text := string(chars[:count])
-					for _, codepoint := range text {
-						window.inputChar(codepoint, mods, plain)
-					}
-					// The input method commits a whole string at once, so it
-					// is reported as one event rather than per character.
-					window.inputText(text, plain)
-				}
-			}
-		} else {
+		if window.platform.ic == 0 {
 			var keysym _KeySym
 			xLookupString(event.xkey(), nil, 0, &keysym, 0)
 
@@ -1299,6 +1255,53 @@ func processEvent(event *_XEvent) error {
 			if codepoint, ok := keySym2Unicode(uint32(keysym)); ok {
 				window.inputChar(codepoint, mods, plain)
 				window.inputText(string(codepoint), plain)
+			}
+
+			return nil
+		}
+
+		// HACK: Do not report the key press events duplicated by XIM
+		//       Duplicate key releases are filtered out implicitly by
+		//       the GLFW key repeat logic in inputKey
+		//       A timestamp per key is used to handle simultaneous keys
+		// NOTE: Always allow the first event for each key through
+		//       (the server never sends a timestamp of zero)
+		// NOTE: Timestamp difference is compared to handle wrap-around
+		diff := event.xkey().Time - window.platform.keyPressTimes[keycode]
+		if diff == event.xkey().Time || (diff > 0 && diff < 1<<31) {
+			if keycode != 0 {
+				window.inputKey(key, keycode, Press, mods)
+			}
+
+			window.platform.keyPressTimes[keycode] = event.xkey().Time
+		}
+
+		if !filtered {
+			var status int32
+			buffer := make([]byte, 100)
+			chars := buffer
+
+			count := xutf8LookupString(window.platform.ic,
+				event.xkey(),
+				chars, int32(len(buffer)-1),
+				nil, &status)
+
+			if status == _XBufferOverflow {
+				chars = make([]byte, count+1)
+				count = xutf8LookupString(window.platform.ic,
+					event.xkey(),
+					chars, count,
+					nil, &status)
+			}
+
+			if status == _XLookupChars || status == _XLookupBoth {
+				text := string(chars[:count])
+				for _, codepoint := range text {
+					window.inputChar(codepoint, mods, plain)
+				}
+				// The input method commits a whole string at once, so it
+				// is reported as one event rather than per character.
+				window.inputText(text, plain)
 			}
 		}
 
@@ -1546,15 +1549,18 @@ func processEvent(event *_XEvent) error {
 			}
 
 			var formats []_Atom
-			var formatsPtr uintptr
 
 			if list {
+				var formatsPtr uintptr
 				count := getWindowPropertyX11(_glfw.platformWindow.xdnd.source,
 					_glfw.platformWindow.XdndTypeList,
 					_XA_ATOM,
 					&formatsPtr)
-				if formatsPtr != 0 && count > 0 {
-					formats = unsafe.Slice((*_Atom)(unsafe.Pointer(formatsPtr)), count)
+				if formatsPtr != 0 {
+					defer xFree(formatsPtr)
+					if count > 0 {
+						formats = unsafe.Slice((*_Atom)(unsafe.Pointer(formatsPtr)), count)
+					}
 				}
 			} else {
 				formats = []_Atom{_Atom(client.Data[2]), _Atom(client.Data[3]), _Atom(client.Data[4])}
@@ -1565,10 +1571,6 @@ func processEvent(event *_XEvent) error {
 					_glfw.platformWindow.xdnd.format = _glfw.platformWindow.text_uri_list
 					break
 				}
-			}
-
-			if formatsPtr != 0 {
-				xFree(formatsPtr)
 			}
 		} else if client.MessageType == _glfw.platformWindow.XdndDrop {
 			// The drag operation has finished by dropping on the window
@@ -1658,13 +1660,12 @@ func processEvent(event *_XEvent) error {
 				event.xselection().Property,
 				event.xselection().Target,
 				&data)
+			if data != 0 {
+				defer xFree(data)
+			}
 
 			if result != 0 {
 				window.inputDrop(parseUriList(goString(data)))
-			}
-
-			if data != 0 {
-				xFree(data)
 			}
 
 			if _glfw.platformWindow.xdnd.version >= 2 {
@@ -2201,19 +2202,20 @@ func (w *Window) platformGetWindowFrameSize() (left, top, right, bottom int, err
 	}
 
 	var extentsPtr uintptr
-	if getWindowPropertyX11(w.platform.handle,
+	itemCount := getWindowPropertyX11(w.platform.handle,
 		_glfw.platformWindow.NET_FRAME_EXTENTS,
 		_XA_CARDINAL,
-		&extentsPtr) == 4 {
+		&extentsPtr)
+	if extentsPtr != 0 {
+		defer xFree(extentsPtr)
+	}
+
+	if itemCount == 4 {
 		extents := unsafe.Slice((*_Clong)(unsafe.Pointer(extentsPtr)), 4)
 		left = int(extents[0])
 		top = int(extents[2])
 		right = int(extents[1])
 		bottom = int(extents[3])
-	}
-
-	if extentsPtr != 0 {
-		xFree(extentsPtr)
 	}
 
 	return left, top, right, bottom, nil
@@ -2290,6 +2292,8 @@ func (w *Window) platformMaximizeWindow() error {
 		}
 
 		if statesPtr != 0 {
+			defer xFree(statesPtr)
+
 			states := unsafe.Slice((*_Atom)(unsafe.Pointer(statesPtr)), int(count))
 			for _, state := range states {
 				for j := 0; j < len(missing); j++ {
@@ -2299,8 +2303,6 @@ func (w *Window) platformMaximizeWindow() error {
 					}
 				}
 			}
-
-			xFree(statesPtr)
 		}
 
 		if len(missing) == 0 {
@@ -2441,8 +2443,10 @@ func (w *Window) platformWindowMaximized() bool {
 		_XA_ATOM,
 		&statesPtr)
 
-	maximized := false
+	var maximized bool
 	if statesPtr != 0 {
+		defer xFree(statesPtr)
+
 		states := unsafe.Slice((*_Atom)(unsafe.Pointer(statesPtr)), int(count))
 		for _, state := range states {
 			if state == _glfw.platformWindow.NET_WM_STATE_MAXIMIZED_VERT ||
@@ -2451,8 +2455,6 @@ func (w *Window) platformWindowMaximized() bool {
 				break
 			}
 		}
-
-		xFree(statesPtr)
 	}
 
 	return maximized
@@ -2536,11 +2538,12 @@ func (w *Window) platformSetWindowFloating(enabled bool) error {
 
 		var states []_Atom
 		if statesPtr != 0 {
+			defer xFree(statesPtr)
 			states = unsafe.Slice((*_Atom)(unsafe.Pointer(statesPtr)), int(count))
 		}
 
 		if enabled {
-			i := 0
+			var i int
 			for ; i < len(states); i++ {
 				if states[i] == _glfw.platformWindow.NET_WM_STATE_ABOVE {
 					break
@@ -2556,7 +2559,7 @@ func (w *Window) platformSetWindowFloating(enabled bool) error {
 					1)
 			}
 		} else if states != nil {
-			i := 0
+			var i int
 			for ; i < len(states); i++ {
 				if states[i] == _glfw.platformWindow.NET_WM_STATE_ABOVE {
 					break
@@ -2575,10 +2578,6 @@ func (w *Window) platformSetWindowFloating(enabled bool) error {
 					_glfw.platformWindow.NET_WM_STATE, _XA_ATOM, 32,
 					_PropModeReplace, statesHead, int32(len(states)))
 			}
-		}
-
-		if statesPtr != 0 {
-			xFree(statesPtr)
 		}
 	}
 
@@ -2608,16 +2607,17 @@ func (w *Window) platformGetWindowOpacity() (float32, error) {
 
 	if xGetSelectionOwner(_glfw.platformWindow.display, _glfw.platformWindow.NET_WM_CM_Sx) != 0 {
 		var valuePtr uintptr
-		if getWindowPropertyX11(w.platform.handle,
+		itemCount := getWindowPropertyX11(w.platform.handle,
 			_glfw.platformWindow.NET_WM_WINDOW_OPACITY,
 			_XA_CARDINAL,
-			&valuePtr) != 0 {
-			value := uint32(*(*_Culong)(unsafe.Pointer(valuePtr)))
-			opacity = float32(float64(value) / 0xffffffff)
+			&valuePtr)
+		if valuePtr != 0 {
+			defer xFree(valuePtr)
 		}
 
-		if valuePtr != 0 {
-			xFree(valuePtr)
+		if itemCount != 0 {
+			value := uint32(*(*_Culong)(unsafe.Pointer(valuePtr)))
+			opacity = float32(float64(value) / 0xffffffff)
 		}
 	}
 
