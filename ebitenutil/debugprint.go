@@ -70,7 +70,8 @@ func drawDebugText(rt *ebiten.Image, str string, ox, oy int) {
 			y += ch
 			continue
 		}
-		if c > 0xFF {
+		if c > 0xff {
+			x += cw
 			continue
 		}
 		s, ok := debugPrintTextSubImages[c]
