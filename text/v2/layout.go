@@ -466,9 +466,6 @@ func forEachLine(text string, face Face, options *LayoutOptions, f func(text str
 			}
 		}
 
-		// Keep the original line length before trimming the trailing line break, so that
-		// indexOffset can advance by the entire line including its line break. A line break is
-		// not always one byte: it can be "\r\n" or a multi-byte character like \u2028.
 		l := len(line)
 		line = textutil.TrimTailingLineBreak(line)
 		f(line, indexOffset, originX+offsetX, originY+offsetY)
