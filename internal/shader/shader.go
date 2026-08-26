@@ -311,6 +311,9 @@ func (cs *compileState) parse(f *ast.File) {
 				cs.addError(0, fmt.Sprintf("fragment argument %s must be %s but was %s", name, p.typ.String(), t.String()))
 			}
 		}
+		if len(fragmentInParams) > len(vertexOutParams) {
+			cs.addError(0, fmt.Sprintf("the number of the fragment arguments (%d) must not be greater than the number of the vertex returning values (%d)", len(fragmentInParams), len(vertexOutParams)))
+		}
 
 		// The first out-param is treated as gl_Position in GLSL.
 		if vertexOutParams[0].typ.Main != shaderir.Vec4 {
