@@ -1274,3 +1274,96 @@ func TestL2VisualOrder(t *testing.T) {
 		})
 	}
 }
+
+// Issue #3529
+func TestDrawWithScaledGeoM(t *testing.T) {
+	const (
+		width  = 64
+		height = 64
+		// steps is the number of positions sampled in one sweep.
+		steps = 24
+	)
+
+	face := text.NewGoXFace(bitmapfont.Face)
+	m := face.Metrics()
+	const str = "AAAA\nBBBB\nCCCC\nDDDD"
+	layoutOp := text.LayoutOptions{
+		LineSpacing: m.HAscent + m.HDescent,
+	}
+
+	// AppendGlyphs never culls glyphs, so drawing its result by hand is the
+	// reference rendering. The glyphs do not depend on the geometry matrix.
+	glyphs := text.AppendGlyphs(nil, str, face, &layoutOp)
+
+	// The text's extent in the text space.
+	var extentX, extentY float64
+	for _, g := range glyphs {
+		if g.Image == nil {
+			continue
+		}
+		b := g.Image.Bounds()
+		extentX = max(extentX, g.X+float64(b.Dx()))
+		extentY = max(extentY, g.Y+float64(b.Dy()))
+	}
+
+	got := ebiten.NewImage(width, height)
+	defer got.Deallocate()
+	want := ebiten.NewImage(width, height)
+	defer want.Deallocate()
+
+	gotPix := make([]byte, 4*width*height)
+	wantPix := make([]byte, 4*width*height)
+
+	sameAsReference := func(geoM ebiten.GeoM) bool {
+		got.Clear()
+		op := &text.DrawOptions{}
+		op.GeoM = geoM
+		op.LayoutOptions = layoutOp
+		text.Draw(got, str, face, op)
+
+		want.Clear()
+		for _, g := range glyphs {
+			if g.Image == nil {
+				continue
+			}
+			op := &ebiten.DrawImageOptions{}
+			op.GeoM.Translate(g.X, g.Y)
+			op.GeoM.Concat(geoM)
+			want.DrawImage(g.Image, op)
+		}
+
+		got.ReadPixels(gotPix)
+		want.ReadPixels(wantPix)
+		return bytes.Equal(gotPix, wantPix)
+	}
+
+	// Slide the text along each axis at various scales, from completely
+	// before the destination to completely after it, so that glyphs straddle
+	// every edge. The axis that is not swept is centered to keep the text
+	// visible there.
+	for _, scale := range []float64{-4, -2, -1, -0.5, 0.5, 1, 1.5, 2, 3, 4} {
+		spanX := extentX * math.Abs(scale)
+		spanY := extentY * math.Abs(scale)
+		centerX := (width - extentX*scale) / 2
+		centerY := (height - extentY*scale) / 2
+		for i := range steps {
+			r := float64(i) / (steps - 1)
+
+			tx := -spanX + (width+2*spanX)*r
+			var geoM ebiten.GeoM
+			geoM.Scale(scale, scale)
+			geoM.Translate(tx, centerY)
+			if !sameAsReference(geoM) {
+				t.Errorf("scale: %v, tx: %v, ty: %v: Draw rendered a different result from AppendGlyphs", scale, tx, centerY)
+			}
+
+			ty := -spanY + (height+2*spanY)*r
+			geoM = ebiten.GeoM{}
+			geoM.Scale(scale, scale)
+			geoM.Translate(centerX, ty)
+			if !sameAsReference(geoM) {
+				t.Errorf("scale: %v, tx: %v, ty: %v: Draw rendered a different result from AppendGlyphs", scale, centerX, ty)
+			}
+		}
+	}
+}

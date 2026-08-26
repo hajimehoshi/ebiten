@@ -909,6 +909,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 }`)); err == nil {
 		t.Errorf("error must be non-nil but was nil")
 	}
+
 	if _, err := compileToIR([]byte(`package main
 
 func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
@@ -1057,6 +1058,69 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 	return vec4(0)
 }`)); err == nil {
 		t.Errorf("error must be non-nil but was nil")
+	}
+
+	if _, err := compileToIR([]byte(`package main
+
+func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+	a := 1 / 0
+	_ = a
+	return vec4(0)
+}`)); err == nil {
+		t.Errorf("error must be non-nil but was nil")
+	}
+
+	if _, err := compileToIR([]byte(`package main
+
+func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+	a := 1 % 0
+	_ = a
+	return vec4(0)
+}`)); err == nil {
+		t.Errorf("error must be non-nil but was nil")
+	}
+
+	if _, err := compileToIR([]byte(`package main
+
+func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+	a := 1.0 / 0.0
+	_ = a
+	return vec4(0)
+}`)); err == nil {
+		t.Errorf("error must be non-nil but was nil")
+	}
+
+	// A division by a non-constant zero is not an error at the compile time.
+	if _, err := compileToIR([]byte(`package main
+
+func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+	a := 1
+	b := 0
+	c := a / b
+	_ = c
+	return vec4(0)
+}`)); err != nil {
+		t.Error(err)
+	}
+
+	if _, err := compileToIR([]byte(`package main
+
+func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+	a := 1 << -1
+	_ = a
+	return vec4(0)
+}`)); err == nil {
+		t.Errorf("error must be non-nil but was nil")
+	}
+
+	if _, err := compileToIR([]byte(`package main
+
+func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+	a := 1 << 62
+	_ = a
+	return vec4(0)
+}`)); err != nil {
+		t.Error(err)
 	}
 
 	if _, err := compileToIR([]byte(`package main
@@ -3425,6 +3489,59 @@ func TestSyntaxEqual(t *testing.T) {
 		{stmt: "a, b := 1.0, ivec2(1); _ = a || b", err: true},
 		{stmt: "a, b := 1.0, mat2(1); _ = a && b", err: true},
 		{stmt: "a, b := 1.0, mat2(1); _ = a || b", err: true},
+	}
+
+	for _, c := range cases {
+		stmt := c.stmt
+		src := fmt.Sprintf(`package main
+
+func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+	%s
+	return dstPos
+}`, stmt)
+		_, err := compileToIR([]byte(src))
+		if err == nil && c.err {
+			t.Errorf("%s must return an error but does not", stmt)
+		} else if err != nil && !c.err {
+			t.Errorf("%s must not return nil but returned %v", stmt, err)
+		}
+	}
+}
+
+// Issue #3535
+func TestSyntaxEqualArray(t *testing.T) {
+	cases := []struct {
+		stmt string
+		err  bool
+	}{
+		{stmt: "var a [2]int; var b [2]int; _ = a == b", err: false},
+		{stmt: "var a [2]int; var b [2]int; _ = a != b", err: false},
+		{stmt: "var a [2]float; var b [2]float; _ = a == b", err: false},
+		{stmt: "var a [2]float; var b [2]float; _ = a != b", err: false},
+		{stmt: "var a [2]bool; var b [2]bool; _ = a == b", err: false},
+		{stmt: "var a [2]bool; var b [2]bool; _ = a != b", err: false},
+		{stmt: "var a [2]vec2; var b [2]vec2; _ = a == b", err: false},
+		{stmt: "var a [2]vec2; var b [2]vec2; _ = a != b", err: false},
+		{stmt: "var a [2]ivec3; var b [2]ivec3; _ = a == b", err: false},
+		{stmt: "var a [2]ivec3; var b [2]ivec3; _ = a != b", err: false},
+		{stmt: "_ = [2]int{1, 2} == [2]int{1, 3}", err: false},
+		{stmt: "_ = [2]int{1, 2} != [2]int{1, 3}", err: false},
+
+		// An array of matrices is not comparable as a matrix is not comparable.
+		{stmt: "var a [2]mat2; var b [2]mat2; _ = a == b", err: true},
+		{stmt: "var a [2]mat2; var b [2]mat2; _ = a != b", err: true},
+
+		{stmt: "var a [2]int; var b [3]int; _ = a == b", err: true},
+		{stmt: "var a [2]int; var b [3]int; _ = a != b", err: true},
+		{stmt: "var a [2]int; var b [2]float; _ = a == b", err: true},
+		{stmt: "var a [2]int; var b [2]float; _ = a != b", err: true},
+		{stmt: "var a [2]int; b := 1; _ = a == b", err: true},
+		{stmt: "var a [2]int; b := 1; _ = a != b", err: true},
+
+		{stmt: "var a [2]int; var b [2]int; _ = a < b", err: true},
+		{stmt: "var a [2]int; var b [2]int; _ = a <= b", err: true},
+		{stmt: "var a [2]int; var b [2]int; _ = a > b", err: true},
+		{stmt: "var a [2]int; var b [2]int; _ = a >= b", err: true},
 	}
 
 	for _, c := range cases {
