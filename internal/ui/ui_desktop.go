@@ -137,7 +137,11 @@ func (u *UserInterface) Run(game Game, options *RunOptions) error {
 	if b := maybeNewGLFWBackend(u); b != nil {
 		return b.run(game, options)
 	}
-	// Fall back to a framebuffer device where there is no window system.
+	// No window system: prefer a DRM/KMS display driven with GBM (Mali and
+	// Mesa/panfrost-class GPUs), then fall back to a plain framebuffer device.
+	if gb, err := maybeNewGBMBackend(u); err == nil {
+		return gb.run(game, options)
+	}
 	fb, err := maybeNewFbdevBackend(u)
 	if err != nil {
 		return fmt.Errorf("ui: no window system is available: %w", err)
