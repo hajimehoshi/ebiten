@@ -1009,7 +1009,7 @@ var _ [len(DrawRectShaderOptions{}.Images)]struct{} = [graphics.ShaderSrcImageCo
 //
 // In a shader, src0Pos in Fragment represents a position in a source image.
 // If no source images are specified, src0Pos represents the position from (0, 0) to (width, height) in pixels.
-// If the unit is pixels by a compiler directive `//kage:unit pixelss`, src0Pos values are valid.
+// If the unit is pixels by a compiler directive `//kage:unit pixels`, src0Pos values are valid.
 // If the unit is texels (default), src0Pos values still take from (0, 0) to (width, height),
 // but these are invalid since src0Pos is expected to be in texels in the texel-unit mode.
 // This behavior is preserved for backward compatibility. It is recommended to use the pixel-unit mode to avoid confusion.
