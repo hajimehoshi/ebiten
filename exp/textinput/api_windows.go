@@ -36,6 +36,8 @@ const (
 
 	_GWL_WNDPROC = -4
 
+	_IMM_ERROR_NODATA = -1
+
 	_ISC_SHOWUICOMPOSITIONWINDOW = 0x80000000
 
 	_UNICODE_NOCHAR = 0xffff
@@ -112,8 +114,14 @@ func _ImmGetCompositionStringW[T byte | uint16 | uint32](unnamedParam1 _HIMC, un
 	}
 	r, _, e := procImmGetCompositionStringW.Call(uintptr(unnamedParam1), uintptr(unnamedParam2), uintptr(p), uintptr(len(lpBuf))*unsafe.Sizeof(T(0)))
 	runtime.KeepAlive(lpBuf)
-	if r < 0 {
-		return 0, fmt.Errorf("textinput: ImmGetCompositionStringW failed: %d", r)
+	// The return value is a LONG, so check the sign as a signed 32-bit integer.
+	if size := int32(r); size < 0 {
+		// IMM_ERROR_NODATA indicates that the requested information is not in the input context.
+		// This is an absence of data rather than a failure.
+		if size == _IMM_ERROR_NODATA {
+			return 0, nil
+		}
+		return 0, fmt.Errorf("textinput: ImmGetCompositionStringW failed: %d", size)
 	}
 	if e != nil && e != windows.ERROR_SUCCESS {
 		return 0, fmt.Errorf("textinput: ImmGetCompositionStringW failed: %w", e)
