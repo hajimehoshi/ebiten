@@ -105,8 +105,12 @@ func _ImmAssociateContext(hwnd windows.HWND, hIMC uintptr) (uintptr, error) {
 	return r, nil
 }
 
-func _ImmGetCompositionStringW(unnamedParam1 _HIMC, unnamedParam2 uint32, lpBuf unsafe.Pointer, dwBufLen uint32) (uint32, error) {
-	r, _, e := procImmGetCompositionStringW.Call(uintptr(unnamedParam1), uintptr(unnamedParam2), uintptr(lpBuf), uintptr(dwBufLen))
+func _ImmGetCompositionStringW[T byte | uint16 | uint32](unnamedParam1 _HIMC, unnamedParam2 uint32, lpBuf []T) (uint32, error) {
+	var p unsafe.Pointer
+	if len(lpBuf) > 0 {
+		p = unsafe.Pointer(&lpBuf[0])
+	}
+	r, _, e := procImmGetCompositionStringW.Call(uintptr(unnamedParam1), uintptr(unnamedParam2), uintptr(p), uintptr(len(lpBuf))*unsafe.Sizeof(T(0)))
 	runtime.KeepAlive(lpBuf)
 	if r < 0 {
 		return 0, fmt.Errorf("textinput: ImmGetCompositionStringW failed: %d", r)
@@ -115,6 +119,22 @@ func _ImmGetCompositionStringW(unnamedParam1 _HIMC, unnamedParam2 uint32, lpBuf 
 		return 0, fmt.Errorf("textinput: ImmGetCompositionStringW failed: %w", e)
 	}
 	return uint32(r), nil
+}
+
+func immGetCompositionStringW[T byte | uint16 | uint32](hIMC _HIMC, dwIndex uint32) ([]T, error) {
+	size, err := _ImmGetCompositionStringW[T](hIMC, dwIndex, nil)
+	if err != nil {
+		return nil, err
+	}
+	n := size / uint32(unsafe.Sizeof(T(0)))
+	if n == 0 {
+		return nil, nil
+	}
+	lpBuf := make([]T, n)
+	if _, err := _ImmGetCompositionStringW(hIMC, dwIndex, lpBuf); err != nil {
+		return nil, err
+	}
+	return lpBuf, nil
 }
 
 func _ImmGetContext(unnamedParam1 windows.HWND) _HIMC {
