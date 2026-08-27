@@ -248,16 +248,18 @@ func (t *textInputImpl) update() (err error) {
 		return err
 	}
 
+	// An IME is not guaranteed to report clause offsets that are consistent with the
+	// attribute buffer or the composition string, so treat every offset as untrusted.
 	start16 := len(buffer16)
 	end16 := len(buffer16)
 	if len(clause) > 0 {
 		for i, c := range clause[:len(clause)-1] {
-			if int(c) == len(attr) {
+			if int(c) >= len(attr) {
 				break
 			}
 			if attr[c] == _ATTR_TARGET_CONVERTED || attr[c] == _ATTR_TARGET_NOTCONVERTED {
-				start16 = int(c)
-				end16 = int(clause[i+1])
+				start16 = min(int(c), len(buffer16))
+				end16 = min(max(int(clause[i+1]), start16), len(buffer16))
 				break
 			}
 		}
