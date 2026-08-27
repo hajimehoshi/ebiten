@@ -40,7 +40,7 @@ Check every one of these before declaring a shader done.
 - [ ] `//kage:unit pixels` is present, on its own line, exactly once.
 - [ ] Every coordinate that gets scaled, divided, rotated, mirrored, tiled, or
       wrapped is made origin-relative first, and the origin is added back after.
-- [ ] Every `imageSrcNAt` argument is expressed in **source image 0's**
+- [ ] Every sampling argument is expressed in **source image 0's**
       coordinate space, never image N's.
 - [ ] The returned `vec4` is premultiplied alpha (each of `.r/.g/.b` ≤ `.a`).
 - [ ] No integer literal division in a float context (`2/3` is `0`).
@@ -133,8 +133,10 @@ origin-relative space.
 ### Sampling
 
 ```go
-imageSrcNAt(pos vec2) vec4        // returns vec4(0) outside the image region
-imageSrcNUnsafeAt(pos vec2) vec4  // faster; undefined outside the image region
+imageSrc0At(pos vec2) vec4                   // returns vec4(0) outside the image region
+imageSrc0UnsafeAt(pos vec2) vec4             // faster; undefined outside the image region
+imageSrcNAtFromSrc0Pos(pos vec2) vec4        // N >= 1; returns vec4(0) outside the image region
+imageSrcNUnsafeAtFromSrc0Pos(pos vec2) vec4  // N >= 1; faster; undefined outside the image region
 ```
 
 Sampling is always nearest-neighbour. There is no linear filter, no mipmap, no
@@ -143,29 +145,33 @@ wrap mode inside a shader; `ebiten.Filter` and `ebiten.Address` apply to
 repeating, and interpolation yourself — see
 [reference/recipes.md](reference/recipes.md).
 
-`imageSrcNUnsafeAt` omits that region bounds check, so its result outside the
-source region is undefined: depending on the position and the backend it may
+The `UnsafeAt` forms omit that region bounds check, so their result outside the
+source region is undefined: depending on the position and the backend they may
 return atlas padding, a neighbouring image's pixels, zero, or something else
-entirely. Use it only where the position is provably inside the region — after
+entirely. Use them only where the position is provably inside the region — after
 a clamp or a wrap, for instance.
 
 ## Sampling more than one source image
 
-`imageSrcNAt` and `imageSrcNUnsafeAt` **always take a position in source image
-0's coordinate space**, for every N. The implementation rebases the position:
-it fetches `pos - imageSrc0Origin() + imageSrcNOrigin()`, and `imageSrcNAt`
-returns `vec4(0)` outside `[imageSrc0Origin(), imageSrc0Origin() + imageSrcNSize())`.
+For N ≥ 1 the functions are `imageSrcNAtFromSrc0Pos` and
+`imageSrcNUnsafeAtFromSrc0Pos`, and their names state the rule: they **take a
+position in source image 0's coordinate space**. The implementation rebases the
+position: it fetches `pos - imageSrc0Origin() + imageSrcNOrigin()`, and
+`imageSrcNAtFromSrc0Pos` returns `vec4(0)` outside
+`[imageSrc0Origin(), imageSrc0Origin() + imageSrcNSize())`. (`imageSrcNAt` and
+`imageSrcNUnsafeAt` are the same functions under their old names, deprecated as
+of v2.10.)
 
 So all four slots share one coordinate space, and the normal thing to write is
 `src0Pos` for every one of them. Pixel (x, y) of image 0 lines up with pixel
 (x, y) of image N, whatever atlases they landed on and whatever their sizes:
 
 ```go
-return imageSrc0At(src0Pos) * imageSrc1At(src0Pos).a
+return imageSrc0At(src0Pos) * imageSrc1AtFromSrc0Pos(src0Pos).a
 ```
 
 Differing sizes need no correction. Where image N is smaller than image 0,
-`imageSrcNAt` just returns `vec4(0)`.
+`imageSrcNAtFromSrc0Pos` just returns `vec4(0)`.
 
 Arithmetic is needed only when you deliberately want a *different* mapping, such
 as stretching a smaller mask across the whole of image 0. That is a scaling
@@ -173,8 +179,8 @@ choice, not a size fix, and the origin you add back is still image 0's:
 
 ```go
 uv := (src0Pos - imageSrc0Origin()) / imageSrc0Size()
-pos1 := uv*imageSrc1Size() + imageSrc0Origin() // note: Src0Origin, not Src1Origin
-return imageSrc1At(pos1)
+src0PosForStretchedSrc1 := uv*imageSrc1Size() + imageSrc0Origin() // note: Src0Origin, not Src1Origin
+return imageSrc1AtFromSrc0Pos(src0PosForStretchedSrc1)
 ```
 
 Adding `imageSrc1Origin()` there is the classic bug: the origin is applied
@@ -211,7 +217,7 @@ introduce them, and replace them when porting old Kage code:
 
 Ebitengine works in premultiplied alpha everywhere, shaders included.
 
-- `imageSrcNAt` returns premultiplied colors.
+- Sampling returns premultiplied colors.
 - The `vec4` you return must be premultiplied: `rgb ≤ a` component-wise.
   Nothing clamps it for you; an invalid color renders as a too-bright,
   washed-out blend.
@@ -219,7 +225,7 @@ Ebitengine works in premultiplied alpha everywhere, shaders included.
 - To tint, multiply: `return clr * vec4(1, 0.5, 0.5, 1)`.
 - A shader ported from a straight-alpha source needs its final color
   premultiplied: `return vec4(rgb*a, a)`. Fixing only the output is not enough
-  if the original also computed on straight-alpha samples, since `imageSrcNAt`
+  if the original also computed on straight-alpha samples, since sampling
   always hands you premultiplied ones. Whether the original's were straight
   depends on its texture data and its own conventions, not on the language it
   was written in.

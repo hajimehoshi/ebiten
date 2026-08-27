@@ -355,7 +355,7 @@ package main
 
 func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	r := imageSrc0At(src0Pos).r
-	g := imageSrc1At(src0Pos).g
+	g := imageSrc1AtFromSrc0Pos(src0Pos).g
 	return vec4(r, g, 0, 1)
 }
 `))
@@ -1145,7 +1145,7 @@ package main
 
 func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	r := imageSrc0At(src0Pos).r
-	g := imageSrc1At(src0Pos).g
+	g := imageSrc1AtFromSrc0Pos(src0Pos).g
 	return vec4(r, g, 0, 1)
 }
 `))
@@ -1819,7 +1819,7 @@ func TestShaderDifferentTextureSizes(t *testing.T) {
 package main
 
 func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
-	return imageSrc0At(src0Pos) + imageSrc1At(src0Pos)
+	return imageSrc0At(src0Pos) + imageSrc1AtFromSrc0Pos(src0Pos)
 }
 `, unit))
 			if err != nil {
@@ -1845,6 +1845,66 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 				}
 			}
 		})
+	}
+}
+
+func TestShaderAtFromSrc0Pos(t *testing.T) {
+	// The sub-images are at quite different positions on their textures, so a wrong position
+	// conversion results in a wrong color.
+	src0 := ebiten.NewImageWithOptions(image.Rect(0, 0, 20, 4000), &ebiten.NewImageOptions{
+		Unmanaged: true,
+	}).SubImage(image.Rect(4, 1025, 6, 1028)).(*ebiten.Image)
+	defer src0.Deallocate()
+
+	src1 := ebiten.NewImageWithOptions(image.Rect(0, 0, 4000, 20), &ebiten.NewImageOptions{
+		Unmanaged: true,
+	}).SubImage(image.Rect(2047, 7, 2049, 10)).(*ebiten.Image)
+	defer src1.Deallocate()
+
+	src0.Fill(color.RGBA{0x10, 0x20, 0x30, 0xff})
+	src1.Fill(color.RGBA{0x30, 0x20, 0x10, 0xff})
+
+	for _, unit := range []string{"texels", "pixels"} {
+		for _, fn := range []string{
+			"imageSrc1AtFromSrc0Pos",
+			"imageSrc1UnsafeAtFromSrc0Pos",
+			// The deprecated names must keep working.
+			"imageSrc1At",
+			"imageSrc1UnsafeAt",
+		} {
+			t.Run(fmt.Sprintf("unit %s, %s", unit, fn), func(t *testing.T) {
+				shader, err := ebiten.NewShader(fmt.Appendf(nil, `//kage:unit %s
+
+package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return %s(src0Pos)
+}
+`, unit, fn))
+				if err != nil {
+					t.Fatal(err)
+				}
+				defer shader.Deallocate()
+
+				dst := ebiten.NewImage(2, 3)
+				defer dst.Deallocate()
+
+				op := &ebiten.DrawRectShaderOptions{}
+				op.Images[0] = src0
+				op.Images[1] = src1
+				dst.DrawRectShader(2, 3, shader, op)
+
+				for j := range 3 {
+					for i := range 2 {
+						got := dst.At(i, j).(color.RGBA)
+						want := color.RGBA{0x30, 0x20, 0x10, 0xff}
+						if !sameColors(got, want, 1) {
+							t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
+						}
+					}
+				}
+			})
+		}
 	}
 }
 
@@ -2256,7 +2316,7 @@ func TestShaderDifferentSourceSizes(t *testing.T) {
 package main
 
 func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
-	return imageSrc0At(src0Pos) + imageSrc1At(src0Pos)
+	return imageSrc0At(src0Pos) + imageSrc1AtFromSrc0Pos(src0Pos)
 }
 `, unit))
 			if err != nil {

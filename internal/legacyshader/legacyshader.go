@@ -19,6 +19,7 @@ package legacyshader
 
 import (
 	"fmt"
+	"slices"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
@@ -48,9 +49,10 @@ func ParseCompilerDirectives(src []byte) (Unit, error) {
 	}
 }
 
-// CompileShader compiles a Kage fragment shader source, in either unit, into an intermediate
-// representation, and reports the unit the source is authored in.
-func CompileShader(fragmentSrc []byte) (*shaderir.Program, Unit, error) {
+// convertToCoreSource returns the source the core compiles, and reports the unit the given source is
+// authored in. A texel-unit source is converted to the pixel unit, and the deprecated builtin
+// functions, which the core no longer defines, are appended.
+func convertToCoreSource(fragmentSrc []byte) ([]byte, Unit, error) {
 	unit, err := ParseCompilerDirectives(fragmentSrc)
 	if err != nil {
 		return nil, 0, err
@@ -62,6 +64,16 @@ func CompileShader(fragmentSrc []byte) (*shaderir.Program, Unit, error) {
 			return nil, 0, err
 		}
 	}
+	return slices.Concat(src, []byte(deprecatedFunctionsSuffix)), unit, nil
+}
+
+// CompileShader compiles a Kage fragment shader source, in either unit, into an intermediate
+// representation, and reports the unit the source is authored in.
+func CompileShader(fragmentSrc []byte) (*shaderir.Program, Unit, error) {
+	src, unit, err := convertToCoreSource(fragmentSrc)
+	if err != nil {
+		return nil, 0, err
+	}
 	ir, err := graphics.CompileShader(src)
 	if err != nil {
 		return nil, 0, err
@@ -71,16 +83,9 @@ func CompileShader(fragmentSrc []byte) (*shaderir.Program, Unit, error) {
 
 // CalcSourceID returns the source ID of a Kage fragment shader source, in either unit.
 func CalcSourceID(fragmentSrc []byte) (shaderir.SourceID, error) {
-	unit, err := ParseCompilerDirectives(fragmentSrc)
+	src, _, err := convertToCoreSource(fragmentSrc)
 	if err != nil {
 		return shaderir.SourceID{}, err
-	}
-	src := fragmentSrc
-	if unit == Texels {
-		src, err = convertToPixels(fragmentSrc)
-		if err != nil {
-			return shaderir.SourceID{}, err
-		}
 	}
 	return graphics.CalcSourceID(src), nil
 }

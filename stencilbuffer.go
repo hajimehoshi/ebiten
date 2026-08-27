@@ -58,7 +58,7 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	c := imageSrc0UnsafeAt(src0Pos)
 	w := abs(int(round(c.g*255)) - int(round(c.r*255)))
 	v := min(float(w), 1)
-	return v * imageSrc1UnsafeAt(src0Pos) * color
+	return v * imageSrc1UnsafeAtFromSrc0Pos(src0Pos) * color
 }
 `
 
@@ -75,7 +75,7 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	c := imageSrc0UnsafeAt(src0Pos)
 	w := abs(int(round(c.g*255)) - int(round(c.r*255)))
 	v := float(w % 2)
-	return v * imageSrc1UnsafeAt(src0Pos) * color
+	return v * imageSrc1UnsafeAtFromSrc0Pos(src0Pos) * color
 }
 `
 

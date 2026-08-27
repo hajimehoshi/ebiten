@@ -50,16 +50,21 @@ unchanged, whatever the images' sizes.
 
 ```go
 func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
-	return imageSrc0At(src0Pos) * imageSrc1At(src0Pos).a
+	return imageSrc0At(src0Pos) * imageSrc1AtFromSrc0Pos(src0Pos).a
 }
 ```
 
+`imageSrcNAtFromSrc0Pos` and `imageSrcNUnsafeAtFromSrc0Pos` (N ≥ 1) were added
+in v2.10. `imageSrcNAt` and `imageSrcNUnsafeAt` are the same functions under
+their old names: they still work, but they are deprecated as of v2.10.
+
 To stretch image 1 across image 0 instead of aligning it pixel for pixel,
 normalize in image 0's space, scale by image 1's size, and add **image 0's**
-origin.
+origin. The result is still a position in image 0's space, which is what
+`imageSrc1AtFromSrc0Pos` takes.
 
 ```go
-func src1PosOf(src0Pos vec2) vec2 {
+func src0PosForStretchedSrc1(src0Pos vec2) vec2 {
 	uv := (src0Pos - imageSrc0Origin()) / imageSrc0Size()
 	return uv*imageSrc1Size() + imageSrc0Origin()
 }
@@ -67,7 +72,8 @@ func src1PosOf(src0Pos vec2) vec2 {
 
 ## Addressing modes
 
-`imageSrcNAt` returns `vec4(0)` outside the image. For the other two behaviours:
+`imageSrc0At` and `imageSrcNAtFromSrc0Pos` return `vec4(0)` outside the image.
+For the other two behaviours:
 
 ```go
 // Clamp to edge.
