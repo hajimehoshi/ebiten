@@ -410,8 +410,6 @@ func (w *desktopWindow) Position() (int, int) {
 	}
 	b := w.ui.runningBackend()
 	if b == nil {
-		// The window has not started yet. Return the buffered initial position
-		// that SetPosition stored, consistently with Size.
 		return w.getInitWindowPositionInDIP()
 	}
 	return b.Window().Position()
