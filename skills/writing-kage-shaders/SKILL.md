@@ -4,7 +4,7 @@ description: >
   Use this skill when writing, reviewing, debugging, or porting a Kage shader
   for Ebitengine — anything involving `//kage:unit pixels`, `ebiten.NewShader`,
   `DrawTrianglesShader`, `DrawRectShader`, or a
-  `Fragment(dstPos vec4, srcPos vec2, color vec4) vec4` entry point. Use it
+  `Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4` entry point. Use it
   especially when translating an existing shader from GLSL, Shadertoy, HLSL,
   MSL, Godot, or Unity, where the source assumes 0..1 texture coordinates,
   `gl_FragCoord`, `texture()` sampling, a bottom-left origin, `uniform`
@@ -68,19 +68,19 @@ destination region is the destination image's bounds, so a
 triangle fan covering part of the screen, is a sub-region of it. Consequently
 `dstPos.xy - imageDstOrigin()` is image-local, not draw-local, and
 `imageDstSize()` is not the draw's extent. When an effect must be positioned or
-scaled relative to what is being drawn, drive it from `srcPos` — which is
+scaled relative to what is being drawn, drive it from `src0Pos` — which is
 interpolated from the vertices and therefore does follow the geometry — or pass
 the draw's origin and size as uniforms.
 
 The `Fragment` entry point receives absolute positions on those textures:
 
 ```go
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4
 ```
 
 - `dstPos.xy` — the fragment's position on the **destination** texture. Only
   `.xy` is meaningful; ignore `.z` and `.w`.
-- `srcPos` — the interpolated position on **source texture 0**. It comes from
+- `src0Pos` — the interpolated position on **source texture 0**. It comes from
   `Vertex.SrcX`/`SrcY`, converted to image 0's texture coordinates. If
   `Images[0]` is nil, `SrcX`/`SrcY` are passed through unconverted.
 - `color` — for `DrawTrianglesShader`, the interpolated `Vertex.ColorR/G/B/A`,
@@ -94,7 +94,7 @@ Any trailing parameters may be omitted; `func Fragment() vec4` is legal.
 
 ### Normalizing to 0..1
 
-Neither `dstPos` nor `srcPos` is guaranteed to start at zero. Sometimes one
+Neither `dstPos` nor `src0Pos` is guaranteed to start at zero. Sometimes one
 does — an image can sit at its texture's origin, and `DrawTrianglesShader` with
 `Images[0] == nil` passes `SrcX`/`SrcY` through unchanged — which is what makes
 this the single most common porting bug: code that divides a raw coordinate by
@@ -113,7 +113,7 @@ into a position:
 dstUV := (dstPos.xy - imageDstOrigin()) / imageDstSize()
 
 // Source image 0, normalized to 0..1.
-srcUV := (srcPos - imageSrc0Origin()) / imageSrc0Size()
+srcUV := (src0Pos - imageSrc0Origin()) / imageSrc0Size()
 
 // Back to a samplable position on source image 0.
 pos := srcUV*imageSrc0Size() + imageSrc0Origin()
@@ -157,11 +157,11 @@ it fetches `pos - imageSrc0Origin() + imageSrcNOrigin()`, and `imageSrcNAt`
 returns `vec4(0)` outside `[imageSrc0Origin(), imageSrc0Origin() + imageSrcNSize())`.
 
 So all four slots share one coordinate space, and the normal thing to write is
-`srcPos` for every one of them. Pixel (x, y) of image 0 lines up with pixel
+`src0Pos` for every one of them. Pixel (x, y) of image 0 lines up with pixel
 (x, y) of image N, whatever atlases they landed on and whatever their sizes:
 
 ```go
-return imageSrc0At(srcPos) * imageSrc1At(srcPos).a
+return imageSrc0At(src0Pos) * imageSrc1At(src0Pos).a
 ```
 
 Differing sizes need no correction. Where image N is smaller than image 0,
@@ -172,7 +172,7 @@ as stretching a smaller mask across the whole of image 0. That is a scaling
 choice, not a size fix, and the origin you add back is still image 0's:
 
 ```go
-uv := (srcPos - imageSrc0Origin()) / imageSrc0Size()
+uv := (src0Pos - imageSrc0Origin()) / imageSrc0Size()
 pos1 := uv*imageSrc1Size() + imageSrc0Origin() // note: Src0Origin, not Src1Origin
 return imageSrc1At(pos1)
 ```
@@ -191,7 +191,7 @@ Put this on its own line, conventionally just above `package main`:
 //kage:unit pixels
 ```
 
-Omitting it selects the legacy texel unit, in which `srcPos` and every
+Omitting it selects the legacy texel unit, in which `src0Pos` and every
 origin/size value become texels of the **atlas** texture (0..1 across the whole
 atlas, not across your image), and `DrawTrianglesShader`/`DrawRectShader` panic
 when the source images differ in size. A file may contain at most one
@@ -335,7 +335,7 @@ so it fails at draw time — do not use it.
    original's UV derivation with the origin-relative form above.
    `gl_FragCoord`/`fragCoord` becomes `dstPos.xy - imageDstOrigin()` and
    `iResolution` becomes `imageDstSize()` *when the draw covers the whole
-   destination image*; otherwise work from `srcPos`/`imageSrc0Size()`, or pass
+   destination image*; otherwise work from `src0Pos`/`imageSrc0Size()`, or pass
    the draw's origin and size as uniforms. A bottom-left origin needs
    `uv.y = 1 - uv.y`.
 3. **Translate the body** using the table in

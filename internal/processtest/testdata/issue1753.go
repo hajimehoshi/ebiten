@@ -37,7 +37,7 @@ func (g *Game) Update() error {
 
 var Color vec4
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	return Color
 }`))
 		if err != nil {
@@ -69,7 +69,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 var Dummy float
 var A, B, G, R float
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	return vec4(R, G, B, A)
 }`))
 		if err != nil {

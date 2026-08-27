@@ -12,12 +12,12 @@ func dstUV(dstPos vec4) vec2 {
 }
 
 // Source position, normalized to 0..1 over source image 0.
-func srcUV(srcPos vec2) vec2 {
-	return (srcPos - imageSrc0Origin()) / imageSrc0Size()
+func srcUV(src0Pos vec2) vec2 {
+	return (src0Pos - imageSrc0Origin()) / imageSrc0Size()
 }
 
 // The inverse: a 0..1 coordinate back to a samplable position on source 0.
-func srcPosOf(uv vec2) vec2 {
+func src0PosOf(uv vec2) vec2 {
 	return uv*imageSrc0Size() + imageSrc0Origin()
 }
 ```
@@ -35,8 +35,8 @@ destination image, not over the area being drawn.
 Subtract the origin, transform, add it back. Rotation about the image centre:
 
 ```go
-func rotateAroundCenter(srcPos vec2, angle float) vec2 {
-	p := srcPos - imageSrc0Origin() - imageSrc0Size()/2
+func rotateAroundCenter(src0Pos vec2, angle float) vec2 {
+	p := src0Pos - imageSrc0Origin() - imageSrc0Size()/2
 	s, c := sin(angle), cos(angle)
 	p = vec2(p.x*c-p.y*s, p.x*s+p.y*c)
 	return p + imageSrc0Size()/2 + imageSrc0Origin()
@@ -45,12 +45,12 @@ func rotateAroundCenter(srcPos vec2, angle float) vec2 {
 
 ## Sampling another source image
 
-Every slot shares image 0's coordinate space, so pass `srcPos` through
+Every slot shares image 0's coordinate space, so pass `src0Pos` through
 unchanged, whatever the images' sizes.
 
 ```go
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
-	return imageSrc0At(srcPos) * imageSrc1At(srcPos).a
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return imageSrc0At(src0Pos) * imageSrc1At(src0Pos).a
 }
 ```
 
@@ -59,8 +59,8 @@ normalize in image 0's space, scale by image 1's size, and add **image 0's**
 origin.
 
 ```go
-func src1PosOf(srcPos vec2) vec2 {
-	uv := (srcPos - imageSrc0Origin()) / imageSrc0Size()
+func src1PosOf(src0Pos vec2) vec2 {
+	uv := (src0Pos - imageSrc0Origin()) / imageSrc0Size()
 	return uv*imageSrc1Size() + imageSrc0Origin()
 }
 ```
@@ -153,9 +153,9 @@ Constant cell size:
 ```go
 const CellSize = 12.0
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	origin := imageSrc0Origin()
-	cell := floor((srcPos-origin)/CellSize)*CellSize + vec2(CellSize/2)
+	cell := floor((src0Pos-origin)/CellSize)*CellSize + vec2(CellSize/2)
 	return imageSrc0At(cell + origin)
 }
 ```
@@ -165,9 +165,9 @@ Averaging the whole cell needs a loop, and the loop bound must be constant:
 ```go
 const CellSize = 12.0
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	origin := imageSrc0Origin()
-	cell := floor((srcPos-origin)/CellSize) * CellSize
+	cell := floor((src0Pos-origin)/CellSize) * CellSize
 	var acc vec4
 	for y := 0.0; y < CellSize; y++ {
 		for x := 0.0; x < CellSize; x++ {
@@ -190,14 +190,14 @@ var CellSize float
 
 const MaxCellSize = 32.0
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	// Flooring keeps cells on an integer grid: a fractional size puts adjacent
 	// cell origins at fractional positions, so neighbouring cells sample
 	// overlapping texels under nearest sampling. Clamping keeps the divisor
 	// non-zero and the loop bound within the constant's reach.
 	size := floor(clamp(CellSize, 1, MaxCellSize))
 	origin := imageSrc0Origin()
-	cell := floor((srcPos-origin)/size) * size
+	cell := floor((src0Pos-origin)/size) * size
 	var acc vec4
 	var n float
 	for y := 0.0; y < MaxCellSize; y++ {
@@ -292,12 +292,12 @@ across, green down — if the draw covers only part of that image, the ramp span
 the image and the drawn area shows a slice of it.
 
 ```go
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	uv := (dstPos.xy - imageDstOrigin()) / imageDstSize()
 	return vec4(uv, 0, 1)
 }
 ```
 
 If the ramp is offset, clipped, or the image only looks right at certain sizes,
-an origin is missing somewhere. Substitute `srcPos`/`imageSrc0*` to check the
+an origin is missing somewhere. Substitute `src0Pos`/`imageSrc0*` to check the
 source side the same way.

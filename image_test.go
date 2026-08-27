@@ -2286,7 +2286,7 @@ func TestImageDrawTrianglesShaderInterpolatesValues(t *testing.T) {
 	is := []uint16{0, 1, 2, 1, 2, 3}
 	shader, err := ebiten.NewShader([]byte(`
 		package main
-		func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+		func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 			return color
 		}
 	`))
@@ -4501,7 +4501,7 @@ func TestImageDrawTrianglesShaderWithGreaterIndexThanVerticesCount(t *testing.T)
 	is := []uint16{0, 1, 2, 1, 2, 4}
 	shader, err := ebiten.NewShader([]byte(`
 		package main
-		func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+		func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 			return color
 		}
 	`))
@@ -4525,7 +4525,7 @@ func TestImageGeoMAfterDraw(t *testing.T) {
 
 package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	return vec4(1)
 }
 `))
@@ -4783,11 +4783,11 @@ func TestImageDrawTrianglesShader32(t *testing.T) {
 
 package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	// imageSrcNOrigin is actually not necessary here.
 	// As no source image is bounded, the source's origin position is (0, 0).
 	// However, let's use this function for readability.
-	p := srcPos - imageSrc0Origin()
+	p := src0Pos - imageSrc0Origin()
 	return vec4(floor(p.x) / 16, floor(p.y) / 16, 1, 1)
 }
 `))

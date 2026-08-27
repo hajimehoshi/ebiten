@@ -41,7 +41,7 @@ func (g *Game) Update() error {
 
 package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	return vec4(%d/255.0)
 }
 `, g.count)))

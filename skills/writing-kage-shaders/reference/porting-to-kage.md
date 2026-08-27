@@ -12,7 +12,7 @@ this file is the mechanical translation layer.
 | `uniform float iTime;` | `var Time float` (exported global = uniform) |
 | `#define PI 3.14159` | `const PI = 3.14159` |
 | `varying` / `in` / `out` | `Fragment` parameters and the return value |
-| `void mainImage(out vec4 o, in vec2 c)` | `func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4` |
+| `void mainImage(out vec4 o, in vec2 c)` | `func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4` |
 | `gl_FragColor = c;` / `fragColor = c;` | `return c` |
 | `struct Ray { ... }` | not supported; pass components separately or use an array |
 | `#ifdef` / `#include` | not supported; no preprocessor at all |
@@ -24,7 +24,7 @@ this file is the mechanical translation layer.
 | `gl_FragCoord.xy` (window pixels) | `dstPos.xy - imageDstOrigin()` † |
 | `iResolution.xy` | `imageDstSize()` † |
 | `fragCoord/iResolution.xy` (0..1 uv) | `(dstPos.xy - imageDstOrigin()) / imageDstSize()` † |
-| `vTexCoord` / `v_texCoord` (0..1 uv) | `(srcPos - imageSrc0Origin()) / imageSrc0Size()` |
+| `vTexCoord` / `v_texCoord` (0..1 uv) | `(src0Pos - imageSrc0Origin()) / imageSrc0Size()` |
 | `SCREEN_UV`, `UV` (Godot) | as above, destination and source respectively |
 | bottom-left origin | Ebitengine's is top-left: `uv.y = 1 - uv.y` |
 | `gl_FrontFacing` | `frontfacing()` (v2.9+) |
@@ -34,7 +34,7 @@ this file is the mechanical translation layer.
 region is the destination *image*, not the rectangle or triangles being drawn,
 so under a `GeoM` translation or a partial-coverage draw they give image-local
 coordinates and the image's size, not the draw's. For a partial draw, derive the
-coordinates from `srcPos`, which is interpolated from the vertices, or pass the
+coordinates from `src0Pos`, which is interpolated from the vertices, or pass the
 draw's origin and size as uniforms.
 
 Aspect correction that reads `uv = (fragCoord - 0.5*iResolution.xy)/iResolution.y`
@@ -46,8 +46,8 @@ the same caveat: both sides are then in image-local pixels.
 | Source | Kage |
 |---|---|
 | `texture(iChannel0, uv)` / `texture2D(tex, uv)` | `imageSrc0At(uv*imageSrc0Size() + imageSrc0Origin())` |
-| `texture(tex, vTexCoord)` where uv is the fragment's own uv | `imageSrc0At(srcPos)` |
-| a second sampler at the same uv | `imageSrc1At(srcPos)` — any size; every slot shares image 0's space |
+| `texture(tex, vTexCoord)` where uv is the fragment's own uv | `imageSrc0At(src0Pos)` |
+| a second sampler at the same uv | `imageSrc1At(src0Pos)` — any size; every slot shares image 0's space |
 | a second sampler stretched over image 0 | `imageSrc1At(uv*imageSrc1Size() + imageSrc0Origin())` |
 | `textureSize(tex, 0)` | `imageSrc0Size()` (the image; `imageSrc0TextureSize()` is the atlas) |
 | `texelFetch(tex, ivec2(x, y), 0)` | `imageSrc0At(vec2(x, y) + imageSrc0Origin())` |
@@ -57,7 +57,7 @@ the same caveat: both sides are then in image-local pixels.
 | out-of-range sampling | `imageSrcNAt` gives `vec4(0)`; `imageSrcNUnsafeAt` is undefined |
 
 Offsetting a sample by whole pixels needs no origin arithmetic, because the
-origin cancels: `imageSrc0At(srcPos + vec2(1, 0))` is the neighbouring texel.
+origin cancels: `imageSrc0At(src0Pos + vec2(1, 0))` is the neighbouring texel.
 Only *scaling* a coordinate needs the subtract-transform-add sandwich.
 
 ## Builtin functions
@@ -208,7 +208,7 @@ backend the game happens to be running on.
 ### `DrawRectShader`
 
 Simplest, and enough for a full-screen or full-image effect. Every non-nil
-source image must be exactly `width`×`height`, and `srcPos` runs across that
+source image must be exactly `width`×`height`, and `src0Pos` runs across that
 rectangle — including when `Images[0]` is nil, since the pixel unit synthesizes
 source region 0 from the rectangle.
 

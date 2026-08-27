@@ -21,12 +21,12 @@ package main
 var Time float
 var Cursor vec2
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	center := imageDstSize() / 2
 	amount := (center - Cursor) / 10
 	var clr vec3
-	clr.r = imageSrc2At(srcPos + amount).r
-	clr.g = imageSrc2UnsafeAt(srcPos).g
-	clr.b = imageSrc2At(srcPos - amount).b
+	clr.r = imageSrc2At(src0Pos + amount).r
+	clr.g = imageSrc2UnsafeAt(src0Pos).g
+	clr.b = imageSrc2At(src0Pos - amount).b
 	return vec4(clr, 1)
 }

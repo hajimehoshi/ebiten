@@ -21,20 +21,20 @@ package main
 var Time float
 var Cursor vec2
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	pos := dstPos.xy - imageDstOrigin()
 
 	border := imageDstSize().y*0.6 + 4*cos(Time*3+pos.y/10)
 	if pos.y < border {
-		return imageSrc2UnsafeAt(srcPos)
+		return imageSrc2UnsafeAt(src0Pos)
 	}
 
 	xoffset := 4 * cos(Time*3+pos.y/10)
 	yoffset := 20 * (1 + cos(Time*3+pos.y/40))
 	srcOrigin := imageSrc0Origin()
 	clr := imageSrc2At(vec2(
-		srcPos.x+xoffset,
-		-(srcPos.y+yoffset-srcOrigin.y)+border*2+srcOrigin.y,
+		src0Pos.x+xoffset,
+		-(src0Pos.y+yoffset-srcOrigin.y)+border*2+srcOrigin.y,
 	)).rgb
 
 	overlay := vec3(0.5, 1, 1)

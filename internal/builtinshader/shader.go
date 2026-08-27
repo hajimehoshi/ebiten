@@ -61,27 +61,27 @@ func adjustSrcPosForAddressRepeat(p vec2) vec2 {
 }
 {{end}}
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 {{if eq .Filter .FilterNearest}}
 {{if eq .Address .AddressUnsafe}}
-	clr := imageSrc0UnsafeAt(srcPos)
+	clr := imageSrc0UnsafeAt(src0Pos)
 {{else if eq .Address .AddressClampToZero}}
-	clr := imageSrc0At(srcPos)
+	clr := imageSrc0At(src0Pos)
 {{else if eq .Address .AddressRepeat}}
-	clr := imageSrc0At(adjustSrcPosForAddressRepeat(srcPos))
+	clr := imageSrc0At(adjustSrcPosForAddressRepeat(src0Pos))
 {{end}}
 {{else}}
 {{if eq .Filter .FilterLinear}}
-	p0 := srcPos - 1/2.0
-	p1 := srcPos + 1/2.0
+	p0 := src0Pos - 1/2.0
+	p1 := src0Pos + 1/2.0
 {{else if eq .Filter .FilterPixelated}}
 	// inversedScale is the size of the region on the source image.
 	// The size is the inverse of the geometry-matrix scale.
-	inversedScale := vec2(abs(dfdx(srcPos.x)), abs(dfdy(srcPos.y)))
+	inversedScale := vec2(abs(dfdx(src0Pos.x)), abs(dfdy(src0Pos.y)))
 	// Cap the inversedScale to 1 as dfdx/dfdy is not accurate on some machines (#3182).
 	inversedScale = min(inversedScale, vec2(1))
-	p0 := srcPos - inversedScale/2.0
-	p1 := srcPos + inversedScale/2.0
+	p0 := src0Pos - inversedScale/2.0
+	p1 := src0Pos + inversedScale/2.0
 {{end}}
 
 {{if eq .Address .AddressRepeat}}

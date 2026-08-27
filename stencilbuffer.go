@@ -37,7 +37,7 @@ const stencilBufferFillShaderSrc = `//kage:unit pixels
 
 package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4, custom vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4, custom vec4) vec4 {
 	if frontfacing() {
 		return vec4(0, 1.0 / 255.0, 0, 0)
 	}
@@ -54,11 +54,11 @@ func round(x float) float {
 	return floor(x + 0.5)
 }
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
-	c := imageSrc0UnsafeAt(srcPos)
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	c := imageSrc0UnsafeAt(src0Pos)
 	w := abs(int(round(c.g*255)) - int(round(c.r*255)))
 	v := min(float(w), 1)
-	return v * imageSrc1UnsafeAt(srcPos) * color
+	return v * imageSrc1UnsafeAt(src0Pos) * color
 }
 `
 
@@ -71,11 +71,11 @@ func round(x float) float {
 	return floor(x + 0.5)
 }
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
-	c := imageSrc0UnsafeAt(srcPos)
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	c := imageSrc0UnsafeAt(src0Pos)
 	w := abs(int(round(c.g*255)) - int(round(c.r*255)))
 	v := float(w % 2)
-	return v * imageSrc1UnsafeAt(srcPos) * color
+	return v * imageSrc1UnsafeAt(src0Pos) * color
 }
 `
 

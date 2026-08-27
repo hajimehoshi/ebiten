@@ -21,16 +21,16 @@ package main
 var Time float
 var Cursor vec2
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	// Triangle wave to go 0-->1-->0...
 	limit := abs(2*fract(Time/3) - 1)
-	level := imageSrc3UnsafeAt(srcPos).x
+	level := imageSrc3UnsafeAt(src0Pos).x
 
 	// Add a white border
 	if limit-0.1 < level && level < limit {
-		alpha := imageSrc0UnsafeAt(srcPos).w
+		alpha := imageSrc0UnsafeAt(src0Pos).w
 		return vec4(alpha)
 	}
 
-	return step(limit, level) * imageSrc0UnsafeAt(srcPos)
+	return step(limit, level) * imageSrc0UnsafeAt(src0Pos)
 }

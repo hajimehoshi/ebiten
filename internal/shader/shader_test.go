@@ -207,8 +207,8 @@ func TestCompileHLSLIntModulo(t *testing.T) {
 
 package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
-	a := int(srcPos.x)
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	a := int(src0Pos.x)
 	b := a % 3
 	return vec4(float(b))
 }`)
