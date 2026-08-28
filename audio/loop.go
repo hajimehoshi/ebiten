@@ -136,10 +136,6 @@ func (i *InfiniteLoop) blendRate(pos int64) float32 {
 	p := (pos - i.lstart) / int64(i.bytesPerSample)
 	l := len(i.afterLoop) / i.bytesPerSample
 	if l == 0 {
-		// The after-loop data is shorter than one frame, so there is nothing to
-		// blend with. Return 0 to skip blending: dividing p by l would be a
-		// division by zero and produce NaN, and reading a frame past the end of
-		// afterLoop would be out of bounds.
 		return 0
 	}
 	return 1 - float32(p)/float32(l)
