@@ -200,8 +200,6 @@ func TestCompile(t *testing.T) {
 	}
 }
 
-// TestCompileAssignFromNoReturnValue confirms that assigning the result of a
-// function that returns nothing reports an error instead of panicking.
 func TestCompileAssignFromNoReturnValue(t *testing.T) {
 	srcs := []string{
 		`package main
@@ -231,8 +229,6 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	}
 }
 
-// TestCompileHLSLIntModulo confirms that integer modulo is emitted via the modInt
-// helper rather than the '%' operator.
 func TestCompileHLSLIntModulo(t *testing.T) {
 	src := []byte(`//kage:unit pixels
 
