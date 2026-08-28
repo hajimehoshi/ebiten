@@ -151,6 +151,22 @@ func TestInfiniteLoopWithIntro(t *testing.T) {
 	}
 }
 
+func TestInfiniteLoopWithPartialFrameAfterLoop(t *testing.T) {
+	// The after-loop data is shorter than one frame (4 bytes for int16 stereo).
+	// The blend loop used to divide by zero in blendRate and then read past the
+	// end of afterLoop, panicking.
+	src := bytes.NewReader([]byte{1, 2, 3, 4, 5, 6, 7, 8, 9})
+	l := audio.NewInfiniteLoop(src, 8)
+
+	buf := make([]byte, 16)
+	if _, err := l.Read(buf); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := l.Read(buf); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestInfiniteLoopWithIncompleteSize(t *testing.T) {
 	// s1 should work as if 4092 is given.
 	s1 := audio.NewInfiniteLoop(bytes.NewReader(make([]byte, 4096)), 4095)
