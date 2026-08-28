@@ -371,6 +371,10 @@ func IsGamepadButtonJustPressed(id ebiten.GamepadID, button ebiten.GamepadButton
 //
 // IsGamepadButtonJustReleased is concurrent safe.
 func IsGamepadButtonJustReleased(id ebiten.GamepadID, button ebiten.GamepadButton) bool {
+	if button < 0 || ebiten.GamepadButtonMax < button {
+		return false
+	}
+
 	theInputState.m.RLock()
 	defer theInputState.m.RUnlock()
 
@@ -392,6 +396,10 @@ func IsGamepadButtonJustReleased(id ebiten.GamepadID, button ebiten.GamepadButto
 //
 // GamepadButtonPressDuration is concurrent safe.
 func GamepadButtonPressDuration(id ebiten.GamepadID, button ebiten.GamepadButton) int {
+	if button < 0 || ebiten.GamepadButtonMax < button {
+		return 0
+	}
+
 	theInputState.m.RLock()
 	defer theInputState.m.RUnlock()
 
@@ -502,6 +510,10 @@ func IsStandardGamepadButtonJustPressed(id ebiten.GamepadID, button ebiten.Stand
 //
 // IsStandardGamepadButtonJustReleased is concurrent safe.
 func IsStandardGamepadButtonJustReleased(id ebiten.GamepadID, button ebiten.StandardGamepadButton) bool {
+	if button < 0 || ebiten.StandardGamepadButtonMax < button {
+		return false
+	}
+
 	theInputState.m.RLock()
 	defer theInputState.m.RUnlock()
 
@@ -523,6 +535,10 @@ func IsStandardGamepadButtonJustReleased(id ebiten.GamepadID, button ebiten.Stan
 //
 // StandardGamepadButtonPressDuration is concurrent safe.
 func StandardGamepadButtonPressDuration(id ebiten.GamepadID, button ebiten.StandardGamepadButton) int {
+	if button < 0 || ebiten.StandardGamepadButtonMax < button {
+		return 0
+	}
+
 	theInputState.m.RLock()
 	defer theInputState.m.RUnlock()
 
