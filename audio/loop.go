@@ -165,6 +165,9 @@ func (i *InfiniteLoop) Read(b []byte) (int, error) {
 		panic(fmt.Sprintf("audio: position must be <= length but not at (*InfiniteLoop).Read: pos: %d, length: %d", i.pos, i.length()))
 	}
 
+	// bpos is the stream position of b[0], which must be calculated before the remainder is removed from b.
+	bpos := i.pos - int64(n)
+
 	// Save the remainder part to extra. This will be used at the next Read.
 	if rem := n % i.bitDepthInBytes; rem != 0 {
 		i.extra = append(i.extra, b[n-rem:n]...)
@@ -174,12 +177,12 @@ func (i *InfiniteLoop) Read(b []byte) (int, error) {
 
 	// Blend afterLoop and the loop start to reduce noises (#1888).
 	// Ideally, afterLoop and the loop start should be identical, but they can have very slight differences.
-	if !i.noBlendForTesting && i.blending && i.pos >= i.lstart && i.pos-int64(n) < i.lstart+int64(len(i.afterLoop)) {
+	if !i.noBlendForTesting && i.blending && i.pos >= i.lstart && bpos < i.lstart+int64(len(i.afterLoop)) {
 		if n%i.bitDepthInBytes != 0 {
 			panic(fmt.Sprintf("audio: n must be a multiple of bit depth %d [bytes] but not: %d", i.bitDepthInBytes, n))
 		}
 		for idx := 0; idx < n/i.bitDepthInBytes; idx++ {
-			abspos := i.pos - int64(n) + int64(idx)*int64(i.bitDepthInBytes)
+			abspos := bpos + int64(idx)*int64(i.bitDepthInBytes)
 			rate := i.blendRate(abspos)
 			if rate == 0 {
 				continue

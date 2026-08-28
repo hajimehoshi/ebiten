@@ -350,3 +350,86 @@ func TestInfiniteLoopWithSlowSourceKeepsAllBytes(t *testing.T) {
 		})
 	}
 }
+
+// partialFrameReader is a reader whose Read returns at most size bytes.
+type partialFrameReader struct {
+	src  io.ReadSeeker
+	size int
+}
+
+func (p *partialFrameReader) Read(buf []byte) (int, error) {
+	if len(buf) > p.size {
+		buf = buf[:p.size]
+	}
+	return p.src.Read(buf)
+}
+
+func (p *partialFrameReader) Seek(offset int64, whence int) (int64, error) {
+	return p.src.Seek(offset, whence)
+}
+
+func TestInfiniteLoopBlendWithPartialFrameReads(t *testing.T) {
+	cases := []struct {
+		name    string
+		length  int
+		newLoop func(src io.ReadSeeker, length int64) *audio.InfiniteLoop
+	}{
+		{
+			name:    "int16",
+			length:  2 * 2 * 2,
+			newLoop: audio.NewInfiniteLoop,
+		},
+		{
+			name:    "float32",
+			length:  4 * 2 * 2,
+			newLoop: audio.NewInfiniteLoopF32,
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			// The loop part is silent and the part after the loop is not, so the first sample of the
+			// second lap, whose blend rate is 1, must be exactly the first sample after the loop.
+			src := make([]byte, c.length*2)
+			for i := c.length; i < len(src); i++ {
+				src[i] = byte(100 + i - c.length)
+			}
+			// The source returns 3 bytes at most, which is not a multiple of any bit depth, so the
+			// position of the blended data must not be affected by the remainder.
+			l := c.newLoop(&partialFrameReader{
+				src:  bytes.NewReader(src),
+				size: 3,
+			}, int64(c.length))
+
+			// bytesPerSample is the size of one sample, which is the size of the data whose blend rate is 1.
+			bytesPerSample := c.length / 2
+
+			buf := make([]byte, c.length)
+			var out []byte
+			for range c.length * 2 {
+				n, err := l.Read(buf)
+				if err != nil {
+					t.Fatal(err)
+				}
+				out = append(out, buf[:n]...)
+				if len(out) >= c.length+bytesPerSample {
+					break
+				}
+			}
+			if got, want := len(out), c.length+bytesPerSample; got < want {
+				t.Fatalf("len(out): %d, want >= %d", got, want)
+			}
+
+			// The first lap is not blended as the data after the loop is not read yet.
+			for i, got := range out[:c.length] {
+				if want := byte(0); got != want {
+					t.Errorf("index: %d, got: %v, want: %v", i, got, want)
+					break
+				}
+			}
+			if got, want := out[c.length:c.length+bytesPerSample], src[c.length:c.length+bytesPerSample]; !bytes.Equal(got, want) {
+				t.Errorf("got: %v, want: %v", got, want)
+			}
+		})
+	}
+}
