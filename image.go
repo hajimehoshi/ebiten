@@ -272,7 +272,7 @@ func init() {
 // When the given image is as same as i, DrawImage panics.
 //
 // DrawImage works more efficiently as batches
-// when the successive calls of DrawImages satisfy the below conditions:
+// when the successive calls of DrawImage satisfy the below conditions:
 //
 //   - All render targets are the same (A in A.DrawImage(B, op))
 //   - All Blend values are the same

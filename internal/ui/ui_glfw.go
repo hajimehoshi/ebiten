@@ -1232,7 +1232,7 @@ func (u *glfwBackend) update() (outsideWidth, outsideHeight float64, screenWidth
 
 	// Initialize vsync after SetMonitor is called.
 	// Calling this inside setWindowSize didn't work (#1363).
-	// Also, setFPSMode has to be called after graphicscommand.SetRenderThread is called (#2714).
+	// Also, setFPSMode has to be called after graphicscommand.SetOSThreadAsRenderThread is called (#2714).
 	if !u.fpsModeInited {
 		if err := u.setFPSMode(FPSModeType(u.fpsMode.Load())); err != nil {
 			return 0, 0, 0, 0, err

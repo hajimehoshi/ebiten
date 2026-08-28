@@ -32,7 +32,7 @@ const (
 // Stream is a decoded audio stream.
 //
 // The format is signed 16bit integer little endian PCM (DecodeWithoutResampling, etc.),
-// or 32bit float little endian PCM (DeocdeF32).
+// or 32bit float little endian PCM (DecodeF32).
 // The channel count is 2.
 type Stream struct {
 	inner      io.ReadSeeker
@@ -88,7 +88,7 @@ func DecodeF32(src io.Reader) (*Stream, error) {
 // The src format must be 1 or 2 channels, 8bit or 16bit little endian PCM.
 // The src format is converted into 2 channels and 16bit.
 //
-// DecodeWithoutSampleRate returns error when decoding fails or IO error happens.
+// DecodeWithoutResampling returns error when decoding fails or IO error happens.
 //
 // The returned Stream's Seek is available only when src is an io.Seeker.
 //

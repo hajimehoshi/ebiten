@@ -82,7 +82,7 @@ type DrawTrianglesOptions struct {
 
 	// FillRule indicates the rule how an overlapped region is rendered.
 	//
-	// The rules FileRuleNonZero and FillRuleEvenOdd are useful when you want to render a complex polygon.
+	// The rules FillRuleNonZero and FillRuleEvenOdd are useful when you want to render a complex polygon.
 	// A complex polygon is a non-convex polygon like a concave polygon, a polygon with holes, or a self-intersecting polygon.
 	// See examples/vector for actual usages.
 	//

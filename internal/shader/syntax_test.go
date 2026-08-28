@@ -3046,16 +3046,16 @@ func TestSyntaxBuiltinFuncMixType(t *testing.T) {
 		{stmt: "a := mix(1, vec2(1), vec2(1)); _ = a", err: true},
 		{stmt: "a := mix(vec2(1), 1, 1); _ = a", err: true},
 		{stmt: "a := mix(vec2(1), 1, vec2(1)); _ = a", err: true},
-		{stmt: "a := mix(vec2(1), vec2(1), 1); _ = a", err: false}, // The thrid argument can be a float.
+		{stmt: "a := mix(vec2(1), vec2(1), 1); _ = a", err: false}, // The third argument can be a float.
 		{stmt: "a := mix(vec2(1), vec2(1), vec2(1)); _ = a", err: false},
 		{stmt: "a := mix(vec2(1), vec2(1), vec3(1)); _ = a", err: true},
 		{stmt: "a := mix(vec3(1), 1, 1); _ = a", err: true},
 		{stmt: "a := mix(vec3(1), 1, vec3(1)); _ = a", err: true},
-		{stmt: "a := mix(vec3(1), vec3(1), 1); _ = a", err: false}, // The thrid argument can be a float.
+		{stmt: "a := mix(vec3(1), vec3(1), 1); _ = a", err: false}, // The third argument can be a float.
 		{stmt: "a := mix(vec3(1), vec3(1), vec3(1)); _ = a", err: false},
 		{stmt: "a := mix(vec4(1), 1, 1); _ = a", err: true},
 		{stmt: "a := mix(vec4(1), 1, vec4(1)); _ = a", err: true},
-		{stmt: "a := mix(vec4(1), vec4(1), 1); _ = a", err: false}, // The thrid argument can be a float.
+		{stmt: "a := mix(vec4(1), vec4(1), 1); _ = a", err: false}, // The third argument can be a float.
 		{stmt: "a := mix(vec4(1), vec4(1), vec4(1)); _ = a", err: false},
 		{stmt: "a := mix(ivec2(1), ivec2(1), 1); _ = a", err: true},
 		{stmt: "a := mix(ivec2(1), ivec2(1), ivec2(1)); _ = a", err: true},

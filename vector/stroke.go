@@ -77,7 +77,7 @@ type AddStrokeOptions struct {
 
 // AddStroke adds a stroke path to the path p.
 //
-// The added stroke path must be rendered with FileRuleNonZero.
+// The added stroke path must be rendered with FillRuleNonZero.
 func (p *Path) AddStroke(src *Path, options *AddStrokeOptions) {
 	if options == nil {
 		return

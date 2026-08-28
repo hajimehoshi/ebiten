@@ -35,7 +35,7 @@ import (
 var _ Face = (*GoTextFace)(nil)
 
 // GoTextFace is a Face implementation for go-text's font.Face (github.com/go-text/typesetting).
-// With a GoTextFace, shaping.HarfBuzzShaper is always used as a shaper internally.
+// With a GoTextFace, shaping.HarfbuzzShaper is always used as a shaper internally.
 // GoTextFace includes the source and various options.
 //
 // Unlike GoXFace, one GoTextFace instance doesn't have its own glyph image cache.

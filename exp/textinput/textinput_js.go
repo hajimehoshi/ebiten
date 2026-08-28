@@ -306,7 +306,7 @@ func (t *textInputImpl) Start(bounds image.Rectangle, textBeforeCaret, textAfter
 		t.events.start()
 		return t.events.ch, func() {
 			t.events.end()
-			// Reset the session explictly, or a new session cannot be created above.
+			// Reset the session explicitly, or a new session cannot be created above.
 		}
 	}
 

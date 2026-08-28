@@ -234,7 +234,7 @@ func (cs *compileState) parse(f *ast.File) {
 			utypes = append(utypes, cs.ir.Uniforms[i])
 		}
 	}
-	// TODO: Check len(unames) == graphics.PreservedUniformVariablesNum. Unfortunately this is not true on tests.
+	// TODO: Check len(unames) == graphics.PreservedUniformVariablesCount. Unfortunately this is not true on tests.
 	for i, u := range cs.ir.UniformNames {
 		if !strings.HasPrefix(u, "__") {
 			unames = append(unames, u)
