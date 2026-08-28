@@ -50,9 +50,6 @@ type compileState struct {
 	vertexEntry   string
 	fragmentEntry string
 
-	// vertexEntryPos and fragmentEntryPos are the positions of the vertex and
-	// fragment entry-point functions, used to report errors about their
-	// signatures at the function they belong to.
 	vertexEntryPos   token.Pos
 	fragmentEntryPos token.Pos
 

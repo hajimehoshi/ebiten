@@ -231,9 +231,8 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	}
 }
 
-// TestCompileVaryingTypeMismatchPosition confirms that an error about a
-// mismatched fragment argument points at the fragment entry point, not at
-// line 1.
+// TestCompileVaryingTypeMismatchPosition confirms that the error position
+// points at the fragment entry point, not at line 1.
 func TestCompileVaryingTypeMismatchPosition(t *testing.T) {
 	src := `package main
 
