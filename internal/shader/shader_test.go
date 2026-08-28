@@ -231,7 +231,6 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	}
 }
 
-// TestCompileHugeShift confirms that an enormous constant shift is rejected.
 func TestCompileHugeShift(t *testing.T) {
 	src := `package main
 
