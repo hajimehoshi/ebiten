@@ -256,3 +256,47 @@ func TestStereoI16FromSigned24Bits(t *testing.T) {
 		})
 	}
 }
+
+// TestStereoI16SeekEnd confirms that Seek(0, io.SeekEnd) returns the length of
+// the stream in the wrapper's stereo-i16 byte space for every combination of
+// channel count and source format, matching Stream.Length.
+func TestStereoI16SeekEnd(t *testing.T) {
+	testCases := []struct {
+		name   string
+		format convert.Format
+		// bytesPerFrame is the size of one stereo frame in the source format.
+		bytesPerFrame int
+	}{
+		{"S16", convert.FormatS16, 4},
+		{"U8", convert.FormatU8, 2},
+		{"S24", convert.FormatS24, 6},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			for _, mono := range []bool{false, true} {
+				t.Run(fmt.Sprintf("mono=%t", mono), func(t *testing.T) {
+					const frames = 100
+					// A monaural source has one sample per frame, i.e. half the
+					// bytes of a stereo frame.
+					bytesPerFrame := tc.bytesPerFrame
+					if mono {
+						bytesPerFrame /= 2
+					}
+					src := bytes.NewReader(make([]byte, frames*bytesPerFrame))
+					s := convert.NewStereoI16ReadSeeker(src, mono, tc.format)
+
+					pos, err := s.Seek(0, io.SeekEnd)
+					if err != nil {
+						t.Fatal(err)
+					}
+					// The presented stream is always stereo i16 (4 bytes per frame),
+					// with mono sources duplicated to stereo.
+					want := frames * 4
+					if pos != int64(want) {
+						t.Errorf("Seek(0, io.SeekEnd): got %d, want %d", pos, want)
+					}
+				})
+			}
+		})
+	}
+}
