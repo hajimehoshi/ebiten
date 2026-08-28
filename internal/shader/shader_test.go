@@ -201,7 +201,7 @@ func TestCompile(t *testing.T) {
 }
 
 // TestCompileAssignFromNoReturnValue confirms that assigning the result of a
-// function that returns nothing reports an error instead of panicking (#B1).
+// function that returns nothing reports an error instead of panicking.
 func TestCompileAssignFromNoReturnValue(t *testing.T) {
 	srcs := []string{
 		`package main
