@@ -239,6 +239,27 @@ func TestSetPositionBeforeDeviceCreation(t *testing.T) {
 	}
 }
 
+func TestSetPositionLongDuration(t *testing.T) {
+	setup()
+	defer teardown()
+
+	p, err := context.NewPlayerF32(bytes.NewReader(nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// 10 milliseconds is exactly 441 samples at 44100 Hz, so the position
+	// round-trips exactly while exercising both the whole-seconds and the
+	// remainder terms of the conversion.
+	const duration = 8*time.Hour + 10*time.Millisecond
+	if err := p.SetPosition(duration); err != nil {
+		t.Fatal(err)
+	}
+	if got, want := p.Position(), duration; got != want {
+		t.Errorf("Position(): got: %v, want: %v", got, want)
+	}
+}
+
 // Issue #3438
 func TestRewindNonSeekableBeforeDeviceCreation(t *testing.T) {
 	setup()
