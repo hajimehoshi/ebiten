@@ -270,3 +270,83 @@ func TestInfiniteLoopWithSlowSource(t *testing.T) {
 		t.Errorf("got: %d, want: %d", got, want)
 	}
 }
+
+func TestInfiniteLoopWithSlowSourceKeepsAllBytes(t *testing.T) {
+	cases := []struct {
+		name    string
+		lstart  int
+		length  int
+		newLoop func(src io.ReadSeeker) *audio.InfiniteLoop
+	}{
+		{
+			name:   "int16",
+			lstart: 0,
+			length: 16,
+			newLoop: func(src io.ReadSeeker) *audio.InfiniteLoop {
+				return audio.NewInfiniteLoop(src, 16)
+			},
+		},
+		{
+			name:   "int16 with intro",
+			lstart: 8,
+			length: 24,
+			newLoop: func(src io.ReadSeeker) *audio.InfiniteLoop {
+				return audio.NewInfiniteLoopWithIntro(src, 8, 16)
+			},
+		},
+		{
+			name:   "float32",
+			lstart: 0,
+			length: 32,
+			newLoop: func(src io.ReadSeeker) *audio.InfiniteLoop {
+				return audio.NewInfiniteLoopF32(src, 32)
+			},
+		},
+		{
+			name:   "float32 with intro",
+			lstart: 8,
+			length: 40,
+			newLoop: func(src io.ReadSeeker) *audio.InfiniteLoop {
+				return audio.NewInfiniteLoopWithIntroF32(src, 8, 32)
+			},
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			src := make([]byte, c.length)
+			for i := range src {
+				src[i] = byte(i)
+			}
+			l := c.newLoop(&slowReader{
+				src: bytes.NewReader(src),
+			})
+
+			// The source returns at most one byte per Read, so a remainder is carried over between
+			// Reads. The remainder must not be counted twice in the loop position.
+			buf := make([]byte, c.length)
+			var out []byte
+			for range c.length * 4 {
+				n, err := l.Read(buf)
+				if err != nil {
+					t.Fatal(err)
+				}
+				out = append(out, buf[:n]...)
+			}
+
+			if got, want := len(out), c.length*2; got < want {
+				t.Errorf("len(out): %d, want >= %d", got, want)
+			}
+			for i, got := range out {
+				idx := i
+				if idx >= c.length {
+					idx = (idx-c.lstart)%(c.length-c.lstart) + c.lstart
+				}
+				if want := src[idx]; got != want {
+					t.Errorf("index: %d, got: %v, want: %v", i, got, want)
+					break
+				}
+			}
+		})
+	}
+}

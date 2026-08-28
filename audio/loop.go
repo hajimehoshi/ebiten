@@ -22,10 +22,13 @@ import (
 
 // InfiniteLoop represents a looped stream which never ends.
 type InfiniteLoop struct {
-	src             io.ReadSeeker
-	lstart          int64
-	llength         int64
-	pos             int64
+	src     io.ReadSeeker
+	lstart  int64
+	llength int64
+
+	// pos is the position of src. This is ahead of the position of the data returned so far by len(extra).
+	pos int64
+
 	bitDepthInBytes int
 	bytesPerSample  int
 
@@ -147,17 +150,17 @@ func (i *InfiniteLoop) Read(b []byte) (int, error) {
 		return 0, err
 	}
 
-	if i.pos+int64(len(b)) > i.length() {
-		b = b[:i.length()-i.pos]
+	extralen := len(i.extra)
+	if i.pos+int64(len(b))-int64(extralen) > i.length() {
+		b = b[:i.length()-i.pos+int64(extralen)]
 	}
 
-	extralen := len(i.extra)
 	copy(b, i.extra)
 	i.extra = i.extra[:0]
 
 	n, err := i.src.Read(b[extralen:])
-	n += extralen
 	i.pos += int64(n)
+	n += extralen
 	if i.pos > i.length() {
 		panic(fmt.Sprintf("audio: position must be <= length but not at (*InfiniteLoop).Read: pos: %d, length: %d", i.pos, i.length()))
 	}
