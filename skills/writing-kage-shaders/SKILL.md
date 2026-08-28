@@ -125,6 +125,14 @@ source region is set — so normalizing by it divides by zero. Pass the size you
 mean as a uniform in that case. `DrawRectShader` is safe without an image: in
 the pixel unit it synthesizes source region 0 as the drawn rectangle.
 
+`imageDstSize()` is the destination *image*, so `dstUV` normalizes over the
+image and not over the area being drawn. A ported `fragCoord/iResolution`
+usually means the latter, and the two coincide only when the draw covers the
+whole destination image. For `DrawRectShader` the drawn-area coordinate is
+`srcUV`, because source region 0 spans the drawn rectangle and is unaffected by
+`GeoM`; otherwise pass the draw's origin and size as uniforms. See
+[reference/recipes.md](reference/recipes.md).
+
 The same subtract-transform-add sandwich applies to *any* non-translation
 operation on a coordinate, not just division: `floor(p/cell)*cell` for
 pixelation, `mod` for tiling, a rotation matrix, a mirror. Do it in
