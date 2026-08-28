@@ -141,11 +141,8 @@ func (s *StereoI16ReadSeeker) Seek(offset int64, whence int) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
-	// s.source operates in the source format's byte space, but this wrapper
-	// presents a stereo-i16 byte space (the same units Stream.Length reports),
-	// so convert the returned position back. The mono factor applies only to a
-	// monaural source, while the format factor applies regardless of the
-	// channel count.
+	// Convert the returned position from the source format's byte space to the
+	// stereo-i16 byte space this wrapper presents.
 	if s.mono {
 		pos *= 2
 	}
