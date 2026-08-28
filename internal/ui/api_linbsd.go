@@ -122,6 +122,23 @@ func openX11Library(names ...string) (uintptr, error) {
 	return 0, firstErr
 }
 
+// xChangePropertyGeneric sets a window property from data, in the X property
+// format that matches the element type. An empty slice sets the property to
+// zero elements.
+func xChangePropertyGeneric[T byte | uint](display uintptr, w xID, property, typ xAtom, mode int32, data []T) int32 {
+	// Xlib takes 32-bit property data as C longs, so the format does not
+	// follow the element size.
+	format := int32(32)
+	if unsafe.Sizeof(T(0)) == 1 {
+		format = 8
+	}
+	var head unsafe.Pointer
+	if len(data) > 0 {
+		head = unsafe.Pointer(&data[0])
+	}
+	return xChangeProperty(display, w, property, typ, format, mode, head, int32(len(data)))
+}
+
 func x11RootWindow(display uintptr) xID {
 	return xRootWindow(display, xDefaultScreen(display))
 }
@@ -171,7 +188,7 @@ func x11SetWindowThemeVariant(display, window uintptr, variant string) {
 	} else {
 		utf8String := xInternAtom(display, "UTF8_STRING", false)
 		data := []byte(variant)
-		_ = xChangeProperty(display, xID(window), gtkThemeVariant, utf8String, 8, xPropModeReplace, unsafe.Pointer(&data[0]), int32(len(data)))
+		_ = xChangePropertyGeneric(display, xID(window), gtkThemeVariant, utf8String, xPropModeReplace, data)
 	}
 	// Properties are buffered until the next round-trip; flush so the change
 	// takes effect immediately.

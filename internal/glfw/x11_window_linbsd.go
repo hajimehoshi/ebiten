@@ -322,12 +322,11 @@ func updateWindowHints(window *Window) {
 		}
 	}
 
-	xChangeProperty(_glfw.platformWindow.display, window.platform.handle,
+	xChangePropertyGeneric(_glfw.platformWindow.display, window.platform.handle,
 		_glfw.platformWindow.MOTIF_WM_HINTS,
-		_glfw.platformWindow.MOTIF_WM_HINTS, 32,
+		_glfw.platformWindow.MOTIF_WM_HINTS,
 		_PropModeReplace,
-		unsafe.Pointer(&hints[0]),
-		int32(len(hints)))
+		hints[:])
 }
 
 // updateNormalHints updates the normal hints according to the window
@@ -419,10 +418,9 @@ func updateWindowMode(window *Window) {
 
 		// Enable compositor bypass
 		if !window.platform.transparent {
-			value := _Culong(1)
-			xChangeProperty(_glfw.platformWindow.display, window.platform.handle,
-				_glfw.platformWindow.NET_WM_BYPASS_COMPOSITOR, _XA_CARDINAL, 32,
-				_PropModeReplace, unsafe.Pointer(&value), 1)
+			xChangePropertyGeneric(_glfw.platformWindow.display, window.platform.handle,
+				_glfw.platformWindow.NET_WM_BYPASS_COMPOSITOR, _XA_CARDINAL,
+				_PropModeReplace, []_Culong{1})
 		}
 	} else {
 		if _glfw.platformWindow.xinerama.available &&
@@ -642,9 +640,9 @@ func createNativeWindow(window *Window, wndconfig *wndconfig, visual uintptr, de
 		}
 
 		if len(states) > 0 {
-			xChangeProperty(_glfw.platformWindow.display, window.platform.handle,
-				_glfw.platformWindow.NET_WM_STATE, _XA_ATOM, 32,
-				_PropModeReplace, unsafe.Pointer(&states[0]), int32(len(states)))
+			xChangePropertyGeneric(_glfw.platformWindow.display, window.platform.handle,
+				_glfw.platformWindow.NET_WM_STATE, _XA_ATOM,
+				_PropModeReplace, states)
 		}
 	}
 
@@ -678,27 +676,25 @@ func createNativeWindow(window *Window, wndconfig *wndconfig, visual uintptr, de
 		window.platform.syncCounter = _glfw.platformWindow.xsync.CreateCounter(
 			_glfw.platformWindow.display, 0)
 
-		counter := _Clong(window.platform.syncCounter)
-		xChangeProperty(_glfw.platformWindow.display, window.platform.handle,
-			_glfw.platformWindow.NET_WM_SYNC_REQUEST_COUNTER, _XA_CARDINAL, 32,
+		xChangePropertyGeneric(_glfw.platformWindow.display, window.platform.handle,
+			_glfw.platformWindow.NET_WM_SYNC_REQUEST_COUNTER, _XA_CARDINAL,
 			_PropModeReplace,
-			unsafe.Pointer(&counter), 1)
+			[]_Clong{_Clong(window.platform.syncCounter)})
 	}
 
 	// Declare our PID
 	{
-		pid := _Clong(os.Getpid())
-		xChangeProperty(_glfw.platformWindow.display, window.platform.handle,
-			_glfw.platformWindow.NET_WM_PID, _XA_CARDINAL, 32,
+		xChangePropertyGeneric(_glfw.platformWindow.display, window.platform.handle,
+			_glfw.platformWindow.NET_WM_PID, _XA_CARDINAL,
 			_PropModeReplace,
-			unsafe.Pointer(&pid), 1)
+			[]_Clong{_Clong(os.Getpid())})
 	}
 
 	if _glfw.platformWindow.NET_WM_WINDOW_TYPE != 0 && _glfw.platformWindow.NET_WM_WINDOW_TYPE_NORMAL != 0 {
-		windowType := _glfw.platformWindow.NET_WM_WINDOW_TYPE_NORMAL
-		xChangeProperty(_glfw.platformWindow.display, window.platform.handle,
-			_glfw.platformWindow.NET_WM_WINDOW_TYPE, _XA_ATOM, 32,
-			_PropModeReplace, unsafe.Pointer(&windowType), 1)
+		xChangePropertyGeneric(_glfw.platformWindow.display, window.platform.handle,
+			_glfw.platformWindow.NET_WM_WINDOW_TYPE, _XA_ATOM,
+			_PropModeReplace,
+			[]_Atom{_glfw.platformWindow.NET_WM_WINDOW_TYPE_NORMAL})
 	}
 
 	// Set ICCCM WM_HINTS property
@@ -777,10 +773,9 @@ func createNativeWindow(window *Window, wndconfig *wndconfig, visual uintptr, de
 
 	// Announce support for Xdnd (drag and drop)
 	{
-		version := _Atom(_GLFW_XDND_VERSION)
-		xChangeProperty(_glfw.platformWindow.display, window.platform.handle,
-			_glfw.platformWindow.XdndAware, _XA_ATOM, 32,
-			_PropModeReplace, unsafe.Pointer(&version), 1)
+		xChangePropertyGeneric(_glfw.platformWindow.display, window.platform.handle,
+			_glfw.platformWindow.XdndAware, _XA_ATOM,
+			_PropModeReplace, []_Atom{_GLFW_XDND_VERSION})
 	}
 
 	if err := window.platformSetWindowTitle(wndconfig.title); err != nil {
@@ -820,10 +815,6 @@ func writeTargetToProperty(request *_XSelectionRequestEvent) _Atom {
 		selectionString = _glfw.platformWindow.primarySelectionString
 	}
 	selectionBytes := []byte(selectionString)
-	var selectionPtr unsafe.Pointer
-	if len(selectionBytes) > 0 {
-		selectionPtr = unsafe.Pointer(&selectionBytes[0])
-	}
 
 	if request.Property == _None {
 		// The requester is a legacy client (ICCCM section 2.2)
@@ -841,14 +832,12 @@ func writeTargetToProperty(request *_XSelectionRequestEvent) _Atom {
 			_XA_STRING,
 		}
 
-		xChangeProperty(_glfw.platformWindow.display,
+		xChangePropertyGeneric(_glfw.platformWindow.display,
 			request.Requestor,
 			request.Property,
 			_XA_ATOM,
-			32,
 			_PropModeReplace,
-			unsafe.Pointer(&targets[0]),
-			int32(len(targets)))
+			targets)
 
 		return request.Property
 	}
@@ -880,27 +869,23 @@ func writeTargetToProperty(request *_XSelectionRequestEvent) _Atom {
 			}
 
 			if supported {
-				xChangeProperty(_glfw.platformWindow.display,
+				xChangePropertyGeneric(_glfw.platformWindow.display,
 					request.Requestor,
 					targets[i+1],
 					targets[i],
-					8,
 					_PropModeReplace,
-					selectionPtr,
-					int32(len(selectionBytes)))
+					selectionBytes)
 			} else {
 				targets[i+1] = _None
 			}
 		}
 
-		xChangeProperty(_glfw.platformWindow.display,
+		xChangePropertyGeneric(_glfw.platformWindow.display,
 			request.Requestor,
 			request.Property,
 			_glfw.platformWindow.ATOM_PAIR,
-			32,
 			_PropModeReplace,
-			unsafe.Pointer(targetsPtr),
-			int32(count))
+			targets)
 
 		return request.Property
 	}
@@ -909,14 +894,12 @@ func writeTargetToProperty(request *_XSelectionRequestEvent) _Atom {
 		// The request is a check whether SAVE_TARGETS is supported
 		// It should be handled as a no-op side effect target
 
-		xChangeProperty(_glfw.platformWindow.display,
+		xChangePropertyGeneric(_glfw.platformWindow.display,
 			request.Requestor,
 			request.Property,
 			_glfw.platformWindow.NULL_,
-			32,
 			_PropModeReplace,
-			nil,
-			0)
+			[]_Atom(nil))
 
 		return request.Property
 	}
@@ -927,14 +910,12 @@ func writeTargetToProperty(request *_XSelectionRequestEvent) _Atom {
 		if request.Target == format {
 			// The requested target is one that is supported
 
-			xChangeProperty(_glfw.platformWindow.display,
+			xChangePropertyGeneric(_glfw.platformWindow.display,
 				request.Requestor,
 				request.Property,
 				request.Target,
-				8,
 				_PropModeReplace,
-				selectionPtr,
-				int32(len(selectionBytes)))
+				selectionBytes)
 
 			return request.Property
 		}
@@ -2021,20 +2002,16 @@ func (w *Window) platformSetWindowTitle(title string) error {
 		0, 0, 0)
 
 	titleBytes := []byte(title)
-	var titlePtr unsafe.Pointer
-	if len(titleBytes) > 0 {
-		titlePtr = unsafe.Pointer(&titleBytes[0])
-	}
 
-	xChangeProperty(_glfw.platformWindow.display, w.platform.handle,
-		_glfw.platformWindow.NET_WM_NAME, _glfw.platformWindow.UTF8_STRING, 8,
+	xChangePropertyGeneric(_glfw.platformWindow.display, w.platform.handle,
+		_glfw.platformWindow.NET_WM_NAME, _glfw.platformWindow.UTF8_STRING,
 		_PropModeReplace,
-		titlePtr, int32(len(titleBytes)))
+		titleBytes)
 
-	xChangeProperty(_glfw.platformWindow.display, w.platform.handle,
-		_glfw.platformWindow.NET_WM_ICON_NAME, _glfw.platformWindow.UTF8_STRING, 8,
+	xChangePropertyGeneric(_glfw.platformWindow.display, w.platform.handle,
+		_glfw.platformWindow.NET_WM_ICON_NAME, _glfw.platformWindow.UTF8_STRING,
 		_PropModeReplace,
-		titlePtr, int32(len(titleBytes)))
+		titleBytes)
 
 	xFlush(_glfw.platformWindow.display)
 	return nil
@@ -2067,12 +2044,11 @@ func (w *Window) platformSetWindowIcon(images []*Image) error {
 		//       This is because of a historical mistake that then became part of the Xlib
 		//       ABI.  Xlib will pack these values into a regular array of 32-bit values
 		//       before sending it over the wire.
-		xChangeProperty(_glfw.platformWindow.display, w.platform.handle,
+		xChangePropertyGeneric(_glfw.platformWindow.display, w.platform.handle,
 			_glfw.platformWindow.NET_WM_ICON,
-			_XA_CARDINAL, 32,
+			_XA_CARDINAL,
 			_PropModeReplace,
-			unsafe.Pointer(&icon[0]),
-			int32(len(icon)))
+			icon)
 	} else {
 		xDeleteProperty(_glfw.platformWindow.display, w.platform.handle,
 			_glfw.platformWindow.NET_WM_ICON)
@@ -2309,11 +2285,10 @@ func (w *Window) platformMaximizeWindow() error {
 			return nil
 		}
 
-		xChangeProperty(_glfw.platformWindow.display, w.platform.handle,
-			_glfw.platformWindow.NET_WM_STATE, _XA_ATOM, 32,
+		xChangePropertyGeneric(_glfw.platformWindow.display, w.platform.handle,
+			_glfw.platformWindow.NET_WM_STATE, _XA_ATOM,
 			_PropModeAppend,
-			unsafe.Pointer(&missing[0]),
-			int32(len(missing)))
+			missing)
 	}
 
 	xFlush(_glfw.platformWindow.display)
@@ -2551,12 +2526,10 @@ func (w *Window) platformSetWindowFloating(enabled bool) error {
 			}
 
 			if i == len(states) {
-				above := _glfw.platformWindow.NET_WM_STATE_ABOVE
-				xChangeProperty(_glfw.platformWindow.display, w.platform.handle,
-					_glfw.platformWindow.NET_WM_STATE, _XA_ATOM, 32,
+				xChangePropertyGeneric(_glfw.platformWindow.display, w.platform.handle,
+					_glfw.platformWindow.NET_WM_STATE, _XA_ATOM,
 					_PropModeAppend,
-					unsafe.Pointer(&above),
-					1)
+					[]_Atom{_glfw.platformWindow.NET_WM_STATE_ABOVE})
 			}
 		} else if states != nil {
 			var i int
@@ -2570,13 +2543,9 @@ func (w *Window) platformSetWindowFloating(enabled bool) error {
 				states[i] = states[len(states)-1]
 				states = states[:len(states)-1]
 
-				var statesHead unsafe.Pointer
-				if len(states) > 0 {
-					statesHead = unsafe.Pointer(&states[0])
-				}
-				xChangeProperty(_glfw.platformWindow.display, w.platform.handle,
-					_glfw.platformWindow.NET_WM_STATE, _XA_ATOM, 32,
-					_PropModeReplace, statesHead, int32(len(states)))
+				xChangePropertyGeneric(_glfw.platformWindow.display, w.platform.handle,
+					_glfw.platformWindow.NET_WM_STATE, _XA_ATOM,
+					_PropModeReplace, states)
 			}
 		}
 	}
@@ -2625,10 +2594,9 @@ func (w *Window) platformGetWindowOpacity() (float32, error) {
 }
 
 func (w *Window) platformSetWindowOpacity(opacity float32) error {
-	value := _Culong(0xffffffff * float64(opacity))
-	xChangeProperty(_glfw.platformWindow.display, w.platform.handle,
-		_glfw.platformWindow.NET_WM_WINDOW_OPACITY, _XA_CARDINAL, 32,
-		_PropModeReplace, unsafe.Pointer(&value), 1)
+	xChangePropertyGeneric(_glfw.platformWindow.display, w.platform.handle,
+		_glfw.platformWindow.NET_WM_WINDOW_OPACITY, _XA_CARDINAL,
+		_PropModeReplace, []_Culong{_Culong(0xffffffff * float64(opacity))})
 	return nil
 }
 

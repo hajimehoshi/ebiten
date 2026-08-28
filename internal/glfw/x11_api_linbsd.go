@@ -333,6 +333,23 @@ func initLibX11() error {
 	return nil
 }
 
+// xChangePropertyGeneric sets a window property from data, in the X property
+// format that matches the element type. An empty slice sets the property to
+// zero elements.
+func xChangePropertyGeneric[T byte | _Clong | _Culong](display uintptr, w _XID, property _Atom, typ _Atom, mode int32, data []T) int32 {
+	// Xlib takes 32-bit property data as C longs, so the format does not
+	// follow the element size.
+	format := int32(32)
+	if unsafe.Sizeof(T(0)) == 1 {
+		format = 8
+	}
+	var head unsafe.Pointer
+	if len(data) > 0 {
+		head = unsafe.Pointer(&data[0])
+	}
+	return xChangeProperty(display, w, property, typ, format, mode, head, int32(len(data)))
+}
+
 // goString copies a NUL-terminated C string.
 func goString(p uintptr) string {
 	if p == 0 {
