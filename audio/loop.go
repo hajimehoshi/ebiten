@@ -135,6 +135,9 @@ func (i *InfiniteLoop) blendRate(pos int64) float32 {
 	}
 	p := (pos - i.lstart) / int64(i.bytesPerSample)
 	l := len(i.afterLoop) / i.bytesPerSample
+	if l == 0 {
+		return 0
+	}
 	return 1 - float32(p)/float32(l)
 }
 

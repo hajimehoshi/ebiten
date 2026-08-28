@@ -151,6 +151,19 @@ func TestInfiniteLoopWithIntro(t *testing.T) {
 	}
 }
 
+func TestInfiniteLoopWithPartialFrameAfterLoop(t *testing.T) {
+	src := bytes.NewReader([]byte{1, 2, 3, 4, 5, 6, 7, 8, 9})
+	l := audio.NewInfiniteLoop(src, 8)
+
+	buf := make([]byte, 16)
+	if _, err := l.Read(buf); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := l.Read(buf); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestInfiniteLoopWithIncompleteSize(t *testing.T) {
 	// s1 should work as if 4092 is given.
 	s1 := audio.NewInfiniteLoop(bytes.NewReader(make([]byte, 4096)), 4095)
