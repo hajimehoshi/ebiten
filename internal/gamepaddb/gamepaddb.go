@@ -37,7 +37,12 @@ const (
 	platformAndroid
 )
 
+var testingPlatform platform
+
 func currentPlatform() platform {
+	if testingPlatform != 0 {
+		return testingPlatform
+	}
 	switch runtime.GOOS {
 	case "windows":
 		return platformWindows
@@ -338,8 +343,8 @@ func axisMappings(id string) map[StandardAxis]mapping {
 }
 
 func HasStandardLayoutMapping(id string) bool {
-	mappingsM.RLock()
-	defer mappingsM.RUnlock()
+	mappingsM.Lock()
+	defer mappingsM.Unlock()
 
 	return buttonMappings(id) != nil || axisMappings(id) != nil
 }
@@ -359,8 +364,8 @@ func Name(id string) string {
 }
 
 func HasStandardAxis(id string, axis StandardAxis) bool {
-	mappingsM.RLock()
-	defer mappingsM.RUnlock()
+	mappingsM.Lock()
+	defer mappingsM.Unlock()
 
 	mappings := axisMappings(id)
 	if mappings == nil {
@@ -371,8 +376,8 @@ func HasStandardAxis(id string, axis StandardAxis) bool {
 }
 
 func StandardAxisValue(id string, axis StandardAxis, state GamepadState) float64 {
-	mappingsM.RLock()
-	defer mappingsM.RUnlock()
+	mappingsM.Lock()
+	defer mappingsM.Unlock()
 
 	mappings := axisMappings(id)
 	if mappings == nil {
@@ -414,8 +419,8 @@ func StandardAxisValue(id string, axis StandardAxis, state GamepadState) float64
 }
 
 func HasStandardButton(id string, button StandardButton) bool {
-	mappingsM.RLock()
-	defer mappingsM.RUnlock()
+	mappingsM.Lock()
+	defer mappingsM.Unlock()
 
 	mappings := buttonMappings(id)
 	if mappings == nil {
@@ -426,8 +431,8 @@ func HasStandardButton(id string, button StandardButton) bool {
 }
 
 func StandardButtonValue(id string, button StandardButton, state GamepadState) float64 {
-	mappingsM.RLock()
-	defer mappingsM.RUnlock()
+	mappingsM.Lock()
+	defer mappingsM.Unlock()
 
 	return standardButtonValue(id, button, state)
 }
@@ -478,8 +483,8 @@ func standardButtonValue(id string, button StandardButton, state GamepadState) f
 const ButtonPressedThreshold = 30.0 / 255.0
 
 func IsStandardButtonPressed(id string, button StandardButton, state GamepadState) bool {
-	mappingsM.RLock()
-	defer mappingsM.RUnlock()
+	mappingsM.Lock()
+	defer mappingsM.Unlock()
 
 	mappings, ok := gamepadButtonMappings[id]
 	if !ok {
