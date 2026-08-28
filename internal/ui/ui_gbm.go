@@ -49,6 +49,7 @@ type gbmBackend struct {
 	monitor *Monitor
 
 	inputState InputState
+	keyboard   *evdevKeyboard
 
 	mu sync.Mutex
 }
@@ -140,6 +141,19 @@ func (b *gbmBackend) initOnMainThread(options *RunOptions) error {
 
 	b.setRunningBackend(b)
 
+	// Read keyboard keys from the Linux input layer; a key press also schedules a frame.
+	b.keyboard = startEvdevKeyboard(func(key Key, pressed bool) {
+		b.mu.Lock()
+		t := b.InputTime()
+		if pressed {
+			b.inputState.setKeyPressed(key, t)
+		} else {
+			b.inputState.setKeyReleased(key, t)
+		}
+		b.mu.Unlock()
+		b.ScheduleFrame()
+	})
+
 	// Ask for the first frame. In FPSModeVsyncOffMinimum the game loop waits
 	// for a request, and a DRM display raises no event that would stand in for
 	// one, so nothing else would ever ask.
@@ -150,6 +164,10 @@ func (b *gbmBackend) initOnMainThread(options *RunOptions) error {
 
 func (b *gbmBackend) loopGame() (err error) {
 	defer func() {
+		if b.keyboard != nil {
+			b.keyboard.close()
+			b.keyboard = nil
+		}
 		graphicscommand.Terminate()
 		b.mainThread.Call(func() {
 			if b.eglContext != nil {
