@@ -257,7 +257,6 @@ func TestStereoI16FromSigned24Bits(t *testing.T) {
 	}
 }
 
-// TestStereoI16SeekEnd confirms that Seek(0, io.SeekEnd) returns the stream length.
 func TestStereoI16SeekEnd(t *testing.T) {
 	testCases := []struct {
 		name          string
