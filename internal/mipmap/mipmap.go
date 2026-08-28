@@ -282,8 +282,7 @@ func mipmapLevelFromDistance(dx0, dy0, dx1, dy1, sx0, sy0, sx1, sy1 float32) int
 		// If the image can be scaled into 0 size, adjust the level. (#839)
 		w, h := int(sx1-sx0), int(sy1-sy0)
 		for level >= 0 {
-			s := 1 << uint(level)
-			if (w > 0 && w/s == 0) || (h > 0 && h/s == 0) {
+			if (w > 0 && sizeForLevel(w, level) == 0) || (h > 0 && sizeForLevel(h, level) == 0) {
 				level--
 				continue
 			}
