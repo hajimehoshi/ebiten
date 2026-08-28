@@ -556,6 +556,9 @@ func addAndroidDefaultMappings(id string) bool {
 	if err != nil {
 		return false
 	}
+	if len(idBytes) < 16 {
+		return false
+	}
 	buttonMask := uint16(idBytes[12]) | (uint16(idBytes[13]) << 8)
 	axisMask := uint16(idBytes[14]) | (uint16(idBytes[15]) << 8)
 	if buttonMask == 0 && axisMask == 0 {
