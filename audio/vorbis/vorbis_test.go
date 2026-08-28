@@ -214,3 +214,20 @@ func TestNonSeekerF32(t *testing.T) {
 		t.Errorf("len(buf): got: %d, want: > 0", len(buf))
 	}
 }
+
+func TestMonoI16SeekEnd(t *testing.T) {
+	bs := test_mono_ogg
+
+	s, err := vorbis.DecodeWithoutResampling(bytes.NewReader(bs))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := s.Seek(0, io.SeekEnd)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := s.Length(); got != want {
+		t.Errorf("Seek(0, io.SeekEnd): got %d, want %d (stream length)", got, want)
+	}
+}
