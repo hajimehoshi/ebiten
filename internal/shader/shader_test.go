@@ -292,3 +292,45 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		t.Errorf("Compile must return an error for a huge constant shift, but got nil")
 	}
 }
+
+func TestCompileForLoopTermination(t *testing.T) {
+	testCases := []struct {
+		loop      string
+		wantError bool
+	}{
+		{"i := 0; i < 10; i += 1", false},
+		{"i := 10; i > 0; i -= 1", false},
+		{"i := 0; i != 10; i += 2", false},
+		{"i := 10; i != 0; i -= 2", false},
+		{"i := 10; i < 10; i += 1", false},
+		{"i := 0; i == 0; i += 1", false},
+		{"i := 0; i == 10; i += 1", false},
+		{"i := 0; i < 10; i += 0", true},
+		{"i := 0; i < 10; i -= 1", true},
+		{"i := 0; i <= 0; i -= 1", true},
+		{"i := 0; i > -10; i += 1", true},
+		{"i := 0; i >= 0; i += 1", true},
+		{"i := 0; i != 10; i += 3", true},
+		{"i := 10; i != 0; i -= 3", true},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.loop, func(t *testing.T) {
+			src := `package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	x := 0
+	for ` + tc.loop + ` {
+		x += 1
+	}
+	return vec4(1)
+}`
+			_, err := shader.Compile([]byte(src), "Vertex", "Fragment", 0)
+			if tc.wantError && err == nil {
+				t.Errorf("Compile must return an error, but got nil")
+			}
+			if !tc.wantError && err != nil {
+				t.Errorf("Compile must not return an error, but got %v", err)
+			}
+		})
+	}
+}

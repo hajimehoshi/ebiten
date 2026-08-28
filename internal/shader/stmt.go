@@ -901,6 +901,14 @@ func (cs *compileState) parseFor(block *block, fname string, stmt *ast.ForStmt, 
 		cs.addError(stmt.Pos(), "for-statement's post statement must have one of these operators: +=, -=, ++, --")
 		return nil, false
 	}
+	if gconstant.Sign(delta) == 0 {
+		cs.addError(stmt.Pos(), "for-statement's post statement must change the loop variable, but the delta is 0")
+		return nil, false
+	}
+	if forLoopNeverTerminates(op, init, end, delta) {
+		cs.addError(stmt.Pos(), "for-statement's condition never becomes false")
+		return nil, false
+	}
 
 	b, ok := cs.parseBlock(pseudoBlock, fname, []ast.Stmt{stmt.Body}, inParams, outParams, returnType, true)
 	if !ok {
@@ -934,6 +942,55 @@ func (cs *compileState) parseFor(block *block, fname string, stmt *ast.ForStmt, 
 			ForDelta:    delta,
 		},
 	}, true
+}
+
+func forLoopNeverTerminates(op shaderir.Op, init, end, delta gconstant.Value) bool {
+	init = gconstant.ToInt(init)
+	end = gconstant.ToInt(end)
+	delta = gconstant.ToInt(delta)
+	if init.Kind() == gconstant.Unknown || end.Kind() == gconstant.Unknown || delta.Kind() == gconstant.Unknown {
+		return false
+	}
+
+	d := gconstant.Sign(delta)
+	switch op {
+	case shaderir.LessThanOp, shaderir.LessThanEqualOp:
+		if d > 0 {
+			return false
+		}
+		tok := token.LSS
+		if op == shaderir.LessThanEqualOp {
+			tok = token.LEQ
+		}
+		return gconstant.Compare(init, tok, end)
+	case shaderir.GreaterThanOp, shaderir.GreaterThanEqualOp:
+		if d < 0 {
+			return false
+		}
+		tok := token.GTR
+		if op == shaderir.GreaterThanEqualOp {
+			tok = token.GEQ
+		}
+		return gconstant.Compare(init, tok, end)
+	case shaderir.EqualOp:
+		return d == 0 && gconstant.Compare(init, token.EQL, end)
+	case shaderir.NotEqualOp:
+		if d == 0 {
+			return gconstant.Compare(init, token.NEQ, end)
+		}
+		var diff gconstant.Value
+		if d > 0 {
+			diff = gconstant.BinaryOp(end, token.SUB, init)
+		} else {
+			diff = gconstant.BinaryOp(init, token.SUB, end)
+			delta = gconstant.UnaryOp(token.SUB, delta, 0)
+		}
+		if gconstant.Sign(diff) < 0 {
+			return true
+		}
+		return gconstant.Sign(gconstant.BinaryOp(diff, token.REM, delta)) != 0
+	}
+	return false
 }
 
 // parseRangeVar returns the name and the position of an iteration variable of a range-statement.
