@@ -267,9 +267,21 @@ func TestStereoI16SeekEnd(t *testing.T) {
 		// bytesPerFrame is the size of one stereo frame in the source format.
 		bytesPerFrame int
 	}{
-		{"S16", convert.FormatS16, 4},
-		{"U8", convert.FormatU8, 2},
-		{"S24", convert.FormatS24, 6},
+		{
+			name:          "S16",
+			format:        convert.FormatS16,
+			bytesPerFrame: 4,
+		},
+		{
+			name:          "U8",
+			format:        convert.FormatU8,
+			bytesPerFrame: 2,
+		},
+		{
+			name:          "S24",
+			format:        convert.FormatS24,
+			bytesPerFrame: 6,
+		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
