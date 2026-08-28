@@ -27,9 +27,18 @@ import (
 )
 
 var (
+	// test_mono.ogg is in the public domain.
+	// https://commons.wikimedia.org/wiki/File:Coins_dropped_on_wooden_floor.ogg
 	//go:embed test_mono.ogg
 	test_mono_ogg []byte
 
+	// test_stereo.ogg is in the public domain.
+	// https://commons.wikimedia.org/wiki/File:Example_sound_file_in_Ogg_Vorbis_format.ogg
+	//go:embed test_stereo.ogg
+	test_stereo_ogg []byte
+
+	// test_tooshort.ogg is in the public domain.
+	// https://opengameart.org/content/jumping-man-sounds
 	//go:embed test_tooshort.ogg
 	test_tooshort_ogg []byte
 )
@@ -81,6 +90,44 @@ func TestMonoF32(t *testing.T) {
 	// this needs to be doubled by 4 (= bytes in 32bits).
 	if got, want := s.Length(), r.Length()*2*4; got != want {
 		t.Errorf("s.Length(): got: %d, want: %d", got, want)
+	}
+}
+
+func TestStereoF32Seek(t *testing.T) {
+	bs := test_stereo_ogg
+
+	s, err := vorbis.DecodeF32(bytes.NewReader(bs))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// A stream decoded by audio/vorbis.DecodeF32() is always 32bit float stereo.
+	const sampleSize = 2 * 4
+
+	pos, err := s.Seek(0, io.SeekEnd)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := pos, s.Length(); got != want {
+		t.Errorf("s.Seek(0, io.SeekEnd): got: %d, want: %d", got, want)
+	}
+
+	off := s.Length() / 2 / sampleSize * sampleSize
+	pos, err = s.Seek(off, io.SeekStart)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := pos, off; got != want {
+		t.Errorf("s.Seek(%d, io.SeekStart): got: %d, want: %d", off, got, want)
+	}
+
+	const delta = sampleSize * 16
+	pos, err = s.Seek(delta, io.SeekCurrent)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := pos, off+delta; got != want {
+		t.Errorf("s.Seek(%d, io.SeekCurrent): got: %d, want: %d", int64(delta), got, want)
 	}
 }
 
