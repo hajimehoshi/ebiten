@@ -564,6 +564,10 @@ func (s *compileState) parseVariable(block *block, fname string, vs *ast.ValueSp
 				if len(ts) > 1 {
 					s.addError(vs.Pos(), "the numbers of lhs and rhs don't match")
 				}
+				if len(ts) == 0 {
+					s.addError(vs.Pos(), "the right-hand side of the variable declaration has no value")
+					return nil, nil, nil, false
+				}
 				t = ts[0]
 				if t.Main == shaderir.None {
 					t = toDefaultType(es[0].Const)

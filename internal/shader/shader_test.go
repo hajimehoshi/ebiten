@@ -200,8 +200,35 @@ func TestCompile(t *testing.T) {
 	}
 }
 
-// TestCompileHLSLIntModulo confirms that integer modulo is emitted via the modInt
-// helper rather than the '%' operator.
+func TestCompileAssignFromNoReturnValue(t *testing.T) {
+	srcs := []string{
+		`package main
+
+func bar() {
+}
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	x := bar()
+	return vec4(1)
+}`,
+		`package main
+
+func bar() {
+}
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	var x = bar()
+	return vec4(1)
+}`,
+	}
+	for _, src := range srcs {
+		_, err := shader.Compile([]byte(src), "Vertex", "Fragment", 0)
+		if err == nil {
+			t.Errorf("Compile must return an error for a function call with no return values, but got nil")
+		}
+	}
+}
+
 func TestCompileHLSLIntModulo(t *testing.T) {
 	src := []byte(`//kage:unit pixels
 
