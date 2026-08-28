@@ -168,6 +168,9 @@ func AppendJustReleasedKeys(keys []ebiten.Key) []ebiten.Key {
 // IsKeyJustPressed returns a boolean value indicating
 // whether the given key is pressed just in the current tick.
 //
+// IsKeyJustPressed always returns false for a key that represents multiple keys like [ebiten.KeyShift].
+// Use its left and right variants like [ebiten.KeyShiftLeft] and [ebiten.KeyShiftRight] instead.
+//
 // IsKeyJustPressed must be called in a game's Update, not Draw.
 //
 // IsKeyJustPressed is concurrent safe.
@@ -177,6 +180,9 @@ func IsKeyJustPressed(key ebiten.Key) bool {
 
 // IsKeyJustReleased returns a boolean value indicating
 // whether the given key is released just in the current tick.
+//
+// IsKeyJustReleased always returns false for a key that represents multiple keys like [ebiten.KeyShift].
+// Use its left and right variants like [ebiten.KeyShiftLeft] and [ebiten.KeyShiftRight] instead.
 //
 // IsKeyJustReleased must be called in a game's Update, not Draw.
 //
@@ -189,6 +195,9 @@ func IsKeyJustReleased(key ebiten.Key) bool {
 //
 // KeyPressDuration follows [ebiten.IsKeyPressed], and thus returns a positive value for a modifier key
 // released in the current tick.
+//
+// KeyPressDuration always returns 0 for a key that represents multiple keys like [ebiten.KeyShift].
+// Use its left and right variants like [ebiten.KeyShiftLeft] and [ebiten.KeyShiftRight] instead.
 //
 // KeyPressDuration must be called in a game's Update, not Draw.
 //
