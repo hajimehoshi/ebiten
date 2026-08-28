@@ -34,6 +34,11 @@ func canTruncateToFloat(v gconstant.Value) bool {
 	return gconstant.ToFloat(v).Kind() != gconstant.Unknown
 }
 
+// maxConstShift is the maximum constant shift count accepted by the compiler.
+// Folding a constant with a shift count larger than this would allocate a
+// huge number (e.g. 1<<(1<<40) needs 2^40 bits) and exhaust memory.
+const maxConstShift = 1 << 16
+
 var textureVariableRe = regexp.MustCompile(`\A__t(\d+)\z`)
 
 func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, markLocalVariableUsed bool) ([]shaderir.Expr, []shaderir.Type, []shaderir.Stmt, bool) {
@@ -165,6 +170,10 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 				}
 				if shift < 0 {
 					cs.addError(e.Pos(), fmt.Sprintf("negative shift count: %s", rhs[0].Const.String()))
+					return nil, nil, nil, false
+				}
+				if shift > maxConstShift {
+					cs.addError(e.Pos(), fmt.Sprintf("shift count too large: %s", rhs[0].Const.String()))
 					return nil, nil, nil, false
 				}
 				v = gconstant.Shift(lhs[0].Const, op, uint(shift))

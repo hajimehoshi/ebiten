@@ -230,3 +230,18 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 		t.Errorf("HLSL PSMain should not use the '%%' operator for integer modulo, but got:\n%s", body)
 	}
 }
+
+// TestCompileHugeShift confirms that a constant shift with an enormous shift
+// count reports an error instead of exhausting memory.
+func TestCompileHugeShift(t *testing.T) {
+	src := `package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	x := 1 << (1 << 40)
+	return vec4(x)
+}`
+	_, err := shader.Compile([]byte(src), "Vertex", "Fragment", 0)
+	if err == nil {
+		t.Errorf("Compile must return an error for a huge constant shift, but got nil")
+	}
+}
