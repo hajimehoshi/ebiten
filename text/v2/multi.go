@@ -18,6 +18,7 @@ import (
 	"errors"
 	"unicode/utf8"
 
+	"github.com/hajimehoshi/ebiten/v2/text/v2/internal/textutil"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
@@ -78,16 +79,21 @@ func (m *MultiFace) Metrics() Metrics {
 
 // advanceAt implements Face.
 func (m *MultiFace) advanceAt(text string, indexInBytes int) float64 {
+	firstLineLen := textutil.FirstLineLen(text)
+	if indexInBytes > firstLineLen {
+		indexInBytes = firstLineLen
+	}
 	if indexInBytes <= 0 {
 		return 0
 	}
+	firstLine := text[:firstLineLen]
 	var a float64
-	for _, c := range m.splitText(text) {
+	for _, c := range m.splitText(firstLine) {
 		if c.faceIndex == -1 {
 			continue
 		}
 		f := m.faces[c.faceIndex]
-		chunk := text[c.textStartIndex:c.textEndIndex]
+		chunk := firstLine[c.textStartIndex:c.textEndIndex]
 		if c.textEndIndex <= indexInBytes {
 			a += f.advanceAt(chunk, len(chunk))
 			continue
