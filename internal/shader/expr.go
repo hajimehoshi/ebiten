@@ -34,9 +34,8 @@ func canTruncateToFloat(v gconstant.Value) bool {
 	return gconstant.ToFloat(v).Kind() != gconstant.Unknown
 }
 
-// maxConstShift is the maximum constant shift count accepted by the compiler.
-// Folding a constant with a shift count larger than this would allocate a
-// huge number (e.g. 1<<(1<<40) needs 2^40 bits) and exhaust memory.
+// maxConstShift bounds constant shifts so that folding cannot allocate an
+// enormous number (e.g. 1<<(1<<40)) and exhaust memory.
 const maxConstShift = 1 << 16
 
 var textureVariableRe = regexp.MustCompile(`\A__t(\d+)\z`)
