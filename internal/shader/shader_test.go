@@ -230,3 +230,28 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 		t.Errorf("HLSL PSMain should not use the '%%' operator for integer modulo, but got:\n%s", body)
 	}
 }
+
+// TestCompileVaryingTypeMismatchPosition confirms that an error about a
+// mismatched fragment argument points at the fragment entry point, not at
+// line 1.
+func TestCompileVaryingTypeMismatchPosition(t *testing.T) {
+	src := `package main
+
+func Vertex(position vec4, texCoord vec2, color vec4) (vec4, vec2) {
+	return position, texCoord
+}
+
+func Fragment(position vec4, texCoord vec3, color vec4) vec4 {
+	return vec4(1)
+}`
+	_, err := shader.Compile([]byte(src), "Vertex", "Fragment", 0)
+	if err == nil {
+		t.Fatalf("Compile must return an error for a mismatched fragment argument, but got nil")
+	}
+	if strings.HasPrefix(err.Error(), "1:1:") {
+		t.Errorf("the error position must point at the fragment entry point, but got %q", err.Error())
+	}
+	if !strings.Contains(err.Error(), "7:") {
+		t.Errorf("the error position must be around the fragment entry point (line 7), but got %q", err.Error())
+	}
+}
