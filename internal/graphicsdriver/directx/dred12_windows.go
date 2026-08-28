@@ -17,6 +17,7 @@ package directx
 import (
 	"fmt"
 	"log/slog"
+	"structs"
 	"syscall"
 	"unsafe"
 
@@ -41,10 +42,12 @@ const (
 )
 
 type _ID3D12DeviceRemovedExtendedDataSettings struct {
+	_    structs.HostLayout
 	vtbl *_ID3D12DeviceRemovedExtendedDataSettings_Vtbl
 }
 
 type _ID3D12DeviceRemovedExtendedDataSettings_Vtbl struct {
+	_              structs.HostLayout
 	QueryInterface uintptr
 	AddRef         uintptr
 	Release        uintptr
@@ -78,6 +81,7 @@ func _D3D12GetDREDSettings() (*_ID3D12DeviceRemovedExtendedDataSettings, error) 
 }
 
 type _D3D12_DRED_ALLOCATION_NODE struct {
+	_              structs.HostLayout
 	ObjectNameA    *byte
 	ObjectNameW    *uint16
 	AllocationType int32
@@ -85,12 +89,14 @@ type _D3D12_DRED_ALLOCATION_NODE struct {
 }
 
 type _D3D12_DRED_PAGE_FAULT_OUTPUT struct {
+	_                              structs.HostLayout
 	PageFaultVA                    uint64
 	pHeadExistingAllocationNode    *_D3D12_DRED_ALLOCATION_NODE
 	pHeadRecentFreedAllocationNode *_D3D12_DRED_ALLOCATION_NODE
 }
 
 type _D3D12_AUTO_BREADCRUMB_NODE struct {
+	_                       structs.HostLayout
 	pCommandListDebugNameA  *byte
 	pCommandListDebugNameW  *uint16
 	pCommandQueueDebugNameA *byte
@@ -104,14 +110,17 @@ type _D3D12_AUTO_BREADCRUMB_NODE struct {
 }
 
 type _D3D12_DRED_AUTO_BREADCRUMBS_OUTPUT struct {
+	_                       structs.HostLayout
 	pHeadAutoBreadcrumbNode *_D3D12_AUTO_BREADCRUMB_NODE
 }
 
 type _ID3D12DeviceRemovedExtendedData struct {
+	_    structs.HostLayout
 	vtbl *_ID3D12DeviceRemovedExtendedData_Vtbl
 }
 
 type _ID3D12DeviceRemovedExtendedData_Vtbl struct {
+	_              structs.HostLayout
 	QueryInterface uintptr
 	AddRef         uintptr
 	Release        uintptr

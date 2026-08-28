@@ -18,6 +18,7 @@ import (
 	"errors"
 	"fmt"
 	"runtime"
+	"structs"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
@@ -55,6 +56,7 @@ type (
 )
 
 type _CANDIDATEFORM struct {
+	_            structs.HostLayout
 	dwIndex      uint32
 	dwStyle      uint32
 	ptCurrentPos _POINT
@@ -62,11 +64,13 @@ type _CANDIDATEFORM struct {
 }
 
 type _POINT struct {
+	_ structs.HostLayout
 	x int32
 	y int32
 }
 
 type _RECT struct {
+	_      structs.HostLayout
 	left   int32
 	top    int32
 	right  int32

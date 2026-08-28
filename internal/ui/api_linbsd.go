@@ -17,6 +17,7 @@
 package ui
 
 import (
+	"structs"
 	"sync"
 	"unsafe"
 
@@ -46,6 +47,7 @@ const (
 // xrrCrtcInfo mirrors the leading members of XRRCrtcInfo. Only the size fields
 // are read, so the trailing members are omitted.
 type xrrCrtcInfo struct {
+	_         structs.HostLayout
 	timestamp uint
 	x         int32
 	y         int32

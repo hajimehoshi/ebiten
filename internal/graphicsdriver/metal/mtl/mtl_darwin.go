@@ -26,6 +26,7 @@ import (
 	"errors"
 	"fmt"
 	"runtime"
+	"structs"
 	"unsafe"
 
 	"github.com/ebitengine/purego"
@@ -444,6 +445,7 @@ type RenderPassAttachmentDescriptor struct {
 //
 // Reference: https://developer.apple.com/documentation/metal/mtlclearcolor?language=objc.
 type ClearColor struct {
+	_                       structs.HostLayout
 	Red, Green, Blue, Alpha float64
 }
 
@@ -1172,6 +1174,7 @@ func (r RenderPipelineState) Release() {
 //
 // Reference: https://developer.apple.com/documentation/metal/mtlregion?language=objc.
 type Region struct {
+	_      structs.HostLayout
 	Origin Origin // The location of the upper-left corner of the block.
 	Size   Size   // The size of the block.
 }
@@ -1181,6 +1184,7 @@ type Region struct {
 //
 // Reference: https://developer.apple.com/documentation/metal/mtlorigin?language=objc.
 type Origin struct {
+	_ structs.HostLayout
 	X int
 	Y int
 	Z int
@@ -1191,6 +1195,7 @@ type Origin struct {
 //
 // Reference: https://developer.apple.com/documentation/metal/mtlsize?language=objc.
 type Size struct {
+	_      structs.HostLayout
 	Width  int
 	Height int
 	Depth  int
@@ -1210,6 +1215,7 @@ func RegionMake2D(x, y, width, height int) Region {
 //
 // Reference: https://developer.apple.com/documentation/metal/mtlviewport?language=objc.
 type Viewport struct {
+	_       structs.HostLayout
 	OriginX float64
 	OriginY float64
 	Width   float64
@@ -1222,6 +1228,7 @@ type Viewport struct {
 //
 // Reference: https://developer.apple.com/documentation/metal/mtlscissorrect?language=objc.
 type ScissorRect struct {
+	_      structs.HostLayout
 	X      int
 	Y      int
 	Width  int

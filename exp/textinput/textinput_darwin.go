@@ -19,6 +19,7 @@ package textinput
 import (
 	"image"
 	"math"
+	"structs"
 	"unsafe"
 
 	"github.com/ebitengine/purego/cstrings"
@@ -102,21 +103,25 @@ func getTextInputClient() objc.ID {
 const nsNotFound = uint(math.MaxInt)
 
 type nsPoint struct {
+	_ structs.HostLayout
 	x float64
 	y float64
 }
 
 type nsSize struct {
+	_      structs.HostLayout
 	width  float64
 	height float64
 }
 
 type nsRect struct {
+	_      structs.HostLayout
 	origin nsPoint
 	size   nsSize
 }
 
 type nsRange struct {
+	_        structs.HostLayout
 	location uint
 	length   uint
 }
@@ -150,8 +155,8 @@ func (t *textInputImpl) start(bounds image.Rectangle) (<-chan textInputState, fu
 	// X is shifted a little bit, especially for the accent popup.
 	bounds = bounds.Add(image.Pt(6, 0))
 	tc.Send(sel_setFrame, nsRect{
-		origin: nsPoint{float64(bounds.Min.X), float64(y)},
-		size:   nsSize{float64(bounds.Dx()), float64(bounds.Dy())},
+		origin: nsPoint{x: float64(bounds.Min.X), y: float64(y)},
+		size:   nsSize{width: float64(bounds.Dx()), height: float64(bounds.Dy())},
 	})
 
 	return t.events.start()

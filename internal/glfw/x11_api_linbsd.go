@@ -18,6 +18,7 @@ package glfw
 
 import (
 	"fmt"
+	"structs"
 	"unsafe"
 
 	"github.com/ebitengine/purego"
@@ -181,6 +182,7 @@ var (
 
 // XrmValue is the Xrm resource value struct.
 type _XrmValue struct {
+	_    structs.HostLayout
 	Size uint32
 	Addr uintptr
 }

@@ -1261,7 +1261,7 @@ func (w *Window) createNativeWindow(wndconfig *wndconfig, fbconfig *fbconfig) er
 		frameWidth = mi.rcMonitor.right - mi.rcMonitor.left
 		frameHeight = mi.rcMonitor.bottom - mi.rcMonitor.top
 	} else {
-		rect := _RECT{0, 0, int32(wndconfig.width), int32(wndconfig.height)}
+		rect := _RECT{left: 0, top: 0, right: int32(wndconfig.width), bottom: int32(wndconfig.height)}
 
 		w.platform.maximized = wndconfig.maximized
 		if wndconfig.maximized {

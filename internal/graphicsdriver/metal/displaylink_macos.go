@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"log/slog"
 	"runtime"
+	"structs"
 	"time"
 
 	"github.com/ebitengine/purego"
@@ -50,6 +51,7 @@ var (
 )
 
 type nsOperatingSystemVersion struct {
+	_            structs.HostLayout
 	majorVersion int
 	minorVersion int
 	patchVersion int

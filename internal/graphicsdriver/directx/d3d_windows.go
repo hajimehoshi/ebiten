@@ -17,6 +17,7 @@ package directx
 import (
 	"fmt"
 	"runtime"
+	"structs"
 	"syscall"
 	"unsafe"
 
@@ -151,15 +152,18 @@ func _D3DCreateBlob(size uint) (*_ID3DBlob, error) {
 }
 
 type _D3D_SHADER_MACRO struct {
+	_          structs.HostLayout
 	Name       *byte
 	Definition *byte
 }
 
 type _ID3DBlob struct {
+	_    structs.HostLayout
 	vtbl *_ID3DBlob_Vtbl
 }
 
 type _ID3DBlob_Vtbl struct {
+	_              structs.HostLayout
 	QueryInterface uintptr
 	AddRef         uintptr
 	Release        uintptr

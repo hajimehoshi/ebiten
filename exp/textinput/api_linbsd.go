@@ -17,6 +17,7 @@
 package textinput
 
 import (
+	"structs"
 	"sync"
 
 	"github.com/ebitengine/purego"
@@ -24,6 +25,7 @@ import (
 
 // xPoint mirrors XPoint.
 type xPoint struct {
+	_ structs.HostLayout
 	x int16
 	y int16
 }
