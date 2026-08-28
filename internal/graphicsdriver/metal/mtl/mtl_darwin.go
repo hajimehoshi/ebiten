@@ -1053,19 +1053,45 @@ func (t Texture) Release() {
 	t.texture.Send(sel_release)
 }
 
-// GetBytes copies a block of pixels from the storage allocation of texture
-// slice zero into system memory at a specified address.
+// checkPixelsForTransfer returns an error unless pixels is large enough for transferring region with bytesPerRow.
 //
-// Reference: https://developer.apple.com/documentation/metal/mtltexture/1515751-getbytes?language=objc.
-func (t Texture) GetBytes(pixelBytes *byte, bytesPerRow uintptr, region Region, level int) {
-	t.texture.Send(sel_getBytes_bytesPerRow_fromRegion_mipmapLevel, pixelBytes, bytesPerRow, region, level)
+// The underlying selectors are the convenience forms without a slice or a bytes-per-image argument, so a
+// transfer always covers region.Size.Height rows of bytesPerRow bytes in slice 0, and the region must be 2D.
+func checkPixelsForTransfer(pixels []byte, bytesPerRow int, region Region, funcName string) error {
+	if region.Size.Depth != 1 {
+		return fmt.Errorf("mtl: region depth must be 1 but was %d at %s", region.Size.Depth, funcName)
+	}
+	if want := region.Size.Height * bytesPerRow; len(pixels) < want {
+		return fmt.Errorf("mtl: len(pixels) must be at least %d but was %d at %s", want, len(pixels), funcName)
+	}
+	return nil
 }
 
-// ReplaceRegion copies a block of pixels from the caller's pointer into the storage allocation for slice 0 of a texture.
+// GetBytes copies a block of pixels from the storage allocation of texture
+// slice zero into pixels.
+//
+// GetBytes returns an error if len(pixels) is less than region.Size.Height * bytesPerRow.
+//
+// Reference: https://developer.apple.com/documentation/metal/mtltexture/1515751-getbytes?language=objc.
+func (t Texture) GetBytes(pixels []byte, bytesPerRow int, region Region, level int) error {
+	if err := checkPixelsForTransfer(pixels, bytesPerRow, region, "GetBytes"); err != nil {
+		return err
+	}
+	t.texture.Send(sel_getBytes_bytesPerRow_fromRegion_mipmapLevel, &pixels[0], uintptr(bytesPerRow), region, level)
+	return nil
+}
+
+// ReplaceRegion copies a block of pixels from pixels into the storage allocation for slice 0 of a texture.
+//
+// ReplaceRegion returns an error if len(pixels) is less than region.Size.Height * bytesPerRow.
 //
 // Reference: https://developer.apple.com/documentation/metal/mtltexture/1515464-replaceregion?language=objc.
-func (t Texture) ReplaceRegion(region Region, level int, pixelBytes unsafe.Pointer, bytesPerRow int) {
-	t.texture.Send(sel_replaceRegion_mipmapLevel_withBytes_bytesPerRow, region, level, pixelBytes, bytesPerRow)
+func (t Texture) ReplaceRegion(region Region, level int, pixels []byte, bytesPerRow int) error {
+	if err := checkPixelsForTransfer(pixels, bytesPerRow, region, "ReplaceRegion"); err != nil {
+		return err
+	}
+	t.texture.Send(sel_replaceRegion_mipmapLevel_withBytes_bytesPerRow, region, level, unsafe.Pointer(&pixels[0]), bytesPerRow)
+	return nil
 }
 
 // Width is the width of the texture image for the base level mipmap, in pixels.
