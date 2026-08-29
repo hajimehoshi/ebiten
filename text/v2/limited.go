@@ -87,7 +87,60 @@ func (l *LimitedFace) hasGlyph(r rune) bool {
 
 // appendLazyGlyphsForLine implements Face.
 func (l *LimitedFace) appendLazyGlyphsForLine(glyphs []LazyGlyph, line string, indexOffset int, originX, originY float64, keepGlyph func(originX, originY float64) bool) []LazyGlyph {
-	return l.face.appendLazyGlyphsForLine(glyphs, l.unicodeRanges.Filter(line), indexOffset, originX, originY, keepGlyph)
+	filtered := l.unicodeRanges.Filter(line)
+	if filtered == line {
+		return l.face.appendLazyGlyphsForLine(glyphs, filtered, indexOffset, originX, originY, keepGlyph)
+	}
+
+	mapping := limitedFilterMapping(line, filtered)
+
+	before := len(glyphs)
+	glyphs = l.face.appendLazyGlyphsForLine(glyphs, filtered, indexOffset, originX, originY, keepGlyph)
+	for i := before; i < len(glyphs); i++ {
+		start := glyphs[i].StartIndexInBytes - indexOffset
+		end := glyphs[i].EndIndexInBytes - indexOffset
+		if start < 0 || start >= len(mapping) || end < 0 || end >= len(mapping) {
+			continue
+		}
+		glyphs[i].StartIndexInBytes = mapping[start] + indexOffset
+		glyphs[i].EndIndexInBytes = mapping[end] + indexOffset
+	}
+	return glyphs
+}
+
+func limitedFilterMapping(line, filtered string) []int {
+	mapping := make([]int, len(filtered)+1)
+	var oi, fi int
+	for oi < len(line) && fi < len(filtered) {
+		r, size := utf8.DecodeRuneInString(line[oi:])
+		if size <= 0 {
+			size = 1
+		}
+		fr, fsize := utf8.DecodeRuneInString(filtered[fi:])
+		if fsize <= 0 {
+			fsize = 1
+		}
+		if r == fr {
+			for k := range size {
+				mapping[fi+k] = oi + k
+			}
+			oi += size
+			fi += fsize
+			continue
+		}
+		const fffdLen = 3
+		mapping[fi] = oi
+		mapping[fi+1] = oi
+		mapping[fi+2] = oi
+		mapping[fi+fffdLen] = oi + size
+		oi += size
+		fi += fffdLen
+	}
+	for fi <= len(filtered) {
+		mapping[fi] = oi
+		fi++
+	}
+	return mapping
 }
 
 // appendVectorPathForLine implements Face.
