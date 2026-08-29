@@ -15,6 +15,8 @@
 package text
 
 import (
+	"slices"
+	"sync"
 	"unicode/utf8"
 
 	"github.com/hajimehoshi/ebiten/v2/text/v2/internal/textutil"
@@ -92,53 +94,68 @@ func (l *LimitedFace) appendLazyGlyphsForLine(glyphs []LazyGlyph, line string, i
 		return l.face.appendLazyGlyphsForLine(glyphs, filtered, indexOffset, originX, originY, keepGlyph)
 	}
 
-	mapping := limitedFilterMapping(line, filtered)
+	// The appended glyphs' indices are indices in filtered, not in line, so
+	// they have to be translated back (see limitedFilterMapping).
+	// The buffer is pooled for this is in the text rendering hot path.
+	mappingP := theLimitedFilterMappingPool.Get().(*[]int)
+	var mapping []int
+	defer func() {
+		*mappingP = mapping[:0]
+		theLimitedFilterMappingPool.Put(mappingP)
+	}()
+	mapping = limitedFilterMapping((*mappingP)[:0], line, filtered)
 
 	before := len(glyphs)
 	glyphs = l.face.appendLazyGlyphsForLine(glyphs, filtered, indexOffset, originX, originY, keepGlyph)
+	// The indices of glyphs are always in the range [0, len(filtered)], where
+	// mapping has len(filtered)+1 entries.
 	for i := before; i < len(glyphs); i++ {
-		start := glyphs[i].StartIndexInBytes - indexOffset
-		end := glyphs[i].EndIndexInBytes - indexOffset
-		if start < 0 || start >= len(mapping) || end < 0 || end >= len(mapping) {
-			continue
-		}
-		glyphs[i].StartIndexInBytes = mapping[start] + indexOffset
-		glyphs[i].EndIndexInBytes = mapping[end] + indexOffset
+		glyphs[i].StartIndexInBytes = mapping[glyphs[i].StartIndexInBytes-indexOffset] + indexOffset
+		glyphs[i].EndIndexInBytes = mapping[glyphs[i].EndIndexInBytes-indexOffset] + indexOffset
 	}
 	return glyphs
 }
 
-func limitedFilterMapping(line, filtered string) []int {
-	mapping := make([]int, len(filtered)+1)
+var theLimitedFilterMappingPool = sync.Pool{
+	New: func() any {
+		// 64 is an arbitrary number for the initial capacity.
+		s := make([]int, 0, 64)
+		// Return a pointer instead of a slice, or go-vet warns at Put.
+		return &s
+	},
+}
+
+// limitedFilterMapping appends to dst a mapping from a byte index in filtered
+// to a byte index in line, where filtered is the result of
+// UnicodeRanges.Filter(line).
+//
+// The returned mapping has len(filtered)+1 entries so that the end index of
+// the last rune can be mapped, and thus its last entry is len(line).
+//
+// Filter replaces every unsupported rune with U+FFFD, whose byte length can
+// differ from the replaced rune's length. As Filter never adds nor removes a
+// rune, a rune in line corresponds to a rune in filtered at the same order,
+// and the indices are translated rune by rune. Note that byte indices in the
+// middle of a rune in filtered have no correspondences in line, but a glyph
+// index is always at a rune boundary.
+func limitedFilterMapping(dst []int, line, filtered string) []int {
+	mapping := slices.Grow(dst, len(filtered)+1)[:len(filtered)+1]
 	var oi, fi int
 	for oi < len(line) && fi < len(filtered) {
-		r, size := utf8.DecodeRuneInString(line[oi:])
-		if size <= 0 {
-			size = 1
-		}
-		fr, fsize := utf8.DecodeRuneInString(filtered[fi:])
-		if fsize <= 0 {
-			fsize = 1
-		}
-		if r == fr {
-			for k := range size {
+		_, size := utf8.DecodeRuneInString(line[oi:])
+		_, fsize := utf8.DecodeRuneInString(filtered[fi:])
+		for k := range fsize {
+			if k < size {
 				mapping[fi+k] = oi + k
+			} else {
+				mapping[fi+k] = oi
 			}
-			oi += size
-			fi += fsize
-			continue
 		}
-		const fffdLen = 3
-		mapping[fi] = oi
-		mapping[fi+1] = oi
-		mapping[fi+2] = oi
-		mapping[fi+fffdLen] = oi + size
 		oi += size
-		fi += fffdLen
+		fi += fsize
 	}
-	for fi <= len(filtered) {
+	for ; fi <= len(filtered); fi++ {
 		mapping[fi] = oi
-		fi++
 	}
 	return mapping
 }
