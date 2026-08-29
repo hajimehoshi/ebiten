@@ -1255,7 +1255,7 @@ func (i *Image) ColorModel() color.Model {
 //
 // ReadPixels can't be called outside the main loop (ebiten.Run's updating function) starts.
 func (i *Image) ReadPixels(pixels []byte) {
-	b := i.Bounds()
+	b := i.bounds
 	if got, want := len(pixels), 4*b.Dx()*b.Dy(); got != want {
 		panic(fmt.Sprintf("ebiten: len(pixels) must be %d but %d at ReadPixels", want, got))
 	}
