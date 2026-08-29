@@ -47,7 +47,7 @@ func (g *Graphics) makeContextCurrent() error {
 }
 
 func (g *Graphics) swapBuffers() error {
-	// Call SwapIntervals even though vsync is not changed.
+	// Call SwapInterval even though vsync is not changed.
 	// When toggling to fullscreen, vsync state might be reset unexpectedly (#1787).
 
 	// SwapInterval is affected by the current monitor of the window.

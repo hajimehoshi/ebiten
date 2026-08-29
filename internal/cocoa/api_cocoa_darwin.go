@@ -16,6 +16,7 @@ package cocoa
 
 import (
 	"fmt"
+	"structs"
 
 	"github.com/ebitengine/purego"
 	"github.com/ebitengine/purego/cstrings"
@@ -111,14 +112,17 @@ const (
 type CGFloat = float64
 
 type CGSize struct {
+	_             structs.HostLayout
 	Width, Height CGFloat
 }
 
 type CGPoint struct {
+	_    structs.HostLayout
 	X, Y float64
 }
 
 type CGRect struct {
+	_      structs.HostLayout
 	Origin CGPoint
 	Size   CGSize
 }

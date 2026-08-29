@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"math"
 	"runtime"
+	"structs"
 	"syscall"
 	"unsafe"
 
@@ -300,12 +301,14 @@ var (
 )
 
 type _D3D11_BLEND_DESC struct {
+	_                      structs.HostLayout
 	AlphaToCoverageEnable  _BOOL
 	IndependentBlendEnable _BOOL
 	RenderTarget           [8]_D3D11_RENDER_TARGET_BLEND_DESC
 }
 
 type _D3D11_BOX struct {
+	_      structs.HostLayout
 	left   uint32
 	top    uint32
 	front  uint32
@@ -315,6 +318,7 @@ type _D3D11_BOX struct {
 }
 
 type _D3D11_BUFFER_DESC struct {
+	_                   structs.HostLayout
 	ByteWidth           uint32
 	Usage               _D3D11_USAGE
 	BindFlags           uint32
@@ -324,6 +328,7 @@ type _D3D11_BUFFER_DESC struct {
 }
 
 type _D3D11_DEPTH_STENCIL_DESC struct {
+	_                structs.HostLayout
 	DepthEnable      _BOOL
 	DepthWriteMask   _D3D11_DEPTH_WRITE_MASK
 	DepthFunc        _D3D11_COMPARISON_FUNC
@@ -335,6 +340,7 @@ type _D3D11_DEPTH_STENCIL_DESC struct {
 }
 
 type _D3D11_DEPTH_STENCIL_VIEW_DESC struct {
+	_             structs.HostLayout
 	Format        _DXGI_FORMAT
 	ViewDimension _D3D11_DSV_DIMENSION
 	Flags         uint32
@@ -342,6 +348,7 @@ type _D3D11_DEPTH_STENCIL_VIEW_DESC struct {
 }
 
 type _D3D11_DEPTH_STENCILOP_DESC struct {
+	_                  structs.HostLayout
 	StencilFailOp      _D3D11_STENCIL_OP
 	StencilDepthFailOp _D3D11_STENCIL_OP
 	StencilPassOp      _D3D11_STENCIL_OP
@@ -349,6 +356,7 @@ type _D3D11_DEPTH_STENCILOP_DESC struct {
 }
 
 type _D3D11_INPUT_ELEMENT_DESC struct {
+	_                    structs.HostLayout
 	SemanticName         *byte
 	SemanticIndex        uint32
 	Format               _DXGI_FORMAT
@@ -359,12 +367,14 @@ type _D3D11_INPUT_ELEMENT_DESC struct {
 }
 
 type _D3D11_MAPPED_SUBRESOURCE struct {
+	_          structs.HostLayout
 	pData      unsafe.Pointer
 	RowPitch   uint32
 	DepthPitch uint32
 }
 
 type _D3D11_RECT struct {
+	_      structs.HostLayout
 	left   int32
 	top    int32
 	right  int32
@@ -372,6 +382,7 @@ type _D3D11_RECT struct {
 }
 
 type _D3D11_RASTERIZER_DESC struct {
+	_                     structs.HostLayout
 	FillMode              _D3D11_FILL_MODE
 	CullMode              _D3D11_CULL_MODE
 	FrontCounterClockwise _BOOL
@@ -385,6 +396,7 @@ type _D3D11_RASTERIZER_DESC struct {
 }
 
 type _D3D11_RENDER_TARGET_BLEND_DESC struct {
+	_                     structs.HostLayout
 	BlendEnable           _BOOL
 	SrcBlend              _D3D11_BLEND
 	DestBlend             _D3D11_BLEND
@@ -396,12 +408,14 @@ type _D3D11_RENDER_TARGET_BLEND_DESC struct {
 }
 
 type _D3D11_RENDER_TARGET_VIEW_DESC struct {
+	_             structs.HostLayout
 	Format        _DXGI_FORMAT
 	ViewDimension _D3D11_RTV_DIMENSION
 	_             [3]uint32
 }
 
 type _D3D11_SAMPLER_DESC struct {
+	_              structs.HostLayout
 	Filter         _D3D11_FILTER
 	AddressU       _D3D11_TEXTURE_ADDRESS_MODE
 	AddressV       _D3D11_TEXTURE_ADDRESS_MODE
@@ -415,18 +429,21 @@ type _D3D11_SAMPLER_DESC struct {
 }
 
 type _D3D11_SHADER_RESOURCE_VIEW_DESC struct {
+	_             structs.HostLayout
 	Format        _DXGI_FORMAT
 	ViewDimension _D3D11_SRV_DIMENSION
 	_             [4]uint32
 }
 
 type _D3D11_SUBRESOURCE_DATA struct {
+	_                structs.HostLayout
 	pSysMem          unsafe.Pointer
 	SysMemPitch      uint32
 	SysMemSlicePitch uint32
 }
 
 type _D3D11_TEXTURE2D_DESC struct {
+	_              structs.HostLayout
 	Width          uint32
 	Height         uint32
 	MipLevels      uint32
@@ -440,6 +457,7 @@ type _D3D11_TEXTURE2D_DESC struct {
 }
 
 type _D3D11_VIEWPORT struct {
+	_        structs.HostLayout
 	TopLeftX float32
 	TopLeftY float32
 	Width    float32
@@ -485,10 +503,12 @@ func _D3D11CreateDevice(pAdapter unsafe.Pointer, driverType _D3D_DRIVER_TYPE, so
 }
 
 type _ID3D11BlendState struct {
+	_    structs.HostLayout
 	vtbl *_ID3D11BlendState_Vtbl
 }
 
 type _ID3D11BlendState_Vtbl struct {
+	_              structs.HostLayout
 	QueryInterface uintptr
 	AddRef         uintptr
 	Release        uintptr
@@ -508,10 +528,12 @@ func (i *_ID3D11BlendState) Release() uint32 {
 }
 
 type _ID3D11Buffer struct {
+	_    structs.HostLayout
 	vtbl *_ID3D11Buffer_Vtbl
 }
 
 type _ID3D11Buffer_Vtbl struct {
+	_              structs.HostLayout
 	QueryInterface uintptr
 	AddRef         uintptr
 	Release        uintptr
@@ -536,10 +558,12 @@ func (i *_ID3D11Buffer) Release() uint32 {
 }
 
 type _ID3D11ClassInstance struct {
+	_    structs.HostLayout
 	vtbl *_ID3D11ClassInstance_Vtbl
 }
 
 type _ID3D11ClassInstance_Vtbl struct {
+	_              structs.HostLayout
 	QueryInterface uintptr
 	AddRef         uintptr
 	Release        uintptr
@@ -557,10 +581,12 @@ type _ID3D11ClassInstance_Vtbl struct {
 }
 
 type _ID3D11ClassLinkage struct {
+	_    structs.HostLayout
 	vtbl *_ID3D11ClassLinkage
 }
 
 type _ID3D11ClassLinkage_Vtbl struct {
+	_              structs.HostLayout
 	QueryInterface uintptr
 	AddRef         uintptr
 	Release        uintptr
@@ -576,10 +602,12 @@ type _ID3D11ClassLinkage_Vtbl struct {
 }
 
 type _ID3D11DepthStencilState struct {
+	_    structs.HostLayout
 	vtbl *_ID3D11DepthStencilState_Vtbl
 }
 
 type _ID3D11DepthStencilState_Vtbl struct {
+	_              structs.HostLayout
 	QueryInterface uintptr
 	AddRef         uintptr
 	Release        uintptr
@@ -594,10 +622,12 @@ type _ID3D11DepthStencilState_Vtbl struct {
 }
 
 type _ID3D11DepthStencilView struct {
+	_    structs.HostLayout
 	vtbl *_ID3D11DepthStencilView_Vtbl
 }
 
 type _ID3D11DepthStencilView_Vtbl struct {
+	_              structs.HostLayout
 	QueryInterface uintptr
 	AddRef         uintptr
 	Release        uintptr
@@ -620,10 +650,12 @@ func (i *_ID3D11DepthStencilView) Release() uint32 {
 }
 
 type _ID3D11Device struct {
+	_    structs.HostLayout
 	vtbl *_ID3D11Device_Vtbl
 }
 
 type _ID3D11Device_Vtbl struct {
+	_              structs.HostLayout
 	QueryInterface uintptr
 	AddRef         uintptr
 	Release        uintptr
@@ -833,10 +865,12 @@ func (i *_ID3D11Device) QueryInterface(riid *windows.GUID) (unsafe.Pointer, erro
 }
 
 type _ID3D11DeviceContext struct {
+	_    structs.HostLayout
 	vtbl *_ID3D11DeviceContext_Vtbl
 }
 
 type _ID3D11DeviceContext_Vtbl struct {
+	_              structs.HostLayout
 	QueryInterface uintptr
 	AddRef         uintptr
 	Release        uintptr
@@ -1160,10 +1194,12 @@ func (i *_ID3D11DeviceContext) VSSetShader(pVertexShader *_ID3D11VertexShader, c
 }
 
 type _ID3D11InputLayout struct {
+	_    structs.HostLayout
 	vtbl *_ID3D11InputLayout_Vtbl
 }
 
 type _ID3D11InputLayout_Vtbl struct {
+	_              structs.HostLayout
 	QueryInterface uintptr
 	AddRef         uintptr
 	Release        uintptr
@@ -1181,10 +1217,12 @@ func (i *_ID3D11InputLayout) Release() uint32 {
 }
 
 type _ID3D11PixelShader struct {
+	_    structs.HostLayout
 	vtbl *_ID3D11PixelShader_Vtbl
 }
 
 type _ID3D11PixelShader_Vtbl struct {
+	_              structs.HostLayout
 	QueryInterface uintptr
 	AddRef         uintptr
 	Release        uintptr
@@ -1202,10 +1240,12 @@ func (i *_ID3D11PixelShader) Release() uint32 {
 }
 
 type _ID3D11RasterizerState struct {
+	_    structs.HostLayout
 	vtbl *_ID3D11RasterizerState_Vtbl
 }
 
 type _ID3D11RasterizerState_Vtbl struct {
+	_              structs.HostLayout
 	QueryInterface uintptr
 	AddRef         uintptr
 	Release        uintptr
@@ -1225,10 +1265,12 @@ func (i *_ID3D11RasterizerState) Release() uint32 {
 }
 
 type _ID3D11RenderTargetView struct {
+	_    structs.HostLayout
 	vtbl *_ID3D11RenderTargetView_Vtbl
 }
 
 type _ID3D11RenderTargetView_Vtbl struct {
+	_              structs.HostLayout
 	QueryInterface uintptr
 	AddRef         uintptr
 	Release        uintptr
@@ -1251,10 +1293,12 @@ func (i *_ID3D11RenderTargetView) Release() uint32 {
 }
 
 type _ID3D11SamplerState struct {
+	_    structs.HostLayout
 	vtbl *_ID3D11SamplerState_Vtbl
 }
 
 type _ID3D11SamplerState_Vtbl struct {
+	_              structs.HostLayout
 	QueryInterface uintptr
 	AddRef         uintptr
 	Release        uintptr
@@ -1274,10 +1318,12 @@ func (i *_ID3D11SamplerState) Release() uint32 {
 }
 
 type _ID3D11ShaderResourceView struct {
+	_    structs.HostLayout
 	vtbl *_ID3D11ShaderResourceView_Vtbl
 }
 
 type _ID3D11ShaderResourceView_Vtbl struct {
+	_              structs.HostLayout
 	QueryInterface uintptr
 	AddRef         uintptr
 	Release        uintptr
@@ -1300,10 +1346,12 @@ func (i *_ID3D11ShaderResourceView) Release() uint32 {
 }
 
 type _ID3D11Texture2D struct {
+	_    structs.HostLayout
 	vtbl *_ID3D11Texture2D_Vtbl
 }
 
 type _ID3D11Texture2D_Vtbl struct {
+	_              structs.HostLayout
 	QueryInterface uintptr
 	AddRef         uintptr
 	Release        uintptr
@@ -1328,10 +1376,12 @@ func (i *_ID3D11Texture2D) Release() uint32 {
 }
 
 type _ID3D11VertexShader struct {
+	_    structs.HostLayout
 	vtbl *_ID3D11VertexShader_Vtbl
 }
 
 type _ID3D11VertexShader_Vtbl struct {
+	_              structs.HostLayout
 	QueryInterface uintptr
 	AddRef         uintptr
 	Release        uintptr

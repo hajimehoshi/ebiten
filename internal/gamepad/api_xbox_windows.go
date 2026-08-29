@@ -17,6 +17,7 @@ package gamepad
 import (
 	"fmt"
 	"runtime"
+	"structs"
 	"syscall"
 	"unsafe"
 
@@ -103,6 +104,7 @@ const (
 )
 
 type _GameInputGamepadState struct {
+	_                structs.HostLayout
 	buttons          _GameInputGamepadButtons
 	leftTrigger      float32
 	rightTrigger     float32
@@ -113,6 +115,7 @@ type _GameInputGamepadState struct {
 }
 
 type _GameInputRumbleParams struct {
+	_             structs.HostLayout
 	lowFrequency  float32
 	highFrequency float32
 	leftTrigger   float32
@@ -129,10 +132,12 @@ func _GameInputCreate() (*_IGameInput, error) {
 }
 
 type _IGameInput struct {
+	_    structs.HostLayout
 	vtbl *_IGameInput_Vtbl
 }
 
 type _IGameInput_Vtbl struct {
+	_              structs.HostLayout
 	QueryInterface uintptr
 	AddRef         uintptr
 	Release        uintptr
@@ -190,10 +195,12 @@ func (i *_IGameInput) RegisterDeviceCallback(device *_IGameInputDevice,
 }
 
 type _IGameInputDevice struct {
+	_    structs.HostLayout
 	vtbl *_IGameInputDevice_Vtbl
 }
 
 type _IGameInputDevice_Vtbl struct {
+	_              structs.HostLayout
 	QueryInterface uintptr
 	AddRef         uintptr
 	Release        uintptr
@@ -224,10 +231,12 @@ func (i *_IGameInputDevice) SetRumbleState(params *_GameInputRumbleParams, times
 }
 
 type _IGameInputReading struct {
+	_    structs.HostLayout
 	vtbl *_IGameInputReading_Vtbl
 }
 
 type _IGameInputReading_Vtbl struct {
+	_              structs.HostLayout
 	QueryInterface uintptr
 	AddRef         uintptr
 	Release        uintptr

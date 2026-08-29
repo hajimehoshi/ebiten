@@ -23,6 +23,7 @@ import (
 	"image"
 	"image/color"
 	"sync"
+	"sync/atomic"
 
 	"golang.org/x/image/font"
 	"golang.org/x/image/math/fixed"
@@ -32,16 +33,16 @@ import (
 )
 
 var (
-	monotonicClock int64
+	monotonicClock atomic.Int64
 )
 
 func now() int64 {
-	return monotonicClock
+	return monotonicClock.Load()
 }
 
 func init() {
 	hook.AppendHookOnBeforeUpdate(func() error {
-		monotonicClock++
+		monotonicClock.Add(1)
 		return nil
 	})
 }

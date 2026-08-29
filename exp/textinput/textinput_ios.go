@@ -16,6 +16,7 @@ package textinput
 
 import (
 	"image"
+	"structs"
 	"sync"
 
 	"github.com/ebitengine/purego/cstrings"
@@ -46,21 +47,25 @@ import (
 // deleteBackward report the key press to the game instead of editing the text.
 
 type cgPoint struct {
+	_ structs.HostLayout
 	x float64
 	y float64
 }
 
 type cgSize struct {
+	_      structs.HostLayout
 	width  float64
 	height float64
 }
 
 type cgRect struct {
+	_      structs.HostLayout
 	origin cgPoint
 	size   cgSize
 }
 
 type nsRange struct {
+	_        structs.HostLayout
 	location uint
 	length   uint
 }

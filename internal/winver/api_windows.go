@@ -17,6 +17,7 @@ package winver
 import (
 	"fmt"
 	"runtime"
+	"structs"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
@@ -36,6 +37,7 @@ const (
 )
 
 type _OSVERSIONINFOEXW struct {
+	_                   structs.HostLayout
 	dwOSVersionInfoSize uint32
 	dwMajorVersion      uint32
 	dwMinorVersion      uint32

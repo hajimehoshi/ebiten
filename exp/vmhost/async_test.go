@@ -181,7 +181,7 @@ func TestWaitFrameUnderConcurrentAdvanceFrame(t *testing.T) {
 	}
 }
 
-// TestAdvanceTicks checks that AdvanceTicks(n) queues n ticks like n successive AdvanceTick calls, and
+// TestAdvanceTicks checks that AdvanceTicks(n) queues n ticks like n successive AdvanceTicks(1) calls, and
 // that a non-positive count queues nothing.
 func TestAdvanceTicks(t *testing.T) {
 	guest := startGuest(t, "./testdata/atlas", activateByEnv, "unix")

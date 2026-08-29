@@ -16,6 +16,7 @@ package legacyshader_test
 
 import (
 	"bufio"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -223,5 +224,30 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 		if _, _, err := legacyshader.CompileShader([]byte(src)); err != nil {
 			t.Errorf("CompileShader(%q) must not return an error but returned %v", src, err)
 		}
+	}
+}
+
+// TestDeprecatedFunctions confirms that the functions deprecated as of v2.10 are defined by this
+// package, not by the core.
+func TestDeprecatedFunctions(t *testing.T) {
+	for _, unit := range []string{"texels", "pixels"} {
+		t.Run(unit, func(t *testing.T) {
+			src := fmt.Appendf(nil, `//kage:unit %s
+
+package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return imageSrc1At(src0Pos) + imageSrc1UnsafeAt(src0Pos)
+}
+`, unit)
+			if _, _, err := legacyshader.CompileShader(src); err != nil {
+				t.Errorf("CompileShader must not return an error but returned %v", err)
+			}
+			if unit == "pixels" {
+				if _, err := graphics.CompileShader(src); err == nil {
+					t.Error("graphics.CompileShader must return an error but did not")
+				}
+			}
+		})
 	}
 }

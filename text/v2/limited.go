@@ -51,8 +51,11 @@ func (l *LimitedFace) Metrics() Metrics {
 
 // advanceAt implements Face.
 func (l *LimitedFace) advanceAt(text string, indexInBytes int) float64 {
-	filtered := l.unicodeRanges.Filter(text)
-	if filtered == text {
+	firstLineLen := textutil.FirstLineLen(text)
+	indexInBytes = min(indexInBytes, firstLineLen)
+	firstLine := text[:firstLineLen]
+	filtered := l.unicodeRanges.Filter(firstLine)
+	if filtered == firstLine {
 		return l.face.advanceAt(filtered, indexInBytes)
 	}
 	// Filter substitutes unsupported runes with U+FFFD (3 bytes), so byte
@@ -60,8 +63,8 @@ func (l *LimitedFace) advanceAt(text string, indexInBytes int) float64 {
 	// into the filtered string's byte space.
 	const fffdLen = 3
 	var filteredIdx int
-	for i, r := range text {
-		_, runeLen := utf8.DecodeRuneInString(text[i:])
+	for i, r := range firstLine {
+		_, runeLen := utf8.DecodeRuneInString(firstLine[i:])
 		if runeLen < 0 {
 			runeLen = 1
 		}

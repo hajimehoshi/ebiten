@@ -710,10 +710,12 @@ func (i *Image) ReadPixels(args []graphicsdriver.PixelsArgs) error {
 		if got, want := len(arg.Pixels), 4*arg.Region.Dx()*arg.Region.Dy(); got != want {
 			return fmt.Errorf("metal: len(buf) must be %d but %d at ReadPixels", want, got)
 		}
-		i.texture.GetBytes(&arg.Pixels[0], uintptr(4*arg.Region.Dx()), mtl.Region{
+		if err := i.texture.GetBytes(arg.Pixels, 4*arg.Region.Dx(), mtl.Region{
 			Origin: mtl.Origin{X: arg.Region.Min.X, Y: arg.Region.Min.Y},
 			Size:   mtl.Size{Width: arg.Region.Dx(), Height: arg.Region.Dy(), Depth: 1},
-		}, 0)
+		}, 0); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -745,10 +747,12 @@ func (i *Image) WritePixels(args []graphicsdriver.PixelsArgs) error {
 	g.tmpTextures = append(g.tmpTextures, t)
 
 	for _, a := range args {
-		t.ReplaceRegion(mtl.Region{
+		if err := t.ReplaceRegion(mtl.Region{
 			Origin: mtl.Origin{X: a.Region.Min.X - region.Min.X, Y: a.Region.Min.Y - region.Min.Y, Z: 0},
 			Size:   mtl.Size{Width: a.Region.Dx(), Height: a.Region.Dy(), Depth: 1},
-		}, 0, unsafe.Pointer(&a.Pixels[0]), 4*a.Region.Dx())
+		}, 0, a.Pixels, 4*a.Region.Dx()); err != nil {
+			return err
+		}
 	}
 
 	g.ensureCommandBuffer()

@@ -183,7 +183,9 @@ fragment float4 FragmentShader(Vertex in [[stage_in]]) {
 	img := image.NewNRGBA(image.Rect(0, 0, texture.Width(), texture.Height()))
 	bytesPerRow := 4 * texture.Width()
 	region := mtl.RegionMake2D(0, 0, texture.Width(), texture.Height())
-	texture.GetBytes(&img.Pix[0], uintptr(bytesPerRow), region, 0)
+	if err := texture.GetBytes(img.Pix, bytesPerRow, region, 0); err != nil {
+		log.Fatalln(err)
+	}
 
 	// Output image to stdout as grayscale ASCII art.
 	levels := []struct {

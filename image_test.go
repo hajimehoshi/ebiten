@@ -291,7 +291,7 @@ func TestImageWritePixels(t *testing.T) {
 		p[i] = 0x80
 	}
 	img0.WritePixels(p)
-	// Even if p is changed after calling ReplacePixel, img0 uses the original values.
+	// Even if p is changed after calling WritePixels, img0 uses the original values.
 	for i := range p {
 		p[i] = 0
 	}
@@ -330,6 +330,18 @@ func TestImageDispose(t *testing.T) {
 	if got != want {
 		t.Errorf("img.At(0, 0) got: %v, want: %v", got, want)
 	}
+}
+
+func TestImageReadPixelsDispose(t *testing.T) {
+	img := ebiten.NewImage(16, 16)
+	img.Dispose()
+
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("ReadPixels on a disposed image must panic")
+		}
+	}()
+	img.ReadPixels(make([]byte, 4*16*16))
 }
 
 func TestImageDeallocate(t *testing.T) {
@@ -1093,7 +1105,7 @@ func TestImageMiamapAndDrawTriangle(t *testing.T) {
 	op.Filter = ebiten.FilterLinear
 	img0.DrawImage(img1, op)
 
-	// Call DrawTriangle on img1 and fill it with green
+	// Call DrawTriangles on img1 and fill it with green
 	img2.Fill(color.RGBA{G: 0xff, A: 0xff})
 	vs := []ebiten.Vertex{
 		{
@@ -2786,7 +2798,7 @@ func TestImageEvenOdd(t *testing.T) {
 		}
 	}
 
-	// Do the same thing but with split DrawTriangle calls. This confirms that the even-odd rule is applied for one call.
+	// Do the same thing but with split DrawTriangles calls. This confirms that the even-odd rule is applied for one call.
 	for i := range vs0 {
 		vs0[i].DstX--
 		vs0[i].DstY--
@@ -2969,7 +2981,7 @@ func TestImageFillRule(t *testing.T) {
 				}
 			}
 
-			// Do the same thing but with split DrawTriangle calls. This confirms that fill rules are applied for one call.
+			// Do the same thing but with split DrawTriangles calls. This confirms that fill rules are applied for one call.
 			for i := range vs0 {
 				vs0[i].DstX--
 				vs0[i].DstY--

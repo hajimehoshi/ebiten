@@ -24,7 +24,7 @@ var Cursor vec2
 func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	// Triangle wave to go 0-->1-->0...
 	limit := abs(2*fract(Time/3) - 1)
-	level := imageSrc3UnsafeAt(src0Pos).x
+	level := imageSrc3UnsafeAtFromSrc0Pos(src0Pos).x
 
 	// Add a white border
 	if limit-0.1 < level && level < limit {

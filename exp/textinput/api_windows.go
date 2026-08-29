@@ -18,6 +18,7 @@ import (
 	"errors"
 	"fmt"
 	"runtime"
+	"structs"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
@@ -36,6 +37,8 @@ const (
 
 	_GWL_WNDPROC = -4
 
+	_IMM_ERROR_NODATA = -1
+
 	_ISC_SHOWUICOMPOSITIONWINDOW = 0x80000000
 
 	_UNICODE_NOCHAR = 0xffff
@@ -53,6 +56,7 @@ type (
 )
 
 type _CANDIDATEFORM struct {
+	_            structs.HostLayout
 	dwIndex      uint32
 	dwStyle      uint32
 	ptCurrentPos _POINT
@@ -60,11 +64,13 @@ type _CANDIDATEFORM struct {
 }
 
 type _POINT struct {
+	_ structs.HostLayout
 	x int32
 	y int32
 }
 
 type _RECT struct {
+	_      structs.HostLayout
 	left   int32
 	top    int32
 	right  int32
@@ -105,16 +111,42 @@ func _ImmAssociateContext(hwnd windows.HWND, hIMC uintptr) (uintptr, error) {
 	return r, nil
 }
 
-func _ImmGetCompositionStringW(unnamedParam1 _HIMC, unnamedParam2 uint32, lpBuf unsafe.Pointer, dwBufLen uint32) (uint32, error) {
-	r, _, e := procImmGetCompositionStringW.Call(uintptr(unnamedParam1), uintptr(unnamedParam2), uintptr(lpBuf), uintptr(dwBufLen))
+func _ImmGetCompositionStringW[T byte | uint16 | uint32](unnamedParam1 _HIMC, unnamedParam2 uint32, lpBuf []T) (uint32, error) {
+	var p unsafe.Pointer
+	if len(lpBuf) > 0 {
+		p = unsafe.Pointer(&lpBuf[0])
+	}
+	r, _, e := procImmGetCompositionStringW.Call(uintptr(unnamedParam1), uintptr(unnamedParam2), uintptr(p), uintptr(len(lpBuf))*unsafe.Sizeof(T(0)))
 	runtime.KeepAlive(lpBuf)
-	if r < 0 {
-		return 0, fmt.Errorf("textinput: ImmGetCompositionStringW failed: %d", r)
+	// The return value is a LONG, so check the sign as a signed 32-bit integer.
+	if size := int32(r); size < 0 {
+		// IMM_ERROR_NODATA indicates that the requested information is not in the input context.
+		// This is an absence of data rather than a failure.
+		if size == _IMM_ERROR_NODATA {
+			return 0, nil
+		}
+		return 0, fmt.Errorf("textinput: ImmGetCompositionStringW failed: %d", size)
 	}
 	if e != nil && e != windows.ERROR_SUCCESS {
 		return 0, fmt.Errorf("textinput: ImmGetCompositionStringW failed: %w", e)
 	}
 	return uint32(r), nil
+}
+
+func immGetCompositionStringW[T byte | uint16 | uint32](hIMC _HIMC, dwIndex uint32) ([]T, error) {
+	size, err := _ImmGetCompositionStringW[T](hIMC, dwIndex, nil)
+	if err != nil {
+		return nil, err
+	}
+	n := size / uint32(unsafe.Sizeof(T(0)))
+	if n == 0 {
+		return nil, nil
+	}
+	lpBuf := make([]T, n)
+	if _, err := _ImmGetCompositionStringW(hIMC, dwIndex, lpBuf); err != nil {
+		return nil, err
+	}
+	return lpBuf, nil
 }
 
 func _ImmGetContext(unnamedParam1 windows.HWND) _HIMC {

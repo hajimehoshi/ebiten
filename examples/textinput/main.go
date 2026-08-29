@@ -184,7 +184,7 @@ func (t *TextField) IsFocused() bool {
 }
 
 // lineAroundSelection returns the bytes of the current line on either side of
-// the selection start. They form CaretContext for the IME.
+// the selection start. They form the caret context for the IME.
 func (t *TextField) lineAroundSelection() (before, after string) {
 	lineStart := strings.LastIndexByte(t.text[:t.selectionStart], '\n') + 1
 	rel := strings.IndexByte(t.text[t.selectionStart:], '\n')

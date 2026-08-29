@@ -156,24 +156,31 @@ func imageSrc%[1]dTextureSize() vec2 {
 		}
 
 		// pos is in pixels of the 0th texture. Convert it to the i-th texture's pixels.
+		// The 0th source image needs no conversion, so its functions have no suffix.
 		texPos := "pos"
+		var suffix string
 		if i >= 1 {
 			texPos = fmt.Sprintf("pos - __imageSrcRegionOrigins[0] + __imageSrcRegionOrigins[%d]", i)
+			suffix = "FromSrc0Pos"
 		}
 		// __t%d is a special variable for a texture variable.
 		if _, err := fmt.Fprintf(w, `
-func imageSrc%[1]dUnsafeAt(pos vec2) vec4 {
-	// pos is the position in positions of the source texture (= 0th image's texture).
+// imageSrc%[1]dUnsafeAt%[3]s returns the source image's color at the given position.
+// The position is in the 0th source image's texture.
+// The result is undefined when the position is outside the image.
+func imageSrc%[1]dUnsafeAt%[3]s(pos vec2) vec4 {
 	return __texelAt(__t%[1]d, %[2]s)
 }
 
-func imageSrc%[1]dAt(pos vec2) vec4 {
-	// pos is the position of the source texture (= 0th image's texture).
-	// If pos is in the region, the result is (1, 1). Otherwise, either element is 0.
+// imageSrc%[1]dAt%[3]s returns the source image's color at the given position.
+// The position is in the 0th source image's texture.
+// The result is transparent when the position is outside the image.
+func imageSrc%[1]dAt%[3]s(pos vec2) vec4 {
+	// If pos is in the region, in is (1, 1). Otherwise, either element is 0.
 	in := step(__imageSrcRegionOrigins[0], pos) - step(__imageSrcRegionOrigins[0] + __imageSrcRegionSizes[%[1]d], pos)
 	return __texelAt(__t%[1]d, %[2]s) * in.x * in.y
 }
-`, i, texPos); err != nil {
+`, i, texPos, suffix); err != nil {
 			return err
 		}
 	}

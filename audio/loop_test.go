@@ -151,6 +151,19 @@ func TestInfiniteLoopWithIntro(t *testing.T) {
 	}
 }
 
+func TestInfiniteLoopWithPartialFrameAfterLoop(t *testing.T) {
+	src := bytes.NewReader([]byte{1, 2, 3, 4, 5, 6, 7, 8, 9})
+	l := audio.NewInfiniteLoop(src, 8)
+
+	buf := make([]byte, 16)
+	if _, err := l.Read(buf); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := l.Read(buf); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestInfiniteLoopWithIncompleteSize(t *testing.T) {
 	// s1 should work as if 4092 is given.
 	s1 := audio.NewInfiniteLoop(bytes.NewReader(make([]byte, 4096)), 4095)
@@ -255,5 +268,261 @@ func TestInfiniteLoopWithSlowSource(t *testing.T) {
 	}
 	if got, want := buf[1], byte(3); got != want {
 		t.Errorf("got: %d, want: %d", got, want)
+	}
+}
+
+func TestInfiniteLoopWithSlowSourceKeepsAllBytes(t *testing.T) {
+	cases := []struct {
+		name    string
+		lstart  int
+		length  int
+		newLoop func(src io.ReadSeeker) *audio.InfiniteLoop
+	}{
+		{
+			name:   "int16",
+			lstart: 0,
+			length: 16,
+			newLoop: func(src io.ReadSeeker) *audio.InfiniteLoop {
+				return audio.NewInfiniteLoop(src, 16)
+			},
+		},
+		{
+			name:   "int16 with intro",
+			lstart: 8,
+			length: 24,
+			newLoop: func(src io.ReadSeeker) *audio.InfiniteLoop {
+				return audio.NewInfiniteLoopWithIntro(src, 8, 16)
+			},
+		},
+		{
+			name:   "float32",
+			lstart: 0,
+			length: 32,
+			newLoop: func(src io.ReadSeeker) *audio.InfiniteLoop {
+				return audio.NewInfiniteLoopF32(src, 32)
+			},
+		},
+		{
+			name:   "float32 with intro",
+			lstart: 8,
+			length: 40,
+			newLoop: func(src io.ReadSeeker) *audio.InfiniteLoop {
+				return audio.NewInfiniteLoopWithIntroF32(src, 8, 32)
+			},
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			src := make([]byte, c.length)
+			for i := range src {
+				src[i] = byte(i)
+			}
+			l := c.newLoop(&slowReader{
+				src: bytes.NewReader(src),
+			})
+
+			// The source returns at most one byte per Read, so a remainder is carried over between
+			// Reads. The remainder must not be counted twice in the loop position.
+			buf := make([]byte, c.length)
+			var out []byte
+			for range c.length * 4 {
+				n, err := l.Read(buf)
+				if err != nil {
+					t.Fatal(err)
+				}
+				out = append(out, buf[:n]...)
+			}
+
+			if got, want := len(out), c.length*2; got < want {
+				t.Errorf("len(out): %d, want >= %d", got, want)
+			}
+			for i, got := range out {
+				idx := i
+				if idx >= c.length {
+					idx = (idx-c.lstart)%(c.length-c.lstart) + c.lstart
+				}
+				if want := src[idx]; got != want {
+					t.Errorf("index: %d, got: %v, want: %v", i, got, want)
+					break
+				}
+			}
+		})
+	}
+}
+
+// partialFrameReader is a reader whose Read returns at most size bytes.
+type partialFrameReader struct {
+	src  io.ReadSeeker
+	size int
+}
+
+func (p *partialFrameReader) Read(buf []byte) (int, error) {
+	if len(buf) > p.size {
+		buf = buf[:p.size]
+	}
+	return p.src.Read(buf)
+}
+
+func (p *partialFrameReader) Seek(offset int64, whence int) (int64, error) {
+	return p.src.Seek(offset, whence)
+}
+
+func TestInfiniteLoopBlendWithPartialFrameReads(t *testing.T) {
+	cases := []struct {
+		name    string
+		length  int
+		newLoop func(src io.ReadSeeker, length int64) *audio.InfiniteLoop
+	}{
+		{
+			name:    "int16",
+			length:  2 * 2 * 2,
+			newLoop: audio.NewInfiniteLoop,
+		},
+		{
+			name:    "float32",
+			length:  4 * 2 * 2,
+			newLoop: audio.NewInfiniteLoopF32,
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			// The loop part is silent and the part after the loop is not, so the first sample of the
+			// second lap, whose blend rate is 1, must be exactly the first sample after the loop.
+			src := make([]byte, c.length*2)
+			for i := c.length; i < len(src); i++ {
+				src[i] = byte(100 + i - c.length)
+			}
+			// The source returns 3 bytes at most, which is not a multiple of any bit depth, so the
+			// position of the blended data must not be affected by the remainder.
+			l := c.newLoop(&partialFrameReader{
+				src:  bytes.NewReader(src),
+				size: 3,
+			}, int64(c.length))
+
+			// bytesPerSample is the size of one sample, which is the size of the data whose blend rate is 1.
+			bytesPerSample := c.length / 2
+
+			buf := make([]byte, c.length)
+			var out []byte
+			for range c.length * 2 {
+				n, err := l.Read(buf)
+				if err != nil {
+					t.Fatal(err)
+				}
+				out = append(out, buf[:n]...)
+				if len(out) >= c.length+bytesPerSample {
+					break
+				}
+			}
+			if got, want := len(out), c.length+bytesPerSample; got < want {
+				t.Fatalf("len(out): %d, want >= %d", got, want)
+			}
+
+			// The first lap is not blended as the data after the loop is not read yet.
+			for i, got := range out[:c.length] {
+				if want := byte(0); got != want {
+					t.Errorf("index: %d, got: %v, want: %v", i, got, want)
+					break
+				}
+			}
+			if got, want := out[c.length:c.length+bytesPerSample], src[c.length:c.length+bytesPerSample]; !bytes.Equal(got, want) {
+				t.Errorf("got: %v, want: %v", got, want)
+			}
+		})
+	}
+}
+
+func TestInfiniteLoopSeekClearsExtra(t *testing.T) {
+	// The source returns 5 bytes at most, which is larger than any bit depth but not a multiple of
+	// any, so a read returns a complete value and leaves a remainder.
+	src := &partialFrameReader{
+		src:  bytes.NewReader(bytes.Repeat([]byte{1, 2, 3, 4, 5, 6, 7, 8}, 3)),
+		size: 5,
+	}
+	l := audio.NewInfiniteLoopF32(src, 8)
+
+	buf := make([]byte, 32)
+	if _, err := l.Read(buf); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := l.Seek(0, io.SeekStart); err != nil {
+		t.Fatal(err)
+	}
+	n, err := l.Read(buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []byte{1, 2, 3, 4}
+	if !bytes.Equal(buf[:n], want) {
+		t.Errorf("got: %v, want: %v", buf[:n], want)
+	}
+}
+
+func TestInfiniteLoopSeekCurrentAfterPartialFrameRead(t *testing.T) {
+	// The source returns 5 bytes at most, which is larger than any bit depth but not a multiple of
+	// any, so a read returns a complete value and leaves a remainder.
+	src := &partialFrameReader{
+		src:  bytes.NewReader([]byte{1, 2, 3, 4, 5, 6, 7, 8}),
+		size: 5,
+	}
+	l := audio.NewInfiniteLoopF32(src, 8)
+
+	buf := make([]byte, 32)
+	// This read leaves a one-byte remainder in the internal buffer, so the source position is ahead of
+	// the logical position by 1.
+	if _, err := l.Read(buf); err != nil {
+		t.Fatal(err)
+	}
+
+	// Seek with io.SeekCurrent must be relative to the logical position, so this must be a no-op.
+	pos, err := l.Seek(0, io.SeekCurrent)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := int64(4); pos != want {
+		t.Errorf("got: %d, want: %d", pos, want)
+	}
+
+	n, err := l.Read(buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []byte{5, 6, 7, 8}
+	if !bytes.Equal(buf[:n], want) {
+		t.Errorf("got: %v, want: %v", buf[:n], want)
+	}
+}
+
+func TestInfiniteLoopZeroLoopLength(t *testing.T) {
+	for _, tc := range []struct {
+		name        string
+		introLength int64
+		loopLength  int64
+	}{
+		{"ShortLoop", 8, 3},
+		{"ZeroLoop", 8, 0},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			defer func() {
+				if r := recover(); r == nil {
+					t.Errorf("expected a panic for a zero loop length, but got none")
+				}
+			}()
+			audio.NewInfiniteLoopWithIntro(bytes.NewReader(make([]byte, 64)), tc.introLength, tc.loopLength)
+		})
+	}
+}
+
+func TestInfiniteLoopSeekInvalidWhence(t *testing.T) {
+	src := make([]byte, 256)
+	l := audio.NewInfiniteLoop(bytes.NewReader(src), int64(len(src)))
+
+	for _, whence := range []int{io.SeekEnd, -1, 3, 100} {
+		if _, err := l.Seek(0, whence); err == nil {
+			t.Errorf("Seek(0, %d): got no error, want an error", whence)
+		}
 	}
 }

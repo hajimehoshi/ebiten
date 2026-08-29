@@ -106,12 +106,42 @@ type goTextGlyphImageCacheKey struct {
 	variations string
 }
 
+// glyphImageCaches is a set of glyph image caches, one per face size.
+type glyphImageCaches struct {
+	caches map[float64]*cache[goTextGlyphImageCacheKey, *ebiten.Image]
+
+	// mu guards caches, not the caches in it: each cache has its own
+	// mutex, and creating a glyph image must not block another size's
+	// lookup.
+	mu sync.Mutex
+}
+
+func (c *glyphImageCaches) getOrCreate(face *GoTextFace, key goTextGlyphImageCacheKey, create func() (*ebiten.Image, bool)) *ebiten.Image {
+	return c.cacheForFace(face).getOrCreate(key, create)
+}
+
+func (c *glyphImageCaches) cacheForFace(face *GoTextFace) *cache[goTextGlyphImageCacheKey, *ebiten.Image] {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if c.caches == nil {
+		c.caches = map[float64]*cache[goTextGlyphImageCacheKey, *ebiten.Image]{}
+	}
+	if _, ok := c.caches[face.Size]; !ok {
+		c.caches[face.Size] = newCache[goTextGlyphImageCacheKey, *ebiten.Image](128 * glyphVariationCount(face))
+	}
+	return c.caches[face.Size]
+}
+
 // runeToBoolMap is a map from rune to bool with performance optimizations.
 type runeToBoolMap struct {
-	m []uint64
+	m  []uint64
+	mu sync.Mutex
 }
 
 func (r *runeToBoolMap) get(rune rune) (value bool, ok bool) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
 	index := rune / 32
 	if len(r.m) <= int(index) {
 		return false, false
@@ -122,6 +152,8 @@ func (r *runeToBoolMap) get(rune rune) (value bool, ok bool) {
 }
 
 func (r *runeToBoolMap) set(rune rune, value bool) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
 	index := rune / 32
 	if len(r.m) <= int(index) {
 		r.m = slices.Grow(r.m, int(index)+1)[:index+1]
@@ -262,8 +294,9 @@ type GoTextFaceSource struct {
 	metadata      Metadata
 	variationAxes []VariationAxis
 
-	outputCache     *cache[goTextOutputCacheKey, *goTextOutputCacheValue]
-	glyphImageCache map[float64]*cache[goTextGlyphImageCacheKey, *ebiten.Image]
+	outputCache *cache[goTextOutputCacheKey, *goTextOutputCacheValue]
+
+	glyphImageCache glyphImageCaches
 	hasGlyphCache   runeToBoolMap
 
 	unscaledMetrics     Metrics
@@ -673,7 +706,7 @@ type faceBitmapState struct {
 //
 // The caller must hold g.shapeMu.
 func (g *GoTextFaceSource) applyFaceState(face *GoTextFace) faceBitmapState {
-	if s := face.ensureVariationsString(); s != g.lastVariationsString {
+	if s := face.variationsString; s != g.lastVariationsString {
 		g.f.SetVariations(face.variations)
 		g.lastVariationsString = s
 	}
@@ -841,7 +874,7 @@ func (g *GoTextFaceSource) buildGlyphs(outputs []shaping.Output, text string, fa
 	}
 	indices = append(indices, len(text))
 
-	variations := face.ensureVariationsString()
+	variations := face.variationsString
 
 	// Snapshot the variations slice once; every glyphRenderData built
 	// in this call shares the same underlying copy. The user-facing
@@ -1225,13 +1258,7 @@ func (g *GoTextFaceSource) scale(size float64) float64 {
 }
 
 func (g *GoTextFaceSource) getOrCreateGlyphImage(goTextFace *GoTextFace, key goTextGlyphImageCacheKey, create func() (*ebiten.Image, bool)) *ebiten.Image {
-	if g.glyphImageCache == nil {
-		g.glyphImageCache = map[float64]*cache[goTextGlyphImageCacheKey, *ebiten.Image]{}
-	}
-	if _, ok := g.glyphImageCache[goTextFace.Size]; !ok {
-		g.glyphImageCache[goTextFace.Size] = newCache[goTextGlyphImageCacheKey, *ebiten.Image](128 * glyphVariationCount(goTextFace))
-	}
-	return g.glyphImageCache[goTextFace.Size].getOrCreate(key, create)
+	return g.glyphImageCache.getOrCreate(goTextFace, key, create)
 }
 
 func (g *GoTextFaceSource) metrics(size float64) Metrics {

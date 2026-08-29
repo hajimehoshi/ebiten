@@ -39,7 +39,11 @@ var texelBuiltinNames = func() map[string]struct{} {
 		"imageSrcRegionOnTexture": {},
 	}
 	for i := range graphics.ShaderSrcImageCount {
-		for _, f := range []string{"Origin", "Size", "UnsafeAt", "At"} {
+		fs := []string{"Origin", "Size", "UnsafeAt", "At"}
+		if i >= 1 {
+			fs = append(fs, "UnsafeAtFromSrc0Pos", "AtFromSrc0Pos")
+		}
+		for _, f := range fs {
 			names[fmt.Sprintf("imageSrc%d%s", i, f)] = struct{}{}
 		}
 	}
@@ -69,6 +73,12 @@ func __legacyshader_imageSrcRegionOnTexture() (vec2, vec2) {
 }
 `)
 	for i := range graphics.ShaderSrcImageCount {
+		// The core defines the sampling functions for a source image other than the 0th one with the
+		// FromSrc0Pos suffix.
+		var suffix string
+		if i >= 1 {
+			suffix = "FromSrc0Pos"
+		}
 		// A source texture size can be zero when no source image is given. Guard against a division by
 		// zero with max so that a zero region stays zero, matching the case without a source image.
 		b.WriteString(fmt.Sprintf(`
@@ -82,12 +92,26 @@ func __legacyshader_imageSrc%[1]dSize() vec2 {
 
 func __legacyshader_imageSrc%[1]dUnsafeAt(pos vec2) vec4 {
 	// The argument is in texels of the 0th texture. Convert it to pixels of the 0th texture.
-	return imageSrc%[1]dUnsafeAt(pos * imageSrc0TextureSize())
+	return imageSrc%[1]dUnsafeAt%[2]s(pos * imageSrc0TextureSize())
 }
 
 func __legacyshader_imageSrc%[1]dAt(pos vec2) vec4 {
 	// The argument is in texels of the 0th texture. Convert it to pixels of the 0th texture.
-	return imageSrc%[1]dAt(pos * imageSrc0TextureSize())
+	return imageSrc%[1]dAt%[2]s(pos * imageSrc0TextureSize())
+}
+`, i, suffix))
+		if i == 0 {
+			continue
+		}
+		b.WriteString(fmt.Sprintf(`
+func __legacyshader_imageSrc%[1]dUnsafeAtFromSrc0Pos(pos vec2) vec4 {
+	// The argument is in texels of the 0th texture. Convert it to pixels of the 0th texture.
+	return imageSrc%[1]dUnsafeAtFromSrc0Pos(pos * imageSrc0TextureSize())
+}
+
+func __legacyshader_imageSrc%[1]dAtFromSrc0Pos(pos vec2) vec4 {
+	// The argument is in texels of the 0th texture. Convert it to pixels of the 0th texture.
+	return imageSrc%[1]dAtFromSrc0Pos(pos * imageSrc0TextureSize())
 }
 `, i))
 	}

@@ -47,14 +47,18 @@ the same caveat: both sides are then in image-local pixels.
 |---|---|
 | `texture(iChannel0, uv)` / `texture2D(tex, uv)` | `imageSrc0At(uv*imageSrc0Size() + imageSrc0Origin())` |
 | `texture(tex, vTexCoord)` where uv is the fragment's own uv | `imageSrc0At(src0Pos)` |
-| a second sampler at the same uv | `imageSrc1At(src0Pos)` — any size; every slot shares image 0's space |
-| a second sampler stretched over image 0 | `imageSrc1At(uv*imageSrc1Size() + imageSrc0Origin())` |
+| a second sampler at the same uv | `imageSrc1AtFromSrc0Pos(src0Pos)` ‡ — any size; every slot shares image 0's space |
+| a second sampler stretched over image 0 | `imageSrc1AtFromSrc0Pos(uv*imageSrc1Size() + imageSrc0Origin())` ‡ |
 | `textureSize(tex, 0)` | `imageSrc0Size()` (the image; `imageSrc0TextureSize()` is the atlas) |
 | `texelFetch(tex, ivec2(x, y), 0)` | `imageSrc0At(vec2(x, y) + imageSrc0Origin())` |
 | `textureLod`, mipmaps, `textureGrad` | not available |
 | `GL_CLAMP_TO_EDGE` / `GL_REPEAT` sampler state | implement in-shader; see [recipes.md](recipes.md) |
 | linear filtering | implement in-shader; sampling is always nearest |
-| out-of-range sampling | `imageSrcNAt` gives `vec4(0)`; `imageSrcNUnsafeAt` is undefined |
+| out-of-range sampling | the `At` forms give `vec4(0)`; the `UnsafeAt` forms are undefined |
+
+‡ `imageSrcNAtFromSrc0Pos` and `imageSrcNUnsafeAtFromSrc0Pos` (N ≥ 1) are new in
+v2.10. Before that, use `imageSrcNAt` and `imageSrcNUnsafeAt`: the same functions
+under their old names, still working but deprecated.
 
 Offsetting a sample by whole pixels needs no origin arithmetic, because the
 origin cancels: `imageSrc0At(src0Pos + vec2(1, 0))` is the neighbouring texel.
@@ -124,7 +128,7 @@ return vec4(rgb*a, a)
 Anything that returns `.rgb` unscaled while varying `.a` is a straight-alpha
 shader and will look wrong when composited.
 
-The inputs need the same attention. `imageSrcNAt` always returns premultiplied
+The inputs need the same attention. Sampling always returns premultiplied
 samples. GLSL's `texture()` carries no alpha convention — it returns the stored
 texel — so what matters is what the original's texture data and calculations
 assumed. If they assumed straight alpha, convert before any straight-RGB

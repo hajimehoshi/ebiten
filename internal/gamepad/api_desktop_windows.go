@@ -16,6 +16,7 @@ package gamepad
 
 import (
 	"fmt"
+	"structs"
 	"syscall"
 	"unsafe"
 
@@ -309,6 +310,7 @@ func _XInputSetState(dwUserIndex uint32, pVibration *_XINPUT_VIBRATION) error {
 }
 
 type _DIDATAFORMAT struct {
+	_          structs.HostLayout
 	dwSize     uint32
 	dwObjSize  uint32
 	dwFlags    uint32
@@ -318,6 +320,7 @@ type _DIDATAFORMAT struct {
 }
 
 type _DIDEVCAPS struct {
+	_                     structs.HostLayout
 	dwSize                uint32
 	dwFlags               uint32
 	dwDevType             uint32
@@ -332,6 +335,7 @@ type _DIDEVCAPS struct {
 }
 
 type _DIDEVICEINSTANCEW struct {
+	_               structs.HostLayout
 	dwSize          uint32
 	guidInstance    windows.GUID
 	guidProduct     windows.GUID
@@ -344,6 +348,7 @@ type _DIDEVICEINSTANCEW struct {
 }
 
 type _DIDEVICEOBJECTINSTANCEW struct {
+	_                   structs.HostLayout
 	dwSize              uint32
 	guidType            windows.GUID
 	dwOfs               uint32
@@ -362,6 +367,7 @@ type _DIDEVICEOBJECTINSTANCEW struct {
 }
 
 type _DIJOYSTATE struct {
+	_          structs.HostLayout
 	lX         int32
 	lY         int32
 	lZ         int32
@@ -374,6 +380,7 @@ type _DIJOYSTATE struct {
 }
 
 type _DIOBJECTDATAFORMAT struct {
+	_       structs.HostLayout
 	pguid   *windows.GUID
 	dwOfs   uint32
 	dwType  uint32
@@ -381,17 +388,20 @@ type _DIOBJECTDATAFORMAT struct {
 }
 
 type _DIPROPDWORD struct {
+	_      structs.HostLayout
 	diph   _DIPROPHEADER
 	dwData uint32
 }
 
 type _DIPROPGUIDANDPATH struct {
+	_         structs.HostLayout
 	diph      _DIPROPHEADER
 	guidClass windows.GUID
 	wszPath   [_MAX_PATH]uint16
 }
 
 type _DIPROPHEADER struct {
+	_            structs.HostLayout
 	dwSize       uint32
 	dwHeaderSize uint32
 	dwObj        uint32
@@ -399,16 +409,19 @@ type _DIPROPHEADER struct {
 }
 
 type _DIPROPRANGE struct {
+	_    structs.HostLayout
 	diph _DIPROPHEADER
 	lMin int32
 	lMax int32
 }
 
 type _IDirectInput8W struct {
+	_    structs.HostLayout
 	vtbl *_IDirectInput8W_Vtbl
 }
 
 type _IDirectInput8W_Vtbl struct {
+	_              structs.HostLayout
 	QueryInterface uintptr
 	AddRef         uintptr
 	Release        uintptr
@@ -446,10 +459,12 @@ func (d *_IDirectInput8W) EnumDevices(dwDevType uint32, lpCallback uintptr, pvRe
 }
 
 type _IDirectInputDevice8W struct {
+	_    structs.HostLayout
 	vtbl *_IDirectInputDevice8W_Vtbl
 }
 
 type _IDirectInputDevice8W_Vtbl struct {
+	_              structs.HostLayout
 	QueryInterface uintptr
 	AddRef         uintptr
 	Release        uintptr
@@ -558,12 +573,14 @@ func (d *_IDirectInputDevice8W) SetProperty(rguidProp uintptr, pdiph *_DIPROPHEA
 }
 
 type _RID_DEVICE_INFO struct {
+	_      structs.HostLayout
 	cbSize uint32
 	dwType uint32
 	hid    _RID_DEVICE_INFO_HID // Originally, this member is a union.
 }
 
 type _RID_DEVICE_INFO_HID struct {
+	_               structs.HostLayout
 	dwVendorId      uint32
 	dwProductId     uint32
 	dwVersionNumber uint32
@@ -574,11 +591,13 @@ type _RID_DEVICE_INFO_HID struct {
 }
 
 type _RAWINPUTDEVICELIST struct {
+	_       structs.HostLayout
 	hDevice windows.Handle
 	dwType  uint32
 }
 
 type _XINPUT_CAPABILITIES struct {
+	_         structs.HostLayout
 	typ       byte
 	subType   byte
 	flags     uint16
@@ -587,6 +606,7 @@ type _XINPUT_CAPABILITIES struct {
 }
 
 type _XINPUT_GAMEPAD struct {
+	_             structs.HostLayout
 	wButtons      uint16
 	bLeftTrigger  byte
 	bRightTrigger byte
@@ -597,11 +617,13 @@ type _XINPUT_GAMEPAD struct {
 }
 
 type _XINPUT_STATE struct {
+	_              structs.HostLayout
 	dwPacketNumber uint32
 	Gamepad        _XINPUT_GAMEPAD
 }
 
 type _XINPUT_VIBRATION struct {
+	_                structs.HostLayout
 	wLeftMotorSpeed  uint16
 	wRightMotorSpeed uint16
 }

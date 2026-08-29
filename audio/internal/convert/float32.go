@@ -86,6 +86,11 @@ func (r *float32BytesReader) Seek(offset int64, whence int) (int64, error) {
 	if !ok {
 		return 0, fmt.Errorf("float32: the source must be io.Seeker when seeking but not: %w", errors.ErrUnsupported)
 	}
+	switch whence {
+	case io.SeekStart, io.SeekCurrent, io.SeekEnd:
+	default:
+		return 0, fmt.Errorf("convert: whence must be io.SeekStart, io.SeekCurrent, or io.SeekEnd but was %d", whence)
+	}
 	r.i16Buf = r.i16Buf[:0]
 	r.eof = false
 	n, err := s.Seek(offset/4*2, whence)

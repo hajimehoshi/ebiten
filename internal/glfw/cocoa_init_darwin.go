@@ -611,15 +611,15 @@ func postEmptyEvent() {
 	nsApp := objc.ID(class_NSApplication).Send(sel_sharedApplication)
 	// NSApplicationDefined = 15
 	event := objc.Send[objc.ID](objc.ID(class_NSEvent), sel_otherEventWithType_location_modifierFlags_timestamp_windowNumber_context_subtype_data1_data2,
-		uintptr(15),         // NSApplicationDefined
-		cocoa.CGPoint{0, 0}, // location (NSPoint)
-		uintptr(0),          // modifierFlags
-		float64(0),          // timestamp
-		uintptr(0),          // windowNumber
-		uintptr(0),          // context (nil)
-		uintptr(0),          // subtype
-		uintptr(0),          // data1
-		uintptr(0),          // data2
+		uintptr(15),               // NSApplicationDefined
+		cocoa.CGPoint{X: 0, Y: 0}, // location (NSPoint)
+		uintptr(0),                // modifierFlags
+		float64(0),                // timestamp
+		uintptr(0),                // windowNumber
+		uintptr(0),                // context (nil)
+		uintptr(0),                // subtype
+		uintptr(0),                // data1
+		uintptr(0),                // data2
 	)
 	nsApp.Send(sel_postEvent_atStart, event, true)
 }

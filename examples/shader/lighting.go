@@ -30,7 +30,7 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 
 	lightpos := vec3(Cursor, 50)
 	lightdir := normalize(lightpos - vec3(pos, 0))
-	normal := normalize(imageSrc1UnsafeAt(src0Pos) - 0.5)
+	normal := normalize(imageSrc1UnsafeAtFromSrc0Pos(src0Pos) - 0.5)
 	const ambient = 0.25
 	diffuse := 0.75 * max(0.0, dot(normal.xyz, lightdir))
 

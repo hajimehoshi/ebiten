@@ -225,7 +225,7 @@ func (p *pipelineStates) drawTriangles(device *_ID3D12Device, commandList *_ID3D
 			SizeInBytes:    bufferSize,
 		}, h)
 
-		m, err = cb.Map(0, &_D3D12_RANGE{0, 0})
+		m, err = cb.Map(0, &_D3D12_RANGE{Begin: 0, End: 0})
 		if err != nil {
 			return err
 		}

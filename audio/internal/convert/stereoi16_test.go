@@ -256,3 +256,53 @@ func TestStereoI16FromSigned24Bits(t *testing.T) {
 		})
 	}
 }
+
+func TestStereoI16SeekEnd(t *testing.T) {
+	testCases := []struct {
+		name          string
+		format        convert.Format
+		bytesPerFrame int
+	}{
+		{
+			name:          "S16",
+			format:        convert.FormatS16,
+			bytesPerFrame: 4,
+		},
+		{
+			name:          "U8",
+			format:        convert.FormatU8,
+			bytesPerFrame: 2,
+		},
+		{
+			name:          "S24",
+			format:        convert.FormatS24,
+			bytesPerFrame: 6,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			for _, mono := range []bool{false, true} {
+				t.Run(fmt.Sprintf("mono=%t", mono), func(t *testing.T) {
+					const frames = 100
+					// A monaural source has half the bytes per frame.
+					bytesPerFrame := tc.bytesPerFrame
+					if mono {
+						bytesPerFrame /= 2
+					}
+					src := bytes.NewReader(make([]byte, frames*bytesPerFrame))
+					s := convert.NewStereoI16ReadSeeker(src, mono, tc.format)
+
+					pos, err := s.Seek(0, io.SeekEnd)
+					if err != nil {
+						t.Fatal(err)
+					}
+					// The stream is always stereo i16 (4 bytes per frame).
+					want := frames * 4
+					if pos != int64(want) {
+						t.Errorf("Seek(0, io.SeekEnd): got %d, want %d", pos, want)
+					}
+				})
+			}
+		})
+	}
+}

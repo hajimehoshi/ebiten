@@ -27,8 +27,45 @@ when `DrawTrianglesShader` runs with `Images[0] == nil`, so pass the size as a
 uniform in that case. `DrawRectShader` synthesizes source region 0 from the
 drawn rectangle in the pixel unit, so it is safe there with or without an image.
 
-`dstUV` has no such precondition, but note that it normalizes over the whole
-destination image, not over the area being drawn.
+`dstUV` has no such precondition, but it normalizes over the whole destination
+image, not over the area being drawn. A ported `fragCoord/iResolution` almost
+always means the latter. The two agree only when the draw covers the whole
+destination image; a `GeoM` translation, a rectangle smaller than the image, or
+a sub-image destination breaks the agreement without breaking the picture, and
+the effect ends up anchored to the image instead of to the quad.
+
+## Normalizing over the drawn area
+
+For `DrawRectShader`, `srcUV` above already is the drawn-area coordinate. Source
+region 0 spans the drawn rectangle: with an image it is that image's bounds,
+which must match the rectangle's size, and with `Images[0] == nil` in the pixel
+unit Ebitengine synthesizes the region as `(0, 0)-(width, height)`. Either way
+`src0Pos` runs from the region's origin to its origin plus size across the quad,
+so `srcUV` is 0..1 over the rectangle. It is also unaffected by `GeoM`: rotating
+or scaling the draw moves `dstPos` but leaves the rectangle's own coordinates
+alone, which is what a shader written for a full-screen quad expects.
+
+```go
+// fragCoord/iResolution, over the drawn rectangle.
+func drawnUV(src0Pos vec2) vec2 {
+	return (src0Pos - imageSrc0Origin()) / imageSrc0Size()
+}
+
+// fragCoord itself, in pixels from the rectangle's top-left corner.
+func drawnPos(src0Pos vec2) vec2 {
+	return src0Pos - imageSrc0Origin()
+}
+```
+
+`DrawTrianglesShader` has no drawn rectangle to recover; `SrcX`/`SrcY` decide
+the mapping. With `Images[0] == nil` those values reach the shader unconverted,
+so writing 0 and 1 into them makes `src0Pos` itself the uv, with no
+normalization in the shader at all.
+
+When the effect really is anchored in destination space, such as a vignette
+centred on a moving quad, pass the draw's origin and size as uniforms and
+normalize `dstPos` against those. No builtin reports them: `imageDstOrigin` and
+`imageDstSize` describe the destination image only.
 
 ## Transforming a coordinate
 
@@ -50,16 +87,21 @@ unchanged, whatever the images' sizes.
 
 ```go
 func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
-	return imageSrc0At(src0Pos) * imageSrc1At(src0Pos).a
+	return imageSrc0At(src0Pos) * imageSrc1AtFromSrc0Pos(src0Pos).a
 }
 ```
 
+`imageSrcNAtFromSrc0Pos` and `imageSrcNUnsafeAtFromSrc0Pos` (N ≥ 1) were added
+in v2.10. `imageSrcNAt` and `imageSrcNUnsafeAt` are the same functions under
+their old names: they still work, but they are deprecated as of v2.10.
+
 To stretch image 1 across image 0 instead of aligning it pixel for pixel,
 normalize in image 0's space, scale by image 1's size, and add **image 0's**
-origin.
+origin. The result is still a position in image 0's space, which is what
+`imageSrc1AtFromSrc0Pos` takes.
 
 ```go
-func src1PosOf(src0Pos vec2) vec2 {
+func src0PosForStretchedSrc1(src0Pos vec2) vec2 {
 	uv := (src0Pos - imageSrc0Origin()) / imageSrc0Size()
 	return uv*imageSrc1Size() + imageSrc0Origin()
 }
@@ -67,7 +109,8 @@ func src1PosOf(src0Pos vec2) vec2 {
 
 ## Addressing modes
 
-`imageSrcNAt` returns `vec4(0)` outside the image. For the other two behaviours:
+`imageSrc0At` and `imageSrcNAtFromSrc0Pos` return `vec4(0)` outside the image.
+For the other two behaviours:
 
 ```go
 // Clamp to edge.

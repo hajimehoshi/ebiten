@@ -17,6 +17,7 @@
 package glfw
 
 import (
+	"structs"
 	"unsafe"
 )
 
@@ -68,6 +69,7 @@ type (
 // event type. Access the contents through the typed view methods, which
 // mirror the C union members.
 type _XEvent struct {
+	_    structs.HostLayout
 	data [24]_Clong
 }
 
@@ -101,6 +103,7 @@ func (e *_XEvent) xkbAny() *_XkbAnyEvent           { return (*_XkbAnyEvent)(unsa
 func (e *_XEvent) xkbState() *_XkbStateNotifyEvent { return (*_XkbStateNotifyEvent)(unsafe.Pointer(e)) }
 
 type _XAnyEvent struct {
+	_         structs.HostLayout
 	Type      int32
 	Serial    _Culong
 	SendEvent int32
@@ -109,6 +112,7 @@ type _XAnyEvent struct {
 }
 
 type _XKeyEvent struct {
+	_          structs.HostLayout
 	Type       int32
 	Serial     _Culong
 	SendEvent  int32
@@ -127,6 +131,7 @@ type _XKeyEvent struct {
 }
 
 type _XButtonEvent struct {
+	_          structs.HostLayout
 	Type       int32
 	Serial     _Culong
 	SendEvent  int32
@@ -145,6 +150,7 @@ type _XButtonEvent struct {
 }
 
 type _XMotionEvent struct {
+	_          structs.HostLayout
 	Type       int32
 	Serial     _Culong
 	SendEvent  int32
@@ -163,6 +169,7 @@ type _XMotionEvent struct {
 }
 
 type _XCrossingEvent struct {
+	_          structs.HostLayout
 	Type       int32
 	Serial     _Culong
 	SendEvent  int32
@@ -183,6 +190,7 @@ type _XCrossingEvent struct {
 }
 
 type _XFocusChangeEvent struct {
+	_         structs.HostLayout
 	Type      int32
 	Serial    _Culong
 	SendEvent int32
@@ -193,6 +201,7 @@ type _XFocusChangeEvent struct {
 }
 
 type _XExposeEvent struct {
+	_         structs.HostLayout
 	Type      int32
 	Serial    _Culong
 	SendEvent int32
@@ -206,6 +215,7 @@ type _XExposeEvent struct {
 }
 
 type _XVisibilityEvent struct {
+	_         structs.HostLayout
 	Type      int32
 	Serial    _Culong
 	SendEvent int32
@@ -215,6 +225,7 @@ type _XVisibilityEvent struct {
 }
 
 type _XDestroyWindowEvent struct {
+	_         structs.HostLayout
 	Type      int32
 	Serial    _Culong
 	SendEvent int32
@@ -224,6 +235,7 @@ type _XDestroyWindowEvent struct {
 }
 
 type _XUnmapEvent struct {
+	_             structs.HostLayout
 	Type          int32
 	Serial        _Culong
 	SendEvent     int32
@@ -234,6 +246,7 @@ type _XUnmapEvent struct {
 }
 
 type _XMapEvent struct {
+	_                structs.HostLayout
 	Type             int32
 	Serial           _Culong
 	SendEvent        int32
@@ -244,6 +257,7 @@ type _XMapEvent struct {
 }
 
 type _XReparentEvent struct {
+	_                structs.HostLayout
 	Type             int32
 	Serial           _Culong
 	SendEvent        int32
@@ -257,6 +271,7 @@ type _XReparentEvent struct {
 }
 
 type _XConfigureEvent struct {
+	_                structs.HostLayout
 	Type             int32
 	Serial           _Culong
 	SendEvent        int32
@@ -273,6 +288,7 @@ type _XConfigureEvent struct {
 }
 
 type _XPropertyEvent struct {
+	_         structs.HostLayout
 	Type      int32
 	Serial    _Culong
 	SendEvent int32
@@ -284,6 +300,7 @@ type _XPropertyEvent struct {
 }
 
 type _XSelectionRequestEvent struct {
+	_         structs.HostLayout
 	Type      int32
 	Serial    _Culong
 	SendEvent int32
@@ -297,6 +314,7 @@ type _XSelectionRequestEvent struct {
 }
 
 type _XSelectionEvent struct {
+	_         structs.HostLayout
 	Type      int32
 	Serial    _Culong
 	SendEvent int32
@@ -309,6 +327,7 @@ type _XSelectionEvent struct {
 }
 
 type _XSelectionClearEvent struct {
+	_         structs.HostLayout
 	Type      int32
 	Serial    _Culong
 	SendEvent int32
@@ -319,6 +338,7 @@ type _XSelectionClearEvent struct {
 }
 
 type _XClientMessageEvent struct {
+	_           structs.HostLayout
 	Type        int32
 	Serial      _Culong
 	SendEvent   int32
@@ -331,6 +351,7 @@ type _XClientMessageEvent struct {
 }
 
 type _XGenericEventCookie struct {
+	_         structs.HostLayout
 	Type      int32
 	Serial    _Culong
 	SendEvent int32
@@ -342,6 +363,7 @@ type _XGenericEventCookie struct {
 }
 
 type _XErrorEvent struct {
+	_           structs.HostLayout
 	Type        int32
 	Display     uintptr
 	Resourceid  _XID
@@ -352,6 +374,7 @@ type _XErrorEvent struct {
 }
 
 type _XSetWindowAttributes struct {
+	_                  structs.HostLayout
 	BackgroundPixmap   _XID
 	BackgroundPixel    _Culong
 	BorderPixmap       _XID
@@ -370,6 +393,7 @@ type _XSetWindowAttributes struct {
 }
 
 type _XWindowAttributes struct {
+	_                  structs.HostLayout
 	X                  int32
 	Y                  int32
 	Width              int32
@@ -399,6 +423,7 @@ type _XWindowAttributes struct {
 // macro). The remaining fields are spelled out so the layout matches Xlib on
 // both LP64 and ILP32 (a fixed byte pad would be wrong on 32-bit).
 type _Visual struct {
+	_          structs.HostLayout
 	ExtData    uintptr
 	Visualid   _VisualID
 	Class      int32
@@ -410,6 +435,7 @@ type _Visual struct {
 }
 
 type _XVisualInfo struct {
+	_            structs.HostLayout
 	Visual       uintptr
 	Visualid     _VisualID
 	Screen       int32
@@ -423,6 +449,7 @@ type _XVisualInfo struct {
 }
 
 type _XSizeHints struct {
+	_          structs.HostLayout
 	Flags      _Clong
 	X          int32
 	Y          int32
@@ -442,6 +469,7 @@ type _XSizeHints struct {
 }
 
 type _XWMHints struct {
+	_            structs.HostLayout
 	Flags        _Clong
 	Input        int32
 	InitialState int32
@@ -454,11 +482,13 @@ type _XWMHints struct {
 }
 
 type _XClassHint struct {
+	_        structs.HostLayout
 	ResName  uintptr
 	ResClass uintptr
 }
 
 type _XIMStyles struct {
+	_               structs.HostLayout
 	CountStyles     uint16
 	SupportedStyles uintptr // *XIMStyle
 }
@@ -467,6 +497,7 @@ type _XIMStyles struct {
 // pointer rather than a Go pointer, so a value of this type can be handed to
 // Xlib and kept by it.
 type _XIMCallback struct {
+	_          structs.HostLayout
 	ClientData uintptr // XPointer
 	Callback   uintptr // XIMProc
 }
@@ -475,6 +506,7 @@ type _XIMCallback struct {
 // wide-character string, discriminated by EncodingIsWChar. Length counts
 // characters, not bytes.
 type _XIMText struct {
+	_               structs.HostLayout
 	Length          uint16
 	Feedback        uintptr // *XIMFeedback
 	EncodingIsWChar int32   // Bool
@@ -484,6 +516,7 @@ type _XIMText struct {
 // _XIMPreeditDrawCallbackStruct is the XIMPreeditDrawCallbackStruct struct.
 // Caret, ChgFirst and ChgLength are in characters. Text is nil for a deletion.
 type _XIMPreeditDrawCallbackStruct struct {
+	_         structs.HostLayout
 	Caret     int32
 	ChgFirst  int32
 	ChgLength int32
@@ -492,12 +525,14 @@ type _XIMPreeditDrawCallbackStruct struct {
 
 // _XIMPreeditCaretCallbackStruct is the XIMPreeditCaretCallbackStruct struct.
 type _XIMPreeditCaretCallbackStruct struct {
+	_         structs.HostLayout
 	Position  int32
 	Direction int32 // XIMCaretDirection
 	Style     int32 // XIMCaretStyle
 }
 
 type _XRectangle struct {
+	_      structs.HostLayout
 	X      int16
 	Y      int16
 	Width  uint16
@@ -507,6 +542,7 @@ type _XRectangle struct {
 // Xkb
 
 type _XkbDescRec struct {
+	_          structs.HostLayout
 	Dpy        uintptr
 	Flags      uint16
 	DeviceSpec uint16
@@ -527,6 +563,7 @@ type _XkbDescRec struct {
 // word-sized Atom fields: keycodes, geometry, symbols, types, compat,
 // vmods[16], indicators[32], and groups[4].
 type _XkbNamesRec struct {
+	_             structs.HostLayout
 	_             [57]_Atom
 	Keys          uintptr // *XkbKeyNameRec
 	KeyAliases    uintptr // *XkbKeyAliasRec
@@ -538,21 +575,25 @@ type _XkbNamesRec struct {
 }
 
 type _XkbKeyNameRec struct {
+	_    structs.HostLayout
 	Name [4]byte
 }
 
 type _XkbKeyAliasRec struct {
+	_     structs.HostLayout
 	Real  [4]byte
 	Alias [4]byte
 }
 
 // XkbStateRec exposes only the group field; the rest stays as padding.
 type _XkbStateRec struct {
+	_     structs.HostLayout
 	Group uint8
 	_     [17]byte
 }
 
 type _XkbAnyEvent struct {
+	_         structs.HostLayout
 	Type      int32
 	Serial    _Culong
 	SendEvent int32
@@ -563,6 +604,7 @@ type _XkbAnyEvent struct {
 }
 
 type _XkbStateNotifyEvent struct {
+	_         structs.HostLayout
 	Type      int32
 	Serial    _Culong
 	SendEvent int32
@@ -578,6 +620,7 @@ type _XkbStateNotifyEvent struct {
 // Xrender
 
 type _XRenderDirectFormat struct {
+	_         structs.HostLayout
 	Red       int16
 	RedMask   int16
 	Green     int16
@@ -589,6 +632,7 @@ type _XRenderDirectFormat struct {
 }
 
 type _XRenderPictFormat struct {
+	_        structs.HostLayout
 	ID       _XID
 	Type     int32
 	Depth    int32
@@ -599,6 +643,7 @@ type _XRenderPictFormat struct {
 // RandR
 
 type _XRRModeInfo struct {
+	_          structs.HostLayout
 	ID         _RRMode
 	Width      uint32
 	Height     uint32
@@ -616,6 +661,7 @@ type _XRRModeInfo struct {
 }
 
 type _XRRScreenResources struct {
+	_               structs.HostLayout
 	Timestamp       _Time
 	ConfigTimestamp _Time
 	Ncrtc           int32
@@ -627,6 +673,7 @@ type _XRRScreenResources struct {
 }
 
 type _XRROutputInfo struct {
+	_             structs.HostLayout
 	Timestamp     _Time
 	Crtc          _RRCrtc
 	Name          uintptr // *byte
@@ -645,6 +692,7 @@ type _XRROutputInfo struct {
 }
 
 type _XRRCrtcInfo struct {
+	_         structs.HostLayout
 	Timestamp _Time
 	X         int32
 	Y         int32
@@ -662,6 +710,7 @@ type _XRRCrtcInfo struct {
 // Xinerama
 
 type _XineramaScreenInfo struct {
+	_            structs.HostLayout
 	ScreenNumber int32
 	XOrg         int16
 	YOrg         int16
@@ -672,6 +721,7 @@ type _XineramaScreenInfo struct {
 // Xcursor
 
 type _XcursorImage struct {
+	_       structs.HostLayout
 	Version uint32
 	Size    uint32
 	Width   uint32
@@ -685,18 +735,21 @@ type _XcursorImage struct {
 // XInput2
 
 type _XIEventMask struct {
+	_        structs.HostLayout
 	Deviceid int32
 	MaskLen  int32
 	Mask     uintptr // *byte
 }
 
 type _XIValuatorState struct {
+	_       structs.HostLayout
 	MaskLen int32
 	Mask    uintptr // *byte
 	Values  uintptr // *float64
 }
 
 type _XIRawEvent struct {
+	_         structs.HostLayout
 	Type      int32
 	Serial    _Culong
 	SendEvent int32

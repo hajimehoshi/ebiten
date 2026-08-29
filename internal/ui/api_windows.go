@@ -18,6 +18,7 @@ import (
 	"errors"
 	"fmt"
 	"runtime"
+	"structs"
 	"syscall"
 	"unsafe"
 
@@ -52,6 +53,7 @@ var (
 )
 
 type _RECT struct {
+	_      structs.HostLayout
 	left   int32
 	top    int32
 	right  int32
@@ -59,6 +61,7 @@ type _RECT struct {
 }
 
 type _MONITORINFO struct {
+	_         structs.HostLayout
 	cbSize    uint32
 	rcMonitor _RECT
 	rcWork    _RECT
@@ -66,6 +69,7 @@ type _MONITORINFO struct {
 }
 
 type _POINT struct {
+	_ structs.HostLayout
 	x int32
 	y int32
 }
@@ -166,10 +170,12 @@ func _DwmSetWindowAttribute(hwnd windows.HWND, dwAttribute uint32, pvAttribute u
 }
 
 type _ITaskbarList struct {
+	_    structs.HostLayout
 	vtbl *_ITaskbarList_Vtbl
 }
 
 type _ITaskbarList_Vtbl struct {
+	_              structs.HostLayout
 	QueryInterface uintptr
 	AddRef         uintptr
 	Release        uintptr
