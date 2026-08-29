@@ -559,7 +559,7 @@ func addAndroidDefaultMappings(id string) bool {
 		(1 << SDLControllerButtonX) |
 		(1 << SDLControllerButtonY))
 
-	if len(id) != 16 {
+	if len(id) < 16 {
 		return false
 	}
 	idBytes, err := hex.DecodeString(id)
