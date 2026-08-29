@@ -175,7 +175,7 @@ func (g *gamepadLike) Hat(index int) int {
 // TestLockOrderInversion checks that gamepaddb does not hold its lock
 // while calling a gamepad state, which would deadlock with the other order,
 // where a gamepad holds its own lock and then calls into gamepaddb.
-// This fails without -race.
+// It detects the deadlock even without -race, which CI does not run.
 func TestLockOrderInversion(t *testing.T) {
 	const id = "00000000000000000000000000000001"
 	if err := gamepaddb.Update([]byte(id + ",Test Pad,a:b0,leftx:a0,\n")); err != nil {
