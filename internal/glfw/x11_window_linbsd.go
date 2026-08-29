@@ -2054,6 +2054,20 @@ func (w *Window) platformSetWindowIcon(images []*Image) error {
 			_glfw.platformWindow.NET_WM_ICON)
 	}
 
+
+	// Set ICCCM WM_HINTS with icon flags for Ubuntu/GNOME compatibility
+	{
+		hintsPtr := xAllocWMHints()
+		if hintsPtr != 0 {
+			hints := (*_XWMHints)(unsafe.Pointer(hintsPtr))
+			hints.Flags = 1 | 2 // IconPixmapHint (1) | IconMaskHint (2)
+			hints.IconPixmap = 0 // pixmap handled via _NET_WM_ICON
+			hints.IconMask = 0
+			xSetWMHints(_glfw.platformWindow.display, w.platform.handle, hints)
+			xFree(hintsPtr)
+		}
+	}
+
 	xFlush(_glfw.platformWindow.display)
 	return nil
 }
