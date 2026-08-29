@@ -170,6 +170,8 @@ chunks:
 		}
 		headerSize += 8
 		size := int64(buf[4]) | int64(buf[5])<<8 | int64(buf[6])<<16 | int64(buf[7])<<24
+		// A chunk is word-aligned: an odd-sized chunk is followed by a pad byte, which is not counted in the size.
+		paddedSize := size + size%2
 		switch {
 		case bytes.Equal(buf[0:4], []byte("fmt ")):
 			// Size of 'fmt' header is usually 16, but can be more than 16.
@@ -203,18 +205,18 @@ chunks:
 				return nil, fmt.Errorf("wav: bits per sample must be 8 or 16 but was %d", bitsPerSample)
 			}
 			sampleRate = int(fmtBuf[4]) | int(fmtBuf[5])<<8 | int(fmtBuf[6])<<16 | int(fmtBuf[7])<<24
-			if _, err := io.CopyN(io.Discard, src, size-16); err != nil {
+			if _, err := io.CopyN(io.Discard, src, paddedSize-16); err != nil {
 				return nil, fmt.Errorf("wav: invalid header")
 			}
-			headerSize += size
+			headerSize += paddedSize
 		case bytes.Equal(buf[0:4], []byte("data")):
 			dataSize = size
 			break chunks
 		default:
-			if _, err := io.CopyN(io.Discard, src, size); err != nil {
+			if _, err := io.CopyN(io.Discard, src, paddedSize); err != nil {
 				return nil, fmt.Errorf("wav: invalid header")
 			}
-			headerSize += size
+			headerSize += paddedSize
 		}
 	}
 

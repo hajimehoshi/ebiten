@@ -117,3 +117,121 @@ func TestDecodeValid(t *testing.T) {
 		t.Errorf("Length(): got: %d, want: %d", got, want)
 	}
 }
+
+const testSampleRate = 44100
+
+type chunk struct {
+	id   string
+	data string
+}
+
+// appendChunk appends a RIFF chunk, with a pad byte if the data size is odd.
+func appendChunk(dst []byte, id string, data []byte) []byte {
+	dst = append(dst, id...)
+	dst = binary.LittleEndian.AppendUint32(dst, uint32(len(data)))
+	dst = append(dst, data...)
+	if len(data)%2 != 0 {
+		dst = append(dst, 0)
+	}
+	return dst
+}
+
+// stereoI16FmtChunkData returns the content of a 'fmt ' chunk for 2 channels signed 16bit little endian PCM.
+func stereoI16FmtChunkData() []byte {
+	var buf []byte
+	buf = binary.LittleEndian.AppendUint16(buf, 1)                  // Format tag (linear PCM)
+	buf = binary.LittleEndian.AppendUint16(buf, 2)                  // Channel count
+	buf = binary.LittleEndian.AppendUint32(buf, testSampleRate)     // Sample rate
+	buf = binary.LittleEndian.AppendUint32(buf, testSampleRate*2*2) // Byte rate
+	buf = binary.LittleEndian.AppendUint16(buf, 4)                  // Block align
+	buf = binary.LittleEndian.AppendUint16(buf, 16)                 // Bits per sample
+	return buf
+}
+
+// wavFile returns a WAV file whose 'data' chunk holds data.
+// beforeFmt and afterFmt are put before and after the 'fmt ' chunk respectively.
+func wavFile(beforeFmt []chunk, afterFmt []chunk, data []byte) []byte {
+	var body []byte
+	for _, c := range beforeFmt {
+		body = appendChunk(body, c.id, []byte(c.data))
+	}
+	body = appendChunk(body, "fmt ", stereoI16FmtChunkData())
+	for _, c := range afterFmt {
+		body = appendChunk(body, c.id, []byte(c.data))
+	}
+	body = appendChunk(body, "data", data)
+
+	var buf []byte
+	buf = append(buf, "RIFF"...)
+	buf = binary.LittleEndian.AppendUint32(buf, uint32(len(body)+4))
+	buf = append(buf, "WAVE"...)
+	return append(buf, body...)
+}
+
+func TestDecodeChunkPadding(t *testing.T) {
+	data := []byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08}
+
+	testCases := []struct {
+		name      string
+		beforeFmt []chunk
+		afterFmt  []chunk
+	}{
+		{
+			name: "no extra chunk",
+		},
+		{
+			name:      "even-sized chunk before 'fmt '",
+			beforeFmt: []chunk{{id: "LIST", data: "abcd"}},
+		},
+		{
+			name:      "odd-sized chunk before 'fmt '",
+			beforeFmt: []chunk{{id: "LIST", data: "abc"}},
+		},
+		{
+			name:     "odd-sized chunk after 'fmt '",
+			afterFmt: []chunk{{id: "LIST", data: "abc"}},
+		},
+		{
+			name:      "odd-sized chunks around 'fmt '",
+			beforeFmt: []chunk{{id: "LIST", data: "abc"}},
+			afterFmt:  []chunk{{id: "JUNK", data: "e"}},
+		},
+		{
+			name:      "consecutive odd-sized chunks",
+			beforeFmt: []chunk{{id: "LIST", data: "abc"}, {id: "JUNK", data: "e"}},
+		},
+		{
+			name:      "empty chunk",
+			beforeFmt: []chunk{{id: "LIST", data: ""}},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			src := wavFile(tc.beforeFmt, tc.afterFmt, data)
+			s, err := wav.DecodeWithoutResampling(bytes.NewReader(src))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got, want := s.SampleRate(), testSampleRate; got != want {
+				t.Errorf("s.SampleRate(): got: %d, want: %d", got, want)
+			}
+			if got, want := s.Length(), int64(len(data)); got != want {
+				t.Errorf("s.Length(): got: %d, want: %d", got, want)
+			}
+
+			// Seek to the beginning before reading: sectionReader.Read doesn't refer to its offset,
+			// so a wrong header size is observable only via Seek.
+			if _, err := s.Seek(0, io.SeekStart); err != nil {
+				t.Fatal(err)
+			}
+			got, err := io.ReadAll(s)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if want := data; !bytes.Equal(got, want) {
+				t.Errorf("data: got: %v, want: %v", got, want)
+			}
+		})
+	}
+}
