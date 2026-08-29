@@ -97,6 +97,11 @@ func parseLine(line string, platform platform) (id string, name string, buttons 
 		return "", "", nil, nil, fmt.Errorf("gamepaddb: syntax error")
 	}
 
+	// An id must be a hex-encoded GUID, which is exactly 16 bytes, on any platform.
+	if idBytes, err := hex.DecodeString(tokens[0]); err != nil || len(idBytes) != 16 {
+		return "", "", nil, nil, nil
+	}
+
 	for _, token := range tokens[2:] {
 		if len(token) == 0 {
 			continue
