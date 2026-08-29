@@ -16,9 +16,27 @@ package gamepaddb
 
 import "testing"
 
-// TestAndroidDefaultMappingsShortID confirms that a shorter-than-16-byte id is rejected.
-func TestAndroidDefaultMappingsShortID(t *testing.T) {
-	if addAndroidDefaultMappings("030000004c05000068020000") {
-		t.Errorf("a shorter-than-16-byte id must not be mapped")
+// TestAndroidDefaultMappingsIDLength confirms that an id whose decoded length is not 16 bytes is rejected.
+func TestAndroidDefaultMappingsIDLength(t *testing.T) {
+	cases := []struct {
+		Name string
+		ID   string
+	}{
+		{
+			Name: "ShorterThan16Bytes",
+			// 12 bytes
+			ID: "030000004c05000068020000",
+		},
+		{
+			Name: "LongerThan16Bytes",
+			// 17 bytes with a valid button mask
+			ID: "030000004c050000680200000f00000000",
+		},
+	}
+
+	for _, c := range cases {
+		if addAndroidDefaultMappings(c.ID) {
+			t.Errorf("%s: an id whose decoded length is not 16 bytes must not be mapped", c.Name)
+		}
 	}
 }
