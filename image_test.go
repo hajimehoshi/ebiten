@@ -502,7 +502,19 @@ func TestImageEdge(t *testing.T) {
 		}
 	}
 	img0.WritePixels(pixels)
-	img1 := ebiten.NewImage(img1Width, img1Height)
+
+	// Each case is rendered into its own tile of a larger destination image, so that a batch of
+	// them is drawn and then read back at once instead of one read-back per case.
+	const (
+		tilesX = 32
+		tilesY = 32
+
+		dstWidth  = img1Width * tilesX
+		dstHeight = img1Height * tilesY
+	)
+	dst := ebiten.NewImage(dstWidth, dstHeight)
+	dstPix := make([]byte, 4*dstWidth*dstHeight)
+
 	red := color.RGBA{R: 0xff, A: 0xff}
 	var transparent color.RGBA
 
@@ -515,100 +527,131 @@ func TestImageEdge(t *testing.T) {
 		angles = append(angles, float64(a)/4096*2*math.Pi)
 	}
 
+	type testCase struct {
+		scale             float64
+		filter            ebiten.Filter
+		angle             float64
+		testDrawTriangles bool
+	}
+	var cases []testCase
 	for _, s := range []float64{1, 0.5, 0.25} {
 		for _, f := range []ebiten.Filter{ebiten.FilterNearest, ebiten.FilterLinear} {
 			for _, a := range angles {
 				for _, testDrawTriangles := range []bool{false, true} {
-					img1.Clear()
-					w, h := img0.Bounds().Dx(), img0.Bounds().Dy()
-					b := img0.Bounds()
-					var geo ebiten.GeoM
-					geo.Translate(-float64(w)/2, -float64(h)/2)
-					geo.Scale(s, s)
-					geo.Rotate(a)
-					geo.Translate(img1Width/2, img1Height/2)
-					if !testDrawTriangles {
-						op := &ebiten.DrawImageOptions{}
-						op.GeoM = geo
-						op.Filter = f
-						img1.DrawImage(img0, op)
-					} else {
-						op := &ebiten.DrawTrianglesOptions{}
-						dx0, dy0 := geo.Apply(0, 0)
-						dx1, dy1 := geo.Apply(float64(w), 0)
-						dx2, dy2 := geo.Apply(0, float64(h))
-						dx3, dy3 := geo.Apply(float64(w), float64(h))
-						vs := []ebiten.Vertex{
-							{
-								DstX:   float32(dx0),
-								DstY:   float32(dy0),
-								SrcX:   float32(b.Min.X),
-								SrcY:   float32(b.Min.Y),
-								ColorR: 1,
-								ColorG: 1,
-								ColorB: 1,
-								ColorA: 1,
-							},
-							{
-								DstX:   float32(dx1),
-								DstY:   float32(dy1),
-								SrcX:   float32(b.Max.X),
-								SrcY:   float32(b.Min.Y),
-								ColorR: 1,
-								ColorG: 1,
-								ColorB: 1,
-								ColorA: 1,
-							},
-							{
-								DstX:   float32(dx2),
-								DstY:   float32(dy2),
-								SrcX:   float32(b.Min.X),
-								SrcY:   float32(b.Max.Y),
-								ColorR: 1,
-								ColorG: 1,
-								ColorB: 1,
-								ColorA: 1,
-							},
-							{
-								DstX:   float32(dx3),
-								DstY:   float32(dy3),
-								SrcX:   float32(b.Max.X),
-								SrcY:   float32(b.Max.Y),
-								ColorR: 1,
-								ColorG: 1,
-								ColorB: 1,
-								ColorA: 1,
-							},
-						}
-						is := []uint16{0, 1, 2, 1, 2, 3}
-						op.Filter = f
-						img1.DrawTriangles(vs, is, img0, op)
-					}
-					allTransparent := true
-					for j := range img1Height {
-						for i := range img1Width {
-							c := img1.At(i, j)
-							if c == transparent {
-								continue
-							}
-							allTransparent = false
-							switch f {
-							case ebiten.FilterNearest:
-								if c == red {
-									continue
-								}
-							case ebiten.FilterLinear:
-								if _, g, b, _ := c.RGBA(); g == 0 && b == 0 {
-									continue
-								}
-							}
-							t.Fatalf("img1.At(%d, %d) (filter: %d, scale: %f, angle: %f, draw-triangles?: %t) want: red or transparent, got: %v", i, j, f, s, a, testDrawTriangles, c)
-						}
-					}
-					if allTransparent {
-						t.Fatalf("img1 (filter: %d, scale: %f, angle: %f, draw-triangles?: %t) is transparent but should not", f, s, a, testDrawTriangles)
-					}
+					cases = append(cases, testCase{
+						scale:             s,
+						filter:            f,
+						angle:             a,
+						testDrawTriangles: testDrawTriangles,
+					})
 				}
+			}
+		}
+	}
+
+	w, h := img0.Bounds().Dx(), img0.Bounds().Dy()
+	b := img0.Bounds()
+
+	for start := 0; start < len(cases); start += tilesX * tilesY {
+		batch := cases[start:min(start+tilesX*tilesY, len(cases))]
+
+		dst.Clear()
+		for idx, c := range batch {
+			ox := float64(idx % tilesX * img1Width)
+			oy := float64(idx / tilesX * img1Height)
+			var geo ebiten.GeoM
+			geo.Translate(-float64(w)/2, -float64(h)/2)
+			geo.Scale(c.scale, c.scale)
+			geo.Rotate(c.angle)
+			geo.Translate(ox+img1Width/2, oy+img1Height/2)
+			if !c.testDrawTriangles {
+				op := &ebiten.DrawImageOptions{}
+				op.GeoM = geo
+				op.Filter = c.filter
+				dst.DrawImage(img0, op)
+			} else {
+				op := &ebiten.DrawTrianglesOptions{}
+				dx0, dy0 := geo.Apply(0, 0)
+				dx1, dy1 := geo.Apply(float64(w), 0)
+				dx2, dy2 := geo.Apply(0, float64(h))
+				dx3, dy3 := geo.Apply(float64(w), float64(h))
+				vs := []ebiten.Vertex{
+					{
+						DstX:   float32(dx0),
+						DstY:   float32(dy0),
+						SrcX:   float32(b.Min.X),
+						SrcY:   float32(b.Min.Y),
+						ColorR: 1,
+						ColorG: 1,
+						ColorB: 1,
+						ColorA: 1,
+					},
+					{
+						DstX:   float32(dx1),
+						DstY:   float32(dy1),
+						SrcX:   float32(b.Max.X),
+						SrcY:   float32(b.Min.Y),
+						ColorR: 1,
+						ColorG: 1,
+						ColorB: 1,
+						ColorA: 1,
+					},
+					{
+						DstX:   float32(dx2),
+						DstY:   float32(dy2),
+						SrcX:   float32(b.Min.X),
+						SrcY:   float32(b.Max.Y),
+						ColorR: 1,
+						ColorG: 1,
+						ColorB: 1,
+						ColorA: 1,
+					},
+					{
+						DstX:   float32(dx3),
+						DstY:   float32(dy3),
+						SrcX:   float32(b.Max.X),
+						SrcY:   float32(b.Max.Y),
+						ColorR: 1,
+						ColorG: 1,
+						ColorB: 1,
+						ColorA: 1,
+					},
+				}
+				is := []uint16{0, 1, 2, 1, 2, 3}
+				op.Filter = c.filter
+				dst.DrawTriangles(vs, is, img0, op)
+			}
+		}
+
+		dst.ReadPixels(dstPix)
+
+		for idx, c := range batch {
+			ox := idx % tilesX * img1Width
+			oy := idx / tilesX * img1Height
+			allTransparent := true
+			for j := range img1Height {
+				for i := range img1Width {
+					k := 4 * ((oy+j)*dstWidth + ox + i)
+					clr := color.RGBA{R: dstPix[k], G: dstPix[k+1], B: dstPix[k+2], A: dstPix[k+3]}
+					if clr == transparent {
+						continue
+					}
+					allTransparent = false
+					switch c.filter {
+					case ebiten.FilterNearest:
+						if clr == red {
+							continue
+						}
+					case ebiten.FilterLinear:
+						if _, g, b, _ := clr.RGBA(); g == 0 && b == 0 {
+							continue
+						}
+					}
+					t.Fatalf("img1.At(%d, %d) (filter: %d, scale: %f, angle: %f, draw-triangles?: %t) want: red or transparent, got: %v", i, j, c.filter, c.scale, c.angle, c.testDrawTriangles, clr)
+				}
+			}
+			if allTransparent {
+				t.Fatalf("img1 (filter: %d, scale: %f, angle: %f, draw-triangles?: %t) is transparent but should not", c.filter, c.scale, c.angle, c.testDrawTriangles)
 			}
 		}
 	}
