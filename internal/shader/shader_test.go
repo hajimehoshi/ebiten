@@ -296,31 +296,55 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 func TestCompileForLoopTermination(t *testing.T) {
 	testCases := []struct {
 		loop      string
+		body      string
 		wantError bool
 	}{
-		{"i := 0; i < 10; i += 1", false},
-		{"i := 10; i > 0; i -= 1", false},
-		{"i := 0; i != 10; i += 2", false},
-		{"i := 10; i != 0; i -= 2", false},
-		{"i := 10; i < 10; i += 1", false},
-		{"i := 0; i == 0; i += 1", false},
-		{"i := 0; i == 10; i += 1", false},
-		{"i := 0; i < 10; i += 0", true},
-		{"i := 0; i < 10; i -= 1", true},
-		{"i := 0; i <= 0; i -= 1", true},
-		{"i := 0; i > -10; i += 1", true},
-		{"i := 0; i >= 0; i += 1", true},
-		{"i := 0; i != 10; i += 3", true},
-		{"i := 10; i != 0; i -= 3", true},
+		{"i := 0; i < 10; i += 1", "", false},
+		{"i := 10; i > 0; i -= 1", "", false},
+		{"i := 0; i != 10; i += 2", "", false},
+		{"i := 10; i != 0; i -= 2", "", false},
+		{"i := 10; i < 10; i += 1", "", false},
+		{"i := 0; i == 0; i += 1", "", false},
+		{"i := 0; i == 10; i += 1", "", false},
+		{"i := 0; i < 10; i++", "", false},
+		{"i := 10; i > 0; i--", "", false},
+		{"i := 0.0; i < 10.0; i += 1.0", "", false},
+		{"i := 10.0; i > 0.0; i -= 1.0", "", false},
+		{"i := 0.0; i != 10.0; i += 2.0", "", false},
+		{"i := 0; i < 10; i += 0", "", true},
+		{"i := 0; i < 10; i -= 1", "", true},
+		{"i := 0; i <= 0; i -= 1", "", true},
+		{"i := 0; i > -10; i += 1", "", true},
+		{"i := 0; i >= 0; i += 1", "", true},
+		{"i := 0; i >= 0; i++", "", true},
+		{"i := 10; i <= 10; i--", "", true},
+		{"i := 0; i != 10; i += 3", "", true},
+		{"i := 10; i != 0; i -= 3", "", true},
+		{"i := 0.0; i < 10.0; i += 0.0", "", true},
+		{"i := 0.0; i < 10.0; i -= 1.0", "", true},
+		{"i := 0.5; i < 10.0; i -= 1.0", "", true},
+		{"i := 0.0; i < 10.0; i -= 0.5", "", true},
+		{"i := 0.0; i != 10.0; i -= 1.0", "", true},
+		{"i := 0.0; i != 10.0; i += 3.0", "", true},
+		{"i := 0; i >= 0; i++", "x += 1\n\t\tif x > 3 {\n\t\t\tbreak\n\t\t}", false},
+		{"i := 0; i >= 0; i += 1", "x += 1\n\t\treturn vec4(1)", false},
+		{"i := 0; i < 10; i += 0", "x += 1\n\t\tif x > 3 {\n\t\t\tbreak\n\t\t}", false},
+		{"i := 0; i >= 0; i++", "x += 1\n\t\tfor j := 0; j < 10; j++ {\n\t\t\tbreak\n\t\t}", true},
+		{"i := 0; i >= 0; i += 1", "x += 1\n\t\tfor j := 0; j < 10; j++ {\n\t\t\treturn vec4(1)\n\t\t}", false},
+		{"i := true; i == false; i += true", "", false},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.loop, func(t *testing.T) {
+			body := tc.body
+			if body == "" {
+				body = "x += 1"
+			}
 			src := `package main
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	x := 0
 	for ` + tc.loop + ` {
-		x += 1
+		` + body + `
 	}
 	return vec4(1)
 }`

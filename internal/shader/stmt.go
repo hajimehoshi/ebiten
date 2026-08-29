@@ -901,14 +901,6 @@ func (cs *compileState) parseFor(block *block, fname string, stmt *ast.ForStmt, 
 		cs.addError(stmt.Pos(), "for-statement's post statement must have one of these operators: +=, -=, ++, --")
 		return nil, false
 	}
-	if gconstant.Sign(delta) == 0 {
-		cs.addError(stmt.Pos(), "for-statement's post statement must change the loop variable, but the delta is 0")
-		return nil, false
-	}
-	if forLoopNeverTerminates(op, init, end, delta) {
-		cs.addError(stmt.Pos(), "for-statement's condition never becomes false")
-		return nil, false
-	}
 
 	b, ok := cs.parseBlock(pseudoBlock, fname, []ast.Stmt{stmt.Body}, inParams, outParams, returnType, true)
 	if !ok {
@@ -917,6 +909,13 @@ func (cs *compileState) parseFor(block *block, fname string, stmt *ast.ForStmt, 
 	bodyir := b.ir
 	for len(bodyir.Stmts) == 1 && bodyir.Stmts[0].Type == shaderir.BlockStmt {
 		bodyir = bodyir.Stmts[0].Blocks[0]
+	}
+
+	// A loop whose condition never becomes false can still end by a break- or a return-statement in
+	// its body.
+	if !blockExitsLoop(bodyir, false) && forLoopConditionAlwaysTrue(op, init, end, delta) {
+		cs.addError(stmt.Pos(), "for-statement's condition never becomes false")
+		return nil, false
 	}
 
 	// As the pseudo block is not actually used, copy the variable part to the actual block.
@@ -944,11 +943,13 @@ func (cs *compileState) parseFor(block *block, fname string, stmt *ast.ForStmt, 
 	}, true
 }
 
-func forLoopNeverTerminates(op shaderir.Op, init, end, delta gconstant.Value) bool {
-	init = gconstant.ToInt(init)
-	end = gconstant.ToInt(end)
-	delta = gconstant.ToInt(delta)
-	if init.Kind() == gconstant.Unknown || end.Kind() == gconstant.Unknown || delta.Kind() == gconstant.Unknown {
+// forLoopConditionAlwaysTrue reports whether the condition of a for-loop never becomes false.
+// The initial value, the end value and the delta are constants, so this can be decided at compile time.
+// The loop can still end by a break- or a return-statement in its body.
+func forLoopConditionAlwaysTrue(op shaderir.Op, init, end, delta gconstant.Value) bool {
+	// A non-numeric constant cannot be analyzed here. Such a constant is invalid, but reporting it is
+	// another issue.
+	if !isNumeric(init) || !isNumeric(end) || !isNumeric(delta) {
 		return false
 	}
 
@@ -978,17 +979,61 @@ func forLoopNeverTerminates(op shaderir.Op, init, end, delta gconstant.Value) bo
 		if d == 0 {
 			return gconstant.Compare(init, token.NEQ, end)
 		}
-		var diff gconstant.Value
+		var diff, step gconstant.Value
 		if d > 0 {
 			diff = gconstant.BinaryOp(end, token.SUB, init)
+			step = delta
 		} else {
 			diff = gconstant.BinaryOp(init, token.SUB, end)
-			delta = gconstant.UnaryOp(token.SUB, delta, 0)
+			step = gconstant.UnaryOp(token.SUB, delta, 0)
 		}
 		if gconstant.Sign(diff) < 0 {
 			return true
 		}
-		return gconstant.Sign(gconstant.BinaryOp(diff, token.REM, delta)) != 0
+		// Whether the loop variable reaches the end value exactly can be decided only with integers.
+		diff = gconstant.ToInt(diff)
+		step = gconstant.ToInt(step)
+		if diff.Kind() == gconstant.Unknown || step.Kind() == gconstant.Unknown {
+			return false
+		}
+		return gconstant.Sign(gconstant.BinaryOp(diff, token.REM, step)) != 0
+	}
+	return false
+}
+
+func isNumeric(v gconstant.Value) bool {
+	switch v.Kind() {
+	case gconstant.Int, gconstant.Float:
+		return true
+	}
+	return false
+}
+
+// blockExitsLoop reports whether the block contains a break- or a return-statement, which exits the
+// enclosing loop even if the loop condition never becomes false.
+// A break-statement in a nested for-loop exits only the nested loop, so it is not counted.
+func blockExitsLoop(block *shaderir.Block, inForLoop bool) bool {
+	for _, s := range block.Stmts {
+		switch s.Type {
+		case shaderir.Break:
+			if !inForLoop {
+				return true
+			}
+		case shaderir.Return:
+			return true
+		case shaderir.For:
+			for _, b := range s.Blocks {
+				if blockExitsLoop(b, true) {
+					return true
+				}
+			}
+		default:
+			for _, b := range s.Blocks {
+				if blockExitsLoop(b, inForLoop) {
+					return true
+				}
+			}
+		}
 	}
 	return false
 }
