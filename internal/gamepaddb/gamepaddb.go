@@ -313,6 +313,10 @@ func toStandardGamepadAxis(str string) (StandardAxis, bool) {
 	}
 }
 
+// buttonMappings returns the button mappings for the given id.
+//
+// This can add the Android default mappings, i.e., this can modify the maps,
+// so the caller must hold mappingsM.
 func buttonMappings(id string) map[StandardButton]mapping {
 	if m, ok := gamepadButtonMappings[id]; ok {
 		return m
@@ -325,6 +329,10 @@ func buttonMappings(id string) map[StandardButton]mapping {
 	return nil
 }
 
+// axisMappings returns the axis mappings for the given id.
+//
+// This can add the Android default mappings, i.e., this can modify the maps,
+// so the caller must hold mappingsM.
 func axisMappings(id string) map[StandardAxis]mapping {
 	if m, ok := gamepadAxisMappings[id]; ok {
 		return m
@@ -337,6 +345,40 @@ func axisMappings(id string) map[StandardAxis]mapping {
 	return nil
 }
 
+// buttonMapping returns the button mapping for the given id and button.
+//
+// The mapping is resolved while mappingsM is held, and the returned value is a copy,
+// so that the caller can use it without mappingsM. mappingsM must never be held
+// when a gamepad state is used (see GamepadState).
+func buttonMapping(id string, button StandardButton) (mapping, bool) {
+	mappingsM.Lock()
+	defer mappingsM.Unlock()
+
+	mappings := buttonMappings(id)
+	if mappings == nil {
+		return mapping{}, false
+	}
+	m, ok := mappings[button]
+	return m, ok
+}
+
+// axisMapping returns the axis mapping for the given id and axis.
+//
+// The mapping is resolved while mappingsM is held, and the returned value is a copy,
+// so that the caller can use it without mappingsM. mappingsM must never be held
+// when a gamepad state is used (see GamepadState).
+func axisMapping(id string, axis StandardAxis) (mapping, bool) {
+	mappingsM.Lock()
+	defer mappingsM.Unlock()
+
+	mappings := axisMappings(id)
+	if mappings == nil {
+		return mapping{}, false
+	}
+	m, ok := mappings[axis]
+	return m, ok
+}
+
 func HasStandardLayoutMapping(id string) bool {
 	mappingsM.Lock()
 	defer mappingsM.Unlock()
@@ -344,6 +386,11 @@ func HasStandardLayoutMapping(id string) bool {
 	return buttonMappings(id) != nil || axisMappings(id) != nil
 }
 
+// GamepadState represents a gamepad state given by a gamepad driver.
+//
+// None of the methods must be called while mappingsM is held in this package.
+// A gamepad implementation can take its own lock in these methods, and a lock holder
+// can call this package at the same time, which would deadlock.
 type GamepadState interface {
 	IsAxisReady(index int) bool
 	Axis(index int) float64
@@ -371,15 +418,7 @@ func HasStandardAxis(id string, axis StandardAxis) bool {
 }
 
 func StandardAxisValue(id string, axis StandardAxis, state GamepadState) float64 {
-	mappingsM.Lock()
-	defer mappingsM.Unlock()
-
-	mappings := axisMappings(id)
-	if mappings == nil {
-		return 0
-	}
-
-	mapping, ok := mappings[axis]
+	mapping, ok := axisMapping(id, axis)
 	if !ok {
 		return 0
 	}
@@ -426,23 +465,17 @@ func HasStandardButton(id string, button StandardButton) bool {
 }
 
 func StandardButtonValue(id string, button StandardButton, state GamepadState) float64 {
-	mappingsM.Lock()
-	defer mappingsM.Unlock()
-
-	return standardButtonValue(id, button, state)
-}
-
-func standardButtonValue(id string, button StandardButton, state GamepadState) float64 {
-	mappings := buttonMappings(id)
-	if mappings == nil {
-		return 0
-	}
-
-	mapping, ok := mappings[button]
+	mapping, ok := buttonMapping(id, button)
 	if !ok {
 		return 0
 	}
 
+	return standardButtonValue(mapping, state)
+}
+
+// standardButtonValue calculates the value from the given mapping.
+// The mapping is passed by value so that mappingsM is not held while state is used.
+func standardButtonValue(mapping mapping, state GamepadState) float64 {
 	switch mapping.Type {
 	case mappingTypeAxis:
 		if !state.IsAxisReady(mapping.Index) {
@@ -478,22 +511,14 @@ func standardButtonValue(id string, button StandardButton, state GamepadState) f
 const ButtonPressedThreshold = 30.0 / 255.0
 
 func IsStandardButtonPressed(id string, button StandardButton, state GamepadState) bool {
-	mappingsM.Lock()
-	defer mappingsM.Unlock()
-
-	mappings, ok := gamepadButtonMappings[id]
-	if !ok {
-		return false
-	}
-
-	mapping, ok := mappings[button]
+	mapping, ok := buttonMapping(id, button)
 	if !ok {
 		return false
 	}
 
 	switch mapping.Type {
 	case mappingTypeAxis:
-		v := standardButtonValue(id, button, state)
+		v := standardButtonValue(mapping, state)
 		return v > ButtonPressedThreshold
 	case mappingTypeButton:
 		return state.Button(mapping.Index)
