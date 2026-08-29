@@ -495,3 +495,23 @@ func TestInfiniteLoopSeekCurrentAfterPartialFrameRead(t *testing.T) {
 		t.Errorf("got: %v, want: %v", buf[:n], want)
 	}
 }
+
+func TestInfiniteLoopZeroLoopLength(t *testing.T) {
+	for _, tc := range []struct {
+		name        string
+		introLength int64
+		loopLength  int64
+	}{
+		{"ShortLoop", 8, 3},
+		{"ZeroLoop", 8, 0},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			defer func() {
+				if r := recover(); r == nil {
+					t.Errorf("expected a panic for a zero loop length, but got none")
+				}
+			}()
+			audio.NewInfiniteLoopWithIntro(bytes.NewReader(make([]byte, 64)), tc.introLength, tc.loopLength)
+		})
+	}
+}
