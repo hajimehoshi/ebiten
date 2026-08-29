@@ -16,6 +16,7 @@ package convert_test
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"math/rand/v2"
@@ -304,5 +305,272 @@ func TestStereoI16SeekEnd(t *testing.T) {
 				})
 			}
 		})
+	}
+}
+
+var partialFrameTestCases = []struct {
+	name string
+	src  []byte
+	mono bool
+	fmt  convert.Format
+	want []byte
+}{
+	{
+		name: "mono S16 with a trailing byte",
+		src:  []byte{0x80, 0x01, 0x02, 0x03, 0x04},
+		mono: true,
+		fmt:  convert.FormatS16,
+		want: []byte{0x80, 0x01, 0x80, 0x01, 0x02, 0x03, 0x02, 0x03},
+	},
+	{
+		name: "mono S16 aligned",
+		src:  []byte{0x80, 0x01, 0x02, 0x03},
+		mono: true,
+		fmt:  convert.FormatS16,
+		want: []byte{0x80, 0x01, 0x80, 0x01, 0x02, 0x03, 0x02, 0x03},
+	},
+	{
+		name: "mono S16 four samples",
+		src:  []byte{0x11, 0x11, 0x22, 0x22, 0x33, 0x33, 0x44, 0x44},
+		mono: true,
+		fmt:  convert.FormatS16,
+		want: []byte{0x11, 0x11, 0x11, 0x11, 0x22, 0x22, 0x22, 0x22, 0x33, 0x33, 0x33, 0x33, 0x44, 0x44, 0x44, 0x44},
+	},
+	{
+		name: "stereo S16 with a trailing byte",
+		src:  []byte{0x80, 0x01, 0x02, 0x03, 0x04},
+		mono: false,
+		fmt:  convert.FormatS16,
+		want: []byte{0x80, 0x01, 0x02, 0x03},
+	},
+	{
+		name: "mono U8 aligned",
+		src:  []byte{0x80, 0x81, 0x7f},
+		mono: true,
+		fmt:  convert.FormatU8,
+		want: []byte{0x80, 0x00, 0x80, 0x00, 0x81, 0x01, 0x81, 0x01, 0x7f, 0xff, 0x7f, 0xff},
+	},
+	{
+		name: "stereo U8 with a trailing byte",
+		src:  []byte{0x80, 0x81, 0x7f, 0x7e, 0x01},
+		mono: false,
+		fmt:  convert.FormatU8,
+		want: []byte{0x80, 0x00, 0x81, 0x01, 0x7f, 0xff, 0x7e, 0xfe},
+	},
+	{
+		name: "mono S24 aligned",
+		src:  []byte{1, 2, 3, 4, 5, 6},
+		mono: true,
+		fmt:  convert.FormatS24,
+		want: []byte{2, 3, 2, 3, 5, 6, 5, 6},
+	},
+	{
+		name: "stereo S24 aligned",
+		src:  []byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12},
+		mono: false,
+		fmt:  convert.FormatS24,
+		want: []byte{2, 3, 5, 6, 8, 9, 11, 12},
+	},
+	{
+		name: "stereo S24 with a trailing partial frame",
+		src:  []byte{1, 2, 3, 4, 5, 6, 7, 8},
+		mono: false,
+		fmt:  convert.FormatS24,
+		want: []byte{2, 3, 5, 6},
+	},
+}
+
+func TestStereoI16ReadSeekerPartialFrame(t *testing.T) {
+	for _, tc := range partialFrameTestCases {
+		t.Run(tc.name, func(t *testing.T) {
+			s := convert.NewStereoI16ReadSeeker(bytes.NewReader(tc.src), tc.mono, tc.fmt)
+			buf := make([]byte, 64)
+			n, err := s.Read(buf)
+			if err != nil && err != io.EOF {
+				t.Fatal(err)
+			}
+			if !bytes.Equal(buf[:n], tc.want) {
+				t.Errorf("Read: got %d bytes %x, want %x", n, buf[:n], tc.want)
+			}
+		})
+	}
+}
+
+type shortReader struct {
+	src   io.Reader
+	chunk int
+}
+
+func (r *shortReader) Read(p []byte) (int, error) {
+	if len(p) > r.chunk {
+		p = p[:r.chunk]
+	}
+	return r.src.Read(p)
+}
+
+func (r *shortReader) Seek(offset int64, whence int) (int64, error) {
+	return r.src.(io.Seeker).Seek(offset, whence)
+}
+
+func TestStereoI16ReadSeekerShortReads(t *testing.T) {
+	for _, chunk := range []int{1, 2, 3, 5} {
+		for _, tc := range partialFrameTestCases {
+			t.Run(fmt.Sprintf("%s/chunk=%d", tc.name, chunk), func(t *testing.T) {
+				s := convert.NewStereoI16ReadSeeker(&shortReader{src: bytes.NewReader(tc.src), chunk: chunk}, tc.mono, tc.fmt)
+				var got []byte
+				for {
+					buf := make([]byte, 8)
+					n, err := s.Read(buf)
+					if n == 0 && err == nil {
+						t.Fatalf("Read returned (0, nil) after %d bytes", len(got))
+					}
+					got = append(got, buf[:n]...)
+					pos, seekErr := s.Seek(0, io.SeekCurrent)
+					if seekErr != nil {
+						t.Fatal(seekErr)
+					}
+					if pos != int64(len(got)) {
+						t.Errorf("Seek(0, io.SeekCurrent): got %d, want %d", pos, len(got))
+					}
+					if err != nil {
+						if err != io.EOF {
+							t.Fatal(err)
+						}
+						break
+					}
+				}
+				if !bytes.Equal(got, tc.want) {
+					t.Errorf("got %x, want %x", got, tc.want)
+				}
+
+				if _, err := s.Seek(0, io.SeekStart); err != nil {
+					t.Fatal(err)
+				}
+				got = nil
+				for {
+					buf := make([]byte, 5)
+					n, err := s.Read(buf)
+					if n == 0 && err == nil {
+						t.Fatalf("Read returned (0, nil) after %d bytes", len(got))
+					}
+					got = append(got, buf[:n]...)
+					if err != nil {
+						if err != io.EOF {
+							t.Fatal(err)
+						}
+						break
+					}
+				}
+				if !bytes.Equal(got, tc.want) {
+					t.Errorf("after seeking: got %x, want %x", got, tc.want)
+				}
+			})
+		}
+	}
+}
+
+func TestStereoI16ReadSeekerTooShortBuffer(t *testing.T) {
+	for _, tc := range []struct {
+		bufSize int
+		want    error
+	}{
+		{0, nil},
+		{1, io.ErrShortBuffer},
+		{3, io.ErrShortBuffer},
+	} {
+		t.Run(fmt.Sprintf("buf=%d", tc.bufSize), func(t *testing.T) {
+			s := convert.NewStereoI16ReadSeeker(&shortReader{
+				src:   bytes.NewReader([]byte{1, 2, 3, 4, 5, 6}),
+				chunk: 5,
+			}, true, convert.FormatS24)
+			want := []byte{2, 3, 2, 3, 5, 6, 5, 6}
+
+			buf := make([]byte, 8)
+			n, err := s.Read(buf)
+			if err != nil {
+				t.Fatal(err)
+			}
+			got := buf[:n]
+
+			n, err = s.Read(make([]byte, tc.bufSize))
+			if n != 0 {
+				t.Errorf("Read with a %d-byte buffer: got %d bytes, want 0", tc.bufSize, n)
+			}
+			if !errors.Is(err, tc.want) {
+				t.Errorf("Read with a %d-byte buffer: got error %v, want %v", tc.bufSize, err, tc.want)
+			}
+
+			for {
+				buf := make([]byte, 8)
+				n, err := s.Read(buf)
+				got = append(got, buf[:n]...)
+				if err != nil {
+					if err != io.EOF {
+						t.Fatal(err)
+					}
+					break
+				}
+			}
+			if !bytes.Equal(got, want) {
+				t.Errorf("got %x, want %x", got, want)
+			}
+		})
+	}
+}
+
+func TestStereoI16SeekEndPartialFrame(t *testing.T) {
+	for _, tc := range partialFrameTestCases {
+		t.Run(tc.name, func(t *testing.T) {
+			s := convert.NewStereoI16ReadSeeker(bytes.NewReader(tc.src), tc.mono, tc.fmt)
+			pos, err := s.Seek(0, io.SeekEnd)
+			if err != nil {
+				t.Fatal(err)
+			}
+			want := len(tc.want)
+			if int(pos) != want {
+				t.Errorf("Seek(0, io.SeekEnd): got %d, want %d", pos, want)
+			}
+		})
+	}
+}
+
+type failedSeeker struct {
+	r   io.Reader
+	err error
+}
+
+func (f *failedSeeker) Read(p []byte) (int, error) {
+	return f.r.Read(p)
+}
+
+func (f *failedSeeker) Seek(offset int64, whence int) (int64, error) {
+	return 0, f.err
+}
+
+func TestStereoI16ReadSeekerFailedSeekKeepsRemainder(t *testing.T) {
+	src := []byte{1, 2, 3, 4, 5, 6}
+	want := []byte{2, 3, 2, 3, 5, 6, 5, 6}
+	s := convert.NewStereoI16ReadSeeker(&failedSeeker{
+		r:   &shortReader{src: bytes.NewReader(src), chunk: 5},
+		err: errors.New("seek failed"),
+	}, true, convert.FormatS24)
+
+	var got []byte
+	for {
+		buf := make([]byte, 8)
+		n, err := s.Read(buf)
+		got = append(got, buf[:n]...)
+		if _, seekErr := s.Seek(0, io.SeekStart); seekErr == nil {
+			t.Fatal("Seek: got nil error, want an error")
+		}
+		if err != nil {
+			if err != io.EOF {
+				t.Fatal(err)
+			}
+			break
+		}
+	}
+	if !bytes.Equal(got, want) {
+		t.Errorf("got %x, want %x", got, want)
 	}
 }

@@ -31,6 +31,9 @@ type StereoI16ReadSeeker struct {
 	mono   bool
 	format Format
 	buf    []byte
+	// rest is a partial source frame that was read from the source but is not
+	// converted yet, so the source is ahead of the consumer by len(rest).
+	rest []byte
 }
 
 func NewStereoI16ReadSeeker(source io.ReadSeeker, mono bool, format Format) *StereoI16ReadSeeker {
@@ -41,28 +44,58 @@ func NewStereoI16ReadSeeker(source io.ReadSeeker, mono bool, format Format) *Ste
 	}
 }
 
-func (s *StereoI16ReadSeeker) Read(b []byte) (int, error) {
-	l := len(b) / 4 * 4
-	if s.mono {
-		l /= 2
-	}
+const dstFrameSize = 4
+
+func (s *StereoI16ReadSeeker) srcFrameSize() int {
 	switch s.format {
 	case FormatU8:
-		l /= 2
+		if s.mono {
+			return 1
+		}
+		return 2
 	case FormatS16:
+		if s.mono {
+			return 2
+		}
+		return 4
 	case FormatS24:
-		l *= 3
-		l /= 2
+		if s.mono {
+			return 3
+		}
+		return 6
 	}
+	panic("not reached")
+}
+
+func (s *StereoI16ReadSeeker) Read(b []byte) (int, error) {
+	if len(b) == 0 {
+		return 0, nil
+	}
+	if len(b) < dstFrameSize {
+		return 0, io.ErrShortBuffer
+	}
+	srcFrameSize := s.srcFrameSize()
+	l := len(b) / dstFrameSize * srcFrameSize
 
 	if cap(s.buf) < l {
 		s.buf = make([]byte, l)
 	}
+	s.buf = s.buf[:l]
 
-	n, err := s.source.Read(s.buf[:l])
-	if err != nil && err != io.EOF {
-		return 0, err
+	n := copy(s.buf, s.rest)
+	var err error
+	for n < srcFrameSize {
+		var dn int
+		dn, err = s.source.Read(s.buf[n:])
+		n += dn
+		if err != nil || dn == 0 {
+			break
+		}
 	}
+
+	s.rest = append(s.rest[:0], s.buf[n/srcFrameSize*srcFrameSize:n]...)
+	n = n / srcFrameSize * srcFrameSize
+
 	if s.mono {
 		switch s.format {
 		case FormatU8:
@@ -110,49 +143,23 @@ func (s *StereoI16ReadSeeker) Read(b []byte) (int, error) {
 			}
 		}
 	}
-	if s.mono {
-		n *= 2
-	}
-	switch s.format {
-	case FormatU8:
-		n *= 2
-	case FormatS16:
-	case FormatS24:
-		n *= 2
-		n /= 3
-	}
-	return n, err
+
+	return n / srcFrameSize * dstFrameSize, err
 }
 
 func (s *StereoI16ReadSeeker) Seek(offset int64, whence int) (int64, error) {
-	offset = offset / 4 * 4
-	if s.mono {
-		offset /= 2
+	srcFrameSize := int64(s.srcFrameSize())
+	o := offset / dstFrameSize * srcFrameSize
+	if whence == io.SeekCurrent {
+		o -= int64(len(s.rest))
 	}
-	switch s.format {
-	case FormatU8:
-		offset /= 2
-	case FormatS16:
-	case FormatS24:
-		offset *= 3
-		offset /= 2
-	}
-	pos, err := s.source.Seek(offset, whence)
+	pos, err := s.source.Seek(o, whence)
 	if err != nil {
 		return 0, err
 	}
+	s.rest = s.rest[:0]
+
 	// Convert the returned position from the source format's byte space to the
 	// stereo-i16 byte space this wrapper presents.
-	if s.mono {
-		pos *= 2
-	}
-	switch s.format {
-	case FormatU8:
-		pos *= 2
-	case FormatS16:
-	case FormatS24:
-		pos *= 2
-		pos /= 3
-	}
-	return pos, nil
+	return pos / srcFrameSize * dstFrameSize, nil
 }
