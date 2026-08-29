@@ -332,3 +332,111 @@ func TestResamplingSeekInvalidWhence(t *testing.T) {
 		}
 	}
 }
+
+func TestResamplingUnknownLengthTrailingSilence(t *testing.T) {
+	testCases := []struct {
+		name string
+		from int
+		to   int
+	}{
+		{
+			name: "1:1",
+			from: 44100,
+			to:   44100,
+		},
+		{
+			name: "upsample",
+			from: 44100,
+			to:   48000,
+		},
+		{
+			name: "downsample",
+			from: 48000,
+			to:   44100,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			for _, bitDepthInBytes := range []int{2, 4} {
+				t.Run(fmt.Sprintf("bitDepthInBytes=%d", bitDepthInBytes), func(t *testing.T) {
+					// 8192 is an exact multiple of the 4096-sample block, 8190 ends within the sinc window of the boundary, and 1 and 3 are not a whole number of samples at bitDepthInBytes 4.
+					for _, size := range []int{1, 3, 100, 8190, 8192, 100000} {
+						t.Run(fmt.Sprintf("size=%d", size), func(t *testing.T) {
+							inB := newSoundBytes(size, bitDepthInBytes)
+
+							known := convert.NewResampling(bytes.NewReader(inB), int64(len(inB)), tc.from, tc.to, bitDepthInBytes)
+							knownB, err := io.ReadAll(known)
+							if err != nil {
+								t.Fatal(err)
+							}
+
+							// The unknown length must end the stream at the source's real
+							// end for a seekable source and a non-seekable one alike.
+							for _, seekable := range []bool{true, false} {
+								t.Run(fmt.Sprintf("seekable=%v", seekable), func(t *testing.T) {
+									newSource := func() io.Reader {
+										var src io.Reader = bytes.NewReader(inB)
+										if !seekable {
+											src = &reader{r: src}
+										}
+										return src
+									}
+
+									unknown := convert.NewResampling(newSource(), 0, tc.from, tc.to, bitDepthInBytes)
+									unknownB, err := io.ReadAll(unknown)
+									if err != nil {
+										t.Fatal(err)
+									}
+
+									if !bytes.Equal(unknownB, knownB) {
+										t.Errorf("unknown-length output (%d bytes) is not equal to known-length output (%d bytes)", len(unknownB), len(knownB))
+									}
+
+									unknownWithSmallBuf := convert.NewResampling(newSource(), 0, tc.from, tc.to, bitDepthInBytes)
+									var buf [97]byte
+									var smallB []byte
+									for {
+										n, err := unknownWithSmallBuf.Read(buf[:])
+										smallB = append(smallB, buf[:n]...)
+										if err != nil {
+											if err != io.EOF {
+												t.Fatal(err)
+											}
+											break
+										}
+									}
+									if !bytes.Equal(smallB, knownB) {
+										t.Errorf("unknown-length output with a small read buffer (%d bytes) is not equal to known-length output (%d bytes)", len(smallB), len(knownB))
+									}
+								})
+							}
+						})
+					}
+				})
+			}
+		})
+	}
+}
+
+func TestResamplingUnknownLengthEmptySource(t *testing.T) {
+	for _, bitDepthInBytes := range []int{2, 4} {
+		t.Run(fmt.Sprintf("bitDepthInBytes=%d", bitDepthInBytes), func(t *testing.T) {
+			for _, seekable := range []bool{true, false} {
+				t.Run(fmt.Sprintf("seekable=%v", seekable), func(t *testing.T) {
+					var src io.Reader = bytes.NewReader(nil)
+					if !seekable {
+						src = &reader{r: src}
+					}
+					r := convert.NewResampling(src, 0, 44100, 48000, bitDepthInBytes)
+					b, err := io.ReadAll(r)
+					if err != nil {
+						t.Fatal(err)
+					}
+					if len(b) != 0 {
+						t.Errorf("got: %d, want: %d", len(b), 0)
+					}
+				})
+			}
+		})
+	}
+}
