@@ -328,7 +328,7 @@ func (r *Resampling) Seek(offset int64, whence int) (int64, error) {
 		if r.size <= 0 {
 			return 0, fmt.Errorf("convert: seeking from the end is not possible when the length is unknown: %w", errors.ErrUnsupported)
 		}
-		r.pos += r.Length() + offset
+		r.pos = r.Length() + offset
 	}
 	r.eof = false
 	if r.pos < 0 {

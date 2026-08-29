@@ -183,6 +183,77 @@ func TestResamplingLen(t *testing.T) {
 	}
 }
 
+func newTestSoundBytes16(n int) []byte {
+	b := make([]byte, n*4)
+	for i := range n {
+		b[4*i] = byte(i)
+		b[4*i+1] = byte(i >> 8)
+		b[4*i+2] = byte(255 - i)
+		b[4*i+3] = byte((255 - i) >> 8)
+	}
+	return b
+}
+
+func TestResamplingSeekEndAbsolute(t *testing.T) {
+	in := newTestSoundBytes16(1000)
+
+	r := convert.NewResampling(bytes.NewReader(in), int64(len(in)), 44100, 44100, 2)
+	got, err := r.Seek(-4, io.SeekEnd)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := r.Length() - 4; got != want {
+		t.Errorf("Seek(-4, io.SeekEnd) from the start: got %d, want %d", got, want)
+	}
+
+	r2 := convert.NewResampling(bytes.NewReader(in), int64(len(in)), 44100, 44100, 2)
+	buf := make([]byte, 2000)
+	for len(buf) > 0 {
+		n, err := r2.Read(buf)
+		if err != nil && err != io.EOF {
+			t.Fatal(err)
+		}
+		if n == 0 {
+			t.Fatal("Read made no progress")
+		}
+		buf = buf[n:]
+	}
+	got2, err := r2.Seek(-4, io.SeekEnd)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got2 != got {
+		t.Errorf("Seek(-4, io.SeekEnd) after reading 2000 bytes: got %d, want %d (the result must not depend on the current position)", got2, got)
+	}
+
+	b := make([]byte, 8)
+	n, err := r2.Read(b)
+	if n != 4 || (err != nil && err != io.EOF) {
+		t.Errorf("Read at (Length-4) after Seek(-4, io.SeekEnd): got n=%d, err=%v; want n=4", n, err)
+	}
+}
+
+func TestResamplingSeekEndZero(t *testing.T) {
+	in := newTestSoundBytes16(500)
+	r := convert.NewResampling(bytes.NewReader(in), int64(len(in)), 44100, 44100, 2)
+
+	buf := make([]byte, 1000)
+	if _, err := r.Read(buf); err != nil && err != io.EOF {
+		t.Fatal(err)
+	}
+
+	got, err := r.Seek(0, io.SeekEnd)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := r.Length(); got != want {
+		t.Errorf("Seek(0, io.SeekEnd): got %d, want %d", got, want)
+	}
+	if want := int64(len(in)); r.Length() != want {
+		t.Errorf("Length: got %d, want %d", r.Length(), want)
+	}
+}
+
 func TestResamplingSeekUnknownLength(t *testing.T) {
 	const (
 		from            = 44100
