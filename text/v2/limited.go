@@ -126,22 +126,16 @@ var theLimitedFilterMappingPool = sync.Pool{
 }
 
 // limitedFilterMapping returns a mapping from a byte index in filtered to a
-// byte index in line, where filtered is the result of
-// UnicodeRanges.Filter(line).
+// byte index in line, where filtered is UnicodeRanges.Filter(line). buf is
+// reused as the returned slice's backing array, and its contents are
+// discarded.
 //
-// buf is reused as the backing array of the returned mapping, and its
-// contents are discarded.
-//
-// The returned mapping has len(filtered)+1 entries so that the end index of
-// the last rune can be mapped, and thus its last entry is len(line).
-//
-// Filter replaces every unsupported rune with U+FFFD, whose byte length can
-// differ from the replaced rune's length. As Filter never adds nor removes a
-// rune, a rune in line corresponds to a rune in filtered at the same order,
-// and the indices are translated rune by rune. Byte indices in the middle of
-// a rune in filtered are assigned values in the mapping, but those values are
-// arbitrary and should not be relied on: a glyph index is always at a rune
-// boundary.
+// Filter replaces each unsupported rune with U+FFFD, whose byte length can
+// differ from the replaced rune's length, so the indices are translated rune
+// by rune. The mapping has len(filtered)+1 entries so that the end index of
+// the last rune can be mapped, and the last entry is len(line). The values at
+// indices in the middle of a rune in filtered are arbitrary, but a glyph
+// index is always at a rune boundary.
 func limitedFilterMapping(buf []int, line, filtered string) []int {
 	mapping := slices.Grow(buf, len(filtered)+1)[:len(filtered)+1]
 	var oi, fi int

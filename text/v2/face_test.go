@@ -69,9 +69,6 @@ func TestLimitedFaceAdvanceAtNewline(t *testing.T) {
 	}
 }
 
-// TestLimitedFaceAppendLazyGlyphsIndicesInOriginalText checks that the indices
-// of glyphs appended for a LimitedFace are indices in the original text, not in
-// the text filtered by the unicode ranges.
 func TestLimitedFaceAppendLazyGlyphsIndicesInOriginalText(t *testing.T) {
 	base := limitedFaceTestFace(t)
 	l := text.NewLimitedFace(base)
