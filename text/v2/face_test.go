@@ -85,9 +85,16 @@ func TestLimitedFaceAppendLazyGlyphsIndicesInOriginalText(t *testing.T) {
 		// A replaced rune is shorter or longer than U+FFFD (3 bytes).
 		{"aébc", []string{"a", "é", "b", "c"}},
 		{"a😀bc", []string{"a", "😀", "b", "c"}},
+		// The first rune is replaced.
+		{"éabc", []string{"é", "a", "b", "c"}},
 		// An invalid byte is replaced with U+FFFD.
 		{"a\xffbc", []string{"a", "\xff", "b", "c"}},
-		// The first rune is replaced.
+		// An invalid byte (1 byte) follows a replaced rune.
+		{"é\xffbc", []string{"é", "\xff", "b", "c"}},
+		// A replaced rune follows an invalid byte (1 byte).
+		{"ab\xffé", []string{"a", "b", "\xff", "é"}},
+		// A literal U+FFFD is replaced with U+FFFD, so the filtered string
+		// equals the original one.
 		{"\ufffdabc", []string{"\ufffd", "a", "b", "c"}},
 		// The indices of the second line are offset by the first line.
 		{"aé\nbc", []string{"a", "é", "b", "c"}},

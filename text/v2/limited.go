@@ -125,9 +125,12 @@ var theLimitedFilterMappingPool = sync.Pool{
 	},
 }
 
-// limitedFilterMapping appends to dst a mapping from a byte index in filtered
-// to a byte index in line, where filtered is the result of
+// limitedFilterMapping returns a mapping from a byte index in filtered to a
+// byte index in line, where filtered is the result of
 // UnicodeRanges.Filter(line).
+//
+// buf is reused as the backing array of the returned mapping, and its
+// contents are discarded.
 //
 // The returned mapping has len(filtered)+1 entries so that the end index of
 // the last rune can be mapped, and thus its last entry is len(line).
@@ -135,11 +138,12 @@ var theLimitedFilterMappingPool = sync.Pool{
 // Filter replaces every unsupported rune with U+FFFD, whose byte length can
 // differ from the replaced rune's length. As Filter never adds nor removes a
 // rune, a rune in line corresponds to a rune in filtered at the same order,
-// and the indices are translated rune by rune. Note that byte indices in the
-// middle of a rune in filtered have no correspondences in line, but a glyph
-// index is always at a rune boundary.
-func limitedFilterMapping(dst []int, line, filtered string) []int {
-	mapping := slices.Grow(dst, len(filtered)+1)[:len(filtered)+1]
+// and the indices are translated rune by rune. Byte indices in the middle of
+// a rune in filtered are assigned values in the mapping, but those values are
+// arbitrary and should not be relied on: a glyph index is always at a rune
+// boundary.
+func limitedFilterMapping(buf []int, line, filtered string) []int {
+	mapping := slices.Grow(buf, len(filtered)+1)[:len(filtered)+1]
 	var oi, fi int
 	for oi < len(line) && fi < len(filtered) {
 		_, size := utf8.DecodeRuneInString(line[oi:])
