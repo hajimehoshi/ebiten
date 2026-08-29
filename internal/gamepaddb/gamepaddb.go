@@ -544,6 +544,13 @@ func Update(mappingData []byte) error {
 	return nil
 }
 
+// addAndroidDefaultMappings adds default mappings for the given Android gamepad ID
+// and reports whether the mappings were added.
+//
+// The gamepad database has entries for Android gamepads, but Android devices are too
+// varied for the database to cover them all. An Android gamepad ID is generated when
+// the device is added, from the button and axis masks that the system reports, so a
+// mapping for a device missing from the database can be derived from its ID.
 func addAndroidDefaultMappings(id string) bool {
 	// See https://github.com/libsdl-org/SDL/blob/120c76c84bbce4c1bfed4e9eb74e10678bd83120/src/joystick/SDL_gamecontroller.c#L468-L568
 
