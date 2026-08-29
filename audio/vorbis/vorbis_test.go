@@ -232,7 +232,7 @@ func TestMonoI16SeekEnd(t *testing.T) {
 	}
 }
 
-func TestMonoF32SeekEnd(t *testing.T) {
+func TestMonoF32Seek(t *testing.T) {
 	bs := test_mono_ogg
 
 	s, err := vorbis.DecodeF32(bytes.NewReader(bs))
