@@ -16,6 +16,7 @@ package convert_test
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"math"
@@ -250,5 +251,67 @@ func TestResamplingSeekEndZero(t *testing.T) {
 	}
 	if want := int64(len(in)); r.Length() != want {
 		t.Errorf("Length: got %d, want %d", r.Length(), want)
+	}
+}
+
+func TestResamplingSeekUnknownLength(t *testing.T) {
+	const (
+		from            = 44100
+		to              = 48000
+		bitDepthInBytes = 2
+		bytesPerSample  = bitDepthInBytes * 2
+	)
+
+	inB := newSoundBytes(from, bitDepthInBytes)
+
+	// Read the entire stream whose length is known, in order to get the expected values.
+	full, err := io.ReadAll(convert.NewResampling(bytes.NewReader(inB), int64(len(inB)), from, to, bitDepthInBytes))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// 0 as a size indicates that the length is unknown.
+	r := convert.NewResampling(bytes.NewReader(inB), 0, from, to, bitDepthInBytes)
+
+	const offset = 4000
+	pos, err := r.Seek(offset, io.SeekStart)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := pos, int64(offset); got != want {
+		t.Errorf("Seek(%d, io.SeekStart): got %d, want %d", offset, got, want)
+	}
+
+	// An offset that is not aligned with a sample should be rounded down.
+	pos, err = r.Seek(offset+bytesPerSample-1, io.SeekStart)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := pos, int64(offset); got != want {
+		t.Errorf("Seek(%d, io.SeekStart): got %d, want %d", offset+bytesPerSample-1, got, want)
+	}
+
+	pos, err = r.Seek(bytesPerSample, io.SeekCurrent)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := pos, int64(offset+bytesPerSample); got != want {
+		t.Errorf("Seek(%d, io.SeekCurrent): got %d, want %d", bytesPerSample, got, want)
+	}
+
+	if _, err := r.Seek(offset, io.SeekStart); err != nil {
+		t.Fatal(err)
+	}
+	buf := make([]byte, 400)
+	if _, err := io.ReadFull(r, buf); err != nil {
+		t.Fatal(err)
+	}
+	if got, want := buf, full[offset:offset+len(buf)]; !bytes.Equal(got, want) {
+		t.Errorf("reading after Seek(%d, io.SeekStart) returned unexpected bytes", offset)
+	}
+
+	// Seeking from the end is not possible when the length is unknown.
+	if _, err := r.Seek(0, io.SeekEnd); !errors.Is(err, errors.ErrUnsupported) {
+		t.Errorf("Seek(0, io.SeekEnd): got %v, want an error matching errors.ErrUnsupported", err)
 	}
 }
