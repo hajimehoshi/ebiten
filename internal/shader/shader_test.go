@@ -292,3 +292,87 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		t.Errorf("Compile must return an error for a huge constant shift, but got nil")
 	}
 }
+
+func TestCompileRecursion(t *testing.T) {
+	const selfRecursive = `package main
+
+func fact(n int) int {
+	if n <= 1 {
+		return 1
+	}
+	return n * fact(n-1)
+}
+
+func Vertex(pos vec2) vec4 {
+	_ = fact(5)
+	return vec4(pos, 0, 1)
+}
+
+func Fragment(pos vec4) vec4 {
+	return vec4(vec3(float(fact(5)) / 255), 1)
+}
+`
+	const mutualRecursive = `package main
+
+func a() int {
+	return b()
+}
+
+func b() int {
+	return a()
+}
+
+func Vertex(pos vec2) vec4 {
+	_ = a()
+	return vec4(pos, 0, 1)
+}
+
+func Fragment(pos vec4) vec4 {
+	return vec4(vec3(float(a()) / 255), 1)
+}
+`
+	const nonRecursive = `package main
+
+func add1(n int) int {
+	return n + 1
+}
+
+func double(n int) int {
+	return add1(n) + add1(n)
+}
+
+func Vertex(pos vec2) vec4 {
+	_ = double(5)
+	return vec4(pos, 0, 1)
+}
+
+func Fragment(pos vec4) vec4 {
+	return vec4(vec3(float(double(5)) / 255), 1)
+}
+`
+	for _, tc := range []struct {
+		name    string
+		src     string
+		wantErr bool
+	}{
+		{"SelfRecursive", selfRecursive, true},
+		{"MutualRecursive", mutualRecursive, true},
+		{"NonRecursive", nonRecursive, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := shader.Compile([]byte(tc.src), "Vertex", "Fragment", 0)
+			if tc.wantErr {
+				if err == nil {
+					t.Fatalf("expected a compile error for a recursive shader, but got nil")
+				}
+				if !strings.Contains(err.Error(), "recursive function call is not supported") {
+					t.Errorf("unexpected error for a recursive shader:\n%v", err)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected compile error for a non-recursive shader:\n%v", err)
+			}
+		})
+	}
+}

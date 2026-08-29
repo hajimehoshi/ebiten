@@ -40,6 +40,7 @@ type constant struct {
 
 type function struct {
 	name string
+	pos  token.Pos
 
 	ir shaderir.Func
 }
@@ -202,6 +203,11 @@ func Compile(src []byte, vertexEntry, fragmentEntry string, textureCount int) (*
 		return nil, &ParseError{s.errs}
 	}
 
+	s.checkRecursion()
+	if len(s.errs) > 0 {
+		return nil, &ParseError{s.errs}
+	}
+
 	// TODO: Resolve identifiers?
 	// TODO: Resolve constants
 
@@ -293,6 +299,7 @@ func (cs *compileState) parse(f *ast.File) {
 		}
 		cs.funcs = append(cs.funcs, function{
 			name: n,
+			pos:  fd.Pos(),
 			ir: shaderir.Func{
 				Index:     len(cs.funcs),
 				InParams:  inT,
@@ -480,6 +487,7 @@ func (cs *compileState) parseDecl(b *block, fname string, d ast.Decl) ([]shaderi
 				if cs.funcs[i].name == d.Name.Name {
 					// Index is already determined by the provisional parsing.
 					f.ir.Index = cs.funcs[i].ir.Index
+					f.pos = cs.funcs[i].pos
 					cs.funcs[i] = f
 					break
 				}
@@ -916,4 +924,83 @@ func (cs *compileState) parseBlock(outer *block, fname string, stmts []ast.Stmt,
 	}
 
 	return block, true
+}
+
+func (cs *compileState) checkRecursion() {
+	callees := make([][]int, len(cs.funcs))
+	for i, f := range cs.funcs {
+		seen := map[int]struct{}{}
+		walkBlockCalls(f.ir.Block, func(idx int) {
+			if _, ok := seen[idx]; ok {
+				return
+			}
+			seen[idx] = struct{}{}
+			callees[i] = append(callees[i], idx)
+		})
+	}
+
+	const (
+		unvisited  = 0
+		inProgress = 1
+		done       = 2
+	)
+	state := make([]int, len(cs.funcs))
+	var stack []string
+
+	var dfs func(int)
+	dfs = func(u int) {
+		state[u] = inProgress
+		stack = append(stack, cs.funcs[u].name)
+		for _, v := range callees[u] {
+			switch state[v] {
+			case inProgress:
+				start := 0
+				for i, name := range stack {
+					if name == cs.funcs[v].name {
+						start = i
+						break
+					}
+				}
+				path := append(append([]string{}, stack[start:]...), cs.funcs[v].name)
+				cs.addError(cs.funcs[u].pos, fmt.Sprintf("recursive function call is not supported: %s", strings.Join(path, " calls ")))
+			case unvisited:
+				dfs(v)
+			}
+		}
+		stack = stack[:len(stack)-1]
+		state[u] = done
+	}
+	for i := range cs.funcs {
+		if state[i] == unvisited {
+			dfs(i)
+		}
+	}
+}
+
+func walkBlockCalls(block *shaderir.Block, fn func(int)) {
+	if block == nil {
+		return
+	}
+	for _, s := range block.Stmts {
+		for i := range s.Exprs {
+			walkExprCalls(&s.Exprs[i], fn)
+		}
+		for _, b := range s.Blocks {
+			walkBlockCalls(b, fn)
+		}
+	}
+}
+
+func walkExprCalls(e *shaderir.Expr, fn func(int)) {
+	if e == nil {
+		return
+	}
+	if e.Type == shaderir.Call {
+		if len(e.Exprs) > 0 && e.Exprs[0].Type == shaderir.FunctionExpr {
+			fn(e.Exprs[0].Index)
+		}
+	}
+	for i := range e.Exprs {
+		walkExprCalls(&e.Exprs[i], fn)
+	}
 }
