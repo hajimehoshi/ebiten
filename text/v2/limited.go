@@ -15,6 +15,8 @@
 package text
 
 import (
+	"slices"
+	"sync"
 	"unicode/utf8"
 
 	"github.com/hajimehoshi/ebiten/v2/text/v2/internal/textutil"
@@ -87,7 +89,73 @@ func (l *LimitedFace) hasGlyph(r rune) bool {
 
 // appendLazyGlyphsForLine implements Face.
 func (l *LimitedFace) appendLazyGlyphsForLine(glyphs []LazyGlyph, line string, indexOffset int, originX, originY float64, keepGlyph func(originX, originY float64) bool) []LazyGlyph {
-	return l.face.appendLazyGlyphsForLine(glyphs, l.unicodeRanges.Filter(line), indexOffset, originX, originY, keepGlyph)
+	filtered := l.unicodeRanges.Filter(line)
+	if filtered == line {
+		return l.face.appendLazyGlyphsForLine(glyphs, filtered, indexOffset, originX, originY, keepGlyph)
+	}
+
+	// The appended glyphs' indices are indices in filtered, not in line, so
+	// they have to be translated back (see limitedFilterMapping).
+	// The buffer is pooled for this is in the text rendering hot path.
+	mappingP := theLimitedFilterMappingPool.Get().(*[]int)
+	var mapping []int
+	defer func() {
+		*mappingP = mapping[:0]
+		theLimitedFilterMappingPool.Put(mappingP)
+	}()
+	mapping = limitedFilterMapping((*mappingP)[:0], line, filtered)
+
+	before := len(glyphs)
+	glyphs = l.face.appendLazyGlyphsForLine(glyphs, filtered, indexOffset, originX, originY, keepGlyph)
+	// The indices of glyphs are always in the range [0, len(filtered)], where
+	// mapping has len(filtered)+1 entries.
+	for i := before; i < len(glyphs); i++ {
+		glyphs[i].StartIndexInBytes = mapping[glyphs[i].StartIndexInBytes-indexOffset] + indexOffset
+		glyphs[i].EndIndexInBytes = mapping[glyphs[i].EndIndexInBytes-indexOffset] + indexOffset
+	}
+	return glyphs
+}
+
+var theLimitedFilterMappingPool = sync.Pool{
+	New: func() any {
+		// 64 is an arbitrary number for the initial capacity.
+		s := make([]int, 0, 64)
+		// Return a pointer instead of a slice, or go-vet warns at Put.
+		return &s
+	},
+}
+
+// limitedFilterMapping returns a mapping from a byte index in filtered to a
+// byte index in line, where filtered is UnicodeRanges.Filter(line). buf is
+// reused as the returned slice's backing array, and its contents are
+// discarded.
+//
+// Filter replaces each unsupported rune with U+FFFD, whose byte length can
+// differ from the replaced rune's length, so the indices are translated rune
+// by rune. The mapping has len(filtered)+1 entries so that the end index of
+// the last rune can be mapped, and the last entry is len(line). The values at
+// indices in the middle of a rune in filtered are arbitrary, but a glyph
+// index is always at a rune boundary.
+func limitedFilterMapping(buf []int, line, filtered string) []int {
+	mapping := slices.Grow(buf, len(filtered)+1)[:len(filtered)+1]
+	var oi, fi int
+	for oi < len(line) && fi < len(filtered) {
+		_, size := utf8.DecodeRuneInString(line[oi:])
+		_, fsize := utf8.DecodeRuneInString(filtered[fi:])
+		for k := range fsize {
+			if k < size {
+				mapping[fi+k] = oi + k
+			} else {
+				mapping[fi+k] = oi
+			}
+		}
+		oi += size
+		fi += fsize
+	}
+	for ; fi <= len(filtered); fi++ {
+		mapping[fi] = oi
+	}
+	return mapping
 }
 
 // appendVectorPathForLine implements Face.
