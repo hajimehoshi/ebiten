@@ -176,19 +176,19 @@ chunks:
 			if size < 16 {
 				return nil, fmt.Errorf("wav: invalid header: maybe non-PCM file?")
 			}
-			buf := make([]byte, size)
-			n, err := io.ReadFull(src, buf)
-			if n != len(buf) {
+			var fmtBuf [16]byte
+			n, err := io.ReadFull(src, fmtBuf[:])
+			if n != len(fmtBuf) {
 				return nil, fmt.Errorf("wav: invalid header")
 			}
 			if err != nil {
 				return nil, err
 			}
-			format := int(buf[0]) | int(buf[1])<<8
+			format := int(fmtBuf[0]) | int(fmtBuf[1])<<8
 			if format != 1 {
 				return nil, fmt.Errorf("wav: format must be linear PCM")
 			}
-			channelCount := int(buf[2]) | int(buf[3])<<8
+			channelCount := int(fmtBuf[2]) | int(fmtBuf[3])<<8
 			switch channelCount {
 			case 1:
 				mono = true
@@ -197,24 +197,22 @@ chunks:
 			default:
 				return nil, fmt.Errorf("wav: number of channels must be 1 or 2 but was %d", channelCount)
 			}
-			bitsPerSample = int(buf[14]) | int(buf[15])<<8
+			bitsPerSample = int(fmtBuf[14]) | int(fmtBuf[15])<<8
 			// TODO: Support signed 24bit integer format (#2215).
 			if bitsPerSample != 8 && bitsPerSample != 16 {
 				return nil, fmt.Errorf("wav: bits per sample must be 8 or 16 but was %d", bitsPerSample)
 			}
-			sampleRate = int(buf[4]) | int(buf[5])<<8 | int(buf[6])<<16 | int(buf[7])<<24
+			sampleRate = int(fmtBuf[4]) | int(fmtBuf[5])<<8 | int(fmtBuf[6])<<16 | int(fmtBuf[7])<<24
+			if _, err := io.CopyN(io.Discard, src, size-16); err != nil {
+				return nil, fmt.Errorf("wav: invalid header")
+			}
 			headerSize += size
 		case bytes.Equal(buf[0:4], []byte("data")):
 			dataSize = size
 			break chunks
 		default:
-			buf := make([]byte, size)
-			n, err := io.ReadFull(src, buf)
-			if n != len(buf) {
+			if _, err := io.CopyN(io.Discard, src, size); err != nil {
 				return nil, fmt.Errorf("wav: invalid header")
-			}
-			if err != nil {
-				return nil, err
 			}
 			headerSize += size
 		}
