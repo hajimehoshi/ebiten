@@ -4054,7 +4054,25 @@ func TestImageBlendFactor(t *testing.T) {
 	}
 
 	const w, h = 16, 1
-	dst := ebiten.NewImage(w, h)
+
+	factors := []ebiten.BlendFactor{
+		ebiten.BlendFactorZero,
+		ebiten.BlendFactorOne,
+		ebiten.BlendFactorSourceColor,
+		ebiten.BlendFactorOneMinusSourceColor,
+		ebiten.BlendFactorSourceAlpha,
+		ebiten.BlendFactorOneMinusSourceAlpha,
+		ebiten.BlendFactorDestinationColor,
+		ebiten.BlendFactorOneMinusDestinationColor,
+		ebiten.BlendFactorDestinationAlpha,
+		ebiten.BlendFactorOneMinusDestinationAlpha,
+	}
+
+	// The destination-factor combinations are laid out one per row of dst, so that a batch of
+	// them can be verified with a single read-back instead of one read-back each.
+	rows := len(factors) * len(factors)
+
+	dst := ebiten.NewImage(w, rows)
 	src := ebiten.NewImage(w, h)
 
 	dstColor := func(i int) (byte, byte, byte, byte) {
@@ -4076,13 +4094,16 @@ func TestImageBlendFactor(t *testing.T) {
 		return byte(x)
 	}
 
-	dstPix := make([]byte, 4*w*h)
-	for i := range w {
-		r, g, b, a := dstColor(i)
-		dstPix[4*i] = r
-		dstPix[4*i+1] = g
-		dstPix[4*i+2] = b
-		dstPix[4*i+3] = a
+	dstPix := make([]byte, 4*w*rows)
+	for j := range rows {
+		for i := range w {
+			r, g, b, a := dstColor(i)
+			idx := 4 * (j*w + i)
+			dstPix[idx] = r
+			dstPix[idx+1] = g
+			dstPix[idx+2] = b
+			dstPix[idx+3] = a
+		}
 	}
 	srcPix := make([]byte, 4*w*h)
 	for i := range w {
@@ -4094,25 +4115,16 @@ func TestImageBlendFactor(t *testing.T) {
 	}
 	src.WritePixels(srcPix)
 
-	factors := []ebiten.BlendFactor{
-		ebiten.BlendFactorZero,
-		ebiten.BlendFactorOne,
-		ebiten.BlendFactorSourceColor,
-		ebiten.BlendFactorOneMinusSourceColor,
-		ebiten.BlendFactorSourceAlpha,
-		ebiten.BlendFactorOneMinusSourceAlpha,
-		ebiten.BlendFactorDestinationColor,
-		ebiten.BlendFactorOneMinusDestinationColor,
-		ebiten.BlendFactorDestinationAlpha,
-		ebiten.BlendFactorOneMinusDestinationAlpha,
-	}
+	gotPix := make([]byte, 4*w*rows)
+
 	for _, srcRGBFactor := range factors {
 		for _, srcAlphaFactor := range factors {
-			for _, dstRGBFactor := range factors {
-				for _, dstAlphaFactor := range factors {
-					// Reset the destination state.
-					dst.WritePixels(dstPix)
+			// Reset the destination state.
+			dst.WritePixels(dstPix)
+			for j, dstRGBFactor := range factors {
+				for k, dstAlphaFactor := range factors {
 					op := &ebiten.DrawImageOptions{}
+					op.GeoM.Translate(0, float64(j*len(factors)+k))
 					op.Blend = ebiten.Blend{
 						BlendFactorSourceRGB:        srcRGBFactor,
 						BlendFactorSourceAlpha:      srcAlphaFactor,
@@ -4122,8 +4134,15 @@ func TestImageBlendFactor(t *testing.T) {
 						BlendOperationAlpha:         ebiten.BlendOperationAdd,
 					}
 					dst.DrawImage(src, op)
+				}
+			}
+			dst.ReadPixels(gotPix)
+			for j, dstRGBFactor := range factors {
+				for k, dstAlphaFactor := range factors {
+					row := j*len(factors) + k
 					for i := range w {
-						got := dst.At(i, 0).(color.RGBA)
+						idx := 4 * (row*w + i)
+						got := color.RGBA{R: gotPix[idx], G: gotPix[idx+1], B: gotPix[idx+2], A: gotPix[idx+3]}
 
 						sr, sg, sb, sa := colorToFloats(srcColor(i))
 						dr, dg, db, da := colorToFloats(dstColor(i))
@@ -4251,7 +4270,7 @@ func TestImageBlendFactor(t *testing.T) {
 							A: clamp(int(a * 0xff)),
 						}
 						if !sameColors(got, want, 1) {
-							t.Errorf("dst.At(%d, 0): factors: %d, %d, %d, %d: got: %v, want: %v", i, srcRGBFactor, srcAlphaFactor, dstRGBFactor, dstAlphaFactor, got, want)
+							t.Errorf("color at %d: factors: %d, %d, %d, %d: got: %v, want: %v", i, srcRGBFactor, srcAlphaFactor, dstRGBFactor, dstAlphaFactor, got, want)
 						}
 					}
 				}
