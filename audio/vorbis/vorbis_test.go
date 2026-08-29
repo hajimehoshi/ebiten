@@ -408,3 +408,23 @@ func TestStereoI16SeekUnalignedPosition(t *testing.T) {
 		t.Errorf("Read: got: %d, want: %d", got, want)
 	}
 }
+
+func TestStereoF32SeekUnalignedNegativeOffset(t *testing.T) {
+	bs := test_stereo_ogg
+
+	s, err := vorbis.DecodeF32(bytes.NewReader(bs))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// A negative offset from io.SeekEnd must be aligned toward the start,
+	// as well as the int16 stream does.
+	got, err := s.Seek(-5, io.SeekEnd)
+	if err != nil {
+		t.Fatal(err)
+	}
+	const sampleSize = 2 * 4
+	if want := (s.Length() - 5) / sampleSize * sampleSize; got != want {
+		t.Errorf("Seek(-5, io.SeekEnd): got: %d, want: %d", got, want)
+	}
+}
