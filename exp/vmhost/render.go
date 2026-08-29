@@ -180,16 +180,23 @@ func (f *frameRenderer) renderOne(c vmprotocol.GraphicsCommand) error {
 		// rebased to a zero origin.
 		offset := c.IndexOffset
 		for _, dr := range c.DstRegions {
-			idx := f.indices[offset : offset+dr.IndexCount]
-			offset += dr.IndexCount
-			if len(idx) == 0 {
+			if dr.IndexCount == 0 {
 				continue
 			}
+			if offset < 0 || offset+dr.IndexCount > len(f.indices) {
+				return fmt.Errorf("vmhost: DrawTriangles references indices out of range")
+			}
+			idx := f.indices[offset : offset+dr.IndexCount]
+			offset += dr.IndexCount
 
 			lo, hi := idx[0], idx[0]
 			for _, i := range idx[1:] {
 				lo = min(lo, i)
 				hi = max(hi, i)
+			}
+
+			if int(hi)*graphics.VertexFloatCount+graphics.VertexFloatCount > len(f.vertices) {
+				return fmt.Errorf("vmhost: DrawTriangles references vertices out of range")
 			}
 
 			f.vtxBuf = append(f.vtxBuf[:0], f.vertices[int(lo)*graphics.VertexFloatCount:(int(hi)+1)*graphics.VertexFloatCount]...)
@@ -207,6 +214,10 @@ func (f *frameRenderer) renderOne(c vmprotocol.GraphicsCommand) error {
 		hi, ok := f.images[c.ImageID]
 		if !ok {
 			return fmt.Errorf("vmhost: WritePixels references unknown image %d", c.ImageID)
+		}
+		if len(c.Pixels) != len(c.Regions) {
+			return fmt.Errorf("vmhost: the number of pixel buffers (%d) does not match the number of regions (%d)",
+				len(c.Pixels), len(c.Regions))
 		}
 		for i := range c.Regions {
 			hi.img.WritePixels(c.Pixels[i], c.Regions[i])
