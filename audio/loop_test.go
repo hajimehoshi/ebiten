@@ -433,3 +433,65 @@ func TestInfiniteLoopBlendWithPartialFrameReads(t *testing.T) {
 		})
 	}
 }
+
+func TestInfiniteLoopSeekClearsExtra(t *testing.T) {
+	// The source returns 5 bytes at most, which is larger than any bit depth but not a multiple of
+	// any, so a read returns a complete value and leaves a remainder.
+	src := &partialFrameReader{
+		src:  bytes.NewReader(bytes.Repeat([]byte{1, 2, 3, 4, 5, 6, 7, 8}, 3)),
+		size: 5,
+	}
+	l := audio.NewInfiniteLoopF32(src, 8)
+
+	buf := make([]byte, 32)
+	if _, err := l.Read(buf); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := l.Seek(0, io.SeekStart); err != nil {
+		t.Fatal(err)
+	}
+	n, err := l.Read(buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []byte{1, 2, 3, 4}
+	if !bytes.Equal(buf[:n], want) {
+		t.Errorf("got: %v, want: %v", buf[:n], want)
+	}
+}
+
+func TestInfiniteLoopSeekCurrentAfterPartialFrameRead(t *testing.T) {
+	// The source returns 5 bytes at most, which is larger than any bit depth but not a multiple of
+	// any, so a read returns a complete value and leaves a remainder.
+	src := &partialFrameReader{
+		src:  bytes.NewReader([]byte{1, 2, 3, 4, 5, 6, 7, 8}),
+		size: 5,
+	}
+	l := audio.NewInfiniteLoopF32(src, 8)
+
+	buf := make([]byte, 32)
+	// This read leaves a one-byte remainder in the internal buffer, so the source position is ahead of
+	// the logical position by 1.
+	if _, err := l.Read(buf); err != nil {
+		t.Fatal(err)
+	}
+
+	// Seek with io.SeekCurrent must be relative to the logical position, so this must be a no-op.
+	pos, err := l.Seek(0, io.SeekCurrent)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := int64(4); pos != want {
+		t.Errorf("got: %d, want: %d", pos, want)
+	}
+
+	n, err := l.Read(buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []byte{5, 6, 7, 8}
+	if !bytes.Equal(buf[:n], want) {
+		t.Errorf("got: %v, want: %v", buf[:n], want)
+	}
+}

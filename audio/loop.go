@@ -262,7 +262,7 @@ func (i *InfiniteLoop) Seek(offset int64, whence int) (int64, error) {
 	case io.SeekStart:
 		next = offset
 	case io.SeekCurrent:
-		next = i.pos + offset
+		next = i.pos - int64(len(i.extra)) + offset
 	case io.SeekEnd:
 		return 0, fmt.Errorf("audio: whence must be io.SeekStart or io.SeekCurrent for InfiniteLoop")
 	}
@@ -278,5 +278,6 @@ func (i *InfiniteLoop) Seek(offset int64, whence int) (int64, error) {
 		return 0, err
 	}
 	i.pos = next
+	i.extra = i.extra[:0]
 	return i.pos, nil
 }
