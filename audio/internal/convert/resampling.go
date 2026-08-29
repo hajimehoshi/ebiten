@@ -326,7 +326,7 @@ func (r *Resampling) Seek(offset int64, whence int) (int64, error) {
 	case io.SeekCurrent:
 		r.pos += offset
 	case io.SeekEnd:
-		r.pos += r.Length() + offset
+		r.pos = r.Length() + offset
 	}
 	if r.pos < 0 {
 		r.pos = 0
