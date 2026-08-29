@@ -25,6 +25,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/go-text/typesetting/bidi"
@@ -521,6 +522,27 @@ func TestRuneToBoolMap(t *testing.T) {
 			t.Fatalf("rune: %c, got: %v, %v; want: %v, %v", r, gotVal, gotOK, v != 0, true)
 		}
 	}
+}
+
+func TestRuneToBoolMapConcurrent(t *testing.T) {
+	var rtb text.RuneToBoolMap
+	const goroutines = 16
+	const perGoroutine = 64
+	var wg sync.WaitGroup
+	for g := range goroutines {
+		wg.Go(func() {
+			for i := range perGoroutine {
+				// The rune ranges of the goroutines overlap.
+				r := rune(g*perGoroutine/2 + i)
+				v := r%2 == 0
+				rtb.Set(r, v)
+				if gotVal, gotOK := rtb.Get(r); !gotOK || gotVal != v {
+					t.Errorf("rune %d: got: %v, %v; want: %v, true", r, gotVal, gotOK, v)
+				}
+			}
+		})
+	}
+	wg.Wait()
 }
 
 // Issue #3284
