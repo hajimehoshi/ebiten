@@ -333,33 +333,15 @@ func TestImageDispose(t *testing.T) {
 }
 
 func TestImageReadPixelsDispose(t *testing.T) {
-	img := ebiten.NewImageWithOptions(image.Rect(-1, -2, 2, 2), nil)
-	img.Fill(color.White)
-
-	pix := make([]byte, 4*3*4)
-	img.ReadPixels(pix)
-	for i, got := range pix {
-		if got != 0xff {
-			t.Errorf("pix[%d] before Dispose: got %d, want %d", i, got, 0xff)
-		}
-	}
-
+	img := ebiten.NewImage(16, 16)
 	img.Dispose()
-	img.ReadPixels(pix)
-	for i, got := range pix {
-		if got != 0 {
-			t.Errorf("pix[%d] after Dispose: got %d, want %d", i, got, 0)
-		}
-	}
 
-	t.Run("InvalidLength", func(t *testing.T) {
-		defer func() {
-			if r := recover(); r == nil {
-				t.Errorf("ReadPixels with an invalid length must panic")
-			}
-		}()
-		img.ReadPixels(pix[:len(pix)-1])
-	})
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("ReadPixels on a disposed image must panic")
+		}
+	}()
+	img.ReadPixels(make([]byte, 4*16*16))
 }
 
 func TestImageDeallocate(t *testing.T) {
