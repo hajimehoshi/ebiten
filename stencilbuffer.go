@@ -222,18 +222,17 @@ func doDrawTrianglesWithAntialias(dst *Image, vertices []Vertex, indices []uint3
 	stencilBufferM.Lock()
 	defer stencilBufferM.Unlock()
 
-	bounds := dst.Bounds()
-	bounds.Min.X *= 2
+	dstMin := dst.Bounds().Min
+	bounds := dst.Bounds().Sub(dstMin)
 	bounds.Max.X *= 2
-	bounds.Min.Y *= 2
 	bounds.Max.Y *= 2
 
 	tmpVerticesForStencilBuffer = slices.Grow(tmpVerticesForStencilBuffer, len(vertices))
 	vs := tmpVerticesForStencilBuffer[:len(vertices)]
 	copy(vs, vertices)
 	for i := range vs {
-		vs[i].DstX *= 2
-		vs[i].DstY *= 2
+		vs[i].DstX = 2 * (vs[i].DstX - float32(dstMin.X))
+		vs[i].DstY = 2 * (vs[i].DstY - float32(dstMin.Y))
 	}
 
 	var uncommonBlend bool
@@ -281,6 +280,7 @@ func doDrawTrianglesWithAntialias(dst *Image, vertices []Vertex, indices []uint3
 
 	op := &DrawImageOptions{}
 	op.GeoM.Scale(0.5, 0.5)
+	op.GeoM.Translate(float64(dstMin.X), float64(dstMin.Y))
 	op.Filter = FilterLinear
 	if uncommonBlend {
 		op.Blend = BlendCopy
@@ -297,20 +297,23 @@ func doDrawTrianglesShaderWithStencilBuffer(dst *Image, vertices []Vertex, indic
 	stencilBufferM.Lock()
 	defer stencilBufferM.Unlock()
 
-	vs := vertices
-	bounds := dst.Bounds()
+	dstMin := dst.Bounds().Min
+	bounds := dst.Bounds().Sub(dstMin)
+	var scale float32 = 1
 	if dtOptions != nil && dtOptions.AntiAlias || dtsOptions != nil && dtsOptions.AntiAlias {
-		bounds.Min.X *= 2
 		bounds.Max.X *= 2
-		bounds.Min.Y *= 2
 		bounds.Max.Y *= 2
+		scale = 2
+	}
 
+	vs := vertices
+	if scale != 1 || dstMin != (image.Point{}) {
 		tmpVerticesForStencilBuffer = slices.Grow(tmpVerticesForStencilBuffer, len(vertices))
 		vs = tmpVerticesForStencilBuffer[:len(vertices)]
 		copy(vs, vertices)
 		for i := range vs {
-			vs[i].DstX *= 2
-			vs[i].DstY *= 2
+			vs[i].DstX = scale * (vs[i].DstX - float32(dstMin.X))
+			vs[i].DstY = scale * (vs[i].DstY - float32(dstMin.Y))
 		}
 	}
 
@@ -377,5 +380,6 @@ func doDrawTrianglesShaderWithStencilBuffer(dst *Image, vertices []Vertex, indic
 			op.Filter = FilterLinear
 		}
 	}
+	op.GeoM.Translate(float64(dstMin.X), float64(dstMin.Y))
 	dst.DrawImage(finalOS, op)
 }
