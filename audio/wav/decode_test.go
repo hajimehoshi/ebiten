@@ -137,25 +137,25 @@ func appendChunk(dst []byte, id string, data []byte) []byte {
 }
 
 // stereoI16FmtChunkData returns the content of a 'fmt ' chunk for 2 channels signed 16bit little endian PCM.
-func stereoI16FmtChunkData() []byte {
+func stereoI16FmtChunkData(sampleRate uint32) []byte {
 	var buf []byte
-	buf = binary.LittleEndian.AppendUint16(buf, 1)                  // Format tag (linear PCM)
-	buf = binary.LittleEndian.AppendUint16(buf, 2)                  // Channel count
-	buf = binary.LittleEndian.AppendUint32(buf, testSampleRate)     // Sample rate
-	buf = binary.LittleEndian.AppendUint32(buf, testSampleRate*2*2) // Byte rate
-	buf = binary.LittleEndian.AppendUint16(buf, 4)                  // Block align
-	buf = binary.LittleEndian.AppendUint16(buf, 16)                 // Bits per sample
+	buf = binary.LittleEndian.AppendUint16(buf, 1)              // Format tag (linear PCM)
+	buf = binary.LittleEndian.AppendUint16(buf, 2)              // Channel count
+	buf = binary.LittleEndian.AppendUint32(buf, sampleRate)     // Sample rate
+	buf = binary.LittleEndian.AppendUint32(buf, sampleRate*2*2) // Byte rate
+	buf = binary.LittleEndian.AppendUint16(buf, 4)              // Block align
+	buf = binary.LittleEndian.AppendUint16(buf, 16)             // Bits per sample
 	return buf
 }
 
 // wavFile returns a WAV file whose 'data' chunk holds data.
 // beforeFmt and afterFmt are put before and after the 'fmt ' chunk respectively.
-func wavFile(beforeFmt []chunk, afterFmt []chunk, data []byte) []byte {
+func wavFile(sampleRate uint32, beforeFmt []chunk, afterFmt []chunk, data []byte) []byte {
 	var body []byte
 	for _, c := range beforeFmt {
 		body = appendChunk(body, c.id, []byte(c.data))
 	}
-	body = appendChunk(body, "fmt ", stereoI16FmtChunkData())
+	body = appendChunk(body, "fmt ", stereoI16FmtChunkData(sampleRate))
 	for _, c := range afterFmt {
 		body = appendChunk(body, c.id, []byte(c.data))
 	}
@@ -208,7 +208,7 @@ func TestDecodeChunkPadding(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			src := wavFile(tc.beforeFmt, tc.afterFmt, data)
+			src := wavFile(testSampleRate, tc.beforeFmt, tc.afterFmt, data)
 			s, err := wav.DecodeWithoutResampling(bytes.NewReader(src))
 			if err != nil {
 				t.Fatal(err)
@@ -287,6 +287,40 @@ func TestDecodeSeekInvalidWhence(t *testing.T) {
 				if _, err := s.Seek(0, whence); err == nil {
 					t.Errorf("Seek(0, %d): got no error, want an error", whence)
 				}
+			}
+		})
+	}
+}
+
+func TestDecodeInvalidSampleRate(t *testing.T) {
+	testCases := []struct {
+		name       string
+		sampleRate uint32
+		wantErr    bool
+	}{
+		{
+			name:       "zero",
+			sampleRate: 0,
+			wantErr:    true,
+		},
+		{
+			name:       "valid",
+			sampleRate: testSampleRate,
+			wantErr:    false,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			data := wavFile(tc.sampleRate, nil, nil, []byte{1, 2, 3, 4})
+
+			if _, err := wav.DecodeWithoutResampling(bytes.NewReader(data)); (err != nil) != tc.wantErr {
+				t.Errorf("wav.DecodeWithoutResampling: err %v, wantErr %v", err, tc.wantErr)
+			}
+			if _, err := wav.DecodeWithSampleRate(testSampleRate, bytes.NewReader(data)); (err != nil) != tc.wantErr {
+				t.Errorf("wav.DecodeWithSampleRate: err %v, wantErr %v", err, tc.wantErr)
+			}
+			if _, err := wav.DecodeF32(bytes.NewReader(data)); (err != nil) != tc.wantErr {
+				t.Errorf("wav.DecodeF32: err %v, wantErr %v", err, tc.wantErr)
 			}
 		})
 	}
