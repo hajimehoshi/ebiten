@@ -37,7 +37,14 @@ const (
 	platformAndroid
 )
 
+// testingPlatform overrides the platform returned by currentPlatform.
+// This is set only in tests (see export_test.go).
+var testingPlatform platform
+
 func currentPlatform() platform {
+	if testingPlatform != platformUnknown {
+		return testingPlatform
+	}
 	switch runtime.GOOS {
 	case "windows":
 		return platformWindows
