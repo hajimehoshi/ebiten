@@ -46,6 +46,16 @@ jobs:
         run: |
           Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
 
+      - name: gofmt
+        # gofmt's results can differ between Go versions, but not between OSes.
+        if: runner.os == 'Linux' && matrix.go == '1.27.x'
+        run: |
+          files=$(gofmt -l .)
+          if [ -n "$files" ]; then
+            echo "$files"
+            exit 1
+          fi
+
       - name: go vet (Linux)
         if: runner.os == 'Linux'
         run: |

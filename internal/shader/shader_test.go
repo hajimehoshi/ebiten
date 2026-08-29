@@ -277,7 +277,7 @@ func Fragment(position vec4, texCoord vec3, color vec4) vec4 {
 	}
 	if !strings.Contains(err.Error(), "7:") {
 		t.Errorf("the error position must be around the fragment entry point (line 7), but got %q", err.Error())
-  }
+	}
 }
 
 func TestCompileHugeShift(t *testing.T) {
