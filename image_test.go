@@ -2296,7 +2296,7 @@ func TestImageDrawTrianglesShaderInterpolatesValues(t *testing.T) {
 		Images: [4]*ebiten.Image{src, nil, nil, nil},
 	}
 	is := []uint16{0, 1, 2, 1, 2, 3}
-	shader, err := ebiten.NewShader([]byte(`//kage:unit pixels
+	shader, err := ebiten.NewShader([]byte(`
 		package main
 		func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 			return color
@@ -4511,7 +4511,7 @@ func TestImageDrawTrianglesShaderWithGreaterIndexThanVerticesCount(t *testing.T)
 
 	vs := make([]ebiten.Vertex, 4)
 	is := []uint16{0, 1, 2, 1, 2, 4}
-	shader, err := ebiten.NewShader([]byte(`//kage:unit pixels
+	shader, err := ebiten.NewShader([]byte(`
 		package main
 		func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 			return color
@@ -4791,7 +4791,7 @@ func TestImageDrawTrianglesShader32(t *testing.T) {
 	}
 	is := []uint32{0, 1, 2, 1, 2, 3}
 	op := &ebiten.DrawTrianglesShaderOptions{}
-	shader, err := ebiten.NewShader([]byte(`
+	shader, err := ebiten.NewShader([]byte(`//kage:unit pixels
 
 package main
 
