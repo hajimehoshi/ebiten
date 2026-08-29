@@ -524,6 +524,27 @@ func TestRuneToBoolMap(t *testing.T) {
 	}
 }
 
+func TestRuneToBoolMapConcurrent(t *testing.T) {
+	var rtb text.RuneToBoolMap
+	const goroutines = 16
+	const perGoroutine = 64
+	var wg sync.WaitGroup
+	for g := range goroutines {
+		wg.Go(func() {
+			for i := range perGoroutine {
+				// The rune ranges of the goroutines overlap.
+				r := rune(g*perGoroutine/2 + i)
+				v := r%2 == 0
+				rtb.Set(r, v)
+				if gotVal, gotOK := rtb.Get(r); !gotOK || gotVal != v {
+					t.Errorf("rune %d: got: %v, %v; want: %v, true", r, gotVal, gotOK, v)
+				}
+			}
+		})
+	}
+	wg.Wait()
+}
+
 // Issue #3284
 func TestAppendGlyphsWithInvalidSequence(t *testing.T) {
 	goxFace := text.NewGoXFace(bitmapfont.Face)

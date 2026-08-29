@@ -135,10 +135,13 @@ func (c *glyphImageCaches) cacheForFace(face *GoTextFace) *cache[goTextGlyphImag
 
 // runeToBoolMap is a map from rune to bool with performance optimizations.
 type runeToBoolMap struct {
-	m []uint64
+	m  []uint64
+	mu sync.Mutex
 }
 
 func (r *runeToBoolMap) get(rune rune) (value bool, ok bool) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
 	index := rune / 32
 	if len(r.m) <= int(index) {
 		return false, false
@@ -149,6 +152,8 @@ func (r *runeToBoolMap) get(rune rune) (value bool, ok bool) {
 }
 
 func (r *runeToBoolMap) set(rune rune, value bool) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
 	index := rune / 32
 	if len(r.m) <= int(index) {
 		r.m = slices.Grow(r.m, int(index)+1)[:index+1]
