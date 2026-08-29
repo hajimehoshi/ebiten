@@ -370,7 +370,5 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	}
 	return vec4(1)
 }`
-	// A non-numeric loop variable cannot be analyzed, but this must not panic (Ebiten does not
-	// report the invalid source here yet).
-	shader.Compile([]byte(src), "Vertex", "Fragment", 0)
+	_, _ = shader.Compile([]byte(src), "Vertex", "Fragment", 0)
 }
