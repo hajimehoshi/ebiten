@@ -328,13 +328,14 @@ func TestCompileForLoopTermination(t *testing.T) {
 		{"i := 0.0; i != 10.0; i += 3.0", "", true},
 		{"i := 0; i >= 0; i++", "x += 1\n\t\tif x > 3 {\n\t\t\tbreak\n\t\t}", false},
 		{"i := 0; i >= 0; i += 1", "x += 1\n\t\treturn vec4(1)", false},
+		{"i := 0; i >= 0; i++", "x += 1\n\t\tdiscard()", false},
+		{"i := 0; i >= 0; i += 1", "x += 1\n\t\tfor j := 0; j < 10; j++ {\n\t\t\tdiscard()\n\t\t}", false},
 		{"i := 0; i < 10; i += 0", "x += 1\n\t\tif x > 3 {\n\t\t\tbreak\n\t\t}", false},
 		{"i := 0; i >= 0; i++", "x += 1\n\t\tfor j := 0; j < 10; j++ {\n\t\t\tbreak\n\t\t}", true},
 		{"i := 0; i >= 0; i += 1", "x += 1\n\t\tfor j := 0; j < 10; j++ {\n\t\t\treturn vec4(1)\n\t\t}", false},
-		{"i := true; i == false; i += true", "", false},
 	}
-	for _, tc := range testCases {
-		t.Run(tc.loop, func(t *testing.T) {
+	for i, tc := range testCases {
+		t.Run(fmt.Sprintf("%02d-%s", i, tc.loop), func(t *testing.T) {
 			body := tc.body
 			if body == "" {
 				body = "x += 1"
@@ -357,4 +358,19 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 			}
 		})
 	}
+}
+
+func TestCompileForLoopNonNumericConstant(t *testing.T) {
+	src := `package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	x := 0
+	for i := true; i == false; i += true {
+		x += 1
+	}
+	return vec4(1)
+}`
+	// A non-numeric loop variable cannot be analyzed, but this must not panic (Ebiten does not
+	// report the invalid source here yet).
+	shader.Compile([]byte(src), "Vertex", "Fragment", 0)
 }

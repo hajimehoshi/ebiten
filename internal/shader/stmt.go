@@ -911,9 +911,9 @@ func (cs *compileState) parseFor(block *block, fname string, stmt *ast.ForStmt, 
 		bodyir = bodyir.Stmts[0].Blocks[0]
 	}
 
-	// A loop whose condition never becomes false can still end by a break- or a return-statement in
-	// its body.
-	if !blockExitsLoop(bodyir, false) && forLoopConditionAlwaysTrue(op, init, end, delta) {
+	// A loop whose condition never becomes false can still end by a break-, a return- or a
+	// discard-statement in its body.
+	if forLoopConditionAlwaysTrue(op, init, end, delta) && !blockExitsLoop(bodyir, false) {
 		cs.addError(stmt.Pos(), "for-statement's condition never becomes false")
 		return nil, false
 	}
@@ -945,11 +945,11 @@ func (cs *compileState) parseFor(block *block, fname string, stmt *ast.ForStmt, 
 
 // forLoopConditionAlwaysTrue reports whether the condition of a for-loop never becomes false.
 // The initial value, the end value and the delta are constants, so this can be decided at compile time.
-// The loop can still end by a break- or a return-statement in its body.
+// The loop can still end by a break-, a return- or a discard-statement in its body.
 func forLoopConditionAlwaysTrue(op shaderir.Op, init, end, delta gconstant.Value) bool {
 	// A non-numeric constant cannot be analyzed here. Such a constant is invalid, but reporting it is
 	// another issue.
-	if !isNumeric(init) || !isNumeric(end) || !isNumeric(delta) {
+	if !isNumericConstant(init) || !isNumericConstant(end) || !isNumericConstant(delta) {
 		return false
 	}
 
@@ -1001,7 +1001,7 @@ func forLoopConditionAlwaysTrue(op shaderir.Op, init, end, delta gconstant.Value
 	return false
 }
 
-func isNumeric(v gconstant.Value) bool {
+func isNumericConstant(v gconstant.Value) bool {
 	switch v.Kind() {
 	case gconstant.Int, gconstant.Float:
 		return true
@@ -1009,8 +1009,8 @@ func isNumeric(v gconstant.Value) bool {
 	return false
 }
 
-// blockExitsLoop reports whether the block contains a break- or a return-statement, which exits the
-// enclosing loop even if the loop condition never becomes false.
+// blockExitsLoop reports whether the block contains a break-, a return- or a discard-statement, which
+// exits the enclosing loop even if the loop condition never becomes false.
 // A break-statement in a nested for-loop exits only the nested loop, so it is not counted.
 func blockExitsLoop(block *shaderir.Block, inForLoop bool) bool {
 	for _, s := range block.Stmts {
@@ -1019,7 +1019,7 @@ func blockExitsLoop(block *shaderir.Block, inForLoop bool) bool {
 			if !inForLoop {
 				return true
 			}
-		case shaderir.Return:
+		case shaderir.Return, shaderir.Discard:
 			return true
 		case shaderir.For:
 			for _, b := range s.Blocks {
