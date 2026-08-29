@@ -247,11 +247,22 @@ func (p *playerImpl) startIfPending() error {
 		return nil
 	}
 	if !p.player.IsPlaying() {
-		p.player.Play()
-		p.stopwatch.start()
+		p.playAndStartStopwatch()
 	}
 	p.pendingPlay = false
 	return nil
+}
+
+// playAndStartStopwatch plays the underlying player and starts the stopwatch only when the player
+// actually started playing. The player can refuse to play, for example when it has already
+// finished its source, and starting the stopwatch then would make the position grow even though
+// nothing is played.
+// playAndStartStopwatch must be called with p.m locked.
+func (p *playerImpl) playAndStartStopwatch() {
+	p.player.Play()
+	if p.player.IsPlaying() {
+		p.stopwatch.start()
+	}
 }
 
 func (p *playerImpl) Play() {
@@ -273,8 +284,7 @@ func (p *playerImpl) Play() {
 		if p.player.IsPlaying() {
 			return
 		}
-		p.player.Play()
-		p.stopwatch.start()
+		p.playAndStartStopwatch()
 	} else {
 		// The audio device is not created yet. Remember the request and start playing
 		// once the device is created (from the before-update hook).
@@ -555,6 +565,13 @@ func (p *playerImpl) updatePosition() {
 		// A virtualization guest's device consumes the sources only as the host pulls them, not
 		// in real time, so the consumed samples are already the exact position there.
 		if !p.factory.isVMGuest() {
+			// If the player is not actually playing (for example, it has finished its source or
+			// it has been paused), stop the stopwatch so that the last adjustment is retained
+			// without growing further. Otherwise the position would keep growing while the
+			// samples stay constant.
+			if !p.isPlaying() {
+				p.stopwatch.stop()
+			}
 			adjustingTime = p.stopwatch.current()
 		}
 	} else {
