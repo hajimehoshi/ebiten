@@ -235,3 +235,59 @@ func TestDecodeChunkPadding(t *testing.T) {
 		})
 	}
 }
+
+// permissiveSeeker is an io.ReadSeeker that silently succeeds without moving for an unrecognized
+// whence, so that a rejected seek can only come from the reader under test.
+type permissiveSeeker struct {
+	r *bytes.Reader
+}
+
+func (p *permissiveSeeker) Read(buf []byte) (int, error) {
+	return p.r.Read(buf)
+}
+
+func (p *permissiveSeeker) Seek(offset int64, whence int) (int64, error) {
+	switch whence {
+	case io.SeekStart, io.SeekCurrent, io.SeekEnd:
+		return p.r.Seek(offset, whence)
+	}
+	return p.r.Seek(0, io.SeekCurrent)
+}
+
+func TestDecodeSeekInvalidWhence(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		channels int
+	}{
+		{"Mono", 1},
+		{"Stereo", 2},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			data := make([]byte, 8000)
+			buf := []byte("RIFF")
+			buf = binary.LittleEndian.AppendUint32(buf, uint32(len(data)+36))
+			buf = append(buf, "WAVE"...)
+			buf = append(buf, "fmt "...)
+			buf = binary.LittleEndian.AppendUint32(buf, 16)
+			buf = binary.LittleEndian.AppendUint16(buf, 1)
+			buf = binary.LittleEndian.AppendUint16(buf, uint16(tc.channels))
+			buf = binary.LittleEndian.AppendUint32(buf, testSampleRate)
+			buf = binary.LittleEndian.AppendUint32(buf, uint32(testSampleRate*2*tc.channels))
+			buf = binary.LittleEndian.AppendUint16(buf, uint16(2*tc.channels))
+			buf = binary.LittleEndian.AppendUint16(buf, 16)
+			buf = append(buf, "data"...)
+			buf = binary.LittleEndian.AppendUint32(buf, uint32(len(data)))
+			buf = append(buf, data...)
+
+			s, err := wav.DecodeWithoutResampling(&permissiveSeeker{r: bytes.NewReader(buf)})
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, whence := range []int{-1, 3, 100} {
+				if _, err := s.Seek(0, whence); err == nil {
+					t.Errorf("Seek(0, %d): got no error, want an error", whence)
+				}
+			}
+		})
+	}
+}

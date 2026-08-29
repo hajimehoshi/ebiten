@@ -315,3 +315,20 @@ func TestResamplingSeekUnknownLength(t *testing.T) {
 		t.Errorf("Seek(0, io.SeekEnd): got %v, want an error matching errors.ErrUnsupported", err)
 	}
 }
+
+func TestResamplingSeekInvalidWhence(t *testing.T) {
+	const (
+		from            = 44100
+		to              = 48000
+		bitDepthInBytes = 2
+	)
+
+	inB := newSoundBytes(from, bitDepthInBytes)
+	r := convert.NewResampling(bytes.NewReader(inB), int64(len(inB)), from, to, bitDepthInBytes)
+
+	for _, whence := range []int{-1, 3, 100} {
+		if _, err := r.Seek(0, whence); err == nil {
+			t.Errorf("Seek(0, %d): got no error, want an error", whence)
+		}
+	}
+}

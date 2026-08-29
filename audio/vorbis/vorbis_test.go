@@ -275,3 +275,25 @@ func TestMonoF32Seek(t *testing.T) {
 		}
 	})
 }
+
+func TestSeekInvalidWhence(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		decode func(src io.Reader) (*vorbis.Stream, error)
+	}{
+		{"I16", vorbis.DecodeWithoutResampling},
+		{"F32", vorbis.DecodeF32},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			s, err := tc.decode(bytes.NewReader(test_mono_ogg))
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, whence := range []int{-1, 3, 100} {
+				if _, err := s.Seek(0, whence); err == nil {
+					t.Errorf("Seek(0, %d): got no error, want an error", whence)
+				}
+			}
+		})
+	}
+}

@@ -257,6 +257,12 @@ func (i *InfiniteLoop) Read(b []byte) (int, error) {
 
 // Seek is implementation of ReadSeeker's Seek.
 func (i *InfiniteLoop) Seek(offset int64, whence int) (int64, error) {
+	switch whence {
+	case io.SeekStart, io.SeekCurrent:
+	default:
+		return 0, fmt.Errorf("audio: whence must be io.SeekStart or io.SeekCurrent for InfiniteLoop but was %d", whence)
+	}
+
 	i.blending = false
 	if err := i.ensurePos(); err != nil {
 		return 0, err
@@ -268,8 +274,6 @@ func (i *InfiniteLoop) Seek(offset int64, whence int) (int64, error) {
 		next = offset
 	case io.SeekCurrent:
 		next = i.pos - int64(len(i.extra)) + offset
-	case io.SeekEnd:
-		return 0, fmt.Errorf("audio: whence must be io.SeekStart or io.SeekCurrent for InfiniteLoop")
 	}
 	if next < 0 {
 		return 0, fmt.Errorf("audio: position must >= 0")

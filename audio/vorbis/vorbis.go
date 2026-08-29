@@ -143,6 +143,8 @@ func (s *i16Stream) Seek(offset int64, whence int) (int64, error) {
 		next = int64(s.posInBytes) + offset
 	case io.SeekEnd:
 		next = int64(s.totalBytes()) + offset
+	default:
+		return 0, fmt.Errorf("vorbis: whence must be io.SeekStart, io.SeekCurrent, or io.SeekEnd but was %d", whence)
 	}
 	sampleSize := int64(s.vorbisReader.Channels()) * bitDepthInBytesInt16
 	s.posInBytes = next / sampleSize * sampleSize

@@ -515,3 +515,14 @@ func TestInfiniteLoopZeroLoopLength(t *testing.T) {
 		})
 	}
 }
+
+func TestInfiniteLoopSeekInvalidWhence(t *testing.T) {
+	src := make([]byte, 256)
+	l := audio.NewInfiniteLoop(bytes.NewReader(src), int64(len(src)))
+
+	for _, whence := range []int{io.SeekEnd, -1, 3, 100} {
+		if _, err := l.Seek(0, whence); err == nil {
+			t.Errorf("Seek(0, %d): got no error, want an error", whence)
+		}
+	}
+}
