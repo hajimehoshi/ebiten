@@ -15,10 +15,10 @@
 package text
 
 import (
-	"bytes"
 	"encoding/binary"
 	"fmt"
 	"image"
+	"math"
 	"slices"
 
 	"github.com/go-text/typesetting/di"
@@ -208,12 +208,12 @@ func encodeVariations(variations []font.Variation) string {
 	if len(variations) == 0 {
 		return ""
 	}
-	var buf bytes.Buffer
+	buf := make([]byte, 0, 8*len(variations))
 	for _, t := range variations {
-		_ = binary.Write(&buf, binary.LittleEndian, t.Tag)
-		_ = binary.Write(&buf, binary.LittleEndian, t.Value)
+		buf = binary.LittleEndian.AppendUint32(buf, uint32(t.Tag))
+		buf = binary.LittleEndian.AppendUint32(buf, math.Float32bits(t.Value))
 	}
-	return buf.String()
+	return string(buf)
 }
 
 // encodeFeatures returns a binary string encoding of features
@@ -222,12 +222,12 @@ func encodeFeatures(features []shaping.FontFeature) string {
 	if len(features) == 0 {
 		return ""
 	}
-	var buf bytes.Buffer
+	buf := make([]byte, 0, 8*len(features))
 	for _, t := range features {
-		_ = binary.Write(&buf, binary.LittleEndian, t.Tag)
-		_ = binary.Write(&buf, binary.LittleEndian, t.Value)
+		buf = binary.LittleEndian.AppendUint32(buf, uint32(t.Tag))
+		buf = binary.LittleEndian.AppendUint32(buf, t.Value)
 	}
-	return buf.String()
+	return string(buf)
 }
 
 func (g *GoTextFace) outputCacheKey(text string) goTextOutputCacheKey {
