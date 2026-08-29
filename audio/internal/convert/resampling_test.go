@@ -166,6 +166,68 @@ func TestResampling(t *testing.T) {
 	}
 }
 
+func TestResamplingSeekNegative(t *testing.T) {
+	for _, bitDepthInBytes := range []int{2, 4} {
+		t.Run(fmt.Sprintf("bitDepthInBytes=%d", bitDepthInBytes), func(t *testing.T) {
+			inB := newSoundBytes(44100, bitDepthInBytes)
+			r := convert.NewResampling(bytes.NewReader(inB), int64(len(inB)), 44100, 48000, bitDepthInBytes)
+
+			if _, err := r.Seek(-1, io.SeekStart); err == nil {
+				t.Error("Seek(-1, io.SeekStart): expected an error but got none")
+			}
+			if _, err := r.Seek(0, io.SeekStart); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := r.Seek(-1, io.SeekCurrent); err == nil {
+				t.Error("Seek(-1, io.SeekCurrent): expected an error but got none")
+			}
+
+			// io.SeekEnd must be relative to the end, not to the current position.
+			if _, err := r.Seek(0, io.SeekStart); err != nil {
+				t.Fatal(err)
+			}
+			fromStart, err := r.Seek(-1000, io.SeekEnd)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err := r.Seek(4000, io.SeekStart); err != nil {
+				t.Fatal(err)
+			}
+			fromMiddle, err := r.Seek(-1000, io.SeekEnd)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if fromStart != fromMiddle {
+				t.Errorf("Seek(-1000, io.SeekEnd) must not depend on the current position: from 0: %d, from 4000: %d", fromStart, fromMiddle)
+			}
+
+			// A negative result from io.SeekEnd must be rejected even from a non-zero position.
+			if _, err := r.Seek(4000, io.SeekStart); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := r.Seek(-r.Length()-1, io.SeekEnd); err == nil {
+				t.Error("Seek(-Length()-1, io.SeekEnd): expected an error but got none")
+			}
+
+			// The stream must not be broken by the failed seeks.
+			pos, err := r.Seek(0, io.SeekStart)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got, want := pos, int64(0); got != want {
+				t.Errorf("Seek(0, io.SeekStart): got: %d, want: %d", got, want)
+			}
+			n, err := r.Read(make([]byte, 64))
+			if err != nil {
+				t.Fatalf("Read after Seek(0): %v", err)
+			}
+			if got, want := n, 64; got != want {
+				t.Errorf("Read: got: %d, want: %d", got, want)
+			}
+		})
+	}
+}
+
 // Issue #3352
 func TestResamplingLen(t *testing.T) {
 	buf := make([]byte, 8*48000)

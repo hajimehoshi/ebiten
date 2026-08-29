@@ -319,23 +319,25 @@ func (r *Resampling) Seek(offset int64, whence int) (int64, error) {
 		return 0, fmt.Errorf("convert: source must be io.Seeker: %w", errors.ErrUnsupported)
 	}
 
+	pos := r.pos
 	switch whence {
 	case io.SeekStart:
-		r.pos = offset
+		pos = offset
 	case io.SeekCurrent:
-		r.pos += offset
+		pos += offset
 	case io.SeekEnd:
 		if r.size <= 0 {
 			return 0, fmt.Errorf("convert: seeking from the end is not possible when the length is unknown: %w", errors.ErrUnsupported)
 		}
-		r.pos = r.Length() + offset
+		pos = r.Length() + offset
 	default:
 		return 0, fmt.Errorf("convert: whence must be io.SeekStart, io.SeekCurrent, or io.SeekEnd but was %d", whence)
 	}
-	r.eof = false
-	if r.pos < 0 {
-		r.pos = 0
+	if pos < 0 {
+		return 0, fmt.Errorf("convert: position must be >= 0 but was %d", pos)
 	}
+	r.eof = false
+	r.pos = pos
 	// The position can be clamped by the length only when the length is known.
 	if r.size > 0 && r.Length() <= r.pos {
 		r.pos = r.Length()

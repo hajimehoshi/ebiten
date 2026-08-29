@@ -73,7 +73,6 @@ func (r *float32BytesReadSeeker) Seek(offset int64, whence int) (int64, error) {
 	}
 
 	sampleSize := int64(r.r.Channels()) * 4
-	offset = offset / sampleSize * sampleSize
 
 	switch whence {
 	case io.SeekStart:
@@ -84,9 +83,13 @@ func (r *float32BytesReadSeeker) Seek(offset int64, whence int) (int64, error) {
 	default:
 		return 0, fmt.Errorf("vorbis: whence must be io.SeekStart, io.SeekCurrent, or io.SeekEnd but was %d", whence)
 	}
-	r.pos = offset
-	if err := r.r.SetPosition(r.pos / sampleSize); err != nil {
+	if offset < 0 {
+		return 0, fmt.Errorf("vorbis: position must be >= 0 but was %d", offset)
+	}
+	pos := offset / sampleSize * sampleSize
+	if err := r.r.SetPosition(pos / sampleSize); err != nil {
 		return 0, err
 	}
+	r.pos = pos
 	return r.pos, nil
 }
