@@ -150,12 +150,13 @@ func (s *i16Stream) Seek(offset int64, whence int) (int64, error) {
 		return 0, fmt.Errorf("vorbis: position must be >= 0 but was %d", next)
 	}
 	sampleSize := int64(s.vorbisReader.Channels()) * bitDepthInBytesInt16
-	s.posInBytes = next / sampleSize * sampleSize
-	if err := s.vorbisReader.SetPosition(next / sampleSize); err != nil {
+	pos := next / sampleSize * sampleSize
+	if err := s.vorbisReader.SetPosition(pos / sampleSize); err != nil {
 		return 0, err
 	}
+	s.posInBytes = pos
 	s.i16Reader = nil
-	return next, nil
+	return s.posInBytes, nil
 }
 
 func (s *i16Stream) totalBytes() int64 {

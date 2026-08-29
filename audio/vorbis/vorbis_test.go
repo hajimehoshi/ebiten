@@ -381,3 +381,30 @@ func TestSeekNegativePosition(t *testing.T) {
 		})
 	}
 }
+
+func TestStereoI16SeekUnalignedPosition(t *testing.T) {
+	bs := test_stereo_ogg
+
+	s, err := vorbis.DecodeWithoutResampling(bytes.NewReader(bs))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// A seek result must be the actual frame-aligned position in the stream.
+	got, err := s.Seek(5, io.SeekStart)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := int64(4); got != want {
+		t.Errorf("Seek(5, io.SeekStart): got: %d, want: %d", got, want)
+	}
+
+	buf := make([]byte, 8)
+	n, err := s.Read(buf)
+	if err != nil {
+		t.Fatalf("Read after Seek(5, io.SeekStart): %v", err)
+	}
+	if got, want := n, len(buf); got != want {
+		t.Errorf("Read: got: %d, want: %d", got, want)
+	}
+}
