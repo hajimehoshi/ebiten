@@ -2296,7 +2296,7 @@ func TestImageDrawTrianglesShaderInterpolatesValues(t *testing.T) {
 		Images: [4]*ebiten.Image{src, nil, nil, nil},
 	}
 	is := []uint16{0, 1, 2, 1, 2, 3}
-	shader, err := ebiten.NewShader([]byte(`
+	shader, err := ebiten.NewShader([]byte(`//kage:unit pixels
 		package main
 		func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 			return color
@@ -4511,7 +4511,7 @@ func TestImageDrawTrianglesShaderWithGreaterIndexThanVerticesCount(t *testing.T)
 
 	vs := make([]ebiten.Vertex, 4)
 	is := []uint16{0, 1, 2, 1, 2, 4}
-	shader, err := ebiten.NewShader([]byte(`
+	shader, err := ebiten.NewShader([]byte(`//kage:unit pixels
 		package main
 		func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 			return color
@@ -4791,7 +4791,7 @@ func TestImageDrawTrianglesShader32(t *testing.T) {
 	}
 	is := []uint32{0, 1, 2, 1, 2, 3}
 	op := &ebiten.DrawTrianglesShaderOptions{}
-	shader, err := ebiten.NewShader([]byte(`//kage:unit pixels
+	shader, err := ebiten.NewShader([]byte(`
 
 package main
 
@@ -4821,6 +4821,36 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 			}
 		}
 	}
+}
+
+func TestImageDrawTrianglesShaderWithNilSource0InTexels(t *testing.T) {
+	const w, h = 16, 16
+	dst := ebiten.NewImage(w, h)
+	src := ebiten.NewImage(w, h)
+	src.Fill(color.White)
+
+	shader, err := ebiten.NewShader([]byte(`
+
+package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return imageSrc1At(src0Pos)
+}
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	vs := []ebiten.Vertex{
+		{DstX: 0, DstY: 0, SrcX: 0, SrcY: 0, ColorR: 1, ColorG: 1, ColorB: 1, ColorA: 1},
+		{DstX: w, DstY: 0, SrcX: w, SrcY: 0, ColorR: 1, ColorG: 1, ColorB: 1, ColorA: 1},
+		{DstX: 0, DstY: h, SrcX: 0, SrcY: h, ColorR: 1, ColorG: 1, ColorB: 1, ColorA: 1},
+		{DstX: w, DstY: h, SrcX: w, SrcY: h, ColorR: 1, ColorG: 1, ColorB: 1, ColorA: 1},
+	}
+	is := []uint16{0, 1, 2, 1, 2, 3}
+	op := &ebiten.DrawTrianglesShaderOptions{}
+	op.Images[1] = src
+	dst.DrawTrianglesShader(vs, is, shader, op)
 }
 
 // Issue #3267

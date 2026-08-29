@@ -932,7 +932,7 @@ func (i *Image) DrawTrianglesShader32(vertices []Vertex, indices []uint32, shade
 			panic("ebiten: the given image to DrawTrianglesShader must not be disposed")
 		}
 		if shader.unitIsTexels() {
-			if i == 0 {
+			if imgSize == (image.Point{}) {
 				imgSize = img.Bounds().Size()
 			} else {
 				// TODO: Check imgw > 0 && imgh > 0
