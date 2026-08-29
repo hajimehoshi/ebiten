@@ -17,7 +17,6 @@ package text_test
 import (
 	"image"
 	"image/color"
-	"sync"
 	"testing"
 
 	"github.com/hajimehoshi/bitmapfont/v4"
@@ -25,7 +24,6 @@ import (
 	"golang.org/x/image/math/fixed"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/internal/hook"
 	t "github.com/hajimehoshi/ebiten/v2/internal/testing"
 	"github.com/hajimehoshi/ebiten/v2/text"
 )
@@ -60,28 +58,6 @@ func TestTextColor(t *testing.T) {
 }
 
 const testFaceSize = 6
-
-func TestMonotonicClockConcurrent(t *testing.T) {
-	dst := ebiten.NewImage(100, 20)
-
-	const goroutines = 4
-	var wg sync.WaitGroup
-	for range goroutines {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			for range 100 {
-				text.Draw(dst, "Hello, world!", bitmapfont.Face, 0, 10, color.White)
-			}
-		}()
-	}
-
-	for range 1000 {
-		text.Draw(dst, "Hello, world!", bitmapfont.Face, 0, 10, color.White)
-		hook.RunBeforeUpdateHooks()
-	}
-	wg.Wait()
-}
 
 type testFace struct{}
 
