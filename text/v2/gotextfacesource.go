@@ -706,7 +706,7 @@ type faceBitmapState struct {
 //
 // The caller must hold g.shapeMu.
 func (g *GoTextFaceSource) applyFaceState(face *GoTextFace) faceBitmapState {
-	if s := face.ensureVariationsString(); s != g.lastVariationsString {
+	if s := face.variationsString; s != g.lastVariationsString {
 		g.f.SetVariations(face.variations)
 		g.lastVariationsString = s
 	}
@@ -874,7 +874,7 @@ func (g *GoTextFaceSource) buildGlyphs(outputs []shaping.Output, text string, fa
 	}
 	indices = append(indices, len(text))
 
-	variations := face.ensureVariationsString()
+	variations := face.variationsString
 
 	// Snapshot the variations slice once; every glyphRenderData built
 	// in this call shares the same underlying copy. The user-facing

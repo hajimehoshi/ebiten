@@ -15,10 +15,10 @@
 package text
 
 import (
-	"bytes"
 	"encoding/binary"
 	"fmt"
 	"image"
+	"math"
 	"slices"
 
 	"github.com/go-text/typesetting/di"
@@ -41,6 +41,10 @@ var _ Face = (*GoTextFace)(nil)
 // Unlike GoXFace, one GoTextFace instance doesn't have its own glyph image cache.
 // Instead, a GoTextFaceSource has a glyph image cache.
 // You can casually create multiple GoTextFace instances from the same GoTextFaceSource.
+//
+// Mutating a GoTextFace, including assigning to its fields, while the same face
+// is used for drawing in another goroutine is not allowed.
+// Mutate a face before drawing with it, or use another face.
 type GoTextFace struct {
 	// Source is the font face source.
 	Source *GoTextFaceSource
@@ -87,7 +91,7 @@ func (g *GoTextFace) SetVariation(tag Tag, value float32) {
 			return
 		}
 		g.variations[i].Value = value
-		g.variationsString = ""
+		g.variationsString = encodeVariations(g.variations)
 		return
 	}
 
@@ -98,7 +102,7 @@ func (g *GoTextFace) SetVariation(tag Tag, value float32) {
 		Tag:   font.Tag(tag),
 		Value: value,
 	}
-	g.variationsString = ""
+	g.variationsString = encodeVariations(g.variations)
 }
 
 // RemoveVariation removes a variation value.
@@ -113,7 +117,7 @@ func (g *GoTextFace) RemoveVariation(tag Tag) {
 
 		copy(g.variations[i:], g.variations[i+1:])
 		g.variations = g.variations[:len(g.variations)-1]
-		g.variationsString = ""
+		g.variationsString = encodeVariations(g.variations)
 		return
 	}
 }
@@ -134,7 +138,7 @@ func (g *GoTextFace) SetFeature(tag Tag, value uint32) {
 			return
 		}
 		g.features[i].Value = value
-		g.featuresString = ""
+		g.featuresString = encodeFeatures(g.features)
 		return
 	}
 
@@ -145,7 +149,7 @@ func (g *GoTextFace) SetFeature(tag Tag, value uint32) {
 		Tag:   font.Tag(tag),
 		Value: value,
 	}
-	g.featuresString = ""
+	g.featuresString = encodeFeatures(g.features)
 }
 
 // RemoveFeature removes a feature value.
@@ -160,7 +164,7 @@ func (g *GoTextFace) RemoveFeature(tag Tag) {
 
 		copy(g.features[i:], g.features[i+1:])
 		g.features = g.features[:len(g.features)-1]
-		g.featuresString = ""
+		g.featuresString = encodeFeatures(g.features)
 		return
 	}
 }
@@ -197,14 +201,6 @@ func (g *GoTextFace) Metrics() Metrics {
 	return g.Source.metrics(g.Size)
 }
 
-func (g *GoTextFace) ensureVariationsString() string {
-	if g.variationsString != "" {
-		return g.variationsString
-	}
-	g.variationsString = encodeVariations(g.variations)
-	return g.variationsString
-}
-
 // encodeVariations returns a binary string encoding of variations
 // suitable for use as a cache key. It is the canonical form referenced
 // by glyphDataCacheKey and glyphRenderDataCacheKey.
@@ -212,28 +208,26 @@ func encodeVariations(variations []font.Variation) string {
 	if len(variations) == 0 {
 		return ""
 	}
-	var buf bytes.Buffer
+	buf := make([]byte, 0, 8*len(variations))
 	for _, t := range variations {
-		_ = binary.Write(&buf, binary.LittleEndian, t.Tag)
-		_ = binary.Write(&buf, binary.LittleEndian, t.Value)
+		buf = binary.LittleEndian.AppendUint32(buf, uint32(t.Tag))
+		buf = binary.LittleEndian.AppendUint32(buf, math.Float32bits(t.Value))
 	}
-	return buf.String()
+	return string(buf)
 }
 
-func (g *GoTextFace) ensureFeaturesString() string {
-	if g.featuresString != "" {
-		return g.featuresString
-	}
-	if len(g.features) == 0 {
+// encodeFeatures returns a binary string encoding of features
+// suitable for use as a cache key.
+func encodeFeatures(features []shaping.FontFeature) string {
+	if len(features) == 0 {
 		return ""
 	}
-	var buf bytes.Buffer
-	for _, t := range g.features {
-		_ = binary.Write(&buf, binary.LittleEndian, t.Tag)
-		_ = binary.Write(&buf, binary.LittleEndian, t.Value)
+	buf := make([]byte, 0, 8*len(features))
+	for _, t := range features {
+		buf = binary.LittleEndian.AppendUint32(buf, uint32(t.Tag))
+		buf = binary.LittleEndian.AppendUint32(buf, t.Value)
 	}
-	g.featuresString = buf.String()
-	return g.featuresString
+	return string(buf)
 }
 
 func (g *GoTextFace) outputCacheKey(text string) goTextOutputCacheKey {
@@ -243,8 +237,8 @@ func (g *GoTextFace) outputCacheKey(text string) goTextOutputCacheKey {
 		size:       g.Size,
 		language:   g.Language,
 		script:     g.Script,
-		variations: g.ensureVariationsString(),
-		features:   g.ensureFeaturesString(),
+		variations: g.variationsString,
+		features:   g.featuresString,
 	}
 }
 
@@ -396,7 +390,7 @@ func (im *goTextLineImager) glyphImage(index int) *ebiten.Image {
 		gid:        glyph.shapingGlyph.GlyphID,
 		xoffset:    args.subpixelOffset.X,
 		yoffset:    args.subpixelOffset.Y,
-		variations: face.ensureVariationsString(),
+		variations: face.variationsString,
 	}
 	subpixelOffset := args.subpixelOffset
 	return face.Source.getOrCreateGlyphImage(face, key, func() (*ebiten.Image, bool) {
