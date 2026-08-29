@@ -25,6 +25,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/go-text/typesetting/bidi"
@@ -1382,4 +1383,37 @@ func TestDrawWithScaledGeoM(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestGoTextFaceSourceConcurrentDrawWithDifferentSizes(t *testing.T) {
+	f, err := os.Open(filepath.Join("testdata", "Roboto-Regular.ttf"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		_ = f.Close()
+	}()
+	fs, err := text.NewGoTextFaceSource(bufio.NewReader(f))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	const goroutineCount = 8
+
+	var wg sync.WaitGroup
+	start := make(chan struct{})
+	for i := range goroutineCount {
+		wg.Go(func() {
+			dst := ebiten.NewImage(64, 64)
+			face := &text.GoTextFace{
+				Source: fs,
+				Size:   float64(10 + i),
+			}
+			<-start
+			var op text.DrawOptions
+			text.Draw(dst, "Hello, World!", face, &op)
+		})
+	}
+	close(start)
+	wg.Wait()
 }
