@@ -52,9 +52,7 @@ func (l *LimitedFace) Metrics() Metrics {
 // advanceAt implements Face.
 func (l *LimitedFace) advanceAt(text string, indexInBytes int) float64 {
 	firstLineLen := textutil.FirstLineLen(text)
-	if indexInBytes > firstLineLen {
-		indexInBytes = firstLineLen
-	}
+	indexInBytes = min(indexInBytes, firstLineLen)
 	firstLine := text[:firstLineLen]
 	filtered := l.unicodeRanges.Filter(firstLine)
 	if filtered == firstLine {

@@ -80,9 +80,7 @@ func (m *MultiFace) Metrics() Metrics {
 // advanceAt implements Face.
 func (m *MultiFace) advanceAt(text string, indexInBytes int) float64 {
 	firstLineLen := textutil.FirstLineLen(text)
-	if indexInBytes > firstLineLen {
-		indexInBytes = firstLineLen
-	}
+	indexInBytes = min(indexInBytes, firstLineLen)
 	if indexInBytes <= 0 {
 		return 0
 	}

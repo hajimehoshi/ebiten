@@ -32,16 +32,38 @@ func limitedFaceTestFace(t *testing.T) *text.GoTextFace {
 	return &text.GoTextFace{Source: src, Size: 16}
 }
 
+func lineBreaks() []string {
+	return []string{"\n", "\v", "\f", "\r", "\u0085", "\u2028", "\u2029", "\r\n"}
+}
+
 func TestLimitedFaceAdvanceAtNewline(t *testing.T) {
 	base := limitedFaceTestFace(t)
 	l := text.NewLimitedFace(base)
 	l.AddUnicodeRange('A', 'D')
 
-	for _, idx := range []int{2, 3, 5} {
-		got := text.AdvanceAt("AB\nCD", idx, l)
-		want := text.AdvanceAt("AB\nCD", idx, base)
-		if got != want {
-			t.Errorf("index %d: LimitedFace.AdvanceAt got: %v, want: %v", idx, got, want)
+	for _, lineBreak := range lineBreaks() {
+		str := "AB" + lineBreak + "CD"
+		for idx := 2; idx <= len(str); idx++ {
+			got := text.AdvanceAt(str, idx, l)
+			want := text.AdvanceAt(str, idx, base)
+			if got != want {
+				t.Errorf("%q index %d: LimitedFace.AdvanceAt got: %v, want: %v", str, idx, got, want)
+			}
+		}
+	}
+
+	// 'Z' is not in the allowed range, so the first line is filtered into
+	// "a\uFFFDb" and the index translation is exercised.
+	l2 := text.NewLimitedFace(base)
+	l2.AddUnicodeRange('a', 'd')
+	for _, lineBreak := range lineBreaks() {
+		str := "aZb" + lineBreak + "cd"
+		for idx := 0; idx <= len(str); idx++ {
+			got := text.AdvanceAt(str, idx, l2)
+			want := text.AdvanceAt("aZb", min(idx, 3), l2)
+			if got != want {
+				t.Errorf("%q index %d: LimitedFace.AdvanceAt got: %v, want: %v", str, idx, got, want)
+			}
 		}
 	}
 }
@@ -55,9 +77,14 @@ func TestMultiFaceAdvanceAtNewline(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	got := text.AdvanceAt("A\nA", 3, m)
 	want := text.AdvanceAt("A", 1, base)
-	if got != want {
-		t.Errorf("AdvanceAt: got: %v, want: %v", got, want)
+	for _, lineBreak := range lineBreaks() {
+		str := "A" + lineBreak + "A"
+		for idx := 1; idx <= len(str); idx++ {
+			got := text.AdvanceAt(str, idx, m)
+			if got != want {
+				t.Errorf("%q index %d: MultiFace.AdvanceAt got: %v, want: %v", str, idx, got, want)
+			}
+		}
 	}
 }
