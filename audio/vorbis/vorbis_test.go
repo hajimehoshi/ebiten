@@ -297,3 +297,87 @@ func TestSeekInvalidWhence(t *testing.T) {
 		})
 	}
 }
+
+func TestSeekNegativePosition(t *testing.T) {
+	for _, file := range []struct {
+		name string
+		bs   []byte
+	}{
+		{
+			name: "Mono",
+			bs:   test_mono_ogg,
+		},
+		{
+			name: "Stereo",
+			bs:   test_stereo_ogg,
+		},
+	} {
+		t.Run(file.name, func(t *testing.T) {
+			for _, decode := range []struct {
+				name string
+				f    func(io.Reader) (*vorbis.Stream, error)
+			}{
+				{
+					name: "I16",
+					f: func(r io.Reader) (*vorbis.Stream, error) {
+						return vorbis.DecodeWithoutResampling(r)
+					},
+				},
+				{
+					name: "F32",
+					f: func(r io.Reader) (*vorbis.Stream, error) {
+						return vorbis.DecodeF32(r)
+					},
+				},
+				{
+					name: "Resampling",
+					f: func(r io.Reader) (*vorbis.Stream, error) {
+						// The test files are 44100Hz, so this resamples the stream.
+						return vorbis.DecodeWithSampleRate(48000, r)
+					},
+				},
+			} {
+				t.Run(decode.name, func(t *testing.T) {
+					s, err := decode.f(bytes.NewReader(file.bs))
+					if err != nil {
+						t.Fatal(err)
+					}
+
+					if _, err := s.Seek(-100, io.SeekStart); err == nil {
+						t.Error("Seek(-100, io.SeekStart): expected an error but got none")
+					}
+					if _, err := s.Seek(0, io.SeekStart); err != nil {
+						t.Fatal(err)
+					}
+					if _, err := s.Seek(-1000, io.SeekCurrent); err == nil {
+						t.Error("Seek(-1000, io.SeekCurrent): expected an error but got none")
+					}
+					// A negative result from io.SeekEnd must be rejected even from a non-zero position.
+					if _, err := s.Seek(4096, io.SeekStart); err != nil {
+						t.Fatal(err)
+					}
+					if _, err := s.Seek(-s.Length()-1024, io.SeekEnd); err == nil {
+						t.Error("Seek(-Length()-1024, io.SeekEnd): expected an error but got none")
+					}
+
+					// The stream must not be broken by the failed seeks.
+					pos, err := s.Seek(0, io.SeekStart)
+					if err != nil {
+						t.Fatalf("Seek(0, io.SeekStart) after failed seeks: %v", err)
+					}
+					if got, want := pos, int64(0); got != want {
+						t.Errorf("Seek(0, io.SeekStart): got: %d, want: %d", got, want)
+					}
+					buf := make([]byte, 64)
+					n, err := s.Read(buf)
+					if err != nil {
+						t.Fatalf("Read after Seek(0): %v", err)
+					}
+					if got, want := n, len(buf); got != want {
+						t.Errorf("Read: got: %d, want: %d", got, want)
+					}
+				})
+			}
+		})
+	}
+}
