@@ -100,10 +100,15 @@ func NewInfiniteLoopWithIntroF32(src io.ReadSeeker, introLength int64, loopLengt
 
 func newInfiniteLoopWithIntro(src io.ReadSeeker, introLength int64, loopLength int64, bitDepthInBytes int) *InfiniteLoop {
 	bytesPerSample := bitDepthInBytes * channelCount
+	lstart := introLength / int64(bytesPerSample) * int64(bytesPerSample)
+	llength := loopLength / int64(bytesPerSample) * int64(bytesPerSample)
+	if llength <= 0 {
+		panic(fmt.Sprintf("audio: loop length must be a positive multiple of %d bytes but was %d", bytesPerSample, loopLength))
+	}
 	return &InfiniteLoop{
 		src:             src,
-		lstart:          introLength / int64(bytesPerSample) * int64(bytesPerSample),
-		llength:         loopLength / int64(bytesPerSample) * int64(bytesPerSample),
+		lstart:          lstart,
+		llength:         llength,
 		pos:             -1,
 		bitDepthInBytes: bitDepthInBytes,
 		bytesPerSample:  bytesPerSample,
