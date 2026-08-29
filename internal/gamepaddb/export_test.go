@@ -14,6 +14,12 @@
 
 package gamepaddb
 
-func SetPlatformForTesting(p platform) {
+const PlatformAndroidForTesting = platformAndroid
+
+// SetPlatformForTesting sets the platform returned by currentPlatform,
+// and returns the previous value.
+func SetPlatformForTesting(p platform) platform {
+	old := testingPlatform
 	testingPlatform = p
+	return old
 }

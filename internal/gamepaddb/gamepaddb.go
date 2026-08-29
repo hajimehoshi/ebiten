@@ -40,7 +40,7 @@ const (
 var testingPlatform platform
 
 func currentPlatform() platform {
-	if testingPlatform != 0 {
+	if testingPlatform != platformUnknown {
 		return testingPlatform
 	}
 	switch runtime.GOOS {
