@@ -205,6 +205,9 @@ chunks:
 				return nil, fmt.Errorf("wav: bits per sample must be 8 or 16 but was %d", bitsPerSample)
 			}
 			sampleRate = int(fmtBuf[4]) | int(fmtBuf[5])<<8 | int(fmtBuf[6])<<16 | int(fmtBuf[7])<<24
+			if sampleRate <= 0 {
+				return nil, fmt.Errorf("wav: sample rate must be positive but was %d", sampleRate)
+			}
 			if _, err := io.CopyN(io.Discard, src, paddedSize-16); err != nil {
 				return nil, fmt.Errorf("wav: invalid header")
 			}
