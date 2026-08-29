@@ -231,3 +231,47 @@ func TestMonoI16SeekEnd(t *testing.T) {
 		t.Errorf("Seek(0, io.SeekEnd): got %d, want %d (stream length)", got, want)
 	}
 }
+
+func TestMonoF32Seek(t *testing.T) {
+	bs := test_mono_ogg
+
+	s, err := vorbis.DecodeF32(bytes.NewReader(bs))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Run("SeekEnd", func(t *testing.T) {
+		got, err := s.Seek(0, io.SeekEnd)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if want := s.Length(); got != want {
+			t.Errorf("Seek(0, io.SeekEnd): got %d, want %d (stream length)", got, want)
+		}
+	})
+	t.Run("SeekEndWithNegativeOffset", func(t *testing.T) {
+		got, err := s.Seek(-8, io.SeekEnd)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if want := s.Length() - 8; got != want {
+			t.Errorf("Seek(-8, io.SeekEnd): got %d, want %d", got, want)
+		}
+	})
+	t.Run("SeekStart", func(t *testing.T) {
+		got, err := s.Seek(0, io.SeekStart)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if want := int64(0); got != want {
+			t.Errorf("Seek(0, io.SeekStart): got %d, want %d", got, want)
+		}
+		got, err = s.Seek(8, io.SeekStart)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if want := int64(8); got != want {
+			t.Errorf("Seek(8, io.SeekStart): got %d, want %d", got, want)
+		}
+	})
+}
