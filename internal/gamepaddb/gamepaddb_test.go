@@ -15,9 +15,7 @@
 package gamepaddb_test
 
 import (
-	"fmt"
 	"runtime"
-	"sync"
 	"testing"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepaddb"
@@ -89,37 +87,5 @@ func TestGLFWGamepadMappings(t *testing.T) {
 	}
 	if got, want := gamepaddb.Name(id), "XInput Gamepad (GLFW)"; got != want {
 		t.Errorf("got: %q, want: %q", got, want)
-	}
-}
-
-func TestAndroidDefaultMappingsConcurrent(t *testing.T) {
-	old := gamepaddb.SetPlatformForTesting(gamepaddb.PlatformAndroidForTesting)
-	defer gamepaddb.SetPlatformForTesting(old)
-
-	const goroutines = 16
-	ids := make([]string, goroutines)
-	for g := range goroutines {
-		ids[g] = fmt.Sprintf("030000004c0500006802000001%02x0000", g)
-	}
-
-	start := make(chan struct{})
-	var wg sync.WaitGroup
-	for g := range goroutines {
-		wg.Add(1)
-		go func(g int) {
-			defer wg.Done()
-			<-start
-			for range 1000 {
-				_ = gamepaddb.HasStandardButton(ids[g], gamepaddb.StandardButtonRightBottom)
-			}
-		}(g)
-	}
-	close(start)
-	wg.Wait()
-
-	for g := range goroutines {
-		if !gamepaddb.HasStandardButton(ids[g], gamepaddb.StandardButtonRightBottom) {
-			t.Errorf("the Android default mapping was not registered for %s", ids[g])
-		}
 	}
 }

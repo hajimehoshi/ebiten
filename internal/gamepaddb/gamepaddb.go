@@ -37,12 +37,7 @@ const (
 	platformAndroid
 )
 
-var testingPlatform platform
-
 func currentPlatform() platform {
-	if testingPlatform != platformUnknown {
-		return testingPlatform
-	}
 	switch runtime.GOOS {
 	case "windows":
 		return platformWindows
@@ -86,7 +81,7 @@ var (
 	gamepadNames          = map[string]string{}
 	gamepadButtonMappings = map[string]map[StandardButton]mapping{}
 	gamepadAxisMappings   = map[string]map[StandardAxis]mapping{}
-	mappingsM             sync.RWMutex
+	mappingsM             sync.Mutex
 )
 
 func parseLine(line string, platform platform) (id string, name string, buttons map[StandardButton]mapping, axes map[StandardAxis]mapping, err error) {
@@ -357,8 +352,8 @@ type GamepadState interface {
 }
 
 func Name(id string) string {
-	mappingsM.RLock()
-	defer mappingsM.RUnlock()
+	mappingsM.Lock()
+	defer mappingsM.Unlock()
 
 	return gamepadNames[id]
 }
