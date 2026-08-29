@@ -1141,6 +1141,18 @@ func TestAdvanceAtLineBreak(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	goTextFace := &text.GoTextFace{
+		Source:    source,
+		Size:      24,
+		Direction: text.DirectionLeftToRight,
+	}
+	limitedFace := text.NewLimitedFace(goTextFace)
+	limitedFace.AddUnicodeRange('a', 'd')
+	multiFace, err := text.NewMultiFace(limitedFace, goTextFace)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	cases := []struct {
 		name string
 		face text.Face
@@ -1151,11 +1163,15 @@ func TestAdvanceAtLineBreak(t *testing.T) {
 		},
 		{
 			name: "GoTextFace",
-			face: &text.GoTextFace{
-				Source:    source,
-				Size:      24,
-				Direction: text.DirectionLeftToRight,
-			},
+			face: goTextFace,
+		},
+		{
+			name: "LimitedFace",
+			face: limitedFace,
+		},
+		{
+			name: "MultiFace",
+			face: multiFace,
 		},
 	}
 
