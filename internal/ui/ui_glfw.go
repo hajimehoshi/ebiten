@@ -124,6 +124,20 @@ type glfwBackend struct {
 	cachedCurrentMonitor     *Monitor
 	cachedCurrentMonitorTime int64
 
+	// cachedFocused and cachedVisible cache the window's focus and visibility so that they are not
+	// queried from the window system on every tick (#3318). They are updated from GLFW's callbacks and
+	// the places that change the states themselves, and re-queried periodically as a safety net.
+	cachedFocused bool
+	cachedVisible bool
+
+	// lastFocusedQuery and lastVisibleQuery are the ticks at which the states were last queried.
+	// A value far in the past forces a re-query on the next access.
+	lastFocusedQuery int64
+	lastVisibleQuery int64
+
+	focusCallback   glfw.FocusCallback
+	iconifyCallback glfw.IconifyCallback
+
 	darwinInitOnce        sync.Once
 	showWindowOnce        sync.Once
 	bufferOnceSwappedOnce sync.Once
@@ -660,6 +674,38 @@ func (u *glfwBackend) registerWindowPosCallback() error {
 	return nil
 }
 
+// registerWindowFocusAndIconifyCallbacks must be called from the main thread.
+func (u *glfwBackend) registerWindowFocusAndIconifyCallbacks() error {
+	if u.focusCallback == nil {
+		u.focusCallback = func(_ *glfw.Window, focused bool) {
+			u.setCachedFocus(focused)
+		}
+	}
+	if _, err := u.window.SetFocusCallback(u.focusCallback); err != nil {
+		return err
+	}
+
+	if u.iconifyCallback == nil {
+		// GLFW's visible attribute reflects iconification on some platforms, and its value after the
+		// change is not reported here. Invalidate the cache so that the next access re-queries it.
+		u.iconifyCallback = func(_ *glfw.Window, _ bool) {
+			u.invalidateCachedWindowStates()
+		}
+	}
+	if _, err := u.window.SetIconifyCallback(u.iconifyCallback); err != nil {
+		return err
+	}
+
+	// Seed the caches so that the states are known before the first focus or iconify callback.
+	if _, err := u.isWindowFocused(); err != nil {
+		return err
+	}
+	if _, err := u.isWindowVisible(); err != nil {
+		return err
+	}
+	return nil
+}
+
 // registerWindowFramebufferSizeCallback must be called from the main thread.
 func (u *glfwBackend) registerWindowFramebufferSizeCallback() error {
 	if u.defaultFramebufferSizeCallback == nil {
@@ -1016,6 +1062,9 @@ func (u *glfwBackend) initOnMainThread(options *RunOptions) error {
 	if err := u.registerWindowCloseCallback(); err != nil {
 		return err
 	}
+	if err := u.registerWindowFocusAndIconifyCallbacks(); err != nil {
+		return err
+	}
 	if err := u.registerWindowPosCallback(); err != nil {
 		return err
 	}
@@ -1186,6 +1235,11 @@ func (u *glfwBackend) update() (outsideWidth, outsideHeight float64, screenWidth
 			if err = u.window.Show(); err != nil {
 				return
 			}
+			// The window became visible, but GLFW's callbacks do not report programmatic show/hide.
+			// Refresh the cached visibility so that the game loop presents without waiting for the
+			// periodic re-query (#3318).
+			u.cachedVisible = true
+			u.lastVisibleQuery = u.Tick()
 			if !u.initUnfocused {
 				if err = u.window.Focus(); err != nil {
 					return
@@ -1354,15 +1408,15 @@ func (u *glfwBackend) updateGame() error {
 		// On Windows, even if a window is in another workspace, vsync seems to work.
 		// Then let's assume the window is always 'focused' as a workaround.
 		if runtime.GOOS != "windows" {
-			a, e := u.window.GetAttrib(glfw.Focused)
+			focused, e := u.isWindowFocused()
 			if e != nil {
 				err = e
 				return
 			}
-			unfocused = a == glfw.False
+			unfocused = !focused
 		}
 
-		visible, e := u.window.GetAttrib(glfw.Visible)
+		visible, e := u.isWindowVisible()
 		if e != nil {
 			err = e
 			return
@@ -1372,7 +1426,7 @@ func (u *glfwBackend) updateGame() error {
 			err = e
 			return
 		}
-		present = shouldPresentFrame(visible == glfw.True && !occluded, u.bufferOnceSwapped, u.desktopWindow.isInitWindowVisible())
+		present = shouldPresentFrame(visible && !occluded, u.bufferOnceSwapped, u.desktopWindow.isInitWindowVisible())
 
 		outsideWidth, outsideHeight, screenWidth, screenHeight, err = u.update()
 		if err != nil {
@@ -1866,6 +1920,83 @@ func (u *glfwBackend) currentMonitorImpl() (*Monitor, error) {
 	return u.getInitMonitor(), nil
 }
 
+// staleQueryTick is a tick value that forces the next access to a cached window state to re-query
+// the window system, used to invalidate a cache when the state is known to have changed.
+const staleQueryTick = math.MinInt64
+
+// windowQueryInterval is the number of ticks a cached window state is trusted before it is
+// re-queried as a safety net against a missed GLFW callback. One second bounds any divergence while
+// leaving almost every tick query-free.
+func windowQueryInterval() int64 {
+	// With TPS 0 the tick counter does not advance, so re-query every tick.
+	if tps := clock.TPS(); tps > 0 {
+		return int64(tps)
+	}
+	return 1
+}
+
+// isWindowFocused reports whether the window has input focus.
+//
+// The result is cached to avoid querying the window system every tick (#3318). GLFW's focus
+// callback and the places that change the focus invalidate the cache, and the periodic re-query
+// bounds any divergence.
+//
+// isWindowFocused must be called on the main thread.
+func (u *glfwBackend) isWindowFocused() (bool, error) {
+	if u.window == nil {
+		return false, nil
+	}
+	if u.lastFocusedQuery > u.Tick()-windowQueryInterval() {
+		return u.cachedFocused, nil
+	}
+	a, err := u.window.GetAttrib(glfw.Focused)
+	if err != nil {
+		return false, err
+	}
+	u.cachedFocused = a == glfw.True
+	u.lastFocusedQuery = u.Tick()
+	return u.cachedFocused, nil
+}
+
+// isWindowVisible reports whether the window is visible.
+//
+// The result is cached like isWindowFocused. GLFW's visible attribute reflects iconification on
+// some platforms, so the iconify callback also refreshes it (#3318).
+//
+// isWindowVisible must be called on the main thread.
+func (u *glfwBackend) isWindowVisible() (bool, error) {
+	if u.window == nil {
+		return false, nil
+	}
+	if u.lastVisibleQuery > u.Tick()-windowQueryInterval() {
+		return u.cachedVisible, nil
+	}
+	a, err := u.window.GetAttrib(glfw.Visible)
+	if err != nil {
+		return false, err
+	}
+	u.cachedVisible = a == glfw.True
+	u.lastVisibleQuery = u.Tick()
+	return u.cachedVisible, nil
+}
+
+// setCachedFocus records the window's focus reported by a GLFW callback.
+//
+// setCachedFocus must be called on the main thread.
+func (u *glfwBackend) setCachedFocus(focused bool) {
+	u.cachedFocused = focused
+	u.lastFocusedQuery = u.Tick()
+}
+
+// invalidateCachedWindowStates forces the cached focus and visibility to be re-queried on the next
+// access. It is used when a change is expected but its new value is not known here.
+//
+// invalidateCachedWindowStates must be called on the main thread.
+func (u *glfwBackend) invalidateCachedWindowStates() {
+	u.lastFocusedQuery = staleQueryTick
+	u.lastVisibleQuery = staleQueryTick
+}
+
 func (u *glfwBackend) readInputState(inputState *InputState) {
 	u.input.read(inputState)
 }
@@ -1980,9 +2111,19 @@ func (u *glfwBackend) setWindowVisible(visible bool) error {
 	}
 
 	if visible {
-		return u.window.Show()
+		if err := u.window.Show(); err != nil {
+			return err
+		}
+	} else {
+		if err := u.window.Hide(); err != nil {
+			return err
+		}
 	}
-	return u.window.Hide()
+	// GLFW's callbacks do not report programmatic show/hide. Refresh the cached visibility so that
+	// the game loop reflects the change without waiting for the periodic re-query (#3318).
+	u.cachedVisible = visible
+	u.lastVisibleQuery = u.Tick()
+	return nil
 }
 
 // setWindowDecorated must be called from the main thread.
