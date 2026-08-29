@@ -1243,7 +1243,7 @@ func (i *Image) ColorModel() color.Model {
 //
 // ReadPixels loads pixels from GPU to system memory if necessary, which means that ReadPixels can be slow.
 //
-// ReadPixels always sets a transparent color if the image is disposed.
+// ReadPixels panics if the image is disposed.
 //
 // len(pixels) must be 4 * (bounds width) * (bounds height).
 // If len(pixels) is not correct, ReadPixels panics.
@@ -1258,13 +1258,6 @@ func (i *Image) ReadPixels(pixels []byte) {
 	b := i.Bounds()
 	if got, want := len(pixels), 4*b.Dx()*b.Dy(); got != want {
 		panic(fmt.Sprintf("ebiten: len(pixels) must be %d but %d at ReadPixels", want, got))
-	}
-
-	if i.isDisposed() {
-		for i := range pixels {
-			pixels[i] = 0
-		}
-		return
 	}
 
 	i.invokeUsageCallbacks()

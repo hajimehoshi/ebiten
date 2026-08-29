@@ -332,6 +332,18 @@ func TestImageDispose(t *testing.T) {
 	}
 }
 
+func TestImageReadPixelsDispose(t *testing.T) {
+	img := ebiten.NewImage(16, 16)
+	img.Dispose()
+
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("ReadPixels on a disposed image must panic")
+		}
+	}()
+	img.ReadPixels(make([]byte, 4*16*16))
+}
+
 func TestImageDeallocate(t *testing.T) {
 	img := ebiten.NewImage(16, 16)
 	img.Fill(color.White)
