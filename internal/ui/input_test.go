@@ -223,6 +223,34 @@ func TestNonModifierKeyReleasedInTick(t *testing.T) {
 	}
 }
 
+// TestKeyPressedAndReleasedInSameTick tests that a key pressed and released within one tick — as the
+// browser delivers it when the press and the release both land between two input reads — is still
+// observed by the read that stamps it (#3317).
+func TestKeyPressedAndReleasedInSameTick(t *testing.T) {
+	const baseTick = 100
+	var inputState ui.InputState
+
+	// Both events are stamped with the tick that will read them, as the browsers do by folding the
+	// queued events in at read time with the current input time.
+	inputState.SetKeyPressed(ui.KeyA, ui.NewInputTimeFromTick(baseTick)+1)
+	inputState.SetKeyReleased(ui.KeyA, ui.NewInputTimeFromTick(baseTick)+2)
+
+	if got, want := inputState.IsKeyJustPressed(ui.KeyA, baseTick), true; got != want {
+		t.Errorf("just pressed: got: %v, want: %v", got, want)
+	}
+	if got, want := inputState.IsKeyPressed(ui.KeyA, baseTick), true; got != want {
+		t.Errorf("pressed: got: %v, want: %v", got, want)
+	}
+
+	// The press is gone once the tick has passed.
+	if got, want := inputState.IsKeyPressed(ui.KeyA, baseTick+1), false; got != want {
+		t.Errorf("pressed in the next tick: got: %v, want: %v", got, want)
+	}
+	if got, want := inputState.IsKeyJustPressed(ui.KeyA, baseTick+1), false; got != want {
+		t.Errorf("just pressed in the next tick: got: %v, want: %v", got, want)
+	}
+}
+
 // TestLockKeyStates tests that a lock key state a platform does not report falls back to Caps Lock
 // off and Num Lock on.
 func TestLockKeyStates(t *testing.T) {

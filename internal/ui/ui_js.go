@@ -108,6 +108,21 @@ type userInterfaceImpl struct {
 	origCursorYInClient float64
 	touchesInClient     []touchInClient
 
+	// inputMu guards inputState and the input buffers written by the browser's event handlers
+	// (cursorXInClient, touchesInClient, ...) against the game goroutine, which reads them once per
+	// tick. Unlike GLFW, a browser fires these handlers on its own event loop rather than from a
+	// poll the game loop drives, so they run concurrently with the loop rather than inside it.
+	inputMu sync.Mutex
+
+	// inputEvents holds the key and mouse-button state changes reported by the event handlers but
+	// not yet folded into inputState. They are stamped with InputTime only when the game loop drains
+	// them (#3317).
+	inputEvents []inputButtonEvent
+
+	// releaseAllPending reports that the canvas lost focus and every held key and button should be
+	// released when the queued events are next applied.
+	releaseAllPending bool
+
 	savedCursorX              float64
 	savedCursorY              float64
 	savedOutsideWidth         float64
@@ -747,7 +762,10 @@ func (u *UserInterface) setCanvasEventHandlers(v js.Value) {
 
 	// Blur
 	v.Call("addEventListener", "blur", js.FuncOf(func(this js.Value, args []js.Value) any {
-		u.inputState.releaseAllButtons(u.InputTime())
+		u.inputMu.Lock()
+		u.releaseAllPending = true
+		u.inputMu.Unlock()
+		u.forceUpdateOnMinimumFPSMode()
 		return nil
 	}))
 }
@@ -771,7 +789,9 @@ func (u *UserInterface) appendDroppedFiles(data js.Value) {
 			u.setError(err)
 			return
 		}
+		u.inputMu.Lock()
 		u.inputState.DroppedFiles = fs
+		u.inputMu.Unlock()
 	}
 }
 
@@ -863,6 +883,12 @@ func (u *UserInterface) updateScreenSize() {
 }
 
 func (u *UserInterface) readInputState(inputState *InputState) {
+	u.inputMu.Lock()
+	defer u.inputMu.Unlock()
+	// Fold the events the browser delivered since the last read into the input state before
+	// snapshotting, so each press/release edge is stamped with this tick — the tick that reads it
+	// (#3317).
+	u.applyInputEvents()
 	u.inputState.copyAndReset(inputState)
 	u.keyboardLayoutMap = js.Value{}
 }

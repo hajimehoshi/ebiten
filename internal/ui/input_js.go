@@ -96,38 +96,95 @@ func eventToKeys(e js.Value) (key0, key1 Key) {
 	return -1, -1
 }
 
+// An inputButtonEvent is a key or mouse-button state change reported by a browser event handler,
+// queued without a timestamp.
+//
+// A browser fires its event handlers on its own event loop, so an event can arrive at any moment —
+// even after the game loop has already read the input snapshot for the current tick. Stamping such
+// an event with the live tick would attribute its edge to a tick that was already sampled, so a key
+// pressed and released between two samples would go unnoticed (#3317). The handlers queue the event
+// here and (*UserInterface).applyInputEvents stamps it with InputTime when the game loop drains the
+// queue, so the edge is always attributed to the tick that observes it.
+type inputButtonEvent struct {
+	key     Key
+	button  MouseButton
+	pressed bool
+
+	// isKey distinguishes a key event (key) from a mouse-button event (button).
+	isKey bool
+}
+
+func (u *UserInterface) enqueueKeys(key0, key1 Key, pressed bool) {
+	if key0 < 0 && key1 < 0 {
+		return
+	}
+	u.inputMu.Lock()
+	defer u.inputMu.Unlock()
+	if key0 >= 0 {
+		u.inputEvents = append(u.inputEvents, inputButtonEvent{key: key0, pressed: pressed, isKey: true})
+	}
+	if key1 >= 0 {
+		u.inputEvents = append(u.inputEvents, inputButtonEvent{key: key1, pressed: pressed, isKey: true})
+	}
+}
+
+func (u *UserInterface) enqueueMouseButton(button MouseButton, pressed bool) {
+	if button < 0 || MouseButtonMax < button {
+		return
+	}
+	u.inputMu.Lock()
+	defer u.inputMu.Unlock()
+	u.inputEvents = append(u.inputEvents, inputButtonEvent{button: button, pressed: pressed})
+}
+
 func (u *UserInterface) keyDown(event js.Value) {
 	// Ignore key repeats for now.
 	if event.Get("repeat").Bool() {
 		return
 	}
-	now := u.InputTime()
 	key0, key1 := eventToKeys(event)
-	if key0 >= 0 {
-		u.inputState.setKeyPressed(key0, now)
-	}
-	if key1 >= 0 {
-		u.inputState.setKeyPressed(key1, now)
-	}
+	u.enqueueKeys(key0, key1, true)
 }
 
 func (u *UserInterface) keyUp(event js.Value) {
-	now := u.InputTime()
 	key0, key1 := eventToKeys(event)
-	if key0 >= 0 {
-		u.inputState.setKeyReleased(key0, now)
-	}
-	if key1 >= 0 {
-		u.inputState.setKeyReleased(key1, now)
-	}
+	u.enqueueKeys(key0, key1, false)
 }
 
 func (u *UserInterface) mouseDown(code int) {
-	u.inputState.setMouseButtonPressed(codeToMouseButton[code], u.InputTime())
+	u.enqueueMouseButton(codeToMouseButton[code], true)
 }
 
 func (u *UserInterface) mouseUp(code int) {
-	u.inputState.setMouseButtonReleased(codeToMouseButton[code], u.InputTime())
+	u.enqueueMouseButton(codeToMouseButton[code], false)
+}
+
+// applyInputEvents folds the queued key and mouse-button events into the input state, stamping each
+// with the current input time so the edge belongs to the tick that reads it (#3317). The caller must
+// hold inputMu.
+func (u *UserInterface) applyInputEvents() {
+	for _, e := range u.inputEvents {
+		t := u.InputTime()
+		if e.isKey {
+			if e.pressed {
+				u.inputState.setKeyPressed(e.key, t)
+			} else {
+				u.inputState.setKeyReleased(e.key, t)
+			}
+			continue
+		}
+		if e.pressed {
+			u.inputState.setMouseButtonPressed(e.button, t)
+		} else {
+			u.inputState.setMouseButtonReleased(e.button, t)
+		}
+	}
+	u.inputEvents = u.inputEvents[:0]
+
+	if u.releaseAllPending {
+		u.inputState.releaseAllButtons(u.InputTime())
+		u.releaseAllPending = false
+	}
 }
 
 func (u *UserInterface) updateInputFromEvent(e js.Value) error {
@@ -137,9 +194,11 @@ func (u *UserInterface) updateInputFromEvent(e js.Value) error {
 	switch {
 	case t.Equal(stringKeydown):
 		if str := e.Get("key").String(); isKeyString(str) {
+			u.inputMu.Lock()
 			for _, r := range str {
 				u.inputState.appendRune(r)
 			}
+			u.inputMu.Unlock()
 		}
 		u.keyDown(e)
 	case t.Equal(stringKeyup):
@@ -154,8 +213,12 @@ func (u *UserInterface) updateInputFromEvent(e js.Value) error {
 		u.setMouseCursorFromEvent(e)
 	case t.Equal(stringWheel):
 		// TODO: What if e.deltaMode is not DOM_DELTA_PIXEL?
-		u.inputState.WheelX += -e.Get("deltaX").Float()
-		u.inputState.WheelY += -e.Get("deltaY").Float()
+		dx := -e.Get("deltaX").Float()
+		dy := -e.Get("deltaY").Float()
+		u.inputMu.Lock()
+		u.inputState.WheelX += dx
+		u.inputState.WheelY += dy
+		u.inputMu.Unlock()
 	case t.Equal(stringTouchstart) || t.Equal(stringTouchend) || t.Equal(stringTouchmove):
 		u.updateTouchesFromEvent(e)
 	}
@@ -165,8 +228,12 @@ func (u *UserInterface) updateInputFromEvent(e js.Value) error {
 	switch {
 	case t.Equal(stringKeydown), t.Equal(stringKeyup), t.Equal(stringMousedown), t.Equal(stringMouseup),
 		t.Equal(stringMousemove), t.Equal(stringWheel):
-		u.inputState.CapsLock = NewLockKeyStateFromBool(e.Call("getModifierState", stringCapsLock).Bool())
-		u.inputState.NumLock = NewLockKeyStateFromBool(e.Call("getModifierState", stringNumLock).Bool())
+		capsLock := NewLockKeyStateFromBool(e.Call("getModifierState", stringCapsLock).Bool())
+		numLock := NewLockKeyStateFromBool(e.Call("getModifierState", stringNumLock).Bool())
+		u.inputMu.Lock()
+		u.inputState.CapsLock = capsLock
+		u.inputState.NumLock = numLock
+		u.inputMu.Unlock()
 	}
 
 	u.forceUpdateOnMinimumFPSMode()
@@ -177,6 +244,9 @@ func (u *UserInterface) setMouseCursorFromEvent(e js.Value) {
 	if u.context == nil {
 		return
 	}
+
+	u.inputMu.Lock()
+	defer u.inputMu.Unlock()
 
 	u.origCursorXInClient = e.Get("clientX").Float()
 	u.origCursorYInClient = e.Get("clientY").Float()
@@ -192,11 +262,16 @@ func (u *UserInterface) setMouseCursorFromEvent(e js.Value) {
 }
 
 func (u *UserInterface) recoverCursorPosition() {
+	u.inputMu.Lock()
+	defer u.inputMu.Unlock()
 	u.cursorXInClient = u.origCursorXInClient
 	u.cursorYInClient = u.origCursorYInClient
 }
 
 func (u *UserInterface) updateTouchesFromEvent(e js.Value) {
+	u.inputMu.Lock()
+	defer u.inputMu.Unlock()
+
 	u.touchesInClient = u.touchesInClient[:0]
 
 	touches := e.Get("targetTouches")
@@ -300,15 +375,24 @@ func (u *UserInterface) UpdateInputFromEvent(e js.Value) {
 }
 
 func (u *UserInterface) saveCursorPosition() {
+	w, h := u.outsideSize()
+
+	u.inputMu.Lock()
+	defer u.inputMu.Unlock()
+
 	u.savedCursorX = u.inputState.CursorX
 	u.savedCursorY = u.inputState.CursorY
-	w, h := u.outsideSize()
 	u.savedOutsideWidth = w
 	u.savedOutsideHeight = h
 }
 
 func (u *UserInterface) updateInputStateForFrame(deviceScaleFactor float64) error {
 	s := deviceScaleFactor
+
+	// cursorXInClient and touchesInClient are written by the browser's mouse and touch handlers, so
+	// read and reset them under inputMu.
+	u.inputMu.Lock()
+	defer u.inputMu.Unlock()
 
 	if !math.IsNaN(u.savedCursorX) && !math.IsNaN(u.savedCursorY) {
 		// If savedCursorX and savedCursorY are valid values, the cursor is saved just before entering or exiting from fullscreen.
