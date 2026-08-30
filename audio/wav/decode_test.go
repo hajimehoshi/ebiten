@@ -325,3 +325,122 @@ func TestDecodeInvalidSampleRate(t *testing.T) {
 		})
 	}
 }
+
+// pcmWavFile returns a linear PCM WAV file with the given channel count and bit depth
+// whose 'data' chunk holds data.
+func pcmWavFile(channelCount, bitsPerSample int, data []byte) []byte {
+	blockAlign := channelCount * bitsPerSample / 8
+
+	var fmtData []byte
+	fmtData = binary.LittleEndian.AppendUint16(fmtData, 1) // Format tag (linear PCM)
+	fmtData = binary.LittleEndian.AppendUint16(fmtData, uint16(channelCount))
+	fmtData = binary.LittleEndian.AppendUint32(fmtData, testSampleRate)
+	fmtData = binary.LittleEndian.AppendUint32(fmtData, testSampleRate*uint32(blockAlign))
+	fmtData = binary.LittleEndian.AppendUint16(fmtData, uint16(blockAlign))
+	fmtData = binary.LittleEndian.AppendUint16(fmtData, uint16(bitsPerSample))
+
+	var body []byte
+	body = appendChunk(body, "fmt ", fmtData)
+	body = appendChunk(body, "data", data)
+
+	var buf []byte
+	buf = append(buf, "RIFF"...)
+	buf = binary.LittleEndian.AppendUint32(buf, uint32(len(body)+4))
+	buf = append(buf, "WAVE"...)
+	return append(buf, body...)
+}
+
+func TestDecodePartialFrame(t *testing.T) {
+	const dataSize = 65
+
+	testCases := []struct {
+		name          string
+		channelCount  int
+		bitsPerSample int
+		wantFrames    int64
+	}{
+		{
+			name:          "MonoU8",
+			channelCount:  1,
+			bitsPerSample: 8,
+			wantFrames:    65,
+		},
+		{
+			name:          "MonoS16",
+			channelCount:  1,
+			bitsPerSample: 16,
+			wantFrames:    32,
+		},
+		{
+			name:          "StereoU8",
+			channelCount:  2,
+			bitsPerSample: 8,
+			wantFrames:    32,
+		},
+		{
+			name:          "StereoS16",
+			channelCount:  2,
+			bitsPerSample: 16,
+			wantFrames:    16,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			data := make([]byte, dataSize)
+			for i := range data {
+				data[i] = byte(i + 1)
+			}
+			src := pcmWavFile(tc.channelCount, tc.bitsPerSample, data)
+
+			for _, d := range []struct {
+				name          string
+				decode        func(src io.Reader) (*wav.Stream, error)
+				bytesPerFrame int64
+			}{
+				{
+					name:          "DecodeWithoutResampling",
+					decode:        wav.DecodeWithoutResampling,
+					bytesPerFrame: 4,
+				},
+				{
+					name:          "DecodeF32",
+					decode:        wav.DecodeF32,
+					bytesPerFrame: 8,
+				},
+			} {
+				t.Run(d.name, func(t *testing.T) {
+					s, err := d.decode(bytes.NewReader(src))
+					if err != nil {
+						t.Fatal(err)
+					}
+					want := tc.wantFrames * d.bytesPerFrame
+					if got := s.Length(); got != want {
+						t.Errorf("Length(): got: %d, want: %d", got, want)
+					}
+					bs, err := io.ReadAll(s)
+					if err != nil {
+						t.Fatal(err)
+					}
+					if got := int64(len(bs)); got != want {
+						t.Errorf("len(io.ReadAll(s)): got: %d, want: %d", got, want)
+					}
+				})
+			}
+		})
+	}
+}
+
+func TestDecodeDataChunkBeforeFmtChunk(t *testing.T) {
+	var body []byte
+	body = appendChunk(body, "data", []byte{1, 2, 3, 4})
+	body = appendChunk(body, "fmt ", stereoI16FmtChunkData(testSampleRate))
+
+	buf := []byte("RIFF")
+	buf = binary.LittleEndian.AppendUint32(buf, uint32(len(body)+4))
+	buf = append(buf, "WAVE"...)
+	buf = append(buf, body...)
+
+	if _, err := wav.DecodeWithoutResampling(bytes.NewReader(buf)); err == nil {
+		t.Errorf("DecodeWithoutResampling: got no error, want an error")
+	}
+}
