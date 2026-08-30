@@ -140,7 +140,7 @@ func TestBluetoothFromDeviceInstanceID(t *testing.T) {
 	}
 }
 
-func TestSonyReportSize(t *testing.T) {
+func TestSonyOutputReportSize(t *testing.T) {
 	tests := []struct {
 		model gamepad.SonyModel
 		bt    bool
@@ -178,8 +178,8 @@ func TestSonyReportSize(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		if got := gamepad.SonyReportSize(tt.model, tt.bt); got != tt.want {
-			t.Errorf("SonyReportSize(%d, %t) = %d, want %d", tt.model, tt.bt, got, tt.want)
+		if got := gamepad.SonyOutputReportSize(tt.model, tt.bt); got != tt.want {
+			t.Errorf("SonyOutputReportSize(%d, %t) = %d, want %d", tt.model, tt.bt, got, tt.want)
 		}
 	}
 }
@@ -268,20 +268,20 @@ func checkReport(t *testing.T, name string, report []byte, size int, want map[in
 }
 
 func TestDualshock4RumbleReportUSB(t *testing.T) {
-	checkReport(t, "usb", gamepad.Dualshock4RumbleReportUSB(0xab, 0xcd), gamepad.Dualshock4ReportSizeUSB, map[int]byte{
+	checkReport(t, "usb", gamepad.Dualshock4RumbleReportUSB(0xab, 0xcd), gamepad.Dualshock4OutputReportSizeUSB, map[int]byte{
 		0: 0x05,
 		1: 0x01,
 		4: 0xcd, // weak
 		5: 0xab, // strong
 	}, false)
-	checkReport(t, "usb stop", gamepad.Dualshock4RumbleReportUSB(0, 0), gamepad.Dualshock4ReportSizeUSB, map[int]byte{
+	checkReport(t, "usb stop", gamepad.Dualshock4RumbleReportUSB(0, 0), gamepad.Dualshock4OutputReportSizeUSB, map[int]byte{
 		0: 0x05,
 		1: 0x01,
 	}, false)
 }
 
 func TestDualshock4RumbleReportBT(t *testing.T) {
-	checkReport(t, "bt", gamepad.Dualshock4RumbleReportBT(0xab, 0xcd), gamepad.Dualshock4ReportSizeBT, map[int]byte{
+	checkReport(t, "bt", gamepad.Dualshock4RumbleReportBT(0xab, 0xcd), gamepad.Dualshock4OutputReportSizeBT, map[int]byte{
 		0: 0x11,
 		1: 0xc0,
 		3: 0x01,
@@ -291,7 +291,7 @@ func TestDualshock4RumbleReportBT(t *testing.T) {
 }
 
 func TestDualsenseRumbleReportUSB(t *testing.T) {
-	checkReport(t, "usb", gamepad.DualsenseRumbleReportUSB(0xab, 0xcd), gamepad.DualsenseReportSizeUSB, map[int]byte{
+	checkReport(t, "usb", gamepad.DualsenseRumbleReportUSB(0xab, 0xcd), gamepad.DualsenseOutputReportSizeUSB, map[int]byte{
 		0: 0x02,
 		1: 0x03,
 		3: 0xcd, // weak
@@ -300,7 +300,7 @@ func TestDualsenseRumbleReportUSB(t *testing.T) {
 }
 
 func TestDualsenseRumbleReportBT(t *testing.T) {
-	checkReport(t, "bt", gamepad.DualsenseRumbleReportBT(2, 0xab, 0xcd), gamepad.DualsenseReportSizeBT, map[int]byte{
+	checkReport(t, "bt", gamepad.DualsenseRumbleReportBT(2, 0xab, 0xcd), gamepad.DualsenseOutputReportSizeBT, map[int]byte{
 		0: 0x31,
 		1: 0x20, // Sequence 2 in the high nibble.
 		2: 0x10,

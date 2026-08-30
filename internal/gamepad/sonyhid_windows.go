@@ -89,8 +89,8 @@ func openSonyRumble(path string, vid, pid uint16) *sonyRumbler {
 		return nil
 	}
 
-	outLen, err := hidOutputReportByteLength(handle)
-	if err != nil || outLen < sonyReportSize(model, bt) {
+	caps, err := hidCaps(handle)
+	if err != nil || int(caps.OutputReportByteLength) < sonyOutputReportSize(model, bt) {
 		_ = windows.CloseHandle(handle)
 		return nil
 	}
@@ -105,7 +105,7 @@ func openSonyRumble(path string, vid, pid uint16) *sonyRumbler {
 		handle: handle,
 		model:  model,
 		bt:     bt,
-		buf:    make([]byte, outLen),
+		buf:    make([]byte, caps.OutputReportByteLength),
 	}
 	s.ov.HEvent = event
 	return s

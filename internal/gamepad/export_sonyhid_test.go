@@ -23,16 +23,16 @@ const (
 )
 
 const (
-	Dualshock4ReportSizeUSB = dualshock4ReportSizeUSB
-	Dualshock4ReportSizeBT  = dualshock4ReportSizeBT
-	DualsenseReportSizeUSB  = dualsenseReportSizeUSB
-	DualsenseReportSizeBT   = dualsenseReportSizeBT
+	Dualshock4OutputReportSizeUSB = dualshock4OutputReportSizeUSB
+	Dualshock4OutputReportSizeBT  = dualshock4OutputReportSizeBT
+	DualsenseOutputReportSizeUSB  = dualsenseOutputReportSizeUSB
+	DualsenseOutputReportSizeBT   = dualsenseOutputReportSizeBT
 )
 
 var (
 	SonyModelFromIDs              = sonyModelFromIDs
 	BluetoothFromDeviceInstanceID = bluetoothFromDeviceInstanceID
-	SonyReportSize                = sonyReportSize
+	SonyOutputReportSize          = sonyOutputReportSize
 	SonyRumbleByte                = sonyRumbleByte
 	SonyBTCRC                     = sonyBTCRC
 	Dualshock4RumbleReportUSB     = dualshock4RumbleReportUSB

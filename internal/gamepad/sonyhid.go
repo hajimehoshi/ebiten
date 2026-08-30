@@ -74,28 +74,29 @@ func bluetoothFromDeviceInstanceID(id string) (bt, ok bool) {
 	return false, false
 }
 
-// Report sizes include the leading report ID byte.
+// Report sizes include the leading report ID byte. Input reports have their
+// own sizes; that the Bluetooth sizes match is a coincidence.
 const (
-	dualshock4ReportSizeUSB = 32
-	dualshock4ReportSizeBT  = 78
-	dualsenseReportSizeUSB  = 48
-	dualsenseReportSizeBT   = 78
+	dualshock4OutputReportSizeUSB = 32
+	dualshock4OutputReportSizeBT  = 78
+	dualsenseOutputReportSizeUSB  = 48
+	dualsenseOutputReportSizeBT   = 78
 )
 
-// sonyReportSize returns the output report size for a model and transport,
-// or 0 for an unknown model.
-func sonyReportSize(model sonyModel, bt bool) int {
+// sonyOutputReportSize returns the output report size for a model and
+// transport, or 0 for an unknown model.
+func sonyOutputReportSize(model sonyModel, bt bool) int {
 	switch model {
 	case sonyModelDualShock4:
 		if bt {
-			return dualshock4ReportSizeBT
+			return dualshock4OutputReportSizeBT
 		}
-		return dualshock4ReportSizeUSB
+		return dualshock4OutputReportSizeUSB
 	case sonyModelDualSense:
 		if bt {
-			return dualsenseReportSizeBT
+			return dualsenseOutputReportSizeBT
 		}
-		return dualsenseReportSizeUSB
+		return dualsenseOutputReportSizeUSB
 	}
 	return 0
 }
@@ -135,7 +136,7 @@ func putSonyBTCRC(report []byte) {
 // Only the rumble-valid flag is set so the light bar and flash state are left
 // as they are.
 func dualshock4RumbleReportUSB(strong, weak byte) []byte {
-	r := make([]byte, dualshock4ReportSizeUSB)
+	r := make([]byte, dualshock4OutputReportSizeUSB)
 	r[0] = 0x05
 	r[1] = 0x01 // Rumble fields are valid.
 	r[4] = weak
@@ -145,7 +146,7 @@ func dualshock4RumbleReportUSB(strong, weak byte) []byte {
 
 // dualshock4RumbleReportBT builds output report 0x11 with its CRC trailer.
 func dualshock4RumbleReportBT(strong, weak byte) []byte {
-	r := make([]byte, dualshock4ReportSizeBT)
+	r := make([]byte, dualshock4OutputReportSizeBT)
 	r[0] = 0x11
 	r[1] = 0xc0 // HID output with a CRC32 trailer.
 	r[3] = 0x01 // Rumble fields are valid.
@@ -169,7 +170,7 @@ func dualsenseSetCommon(p []byte, strong, weak byte) {
 
 // dualsenseRumbleReportUSB builds output report 0x02.
 func dualsenseRumbleReportUSB(strong, weak byte) []byte {
-	r := make([]byte, dualsenseReportSizeUSB)
+	r := make([]byte, dualsenseOutputReportSizeUSB)
 	r[0] = 0x02
 	dualsenseSetCommon(r[1:], strong, weak)
 	return r
@@ -178,7 +179,7 @@ func dualsenseRumbleReportUSB(strong, weak byte) []byte {
 // dualsenseRumbleReportBT builds output report 0x31 with its CRC trailer.
 // seq is a per-device counter; only its low 4 bits are used.
 func dualsenseRumbleReportBT(seq, strong, weak byte) []byte {
-	r := make([]byte, dualsenseReportSizeBT)
+	r := make([]byte, dualsenseOutputReportSizeBT)
 	r[0] = 0x31
 	r[1] = (seq & 0x0f) << 4
 	r[2] = 0x10 // Output report tag.

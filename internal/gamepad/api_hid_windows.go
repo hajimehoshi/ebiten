@@ -50,18 +50,18 @@ var (
 	procHidPGetCaps           = hid.NewProc("HidP_GetCaps")
 )
 
-// hidOutputReportByteLength returns the maximum output report length in
-// bytes, including the report ID byte, for an opened HID device.
-func hidOutputReportByteLength(handle windows.Handle) (int, error) {
+// hidCaps returns the capabilities of an opened HID device. The report byte
+// lengths in the capabilities are maximums and include the report ID byte.
+func hidCaps(handle windows.Handle) (_HIDP_CAPS, error) {
 	for _, p := range []*windows.LazyProc{procHidDGetPreparsedData, procHidDFreePreparsedData, procHidPGetCaps} {
 		if err := p.Find(); err != nil {
-			return 0, err
+			return _HIDP_CAPS{}, err
 		}
 	}
 
 	var preparsedData uintptr
 	if r, _, _ := procHidDGetPreparsedData.Call(uintptr(handle), uintptr(unsafe.Pointer(&preparsedData))); r == 0 {
-		return 0, fmt.Errorf("gamepad: HidD_GetPreparsedData failed")
+		return _HIDP_CAPS{}, fmt.Errorf("gamepad: HidD_GetPreparsedData failed")
 	}
 	defer func() {
 		_, _, _ = procHidDFreePreparsedData.Call(preparsedData)
@@ -69,8 +69,8 @@ func hidOutputReportByteLength(handle windows.Handle) (int, error) {
 
 	var caps _HIDP_CAPS
 	if r, _, _ := procHidPGetCaps.Call(preparsedData, uintptr(unsafe.Pointer(&caps))); uint32(r) != _HIDP_STATUS_SUCCESS {
-		return 0, fmt.Errorf("gamepad: HidP_GetCaps failed: NTSTATUS(%#08x)", uint32(r))
+		return _HIDP_CAPS{}, fmt.Errorf("gamepad: HidP_GetCaps failed: NTSTATUS(%#08x)", uint32(r))
 	}
 
-	return int(caps.OutputReportByteLength), nil
+	return caps, nil
 }
