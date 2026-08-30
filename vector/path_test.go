@@ -501,6 +501,14 @@ func TestBounds(t *testing.T) {
 			},
 			want: image.Rect(10, 20, 30, 40),
 		},
+		{
+			name: "shallow angle arc",
+			path: func(p *vector.Path) {
+				p.MoveTo(676.47327, 1502.2303)
+				p.ArcTo(257.7812, 1856.779, 1046.7478, 1188.3281, 100)
+			},
+			want: image.Rect(676, 1188, 1047, 1503),
+		},
 	}
 
 	for _, tc := range testCases {

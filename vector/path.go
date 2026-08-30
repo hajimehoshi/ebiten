@@ -483,8 +483,8 @@ func (p *Path) ArcTo(x1, y1, x2, y2, radius float32) {
 	d0 = d0.norm()
 	d1 = d1.norm()
 
-	// theta is the angle between two vectors d0 and d1.
-	theta := math.Acos(float64(d0.x*d1.x + d0.y*d1.y))
+	dot := min(max(float64(d0.x*d1.x+d0.y*d1.y), -1.0), 1.0)
+	theta := math.Acos(dot)
 	// TODO: When theta is bigger than π/2, the arc should be split into two.
 	if theta == 0 {
 		p.LineTo(x2, y2)
