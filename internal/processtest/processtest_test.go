@@ -17,11 +17,9 @@ package processtest_test
 import (
 	"bytes"
 	"context"
-	"flag"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
 	"runtime"
 	"strings"
 	"sync"
@@ -40,24 +38,6 @@ func isWSL() (bool, error) {
 		return false, err
 	}
 	return strings.HasPrefix(abs, `\\wsl$\`), nil
-}
-
-// isSelected reports whether a subtest named name is selected by the -run
-// flag, so that only the programs that will run are built.
-func isSelected(name string) bool {
-	f := flag.Lookup("test.run")
-	if f == nil {
-		return true
-	}
-	parts := strings.Split(f.Value.String(), "/")
-	if len(parts) < 2 || parts[1] == "" {
-		return true
-	}
-	re, err := regexp.Compile(parts[1])
-	if err != nil {
-		return true
-	}
-	return re.MatchString(name)
 }
 
 func TestPrograms(t *testing.T) {
@@ -95,9 +75,6 @@ func TestPrograms(t *testing.T) {
 		if !strings.HasSuffix(n, ".go") {
 			continue
 		}
-		if !isSelected(n) {
-			continue
-		}
 		programs = append(programs, program{name: n, bin: filepath.Join(tmpdir, n)})
 	}
 
@@ -119,17 +96,15 @@ func TestPrograms(t *testing.T) {
 		build(0)
 	}
 
-	var wg errgroup.Group
-	wg.SetLimit(runtime.NumCPU())
+	var eg errgroup.Group
+	eg.SetLimit(runtime.NumCPU())
 	for i := 1; i < len(programs); i++ {
-		wg.Go(func() error {
+		eg.Go(func() error {
 			build(i)
 			return nil
 		})
 	}
-	if err := wg.Wait(); err != nil {
-		t.Fatal(err)
-	}
+	eg.Wait()
 
 	// Run sub-tests one by one, not in parallel (#2571).
 	var m sync.Mutex
