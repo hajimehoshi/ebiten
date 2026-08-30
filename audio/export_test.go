@@ -208,10 +208,10 @@ func (p *dummyPlayer) Seek(offset int64, whence int) (int64, error) {
 	// Seeking discards the buffered data and resets the finished state as real players do, so
 	// that the source can be played again.
 	p.mu.Lock()
+	defer p.mu.Unlock()
 	p.buffered = 0
 	p.eof = false
 	p.drained = false
-	p.mu.Unlock()
 	return 0, nil
 }
 
