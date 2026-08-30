@@ -88,6 +88,9 @@ func (g *gamepads) appendVirtualVibrations(dst []VirtualGamepadVibration) []Virt
 func (g *gamepads) setVirtualGamepads(states []VirtualGamepadState) {
 	maxID := -1
 	for i := range states {
+		if states[i].ID < 0 {
+			continue
+		}
 		maxID = max(maxID, int(states[i].ID))
 	}
 	for len(g.gamepads) <= maxID {
@@ -97,6 +100,9 @@ func (g *gamepads) setVirtualGamepads(states []VirtualGamepadState) {
 	// Connect or update every gamepad in the snapshot at its own ID.
 	for i := range states {
 		s := &states[i]
+		if s.ID < 0 {
+			continue
+		}
 		gp := g.gamepads[s.ID]
 		if gp == nil || !gp.virtual {
 			gp = &Gamepad{

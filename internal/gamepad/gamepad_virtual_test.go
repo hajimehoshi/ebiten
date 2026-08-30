@@ -294,3 +294,14 @@ func TestVirtualGamepadCopiesState(t *testing.T) {
 		t.Errorf("StandardAxisValue(LeftStickHorizontal) = %v; want %v (input mutation leaked)", got, want)
 	}
 }
+
+func TestVirtualGamepadNegativeID(t *testing.T) {
+	updateVirtualGamepads(t, []gamepad.VirtualGamepadState{
+		{ID: -1, SDLID: "neg", Name: "Negative"},
+	})
+	defer updateVirtualGamepads(t, []gamepad.VirtualGamepadState{})
+
+	if got := gamepadIDs(); len(got) != 0 {
+		t.Errorf("gamepad IDs = %v; want none for a negative ID", got)
+	}
+}
