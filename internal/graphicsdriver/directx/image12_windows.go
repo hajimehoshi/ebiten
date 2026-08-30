@@ -99,7 +99,7 @@ func (i *image12) ReadPixels(args []graphicsdriver.PixelsArgs) error {
 		i.graphics.copyCommandList.ResourceBarrier([]_D3D12_RESOURCE_BARRIER_Transition{rb})
 	}
 
-	m, err := readingStagingBuffer.Map(0, &_D3D12_RANGE{0, 0})
+	m, err := readingStagingBuffer.Map(0, &_D3D12_RANGE{Begin: 0, End: 0})
 	if err != nil {
 		return err
 	}
@@ -188,7 +188,7 @@ func (i *image12) WritePixels(args []graphicsdriver.PixelsArgs) error {
 		i.graphics.copyCommandList.ResourceBarrier([]_D3D12_RESOURCE_BARRIER_Transition{rb})
 	}
 
-	m, err := uploadingStagingBuffer.Map(0, &_D3D12_RANGE{0, 0})
+	m, err := uploadingStagingBuffer.Map(0, &_D3D12_RANGE{Begin: 0, End: 0})
 	if err != nil {
 		return err
 	}

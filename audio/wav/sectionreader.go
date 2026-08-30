@@ -66,6 +66,8 @@ func (s *sectionReader) Seek(offset int64, whence int) (int64, error) {
 	case io.SeekEnd:
 		offset += s.offset + s.size
 		whence = io.SeekStart
+	default:
+		return 0, fmt.Errorf("wav: whence must be io.SeekStart, io.SeekCurrent, or io.SeekEnd but was %d", whence)
 	}
 	n, err := seeker.Seek(offset, whence)
 	if err != nil {

@@ -22,10 +22,13 @@ import (
 
 // InfiniteLoop represents a looped stream which never ends.
 type InfiniteLoop struct {
-	src             io.ReadSeeker
-	lstart          int64
-	llength         int64
-	pos             int64
+	src     io.ReadSeeker
+	lstart  int64
+	llength int64
+
+	// pos is the position of src. This is ahead of the position of the data returned so far by len(extra).
+	pos int64
+
 	bitDepthInBytes int
 	bytesPerSample  int
 
@@ -97,10 +100,15 @@ func NewInfiniteLoopWithIntroF32(src io.ReadSeeker, introLength int64, loopLengt
 
 func newInfiniteLoopWithIntro(src io.ReadSeeker, introLength int64, loopLength int64, bitDepthInBytes int) *InfiniteLoop {
 	bytesPerSample := bitDepthInBytes * channelCount
+	lstart := introLength / int64(bytesPerSample) * int64(bytesPerSample)
+	llength := loopLength / int64(bytesPerSample) * int64(bytesPerSample)
+	if llength <= 0 {
+		panic(fmt.Sprintf("audio: loop length must be a positive multiple of %d bytes but was %d", bytesPerSample, loopLength))
+	}
 	return &InfiniteLoop{
 		src:             src,
-		lstart:          introLength / int64(bytesPerSample) * int64(bytesPerSample),
-		llength:         loopLength / int64(bytesPerSample) * int64(bytesPerSample),
+		lstart:          lstart,
+		llength:         llength,
 		pos:             -1,
 		bitDepthInBytes: bitDepthInBytes,
 		bytesPerSample:  bytesPerSample,
@@ -135,6 +143,9 @@ func (i *InfiniteLoop) blendRate(pos int64) float32 {
 	}
 	p := (pos - i.lstart) / int64(i.bytesPerSample)
 	l := len(i.afterLoop) / i.bytesPerSample
+	if l == 0 {
+		return 0
+	}
 	return 1 - float32(p)/float32(l)
 }
 
@@ -144,20 +155,23 @@ func (i *InfiniteLoop) Read(b []byte) (int, error) {
 		return 0, err
 	}
 
-	if i.pos+int64(len(b)) > i.length() {
-		b = b[:i.length()-i.pos]
+	extralen := len(i.extra)
+	if i.pos+int64(len(b))-int64(extralen) > i.length() {
+		b = b[:i.length()-i.pos+int64(extralen)]
 	}
 
-	extralen := len(i.extra)
 	copy(b, i.extra)
 	i.extra = i.extra[:0]
 
 	n, err := i.src.Read(b[extralen:])
-	n += extralen
 	i.pos += int64(n)
+	n += extralen
 	if i.pos > i.length() {
 		panic(fmt.Sprintf("audio: position must be <= length but not at (*InfiniteLoop).Read: pos: %d, length: %d", i.pos, i.length()))
 	}
+
+	// bpos is the stream position of b[0], which must be calculated before the remainder is removed from b.
+	bpos := i.pos - int64(n)
 
 	// Save the remainder part to extra. This will be used at the next Read.
 	if rem := n % i.bitDepthInBytes; rem != 0 {
@@ -168,12 +182,12 @@ func (i *InfiniteLoop) Read(b []byte) (int, error) {
 
 	// Blend afterLoop and the loop start to reduce noises (#1888).
 	// Ideally, afterLoop and the loop start should be identical, but they can have very slight differences.
-	if !i.noBlendForTesting && i.blending && i.pos >= i.lstart && i.pos-int64(n) < i.lstart+int64(len(i.afterLoop)) {
+	if !i.noBlendForTesting && i.blending && i.pos >= i.lstart && bpos < i.lstart+int64(len(i.afterLoop)) {
 		if n%i.bitDepthInBytes != 0 {
 			panic(fmt.Sprintf("audio: n must be a multiple of bit depth %d [bytes] but not: %d", i.bitDepthInBytes, n))
 		}
 		for idx := 0; idx < n/i.bitDepthInBytes; idx++ {
-			abspos := i.pos - int64(n) + int64(idx)*int64(i.bitDepthInBytes)
+			abspos := bpos + int64(idx)*int64(i.bitDepthInBytes)
 			rate := i.blendRate(abspos)
 			if rate == 0 {
 				continue
@@ -243,6 +257,12 @@ func (i *InfiniteLoop) Read(b []byte) (int, error) {
 
 // Seek is implementation of ReadSeeker's Seek.
 func (i *InfiniteLoop) Seek(offset int64, whence int) (int64, error) {
+	switch whence {
+	case io.SeekStart, io.SeekCurrent:
+	default:
+		return 0, fmt.Errorf("audio: whence must be io.SeekStart or io.SeekCurrent for InfiniteLoop but was %d", whence)
+	}
+
 	i.blending = false
 	if err := i.ensurePos(); err != nil {
 		return 0, err
@@ -253,9 +273,7 @@ func (i *InfiniteLoop) Seek(offset int64, whence int) (int64, error) {
 	case io.SeekStart:
 		next = offset
 	case io.SeekCurrent:
-		next = i.pos + offset
-	case io.SeekEnd:
-		return 0, fmt.Errorf("audio: whence must be io.SeekStart or io.SeekCurrent for InfiniteLoop")
+		next = i.pos - int64(len(i.extra)) + offset
 	}
 	if next < 0 {
 		return 0, fmt.Errorf("audio: position must >= 0")
@@ -269,5 +287,6 @@ func (i *InfiniteLoop) Seek(offset int64, whence int) (int64, error) {
 		return 0, err
 	}
 	i.pos = next
+	i.extra = i.extra[:0]
 	return i.pos, nil
 }

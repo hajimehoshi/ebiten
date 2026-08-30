@@ -14,7 +14,7 @@
 
 //go:build nintendosdk
 
-// The actual implementaiton will be provided by github.com/hajimehoshi/uwagaki.
+// The actual implementation will be provided by github.com/hajimehoshi/uwagaki.
 
 #include "input_nintendosdk.h"
 

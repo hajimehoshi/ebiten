@@ -4,7 +4,7 @@ description: >
   Use this skill when writing, reviewing, debugging, or porting a Kage shader
   for Ebitengine — anything involving `//kage:unit pixels`, `ebiten.NewShader`,
   `DrawTrianglesShader`, `DrawRectShader`, or a
-  `Fragment(dstPos vec4, srcPos vec2, color vec4) vec4` entry point. Use it
+  `Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4` entry point. Use it
   especially when translating an existing shader from GLSL, Shadertoy, HLSL,
   MSL, Godot, or Unity, where the source assumes 0..1 texture coordinates,
   `gl_FragCoord`, `texture()` sampling, a bottom-left origin, `uniform`
@@ -40,7 +40,7 @@ Check every one of these before declaring a shader done.
 - [ ] `//kage:unit pixels` is present, on its own line, exactly once.
 - [ ] Every coordinate that gets scaled, divided, rotated, mirrored, tiled, or
       wrapped is made origin-relative first, and the origin is added back after.
-- [ ] Every `imageSrcNAt` argument is expressed in **source image 0's**
+- [ ] Every sampling argument is expressed in **source image 0's**
       coordinate space, never image N's.
 - [ ] The returned `vec4` is premultiplied alpha (each of `.r/.g/.b` ≤ `.a`).
 - [ ] No integer literal division in a float context (`2/3` is `0`).
@@ -68,19 +68,19 @@ destination region is the destination image's bounds, so a
 triangle fan covering part of the screen, is a sub-region of it. Consequently
 `dstPos.xy - imageDstOrigin()` is image-local, not draw-local, and
 `imageDstSize()` is not the draw's extent. When an effect must be positioned or
-scaled relative to what is being drawn, drive it from `srcPos` — which is
+scaled relative to what is being drawn, drive it from `src0Pos` — which is
 interpolated from the vertices and therefore does follow the geometry — or pass
 the draw's origin and size as uniforms.
 
 The `Fragment` entry point receives absolute positions on those textures:
 
 ```go
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4
 ```
 
 - `dstPos.xy` — the fragment's position on the **destination** texture. Only
   `.xy` is meaningful; ignore `.z` and `.w`.
-- `srcPos` — the interpolated position on **source texture 0**. It comes from
+- `src0Pos` — the interpolated position on **source texture 0**. It comes from
   `Vertex.SrcX`/`SrcY`, converted to image 0's texture coordinates. If
   `Images[0]` is nil, `SrcX`/`SrcY` are passed through unconverted.
 - `color` — for `DrawTrianglesShader`, the interpolated `Vertex.ColorR/G/B/A`,
@@ -94,7 +94,7 @@ Any trailing parameters may be omitted; `func Fragment() vec4` is legal.
 
 ### Normalizing to 0..1
 
-Neither `dstPos` nor `srcPos` is guaranteed to start at zero. Sometimes one
+Neither `dstPos` nor `src0Pos` is guaranteed to start at zero. Sometimes one
 does — an image can sit at its texture's origin, and `DrawTrianglesShader` with
 `Images[0] == nil` passes `SrcX`/`SrcY` through unchanged — which is what makes
 this the single most common porting bug: code that divides a raw coordinate by
@@ -113,7 +113,7 @@ into a position:
 dstUV := (dstPos.xy - imageDstOrigin()) / imageDstSize()
 
 // Source image 0, normalized to 0..1.
-srcUV := (srcPos - imageSrc0Origin()) / imageSrc0Size()
+srcUV := (src0Pos - imageSrc0Origin()) / imageSrc0Size()
 
 // Back to a samplable position on source image 0.
 pos := srcUV*imageSrc0Size() + imageSrc0Origin()
@@ -125,6 +125,14 @@ source region is set — so normalizing by it divides by zero. Pass the size you
 mean as a uniform in that case. `DrawRectShader` is safe without an image: in
 the pixel unit it synthesizes source region 0 as the drawn rectangle.
 
+`imageDstSize()` is the destination *image*, so `dstUV` normalizes over the
+image and not over the area being drawn. A ported `fragCoord/iResolution`
+usually means the latter, and the two coincide only when the draw covers the
+whole destination image. For `DrawRectShader` the drawn-area coordinate is
+`srcUV`, because source region 0 spans the drawn rectangle and is unaffected by
+`GeoM`; otherwise pass the draw's origin and size as uniforms. See
+[reference/recipes.md](reference/recipes.md).
+
 The same subtract-transform-add sandwich applies to *any* non-translation
 operation on a coordinate, not just division: `floor(p/cell)*cell` for
 pixelation, `mod` for tiling, a rotation matrix, a mirror. Do it in
@@ -133,8 +141,10 @@ origin-relative space.
 ### Sampling
 
 ```go
-imageSrcNAt(pos vec2) vec4        // returns vec4(0) outside the image region
-imageSrcNUnsafeAt(pos vec2) vec4  // faster; undefined outside the image region
+imageSrc0At(pos vec2) vec4                   // returns vec4(0) outside the image region
+imageSrc0UnsafeAt(pos vec2) vec4             // faster; undefined outside the image region
+imageSrcNAtFromSrc0Pos(pos vec2) vec4        // N >= 1; returns vec4(0) outside the image region
+imageSrcNUnsafeAtFromSrc0Pos(pos vec2) vec4  // N >= 1; faster; undefined outside the image region
 ```
 
 Sampling is always nearest-neighbour. There is no linear filter, no mipmap, no
@@ -143,38 +153,42 @@ wrap mode inside a shader; `ebiten.Filter` and `ebiten.Address` apply to
 repeating, and interpolation yourself — see
 [reference/recipes.md](reference/recipes.md).
 
-`imageSrcNUnsafeAt` omits that region bounds check, so its result outside the
-source region is undefined: depending on the position and the backend it may
+The `UnsafeAt` forms omit that region bounds check, so their result outside the
+source region is undefined: depending on the position and the backend they may
 return atlas padding, a neighbouring image's pixels, zero, or something else
-entirely. Use it only where the position is provably inside the region — after
+entirely. Use them only where the position is provably inside the region — after
 a clamp or a wrap, for instance.
 
 ## Sampling more than one source image
 
-`imageSrcNAt` and `imageSrcNUnsafeAt` **always take a position in source image
-0's coordinate space**, for every N. The implementation rebases the position:
-it fetches `pos - imageSrc0Origin() + imageSrcNOrigin()`, and `imageSrcNAt`
-returns `vec4(0)` outside `[imageSrc0Origin(), imageSrc0Origin() + imageSrcNSize())`.
+For N ≥ 1 the functions are `imageSrcNAtFromSrc0Pos` and
+`imageSrcNUnsafeAtFromSrc0Pos`, and their names state the rule: they **take a
+position in source image 0's coordinate space**. The implementation rebases the
+position: it fetches `pos - imageSrc0Origin() + imageSrcNOrigin()`, and
+`imageSrcNAtFromSrc0Pos` returns `vec4(0)` outside
+`[imageSrc0Origin(), imageSrc0Origin() + imageSrcNSize())`. (`imageSrcNAt` and
+`imageSrcNUnsafeAt` are the same functions under their old names, deprecated as
+of v2.10.)
 
 So all four slots share one coordinate space, and the normal thing to write is
-`srcPos` for every one of them. Pixel (x, y) of image 0 lines up with pixel
+`src0Pos` for every one of them. Pixel (x, y) of image 0 lines up with pixel
 (x, y) of image N, whatever atlases they landed on and whatever their sizes:
 
 ```go
-return imageSrc0At(srcPos) * imageSrc1At(srcPos).a
+return imageSrc0At(src0Pos) * imageSrc1AtFromSrc0Pos(src0Pos).a
 ```
 
 Differing sizes need no correction. Where image N is smaller than image 0,
-`imageSrcNAt` just returns `vec4(0)`.
+`imageSrcNAtFromSrc0Pos` just returns `vec4(0)`.
 
 Arithmetic is needed only when you deliberately want a *different* mapping, such
 as stretching a smaller mask across the whole of image 0. That is a scaling
 choice, not a size fix, and the origin you add back is still image 0's:
 
 ```go
-uv := (srcPos - imageSrc0Origin()) / imageSrc0Size()
-pos1 := uv*imageSrc1Size() + imageSrc0Origin() // note: Src0Origin, not Src1Origin
-return imageSrc1At(pos1)
+uv := (src0Pos - imageSrc0Origin()) / imageSrc0Size()
+src0PosForStretchedSrc1 := uv*imageSrc1Size() + imageSrc0Origin() // note: Src0Origin, not Src1Origin
+return imageSrc1AtFromSrc0Pos(src0PosForStretchedSrc1)
 ```
 
 Adding `imageSrc1Origin()` there is the classic bug: the origin is applied
@@ -191,7 +205,7 @@ Put this on its own line, conventionally just above `package main`:
 //kage:unit pixels
 ```
 
-Omitting it selects the legacy texel unit, in which `srcPos` and every
+Omitting it selects the legacy texel unit, in which `src0Pos` and every
 origin/size value become texels of the **atlas** texture (0..1 across the whole
 atlas, not across your image), and `DrawTrianglesShader`/`DrawRectShader` panic
 when the source images differ in size. A file may contain at most one
@@ -211,7 +225,7 @@ introduce them, and replace them when porting old Kage code:
 
 Ebitengine works in premultiplied alpha everywhere, shaders included.
 
-- `imageSrcNAt` returns premultiplied colors.
+- Sampling returns premultiplied colors.
 - The `vec4` you return must be premultiplied: `rgb ≤ a` component-wise.
   Nothing clamps it for you; an invalid color renders as a too-bright,
   washed-out blend.
@@ -219,7 +233,7 @@ Ebitengine works in premultiplied alpha everywhere, shaders included.
 - To tint, multiply: `return clr * vec4(1, 0.5, 0.5, 1)`.
 - A shader ported from a straight-alpha source needs its final color
   premultiplied: `return vec4(rgb*a, a)`. Fixing only the output is not enough
-  if the original also computed on straight-alpha samples, since `imageSrcNAt`
+  if the original also computed on straight-alpha samples, since sampling
   always hands you premultiplied ones. Whether the original's were straight
   depends on its texture data and its own conventions, not on the language it
   was written in.
@@ -335,7 +349,7 @@ so it fails at draw time — do not use it.
    original's UV derivation with the origin-relative form above.
    `gl_FragCoord`/`fragCoord` becomes `dstPos.xy - imageDstOrigin()` and
    `iResolution` becomes `imageDstSize()` *when the draw covers the whole
-   destination image*; otherwise work from `srcPos`/`imageSrc0Size()`, or pass
+   destination image*; otherwise work from `src0Pos`/`imageSrc0Size()`, or pass
    the draw's origin and size as uniforms. A bottom-left origin needs
    `uv.y = 1 - uv.y`.
 3. **Translate the body** using the table in

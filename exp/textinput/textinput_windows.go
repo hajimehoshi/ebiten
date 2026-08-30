@@ -18,7 +18,6 @@ import (
 	"errors"
 	"image"
 	"sync"
-	"unsafe"
 
 	"golang.org/x/sys/windows"
 
@@ -231,47 +230,36 @@ func (t *textInputImpl) update() (err error) {
 		}
 	}()
 
-	bufferLen, err := _ImmGetCompositionStringW(hIMC, _GCS_COMPSTR, nil, 0)
+	buffer16, err := immGetCompositionStringW[uint16](hIMC, _GCS_COMPSTR)
 	if err != nil {
 		return err
 	}
-	if bufferLen == 0 {
+	if len(buffer16) == 0 {
 		return nil
 	}
 
-	buffer16 := make([]uint16, bufferLen/uint32(unsafe.Sizeof(uint16(0))))
-	if _, err := _ImmGetCompositionStringW(hIMC, _GCS_COMPSTR, unsafe.Pointer(&buffer16[0]), bufferLen); err != nil {
-		return err
-	}
-
-	attrLen, err := _ImmGetCompositionStringW(hIMC, _GCS_COMPATTR, nil, 0)
+	attr, err := immGetCompositionStringW[byte](hIMC, _GCS_COMPATTR)
 	if err != nil {
 		return err
 	}
-	attr := make([]byte, attrLen)
-	if _, err := _ImmGetCompositionStringW(hIMC, _GCS_COMPATTR, unsafe.Pointer(&attr[0]), attrLen); err != nil {
-		return err
-	}
 
-	clauseLen, err := _ImmGetCompositionStringW(hIMC, _GCS_COMPCLAUSE, nil, 0)
+	clause, err := immGetCompositionStringW[uint32](hIMC, _GCS_COMPCLAUSE)
 	if err != nil {
 		return err
 	}
-	clause := make([]uint32, clauseLen/uint32(unsafe.Sizeof(uint32(0))))
-	if _, err := _ImmGetCompositionStringW(hIMC, _GCS_COMPCLAUSE, unsafe.Pointer(&clause[0]), clauseLen); err != nil {
-		return err
-	}
 
+	// An IME is not guaranteed to report clause offsets that are consistent with the
+	// attribute buffer or the composition string, so treat every offset as untrusted.
 	start16 := len(buffer16)
 	end16 := len(buffer16)
 	if len(clause) > 0 {
 		for i, c := range clause[:len(clause)-1] {
-			if int(c) == len(attr) {
+			if int(c) >= len(attr) {
 				break
 			}
 			if attr[c] == _ATTR_TARGET_CONVERTED || attr[c] == _ATTR_TARGET_NOTCONVERTED {
-				start16 = int(c)
-				end16 = int(clause[i+1])
+				start16 = min(int(c), len(buffer16))
+				end16 = min(max(int(clause[i+1]), start16), len(buffer16))
 				break
 			}
 		}
@@ -295,17 +283,12 @@ func (t *textInputImpl) commit() (err error) {
 		}
 	}()
 
-	bufferLen, err := _ImmGetCompositionStringW(hIMC, _GCS_RESULTSTR, nil, 0)
+	buffer16, err := immGetCompositionStringW[uint16](hIMC, _GCS_RESULTSTR)
 	if err != nil {
 		return err
 	}
-	if bufferLen == 0 {
+	if len(buffer16) == 0 {
 		return nil
-	}
-
-	buffer16 := make([]uint16, bufferLen/uint32(unsafe.Sizeof(uint16(0))))
-	if _, err := _ImmGetCompositionStringW(hIMC, _GCS_RESULTSTR, unsafe.Pointer(&buffer16[0]), bufferLen); err != nil {
-		return err
 	}
 
 	text := windows.UTF16ToString(buffer16)

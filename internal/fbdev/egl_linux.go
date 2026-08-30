@@ -18,6 +18,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"structs"
 	"unsafe"
 
 	"github.com/ebitengine/purego"
@@ -45,6 +46,7 @@ const (
 // nativeWindow is the native window type the framebuffer drivers that want one
 // expect a pointer to.
 type nativeWindow struct {
+	_      structs.HostLayout
 	width  uint16
 	height uint16
 }

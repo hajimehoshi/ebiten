@@ -125,7 +125,7 @@ const stencilBufferFillShaderSrc = `//kage:unit pixels
 
 package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4, custom vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4, custom vec4) vec4 {
 	v := 1.0 / 255.0
 	if frontfacing() {
 		v *= 16
@@ -139,7 +139,7 @@ const stencilBufferBezierShaderSrc = `//kage:unit pixels
 
 package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4, custom vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4, custom vec4) vec4 {
 	// Loop-Blinn algorithm.
 	// https://developer.nvidia.com/gpugems/gpugems3/part-iv-image-effects/chapter-25-rendering-vector-art-gpu
 	uv := custom.xy
@@ -161,8 +161,8 @@ func round(x float) float {
 	return floor(x + 0.5)
 }
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
-	c := imageSrc0UnsafeAt(srcPos)
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	c := imageSrc0UnsafeAt(src0Pos)
 	r := int(round(c.r*255))
 	w := abs((r >> 4) - (r & 0x0F))
 	v := min(float(w), 1)
@@ -179,11 +179,11 @@ func round(x vec4) vec4 {
 	return floor(x + 0.5)
 }
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4, custom vec4) vec4 {
-	c0 := imageSrc0UnsafeAt(srcPos)
+func Fragment(dstPos vec4, src0Pos vec2, color vec4, custom vec4) vec4 {
+	c0 := imageSrc0UnsafeAt(src0Pos)
 	// imageSrc1UnsafeAt uses the offset info, which would prevent batching.
 	// Use a custom offset instead.
-	c1 := imageSrc0UnsafeAt(srcPos + custom.xy)
+	c1 := imageSrc0UnsafeAt(src0Pos + custom.xy)
 	ci0 := ivec4(round(c0*255))
 	ci1 := ivec4(round(c1*255))
 	w0 := abs((ci0 >> 4) - (ci0 & 0x0F))
@@ -203,8 +203,8 @@ func round(x float) float {
 	return floor(x + 0.5)
 }
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
-	c := imageSrc0UnsafeAt(srcPos)
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	c := imageSrc0UnsafeAt(src0Pos)
 	r := int(round(c.r*255))
 	w := abs((r >> 4) - (r & 0x0F))
 	v := float(w % 2)
@@ -221,11 +221,11 @@ func round(x vec4) vec4 {
 	return floor(x + 0.5)
 }
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4, custom vec4) vec4 {
-	c0 := imageSrc0UnsafeAt(srcPos)
+func Fragment(dstPos vec4, src0Pos vec2, color vec4, custom vec4) vec4 {
+	c0 := imageSrc0UnsafeAt(src0Pos)
 	// imageSrc1UnsafeAt uses the offset info, which would prevent batching.
 	// Use a custom offset instead.
-	c1 := imageSrc0UnsafeAt(srcPos + custom.xy)
+	c1 := imageSrc0UnsafeAt(src0Pos + custom.xy)
 	ci0 := ivec4(round(c0*255))
 	ci1 := ivec4(round(c1*255))
 	w0 := abs((ci0 >> 4) - (ci0 & 0x0F))

@@ -81,9 +81,9 @@ func newMPEGPlayer(src io.ReadCloser) (*mpegPlayer, error) {
 
 //kage:unit pixels
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	// For this calculation, see the comment in the standard library color.YCbCrToRGB function.
-	c := imageSrc0UnsafeAt(srcPos)
+	c := imageSrc0UnsafeAt(src0Pos)
 	return vec4(
 		c.x + 1.40200 * (c.z-0.5),
 		c.x - 0.34414 * (c.y-0.5) - 0.71414 * (c.z-0.5),

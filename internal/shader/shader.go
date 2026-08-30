@@ -50,6 +50,9 @@ type compileState struct {
 	vertexEntry   string
 	fragmentEntry string
 
+	vertexEntryPos   token.Pos
+	fragmentEntryPos token.Pos
+
 	ir shaderir.Program
 
 	funcs []function
@@ -234,7 +237,7 @@ func (cs *compileState) parse(f *ast.File) {
 			utypes = append(utypes, cs.ir.Uniforms[i])
 		}
 	}
-	// TODO: Check len(unames) == graphics.PreservedUniformVariablesNum. Unfortunately this is not true on tests.
+	// TODO: Check len(unames) == graphics.PreservedUniformVariablesCount. Unfortunately this is not true on tests.
 	for i, u := range cs.ir.UniformNames {
 		if !strings.HasPrefix(u, "__") {
 			unames = append(unames, u)
@@ -268,11 +271,13 @@ func (cs *compileState) parse(f *ast.File) {
 		inParams, outParams, ret := cs.parseFuncParams(&cs.global, n, fd)
 
 		if n == cs.vertexEntry {
+			cs.vertexEntryPos = d.Pos()
 			vertexInParams = inParams
 			vertexOutParams = outParams
 			continue
 		}
 		if n == cs.fragmentEntry {
+			cs.fragmentEntryPos = d.Pos()
 			fragmentInParams = inParams
 			fragmentOutParams = outParams
 			fragmentReturnType = ret
@@ -308,19 +313,19 @@ func (cs *compileState) parse(f *ast.File) {
 			t := fragmentInParams[i].typ
 			if !p.typ.Equal(&t) {
 				name := fragmentInParams[i].name
-				cs.addError(0, fmt.Sprintf("fragment argument %s must be %s but was %s", name, p.typ.String(), t.String()))
+				cs.addError(cs.fragmentEntryPos, fmt.Sprintf("fragment argument %s must be %s but was %s", name, p.typ.String(), t.String()))
 			}
 		}
 		if len(fragmentInParams) > len(vertexOutParams) {
-			cs.addError(0, fmt.Sprintf("the number of the fragment arguments (%d) must not be greater than the number of the vertex returning values (%d)", len(fragmentInParams), len(vertexOutParams)))
+			cs.addError(cs.fragmentEntryPos, fmt.Sprintf("the number of the fragment arguments (%d) must not be greater than the number of the vertex returning values (%d)", len(fragmentInParams), len(vertexOutParams)))
 		}
 
 		// The first out-param is treated as gl_Position in GLSL.
 		if vertexOutParams[0].typ.Main != shaderir.Vec4 {
-			cs.addError(0, "vertex entry point must have at least one returning vec4 value for a position")
+			cs.addError(cs.vertexEntryPos, "vertex entry point must have at least one returning vec4 value for a position")
 		}
 		if len(fragmentOutParams) != 0 || fragmentReturnType.Main != shaderir.Vec4 {
-			cs.addError(0, "fragment entry point must have one returning vec4 value for a color")
+			cs.addError(cs.fragmentEntryPos, "fragment entry point must have one returning vec4 value for a color")
 		}
 	}
 
@@ -563,6 +568,10 @@ func (s *compileState) parseVariable(block *block, fname string, vs *ast.ValueSp
 				}
 				if len(ts) > 1 {
 					s.addError(vs.Pos(), "the numbers of lhs and rhs don't match")
+				}
+				if len(ts) == 0 {
+					s.addError(vs.Pos(), "the right-hand side of the variable declaration has no value")
+					return nil, nil, nil, false
 				}
 				t = ts[0]
 				if t.Main == shaderir.None {

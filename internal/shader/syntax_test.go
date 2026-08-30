@@ -30,7 +30,7 @@ func compileToIR(src []byte) (*shaderir.Program, error) {
 func TestSyntaxShadowing(t *testing.T) {
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	var dstPos vec4
 	return dstPos
 }
@@ -42,7 +42,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 func TestSyntaxDuplicatedVariables(t *testing.T) {
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	var foo vec4
 	var foo vec4
 	return foo
@@ -53,7 +53,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	var foo, foo vec4
 	return foo
 }
@@ -63,7 +63,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	var foo vec4
 	foo := vec4(0)
 	return foo
@@ -78,7 +78,7 @@ func Foo() (vec4, vec4) {
 	return vec4(0), vec4(0)
 }
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	foo, foo := Foo()
 	return foo
 }
@@ -109,7 +109,7 @@ func Foo() {
 func Foo() {
 }
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	return vec4(0)
 }
 `)); err == nil {
@@ -120,7 +120,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 func TestSyntaxNoNewVariables(t *testing.T) {
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	_ := 1
 	return vec4(0)
 }
@@ -130,7 +130,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	_, _ := 1, 1
 	return vec4(0)
 }
@@ -144,7 +144,7 @@ func Foo() (int, int) {
 	return 1, 1
 }
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	_, _ := Foo()
 	return vec4(0)
 }
@@ -154,7 +154,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	a, _ := 1, 1
 	_ = a
 	return vec4(0)
@@ -165,7 +165,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	_, a := 1, 1
 	_ = a
 	return vec4(0)
@@ -180,7 +180,7 @@ func TestSyntaxLoopVariableScope(t *testing.T) {
 	// the loop is fine.
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	for i := 0; i < 3; i++ {
 	}
 	i := 10.0
@@ -192,7 +192,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	for i := range 3 {
 		_ = i
 	}
@@ -205,7 +205,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	a := [3]float{1, 2, 3}
 	sum := 0.0
 	for _, v := range a {
@@ -220,7 +220,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	a := [3]float{1, 2, 3}
 	sum := 0.0
 	for _, v := range a {
@@ -235,7 +235,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	for i := range 3 {
 		_ = i
 	}
@@ -251,7 +251,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 var I float
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	for I := 0; I < 3; I++ {
 	}
 	return vec4(sin(I))
@@ -263,7 +263,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 	// A loop variable is not available after the loop.
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	for i := 0; i < 3; i++ {
 	}
 	return vec4(float(i))
@@ -274,7 +274,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	for i := range 3 {
 		_ = i
 	}
@@ -286,7 +286,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	a := [3]float{1, 2, 3}
 	sum := 0.0
 	for _, v := range a {
@@ -302,7 +302,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 func TestSyntaxWrongReturn(t *testing.T) {
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	return 0.0
 }
 `)); err == nil {
@@ -315,7 +315,7 @@ func Foo() (float, float) {
 	return 0
 }
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	return vec4(0)
 }
 `)); err == nil {
@@ -324,7 +324,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 }
 `)); err == nil {
 		t.Errorf("error must be non-nil but was nil")
@@ -335,7 +335,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 func Foo() float {
 }
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	return vec4(0)
 }
 `)); err == nil {
@@ -350,7 +350,7 @@ func Foo() (float, float) {
 	return 0.0
 }
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	return vec4(0)
 }
 `)); err == nil {
@@ -363,7 +363,7 @@ func Foo() float {
 	return 0.0, 0.0
 }
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	return vec4(0)
 }
 `)); err == nil {
@@ -376,7 +376,7 @@ func Foo() (float, float, float) {
 	return 0.0, 0.0
 }
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	return vec4(0)
 }
 `)); err == nil {
@@ -393,7 +393,7 @@ func Foo2() (float, float, float) {
 	return Foo()
 }
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	return vec4(0)
 }
 `)); err == nil {
@@ -410,7 +410,7 @@ func Foo2() (float, float, float) {
 	return Foo()
 }
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	return vec4(0.0)
 }
 `)); err != nil {
@@ -424,7 +424,7 @@ func TestSyntaxInit(t *testing.T) {
 func init() {
 }
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	return vec4(0)
 }
 `)); err == nil {
@@ -439,8 +439,8 @@ func Vertex(pos vec2) vec4 {
 	return vec4(pos, 0, 1)
 }
 
-func Fragment(dstPos vec4, srcPos vec2) vec4 {
-	return dstPos + vec4(srcPos, 0, 0)
+func Fragment(dstPos vec4, src0Pos vec2) vec4 {
+	return dstPos + vec4(src0Pos, 0, 0)
 }
 `)); err == nil {
 		t.Errorf("error must be non-nil but was nil")
@@ -450,7 +450,7 @@ func Fragment(dstPos vec4, srcPos vec2) vec4 {
 func TestSyntaxUnsupportedSyntax(t *testing.T) {
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	x := func() {
 	}
 	_ = x
@@ -462,7 +462,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	go func() {
 	}()
 	return vec4(0)
@@ -473,7 +473,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	ch := make(chan int)
 	_ = ch
 	return vec4(0)
@@ -484,7 +484,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	x := 1i
 	_ = x
 	return vec4(0)
@@ -495,7 +495,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	var x [4]float
 	y := x[1:2]
 	_ = y
@@ -507,7 +507,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	var x [4]float
 	y := x[1:2:3]
 	_ = y
@@ -523,7 +523,7 @@ func TestSyntaxForbidAssigningSpecialVariables(t *testing.T) {
 
 var U vec4
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	U = vec4(0)
 	return vec4(0)
 }
@@ -535,7 +535,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 var U vec4
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	U.x = 0
 	return vec4(0)
 }
@@ -547,7 +547,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 var U [2]vec4
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	U[0] = vec4(0)
 	return vec4(0)
 }
@@ -557,8 +557,8 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
-	srcPos = vec2(0)
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	src0Pos = vec2(0)
 	return vec4(0)
 }
 `)); err == nil {
@@ -567,8 +567,8 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
-	srcPos.x = 0
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	src0Pos.x = 0
 	return vec4(0)
 }
 `)); err == nil {
@@ -579,7 +579,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 func TestSyntaxBoolLiteral(t *testing.T) {
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	true := vec4(0)
 	return true
 }
@@ -591,7 +591,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 func TestSyntaxUnusedVariable(t *testing.T) {
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	x := 0
 	return vec4(0)
 }
@@ -601,7 +601,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	x := 0
 	x = 1
 	return vec4(0)
@@ -612,7 +612,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	x := vec4(0)
 	x.x = 1
 	return vec4(0)
@@ -625,7 +625,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 	// https://go.dev/play/p/2RuYMrSLjt3
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	x := 0
 	x++
 	return vec4(0)
@@ -636,7 +636,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	var a int
 	return vec4(0)
 }
@@ -646,7 +646,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	var a, b int
 	return vec4(0)
 }
@@ -657,7 +657,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 	// Issue #2848
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	var floats [4]float
 	for i := 0; i < 3; i++ {
 		j := i + 1
@@ -673,7 +673,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 func TestSyntaxBlankLhs(t *testing.T) {
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	x := _
 	_ = x
 	return vec4(0)
@@ -684,7 +684,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	var x int = _
 	_ = x
 	return vec4(0)
@@ -695,7 +695,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	x := 1
 	x = _
 	_ = x
@@ -707,7 +707,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	x := 1 + _
 	_ = x
 	return vec4(0)
@@ -718,7 +718,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	_++
 	return vec4(0)
 }
@@ -728,7 +728,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	_ += 1
 	return vec4(0)
 }
@@ -738,7 +738,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	_.x = 1
 	return vec4(0)
 }
@@ -750,7 +750,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 func TestSyntaxDuplicatedVarsAndConstants(t *testing.T) {
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	var a = 0
 	const a = 0
 	_ = a
@@ -762,7 +762,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	const a = 0
 	var a = 0
 	_ = a
@@ -774,7 +774,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	const a = 0
 	const a = 0
 	_ = a
@@ -789,7 +789,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 const U0 = 0
 var U0 float
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	return vec4(a)
 }
 `)); err == nil {
@@ -801,7 +801,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 var U0 float
 const U0 = 0
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	return vec4(a)
 }
 `)); err == nil {
@@ -815,7 +815,7 @@ func TestSyntaxUnmatchedArgs(t *testing.T) {
 func Foo() {
 }
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	Foo(1)
 	return dstPos
 }
@@ -828,7 +828,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 func Foo(x float) {
 }
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	Foo()
 	return dstPos
 }
@@ -845,7 +845,7 @@ func Bar() (float, float, float) {
 	return 0, 1
 }
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	Foo(Bar())
 	return dstPos
 }
@@ -862,7 +862,7 @@ func Bar() (float, float) {
 	return 0, 1
 }
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	Foo(Bar())
 	return dstPos
 }
@@ -878,7 +878,7 @@ func TestSyntaxMeaninglessSentence(t *testing.T) {
 var Time float
 var ScreenSize vec2
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	dstPos
 	return dstPos
 }`)); err == nil {
@@ -890,7 +890,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 var Time float
 var ScreenSize vec2
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	vec2(dstPos)
 	return dstPos
 }`)); err == nil {
@@ -902,7 +902,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 func TestSyntaxOperatorMod(t *testing.T) {
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	a := 2.0 % 0.5
 	_ = a
 	return vec4(0)
@@ -912,7 +912,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	// If both are constants, both must be an integer!
 	a := 2.0 % 1.0
 	_ = a
@@ -923,7 +923,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	a := int(2) % 0.5
 	_ = a
 	return vec4(0)
@@ -933,7 +933,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	a := int(2) % 1.0
 	_ = a
 	return vec4(0)
@@ -943,7 +943,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	a := 2.0
 	b := 0.5
 	_ = a % b
@@ -954,7 +954,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	a := 2
 	b := 0.5
 	_ = a % b
@@ -965,7 +965,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	a := 2.5
 	b := 1
 	_ = a % b
@@ -976,7 +976,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	a := 2
 	b := 1
 	_ = a % b
@@ -987,7 +987,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	a := 2
 	_ = a % 1
 	return vec4(0)
@@ -997,7 +997,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	// If only one of two is a consntant, the constant can be a float.
 	a := 2
 	_ = a % 1.0
@@ -1008,7 +1008,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	a := 1
 	_ = 2 % a
 	return vec4(0)
@@ -1018,7 +1018,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	// If only one of two is a consntant, the constant can be a float.
 	a := 1
 	_ = 2.0 % a
@@ -1029,7 +1029,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	a := 2
 	a %= 1
 	_ = a
@@ -1040,7 +1040,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	a := 2
 	a %= 1.0
 	_ = a
@@ -1051,7 +1051,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	a := 2
 	a %= 0.5
 	_ = a
@@ -1062,7 +1062,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	a := 1 / 0
 	_ = a
 	return vec4(0)
@@ -1072,7 +1072,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	a := 1 % 0
 	_ = a
 	return vec4(0)
@@ -1082,7 +1082,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	a := 1.0 / 0.0
 	_ = a
 	return vec4(0)
@@ -1093,7 +1093,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 	// A division by a non-constant zero is not an error at the compile time.
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	a := 1
 	b := 0
 	c := a / b
@@ -1105,7 +1105,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	a := 1 << -1
 	_ = a
 	return vec4(0)
@@ -1115,7 +1115,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	a := 1 << 62
 	_ = a
 	return vec4(0)
@@ -1125,7 +1125,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	a := 2.0
 	a %= 1
 	_ = a
@@ -1138,7 +1138,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 func TestSyntaxOperatorAssign(t *testing.T) {
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	a := 1.0
 	a += 2
 	_ = a
@@ -1149,7 +1149,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	a := 1.0
 	a += 2.0
 	_ = a
@@ -1160,7 +1160,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	a := 1.0
 	a += 2.1
 	_ = a
@@ -1171,7 +1171,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	a := 1
 	a += 2
 	_ = a
@@ -1182,7 +1182,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	a := 1
 	a += 2.0
 	_ = a
@@ -1193,7 +1193,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	a := 1
 	a += 2.1
 	_ = a
@@ -1204,7 +1204,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	var x float = true
 	_ = x
 	return vec4(0)
@@ -1215,7 +1215,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	var x bool = true
 	_ = x
 	return vec4(0)
@@ -1226,7 +1226,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	var x int = 1.0
 	_ = x
 	return vec4(0)
@@ -1240,7 +1240,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 func TestSyntaxOperatorVecAndNumber(t *testing.T) {
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	a := vec2(1) + 2
 	return a.xxyy
 }`)); err != nil {
@@ -1248,7 +1248,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 	}
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	a := ivec2(1) + 2
 	return vec4(a.xxyy)
 }`)); err != nil {
@@ -1257,7 +1257,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	a := vec2(1) + 2.1
 	return a.xxyy
 }`)); err != nil {
@@ -1265,7 +1265,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 	}
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	a := ivec2(1) + 2.1
 	return vec4(a.xxyy)
 }`)); err == nil {
@@ -1274,7 +1274,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	a := vec2(1) % 2
 	return a.xxyy
 }`)); err == nil {
@@ -1282,7 +1282,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 	}
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	a := ivec2(1) % 2
 	return vec4(a.xxyy)
 }`)); err != nil {
@@ -1291,7 +1291,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	a := vec2(1) % 2.1
 	return a.xxyy
 }`)); err == nil {
@@ -1299,7 +1299,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 	}
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	a := ivec2(1) % 2.1
 	return vec4(a.xxyy)
 }`)); err == nil {
@@ -1308,7 +1308,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	a := vec2(1)
 	a += 2
 	return a.xxyy
@@ -1317,7 +1317,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 	}
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	a := ivec2(1)
 	a += 2
 	return vec4(a.xxyy)
@@ -1327,7 +1327,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	a := vec2(1)
 	a += 2.1
 	return a.xxyy
@@ -1336,7 +1336,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 	}
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	a := ivec2(1)
 	a += 2.1
 	return vec4(a.xxyy)
@@ -1346,7 +1346,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	a := vec2(1)
 	a %= 2
 	return a.xxyy
@@ -1355,7 +1355,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 	}
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	a := ivec2(1)
 	a %= 2
 	return vec4(a.xxyy)
@@ -1365,7 +1365,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	a := vec2(1)
 	a %= 2.1
 	return a.xxyy
@@ -1374,7 +1374,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 	}
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	a := ivec2(1)
 	a %= 2.1
 	return vec4(a.xxyy)
@@ -1505,7 +1505,7 @@ func TestSyntaxOperatorMultiply(t *testing.T) {
 	for _, c := range cases {
 		_, err := compileToIR(fmt.Appendf(nil, `package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	%s
 	return dstPos
 }`, c.stmt))
@@ -1587,7 +1587,7 @@ func TestSyntaxOperatorShift(t *testing.T) {
 	for _, c := range cases {
 		_, err := compileToIR(fmt.Appendf(nil, `package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	%s
 	return dstPos
 }`, c.stmt))
@@ -1668,7 +1668,7 @@ func TestSyntaxOperatorShiftAssign(t *testing.T) {
 	for _, c := range cases {
 		_, err := compileToIR(fmt.Appendf(nil, `package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	%s
 	return dstPos
 }`, c.stmt))
@@ -1790,7 +1790,7 @@ func TestSyntaxOperatorMultiplyAssign(t *testing.T) {
 	for _, c := range cases {
 		_, err := compileToIR(fmt.Appendf(nil, `package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	%s
 	return dstPos
 }`, c.stmt))
@@ -1924,7 +1924,7 @@ func TestSyntaxBitwiseOperatorAssign(t *testing.T) {
 	for _, c := range cases {
 		_, err := compileToIR(fmt.Appendf(nil, `package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	%s
 	return dstPos
 }`, c.stmt))
@@ -1953,7 +1953,7 @@ func TestSyntaxAtan(t *testing.T) {
 	for _, c := range cases {
 		_, err := compileToIR(fmt.Appendf(nil, `package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	%s
 	return dstPos
 }`, c.stmt))
@@ -1969,7 +1969,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 func TestSyntaxType(t *testing.T) {
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	var x vec2 = vec3(0)
 	_ = x
 	return color
@@ -1979,7 +1979,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 	}
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	var x, y vec2 = vec2(0), vec3(0)
 	_, _ = x, y
 	return color
@@ -1989,7 +1989,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 	}
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	var x vec2
 	x = vec3(0)
 	_ = x
@@ -2000,7 +2000,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 	}
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	var x, y vec2
 	x, y = vec2(0), vec3(0)
 	_ = x
@@ -2012,7 +2012,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 	}
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	var x vec2
 	x = 0
 	_ = x
@@ -2027,7 +2027,7 @@ func Foo() (vec3, vec3) {
 	return vec3(0), vec3(1)
 }
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	var x, y vec2 = Foo()
 	_ = x
 	_ = y
@@ -2042,7 +2042,7 @@ func Foo() (vec3, vec3) {
 	return vec3(0), vec3(1)
 }
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	var x, y vec2
 	x, y = Foo()
 	_ = x
@@ -2058,7 +2058,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 func TestSyntaxTypeBlankVar(t *testing.T) {
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	var _ vec2 = vec3(0)
 	return color
 }
@@ -2067,7 +2067,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 	}
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	var _, _ vec2 = vec2(0), vec3(0)
 	return color
 }
@@ -2080,7 +2080,7 @@ func Foo() (vec3, vec3) {
 	return vec3(0), vec3(1)
 }
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	var _, _ vec2 = Foo()
 	return color
 }
@@ -2096,7 +2096,7 @@ func TestSyntaxTypeFuncCall(t *testing.T) {
 func Foo(x vec2) {
 }
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	Foo(0)
 	return color
 }
@@ -2108,7 +2108,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 func Foo(x vec2, y vec3) {
 }
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	Foo(0, 1)
 	return color
 }
@@ -2124,7 +2124,7 @@ func Bar() (int, int) {
 	return 0, 1
 }
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	Foo(Bar())
 	return color
 }
@@ -2134,7 +2134,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 	// Issue #2965
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	abs(sign)
 	return color
 }
@@ -2420,7 +2420,7 @@ func TestSyntaxConstructorFuncType(t *testing.T) {
 	for _, c := range cases {
 		_, err := compileToIR(fmt.Appendf(nil, `package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	%s
 	return dstPos
 }`, c.stmt))
@@ -2436,7 +2436,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 func TestSyntaxDiscard(t *testing.T) {
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	if true {
 		discard()
 	}
@@ -2449,7 +2449,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 	// TODO: Allow discard without return.
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	discard()
 	return vec4(0)
 }
@@ -2462,7 +2462,7 @@ func foo() {
 	discard()
 }
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	foo()
 	return vec4(0)
 }
@@ -2521,7 +2521,7 @@ func TestSyntaxBuiltinFuncSingleArgType(t *testing.T) {
 			stmt := strings.ReplaceAll(c.stmt, "{{.Func}}", f)
 			src := fmt.Sprintf(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	%s
 	return dstPos
 }`, stmt)
@@ -2566,7 +2566,7 @@ func TestSyntaxBuiltinFuncSingleArgTypeInteger(t *testing.T) {
 			stmt := strings.ReplaceAll(c.stmt, "{{.Func}}", f)
 			src := fmt.Sprintf(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	%s
 	return dstPos
 }`, stmt)
@@ -2638,7 +2638,7 @@ func TestSyntaxBuiltinFuncDoubleArgsType(t *testing.T) {
 			stmt := strings.ReplaceAll(c.stmt, "{{.Func}}", f)
 			src := fmt.Sprintf(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	%s
 	return dstPos
 }`, stmt)
@@ -2709,7 +2709,7 @@ func TestSyntaxBuiltinFuncDoubleArgsType2(t *testing.T) {
 			stmt := strings.ReplaceAll(c.stmt, "{{.Func}}", f)
 			src := fmt.Sprintf(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	%s
 	return dstPos
 }`, stmt)
@@ -2814,7 +2814,7 @@ func TestSyntaxBuiltinFuncArgsMinMax(t *testing.T) {
 			stmt := strings.ReplaceAll(c.stmt, "{{.Func}}", f)
 			src := fmt.Sprintf(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	%s
 	return dstPos
 }`, stmt)
@@ -2868,7 +2868,7 @@ func TestSyntaxBuiltinFuncStepType(t *testing.T) {
 		stmt := c.stmt
 		src := fmt.Sprintf(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	%s
 	return dstPos
 }`, stmt)
@@ -2923,7 +2923,7 @@ func TestSyntaxBuiltinFuncTripleArgsType(t *testing.T) {
 			stmt := strings.ReplaceAll(c.stmt, "{{.Func}}", f)
 			src := fmt.Sprintf(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	%s
 	return dstPos
 }`, stmt)
@@ -3013,7 +3013,7 @@ func TestSyntaxBuiltinFuncClampType(t *testing.T) {
 		stmt := c.stmt
 		src := fmt.Sprintf(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	%s
 	return dstPos
 }`, stmt)
@@ -3046,16 +3046,16 @@ func TestSyntaxBuiltinFuncMixType(t *testing.T) {
 		{stmt: "a := mix(1, vec2(1), vec2(1)); _ = a", err: true},
 		{stmt: "a := mix(vec2(1), 1, 1); _ = a", err: true},
 		{stmt: "a := mix(vec2(1), 1, vec2(1)); _ = a", err: true},
-		{stmt: "a := mix(vec2(1), vec2(1), 1); _ = a", err: false}, // The thrid argument can be a float.
+		{stmt: "a := mix(vec2(1), vec2(1), 1); _ = a", err: false}, // The third argument can be a float.
 		{stmt: "a := mix(vec2(1), vec2(1), vec2(1)); _ = a", err: false},
 		{stmt: "a := mix(vec2(1), vec2(1), vec3(1)); _ = a", err: true},
 		{stmt: "a := mix(vec3(1), 1, 1); _ = a", err: true},
 		{stmt: "a := mix(vec3(1), 1, vec3(1)); _ = a", err: true},
-		{stmt: "a := mix(vec3(1), vec3(1), 1); _ = a", err: false}, // The thrid argument can be a float.
+		{stmt: "a := mix(vec3(1), vec3(1), 1); _ = a", err: false}, // The third argument can be a float.
 		{stmt: "a := mix(vec3(1), vec3(1), vec3(1)); _ = a", err: false},
 		{stmt: "a := mix(vec4(1), 1, 1); _ = a", err: true},
 		{stmt: "a := mix(vec4(1), 1, vec4(1)); _ = a", err: true},
-		{stmt: "a := mix(vec4(1), vec4(1), 1); _ = a", err: false}, // The thrid argument can be a float.
+		{stmt: "a := mix(vec4(1), vec4(1), 1); _ = a", err: false}, // The third argument can be a float.
 		{stmt: "a := mix(vec4(1), vec4(1), vec4(1)); _ = a", err: false},
 		{stmt: "a := mix(ivec2(1), ivec2(1), 1); _ = a", err: true},
 		{stmt: "a := mix(ivec2(1), ivec2(1), ivec2(1)); _ = a", err: true},
@@ -3066,7 +3066,7 @@ func TestSyntaxBuiltinFuncMixType(t *testing.T) {
 		stmt := c.stmt
 		src := fmt.Sprintf(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	%s
 	return dstPos
 }`, stmt)
@@ -3122,7 +3122,7 @@ func TestSyntaxBuiltinFuncSmoothstepType(t *testing.T) {
 		stmt := c.stmt
 		src := fmt.Sprintf(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	%s
 	return dstPos
 }`, stmt)
@@ -3174,7 +3174,7 @@ func TestSyntaxBuiltinFuncRefractType(t *testing.T) {
 		stmt := c.stmt
 		src := fmt.Sprintf(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	%s
 	return dstPos
 }`, stmt)
@@ -3224,7 +3224,7 @@ func TestSyntaxBuiltinFuncCrossType(t *testing.T) {
 		stmt := c.stmt
 		src := fmt.Sprintf(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	%s
 	return dstPos
 }`, stmt)
@@ -3264,7 +3264,7 @@ func TestSyntaxBuiltinFuncTransposeType(t *testing.T) {
 		stmt := c.stmt
 		src := fmt.Sprintf(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	%s
 	return dstPos
 }`, stmt)
@@ -3495,7 +3495,7 @@ func TestSyntaxEqual(t *testing.T) {
 		stmt := c.stmt
 		src := fmt.Sprintf(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	%s
 	return dstPos
 }`, stmt)
@@ -3548,7 +3548,7 @@ func TestSyntaxEqualArray(t *testing.T) {
 		stmt := c.stmt
 		src := fmt.Sprintf(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	%s
 	return dstPos
 }`, stmt)
@@ -3576,7 +3576,7 @@ func TestSyntaxTypeRedeclaration(t *testing.T) {
 		stmt := c.stmt
 		src := fmt.Sprintf(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	%s
 	return dstPos
 }`, stmt)
@@ -3687,7 +3687,7 @@ func TestSyntaxSwizzling(t *testing.T) {
 		stmt := c.stmt
 		src := fmt.Sprintf(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	%s
 	return dstPos
 }`, stmt)
@@ -3815,7 +3815,7 @@ func TestSyntaxConstType(t *testing.T) {
 		stmt := c.stmt
 		src := fmt.Sprintf(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	%s
 	return dstPos
 }`, stmt)
@@ -3846,7 +3846,7 @@ func TestSyntaxConstType2(t *testing.T) {
 		stmt := c.stmt
 		src := fmt.Sprintf(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	%s
 	return dstPos
 }`, stmt)
@@ -3880,7 +3880,7 @@ func TestSyntaxConstType3(t *testing.T) {
 		stmt := c.stmt
 		src := fmt.Sprintf(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	%s
 	return dstPos
 }`, stmt)
@@ -3908,7 +3908,7 @@ func TestSyntaxCompositeLit(t *testing.T) {
 		stmt := c.stmt
 		src := fmt.Sprintf(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	%s
 	return dstPos
 }`, stmt)
@@ -3990,7 +3990,7 @@ var Foo, Bar int = 1, 1
 func TestSyntaxInitWithNegativeInteger(t *testing.T) {
 	if _, err := compileToIR([]byte(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	var x float = -0
 	_ = x
 	return dstPos
@@ -4029,7 +4029,7 @@ func Foo() %s {
 	return %s
 }
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	return dstPos
 }`, typ, stmt)
 		_, err := compileToIR([]byte(src))
@@ -4078,7 +4078,7 @@ func TestSyntaxScalarAndVector(t *testing.T) {
 		stmt := c.stmt
 		src := fmt.Sprintf(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	%s
 	return dstPos
 }`, stmt)
@@ -4117,7 +4117,7 @@ func TestSyntaxCast(t *testing.T) {
 		stmt := c.stmt
 		src := fmt.Sprintf(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	%s
 	return dstPos
 }`, stmt)
@@ -4219,7 +4219,7 @@ func TestSyntaxCompare(t *testing.T) {
 		stmt := c.stmt
 		src := fmt.Sprintf(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	%s
 	return dstPos
 }`, stmt)
@@ -4435,7 +4435,7 @@ func TestSyntaxBitwiseOperator(t *testing.T) {
 		stmt := c.stmt
 		src := fmt.Sprintf(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	%s
 	return dstPos
 }`, stmt)
@@ -4491,7 +4491,7 @@ func TestSyntaxUnaryOperator(t *testing.T) {
 		stmt := c.stmt
 		src := fmt.Sprintf(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	%s
 	return dstPos
 }`, stmt)
@@ -4659,7 +4659,7 @@ func TestSyntaxTooManyElementsAtInitialization(t *testing.T) {
 		stmt := c.stmt
 		src := fmt.Sprintf(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	%s
 	return dstPos
 }`, stmt)
@@ -4737,7 +4737,7 @@ func TestSyntaxArrayOutOfBounds(t *testing.T) {
 		stmt := c.stmt
 		src := fmt.Sprintf(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	%s
 	return dstPos
 }`, stmt)
@@ -4896,7 +4896,7 @@ func TestSyntaxForRange(t *testing.T) {
 		stmt := c.stmt
 		src := fmt.Sprintf(`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	%s
 	return dstPos
 }`, stmt)

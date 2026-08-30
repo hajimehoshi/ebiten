@@ -378,7 +378,7 @@ func init() {
 		// Android doesn't support F13 and more as constants of KeyEvent:
 		// https://developer.android.com/reference/android/view/KeyEvent
 		//
-		// Note that F13 might be avilable if HID devices are available directly:
+		// Note that F13 might be available if HID devices are available directly:
 		// https://source.android.com/docs/core/interaction/input/keyboard-devices
 		if i <= 12 {
 			androidKeyToUIKeyName[131+i-1] = name

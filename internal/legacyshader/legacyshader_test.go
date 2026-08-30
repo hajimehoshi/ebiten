@@ -16,6 +16,7 @@ package legacyshader_test
 
 import (
 	"bufio"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -32,7 +33,7 @@ func TestCompilerDirective(t *testing.T) {
 		{
 			src: `package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	return dstPos
 }`,
 			unit: legacyshader.Texels,
@@ -43,7 +44,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	return dstPos
 }`,
 			unit: legacyshader.Texels,
@@ -54,7 +55,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	return dstPos
 }`,
 			unit: legacyshader.Pixels,
@@ -65,7 +66,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	return dstPos
 }`,
 			err: true,
@@ -76,7 +77,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	return dstPos
 }`,
 			err: true,
@@ -87,7 +88,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	return dstPos
 }`,
 			err: true,
@@ -96,7 +97,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 			src: "\t    " + `//kage:unit pixels` + "    \t\r" + `
 package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	return dstPos
 }`,
 			unit: legacyshader.Pixels,
@@ -109,7 +110,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	return dstPos
 }`,
 			unit: legacyshader.Pixels,
@@ -146,12 +147,12 @@ func origins() (vec2, vec2) {
 	return imageSrc0Origin(), imageSrc1Origin()
 }
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	orig, size := imageSrcRegionOnTexture()
 	dstOrig, dstSize := imageDstRegionOnTexture()
 	a, b := origins()
 	pos := imageSrc1Size() + imageDstOrigin() + imageDstSize() + orig + size + dstOrig + dstSize + a + b
-	return imageSrc0At(srcPos) + (imageSrc1UnsafeAt)(pos) + vec4(imageSrcTextureSize().x, imageDstTextureSize().y, 0, 0)*0
+	return imageSrc0At(src0Pos) + (imageSrc1UnsafeAt)(pos) + vec4(imageSrcTextureSize().x, imageDstTextureSize().y, 0, 0)*0
 }`)
 
 	out, err := legacyshader.ConvertToPixels(src)
@@ -162,14 +163,14 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 	for _, want := range []string{
 		"//kage:unit pixels",
-		"__legacyshader_imageSrc0At(srcPos)",
+		"__legacyshader_imageSrc0At(src0Pos)",
 		"__legacyshader_imageSrc1UnsafeAt",
 		"__legacyshader_imageSrcRegionOnTexture()",
 		"__legacyshader_imageDstRegionOnTexture()",
 		"__legacyshader_imageSrc0Origin(), __legacyshader_imageSrc1Origin()",
 		"func Fragment(dstPos vec4, __legacyshader_srcPos vec2, color vec4) vec4 {",
-		"srcPos := __legacyshader_srcPos / max(imageSrc0TextureSize(), vec2(1))",
-		"_ = srcPos",
+		"src0Pos := __legacyshader_srcPos / max(imageSrc0TextureSize(), vec2(1))",
+		"_ = src0Pos",
 	} {
 		if !strings.Contains(outStr, want) {
 			t.Errorf("ConvertToPixels result must contain %q but does not:\n%s", want, outStr)
@@ -205,17 +206,17 @@ func Fragment() vec4 {
 }`,
 		`package main
 
-func Fragment(dstPos vec4, srcPos vec2) vec4 {
-	return imageSrc0At(srcPos)
+func Fragment(dstPos vec4, src0Pos vec2) vec4 {
+	return imageSrc0At(src0Pos)
 }`,
 		`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4, custom vec4) vec4 {
-	return imageSrc0At(srcPos) + color + custom
+func Fragment(dstPos vec4, src0Pos vec2, color vec4, custom vec4) vec4 {
+	return imageSrc0At(src0Pos) + color + custom
 }`,
 		`package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	return color
 }`,
 	}
@@ -223,5 +224,30 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 		if _, _, err := legacyshader.CompileShader([]byte(src)); err != nil {
 			t.Errorf("CompileShader(%q) must not return an error but returned %v", src, err)
 		}
+	}
+}
+
+// TestDeprecatedFunctions confirms that the functions deprecated as of v2.10 are defined by this
+// package, not by the core.
+func TestDeprecatedFunctions(t *testing.T) {
+	for _, unit := range []string{"texels", "pixels"} {
+		t.Run(unit, func(t *testing.T) {
+			src := fmt.Appendf(nil, `//kage:unit %s
+
+package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return imageSrc1At(src0Pos) + imageSrc1UnsafeAt(src0Pos)
+}
+`, unit)
+			if _, _, err := legacyshader.CompileShader(src); err != nil {
+				t.Errorf("CompileShader must not return an error but returned %v", err)
+			}
+			if unit == "pixels" {
+				if _, err := graphics.CompileShader(src); err == nil {
+					t.Error("graphics.CompileShader must return an error but did not")
+				}
+			}
+		})
 	}
 }

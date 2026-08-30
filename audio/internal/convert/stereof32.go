@@ -68,5 +68,12 @@ func (s *StereoF32) Seek(offset int64, whence int) (int64, error) {
 	if s.mono {
 		offset /= 2
 	}
-	return s.source.Seek(offset, whence)
+	pos, err := s.source.Seek(offset, whence)
+	if err != nil {
+		return 0, err
+	}
+	if s.mono {
+		pos *= 2
+	}
+	return pos, nil
 }

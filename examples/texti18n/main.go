@@ -141,7 +141,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		}
 		x, y := screenWidth-20, 115
 		w, h := text.Measure(arabicText, f, 0)
-		// The left upper point is not x but x-w, since the text runs in the rigth-to-left direction.
+		// The left upper point is not x but x-w, since the text runs in the right-to-left direction.
 		vector.FillRect(screen, float32(x)-float32(w), float32(y), float32(w), float32(h), gray, false)
 		op := &text.DrawOptions{}
 		op.GeoM.Translate(float64(x), float64(y))
@@ -260,7 +260,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		const lineSpacing = 48
 		x, y := screenWidth-20, 330
 		w, h := text.Measure(japaneseText, f, lineSpacing)
-		// The left upper point is not x but x-w, since the text runs in the rigth-to-left direction as the secondary direction.
+		// The left upper point is not x but x-w, since the text runs in the right-to-left direction as the secondary direction.
 		vector.FillRect(screen, float32(x)-float32(w), float32(y), float32(w), float32(h), gray, false)
 		op := &text.DrawOptions{}
 		op.GeoM.Translate(float64(x), float64(y))

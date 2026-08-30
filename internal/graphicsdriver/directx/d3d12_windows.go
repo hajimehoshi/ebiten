@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"math"
 	"runtime"
+	"structs"
 	"syscall"
 	"unsafe"
 
@@ -546,12 +547,14 @@ var (
 )
 
 type _D3D12_BLEND_DESC struct {
+	_                      structs.HostLayout
 	AlphaToCoverageEnable  _BOOL
 	IndependentBlendEnable _BOOL
 	RenderTarget           [8]_D3D12_RENDER_TARGET_BLEND_DESC
 }
 
 type _D3D12_BOX struct {
+	_      structs.HostLayout
 	left   uint32
 	top    uint32
 	front  uint32
@@ -561,21 +564,25 @@ type _D3D12_BOX struct {
 }
 
 type _D3D12_CACHED_PIPELINE_STATE struct {
+	_                     structs.HostLayout
 	pCachedBlob           uintptr
 	CachedBlobSizeInBytes uintptr
 }
 
 type _D3D12_CLEAR_VALUE struct {
+	_      structs.HostLayout
 	Format _DXGI_FORMAT
 	Color  [4]float32 // Union
 }
 
 type _D3D12_CONSTANT_BUFFER_VIEW_DESC struct {
+	_              structs.HostLayout
 	BufferLocation _D3D12_GPU_VIRTUAL_ADDRESS
 	SizeInBytes    uint32
 }
 
 type _D3D12_CPU_DESCRIPTOR_HANDLE struct {
+	_   structs.HostLayout
 	ptr uintptr
 }
 
@@ -584,6 +591,7 @@ func (h *_D3D12_CPU_DESCRIPTOR_HANDLE) Offset(offsetInDescriptors int32, descrip
 }
 
 type _D3D12_DEPTH_STENCIL_DESC struct {
+	_                structs.HostLayout
 	DepthEnable      _BOOL
 	DepthWriteMask   _D3D12_DEPTH_WRITE_MASK
 	DepthFunc        _D3D12_COMPARISON_FUNC
@@ -595,6 +603,7 @@ type _D3D12_DEPTH_STENCIL_DESC struct {
 }
 
 type _D3D12_DEPTH_STENCILOP_DESC struct {
+	_                  structs.HostLayout
 	StencilFailOp      _D3D12_STENCIL_OP
 	StencilDepthFailOp _D3D12_STENCIL_OP
 	StencilPassOp      _D3D12_STENCIL_OP
@@ -602,6 +611,7 @@ type _D3D12_DEPTH_STENCILOP_DESC struct {
 }
 
 type _D3D12_DESCRIPTOR_RANGE struct {
+	_                                 structs.HostLayout
 	RangeType                         _D3D12_DESCRIPTOR_RANGE_TYPE
 	NumDescriptors                    uint32
 	BaseShaderRegister                uint32
@@ -610,6 +620,7 @@ type _D3D12_DESCRIPTOR_RANGE struct {
 }
 
 type _D3D12_GPU_DESCRIPTOR_HANDLE struct {
+	_   structs.HostLayout
 	ptr uint64
 }
 
@@ -620,6 +631,7 @@ func (h *_D3D12_GPU_DESCRIPTOR_HANDLE) Offset(offsetInDescriptors int32, descrip
 type _D3D12_GPU_VIRTUAL_ADDRESS uint64
 
 type _D3D12_GRAPHICS_PIPELINE_STATE_DESC struct {
+	_                     structs.HostLayout
 	pRootSignature        *_ID3D12RootSignature
 	VS                    _D3D12_SHADER_BYTECODE
 	PS                    _D3D12_SHADER_BYTECODE
@@ -644,6 +656,7 @@ type _D3D12_GRAPHICS_PIPELINE_STATE_DESC struct {
 }
 
 type _D3D12_HEAP_PROPERTIES struct {
+	_                    structs.HostLayout
 	Type                 _D3D12_HEAP_TYPE
 	CPUPageProperty      _D3D12_CPU_PAGE_PROPERTY
 	MemoryPoolPreference _D3D12_MEMORY_POOL
@@ -652,12 +665,14 @@ type _D3D12_HEAP_PROPERTIES struct {
 }
 
 type _D3D12_INDEX_BUFFER_VIEW struct {
+	_              structs.HostLayout
 	BufferLocation _D3D12_GPU_VIRTUAL_ADDRESS
 	SizeInBytes    uint32
 	Format         _DXGI_FORMAT
 }
 
 type _D3D12_INPUT_ELEMENT_DESC struct {
+	_                    structs.HostLayout
 	SemanticName         *byte
 	SemanticIndex        uint32
 	Format               _DXGI_FORMAT
@@ -668,16 +683,19 @@ type _D3D12_INPUT_ELEMENT_DESC struct {
 }
 
 type _D3D12_INPUT_LAYOUT_DESC struct {
+	_                  structs.HostLayout
 	pInputElementDescs *_D3D12_INPUT_ELEMENT_DESC
 	NumElements        uint32
 }
 
 type _D3D12_RANGE struct {
+	_     structs.HostLayout
 	Begin uintptr
 	End   uintptr
 }
 
 type _D3D12_RASTERIZER_DESC struct {
+	_                     structs.HostLayout
 	FillMode              _D3D12_FILL_MODE
 	CullMode              _D3D12_CULL_MODE
 	FrontCounterClockwise _BOOL
@@ -692,6 +710,7 @@ type _D3D12_RASTERIZER_DESC struct {
 }
 
 type _D3D12_RECT struct {
+	_      structs.HostLayout
 	left   int32
 	top    int32
 	right  int32
@@ -699,12 +718,14 @@ type _D3D12_RECT struct {
 }
 
 type _D3D12_RESOURCE_BARRIER_Transition struct {
+	_          structs.HostLayout
 	Type       _D3D12_RESOURCE_BARRIER_TYPE
 	Flags      _D3D12_RESOURCE_BARRIER_FLAGS
 	Transition _D3D12_RESOURCE_TRANSITION_BARRIER
 }
 
 type _D3D12_RESOURCE_TRANSITION_BARRIER struct {
+	_           structs.HostLayout
 	pResource   *_ID3D12Resource
 	Subresource uint32
 	StateBefore _D3D12_RESOURCE_STATES
@@ -712,11 +733,13 @@ type _D3D12_RESOURCE_TRANSITION_BARRIER struct {
 }
 
 type _D3D12_ROOT_DESCRIPTOR_TABLE struct {
+	_                   structs.HostLayout
 	NumDescriptorRanges uint32
 	pDescriptorRanges   *_D3D12_DESCRIPTOR_RANGE
 }
 
 type _D3D12_ROOT_SIGNATURE_DESC struct {
+	_                 structs.HostLayout
 	NumParameters     uint32
 	pParameters       *_D3D12_ROOT_PARAMETER
 	NumStaticSamplers uint32
@@ -725,11 +748,13 @@ type _D3D12_ROOT_SIGNATURE_DESC struct {
 }
 
 type _D3D12_SHADER_BYTECODE struct {
+	_               structs.HostLayout
 	pShaderBytecode unsafe.Pointer
 	BytecodeLength  uintptr
 }
 
 type _D3D12_SHADER_RESOURCE_VIEW_DESC struct {
+	_                       structs.HostLayout
 	Format                  _DXGI_FORMAT
 	ViewDimension           _D3D12_SRV_DIMENSION
 	Shader4ComponentMapping uint32
@@ -739,6 +764,7 @@ type _D3D12_SHADER_RESOURCE_VIEW_DESC struct {
 }
 
 type _D3D12_SO_DECLARATION_ENTRY struct {
+	_              structs.HostLayout
 	Stream         uint32
 	SemanticName   *byte
 	SemanticIndex  uint32
@@ -748,6 +774,7 @@ type _D3D12_SO_DECLARATION_ENTRY struct {
 }
 
 type _D3D12_STATIC_SAMPLER_DESC struct {
+	_                structs.HostLayout
 	Filter           _D3D12_FILTER
 	AddressU         _D3D12_TEXTURE_ADDRESS_MODE
 	AddressV         _D3D12_TEXTURE_ADDRESS_MODE
@@ -764,6 +791,7 @@ type _D3D12_STATIC_SAMPLER_DESC struct {
 }
 
 type _D3D12_STREAM_OUTPUT_DESC struct {
+	_                structs.HostLayout
 	pSODeclaration   *_D3D12_SO_DECLARATION_ENTRY
 	NumEntries       uint32
 	pBufferStrides   *uint32
@@ -772,10 +800,12 @@ type _D3D12_STREAM_OUTPUT_DESC struct {
 }
 
 type _D3D12_TEX2D_DSV struct {
+	_        structs.HostLayout
 	MipSlice uint32
 }
 
 type _D3D12_TEX2D_SRV struct {
+	_                   structs.HostLayout
 	MostDetailedMip     uint32
 	MipLevels           uint32
 	PlaneSlice          uint32
@@ -783,12 +813,14 @@ type _D3D12_TEX2D_SRV struct {
 }
 
 type _D3D12_TEXTURE_COPY_LOCATION_PlacedFootPrint struct {
+	_               structs.HostLayout
 	pResource       *_ID3D12Resource
 	Type            _D3D12_TEXTURE_COPY_TYPE
 	PlacedFootprint _D3D12_PLACED_SUBRESOURCE_FOOTPRINT
 }
 
 type _D3D12_TEXTURE_COPY_LOCATION_SubresourceIndex struct {
+	_                structs.HostLayout
 	pResource        *_ID3D12Resource
 	Type             _D3D12_TEXTURE_COPY_TYPE
 	SubresourceIndex uint32
@@ -796,12 +828,14 @@ type _D3D12_TEXTURE_COPY_LOCATION_SubresourceIndex struct {
 }
 
 type _D3D12_VERTEX_BUFFER_VIEW struct {
+	_              structs.HostLayout
 	BufferLocation _D3D12_GPU_VIRTUAL_ADDRESS
 	SizeInBytes    uint32
 	StrideInBytes  uint32
 }
 
 type _D3D12_VIEWPORT struct {
+	_        structs.HostLayout
 	TopLeftX float32
 	TopLeftY float32
 	Width    float32
@@ -811,6 +845,7 @@ type _D3D12_VIEWPORT struct {
 }
 
 type _D3D12XBOX_CREATE_DEVICE_PARAMETERS struct {
+	_                                    structs.HostLayout
 	Version                              uint32
 	ProcessDebugFlags                    _D3D12XBOX_PROCESS_DEBUG_FLAGS
 	GraphicsCommandQueueRingSizeBytes    uint32
@@ -831,6 +866,7 @@ type _D3D12XBOX_CREATE_DEVICE_PARAMETERS struct {
 }
 
 type _D3D12XBOX_PRESENT_DESC_TITLE_PERFORMANCE_OVERLAY struct {
+	_                      structs.HostLayout
 	Flags                  _D3D12XBOX_PRESENT_DESC_TITLE_PERFORMANCE_OVERLAY_FLAGS
 	RenderResolutionWidth  uint16
 	RenderResolutionHeight uint16
@@ -839,6 +875,7 @@ type _D3D12XBOX_PRESENT_DESC_TITLE_PERFORMANCE_OVERLAY struct {
 }
 
 type _D3D12XBOX_PRESENT_PARAMETERS struct {
+	_                         structs.HostLayout
 	ImmediateThresholdPercent float32
 	ViewCount                 uint32
 	ExtendedDescCount         uint32
@@ -847,15 +884,18 @@ type _D3D12XBOX_PRESENT_PARAMETERS struct {
 }
 
 type _D3D12XBOX_PRESENT_DESC struct {
+	_                structs.HostLayout
 	Type             _D3D12XBOX_PRESENT_DESC_TYPE
 	TitlePerfOverlay _D3D12XBOX_PRESENT_DESC_TITLE_PERFORMANCE_OVERLAY
 }
 
 type _D3D12XBOX_PRESENT_PLANE_DESC struct {
+	_    structs.HostLayout
 	Type _D3D12XBOX_PRESENT_PLANE_DESC_TYPE
 }
 
 type _D3D12XBOX_PRESENT_PLANE_PARAMETERS struct {
+	_                  structs.HostLayout
 	Token              _D3D12XBOX_FRAME_PIPELINE_TOKEN
 	ResourceCount      uint32
 	ppResources        **_ID3D12Resource
@@ -869,11 +909,13 @@ type _D3D12XBOX_PRESENT_PLANE_PARAMETERS struct {
 }
 
 type _D3D12XBOX_SCHEDULE_FRAME_OBJECT_LIST struct {
+	_        structs.HostLayout
 	Count    uint32
 	pObjects *windows.Handle
 }
 
 type _D3D12XBOX_VIEW_RECT struct {
+	_      structs.HostLayout
 	left   float32
 	top    float32
 	right  float32
@@ -881,6 +923,7 @@ type _D3D12XBOX_VIEW_RECT struct {
 }
 
 type _D3D12XBOX_WAIT_FRAME_OBJECT_LIST struct {
+	_                    structs.HostLayout
 	Count                uint32
 	pObjects             *windows.Handle
 	pSignaledObjectIndex *uint32
@@ -953,6 +996,7 @@ func _D3D12XboxCreateDevice(pAdapter unsafe.Pointer, pParameters *_D3D12XBOX_CRE
 }
 
 type _D3D12_COMMAND_QUEUE_DESC struct {
+	_        structs.HostLayout
 	Type     _D3D12_COMMAND_LIST_TYPE
 	Priority int32
 	Flags    _D3D12_COMMAND_QUEUE_FLAGS
@@ -960,6 +1004,7 @@ type _D3D12_COMMAND_QUEUE_DESC struct {
 }
 
 type _D3D12_DESCRIPTOR_HEAP_DESC struct {
+	_              structs.HostLayout
 	Type           _D3D12_DESCRIPTOR_HEAP_TYPE
 	NumDescriptors uint32
 	Flags          _D3D12_DESCRIPTOR_HEAP_FLAGS
@@ -967,11 +1012,13 @@ type _D3D12_DESCRIPTOR_HEAP_DESC struct {
 }
 
 type _D3D12_PLACED_SUBRESOURCE_FOOTPRINT struct {
+	_         structs.HostLayout
 	Offset    uint64
 	Footprint _D3D12_SUBRESOURCE_FOOTPRINT
 }
 
 type _D3D12_RENDER_TARGET_BLEND_DESC struct {
+	_                     structs.HostLayout
 	BlendEnable           _BOOL
 	LogicOpEnable         _BOOL
 	SrcBlend              _D3D12_BLEND
@@ -985,12 +1032,14 @@ type _D3D12_RENDER_TARGET_BLEND_DESC struct {
 }
 
 type _D3D12_RENDER_TARGET_VIEW_DESC struct {
+	_             structs.HostLayout
 	Format        _DXGI_FORMAT
 	ViewDimension _D3D12_RTV_DIMENSION
 	_             [3]uint32 // Union: D3D12_BUFFER_RTV seems the biggest
 }
 
 type _D3D12_SAMPLER_DESC struct {
+	_              structs.HostLayout
 	Filter         _D3D12_FILTER
 	AddressU       _D3D12_TEXTURE_ADDRESS_MODE
 	AddressV       _D3D12_TEXTURE_ADDRESS_MODE
@@ -1004,6 +1053,7 @@ type _D3D12_SAMPLER_DESC struct {
 }
 
 type _D3D12_SUBRESOURCE_FOOTPRINT struct {
+	_        structs.HostLayout
 	Format   _DXGI_FORMAT
 	Width    uint32
 	Height   uint32
@@ -1012,10 +1062,12 @@ type _D3D12_SUBRESOURCE_FOOTPRINT struct {
 }
 
 type _ID3D12CommandAllocator struct {
+	_    structs.HostLayout
 	vtbl *_ID3D12CommandAllocator_Vtbl
 }
 
 type _ID3D12CommandAllocator_Vtbl struct {
+	_              structs.HostLayout
 	QueryInterface uintptr
 	AddRef         uintptr
 	Release        uintptr
@@ -1042,10 +1094,12 @@ func (i *_ID3D12CommandAllocator) Reset() error {
 }
 
 type _ID3D12CommandQueue struct {
+	_    structs.HostLayout
 	vtbl *_ID3D12CommandQueue_Vtbl
 }
 
 type _ID3D12CommandQueue_Vtbl struct {
+	_              structs.HostLayout
 	QueryInterface uintptr
 	AddRef         uintptr
 	Release        uintptr
@@ -1138,10 +1192,12 @@ func (i *_ID3D12CommandQueue) SuspendX(flags uint32) error {
 }
 
 type _ID3D12Debug struct {
+	_    structs.HostLayout
 	vtbl *_ID3D12Debug_Vtbl
 }
 
 type _ID3D12Debug_Vtbl struct {
+	_              structs.HostLayout
 	QueryInterface uintptr
 	AddRef         uintptr
 	Release        uintptr
@@ -1163,10 +1219,12 @@ func (i *_ID3D12Debug) Release() uint32 {
 }
 
 type _ID3D12Debug3 struct {
+	_    structs.HostLayout
 	vtbl *_ID3D12Debug3_Vtbl
 }
 
 type _ID3D12Debug3_Vtbl struct {
+	_              structs.HostLayout
 	QueryInterface uintptr
 	AddRef         uintptr
 	Release        uintptr
@@ -1182,10 +1240,12 @@ func (i *_ID3D12Debug3) SetEnableGPUBasedValidation(enable bool) {
 }
 
 type _ID3D12DebugCommandList struct {
+	_    structs.HostLayout
 	vtbl *_ID3D12DebugCommandList_Vtbl
 }
 
 type _ID3D12DebugCommandList_Vtbl struct {
+	_              structs.HostLayout
 	QueryInterface uintptr
 	AddRef         uintptr
 	Release        uintptr
@@ -1204,10 +1264,12 @@ func (i *_ID3D12DebugCommandList) SetFeatureMask(mask _D3D12_DEBUG_FEATURE) erro
 }
 
 type _ID3D12DescriptorHeap struct {
+	_    structs.HostLayout
 	vtbl *_ID3D12DescriptrHeap_Vtbl
 }
 
 type _ID3D12DescriptrHeap_Vtbl struct {
+	_              structs.HostLayout
 	QueryInterface uintptr
 	AddRef         uintptr
 	Release        uintptr
@@ -1275,10 +1337,12 @@ func (i *_ID3D12DescriptorHeap) Release() uint32 {
 }
 
 type _ID3D12Device struct {
+	_    structs.HostLayout
 	vtbl *_ID3D12Device_Vtbl
 }
 
 type _ID3D12Device_Vtbl struct {
+	_              structs.HostLayout
 	QueryInterface uintptr
 	AddRef         uintptr
 	Release        uintptr
@@ -1605,10 +1669,12 @@ func (i *_ID3D12Device) WaitFrameEventX(typ _D3D12XBOX_FRAME_EVENT_TYPE, timeOut
 }
 
 type _ID3D12Fence struct {
+	_    structs.HostLayout
 	vtbl *_ID3D12Fence_Vtbl
 }
 
 type _ID3D12Fence_Vtbl struct {
+	_              structs.HostLayout
 	QueryInterface uintptr
 	AddRef         uintptr
 	Release        uintptr
@@ -1653,10 +1719,12 @@ func (i *_ID3D12Fence) SetEventOnCompletion(value uint64, hEvent windows.Handle)
 }
 
 type _ID3D12GraphicsCommandList struct {
+	_    structs.HostLayout
 	vtbl *_ID3D12GraphicsCommandList_Vtbl
 }
 
 type _ID3D12GraphicsCommandList_Vtbl struct {
+	_              structs.HostLayout
 	QueryInterface uintptr
 	AddRef         uintptr
 	Release        uintptr
@@ -1976,10 +2044,12 @@ func (i *_ID3D12GraphicsCommandList) SetPipelineState(pPipelineState *_ID3D12Pip
 }
 
 type _ID3D12PipelineState struct {
+	_    structs.HostLayout
 	vtbl *_ID3D12PipelineState_Vtbl
 }
 
 type _ID3D12PipelineState_Vtbl struct {
+	_              structs.HostLayout
 	QueryInterface uintptr
 	AddRef         uintptr
 	Release        uintptr
@@ -1998,10 +2068,12 @@ func (i *_ID3D12PipelineState) Release() uint32 {
 }
 
 type _ID3D12Resource struct {
+	_    structs.HostLayout
 	vtbl *_ID3D12Resource_Vtbl
 }
 
 type _ID3D12Resource_Vtbl struct {
+	_              structs.HostLayout
 	QueryInterface uintptr
 	AddRef         uintptr
 	Release        uintptr
@@ -2057,10 +2129,12 @@ func (i *_ID3D12Resource) Unmap(subresource uint32, pWrittenRange *_D3D12_RANGE)
 }
 
 type _ID3D12RootSignature struct {
+	_    structs.HostLayout
 	vtbl *_ID3D12RootSignature_Vtbl
 }
 
 type _ID3D12RootSignature_Vtbl struct {
+	_              structs.HostLayout
 	QueryInterface uintptr
 	AddRef         uintptr
 	Release        uintptr

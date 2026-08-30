@@ -137,5 +137,22 @@ func (s *StereoI16ReadSeeker) Seek(offset int64, whence int) (int64, error) {
 		offset *= 3
 		offset /= 2
 	}
-	return s.source.Seek(offset, whence)
+	pos, err := s.source.Seek(offset, whence)
+	if err != nil {
+		return 0, err
+	}
+	// Convert the returned position from the source format's byte space to the
+	// stereo-i16 byte space this wrapper presents.
+	if s.mono {
+		pos *= 2
+	}
+	switch s.format {
+	case FormatU8:
+		pos *= 2
+	case FormatS16:
+	case FormatS24:
+		pos *= 2
+		pos /= 3
+	}
+	return pos, nil
 }

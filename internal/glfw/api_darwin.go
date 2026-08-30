@@ -16,6 +16,7 @@ package glfw
 
 import (
 	"fmt"
+	"structs"
 	"unsafe"
 
 	"github.com/ebitengine/purego"
@@ -157,11 +158,13 @@ const (
 
 // cgRect matches the CoreGraphics CGRect struct layout.
 type cgRect struct {
+	_                   structs.HostLayout
 	X, Y, Width, Height float64
 }
 
 // nsRange matches the Foundation NSRange struct layout.
 type nsRange struct {
+	_        structs.HostLayout
 	Location uintptr
 	Length   uintptr
 }

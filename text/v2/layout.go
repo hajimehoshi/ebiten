@@ -36,7 +36,7 @@ const (
 
 // DrawOptions represents options for the Draw function.
 //
-// DrawOption embeds ebiten.DrawImageOptions.
+// DrawOptions embeds ebiten.DrawImageOptions.
 // DrawImageOptions.GeoM is an additional geometry transformation
 // after putting the rendering region along with the specified alignments.
 // DrawImageOptions.ColorScale scales the text color.

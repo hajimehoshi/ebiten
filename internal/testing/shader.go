@@ -28,7 +28,7 @@ func ShaderProgramFill(r, g, b, a byte) *shaderir.Program {
 
 package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	return vec4(%0.9f, %0.9f, %0.9f, %0.9f)
 }
 `, float64(r)/0xff, float64(g)/0xff, float64(b)/0xff, float64(a)/0xff))
@@ -46,14 +46,14 @@ func ShaderProgramImages(numImages int) *shaderir.Program {
 
 	var exprs []string
 	for i := range numImages {
-		exprs = append(exprs, fmt.Sprintf("imageSrc%dUnsafeAt(srcPos)", i))
+		exprs = append(exprs, fmt.Sprintf("imageSrc%dUnsafeAt(src0Pos)", i))
 	}
 
 	ir, err := graphics.CompileShader(fmt.Appendf(nil, `//kage:unit pixels
 
 package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	return %s
 }
 `, strings.Join(exprs, " + ")))

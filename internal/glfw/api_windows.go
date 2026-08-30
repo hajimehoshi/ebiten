@@ -18,6 +18,7 @@ import (
 	"errors"
 	"fmt"
 	"runtime"
+	"structs"
 	"syscall"
 	"unsafe"
 
@@ -432,6 +433,7 @@ const (
 )
 
 type _BITMAPV5HEADER struct {
+	_                structs.HostLayout
 	bV5Size          uint32
 	bV5Width         int32
 	bV5Height        int32
@@ -459,23 +461,27 @@ type _BITMAPV5HEADER struct {
 }
 
 type _CHANGEFILTERSTRUCT struct {
+	_         structs.HostLayout
 	cbSize    uint32
 	ExtStatus uint32
 }
 
 type _CIEXYZ struct {
+	_       structs.HostLayout
 	ciexyzX _FXPT2DOT30
 	ciexyzY _FXPT2DOT30
 	ciexyzZ _FXPT2DOT30
 }
 
 type _CIEXYZTRIPLE struct {
+	_           structs.HostLayout
 	ciexyzRed   _CIEXYZ
 	ciexyzGreen _CIEXYZ
 	ciexyzBlue  _CIEXYZ
 }
 
 type _CREATESTRUCTW struct {
+	_              structs.HostLayout
 	lpCreateParams unsafe.Pointer
 	hInstance      _HINSTANCE
 	hMenu          _HMENU
@@ -491,6 +497,7 @@ type _CREATESTRUCTW struct {
 }
 
 type _DEV_BROADCAST_DEVICEINTERFACE_W struct {
+	_               structs.HostLayout
 	dbcc_size       uint32
 	dbcc_devicetype uint32
 	dbcc_reserved   uint32
@@ -499,6 +506,7 @@ type _DEV_BROADCAST_DEVICEINTERFACE_W struct {
 }
 
 type _DEVMODEW struct {
+	_                  structs.HostLayout
 	dmDeviceName       [_CCHDEVICENAME]uint16
 	dmSpecVersion      uint16
 	dmDriverVersion    uint16
@@ -530,6 +538,7 @@ type _DEVMODEW struct {
 }
 
 type _DISPLAY_DEVICEW struct {
+	_            structs.HostLayout
 	cb           uint32
 	DeviceName   [32]uint16
 	DeviceString [128]uint16
@@ -539,6 +548,7 @@ type _DISPLAY_DEVICEW struct {
 }
 
 type _DWM_BLURBEHIND struct {
+	_                      structs.HostLayout
 	dwFlags                uint32
 	fEnable                int32
 	hRgnBlur               _HRGN
@@ -548,6 +558,7 @@ type _DWM_BLURBEHIND struct {
 type _FXPT2DOT30 int32
 
 type _ICONINFO struct {
+	_        structs.HostLayout
 	fIcon    int32
 	xHotspot uint32
 	yHotspot uint32
@@ -556,6 +567,7 @@ type _ICONINFO struct {
 }
 
 type _MINMAXINFO struct {
+	_              structs.HostLayout
 	ptReserved     _POINT
 	ptMaxSize      _POINT
 	ptMaxPosition  _POINT
@@ -564,6 +576,7 @@ type _MINMAXINFO struct {
 }
 
 type _MONITORINFO struct {
+	_         structs.HostLayout
 	cbSize    uint32
 	rcMonitor _RECT
 	rcWork    _RECT
@@ -571,6 +584,7 @@ type _MONITORINFO struct {
 }
 
 type _MONITORINFOEXW struct {
+	_         structs.HostLayout
 	cbSize    uint32
 	rcMonitor _RECT
 	rcWork    _RECT
@@ -579,6 +593,7 @@ type _MONITORINFOEXW struct {
 }
 
 type _MSG struct {
+	_        structs.HostLayout
 	hwnd     windows.HWND
 	message  uint32
 	wParam   _WPARAM
@@ -589,6 +604,7 @@ type _MSG struct {
 }
 
 type _PIXELFORMATDESCRIPTOR struct {
+	_               structs.HostLayout
 	nSize           uint16
 	nVersion        uint16
 	dwFlags         uint32
@@ -618,16 +634,19 @@ type _PIXELFORMATDESCRIPTOR struct {
 }
 
 type _POINT struct {
+	_ structs.HostLayout
 	x int32
 	y int32
 }
 
 type _POINTL struct {
+	_ structs.HostLayout
 	x int32
 	y int32
 }
 
 type _RAWINPUT struct {
+	_      structs.HostLayout
 	header _RAWINPUTHEADER
 	mouse  _RAWMOUSE
 
@@ -636,6 +655,7 @@ type _RAWINPUT struct {
 }
 
 type _RAWINPUTDEVICE struct {
+	_           structs.HostLayout
 	usUsagePage uint16
 	usUsage     uint16
 	dwFlags     uint32
@@ -643,6 +663,7 @@ type _RAWINPUTDEVICE struct {
 }
 
 type _RAWINPUTHEADER struct {
+	_       structs.HostLayout
 	dwType  uint32
 	dwSize  uint32
 	hDevice windows.Handle
@@ -650,6 +671,7 @@ type _RAWINPUTHEADER struct {
 }
 
 type _RAWMOUSE struct {
+	_                  structs.HostLayout
 	usFlags            uint16
 	ulButtons          uint32 // TODO: Check alignments
 	ulRawButtons       uint32
@@ -659,6 +681,7 @@ type _RAWMOUSE struct {
 }
 
 type _RECT struct {
+	_      structs.HostLayout
 	left   int32
 	top    int32
 	right  int32
@@ -666,11 +689,13 @@ type _RECT struct {
 }
 
 type _SIZE struct {
+	_  structs.HostLayout
 	cx int32
 	cy int32
 }
 
 type _TRACKMOUSEEVENT struct {
+	_           structs.HostLayout
 	cbSize      uint32
 	dwFlags     uint32
 	hwndTrack   windows.HWND
@@ -678,6 +703,7 @@ type _TRACKMOUSEEVENT struct {
 }
 
 type _WINDOWPLACEMENT struct {
+	_                structs.HostLayout
 	length           uint32
 	flags            uint32
 	showCmd          uint32
@@ -688,6 +714,7 @@ type _WINDOWPLACEMENT struct {
 }
 
 type _WNDCLASSEXW struct {
+	_             structs.HostLayout
 	cbSize        uint32
 	style         uint32
 	lpfnWndProc   _WNDPROC

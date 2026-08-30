@@ -17,6 +17,7 @@ package directx
 import (
 	"fmt"
 	"runtime"
+	"structs"
 	"syscall"
 	"unsafe"
 
@@ -48,10 +49,12 @@ func _DCompositionCreateDevice(dxgiDevice unsafe.Pointer) (*_IDCompositionDevice
 }
 
 type _IDCompositionDevice struct {
+	_    structs.HostLayout
 	vtbl *_IDCompositionDevice_Vtbl
 }
 
 type _IDCompositionDevice_Vtbl struct {
+	_              structs.HostLayout
 	QueryInterface uintptr
 	AddRef         uintptr
 	Release        uintptr
@@ -100,10 +103,12 @@ func (i *_IDCompositionDevice) Release() uint32 {
 }
 
 type _IDCompositionTarget struct {
+	_    structs.HostLayout
 	vtbl *_IDCompositionTarget_Vtbl
 }
 
 type _IDCompositionTarget_Vtbl struct {
+	_              structs.HostLayout
 	QueryInterface uintptr
 	AddRef         uintptr
 	Release        uintptr
@@ -126,10 +131,12 @@ func (i *_IDCompositionTarget) Release() uint32 {
 }
 
 type _IDCompositionVisual struct {
+	_    structs.HostLayout
 	vtbl *_IDCompositionVisual_Vtbl
 }
 
 type _IDCompositionVisual_Vtbl struct {
+	_              structs.HostLayout
 	QueryInterface uintptr
 	AddRef         uintptr
 	Release        uintptr

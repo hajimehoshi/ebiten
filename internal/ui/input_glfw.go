@@ -312,7 +312,7 @@ func (u *glfwBackend) updateInputStateForFrame(deviceScaleFactor float64) error 
 		cx, cy = u.context.clientPositionToLogicalPosition(cx2, cy2, s)
 	}
 
-	// AdjustPosition can return NaN at the initialization.
+	// The adjusted position can be NaN at the initialization.
 	if !math.IsNaN(cx) && !math.IsNaN(cy) {
 		u.input.setCursorPos(cx, cy)
 	}

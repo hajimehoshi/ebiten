@@ -17,10 +17,12 @@
 package directx
 
 import (
+	"structs"
 	"unsafe"
 )
 
 type _D3D12_DEPTH_STENCIL_VIEW_DESC struct {
+	_             structs.HostLayout
 	Format        _DXGI_FORMAT
 	ViewDimension _D3D12_DSV_DIMENSION
 	Flags         _D3D12_DSV_FLAGS
@@ -30,6 +32,7 @@ type _D3D12_DEPTH_STENCIL_VIEW_DESC struct {
 }
 
 type _D3D12_RESOURCE_DESC struct {
+	_                structs.HostLayout
 	Dimension        _D3D12_RESOURCE_DIMENSION
 	Alignment        uint64
 	Width            uint64
@@ -43,6 +46,7 @@ type _D3D12_RESOURCE_DESC struct {
 }
 
 type _D3D12_ROOT_PARAMETER struct {
+	_                structs.HostLayout
 	ParameterType    _D3D12_ROOT_PARAMETER_TYPE
 	DescriptorTable  _D3D12_ROOT_DESCRIPTOR_TABLE // Union
 	ShaderVisibility _D3D12_SHADER_VISIBILITY

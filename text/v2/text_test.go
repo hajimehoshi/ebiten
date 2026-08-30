@@ -25,6 +25,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/go-text/typesetting/bidi"
@@ -521,6 +522,27 @@ func TestRuneToBoolMap(t *testing.T) {
 			t.Fatalf("rune: %c, got: %v, %v; want: %v, %v", r, gotVal, gotOK, v != 0, true)
 		}
 	}
+}
+
+func TestRuneToBoolMapConcurrent(t *testing.T) {
+	var rtb text.RuneToBoolMap
+	const goroutines = 16
+	const perGoroutine = 64
+	var wg sync.WaitGroup
+	for g := range goroutines {
+		wg.Go(func() {
+			for i := range perGoroutine {
+				// The rune ranges of the goroutines overlap.
+				r := rune(g*perGoroutine/2 + i)
+				v := r%2 == 0
+				rtb.Set(r, v)
+				if gotVal, gotOK := rtb.Get(r); !gotOK || gotVal != v {
+					t.Errorf("rune %d: got: %v, %v; want: %v, true", r, gotVal, gotOK, v)
+				}
+			}
+		})
+	}
+	wg.Wait()
 }
 
 // Issue #3284
@@ -1141,6 +1163,18 @@ func TestAdvanceAtLineBreak(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	goTextFace := &text.GoTextFace{
+		Source:    source,
+		Size:      24,
+		Direction: text.DirectionLeftToRight,
+	}
+	limitedFace := text.NewLimitedFace(goTextFace)
+	limitedFace.AddUnicodeRange('a', 'd')
+	multiFace, err := text.NewMultiFace(limitedFace, goTextFace)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	cases := []struct {
 		name string
 		face text.Face
@@ -1151,11 +1185,15 @@ func TestAdvanceAtLineBreak(t *testing.T) {
 		},
 		{
 			name: "GoTextFace",
-			face: &text.GoTextFace{
-				Source:    source,
-				Size:      24,
-				Direction: text.DirectionLeftToRight,
-			},
+			face: goTextFace,
+		},
+		{
+			name: "LimitedFace",
+			face: limitedFace,
+		},
+		{
+			name: "MultiFace",
+			face: multiFace,
 		},
 	}
 
@@ -1366,4 +1404,37 @@ func TestDrawWithScaledGeoM(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestGoTextFaceSourceConcurrentDrawWithDifferentSizes(t *testing.T) {
+	f, err := os.Open(filepath.Join("testdata", "Roboto-Regular.ttf"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		_ = f.Close()
+	}()
+	fs, err := text.NewGoTextFaceSource(bufio.NewReader(f))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	const goroutineCount = 8
+
+	var wg sync.WaitGroup
+	start := make(chan struct{})
+	for i := range goroutineCount {
+		wg.Go(func() {
+			dst := ebiten.NewImage(64, 64)
+			face := &text.GoTextFace{
+				Source: fs,
+				Size:   float64(10 + i),
+			}
+			<-start
+			var op text.DrawOptions
+			text.Draw(dst, "Hello, World!", face, &op)
+		})
+	}
+	close(start)
+	wg.Wait()
 }

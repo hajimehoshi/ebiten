@@ -1050,14 +1050,14 @@ func (g *graphics12) SetVertices(vertices []float32, indices []uint32) (ferr err
 		}()
 	}
 
-	m, err := g.vertices[g.frameIndex][vidx].value.Map(0, &_D3D12_RANGE{0, 0})
+	m, err := g.vertices[g.frameIndex][vidx].value.Map(0, &_D3D12_RANGE{Begin: 0, End: 0})
 	if err != nil {
 		return err
 	}
 	copy(unsafe.Slice((*float32)(unsafe.Pointer(m)), len(vertices)), vertices)
 	g.vertices[g.frameIndex][vidx].value.Unmap(0, nil)
 
-	m, err = g.indices[g.frameIndex][iidx].value.Map(0, &_D3D12_RANGE{0, 0})
+	m, err = g.indices[g.frameIndex][iidx].value.Map(0, &_D3D12_RANGE{Begin: 0, End: 0})
 	if err != nil {
 		return err
 	}

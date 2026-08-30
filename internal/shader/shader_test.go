@@ -200,15 +200,42 @@ func TestCompile(t *testing.T) {
 	}
 }
 
-// TestCompileHLSLIntModulo confirms that integer modulo is emitted via the modInt
-// helper rather than the '%' operator.
+func TestCompileAssignFromNoReturnValue(t *testing.T) {
+	srcs := []string{
+		`package main
+
+func bar() {
+}
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	x := bar()
+	return vec4(1)
+}`,
+		`package main
+
+func bar() {
+}
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	var x = bar()
+	return vec4(1)
+}`,
+	}
+	for _, src := range srcs {
+		_, err := shader.Compile([]byte(src), "Vertex", "Fragment", 0)
+		if err == nil {
+			t.Errorf("Compile must return an error for a function call with no return values, but got nil")
+		}
+	}
+}
+
 func TestCompileHLSLIntModulo(t *testing.T) {
 	src := []byte(`//kage:unit pixels
 
 package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
-	a := int(srcPos.x)
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	a := int(src0Pos.x)
 	b := a % 3
 	return vec4(float(b))
 }`)
@@ -228,5 +255,40 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 	}
 	if body := ps[i:]; strings.Contains(body, " % ") {
 		t.Errorf("HLSL PSMain should not use the '%%' operator for integer modulo, but got:\n%s", body)
+	}
+}
+
+func TestCompileVaryingTypeMismatchPosition(t *testing.T) {
+	src := `package main
+
+func Vertex(position vec4, texCoord vec2, color vec4) (vec4, vec2) {
+	return position, texCoord
+}
+
+func Fragment(position vec4, texCoord vec3, color vec4) vec4 {
+	return vec4(1)
+}`
+	_, err := shader.Compile([]byte(src), "Vertex", "Fragment", 0)
+	if err == nil {
+		t.Fatalf("Compile must return an error for a mismatched fragment argument, but got nil")
+	}
+	if strings.HasPrefix(err.Error(), "1:1:") {
+		t.Errorf("the error position must point at the fragment entry point, but got %q", err.Error())
+	}
+	if !strings.Contains(err.Error(), "7:") {
+		t.Errorf("the error position must be around the fragment entry point (line 7), but got %q", err.Error())
+	}
+}
+
+func TestCompileHugeShift(t *testing.T) {
+	src := `package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	x := 1 << (1 << 40)
+	return vec4(x)
+}`
+	_, err := shader.Compile([]byte(src), "Vertex", "Fragment", 0)
+	if err == nil {
+		t.Errorf("Compile must return an error for a huge constant shift, but got nil")
 	}
 }

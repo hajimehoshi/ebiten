@@ -109,3 +109,31 @@ func TestFloat32(t *testing.T) {
 		})
 	}
 }
+
+// permissiveSeeker is an io.ReadSeeker that silently succeeds without moving for an unrecognized
+// whence, so that a rejected seek can only come from the reader under test.
+type permissiveSeeker struct {
+	r *bytes.Reader
+}
+
+func (p *permissiveSeeker) Read(buf []byte) (int, error) {
+	return p.r.Read(buf)
+}
+
+func (p *permissiveSeeker) Seek(offset int64, whence int) (int64, error) {
+	switch whence {
+	case io.SeekStart, io.SeekCurrent, io.SeekEnd:
+		return p.r.Seek(offset, whence)
+	}
+	return p.r.Seek(0, io.SeekCurrent)
+}
+
+func TestFloat32SeekInvalidWhence(t *testing.T) {
+	r := convert.NewFloat32BytesReadSeekerFromInt16BytesReadSeeker(&permissiveSeeker{r: bytes.NewReader(make([]byte, 256))})
+
+	for _, whence := range []int{-1, 3, 100} {
+		if _, err := r.Seek(0, whence); err == nil {
+			t.Errorf("Seek(0, %d): got no error, want an error", whence)
+		}
+	}
+}

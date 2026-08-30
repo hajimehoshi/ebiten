@@ -272,7 +272,7 @@ func init() {
 // When the given image is as same as i, DrawImage panics.
 //
 // DrawImage works more efficiently as batches
-// when the successive calls of DrawImages satisfy the below conditions:
+// when the successive calls of DrawImage satisfy the below conditions:
 //
 //   - All render targets are the same (A in A.DrawImage(B, op))
 //   - All Blend values are the same
@@ -1007,11 +1007,11 @@ var _ [len(DrawRectShaderOptions{}.Images)]struct{} = [graphics.ShaderSrcImageCo
 //
 // If a specified uniform variable's length or type doesn't match with an expected one, DrawRectShader panics.
 //
-// In a shader, srcPos in Fragment represents a position in a source image.
-// If no source images are specified, srcPos represents the position from (0, 0) to (width, height) in pixels.
-// If the unit is pixels by a compiler directive `//kage:unit pixelss`, srcPos values are valid.
-// If the unit is texels (default), srcPos values still take from (0, 0) to (width, height),
-// but these are invalid since srcPos is expected to be in texels in the texel-unit mode.
+// In a shader, src0Pos in Fragment represents a position in a source image.
+// If no source images are specified, src0Pos represents the position from (0, 0) to (width, height) in pixels.
+// If the unit is pixels by a compiler directive `//kage:unit pixels`, src0Pos values are valid.
+// If the unit is texels (default), src0Pos values still take from (0, 0) to (width, height),
+// but these are invalid since src0Pos is expected to be in texels in the texel-unit mode.
 // This behavior is preserved for backward compatibility. It is recommended to use the pixel-unit mode to avoid confusion.
 //
 // If no source images are specified, imageSrc0Size returns a valid size only when the unit is pixels,
@@ -1243,7 +1243,7 @@ func (i *Image) ColorModel() color.Model {
 //
 // ReadPixels loads pixels from GPU to system memory if necessary, which means that ReadPixels can be slow.
 //
-// ReadPixels always sets a transparent color if the image is disposed.
+// ReadPixels panics if the image is disposed.
 //
 // len(pixels) must be 4 * (bounds width) * (bounds height).
 // If len(pixels) is not correct, ReadPixels panics.
@@ -1258,13 +1258,6 @@ func (i *Image) ReadPixels(pixels []byte) {
 	b := i.Bounds()
 	if got, want := len(pixels), 4*b.Dx()*b.Dy(); got != want {
 		panic(fmt.Sprintf("ebiten: len(pixels) must be %d but %d at ReadPixels", want, got))
-	}
-
-	if i.isDisposed() {
-		for i := range pixels {
-			pixels[i] = 0
-		}
-		return
 	}
 
 	i.invokeUsageCallbacks()

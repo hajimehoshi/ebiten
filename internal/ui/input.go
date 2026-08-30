@@ -167,6 +167,9 @@ func (i *InputState) IsKeyPressed(key Key, tick int64) bool {
 	return inputStatePressed(p, r, tick)
 }
 
+// A key representing multiple keys like KeyShift is not resolved into its left and right variants
+// for the just-pressed, just-released, and duration states: when the variants are pressed or released
+// at different ticks, there is no unambiguous tick to report for the combined key.
 func (i *InputState) IsKeyJustPressed(key Key, tick int64) bool {
 	if key < 0 || KeyMax < key {
 		return false

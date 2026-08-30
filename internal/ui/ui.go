@@ -222,8 +222,12 @@ type RunOptions struct {
 	VMGuestEndpoint          string
 }
 
-// InitialWindowPosition returns the position for centering the given second width/height pair within the first width/height pair.
+// InitialWindowPosition returns the position to place a window of size (ww, wh) in a monitor of size (mw, mh).
 func InitialWindowPosition(mw, mh, ww, wh int) (x, y int) {
+	// The vertical position is visually centered rather than exactly centered: the space below the window
+	// is about twice the space above it. This follows the "Positioning Windows" section in the old Apple
+	// Human Interface Guidelines.
+	// http://web.archive.org/web/20110531113415/http://developer.apple.com/library/mac/#documentation/UserExperience/Conceptual/AppleHIGuidelines/XHIGWindows/XHIGWindows.html
 	return (mw - ww) / 2, (mh - wh) / 3
 }
 

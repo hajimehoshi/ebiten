@@ -291,7 +291,7 @@ func TestImageWritePixels(t *testing.T) {
 		p[i] = 0x80
 	}
 	img0.WritePixels(p)
-	// Even if p is changed after calling ReplacePixel, img0 uses the original values.
+	// Even if p is changed after calling WritePixels, img0 uses the original values.
 	for i := range p {
 		p[i] = 0
 	}
@@ -330,6 +330,18 @@ func TestImageDispose(t *testing.T) {
 	if got != want {
 		t.Errorf("img.At(0, 0) got: %v, want: %v", got, want)
 	}
+}
+
+func TestImageReadPixelsDispose(t *testing.T) {
+	img := ebiten.NewImage(16, 16)
+	img.Dispose()
+
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("ReadPixels on a disposed image must panic")
+		}
+	}()
+	img.ReadPixels(make([]byte, 4*16*16))
 }
 
 func TestImageDeallocate(t *testing.T) {
@@ -490,7 +502,19 @@ func TestImageEdge(t *testing.T) {
 		}
 	}
 	img0.WritePixels(pixels)
-	img1 := ebiten.NewImage(img1Width, img1Height)
+
+	// Each case is rendered into its own tile of a larger destination image, so that a batch of
+	// them is drawn and then read back at once instead of one read-back per case.
+	const (
+		tilesX = 32
+		tilesY = 32
+
+		dstWidth  = img1Width * tilesX
+		dstHeight = img1Height * tilesY
+	)
+	dst := ebiten.NewImage(dstWidth, dstHeight)
+	dstPix := make([]byte, 4*dstWidth*dstHeight)
+
 	red := color.RGBA{R: 0xff, A: 0xff}
 	var transparent color.RGBA
 
@@ -503,100 +527,131 @@ func TestImageEdge(t *testing.T) {
 		angles = append(angles, float64(a)/4096*2*math.Pi)
 	}
 
+	type testCase struct {
+		scale             float64
+		filter            ebiten.Filter
+		angle             float64
+		testDrawTriangles bool
+	}
+	var cases []testCase
 	for _, s := range []float64{1, 0.5, 0.25} {
 		for _, f := range []ebiten.Filter{ebiten.FilterNearest, ebiten.FilterLinear} {
 			for _, a := range angles {
 				for _, testDrawTriangles := range []bool{false, true} {
-					img1.Clear()
-					w, h := img0.Bounds().Dx(), img0.Bounds().Dy()
-					b := img0.Bounds()
-					var geo ebiten.GeoM
-					geo.Translate(-float64(w)/2, -float64(h)/2)
-					geo.Scale(s, s)
-					geo.Rotate(a)
-					geo.Translate(img1Width/2, img1Height/2)
-					if !testDrawTriangles {
-						op := &ebiten.DrawImageOptions{}
-						op.GeoM = geo
-						op.Filter = f
-						img1.DrawImage(img0, op)
-					} else {
-						op := &ebiten.DrawTrianglesOptions{}
-						dx0, dy0 := geo.Apply(0, 0)
-						dx1, dy1 := geo.Apply(float64(w), 0)
-						dx2, dy2 := geo.Apply(0, float64(h))
-						dx3, dy3 := geo.Apply(float64(w), float64(h))
-						vs := []ebiten.Vertex{
-							{
-								DstX:   float32(dx0),
-								DstY:   float32(dy0),
-								SrcX:   float32(b.Min.X),
-								SrcY:   float32(b.Min.Y),
-								ColorR: 1,
-								ColorG: 1,
-								ColorB: 1,
-								ColorA: 1,
-							},
-							{
-								DstX:   float32(dx1),
-								DstY:   float32(dy1),
-								SrcX:   float32(b.Max.X),
-								SrcY:   float32(b.Min.Y),
-								ColorR: 1,
-								ColorG: 1,
-								ColorB: 1,
-								ColorA: 1,
-							},
-							{
-								DstX:   float32(dx2),
-								DstY:   float32(dy2),
-								SrcX:   float32(b.Min.X),
-								SrcY:   float32(b.Max.Y),
-								ColorR: 1,
-								ColorG: 1,
-								ColorB: 1,
-								ColorA: 1,
-							},
-							{
-								DstX:   float32(dx3),
-								DstY:   float32(dy3),
-								SrcX:   float32(b.Max.X),
-								SrcY:   float32(b.Max.Y),
-								ColorR: 1,
-								ColorG: 1,
-								ColorB: 1,
-								ColorA: 1,
-							},
-						}
-						is := []uint16{0, 1, 2, 1, 2, 3}
-						op.Filter = f
-						img1.DrawTriangles(vs, is, img0, op)
-					}
-					allTransparent := true
-					for j := range img1Height {
-						for i := range img1Width {
-							c := img1.At(i, j)
-							if c == transparent {
-								continue
-							}
-							allTransparent = false
-							switch f {
-							case ebiten.FilterNearest:
-								if c == red {
-									continue
-								}
-							case ebiten.FilterLinear:
-								if _, g, b, _ := c.RGBA(); g == 0 && b == 0 {
-									continue
-								}
-							}
-							t.Fatalf("img1.At(%d, %d) (filter: %d, scale: %f, angle: %f, draw-triangles?: %t) want: red or transparent, got: %v", i, j, f, s, a, testDrawTriangles, c)
-						}
-					}
-					if allTransparent {
-						t.Fatalf("img1 (filter: %d, scale: %f, angle: %f, draw-triangles?: %t) is transparent but should not", f, s, a, testDrawTriangles)
-					}
+					cases = append(cases, testCase{
+						scale:             s,
+						filter:            f,
+						angle:             a,
+						testDrawTriangles: testDrawTriangles,
+					})
 				}
+			}
+		}
+	}
+
+	w, h := img0.Bounds().Dx(), img0.Bounds().Dy()
+	b := img0.Bounds()
+
+	for start := 0; start < len(cases); start += tilesX * tilesY {
+		batch := cases[start:min(start+tilesX*tilesY, len(cases))]
+
+		dst.Clear()
+		for idx, c := range batch {
+			ox := float64(idx % tilesX * img1Width)
+			oy := float64(idx / tilesX * img1Height)
+			var geo ebiten.GeoM
+			geo.Translate(-float64(w)/2, -float64(h)/2)
+			geo.Scale(c.scale, c.scale)
+			geo.Rotate(c.angle)
+			geo.Translate(ox+img1Width/2, oy+img1Height/2)
+			if !c.testDrawTriangles {
+				op := &ebiten.DrawImageOptions{}
+				op.GeoM = geo
+				op.Filter = c.filter
+				dst.DrawImage(img0, op)
+			} else {
+				op := &ebiten.DrawTrianglesOptions{}
+				dx0, dy0 := geo.Apply(0, 0)
+				dx1, dy1 := geo.Apply(float64(w), 0)
+				dx2, dy2 := geo.Apply(0, float64(h))
+				dx3, dy3 := geo.Apply(float64(w), float64(h))
+				vs := []ebiten.Vertex{
+					{
+						DstX:   float32(dx0),
+						DstY:   float32(dy0),
+						SrcX:   float32(b.Min.X),
+						SrcY:   float32(b.Min.Y),
+						ColorR: 1,
+						ColorG: 1,
+						ColorB: 1,
+						ColorA: 1,
+					},
+					{
+						DstX:   float32(dx1),
+						DstY:   float32(dy1),
+						SrcX:   float32(b.Max.X),
+						SrcY:   float32(b.Min.Y),
+						ColorR: 1,
+						ColorG: 1,
+						ColorB: 1,
+						ColorA: 1,
+					},
+					{
+						DstX:   float32(dx2),
+						DstY:   float32(dy2),
+						SrcX:   float32(b.Min.X),
+						SrcY:   float32(b.Max.Y),
+						ColorR: 1,
+						ColorG: 1,
+						ColorB: 1,
+						ColorA: 1,
+					},
+					{
+						DstX:   float32(dx3),
+						DstY:   float32(dy3),
+						SrcX:   float32(b.Max.X),
+						SrcY:   float32(b.Max.Y),
+						ColorR: 1,
+						ColorG: 1,
+						ColorB: 1,
+						ColorA: 1,
+					},
+				}
+				is := []uint16{0, 1, 2, 1, 2, 3}
+				op.Filter = c.filter
+				dst.DrawTriangles(vs, is, img0, op)
+			}
+		}
+
+		dst.ReadPixels(dstPix)
+
+		for idx, c := range batch {
+			ox := idx % tilesX * img1Width
+			oy := idx / tilesX * img1Height
+			allTransparent := true
+			for j := range img1Height {
+				for i := range img1Width {
+					k := 4 * ((oy+j)*dstWidth + ox + i)
+					clr := color.RGBA{R: dstPix[k], G: dstPix[k+1], B: dstPix[k+2], A: dstPix[k+3]}
+					if clr == transparent {
+						continue
+					}
+					allTransparent = false
+					switch c.filter {
+					case ebiten.FilterNearest:
+						if clr == red {
+							continue
+						}
+					case ebiten.FilterLinear:
+						if _, g, b, _ := clr.RGBA(); g == 0 && b == 0 {
+							continue
+						}
+					}
+					t.Fatalf("img1.At(%d, %d) (filter: %d, scale: %f, angle: %f, draw-triangles?: %t) want: red or transparent, got: %v", i, j, c.filter, c.scale, c.angle, c.testDrawTriangles, clr)
+				}
+			}
+			if allTransparent {
+				t.Fatalf("img1 (filter: %d, scale: %f, angle: %f, draw-triangles?: %t) is transparent but should not", c.filter, c.scale, c.angle, c.testDrawTriangles)
 			}
 		}
 	}
@@ -1093,7 +1148,7 @@ func TestImageMiamapAndDrawTriangle(t *testing.T) {
 	op.Filter = ebiten.FilterLinear
 	img0.DrawImage(img1, op)
 
-	// Call DrawTriangle on img1 and fill it with green
+	// Call DrawTriangles on img1 and fill it with green
 	img2.Fill(color.RGBA{G: 0xff, A: 0xff})
 	vs := []ebiten.Vertex{
 		{
@@ -2286,7 +2341,7 @@ func TestImageDrawTrianglesShaderInterpolatesValues(t *testing.T) {
 	is := []uint16{0, 1, 2, 1, 2, 3}
 	shader, err := ebiten.NewShader([]byte(`
 		package main
-		func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+		func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 			return color
 		}
 	`))
@@ -2786,7 +2841,7 @@ func TestImageEvenOdd(t *testing.T) {
 		}
 	}
 
-	// Do the same thing but with split DrawTriangle calls. This confirms that the even-odd rule is applied for one call.
+	// Do the same thing but with split DrawTriangles calls. This confirms that the even-odd rule is applied for one call.
 	for i := range vs0 {
 		vs0[i].DstX--
 		vs0[i].DstY--
@@ -2969,7 +3024,7 @@ func TestImageFillRule(t *testing.T) {
 				}
 			}
 
-			// Do the same thing but with split DrawTriangle calls. This confirms that fill rules are applied for one call.
+			// Do the same thing but with split DrawTriangles calls. This confirms that fill rules are applied for one call.
 			for i := range vs0 {
 				vs0[i].DstX--
 				vs0[i].DstY--
@@ -4042,7 +4097,25 @@ func TestImageBlendFactor(t *testing.T) {
 	}
 
 	const w, h = 16, 1
-	dst := ebiten.NewImage(w, h)
+
+	factors := []ebiten.BlendFactor{
+		ebiten.BlendFactorZero,
+		ebiten.BlendFactorOne,
+		ebiten.BlendFactorSourceColor,
+		ebiten.BlendFactorOneMinusSourceColor,
+		ebiten.BlendFactorSourceAlpha,
+		ebiten.BlendFactorOneMinusSourceAlpha,
+		ebiten.BlendFactorDestinationColor,
+		ebiten.BlendFactorOneMinusDestinationColor,
+		ebiten.BlendFactorDestinationAlpha,
+		ebiten.BlendFactorOneMinusDestinationAlpha,
+	}
+
+	// The destination-factor combinations are laid out one per row of dst, so that a batch of
+	// them can be verified with a single read-back instead of one read-back each.
+	rows := len(factors) * len(factors)
+
+	dst := ebiten.NewImage(w, rows)
 	src := ebiten.NewImage(w, h)
 
 	dstColor := func(i int) (byte, byte, byte, byte) {
@@ -4064,13 +4137,16 @@ func TestImageBlendFactor(t *testing.T) {
 		return byte(x)
 	}
 
-	dstPix := make([]byte, 4*w*h)
-	for i := range w {
-		r, g, b, a := dstColor(i)
-		dstPix[4*i] = r
-		dstPix[4*i+1] = g
-		dstPix[4*i+2] = b
-		dstPix[4*i+3] = a
+	dstPix := make([]byte, 4*w*rows)
+	for j := range rows {
+		for i := range w {
+			r, g, b, a := dstColor(i)
+			idx := 4 * (j*w + i)
+			dstPix[idx] = r
+			dstPix[idx+1] = g
+			dstPix[idx+2] = b
+			dstPix[idx+3] = a
+		}
 	}
 	srcPix := make([]byte, 4*w*h)
 	for i := range w {
@@ -4082,25 +4158,16 @@ func TestImageBlendFactor(t *testing.T) {
 	}
 	src.WritePixels(srcPix)
 
-	factors := []ebiten.BlendFactor{
-		ebiten.BlendFactorZero,
-		ebiten.BlendFactorOne,
-		ebiten.BlendFactorSourceColor,
-		ebiten.BlendFactorOneMinusSourceColor,
-		ebiten.BlendFactorSourceAlpha,
-		ebiten.BlendFactorOneMinusSourceAlpha,
-		ebiten.BlendFactorDestinationColor,
-		ebiten.BlendFactorOneMinusDestinationColor,
-		ebiten.BlendFactorDestinationAlpha,
-		ebiten.BlendFactorOneMinusDestinationAlpha,
-	}
+	gotPix := make([]byte, 4*w*rows)
+
 	for _, srcRGBFactor := range factors {
 		for _, srcAlphaFactor := range factors {
-			for _, dstRGBFactor := range factors {
-				for _, dstAlphaFactor := range factors {
-					// Reset the destination state.
-					dst.WritePixels(dstPix)
+			// Reset the destination state.
+			dst.WritePixels(dstPix)
+			for j, dstRGBFactor := range factors {
+				for k, dstAlphaFactor := range factors {
 					op := &ebiten.DrawImageOptions{}
+					op.GeoM.Translate(0, float64(j*len(factors)+k))
 					op.Blend = ebiten.Blend{
 						BlendFactorSourceRGB:        srcRGBFactor,
 						BlendFactorSourceAlpha:      srcAlphaFactor,
@@ -4110,8 +4177,15 @@ func TestImageBlendFactor(t *testing.T) {
 						BlendOperationAlpha:         ebiten.BlendOperationAdd,
 					}
 					dst.DrawImage(src, op)
+				}
+			}
+			dst.ReadPixels(gotPix)
+			for j, dstRGBFactor := range factors {
+				for k, dstAlphaFactor := range factors {
+					row := j*len(factors) + k
 					for i := range w {
-						got := dst.At(i, 0).(color.RGBA)
+						idx := 4 * (row*w + i)
+						got := color.RGBA{R: gotPix[idx], G: gotPix[idx+1], B: gotPix[idx+2], A: gotPix[idx+3]}
 
 						sr, sg, sb, sa := colorToFloats(srcColor(i))
 						dr, dg, db, da := colorToFloats(dstColor(i))
@@ -4239,7 +4313,7 @@ func TestImageBlendFactor(t *testing.T) {
 							A: clamp(int(a * 0xff)),
 						}
 						if !sameColors(got, want, 1) {
-							t.Errorf("dst.At(%d, 0): factors: %d, %d, %d, %d: got: %v, want: %v", i, srcRGBFactor, srcAlphaFactor, dstRGBFactor, dstAlphaFactor, got, want)
+							t.Errorf("color at %d: factors: %d, %d, %d, %d: got: %v, want: %v", i, srcRGBFactor, srcAlphaFactor, dstRGBFactor, dstAlphaFactor, got, want)
 						}
 					}
 				}
@@ -4501,7 +4575,7 @@ func TestImageDrawTrianglesShaderWithGreaterIndexThanVerticesCount(t *testing.T)
 	is := []uint16{0, 1, 2, 1, 2, 4}
 	shader, err := ebiten.NewShader([]byte(`
 		package main
-		func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+		func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 			return color
 		}
 	`))
@@ -4525,7 +4599,7 @@ func TestImageGeoMAfterDraw(t *testing.T) {
 
 package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	return vec4(1)
 }
 `))
@@ -4783,11 +4857,11 @@ func TestImageDrawTrianglesShader32(t *testing.T) {
 
 package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	// imageSrcNOrigin is actually not necessary here.
 	// As no source image is bounded, the source's origin position is (0, 0).
 	// However, let's use this function for readability.
-	p := srcPos - imageSrc0Origin()
+	p := src0Pos - imageSrc0Origin()
 	return vec4(floor(p.x) / 16, floor(p.y) / 16, 1, 1)
 }
 `))

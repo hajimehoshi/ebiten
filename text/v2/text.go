@@ -34,6 +34,10 @@ type Face interface {
 	// Metrics returns the metrics for this Face.
 	Metrics() Metrics
 
+	// advanceAt returns the visual distance from the line's origin to the caret
+	// at indexInBytes. Only the first line of text is considered: content from
+	// the first line break onward is ignored, and an indexInBytes on or past the
+	// first line break is treated as the end of the first line.
 	advanceAt(text string, indexInBytes int) float64
 
 	hasGlyph(r rune) bool

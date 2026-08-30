@@ -52,6 +52,36 @@ func TestColorMInit(t *testing.T) {
 	}
 }
 
+func TestColorMElementOutOfIndex(t *testing.T) {
+	indices := [][2]int{
+		{-1, 0},
+		{0, -1},
+		{colorm.Dim - 1, 0},
+		{0, colorm.Dim},
+	}
+	for _, index := range indices {
+		i, j := index[0], index[1]
+		func() {
+			defer func() {
+				if r := recover(); r == nil {
+					t.Errorf("m.Element(%d, %d) must panic but not", i, j)
+				}
+			}()
+			var m colorm.ColorM
+			_ = m.Element(i, j)
+		}()
+		func() {
+			defer func() {
+				if r := recover(); r == nil {
+					t.Errorf("m.SetElement(%d, %d, 0) must panic but not", i, j)
+				}
+			}()
+			var m colorm.ColorM
+			m.SetElement(i, j, 0)
+		}()
+	}
+}
+
 func TestColorMAssign(t *testing.T) {
 	var m colorm.ColorM
 	m.SetElement(0, 0, 1)

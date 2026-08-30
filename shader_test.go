@@ -33,7 +33,7 @@ func TestShaderFill(t *testing.T) {
 
 package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	return vec4(1, 0, 0, 1)
 }
 `))
@@ -65,7 +65,7 @@ func TestShaderFillWithDrawImage(t *testing.T) {
 
 package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	return vec4(1, 0, 0, 1)
 }
 `))
@@ -102,8 +102,8 @@ func TestShaderWithDrawImageDoesNotWreckTextureUnits(t *testing.T) {
 
 package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
-	return imageSrc0At(srcPos)
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return imageSrc0At(src0Pos)
 }
 `))
 	if err != nil {
@@ -172,7 +172,7 @@ func TestShaderFillWithDrawTriangles(t *testing.T) {
 
 package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	return vec4(1, 0, 0, 1)
 }
 `))
@@ -253,7 +253,7 @@ func clr(red float) (float, float, float, float) {
 	return red, 0, 0, 1
 }
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	return vec4(clr(1))
 }
 `))
@@ -284,7 +284,7 @@ package main
 
 var U vec4
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	return U
 }
 `))
@@ -313,7 +313,7 @@ func TestShaderMatrix(t *testing.T) {
 
 package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	var a, b mat4
 	a[0] = vec4(0.125, 0.0625, 0.0625, 0.0625)
 	a[1] = vec4(0.25, 0.25, 0.0625, 0.1875)
@@ -353,9 +353,9 @@ func TestShaderSubImage(t *testing.T) {
 
 package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
-	r := imageSrc0At(srcPos).r
-	g := imageSrc1At(srcPos).g
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	r := imageSrc0At(src0Pos).r
+	g := imageSrc1AtFromSrc0Pos(src0Pos).g
 	return vec4(r, g, 0, 1)
 }
 `))
@@ -481,8 +481,8 @@ func TestShaderDerivatives(t *testing.T) {
 
 package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
-	p := imageSrc0At(srcPos)
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	p := imageSrc0At(src0Pos)
 	return vec4(abs(dfdx(p.r)), abs(dfdy(p.g)), 0, 1)
 }
 `))
@@ -543,8 +543,8 @@ func Foo(p vec4) vec4 {
 	return vec4(abs(dfdx(p.r)), abs(dfdy(p.g)), 0, 1)
 }
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
-	p := imageSrc0At(srcPos)
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	p := imageSrc0At(src0Pos)
 	return Foo(p)
 }
 `))
@@ -605,7 +605,7 @@ package main
 
 var C [2]float
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	return vec4(C[0], 1, 1, 1)
 }`,
 			Uniforms: map[string]any{
@@ -620,7 +620,7 @@ package main
 
 var C [1]float
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	return vec4(C[0], 1, 1, 1)
 }`,
 			Uniforms: map[string]any{
@@ -635,7 +635,7 @@ package main
 
 var C [2]mat2
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	return vec4(C[0][0][0], 1, 1, 1)
 }`,
 			Uniforms: map[string]any{
@@ -676,7 +676,7 @@ func TestShaderFuncMod(t *testing.T) {
 
 package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	r := mod(-0.25, 1.0)
 	return vec4(r, 0, 0, 1)
 }
@@ -712,8 +712,8 @@ func TestShaderMatrixInitialize(t *testing.T) {
 
 package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
-	return mat4(2) * imageSrc0At(srcPos);
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return mat4(2) * imageSrc0At(src0Pos);
 }
 `))
 	if err != nil {
@@ -744,7 +744,7 @@ func TestShaderModVectorAndFloat(t *testing.T) {
 
 package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	r := mod(vec3(0.25, 0.5, 0.75), 0.5)
 	return vec4(r, 1)
 }
@@ -781,8 +781,8 @@ func textureAt(uv vec2) vec4 {
 	return imageSrc0UnsafeAt(uv)
 }
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
-	return textureAt(srcPos)
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return textureAt(src0Pos)
 }
 `))
 	if err != nil {
@@ -815,7 +815,7 @@ func TestShaderAtan2(t *testing.T) {
 
 package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	y := vec4(1, 1, 1, 1)
 	x := vec4(1, 1, 1, 1)
 	return atan2(y, x)
@@ -852,7 +852,7 @@ package main
 var Mat2 mat2
 var F float
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	return vec4(F * Mat2 * vec2(1), 1, 1)
 }
 `))
@@ -892,7 +892,7 @@ package main
 var Mat2 [2]mat2
 var F float
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	return vec4(F * Mat2[0] * Mat2[1] * vec2(1), 1, 1)
 }
 `))
@@ -934,7 +934,7 @@ package main
 var Mat3 mat3
 var F float
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	return vec4(F * Mat3 * vec3(1), 1)
 }
 `))
@@ -975,7 +975,7 @@ package main
 var Mat3 [2]mat3
 var F float
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	return vec4(F * Mat3[0] * Mat3[1] * vec3(1), 1)
 }
 `))
@@ -1019,7 +1019,7 @@ package main
 var Mat4 mat4
 var F float
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	return F * Mat4 * vec4(1)
 }
 `))
@@ -1061,7 +1061,7 @@ package main
 var Mat4 [2]mat4
 var F float
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	return F * Mat4[0] * Mat4[1] * vec4(1)
 }
 `))
@@ -1106,7 +1106,7 @@ package main
 
 var Mat4 mat4
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	return Mat4[1][2] * vec4(1)
 }
 `))
@@ -1143,9 +1143,9 @@ func TestShaderOptionsNegativeBounds(t *testing.T) {
 
 package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
-	r := imageSrc0At(srcPos).r
-	g := imageSrc1At(srcPos).g
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	r := imageSrc0At(src0Pos).r
+	g := imageSrc1AtFromSrc0Pos(src0Pos).g
 	return vec4(r, g, 0, 1)
 }
 `))
@@ -1273,7 +1273,7 @@ func TestShaderVectorEqual(t *testing.T) {
 
 package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	a := vec3(1)
 	b := vec3(1)
 	if a == b {
@@ -1323,8 +1323,8 @@ func TestShaderDiscard(t *testing.T) {
 
 package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
-	p := imageSrc0At(srcPos)
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	p := imageSrc0At(src0Pos)
 	if p.a == 0 {
 		discard()
 	} else {
@@ -1370,11 +1370,11 @@ func TestShaderDrawRect(t *testing.T) {
 
 package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
-	// Adjust srcPos into [0, 1].
-	srcPos -= imageSrc0Origin()
-	srcPos /= imageSrc0Size()
-	if srcPos.x >= 0.5 && srcPos.y >= 0.5 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	// Adjust src0Pos into [0, 1].
+	src0Pos -= imageSrc0Origin()
+	src0Pos /= imageSrc0Size()
+	if src0Pos.x >= 0.5 && src0Pos.y >= 0.5 {
 		return vec4(1, 0, 0, 1)
 	}
 	return vec4(0, 1, 0, 1)
@@ -1418,7 +1418,7 @@ func TestShaderDrawRectColorScale(t *testing.T) {
 
 package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	return color
 }
 `))
@@ -1455,7 +1455,7 @@ var U1 int
 var U2 int
 var U3 int
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	return vec4(float(U0)/255.0, float(U1)/255.0, float(U2)/255.0, float(U3)/255.0)
 }
 `
@@ -1466,7 +1466,7 @@ package main
 
 var U [4]int
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	return vec4(float(U[0])/255.0, float(U[1])/255.0, float(U[2])/255.0, float(U[3])/255.0)
 }
 `
@@ -1478,7 +1478,7 @@ package main
 var U0 ivec4
 var U1 [2]ivec3
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	return vec4(float(U0.x)/255.0, float(U0.y)/255.0, float(U1[0].z)/255.0, float(U1[1].x)/255.0)
 }
 `
@@ -1653,7 +1653,7 @@ package main
 
 var U [4]vec3
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	return vec4(U[0].x/255.0, U[1].y/255.0, U[2].z/255.0, U[3].x/255.0)
 }
 `
@@ -1724,7 +1724,7 @@ return vec4(b)/255`,
 
 package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	%s
 }
 `, tc.source)
@@ -1758,8 +1758,8 @@ func TestShaderTexelAndPixel(t *testing.T) {
 
 package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
-	pos := (srcPos - imageSrc0Origin()) / imageSrc0Size()
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	pos := (src0Pos - imageSrc0Origin()) / imageSrc0Size()
 	pos *= vec2(%d, %d)
 	pos /= 255
 	return vec4(pos.x, pos.y, 0, 1)
@@ -1772,8 +1772,8 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
-	pos := srcPos - imageSrc0Origin()
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	pos := src0Pos - imageSrc0Origin()
 	pos /= 255
 	return vec4(pos.x, pos.y, 0, 1)
 }
@@ -1818,8 +1818,8 @@ func TestShaderDifferentTextureSizes(t *testing.T) {
 
 package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
-	return imageSrc0At(srcPos) + imageSrc1At(srcPos)
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return imageSrc0At(src0Pos) + imageSrc1AtFromSrc0Pos(src0Pos)
 }
 `, unit))
 			if err != nil {
@@ -1848,6 +1848,66 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 	}
 }
 
+func TestShaderAtFromSrc0Pos(t *testing.T) {
+	// The sub-images are at quite different positions on their textures, so a wrong position
+	// conversion results in a wrong color.
+	src0 := ebiten.NewImageWithOptions(image.Rect(0, 0, 20, 4000), &ebiten.NewImageOptions{
+		Unmanaged: true,
+	}).SubImage(image.Rect(4, 1025, 6, 1028)).(*ebiten.Image)
+	defer src0.Deallocate()
+
+	src1 := ebiten.NewImageWithOptions(image.Rect(0, 0, 4000, 20), &ebiten.NewImageOptions{
+		Unmanaged: true,
+	}).SubImage(image.Rect(2047, 7, 2049, 10)).(*ebiten.Image)
+	defer src1.Deallocate()
+
+	src0.Fill(color.RGBA{0x10, 0x20, 0x30, 0xff})
+	src1.Fill(color.RGBA{0x30, 0x20, 0x10, 0xff})
+
+	for _, unit := range []string{"texels", "pixels"} {
+		for _, fn := range []string{
+			"imageSrc1AtFromSrc0Pos",
+			"imageSrc1UnsafeAtFromSrc0Pos",
+			// The deprecated names must keep working.
+			"imageSrc1At",
+			"imageSrc1UnsafeAt",
+		} {
+			t.Run(fmt.Sprintf("unit %s, %s", unit, fn), func(t *testing.T) {
+				shader, err := ebiten.NewShader(fmt.Appendf(nil, `//kage:unit %s
+
+package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return %s(src0Pos)
+}
+`, unit, fn))
+				if err != nil {
+					t.Fatal(err)
+				}
+				defer shader.Deallocate()
+
+				dst := ebiten.NewImage(2, 3)
+				defer dst.Deallocate()
+
+				op := &ebiten.DrawRectShaderOptions{}
+				op.Images[0] = src0
+				op.Images[1] = src1
+				dst.DrawRectShader(2, 3, shader, op)
+
+				for j := range 3 {
+					for i := range 2 {
+						got := dst.At(i, j).(color.RGBA)
+						want := color.RGBA{0x30, 0x20, 0x10, 0xff}
+						if !sameColors(got, want, 1) {
+							t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
+						}
+					}
+				}
+			})
+		}
+	}
+}
+
 func TestShaderTextureSize(t *testing.T) {
 	// The sub-images are on textures far bigger than themselves, and the two textures have different
 	// shapes.
@@ -1869,7 +1929,7 @@ func TestShaderTextureSize(t *testing.T) {
 
 package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	s0 := imageSrc0TextureSize()
 	s1 := imageSrc1TextureSize()
 	d := imageDstTextureSize()
@@ -1928,7 +1988,7 @@ func TestShaderIVec(t *testing.T) {
 
 package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	pos := ivec2(3, 4)
 	return imageSrc0At(vec2(pos) + imageSrc0Origin())
 }
@@ -1959,7 +2019,7 @@ package main
 var U vec4
 var V [3]float
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	return vec4(0)
 }
 `))
@@ -2064,7 +2124,7 @@ package main
 
 var U vec4
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	return U
 }
 `))
@@ -2121,8 +2181,8 @@ func TestShaderDrawRectWithoutSource(t *testing.T) {
 
 package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
-	t := srcPos
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	t := src0Pos
 
 	size := imageSrc0Size()
 
@@ -2135,7 +2195,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 		return vec4(0, 1, 1, 1)
 	}
 
-	// Adjust srcPos into [0, 1].
+	// Adjust src0Pos into [0, 1].
 	t -= imageSrc0Origin()
 	if size != vec2(0) {
 		t /= size
@@ -2204,9 +2264,9 @@ func TestShaderMatrixDivFloat(t *testing.T) {
 
 package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	var x = 2.0
-	return mat4(3) / x * imageSrc0At(srcPos);
+	return mat4(3) / x * imageSrc0At(src0Pos);
 }
 `))
 	if err != nil {
@@ -2255,8 +2315,8 @@ func TestShaderDifferentSourceSizes(t *testing.T) {
 
 package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
-	return imageSrc0At(srcPos) + imageSrc1At(srcPos)
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return imageSrc0At(src0Pos) + imageSrc1AtFromSrc0Pos(src0Pos)
 }
 `, unit))
 			if err != nil {
@@ -2369,8 +2429,8 @@ func TestShaderBitwiseOperator(t *testing.T) {
 
 package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
-	v := ivec4(imageSrc0At(srcPos) * 0xff)
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	v := ivec4(imageSrc0At(src0Pos) * 0xff)
 %s
 	return vec4(v) / 0xff;
 }
@@ -2405,7 +2465,7 @@ func TestShaderDispose(t *testing.T) {
 
 package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	return vec4(1, 0, 0, 1)
 }
 `))
@@ -2449,7 +2509,7 @@ func TestShaderDeallocate(t *testing.T) {
 
 package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	return vec4(1, 0, 0, 1)
 }
 `))
@@ -2505,7 +2565,7 @@ func foo() [4]float {
 	return [4]float{0.25, 0.5, 0.75, 1}
 }
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	a := foo()
 	return vec4(a[0], a[1], a[2], a[3])
 }
@@ -2539,7 +2599,7 @@ func TestShaderInvalidPremultipliedAlphaColor(t *testing.T) {
 
 package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	return vec4(1, 0.75, 0.5, 0.25)
 }
 `))
@@ -2564,7 +2624,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	return vec4(1, 0.75, 0.5, 0)
 }
 `))
@@ -2594,7 +2654,7 @@ func TestShaderIncDecStmt(t *testing.T) {
 
 package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	a := 0
 	a++
 	b := -0.5
@@ -2628,7 +2688,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 
 package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	a := 1
 	a--
 	b := 1.5
@@ -2666,7 +2726,7 @@ func TestShaderAssignConst(t *testing.T) {
 
 package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	a := 0.0
 	a = 1
 	b, c := 0.0, 0.0
@@ -2701,7 +2761,7 @@ func TestShaderCustomValues(t *testing.T) {
 
 package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4, custom vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4, custom vec4) vec4 {
 	return custom
 }
 `))
@@ -2809,7 +2869,7 @@ func Fragment(dstPos vec4) vec4 {
 
 package main
 
-func Fragment(dstPos vec4, srcPos vec2) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2) vec4 {
 	return vec4(0, 0, 1, 1)
 }
 `))
@@ -2891,7 +2951,7 @@ func TestShaderArray(t *testing.T) {
 
 package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	a := [4]float{1}
 	b := [4]float{1, 1}
 	c := [4]float{1, 1, 1}
@@ -2925,7 +2985,7 @@ func TestShaderArrayComparison(t *testing.T) {
 
 package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	i0 := [2]int{1, 2}
 	i1 := [2]int{1, 2}
 	i2 := [2]int{1, 3}
@@ -2982,7 +3042,7 @@ func TestShaderSwap(t *testing.T) {
 
 package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	a := 0.25
 	b := 0.5
 	a, b = b, a
@@ -3012,7 +3072,7 @@ func TestShaderVectorAndScalarMinMax(t *testing.T) {
 	dst := ebiten.NewImage(w, h)
 	s, err := ebiten.NewShader([]byte(`//kage:unit pixels
 package main
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	a := min(vec2(0.375, 0.5), 0.25)
 	b := max(vec2(0.625, 0.5), 0.75)
 	return vec4(a, b)
@@ -3041,7 +3101,7 @@ func TestShaderVariadicMinMax(t *testing.T) {
 	dst := ebiten.NewImage(w, h)
 	s, err := ebiten.NewShader([]byte(`//kage:unit pixels
 package main
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	a := min(0.25, 0.375, 0.5, 0.625, 0.75)
 	b := max(0.75, 0.625, 0.5, 0.375, 0.25)
 	return vec4(float(a), float(b), 0.75, 1)
@@ -3076,7 +3136,7 @@ var B1 bool
 var B2 [2]bool
 var B3 bool
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	var r, g, b, a float
 	if B1 {
 		r = 1.0
@@ -3124,7 +3184,7 @@ func TestShaderFrontFacing(t *testing.T) {
 
 package main
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	if frontfacing() {
 		return vec4(0.5, 0, 0, 1)
 	}

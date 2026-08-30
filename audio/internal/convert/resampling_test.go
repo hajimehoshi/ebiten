@@ -16,6 +16,7 @@ package convert_test
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"math"
@@ -165,6 +166,68 @@ func TestResampling(t *testing.T) {
 	}
 }
 
+func TestResamplingSeekNegative(t *testing.T) {
+	for _, bitDepthInBytes := range []int{2, 4} {
+		t.Run(fmt.Sprintf("bitDepthInBytes=%d", bitDepthInBytes), func(t *testing.T) {
+			inB := newSoundBytes(44100, bitDepthInBytes)
+			r := convert.NewResampling(bytes.NewReader(inB), int64(len(inB)), 44100, 48000, bitDepthInBytes)
+
+			if _, err := r.Seek(-1, io.SeekStart); err == nil {
+				t.Error("Seek(-1, io.SeekStart): expected an error but got none")
+			}
+			if _, err := r.Seek(0, io.SeekStart); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := r.Seek(-1, io.SeekCurrent); err == nil {
+				t.Error("Seek(-1, io.SeekCurrent): expected an error but got none")
+			}
+
+			// io.SeekEnd must be relative to the end, not to the current position.
+			if _, err := r.Seek(0, io.SeekStart); err != nil {
+				t.Fatal(err)
+			}
+			fromStart, err := r.Seek(-1000, io.SeekEnd)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err := r.Seek(4000, io.SeekStart); err != nil {
+				t.Fatal(err)
+			}
+			fromMiddle, err := r.Seek(-1000, io.SeekEnd)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if fromStart != fromMiddle {
+				t.Errorf("Seek(-1000, io.SeekEnd) must not depend on the current position: from 0: %d, from 4000: %d", fromStart, fromMiddle)
+			}
+
+			// A negative result from io.SeekEnd must be rejected even from a non-zero position.
+			if _, err := r.Seek(4000, io.SeekStart); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := r.Seek(-r.Length()-1, io.SeekEnd); err == nil {
+				t.Error("Seek(-Length()-1, io.SeekEnd): expected an error but got none")
+			}
+
+			// The stream must not be broken by the failed seeks.
+			pos, err := r.Seek(0, io.SeekStart)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got, want := pos, int64(0); got != want {
+				t.Errorf("Seek(0, io.SeekStart): got: %d, want: %d", got, want)
+			}
+			n, err := r.Read(make([]byte, 64))
+			if err != nil {
+				t.Fatalf("Read after Seek(0): %v", err)
+			}
+			if got, want := n, 64; got != want {
+				t.Errorf("Read: got: %d, want: %d", got, want)
+			}
+		})
+	}
+}
+
 // Issue #3352
 func TestResamplingLen(t *testing.T) {
 	buf := make([]byte, 8*48000)
@@ -179,5 +242,155 @@ func TestResamplingLen(t *testing.T) {
 	}
 	if got, want := len(decodedBuf), int(len(buf)*2); got != want {
 		t.Errorf("got: %d, want: %d", got, want)
+	}
+}
+
+func newTestSoundBytes16(n int) []byte {
+	b := make([]byte, n*4)
+	for i := range n {
+		b[4*i] = byte(i)
+		b[4*i+1] = byte(i >> 8)
+		b[4*i+2] = byte(255 - i)
+		b[4*i+3] = byte((255 - i) >> 8)
+	}
+	return b
+}
+
+func TestResamplingSeekEndAbsolute(t *testing.T) {
+	in := newTestSoundBytes16(1000)
+
+	r := convert.NewResampling(bytes.NewReader(in), int64(len(in)), 44100, 44100, 2)
+	got, err := r.Seek(-4, io.SeekEnd)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := r.Length() - 4; got != want {
+		t.Errorf("Seek(-4, io.SeekEnd) from the start: got %d, want %d", got, want)
+	}
+
+	r2 := convert.NewResampling(bytes.NewReader(in), int64(len(in)), 44100, 44100, 2)
+	buf := make([]byte, 2000)
+	for len(buf) > 0 {
+		n, err := r2.Read(buf)
+		if err != nil && err != io.EOF {
+			t.Fatal(err)
+		}
+		if n == 0 {
+			t.Fatal("Read made no progress")
+		}
+		buf = buf[n:]
+	}
+	got2, err := r2.Seek(-4, io.SeekEnd)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got2 != got {
+		t.Errorf("Seek(-4, io.SeekEnd) after reading 2000 bytes: got %d, want %d (the result must not depend on the current position)", got2, got)
+	}
+
+	b := make([]byte, 8)
+	n, err := r2.Read(b)
+	if n != 4 || (err != nil && err != io.EOF) {
+		t.Errorf("Read at (Length-4) after Seek(-4, io.SeekEnd): got n=%d, err=%v; want n=4", n, err)
+	}
+}
+
+func TestResamplingSeekEndZero(t *testing.T) {
+	in := newTestSoundBytes16(500)
+	r := convert.NewResampling(bytes.NewReader(in), int64(len(in)), 44100, 44100, 2)
+
+	buf := make([]byte, 1000)
+	if _, err := r.Read(buf); err != nil && err != io.EOF {
+		t.Fatal(err)
+	}
+
+	got, err := r.Seek(0, io.SeekEnd)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := r.Length(); got != want {
+		t.Errorf("Seek(0, io.SeekEnd): got %d, want %d", got, want)
+	}
+	if want := int64(len(in)); r.Length() != want {
+		t.Errorf("Length: got %d, want %d", r.Length(), want)
+	}
+}
+
+func TestResamplingSeekUnknownLength(t *testing.T) {
+	const (
+		from            = 44100
+		to              = 48000
+		bitDepthInBytes = 2
+		bytesPerSample  = bitDepthInBytes * 2
+	)
+
+	inB := newSoundBytes(from, bitDepthInBytes)
+
+	// Read the entire stream whose length is known, in order to get the expected values.
+	full, err := io.ReadAll(convert.NewResampling(bytes.NewReader(inB), int64(len(inB)), from, to, bitDepthInBytes))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// 0 as a size indicates that the length is unknown.
+	r := convert.NewResampling(bytes.NewReader(inB), 0, from, to, bitDepthInBytes)
+
+	const offset = 4000
+	pos, err := r.Seek(offset, io.SeekStart)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := pos, int64(offset); got != want {
+		t.Errorf("Seek(%d, io.SeekStart): got %d, want %d", offset, got, want)
+	}
+
+	// An offset that is not aligned with a sample should be rounded down.
+	pos, err = r.Seek(offset+bytesPerSample-1, io.SeekStart)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := pos, int64(offset); got != want {
+		t.Errorf("Seek(%d, io.SeekStart): got %d, want %d", offset+bytesPerSample-1, got, want)
+	}
+
+	pos, err = r.Seek(bytesPerSample, io.SeekCurrent)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := pos, int64(offset+bytesPerSample); got != want {
+		t.Errorf("Seek(%d, io.SeekCurrent): got %d, want %d", bytesPerSample, got, want)
+	}
+
+	if _, err := r.Seek(offset, io.SeekStart); err != nil {
+		t.Fatal(err)
+	}
+	buf := make([]byte, 400)
+	if _, err := io.ReadFull(r, buf); err != nil {
+		t.Fatal(err)
+	}
+	if got, want := buf, full[offset:offset+len(buf)]; !bytes.Equal(got, want) {
+		t.Errorf("reading after Seek(%d, io.SeekStart) returned unexpected bytes", offset)
+	}
+
+	// Seeking from the end is not possible when the length is unknown.
+	if _, err := r.Seek(0, io.SeekEnd); !errors.Is(err, errors.ErrUnsupported) {
+		t.Errorf("Seek(0, io.SeekEnd): got %v, want an error matching errors.ErrUnsupported", err)
+	}
+}
+
+func TestResamplingSeekInvalidWhence(t *testing.T) {
+	const (
+		from            = 44100
+		to              = 48000
+		bitDepthInBytes = 2
+	)
+
+	inB := newSoundBytes(from, bitDepthInBytes)
+	r := convert.NewResampling(bytes.NewReader(inB), int64(len(inB)), from, to, bitDepthInBytes)
+
+	for _, whence := range []int{-1, 3, 100} {
+		if _, err := r.Seek(0, whence); err == nil {
+			t.Errorf("Seek(0, %d): got no error, want an error", whence)
+		}
 	}
 }
