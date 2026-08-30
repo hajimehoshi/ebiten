@@ -15,16 +15,42 @@
 package vmhost_test
 
 import (
+	"fmt"
 	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2/exp/vmhost"
 )
+
+var (
+	guestBinCache sync.Map
+	guestBinDir   string
+	guestBinOnce  sync.Once
+	guestBinCount atomic.Int64
+)
+
+type guestCacheKey struct {
+	pkgPath    string
+	activation guestActivation
+}
+
+func guestBinDirForTests() string {
+	guestBinOnce.Do(func() {
+		dir, err := os.MkdirTemp("", "vmhost-guest")
+		if err != nil {
+			panic(fmt.Sprintf("creating the guest build directory failed: %v", err))
+		}
+		guestBinDir = dir
+	})
+	return guestBinDir
+}
 
 // guestActivation selects how a test guest is activated.
 type guestActivation int
@@ -96,7 +122,12 @@ func startGuestWithOptions(t *testing.T, pkgPath string, activation guestActivat
 func buildGuest(t *testing.T, pkgPath string, activation guestActivation) string {
 	t.Helper()
 
-	guestBin := filepath.Join(t.TempDir(), "guest")
+	key := guestCacheKey{pkgPath: pkgPath, activation: activation}
+	if v, ok := guestBinCache.Load(key); ok {
+		return v.(string)
+	}
+
+	guestBin := filepath.Join(guestBinDirForTests(), fmt.Sprintf("guest_%d", guestBinCount.Add(1)))
 	if runtime.GOOS == "windows" {
 		guestBin += ".exe"
 	}
@@ -110,7 +141,9 @@ func buildGuest(t *testing.T, pkgPath string, activation guestActivation) string
 	if out, err := exec.Command("go", buildArgs...).CombinedOutput(); err != nil {
 		t.Fatalf("building the guest failed: %v\n%s", err, out)
 	}
-	return guestBin
+
+	actual, _ := guestBinCache.LoadOrStore(key, guestBin)
+	return actual.(string)
 }
 
 // tickAndFrame advances the guest one tick, requests a frame, blocks until it is rendered, and
