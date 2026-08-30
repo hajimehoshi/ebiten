@@ -68,6 +68,23 @@ func (s *StereoF32) Seek(offset int64, whence int) (int64, error) {
 	if s.mono {
 		offset /= 2
 	}
+
+	if whence == io.SeekEnd {
+		// The source length is not necessarily a multiple of the frame size.
+		// Resolve the offset from the last whole frame so that the source is
+		// never seeked to the middle of a frame.
+		end, err := s.source.Seek(0, io.SeekEnd)
+		if err != nil {
+			return 0, err
+		}
+		frameSize := int64(8)
+		if s.mono {
+			frameSize = 4
+		}
+		offset += end / frameSize * frameSize
+		whence = io.SeekStart
+	}
+
 	pos, err := s.source.Seek(offset, whence)
 	if err != nil {
 		return 0, err

@@ -130,3 +130,47 @@ func TestStereoF32SeekEnd(t *testing.T) {
 		})
 	}
 }
+
+func TestStereoF32SeekEndUnalignedSource(t *testing.T) {
+	for _, mono := range []bool{false, true} {
+		t.Run(fmt.Sprintf("mono=%t", mono), func(t *testing.T) {
+			// A monaural source has half the bytes per frame.
+			bytesPerFrame := 8
+			if mono {
+				bytesPerFrame /= 2
+			}
+			// Append an incomplete frame to the source.
+			for extra := 1; extra < bytesPerFrame; extra++ {
+				t.Run(fmt.Sprintf("extra=%d", extra), func(t *testing.T) {
+					const frames = 100
+					in := randBytes(frames*bytesPerFrame + extra)
+					s := convert.NewStereoF32(bytes.NewReader(in), mono)
+
+					// The stream is always stereo f32 (8 bytes per frame).
+					whole := make([]byte, frames*8)
+					if _, err := io.ReadFull(s, whole); err != nil {
+						t.Fatal(err)
+					}
+
+					for _, framesFromEnd := range []int64{0, 1, 10, frames} {
+						offset := -8 * framesFromEnd
+						pos, err := s.Seek(offset, io.SeekEnd)
+						if err != nil {
+							t.Fatal(err)
+						}
+						if want := int64(frames*8) + offset; pos != want {
+							t.Errorf("Seek(%d, io.SeekEnd): got %d, want %d", offset, pos, want)
+						}
+						got := make([]byte, framesFromEnd*8)
+						if _, err := io.ReadFull(s, got); err != nil {
+							t.Fatal(err)
+						}
+						if want := whole[int64(len(whole))-framesFromEnd*8:]; !bytes.Equal(got, want) {
+							t.Errorf("reading after Seek(%d, io.SeekEnd): got % x, want % x", offset, got, want)
+						}
+					}
+				})
+			}
+		})
+	}
+}

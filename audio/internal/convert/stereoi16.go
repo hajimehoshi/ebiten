@@ -124,6 +124,23 @@ func (s *StereoI16ReadSeeker) Read(b []byte) (int, error) {
 	return n, err
 }
 
+// sourceFrameSize returns the byte size of one frame of the source.
+func (s *StereoI16ReadSeeker) sourceFrameSize() int64 {
+	var size int64
+	switch s.format {
+	case FormatU8:
+		size = 1
+	case FormatS16:
+		size = 2
+	case FormatS24:
+		size = 3
+	}
+	if !s.mono {
+		size *= 2
+	}
+	return size
+}
+
 func (s *StereoI16ReadSeeker) Seek(offset int64, whence int) (int64, error) {
 	offset = offset / 4 * 4
 	if s.mono {
@@ -137,6 +154,20 @@ func (s *StereoI16ReadSeeker) Seek(offset int64, whence int) (int64, error) {
 		offset *= 3
 		offset /= 2
 	}
+
+	if whence == io.SeekEnd {
+		// The source length is not necessarily a multiple of the frame size.
+		// Resolve the offset from the last whole frame so that the source is
+		// never seeked to the middle of a frame.
+		end, err := s.source.Seek(0, io.SeekEnd)
+		if err != nil {
+			return 0, err
+		}
+		frameSize := s.sourceFrameSize()
+		offset += end / frameSize * frameSize
+		whence = io.SeekStart
+	}
+
 	pos, err := s.source.Seek(offset, whence)
 	if err != nil {
 		return 0, err

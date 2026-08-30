@@ -306,3 +306,71 @@ func TestStereoI16SeekEnd(t *testing.T) {
 		})
 	}
 }
+
+func TestStereoI16SeekEndUnalignedSource(t *testing.T) {
+	testCases := []struct {
+		name               string
+		format             convert.Format
+		sourceBytesPerUnit int
+	}{
+		{
+			name:               "S16",
+			format:             convert.FormatS16,
+			sourceBytesPerUnit: 2,
+		},
+		{
+			name:               "U8",
+			format:             convert.FormatU8,
+			sourceBytesPerUnit: 1,
+		},
+		{
+			name:               "S24",
+			format:             convert.FormatS24,
+			sourceBytesPerUnit: 3,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			for _, mono := range []bool{false, true} {
+				t.Run(fmt.Sprintf("mono=%t", mono), func(t *testing.T) {
+					bytesPerFrame := tc.sourceBytesPerUnit
+					if !mono {
+						bytesPerFrame *= 2
+					}
+					// Append an incomplete frame to the source.
+					for extra := 1; extra < bytesPerFrame; extra++ {
+						t.Run(fmt.Sprintf("extra=%d", extra), func(t *testing.T) {
+							const frames = 100
+							in := randBytes(frames*bytesPerFrame + extra)
+							s := convert.NewStereoI16ReadSeeker(bytes.NewReader(in), mono, tc.format)
+
+							// The stream is always stereo i16 (4 bytes per frame).
+							whole := make([]byte, frames*4)
+							if _, err := io.ReadFull(s, whole); err != nil {
+								t.Fatal(err)
+							}
+
+							for _, framesFromEnd := range []int64{0, 1, 10, frames} {
+								offset := -4 * framesFromEnd
+								pos, err := s.Seek(offset, io.SeekEnd)
+								if err != nil {
+									t.Fatal(err)
+								}
+								if want := int64(frames*4) + offset; pos != want {
+									t.Errorf("Seek(%d, io.SeekEnd): got %d, want %d", offset, pos, want)
+								}
+								got := make([]byte, framesFromEnd*4)
+								if _, err := io.ReadFull(s, got); err != nil {
+									t.Fatal(err)
+								}
+								if want := whole[int64(len(whole))-framesFromEnd*4:]; !bytes.Equal(got, want) {
+									t.Errorf("reading after Seek(%d, io.SeekEnd): got % x, want % x", offset, got, want)
+								}
+							}
+						})
+					}
+				})
+			}
+		})
+	}
+}
