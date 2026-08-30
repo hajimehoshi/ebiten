@@ -437,3 +437,79 @@ func TestFillPathFillRule(t *testing.T) {
 		})
 	}
 }
+
+func TestBounds(t *testing.T) {
+	testCases := []struct {
+		name string
+		path func(p *vector.Path)
+		want image.Rectangle
+	}{
+		{
+			name: "empty",
+			path: func(p *vector.Path) {},
+			want: image.Rectangle{},
+		},
+		{
+			name: "moveTo only",
+			path: func(p *vector.Path) {
+				p.MoveTo(100, 50)
+			},
+			want: image.Rectangle{},
+		},
+		{
+			name: "horizontal line",
+			path: func(p *vector.Path) {
+				p.MoveTo(100, 50)
+				p.LineTo(200, 50)
+			},
+			want: image.Rect(100, 50, 200, 50),
+		},
+		{
+			name: "vertical line",
+			path: func(p *vector.Path) {
+				p.MoveTo(50, 10)
+				p.LineTo(50, 100)
+			},
+			want: image.Rect(50, 10, 50, 100),
+		},
+		{
+			name: "diagonal line",
+			path: func(p *vector.Path) {
+				p.MoveTo(10.5, 20.5)
+				p.LineTo(30.5, 40.5)
+			},
+			want: image.Rect(10, 20, 31, 41),
+		},
+		{
+			name: "two horizontal lines",
+			path: func(p *vector.Path) {
+				p.MoveTo(100, 50)
+				p.LineTo(200, 50)
+				p.MoveTo(120, 80)
+				p.LineTo(220, 80)
+			},
+			want: image.Rect(100, 50, 220, 80),
+		},
+		{
+			name: "rectangle",
+			path: func(p *vector.Path) {
+				p.MoveTo(10, 20)
+				p.LineTo(30, 20)
+				p.LineTo(30, 40)
+				p.LineTo(10, 40)
+				p.Close()
+			},
+			want: image.Rect(10, 20, 30, 40),
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			var p vector.Path
+			tc.path(&p)
+			if got, want := p.Bounds(), tc.want; got != want {
+				t.Errorf("got: %v, want: %v", got, want)
+			}
+		})
+	}
+}

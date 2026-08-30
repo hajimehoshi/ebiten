@@ -717,18 +717,22 @@ func ceil(x float32) int {
 }
 
 // Bounds returns the minimum bounding rectangle of the path.
+// The rectangle can have a zero width or height when the path is degenerate in an axis, like a horizontal line.
+// Bounds returns the zero rectangle when the path has no drawing operations.
 func (p *Path) Bounds() image.Rectangle {
 	// Note that (image.Rectangle).Union doesn't work well with empty rectangles.
 	totalMinX := math.MaxInt
 	totalMinY := math.MaxInt
 	totalMaxX := math.MinInt
 	totalMaxY := math.MinInt
+	var found bool
 
 	for i := range p.subPaths {
 		subPath := &p.subPaths[i]
-		if !subPath.isValid() {
+		if !subPath.isValid() || len(subPath.ops) == 0 {
 			continue
 		}
+		found = true
 
 		minX := math.MaxInt
 		minY := math.MaxInt
@@ -784,7 +788,7 @@ func (p *Path) Bounds() image.Rectangle {
 		totalMaxX = max(totalMaxX, maxX)
 		totalMaxY = max(totalMaxY, maxY)
 	}
-	if totalMinX >= totalMaxX || totalMinY >= totalMaxY {
+	if !found {
 		return image.Rectangle{}
 	}
 	return image.Rect(totalMinX, totalMinY, totalMaxX, totalMaxY)
