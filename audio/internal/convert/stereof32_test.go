@@ -16,6 +16,7 @@ package convert_test
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"math"
@@ -170,6 +171,23 @@ func TestStereoF32SeekEndUnalignedSource(t *testing.T) {
 						}
 					}
 				})
+			}
+		})
+	}
+}
+
+func TestStereoF32ShortBuffer(t *testing.T) {
+	for _, mono := range []bool{false, true} {
+		t.Run(fmt.Sprintf("mono=%t", mono), func(t *testing.T) {
+			r := convert.NewStereoF32(bytes.NewReader(make([]byte, 64)), mono)
+
+			if n, err := r.Read(nil); n != 0 || err != nil {
+				t.Errorf("Read(nil): got (%d, %v), want (0, <nil>)", n, err)
+			}
+			for _, l := range []int{1, 2, 3, 4, 5, 6, 7} {
+				if n, err := r.Read(make([]byte, l)); n != 0 || !errors.Is(err, io.ErrShortBuffer) {
+					t.Errorf("Read(a buffer of %d bytes): got (%d, %v), want (0, %v)", l, n, err, io.ErrShortBuffer)
+				}
 			}
 		})
 	}

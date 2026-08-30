@@ -444,3 +444,44 @@ func TestDecodeDataChunkBeforeFmtChunk(t *testing.T) {
 		t.Errorf("DecodeWithoutResampling: got no error, want an error")
 	}
 }
+
+// shortReader is an io.Reader that returns at most maxN bytes for each Read.
+type shortReader struct {
+	r    *bytes.Reader
+	maxN int
+}
+
+func (s *shortReader) Read(buf []byte) (int, error) {
+	if len(buf) > s.maxN {
+		buf = buf[:s.maxN]
+	}
+	return s.r.Read(buf)
+}
+
+// TestDecodeF32ShortReads tests a source returning fewer bytes than one sample at a time.
+func TestDecodeF32ShortReads(t *testing.T) {
+	data := []byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08}
+	s, err := wav.DecodeF32(&shortReader{r: bytes.NewReader(wavFile(testSampleRate, nil, nil, data)), maxN: 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var got int
+	for {
+		var buf [64]byte
+		n, err := s.Read(buf[:])
+		if n == 0 && err == nil {
+			t.Fatal("Read: got (0, <nil>), want a non-zero byte count or an error")
+		}
+		got += n
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	if want := len(data) * 2; got != want {
+		t.Errorf("read %d bytes, want %d", got, want)
+	}
+}

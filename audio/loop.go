@@ -151,6 +151,15 @@ func (i *InfiniteLoop) blendRate(pos int64) float32 {
 
 // Read is implementation of ReadSeeker's Read.
 func (i *InfiniteLoop) Read(b []byte) (int, error) {
+	if len(b) == 0 {
+		return 0, nil
+	}
+	// A buffer shorter than one sample cannot receive any data, and cannot hold the remainder
+	// carried over from the previous Read.
+	if len(b) < i.bitDepthInBytes {
+		return 0, io.ErrShortBuffer
+	}
+
 	if err := i.ensurePos(); err != nil {
 		return 0, err
 	}
@@ -163,7 +172,18 @@ func (i *InfiniteLoop) Read(b []byte) (int, error) {
 	copy(b, i.extra)
 	i.extra = i.extra[:0]
 
-	n, err := i.src.Read(b[extralen:])
+	// Keep reading until one sample is available so that a source returning less than one sample
+	// at a time doesn't make Read return (0, nil).
+	var n int
+	var err error
+	for {
+		var m int
+		m, err = i.src.Read(b[extralen+n:])
+		n += m
+		if err != nil || m == 0 || extralen+n >= i.bitDepthInBytes {
+			break
+		}
+	}
 	i.pos += int64(n)
 	n += extralen
 	if i.pos > i.length() {

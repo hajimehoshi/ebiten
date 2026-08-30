@@ -42,6 +42,14 @@ func NewStereoI16ReadSeeker(source io.ReadSeeker, mono bool, format Format) *Ste
 }
 
 func (s *StereoI16ReadSeeker) Read(b []byte) (int, error) {
+	if len(b) == 0 {
+		return 0, nil
+	}
+	// A buffer shorter than one destination frame cannot receive any converted data.
+	if len(b) < 4 {
+		return 0, io.ErrShortBuffer
+	}
+
 	l := len(b) / 4 * 4
 	if s.mono {
 		l /= 2

@@ -32,6 +32,14 @@ func NewStereoF32(source io.ReadSeeker, mono bool) *StereoF32 {
 }
 
 func (s *StereoF32) Read(b []byte) (int, error) {
+	if len(b) == 0 {
+		return 0, nil
+	}
+	// A buffer shorter than one destination frame cannot receive any converted data.
+	if len(b) < 8 {
+		return 0, io.ErrShortBuffer
+	}
+
 	l := len(b) / 8 * 8
 	if s.mono {
 		l /= 2

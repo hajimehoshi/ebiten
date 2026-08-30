@@ -16,6 +16,7 @@ package audio_test
 
 import (
 	"bytes"
+	"errors"
 	"io"
 	"math"
 	"testing"
@@ -224,50 +225,22 @@ func TestInfiniteLoopWithSlowSource(t *testing.T) {
 	buf := make([]byte, 4096)
 
 	// With a slow source, whose Read always reads at most one byte,
-	// an infinite loop should adjust the reading size along with bitDepthInBytes (= 2).
+	// an infinite loop should return whole samples (bitDepthInBytes = 2) instead of no bytes.
 
-	n0, err := loop.Read(buf)
-	if err != nil {
-		t.Error(err)
-	}
-	if got, want := n0, 0; got != want {
-		t.Errorf("got: %d, want: %d", got, want)
-	}
-
-	n1, err := loop.Read(buf)
-	if err != nil {
-		t.Error(err)
-	}
-	if got, want := n1, 2; got != want {
-		t.Errorf("got: %d, want: %d", got, want)
-	}
-	if got, want := buf[0], byte(0); got != want {
-		t.Errorf("got: %d, want: %d", got, want)
-	}
-	if got, want := buf[1], byte(1); got != want {
-		t.Errorf("got: %d, want: %d", got, want)
-	}
-
-	n2, err := loop.Read(buf)
-	if err != nil {
-		t.Error(err)
-	}
-	if got, want := n2, 0; got != want {
-		t.Errorf("got: %d, want: %d", got, want)
-	}
-
-	n3, err := loop.Read(buf)
-	if err != nil {
-		t.Error(err)
-	}
-	if got, want := n3, 2; got != want {
-		t.Errorf("got: %d, want: %d", got, want)
-	}
-	if got, want := buf[0], byte(2); got != want {
-		t.Errorf("got: %d, want: %d", got, want)
-	}
-	if got, want := buf[1], byte(3); got != want {
-		t.Errorf("got: %d, want: %d", got, want)
+	for i := range 4 {
+		n, err := loop.Read(buf)
+		if err != nil {
+			t.Error(err)
+		}
+		if got, want := n, 2; got != want {
+			t.Errorf("got: %d, want: %d", got, want)
+		}
+		if got, want := buf[0], byte(2*i); got != want {
+			t.Errorf("got: %d, want: %d", got, want)
+		}
+		if got, want := buf[1], byte(2*i+1); got != want {
+			t.Errorf("got: %d, want: %d", got, want)
+		}
 	}
 }
 
@@ -524,5 +497,49 @@ func TestInfiniteLoopSeekInvalidWhence(t *testing.T) {
 		if _, err := l.Seek(0, whence); err == nil {
 			t.Errorf("Seek(0, %d): got no error, want an error", whence)
 		}
+	}
+}
+
+func TestInfiniteLoopShortBuffer(t *testing.T) {
+	const srcLen = 4096
+
+	src := make([]byte, srcLen)
+	for i := range src {
+		src[i] = byte(i)
+	}
+
+	cases := []struct {
+		name    string
+		newLoop func(src io.ReadSeeker) *audio.InfiniteLoop
+		lens    []int
+	}{
+		{
+			name: "int16",
+			newLoop: func(src io.ReadSeeker) *audio.InfiniteLoop {
+				return audio.NewInfiniteLoop(src, srcLen)
+			},
+			lens: []int{1},
+		},
+		{
+			name: "float32",
+			newLoop: func(src io.ReadSeeker) *audio.InfiniteLoop {
+				return audio.NewInfiniteLoopF32(src, srcLen)
+			},
+			lens: []int{1, 2, 3},
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			loop := c.newLoop(bytes.NewReader(src))
+
+			if n, err := loop.Read(nil); n != 0 || err != nil {
+				t.Errorf("Read(nil): got (%d, %v), want (0, <nil>)", n, err)
+			}
+			for _, l := range c.lens {
+				if n, err := loop.Read(make([]byte, l)); n != 0 || !errors.Is(err, io.ErrShortBuffer) {
+					t.Errorf("Read(a buffer of %d bytes): got (%d, %v), want (0, %v)", l, n, err, io.ErrShortBuffer)
+				}
+			}
+		})
 	}
 }

@@ -16,7 +16,11 @@ package convert_test
 
 import (
 	"bytes"
+	"encoding/binary"
+	"errors"
+	"fmt"
 	"io"
+	"math"
 	"math/rand/v2"
 	"testing"
 	"unsafe"
@@ -134,6 +138,77 @@ func TestFloat32SeekInvalidWhence(t *testing.T) {
 	for _, whence := range []int{-1, 3, 100} {
 		if _, err := r.Seek(0, whence); err == nil {
 			t.Errorf("Seek(0, %d): got no error, want an error", whence)
+		}
+	}
+}
+
+// dribbleReader is an io.Reader that returns at most maxN bytes for each Read.
+type dribbleReader struct {
+	r    *bytes.Reader
+	maxN int
+}
+
+func (d *dribbleReader) Read(buf []byte) (int, error) {
+	if len(buf) > d.maxN {
+		buf = buf[:d.maxN]
+	}
+	return d.r.Read(buf)
+}
+
+// float32BytesFromInt16Bytes converts int16 bytes to float32 bytes, ignoring an incomplete sample.
+func float32BytesFromInt16Bytes(src []byte) []byte {
+	var dst []byte
+	for i := range len(src) / 2 {
+		v := float32(int16(uint16(src[2*i])|uint16(src[2*i+1])<<8)) / (1 << 15)
+		dst = binary.LittleEndian.AppendUint32(dst, math.Float32bits(v))
+	}
+	return dst
+}
+
+func TestFloat32ShortReads(t *testing.T) {
+	for _, srcLen := range []int{1, 2, 3, 7, 8, 9} {
+		for _, maxN := range []int{1, 2, 3} {
+			t.Run(fmt.Sprintf("srcLen=%d,maxN=%d", srcLen, maxN), func(t *testing.T) {
+				src := make([]byte, srcLen)
+				for i := range src {
+					src[i] = byte(i + 1)
+				}
+				r := convert.NewFloat32BytesReaderFromInt16BytesReader(&dribbleReader{r: bytes.NewReader(src), maxN: maxN})
+
+				var got []byte
+				for {
+					var buf [64]byte
+					n, err := r.Read(buf[:])
+					if n == 0 && err == nil {
+						t.Fatal("Read: got (0, <nil>), want a non-zero byte count or an error")
+					}
+					got = append(got, buf[:n]...)
+					if err == io.EOF {
+						break
+					}
+					if err != nil {
+						t.Fatal(err)
+					}
+				}
+
+				want := float32BytesFromInt16Bytes(src)
+				if !bytes.Equal(got, want) {
+					t.Errorf("got: %v, want: %v", got, want)
+				}
+			})
+		}
+	}
+}
+
+func TestFloat32ShortBuffer(t *testing.T) {
+	r := convert.NewFloat32BytesReaderFromInt16BytesReader(bytes.NewReader(make([]byte, 16)))
+
+	if n, err := r.Read(nil); n != 0 || err != nil {
+		t.Errorf("Read(nil): got (%d, %v), want (0, <nil>)", n, err)
+	}
+	for _, l := range []int{1, 2, 3} {
+		if n, err := r.Read(make([]byte, l)); n != 0 || !errors.Is(err, io.ErrShortBuffer) {
+			t.Errorf("Read(a buffer of %d bytes): got (%d, %v), want (0, %v)", l, n, err, io.ErrShortBuffer)
 		}
 	}
 }

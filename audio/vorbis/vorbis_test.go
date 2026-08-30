@@ -17,6 +17,7 @@ package vorbis_test
 import (
 	"bytes"
 	_ "embed"
+	"errors"
 	"io"
 	"testing"
 
@@ -426,5 +427,38 @@ func TestStereoF32SeekUnalignedNegativeOffset(t *testing.T) {
 	const sampleSize = 2 * 4
 	if want := (s.Length() - 5) / sampleSize * sampleSize; got != want {
 		t.Errorf("Seek(-5, io.SeekEnd): got: %d, want: %d", got, want)
+	}
+}
+
+func TestDecodeF32ShortBuffer(t *testing.T) {
+	cases := []struct {
+		name string
+		data []byte
+	}{
+		{
+			name: "mono",
+			data: test_mono_ogg,
+		},
+		{
+			name: "stereo",
+			data: test_stereo_ogg,
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			s, err := vorbis.DecodeF32(bytes.NewReader(c.data))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if n, err := s.Read(nil); n != 0 || err != nil {
+				t.Errorf("Read(nil): got (%d, %v), want (0, <nil>)", n, err)
+			}
+			for _, l := range []int{1, 2, 3, 4, 5, 6, 7} {
+				if n, err := s.Read(make([]byte, l)); n != 0 || !errors.Is(err, io.ErrShortBuffer) {
+					t.Errorf("Read(a buffer of %d bytes): got (%d, %v), want (0, %v)", l, n, err, io.ErrShortBuffer)
+				}
+			}
+		})
 	}
 }

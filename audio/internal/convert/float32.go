@@ -36,17 +36,25 @@ type float32BytesReader struct {
 }
 
 func (r *float32BytesReader) Read(buf []byte) (int, error) {
-	if r.eof && len(r.i16Buf) == 0 {
+	if r.eof && len(r.i16Buf) < 2 {
 		return 0, io.EOF
 	}
+	if len(buf) == 0 {
+		return 0, nil
+	}
+	if len(buf) < 4 {
+		return 0, io.ErrShortBuffer
+	}
 
-	if i16LenToFill := len(buf) / 4 * 2; len(r.i16Buf) < i16LenToFill && !r.eof {
+	// Read int16 bytes. Keep reading until one sample is available so that a source returning
+	// less than one sample at a time doesn't make Read return (0, nil).
+	i16LenToFill := len(buf) / 4 * 2
+	for len(r.i16Buf) < i16LenToFill && !r.eof {
 		origLen := len(r.i16Buf)
 		if cap(r.i16Buf) < i16LenToFill {
 			r.i16Buf = append(r.i16Buf, make([]byte, i16LenToFill-origLen)...)
 		}
 
-		// Read int16 bytes.
 		n, err := r.r.Read(r.i16Buf[origLen:i16LenToFill])
 		if err != nil && err != io.EOF {
 			return 0, err
@@ -55,6 +63,9 @@ func (r *float32BytesReader) Read(buf []byte) (int, error) {
 			r.eof = true
 		}
 		r.i16Buf = r.i16Buf[:origLen+n]
+		if len(r.i16Buf) >= 2 || n == 0 {
+			break
+		}
 	}
 
 	// Convert int16 bytes to float32 bytes and fill buf.

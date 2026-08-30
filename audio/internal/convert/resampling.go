@@ -251,8 +251,16 @@ func (r *Resampling) Read(b []byte) (int, error) {
 	if r.eof {
 		return 0, io.EOF
 	}
+	if len(b) == 0 {
+		return 0, nil
+	}
 
 	size := r.bytesPerSample()
+	// A buffer shorter than one frame cannot receive any resampled data.
+	if len(b) < size {
+		return 0, io.ErrShortBuffer
+	}
+
 	n := len(b) / size * size
 	switch r.bitDepthInBytes {
 	case 2:

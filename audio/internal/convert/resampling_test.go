@@ -394,3 +394,34 @@ func TestResamplingSeekInvalidWhence(t *testing.T) {
 		}
 	}
 }
+
+func TestResamplingShortBuffer(t *testing.T) {
+	cases := []struct {
+		bitDepthInBytes int
+		lens            []int
+	}{
+		{
+			bitDepthInBytes: 2,
+			lens:            []int{1, 2, 3},
+		},
+		{
+			bitDepthInBytes: 4,
+			lens:            []int{1, 2, 3, 4, 5, 6, 7},
+		},
+	}
+	for _, c := range cases {
+		t.Run(fmt.Sprintf("bitDepthInBytes=%d", c.bitDepthInBytes), func(t *testing.T) {
+			src := make([]byte, 1024)
+			r := convert.NewResampling(bytes.NewReader(src), int64(len(src)), 44100, 48000, c.bitDepthInBytes)
+
+			if n, err := r.Read(nil); n != 0 || err != nil {
+				t.Errorf("Read(nil): got (%d, %v), want (0, <nil>)", n, err)
+			}
+			for _, l := range c.lens {
+				if n, err := r.Read(make([]byte, l)); n != 0 || !errors.Is(err, io.ErrShortBuffer) {
+					t.Errorf("Read(a buffer of %d bytes): got (%d, %v), want (0, %v)", l, n, err, io.ErrShortBuffer)
+				}
+			}
+		})
+	}
+}
