@@ -394,3 +394,149 @@ func TestStereoI16ShortBuffer(t *testing.T) {
 		}
 	}
 }
+
+var stereoI16Formats = []struct {
+	name   string
+	format convert.Format
+	// unit is the byte size of one sample of one channel.
+	unit int
+}{
+	{
+		name:   "U8",
+		format: convert.FormatU8,
+		unit:   1,
+	},
+	{
+		name:   "S16",
+		format: convert.FormatS16,
+		unit:   2,
+	},
+	{
+		name:   "S24",
+		format: convert.FormatS24,
+		unit:   3,
+	},
+}
+
+// stereoI16Bytes converts src to stereo int16 bytes, ignoring an incomplete frame.
+func stereoI16Bytes(src []byte, mono bool, format convert.Format, unit int) []byte {
+	frameSize := unit
+	if !mono {
+		frameSize *= 2
+	}
+	var dst []byte
+	for i := range len(src) / frameSize {
+		frame := src[i*frameSize : (i+1)*frameSize]
+		for ch := range 2 {
+			sample := frame[:unit]
+			if !mono && ch == 1 {
+				sample = frame[unit:]
+			}
+			switch format {
+			case convert.FormatU8:
+				v := int16(int(sample[0])*0x101 - (1 << 15))
+				dst = append(dst, byte(v), byte(v>>8))
+			case convert.FormatS16:
+				dst = append(dst, sample[0], sample[1])
+			case convert.FormatS24:
+				dst = append(dst, sample[1], sample[2])
+			}
+		}
+	}
+	return dst
+}
+
+func TestStereoI16ShortReads(t *testing.T) {
+	for _, f := range stereoI16Formats {
+		for _, mono := range []bool{false, true} {
+			frameSize := f.unit
+			if !mono {
+				frameSize *= 2
+			}
+			// Vary the source length so that the source ends in the middle of a frame.
+			for extra := range frameSize {
+				for _, maxN := range []int{1, 2, 3, 5} {
+					for _, bufLen := range []int{4, 13, 64} {
+						t.Run(fmt.Sprintf("format=%s,mono=%t,extra=%d,maxN=%d,bufLen=%d", f.name, mono, extra, maxN, bufLen), func(t *testing.T) {
+							src := randBytes(10*frameSize + extra)
+							s := convert.NewStereoI16ReadSeeker(&dribbleReader{r: bytes.NewReader(src), maxN: maxN}, mono, f.format)
+
+							var got []byte
+							for {
+								buf := make([]byte, bufLen)
+								for i := range buf {
+									buf[i] = 0xff
+								}
+								n, err := s.Read(buf)
+								if n == 0 && err == nil {
+									t.Fatal("Read: got (0, <nil>), want a non-zero byte count or an error")
+								}
+								if n%4 != 0 {
+									t.Fatalf("Read: got %d bytes, want a multiple of 4", n)
+								}
+								got = append(got, buf[:n]...)
+								if err == io.EOF {
+									break
+								}
+								if err != nil {
+									t.Fatal(err)
+								}
+							}
+
+							if want := stereoI16Bytes(src, mono, f.format, f.unit); !bytes.Equal(got, want) {
+								t.Errorf("got % x, want % x", got, want)
+							}
+						})
+					}
+				}
+			}
+		}
+	}
+}
+
+func TestStereoI16SeekCurrentAfterShortRead(t *testing.T) {
+	for _, f := range stereoI16Formats {
+		for _, mono := range []bool{false, true} {
+			t.Run(fmt.Sprintf("format=%s,mono=%t", f.name, mono), func(t *testing.T) {
+				frameSize := f.unit
+				if !mono {
+					frameSize *= 2
+				}
+				src := randBytes(20*frameSize + 1)
+				// maxN is not a multiple of the source frame size, so an incomplete frame
+				// remains buffered after a Read.
+				s := convert.NewStereoI16ReadSeeker(&dribbleReader{r: bytes.NewReader(src), maxN: 5}, mono, f.format)
+
+				buf := make([]byte, 64)
+				n, err := s.Read(buf)
+				if err != nil {
+					t.Fatal(err)
+				}
+				got := append([]byte(nil), buf[:n]...)
+
+				pos, err := s.Seek(0, io.SeekCurrent)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if pos != int64(len(got)) {
+					t.Errorf("Seek(0, io.SeekCurrent): got %d, want %d", pos, len(got))
+				}
+
+				for {
+					n, err := s.Read(buf)
+					got = append(got, buf[:n]...)
+					if err == io.EOF {
+						break
+					}
+					if err != nil {
+						t.Fatal(err)
+					}
+				}
+
+				if want := stereoI16Bytes(src, mono, f.format, f.unit); !bytes.Equal(got, want) {
+					t.Errorf("got % x, want % x", got, want)
+				}
+			})
+		}
+	}
+}

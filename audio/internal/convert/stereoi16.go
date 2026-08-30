@@ -30,7 +30,10 @@ type StereoI16ReadSeeker struct {
 	source io.ReadSeeker
 	mono   bool
 	format Format
-	buf    []byte
+	eof    bool
+	// buf holds the bytes read from the source but not converted yet. After Read, buf is
+	// shorter than one source frame.
+	buf []byte
 }
 
 func NewStereoI16ReadSeeker(source io.ReadSeeker, mono bool, format Format) *StereoI16ReadSeeker {
@@ -42,6 +45,10 @@ func NewStereoI16ReadSeeker(source io.ReadSeeker, mono bool, format Format) *Ste
 }
 
 func (s *StereoI16ReadSeeker) Read(b []byte) (int, error) {
+	frameSize := int(s.sourceFrameSize())
+	if s.eof && len(s.buf) < frameSize {
+		return 0, io.EOF
+	}
 	if len(b) == 0 {
 		return 0, nil
 	}
@@ -50,31 +57,35 @@ func (s *StereoI16ReadSeeker) Read(b []byte) (int, error) {
 		return 0, io.ErrShortBuffer
 	}
 
-	l := len(b) / 4 * 4
-	if s.mono {
-		l /= 2
-	}
-	switch s.format {
-	case FormatU8:
-		l /= 2
-	case FormatS16:
-	case FormatS24:
-		l *= 3
-		l /= 2
+	l := len(b) / 4 * frameSize
+
+	// Read source bytes. Keep reading until one frame is available so that a source returning
+	// less than one frame at a time doesn't make Read return (0, nil).
+	for len(s.buf) < l && !s.eof {
+		origLen := len(s.buf)
+		if cap(s.buf) < l {
+			s.buf = append(s.buf, make([]byte, l-origLen)...)
+		}
+
+		n, err := s.source.Read(s.buf[origLen:l])
+		if err != nil && err != io.EOF {
+			return 0, err
+		}
+		if err == io.EOF {
+			s.eof = true
+		}
+		s.buf = s.buf[:origLen+n]
+		if len(s.buf) >= frameSize || n == 0 {
+			break
+		}
 	}
 
-	if cap(s.buf) < l {
-		s.buf = make([]byte, l)
-	}
-
-	n, err := s.source.Read(s.buf[:l])
-	if err != nil && err != io.EOF {
-		return 0, err
-	}
+	// Convert the whole frames and fill b. An incomplete frame is left for the next read.
+	frames := len(s.buf) / frameSize
 	if s.mono {
 		switch s.format {
 		case FormatU8:
-			for i := range n {
+			for i := range frames {
 				v := int16(int(s.buf[i])*0x101 - (1 << 15))
 				b[4*i] = byte(v)
 				b[4*i+1] = byte(v >> 8)
@@ -82,14 +93,14 @@ func (s *StereoI16ReadSeeker) Read(b []byte) (int, error) {
 				b[4*i+3] = byte(v >> 8)
 			}
 		case FormatS16:
-			for i := range n / 2 {
+			for i := range frames {
 				b[4*i] = s.buf[2*i]
 				b[4*i+1] = s.buf[2*i+1]
 				b[4*i+2] = s.buf[2*i]
 				b[4*i+3] = s.buf[2*i+1]
 			}
 		case FormatS24:
-			for i := range n / 3 {
+			for i := range frames {
 				b[4*i] = s.buf[3*i+1]
 				b[4*i+1] = s.buf[3*i+2]
 				b[4*i+2] = s.buf[3*i+1]
@@ -99,7 +110,7 @@ func (s *StereoI16ReadSeeker) Read(b []byte) (int, error) {
 	} else {
 		switch s.format {
 		case FormatU8:
-			for i := range n / 2 {
+			for i := range frames {
 				v0 := int16(int(s.buf[2*i])*0x101 - (1 << 15))
 				v1 := int16(int(s.buf[2*i+1])*0x101 - (1 << 15))
 				b[4*i] = byte(v0)
@@ -108,9 +119,9 @@ func (s *StereoI16ReadSeeker) Read(b []byte) (int, error) {
 				b[4*i+3] = byte(v1 >> 8)
 			}
 		case FormatS16:
-			copy(b[:n], s.buf[:n])
+			copy(b[:4*frames], s.buf[:4*frames])
 		case FormatS24:
-			for i := range n / 6 {
+			for i := range frames {
 				b[4*i] = s.buf[6*i+1]
 				b[4*i+1] = s.buf[6*i+2]
 				b[4*i+2] = s.buf[6*i+4]
@@ -118,18 +129,16 @@ func (s *StereoI16ReadSeeker) Read(b []byte) (int, error) {
 			}
 		}
 	}
-	if s.mono {
-		n *= 2
+
+	// Copy the remaining part for the next read.
+	copy(s.buf, s.buf[frames*frameSize:])
+	s.buf = s.buf[:len(s.buf)-frames*frameSize]
+
+	n := frames * 4
+	if s.eof {
+		return n, io.EOF
 	}
-	switch s.format {
-	case FormatU8:
-		n *= 2
-	case FormatS16:
-	case FormatS24:
-		n *= 2
-		n /= 3
-	}
-	return n, err
+	return n, nil
 }
 
 // sourceFrameSize returns the byte size of one frame of the source.
@@ -163,6 +172,12 @@ func (s *StereoI16ReadSeeker) Seek(offset int64, whence int) (int64, error) {
 		offset /= 2
 	}
 
+	if whence == io.SeekCurrent {
+		// The buffered bytes were read from the source but are not converted yet, so the
+		// source is ahead of the position this wrapper presents.
+		offset -= int64(len(s.buf))
+	}
+
 	if whence == io.SeekEnd {
 		// The source length is not necessarily a multiple of the frame size.
 		// Resolve the offset from the last whole frame so that the source is
@@ -176,10 +191,14 @@ func (s *StereoI16ReadSeeker) Seek(offset int64, whence int) (int64, error) {
 		whence = io.SeekStart
 	}
 
+	s.buf = s.buf[:0]
+	s.eof = false
+
 	pos, err := s.source.Seek(offset, whence)
 	if err != nil {
 		return 0, err
 	}
+
 	// Convert the returned position from the source format's byte space to the
 	// stereo-i16 byte space this wrapper presents.
 	if s.mono {

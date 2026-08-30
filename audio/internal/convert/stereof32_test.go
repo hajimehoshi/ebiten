@@ -192,3 +192,111 @@ func TestStereoF32ShortBuffer(t *testing.T) {
 		})
 	}
 }
+
+// stereoF32Bytes converts src to stereo float32 bytes, ignoring an incomplete frame.
+func stereoF32Bytes(src []byte, mono bool) []byte {
+	frameSize := 8
+	if mono {
+		frameSize = 4
+	}
+	var dst []byte
+	for i := range len(src) / frameSize {
+		frame := src[i*frameSize : (i+1)*frameSize]
+		dst = append(dst, frame...)
+		if mono {
+			dst = append(dst, frame...)
+		}
+	}
+	return dst
+}
+
+func TestStereoF32ShortReads(t *testing.T) {
+	for _, mono := range []bool{false, true} {
+		frameSize := 8
+		if mono {
+			frameSize = 4
+		}
+		// Vary the source length so that the source ends in the middle of a frame.
+		for extra := range frameSize {
+			for _, maxN := range []int{1, 2, 3, 5} {
+				for _, bufLen := range []int{8, 21, 64} {
+					t.Run(fmt.Sprintf("mono=%t,extra=%d,maxN=%d,bufLen=%d", mono, extra, maxN, bufLen), func(t *testing.T) {
+						src := randBytes(10*frameSize + extra)
+						s := convert.NewStereoF32(&dribbleReader{r: bytes.NewReader(src), maxN: maxN}, mono)
+
+						var got []byte
+						for {
+							buf := make([]byte, bufLen)
+							for i := range buf {
+								buf[i] = 0xff
+							}
+							n, err := s.Read(buf)
+							if n == 0 && err == nil {
+								t.Fatal("Read: got (0, <nil>), want a non-zero byte count or an error")
+							}
+							if n%8 != 0 {
+								t.Fatalf("Read: got %d bytes, want a multiple of 8", n)
+							}
+							got = append(got, buf[:n]...)
+							if err == io.EOF {
+								break
+							}
+							if err != nil {
+								t.Fatal(err)
+							}
+						}
+
+						if want := stereoF32Bytes(src, mono); !bytes.Equal(got, want) {
+							t.Errorf("got % x, want % x", got, want)
+						}
+					})
+				}
+			}
+		}
+	}
+}
+
+func TestStereoF32SeekCurrentAfterShortRead(t *testing.T) {
+	for _, mono := range []bool{false, true} {
+		t.Run(fmt.Sprintf("mono=%t", mono), func(t *testing.T) {
+			frameSize := 8
+			if mono {
+				frameSize = 4
+			}
+			src := randBytes(20*frameSize + 1)
+			// maxN is not a multiple of the source frame size, so an incomplete frame
+			// remains buffered after a Read.
+			s := convert.NewStereoF32(&dribbleReader{r: bytes.NewReader(src), maxN: 5}, mono)
+
+			buf := make([]byte, 64)
+			n, err := s.Read(buf)
+			if err != nil {
+				t.Fatal(err)
+			}
+			got := append([]byte(nil), buf[:n]...)
+
+			pos, err := s.Seek(0, io.SeekCurrent)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if pos != int64(len(got)) {
+				t.Errorf("Seek(0, io.SeekCurrent): got %d, want %d", pos, len(got))
+			}
+
+			for {
+				n, err := s.Read(buf)
+				got = append(got, buf[:n]...)
+				if err == io.EOF {
+					break
+				}
+				if err != nil {
+					t.Fatal(err)
+				}
+			}
+
+			if want := stereoF32Bytes(src, mono); !bytes.Equal(got, want) {
+				t.Errorf("got % x, want % x", got, want)
+			}
+		})
+	}
+}
