@@ -513,3 +513,26 @@ func TestBounds(t *testing.T) {
 		})
 	}
 }
+
+func TestStrokeMiterJoinShallowAngle(t *testing.T) {
+	var p vector.Path
+	p.MoveTo(676.47327, 1502.2303)
+	p.LineTo(257.7812, 1856.779)
+	p.LineTo(1046.7478, 1188.3281)
+
+	op := &vector.AddStrokeOptions{}
+	op.StrokeOptions.LineJoin = vector.LineJoinMiter
+	op.StrokeOptions.MiterLimit = 4
+	op.StrokeOptions.Width = 1
+
+	var sp vector.Path
+	sp.AddStroke(&p, op)
+
+	got := sp.Bounds()
+	if got.Min.X < 0 || got.Min.Y < 0 {
+		t.Errorf("Bounds().Min = %v; want non-negative (a miter spike must not extend far beyond the path)", got.Min)
+	}
+	if got, want := got.Max, (image.Point{X: 1048, Y: 1858}); got.X > want.X || got.Y > want.Y {
+		t.Errorf("Bounds().Max = %v; want within %v (a miter spike must not extend far beyond the path)", got, want)
+	}
+}
