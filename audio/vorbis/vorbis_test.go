@@ -462,3 +462,65 @@ func TestDecodeF32ShortBuffer(t *testing.T) {
 		})
 	}
 }
+
+func TestDecodeI16ShortBuffer(t *testing.T) {
+	for _, file := range []struct {
+		name string
+		bs   []byte
+	}{
+		{
+			name: "Mono",
+			bs:   test_mono_ogg,
+		},
+		{
+			name: "Stereo",
+			bs:   test_stereo_ogg,
+		},
+	} {
+		t.Run(file.name, func(t *testing.T) {
+			for _, decode := range []struct {
+				name string
+				f    func(io.Reader) (*vorbis.Stream, error)
+			}{
+				{
+					name: "I16",
+					f: func(r io.Reader) (*vorbis.Stream, error) {
+						return vorbis.DecodeWithoutResampling(r)
+					},
+				},
+				{
+					name: "Resampling",
+					f: func(r io.Reader) (*vorbis.Stream, error) {
+						// The test files are 44100Hz, so this resamples the stream.
+						return vorbis.DecodeWithSampleRate(48000, r)
+					},
+				},
+			} {
+				t.Run(decode.name, func(t *testing.T) {
+					s, err := decode.f(bytes.NewReader(file.bs))
+					if err != nil {
+						t.Fatal(err)
+					}
+
+					if n, err := s.Read(nil); n != 0 || err != nil {
+						t.Errorf("Read(nil): got (%d, %v), want (0, <nil>)", n, err)
+					}
+					for _, l := range []int{1, 2, 3} {
+						if n, err := s.Read(make([]byte, l)); n != 0 || !errors.Is(err, io.ErrShortBuffer) {
+							t.Errorf("Read(a buffer of %d bytes): got (%d, %v), want (0, %v)", l, n, err, io.ErrShortBuffer)
+						}
+					}
+
+					// The rejected reads must not consume the stream.
+					n, err := io.Copy(io.Discard, s)
+					if err != nil {
+						t.Fatal(err)
+					}
+					if want := s.Length(); n != want {
+						t.Errorf("the stream delivered %d bytes, want %d", n, want)
+					}
+				})
+			}
+		})
+	}
+}
