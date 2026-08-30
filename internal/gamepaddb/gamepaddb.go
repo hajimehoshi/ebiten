@@ -575,11 +575,11 @@ func addAndroidDefaultMappings(id string) bool {
 		(1 << SDLControllerButtonX) |
 		(1 << SDLControllerButtonY))
 
-	if len(id) < 16 {
-		return false
-	}
 	idBytes, err := hex.DecodeString(id)
 	if err != nil {
+		return false
+	}
+	if len(idBytes) < 16 {
 		return false
 	}
 	buttonMask := uint16(idBytes[12]) | (uint16(idBytes[13]) << 8)

@@ -167,3 +167,20 @@ func TestConcurrentAccess(t *testing.T) {
 		t.Fatal("deadlocked: a gamepad state was probably used while mappingsM was held")
 	}
 }
+
+func TestAddAndroidDefaultMappings(t *testing.T) {
+	// A well-formed Android gamepad ID consists of 16 bytes i.e. 32 hex characters.
+	const validID = "0000000000000000000000000f000000"
+
+	if got, want := gamepaddb.AddAndroidDefaultMappings(validID), true; got != want {
+		t.Errorf("gamepaddb.AddAndroidDefaultMappings(%q): got: %t, want: %t", validID, got, want)
+	}
+
+	// A shorter ID must be rejected instead of causing a panic.
+	for n := range len(validID) {
+		id := validID[:n]
+		if got, want := gamepaddb.AddAndroidDefaultMappings(id), false; got != want {
+			t.Errorf("gamepaddb.AddAndroidDefaultMappings(%q): got: %t, want: %t", id, got, want)
+		}
+	}
+}
