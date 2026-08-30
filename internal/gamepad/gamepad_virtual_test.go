@@ -296,12 +296,22 @@ func TestVirtualGamepadCopiesState(t *testing.T) {
 }
 
 func TestVirtualGamepadNegativeID(t *testing.T) {
+	const sdlID = "00000000000000000000000000000000"
 	updateVirtualGamepads(t, []gamepad.VirtualGamepadState{
-		{ID: -1, SDLID: "neg", Name: "Negative"},
+		{
+			ID:    -1,
+			SDLID: sdlID,
+			Name:  "Negative",
+		},
+		{
+			ID:    0,
+			SDLID: sdlID,
+			Name:  "Valid",
+		},
 	})
 	defer updateVirtualGamepads(t, []gamepad.VirtualGamepadState{})
 
-	if got := gamepadIDs(); len(got) != 0 {
-		t.Errorf("gamepad IDs = %v; want none for a negative ID", got)
+	if got, want := gamepadIDs(), []gamepad.ID{0}; !slices.Equal(got, want) {
+		t.Errorf("gamepad IDs = %v; want %v (a negative ID is ignored)", got, want)
 	}
 }
