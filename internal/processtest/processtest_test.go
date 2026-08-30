@@ -17,6 +17,7 @@ package processtest_test
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -25,6 +26,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"golang.org/x/sync/errgroup"
 )
 
 func isWSL() (bool, error) {
@@ -63,8 +66,6 @@ func TestPrograms(t *testing.T) {
 	type buildResult struct {
 		name string
 		bin  string
-		err  error
-		out  []byte
 	}
 	results := make([]buildResult, 0, len(ents))
 	for _, e := range ents {
@@ -78,22 +79,17 @@ func TestPrograms(t *testing.T) {
 		results = append(results, buildResult{name: n, bin: filepath.Join(tmpdir, n)})
 	}
 
-	var wg sync.WaitGroup
+	var wg errgroup.Group
 	for i := range results {
-		wg.Add(1)
-		go func(i int) {
-			defer wg.Done()
+		wg.Go(func() error {
 			if out, err := exec.Command("go", "build", "-o", results[i].bin, filepath.Join(dir, results[i].name)).CombinedOutput(); err != nil {
-				results[i].err = err
-				results[i].out = out
+				return fmt.Errorf("%s: %w\n%s", results[i].name, err, out)
 			}
-		}(i)
+			return nil
+		})
 	}
-	wg.Wait()
-	for _, r := range results {
-		if r.err != nil {
-			t.Fatalf("%v\n%s", r.err, r.out)
-		}
+	if err := wg.Wait(); err != nil {
+		t.Fatal(err)
 	}
 
 	// Run sub-tests one by one, not in parallel (#2571).
