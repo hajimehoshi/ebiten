@@ -15,6 +15,7 @@
 package gamepad
 
 import (
+	"sync"
 	"time"
 	"unsafe"
 
@@ -67,6 +68,10 @@ type nativeGamepadsXbox struct {
 	gameInput         *_IGameInput
 	deviceCallbackPtr uintptr
 	token             _GameInputCallbackToken
+
+	devicesToAdd    []*_IGameInputDevice
+	devicesToRemove []*_IGameInputDevice
+	devicesMu       sync.Mutex
 }
 
 func (n *nativeGamepadsXbox) init(gamepads *gamepads) error {
@@ -93,27 +98,39 @@ func (n *nativeGamepadsXbox) init(gamepads *gamepads) error {
 }
 
 func (n *nativeGamepadsXbox) update(gamepads *gamepads) error {
-	return nil
-}
+	n.devicesMu.Lock()
+	defer n.devicesMu.Unlock()
 
-func (n *nativeGamepadsXbox) deviceCallback(callbackToken _GameInputCallbackToken, context unsafe.Pointer, device *_IGameInputDevice, timestamp uint64, currentStatus _GameInputDeviceStatus, previousStatus _GameInputDeviceStatus) uintptr {
-	gps := (*gamepads)(context)
-
-	// Connected.
-	if currentStatus&_GameInputDeviceConnected != 0 {
+	for _, device := range n.devicesToAdd {
 		// TODO: Give a good name and a SDL ID.
-		gp := gps.add("", "00000000000000000000000000000000")
+		gp := gamepads.add("", "00000000000000000000000000000000")
 		gp.native = &nativeGamepadXbox{
 			gameInputDevice: device,
 		}
+	}
+	for _, device := range n.devicesToRemove {
+		gamepads.remove(func(gamepad *Gamepad) bool {
+			return gamepad.native.(*nativeGamepadXbox).gameInputDevice == device
+		})
+	}
+	n.devicesToAdd = n.devicesToAdd[:0]
+	n.devicesToRemove = n.devicesToRemove[:0]
+	return nil
+}
+
+// deviceCallback queues the device for update to pick up. The initial enumeration calls this
+// synchronously from init with the gamepads' lock held, while later connections and disconnections
+// arrive on a GameInput worker thread without it, so the gamepad list must not be touched here.
+func (n *nativeGamepadsXbox) deviceCallback(callbackToken _GameInputCallbackToken, context unsafe.Pointer, device *_IGameInputDevice, timestamp uint64, currentStatus _GameInputDeviceStatus, previousStatus _GameInputDeviceStatus) uintptr {
+	n.devicesMu.Lock()
+	defer n.devicesMu.Unlock()
+
+	if currentStatus&_GameInputDeviceConnected != 0 {
+		n.devicesToAdd = append(n.devicesToAdd, device)
 		return 0
 	}
 
-	// Disconnected.
-	gps.remove(func(gamepad *Gamepad) bool {
-		return gamepad.native.(*nativeGamepadXbox).gameInputDevice == device
-	})
-
+	n.devicesToRemove = append(n.devicesToRemove, device)
 	return 0
 }
 

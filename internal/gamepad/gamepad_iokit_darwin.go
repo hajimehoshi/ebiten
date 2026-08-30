@@ -31,7 +31,7 @@ type nativeGamepadsIOKit struct {
 	hidManager      _IOHIDManagerRef
 	devicesToAdd    []_IOHIDDeviceRef
 	devicesToRemove []_IOHIDDeviceRef
-	devicesM        sync.Mutex
+	devicesMu       sync.Mutex
 }
 
 // theIOKitGamepads is the running IOKit backend. The C device callbacks reference
@@ -120,21 +120,21 @@ func (g *nativeGamepadsIOKit) init(gamepads *gamepads) error {
 
 func ebitenGamepadMatchingCallback(ctx unsafe.Pointer, res _IOReturn, sender unsafe.Pointer, device _IOHIDDeviceRef) {
 	n := theIOKitGamepads
-	n.devicesM.Lock()
-	defer n.devicesM.Unlock()
+	n.devicesMu.Lock()
+	defer n.devicesMu.Unlock()
 	n.devicesToAdd = append(n.devicesToAdd, device)
 }
 
 func ebitenGamepadRemovalCallback(ctx unsafe.Pointer, res _IOReturn, sender unsafe.Pointer, device _IOHIDDeviceRef) {
 	n := theIOKitGamepads
-	n.devicesM.Lock()
-	defer n.devicesM.Unlock()
+	n.devicesMu.Lock()
+	defer n.devicesMu.Unlock()
 	n.devicesToRemove = append(n.devicesToRemove, device)
 }
 
 func (g *nativeGamepadsIOKit) update(gamepads *gamepads) error {
-	g.devicesM.Lock()
-	defer g.devicesM.Unlock()
+	g.devicesMu.Lock()
+	defer g.devicesMu.Unlock()
 
 	for _, device := range g.devicesToAdd {
 		g.addDevice(device, gamepads)

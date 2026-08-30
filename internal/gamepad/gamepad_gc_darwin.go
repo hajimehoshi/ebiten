@@ -15,23 +15,52 @@
 package gamepad
 
 import (
+	"sync"
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepaddb"
 )
 
-type nativeGamepadsGC struct{}
+// gcControllerToAdd is a controller waiting to be registered, along with the properties read from it
+// when it was enumerated or its connect notification arrived.
+type gcControllerToAdd struct {
+	controller uintptr
+	prop       controllerProperty
+}
+
+type nativeGamepadsGC struct {
+	controllersToAdd    []gcControllerToAdd
+	controllersToRemove []uintptr
+	controllersMu       sync.Mutex
+}
+
+// theGCGamepads is the running GameController backend. The notification blocks reference it
+// directly, as theGamepads.native is a composite backend rather than this one.
+var theGCGamepads *nativeGamepadsGC
 
 func newNativeGamepadsGC() nativeGamepads {
 	return &nativeGamepadsGC{}
 }
 
-func (*nativeGamepadsGC) init(gamepads *gamepads) error {
+func (g *nativeGamepadsGC) init(gamepads *gamepads) error {
+	theGCGamepads = g
+
 	initializeGCGamepads()
 	return nil
 }
 
-func (*nativeGamepadsGC) update(gamepads *gamepads) error {
+func (g *nativeGamepadsGC) update(gamepads *gamepads) error {
+	g.controllersMu.Lock()
+	defer g.controllersMu.Unlock()
+
+	for _, c := range g.controllersToAdd {
+		gamepads.addGCGamepad(c.controller, c.prop)
+	}
+	for _, controller := range g.controllersToRemove {
+		gamepads.removeGCGamepad(controller)
+	}
+	g.controllersToAdd = g.controllersToAdd[:0]
+	g.controllersToRemove = g.controllersToRemove[:0]
 	return nil
 }
 
