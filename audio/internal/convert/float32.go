@@ -97,14 +97,29 @@ func (r *float32BytesReader) Seek(offset int64, whence int) (int64, error) {
 	if !ok {
 		return 0, fmt.Errorf("float32: the source must be io.Seeker when seeking but not: %w", errors.ErrUnsupported)
 	}
+	offset = offset / 4 * 2
+
 	switch whence {
-	case io.SeekStart, io.SeekCurrent, io.SeekEnd:
+	case io.SeekStart:
+	case io.SeekCurrent:
+		// The source is ahead of the position this reader presents by the buffered bytes.
+		offset -= int64(len(r.i16Buf))
+	case io.SeekEnd:
+		// The source length is not necessarily a multiple of the sample size. Resolve the offset
+		// from the last whole sample so that the source is never seeked to the middle of a sample.
+		end, err := s.Seek(0, io.SeekEnd)
+		if err != nil {
+			return 0, err
+		}
+		offset += end / 2 * 2
+		whence = io.SeekStart
 	default:
 		return 0, fmt.Errorf("convert: whence must be io.SeekStart, io.SeekCurrent, or io.SeekEnd but was %d", whence)
 	}
+
 	r.i16Buf = r.i16Buf[:0]
 	r.eof = false
-	n, err := s.Seek(offset/4*2, whence)
+	n, err := s.Seek(offset, whence)
 	if err != nil {
 		return 0, err
 	}

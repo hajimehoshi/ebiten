@@ -298,6 +298,9 @@ func (i *InfiniteLoop) Seek(offset int64, whence int) (int64, error) {
 	if next < 0 {
 		return 0, fmt.Errorf("audio: position must >= 0")
 	}
+	// A position in the middle of a value is not a position this stream can be at: reading from
+	// there would return values straddling two of the source's.
+	next = next / int64(i.bitDepthInBytes) * int64(i.bitDepthInBytes)
 	if next > i.lstart {
 		next = ((next - i.lstart) % i.llength) + i.lstart
 	}

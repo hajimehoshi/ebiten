@@ -168,21 +168,21 @@ func TestInfiniteLoopWithPartialFrameAfterLoop(t *testing.T) {
 func TestInfiniteLoopWithIncompleteSize(t *testing.T) {
 	// s1 should work as if 4092 is given.
 	s1 := audio.NewInfiniteLoop(bytes.NewReader(make([]byte, 4096)), 4095)
-	n1, err := s1.Seek(4093, io.SeekStart)
+	n1, err := s1.Seek(4094, io.SeekStart)
 	if err != nil {
 		t.Error(err)
 	}
-	if got, want := n1, int64(4093-4092); got != want {
+	if got, want := n1, int64(4094-4092); got != want {
 		t.Errorf("got: %d, want: %d", got, want)
 	}
 
 	// s2 should work as if 2044 and 2044 are given.
 	s2 := audio.NewInfiniteLoopWithIntro(bytes.NewReader(make([]byte, 4096)), 2047, 2046)
-	n2, err := s2.Seek(4093, io.SeekStart)
+	n2, err := s2.Seek(4094, io.SeekStart)
 	if err != nil {
 		t.Error(err)
 	}
-	if got, want := n2, int64(2044+(4093-(2044+2044))); got != want {
+	if got, want := n2, int64(2044+(4094-(2044+2044))); got != want {
 		t.Errorf("got: %d, want: %d", got, want)
 	}
 }
@@ -538,6 +538,63 @@ func TestInfiniteLoopShortBuffer(t *testing.T) {
 			for _, l := range c.lens {
 				if n, err := loop.Read(make([]byte, l)); n != 0 || !errors.Is(err, io.ErrShortBuffer) {
 					t.Errorf("Read(a buffer of %d bytes): got (%d, %v), want (0, %v)", l, n, err, io.ErrShortBuffer)
+				}
+			}
+		})
+	}
+}
+
+func TestInfiniteLoopSeekAlignment(t *testing.T) {
+	// A seek must land on a value boundary, so that the values read afterwards are the source's and
+	// not ones straddling two of them.
+	cases := []struct {
+		name            string
+		bitDepthInBytes int64
+		newLoop         func(src io.ReadSeeker, length int64) *audio.InfiniteLoop
+	}{
+		{
+			name:            "int16",
+			bitDepthInBytes: 2,
+			newLoop:         audio.NewInfiniteLoop,
+		},
+		{
+			name:            "float32",
+			bitDepthInBytes: 4,
+			newLoop:         audio.NewInfiniteLoopF32,
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			src := make([]byte, 64)
+			for i := range src {
+				src[i] = byte(i + 1)
+			}
+
+			for offset := range int64(16) {
+				want := offset / c.bitDepthInBytes * c.bitDepthInBytes
+
+				for _, whence := range []int{io.SeekStart, io.SeekCurrent} {
+					l := c.newLoop(bytes.NewReader(src), int64(len(src)))
+					pos, err := l.Seek(offset, whence)
+					if err != nil {
+						t.Errorf("Seek(%d, %d): %v", offset, whence, err)
+						continue
+					}
+					if pos != want {
+						t.Errorf("Seek(%d, %d): got %d, want %d", offset, whence, pos, want)
+						continue
+					}
+
+					buf := make([]byte, 16)
+					n, err := l.Read(buf)
+					if err != nil {
+						t.Errorf("Read after Seek(%d, %d): %v", offset, whence, err)
+						continue
+					}
+					if got, w := buf[:n], src[want:want+int64(n)]; !bytes.Equal(got, w) {
+						t.Errorf("Read after Seek(%d, %d): got %v, want %v", offset, whence, got, w)
+					}
 				}
 			}
 		})
