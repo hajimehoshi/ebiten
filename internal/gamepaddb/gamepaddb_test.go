@@ -92,20 +92,20 @@ func TestGLFWGamepadMappings(t *testing.T) {
 	}
 }
 
-// gamepadLike mimics internal/gamepad.Gamepad:
+// mockGamepad mimics internal/gamepad.Gamepad:
 // every state query takes the gamepad's own mutex.
-type gamepadLike struct {
+type mockGamepad struct {
 	mu sync.Mutex
 }
 
-func (g *gamepadLike) IsAxisReady(index int) bool { g.mu.Lock(); defer g.mu.Unlock(); return true }
-func (g *gamepadLike) Axis(index int) float64     { g.mu.Lock(); defer g.mu.Unlock(); return 0 }
-func (g *gamepadLike) Button(index int) bool      { g.mu.Lock(); defer g.mu.Unlock(); return false }
-func (g *gamepadLike) Hat(index int) int          { g.mu.Lock(); defer g.mu.Unlock(); return 0 }
+func (g *mockGamepad) IsAxisReady(index int) bool { g.mu.Lock(); defer g.mu.Unlock(); return true }
+func (g *mockGamepad) Axis(index int) float64     { g.mu.Lock(); defer g.mu.Unlock(); return 0 }
+func (g *mockGamepad) Button(index int) bool      { g.mu.Lock(); defer g.mu.Unlock(); return false }
+func (g *mockGamepad) Hat(index int) int          { g.mu.Lock(); defer g.mu.Unlock(); return 0 }
 
 // queryWithGamepadLock calls this package while the gamepad's own lock is held,
 // like Gamepad.IsStandardAxisAvailable does.
-func queryWithGamepadLock(g *gamepadLike, id string) {
+func queryWithGamepadLock(g *mockGamepad, id string) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 
@@ -129,7 +129,7 @@ func TestConcurrentAccess(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	g := &gamepadLike{}
+	g := &mockGamepad{}
 	deadline := time.Now().Add(200 * time.Millisecond)
 
 	var wg sync.WaitGroup
