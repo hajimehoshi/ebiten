@@ -17,10 +17,11 @@ package processtest_test
 import (
 	"bytes"
 	"context"
-	"fmt"
+	"flag"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings"
 	"sync"
@@ -39,6 +40,24 @@ func isWSL() (bool, error) {
 		return false, err
 	}
 	return strings.HasPrefix(abs, `\\wsl$\`), nil
+}
+
+// isSelected reports whether a subtest named name is selected by the -run
+// flag, so that only the programs that will run are built.
+func isSelected(name string) bool {
+	f := flag.Lookup("test.run")
+	if f == nil {
+		return true
+	}
+	parts := strings.Split(f.Value.String(), "/")
+	if len(parts) < 2 || parts[1] == "" {
+		return true
+	}
+	re, err := regexp.Compile(parts[1])
+	if err != nil {
+		return true
+	}
+	return re.MatchString(name)
 }
 
 func TestPrograms(t *testing.T) {
@@ -63,11 +82,11 @@ func TestPrograms(t *testing.T) {
 
 	tmpdir := t.TempDir()
 
-	type buildResult struct {
+	type program struct {
 		name string
 		bin  string
 	}
-	results := make([]buildResult, 0, len(ents))
+	programs := make([]program, 0, len(ents))
 	for _, e := range ents {
 		if e.IsDir() {
 			continue
@@ -76,15 +95,35 @@ func TestPrograms(t *testing.T) {
 		if !strings.HasSuffix(n, ".go") {
 			continue
 		}
-		results = append(results, buildResult{name: n, bin: filepath.Join(tmpdir, n)})
+		if !isSelected(n) {
+			continue
+		}
+		programs = append(programs, program{name: n, bin: filepath.Join(tmpdir, n)})
+	}
+
+	errs := make([]error, len(programs))
+	outs := make([][]byte, len(programs))
+
+	build := func(i int) {
+		if out, err := exec.Command("go", "build", "-o", programs[i].bin, filepath.Join(dir, programs[i].name)).CombinedOutput(); err != nil {
+			errs[i] = err
+			outs[i] = out
+		}
+	}
+
+	// Build the first program serially so that the shared dependencies are
+	// put into the build cache before the fan-out. Concurrent go build
+	// invocations don't share in-flight compile actions, so a cold cache
+	// would otherwise recompile the whole tree for each program.
+	if len(programs) > 0 {
+		build(0)
 	}
 
 	var wg errgroup.Group
-	for i := range results {
+	wg.SetLimit(runtime.NumCPU())
+	for i := 1; i < len(programs); i++ {
 		wg.Go(func() error {
-			if out, err := exec.Command("go", "build", "-o", results[i].bin, filepath.Join(dir, results[i].name)).CombinedOutput(); err != nil {
-				return fmt.Errorf("%s: %w\n%s", results[i].name, err, out)
-			}
+			build(i)
 			return nil
 		})
 	}
@@ -95,16 +134,19 @@ func TestPrograms(t *testing.T) {
 	// Run sub-tests one by one, not in parallel (#2571).
 	var m sync.Mutex
 
-	for _, r := range results {
-		r := r
-		t.Run(r.name, func(t *testing.T) {
+	for i, p := range programs {
+		t.Run(p.name, func(t *testing.T) {
 			m.Lock()
 			defer m.Unlock()
+
+			if errs[i] != nil {
+				t.Fatalf("%v\n%s", errs[i], outs[i])
+			}
 
 			ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 			defer cancel()
 
-			cmd := exec.CommandContext(ctx, r.bin)
+			cmd := exec.CommandContext(ctx, p.bin)
 			stderr := &bytes.Buffer{}
 			cmd.Stderr = stderr
 			if err := cmd.Run(); err != nil {
