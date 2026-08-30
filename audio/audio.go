@@ -583,6 +583,8 @@ func (h *hookerImpl) AppendHookOnBeforeUpdateWithVMGuestInfo(f func(vmGuest bool
 // from is the original sample rate.
 // to is the target sample rate.
 //
+// If the source ends before size bytes, the remainder of the result is silence.
+//
 // If the original sample rate equals to the new one, ResampleReader returns source as it is.
 //
 // The returned value implements io.Seeker when the source implements io.Seeker.
@@ -599,6 +601,8 @@ func ResampleReader(source io.Reader, size int64, from, to int) io.Reader {
 // size is the length of the source stream in bytes. 0 indicates the length is unknown.
 // from is the original sample rate.
 // to is the target sample rate.
+//
+// If the source ends before size bytes, the remainder of the result is silence.
 //
 // If the original sample rate equals to the new one, ResampleReaderF32 returns source as it is.
 //
@@ -617,6 +621,8 @@ func ResampleReaderF32(source io.Reader, size int64, from, to int) io.Reader {
 // from is the original sample rate.
 // to is the target sample rate.
 //
+// If the source ends before size bytes, the remainder of the result is silence.
+//
 // If the original sample rate equals to the new one, Resample returns source as it is.
 //
 // Deprecated: as of v2.9. Use ResampleReader instead.
@@ -631,6 +637,8 @@ func Resample(source io.ReadSeeker, size int64, from, to int) io.ReadSeeker {
 // size is the length of the source stream in bytes. 0 indicates the length is unknown.
 // from is the original sample rate.
 // to is the target sample rate.
+//
+// If the source ends before size bytes, the remainder of the result is silence.
 //
 // If the original sample rate equals to the new one, ResampleF32 returns source as it is.
 //
