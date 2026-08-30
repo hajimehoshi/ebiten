@@ -503,9 +503,11 @@ func TestPositionNotGrowingAfterFinished(t *testing.T) {
 	}
 
 	p.Play()
-	// Wait until the player finishes its source.
+	// Wait until the player finishes its source. The deadline is generous because time.Sleep has
+	// a several-millisecond floor on browsers, which slows draining the source down.
 	var finished bool
-	for range 200 {
+	deadline := time.Now().Add(10 * time.Second)
+	for time.Now().Before(deadline) {
 		if err := audio.UpdateForTesting(); err != nil {
 			t.Fatal(err)
 		}
