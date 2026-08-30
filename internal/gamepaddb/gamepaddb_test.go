@@ -16,7 +16,9 @@ package gamepaddb_test
 
 import (
 	"runtime"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepaddb"
 )
@@ -87,5 +89,81 @@ func TestGLFWGamepadMappings(t *testing.T) {
 	}
 	if got, want := gamepaddb.Name(id), "XInput Gamepad (GLFW)"; got != want {
 		t.Errorf("got: %q, want: %q", got, want)
+	}
+}
+
+// mockGamepad mimics internal/gamepad.Gamepad:
+// every state query takes the gamepad's own mutex.
+type mockGamepad struct {
+	mu sync.Mutex
+}
+
+func (g *mockGamepad) IsAxisReady(index int) bool { g.mu.Lock(); defer g.mu.Unlock(); return true }
+func (g *mockGamepad) Axis(index int) float64     { g.mu.Lock(); defer g.mu.Unlock(); return 0 }
+func (g *mockGamepad) Button(index int) bool      { g.mu.Lock(); defer g.mu.Unlock(); return false }
+func (g *mockGamepad) Hat(index int) int          { g.mu.Lock(); defer g.mu.Unlock(); return 0 }
+
+// queryWithGamepadLock calls this package while the gamepad's own lock is held,
+// like Gamepad.IsStandardAxisAvailable does.
+func queryWithGamepadLock(g *mockGamepad, id string) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+
+	_ = gamepaddb.HasStandardLayoutMapping(id)
+	_ = gamepaddb.HasStandardAxis(id, gamepaddb.StandardAxisLeftStickHorizontal)
+	_ = gamepaddb.HasStandardButton(id, gamepaddb.StandardButtonRightBottom)
+	_ = gamepaddb.Name(id)
+}
+
+// TestConcurrentAccess uses this package from multiple goroutines in both lock orders:
+// one takes the gamepad's own lock before calling in, and the other lets this package
+// call back into the gamepad. Holding mappingsM while a gamepad state is used makes the
+// two orders wait for each other.
+//
+// This must be the last test in this file, as a deadlock leaves mappingsM held
+// and any test running after it would hang.
+func TestConcurrentAccess(t *testing.T) {
+	const id = "00000000000000000000000000000001"
+	mappings := []byte(id + ",Test Pad,a:b0,leftx:a0,\n")
+	if err := gamepaddb.Update(mappings); err != nil {
+		t.Fatal(err)
+	}
+
+	g := &mockGamepad{}
+	deadline := time.Now().Add(200 * time.Millisecond)
+
+	var wg sync.WaitGroup
+	for range 4 {
+		wg.Go(func() {
+			for time.Now().Before(deadline) {
+				queryWithGamepadLock(g, id)
+			}
+		})
+
+		wg.Go(func() {
+			for time.Now().Before(deadline) {
+				_ = gamepaddb.StandardAxisValue(id, gamepaddb.StandardAxisLeftStickHorizontal, g)
+				_ = gamepaddb.StandardButtonValue(id, gamepaddb.StandardButtonRightBottom, g)
+				_ = gamepaddb.IsStandardButtonPressed(id, gamepaddb.StandardButtonRightBottom, g)
+			}
+		})
+	}
+
+	wg.Go(func() {
+		for time.Now().Before(deadline) {
+			_ = gamepaddb.Update(mappings)
+		}
+	})
+
+	done := make(chan struct{})
+	go func() {
+		wg.Wait()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+	case <-time.After(10 * time.Second):
+		t.Fatal("deadlocked: a gamepad state was probably used while mappingsM was held")
 	}
 }
