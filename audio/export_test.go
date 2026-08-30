@@ -97,17 +97,17 @@ func (p *dummyPlayer) Pause() {
 
 func (p *dummyPlayer) Play() {
 	p.mu.Lock()
+	defer p.mu.Unlock()
+
 	if p.eof {
-		p.mu.Unlock()
 		return
 	}
 	p.playing = true
 	gen := p.readGen
-	p.mu.Unlock()
 	go func() {
 		var buf [4096]byte
 		for {
-			n, stopped, err := p.readOnce(gen, buf[:])
+			_, stopped, err := p.readOnce(gen, buf[:])
 			if stopped {
 				return
 			}
@@ -117,12 +117,10 @@ func (p *dummyPlayer) Play() {
 				}
 				break
 			}
-			p.mu.Lock()
-			p.buffered += n
-			p.mu.Unlock()
 			time.Sleep(time.Millisecond)
 		}
 		p.mu.Lock()
+		defer p.mu.Unlock()
 		// The source is exhausted only when it was played through. A paused player would still
 		// have unplayed data in its buffer in a real player.
 		if p.playing {
@@ -131,13 +129,12 @@ func (p *dummyPlayer) Play() {
 		if p.bufferedDrain == 0 {
 			p.playing = false
 		}
-		p.mu.Unlock()
 	}()
 }
 
 // readOnce performs one read from the source with the mutex held, so that PauseAndStopReading waits
-// for an in-flight read. stopped reports that PauseAndStopReading was called and reading must not
-// continue.
+// for an in-flight read. The read bytes are added to the buffered size in the same critical section.
+// stopped reports that PauseAndStopReading was called and reading must not continue.
 func (p *dummyPlayer) readOnce(gen int, buf []byte) (n int, stopped bool, err error) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -146,6 +143,7 @@ func (p *dummyPlayer) readOnce(gen int, buf []byte) (n int, stopped bool, err er
 		return 0, true, nil
 	}
 	n, err = p.r.Read(buf)
+	p.buffered += n
 	return n, false, err
 }
 
