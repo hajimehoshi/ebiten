@@ -94,7 +94,9 @@ func (g *nativeGamepadsImpl) update(gamepads *gamepads) error {
 				mapping: gp.Get("mapping").String(),
 			}
 		}
+		gamepad.m.Lock()
 		gamepad.native.(*nativeGamepadImpl).value = gp
+		gamepad.m.Unlock()
 	}
 
 	// Remove an unused gamepads.
