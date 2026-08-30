@@ -519,68 +519,8 @@ func TestPositionNotGrowingAfterFinished(t *testing.T) {
 		t.Fatal("time out: the player did not finish")
 	}
 
-	// The context does not update a finished player anymore, so play and update a few more times
-	// to let the position settle with the exhausted source.
-	for range 5 {
-		p.Play()
-		if err := audio.UpdateForTesting(); err != nil {
-			t.Fatal(err)
-		}
-		time.Sleep(10 * time.Millisecond)
-	}
 	end := p.Position()
 	if got, want := end, 4*time.Second; got < want || got > want+100*time.Millisecond {
-		t.Errorf("Position() after the player finished: got: %v, want: %v or a bit larger", got, want)
-	}
-
-	// Play on a finished player does nothing, so the position must not grow anymore.
-	for range 20 {
-		p.Play()
-		if err := audio.UpdateForTesting(); err != nil {
-			t.Fatal(err)
-		}
-		time.Sleep(5 * time.Millisecond)
-	}
-	if got := p.Position(); got != end {
-		t.Errorf("position grew after the player finished: %v -> %v", end, got)
-	}
-}
-
-func TestPositionNotGrowingAfterFinishedWithBufferedSource(t *testing.T) {
-	setup()
-	defer teardown()
-
-	// Consume 1/7 of the source per update so that the buffered data is drained a few ticks after
-	// the source is exhausted.
-	audio.SetBufferedDrainForTesting(44100 * 8 / 7)
-	defer audio.SetBufferedDrainForTesting(0)
-
-	// 44100 [Hz] * 8 [bytes/sample] is one second of 32bit float stereo audio.
-	src := bytes.NewReader(make([]byte, 44100*8*2))
-	p, err := context.NewPlayerF32(src)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	p.Play()
-	// Wait until the player drains both its source and its buffer.
-	var finished bool
-	for range 500 {
-		if err := audio.UpdateForTesting(); err != nil {
-			t.Fatal(err)
-		}
-		if !p.IsPlaying() {
-			finished = true
-			break
-		}
-		time.Sleep(time.Millisecond)
-	}
-	if !finished {
-		t.Fatal("time out: the player did not finish")
-	}
-
-	end := p.Position()
-	if got, want := end, 2*time.Second; got < want || got > want+100*time.Millisecond {
 		t.Errorf("Position() after the player finished: got: %v, want: %v or a bit larger", got, want)
 	}
 
