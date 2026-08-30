@@ -60,9 +60,13 @@ func TestPrograms(t *testing.T) {
 
 	tmpdir := t.TempDir()
 
-	// Run sub-tests one by one, not in parallel (#2571).
-	var m sync.Mutex
-
+	type buildResult struct {
+		name string
+		bin  string
+		err  error
+		out  []byte
+	}
+	results := make([]buildResult, 0, len(ents))
 	for _, e := range ents {
 		if e.IsDir() {
 			continue
@@ -71,20 +75,40 @@ func TestPrograms(t *testing.T) {
 		if !strings.HasSuffix(n, ".go") {
 			continue
 		}
+		results = append(results, buildResult{name: n, bin: filepath.Join(tmpdir, n)})
+	}
 
-		t.Run(n, func(t *testing.T) {
+	var wg sync.WaitGroup
+	for i := range results {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			if out, err := exec.Command("go", "build", "-o", results[i].bin, filepath.Join(dir, results[i].name)).CombinedOutput(); err != nil {
+				results[i].err = err
+				results[i].out = out
+			}
+		}(i)
+	}
+	wg.Wait()
+	for _, r := range results {
+		if r.err != nil {
+			t.Fatalf("%v\n%s", r.err, r.out)
+		}
+	}
+
+	// Run sub-tests one by one, not in parallel (#2571).
+	var m sync.Mutex
+
+	for _, r := range results {
+		r := r
+		t.Run(r.name, func(t *testing.T) {
 			m.Lock()
 			defer m.Unlock()
-
-			bin := filepath.Join(tmpdir, n)
-			if out, err := exec.Command("go", "build", "-o", bin, filepath.Join(dir, n)).CombinedOutput(); err != nil {
-				t.Fatalf("%v\n%s", err, string(out))
-			}
 
 			ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 			defer cancel()
 
-			cmd := exec.CommandContext(ctx, bin)
+			cmd := exec.CommandContext(ctx, r.bin)
 			stderr := &bytes.Buffer{}
 			cmd.Stderr = stderr
 			if err := cmd.Run(); err != nil {
