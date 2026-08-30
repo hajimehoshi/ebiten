@@ -104,7 +104,7 @@ func TestPrograms(t *testing.T) {
 			return nil
 		})
 	}
-	eg.Wait()
+	_ = eg.Wait()
 
 	// Run sub-tests one by one, not in parallel (#2571).
 	var m sync.Mutex
