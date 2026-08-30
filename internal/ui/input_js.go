@@ -123,11 +123,19 @@ func (u *UserInterface) keyUp(event js.Value) {
 }
 
 func (u *UserInterface) mouseDown(code int) {
-	u.inputState.setMouseButtonPressed(codeToMouseButton[code], u.InputTime())
+	b, ok := codeToMouseButton[code]
+	if !ok {
+		return
+	}
+	u.inputState.setMouseButtonPressed(b, u.InputTime())
 }
 
 func (u *UserInterface) mouseUp(code int) {
-	u.inputState.setMouseButtonReleased(codeToMouseButton[code], u.InputTime())
+	b, ok := codeToMouseButton[code]
+	if !ok {
+		return
+	}
+	u.inputState.setMouseButtonReleased(b, u.InputTime())
 }
 
 func (u *UserInterface) updateInputFromEvent(e js.Value) error {
