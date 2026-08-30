@@ -533,8 +533,8 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
     //
     // It is recommended to call saveGPUResources to true only when necessary e.g. showing a reward ad.
     //
-    // After GPU resources are saved, rendering is suspended until resumeGame is called or
-    // GLSurfaceView is recreated by an actual context loss.
+    // After GPU resources are saved, rendering is suspended until resumeGame is called or the
+    // OpenGL ES context is actually lost.
     public void saveGPUResources() {
         Ebitenmobileview.saveGPUResources();
     }

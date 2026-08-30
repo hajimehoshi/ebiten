@@ -18,8 +18,8 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
-// OnSurfaceChanged is called from GLSurfaceView.Renderer's onSurfaceChanged with the surface's size
-// in pixels. Without it, the size is derived from the view's size in device-independent pixels.
+// OnSurfaceChanged is called from EbitenSurfaceView's render thread with the surface's size in
+// pixels. Without it, the size is derived from the view's size in device-independent pixels.
 //
 // OnSurfaceChanged is concurrent safe.
 func OnSurfaceChanged(width, height int) {
