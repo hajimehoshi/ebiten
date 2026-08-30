@@ -1262,7 +1262,9 @@ func (i *Image) ReadPixels(pixels []byte) {
 
 	i.invokeUsageCallbacks()
 
-	i.image.ReadPixels(pixels, i.adjustedBounds())
+	// ReadPixels reads a whole region at once, so the pixel cache is not used to avoid keeping a
+	// second copy of the pixels (see #3208).
+	i.image.ReadPixels(pixels, i.adjustedBounds(), false)
 }
 
 // At returns the color of the image at (x, y).
@@ -1310,7 +1312,8 @@ func (i *Image) at(x, y int) (r, g, b, a byte) {
 
 	x, y = i.adjustPosition(x, y)
 	var pix [4]byte
-	i.image.ReadPixels(pix[:], image.Rect(x, y, x+1, y+1))
+	// At reads a single pixel and repeated reads are expected, so the pixel cache is used.
+	i.image.ReadPixels(pix[:], image.Rect(x, y, x+1, y+1), true)
 	return pix[0], pix[1], pix[2], pix[3]
 }
 

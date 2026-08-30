@@ -58,7 +58,15 @@ func (i *Image) Deallocate() {
 	i.cache.deallocate()
 }
 
-func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte, region image.Rectangle) (bool, error) {
+// ReadPixels reads the pixels in region into pixels.
+//
+// If useCache is false, the pixels are read from the GPU directly into pixels without consulting or
+// populating the pixel cache. This avoids keeping a second copy of the pixels and is used when a whole
+// region is read at once, as ebiten.Image.ReadPixels does.
+func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte, region image.Rectangle, useCache bool) (bool, error) {
+	if !useCache {
+		return i.cache.readPixelsDirectly(i.img, graphicsDriver, pixels, region)
+	}
 	return i.cache.readPixels(i.img, graphicsDriver, pixels, region)
 }
 

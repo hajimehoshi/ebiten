@@ -31,6 +31,65 @@ func TestMain(m *testing.M) {
 	t.MainWithRunLoop(m)
 }
 
+func TestReadPixelsWithoutCache(t *testing.T) {
+	const size = 16
+	img := buffered.NewImage(size, size, atlas.ImageTypeRegular)
+
+	// Write a 2x2 block to the GPU directly.
+	pix := make([]byte, 4*2*2)
+	for i := range pix {
+		pix[i] = 0x40
+	}
+	img.WritePixels(pix, image.Rect(2, 2, 4, 4))
+
+	// Add a pending write to the dots buffer.
+	img.WritePixels([]byte{0xff, 0xff, 0xff, 0xff}, image.Rect(3, 3, 4, 4))
+
+	want := make([]byte, 4*size*size)
+	for y := 2; y < 4; y++ {
+		for x := 2; x < 4; x++ {
+			v := byte(0x40)
+			if x == 3 && y == 3 {
+				v = 0xff
+			}
+			idx := 4 * (y*size + x)
+			for i := range 4 {
+				want[idx+i] = v
+			}
+		}
+	}
+
+	// Read the whole region without the cache: the pending writes must be applied to the result,
+	// and no tile must be cached.
+	got := make([]byte, 4*size*size)
+	ok, err := img.ReadPixels(ui.Get().GraphicsDriverForTesting(), got, image.Rect(0, 0, size, size), false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !ok {
+		t.Fatal("ReadPixels failed")
+	}
+	if !bytes.Equal(got, want) {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+	if got := img.CachedPixelsSizeForTesting(); got != 0 {
+		t.Errorf("cached pixels size: got: %d, want: 0", got)
+	}
+
+	// Reading a single pixel keeps using the cache.
+	var dot [4]byte
+	ok, err = img.ReadPixels(ui.Get().GraphicsDriverForTesting(), dot[:], image.Rect(0, 0, 1, 1), true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !ok {
+		t.Fatal("ReadPixels failed")
+	}
+	if got, want := img.CachedPixelsSizeForTesting(), 4*size*size; got != want {
+		t.Errorf("cached pixels size: got: %d, want: %d", got, want)
+	}
+}
+
 func TestUnsyncedPixels(t *testing.T) {
 	dst := buffered.NewImage(16, 16, atlas.ImageTypeRegular)
 
@@ -39,7 +98,7 @@ func TestUnsyncedPixels(t *testing.T) {
 
 	// Merge the entry into the cached pixels.
 	// The entry for dots is now gone in the current implementation.
-	ok, err := dst.ReadPixels(ui.Get().GraphicsDriverForTesting(), make([]byte, 4*16*16), image.Rect(0, 0, 16, 16))
+	ok, err := dst.ReadPixels(ui.Get().GraphicsDriverForTesting(), make([]byte, 4*16*16), image.Rect(0, 0, 16, 16), true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -61,7 +120,7 @@ func TestUnsyncedPixels(t *testing.T) {
 
 	// Check the result is correct.
 	var got [4]byte
-	ok, err = dst.ReadPixels(ui.Get().GraphicsDriverForTesting(), got[:], image.Rect(0, 0, 1, 1))
+	ok, err = dst.ReadPixels(ui.Get().GraphicsDriverForTesting(), got[:], image.Rect(0, 0, 1, 1), true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -105,7 +164,7 @@ func TestReadPixelsOnLargeImage(t *testing.T) {
 	// Read the same region twice. The entry for dots must be applied to the result both times.
 	for range 2 {
 		got := make([]byte, 4*4*4)
-		ok, err := img.ReadPixels(ui.Get().GraphicsDriverForTesting(), got, image.Rect(1, 1, 5, 5))
+		ok, err := img.ReadPixels(ui.Get().GraphicsDriverForTesting(), got, image.Rect(1, 1, 5, 5), true)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -140,7 +199,7 @@ func TestReadPixelsOnLargeImageAcrossTiles(t *testing.T) {
 
 	// Reading one pixel caches only the tile containing it.
 	var dot [4]byte
-	ok, err := img.ReadPixels(ui.Get().GraphicsDriverForTesting(), dot[:], image.Rect(0, 0, 1, 1))
+	ok, err := img.ReadPixels(ui.Get().GraphicsDriverForTesting(), dot[:], image.Rect(0, 0, 1, 1), true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -171,7 +230,7 @@ func TestReadPixelsOnLargeImageAcrossTiles(t *testing.T) {
 	// Read the same region twice. The entry for dots must be applied to the result both times.
 	for range 2 {
 		got := make([]byte, 4*8*8)
-		ok, err := img.ReadPixels(ui.Get().GraphicsDriverForTesting(), got, image.Rect(252, 252, 260, 260))
+		ok, err := img.ReadPixels(ui.Get().GraphicsDriverForTesting(), got, image.Rect(252, 252, 260, 260), true)
 		if err != nil {
 			t.Fatal(err)
 		}

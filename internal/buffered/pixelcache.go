@@ -86,6 +86,17 @@ func (c *pixelCache) tileRegion(idx image.Point) image.Rectangle {
 	return r.Intersect(image.Rect(0, 0, c.width, c.height))
 }
 
+// readPixelsDirectly reads the pixels in region from the GPU directly into pixels, without consulting
+// or populating the cache.
+// The pending writes in the dots buffer and in the cached tiles must be applied to the GPU before reading.
+// Unlike readPixels, this does not keep a second copy of the pixels, which is suitable for reading a whole
+// region at once as ebiten.Image.ReadPixels does.
+func (c *pixelCache) readPixelsDirectly(img *atlas.Image, graphicsDriver graphicsdriver.Graphics, pixels []byte, region image.Rectangle) (bool, error) {
+	// The pending writes are the primary data, so they have to be applied to the GPU first.
+	c.writeBackPixelsIfNeeded(img)
+	return img.ReadPixels(graphicsDriver, pixels, region)
+}
+
 // readPixels reads the pixels in region into pixels, loading the tiles intersecting region as needed.
 func (c *pixelCache) readPixels(img *atlas.Image, graphicsDriver graphicsdriver.Graphics, pixels []byte, region image.Rectangle) (bool, error) {
 	if region.Dx() == 1 && region.Dy() == 1 {

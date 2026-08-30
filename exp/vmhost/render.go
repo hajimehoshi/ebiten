@@ -261,7 +261,7 @@ func (f *frameRenderer) readPixels(pixels [][]byte, id graphicsdriver.ImageID, r
 		return fmt.Errorf("vmhost: ReadPixels references unknown image %d", id)
 	}
 	for i, r := range regions {
-		hi.img.ReadPixels(pixels[i], r)
+		hi.img.ReadPixels(pixels[i], r, true)
 	}
 	return nil
 }

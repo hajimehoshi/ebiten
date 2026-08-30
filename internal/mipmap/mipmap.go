@@ -73,8 +73,8 @@ func (m *Mipmap) markDirty() {
 	}
 }
 
-func (m *Mipmap) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte, region image.Rectangle) (ok bool, err error) {
-	return m.orig.ReadPixels(graphicsDriver, pixels, region)
+func (m *Mipmap) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte, region image.Rectangle, useCache bool) (ok bool, err error) {
+	return m.orig.ReadPixels(graphicsDriver, pixels, region, useCache)
 }
 
 func (m *Mipmap) DrawTriangles(srcs [graphics.ShaderSrcImageCount]*Mipmap, vertices []float32, indices []uint32, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderSrcImageCount]image.Rectangle, shader *atlas.Shader, uniforms []uint32, canSkipMipmap bool) {

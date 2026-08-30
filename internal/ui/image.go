@@ -183,13 +183,13 @@ func (i *Image) WritePixels(pix []byte, region image.Rectangle) {
 	i.mipmap.WritePixels(pix, region)
 }
 
-func (i *Image) ReadPixels(pixels []byte, region image.Rectangle) {
+func (i *Image) ReadPixels(pixels []byte, region image.Rectangle, useCache bool) {
 	// Check the error existence and avoid unnecessary calls.
 	if i.ui.error() != nil {
 		return
 	}
 
-	if err := i.ui.readPixels(i, pixels, region); err != nil {
+	if err := i.ui.readPixels(i, pixels, region, useCache); err != nil {
 		if panicOnErrorOnReadingPixels {
 			panic(err)
 		}
@@ -201,11 +201,11 @@ func (i *Image) ReadPixels(pixels []byte, region image.Rectangle) {
 //
 // The caller must not hold the mutex: a failed read is retried in a frame, and the frame needs the
 // mutex to draw the image.
-func (i *Image) readPixels(pixels []byte, region image.Rectangle) (bool, error) {
+func (i *Image) readPixels(pixels []byte, region image.Rectangle, useCache bool) (bool, error) {
 	i.mu.Lock()
 	defer i.mu.Unlock()
 
-	return i.mipmap.ReadPixels(i.ui.graphicsDriver, pixels, region)
+	return i.mipmap.ReadPixels(i.ui.graphicsDriver, pixels, region, useCache)
 }
 
 func (i *Image) DumpScreenshot(name string, blackbg bool) (string, error) {
