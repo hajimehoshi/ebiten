@@ -319,15 +319,20 @@ func mayContainStrongRTLInFirstLine(text string) bool {
 	//     (Hebrew, Arabic, Syriac, Arabic Supplement, Thaana, NKo).
 	//   - 0xE0       — 3-byte UTF-8 covering U+0800..U+08FF
 	//     (Samaritan, Mandaic, Syriac Supplement, Arabic Extended-A/B).
-	//   - 0xEF       — 3-byte UTF-8 covering U+FB50..U+FDFF and
-	//     U+FE70..U+FEFF (Arabic Presentation Forms A and B, class AL).
+	//   - 0xEF 0xAC..0xBB — 3-byte UTF-8 covering U+FB00..U+FEFF
+	//     (Hebrew Presentation Forms, class R, and Arabic Presentation
+	//     Forms A and B, class AL). The second byte is restricted to
+	//     0xAC..0xBB because 0xEF alone also covers the
+	//     halfwidth/fullwidth forms (U+FF00..U+FFEF, class ON/NSM)
+	//     that appear in almost every Japanese sentence, and pushing
+	//     those off the fast path costs more than it is worth.
 	//   - 0xF0       — 4-byte UTF-8 covering plane 1
 	//     (Mende Kikakui, Adlam, and other SMP RTL scripts).
 	//
-	// 0xEF and 0xF0 admit false positives for non-RTL content (the
-	// private use area and CJK compatibility for 0xEF; emoji and
-	// mathematical alphanumerics for 0xF0); those texts go through the
-	// bidi pass and chunk correctly anyway.
+	// 0xEF and 0xF0 admit false positives for non-RTL content (Latin
+	// ligatures and CJK compatibility forms for 0xEF 0xAC..0xBB;
+	// emoji and mathematical alphanumerics for 0xF0); those texts go
+	// through the bidi pass and chunk correctly anyway.
 	//
 	// Line-break bytes are detected inline so the scan stops at the
 	// first line break instead of walking past it.
@@ -346,7 +351,12 @@ func mayContainStrongRTLInFirstLine(text string) bool {
 			}
 			continue
 		}
-		if (b >= 0xD6 && b <= 0xE0) || b == 0xEF || b == 0xF0 {
+		if (b >= 0xD6 && b <= 0xE0) || b == 0xF0 {
+			return true
+		}
+		// 0xEF with a second byte of 0xAC..0xBB is exactly
+		// U+FB00..U+FEFF, the Hebrew and Arabic presentation forms.
+		if b == 0xEF && i+1 < len(text) && text[i+1] >= 0xAC && text[i+1] <= 0xBB {
 			return true
 		}
 		if b == 0xC2 && i+1 < len(text) && text[i+1] == 0x85 {

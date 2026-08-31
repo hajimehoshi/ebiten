@@ -284,6 +284,15 @@ func TestChunks_Levels(t *testing.T) {
 			wantLevels: []bidi.Level{1, 0},
 		},
 		{
+			// Hebrew Presentation Forms (U+FB21, class R) share the
+			// 0xEF lead byte with the Arabic ones and are fixed the
+			// same way.
+			name:       "hebrew_presentation_forms",
+			text:       "\ufb21. \ufb21.",
+			wantTexts:  []string{"\ufb21. \ufb21", "."},
+			wantLevels: []bidi.Level{1, 0},
+		},
+		{
 			// RLM (U+200F, class R) is strong RTL with lead byte 0xE2,
 			// which the fast path only inspected for line separators.
 			// It must force the bidi pass so the RLM itself carries
