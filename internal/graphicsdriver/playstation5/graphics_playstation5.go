@@ -127,7 +127,7 @@ func (g *Graphics) NeedsClearingScreen() bool {
 }
 
 func (g *Graphics) MaxImageSize() int {
-	return 4096 // TODO: Get the value from the SDK.
+	return int(C.ebitengine_MaxImageSize())
 }
 
 func (g *Graphics) NewShader(program *shaderir.Program) (graphicsdriver.Shader, error) {
