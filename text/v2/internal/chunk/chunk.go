@@ -319,12 +319,20 @@ func mayContainStrongRTLInFirstLine(text string) bool {
 	//     (Hebrew, Arabic, Syriac, Arabic Supplement, Thaana, NKo).
 	//   - 0xE0       — 3-byte UTF-8 covering U+0800..U+08FF
 	//     (Samaritan, Mandaic, Syriac Supplement, Arabic Extended-A/B).
+	//   - 0xEF 0xAC..0xBB — 3-byte UTF-8 covering U+FB00..U+FEFF
+	//     exactly (Hebrew Presentation Forms, class R, and Arabic
+	//     Presentation Forms A and B, class AL). The common non-RTL
+	//     forms at U+FF00 and above — halfwidth/fullwidth punctuation
+	//     and katakana, found in almost every Japanese sentence —
+	//     fall outside the second-byte range and keep the fast path.
 	//   - 0xF0       — 4-byte UTF-8 covering plane 1
 	//     (Mende Kikakui, Adlam, and other SMP RTL scripts).
 	//
-	// 0xF0 admits false positives for non-RTL SMP content (emoji,
-	// mathematical alphanumerics); those texts go through the bidi
-	// pass and chunk correctly anyway.
+	// 0xEF 0xAC..0xBB and 0xF0 admit false positives for non-RTL
+	// content (variation selectors such as U+FE0F on emoji, Latin
+	// ligatures, and CJK compatibility forms for 0xEF 0xAC..0xBB;
+	// emoji and mathematical alphanumerics for 0xF0); those texts go
+	// through the bidi pass and chunk correctly anyway.
 	//
 	// Line-break bytes are detected inline so the scan stops at the
 	// first line break instead of walking past it.
@@ -332,6 +340,8 @@ func mayContainStrongRTLInFirstLine(text string) bool {
 	//   NEL  U+0085 → 0xC2 0x85
 	//   LS   U+2028 → 0xE2 0x80 0xA8
 	//   PS   U+2029 → 0xE2 0x80 0xA9
+	// RLM (U+200F, class R) shares the 0xE2 0x80 prefix and is detected
+	// alongside the line separators.
 	for i := range len(text) {
 		b := text[i]
 		if b < 0x80 {
@@ -344,11 +354,21 @@ func mayContainStrongRTLInFirstLine(text string) bool {
 		if (b >= 0xD6 && b <= 0xE0) || b == 0xF0 {
 			return true
 		}
+		// 0xEF with a second byte of 0xAC..0xBB is exactly
+		// U+FB00..U+FEFF, the Hebrew and Arabic presentation forms.
+		if b == 0xEF && i+1 < len(text) && text[i+1] >= 0xAC && text[i+1] <= 0xBB {
+			return true
+		}
 		if b == 0xC2 && i+1 < len(text) && text[i+1] == 0x85 {
 			return false
 		}
-		if b == 0xE2 && i+2 < len(text) && text[i+1] == 0x80 && (text[i+2] == 0xA8 || text[i+2] == 0xA9) {
-			return false
+		if b == 0xE2 && i+2 < len(text) && text[i+1] == 0x80 {
+			switch text[i+2] {
+			case 0x8F: // RLM U+200F, strong RTL
+				return true
+			case 0xA8, 0xA9: // LS U+2028, PS U+2029
+				return false
+			}
 		}
 	}
 	return false
