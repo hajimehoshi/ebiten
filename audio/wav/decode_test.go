@@ -310,11 +310,31 @@ func TestDecodeSeekOutOfRangeLeavesStreamIntact(t *testing.T) {
 		offset int64
 		whence int
 	}{
-		{"SeekStartNegative", -100, io.SeekStart},
-		{"SeekStartPastEnd", size + 4, io.SeekStart},
-		{"SeekCurrentNegative", -100, io.SeekCurrent},
-		{"SeekEndBeforeStart", -(size + 100), io.SeekEnd},
-		{"SeekEndPastEnd", 100, io.SeekEnd},
+		{
+			name:   "SeekStartNegative",
+			offset: -100,
+			whence: io.SeekStart,
+		},
+		{
+			name:   "SeekStartPastEnd",
+			offset: size + 4,
+			whence: io.SeekStart,
+		},
+		{
+			name:   "SeekCurrentNegative",
+			offset: -100,
+			whence: io.SeekCurrent,
+		},
+		{
+			name:   "SeekEndBeforeStart",
+			offset: -(size + 100),
+			whence: io.SeekEnd,
+		},
+		{
+			name:   "SeekEndPastEnd",
+			offset: 100,
+			whence: io.SeekEnd,
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			s, err := wav.DecodeWithoutResampling(bytes.NewReader(buf))
