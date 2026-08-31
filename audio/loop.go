@@ -279,6 +279,11 @@ func (i *InfiniteLoop) Read(b []byte) (int, error) {
 }
 
 // Seek is implementation of ReadSeeker's Seek.
+//
+// whence must be [io.SeekStart] or [io.SeekCurrent] since an [InfiniteLoop] has no end.
+//
+// The returned position can differ from the requested one with a nil error: a position beyond the loop end is folded
+// into the loop, and a position in the middle of a value is rounded down to a value boundary.
 func (i *InfiniteLoop) Seek(offset int64, whence int) (int64, error) {
 	switch whence {
 	case io.SeekStart, io.SeekCurrent:
