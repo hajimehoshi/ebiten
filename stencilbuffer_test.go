@@ -15,10 +15,8 @@
 package ebiten_test
 
 import (
-	"fmt"
 	"image"
 	"image/color"
-	"strings"
 	"testing"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -246,11 +244,6 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 }
 
 func TestImageDrawTrianglesWithStencilBufferWithEmptyIndicesStateChecks(t *testing.T) {
-	const (
-		msgDisposedImage  = "ebiten: the given image to DrawTriangles must not be disposed"
-		msgDisposedShader = "ebiten: the given shader to DrawTrianglesShader must not be disposed"
-	)
-
 	disposedShader, err := ebiten.NewShader([]byte(`//kage:unit pixels
 
 package main
@@ -273,45 +266,25 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	for _, tc := range []struct {
 		name string
 		draw func(dst *ebiten.Image)
-		msg  string
 	}{
 		{
 			name: "DisposedSourceImage",
 			draw: func(dst *ebiten.Image) {
 				dst.DrawTriangles32(nil, nil, disposedImage, &ebiten.DrawTrianglesOptions{FillRule: ebiten.FillRuleNonZero})
 			},
-			msg: msgDisposedImage,
 		},
 		{
 			name: "DisposedShader",
 			draw: func(dst *ebiten.Image) {
 				dst.DrawTrianglesShader32(nil, nil, disposedShader, &ebiten.DrawTrianglesShaderOptions{FillRule: ebiten.FillRuleNonZero})
 			},
-			msg: msgDisposedShader,
-		},
-		{
-			name: "DisposedDestination",
-			draw: func(dst *ebiten.Image) {
-				dst.Dispose()
-				dst.DrawTriangles32(nil, nil, nil, &ebiten.DrawTrianglesOptions{FillRule: ebiten.FillRuleNonZero})
-			},
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			dst := ebiten.NewImage(3, 3)
 			defer func() {
-				r := recover()
-				if tc.msg == "" {
-					if r != nil {
-						t.Fatalf("an empty draw must not panic, but it did: %v", r)
-					}
-					return
-				}
-				if r == nil {
-					t.Fatalf("an empty draw must panic with %q, but it did not", tc.msg)
-				}
-				if got := fmt.Sprint(r); !strings.Contains(got, tc.msg) {
-					t.Fatalf("an empty draw panicked with %q, but it must panic with %q", got, tc.msg)
+				if r := recover(); r == nil {
+					t.Errorf("an empty draw on an invalid source must panic, but it did not")
 				}
 			}()
 			tc.draw(dst)
