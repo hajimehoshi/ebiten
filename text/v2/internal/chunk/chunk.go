@@ -67,12 +67,12 @@ const fallbackBytes = 4 * 1024
 // visual order.
 func AppendChunks(dst []Chunk, text string, paragraphLevel bidi.Level) []Chunk {
 	// Pure-LTR fast path: only when the paragraph base is LTR
-	// (paragraphLevel even), where text without strong-RTL bytes
-	// resolves to level 0 uniformly. Under an RTL base the same
-	// bytes would resolve to level 2, so the bidi pass has to run
-	// to get the level right. appendChunksForRun stops on the first
-	// line break, so no first-line pre-trim is needed here.
-	if paragraphLevel%2 == 0 && !mayContainStrongRTLInFirstLine(text) {
+	// (paragraphLevel even), where text with nothing that can raise
+	// the embedding level resolves to level 0 uniformly. Under an RTL
+	// base the same bytes would resolve to level 2, so the bidi pass
+	// has to run to get the level right. appendChunksForRun stops on
+	// the first line break, so no first-line pre-trim is needed here.
+	if paragraphLevel%2 == 0 && !mayNeedBidiInFirstLine(text) {
 		return appendChunksForRun(dst, text, paragraphLevel, paragraphLevel, 0)
 	}
 
@@ -308,12 +308,19 @@ func absorbExtendFormat(text string, pos int) int {
 	return pos
 }
 
-// mayContainStrongRTLInFirstLine reports whether text's first line
-// contains any byte that could be the UTF-8 lead byte of a strong-RTL
-// rune. It is an upper bound: every first line containing strong-RTL
-// returns true, but a true result does not guarantee strong-RTL is
-// present.
-func mayContainStrongRTLInFirstLine(text string) bool {
+// mayNeedBidiInFirstLine reports whether text's first line may
+// resolve to a non-zero bidi embedding level under an LTR base. It is
+// an upper bound: every first line that resolves to a non-zero level
+// returns true, but a true result does not guarantee one.
+//
+// Two kinds of content qualify: strong-RTL runes, matched by the UTF-8
+// lead bytes below, and the explicit controls that raise the level on
+// their own (RLE U+202B, RLO U+202E, and RLI U+2067). FSI U+2068 needs
+// no match of its own, as it takes its direction from the first strong
+// character inside it and that character is matched already. LRE
+// U+202A, LRO U+202D, PDF U+202C, LRI U+2066, and PDI U+2069 never
+// produce a non-zero level under an LTR base, so they stay unmatched.
+func mayNeedBidiInFirstLine(text string) bool {
 	// Lead bytes that may begin a strong-RTL rune:
 	//   - 0xD6..0xDF — 2-byte UTF-8 covering U+0590..U+07FF
 	//     (Hebrew, Arabic, Syriac, Arabic Supplement, Thaana, NKo).
@@ -341,7 +348,9 @@ func mayContainStrongRTLInFirstLine(text string) bool {
 	//   LS   U+2028 → 0xE2 0x80 0xA8
 	//   PS   U+2029 → 0xE2 0x80 0xA9
 	// RLM (U+200F, class R) shares the 0xE2 0x80 prefix and is detected
-	// alongside the line separators.
+	// alongside the line separators, as are RLE (U+202B) and RLO
+	// (U+202E). RLI (U+2067) has the prefix 0xE2 0x81 and needs a
+	// branch of its own.
 	for i := range len(text) {
 		b := text[i]
 		if b < 0x80 {
@@ -362,12 +371,22 @@ func mayContainStrongRTLInFirstLine(text string) bool {
 		if b == 0xC2 && i+1 < len(text) && text[i+1] == 0x85 {
 			return false
 		}
-		if b == 0xE2 && i+2 < len(text) && text[i+1] == 0x80 {
-			switch text[i+2] {
-			case 0x8F: // RLM U+200F, strong RTL
-				return true
-			case 0xA8, 0xA9: // LS U+2028, PS U+2029
-				return false
+		if b == 0xE2 && i+2 < len(text) {
+			switch text[i+1] {
+			case 0x80:
+				switch text[i+2] {
+				case 0x8F: // RLM U+200F, strong RTL
+					return true
+				case 0xAB, // RLE U+202B
+					0xAE: // RLO U+202E
+					return true
+				case 0xA8, 0xA9: // LS U+2028, PS U+2029
+					return false
+				}
+			case 0x81:
+				if text[i+2] == 0xA7 { // RLI U+2067
+					return true
+				}
 			}
 		}
 	}
