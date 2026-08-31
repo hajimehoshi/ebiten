@@ -14,6 +14,10 @@
 
 package atlas
 
+import (
+	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
+)
+
 const (
 	BaseCountToPutOnSourceBackend = baseCountToPutOnSourceBackend
 )
@@ -83,4 +87,12 @@ func BackendCountForTesting() int {
 	backendsM.Lock()
 	defer backendsM.Unlock()
 	return len(theBackends)
+}
+
+func ClearShaderForTesting() *Shader {
+	return clearShader
+}
+
+func (s *Shader) SourceIDForTesting() shaderir.SourceID {
+	return s.ir.SourceID
 }

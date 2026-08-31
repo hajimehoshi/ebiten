@@ -23,8 +23,8 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/builtinshader"
-	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
+	"github.com/hajimehoshi/ebiten/v2/internal/legacyshader"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
 
@@ -136,8 +136,10 @@ var (
 func init() {
 	var wg errgroup.Group
 	var nearestIR, linearIR, clearIR *shaderir.Program
+	// Compile through legacyshader, the same path a user's shader takes. A source ID identifies the
+	// source the core compiles, and shader precompilation knows only the IDs from that path.
 	wg.Go(func() error {
-		ir, err := graphics.CompileShader([]byte(builtinshader.ShaderSource(builtinshader.FilterNearest, builtinshader.AddressUnsafe)))
+		ir, _, err := legacyshader.CompileShader(builtinshader.ShaderSource(builtinshader.FilterNearest, builtinshader.AddressUnsafe))
 		if err != nil {
 			return fmt.Errorf("atlas: compiling the nearest shader failed: %w", err)
 		}
@@ -145,7 +147,7 @@ func init() {
 		return nil
 	})
 	wg.Go(func() error {
-		ir, err := graphics.CompileShader([]byte(builtinshader.ShaderSource(builtinshader.FilterLinear, builtinshader.AddressUnsafe)))
+		ir, _, err := legacyshader.CompileShader(builtinshader.ShaderSource(builtinshader.FilterLinear, builtinshader.AddressUnsafe))
 		if err != nil {
 			return fmt.Errorf("atlas: compiling the linear shader failed: %w", err)
 		}
@@ -153,7 +155,7 @@ func init() {
 		return nil
 	})
 	wg.Go(func() error {
-		ir, err := graphics.CompileShader([]byte(builtinshader.ClearShaderSource))
+		ir, _, err := legacyshader.CompileShader([]byte(builtinshader.ClearShaderSource))
 		if err != nil {
 			return fmt.Errorf("atlas: compiling the clear shader failed: %w", err)
 		}
