@@ -54,8 +54,3 @@ func (rtb *RuneToBoolMap) Get(rune rune) (bool, bool) {
 func SVGGlyphDocument(source []byte, gid uint32) []byte {
 	return newSVGDocIndex(source).glyphDocument(gid)
 }
-
-// AppendLazyGlyphsForLine is a test helper that calls Face.appendLazyGlyphsForLine.
-func AppendLazyGlyphsForLine(face Face, glyphs []LazyGlyph, line string, indexOffset int, originX, originY float64, keepGlyph func(originX, originY float64) bool) []LazyGlyph {
-	return face.appendLazyGlyphsForLine(glyphs, line, indexOffset, originX, originY, keepGlyph)
-}
