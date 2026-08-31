@@ -292,10 +292,6 @@ func TestDecodeSeekInvalidWhence(t *testing.T) {
 	}
 }
 
-// A failed Seek must leave the stream usable. The old code seeked the
-// underlying source before validating the resolved position, so a small
-// negative seek into a file with a large header moved the source into the
-// header region, and the next Read returned header bytes as audio.
 func TestDecodeSeekOutOfRangeLeavesStreamIntact(t *testing.T) {
 	const dataFill = 0xab
 	const headerFill = 0x5a
