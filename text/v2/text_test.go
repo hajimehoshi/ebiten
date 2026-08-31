@@ -1438,3 +1438,38 @@ func TestGoTextFaceSourceConcurrentDrawWithDifferentSizes(t *testing.T) {
 	close(start)
 	wg.Wait()
 }
+
+func TestGoXFaceKeepGlyphAdvanceX(t *testing.T) {
+	const eps = 1.0 / (1 << 6)
+
+	face := text.NewGoXFace(&testGoXFace{})
+
+	// Keep the first and last glyphs but skip the middle one. The skipped
+	// glyph's advance must still be reflected in the previous output glyph's
+	// AdvanceX so that OriginX + AdvanceX of one output glyph equals OriginX
+	// of the next, and the last output glyph reaches the line's total advance.
+	// testGoXFace gives every rune a fixed advance of testGoXFaceSize, so the
+	// glyph origins are 0, testGoXFaceSize, and 2*testGoXFaceSize.
+	line := "acd"
+	glyphs := text.AppendLazyGlyphsForLine(face, nil, line, 0, 0, 0, func(originX, originY float64) bool {
+		return originX < testGoXFaceSize/2 || originX > 3*testGoXFaceSize/2
+	})
+	if len(glyphs) != 2 {
+		t.Fatalf("got %d glyphs, want 2 (a and d)", len(glyphs))
+	}
+
+	for i := 0; i < len(glyphs)-1; i++ {
+		gotX := glyphs[i].OriginX + glyphs[i].AdvanceX
+		wantX := glyphs[i+1].OriginX
+		if math.Abs(gotX-wantX) > eps {
+			t.Errorf("glyph %d: OriginX+AdvanceX = %v, next OriginX = %v", i, gotX, wantX)
+		}
+	}
+
+	last := glyphs[len(glyphs)-1]
+	gotEnd := last.OriginX + last.AdvanceX - glyphs[0].OriginX
+	wantEnd := text.AdvanceAt(line, len(line), face)
+	if math.Abs(gotEnd-wantEnd) > eps {
+		t.Errorf("last OriginX+AdvanceX - first OriginX = %v, want %v", gotEnd, wantEnd)
+	}
+}

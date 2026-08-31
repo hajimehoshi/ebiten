@@ -201,6 +201,14 @@ func (g *GoXFace) appendLazyGlyphsForLine(glyphs []LazyGlyph, line string, index
 	// imager is allocated lazily on the first glyph that produces an image.
 	var imager *goXLineImager
 
+	// lastOutputIndex is the index of the last appended glyph in glyphs, and
+	// lastOutputOriginX is its origin.X. AdvanceX of a glyph is filled in when
+	// the next output glyph is appended so that skipped glyphs' advances are
+	// not lost: OriginX + AdvanceX of a glyph must equal OriginX of the next
+	// output glyph.
+	lastOutputIndex := -1
+	var lastOutputOriginX fixed.Int26_6
+
 	for i, r := range line {
 		if i > 0 {
 			origin.X = ox + originXs[advanceIndex]
@@ -209,6 +217,11 @@ func (g *GoXFace) appendLazyGlyphsForLine(glyphs []LazyGlyph, line string, index
 
 		if keepGlyph != nil && !keepGlyph(fixed26_6ToFloat64(origin.X), fixed26_6ToFloat64(origin.Y)) {
 			continue
+		}
+
+		// Fill the previous output glyph's advance up to this glyph's origin.
+		if lastOutputIndex >= 0 {
+			glyphs[lastOutputIndex].AdvanceX = fixed26_6ToFloat64(origin.X - lastOutputOriginX)
 		}
 
 		// The image position is integer so that the nearest filter can be used.
@@ -224,12 +237,6 @@ func (g *GoXFace) appendLazyGlyphsForLine(glyphs []LazyGlyph, line string, index
 			size = 1
 		}
 
-		var prevOriginX fixed.Int26_6
-		if advanceIndex > 0 {
-			prevOriginX = originXs[advanceIndex-1]
-		}
-		advanceX := fixed26_6ToFloat64(originXs[advanceIndex] - prevOriginX)
-
 		lg := LazyGlyph{
 			StartIndexInBytes: indexOffset + i,
 			EndIndexInBytes:   indexOffset + i + size,
@@ -238,8 +245,6 @@ func (g *GoXFace) appendLazyGlyphsForLine(glyphs []LazyGlyph, line string, index
 			OriginY:           fixed26_6ToFloat64(origin.Y),
 			OriginOffsetX:     0,
 			OriginOffsetY:     0,
-			AdvanceX:          advanceX,
-			AdvanceY:          0,
 		}
 		if hasImage {
 			if imager == nil {
@@ -252,6 +257,13 @@ func (g *GoXFace) appendLazyGlyphsForLine(glyphs []LazyGlyph, line string, index
 		// Append a glyph even if it has no image (control characters etc.).
 		// This is necessary to return index information for control characters.
 		glyphs = append(glyphs, lg)
+		lastOutputIndex = len(glyphs) - 1
+		lastOutputOriginX = origin.X
+	}
+
+	// Fill the last output glyph's advance up to the end of the line.
+	if lastOutputIndex >= 0 {
+		glyphs[lastOutputIndex].AdvanceX = fixed26_6ToFloat64(ox + originXs[len(originXs)-1] - lastOutputOriginX)
 	}
 
 	return glyphs
