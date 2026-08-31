@@ -253,7 +253,10 @@ func (i *InfiniteLoop) Read(b []byte) (int, error) {
 					return 0, err
 				}
 				pos += n
-				if err == io.EOF {
+				// Break on EOF, and also when no progress is made so that a
+				// source returning (0, nil) does not spin here forever. The
+				// main read loop above has the same guard.
+				if err != nil || n == 0 {
 					break
 				}
 			}
