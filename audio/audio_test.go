@@ -309,6 +309,30 @@ func TestUncomparableSource(t *testing.T) {
 	}
 }
 
+// Adding a player whose source is comparable while a player whose source is
+// uncomparable is playing must not panic. The duplication check hashed every
+// playing player's source ident, so an uncomparable ident already in the set
+// made the map lookup panic with "hash of unhashable type".
+func TestComparableSourceAfterUncomparable(t *testing.T) {
+	setup()
+	defer teardown()
+
+	p1, err := context.NewPlayer(uncomparableSource{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	p1.Play()
+
+	p2, err := context.NewPlayer(bytes.NewReader(make([]byte, 4)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	p2.Play()
+
+	p1.Pause()
+	p2.Pause()
+}
+
 // countingSource is an infinite source counting the Read calls.
 type countingSource struct {
 	reads atomic.Int64
