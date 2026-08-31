@@ -71,13 +71,12 @@ func (s *sectionReader) Seek(offset int64, whence int) (int64, error) {
 		return 0, fmt.Errorf("wav: whence must be io.SeekStart, io.SeekCurrent, or io.SeekEnd but was %d", whence)
 	}
 	if pos < 0 || pos > s.size {
-		return 0, fmt.Errorf("wav: position is out of range")
+		return 0, fmt.Errorf("wav: position must be in [0, %d] but was %d", s.size, pos)
 	}
 
-	n, err := seeker.Seek(pos+s.offset, io.SeekStart)
-	if err != nil {
+	if _, err := seeker.Seek(pos+s.offset, io.SeekStart); err != nil {
 		return 0, err
 	}
-	s.pos = n - s.offset
+	s.pos = pos
 	return s.pos, nil
 }

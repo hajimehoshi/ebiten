@@ -293,35 +293,54 @@ func TestDecodeSeekInvalidWhence(t *testing.T) {
 }
 
 func TestDecodeSeekOutOfRangeLeavesStreamIntact(t *testing.T) {
-	const dataFill = 0xab
+	const size = 8000
 	const headerFill = 0x5a
-	data := bytes.Repeat([]byte{dataFill}, 8000)
+	data := make([]byte, size)
+	for i := range data {
+		data[i] = byte(i)
+	}
 	// A large chunk before 'fmt ' pushes the data chunk far from the file
 	// start, so that a small negative offset resolves inside the header.
 	header := bytes.Repeat([]byte{headerFill}, 200)
 	buf := wavFile(testSampleRate, []chunk{{id: "LIST", data: string(header)}}, nil, data)
 
-	s, err := wav.DecodeWithoutResampling(bytes.NewReader(buf))
-	if err != nil {
-		t.Fatal(err)
-	}
+	const pos = 4
+	for _, tc := range []struct {
+		name   string
+		offset int64
+		whence int
+	}{
+		{"SeekStartNegative", -100, io.SeekStart},
+		{"SeekStartPastEnd", size + 4, io.SeekStart},
+		{"SeekCurrentNegative", -100, io.SeekCurrent},
+		{"SeekEndBeforeStart", -(size + 100), io.SeekEnd},
+		{"SeekEndPastEnd", 100, io.SeekEnd},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			s, err := wav.DecodeWithoutResampling(bytes.NewReader(buf))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err := s.Seek(pos, io.SeekStart); err != nil {
+				t.Fatal(err)
+			}
 
-	if _, err := s.Seek(-100, io.SeekStart); err == nil {
-		t.Fatal("Seek(-100, io.SeekStart): got no error, want an error")
-	}
+			if _, err := s.Seek(tc.offset, tc.whence); err == nil {
+				t.Fatalf("Seek(%d, %d): got no error, want an error", tc.offset, tc.whence)
+			}
 
-	b := make([]byte, 8)
-	n, err := s.Read(b)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if n != len(b) {
-		t.Fatalf("Read: got %d bytes, want %d", n, len(b))
-	}
-	for i := range b {
-		if b[i] != dataFill {
-			t.Fatalf("Read after a failed Seek returned byte %d = %#x, want %#x; the stream leaked header bytes", i, b[i], dataFill)
-		}
+			b := make([]byte, 8)
+			n, err := s.Read(b)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if n != len(b) {
+				t.Fatalf("Read: got %d bytes, want %d", n, len(b))
+			}
+			if want := data[pos : pos+len(b)]; !bytes.Equal(b, want) {
+				t.Fatalf("Read after a failed Seek: got %#x, want %#x", b, want)
+			}
+		})
 	}
 }
 
