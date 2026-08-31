@@ -184,6 +184,10 @@ type Path struct {
 	// flatPaths is a cached actual rendering positions.
 	// flatPaths is used only for deprecated functions. Do not use this for new functions.
 	flatPaths []flatPath
+
+	// opsBuf is a buffer of operations, which normalize uses
+	// when a sub-path has a cusp and the number of operations increases.
+	opsBuf []op
 }
 
 // Reset resets the path.
@@ -268,7 +272,10 @@ func (p *Path) QuadTo(x1, y1, x2, y2 float32) {
 	}
 	p.resetLastSubPathCacheStates()
 	if cur, ok := p.currentPosition(); ok {
-		if cur.x == x2 && cur.y == y2 {
+		// A quadratic whose start, control, and end points all coincide is a single point and can be dropped.
+		// Even if the start and end points coincide, it is not a single point when the control point differs:
+		// it is a cusp, which goes to the midpoint and comes back, so it must be kept.
+		if cur.x == x1 && cur.y == y1 && cur.x == x2 && cur.y == y2 {
 			return
 		}
 	}
@@ -663,11 +670,37 @@ func (p *Path) AddPath(src *Path, options *AddPathOptions) {
 	}
 }
 
+// countCusps counts the number of cusps in subPath, which are quadratic curves whose start and end points are the same
+// and whose control point differs from them.
+func countCusps(subPath *subPath) int {
+	var n int
+	cur := subPath.start
+	for _, op := range subPath.ops {
+		switch op.typ {
+		case opTypeLineTo:
+			cur = op.p1
+		case opTypeQuadTo:
+			if cur == op.p2 && cur != op.p1 {
+				n++
+			}
+			cur = op.p2
+		}
+	}
+	return n
+}
+
 // normalize normalizes the path by removing unnecessary sub-paths and points.
 func (p *Path) normalize() {
 	for i, subPath := range p.subPaths {
 		cur := subPath.start
-		var n int
+		ops := subPath.ops[:0]
+		if n := countCusps(&subPath); n > 0 {
+			// A cusp is converted into two lines, which increases the number of operations.
+			// Normalize into the buffer in this case to avoid overwriting the source operations before they are read.
+			// The source operations become the new buffer so that the slices are reused.
+			ops = slices.Grow(p.opsBuf[:0], len(subPath.ops)+n)
+			p.opsBuf = subPath.ops
+		}
 		for _, op := range subPath.ops {
 			switch op.typ {
 			case opTypeLineTo:
@@ -677,8 +710,30 @@ func (p *Path) normalize() {
 				cur = op.p1
 			case opTypeQuadTo:
 				switch {
-				case cur == op.p2:
+				case cur == op.p1 && op.p1 == op.p2:
+					// A single point: drop it.
 					continue
+				case cur == op.p2:
+					// A cusp goes to the midpoint and comes back.
+					// Keep this as lines, not as a curve, so that the 180-degree turn at the tip gets a joint.
+					// Divide by 2 before adding so that the midpoint computation cannot overflow.
+					mid := point{
+						x: cur.x/2 + op.p1.x/2,
+						y: cur.y/2 + op.p1.y/2,
+					}
+					if mid == cur {
+						// The midpoint is rounded to the current point in float32, so there is nothing to keep.
+						continue
+					}
+					first := op
+					first.typ = opTypeLineTo
+					first.p1 = mid
+					first.p2 = point{}
+					ops = append(ops, first)
+					op.typ = opTypeLineTo
+					op.p1 = op.p2
+					op.p2 = point{}
+					cur = op.p1
 				case cur == op.p1, op.p1 == op.p2:
 					op.typ = opTypeLineTo
 					op.p1 = op.p2
@@ -693,10 +748,9 @@ func (p *Path) normalize() {
 					cur = op.p2
 				}
 			}
-			p.subPaths[i].ops[n] = op
-			n++
+			ops = append(ops, op)
 		}
-		p.subPaths[i].ops = slices.Delete(p.subPaths[i].ops, n, len(subPath.ops))
+		p.subPaths[i].ops = ops
 	}
 
 	// Do not use slices.DeleteFunc as sub-paths's slices should be reused.

@@ -174,7 +174,7 @@ func appendParalleledPathFromSubPath(strokePath *Path, subPath *subPath, options
 
 	// As the source path is normalized, every operation is guaranteed to be valid.
 	// A line operation must have a different point from the start point.
-	// A quadratic curve operation must have create a curve, not a line.
+	// A quadratic curve operation must not be a single point nor a cusp, which are dropped or converted into lines by normalize.
 
 	cur := subPath.start
 
@@ -187,6 +187,8 @@ func appendParalleledPathFromSubPath(strokePath *Path, subPath *subPath, options
 			appendParalleledQuad(strokePath, cur, op.p1, op.p2, options.Width/2)
 			cur = op.p2
 		}
+		// Add a joint between this operation and the next operation.
+		// This also renders the 180-degree turn at the tip of a cusp, which normalize converted into two lines.
 		addJoint(strokePath, subPath, i, false, options)
 	}
 }
@@ -198,7 +200,7 @@ func appendParalleledPathFromSubPathReversed(strokePath *Path, subPath *subPath,
 
 	// As the source path is normalized, every operation is guaranteed to be valid.
 	// A line operation must have a different point from the start point.
-	// A quadratic curve operation must have create a curve, not a line.
+	// A quadratic curve operation must not be a single point nor a cusp, which are dropped or converted into lines by normalize.
 
 	for i, op := range slices.Backward(subPath.ops) {
 		nextP := subPath.startAtOp(i)
@@ -208,6 +210,8 @@ func appendParalleledPathFromSubPathReversed(strokePath *Path, subPath *subPath,
 		case opTypeQuadTo:
 			appendParalleledQuad(strokePath, op.p2, op.p1, nextP, options.Width/2)
 		}
+		// Add a joint between this operation and the previous operation.
+		// This also renders the 180-degree turn at the tip of a cusp, which normalize converted into two lines.
 		addJoint(strokePath, subPath, i, true, options)
 	}
 }
@@ -228,7 +232,10 @@ func appendParalleledLineForQuadIfNeeded(path *Path, p0, p1, p2 point, dist floa
 	if p0 == p1 && p0 == p2 {
 		panic("not reached")
 	}
-	// This curve is empty as the start and the end points are the same.
+	// A normalized path never has a cusp, whose start and end points are the same,
+	// as normalize drops a single point and converts a cusp into two lines.
+	// This can happen only in doAppendParalleledQuad when a tiny curve is split,
+	// and then the split halves are empty in float32.
 	if p0 == p2 {
 		return true
 	}

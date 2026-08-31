@@ -541,3 +541,107 @@ func TestStrokeMiterJoinNearlyCollinear(t *testing.T) {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
 }
+
+func TestQuadCuspIsKept(t *testing.T) {
+	var p vector.Path
+	p.MoveTo(0, 0)
+	p.QuadTo(10, 10, 0, 0)
+
+	// The cusp reaches (5, 5) at t=0.5.
+	if got, want := p.Bounds(), image.Rect(0, 0, 5, 5); got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+
+	var d vector.Path
+	d.MoveTo(5, 5)
+	d.QuadTo(5, 5, 5, 5)
+	if b := d.Bounds(); !b.Empty() {
+		t.Errorf("Bounds of a single point: got %v, want empty", b)
+	}
+}
+
+func TestStrokeQuadCusp(t *testing.T) {
+	var p vector.Path
+	p.MoveTo(0, 0)
+	p.LineTo(100, 0)
+	p.QuadTo(100, 50, 100, 0)
+	p.LineTo(200, 0)
+
+	// The cusp reaches (100, 25) at its midpoint, so it is equivalent to this out-and-back path.
+	var l vector.Path
+	l.MoveTo(0, 0)
+	l.LineTo(100, 0)
+	l.LineTo(100, 25)
+	l.LineTo(100, 0)
+	l.LineTo(200, 0)
+
+	for _, lineJoin := range []vector.LineJoin{vector.LineJoinMiter, vector.LineJoinBevel, vector.LineJoinRound} {
+		op := &vector.AddStrokeOptions{}
+		op.StrokeOptions.Width = 10
+		op.StrokeOptions.LineJoin = lineJoin
+
+		var sp vector.Path
+		sp.AddStroke(&p, op)
+		var lp vector.Path
+		lp.AddStroke(&l, op)
+
+		// The stroked cusp must agree with the stroked out-and-back path exactly, including the joint at the tip.
+		if got, want := vector.PathOperationsString(&sp), vector.PathOperationsString(&lp); got != want {
+			t.Errorf("LineJoin %d: got:\n%v\nwant:\n%v", lineJoin, got, want)
+		}
+	}
+
+	// AddStroke normalizes the source path in place, and the bounds of the cusp must be kept.
+	if got, want := p.Bounds(), image.Rect(0, 0, 200, 25); got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+}
+
+func TestStrokeTinyQuadCusp(t *testing.T) {
+	// The midpoint of this cusp is rounded back to the start point in float32, so there is nothing to stroke.
+	var p vector.Path
+	p.MoveTo(1e7, 0)
+	p.QuadTo(1e7+1, 0, 1e7, 0)
+
+	op := &vector.AddStrokeOptions{}
+	op.StrokeOptions.Width = 4
+
+	var sp vector.Path
+	sp.AddStroke(&p, op)
+	if got, want := vector.SubPathCount(&sp), 0; got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+}
+
+func TestStrokeHugeQuadCusp(t *testing.T) {
+	// The midpoint of this cusp must not overflow to infinity in float32.
+	var p vector.Path
+	p.MoveTo(3.0e38, 1)
+	p.QuadTo(3.4e38, 1, 3.0e38, 1)
+
+	op := &vector.AddStrokeOptions{}
+	op.StrokeOptions.Width = 4
+
+	var sp vector.Path
+	sp.AddStroke(&p, op)
+
+	// AddStroke normalizes the source path in place.
+	// The midpoint is (3.2e38, 1) without overflowing to infinity.
+	if got, want := vector.PathOperationsString(&p), "MoveTo(3e+38, 1)\nLineTo(3.2e+38, 1)\nLineTo(3e+38, 1)\n"; got != want {
+		t.Errorf("got:\n%v\nwant:\n%v", got, want)
+	}
+
+	// The cusp is equivalent to this out-and-back path.
+	var l vector.Path
+	l.MoveTo(3.0e38, 1)
+	l.LineTo(3.2e38, 1)
+	l.LineTo(3.0e38, 1)
+
+	var lp vector.Path
+	lp.AddStroke(&l, op)
+
+	// The stroked cusp must agree with the stroked out-and-back path exactly.
+	if got, want := vector.PathOperationsString(&sp), vector.PathOperationsString(&lp); got != want {
+		t.Errorf("got:\n%v\nwant:\n%v", got, want)
+	}
+}
