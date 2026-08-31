@@ -541,3 +541,25 @@ func TestStrokeMiterJoinNearlyCollinear(t *testing.T) {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
 }
+
+// A quadratic curve whose start and end coincide but whose control point
+// differs is a real loop, not a degenerate point, and must be kept.
+func TestQuadLoopIsKept(t *testing.T) {
+	var p vector.Path
+	p.MoveTo(0, 0)
+	p.QuadTo(10, 10, 0, 0)
+
+	// The loop reaches (5, 5) at t=0.5, so its bounds must not be empty.
+	if b := p.Bounds(); b.Empty() {
+		t.Errorf("Bounds of a quadratic loop: got empty %v, want a non-empty rectangle", b)
+	}
+
+	// A quadratic whose start, control, and end all coincide is a single point
+	// and is still dropped.
+	var d vector.Path
+	d.MoveTo(5, 5)
+	d.QuadTo(5, 5, 5, 5)
+	if b := d.Bounds(); !b.Empty() {
+		t.Errorf("Bounds of a fully degenerate quadratic: got %v, want empty", b)
+	}
+}

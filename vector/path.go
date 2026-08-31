@@ -268,7 +268,11 @@ func (p *Path) QuadTo(x1, y1, x2, y2 float32) {
 	}
 	p.resetLastSubPathCacheStates()
 	if cur, ok := p.currentPosition(); ok {
-		if cur.x == x2 && cur.y == y2 {
+		// A quadratic whose start, control, and end points all coincide is a
+		// single point and can be dropped. When only the start and the end
+		// coincide but the control point differs, the curve is a real loop and
+		// must be kept.
+		if cur.x == x2 && cur.y == y2 && cur.x == x1 && cur.y == y1 {
 			return
 		}
 	}
@@ -674,14 +678,15 @@ func (p *Path) normalize() {
 				cur = op.p1
 			case opTypeQuadTo:
 				switch {
-				case cur == op.p2:
+				case cur == op.p2 && cur == op.p1:
+					// A single point: drop it.
 					continue
 				case cur == op.p1, op.p1 == op.p2:
 					op.typ = opTypeLineTo
 					op.p1 = op.p2
 					op.p2 = point{}
 					cur = op.p1
-				case (op.p1.x-cur.x)*(op.p2.y-cur.y)-(op.p2.x-cur.x)*(op.p1.y-cur.y) == 0:
+				case cur != op.p2 && (op.p1.x-cur.x)*(op.p2.y-cur.y)-(op.p2.x-cur.x)*(op.p1.y-cur.y) == 0:
 					op.typ = opTypeLineTo
 					op.p1 = op.p2
 					op.p2 = point{}
