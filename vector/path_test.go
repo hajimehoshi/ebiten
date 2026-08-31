@@ -501,6 +501,14 @@ func TestBounds(t *testing.T) {
 			},
 			want: image.Rect(10, 20, 30, 40),
 		},
+		{
+			name: "nearly collinear arc",
+			path: func(p *vector.Path) {
+				p.MoveTo(676.47327, 1502.2303)
+				p.ArcTo(257.7812, 1856.779, 1046.7478, 1188.3281, 100)
+			},
+			want: image.Rect(676, 1188, 1047, 1503),
+		},
 	}
 
 	for _, tc := range testCases {
@@ -511,5 +519,25 @@ func TestBounds(t *testing.T) {
 				t.Errorf("got: %v, want: %v", got, want)
 			}
 		})
+	}
+}
+
+func TestStrokeMiterJoinNearlyCollinear(t *testing.T) {
+	var p vector.Path
+	p.MoveTo(676.47327, 1502.2303)
+	p.LineTo(257.7812, 1856.779)
+	p.LineTo(1046.7478, 1188.3281)
+
+	op := &vector.AddStrokeOptions{}
+	op.StrokeOptions.LineJoin = vector.LineJoinMiter
+	op.StrokeOptions.MiterLimit = 4
+	op.StrokeOptions.Width = 1
+
+	var sp vector.Path
+	sp.AddStroke(&p, op)
+
+	got := sp.Bounds()
+	if got, want := got, image.Rect(257, 1187, 1048, 1858); got != want {
+		t.Errorf("got: %v, want: %v", got, want)
 	}
 }

@@ -397,7 +397,8 @@ func addJoint(strokePath *Path, subPath *subPath, opIndex int, reverse bool, opt
 	// Add a joint.
 	switch options.LineJoin {
 	case LineJoinMiter:
-		theta := math.Acos(float64(dir0.x*(-dir1.x) + dir0.y*(-dir1.y)))
+		dot := min(max(float64(dir0.x*(-dir1.x)+dir0.y*(-dir1.y)), -1.0), 1.0)
+		theta := math.Acos(dot)
 		exceed := float32(math.Abs(1/math.Sin(float64(theta/2)))) > options.MiterLimit
 		if !exceed {
 			cp := crossingPointForTwoLines(p0, p0.add(dir0), p1, p1.add(dir1))
