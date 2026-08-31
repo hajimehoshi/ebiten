@@ -642,7 +642,7 @@ func (i *Image) DrawTriangles32(vertices []Vertex, indices []uint32, img *Image,
 		panic("ebiten: len(indices) % 3 must be 0")
 	}
 	for i, idx := range indices {
-		if int(idx) >= len(vertices) {
+		if idx >= uint32(len(vertices)) {
 			panic(fmt.Sprintf("ebiten: indices[%d] must be less than len(vertices) (%d) but was %d", i, len(vertices), idx))
 		}
 	}
@@ -882,7 +882,7 @@ func (i *Image) DrawTrianglesShader32(vertices []Vertex, indices []uint32, shade
 		panic("ebiten: len(indices) % 3 must be 0")
 	}
 	for i, idx := range indices {
-		if int(idx) >= len(vertices) {
+		if idx >= uint32(len(vertices)) {
 			panic(fmt.Sprintf("ebiten: indices[%d] must be less than len(vertices) (%d) but was %d", i, len(vertices), idx))
 		}
 	}
