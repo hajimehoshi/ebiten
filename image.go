@@ -610,11 +610,6 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 //
 // When the image i is disposed, DrawTriangles32 does nothing.
 func (i *Image) DrawTriangles32(vertices []Vertex, indices []uint32, img *Image, options *DrawTrianglesOptions) {
-	if options != nil && (options.FillRule != FillRuleFillAll || options.AntiAlias) {
-		drawTrianglesWithStencilBuffer(i, vertices, indices, img, options)
-		return
-	}
-
 	i.copyCheck()
 
 	if img != nil && img.isDisposed() {
@@ -625,6 +620,11 @@ func (i *Image) DrawTriangles32(vertices []Vertex, indices []uint32, img *Image,
 	}
 
 	if len(indices) == 0 {
+		return
+	}
+
+	if options != nil && (options.FillRule != FillRuleFillAll || options.AntiAlias) {
+		drawTrianglesWithStencilBuffer(i, vertices, indices, img, options)
 		return
 	}
 
@@ -835,11 +835,6 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 //
 // When the image i is disposed, DrawTrianglesShader32 does nothing.
 func (i *Image) DrawTrianglesShader32(vertices []Vertex, indices []uint32, shader *Shader, options *DrawTrianglesShaderOptions) {
-	if options != nil && (options.FillRule != FillRuleFillAll || options.AntiAlias) {
-		drawTrianglesShaderWithStencilBuffer(i, vertices, indices, shader, options)
-		return
-	}
-
 	i.copyCheck()
 
 	if i.isDisposed() {
@@ -851,6 +846,11 @@ func (i *Image) DrawTrianglesShader32(vertices []Vertex, indices []uint32, shade
 	}
 
 	if len(indices) == 0 {
+		return
+	}
+
+	if options != nil && (options.FillRule != FillRuleFillAll || options.AntiAlias) {
+		drawTrianglesShaderWithStencilBuffer(i, vertices, indices, shader, options)
 		return
 	}
 
