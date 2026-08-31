@@ -4585,7 +4585,6 @@ func TestImageDrawTrianglesShaderWithGreaterIndexThanVerticesCount(t *testing.T)
 	dst.DrawTrianglesShader(vs, is, shader, nil)
 }
 
-// An index not less than 2^31 must panic even on a 32-bit platform, where int(idx) would otherwise wrap to a negative value.
 func TestImageDrawTriangles32WithGreaterIndexThanVerticesCount(t *testing.T) {
 	defer func() {
 		if r := recover(); r == nil {
