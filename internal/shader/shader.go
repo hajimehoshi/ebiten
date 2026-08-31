@@ -59,7 +59,12 @@ type compileState struct {
 
 	global block
 
-	errs []string
+	errs []compileError
+}
+
+type compileError struct {
+	position token.Position
+	message  string
 }
 
 func (cs *compileState) findFunction(name string) (int, bool) {
@@ -175,11 +180,24 @@ func (b *block) findConstant(name string) (constant, bool) {
 }
 
 type ParseError struct {
-	errs []string
+	errs []compileError
 }
 
 func (p *ParseError) Error() string {
-	return strings.Join(p.errs, "\n")
+	msgs := make([]string, 0, len(p.errs))
+	for _, e := range p.errs {
+		msgs = append(msgs, fmt.Sprintf("%s: %s", e.position, e.message))
+	}
+	return strings.Join(msgs, "\n")
+}
+
+// Positions returns the source positions of the errors, in the same order as [ParseError.Error] reports them.
+func (p *ParseError) Positions() []token.Position {
+	ps := make([]token.Position, 0, len(p.errs))
+	for _, e := range p.errs {
+		ps = append(ps, e.position)
+	}
+	return ps
 }
 
 func Compile(src []byte, vertexEntry, fragmentEntry string, textureCount int) (*shaderir.Program, error) {
@@ -212,8 +230,10 @@ func Compile(src []byte, vertexEntry, fragmentEntry string, textureCount int) (*
 }
 
 func (s *compileState) addError(pos token.Pos, str string) {
-	p := s.fs.Position(pos)
-	s.errs = append(s.errs, fmt.Sprintf("%s: %s", p, str))
+	s.errs = append(s.errs, compileError{
+		position: s.fs.Position(pos),
+		message:  str,
+	})
 }
 
 func (cs *compileState) parse(f *ast.File) {
