@@ -524,7 +524,7 @@ type DrawTrianglesOptions struct {
 	// AntiAlias increases internal draw calls and might affect performance.
 	// Use the build tag `ebitenginedebug` to check the number of draw calls if you care.
 	//
-	// The default (zero) value is false.//
+	// The default (zero) value is false.
 	//
 	// Deprecated: as of v2.9. Use [github.com/hajimehoshi/ebiten/v2/vector.FillPath] instead.
 	AntiAlias bool
@@ -781,8 +781,9 @@ var _ [len(DrawTrianglesShaderOptions{}.Images) - graphics.ShaderSrcImageCount]s
 //
 // For the details about the shader, see https://ebitengine.org/en/documents/shader.html.
 //
-// If the shader unit is texels, one of the specified image is non-nil and its size is different from (width, height),
-// DrawTrianglesShader panics.
+// If the shader unit is texels, DrawTrianglesShader panics when a non-nil image's size is different from
+// the size of the image at index 0 of the specified images.
+// If the image at index 0 is nil, its size is treated as (0, 0) for this comparison.
 // If one of the specified image is non-nil and is disposed, DrawTrianglesShader panics.
 //
 // If len(vertices) is more than MaxVertexCount, the exceeding part is ignored.
@@ -814,8 +815,9 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 //
 // For the details about the shader, see https://ebitengine.org/en/documents/shader.html.
 //
-// If the shader unit is texels, one of the specified image is non-nil and its size is different from (width, height),
-// DrawTrianglesShader32 panics.
+// If the shader unit is texels, DrawTrianglesShader32 panics when a non-nil image's size is different from
+// the size of the image at index 0 of the specified images.
+// If the image at index 0 is nil, its size is treated as (0, 0) for this comparison.
 // If one of the specified image is non-nil and is disposed, DrawTrianglesShader32 panics.
 //
 // If len(vertices) is more than MaxVertexCount, the exceeding part is ignored.
@@ -937,7 +939,7 @@ func (i *Image) DrawTrianglesShader32(vertices []Vertex, indices []uint32, shade
 			} else {
 				// TODO: Check imgw > 0 && imgh > 0
 				if img.Bounds().Size() != imgSize {
-					panic("ebiten: all the source images must be the same size with the rectangle")
+					panic("ebiten: all the source images must be the same size")
 				}
 			}
 		}
@@ -1474,7 +1476,8 @@ func MaxImageSize() int {
 
 // NewImage returns an empty image.
 //
-// If width or height is less than 1 or more than [MaxImageSize], NewImage panics.
+// If width or height is less than 1, NewImage panics.
+// If width or height is more than [MaxImageSize], NewImage panics when the image is used.
 //
 // NewImage should be called only when necessary.
 // For example, you should avoid to call NewImage every Update or Draw call.
@@ -1498,7 +1501,8 @@ type NewImageOptions struct {
 
 // NewImageWithOptions returns an empty image with the given bounds and the options.
 //
-// If width or height is less than 1 or more than [MaxImageSize], NewImageWithOptions panics.
+// If width or height is less than 1, NewImageWithOptions panics.
+// If width or height is more than [MaxImageSize], NewImageWithOptions panics when the image is used.
 //
 // The rendering origin position is (0, 0) of the given bounds.
 // If DrawImage is called on a new image created by NewImageOptions,
@@ -1541,7 +1545,8 @@ func newImage(bounds image.Rectangle, imageType atlas.ImageType) *Image {
 
 // NewImageFromImage creates a new image with the given image (source).
 //
-// If source's width or height is less than 1 or more than [MaxImageSize], NewImageFromImage panics.
+// If source's width or height is less than 1, NewImageFromImage panics.
+// If source's width or height is more than [MaxImageSize], NewImageFromImage panics when the image is used.
 //
 // NewImageFromImage should be called only when necessary.
 // For example, you should avoid to call NewImageFromImage every Update or Draw call.
@@ -1571,7 +1576,8 @@ type NewImageFromImageOptions struct {
 
 // NewImageFromImageWithOptions creates a new image with the given image (source) with the given options.
 //
-// If source's width or height is less than 1 or more than [MaxImageSize], NewImageFromImageWithOptions panics.
+// If source's width or height is less than 1, NewImageFromImageWithOptions panics.
+// If source's width or height is more than [MaxImageSize], NewImageFromImageWithOptions panics when the image is used.
 //
 // If options is nil, the default setting is used.
 //

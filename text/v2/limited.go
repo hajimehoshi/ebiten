@@ -32,7 +32,7 @@ type LimitedFace struct {
 }
 
 // NewLimitedFace creates a new LimitedFace from the given face.
-// In the default state, glyphs for any runes are limited and not rendered.
+// In the default state, no runes are allowed, and any rune is replaced with U+FFFD (the replacement character) when rendered.
 // You have to call AddUnicodeRange to add allowed glyphs.
 func NewLimitedFace(face Face) *LimitedFace {
 	return &LimitedFace{

@@ -18,7 +18,7 @@
 //
 // ebitenmobile uses github.com/ebitengine/gomobile for gomobile, not golang.org/x/mobile.
 // gomobile's version is fixed by ebitenmobile.
-// You can specify gomobile's version by EBITENMOBILE_GOMOBILE environment variable.
+// You can use a local checkout of gomobile by setting EBITENMOBILE_GOMOBILE to the path to the checkout.
 package main
 
 import (
