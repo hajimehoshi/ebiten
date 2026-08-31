@@ -201,11 +201,8 @@ func (g *GoXFace) appendLazyGlyphsForLine(glyphs []LazyGlyph, line string, index
 	// imager is allocated lazily on the first glyph that produces an image.
 	var imager *goXLineImager
 
-	// lastOutputIndex is the index of the last appended glyph in glyphs, and
-	// lastOutputOriginX is its origin.X. AdvanceX of a glyph is filled in when
-	// the next output glyph is appended so that skipped glyphs' advances are
-	// not lost: OriginX + AdvanceX of a glyph must equal OriginX of the next
-	// output glyph.
+	// The previous output glyph's AdvanceX is filled when the next glyph is
+	// appended, so that skipped glyphs' advances are not lost.
 	lastOutputIndex := -1
 	var lastOutputOriginX fixed.Int26_6
 

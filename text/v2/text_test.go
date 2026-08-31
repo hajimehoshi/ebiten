@@ -1444,12 +1444,7 @@ func TestGoXFaceKeepGlyphAdvanceX(t *testing.T) {
 
 	face := text.NewGoXFace(&testGoXFace{})
 
-	// Keep the first and last glyphs but skip the middle one. The skipped
-	// glyph's advance must still be reflected in the previous output glyph's
-	// AdvanceX so that OriginX + AdvanceX of one output glyph equals OriginX
-	// of the next, and the last output glyph reaches the line's total advance.
-	// testGoXFace gives every rune a fixed advance of testGoXFaceSize, so the
-	// glyph origins are 0, testGoXFaceSize, and 2*testGoXFaceSize.
+	// Skip the middle glyph, but its advance must not be lost.
 	line := "acd"
 	glyphs := text.AppendLazyGlyphsForLine(face, nil, line, 0, 0, 0, func(originX, originY float64) bool {
 		return originX < testGoXFaceSize/2 || originX > 3*testGoXFaceSize/2
@@ -1458,7 +1453,7 @@ func TestGoXFaceKeepGlyphAdvanceX(t *testing.T) {
 		t.Fatalf("got %d glyphs, want 2 (a and d)", len(glyphs))
 	}
 
-	for i := 0; i < len(glyphs)-1; i++ {
+	for i := range len(glyphs) - 1 {
 		gotX := glyphs[i].OriginX + glyphs[i].AdvanceX
 		wantX := glyphs[i+1].OriginX
 		if math.Abs(gotX-wantX) > eps {
