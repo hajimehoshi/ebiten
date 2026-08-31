@@ -320,17 +320,17 @@ func mayContainStrongRTLInFirstLine(text string) bool {
 	//   - 0xE0       — 3-byte UTF-8 covering U+0800..U+08FF
 	//     (Samaritan, Mandaic, Syriac Supplement, Arabic Extended-A/B).
 	//   - 0xEF 0xAC..0xBB — 3-byte UTF-8 covering U+FB00..U+FEFF
-	//     (Hebrew Presentation Forms, class R, and Arabic Presentation
-	//     Forms A and B, class AL). The second byte is restricted to
-	//     0xAC..0xBB because 0xEF alone also covers the
-	//     halfwidth/fullwidth forms (U+FF00..U+FFEF, class ON/NSM)
-	//     that appear in almost every Japanese sentence, and pushing
-	//     those off the fast path costs more than it is worth.
+	//     exactly (Hebrew Presentation Forms, class R, and Arabic
+	//     Presentation Forms A and B, class AL). The common non-RTL
+	//     forms at U+FF00 and above — halfwidth/fullwidth punctuation
+	//     and katakana, found in almost every Japanese sentence —
+	//     fall outside the second-byte range and keep the fast path.
 	//   - 0xF0       — 4-byte UTF-8 covering plane 1
 	//     (Mende Kikakui, Adlam, and other SMP RTL scripts).
 	//
-	// 0xEF and 0xF0 admit false positives for non-RTL content (Latin
-	// ligatures and CJK compatibility forms for 0xEF 0xAC..0xBB;
+	// 0xEF 0xAC..0xBB and 0xF0 admit false positives for non-RTL
+	// content (variation selectors such as U+FE0F on emoji, Latin
+	// ligatures, and CJK compatibility forms for 0xEF 0xAC..0xBB;
 	// emoji and mathematical alphanumerics for 0xF0); those texts go
 	// through the bidi pass and chunk correctly anyway.
 	//
