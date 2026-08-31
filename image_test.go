@@ -5116,3 +5116,113 @@ func TestSubImageDrawImageInOppositeDirections(t *testing.T) {
 	})
 	wg.Wait()
 }
+
+// A disposed shader or a disposed source image must panic even when the destination is disposed.
+func TestImageDrawShaderWithDisposedArgumentOnDisposedDestination(t *testing.T) {
+	const w, h = 16, 16
+
+	src := []byte(`//kage:unit pixels
+
+package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return imageSrc0At(src0Pos)
+}
+`)
+
+	shader, err := ebiten.NewShader(src)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	disposedShader, err := ebiten.NewShader(src)
+	if err != nil {
+		t.Fatal(err)
+	}
+	disposedShader.Dispose()
+
+	disposedImage := ebiten.NewImage(w, h)
+	disposedImage.Dispose()
+
+	vs := []ebiten.Vertex{
+		{DstX: 0, DstY: 0, ColorR: 1, ColorG: 1, ColorB: 1, ColorA: 1},
+		{DstX: w, DstY: 0, ColorR: 1, ColorG: 1, ColorB: 1, ColorA: 1},
+		{DstX: 0, DstY: h, ColorR: 1, ColorG: 1, ColorB: 1, ColorA: 1},
+	}
+	is := []uint32{0, 1, 2}
+
+	drawTrianglesShaderWithDisposedShader := func(options *ebiten.DrawTrianglesShaderOptions) func(*ebiten.Image) {
+		return func(dst *ebiten.Image) {
+			dst.DrawTrianglesShader32(vs, is, disposedShader, options)
+		}
+	}
+	drawTrianglesShaderWithDisposedImage := func(options *ebiten.DrawTrianglesShaderOptions) func(*ebiten.Image) {
+		return func(dst *ebiten.Image) {
+			options.Images[0] = disposedImage
+			dst.DrawTrianglesShader32(vs, is, shader, options)
+		}
+	}
+
+	for _, tc := range []struct {
+		name string
+		draw func(dst *ebiten.Image)
+	}{
+		{
+			name: "DrawTrianglesShader32DisposedShader",
+			draw: drawTrianglesShaderWithDisposedShader(nil),
+		},
+		{
+			name: "DrawTrianglesShader32DisposedShaderFillRule",
+			draw: drawTrianglesShaderWithDisposedShader(&ebiten.DrawTrianglesShaderOptions{
+				FillRule: ebiten.FillRuleNonZero,
+			}),
+		},
+		{
+			name: "DrawTrianglesShader32DisposedShaderAntiAlias",
+			draw: drawTrianglesShaderWithDisposedShader(&ebiten.DrawTrianglesShaderOptions{
+				AntiAlias: true,
+			}),
+		},
+		{
+			name: "DrawTrianglesShader32DisposedImage",
+			draw: drawTrianglesShaderWithDisposedImage(&ebiten.DrawTrianglesShaderOptions{}),
+		},
+		{
+			name: "DrawTrianglesShader32DisposedImageFillRule",
+			draw: drawTrianglesShaderWithDisposedImage(&ebiten.DrawTrianglesShaderOptions{
+				FillRule: ebiten.FillRuleNonZero,
+			}),
+		},
+		{
+			name: "DrawTrianglesShader32DisposedImageAntiAlias",
+			draw: drawTrianglesShaderWithDisposedImage(&ebiten.DrawTrianglesShaderOptions{
+				AntiAlias: true,
+			}),
+		},
+		{
+			name: "DrawRectShaderDisposedShader",
+			draw: func(dst *ebiten.Image) {
+				dst.DrawRectShader(w, h, disposedShader, nil)
+			},
+		},
+		{
+			name: "DrawRectShaderDisposedImage",
+			draw: func(dst *ebiten.Image) {
+				op := &ebiten.DrawRectShaderOptions{}
+				op.Images[0] = disposedImage
+				dst.DrawRectShader(w, h, shader, op)
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			dst := ebiten.NewImage(w, h)
+			dst.Dispose()
+			defer func() {
+				if r := recover(); r == nil {
+					t.Errorf("a disposed argument must panic even when the destination is disposed, but it did not")
+				}
+			}()
+			tc.draw(dst)
+		})
+	}
+}
