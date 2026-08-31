@@ -18,7 +18,6 @@ import (
 	"image"
 	"image/color"
 	"runtime"
-	"strings"
 	"sync"
 	"testing"
 
@@ -626,10 +625,23 @@ func TestStrokeHugeQuadCusp(t *testing.T) {
 	var sp vector.Path
 	sp.AddStroke(&p, op)
 
-	// AddStroke normalizes the source path in place, so the source path must not hold an infinite point.
-	for _, s := range []string{vector.PathOperationsString(&p), vector.PathOperationsString(&sp)} {
-		if strings.Contains(s, "+Inf") || strings.Contains(s, "-Inf") || strings.Contains(s, "NaN") {
-			t.Errorf("got:\n%v\nwant: no infinity or NaN", s)
-		}
+	// AddStroke normalizes the source path in place.
+	// The midpoint is (3.2e38, 1) without overflowing to infinity.
+	if got, want := vector.PathOperationsString(&p), "MoveTo(3e+38, 1)\nLineTo(3.2e+38, 1)\nLineTo(3e+38, 1)\n"; got != want {
+		t.Errorf("got:\n%v\nwant:\n%v", got, want)
+	}
+
+	// The cusp is equivalent to this out-and-back path.
+	var l vector.Path
+	l.MoveTo(3.0e38, 1)
+	l.LineTo(3.2e38, 1)
+	l.LineTo(3.0e38, 1)
+
+	var lp vector.Path
+	lp.AddStroke(&l, op)
+
+	// The stroked cusp must agree with the stroked out-and-back path exactly.
+	if got, want := vector.PathOperationsString(&sp), vector.PathOperationsString(&lp); got != want {
+		t.Errorf("got:\n%v\nwant:\n%v", got, want)
 	}
 }

@@ -185,9 +185,9 @@ type Path struct {
 	// flatPaths is used only for deprecated functions. Do not use this for new functions.
 	flatPaths []flatPath
 
-	// opsScratch is a scratch slice of operations, which normalize uses
+	// opsBuf is a buffer of operations, which normalize uses
 	// when a sub-path has a cusp and the number of operations increases.
-	opsScratch []op
+	opsBuf []op
 }
 
 // Reset resets the path.
@@ -693,10 +693,10 @@ func (p *Path) normalize() {
 		ops := subPath.ops[:0]
 		if n := countCusps(&subPath); n > 0 {
 			// A cusp is converted into two lines, which increases the number of operations.
-			// Normalize into the scratch slice in this case to avoid overwriting the source operations before they are read.
-			// The source operations become the new scratch so that the slices are reused.
-			ops = slices.Grow(p.opsScratch[:0], len(subPath.ops)+n)
-			p.opsScratch = subPath.ops
+			// Normalize into the buffer in this case to avoid overwriting the source operations before they are read.
+			// The source operations become the new buffer so that the slices are reused.
+			ops = slices.Grow(p.opsBuf[:0], len(subPath.ops)+n)
+			p.opsBuf = subPath.ops
 		}
 		for _, op := range subPath.ops {
 			switch op.typ {
