@@ -696,7 +696,8 @@ func IsScreenTransparent() bool {
 
 // SetScreenTransparent sets the state if the window is transparent.
 //
-// SetScreenTransparent has no effect if SetScreenTransparent is called after the main loop starts.
+// If SetScreenTransparent is called after the main loop starts, the window is not made transparent,
+// but IsScreenTransparent returns the given value.
 //
 // SetScreenTransparent does nothing on mobiles.
 //
@@ -807,7 +808,6 @@ func Tick() int64 {
 // RunOnMainThread executes the function synchronously and returns after the function completes.
 //
 // If RunOnMainThread is called on the main thread, RunOnMainThread blocks forever.
-// On desktop, RunOnMainThread panics if [RunGame] is not called yet.
 //
 // RunOnMainThread is useful to access platform-specific APIs in a safe way.
 //

@@ -781,8 +781,8 @@ var _ [len(DrawTrianglesShaderOptions{}.Images) - graphics.ShaderSrcImageCount]s
 //
 // For the details about the shader, see https://ebitengine.org/en/documents/shader.html.
 //
-// If the shader unit is texels, one of the specified images is non-nil and its size is different from the size of the image at index 0 of the specified images,
-// DrawTrianglesShader panics.
+// If the shader unit is texels, DrawTrianglesShader panics when a non-nil image's size is different from
+// the size of the image at index 0 of the specified images, which is treated as (0, 0) if it is nil.
 // If one of the specified image is non-nil and is disposed, DrawTrianglesShader panics.
 //
 // If len(vertices) is more than MaxVertexCount, the exceeding part is ignored.
@@ -814,8 +814,8 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 //
 // For the details about the shader, see https://ebitengine.org/en/documents/shader.html.
 //
-// If the shader unit is texels, one of the specified images is non-nil and its size is different from the size of the image at index 0 of the specified images,
-// DrawTrianglesShader32 panics.
+// If the shader unit is texels, DrawTrianglesShader32 panics when a non-nil image's size is different from
+// the size of the image at index 0 of the specified images, which is treated as (0, 0) if it is nil.
 // If one of the specified image is non-nil and is disposed, DrawTrianglesShader32 panics.
 //
 // If len(vertices) is more than MaxVertexCount, the exceeding part is ignored.
@@ -1543,7 +1543,8 @@ func newImage(bounds image.Rectangle, imageType atlas.ImageType) *Image {
 
 // NewImageFromImage creates a new image with the given image (source).
 //
-// If source's width or height is less than 1 or more than [MaxImageSize], NewImageFromImage panics.
+// If source's width or height is less than 1, NewImageFromImage panics.
+// If source's width or height is more than [MaxImageSize], NewImageFromImage panics when the image is used.
 //
 // NewImageFromImage should be called only when necessary.
 // For example, you should avoid to call NewImageFromImage every Update or Draw call.
@@ -1573,7 +1574,8 @@ type NewImageFromImageOptions struct {
 
 // NewImageFromImageWithOptions creates a new image with the given image (source) with the given options.
 //
-// If source's width or height is less than 1 or more than [MaxImageSize], NewImageFromImageWithOptions panics.
+// If source's width or height is less than 1, NewImageFromImageWithOptions panics.
+// If source's width or height is more than [MaxImageSize], NewImageFromImageWithOptions panics when the image is used.
 //
 // If options is nil, the default setting is used.
 //

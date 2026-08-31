@@ -455,7 +455,9 @@ func (p *Path) currentPosition() (point, bool) {
 
 // ArcTo adds an arc curve to the path.
 // The arc is tangent to the line from the current position to (x1, y1) and to the line from (x1, y1) to (x2, y2).
-// (x1, y1) is the corner point where the two tangent lines meet, and (x2, y2) is the end point of the arc.
+// (x1, y1) is the corner point where the two tangent lines meet, and (x2, y2) gives the direction of the second
+// tangent line, not the end point of the arc. The arc ends at the tangent point on the second tangent line, which is
+// at the distance of radius / tan(θ/2) from (x1, y1), where θ is the angle between the two tangent lines.
 func (p *Path) ArcTo(x1, y1, x2, y2, radius float32) {
 	p0, ok := p.currentPosition()
 	if !ok {

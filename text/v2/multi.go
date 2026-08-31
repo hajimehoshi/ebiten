@@ -26,6 +26,11 @@ var _ Face = (*MultiFace)(nil)
 
 // MultiFace is a Face that consists of multiple Face objects.
 // The face in the first index is used in the highest priority, and the last the lowest priority.
+//
+// There is a known issue: if the writing directions of the faces don't agree, the rendering result might be messed up.
+// NewMultiFace rejects the faces whose directions don't agree at its creation,
+// but a face's direction can be changed after the creation (e.g., [GoTextFace.Direction]),
+// and then the rendering result might still be messed up.
 type MultiFace struct {
 	faces []Face
 
