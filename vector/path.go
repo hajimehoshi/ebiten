@@ -185,8 +185,7 @@ type Path struct {
 	// flatPaths is used only for deprecated functions. Do not use this for new functions.
 	flatPaths []flatPath
 
-	// opsBuf is a buffer of operations, which normalize uses
-	// when a sub-path has a cusp and the number of operations increases.
+	// opsBuf is a buffer of operations, which AddStroke uses to normalize the source sub-paths.
 	opsBuf []op
 }
 
@@ -689,81 +688,67 @@ func countCusps(subPath *subPath) int {
 	return n
 }
 
-// normalize normalizes the path by removing unnecessary sub-paths and points.
-func (p *Path) normalize() {
-	for i, subPath := range p.subPaths {
-		cur := subPath.start
-		ops := subPath.ops[:0]
-		if n := countCusps(&subPath); n > 0 {
-			// A cusp is converted into two lines, which increases the number of operations.
-			// Normalize into the buffer in this case to avoid overwriting the source operations before they are read.
-			// The source operations become the new buffer so that the slices are reused.
-			ops = slices.Grow(p.opsBuf[:0], len(subPath.ops)+n)
-			p.opsBuf = subPath.ops
-		}
-		for _, op := range subPath.ops {
-			switch op.typ {
-			case opTypeLineTo:
-				if cur == op.p1 {
-					continue
-				}
-				cur = op.p1
-			case opTypeQuadTo:
-				switch {
-				case cur == op.p1 && op.p1 == op.p2:
-					// A single point: drop it.
-					continue
-				case cur == op.p2:
-					// A cusp goes to the midpoint and comes back.
-					// Keep this as lines, not as a curve, so that the 180-degree turn at the tip gets a joint.
-					// Divide by 2 before adding so that the midpoint computation cannot overflow.
-					mid := point{
-						x: cur.x/2 + op.p1.x/2,
-						y: cur.y/2 + op.p1.y/2,
-					}
-					if mid == cur {
-						// The midpoint is rounded to the current point in float32, so there is nothing to keep.
-						continue
-					}
-					first := op
-					first.typ = opTypeLineTo
-					first.p1 = mid
-					first.p2 = point{}
-					ops = append(ops, first)
-					op.typ = opTypeLineTo
-					op.p1 = op.p2
-					op.p2 = point{}
-					cur = op.p1
-				case cur == op.p1, op.p1 == op.p2:
-					op.typ = opTypeLineTo
-					op.p1 = op.p2
-					op.p2 = point{}
-					cur = op.p1
-				case (op.p1.x-cur.x)*(op.p2.y-cur.y)-(op.p2.x-cur.x)*(op.p1.y-cur.y) == 0:
-					op.typ = opTypeLineTo
-					op.p1 = op.p2
-					op.p2 = point{}
-					cur = op.p1
-				default:
-					cur = op.p2
-				}
+// normalizeSubPath normalizes src by removing unnecessary operations, and stores the result into dst.
+// dst must not be src.
+func normalizeSubPath(dst *subPath, src *subPath) {
+	// A cusp is converted into two lines, which increases the number of operations.
+	ops := slices.Grow(dst.ops[:0], len(src.ops)+countCusps(src))
+	cur := src.start
+	for _, op := range src.ops {
+		switch op.typ {
+		case opTypeLineTo:
+			if cur == op.p1 {
+				continue
 			}
-			ops = append(ops, op)
+			cur = op.p1
+		case opTypeQuadTo:
+			switch {
+			case cur == op.p1 && op.p1 == op.p2:
+				// A single point: drop it.
+				continue
+			case cur == op.p2:
+				// A cusp goes to the midpoint and comes back.
+				// Keep this as lines, not as a curve, so that the 180-degree turn at the tip gets a joint.
+				// Divide by 2 before adding so that the midpoint computation cannot overflow.
+				mid := point{
+					x: cur.x/2 + op.p1.x/2,
+					y: cur.y/2 + op.p1.y/2,
+				}
+				if mid == cur {
+					// The midpoint is rounded to the current point in float32, so there is nothing to keep.
+					continue
+				}
+				first := op
+				first.typ = opTypeLineTo
+				first.p1 = mid
+				first.p2 = point{}
+				ops = append(ops, first)
+				op.typ = opTypeLineTo
+				op.p1 = op.p2
+				op.p2 = point{}
+				cur = op.p1
+			case cur == op.p1, op.p1 == op.p2:
+				op.typ = opTypeLineTo
+				op.p1 = op.p2
+				op.p2 = point{}
+				cur = op.p1
+			case (op.p1.x-cur.x)*(op.p2.y-cur.y)-(op.p2.x-cur.x)*(op.p1.y-cur.y) == 0:
+				op.typ = opTypeLineTo
+				op.p1 = op.p2
+				op.p2 = point{}
+				cur = op.p1
+			default:
+				cur = op.p2
+			}
 		}
-		p.subPaths[i].ops = ops
+		ops = append(ops, op)
 	}
 
-	// Do not use slices.DeleteFunc as sub-paths's slices should be reused.
-	var n int
-	for i := range p.subPaths {
-		if len(p.subPaths[i].ops) == 0 {
-			p.subPaths[i].reset()
-			continue
-		}
-		p.subPaths[n] = p.subPaths[i]
-		n++
-	}
-	p.subPaths = p.subPaths[:n]
+	dst.ops = ops
+	dst.start = src.start
+	dst.closed = src.closed
+	dst.cachedValid = false
+	dst.isCachedValidValid = false
 }
 
 func floor(x float32) int {

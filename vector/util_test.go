@@ -162,3 +162,29 @@ func TestStrokePathNilOptions(t *testing.T) {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
 }
+
+func TestStrokePathKeepsSourcePath(t *testing.T) {
+	dst := ebiten.NewImage(16, 16)
+	defer dst.Deallocate()
+
+	var path vector.Path
+	path.MoveTo(1, 1)
+	// A redundant line.
+	path.LineTo(1, 1)
+	path.LineTo(15, 1)
+	// A cusp.
+	path.QuadTo(15, 8, 15, 1)
+	// A collinear curve.
+	path.QuadTo(8, 1, 1, 1)
+	path.Close()
+	path.MoveTo(2, 2)
+	// A single point.
+	path.QuadTo(2, 2, 2, 2)
+
+	// StrokePath must not modify the given path.
+	want := vector.PathOperationsString(&path)
+	vector.StrokePath(dst, &path, &vector.StrokeOptions{Width: 2}, nil)
+	if got := vector.PathOperationsString(&path); got != want {
+		t.Errorf("got:\n%v\nwant:\n%v", got, want)
+	}
+}

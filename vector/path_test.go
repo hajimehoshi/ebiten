@@ -591,7 +591,7 @@ func TestStrokeQuadCusp(t *testing.T) {
 		}
 	}
 
-	// AddStroke normalizes the source path in place, and the bounds of the cusp must be kept.
+	// The bounds of the cusp must be kept.
 	if got, want := p.Bounds(), image.Rect(0, 0, 200, 25); got != want {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
@@ -625,13 +625,12 @@ func TestStrokeHugeQuadCusp(t *testing.T) {
 	var sp vector.Path
 	sp.AddStroke(&p, op)
 
-	// AddStroke normalizes the source path in place.
-	// The midpoint is (3.2e38, 1) without overflowing to infinity.
-	if got, want := vector.PathOperationsString(&p), "MoveTo(3e+38, 1)\nLineTo(3.2e+38, 1)\nLineTo(3e+38, 1)\n"; got != want {
+	// AddStroke must not modify the source path.
+	if got, want := vector.PathOperationsString(&p), "MoveTo(3e+38, 1)\nQuadTo(3.4e+38, 1, 3e+38, 1)\n"; got != want {
 		t.Errorf("got:\n%v\nwant:\n%v", got, want)
 	}
 
-	// The cusp is equivalent to this out-and-back path.
+	// The cusp is equivalent to this out-and-back path, whose midpoint (3.2e38, 1) doesn't overflow to infinity.
 	var l vector.Path
 	l.MoveTo(3.0e38, 1)
 	l.LineTo(3.2e38, 1)
@@ -643,5 +642,63 @@ func TestStrokeHugeQuadCusp(t *testing.T) {
 	// The stroked cusp must agree with the stroked out-and-back path exactly.
 	if got, want := vector.PathOperationsString(&sp), vector.PathOperationsString(&lp); got != want {
 		t.Errorf("got:\n%v\nwant:\n%v", got, want)
+	}
+}
+
+func TestAddStrokeAllocs(t *testing.T) {
+	testCases := []struct {
+		name  string
+		build func(p *vector.Path)
+	}{
+		{
+			name: "no cusp",
+			build: func(p *vector.Path) {
+				p.MoveTo(0, 0)
+				p.LineTo(100, 0)
+				p.QuadTo(100, 50, 50, 50)
+				p.LineTo(0, 0)
+				p.Close()
+			},
+		},
+		{
+			name: "one cusp",
+			build: func(p *vector.Path) {
+				p.MoveTo(0, 0)
+				p.LineTo(100, 0)
+				p.QuadTo(100, 50, 100, 0)
+				p.LineTo(200, 0)
+			},
+		},
+		{
+			name: "cusps in multiple sub-paths",
+			build: func(p *vector.Path) {
+				for i := range 3 {
+					x := float32(i) * 100
+					p.MoveTo(x, 0)
+					p.QuadTo(x+50, 50, x, 0)
+					p.LineTo(x+30, 30)
+					p.QuadTo(x+60, 60, x+30, 30)
+				}
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			op := &vector.AddStrokeOptions{}
+			op.StrokeOptions.Width = 4
+
+			var src vector.Path
+			var dst vector.Path
+			// Stroking must not allocate for a path that is reset and rebuilt repeatedly.
+			if got := testing.AllocsPerRun(10, func() {
+				src.Reset()
+				tc.build(&src)
+				dst.Reset()
+				dst.AddStroke(&src, op)
+			}); got != 0 {
+				t.Errorf("allocations: got: %v, want: 0", got)
+			}
+		})
 	}
 }

@@ -86,19 +86,25 @@ func (p *Path) AddStroke(src *Path, options *AddStrokeOptions) {
 		return
 	}
 
-	// Normalize the source path to simplify the logic to generate a stroke path.
-	src.normalize()
-
 	origN := len(p.subPaths)
 	// p might be the same as src. Use srcN to avoid modifying the overlapped region.
 	srcN := len(src.subPaths)
-	for _, subPath := range src.subPaths[:srcN] {
-		_, sp1, sp2, sp3, sp4 := strokeStartControlPositions(&subPath, options.Width/2)
+
+	// Normalize each source sub-path to simplify the logic to generate a stroke path.
+	// Normalize into a scratch sub-path so that src is not modified. p.opsBuf is reused as its operations.
+	normalized := subPath{ops: p.opsBuf[:0]}
+	for i := range src.subPaths[:srcN] {
+		normalizeSubPath(&normalized, &src.subPaths[i])
+		if len(normalized.ops) == 0 {
+			continue
+		}
+
+		_, sp1, sp2, sp3, sp4 := strokeStartControlPositions(&normalized, options.Width/2)
 		p.MoveTo(sp4.x, sp4.y)
 
-		appendParalleledPathFromSubPath(p, &subPath, &options.StrokeOptions)
-		_, ep1, ep2, ep3, ep4 := strokeEndControlPositions(&subPath, options.Width/2)
-		if subPath.closed {
+		appendParalleledPathFromSubPath(p, &normalized, &options.StrokeOptions)
+		_, ep1, ep2, ep3, ep4 := strokeEndControlPositions(&normalized, options.Width/2)
+		if normalized.closed {
 			p.Close()
 			p.MoveTo(ep4.x, ep4.y)
 		} else {
@@ -114,8 +120,8 @@ func (p *Path) AddStroke(src *Path, options *AddStrokeOptions) {
 				p.LineTo(ep4.x, ep4.y)
 			}
 		}
-		appendParalleledPathFromSubPathReversed(p, &subPath, &options.StrokeOptions)
-		if !subPath.closed {
+		appendParalleledPathFromSubPathReversed(p, &normalized, &options.StrokeOptions)
+		if !normalized.closed {
 			switch options.LineCap {
 			case LineCapButt:
 				p.LineTo(sp4.x, sp4.y)
@@ -130,6 +136,7 @@ func (p *Path) AddStroke(src *Path, options *AddStrokeOptions) {
 		}
 		p.Close()
 	}
+	p.opsBuf = normalized.ops[:0]
 
 	if options.GeoM != (ebiten.GeoM{}) {
 		for i, subPath := range p.subPaths[origN:] {
@@ -174,7 +181,7 @@ func appendParalleledPathFromSubPath(strokePath *Path, subPath *subPath, options
 
 	// As the source path is normalized, every operation is guaranteed to be valid.
 	// A line operation must have a different point from the start point.
-	// A quadratic curve operation must not be a single point nor a cusp, which are dropped or converted into lines by normalize.
+	// A quadratic curve operation must not be a single point nor a cusp, which are dropped or converted into lines by normalizeSubPath.
 
 	cur := subPath.start
 
@@ -188,7 +195,7 @@ func appendParalleledPathFromSubPath(strokePath *Path, subPath *subPath, options
 			cur = op.p2
 		}
 		// Add a joint between this operation and the next operation.
-		// This also renders the 180-degree turn at the tip of a cusp, which normalize converted into two lines.
+		// This also renders the 180-degree turn at the tip of a cusp, which normalizeSubPath converted into two lines.
 		addJoint(strokePath, subPath, i, false, options)
 	}
 }
@@ -200,7 +207,7 @@ func appendParalleledPathFromSubPathReversed(strokePath *Path, subPath *subPath,
 
 	// As the source path is normalized, every operation is guaranteed to be valid.
 	// A line operation must have a different point from the start point.
-	// A quadratic curve operation must not be a single point nor a cusp, which are dropped or converted into lines by normalize.
+	// A quadratic curve operation must not be a single point nor a cusp, which are dropped or converted into lines by normalizeSubPath.
 
 	for i, op := range slices.Backward(subPath.ops) {
 		nextP := subPath.startAtOp(i)
@@ -211,7 +218,7 @@ func appendParalleledPathFromSubPathReversed(strokePath *Path, subPath *subPath,
 			appendParalleledQuad(strokePath, op.p2, op.p1, nextP, options.Width/2)
 		}
 		// Add a joint between this operation and the previous operation.
-		// This also renders the 180-degree turn at the tip of a cusp, which normalize converted into two lines.
+		// This also renders the 180-degree turn at the tip of a cusp, which normalizeSubPath converted into two lines.
 		addJoint(strokePath, subPath, i, true, options)
 	}
 }
@@ -233,7 +240,7 @@ func appendParalleledLineForQuadIfNeeded(path *Path, p0, p1, p2 point, dist floa
 		panic("not reached")
 	}
 	// A normalized path never has a cusp, whose start and end points are the same,
-	// as normalize drops a single point and converts a cusp into two lines.
+	// as normalizeSubPath drops a single point and converts a cusp into two lines.
 	// This can happen only in doAppendParalleledQuad when a tiny curve is split,
 	// and then the split halves are empty in float32.
 	if p0 == p2 {
