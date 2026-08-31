@@ -20,6 +20,7 @@ import (
 	"io"
 	"math"
 	"testing"
+	"time"
 
 	"github.com/hajimehoshi/ebiten/v2/audio"
 )
@@ -210,6 +211,48 @@ func (s *slowReader) Read(buf []byte) (int, error) {
 func (s *slowReader) Seek(offset int64, whence int) (int64, error) {
 	s.eof = false
 	return s.src.Seek(offset, whence)
+}
+
+// stalledReader delivers data until its source is exhausted, then reports the
+// end as (0, nil) instead of io.EOF, like a real-time source that simply has
+// no data ready yet. This is a legal io.Reader behavior.
+type stalledReader struct {
+	src io.ReadSeeker
+}
+
+func (s *stalledReader) Read(buf []byte) (int, error) {
+	n, err := s.src.Read(buf)
+	if err == io.EOF {
+		return 0, nil
+	}
+	return n, err
+}
+
+func (s *stalledReader) Seek(offset int64, whence int) (int64, error) {
+	return s.src.Seek(offset, whence)
+}
+
+// The after-loop read must not spin forever when the source returns (0, nil).
+func TestInfiniteLoopWithStalledSourceAfterLoop(t *testing.T) {
+	const length = 4096
+	src := make([]byte, length)
+	loop := audio.NewInfiniteLoop(&stalledReader{src: bytes.NewReader(src)}, length)
+
+	buf := make([]byte, length)
+
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		if _, err := loop.Read(buf); err != nil {
+			t.Error(err)
+		}
+	}()
+
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
+		t.Fatal("Read hung: the after-loop read did not break on a (0, nil) source")
+	}
 }
 
 func TestInfiniteLoopWithSlowSource(t *testing.T) {
