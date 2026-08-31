@@ -32,13 +32,14 @@ For installation on desktops, see [the installation instruction](https://ebiteng
 
 * 2D Graphics (Geometry and color transformation by matrices, Various composition modes, Offscreen rendering, Text rendering, Automatic batches, Automatic texture atlas, Custom shaders)
 * Input (Mouse, Keyboard, Gamepads, Touches)
-* Audio (Ogg/Vorbis, MP3, WAV, PCM)
+* Audio (Ogg/Vorbis, MP3, Opus, WAV, PCM)
 
 ## Packages
 
 * [ebiten](https://pkg.go.dev/github.com/hajimehoshi/ebiten/v2)
   * [audio](https://pkg.go.dev/github.com/hajimehoshi/ebiten/v2/audio)
     * [mp3](https://pkg.go.dev/github.com/hajimehoshi/ebiten/v2/audio/mp3)
+    * [opus](https://pkg.go.dev/github.com/hajimehoshi/ebiten/v2/audio/opus)
     * [vorbis](https://pkg.go.dev/github.com/hajimehoshi/ebiten/v2/audio/vorbis)
     * [wav](https://pkg.go.dev/github.com/hajimehoshi/ebiten/v2/audio/wav)
   * [colorm](https://pkg.go.dev/github.com/hajimehoshi/ebiten/v2/colorm)
