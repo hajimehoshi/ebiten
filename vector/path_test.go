@@ -502,7 +502,7 @@ func TestBounds(t *testing.T) {
 			want: image.Rect(10, 20, 30, 40),
 		},
 		{
-			name: "shallow angle arc",
+			name: "nearly collinear arc",
 			path: func(p *vector.Path) {
 				p.MoveTo(676.47327, 1502.2303)
 				p.ArcTo(257.7812, 1856.779, 1046.7478, 1188.3281, 100)
@@ -522,7 +522,7 @@ func TestBounds(t *testing.T) {
 	}
 }
 
-func TestStrokeMiterJoinShallowAngle(t *testing.T) {
+func TestStrokeMiterJoinNearlyCollinear(t *testing.T) {
 	var p vector.Path
 	p.MoveTo(676.47327, 1502.2303)
 	p.LineTo(257.7812, 1856.779)
@@ -537,10 +537,7 @@ func TestStrokeMiterJoinShallowAngle(t *testing.T) {
 	sp.AddStroke(&p, op)
 
 	got := sp.Bounds()
-	if got.Min.X < 0 || got.Min.Y < 0 {
-		t.Errorf("Bounds().Min = %v; want non-negative (a miter spike must not extend far beyond the path)", got.Min)
-	}
-	if got, want := got.Max, (image.Point{X: 1048, Y: 1858}); got.X > want.X || got.Y > want.Y {
-		t.Errorf("Bounds().Max = %v; want within %v (a miter spike must not extend far beyond the path)", got, want)
+	if got, want := got, image.Rect(257, 1187, 1048, 1858); got != want {
+		t.Errorf("got: %v, want: %v", got, want)
 	}
 }
