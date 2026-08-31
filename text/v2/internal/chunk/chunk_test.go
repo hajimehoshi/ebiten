@@ -271,6 +271,28 @@ func TestChunks_Levels(t *testing.T) {
 			wantTexts:      []string{"Hello. World", "."},
 			wantLevels:     []bidi.Level{2, 1},
 		},
+		{
+			// Arabic Presentation Form B (U+FEAD, class AL) is strong
+			// RTL but its UTF-8 lead byte 0xEF was not in the fast-path
+			// set, so the text wrongly took the pure-LTR path and every
+			// chunk got level 0. It must match the equivalent Arabic
+			// text (rtl_text_under_ltr_base): one level-1 run plus a
+			// trailing level-0 period.
+			name:       "arabic_presentation_forms",
+			text:       "ﺭ. ﺭ.",
+			wantTexts:  []string{"ﺭ. ﺭ", "."},
+			wantLevels: []bidi.Level{1, 0},
+		},
+		{
+			// RLM (U+200F, class R) is strong RTL with lead byte 0xE2,
+			// which the fast path only inspected for line separators.
+			// It must force the bidi pass so the RLM itself carries
+			// level 1 between the level-0 runs.
+			name:       "rlm_forces_bidi",
+			text:       "ab\u200f. cd.",
+			wantTexts:  []string{"ab", "\u200f", ". cd."},
+			wantLevels: []bidi.Level{0, 1, 0},
+		},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
