@@ -17,11 +17,25 @@ package opus_test
 import (
 	"bytes"
 	"io"
+	"math/bits"
 	"testing"
 
 	"github.com/hajimehoshi/ebiten/v2/audio/opus"
 	resources "github.com/hajimehoshi/ebiten/v2/examples/resources/audio"
 )
+
+// skipOn32Bit skips the test on 32-bit platforms, where decoding never returns.
+//
+// The decoder in github.com/kazzmir/opus-go is transpiled C accessing struct fields at
+// offsets fixed for 64-bit layouts, and its range decoder loops forever on ILP32.
+//
+// TODO: Remove this skip after the decoder works on 32-bit platforms (#3621).
+func skipOn32Bit(t *testing.T) {
+	t.Helper()
+	if bits.UintSize == 32 {
+		t.Skip("decoding Opus hangs on 32-bit platforms (#3621)")
+	}
+}
 
 var opusDecoders = []struct {
 	name string
@@ -42,6 +56,8 @@ var opusDecoders = []struct {
 }
 
 func TestSeekNegativePosition(t *testing.T) {
+	skipOn32Bit(t)
+
 	for _, decode := range opusDecoders {
 		t.Run(decode.name, func(t *testing.T) {
 			s, err := decode.f(bytes.NewReader(resources.Ragtime_opus))
@@ -82,6 +98,8 @@ func TestSeekNegativePosition(t *testing.T) {
 }
 
 func TestSeekInvalidWhence(t *testing.T) {
+	skipOn32Bit(t)
+
 	for _, decode := range opusDecoders {
 		t.Run(decode.name, func(t *testing.T) {
 			s, err := decode.f(bytes.NewReader(resources.Ragtime_opus))
