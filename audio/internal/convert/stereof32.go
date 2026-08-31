@@ -15,6 +15,7 @@
 package convert
 
 import (
+	"fmt"
 	"io"
 )
 
@@ -106,19 +107,39 @@ func (s *StereoF32) sourceFrameSize() int64 {
 	return 8
 }
 
-func (s *StereoF32) Seek(offset int64, whence int) (int64, error) {
-	offset = offset / 8 * 8
+// presentedPosition converts a position in the source's byte space to the stereo-f32 byte space
+// this wrapper presents.
+func (s *StereoF32) presentedPosition(pos int64) int64 {
 	if s.mono {
-		offset /= 2
+		pos *= 2
 	}
+	return pos
+}
 
-	if whence == io.SeekCurrent {
-		// The buffered bytes were read from the source but are not converted yet, so the
-		// source is ahead of the position this wrapper presents.
-		offset -= int64(len(s.buf))
-	}
-
-	if whence == io.SeekEnd {
+func (s *StereoF32) Seek(offset int64, whence int) (int64, error) {
+	// Resolve the requested position before rounding the offset toward the frame boundary
+	// below, as the rounding truncates toward zero and would turn a small negative position
+	// into 0. An unknown whence is left to the source.
+	var pos int64
+	// alignedEnd is the source position just past the last whole frame. It is resolved only
+	// for io.SeekEnd.
+	var alignedEnd int64
+	switch whence {
+	case io.SeekStart:
+		pos = offset
+	case io.SeekCurrent:
+		// The position this wrapper presents is never negative, so only a negative offset can
+		// resolve before the start.
+		if offset < 0 {
+			cur, err := s.source.Seek(0, io.SeekCurrent)
+			if err != nil {
+				return 0, err
+			}
+			// The buffered bytes were read from the source but are not converted yet, so the
+			// source is ahead of the position this wrapper presents.
+			pos = s.presentedPosition(cur-int64(len(s.buf))) + offset
+		}
+	case io.SeekEnd:
 		// The source length is not necessarily a multiple of the frame size.
 		// Resolve the offset from the last whole frame so that the source is
 		// never seeked to the middle of a frame.
@@ -135,11 +156,28 @@ func (s *StereoF32) Seek(offset int64, whence int) (int64, error) {
 			return 0, err
 		}
 		frameSize := s.sourceFrameSize()
-		offset += end / frameSize * frameSize
+		alignedEnd = end / frameSize * frameSize
+		pos = s.presentedPosition(alignedEnd) + offset
+	}
+	if pos < 0 {
+		return 0, fmt.Errorf("convert: position must be >= 0 but was %d", pos)
+	}
+
+	offset = offset / 8 * 8
+	if s.mono {
+		offset /= 2
+	}
+
+	if whence == io.SeekCurrent {
+		offset -= int64(len(s.buf))
+	}
+
+	if whence == io.SeekEnd {
+		offset += alignedEnd
 		whence = io.SeekStart
 	}
 
-	pos, err := s.source.Seek(offset, whence)
+	srcPos, err := s.source.Seek(offset, whence)
 	if err != nil {
 		return 0, err
 	}
@@ -149,8 +187,5 @@ func (s *StereoF32) Seek(offset int64, whence int) (int64, error) {
 	s.buf = s.buf[:0]
 	s.eof = false
 
-	if s.mono {
-		pos *= 2
-	}
-	return pos, nil
+	return s.presentedPosition(srcPos), nil
 }

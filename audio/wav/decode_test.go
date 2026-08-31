@@ -557,3 +557,65 @@ func TestDecodeF32ShortReads(t *testing.T) {
 		t.Errorf("read %d bytes, want %d", got, want)
 	}
 }
+
+func TestDecodeSeekSmallNegativePosition(t *testing.T) {
+	data := make([]byte, 8000)
+	for i := range data {
+		data[i] = byte(i)
+	}
+
+	for _, tc := range []struct {
+		name   string
+		decode func(src io.Reader) (*wav.Stream, error)
+		src    []byte
+	}{
+		{
+			name:   "Stereo",
+			decode: wav.DecodeWithoutResampling,
+			src:    pcmWavFile(2, 16, data),
+		},
+		{
+			name:   "Mono",
+			decode: wav.DecodeWithoutResampling,
+			src:    pcmWavFile(1, 16, data),
+		},
+		{
+			name:   "StereoF32",
+			decode: wav.DecodeF32,
+			src:    pcmWavFile(2, 16, data),
+		},
+		{
+			name:   "MonoF32",
+			decode: wav.DecodeF32,
+			src:    pcmWavFile(1, 16, data),
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			s, err := tc.decode(bytes.NewReader(tc.src))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			// An offset in (-4, 0) is rounded toward the frame boundary before it reaches the
+			// decoder, so the requested position must be resolved and checked before the
+			// rounding, whichever whence it comes from.
+			for _, offset := range []int64{-1, -2, -3, -4} {
+				if _, err := s.Seek(offset, io.SeekStart); err == nil {
+					t.Errorf("Seek(%d, io.SeekStart): got no error, want an error", offset)
+				}
+				if _, err := s.Seek(offset, io.SeekCurrent); err == nil {
+					t.Errorf("Seek(%d, io.SeekCurrent) at 0: got no error, want an error", offset)
+				}
+				if _, err := s.Seek(-s.Length()+offset, io.SeekEnd); err == nil {
+					t.Errorf("Seek(-Length()%+d, io.SeekEnd): got no error, want an error", offset)
+				}
+			}
+
+			// The stream must not be broken by the rejected seeks.
+			b := make([]byte, 8)
+			if _, err := io.ReadFull(s, b); err != nil {
+				t.Fatal(err)
+			}
+		})
+	}
+}

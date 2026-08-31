@@ -391,3 +391,42 @@ func TestStereoF32SeekOutOfRangeLeavesStreamIntact(t *testing.T) {
 		}
 	}
 }
+
+func TestStereoF32SeekSmallNegativePosition(t *testing.T) {
+	const frames = 100
+
+	for _, mono := range []bool{false, true} {
+		t.Run(fmt.Sprintf("mono=%t", mono), func(t *testing.T) {
+			frameSize := 8
+			if mono {
+				frameSize = 4
+			}
+			src := randBytes(frames * frameSize)
+			s := convert.NewStereoF32(&boundedSeeker{r: bytes.NewReader(src), size: int64(len(src))}, mono)
+			// The stream is always stereo f32 (8 bytes per frame).
+			const streamLen = frames * 8
+
+			// An offset in (-8, 0) is rounded toward the frame boundary, so the requested
+			// position must be resolved and checked before the rounding, whichever whence it
+			// comes from.
+			for _, offset := range []int64{-1, -2, -3, -4, -5, -6, -7, -8} {
+				if _, err := s.Seek(offset, io.SeekStart); err == nil {
+					t.Errorf("Seek(%d, io.SeekStart): got no error, want an error", offset)
+				}
+				if _, err := s.Seek(offset, io.SeekCurrent); err == nil {
+					t.Errorf("Seek(%d, io.SeekCurrent) at 0: got no error, want an error", offset)
+				}
+				if _, err := s.Seek(-streamLen+offset, io.SeekEnd); err == nil {
+					t.Errorf("Seek(-%d%+d, io.SeekEnd): got no error, want an error", streamLen, offset)
+				}
+			}
+
+			// The stream must not be broken by the rejected seeks.
+			if pos, err := s.Seek(0, io.SeekCurrent); err != nil {
+				t.Fatal(err)
+			} else if pos != 0 {
+				t.Errorf("Seek(0, io.SeekCurrent): got: %d, want: 0", pos)
+			}
+		})
+	}
+}

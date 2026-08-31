@@ -19,6 +19,7 @@
 package mp3
 
 import (
+	"fmt"
 	"io"
 
 	"github.com/hajimehoshi/go-mp3"
@@ -46,7 +47,26 @@ func (s *Stream) Read(buf []byte) (int, error) {
 
 // Seek is implementation of io.Seeker's Seek.
 func (s *Stream) Seek(offset int64, whence int) (int64, error) {
-	return s.readSeeker.Seek(offset, whence)
+	// Resolve the position here: the underlying decoder panics for a negative position.
+	var pos int64
+	switch whence {
+	case io.SeekStart:
+		pos = offset
+	case io.SeekCurrent:
+		cur, err := s.readSeeker.Seek(0, io.SeekCurrent)
+		if err != nil {
+			return 0, err
+		}
+		pos = cur + offset
+	case io.SeekEnd:
+		pos = s.length + offset
+	default:
+		return 0, fmt.Errorf("mp3: whence must be io.SeekStart, io.SeekCurrent, or io.SeekEnd but was %d", whence)
+	}
+	if pos < 0 {
+		return 0, fmt.Errorf("mp3: position must be >= 0 but was %d", pos)
+	}
+	return s.readSeeker.Seek(pos, io.SeekStart)
 }
 
 // Length returns the size of decoded stream in bytes.

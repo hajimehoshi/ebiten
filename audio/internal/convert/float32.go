@@ -97,13 +97,27 @@ func (r *float32BytesReader) Seek(offset int64, whence int) (int64, error) {
 	if !ok {
 		return 0, fmt.Errorf("float32: the source must be io.Seeker when seeking but not: %w", errors.ErrUnsupported)
 	}
-	offset = offset / 4 * 2
-
+	// Resolve the requested position before rounding the offset toward the sample boundary
+	// below, as the rounding truncates toward zero and would turn a small negative position
+	// into 0.
+	var pos int64
+	// alignedEnd is the source position just past the last whole sample. It is resolved only
+	// for io.SeekEnd.
+	var alignedEnd int64
 	switch whence {
 	case io.SeekStart:
+		pos = offset
 	case io.SeekCurrent:
-		// The source is ahead of the position this reader presents by the buffered bytes.
-		offset -= int64(len(r.i16Buf))
+		// The position this reader presents is never negative, so only a negative offset can
+		// resolve before the start.
+		if offset < 0 {
+			cur, err := s.Seek(0, io.SeekCurrent)
+			if err != nil {
+				return 0, err
+			}
+			// The source is ahead of the position this reader presents by the buffered bytes.
+			pos = (cur-int64(len(r.i16Buf)))/2*4 + offset
+		}
 	case io.SeekEnd:
 		// The source length is not necessarily a multiple of the sample size. Resolve the offset
 		// from the last whole sample so that the source is never seeked to the middle of a sample.
@@ -119,10 +133,23 @@ func (r *float32BytesReader) Seek(offset int64, whence int) (int64, error) {
 		if _, err := s.Seek(cur, io.SeekStart); err != nil {
 			return 0, err
 		}
-		offset += end / 2 * 2
-		whence = io.SeekStart
+		alignedEnd = end / 2 * 2
+		pos = alignedEnd/2*4 + offset
 	default:
 		return 0, fmt.Errorf("convert: whence must be io.SeekStart, io.SeekCurrent, or io.SeekEnd but was %d", whence)
+	}
+	if pos < 0 {
+		return 0, fmt.Errorf("convert: position must be >= 0 but was %d", pos)
+	}
+
+	offset = offset / 4 * 2
+
+	switch whence {
+	case io.SeekCurrent:
+		offset -= int64(len(r.i16Buf))
+	case io.SeekEnd:
+		offset += alignedEnd
+		whence = io.SeekStart
 	}
 
 	n, err := s.Seek(offset, whence)

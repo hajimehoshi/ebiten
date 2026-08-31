@@ -233,13 +233,15 @@ func TestFloat32SeekEndUnalignedSource(t *testing.T) {
 			for offset := -int64(len(want)) - 4; offset <= 4; offset++ {
 				r := convert.NewFloat32BytesReadSeekerFromInt16BytesReadSeeker(bytes.NewReader(src))
 				pos, err := r.Seek(offset, io.SeekEnd)
-				wantPos := int64(len(want)) + offset/4*4
-				if wantPos < 0 {
+				// The requested position, not the one rounded toward the sample boundary,
+				// decides whether the seek resolves before the start.
+				if int64(len(want))+offset < 0 {
 					if err == nil {
 						t.Errorf("Seek(%d, io.SeekEnd): got no error, want an error", offset)
 					}
 					continue
 				}
+				wantPos := int64(len(want)) + offset/4*4
 				if err != nil {
 					t.Errorf("Seek(%d, io.SeekEnd): %v", offset, err)
 					continue
@@ -410,5 +412,36 @@ func TestFloat32SeekOutOfRangeLeavesStreamIntact(t *testing.T) {
 				t.Errorf("reading after a rejected Seek(%d, %d): got % x, want % x", tc.offset, tc.whence, got, w)
 			}
 		})
+	}
+}
+
+func TestFloat32SeekSmallNegativePosition(t *testing.T) {
+	const srcLen = 200
+
+	// The stream is float32 (4 bytes per sample) converted from int16 (2 bytes per sample).
+	const streamLen = srcLen / 2 * 4
+
+	src := randBytes(srcLen)
+	r := convert.NewFloat32BytesReadSeekerFromInt16BytesReadSeeker(&boundedSeeker{r: bytes.NewReader(src), size: srcLen})
+
+	// An offset in (-4, 0) is rounded toward the sample boundary, so the requested position must
+	// be resolved and checked before the rounding, whichever whence it comes from.
+	for _, offset := range []int64{-1, -2, -3, -4} {
+		if _, err := r.Seek(offset, io.SeekStart); err == nil {
+			t.Errorf("Seek(%d, io.SeekStart): got no error, want an error", offset)
+		}
+		if _, err := r.Seek(offset, io.SeekCurrent); err == nil {
+			t.Errorf("Seek(%d, io.SeekCurrent) at 0: got no error, want an error", offset)
+		}
+		if _, err := r.Seek(-streamLen+offset, io.SeekEnd); err == nil {
+			t.Errorf("Seek(-%d%+d, io.SeekEnd): got no error, want an error", streamLen, offset)
+		}
+	}
+
+	// The stream must not be broken by the rejected seeks.
+	if pos, err := r.Seek(0, io.SeekCurrent); err != nil {
+		t.Fatal(err)
+	} else if pos != 0 {
+		t.Errorf("Seek(0, io.SeekCurrent): got: %d, want: 0", pos)
 	}
 }

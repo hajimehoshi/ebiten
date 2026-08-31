@@ -16,6 +16,8 @@
 package opus
 
 import (
+	"errors"
+	"fmt"
 	"io"
 
 	"github.com/kazzmir/opus-go"
@@ -35,7 +37,30 @@ func (s *Stream) Read(buf []byte) (int, error) {
 
 // Seek is implementation of io.Seeker's Seek.
 func (s *Stream) Seek(offset int64, whence int) (int64, error) {
-	return s.readSeeker.Seek(offset, whence)
+	// Resolve the position here: the underlying decoder clamps a negative position to 0
+	// instead of reporting an error.
+	var pos int64
+	switch whence {
+	case io.SeekStart:
+		pos = offset
+	case io.SeekCurrent:
+		cur, err := s.readSeeker.Seek(0, io.SeekCurrent)
+		if err != nil {
+			return 0, err
+		}
+		pos = cur + offset
+	case io.SeekEnd:
+		if s.length < 0 {
+			return 0, fmt.Errorf("opus: seeking from the end is not possible when the length is unknown: %w", errors.ErrUnsupported)
+		}
+		pos = s.length + offset
+	default:
+		return 0, fmt.Errorf("opus: whence must be io.SeekStart, io.SeekCurrent, or io.SeekEnd but was %d", whence)
+	}
+	if pos < 0 {
+		return 0, fmt.Errorf("opus: position must be >= 0 but was %d", pos)
+	}
+	return s.readSeeker.Seek(pos, io.SeekStart)
 }
 
 // Length returns the size of decoded stream in bytes.

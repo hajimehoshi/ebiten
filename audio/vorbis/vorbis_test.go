@@ -524,3 +524,74 @@ func TestDecodeI16ShortBuffer(t *testing.T) {
 		})
 	}
 }
+
+func TestSeekSmallNegativePosition(t *testing.T) {
+	for _, file := range []struct {
+		name string
+		bs   []byte
+	}{
+		{
+			name: "Mono",
+			bs:   test_mono_ogg,
+		},
+		{
+			name: "Stereo",
+			bs:   test_stereo_ogg,
+		},
+	} {
+		t.Run(file.name, func(t *testing.T) {
+			for _, decode := range []struct {
+				name string
+				f    func(io.Reader) (*vorbis.Stream, error)
+			}{
+				{
+					name: "I16",
+					f: func(r io.Reader) (*vorbis.Stream, error) {
+						return vorbis.DecodeWithoutResampling(r)
+					},
+				},
+				{
+					name: "F32",
+					f: func(r io.Reader) (*vorbis.Stream, error) {
+						return vorbis.DecodeF32(r)
+					},
+				},
+				{
+					name: "Resampling",
+					f: func(r io.Reader) (*vorbis.Stream, error) {
+						// The test files are 44100Hz, so this resamples the stream.
+						return vorbis.DecodeWithSampleRate(48000, r)
+					},
+				},
+			} {
+				t.Run(decode.name, func(t *testing.T) {
+					s, err := decode.f(bytes.NewReader(file.bs))
+					if err != nil {
+						t.Fatal(err)
+					}
+
+					// An offset in (-8, 0) is rounded toward the frame boundary before it
+					// reaches the decoder, so the requested position must be resolved and
+					// checked before the rounding, whichever whence it comes from.
+					for _, offset := range []int64{-1, -2, -3, -4, -5, -6, -7, -8} {
+						if _, err := s.Seek(offset, io.SeekStart); err == nil {
+							t.Errorf("Seek(%d, io.SeekStart): got no error, want an error", offset)
+						}
+						if _, err := s.Seek(offset, io.SeekCurrent); err == nil {
+							t.Errorf("Seek(%d, io.SeekCurrent) at 0: got no error, want an error", offset)
+						}
+						if _, err := s.Seek(-s.Length()+offset, io.SeekEnd); err == nil {
+							t.Errorf("Seek(-Length()%+d, io.SeekEnd): got no error, want an error", offset)
+						}
+					}
+
+					// The stream must not be broken by the rejected seeks.
+					buf := make([]byte, 64)
+					if _, err := io.ReadFull(s, buf); err != nil {
+						t.Fatal(err)
+					}
+				})
+			}
+		})
+	}
+}
