@@ -106,6 +106,31 @@ var (
 	preeditCaretCallbackValue _XIMCallback
 )
 
+// setInputMethodDestroyCallback asks the input method to report its
+// destruction.
+//
+// setInputMethodDestroyCallback must be called from the main thread.
+func setInputMethodDestroyCallback() {
+	// Xlib copies the callback, so it does not have to outlive the call.
+	callback := _XIMCallback{Callback: inputMethodDestroyCallbackPtr()}
+	xSetIMValues(_glfw.platformWindow.im, "destroyCallback", &callback, 0)
+}
+
+var inputMethodDestroyCallbackPtr = sync.OnceValue(func() uintptr {
+	return purego.NewCallback(inputMethodDestroyCallback)
+})
+
+// inputMethodDestroyCallback drops the input method and the input contexts it
+// created, which Xlib frees as soon as the callback returns. An input method is
+// destroyed when the input method server it talks to exits (#3618).
+func inputMethodDestroyCallback(im uintptr, clientData uintptr, callData uintptr) uintptr {
+	_glfw.platformWindow.im = 0
+	for _, w := range _glfw.windows {
+		w.platform.ic = 0
+	}
+	return 0
+}
+
 // createInputContext creates the window's X input context. The context is 0
 // when no input method is available.
 //
