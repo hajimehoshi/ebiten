@@ -191,15 +191,19 @@ type Glyph struct {
 	// AdvanceX is the X advance applied after rendering this glyph.
 	// Non-zero only for horizontal text layouts.
 	//
-	// For consecutive glyphs in the same line, OriginX + AdvanceX of one glyph equals OriginX of the next.
-	// For the last glyph of a line, OriginX + AdvanceX equals the value returned by [Advance] for that line.
+	// AdvanceX is the distance from this glyph's origin to the origin of the next glyph in the line,
+	// and can therefore depend on the following glyph.
+	// For the last glyph of a line, [Glyph.OriginX] + AdvanceX minus the first OriginX of that line
+	// equals the line's advance returned by [AdvanceAt].
 	AdvanceX float64
 
 	// AdvanceY is the Y advance applied after rendering this glyph.
 	// Non-zero only for vertical text layouts.
 	//
-	// For consecutive glyphs in the same line, OriginY + AdvanceY of one glyph equals OriginY of the next.
-	// For the last glyph of a line, OriginY + AdvanceY equals the analogous identity for vertical text based on [Advance].
+	// AdvanceY is the distance from this glyph's origin to the origin of the next glyph in the line,
+	// and can therefore depend on the following glyph.
+	// For the last glyph of a line, [Glyph.OriginY] + AdvanceY minus the first OriginY of that line
+	// equals the line's advance returned by [AdvanceAt].
 	AdvanceY float64
 }
 
@@ -250,10 +254,22 @@ type LazyGlyph struct {
 
 	// AdvanceX is the X advance applied after rendering this glyph.
 	// Non-zero only for horizontal text layouts.
+	//
+	// AdvanceX is the distance from this glyph's origin to the origin of
+	// the next glyph in the line, and can therefore depend on the
+	// following glyph. For the last glyph of a line, [LazyGlyph.OriginX] +
+	// AdvanceX minus the first OriginX of that line equals the line's
+	// advance returned by [AdvanceAt].
 	AdvanceX float64
 
 	// AdvanceY is the Y advance applied after rendering this glyph.
 	// Non-zero only for vertical text layouts.
+	//
+	// AdvanceY is the distance from this glyph's origin to the origin of
+	// the next glyph in the line, and can therefore depend on the
+	// following glyph. For the last glyph of a line, [LazyGlyph.OriginY] +
+	// AdvanceY minus the first OriginY of that line equals the line's
+	// advance returned by [AdvanceAt].
 	AdvanceY float64
 
 	// imager dispatches glyph image realization. nil when the glyph has no
