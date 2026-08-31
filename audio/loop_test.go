@@ -232,7 +232,6 @@ func (s *stalledReader) Seek(offset int64, whence int) (int64, error) {
 	return s.src.Seek(offset, whence)
 }
 
-// The after-loop read must not spin forever when the source returns (0, nil).
 func TestInfiniteLoopWithStalledSourceAfterLoop(t *testing.T) {
 	const length = 4096
 	src := make([]byte, length)
