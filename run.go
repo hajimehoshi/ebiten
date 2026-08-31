@@ -697,7 +697,7 @@ func IsScreenTransparent() bool {
 // SetScreenTransparent sets the state if the window is transparent.
 //
 // If SetScreenTransparent is called after the main loop starts, the window is not made transparent,
-// but IsScreenTransparent returns the given value.
+// but [IsScreenTransparent] returns the given value.
 //
 // SetScreenTransparent does nothing on mobiles.
 //

@@ -782,7 +782,8 @@ var _ [len(DrawTrianglesShaderOptions{}.Images) - graphics.ShaderSrcImageCount]s
 // For the details about the shader, see https://ebitengine.org/en/documents/shader.html.
 //
 // If the shader unit is texels, DrawTrianglesShader panics when a non-nil image's size is different from
-// the size of the image at index 0 of the specified images, which is treated as (0, 0) if it is nil.
+// the size of the image at index 0 of the specified images.
+// If the image at index 0 is nil, its size is treated as (0, 0) for this comparison.
 // If one of the specified image is non-nil and is disposed, DrawTrianglesShader panics.
 //
 // If len(vertices) is more than MaxVertexCount, the exceeding part is ignored.
@@ -815,7 +816,8 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 // For the details about the shader, see https://ebitengine.org/en/documents/shader.html.
 //
 // If the shader unit is texels, DrawTrianglesShader32 panics when a non-nil image's size is different from
-// the size of the image at index 0 of the specified images, which is treated as (0, 0) if it is nil.
+// the size of the image at index 0 of the specified images.
+// If the image at index 0 is nil, its size is treated as (0, 0) for this comparison.
 // If one of the specified image is non-nil and is disposed, DrawTrianglesShader32 panics.
 //
 // If len(vertices) is more than MaxVertexCount, the exceeding part is ignored.
