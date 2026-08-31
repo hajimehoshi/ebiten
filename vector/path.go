@@ -184,6 +184,10 @@ type Path struct {
 	// flatPaths is a cached actual rendering positions.
 	// flatPaths is used only for deprecated functions. Do not use this for new functions.
 	flatPaths []flatPath
+
+	// opsScratch is a scratch slice of operations, which normalize uses
+	// when a sub-path has a cusp and the number of operations increases.
+	opsScratch []op
 }
 
 // Reset resets the path.
@@ -663,9 +667,10 @@ func (p *Path) AddPath(src *Path, options *AddPathOptions) {
 	}
 }
 
-// hasCusp reports whether subPath has a cusp, which is a quadratic curve whose start and end points are the same
+// countCusps counts the number of cusps in subPath, which are quadratic curves whose start and end points are the same
 // and whose control point differs from them.
-func hasCusp(subPath *subPath) bool {
+func countCusps(subPath *subPath) int {
+	var n int
 	cur := subPath.start
 	for _, op := range subPath.ops {
 		switch op.typ {
@@ -673,12 +678,12 @@ func hasCusp(subPath *subPath) bool {
 			cur = op.p1
 		case opTypeQuadTo:
 			if cur == op.p2 && cur != op.p1 {
-				return true
+				n++
 			}
 			cur = op.p2
 		}
 	}
-	return false
+	return n
 }
 
 // normalize normalizes the path by removing unnecessary sub-paths and points.
@@ -686,10 +691,12 @@ func (p *Path) normalize() {
 	for i, subPath := range p.subPaths {
 		cur := subPath.start
 		ops := subPath.ops[:0]
-		if hasCusp(&subPath) {
+		if n := countCusps(&subPath); n > 0 {
 			// A cusp is converted into two lines, which increases the number of operations.
-			// Use a new slice in this case to avoid overwriting the source operations before they are read.
-			ops = make([]op, 0, len(subPath.ops)+1)
+			// Normalize into the scratch slice in this case to avoid overwriting the source operations before they are read.
+			// The source operations become the new scratch so that the slices are reused.
+			ops = slices.Grow(p.opsScratch[:0], len(subPath.ops)+n)
+			p.opsScratch = subPath.ops
 		}
 		for _, op := range subPath.ops {
 			switch op.typ {
@@ -706,9 +713,10 @@ func (p *Path) normalize() {
 				case cur == op.p2:
 					// A cusp goes to the midpoint and comes back.
 					// Keep this as lines, not as a curve, so that the 180-degree turn at the tip gets a joint.
+					// Divide by 2 before adding so that the midpoint computation cannot overflow.
 					mid := point{
-						x: (cur.x + op.p1.x) / 2,
-						y: (cur.y + op.p1.y) / 2,
+						x: cur.x/2 + op.p1.x/2,
+						y: cur.y/2 + op.p1.y/2,
 					}
 					if mid == cur {
 						// The midpoint is rounded to the current point in float32, so there is nothing to keep.

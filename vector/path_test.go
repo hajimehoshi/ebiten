@@ -18,6 +18,7 @@ import (
 	"image"
 	"image/color"
 	"runtime"
+	"strings"
 	"sync"
 	"testing"
 
@@ -610,5 +611,25 @@ func TestStrokeTinyQuadCusp(t *testing.T) {
 	sp.AddStroke(&p, op)
 	if got, want := vector.SubPathCount(&sp), 0; got != want {
 		t.Errorf("got: %v, want: %v", got, want)
+	}
+}
+
+func TestStrokeHugeQuadCusp(t *testing.T) {
+	// The midpoint of this cusp must not overflow to infinity in float32.
+	var p vector.Path
+	p.MoveTo(3.0e38, 1)
+	p.QuadTo(3.4e38, 1, 3.0e38, 1)
+
+	op := &vector.AddStrokeOptions{}
+	op.StrokeOptions.Width = 4
+
+	var sp vector.Path
+	sp.AddStroke(&p, op)
+
+	// AddStroke normalizes the source path in place, so the source path must not hold an infinite point.
+	for _, s := range []string{vector.PathOperationsString(&p), vector.PathOperationsString(&sp)} {
+		if strings.Contains(s, "+Inf") || strings.Contains(s, "-Inf") || strings.Contains(s, "NaN") {
+			t.Errorf("got:\n%v\nwant: no infinity or NaN", s)
+		}
 	}
 }
