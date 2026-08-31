@@ -174,7 +174,7 @@ func appendParalleledPathFromSubPath(strokePath *Path, subPath *subPath, options
 
 	// As the source path is normalized, every operation is guaranteed to be valid.
 	// A line operation must have a different point from the start point.
-	// A quadratic curve operation must have create a curve, not a line.
+	// A quadratic curve operation must not be a single point, but can be a degenerate curve whose start and end points are the same.
 
 	cur := subPath.start
 
@@ -228,8 +228,15 @@ func appendParalleledLineForQuadIfNeeded(path *Path, p0, p1, p2 point, dist floa
 	if p0 == p1 && p0 == p2 {
 		panic("not reached")
 	}
-	// This curve is empty as the start and the end points are the same.
+	// This curve goes and comes back on a line segment as the start and the end points are the same.
+	// Split it at t=0.5 so that each half is a line, and append paralleled lines for them.
 	if p0 == p2 {
+		p01 := point{
+			x: (p0.x + p1.x) / 2,
+			y: (p0.y + p1.y) / 2,
+		}
+		appendParalleledLine(path, p0, p01, dist)
+		appendParalleledLine(path, p01, p0, dist)
 		return true
 	}
 	// This curve is a line as the control point is the same as the start point.

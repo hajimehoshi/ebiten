@@ -542,22 +542,43 @@ func TestStrokeMiterJoinNearlyCollinear(t *testing.T) {
 	}
 }
 
-func TestQuadLoopIsKept(t *testing.T) {
+func TestQuadCuspIsKept(t *testing.T) {
 	var p vector.Path
 	p.MoveTo(0, 0)
 	p.QuadTo(10, 10, 0, 0)
 
-	// The loop reaches (5, 5) at t=0.5, so its bounds must not be empty.
-	if b := p.Bounds(); b.Empty() {
-		t.Errorf("Bounds of a quadratic loop: got empty %v, want a non-empty rectangle", b)
+	// The cusp reaches (5, 5) at t=0.5.
+	if got, want := p.Bounds(), image.Rect(0, 0, 5, 5); got != want {
+		t.Errorf("got: %v, want: %v", got, want)
 	}
 
-	// A quadratic whose start, control, and end all coincide is a single point
-	// and is still dropped.
 	var d vector.Path
 	d.MoveTo(5, 5)
 	d.QuadTo(5, 5, 5, 5)
 	if b := d.Bounds(); !b.Empty() {
-		t.Errorf("Bounds of a fully degenerate quadratic: got %v, want empty", b)
+		t.Errorf("Bounds of a single point: got %v, want empty", b)
+	}
+}
+
+func TestStrokeQuadCusp(t *testing.T) {
+	var p vector.Path
+	p.MoveTo(0, 0)
+	p.LineTo(100, 0)
+	p.QuadTo(100, 50, 100, 0)
+	p.LineTo(200, 0)
+
+	op := &vector.AddStrokeOptions{}
+	op.StrokeOptions.Width = 10
+
+	var sp vector.Path
+	sp.AddStroke(&p, op)
+
+	// The cusp reaches (100, 25) at its midpoint.
+	if got, want := sp.Bounds(), image.Rect(0, -5, 200, 25); got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+
+	if got, want := p.Bounds(), image.Rect(0, 0, 200, 25); got != want {
+		t.Errorf("got: %v, want: %v", got, want)
 	}
 }

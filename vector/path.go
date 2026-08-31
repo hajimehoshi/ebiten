@@ -268,11 +268,10 @@ func (p *Path) QuadTo(x1, y1, x2, y2 float32) {
 	}
 	p.resetLastSubPathCacheStates()
 	if cur, ok := p.currentPosition(); ok {
-		// A quadratic whose start, control, and end points all coincide is a
-		// single point and can be dropped. When only the start and the end
-		// coincide but the control point differs, the curve is a real loop and
-		// must be kept.
-		if cur.x == x2 && cur.y == y2 && cur.x == x1 && cur.y == y1 {
+		// A quadratic whose start, control, and end points all coincide is a single point and can be dropped.
+		// Even if the start and end points coincide, the curve is not a single point when the control point differs:
+		// it is a degenerate curve (a cusp) which goes to the midpoint and comes back, so it must be kept.
+		if cur.x == x1 && cur.y == y1 && cur.x == x2 && cur.y == y2 {
 			return
 		}
 	}
@@ -678,15 +677,18 @@ func (p *Path) normalize() {
 				cur = op.p1
 			case opTypeQuadTo:
 				switch {
-				case cur == op.p2 && cur == op.p1:
+				case cur == op.p1 && op.p1 == op.p2:
 					// A single point: drop it.
 					continue
+				case cur == op.p2:
+					// A degenerate curve (a cusp), which goes to the midpoint and comes back. Keep it as a curve.
+					cur = op.p2
 				case cur == op.p1, op.p1 == op.p2:
 					op.typ = opTypeLineTo
 					op.p1 = op.p2
 					op.p2 = point{}
 					cur = op.p1
-				case cur != op.p2 && (op.p1.x-cur.x)*(op.p2.y-cur.y)-(op.p2.x-cur.x)*(op.p1.y-cur.y) == 0:
+				case (op.p1.x-cur.x)*(op.p2.y-cur.y)-(op.p2.x-cur.x)*(op.p1.y-cur.y) == 0:
 					op.typ = opTypeLineTo
 					op.p1 = op.p2
 					op.p2 = point{}
