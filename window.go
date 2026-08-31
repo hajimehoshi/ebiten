@@ -162,7 +162,8 @@ func SetWindowIcon(iconImages []image.Image) {
 // The origin position is the upper-left corner of the current monitor.
 // The unit is device-independent pixels.
 //
-// WindowPosition panics if the main loop does not start yet.
+// If the main loop does not start yet, WindowPosition returns the initial window position set by SetWindowPosition,
+// or (math.MinInt, math.MinInt) if it is not set.
 //
 // WindowPosition returns the original window position in fullscreen mode.
 //

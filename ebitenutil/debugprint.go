@@ -41,14 +41,16 @@ func init() {
 	debugPrintTextImage = ebiten.NewImageFromImage(img)
 }
 
-// DebugPrint draws the string str on the image at (0, 0) position (the upper-left corner in most cases).
+// DebugPrint draws the string str on the image at (1, 0) position (the upper-left corner in most cases).
+// The string is drawn with a one-pixel margin on the left.
 //
 // The available runes are in U+0000 to U+00FF, which is C0 Controls and Basic Latin and C1 Controls and Latin-1 Supplement.
 func DebugPrint(image *ebiten.Image, str string) {
 	DebugPrintAt(image, str, 0, 0)
 }
 
-// DebugPrintAt draws the string str on the image at (x, y) position.
+// DebugPrintAt draws the string str on the image at (x+1, y) position.
+// The string is drawn with a one-pixel margin on the left.
 //
 // The available runes are in U+0000 to U+00FF, which is C0 Controls and Basic Latin and C1 Controls and Latin-1 Supplement.
 func DebugPrintAt(image *ebiten.Image, str string, x, y int) {

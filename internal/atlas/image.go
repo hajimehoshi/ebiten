@@ -251,7 +251,7 @@ type imageImpl struct {
 	// usedAsDestinationCount represents how many times an image is used as a rendering destination at DrawTriangles.
 	// usedAsDestinationCount affects the calculation when to put the image onto a texture atlas again.
 	//
-	// usedAsDestinationCount is never reset.
+	// usedAsDestinationCount is reset when the image is deallocated or when its backend is gone.
 	usedAsDestinationCount int
 }
 

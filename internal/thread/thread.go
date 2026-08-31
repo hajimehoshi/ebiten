@@ -50,7 +50,7 @@ func NewOSThread() *OSThread {
 	}
 }
 
-// Loop starts the thread loop until Stop is called on the current OS thread.
+// Loop starts the thread loop until ctx is canceled.
 //
 // Loop returns ctx's error if exists.
 //

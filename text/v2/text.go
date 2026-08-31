@@ -417,8 +417,6 @@ func Measure(text string, face Face, lineSpacingInPixels float64) (width, height
 
 // CacheGlyphs pre-caches the glyphs for the given text and the given font face into the cache.
 //
-// CacheGlyphs doesn't treat multiple lines.
-//
 // Glyphs used for rendering are cached in the least-recently-used way.
 // Then old glyphs might be evicted from the cache.
 // As the cache capacity has limitations, it is not guaranteed that all the glyphs for runes given at CacheGlyphs are cached.
