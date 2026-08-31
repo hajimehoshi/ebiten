@@ -4585,6 +4585,47 @@ func TestImageDrawTrianglesShaderWithGreaterIndexThanVerticesCount(t *testing.T)
 	dst.DrawTrianglesShader(vs, is, shader, nil)
 }
 
+// An index not less than 2^31 must panic even on a 32-bit platform, where int(idx) would otherwise wrap to a negative value.
+func TestImageDrawTriangles32WithGreaterIndexThanVerticesCount(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("DrawTriangles32 must panic but not")
+		}
+	}()
+
+	const w, h = 16, 16
+	dst := ebiten.NewImage(w, h)
+	src := ebiten.NewImage(w, h)
+
+	vs := make([]ebiten.Vertex, 4)
+	is := []uint32{0, 1, 2, 1, 2, math.MaxUint32}
+	dst.DrawTriangles32(vs, is, src, nil)
+}
+
+func TestImageDrawTrianglesShader32WithGreaterIndexThanVerticesCount(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("DrawTrianglesShader32 must panic but not")
+		}
+	}()
+
+	const w, h = 16, 16
+	dst := ebiten.NewImage(w, h)
+
+	vs := make([]ebiten.Vertex, 4)
+	is := []uint32{0, 1, 2, 1, 2, math.MaxUint32}
+	shader, err := ebiten.NewShader([]byte(`
+		package main
+		func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+			return color
+		}
+	`))
+	if err != nil {
+		t.Fatalf("could not compile shader: %v", err)
+	}
+	dst.DrawTrianglesShader32(vs, is, shader, nil)
+}
+
 // Issue #2733
 func TestImageGeoMAfterDraw(t *testing.T) {
 	src := ebiten.NewImage(1, 1)
