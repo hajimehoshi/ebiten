@@ -619,12 +619,12 @@ func (i *Image) DrawTriangles32(vertices []Vertex, indices []uint32, img *Image,
 		return
 	}
 
-	if options != nil && (options.FillRule != FillRuleFillAll || options.AntiAlias) {
-		drawTrianglesWithStencilBuffer(i, vertices, indices, img, options)
+	if len(indices) == 0 {
 		return
 	}
 
-	if len(indices) == 0 {
+	if options != nil && (options.FillRule != FillRuleFillAll || options.AntiAlias) {
+		drawTrianglesWithStencilBuffer(i, vertices, indices, img, options)
 		return
 	}
 
@@ -843,12 +843,12 @@ func (i *Image) DrawTrianglesShader32(vertices []Vertex, indices []uint32, shade
 		panic("ebiten: the given shader to DrawTrianglesShader must not be disposed")
 	}
 
-	if options != nil && (options.FillRule != FillRuleFillAll || options.AntiAlias) {
-		drawTrianglesShaderWithStencilBuffer(i, vertices, indices, shader, options)
+	if len(indices) == 0 {
 		return
 	}
 
-	if len(indices) == 0 {
+	if options != nil && (options.FillRule != FillRuleFillAll || options.AntiAlias) {
+		drawTrianglesShaderWithStencilBuffer(i, vertices, indices, shader, options)
 		return
 	}
 

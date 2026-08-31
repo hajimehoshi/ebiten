@@ -15,8 +15,10 @@
 package ebiten_test
 
 import (
+	"fmt"
 	"image"
 	"image/color"
+	"strings"
 	"testing"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -177,6 +179,142 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 					}
 				}
 			}
+		})
+	}
+}
+
+func TestImageDrawTrianglesWithStencilBufferWithEmptyIndices(t *testing.T) {
+	src := ebiten.NewImage(3, 3)
+	src.Fill(color.White)
+
+	shader, err := ebiten.NewShader([]byte(`//kage:unit pixels
+
+package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return color
+}
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// BlendCopy with a FillRule draw must not clear the destination even if
+	// there is nothing to draw.
+	for _, tc := range []struct {
+		name string
+		draw func(dst *ebiten.Image)
+	}{
+		{
+			name: "FillRuleBlendCopy",
+			draw: func(dst *ebiten.Image) {
+				dst.DrawTriangles32(nil, nil, src, &ebiten.DrawTrianglesOptions{
+					FillRule:      ebiten.FillRuleNonZero,
+					CompositeMode: ebiten.CompositeModeCustom,
+					Blend:         ebiten.BlendCopy,
+				})
+			},
+		},
+		{
+			name: "ShaderFillRuleBlendCopy",
+			draw: func(dst *ebiten.Image) {
+				dst.DrawTrianglesShader32(nil, nil, shader, &ebiten.DrawTrianglesShaderOptions{
+					FillRule:      ebiten.FillRuleNonZero,
+					CompositeMode: ebiten.CompositeModeCustom,
+					Blend:         ebiten.BlendCopy,
+				})
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			want := color.RGBA{0xff, 0, 0, 0xff}
+			dst := ebiten.NewImage(3, 3)
+			dst.Fill(want)
+
+			// This must be a no-op.
+			tc.draw(dst)
+
+			for j := range 3 {
+				for i := range 3 {
+					if got := dst.At(i, j).(color.RGBA); got != want {
+						t.Errorf("pixel (%d, %d): got %v, want %v", i, j, got, want)
+					}
+				}
+			}
+		})
+	}
+}
+
+func TestImageDrawTrianglesWithStencilBufferWithEmptyIndicesStateChecks(t *testing.T) {
+	const (
+		msgDisposedImage  = "ebiten: the given image to DrawTriangles must not be disposed"
+		msgDisposedShader = "ebiten: the given shader to DrawTrianglesShader must not be disposed"
+	)
+
+	disposedShader, err := ebiten.NewShader([]byte(`//kage:unit pixels
+
+package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return color
+}
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	disposedShader.Dispose()
+
+	disposedImage := ebiten.NewImage(3, 3)
+	disposedImage.Dispose()
+
+	// The empty-indices check must be below the disposed checks, so that an
+	// empty draw detects an invalid source in the same way as a non-empty
+	// draw does.
+	for _, tc := range []struct {
+		name string
+		draw func(dst *ebiten.Image)
+		msg  string
+	}{
+		{
+			name: "DisposedSourceImage",
+			draw: func(dst *ebiten.Image) {
+				dst.DrawTriangles32(nil, nil, disposedImage, &ebiten.DrawTrianglesOptions{FillRule: ebiten.FillRuleNonZero})
+			},
+			msg: msgDisposedImage,
+		},
+		{
+			name: "DisposedShader",
+			draw: func(dst *ebiten.Image) {
+				dst.DrawTrianglesShader32(nil, nil, disposedShader, &ebiten.DrawTrianglesShaderOptions{FillRule: ebiten.FillRuleNonZero})
+			},
+			msg: msgDisposedShader,
+		},
+		{
+			name: "DisposedDestination",
+			draw: func(dst *ebiten.Image) {
+				dst.Dispose()
+				dst.DrawTriangles32(nil, nil, nil, &ebiten.DrawTrianglesOptions{FillRule: ebiten.FillRuleNonZero})
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			dst := ebiten.NewImage(3, 3)
+			defer func() {
+				r := recover()
+				if tc.msg == "" {
+					if r != nil {
+						t.Fatalf("an empty draw must not panic, but it did: %v", r)
+					}
+					return
+				}
+				if r == nil {
+					t.Fatalf("an empty draw must panic with %q, but it did not", tc.msg)
+				}
+				if got := fmt.Sprint(r); !strings.Contains(got, tc.msg) {
+					t.Fatalf("an empty draw panicked with %q, but it must panic with %q", got, tc.msg)
+				}
+			}()
+			tc.draw(dst)
 		})
 	}
 }
