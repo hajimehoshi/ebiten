@@ -346,7 +346,7 @@ func TestDecodeSeekOutOfRangeLeavesStreamIntact(t *testing.T) {
 			}
 
 			if _, err := s.Seek(tc.offset, tc.whence); err == nil {
-				t.Fatalf("Seek(%d, %d): got no error, want an error", tc.offset, tc.whence)
+				t.Errorf("Seek(%d, %d): got no error, want an error", tc.offset, tc.whence)
 			}
 
 			b := make([]byte, 8)
@@ -355,10 +355,10 @@ func TestDecodeSeekOutOfRangeLeavesStreamIntact(t *testing.T) {
 				t.Fatal(err)
 			}
 			if n != len(b) {
-				t.Fatalf("Read: got %d bytes, want %d", n, len(b))
+				t.Errorf("Read: got %d bytes, want %d", n, len(b))
 			}
 			if want := data[pos : pos+len(b)]; !bytes.Equal(b, want) {
-				t.Fatalf("Read after a failed Seek: got %#x, want %#x", b, want)
+				t.Errorf("Read after a failed Seek: got %#x, want %#x", b, want)
 			}
 		})
 	}
