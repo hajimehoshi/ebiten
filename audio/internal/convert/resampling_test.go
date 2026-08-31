@@ -605,3 +605,58 @@ func TestResamplingUnknownLengthEmptySource(t *testing.T) {
 		})
 	}
 }
+
+var errStalled = errors.New("stalled")
+
+// stalledReadSeeker reports its source's end as (0, nil) instead of io.EOF,
+// and returns errStalled when zero reads repeat.
+type stalledReadSeeker struct {
+	src       io.ReadSeeker
+	zeroReads int
+}
+
+func (s *stalledReadSeeker) Read(buf []byte) (int, error) {
+	n, err := s.src.Read(buf)
+	if err == io.EOF {
+		s.zeroReads++
+		if s.zeroReads > 16 {
+			return 0, errStalled
+		}
+		return 0, nil
+	}
+	if n > 0 {
+		s.zeroReads = 0
+	}
+	return n, err
+}
+
+func (s *stalledReadSeeker) Seek(offset int64, whence int) (int64, error) {
+	return s.src.Seek(offset, whence)
+}
+
+func TestResamplingZeroReadSource(t *testing.T) {
+	const (
+		from = 44100
+		to   = 48000
+	)
+
+	for _, bitDepthInBytes := range []int{2, 4} {
+		t.Run(fmt.Sprintf("bitDepthInBytes=%d", bitDepthInBytes), func(t *testing.T) {
+			inB := newSoundBytes(from, bitDepthInBytes)
+
+			wantB, err := io.ReadAll(convert.NewResampling(bytes.NewReader(inB), int64(len(inB)), from, to, bitDepthInBytes))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			src := &stalledReadSeeker{src: bytes.NewReader(inB)}
+			gotB, err := io.ReadAll(convert.NewResampling(src, int64(len(inB)), from, to, bitDepthInBytes))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !bytes.Equal(gotB, wantB) {
+				t.Errorf("io.ReadAll returned %d bytes, want the same %d bytes as a source reporting io.EOF", len(gotB), len(wantB))
+			}
+		})
+	}
+}

@@ -173,6 +173,10 @@ func (r *Resampling) src(i int64) (float64, float64, error) {
 				}
 				return 0, 0, err
 			}
+			// A source making no progress must not spin here.
+			if n == 0 {
+				break
+			}
 		}
 		buf = buf[:c]
 		sl := make([]float64, resamplingBufferSize)
