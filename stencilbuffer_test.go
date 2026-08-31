@@ -181,8 +181,6 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	}
 }
 
-// A disposed destination must make DrawTriangles and DrawTrianglesShader do
-// nothing, even on the stencil-buffer path taken by FillRule and AntiAlias.
 func TestImageDrawTrianglesWithStencilBufferOnDisposedDestination(t *testing.T) {
 	src := ebiten.NewImage(3, 3)
 	src.Fill(color.White)
@@ -206,18 +204,30 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 		name string
 		draw func(dst *ebiten.Image)
 	}{
-		{"FillRule", func(dst *ebiten.Image) {
-			dst.DrawTriangles32(vs, is, src, &ebiten.DrawTrianglesOptions{FillRule: ebiten.FillRuleNonZero})
-		}},
-		{"AntiAlias", func(dst *ebiten.Image) {
-			dst.DrawTriangles32(vs, is, src, &ebiten.DrawTrianglesOptions{AntiAlias: true})
-		}},
-		{"ShaderFillRule", func(dst *ebiten.Image) {
-			dst.DrawTrianglesShader32(vs, is, shader, &ebiten.DrawTrianglesShaderOptions{FillRule: ebiten.FillRuleNonZero})
-		}},
-		{"ShaderAntiAlias", func(dst *ebiten.Image) {
-			dst.DrawTrianglesShader32(vs, is, shader, &ebiten.DrawTrianglesShaderOptions{AntiAlias: true})
-		}},
+		{
+			name: "FillRule",
+			draw: func(dst *ebiten.Image) {
+				dst.DrawTriangles32(vs, is, src, &ebiten.DrawTrianglesOptions{FillRule: ebiten.FillRuleNonZero})
+			},
+		},
+		{
+			name: "AntiAlias",
+			draw: func(dst *ebiten.Image) {
+				dst.DrawTriangles32(vs, is, src, &ebiten.DrawTrianglesOptions{AntiAlias: true})
+			},
+		},
+		{
+			name: "ShaderFillRule",
+			draw: func(dst *ebiten.Image) {
+				dst.DrawTrianglesShader32(vs, is, shader, &ebiten.DrawTrianglesShaderOptions{FillRule: ebiten.FillRuleNonZero})
+			},
+		},
+		{
+			name: "ShaderAntiAlias",
+			draw: func(dst *ebiten.Image) {
+				dst.DrawTrianglesShader32(vs, is, shader, &ebiten.DrawTrianglesShaderOptions{AntiAlias: true})
+			},
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			dst := ebiten.NewImage(3, 3)
