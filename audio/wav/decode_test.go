@@ -292,6 +292,78 @@ func TestDecodeSeekInvalidWhence(t *testing.T) {
 	}
 }
 
+func TestDecodeSeekOutOfRangeLeavesStreamIntact(t *testing.T) {
+	const size = 8000
+	const headerFill = 0x5a
+	data := make([]byte, size)
+	for i := range data {
+		data[i] = byte(i)
+	}
+	// A large chunk before 'fmt ' pushes the data chunk far from the file
+	// start, so that a small negative offset resolves inside the header.
+	header := bytes.Repeat([]byte{headerFill}, 200)
+	buf := wavFile(testSampleRate, []chunk{{id: "LIST", data: string(header)}}, nil, data)
+
+	const pos = 4
+	for _, tc := range []struct {
+		name   string
+		offset int64
+		whence int
+	}{
+		{
+			name:   "SeekStartNegative",
+			offset: -100,
+			whence: io.SeekStart,
+		},
+		{
+			name:   "SeekStartPastEnd",
+			offset: size + 4,
+			whence: io.SeekStart,
+		},
+		{
+			name:   "SeekCurrentNegative",
+			offset: -100,
+			whence: io.SeekCurrent,
+		},
+		{
+			name:   "SeekEndBeforeStart",
+			offset: -(size + 100),
+			whence: io.SeekEnd,
+		},
+		{
+			name:   "SeekEndPastEnd",
+			offset: 100,
+			whence: io.SeekEnd,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			s, err := wav.DecodeWithoutResampling(bytes.NewReader(buf))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err := s.Seek(pos, io.SeekStart); err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := s.Seek(tc.offset, tc.whence); err == nil {
+				t.Errorf("Seek(%d, %d): got no error, want an error", tc.offset, tc.whence)
+			}
+
+			b := make([]byte, 8)
+			n, err := s.Read(b)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if n != len(b) {
+				t.Errorf("Read: got %d bytes, want %d", n, len(b))
+			}
+			if want := data[pos : pos+len(b)]; !bytes.Equal(b, want) {
+				t.Errorf("Read after a failed Seek: got %#x, want %#x", b, want)
+			}
+		})
+	}
+}
+
 func TestDecodeInvalidSampleRate(t *testing.T) {
 	testCases := []struct {
 		name       string
