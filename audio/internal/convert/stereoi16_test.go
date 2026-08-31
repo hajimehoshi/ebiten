@@ -540,3 +540,95 @@ func TestStereoI16SeekCurrentAfterShortRead(t *testing.T) {
 		}
 	}
 }
+
+func TestStereoI16SeekOutOfRangeLeavesStreamIntact(t *testing.T) {
+	const frames = 100
+	// The stream is always stereo i16 (4 bytes per frame).
+	const streamLen = frames * 4
+	// pos is a frame boundary inside the stream.
+	const pos = 40
+
+	testCases := []struct {
+		name   string
+		offset int64
+		whence int
+	}{
+		{
+			name:   "SeekStartNegative",
+			offset: -4,
+			whence: io.SeekStart,
+		},
+		{
+			name:   "SeekStartPastEnd",
+			offset: streamLen + 4,
+			whence: io.SeekStart,
+		},
+		{
+			name:   "SeekCurrentNegative",
+			offset: -streamLen,
+			whence: io.SeekCurrent,
+		},
+		{
+			name:   "SeekCurrentPastEnd",
+			offset: streamLen,
+			whence: io.SeekCurrent,
+		},
+		{
+			name:   "SeekEndBeforeStart",
+			offset: -streamLen - 4,
+			whence: io.SeekEnd,
+		},
+		{
+			name:   "SeekEndPastEnd",
+			offset: 4,
+			whence: io.SeekEnd,
+		},
+	}
+
+	for _, f := range stereoI16Formats {
+		for _, mono := range []bool{false, true} {
+			frameSize := f.unit
+			if !mono {
+				frameSize *= 2
+			}
+			src := randBytes(frames * frameSize)
+			whole := stereoI16Bytes(src, mono, f.format, f.unit)
+			for _, tc := range testCases {
+				t.Run(fmt.Sprintf("format=%s,mono=%t,%s", f.name, mono, tc.name), func(t *testing.T) {
+					// maxN is not a multiple of the source frame size, so an incomplete frame
+					// remains buffered after a Read.
+					s := convert.NewStereoI16ReadSeeker(&boundedSeeker{r: &dribbleReader{r: bytes.NewReader(src), maxN: 5}, size: int64(len(src))}, mono, f.format)
+
+					if _, err := s.Seek(pos, io.SeekStart); err != nil {
+						t.Fatal(err)
+					}
+					n, err := s.Read(make([]byte, 64))
+					if err != nil {
+						t.Fatal(err)
+					}
+					want := int64(pos + n)
+
+					if _, err := s.Seek(tc.offset, tc.whence); err == nil {
+						t.Errorf("Seek(%d, %d): got no error, want an error", tc.offset, tc.whence)
+					}
+
+					cur, err := s.Seek(0, io.SeekCurrent)
+					if err != nil {
+						t.Fatal(err)
+					}
+					if cur != want {
+						t.Errorf("Seek(0, io.SeekCurrent) after a rejected Seek(%d, %d): got %d, want %d", tc.offset, tc.whence, cur, want)
+					}
+
+					got := make([]byte, 16)
+					if _, err := io.ReadFull(s, got); err != nil {
+						t.Fatal(err)
+					}
+					if w := whole[want : want+int64(len(got))]; !bytes.Equal(got, w) {
+						t.Errorf("reading after a rejected Seek(%d, %d): got % x, want % x", tc.offset, tc.whence, got, w)
+					}
+				})
+			}
+		}
+	}
+}

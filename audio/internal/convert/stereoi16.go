@@ -182,8 +182,16 @@ func (s *StereoI16ReadSeeker) Seek(offset int64, whence int) (int64, error) {
 		// The source length is not necessarily a multiple of the frame size.
 		// Resolve the offset from the last whole frame so that the source is
 		// never seeked to the middle of a frame.
+		cur, err := s.source.Seek(0, io.SeekCurrent)
+		if err != nil {
+			return 0, err
+		}
 		end, err := s.source.Seek(0, io.SeekEnd)
 		if err != nil {
+			return 0, err
+		}
+		// Undo the probe so that a rejected seek leaves the source where it was.
+		if _, err := s.source.Seek(cur, io.SeekStart); err != nil {
 			return 0, err
 		}
 		frameSize := s.sourceFrameSize()
@@ -191,13 +199,15 @@ func (s *StereoI16ReadSeeker) Seek(offset int64, whence int) (int64, error) {
 		whence = io.SeekStart
 	}
 
-	s.buf = s.buf[:0]
-	s.eof = false
-
 	pos, err := s.source.Seek(offset, whence)
 	if err != nil {
 		return 0, err
 	}
+
+	// Drop the buffered bytes only after the seek has succeeded, as the position this
+	// wrapper presents is behind the source by their length.
+	s.buf = s.buf[:0]
+	s.eof = false
 
 	// Convert the returned position from the source format's byte space to the
 	// stereo-i16 byte space this wrapper presents.

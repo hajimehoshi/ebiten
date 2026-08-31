@@ -107,8 +107,16 @@ func (r *float32BytesReader) Seek(offset int64, whence int) (int64, error) {
 	case io.SeekEnd:
 		// The source length is not necessarily a multiple of the sample size. Resolve the offset
 		// from the last whole sample so that the source is never seeked to the middle of a sample.
+		cur, err := s.Seek(0, io.SeekCurrent)
+		if err != nil {
+			return 0, err
+		}
 		end, err := s.Seek(0, io.SeekEnd)
 		if err != nil {
+			return 0, err
+		}
+		// Undo the probe so that a rejected seek leaves the source where it was.
+		if _, err := s.Seek(cur, io.SeekStart); err != nil {
 			return 0, err
 		}
 		offset += end / 2 * 2
@@ -117,11 +125,14 @@ func (r *float32BytesReader) Seek(offset int64, whence int) (int64, error) {
 		return 0, fmt.Errorf("convert: whence must be io.SeekStart, io.SeekCurrent, or io.SeekEnd but was %d", whence)
 	}
 
-	r.i16Buf = r.i16Buf[:0]
-	r.eof = false
 	n, err := s.Seek(offset, whence)
 	if err != nil {
 		return 0, err
 	}
+
+	// Drop the buffered bytes only after the seek has succeeded, as the position this
+	// reader presents is behind the source by their length.
+	r.i16Buf = r.i16Buf[:0]
+	r.eof = false
 	return n / 2 * 4, nil
 }
