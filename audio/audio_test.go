@@ -285,6 +285,32 @@ func TestRewindNonSeekableBeforeDeviceCreation(t *testing.T) {
 	}
 }
 
+func TestSameSourceForMultiplePlayers(t *testing.T) {
+	setup()
+	defer teardown()
+
+	src := bytes.NewReader(make([]byte, 4))
+
+	p1, err := context.NewPlayer(src)
+	if err != nil {
+		t.Fatal(err)
+	}
+	p1.Play()
+
+	p2, err := context.NewPlayer(src)
+	if err != nil {
+		t.Fatal(err)
+	}
+	p2.Play()
+
+	p1.Pause()
+	p2.Pause()
+
+	if err := audio.UpdateForTesting(); err == nil {
+		t.Error("UpdateForTesting() must return an error, but did not")
+	}
+}
+
 type uncomparableSource []int
 
 func (uncomparableSource) Read(buf []byte) (int, error) {
