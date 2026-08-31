@@ -28,7 +28,7 @@ var _ Face = (*MultiFace)(nil)
 // The face in the first index is used in the highest priority, and the last the lowest priority.
 //
 // There is a known issue: if the writing directions of the faces don't agree, the rendering result might be messed up.
-// NewMultiFace rejects such faces, but a face's direction can be changed after the creation (e.g. [GoTextFace.Direction]).
+// [NewMultiFace] rejects such faces, but a face's direction can be changed after the creation (e.g. [GoTextFace.Direction]).
 type MultiFace struct {
 	faces []Face
 
