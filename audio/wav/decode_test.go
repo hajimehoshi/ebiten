@@ -292,6 +292,43 @@ func TestDecodeSeekInvalidWhence(t *testing.T) {
 	}
 }
 
+// A failed Seek must leave the stream usable. The old code seeked the
+// underlying source before validating the resolved position, so a small
+// negative seek into a file with a large header moved the source into the
+// header region, and the next Read returned header bytes as audio.
+func TestDecodeSeekOutOfRangeLeavesStreamIntact(t *testing.T) {
+	const dataFill = 0xab
+	const headerFill = 0x5a
+	data := bytes.Repeat([]byte{dataFill}, 8000)
+	// A large chunk before 'fmt ' pushes the data chunk far from the file
+	// start, so that a small negative offset resolves inside the header.
+	header := bytes.Repeat([]byte{headerFill}, 200)
+	buf := wavFile(testSampleRate, []chunk{{id: "LIST", data: string(header)}}, nil, data)
+
+	s, err := wav.DecodeWithoutResampling(bytes.NewReader(buf))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := s.Seek(-100, io.SeekStart); err == nil {
+		t.Fatal("Seek(-100, io.SeekStart): got no error, want an error")
+	}
+
+	b := make([]byte, 8)
+	n, err := s.Read(b)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n != len(b) {
+		t.Fatalf("Read: got %d bytes, want %d", n, len(b))
+	}
+	for i := range b {
+		if b[i] != dataFill {
+			t.Fatalf("Read after a failed Seek returned byte %d = %#x, want %#x; the stream leaked header bytes", i, b[i], dataFill)
+		}
+	}
+}
+
 func TestDecodeInvalidSampleRate(t *testing.T) {
 	testCases := []struct {
 		name       string

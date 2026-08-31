@@ -59,23 +59,30 @@ func (s *sectionReader) Seek(offset int64, whence int) (int64, error) {
 		panic("wav: s.src must be io.Seeker but not")
 	}
 
+	// Resolve the target position within the section and validate it before
+	// touching the underlying source, so that a rejected seek leaves both the
+	// source position and s.pos as they were. Seeking first and checking after
+	// would leave the source inside the header when the resolved position is
+	// negative, and the next Read would then return header bytes as audio.
+	var pos int64
 	switch whence {
 	case io.SeekStart:
-		offset += s.offset
+		pos = offset
 	case io.SeekCurrent:
+		pos = s.pos + offset
 	case io.SeekEnd:
-		offset += s.offset + s.size
-		whence = io.SeekStart
+		pos = s.size + offset
 	default:
 		return 0, fmt.Errorf("wav: whence must be io.SeekStart, io.SeekCurrent, or io.SeekEnd but was %d", whence)
 	}
-	n, err := seeker.Seek(offset, whence)
+	if pos < 0 || pos > s.size {
+		return 0, fmt.Errorf("wav: position is out of range")
+	}
+
+	n, err := seeker.Seek(pos+s.offset, io.SeekStart)
 	if err != nil {
 		return 0, err
 	}
 	s.pos = n - s.offset
-	if s.pos < 0 || s.pos > s.size {
-		return 0, fmt.Errorf("wav: position is out of range")
-	}
 	return s.pos, nil
 }
