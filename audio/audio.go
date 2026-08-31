@@ -207,18 +207,20 @@ func (c *Context) addPlayingPlayer(p *playerImpl) {
 	defer c.m.Unlock()
 	c.playingPlayers[p] = struct{}{}
 
-	if !reflect.ValueOf(p.sourceIdent()).Comparable() {
-		return
-	}
-
-	// Check the source duplication
+	// Check the source duplication. The comparability must be checked for
+	// every playing player, not only for the added one: an earlier player may
+	// have an uncomparable source, and hashing it below would panic.
 	srcs := map[any]struct{}{}
 	for p := range c.playingPlayers {
-		if _, ok := srcs[p.sourceIdent()]; ok {
+		ident := p.sourceIdent()
+		if !reflect.ValueOf(ident).Comparable() {
+			continue
+		}
+		if _, ok := srcs[ident]; ok {
 			c.err = errors.New("audio: the same source must not be used by multiple Player objects")
 			return
 		}
-		srcs[p.sourceIdent()] = struct{}{}
+		srcs[ident] = struct{}{}
 	}
 }
 
