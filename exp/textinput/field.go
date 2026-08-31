@@ -253,19 +253,14 @@ func (f *Field) IsFocused() bool {
 func (f *Field) cleanUp() {
 	clearVirtualKeyboardFromUI()
 
-	if f.err != nil {
-		return
-	}
-
-	// If the text field still has a session, read the last state and process it just in case.
-	if f.ch != nil {
+	// If the text field still has a session without a recorded error, read
+	// the last state and process it just in case.
+	if f.err == nil && f.ch != nil {
 		select {
 		case state, ok := <-f.ch:
 			if state.Error != nil {
 				f.err = state.Error
-				return
-			}
-			if ok && state.CommitKind.committed() {
+			} else if ok && state.CommitKind.committed() {
 				f.commit(state)
 			} else {
 				f.state = state
@@ -275,6 +270,8 @@ func (f *Field) cleanUp() {
 		}
 	}
 
+	// The platform holds the session until its end callback runs, even after
+	// the session reported an error, so end the session here.
 	if f.end != nil {
 		f.end()
 		f.ch = nil

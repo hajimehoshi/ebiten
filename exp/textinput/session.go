@@ -99,8 +99,8 @@ func (s *session) loadComposition() Composition {
 
 // markClosed transitions s to closed and clears the active-session pointer if
 // it points at s. callPlatformEnd controls whether to invoke the platform end
-// callback; pass false when the platform itself has already ended (channel
-// closed from below).
+// callback, which releases what the platform holds for the session; pass
+// false only when the platform tore the session down by itself.
 func (s *session) markClosed(callPlatformEnd bool) {
 	if s.events.takeEndedByUser() {
 		s.state = sessionStateClosedByUser
@@ -177,7 +177,9 @@ func (s *session) Update() error {
 				return nil
 			}
 			if st.Error != nil {
-				s.markClosed(false)
+				// The platform holds the session even after it reported an
+				// error, so release it here as the commit path does.
+				s.markClosed(true)
 				return st.Error
 			}
 			if st.CommitKind.committed() {
