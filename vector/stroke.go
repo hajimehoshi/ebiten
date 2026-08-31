@@ -198,7 +198,7 @@ func appendParalleledPathFromSubPathReversed(strokePath *Path, subPath *subPath,
 
 	// As the source path is normalized, every operation is guaranteed to be valid.
 	// A line operation must have a different point from the start point.
-	// A quadratic curve operation must have create a curve, not a line.
+	// A quadratic curve operation must not be a single point, but can be a degenerate curve whose start and end points are the same.
 
 	for i, op := range slices.Backward(subPath.ops) {
 		nextP := subPath.startAtOp(i)
