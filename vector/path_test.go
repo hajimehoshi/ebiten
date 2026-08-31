@@ -542,8 +542,6 @@ func TestStrokeMiterJoinNearlyCollinear(t *testing.T) {
 	}
 }
 
-// A quadratic curve whose start and end coincide but whose control point
-// differs is a real loop, not a degenerate point, and must be kept.
 func TestQuadLoopIsKept(t *testing.T) {
 	var p vector.Path
 	p.MoveTo(0, 0)
