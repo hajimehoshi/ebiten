@@ -584,3 +584,33 @@ func TestPositionNotGrowingAfterFinished(t *testing.T) {
 		t.Errorf("position grew after the player finished: %v -> %v", end, got)
 	}
 }
+
+func TestNewPlayerWithSourceOfClosedPlayer(t *testing.T) {
+	setup()
+	defer teardown()
+
+	src := bytes.NewReader(make([]byte, 256))
+
+	p0, err := context.NewPlayer(src)
+	if err != nil {
+		t.Fatal(err)
+	}
+	p0.Play()
+	if err := audio.UpdateForTesting(); err != nil {
+		t.Fatal(err)
+	}
+	if err := p0.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	// A closed player no longer owns its source, so a new player can take the source over
+	// immediately.
+	p1, err := context.NewPlayer(src)
+	if err != nil {
+		t.Fatal(err)
+	}
+	p1.Play()
+	if err := audio.UpdateForTesting(); err != nil {
+		t.Errorf("UpdateForTesting after a new player took the source of a closed player over: %v", err)
+	}
+}

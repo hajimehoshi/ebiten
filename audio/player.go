@@ -405,6 +405,8 @@ func (p *playerImpl) Close() error {
 	p.closed = true
 	p.pendingPlay = false
 
+	p.context.removePlayingPlayer(p)
+
 	if p.player != nil {
 		defer func() {
 			p.player = nil
