@@ -178,6 +178,9 @@ func (s *subPath) endDir(index int) vec2 {
 }
 
 // Path represents a collection of vector graphics operations.
+//
+// All the coordinates in a path must be finite.
+// A path with a non-finite coordinate produces an undefined result.
 type Path struct {
 	subPaths []subPath
 
@@ -464,6 +467,7 @@ func (p *Path) currentPosition() (point, bool) {
 // (x1, y1) is the corner point where the two tangent lines meet, and (x2, y2) gives the direction of the second
 // tangent line. The arc ends at the tangent point on the second tangent line, which is at the distance of
 // radius / tan(θ/2) from (x1, y1), where θ is the angle at (x1, y1) between the two rays.
+// radius must be non-negative. A negative radius produces an undefined result.
 func (p *Path) ArcTo(x1, y1, x2, y2, radius float32) {
 	p0, ok := p.currentPosition()
 	if !ok {
@@ -545,6 +549,7 @@ func euclideanMod(a, b float32) float32 {
 
 // Arc adds an arc to the path.
 // (x, y) is the center of the arc.
+// radius must be non-negative. A negative radius produces an undefined result.
 func (p *Path) Arc(x, y, radius, startAngle, endAngle float32, dir Direction) {
 	origStartAngle := startAngle
 	origEndAngle := endAngle

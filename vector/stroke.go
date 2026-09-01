@@ -58,9 +58,11 @@ type StrokeOptions struct {
 	LineJoin LineJoin
 
 	// MiterLimit is the miter limit for [LineJoinMiter].
+	// A join whose miter ratio exceeds MiterLimit is rendered as a bevel join instead.
+	// The ratio is always 1 or greater, so a MiterLimit less than 1 renders every join as a bevel join.
 	// For details, see https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/stroke-miterlimit.
 	//
-	// The default (zero) value is 0.
+	// The default (zero) value is 0, which renders every join as a bevel join.
 	MiterLimit float32
 }
 
