@@ -206,6 +206,7 @@ func (i *Image) Dispose() {
 }
 
 func (i *Image) ReadPixels(args []graphicsdriver.PixelsArgs) error {
+	defer runtime.KeepAlive(args)
 	for _, a := range args {
 		region := C.ebitengine_Region{
 			min_x: C.int(a.Region.Min.X),
@@ -222,6 +223,7 @@ func (i *Image) ReadPixels(args []graphicsdriver.PixelsArgs) error {
 }
 
 func (i *Image) WritePixels(args []graphicsdriver.PixelsArgs) error {
+	defer runtime.KeepAlive(args)
 	for _, a := range args {
 		region := C.ebitengine_Region{
 			min_x: C.int(a.Region.Min.X),
